@@ -9,7 +9,7 @@ To download run the following command:
 ### 2. Configure
 Create a build directory in the newly checked out repository, and execute CMake from it.
 
-`mkdir -p amazon-kinesis-video-streams-webrtc-sdk-c/build && cd amazon-kinesis-video-streams-webrtc-sdk-c/build && cmake ..`
+`mkdir -p amazon-kinesis-video-streams-webrtc-sdk-c/build; cd amazon-kinesis-video-streams-webrtc-sdk-c/build; cmake .. `
 
 
 *TODO* Document all the available options
