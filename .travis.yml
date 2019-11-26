@@ -1,0 +1,22 @@
+language: cpp
+
+os:
+  - linux
+  - osx
+
+compiler:
+  - gcc
+  - clang
+
+branches:
+  only:
+  - master
+
+cache:
+- directories:
+  - $HOME/.cache
+
+script:
+  - mkdir build && cd build
+  - cmake ..
+  - make
