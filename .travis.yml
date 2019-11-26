@@ -18,5 +18,18 @@ cache:
 
 script:
   - mkdir build && cd build
-  - cmake ..
+  - |
+    if [[ "${TRAVIS_OS_NAME}" = "linux" && "${TRAVIS_COMPILER}" = "gcc" ]]; then
+      cmake .. -DCODE_COVERAGE=TRUE -DBUILD_TEST=TRUE
+    else
+      cmake .. -DBUILD_TEST=TRUE
+    fi
   - make
+  - ./tst/webrtc_client_test
+
+after_success:
+  - |
+    if [[ "${TRAVIS_OS_NAME}" = "linux" && "${TRAVIS_COMPILER}" = "gcc" ]]; then
+      for test_file in $(find CMakeFiles/kvsWebrtcClient.dir CMakeFiles/kvsWebrtcSignalingClient.dir -name '*.gcno'); do gcov $test_file; done
+      bash <(curl -s https://codecov.io/bash)
+    fi

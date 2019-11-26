@@ -1,13 +1,17 @@
 cmake_minimum_required(VERSION 2.8)
-
-set(CMAKE_MACOSX_RPATH TRUE)
-
 project(KinesisVideoWebRTCClient LANGUAGES C)
-get_filename_component(ROOT "${CMAKE_CURRENT_SOURCE_DIR}" ABSOLUTE)
 
+# User Flags
 option(ADD_MUCLIBC "Add -muclibc c flag" OFF)
 option(BUILD_DEPENDENCIES "Whether or not to build depending libraries from source" ON)
 option(BUILD_OPENSSL "If building dependencies, whether or not building openssl from source" OFF)
+
+# Developer Flags
+option(CODE_COVERAGE "Enable coverage reporting" OFF)
+option(BUILD_TEST "Build the testing tree." OFF)
+
+set(CMAKE_MACOSX_RPATH TRUE)
+get_filename_component(ROOT "${CMAKE_CURRENT_SOURCE_DIR}" ABSOLUTE)
 
 if(NOT KINESIS_VIDEO_PIC_SRC)
   if(DEFINED ENV{KINESIS_VIDEO_PIC_SRC})
@@ -263,8 +267,14 @@ endif()
 
 if("${CMAKE_C_COMPILER_ID}" MATCHES "GNU|Clang")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
+
   if(ADD_MUCLIBC)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -muclibc")
+  endif()
+
+  if(CODE_COVERAGE)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -g -fprofile-arcs -ftest-coverage")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage")
   endif()
 
   find_package(PkgConfig REQUIRED)
