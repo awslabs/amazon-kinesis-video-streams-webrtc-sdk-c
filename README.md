@@ -1,4 +1,6 @@
 # Amazon Kinesis Video Streams C WebRTC SDK
+[![Build Status](https://travis-ci.org/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c.svg?branch=master)](https://travis-ci.org/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c)
+[![Coverage Status](https://codecov.io/gh/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/branch/master/graph/badge.svg)](https://codecov.io/gh/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c)
 
 ## Running
 ### 1. Download
@@ -18,8 +20,6 @@ Create a build directory in the newly checked out repository, and execute CMake 
 To build the library and the provided samples run make in the build directory you executed CMake.
 
 `make`
-
-
 
 ## License
 
