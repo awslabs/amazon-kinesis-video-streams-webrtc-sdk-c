@@ -328,6 +328,7 @@ find_library(
 # Uncomment below line for very verbose logging
 # add_definitions(-DLOG_STREAMING)
 
+
 file(
   GLOB
   WEBRTC_CLIENT_SOURCE_FILES
@@ -345,6 +346,9 @@ file(
 file(GLOB WEBRTC_SIGNALING_CLIENT_SOURCE_FILES "src/source/Signaling/*.c")
 
 file(GLOB PIC_HEADERS "${KINESIS_VIDEO_PIC_SRC}/src/*/include")
+
+file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/samples/opusSampleFrames" DESTINATION .)
+file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/samples/h264SampleFrames" DESTINATION .)
 
 include_directories(${PIC_HEADERS})
 include_directories(${OPEN_SRC_INCLUDE_DIRS})
