@@ -1,0 +1,220 @@
+/**
+ * Kinesis Video Producer Host Info
+ */
+#define LOG_CLASS "Network"
+#include "../Include_i.h"
+
+STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    UINT32 ipCount = 0, destIpListLen;
+
+    struct ifaddrs *ifaddr = NULL, *ifa = NULL;
+    struct sockaddr_in *pIpv4Addr = NULL;
+    struct sockaddr_in6 *pIpv6Addr = NULL;
+
+    CHK(destIpList != NULL && pDestIpListLen != NULL, STATUS_NULL_ARG);
+    CHK(*pDestIpListLen != 0, STATUS_INVALID_ARG);
+    CHK(getifaddrs(&ifaddr) != -1, STATUS_GET_LOCAL_IP_ADDRESSES_FAILED);
+
+    destIpListLen = *pDestIpListLen;
+    for (ifa = ifaddr; ifa != NULL && ipCount < destIpListLen; ifa = ifa->ifa_next) {
+        if (ifa->ifa_addr != NULL &&
+            (ifa->ifa_flags & IFF_LOOPBACK) == 0 && // ignore loopback interface
+            (ifa->ifa_flags & IFF_RUNNING) > 0 && // interface has to be allocated
+            (ifa->ifa_addr->sa_family == AF_INET || ifa->ifa_addr->sa_family == AF_INET6)) {
+
+            // mark vpn interface
+            destIpList[ipCount].isPointToPoint = ((ifa->ifa_flags & IFF_POINTOPOINT) != 0);
+
+            if (ifa->ifa_addr->sa_family == AF_INET) {
+                destIpList[ipCount].family = KVS_IP_FAMILY_TYPE_IPV4;
+                destIpList[ipCount].port = 0;
+                pIpv4Addr = (struct sockaddr_in *) ifa->ifa_addr;
+                MEMCPY(destIpList[ipCount].address, &pIpv4Addr->sin_addr, IPV4_ADDRESS_LENGTH);
+
+            } else {
+                destIpList[ipCount].family = KVS_IP_FAMILY_TYPE_IPV6;
+                destIpList[ipCount].port = 0;
+                pIpv6Addr = (struct sockaddr_in6 *) ifa->ifa_addr;
+                MEMCPY(destIpList[ipCount].address, &pIpv6Addr->sin6_addr, IPV6_ADDRESS_LENGTH);
+            }
+
+            // in case of overfilling destIpList
+            ipCount++;
+        }
+    }
+
+CleanUp:
+
+    if (ifaddr != NULL) {
+        freeifaddrs(ifaddr);
+    }
+
+    if (pDestIpListLen != NULL) {
+        *pDestIpListLen = ipCount;
+    }
+
+    return retStatus;
+}
+
+STATUS createSocket(PKvsIpAddress pHostIpAddress, PKvsIpAddress pPeerAddress, KVS_SOCKET_PROTOCOL protocol, PINT32 pSockFd)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+
+    struct sockaddr_in ipv4Addr, ipv4PeerAddr;
+    struct sockaddr_in6 ipv6Addr, ipv6PeerAddr;
+    INT32 sockfd, sockType;
+    struct sockaddr *sockAddr = NULL, *peerSockAddr = NULL;
+    socklen_t addrLen;
+    CHAR ipAddrStr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
+
+    CHK(pHostIpAddress != NULL && pSockFd != NULL, STATUS_NULL_ARG);
+    CHK(protocol == KVS_SOCKET_PROTOCOL_UDP || pPeerAddress != NULL, STATUS_INVALID_ARG);
+    CHK(pPeerAddress == NULL || pPeerAddress->family == pHostIpAddress->family, STATUS_INVALID_ARG);
+
+    sockType = protocol == KVS_SOCKET_PROTOCOL_UDP ? SOCK_DGRAM : SOCK_STREAM;
+
+    sockfd = socket(pHostIpAddress->family == KVS_IP_FAMILY_TYPE_IPV4 ? AF_INET : AF_INET6, sockType, 0);
+    if (sockfd == -1) {
+        DLOGW("socket() failed to create socket with errno %s", strerror(errno));
+        CHK(FALSE, STATUS_CREATE_UDP_SOCKET_FAILED);
+    }
+
+    if (pHostIpAddress->family == KVS_IP_FAMILY_TYPE_IPV4) {
+        MEMSET(&ipv4Addr, 0x00, SIZEOF(ipv4Addr));
+        ipv4Addr.sin_family = AF_INET;
+        ipv4Addr.sin_port = 0;      // use next available port
+        MEMCPY(&ipv4Addr.sin_addr, pHostIpAddress->address, IPV4_ADDRESS_LENGTH);
+        // TODO: Properly handle the non-portable sin_len field if needed per https://issues.amazon.com/KinesisVideo-4952
+        // ipv4Addr.sin_len = SIZEOF(ipv4Addr);
+        sockAddr = (struct sockaddr *) &ipv4Addr;
+        addrLen = SIZEOF(struct sockaddr_in);
+
+        if (pPeerAddress != NULL) {
+            MEMSET(&ipv4PeerAddr, 0x00, SIZEOF(ipv4PeerAddr));
+            ipv4PeerAddr.sin_family = AF_INET;
+            ipv4PeerAddr.sin_port = pPeerAddress->port;
+            MEMCPY(&ipv4PeerAddr.sin_addr, pPeerAddress->address, IPV4_ADDRESS_LENGTH);
+            peerSockAddr = (struct sockaddr *) &ipv4PeerAddr;
+        }
+    } else {
+        MEMSET(&ipv6Addr, 0x00, SIZEOF(ipv6Addr));
+        ipv6Addr.sin6_family = AF_INET6;
+        ipv6Addr.sin6_port = 0;     // use next available port
+        MEMCPY(&ipv6Addr.sin6_addr, pHostIpAddress->address, IPV6_ADDRESS_LENGTH);
+        // TODO: Properly handle the non-portable sin6_len field if needed per https://issues.amazon.com/KinesisVideo-4952
+        // ipv6Addr.sin6_len = SIZEOF(ipv6Addr);
+        sockAddr = (struct sockaddr *) &ipv6Addr;
+        addrLen = SIZEOF(struct sockaddr_in6);
+
+        if (pPeerAddress != NULL) {
+            MEMSET(&ipv6PeerAddr, 0x00, SIZEOF(ipv6PeerAddr));
+            ipv6PeerAddr.sin6_family = AF_INET6;
+            ipv6PeerAddr.sin6_port = pPeerAddress->port;
+            MEMCPY(&ipv6PeerAddr.sin6_addr, pPeerAddress->address, IPV6_ADDRESS_LENGTH);
+            peerSockAddr = (struct sockaddr *) &ipv6PeerAddr;
+        }
+    }
+
+    if (bind(sockfd, sockAddr, addrLen) < 0) {
+        CHK_STATUS(getIpAddrStr(pHostIpAddress, ipAddrStr, ARRAY_SIZE(ipAddrStr)));
+        DLOGW("bind() failed for ip%s address: %s, port %u with errno %s", IS_IPV4_ADDR(pHostIpAddress) ? EMPTY_STRING : "V6", ipAddrStr, (UINT16) getInt16(pHostIpAddress->port), strerror(errno));
+        CHK(FALSE, STATUS_BINDING_SOCKET_FAILED);
+    }
+
+    if (getsockname(sockfd, sockAddr, &addrLen) < 0) {
+        DLOGW("getsockname() failed with errno %s", strerror(errno));
+        CHK(FALSE, STATUS_GET_PORT_NUMBER_FAILED);
+    }
+
+    pHostIpAddress->port = (UINT16) pHostIpAddress->family == KVS_IP_FAMILY_TYPE_IPV4 ? ipv4Addr.sin_port : ipv6Addr.sin6_port;
+    *pSockFd = (INT32) sockfd;
+
+    // done at this point for UDP
+    CHK(protocol == KVS_SOCKET_PROTOCOL_TCP, retStatus);
+
+    if (connect(sockfd, peerSockAddr, addrLen) < 0) {
+        DLOGW("connect() failed with errno %s", strerror(errno));
+        CHK(FALSE, STATUS_SOCKET_CONNECT_FAILED);
+    }
+
+CleanUp:
+
+    return retStatus;
+}
+
+STATUS getIpWithHostName(PCHAR hostname, PKvsIpAddress destIp)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(hostname != NULL, STATUS_NULL_ARG);
+
+    struct hostent *entry = gethostbyname(hostname);
+    CHK_ERR(entry != NULL, STATUS_RESOLVE_HOSTNAME_FAILED, "gethostbyname() with errno %s", strerror(errno));
+    CHK_ERR(entry->h_length != 0, STATUS_HOSTNAME_NOT_FOUND, "could not find network address of %s", hostname);
+
+    if (entry->h_addrtype == AF_INET) {
+        destIp->family = KVS_IP_FAMILY_TYPE_IPV4;
+        MEMCPY(destIp->address, entry->h_addr_list[0], IPV4_ADDRESS_LENGTH);
+    } else {
+        destIp->family = KVS_IP_FAMILY_TYPE_IPV6;
+        MEMCPY(destIp->address, entry->h_addr_list[0], IPV6_ADDRESS_LENGTH);
+    }
+
+CleanUp:
+
+    CHK_LOG_ERR(retStatus);
+
+    return retStatus;
+}
+
+STATUS getIpAddrStr(PKvsIpAddress pKvsIpAddress, PCHAR pBuffer, UINT32 bufferLen)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    UINT32 generatedStrLen = 0; // number of characters written if buffer is large enough not counting the null terminator
+
+    CHK(pKvsIpAddress != NULL, STATUS_NULL_ARG);
+    CHK(pBuffer != NULL && bufferLen > 0, STATUS_INVALID_ARG);
+
+    if (IS_IPV4_ADDR(pKvsIpAddress)) {
+        generatedStrLen = SNPRINTF(pBuffer, bufferLen, "%u.%u.%u.%u",
+                                   pKvsIpAddress->address[0],
+                                   pKvsIpAddress->address[1],
+                                   pKvsIpAddress->address[2],
+                                   pKvsIpAddress->address[3]);
+    } else {
+        generatedStrLen = SNPRINTF(pBuffer, bufferLen, "%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x",
+                                   pKvsIpAddress->address[0], pKvsIpAddress->address[1], pKvsIpAddress->address[2],
+                                   pKvsIpAddress->address[3], pKvsIpAddress->address[4], pKvsIpAddress->address[5],
+                                   pKvsIpAddress->address[6], pKvsIpAddress->address[7], pKvsIpAddress->address[8],
+                                   pKvsIpAddress->address[9], pKvsIpAddress->address[10], pKvsIpAddress->address[11],
+                                   pKvsIpAddress->address[12], pKvsIpAddress->address[13], pKvsIpAddress->address[14],
+                                   pKvsIpAddress->address[15]);
+    }
+
+    // bufferLen should be strictly larger than generatedStrLen because bufferLen includes null terminator
+    CHK(generatedStrLen < bufferLen, STATUS_BUFFER_TOO_SMALL);
+
+CleanUp:
+
+    return retStatus;
+}
+
+BOOL isSameIpAddress(PKvsIpAddress pAddr1, PKvsIpAddress pAddr2, BOOL checkPort)
+{
+    BOOL ret;
+    UINT32 addrLen;
+
+    if (pAddr1 == NULL || pAddr2 == NULL) {
+        return FALSE;
+    }
+
+    addrLen = IS_IPV4_ADDR(pAddr1) ? IPV4_ADDRESS_LENGTH : IPV6_ADDRESS_LENGTH;
+
+    ret = (pAddr1->family == pAddr2->family &&
+           MEMCMP(pAddr1->address, pAddr2->address, addrLen) == 0 &&
+           (!checkPort || pAddr1->port == pAddr2->port));
+
+    return ret;
+}

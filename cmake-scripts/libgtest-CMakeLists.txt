@@ -1,0 +1,17 @@
+cmake_minimum_required(VERSION 2.8)
+
+project(libgtest-download NONE)
+
+include(ExternalProject)
+
+ExternalProject_Add(libgtest-download
+    GIT_REPOSITORY    https://github.com/google/googletest.git
+    GIT_TAG           release-1.8.0
+    PREFIX            ${CMAKE_CURRENT_BINARY_DIR}/build
+    CMAKE_ARGS
+        -DCMAKE_INSTALL_PREFIX=${CMAKE_SOURCE_DIR}/../local/
+        -DBUILD_GMOCK=0
+        -DBUILD_GTEST=1
+        BUILD_ALWAYS      TRUE
+    TEST_COMMAND      ""
+)

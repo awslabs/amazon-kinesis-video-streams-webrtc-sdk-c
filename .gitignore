@@ -1,0 +1,13 @@
+*.iml
+.DS_Store
+.idea
+build
+cmake-build-debug/
+cmake-build-release/
+open-source/libgtest
+open-source/libjsmn
+open-source/libsrtp
+open-source/libusrsctp
+open-source/libwebsockets
+open-source/local
+outputs

@@ -1,0 +1,66 @@
+/*******************************************
+HostInfo internal include file
+*******************************************/
+#ifndef __KINESIS_VIDEO_WEBRTC_CLIENT_NETWORK__
+#define __KINESIS_VIDEO_WEBRTC_CLIENT_NETWORK__
+
+#pragma once
+
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
+// For tight packing
+#pragma pack(push, include_i, 1) // for byte alignment
+
+#define MAX_LOCAL_NETWORK_INTERFACE_COUNT               128
+
+// string buffer size for ipv4 and ipv6. Null terminator included.
+// for ipv6: 0000:0000:0000:0000:0000:0000:0000:0000 = 39
+// for ipv4 mapped ipv6: 0000:0000:0000:0000:0000:ffff:192.168.100.228 = 45
+#define KVS_IP_ADDRESS_STRING_BUFFER_LEN                46
+
+typedef enum {
+    KVS_SOCKET_PROTOCOL_TCP,
+    KVS_SOCKET_PROTOCOL_UDP,
+} KVS_SOCKET_PROTOCOL;
+
+/**
+ * @param - PKvsIpAddress - IN/OUT - array for getLocalhostIpAddresses to store any local ips it found. The ip address and port
+ *                                   will be in network byte order.
+ * @param - UINT32 - IN/OUT - length of the array, upon return it will be updated to the actual number of ips in the array
+ *
+ * @return - STATUS status of execution
+ */
+STATUS getLocalhostIpAddresses(PKvsIpAddress, PUINT32);
+
+/**
+ * @param - PKvsIpAddress - IN - Attempt to create an udp socket with the ip address given. Upon success, fill PKvsIpAddress'
+ *                                     port field with the actual port number.
+ * @param - PKvsIpAddress - IN - Peer ip address for tcp socket creation
+ * @param - KVS_SOCKET_PROTOCOL - IN - either tcp or udp
+ * @param - PINT32 - OUT - PINT32 for the socketfd
+ *
+ * @return - STATUS status of execution
+ */
+STATUS createSocket(PKvsIpAddress, PKvsIpAddress, KVS_SOCKET_PROTOCOL, PINT32);
+
+/**
+ * @param - PCHAR - IN - hostname to resolve
+ *
+ * @param - PKvsIpAddress - OUT - resolved ip address
+ *
+ * @return - STATUS status of execution
+ */
+STATUS getIpWithHostName(PCHAR, PKvsIpAddress);
+
+STATUS getIpAddrStr(PKvsIpAddress, PCHAR, UINT32);
+
+BOOL isSameIpAddress(PKvsIpAddress, PKvsIpAddress, BOOL);
+
+#pragma pack(pop, include_i)
+
+#ifdef  __cplusplus
+}
+#endif
+#endif  /* __KINESIS_VIDEO_WEBRTC_CLIENT_NETWORK__ */

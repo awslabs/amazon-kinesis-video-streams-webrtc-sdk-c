@@ -1,0 +1,17 @@
+cmake_minimum_required(VERSION 2.8)
+
+project(libsrtp-download NONE)
+
+find_program(MAKE_EXE NAMES make)
+
+include(ExternalProject)
+ExternalProject_Add(project_libsrtp
+    GIT_REPOSITORY    https://github.com/cisco/libsrtp.git
+    GIT_TAG           v2.2.0
+    PREFIX            ${CMAKE_CURRENT_BINARY_DIR}/build
+    CONFIGURE_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/build/src/project_libsrtp/configure --prefix=${OPEN_SRC_INSTALL_PREFIX} --enable-openssl --with-openssl-dir=${OPENSSL_DIR}
+    BUILD_COMMAND     ${MAKE_EXE} shared_library
+    BUILD_IN_SOURCE   TRUE
+    INSTALL_COMMAND   ${MAKE_EXE} install
+    TEST_COMMAND      ""
+)

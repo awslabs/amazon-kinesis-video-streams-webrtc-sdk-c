@@ -1,0 +1,25 @@
+cmake_minimum_required(VERSION 2.8)
+
+project(libusrsctp-download NONE)
+
+include(ExternalProject)
+
+if(APPLE)
+    # 0.9.3.0 has issue building on Mac
+    set(git_tag "origin/master")
+else()
+    if(UNIX)
+        set(cflags "-Wno-error=format-truncation")
+    endif()
+    set(git_tag "0.9.3.0")
+endif()
+
+ExternalProject_Add(project_libusrsctp
+    GIT_REPOSITORY    https://github.com/sctplab/usrsctp.git
+    GIT_TAG           ${git_tag}
+    PREFIX            ${CMAKE_CURRENT_BINARY_DIR}/build
+    CMAKE_ARGS
+            -DCMAKE_INSTALL_PREFIX=${CMAKE_SOURCE_DIR}/../local/ -DCMAKE_C_FLAGS="${cflags}"
+    BUILD_ALWAYS      TRUE
+    TEST_COMMAND      ""
+)

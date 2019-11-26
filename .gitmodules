@@ -1,0 +1,3 @@
+[submodule "open-source/amazon-kinesis-video-streams-producer-sdk-cpp"]
+	path = open-source/amazon-kinesis-video-streams-producer-sdk-cpp
+	url = https://github.com/awslabs/amazon-kinesis-video-streams-producer-sdk-cpp.git

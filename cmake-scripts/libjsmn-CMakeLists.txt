@@ -1,0 +1,21 @@
+cmake_minimum_required(VERSION 2.8)
+
+project(libjsmn-download NONE)
+
+find_program(MAKE_EXE NAMES make)
+
+include(ExternalProject)
+ExternalProject_Add(project_libjsmn
+    GIT_REPOSITORY    https://github.com/zserge/jsmn.git
+    GIT_TAG           v1.0.0
+    PREFIX            ${CMAKE_CURRENT_BINARY_DIR}/build
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND     ${MAKE_EXE} CFLAGS=-fPIC
+    BUILD_IN_SOURCE   TRUE
+    INSTALL_COMMAND
+        ${CMAKE_COMMAND} -E make_directory ${CMAKE_SOURCE_DIR}/../local/lib &&
+        ${CMAKE_COMMAND} -E make_directory ${CMAKE_SOURCE_DIR}/../local/include &&
+        ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/build/src/project_libjsmn/libjsmn.a ${CMAKE_SOURCE_DIR}/../local/lib &&
+        ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/build/src/project_libjsmn/jsmn.h ${CMAKE_SOURCE_DIR}/../local/include
+    TEST_COMMAND      ""
+)
