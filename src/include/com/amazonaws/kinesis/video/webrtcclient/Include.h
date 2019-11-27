@@ -217,6 +217,7 @@ extern "C" {
 #define STATUS_SIGNALING_NO_PAYLOAD_IN_MESSAGE                                      STATUS_SIGNALING_BASE + 0x0000002A
 #define STATUS_SIGNALING_DUPLICATE_MESSAGE_BEING_SENT                               STATUS_SIGNALING_BASE + 0x0000002B
 #define STATUS_SIGNALING_ICE_TTL_LESS_THAN_GRACE_PERIOD                             STATUS_SIGNALING_BASE + 0x0000002C
+#define STATUS_SIGNALING_DISCONNECTED_CALLBACK_FAILED                               STATUS_SIGNALING_BASE + 0x0000002D
 
 //
 // PeerConnection related errors starting from 0x5e000000
@@ -807,8 +808,11 @@ typedef struct {
     // Endpoint caching TTL
     UINT64 endpointCachingPeriod;
 
-    // Whether to continuously retry on failures
-    BOOL continuousRetry;
+    // Whether to retry the network calls on errors up to max retry times
+    BOOL retry;
+
+    // Whether to reconnect on connection dropped
+    BOOL reconnect;
 
     // Number of tags associated with the stream
     UINT32 tagCount;

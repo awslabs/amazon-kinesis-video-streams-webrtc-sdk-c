@@ -17,6 +17,10 @@ extern "C" {
 #define SIGNALING_SERVICE_API_CALL_CONNECTION_TIMEOUT                       (2 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define SIGNALING_SERVICE_API_CALL_COMPLETION_TIMEOUT                       (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define SIGNALING_SERVICE_API_CALL_TIMEOUT_IN_SECONDS                       ((SIGNALING_SERVICE_API_CALL_CONNECTION_TIMEOUT + SIGNALING_SERVICE_API_CALL_COMPLETION_TIMEOUT) / HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define SIGNALING_SERVICE_TCP_KEEPALIVE_IN_SECONDS                          3
+#define SIGNALING_SERVICE_TCP_KEEPALIVE_PROBE_COUNT                         3
+#define SIGNALING_SERVICE_TCP_KEEPALIVE_PROBE_INTERVAL_IN_SECONDS           1
+#define SIGNALING_SERVICE_WSS_PING_PONG_INTERVAL_IN_SECONDS                 10
 
 // Protocol indexes
 #define PROTOCOL_INDEX_HTTPS                                                0
@@ -166,6 +170,9 @@ STATUS lwsCompleteSync(PLwsCallInfo);
 
 // LWS listener handler
 PVOID lwsListenerHandler(PVOID);
+
+// Retry thread
+PVOID reconnectHandler(PVOID);
 
 // LWS callback routine
 INT32 lwsHttpCallbackRoutine(struct lws*, enum lws_callback_reasons, PVOID, PVOID, size_t);

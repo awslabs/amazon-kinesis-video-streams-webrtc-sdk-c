@@ -13,7 +13,8 @@ STATUS createChannelInfo(PCHAR pChannelName,
                          SIGNALING_CHANNEL_ROLE_TYPE channelRoleType,
                          BOOL cachingEndpoint,
                          UINT64 endpointCachingPeriod,
-                         BOOL continuousRetry,
+                         BOOL retry,
+                         BOOL reconnect,
                          UINT32 tagCount,
                          PTag pTags,
                          PChannelInfo* ppChannelInfo)
@@ -97,7 +98,8 @@ STATUS createChannelInfo(PCHAR pChannelName,
     pChannelInfo->channelRoleType = channelRoleType;
     pChannelInfo->cachingEndpoint = cachingEndpoint;
     pChannelInfo->endpointCachingPeriod = endpointCachingPeriod;
-    pChannelInfo->continuousRetry = continuousRetry;
+    pChannelInfo->retry = retry;
+    pChannelInfo->reconnect = reconnect;
     pChannelInfo->tagCount = tagCount;
 
     // Set the current pointer to the end

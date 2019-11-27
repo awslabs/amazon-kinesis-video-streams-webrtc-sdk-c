@@ -15,8 +15,9 @@ StateMachineState SIGNALING_STATE_MACHINE_STATES[] = {
         {SIGNALING_STATE_GET_ENDPOINT, SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_CREATE | SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_GET_ENDPOINT, fromGetEndpointSignalingState, executeGetEndpointSignalingState, SERVICE_CALL_MAX_RETRY_COUNT, STATUS_SIGNALING_GET_ENDPOINT_CALL_FAILED},
         {SIGNALING_STATE_GET_ICE_CONFIG, SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_GET_ENDPOINT | SIGNALING_STATE_GET_ICE_CONFIG, fromGetIceConfigSignalingState, executeGetIceConfigSignalingState, SERVICE_CALL_MAX_RETRY_COUNT, STATUS_SIGNALING_GET_ICE_CONFIG_CALL_FAILED},
         {SIGNALING_STATE_READY, SIGNALING_STATE_GET_ICE_CONFIG | SIGNALING_STATE_READY, fromReadySignalingState, executeReadySignalingState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_READY_CALLBACK_FAILED},
-        {SIGNALING_STATE_CONNECT, SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT, fromConnectSignalingState, executeConnectSignalingState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_CONNECT_CALL_FAILED},
+        {SIGNALING_STATE_CONNECT, SIGNALING_STATE_READY | SIGNALING_STATE_DISCONNECTED | SIGNALING_STATE_CONNECT, fromConnectSignalingState, executeConnectSignalingState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_CONNECT_CALL_FAILED},
         {SIGNALING_STATE_CONNECTED, SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED, fromConnectedSignalingState, executeConnectedSignalingState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_CONNECTED_CALLBACK_FAILED},
+        {SIGNALING_STATE_DISCONNECTED, SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED, fromDisconnectedSignalingState, executeDisconnectedSignalingState, SERVICE_CALL_MAX_RETRY_COUNT, STATUS_SIGNALING_DISCONNECTED_CALLBACK_FAILED},
 };
 
 UINT32 SIGNALING_STATE_MACHINE_STATE_COUNT = ARRAY_SIZE(SIGNALING_STATE_MACHINE_STATES);
@@ -30,6 +31,11 @@ STATUS stepSignalingStateMachine(PSignalingClient pSignalingClient, STATUS statu
     PStateMachineState pStateMachineState;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+
+    // Check if an error and the retry is OK
+    if (!pSignalingClient->pChannelInfo->retry && STATUS_FAILED(status)) {
+        CHK(FALSE, status);
+    }
 
     // Check for a shutdown
     CHK(!ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown), retStatus);
@@ -528,7 +534,7 @@ STATUS fromConnectedSignalingState(UINT64 customData, PUINT64 pState)
     switch (result) {
         case SERVICE_CALL_RESULT_OK:
             if (!ATOMIC_LOAD_BOOL(&pSignalingClient->connected)) {
-                state = SIGNALING_STATE_CONNECT;
+                state = SIGNALING_STATE_DISCONNECTED;
             }
 
             break;
@@ -582,6 +588,48 @@ STATUS executeConnectedSignalingState(UINT64 customData, UINT64 time)
 
     // Reset the timeout for the state machine
     pSignalingClient->stepUntil = 0;
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS fromDisconnectedSignalingState(UINT64 customData, PUINT64 pState)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
+    UINT64 state = SIGNALING_STATE_DISCONNECTED;
+    SIZE_T result;
+
+    CHK(pSignalingClient != NULL && pState != NULL, STATUS_NULL_ARG);
+
+    // See if we need to retry first of all
+    CHK(pSignalingClient->pChannelInfo->reconnect, STATUS_SUCCESS);
+
+    // Attempt to reconnect
+    state = SIGNALING_STATE_CONNECT;
+
+    *pState = state;
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS executeDisconnectedSignalingState(UINT64 customData, UINT64 time)
+{
+    ENTERS();
+    UNUSED_PARAM(time);
+    STATUS retStatus = STATUS_SUCCESS;
+    PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
+
+    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+
+    // Self-prime the next state
+    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
 
 CleanUp:
 

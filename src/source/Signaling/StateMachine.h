@@ -58,6 +58,8 @@ STATUS fromConnectSignalingState(UINT64, PUINT64);
 STATUS executeConnectSignalingState(UINT64, UINT64);
 STATUS fromConnectedSignalingState(UINT64, PUINT64);
 STATUS executeConnectedSignalingState(UINT64, UINT64);
+STATUS fromDisconnectedSignalingState(UINT64, PUINT64);
+STATUS executeDisconnectedSignalingState(UINT64, UINT64);
 
 #pragma pack(pop, include_i)
 
