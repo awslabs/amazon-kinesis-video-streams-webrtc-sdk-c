@@ -29,9 +29,10 @@ typedef struct __SocketConnection* PSocketConnection;
 #include <openssl/bio.h>
 #include <openssl/err.h>
 #include <openssl/hmac.h>
+#include <openssl/md5.h>
+#include <openssl/rand.h>
 #include <openssl/sha.h>
 #include <openssl/ssl.h>
-#include <openssl/md5.h>
 #include <srtp2/srtp.h>
 
 // INET/INET6 MUST be defined before usrsctp
