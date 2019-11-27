@@ -110,7 +110,7 @@ STATUS createSslCtx(X509 *pCert, EVP_PKEY *pPkey, SSL_CTX **ppSslCtx)
     #if (OPENSSL_VERSION_NUMBER >= 0x10100000L)
         pSslCtx = SSL_CTX_new(DTLS_method());
     #elif (OPENSSL_VERSION_NUMBER >= 0x10001000L)
-        pSslCtx = SSL_CTX_new(DTLSv1_method());
+        pSslCtx = SSL_CTX_new(DTLSv1_2_method());
     #else
         #error "Unsupported OpenSSL Version"
     #endif
@@ -129,7 +129,7 @@ STATUS createSslCtx(X509 *pCert, EVP_PKEY *pPkey, SSL_CTX **ppSslCtx)
     CHK(SSL_CTX_use_certificate(pSslCtx, pCert), STATUS_SSL_CTX_CREATION_FAILED);
 
     CHK(SSL_CTX_use_PrivateKey(pSslCtx, pPkey) || SSL_CTX_check_private_key(pSslCtx), STATUS_SSL_CTX_CREATION_FAILED);
-    CHK(SSL_CTX_set_cipher_list(pSslCtx, "HIGH:!aNULL:!MD5:!RC4"), STATUS_SSL_CTX_CREATION_FAILED);
+    CHK(SSL_CTX_set_cipher_list(pSslCtx, "HIGH:!aNULL:!MD5:!RC4:!SSLv3"), STATUS_SSL_CTX_CREATION_FAILED);
 
     *ppSslCtx = pSslCtx;
 
