@@ -9,6 +9,7 @@ option(BUILD_OPENSSL "If building dependencies, whether or not building openssl 
 # Developer Flags
 option(CODE_COVERAGE "Enable coverage reporting" OFF)
 option(BUILD_TEST "Build the testing tree." OFF)
+option(ADDRESS_SANITIZIER "Build with Address Sanitizer." OFF)
 
 set(CMAKE_MACOSX_RPATH TRUE)
 get_filename_component(ROOT "${CMAKE_CURRENT_SOURCE_DIR}" ABSOLUTE)
@@ -275,6 +276,12 @@ if("${CMAKE_C_COMPILER_ID}" MATCHES "GNU|Clang")
   if(CODE_COVERAGE)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -g -fprofile-arcs -ftest-coverage")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage")
+  endif()
+
+  if(ADDRESS_SANITIZIER)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -O0 -fno-omit-frame-pointer -g")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address -fno-omit-frame-pointer -fno-sanitize-recover=all -fno-optimize-sibling-calls -g -O0")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address")
   endif()
 
   find_package(PkgConfig REQUIRED)

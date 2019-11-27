@@ -522,14 +522,14 @@ TEST_F(JitterBufferFunctionalityTest, dropDataGivenLargeStartAndSmallEnd)
     mPRtpPackets[0]->payload[0] = 1;
     mPRtpPackets[0]->payload[1] = 1; // First packet of a frame
     mPRtpPackets[0]->header.timestamp = 100;
-    mPRtpPackets[1]->payloadLength = 1;
+    mPRtpPackets[1]->payloadLength = 2;
     mPRtpPackets[1]->payload = (PBYTE) MEMALLOC(mPRtpPackets[1]->payloadLength + 1);
     mPRtpPackets[1]->payload[0] = 2;
     mPRtpPackets[1]->payload[2] = 0; // Following packet of a frame
     mPRtpPackets[1]->header.timestamp = 100;
 
     setPayloadToFree();
-    
+
     for (i = 0; i < 2; i++) {
         EXPECT_EQ(STATUS_SUCCESS, jitterBufferPush(mJitterBuffer, mPRtpPackets[i]));
     }
@@ -574,7 +574,7 @@ TEST_F(JitterBufferFunctionalityTest, continousPacketsComeInCycling)
 
     // Third frame "3" at timestamp 300 - rtp packet #0
     mPRtpPackets[2]->payloadLength = 1;
-    mPRtpPackets[2]->payload = (PBYTE) MEMALLOC(mPRtpPackets[3]->payloadLength + 1);
+    mPRtpPackets[2]->payload = (PBYTE) MEMALLOC(mPRtpPackets[2]->payloadLength + 1);
     mPRtpPackets[2]->payload[0] = 3;
     mPRtpPackets[2]->payload[1] = 1; // First packet of a frame
     mPRtpPackets[2]->header.timestamp = 300;
