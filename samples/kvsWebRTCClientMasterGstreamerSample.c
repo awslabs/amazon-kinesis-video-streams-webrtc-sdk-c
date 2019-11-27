@@ -364,5 +364,9 @@ CleanUp:
         CHK_LOG_ERR(freeSampleConfiguration(&pSampleConfiguration));
     }
 
+    if (pGstAppSrcs != NULL) {
+        SAFE_MEMFREE(pGstAppSrcs);
+    }
+
     return (INT32) retStatus;
 }
