@@ -28,6 +28,8 @@ INT32 lwsHttpCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
     UINT32 headerCount;
     PRequestHeader pRequestHeader;
 
+    DLOGV("HTTPS callback with reason %d", reason);
+
     customData = lws_get_opaque_user_data(wsi);
     pLwsCallInfo = (PLwsCallInfo) customData;
 
@@ -39,8 +41,6 @@ INT32 lwsHttpCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
         pLwsCallInfo->callInfo.pRequestInfo != NULL, retStatus);
     pRequestInfo = pLwsCallInfo->callInfo.pRequestInfo;
     pBuffer = pLwsCallInfo->buffer + LWS_PRE;
-
-    DLOGV("HTTPS callback with reason %d", reason);
 
     switch (reason) {
         case LWS_CALLBACK_CLIENT_CONNECTION_ERROR:
@@ -215,6 +215,8 @@ INT32 lwsWssCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
     PSignalingClient pSignalingClient = NULL;
     SIZE_T offset, bufferSize;
 
+    DLOGV("WSS callback with reason %d", reason);
+
     customData = lws_get_opaque_user_data(wsi);
     pSignalingClient = (PSignalingClient) customData;
 
@@ -226,8 +228,6 @@ INT32 lwsWssCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
         pSignalingClient->pOngoingCallInfo->callInfo.pRequestInfo != NULL, retStatus);
     pLwsCallInfo = pSignalingClient->pOngoingCallInfo;
     pRequestInfo = pLwsCallInfo->callInfo.pRequestInfo;
-
-    DLOGV("WSS callback with reason %d", reason);
 
     switch (reason) {
         case LWS_CALLBACK_CLIENT_CONNECTION_ERROR:
@@ -263,7 +263,7 @@ INT32 lwsWssCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
         case LWS_CALLBACK_CLIENT_CLOSED:
             DLOGD("Client WSS closed");
 
-            retValue = -1;
+            CHK_STATUS(terminateConnectionWithStatus(pSignalingClient, SERVICE_CALL_RESULT_OK));
 
             break;
 
@@ -338,7 +338,7 @@ INT32 lwsWssCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
                              LWS_WRITE_TEXT);
 
             if (size < 0) {
-                DLOGW("Write failed");
+                DLOGW("Write failed. Returned write size is %d", size);
                 // Quit
                 retValue = -1;
                 CHK(FALSE, retStatus);
@@ -1169,6 +1169,10 @@ PVOID lwsListenerHandler(PVOID args)
     // Make a blocking call
     CHK_STATUS(lwsCompleteSync(pLwsCallInfo));
 
+    // Fire the re-connector thread
+    CHK_STATUS(THREAD_CREATE(&pSignalingClient->restarterTid, reconnectHandler, (PVOID) pSignalingClient));
+    CHK_STATUS(THREAD_DETACH(pSignalingClient->restarterTid));
+
 CleanUp:
 
     if (STATUS_FAILED(retStatus) && pSignalingClient != NULL) {
@@ -1187,6 +1191,37 @@ CleanUp:
         }
 
         ATOMIC_STORE(&pSignalingClient->listenerTid, (SIZE_T) INVALID_TID_VALUE);
+    }
+
+    LEAVES();
+    return (PVOID) (ULONG_PTR) retStatus;
+}
+
+PVOID reconnectHandler(PVOID args)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PSignalingClient pSignalingClient = (PSignalingClient) args;
+
+    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+
+    while (TRUE) {
+        // Check for a shutdown
+        CHK(!ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown), retStatus);
+
+        retStatus = stepSignalingStateMachine(pSignalingClient, STATUS_SUCCESS);
+
+        // Break out of the loop and terminate the thread
+        CHK(STATUS_FAILED(retStatus), retStatus);
+
+        // Reset the retry count to allow to renew the same state
+        resetStateMachineRetryCount(pSignalingClient->pStateMachine);
+    }
+
+CleanUp:
+
+    if (pSignalingClient != NULL) {
+        ATOMIC_STORE(&pSignalingClient->restarterTid, (SIZE_T) INVALID_TID_VALUE);
     }
 
     LEAVES();

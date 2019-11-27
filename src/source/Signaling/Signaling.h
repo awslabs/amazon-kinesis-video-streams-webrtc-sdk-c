@@ -117,6 +117,9 @@ typedef struct {
     // Listener thread for the socket
     TID listenerTid;
 
+    // Restarted thread
+    TID restarterTid;
+
     // LWS context to use
     struct lws_context* pLwsContext;
 

@@ -41,6 +41,7 @@ typedef struct {
     volatile ATOMIC_BOOL interrupted;
     volatile ATOMIC_BOOL candidateGatheringDone;
     volatile SIZE_T frameIndex;
+    ChannelInfo channelInfo;
     PCHAR pCaCertPath;
     PCHAR pRegion;
     PAwsCredentialProvider pCredentialProvider;
@@ -76,7 +77,7 @@ STATUS readFrameFromDisk(PBYTE, PUINT32, PCHAR);
 PVOID sendVideoPackets(PVOID);
 PVOID sendAudioPackets(PVOID);
 PVOID sendGstreamerAudioVideo(PVOID);
-STATUS createSampleConfiguration(PSampleConfiguration*, BOOL, BOOL, BOOL);
+STATUS createSampleConfiguration(PCHAR, SIGNALING_CHANNEL_ROLE_TYPE, BOOL, BOOL, PSampleConfiguration*);
 STATUS freeSampleConfiguration(PSampleConfiguration*);
 STATUS viewerMessageReceived(UINT64, PReceivedSignalingMessage);
 STATUS signalingClientStateChanged(UINT64, SIGNALING_CLIENT_STATE);

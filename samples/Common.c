@@ -337,7 +337,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS createSampleConfiguration(PSampleConfiguration* ppSampleConfiguration, BOOL isOfferer, BOOL trickleIce, BOOL useTurn)
+STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE roleType, BOOL trickleIce, BOOL useTurn, PSampleConfiguration* ppSampleConfiguration)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PCHAR pAccessKey, pSecretKey, pSessionToken;
@@ -373,10 +373,26 @@ STATUS createSampleConfiguration(PSampleConfiguration* ppSampleConfiguration, BO
     pSampleConfiguration->trickleIce = trickleIce;
     pSampleConfiguration->useTurn = useTurn;
 
-    if (isOfferer) {
+    pSampleConfiguration->channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
+    pSampleConfiguration->channelInfo.pChannelName = channelName;
+    pSampleConfiguration->channelInfo.pKmsKeyId = NULL;
+    pSampleConfiguration->channelInfo.tagCount = 0;
+    pSampleConfiguration->channelInfo.pTags = NULL;
+    pSampleConfiguration->channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
+    pSampleConfiguration->channelInfo.channelRoleType = roleType;
+    pSampleConfiguration->channelInfo.cachingEndpoint = FALSE;
+    pSampleConfiguration->channelInfo.retry = TRUE;
+    pSampleConfiguration->channelInfo.reconnect = TRUE;
+    pSampleConfiguration->channelInfo.pCertPath = pSampleConfiguration->pCaCertPath;
+    pSampleConfiguration->channelInfo.pControlPlaneUrl = KINESIS_VIDEO_BETA_CONTROL_PLANE_URL;
+
+    if (pSampleConfiguration->channelInfo.channelRoleType == SIGNALING_CHANNEL_ROLE_TYPE_VIEWER) {
         STRCPY(pSampleConfiguration->peerId, SAMPLE_MASTER_CLIENT_ID);
+        ATOMIC_STORE_BOOL(&pSampleConfiguration->peerIdReceived, TRUE);
+    } else {
+        ATOMIC_STORE_BOOL(&pSampleConfiguration->peerIdReceived, FALSE);
     }
-    ATOMIC_STORE_BOOL(&pSampleConfiguration->peerIdReceived, isOfferer);
+
     ATOMIC_STORE_BOOL(&pSampleConfiguration->peerConnectionStarted, FALSE);
     ATOMIC_STORE_BOOL(&pSampleConfiguration->interrupted, FALSE);
     ATOMIC_STORE_BOOL(&pSampleConfiguration->candidateGatheringDone, FALSE);

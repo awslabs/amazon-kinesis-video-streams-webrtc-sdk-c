@@ -34,7 +34,8 @@ STATUS createSignalingSync(PSignalingClientInfo pClientInfo, PChannelInfo pChann
                                  pChannelInfo->channelRoleType,
                                  pChannelInfo->cachingEndpoint,
                                  pChannelInfo->endpointCachingPeriod,
-                                 pChannelInfo->continuousRetry,
+                                 pChannelInfo->retry,
+                                 pChannelInfo->reconnect,
                                  pChannelInfo->tagCount,
                                  pChannelInfo->pTags,
                                  &pSignalingClient->pChannelInfo));
@@ -75,6 +76,11 @@ STATUS createSignalingSync(PSignalingClientInfo pClientInfo, PChannelInfo pChann
     creationInfo.gid = -1;
     creationInfo.uid = -1;
     creationInfo.client_ssl_ca_filepath = pChannelInfo->pCertPath;
+    creationInfo.client_ssl_cipher_list = "HIGH:!PSK:!RSP:!eNULL:!aNULL:!RC4:!MD5:!DES:!3DES:!aDH:!kDH:!DSS";
+    creationInfo.ka_time = SIGNALING_SERVICE_TCP_KEEPALIVE_IN_SECONDS;
+    creationInfo.ka_probes = SIGNALING_SERVICE_TCP_KEEPALIVE_PROBE_COUNT;
+    creationInfo.ka_interval = SIGNALING_SERVICE_TCP_KEEPALIVE_PROBE_INTERVAL_IN_SECONDS;
+    creationInfo.ws_ping_pong_interval = SIGNALING_SERVICE_WSS_PING_PONG_INTERVAL_IN_SECONDS;
 
     CHK(NULL != (pSignalingClient->pLwsContext = lws_create_context(&creationInfo)), STATUS_SIGNALING_LWS_CREATE_CONTEXT_FAILED);
 
@@ -82,8 +88,9 @@ STATUS createSignalingSync(PSignalingClientInfo pClientInfo, PChannelInfo pChann
     ATOMIC_STORE_BOOL(&pSignalingClient->shutdown, FALSE);
     ATOMIC_STORE_BOOL(&pSignalingClient->connected, FALSE);
 
-    // Initialize the listener thread id
+    // Initialize the listener and restarter thread id
     pSignalingClient->listenerTid = INVALID_TID_VALUE;
+    pSignalingClient->restarterTid = INVALID_TID_VALUE;
 
     // Add to the signal handler
     // signal(SIGINT, lwsSignalHandler);
@@ -156,6 +163,11 @@ STATUS freeSignaling(PSignalingClient* ppSignalingClient)
 
     // Terminate the listener thread if alive
     terminateLwsListenerLoop(pSignalingClient);
+
+    // Await for the restarted thread to exit
+    if (IS_VALID_TID_VALUE(pSignalingClient->restarterTid)) {
+        THREAD_JOIN(pSignalingClient->restarterTid, NULL);
+    }
 
     freeStateMachine(pSignalingClient->pStateMachine);
 
@@ -362,7 +374,7 @@ STATUS validateIceConfiguration(PSignalingClient pSignalingClient)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 i;
-    UINT64 maxTtl = 0;
+    UINT64 minTtl = MAX_UINT64;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     CHK(pSignalingClient->iceConfigCount <= MAX_ICE_CONFIG_COUNT, STATUS_SIGNALING_MAX_ICE_CONFIG_COUNT);
@@ -373,14 +385,14 @@ STATUS validateIceConfiguration(PSignalingClient pSignalingClient)
         CHK(pSignalingClient->iceConfigs[i].uriCount > 0, STATUS_SIGNALING_NO_CONFIG_URI_SPECIFIED);
         CHK(pSignalingClient->iceConfigs[i].uriCount <= MAX_ICE_CONFIG_URI_COUNT, STATUS_SIGNALING_MAX_ICE_URI_COUNT);
 
-        maxTtl = MAX(maxTtl, pSignalingClient->iceConfigs[i].ttl);
+        minTtl = MIN(minTtl, pSignalingClient->iceConfigs[i].ttl);
     }
 
-    CHK(maxTtl > ICE_CONFIGURATION_REFRESH_GRACE_PERIOD, STATUS_SIGNALING_ICE_TTL_LESS_THAN_GRACE_PERIOD);
+    CHK(minTtl > ICE_CONFIGURATION_REFRESH_GRACE_PERIOD, STATUS_SIGNALING_ICE_TTL_LESS_THAN_GRACE_PERIOD);
 
     // Schedule the refresh on the timer queue
     CHK_STATUS(timerQueueAddTimer(pSignalingClient->timerQueueHandle,
-                                  maxTtl - ICE_CONFIGURATION_REFRESH_GRACE_PERIOD,
+                                  minTtl - ICE_CONFIGURATION_REFRESH_GRACE_PERIOD,
                                   TIMER_QUEUE_SINGLE_INVOCATION_PERIOD,
                                   refreshIceConfigurationCallback,
                                   (UINT64) pSignalingClient,

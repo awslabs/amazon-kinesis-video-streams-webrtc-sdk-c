@@ -3,7 +3,6 @@
 INT32 main(INT32 argc, CHAR *argv[])
 {
     STATUS retStatus = STATUS_SUCCESS;
-    ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
     SignalingClientInfo clientInfo;
     RtcSessionDescriptionInit offerSessionDescriptionInit;
@@ -11,7 +10,11 @@ INT32 main(INT32 argc, CHAR *argv[])
     SignalingMessage message;
     PSampleConfiguration pSampleConfiguration = NULL;
     // do trickle-ice by default
-    CHK_STATUS(createSampleConfiguration(&pSampleConfiguration, TRUE, TRUE, TRUE));
+    CHK_STATUS(createSampleConfiguration(argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME,
+            SIGNALING_CHANNEL_ROLE_TYPE_VIEWER,
+            TRUE,
+            TRUE,
+            &pSampleConfiguration));
 
     // Initalize KVS WebRTC. This must be done before anything else, and must only be done once.
     CHK_STATUS(initKvsWebRtc());
@@ -26,20 +29,11 @@ INT32 main(INT32 argc, CHAR *argv[])
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
     STRCPY(clientInfo.clientId, SAMPLE_VIEWER_CLIENT_ID);
 
-    MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
-    channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
-    channelInfo.pChannelName = argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME;
-    channelInfo.pKmsKeyId = NULL;
-    channelInfo.tagCount = 0;
-    channelInfo.pTags = NULL;
-    channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
-    channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_VIEWER;
-    channelInfo.cachingEndpoint = FALSE;
-    channelInfo.pCertPath = pSampleConfiguration->pCaCertPath;
-    channelInfo.pControlPlaneUrl = KINESIS_VIDEO_BETA_CONTROL_PLANE_URL;
-    CHK_STATUS(createSignalingClientSync(&clientInfo, &channelInfo, &signalingClientCallbacks,
-                                         pSampleConfiguration->pCredentialProvider,
-                                         &pSampleConfiguration->signalingClientHandle));
+    CHK_STATUS(createSignalingClientSync(&clientInfo,
+            &pSampleConfiguration->channelInfo,
+            &signalingClientCallbacks,
+            pSampleConfiguration->pCredentialProvider,
+            &pSampleConfiguration->signalingClientHandle));
 
     // Initialize the peer connection
     CHK_STATUS(initializePeerConnection(pSampleConfiguration));

@@ -23,8 +23,6 @@ typedef struct __GstAppSrcs {
     GstElement*  pGstVideoAppSrc;
 } GstAppSrcs, *PGstAppSrcs;
 
-
-
 #pragma pack(pop, samples_i)
 
 #ifdef  __cplusplus

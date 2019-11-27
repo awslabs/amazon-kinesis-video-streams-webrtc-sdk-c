@@ -108,6 +108,8 @@ TEST_F(SignalingApiTest, mockMaster)
     channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
     channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
     channelInfo.cachingEndpoint = FALSE;
+    channelInfo.retry = TRUE;
+    channelInfo.reconnect = TRUE;
     channelInfo.pCertPath = mCaCertPath;
     channelInfo.pControlPlaneUrl = TEST_CONTROL_PLANE_URL;
 
@@ -237,6 +239,8 @@ TEST_F(SignalingApiTest, mockViewer)
     channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
     channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_VIEWER;
     channelInfo.cachingEndpoint = FALSE;
+    channelInfo.retry = TRUE;
+    channelInfo.reconnect = TRUE;
     channelInfo.pCertPath = mCaCertPath;
     channelInfo.pControlPlaneUrl = TEST_CONTROL_PLANE_URL;
 
@@ -333,7 +337,8 @@ TEST_F(SignalingApiTest, invalidChannelInfoInput)
     channelInfo.pKmsKeyId = (PCHAR) "Kms Key ID";
     channelInfo.cachingEndpoint = TRUE;
     channelInfo.endpointCachingPeriod = 10 * HUNDREDS_OF_NANOS_IN_AN_HOUR;
-    channelInfo.continuousRetry = TRUE;
+    channelInfo.retry = TRUE;
+    channelInfo.reconnect = TRUE;
     channelInfo.tagCount = 3;
     channelInfo.pTags = tags;
     channelInfo.pTags[0].version = TAG_CURRENT_VERSION;
@@ -525,6 +530,8 @@ TEST_F(SignalingApiTest, iceReconnectEmulation)
     channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
     channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
     channelInfo.cachingEndpoint = FALSE;
+    channelInfo.retry = TRUE;
+    channelInfo.reconnect = TRUE;
     channelInfo.pCertPath = mCaCertPath;
     channelInfo.pControlPlaneUrl = TEST_CONTROL_PLANE_URL;
 
@@ -601,6 +608,8 @@ TEST_F(SignalingApiTest, goAwayEmulation)
     channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
     channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
     channelInfo.cachingEndpoint = FALSE;
+    channelInfo.retry = TRUE;
+    channelInfo.reconnect = TRUE;
     channelInfo.pCertPath = mCaCertPath;
     channelInfo.pControlPlaneUrl = TEST_CONTROL_PLANE_URL;
 
@@ -677,6 +686,8 @@ TEST_F(SignalingApiTest, unknownMessageTypeEmulation)
     channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
     channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
     channelInfo.cachingEndpoint = FALSE;
+    channelInfo.retry = TRUE;
+    channelInfo.reconnect = TRUE;
     channelInfo.pCertPath = mCaCertPath;
     channelInfo.pControlPlaneUrl = TEST_CONTROL_PLANE_URL;
 
