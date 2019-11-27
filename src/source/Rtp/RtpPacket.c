@@ -11,6 +11,8 @@ STATUS createRtpPacket(UINT8 version, BOOL padding, BOOL extension, UINT8 csrcCo
     STATUS retStatus = STATUS_SUCCESS;
     PRtpPacket pRtpPacket = MEMALLOC(SIZEOF(RtpPacket));
     CHK(pRtpPacket != NULL, STATUS_NOT_ENOUGH_MEMORY);
+    pRtpPacket->pRawPacket = NULL;
+    pRtpPacket->rawPacketLength = 0;
     CHK_STATUS(setRtpPacket(version, padding, extension, csrcCount, marker, payloadType, sequenceNumber, timestamp, ssrc, csrcArray,
             extensionProfile, extensionLength, extensionPayload, payload, payloadLength, pRtpPacket));
 
@@ -58,7 +60,6 @@ STATUS setRtpPacket(UINT8 version, BOOL padding, BOOL extension, UINT8 csrcCount
     }
     pRtpPacket->payload = payload;
     pRtpPacket->payloadLength = payloadLength;
-
 CleanUp:
     LEAVES();
     return retStatus;
@@ -88,6 +89,7 @@ STATUS createRtpPacketFromBytes(PBYTE rawPacket, UINT32 packetLength, PRtpPacket
     STATUS retStatus = STATUS_SUCCESS;
     PRtpPacket pRtpPacket = MEMALLOC(SIZEOF(RtpPacket));
     pRtpPacket->pRawPacket = rawPacket;
+    pRtpPacket->rawPacketLength = packetLength;
     CHK(pRtpPacket != NULL, STATUS_NOT_ENOUGH_MEMORY);
     CHK_STATUS(setRtpPacketFromBytes(rawPacket, packetLength, pRtpPacket));
 
@@ -156,6 +158,8 @@ STATUS setRtpPacketFromBytes(PBYTE rawPacket, UINT32 packetLength, PRtpPacket pR
             payloadType, sequenceNumber, timestamp, ssrc, csrcArray, extensionProfile,
             extensionLength, extensionPayload, rawPacket + currOffset,
             packetLength - currOffset, pRtpPacket));
+    pRtpPacket->pRawPacket = rawPacket;
+    pRtpPacket->rawPacketLength = packetLength;
 CleanUp:
     LEAVES();
     return retStatus;
