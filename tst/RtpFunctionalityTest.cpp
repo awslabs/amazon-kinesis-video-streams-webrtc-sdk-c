@@ -4,6 +4,7 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
 
 #define NUMBER_OF_FRAME_FILES               403
 #define DEFAULT_FPS_VALUE                   25
+static BYTE start4ByteCode[] = {0x00, 0x00, 0x00, 0x01};
 
 class RtpFunctionalityTest : public WebRtcClientTestBase {
 };
@@ -191,6 +192,7 @@ TEST_F(RtpFunctionalityTest, packingUnpackingVerifySameH264Frame)
     PBYTE pCurPtrInPayload = NULL;
     UINT32 remainPayloadLen = 0;
     UINT32 startIndex = 0, naluLength = 0;
+    UINT32 startLen = 0;
 
     payloadArray.maxPayloadLength = 0;
     payloadArray.maxPayloadSubLenSize = 0;
@@ -241,10 +243,13 @@ TEST_F(RtpFunctionalityTest, packingUnpackingVerifySameH264Frame)
                                                               &newPayloadSubLen,
                                                               &isStartPacket));
             newPayloadLen += newPayloadSubLen;
+            if (isStartPacket) {
+                newPayloadLen -= SIZEOF(start4ByteCode);
+            }
             EXPECT_LT(0, newPayloadSubLen);
             offset += payloadArray.payloadSubLength[i];
         }
-        EXPECT_LT(newPayloadLen, payloadLen);
+        EXPECT_LE(newPayloadLen, payloadLen);
 
         offset = 0;
         newPayloadLen = 0;
@@ -261,9 +266,12 @@ TEST_F(RtpFunctionalityTest, packingUnpackingVerifySameH264Frame)
             if (isStartPacket) {
                 EXPECT_EQ(STATUS_SUCCESS, getNextNaluLength(pCurPtrInPayload, remainPayloadLen, &startIndex, &naluLength));
                 pCurPtrInPayload += startIndex;
+                startLen = SIZEOF(start4ByteCode);
+            } else {
+                startLen = 0;
             }
-            EXPECT_TRUE(memcmp(pCurPtrInPayload, depayload, newPayloadSubLen) == 0);
-            pCurPtrInPayload += newPayloadSubLen;
+            EXPECT_TRUE(memcmp(pCurPtrInPayload, depayload + startLen, newPayloadSubLen - startLen) == 0);
+            pCurPtrInPayload += newPayloadSubLen - startLen;
             offset += payloadArray.payloadSubLength[i];
         }
     }

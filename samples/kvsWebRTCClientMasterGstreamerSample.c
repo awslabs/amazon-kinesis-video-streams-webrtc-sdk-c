@@ -1,6 +1,5 @@
 #include "Samples.h"
-#include <gst/gst.h>
-#include <gst/app/gstappsink.h>
+#include "gstSample.h"
 
 GstFlowReturn on_new_sample(GstElement *sink, gpointer data, UINT64 trackid)
 {
@@ -170,6 +169,109 @@ CleanUp:
     return (PVOID) (ULONG_PTR) retStatus;
 }
 
+VOID onGstAudioFrameReady(UINT64 customData, PFrame pFrame) {
+    GstFlowReturn ret;
+    GstBuffer *buffer;
+    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) customData;
+    PGstAppSrcs pGstAppSrcs = (PGstAppSrcs) pSampleConfiguration->customData;
+
+    if (pGstAppSrcs->pGstAudioAppSrc != NULL) {
+        /* Create a new empty buffer */
+        buffer = gst_buffer_new_and_alloc(pFrame->size);
+        gst_buffer_fill(buffer, 0, pFrame->frameData, pFrame->size);
+
+        /* Push the buffer into the appsrc */
+        g_signal_emit_by_name(pGstAppSrcs->pGstAudioAppSrc, "push-buffer", buffer, &ret);
+
+        /* Free the buffer now that we are done with it */
+        gst_buffer_unref(buffer);
+    }
+}
+
+PVOID receiveGstreamerAudioVideo(PVOID args)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    GstElement *appsrcVideo = NULL, *appsrcAudio = NULL, *pipeline = NULL;
+    GstBus *bus;
+    GstMessage *msg;
+    GstCaps *caps;
+    GError *error = NULL;
+    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
+    PGstAppSrcs pGstAppSrcs = (PGstAppSrcs) pSampleConfiguration->customData;
+    gchar *videoDescription = "", *audioDescription = "", *audioVideoDescription;
+
+    CHK(pSampleConfiguration != NULL && pGstAppSrcs != NULL, STATUS_NULL_ARG);
+
+    pGstAppSrcs->pGstAudioAppSrc = NULL;
+    //TODO: Wire video up with gstream pipeline
+
+    switch (pSampleConfiguration->pAudioRtcRtpTransceiver->receiver.track.codec) {
+        case RTC_CODEC_OPUS:
+            audioDescription = "appsrc name=appsrc-audio ! opusparse ! decodebin ! autoaudiosink";
+            break;
+
+        case RTC_CODEC_MULAW:
+        case RTC_CODEC_ALAW:
+            audioDescription = "appsrc name=appsrc-audio ! rawaudioparse ! decodebin ! autoaudiosink";
+            break;
+        default:
+            break;
+    }
+
+    audioVideoDescription = g_strjoin(" ", audioDescription, videoDescription, NULL);
+
+    pipeline = gst_parse_launch(audioVideoDescription, &error);
+
+    g_free(audioVideoDescription);
+
+    CHK_ERR(pipeline != NULL, STATUS_INTERNAL_ERROR, "Failed to launch gstreamer");
+
+    appsrcVideo = gst_bin_get_by_name(GST_BIN(pipeline), "appsrc-video");
+
+    appsrcAudio = gst_bin_get_by_name(GST_BIN(pipeline), "appsrc-audio");
+
+    CHK_ERR(appsrcVideo != NULL || appsrcAudio != NULL, STATUS_INTERNAL_ERROR, "cant find appssrc");
+
+    pGstAppSrcs->pGstVideoAppSrc = appsrcVideo;
+    pGstAppSrcs->pGstAudioAppSrc = appsrcAudio;
+
+    gst_element_set_state (pipeline, GST_STATE_PLAYING);
+
+    /* block until error or EOS */
+    bus = gst_element_get_bus(pipeline);
+    msg = gst_bus_timed_pop_filtered(bus, GST_CLOCK_TIME_NONE, GST_MESSAGE_ERROR | GST_MESSAGE_EOS);
+
+    /* Free resources */
+    if (msg != NULL) {
+        gst_message_unref(msg);
+    }
+    gst_object_unref (bus);
+    gst_element_set_state (pipeline, GST_STATE_NULL);
+    gst_object_unref (pipeline);
+
+CleanUp:
+    if (error != NULL) {
+        DLOGE("%s", error->message);
+        g_clear_error (&error);
+    }
+
+    CHK_LOG_ERR(retStatus);
+    return (PVOID) (ULONG_PTR) retStatus;
+}
+
+STATUS createSampleGstAppSrcs(PGstAppSrcs* ppGstAppSrc)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PGstAppSrcs pGstAppSrcs = NULL;
+    CHK(ppGstAppSrc != NULL, STATUS_NULL_ARG);
+    CHK(NULL != (pGstAppSrcs = (PGstAppSrcs) MEMCALLOC(1, SIZEOF(GstAppSrcs))), STATUS_NOT_ENOUGH_MEMORY);
+CleanUp:
+    if (ppGstAppSrc != NULL) {
+        *ppGstAppSrc = pGstAppSrcs;
+    }
+    return retStatus;
+}
+
 INT32 main(INT32 argc, CHAR *argv[])
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -177,11 +279,15 @@ INT32 main(INT32 argc, CHAR *argv[])
     SignalingClientCallbacks signalingClientCallbacks;
     SignalingClientInfo clientInfo;
     PSampleConfiguration pSampleConfiguration = NULL;
+    PGstAppSrcs pGstAppSrcs = NULL;
 
     // do trickle-ice by default
     CHK_STATUS(createSampleConfiguration(&pSampleConfiguration, FALSE, TRUE, TRUE));
+    CHK_STATUS(createSampleGstAppSrcs(&pGstAppSrcs));
     pSampleConfiguration->videoSource = sendGstreamerAudioVideo;
     pSampleConfiguration->mediaType = SAMPLE_STREAMING_VIDEO_ONLY;
+    pSampleConfiguration->receiveAudioVideoSource = receiveGstreamerAudioVideo;
+    pSampleConfiguration->customData = (UINT64) pGstAppSrcs;
 
     /* Initialize GStreamer */
     gst_init(&argc, &argv);
@@ -235,6 +341,9 @@ INT32 main(INT32 argc, CHAR *argv[])
 
     // Initialize the peer connection
     CHK_STATUS(initializePeerConnection(pSampleConfiguration));
+
+    transceiverOnFrame(pSampleConfiguration->pAudioRtcRtpTransceiver, (UINT64) pSampleConfiguration,
+            onGstAudioFrameReady);
 
     // Enable the processing of the messages
     CHK_STATUS(signalingClientConnectSync(pSampleConfiguration->signalingClientHandle));

@@ -57,9 +57,11 @@ typedef struct {
     TID replyTid;
     TID videoSenderTid;
     TID audioSenderTid;
+    TID receiveAudioVideoSenderTid;
     SampleStreamingMediaType mediaType;
     startRoutine audioSource;
     startRoutine videoSource;
+    startRoutine receiveAudioVideoSource;
     RtcOnDataChannel onDataChannel;
     UINT32 audioTimestamp;
     UINT32 videoTimestamp;
@@ -67,6 +69,7 @@ typedef struct {
     CVAR cvar;
     BOOL trickleIce;
     BOOL useTurn;
+    UINT64 customData;
 } SampleConfiguration, *PSampleConfiguration;
 
 STATUS readFrameFromDisk(PBYTE, PUINT32, PCHAR);

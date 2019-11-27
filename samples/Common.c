@@ -173,6 +173,11 @@ STATUS handleOffer(PSampleConfiguration pSampleConfiguration, PSignalingMessage 
                       (PVOID) pSampleConfiguration);
     }
 
+    if (pSampleConfiguration->receiveAudioVideoSource != NULL) {
+        THREAD_CREATE(&pSampleConfiguration->receiveAudioVideoSenderTid, pSampleConfiguration->receiveAudioVideoSource,
+                      (PVOID) pSampleConfiguration);
+    }
+
 CleanUp:
 
     CHK_LOG_ERR(retStatus);

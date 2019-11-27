@@ -109,7 +109,7 @@ STATUS jitterBufferPush(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket)
         }
         pJitterBuffer->pktBuffer[pRtpPacket->header.sequenceNumber] = pRtpPacket;
         pJitterBuffer->lastPopTimestamp = MIN(pJitterBuffer->lastPopTimestamp, pRtpPacket->header.timestamp);
-        DLOGV("jitterBufferPush get packet timestamp %lu seqNum %lu", pRtpPacket->header.timestamp, pRtpPacket->header.sequenceNumber);
+        DLOGS("jitterBufferPush get packet timestamp %lu seqNum %lu", pRtpPacket->header.timestamp, pRtpPacket->header.sequenceNumber);
     }
 
     CHK_STATUS(jitterBufferPop(pJitterBuffer, FALSE));

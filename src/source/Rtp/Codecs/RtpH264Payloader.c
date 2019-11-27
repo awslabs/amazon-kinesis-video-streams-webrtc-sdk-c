@@ -217,13 +217,15 @@ STATUS depayH264FromRtpPayload(PBYTE pRawPacket, UINT32 packetLength, PBYTE pNal
     BOOL sizeCalculationOnly = (pNaluData == NULL);
     BOOL isStartingPacket = FALSE;
     PBYTE pCurPtr = pRawPacket;
+    static BYTE start4ByteCode[] = {0x00, 0x00, 0x00, 0x01};
+    UINT16 subNaluSize = 0;
 
     CHK(pRawPacket != NULL && pNaluLength != NULL, STATUS_NULL_ARG);
     CHK(packetLength > 0, retStatus);
 
     // TODO: Add support for Aggregate Packets https://tools.ietf.org/html/rfc6184#section-5.7
-    // indicator for FU-A or FU-B https://tools.ietf.org/html/rfc6184#section-5.8
-    indicator = *pRawPacket & FU_B_INDICATOR;
+    // indicator for types https://tools.ietf.org/html/rfc3984#section-5.2
+    indicator = *pRawPacket & NAL_TYPE_MASK;
     switch(indicator) {
         case FU_A_INDICATOR:
             // FU-A indicator
@@ -241,18 +243,48 @@ STATUS depayH264FromRtpPayload(PBYTE pRawPacket, UINT32 packetLength, PBYTE pNal
             // FU-B indicator
             naluLength = packetLength - FU_A_HEADER_SIZE + 1;
             break;
+        case STAP_A_INDICATOR:
+            pCurPtr += STAP_A_HEADER_SIZE;
+            do {
+                subNaluSize = getInt16(*((PUINT16) pCurPtr));
+                pCurPtr += SIZEOF(UINT16);
+                naluLength += subNaluSize + SIZEOF(start4ByteCode);
+                pCurPtr += subNaluSize;
+            } while (subNaluSize > 0 && pCurPtr < pRawPacket + packetLength);
+            isStartingPacket = TRUE;
+            break;
+        case STAP_B_INDICATOR:
+            pCurPtr+= STAP_B_HEADER_SIZE;
+            do {
+                subNaluSize = getInt16(*((PUINT16) pCurPtr));
+                pCurPtr += SIZEOF(UINT16);
+                naluLength += subNaluSize + SIZEOF(start4ByteCode);
+                pCurPtr += subNaluSize;
+            } while (subNaluSize > 0 && pCurPtr < pRawPacket + packetLength);
+            isStartingPacket = TRUE;
+            break;
         default:
             // Single NALU https://tools.ietf.org/html/rfc6184#section-5.6
             naluLength = packetLength;
             isStartingPacket = TRUE;
     }
 
+    if (isStartingPacket && indicator != STAP_A_INDICATOR && indicator != STAP_B_INDICATOR) {
+        naluLength += SIZEOF(start4ByteCode);
+    }
+
     // Only return size if given buffer is NULL
     CHK(!sizeCalculationOnly, retStatus);
     CHK(naluLength <= *pNaluLength, STATUS_BUFFER_TOO_SMALL);
 
+    if (isStartingPacket && indicator != STAP_A_INDICATOR && indicator != STAP_B_INDICATOR) {
+        MEMCPY(pNaluData, start4ByteCode, SIZEOF(start4ByteCode));
+        naluLength -= SIZEOF(start4ByteCode);
+        pNaluData += SIZEOF(start4ByteCode);
+    }
     switch (indicator) {
         case FU_A_INDICATOR:
+            DLOGS("FU_A_INDICATOR starting packet %d len %d", isStartingPacket, naluLength);
             if (isStartingPacket) {
                 MEMCPY(pNaluData + 1, pRawPacket + FU_A_HEADER_SIZE, naluLength - 1);
                 *pNaluData = naluRefIdc | naluType;
@@ -261,6 +293,7 @@ STATUS depayH264FromRtpPayload(PBYTE pRawPacket, UINT32 packetLength, PBYTE pNal
             }
             break;
         case FU_B_INDICATOR:
+            DLOGS("FU_B_INDICATOR starting packet %d len %d", isStartingPacket, naluLength);
             if (isStartingPacket) {
                 MEMCPY(pNaluData + 1, pRawPacket + FU_B_HEADER_SIZE, naluLength - 1);
                 *pNaluData = naluRefIdc | naluType;
@@ -268,9 +301,44 @@ STATUS depayH264FromRtpPayload(PBYTE pRawPacket, UINT32 packetLength, PBYTE pNal
                 MEMCPY(pNaluData, pRawPacket + FU_B_HEADER_SIZE, naluLength);
             }
             break;
+        case STAP_A_INDICATOR:
+            naluLength = 0;
+            pCurPtr = pRawPacket + STAP_A_HEADER_SIZE;
+            do {
+                subNaluSize = getInt16(*((PUINT16) pCurPtr));
+                pCurPtr += SIZEOF(UINT16);
+                MEMCPY(pNaluData, start4ByteCode, SIZEOF(start4ByteCode));
+                pNaluData += SIZEOF(start4ByteCode);
+                MEMCPY(pNaluData, pCurPtr, subNaluSize);
+                pCurPtr += subNaluSize;
+                pNaluData += subNaluSize;
+                naluLength += SIZEOF(start4ByteCode) + subNaluSize;
+            } while (subNaluSize > 0 && pCurPtr < pRawPacket + packetLength);
+            DLOGS("STAP_A_INDICATOR starting packet %d len %d", isStartingPacket, naluLength);
+            break;
+        case STAP_B_INDICATOR:
+            naluLength = 0;
+            pCurPtr = pRawPacket + STAP_A_HEADER_SIZE;
+            do {
+                subNaluSize = getInt16(*((PUINT16) pCurPtr));
+                pCurPtr += SIZEOF(UINT16);
+                MEMCPY(pNaluData, start4ByteCode, SIZEOF(start4ByteCode));
+                pNaluData += SIZEOF(start4ByteCode);
+                MEMCPY(pNaluData, pCurPtr, subNaluSize);
+                pCurPtr += subNaluSize;
+                pNaluData += subNaluSize;
+                naluLength += SIZEOF(start4ByteCode) + subNaluSize;
+            } while (subNaluSize > 0 && pCurPtr < pRawPacket + packetLength);
+            DLOGS("STAP_B_INDICATOR starting packet %d len %d", isStartingPacket, naluLength);
+            break;
         default:
+            DLOGS("Single NALU %d len %d", isStartingPacket, packetLength);
             MEMCPY(pNaluData, pRawPacket, naluLength);
     }
+    if (isStartingPacket && indicator != STAP_A_INDICATOR && indicator != STAP_B_INDICATOR) {
+        naluLength += SIZEOF(start4ByteCode);
+    }
+    DLOGS("Wrote naluLength %d isStartingPacket %d", naluLength, isStartingPacket);
 
 CleanUp:
     if (STATUS_FAILED(retStatus) && sizeCalculationOnly) {

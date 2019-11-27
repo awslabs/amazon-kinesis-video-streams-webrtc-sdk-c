@@ -56,7 +56,7 @@ STATUS depayVP8FromRtpPayload(PBYTE pRawPacket, UINT32 packetLength, PBYTE pVp8D
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    UINT32 vp8Length = 0, payloadDescriptorLength = 0;
+    UINT32 vp8Length = packetLength, payloadDescriptorLength = 0;
     BOOL sizeCalculationOnly = (pVp8Data == NULL);
     BOOL haveExtendedControlBits = FALSE;
     BOOL havePictureID = FALSE;
@@ -98,7 +98,7 @@ STATUS depayVP8FromRtpPayload(PBYTE pRawPacket, UINT32 packetLength, PBYTE pVp8D
     CHK(!sizeCalculationOnly, retStatus);
 
     CHK(vp8Length <= *pVp8Length, STATUS_BUFFER_TOO_SMALL);
-    MEMCPY(pVp8Data, pRawPacket, vp8Length);
+    MEMCPY(pVp8Data, pRawPacket + payloadDescriptorLength, vp8Length);
 
 CleanUp:
     if (STATUS_FAILED(retStatus) && sizeCalculationOnly) {
