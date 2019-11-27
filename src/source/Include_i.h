@@ -21,9 +21,12 @@ typedef struct __SocketConnection* PSocketConnection;
 ////////////////////////////////////////////////////
 // Project include files
 ////////////////////////////////////////////////////
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
 #include <com/amazonaws/kinesis/video/client/Include.h>
 #include <com/amazonaws/kinesis/video/common/Include.h>
 #include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
+#pragma clang diagnostic pop
 
 #include <jsmn.h>
 #include <openssl/bio.h>

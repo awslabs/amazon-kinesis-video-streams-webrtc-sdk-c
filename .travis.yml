@@ -9,7 +9,7 @@ cache:
   - $HOME/.cache
 
 before_script:
-  - mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE
+  - mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
 
 script:
   - make

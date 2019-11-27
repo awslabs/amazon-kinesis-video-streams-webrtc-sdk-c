@@ -7,13 +7,13 @@ option(BUILD_DEPENDENCIES "Whether or not to build depending libraries from sour
 option(BUILD_OPENSSL "If building dependencies, whether or not building openssl from source" OFF)
 
 # Developer Flags
-option(CODE_COVERAGE "Enable coverage reporting" OFF)
 option(BUILD_TEST "Build the testing tree." OFF)
+option(CODE_COVERAGE "Enable coverage reporting" OFF)
+option(COMPILER_WARNINGS "Enable all compiler warnings." OFF)
 option(ADDRESS_SANITIZER "Build with AddressSanitizer." OFF)
 option(MEMORY_SANITIZER "Build with MemorySanitizer." OFF)
 option(THREAD_SANITIZER "Build with ThreadSanitizer." OFF)
 option(UNDEFINED_BEHAVIOR_SANITIZER "Build with UndefinedBehaviorSanitizer." OFF)
-
 
 set(CMAKE_MACOSX_RPATH TRUE)
 get_filename_component(ROOT "${CMAKE_CURRENT_SOURCE_DIR}" ABSOLUTE)
@@ -430,6 +430,11 @@ add_executable(
   ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/kvsWebRTCClientViewer.c)
 target_link_libraries(kvsWebrtcClientViewer kvsWebrtcClient
                       kvsWebrtcSignalingClient)
+
+if(COMPILER_WARNINGS)
+  target_compile_options(kvsWebrtcClient PUBLIC -Wall -Werror -pedantic -Wextra)
+  target_compile_options(kvsWebrtcSignalingClient PUBLIC -Wall -Werror -pedantic -Wextra)
+endif()
 
 if(GST_FOUND)
   add_executable(
