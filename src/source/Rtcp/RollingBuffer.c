@@ -25,7 +25,7 @@ CleanUp:
         pRollingBuffer = NULL;
     }
 
-    if (pRollingBuffer != NULL) {
+    if (ppRollingBuffer != NULL) {
         *ppRollingBuffer = pRollingBuffer;
     }
     LEAVES();
