@@ -99,14 +99,13 @@ a=msid-semantic: WMS f327e13b-3518-47fc-8b53-9cf74d22d03e
 
     SessionDescription sessionDescription;
     UINT32 buff_len = 0, invalid_buffer_len = 5;
-    std::unique_ptr<char> buff;
+    std::unique_ptr<CHAR[]> buff(new CHAR[135]);
 
     populate_session_description(&sessionDescription);
 
     EXPECT_EQ(deserializeSessionDescription(&sessionDescription, NULL, &buff_len), STATUS_SUCCESS);
     EXPECT_EQ(buff_len, 135);
 
-    buff.reset(new CHAR[buff_len]());
     std::fill_n(buff.get(), buff_len, '\0');
 
     EXPECT_EQ(deserializeSessionDescription(&sessionDescription, buff.get(), &invalid_buffer_len), STATUS_BUFFER_TOO_SMALL);
@@ -131,7 +130,7 @@ a=ssrc:45567500 cname:AZdzrek14WN2tYrw
 
     SessionDescription sessionDescription;
     UINT32 buff_len = 0, invalid_buffer_len = 5;
-    std::unique_ptr<char> buff;
+    std::unique_ptr<CHAR[]> buff(new CHAR[405]);
 
     populate_session_description(&sessionDescription);
 
@@ -152,7 +151,6 @@ a=ssrc:45567500 cname:AZdzrek14WN2tYrw
     EXPECT_EQ(deserializeSessionDescription(&sessionDescription, NULL, &buff_len), STATUS_SUCCESS);
     EXPECT_EQ(buff_len, 405);
 
-    buff.reset(new CHAR[buff_len]());
     std::fill_n(buff.get(), buff_len, '\0');
 
     EXPECT_EQ(deserializeSessionDescription(&sessionDescription, buff.get(), &invalid_buffer_len), STATUS_BUFFER_TOO_SMALL);
