@@ -243,6 +243,12 @@ extern "C" {
 #define STATUS_RTCP_INPUT_PACKET_LEN_MISMATCH                                       STATUS_RTCP_BASE + 0x00000003
 #define STATUS_RTCP_INPUT_NACK_LIST_INVALID                                         STATUS_RTCP_BASE + 0x00000004
 
+//
+// RollingBuffer related errors starting from 0x61000000
+//
+#define STATUS_ROLLING_BUFFER_BASE                                                  STATUS_RTCP_BASE + 0x01000000
+#define STATUS_ROLLING_BUFFER_NOT_IN_RANGE                                          STATUS_ROLLING_BUFFER_BASE + 0x00000001
+
 ////////////////////////////////////////////////////
 // Main defines
 ////////////////////////////////////////////////////

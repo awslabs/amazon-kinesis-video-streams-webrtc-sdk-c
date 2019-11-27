@@ -86,8 +86,7 @@ struct __RtpPacket {
     PBYTE payload;
     UINT32 payloadLength;
     PBYTE pRawPacket;
-
-    //RTPTime receivetime;
+    UINT32 rawPacketLength;
 };
 typedef RtpPacket* PRtpPacket;
 
