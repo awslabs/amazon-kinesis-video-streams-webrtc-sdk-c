@@ -15,8 +15,15 @@ extern "C" {
 
 #define FU_A_HEADER_SIZE 2
 #define FU_B_HEADER_SIZE 4
+#define STAP_A_HEADER_SIZE 1
+#define STAP_B_HEADER_SIZE 3
+#define SINGLE_U_HEADER_SIZE 1
 #define FU_A_INDICATOR 28
 #define FU_B_INDICATOR 29
+#define STAP_A_INDICATOR 24
+#define STAP_B_INDICATOR 25
+#define NAL_TYPE_MASK 31
+
 /*
  *   0                   1                   2                   3
  *   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
