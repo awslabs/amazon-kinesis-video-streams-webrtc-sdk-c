@@ -340,11 +340,14 @@ find_library(
   PATHS ${KINESIS_VIDEO_OPEN_SOURCE_SRC}/lib
   NO_DEFAULT_PATH)
 
-# Uncomment below line for debug heap add_definitions(-DHEAP_DEBUG)
+# Uncomment below line for debug heap
+# add_definitions(-DHEAP_DEBUG)
+
+# Uncomment below to add thread id in log
+# add_definitions(-DENABLE_LOG_THREAD_ID)
 
 # Uncomment below line for very verbose logging
 # add_definitions(-DLOG_STREAMING)
-
 
 file(
   GLOB
