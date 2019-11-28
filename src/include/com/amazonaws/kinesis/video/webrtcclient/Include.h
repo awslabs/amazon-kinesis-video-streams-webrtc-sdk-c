@@ -320,6 +320,9 @@ extern "C" {
  */
 #define MAX_ICE_SERVERS_COUNT                                                       (MAX_ICE_CONFIG_COUNT * MAX_ICE_CONFIG_URI_COUNT + 1)
 
+// Parameterized string for KVS STUN Server
+#define KINESIS_VIDEO_STUN_URL                                                     "stun:stun.kinesisvideo.%s.amazonaws.com:443"
+
 // Default SSL port
 #define SIGNALING_DEFAULT_SSL_PORT                                                  DEFAULT_SSL_PORT_NUMBER
 

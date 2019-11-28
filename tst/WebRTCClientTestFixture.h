@@ -6,7 +6,6 @@
 #define TEST_DEFAULT_REGION                                     ((PCHAR) "us-west-2")
 #define TEST_STREAMING_TOKEN_DURATION                           (40 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define TEST_JITTER_BUFFER_CLOCK_RATE                           (1000)
-#define TEST_CONTROL_PLANE_URL                                  (PCHAR) "https://beta.kinesisvideo.us-west-2.amazonaws.com"
 #define TEST_SIGNALING_MASTER_CLIENT_ID                         (PCHAR) "Test Master ClientId"
 #define TEST_SIGNALING_VIEWER_CLIENT_ID                         (PCHAR) "Test Viewer ClientId"
 #define TEST_SIGNALING_CHANNEL_NAME                             (PCHAR) "ScaryTestChannel"

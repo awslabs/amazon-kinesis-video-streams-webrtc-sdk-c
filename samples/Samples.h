@@ -19,8 +19,6 @@ extern "C" {
 #define NUMBER_OF_OPUS_FRAME_FILES                                              618
 #define DEFAULT_FPS_VALUE                                                       25
 #define DEFAULT_TERMINATION_POLLING_INTERVAL                                    5 * HUNDREDS_OF_NANOS_IN_A_SECOND
-#define KINESIS_VIDEO_BETA_CONTROL_PLANE_URL                                    "https://beta.kinesisvideo.us-west-2.amazonaws.com"
-#define KINESIS_VIDEO_BETA_STUN_URL                                             "stun:stun.beta.kinesisvideo.us-west-2.amazonaws.com:443"
 
 #define SAMPLE_MASTER_CLIENT_ID                                                 "ProducerMaster"
 #define SAMPLE_VIEWER_CLIENT_ID                                                 "ConsumerViewer"
