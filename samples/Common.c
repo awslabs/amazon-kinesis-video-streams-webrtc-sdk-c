@@ -268,7 +268,7 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration)
     MEMSET(&audioTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
 
     // Set the  STUN server
-    STRNCPY(configuration.iceServers[0].urls, KINESIS_VIDEO_BETA_STUN_URL, MAX_ICE_CONFIG_URI_LEN);
+    SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, pSampleConfiguration->pRegion);
 
     if (pSampleConfiguration->useTurn) {
         // Set the URIs from the configuration
@@ -350,10 +350,13 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     pAccessKey = getenv(ACCESS_KEY_ENV_VAR);
     pSecretKey = getenv(SECRET_KEY_ENV_VAR);
     pSessionToken = getenv(SESSION_TOKEN_ENV_VAR);
-    pSampleConfiguration->pRegion = getenv(DEFAULT_REGION_ENV_VAR);
-    pSampleConfiguration->pCaCertPath = getenv(CACERT_PATH_ENV_VAR);
+
+    if ((pSampleConfiguration->pRegion = getenv(DEFAULT_REGION_ENV_VAR)) == NULL) {
+        pSampleConfiguration->pRegion = DEFAULT_AWS_REGION;
+    }
+
     // if ca cert path is not set from the environment, try to use the one that cmake detected
-    if (pSampleConfiguration->pCaCertPath == NULL) {
+    if ((pSampleConfiguration->pCaCertPath = getenv(CACERT_PATH_ENV_VAR)) == NULL) {
         CHK_ERR(STRNLEN(DEFAULT_KVS_CACERT_PATH, MAX_PATH_LEN) > 0, STATUS_INVALID_OPERATION, "No ca cert path given");
         pSampleConfiguration->pCaCertPath = DEFAULT_KVS_CACERT_PATH;
     }
@@ -384,7 +387,6 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     pSampleConfiguration->channelInfo.retry = TRUE;
     pSampleConfiguration->channelInfo.reconnect = TRUE;
     pSampleConfiguration->channelInfo.pCertPath = pSampleConfiguration->pCaCertPath;
-    pSampleConfiguration->channelInfo.pControlPlaneUrl = KINESIS_VIDEO_BETA_CONTROL_PLANE_URL;
 
     if (pSampleConfiguration->channelInfo.channelRoleType == SIGNALING_CHANNEL_ROLE_TYPE_VIEWER) {
         STRCPY(pSampleConfiguration->peerId, SAMPLE_MASTER_CLIENT_ID);

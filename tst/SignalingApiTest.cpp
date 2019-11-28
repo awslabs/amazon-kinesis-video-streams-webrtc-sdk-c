@@ -111,7 +111,6 @@ TEST_F(SignalingApiTest, mockMaster)
     channelInfo.retry = TRUE;
     channelInfo.reconnect = TRUE;
     channelInfo.pCertPath = mCaCertPath;
-    channelInfo.pControlPlaneUrl = TEST_CONTROL_PLANE_URL;
 
     EXPECT_NE(STATUS_SUCCESS, createSignalingClientSync(NULL, &channelInfo, &signalingClientCallbacks,
             (PAwsCredentialProvider) mTestCredentialProvider,
@@ -121,9 +120,9 @@ TEST_F(SignalingApiTest, mockMaster)
             &signalingHandle));
     EXPECT_NE(STATUS_SUCCESS, createSignalingClientSync(&clientInfo, &channelInfo, NULL,
             (PAwsCredentialProvider) mTestCredentialProvider, &signalingHandle));
-    EXPECT_NE(STATUS_SUCCESS, createSignalingClientSync(&clientInfo, &channelInfo, 
+    EXPECT_NE(STATUS_SUCCESS, createSignalingClientSync(&clientInfo, &channelInfo,
             &signalingClientCallbacks, NULL, &signalingHandle));
-    EXPECT_NE(STATUS_SUCCESS, createSignalingClientSync(&clientInfo, &channelInfo, 
+    EXPECT_NE(STATUS_SUCCESS, createSignalingClientSync(&clientInfo, &channelInfo,
             &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider, NULL));
     EXPECT_NE(STATUS_SUCCESS, createSignalingClientSync(NULL, NULL, NULL, NULL, NULL));
 
@@ -242,7 +241,6 @@ TEST_F(SignalingApiTest, mockViewer)
     channelInfo.retry = TRUE;
     channelInfo.reconnect = TRUE;
     channelInfo.pCertPath = mCaCertPath;
-    channelInfo.pControlPlaneUrl = TEST_CONTROL_PLANE_URL;
 
     EXPECT_NE(STATUS_SUCCESS, createSignalingClientSync(NULL, &channelInfo, &signalingClientCallbacks,
                                                   (PAwsCredentialProvider) mTestCredentialProvider,
@@ -533,7 +531,6 @@ TEST_F(SignalingApiTest, iceReconnectEmulation)
     channelInfo.retry = TRUE;
     channelInfo.reconnect = TRUE;
     channelInfo.pCertPath = mCaCertPath;
-    channelInfo.pControlPlaneUrl = TEST_CONTROL_PLANE_URL;
 
     EXPECT_EQ(STATUS_SUCCESS, createSignalingClientSync(&clientInfo, &channelInfo, &signalingClientCallbacks,
             (PAwsCredentialProvider) mTestCredentialProvider, &signalingHandle));
@@ -611,7 +608,6 @@ TEST_F(SignalingApiTest, goAwayEmulation)
     channelInfo.retry = TRUE;
     channelInfo.reconnect = TRUE;
     channelInfo.pCertPath = mCaCertPath;
-    channelInfo.pControlPlaneUrl = TEST_CONTROL_PLANE_URL;
 
     EXPECT_EQ(STATUS_SUCCESS, createSignalingClientSync(&clientInfo, &channelInfo, &signalingClientCallbacks,
                                                         (PAwsCredentialProvider) mTestCredentialProvider, &signalingHandle));
@@ -689,7 +685,6 @@ TEST_F(SignalingApiTest, unknownMessageTypeEmulation)
     channelInfo.retry = TRUE;
     channelInfo.reconnect = TRUE;
     channelInfo.pCertPath = mCaCertPath;
-    channelInfo.pControlPlaneUrl = TEST_CONTROL_PLANE_URL;
 
     EXPECT_EQ(STATUS_SUCCESS, createSignalingClientSync(&clientInfo, &channelInfo, &signalingClientCallbacks,
                                                         (PAwsCredentialProvider) mTestCredentialProvider, &signalingHandle));
