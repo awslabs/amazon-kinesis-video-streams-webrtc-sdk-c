@@ -9,7 +9,11 @@ option(BUILD_OPENSSL "If building dependencies, whether or not building openssl 
 # Developer Flags
 option(CODE_COVERAGE "Enable coverage reporting" OFF)
 option(BUILD_TEST "Build the testing tree." OFF)
-option(ADDRESS_SANITIZER "Build with Address Sanitizer." OFF)
+option(ADDRESS_SANITIZER "Build with AddressSanitizer." OFF)
+option(MEMORY_SANITIZER "Build with MemorySanitizer." OFF)
+option(THREAD_SANITIZER "Build with ThreadSanitizer." OFF)
+option(UNDEFINED_BEHAVIOR_SANITIZER "Build with UndefinedBehaviorSanitizer." OFF)
+
 
 set(CMAKE_MACOSX_RPATH TRUE)
 get_filename_component(ROOT "${CMAKE_CURRENT_SOURCE_DIR}" ABSOLUTE)
@@ -266,6 +270,12 @@ else()
   message(FATAL_ERROR "Unknown bitness")
 endif()
 
+function(enableSanitizer SANITIZER)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -g -fsanitize=${SANITIZER} -fno-omit-frame-pointer" PARENT_SCOPE)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -g -fsanitize=${SANITIZER} -fno-omit-frame-pointer -fno-optimize-sibling-calls" PARENT_SCOPE)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=${SANITIZER}" PARENT_SCOPE)
+endfunction()
+
 if("${CMAKE_C_COMPILER_ID}" MATCHES "GNU|Clang")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
 
@@ -279,9 +289,16 @@ if("${CMAKE_C_COMPILER_ID}" MATCHES "GNU|Clang")
   endif()
 
   if(ADDRESS_SANITIZER)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -O0 -fno-omit-frame-pointer -g")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address -fno-omit-frame-pointer -fno-sanitize-recover=all -fno-optimize-sibling-calls -g -O0")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address")
+    enableSanitizer("address")
+  endif()
+  if(MEMORY_SANITIZER)
+    enableSanitizer("memory")
+  endif()
+  if(THREAD_SANITIZER)
+    enableSanitizer("thread")
+  endif()
+  if(UNDEFINED_BEHAVIOR_SANITIZER)
+    enableSanitizer("undefined")
   endif()
 
   find_package(PkgConfig REQUIRED)
