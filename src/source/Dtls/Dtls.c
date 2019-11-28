@@ -129,7 +129,7 @@ STATUS createSslCtx(X509 *pCert, EVP_PKEY *pPkey, SSL_CTX **ppSslCtx)
     CHK(SSL_CTX_use_certificate(pSslCtx, pCert), STATUS_SSL_CTX_CREATION_FAILED);
 
     CHK(SSL_CTX_use_PrivateKey(pSslCtx, pPkey) || SSL_CTX_check_private_key(pSslCtx), STATUS_SSL_CTX_CREATION_FAILED);
-    CHK(SSL_CTX_set_cipher_list(pSslCtx, "HIGH:!aNULL:!MD5:!RC4:!SSLv3"), STATUS_SSL_CTX_CREATION_FAILED);    
+    CHK(SSL_CTX_set_cipher_list(pSslCtx, "HIGH:!aNULL:!MD5:!RC4"), STATUS_SSL_CTX_CREATION_FAILED);
 
     *ppSslCtx = pSslCtx;
 
