@@ -72,10 +72,8 @@ STATUS freeRtpPacket(PRtpPacket * ppRtpPacket)
     STATUS retStatus = STATUS_SUCCESS;
 
     CHK(ppRtpPacket != NULL, STATUS_NULL_ARG);
-    // freeRtpPacket is idempotent
-    CHK(*ppRtpPacket != NULL, retStatus);
 
-    MEMFREE(*ppRtpPacket);
+    SAFE_MEMFREE(*ppRtpPacket);
 CleanUp:
     CHK_LOG_ERR(retStatus);
 
@@ -87,7 +85,8 @@ STATUS createRtpPacketFromBytes(PBYTE rawPacket, UINT32 packetLength, PRtpPacket
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    PRtpPacket pRtpPacket = MEMALLOC(SIZEOF(RtpPacket));
+    PRtpPacket pRtpPacket = (PRtpPacket) MEMALLOC(SIZEOF(RtpPacket));
+    CHK(pRtpPacket != NULL, STATUS_NOT_ENOUGH_MEMORY);
     pRtpPacket->pRawPacket = rawPacket;
     pRtpPacket->rawPacketLength = packetLength;
     CHK(pRtpPacket != NULL, STATUS_NOT_ENOUGH_MEMORY);
@@ -99,7 +98,7 @@ CleanUp:
         pRtpPacket = NULL;
     }
 
-    if (pRtpPacket != NULL) {
+    if (ppRtpPacket != NULL) {
         *ppRtpPacket = pRtpPacket;
     }
     LEAVES();

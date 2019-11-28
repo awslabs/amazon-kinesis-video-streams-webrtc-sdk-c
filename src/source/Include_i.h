@@ -116,6 +116,7 @@ typedef struct {
 #include "Rtcp/RtpRollingBuffer.h"
 #include "PeerConnection/JitterBuffer.h"
 #include "PeerConnection/PeerConnection.h"
+#include "PeerConnection/Retransmitter.h"
 #include "PeerConnection/SessionDescription.h"
 #include "PeerConnection/Rtp.h"
 #include "PeerConnection/Rtcp.h"

@@ -33,9 +33,12 @@ STATUS addRtpPacket(PRollingBuffer pRollingBuffer, PRtpPacket pRtpPacket)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PRtpPacket pRtpPacketCopy = NULL;
+    PBYTE pRawPacketCopy = NULL;
     CHK(pRollingBuffer != NULL && pRtpPacket != NULL, STATUS_NULL_ARG);
 
-    CHK_STATUS(createRtpPacketFromBytes(pRtpPacket->pRawPacket, pRtpPacket->rawPacketLength, &pRtpPacketCopy));
+    pRawPacketCopy = MEMALLOC(pRtpPacket->rawPacketLength);
+    MEMCPY(pRawPacketCopy, pRtpPacket->pRawPacket, pRtpPacket->rawPacketLength);
+    CHK_STATUS(createRtpPacketFromBytes(pRawPacketCopy, pRtpPacket->rawPacketLength, &pRtpPacketCopy));
 
     if (pRollingBuffer->headIndex == pRollingBuffer->tailIndex) {
         // Empty buffer, set start to same as seq number
@@ -53,7 +56,7 @@ CleanUp:
 }
 
 STATUS getValidSeqIndexList(PRollingBuffer pRollingBuffer, PUINT16 pSequenceNumberList,
-                            PUINT32 pSequenceNumberListLen, PUINT64 pValidSeqIndexList, UINT32 validSeqListLen)
+                            PUINT32 pSequenceNumberListLen, PUINT64 pValidSeqIndexList, PUINT32 pValidIndexListLen)
 {
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 index = 0, returnPacketCount = 0;
@@ -66,7 +69,7 @@ STATUS getValidSeqIndexList(PRollingBuffer pRollingBuffer, PUINT16 pSequenceNumb
     CHK(pRollingBuffer != NULL && pValidSeqIndexList != NULL && pSequenceNumberList != NULL && pSequenceNumberListLen != NULL, STATUS_NULL_ARG);
 
     // Empty buffer, just return
-    CHK(pRollingBuffer->headIndex == pRollingBuffer->tailIndex, retStatus);
+    CHK(pRollingBuffer->headIndex != pRollingBuffer->tailIndex, retStatus);
 
     startSeq = pRollingBuffer->tailIndex % MAX_UINT16;
     endSeq = (pRollingBuffer->headIndex - 1) % MAX_UINT16;
@@ -88,13 +91,17 @@ STATUS getValidSeqIndexList(PRollingBuffer pRollingBuffer, PUINT16 pSequenceNumb
         if (foundPacket) {
             pCurSeqIndexListPtr++;
             // Return if filled up given valid sequence number array
-            CHK(++returnPacketCount < validSeqListLen, retStatus);
-            *pCurSeqIndexListPtr = (UINT64) NULL;
+            CHK(++returnPacketCount < *pValidIndexListLen, retStatus);
+            *pCurSeqIndexListPtr = NULL;
         }
     }
 
 CleanUp:
     CHK_LOG_ERR(retStatus);
+
+    if (pValidIndexListLen != NULL) {
+        *pValidIndexListLen = returnPacketCount;
+    }
 
     LEAVES();
     return retStatus;

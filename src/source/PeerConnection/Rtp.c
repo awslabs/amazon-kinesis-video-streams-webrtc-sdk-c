@@ -23,6 +23,8 @@ STATUS createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION direction, PKvsPeer
     pKvsRtpTransceiver->pKvsPeerConnection = pKvsPeerConnection;
     pKvsRtpTransceiver->sender.ssrc = ssrc;
     pKvsRtpTransceiver->sender.track = *pRtcMediaStreamTrack;
+    CHK_STATUS(createRtpRollingBuffer(DEFAULT_ROLLING_BUFFER_SIZE, &pKvsRtpTransceiver->sender.packetBuffer));
+    CHK_STATUS(createRetransmitter(DEFAULT_SEQ_NUM_BUFFER_SIZE, DEFAULT_VALID_INDEX_BUFFER_SIZE, &pKvsRtpTransceiver->sender.retransmitter));
     pKvsRtpTransceiver->pJitterBuffer = pJitterBuffer;
     pKvsRtpTransceiver->transceiver.receiver.track.codec = rtcCodec;
     pKvsRtpTransceiver->transceiver.direction = direction;
@@ -52,6 +54,14 @@ STATUS freeKvsRtpTransceiver(PKvsRtpTransceiver* ppKvsRtpTransceiver)
 
     if (pKvsRtpTransceiver->pJitterBuffer != NULL) {
         freeJitterBuffer(&pKvsRtpTransceiver->pJitterBuffer);
+    }
+
+    if (pKvsRtpTransceiver->sender.packetBuffer != NULL) {
+        freeRtpRollingBuffer(&pKvsRtpTransceiver->sender.packetBuffer);
+    }
+
+    if (pKvsRtpTransceiver->sender.retransmitter != NULL) {
+        freeRetransmitter(&pKvsRtpTransceiver->sender.retransmitter);
     }
 
     SAFE_MEMFREE(pKvsRtpTransceiver->peerFrameBuffer);
@@ -171,6 +181,9 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame) {
         rawLen = packetLen;
 
         rawPacket = REALLOC(rawPacket, packetLen + 10); // For SRTP authentication tag
+        pRtpPacket->pRawPacket = rawPacket;
+        pRtpPacket->rawPacketLength = packetLen + 10;
+        CHK_STATUS(addRtpPacket(pKvsRtpTransceiver->sender.packetBuffer, pRtpPacket));
         CHK_STATUS(encryptRtpPacket(pKvsPeerConnection->pSrtpSession, rawPacket, &rawLen));
         CHK_STATUS(iceAgentSendPacket(pKvsPeerConnection->pIceAgent, rawPacket, rawLen));
 
@@ -184,6 +197,26 @@ CleanUp:
     }
     SAFE_MEMFREE(rawPacket);
     SAFE_MEMFREE(pPacketList);
+
+    return retStatus;
+}
+
+STATUS writeEncryptedRtpPacketNoCopy(PKvsPeerConnection pKvsPeerConnection, PRtpPacket pRtpPacket) {
+    STATUS retStatus = STATUS_SUCCESS;
+    BOOL locked = FALSE;
+
+    CHK(pKvsPeerConnection != NULL && pRtpPacket != NULL && pRtpPacket->pRawPacket != NULL, STATUS_NULL_ARG);
+
+    MUTEX_LOCK(pKvsPeerConnection->pSrtpSessionLock);
+    locked = TRUE;
+    CHK(pKvsPeerConnection->pSrtpSession != NULL, STATUS_SUCCESS); // Discard packets till SRTP is ready
+
+    CHK_STATUS(iceAgentSendPacket(pKvsPeerConnection->pIceAgent, pRtpPacket->pRawPacket, pRtpPacket->rawPacketLength));
+
+CleanUp:
+    if (locked) {
+        MUTEX_UNLOCK(pKvsPeerConnection->pSrtpSessionLock);
+    }
 
     return retStatus;
 }

@@ -126,7 +126,10 @@ STATUS encryptRtpPacket(PSrtpSession pSrtpSession, PVOID message, PINT32 len)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
 
-    CHK(srtp_protect(pSrtpSession->srtp_transmit_session, message, len) == srtp_err_status_ok, STATUS_SRTP_ENCRYPT_FAILED);
+    retStatus = srtp_protect(pSrtpSession->srtp_transmit_session, message, len);
+    //DLOGE("srtp_protect returned %lu srtp session %llu", retStatus, pSrtpSession->srtp_transmit_session);
+
+    CHK(retStatus == srtp_err_status_ok, STATUS_SRTP_ENCRYPT_FAILED);
 
 CleanUp:
     LEAVES();

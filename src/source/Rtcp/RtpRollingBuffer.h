@@ -14,7 +14,7 @@ STATUS createRtpRollingBuffer(UINT32, PRollingBuffer*);
 STATUS freeRtpRollingBuffer(PRollingBuffer*);
 STATUS freeRtpRollingBufferData(PUINT64);
 STATUS addRtpPacket(PRollingBuffer, PRtpPacket);
-STATUS getValidSeqIndexList(PRollingBuffer, PUINT16, PUINT32, PUINT64, UINT32);
+STATUS getValidSeqIndexList(PRollingBuffer, PUINT16, PUINT32, PUINT64, PUINT32);
 
 #ifdef  __cplusplus
 
