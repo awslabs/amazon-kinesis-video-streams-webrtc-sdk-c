@@ -1,13 +1,5 @@
 language: cpp
 
-os:
-  - linux
-  - osx
-
-compiler:
-  - gcc
-  - clang
-
 branches:
   only:
   - master
@@ -16,25 +8,61 @@ cache:
 - directories:
   - $HOME/.cache
 
-env:
-  - ASAN_OPTIONS=detect_odr_violation=0
+before_script:
+  - mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE
 
 script:
-  - mkdir build && cd build
-  - |
-    if [[ "${TRAVIS_OS_NAME}" = "linux" && "${TRAVIS_COMPILER}" = "gcc" ]]; then
-      cmake .. -DCODE_COVERAGE=TRUE -DBUILD_TEST=TRUE
-    elif [[ "${TRAVIS_OS_NAME}" = "linux" && "${TRAVIS_COMPILER}" = "clang" ]]; then
-      cmake .. -DADDRESS_SANITIZER=TRUE -DBUILD_TEST=TRUE
-    else
-      cmake .. -DBUILD_TEST=TRUE
-    fi
   - make
   - ./tst/webrtc_client_test
 
-after_success:
-  - |
-    if [[ "${TRAVIS_OS_NAME}" = "linux" && "${TRAVIS_COMPILER}" = "gcc" ]]; then
-      for test_file in $(find CMakeFiles/kvsWebrtcClient.dir CMakeFiles/kvsWebrtcSignalingClient.dir -name '*.gcno'); do gcov $test_file; done
-      bash <(curl -s https://codecov.io/bash)
-    fi
+jobs:
+  # MemorySanitizer and UndefinedBehaviorSanitizer are still WIP
+  allow_failures:
+    - env: allowTestFail=true
+
+matrix:
+  include:
+    # MacOS Builds
+    - name: "OSX GCC"
+      os: osx
+      compiler: gcc
+    - name: "OSX Clang"
+      os: osx
+      compiler: clang
+
+    # Code Coverage
+    - name: "Linux GCC Code Coverage"
+      os: linux
+      compiler: gcc
+      before_script:
+        - mkdir build && cd build && cmake .. -DCODE_COVERAGE=TRUE -DBUILD_TEST=TRUE
+      after_success:
+        - for test_file in $(find CMakeFiles/kvsWebrtcClient.dir CMakeFiles/kvsWebrtcSignalingClient.dir -name '*.gcno'); do gcov $test_file; done
+        - bash <(curl -s https://codecov.io/bash)
+
+    # AddressSanitizer
+    - name: "Linux Clang AddressSanitizer"
+      os: linux
+      compiler: clang
+      env: ASAN_OPTIONS=detect_odr_violation=0
+      before_script: mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE -DADDRESS_SANITIZER=TRUE
+
+    # MemorySanitizer
+    - name: "Linux Clang MemorySanitizer"
+      os: linux
+      compiler: clang
+      env: allowTestFail=true
+      before_script: mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE -DMEMORY_SANITIZER=TRUE
+
+    # ThreadSanitizer
+    - name: "Linux Clang ThreadSanitizer"
+      os: linux
+      compiler: clang
+      env: TSAN_OPTIONS=halt_on_error=1
+      before_script: mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE -DTHREAD_SANITIZER=TRUE
+
+    # UndefinedBehaviorSanitizer
+    - name: "Linux Clang UndefinedBehaviorSanitizer"
+      os: linux
+      compiler: clang
+      before_script: mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE -DUNDEFINED_BEHAVIOR_SANITIZER=TRUE
