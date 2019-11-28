@@ -23,8 +23,21 @@ extern "C" {
 // Grace period for refreshing the ICE configuration
 #define ICE_CONFIGURATION_REFRESH_GRACE_PERIOD                              (30 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
+// Termination timeout
+#define SIGNALING_CLIENT_SHUTDOWN_TIMEOUT                                   (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+
 // Forward declaration
 typedef struct __LwsCallInfo *PLwsCallInfo;
+
+/**
+ * Thread execution tracker
+ */
+typedef struct {
+    ATOMIC_BOOL terminated;
+    TID threadId;
+    MUTEX lock;
+    CVAR await;
+} ThreadTracker, *PThreadTracker;
 
 /**
  * Internal representation of the Signaling client.
@@ -115,10 +128,10 @@ typedef struct {
     PLwsCallInfo pOngoingCallInfo;
 
     // Listener thread for the socket
-    TID listenerTid;
+    ThreadTracker listenerTracker;
 
-    // Restarted thread
-    TID restarterTid;
+    // Restarted thread handler
+    ThreadTracker restarterTracker;
 
     // LWS context to use
     struct lws_context* pLwsContext;
@@ -157,6 +170,10 @@ STATUS signalingRemoveOngoingMessage(PSignalingClient, PCHAR);
 STATUS signalingGetOngoingMessage(PSignalingClient, PCHAR, PSignalingMessage*);
 
 STATUS refreshIceConfigurationCallback(UINT32, UINT64, UINT64);
+
+STATUS awaitForThreadTermination(PThreadTracker, UINT64);
+STATUS initializeThreadTracker(PThreadTracker);
+STATUS uninitializeThreadTracker(PThreadTracker);
 
 #pragma pack(pop, include_i)
 

@@ -1106,8 +1106,8 @@ STATUS connectSignalingChannelLws(PSignalingClient pSignalingClient, UINT64 time
 
     // The actual connection will be handled in a separate thread
     // Start the request/response thread
-    CHK_STATUS(THREAD_CREATE(&pSignalingClient->listenerTid, lwsListenerHandler, (PVOID) pLwsCallInfo));
-    CHK_STATUS(THREAD_DETACH(pSignalingClient->listenerTid));
+    CHK_STATUS(THREAD_CREATE(&pSignalingClient->listenerTracker.threadId, lwsListenerHandler, (PVOID) pLwsCallInfo));
+    CHK_STATUS(THREAD_DETACH(pSignalingClient->listenerTracker.threadId));
 
     // Wait for ready
     while ((callResult = (SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result)) == SERVICE_CALL_RESULT_NOT_SET) {
@@ -1162,6 +1162,9 @@ PVOID lwsListenerHandler(PVOID args)
     CHK(pLwsCallInfo != NULL && pLwsCallInfo->pSignalingClient != NULL, STATUS_NULL_ARG);
     pSignalingClient = pLwsCallInfo->pSignalingClient;
 
+    // Mark as started
+    ATOMIC_STORE_BOOL(&pSignalingClient->listenerTracker.terminated, FALSE);
+
     // Interlock to wait for the start sequence
     MUTEX_LOCK(pSignalingClient->connectedLock);
     MUTEX_UNLOCK(pSignalingClient->connectedLock);
@@ -1170,8 +1173,8 @@ PVOID lwsListenerHandler(PVOID args)
     CHK_STATUS(lwsCompleteSync(pLwsCallInfo));
 
     // Fire the re-connector thread
-    CHK_STATUS(THREAD_CREATE(&pSignalingClient->restarterTid, reconnectHandler, (PVOID) pSignalingClient));
-    CHK_STATUS(THREAD_DETACH(pSignalingClient->restarterTid));
+    CHK_STATUS(THREAD_CREATE(&pSignalingClient->restarterTracker.threadId, reconnectHandler, (PVOID) pSignalingClient));
+    CHK_STATUS(THREAD_DETACH(pSignalingClient->restarterTracker.threadId));
 
 CleanUp:
 
@@ -1190,7 +1193,9 @@ CleanUp:
             CVAR_BROADCAST(pSignalingClient->connectedCvar);
         }
 
-        ATOMIC_STORE(&pSignalingClient->listenerTid, (SIZE_T) INVALID_TID_VALUE);
+        pSignalingClient->listenerTracker.threadId = INVALID_TID_VALUE;
+        ATOMIC_STORE_BOOL(&pSignalingClient->listenerTracker.terminated, TRUE);
+        CVAR_BROADCAST(pSignalingClient->listenerTracker.await);
     }
 
     LEAVES();
@@ -1204,6 +1209,9 @@ PVOID reconnectHandler(PVOID args)
     PSignalingClient pSignalingClient = (PSignalingClient) args;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+
+    // Indicate that we started
+    ATOMIC_STORE_BOOL(&pSignalingClient->restarterTracker.terminated, FALSE);
 
     while (TRUE) {
         // Check for a shutdown
@@ -1221,7 +1229,11 @@ PVOID reconnectHandler(PVOID args)
 CleanUp:
 
     if (pSignalingClient != NULL) {
-        ATOMIC_STORE(&pSignalingClient->restarterTid, (SIZE_T) INVALID_TID_VALUE);
+        pSignalingClient->restarterTracker.threadId = INVALID_TID_VALUE;
+        ATOMIC_STORE_BOOL(&pSignalingClient->restarterTracker.terminated, TRUE);
+
+        // Notify the listeners to unlock
+        CVAR_BROADCAST(pSignalingClient->restarterTracker.await);
     }
 
     LEAVES();
@@ -1606,8 +1618,7 @@ STATUS terminateConnectionWithStatus(PSignalingClient pSignalingClient, SERVICE_
         lws_cancel_service(pSignalingClient->pLwsContext);
     }
 
-    // Join the thread till exits
-    THREAD_JOIN(pSignalingClient->listenerTid, NULL);
+    CHK_STATUS(awaitForThreadTermination(&pSignalingClient->listenerTracker, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT));
 
 CleanUp:
 
@@ -1660,20 +1671,18 @@ STATUS terminateLwsListenerLoop(PSignalingClient pSignalingClient)
     CHK(pSignalingClient != NULL && pSignalingClient->pOngoingCallInfo, retStatus);
 
     // Check if anything needs to be done
-    CHK(IS_VALID_TID_VALUE(pSignalingClient->listenerTid), retStatus);
+    CHK(!ATOMIC_LOAD_BOOL(&pSignalingClient->listenerTracker.terminated), retStatus);
 
     // Trigger termination
     ATOMIC_STORE_BOOL(&pSignalingClient->pOngoingCallInfo->callInfo.pRequestInfo->terminating, TRUE);
 
     lws_cancel_service(pSignalingClient->pLwsContext);
 
-    // Join the thread till exits
-    THREAD_JOIN(pSignalingClient->listenerTid, NULL);
+    // Await for the termination
+    CHK_STATUS(awaitForThreadTermination(&pSignalingClient->listenerTracker, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT));
 
     lws_context_destroy(pSignalingClient->pLwsContext);
     pSignalingClient->pLwsContext = NULL;
-
-    pSignalingClient->listenerTid = INVALID_TID_VALUE;
 
 CleanUp:
 

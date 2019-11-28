@@ -5,8 +5,8 @@ extern StateMachineState SIGNALING_STATE_MACHINE_STATES[];
 extern UINT32 SIGNALING_STATE_MACHINE_STATE_COUNT;
 
 STATUS createSignalingSync(PSignalingClientInfo pClientInfo, PChannelInfo pChannelInfo,
-        PSignalingClientCallbacks pCallbacks,
-        PAwsCredentialProvider pCredentialProvider, PSignalingClient *ppSignalingClient)
+        PSignalingClientCallbacks pCallbacks, PAwsCredentialProvider pCredentialProvider,
+        PSignalingClient *ppSignalingClient)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -15,11 +15,19 @@ STATUS createSignalingSync(PSignalingClientInfo pClientInfo, PChannelInfo pChann
     UINT32 userLogLevel;
     struct lws_context_creation_info creationInfo;
 
-    CHK(pChannelInfo != NULL && pCredentialProvider != NULL && ppSignalingClient != NULL, STATUS_NULL_ARG);
+    CHK(pClientInfo != NULL &&
+         pChannelInfo != NULL &&
+         pCallbacks != NULL &&
+         pCredentialProvider != NULL &&
+         ppSignalingClient != NULL, STATUS_NULL_ARG);
     CHK(pChannelInfo->version <= CHANNEL_INFO_CURRENT_VERSION, STATUS_SIGNALING_INVALID_CHANNEL_INFO_VERSION);
 
     // Allocate enough storage
     CHK(NULL != (pSignalingClient = (PSignalingClient) MEMCALLOC(1, SIZEOF(SignalingClient))), STATUS_NOT_ENOUGH_MEMORY);
+
+    // Initialize the listener and restarter thread trackers
+    CHK_STATUS(initializeThreadTracker(&pSignalingClient->listenerTracker));
+    CHK_STATUS(initializeThreadTracker(&pSignalingClient->restarterTracker));
 
     // Validate and store the input
     CHK_STATUS(createChannelInfo(pChannelInfo->pChannelName,
@@ -87,10 +95,6 @@ STATUS createSignalingSync(PSignalingClientInfo pClientInfo, PChannelInfo pChann
     ATOMIC_STORE_BOOL(&pSignalingClient->clientReady, FALSE);
     ATOMIC_STORE_BOOL(&pSignalingClient->shutdown, FALSE);
     ATOMIC_STORE_BOOL(&pSignalingClient->connected, FALSE);
-
-    // Initialize the listener and restarter thread id
-    pSignalingClient->listenerTid = INVALID_TID_VALUE;
-    pSignalingClient->restarterTid = INVALID_TID_VALUE;
 
     // Add to the signal handler
     // signal(SIGINT, lwsSignalHandler);
@@ -165,9 +169,7 @@ STATUS freeSignaling(PSignalingClient* ppSignalingClient)
     terminateLwsListenerLoop(pSignalingClient);
 
     // Await for the restarted thread to exit
-    if (IS_VALID_TID_VALUE(pSignalingClient->restarterTid)) {
-        THREAD_JOIN(pSignalingClient->restarterTid, NULL);
-    }
+    awaitForThreadTermination(&pSignalingClient->restarterTracker, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT);
 
     freeStateMachine(pSignalingClient->pStateMachine);
 
@@ -206,6 +208,9 @@ STATUS freeSignaling(PSignalingClient* ppSignalingClient)
     if (IS_VALID_MUTEX_VALUE(pSignalingClient->messageQueueLock)) {
         MUTEX_FREE(pSignalingClient->messageQueueLock);
     }
+
+    uninitializeThreadTracker(&pSignalingClient->restarterTracker);
+    uninitializeThreadTracker(&pSignalingClient->listenerTracker);
 
     MEMFREE(pSignalingClient);
 
@@ -537,5 +542,76 @@ CleanUp:
     }
 
     LEAVES();
+    return retStatus;
+}
+
+STATUS initializeThreadTracker(PThreadTracker pThreadTracker)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    CHK(pThreadTracker != NULL, STATUS_NULL_ARG);
+
+    pThreadTracker->threadId = INVALID_TID_VALUE;
+
+    pThreadTracker->lock = MUTEX_CREATE(FALSE);
+    CHK(IS_VALID_MUTEX_VALUE(pThreadTracker->lock), STATUS_INVALID_OPERATION);
+
+    pThreadTracker->await = CVAR_CREATE();
+    CHK(IS_VALID_CVAR_VALUE(pThreadTracker->await), STATUS_INVALID_OPERATION);
+
+    ATOMIC_STORE_BOOL(&pThreadTracker->terminated, TRUE);
+
+CleanUp:
+    return retStatus;
+}
+
+STATUS uninitializeThreadTracker(PThreadTracker pThreadTracker)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    CHK(pThreadTracker != NULL, STATUS_NULL_ARG);
+
+    pThreadTracker->threadId = INVALID_TID_VALUE;
+    if (IS_VALID_MUTEX_VALUE(pThreadTracker->lock)) {
+        MUTEX_FREE(pThreadTracker->lock);
+    }
+
+    if (IS_VALID_CVAR_VALUE(pThreadTracker->await)) {
+        CVAR_FREE(pThreadTracker->await);
+    }
+
+    ATOMIC_STORE_BOOL(&pThreadTracker->terminated, FALSE);
+    pThreadTracker->threadId = INVALID_TID_VALUE;
+
+CleanUp:
+    return retStatus;
+}
+
+STATUS awaitForThreadTermination(PThreadTracker pThreadTracker, UINT64 timeout)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    BOOL locked = FALSE;
+
+    CHK(pThreadTracker != NULL, STATUS_NULL_ARG);
+
+    // Await for the termination
+    while (!ATOMIC_LOAD_BOOL(&pThreadTracker->terminated)) {
+        MUTEX_LOCK(pThreadTracker->lock);
+        locked = TRUE;
+
+        CHK_STATUS(CVAR_WAIT(pThreadTracker->await,
+                             pThreadTracker->lock,
+                             timeout));
+
+        MUTEX_UNLOCK(pThreadTracker->lock);
+        locked = FALSE;
+    }
+
+    pThreadTracker->threadId = INVALID_TID_VALUE;
+
+CleanUp:
+
+    if (locked) {
+        MUTEX_UNLOCK(pThreadTracker->lock);
+    }
+
     return retStatus;
 }

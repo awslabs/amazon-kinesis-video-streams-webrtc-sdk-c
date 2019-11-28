@@ -25,7 +25,7 @@ script:
     if [[ "${TRAVIS_OS_NAME}" = "linux" && "${TRAVIS_COMPILER}" = "gcc" ]]; then
       cmake .. -DCODE_COVERAGE=TRUE -DBUILD_TEST=TRUE
     elif [[ "${TRAVIS_OS_NAME}" = "linux" && "${TRAVIS_COMPILER}" = "clang" ]]; then
-      cmake .. -DADDRESS_SANITIZIER=TRUE -DBUILD_TEST=TRUE
+      cmake .. -DADDRESS_SANITIZER=TRUE -DBUILD_TEST=TRUE
     else
       cmake .. -DBUILD_TEST=TRUE
     fi

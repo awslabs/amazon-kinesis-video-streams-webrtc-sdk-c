@@ -44,7 +44,7 @@ STATUS addRtpPacket(PRollingBuffer pRollingBuffer, PRtpPacket pRtpPacket)
     } else {
         CHK(pRollingBuffer->headIndex % MAX_UINT16 == pRtpPacketCopy->header.sequenceNumber, STATUS_INVALID_ARG);
     }
-    CHK_STATUS(rollingBufferAppendData(pRollingBuffer, (PBYTE) pRtpPacketCopy));
+    CHK_STATUS(rollingBufferAppendData(pRollingBuffer, (UINT64) pRtpPacketCopy));
 CleanUp:
     CHK_LOG_ERR(retStatus);
 
@@ -89,7 +89,7 @@ STATUS getValidSeqIndexList(PRollingBuffer pRollingBuffer, PUINT16 pSequenceNumb
             pCurSeqIndexListPtr++;
             // Return if filled up given valid sequence number array
             CHK(++returnPacketCount < validSeqListLen, retStatus);
-            *pCurSeqIndexListPtr = NULL;
+            *pCurSeqIndexListPtr = (UINT64) NULL;
         }
     }
 
