@@ -11,3 +11,4 @@ open-source/libusrsctp
 open-source/libwebsockets
 open-source/local
 outputs
+open-source/amazon-kinesis-video-streams-producer-sdk-cpp

@@ -34,16 +34,33 @@ STATUS dtlsTransmissionTimerCallback(UINT32 timerID, UINT64 currentTime, UINT64 
 {
     STATUS retStatus = STATUS_SUCCESS;
     PDtlsSession pDtlsSession = (PDtlsSession) customData;
+    BOOL locked = FALSE;
+    struct timeval timeout = {0};
+    UINT64 timeoutValDefaultTimeUnit = 0;
 
     CHK(pDtlsSession != NULL, STATUS_NULL_ARG);
 
-    CHK(!SSL_is_init_finished(pDtlsSession->pSsl), STATUS_TIMER_QUEUE_STOP_SCHEDULING);
+    MUTEX_LOCK(pDtlsSession->sslLock);
+    locked = TRUE;
 
-    // do SSL_do_handshake to drive ssl state machine
-    SSL_do_handshake(pDtlsSession->pSsl);
-    CHK_STATUS(dtlsCheckOutgoingDataBuffer(pDtlsSession));
+    CHK(!SSL_is_init_finished(pDtlsSession->pSsl), STATUS_TIMER_QUEUE_STOP_SCHEDULING);
+    // if not timeout yet. try again on next iteration
+    CHK(DTLSv1_get_timeout(pDtlsSession->pSsl, &timeout) == 1, retStatus);
+
+    timeoutValDefaultTimeUnit = (UINT64) timeout.tv_sec * HUNDREDS_OF_NANOS_IN_A_SECOND +
+            (UINT64) timeout.tv_usec * HUNDREDS_OF_NANOS_IN_A_MICROSECOND;
+
+    if (timeoutValDefaultTimeUnit == 0) {
+        // Retransmit the packet
+        DTLSv1_handle_timeout(pDtlsSession->pSsl);
+        CHK_STATUS(dtlsCheckOutgoingDataBuffer(pDtlsSession));
+    }
 
 CleanUp:
+
+    if (locked) {
+        MUTEX_UNLOCK(pDtlsSession->sslLock);
+    }
 
     return retStatus;
 }
@@ -158,7 +175,6 @@ STATUS createSsl(SSL_CTX *pSslCtx, SSL **ppSsl)
     CHK(pSslCtx != NULL && ppSsl != NULL, STATUS_NULL_ARG);
 
     CHK((pSsl = SSL_new(pSslCtx)) != NULL, STATUS_SSL_CTX_CREATION_FAILED);
-    SSL_set_mode(pSsl, SSL_MODE_AUTO_RETRY);
     CHK((pReadBIO = BIO_new(BIO_s_mem())) != NULL, STATUS_SSL_CTX_CREATION_FAILED);
     CHK((pWriteBIO = BIO_new(BIO_s_mem())) != NULL, STATUS_SSL_CTX_CREATION_FAILED);
 
@@ -342,8 +358,12 @@ STATUS dtlsSessionProcessPacket(PDtlsSession pDtlsSession, PBYTE pData, PINT32 p
         LOG_OPENSSL_ERROR("SSL_read");
     }
 
-    *pDataLen = sslRet;
-    CHK_STATUS(dtlsCheckOutgoingDataBuffer(pDtlsSession));
+    if (!SSL_is_init_finished(pDtlsSession->pSsl)) {
+        CHK_STATUS(dtlsCheckOutgoingDataBuffer(pDtlsSession));
+    } else {
+        // if dtls handshake is done, and SSL_read did not fail, then sslRet and number of sctp bytes read
+        *pDataLen = sslRet < 0 ? 0 : sslRet;
+    }
 
 CleanUp:
 
@@ -393,12 +413,8 @@ STATUS dtlsCheckOutgoingDataBuffer(PDtlsSession pDtlsSession)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    BOOL locked = FALSE;
     BIO *pWriteBIO = NULL;
     INT32 dataLenWritten = 0, sslErr = 0;
-
-    MUTEX_LOCK(pDtlsSession->sslLock);
-    locked = TRUE;
 
     pWriteBIO = SSL_get_wbio(pDtlsSession->pSsl);
     // proceed if write BIO is not empty
@@ -417,10 +433,6 @@ STATUS dtlsCheckOutgoingDataBuffer(PDtlsSession pDtlsSession)
     }
 
 CleanUp:
-
-    if (locked) {
-        MUTEX_UNLOCK(pDtlsSession->sslLock);
-    }
 
     LEAVES();
     return retStatus;
