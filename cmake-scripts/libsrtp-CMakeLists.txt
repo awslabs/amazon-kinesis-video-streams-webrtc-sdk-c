@@ -4,12 +4,16 @@ project(libsrtp-download NONE)
 
 find_program(MAKE_EXE NAMES make)
 
+if (DEFINED CMAKE_OSX_SYSROOT AND NOT CMAKE_OSX_SYSROOT STREQUAL "")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -isysroot${CMAKE_OSX_SYSROOT}")
+endif()
+
 include(ExternalProject)
 ExternalProject_Add(project_libsrtp
     GIT_REPOSITORY    https://github.com/cisco/libsrtp.git
     GIT_TAG           v2.2.0
     PREFIX            ${CMAKE_CURRENT_BINARY_DIR}/build
-    CONFIGURE_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/build/src/project_libsrtp/configure --prefix=${OPEN_SRC_INSTALL_PREFIX} --enable-openssl --with-openssl-dir=${OPENSSL_DIR}
+    CONFIGURE_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/build/src/project_libsrtp/configure "CFLAGS=${CMAKE_C_FLAGS}" --prefix=${OPEN_SRC_INSTALL_PREFIX} --enable-openssl --with-openssl-dir=${OPENSSL_DIR}
     BUILD_COMMAND     ${MAKE_EXE} shared_library
     BUILD_IN_SOURCE   TRUE
     INSTALL_COMMAND   ${MAKE_EXE} install
