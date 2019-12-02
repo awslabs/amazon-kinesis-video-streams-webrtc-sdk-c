@@ -642,9 +642,8 @@ STATUS deserializeRtcIceCandidateInit(PCHAR pJson, UINT32 jsonLen, PRtcIceCandid
     tokenCount = jsmn_parse(&parser, pJson, jsonLen, tokens, ICE_CANDIDATE_INIT_TOKENS);
     CHK(tokenCount > 1, STATUS_INVALID_API_CALL_RETURN_JSON);
     CHK(tokens[0].type == JSMN_OBJECT, STATUS_ICE_CANDIDATE_INIT_MALFORMED);
-    CHK(tokenCount == ICE_CANDIDATE_INIT_TOKENS, STATUS_ICE_CANDIDATE_INIT_MALFORMED);
 
-    for (i = 1; i < tokenCount; i++) {
+    for (i = 1; i < (tokenCount - 1); i++) {
         if (STRNCMP(CANDIDATE_KEY, pJson + tokens[i].start, ARRAY_SIZE(CANDIDATE_KEY) - 1) == 0) {
             STRNCPY(pRtcIceCandidateInit->candidate, pJson + tokens[i + 1].start, (tokens[i + 1].end - tokens[i + 1].start));
         }
