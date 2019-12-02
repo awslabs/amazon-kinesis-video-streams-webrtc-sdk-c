@@ -13,7 +13,7 @@ extern "C" {
 // For tight packing
 #pragma pack(push, include_i, 1) // for byte alignment
 
-#define MIN_HEADER_LENGTH 4
+#define MIN_HEADER_LENGTH 12
 #define VERSION_SHIFT 6
 #define VERSION_MASK 0x3
 #define PADDING_SHIFT 5
