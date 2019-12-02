@@ -30,6 +30,19 @@ CleanUp:
     return retStatus;
 }
 
+TEST_F(RtpFunctionalityTest, packetUnderflow)
+{
+    BYTE rawPacket[] = {0x00, 0x00, 0x00, 0x00};
+    RtpPacket rtpPacket;
+
+    MEMSET(&rtpPacket, 0x00, SIZEOF(RtpPacket));
+
+    for (auto i = 0; i <= 12; i++) {
+        ASSERT_EQ(setRtpPacketFromBytes(rawPacket, SIZEOF(rawPacket), &rtpPacket), STATUS_RTP_INPUT_PACKET_TOO_SMALL);
+    }
+}
+
+
 TEST_F(RtpFunctionalityTest, marshallUnmarshallGettingSameData)
 {
     BYTE payload[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05};
