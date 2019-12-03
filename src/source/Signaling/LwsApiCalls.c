@@ -1119,6 +1119,13 @@ STATUS connectSignalingChannelLws(PSignalingClient pSignalingClient, UINT64 time
     // Check whether we are connected
     connected = ATOMIC_LOAD_BOOL(&pSignalingClient->connected);
 
+    // Fire the re-connector thread only if properly connected
+    if (connected) {
+        CHK_STATUS(THREAD_CREATE(&pSignalingClient->restarterTracker.threadId, reconnectHandler,
+                                 (PVOID) pSignalingClient));
+        CHK_STATUS(THREAD_DETACH(pSignalingClient->restarterTracker.threadId));
+    }
+
     // Check if LWS returned an error
     if (!connected) {
         retStatus = (callResult == SERVICE_CALL_RESULT_OK) ? STATUS_SUCCESS : STATUS_SERVICE_CALL_UNKOWN_ERROR;
@@ -1171,10 +1178,6 @@ PVOID lwsListenerHandler(PVOID args)
 
     // Make a blocking call
     CHK_STATUS(lwsCompleteSync(pLwsCallInfo));
-
-    // Fire the re-connector thread
-    CHK_STATUS(THREAD_CREATE(&pSignalingClient->restarterTracker.threadId, reconnectHandler, (PVOID) pSignalingClient));
-    CHK_STATUS(THREAD_DETACH(pSignalingClient->restarterTracker.threadId));
 
 CleanUp:
 
