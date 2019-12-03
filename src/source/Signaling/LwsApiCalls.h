@@ -61,8 +61,7 @@ extern "C" {
 // Parameterized string for GetIceServerConfig API
 #define GET_ICE_CONFIG_PARAM_JSON_TEMPLATE                                  "{\n\t\"ChannelARN\": \"%s\"," \
     "\n\t\"ClientId\": \"%s\"," \
-    "\n\t\"Service\": \"TURN\"," \
-    "\n\t\"Username\": \"User\"" \
+    "\n\t\"Service\": \"TURN\"" \
     "\n}" \
 
 // Parameter names for Signaling connect URL

@@ -159,9 +159,6 @@ TEST_F(SignalingApiTest, signalingClientGetIceConfigInfo)
             EXPECT_NE('\0', pIceConfigInfo->userName[0]);
             EXPECT_NE(0, pIceConfigInfo->ttl);
 
-            // User name should start with 'User' as this is the default prefix requested by the SDK
-            // EXPECT_NE((PCHAR) NULL, STRSTR(pIceConfigInfo->userName, "User"));
-
             for (j = 0; j < pIceConfigInfo->uriCount; j++) {
                 EXPECT_NE('\0', pIceConfigInfo->uris[j][0]);
             }
