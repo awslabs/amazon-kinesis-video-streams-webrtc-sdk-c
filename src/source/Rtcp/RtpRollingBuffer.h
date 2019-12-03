@@ -13,8 +13,8 @@ extern "C" {
 STATUS createRtpRollingBuffer(UINT32, PRollingBuffer*);
 STATUS freeRtpRollingBuffer(PRollingBuffer*);
 STATUS freeRtpRollingBufferData(PUINT64);
-STATUS addRtpPacket(PRollingBuffer, PRtpPacket);
-STATUS getValidSeqIndexList(PRollingBuffer, PUINT16, PUINT32, PUINT64, PUINT32);
+STATUS rtpRollingBufferAddRtpPacket(PRollingBuffer pRollingBuffer, PRtpPacket pRtpPacket);
+STATUS rtpRollingBufferGetValidSeqIndexList(PRollingBuffer pRollingBuffer, PUINT16 pSequenceNumberList, PUINT32 pSequenceNumberListLen, PUINT64 pValidSeqIndexList, PUINT32 pValidIndexListLen);
 
 #ifdef  __cplusplus
 

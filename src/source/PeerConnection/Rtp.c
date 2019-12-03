@@ -5,8 +5,8 @@
 typedef STATUS (*RtpPayloadFunc)(UINT32, PBYTE, UINT32, PBYTE, PUINT32, PUINT32, PUINT32);
 
 STATUS createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION direction, PKvsPeerConnection pKvsPeerConnection, UINT32 ssrc,
-                               PRtcMediaStreamTrack pRtcMediaStreamTrack, PJitterBuffer pJitterBuffer, RTC_CODEC rtcCodec,
-                               PKvsRtpTransceiver* ppKvsRtpTransceiver)
+                               UINT32 rtxSsrc, PRtcMediaStreamTrack pRtcMediaStreamTrack, PJitterBuffer pJitterBuffer,
+                               RTC_CODEC rtcCodec, PKvsRtpTransceiver* ppKvsRtpTransceiver)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PKvsRtpTransceiver pKvsRtpTransceiver = NULL;
@@ -22,8 +22,9 @@ STATUS createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION direction, PKvsPeer
     CHK(pKvsRtpTransceiver->peerFrameBuffer != NULL, STATUS_NOT_ENOUGH_MEMORY);
     pKvsRtpTransceiver->pKvsPeerConnection = pKvsPeerConnection;
     pKvsRtpTransceiver->sender.ssrc = ssrc;
+    pKvsRtpTransceiver->sender.rtxSsrc = rtxSsrc;
     pKvsRtpTransceiver->sender.track = *pRtcMediaStreamTrack;
-    CHK_STATUS(createRtpRollingBuffer(DEFAULT_ROLLING_BUFFER_SIZE, &pKvsRtpTransceiver->sender.packetBuffer));
+    CHK_STATUS(createRtpRollingBuffer(DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS * HIGHEST_EXPECTED_BIT_RATE / 8 / DEFAULT_MTU_SIZE, &pKvsRtpTransceiver->sender.packetBuffer));
     CHK_STATUS(createRetransmitter(DEFAULT_SEQ_NUM_BUFFER_SIZE, DEFAULT_VALID_INDEX_BUFFER_SIZE, &pKvsRtpTransceiver->sender.retransmitter));
     pKvsRtpTransceiver->pJitterBuffer = pJitterBuffer;
     pKvsRtpTransceiver->transceiver.receiver.track.codec = rtcCodec;
@@ -104,11 +105,13 @@ CleanUp:
 }
 
 
-UINT64 convertTimestampToRTP(UINT64 clockRate, UINT64 pts) {
+UINT64 convertTimestampToRTP(UINT64 clockRate, UINT64 pts)
+{
     return (pts * clockRate) / HUNDREDS_OF_NANOS_IN_A_SECOND;
 }
 
-STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame) {
+STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
+{
     STATUS retStatus = STATUS_SUCCESS;
     PKvsPeerConnection pKvsPeerConnection = NULL;
     PKvsRtpTransceiver pKvsRtpTransceiver = (PKvsRtpTransceiver) pRtcRtpTransceiver;
@@ -155,7 +158,7 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame) {
             CHK(FALSE, STATUS_NOT_IMPLEMENTED);
     }
 
-    CHK_STATUS(rtpPayloadFunc(1300, (PBYTE) pFrame->frameData, pFrame->size, NULL, &(pPayloadArray->payloadLength), NULL, &(pPayloadArray->payloadSubLenSize)));
+    CHK_STATUS(rtpPayloadFunc(DEFAULT_MTU_SIZE, (PBYTE) pFrame->frameData, pFrame->size, NULL, &(pPayloadArray->payloadLength), NULL, &(pPayloadArray->payloadSubLenSize)));
     if (pPayloadArray->payloadLength > pPayloadArray->maxPayloadLength) {
         if (pPayloadArray->payloadBuffer != NULL) {
             SAFE_MEMFREE(pPayloadArray->payloadBuffer);
@@ -170,7 +173,7 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame) {
         pPayloadArray->payloadSubLength = (PUINT32) MEMALLOC(pPayloadArray->payloadSubLenSize * SIZEOF(UINT32));
         pPayloadArray->maxPayloadSubLenSize = pPayloadArray->payloadSubLenSize;
     }
-    CHK_STATUS(rtpPayloadFunc(1300, (PBYTE) pFrame->frameData, pFrame->size, pPayloadArray->payloadBuffer, &(pPayloadArray->payloadLength), pPayloadArray->payloadSubLength, &(pPayloadArray->payloadSubLenSize)));
+    CHK_STATUS(rtpPayloadFunc(DEFAULT_MTU_SIZE, (PBYTE) pFrame->frameData, pFrame->size, pPayloadArray->payloadBuffer, &(pPayloadArray->payloadLength), pPayloadArray->payloadSubLength, &(pPayloadArray->payloadSubLenSize)));
     pPacketList = (PRtpPacket) MEMALLOC(pPayloadArray->payloadSubLenSize * SIZEOF(RtpPacket));
     CHK_STATUS(constructRtpPackets(pPayloadArray, pKvsRtpTransceiver->sender.payloadType, pKvsRtpTransceiver->sender.sequenceNumber, rtpTimestamp, pKvsRtpTransceiver->sender.ssrc, pPacketList, pPayloadArray->payloadSubLenSize));
     pKvsRtpTransceiver->sender.sequenceNumber = (pKvsRtpTransceiver->sender.sequenceNumber + pPayloadArray->payloadSubLenSize) % MAX_UINT16;
@@ -182,8 +185,8 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame) {
 
         rawPacket = REALLOC(rawPacket, packetLen + 10); // For SRTP authentication tag
         pRtpPacket->pRawPacket = rawPacket;
-        pRtpPacket->rawPacketLength = packetLen + 10;
-        CHK_STATUS(addRtpPacket(pKvsRtpTransceiver->sender.packetBuffer, pRtpPacket));
+        pRtpPacket->rawPacketLength = packetLen;
+        CHK_STATUS(rtpRollingBufferAddRtpPacket(pKvsRtpTransceiver->sender.packetBuffer, pRtpPacket));
         CHK_STATUS(encryptRtpPacket(pKvsPeerConnection->pSrtpSession, rawPacket, &rawLen));
         CHK_STATUS(iceAgentSendPacket(pKvsPeerConnection->pIceAgent, rawPacket, rawLen));
 
@@ -201,22 +204,28 @@ CleanUp:
     return retStatus;
 }
 
-STATUS writeEncryptedRtpPacketNoCopy(PKvsPeerConnection pKvsPeerConnection, PRtpPacket pRtpPacket) {
+STATUS writeRtpPacket(PKvsPeerConnection pKvsPeerConnection, PRtpPacket pRtpPacket) {
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
+    PBYTE pRawPacket = NULL;
+    INT32 rawLen = 0;
 
     CHK(pKvsPeerConnection != NULL && pRtpPacket != NULL && pRtpPacket->pRawPacket != NULL, STATUS_NULL_ARG);
 
     MUTEX_LOCK(pKvsPeerConnection->pSrtpSessionLock);
     locked = TRUE;
     CHK(pKvsPeerConnection->pSrtpSession != NULL, STATUS_SUCCESS); // Discard packets till SRTP is ready
-
-    CHK_STATUS(iceAgentSendPacket(pKvsPeerConnection->pIceAgent, pRtpPacket->pRawPacket, pRtpPacket->rawPacketLength));
+    pRawPacket = MEMALLOC(pRtpPacket->rawPacketLength + 10); // For SRTP authentication tag
+    rawLen = pRtpPacket->rawPacketLength;
+    MEMCPY(pRawPacket, pRtpPacket->pRawPacket, pRtpPacket->rawPacketLength);
+    CHK_STATUS(encryptRtpPacket(pKvsPeerConnection->pSrtpSession, pRawPacket, &rawLen));
+    CHK_STATUS(iceAgentSendPacket(pKvsPeerConnection->pIceAgent, pRawPacket, rawLen));
 
 CleanUp:
     if (locked) {
         MUTEX_UNLOCK(pKvsPeerConnection->pSrtpSessionLock);
     }
+    SAFE_MEMFREE(pRawPacket);
 
     return retStatus;
 }

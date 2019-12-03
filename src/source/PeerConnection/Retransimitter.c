@@ -33,10 +33,7 @@ STATUS freeRetransmitter(PRetransmitter* ppRetransmitter)
     STATUS retStatus = STATUS_SUCCESS;
 
     CHK(ppRetransmitter != NULL, STATUS_NULL_ARG);
-    // freeRtpPacket is idempotent
-    CHK(*ppRetransmitter != NULL, retStatus);
-
-    MEMFREE(*ppRetransmitter);
+    SAFE_MEMFREE(*ppRetransmitter);
 CleanUp:
     CHK_LOG_ERR(retStatus);
 
@@ -55,10 +52,10 @@ STATUS resendPacketOnNack(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerCo
     PKvsRtpTransceiver pTransceiver, pReceiverTransceiver = NULL, pSenderTranceiver = NULL;
     UINT64 item;
     UINT32 index;
-    PRtpPacket pRtpPacket = NULL;
+    PRtpPacket pRtpPacket = NULL, pRtxRtpPacket = NULL;
     PRetransmitter pRetransmitter = NULL;
 
-    CHK(pRtcpPacket != NULL, STATUS_NULL_ARG);
+    CHK(pKvsPeerConnection != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
     CHK_STATUS(rtcpNackListGetSsrcs(pRtcpPacket->payload, pRtcpPacket->payloadLength, &senderSsrc, &receiverSsrc));
 
     CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pTransceievers, &pCurNode));
@@ -76,25 +73,33 @@ STATUS resendPacketOnNack(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerCo
         }
         pCurNode = pCurNode->pNext;
     }
-    CHK(pReceiverTransceiver != NULL && pSenderTranceiver != NULL, STATUS_RTCP_INPUT_SSRC_INVALID);
+
+    CHK_ERR(pReceiverTransceiver != NULL && pSenderTranceiver != NULL, STATUS_RTCP_INPUT_SSRC_INVALID,
+            "Receiving NACK for non existing ssrcs: senderSsrc %lu receiverSsrc %lu", senderSsrc, receiverSsrc);
 
     filledLen = pRetransmitter->seqNumListLen;
     CHK_STATUS(rtcpNackListGetSeqNums(pRtcpPacket->payload, pRtcpPacket->payloadLength, pRetransmitter->sequenceNumberList, &filledLen));
     validIndexListLen = pRetransmitter->validIndexListLen;
-    CHK_STATUS(getValidSeqIndexList(pSenderTranceiver->sender.packetBuffer, pRetransmitter->sequenceNumberList,
-            &filledLen, pRetransmitter->validIndexList, &validIndexListLen));
+    CHK_STATUS(rtpRollingBufferGetValidSeqIndexList(pSenderTranceiver->sender.packetBuffer,
+                                                    pRetransmitter->sequenceNumberList,
+                                                    &filledLen, pRetransmitter->validIndexList, &validIndexListLen));
     for (index = 0; index < validIndexListLen; index++) {
         retStatus = rollingBufferExtractData(pSenderTranceiver->sender.packetBuffer, pRetransmitter->validIndexList[index], &item);
         pRtpPacket = (PRtpPacket) item;
         CHK(retStatus == STATUS_SUCCESS, retStatus);
 
         if (pRtpPacket != NULL) {
+            CHK_STATUS(constructRetransmitRtpPacketFromBytes(pRtpPacket->pRawPacket, pRtpPacket->rawPacketLength,
+                    pSenderTranceiver->sender.rtxSequenceNumber, pSenderTranceiver->sender.rtxPayloadType, pSenderTranceiver->sender.rtxSsrc, &pRtxRtpPacket));
+            pSenderTranceiver->sender.rtxSequenceNumber++;
             // resendPacket
-            retStatus = writeEncryptedRtpPacketNoCopy(pKvsPeerConnection, (PRtpPacket) item);
+            retStatus = writeRtpPacket(pKvsPeerConnection, pRtxRtpPacket);
             if (STATUS_SUCCEEDED(retStatus)) {
-                DLOGI("Resent packet %lu succeeded", pRtpPacket->header.sequenceNumber);
+                DLOGV("Resent packet original seq %lu rtx seq %lu succeeded", pRtpPacket->header.sequenceNumber,
+                        pRtxRtpPacket->header.sequenceNumber);
             } else {
-                DLOGW("Resent packet %lu failed with %lu", pRtpPacket->header.sequenceNumber, retStatus);
+                DLOGW("Resent packet %lu failed with orignal seq %lu new seq %lu status %lu",
+                        pRtpPacket->header.sequenceNumber, pRtxRtpPacket->header.sequenceNumber, retStatus);
             }
             // putBackPacketToRollingBuffer
             retStatus = rollingBufferInsertData(pSenderTranceiver->sender.packetBuffer, pRetransmitter->sequenceNumberList[index], item);
@@ -108,6 +113,8 @@ STATUS resendPacketOnNack(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerCo
             } else {
                 DLOGS("Retransmit add back to rolling %lu", pRtpPacket->header.sequenceNumber);
             }
+
+            freeRtpPacketAndRawPacket(&pRtxRtpPacket);
             pRtpPacket = NULL;
         }
     }
@@ -118,6 +125,7 @@ CleanUp:
         freeRtpPacket(&pRtpPacket);
         pRtpPacket = NULL;
     }
+    freeRtpPacketAndRawPacket(&pRtpPacket);
 
     LEAVES();
     return retStatus;

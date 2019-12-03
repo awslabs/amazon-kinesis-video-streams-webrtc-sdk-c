@@ -142,7 +142,7 @@ STATUS setPayloadTypesFromOffer(PHashTable codecTable, PSessionDescription pSess
     PSdpMediaDescription pMediaDescription = NULL;
     UINT8 currentMedia, currentAttribute;
     PCHAR attributeValue, end;
-    UINT64 parsedPayloadType;
+    UINT64 parsedPayloadType, rtxPayloadType, hashmapPayloadType;
     BOOL supportCodec;
     UINT32 tokenLen;
 
@@ -198,6 +198,29 @@ STATUS setPayloadTypesFromOffer(PHashTable codecTable, PSessionDescription pSess
                 CHK_STATUS(STRTOUI64(attributeValue, end - 1, 10, &parsedPayloadType));
                 CHK_STATUS(hashTableUpsert(codecTable, RTC_CODEC_ALAW, parsedPayloadType));
             }
+
+            if ((end = STRSTR(attributeValue, RTX_VALUE)) != NULL) {
+                CHK_STATUS(STRTOUI64(attributeValue, end - 1, 10, &rtxPayloadType));
+                attributeValue = pMediaDescription->sdpAttributes[++currentAttribute].attributeValue;
+                if ((end = STRSTR(attributeValue, RTX_CODEC_VALUE)) != NULL) {
+                    CHK_STATUS(STRTOUI64(end + STRLEN(RTX_CODEC_VALUE), NULL, 10, &parsedPayloadType));
+                    CHK_STATUS(hashTableContains(codecTable, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, &supportCodec));
+                    if (supportCodec) {
+                        CHK_STATUS(hashTableGet(codecTable, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, &hashmapPayloadType));
+                        if (parsedPayloadType == hashmapPayloadType) {
+                            CHK_STATUS(hashTableUpsert(codecTable, RTC_RTX_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, rtxPayloadType));
+                        }
+                    }
+
+                    CHK_STATUS(hashTableContains(codecTable, RTC_CODEC_VP8, &supportCodec));
+                    if (supportCodec) {
+                        CHK_STATUS(hashTableGet(codecTable, RTC_CODEC_VP8, &hashmapPayloadType));
+                        if (parsedPayloadType == hashmapPayloadType) {
+                            CHK_STATUS(hashTableUpsert(codecTable, RTC_RTX_CODEC_VP8, rtxPayloadType));
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -228,6 +251,18 @@ STATUS setTransceiverPayloadTypes(PHashTable codecTable, PDoubleList pTransceiev
 
             CHK_STATUS(hashTableGet(codecTable, pKvsRtpTransceiver->sender.track.codec, &data));
             pKvsRtpTransceiver->sender.payloadType = (UINT8) data;
+            switch (pKvsRtpTransceiver->sender.track.codec) {
+                case RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE:
+                    CHK_STATUS(hashTableGet(codecTable, RTC_RTX_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, &data));
+                    pKvsRtpTransceiver->sender.rtxPayloadType = (UINT8) data;
+                    break;
+                case RTC_CODEC_VP8:
+                    CHK_STATUS(hashTableGet(codecTable, RTC_RTX_CODEC_VP8, &data));
+                    pKvsRtpTransceiver->sender.rtxPayloadType = (UINT8) data;
+                    break;
+                default:
+                    break;
+            }
         }
     }
 
@@ -242,7 +277,8 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    UINT64 data, payloadType;
+    UINT64 data, payloadType, rtxPayloadType;
+    BOOL containRtx = FALSE;
     PDoubleList localCandidates = NULL;
     PDoubleListNode pCurNode = NULL;
     UINT32 attributeCount = 0;
@@ -251,16 +287,37 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
     CHK_STATUS(hashTableGet(pKvsPeerConnection->pCodecTable, pRtcMediaStreamTrack->codec, &payloadType));
 
     if (pRtcMediaStreamTrack->codec == RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE || pRtcMediaStreamTrack->codec == RTC_CODEC_VP8) {
-        SPRINTF(pSdpMediaDescription->mediaName, "video 9 UDP/TLS/RTP/SAVPF %"PRId64, payloadType);
+        if (pRtcMediaStreamTrack->codec == RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE) {
+            CHK_STATUS(hashTableContains(pKvsPeerConnection->pCodecTable, RTC_RTX_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, &containRtx));
+            CHK_STATUS(hashTableGet(pKvsPeerConnection->pCodecTable, RTC_RTX_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, &rtxPayloadType));
+        } else {
+            CHK_STATUS(hashTableContains(pKvsPeerConnection->pCodecTable, RTC_RTX_CODEC_VP8, &containRtx));
+            CHK_STATUS(hashTableGet(pKvsPeerConnection->pCodecTable, RTC_RTX_CODEC_VP8, &rtxPayloadType));
+        }
+        if (containRtx) {
+            SPRINTF(pSdpMediaDescription->mediaName, "video 9 UDP/TLS/RTP/SAVPF %"PRId64" %"PRId64, payloadType, rtxPayloadType);
+        } else {
+            SPRINTF(pSdpMediaDescription->mediaName, "video 9 UDP/TLS/RTP/SAVPF %"PRId64, payloadType);
+        }
     } else if (pRtcMediaStreamTrack->codec == RTC_CODEC_OPUS || pRtcMediaStreamTrack->codec == RTC_CODEC_MULAW || pRtcMediaStreamTrack->codec == RTC_CODEC_ALAW) {
         SPRINTF(pSdpMediaDescription->mediaName, "audio 9 UDP/TLS/RTP/SAVPF %"PRId64, payloadType);
     }
 
     CHK_STATUS(iceAgentPopulateSdpMediaDescriptionCandidates(pKvsPeerConnection->pIceAgent, pSdpMediaDescription, MAX_SDP_ATTRIBUTE_VALUE_LENGTH, &attributeCount));
 
-    STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "msid");
-    SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%s %s", pRtcMediaStreamTrack->streamId, pRtcMediaStreamTrack->trackId);
-    attributeCount++;
+    if (containRtx) {
+        STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "msid");
+        SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%s %sRTX", pRtcMediaStreamTrack->streamId, pRtcMediaStreamTrack->trackId);
+        attributeCount++;
+
+        STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ssrc-group");
+        SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "FID %u %u", pKvsRtpTransceiver->sender.ssrc, pKvsRtpTransceiver->sender.rtxSsrc);
+        attributeCount++;
+    } else {
+        STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "msid");
+        SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%s %s", pRtcMediaStreamTrack->streamId, pRtcMediaStreamTrack->trackId);
+        attributeCount++;
+    }
 
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ssrc");
     SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%u cname:%s", pKvsRtpTransceiver->sender.ssrc, pKvsPeerConnection->localCNAME);
@@ -277,6 +334,24 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ssrc");
     SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%u label:%s", pKvsRtpTransceiver->sender.ssrc, pRtcMediaStreamTrack->trackId);
     attributeCount++;
+
+    if (containRtx) {
+        STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ssrc");
+        SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%u cname:%s", pKvsRtpTransceiver->sender.rtxSsrc, pKvsPeerConnection->localCNAME);
+        attributeCount++;
+
+        STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ssrc");
+        SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%u msid:%s %sRTX", pKvsRtpTransceiver->sender.rtxSsrc, pRtcMediaStreamTrack->streamId, pRtcMediaStreamTrack->trackId);
+        attributeCount++;
+
+        STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ssrc");
+        SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%u mslabel:%sRTX", pKvsRtpTransceiver->sender.rtxSsrc, pRtcMediaStreamTrack->streamId);
+        attributeCount++;
+
+        STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ssrc");
+        SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%u label:%sRTX", pKvsRtpTransceiver->sender.rtxSsrc, pRtcMediaStreamTrack->trackId);
+        attributeCount++;
+    }
 
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtcp");
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "9 IN IP4 0.0.0.0");
@@ -320,6 +395,16 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "fmtp");
         SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%"PRId64" level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f", payloadType);
         attributeCount++;
+
+        if (containRtx) {
+            STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtpmap");
+            SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%"PRId64" "RTX_VALUE, rtxPayloadType);
+            attributeCount++;
+
+            STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "fmtp");
+            SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%"PRId64" apt=%"PRId64"", rtxPayloadType, payloadType);
+            attributeCount++;
+        }
     } else if (pRtcMediaStreamTrack->codec == RTC_CODEC_OPUS) {
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtpmap");
         SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%"PRId64" opus/48000/2", payloadType);
@@ -332,6 +417,17 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtpmap");
         SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%"PRId64" "VP8_VALUE, payloadType);
         attributeCount++;
+
+        if (containRtx) {
+            CHK_STATUS(hashTableGet(pKvsPeerConnection->pCodecTable, RTC_RTX_CODEC_VP8, &rtxPayloadType));
+            STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtpmap");
+            SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%"PRId64" "RTX_VALUE, rtxPayloadType);
+            attributeCount++;
+
+            STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "fmtp");
+            SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%"PRId64" apt=%"PRId64"", rtxPayloadType, payloadType);
+            attributeCount++;
+        }
     } else if (pRtcMediaStreamTrack->codec == RTC_CODEC_MULAW) {
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtpmap");
         SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%"PRId64" "MULAW_VALUE, payloadType);

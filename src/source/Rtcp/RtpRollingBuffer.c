@@ -29,14 +29,16 @@ CleanUp:
     return retStatus;
 }
 
-STATUS addRtpPacket(PRollingBuffer pRollingBuffer, PRtpPacket pRtpPacket)
+// TODO: Decouple add rtp packet from implementation of rolling buffer
+STATUS rtpRollingBufferAddRtpPacket(PRollingBuffer pRollingBuffer, PRtpPacket pRtpPacket)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PRtpPacket pRtpPacketCopy = NULL;
     PBYTE pRawPacketCopy = NULL;
     CHK(pRollingBuffer != NULL && pRtpPacket != NULL, STATUS_NULL_ARG);
 
-    pRawPacketCopy = MEMALLOC(pRtpPacket->rawPacketLength);
+    pRawPacketCopy = (PRtpPacket) MEMALLOC(pRtpPacket->rawPacketLength);
+    CHK(pRawPacketCopy != NULL, STATUS_NOT_ENOUGH_MEMORY);
     MEMCPY(pRawPacketCopy, pRtpPacket->pRawPacket, pRtpPacket->rawPacketLength);
     CHK_STATUS(createRtpPacketFromBytes(pRawPacketCopy, pRtpPacket->rawPacketLength, &pRtpPacketCopy));
 
@@ -55,8 +57,8 @@ CleanUp:
     return retStatus;
 }
 
-STATUS getValidSeqIndexList(PRollingBuffer pRollingBuffer, PUINT16 pSequenceNumberList,
-                            PUINT32 pSequenceNumberListLen, PUINT64 pValidSeqIndexList, PUINT32 pValidIndexListLen)
+STATUS rtpRollingBufferGetValidSeqIndexList(PRollingBuffer pRollingBuffer, PUINT16 pSequenceNumberList,
+                                            PUINT32 pSequenceNumberListLen, PUINT64 pValidSeqIndexList, PUINT32 pValidIndexListLen)
 {
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 index = 0, returnPacketCount = 0;

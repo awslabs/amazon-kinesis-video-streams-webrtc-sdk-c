@@ -38,6 +38,8 @@ extern "C" {
 #define VP8_VALUE "VP8/90000"
 #define MULAW_VALUE "PCMU/8000"
 #define ALAW_VALUE "PCMA/8000"
+#define RTX_VALUE "rtx/90000"
+#define RTX_CODEC_VALUE "apt="
 
 #define DEFAULT_PAYLOAD_MULAW (UINT64) 0
 #define DEFAULT_PAYLOAD_ALAW (UINT64) 8

@@ -48,7 +48,7 @@ STATUS freeRollingBuffer(PRollingBuffer* ppRollingBuffer)
 
     MUTEX_LOCK(pRollingBuffer->lock);
     while (pRollingBuffer->tailIndex < pRollingBuffer->headIndex) {
-        pCurData = pRollingBuffer->dataBuffer + rollingBufferMapIndex(pRollingBuffer, pRollingBuffer->tailIndex);
+        pCurData = pRollingBuffer->dataBuffer + ROLLING_BUFFER_MAP_INDEX(pRollingBuffer, pRollingBuffer->tailIndex);
         if (pRollingBuffer->freeDataFn != NULL) {
             pRollingBuffer->freeDataFn(pCurData);
             *pCurData = (UINT64) NULL;
@@ -77,14 +77,14 @@ STATUS rollingBufferAppendData(PRollingBuffer pRollingBuffer, UINT64 data)
 
     if (pRollingBuffer->headIndex == pRollingBuffer->tailIndex) {
         // Empty buffer
-        pRollingBuffer->dataBuffer[rollingBufferMapIndex(pRollingBuffer, pRollingBuffer->tailIndex)] =data;
+        pRollingBuffer->dataBuffer[ROLLING_BUFFER_MAP_INDEX(pRollingBuffer, pRollingBuffer->tailIndex)] =data;
         pRollingBuffer->headIndex = pRollingBuffer->tailIndex + 1;
     } else {
-        pRollingBuffer->dataBuffer[rollingBufferMapIndex(pRollingBuffer, pRollingBuffer->headIndex)] = data;
+        pRollingBuffer->dataBuffer[ROLLING_BUFFER_MAP_INDEX(pRollingBuffer, pRollingBuffer->headIndex)] = data;
         pRollingBuffer->headIndex++;
         if (pRollingBuffer->headIndex - pRollingBuffer->tailIndex > pRollingBuffer->capacity) {
             if (pRollingBuffer->freeDataFn != NULL) {
-                CHK_STATUS(pRollingBuffer->freeDataFn(pRollingBuffer->dataBuffer + rollingBufferMapIndex(pRollingBuffer, pRollingBuffer->tailIndex)));
+                CHK_STATUS(pRollingBuffer->freeDataFn(pRollingBuffer->dataBuffer + ROLLING_BUFFER_MAP_INDEX(pRollingBuffer, pRollingBuffer->tailIndex)));
             }
             pRollingBuffer->tailIndex++;
         }
@@ -112,7 +112,7 @@ STATUS rollingBufferInsertData(PRollingBuffer pRollingBuffer, UINT64 index, UINT
 
     CHK(pRollingBuffer->headIndex > index && pRollingBuffer->tailIndex <= index, STATUS_ROLLING_BUFFER_NOT_IN_RANGE);
 
-    pData = pRollingBuffer->dataBuffer + rollingBufferMapIndex(pRollingBuffer, index);
+    pData = pRollingBuffer->dataBuffer + ROLLING_BUFFER_MAP_INDEX(pRollingBuffer, index);
     if (*pData != (UINT64) NULL && pRollingBuffer->freeDataFn != NULL) {
         pRollingBuffer->freeDataFn(pData);
     }
@@ -136,9 +136,9 @@ STATUS rollingBufferExtractData(PRollingBuffer pRollingBuffer, UINT64 index, PUI
     MUTEX_LOCK(pRollingBuffer->lock);
     isLocked = TRUE;
     if (pRollingBuffer->headIndex > index && pRollingBuffer->tailIndex <= index) {
-        *pData = pRollingBuffer->dataBuffer[rollingBufferMapIndex(pRollingBuffer, index)];
+        *pData = pRollingBuffer->dataBuffer[ROLLING_BUFFER_MAP_INDEX(pRollingBuffer, index)];
         if (*pData != NULL) {
-            pRollingBuffer->dataBuffer[rollingBufferMapIndex(pRollingBuffer, index)] = (UINT64) NULL;
+            pRollingBuffer->dataBuffer[ROLLING_BUFFER_MAP_INDEX(pRollingBuffer, index)] = (UINT64) NULL;
         }
     } else {
         *pData = NULL;
@@ -151,9 +151,4 @@ CleanUp:
 
     LEAVES();
     return retStatus;
-}
-
-UINT32 rollingBufferMapIndex(PRollingBuffer pRollingBuffer, UINT64 index)
-{
-    return index % pRollingBuffer->capacity;
 }

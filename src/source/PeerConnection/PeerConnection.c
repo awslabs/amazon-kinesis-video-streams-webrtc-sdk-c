@@ -753,6 +753,7 @@ STATUS addTransceiver(PRtcPeerConnection pPeerConnection, PRtcMediaStreamTrack p
     PJitterBuffer pJitterBuffer = NULL;
     DepayRtpPayloadFunc depayFunc;
     UINT32 clockRate = 0;
+    UINT32 ssrc = (UINT32) RAND(), rtxSsrc = (UINT32) RAND();
 
     CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
 
@@ -782,8 +783,9 @@ STATUS addTransceiver(PRtcPeerConnection pPeerConnection, PRtcMediaStreamTrack p
             CHK(FALSE, STATUS_NOT_IMPLEMENTED);
     }
 
-    CHK_STATUS(createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV, pKvsPeerConnection, (UINT16) RAND(),
-                                       pRtcMediaStreamTrack, NULL, pRtcMediaStreamTrack->codec, &pKvsRtpTransceiver));
+    //TODO: Add ssrc duplicate detection here not only relying on RAND()
+    CHK_STATUS(createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV, pKvsPeerConnection, ssrc,
+            rtxSsrc, pRtcMediaStreamTrack, NULL, pRtcMediaStreamTrack->codec, &pKvsRtpTransceiver));
     CHK_STATUS(createJitterBuffer(onFrameReadyFunc, onFrameDroppedFunc, depayFunc, DEFAULT_JITTER_BUFFER_MAX_LATENCY,
                                   clockRate, (UINT64) pKvsRtpTransceiver, &pJitterBuffer));
     CHK_STATUS(kvsRtpTransceiverSetJitterBuffer(pKvsRtpTransceiver, pJitterBuffer));
