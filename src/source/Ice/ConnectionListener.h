@@ -20,6 +20,7 @@ extern "C" {
 
 typedef struct {
     volatile ATOMIC_BOOL terminate;
+    volatile ATOMIC_BOOL started;
     PDoubleList connectionList;
     MUTEX lock;
     MUTEX connectionRemovalLock;

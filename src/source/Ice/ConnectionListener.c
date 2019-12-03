@@ -16,6 +16,7 @@ STATUS createConnectionListener(PConnectionListener* ppConnectionListener)
 
     CHK_STATUS(doubleListCreate(&pConnectionListener->connectionList));
     ATOMIC_STORE_BOOL(&pConnectionListener->terminate, FALSE);
+    ATOMIC_STORE_BOOL(&pConnectionListener->started, FALSE);
     pConnectionListener->receiveDataRoutine = INVALID_TID_VALUE;
     pConnectionListener->lock = MUTEX_CREATE(FALSE);
     pConnectionListener->connectionRemovalLock = MUTEX_CREATE(FALSE);
@@ -157,8 +158,9 @@ STATUS connectionListenerStart(PConnectionListener pConnectionListener)
     STATUS retStatus = STATUS_SUCCESS;
 
     CHK(pConnectionListener != NULL, STATUS_NULL_ARG);
-    CHK(!ATOMIC_LOAD_BOOL(&pConnectionListener->terminate) && !IS_VALID_TID_VALUE(pConnectionListener->receiveDataRoutine), retStatus);
+    CHK(!ATOMIC_LOAD_BOOL(&pConnectionListener->terminate) && !ATOMIC_LOAD_BOOL(&pConnectionListener->started), retStatus);
 
+    ATOMIC_STORE_BOOL(&pConnectionListener->started, TRUE);
     CHK_STATUS(THREAD_CREATE(&pConnectionListener->receiveDataRoutine,
                              connectionListenerReceiveDataRoutine,
                              (PVOID) pConnectionListener));
