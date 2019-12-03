@@ -32,13 +32,13 @@ STATUS stepSignalingStateMachine(PSignalingClient pSignalingClient, STATUS statu
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
+    // Check for a shutdown
+    CHK(!ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown), retStatus);
+
     // Check if an error and the retry is OK
     if (!pSignalingClient->pChannelInfo->retry && STATUS_FAILED(status)) {
         CHK(FALSE, status);
     }
-
-    // Check for a shutdown
-    CHK(!ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown), retStatus);
 
     CHK(pSignalingClient->stepUntil == 0 || GETTIME() <= pSignalingClient->stepUntil, STATUS_OPERATION_TIMED_OUT);
 
