@@ -16,7 +16,7 @@ STATUS createConnectionListener(PConnectionListener* ppConnectionListener)
 
     CHK_STATUS(doubleListCreate(&pConnectionListener->connectionList));
     ATOMIC_STORE_BOOL(&pConnectionListener->terminate, FALSE);
-    ATOMIC_STORE_BOOL(&pConnectionListener->started, FALSE);
+    ATOMIC_STORE_BOOL(&pConnectionListener->listenerRoutineStarted, FALSE);
     pConnectionListener->receiveDataRoutine = INVALID_TID_VALUE;
     pConnectionListener->lock = MUTEX_CREATE(FALSE);
     pConnectionListener->connectionRemovalLock = MUTEX_CREATE(FALSE);
@@ -134,7 +134,7 @@ STATUS connectionListenerRemoveConnection(PConnectionListener pConnectionListene
         connectionRemovalLocked = TRUE;
 
         // not freeing the PSocketConnection as it is not owned by connectionListener
-        CHK_STATUS(doubleListRemoveNode(pConnectionListener->connectionList, pTargetNode));
+        CHK_STATUS(doubleListDeleteNode(pConnectionListener->connectionList, pTargetNode));
 
         MUTEX_UNLOCK(pConnectionListener->connectionRemovalLock);
         connectionRemovalLocked = FALSE;
@@ -158,9 +158,9 @@ STATUS connectionListenerStart(PConnectionListener pConnectionListener)
     STATUS retStatus = STATUS_SUCCESS;
 
     CHK(pConnectionListener != NULL, STATUS_NULL_ARG);
-    CHK(!ATOMIC_LOAD_BOOL(&pConnectionListener->terminate) && !ATOMIC_LOAD_BOOL(&pConnectionListener->started), retStatus);
+    CHK(!ATOMIC_LOAD_BOOL(&pConnectionListener->terminate) && !ATOMIC_LOAD_BOOL(&pConnectionListener->listenerRoutineStarted), retStatus);
 
-    ATOMIC_STORE_BOOL(&pConnectionListener->started, TRUE);
+    ATOMIC_STORE_BOOL(&pConnectionListener->listenerRoutineStarted, TRUE);
     CHK_STATUS(THREAD_CREATE(&pConnectionListener->receiveDataRoutine,
                              connectionListenerReceiveDataRoutine,
                              (PVOID) pConnectionListener));
@@ -304,6 +304,8 @@ CleanUp:
     if (locked) {
         MUTEX_UNLOCK(pConnectionListener->lock);
     }
+
+    ATOMIC_STORE_BOOL(&pConnectionListener->listenerRoutineStarted, FALSE);
 
     return (PVOID) (ULONG_PTR) retStatus;
 }
