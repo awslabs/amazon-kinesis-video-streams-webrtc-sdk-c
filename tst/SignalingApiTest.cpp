@@ -64,7 +64,7 @@ public:
     SIGNALING_CLIENT_HANDLE mSignalingClientHandle;
 };
 
-TEST_F(SignalingApiTest, signalingSendMessageSync)
+TEST_F(SignalingApiTest, DISABLED_signalingSendMessageSync)
 {
     STATUS expectedStatus;
     SignalingMessage signalingMessage;
@@ -94,7 +94,7 @@ TEST_F(SignalingApiTest, signalingSendMessageSync)
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&mSignalingClientHandle));
 }
 
-TEST_F(SignalingApiTest, signalingClientConnectSync)
+TEST_F(SignalingApiTest, DISABLED_signalingClientConnectSync)
 {
     STATUS expectedStatus;
 
@@ -112,7 +112,7 @@ TEST_F(SignalingApiTest, signalingClientConnectSync)
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&mSignalingClientHandle));
 }
 
-TEST_F(SignalingApiTest, signalingClientGetIceConfigInfoCout)
+TEST_F(SignalingApiTest, DISABLED_signalingClientGetIceConfigInfoCout)
 {
     STATUS expectedStatus;
     UINT32 count;
@@ -132,7 +132,7 @@ TEST_F(SignalingApiTest, signalingClientGetIceConfigInfoCout)
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&mSignalingClientHandle));
 }
 
-TEST_F(SignalingApiTest, signalingClientGetIceConfigInfo)
+TEST_F(SignalingApiTest, DISABLED_signalingClientGetIceConfigInfo)
 {
     UINT32 i, j, count;
     PIceConfigInfo pIceConfigInfo;
