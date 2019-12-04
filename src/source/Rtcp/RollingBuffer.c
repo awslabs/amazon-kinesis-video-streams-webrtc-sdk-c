@@ -137,11 +137,11 @@ STATUS rollingBufferExtractData(PRollingBuffer pRollingBuffer, UINT64 index, PUI
     isLocked = TRUE;
     if (pRollingBuffer->headIndex > index && pRollingBuffer->tailIndex <= index) {
         *pData = pRollingBuffer->dataBuffer[ROLLING_BUFFER_MAP_INDEX(pRollingBuffer, index)];
-        if (*pData != NULL) {
+        if (*pData != (UINT64) NULL) {
             pRollingBuffer->dataBuffer[ROLLING_BUFFER_MAP_INDEX(pRollingBuffer, index)] = (UINT64) NULL;
         }
     } else {
-        *pData = NULL;
+        *pData = (UINT64) NULL;
     }
 CleanUp:
     if (isLocked) {
