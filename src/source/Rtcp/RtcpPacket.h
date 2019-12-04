@@ -59,8 +59,6 @@ typedef struct {
 
 STATUS setRtcpPacketFromBytes(PBYTE, UINT32, PRtcpPacket);
 STATUS rtcpNackListGet(PBYTE, UINT32, PUINT32, PUINT32, PUINT16, PUINT32);
-STATUS rtcpNackListGetSsrcs(PBYTE, UINT32, PUINT32, PUINT32);
-STATUS rtcpNackListGetSeqNums(PBYTE, UINT32, PUINT16, PUINT32);
 
 #pragma pack(pop, include_i)
 

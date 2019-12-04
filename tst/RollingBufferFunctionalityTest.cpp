@@ -5,11 +5,19 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
 class RollingBufferFunctionalityTest : public WebRtcClientTestBase {
 };
 
+STATUS RollingBufferFunctionalityTestFreeBufferFunc(PUINT64 data) {
+    if (data == NULL) {
+        return STATUS_NULL_ARG;
+    }
+    *data = 0;
+    return STATUS_SUCCESS;
+}
+
 TEST_F(RollingBufferFunctionalityTest, appendDataToBufferAndVerify)
 {
     PRollingBuffer pRollingBuffer;
     UINT64 first = (UINT64) 1, second = (UINT64) 2, third = (UINT64) 3, fourth = (UINT64) 4;
-    EXPECT_EQ(STATUS_SUCCESS, createRollingBuffer(2, NULL, &pRollingBuffer));
+    EXPECT_EQ(STATUS_SUCCESS, createRollingBuffer(2, RollingBufferFunctionalityTestFreeBufferFunc, &pRollingBuffer));
     EXPECT_EQ(0, pRollingBuffer->headIndex);
     EXPECT_EQ(0, pRollingBuffer->tailIndex);
     EXPECT_EQ(STATUS_SUCCESS, rollingBufferAppendData(pRollingBuffer, first));
@@ -38,7 +46,7 @@ TEST_F(RollingBufferFunctionalityTest, insertDataToBufferAndVerify)
 {
     PRollingBuffer pRollingBuffer;
     UINT64 first = (UINT64) 1, second = (UINT64) 2, third = (UINT64) 3, fourth = (UINT64) 4, fifth = (UINT64) 5;
-    EXPECT_EQ(STATUS_SUCCESS, createRollingBuffer(10, NULL, &pRollingBuffer));
+    EXPECT_EQ(STATUS_SUCCESS, createRollingBuffer(10, RollingBufferFunctionalityTestFreeBufferFunc, &pRollingBuffer));
     pRollingBuffer->headIndex = 3;
     pRollingBuffer->tailIndex = 1;
     EXPECT_EQ(STATUS_SUCCESS, rollingBufferInsertData(pRollingBuffer, 1, first));
@@ -69,7 +77,7 @@ TEST_F(RollingBufferFunctionalityTest, extractDataFromBufferAndInsertBack)
     PRollingBuffer pRollingBuffer;
     UINT64 first = (UINT64) 1, second = (UINT64) 2, third = (UINT64) 3, fourth = (UINT64) 4;
     UINT64 data;
-    EXPECT_EQ(STATUS_SUCCESS, createRollingBuffer(3, NULL, &pRollingBuffer));
+    EXPECT_EQ(STATUS_SUCCESS, createRollingBuffer(3, RollingBufferFunctionalityTestFreeBufferFunc, &pRollingBuffer));
     EXPECT_EQ(STATUS_SUCCESS, rollingBufferAppendData(pRollingBuffer, first));
     EXPECT_EQ(STATUS_SUCCESS, rollingBufferAppendData(pRollingBuffer, second));
     EXPECT_EQ(STATUS_SUCCESS, rollingBufferAppendData(pRollingBuffer, third));

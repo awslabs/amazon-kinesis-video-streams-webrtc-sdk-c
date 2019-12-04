@@ -56,7 +56,7 @@ STATUS resendPacketOnNack(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerCo
     PRetransmitter pRetransmitter = NULL;
 
     CHK(pKvsPeerConnection != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
-    CHK_STATUS(rtcpNackListGetSsrcs(pRtcpPacket->payload, pRtcpPacket->payloadLength, &senderSsrc, &receiverSsrc));
+    CHK_STATUS(rtcpNackListGet(pRtcpPacket->payload, pRtcpPacket->payloadLength, &senderSsrc, &receiverSsrc, NULL, &filledLen));
 
     CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pTransceievers, &pCurNode));
     while(pCurNode != NULL && (pReceiverTransceiver == NULL || pSenderTranceiver == NULL)) {
@@ -78,7 +78,8 @@ STATUS resendPacketOnNack(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerCo
             "Receiving NACK for non existing ssrcs: senderSsrc %lu receiverSsrc %lu", senderSsrc, receiverSsrc);
 
     filledLen = pRetransmitter->seqNumListLen;
-    CHK_STATUS(rtcpNackListGetSeqNums(pRtcpPacket->payload, pRtcpPacket->payloadLength, pRetransmitter->sequenceNumberList, &filledLen));
+    CHK_STATUS(rtcpNackListGet(pRtcpPacket->payload, pRtcpPacket->payloadLength, &senderSsrc, &receiverSsrc,
+            pRetransmitter->sequenceNumberList, &filledLen));
     validIndexListLen = pRetransmitter->validIndexListLen;
     CHK_STATUS(rtpRollingBufferGetValidSeqIndexList(pSenderTranceiver->sender.packetBuffer,
                                                     pRetransmitter->sequenceNumberList,
