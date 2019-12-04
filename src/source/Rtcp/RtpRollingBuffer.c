@@ -37,7 +37,7 @@ STATUS rtpRollingBufferAddRtpPacket(PRollingBuffer pRollingBuffer, PRtpPacket pR
     PBYTE pRawPacketCopy = NULL;
     CHK(pRollingBuffer != NULL && pRtpPacket != NULL, STATUS_NULL_ARG);
 
-    pRawPacketCopy = (PRtpPacket) MEMALLOC(pRtpPacket->rawPacketLength);
+    pRawPacketCopy = (PBYTE) MEMALLOC(pRtpPacket->rawPacketLength);
     CHK(pRawPacketCopy != NULL, STATUS_NOT_ENOUGH_MEMORY);
     MEMCPY(pRawPacketCopy, pRtpPacket->pRawPacket, pRtpPacket->rawPacketLength);
     CHK_STATUS(createRtpPacketFromBytes(pRawPacketCopy, pRtpPacket->rawPacketLength, &pRtpPacketCopy));
@@ -94,7 +94,7 @@ STATUS rtpRollingBufferGetValidSeqIndexList(PRollingBuffer pRollingBuffer, PUINT
             pCurSeqIndexListPtr++;
             // Return if filled up given valid sequence number array
             CHK(++returnPacketCount < *pValidIndexListLen, retStatus);
-            *pCurSeqIndexListPtr = NULL;
+            *pCurSeqIndexListPtr = (UINT32) NULL;
         }
     }
 
