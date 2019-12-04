@@ -268,7 +268,7 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration)
     MEMSET(&audioTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
 
     // Set the  STUN server
-    SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, pSampleConfiguration->pRegion);
+    SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, pSampleConfiguration->channelInfo.pRegion);
 
     if (pSampleConfiguration->useTurn) {
         // Set the URIs from the configuration
@@ -351,8 +351,8 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     pSecretKey = getenv(SECRET_KEY_ENV_VAR);
     pSessionToken = getenv(SESSION_TOKEN_ENV_VAR);
 
-    if ((pSampleConfiguration->pRegion = getenv(DEFAULT_REGION_ENV_VAR)) == NULL) {
-        pSampleConfiguration->pRegion = DEFAULT_AWS_REGION;
+    if ((pSampleConfiguration->channelInfo.pRegion = getenv(DEFAULT_REGION_ENV_VAR)) == NULL) {
+        pSampleConfiguration->channelInfo.pRegion = DEFAULT_AWS_REGION;
     }
 
     // if ca cert path is not set from the environment, try to use the one that cmake detected

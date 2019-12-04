@@ -41,7 +41,6 @@ typedef struct {
     volatile SIZE_T frameIndex;
     ChannelInfo channelInfo;
     PCHAR pCaCertPath;
-    PCHAR pRegion;
     PAwsCredentialProvider pCredentialProvider;
     PRtcPeerConnection pPeerConnection;
     PRtcRtpTransceiver pVideoRtcRtpTransceiver;
