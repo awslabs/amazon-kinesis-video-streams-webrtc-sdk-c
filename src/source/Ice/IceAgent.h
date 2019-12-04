@@ -182,7 +182,7 @@ typedef struct {
  *
  * @return - STATUS - status of execution
  */
-STATUS createIceAgent(PCHAR, PCHAR, UINT64, PIceAgentCallbacks, PRtcConfiguration, TIMER_QUEUE_HANDLE, PIceAgent*);
+STATUS createIceAgent(PCHAR, PCHAR, UINT64, PIceAgentCallbacks, PRtcConfiguration, TIMER_QUEUE_HANDLE, PConnectionListener, PIceAgent*);
 
 /**
  * deallocate the PIceAgent object and all its resources.

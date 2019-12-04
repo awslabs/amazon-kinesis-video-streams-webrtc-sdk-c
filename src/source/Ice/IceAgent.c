@@ -8,7 +8,8 @@ extern StateMachineState ICE_AGENT_STATE_MACHINE_STATES[];
 extern UINT32 ICE_AGENT_STATE_MACHINE_STATE_COUNT;
 
 STATUS createIceAgent(PCHAR username, PCHAR password, UINT64 customData, PIceAgentCallbacks pIceAgentCallbacks,
-                      PRtcConfiguration pRtcConfiguration, TIMER_QUEUE_HANDLE timerQueueHandle, PIceAgent* ppIceAgent)
+                      PRtcConfiguration pRtcConfiguration, TIMER_QUEUE_HANDLE timerQueueHandle,
+                      PConnectionListener pConnectionListener, PIceAgent* ppIceAgent)
 {
     ENTERS();
 
@@ -16,7 +17,7 @@ STATUS createIceAgent(PCHAR username, PCHAR password, UINT64 customData, PIceAge
     PIceAgent pIceAgent = NULL;
     UINT32 i, turnServerCount = 0;
 
-    CHK(ppIceAgent != NULL && username != NULL && password != NULL, STATUS_NULL_ARG);
+    CHK(ppIceAgent != NULL && username != NULL && password != NULL && pConnectionListener != NULL, STATUS_NULL_ARG);
     CHK(STRNLEN(username, MAX_ICE_CONFIG_USER_NAME_LEN + 1) <= MAX_ICE_CONFIG_USER_NAME_LEN &&
         STRNLEN(password, MAX_ICE_CONFIG_CREDENTIAL_LEN + 1) <= MAX_ICE_CONFIG_CREDENTIAL_LEN, STATUS_INVALID_ARG);
 
@@ -55,12 +56,11 @@ STATUS createIceAgent(PCHAR username, PCHAR password, UINT64 customData, PIceAge
     pIceAgent->lastDataReceivedTime = INVALID_TIMESTAMP_VALUE;
     pIceAgent->detectedDisconnection = FALSE;
     pIceAgent->disconnectionGracePeriodEndTime = INVALID_TIMESTAMP_VALUE;
+    pIceAgent->pConnectionListener = pConnectionListener;
 
     CHK_STATUS(doubleListCreate(&pIceAgent->localCandidates));
     CHK_STATUS(doubleListCreate(&pIceAgent->remoteCandidates));
     CHK_STATUS(stackQueueCreate(&pIceAgent->triggeredCheckQueue));
-
-    CHK_STATUS(createConnectionListener(&pIceAgent->pConnectionListener));
 
     for (i = 0; i < MAX_ICE_SERVERS_COUNT; i++) {
         if (pRtcConfiguration->iceServers[i].urls[0] != '\0') {

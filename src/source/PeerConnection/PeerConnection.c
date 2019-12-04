@@ -404,6 +404,7 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
     DtlsSessionCallbacks dtlsSessionCallbacks;
     UINT32 logLevel = LOG_LEVEL_DEBUG;
     PCHAR logLevelStr = NULL;
+    PConnectionListener pConnectionListener = NULL;
 
     CHK(pConfiguration != NULL && ppPeerConnection != NULL, STATUS_NULL_ARG);
 
@@ -443,9 +444,11 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
     iceAgentCallbacks.inboundPacketFn = onInboundPacket;
     iceAgentCallbacks.connectionStateChangedFn = onIceConnectionStateChange;
     iceAgentCallbacks.newLocalCandidateFn = onNewIceLocalCandidate;
+    CHK_STATUS(createConnectionListener(&pConnectionListener));
+    // IceAgent will own the lifecycle of pConnectionListener;
     CHK_STATUS(createIceAgent(pKvsPeerConnection->localIceUfrag, pKvsPeerConnection->localIcePwd,
                               iceAgentCallbacks.customData, &iceAgentCallbacks, pConfiguration,
-                              pKvsPeerConnection->timerQueueHandle, &pKvsPeerConnection->pIceAgent));
+                              pKvsPeerConnection->timerQueueHandle, pConnectionListener, &pKvsPeerConnection->pIceAgent));
 
     *ppPeerConnection = (PRtcPeerConnection) pKvsPeerConnection;
 
