@@ -9,7 +9,7 @@ STATUS createRtpPacket(UINT8 version, BOOL padding, BOOL extension, UINT8 csrcCo
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    PRtpPacket pRtpPacket = MEMALLOC(SIZEOF(RtpPacket));
+    PRtpPacket pRtpPacket = (PRtpPacket) MEMALLOC(SIZEOF(RtpPacket));
     CHK(pRtpPacket != NULL, STATUS_NOT_ENOUGH_MEMORY);
     pRtpPacket->pRawPacket = NULL;
     pRtpPacket->rawPacketLength = 0;
@@ -72,10 +72,27 @@ STATUS freeRtpPacket(PRtpPacket * ppRtpPacket)
     STATUS retStatus = STATUS_SUCCESS;
 
     CHK(ppRtpPacket != NULL, STATUS_NULL_ARG);
-    // freeRtpPacket is idempotent
-    CHK(*ppRtpPacket != NULL, retStatus);
 
-    MEMFREE(*ppRtpPacket);
+    SAFE_MEMFREE(*ppRtpPacket);
+CleanUp:
+    CHK_LOG_ERR(retStatus);
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS freeRtpPacketAndRawPacket(PRtpPacket * ppRtpPacket)
+{
+    ENTERS();
+
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(ppRtpPacket != NULL, STATUS_NULL_ARG);
+
+    if (*ppRtpPacket != NULL) {
+        SAFE_MEMFREE((*ppRtpPacket)->pRawPacket);
+    }
+    SAFE_MEMFREE(*ppRtpPacket);
 CleanUp:
     CHK_LOG_ERR(retStatus);
 
@@ -87,7 +104,8 @@ STATUS createRtpPacketFromBytes(PBYTE rawPacket, UINT32 packetLength, PRtpPacket
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    PRtpPacket pRtpPacket = MEMALLOC(SIZEOF(RtpPacket));
+    PRtpPacket pRtpPacket = (PRtpPacket) MEMALLOC(SIZEOF(RtpPacket));
+    CHK(pRtpPacket != NULL, STATUS_NOT_ENOUGH_MEMORY);
     pRtpPacket->pRawPacket = rawPacket;
     pRtpPacket->rawPacketLength = packetLength;
     CHK(pRtpPacket != NULL, STATUS_NOT_ENOUGH_MEMORY);
@@ -99,7 +117,47 @@ CleanUp:
         pRtpPacket = NULL;
     }
 
-    if (pRtpPacket != NULL) {
+    if (ppRtpPacket != NULL) {
+        *ppRtpPacket = pRtpPacket;
+    }
+    LEAVES();
+    return retStatus;
+}
+
+STATUS constructRetransmitRtpPacketFromBytes(PBYTE rawPacket, UINT32 packetLength, UINT16 sequenceNum, UINT8 payloadType, UINT32 ssrc, PRtpPacket* ppRtpPacket)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PBYTE pPayload = NULL;
+    PRtpPacket pRtpPacket = (PRtpPacket) MEMALLOC(SIZEOF(RtpPacket));
+
+    CHK(pRtpPacket != NULL, STATUS_NOT_ENOUGH_MEMORY);
+    CHK_STATUS(setRtpPacketFromBytes(rawPacket, packetLength, pRtpPacket));
+    pPayload = (PBYTE) MEMALLOC(pRtpPacket->payloadLength + SIZEOF(UINT16));
+    CHK(pPayload != NULL, STATUS_NOT_ENOUGH_MEMORY);
+    // Retransmission payload header is OSN original sequence number
+    putInt16((PINT16) pPayload, pRtpPacket->header.sequenceNumber);
+    MEMCPY(pPayload + SIZEOF(UINT16), pRtpPacket->payload, pRtpPacket->payloadLength);
+    pRtpPacket->payloadLength += SIZEOF(UINT16);
+    pRtpPacket->payload = pPayload;
+
+    pRtpPacket->header.sequenceNumber = sequenceNum;
+    pRtpPacket->header.ssrc = ssrc;
+    pRtpPacket->header.payloadType = payloadType;
+    pRtpPacket->header.padding = FALSE;
+    pRtpPacket->pRawPacket = NULL;
+
+    CHK_STATUS(createBytesFromRtpPacket(pRtpPacket, &pRtpPacket->pRawPacket, &pRtpPacket->rawPacketLength));
+    pRtpPacket->payload = pRtpPacket->pRawPacket + RTP_GET_RAW_PACKET_SIZE(pRtpPacket) - pRtpPacket->payloadLength;
+CleanUp:
+    SAFE_MEMFREE(pPayload);
+    if (STATUS_FAILED(retStatus) && pRtpPacket != NULL) {
+        SAFE_MEMFREE(pRtpPacket->pRawPacket);
+        freeRtpPacket(&pRtpPacket);
+        pRtpPacket = NULL;
+    }
+
+    if (ppRtpPacket != NULL) {
         *ppRtpPacket = pRtpPacket;
     }
     LEAVES();
@@ -175,7 +233,8 @@ STATUS createBytesFromRtpPacket(PRtpPacket pRtpPacket, PBYTE* ppRawPacket, PUINT
     CHK(pRtpPacket != NULL && pPacketLength != NULL && ppRawPacket != NULL, STATUS_NULL_ARG);
 
     packetLength = RTP_GET_RAW_PACKET_SIZE(pRtpPacket);
-    pRawPacket = MEMALLOC(packetLength);
+    pRawPacket = (PBYTE) MEMALLOC(packetLength);
+    CHK(pRawPacket != NULL, STATUS_NOT_ENOUGH_MEMORY);
     CHK_STATUS(setBytesFromRtpPacket(pRtpPacket, pRawPacket, packetLength));
 
 CleanUp:
@@ -197,7 +256,6 @@ STATUS setBytesFromRtpPacket(PRtpPacket pRtpPacket, PBYTE pRawPacket, UINT32 pac
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PRtpPacketHeader pHeader = &pRtpPacket->header;
-    UINT32 offset = 0;
     UINT32 packetLengthNeeded = 0;
     PBYTE pCurPtr = pRawPacket;
     UINT8 i;

@@ -121,7 +121,7 @@ TEST_F(RtpFunctionalityTest, marshallUnmarshallH264Data)
                 (PCHAR) "../samples/h264SampleFrames"));
 
         // First call for payload size and sub payload length size
-        EXPECT_EQ(STATUS_SUCCESS, createPayloadForH264(1300,
+        EXPECT_EQ(STATUS_SUCCESS, createPayloadForH264(DEFAULT_MTU_SIZE,
                                                        (PBYTE) payload,
                                                        payloadLen,
                                                        NULL,
@@ -149,7 +149,7 @@ TEST_F(RtpFunctionalityTest, marshallUnmarshallH264Data)
         }
 
         // Second call with actual buffer to fill in data
-        EXPECT_EQ(STATUS_SUCCESS, createPayloadForH264(1300,
+        EXPECT_EQ(STATUS_SUCCESS, createPayloadForH264(DEFAULT_MTU_SIZE,
                                                        (PBYTE) payload,
                                                        payloadLen,
                                                        payloadArray.payloadBuffer,
@@ -217,7 +217,7 @@ TEST_F(RtpFunctionalityTest, packingUnpackingVerifySameH264Frame)
                 (PCHAR) "../samples/h264SampleFrames"));
 
         // First call for payload size and sub payload length size
-        EXPECT_EQ(STATUS_SUCCESS,createPayloadForH264(1300,
+        EXPECT_EQ(STATUS_SUCCESS,createPayloadForH264(DEFAULT_MTU_SIZE,
                                                       (PBYTE) payload,
                                                       payloadLen,
                                                       NULL,
@@ -241,7 +241,7 @@ TEST_F(RtpFunctionalityTest, packingUnpackingVerifySameH264Frame)
         }
 
         // Second call with actual buffer to fill in data
-        EXPECT_EQ(STATUS_SUCCESS, createPayloadForH264(1300, (PBYTE) payload, payloadLen, payloadArray.payloadBuffer,
+        EXPECT_EQ(STATUS_SUCCESS, createPayloadForH264(DEFAULT_MTU_SIZE, (PBYTE) payload, payloadLen, payloadArray.payloadBuffer,
                 &payloadArray.payloadLength, payloadArray.payloadSubLength,
                 &payloadArray.payloadSubLenSize));
 
@@ -310,7 +310,7 @@ TEST_F(RtpFunctionalityTest, packingUnpackingVerifySameOpusFrame)
     payloadArray.payloadSubLength = NULL;
 
     // First call for payload size and sub payload length size
-    EXPECT_EQ(STATUS_SUCCESS,createPayloadForOpus(1300, (PBYTE) &payload, payloadLen, NULL, &payloadArray.payloadLength, NULL,
+    EXPECT_EQ(STATUS_SUCCESS,createPayloadForOpus(DEFAULT_MTU_SIZE, (PBYTE) &payload, payloadLen, NULL, &payloadArray.payloadLength, NULL,
             &payloadArray.payloadSubLenSize));
 
     if (payloadArray.payloadLength > payloadArray.maxPayloadLength) {
@@ -329,7 +329,7 @@ TEST_F(RtpFunctionalityTest, packingUnpackingVerifySameOpusFrame)
     }
 
     // Second call with actual buffer to fill in data
-    EXPECT_EQ(STATUS_SUCCESS, createPayloadForOpus(1300, (PBYTE) &payload, payloadLen, payloadArray.payloadBuffer,
+    EXPECT_EQ(STATUS_SUCCESS, createPayloadForOpus(DEFAULT_MTU_SIZE, (PBYTE) &payload, payloadLen, payloadArray.payloadBuffer,
             &payloadArray.payloadLength, payloadArray.payloadSubLength, &payloadArray.payloadSubLenSize));
 
     EXPECT_EQ(1, payloadArray.payloadSubLenSize);
@@ -370,7 +370,7 @@ TEST_F(RtpFunctionalityTest, packingUnpackingVerifySameShortG711Frame)
     payloadArray.payloadSubLength = NULL;
 
     // First call for payload size and sub payload length size
-    EXPECT_EQ(STATUS_SUCCESS,createPayloadForG711(1300,
+    EXPECT_EQ(STATUS_SUCCESS,createPayloadForG711(DEFAULT_MTU_SIZE,
                                                   (PBYTE) &payload,
                                                   payloadLen,
                                                   NULL,
@@ -394,7 +394,7 @@ TEST_F(RtpFunctionalityTest, packingUnpackingVerifySameShortG711Frame)
     }
 
     // Second call with actual buffer to fill in data
-    EXPECT_EQ(STATUS_SUCCESS, createPayloadForG711(1300,
+    EXPECT_EQ(STATUS_SUCCESS, createPayloadForG711(DEFAULT_MTU_SIZE,
                                                    (PBYTE) &payload,
                                                    payloadLen,
                                                    payloadArray.payloadBuffer,

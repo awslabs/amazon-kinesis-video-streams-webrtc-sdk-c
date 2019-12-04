@@ -242,6 +242,7 @@ extern "C" {
 #define STATUS_RTCP_INPUT_PACKET_INVALID_VERSION                                    STATUS_RTCP_BASE + 0x00000002
 #define STATUS_RTCP_INPUT_PACKET_LEN_MISMATCH                                       STATUS_RTCP_BASE + 0x00000003
 #define STATUS_RTCP_INPUT_NACK_LIST_INVALID                                         STATUS_RTCP_BASE + 0x00000004
+#define STATUS_RTCP_INPUT_SSRC_INVALID                                              STATUS_RTCP_BASE + 0x00000005
 
 //
 // RollingBuffer related errors starting from 0x61000000
@@ -492,6 +493,8 @@ typedef enum {
     RTC_CODEC_VP8 = 3,
     RTC_CODEC_MULAW = 4,
     RTC_CODEC_ALAW = 5,
+    RTC_RTX_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE = 6,
+    RTC_RTX_CODEC_VP8 = 7,
 } RTC_CODEC;
 
 /* ICE_TRANSPORT_POLICY restrict which ICE candidates are used in a session.

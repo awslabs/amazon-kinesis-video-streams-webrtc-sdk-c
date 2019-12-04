@@ -30,6 +30,8 @@ typedef struct {
     FreeDataFunc freeDataFn;
 } RollingBuffer, *PRollingBuffer;
 
+#define ROLLING_BUFFER_MAP_INDEX(pRollingBuffer, index) ((index) % (pRollingBuffer)->capacity)
+
 STATUS createRollingBuffer(UINT32, FreeDataFunc, PRollingBuffer*);
 STATUS freeRollingBuffer(PRollingBuffer*);
 STATUS rollingBufferAppendData(PRollingBuffer, UINT64);
