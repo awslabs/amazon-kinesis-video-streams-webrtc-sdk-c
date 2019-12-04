@@ -69,7 +69,7 @@ STATUS viewerMessageReceived(UINT64 customData, PReceivedSignalingMessage pRecei
     return STATUS_SUCCESS;
 }
 
-TEST_F(SignalingApiFunctionalityTest, mockMaster)
+TEST_F(SignalingApiFunctionalityTest, DISABLED_mockMaster)
 {
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -199,7 +199,7 @@ TEST_F(SignalingApiFunctionalityTest, mockMaster)
     EXPECT_FALSE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
 }
 
-TEST_F(SignalingApiFunctionalityTest, mockViewer)
+TEST_F(SignalingApiFunctionalityTest, DISABLED_mockViewer)
 {
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -303,7 +303,7 @@ TEST_F(SignalingApiFunctionalityTest, mockViewer)
     EXPECT_FALSE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
 }
 
-TEST_F(SignalingApiFunctionalityTest, invalidChannelInfoInput)
+TEST_F(SignalingApiFunctionalityTest, DISABLED_invalidChannelInfoInput)
 {
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -553,7 +553,7 @@ TEST_F(SignalingApiFunctionalityTest, invalidChannelInfoInput)
 
 }
 
-TEST_F(SignalingApiFunctionalityTest, iceReconnectEmulation)
+TEST_F(SignalingApiFunctionalityTest, DISABLED_iceReconnectEmulation)
 {
     if (!mAccessKeyIdSet) {
         return;
@@ -630,7 +630,7 @@ TEST_F(SignalingApiFunctionalityTest, iceReconnectEmulation)
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
 }
 
-TEST_F(SignalingApiFunctionalityTest, goAwayEmulation)
+TEST_F(SignalingApiFunctionalityTest, DISABLED_goAwayEmulation)
 {
     if (!mAccessKeyIdSet) {
         return;
@@ -707,7 +707,7 @@ TEST_F(SignalingApiFunctionalityTest, goAwayEmulation)
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
 }
 
-TEST_F(SignalingApiFunctionalityTest, unknownMessageTypeEmulation)
+TEST_F(SignalingApiFunctionalityTest, DISABLED_unknownMessageTypeEmulation)
 {
     if (!mAccessKeyIdSet) {
         return;
