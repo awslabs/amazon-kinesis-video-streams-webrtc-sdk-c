@@ -80,14 +80,14 @@ STATUS rollingBufferAppendData(PRollingBuffer pRollingBuffer, UINT64 data)
         pRollingBuffer->dataBuffer[ROLLING_BUFFER_MAP_INDEX(pRollingBuffer, pRollingBuffer->tailIndex)] =data;
         pRollingBuffer->headIndex = pRollingBuffer->tailIndex + 1;
     } else {
-        pRollingBuffer->dataBuffer[ROLLING_BUFFER_MAP_INDEX(pRollingBuffer, pRollingBuffer->headIndex)] = data;
-        pRollingBuffer->headIndex++;
-        if (pRollingBuffer->headIndex - pRollingBuffer->tailIndex > pRollingBuffer->capacity) {
+        if (pRollingBuffer->headIndex == pRollingBuffer->tailIndex + pRollingBuffer->capacity) {
             if (pRollingBuffer->freeDataFn != NULL) {
                 CHK_STATUS(pRollingBuffer->freeDataFn(pRollingBuffer->dataBuffer + ROLLING_BUFFER_MAP_INDEX(pRollingBuffer, pRollingBuffer->tailIndex)));
             }
             pRollingBuffer->tailIndex++;
         }
+        pRollingBuffer->dataBuffer[ROLLING_BUFFER_MAP_INDEX(pRollingBuffer, pRollingBuffer->headIndex)] = data;
+        pRollingBuffer->headIndex++;
     }
 CleanUp:
     if (isLocked) {
