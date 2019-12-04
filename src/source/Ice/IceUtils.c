@@ -11,7 +11,7 @@ STATUS createTransactionIdStore(UINT32 maxIdCount, PTransactionIdStore* ppTransa
     PTransactionIdStore pTransactionIdStore = NULL;
 
     CHK(ppTransactionIdStore != NULL, STATUS_NULL_ARG);
-    CHK(maxIdCount < MAX_STORED_TRANSACTION_ID_COUNT, STATUS_INVALID_ARG);
+    CHK(maxIdCount < MAX_STORED_TRANSACTION_ID_COUNT && maxIdCount > 0, STATUS_INVALID_ARG);
 
     pTransactionIdStore = (PTransactionIdStore) MEMCALLOC(1, SIZEOF(TransactionIdStore) + STUN_TRANSACTION_ID_LEN * maxIdCount);
     CHK(pTransactionIdStore != NULL, STATUS_NOT_ENOUGH_MEMORY);
