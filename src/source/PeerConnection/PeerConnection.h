@@ -28,9 +28,16 @@ extern "C" {
 
 #define CODEC_HASH_TABLE_BUCKET_COUNT                   50
 #define CODEC_HASH_TABLE_BUCKET_LENGTH                  2
+#define RTX_HASH_TABLE_BUCKET_COUNT                   50
+#define RTX_HASH_TABLE_BUCKET_LENGTH                  2
 
 #define DATA_CHANNEL_HASH_TABLE_BUCKET_COUNT            200
 #define DATA_CHANNEL_HASH_TABLE_BUCKET_LENGTH           2
+
+typedef enum {
+    RTC_RTX_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE = 1,
+    RTC_RTX_CODEC_VP8 = 2,
+} RTX_CODEC;
 
 typedef struct {
     RtcPeerConnection peerConnection;
@@ -64,6 +71,10 @@ typedef struct {
     // When offering we generate values starting from 96
     // When answering this is populated from the remote offer
     PHashTable pCodecTable;
+
+    // Payload types that we use to retransmit data
+    // When answering this is populated from the remote offer
+    PHashTable pRtxTable;
 
     // DataChannels keyed by streamId
     PHashTable pDataChannels;

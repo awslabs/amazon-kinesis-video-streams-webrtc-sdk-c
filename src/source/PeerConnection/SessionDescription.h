@@ -57,10 +57,10 @@ extern "C" {
 #define OPUS_CLOCKRATE (UINT64) 48000
 #define PCM_CLOCKRATE (UINT64) 8000
 
-STATUS setPayloadTypesFromOffer(PHashTable, PSessionDescription);
+STATUS setPayloadTypesFromOffer(PHashTable, PHashTable, PSessionDescription);
 STATUS setPayloadTypesForOffer(PHashTable);
 
-STATUS setTransceiverPayloadTypes(PHashTable, PDoubleList);
+STATUS setTransceiverPayloadTypes(PHashTable, PHashTable, PDoubleList);
 STATUS populateSessionDescription(PKvsPeerConnection, PSessionDescription, PSessionDescription);
 STATUS reorderTransceiverByRemoteDescription(PKvsPeerConnection, PSessionDescription);
 STATUS setReceiversSsrc(PSessionDescription, PDoubleList);

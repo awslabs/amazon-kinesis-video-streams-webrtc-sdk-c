@@ -427,6 +427,7 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
 
     CHK_STATUS(hashTableCreateWithParams(CODEC_HASH_TABLE_BUCKET_COUNT, CODEC_HASH_TABLE_BUCKET_LENGTH, &pKvsPeerConnection->pCodecTable));
     CHK_STATUS(hashTableCreateWithParams(CODEC_HASH_TABLE_BUCKET_COUNT, CODEC_HASH_TABLE_BUCKET_LENGTH, &pKvsPeerConnection->pDataChannels));
+    CHK_STATUS(hashTableCreateWithParams(RTX_HASH_TABLE_BUCKET_COUNT, RTX_HASH_TABLE_BUCKET_LENGTH, &pKvsPeerConnection->pRtxTable));
     CHK_STATUS(doubleListCreate(&(pKvsPeerConnection->pTransceievers)));
 
     if ((logLevelStr = GETENV(DEBUG_LOG_LEVEL_ENV_VAR)) != NULL) {
@@ -495,6 +496,7 @@ STATUS freePeerConnection(PRtcPeerConnection *ppPeerConnection)
     CHK_LOG_ERR(doubleListFree(pKvsPeerConnection->pTransceievers));
     CHK_LOG_ERR(hashTableFree(pKvsPeerConnection->pDataChannels));
     CHK_LOG_ERR(hashTableFree(pKvsPeerConnection->pCodecTable));
+    CHK_LOG_ERR(hashTableFree(pKvsPeerConnection->pRtxTable));
     if (IS_VALID_MUTEX_VALUE(pKvsPeerConnection->pSrtpSessionLock)) {
         MUTEX_FREE(pKvsPeerConnection->pSrtpSessionLock);
     }
@@ -671,9 +673,9 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
     CHK_STATUS(dtlsSessionStart(pKvsPeerConnection->pDtlsSession, pKvsPeerConnection->dtlsIsServer));
     CHK_STATUS(iceAgentStartAgent(pKvsPeerConnection->pIceAgent, remoteIceUfrag, remoteIcePwd, pKvsPeerConnection->isOffer));
     if (!pKvsPeerConnection->isOffer) {
-        CHK_STATUS(setPayloadTypesFromOffer(pKvsPeerConnection->pCodecTable, pSessionDescription));
+        CHK_STATUS(setPayloadTypesFromOffer(pKvsPeerConnection->pCodecTable, pKvsPeerConnection->pRtxTable, pSessionDescription));
     }
-    CHK_STATUS(setTransceiverPayloadTypes(pKvsPeerConnection->pCodecTable, pKvsPeerConnection->pTransceievers));
+    CHK_STATUS(setTransceiverPayloadTypes(pKvsPeerConnection->pCodecTable, pKvsPeerConnection->pRtxTable, pKvsPeerConnection->pTransceievers));
     CHK_STATUS(setReceiversSsrc(pSessionDescription, pKvsPeerConnection->pTransceievers));
 
 CleanUp:

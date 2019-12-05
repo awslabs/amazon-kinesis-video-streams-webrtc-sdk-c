@@ -493,8 +493,6 @@ typedef enum {
     RTC_CODEC_VP8 = 3,
     RTC_CODEC_MULAW = 4,
     RTC_CODEC_ALAW = 5,
-    RTC_RTX_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE = 6,
-    RTC_RTX_CODEC_VP8 = 7,
 } RTC_CODEC;
 
 /* ICE_TRANSPORT_POLICY restrict which ICE candidates are used in a session.
