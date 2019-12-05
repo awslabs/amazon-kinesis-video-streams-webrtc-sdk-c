@@ -235,6 +235,7 @@ STATUS setTransceiverPayloadTypes(PHashTable codecTable, PHashTable rtxTable, PD
     STATUS retStatus = STATUS_SUCCESS;
     PDoubleListNode pCurNode = NULL;
     PKvsRtpTransceiver pKvsRtpTransceiver;
+    BOOL containRtx = FALSE;
     UINT64 data;
 
     // Loop over Transceivers and set the payloadType (which what we got from the other side)
@@ -265,10 +266,17 @@ STATUS setTransceiverPayloadTypes(PHashTable codecTable, PHashTable rtxTable, PD
                     break;
             }
             if (retStatus == STATUS_SUCCESS) {
+                containRtx = TRUE;
                 pKvsRtpTransceiver->sender.rtxPayloadType = (UINT8) data;
             }
             retStatus = STATUS_SUCCESS;
         }
+    }
+
+    // Free rolling buffer and retransmitter if rtx is not needed
+    if (containRtx) {
+        CHK_STATUS(createRtpRollingBuffer(DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS * HIGHEST_EXPECTED_BIT_RATE / 8 / DEFAULT_MTU_SIZE, &pKvsRtpTransceiver->sender.packetBuffer));
+        CHK_STATUS(createRetransmitter(DEFAULT_SEQ_NUM_BUFFER_SIZE, DEFAULT_VALID_INDEX_BUFFER_SIZE, &pKvsRtpTransceiver->sender.retransmitter));
     }
 
 CleanUp:
