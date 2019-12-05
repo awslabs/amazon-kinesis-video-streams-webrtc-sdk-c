@@ -348,6 +348,9 @@ extern "C" {
 // Max signaling message payload length
 #define MAX_SIGNALING_MESSAGE_LEN                                                   (10 * 1024)
 
+// Valid name characters
+#define SIGNALING_VALID_NAME_CHARS                                                  "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_.-"
+
 /**
  * Maximum size of SDP member in RtcSessionDescriptionInit
  */

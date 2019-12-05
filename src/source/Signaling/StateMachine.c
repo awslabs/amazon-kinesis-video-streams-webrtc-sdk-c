@@ -460,13 +460,20 @@ STATUS fromConnectSignalingState(UINT64 customData, PUINT64 pState)
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
     UINT64 state = SIGNALING_STATE_CONNECT;
     SIZE_T result;
+    BOOL connected;
 
     CHK(pSignalingClient != NULL && pState != NULL, STATUS_NULL_ARG);
 
     result = ATOMIC_LOAD(&pSignalingClient->result);
+    connected = ATOMIC_LOAD_BOOL(&pSignalingClient->connected);
     switch (result) {
         case SERVICE_CALL_RESULT_OK:
-            state = SIGNALING_STATE_CONNECTED;
+            // We also need to check whether we terminated OK and connected or
+            // simply terminated without being connected
+            if (connected) {
+                state = SIGNALING_STATE_CONNECTED;
+            }
+
             break;
 
         case SERVICE_CALL_RESOURCE_NOT_FOUND:

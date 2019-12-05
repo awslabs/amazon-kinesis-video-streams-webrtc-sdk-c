@@ -385,7 +385,7 @@ STATUS generateJSONSafeString(PCHAR pDst, UINT32 len)
     CHK(RAND_bytes(randBuffer, len), STATUS_INTERNAL_ERROR );
 
     for (i = 0; i < len; i++) {
-        pDst[i] = VALID_CHAR_SET_FOR_JSON[randBuffer[i] % (SIZEOF(VALID_CHAR_SET_FOR_JSON) - 1)];
+        pDst[i] = VALID_CHAR_SET_FOR_JSON[randBuffer[i] % (ARRAY_SIZE(VALID_CHAR_SET_FOR_JSON) - 1)];
     }
 
 CleanUp:

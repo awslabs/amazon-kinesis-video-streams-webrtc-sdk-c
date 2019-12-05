@@ -37,7 +37,7 @@ public:
 
         MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
         channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
-        channelInfo.pChannelName = TEST_SIGNALING_CHANNEL_NAME;
+        channelInfo.pChannelName = mChannelName;
         channelInfo.pKmsKeyId = NULL;
         channelInfo.tagCount = 3;
         channelInfo.pTags = tags;
@@ -61,10 +61,16 @@ public:
         return retStatus;
     }
 
+    STATUS deinitialize() {
+        EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&mSignalingClientHandle));
+
+        return STATUS_SUCCESS;
+    }
+
     SIGNALING_CLIENT_HANDLE mSignalingClientHandle;
 };
 
-TEST_F(SignalingApiTest, DISABLED_signalingSendMessageSync)
+TEST_F(SignalingApiTest, signalingSendMessageSync)
 {
     STATUS expectedStatus;
     SignalingMessage signalingMessage;
@@ -91,10 +97,10 @@ TEST_F(SignalingApiTest, DISABLED_signalingSendMessageSync)
     EXPECT_EQ(expectedStatus, signalingClientConnectSync(mSignalingClientHandle));
     EXPECT_EQ(expectedStatus, signalingClientSendMessageSync(mSignalingClientHandle, &signalingMessage));
 
-    EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&mSignalingClientHandle));
+    deinitialize();
 }
 
-TEST_F(SignalingApiTest, DISABLED_signalingClientConnectSync)
+TEST_F(SignalingApiTest, signalingClientConnectSync)
 {
     STATUS expectedStatus;
 
@@ -109,10 +115,10 @@ TEST_F(SignalingApiTest, DISABLED_signalingClientConnectSync)
     EXPECT_EQ(expectedStatus, signalingClientConnectSync(mSignalingClientHandle));
 
 
-    EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&mSignalingClientHandle));
+    deinitialize();
 }
 
-TEST_F(SignalingApiTest, DISABLED_signalingClientGetIceConfigInfoCout)
+TEST_F(SignalingApiTest, signalingClientGetIceConfigInfoCout)
 {
     STATUS expectedStatus;
     UINT32 count;
@@ -129,10 +135,10 @@ TEST_F(SignalingApiTest, DISABLED_signalingClientGetIceConfigInfoCout)
         EXPECT_GE(MAX_ICE_CONFIG_COUNT, count);
     }
 
-    EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&mSignalingClientHandle));
+    deinitialize();
 }
 
-TEST_F(SignalingApiTest, DISABLED_signalingClientGetIceConfigInfo)
+TEST_F(SignalingApiTest, signalingClientGetIceConfigInfo)
 {
     UINT32 i, j, count;
     PIceConfigInfo pIceConfigInfo;
@@ -165,7 +171,7 @@ TEST_F(SignalingApiTest, DISABLED_signalingClientGetIceConfigInfo)
         }
     }
 
-    EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&mSignalingClientHandle));
+    deinitialize();
 }
 
 }

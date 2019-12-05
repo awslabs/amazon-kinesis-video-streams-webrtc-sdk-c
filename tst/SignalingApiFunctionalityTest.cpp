@@ -69,7 +69,7 @@ STATUS viewerMessageReceived(UINT64 customData, PReceivedSignalingMessage pRecei
     return STATUS_SUCCESS;
 }
 
-TEST_F(SignalingApiFunctionalityTest, DISABLED_mockMaster)
+TEST_F(SignalingApiFunctionalityTest, mockMaster)
 {
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -101,7 +101,7 @@ TEST_F(SignalingApiFunctionalityTest, DISABLED_mockMaster)
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
-    channelInfo.pChannelName = TEST_SIGNALING_CHANNEL_NAME;
+    channelInfo.pChannelName = mChannelName;
     channelInfo.pKmsKeyId = NULL;
     channelInfo.tagCount = 3;
     channelInfo.pTags = tags;
@@ -199,7 +199,7 @@ TEST_F(SignalingApiFunctionalityTest, DISABLED_mockMaster)
     EXPECT_FALSE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
 }
 
-TEST_F(SignalingApiFunctionalityTest, DISABLED_mockViewer)
+TEST_F(SignalingApiFunctionalityTest, mockViewer)
 {
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -231,7 +231,7 @@ TEST_F(SignalingApiFunctionalityTest, DISABLED_mockViewer)
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
-    channelInfo.pChannelName = TEST_SIGNALING_CHANNEL_NAME;
+    channelInfo.pChannelName = mChannelName;
     channelInfo.pKmsKeyId = NULL;
     channelInfo.tagCount = 3;
     channelInfo.pTags = tags;
@@ -303,7 +303,7 @@ TEST_F(SignalingApiFunctionalityTest, DISABLED_mockViewer)
     EXPECT_FALSE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
 }
 
-TEST_F(SignalingApiFunctionalityTest, DISABLED_invalidChannelInfoInput)
+TEST_F(SignalingApiFunctionalityTest, invalidChannelInfoInput)
 {
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -326,7 +326,7 @@ TEST_F(SignalingApiFunctionalityTest, DISABLED_invalidChannelInfoInput)
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
-    channelInfo.pChannelName = TEST_SIGNALING_CHANNEL_NAME;
+    channelInfo.pChannelName = mChannelName;
     channelInfo.pChannelArn = (PCHAR) "Channel ARN";
     channelInfo.pRegion = (PCHAR) "us-east-1";
     channelInfo.pControlPlaneUrl = (PCHAR) "Test Control plane URI";
@@ -506,7 +506,7 @@ TEST_F(SignalingApiFunctionalityTest, DISABLED_invalidChannelInfoInput)
     EXPECT_FALSE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
     EXPECT_FALSE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
-    channelInfo.pChannelName = TEST_SIGNALING_CHANNEL_NAME;
+    channelInfo.pChannelName = mChannelName;
     channelInfo.pChannelArn = (PCHAR) "Channel ARN";
 
     // Reset the params for proper stream creation
@@ -522,7 +522,7 @@ TEST_F(SignalingApiFunctionalityTest, DISABLED_invalidChannelInfoInput)
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
-    channelInfo.pChannelName = TEST_SIGNALING_CHANNEL_NAME;
+    channelInfo.pChannelName = mChannelName;
     channelInfo.pKmsKeyId = NULL;
     channelInfo.tagCount = 0;
     channelInfo.pTags = NULL;
@@ -539,7 +539,7 @@ TEST_F(SignalingApiFunctionalityTest, DISABLED_invalidChannelInfoInput)
                                           (PAwsCredentialProvider) mTestCredentialProvider, &signalingHandle);
     EXPECT_EQ(mAccessKeyIdSet ? STATUS_SIGNALING_DESCRIBE_CALL_FAILED : STATUS_NULL_ARG, retStatus);
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
-    channelInfo.pChannelName = TEST_SIGNALING_CHANNEL_NAME;
+    channelInfo.pChannelName = mChannelName;
 
     // ClientId Validation error - name with spaces
     clientInfo.clientId[4] = ' ';
@@ -553,7 +553,7 @@ TEST_F(SignalingApiFunctionalityTest, DISABLED_invalidChannelInfoInput)
 
 }
 
-TEST_F(SignalingApiFunctionalityTest, DISABLED_iceReconnectEmulation)
+TEST_F(SignalingApiFunctionalityTest, iceReconnectEmulation)
 {
     if (!mAccessKeyIdSet) {
         return;
@@ -577,7 +577,7 @@ TEST_F(SignalingApiFunctionalityTest, DISABLED_iceReconnectEmulation)
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
-    channelInfo.pChannelName = TEST_SIGNALING_CHANNEL_NAME;
+    channelInfo.pChannelName = mChannelName;
     channelInfo.pKmsKeyId = NULL;
     channelInfo.tagCount = 0;
     channelInfo.pTags = NULL;
@@ -630,7 +630,7 @@ TEST_F(SignalingApiFunctionalityTest, DISABLED_iceReconnectEmulation)
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
 }
 
-TEST_F(SignalingApiFunctionalityTest, DISABLED_goAwayEmulation)
+TEST_F(SignalingApiFunctionalityTest, goAwayEmulation)
 {
     if (!mAccessKeyIdSet) {
         return;
@@ -654,7 +654,7 @@ TEST_F(SignalingApiFunctionalityTest, DISABLED_goAwayEmulation)
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
-    channelInfo.pChannelName = TEST_SIGNALING_CHANNEL_NAME;
+    channelInfo.pChannelName = mChannelName;
     channelInfo.pKmsKeyId = NULL;
     channelInfo.tagCount = 0;
     channelInfo.pTags = NULL;
@@ -707,7 +707,7 @@ TEST_F(SignalingApiFunctionalityTest, DISABLED_goAwayEmulation)
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
 }
 
-TEST_F(SignalingApiFunctionalityTest, DISABLED_unknownMessageTypeEmulation)
+TEST_F(SignalingApiFunctionalityTest, unknownMessageTypeEmulation)
 {
     if (!mAccessKeyIdSet) {
         return;
@@ -731,7 +731,7 @@ TEST_F(SignalingApiFunctionalityTest, DISABLED_unknownMessageTypeEmulation)
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
-    channelInfo.pChannelName = TEST_SIGNALING_CHANNEL_NAME;
+    channelInfo.pChannelName = mChannelName;
     channelInfo.pKmsKeyId = NULL;
     channelInfo.tagCount = 0;
     channelInfo.pTags = NULL;

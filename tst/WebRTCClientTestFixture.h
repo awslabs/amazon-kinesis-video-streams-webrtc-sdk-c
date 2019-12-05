@@ -8,7 +8,7 @@
 #define TEST_JITTER_BUFFER_CLOCK_RATE                           (1000)
 #define TEST_SIGNALING_MASTER_CLIENT_ID                         (PCHAR) "Test_Master_ClientId"
 #define TEST_SIGNALING_VIEWER_CLIENT_ID                         (PCHAR) "Test_Viewer_ClientId"
-#define TEST_SIGNALING_CHANNEL_NAME                             (PCHAR) "ScaryTestChannel"
+#define TEST_SIGNALING_CHANNEL_NAME                             (PCHAR) "ScaryTestChannel_"
 #define SIGNAING_TEST_CORRELATION_ID                            (PCHAR) "Test_correlation_id"
 
 //
@@ -162,6 +162,7 @@ public:
         LEAVES();
         return retStatus;
     }
+
 protected:
 
     virtual void SetUp();
@@ -188,6 +189,7 @@ protected:
 
     CHAR mDefaultRegion[MAX_REGION_NAME_LEN + 1];
     BOOL mAccessKeyIdSet;
+    CHAR mChannelName[MAX_CHANNEL_NAME_LEN + 1];
 
     PJitterBuffer mJitterBuffer;
     PBYTE mFrame;
