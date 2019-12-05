@@ -121,6 +121,9 @@ typedef struct {
     // Conditional variable for receiving response to the sent message
     CVAR receiveCvar;
 
+    // For interlocking the listener shutdown sequence
+    MUTEX listenerLock;
+
     // Execute the state machine until this time
     UINT64 stepUntil;
 

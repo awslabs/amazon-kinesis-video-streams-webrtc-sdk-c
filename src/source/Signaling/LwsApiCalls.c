@@ -1142,6 +1142,7 @@ CleanUp:
     CHK_LOG_ERR(retStatus);
 
     if (STATUS_FAILED(retStatus) && pSignalingClient != NULL) {
+        MUTEX_LOCK(pSignalingClient->listenerLock);
         // Trigger termination
         if (pLwsCallInfo != NULL && pLwsCallInfo->callInfo.pRequestInfo != NULL) {
             ATOMIC_STORE_BOOL(&pLwsCallInfo->callInfo.pRequestInfo->terminating, TRUE);
@@ -1149,6 +1150,7 @@ CleanUp:
         }
 
         ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
+        MUTEX_UNLOCK(pSignalingClient->listenerLock);
     }
 
     if (locked) {
@@ -1185,10 +1187,6 @@ CleanUp:
         ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
     }
 
-    if (pSignalingClient->pOngoingCallInfo != NULL) {
-        freeLwsCallInfo(&pSignalingClient->pOngoingCallInfo);
-    }
-
     // Set the tid to invalid as we are exiting
     if (pSignalingClient != NULL) {
         // Trigger the cvar
@@ -1199,6 +1197,12 @@ CleanUp:
         pSignalingClient->listenerTracker.threadId = INVALID_TID_VALUE;
         ATOMIC_STORE_BOOL(&pSignalingClient->listenerTracker.terminated, TRUE);
         CVAR_BROADCAST(pSignalingClient->listenerTracker.await);
+
+        if (pSignalingClient->pOngoingCallInfo != NULL) {
+            MUTEX_LOCK(pSignalingClient->listenerLock);
+            freeLwsCallInfo(&pSignalingClient->pOngoingCallInfo);
+            MUTEX_UNLOCK(pSignalingClient->listenerLock);
+        }
     }
 
     LEAVES();

@@ -35,6 +35,9 @@ STATUS stepSignalingStateMachine(PSignalingClient pSignalingClient, STATUS statu
     // Check for a shutdown
     CHK(!ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown), retStatus);
 
+    MUTEX_LOCK(pSignalingClient->stateLock);
+    locked = TRUE;
+
     // Check if an error and the retry is OK
     if (!pSignalingClient->pChannelInfo->retry && STATUS_FAILED(status)) {
         CHK(FALSE, status);
@@ -48,9 +51,6 @@ STATUS stepSignalingStateMachine(PSignalingClient pSignalingClient, STATUS statu
             CHK(status != SIGNALING_STATE_MACHINE_STATES[i].status, SIGNALING_STATE_MACHINE_STATES[i].status);
         }
     }
-
-    MUTEX_LOCK(pSignalingClient->stateLock);
-    locked = TRUE;
 
     if (pSignalingClient->signalingClientCallbacks.stateChangeFn != NULL) {
         CHK_STATUS(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pStateMachineState));
@@ -594,7 +594,9 @@ STATUS executeConnectedSignalingState(UINT64 customData, UINT64 time)
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
     // Reset the timeout for the state machine
+    MUTEX_LOCK(pSignalingClient->stateLock);
     pSignalingClient->stepUntil = 0;
+    MUTEX_UNLOCK(pSignalingClient->stateLock);
 
 CleanUp:
 
