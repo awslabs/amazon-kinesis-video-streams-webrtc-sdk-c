@@ -1144,8 +1144,8 @@ CleanUp:
     if (STATUS_FAILED(retStatus) && pSignalingClient != NULL) {
         MUTEX_LOCK(pSignalingClient->listenerLock);
         // Trigger termination
-        if (pLwsCallInfo != NULL && pLwsCallInfo->callInfo.pRequestInfo != NULL) {
-            ATOMIC_STORE_BOOL(&pLwsCallInfo->callInfo.pRequestInfo->terminating, TRUE);
+        if (pSignalingClient->pOngoingCallInfo != NULL && pSignalingClient->pOngoingCallInfo->callInfo.pRequestInfo != NULL) {
+            ATOMIC_STORE_BOOL(&pSignalingClient->pOngoingCallInfo->callInfo.pRequestInfo->terminating, TRUE);
             lws_cancel_service(pSignalingClient->pLwsContext);
         }
 
