@@ -168,3 +168,38 @@ CleanUp:
 
     return retStatus;
 }
+
+// only work with ipv4 right now
+STATUS populateIpFromString(PKvsIpAddress pKvsIpAddress, PCHAR pBuff)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PCHAR curr, tail, next;
+    UINT8 octet = 0;
+    UINT32 ipValue;
+
+    CHK(pKvsIpAddress != NULL && pBuff != NULL, STATUS_NULL_ARG);
+    CHK(STRNLEN(pBuff, KVS_MAX_IPV4_ADDRESS_STRING_LEN) > 0 &&
+        STRNLEN(pBuff, KVS_MAX_IPV4_ADDRESS_STRING_LEN) < KVS_MAX_IPV4_ADDRESS_STRING_LEN, STATUS_INVALID_ARG);
+
+    curr = pBuff;
+    tail = pBuff + STRLEN(pBuff);
+    while ((next = STRNCHR(curr, tail - curr, '.')) != NULL) {
+        CHK_STATUS(STRTOUI32(curr, curr + (next - curr), 10, &ipValue));
+        pKvsIpAddress->address[octet] = (UINT8) ipValue;
+        octet++;
+
+        curr = next + 1;
+    }
+
+    CHK_STATUS(STRTOUI32(curr, NULL, 10, &ipValue));
+    pKvsIpAddress->address[octet] = (UINT8) ipValue;
+    octet++;
+
+
+    CHK(octet == 4, STATUS_ICE_CANDIDATE_STRING_INVALID_IP); // IPv4 MUST have 4 octets
+CleanUp:
+
+    LEAVES();
+    return retStatus;
+}

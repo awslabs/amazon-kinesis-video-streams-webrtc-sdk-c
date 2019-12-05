@@ -180,42 +180,12 @@ STATUS freeIceAgent(PIceAgent* ppIceAgent)
         MUTEX_FREE(pIceAgent->lock);
     }
 
+    freeStateMachine(pIceAgent->pStateMachine);
+
     MEMFREE(pIceAgent);
 
     *ppIceAgent = NULL;
 
-CleanUp:
-
-    LEAVES();
-    return retStatus;
-}
-
-STATUS populateIpFromString(PIceCandidate pIceCandidate, PCHAR pBuff, UINT32 buffLen) {
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-    PCHAR curr, tail, next;
-    UINT8 octet = 0;
-    UINT32 ipValue;
-
-    CHK(pIceCandidate != NULL && pBuff != NULL, STATUS_NULL_ARG);
-
-    curr = pBuff;
-    tail = pBuff + buffLen;
-    while ((next = STRNCHR(curr, tail - curr, '.')) != NULL) {
-        CHK_STATUS(STRTOUI32(curr, curr + (next - curr), 10, &ipValue));
-        pIceCandidate->ipAddress.address[octet] = ipValue;
-        octet++;
-
-        curr = next + 1;
-    }
-
-    if ((next = STRCHR(curr, ' ')) != NULL) {
-        CHK_STATUS(STRTOUI32(curr, curr + (next - curr), 10, &ipValue));
-        pIceCandidate->ipAddress.address[octet] = ipValue;
-        octet++;
-    }
-
-    CHK(octet == 4, STATUS_ICE_CANDIDATE_STRING_INVALID_IP); // IPv4 MUST have 4 octets
 CleanUp:
 
     LEAVES();
@@ -229,7 +199,8 @@ STATUS iceAgentAddIceServer(PIceAgent pIceAgent, PCHAR url, PCHAR username, PCHA
     PCHAR separator = NULL, urlNoPrefix = NULL;
     UINT32 port = ICE_STUN_DEFAULT_PORT;
 
-    CHK(url != NULL && username != NULL && credential != NULL, STATUS_NULL_ARG);
+    // username and credential is only mandatory for turn server
+    CHK(url != NULL && pIceAgent != NULL, STATUS_NULL_ARG);
 
     pIceServer = &(pIceAgent->iceServers[pIceAgent->iceServersCount]);
 
@@ -238,8 +209,8 @@ STATUS iceAgentAddIceServer(PIceAgent pIceAgent, PCHAR url, PCHAR username, PCHA
         pIceServer->isTurn = FALSE;
     } else if (STRNCMP(ICE_URL_PREFIX_TURN, url, STRLEN(ICE_URL_PREFIX_TURN)) == 0 ||
                STRNCMP(ICE_URL_PREFIX_TURN_SECURE, url, STRLEN(ICE_URL_PREFIX_TURN_SECURE)) == 0) {
-        CHK(username[0] != '\0', STATUS_ICE_URL_TURN_MISSING_USERNAME);
-        CHK(credential[0] != '\0', STATUS_ICE_URL_TURN_MISSING_CREDENTIAL);
+        CHK(username != NULL && username[0] != '\0', STATUS_ICE_URL_TURN_MISSING_USERNAME);
+        CHK(credential != NULL && credential[0] != '\0', STATUS_ICE_URL_TURN_MISSING_CREDENTIAL);
 
         // TODO after getIceServerConfig no longer give turn: ips, do TLS only for turns:
         STRNCPY(pIceServer->username, username, MAX_ICE_CONFIG_USER_NAME_LEN);
@@ -254,6 +225,8 @@ STATUS iceAgentAddIceServer(PIceAgent pIceAgent, PCHAR url, PCHAR username, PCHA
         separator++;
         CHK_STATUS(STRTOUI32(separator, separator + STRLEN(separator), 10, &port));
         STRNCPY(pIceServer->url, urlNoPrefix, separator - urlNoPrefix - 1);
+        // need to null terminate since we are not copying the entire urlNoPrefix
+        pIceServer->url[separator - urlNoPrefix - 1] = '\0';
     } else {
         STRNCPY(pIceServer->url, urlNoPrefix, MAX_ICE_CONFIG_URI_LEN);
     }
@@ -347,7 +320,7 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
             pIceCandidate->ipAddress.family = KVS_IP_FAMILY_TYPE_IPV4;
         } else if (STRNCHR(curr, tokenLen, '.') != NULL) {
             CHK(tokenLen <= IP_STRING_LENGTH, STATUS_ICE_CANDIDATE_STRING_INVALID_IP); // IPv4 is 15 characters at most
-            CHK_STATUS(populateIpFromString(pIceCandidate, curr, tokenLen));
+            CHK_STATUS(populateIpFromString(&pIceCandidate->ipAddress, curr));
         }
 
         curr = next + 1;
@@ -1612,12 +1585,12 @@ UINT32 computeCandidatePriority(PIceCandidate pIceCandidate)
     return (2 ^ 24) * (typePreference) + (2 ^ 8) * (localPreference) + 255;
 }
 
-UINT64 computeCandidatePairPriority(PIceCandidatePair pIceCandidatePair, BOOL isControlling)
+UINT64 computeCandidatePairPriority(PIceCandidatePair pIceCandidatePair, BOOL isLocalControlling)
 {
     UINT64 controllingAgentCandidatePri = pIceCandidatePair->local->priority;
     UINT64 controlledAgentCandidatePri = pIceCandidatePair->remote->priority;
 
-    if (!isControlling) {
+    if (!isLocalControlling) {
         controllingAgentCandidatePri = controlledAgentCandidatePri;
         controlledAgentCandidatePri = pIceCandidatePair->local->priority;
     }

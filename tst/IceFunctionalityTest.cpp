@@ -83,6 +83,10 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         EXPECT_EQ(TRUE, candidatePairsInOrder(iceAgent.candidatePairs, iceAgent.candidatePairCount));
     }
 
+    ///////////////////////////////////////////////
+    // ConnectionListener Test
+    ///////////////////////////////////////////////
+
     typedef struct {
         PConnectionListener pConnectionListener;
         UINT32 connectionToAdd;
@@ -180,6 +184,77 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         EXPECT_EQ(STATUS_SUCCESS, freeConnectionListener(&pConnectionListener));
     }
 
+    ///////////////////////////////////////////////
+    // IceAgent Test
+    ///////////////////////////////////////////////
+
+    TEST_F(IceFunctionalityTest, IceAgentComputeCandidatePairPriorityUnitTest)
+    {
+        // https://tools.ietf.org/html/rfc5245#appendix-B.5
+        UINT32 G = 123, D = 456; // G is controlling, D is controlled
+        UINT64 priority = (UINT64) pow(2, 32) * MIN(G,D) + 2 * MAX(G,D) + (G>D ? 1 : 0);
+        IceCandidate localCandidate, remoteCandidate;
+        IceCandidatePair iceCandidatePair;
+
+        localCandidate.priority = G;
+        remoteCandidate.priority = D;
+        iceCandidatePair.local = &localCandidate;
+        iceCandidatePair.remote = &remoteCandidate;
+
+        EXPECT_EQ(priority, computeCandidatePairPriority(&iceCandidatePair, TRUE));
+    }
+
+    TEST_F(IceFunctionalityTest, IceAgentUpdateCandidateAddressUnitTest)
+    {
+        IceCandidate localCandidate;
+        KvsIpAddress newIpAddress = {0};
+
+        newIpAddress.port = 8080;
+        newIpAddress.family = KVS_IP_FAMILY_TYPE_IPV4;
+        newIpAddress.isPointToPoint = FALSE;
+        MEMSET(newIpAddress.address, 0x11, ARRAY_SIZE(newIpAddress.address));
+
+        localCandidate.state = ICE_CANDIDATE_STATE_NEW;
+
+        EXPECT_NE(STATUS_SUCCESS, updateCandidateAddress(NULL, &newIpAddress));
+        EXPECT_NE(STATUS_SUCCESS, updateCandidateAddress(&localCandidate, NULL));
+        localCandidate.iceCandidateType = ICE_CANDIDATE_TYPE_HOST;
+        EXPECT_NE(STATUS_SUCCESS, updateCandidateAddress(&localCandidate, &newIpAddress));
+        localCandidate.iceCandidateType = ICE_CANDIDATE_TYPE_SERVER_REFLEXIVE;
+        EXPECT_EQ(STATUS_SUCCESS, updateCandidateAddress(&localCandidate, &newIpAddress));
+
+        EXPECT_EQ(localCandidate.ipAddress.port, newIpAddress.port);
+        EXPECT_EQ(0, MEMCMP(localCandidate.ipAddress.address, newIpAddress.address, IPV4_ADDRESS_LENGTH));
+    }
+
+    TEST_F(IceFunctionalityTest, IceAgentIceAgentAddIceServerUnitTest)
+    {
+        IceAgent iceAgent;
+        iceAgent.iceServersCount = 0;
+
+        MEMSET(&iceAgent, 0x00, SIZEOF(IceAgent));
+
+        EXPECT_EQ(STATUS_SUCCESS, iceAgentAddIceServer(&iceAgent, (PCHAR) "stun:stun.kinesisvideo.us-west-2.amazonaws.com:443", NULL, NULL));
+        EXPECT_EQ(1, iceAgent.iceServersCount);
+        EXPECT_EQ(STATUS_SUCCESS, iceAgentAddIceServer(&iceAgent, (PCHAR) "stun:stun.kinesisvideo.us-west-2.amazonaws.com:443", (PCHAR) "", (PCHAR) ""));
+        EXPECT_EQ(2, iceAgent.iceServersCount);
+
+        iceAgent.iceServersCount = 0;
+        EXPECT_NE(STATUS_SUCCESS, iceAgentAddIceServer(&iceAgent, NULL, NULL, NULL));
+        EXPECT_EQ(STATUS_ICE_URL_TURN_MISSING_USERNAME, iceAgentAddIceServer(&iceAgent, (PCHAR) "turn:54.202.170.151:443", NULL, NULL));
+        EXPECT_EQ(STATUS_ICE_URL_TURN_MISSING_CREDENTIAL, iceAgentAddIceServer(&iceAgent, (PCHAR) "turn:54.202.170.151:443", (PCHAR) "username", NULL));
+        EXPECT_EQ(STATUS_ICE_URL_TURN_MISSING_USERNAME, iceAgentAddIceServer(&iceAgent, (PCHAR) "turn:54.202.170.151:443", (PCHAR) "", (PCHAR) ""));
+        EXPECT_EQ(STATUS_ICE_URL_TURN_MISSING_CREDENTIAL, iceAgentAddIceServer(&iceAgent, (PCHAR) "turn:54.202.170.151:443", (PCHAR) "username", (PCHAR) ""));
+        EXPECT_NE(STATUS_SUCCESS, iceAgentAddIceServer(NULL, (PCHAR) "turn:54.202.170.151:443", (PCHAR) "username", (PCHAR) "password"));
+
+        EXPECT_EQ(STATUS_SUCCESS, iceAgentAddIceServer(&iceAgent, (PCHAR) "turn:54.202.170.151:443", (PCHAR) "username", (PCHAR) "password"));
+        EXPECT_EQ(1, iceAgent.iceServersCount);
+
+        EXPECT_EQ(STATUS_SUCCESS, iceAgentAddIceServer(&iceAgent, (PCHAR) "turns:54.202.170.151:443", (PCHAR) "username", (PCHAR) "password"));
+        EXPECT_EQ(2, iceAgent.iceServersCount);
+
+        EXPECT_EQ(STATUS_ICE_URL_INVALID_PREFIX, iceAgentAddIceServer(&iceAgent, (PCHAR) "randomUrl", (PCHAR) "username", (PCHAR) "password"));
+    }
 
 }
 }

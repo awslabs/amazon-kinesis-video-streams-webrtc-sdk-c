@@ -39,6 +39,8 @@ STATUS iceUtilsGenerateTransactionId(PBYTE, UINT32);
 STATUS iceUtilsPackageStunPacket(PStunPacket, PBYTE, UINT32, PBYTE, PUINT32);
 STATUS iceUtilsSendStunPacket(PStunPacket, PBYTE, UINT32, PKvsIpAddress, PSocketConnection, PTurnConnection, BOOL);
 
+STATUS populateIpFromString(PKvsIpAddress, PCHAR);
+
 #pragma pack(pop, include_i)
 
 #ifdef  __cplusplus
