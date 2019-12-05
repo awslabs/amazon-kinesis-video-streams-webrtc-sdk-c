@@ -230,7 +230,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS setTransceiverPayloadTypes(PHashTable codecTable, PDoubleList pTransceievers) {
+STATUS setTransceiverPayloadTypes(PHashTable codecTable, PDoubleList pTransceiver) {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PDoubleListNode pCurNode = NULL;
@@ -239,7 +239,7 @@ STATUS setTransceiverPayloadTypes(PHashTable codecTable, PDoubleList pTransceiev
 
     // Loop over Transceivers and set the payloadType (which what we got from the other side)
     // If a codec we want to send wasn't supported by the other return an error
-    CHK_STATUS(doubleListGetHeadNode(pTransceievers, &pCurNode));
+    CHK_STATUS(doubleListGetHeadNode(pTransceiver, &pCurNode));
     while (pCurNode != NULL) {
         CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
         pCurNode = pCurNode->pNext;
@@ -253,16 +253,21 @@ STATUS setTransceiverPayloadTypes(PHashTable codecTable, PDoubleList pTransceiev
             pKvsRtpTransceiver->sender.payloadType = (UINT8) data;
             switch (pKvsRtpTransceiver->sender.track.codec) {
                 case RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE:
-                    CHK_STATUS(hashTableGet(codecTable, RTC_RTX_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, &data));
-                    pKvsRtpTransceiver->sender.rtxPayloadType = (UINT8) data;
+                    retStatus = hashTableGet(codecTable, RTC_RTX_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, &data);
+                    CHK(retStatus == STATUS_SUCCESS || retStatus == STATUS_HASH_KEY_NOT_PRESENT, retStatus);
                     break;
                 case RTC_CODEC_VP8:
-                    CHK_STATUS(hashTableGet(codecTable, RTC_RTX_CODEC_VP8, &data));
-                    pKvsRtpTransceiver->sender.rtxPayloadType = (UINT8) data;
+                    retStatus = hashTableGet(codecTable, RTC_RTX_CODEC_VP8, &data);
+                    CHK(retStatus == STATUS_SUCCESS || retStatus == STATUS_HASH_KEY_NOT_PRESENT, retStatus);
                     break;
                 default:
+                    retStatus = STATUS_HASH_KEY_NOT_PRESENT;
                     break;
             }
+            if (retStatus == STATUS_SUCCESS) {
+                pKvsRtpTransceiver->sender.rtxPayloadType = (UINT8) data;
+            }
+            retStatus = STATUS_SUCCESS;
         }
     }
 
@@ -288,12 +293,13 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
 
     if (pRtcMediaStreamTrack->codec == RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE || pRtcMediaStreamTrack->codec == RTC_CODEC_VP8) {
         if (pRtcMediaStreamTrack->codec == RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE) {
-            CHK_STATUS(hashTableContains(pKvsPeerConnection->pCodecTable, RTC_RTX_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, &containRtx));
-            CHK_STATUS(hashTableGet(pKvsPeerConnection->pCodecTable, RTC_RTX_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, &rtxPayloadType));
+            retStatus = hashTableGet(pKvsPeerConnection->pCodecTable, RTC_RTX_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, &rtxPayloadType);
         } else {
-            CHK_STATUS(hashTableContains(pKvsPeerConnection->pCodecTable, RTC_RTX_CODEC_VP8, &containRtx));
-            CHK_STATUS(hashTableGet(pKvsPeerConnection->pCodecTable, RTC_RTX_CODEC_VP8, &rtxPayloadType));
+            retStatus = hashTableGet(pKvsPeerConnection->pCodecTable, RTC_RTX_CODEC_VP8, &rtxPayloadType);
         }
+        CHK(retStatus == STATUS_SUCCESS || retStatus == STATUS_HASH_KEY_NOT_PRESENT, retStatus);
+        containRtx = (retStatus == STATUS_SUCCESS);
+        retStatus = STATUS_SUCCESS;
         if (containRtx) {
             SPRINTF(pSdpMediaDescription->mediaName, "video 9 UDP/TLS/RTP/SAVPF %"PRId64" %"PRId64, payloadType, rtxPayloadType);
         } else {

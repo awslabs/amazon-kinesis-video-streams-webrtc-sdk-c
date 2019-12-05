@@ -176,6 +176,40 @@ t=0 0
     EXPECT_EQ(serializeSessionDescription(&sessionDescription, (PCHAR) sessionDescriptionNoMedia.c_str()), STATUS_SDP_ATTRIBUTE_MAX_EXCEEDED);
 }
 
+TEST_F(SdpApiTest, setTransceiverPayloadTypes_NoRtxType) {
+    PHashTable pCodecTable;
+    PDoubleList pTransceivers;
+    KvsRtpTransceiver transceiver;
+    transceiver.sender.track.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+    transceiver.transceiver.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+    EXPECT_EQ(STATUS_SUCCESS, hashTableCreate(&pCodecTable));
+    EXPECT_EQ(STATUS_SUCCESS, hashTablePut(pCodecTable, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, 1));
+    EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&pTransceivers));
+    EXPECT_EQ(STATUS_SUCCESS, doubleListInsertItemHead(pTransceivers, (UINT64) (&transceiver)));
+    EXPECT_EQ(STATUS_SUCCESS, setTransceiverPayloadTypes(pCodecTable, pTransceivers));
+    EXPECT_EQ(1, transceiver.sender.payloadType);
+    hashTableFree(pCodecTable);
+    doubleListFree(pTransceivers);
+}
+
+TEST_F(SdpApiTest, setTransceiverPayloadTypes_HasRtxType) {
+    PHashTable pCodecTable;
+    PDoubleList pTransceivers;
+    KvsRtpTransceiver transceiver;
+    transceiver.sender.track.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+    transceiver.transceiver.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+    EXPECT_EQ(STATUS_SUCCESS, hashTableCreate(&pCodecTable));
+    EXPECT_EQ(STATUS_SUCCESS, hashTablePut(pCodecTable, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, 1));
+    EXPECT_EQ(STATUS_SUCCESS, hashTablePut(pCodecTable, RTC_RTX_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, 2));
+    EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&pTransceivers));
+    EXPECT_EQ(STATUS_SUCCESS, doubleListInsertItemHead(pTransceivers, (UINT64) (&transceiver)));
+    EXPECT_EQ(STATUS_SUCCESS, setTransceiverPayloadTypes(pCodecTable, pTransceivers));
+    EXPECT_EQ(1, transceiver.sender.payloadType);
+    EXPECT_EQ(2, transceiver.sender.rtxPayloadType);
+    hashTableFree(pCodecTable);
+    doubleListFree(pTransceivers);
+}
+
 
 }
 }
