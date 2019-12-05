@@ -183,6 +183,8 @@ TEST_F(SdpApiTest, setTransceiverPayloadTypes_NoRtxType) {
     KvsRtpTransceiver transceiver;
     transceiver.sender.track.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
     transceiver.transceiver.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+    transceiver.sender.packetBuffer = NULL;
+    transceiver.sender.retransmitter = NULL;
     EXPECT_EQ(STATUS_SUCCESS, hashTableCreate(&pCodecTable));
     EXPECT_EQ(STATUS_SUCCESS, hashTablePut(pCodecTable, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, 1));
     EXPECT_EQ(STATUS_SUCCESS, hashTableCreate(&pRtxTable));
@@ -190,8 +192,12 @@ TEST_F(SdpApiTest, setTransceiverPayloadTypes_NoRtxType) {
     EXPECT_EQ(STATUS_SUCCESS, doubleListInsertItemHead(pTransceivers, (UINT64) (&transceiver)));
     EXPECT_EQ(STATUS_SUCCESS, setTransceiverPayloadTypes(pCodecTable, pRtxTable, pTransceivers));
     EXPECT_EQ(1, transceiver.sender.payloadType);
+    EXPECT_EQ((PRollingBuffer) NULL, transceiver.sender.packetBuffer);
+    EXPECT_EQ((PRetransmitter) NULL, transceiver.sender.retransmitter);
     hashTableFree(pCodecTable);
     hashTableFree(pRtxTable);
+    freeRtpRollingBuffer(&transceiver.sender.packetBuffer);
+    freeRetransmitter(&transceiver.sender.retransmitter);
     doubleListFree(pTransceivers);
 }
 
@@ -202,6 +208,8 @@ TEST_F(SdpApiTest, setTransceiverPayloadTypes_HasRtxType) {
     KvsRtpTransceiver transceiver;
     transceiver.sender.track.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
     transceiver.transceiver.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+    transceiver.sender.packetBuffer = NULL;
+    transceiver.sender.retransmitter = NULL;
     EXPECT_EQ(STATUS_SUCCESS, hashTableCreate(&pCodecTable));
     EXPECT_EQ(STATUS_SUCCESS, hashTablePut(pCodecTable, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, 1));
     EXPECT_EQ(STATUS_SUCCESS, hashTableCreate(&pRtxTable));
@@ -211,8 +219,12 @@ TEST_F(SdpApiTest, setTransceiverPayloadTypes_HasRtxType) {
     EXPECT_EQ(STATUS_SUCCESS, setTransceiverPayloadTypes(pCodecTable, pRtxTable, pTransceivers));
     EXPECT_EQ(1, transceiver.sender.payloadType);
     EXPECT_EQ(2, transceiver.sender.rtxPayloadType);
+    EXPECT_NE((PRollingBuffer) NULL, transceiver.sender.packetBuffer);
+    EXPECT_NE((PRetransmitter) NULL, transceiver.sender.retransmitter);
     hashTableFree(pCodecTable);
     hashTableFree(pRtxTable);
+    freeRtpRollingBuffer(&transceiver.sender.packetBuffer);
+    freeRetransmitter(&transceiver.sender.retransmitter);
     doubleListFree(pTransceivers);
 }
 
