@@ -20,6 +20,9 @@ extern "C" {
 // for ipv4 mapped ipv6: 0000:0000:0000:0000:0000:ffff:192.168.100.228 = 45
 #define KVS_IP_ADDRESS_STRING_BUFFER_LEN                46
 
+// 000.000.000.000 + \0
+#define KVS_MAX_IPV4_ADDRESS_STRING_LEN                 16
+
 typedef enum {
     KVS_SOCKET_PROTOCOL_TCP,
     KVS_SOCKET_PROTOCOL_UDP,
