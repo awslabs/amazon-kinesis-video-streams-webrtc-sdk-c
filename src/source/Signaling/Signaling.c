@@ -27,7 +27,7 @@ STATUS createSignalingSync(PSignalingClientInfo pClientInfo, PChannelInfo pChann
 
     // Initialize the listener and restarter thread trackers
     CHK_STATUS(initializeThreadTracker(&pSignalingClient->listenerTracker));
-    CHK_STATUS(initializeThreadTracker(&pSignalingClient->restarterTracker));
+    CHK_STATUS(initializeThreadTracker(&pSignalingClient->reconnecterTracker));
 
     // Validate and store the input
     CHK_STATUS(createChannelInfo(pChannelInfo->pChannelName,
@@ -119,9 +119,6 @@ STATUS createSignalingSync(PSignalingClientInfo pClientInfo, PChannelInfo pChann
     pSignalingClient->messageQueueLock = MUTEX_CREATE(TRUE);
     CHK(IS_VALID_MUTEX_VALUE(pSignalingClient->messageQueueLock), STATUS_INVALID_OPERATION);
 
-    pSignalingClient->listenerLock = MUTEX_CREATE(FALSE);
-    CHK(IS_VALID_MUTEX_VALUE(pSignalingClient->listenerLock), STATUS_INVALID_OPERATION);
-
     // Create the ongoing message list
     CHK_STATUS(stackQueueCreate(&pSignalingClient->pMessageQueue));
 
@@ -171,8 +168,8 @@ STATUS freeSignaling(PSignalingClient* ppSignalingClient)
     // Terminate the listener thread if alive
     terminateLwsListenerLoop(pSignalingClient);
 
-    // Await for the restarted thread to exit
-    awaitForThreadTermination(&pSignalingClient->restarterTracker, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT);
+    // Await for the reconnect thread to exit
+    awaitForThreadTermination(&pSignalingClient->reconnecterTracker, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT);
 
     freeStateMachine(pSignalingClient->pStateMachine);
 
@@ -212,11 +209,7 @@ STATUS freeSignaling(PSignalingClient* ppSignalingClient)
         MUTEX_FREE(pSignalingClient->messageQueueLock);
     }
 
-    if (IS_VALID_MUTEX_VALUE(pSignalingClient->listenerLock)) {
-        MUTEX_FREE(pSignalingClient->listenerLock);
-    }
-
-    uninitializeThreadTracker(&pSignalingClient->restarterTracker);
+    uninitializeThreadTracker(&pSignalingClient->reconnecterTracker);
     uninitializeThreadTracker(&pSignalingClient->listenerTracker);
 
     MEMFREE(pSignalingClient);
@@ -326,7 +319,10 @@ STATUS signalingConnectSync(PSignalingClient pSignalingClient)
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
     // Validate the state
-    CHK_STATUS(acceptStateMachineState(pSignalingClient->pStateMachine, SIGNALING_STATE_READY));
+    CHK_STATUS(acceptStateMachineState(pSignalingClient->pStateMachine, SIGNALING_STATE_READY | SIGNALING_STATE_CONNECTED));
+
+    // Check if we are already connected
+    CHK (!ATOMIC_LOAD_BOOL(&pSignalingClient->connected), retStatus);
 
     // Self-prime through the ready state
     pSignalingClient->continueOnReady = TRUE;
@@ -576,7 +572,6 @@ STATUS uninitializeThreadTracker(PThreadTracker pThreadTracker)
     STATUS retStatus = STATUS_SUCCESS;
     CHK(pThreadTracker != NULL, STATUS_NULL_ARG);
 
-    pThreadTracker->threadId = INVALID_TID_VALUE;
     if (IS_VALID_MUTEX_VALUE(pThreadTracker->lock)) {
         MUTEX_FREE(pThreadTracker->lock);
     }
@@ -586,7 +581,6 @@ STATUS uninitializeThreadTracker(PThreadTracker pThreadTracker)
     }
 
     ATOMIC_STORE_BOOL(&pThreadTracker->terminated, FALSE);
-    pThreadTracker->threadId = INVALID_TID_VALUE;
 
 CleanUp:
     return retStatus;
@@ -599,20 +593,19 @@ STATUS awaitForThreadTermination(PThreadTracker pThreadTracker, UINT64 timeout)
 
     CHK(pThreadTracker != NULL, STATUS_NULL_ARG);
 
+    MUTEX_LOCK(pThreadTracker->lock);
+    locked = TRUE;
     // Await for the termination
     while (!ATOMIC_LOAD_BOOL(&pThreadTracker->terminated)) {
-        MUTEX_LOCK(pThreadTracker->lock);
-        locked = TRUE;
-
         CHK_STATUS(CVAR_WAIT(pThreadTracker->await,
                              pThreadTracker->lock,
                              timeout));
-
-        MUTEX_UNLOCK(pThreadTracker->lock);
-        locked = FALSE;
     }
 
     pThreadTracker->threadId = INVALID_TID_VALUE;
+
+    MUTEX_UNLOCK(pThreadTracker->lock);
+    locked = FALSE;
 
 CleanUp:
 

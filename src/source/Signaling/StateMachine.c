@@ -170,6 +170,7 @@ STATUS executeNewSignalingState(UINT64 customData, UINT64 time)
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
+    ATOMIC_STORE_BOOL(&pSignalingClient->clientReady, FALSE);
 
     // Nothing to do
 
@@ -209,6 +210,7 @@ STATUS executeGetTokenSignalingState(UINT64 customData, UINT64 time)
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
+    ATOMIC_STORE_BOOL(&pSignalingClient->clientReady, FALSE);
 
     // Use the credential provider to get the token
     retStatus = pSignalingClient->pCredentialProvider->getCredentialsFn(pSignalingClient->pCredentialProvider,
@@ -268,6 +270,7 @@ STATUS executeDescribeSignalingState(UINT64 customData, UINT64 time)
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
+    ATOMIC_STORE_BOOL(&pSignalingClient->clientReady, FALSE);
 
     // Call DescribeChannel API
     retStatus = describeChannelLws(pSignalingClient, time);
@@ -312,6 +315,7 @@ STATUS executeCreateSignalingState(UINT64 customData, UINT64 time)
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
+    ATOMIC_STORE_BOOL(&pSignalingClient->clientReady, FALSE);
 
     retStatus = createChannelLws(pSignalingClient, time);
     CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
@@ -354,6 +358,7 @@ STATUS executeGetEndpointSignalingState(UINT64 customData, UINT64 time)
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
+    ATOMIC_STORE_BOOL(&pSignalingClient->clientReady, FALSE);
 
     retStatus = getChannelEndpointLws(pSignalingClient, time);
     CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
@@ -396,6 +401,7 @@ STATUS executeGetIceConfigSignalingState(UINT64 customData, UINT64 time)
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
+    ATOMIC_STORE_BOOL(&pSignalingClient->clientReady, FALSE);
 
     retStatus = getIceConfigLws(pSignalingClient, time);
     CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));

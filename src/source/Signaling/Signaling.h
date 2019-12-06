@@ -121,9 +121,6 @@ typedef struct {
     // Conditional variable for receiving response to the sent message
     CVAR receiveCvar;
 
-    // For interlocking the listener shutdown sequence
-    MUTEX listenerLock;
-
     // Execute the state machine until this time
     UINT64 stepUntil;
 
@@ -134,7 +131,7 @@ typedef struct {
     ThreadTracker listenerTracker;
 
     // Restarted thread handler
-    ThreadTracker restarterTracker;
+    ThreadTracker reconnecterTracker;
 
     // LWS context to use
     struct lws_context* pLwsContext;

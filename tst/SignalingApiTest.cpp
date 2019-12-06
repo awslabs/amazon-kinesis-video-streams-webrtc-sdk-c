@@ -111,8 +111,8 @@ TEST_F(SignalingApiTest, signalingClientConnectSync)
 
     // Connect again
     expectedStatus = mAccessKeyIdSet ? STATUS_INVALID_STREAM_STATE : STATUS_NULL_ARG;
-    EXPECT_EQ(expectedStatus, signalingClientConnectSync(mSignalingClientHandle));
-    EXPECT_EQ(expectedStatus, signalingClientConnectSync(mSignalingClientHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(mSignalingClientHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(mSignalingClientHandle));
 
 
     deinitialize();

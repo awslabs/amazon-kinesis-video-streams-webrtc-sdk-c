@@ -69,6 +69,52 @@ STATUS viewerMessageReceived(UINT64 customData, PReceivedSignalingMessage pRecei
     return STATUS_SUCCESS;
 }
 
+TEST_F(SignalingApiFunctionalityTest, basicCreateConnectFree)
+{
+    if (!mAccessKeyIdSet) {
+        return;
+    }
+
+    ChannelInfo channelInfo;
+    SignalingClientCallbacks signalingClientCallbacks;
+    SignalingClientInfo clientInfo;
+    SIGNALING_CLIENT_HANDLE signalingHandle = INVALID_SIGNALING_CLIENT_HANDLE_VALUE;
+
+    signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
+    signalingClientCallbacks.customData = (UINT64) this;
+    signalingClientCallbacks.messageReceivedFn = NULL;
+    signalingClientCallbacks.errorReportFn = NULL;
+    signalingClientCallbacks.stateChangeFn = signalingClientStateChanged;
+
+    clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
+    clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
+    STRCPY(clientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+
+    MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
+    channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
+    channelInfo.pChannelName = mChannelName;
+    channelInfo.pKmsKeyId = NULL;
+    channelInfo.tagCount = 0;
+    channelInfo.pTags = NULL;
+    channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
+    channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
+    channelInfo.cachingEndpoint = FALSE;
+    channelInfo.retry = TRUE;
+    channelInfo.reconnect = TRUE;
+    channelInfo.pCertPath = mCaCertPath;
+    EXPECT_EQ(STATUS_SUCCESS, createSignalingClientSync(&clientInfo,
+                                                        &channelInfo,
+                                                        &signalingClientCallbacks,
+                                                        (PAwsCredentialProvider) mTestCredentialProvider,
+                                                        &signalingHandle));
+
+    // Connect twice - the second time will be no-op
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
+
+    EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+}
+
 TEST_F(SignalingApiFunctionalityTest, mockMaster)
 {
     ChannelInfo channelInfo;
@@ -537,7 +583,12 @@ TEST_F(SignalingApiFunctionalityTest, invalidChannelInfoInput)
     channelInfo.pChannelName = (PCHAR) "Name With Spaces";
     retStatus = createSignalingClientSync(&clientInfo, &channelInfo, &signalingClientCallbacks,
                                           (PAwsCredentialProvider) mTestCredentialProvider, &signalingHandle);
-    EXPECT_EQ(mAccessKeyIdSet ? STATUS_SIGNALING_DESCRIBE_CALL_FAILED : STATUS_NULL_ARG, retStatus);
+    if (mAccessKeyIdSet) {
+        EXPECT_TRUE(retStatus == STATUS_OPERATION_TIMED_OUT || retStatus == STATUS_SIGNALING_DESCRIBE_CALL_FAILED);
+    } else {
+        EXPECT_EQ(STATUS_NULL_ARG, retStatus);
+    }
+
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
     channelInfo.pChannelName = mChannelName;
 
