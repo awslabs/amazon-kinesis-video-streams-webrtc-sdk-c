@@ -13,8 +13,11 @@ extern "C" {
 ////////////////////////////////////////////////////
 // Public headers
 ////////////////////////////////////////////////////
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
 #include <com/amazonaws/kinesis/video/client/Include.h>
 #include <com/amazonaws/kinesis/video/common/Include.h>
+#pragma clang diagnostic pop
 
 // For tight packing
 #pragma pack(push, include, 1) // for byte alignment
@@ -398,6 +401,14 @@ extern "C" {
  * Default jitter buffer tolerated latency, frame will be dropped if it is out of window
  */
 #define DEFAULT_JITTER_BUFFER_MAX_LATENCY                                           (2000L * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
+
+#define CHK_LOG_ERR_NV(condition) \
+    do { \
+        STATUS __status = condition; \
+        if (STATUS_FAILED(__status)) { \
+            DLOGE("operation returned status code: 0x%08x", __status); \
+        } \
+    } while (FALSE)
 
 ////////////////////////////////////////////////////
 // Extra callbacks definitions

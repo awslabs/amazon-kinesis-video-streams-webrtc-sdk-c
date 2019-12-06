@@ -81,7 +81,7 @@ STATUS createSctpSession(PSctpSessionCallbacks pSctpSessionCallbacks, PSctpSessi
     STATUS retStatus = STATUS_SUCCESS;
     PSctpSession pSctpSession = NULL;
     struct sockaddr_conn localConn = {0}, remoteConn = {0};
-    struct sctp_paddrparams params = {{0}};
+    struct sctp_paddrparams params;
     INT32 connectStatus = 0;
 
     CHK(ppSctpSession != NULL && pSctpSessionCallbacks != NULL, STATUS_NULL_ARG);
@@ -103,6 +103,7 @@ STATUS createSctpSession(PSctpSessionCallbacks pSctpSessionCallbacks, PSctpSessi
     connectStatus = usrsctp_connect(pSctpSession->socket, (struct sockaddr*) &remoteConn, SIZEOF(remoteConn));
     CHK(connectStatus >= 0 || errno == EINPROGRESS, STATUS_SCTP_SESSION_SETUP_FAILED);
 
+    MEMSET(&params, 0x00, SIZEOF(struct sctp_paddrparams));
     memcpy(&params.spp_address, &remoteConn, SIZEOF(remoteConn));
     params.spp_flags = SPP_PMTUD_DISABLE;
     params.spp_pathmtu = SCTP_MTU;

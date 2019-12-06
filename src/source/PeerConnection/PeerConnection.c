@@ -260,7 +260,7 @@ CleanUp:
         MUTEX_UNLOCK(pKvsPeerConnection->peerConnectionObjLock);
     }
 
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 }
 
 VOID onNewIceLocalCandidate(UINT64 customData, PCHAR candidateSdpStr)
@@ -291,7 +291,7 @@ VOID onNewIceLocalCandidate(UINT64 customData, PCHAR candidateSdpStr)
 
 CleanUp:
 
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 
     if (locked) {
         MUTEX_UNLOCK(pKvsPeerConnection->peerConnectionObjLock);
@@ -455,7 +455,7 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
 
 CleanUp:
 
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 
     if (STATUS_FAILED(retStatus)) {
         freePeerConnection((PRtcPeerConnection*) &pKvsPeerConnection);
@@ -487,16 +487,16 @@ STATUS freePeerConnection(PRtcPeerConnection *ppPeerConnection)
 
     // free structs that have their own thread. sctp has threads created by sctp library. iceAgent has the
     // connectionListener thread
-    CHK_LOG_ERR(freeSctpSession(&pKvsPeerConnection->pSctpSession));
-    CHK_LOG_ERR(freeIceAgent(&pKvsPeerConnection->pIceAgent));
+    CHK_LOG_ERR_NV(freeSctpSession(&pKvsPeerConnection->pSctpSession));
+    CHK_LOG_ERR_NV(freeIceAgent(&pKvsPeerConnection->pIceAgent));
 
     // free rest of structs
-    CHK_LOG_ERR(freeDtlsSession(&pKvsPeerConnection->pDtlsSession));
-    CHK_LOG_ERR(doubleListClear(pKvsPeerConnection->pTransceievers, TRUE));
-    CHK_LOG_ERR(doubleListFree(pKvsPeerConnection->pTransceievers));
-    CHK_LOG_ERR(hashTableFree(pKvsPeerConnection->pDataChannels));
-    CHK_LOG_ERR(hashTableFree(pKvsPeerConnection->pCodecTable));
-    CHK_LOG_ERR(hashTableFree(pKvsPeerConnection->pRtxTable));
+    CHK_LOG_ERR_NV(freeDtlsSession(&pKvsPeerConnection->pDtlsSession));
+    CHK_LOG_ERR_NV(doubleListClear(pKvsPeerConnection->pTransceievers, TRUE));
+    CHK_LOG_ERR_NV(doubleListFree(pKvsPeerConnection->pTransceievers));
+    CHK_LOG_ERR_NV(hashTableFree(pKvsPeerConnection->pDataChannels));
+    CHK_LOG_ERR_NV(hashTableFree(pKvsPeerConnection->pCodecTable));
+    CHK_LOG_ERR_NV(hashTableFree(pKvsPeerConnection->pRtxTable));
     if (IS_VALID_MUTEX_VALUE(pKvsPeerConnection->pSrtpSessionLock)) {
         MUTEX_FREE(pKvsPeerConnection->pSrtpSessionLock);
     }

@@ -103,7 +103,7 @@ STATUS getNextNaluLength(PBYTE nalus, UINT32 nalusLength, PUINT32 pStart, PUINT3
     *pNaluLength = i - *pStart - (zeroCount >= 2 && zeroCount < 4 && i < nalusLength? zeroCount : 0);
 
 CleanUp:
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 
     LEAVES();
     return retStatus;
@@ -356,3 +356,4 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
+

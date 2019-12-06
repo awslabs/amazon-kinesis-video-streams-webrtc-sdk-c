@@ -137,7 +137,7 @@ STATUS createSignalingSync(PSignalingClientInfo pClientInfo, PChannelInfo pChann
 
 CleanUp:
 
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 
     if (STATUS_FAILED(retStatus)) {
         freeSignaling(&pSignalingClient);
@@ -260,7 +260,7 @@ STATUS signalingSendMessageSync(PSignalingClient pSignalingClient, PSignalingMes
 
 CleanUp:
 
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 
     // Remove from the list if previously added
     if (removeFromList) {
@@ -285,7 +285,7 @@ STATUS signalingGetIceConfigInfoCout(PSignalingClient pSignalingClient, PUINT32 
 
 CleanUp:
 
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 
     LEAVES();
     return retStatus;
@@ -306,7 +306,7 @@ STATUS signalingGetIceConfigInfo(PSignalingClient pSignalingClient, UINT32 index
 
 CleanUp:
 
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 
     LEAVES();
     return retStatus;
@@ -335,7 +335,7 @@ STATUS signalingConnectSync(PSignalingClient pSignalingClient)
 
 CleanUp:
 
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 
     LEAVES();
     return retStatus;
@@ -354,7 +354,7 @@ STATUS validateSignalingCallbacks(PSignalingClient pSignalingClient, PSignalingC
 
 CleanUp:
 
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 
     LEAVES();
     return retStatus;

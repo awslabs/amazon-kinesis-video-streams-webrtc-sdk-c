@@ -48,7 +48,7 @@ STATUS createTurnConnection(PIceServer pTurnServer, TIMER_QUEUE_HANDLE timerQueu
 
 CleanUp:
 
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 
     if (STATUS_FAILED(retStatus) && pTurnConnection != NULL) {
         freeTurnConnection(&pTurnConnection);
@@ -96,7 +96,7 @@ STATUS freeTurnConnection(PTurnConnection* ppTurnConnection)
     }
     // free turn peers
     CHK_STATUS(doubleListClear(pTurnConnection->turnPeerList, TRUE));
-    CHK_LOG_ERR(doubleListFree(pTurnConnection->turnPeerList));
+    CHK_LOG_ERR_NV(doubleListFree(pTurnConnection->turnPeerList));
 
     if (IS_VALID_MUTEX_VALUE(pTurnConnection->lock)) {
         MUTEX_FREE(pTurnConnection->lock);
@@ -152,7 +152,7 @@ STATUS turnConnectionIncomingDataHandler(UINT64 customData, PSocketConnection pS
 
 CleanUp:
 
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 
     if (locked) {
         MUTEX_UNLOCK(pTurnConnection->lock);
@@ -282,7 +282,7 @@ STATUS turnConnectionHandleStun(PTurnConnection pTurnConnection, PSocketConnecti
 
 CleanUp:
 
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 
     if (pStunPacket != NULL) {
         freeStunPacket(&pStunPacket);
@@ -368,7 +368,7 @@ STATUS turnConnectionHandleStunError(PTurnConnection pTurnConnection, PSocketCon
 
 CleanUp:
 
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 
     if (pStunPacket != NULL) {
         freeStunPacket(&pStunPacket);
@@ -451,7 +451,7 @@ STATUS turnConnectionHandleChannelDataTcpMode(PTurnConnection pTurnConnection, P
 
 CleanUp:
 
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 
     return retStatus;
 }
@@ -570,7 +570,7 @@ STATUS turnConnectionSendData(PTurnConnection pTurnConnection, PBYTE pBuf, UINT3
 
 CleanUp:
 
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 
     return retStatus;
 }
@@ -603,7 +603,7 @@ STATUS turnConnectionStart(PTurnConnection pTurnConnection)
 
 CleanUp:
 
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 
     if (locked) {
         MUTEX_UNLOCK(pTurnConnection->lock);
@@ -641,7 +641,7 @@ STATUS turnConnectionRefreshAllocation(PTurnConnection pTurnConnection)
 
 CleanUp:
 
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 
     return retStatus;
 }
@@ -679,7 +679,7 @@ CleanUp:
         *pNeedRefresh = needRefresh;
     }
 
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 
     return retStatus;
 }
@@ -708,7 +708,7 @@ STATUS turnConnectionFreePreAllocatedPackets(PTurnConnection pTurnConnection)
 
 CleanUp:
 
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 
     return retStatus;
 }
@@ -762,7 +762,7 @@ STATUS turnConnectionDeliverChannelData(PTurnConnection pTurnConnection, PBYTE p
 
 CleanUp:
 
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 
     return retStatus;
 }
@@ -1011,7 +1011,7 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
 
 CleanUp:
 
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 
     // move to failed state if retStatus is failed status and state is not yet TURN_STATE_FAILED
     if (STATUS_FAILED(retStatus) && pTurnConnection->state != TURN_STATE_FAILED) {
@@ -1156,7 +1156,7 @@ STATUS turnConnectionTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 cu
 
 CleanUp:
 
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 
     if (locked) {
         MUTEX_UNLOCK(pTurnConnection->lock);
