@@ -47,6 +47,7 @@ public:
         channelInfo.retry = TRUE;
         channelInfo.reconnect = TRUE;
         channelInfo.pCertPath = mCaCertPath;
+        channelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
 
         retStatus = createSignalingClientSync(&clientInfo, &channelInfo, &signalingClientCallbacks,
                 (PAwsCredentialProvider) mTestCredentialProvider,

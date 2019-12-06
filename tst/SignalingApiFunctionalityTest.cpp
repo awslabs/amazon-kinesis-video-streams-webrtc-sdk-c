@@ -102,6 +102,7 @@ TEST_F(SignalingApiFunctionalityTest, DISABLED_basicCreateConnectFree)
     channelInfo.retry = TRUE;
     channelInfo.reconnect = TRUE;
     channelInfo.pCertPath = mCaCertPath;
+    channelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
     EXPECT_EQ(STATUS_SUCCESS, createSignalingClientSync(&clientInfo,
                                                         &channelInfo,
                                                         &signalingClientCallbacks,
@@ -157,6 +158,7 @@ TEST_F(SignalingApiFunctionalityTest, DISABLED_mockMaster)
     channelInfo.retry = TRUE;
     channelInfo.reconnect = TRUE;
     channelInfo.pCertPath = mCaCertPath;
+    channelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
 
     EXPECT_NE(STATUS_SUCCESS, createSignalingClientSync(NULL, &channelInfo, &signalingClientCallbacks,
             (PAwsCredentialProvider) mTestCredentialProvider,
@@ -287,6 +289,7 @@ TEST_F(SignalingApiFunctionalityTest, DISABLED_mockViewer)
     channelInfo.retry = TRUE;
     channelInfo.reconnect = TRUE;
     channelInfo.pCertPath = mCaCertPath;
+    channelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
 
     EXPECT_NE(STATUS_SUCCESS, createSignalingClientSync(NULL, &channelInfo, &signalingClientCallbacks,
                                                   (PAwsCredentialProvider) mTestCredentialProvider,
@@ -386,6 +389,7 @@ TEST_F(SignalingApiFunctionalityTest, DISABLED_invalidChannelInfoInput)
     channelInfo.reconnect = TRUE;
     channelInfo.tagCount = 3;
     channelInfo.pTags = tags;
+    channelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
     channelInfo.pTags[0].version = TAG_CURRENT_VERSION;
     channelInfo.pTags[0].name = (PCHAR) "Tag Name 0";
     channelInfo.pTags[0].value = (PCHAR) "Tag Value 0";
@@ -555,6 +559,19 @@ TEST_F(SignalingApiFunctionalityTest, DISABLED_invalidChannelInfoInput)
     channelInfo.pChannelName = mChannelName;
     channelInfo.pChannelArn = (PCHAR) "Channel ARN";
 
+    // Less than min/greater than max message TTL
+    channelInfo.messageTtl = MIN_SIGNALING_MESSAGE_TTL_VALUE - 1;
+    retStatus = createSignalingClientSync(&clientInfo, &channelInfo, &signalingClientCallbacks,
+            (PAwsCredentialProvider) mTestCredentialProvider, &signalingHandle);
+    EXPECT_EQ(mAccessKeyIdSet ? STATUS_SIGNALING_INVALID_MESSAGE_TTL_VALUE : STATUS_NULL_ARG, retStatus);
+    EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+    channelInfo.messageTtl = MAX_SIGNALING_MESSAGE_TTL_VALUE + 1;
+    retStatus = createSignalingClientSync(&clientInfo, &channelInfo, &signalingClientCallbacks,
+                                          (PAwsCredentialProvider) mTestCredentialProvider, &signalingHandle);
+    EXPECT_EQ(mAccessKeyIdSet ? STATUS_SIGNALING_INVALID_MESSAGE_TTL_VALUE : STATUS_NULL_ARG, retStatus);
+    EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+    channelInfo.messageTtl = SIGNALING_DEFAULT_MESSAGE_TTL_VALUE;
+
     // Reset the params for proper stream creation
     signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
     signalingClientCallbacks.customData = (UINT64) this;
@@ -596,12 +613,18 @@ TEST_F(SignalingApiFunctionalityTest, DISABLED_invalidChannelInfoInput)
     clientInfo.clientId[4] = ' ';
     retStatus = createSignalingClientSync(&clientInfo, &channelInfo, &signalingClientCallbacks,
                                           (PAwsCredentialProvider) mTestCredentialProvider, &signalingHandle);
-    EXPECT_EQ(mAccessKeyIdSet ? STATUS_SUCCESS : STATUS_NULL_ARG, retStatus);
+    if (mAccessKeyIdSet) {
+        EXPECT_EQ(STATUS_SUCCESS, retStatus);
+
+        pSignalingClient = FROM_SIGNALING_CLIENT_HANDLE(signalingHandle);
+        EXPECT_EQ(SIGNALING_DEFAULT_MESSAGE_TTL_VALUE, pSignalingClient->pChannelInfo->messageTtl);
+    } else {
+        EXPECT_EQ(STATUS_NULL_ARG, retStatus);
+    }
 
     // Should fail
     EXPECT_NE(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
-
 }
 
 TEST_F(SignalingApiFunctionalityTest, DISABLED_iceReconnectEmulation)
@@ -638,6 +661,7 @@ TEST_F(SignalingApiFunctionalityTest, DISABLED_iceReconnectEmulation)
     channelInfo.retry = TRUE;
     channelInfo.reconnect = TRUE;
     channelInfo.pCertPath = mCaCertPath;
+    channelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
 
     EXPECT_EQ(STATUS_SUCCESS, createSignalingClientSync(&clientInfo, &channelInfo, &signalingClientCallbacks,
             (PAwsCredentialProvider) mTestCredentialProvider, &signalingHandle));
@@ -715,6 +739,7 @@ TEST_F(SignalingApiFunctionalityTest, DISABLED_goAwayEmulation)
     channelInfo.retry = TRUE;
     channelInfo.reconnect = TRUE;
     channelInfo.pCertPath = mCaCertPath;
+    channelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
 
     EXPECT_EQ(STATUS_SUCCESS, createSignalingClientSync(&clientInfo, &channelInfo, &signalingClientCallbacks,
                                                         (PAwsCredentialProvider) mTestCredentialProvider, &signalingHandle));
@@ -792,6 +817,7 @@ TEST_F(SignalingApiFunctionalityTest, DISABLED_unknownMessageTypeEmulation)
     channelInfo.retry = TRUE;
     channelInfo.reconnect = TRUE;
     channelInfo.pCertPath = mCaCertPath;
+    channelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
 
     EXPECT_EQ(STATUS_SUCCESS, createSignalingClientSync(&clientInfo, &channelInfo, &signalingClientCallbacks,
                                                         (PAwsCredentialProvider) mTestCredentialProvider, &signalingHandle));

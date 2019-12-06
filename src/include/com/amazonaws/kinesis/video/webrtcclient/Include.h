@@ -218,6 +218,7 @@ extern "C" {
 #define STATUS_SIGNALING_DUPLICATE_MESSAGE_BEING_SENT                               STATUS_SIGNALING_BASE + 0x0000002B
 #define STATUS_SIGNALING_ICE_TTL_LESS_THAN_GRACE_PERIOD                             STATUS_SIGNALING_BASE + 0x0000002C
 #define STATUS_SIGNALING_DISCONNECTED_CALLBACK_FAILED                               STATUS_SIGNALING_BASE + 0x0000002D
+#define STATUS_SIGNALING_INVALID_MESSAGE_TTL_VALUE                                  STATUS_SIGNALING_BASE + 0x0000002E
 
 //
 // PeerConnection related errors starting from 0x5e000000
@@ -342,8 +343,8 @@ extern "C" {
 // Default timeout for sending data
 #define SIGNALING_SEND_TIMEOUT                                                      (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
-// Default message ttl value
-#define SIGNALING_DEFAULT_MESSAGE_TTL_VALUE                                         (10 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+// Default message ttl value per API ref guide
+#define SIGNALING_DEFAULT_MESSAGE_TTL_VALUE                                         (60 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
 // Max signaling message payload length
 #define MAX_SIGNALING_MESSAGE_LEN                                                   (10 * 1024)
@@ -826,6 +827,10 @@ typedef struct {
 
     // Whether to reconnect on connection dropped
     BOOL reconnect;
+
+    // The message TTL. Must be 5 * HUNDREDS_OF_NANOS_IN_A_SECOND <= ttl <= 120 * HUNDREDS_OF_NANOS_IN_A_SECOND
+    // Specifying zero will default to 60 * HUNDREDS_OF_NANOS_IN_A_SECOND
+    UINT64 messageTtl;
 
     // Number of tags associated with the stream
     UINT32 tagCount;

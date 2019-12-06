@@ -15,6 +15,7 @@ STATUS createChannelInfo(PCHAR pChannelName,
                          UINT64 endpointCachingPeriod,
                          BOOL retry,
                          BOOL reconnect,
+                         UINT64 messageTtl,
                          UINT32 tagCount,
                          PTag pTags,
                          PChannelInfo* ppChannelInfo)
@@ -82,6 +83,12 @@ STATUS createChannelInfo(PCHAR pChannelName,
             STATUS_SIGNALING_INVALID_KMS_KEY_LENGTH);
     }
 
+    if (messageTtl == 0) {
+        messageTtl = SIGNALING_DEFAULT_MESSAGE_TTL_VALUE;
+    } else {
+        CHK(messageTtl >= MIN_SIGNALING_MESSAGE_TTL_VALUE && messageTtl <= MAX_SIGNALING_MESSAGE_TTL_VALUE, STATUS_SIGNALING_INVALID_MESSAGE_TTL_VALUE);
+    }
+
     // If tags count is not zero then pTags shouldn't be NULL
     CHK_STATUS(validateTags(tagCount, pTags));
 
@@ -100,6 +107,7 @@ STATUS createChannelInfo(PCHAR pChannelName,
     pChannelInfo->endpointCachingPeriod = endpointCachingPeriod;
     pChannelInfo->retry = retry;
     pChannelInfo->reconnect = reconnect;
+    pChannelInfo->messageTtl = messageTtl;
     pChannelInfo->tagCount = tagCount;
 
     // Set the current pointer to the end
