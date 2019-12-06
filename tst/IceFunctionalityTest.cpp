@@ -256,6 +256,191 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         EXPECT_EQ(STATUS_ICE_URL_INVALID_PREFIX, iceAgentAddIceServer(&iceAgent, (PCHAR) "randomUrl", (PCHAR) "username", (PCHAR) "password"));
     }
 
+    TEST_F(IceFunctionalityTest, IceAgentAddRemoteCandidateUnitTest)
+    {
+        IceAgent iceAgent;
+        UINT32 remoteCandidateCount = 0;
+        PCHAR hostCandidateStr = (PCHAR) "sdpMidate:543899094 1 udp 2122260223 12.131.158.132 64616 typ host generation 0 ufrag OFZ/ network-id 1 network-cost 10";
+        PCHAR relayCandidateStr = (PCHAR) "sdpMidate:1501054171 1 udp 41885439 59.189.124.250 62834 typ relay raddr 205.251.233.176 rport 14669 generation 0 ufrag OFZ/ network-id 1 network-cost 10";
+        IceCandidate testLocalCandidate;
+
+        MEMSET(&iceAgent, 0x00, SIZEOF(IceAgent));
+        MEMSET(&testLocalCandidate, 0x00, SIZEOF(IceCandidate));
+
+        // init needed members in iceAgent
+        iceAgent.lock = MUTEX_CREATE(TRUE);
+        EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&iceAgent.remoteCandidates));
+        EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&iceAgent.localCandidates));
+        iceAgent.pTurnConnection = NULL;
+        iceAgent.iceAgentState = ICE_AGENT_STATE_GATHERING;
+
+        // invalid input
+        EXPECT_NE(STATUS_SUCCESS, iceAgentAddRemoteCandidate(NULL, NULL));
+        EXPECT_NE(STATUS_SUCCESS, iceAgentAddRemoteCandidate(&iceAgent, NULL));
+        EXPECT_NE(STATUS_SUCCESS, iceAgentAddRemoteCandidate(NULL, hostCandidateStr));
+        EXPECT_NE(STATUS_SUCCESS, iceAgentAddRemoteCandidate(&iceAgent, (PCHAR) ""));
+        EXPECT_NE(STATUS_SUCCESS, iceAgentAddRemoteCandidate(&iceAgent, (PCHAR) "randomStuff"));
+
+        // add a local candidate so that iceCandidate pair will be formed when add remote candidate succeeded
+        EXPECT_EQ(STATUS_SUCCESS, doubleListInsertItemTail(iceAgent.localCandidates, (UINT64) &testLocalCandidate));
+        EXPECT_EQ(STATUS_SUCCESS, iceAgentAddRemoteCandidate(&iceAgent, hostCandidateStr));
+        EXPECT_EQ(STATUS_SUCCESS, iceAgentAddRemoteCandidate(&iceAgent, hostCandidateStr));
+        EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(iceAgent.remoteCandidates, &remoteCandidateCount));
+        // duplicated candidates are not added
+        EXPECT_EQ(1, remoteCandidateCount);
+        // no candidate pair is formed since iceAgentState is ICE_AGENT_STATE_GATHERING
+        EXPECT_EQ(0, iceAgent.candidatePairCount);
+
+        iceAgent.iceAgentState = ICE_AGENT_STATE_CHECK_CONNECTION;
+        EXPECT_EQ(STATUS_SUCCESS, iceAgentAddRemoteCandidate(&iceAgent, relayCandidateStr));
+        EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(iceAgent.remoteCandidates, &remoteCandidateCount));
+        EXPECT_EQ(2, remoteCandidateCount);
+        // candidate pair is formed since iceAgentState is not ICE_AGENT_STATE_GATHERING
+        EXPECT_EQ(1, iceAgent.candidatePairCount);
+
+        MUTEX_FREE(iceAgent.lock);
+        freeTransactionIdStore(&iceAgent.candidatePairs[0]->pTransactionIdStore);
+        SAFE_MEMFREE(iceAgent.candidatePairs[0]);
+        EXPECT_EQ(STATUS_SUCCESS, doubleListClear(iceAgent.remoteCandidates, TRUE));
+        EXPECT_EQ(STATUS_SUCCESS, doubleListFree(iceAgent.remoteCandidates));
+        EXPECT_EQ(STATUS_SUCCESS, doubleListClear(iceAgent.localCandidates, FALSE));
+        EXPECT_EQ(STATUS_SUCCESS, doubleListFree(iceAgent.localCandidates));
+    }
+
+    TEST_F(IceFunctionalityTest, IceAgentFindCandidateWithIpUnitTest)
+    {
+        DoubleList candidateList;
+        KvsIpAddress ipAddress;
+        PIceCandidate pIceCandidate = NULL;
+        IceCandidate candidateInList;
+
+        MEMSET(&candidateList, 0x00, SIZEOF(DoubleList));
+        MEMSET(&ipAddress, 0x00, SIZEOF(KvsIpAddress));
+
+        EXPECT_NE(STATUS_SUCCESS, findCandidateWithIp(NULL, NULL, NULL));
+        EXPECT_NE(STATUS_SUCCESS, findCandidateWithIp(&ipAddress, NULL, NULL));
+        EXPECT_NE(STATUS_SUCCESS, findCandidateWithIp(&ipAddress, &candidateList, NULL));
+
+        EXPECT_EQ(STATUS_SUCCESS, populateIpFromString(&ipAddress, (PCHAR) "127.0.0.1"));
+        ipAddress.port = 123;
+        ipAddress.family = KVS_IP_FAMILY_TYPE_IPV4;
+        EXPECT_EQ(STATUS_SUCCESS, findCandidateWithIp(&ipAddress, &candidateList, &pIceCandidate));
+        // nothing is found when candidate list is empty
+        EXPECT_EQ(NULL, pIceCandidate);
+
+        candidateInList.ipAddress = ipAddress;
+        EXPECT_EQ(STATUS_SUCCESS, doubleListInsertItemHead(&candidateList, (UINT64) &candidateInList));
+
+        ipAddress.family = KVS_IP_FAMILY_TYPE_IPV6;
+        EXPECT_EQ(STATUS_SUCCESS, findCandidateWithIp(&ipAddress, &candidateList, &pIceCandidate));
+        // family not match
+        EXPECT_EQ(NULL, pIceCandidate);
+
+        ipAddress.family = KVS_IP_FAMILY_TYPE_IPV4;
+        EXPECT_EQ(STATUS_SUCCESS, populateIpFromString(&ipAddress, (PCHAR) "127.0.0.2"));
+        EXPECT_EQ(STATUS_SUCCESS, findCandidateWithIp(&ipAddress, &candidateList, &pIceCandidate));
+        // address not match
+        EXPECT_EQ(NULL, pIceCandidate);
+
+        EXPECT_EQ(STATUS_SUCCESS, populateIpFromString(&ipAddress, (PCHAR) "127.0.0.1"));
+        ipAddress.port = 124;
+        EXPECT_EQ(STATUS_SUCCESS, findCandidateWithIp(&ipAddress, &candidateList, &pIceCandidate));
+        // port not match
+        EXPECT_EQ(NULL, pIceCandidate);
+
+        ipAddress.port = 123;
+        EXPECT_EQ(STATUS_SUCCESS, findCandidateWithIp(&ipAddress, &candidateList, &pIceCandidate));
+        // everything match
+        EXPECT_EQ(&candidateInList, pIceCandidate);
+
+        EXPECT_EQ(STATUS_SUCCESS, doubleListClear(&candidateList, FALSE));
+    }
+
+    TEST_F(IceFunctionalityTest, IceAgentFindCandidateWithConnectionHandleUnitTest)
+    {
+        DoubleList candidateList;
+        PIceCandidate pIceCandidate = NULL;
+        IceCandidate candidateInList;
+        SocketConnection socketConnection1, socketConnection2;
+
+        MEMSET(&candidateList, 0x00, SIZEOF(DoubleList));
+        MEMSET(&socketConnection1, 0x00, SIZEOF(SocketConnection));
+        MEMSET(&socketConnection2, 0x00, SIZEOF(SocketConnection));
+
+        EXPECT_NE(STATUS_SUCCESS, findCandidateWithSocketConnection(NULL, NULL, NULL));
+        EXPECT_NE(STATUS_SUCCESS, findCandidateWithSocketConnection(&socketConnection1, NULL, NULL));
+        EXPECT_NE(STATUS_SUCCESS, findCandidateWithSocketConnection(&socketConnection1, &candidateList, NULL));
+
+        EXPECT_EQ(STATUS_SUCCESS, findCandidateWithSocketConnection(&socketConnection1, &candidateList, &pIceCandidate));
+        // nothing is found when candidate list is empty
+        EXPECT_EQ(NULL, pIceCandidate);
+
+        candidateInList.pSocketConnection = &socketConnection1;
+        EXPECT_EQ(STATUS_SUCCESS, doubleListInsertItemHead(&candidateList, (UINT64) &candidateInList));
+
+        EXPECT_EQ(STATUS_SUCCESS, findCandidateWithSocketConnection(&socketConnection2, &candidateList, &pIceCandidate));
+        // no matching socket connection
+        EXPECT_EQ(NULL, pIceCandidate);
+
+        EXPECT_EQ(STATUS_SUCCESS, findCandidateWithSocketConnection(&socketConnection1, &candidateList, &pIceCandidate));
+        // found matching socket connection
+        EXPECT_EQ(&candidateInList, pIceCandidate);
+
+        EXPECT_EQ(STATUS_SUCCESS, doubleListClear(&candidateList, FALSE));
+    }
+
+    TEST_F(IceFunctionalityTest, IceAgentCreateIceCandidatePairsUnitTest)
+    {
+        IceAgent iceAgent;
+        IceCandidate localCandidate1, localCandidate2;
+        IceCandidate remoteCandidate1, remoteCandidate2;
+        UINT32 i;
+
+        MEMSET(&iceAgent, 0x00, SIZEOF(IceAgent));
+        MEMSET(&localCandidate1, 0x00, SIZEOF(IceCandidate));
+        MEMSET(&localCandidate2, 0x00, SIZEOF(IceCandidate));
+        MEMSET(&remoteCandidate1, 0x00, SIZEOF(IceCandidate));
+        MEMSET(&remoteCandidate2, 0x00, SIZEOF(IceCandidate));
+        EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&iceAgent.localCandidates));
+        EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&iceAgent.remoteCandidates));
+
+
+        EXPECT_NE(STATUS_SUCCESS, createIceCandidatePairs(NULL, NULL, FALSE));
+        EXPECT_NE(STATUS_SUCCESS, createIceCandidatePairs(&iceAgent, NULL, FALSE));
+        EXPECT_NE(STATUS_SUCCESS, createIceCandidatePairs(NULL, &localCandidate1, FALSE));
+
+        EXPECT_EQ(STATUS_SUCCESS, doubleListInsertItemHead(iceAgent.localCandidates, (UINT64) &localCandidate1));
+        EXPECT_EQ(STATUS_SUCCESS, createIceCandidatePairs(&iceAgent, &localCandidate1, FALSE));
+        // no remote candidate to form pair with
+        EXPECT_EQ(0, iceAgent.candidatePairCount);
+
+        EXPECT_EQ(STATUS_SUCCESS, doubleListInsertItemHead(iceAgent.remoteCandidates, (UINT64) &remoteCandidate1));
+        EXPECT_EQ(STATUS_SUCCESS, createIceCandidatePairs(&iceAgent, &remoteCandidate1, TRUE));
+        EXPECT_EQ(1, iceAgent.candidatePairCount);
+        EXPECT_EQ(&localCandidate1, iceAgent.candidatePairs[0]->local);
+        EXPECT_EQ(&remoteCandidate1, iceAgent.candidatePairs[0]->remote);
+
+        EXPECT_EQ(STATUS_SUCCESS, doubleListInsertItemHead(iceAgent.localCandidates, (UINT64) &localCandidate2));
+        EXPECT_EQ(STATUS_SUCCESS, createIceCandidatePairs(&iceAgent, &localCandidate2, FALSE));
+        // 2 local vs 1 remote, thus 2 pairs
+        EXPECT_EQ(2, iceAgent.candidatePairCount);
+
+        EXPECT_EQ(STATUS_SUCCESS, doubleListInsertItemHead(iceAgent.remoteCandidates, (UINT64) &remoteCandidate2));
+        EXPECT_EQ(STATUS_SUCCESS, createIceCandidatePairs(&iceAgent, &remoteCandidate2, TRUE));
+        EXPECT_EQ(4, iceAgent.candidatePairCount);
+
+        EXPECT_EQ(STATUS_SUCCESS, doubleListClear(iceAgent.localCandidates, FALSE));
+        EXPECT_EQ(STATUS_SUCCESS, doubleListClear(iceAgent.remoteCandidates, FALSE));
+
+        EXPECT_EQ(STATUS_SUCCESS, doubleListFree(iceAgent.localCandidates));
+        EXPECT_EQ(STATUS_SUCCESS, doubleListFree(iceAgent.remoteCandidates));
+
+        for (i = 0; i < iceAgent.candidatePairCount; ++i) {
+            EXPECT_EQ(STATUS_SUCCESS, freeTransactionIdStore(&iceAgent.candidatePairs[i]->pTransactionIdStore));
+            SAFE_MEMFREE(iceAgent.candidatePairs[i]);
+        }
+    }
+
 }
 }
 }

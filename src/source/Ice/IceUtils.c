@@ -183,7 +183,8 @@ STATUS populateIpFromString(PKvsIpAddress pKvsIpAddress, PCHAR pBuff)
 
     curr = pBuff;
     tail = pBuff + STRLEN(pBuff);
-    while ((next = STRNCHR(curr, tail - curr, '.')) != NULL) {
+    // first 3 octet should always end with a '.', the last octet may end with ' ' or '\0'
+    while ((next = STRNCHR(curr, tail - curr, '.')) != NULL && octet < 3) {
         CHK_STATUS(STRTOUI32(curr, curr + (next - curr), 10, &ipValue));
         pKvsIpAddress->address[octet] = (UINT8) ipValue;
         octet++;
@@ -200,6 +201,8 @@ STATUS populateIpFromString(PKvsIpAddress pKvsIpAddress, PCHAR pBuff)
 
     CHK(octet == 4, STATUS_ICE_CANDIDATE_STRING_INVALID_IP); // IPv4 MUST have 4 octets
 CleanUp:
+
+    CHK_LOG_ERR(retStatus);
 
     LEAVES();
     return retStatus;

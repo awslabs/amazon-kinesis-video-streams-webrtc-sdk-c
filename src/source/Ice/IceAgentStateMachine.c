@@ -771,7 +771,10 @@ STATUS executeReadyIceAgentState(UINT64 customData, UINT64 time)
     CHK_STATUS(getIpAddrStr(&pIceAgent->pDataSendingIceCandidatePair->local->ipAddress,
                             ipAddrStr,
                             ARRAY_SIZE(ipAddrStr)));
-    DLOGD("Selected pair ip address: %s, port %u", ipAddrStr, (UINT16) getInt16(pIceAgent->pDataSendingIceCandidatePair->local->ipAddress.port));
+    DLOGD("Selected pair ip address: %s, port %u, local candidate type: %s",
+          ipAddrStr,
+          (UINT16) getInt16(pIceAgent->pDataSendingIceCandidatePair->local->ipAddress.port),
+          iceAgentGetCandidateTypeStr(pIceAgent->pDataSendingIceCandidatePair->local->iceCandidateType));
 
     pIceAgent->stateEndTime = INVALID_TIMESTAMP_VALUE;
 

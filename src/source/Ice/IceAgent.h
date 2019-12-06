@@ -47,8 +47,6 @@ extern "C" {
 #define ICE_URL_PREFIX_TURN                                             "turn:"
 #define ICE_URL_PREFIX_TURN_SECURE                                      "turns:"
 
-#define IP_STRING_LENGTH                        15
-
 #define IS_STUN_PACKET(pBuf)                    (getInt32(*(PUINT32)((pBuf) + STUN_HEADER_MAGIC_BYTE_OFFSET)) == STUN_HEADER_MAGIC_COOKIE)
 
 #define IS_CANN_PAIR_SENDING_FROM_RELAYED(p)                            ((p)->local->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED)
@@ -279,7 +277,7 @@ STATUS handleStunPacket(PIceAgent, PBYTE, UINT32, PSocketConnection, PKvsIpAddre
 // IceCandidate functions
 STATUS updateCandidateAddress(PIceCandidate, PKvsIpAddress);
 STATUS findCandidateWithIp(PKvsIpAddress, PDoubleList, PIceCandidate*);
-STATUS findCandidateWithConnectionHandle(PSocketConnection, PDoubleList, PIceCandidate*);
+STATUS findCandidateWithSocketConnection(PSocketConnection, PDoubleList, PIceCandidate*);
 
 // IceCandidatePair functions
 STATUS createIceCandidatePairs(PIceAgent, PIceCandidate, BOOL);
