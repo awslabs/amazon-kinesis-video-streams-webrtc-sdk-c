@@ -69,7 +69,7 @@ STATUS viewerMessageReceived(UINT64 customData, PReceivedSignalingMessage pRecei
     return STATUS_SUCCESS;
 }
 
-TEST_F(SignalingApiFunctionalityTest, DISABLED_basicCreateConnectFree)
+TEST_F(SignalingApiFunctionalityTest, basicCreateConnectFree)
 {
     if (!mAccessKeyIdSet) {
         return;
@@ -116,7 +116,7 @@ TEST_F(SignalingApiFunctionalityTest, DISABLED_basicCreateConnectFree)
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
 }
 
-TEST_F(SignalingApiFunctionalityTest, DISABLED_mockMaster)
+TEST_F(SignalingApiFunctionalityTest, mockMaster)
 {
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -227,7 +227,7 @@ TEST_F(SignalingApiFunctionalityTest, DISABLED_mockMaster)
 
     // Empty
     message.payload[0] = '\0';
-    expectedStatus = mAccessKeyIdSet ? STATUS_INVALID_ARG_LEN : STATUS_NULL_ARG;
+    expectedStatus = mAccessKeyIdSet ? STATUS_SIGNALING_INVALID_MESSAGE_LEN : STATUS_NULL_ARG;
     EXPECT_EQ(expectedStatus, signalingClientSendMessageSync(signalingHandle, &message));
 
     message.messageType = SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE;
@@ -247,7 +247,7 @@ TEST_F(SignalingApiFunctionalityTest, DISABLED_mockMaster)
     EXPECT_FALSE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
 }
 
-TEST_F(SignalingApiFunctionalityTest, DISABLED_mockViewer)
+TEST_F(SignalingApiFunctionalityTest, mockViewer)
 {
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -352,7 +352,7 @@ TEST_F(SignalingApiFunctionalityTest, DISABLED_mockViewer)
     EXPECT_FALSE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
 }
 
-TEST_F(SignalingApiFunctionalityTest, DISABLED_invalidChannelInfoInput)
+TEST_F(SignalingApiFunctionalityTest, invalidChannelInfoInput)
 {
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -627,7 +627,7 @@ TEST_F(SignalingApiFunctionalityTest, DISABLED_invalidChannelInfoInput)
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
 }
 
-TEST_F(SignalingApiFunctionalityTest, DISABLED_iceReconnectEmulation)
+TEST_F(SignalingApiFunctionalityTest, iceReconnectEmulation)
 {
     if (!mAccessKeyIdSet) {
         return;
@@ -705,7 +705,7 @@ TEST_F(SignalingApiFunctionalityTest, DISABLED_iceReconnectEmulation)
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
 }
 
-TEST_F(SignalingApiFunctionalityTest, DISABLED_goAwayEmulation)
+TEST_F(SignalingApiFunctionalityTest, goAwayEmulation)
 {
     if (!mAccessKeyIdSet) {
         return;
@@ -783,7 +783,7 @@ TEST_F(SignalingApiFunctionalityTest, DISABLED_goAwayEmulation)
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
 }
 
-TEST_F(SignalingApiFunctionalityTest, DISABLED_unknownMessageTypeEmulation)
+TEST_F(SignalingApiFunctionalityTest, unknownMessageTypeEmulation)
 {
     if (!mAccessKeyIdSet) {
         return;

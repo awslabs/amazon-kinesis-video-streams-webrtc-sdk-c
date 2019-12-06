@@ -1284,12 +1284,11 @@ STATUS sendLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessageType, PCH
 
     CHK(pSignalingClient != NULL && pSignalingClient->pOngoingCallInfo != NULL, STATUS_NULL_ARG);
 
-    // Calculate the lengths if not specified
-    if (messageLen == 0) {
-        size = (UINT32) STRLEN(pMessage);
-    } else {
-        size = messageLen;
-    }
+    // Calculate the lengths if not specified.
+    size = (messageLen == 0) ? (UINT32) STRLEN(pMessage) : messageLen;
+
+    // Fail if we have an empty message
+    CHK(size != 0, STATUS_SIGNALING_INVALID_MESSAGE_LEN);
 
     if (correlationIdLen == 0) {
         correlationLen = (UINT32) STRLEN(pCorrelationId);
@@ -1352,7 +1351,7 @@ STATUS writeLwsData(PSignalingClient pSignalingClient, BOOL awaitForResponse)
     CHK(pSignalingClient != NULL && pSignalingClient->pOngoingCallInfo != NULL, STATUS_NULL_ARG);
 
     // See if anything needs to be done
-    CHK(pSignalingClient->pOngoingCallInfo->sendBufferSize != pSignalingClient->pOngoingCallInfo->sendOffset, retStatus);
+    CHK(ATOMIC_LOAD(&pSignalingClient->pOngoingCallInfo->sendBufferSize) != ATOMIC_LOAD(&pSignalingClient->pOngoingCallInfo->sendOffset), retStatus);
 
     DLOGV("Sending data over web socket: %s", pSignalingClient->pOngoingCallInfo->sendBuffer + LWS_PRE);
 

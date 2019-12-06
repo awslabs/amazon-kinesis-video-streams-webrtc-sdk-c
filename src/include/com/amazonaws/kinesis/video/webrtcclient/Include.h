@@ -219,6 +219,7 @@ extern "C" {
 #define STATUS_SIGNALING_ICE_TTL_LESS_THAN_GRACE_PERIOD                             STATUS_SIGNALING_BASE + 0x0000002C
 #define STATUS_SIGNALING_DISCONNECTED_CALLBACK_FAILED                               STATUS_SIGNALING_BASE + 0x0000002D
 #define STATUS_SIGNALING_INVALID_MESSAGE_TTL_VALUE                                  STATUS_SIGNALING_BASE + 0x0000002E
+#define STATUS_SIGNALING_INVALID_MESSAGE_LEN                                        STATUS_SIGNALING_BASE + 0x0000002F
 
 //
 // PeerConnection related errors starting from 0x5e000000
