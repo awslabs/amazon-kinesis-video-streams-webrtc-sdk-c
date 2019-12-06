@@ -15,12 +15,11 @@ script:
   - make
   - ./tst/webrtc_client_test
 
-jobs:
+matrix:
   # MemorySanitizer and UndefinedBehaviorSanitizer are still WIP
   allow_failures:
     - env: allowTestFail=true
 
-matrix:
   include:
     # MacOS Builds
     - name: "OSX GCC"
