@@ -101,6 +101,8 @@ STATUS createBytesFromRtpPacket(PRtpPacket, PBYTE*, PUINT32);
 STATUS setBytesFromRtpPacket(PRtpPacket, PBYTE, UINT32);
 STATUS constructRtpPackets(PPayloadArray, UINT8, UINT16, UINT32, UINT32, PRtpPacket, UINT32);
 
+#define GET_UINT16_SEQ_NUM(seqIndex) ((UINT16) ((seqIndex) % (MAX_UINT16 + 1)))
+
 #pragma pack(pop, include_i)
 
 #ifdef  __cplusplus

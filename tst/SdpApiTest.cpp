@@ -192,7 +192,7 @@ TEST_F(SdpApiTest, setTransceiverPayloadTypes_NoRtxType) {
     EXPECT_EQ(STATUS_SUCCESS, doubleListInsertItemHead(pTransceivers, (UINT64) (&transceiver)));
     EXPECT_EQ(STATUS_SUCCESS, setTransceiverPayloadTypes(pCodecTable, pRtxTable, pTransceivers));
     EXPECT_EQ(1, transceiver.sender.payloadType);
-    EXPECT_EQ((PRollingBuffer) NULL, transceiver.sender.packetBuffer);
+    EXPECT_EQ((PRtpRollingBuffer) NULL, transceiver.sender.packetBuffer);
     EXPECT_EQ((PRetransmitter) NULL, transceiver.sender.retransmitter);
     hashTableFree(pCodecTable);
     hashTableFree(pRtxTable);
@@ -219,7 +219,7 @@ TEST_F(SdpApiTest, setTransceiverPayloadTypes_HasRtxType) {
     EXPECT_EQ(STATUS_SUCCESS, setTransceiverPayloadTypes(pCodecTable, pRtxTable, pTransceivers));
     EXPECT_EQ(1, transceiver.sender.payloadType);
     EXPECT_EQ(2, transceiver.sender.rtxPayloadType);
-    EXPECT_NE((PRollingBuffer) NULL, transceiver.sender.packetBuffer);
+    EXPECT_NE((PRtpRollingBuffer) NULL, transceiver.sender.packetBuffer);
     EXPECT_NE((PRetransmitter) NULL, transceiver.sender.retransmitter);
     hashTableFree(pCodecTable);
     hashTableFree(pRtxTable);

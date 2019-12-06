@@ -9,6 +9,7 @@ STATUS createRollingBuffer(UINT32 capacity, FreeDataFunc freeDataFunc, PRollingB
     PRollingBuffer pRollingBuffer = NULL;
     CHK(capacity != 0, STATUS_INVALID_ARG);
 
+    CHK(ppRollingBuffer != NULL, STATUS_NULL_ARG);
     pRollingBuffer = (PRollingBuffer) MEMALLOC(SIZEOF(RollingBuffer) + SIZEOF(UINT64) * capacity);
     CHK(pRollingBuffer != NULL, STATUS_NOT_ENOUGH_MEMORY);
     pRollingBuffer->capacity = capacity;
@@ -65,8 +66,9 @@ CleanUp:
     return retStatus;
 }
 
-STATUS rollingBufferAppendData(PRollingBuffer pRollingBuffer, UINT64 data)
+STATUS rollingBufferAppendData(PRollingBuffer pRollingBuffer, UINT64 data, PUINT64 pIndex)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     BOOL isLocked = FALSE;
 
@@ -89,6 +91,9 @@ STATUS rollingBufferAppendData(PRollingBuffer pRollingBuffer, UINT64 data)
         pRollingBuffer->dataBuffer[ROLLING_BUFFER_MAP_INDEX(pRollingBuffer, pRollingBuffer->headIndex)] = data;
         pRollingBuffer->headIndex++;
     }
+    if (pIndex != NULL) {
+        *pIndex = pRollingBuffer->headIndex - 1;
+    }
 CleanUp:
     if (isLocked) {
         MUTEX_UNLOCK(pRollingBuffer->lock);
@@ -102,6 +107,7 @@ CleanUp:
 
 STATUS rollingBufferInsertData(PRollingBuffer pRollingBuffer, UINT64 index, UINT64 data)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     BOOL isLocked = FALSE;
     PUINT64 pData;
@@ -129,6 +135,7 @@ CleanUp:
 
 STATUS rollingBufferExtractData(PRollingBuffer pRollingBuffer, UINT64 index, PUINT64 pData)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     BOOL isLocked = FALSE;
     CHK(pRollingBuffer != NULL && pData != NULL, STATUS_NULL_ARG);
@@ -147,6 +154,34 @@ CleanUp:
     if (isLocked) {
         MUTEX_UNLOCK(pRollingBuffer->lock);
     }
+    CHK_LOG_ERR(retStatus);
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS rollingBufferGetSize(PRollingBuffer pRollingBuffer, PUINT32 pSize)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(pRollingBuffer != NULL && pSize != NULL, STATUS_NULL_ARG);
+    *pSize = pRollingBuffer->headIndex - pRollingBuffer->tailIndex;
+CleanUp:
+    CHK_LOG_ERR(retStatus);
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS rollingBufferIsEmpty(PRollingBuffer pRollingBuffer, PBOOL pIsEmpty)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    BOOL isLocked = FALSE;
+    CHK(pRollingBuffer != NULL && pIsEmpty != NULL, STATUS_NULL_ARG);
+    *pIsEmpty = (pRollingBuffer->headIndex == pRollingBuffer->tailIndex);
+CleanUp:
     CHK_LOG_ERR(retStatus);
 
     LEAVES();

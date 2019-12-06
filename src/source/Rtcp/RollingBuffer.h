@@ -34,10 +34,11 @@ typedef struct {
 
 STATUS createRollingBuffer(UINT32, FreeDataFunc, PRollingBuffer*);
 STATUS freeRollingBuffer(PRollingBuffer*);
-STATUS rollingBufferAppendData(PRollingBuffer, UINT64);
+STATUS rollingBufferAppendData(PRollingBuffer, UINT64, PUINT64);
 STATUS rollingBufferInsertData(PRollingBuffer, UINT64, UINT64);
 STATUS rollingBufferExtractData(PRollingBuffer, UINT64, PUINT64);
-UINT32 rollingBufferMapIndex(PRollingBuffer, UINT64);
+STATUS rollingBufferGetSize(PRollingBuffer, PUINT32);
+STATUS rollingBufferIsEmpty(PRollingBuffer, PBOOL);
 
 #pragma pack(pop, include_i)
 

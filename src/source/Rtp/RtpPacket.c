@@ -346,7 +346,7 @@ STATUS constructRtpPackets(PPayloadArray pPayloadArray, UINT8 payloadType, UINT1
                         payloadType, sequenceNumber, timestamp, ssrc, NULL,
                         0, 0, NULL, curPtrInPayload, *curPtrInPayloadSubLen, pPackets + i));
 
-        sequenceNumber = (sequenceNumber + 1) % MAX_UINT16;
+        sequenceNumber = GET_UINT16_SEQ_NUM(sequenceNumber + 1);
 
         curPtrInPayload += *curPtrInPayloadSubLen;
     }
