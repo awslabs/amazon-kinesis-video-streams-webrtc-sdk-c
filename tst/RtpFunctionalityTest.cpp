@@ -168,7 +168,7 @@ TEST_F(RtpFunctionalityTest, marshallUnmarshallH264Data)
                             pPacketList,
                             payloadArray.payloadSubLenSize);
 
-        seqNum = (UINT16) ((seqNum + payloadArray.payloadSubLenSize) % MAX_UINT16);
+        seqNum = GET_UINT16_SEQ_NUM(seqNum + payloadArray.payloadSubLenSize);
 
         for (i = 0; i < payloadArray.payloadSubLenSize; i++)
         {

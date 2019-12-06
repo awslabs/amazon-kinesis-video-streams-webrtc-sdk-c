@@ -2,54 +2,37 @@
 
 #include "../Include_i.h"
 
-STATUS createRtpRollingBuffer(UINT32 capacity, PRollingBuffer* ppRollingBuffer)
+STATUS createRtpRollingBuffer(UINT32 capacity, PRtpRollingBuffer* ppRtpRollingBuffer)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    CHK_STATUS(createRollingBuffer(capacity, freeRtpRollingBufferData, ppRollingBuffer));
+    PRtpRollingBuffer pRtpRollingBuffer = NULL;
+    CHK(capacity != 0, STATUS_INVALID_ARG);
+    CHK(ppRtpRollingBuffer != NULL, STATUS_NULL_ARG);
+
+    pRtpRollingBuffer = (PRtpRollingBuffer) MEMALLOC(SIZEOF(RtpRollingBuffer));
+    CHK(pRtpRollingBuffer != NULL, STATUS_NOT_ENOUGH_MEMORY);
+    CHK_STATUS(createRollingBuffer(capacity, freeRtpRollingBufferData, &pRtpRollingBuffer->pRollingBuffer));
 
 CleanUp:
-    LEAVES();
-    return retStatus;
-}
-
-STATUS freeRtpRollingBuffer(PRollingBuffer *ppRollingBuffer)
-{
-    return freeRollingBuffer(ppRollingBuffer);
-}
-
-STATUS freeRtpRollingBufferData(PUINT64 pData)
-{
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-    CHK(pData != NULL, STATUS_NULL_ARG);
-    CHK_STATUS(freeRtpPacket((PRtpPacket*) pData));
-CleanUp:
-    LEAVES();
-    return retStatus;
-}
-
-// TODO: Decouple add rtp packet from implementation of rolling buffer
-STATUS rtpRollingBufferAddRtpPacket(PRollingBuffer pRollingBuffer, PRtpPacket pRtpPacket)
-{
-    STATUS retStatus = STATUS_SUCCESS;
-    PRtpPacket pRtpPacketCopy = NULL;
-    PBYTE pRawPacketCopy = NULL;
-    CHK(pRollingBuffer != NULL && pRtpPacket != NULL, STATUS_NULL_ARG);
-
-    pRawPacketCopy = (PBYTE) MEMALLOC(pRtpPacket->rawPacketLength);
-    CHK(pRawPacketCopy != NULL, STATUS_NOT_ENOUGH_MEMORY);
-    MEMCPY(pRawPacketCopy, pRtpPacket->pRawPacket, pRtpPacket->rawPacketLength);
-    CHK_STATUS(createRtpPacketFromBytes(pRawPacketCopy, pRtpPacket->rawPacketLength, &pRtpPacketCopy));
-
-    if (pRollingBuffer->headIndex == pRollingBuffer->tailIndex) {
-        // Empty buffer, set start to same as seq number
-        pRollingBuffer->tailIndex = pRtpPacket->header.sequenceNumber;
-        pRollingBuffer->headIndex = pRtpPacket->header.sequenceNumber;
-    } else {
-        CHK(pRollingBuffer->headIndex % MAX_UINT16 == pRtpPacketCopy->header.sequenceNumber, STATUS_INVALID_ARG);
+    if (ppRtpRollingBuffer != NULL) {
+        *ppRtpRollingBuffer = pRtpRollingBuffer;
     }
-    CHK_STATUS(rollingBufferAppendData(pRollingBuffer, (UINT64) pRtpPacketCopy));
+    LEAVES();
+    return retStatus;
+}
+
+STATUS freeRtpRollingBuffer(PRtpRollingBuffer *ppRtpRollingBuffer)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(ppRtpRollingBuffer != NULL, STATUS_NULL_ARG);
+
+    if (*ppRtpRollingBuffer != NULL) {
+        freeRollingBuffer(&(*ppRtpRollingBuffer)->pRollingBuffer);
+    }
+    SAFE_MEMFREE(*ppRtpRollingBuffer);
 CleanUp:
     CHK_LOG_ERR(retStatus);
 
@@ -57,9 +40,45 @@ CleanUp:
     return retStatus;
 }
 
-STATUS rtpRollingBufferGetValidSeqIndexList(PRollingBuffer pRollingBuffer, PUINT16 pSequenceNumberList,
-                                            PUINT32 pSequenceNumberListLen, PUINT64 pValidSeqIndexList, PUINT32 pValidIndexListLen)
+STATUS freeRtpRollingBufferData(PUINT64 pData)
 {
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    CHK(pData != NULL, STATUS_NULL_ARG);
+    CHK_STATUS(freeRtpPacketAndRawPacket((PRtpPacket*) pData));
+CleanUp:
+    LEAVES();
+    return retStatus;
+}
+
+STATUS rtpRollingBufferAddRtpPacket(PRtpRollingBuffer pRollingBuffer, PRtpPacket pRtpPacket)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PRtpPacket pRtpPacketCopy = NULL;
+    PBYTE pRawPacketCopy = NULL;
+    UINT64 index = 0;
+    CHK(pRollingBuffer != NULL && pRtpPacket != NULL, STATUS_NULL_ARG);
+
+    pRawPacketCopy = (PBYTE) MEMALLOC(pRtpPacket->rawPacketLength);
+    CHK(pRawPacketCopy != NULL, STATUS_NOT_ENOUGH_MEMORY);
+    MEMCPY(pRawPacketCopy, pRtpPacket->pRawPacket, pRtpPacket->rawPacketLength);
+    CHK_STATUS(createRtpPacketFromBytes(pRawPacketCopy, pRtpPacket->rawPacketLength, &pRtpPacketCopy));
+
+    CHK_STATUS(rollingBufferAppendData(pRollingBuffer->pRollingBuffer, (UINT64) pRtpPacketCopy, &index));
+    pRollingBuffer->lastIndex = index;
+
+CleanUp:
+    CHK_LOG_ERR(retStatus);
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS rtpRollingBufferGetValidSeqIndexList(PRtpRollingBuffer pRollingBuffer, PUINT16 pSequenceNumberList,
+                                            UINT32 sequenceNumberListLen, PUINT64 pValidSeqIndexList, PUINT32 pValidIndexListLen)
+{
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 index = 0, returnPacketCount = 0;
     UINT16 startSeq, endSeq;
@@ -67,27 +86,29 @@ STATUS rtpRollingBufferGetValidSeqIndexList(PRollingBuffer pRollingBuffer, PUINT
     PUINT16 pCurSeqPtr;
     PUINT64 pCurSeqIndexListPtr;
     UINT16 seqNum;
+    UINT32 size = 0;
 
-    CHK(pRollingBuffer != NULL && pValidSeqIndexList != NULL && pSequenceNumberList != NULL && pSequenceNumberListLen != NULL, STATUS_NULL_ARG);
+    CHK(pRollingBuffer != NULL && pValidSeqIndexList != NULL && pSequenceNumberList != NULL, STATUS_NULL_ARG);
 
+    CHK_STATUS(rollingBufferGetSize(pRollingBuffer->pRollingBuffer, &size));
     // Empty buffer, just return
-    CHK(pRollingBuffer->headIndex != pRollingBuffer->tailIndex, retStatus);
+    CHK(size > 0, retStatus);
 
-    startSeq = pRollingBuffer->tailIndex % MAX_UINT16;
-    endSeq = (pRollingBuffer->headIndex - 1) % MAX_UINT16;
+    startSeq = GET_UINT16_SEQ_NUM(pRollingBuffer->lastIndex - size + 1);
+    endSeq = GET_UINT16_SEQ_NUM(pRollingBuffer->lastIndex);
 
     if (startSeq >= endSeq) {
         crossMaxSeq = TRUE;
     }
 
-    for (index = 0, pCurSeqPtr = pSequenceNumberList, pCurSeqIndexListPtr = pValidSeqIndexList; index < *pSequenceNumberListLen; index++, pCurSeqPtr++) {
+    for (index = 0, pCurSeqPtr = pSequenceNumberList, pCurSeqIndexListPtr = pValidSeqIndexList; index < sequenceNumberListLen; index++, pCurSeqPtr++) {
         seqNum = *pCurSeqPtr;
         foundPacket = FALSE;
         if ((!crossMaxSeq && seqNum >= startSeq && seqNum <= endSeq) || (crossMaxSeq && seqNum >= startSeq)) {
-            *pCurSeqIndexListPtr = pRollingBuffer->tailIndex + seqNum - startSeq;
+            *pCurSeqIndexListPtr = pRollingBuffer->lastIndex - size + 1 + seqNum - startSeq;
             foundPacket = TRUE;
         } else if (crossMaxSeq && seqNum <= endSeq) {
-            *pCurSeqIndexListPtr = pRollingBuffer->headIndex - 1 + endSeq - seqNum;
+            *pCurSeqIndexListPtr = pRollingBuffer->lastIndex - endSeq + seqNum;
             foundPacket = TRUE;
         }
         if (foundPacket) {

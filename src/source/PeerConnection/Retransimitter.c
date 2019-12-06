@@ -83,9 +83,9 @@ STATUS resendPacketOnNack(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerCo
     validIndexListLen = pRetransmitter->validIndexListLen;
     CHK_STATUS(rtpRollingBufferGetValidSeqIndexList(pSenderTranceiver->sender.packetBuffer,
                                                     pRetransmitter->sequenceNumberList,
-                                                    &filledLen, pRetransmitter->validIndexList, &validIndexListLen));
+                                                    filledLen, pRetransmitter->validIndexList, &validIndexListLen));
     for (index = 0; index < validIndexListLen; index++) {
-        retStatus = rollingBufferExtractData(pSenderTranceiver->sender.packetBuffer, pRetransmitter->validIndexList[index], &item);
+        retStatus = rollingBufferExtractData(pSenderTranceiver->sender.packetBuffer->pRollingBuffer, pRetransmitter->validIndexList[index], &item);
         pRtpPacket = (PRtpPacket) item;
         CHK(retStatus == STATUS_SUCCESS, retStatus);
 
@@ -103,7 +103,7 @@ STATUS resendPacketOnNack(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerCo
                         pRtpPacket->header.sequenceNumber, pRtxRtpPacket->header.sequenceNumber, retStatus);
             }
             // putBackPacketToRollingBuffer
-            retStatus = rollingBufferInsertData(pSenderTranceiver->sender.packetBuffer, pRetransmitter->sequenceNumberList[index], item);
+            retStatus = rollingBufferInsertData(pSenderTranceiver->sender.packetBuffer->pRollingBuffer, pRetransmitter->sequenceNumberList[index], item);
             CHK(retStatus == STATUS_SUCCESS || retStatus == STATUS_ROLLING_BUFFER_NOT_IN_RANGE, retStatus);
 
             // free the packet if it is not in the valid range any more

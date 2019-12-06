@@ -27,7 +27,7 @@ typedef struct {
     PayloadArray payloadArray;
 
     RtcMediaStreamTrack track;
-    PRollingBuffer packetBuffer;
+    PRtpRollingBuffer packetBuffer;
     PRetransmitter retransmitter;
 } RtcRtpSender, *PRtcRtpSender;
 

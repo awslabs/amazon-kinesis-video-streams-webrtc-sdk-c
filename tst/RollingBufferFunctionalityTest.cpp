@@ -17,28 +17,33 @@ TEST_F(RollingBufferFunctionalityTest, appendDataToBufferAndVerify)
 {
     PRollingBuffer pRollingBuffer;
     UINT64 first = (UINT64) 1, second = (UINT64) 2, third = (UINT64) 3, fourth = (UINT64) 4;
+    UINT64 index;
     EXPECT_EQ(STATUS_SUCCESS, createRollingBuffer(2, RollingBufferFunctionalityTestFreeBufferFunc, &pRollingBuffer));
     EXPECT_EQ(0, pRollingBuffer->headIndex);
     EXPECT_EQ(0, pRollingBuffer->tailIndex);
-    EXPECT_EQ(STATUS_SUCCESS, rollingBufferAppendData(pRollingBuffer, first));
+    EXPECT_EQ(STATUS_SUCCESS, rollingBufferAppendData(pRollingBuffer, first, &index));
     EXPECT_EQ(1, pRollingBuffer->headIndex);
     EXPECT_EQ(0, pRollingBuffer->tailIndex);
     EXPECT_EQ(first, pRollingBuffer->dataBuffer[0]);
-    EXPECT_EQ(STATUS_SUCCESS, rollingBufferAppendData(pRollingBuffer, second));
+    EXPECT_EQ(0, index);
+    EXPECT_EQ(STATUS_SUCCESS, rollingBufferAppendData(pRollingBuffer, second, &index));
     EXPECT_EQ(2, pRollingBuffer->headIndex);
     EXPECT_EQ(0, pRollingBuffer->tailIndex);
     EXPECT_EQ(first, pRollingBuffer->dataBuffer[0]);
     EXPECT_EQ(second, pRollingBuffer->dataBuffer[1]);
-    EXPECT_EQ(STATUS_SUCCESS, rollingBufferAppendData(pRollingBuffer, third));
+    EXPECT_EQ(1, index);
+    EXPECT_EQ(STATUS_SUCCESS, rollingBufferAppendData(pRollingBuffer, third, &index));
     EXPECT_EQ(3, pRollingBuffer->headIndex);
     EXPECT_EQ(1, pRollingBuffer->tailIndex);
     EXPECT_EQ(third, pRollingBuffer->dataBuffer[0]);
     EXPECT_EQ(second, pRollingBuffer->dataBuffer[1]);
-    EXPECT_EQ(STATUS_SUCCESS, rollingBufferAppendData(pRollingBuffer, fourth));
+    EXPECT_EQ(2, index);
+    EXPECT_EQ(STATUS_SUCCESS, rollingBufferAppendData(pRollingBuffer, fourth, &index));
     EXPECT_EQ(4, pRollingBuffer->headIndex);
     EXPECT_EQ(2, pRollingBuffer->tailIndex);
     EXPECT_EQ(third, pRollingBuffer->dataBuffer[0]);
     EXPECT_EQ(fourth, pRollingBuffer->dataBuffer[1]);
+    EXPECT_EQ(3, index);
     EXPECT_EQ(STATUS_SUCCESS, freeRollingBuffer(&pRollingBuffer));
 }
 
@@ -77,11 +82,12 @@ TEST_F(RollingBufferFunctionalityTest, extractDataFromBufferAndInsertBack)
     PRollingBuffer pRollingBuffer;
     UINT64 first = (UINT64) 1, second = (UINT64) 2, third = (UINT64) 3, fourth = (UINT64) 4;
     UINT64 data;
+    UINT64 index;
     EXPECT_EQ(STATUS_SUCCESS, createRollingBuffer(3, RollingBufferFunctionalityTestFreeBufferFunc, &pRollingBuffer));
-    EXPECT_EQ(STATUS_SUCCESS, rollingBufferAppendData(pRollingBuffer, first));
-    EXPECT_EQ(STATUS_SUCCESS, rollingBufferAppendData(pRollingBuffer, second));
-    EXPECT_EQ(STATUS_SUCCESS, rollingBufferAppendData(pRollingBuffer, third));
-    EXPECT_EQ(STATUS_SUCCESS, rollingBufferAppendData(pRollingBuffer, fourth));
+    EXPECT_EQ(STATUS_SUCCESS, rollingBufferAppendData(pRollingBuffer, first, &index));
+    EXPECT_EQ(STATUS_SUCCESS, rollingBufferAppendData(pRollingBuffer, second, &index));
+    EXPECT_EQ(STATUS_SUCCESS, rollingBufferAppendData(pRollingBuffer, third, &index));
+    EXPECT_EQ(STATUS_SUCCESS, rollingBufferAppendData(pRollingBuffer, fourth, &index));
 
     EXPECT_EQ(4, pRollingBuffer->headIndex);
     EXPECT_EQ(1, pRollingBuffer->tailIndex);
