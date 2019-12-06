@@ -378,7 +378,7 @@ STATUS generateJSONSafeString(PCHAR pDst, UINT32 len)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 i = 0;
-    PBYTE randBuffer;
+    PBYTE randBuffer = NULL;
 
     CHK(pDst != NULL, STATUS_NULL_ARG);
     CHK(NULL != (randBuffer = (PBYTE) MEMALLOC(len)), STATUS_NOT_ENOUGH_MEMORY);
