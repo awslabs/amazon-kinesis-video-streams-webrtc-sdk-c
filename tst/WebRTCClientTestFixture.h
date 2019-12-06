@@ -10,6 +10,7 @@
 #define TEST_SIGNALING_VIEWER_CLIENT_ID                         (PCHAR) "Test_Viewer_ClientId"
 #define TEST_SIGNALING_CHANNEL_NAME                             (PCHAR) "ScaryTestChannel_"
 #define SIGNAING_TEST_CORRELATION_ID                            (PCHAR) "Test_correlation_id"
+#define TEST_SIGNALING_MESSAGE_TTL                              (120 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
 //
 // Set the allocators to the instrumented equivalents

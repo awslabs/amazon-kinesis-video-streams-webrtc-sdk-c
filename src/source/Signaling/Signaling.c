@@ -44,6 +44,7 @@ STATUS createSignalingSync(PSignalingClientInfo pClientInfo, PChannelInfo pChann
                                  pChannelInfo->endpointCachingPeriod,
                                  pChannelInfo->retry,
                                  pChannelInfo->reconnect,
+                                 pChannelInfo->messageTtl,
                                  pChannelInfo->tagCount,
                                  pChannelInfo->pTags,
                                  &pSignalingClient->pChannelInfo));

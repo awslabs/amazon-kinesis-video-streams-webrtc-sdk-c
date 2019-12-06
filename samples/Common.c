@@ -387,6 +387,7 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     pSampleConfiguration->channelInfo.retry = TRUE;
     pSampleConfiguration->channelInfo.reconnect = TRUE;
     pSampleConfiguration->channelInfo.pCertPath = pSampleConfiguration->pCaCertPath;
+    pSampleConfiguration->channelInfo.messageTtl = 0; // Default is 60 seconds
 
     if (pSampleConfiguration->channelInfo.channelRoleType == SIGNALING_CHANNEL_ROLE_TYPE_VIEWER) {
         STRCPY(pSampleConfiguration->peerId, SAMPLE_MASTER_CLIENT_ID);

@@ -690,7 +690,7 @@ STATUS createChannelLws(PSignalingClient pSignalingClient, UINT64 time)
     SNPRINTF(paramsJson, ARRAY_SIZE(paramsJson), CREATE_CHANNEL_PARAM_JSON_TEMPLATE,
              pSignalingClient->pChannelInfo->pChannelName,
              getStringFromChannelType(pSignalingClient->pChannelInfo->channelType),
-             SIGNALING_DEFAULT_MESSAGE_TTL_VALUE / HUNDREDS_OF_NANOS_IN_A_SECOND,
+             pSignalingClient->pChannelInfo->messageTtl / HUNDREDS_OF_NANOS_IN_A_SECOND,
              tagsJson);
 
     // Create the request info with the body
