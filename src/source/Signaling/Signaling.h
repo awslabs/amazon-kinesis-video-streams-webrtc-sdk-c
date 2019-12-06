@@ -131,7 +131,7 @@ typedef struct {
     ThreadTracker listenerTracker;
 
     // Restarted thread handler
-    ThreadTracker restarterTracker;
+    ThreadTracker reconnecterTracker;
 
     // LWS context to use
     struct lws_context* pLwsContext;

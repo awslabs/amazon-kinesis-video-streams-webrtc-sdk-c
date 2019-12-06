@@ -74,6 +74,28 @@ void WebRtcClientTestBase::SetUp()
         mTestCredentialProvider = nullptr;
     }
 
+    // Prepare the test channel name by prefixing the host name with test channel name
+    // replacing a potentially bad characters with '.'
+    STRCPY(mChannelName, TEST_SIGNALING_CHANNEL_NAME);
+    UINT32 testNameLen = STRLEN(TEST_SIGNALING_CHANNEL_NAME);
+    gethostname(mChannelName + testNameLen, MAX_CHANNEL_NAME_LEN - testNameLen);
+
+    // Replace any potentially "bad" characters
+    PCHAR pCur = &mChannelName[testNameLen];
+    while (*pCur != '\0') {
+        BOOL found = FALSE;
+        for (UINT32 i = 0; !found && i < ARRAY_SIZE(SIGNALING_VALID_NAME_CHARS) - 1; i++) {
+            if (*pCur == SIGNALING_VALID_NAME_CHARS[i]) {
+                found = TRUE;
+            }
+        }
+
+        if (!found) {
+            *pCur = '.';
+        }
+
+        pCur++;
+    }
 }
 
 void WebRtcClientTestBase::TearDown()

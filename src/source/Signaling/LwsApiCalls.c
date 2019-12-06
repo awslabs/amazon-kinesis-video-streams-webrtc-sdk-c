@@ -214,6 +214,7 @@ INT32 lwsWssCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
     PRequestInfo pRequestInfo = NULL;
     PSignalingClient pSignalingClient = NULL;
     SIZE_T offset, bufferSize;
+    BOOL connected;
 
     DLOGV("WSS callback with reason %d", reason);
 
@@ -238,13 +239,21 @@ INT32 lwsWssCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
             // TODO: Attempt to get more meaningful service return code
 
             ATOMIC_STORE_BOOL(&pRequestInfo->terminating, TRUE);
-            ATOMIC_STORE_BOOL(&pSignalingClient->connected, FALSE);
+            connected = ATOMIC_EXCHANGE_BOOL(&pSignalingClient->connected, FALSE);
 
             CVAR_BROADCAST(pSignalingClient->connectedCvar);
             CVAR_BROADCAST(pSignalingClient->receiveCvar);
             CVAR_BROADCAST(pSignalingClient->sendCvar);
             ATOMIC_STORE(&pSignalingClient->messageResult, (SIZE_T) SERVICE_CALL_UNKNOWN);
             ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
+
+            if (connected && !ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown)) {
+                // Handle re-connection in a reconnect handler thread
+                CHK_STATUS(THREAD_CREATE(&pSignalingClient->reconnecterTracker.threadId,
+                                         reconnectHandler,
+                                         (PVOID) pSignalingClient));
+                CHK_STATUS(THREAD_DETACH(pSignalingClient->reconnecterTracker.threadId));
+            }
 
             break;
 
@@ -263,7 +272,22 @@ INT32 lwsWssCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
         case LWS_CALLBACK_CLIENT_CLOSED:
             DLOGD("Client WSS closed");
 
-            CHK_STATUS(terminateConnectionWithStatus(pSignalingClient, SERVICE_CALL_RESULT_OK));
+            ATOMIC_STORE_BOOL(&pRequestInfo->terminating, TRUE);
+            connected = ATOMIC_EXCHANGE_BOOL(&pSignalingClient->connected, FALSE);
+
+            CVAR_BROADCAST(pSignalingClient->connectedCvar);
+            CVAR_BROADCAST(pSignalingClient->receiveCvar);
+            CVAR_BROADCAST(pSignalingClient->sendCvar);
+            ATOMIC_STORE(&pSignalingClient->messageResult, (SIZE_T) SERVICE_CALL_UNKNOWN);
+            ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
+
+            if (connected && !ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown)) {
+                // Handle re-connection in a reconnect handler thread
+                CHK_STATUS(THREAD_CREATE(&pSignalingClient->reconnecterTracker.threadId,
+                                         reconnectHandler,
+                                         (PVOID) pSignalingClient));
+                CHK_STATUS(THREAD_DETACH(pSignalingClient->reconnecterTracker.threadId));
+            }
 
             break;
 
@@ -490,7 +514,7 @@ STATUS describeChannelLws(PSignalingClient pSignalingClient, UINT64 time)
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
-    pSignalingClient->result = SERVICE_CALL_RESULT_NOT_SET;
+    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
 
     THREAD_SLEEP_UNTIL(time);
 
@@ -519,12 +543,12 @@ STATUS describeChannelLws(PSignalingClient pSignalingClient, UINT64 time)
     CHK_STATUS(lwsCompleteSync(pLwsCallInfo));
 
     // Set the service call result
-    pSignalingClient->result = pLwsCallInfo->callInfo.callResult;
+    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) pLwsCallInfo->callInfo.callResult);
     pResponseStr = pLwsCallInfo->callInfo.responseData;
     resultLen = pLwsCallInfo->callInfo.responseDataLen;
 
     // Early return if we have a non-success result
-    CHK(pSignalingClient->result == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, retStatus);
+    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, retStatus);
 
     // Parse the response
     jsmn_init(&parser);
@@ -605,7 +629,7 @@ STATUS describeChannelLws(PSignalingClient pSignalingClient, UINT64 time)
 CleanUp:
 
     if (STATUS_FAILED(retStatus)) {
-        pSignalingClient->result = SERVICE_CALL_UNKNOWN;
+        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
     }
 
     freeLwsCallInfo(&pLwsCallInfo);
@@ -632,7 +656,7 @@ STATUS createChannelLws(PSignalingClient pSignalingClient, UINT64 time)
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
-    pSignalingClient->result = SERVICE_CALL_RESULT_NOT_SET;
+    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
 
     THREAD_SLEEP_UNTIL(time);
 
@@ -686,12 +710,12 @@ STATUS createChannelLws(PSignalingClient pSignalingClient, UINT64 time)
     CHK_STATUS(lwsCompleteSync(pLwsCallInfo));
 
     // Set the service call result
-    pSignalingClient->result = pLwsCallInfo->callInfo.callResult;
+    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) pLwsCallInfo->callInfo.callResult);
     pResponseStr = pLwsCallInfo->callInfo.responseData;
     resultLen = pLwsCallInfo->callInfo.responseDataLen;
 
     // Early return if we have a non-success result
-    CHK(pSignalingClient->result == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, retStatus);
+    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, retStatus);
 
     // Parse out the ARN
     jsmn_init(&parser);
@@ -716,7 +740,7 @@ STATUS createChannelLws(PSignalingClient pSignalingClient, UINT64 time)
 CleanUp:
 
     if (STATUS_FAILED(retStatus)) {
-        pSignalingClient->result = SERVICE_CALL_UNKNOWN;
+        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
     }
 
     freeLwsCallInfo(&pLwsCallInfo);
@@ -742,7 +766,7 @@ STATUS getChannelEndpointLws(PSignalingClient pSignalingClient, UINT64 time)
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
-    pSignalingClient->result = SERVICE_CALL_RESULT_NOT_SET;
+    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
 
     THREAD_SLEEP_UNTIL(time);
 
@@ -773,12 +797,12 @@ STATUS getChannelEndpointLws(PSignalingClient pSignalingClient, UINT64 time)
     CHK_STATUS(lwsCompleteSync(pLwsCallInfo));
 
     // Set the service call result
-    pSignalingClient->result = pLwsCallInfo->callInfo.callResult;
+    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) pLwsCallInfo->callInfo.callResult);
     pResponseStr = pLwsCallInfo->callInfo.responseData;
     resultLen = pLwsCallInfo->callInfo.responseDataLen;
 
     // Early return if we have a non-success result
-    CHK(pSignalingClient->result == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, retStatus);
+    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, retStatus);
 
     // Parse and extract the endpoints
     jsmn_init(&parser);
@@ -854,7 +878,7 @@ STATUS getChannelEndpointLws(PSignalingClient pSignalingClient, UINT64 time)
 CleanUp:
 
     if (STATUS_FAILED(retStatus)) {
-        pSignalingClient->result = SERVICE_CALL_UNKNOWN;
+        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
     }
 
     freeLwsCallInfo(&pLwsCallInfo);
@@ -883,7 +907,7 @@ STATUS getIceConfigLws(PSignalingClient pSignalingClient, UINT64 time)
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     CHK(pSignalingClient->channelEndpointHttps[0] != '\0', STATUS_INTERNAL_ERROR);
 
-    pSignalingClient->result = SERVICE_CALL_RESULT_NOT_SET;
+    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
 
     THREAD_SLEEP_UNTIL(time);
 
@@ -913,12 +937,12 @@ STATUS getIceConfigLws(PSignalingClient pSignalingClient, UINT64 time)
     CHK_STATUS(lwsCompleteSync(pLwsCallInfo));
 
     // Set the service call result
-    pSignalingClient->result = pLwsCallInfo->callInfo.callResult;
+    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) pLwsCallInfo->callInfo.callResult);
     pResponseStr = pLwsCallInfo->callInfo.responseData;
     resultLen = pLwsCallInfo->callInfo.responseDataLen;
 
     // Early return if we have a non-success result
-    CHK(pSignalingClient->result == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, retStatus);
+    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, retStatus);
 
     // Parse the response
     jsmn_init(&parser);
@@ -985,7 +1009,7 @@ STATUS getIceConfigLws(PSignalingClient pSignalingClient, UINT64 time)
 CleanUp:
 
     if (STATUS_FAILED(retStatus)) {
-        pSignalingClient->result = SERVICE_CALL_UNKNOWN;
+        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
     }
 
     freeLwsCallInfo(&pLwsCallInfo);
@@ -1119,13 +1143,6 @@ STATUS connectSignalingChannelLws(PSignalingClient pSignalingClient, UINT64 time
     // Check whether we are connected
     connected = ATOMIC_LOAD_BOOL(&pSignalingClient->connected);
 
-    // Fire the re-connector thread only if properly connected
-    if (connected) {
-        CHK_STATUS(THREAD_CREATE(&pSignalingClient->restarterTracker.threadId, reconnectHandler,
-                                 (PVOID) pSignalingClient));
-        CHK_STATUS(THREAD_DETACH(pSignalingClient->restarterTracker.threadId));
-    }
-
     // Check if LWS returned an error
     if (!connected) {
         retStatus = (callResult == SERVICE_CALL_RESULT_OK) ? STATUS_SUCCESS : STATUS_SERVICE_CALL_UNKOWN_ERROR;
@@ -1143,9 +1160,8 @@ CleanUp:
 
     if (STATUS_FAILED(retStatus) && pSignalingClient != NULL) {
         // Trigger termination
-        if (pLwsCallInfo != NULL && pLwsCallInfo->callInfo.pRequestInfo != NULL) {
-            ATOMIC_STORE_BOOL(&pLwsCallInfo->callInfo.pRequestInfo->terminating, TRUE);
-            lws_cancel_service(pSignalingClient->pLwsContext);
+        if (pSignalingClient->pOngoingCallInfo != NULL && pSignalingClient->pOngoingCallInfo->callInfo.pRequestInfo != NULL) {
+            terminateConnectionWithStatus(pSignalingClient, SERVICE_CALL_UNKNOWN);
         }
 
         ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
@@ -1165,16 +1181,20 @@ PVOID lwsListenerHandler(PVOID args)
     STATUS retStatus = STATUS_SUCCESS;
     PLwsCallInfo pLwsCallInfo = (PLwsCallInfo) args;
     PSignalingClient pSignalingClient = NULL;
+    BOOL locked = FALSE;
 
     CHK(pLwsCallInfo != NULL && pLwsCallInfo->pSignalingClient != NULL, STATUS_NULL_ARG);
     pSignalingClient = pLwsCallInfo->pSignalingClient;
 
-    // Mark as started
-    ATOMIC_STORE_BOOL(&pSignalingClient->listenerTracker.terminated, FALSE);
+    MUTEX_LOCK(pSignalingClient->listenerTracker.lock);
+    locked = TRUE;
 
     // Interlock to wait for the start sequence
     MUTEX_LOCK(pSignalingClient->connectedLock);
     MUTEX_UNLOCK(pSignalingClient->connectedLock);
+
+    // Mark as started
+    ATOMIC_STORE_BOOL(&pSignalingClient->listenerTracker.terminated, FALSE);
 
     // Make a blocking call
     CHK_STATUS(lwsCompleteSync(pLwsCallInfo));
@@ -1185,12 +1205,12 @@ CleanUp:
         ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
     }
 
-    if (pSignalingClient->pOngoingCallInfo != NULL) {
-        freeLwsCallInfo(&pSignalingClient->pOngoingCallInfo);
-    }
-
     // Set the tid to invalid as we are exiting
     if (pSignalingClient != NULL) {
+        if (pSignalingClient->pOngoingCallInfo != NULL) {
+            freeLwsCallInfo(&pSignalingClient->pOngoingCallInfo);
+        }
+
         // Trigger the cvar
         if (IS_VALID_CVAR_VALUE(pSignalingClient->connectedCvar)) {
             CVAR_BROADCAST(pSignalingClient->connectedCvar);
@@ -1199,6 +1219,10 @@ CleanUp:
         pSignalingClient->listenerTracker.threadId = INVALID_TID_VALUE;
         ATOMIC_STORE_BOOL(&pSignalingClient->listenerTracker.terminated, TRUE);
         CVAR_BROADCAST(pSignalingClient->listenerTracker.await);
+    }
+
+    if (locked) {
+        MUTEX_UNLOCK(pSignalingClient->listenerTracker.lock);
     }
 
     LEAVES();
@@ -1213,8 +1237,12 @@ PVOID reconnectHandler(PVOID args)
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
+    // Await for the listener to clear
+    MUTEX_LOCK(pSignalingClient->listenerTracker.lock);
+    MUTEX_UNLOCK(pSignalingClient->listenerTracker.lock);
+
     // Indicate that we started
-    ATOMIC_STORE_BOOL(&pSignalingClient->restarterTracker.terminated, FALSE);
+    ATOMIC_STORE_BOOL(&pSignalingClient->reconnecterTracker.terminated, FALSE);
 
     while (TRUE) {
         // Check for a shutdown
@@ -1232,11 +1260,10 @@ PVOID reconnectHandler(PVOID args)
 CleanUp:
 
     if (pSignalingClient != NULL) {
-        pSignalingClient->restarterTracker.threadId = INVALID_TID_VALUE;
-        ATOMIC_STORE_BOOL(&pSignalingClient->restarterTracker.terminated, TRUE);
+        ATOMIC_STORE_BOOL(&pSignalingClient->reconnecterTracker.terminated, TRUE);
 
         // Notify the listeners to unlock
-        CVAR_BROADCAST(pSignalingClient->restarterTracker.await);
+        CVAR_BROADCAST(pSignalingClient->reconnecterTracker.await);
     }
 
     LEAVES();
@@ -1671,18 +1698,15 @@ STATUS terminateLwsListenerLoop(PSignalingClient pSignalingClient)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
 
-    CHK(pSignalingClient != NULL && pSignalingClient->pOngoingCallInfo, retStatus);
+    CHK(pSignalingClient != NULL, retStatus);
 
-    // Check if anything needs to be done
-    CHK(!ATOMIC_LOAD_BOOL(&pSignalingClient->listenerTracker.terminated), retStatus);
+    if (pSignalingClient->pOngoingCallInfo != NULL) {
+        // Check if anything needs to be done
+        CHK(!ATOMIC_LOAD_BOOL(&pSignalingClient->listenerTracker.terminated), retStatus);
 
-    // Trigger termination
-    ATOMIC_STORE_BOOL(&pSignalingClient->pOngoingCallInfo->callInfo.pRequestInfo->terminating, TRUE);
-
-    lws_cancel_service(pSignalingClient->pLwsContext);
-
-    // Await for the termination
-    CHK_STATUS(awaitForThreadTermination(&pSignalingClient->listenerTracker, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT));
+        // Terminate the listener
+        terminateConnectionWithStatus(pSignalingClient, SERVICE_CALL_RESULT_OK);
+    }
 
     lws_context_destroy(pSignalingClient->pLwsContext);
     pSignalingClient->pLwsContext = NULL;
