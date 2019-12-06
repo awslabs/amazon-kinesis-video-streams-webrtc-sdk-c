@@ -31,7 +31,7 @@ STATUS createSocketConnection(PKvsIpAddress pHostIpAddr, PKvsIpAddress pPeerIpAd
 
 CleanUp:
 
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 
     if (STATUS_FAILED(retStatus) && pSocketConnection != NULL) {
         freeSocketConnection(&pSocketConnection);
@@ -137,7 +137,7 @@ STATUS socketConnectionInitSecureConnection(PSocketConnection pSocketConnection,
 
 CleanUp:
 
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 
     if (STATUS_FAILED(retStatus)) {
         ERR_print_errors_fp (stderr);
@@ -282,7 +282,7 @@ STATUS socketConnectionReadData(PSocketConnection pSocketConnection, PBYTE pBuf,
 
 CleanUp:
 
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 
     if (locked) {
         MUTEX_UNLOCK(pSocketConnection->lock);

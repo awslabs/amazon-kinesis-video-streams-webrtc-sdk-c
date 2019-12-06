@@ -113,7 +113,7 @@ STATUS handleAnswer(PSampleConfiguration pSampleConfiguration, PSignalingMessage
     ATOMIC_STORE_BOOL(&pSampleConfiguration->peerConnectionStarted, TRUE);
 
 CleanUp:
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 
     return retStatus;
 }
@@ -179,7 +179,7 @@ STATUS handleOffer(PSampleConfiguration pSampleConfiguration, PSignalingMessage 
 
 CleanUp:
 
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 
     if (locked) {
         MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
@@ -206,7 +206,7 @@ STATUS respondWithAnswer(PSampleConfiguration pSampleConfiguration)
 
 CleanUp:
 
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
     return retStatus;
 }
 
@@ -222,7 +222,7 @@ STATUS resetSampleConfigurationState(PSampleConfiguration pSampleConfiguration)
 
 CleanUp:
 
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
     return retStatus;
 }
 
@@ -250,7 +250,7 @@ VOID onIceCandidateHandler(UINT64 customData, PCHAR candidateJson)
 
 CleanUp:
 
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 }
 
 STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration)
@@ -331,7 +331,7 @@ STATUS handleRemoteCandidate(PSampleConfiguration pSampleConfiguration, PSignali
 
 CleanUp:
 
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
     return retStatus;
 }
 

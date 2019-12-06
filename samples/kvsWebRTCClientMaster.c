@@ -95,7 +95,7 @@ INT32 main(INT32 argc, CHAR *argv[])
 
 CleanUp:
 
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 
     if (pSampleConfiguration != NULL) {
         // Kick of the termination sequence
@@ -114,9 +114,9 @@ CleanUp:
             THREAD_JOIN(pSampleConfiguration->audioSenderTid, NULL);
         }
 
-        CHK_LOG_ERR(freePeerConnection(&pSampleConfiguration->pPeerConnection));
-        CHK_LOG_ERR(freeSignalingClient(&pSampleConfiguration->signalingClientHandle));
-        CHK_LOG_ERR(freeSampleConfiguration(&pSampleConfiguration));
+        CHK_LOG_ERR_NV(freePeerConnection(&pSampleConfiguration->pPeerConnection));
+        CHK_LOG_ERR_NV(freeSignalingClient(&pSampleConfiguration->signalingClientHandle));
+        CHK_LOG_ERR_NV(freeSampleConfiguration(&pSampleConfiguration));
     }
 
     return (INT32) retStatus;
@@ -179,7 +179,7 @@ PVOID sendVideoPackets(PVOID args)
     }
 
 CleanUp:
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
     return (PVOID) (ULONG_PTR) retStatus;
 }
 
@@ -219,6 +219,6 @@ PVOID sendAudioPackets(PVOID args)
     }
 
 CleanUp:
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
     return (PVOID) (ULONG_PTR) retStatus;
 }

@@ -125,11 +125,11 @@ STATUS freeIceAgent(PIceAgent* ppIceAgent)
 
     // free TurnConnection before ConnectionListener because turn has SocketConnection that would be freed
     // by freeConnectionListener if freeConnectionListener is called first
-    CHK_LOG_ERR(freeTurnConnection(&pIceAgent->pTurnConnection));
+    CHK_LOG_ERR_NV(freeTurnConnection(&pIceAgent->pTurnConnection));
 
     // free connection first so no more incoming packets
     if (pIceAgent->pConnectionListener != NULL) {
-        CHK_LOG_ERR(freeConnectionListener(&pIceAgent->pConnectionListener));
+        CHK_LOG_ERR_NV(freeConnectionListener(&pIceAgent->pConnectionListener));
     }
 
     if (pIceAgent->localCandidates != NULL) {
@@ -147,18 +147,18 @@ STATUS freeIceAgent(PIceAgent* ppIceAgent)
         }
 
         // free all stored candidates
-        CHK_LOG_ERR(doubleListClear(pIceAgent->localCandidates, TRUE));
-        CHK_LOG_ERR(doubleListFree(pIceAgent->localCandidates));
+        CHK_LOG_ERR_NV(doubleListClear(pIceAgent->localCandidates, TRUE));
+        CHK_LOG_ERR_NV(doubleListFree(pIceAgent->localCandidates));
     }
 
     if (pIceAgent->remoteCandidates != NULL) {
         // remote candidates dont have socketConnection
-        CHK_LOG_ERR(doubleListClear(pIceAgent->remoteCandidates, TRUE));
-        CHK_LOG_ERR(doubleListFree(pIceAgent->remoteCandidates));
+        CHK_LOG_ERR_NV(doubleListClear(pIceAgent->remoteCandidates, TRUE));
+        CHK_LOG_ERR_NV(doubleListFree(pIceAgent->remoteCandidates));
     }
 
     if (pIceAgent->triggeredCheckQueue != NULL) {
-        CHK_LOG_ERR(stackQueueFree(pIceAgent->triggeredCheckQueue));
+        CHK_LOG_ERR_NV(stackQueueFree(pIceAgent->triggeredCheckQueue));
     }
 
     if (pIceAgent->candidatePairCount > 0) {
@@ -282,7 +282,7 @@ STATUS iceAgentReportNewLocalCandidate(PIceAgent pIceAgent, PIceCandidate pIceCa
 
 CleanUp:
 
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 
     return retStatus;
 }
@@ -410,7 +410,7 @@ STATUS iceAgentGatherLocalCandidate(PIceAgent pIceAgent)
 
 CleanUp:
 
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 
     if (locked) {
         MUTEX_UNLOCK(pIceAgent->lock);
@@ -675,7 +675,7 @@ STATUS createIceCandidatePairs(PIceAgent pIceAgent, PIceCandidate pIceCandidate,
 
 CleanUp:
 
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 
     LEAVES();
     return retStatus;
@@ -863,7 +863,7 @@ STATUS iceCandidatePairCheckConnection(PStunPacket pStunBindingRequest, PIceAgen
 
 CleanUp:
 
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 
     return retStatus;
 }
@@ -892,7 +892,7 @@ STATUS iceAgentStateNewTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 
 
 CleanUp:
 
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 
     if (locked) {
         MUTEX_UNLOCK(pIceAgent->lock);
@@ -958,7 +958,7 @@ STATUS iceAgentStateGatheringTimerCallback(UINT32 timerId, UINT64 currentTime, U
 
 CleanUp:
 
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 
     if (pStunRequest != NULL) {
         freeStunPacket(&pStunRequest);
@@ -1042,7 +1042,7 @@ STATUS iceAgentStateCheckConnectionTimerCallback(UINT32 timerId, UINT64 currentT
 
 CleanUp:
 
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 
     if (pStunBindingRequest != NULL) {
         freeStunPacket(&pStunBindingRequest);
@@ -1102,7 +1102,7 @@ STATUS iceAgentSendKeepAliveTimerCallback(UINT32 timerId, UINT64 currentTime, UI
 
 CleanUp:
 
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 
     if (pStunKeepAlive != NULL) {
         freeStunPacket(&pStunKeepAlive);
@@ -1161,7 +1161,7 @@ STATUS iceAgentStateNominatingTimerCallback(UINT32 timerId, UINT64 currentTime, 
 
 CleanUp:
 
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 
     if (pStunBindingRequest != NULL) {
         freeStunPacket(&pStunBindingRequest);
@@ -1186,7 +1186,7 @@ STATUS iceAgentStateReadyTimerCallback(UINT32 timerId, UINT64 currentTime, UINT6
 
 CleanUp:
 
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 
     return retStatus;
 }
@@ -1229,7 +1229,7 @@ STATUS iceAgentNominateCandidatePair(PIceAgent pIceAgent)
 
 CleanUp:
 
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 
     LEAVES();
 
@@ -1299,7 +1299,7 @@ STATUS incomingDataHandler(UINT64 customData, PSocketConnection pSocketConnectio
     CHK_STATUS(handleStunPacket(pIceAgent, pBuffer, bufferLen, pSocketConnection, pSrc, pDest));
 
 CleanUp:
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 
     if (locked) {
         MUTEX_UNLOCK(pIceAgent->lock);
@@ -1531,7 +1531,7 @@ STATUS iceAgentCheckPeerReflexiveCandidate(PIceAgent pIceAgent, PKvsIpAddress pI
 
 CleanUp:
 
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 
     if (STATUS_FAILED(retStatus) && freeIceCandidateOnError) {
         MEMFREE(pIceCandidate);

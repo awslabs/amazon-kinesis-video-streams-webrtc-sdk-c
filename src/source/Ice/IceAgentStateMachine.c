@@ -46,7 +46,7 @@ STATUS stepIceAgentStateMachine(PIceAgent pIceAgent)
 
 CleanUp:
 
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 
     if (locked) {
         MUTEX_UNLOCK(pIceAgent->lock);
@@ -389,7 +389,7 @@ STATUS executeGatheringIceAgentState(UINT64 customData, UINT64 time)
 
 CleanUp:
 
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 
     if (pNewCandidate != NULL) {
         SAFE_MEMFREE(pNewCandidate);

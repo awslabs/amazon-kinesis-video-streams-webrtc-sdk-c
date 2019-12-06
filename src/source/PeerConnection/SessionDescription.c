@@ -732,7 +732,7 @@ STATUS reorderTransceiverByRemoteDescription(PKvsPeerConnection pKvsPeerConnecti
 
 CleanUp:
 
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 
     LEAVES();
     return retStatus;

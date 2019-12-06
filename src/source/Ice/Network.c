@@ -164,7 +164,7 @@ STATUS getIpWithHostName(PCHAR hostname, PKvsIpAddress destIp)
 
 CleanUp:
 
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 
     return retStatus;
 }

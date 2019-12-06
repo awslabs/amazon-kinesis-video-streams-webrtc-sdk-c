@@ -34,7 +34,7 @@ STATUS freeRtpRollingBuffer(PRtpRollingBuffer *ppRtpRollingBuffer)
     }
     SAFE_MEMFREE(*ppRtpRollingBuffer);
 CleanUp:
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 
     LEAVES();
     return retStatus;
@@ -69,7 +69,7 @@ STATUS rtpRollingBufferAddRtpPacket(PRtpRollingBuffer pRollingBuffer, PRtpPacket
     pRollingBuffer->lastIndex = index;
 
 CleanUp:
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 
     LEAVES();
     return retStatus;
@@ -120,7 +120,7 @@ STATUS rtpRollingBufferGetValidSeqIndexList(PRtpRollingBuffer pRollingBuffer, PU
     }
 
 CleanUp:
-    CHK_LOG_ERR(retStatus);
+    CHK_LOG_ERR_NV(retStatus);
 
     if (pValidIndexListLen != NULL) {
         *pValidIndexListLen = returnPacketCount;
