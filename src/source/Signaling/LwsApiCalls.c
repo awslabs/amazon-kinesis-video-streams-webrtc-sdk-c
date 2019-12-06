@@ -1698,13 +1698,15 @@ STATUS terminateLwsListenerLoop(PSignalingClient pSignalingClient)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
 
-    CHK(pSignalingClient != NULL && pSignalingClient->pOngoingCallInfo, retStatus);
+    CHK(pSignalingClient != NULL, retStatus);
 
-    // Check if anything needs to be done
-    CHK(!ATOMIC_LOAD_BOOL(&pSignalingClient->listenerTracker.terminated), retStatus);
+    if (pSignalingClient->pOngoingCallInfo != NULL) {
+        // Check if anything needs to be done
+        CHK(!ATOMIC_LOAD_BOOL(&pSignalingClient->listenerTracker.terminated), retStatus);
 
-    // Terminate the listener
-    terminateConnectionWithStatus(pSignalingClient, SERVICE_CALL_RESULT_OK);
+        // Terminate the listener
+        terminateConnectionWithStatus(pSignalingClient, SERVICE_CALL_RESULT_OK);
+    }
 
     lws_context_destroy(pSignalingClient->pLwsContext);
     pSignalingClient->pLwsContext = NULL;
