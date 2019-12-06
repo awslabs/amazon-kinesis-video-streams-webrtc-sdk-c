@@ -70,7 +70,7 @@ public:
     SIGNALING_CLIENT_HANDLE mSignalingClientHandle;
 };
 
-TEST_F(SignalingApiTest, signalingSendMessageSync)
+TEST_F(SignalingApiTest, DISABLED_signalingSendMessageSync)
 {
     STATUS expectedStatus;
     SignalingMessage signalingMessage;
