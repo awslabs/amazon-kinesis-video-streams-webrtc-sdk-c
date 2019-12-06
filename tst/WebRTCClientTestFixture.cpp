@@ -51,6 +51,7 @@ void WebRtcClientTestBase::SetUp()
     mExpectedFrameCount = 0;
     mExpectedDroppedFrameCount = 0;
 
+    SET_LOGGER_LOG_LEVEL(LOG_LEVEL_DEBUG);
 
     if (NULL != (mAccessKey = getenv(ACCESS_KEY_ENV_VAR))) {
         mAccessKeyIdSet = TRUE;

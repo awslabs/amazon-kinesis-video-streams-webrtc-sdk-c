@@ -77,6 +77,7 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         PCHAR ipString = (PCHAR) "16.213.65.123";
         BYTE expectIpAddr[IPV4_ADDRESS_LENGTH] = {0x10, 0xD5, 0x41, 0x7B};
         PCHAR ipString2 = (PCHAR) "255.255.255.255";
+        PCHAR ipString2Longer = (PCHAR) "255.255.255.255 34388 222.222.222.222";
         BYTE expectIpAddr2[IPV4_ADDRESS_LENGTH] = {0xFF, 0xFF, 0xFF, 0xFF};
 
         EXPECT_NE(STATUS_SUCCESS, populateIpFromString(NULL, NULL));
@@ -88,6 +89,9 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         EXPECT_EQ(0, MEMCMP(expectIpAddr, kvsIpAddress.address, IPV4_ADDRESS_LENGTH));
 
         EXPECT_EQ(STATUS_SUCCESS, populateIpFromString(&kvsIpAddress, ipString2));
+        EXPECT_EQ(0, MEMCMP(expectIpAddr2, kvsIpAddress.address, IPV4_ADDRESS_LENGTH));
+
+        EXPECT_EQ(STATUS_SUCCESS, populateIpFromString(&kvsIpAddress, ipString2Longer));
         EXPECT_EQ(0, MEMCMP(expectIpAddr2, kvsIpAddress.address, IPV4_ADDRESS_LENGTH));
     }
 

@@ -296,8 +296,10 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
     PCHAR curr, tail, next;
     UINT32 tokenLen, portValue, remoteCandidateCount;
     BOOL foundIpAndPort = FALSE, freeIceCandidateIfFail = TRUE;
+    KvsIpAddress candidateIpAddr = {0};
 
     CHK(pIceAgent != NULL && pIceCandidateString != NULL, STATUS_NULL_ARG);
+    CHK(!IS_EMPTY_STRING(pIceCandidateString), STATUS_INVALID_ARG);
 
     MUTEX_LOCK(pIceAgent->lock);
     locked = TRUE;
@@ -305,40 +307,41 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
     CHK_STATUS(doubleListGetNodeCount(pIceAgent->remoteCandidates, &remoteCandidateCount));
     CHK(remoteCandidateCount < KVS_ICE_MAX_REMOTE_CANDIDATE_COUNT, STATUS_ICE_MAX_REMOTE_CANDIDATE_COUNT_EXCEEDED);
 
-    CHK((pIceCandidate = MEMCALLOC(1, SIZEOF(IceCandidate))) != NULL, STATUS_NOT_ENOUGH_MEMORY);
-
     curr = pIceCandidateString;
     tail = pIceCandidateString + STRLEN(pIceCandidateString);
     while ((next = STRNCHR(curr, tail - curr, ' ')) != NULL && !foundIpAndPort) {
         tokenLen = (UINT32) (next - curr);
         CHK(STRNCMPI("tcp", curr, tokenLen) != 0, STATUS_ICE_CANDIDATE_STRING_IS_TCP);
 
-        if (pIceCandidate->ipAddress.address[0] != 0) {
+        if (candidateIpAddr.address[0] != 0) {
             CHK_STATUS(STRTOUI32(curr, curr + tokenLen, 10, &portValue));
 
-            pIceCandidate->ipAddress.port = htons(portValue);
-            pIceCandidate->ipAddress.family = KVS_IP_FAMILY_TYPE_IPV4;
+            candidateIpAddr.port = htons(portValue);
+            candidateIpAddr.family = KVS_IP_FAMILY_TYPE_IPV4;
         } else if (STRNCHR(curr, tokenLen, '.') != NULL) {
-            CHK(tokenLen <= IP_STRING_LENGTH, STATUS_ICE_CANDIDATE_STRING_INVALID_IP); // IPv4 is 15 characters at most
-            CHK_STATUS(populateIpFromString(&pIceCandidate->ipAddress, curr));
+            CHK(tokenLen <= KVS_MAX_IPV4_ADDRESS_STRING_LEN, STATUS_ICE_CANDIDATE_STRING_INVALID_IP); // IPv4 is 15 characters at most
+            CHK_STATUS(populateIpFromString(&candidateIpAddr, curr));
         }
 
         curr = next + 1;
-        foundIpAndPort = (pIceCandidate->ipAddress.port != 0) && (pIceCandidate->ipAddress.address[0] != 0);
+        foundIpAndPort = (candidateIpAddr.port != 0) && (candidateIpAddr.address[0] != 0);
     }
 
-    CHK(pIceCandidate->ipAddress.port != 0, STATUS_ICE_CANDIDATE_STRING_MISSING_PORT);
-    CHK(pIceCandidate->ipAddress.address[0] != 0, STATUS_ICE_CANDIDATE_STRING_MISSING_IP);
+    CHK(candidateIpAddr.port != 0, STATUS_ICE_CANDIDATE_STRING_MISSING_PORT);
+    CHK(candidateIpAddr.address[0] != 0, STATUS_ICE_CANDIDATE_STRING_MISSING_IP);
 
-    CHK_STATUS(findCandidateWithIp(&pIceCandidate->ipAddress, pIceAgent->remoteCandidates, &pDuplicatedIceCandidate));
+    CHK_STATUS(findCandidateWithIp(&candidateIpAddr, pIceAgent->remoteCandidates, &pDuplicatedIceCandidate));
     CHK(pDuplicatedIceCandidate == NULL, retStatus);
 
-    // in case turn is not used
+    CHK((pIceCandidate = MEMCALLOC(1, SIZEOF(IceCandidate))) != NULL, STATUS_NOT_ENOUGH_MEMORY);
+    pIceCandidate->ipAddress = candidateIpAddr;
+    CHK_STATUS(doubleListInsertItemHead(pIceAgent->remoteCandidates, (UINT64) pIceCandidate));
+    freeIceCandidateIfFail = FALSE;
+
+    // turnConnectionAddPeer only if turn is used
     if (pIceAgent->pTurnConnection != NULL) {
         CHK_STATUS(turnConnectionAddPeer(pIceAgent->pTurnConnection, &pIceCandidate->ipAddress));
     }
-    CHK_STATUS(doubleListInsertItemHead(pIceAgent->remoteCandidates, (UINT64) pIceCandidate));
-    freeIceCandidateIfFail = FALSE;
 
     // at the end of gathering state, candidate pairs will be created with local and remote candidates gathered so far.
     // do createIceCandidatePairs here if state is not gathering in case some remote candidate comes late
@@ -586,8 +589,8 @@ CleanUp:
     return retStatus;
 }
 
-STATUS findCandidateWithConnectionHandle(PSocketConnection pSocketConnection, PDoubleList pCandidateList,
-                                         PIceCandidate* ppIceCandidate)
+STATUS findCandidateWithSocketConnection(PSocketConnection pSocketConnection, PDoubleList pCandidateList,
+                                         PIceCandidate *ppIceCandidate)
 {
     ENTERS();
 
@@ -671,6 +674,8 @@ STATUS createIceCandidatePairs(PIceAgent pIceAgent, PIceCandidate pIceCandidate,
     }
 
 CleanUp:
+
+    CHK_LOG_ERR(retStatus);
 
     LEAVES();
     return retStatus;
@@ -1409,7 +1414,8 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
 
         case STUN_PACKET_TYPE_BINDING_RESPONSE_SUCCESS:
             if (pIceAgent->iceAgentState == ICE_AGENT_STATE_GATHERING) {
-                CHK_STATUS(findCandidateWithConnectionHandle(pSocketConnection, pIceAgent->localCandidates, &pIceCandidate));
+                CHK_STATUS(
+                        findCandidateWithSocketConnection(pSocketConnection, pIceAgent->localCandidates, &pIceCandidate));
                 CHK_WARN(pIceCandidate != NULL, retStatus,
                          "Local candidate with socket %d not found for STUN packet type 0x%02x. Dropping Packet",
                          pSocketConnection->localSocket, stunPacketType);
@@ -1496,7 +1502,7 @@ STATUS iceAgentCheckPeerReflexiveCandidate(PIceAgent pIceAgent, PKvsIpAddress pI
         CHK_STATUS(findCandidateWithIp(pIpAddress, pIceAgent->localCandidates, &pIceCandidate));
         CHK(pIceCandidate == NULL, retStatus); // return early if duplicated
 
-        findCandidateWithConnectionHandle(pSocketConnection, pIceAgent->localCandidates, &pLocalIceCandidate);
+        findCandidateWithSocketConnection(pSocketConnection, pIceAgent->localCandidates, &pLocalIceCandidate);
         pLocalIceCandidate->iceCandidateType = ICE_CANDIDATE_TYPE_PEER_REFLEXIVE;
         pLocalIceCandidate->ipAddress = *pIpAddress;
         DLOGD("New local peer reflexive candidate found");
