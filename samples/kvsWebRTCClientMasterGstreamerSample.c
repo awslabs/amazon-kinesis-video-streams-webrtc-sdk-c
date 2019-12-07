@@ -194,7 +194,6 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
     GstElement *appsrcVideo = NULL, *appsrcAudio = NULL, *pipeline = NULL;
     GstBus *bus;
     GstMessage *msg;
-    GstCaps *caps;
     GError *error = NULL;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
     PGstAppSrcs pGstAppSrcs = (PGstAppSrcs) pSampleConfiguration->customData;

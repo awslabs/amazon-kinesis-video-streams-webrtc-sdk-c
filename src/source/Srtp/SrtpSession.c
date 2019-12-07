@@ -9,7 +9,6 @@ STATUS initSrtpSession(PBYTE receiveKey, PBYTE transmitKey, SRTP_PROFILE profile
     STATUS retStatus = STATUS_SUCCESS;
     PSrtpSession pSrtpSession = NULL;
     srtp_policy_t transmitPolicy, receivePolicy;
-    srtp_err_status_t errStatus;
     void (*srtp_policy_setter)(srtp_crypto_policy_t*) = NULL;
     void (*srtcp_policy_setter)(srtp_crypto_policy_t*) = NULL;
 

@@ -32,6 +32,8 @@ CleanUp:
 
 STATUS dtlsTransmissionTimerCallback(UINT32 timerID, UINT64 currentTime, UINT64 customData)
 {
+    UNUSED_PARAM(timerID);
+    UNUSED_PARAM(currentTime);
     STATUS retStatus = STATUS_SUCCESS;
     PDtlsSession pDtlsSession = (PDtlsSession) customData;
     BOOL locked = FALSE;
@@ -130,7 +132,10 @@ STATUS createSslCtx(X509 *pCert, EVP_PKEY *pPkey, SSL_CTX **ppSslCtx)
     STATUS retStatus = STATUS_SUCCESS;
     SSL_CTX *pSslCtx = NULL;
     EC_KEY *pEcKey = NULL;
-    EC_KEY *ecdh = NULL;
+    #if (OPENSSL_VERSION_NUMBER < 0x10002000L)
+        EC_KEY *ecdh = NULL;
+    #endif
+
 
     #if (OPENSSL_VERSION_NUMBER >= 0x10100000L)
         pSslCtx = SSL_CTX_new(DTLS_method());
@@ -522,6 +527,7 @@ CleanUp:
 
 STATUS dtlsSessionGenerateLocalCertificateFingerprint(PDtlsSession pDtlsSession, PCHAR pBuff, UINT32 buffLen)
 {
+    UNUSED_PARAM(buffLen);
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;

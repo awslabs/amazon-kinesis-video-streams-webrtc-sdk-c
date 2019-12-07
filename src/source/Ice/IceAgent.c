@@ -878,6 +878,8 @@ CleanUp:
  */
 STATUS iceAgentStateNewTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
+    UNUSED_PARAM(timerId);
+    UNUSED_PARAM(currentTime);
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
     BOOL locked = FALSE;
@@ -911,6 +913,8 @@ CleanUp:
  */
 STATUS iceAgentStateGatheringTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
+    UNUSED_PARAM(timerId);
+    UNUSED_PARAM(currentTime);
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
     BOOL locked = FALSE;
@@ -981,6 +985,8 @@ CleanUp:
  */
 STATUS iceAgentStateCheckConnectionTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
+    UNUSED_PARAM(timerId);
+    UNUSED_PARAM(currentTime);
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
     BOOL locked = FALSE, triggeredCheckQueueEmpty;
@@ -1065,6 +1071,7 @@ CleanUp:
  */
 STATUS iceAgentSendKeepAliveTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
+    UNUSED_PARAM(timerId);
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
     BOOL locked = FALSE;
@@ -1125,6 +1132,8 @@ CleanUp:
  */
 STATUS iceAgentStateNominatingTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
+    UNUSED_PARAM(timerId);
+    UNUSED_PARAM(currentTime);
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
     BOOL locked = FALSE;
@@ -1176,6 +1185,8 @@ CleanUp:
 
 STATUS iceAgentStateReadyTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
+    UNUSED_PARAM(timerId);
+    UNUSED_PARAM(currentTime);
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
 

@@ -17,7 +17,7 @@ INT32 lwsHttpCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
     UNUSED_PARAM(user);
     STATUS retStatus = STATUS_SUCCESS;
     PVOID customData;
-    INT32 status, size, retValue = 0;
+    INT32 status, retValue = 0, size;
     PCHAR pCurPtr, pBuffer;
     PBYTE pEndPtr;
     PBYTE* ppStartPtr;

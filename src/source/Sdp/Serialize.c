@@ -11,8 +11,6 @@ STATUS parseMediaName(PSessionDescription pSessionDescription, PCHAR pch, UINT32
             MIN(MAX_SDP_MEDIA_NAME_LENGTH, lineLen - (SDP_ATTRIBUTE_LENGTH - 1)));
     pSessionDescription->mediaCount++;
 
-CleanUp:
-
     LEAVES();
     return retStatus;
 }

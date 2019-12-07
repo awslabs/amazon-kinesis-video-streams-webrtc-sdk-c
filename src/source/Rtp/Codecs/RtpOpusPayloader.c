@@ -4,6 +4,7 @@
 
 STATUS createPayloadForOpus(UINT32 mtu, PBYTE opusFrame, UINT32 opusFrameLength, PBYTE payloadBuffer, PUINT32 pPayloadLength, PUINT32 pPayloadSubLength, PUINT32 pPayloadSubLenSize)
 {
+    UNUSED_PARAM(mtu);
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 payloadLength = 0;

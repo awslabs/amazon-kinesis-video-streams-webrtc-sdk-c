@@ -203,6 +203,7 @@ CleanUp:
 
 STATUS executeGetTokenSignalingState(UINT64 customData, UINT64 time)
 {
+    UNUSED_PARAM(time);
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
@@ -616,7 +617,6 @@ STATUS fromDisconnectedSignalingState(UINT64 customData, PUINT64 pState)
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
     UINT64 state = SIGNALING_STATE_DISCONNECTED;
-    SIZE_T result;
 
     CHK(pSignalingClient != NULL && pState != NULL, STATUS_NULL_ARG);
 

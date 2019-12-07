@@ -103,8 +103,6 @@ STATUS deserializeTimeDescription(PSdpTimeDescription pSDPTimeDescription, PCHAR
         *ppOutputData += currentWriteSize;
     }
 
-CleanUp:
-
     LEAVES();
     return retStatus;
 }
@@ -132,8 +130,6 @@ STATUS deserializeAttribute(PSdpAttributes pSDPAttributes, PCHAR *ppOutputData, 
     if (*ppOutputData != NULL) {
         *ppOutputData += currentWriteSize;
     }
-
-CleanUp:
 
     LEAVES();
     return retStatus;
