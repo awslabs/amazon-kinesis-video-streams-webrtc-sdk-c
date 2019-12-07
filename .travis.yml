@@ -8,8 +8,6 @@ cache:
 - directories:
   - $HOME/.cache
 
-before_script:
-  - mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
 
 script:
   - make
@@ -25,9 +23,13 @@ matrix:
     - name: "OSX GCC"
       os: osx
       compiler: gcc
+      before_script:
+        - mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE
     - name: "OSX Clang"
       os: osx
       compiler: clang
+      before_script:
+        - mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
 
     # Code Coverage
     - name: "Linux GCC Code Coverage"

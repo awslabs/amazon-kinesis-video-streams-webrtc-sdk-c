@@ -37,11 +37,13 @@ STATUS dtlsTransmissionTimerCallback(UINT32 timerID, UINT64 currentTime, UINT64 
     STATUS retStatus = STATUS_SUCCESS;
     PDtlsSession pDtlsSession = (PDtlsSession) customData;
     BOOL locked = FALSE;
-    struct timeval timeout = {0};
+    struct timeval timeout;
     UINT64 timeoutValDefaultTimeUnit = 0;
     LONG dtlsTimeoutRet = 0;
 
     CHK(pDtlsSession != NULL, STATUS_NULL_ARG);
+
+    MEMSET(&timeout, 0x00, SIZEOF(struct timeval));
 
     MUTEX_LOCK(pDtlsSession->sslLock);
     locked = TRUE;

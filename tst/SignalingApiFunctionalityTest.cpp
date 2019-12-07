@@ -43,8 +43,7 @@ STATUS masterMessageReceived(UINT64 customData, PReceivedSignalingMessage pRecei
 
 STATUS signalingClientStateChanged(UINT64 customData, SIGNALING_CLIENT_STATE state)
 {
-    SignalingApiFunctionalityTest *pTest = (SignalingApiFunctionalityTest*) customData;
-
+    UNUSED_PARAM(customData);
     DLOGV("Signaling client state changed to %d", state);
 
     return STATUS_SUCCESS;
@@ -52,8 +51,7 @@ STATUS signalingClientStateChanged(UINT64 customData, SIGNALING_CLIENT_STATE sta
 
 STATUS viewerMessageReceived(UINT64 customData, PReceivedSignalingMessage pReceivedSignalingMessage)
 {
-    SignalingApiFunctionalityTest *pTest = (SignalingApiFunctionalityTest*) customData;
-    STATUS status;
+    UNUSED_PARAM(customData);
 
     DLOGI("Message received:\ntype: %u\npeer client id: %s\npayload len: %u\npayload: %s\nCorrelationId: %s\nErrorType: %s\nStatusCode: %u\nDescription: %s",
           pReceivedSignalingMessage->signalingMessage.messageType,

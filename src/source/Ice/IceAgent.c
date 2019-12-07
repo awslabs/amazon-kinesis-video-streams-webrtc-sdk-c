@@ -296,10 +296,12 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
     PCHAR curr, tail, next;
     UINT32 tokenLen, portValue, remoteCandidateCount;
     BOOL foundIpAndPort = FALSE, freeIceCandidateIfFail = TRUE;
-    KvsIpAddress candidateIpAddr = {0};
+    KvsIpAddress candidateIpAddr;
 
     CHK(pIceAgent != NULL && pIceCandidateString != NULL, STATUS_NULL_ARG);
     CHK(!IS_EMPTY_STRING(pIceCandidateString), STATUS_INVALID_ARG);
+
+    MEMSET(&candidateIpAddr, 0x00, SIZEOF(KvsIpAddress));
 
     MUTEX_LOCK(pIceAgent->lock);
     locked = TRUE;

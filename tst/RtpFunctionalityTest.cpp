@@ -4,7 +4,7 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
 
 #define NUMBER_OF_FRAME_FILES               403
 #define DEFAULT_FPS_VALUE                   25
-static BYTE start4ByteCode[] = {0x00, 0x00, 0x00, 0x01};
+BYTE start4ByteCode[] = {0x00, 0x00, 0x00, 0x01};
 
 class RtpFunctionalityTest : public WebRtcClientTestBase {
 };
@@ -54,7 +54,6 @@ TEST_F(RtpFunctionalityTest, marshallUnmarshallGettingSameData)
     PBYTE rawPacket = NULL;
     UINT32 packetLen = 0;
     UINT32 i = 0;
-    INT32 status = 0;
 
     payloadArray.payloadBuffer = payload;
     payloadArray.payloadLength = payloadLen;
@@ -96,12 +95,9 @@ TEST_F(RtpFunctionalityTest, marshallUnmarshallH264Data)
     PRtpPacket pPacketList = NULL;
     PRtpPacket pRtpPacket = NULL;
     PBYTE rawPacket = NULL;
-    PRtpPacket pNewRtpPacket = NULL;
     UINT32 packetLen = 0;
-    INT32 status = 0;
     UINT64 curTime = GETTIME();
     UINT32 fileIndex = 0;
-    UINT32 clockRate = 90000; // 90kHz for h264
     UINT16 seqNum = 0;
     UINT64 startTimeStamp = curTime;
     UINT32 i = 0;
