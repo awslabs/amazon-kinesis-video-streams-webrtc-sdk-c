@@ -3,6 +3,7 @@
 
 VOID onDataChannelMessage(UINT64 customData, BOOL isBinary, PBYTE pMessage, UINT32 pMessageLen)
 {
+    UNUSED_PARAM(customData);
     if (isBinary) {
         DLOGI("DataChannel Binary Message");
     } else {
@@ -318,6 +319,7 @@ CleanUp:
 
 VOID sampleFrameHandler(UINT64 customData, PFrame pFrame)
 {
+    UNUSED_PARAM(customData);
     DLOGI("Frame received. TrackId: %" PRIu64 ", Size: %u, Flags %u", pFrame->trackId, pFrame->size, pFrame->flags);
 }
 

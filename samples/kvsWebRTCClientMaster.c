@@ -149,7 +149,6 @@ PVOID sendVideoPackets(PVOID args)
     Frame frame;
     UINT32 fileIndex = 0, frameSize;
     UINT64 curTime = GETTIME();
-    UINT64 startTimeStamp = curTime;
     CHAR filePath[MAX_PATH_LEN + 1];
 
     CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);

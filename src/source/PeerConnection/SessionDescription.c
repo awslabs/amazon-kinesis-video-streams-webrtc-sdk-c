@@ -290,10 +290,8 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    UINT64 data, payloadType, rtxPayloadType;
+    UINT64 payloadType, rtxPayloadType;
     BOOL containRtx = FALSE;
-    PDoubleList localCandidates = NULL;
-    PDoubleListNode pCurNode = NULL;
     UINT32 attributeCount = 0;
     PRtcMediaStreamTrack pRtcMediaStreamTrack = &(pKvsRtpTransceiver->sender.track);
 
@@ -745,8 +743,7 @@ STATUS deserializeRtcIceCandidateInit(PCHAR pJson, UINT32 jsonLen, PRtcIceCandid
     jsmntok_t tokens[ICE_CANDIDATE_INIT_TOKENS];
     jsmn_parser parser;
     INT8 i;
-    INT32 j, tokenCount, lineLen;
-    PCHAR curr, last, tail;
+    INT32 tokenCount;
 
     CHK(pRtcIceCandidateInit != NULL && pJson != NULL, STATUS_NULL_ARG);
     MEMSET(pRtcIceCandidateInit->candidate, 0x00, MAX_ICE_CANDIDATE_INIT_CANDIDATE_LEN + 1);

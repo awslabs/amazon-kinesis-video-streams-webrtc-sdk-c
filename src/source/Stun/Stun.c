@@ -5,13 +5,12 @@ STATUS stunPackageIpAddr(PStunHeader pStunHeader, STUN_ATTRIBUTE_TYPE type, PKvs
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    UINT32 dataLen = 0, data, i;
+    UINT32 dataLen = 0;
     UINT16 size;
     PBYTE pCurrentBufferPosition = pBuffer;
     CHK(pDataLen != NULL && pAddress != NULL, STATUS_NULL_ARG);
     KvsIpAddress ipAddress;
     PKvsIpAddress pIndirected = pAddress;
-    PBYTE pData, pTransaction;
 
     // Check if we are asked for size only and early return if so
     CHK(pAddress != NULL && pDataLen != NULL && pStunHeader != NULL, STATUS_NULL_ARG);

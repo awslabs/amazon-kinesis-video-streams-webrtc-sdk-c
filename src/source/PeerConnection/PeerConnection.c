@@ -60,10 +60,6 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
     STATUS retStatus = STATUS_SUCCESS;
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) customData;
     BOOL isDtlsConnected = FALSE;
-    INT32 srtpBufferLen = 0;
-    PRtpPacket pPacket = NULL;
-    PBYTE pCopiedPayload = NULL;
-    UINT16 rtcpPacketType = 0;
     INT32 signedBuffLen = buffLen;
 
     CHK(signedBuffLen > 2 && pKvsPeerConnection != NULL, STATUS_SUCCESS);
@@ -625,7 +621,7 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    PCHAR remoteIceUfrag = NULL, remoteIcePwd = NULL, fmtSpace = NULL;
+    PCHAR remoteIceUfrag = NULL, remoteIcePwd = NULL;
     UINT32 i, j;
 
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pPeerConnection;
@@ -751,6 +747,7 @@ CleanUp:
 
 STATUS addTransceiver(PRtcPeerConnection pPeerConnection, PRtcMediaStreamTrack pRtcMediaStreamTrack, PRtcRtpTransceiverInit pRtcRtpTransceiverInit, PRtcRtpTransceiver *ppRtcRtpTransceiver)
 {
+    UNUSED_PARAM(pRtcRtpTransceiverInit);
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PKvsRtpTransceiver pKvsRtpTransceiver = NULL;
@@ -880,8 +877,6 @@ STATUS deinitKvsWebRtc(VOID)
     STATUS retStatus = STATUS_SUCCESS;
 
     deinitSctpSession();
-
-CleanUp:
 
     LEAVES();
     return retStatus;
