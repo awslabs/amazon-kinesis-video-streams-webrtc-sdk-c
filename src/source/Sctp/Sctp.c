@@ -55,6 +55,26 @@ CleanUp:
     return retStatus;
 }
 
+STATUS initSctpSession()
+{
+    STATUS retStatus = STATUS_SUCCESS;
+
+    usrsctp_init(0, &onSctpOutboundPacket, NULL);
+
+    // Disable Explicit Congestion Notification
+    usrsctp_sysctl_set_sctp_ecn_enable(0);
+
+    return retStatus;
+}
+
+VOID deinitSctpSession()
+{
+    // need to block until usrsctp_finish or sctp thread could be calling free objects and cause segfault
+    while (usrsctp_finish() != 0) {
+        THREAD_SLEEP(DEFAULT_USRSCTP_TEARDOWN_POLLING_INTERVAL);
+    }
+}
+
 STATUS createSctpSession(PSctpSessionCallbacks pSctpSessionCallbacks, PSctpSession* ppSctpSession)
 {
     ENTERS();
@@ -112,16 +132,16 @@ STATUS freeSctpSession(PSctpSession* ppSctpSession)
 
     CHK(pSctpSession != NULL, retStatus);
 
-    usrsctp_close(pSctpSession->socket);
-
-    // need to block until usrsctp_finish or sctp thread could be calling free objects and cause segfault
-    while (usrsctp_finish() != 0) {
-        THREAD_SLEEP(DEFAULT_USRSCTP_TEARDOWN_POLLING_INTERVAL);
+    usrsctp_deregister_address(pSctpSession);
+    if (pSctpSession->socket != NULL) {
+        usrsctp_shutdown(pSctpSession->socket, SHUT_RDWR);
+        usrsctp_close(pSctpSession->socket);
     }
 
     SAFE_MEMFREE(*ppSctpSession);
 
 CleanUp:
+
     LEAVES();
     return retStatus;
 }

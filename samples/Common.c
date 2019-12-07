@@ -130,7 +130,6 @@ STATUS handleOffer(PSampleConfiguration pSampleConfiguration, PSignalingMessage 
              "Dropping offer as peerConnection already received offer");
 
     RtcSessionDescriptionInit offerSessionDescriptionInit;
-    PBYTE rawOfferSessionDescriptionInit = NULL;
 
     MEMSET(&offerSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
     MEMSET(&pSampleConfiguration->answerSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
@@ -181,7 +180,6 @@ STATUS handleOffer(PSampleConfiguration pSampleConfiguration, PSignalingMessage 
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
-    SAFE_MEMFREE(rawOfferSessionDescriptionInit);
 
     if (locked) {
         MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
@@ -423,6 +421,8 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
     pSampleConfiguration = *ppSampleConfiguration;
 
     CHK(pSampleConfiguration != NULL, retStatus);
+
+    deinitKvsWebRtc();
 
     SAFE_MEMFREE(pSampleConfiguration->pVideoFrameBuffer);
     SAFE_MEMFREE(pSampleConfiguration->pAudioFrameBuffer);

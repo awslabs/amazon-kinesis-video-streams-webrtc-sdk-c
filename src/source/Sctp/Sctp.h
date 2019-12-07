@@ -56,6 +56,8 @@ typedef struct {
     SctpSessionCallbacks sctpSessionCallbacks;
 } SctpSession, *PSctpSession;
 
+STATUS initSctpSession();
+VOID deinitSctpSession();
 STATUS createSctpSession(PSctpSessionCallbacks, PSctpSession*);
 STATUS freeSctpSession(PSctpSession*);
 STATUS putSctpPacket(PSctpSession, PBYTE, UINT32);
