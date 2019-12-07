@@ -20,7 +20,7 @@ STATUS configureSctpSocket(struct socket *socket)
     STATUS retStatus = STATUS_SUCCESS;
     struct linger linger_opt;
     struct sctp_event event;
-    INT32 i;
+    UINT32 i;
     UINT32 valueOn = 1;
     UINT16 event_types[] = {SCTP_ASSOC_CHANGE, SCTP_PEER_ADDR_CHANGE, SCTP_REMOTE_ERROR, SCTP_SHUTDOWN_EVENT, SCTP_ADAPTATION_INDICATION, SCTP_PARTIAL_DELIVERY_EVENT};
 

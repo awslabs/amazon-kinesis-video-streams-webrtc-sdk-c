@@ -395,7 +395,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS dtlsSessionPutApplicationData(PDtlsSession pDtlsSession, PBYTE pData, UINT32 dataLen)
+STATUS dtlsSessionPutApplicationData(PDtlsSession pDtlsSession, PBYTE pData, INT32 dataLen)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;

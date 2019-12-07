@@ -85,7 +85,7 @@ STATUS dtlsSessionIsInitFinished(PDtlsSession, PBOOL);
 STATUS dtlsSessionPopulateKeyingMaterial(PDtlsSession, PDtlsKeyingMaterial);
 STATUS dtlsSessionGenerateLocalCertificateFingerprint(PDtlsSession, PCHAR, UINT32);
 STATUS dtlsSessionVerifyRemoteCertificateFingerprint(PDtlsSession, PCHAR);
-STATUS dtlsSessionPutApplicationData(PDtlsSession, PBYTE, UINT32);
+STATUS dtlsSessionPutApplicationData(PDtlsSession, PBYTE, INT32);
 STATUS dtlsCheckOutgoingDataBuffer(PDtlsSession);
 
 #pragma pack(pop, include_i)

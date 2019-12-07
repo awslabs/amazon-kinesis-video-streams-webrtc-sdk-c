@@ -278,7 +278,7 @@ VOID onNewIceLocalCandidate(UINT64 customData, PCHAR candidateSdpStr)
     if (candidateSdpStr != NULL) {
         strCompleteLen = SNPRINTF(jsonStrBuffer, ARRAY_SIZE(jsonStrBuffer), ICE_CANDIDATE_JSON_TEMPLATE, candidateSdpStr);
         CHK(strCompleteLen > 0, STATUS_INTERNAL_ERROR);
-        CHK(strCompleteLen < ARRAY_SIZE(jsonStrBuffer), STATUS_BUFFER_TOO_SMALL);
+        CHK(strCompleteLen < (INT32) ARRAY_SIZE(jsonStrBuffer), STATUS_BUFFER_TOO_SMALL);
         pIceCandidateStr = jsonStrBuffer;
     }
 
@@ -638,7 +638,7 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
         if (STRCMP(pSessionDescription->sdpAttributes[i].attributeName, "fingerprint") == 0) {
             STRNCPY(pKvsPeerConnection->remoteCertificateFingerprint, pSessionDescription->sdpAttributes[i].attributeValue + 8, CERTIFICATE_FINGERPRINT_LENGTH);
         } else if (pKvsPeerConnection->isOffer && STRCMP(pSessionDescription->sdpAttributes[i].attributeName, "setup") == 0) {
-            pKvsPeerConnection->dtlsIsServer = STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeValue, "active") == 0;
+            pKvsPeerConnection->dtlsIsServer = STRCMP(pSessionDescription->sdpAttributes[i].attributeValue, "active") == 0;
         }
     }
 

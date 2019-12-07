@@ -1346,7 +1346,7 @@ STATUS iceCandidateSerialize(PIceCandidate pIceCandidate, PCHAR pOutputData, PUI
             *pOutputLength = ((UINT32) amountWritten) + 1; // +1 for null terminator
         } else {
             // amountWritten doesnt account for null char
-            CHK(amountWritten < *pOutputLength, STATUS_BUFFER_TOO_SMALL);
+            CHK(amountWritten < (INT32) *pOutputLength, STATUS_BUFFER_TOO_SMALL);
         }
 
     } else {

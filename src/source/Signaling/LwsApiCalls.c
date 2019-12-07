@@ -165,7 +165,7 @@ INT32 lwsHttpCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
 
             size = lws_write(wsi, (PBYTE) pBuffer, (SIZE_T) pRequestInfo->bodySize, LWS_WRITE_TEXT);
 
-            if (size != pRequestInfo->bodySize) {
+            if (size != (INT32)pRequestInfo->bodySize) {
                 DLOGW("Failed to write out the body of POST request entirely. Expected to write %d, wrote %d",
                       pRequestInfo->bodySize, size);
                 if (size > 0) {
@@ -508,7 +508,7 @@ STATUS describeChannelLws(PSignalingClient pSignalingClient, UINT64 time)
     jsmn_parser parser;
     jsmntok_t tokens[MAX_JSON_TOKEN_COUNT];
     UINT32 i, strLen, resultLen;
-    INT32 tokenCount;
+    UINT32 tokenCount;
     UINT64 messageTtl;
     BOOL jsonInChannelDescription = FALSE, jsonInMvConfiguration = FALSE;
 
@@ -652,7 +652,7 @@ STATUS createChannelLws(PSignalingClient pSignalingClient, UINT64 time)
     PLwsCallInfo pLwsCallInfo = NULL;
     jsmn_parser parser;
     jsmntok_t tokens[MAX_JSON_TOKEN_COUNT];
-    INT32 tokenCount;
+    UINT32 tokenCount;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
@@ -761,7 +761,7 @@ STATUS getChannelEndpointLws(PSignalingClient pSignalingClient, UINT64 time)
     PLwsCallInfo pLwsCallInfo = NULL;
     jsmn_parser parser;
     jsmntok_t tokens[MAX_JSON_TOKEN_COUNT];
-    INT32 tokenCount;
+    UINT32 tokenCount;
     BOOL jsonInResourceEndpointList = FALSE, protocol = FALSE, endpoint = FALSE, inEndpointArray = FALSE;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
@@ -899,8 +899,8 @@ STATUS getIceConfigLws(PSignalingClient pSignalingClient, UINT64 time)
     jsmn_parser parser;
     jsmntok_t tokens[MAX_JSON_TOKEN_COUNT];
     jsmntok_t *pToken;
-    UINT32 i, j, strLen, resultLen, configCount = 0;
-    INT32 tokenCount;
+    UINT32 i, strLen, resultLen, configCount = 0, tokenCount;
+    INT32 j;
     UINT64 ttl;
     BOOL jsonInIceServerList = FALSE;
 
@@ -1425,7 +1425,7 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
     jsmn_parser parser;
     jsmntok_t tokens[MAX_JSON_TOKEN_COUNT];
     UINT32 i, strLen, outLen = MAX_SIGNALING_MESSAGE_LEN;
-    INT32 tokenCount;
+    UINT32 tokenCount;
     PSignalingMessageWrapper pSignalingMessageWrapper = NULL;
     TID receivedTid = INVALID_TID_VALUE;
     BOOL parsedMessageType = FALSE, parsedStatusResponse = FALSE;
