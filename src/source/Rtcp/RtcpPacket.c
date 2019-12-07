@@ -35,9 +35,10 @@ CleanUp:
 STATUS rtcpNackListGet(PBYTE pPayload, UINT32 payloadLen, PUINT32 pSenderSsrc, PUINT32 pReceiverSsrc, PUINT16 pSequenceNumberList, PUINT32 pSequenceNumberListLen) {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    INT32 i = RTCP_NACK_LIST_LEN, j;
+    INT32 j;
     UINT16 currentSequenceNumber;
     UINT16 sequenceNumberCount = 0, BLP;
+    UINT32 i = RTCP_NACK_LIST_LEN;
 
 
     CHK(pPayload != NULL && pSequenceNumberListLen != NULL && pSenderSsrc != NULL && pReceiverSsrc != NULL, STATUS_NULL_ARG);
