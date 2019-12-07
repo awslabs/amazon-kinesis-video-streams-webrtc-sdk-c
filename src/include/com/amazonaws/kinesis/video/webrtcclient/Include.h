@@ -1175,6 +1175,13 @@ PUBLIC_API STATUS freeTransceiver(PRtcRtpTransceiver*);
 PUBLIC_API STATUS initKvsWebRtc(VOID);
 
 /*
+ * deinitKvsWebRtc deinitializes global state needed for all RtcPeerConnection's it must only be called once
+ *
+ * @return - STATUS code of the execution
+ */
+PUBLIC_API STATUS deinitKvsWebRtc(VOID);
+
+/*
  * addSupportedCodec adds to the list of codecs we support receiving. The remote MUST only send codecs we declare
  *
  * @param - RTC_CODEC - IN - Codec that we support receiving.

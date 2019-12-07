@@ -866,10 +866,20 @@ STATUS initKvsWebRtc(VOID)
     // SSL_library_init() always returns "1", so it is safe to discard the return value.
     UNUSED_PARAM(SSL_library_init());
 
-    usrsctp_init(0, &onSctpOutboundPacket, NULL);
+    CHK_STATUS(initSctpSession());
+CleanUp:
 
-    // Disable Explicit Congestion Notification
-    usrsctp_sysctl_set_sctp_ecn_enable(0);
+    LEAVES();
+    return retStatus;
+
+}
+
+STATUS deinitKvsWebRtc(VOID)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+
+    deinitSctpSession();
 
 CleanUp:
 
