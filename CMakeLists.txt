@@ -432,8 +432,8 @@ target_link_libraries(kvsWebrtcClientViewer kvsWebrtcClient
                       kvsWebrtcSignalingClient)
 
 if(COMPILER_WARNINGS)
-  target_compile_options(kvsWebrtcClient PUBLIC -Wall -Werror -pedantic -Wextra)
-  target_compile_options(kvsWebrtcSignalingClient PUBLIC -Wall -Werror -pedantic -Wextra)
+  target_compile_options(kvsWebrtcClient PUBLIC -Wall -Werror -pedantic -Wextra -Wno-unknown-warning-option)
+  target_compile_options(kvsWebrtcSignalingClient PUBLIC -Wall -Werror -pedantic -Wextra -Wno-unknown-warning-option)
 endif()
 
 if(GST_FOUND)

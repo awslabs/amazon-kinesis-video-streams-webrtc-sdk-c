@@ -79,7 +79,7 @@ STATUS createSctpSession(PSctpSessionCallbacks pSctpSessionCallbacks, PSctpSessi
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSctpSession pSctpSession = NULL;
-    struct sockaddr_conn localConn = {0}, remoteConn = {0};
+    struct sockaddr_conn localConn, remoteConn;
     struct sctp_paddrparams params;
     INT32 connectStatus = 0;
 
@@ -87,6 +87,10 @@ STATUS createSctpSession(PSctpSessionCallbacks pSctpSessionCallbacks, PSctpSessi
 
     pSctpSession = (PSctpSession) MEMALLOC(SIZEOF(SctpSession));
     CHK(pSctpSession != NULL, STATUS_NOT_ENOUGH_MEMORY);
+
+    MEMSET(&params, 0x00, SIZEOF(struct sctp_paddrparams));
+    MEMSET(&localConn, 0x00, SIZEOF(struct sockaddr_conn));
+    MEMSET(&remoteConn, 0x00, SIZEOF(struct sockaddr_conn));
 
     pSctpSession->sctpSessionCallbacks = *pSctpSessionCallbacks;
 
@@ -102,7 +106,6 @@ STATUS createSctpSession(PSctpSessionCallbacks pSctpSessionCallbacks, PSctpSessi
     connectStatus = usrsctp_connect(pSctpSession->socket, (struct sockaddr*) &remoteConn, SIZEOF(remoteConn));
     CHK(connectStatus >= 0 || errno == EINPROGRESS, STATUS_SCTP_SESSION_SETUP_FAILED);
 
-    MEMSET(&params, 0x00, SIZEOF(struct sctp_paddrparams));
     memcpy(&params.spp_address, &remoteConn, SIZEOF(remoteConn));
     params.spp_flags = SPP_PMTUD_DISABLE;
     params.spp_pathmtu = SCTP_MTU;
@@ -150,9 +153,11 @@ STATUS sctpSessionWriteMessage(PSctpSession pSctpSession, UINT32 streamId, BOOL 
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    struct sctp_sendv_spa spa = {0};
+    struct sctp_sendv_spa spa;
 
     CHK(pSctpSession != NULL && pMessage != NULL, STATUS_NULL_ARG);
+
+    MEMSET(&spa, 0x00, SIZEOF(struct sctp_sendv_spa));
     spa.sendv_flags |= SCTP_SEND_SNDINFO_VALID;
     spa.sendv_sndinfo.snd_sid = streamId;
 

@@ -98,7 +98,9 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         UINT32 i;
         UINT64 randomDelay;
         PSocketConnection pSocketConnection = NULL;
-        KvsIpAddress localhost = {0};
+        KvsIpAddress localhost;
+
+        MEMSET(&localhost, 0x00, SIZEOF(KvsIpAddress));
 
         localhost.family = KVS_IP_FAMILY_TYPE_IPV4;
         localhost.isPointToPoint = FALSE;
@@ -122,13 +124,16 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
     TEST_F(IceFunctionalityTest, connectionListenerFunctionalityTest)
     {
         PConnectionListener pConnectionListener;
-        ConnectionListenerTestCustomData routine1CustomData = {0};
-        ConnectionListenerTestCustomData routine2CustomData = {0};
+        ConnectionListenerTestCustomData routine1CustomData, routine2CustomData;
         TID routine1, routine2;
         UINT32 connectionCount = 0, newConnectionCount = 0;
         PSocketConnection pSocketConnection = NULL;
-        KvsIpAddress localhost = {0};
+        KvsIpAddress localhost;
         PDoubleListNode pCurNode;
+
+        MEMSET(&routine1CustomData, 0x0, SIZEOF(ConnectionListenerTestCustomData));
+        MEMSET(&routine2CustomData, 0x0, SIZEOF(ConnectionListenerTestCustomData));
+        MEMSET(&localhost, 0x0, SIZEOF(KvsIpAddress));
 
         localhost.family = KVS_IP_FAMILY_TYPE_IPV4;
         localhost.isPointToPoint = FALSE;
@@ -207,7 +212,9 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
     TEST_F(IceFunctionalityTest, IceAgentUpdateCandidateAddressUnitTest)
     {
         IceCandidate localCandidate;
-        KvsIpAddress newIpAddress = {0};
+        KvsIpAddress newIpAddress;
+
+        MEMSET(&newIpAddress, 0x0, SIZEOF(KvsIpAddress));
 
         newIpAddress.port = 8080;
         newIpAddress.family = KVS_IP_FAMILY_TYPE_IPV4;

@@ -8,7 +8,6 @@ class RtcpFunctionalityTest : public WebRtcClientTestBase {
 TEST_F(RtcpFunctionalityTest, setRtpPacketFromBytes)
 {
     RtcpPacket rtcpPacket;
-    STATUS retStatus = STATUS_SUCCESS;
 
     MEMSET(&rtcpPacket, 0x00, SIZEOF(RtcpPacket));
 

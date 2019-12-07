@@ -8,7 +8,9 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
     TEST_F(IceApiTest, ConnectionListenerApiTest)
     {
         PConnectionListener pConnectionListener = NULL;
-        SocketConnection dummySocketConnection = {0};
+        SocketConnection dummySocketConnection;
+
+        MEMSET(&dummySocketConnection, 0x0, SIZEOF(SocketConnection));
 
         EXPECT_NE(STATUS_SUCCESS, createConnectionListener(NULL));
         EXPECT_NE(STATUS_SUCCESS, freeConnectionListener(NULL));
@@ -35,9 +37,13 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         BYTE testBuffer[1000], testPassword[30];
         UINT32 testBufferLen = ARRAY_SIZE(testBuffer), testPasswordLen = ARRAY_SIZE(testPassword);
         PStunPacket pStunPacket;
-        KvsIpAddress testIpAddr = {0};
-        SocketConnection testSocketConn = {0};
-        TurnConnection testTurnConn = {0};
+        KvsIpAddress testIpAddr;
+        SocketConnection testSocketConn;
+        TurnConnection testTurnConn;
+
+        MEMSET(&testIpAddr, 0x0, SIZEOF(KvsIpAddress));
+        MEMSET(&testSocketConn, 0x0, SIZEOF(SocketConnection));
+        MEMSET(&testTurnConn, 0x0, SIZEOF(TurnConnection));
 
         EXPECT_NE(STATUS_SUCCESS, createTransactionIdStore(20, NULL));
         EXPECT_NE(STATUS_SUCCESS, createTransactionIdStore(0, &pTransactionIdStore));
@@ -73,12 +79,14 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
 
     TEST_F(IceApiTest, IceUtilPopulateIpFromStringTest)
     {
-        KvsIpAddress kvsIpAddress = {0};
+        KvsIpAddress kvsIpAddress;
         PCHAR ipString = (PCHAR) "16.213.65.123";
         BYTE expectIpAddr[IPV4_ADDRESS_LENGTH] = {0x10, 0xD5, 0x41, 0x7B};
         PCHAR ipString2 = (PCHAR) "255.255.255.255";
         PCHAR ipString2Longer = (PCHAR) "255.255.255.255 34388 222.222.222.222";
         BYTE expectIpAddr2[IPV4_ADDRESS_LENGTH] = {0xFF, 0xFF, 0xFF, 0xFF};
+
+        MEMSET(&kvsIpAddress, 0x0, SIZEOF(KvsIpAddress));
 
         EXPECT_NE(STATUS_SUCCESS, populateIpFromString(NULL, NULL));
         EXPECT_NE(STATUS_SUCCESS, populateIpFromString(&kvsIpAddress, NULL));

@@ -13,12 +13,12 @@ UINT64 gTotalWebRtcClientMemoryUsage = 0;
 MUTEX gTotalWebRtcClientMemoryMutex;
 
 WebRtcClientTestBase::WebRtcClientTestBase() :
-        mAccessKeyIdSet(FALSE),
-        mCaCertPath(NULL),
         mAccessKey(NULL),
         mSecretKey(NULL),
         mSessionToken(NULL),
-        mRegion(NULL)
+        mRegion(NULL),
+        mCaCertPath(NULL),
+        mAccessKeyIdSet(FALSE)
 {
     // Initialize the endianness of the library
     initializeEndianness();

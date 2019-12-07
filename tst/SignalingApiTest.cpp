@@ -11,7 +11,6 @@ public:
         ChannelInfo channelInfo;
         SignalingClientCallbacks signalingClientCallbacks;
         SignalingClientInfo clientInfo;
-        PSignalingClient pSignalingClient;
         Tag tags[3];
         STATUS retStatus;
 
