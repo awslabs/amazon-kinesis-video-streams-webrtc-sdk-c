@@ -202,6 +202,7 @@ STATUS respondWithAnswer(PSampleConfiguration pSampleConfiguration)
     message.messageType = SIGNALING_MESSAGE_TYPE_ANSWER;
     STRCPY(message.peerClientId, pSampleConfiguration->peerId);
     message.payloadLen = (UINT32) STRLEN(message.payload);
+    message.correlationId[0] = '\0';
 
     retStatus = signalingClientSendMessageSync(pSampleConfiguration->signalingClientHandle, &message);
 
@@ -246,6 +247,7 @@ VOID onIceCandidateHandler(UINT64 customData, PCHAR candidateJson)
         STRCPY(message.peerClientId, pSampleConfiguration->peerId);
         message.payloadLen = (UINT32) STRLEN(candidateJson);
         STRCPY(message.payload, candidateJson);
+        message.correlationId[0] = '\0';
         CHK_STATUS(signalingClientSendMessageSync(pSampleConfiguration->signalingClientHandle, &message));
     }
 

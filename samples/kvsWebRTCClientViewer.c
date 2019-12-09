@@ -53,6 +53,7 @@ INT32 main(INT32 argc, CHAR *argv[])
     message.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
     STRCPY(message.peerClientId, SAMPLE_MASTER_CLIENT_ID);
     message.payloadLen = (buffLen / SIZEOF(CHAR)) - 1;
+    message.correlationId[0] = '\0';
 
     CHK_STATUS(signalingClientSendMessageSync(pSampleConfiguration->signalingClientHandle, &message));
 

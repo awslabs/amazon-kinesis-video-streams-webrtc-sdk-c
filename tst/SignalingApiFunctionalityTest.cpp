@@ -327,6 +327,7 @@ TEST_F(SignalingApiFunctionalityTest, DISABLED_mockViewer)
     MEMSET(message.payload, 'A', 100);
     message.payload[100] = '\0';
     message.payloadLen = 0;
+    message.correlationId[0] = '\0';
 
     EXPECT_EQ(expectedStatus, signalingClientSendMessageSync(signalingHandle, &message));
 
@@ -697,6 +698,7 @@ TEST_F(SignalingApiFunctionalityTest, DISABLED_iceReconnectEmulation)
     MEMSET(signalingMessage.payload, 'A', 100);
     signalingMessage.payload[100] = '\0';
     signalingMessage.payloadLen = 0;
+    signalingMessage.correlationId[0] = '\0';
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(signalingHandle, &signalingMessage));
 
@@ -775,6 +777,7 @@ TEST_F(SignalingApiFunctionalityTest, DISABLED_goAwayEmulation)
     MEMSET(signalingMessage.payload, 'A', 100);
     signalingMessage.payload[100] = '\0';
     signalingMessage.payloadLen = 0;
+    signalingMessage.correlationId[0] = '\0';
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(signalingHandle, &signalingMessage));
 
@@ -856,6 +859,8 @@ TEST_F(SignalingApiFunctionalityTest, DISABLED_unknownMessageTypeEmulation)
     MEMSET(signalingMessage.payload, 'A', 100);
     signalingMessage.payload[100] = '\0';
     signalingMessage.payloadLen = 0;
+    signalingMessage.correlationId[0] = '\0';
+
     EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(signalingHandle, &signalingMessage));
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));

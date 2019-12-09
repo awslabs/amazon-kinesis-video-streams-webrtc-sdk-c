@@ -83,6 +83,7 @@ TEST_F(SignalingApiTest, DISABLED_signalingSendMessageSync)
     MEMSET(signalingMessage.payload, 'A', 100);
     signalingMessage.payload[100] = '\0';
     signalingMessage.payloadLen = 0;
+    signalingMessage.correlationId[0] = '\0';
 
     EXPECT_NE(STATUS_SUCCESS, signalingClientSendMessageSync(INVALID_SIGNALING_CLIENT_HANDLE_VALUE, &signalingMessage));
     EXPECT_NE(STATUS_SUCCESS, signalingClientSendMessageSync(mSignalingClientHandle, NULL));
