@@ -276,7 +276,6 @@ INT32 lwsWssCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
             ATOMIC_STORE_BOOL(&pRequestInfo->terminating, TRUE);
             connected = ATOMIC_EXCHANGE_BOOL(&pSignalingClient->connected, FALSE);
 
-            // CVAR_BROADCAST(pSignalingClient->connectedCvar);
             CVAR_BROADCAST(pSignalingClient->receiveCvar);
             CVAR_BROADCAST(pSignalingClient->sendCvar);
             ATOMIC_STORE(&pSignalingClient->messageResult, (SIZE_T) SERVICE_CALL_UNKNOWN);
@@ -310,7 +309,6 @@ INT32 lwsWssCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
             ATOMIC_STORE_BOOL(&pRequestInfo->terminating, TRUE);
             connected = ATOMIC_EXCHANGE_BOOL(&pSignalingClient->connected, FALSE);
 
-            // CVAR_BROADCAST(pSignalingClient->connectedCvar);
             CVAR_BROADCAST(pSignalingClient->receiveCvar);
             CVAR_BROADCAST(pSignalingClient->sendCvar);
             ATOMIC_STORE(&pSignalingClient->messageResult, (SIZE_T) SERVICE_CALL_UNKNOWN);
@@ -347,8 +345,6 @@ INT32 lwsWssCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
             ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) status);
             ATOMIC_STORE_BOOL(&pSignalingClient->connected, FALSE);
             ATOMIC_STORE_BOOL(&pRequestInfo->terminating, TRUE);
-
-            // CVAR_BROADCAST(pSignalingClient->connectedCvar);
 
             break;
 

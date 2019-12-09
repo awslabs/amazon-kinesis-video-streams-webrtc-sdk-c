@@ -111,9 +111,6 @@ TEST_F(SignalingApiFunctionalityTest, basicCreateConnectFree)
     EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
     EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
 
-    // Introducing a short delay as TSAN seem to trip for no reason
-    THREAD_SLEEP(1 * HUNDREDS_OF_NANOS_IN_A_SECOND);
-
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
