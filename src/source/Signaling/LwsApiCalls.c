@@ -27,6 +27,8 @@ INT32 lwsHttpCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
     UINT64 item;
     UINT32 headerCount;
     PRequestHeader pRequestHeader;
+    PSignalingClient pSignalingClient = NULL;
+    BOOL locked = FALSE;
 
     DLOGV("HTTPS callback with reason %d", reason);
 
@@ -39,11 +41,16 @@ INT32 lwsHttpCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
         pLwsCallInfo->pSignalingClient != NULL &&
         pLwsCallInfo->pSignalingClient->pLwsContext != NULL &&
         pLwsCallInfo->callInfo.pRequestInfo != NULL, retStatus);
+
+    pSignalingClient = pLwsCallInfo->pSignalingClient;
     pRequestInfo = pLwsCallInfo->callInfo.pRequestInfo;
     pBuffer = pLwsCallInfo->buffer + LWS_PRE;
 
     switch (reason) {
         case LWS_CALLBACK_CLIENT_CONNECTION_ERROR:
+            MUTEX_LOCK(pSignalingClient->lwsServiceLock);
+            locked = TRUE;
+
             pCurPtr = pDataIn == NULL ? "(None)" : (PCHAR) pDataIn;
             DLOGW("Client connection failed. Connection error string: %s", pCurPtr);
             STRNCPY(pLwsCallInfo->callInfo.errorBuffer, pCurPtr, CALL_INFO_ERROR_BUFFER_LEN);
@@ -59,11 +66,17 @@ INT32 lwsHttpCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
         case LWS_CALLBACK_CLOSED_CLIENT_HTTP:
             DLOGD("Client http closed");
 
+            MUTEX_LOCK(pSignalingClient->lwsServiceLock);
+            locked = TRUE;
+
             ATOMIC_STORE_BOOL(&pRequestInfo->terminating, TRUE);
 
             break;
 
         case LWS_CALLBACK_ESTABLISHED_CLIENT_HTTP:
+            MUTEX_LOCK(pSignalingClient->lwsServiceLock);
+            locked = TRUE;
+
             status = lws_http_client_http_response(wsi);
             DLOGD("Connected with server response: %d", status);
 
@@ -82,6 +95,9 @@ INT32 lwsHttpCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
             break;
 
         case LWS_CALLBACK_RECEIVE_CLIENT_HTTP_READ:
+            MUTEX_LOCK(pSignalingClient->lwsServiceLock);
+            locked = TRUE;
+
             DLOGD("Received client http read: %d bytes", (INT32) dataSize);
             lwsl_hexdump_notice(pDataIn, dataSize);
 
@@ -98,6 +114,9 @@ INT32 lwsHttpCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
             DLOGD("Received client http");
             size = LWS_SCRATCH_BUFFER_SIZE;
 
+            MUTEX_LOCK(pSignalingClient->lwsServiceLock);
+            locked = TRUE;
+
             if (lws_http_client_read(wsi, &pBuffer, &size) < 0) {
                 retValue = -1;
             }
@@ -107,10 +126,16 @@ INT32 lwsHttpCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
         case LWS_CALLBACK_COMPLETED_CLIENT_HTTP:
             DLOGD("Http client completed");
 
+            MUTEX_LOCK(pSignalingClient->lwsServiceLock);
+            locked = TRUE;
+
             break;
 
         case LWS_CALLBACK_CLIENT_APPEND_HANDSHAKE_HEADER:
             DLOGD("Client append handshake header\n");
+
+            MUTEX_LOCK(pSignalingClient->lwsServiceLock);
+            locked = TRUE;
 
             CHK_STATUS(singleListGetNodeCount(pRequestInfo->pRequestHeaders, &headerCount));
             ppStartPtr = (PBYTE*) pDataIn;
@@ -160,6 +185,9 @@ INT32 lwsHttpCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
 
         case LWS_CALLBACK_CLIENT_HTTP_WRITEABLE:
 
+            MUTEX_LOCK(pSignalingClient->lwsServiceLock);
+            locked = TRUE;
+
             DLOGD("Sending the body %.*s, size %d", pRequestInfo->bodySize, pRequestInfo->body, pRequestInfo->bodySize);
             MEMCPY(pBuffer, pRequestInfo->body, pRequestInfo->bodySize);
 
@@ -196,10 +224,14 @@ CleanUp:
 
         lws_cancel_service(lws_get_context(wsi));
 
-        return -1;
-    } else {
-        return retValue;
+        retValue = -1;
     }
+
+    if (locked) {
+        MUTEX_UNLOCK(pSignalingClient->lwsServiceLock);
+    }
+
+    return retValue;
 }
 
 INT32 lwsWssCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
