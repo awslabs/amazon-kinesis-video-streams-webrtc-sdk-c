@@ -276,7 +276,7 @@ INT32 lwsWssCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
             ATOMIC_STORE_BOOL(&pRequestInfo->terminating, TRUE);
             connected = ATOMIC_EXCHANGE_BOOL(&pSignalingClient->connected, FALSE);
 
-            CVAR_BROADCAST(pSignalingClient->connectedCvar);
+            // CVAR_BROADCAST(pSignalingClient->connectedCvar);
             CVAR_BROADCAST(pSignalingClient->receiveCvar);
             CVAR_BROADCAST(pSignalingClient->sendCvar);
             ATOMIC_STORE(&pSignalingClient->messageResult, (SIZE_T) SERVICE_CALL_UNKNOWN);
@@ -310,7 +310,7 @@ INT32 lwsWssCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
             ATOMIC_STORE_BOOL(&pRequestInfo->terminating, TRUE);
             connected = ATOMIC_EXCHANGE_BOOL(&pSignalingClient->connected, FALSE);
 
-            CVAR_BROADCAST(pSignalingClient->connectedCvar);
+            // CVAR_BROADCAST(pSignalingClient->connectedCvar);
             CVAR_BROADCAST(pSignalingClient->receiveCvar);
             CVAR_BROADCAST(pSignalingClient->sendCvar);
             ATOMIC_STORE(&pSignalingClient->messageResult, (SIZE_T) SERVICE_CALL_UNKNOWN);
@@ -348,7 +348,7 @@ INT32 lwsWssCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
             ATOMIC_STORE_BOOL(&pSignalingClient->connected, FALSE);
             ATOMIC_STORE_BOOL(&pRequestInfo->terminating, TRUE);
 
-            CVAR_BROADCAST(pSignalingClient->connectedCvar);
+            // CVAR_BROADCAST(pSignalingClient->connectedCvar);
 
             break;
 
@@ -1264,7 +1264,9 @@ CleanUp:
 
     if (STATUS_FAILED(retStatus) && pSignalingClient != NULL) {
         // Trigger termination
-        if (pSignalingClient->pOngoingCallInfo != NULL && pSignalingClient->pOngoingCallInfo->callInfo.pRequestInfo != NULL) {
+        if (!ATOMIC_LOAD_BOOL(&pSignalingClient->listenerTracker.terminated) &&
+            pSignalingClient->pOngoingCallInfo != NULL &&
+            pSignalingClient->pOngoingCallInfo->callInfo.pRequestInfo != NULL) {
             terminateConnectionWithStatus(pSignalingClient, SERVICE_CALL_UNKNOWN);
         }
 
@@ -1315,12 +1317,12 @@ CleanUp:
             freeLwsCallInfo(&pSignalingClient->pOngoingCallInfo);
         }
 
+        ATOMIC_STORE_BOOL(&pSignalingClient->listenerTracker.terminated, TRUE);
+
         // Trigger the cvar
         if (IS_VALID_CVAR_VALUE(pSignalingClient->connectedCvar)) {
             CVAR_BROADCAST(pSignalingClient->connectedCvar);
         }
-
-        ATOMIC_STORE_BOOL(&pSignalingClient->listenerTracker.terminated, TRUE);
         CVAR_BROADCAST(pSignalingClient->listenerTracker.await);
     }
 
