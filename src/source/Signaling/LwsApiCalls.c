@@ -214,7 +214,7 @@ INT32 lwsWssCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
     PRequestInfo pRequestInfo = NULL;
     PSignalingClient pSignalingClient = NULL;
     SIZE_T offset, bufferSize;
-    BOOL connected;
+    BOOL connected, locked = FALSE;
 
     DLOGV("WSS callback with reason %d", reason);
 
@@ -229,6 +229,9 @@ INT32 lwsWssCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
         pSignalingClient->pOngoingCallInfo->callInfo.pRequestInfo != NULL, retStatus);
     pLwsCallInfo = pSignalingClient->pOngoingCallInfo;
     pRequestInfo = pLwsCallInfo->callInfo.pRequestInfo;
+
+    MUTEX_LOCK(pSignalingClient->lwsServiceLock);
+    locked = TRUE;
 
     switch (reason) {
         case LWS_CALLBACK_CLIENT_CONNECTION_ERROR:
@@ -387,6 +390,10 @@ INT32 lwsWssCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
     }
 
 CleanUp:
+
+    if (locked) {
+        MUTEX_UNLOCK(pSignalingClient->lwsServiceLock);
+    }
 
     if (STATUS_FAILED(retStatus)) {
         DLOGW("Failed in LWS handling routine with 0x%08x", retStatus);
@@ -1360,8 +1367,10 @@ STATUS writeLwsData(PSignalingClient pSignalingClient, BOOL awaitForResponse)
     ATOMIC_STORE(&pSignalingClient->messageResult, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
 
     // Wake up the loop to service
+    MUTEX_LOCK(pSignalingClient->lwsServiceLock);
     lws_callback_on_writable_all_protocol(pSignalingClient->pLwsContext,
                                           &pSignalingClient->signalingProtocols[WSS_SIGNALING_PROTOCOL_INDEX]);
+    MUTEX_UNLOCK(pSignalingClient->lwsServiceLock);
 
     MUTEX_LOCK(pSignalingClient->sendLock);
     sendLocked = TRUE;

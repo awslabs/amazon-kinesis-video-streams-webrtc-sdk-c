@@ -120,6 +120,9 @@ STATUS createSignalingSync(PSignalingClientInfo pClientInfo, PChannelInfo pChann
     pSignalingClient->messageQueueLock = MUTEX_CREATE(TRUE);
     CHK(IS_VALID_MUTEX_VALUE(pSignalingClient->messageQueueLock), STATUS_INVALID_OPERATION);
 
+    pSignalingClient->lwsServiceLock = MUTEX_CREATE(FALSE);
+    CHK(IS_VALID_MUTEX_VALUE(pSignalingClient->lwsServiceLock), STATUS_INVALID_OPERATION);
+
     // Create the ongoing message list
     CHK_STATUS(stackQueueCreate(&pSignalingClient->pMessageQueue));
 
@@ -208,6 +211,10 @@ STATUS freeSignaling(PSignalingClient* ppSignalingClient)
 
     if (IS_VALID_MUTEX_VALUE(pSignalingClient->messageQueueLock)) {
         MUTEX_FREE(pSignalingClient->messageQueueLock);
+    }
+
+    if (IS_VALID_MUTEX_VALUE(pSignalingClient->lwsServiceLock)) {
+        MUTEX_FREE(pSignalingClient->lwsServiceLock);
     }
 
     uninitializeThreadTracker(&pSignalingClient->reconnecterTracker);
