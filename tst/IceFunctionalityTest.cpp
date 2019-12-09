@@ -448,6 +448,36 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         }
     }
 
+    TEST_F(IceFunctionalityTest, IceAgentPruneUnconnectedIceCandidatePairUnitTest)
+    {
+        IceAgent iceAgent;
+        UINT32 i;
+
+        MEMSET(&iceAgent, 0x00, SIZEOF(IceAgent));
+
+        EXPECT_NE(STATUS_SUCCESS, pruneUnconnectedIceCandidatePair(NULL));
+        // candidate pair count can be 0
+        EXPECT_EQ(STATUS_SUCCESS, pruneUnconnectedIceCandidatePair(&iceAgent));
+
+        for (i = 0; i < 5; ++i) {
+            iceAgent.candidatePairs[i] = (PIceCandidatePair) MEMALLOC(SIZEOF(IceCandidatePair));
+            iceAgent.candidatePairs[i]->priority = i * 100;
+            iceAgent.candidatePairs[i]->state = (ICE_CANDIDATE_PAIR_STATE) i;
+            EXPECT_EQ(STATUS_SUCCESS, createTransactionIdStore(DEFAULT_MAX_STORED_TRANSACTION_ID_COUNT,
+                                                               &iceAgent.candidatePairs[i]->pTransactionIdStore));
+        }
+
+        iceAgent.candidatePairCount = 5;
+        EXPECT_EQ(STATUS_SUCCESS, pruneUnconnectedIceCandidatePair(&iceAgent));
+        EXPECT_EQ(1, iceAgent.candidatePairCount);
+        // candidate pair at index 3 is in state ICE_CANDIDATE_PAIR_STATE_SUCCEEDED.
+        // only candidate pair with state ICE_CANDIDATE_PAIR_STATE_SUCCEEDED wont get deleted
+        EXPECT_EQ(300, iceAgent.candidatePairs[0]->priority);
+
+        freeTransactionIdStore(&iceAgent.candidatePairs[0]->pTransactionIdStore);
+        SAFE_MEMFREE(iceAgent.candidatePairs[0]);
+    }
+
 }
 }
 }
