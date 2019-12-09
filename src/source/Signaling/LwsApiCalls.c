@@ -1654,7 +1654,9 @@ STATUS terminateConnectionWithStatus(PSignalingClient pSignalingClient, SERVICE_
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) callResult);
 
     if (pSignalingClient->pLwsContext != NULL) {
+        MUTEX_LOCK(pSignalingClient->lwsServiceLock);
         lws_cancel_service(pSignalingClient->pLwsContext);
+        MUTEX_UNLOCK(pSignalingClient->lwsServiceLock);
     }
 
     CHK_STATUS(awaitForThreadTermination(&pSignalingClient->listenerTracker, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT));
