@@ -610,8 +610,6 @@ STATUS awaitForThreadTermination(PThreadTracker pThreadTracker, UINT64 timeout)
                              timeout));
     }
 
-    pThreadTracker->threadId = INVALID_TID_VALUE;
-
     MUTEX_UNLOCK(pThreadTracker->lock);
     locked = FALSE;
 

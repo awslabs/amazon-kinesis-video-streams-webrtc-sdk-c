@@ -1223,7 +1223,6 @@ CleanUp:
             CVAR_BROADCAST(pSignalingClient->connectedCvar);
         }
 
-        pSignalingClient->listenerTracker.threadId = INVALID_TID_VALUE;
         ATOMIC_STORE_BOOL(&pSignalingClient->listenerTracker.terminated, TRUE);
         CVAR_BROADCAST(pSignalingClient->listenerTracker.await);
     }
