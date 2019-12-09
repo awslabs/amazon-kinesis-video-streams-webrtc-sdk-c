@@ -297,7 +297,7 @@ STATUS fromCreateSignalingState(UINT64 customData, PUINT64 pState)
     CHK(pSignalingClient != NULL && pState != NULL, STATUS_NULL_ARG);
 
     if ((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK) {
-        state = SIGNALING_STATE_GET_ENDPOINT;
+        state = SIGNALING_STATE_DESCRIBE;
     }
 
     *pState = state;

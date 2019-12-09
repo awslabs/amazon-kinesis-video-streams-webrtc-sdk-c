@@ -1025,6 +1025,71 @@ CleanUp:
     return retStatus;
 }
 
+STATUS deleteChannelLws(PSignalingClient pSignalingClient, UINT64 time)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PRequestInfo pRequestInfo = NULL;
+    CHAR url[MAX_URI_CHAR_LEN + 1];
+    CHAR paramsJson[MAX_JSON_PARAMETER_STRING_LEN];
+    PLwsCallInfo pLwsCallInfo = NULL;
+
+    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+    CHK(pSignalingClient->channelDescription.channelArn[0] != '\0', STATUS_INVALID_OPERATION);
+
+    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
+
+    THREAD_SLEEP_UNTIL(time);
+
+    // Check if we need to terminate the ongoing listener
+    if (!ATOMIC_LOAD_BOOL(&pSignalingClient->listenerTracker.terminated)) {
+        // Terminate the listener
+        terminateConnectionWithStatus(pSignalingClient, SERVICE_CALL_RESULT_OK);
+    }
+
+    // Create the API url
+    STRCPY(url, pSignalingClient->pChannelInfo->pControlPlaneUrl);
+    STRCAT(url, DELETE_SIGNALING_CHANNEL_API_POSTFIX);
+
+    // Prepare the json params for the call
+    SNPRINTF(paramsJson, ARRAY_SIZE(paramsJson), DELETE_CHANNEL_PARAM_JSON_TEMPLATE,
+             pSignalingClient->channelDescription.channelArn,
+             pSignalingClient->channelDescription.updateVersion);
+
+    // Create the request info with the body
+    CHK_STATUS(createRequestInfo(url, paramsJson, pSignalingClient->pChannelInfo->pRegion,
+                                 pSignalingClient->pChannelInfo->pCertPath,
+                                 NULL, NULL, SSL_CERTIFICATE_TYPE_NOT_SPECIFIED,
+                                 pSignalingClient->pChannelInfo->pUserAgent,
+                                 SIGNALING_SERVICE_API_CALL_CONNECTION_TIMEOUT,
+                                 SIGNALING_SERVICE_API_CALL_COMPLETION_TIMEOUT,
+                                 DEFAULT_LOW_SPEED_LIMIT, DEFAULT_LOW_SPEED_TIME_LIMIT,
+                                 pSignalingClient->pAwsCredentials,
+                                 &pRequestInfo));
+
+    CHK_STATUS(createLwsCallInfo(pSignalingClient, pRequestInfo, PROTOCOL_INDEX_HTTPS, &pLwsCallInfo));
+
+    // Make a blocking call
+    CHK_STATUS(lwsCompleteSync(pLwsCallInfo));
+
+    // Set the service call result
+    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) pLwsCallInfo->callInfo.callResult);
+
+    // Early return if we have a non-success result
+    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK, retStatus);
+
+CleanUp:
+
+    if (STATUS_FAILED(retStatus)) {
+        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
+    }
+
+    freeLwsCallInfo(&pLwsCallInfo);
+
+    LEAVES();
+    return retStatus;
+}
+
 STATUS createLwsCallInfo(PSignalingClient pSignalingClient, PRequestInfo pRequestInfo, UINT32 protocolIndex, PLwsCallInfo* ppLwsCallInfo)
 {
     ENTERS();

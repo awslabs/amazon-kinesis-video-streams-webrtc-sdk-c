@@ -111,6 +111,8 @@ TEST_F(SignalingApiFunctionalityTest, basicCreateConnectFree)
     EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
     EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
 
+    deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
+
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
 }
 
@@ -237,6 +239,9 @@ TEST_F(SignalingApiFunctionalityTest, mockMaster)
     DLOGI("Awaiting a little for tests termination");
     THREAD_SLEEP(1 * HUNDREDS_OF_NANOS_IN_A_SECOND);
 
+    // Delete the created channel
+    deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
+
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
     EXPECT_FALSE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
 
@@ -342,6 +347,8 @@ TEST_F(SignalingApiFunctionalityTest, mockViewer)
     EXPECT_EQ(expectedStatus, signalingClientSendMessageSync(signalingHandle, &message));
 
     THREAD_SLEEP(1 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+
+    deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
     EXPECT_FALSE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
@@ -623,6 +630,9 @@ TEST_F(SignalingApiFunctionalityTest, invalidChannelInfoInput)
 
     // Should fail
     EXPECT_NE(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
+
+    deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
+
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
 }
 
@@ -702,6 +712,8 @@ TEST_F(SignalingApiFunctionalityTest, iceReconnectEmulation)
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(signalingHandle, &signalingMessage));
 
+    deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
+
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
 }
 
@@ -780,6 +792,8 @@ TEST_F(SignalingApiFunctionalityTest, goAwayEmulation)
     signalingMessage.correlationId[0] = '\0';
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(signalingHandle, &signalingMessage));
+
+    deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
 }
@@ -862,6 +876,8 @@ TEST_F(SignalingApiFunctionalityTest, unknownMessageTypeEmulation)
     signalingMessage.correlationId[0] = '\0';
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(signalingHandle, &signalingMessage));
+
+    deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
 }

@@ -79,7 +79,7 @@ void WebRtcClientTestBase::SetUp()
     // replacing a potentially bad characters with '.'
     STRCPY(mChannelName, TEST_SIGNALING_CHANNEL_NAME);
     UINT32 testNameLen = STRLEN(TEST_SIGNALING_CHANNEL_NAME);
-    gethostname(mChannelName + testNameLen, MAX_CHANNEL_NAME_LEN - testNameLen);
+    generateJSONSafeString(mChannelName + testNameLen, 16);
 
     // Replace any potentially "bad" characters
     PCHAR pCur = &mChannelName[testNameLen];

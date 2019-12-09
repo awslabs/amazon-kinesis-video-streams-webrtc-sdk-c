@@ -99,6 +99,8 @@ VOID onSctpSessionDataChannelOpen(UINT64, UINT32, PBYTE, UINT32);
 
 STATUS sendPacketToRtpReceiver(PKvsPeerConnection, PBYTE, UINT32);
 
+STATUS generateJSONSafeString(PCHAR, UINT32);
+
 #pragma pack(pop, include_i)
 
 #ifdef  __cplusplus
