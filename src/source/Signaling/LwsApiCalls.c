@@ -391,10 +391,6 @@ INT32 lwsWssCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
 
 CleanUp:
 
-    if (locked) {
-        MUTEX_UNLOCK(pSignalingClient->lwsServiceLock);
-    }
-
     if (STATUS_FAILED(retStatus)) {
         DLOGW("Failed in LWS handling routine with 0x%08x", retStatus);
         if (pRequestInfo != NULL) {
@@ -403,10 +399,14 @@ CleanUp:
 
         lws_cancel_service(lws_get_context(wsi));
 
-        return -1;
-    } else {
-        return retValue;
+        retValue = -1;
     }
+
+    if (locked) {
+        MUTEX_UNLOCK(pSignalingClient->lwsServiceLock);
+    }
+
+    return retValue;
 }
 
 STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)

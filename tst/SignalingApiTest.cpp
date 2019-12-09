@@ -121,7 +121,6 @@ TEST_F(SignalingApiTest, signalingClientConnectSync)
     EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(mSignalingClientHandle));
     EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(mSignalingClientHandle));
 
-
     deinitialize();
 }
 

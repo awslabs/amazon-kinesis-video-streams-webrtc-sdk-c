@@ -80,6 +80,7 @@ void WebRtcClientTestBase::SetUp()
     STRCPY(mChannelName, TEST_SIGNALING_CHANNEL_NAME);
     UINT32 testNameLen = STRLEN(TEST_SIGNALING_CHANNEL_NAME);
     generateJSONSafeString(mChannelName + testNameLen, 16);
+    mChannelName[testNameLen + 16] = '\0';
 
     // Replace any potentially "bad" characters
     PCHAR pCur = &mChannelName[testNameLen];
