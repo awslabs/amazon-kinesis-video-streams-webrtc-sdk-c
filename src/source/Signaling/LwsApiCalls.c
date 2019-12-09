@@ -1074,8 +1074,9 @@ STATUS deleteChannelLws(PSignalingClient pSignalingClient, UINT64 time)
     THREAD_SLEEP_UNTIL(time);
 
     // Check if we need to terminate the ongoing listener
-    if (!ATOMIC_LOAD_BOOL(&pSignalingClient->listenerTracker.terminated)) {
-        // Terminate the listener
+    if (!ATOMIC_LOAD_BOOL(&pSignalingClient->listenerTracker.terminated) &&
+        pSignalingClient->pOngoingCallInfo != NULL &&
+        pSignalingClient->pOngoingCallInfo->callInfo.pRequestInfo != NULL) {
         terminateConnectionWithStatus(pSignalingClient, SERVICE_CALL_RESULT_OK);
     }
 
