@@ -133,7 +133,10 @@ typedef struct {
     // Restarted thread handler
     ThreadTracker reconnecterTracker;
 
-    // LWS context to use
+    // LWS context to use for Restful API
+    struct lws_context* pHttpsContext;
+
+    // LWS context to use for Restful API
     struct lws_context* pLwsContext;
 
     // Signaling protocols

@@ -92,6 +92,7 @@ STATUS createSignalingSync(PSignalingClientInfo pClientInfo, PChannelInfo pChann
     creationInfo.ws_ping_pong_interval = SIGNALING_SERVICE_WSS_PING_PONG_INTERVAL_IN_SECONDS;
 
     CHK(NULL != (pSignalingClient->pLwsContext = lws_create_context(&creationInfo)), STATUS_SIGNALING_LWS_CREATE_CONTEXT_FAILED);
+    CHK(NULL != (pSignalingClient->pHttpsContext = lws_create_context(&creationInfo)), STATUS_SIGNALING_LWS_CREATE_CONTEXT_FAILED);
 
     ATOMIC_STORE_BOOL(&pSignalingClient->clientReady, FALSE);
     ATOMIC_STORE_BOOL(&pSignalingClient->shutdown, FALSE);
@@ -171,6 +172,9 @@ STATUS freeSignaling(PSignalingClient* ppSignalingClient)
 
     // Terminate the listener thread if alive
     terminateLwsListenerLoop(pSignalingClient);
+
+    lws_context_destroy(pSignalingClient->pHttpsContext);
+    pSignalingClient->pHttpsContext = NULL;
 
     // Await for the reconnect thread to exit
     awaitForThreadTermination(&pSignalingClient->reconnecterTracker, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT);
@@ -424,6 +428,7 @@ STATUS refreshIceConfigurationCallback(UINT32 timerId, UINT64 scheduledTime, UIN
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
+    PStateMachineState pStateMachineState;
     PSignalingClient pSignalingClient = (PSignalingClient) customData;
 
     UNUSED_PARAM(timerId);
@@ -431,8 +436,15 @@ STATUS refreshIceConfigurationCallback(UINT32 timerId, UINT64 scheduledTime, UIN
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
+    DLOGD("Refreshing the ICE Server Configuration");
+
+    // Check if we are in a connected state and if not bail
+    CHK_STATUS(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pStateMachineState));
+    CHK(pStateMachineState->state == SIGNALING_STATE_CONNECTED, retStatus);
+
     // Kick off refresh of the ICE configurations
-    CHK_STATUS(terminateConnectionWithStatus(pSignalingClient, SERVICE_CALL_RESULT_SIGNALING_RECONNECT_ICE));
+    ATOMIC_STORE(&pSignalingClient->result, SERVICE_CALL_RESULT_SIGNALING_RECONNECT_ICE);
+    // CHK_STATUS(terminateConnectionWithStatus(pSignalingClient, SERVICE_CALL_RESULT_SIGNALING_RECONNECT_ICE));
 
     // Iterate the state machinery
     CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
