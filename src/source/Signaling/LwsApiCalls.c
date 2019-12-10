@@ -27,6 +27,8 @@ INT32 lwsHttpCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
     UINT64 item;
     UINT32 headerCount;
     PRequestHeader pRequestHeader;
+    PSignalingClient pSignalingClient = NULL;
+    BOOL locked = FALSE;
 
     DLOGV("HTTPS callback with reason %d", reason);
 
@@ -39,11 +41,16 @@ INT32 lwsHttpCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
         pLwsCallInfo->pSignalingClient != NULL &&
         pLwsCallInfo->pSignalingClient->pLwsContext != NULL &&
         pLwsCallInfo->callInfo.pRequestInfo != NULL, retStatus);
+
+    pSignalingClient = pLwsCallInfo->pSignalingClient;
     pRequestInfo = pLwsCallInfo->callInfo.pRequestInfo;
     pBuffer = pLwsCallInfo->buffer + LWS_PRE;
 
     switch (reason) {
         case LWS_CALLBACK_CLIENT_CONNECTION_ERROR:
+            MUTEX_LOCK(pSignalingClient->lwsServiceLock);
+            locked = TRUE;
+
             pCurPtr = pDataIn == NULL ? "(None)" : (PCHAR) pDataIn;
             DLOGW("Client connection failed. Connection error string: %s", pCurPtr);
             STRNCPY(pLwsCallInfo->callInfo.errorBuffer, pCurPtr, CALL_INFO_ERROR_BUFFER_LEN);
@@ -59,11 +66,17 @@ INT32 lwsHttpCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
         case LWS_CALLBACK_CLOSED_CLIENT_HTTP:
             DLOGD("Client http closed");
 
+            MUTEX_LOCK(pSignalingClient->lwsServiceLock);
+            locked = TRUE;
+
             ATOMIC_STORE_BOOL(&pRequestInfo->terminating, TRUE);
 
             break;
 
         case LWS_CALLBACK_ESTABLISHED_CLIENT_HTTP:
+            MUTEX_LOCK(pSignalingClient->lwsServiceLock);
+            locked = TRUE;
+
             status = lws_http_client_http_response(wsi);
             DLOGD("Connected with server response: %d", status);
 
@@ -82,6 +95,9 @@ INT32 lwsHttpCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
             break;
 
         case LWS_CALLBACK_RECEIVE_CLIENT_HTTP_READ:
+            MUTEX_LOCK(pSignalingClient->lwsServiceLock);
+            locked = TRUE;
+
             DLOGD("Received client http read: %d bytes", (INT32) dataSize);
             lwsl_hexdump_notice(pDataIn, dataSize);
 
@@ -98,6 +114,9 @@ INT32 lwsHttpCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
             DLOGD("Received client http");
             size = LWS_SCRATCH_BUFFER_SIZE;
 
+            MUTEX_LOCK(pSignalingClient->lwsServiceLock);
+            locked = TRUE;
+
             if (lws_http_client_read(wsi, &pBuffer, &size) < 0) {
                 retValue = -1;
             }
@@ -107,10 +126,16 @@ INT32 lwsHttpCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
         case LWS_CALLBACK_COMPLETED_CLIENT_HTTP:
             DLOGD("Http client completed");
 
+            MUTEX_LOCK(pSignalingClient->lwsServiceLock);
+            locked = TRUE;
+
             break;
 
         case LWS_CALLBACK_CLIENT_APPEND_HANDSHAKE_HEADER:
             DLOGD("Client append handshake header\n");
+
+            MUTEX_LOCK(pSignalingClient->lwsServiceLock);
+            locked = TRUE;
 
             CHK_STATUS(singleListGetNodeCount(pRequestInfo->pRequestHeaders, &headerCount));
             ppStartPtr = (PBYTE*) pDataIn;
@@ -160,6 +185,9 @@ INT32 lwsHttpCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
 
         case LWS_CALLBACK_CLIENT_HTTP_WRITEABLE:
 
+            MUTEX_LOCK(pSignalingClient->lwsServiceLock);
+            locked = TRUE;
+
             DLOGD("Sending the body %.*s, size %d", pRequestInfo->bodySize, pRequestInfo->body, pRequestInfo->bodySize);
             MEMCPY(pBuffer, pRequestInfo->body, pRequestInfo->bodySize);
 
@@ -196,10 +224,14 @@ CleanUp:
 
         lws_cancel_service(lws_get_context(wsi));
 
-        return -1;
-    } else {
-        return retValue;
+        retValue = -1;
     }
+
+    if (locked) {
+        MUTEX_UNLOCK(pSignalingClient->lwsServiceLock);
+    }
+
+    return retValue;
 }
 
 INT32 lwsWssCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
@@ -214,7 +246,7 @@ INT32 lwsWssCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
     PRequestInfo pRequestInfo = NULL;
     PSignalingClient pSignalingClient = NULL;
     SIZE_T offset, bufferSize;
-    BOOL connected;
+    BOOL connected, locked = FALSE;
 
     DLOGV("WSS callback with reason %d", reason);
 
@@ -230,6 +262,9 @@ INT32 lwsWssCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
     pLwsCallInfo = pSignalingClient->pOngoingCallInfo;
     pRequestInfo = pLwsCallInfo->callInfo.pRequestInfo;
 
+    MUTEX_LOCK(pSignalingClient->lwsServiceLock);
+    locked = TRUE;
+
     switch (reason) {
         case LWS_CALLBACK_CLIENT_CONNECTION_ERROR:
             pCurPtr = pDataIn == NULL ? "(None)" : (PCHAR) pDataIn;
@@ -241,7 +276,6 @@ INT32 lwsWssCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
             ATOMIC_STORE_BOOL(&pRequestInfo->terminating, TRUE);
             connected = ATOMIC_EXCHANGE_BOOL(&pSignalingClient->connected, FALSE);
 
-            CVAR_BROADCAST(pSignalingClient->connectedCvar);
             CVAR_BROADCAST(pSignalingClient->receiveCvar);
             CVAR_BROADCAST(pSignalingClient->sendCvar);
             ATOMIC_STORE(&pSignalingClient->messageResult, (SIZE_T) SERVICE_CALL_UNKNOWN);
@@ -275,7 +309,6 @@ INT32 lwsWssCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
             ATOMIC_STORE_BOOL(&pRequestInfo->terminating, TRUE);
             connected = ATOMIC_EXCHANGE_BOOL(&pSignalingClient->connected, FALSE);
 
-            CVAR_BROADCAST(pSignalingClient->connectedCvar);
             CVAR_BROADCAST(pSignalingClient->receiveCvar);
             CVAR_BROADCAST(pSignalingClient->sendCvar);
             ATOMIC_STORE(&pSignalingClient->messageResult, (SIZE_T) SERVICE_CALL_UNKNOWN);
@@ -304,16 +337,12 @@ INT32 lwsWssCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
                 size -= SIZEOF(UINT16);
             }
 
-            DLOGD("Peer initiated close with %d. Message: %.*s", status, size, pCurPtr);
+            DLOGD("Peer initiated close with %d (0x%08x). Message: %.*s", status, (UINT32) status, size, pCurPtr);
 
             // Store the state as the result
             retValue = -1;
 
             ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) status);
-            ATOMIC_STORE_BOOL(&pSignalingClient->connected, FALSE);
-            ATOMIC_STORE_BOOL(&pRequestInfo->terminating, TRUE);
-
-            CVAR_BROADCAST(pSignalingClient->connectedCvar);
 
             break;
 
@@ -396,10 +425,14 @@ CleanUp:
 
         lws_cancel_service(lws_get_context(wsi));
 
-        return -1;
-    } else {
-        return retValue;
+        retValue = -1;
     }
+
+    if (locked) {
+        MUTEX_UNLOCK(pSignalingClient->lwsServiceLock);
+    }
+
+    return retValue;
 }
 
 STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
@@ -1018,6 +1051,72 @@ CleanUp:
     return retStatus;
 }
 
+STATUS deleteChannelLws(PSignalingClient pSignalingClient, UINT64 time)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PRequestInfo pRequestInfo = NULL;
+    CHAR url[MAX_URI_CHAR_LEN + 1];
+    CHAR paramsJson[MAX_JSON_PARAMETER_STRING_LEN];
+    PLwsCallInfo pLwsCallInfo = NULL;
+
+    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+    CHK(pSignalingClient->channelDescription.channelArn[0] != '\0', STATUS_INVALID_OPERATION);
+
+    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
+
+    THREAD_SLEEP_UNTIL(time);
+
+    // Check if we need to terminate the ongoing listener
+    if (!ATOMIC_LOAD_BOOL(&pSignalingClient->listenerTracker.terminated) &&
+        pSignalingClient->pOngoingCallInfo != NULL &&
+        pSignalingClient->pOngoingCallInfo->callInfo.pRequestInfo != NULL) {
+        terminateConnectionWithStatus(pSignalingClient, SERVICE_CALL_RESULT_OK);
+    }
+
+    // Create the API url
+    STRCPY(url, pSignalingClient->pChannelInfo->pControlPlaneUrl);
+    STRCAT(url, DELETE_SIGNALING_CHANNEL_API_POSTFIX);
+
+    // Prepare the json params for the call
+    SNPRINTF(paramsJson, ARRAY_SIZE(paramsJson), DELETE_CHANNEL_PARAM_JSON_TEMPLATE,
+             pSignalingClient->channelDescription.channelArn,
+             pSignalingClient->channelDescription.updateVersion);
+
+    // Create the request info with the body
+    CHK_STATUS(createRequestInfo(url, paramsJson, pSignalingClient->pChannelInfo->pRegion,
+                                 pSignalingClient->pChannelInfo->pCertPath,
+                                 NULL, NULL, SSL_CERTIFICATE_TYPE_NOT_SPECIFIED,
+                                 pSignalingClient->pChannelInfo->pUserAgent,
+                                 SIGNALING_SERVICE_API_CALL_CONNECTION_TIMEOUT,
+                                 SIGNALING_SERVICE_API_CALL_COMPLETION_TIMEOUT,
+                                 DEFAULT_LOW_SPEED_LIMIT, DEFAULT_LOW_SPEED_TIME_LIMIT,
+                                 pSignalingClient->pAwsCredentials,
+                                 &pRequestInfo));
+
+    CHK_STATUS(createLwsCallInfo(pSignalingClient, pRequestInfo, PROTOCOL_INDEX_HTTPS, &pLwsCallInfo));
+
+    // Make a blocking call
+    CHK_STATUS(lwsCompleteSync(pLwsCallInfo));
+
+    // Set the service call result
+    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) pLwsCallInfo->callInfo.callResult);
+
+    // Early return if we have a non-success result
+    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK, retStatus);
+
+CleanUp:
+
+    if (STATUS_FAILED(retStatus)) {
+        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
+    }
+
+    freeLwsCallInfo(&pLwsCallInfo);
+
+    LEAVES();
+    return retStatus;
+}
+
 STATUS createLwsCallInfo(PSignalingClient pSignalingClient, PRequestInfo pRequestInfo, UINT32 protocolIndex, PLwsCallInfo* ppLwsCallInfo)
 {
     ENTERS();
@@ -1160,7 +1259,9 @@ CleanUp:
 
     if (STATUS_FAILED(retStatus) && pSignalingClient != NULL) {
         // Trigger termination
-        if (pSignalingClient->pOngoingCallInfo != NULL && pSignalingClient->pOngoingCallInfo->callInfo.pRequestInfo != NULL) {
+        if (!ATOMIC_LOAD_BOOL(&pSignalingClient->listenerTracker.terminated) &&
+            pSignalingClient->pOngoingCallInfo != NULL &&
+            pSignalingClient->pOngoingCallInfo->callInfo.pRequestInfo != NULL) {
             terminateConnectionWithStatus(pSignalingClient, SERVICE_CALL_UNKNOWN);
         }
 
@@ -1211,13 +1312,12 @@ CleanUp:
             freeLwsCallInfo(&pSignalingClient->pOngoingCallInfo);
         }
 
+        ATOMIC_STORE_BOOL(&pSignalingClient->listenerTracker.terminated, TRUE);
+
         // Trigger the cvar
         if (IS_VALID_CVAR_VALUE(pSignalingClient->connectedCvar)) {
             CVAR_BROADCAST(pSignalingClient->connectedCvar);
         }
-
-        pSignalingClient->listenerTracker.threadId = INVALID_TID_VALUE;
-        ATOMIC_STORE_BOOL(&pSignalingClient->listenerTracker.terminated, TRUE);
         CVAR_BROADCAST(pSignalingClient->listenerTracker.await);
     }
 
@@ -1360,8 +1460,10 @@ STATUS writeLwsData(PSignalingClient pSignalingClient, BOOL awaitForResponse)
     ATOMIC_STORE(&pSignalingClient->messageResult, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
 
     // Wake up the loop to service
+    MUTEX_LOCK(pSignalingClient->lwsServiceLock);
     lws_callback_on_writable_all_protocol(pSignalingClient->pLwsContext,
                                           &pSignalingClient->signalingProtocols[WSS_SIGNALING_PROTOCOL_INDEX]);
+    MUTEX_UNLOCK(pSignalingClient->lwsServiceLock);
 
     MUTEX_LOCK(pSignalingClient->sendLock);
     sendLocked = TRUE;
@@ -1645,7 +1747,9 @@ STATUS terminateConnectionWithStatus(PSignalingClient pSignalingClient, SERVICE_
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) callResult);
 
     if (pSignalingClient->pLwsContext != NULL) {
+        MUTEX_LOCK(pSignalingClient->lwsServiceLock);
         lws_cancel_service(pSignalingClient->pLwsContext);
+        MUTEX_UNLOCK(pSignalingClient->lwsServiceLock);
     }
 
     CHK_STATUS(awaitForThreadTermination(&pSignalingClient->listenerTracker, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT));

@@ -23,7 +23,9 @@ VOID onConnectionStateChange(UINT64 customData, RTC_PEER_CONNECTION_STATE newSta
 
     DLOGI("New connection state %u", newState);
 
-    if (newState == RTC_PEER_CONNECTION_STATE_FAILED) {
+    if (newState == RTC_PEER_CONNECTION_STATE_FAILED ||
+        newState == RTC_PEER_CONNECTION_STATE_CLOSED ||
+        newState == RTC_PEER_CONNECTION_STATE_DISCONNECTED) {
         ATOMIC_STORE_BOOL(&pSampleConfiguration->terminateFlag, TRUE);
         CVAR_BROADCAST(pSampleConfiguration->cvar);
     }
@@ -202,6 +204,7 @@ STATUS respondWithAnswer(PSampleConfiguration pSampleConfiguration)
     message.messageType = SIGNALING_MESSAGE_TYPE_ANSWER;
     STRCPY(message.peerClientId, pSampleConfiguration->peerId);
     message.payloadLen = (UINT32) STRLEN(message.payload);
+    message.correlationId[0] = '\0';
 
     retStatus = signalingClientSendMessageSync(pSampleConfiguration->signalingClientHandle, &message);
 
@@ -246,6 +249,7 @@ VOID onIceCandidateHandler(UINT64 customData, PCHAR candidateJson)
         STRCPY(message.peerClientId, pSampleConfiguration->peerId);
         message.payloadLen = (UINT32) STRLEN(candidateJson);
         STRCPY(message.payload, candidateJson);
+        message.correlationId[0] = '\0';
         CHK_STATUS(signalingClientSendMessageSync(pSampleConfiguration->signalingClientHandle, &message));
     }
 

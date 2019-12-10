@@ -67,7 +67,7 @@ STATUS viewerMessageReceived(UINT64 customData, PReceivedSignalingMessage pRecei
     return STATUS_SUCCESS;
 }
 
-TEST_F(SignalingApiFunctionalityTest, DISABLED_basicCreateConnectFree)
+TEST_F(SignalingApiFunctionalityTest, basicCreateConnectFree)
 {
     if (!mAccessKeyIdSet) {
         return;
@@ -111,10 +111,12 @@ TEST_F(SignalingApiFunctionalityTest, DISABLED_basicCreateConnectFree)
     EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
     EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
 
+    deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
+
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
 }
 
-TEST_F(SignalingApiFunctionalityTest, DISABLED_mockMaster)
+TEST_F(SignalingApiFunctionalityTest, mockMaster)
 {
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -237,6 +239,9 @@ TEST_F(SignalingApiFunctionalityTest, DISABLED_mockMaster)
     DLOGI("Awaiting a little for tests termination");
     THREAD_SLEEP(1 * HUNDREDS_OF_NANOS_IN_A_SECOND);
 
+    // Delete the created channel
+    deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
+
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
     EXPECT_FALSE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
 
@@ -245,7 +250,7 @@ TEST_F(SignalingApiFunctionalityTest, DISABLED_mockMaster)
     EXPECT_FALSE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
 }
 
-TEST_F(SignalingApiFunctionalityTest, DISABLED_mockViewer)
+TEST_F(SignalingApiFunctionalityTest, mockViewer)
 {
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -327,6 +332,7 @@ TEST_F(SignalingApiFunctionalityTest, DISABLED_mockViewer)
     MEMSET(message.payload, 'A', 100);
     message.payload[100] = '\0';
     message.payloadLen = 0;
+    message.correlationId[0] = '\0';
 
     EXPECT_EQ(expectedStatus, signalingClientSendMessageSync(signalingHandle, &message));
 
@@ -342,6 +348,8 @@ TEST_F(SignalingApiFunctionalityTest, DISABLED_mockViewer)
 
     THREAD_SLEEP(1 * HUNDREDS_OF_NANOS_IN_A_SECOND);
 
+    deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
+
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
     EXPECT_FALSE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
 
@@ -350,7 +358,7 @@ TEST_F(SignalingApiFunctionalityTest, DISABLED_mockViewer)
     EXPECT_FALSE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
 }
 
-TEST_F(SignalingApiFunctionalityTest, DISABLED_invalidChannelInfoInput)
+TEST_F(SignalingApiFunctionalityTest, invalidChannelInfoInput)
 {
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -622,10 +630,13 @@ TEST_F(SignalingApiFunctionalityTest, DISABLED_invalidChannelInfoInput)
 
     // Should fail
     EXPECT_NE(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
+
+    deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
+
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
 }
 
-TEST_F(SignalingApiFunctionalityTest, DISABLED_iceReconnectEmulation)
+TEST_F(SignalingApiFunctionalityTest, iceReconnectEmulation)
 {
     if (!mAccessKeyIdSet) {
         return;
@@ -697,13 +708,16 @@ TEST_F(SignalingApiFunctionalityTest, DISABLED_iceReconnectEmulation)
     MEMSET(signalingMessage.payload, 'A', 100);
     signalingMessage.payload[100] = '\0';
     signalingMessage.payloadLen = 0;
+    signalingMessage.correlationId[0] = '\0';
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(signalingHandle, &signalingMessage));
+
+    deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
 }
 
-TEST_F(SignalingApiFunctionalityTest, DISABLED_goAwayEmulation)
+TEST_F(SignalingApiFunctionalityTest, goAwayEmulation)
 {
     if (!mAccessKeyIdSet) {
         return;
@@ -775,13 +789,16 @@ TEST_F(SignalingApiFunctionalityTest, DISABLED_goAwayEmulation)
     MEMSET(signalingMessage.payload, 'A', 100);
     signalingMessage.payload[100] = '\0';
     signalingMessage.payloadLen = 0;
+    signalingMessage.correlationId[0] = '\0';
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(signalingHandle, &signalingMessage));
+
+    deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
 }
 
-TEST_F(SignalingApiFunctionalityTest, DISABLED_unknownMessageTypeEmulation)
+TEST_F(SignalingApiFunctionalityTest, unknownMessageTypeEmulation)
 {
     if (!mAccessKeyIdSet) {
         return;
@@ -856,7 +873,11 @@ TEST_F(SignalingApiFunctionalityTest, DISABLED_unknownMessageTypeEmulation)
     MEMSET(signalingMessage.payload, 'A', 100);
     signalingMessage.payload[100] = '\0';
     signalingMessage.payloadLen = 0;
+    signalingMessage.correlationId[0] = '\0';
+
     EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(signalingHandle, &signalingMessage));
+
+    deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
 }

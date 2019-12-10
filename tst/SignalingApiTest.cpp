@@ -62,6 +62,12 @@ public:
     }
 
     STATUS deinitialize() {
+
+        // Delete the created channel
+        if (mAccessKeyIdSet) {
+            deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(mSignalingClientHandle), 0);
+        }
+
         EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&mSignalingClientHandle));
 
         return STATUS_SUCCESS;
@@ -70,7 +76,7 @@ public:
     SIGNALING_CLIENT_HANDLE mSignalingClientHandle;
 };
 
-TEST_F(SignalingApiTest, DISABLED_signalingSendMessageSync)
+TEST_F(SignalingApiTest, signalingSendMessageSync)
 {
     STATUS expectedStatus;
     SignalingMessage signalingMessage;
@@ -83,6 +89,7 @@ TEST_F(SignalingApiTest, DISABLED_signalingSendMessageSync)
     MEMSET(signalingMessage.payload, 'A', 100);
     signalingMessage.payload[100] = '\0';
     signalingMessage.payloadLen = 0;
+    signalingMessage.correlationId[0] = '\0';
 
     EXPECT_NE(STATUS_SUCCESS, signalingClientSendMessageSync(INVALID_SIGNALING_CLIENT_HANDLE_VALUE, &signalingMessage));
     EXPECT_NE(STATUS_SUCCESS, signalingClientSendMessageSync(mSignalingClientHandle, NULL));
@@ -113,7 +120,6 @@ TEST_F(SignalingApiTest, signalingClientConnectSync)
     expectedStatus = mAccessKeyIdSet ? STATUS_INVALID_STREAM_STATE : STATUS_NULL_ARG;
     EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(mSignalingClientHandle));
     EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(mSignalingClientHandle));
-
 
     deinitialize();
 }

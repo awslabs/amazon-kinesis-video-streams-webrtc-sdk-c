@@ -79,24 +79,17 @@ void WebRtcClientTestBase::SetUp()
     // replacing a potentially bad characters with '.'
     STRCPY(mChannelName, TEST_SIGNALING_CHANNEL_NAME);
     UINT32 testNameLen = STRLEN(TEST_SIGNALING_CHANNEL_NAME);
-    gethostname(mChannelName + testNameLen, MAX_CHANNEL_NAME_LEN - testNameLen);
+    const UINT32 randSize = 16;
 
-    // Replace any potentially "bad" characters
+    BYTE randBuffer[randSize];
+    RAND_bytes(randBuffer, randSize);
     PCHAR pCur = &mChannelName[testNameLen];
-    while (*pCur != '\0') {
-        BOOL found = FALSE;
-        for (UINT32 i = 0; !found && i < ARRAY_SIZE(SIGNALING_VALID_NAME_CHARS) - 1; i++) {
-            if (*pCur == SIGNALING_VALID_NAME_CHARS[i]) {
-                found = TRUE;
-            }
-        }
 
-        if (!found) {
-            *pCur = '.';
-        }
-
-        pCur++;
+    for (UINT32 i = 0; i < randSize; i++) {
+        *pCur++ = SIGNALING_VALID_NAME_CHARS[randBuffer[i % MAX_RAND_BUFFER_SIZE_FOR_NAME] % (ARRAY_SIZE(SIGNALING_VALID_NAME_CHARS) - 1)];
     }
+
+    *pCur = '\0';
 }
 
 void WebRtcClientTestBase::TearDown()

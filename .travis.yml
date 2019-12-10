@@ -59,7 +59,7 @@ matrix:
     - name: "Linux Clang ThreadSanitizer"
       os: linux
       compiler: clang
-      env: TSAN_OPTIONS=halt_on_error=1
+      env: allowTestFail=true
       before_script: mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE -DTHREAD_SANITIZER=TRUE
 
     # UndefinedBehaviorSanitizer

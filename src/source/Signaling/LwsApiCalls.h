@@ -30,15 +30,20 @@ extern "C" {
 #define CREATE_SIGNALING_CHANNEL_API_POSTFIX                                "/createSignalingChannel"
 #define DESCRIBE_SIGNALING_CHANNEL_API_POSTFIX                              "/describeSignalingChannel"
 #define GET_SIGNALING_CHANNEL_ENDPOINT_API_POSTFIX                          "/getSignalingChannelEndpoint"
+#define DELETE_SIGNALING_CHANNEL_API_POSTFIX                                "/deleteSignalingChannel"
 #define GET_ICE_CONFIG_API_POSTFIX                                          "/v1/get-ice-server-config"
 
 // Signaling protocol name
 #define SIGNALING_CHANNEL_PROTOCOL                                          "\"WSS\", \"HTTPS\""
 
-// Parameterized string for DescribeChannel API
+// Parameterized string for Describe Channel API
 #define DESCRIBE_CHANNEL_PARAM_JSON_TEMPLATE                                "{\n\t\"ChannelName\": \"%s\"\n}"
 
-// Parameterized string for CreateStream API
+// Parameterized string for Delete Channel API
+#define DELETE_CHANNEL_PARAM_JSON_TEMPLATE                                  "{\n\t\"ChannelARN\": \"%s\"," \
+    "\n\t\"CurrentVersion\": \"%s\"\n}" \
+
+// Parameterized string for Create Channel API
 #define CREATE_CHANNEL_PARAM_JSON_TEMPLATE                                  "{\n\t\"ChannelName\": \"%s\"," \
     "\n\t\"ChannelType\": \"%s\"," \
     "\n\t\"SingleMasterConfiguration\": {" \
@@ -51,14 +56,14 @@ extern "C" {
 // Parameterized string for TagStream API - we should have at least one tag
 #define TAGS_PARAM_JSON_TEMPLATE                                            ",\n\t\"Tags\": [%s\n\t]"
 
-// Parameterized string for CreateStream API
+// Parameterized string for Get Channel Endpoint API
 #define GET_CHANNEL_ENDPOINT_PARAM_JSON_TEMPLATE                            "{\n\t\"ChannelARN\": \"%s\"," \
     "\n\t\"SingleMasterChannelEndpointConfiguration\": {" \
     "\n\t\t\"Protocols\": [%s]," \
     "\n\t\t\"Role\": \"%s\"" \
     "\n\t}\n}" \
 
-// Parameterized string for GetIceServerConfig API
+// Parameterized string for Get Ice Server Config API
 #define GET_ICE_CONFIG_PARAM_JSON_TEMPLATE                                  "{\n\t\"ChannelARN\": \"%s\"," \
     "\n\t\"ClientId\": \"%s\"," \
     "\n\t\"Service\": \"TURN\"" \
@@ -182,6 +187,7 @@ STATUS createChannelLws(PSignalingClient, UINT64);
 STATUS getChannelEndpointLws(PSignalingClient, UINT64);
 STATUS getIceConfigLws(PSignalingClient, UINT64);
 STATUS connectSignalingChannelLws(PSignalingClient, UINT64);
+STATUS deleteChannelLws(PSignalingClient, UINT64);
 
 STATUS createLwsCallInfo(PSignalingClient, PRequestInfo, UINT32, PLwsCallInfo*);
 STATUS freeLwsCallInfo(PLwsCallInfo*);

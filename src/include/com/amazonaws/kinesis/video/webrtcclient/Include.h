@@ -744,7 +744,7 @@ typedef struct {
     SIGNALING_MESSAGE_TYPE messageType;
 
     // Correlation Id string
-    CHAR correlationId[MAX_CHANNEL_NAME_LEN + 1];
+    CHAR correlationId[MAX_CORRELATION_ID_LEN + 1];
 
     // Sender client id
     CHAR peerClientId[MAX_SIGNALING_CLIENT_ID_LEN + 1];
