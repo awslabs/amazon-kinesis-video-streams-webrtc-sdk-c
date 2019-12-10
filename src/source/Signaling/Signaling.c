@@ -173,8 +173,10 @@ STATUS freeSignaling(PSignalingClient* ppSignalingClient)
     // Terminate the listener thread if alive
     terminateLwsListenerLoop(pSignalingClient);
 
-    lws_context_destroy(pSignalingClient->pHttpsContext);
-    pSignalingClient->pHttpsContext = NULL;
+    if (pSignalingClient->pHttpsContext != NULL) {
+        lws_context_destroy(pSignalingClient->pHttpsContext);
+        pSignalingClient->pHttpsContext = NULL;
+    }
 
     // Await for the reconnect thread to exit
     awaitForThreadTermination(&pSignalingClient->reconnecterTracker, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT);

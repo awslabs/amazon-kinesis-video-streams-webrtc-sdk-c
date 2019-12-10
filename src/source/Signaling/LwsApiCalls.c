@@ -1823,8 +1823,10 @@ STATUS terminateLwsListenerLoop(PSignalingClient pSignalingClient)
         terminateConnectionWithStatus(pSignalingClient, SERVICE_CALL_RESULT_OK);
     }
 
-    lws_context_destroy(pSignalingClient->pLwsContext);
-    pSignalingClient->pLwsContext = NULL;
+    if (pSignalingClient->pLwsContext != NULL) {
+        lws_context_destroy(pSignalingClient->pLwsContext);
+        pSignalingClient->pLwsContext = NULL;
+    }
 
 CleanUp:
 
