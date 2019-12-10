@@ -17,6 +17,8 @@ extern "C" {
 #define LOCAL_ICE_PWD_LEN               24
 #define LOCAL_CNAME_LEN                 16
 
+#define MAX_RAND_BUFFER_SIZE_FOR_NAME               256
+
 #define PEER_FRAME_BUFFER_SIZE_INCREMENT_FACTOR     1.5
 
 // A non-comprehensive list of valid JSON characters
