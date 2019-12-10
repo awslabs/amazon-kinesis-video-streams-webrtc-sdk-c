@@ -23,7 +23,9 @@ VOID onConnectionStateChange(UINT64 customData, RTC_PEER_CONNECTION_STATE newSta
 
     DLOGI("New connection state %u", newState);
 
-    if (newState == RTC_PEER_CONNECTION_STATE_FAILED) {
+    if (newState == RTC_PEER_CONNECTION_STATE_FAILED ||
+        newState == RTC_PEER_CONNECTION_STATE_CLOSED ||
+        newState == RTC_PEER_CONNECTION_STATE_DISCONNECTED) {
         ATOMIC_STORE_BOOL(&pSampleConfiguration->terminateFlag, TRUE);
         CVAR_BROADCAST(pSampleConfiguration->cvar);
     }

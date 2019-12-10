@@ -337,14 +337,12 @@ INT32 lwsWssCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
                 size -= SIZEOF(UINT16);
             }
 
-            DLOGD("Peer initiated close with %d. Message: %.*s", status, size, pCurPtr);
+            DLOGD("Peer initiated close with %d (0x%08x). Message: %.*s", status, (UINT32) status, size, pCurPtr);
 
             // Store the state as the result
             retValue = -1;
 
             ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) status);
-            ATOMIC_STORE_BOOL(&pSignalingClient->connected, FALSE);
-            ATOMIC_STORE_BOOL(&pRequestInfo->terminating, TRUE);
 
             break;
 
