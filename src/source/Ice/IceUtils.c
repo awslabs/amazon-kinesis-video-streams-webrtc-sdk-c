@@ -43,7 +43,7 @@ STATUS freeTransactionIdStore(PTransactionIdStore* ppTransactionIdStore)
     pTransactionIdStore = *ppTransactionIdStore;
     CHK(pTransactionIdStore != NULL, retStatus);
 
-    MEMFREE(pTransactionIdStore);
+    SAFE_MEMFREE(pTransactionIdStore);
 
     *ppTransactionIdStore = NULL;
 

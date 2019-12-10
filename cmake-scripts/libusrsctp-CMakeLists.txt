@@ -8,8 +8,7 @@ ExternalProject_Add(project_libusrsctp
     GIT_REPOSITORY    https://github.com/sctplab/usrsctp.git
     GIT_TAG           913de3599feded8322882bdae69f346da5a258fc
     PREFIX            ${CMAKE_CURRENT_BINARY_DIR}/build
-    PATCH_COMMAND     patch -p1 < ${CMAKE_SOURCE_DIR}/../../cmake-scripts/libusrsctp-diag-info-size.patch
-    CMAKE_ARGS        -DCMAKE_INSTALL_PREFIX=${CMAKE_SOURCE_DIR}/../local/
+    CMAKE_ARGS        -DCMAKE_INSTALL_PREFIX=${CMAKE_SOURCE_DIR}/../local/ -Dsctp_werror=0
     BUILD_ALWAYS      TRUE
     TEST_COMMAND      ""
 )
