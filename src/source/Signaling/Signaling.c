@@ -92,7 +92,6 @@ STATUS createSignalingSync(PSignalingClientInfo pClientInfo, PChannelInfo pChann
     creationInfo.ws_ping_pong_interval = SIGNALING_SERVICE_WSS_PING_PONG_INTERVAL_IN_SECONDS;
 
     CHK(NULL != (pSignalingClient->pLwsContext = lws_create_context(&creationInfo)), STATUS_SIGNALING_LWS_CREATE_CONTEXT_FAILED);
-    CHK(NULL != (pSignalingClient->pHttpsContext = lws_create_context(&creationInfo)), STATUS_SIGNALING_LWS_CREATE_CONTEXT_FAILED);
 
     ATOMIC_STORE_BOOL(&pSignalingClient->clientReady, FALSE);
     ATOMIC_STORE_BOOL(&pSignalingClient->shutdown, FALSE);
@@ -172,16 +171,6 @@ STATUS freeSignaling(PSignalingClient* ppSignalingClient)
 
     // Terminate the listener thread if alive
     terminateLwsListenerLoop(pSignalingClient);
-
-    if (pSignalingClient->pHttpsContext != NULL) {
-        lws_context_destroy(pSignalingClient->pHttpsContext);
-        pSignalingClient->pHttpsContext = NULL;
-    }
-
-    ERR_remove_state(0);
-    ERR_free_strings();
-    EVP_cleanup();
-    CRYPTO_cleanup_all_ex_data();
 
     // Await for the reconnect thread to exit
     awaitForThreadTermination(&pSignalingClient->reconnecterTracker, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT);
@@ -449,8 +438,8 @@ STATUS refreshIceConfigurationCallback(UINT32 timerId, UINT64 scheduledTime, UIN
     CHK_STATUS(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pStateMachineState));
     CHK(pStateMachineState->state == SIGNALING_STATE_CONNECTED, retStatus);
 
-    // Kick off refresh of the ICE configurations
-    ATOMIC_STORE(&pSignalingClient->result, SERVICE_CALL_RESULT_SIGNALING_RECONNECT_ICE);
+    // Force terminate the connection for now as LWS doesn't allow parallel processing
+    terminateConnectionWithStatus(pSignalingClient, SERVICE_CALL_RESULT_SIGNALING_RECONNECT_ICE);
 
     // Iterate the state machinery
     CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));

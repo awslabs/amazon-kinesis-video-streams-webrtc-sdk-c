@@ -40,7 +40,6 @@ INT32 lwsHttpCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
     CHK(pLwsCallInfo != NULL &&
         pLwsCallInfo->pSignalingClient != NULL &&
         pLwsCallInfo->pSignalingClient->pLwsContext != NULL &&
-        pLwsCallInfo->pSignalingClient->pHttpsContext != NULL &&
         pLwsCallInfo->callInfo.pRequestInfo != NULL, retStatus);
 
     pSignalingClient = pLwsCallInfo->pSignalingClient;
@@ -259,7 +258,6 @@ INT32 lwsWssCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
     CHK(pSignalingClient != NULL &&
         pSignalingClient->pOngoingCallInfo != NULL &&
         pSignalingClient->pLwsContext != NULL &&
-        pSignalingClient->pHttpsContext != NULL &&
         pSignalingClient->pOngoingCallInfo->callInfo.pRequestInfo != NULL, retStatus);
     pLwsCallInfo = pSignalingClient->pOngoingCallInfo;
     pRequestInfo = pLwsCallInfo->callInfo.pRequestInfo;
@@ -480,8 +478,6 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
         CHK_STATUS(removeRequestHeaders(pCallInfo->callInfo.pRequestInfo));
 
         pCustomData = pCallInfo->pSignalingClient;
-
-        pContext = pCallInfo->pSignalingClient->pLwsContext;
     } else {
         pVerb = HTTP_REQUEST_VERB_POST_STRING;
 
@@ -492,9 +488,9 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
         CHK_STATUS(removeRequestHeader(pCallInfo->callInfo.pRequestInfo, AWS_SIG_V4_HEADER_HOST));
 
         pCustomData = pCallInfo;
-
-        pContext = pCallInfo->pSignalingClient->pHttpsContext;
     }
+
+    pContext = pCallInfo->pSignalingClient->pLwsContext;
 
     // Execute the LWS REST call
     MEMSET(&connectInfo, 0x00, SIZEOF(struct lws_client_connect_info));
