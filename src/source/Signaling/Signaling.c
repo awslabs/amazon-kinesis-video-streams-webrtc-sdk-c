@@ -178,6 +178,11 @@ STATUS freeSignaling(PSignalingClient* ppSignalingClient)
         pSignalingClient->pHttpsContext = NULL;
     }
 
+    ERR_remove_state(0);
+    ERR_free_strings();
+    EVP_cleanup();
+    CRYPTO_cleanup_all_ex_data();
+
     // Await for the reconnect thread to exit
     awaitForThreadTermination(&pSignalingClient->reconnecterTracker, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT);
 
@@ -446,7 +451,6 @@ STATUS refreshIceConfigurationCallback(UINT32 timerId, UINT64 scheduledTime, UIN
 
     // Kick off refresh of the ICE configurations
     ATOMIC_STORE(&pSignalingClient->result, SERVICE_CALL_RESULT_SIGNALING_RECONNECT_ICE);
-    // CHK_STATUS(terminateConnectionWithStatus(pSignalingClient, SERVICE_CALL_RESULT_SIGNALING_RECONNECT_ICE));
 
     // Iterate the state machinery
     CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
