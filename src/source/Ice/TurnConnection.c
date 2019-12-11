@@ -528,9 +528,15 @@ STATUS turnConnectionSendData(PTurnConnection pTurnConnection, PBYTE pBuf, UINT3
     UINT64 data;
     PTurnPeer pTurnPeer = NULL, pSendPeer = NULL;
     UINT32 paddedDataLen = 0;
+    CHAR ipAddrStr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
 
     CHK(pTurnConnection != NULL && pDestIp != NULL, STATUS_NULL_ARG);
     CHK(pBuf != NULL && bufLen > 0, STATUS_INVALID_ARG);
+    CHK_WARN(pTurnConnection->state == TURN_STATE_CREATE_PERMISSION ||
+             pTurnConnection->state == TURN_STATE_BIND_CHANNEL ||
+             pTurnConnection->state == TURN_STATE_READY,
+             STATUS_TURN_CONNECTION_STATE_NOT_READY_TO_SEND_DATA,
+             "TurnConnection not ready to send data");
 
     // lastApplicationDataSentTime is used to detect when application finds a better connection then using turn, thus
     // update lastApplicationDataSentTime regardless of whether turn peer is ready.
@@ -549,8 +555,17 @@ STATUS turnConnectionSendData(PTurnConnection pTurnConnection, PBYTE pBuf, UINT3
         }
     }
 
-    CHK_WARN(pSendPeer != NULL && pSendPeer->ready,retStatus,
-             "no turn peer to send or turn peer not ready");
+    CHK_STATUS(getIpAddrStr(pDestIp, ipAddrStr, ARRAY_SIZE(ipAddrStr)));
+    if (pSendPeer == NULL) {
+        DLOGV("Unable to send data through turn because peer with address %s:%u is not found",
+              ipAddrStr, KVS_GET_IP_ADDRESS_PORT(pDestIp));
+        CHK(FALSE, retStatus);
+    } else if (!pSendPeer->ready) {
+        DLOGV("Unable to send data through turn because turn channel is not established with peer with address %s:%u",
+              ipAddrStr, KVS_GET_IP_ADDRESS_PORT(pDestIp));
+        CHK(FALSE, retStatus);
+    }
+
     CHK(pTurnConnection->dataBufferSize - TURN_DATA_CHANNEL_SEND_OVERHEAD >= bufLen, STATUS_BUFFER_TOO_SMALL);
 
     paddedDataLen = (UINT32) ROUND_UP(TURN_DATA_CHANNEL_SEND_OVERHEAD + bufLen, 4);
@@ -944,6 +959,10 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
                 CHK(readyPeerCount > 0, STATUS_TURN_CONNECTION_FAILED_TO_BIND_CHANNEL);
                 // go to next state if we have at least one ready peer
                 pTurnConnection->state = TURN_STATE_READY;
+
+                // init lastApplicationDataSentTime to current time in case no data is ever sent through turn, we can still detect
+                // lastApplicationDataSentTime is falling behind specfied time range and deallocate turn.
+                pTurnConnection->lastApplicationDataSentTime = GETTIME();
             }
 
         case TURN_STATE_READY:
@@ -1085,6 +1104,7 @@ STATUS turnConnectionTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 cu
                                               ARRAY_SIZE(pTurnConnection->longTermKey), &pTurnConnection->turnServer.ipAddress,
                                               pTurnConnection->pControlChannel, NULL, FALSE));
             break;
+
         case TURN_STATE_CREATE_PERMISSION:
             // explicit fall-through
         case TURN_STATE_BIND_CHANNEL:
@@ -1108,6 +1128,7 @@ STATUS turnConnectionTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 cu
                     CHK_STATUS(iceUtilsSendStunPacket(pTurnConnection->pTurnCreatePermissionPacket, pTurnConnection->longTermKey,
                                                       ARRAY_SIZE(pTurnConnection->longTermKey), &pTurnConnection->turnServer.ipAddress,
                                                       pTurnConnection->pControlChannel, NULL, FALSE));
+
                 } else if (pTurnPeer->connectionState == TURN_PEER_CONN_STATE_BIND_CHANNEL) {
                     // update peer address;
                     CHK_STATUS(getStunAttribute(pTurnConnection->pTurnChannelBindPacket, STUN_ATTRIBUTE_TYPE_XOR_PEER_ADDRESS,

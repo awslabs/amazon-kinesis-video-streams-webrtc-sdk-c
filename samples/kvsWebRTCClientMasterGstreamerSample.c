@@ -1,5 +1,6 @@
 #include "Samples.h"
-#include "gstSample.h"
+#include <gst/gst.h>
+#include <gst/app/gstappsink.h>
 
 GstFlowReturn on_new_sample(GstElement *sink, gpointer data, UINT64 trackid)
 {
@@ -11,9 +12,11 @@ GstFlowReturn on_new_sample(GstElement *sink, gpointer data, UINT64 trackid)
     GstSegment *segment;
     GstClockTime buf_pts;
     Frame frame;
-    STATUS retStatus = STATUS_SUCCESS;
+    STATUS retStatus = STATUS_SUCCESS, status;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) data;
-    PRtcRtpTransceiver pRtcRtpTransceiver;
+    PSampleStreamingSession pSampleStreamingSession = NULL;
+    PRtcRtpTransceiver pRtcRtpTransceiver = NULL;
+    UINT32 i;
 
     CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
 
@@ -44,27 +47,37 @@ GstFlowReturn on_new_sample(GstElement *sink, gpointer data, UINT64 trackid)
         CHK(gst_buffer_map(buffer, &info, GST_MAP_READ), retStatus);
 
         frame.trackId = trackid;
-        frame.size = (UINT32) info.size;
         frame.duration = 0;
-        if (trackid == DEFAULT_AUDIO_TRACK_ID) {
-            pRtcRtpTransceiver = pSampleConfiguration->pAudioRtcRtpTransceiver;
-            frame.presentationTs = pSampleConfiguration->audioTimestamp;
-            frame.decodingTs = frame.presentationTs;
-            pSampleConfiguration->audioTimestamp += SAMPLE_AUDIO_FRAME_DURATION; // assume audio frame size is 20ms, which is default in opusenc
-
-        } else {
-            pRtcRtpTransceiver = pSampleConfiguration->pVideoRtcRtpTransceiver;
-            frame.presentationTs = pSampleConfiguration->videoTimestamp;
-            frame.decodingTs = frame.presentationTs;
-            pSampleConfiguration->videoTimestamp += SAMPLE_VIDEO_FRAME_DURATION; // assume video fps is 30
-        }
         frame.version = FRAME_CURRENT_VERSION;
+        frame.size = (UINT32) info.size;
         frame.frameData = (PBYTE) info.data;
-        frame.index = (UINT32) ATOMIC_INCREMENT(&pSampleConfiguration->frameIndex);
 
-        retStatus = writeFrame(pRtcRtpTransceiver, &frame);
-        if (STATUS_FAILED(retStatus)) {
-            DLOGW("writeFrame failed with 0x%08x", retStatus);
+        if (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->updatingSampleStreamingSessionList)) {
+            ATOMIC_INCREMENT(&pSampleConfiguration->streamingSessionListReadingThreadCount);
+            for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
+
+                pSampleStreamingSession = pSampleConfiguration->sampleStreamingSessionList[i];
+                frame.index = (UINT32) ATOMIC_INCREMENT(&pSampleStreamingSession->frameIndex);
+
+                if (trackid == DEFAULT_AUDIO_TRACK_ID) {
+                    pRtcRtpTransceiver = pSampleStreamingSession->pAudioRtcRtpTransceiver;
+                    frame.presentationTs = pSampleStreamingSession->audioTimestamp;
+                    frame.decodingTs = frame.presentationTs;
+                    pSampleStreamingSession->audioTimestamp += SAMPLE_AUDIO_FRAME_DURATION; // assume audio frame size is 20ms, which is default in opusenc
+
+                } else {
+                    pRtcRtpTransceiver = pSampleStreamingSession->pVideoRtcRtpTransceiver;
+                    frame.presentationTs = pSampleStreamingSession->videoTimestamp;
+                    frame.decodingTs = frame.presentationTs;
+                    pSampleStreamingSession->videoTimestamp += SAMPLE_VIDEO_FRAME_DURATION; // assume video fps is 30
+                }
+
+                status = writeFrame(pRtcRtpTransceiver, &frame);
+                if (STATUS_FAILED(status)) {
+                    DLOGD("writeFrame failed with 0x%08x", status);
+                }
+            }
+            ATOMIC_DECREMENT(&pSampleConfiguration->streamingSessionListReadingThreadCount);
         }
     }
 
@@ -78,7 +91,7 @@ CleanUp:
         gst_sample_unref(sample);
     }
 
-    if (ATOMIC_LOAD_BOOL(&pSampleConfiguration->terminateFlag)) {
+    if (ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
         ret = GST_FLOW_EOS;
     }
 
@@ -169,42 +182,47 @@ CleanUp:
     return (PVOID) (ULONG_PTR) retStatus;
 }
 
-VOID onGstAudioFrameReady(UINT64 customData, PFrame pFrame) {
+VOID onGstAudioFrameReady(UINT64 customData, PFrame pFrame)
+{
     GstFlowReturn ret;
     GstBuffer *buffer;
-    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) customData;
-    PGstAppSrcs pGstAppSrcs = (PGstAppSrcs) pSampleConfiguration->customData;
+    GstElement *appsrcAudio = (GstElement *) customData;
 
-    if (pGstAppSrcs->pGstAudioAppSrc != NULL) {
-        /* Create a new empty buffer */
-        buffer = gst_buffer_new_and_alloc(pFrame->size);
-        gst_buffer_fill(buffer, 0, pFrame->frameData, pFrame->size);
+    /* Create a new empty buffer */
+    buffer = gst_buffer_new_and_alloc(pFrame->size);
+    gst_buffer_fill(buffer, 0, pFrame->frameData, pFrame->size);
 
-        /* Push the buffer into the appsrc */
-        g_signal_emit_by_name(pGstAppSrcs->pGstAudioAppSrc, "push-buffer", buffer, &ret);
+    /* Push the buffer into the appsrc */
+    g_signal_emit_by_name(appsrcAudio, "push-buffer", buffer, &ret);
 
-        /* Free the buffer now that we are done with it */
-        gst_buffer_unref(buffer);
-    }
+    /* Free the buffer now that we are done with it */
+    gst_buffer_unref(buffer);
+}
+
+VOID onSampleStreamingSessionShutdown(UINT64 customData, PSampleStreamingSession pSampleStreamingSession)
+{
+    UNUSED_PARAM(pSampleStreamingSession);
+    GstElement *appsrc = (GstElement *) customData;
+    GstFlowReturn ret;
+
+    g_signal_emit_by_name (appsrc, "end-of-stream", &ret);
 }
 
 PVOID receiveGstreamerAudioVideo(PVOID args)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    GstElement *appsrcVideo = NULL, *appsrcAudio = NULL, *pipeline = NULL;
+    GstElement *pipeline = NULL, *appsrcAudio = NULL;
     GstBus *bus;
     GstMessage *msg;
     GError *error = NULL;
-    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
-    PGstAppSrcs pGstAppSrcs = (PGstAppSrcs) pSampleConfiguration->customData;
+    PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) args;
     gchar *videoDescription = "", *audioDescription = "", *audioVideoDescription;
 
-    CHK(pSampleConfiguration != NULL && pGstAppSrcs != NULL, STATUS_NULL_ARG);
+    CHK(pSampleStreamingSession != NULL, STATUS_NULL_ARG);
 
-    pGstAppSrcs->pGstAudioAppSrc = NULL;
-    //TODO: Wire video up with gstream pipeline
+    //TODO: Wire video up with gstreamer pipeline
 
-    switch (pSampleConfiguration->pAudioRtcRtpTransceiver->receiver.track.codec) {
+    switch (pSampleStreamingSession->pAudioRtcRtpTransceiver->receiver.track.codec) {
         case RTC_CODEC_OPUS:
             audioDescription = "appsrc name=appsrc-audio ! opusparse ! decodebin ! autoaudiosink";
             break;
@@ -221,18 +239,18 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
 
     pipeline = gst_parse_launch(audioVideoDescription, &error);
 
+    appsrcAudio = gst_bin_get_by_name(GST_BIN(pipeline), "appsrc-audio");
+    CHK_ERR(appsrcAudio != NULL, STATUS_INTERNAL_ERROR, "cant find appsrc");
+
+    transceiverOnFrame(pSampleStreamingSession->pAudioRtcRtpTransceiver,
+                       (UINT64) appsrcAudio,
+                       onGstAudioFrameReady);
+
+    CHK_STATUS(streamingSessionOnShutdown(pSampleStreamingSession, (UINT64) appsrcAudio, onSampleStreamingSessionShutdown));
+
     g_free(audioVideoDescription);
 
     CHK_ERR(pipeline != NULL, STATUS_INTERNAL_ERROR, "Failed to launch gstreamer");
-
-    appsrcVideo = gst_bin_get_by_name(GST_BIN(pipeline), "appsrc-video");
-
-    appsrcAudio = gst_bin_get_by_name(GST_BIN(pipeline), "appsrc-audio");
-
-    CHK_ERR(appsrcVideo != NULL || appsrcAudio != NULL, STATUS_INTERNAL_ERROR, "cant find appssrc");
-
-    pGstAppSrcs->pGstVideoAppSrc = appsrcVideo;
-    pGstAppSrcs->pGstAudioAppSrc = appsrcAudio;
 
     gst_element_set_state (pipeline, GST_STATE_PLAYING);
 
@@ -258,26 +276,14 @@ CleanUp:
     return (PVOID) (ULONG_PTR) retStatus;
 }
 
-STATUS createSampleGstAppSrcs(PGstAppSrcs* ppGstAppSrc)
-{
-    STATUS retStatus = STATUS_SUCCESS;
-    PGstAppSrcs pGstAppSrcs = NULL;
-    CHK(ppGstAppSrc != NULL, STATUS_NULL_ARG);
-    CHK(NULL != (pGstAppSrcs = (PGstAppSrcs) MEMCALLOC(1, SIZEOF(GstAppSrcs))), STATUS_NOT_ENOUGH_MEMORY);
-CleanUp:
-    if (ppGstAppSrc != NULL) {
-        *ppGstAppSrc = pGstAppSrcs;
-    }
-    return retStatus;
-}
-
 INT32 main(INT32 argc, CHAR *argv[])
 {
     STATUS retStatus = STATUS_SUCCESS;
     SignalingClientCallbacks signalingClientCallbacks;
     SignalingClientInfo clientInfo;
     PSampleConfiguration pSampleConfiguration = NULL;
-    PGstAppSrcs pGstAppSrcs = NULL;
+    UINT32 i;
+    PSampleStreamingSession pSampleStreamingSession = NULL;
 
     // do trickle-ice by default
     CHK_STATUS(createSampleConfiguration(argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME,
@@ -286,12 +292,12 @@ INT32 main(INT32 argc, CHAR *argv[])
             TRUE,
             &pSampleConfiguration));
 
-    CHK_STATUS(createSampleGstAppSrcs(&pGstAppSrcs));
 
     pSampleConfiguration->videoSource = sendGstreamerAudioVideo;
     pSampleConfiguration->mediaType = SAMPLE_STREAMING_VIDEO_ONLY;
     pSampleConfiguration->receiveAudioVideoSource = receiveGstreamerAudioVideo;
-    pSampleConfiguration->customData = (UINT64) pGstAppSrcs;
+    pSampleConfiguration->onDataChannel = onDataChannel;
+    pSampleConfiguration->customData = (UINT64) pSampleConfiguration;
 
     /* Initialize GStreamer */
     gst_init(&argc, &argv);
@@ -334,37 +340,51 @@ INT32 main(INT32 argc, CHAR *argv[])
             pSampleConfiguration->pCredentialProvider,
             &pSampleConfiguration->signalingClientHandle));
 
-    // Initialize the peer connection
-    CHK_STATUS(initializePeerConnection(pSampleConfiguration));
-
-    transceiverOnFrame(pSampleConfiguration->pAudioRtcRtpTransceiver, (UINT64) pSampleConfiguration,
-            onGstAudioFrameReady);
-
     // Enable the processing of the messages
     CHK_STATUS(signalingClientConnectSync(pSampleConfiguration->signalingClientHandle));
 
-    // Block forever
-    THREAD_SLEEP(MAX_UINT64);
+    // Checking for termination
+    while(!ATOMIC_LOAD_BOOL(&pSampleConfiguration->interrupted)) {
 
-    // Kick of the termination sequence
-    ATOMIC_STORE_BOOL(&pSampleConfiguration->terminateFlag, TRUE);
+        // scan and cleanup terminated streaming session
+        for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
+            if (ATOMIC_LOAD_BOOL(&pSampleConfiguration->sampleStreamingSessionList[i]->terminateFlag)) {
+                pSampleStreamingSession = pSampleConfiguration->sampleStreamingSessionList[i];
 
-    // Join the threads
-    THREAD_JOIN(pSampleConfiguration->replyTid, NULL);
-    THREAD_JOIN(pSampleConfiguration->videoSenderTid, NULL);
+                ATOMIC_STORE_BOOL(&pSampleConfiguration->updatingSampleStreamingSessionList, TRUE);
+                while(ATOMIC_LOAD(&pSampleConfiguration->streamingSessionListReadingThreadCount) != 0) {
+                    // busy loop until all media thread stopped reading stream session list
+                    THREAD_SLEEP(5 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+                }
+
+                // swap with last element and decrement count
+                pSampleConfiguration->streamingSessionCount--;
+                pSampleConfiguration->sampleStreamingSessionList[i] = pSampleConfiguration->sampleStreamingSessionList[pSampleConfiguration->streamingSessionCount];
+                CHK_STATUS(freeSampleStreamingSession(&pSampleStreamingSession));
+                ATOMIC_STORE_BOOL(&pSampleConfiguration->updatingSampleStreamingSessionList, FALSE);
+            }
+        }
+
+        // periodically wake up and clean up terminated streaming session
+        CVAR_WAIT(pSampleConfiguration->cvar, pSampleConfiguration->sampleConfigurationObjLock, 5 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+    }
 
 CleanUp:
 
     CHK_LOG_ERR_NV(retStatus);
 
     if (pSampleConfiguration != NULL) {
-        CHK_LOG_ERR_NV(freePeerConnection(&pSampleConfiguration->pPeerConnection));
+
+        // Kick of the termination sequence
+        ATOMIC_STORE_BOOL(&pSampleConfiguration->appTerminateFlag, TRUE);
+
+        if (IS_VALID_TID_VALUE(pSampleConfiguration->videoSenderTid)) {
+            // Join the threads
+            THREAD_JOIN(pSampleConfiguration->videoSenderTid, NULL);
+        }
+
         CHK_LOG_ERR_NV(freeSignalingClient(&pSampleConfiguration->signalingClientHandle));
         CHK_LOG_ERR_NV(freeSampleConfiguration(&pSampleConfiguration));
-    }
-
-    if (pGstAppSrcs != NULL) {
-        SAFE_MEMFREE(pGstAppSrcs);
     }
 
     return (INT32) retStatus;

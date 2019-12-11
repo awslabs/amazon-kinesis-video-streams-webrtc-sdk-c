@@ -39,6 +39,7 @@ STATUS createIceAgent(PCHAR username, PCHAR password, UINT64 customData, PIceAge
     pIceAgent->customData = customData;
     pIceAgent->stateEndTime = 0;
     pIceAgent->foundationCounter = 0;
+    pIceAgent->candidateGenerationEndTime = INVALID_TIMESTAMP_VALUE;
 
     pIceAgent->lock = MUTEX_CREATE(TRUE);
 
@@ -239,31 +240,6 @@ STATUS iceAgentAddIceServer(PIceAgent pIceAgent, PCHAR url, PCHAR username, PCHA
 CleanUp:
 
     LEAVES();
-
-    return retStatus;
-}
-
-STATUS iceAgentSendStunPacket(PIceAgent pIceAgent, PStunPacket pStunPacket, PBYTE password, UINT32 passwordLen,
-                              PIceCandidatePair pIceCandidatePair)
-{
-    STATUS retStatus = STATUS_SUCCESS;
-    UINT32 stunPacketSize = STUN_PACKET_ALLOCATION_SIZE;
-    BYTE stunPacketBuffer[STUN_PACKET_ALLOCATION_SIZE];
-
-    CHK_STATUS(iceUtilsPackageStunPacket(pStunPacket, password, passwordLen, stunPacketBuffer, &stunPacketSize));
-
-    if (pIceCandidatePair->local->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED) {
-        retStatus = turnConnectionSendData(pIceAgent->pTurnConnection, stunPacketBuffer, stunPacketSize, &pIceCandidatePair->remote->ipAddress);
-    } else {
-        retStatus = socketConnectionSendData(pIceCandidatePair->local->pSocketConnection, stunPacketBuffer, stunPacketSize, &pIceCandidatePair->remote->ipAddress);
-    }
-
-    if (STATUS_FAILED(retStatus)) {
-        DLOGW("iceAgentSendStunPacket failed with 0x%08x", retStatus);
-        retStatus = STATUS_SUCCESS;
-    }
-
-CleanUp:
 
     return retStatus;
 }
@@ -479,6 +455,7 @@ STATUS iceAgentSendPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen)
 {
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
+    CHAR ipAddrStr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
 
     CHK(pIceAgent != NULL && pBuffer != NULL, STATUS_NULL_ARG);
     CHK(bufferLen != 0, STATUS_INVALID_ARG);
@@ -495,6 +472,9 @@ STATUS iceAgentSendPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen)
                                         bufferLen,
                                         &pIceAgent->pDataSendingIceCandidatePair->remote->ipAddress);
     } else {
+        CHK_STATUS(getIpAddrStr(&pIceAgent->pDataSendingIceCandidatePair->remote->ipAddress,
+                                ipAddrStr,
+                                ARRAY_SIZE(ipAddrStr)));
         retStatus = socketConnectionSendData(pIceAgent->pDataSendingIceCandidatePair->local->pSocketConnection,
                                              pBuffer,
                                              bufferLen,
@@ -855,13 +835,18 @@ STATUS iceCandidatePairCheckConnection(PStunPacket pStunBindingRequest, PIceAgen
 
     transactionIdStoreInsert(pIceCandidatePair->pTransactionIdStore, pStunBindingRequest->header.transactionId);
 
-    CHK_STATUS(iceUtilsSendStunPacket(pStunBindingRequest,
-                                      (PBYTE) pIceAgent->remotePassword,
-                                      (UINT32) STRLEN(pIceAgent->remotePassword) * SIZEOF(CHAR),
-                                      &pIceCandidatePair->remote->ipAddress,
-                                      pIceCandidatePair->local->pSocketConnection,
-                                      pIceAgent->pTurnConnection,
-                                      IS_CANN_PAIR_SENDING_FROM_RELAYED(pIceCandidatePair)));
+    retStatus = iceUtilsSendStunPacket(pStunBindingRequest,
+                                       (PBYTE) pIceAgent->remotePassword,
+                                       (UINT32) STRLEN(pIceAgent->remotePassword) * SIZEOF(CHAR),
+                                       &pIceCandidatePair->remote->ipAddress,
+                                       pIceCandidatePair->local->pSocketConnection,
+                                       pIceAgent->pTurnConnection,
+                                       IS_CANN_PAIR_SENDING_FROM_RELAYED(pIceCandidatePair));
+    if (STATUS_FAILED(retStatus)) {
+        DLOGW("iceUtilsSendStunPacket failed with 0x%08x", retStatus);
+        retStatus = STATUS_SUCCESS;
+        pIceCandidatePair->state = ICE_CANDIDATE_PAIR_STATE_FAILED;
+    }
 
 CleanUp:
 
@@ -952,6 +937,7 @@ STATUS iceAgentStateGatheringTimerCallback(UINT32 timerId, UINT64 currentTime, U
                                                       pCandidate->pSocketConnection,
                                                       NULL,
                                                       FALSE));
+
                     break;
 
                 default:
@@ -995,16 +981,31 @@ STATUS iceAgentStateCheckConnectionTimerCallback(UINT32 timerId, UINT64 currentT
     PStunPacket pStunBindingRequest = NULL;
     UINT64 data;
     PIceCandidatePair pIceCandidatePair = NULL;
-    UINT32 i;
+    UINT32 i, localCandidateCount, remoteCandidateCount;
+    UINT64 currTime;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
 
     MUTEX_LOCK(pIceAgent->lock);
     locked = TRUE;
 
-    // extend endtime if no candidate pair is available or startIceAgent has not been called, in which case we would not
-    // have the remote password.
-    if (pIceAgent->candidatePairCount == 0 || !pIceAgent->agentStarted) {
+    currTime = GETTIME();
+
+    // if ice agent started, enforce a timeout on candidate pair creation in case no remote ice candidate is received.
+    if (pIceAgent->agentStarted && pIceAgent->candidatePairCount == 0) {
+        if (IS_VALID_TIMESTAMP(pIceAgent->candidateGenerationEndTime) && currTime >= pIceAgent->candidateGenerationEndTime) {
+            CHK_STATUS(doubleListGetNodeCount(pIceAgent->localCandidates, &localCandidateCount));
+            CHK_STATUS(doubleListGetNodeCount(pIceAgent->remoteCandidates, &remoteCandidateCount));
+            DLOGE("Failed to generate any ice candidate pair before timeout. Local candidate count: %u, Remote candidate count: %u",
+                  localCandidateCount, remoteCandidateCount);
+            CHK(FALSE, STATUS_ICE_NO_AVAILABLE_ICE_CANDIDATE_PAIR);
+
+        } else if (!IS_VALID_TIMESTAMP(pIceAgent->candidateGenerationEndTime)) {
+            pIceAgent->candidateGenerationEndTime = currTime + KVS_ICE_CANDIDATE_PAIR_GENERATION_TIMEOUT;
+        }
+    } else if (!pIceAgent->agentStarted) {
+        // extend endtime if no candidate pair is available or startIceAgent has not been called, in which case we would not
+        // have the remote password.
         pIceAgent->stateEndTime = GETTIME() + KVS_ICE_CONNECTIVITY_CHECK_TIMEOUT;
         CHK(FALSE, retStatus);
     }
@@ -1094,18 +1095,24 @@ STATUS iceAgentSendKeepAliveTimerCallback(UINT32 timerId, UINT64 currentTime, UI
     for (i = 0; i < pIceAgent->candidatePairCount; ++i) {
         pIceCandidatePair = pIceAgent->candidatePairs[i];
 
-        if (pIceCandidatePair->state == ICE_CANDIDATE_PAIR_STATE_SUCCEEDED &&
-            currentTime >= pIceCandidatePair->lastDataSentTime + KVS_ICE_SEND_KEEP_ALIVE_INTERVAL) {
+        if (pIceCandidatePair->state == ICE_CANDIDATE_PAIR_STATE_SUCCEEDED) {
 
             pIceCandidatePair->lastDataSentTime = currentTime;
             DLOGV("send keep alive");
             // Stun Binding Indication seems to not expect any response. Therefore not storing transactionId
-            CHK_STATUS(iceAgentSendStunPacket(pIceAgent,
-                                              pStunKeepAlive,
-                                              NULL,
-                                              0,
-                                              pIceCandidatePair));
+            retStatus = iceUtilsSendStunPacket(pStunKeepAlive,
+                                               NULL,
+                                               0,
+                                               &pIceCandidatePair->remote->ipAddress,
+                                               pIceCandidatePair->local->pSocketConnection,
+                                               pIceAgent->pTurnConnection,
+                                               IS_CANN_PAIR_SENDING_FROM_RELAYED(pIceCandidatePair));
 
+            if (STATUS_FAILED(retStatus)) {
+                DLOGW("Failed to send keep alive with 0x%08x. Mark ice candidate pair as failed", retStatus);
+                retStatus = STATUS_SUCCESS;
+                pIceCandidatePair->state = ICE_CANDIDATE_PAIR_STATE_FAILED;
+            }
         }
     }
 
@@ -1482,6 +1489,8 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
 
 CleanUp:
 
+    CHK_LOG_ERR_NV(retStatus);
+
     if (pStunPacket != NULL) {
         freeStunPacket(&pStunPacket);
     }
@@ -1537,7 +1546,11 @@ STATUS iceAgentCheckPeerReflexiveCandidate(PIceAgent pIceAgent, PKvsIpAddress pI
 
     CHK_STATUS(doubleListInsertItemHead(pIceAgent->remoteCandidates, (UINT64) pIceCandidate));
     freeIceCandidateOnError = FALSE;
-    CHK_STATUS(createIceCandidatePairs(pIceAgent, pIceCandidate, isRemote));
+    // at the end of gathering state, candidate pairs will be created with local and remote candidates gathered so far.
+    // do createIceCandidatePairs here if state is not gathering in case some remote candidate comes late
+    if (pIceAgent->iceAgentState != ICE_AGENT_STATE_GATHERING) {
+        CHK_STATUS(createIceCandidatePairs(pIceAgent, pIceCandidate, isRemote));
+    }
 
     // sort candidate pairs in case connectivity check is already running.
     sortIceCandidatePairs(pIceAgent);
