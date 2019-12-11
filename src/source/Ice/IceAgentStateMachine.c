@@ -222,7 +222,6 @@ STATUS fromGatheringIceAgentState(UINT64 customData, PUINT64 pState)
     // move to failed state if any error happened.
     CHK_STATUS(pIceAgent->iceAgentStatus);
 
-    CHK_STATUS(iceAgentStateMachineCheckDisconnection(pIceAgent, &state));
     // return early if changing to disconnected state
     CHK(state != ICE_AGENT_STATE_DISCONNECTED, retStatus);
 
@@ -414,7 +413,6 @@ STATUS fromCheckConnectionIceAgentState(UINT64 customData, PUINT64 pState)
     // move to failed state if any error happened.
     CHK_STATUS(pIceAgent->iceAgentStatus);
 
-    CHK_STATUS(iceAgentStateMachineCheckDisconnection(pIceAgent, &state));
     // return early if changing to disconnected state
     CHK(state != ICE_AGENT_STATE_DISCONNECTED, retStatus);
 
@@ -529,7 +527,6 @@ STATUS fromConnectedIceAgentState(UINT64 customData, PUINT64 pState)
     // move to failed state if any error happened.
     CHK_STATUS(pIceAgent->iceAgentStatus);
 
-    CHK_STATUS(iceAgentStateMachineCheckDisconnection(pIceAgent, &state));
     // return early if changing to disconnected state
     CHK(state != ICE_AGENT_STATE_DISCONNECTED, retStatus);
 
@@ -626,7 +623,6 @@ STATUS fromNominatingIceAgentState(UINT64 customData, PUINT64 pState)
     // move to failed state if any error happened.
     CHK_STATUS(pIceAgent->iceAgentStatus);
 
-    CHK_STATUS(iceAgentStateMachineCheckDisconnection(pIceAgent, &state));
     // return early if changing to disconnected state
     CHK(state != ICE_AGENT_STATE_DISCONNECTED, retStatus);
 

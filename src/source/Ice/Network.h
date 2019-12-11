@@ -23,6 +23,8 @@ extern "C" {
 // 000.000.000.000
 #define KVS_MAX_IPV4_ADDRESS_STRING_LEN                 15
 
+#define KVS_GET_IP_ADDRESS_PORT(a)                      ((UINT16) getInt16((a)->port))
+
 typedef enum {
     KVS_SOCKET_PROTOCOL_TCP,
     KVS_SOCKET_PROTOCOL_UDP,

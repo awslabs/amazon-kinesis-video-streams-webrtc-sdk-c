@@ -175,7 +175,8 @@ INT32 onSctpOutboundPacket(PVOID addr, PVOID data, ULONG length, UINT8 tos, UINT
     UNUSED_PARAM(set_df);
 
     PSctpSession pSctpSession = (PSctpSession) addr;
-    if (pSctpSession && pSctpSession->sctpSessionCallbacks.outboundPacketFunc) {
+
+    if (pSctpSession != NULL && pSctpSession->sctpSessionCallbacks.outboundPacketFunc) {
         pSctpSession->sctpSessionCallbacks.outboundPacketFunc(pSctpSession->sctpSessionCallbacks.customData, data, length);
     } else {
         DLOGE("SCTP attempted to send packet but outboundPacketFunc is not defined");
