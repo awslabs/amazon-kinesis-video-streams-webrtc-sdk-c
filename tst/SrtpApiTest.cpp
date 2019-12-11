@@ -19,8 +19,6 @@ TEST_F(SrtpApiTest, encryptDecryptRtpPacketSuccess)
     PSrtpSession pSrtpSession;
     INT32 len = SIZEOF(SKEL_RTP_PACKET);
 
-    EXPECT_EQ(STATUS_SUCCESS, initKvsWebRtc());
-
     EXPECT_EQ(STATUS_SUCCESS, initSrtpSession(test_key, test_key, DEFAULT_TEST_PROFILE, &pSrtpSession));
 
     PBYTE rtpPacket = (PBYTE) MEMCALLOC(1, SIZEOF(SKEL_RTP_PACKET) + SRTP_MAX_TRAILER_LEN);

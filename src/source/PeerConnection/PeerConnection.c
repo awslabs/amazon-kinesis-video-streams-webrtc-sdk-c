@@ -693,6 +693,7 @@ STATUS createOffer(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionIni
     pSessionDescriptionInit->type = SDP_TYPE_OFFER;
     pKvsPeerConnection->isOffer = TRUE;
 
+    pKvsPeerConnection->sctpIsEnabled = TRUE;
     CHK_STATUS(setPayloadTypesForOffer(pKvsPeerConnection->pCodecTable));
 
     CHK_STATUS(populateSessionDescription(pKvsPeerConnection, &(pKvsPeerConnection->remoteSessionDescription), &sessionDescription));
