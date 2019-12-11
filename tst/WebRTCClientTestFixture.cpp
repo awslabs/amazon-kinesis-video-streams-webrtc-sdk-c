@@ -53,6 +53,8 @@ void WebRtcClientTestBase::SetUp()
 
     SET_LOGGER_LOG_LEVEL(LOG_LEVEL_DEBUG);
 
+    initKvsWebRtc();
+
     if (NULL != (mAccessKey = getenv(ACCESS_KEY_ENV_VAR))) {
         mAccessKeyIdSet = TRUE;
     }
