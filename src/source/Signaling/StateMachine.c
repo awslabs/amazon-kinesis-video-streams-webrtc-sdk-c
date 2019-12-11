@@ -520,9 +520,15 @@ STATUS executeConnectSignalingState(UINT64 customData, UINT64 time)
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
-    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
 
-    retStatus = connectSignalingChannelLws(pSignalingClient, time);
+    // No need to reconnect again if already connected. This can happen if we get to this state after ice refresh
+    if (!ATOMIC_LOAD_BOOL(&pSignalingClient->connected)) {
+        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
+        retStatus = connectSignalingChannelLws(pSignalingClient, time);
+    } else {
+        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_OK);
+    }
+
     CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
 
     // Reset the ret status

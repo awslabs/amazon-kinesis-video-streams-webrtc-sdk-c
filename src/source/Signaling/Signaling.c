@@ -424,6 +424,7 @@ STATUS refreshIceConfigurationCallback(UINT32 timerId, UINT64 scheduledTime, UIN
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
+    PStateMachineState pStateMachineState;
     PSignalingClient pSignalingClient = (PSignalingClient) customData;
 
     UNUSED_PARAM(timerId);
@@ -431,8 +432,14 @@ STATUS refreshIceConfigurationCallback(UINT32 timerId, UINT64 scheduledTime, UIN
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
-    // Kick off refresh of the ICE configurations
-    CHK_STATUS(terminateConnectionWithStatus(pSignalingClient, SERVICE_CALL_RESULT_SIGNALING_RECONNECT_ICE));
+    DLOGD("Refreshing the ICE Server Configuration");
+
+    // Check if we are in a connected state and if not bail
+    CHK_STATUS(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pStateMachineState));
+    CHK(pStateMachineState->state == SIGNALING_STATE_CONNECTED, retStatus);
+
+    // Force terminate the connection for now as LWS doesn't allow parallel processing
+    terminateConnectionWithStatus(pSignalingClient, SERVICE_CALL_RESULT_SIGNALING_RECONNECT_ICE);
 
     // Iterate the state machinery
     CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
