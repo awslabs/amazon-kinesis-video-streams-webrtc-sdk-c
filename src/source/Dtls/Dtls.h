@@ -11,9 +11,6 @@
 extern "C" {
 #endif
 
-// For tight packing
-#pragma pack(push, include_i, 1) // for byte alignment
-
 #define MAX_SRTP_MASTER_KEY_LEN 16
 #define MAX_SRTP_SALT_KEY_LEN 14
 
@@ -87,8 +84,6 @@ STATUS dtlsSessionGenerateLocalCertificateFingerprint(PDtlsSession, PCHAR, UINT3
 STATUS dtlsSessionVerifyRemoteCertificateFingerprint(PDtlsSession, PCHAR);
 STATUS dtlsSessionPutApplicationData(PDtlsSession, PBYTE, INT32);
 STATUS dtlsCheckOutgoingDataBuffer(PDtlsSession);
-
-#pragma pack(pop, include_i)
 
 #ifdef  __cplusplus
 }

@@ -10,9 +10,6 @@ PeerConnection internal include file
 extern "C" {
 #endif
 
-// For tight packing
-#pragma pack(push, include_i, 1) // for byte alignment
-
 typedef STATUS (*FrameReadyFunc)(UINT64, UINT16, UINT16, UINT32);
 typedef STATUS (*FrameDroppedFunc)(UINT64, UINT32);
 #define UINT16_DEC(a) ((UINT16) ((a) - 1))
@@ -24,8 +21,8 @@ typedef struct {
     DepayRtpPayloadFunc depayPayloadFn;
 
     UINT32 lastPushTimestamp;
-    UINT16 lastRemovedSequenceNumber;
     UINT32 lastRemovedTimestamp;
+    UINT16 lastRemovedSequenceNumber;
     UINT16 lastPopSequenceNumber;
     UINT32 lastPopTimestamp;
     UINT64 maxLatency;
@@ -40,8 +37,6 @@ STATUS jitterBufferPush(PJitterBuffer, PRtpPacket);
 STATUS jitterBufferPop(PJitterBuffer, BOOL);
 STATUS jitterBufferDropBufferData(PJitterBuffer, UINT16, UINT16, UINT32);
 STATUS jitterBufferFillFrameData(PJitterBuffer, PBYTE, UINT32, PUINT32, UINT16, UINT16);
-
-#pragma pack(pop, include_i)
 
 #ifdef  __cplusplus
 }

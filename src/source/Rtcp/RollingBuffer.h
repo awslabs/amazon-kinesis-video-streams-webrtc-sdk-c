@@ -10,9 +10,6 @@ RTCP Rolling Buffer include file
 extern "C" {
 #endif
 
-// For tight packing
-#pragma pack(push, include_i, 1) // for byte alignment
-
 typedef STATUS (*FreeDataFunc)(PUINT64 );
 
 typedef struct {
@@ -39,8 +36,6 @@ STATUS rollingBufferInsertData(PRollingBuffer, UINT64, UINT64);
 STATUS rollingBufferExtractData(PRollingBuffer, UINT64, PUINT64);
 STATUS rollingBufferGetSize(PRollingBuffer, PUINT32);
 STATUS rollingBufferIsEmpty(PRollingBuffer, PBOOL);
-
-#pragma pack(pop, include_i)
 
 #ifdef  __cplusplus
 

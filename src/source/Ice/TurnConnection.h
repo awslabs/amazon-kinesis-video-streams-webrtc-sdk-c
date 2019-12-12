@@ -10,36 +10,33 @@ TurnConnection internal include file
 extern "C" {
 #endif
 
-// For tight packing
-#pragma pack(push, include_i, 1) // for byte alignment
-
 // https://en.wikipedia.org/wiki/List_of_IP_protocol_numbers
 #define TURN_REQUEST_TRANSPORT_UDP                                      17
 #define TURN_REQUEST_TRANSPORT_TCP                                      6
 #define DEFAULT_TURN_ALLOCATION_LIFETIME_SECONDS                        600
 // required by rfc5766 to be 300s
-#define TURN_PERMISSION_LIFETIME                                        300 * HUNDREDS_OF_NANOS_IN_A_SECOND
-#define DEFAULT_TURN_TIMER_INTERVAL_BEFORE_READY                        100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
-#define DEFAULT_TURN_TIMER_INTERVAL_AFTER_READY                         1 * HUNDREDS_OF_NANOS_IN_A_SECOND
-#define DEFAULT_TURN_SEND_REFRESH_INVERVAL                              1 * HUNDREDS_OF_NANOS_IN_A_SECOND
+#define TURN_PERMISSION_LIFETIME                                        (300 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define DEFAULT_TURN_TIMER_INTERVAL_BEFORE_READY                        (100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
+#define DEFAULT_TURN_TIMER_INTERVAL_AFTER_READY                         (1 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define DEFAULT_TURN_SEND_REFRESH_INVERVAL                              (1 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
 // turn state timeouts
-#define DEFAULT_TURN_GET_CREDENTIAL_TIMEOUT                             5 * HUNDREDS_OF_NANOS_IN_A_SECOND
-#define DEFAULT_TURN_ALLOCATION_TIMEOUT                                 5 * HUNDREDS_OF_NANOS_IN_A_SECOND
-#define DEFAULT_TURN_CREATE_PERMISSION_TIMEOUT                          2 * HUNDREDS_OF_NANOS_IN_A_SECOND
-#define DEFAULT_TURN_BIND_CHANNEL_TIMEOUT                               3 * HUNDREDS_OF_NANOS_IN_A_SECOND
-#define DEFAULT_TURN_CLEAN_UP_TIMEOUT                                   10 * HUNDREDS_OF_NANOS_IN_A_SECOND
+#define DEFAULT_TURN_GET_CREDENTIAL_TIMEOUT                             (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define DEFAULT_TURN_ALLOCATION_TIMEOUT                                 (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define DEFAULT_TURN_CREATE_PERMISSION_TIMEOUT                          (2 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define DEFAULT_TURN_BIND_CHANNEL_TIMEOUT                               (3 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define DEFAULT_TURN_CLEAN_UP_TIMEOUT                                   (10 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
 /*
  * if no application data is sent through turn for this much time then we assume that a better connection is found
  * and initiate turn clean up.
  */
-#define DEFAULT_TURN_START_CLEAN_UP_TIMEOUT                             10 * HUNDREDS_OF_NANOS_IN_A_SECOND
-#define DEFAULT_TURN_ALLOCATION_REFRESH_GRACE_PERIOD                    30 * HUNDREDS_OF_NANOS_IN_A_SECOND
-#define DEFAULT_TURN_PERMISSION_REFRESH_GRACE_PERIOD                    30 * HUNDREDS_OF_NANOS_IN_A_SECOND
+#define DEFAULT_TURN_START_CLEAN_UP_TIMEOUT                             (10 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define DEFAULT_TURN_ALLOCATION_REFRESH_GRACE_PERIOD                    (30 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define DEFAULT_TURN_PERMISSION_REFRESH_GRACE_PERIOD                    (30 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
-#define DEFAULT_TURN_MESSAGE_SEND_CHANNEL_DATA_BUFFER_LEN               10 * 1024
-#define DEFAULT_TURN_MESSAGE_RECV_CHANNEL_DATA_BUFFER_LEN               10 * 1024
+#define DEFAULT_TURN_MESSAGE_SEND_CHANNEL_DATA_BUFFER_LEN               (10 * 1024)
+#define DEFAULT_TURN_MESSAGE_RECV_CHANNEL_DATA_BUFFER_LEN               (10 * 1024)
 
 // all turn channel numbers must be greater than 0x4000 and less than 0x7FFF
 #define TURN_CHANNEL_BIND_CHANNEL_NUMBER_BASE                           (UINT16) 0x4000
@@ -184,8 +181,6 @@ STATUS turnConnectionIncomingDataHandler(UINT64, PSocketConnection, PBYTE, UINT3
 STATUS turnConnectionHandleStun(PTurnConnection, PSocketConnection, PBYTE, UINT32);
 STATUS turnConnectionHandleStunError(PTurnConnection, PSocketConnection, PBYTE, UINT32);
 STATUS turnConnectionHandleChannelDataTcpMode(PTurnConnection, PSocketConnection, PBYTE, UINT32);
-
-#pragma pack(pop, include_i)
 
 #ifdef  __cplusplus
 }

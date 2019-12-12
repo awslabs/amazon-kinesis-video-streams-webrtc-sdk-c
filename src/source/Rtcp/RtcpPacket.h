@@ -22,9 +22,6 @@ extern "C" {
 
 #define RTCP_PACKET_LEN_WORD_SIZE 4
 
-// For tight packing
-#pragma pack(push, include_i, 1) // for byte alignment
-
 typedef enum {
     RTCP_PACKET_TYPE_GENERIC_RTP_FEEDBACK = 205,
 } RTCP_PACKET_TYPE;
@@ -59,8 +56,6 @@ typedef struct {
 
 STATUS setRtcpPacketFromBytes(PBYTE, UINT32, PRtcpPacket);
 STATUS rtcpNackListGet(PBYTE, UINT32, PUINT32, PUINT32, PUINT16, PUINT32);
-
-#pragma pack(pop, include_i)
 
 #ifdef  __cplusplus
 }

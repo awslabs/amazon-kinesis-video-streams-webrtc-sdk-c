@@ -10,13 +10,8 @@ Opus RTP Payloader include file
 extern "C" {
 #endif
 
-// For tight packing
-#pragma pack(push, include_i, 1) // for byte alignment
-
 STATUS createPayloadForOpus(UINT32, PBYTE, UINT32, PBYTE, PUINT32, PUINT32, PUINT32);
 STATUS depayOpusFromRtpPayload(PBYTE, UINT32, PBYTE, PUINT32, PBOOL);
-
-#pragma pack(pop, include_i)
 
 #ifdef  __cplusplus
 

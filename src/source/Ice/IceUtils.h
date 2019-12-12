@@ -10,9 +10,6 @@ Ice Utils internal include file
 extern "C" {
 #endif
 
-// For tight packing
-#pragma pack(push, include_i, 1) // for byte alignment
-
 #define DEFAULT_MAX_STORED_TRANSACTION_ID_COUNT                         20
 #define MAX_STORED_TRANSACTION_ID_COUNT                                 100
 
@@ -40,8 +37,6 @@ STATUS iceUtilsPackageStunPacket(PStunPacket, PBYTE, UINT32, PBYTE, PUINT32);
 STATUS iceUtilsSendStunPacket(PStunPacket, PBYTE, UINT32, PKvsIpAddress, PSocketConnection, PTurnConnection, BOOL);
 
 STATUS populateIpFromString(PKvsIpAddress, PCHAR);
-
-#pragma pack(pop, include_i)
 
 #ifdef  __cplusplus
 }

@@ -10,9 +10,6 @@ DataChannel internal include file
 extern "C" {
 #endif
 
-// For tight packing
-#pragma pack(push, include_i, 1) // for byte alignment
-
 typedef struct {
     RtcDataChannel dataChannel;
 
@@ -22,9 +19,6 @@ typedef struct {
     UINT64 onMessageCustomData;
     RtcOnMessage onMessage;
 } KvsDataChannel, *PKvsDataChannel;
-
-
-#pragma pack(pop, include_i)
 
 #ifdef  __cplusplus
 }

@@ -19,9 +19,6 @@ extern "C" {
 #include <com/amazonaws/kinesis/video/common/Include.h>
 #pragma clang diagnostic pop
 
-// For tight packing
-#pragma pack(push, include, 1) // for byte alignment
-
 ////////////////////////////////////////////////////
 // Status return codes
 ////////////////////////////////////////////////////
@@ -1316,8 +1313,6 @@ PUBLIC_API STATUS signalingClientGetIceConfigInfo(SIGNALING_CLIENT_HANDLE, UINT3
  * @return - STATUS code of the execution
  */
 PUBLIC_API STATUS signalingClientConnectSync(SIGNALING_CLIENT_HANDLE);
-
-#pragma pack(pop, include)
 
 #ifdef  __cplusplus
 }

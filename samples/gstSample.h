@@ -13,17 +13,12 @@ extern "C" {
 #include <gst/gst.h>
 #include <gst/app/gstappsink.h>
 
-// For tight packing
-#pragma pack(push, samples_i, 1) // for byte alignment
-
 #include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
 
 typedef struct __GstAppSrcs {
     GstElement*  pGstAudioAppSrc;
     GstElement*  pGstVideoAppSrc;
 } GstAppSrcs, *PGstAppSrcs;
-
-#pragma pack(pop, samples_i)
 
 #ifdef  __cplusplus
 }

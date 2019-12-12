@@ -74,10 +74,10 @@ TEST_F(RtpFunctionalityTest, marshallUnmarshallGettingSameData)
         EXPECT_EQ(STATUS_SUCCESS, createBytesFromRtpPacket(pRtpPacket, &rawPacket, &packetLen));
         EXPECT_EQ(STATUS_SUCCESS, createRtpPacketFromBytes(rawPacket, packetLen, &pNewRtpPacket));
         // Verify the extracted header is the same as original header
-        EXPECT_TRUE(memcmp(&pRtpPacket->header, &pNewRtpPacket->header, SIZEOF(RtpPacketHeader)) == 0);
+        EXPECT_TRUE(MEMCMP(&pRtpPacket->header, &pNewRtpPacket->header, SIZEOF(RtpPacketHeader)) == 0);
         // Verify the extracted payload is the same as original payload
         EXPECT_EQ(pRtpPacket->payloadLength, pNewRtpPacket->payloadLength);
-        EXPECT_TRUE(memcmp(pRtpPacket->payload, pNewRtpPacket->payload, pRtpPacket->payloadLength) == 0);
+        EXPECT_TRUE(MEMCMP(pRtpPacket->payload, pNewRtpPacket->payload, pRtpPacket->payloadLength) == 0);
 
         EXPECT_EQ(STATUS_SUCCESS, freeRtpPacket(&pNewRtpPacket));
         MEMFREE(rawPacket);
@@ -279,7 +279,7 @@ TEST_F(RtpFunctionalityTest, packingUnpackingVerifySameH264Frame)
             } else {
                 startLen = 0;
             }
-            EXPECT_TRUE(memcmp(pCurPtrInPayload, depayload + startLen, newPayloadSubLen - startLen) == 0);
+            EXPECT_TRUE(MEMCMP(pCurPtrInPayload, depayload + startLen, newPayloadSubLen - startLen) == 0);
             pCurPtrInPayload += newPayloadSubLen - startLen;
             offset += payloadArray.payloadSubLength[i];
         }
@@ -344,7 +344,7 @@ TEST_F(RtpFunctionalityTest, packingUnpackingVerifySameOpusFrame)
                                                       depayload,
                                                       &newPayloadSubLen,
                                                       NULL));
-    EXPECT_TRUE(memcmp(payload, depayload, newPayloadSubLen) == 0);
+    EXPECT_TRUE(MEMCMP(payload, depayload, newPayloadSubLen) == 0);
 
     MEMFREE(payloadArray.payloadBuffer);
     MEMFREE(payloadArray.payloadSubLength);
@@ -486,7 +486,7 @@ TEST_F(RtpFunctionalityTest, packingUnpackingVerifySameLongG711Frame)
     for (i = 0; i < payloadArray.payloadSubLenSize; i++) {
         newPayloadSubLen = depayloadSize;
         EXPECT_EQ(STATUS_SUCCESS, depayG711FromRtpPayload(payloadArray.payloadBuffer + offset, payloadArray.payloadSubLength[i], depayload, &newPayloadSubLen, NULL));
-        EXPECT_TRUE(memcmp(pCurPtrInPayload, depayload, newPayloadSubLen) == 0);
+        EXPECT_TRUE(MEMCMP(pCurPtrInPayload, depayload, newPayloadSubLen) == 0);
         pCurPtrInPayload += newPayloadSubLen;
         offset += payloadArray.payloadSubLength[i];
     }

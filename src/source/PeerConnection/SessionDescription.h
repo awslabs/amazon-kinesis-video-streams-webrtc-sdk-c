@@ -10,9 +10,6 @@ SessionDescription internal include file
 extern "C" {
 #endif
 
-// For tight packing
-#pragma pack(push, include_i, 1) // for byte alignment
-
 #define SESSION_DESCRIPTION_TOKENS 5
 #define ICE_CANDIDATE_INIT_TOKENS 7
 
@@ -64,8 +61,6 @@ STATUS setTransceiverPayloadTypes(PHashTable, PHashTable, PDoubleList);
 STATUS populateSessionDescription(PKvsPeerConnection, PSessionDescription, PSessionDescription);
 STATUS reorderTransceiverByRemoteDescription(PKvsPeerConnection, PSessionDescription);
 STATUS setReceiversSsrc(PSessionDescription, PDoubleList);
-
-#pragma pack(pop, include_i)
 
 #ifdef  __cplusplus
 }

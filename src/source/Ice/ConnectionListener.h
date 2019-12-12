@@ -10,9 +10,6 @@ Connection Listener internal include file
 extern "C" {
 #endif
 
-// For tight packing
-#pragma pack(push, include_i, 1) // for byte alignment
-
 #define MAX_UDP_PACKET_SIZE                         65507
 #define SOCKET_WAIT_FOR_DATA_TIMEOUT_SECONDS        2
 
@@ -81,8 +78,6 @@ STATUS connectionListenerStart(PConnectionListener);
 // internal functionalities
 ////////////////////////////////////////////
 PVOID connectionListenerReceiveDataRoutine(PVOID arg);
-
-#pragma pack(pop, include_i)
 
 #ifdef  __cplusplus
 }

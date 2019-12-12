@@ -10,9 +10,6 @@ StunPackager internal include file
 extern "C" {
 #endif
 
-// For tight packing
-#pragma pack(push, include_i, 1) // for byte alignment
-
 /**
  * Stun header structure
  * - 2 UINT16 type len
@@ -382,8 +379,6 @@ STATUS xorIpAddress(PKvsIpAddress, PBYTE);
 STATUS stunPackageIpAddr(PStunHeader, STUN_ATTRIBUTE_TYPE, PKvsIpAddress, PBYTE, PUINT32);
 UINT16 getPackagedStunAttributeSize(PStunAttributeHeader);
 STATUS getFirstAvailableStunAttribute(PStunPacket, PStunAttributeHeader*);
-
-#pragma pack(pop, include_i)
 
 #ifdef  __cplusplus
 }

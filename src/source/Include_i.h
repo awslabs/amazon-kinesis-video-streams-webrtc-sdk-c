@@ -52,9 +52,6 @@ typedef struct __SocketConnection* PSocketConnection;
 #include <arpa/inet.h>
 #endif
 
-// For tight packing
-#pragma pack(push, include_i, 1) // for byte alignment
-
 // Max uFrag and uPwd length as documented in https://tools.ietf.org/html/rfc5245#section-15.4
 #define ICE_MAX_UFRAG_LEN               256
 #define ICE_MAX_UPWD_LEN                256
@@ -135,8 +132,6 @@ typedef struct {
 ////////////////////////////////////////////////////
 // Project internal functions
 ////////////////////////////////////////////////////
-
-#pragma pack(pop, include_i)
 
 #ifdef  __cplusplus
 }
