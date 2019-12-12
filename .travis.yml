@@ -1,4 +1,5 @@
 language: cpp
+sudo: true
 
 branches:
   only:
@@ -8,10 +9,16 @@ cache:
 - directories:
   - $HOME/.cache
 
+install:
+  - sudo apt-get install -y gdb
 
 script:
   - make
-  - ./tst/webrtc_client_test
+  - ulimit -c unlimited -S
+  - timeout --signal=SIGABRT 10m ./tst/webrtc_client_test
+
+after_failure:
+  - for i in $(find ./ -maxdepth 1 -name 'core*' -print); do gdb $(pwd)/tst/webrtc_client_test core* -ex "thread apply all bt" -ex "set pagination 0" -batch; done;
 
 matrix:
   # MemorySanitizer and UndefinedBehaviorSanitizer are still WIP
@@ -23,13 +30,24 @@ matrix:
     - name: "OSX GCC"
       os: osx
       compiler: gcc
+      install: skip # apt-get not available on MacOS
       before_script:
         - mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE
+      script:
+        - make
+        - ./tst/webrtc_client_test
+      after_failure: skip # timeout not available on MacOS
+
     - name: "OSX Clang"
       os: osx
       compiler: clang
+      install: skip # apt-get not available on MacOS
       before_script:
         - mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
+      script:
+        - make
+        - ./tst/webrtc_client_test
+      after_failure: skip # timeout not available on MacOS
 
     # Code Coverage
     - name: "Linux GCC Code Coverage"
