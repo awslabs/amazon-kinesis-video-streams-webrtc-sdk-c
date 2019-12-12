@@ -462,6 +462,8 @@ TEST_F(StunFunctionalityTest, roundtripAfterCreateAddFidelityTest)
     address.port = (UINT16) getInt16(12345);
     MEMCPY(address.address, (PBYTE) "0123456789abcdef", IPV6_ADDRESS_LENGTH);
 
+    MEMCPY(transactionId, (PBYTE) "ABCDEFGHIJKL", STUN_TRANSACTION_ID_LEN);
+
     PStunPacket pStunPacket = NULL, pSerializedStunPacket = NULL;
 
     //
