@@ -20,7 +20,7 @@ INT32 lwsHttpCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
     INT32 status, retValue = 0, size;
     PCHAR pCurPtr, pBuffer;
     PBYTE pEndPtr;
-    PBYTE* ppStartPtr;
+    PBYTE *ppStartPtr;
     PLwsCallInfo pLwsCallInfo;
     PRequestInfo pRequestInfo = NULL;
     PSingleListNode pCurNode;
@@ -40,7 +40,8 @@ INT32 lwsHttpCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
     CHK(pLwsCallInfo != NULL &&
         pLwsCallInfo->pSignalingClient != NULL &&
         pLwsCallInfo->pSignalingClient->pLwsContext != NULL &&
-        pLwsCallInfo->callInfo.pRequestInfo != NULL, retStatus);
+        pLwsCallInfo->callInfo.pRequestInfo != NULL &&
+        pLwsCallInfo->protocolIndex == PROTOCOL_INDEX_HTTPS, retStatus);
 
     pSignalingClient = pLwsCallInfo->pSignalingClient;
     pRequestInfo = pLwsCallInfo->callInfo.pRequestInfo;
@@ -251,14 +252,17 @@ INT32 lwsWssCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
     DLOGV("WSS callback with reason %d", reason);
 
     customData = lws_get_opaque_user_data(wsi);
-    pSignalingClient = (PSignalingClient) customData;
+    pLwsCallInfo = (PLwsCallInfo) customData;
 
     lws_set_log_level(LLL_NOTICE | LLL_INFO | LLL_WARN | LLL_ERR, NULL);
 
+    CHK(pLwsCallInfo != NULL && pLwsCallInfo->pSignalingClient != NULL, retStatus);
+    pSignalingClient = pLwsCallInfo->pSignalingClient;
     CHK(pSignalingClient != NULL &&
         pSignalingClient->pOngoingCallInfo != NULL &&
         pSignalingClient->pLwsContext != NULL &&
-        pSignalingClient->pOngoingCallInfo->callInfo.pRequestInfo != NULL, retStatus);
+        pSignalingClient->pOngoingCallInfo->callInfo.pRequestInfo != NULL &&
+        pLwsCallInfo->protocolIndex == PROTOCOL_INDEX_WSS, retStatus);
     pLwsCallInfo = pSignalingClient->pOngoingCallInfo;
     pRequestInfo = pLwsCallInfo->callInfo.pRequestInfo;
 
@@ -477,7 +481,7 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
         // Remove the headers
         CHK_STATUS(removeRequestHeaders(pCallInfo->callInfo.pRequestInfo));
 
-        pCustomData = pCallInfo->pSignalingClient;
+        pCustomData = pCallInfo;
     } else {
         pVerb = HTTP_REQUEST_VERB_POST_STRING;
 
