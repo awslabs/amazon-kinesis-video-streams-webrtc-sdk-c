@@ -10,7 +10,7 @@ Socket Connection internal include file
 extern "C" {
 #endif
 
-typedef STATUS (*ConnectionDataAvailableFunc)(UINT64, PSocketConnection, PBYTE, UINT32, PKvsIpAddress, PKvsIpAddress);
+typedef STATUS (*ConnectionDataAvailableFunc)(UINT64, struct __SocketConnection*, PBYTE, UINT32, PKvsIpAddress, PKvsIpAddress);
 
 typedef struct __SocketConnection SocketConnection;
 struct __SocketConnection {

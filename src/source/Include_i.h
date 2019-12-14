@@ -13,10 +13,8 @@ extern "C" {
 ////////////////////////////////////////////////////
 // Project forward declarations
 ////////////////////////////////////////////////////
-typedef struct __TurnConnection TurnConnection;
-typedef struct __TurnConnection* PTurnConnection;
-typedef struct __SocketConnection SocketConnection;
-typedef struct __SocketConnection* PSocketConnection;
+struct __TurnConnection;
+struct __SocketConnection;
 
 ////////////////////////////////////////////////////
 // Project include files
