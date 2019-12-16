@@ -15,7 +15,6 @@ addons:
       - ubuntu-toolchain-r-test
     packages:
       - gcc-4.4
-      - g++-4.4
 install:
   - sudo apt-get install -y gdb
 
@@ -23,7 +22,7 @@ script:
   - export AWS_KVS_LOG_LEVEL=2
   - make
   - ulimit -c unlimited -S
-  - if [ "$CC" != "gcc-4.4" ]; then timeout --signal=SIGABRT 10m ./tst/webrtc_client_test; fi
+  - timeout --signal=SIGABRT 10m ./tst/webrtc_client_test
 
 after_failure:
   - for i in $(find ./ -maxdepth 1 -name 'core*' -print); do gdb $(pwd)/tst/webrtc_client_test core* -ex "thread apply all bt" -ex "set pagination 0" -batch; done;
@@ -99,5 +98,5 @@ matrix:
       os: linux
       compiler: gcc
       before_script:
-        - export CC=gcc-4.4 && export CXX=g++-4.4 && mkdir build && cd build && cmake .. -DBUILD_TEST=FALSE
+        - export CC=gcc-4.4 && mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE
 
