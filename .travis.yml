@@ -9,6 +9,11 @@ cache:
 - directories:
   - $HOME/.cache
 
+addons:
+  apt:
+    packages:
+      - gcc-4.4
+      - g++-4.4
 install:
   - sudo apt-get install -y gdb
 
@@ -85,3 +90,11 @@ matrix:
       os: linux
       compiler: clang
       before_script: mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE -DUNDEFINED_BEHAVIOR_SANITIZER=TRUE
+
+    # Old Version GCC 4.4
+    - name: "Linux GCC 4.4 Build"
+      os: linux
+      compiler: gcc
+      before_script:
+        - export CC=gcc-4.4 && export CXX=g++-4.4 && mkdir build && cd build && cmake .. -DBUILD_TEST=FALSE
+
