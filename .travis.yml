@@ -10,6 +10,8 @@ cache:
 
 addons:
   apt:
+    sources:
+      - ubuntu-toolchain-r-test
     packages:
       - gcc-4.4
       - g++-4.4
