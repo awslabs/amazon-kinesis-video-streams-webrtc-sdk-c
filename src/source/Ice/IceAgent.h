@@ -158,7 +158,7 @@ typedef struct {
 
     UINT32 foundationCounter;
 
-    PTurnConnection pTurnConnection;
+    struct __TurnConnection* pTurnConnection;
 
     TIMER_QUEUE_HANDLE timerQueueHandle;
 
