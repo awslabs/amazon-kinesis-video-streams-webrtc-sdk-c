@@ -74,7 +74,20 @@ TEST_F(RtpFunctionalityTest, marshallUnmarshallGettingSameData)
         EXPECT_EQ(STATUS_SUCCESS, createBytesFromRtpPacket(pRtpPacket, &rawPacket, &packetLen));
         EXPECT_EQ(STATUS_SUCCESS, createRtpPacketFromBytes(rawPacket, packetLen, &pNewRtpPacket));
         // Verify the extracted header is the same as original header
-        EXPECT_TRUE(MEMCMP(&pRtpPacket->header, &pNewRtpPacket->header, SIZEOF(RtpPacketHeader)) == 0);
+        EXPECT_EQ(pRtpPacket->header.version, pNewRtpPacket->header.version);
+        EXPECT_EQ(pRtpPacket->header.sequenceNumber, pNewRtpPacket->header.sequenceNumber);
+        EXPECT_EQ(pRtpPacket->header.ssrc, pNewRtpPacket->header.ssrc);
+        EXPECT_EQ(pRtpPacket->header.csrcArray, pNewRtpPacket->header.csrcArray);
+        EXPECT_EQ(pRtpPacket->header.extensionPayload, pNewRtpPacket->header.extensionPayload);
+        EXPECT_EQ(pRtpPacket->header.extension, pNewRtpPacket->header.extension);
+        EXPECT_EQ(pRtpPacket->header.timestamp, pNewRtpPacket->header.timestamp);
+        EXPECT_EQ(pRtpPacket->header.extensionProfile, pNewRtpPacket->header.extensionProfile);
+        EXPECT_EQ(pRtpPacket->header.payloadType, pNewRtpPacket->header.payloadType);
+        EXPECT_EQ(pRtpPacket->header.padding, pNewRtpPacket->header.padding);
+        EXPECT_EQ(pRtpPacket->header.csrcCount, pNewRtpPacket->header.csrcCount);
+        EXPECT_EQ(pRtpPacket->header.extensionLength, pNewRtpPacket->header.extensionLength);
+        EXPECT_EQ(pRtpPacket->header.marker, pNewRtpPacket->header.marker);
+
         // Verify the extracted payload is the same as original payload
         EXPECT_EQ(pRtpPacket->payloadLength, pNewRtpPacket->payloadLength);
         EXPECT_TRUE(MEMCMP(pRtpPacket->payload, pNewRtpPacket->payload, pRtpPacket->payloadLength) == 0);
