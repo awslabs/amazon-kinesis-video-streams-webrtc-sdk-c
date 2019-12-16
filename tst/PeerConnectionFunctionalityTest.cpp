@@ -5,6 +5,21 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
 class PeerConnectionFunctionalityTest : public WebRtcClientTestBase {
 };
 
+typedef struct {
+    PRtcPeerConnection pRtcPeerConnection;
+    RtcIceCandidateInit iceCandidate;
+} AddIceCandidateRoutineArgs, *PAddIceCandidateRoutineArgs;
+
+PVOID addIceCandidateRoutine(PVOID args)
+{
+    PAddIceCandidateRoutineArgs pAddIceCandidateRoutineArgs = (PAddIceCandidateRoutineArgs) args;
+    EXPECT_EQ(addIceCandidate(pAddIceCandidateRoutineArgs->pRtcPeerConnection,
+                              pAddIceCandidateRoutineArgs->iceCandidate.candidate), STATUS_SUCCESS);
+
+    MEMFREE(pAddIceCandidateRoutineArgs);
+    return 0;
+}
+
 // Assert that two PeerConnections can connect to each other and go to connected
 TEST_F(PeerConnectionFunctionalityTest, connectTwoPeers)
 {
@@ -19,16 +34,27 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeers)
     EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
 
     auto onICECandidateHdlr = [](UINT64 customData, PCHAR candidateStr) -> void {
-        RtcIceCandidateInit iceCandidate;
+        PAddIceCandidateRoutineArgs pAddIceCandidateRoutineArgs = NULL;
+        TID tid;
 
         if (candidateStr != NULL) {
-            EXPECT_EQ(deserializeRtcIceCandidateInit(candidateStr, STRLEN(candidateStr), &iceCandidate), STATUS_SUCCESS);
-            EXPECT_EQ(addIceCandidate((PRtcPeerConnection) customData, iceCandidate.candidate), STATUS_SUCCESS);
+            pAddIceCandidateRoutineArgs = (PAddIceCandidateRoutineArgs) MEMALLOC(SIZEOF(AddIceCandidateRoutineArgs));
+            EXPECT_TRUE(pAddIceCandidateRoutineArgs != NULL);
+            pAddIceCandidateRoutineArgs->pRtcPeerConnection = (PRtcPeerConnection) customData;
+            EXPECT_EQ(deserializeRtcIceCandidateInit(candidateStr,
+                                                     STRLEN(candidateStr),
+                                                     &pAddIceCandidateRoutineArgs->iceCandidate), STATUS_SUCCESS);
+
+            // because this callback is triggered by OnIceCandidate, IceAgent is holding its lock while calling this.
+            // Therefore we can't call addIceCandidate in this thread because it may block trying to acquire the iceAgent
+            // of the other peerConnection
+            THREAD_CREATE(&tid, addIceCandidateRoutine, (PVOID) pAddIceCandidateRoutineArgs);
+            THREAD_DETACH(tid);
         }
     };
+
     EXPECT_EQ(peerConnectionOnIceCandidate(offerPc, (UINT64) answerPc, onICECandidateHdlr), STATUS_SUCCESS);
     EXPECT_EQ(peerConnectionOnIceCandidate(answerPc, (UINT64) offerPc, onICECandidateHdlr), STATUS_SUCCESS);
-
 
     auto onICEConnectionStateChangeHdlr = [](UINT64 customData, RTC_PEER_CONNECTION_STATE newState) -> void {
         if (newState == RTC_PEER_CONNECTION_STATE_CONNECTED) {
@@ -49,7 +75,6 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeers)
     for (auto i = 0; i <= 10 && ATOMIC_LOAD(&connectedCount) != 2; i++) {
         THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
     }
-
 
     freePeerConnection(&offerPc);
     freePeerConnection(&answerPc);

@@ -246,6 +246,7 @@ CleanUp:
 
 STATUS iceAgentReportNewLocalCandidate(PIceAgent pIceAgent, PIceCandidate pIceCandidate)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     CHAR serializedIceCandidateBuf[MAX_SDP_ATTRIBUTE_VALUE_LENGTH];
     UINT32 serializedIceCandidateBufLen = ARRAY_SIZE(serializedIceCandidateBuf);
@@ -260,6 +261,7 @@ CleanUp:
 
     CHK_LOG_ERR_NV(retStatus);
 
+    LEAVES();
     return retStatus;
 }
 
