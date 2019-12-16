@@ -22,7 +22,7 @@ install:
 script:
   - make
   - ulimit -c unlimited -S
-  - timeout --signal=SIGABRT 10m ./tst/webrtc_client_test
+  - if [ "$CC" != "gcc-4.4" ]; then timeout --signal=SIGABRT 10m ./tst/webrtc_client_test; fi
 
 after_failure:
   - for i in $(find ./ -maxdepth 1 -name 'core*' -print); do gdb $(pwd)/tst/webrtc_client_test core* -ex "thread apply all bt" -ex "set pagination 0" -batch; done;
