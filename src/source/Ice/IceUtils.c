@@ -154,17 +154,14 @@ STATUS iceUtilsSendStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 pa
 
     CHK_STATUS(iceUtilsPackageStunPacket(pStunPacket, password, passwordLen, stunPacketBuffer, &stunPacketSize));
     if (useTurn) {
-        retStatus = turnConnectionSendData(pTurnConnection, stunPacketBuffer, stunPacketSize, pDest);
+        CHK_STATUS(turnConnectionSendData(pTurnConnection, stunPacketBuffer, stunPacketSize, pDest));
     } else {
-        retStatus = socketConnectionSendData(pSocketConnection, stunPacketBuffer, stunPacketSize, pDest);
-    }
-
-    if (STATUS_FAILED(retStatus)) {
-        DLOGW("iceUtilsSendStunPacket failed with 0x%08x", retStatus);
-        retStatus = STATUS_SUCCESS;
+        CHK_STATUS(socketConnectionSendData(pSocketConnection, stunPacketBuffer, stunPacketSize, pDest));
     }
 
 CleanUp:
+
+    CHK_LOG_ERR_NV(retStatus);
 
     return retStatus;
 }

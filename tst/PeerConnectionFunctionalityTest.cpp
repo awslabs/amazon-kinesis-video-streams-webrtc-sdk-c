@@ -46,12 +46,8 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeers)
     EXPECT_EQ(setLocalDescription(answerPc, &sdp), STATUS_SUCCESS);
     EXPECT_EQ(setRemoteDescription(offerPc, &sdp), STATUS_SUCCESS);
 
-    for (auto i = 0; i <= 10; i++) {
+    for (auto i = 0; i <= 10 && ATOMIC_LOAD(&connectedCount) != 2; i++) {
         THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
-
-        if (ATOMIC_LOAD(&connectedCount) == 2) {
-            break;
-        }
     }
 
 

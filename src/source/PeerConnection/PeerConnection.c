@@ -2,6 +2,8 @@
 
 #include "../Include_i.h"
 
+static volatile ATOMIC_BOOL gKvsWebRtcInitialized = (SIZE_T) FALSE;
+
 STATUS allocateSrtp(PKvsPeerConnection pKvsPeerConnection)
 {
     DtlsKeyingMaterial dtlsKeyingMaterial;
@@ -336,7 +338,7 @@ VOID onSctpSessionDataChannelOpen(UINT64 customData, UINT32 channelId, PBYTE pNa
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) customData;
     PKvsDataChannel pKvsDataChannel = NULL;
 
-    CHK(pKvsPeerConnection != NULL && pKvsPeerConnection->onDataChannel != NULL, STATUS_INTERNAL_ERROR);
+    CHK(pKvsPeerConnection != NULL && pKvsPeerConnection->onDataChannel != NULL, STATUS_NULL_ARG);
 
     pKvsDataChannel = (PKvsDataChannel) MEMCALLOC(1, SIZEOF(KvsDataChannel));
     CHK(pKvsDataChannel != NULL, STATUS_NOT_ENOUGH_MEMORY);
@@ -350,9 +352,8 @@ VOID onSctpSessionDataChannelOpen(UINT64 customData, UINT32 channelId, PBYTE pNa
     pKvsPeerConnection->onDataChannel(pKvsPeerConnection->onDataChannelCustomData, &(pKvsDataChannel->dataChannel));
 
 CleanUp:
-    if (STATUS_FAILED(retStatus)) {
-        DLOGW("onSctpSessionDataChannelOpen failed with 0x%08x", retStatus);
-    }
+
+    CHK_LOG_ERR_NV(retStatus);
 }
 
 VOID onDtlsOutboundPacket(UINT64 customData, PBYTE pBuffer, UINT32 bufferLen)
@@ -863,6 +864,9 @@ STATUS initKvsWebRtc(VOID)
     UNUSED_PARAM(SSL_library_init());
 
     CHK_STATUS(initSctpSession());
+
+    ATOMIC_STORE_BOOL(&gKvsWebRtcInitialized, TRUE);
+
 CleanUp:
 
     LEAVES();
@@ -874,8 +878,11 @@ STATUS deinitKvsWebRtc(VOID)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
+    CHK(ATOMIC_LOAD_BOOL(&gKvsWebRtcInitialized), retStatus);
 
     deinitSctpSession();
+
+CleanUp:
 
     LEAVES();
     return retStatus;

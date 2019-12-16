@@ -9,6 +9,9 @@ INT32 main(INT32 argc, CHAR *argv[])
     UINT32 buffLen = 0;
     SignalingMessage message;
     PSampleConfiguration pSampleConfiguration = NULL;
+    PSampleStreamingSession pSampleStreamingSession = NULL;
+    BOOL locked = FALSE;
+
     // do trickle-ice by default
     CHK_STATUS(createSampleConfiguration(argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME,
             SIGNALING_CHANNEL_ROLE_TYPE_VIEWER,
@@ -35,15 +38,25 @@ INT32 main(INT32 argc, CHAR *argv[])
             pSampleConfiguration->pCredentialProvider,
             &pSampleConfiguration->signalingClientHandle));
 
-    // Initialize the peer connection
-    CHK_STATUS(initializePeerConnection(pSampleConfiguration));
+    // Initialize streaming session
+    MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
+    locked = TRUE;
+
+    CHK_STATUS(createSampleStreamingSession(pSampleConfiguration, NULL, FALSE, &pSampleStreamingSession));
+    pSampleConfiguration->sampleStreamingSessionList[pSampleConfiguration->streamingSessionCount++] = pSampleStreamingSession;
+
+    MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
+    locked = FALSE;
 
     // Enable the processing of the messages
     CHK_STATUS(signalingClientConnectSync(pSampleConfiguration->signalingClientHandle));
 
     MEMSET(&offerSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
-    CHK_STATUS(createOffer(pSampleConfiguration->pPeerConnection, &offerSessionDescriptionInit));
-    CHK_STATUS(setLocalDescription(pSampleConfiguration->pPeerConnection, &offerSessionDescriptionInit));
+    CHK_STATUS(createOffer(pSampleStreamingSession->pPeerConnection, &offerSessionDescriptionInit));
+    CHK_STATUS(setLocalDescription(pSampleStreamingSession->pPeerConnection, &offerSessionDescriptionInit));
+    CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pAudioRtcRtpTransceiver,
+                                  (UINT64) pSampleStreamingSession,
+                                  sampleFrameHandler));
 
     CHK_STATUS(serializeSessionDescriptionInit(&offerSessionDescriptionInit, NULL, &buffLen));
     CHK(buffLen < SIZEOF(message.payload), STATUS_INVALID_OPERATION);
@@ -64,9 +77,13 @@ CleanUp:
 
     CHK_LOG_ERR_NV(retStatus);
 
+    if (locked) {
+        MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
+    }
+
     if (pSampleConfiguration != NULL) {
-        CHK_LOG_ERR_NV(freePeerConnection(&pSampleConfiguration->pPeerConnection));
         CHK_LOG_ERR_NV(freeSignalingClient(&pSampleConfiguration->signalingClientHandle));
+        CHK_LOG_ERR_NV(freeSampleStreamingSession(&pSampleStreamingSession));
         CHK_LOG_ERR_NV(freeSampleConfiguration(&pSampleConfiguration));
     }
 

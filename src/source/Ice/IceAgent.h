@@ -17,13 +17,16 @@ extern "C" {
 #define KVS_ICE_CONNECTIVITY_CHECK_TIMEOUT                              10 * HUNDREDS_OF_NANOS_IN_A_SECOND
 #define KVS_ICE_CANDIDATE_NOMINATION_TIMEOUT                            10 * HUNDREDS_OF_NANOS_IN_A_SECOND
 #define KVS_ICE_SEND_KEEP_ALIVE_INTERVAL                                15 * HUNDREDS_OF_NANOS_IN_A_SECOND
+#define KVS_ICE_CANDIDATE_PAIR_GENERATION_TIMEOUT                       1 * HUNDREDS_OF_NANOS_IN_A_MINUTE
 
 // Ta in https://tools.ietf.org/html/rfc8445
 #define KVS_ICE_CONNECTION_CHECK_POLLING_INTERVAL                       50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
 #define KVS_ICE_STATE_NEW_TIMER_POLLING_INTERVAL                        100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
 #define KVS_ICE_STATE_READY_TIMER_POLLING_INTERVAL                      1 * HUNDREDS_OF_NANOS_IN_A_SECOND
 
-#define KVS_ICE_ENTER_STATE_DISCONNECTION_GRACE_PERIOD                  5 * HUNDREDS_OF_NANOS_IN_A_SECOND
+// Disconnection timeout should be as long as KVS_ICE_SEND_KEEP_ALIVE_INTERVAL because peer can just be receiving
+// media and not sending anything back except keep alives
+#define KVS_ICE_ENTER_STATE_DISCONNECTION_GRACE_PERIOD                  15 * HUNDREDS_OF_NANOS_IN_A_SECOND
 #define KVS_ICE_ENTER_STATE_FAILED_GRACE_PERIOD                         30 * HUNDREDS_OF_NANOS_IN_A_SECOND
 
 #define STUN_HEADER_MAGIC_BYTE_OFFSET                                   4
@@ -141,6 +144,7 @@ typedef struct {
     PStateMachine pStateMachine;
     STATUS iceAgentStatus;
     UINT64 stateEndTime;
+    UINT64 candidateGenerationEndTime;
     PIceCandidatePair pDataSendingIceCandidatePair;
 
     IceAgentCallbacks iceAgentCallbacks;
@@ -263,7 +267,6 @@ STATUS iceAgentPopulateSdpMediaDescriptionCandidates(PIceAgent, PSdpMediaDescrip
 
 STATUS iceAgentAddIceServer(PIceAgent, PCHAR url, PCHAR username, PCHAR credential);
 
-STATUS iceAgentSendStunPacket(PIceAgent, PStunPacket, PBYTE, UINT32, PIceCandidatePair);
 STATUS iceAgentReportNewLocalCandidate(PIceAgent, PIceCandidate);
 
 // Incoming data handling functions
