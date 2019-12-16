@@ -57,7 +57,7 @@ STATUS deserializeSessionDescriptionInit(PCHAR sessionDescriptionJSON, UINT32 se
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    jsmntok_t tokens[SESSION_DESCRIPTION_TOKENS];
+    jsmntok_t tokens[MAX_JSON_TOKEN_COUNT];
     jsmn_parser parser;
     INT8 i;
     INT32 j, tokenCount, lineLen;
@@ -68,7 +68,7 @@ STATUS deserializeSessionDescriptionInit(PCHAR sessionDescriptionJSON, UINT32 se
 
     jsmn_init(&parser);
 
-    tokenCount = jsmn_parse(&parser, sessionDescriptionJSON, sessionDescriptionJSONLen, tokens, SESSION_DESCRIPTION_TOKENS);
+    tokenCount = jsmn_parse(&parser, sessionDescriptionJSON, sessionDescriptionJSONLen, tokens, ARRAY_SIZE(tokens));
     CHK(tokenCount > 1, STATUS_INVALID_API_CALL_RETURN_JSON);
     CHK(tokens[0].type == JSMN_OBJECT, STATUS_SESSION_DESCRIPTION_INIT_NOT_OBJECT);
     CHK(tokenCount == 5, STATUS_SESSION_DESCRIPTION_INIT_MISSING_SDP_OR_TYPE_MEMBER);
@@ -740,7 +740,7 @@ STATUS deserializeRtcIceCandidateInit(PCHAR pJson, UINT32 jsonLen, PRtcIceCandid
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    jsmntok_t tokens[ICE_CANDIDATE_INIT_TOKENS];
+    jsmntok_t tokens[MAX_JSON_TOKEN_COUNT];
     jsmn_parser parser;
     INT8 i;
     INT32 tokenCount;
@@ -750,7 +750,7 @@ STATUS deserializeRtcIceCandidateInit(PCHAR pJson, UINT32 jsonLen, PRtcIceCandid
 
     jsmn_init(&parser);
 
-    tokenCount = jsmn_parse(&parser, pJson, jsonLen, tokens, ICE_CANDIDATE_INIT_TOKENS);
+    tokenCount = jsmn_parse(&parser, pJson, jsonLen, tokens, ARRAY_SIZE(tokens));
     CHK(tokenCount > 1, STATUS_INVALID_API_CALL_RETURN_JSON);
     CHK(tokens[0].type == JSMN_OBJECT, STATUS_ICE_CANDIDATE_INIT_MALFORMED);
 

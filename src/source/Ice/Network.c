@@ -6,6 +6,7 @@
 
 STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 ipCount = 0, destIpListLen;
 
@@ -55,6 +56,7 @@ CleanUp:
         *pDestIpListLen = ipCount;
     }
 
+    LEAVES();
     return retStatus;
 }
 

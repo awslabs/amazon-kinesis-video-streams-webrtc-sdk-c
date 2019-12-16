@@ -10,9 +10,6 @@ SessionDescription internal include file
 extern "C" {
 #endif
 
-#define SESSION_DESCRIPTION_TOKENS 5
-#define ICE_CANDIDATE_INIT_TOKENS 7
-
 #define SESSION_DESCRIPTION_INIT_LINE_ENDING "\\r\\n"
 
 #define SESSION_DESCRIPTION_INIT_TEMPLATE_HEAD "{\"type\": \"%s\", \"sdp\": \""
