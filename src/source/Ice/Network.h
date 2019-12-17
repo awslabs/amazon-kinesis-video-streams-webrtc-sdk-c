@@ -10,9 +10,6 @@ HostInfo internal include file
 extern "C" {
 #endif
 
-// For tight packing
-#pragma pack(push, include_i, 1) // for byte alignment
-
 #define MAX_LOCAL_NETWORK_INTERFACE_COUNT               128
 
 // string buffer size for ipv4 and ipv6. Null terminator included.
@@ -62,8 +59,6 @@ STATUS getIpWithHostName(PCHAR, PKvsIpAddress);
 STATUS getIpAddrStr(PKvsIpAddress, PCHAR, UINT32);
 
 BOOL isSameIpAddress(PKvsIpAddress, PKvsIpAddress, BOOL);
-
-#pragma pack(pop, include_i)
 
 #ifdef  __cplusplus
 }

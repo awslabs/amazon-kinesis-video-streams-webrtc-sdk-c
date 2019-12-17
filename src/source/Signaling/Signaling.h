@@ -10,9 +10,6 @@ Signaling internal include file
 extern "C" {
 #endif
 
-// For tight packing
-#pragma pack(push, include_i, 1) // for byte alignment
-
 // Request id header name
 #define SIGNALING_REQUEST_ID_HEADER_NAME                                    KVS_REQUEST_ID_HEADER_NAME ":"
 
@@ -33,7 +30,7 @@ typedef struct __LwsCallInfo *PLwsCallInfo;
  * Thread execution tracker
  */
 typedef struct {
-    ATOMIC_BOOL terminated;
+    volatile ATOMIC_BOOL terminated;
     TID threadId;
     MUTEX lock;
     CVAR await;
@@ -43,9 +40,6 @@ typedef struct {
  * Internal representation of the Signaling client.
  */
 typedef struct {
-    // Current version of the structure
-    UINT32 version;
-
     // Current service call result
     volatile SIZE_T result;
 
@@ -60,6 +54,9 @@ typedef struct {
 
     // Wss is connected
     volatile ATOMIC_BOOL connected;
+
+    // Current version of the structure
+    UINT32 version;
 
     // Stored Client info
     SignalingClientInfo clientInfo;
@@ -177,8 +174,6 @@ STATUS refreshIceConfigurationCallback(UINT32, UINT64, UINT64);
 STATUS awaitForThreadTermination(PThreadTracker, UINT64);
 STATUS initializeThreadTracker(PThreadTracker);
 STATUS uninitializeThreadTracker(PThreadTracker);
-
-#pragma pack(pop, include_i)
 
 #ifdef  __cplusplus
 }

@@ -10,9 +10,6 @@ Signaling LibWebSocket based API calls include file
 extern "C" {
 #endif
 
-// For tight packing
-#pragma pack(push, include_i, 1) // for byte alignment
-
 // Timeout values
 #define SIGNALING_SERVICE_API_CALL_CONNECTION_TIMEOUT                       (2 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define SIGNALING_SERVICE_API_CALL_COMPLETION_TIMEOUT                       (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
@@ -201,8 +198,6 @@ STATUS receiveLwsMessage(PSignalingClient, PCHAR, UINT32);
 STATUS getMessageTypeFromString(PCHAR, UINT32, SIGNALING_MESSAGE_TYPE*);
 
 STATUS terminateConnectionWithStatus(PSignalingClient, SERVICE_CALL_RESULT);
-
-#pragma pack(pop, include_i)
 
 #ifdef  __cplusplus
 }

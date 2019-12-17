@@ -10,9 +10,6 @@ Socket Connection internal include file
 extern "C" {
 #endif
 
-// For tight packing
-#pragma pack(push, include_i, 1) // for byte alignment
-
 typedef STATUS (*ConnectionDataAvailableFunc)(UINT64, struct __SocketConnection*, PBYTE, UINT32, PKvsIpAddress, PKvsIpAddress);
 
 typedef struct __SocketConnection SocketConnection;
@@ -115,8 +112,6 @@ STATUS socketConnectionReadData(PSocketConnection, PBYTE, UINT32, PUINT32);
 // internal functions
 STATUS createConnectionCertificateAndKey(X509 **, EVP_PKEY **);
 INT32 certificateVerifyCallback(INT32 preverify_ok, X509_STORE_CTX *ctx);
-
-#pragma pack(pop, include_i)
 
 #ifdef  __cplusplus
 }

@@ -10,9 +10,6 @@ PeerConnection internal include file
 extern "C" {
 #endif
 
-// For tight packing
-#pragma pack(push, include_i, 1) // for byte alignment
-
 #define LOCAL_ICE_UFRAG_LEN             4
 #define LOCAL_ICE_PWD_LEN               24
 #define LOCAL_CNAME_LEN                 16
@@ -30,8 +27,8 @@ extern "C" {
 
 #define CODEC_HASH_TABLE_BUCKET_COUNT                   50
 #define CODEC_HASH_TABLE_BUCKET_LENGTH                  2
-#define RTX_HASH_TABLE_BUCKET_COUNT                   50
-#define RTX_HASH_TABLE_BUCKET_LENGTH                  2
+#define RTX_HASH_TABLE_BUCKET_COUNT                     50
+#define RTX_HASH_TABLE_BUCKET_LENGTH                    2
 
 #define DATA_CHANNEL_HASH_TABLE_BUCKET_COUNT            200
 #define DATA_CHANNEL_HASH_TABLE_BUCKET_LENGTH           2
@@ -102,8 +99,6 @@ VOID onSctpSessionDataChannelOpen(UINT64, UINT32, PBYTE, UINT32);
 STATUS sendPacketToRtpReceiver(PKvsPeerConnection, PBYTE, UINT32);
 
 STATUS generateJSONSafeString(PCHAR, UINT32);
-
-#pragma pack(pop, include_i)
 
 #ifdef  __cplusplus
 }

@@ -87,6 +87,7 @@ STATUS serializeStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passw
     PStunAttributeData pStunAttributeData;
     PStunAttributeChannelNumber pStunAttributeChannelNumber;
     BOOL fingerprintFound = FALSE, messaageIntegrityFound = FALSE;
+    INT64 data64;
 
     CHK(pStunPacket != NULL && (!generateMessageIntegrity || password != NULL) && pSize != NULL, STATUS_NULL_ARG);
     CHK(password == NULL || passwordLen != 0, STATUS_INVALID_ARG);
@@ -337,7 +338,9 @@ STATUS serializeStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passw
                                              pStunAttributeHeader->length);
 
                     // Package the value
-                    putInt64((PINT64) (pCurrentBufferPosition + STUN_ATTRIBUTE_HEADER_LEN), pStunAttributeIceControl->tieBreaker);
+                    MEMCPY(&data64, (PBYTE) pStunAttributeIceControl + STUN_ATTRIBUTE_HEADER_LEN, SIZEOF(INT64));
+                    putInt64(&data64, data64);
+                    MEMCPY(pCurrentBufferPosition + STUN_ATTRIBUTE_HEADER_LEN, &data64, SIZEOF(INT64));
                 }
 
                 break;
@@ -427,7 +430,7 @@ STATUS serializeStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passw
 
     // Check if we need to generate the message integrity attribute
     if (generateMessageIntegrity) {
-        encodedLen = SIZEOF(StunAttributeMessageIntegrity);
+        encodedLen = STUN_ATTRIBUTE_HEADER_LEN + STUN_HMAC_VALUE_LEN;
 
         if (pBuffer != NULL) {
             CHK(remaining >= encodedLen, STATUS_NOT_ENOUGH_MEMORY);
@@ -466,7 +469,7 @@ STATUS serializeStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passw
 
     // Check if we need to generate the fingerprint attribute
     if (generateFingerprint) {
-        encodedLen = SIZEOF(StunAttributeFingerprint);
+        encodedLen = STUN_ATTRIBUTE_HEADER_LEN + STUN_ATTRIBUTE_FINGERPRINT_LEN;
 
         if (pBuffer != NULL) {
             CHK(remaining >= encodedLen, STATUS_NOT_ENOUGH_MEMORY);
@@ -525,6 +528,7 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
     UINT32 attributeCount = 0, allocationSize, attributeSize, i = 0, j, magicCookie, hmacLen, crc32, data;
     UINT32 stunMagicCookie = STUN_HEADER_MAGIC_COOKIE;
     UINT16 size, paddedLength, ipFamily, messageLength;
+    INT64 data64;
     PStunAttributeHeader pStunAttributeHeader, pStunAttributes, pDestAttribute;
     PStunHeader pStunHeader = (PStunHeader) pStunBuffer;
     PStunPacket pStunPacket = NULL;
@@ -547,30 +551,30 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
 
     CHK(pStunBuffer != NULL && ppStunPacket != NULL,
         STATUS_NULL_ARG);
-    CHK(bufferSize >= SIZEOF(StunHeader), STATUS_INVALID_ARG);
+    CHK(bufferSize >= STUN_HEADER_LEN, STATUS_INVALID_ARG);
 
     if (!isBigEndian()) {
         stunMagicCookie = STUN_HEADER_MAGIC_COOKIE_LE;
     }
 
     // Copy and fix-up the header
-    messageLength = (UINT16) getInt16(pStunHeader->messageLength);
-    magicCookie = (UINT32) getInt32(pStunHeader->magicCookie);
+    messageLength = (UINT16) getInt16(*(PUINT16) ((PBYTE) pStunHeader + STUN_HEADER_TYPE_LEN));
+    magicCookie = (UINT32) getInt32(*(PUINT32) ((PBYTE) pStunHeader + STUN_HEADER_TYPE_LEN + STUN_HEADER_DATA_LEN));
 
     // Validate the specified size
-    CHK(bufferSize >= messageLength + SIZEOF(StunHeader), STATUS_INVALID_ARG);
+    CHK(bufferSize >= messageLength + STUN_HEADER_LEN, STATUS_INVALID_ARG);
 
     // Validate the magic cookie
     CHK(magicCookie == STUN_HEADER_MAGIC_COOKIE, STATUS_STUN_MAGIC_COOKIE_MISMATCH);
 
     // Calculate the required size by getting the number of attributes
-    pStunAttributes = (PStunAttributeHeader) ((PStunHeader) pStunBuffer + 1);
+    pStunAttributes = (PStunAttributeHeader) (pStunBuffer + STUN_HEADER_LEN);
     pStunAttributeHeader = pStunAttributes;
     allocationSize = SIZEOF(StunPacket);
     while ((PBYTE) pStunAttributeHeader < (PBYTE) pStunAttributes + messageLength) {
         // Copy/Swap tne attribute header
-        stunAttributeHeader.type = (STUN_ATTRIBUTE_TYPE) getInt16(pStunAttributeHeader->type);
-        stunAttributeHeader.length = (UINT16) getInt16(pStunAttributeHeader->length);
+        stunAttributeHeader.type = (STUN_ATTRIBUTE_TYPE) getInt16(*(PUINT16) pStunAttributeHeader);
+        stunAttributeHeader.length = (UINT16) getInt16(*(PUINT16) ((PBYTE) pStunAttributeHeader + STUN_ATTRIBUTE_HEADER_TYPE_LEN));
 
         // Zero out for before iteration
         attributeSize = 0;
@@ -730,7 +734,7 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
         CHK(attributeCount <= STUN_ATTRIBUTE_MAX_COUNT, STATUS_STUN_MAX_ATTRIBUTE_COUNT);
 
         // Increment the attributes pointer and account for the length
-        pStunAttributeHeader = (PStunAttributeHeader) ((PBYTE) (pStunAttributeHeader + 1) + paddedLength);
+        pStunAttributeHeader = (PStunAttributeHeader) ((PBYTE) pStunAttributeHeader + STUN_ATTRIBUTE_HEADER_LEN + paddedLength);
     }
 
     // Account for the attribute pointer array
@@ -740,10 +744,10 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
     CHK(NULL != (pStunPacket = MEMCALLOC(1, allocationSize)), STATUS_NOT_ENOUGH_MEMORY);
 
     // Copy/swap the header
-    *(PStunHeader) pStunPacket = *pStunHeader;
+    pStunPacket->header.stunMessageType = (UINT16) getInt16(pStunHeader->stunMessageType);
     pStunPacket->header.messageLength = messageLength;
     pStunPacket->header.magicCookie = magicCookie;
-    pStunPacket->header.stunMessageType = (UINT16) getInt16(pStunHeader->stunMessageType);
+    MEMCPY(pStunPacket->header.transactionId, pStunHeader->transactionId, STUN_TRANSACTION_ID_LEN);
 
     // Store the actual allocation size
     pStunPacket->allocationSize = allocationSize;
@@ -755,7 +759,7 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
     pStunPacket->attributesCount = attributeCount;
 
     // Set the attribute buffer start
-    pDestAttribute = (PStunAttributeHeader) ((PBYTE) pStunPacket->attributeList + attributeCount * SIZEOF(PStunAttributeHeader));
+    pDestAttribute = (PStunAttributeHeader) (pStunPacket->attributeList + attributeCount);
 
     // Reset the attributes to go over the array and convert
     pStunAttributeHeader = pStunAttributes;
@@ -763,19 +767,19 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
     // Start packaging the attributes
     while (((PBYTE) pStunAttributeHeader < (PBYTE) pStunAttributes + pStunPacket->header.messageLength) && i < attributeCount) {
         // Set the array entry first
-        pStunPacket->attributeList[i] = pDestAttribute;
+        pStunPacket->attributeList[i++] = pDestAttribute;
 
         // Copy/Swap tne attribute header
-        pStunPacket->attributeList[i]->type = (STUN_ATTRIBUTE_TYPE) getInt16(pStunAttributeHeader->type);
-        pStunPacket->attributeList[i]->length = (UINT16) getInt16(pStunAttributeHeader->length);
+        pDestAttribute->type = (STUN_ATTRIBUTE_TYPE) getInt16(pStunAttributeHeader->type);
+        pDestAttribute->length = (UINT16) getInt16(pStunAttributeHeader->length);
 
         // Zero out for before iteration
         attributeSize = 0;
 
         // Calculate the padded size
-        paddedLength = (UINT16) ROUND_UP(pStunPacket->attributeList[i]->length, 4);
+        paddedLength = (UINT16) ROUND_UP(pDestAttribute->length, 4);
 
-        switch(pStunPacket->attributeList[i]->type) {
+        switch(pDestAttribute->type) {
             case STUN_ATTRIBUTE_TYPE_MAPPED_ADDRESS:
             case STUN_ATTRIBUTE_TYPE_XOR_MAPPED_ADDRESS:
             case STUN_ATTRIBUTE_TYPE_RESPONSE_ADDRESS:
@@ -783,10 +787,10 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
             case STUN_ATTRIBUTE_TYPE_REFLECTED_FROM:
             case STUN_ATTRIBUTE_TYPE_XOR_RELAYED_ADDRESS:
             case STUN_ATTRIBUTE_TYPE_XOR_PEER_ADDRESS:
-                pStunAttributeAddress = (PStunAttributeAddress) pStunPacket->attributeList[i++];
+                pStunAttributeAddress = (PStunAttributeAddress) pDestAttribute;
 
                 // Copy the entire structure and swap
-                MEMCPY(&pStunAttributeAddress->address, pStunAttributeHeader + 1, pStunAttributeAddress->attribute.length);
+                MEMCPY(&pStunAttributeAddress->address, (PBYTE) pStunAttributeHeader + STUN_ATTRIBUTE_HEADER_LEN, pStunAttributeAddress->attribute.length);
                 pStunAttributeAddress->address.family = (UINT16) getInt16(pStunAttributeAddress->address.family) & (UINT16) 0x00ff;
                 attributeSize = SIZEOF(StunAttributeAddress);
 
@@ -820,7 +824,7 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
                 break;
 
             case STUN_ATTRIBUTE_TYPE_USERNAME:
-                pStunAttributeUsername = (PStunAttributeUsername) pStunPacket->attributeList[i++];
+                pStunAttributeUsername = (PStunAttributeUsername) pDestAttribute;
 
                 // Set the padded length
                 pStunAttributeUsername->paddedLength = paddedLength;
@@ -829,15 +833,15 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
                 pStunAttributeUsername->userName = (PCHAR) (pStunAttributeUsername + 1);
 
                 // Copy the padded user name
-                MEMCPY(pStunAttributeUsername->userName, pStunAttributeHeader + 1, pStunAttributeUsername->paddedLength);
+                MEMCPY(pStunAttributeUsername->userName, (PBYTE) pStunAttributeHeader + STUN_ATTRIBUTE_HEADER_LEN, pStunAttributeUsername->paddedLength);
                 attributeSize = SIZEOF(StunAttributeUsername) + pStunAttributeUsername->paddedLength;
 
                 break;
 
             case STUN_ATTRIBUTE_TYPE_PRIORITY:
-                pStunAttributePriority = (PStunAttributePriority) pStunPacket->attributeList[i++];
+                pStunAttributePriority = (PStunAttributePriority) pDestAttribute;
 
-                pStunAttributePriority->priority = (UINT32) getInt32(* (PUINT32) (pStunAttributeHeader + 1));
+                pStunAttributePriority->priority = (UINT32) getInt32(* (PUINT32) ((PBYTE) pStunAttributeHeader + STUN_ATTRIBUTE_HEADER_LEN));
 
                 attributeSize = SIZEOF(StunAttributePriority);
 
@@ -845,34 +849,30 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
 
             case STUN_ATTRIBUTE_TYPE_USE_CANDIDATE:
             case STUN_ATTRIBUTE_TYPE_DONT_FRAGMENT:
-
                 attributeSize = SIZEOF(StunAttributeFlag);
-
-                // Increment the index on all recognized attributes
-                i++;
 
                 break;
 
             case STUN_ATTRIBUTE_TYPE_LIFETIME:
-                pStunAttributeLifetime = (PStunAttributeLifetime) pStunPacket->attributeList[i++];
+                pStunAttributeLifetime = (PStunAttributeLifetime) pDestAttribute;
 
-                pStunAttributeLifetime->lifetime = (UINT32) getInt32(* (PUINT32) (pStunAttributeHeader + 1));
+                pStunAttributeLifetime->lifetime = (UINT32) getInt32(* (PUINT32) ((PBYTE) pStunAttributeHeader + STUN_ATTRIBUTE_HEADER_LEN));
 
                 attributeSize = SIZEOF(StunAttributeLifetime);
 
                 break;
 
             case STUN_ATTRIBUTE_TYPE_REQUESTED_TRANSPORT:
-                pStunAttributeRequestedTransport = (PStunAttributeRequestedTransport) pStunPacket->attributeList[i++];
+                pStunAttributeRequestedTransport = (PStunAttributeRequestedTransport) pDestAttribute;
 
-                MEMCPY(pStunAttributeRequestedTransport->protocol, pStunAttributeHeader + 1, STUN_ATTRIBUTE_REQUESTED_TRANSPORT_PROTOCOL_LEN);
+                MEMCPY(pStunAttributeRequestedTransport->protocol, (PBYTE) pStunAttributeHeader + STUN_ATTRIBUTE_HEADER_LEN, STUN_ATTRIBUTE_REQUESTED_TRANSPORT_PROTOCOL_LEN);
 
                 attributeSize = SIZEOF(StunAttributeRequestedTransport);
 
                 break;
 
             case STUN_ATTRIBUTE_TYPE_REALM:
-                pStunAttributeRealm = (PStunAttributeRealm) pStunPacket->attributeList[i++];
+                pStunAttributeRealm = (PStunAttributeRealm) pDestAttribute;
 
                 // Set the padded length
                 pStunAttributeRealm->paddedLength = paddedLength;
@@ -881,13 +881,13 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
                 pStunAttributeRealm->realm = (PCHAR) (pStunAttributeRealm + 1);
 
                 // Copy the padded realm
-                MEMCPY(pStunAttributeRealm->realm, pStunAttributeHeader + 1, pStunAttributeRealm->paddedLength);
+                MEMCPY(pStunAttributeRealm->realm, (PBYTE) pStunAttributeHeader + STUN_ATTRIBUTE_HEADER_LEN, pStunAttributeRealm->paddedLength);
                 attributeSize = SIZEOF(StunAttributeRealm) + pStunAttributeRealm->paddedLength;
 
                 break;
 
             case STUN_ATTRIBUTE_TYPE_NONCE:
-                pStunAttributeNonce = (PStunAttributeNonce) pStunPacket->attributeList[i++];
+                pStunAttributeNonce = (PStunAttributeNonce) pDestAttribute;
 
                 // Set the padded length
                 pStunAttributeNonce->paddedLength = paddedLength;
@@ -896,26 +896,26 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
                 pStunAttributeNonce->nonce = (PBYTE) (pStunAttributeNonce + 1);
 
                 // Copy the padded nonce
-                MEMCPY(pStunAttributeNonce->nonce, pStunAttributeHeader + 1, pStunAttributeNonce->paddedLength);
+                MEMCPY(pStunAttributeNonce->nonce, (PBYTE) pStunAttributeHeader + STUN_ATTRIBUTE_HEADER_LEN, pStunAttributeNonce->paddedLength);
                 attributeSize = SIZEOF(StunAttributeNonce) + pStunAttributeNonce->paddedLength;
 
                 break;
 
             case STUN_ATTRIBUTE_TYPE_ERROR_CODE:
-                pStunAttributeErrorCode = (PStunAttributeErrorCode) pStunPacket->attributeList[i++];
+                pStunAttributeErrorCode = (PStunAttributeErrorCode) pDestAttribute;
 
                 // Set the padded length
                 pStunAttributeErrorCode->paddedLength = paddedLength;
 
                 // swap the error code
-                pStunAttributeErrorCode->errorCode = GET_STUN_ERROR_CODE(((PBYTE) (pStunAttributeHeader + 1) + STUN_ERROR_CODE_PACKET_ERROR_CLASS_OFFSET),
-                                                                         ((PBYTE) (pStunAttributeHeader + 1) + STUN_ERROR_CODE_PACKET_ERROR_CODE_OFFSET));
+                pStunAttributeErrorCode->errorCode = GET_STUN_ERROR_CODE(((PBYTE) pStunAttributeHeader + STUN_ATTRIBUTE_HEADER_LEN + STUN_ERROR_CODE_PACKET_ERROR_CLASS_OFFSET),
+                                                                         ((PBYTE) pStunAttributeHeader + STUN_ATTRIBUTE_HEADER_LEN + STUN_ERROR_CODE_PACKET_ERROR_CODE_OFFSET));
 
                 // Set the pointer following the structure
                 pStunAttributeErrorCode->errorPhrase = (PCHAR) (pStunAttributeErrorCode + 1);
 
                 // Copy the padded error phrase
-                MEMCPY(pStunAttributeErrorCode->errorPhrase, ((PBYTE) (pStunAttributeHeader + 1) + STUN_ERROR_CODE_PACKET_ERROR_PHRASE_OFFSET),
+                MEMCPY(pStunAttributeErrorCode->errorPhrase, ((PBYTE) pStunAttributeHeader + STUN_ATTRIBUTE_HEADER_LEN + STUN_ERROR_CODE_PACKET_ERROR_PHRASE_OFFSET),
                        pStunAttributeErrorCode->paddedLength);
                 attributeSize = SIZEOF(StunAttributeErrorCode) + pStunAttributeErrorCode->paddedLength;
 
@@ -923,16 +923,21 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
 
             case STUN_ATTRIBUTE_TYPE_ICE_CONTROLLED:
             case STUN_ATTRIBUTE_TYPE_ICE_CONTROLLING:
-                pStunAttributeIceControl = (PStunAttributeIceControl) pStunPacket->attributeList[i++];
+                pStunAttributeIceControl = (PStunAttributeIceControl) pDestAttribute;
 
-                pStunAttributeIceControl->tieBreaker = (UINT64) getInt64(*(PUINT64) (pStunAttributeHeader + 1));
+                // Deal with the alignment
+                MEMCPY(&data64, (PBYTE) pStunAttributeHeader + STUN_ATTRIBUTE_HEADER_LEN, SIZEOF(INT64));
+                data64 = (INT64) getInt64(data64);
+
+                // Swap the bits
+                MEMCPY((PBYTE) pStunAttributeIceControl + SIZEOF(StunAttributeIceControl) - SIZEOF(UINT64), &data64, SIZEOF(INT64));
 
                 attributeSize = SIZEOF(StunAttributeIceControl);
 
                 break;
 
             case STUN_ATTRIBUTE_TYPE_DATA:
-                pStunAttributeData = (PStunAttributeData) pStunPacket->attributeList[i++];
+                pStunAttributeData = (PStunAttributeData) pDestAttribute;
 
                 // Set the padded length
                 pStunAttributeData->paddedLength = paddedLength;
@@ -941,15 +946,15 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
                 pStunAttributeData->data = (PBYTE) (pStunAttributeData + 1);
 
                 // Copy the padded nonce
-                MEMCPY(pStunAttributeData->data, pStunAttributeHeader + 1, pStunAttributeData->paddedLength);
-                attributeSize = SIZEOF(PStunAttributeData) + pStunAttributeData->paddedLength;
+                MEMCPY(pStunAttributeData->data, (PBYTE) pStunAttributeHeader + STUN_ATTRIBUTE_HEADER_LEN, pStunAttributeData->paddedLength);
+                attributeSize = SIZEOF(StunAttributeData) + pStunAttributeData->paddedLength;
 
                 break;
 
             case STUN_ATTRIBUTE_TYPE_CHANNEL_NUMBER:
-                pStunAttributeChannelNumber = (PStunAttributeChannelNumber) pStunPacket->attributeList[i++];
+                pStunAttributeChannelNumber = (PStunAttributeChannelNumber) pDestAttribute;
 
-                pStunAttributeChannelNumber->channelNumber = (UINT16) getInt16(* (PUINT16) (pStunAttributeHeader + 1));
+                pStunAttributeChannelNumber->channelNumber = (UINT16) getInt16(* (PUINT16) ((PBYTE) pStunAttributeHeader + STUN_ATTRIBUTE_HEADER_LEN));
 
                 pStunAttributeChannelNumber->reserve = 0;
 
@@ -961,14 +966,14 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
                 CHK(password != NULL, STATUS_NULL_ARG);
                 CHK(passwordLen != 0, STATUS_INVALID_ARG);
 
-                pStunAttributeMessageIntegrity = (PStunAttributeMessageIntegrity) pStunPacket->attributeList[i++];
+                pStunAttributeMessageIntegrity = (PStunAttributeMessageIntegrity) pDestAttribute;
 
                 // Copy the message integrity
                 attributeSize = SIZEOF(StunAttributeMessageIntegrity);
 
                 // Validate the HMAC
                 // Fix-up the packet length
-                size = (UINT16) ((PBYTE) pStunAttributeHeader + SIZEOF(StunAttributeMessageIntegrity) - pStunBuffer - STUN_HEADER_LEN);
+                size = (UINT16) ((PBYTE) pStunAttributeHeader + STUN_ATTRIBUTE_HEADER_LEN + STUN_HMAC_VALUE_LEN - pStunBuffer - STUN_HEADER_LEN);
                 putInt16((PINT16) (pStunBuffer + STUN_HEADER_TYPE_LEN), size);
 
                 // The size of the message size in bytes should be a multiple of 64 per rfc
@@ -989,21 +994,21 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
                 putInt16((PINT16) (pStunBuffer + STUN_HEADER_TYPE_LEN), pStunPacket->header.messageLength);
 
                 // Validate the HMAC
-                CHK(0 == MEMCMP(pStunAttributeMessageIntegrity->messageIntegrity, pStunAttributeHeader + 1, STUN_HMAC_VALUE_LEN),
+                CHK(0 == MEMCMP(pStunAttributeMessageIntegrity->messageIntegrity, (PBYTE) pStunAttributeHeader + STUN_ATTRIBUTE_HEADER_LEN, STUN_HMAC_VALUE_LEN),
                     STATUS_STUN_MESSAGE_INTEGRITY_MISMATCH);
 
                 break;
 
             case STUN_ATTRIBUTE_TYPE_FINGERPRINT:
-                pStunAttributeFingerprint = (PStunAttributeFingerprint) pStunPacket->attributeList[i++];
+                pStunAttributeFingerprint = (PStunAttributeFingerprint) pDestAttribute;
 
                 // Copy the use fingerprint value
-                pStunAttributeFingerprint->crc32Fingerprint = (UINT32) getInt32(* (PUINT32) (pStunAttributeHeader + 1));
+                pStunAttributeFingerprint->crc32Fingerprint = (UINT32) getInt32(* (PUINT32) ((PBYTE) pStunAttributeHeader + STUN_ATTRIBUTE_HEADER_LEN));
                 attributeSize = SIZEOF(StunAttributeFingerprint);
 
                 // Validate the Fingerprint
                 // Fix-up the packet length
-                size = (UINT16) ((PBYTE) pStunAttributeHeader + SIZEOF(StunAttributeFingerprint) - pStunBuffer - STUN_HEADER_LEN);
+                size = (UINT16) ((PBYTE) pStunAttributeHeader + STUN_ATTRIBUTE_HEADER_LEN + STUN_ATTRIBUTE_FINGERPRINT_LEN - pStunBuffer - STUN_HEADER_LEN);
                 putInt16((PINT16) (pStunBuffer + STUN_HEADER_TYPE_LEN), size);
 
                 // Calculate the fingerprint
@@ -1025,7 +1030,7 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
         }
 
         // Increment the attributes pointer and account for the length
-        pStunAttributeHeader = (PStunAttributeHeader) ((PBYTE) (pStunAttributeHeader + 1) + paddedLength);
+        pStunAttributeHeader = (PStunAttributeHeader) ((PBYTE) pStunAttributeHeader + STUN_ATTRIBUTE_HEADER_LEN + paddedLength);
 
         // Set the destination
         pDestAttribute = (PStunAttributeHeader) ((PBYTE) pDestAttribute + attributeSize);
@@ -1120,7 +1125,7 @@ STATUS appendStunAddressAttribute(PStunPacket pStunPacket, STUN_ATTRIBUTE_TYPE a
 
     // Validate the overall size
     CHK((PBYTE) pStunPacket + pStunPacket->allocationSize >=
-        (PBYTE) pAttribute + SIZEOF(KvsIpAddress) + STUN_ATTRIBUTE_HEADER_LEN,
+        (PBYTE) pAttribute + ROUND_UP(SIZEOF(StunAttributeAddress), 8),
         STATUS_NOT_ENOUGH_MEMORY);
 
     // Set up the new entry and copy data over
@@ -1160,7 +1165,7 @@ STATUS appendStunUsernameAttribute(PStunPacket pStunPacket, PCHAR userName)
 
     // Validate the overall size
     CHK((PBYTE) pStunPacket + pStunPacket->allocationSize >=
-        (PBYTE) pAttribute + paddedLength + STUN_ATTRIBUTE_HEADER_LEN,
+        (PBYTE) pAttribute + ROUND_UP(paddedLength + SIZEOF(StunAttributeUsername), 8),
         STATUS_NOT_ENOUGH_MEMORY);
 
     // Set up the new entry and copy data over
@@ -1256,7 +1261,7 @@ STATUS appendStunPriorityAttribute(PStunPacket pStunPacket, UINT32 priority)
 
     // Validate the overall size
     CHK((PBYTE) pStunPacket + pStunPacket->allocationSize >=
-        (PBYTE) pAttribute + STUN_ATTRIBUTE_PRIORITY_LEN + STUN_ATTRIBUTE_HEADER_LEN,
+        (PBYTE) pAttribute + ROUND_UP(SIZEOF(StunAttributePriority), 8),
         STATUS_NOT_ENOUGH_MEMORY);
 
     // Set up the new entry and copy data over
@@ -1289,7 +1294,7 @@ STATUS appendStunFlagAttribute(PStunPacket pStunPacket, STUN_ATTRIBUTE_TYPE attr
 
     // Validate the overall size
     CHK((PBYTE) pStunPacket + pStunPacket->allocationSize >=
-        (PBYTE) pAttribute + STUN_ATTRIBUTE_FLAG_LEN + STUN_ATTRIBUTE_HEADER_LEN,
+        (PBYTE) pAttribute + ROUND_UP(SIZEOF(StunAttributeFlag), 8),
         STATUS_NOT_ENOUGH_MEMORY);
 
     // Set up the new entry and copy data over
@@ -1319,7 +1324,7 @@ STATUS appendStunLifetimeAttribute(PStunPacket pStunPacket, UINT32 lifetime)
 
     // Validate the overall size
     CHK((PBYTE) pStunPacket + pStunPacket->allocationSize >=
-        (PBYTE) pAttribute + STUN_ATTRIBUTE_LIFETIME_LEN + STUN_ATTRIBUTE_HEADER_LEN,
+        (PBYTE) pAttribute + ROUND_UP(SIZEOF(StunAttributeLifetime), 8),
         STATUS_NOT_ENOUGH_MEMORY);
 
     // Set up the new entry and copy data over
@@ -1352,7 +1357,7 @@ STATUS appendStunRequestedTransportAttribute(PStunPacket pStunPacket, UINT8 prot
 
     // Validate the overall size
     CHK((PBYTE) pStunPacket + pStunPacket->allocationSize >=
-        (PBYTE) pAttribute + STUN_ATTRIBUTE_REQUESTED_TRANSPORT_PROTOCOL_LEN + STUN_ATTRIBUTE_HEADER_LEN,
+        (PBYTE) pAttribute + ROUND_UP(SIZEOF(StunAttributeRequestedTransport), 8),
         STATUS_NOT_ENOUGH_MEMORY);
 
     // Set up the new entry and copy data over
@@ -1363,7 +1368,7 @@ STATUS appendStunRequestedTransportAttribute(PStunPacket pStunPacket, UINT8 prot
 
     // Set the protocol
     MEMSET(pAttribute->protocol, 0x00, STUN_ATTRIBUTE_REQUESTED_TRANSPORT_PROTOCOL_LEN);
-    *(pAttribute->protocol) = (BYTE) protocol;
+    *pAttribute->protocol = (BYTE) protocol;
 
     // Fix-up the STUN header message length
     pStunPacket->header.messageLength += pAttribute->attribute.length + STUN_ATTRIBUTE_HEADER_LEN;
@@ -1392,7 +1397,7 @@ STATUS appendStunRealmAttribute(PStunPacket pStunPacket, PCHAR realm)
 
     // Validate the overall size
     CHK((PBYTE) pStunPacket + pStunPacket->allocationSize >=
-        (PBYTE) pAttribute + paddedLength + STUN_ATTRIBUTE_HEADER_LEN,
+        (PBYTE) pAttribute + ROUND_UP(paddedLength + SIZEOF(StunAttributeRealm), 8),
         STATUS_NOT_ENOUGH_MEMORY);
 
     // Set up the new entry and copy data over
@@ -1435,7 +1440,7 @@ STATUS appendStunNonceAttribute(PStunPacket pStunPacket, PBYTE nonce, UINT16 non
 
     // Validate the overall size
     CHK((PBYTE) pStunPacket + pStunPacket->allocationSize >=
-        (PBYTE) pAttribute + paddedLength + STUN_ATTRIBUTE_HEADER_LEN,
+        (PBYTE) pAttribute + ROUND_UP(paddedLength + SIZEOF(StunAttributeNonce), 8),
         STATUS_NOT_ENOUGH_MEMORY);
 
     // Set up the new entry and copy data over
@@ -1507,7 +1512,7 @@ STATUS appendStunErrorCodeAttribute(PStunPacket pStunPacket, PCHAR errorPhrase, 
 
     // Validate the overall size
     CHK((PBYTE) pStunPacket + pStunPacket->allocationSize >=
-        (PBYTE) pAttribute + paddedLength + STUN_ATTRIBUTE_HEADER_LEN,
+        (PBYTE) pAttribute + ROUND_UP(paddedLength + SIZEOF(StunAttributeErrorCode), 8),
         STATUS_NOT_ENOUGH_MEMORY);
 
     // Set up the new entry and copy data over
@@ -1549,17 +1554,17 @@ STATUS appendStunIceControllAttribute(PStunPacket pStunPacket, STUN_ATTRIBUTE_TY
 
     // Validate the overall size
     CHK((PBYTE) pStunPacket + pStunPacket->allocationSize >=
-        (PBYTE) pAttribute + SIZEOF(StunAttributeIceControl),
+        (PBYTE) pAttribute + ROUND_UP(SIZEOF(StunAttributeIceControl), 8),
         STATUS_NOT_ENOUGH_MEMORY);
 
     // Set up the new entry and copy data over
     pStunPacket->attributeList[pStunPacket->attributesCount++] = (PStunAttributeHeader) pAttribute;
 
-    pAttribute->attribute.length = SIZEOF(StunAttributeIceControl) - STUN_ATTRIBUTE_HEADER_LEN;
+    pAttribute->attribute.length = STUN_ATTRIBUTE_ICE_CONTROL_LEN;
     pAttribute->attribute.type = attributeType;
 
     // Set the tiebreaker
-    pAttribute->tieBreaker = tieBreaker;
+    MEMCPY((PBYTE) pAttribute + STUN_ATTRIBUTE_HEADER_LEN, &tieBreaker, SIZEOF(UINT64));
 
     // Fix-up the STUN header message length
     pStunPacket->header.messageLength += pAttribute->attribute.length + STUN_ATTRIBUTE_HEADER_LEN;
@@ -1587,7 +1592,7 @@ STATUS appendStunDataAttribute(PStunPacket pStunPacket, PBYTE data, UINT16 dataL
 
     // Validate the overall size
     CHK((PBYTE) pStunPacket + pStunPacket->allocationSize >=
-        (PBYTE) pAttribute + paddedLength + STUN_ATTRIBUTE_HEADER_LEN,
+        (PBYTE) pAttribute + ROUND_UP(paddedLength + SIZEOF(StunAttributeData), 8),
         STATUS_NOT_ENOUGH_MEMORY);
 
     // Set up the new entry and copy data over
@@ -1625,7 +1630,7 @@ STATUS appendStunChannelNumberAttribute(PStunPacket pStunPacket, UINT16 channelN
 
     // Validate the overall size
     CHK((PBYTE) pStunPacket + pStunPacket->allocationSize >=
-        (PBYTE) pAttribute + STUN_ATTRIBUTE_CHANNEL_NUMBER_LEN + STUN_ATTRIBUTE_HEADER_LEN,
+        (PBYTE) pAttribute + ROUND_UP(SIZEOF(StunAttributeChannelNumber), 8),
         STATUS_NOT_ENOUGH_MEMORY);
 
     // Set up the new entry and copy data over
@@ -1678,19 +1683,19 @@ UINT16 getPackagedStunAttributeSize(PStunAttributeHeader pStunAttributeHeader)
             length = SIZEOF(StunAttributeIceControl);
             break;
         case STUN_ATTRIBUTE_TYPE_REALM:
-            length = SIZEOF(StunAttributeRealm) + pStunAttributeHeader->length;
+            length = SIZEOF(StunAttributeRealm) + ((PStunAttributeRealm) pStunAttributeHeader)->paddedLength;
             break;
         case STUN_ATTRIBUTE_TYPE_NONCE:
-            length = SIZEOF(StunAttributeNonce) + pStunAttributeHeader->length;
+            length = SIZEOF(StunAttributeNonce) + ((PStunAttributeNonce) pStunAttributeHeader)->paddedLength;
             break;
         case STUN_ATTRIBUTE_TYPE_DATA:
-            length = SIZEOF(StunAttributeData) + pStunAttributeHeader->length;
+            length = SIZEOF(StunAttributeData) + ((PStunAttributeData) pStunAttributeHeader)->paddedLength;
             break;
         case STUN_ATTRIBUTE_TYPE_USERNAME:
-            length = SIZEOF(StunAttributeUsername) + pStunAttributeHeader->length;
+            length = SIZEOF(StunAttributeUsername) + ((PStunAttributeUsername) pStunAttributeHeader)->paddedLength;
             break;
         case STUN_ATTRIBUTE_TYPE_ERROR_CODE:
-            length = SIZEOF(StunAttributeErrorCode) + pStunAttributeHeader->length;
+            length = SIZEOF(StunAttributeErrorCode) + ((PStunAttributeErrorCode) pStunAttributeHeader)->paddedLength;
             break;
         case STUN_ATTRIBUTE_TYPE_CHANNEL_NUMBER:
             length = SIZEOF(StunAttributeChannelNumber);
@@ -1699,7 +1704,7 @@ UINT16 getPackagedStunAttributeSize(PStunAttributeHeader pStunAttributeHeader)
             length = STUN_ATTRIBUTE_HEADER_LEN + pStunAttributeHeader->length;
     }
 
-    return (UINT16) ROUND_UP(length, 4);
+    return (UINT16) ROUND_UP(length, 8);
 }
 
 STATUS getFirstAvailableStunAttribute(PStunPacket pStunPacket, PStunAttributeHeader* ppStunAttribute)
@@ -1726,8 +1731,7 @@ STATUS getFirstAvailableStunAttribute(PStunPacket pStunPacket, PStunAttributeHea
         CHK((PBYTE) pStunPacket + pStunPacket->allocationSize > (PBYTE) pAttribute, STATUS_NOT_ENOUGH_MEMORY);
     } else {
         // Set the attribute to the first one
-        pAttribute = (PStunAttributeHeader) ((PStunAttributeHeader) pStunPacket->attributeList +
-                                                   STUN_ATTRIBUTE_MAX_COUNT);
+        pAttribute = (PStunAttributeHeader) (pStunPacket->attributeList + STUN_ATTRIBUTE_MAX_COUNT);
     }
 
     *ppStunAttribute = pAttribute;

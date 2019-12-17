@@ -11,15 +11,12 @@
 extern "C" {
 #endif
 
-// For tight packing
-#pragma pack(push, include_i, 1) // for byte alignment
-
 // 1200 - 12 (SCTP header Size)
 #define SCTP_MTU 1188
 #define SCTP_ASSOCIATION_DEFAULT_PORT 5000
 #define SCTP_DCEP_HEADER_LENGTH 12
 
-#define DEFAULT_USRSCTP_TEARDOWN_POLLING_INTERVAL           10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
+#define DEFAULT_USRSCTP_TEARDOWN_POLLING_INTERVAL           (10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
 
 enum {
     SCTP_PPID_DCEP = 50,
@@ -66,8 +63,6 @@ STATUS sctpSessionWriteMessage(PSctpSession, UINT32, BOOL, PBYTE, UINT32);
 // Callbacks used by usrsctp
 INT32 onSctpOutboundPacket(PVOID, PVOID, ULONG, UINT8, UINT8);
 INT32 onSctpInboundPacket(struct socket*, union sctp_sockstore, PVOID, ULONG, struct sctp_rcvinfo, INT32, PVOID);
-
-#pragma pack(pop, include_i)
 
 #ifdef  __cplusplus
 }

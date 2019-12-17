@@ -10,9 +10,6 @@ Signaling State Machine internal include file
 extern "C" {
 #endif
 
-// For tight packing
-#pragma pack(push, include_i, 1) // for byte alignment
-
 /**
  * Signaling states definitions
  */
@@ -60,8 +57,6 @@ STATUS fromConnectedSignalingState(UINT64, PUINT64);
 STATUS executeConnectedSignalingState(UINT64, UINT64);
 STATUS fromDisconnectedSignalingState(UINT64, PUINT64);
 STATUS executeDisconnectedSignalingState(UINT64, UINT64);
-
-#pragma pack(pop, include_i)
 
 #ifdef  __cplusplus
 }

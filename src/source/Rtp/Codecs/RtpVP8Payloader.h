@@ -10,16 +10,11 @@ VP8 RTP Payloader include file
 extern "C" {
 #endif
 
-// For tight packing
-#pragma pack(push, include_i, 1) // for byte alignment
-
 #define VP8_PAYLOAD_DESCRIPTOR_SIZE 1
 #define VP8_PAYLOAD_DESCRIPTOR_START_OF_PARTITION_VALUE 0X10
 
 STATUS createPayloadForVP8(UINT32, PBYTE, UINT32, PBYTE, PUINT32, PUINT32, PUINT32);
 STATUS depayVP8FromRtpPayload(PBYTE, UINT32, PBYTE, PUINT32, PBOOL);
-
-#pragma pack(pop, include_i)
 
 #ifdef  __cplusplus
 

@@ -10,9 +10,6 @@ RTCP Rolling Buffer include file
 extern "C" {
 #endif
 
-// For tight packing
-#pragma pack(push, include_i, 1) // for byte alignment
-
 typedef struct {
     PRollingBuffer pRollingBuffer;
     // index of last rtp packet in rolling buffer
@@ -24,8 +21,6 @@ STATUS freeRtpRollingBuffer(PRtpRollingBuffer*);
 STATUS freeRtpRollingBufferData(PUINT64);
 STATUS rtpRollingBufferAddRtpPacket(PRtpRollingBuffer, PRtpPacket);
 STATUS rtpRollingBufferGetValidSeqIndexList(PRtpRollingBuffer, PUINT16, UINT32, PUINT64, PUINT32);
-
-#pragma pack(pop, include_i)
 
 #ifdef  __cplusplus
 

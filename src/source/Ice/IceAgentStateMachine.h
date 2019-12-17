@@ -10,9 +10,6 @@ Signaling State Machine internal include file
 extern "C" {
 #endif
 
-// For tight packing
-#pragma pack(push, include_i, 1) // for byte alignment
-
 /**
  * Ice states definitions
  *
@@ -71,8 +68,6 @@ STATUS fromDisconnectedIceAgentState(UINT64, PUINT64);
 STATUS executeDisconnectedIceAgentState(UINT64, UINT64);
 STATUS fromFailedIceAgentState(UINT64, PUINT64);
 STATUS executeFailedIceAgentState(UINT64, UINT64);
-
-#pragma pack(pop, include_i)
 
 #ifdef  __cplusplus
 }

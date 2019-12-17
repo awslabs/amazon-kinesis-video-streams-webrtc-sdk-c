@@ -10,16 +10,12 @@ Shared include file for the samples
 extern "C" {
 #endif
 
-// For tight packing
-#pragma pack(push, samples_i, 1) // for byte alignment
-
 #include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
 
 #define NUMBER_OF_H264_FRAME_FILES                                              403
 #define NUMBER_OF_OPUS_FRAME_FILES                                              618
 #define DEFAULT_FPS_VALUE                                                       25
 #define DEFAULT_MAX_CONCURRENT_STREAMING_SESSION                                10
-#define DEFAULT_TERMINATION_POLLING_INTERVAL                                    5 * HUNDREDS_OF_NANOS_IN_A_SECOND
 
 #define SAMPLE_MASTER_CLIENT_ID                                                 "ProducerMaster"
 #define SAMPLE_VIEWER_CLIENT_ID                                                 "ConsumerViewer"
@@ -111,8 +107,6 @@ STATUS resetSampleConfigurationState(PSampleConfiguration);
 VOID sampleFrameHandler(UINT64, PFrame);
 VOID onDataChannel(UINT64, PRtcDataChannel);
 VOID onConnectionStateChange(UINT64, RTC_PEER_CONNECTION_STATE);
-
-#pragma pack(pop, samples_i)
 
 #ifdef  __cplusplus
 }

@@ -10,9 +10,6 @@ RTP Packet include file
 extern "C" {
 #endif
 
-// For tight packing
-#pragma pack(push, include_i, 1) // for byte alignment
-
 #define MIN_HEADER_LENGTH 12
 #define VERSION_SHIFT 6
 #define VERSION_MASK 0x3
@@ -33,6 +30,8 @@ extern "C" {
 #define RTP_GET_RAW_PACKET_SIZE(pRtpPacket) (12 + (pRtpPacket)->header.csrcCount * CSRC_LENGTH \
     + ((pRtpPacket)->header.extension ? 4 + (pRtpPacket)->header.extensionLength : 0) \
     + (pRtpPacket)->payloadLength)
+
+#define GET_UINT16_SEQ_NUM(seqIndex) ((UINT16) ((seqIndex) % (MAX_UINT16 + 1)))
 
 typedef STATUS (*DepayRtpPayloadFunc)(PBYTE, UINT32, PBYTE, PUINT32, PBOOL);
 
@@ -100,10 +99,6 @@ STATUS setRtpPacketFromBytes(PBYTE, UINT32, PRtpPacket);
 STATUS createBytesFromRtpPacket(PRtpPacket, PBYTE*, PUINT32);
 STATUS setBytesFromRtpPacket(PRtpPacket, PBYTE, UINT32);
 STATUS constructRtpPackets(PPayloadArray, UINT8, UINT16, UINT32, UINT32, PRtpPacket, UINT32);
-
-#define GET_UINT16_SEQ_NUM(seqIndex) ((UINT16) ((seqIndex) % (MAX_UINT16 + 1)))
-
-#pragma pack(pop, include_i)
 
 #ifdef  __cplusplus
 

@@ -10,9 +10,6 @@ Signaling internal include file
 extern "C" {
 #endif
 
-// For tight packing
-#pragma pack(push, include_i, 1) // for byte alignment
-
 // Max control plane URI char len
 #define MAX_CONTROL_PLANE_URI_CHAR_LEN                          256
 
@@ -93,8 +90,6 @@ SIGNALING_CHANNEL_ROLE_TYPE getChannelRoleTypeFromString(PCHAR, UINT32);
  * @return - Signaling channel type string
  */
 PCHAR getStringFromChannelRoleType(SIGNALING_CHANNEL_ROLE_TYPE);
-
-#pragma pack(pop, include_i)
 
 #ifdef  __cplusplus
 }

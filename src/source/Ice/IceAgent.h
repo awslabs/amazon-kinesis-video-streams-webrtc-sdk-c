@@ -10,9 +10,6 @@ IceAgent internal include file
 extern "C" {
 #endif
 
-// For tight packing
-#pragma pack(push, include_i, 1) // for byte alignment
-
 #define KVS_ICE_MAX_CANDIDATE_PAIR_COUNT                                1024
 #define KVS_ICE_MAX_REMOTE_CANDIDATE_COUNT                              100
 #define KVS_ICE_MAX_LOCAL_CANDIDATE_COUNT                               100
@@ -305,8 +302,6 @@ STATUS iceAgentCheckPeerReflexiveCandidate(PIceAgent, PKvsIpAddress, UINT32, BOO
 UINT32 computeCandidatePriority(PIceCandidate);
 UINT64 computeCandidatePairPriority(PIceCandidatePair, BOOL);
 PCHAR iceAgentGetCandidateTypeStr(ICE_CANDIDATE_TYPE);
-
-#pragma pack(pop, include_i)
 
 #ifdef  __cplusplus
 }

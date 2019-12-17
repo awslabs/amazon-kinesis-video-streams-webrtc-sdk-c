@@ -11,9 +11,6 @@
 extern "C" {
 #endif
 
-// For tight packing
-#pragma pack(push, include_i, 1) // for byte alignment
-
 #define    SDP_ATTRIBUTE_MARKER                "a="
 #define    SDP_BANDWIDTH_MARKER                "b="
 #define    SDP_CONNECTION_INFORMATION_MARKER   "c="
@@ -207,8 +204,6 @@ STATUS deserializeSessionDescription(PSessionDescription, PCHAR, PUINT32);
 STATUS parseMediaName(PSessionDescription, PCHAR, UINT32);
 STATUS parseSessionAttributes(PSessionDescription, PCHAR, UINT32);
 STATUS parseMediaAttributes(PSessionDescription, PCHAR, UINT32);
-
-#pragma pack(pop, include_i)
 
 #ifdef  __cplusplus
 

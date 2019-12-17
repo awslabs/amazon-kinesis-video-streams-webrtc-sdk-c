@@ -7,22 +7,19 @@
 extern "C" {
 #endif
 
-// For tight packing
-#pragma pack(push, include_i, 1) // for byte alignment
-
-#define DEFAULT_MTU_SIZE 1300
-#define DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS 3
-#define HIGHEST_EXPECTED_BIT_RATE (10 * 1024 * 1024)
-#define DEFAULT_SEQ_NUM_BUFFER_SIZE 1000
-#define DEFAULT_VALID_INDEX_BUFFER_SIZE 1000
-#define DEFAULT_PEER_FRAME_BUFFER_SIZE  (5 * 1024)
+#define DEFAULT_MTU_SIZE                                        1300
+#define DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS              3
+#define HIGHEST_EXPECTED_BIT_RATE                               (10 * 1024 * 1024)
+#define DEFAULT_SEQ_NUM_BUFFER_SIZE                             1000
+#define DEFAULT_VALID_INDEX_BUFFER_SIZE                         1000
+#define DEFAULT_PEER_FRAME_BUFFER_SIZE                          (5 * 1024)
 
 typedef struct {
     UINT8 payloadType;
-    UINT16 sequenceNumber;
-    UINT32 ssrc;
     UINT8 rtxPayloadType;
+    UINT16 sequenceNumber;
     UINT16 rtxSequenceNumber;
+    UINT32 ssrc;
     UINT32 rtxSsrc;
     PayloadArray payloadArray;
 
@@ -56,8 +53,6 @@ STATUS kvsRtpTransceiverSetJitterBuffer(PKvsRtpTransceiver, PJitterBuffer);
 UINT64 convertTimestampToRTP(UINT64, UINT64);
 
 STATUS writeRtpPacket(PKvsPeerConnection pKvsPeerConnection, PRtpPacket pRtpPacket);
-
-#pragma pack(pop, include_i)
 
 #ifdef  __cplusplus
 }

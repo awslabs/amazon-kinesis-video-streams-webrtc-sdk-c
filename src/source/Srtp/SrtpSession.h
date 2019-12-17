@@ -11,9 +11,6 @@
 extern "C" {
 #endif
 
-// For tight packing
-#pragma pack(push, include_i, 1) // for byte alignment
-
 typedef struct __SrtpSession SrtpSession;
 struct __SrtpSession {
     // holds the srtp context for transmit  operations
@@ -32,8 +29,6 @@ STATUS decryptSrtcpPacket(PSrtpSession pSrtpSession, PVOID encryptedMessage, PIN
 STATUS encryptRtpPacket(PSrtpSession pSrtpSession, PVOID message, PINT32 len);
 
 STATUS freeSrtpSession(PSrtpSession *ppSrtpSession );
-
-#pragma pack(pop, include_i)
 
 #ifdef  __cplusplus
 
