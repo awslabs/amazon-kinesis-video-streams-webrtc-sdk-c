@@ -167,7 +167,7 @@ STATUS validateIceConfiguration(PSignalingClient);
 
 STATUS signalingStoreOngoingMessage(PSignalingClient, PSignalingMessage);
 STATUS signalingRemoveOngoingMessage(PSignalingClient, PCHAR);
-STATUS signalingGetOngoingMessage(PSignalingClient, PCHAR, PSignalingMessage*);
+STATUS signalingGetOngoingMessage(PSignalingClient, PCHAR, PCHAR, PSignalingMessage*);
 
 STATUS refreshIceConfigurationCallback(UINT32, UINT64, UINT64);
 

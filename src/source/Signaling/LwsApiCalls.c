@@ -1552,7 +1552,7 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
     if (pMessage == NULL || messageLen == 0) {
         if (BLOCK_ON_CORRELATION_ID) {
             // Get empty correlation id message from the ongoing if exists
-            CHK_STATUS(signalingGetOngoingMessage(pSignalingClient, EMPTY_STRING, &pOngoingMessage));
+            CHK_STATUS(signalingGetOngoingMessage(pSignalingClient, EMPTY_STRING, EMPTY_STRING, &pOngoingMessage));
             if (pOngoingMessage == NULL) {
                 DLOGW("Received an empty body for a message with no correlation id which has been already removed from the queue. Warning 0x%08x",
                       STATUS_SIGNALING_RECEIVE_EMPTY_DATA_NOT_SUPPORTED);
