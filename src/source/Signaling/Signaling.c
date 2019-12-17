@@ -462,7 +462,8 @@ STATUS signalingStoreOngoingMessage(PSignalingClient pSignalingClient, PSignalin
     CHK(pSignalingClient != NULL && pSignalingMessage != NULL, STATUS_NULL_ARG);
     MUTEX_LOCK(pSignalingClient->messageQueueLock);
     locked = TRUE;
-    CHK_STATUS(signalingGetOngoingMessage(pSignalingClient, pSignalingMessage->correlationId, &pExistingMessage));
+    CHK_STATUS(signalingGetOngoingMessage(pSignalingClient, pSignalingMessage->correlationId, pSignalingMessage->peerClientId,
+                                          &pExistingMessage));
     CHK(pExistingMessage == NULL, STATUS_SIGNALING_DUPLICATE_MESSAGE_BEING_SENT);
     CHK_STATUS(stackQueueEnqueue(pSignalingClient->pMessageQueue, (UINT64) pSignalingMessage));
 
@@ -521,16 +522,20 @@ CleanUp:
     return retStatus;
 }
 
-STATUS signalingGetOngoingMessage(PSignalingClient pSignalingClient, PCHAR correlationId, PSignalingMessage* ppSignalingMessage)
+STATUS signalingGetOngoingMessage(PSignalingClient pSignalingClient, PCHAR correlationId, PCHAR peerClientId, PSignalingMessage* ppSignalingMessage)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    BOOL locked = FALSE;
+    BOOL locked = FALSE, checkPeerClientId = TRUE;
     PSignalingMessage pExistingMessage;
     StackQueueIterator iterator;
     UINT64 data;
 
     CHK(pSignalingClient != NULL && correlationId != NULL && ppSignalingMessage != NULL, STATUS_NULL_ARG);
+    if (peerClientId == NULL || IS_EMPTY_STRING(peerClientId)) {
+        checkPeerClientId = FALSE;
+    }
+
     MUTEX_LOCK(pSignalingClient->messageQueueLock);
     locked = TRUE;
 
@@ -541,8 +546,9 @@ STATUS signalingGetOngoingMessage(PSignalingClient pSignalingClient, PCHAR corre
         pExistingMessage = (PSignalingMessage) data;
         CHK(pExistingMessage != NULL, STATUS_INTERNAL_ERROR);
 
-        if ((correlationId[0] == '\0' && pExistingMessage->correlationId[0] == '\0') ||
-            0 == STRCMP(pExistingMessage->correlationId, correlationId)) {
+        if (((correlationId[0] == '\0' && pExistingMessage->correlationId[0] == '\0') ||
+            0 == STRCMP(pExistingMessage->correlationId, correlationId)) &&
+            (!checkPeerClientId || 0 == STRCMP(pExistingMessage->peerClientId, peerClientId))) {
             *ppSignalingMessage = pExistingMessage;
 
             // Early return
