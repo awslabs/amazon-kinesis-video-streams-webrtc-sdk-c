@@ -536,7 +536,12 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
     while (retVal >= 0 && !gInterruptedFlagBySignalHandler &&
         pCallInfo->callInfo.pRequestInfo != NULL &&
         !ATOMIC_LOAD_BOOL(&pCallInfo->callInfo.pRequestInfo->terminating)) {
-        retVal = lws_service(pContext, 0);
+        if (!MUTEX_TRYLOCK(pCallInfo->pSignalingClient->lwsSerializerLock)) {
+            THREAD_SLEEP(LWS_SERVICE_LOOP_ITERATION_WAIT);
+        } else {
+            retVal = lws_service(pContext, 0);
+            MUTEX_UNLOCK(pCallInfo->pSignalingClient->lwsSerializerLock);
+        }
     }
 
 CleanUp:

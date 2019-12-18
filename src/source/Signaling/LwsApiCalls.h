@@ -118,6 +118,9 @@ extern "C" {
 // Specifies whether to block on the correlation id
 #define BLOCK_ON_CORRELATION_ID                                             FALSE
 
+// Service loop iteration wait time when there is an already servicing thread
+#define LWS_SERVICE_LOOP_ITERATION_WAIT                                     (15 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
+
 /**
  * Index of the signaling protocol handling WSS
  * IMPORTANT!!! This should match the correct index in the

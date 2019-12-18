@@ -123,6 +123,9 @@ STATUS createSignalingSync(PSignalingClientInfo pClientInfo, PChannelInfo pChann
     pSignalingClient->lwsServiceLock = MUTEX_CREATE(TRUE);
     CHK(IS_VALID_MUTEX_VALUE(pSignalingClient->lwsServiceLock), STATUS_INVALID_OPERATION);
 
+    pSignalingClient->lwsSerializerLock = MUTEX_CREATE(TRUE);
+    CHK(IS_VALID_MUTEX_VALUE(pSignalingClient->lwsSerializerLock), STATUS_INVALID_OPERATION);
+
     // Create the ongoing message list
     CHK_STATUS(stackQueueCreate(&pSignalingClient->pMessageQueue));
 
@@ -215,6 +218,10 @@ STATUS freeSignaling(PSignalingClient* ppSignalingClient)
 
     if (IS_VALID_MUTEX_VALUE(pSignalingClient->lwsServiceLock)) {
         MUTEX_FREE(pSignalingClient->lwsServiceLock);
+    }
+
+    if (IS_VALID_MUTEX_VALUE(pSignalingClient->lwsSerializerLock)) {
+        MUTEX_FREE(pSignalingClient->lwsSerializerLock);
     }
 
     uninitializeThreadTracker(&pSignalingClient->reconnecterTracker);
@@ -439,7 +446,7 @@ STATUS refreshIceConfigurationCallback(UINT32 timerId, UINT64 scheduledTime, UIN
     CHK(pStateMachineState->state == SIGNALING_STATE_CONNECTED, retStatus);
 
     // Force terminate the connection for now as LWS doesn't allow parallel processing
-    terminateConnectionWithStatus(pSignalingClient, SERVICE_CALL_RESULT_SIGNALING_RECONNECT_ICE);
+    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_SIGNALING_RECONNECT_ICE);
 
     // Iterate the state machinery
     CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));

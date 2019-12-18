@@ -145,6 +145,9 @@ typedef struct {
     // LWS needs to be locked
     MUTEX lwsServiceLock;
 
+    // Serialized access to LWS service call
+    MUTEX lwsSerializerLock;
+
     // Timer queue to handle stale ICE configuration
     TIMER_QUEUE_HANDLE timerQueueHandle;
 } SignalingClient, *PSignalingClient;
