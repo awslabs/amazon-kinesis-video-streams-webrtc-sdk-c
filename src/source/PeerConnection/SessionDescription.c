@@ -64,16 +64,15 @@ STATUS deserializeSessionDescriptionInit(PCHAR sessionDescriptionJSON, UINT32 se
     PCHAR curr, last, tail;
 
     CHK(pSessionDescriptionInit != NULL && sessionDescriptionJSON != NULL, STATUS_NULL_ARG);
-    MEMSET(pSessionDescriptionInit->sdp, 0x00, MAX_SESSION_DESCRIPTION_INIT_SDP_LEN + 1);
+    MEMSET(pSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
 
     jsmn_init(&parser);
 
     tokenCount = jsmn_parse(&parser, sessionDescriptionJSON, sessionDescriptionJSONLen, tokens, ARRAY_SIZE(tokens));
     CHK(tokenCount > 1, STATUS_INVALID_API_CALL_RETURN_JSON);
     CHK(tokens[0].type == JSMN_OBJECT, STATUS_SESSION_DESCRIPTION_INIT_NOT_OBJECT);
-    CHK(tokenCount == 5, STATUS_SESSION_DESCRIPTION_INIT_MISSING_SDP_OR_TYPE_MEMBER);
 
-    for (i = 1; i < tokenCount; i++) {
+    for (i = 1; i < tokenCount; i += 2) {
         if (STRNCMP(SDP_TYPE_KEY, sessionDescriptionJSON + tokens[i].start, ARRAY_SIZE(SDP_TYPE_KEY) - 1) == 0) {
             if (STRNCMP(SDP_OFFER_VALUE, sessionDescriptionJSON + tokens[i+1].start, ARRAY_SIZE(SDP_OFFER_VALUE) - 1) == 0) {
                 pSessionDescriptionInit->type = SDP_TYPE_OFFER;
