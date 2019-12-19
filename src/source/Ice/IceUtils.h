@@ -38,6 +38,16 @@ STATUS iceUtilsSendStunPacket(PStunPacket, PBYTE, UINT32, PKvsIpAddress, PSocket
 
 STATUS populateIpFromString(PKvsIpAddress, PCHAR);
 
+typedef struct {
+    BOOL isTurn;
+    CHAR url[MAX_ICE_CONFIG_URI_LEN + 1];
+    KvsIpAddress ipAddress;
+    CHAR username[MAX_ICE_CONFIG_USER_NAME_LEN + 1];
+    CHAR credential[MAX_ICE_CONFIG_CREDENTIAL_LEN + 1];
+} IceServer, *PIceServer;
+
+STATUS parseIceServer(PIceServer, PCHAR, PCHAR, PCHAR);
+
 #ifdef  __cplusplus
 }
 #endif

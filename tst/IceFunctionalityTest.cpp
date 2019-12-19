@@ -236,31 +236,22 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
 
     TEST_F(IceFunctionalityTest, IceAgentIceAgentAddIceServerUnitTest)
     {
-        IceAgent iceAgent;
-        iceAgent.iceServersCount = 0;
+        IceServer iceServer;
 
-        MEMSET(&iceAgent, 0x00, SIZEOF(IceAgent));
+        MEMSET(&iceServer, 0x00, SIZEOF(IceServer));
 
-        EXPECT_EQ(STATUS_SUCCESS, iceAgentAddIceServer(&iceAgent, (PCHAR) "stun:stun.kinesisvideo.us-west-2.amazonaws.com:443", NULL, NULL));
-        EXPECT_EQ(1, iceAgent.iceServersCount);
-        EXPECT_EQ(STATUS_SUCCESS, iceAgentAddIceServer(&iceAgent, (PCHAR) "stun:stun.kinesisvideo.us-west-2.amazonaws.com:443", (PCHAR) "", (PCHAR) ""));
-        EXPECT_EQ(2, iceAgent.iceServersCount);
+        EXPECT_EQ(STATUS_SUCCESS, parseIceServer(&iceServer, (PCHAR) "stun:stun.kinesisvideo.us-west-2.amazonaws.com:443", NULL, NULL));
+        EXPECT_EQ(STATUS_SUCCESS, parseIceServer(&iceServer, (PCHAR) "stun:stun.kinesisvideo.us-west-2.amazonaws.com:443", (PCHAR) "", (PCHAR) ""));
 
-        iceAgent.iceServersCount = 0;
-        EXPECT_NE(STATUS_SUCCESS, iceAgentAddIceServer(&iceAgent, NULL, NULL, NULL));
-        EXPECT_EQ(STATUS_ICE_URL_TURN_MISSING_USERNAME, iceAgentAddIceServer(&iceAgent, (PCHAR) "turn:54.202.170.151:443", NULL, NULL));
-        EXPECT_EQ(STATUS_ICE_URL_TURN_MISSING_CREDENTIAL, iceAgentAddIceServer(&iceAgent, (PCHAR) "turn:54.202.170.151:443", (PCHAR) "username", NULL));
-        EXPECT_EQ(STATUS_ICE_URL_TURN_MISSING_USERNAME, iceAgentAddIceServer(&iceAgent, (PCHAR) "turn:54.202.170.151:443", (PCHAR) "", (PCHAR) ""));
-        EXPECT_EQ(STATUS_ICE_URL_TURN_MISSING_CREDENTIAL, iceAgentAddIceServer(&iceAgent, (PCHAR) "turn:54.202.170.151:443", (PCHAR) "username", (PCHAR) ""));
-        EXPECT_NE(STATUS_SUCCESS, iceAgentAddIceServer(NULL, (PCHAR) "turn:54.202.170.151:443", (PCHAR) "username", (PCHAR) "password"));
-
-        EXPECT_EQ(STATUS_SUCCESS, iceAgentAddIceServer(&iceAgent, (PCHAR) "turn:54.202.170.151:443", (PCHAR) "username", (PCHAR) "password"));
-        EXPECT_EQ(1, iceAgent.iceServersCount);
-
-        EXPECT_EQ(STATUS_SUCCESS, iceAgentAddIceServer(&iceAgent, (PCHAR) "turns:54.202.170.151:443", (PCHAR) "username", (PCHAR) "password"));
-        EXPECT_EQ(2, iceAgent.iceServersCount);
-
-        EXPECT_EQ(STATUS_ICE_URL_INVALID_PREFIX, iceAgentAddIceServer(&iceAgent, (PCHAR) "randomUrl", (PCHAR) "username", (PCHAR) "password"));
+        EXPECT_NE(STATUS_SUCCESS, parseIceServer(&iceServer, NULL, NULL, NULL));
+        EXPECT_EQ(STATUS_ICE_URL_TURN_MISSING_USERNAME, parseIceServer(&iceServer, (PCHAR) "turn:54.202.170.151:443", NULL, NULL));
+        EXPECT_EQ(STATUS_ICE_URL_TURN_MISSING_CREDENTIAL, parseIceServer(&iceServer, (PCHAR) "turn:54.202.170.151:443", (PCHAR) "username", NULL));
+        EXPECT_EQ(STATUS_ICE_URL_TURN_MISSING_USERNAME, parseIceServer(&iceServer, (PCHAR) "turn:54.202.170.151:443", (PCHAR) "", (PCHAR) ""));
+        EXPECT_EQ(STATUS_ICE_URL_TURN_MISSING_CREDENTIAL, parseIceServer(&iceServer, (PCHAR) "turn:54.202.170.151:443", (PCHAR) "username", (PCHAR) ""));
+        EXPECT_NE(STATUS_SUCCESS, parseIceServer(NULL, (PCHAR) "turn:54.202.170.151:443", (PCHAR) "username", (PCHAR) "password"));
+        EXPECT_EQ(STATUS_SUCCESS, parseIceServer(&iceServer, (PCHAR) "turn:54.202.170.151:443", (PCHAR) "username", (PCHAR) "password"));
+        EXPECT_EQ(STATUS_SUCCESS, parseIceServer(&iceServer, (PCHAR) "turns:54.202.170.151:443", (PCHAR) "username", (PCHAR) "password"));
+        EXPECT_EQ(STATUS_ICE_URL_INVALID_PREFIX, parseIceServer(&iceServer, (PCHAR) "randomUrl", (PCHAR) "username", (PCHAR) "password"));
     }
 
     TEST_F(IceFunctionalityTest, IceAgentAddRemoteCandidateUnitTest)
