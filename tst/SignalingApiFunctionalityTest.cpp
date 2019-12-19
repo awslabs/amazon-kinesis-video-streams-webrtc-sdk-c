@@ -377,7 +377,7 @@ TEST_F(SignalingApiFunctionalityTest, invalidChannelInfoInput)
     STATUS retStatus;
 
     signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
-    signalingClientCallbacks.customData = 0;
+    signalingClientCallbacks.customData = (UINT64) this;
     signalingClientCallbacks.messageReceivedFn = (SignalingClientMessageReceivedFunc) 1;
     signalingClientCallbacks.stateChangeFn = signalingClientStateChanged;
 
