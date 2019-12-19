@@ -1262,33 +1262,46 @@ STATUS newRelayCandidateHandler(UINT64 customData, PKvsIpAddress pRelayAddress, 
 {
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
-    BOOL locked = FALSE;
-    PIceCandidate pLocalCandidate = NULL;
-    PDoubleListNode pCurNode = NULL;
-    UINT64 data;
+    BOOL locked = FALSE, freeAllocateCandidateOnFailure = TRUE;
+    PIceCandidate pNewLocalCandidate = NULL;
 
-    CHK(pIceAgent != NULL && pRelayAddress != NULL, STATUS_NULL_ARG);
+    CHK(pIceAgent != NULL && pRelayAddress != NULL && pSocketConnection != NULL, STATUS_NULL_ARG);
     MUTEX_LOCK(pIceAgent->lock);
     locked = TRUE;
 
-    CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
-    while (pCurNode != NULL) {
-        CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
-        pCurNode = pCurNode->pNext;
-        pLocalCandidate = (PIceCandidate) data;
+    // check for duplicate
+    CHK_STATUS(findCandidateWithIp(pRelayAddress, pIceAgent->localCandidates, &pNewLocalCandidate));
+    CHK(pNewLocalCandidate == NULL, retStatus);
 
-        if (pLocalCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED) {
-            pLocalCandidate->pSocketConnection = pSocketConnection;
-            CHK_STATUS(updateCandidateAddress(pLocalCandidate, pRelayAddress));
-            CHK_STATUS(iceAgentReportNewLocalCandidate(pIceAgent, pLocalCandidate));
-            break;
-        }
+    pNewLocalCandidate = (PIceCandidate) MEMCALLOC(1, SIZEOF(IceCandidate));
+    pNewLocalCandidate->ipAddress = *pRelayAddress;
+    pNewLocalCandidate->iceCandidateType = ICE_CANDIDATE_TYPE_RELAYED;
+    pNewLocalCandidate->state = ICE_CANDIDATE_STATE_VALID;
+    pNewLocalCandidate->foundation = pIceAgent->foundationCounter++; // we dont generate candidates that have the same foundation.
+    pNewLocalCandidate->pSocketConnection = pSocketConnection;
+    pNewLocalCandidate->priority = computeCandidatePriority(pNewLocalCandidate);
+
+    CHK_STATUS(doubleListInsertItemHead(pIceAgent->localCandidates, (UINT64) pNewLocalCandidate));
+    freeAllocateCandidateOnFailure = FALSE;
+
+    CHK_STATUS(iceAgentReportNewLocalCandidate(pIceAgent, pNewLocalCandidate));
+
+    // at the end of gathering state, candidate pairs will be created with local and remote candidates gathered so far.
+    // do createIceCandidatePairs here if state is not gathering in case some remote candidate comes late
+    if (pIceAgent->iceAgentState != ICE_AGENT_STATE_GATHERING) {
+        CHK_STATUS(createIceCandidatePairs(pIceAgent, pNewLocalCandidate, FALSE));
+        // sort candidate pairs in case connectivity check is already running.
+        sortIceCandidatePairs(pIceAgent);
     }
 
 CleanUp:
 
     if (locked) {
         MUTEX_UNLOCK(pIceAgent->lock);
+    }
+
+    if (freeAllocateCandidateOnFailure && STATUS_FAILED(retStatus)) {
+        SAFE_MEMFREE(pNewLocalCandidate);
     }
 
     return retStatus;
