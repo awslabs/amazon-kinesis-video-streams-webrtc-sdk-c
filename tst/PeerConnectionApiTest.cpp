@@ -47,6 +47,36 @@ TEST_F(PeerConnectionApiTest, serializeSessionDescriptionInit)
     EXPECT_STREQ(sessionDescriptionJSON, "{\"type\": \"offer\", \"sdp\": \"KVS\\r\\nWebRTC\\r\\nSDP\\r\\nValue\\r\\n\"}");
 }
 
+TEST_F(PeerConnectionApiTest, deserializeSessionDescriptionInit)
+{
+    RtcSessionDescriptionInit rtcSessionDescriptionInit;
+    MEMSET(&rtcSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
+
+    auto notAnObject = "helloWorld";
+    EXPECT_EQ(deserializeSessionDescriptionInit((PCHAR) notAnObject, STRLEN(notAnObject), &rtcSessionDescriptionInit), STATUS_INVALID_API_CALL_RETURN_JSON);
+
+    auto emptyObject = "{}";
+    EXPECT_EQ(deserializeSessionDescriptionInit((PCHAR) emptyObject, STRLEN(emptyObject), &rtcSessionDescriptionInit), STATUS_INVALID_API_CALL_RETURN_JSON);
+
+    auto noSDPKey  = "{type: \"offer\"}";
+    EXPECT_EQ(deserializeSessionDescriptionInit((PCHAR) noSDPKey, STRLEN(noSDPKey), &rtcSessionDescriptionInit), STATUS_SESSION_DESCRIPTION_INIT_MISSING_SDP);
+
+    auto noTypeKey  = "{\"sdp\": \"KVS\\r\\nWebRTC\\r\\nSDP\\r\\nValue\\r\\n\"}";
+    EXPECT_EQ(deserializeSessionDescriptionInit((PCHAR) noTypeKey, STRLEN(noTypeKey), &rtcSessionDescriptionInit), STATUS_SESSION_DESCRIPTION_INIT_MISSING_TYPE);
+
+    auto invalidTypeKey = "{sdp: \"kvsSdp\", type: \"foobar\"}";
+    EXPECT_EQ(deserializeSessionDescriptionInit((PCHAR) invalidTypeKey, STRLEN(invalidTypeKey), &rtcSessionDescriptionInit), STATUS_SESSION_DESCRIPTION_INIT_INVALID_TYPE);
+
+    auto keyNoValue = "{1,2,3,4,5}sdp";
+    EXPECT_EQ(deserializeSessionDescriptionInit((PCHAR) keyNoValue, STRLEN(keyNoValue), &rtcSessionDescriptionInit), STATUS_SESSION_DESCRIPTION_INIT_MISSING_SDP);
+
+    auto validSessionDescriptionInit = "{sdp: \"KVS\\r\\nWebRTC\\r\\nSDP\\r\\nValue\\r\\n\", type: \"offer\"}";
+    EXPECT_EQ(deserializeSessionDescriptionInit((PCHAR) validSessionDescriptionInit, STRLEN(validSessionDescriptionInit), &rtcSessionDescriptionInit), STATUS_SUCCESS);
+    EXPECT_STREQ(rtcSessionDescriptionInit.sdp, "KVS\nWebRTC\nSDP\nValue\n");
+    EXPECT_EQ(rtcSessionDescriptionInit.type, SDP_TYPE_OFFER);
+}
+
+
 
 }
 }
