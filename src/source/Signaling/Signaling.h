@@ -26,9 +26,6 @@ extern "C" {
 // Forward declaration
 typedef struct __LwsCallInfo *PLwsCallInfo;
 
-// Internal client info object version check sentinel
-#define SIGNALING_CLIENT_INFO_INTERNAL_SENTINEL_BIT                         (UINT32) (1 << 16)
-
 /**
  * Internal client info object
  */
@@ -174,7 +171,7 @@ typedef struct {
 #define TO_SIGNALING_CLIENT_HANDLE(p) ((SIGNALING_CLIENT_HANDLE) (p))
 #define FROM_SIGNALING_CLIENT_HANDLE(h) (IS_VALID_SIGNALING_CLIENT_HANDLE(h) ? (PSignalingClient) (h) : NULL)
 
-STATUS createSignalingSync(PSignalingClientInfo, PChannelInfo, PSignalingClientCallbacks, PAwsCredentialProvider, PSignalingClient*);
+STATUS createSignalingSync(PSignalingClientInfoInternal, PChannelInfo, PSignalingClientCallbacks, PAwsCredentialProvider, PSignalingClient*);
 STATUS freeSignaling(PSignalingClient*);
 
 STATUS signalingSendMessageSync(PSignalingClient, PSignalingMessage);
@@ -183,7 +180,7 @@ STATUS signalingGetIceConfigInfo(PSignalingClient, UINT32, PIceConfigInfo*);
 STATUS signalingConnectSync(PSignalingClient);
 
 STATUS validateSignalingCallbacks(PSignalingClient, PSignalingClientCallbacks);
-STATUS validateSignalingClientInfo(PSignalingClient, PSignalingClientInfo);
+STATUS validateSignalingClientInfo(PSignalingClient, PSignalingClientInfoInternal);
 STATUS validateIceConfiguration(PSignalingClient);
 
 STATUS signalingStoreOngoingMessage(PSignalingClient, PSignalingMessage);

@@ -741,7 +741,7 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulation)
     signalingClientCallbacks.errorReportFn = NULL;
     signalingClientCallbacks.stateChangeFn = signalingClientStateChanged;
 
-    clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION | SIGNALING_CLIENT_INFO_INTERNAL_SENTINEL_BIT;
+    clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfoInternal.iceRefreshPeriod = 5 * HUNDREDS_OF_NANOS_IN_A_SECOND;
@@ -760,11 +760,11 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulation)
     channelInfo.pCertPath = mCaCertPath;
     channelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
 
-    EXPECT_EQ(STATUS_SUCCESS, createSignalingClientSync((PSignalingClientInfo) &clientInfoInternal, &channelInfo, &signalingClientCallbacks,
-                                                        (PAwsCredentialProvider) mTestCredentialProvider, &signalingHandle));
+    EXPECT_EQ(STATUS_SUCCESS, createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks,
+            (PAwsCredentialProvider) mTestCredentialProvider, &pSignalingClient));
+    signalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
     EXPECT_TRUE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
 
-    pSignalingClient = FROM_SIGNALING_CLIENT_HANDLE(signalingHandle);
     pActiveClient = pSignalingClient;
 
     // Check the states first

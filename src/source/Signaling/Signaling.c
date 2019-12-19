@@ -4,7 +4,7 @@
 extern StateMachineState SIGNALING_STATE_MACHINE_STATES[];
 extern UINT32 SIGNALING_STATE_MACHINE_STATE_COUNT;
 
-STATUS createSignalingSync(PSignalingClientInfo pClientInfo, PChannelInfo pChannelInfo,
+STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInfo pChannelInfo,
         PSignalingClientCallbacks pCallbacks, PAwsCredentialProvider pCredentialProvider,
         PSignalingClient *ppSignalingClient)
 {
@@ -56,7 +56,7 @@ STATUS createSignalingSync(PSignalingClientInfo pClientInfo, PChannelInfo pChann
     if ((userLogLevelStr = GETENV(DEBUG_LOG_LEVEL_ENV_VAR)) != NULL && STATUS_SUCCEEDED(STRTOUI32(userLogLevelStr, NULL, 10, &userLogLevel))) {
         userLogLevel = userLogLevel > LOG_LEVEL_SILENT ? LOG_LEVEL_SILENT : userLogLevel < LOG_LEVEL_VERBOSE ? LOG_LEVEL_VERBOSE : userLogLevel;
     } else {
-        userLogLevel = pClientInfo->loggingLevel;
+        userLogLevel = pClientInfo->signalingClientInfo.loggingLevel;
     }
 
     SET_LOGGER_LOG_LEVEL(userLogLevel);
@@ -383,25 +383,17 @@ CleanUp:
     return retStatus;
 }
 
-STATUS validateSignalingClientInfo(PSignalingClient pSignalingClient, PSignalingClientInfo pClientInfo)
+STATUS validateSignalingClientInfo(PSignalingClient pSignalingClient, PSignalingClientInfoInternal pClientInfo)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
 
     CHK(pSignalingClient != NULL && pClientInfo != NULL, STATUS_NULL_ARG);
-    CHK((pClientInfo->version & (~SIGNALING_CLIENT_INFO_INTERNAL_SENTINEL_BIT)) <= SIGNALING_CLIENT_INFO_CURRENT_VERSION, STATUS_SIGNALING_INVALID_CLIENT_INFO_VERSION);
-    CHK(STRNLEN(pClientInfo->clientId, MAX_SIGNALING_CLIENT_ID_LEN + 1) <= MAX_SIGNALING_CLIENT_ID_LEN, STATUS_SIGNALING_INVALID_CLIENT_INFO_CLIENT_LENGTH);
+    CHK(pClientInfo->signalingClientInfo.version <= SIGNALING_CLIENT_INFO_CURRENT_VERSION, STATUS_SIGNALING_INVALID_CLIENT_INFO_VERSION);
+    CHK(STRNLEN(pClientInfo->signalingClientInfo.clientId, MAX_SIGNALING_CLIENT_ID_LEN + 1) <= MAX_SIGNALING_CLIENT_ID_LEN, STATUS_SIGNALING_INVALID_CLIENT_INFO_CLIENT_LENGTH);
 
-    // Store and validate.
-    // NOTE: We will check whether an internal structure has been passed in for testing purposes by
-    // checking the sentinel bit is set.
-    if ((pClientInfo->version & SIGNALING_CLIENT_INFO_INTERNAL_SENTINEL_BIT) != 0) {
-        // Internal structure has been passed in
-        pSignalingClient->clientInfo = *(PSignalingClientInfoInternal) pClientInfo;
-    } else {
-        // Public structure has been passed in - the rest of the structure members will be zeroed by calloc
-        pSignalingClient->clientInfo.signalingClientInfo = *pClientInfo;
-    }
+    // Copy and store internally
+    pSignalingClient->clientInfo = *pClientInfo;
 
 CleanUp:
 

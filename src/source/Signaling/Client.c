@@ -10,11 +10,16 @@ STATUS createSignalingClientSync(PSignalingClientInfo pClientInfo,
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = NULL;
+    SignalingClientInfoInternal signalingClientInfoInternal;
 
     DLOGI("Creating Signaling Client Sync");
-    CHK(pSignalingHandle != NULL, STATUS_NULL_ARG);
+    CHK(pSignalingHandle != NULL && pClientInfo != NULL, STATUS_NULL_ARG);
 
-    CHK_STATUS(createSignalingSync(pClientInfo, pChannelInfo, pCallbacks, pCredentialProvider, &pSignalingClient));
+    // Convert the client info to the internal structure with empty values
+    MEMSET(&signalingClientInfoInternal, 0x00, SIZEOF(signalingClientInfoInternal));
+    signalingClientInfoInternal.signalingClientInfo = *pClientInfo;
+
+    CHK_STATUS(createSignalingSync(&signalingClientInfoInternal, pChannelInfo, pCallbacks, pCredentialProvider, &pSignalingClient));
 
     *pSignalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
 
