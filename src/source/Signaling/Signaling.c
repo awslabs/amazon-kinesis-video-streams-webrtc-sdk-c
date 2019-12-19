@@ -467,7 +467,7 @@ STATUS refreshIceConfigurationCallback(UINT32 timerId, UINT64 scheduledTime, UIN
     CHK(pStateMachineState->state == SIGNALING_STATE_CONNECTED ||
         pStateMachineState->state == SIGNALING_STATE_READY, retStatus);
 
-    // Force terminate the connection for now as LWS doesn't allow parallel processing
+    // Force the state machine to revert back to get ICE configuration without re-connection
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_SIGNALING_RECONNECT_ICE);
 
     // Iterate the state machinery
