@@ -28,6 +28,26 @@ TEST_F(PeerConnectionApiTest, deserializeRtcIceCandidateInit)
     EXPECT_STREQ(rtcIceCandidateInit.candidate, "foobar");
 }
 
+TEST_F(PeerConnectionApiTest, serializeSessionDescriptionInit)
+{
+    RtcSessionDescriptionInit rtcSessionDescriptionInit;
+    UINT32 sessionDescriptionJSONLen = 0;
+    CHAR sessionDescriptionJSON[500] = {0};
+
+    MEMSET(&rtcSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
+
+    EXPECT_EQ(serializeSessionDescriptionInit(NULL, sessionDescriptionJSON, &sessionDescriptionJSONLen), STATUS_NULL_ARG);
+    EXPECT_EQ(serializeSessionDescriptionInit(&rtcSessionDescriptionInit, sessionDescriptionJSON, NULL), STATUS_NULL_ARG);
+
+    STRCPY(rtcSessionDescriptionInit.sdp, "KVS\nWebRTC\nSDP\nValue\n");
+    rtcSessionDescriptionInit.type = SDP_TYPE_OFFER;
+    sessionDescriptionJSONLen = 500;
+
+    EXPECT_EQ(serializeSessionDescriptionInit(&rtcSessionDescriptionInit, sessionDescriptionJSON, &sessionDescriptionJSONLen), STATUS_SUCCESS);
+    EXPECT_STREQ(sessionDescriptionJSON, "{\"type\": \"offer\", \"sdp\": \"KVS\\r\\nWebRTC\\r\\nSDP\\r\\nValue\\r\\n\"}");
+}
+
+
 }
 }
 }
