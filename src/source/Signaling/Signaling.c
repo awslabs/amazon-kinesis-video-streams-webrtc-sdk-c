@@ -14,6 +14,7 @@ STATUS createSignalingSync(PSignalingClientInfo pClientInfo, PChannelInfo pChann
     PCHAR userLogLevelStr = NULL;
     UINT32 userLogLevel;
     struct lws_context_creation_info creationInfo;
+    PStateMachineState pStateMachineState;
 
     CHK(pClientInfo != NULL &&
          pChannelInfo != NULL &&
@@ -137,6 +138,14 @@ STATUS createSignalingSync(PSignalingClientInfo pClientInfo, PChannelInfo pChann
 
     // Set the time out before execution
     pSignalingClient->stepUntil = GETTIME() + SIGNALING_CREATE_TIMEOUT;
+
+    // Notify of the state change initially as the state machinery is already in the NEW state
+    if (pSignalingClient->signalingClientCallbacks.stateChangeFn != NULL) {
+        CHK_STATUS(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pStateMachineState));
+        CHK_STATUS(pSignalingClient->signalingClientCallbacks.stateChangeFn(
+                pSignalingClient->signalingClientCallbacks.customData,
+                getSignalingStateFromStateMachineState(pStateMachineState->state)));
+    }
 
     // Prime the state machine
     CHK_STATUS(stepSignalingStateMachine(pSignalingClient, STATUS_SUCCESS));
@@ -380,11 +389,19 @@ STATUS validateSignalingClientInfo(PSignalingClient pSignalingClient, PSignaling
     STATUS retStatus = STATUS_SUCCESS;
 
     CHK(pSignalingClient != NULL && pClientInfo != NULL, STATUS_NULL_ARG);
-    CHK(pClientInfo->version <= SIGNALING_CLIENT_INFO_CURRENT_VERSION, STATUS_SIGNALING_INVALID_CLIENT_INFO_VERSION);
+    CHK((pClientInfo->version & (~SIGNALING_CLIENT_INFO_INTERNAL_SENTINEL_BIT)) <= SIGNALING_CLIENT_INFO_CURRENT_VERSION, STATUS_SIGNALING_INVALID_CLIENT_INFO_VERSION);
     CHK(STRNLEN(pClientInfo->clientId, MAX_SIGNALING_CLIENT_ID_LEN + 1) <= MAX_SIGNALING_CLIENT_ID_LEN, STATUS_SIGNALING_INVALID_CLIENT_INFO_CLIENT_LENGTH);
 
-    // Store and validate
-    pSignalingClient->clientInfo = *pClientInfo;
+    // Store and validate.
+    // NOTE: We will check whether an internal structure has been passed in for testing purposes by
+    // checking the sentinel bit is set.
+    if ((pClientInfo->version & SIGNALING_CLIENT_INFO_INTERNAL_SENTINEL_BIT) != 0) {
+        // Internal structure has been passed in
+        pSignalingClient->clientInfo = *(PSignalingClientInfoInternal) pClientInfo;
+    } else {
+        // Public structure has been passed in - the rest of the structure members will be zeroed by calloc
+        pSignalingClient->clientInfo.signalingClientInfo = *pClientInfo;
+    }
 
 CleanUp:
 
@@ -397,7 +414,7 @@ STATUS validateIceConfiguration(PSignalingClient pSignalingClient)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 i;
-    UINT64 minTtl = MAX_UINT64;
+    UINT64 minTtl = MAX_UINT64, refreshPeriod;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     CHK(pSignalingClient->iceConfigCount <= MAX_ICE_CONFIG_COUNT, STATUS_SIGNALING_MAX_ICE_CONFIG_COUNT);
@@ -413,9 +430,12 @@ STATUS validateIceConfiguration(PSignalingClient pSignalingClient)
 
     CHK(minTtl > ICE_CONFIGURATION_REFRESH_GRACE_PERIOD, STATUS_SIGNALING_ICE_TTL_LESS_THAN_GRACE_PERIOD);
 
+    refreshPeriod = (pSignalingClient->clientInfo.iceRefreshPeriod != 0) ? pSignalingClient->clientInfo.iceRefreshPeriod :
+            minTtl - ICE_CONFIGURATION_REFRESH_GRACE_PERIOD;
+
     // Schedule the refresh on the timer queue
     CHK_STATUS(timerQueueAddTimer(pSignalingClient->timerQueueHandle,
-                                  minTtl - ICE_CONFIGURATION_REFRESH_GRACE_PERIOD,
+                                  refreshPeriod,
                                   TIMER_QUEUE_SINGLE_INVOCATION_PERIOD,
                                   refreshIceConfigurationCallback,
                                   (UINT64) pSignalingClient,
@@ -441,9 +461,11 @@ STATUS refreshIceConfigurationCallback(UINT32 timerId, UINT64 scheduledTime, UIN
 
     DLOGD("Refreshing the ICE Server Configuration");
 
-    // Check if we are in a connected state and if not bail
+    // Check if we are in a connected state or ready state and if not bail.
+    // The ICE state will be called in any other states
     CHK_STATUS(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pStateMachineState));
-    CHK(pStateMachineState->state == SIGNALING_STATE_CONNECTED, retStatus);
+    CHK(pStateMachineState->state == SIGNALING_STATE_CONNECTED ||
+        pStateMachineState->state == SIGNALING_STATE_READY, retStatus);
 
     // Force terminate the connection for now as LWS doesn't allow parallel processing
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_SIGNALING_RECONNECT_ICE);

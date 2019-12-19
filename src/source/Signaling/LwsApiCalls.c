@@ -975,7 +975,7 @@ STATUS getIceConfigLws(PSignalingClient pSignalingClient, UINT64 time)
     // Prepare the json params for the call
     SNPRINTF(paramsJson, ARRAY_SIZE(paramsJson), GET_ICE_CONFIG_PARAM_JSON_TEMPLATE,
              pSignalingClient->channelDescription.channelArn,
-             pSignalingClient->clientInfo.clientId);
+             pSignalingClient->clientInfo.signalingClientInfo.clientId);
 
     // Create the request info with the body
     CHK_STATUS(createRequestInfo(url, paramsJson, pSignalingClient->pChannelInfo->pRegion,
@@ -1217,7 +1217,7 @@ STATUS connectSignalingChannelLws(PSignalingClient pSignalingClient, UINT64 time
                  SIGNALING_CHANNEL_ARN_PARAM_NAME,
                  pSignalingClient->channelDescription.channelArn,
                  SIGNALING_CLIENT_ID_PARAM_NAME,
-                 pSignalingClient->clientInfo.clientId);
+                 pSignalingClient->clientInfo.signalingClientInfo.clientId);
         } else {
         SNPRINTF(url, ARRAY_SIZE(url), SIGNALING_ENDPOINT_MASTER_URL_WSS_TEMPLATE,
                  pSignalingClient->channelEndpointWss,

@@ -26,6 +26,24 @@ extern "C" {
 // Forward declaration
 typedef struct __LwsCallInfo *PLwsCallInfo;
 
+// Internal client info object version check sentinel
+#define SIGNALING_CLIENT_INFO_INTERNAL_SENTINEL_BIT                         (UINT32) (1 << 16)
+
+/**
+ * Internal client info object
+ */
+typedef struct {
+    // Public client info structure
+    SignalingClientInfo signalingClientInfo;
+
+    //
+    // Below members will be used for direct injection for tests hooks
+    //
+
+    // Injected ICE server refresh period
+    UINT64 iceRefreshPeriod;
+} SignalingClientInfoInternal, *PSignalingClientInfoInternal;
+
 /**
  * Thread execution tracker
  */
@@ -59,7 +77,7 @@ typedef struct {
     UINT32 version;
 
     // Stored Client info
-    SignalingClientInfo clientInfo;
+    SignalingClientInfoInternal clientInfo;
 
     // Stored callbacks
     SignalingClientCallbacks signalingClientCallbacks;
