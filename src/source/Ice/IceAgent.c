@@ -63,14 +63,14 @@ STATUS createIceAgent(PCHAR username, PCHAR password, UINT64 customData, PIceAge
     CHK_STATUS(doubleListCreate(&pIceAgent->remoteCandidates));
     CHK_STATUS(stackQueueCreate(&pIceAgent->triggeredCheckQueue));
 
+    pIceAgent->iceServersCount = 0;
     for (i = 0; i < MAX_ICE_SERVERS_COUNT; i++) {
-        if (pRtcConfiguration->iceServers[i].urls[0] != '\0') {
-            CHK_STATUS(iceAgentAddIceServer(
-                    pIceAgent,
-                    (PCHAR) pRtcConfiguration->iceServers[i].urls,
-                    (PCHAR) pRtcConfiguration->iceServers[i].username,
-                    (PCHAR) pRtcConfiguration->iceServers[i].credential
-            ));
+        if (pRtcConfiguration->iceServers[i].urls[0] != '\0' &&
+            STATUS_SUCCEEDED(parseIceServer(&pIceAgent->iceServers[pIceAgent->iceServersCount],
+                                            (PCHAR) pRtcConfiguration->iceServers[i].urls,
+                                            (PCHAR) pRtcConfiguration->iceServers[i].username,
+                                            (PCHAR) pRtcConfiguration->iceServers[i].credential))) {
+            pIceAgent->iceServersCount++;
 
             // use only one turn server for now
             if (pIceAgent->iceServers[pIceAgent->iceServersCount - 1].isTurn) {
@@ -190,57 +190,6 @@ STATUS freeIceAgent(PIceAgent* ppIceAgent)
 CleanUp:
 
     LEAVES();
-    return retStatus;
-}
-
-STATUS iceAgentAddIceServer(PIceAgent pIceAgent, PCHAR url, PCHAR username, PCHAR credential) {
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-    PIceServer pIceServer = NULL;
-    PCHAR separator = NULL, urlNoPrefix = NULL;
-    UINT32 port = ICE_STUN_DEFAULT_PORT;
-
-    // username and credential is only mandatory for turn server
-    CHK(url != NULL && pIceAgent != NULL, STATUS_NULL_ARG);
-
-    pIceServer = &(pIceAgent->iceServers[pIceAgent->iceServersCount]);
-
-    if (STRNCMP(ICE_URL_PREFIX_STUN, url, STRLEN(ICE_URL_PREFIX_STUN)) == 0) {
-        urlNoPrefix = STRCHR(url, ':') + 1;
-        pIceServer->isTurn = FALSE;
-    } else if (STRNCMP(ICE_URL_PREFIX_TURN, url, STRLEN(ICE_URL_PREFIX_TURN)) == 0 ||
-               STRNCMP(ICE_URL_PREFIX_TURN_SECURE, url, STRLEN(ICE_URL_PREFIX_TURN_SECURE)) == 0) {
-        CHK(username != NULL && username[0] != '\0', STATUS_ICE_URL_TURN_MISSING_USERNAME);
-        CHK(credential != NULL && credential[0] != '\0', STATUS_ICE_URL_TURN_MISSING_CREDENTIAL);
-
-        // TODO after getIceServerConfig no longer give turn: ips, do TLS only for turns:
-        STRNCPY(pIceServer->username, username, MAX_ICE_CONFIG_USER_NAME_LEN);
-        STRNCPY(pIceServer->credential, credential, MAX_ICE_CONFIG_CREDENTIAL_LEN);
-        urlNoPrefix = STRCHR(url, ':') + 1;
-        pIceServer->isTurn = TRUE;
-    } else {
-        CHK(FALSE, STATUS_ICE_URL_INVALID_PREFIX);
-    }
-
-    if ((separator = STRCHR(urlNoPrefix, ':')) != NULL) {
-        separator++;
-        CHK_STATUS(STRTOUI32(separator, separator + STRLEN(separator), 10, &port));
-        STRNCPY(pIceServer->url, urlNoPrefix, separator - urlNoPrefix - 1);
-        // need to null terminate since we are not copying the entire urlNoPrefix
-        pIceServer->url[separator - urlNoPrefix - 1] = '\0';
-    } else {
-        STRNCPY(pIceServer->url, urlNoPrefix, MAX_ICE_CONFIG_URI_LEN);
-    }
-
-    CHK_STATUS(getIpWithHostName(pIceServer->url, &pIceServer->ipAddress));
-    pIceServer->ipAddress.port = (UINT16) getInt16((INT16) port);
-
-    pIceAgent->iceServersCount++;
-
-CleanUp:
-
-    LEAVES();
-
     return retStatus;
 }
 

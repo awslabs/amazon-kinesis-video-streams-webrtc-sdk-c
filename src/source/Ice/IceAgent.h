@@ -106,14 +106,6 @@ typedef struct {
 } IceCandidatePair, *PIceCandidatePair;
 
 typedef struct {
-    BOOL isTurn;
-    CHAR url[MAX_ICE_CONFIG_URI_LEN + 1];
-    KvsIpAddress ipAddress;
-    CHAR username[MAX_ICE_CONFIG_USER_NAME_LEN + 1];
-    CHAR credential[MAX_ICE_CONFIG_CREDENTIAL_LEN + 1];
-} IceServer, *PIceServer;
-
-typedef struct {
     volatile ATOMIC_BOOL agentStartGathering;
 
     CHAR localUsername[MAX_ICE_CONFIG_USER_NAME_LEN + 1];
@@ -264,8 +256,6 @@ STATUS iceAgentGatherLocalCandidate(PIceAgent);
  * @return - STATUS - status of execution
  */
 STATUS iceAgentPopulateSdpMediaDescriptionCandidates(PIceAgent, PSdpMediaDescription, UINT32, PUINT32);
-
-STATUS iceAgentAddIceServer(PIceAgent, PCHAR url, PCHAR username, PCHAR credential);
 
 STATUS iceAgentReportNewLocalCandidate(PIceAgent, PIceCandidate);
 
