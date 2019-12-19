@@ -706,6 +706,9 @@ typedef enum {
 
     // Disconnected state
     SIGNALING_CLIENT_STATE_DISCONNECTED,
+
+    // Max value for the enum
+    SIGNALING_CLIENT_STATE_MAX_VALUE,
 } SIGNALING_CLIENT_STATE;
 
 /**

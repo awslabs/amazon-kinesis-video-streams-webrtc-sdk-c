@@ -27,6 +27,21 @@ extern "C" {
 typedef struct __LwsCallInfo *PLwsCallInfo;
 
 /**
+ * Internal client info object
+ */
+typedef struct {
+    // Public client info structure
+    SignalingClientInfo signalingClientInfo;
+
+    //
+    // Below members will be used for direct injection for tests hooks
+    //
+
+    // Injected ICE server refresh period
+    UINT64 iceRefreshPeriod;
+} SignalingClientInfoInternal, *PSignalingClientInfoInternal;
+
+/**
  * Thread execution tracker
  */
 typedef struct {
@@ -59,7 +74,7 @@ typedef struct {
     UINT32 version;
 
     // Stored Client info
-    SignalingClientInfo clientInfo;
+    SignalingClientInfoInternal clientInfo;
 
     // Stored callbacks
     SignalingClientCallbacks signalingClientCallbacks;
@@ -145,6 +160,9 @@ typedef struct {
     // LWS needs to be locked
     MUTEX lwsServiceLock;
 
+    // Serialized access to LWS service call
+    MUTEX lwsSerializerLock;
+
     // Timer queue to handle stale ICE configuration
     TIMER_QUEUE_HANDLE timerQueueHandle;
 } SignalingClient, *PSignalingClient;
@@ -153,7 +171,7 @@ typedef struct {
 #define TO_SIGNALING_CLIENT_HANDLE(p) ((SIGNALING_CLIENT_HANDLE) (p))
 #define FROM_SIGNALING_CLIENT_HANDLE(h) (IS_VALID_SIGNALING_CLIENT_HANDLE(h) ? (PSignalingClient) (h) : NULL)
 
-STATUS createSignalingSync(PSignalingClientInfo, PChannelInfo, PSignalingClientCallbacks, PAwsCredentialProvider, PSignalingClient*);
+STATUS createSignalingSync(PSignalingClientInfoInternal, PChannelInfo, PSignalingClientCallbacks, PAwsCredentialProvider, PSignalingClient*);
 STATUS freeSignaling(PSignalingClient*);
 
 STATUS signalingSendMessageSync(PSignalingClient, PSignalingMessage);
@@ -162,7 +180,7 @@ STATUS signalingGetIceConfigInfo(PSignalingClient, UINT32, PIceConfigInfo*);
 STATUS signalingConnectSync(PSignalingClient);
 
 STATUS validateSignalingCallbacks(PSignalingClient, PSignalingClientCallbacks);
-STATUS validateSignalingClientInfo(PSignalingClient, PSignalingClientInfo);
+STATUS validateSignalingClientInfo(PSignalingClient, PSignalingClientInfoInternal);
 STATUS validateIceConfiguration(PSignalingClient);
 
 STATUS signalingStoreOngoingMessage(PSignalingClient, PSignalingMessage);
