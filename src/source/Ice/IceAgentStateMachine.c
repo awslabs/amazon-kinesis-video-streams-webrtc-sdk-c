@@ -896,7 +896,14 @@ STATUS executeFailedIceAgentState(UINT64 customData, UINT64 time)
     CHK(pIceAgent->iceAgentState != ICE_AGENT_STATE_FAILED, retStatus);
 
     pIceAgent->iceAgentState = ICE_AGENT_STATE_FAILED;
-    DLOGE("IceAgent failed with 0x%08x", pIceAgent->iceAgentStatus);
+    switch (pIceAgent->iceAgentStatus) {
+        case STATUS_ICE_NO_AVAILABLE_ICE_CANDIDATE_PAIR:
+            DLOGE("IceAgent fatal error. No ice candidate pairs available to make connection.");
+            break;
+        default:
+            DLOGE("IceAgent failed with 0x%08x", pIceAgent->iceAgentStatus);
+            break;
+    }
 
 CleanUp:
 

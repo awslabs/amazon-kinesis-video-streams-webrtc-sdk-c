@@ -290,7 +290,7 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
 
     if (pSampleConfiguration->useTurn) {
         // Set the URIs from the configuration
-        CHK_STATUS(signalingClientGetIceConfigInfoCout(pSampleConfiguration->signalingClientHandle, &iceConfigCount));
+        CHK_STATUS(signalingClientGetIceConfigInfoCount(pSampleConfiguration->signalingClientHandle, &iceConfigCount));
 
         for (uriCount = 0, i = 0; i < iceConfigCount; i++) {
             CHK_STATUS(signalingClientGetIceConfigInfo(pSampleConfiguration->signalingClientHandle, i, &pIceConfigInfo));

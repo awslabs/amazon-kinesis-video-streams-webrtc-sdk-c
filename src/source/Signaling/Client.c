@@ -88,7 +88,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS signalingClientGetIceConfigInfoCout(SIGNALING_CLIENT_HANDLE signalingClientHandle, PUINT32 pIceConfigCount)
+STATUS signalingClientGetIceConfigInfoCount(SIGNALING_CLIENT_HANDLE signalingClientHandle, PUINT32 pIceConfigCount)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
