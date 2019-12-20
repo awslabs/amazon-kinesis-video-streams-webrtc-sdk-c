@@ -32,6 +32,7 @@ STATUS createIceAgent(PCHAR username, PCHAR password, UINT64 customData, PIceAge
     ATOMIC_STORE_BOOL(&pIceAgent->agentStartGathering, FALSE);
     pIceAgent->isControlling = FALSE;
     pIceAgent->tieBreaker = (UINT64) RAND();
+    pIceAgent->iceTransportPolicy = pRtcConfiguration->iceTransportPolicy;
 
     if (pIceAgentCallbacks != NULL) {
         pIceAgent->iceAgentCallbacks = *pIceAgentCallbacks;

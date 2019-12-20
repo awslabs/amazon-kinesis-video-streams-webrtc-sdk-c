@@ -154,6 +154,8 @@ typedef struct {
     UINT64 lastDataReceivedTime;
     BOOL detectedDisconnection;
     UINT64 disconnectionGracePeriodEndTime;
+
+    ICE_TRANSPORT_POLICY iceTransportPolicy;
 } IceAgent, *PIceAgent;
 
 
