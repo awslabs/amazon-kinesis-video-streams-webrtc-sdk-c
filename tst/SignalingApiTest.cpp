@@ -53,18 +53,18 @@ TEST_F(SignalingApiTest, signalingClientConnectSync)
     deinitializeSignalingClient();
 }
 
-TEST_F(SignalingApiTest, signalingClientGetIceConfigInfoCout)
+TEST_F(SignalingApiTest, signalingClientGetIceConfigInfoCount)
 {
     STATUS expectedStatus;
     UINT32 count;
 
     initializeSignalingClient();
-    EXPECT_NE(STATUS_SUCCESS, signalingClientGetIceConfigInfoCout(INVALID_SIGNALING_CLIENT_HANDLE_VALUE, &count));
-    EXPECT_NE(STATUS_SUCCESS, signalingClientGetIceConfigInfoCout(mSignalingClientHandle, NULL));
-    EXPECT_NE(STATUS_SUCCESS, signalingClientGetIceConfigInfoCout(INVALID_SIGNALING_CLIENT_HANDLE_VALUE, NULL));
+    EXPECT_NE(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(INVALID_SIGNALING_CLIENT_HANDLE_VALUE, &count));
+    EXPECT_NE(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(mSignalingClientHandle, NULL));
+    EXPECT_NE(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(INVALID_SIGNALING_CLIENT_HANDLE_VALUE, NULL));
 
     expectedStatus = mAccessKeyIdSet ? STATUS_SUCCESS : STATUS_NULL_ARG;
-    EXPECT_EQ(expectedStatus, signalingClientGetIceConfigInfoCout(mSignalingClientHandle, &count));
+    EXPECT_EQ(expectedStatus, signalingClientGetIceConfigInfoCount(mSignalingClientHandle, &count));
     if (mAccessKeyIdSet) {
         EXPECT_NE(0, count);
         EXPECT_GE(MAX_ICE_CONFIG_COUNT, count);
@@ -84,7 +84,7 @@ TEST_F(SignalingApiTest, signalingClientGetIceConfigInfo)
     EXPECT_NE(STATUS_SUCCESS, signalingClientGetIceConfigInfo(INVALID_SIGNALING_CLIENT_HANDLE_VALUE, 0, NULL));
 
     if (mAccessKeyIdSet) {
-        EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCout(mSignalingClientHandle, &count));
+        EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(mSignalingClientHandle, &count));
         EXPECT_NE(0, count);
         EXPECT_GE(MAX_ICE_CONFIG_COUNT, count);
 

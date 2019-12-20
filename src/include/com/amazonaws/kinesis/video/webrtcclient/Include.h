@@ -1292,7 +1292,7 @@ PUBLIC_API STATUS signalingClientSendMessageSync(SIGNALING_CLIENT_HANDLE, PSigna
  *
  * @return - STATUS code of the execution
  */
-PUBLIC_API STATUS signalingClientGetIceConfigInfoCout(SIGNALING_CLIENT_HANDLE, PUINT32);
+PUBLIC_API STATUS signalingClientGetIceConfigInfoCount(SIGNALING_CLIENT_HANDLE, PUINT32);
 
 /*
  * Gets the ICE configuration information object given its index

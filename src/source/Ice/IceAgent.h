@@ -287,9 +287,9 @@ STATUS iceAgentSendKeepAliveTimerCallback(UINT32, UINT64, UINT64);
 STATUS iceAgentStateNominatingTimerCallback(UINT32, UINT64, UINT64);
 STATUS iceAgentStateReadyTimerCallback(UINT32, UINT64, UINT64);
 
-
 STATUS iceAgentNominateCandidatePair(PIceAgent);
 STATUS iceAgentCheckPeerReflexiveCandidate(PIceAgent, PKvsIpAddress, UINT32, BOOL, PSocketConnection);
+STATUS iceAgentFatalError(PIceAgent, STATUS);
 
 UINT32 computeCandidatePriority(PIceCandidate);
 UINT64 computeCandidatePairPriority(PIceCandidatePair, BOOL);
