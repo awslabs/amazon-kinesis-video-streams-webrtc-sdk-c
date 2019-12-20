@@ -21,7 +21,7 @@ STATUS parseSessionAttributes(PSessionDescription pSessionDescription, PCHAR pch
     STATUS retStatus = STATUS_SUCCESS;
     PCHAR search;
 
-    CHK(pSessionDescription->sessionAttributesCount <= MAX_SDP_ATTRIBUTES_COUNT, STATUS_SDP_ATTRIBUTE_MAX_EXCEEDED);
+    CHK(pSessionDescription->sessionAttributesCount < MAX_SDP_ATTRIBUTES_COUNT, STATUS_SDP_ATTRIBUTE_MAX_EXCEEDED);
 
     if ((search = STRNCHR(pch, lineLen, ':')) == NULL) {
         STRNCPY(pSessionDescription->sdpAttributes[pSessionDescription->sessionAttributesCount].attributeName,
@@ -54,7 +54,7 @@ STATUS parseMediaAttributes(PSessionDescription pSessionDescription, PCHAR pch, 
     currentMediaAttributesCount =
         pSessionDescription->mediaDescriptions[pSessionDescription->mediaCount - 1].mediaAttributesCount;
 
-    CHK(currentMediaAttributesCount <= MAX_SDP_ATTRIBUTES_COUNT, STATUS_SDP_ATTRIBUTE_MAX_EXCEEDED);
+    CHK(currentMediaAttributesCount < MAX_SDP_ATTRIBUTES_COUNT, STATUS_SDP_ATTRIBUTE_MAX_EXCEEDED);
 
     if ((search = STRNCHR(pch, lineLen, ':')) == NULL) {
         STRNCPY(pSessionDescription->mediaDescriptions[pSessionDescription->mediaCount - 1].
