@@ -246,7 +246,8 @@ STATUS fromGatheringIceAgentState(UINT64 customData, PUINT64 pState)
     CHK_STATUS(doubleListGetNodeCount(pIceAgent->localCandidates, &totalLocalCandidateCount));
 
     // return early and remain in ICE_AGENT_STATE_GATHERING if condition not met
-    CHK(validLocalCandidateCount == totalLocalCandidateCount || currentTime >= pIceAgent->stateEndTime, retStatus);
+    CHK((validLocalCandidateCount > 0 && validLocalCandidateCount == totalLocalCandidateCount) ||
+        currentTime >= pIceAgent->stateEndTime, retStatus);
 
     // filter out invalid candidates, and compute priority for valid candidates
     CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pNextNode));
@@ -310,49 +311,53 @@ STATUS executeGatheringIceAgentState(UINT64 customData, UINT64 time)
     // stop timer task from previous state
     CHK_STATUS(timerQueueCancelTimer(pIceAgent->timerQueueHandle, pIceAgent->iceAgentStateTimerCallback, (UINT64) pIceAgent));
 
-    CHK_STATUS(iceAgentGatherLocalCandidate(pIceAgent));
+    // skip gathering host candidate and srflx candidate if relay only
+    if (pIceAgent->iceTransportPolicy != ICE_TRANSPORT_POLICY_RELAY) {
+        CHK_STATUS(iceAgentGatherLocalCandidate(pIceAgent));
 
-    CHK_STATUS(doubleListGetNodeCount(pIceAgent->localCandidates, &localCandidateCount));
-    CHK(localCandidateCount != 0, STATUS_ICE_NO_LOCAL_HOST_CANDIDATE_AVAILABLE);
+        CHK_STATUS(doubleListGetNodeCount(pIceAgent->localCandidates, &localCandidateCount));
+        CHK(localCandidateCount != 0, STATUS_ICE_NO_LOCAL_HOST_CANDIDATE_AVAILABLE);
 
-    CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
-    while (pCurNode != NULL) {
-        CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
-        pCurNode = pCurNode->pNext;
-        pCandidate = (PIceCandidate) data;
+        CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
+        while (pCurNode != NULL) {
+            CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
+            pCurNode = pCurNode->pNext;
+            pCandidate = (PIceCandidate) data;
 
-        if (pCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_HOST) {
-            CHK_STATUS(connectionListenerAddConnection(pIceAgent->pConnectionListener, pCandidate->pSocketConnection));
+            if (pCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_HOST) {
+                CHK_STATUS(
+                        connectionListenerAddConnection(pIceAgent->pConnectionListener, pCandidate->pSocketConnection));
 
-            for (j = 0; j < pIceAgent->iceServersCount; j++) {
-                if (!pIceAgent->iceServers[j].isTurn) {
-                    CHK((pNewCandidate = (PIceCandidate) MEMCALLOC(1, SIZEOF(IceCandidate))) != NULL,
-                        STATUS_NOT_ENOUGH_MEMORY);
+                for (j = 0; j < pIceAgent->iceServersCount; j++) {
+                    if (!pIceAgent->iceServers[j].isTurn) {
+                        CHK((pNewCandidate = (PIceCandidate) MEMCALLOC(1, SIZEOF(IceCandidate))) != NULL,
+                            STATUS_NOT_ENOUGH_MEMORY);
 
-                    // copy over host candidate's address to open up a new socket at that address.
-                    pNewCandidate->ipAddress = pCandidate->ipAddress;
-                    // open up a new socket at host candidate's ip address for server reflex candidate.
-                    // the new port will be stored in pNewCandidate->ipAddress.port. And the Ip address will later be updated
-                    // with the correct ip address once the STUN response is received. Relay candidate's socket is manageed
-                    // by TurnConnectino struct.
-                    CHK_STATUS(createSocketConnection(&pNewCandidate->ipAddress, NULL, KVS_SOCKET_PROTOCOL_UDP,
-                                                      (UINT64) pIceAgent, incomingDataHandler,
-                                                      &pNewCandidate->pSocketConnection));
-                    CHK_STATUS(connectionListenerAddConnection(pIceAgent->pConnectionListener,
-                                                               pNewCandidate->pSocketConnection));
+                        // copy over host candidate's address to open up a new socket at that address.
+                        pNewCandidate->ipAddress = pCandidate->ipAddress;
+                        // open up a new socket at host candidate's ip address for server reflex candidate.
+                        // the new port will be stored in pNewCandidate->ipAddress.port. And the Ip address will later be updated
+                        // with the correct ip address once the STUN response is received. Relay candidate's socket is manageed
+                        // by TurnConnectino struct.
+                        CHK_STATUS(createSocketConnection(&pNewCandidate->ipAddress, NULL, KVS_SOCKET_PROTOCOL_UDP,
+                                                          (UINT64) pIceAgent, incomingDataHandler,
+                                                          &pNewCandidate->pSocketConnection));
+                        CHK_STATUS(connectionListenerAddConnection(pIceAgent->pConnectionListener,
+                                                                   pNewCandidate->pSocketConnection));
 
-                    pNewCandidate->iceCandidateType = pIceAgent->iceServers[j].isTurn ? ICE_CANDIDATE_TYPE_RELAYED
-                                                                                      : ICE_CANDIDATE_TYPE_SERVER_REFLEXIVE;
-                    pNewCandidate->state = ICE_CANDIDATE_STATE_NEW;
-                    pNewCandidate->iceServerIndex = j;
-                    pNewCandidate->foundation = pIceAgent->foundationCounter++; // we dont generate candidates that have the same foundation.
-                    pNewCandidate->priority = computeCandidatePriority(pNewCandidate);
-                    CHK_STATUS(doubleListInsertItemHead(pIceAgent->localCandidates, (UINT64) pNewCandidate));
-                    pNewCandidate = NULL;
+                        pNewCandidate->iceCandidateType = pIceAgent->iceServers[j].isTurn ? ICE_CANDIDATE_TYPE_RELAYED
+                                                                                          : ICE_CANDIDATE_TYPE_SERVER_REFLEXIVE;
+                        pNewCandidate->state = ICE_CANDIDATE_STATE_NEW;
+                        pNewCandidate->iceServerIndex = j;
+                        pNewCandidate->foundation = pIceAgent->foundationCounter++; // we dont generate candidates that have the same foundation.
+                        pNewCandidate->priority = computeCandidatePriority(pNewCandidate);
+                        CHK_STATUS(doubleListInsertItemHead(pIceAgent->localCandidates, (UINT64) pNewCandidate));
+                        pNewCandidate = NULL;
+                    }
                 }
+            } else {
+                pCurNode = NULL; // break the loop as we have gone through all local candidates
             }
-        } else {
-            pCurNode = NULL; // break the loop as we have gone through all local candidates
         }
     }
 
@@ -891,6 +896,7 @@ STATUS executeFailedIceAgentState(UINT64 customData, UINT64 time)
     CHK(pIceAgent->iceAgentState != ICE_AGENT_STATE_FAILED, retStatus);
 
     pIceAgent->iceAgentState = ICE_AGENT_STATE_FAILED;
+    DLOGE("IceAgent failed with 0x%08x", pIceAgent->iceAgentStatus);
 
 CleanUp:
 
