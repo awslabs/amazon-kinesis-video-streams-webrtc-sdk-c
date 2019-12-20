@@ -22,7 +22,7 @@ STATUS createTurnConnection(PIceServer pTurnServer, TIMER_QUEUE_HANDLE timerQueu
             DEFAULT_TURN_MESSAGE_RECV_CHANNEL_DATA_BUFFER_LEN + DEFAULT_TURN_MESSAGE_SEND_CHANNEL_DATA_BUFFER_LEN);
     CHK(pTurnConnection != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
-    pTurnConnection->lock = MUTEX_CREATE(FALSE);
+    pTurnConnection->lock = MUTEX_CREATE(TRUE);
     pTurnConnection->timerQueueHandle = timerQueueHandle;
     pTurnConnection->turnServer = *pTurnServer;
     pTurnConnection->state = TURN_STATE_NEW;
@@ -34,7 +34,9 @@ STATUS createTurnConnection(PIceServer pTurnServer, TIMER_QUEUE_HANDLE timerQueu
     pTurnConnection->pConnectionListener = pConnectionListener;
     pTurnConnection->dataTransferMode = TURN_CONNECTION_DATA_TRANSFER_MODE_DATA_CHANNEL; // only TURN_CONNECTION_DATA_TRANSFER_MODE_DATA_CHANNEL for now
     pTurnConnection->protocol = protocol;
-    pTurnConnection->turnConnectionCallbacks = *pTurnConnectionCallbacks;
+    if (pTurnConnectionCallbacks != NULL) {
+        pTurnConnection->turnConnectionCallbacks = *pTurnConnectionCallbacks;
+    }
     pTurnConnection->recvDataBufferSize = DEFAULT_TURN_MESSAGE_RECV_CHANNEL_DATA_BUFFER_LEN;
     pTurnConnection->dataBufferSize = DEFAULT_TURN_MESSAGE_SEND_CHANNEL_DATA_BUFFER_LEN;
     pTurnConnection->sendDataBuffer = (PBYTE) (pTurnConnection + 1);
@@ -529,6 +531,7 @@ STATUS turnConnectionSendData(PTurnConnection pTurnConnection, PBYTE pBuf, UINT3
     PTurnPeer pTurnPeer = NULL, pSendPeer = NULL;
     UINT32 paddedDataLen = 0;
     CHAR ipAddrStr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
+    BOOL locked = FALSE;
 
     CHK(pTurnConnection != NULL && pDestIp != NULL, STATUS_NULL_ARG);
     CHK(pBuf != NULL && bufLen > 0, STATUS_INVALID_ARG);
@@ -537,6 +540,9 @@ STATUS turnConnectionSendData(PTurnConnection pTurnConnection, PBYTE pBuf, UINT3
              pTurnConnection->state == TURN_STATE_READY,
              STATUS_TURN_CONNECTION_STATE_NOT_READY_TO_SEND_DATA,
              "TurnConnection not ready to send data");
+
+    MUTEX_LOCK(pTurnConnection->lock);
+    locked = TRUE;
 
     // lastApplicationDataSentTime is used to detect when application finds a better connection then using turn, thus
     // update lastApplicationDataSentTime regardless of whether turn peer is ready.
@@ -554,6 +560,9 @@ STATUS turnConnectionSendData(PTurnConnection pTurnConnection, PBYTE pBuf, UINT3
             break;
         }
     }
+
+    MUTEX_UNLOCK(pTurnConnection->lock);
+    locked = FALSE;
 
     CHK_STATUS(getIpAddrStr(pDestIp, ipAddrStr, ARRAY_SIZE(ipAddrStr)));
     if (pSendPeer == NULL) {
@@ -587,6 +596,10 @@ STATUS turnConnectionSendData(PTurnConnection pTurnConnection, PBYTE pBuf, UINT3
 CleanUp:
 
     CHK_LOG_ERR_NV(retStatus);
+
+    if (locked) {
+        MUTEX_UNLOCK(pTurnConnection->lock);
+    }
 
     return retStatus;
 }
