@@ -83,6 +83,7 @@ public:
     UINT32 mExpectedDroppedFrameCount;
     PRtpPacket* mPRtpPackets;
     UINT32 mRtpPacketCount;
+    SIGNALING_CLIENT_HANDLE mSignalingClientHandle;
 
     WebRtcClientTestBase();
 
@@ -100,6 +101,73 @@ public:
     {
         return mSessionToken;
     }
+
+    STATUS initializeSignalingClient() {
+        ChannelInfo channelInfo;
+        SignalingClientCallbacks signalingClientCallbacks;
+        SignalingClientInfo clientInfo;
+        Tag tags[3];
+        STATUS retStatus;
+
+        tags[0].version = TAG_CURRENT_VERSION;
+        tags[0].name = (PCHAR) "Tag Name 0";
+        tags[0].value = (PCHAR) "Tag Value 0";
+        tags[1].version = TAG_CURRENT_VERSION;
+        tags[1].name = (PCHAR) "Tag Name 1";
+        tags[1].value = (PCHAR) "Tag Value 1";
+        tags[2].version = TAG_CURRENT_VERSION;
+        tags[2].name = (PCHAR) "Tag Name 2";
+        tags[2].value = (PCHAR) "Tag Value 2";
+
+        signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
+        signalingClientCallbacks.customData = (UINT64) this;
+        signalingClientCallbacks.messageReceivedFn = NULL;
+        signalingClientCallbacks.errorReportFn = NULL;
+        signalingClientCallbacks.stateChangeFn = NULL;
+
+        clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
+        clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
+        STRCPY(clientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+
+        MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
+        channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
+        channelInfo.pChannelName = mChannelName;
+        channelInfo.pKmsKeyId = NULL;
+        channelInfo.tagCount = 3;
+        channelInfo.pTags = tags;
+        channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
+        channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
+        channelInfo.cachingEndpoint = FALSE;
+        channelInfo.retry = TRUE;
+        channelInfo.reconnect = TRUE;
+        channelInfo.pCertPath = mCaCertPath;
+        channelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
+
+        retStatus = createSignalingClientSync(&clientInfo, &channelInfo, &signalingClientCallbacks,
+                (PAwsCredentialProvider) mTestCredentialProvider,
+                &mSignalingClientHandle);
+
+        if (mAccessKeyIdSet) {
+            EXPECT_EQ(STATUS_SUCCESS, retStatus);
+        } else {
+            EXPECT_NE(STATUS_SUCCESS, retStatus);
+        }
+
+        return retStatus;
+    }
+
+    STATUS deinitializeSignalingClient() {
+
+        // Delete the created channel
+        if (mAccessKeyIdSet) {
+            deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(mSignalingClientHandle), 0);
+        }
+
+        EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&mSignalingClientHandle));
+
+        return STATUS_SUCCESS;
+    }
+
 
     static STATUS testFrameReadyFunc(UINT64 customData, UINT16 startIndex, UINT16 endIndex, UINT32 frameSize)
     {

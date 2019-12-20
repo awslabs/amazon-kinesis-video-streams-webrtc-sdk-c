@@ -3,77 +3,6 @@
 namespace com { namespace amazonaws { namespace kinesis { namespace video { namespace webrtcclient {
 
 class SignalingApiTest : public WebRtcClientTestBase {
-public:
-    SignalingApiTest() : mSignalingClientHandle(INVALID_SIGNALING_CLIENT_HANDLE_VALUE)
-    {}
-
-    STATUS initialize() {
-        ChannelInfo channelInfo;
-        SignalingClientCallbacks signalingClientCallbacks;
-        SignalingClientInfo clientInfo;
-        Tag tags[3];
-        STATUS retStatus;
-
-        tags[0].version = TAG_CURRENT_VERSION;
-        tags[0].name = (PCHAR) "Tag Name 0";
-        tags[0].value = (PCHAR) "Tag Value 0";
-        tags[1].version = TAG_CURRENT_VERSION;
-        tags[1].name = (PCHAR) "Tag Name 1";
-        tags[1].value = (PCHAR) "Tag Value 1";
-        tags[2].version = TAG_CURRENT_VERSION;
-        tags[2].name = (PCHAR) "Tag Name 2";
-        tags[2].value = (PCHAR) "Tag Value 2";
-
-        signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
-        signalingClientCallbacks.customData = (UINT64) this;
-        signalingClientCallbacks.messageReceivedFn = NULL;
-        signalingClientCallbacks.errorReportFn = NULL;
-        signalingClientCallbacks.stateChangeFn = NULL;
-
-        clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
-        clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
-        STRCPY(clientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
-
-        MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
-        channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
-        channelInfo.pChannelName = mChannelName;
-        channelInfo.pKmsKeyId = NULL;
-        channelInfo.tagCount = 3;
-        channelInfo.pTags = tags;
-        channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
-        channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
-        channelInfo.cachingEndpoint = FALSE;
-        channelInfo.retry = TRUE;
-        channelInfo.reconnect = TRUE;
-        channelInfo.pCertPath = mCaCertPath;
-        channelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
-
-        retStatus = createSignalingClientSync(&clientInfo, &channelInfo, &signalingClientCallbacks,
-                (PAwsCredentialProvider) mTestCredentialProvider,
-                &mSignalingClientHandle);
-
-        if (mAccessKeyIdSet) {
-            EXPECT_EQ(STATUS_SUCCESS, retStatus);
-        } else {
-            EXPECT_NE(STATUS_SUCCESS, retStatus);
-        }
-
-        return retStatus;
-    }
-
-    STATUS deinitialize() {
-
-        // Delete the created channel
-        if (mAccessKeyIdSet) {
-            deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(mSignalingClientHandle), 0);
-        }
-
-        EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&mSignalingClientHandle));
-
-        return STATUS_SUCCESS;
-    }
-
-    SIGNALING_CLIENT_HANDLE mSignalingClientHandle;
 };
 
 TEST_F(SignalingApiTest, signalingSendMessageSync)
@@ -81,7 +10,7 @@ TEST_F(SignalingApiTest, signalingSendMessageSync)
     STATUS expectedStatus;
     SignalingMessage signalingMessage;
 
-    initialize();
+    initializeSignalingClient();
 
     signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
@@ -104,14 +33,14 @@ TEST_F(SignalingApiTest, signalingSendMessageSync)
     EXPECT_EQ(expectedStatus, signalingClientConnectSync(mSignalingClientHandle));
     EXPECT_EQ(expectedStatus, signalingClientSendMessageSync(mSignalingClientHandle, &signalingMessage));
 
-    deinitialize();
+    deinitializeSignalingClient();
 }
 
 TEST_F(SignalingApiTest, signalingClientConnectSync)
 {
     STATUS expectedStatus;
 
-    initialize();
+    initializeSignalingClient();
     EXPECT_NE(STATUS_SUCCESS, signalingClientConnectSync(INVALID_SIGNALING_CLIENT_HANDLE_VALUE));
     expectedStatus = mAccessKeyIdSet ? STATUS_SUCCESS : STATUS_NULL_ARG;
     EXPECT_EQ(expectedStatus, signalingClientConnectSync(mSignalingClientHandle));
@@ -121,7 +50,7 @@ TEST_F(SignalingApiTest, signalingClientConnectSync)
     EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(mSignalingClientHandle));
     EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(mSignalingClientHandle));
 
-    deinitialize();
+    deinitializeSignalingClient();
 }
 
 TEST_F(SignalingApiTest, signalingClientGetIceConfigInfoCout)
@@ -129,7 +58,7 @@ TEST_F(SignalingApiTest, signalingClientGetIceConfigInfoCout)
     STATUS expectedStatus;
     UINT32 count;
 
-    initialize();
+    initializeSignalingClient();
     EXPECT_NE(STATUS_SUCCESS, signalingClientGetIceConfigInfoCout(INVALID_SIGNALING_CLIENT_HANDLE_VALUE, &count));
     EXPECT_NE(STATUS_SUCCESS, signalingClientGetIceConfigInfoCout(mSignalingClientHandle, NULL));
     EXPECT_NE(STATUS_SUCCESS, signalingClientGetIceConfigInfoCout(INVALID_SIGNALING_CLIENT_HANDLE_VALUE, NULL));
@@ -141,7 +70,7 @@ TEST_F(SignalingApiTest, signalingClientGetIceConfigInfoCout)
         EXPECT_GE(MAX_ICE_CONFIG_COUNT, count);
     }
 
-    deinitialize();
+    deinitializeSignalingClient();
 }
 
 TEST_F(SignalingApiTest, signalingClientGetIceConfigInfo)
@@ -149,7 +78,7 @@ TEST_F(SignalingApiTest, signalingClientGetIceConfigInfo)
     UINT32 i, j, count;
     PIceConfigInfo pIceConfigInfo;
 
-    initialize();
+    initializeSignalingClient();
     EXPECT_NE(STATUS_SUCCESS, signalingClientGetIceConfigInfo(INVALID_SIGNALING_CLIENT_HANDLE_VALUE, 0, &pIceConfigInfo));
     EXPECT_NE(STATUS_SUCCESS, signalingClientGetIceConfigInfo(mSignalingClientHandle, 0, NULL));
     EXPECT_NE(STATUS_SUCCESS, signalingClientGetIceConfigInfo(INVALID_SIGNALING_CLIENT_HANDLE_VALUE, 0, NULL));
@@ -177,7 +106,7 @@ TEST_F(SignalingApiTest, signalingClientGetIceConfigInfo)
         }
     }
 
-    deinitialize();
+    deinitializeSignalingClient();
 }
 
 }

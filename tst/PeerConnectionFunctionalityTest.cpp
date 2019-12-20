@@ -5,18 +5,12 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
 class PeerConnectionFunctionalityTest : public WebRtcClientTestBase {
 };
 
-// Assert that two PeerConnections can connect to each other and go to connected
-TEST_F(PeerConnectionFunctionalityTest, connectTwoPeers)
-{
-    RtcConfiguration configuration;
-    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+// Connect two RtcPeerConnections, and wait for them to be connected
+// in the given amount of time. Return false if they don't go to connected in
+// the expected amounted of time
+bool connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerConnection answerPc) {
     RtcSessionDescriptionInit sdp;
     volatile SIZE_T connectedCount = 0;
-
-    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
-
-    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
-    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
 
     auto onICECandidateHdlr = [](UINT64 customData, PCHAR candidateStr) -> void {
         if (candidateStr != NULL) {
@@ -51,10 +45,67 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeers)
         THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
     }
 
+    return ATOMIC_LOAD(&connectedCount) ==  2;
+}
+
+// Assert that two PeerConnections can connect to each other and go to connected
+TEST_F(PeerConnectionFunctionalityTest, connectTwoPeers)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+
     freePeerConnection(&offerPc);
     freePeerConnection(&answerPc);
-    EXPECT_EQ(ATOMIC_LOAD(&connectedCount), 2);
 }
+
+// Assert that two PeerConnections with forced TURN can connect to each other and go to connected
+TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersForcedTURN)
+{
+    if (!mAccessKeyIdSet) {
+        return;
+    }
+
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    UINT32 i, j, iceConfigCount, uriCount;
+    PIceConfigInfo pIceConfigInfo;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_RELAY;
+
+    initializeSignalingClient();
+    EXPECT_EQ(signalingClientGetIceConfigInfoCout(mSignalingClientHandle, &iceConfigCount), STATUS_SUCCESS);
+
+    for (uriCount = 0, i = 0; i < iceConfigCount; i++) {
+        EXPECT_EQ(signalingClientGetIceConfigInfo(mSignalingClientHandle, i, &pIceConfigInfo), STATUS_SUCCESS);
+        for (j = 0; j < pIceConfigInfo->uriCount; j++) {
+            STRNCPY(configuration.iceServers[uriCount + 1].urls, pIceConfigInfo->uris[j], MAX_ICE_CONFIG_URI_LEN);
+            STRNCPY(configuration.iceServers[uriCount + 1].credential, pIceConfigInfo->password, MAX_ICE_CONFIG_CREDENTIAL_LEN);
+            STRNCPY(configuration.iceServers[uriCount + 1].username, pIceConfigInfo->userName, MAX_ICE_CONFIG_USER_NAME_LEN);
+
+            uriCount++;
+        }
+    }
+
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+
+    deinitializeSignalingClient();
+}
+
 
 }
 }
