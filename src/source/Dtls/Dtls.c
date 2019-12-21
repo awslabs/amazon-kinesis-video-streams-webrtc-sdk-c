@@ -250,16 +250,17 @@ STATUS createDtlsSession(PDtlsSessionCallbacks pDtlsSessionCallbacks, TIMER_QUEU
     pDtlsSession = MEMALLOC(SIZEOF(DtlsSession));
     CHK(pDtlsSession != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
-    CHK_STATUS(createCertificateAndKey(&(pDtlsSession->pCert), &(pDtlsSession->pKey)));
-    CHK_STATUS(createSslCtx(pDtlsSession->pCert, pDtlsSession->pKey, &(pDtlsSession->pSslCtx)));
-    CHK_STATUS(createSsl(pDtlsSession->pSslCtx, &(pDtlsSession->pSsl)));
-
     pDtlsSession->timerQueueHandle = timerQueueHandle;
     pDtlsSession->timerId = UINT32_MAX;
     pDtlsSession->isStarted = FALSE;
     pDtlsSession->sslLock = MUTEX_CREATE(TRUE);
 
     pDtlsSession->dtlsSessionCallbacks = *pDtlsSessionCallbacks;
+
+    CHK_STATUS(createCertificateAndKey(&(pDtlsSession->pCert), &(pDtlsSession->pKey)));
+    CHK_STATUS(createSslCtx(pDtlsSession->pCert, pDtlsSession->pKey, &(pDtlsSession->pSslCtx)));
+    CHK_STATUS(createSsl(pDtlsSession->pSslCtx, &(pDtlsSession->pSsl)));
+
     *ppDtlsSession = pDtlsSession;
 
 CleanUp:

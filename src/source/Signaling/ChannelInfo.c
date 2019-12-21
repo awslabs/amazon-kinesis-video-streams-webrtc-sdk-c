@@ -95,9 +95,18 @@ STATUS createChannelInfo(PCHAR pChannelName,
     // Account for the tags
     CHK_STATUS(packageTags(tagCount, pTags, 0, NULL, &tagsSize));
 
-    // Allocate enough storage to hold the data and set the pointers and NULL terminators
-    allocSize = SIZEOF(ChannelInfo) + 1 + nameLen + 1 + arnLen + 1 + regionLen + 1 + cplLen +
-                1 + certLen + 1 + postfixLen + 1 + agentLen + 1 + userAgentLen + 1 + kmsLen + tagsSize;
+    // Allocate enough storage to hold the data with aligned strings size and set the pointers and NULL terminators
+    allocSize = SIZEOF(ChannelInfo) +
+                ALIGN_UP_TO_MACHINE_WORD(1 + nameLen) +
+                ALIGN_UP_TO_MACHINE_WORD(1 + arnLen) +
+                ALIGN_UP_TO_MACHINE_WORD(1 + regionLen) +
+                ALIGN_UP_TO_MACHINE_WORD(1 + cplLen) +
+                ALIGN_UP_TO_MACHINE_WORD(1 + certLen) +
+                ALIGN_UP_TO_MACHINE_WORD(1 + postfixLen) +
+                ALIGN_UP_TO_MACHINE_WORD(1 + agentLen) +
+                ALIGN_UP_TO_MACHINE_WORD(1 + userAgentLen) +
+                ALIGN_UP_TO_MACHINE_WORD(1 + kmsLen) +
+                tagsSize;
     CHK(NULL != (pChannelInfo = (PChannelInfo) MEMCALLOC(1, allocSize)), STATUS_NOT_ENOUGH_MEMORY);
 
     pChannelInfo->version = CHANNEL_INFO_CURRENT_VERSION;
@@ -118,18 +127,18 @@ STATUS createChannelInfo(PCHAR pChannelName,
     if (nameLen != 0) {
         STRCPY(pCurPtr, pChannelName);
         pChannelInfo->pChannelName = pCurPtr;
-        pCurPtr += nameLen + 1; // For the NULL terminator
+        pCurPtr += ALIGN_UP_TO_MACHINE_WORD(nameLen + 1); // For the NULL terminator
     }
 
     if (arnLen != 0) {
         STRCPY(pCurPtr, pChannelArn);
         pChannelInfo->pChannelArn = pCurPtr;
-        pCurPtr += arnLen + 1;
+        pCurPtr += ALIGN_UP_TO_MACHINE_WORD(arnLen + 1);
     }
 
     STRCPY(pCurPtr, pRegionPtr);
     pChannelInfo->pRegion = pCurPtr;
-    pCurPtr += regionLen + 1;
+    pCurPtr += ALIGN_UP_TO_MACHINE_WORD(regionLen + 1);
 
     if (pControlPlaneUrl != NULL && *pControlPlaneUrl != '\0') {
         STRCPY(pCurPtr, pControlPlaneUrl);
@@ -145,35 +154,35 @@ STATUS createChannelInfo(PCHAR pChannelName,
     }
 
     pChannelInfo->pControlPlaneUrl = pCurPtr;
-    pCurPtr += cplLen + 1;
+    pCurPtr += ALIGN_UP_TO_MACHINE_WORD(cplLen + 1);
 
     if (certLen != 0) {
         STRCPY(pCurPtr, pCertPath);
         pChannelInfo->pCertPath = pCurPtr;
-        pCurPtr += certLen + 1;
+        pCurPtr += ALIGN_UP_TO_MACHINE_WORD(certLen + 1);
     }
 
     if (postfixLen != 0) {
         STRCPY(pCurPtr, pUserAgentPostfix);
         pChannelInfo->pUserAgentPostfix = pCurPtr;
-        pCurPtr += postfixLen + 1;
+        pCurPtr += ALIGN_UP_TO_MACHINE_WORD(postfixLen + 1);
     }
 
     if (agentLen != 0) {
         STRCPY(pCurPtr, pCustomUserAgent);
         pChannelInfo->pCustomUserAgent = pCurPtr;
-        pCurPtr += agentLen + 1;
+        pCurPtr += ALIGN_UP_TO_MACHINE_WORD(agentLen + 1);
     }
 
     getUserAgentString(pUserAgentPostfix, pCustomUserAgent, MAX_USER_AGENT_LEN, pCurPtr);
     pChannelInfo->pUserAgent = pCurPtr;
     pChannelInfo->pUserAgent[MAX_USER_AGENT_LEN] = '\0';
-    pCurPtr += userAgentLen + 1;
+    pCurPtr += ALIGN_UP_TO_MACHINE_WORD(userAgentLen + 1);
 
     if (kmsLen != 0) {
         STRCPY(pCurPtr, pCustomUserAgent);
         pChannelInfo->pKmsKeyId = pCurPtr;
-        pCurPtr += kmsLen + 1;
+        pCurPtr += ALIGN_UP_TO_MACHINE_WORD(kmsLen + 1);
     }
 
     // Process tags
