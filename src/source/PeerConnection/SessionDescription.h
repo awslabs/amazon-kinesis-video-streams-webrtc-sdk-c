@@ -44,6 +44,9 @@ extern "C" {
 #define DEFAULT_PAYLOAD_MULAW_STR (PCHAR) "0"
 #define DEFAULT_PAYLOAD_ALAW_STR (PCHAR) "8"
 
+#define DEFAULT_H264_FMTP (PCHAR) "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f"
+#define DEFAULT_OPUS_FMTP (PCHAR) "minptime=10;useinbandfec=1"
+
 #define DTLS_ROLE_ACTPASS (PCHAR) "actpass"
 #define DTLS_ROLE_ACTIVE (PCHAR) "active"
 
@@ -58,6 +61,7 @@ STATUS setTransceiverPayloadTypes(PHashTable, PHashTable, PDoubleList);
 STATUS populateSessionDescription(PKvsPeerConnection, PSessionDescription, PSessionDescription);
 STATUS reorderTransceiverByRemoteDescription(PKvsPeerConnection, PSessionDescription);
 STATUS setReceiversSsrc(PSessionDescription, PDoubleList);
+PCHAR fmtpForPayloadType(UINT64, PSessionDescription);
 
 #ifdef  __cplusplus
 }
