@@ -284,6 +284,28 @@ CleanUp:
     return retStatus;
 }
 
+PCHAR fmtpForPayloadType(UINT64 payloadType, PSessionDescription pSessionDescription)
+{
+    UINT32 currentMedia, currentAttribute;
+    PSdpMediaDescription pMediaDescription = NULL;
+    CHAR payloadStr[MAX_SDP_ATTRIBUTE_VALUE_LENGTH];
+
+    MEMSET(payloadStr, 0x00, MAX_SDP_ATTRIBUTE_VALUE_LENGTH);
+    SPRINTF(payloadStr, "%"PRId64, payloadType);
+
+    for (currentMedia = 0; currentMedia < pSessionDescription->mediaCount; currentMedia++) {
+        pMediaDescription = &(pSessionDescription->mediaDescriptions[currentMedia]);
+        for (currentAttribute = 0; currentAttribute < pMediaDescription->mediaAttributesCount; currentAttribute++) {
+            if (STRCMP(pMediaDescription->sdpAttributes[currentAttribute].attributeName, "fmtp") == 0 &&
+                STRNCMP(pMediaDescription->sdpAttributes[currentAttribute].attributeValue, payloadStr, STRLEN(payloadStr)) == 0) {
+                return pMediaDescription->sdpAttributes[currentAttribute].attributeValue + STRLEN(payloadStr) + 1;
+            }
+        }
+    }
+
+    return NULL;
+}
+
 // Populate a single media section from a PKvsRtpTransceiver
 STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtpTransceiver pKvsRtpTransceiver, PSdpMediaDescription pSdpMediaDescription, PCHAR pCertificateFingerprint, UINT32 mediaSectionId, PCHAR pDtlsRole)
 {
@@ -293,8 +315,11 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
     BOOL containRtx = FALSE;
     UINT32 attributeCount = 0;
     PRtcMediaStreamTrack pRtcMediaStreamTrack = &(pKvsRtpTransceiver->sender.track);
+    PCHAR currentFmtp = NULL;
 
     CHK_STATUS(hashTableGet(pKvsPeerConnection->pCodecTable, pRtcMediaStreamTrack->codec, &payloadType));
+
+    currentFmtp = fmtpForPayloadType(payloadType, &(pKvsPeerConnection->remoteSessionDescription));
 
     if (pRtcMediaStreamTrack->codec == RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE || pRtcMediaStreamTrack->codec == RTC_CODEC_VP8) {
         if (pRtcMediaStreamTrack->codec == RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE) {
@@ -399,12 +424,16 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
     attributeCount++;
 
     if (pRtcMediaStreamTrack->codec == RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE) {
+        if (currentFmtp == NULL) {
+            currentFmtp = DEFAULT_H264_FMTP;
+        }
+
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtpmap");
         SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%"PRId64" H264/90000", payloadType);
         attributeCount++;
 
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "fmtp");
-        SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%"PRId64" level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f", payloadType);
+        SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%"PRId64" %s", payloadType, currentFmtp);
         attributeCount++;
 
         if (containRtx) {
@@ -417,12 +446,16 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
             attributeCount++;
         }
     } else if (pRtcMediaStreamTrack->codec == RTC_CODEC_OPUS) {
+        if (currentFmtp == NULL) {
+            currentFmtp = DEFAULT_OPUS_FMTP;
+        }
+
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtpmap");
         SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%"PRId64" opus/48000/2", payloadType);
         attributeCount++;
 
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "fmtp");
-        SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%"PRId64" minptime=10;useinbandfec=1", payloadType);
+        SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%"PRId64" %s", payloadType, currentFmtp);
         attributeCount++;
     } else if (pRtcMediaStreamTrack->codec == RTC_CODEC_VP8) {
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtpmap");

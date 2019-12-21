@@ -70,7 +70,6 @@ struct __SocketConnection;
 #define IPV6_ADDRESS_LENGTH             (UINT16) 16
 #define IPV4_ADDRESS_LENGTH             (UINT16) 4
 
-#define MAX_SDP_ATTRIBUTE_VALUE_LENGTH 255
 
 #define CERTIFICATE_FINGERPRINT_LENGTH 160
 
