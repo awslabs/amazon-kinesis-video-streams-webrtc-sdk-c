@@ -88,6 +88,9 @@ typedef struct {
 
 #define IS_IPV4_ADDR(pAddress) ((pAddress)->family == KVS_IP_FAMILY_TYPE_IPV4)
 
+// Used for ensuring alignment
+#define ALIGN_UP_TO_MACHINE_WORD(x)             ROUND_UP((x), SIZEOF(SIZE_T))
+
 ////////////////////////////////////////////////////
 // Project internal includes
 ////////////////////////////////////////////////////
