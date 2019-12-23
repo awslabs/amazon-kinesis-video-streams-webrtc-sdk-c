@@ -1280,6 +1280,7 @@ CleanUp:
         if (!ATOMIC_LOAD_BOOL(&pSignalingClient->listenerTracker.terminated) &&
             pSignalingClient->pOngoingCallInfo != NULL &&
             pSignalingClient->pOngoingCallInfo->callInfo.pRequestInfo != NULL) {
+            ATOMIC_STORE_BOOL(&pLwsCallInfo->callInfo.pRequestInfo->terminating, TRUE);
             terminateConnectionWithStatus(pSignalingClient, SERVICE_CALL_UNKNOWN);
         }
 
