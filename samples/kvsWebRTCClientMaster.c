@@ -152,6 +152,8 @@ PVOID sendVideoPackets(PVOID args)
 
     CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
 
+    frame.presentationTs = 0;
+
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
         fileIndex = fileIndex % NUMBER_OF_H264_FRAME_FILES + 1;
         SNPRINTF(filePath, MAX_PATH_LEN, "./h264SampleFrames/frame-%03d.h264", fileIndex);
