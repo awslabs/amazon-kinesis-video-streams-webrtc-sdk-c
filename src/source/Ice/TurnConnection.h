@@ -180,7 +180,7 @@ STATUS turnConnectionIncomingDataHandler(UINT64, PSocketConnection, PBYTE, UINT3
 
 STATUS turnConnectionHandleStun(PTurnConnection, PSocketConnection, PBYTE, UINT32);
 STATUS turnConnectionHandleStunError(PTurnConnection, PSocketConnection, PBYTE, UINT32);
-STATUS turnConnectionHandleChannelDataTcpMode(PTurnConnection, PSocketConnection, PBYTE, UINT32);
+STATUS turnConnectionHandleChannelDataTcpMode(PTurnConnection, PBYTE, UINT32);
 
 #ifdef  __cplusplus
 }
