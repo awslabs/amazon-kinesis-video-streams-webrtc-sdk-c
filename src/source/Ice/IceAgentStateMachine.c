@@ -325,8 +325,7 @@ STATUS executeGatheringIceAgentState(UINT64 customData, UINT64 time)
             pCandidate = (PIceCandidate) data;
 
             if (pCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_HOST) {
-                CHK_STATUS(
-                        connectionListenerAddConnection(pIceAgent->pConnectionListener, pCandidate->pSocketConnection));
+                CHK_STATUS(connectionListenerAddConnection(pIceAgent->pConnectionListener, pCandidate->pSocketConnection));
 
                 for (j = 0; j < pIceAgent->iceServersCount; j++) {
                     if (!pIceAgent->iceServers[j].isTurn) {

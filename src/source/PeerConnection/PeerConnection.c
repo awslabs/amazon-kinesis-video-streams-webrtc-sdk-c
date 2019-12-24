@@ -84,10 +84,13 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
             CHK_STATUS(putSctpPacket(pKvsPeerConnection->pSctpSession, buff, signedBuffLen));
         }
 
-        if (pKvsPeerConnection->pSrtpSession == NULL) {
-            dtlsSessionIsInitFinished(pKvsPeerConnection->pDtlsSession, &isDtlsConnected);
-            if (isDtlsConnected) {
-                allocateSrtp(pKvsPeerConnection);
+        CHK_STATUS(dtlsSessionIsInitFinished(pKvsPeerConnection->pDtlsSession, &isDtlsConnected));
+        if (isDtlsConnected) {
+            if (pKvsPeerConnection->pSrtpSession == NULL) {
+                CHK_STATUS(allocateSrtp(pKvsPeerConnection));
+            }
+
+            if (pKvsPeerConnection->pSctpSession == NULL) {
                 CHK_STATUS(allocateSctp(pKvsPeerConnection));
             }
         }
@@ -111,6 +114,9 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
     }
 
 CleanUp:
+
+    CHK_LOG_ERR_NV(retStatus);
+
     return;
 }
 
@@ -850,6 +856,7 @@ STATUS initKvsWebRtc(VOID)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
+    CHK(!ATOMIC_LOAD_BOOL(&gKvsWebRtcInitialized), retStatus);
 
     SRAND(GETTIME());
 
@@ -881,6 +888,10 @@ STATUS deinitKvsWebRtc(VOID)
     CHK(ATOMIC_LOAD_BOOL(&gKvsWebRtcInitialized), retStatus);
 
     deinitSctpSession();
+
+    srtp_shutdown();
+
+    ATOMIC_STORE_BOOL(&gKvsWebRtcInitialized, FALSE);
 
 CleanUp:
 
