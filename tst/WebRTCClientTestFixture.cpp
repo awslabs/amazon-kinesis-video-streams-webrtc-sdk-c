@@ -67,7 +67,7 @@ void WebRtcClientTestBase::SetUp()
     }
 
     if (NULL == (mCaCertPath = getenv(CACERT_PATH_ENV_VAR))) {
-        mCaCertPath = EMPTY_STRING;
+        mCaCertPath = (PCHAR) DEFAULT_KVS_CACERT_PATH;
     }
 
     if (mAccessKey) {
@@ -97,6 +97,8 @@ void WebRtcClientTestBase::SetUp()
 void WebRtcClientTestBase::TearDown()
 {
     DLOGI("\nTearing down test: %s\n", GetTestName());
+
+    deinitKvsWebRtc();
 
     freeStaticCredentialProvider(&mTestCredentialProvider);
 
