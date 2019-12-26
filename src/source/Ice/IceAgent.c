@@ -835,6 +835,10 @@ CleanUp:
 
     CHK_LOG_ERR_NV(retStatus);
 
+    if (STATUS_FAILED(retStatus)) {
+        iceAgentFatalError(pIceAgent, retStatus);
+    }
+
     if (locked) {
         MUTEX_UNLOCK(pIceAgent->lock);
     }
@@ -906,6 +910,10 @@ CleanUp:
 
     if (pStunRequest != NULL) {
         freeStunPacket(&pStunRequest);
+    }
+
+    if (STATUS_FAILED(retStatus)) {
+        iceAgentFatalError(pIceAgent, retStatus);
     }
 
     if (locked) {
@@ -1009,6 +1017,10 @@ CleanUp:
         freeStunPacket(&pStunBindingRequest);
     }
 
+    if (STATUS_FAILED(retStatus)) {
+        iceAgentFatalError(pIceAgent, retStatus);
+    }
+
     if (locked) {
         MUTEX_UNLOCK(pIceAgent->lock);
     }
@@ -1076,6 +1088,10 @@ CleanUp:
         freeStunPacket(&pStunKeepAlive);
     }
 
+    if (STATUS_FAILED(retStatus)) {
+        iceAgentFatalError(pIceAgent, retStatus);
+    }
+
     if (locked) {
         MUTEX_UNLOCK(pIceAgent->lock);
     }
@@ -1137,6 +1153,10 @@ CleanUp:
         freeStunPacket(&pStunBindingRequest);
     }
 
+    if (STATUS_FAILED(retStatus)) {
+        iceAgentFatalError(pIceAgent, retStatus);
+    }
+
     if (locked) {
         MUTEX_UNLOCK(pIceAgent->lock);
     }
@@ -1159,6 +1179,10 @@ STATUS iceAgentStateReadyTimerCallback(UINT32 timerId, UINT64 currentTime, UINT6
 CleanUp:
 
     CHK_LOG_ERR_NV(retStatus);
+
+    if (STATUS_FAILED(retStatus)) {
+        iceAgentFatalError(pIceAgent, retStatus);
+    }
 
     return retStatus;
 }
@@ -1527,6 +1551,20 @@ CleanUp:
     if (STATUS_FAILED(retStatus) && freeIceCandidateOnError) {
         MEMFREE(pIceCandidate);
     }
+
+    return retStatus;
+}
+
+STATUS iceAgentFatalError(PIceAgent pIceAgent, STATUS errorStatus)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    CHK(pIceAgent != NULL, STATUS_NULL_ARG);
+
+    MUTEX_LOCK(pIceAgent->lock);
+    pIceAgent->iceAgentStatus = errorStatus;
+    MUTEX_UNLOCK(pIceAgent->lock);
+
+CleanUp:
 
     return retStatus;
 }

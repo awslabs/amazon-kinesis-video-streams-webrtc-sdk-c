@@ -115,7 +115,7 @@ struct __TurnConnection {
 
     MUTEX lock;
 
-    TURN_CONNECTION_STATE state;
+    volatile TURN_CONNECTION_STATE state;
 
     UINT64 stateTimeoutTime;
 
@@ -180,7 +180,7 @@ STATUS turnConnectionIncomingDataHandler(UINT64, PSocketConnection, PBYTE, UINT3
 
 STATUS turnConnectionHandleStun(PTurnConnection, PSocketConnection, PBYTE, UINT32);
 STATUS turnConnectionHandleStunError(PTurnConnection, PSocketConnection, PBYTE, UINT32);
-STATUS turnConnectionHandleChannelDataTcpMode(PTurnConnection, PSocketConnection, PBYTE, UINT32);
+STATUS turnConnectionHandleChannelDataTcpMode(PTurnConnection, PBYTE, UINT32);
 
 #ifdef  __cplusplus
 }

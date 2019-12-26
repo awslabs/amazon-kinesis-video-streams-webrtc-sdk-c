@@ -150,7 +150,7 @@ STATUS turnConnectionIncomingDataHandler(UINT64 customData, PSocketConnection pS
                                                     pBuffer,
                                                     bufferLen));
     } else {
-        CHK_STATUS(turnConnectionHandleChannelDataTcpMode(pTurnConnection, pSocketConnection, pBuffer, bufferLen));
+        CHK_STATUS(turnConnectionHandleChannelDataTcpMode(pTurnConnection, pBuffer, bufferLen));
     }
 
 CleanUp:
@@ -380,15 +380,14 @@ CleanUp:
     return retStatus;
 }
 
-STATUS turnConnectionHandleChannelDataTcpMode(PTurnConnection pTurnConnection, PSocketConnection pSocketConnection,
-                                              PBYTE pBuffer, UINT32 bufferLen)
+STATUS turnConnectionHandleChannelDataTcpMode(PTurnConnection pTurnConnection, PBYTE pBuffer, UINT32 bufferLen)
 {
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 bytesToCopy = 0, remainingMsgSize = 0, paddedDataLen = 0, remainingBufLen = 0;
     PBYTE pCurPos = NULL;
     UINT32 i = 0;
 
-    CHK(pTurnConnection != NULL && pSocketConnection != NULL, STATUS_NULL_ARG);
+    CHK(pTurnConnection != NULL, STATUS_NULL_ARG);
     CHK(pBuffer != NULL && bufferLen > 0, STATUS_INVALID_ARG);
 
     pCurPos = pBuffer;

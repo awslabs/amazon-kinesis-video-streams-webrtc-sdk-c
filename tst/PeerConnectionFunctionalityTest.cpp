@@ -81,7 +81,7 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersForcedTURN)
     configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_RELAY;
 
     initializeSignalingClient();
-    EXPECT_EQ(signalingClientGetIceConfigInfoCout(mSignalingClientHandle, &iceConfigCount), STATUS_SUCCESS);
+    EXPECT_EQ(signalingClientGetIceConfigInfoCount(mSignalingClientHandle, &iceConfigCount), STATUS_SUCCESS);
 
     for (uriCount = 0, i = 0; i < iceConfigCount; i++) {
         EXPECT_EQ(signalingClientGetIceConfigInfo(mSignalingClientHandle, i, &pIceConfigInfo), STATUS_SUCCESS);
