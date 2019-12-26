@@ -32,6 +32,21 @@ INT32 lwsHttpCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
 
     DLOGV("HTTPS callback with reason %d", reason);
 
+    // Early check before accessing the custom data field to see if we are interested in processing the message
+    switch (reason) {
+        case LWS_CALLBACK_CLIENT_CONNECTION_ERROR:
+        case LWS_CALLBACK_CLOSED_CLIENT_HTTP:
+        case LWS_CALLBACK_ESTABLISHED_CLIENT_HTTP:
+        case LWS_CALLBACK_RECEIVE_CLIENT_HTTP_READ:
+        case LWS_CALLBACK_RECEIVE_CLIENT_HTTP:
+        case LWS_CALLBACK_COMPLETED_CLIENT_HTTP:
+        case LWS_CALLBACK_CLIENT_APPEND_HANDSHAKE_HEADER:
+        case LWS_CALLBACK_CLIENT_HTTP_WRITEABLE:
+            break;
+        default:
+            CHK(FALSE, retStatus);
+    }
+
     customData = lws_get_opaque_user_data(wsi);
     pLwsCallInfo = (PLwsCallInfo) customData;
 
@@ -42,6 +57,13 @@ INT32 lwsHttpCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
         pLwsCallInfo->pSignalingClient->pLwsContext != NULL &&
         pLwsCallInfo->callInfo.pRequestInfo != NULL &&
         pLwsCallInfo->protocolIndex == PROTOCOL_INDEX_HTTPS, retStatus);
+
+    // Quick check whether we need to exit
+    if(ATOMIC_LOAD(&pLwsCallInfo->cancelService)) {
+        retValue = 1;
+        ATOMIC_STORE_BOOL(&pRequestInfo->terminating, TRUE);
+        CHK(FALSE, retStatus);
+    }
 
     pSignalingClient = pLwsCallInfo->pSignalingClient;
     pRequestInfo = pLwsCallInfo->callInfo.pRequestInfo;
@@ -251,20 +273,40 @@ INT32 lwsWssCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
 
     DLOGV("WSS callback with reason %d", reason);
 
+    // Early check before accessing custom field to see if we are interested in the message
+    switch (reason) {
+        case LWS_CALLBACK_CLIENT_CONNECTION_ERROR:
+        case LWS_CALLBACK_CLIENT_ESTABLISHED:
+        case LWS_CALLBACK_CLIENT_CLOSED:
+        case LWS_CALLBACK_WS_PEER_INITIATED_CLOSE:
+        case LWS_CALLBACK_CLIENT_RECEIVE:
+        case LWS_CALLBACK_CLIENT_WRITEABLE:
+            break;
+        default:
+            CHK(FALSE, retStatus);
+    }
+
     customData = lws_get_opaque_user_data(wsi);
     pLwsCallInfo = (PLwsCallInfo) customData;
 
     lws_set_log_level(LLL_NOTICE | LLL_INFO | LLL_WARN | LLL_ERR, NULL);
 
-    CHK(pLwsCallInfo != NULL && pLwsCallInfo->pSignalingClient != NULL, retStatus);
-    pSignalingClient = pLwsCallInfo->pSignalingClient;
-    CHK(pSignalingClient != NULL &&
-        pSignalingClient->pOngoingCallInfo != NULL &&
-        pSignalingClient->pLwsContext != NULL &&
-        pSignalingClient->pOngoingCallInfo->callInfo.pRequestInfo != NULL &&
+    CHK(pLwsCallInfo != NULL &&
+        pLwsCallInfo->pSignalingClient != NULL &&
+        pLwsCallInfo->pSignalingClient->pOngoingCallInfo != NULL &&
+        pLwsCallInfo->pSignalingClient->pLwsContext != NULL &&
+        pLwsCallInfo->pSignalingClient->pOngoingCallInfo->callInfo.pRequestInfo != NULL &&
         pLwsCallInfo->protocolIndex == PROTOCOL_INDEX_WSS, retStatus);
+    pSignalingClient = pLwsCallInfo->pSignalingClient;
     pLwsCallInfo = pSignalingClient->pOngoingCallInfo;
     pRequestInfo = pLwsCallInfo->callInfo.pRequestInfo;
+
+    // Quick check whether we need to exit
+    if(ATOMIC_LOAD(&pLwsCallInfo->cancelService)) {
+        retValue = 1;
+        ATOMIC_STORE_BOOL(&pRequestInfo->terminating, TRUE);
+        CHK(FALSE, retStatus);
+    }
 
     MUTEX_LOCK(pSignalingClient->lwsServiceLock);
     locked = TRUE;
@@ -462,7 +504,6 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
     struct lws_context* pContext;
     BOOL secureConnection;
     CHAR path[MAX_URI_CHAR_LEN + 1];
-    PVOID pCustomData;
 
     CHK(pCallInfo != NULL && pCallInfo->callInfo.pRequestInfo != NULL && pCallInfo->pSignalingClient != NULL, STATUS_NULL_ARG);
 
@@ -480,8 +521,6 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
 
         // Remove the headers
         CHK_STATUS(removeRequestHeaders(pCallInfo->callInfo.pRequestInfo));
-
-        pCustomData = pCallInfo;
     } else {
         pVerb = HTTP_REQUEST_VERB_POST_STRING;
 
@@ -490,8 +529,6 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
 
         // Remove the header as it will be added back by LWS
         CHK_STATUS(removeRequestHeader(pCallInfo->callInfo.pRequestInfo, AWS_SIG_V4_HEADER_HOST));
-
-        pCustomData = pCallInfo;
     }
 
     pContext = pCallInfo->pSignalingClient->pLwsContext;
@@ -529,7 +566,7 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
     connectInfo.protocol = pCallInfo->pSignalingClient->signalingProtocols[pCallInfo->protocolIndex].name;
     connectInfo.pwsi = &clientLws;
 
-    connectInfo.opaque_user_data = pCustomData;
+    connectInfo.opaque_user_data = pCallInfo;
 
     CHK(NULL != lws_client_connect_via_info(&connectInfo), STATUS_SIGNALING_LWS_CLIENT_CONNECT_FAILED);
 
@@ -1204,6 +1241,7 @@ STATUS connectSignalingChannelLws(PSignalingClient pSignalingClient, UINT64 time
     PLwsCallInfo pLwsCallInfo = NULL;
     BOOL locked = FALSE;
     SERVICE_CALL_RESULT callResult = SERVICE_CALL_RESULT_NOT_SET;
+    UINT64 timeout;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     CHK(pSignalingClient->channelEndpointWss[0] != '\0', STATUS_INTERNAL_ERROR);
@@ -1256,11 +1294,13 @@ STATUS connectSignalingChannelLws(PSignalingClient pSignalingClient, UINT64 time
     CHK_STATUS(THREAD_CREATE(&pSignalingClient->listenerTracker.threadId, lwsListenerHandler, (PVOID) pLwsCallInfo));
     CHK_STATUS(THREAD_DETACH(pSignalingClient->listenerTracker.threadId));
 
+    timeout = (pSignalingClient->clientInfo.connectTimeout != 0) ? pSignalingClient->clientInfo.connectTimeout : SIGNALING_CONNECT_TIMEOUT;
+
     // Wait for ready
     while ((callResult = (SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result)) == SERVICE_CALL_RESULT_NOT_SET) {
         CHK_STATUS(CVAR_WAIT(pSignalingClient->connectedCvar,
                              pSignalingClient->connectedLock,
-                             SIGNALING_CONNECT_TIMEOUT));
+                             timeout));
     }
 
     // Check whether we are connected and reset the result
@@ -1280,7 +1320,6 @@ CleanUp:
         if (!ATOMIC_LOAD_BOOL(&pSignalingClient->listenerTracker.terminated) &&
             pSignalingClient->pOngoingCallInfo != NULL &&
             pSignalingClient->pOngoingCallInfo->callInfo.pRequestInfo != NULL) {
-            ATOMIC_STORE_BOOL(&pLwsCallInfo->callInfo.pRequestInfo->terminating, TRUE);
             terminateConnectionWithStatus(pSignalingClient, SERVICE_CALL_UNKNOWN);
         }
 
@@ -1761,6 +1800,10 @@ STATUS terminateConnectionWithStatus(PSignalingClient pSignalingClient, SERVICE_
     CVAR_BROADCAST(pSignalingClient->sendCvar);
     ATOMIC_STORE(&pSignalingClient->messageResult, (SIZE_T) SERVICE_CALL_UNKNOWN);
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) callResult);
+
+    if (pSignalingClient->pOngoingCallInfo != NULL) {
+        ATOMIC_STORE_BOOL(&pSignalingClient->pOngoingCallInfo->cancelService, TRUE);
+    }
 
     if (pSignalingClient->pLwsContext != NULL) {
         MUTEX_LOCK(pSignalingClient->lwsServiceLock);

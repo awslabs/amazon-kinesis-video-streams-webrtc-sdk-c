@@ -733,13 +733,15 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulation)
     SignalingClientCallbacks signalingClientCallbacks;
     SignalingClientInfoInternal clientInfoInternal;
     PSignalingClient pSignalingClient;
-    SIGNALING_CLIENT_HANDLE signalingHandle = INVALID_SIGNALING_CLIENT_HANDLE_VALUE;
+    SIGNALING_CLIENT_HANDLE signalingHandle;
 
     signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
     signalingClientCallbacks.customData = (UINT64) this;
     signalingClientCallbacks.messageReceivedFn = NULL;
     signalingClientCallbacks.errorReportFn = NULL;
     signalingClientCallbacks.stateChangeFn = signalingClientStateChanged;
+
+    MEMSET(&clientInfoInternal, 0x00, SIZEOF(SignalingClientInfoInternal));
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
@@ -988,6 +990,103 @@ TEST_F(SignalingApiFunctionalityTest, unknownMessageTypeEmulation)
 
     // Sleep to allow the background thread to send a message on receive
     THREAD_SLEEP(1 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+
+    // Check that we are connected and can send a message
+    SignalingMessage signalingMessage;
+    signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
+    signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
+    STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    MEMSET(signalingMessage.payload, 'A', 100);
+    signalingMessage.payload[100] = '\0';
+    signalingMessage.payloadLen = 0;
+    signalingMessage.correlationId[0] = '\0';
+
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(signalingHandle, &signalingMessage));
+
+    deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
+
+    EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+}
+
+TEST_F(SignalingApiFunctionalityTest, connectTimeoutEmulation)
+{
+    if (!mAccessKeyIdSet) {
+        return;
+    }
+
+    ChannelInfo channelInfo;
+    SignalingClientCallbacks signalingClientCallbacks;
+    SignalingClientInfoInternal clientInfoInternal;
+    PSignalingClient pSignalingClient;
+    SIGNALING_CLIENT_HANDLE signalingHandle;
+
+    signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
+    signalingClientCallbacks.customData = (UINT64) this;
+    signalingClientCallbacks.messageReceivedFn = NULL;
+    signalingClientCallbacks.errorReportFn = NULL;
+    signalingClientCallbacks.stateChangeFn = signalingClientStateChanged;
+
+    MEMSET(&clientInfoInternal, 0x00, SIZEOF(SignalingClientInfoInternal));
+
+    clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
+    clientInfoInternal.signalingClientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
+    STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    clientInfoInternal.iceRefreshPeriod = 0;
+    clientInfoInternal.connectTimeout = 5 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+
+    MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
+    channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
+    channelInfo.pChannelName = mChannelName;
+    channelInfo.pKmsKeyId = NULL;
+    channelInfo.tagCount = 0;
+    channelInfo.pTags = NULL;
+    channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
+    channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
+    channelInfo.cachingEndpoint = FALSE;
+    channelInfo.retry = TRUE;
+    channelInfo.reconnect = TRUE;
+    channelInfo.pCertPath = mCaCertPath;
+    channelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
+
+    EXPECT_EQ(STATUS_SUCCESS, createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks,
+                                                  (PAwsCredentialProvider) mTestCredentialProvider, &pSignalingClient));
+    signalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
+    EXPECT_TRUE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
+
+    pActiveClient = pSignalingClient;
+
+    // Check the states first
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
+
+    // Connect to the signaling client - should time out
+    EXPECT_EQ(STATUS_OPERATION_TIMED_OUT, signalingClientConnectSync(signalingHandle));
+
+    // Check the states
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
+    EXPECT_LT(3, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
+    EXPECT_LT(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
+    EXPECT_LT(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_LT(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_LT(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
+
+    // Connect to the signaling client - should connect OK
+    pSignalingClient->clientInfo.connectTimeout = 0;
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
+
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
 
     // Check that we are connected and can send a message
     SignalingMessage signalingMessage;

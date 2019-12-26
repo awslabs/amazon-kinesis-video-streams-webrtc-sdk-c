@@ -136,6 +136,9 @@ struct __LwsCallInfo {
     // Offset from which to send data
     volatile SIZE_T sendOffset;
 
+    // Service exit indicator;
+    volatile ATOMIC_BOOL cancelService;
+
     // Protocol index
     UINT32 protocolIndex;
 
