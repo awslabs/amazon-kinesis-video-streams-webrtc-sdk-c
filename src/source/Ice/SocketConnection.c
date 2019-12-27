@@ -60,14 +60,6 @@ STATUS freeSocketConnection(PSocketConnection* ppSocketConnection)
         MUTEX_FREE(pSocketConnection->lock);
     }
 
-    if (pSocketConnection->pCert != NULL) {
-        X509_free(pSocketConnection->pCert);
-    }
-
-    if (pSocketConnection->pKey != NULL) {
-        EVP_PKEY_free(pSocketConnection->pKey);
-    }
-
     if (pSocketConnection->pSslCtx != NULL) {
         SSL_CTX_free(pSocketConnection->pSslCtx);
     }
@@ -103,16 +95,13 @@ STATUS socketConnectionInitSecureConnection(PSocketConnection pSocketConnection,
 
     CHK(pSocketConnection != NULL, STATUS_NULL_ARG);
 
-    CHK_STATUS(createConnectionCertificateAndKey(&(pSocketConnection->pCert), &(pSocketConnection->pKey)));
     pSocketConnection->pSslCtx = SSL_CTX_new(SSLv23_method());
 
     CHK(pSocketConnection->pSslCtx != NULL, STATUS_SSL_CTX_CREATION_FAILED);
 
     SSL_CTX_set_read_ahead(pSocketConnection->pSslCtx, 1);
     SSL_CTX_set_verify(pSocketConnection->pSslCtx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, certificateVerifyCallback);
-    CHK(SSL_CTX_use_certificate(pSocketConnection->pSslCtx, pSocketConnection->pCert), STATUS_SSL_CTX_CREATION_FAILED);
 
-    CHK(SSL_CTX_use_PrivateKey(pSocketConnection->pSslCtx, pSocketConnection->pKey) || SSL_CTX_check_private_key(pSocketConnection->pSslCtx), STATUS_SSL_CTX_CREATION_FAILED);
     CHK(SSL_CTX_set_cipher_list(pSocketConnection->pSslCtx, "HIGH:!aNULL:!MD5:!RC4"), STATUS_SSL_CTX_CREATION_FAILED);
 
     pSocketConnection->pSsl = SSL_new(pSocketConnection->pSslCtx);
@@ -291,57 +280,6 @@ CleanUp:
     return retStatus;
 }
 
-STATUS createConnectionCertificateAndKey(X509 **ppCert, EVP_PKEY **ppPkey)
-{
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-    BIGNUM *pBne = NULL;
-    RSA *pRsa = NULL;
-    X509_NAME *pX509Name = NULL;
-
-    CHK(ppCert != NULL && ppPkey != NULL, STATUS_NULL_ARG);
-
-    CHK((pBne = BN_new()) != NULL, STATUS_CERTIFICATE_GENERATION_FAILED);
-    CHK(BN_set_word(pBne, RSA_F4) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);
-
-    CHK((*ppPkey = EVP_PKEY_new()) != NULL, STATUS_CERTIFICATE_GENERATION_FAILED);
-
-    CHK((pRsa = RSA_new()) != NULL, STATUS_CERTIFICATE_GENERATION_FAILED);
-    CHK(RSA_generate_key_ex(pRsa, GENERATED_CERTIFICATE_BITS, pBne, NULL) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);
-    CHK((EVP_PKEY_assign_RSA(*ppPkey, pRsa)) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);
-    pRsa = NULL;
-
-    CHK((*ppCert = X509_new()), STATUS_CERTIFICATE_GENERATION_FAILED);
-    X509_set_version(*ppCert, 2);
-    ASN1_INTEGER_set(X509_get_serialNumber(*ppCert), GENERATED_CERTIFICATE_SERIAL);
-    X509_gmtime_adj(X509_get_notBefore(*ppCert), -1 * GENERATED_CERTIFICATE_DAYS);
-    X509_gmtime_adj(X509_get_notAfter(*ppCert), GENERATED_CERTIFICATE_DAYS);
-    CHK((X509_set_pubkey(*ppCert, *ppPkey) != 0), STATUS_CERTIFICATE_GENERATION_FAILED);
-
-    CHK((pX509Name = X509_get_subject_name(*ppCert)) != NULL, STATUS_CERTIFICATE_GENERATION_FAILED);
-    X509_NAME_add_entry_by_txt(pX509Name, "O", MBSTRING_ASC, GENERATED_CERTIFICATE_NAME, -1, -1, 0);
-    X509_NAME_add_entry_by_txt(pX509Name, "CN", MBSTRING_ASC, GENERATED_CERTIFICATE_NAME, -1, -1, 0);
-
-    CHK(X509_set_issuer_name(*ppCert, pX509Name) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);
-    CHK(X509_sign(*ppCert, *ppPkey, EVP_sha1()) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);
-
-CleanUp:
-    if (pBne != NULL) {
-        BN_free(pBne);
-    }
-
-    if (STATUS_FAILED(retStatus)) {
-        if (pRsa != NULL) {
-            RSA_free(pRsa);
-        }
-        freeCertificateAndKey(ppCert, ppPkey);
-    }
-
-    LEAVES();
-    return retStatus;
-}
-
-// Allow all certificates since they are checked via fingerprint in SDP later
 // https://www.openssl.org/docs/man1.0.2/man3/SSL_CTX_set_verify.html
 INT32 certificateVerifyCallback(INT32 preverify_ok, X509_STORE_CTX *ctx)
 {
