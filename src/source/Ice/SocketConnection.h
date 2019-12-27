@@ -22,8 +22,6 @@ struct __SocketConnection {
     SSL_CTX *pSslCtx;
     BIO *pReadBio;
     BIO *pWriteBio;
-    X509 *pCert;
-    EVP_PKEY *pKey;
     SSL *pSsl;
 
     MUTEX lock;
