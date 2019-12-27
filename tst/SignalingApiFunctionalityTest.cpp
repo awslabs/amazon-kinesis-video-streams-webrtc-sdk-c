@@ -1032,7 +1032,7 @@ TEST_F(SignalingApiFunctionalityTest, connectTimeoutEmulation)
     clientInfoInternal.signalingClientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfoInternal.iceRefreshPeriod = 0;
-    clientInfoInternal.connectTimeout = 5 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+    clientInfoInternal.connectTimeout = 1 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
