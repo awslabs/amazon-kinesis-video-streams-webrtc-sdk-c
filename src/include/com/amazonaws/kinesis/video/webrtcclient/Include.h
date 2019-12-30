@@ -609,6 +609,11 @@ typedef struct {
     // A smaller MTU will incur higher bandwidth usage however since more packets will be generated with smaller payloads
     // If unset DEFAULT_MTU_SIZE will be used
     UINT16 maximumTransmissionUnit;
+
+    // generatedCertificateBits controls the amount of bits the locally generated self-signed certificate uses
+    // A smaller amount of bits may result in less CPU usage on startup, but will cause a weaker certificate to be generated
+    // If unset GENERATED_CERTIFICATE_BITS will be used
+    INT32 generatedCertificateBits;
 } KvsRtcConfiguration, *PKvsRtcConfiguration;
 
 /**
