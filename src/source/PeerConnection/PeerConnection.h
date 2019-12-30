@@ -88,6 +88,7 @@ typedef struct {
     RtcOnConnectionStateChange onConnectionStateChange;
     RTC_PEER_CONNECTION_STATE previousConnectionState;
 
+    UINT16 MTU;
 } KvsPeerConnection, *PKvsPeerConnection;
 
 STATUS onFrameReadyFunc(UINT64, UINT16, UINT16, UINT32);

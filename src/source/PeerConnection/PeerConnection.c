@@ -441,6 +441,7 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
     pKvsPeerConnection->pSrtpSessionLock = MUTEX_CREATE(TRUE);
     pKvsPeerConnection->peerConnectionObjLock = MUTEX_CREATE(FALSE);
     pKvsPeerConnection->previousConnectionState = RTC_PEER_CONNECTION_STATE_NONE;
+    pKvsPeerConnection->MTU = pConfiguration->kvsRtcConfiguration.maximumTransmissionUnit == 0 ? DEFAULT_MTU_SIZE : pConfiguration->kvsRtcConfiguration.maximumTransmissionUnit;
 
     iceAgentCallbacks.customData = (UINT64) pKvsPeerConnection;
     iceAgentCallbacks.inboundPacketFn = onInboundPacket;
