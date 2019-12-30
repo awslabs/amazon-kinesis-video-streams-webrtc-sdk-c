@@ -139,7 +139,7 @@ CleanUp:
 STATUS socketConnectionSendData(PSocketConnection pSocketConnection, PBYTE pBuf, UINT32 bufLen, PKvsIpAddress pDestIp)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    BOOL locked = FALSE;
+    BOOL locked = FALSE, socketReady;
     INT32 sslRet;
 
     socklen_t addrLen;
@@ -150,16 +150,17 @@ STATUS socketConnectionSendData(PSocketConnection pSocketConnection, PBYTE pBuf,
     CHK(pSocketConnection != NULL && pBuf != NULL, STATUS_NULL_ARG);
     CHK(bufLen != 0 && (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_TCP || pDestIp != NULL), STATUS_INVALID_ARG);
     CHK(!pSocketConnection->connectionClosed, STATUS_SOCKET_CONNECTION_CLOSED_ALREADY);
+    CHK_STATUS(socketConnectionReadyToSend(pSocketConnection, &socketReady));
+    CHK_WARN(socketReady, STATUS_SOCKET_CONNECTION_NOT_READY_TO_SEND, "Socket connection not ready to send data");
 
     MUTEX_LOCK(pSocketConnection->lock);
     locked = TRUE;
 
     if (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_TCP && pSocketConnection->secureConnection) {
-        CHK_WARN(SSL_is_init_finished(pSocketConnection->pSsl), STATUS_SECURE_SOCKET_CONNECTION_NOT_READY, "Secure connection not established yet");
-
         // underlying BIO has been bound to socket so SSL_write sends the encrypted data.
         sslRet = SSL_write(pSocketConnection->pSsl, pBuf, bufLen);
         CHK_WARN(sslRet > 0, retStatus, "%s", ERR_error_string(SSL_get_error(pSocketConnection->pSsl, sslRet), NULL));
+
     } else if (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_TCP) {
         if (send(pSocketConnection->localSocket, pBuf, bufLen, 0) < 0) {
             DLOGE("send data failed with errno %s", strerror(errno));

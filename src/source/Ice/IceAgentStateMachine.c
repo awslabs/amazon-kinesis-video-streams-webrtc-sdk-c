@@ -265,7 +265,7 @@ STATUS fromGatheringIceAgentState(UINT64 customData, PUINT64 pState)
         }
     }
 
-    CHK(validLocalCandidateCount > 0, STATUS_ICE_NO_LOCAL_CANDIDATE_AVAILABLE);
+    CHK(validLocalCandidateCount > 0, STATUS_ICE_NO_LOCAL_CANDIDATE_AVAILABLE_AFTER_GATHERING_TIMEOUT);
 
     // proceed to next state since since we have at least one local candidate
     state = ICE_AGENT_STATE_CHECK_CONNECTION;
@@ -405,6 +405,15 @@ CleanUp:
 
     CHK_LOG_ERR_NV(retStatus);
 
+    if (STATUS_FAILED(retStatus)) {
+        pIceAgent->iceAgentStatus = retStatus;
+        // step into failed state
+        stepStateMachine(pIceAgent->pStateMachine);
+
+        // fix up retStatus so we can successfully transition to failed state.
+        retStatus = STATUS_SUCCESS;
+    }
+
     if (pNewCandidate != NULL) {
         SAFE_MEMFREE(pNewCandidate);
     }
@@ -523,6 +532,15 @@ STATUS executeCheckConnectionIceAgentState(UINT64 customData, UINT64 time)
 
 CleanUp:
 
+    if (STATUS_FAILED(retStatus)) {
+        pIceAgent->iceAgentStatus = retStatus;
+        // step into failed state
+        stepStateMachine(pIceAgent->pStateMachine);
+
+        // fix up retStatus so we can successfully transition to failed state.
+        retStatus = STATUS_SUCCESS;
+    }
+
     LEAVES();
     return retStatus;
 }
@@ -618,6 +636,15 @@ STATUS executeConnectedIceAgentState(UINT64 customData, UINT64 time)
     pIceAgent->iceAgentState = ICE_AGENT_STATE_CONNECTED;
 
 CleanUp:
+
+    if (STATUS_FAILED(retStatus)) {
+        pIceAgent->iceAgentStatus = retStatus;
+        // step into failed state
+        stepStateMachine(pIceAgent->pStateMachine);
+
+        // fix up retStatus so we can successfully transition to failed state.
+        retStatus = STATUS_SUCCESS;
+    }
 
     LEAVES();
     return retStatus;
@@ -716,6 +743,15 @@ STATUS executeNominatingIceAgentState(UINT64 customData, UINT64 time)
 
 CleanUp:
 
+    if (STATUS_FAILED(retStatus)) {
+        pIceAgent->iceAgentStatus = retStatus;
+        // step into failed state
+        stepStateMachine(pIceAgent->pStateMachine);
+
+        // fix up retStatus so we can successfully transition to failed state.
+        retStatus = STATUS_SUCCESS;
+    }
+
     LEAVES();
     return retStatus;
 }
@@ -801,6 +837,15 @@ STATUS executeReadyIceAgentState(UINT64 customData, UINT64 time)
 
 CleanUp:
 
+    if (STATUS_FAILED(retStatus)) {
+        pIceAgent->iceAgentStatus = retStatus;
+        // step into failed state
+        stepStateMachine(pIceAgent->pStateMachine);
+
+        // fix up retStatus so we can successfully transition to failed state.
+        retStatus = STATUS_SUCCESS;
+    }
+
     LEAVES();
     return retStatus;
 }
@@ -862,6 +907,15 @@ STATUS executeDisconnectedIceAgentState(UINT64 customData, UINT64 time)
 
 CleanUp:
 
+    if (STATUS_FAILED(retStatus)) {
+        pIceAgent->iceAgentStatus = retStatus;
+        // step into failed state
+        stepStateMachine(pIceAgent->pStateMachine);
+
+        // fix up retStatus so we can successfully transition to failed state.
+        retStatus = STATUS_SUCCESS;
+    }
+
     LEAVES();
     return retStatus;
 }
@@ -871,12 +925,11 @@ STATUS fromFailedIceAgentState(UINT64 customData, PUINT64 pState)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
-    UINT64 state;
 
     CHK(pIceAgent != NULL && pState != NULL, STATUS_NULL_ARG);
 
-    state = ICE_AGENT_STATE_FAILED;
-    *pState = state;
+    // FAILED state is terminal.
+    *pState = ICE_AGENT_STATE_FAILED;
 
 CleanUp:
 
@@ -890,14 +943,17 @@ STATUS executeFailedIceAgentState(UINT64 customData, UINT64 time)
     UNUSED_PARAM(time);
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
+    const PCHAR errMsgPrefix = (PCHAR) "IceAgent fatal error:";
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
     CHK(pIceAgent->iceAgentState != ICE_AGENT_STATE_FAILED, retStatus);
 
     pIceAgent->iceAgentState = ICE_AGENT_STATE_FAILED;
+
+    // log some debug info about the failure once.
     switch (pIceAgent->iceAgentStatus) {
         case STATUS_ICE_NO_AVAILABLE_ICE_CANDIDATE_PAIR:
-            DLOGE("IceAgent fatal error. No ice candidate pairs available to make connection.");
+            DLOGE("%s No ice candidate pairs available to make connection.", errMsgPrefix);
             break;
         default:
             DLOGE("IceAgent failed with 0x%08x", pIceAgent->iceAgentStatus);
