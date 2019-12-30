@@ -597,6 +597,21 @@ typedef struct {
 } RtcIceServer, *PRtcIceServer;
 
 /**
+ *  KvsRtcConfiguration is a collection of non-standard extensions to RTCConfiguration
+ *  these exist to serve use cases that currently aren't being served by the W3C standard
+ *
+ *  These options will be removed/modified as the WebRTC standard changes, and exist to unblock
+ *  issues that we have today.
+ */
+typedef struct {
+    // maximumTransmissionUnit (MTU) controls the size of the largest packet the WebRTC SDK will send
+    // Some networks may drop packets if they exceed a certain size, and is useful in those conditions.
+    // A smaller MTU will incur higher bandwidth usage however since more packets will be generated with smaller payloads
+    // If unset DEFAULT_MTU_SIZE will be used
+    UINT16 maximumTransmissionUnit;
+} KvsRtcConfiguration, *PKvsRtcConfiguration;
+
+/**
  *  The Configuration defines a set of parameters to configure how the peer-to-peer
  *  communication established via RtcPeerConnection is established or re-established.
  *  https://www.w3.org/TR/webrtc/#rtcconfiguration-dictionary
@@ -605,7 +620,11 @@ typedef struct {
     // Indicates which candidates the ICE Agent is allowed to use.
     ICE_TRANSPORT_POLICY iceTransportPolicy;
 
+    // servers available to be used by ICE, such as STUN and TURN servers.
     RtcIceServer iceServers[MAX_ICE_SERVERS_COUNT];
+
+    // non-standard configuration options
+    KvsRtcConfiguration kvsRtcConfiguration;
 } RtcConfiguration, *PRtcConfiguration;
 
 /*
