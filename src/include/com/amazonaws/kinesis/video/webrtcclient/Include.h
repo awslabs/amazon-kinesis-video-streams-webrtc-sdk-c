@@ -97,7 +97,7 @@ extern "C" {
 #define STATUS_CREATE_SSL_FAILED                                                    STATUS_NETWORKING_BASE + 0x0000001e
 #define STATUS_SSL_CONNECTION_FAILED                                                STATUS_NETWORKING_BASE + 0x0000001f
 #define STATUS_SECURE_SOCKET_READ_FAILED                                            STATUS_NETWORKING_BASE + 0x00000020
-#define STATUS_SECURE_SOCKET_CONNECTION_NOT_READY                                   STATUS_NETWORKING_BASE + 0x00000021
+#define STATUS_SOCKET_CONNECTION_NOT_READY_TO_SEND                                  STATUS_NETWORKING_BASE + 0x00000021
 #define STATUS_SOCKET_CONNECTION_CLOSED_ALREADY                                     STATUS_NETWORKING_BASE + 0x00000022
 
 //
@@ -124,7 +124,7 @@ extern "C" {
 #define STATUS_ICE_URL_TURN_MISSING_USERNAME                                        STATUS_ICE_BASE  + 0x00000008
 #define STATUS_ICE_URL_TURN_MISSING_CREDENTIAL                                      STATUS_ICE_BASE  + 0x00000009
 #define STATUS_ICE_AGENT_STATE_CHANGE_FAILED                                        STATUS_ICE_BASE  + 0x0000000a
-#define STATUS_ICE_NO_LOCAL_CANDIDATE_AVAILABLE                                     STATUS_ICE_BASE  + 0x0000000b
+#define STATUS_ICE_NO_LOCAL_CANDIDATE_AVAILABLE_AFTER_GATHERING_TIMEOUT             STATUS_ICE_BASE  + 0x0000000b
 #define STATUS_ICE_AGENT_TERMINATED_ALREADY                                         STATUS_ICE_BASE  + 0x0000000c
 #define STATUS_ICE_NO_CONNECTED_CANDIDATE_PAIR                                      STATUS_ICE_BASE  + 0x0000000d
 #define STATUS_ICE_CANDIDATE_PAIR_LIST_EMPTY                                        STATUS_ICE_BASE  + 0x0000000e

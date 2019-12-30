@@ -2,7 +2,8 @@
 
 #include "../Include_i.h"
 
-STATUS setRtcpPacketFromBytes(PBYTE pRawPacket, UINT32 pRawPacketsLen, PRtcpPacket pRtcpPacket) {
+STATUS setRtcpPacketFromBytes(PBYTE pRawPacket, UINT32 pRawPacketsLen, PRtcpPacket pRtcpPacket)
+{
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT16 packetLen = 0;
@@ -14,7 +15,7 @@ STATUS setRtcpPacketFromBytes(PBYTE pRawPacket, UINT32 pRawPacketsLen, PRtcpPack
     // We don't assert exact length since this may be a compound packet, it
     // is the callers responsibility to parse subsequent entries
     packetLen = getInt16(*(PUINT16) (pRawPacket + RTCP_PACKET_LEN_OFFSET));
-    CHK((packetLen + 1) * RTCP_PACKET_LEN_WORD_SIZE >= pRawPacketsLen, STATUS_RTCP_INPUT_PACKET_LEN_MISMATCH);
+    CHK((packetLen + 1) * RTCP_PACKET_LEN_WORD_SIZE >= pRawPacketsLen, STATUS_SUCCESS);
 
     pRtcpPacket->header.version = (pRawPacket[0] >> VERSION_SHIFT) & VERSION_MASK;
     CHK(pRtcpPacket->header.version == RTCP_PACKET_VERSION_VAL, STATUS_RTCP_INPUT_PACKET_INVALID_VERSION);
@@ -32,7 +33,8 @@ CleanUp:
 
 // Given a RTCP Packet list extract the list of SSRCes, since the list of SSRCes may not be know ahead of time (because of BLP)
 // we need to allocate the list dynamically
-STATUS rtcpNackListGet(PBYTE pPayload, UINT32 payloadLen, PUINT32 pSenderSsrc, PUINT32 pReceiverSsrc, PUINT16 pSequenceNumberList, PUINT32 pSequenceNumberListLen) {
+STATUS rtcpNackListGet(PBYTE pPayload, UINT32 payloadLen, PUINT32 pSenderSsrc, PUINT32 pReceiverSsrc, PUINT16 pSequenceNumberList, PUINT32 pSequenceNumberListLen)
+{
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     INT32 j;
