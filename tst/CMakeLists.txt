@@ -16,7 +16,7 @@ if(BP_BUILD_LIB)
 
     add_executable(${PROJECT_NAME} ${WebRTCClientTestSources})
     target_link_libraries(${PROJECT_NAME} KinesisVideoWebRTCClient ${BP_TEST_BUILD_LINK_LIBS})
-    target_link_libraries(${PROJECT_NAME} ${LIBSRTP_LIBRARIES} gtest)
+    target_link_libraries(${PROJECT_NAME} ${LIBSRTP_LIBRARIES} gtest gtest_main)
 
     add_test(${PROJECT_NAME} ${PROJECT_NAME})
 else()
