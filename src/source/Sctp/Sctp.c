@@ -257,6 +257,7 @@ INT32 onSctpInboundPacket(struct socket* sock, union sctp_sockstore addr, PVOID 
     }
 
 CleanUp:
+    SAFE_MEMFREE(data);
 
     return 1;
 }

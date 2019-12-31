@@ -66,6 +66,8 @@ STATUS freeKvsRtpTransceiver(PKvsRtpTransceiver* ppKvsRtpTransceiver)
     }
 
     SAFE_MEMFREE(pKvsRtpTransceiver->peerFrameBuffer);
+    SAFE_MEMFREE(pKvsRtpTransceiver->sender.payloadArray.payloadBuffer);
+    SAFE_MEMFREE(pKvsRtpTransceiver->sender.payloadArray.payloadSubLength);
 
     SAFE_MEMFREE(pKvsRtpTransceiver);
 
@@ -181,10 +183,10 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
 
     for (i = 0; i < pPayloadArray->payloadSubLenSize; i++) {
         pRtpPacket = pPacketList + i;
-        createBytesFromRtpPacket(pRtpPacket, &rawPacket, &packetLen);
+        CHK_STATUS(createBytesFromRtpPacket(pRtpPacket, &rawPacket, &packetLen));
         rawLen = packetLen;
 
-        rawPacket = REALLOC(rawPacket, packetLen + 10); // For SRTP authentication tag
+        rawPacket = MEMREALLOC(rawPacket, packetLen + 10); // For SRTP authentication tag
         pRtpPacket->pRawPacket = rawPacket;
         pRtpPacket->rawPacketLength = packetLen;
         if (pKvsRtpTransceiver->sender.packetBuffer != NULL) {

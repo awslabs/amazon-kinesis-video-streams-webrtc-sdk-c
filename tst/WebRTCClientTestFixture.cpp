@@ -23,21 +23,6 @@ WebRtcClientTestBase::WebRtcClientTestBase() :
     // Initialize the endianness of the library
     initializeEndianness();
 
-    // Store the function pointers
-    gTotalWebRtcClientMemoryUsage = 0;
-    mStoredMemAlloc = globalMemAlloc;
-    mStoredMemAlignAlloc = globalMemAlignAlloc;
-    mStoredMemCalloc = globalMemCalloc;
-    mStoredMemFree = globalMemFree;
-
-    // Create the mutex for the synchronization for the instrumentation
-    gTotalWebRtcClientMemoryMutex = MUTEX_CREATE(FALSE);
-
-    globalMemAlloc = instrumentedWebRtcClientMemAlloc;
-    globalMemAlignAlloc = instrumentedWebRtcClientMemAlignAlloc;
-    globalMemCalloc = instrumentedWebRtcClientMemCalloc;
-    globalMemFree = instrumentedWebRtcClientMemFree;
-
     SRAND(12345);
 
     mStreamingRotationPeriod = TEST_STREAMING_TOKEN_DURATION;
@@ -101,15 +86,6 @@ void WebRtcClientTestBase::TearDown()
     deinitKvsWebRtc();
 
     freeStaticCredentialProvider(&mTestCredentialProvider);
-
-    // Validate the allocations cleanup
-    DLOGI("Final remaining allocation size is %llu", gTotalWebRtcClientMemoryUsage);
-    EXPECT_EQ(0, gTotalWebRtcClientMemoryUsage);
-    globalMemAlloc = mStoredMemAlloc;
-    globalMemAlignAlloc = mStoredMemAlignAlloc;
-    globalMemCalloc = mStoredMemCalloc;
-    globalMemFree = mStoredMemFree;
-    MUTEX_FREE(gTotalWebRtcClientMemoryMutex);
 }
 
 VOID WebRtcClientTestBase::initializeJitterBuffer(UINT32 expectedFrameCount, UINT32 expectedDroppedFrameCount, UINT32 rtpPacketCount)

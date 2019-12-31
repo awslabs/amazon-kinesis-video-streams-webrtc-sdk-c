@@ -570,6 +570,10 @@ STATUS dtlsSessionVerifyRemoteCertificateFingerprint(PDtlsSession pDtlsSession, 
     CHK(STRCMP(pExpectedFingerprint, actualFingerprint) == 0,  STATUS_SSL_REMOTE_CERTIFICATE_VERIFICATION_FAILED);
 
 CleanUp:
+    if (pRemoteCertificate != NULL) {
+        X509_free(pRemoteCertificate);
+    }
+
     if (locked) {
         MUTEX_UNLOCK(pDtlsSession->sslLock);
     }
