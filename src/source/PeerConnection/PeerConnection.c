@@ -475,6 +475,8 @@ STATUS freePeerConnection(PRtcPeerConnection *ppPeerConnection)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PKvsPeerConnection pKvsPeerConnection;
+    PDoubleListNode pCurNode = NULL;
+    UINT64 item = 0;
 
     CHK(ppPeerConnection != NULL, STATUS_NULL_ARG);
 
@@ -492,9 +494,18 @@ STATUS freePeerConnection(PRtcPeerConnection *ppPeerConnection)
     CHK_LOG_ERR_NV(freeSctpSession(&pKvsPeerConnection->pSctpSession));
     CHK_LOG_ERR_NV(freeIceAgent(&pKvsPeerConnection->pIceAgent));
 
+    // free transceivers
+    CHK_LOG_ERR_NV(doubleListGetHeadNode(pKvsPeerConnection->pTransceievers, &pCurNode));
+    while(pCurNode != NULL) {
+        CHK_LOG_ERR_NV(doubleListGetNodeData(pCurNode, &item));
+        CHK_LOG_ERR_NV(freeKvsRtpTransceiver((PKvsRtpTransceiver *) &item));
+
+        pCurNode = pCurNode->pNext;
+    }
+
     // free rest of structs
+    CHK_LOG_ERR_NV(freeSrtpSession(&pKvsPeerConnection->pSrtpSession));
     CHK_LOG_ERR_NV(freeDtlsSession(&pKvsPeerConnection->pDtlsSession));
-    CHK_LOG_ERR_NV(doubleListClear(pKvsPeerConnection->pTransceievers, TRUE));
     CHK_LOG_ERR_NV(doubleListFree(pKvsPeerConnection->pTransceievers));
     CHK_LOG_ERR_NV(hashTableFree(pKvsPeerConnection->pDataChannels));
     CHK_LOG_ERR_NV(hashTableFree(pKvsPeerConnection->pCodecTable));

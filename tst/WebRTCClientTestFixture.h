@@ -12,67 +12,7 @@
 #define SIGNAING_TEST_CORRELATION_ID                            (PCHAR) "Test_correlation_id"
 #define TEST_SIGNALING_MESSAGE_TTL                              (120 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
-//
-// Set the allocators to the instrumented equivalents
-//
-extern memAlloc globalMemAlloc;
-extern memAlignAlloc globalMemAlignAlloc;
-extern memCalloc globalMemCalloc;
-extern memFree globalMemFree;
-
 namespace com { namespace amazonaws { namespace kinesis { namespace video { namespace webrtcclient {
-//
-// Default allocator functions
-//
-extern UINT64 gTotalWebRtcClientMemoryUsage;
-extern MUTEX gTotalWebRtcClientMemoryMutex;
-
-INLINE PVOID instrumentedWebRtcClientMemAlloc(SIZE_T size)
-{
-    DLOGS("Test malloc %llu bytes", (UINT64)size);
-    MUTEX_LOCK(gTotalWebRtcClientMemoryMutex);
-    gTotalWebRtcClientMemoryUsage += size;
-    MUTEX_UNLOCK(gTotalWebRtcClientMemoryMutex);
-    PBYTE pAlloc = (PBYTE) malloc(size + SIZEOF(SIZE_T));
-    *(PSIZE_T)pAlloc = size;
-
-    return pAlloc + SIZEOF(SIZE_T);
-}
-
-INLINE PVOID instrumentedWebRtcClientMemAlignAlloc(SIZE_T size, SIZE_T alignment)
-{
-    DLOGS("Test align malloc %llu bytes", (UINT64)size);
-    // Just do malloc
-    UNUSED_PARAM(alignment);
-    return instrumentedWebRtcClientMemAlloc(size);
-}
-
-INLINE PVOID instrumentedWebRtcClientMemCalloc(SIZE_T num, SIZE_T size)
-{
-    SIZE_T overallSize = num * size;
-    DLOGS("Test calloc %llu bytes", (UINT64)overallSize);
-    MUTEX_LOCK(gTotalWebRtcClientMemoryMutex);
-    gTotalWebRtcClientMemoryUsage += overallSize;
-    MUTEX_UNLOCK(gTotalWebRtcClientMemoryMutex);
-
-    PBYTE pAlloc = (PBYTE) calloc(1, overallSize + SIZEOF(SIZE_T));
-    *(PSIZE_T)pAlloc = overallSize;
-
-    return pAlloc + SIZEOF(SIZE_T);
-}
-
-INLINE VOID instrumentedWebRtcClientMemFree(PVOID ptr)
-{
-    PBYTE pAlloc = (PBYTE) ptr - SIZEOF(SIZE_T);
-    SIZE_T size = *(PSIZE_T) pAlloc;
-    DLOGS("Test free %llu bytes", (UINT64)size);
-
-    MUTEX_LOCK(gTotalWebRtcClientMemoryMutex);
-    gTotalWebRtcClientMemoryUsage -= size;
-    MUTEX_UNLOCK(gTotalWebRtcClientMemoryMutex);
-
-    free(pAlloc);
-}
 
 class WebRtcClientTestBase : public ::testing::Test {
 public:
@@ -232,6 +172,27 @@ public:
         return retStatus;
     }
 
+    STATUS readFrameData(PBYTE pFrame, PUINT32 pSize, UINT32 index, PCHAR frameFilePath)
+    {
+        STATUS retStatus = STATUS_SUCCESS;
+        CHAR filePath[MAX_PATH_LEN + 1];
+        UINT64 size = 0;
+
+        CHK(pFrame != NULL && pSize != NULL, STATUS_NULL_ARG);
+
+        SNPRINTF(filePath, MAX_PATH_LEN, "%s/frame-%03d.h264", frameFilePath, index);
+
+        // Get the size and read into frame
+        CHK_STATUS(readFile(filePath, TRUE, NULL, &size));
+        CHK_STATUS(readFile(filePath, TRUE, pFrame, &size));
+
+        *pSize = (UINT32) size;
+
+    CleanUp:
+
+        return retStatus;
+    }
+
 protected:
 
     virtual void SetUp();
@@ -240,12 +201,6 @@ protected:
     VOID initializeJitterBuffer(UINT32, UINT32, UINT32);
     VOID clearJitterBufferForTest();
     VOID setPayloadToFree();
-
-    // Stored function pointers to reset on exit
-    memAlloc mStoredMemAlloc;
-    memAlignAlloc mStoredMemAlignAlloc;
-    memCalloc mStoredMemCalloc;
-    memFree mStoredMemFree;
 
     PAwsCredentialProvider mTestCredentialProvider;
 

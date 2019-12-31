@@ -187,6 +187,76 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersExpectFailureBecauseNoCan
     freePeerConnection(&answerPc);
 }
 
+// Assert that two PeerConnections can connect and then send media until the receiver gets both audio/video
+TEST_F(PeerConnectionFunctionalityTest, exchangeMedia)
+{
+    if (!mAccessKeyIdSet) {
+        return;
+    }
+
+    // Create track and transceiver and adds to PeerConnection
+    auto addTrackToPeerConnection = [](PRtcPeerConnection pRtcPeerConnection, PRtcMediaStreamTrack track, PRtcRtpTransceiver *transceiver, RTC_CODEC codec, MEDIA_STREAM_TRACK_KIND kind) -> void {
+
+        MEMSET(track, 0x00, SIZEOF(RtcMediaStreamTrack));
+
+        EXPECT_EQ(addSupportedCodec(pRtcPeerConnection, codec), STATUS_SUCCESS);
+
+        track->kind = kind;
+        track->codec = codec;
+        EXPECT_EQ(generateJSONSafeString(track->streamId, MAX_MEDIA_STREAM_ID_LEN), STATUS_SUCCESS);
+        EXPECT_EQ(generateJSONSafeString(track->trackId, MAX_MEDIA_STREAM_ID_LEN), STATUS_SUCCESS);
+
+        EXPECT_EQ(addTransceiver(pRtcPeerConnection, track, NULL, transceiver), STATUS_SUCCESS);
+    };
+
+    auto const frameBufferSize = 200000;
+
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    RtcMediaStreamTrack offerVideoTrack, answerVideoTrack, offerAudioTrack, answerAudioTrack;
+    PRtcRtpTransceiver offerVideoTransceiver, answerVideoTransceiver, offerAudioTransceiver, answerAudioTransceiver;
+    SIZE_T seenVideo = 0;
+    Frame videoFrame;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    MEMSET(&videoFrame, 0x00, SIZEOF(Frame));
+
+    videoFrame.frameData = (PBYTE) MEMALLOC(frameBufferSize);
+    videoFrame.size = frameBufferSize;
+
+    EXPECT_EQ(readFrameData(videoFrame.frameData, &(videoFrame.size), 1, (PCHAR) "../samples/h264SampleFrames"), STATUS_SUCCESS);
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    addTrackToPeerConnection(offerPc, &offerVideoTrack, &offerVideoTransceiver,RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+    addTrackToPeerConnection(offerPc, &offerAudioTrack, &offerAudioTransceiver,RTC_CODEC_OPUS, MEDIA_STREAM_TRACK_KIND_AUDIO);
+    addTrackToPeerConnection(answerPc, &answerVideoTrack, &answerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+    addTrackToPeerConnection(answerPc, &answerAudioTrack, &answerAudioTransceiver, RTC_CODEC_OPUS, MEDIA_STREAM_TRACK_KIND_AUDIO);
+
+    auto onFrameHandler = [](UINT64 customData, PFrame pFrame) -> void {
+        UNUSED_PARAM(pFrame);
+        ATOMIC_STORE((PSIZE_T) customData, 1);
+    };
+    EXPECT_EQ(transceiverOnFrame(answerVideoTransceiver, (UINT64) &seenVideo, onFrameHandler), STATUS_SUCCESS);
+
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc, this), TRUE);
+
+    for (auto i = 0; i <= 1000 && ATOMIC_LOAD(&seenVideo) != 1; i++) {
+        EXPECT_EQ(writeFrame(offerVideoTransceiver, &videoFrame), STATUS_SUCCESS);
+        videoFrame.presentationTs += (HUNDREDS_OF_NANOS_IN_A_SECOND / 25);
+
+        THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+
+    MEMFREE(videoFrame.frameData);
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+
+    EXPECT_EQ(ATOMIC_LOAD(&seenVideo), 1);
+}
+
+
 }
 }
 }
