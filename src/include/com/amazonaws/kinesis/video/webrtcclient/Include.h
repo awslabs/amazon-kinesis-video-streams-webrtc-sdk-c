@@ -609,6 +609,24 @@ typedef struct {
     // A smaller MTU will incur higher bandwidth usage however since more packets will be generated with smaller payloads
     // If unset DEFAULT_MTU_SIZE will be used
     UINT16 maximumTransmissionUnit;
+
+    // iceLocalCandidateGatheringTimeout is the maximum time ice will wait for gathering STUN and RELAY candidates. Once
+    // it's reached, ice will proceed with whatever candidate it current has. Use default value if 0.
+    UINT32 iceLocalCandidateGatheringTimeout;
+
+    // iceConnectionCheckTimeout is the maximum time allowed waiting for at least one ice candidate pair to receive
+    // binding response from the peer. Use default value if 0.
+    UINT32 iceConnectionCheckTimeout;
+
+    // If client is ice controlling, this is the timeout for receiving bind response of requests that has USE_CANDIDATE
+    // attribute. If client is ice controlled, this is the timeout for receiving binding request that has USE_CANDIDATE
+    // attribute after connection check is done. Use default value if 0.
+    UINT32 iceCandidateNominationTimeout;
+
+    // Ta in https://tools.ietf.org/html/rfc8445
+    // rate at which binding request packets are sent during connection check. Use default interval if 0.
+    UINT32 iceConnectionCheckPollingInterval;
+
 } KvsRtcConfiguration, *PKvsRtcConfiguration;
 
 /**
