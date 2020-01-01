@@ -84,7 +84,9 @@ STATUS freeTurnConnection(PTurnConnection* ppTurnConnection)
 
     // tear down control channel
     if (pTurnConnection->pControlChannel != NULL) {
-        connectionListenerRemoveConnection(pTurnConnection->pConnectionListener, pTurnConnection->pControlChannel);
+        if (pTurnConnection->pConnectionListener != NULL) {
+            connectionListenerRemoveConnection(pTurnConnection->pConnectionListener, pTurnConnection->pControlChannel);
+        }
         freeSocketConnection(&pTurnConnection->pControlChannel);
     }
 

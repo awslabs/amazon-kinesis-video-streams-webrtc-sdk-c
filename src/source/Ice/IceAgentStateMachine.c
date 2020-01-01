@@ -392,6 +392,11 @@ STATUS executeGatheringIceAgentState(UINT64 customData, UINT64 time)
     // start listening for incoming data
     CHK_STATUS(connectionListenerStart(pIceAgent->pConnectionListener));
 
+    if (pIceAgent->pBindingRequest != NULL) {
+        CHK_STATUS(freeStunPacket(&pIceAgent->pBindingRequest));
+    }
+    CHK_STATUS(createStunPacket(STUN_PACKET_TYPE_BINDING_REQUEST, NULL, &pIceAgent->pBindingRequest));
+
     pIceAgent->stateEndTime = GETTIME() + pIceAgent->kvsRtcConfiguration.iceLocalCandidateGatheringTimeout;
 
     CHK_STATUS(timerQueueAddTimer(pIceAgent->timerQueueHandle,
@@ -530,6 +535,17 @@ STATUS executeCheckConnectionIceAgentState(UINT64 customData, UINT64 time)
 
         pIceCandidatePair->state = ICE_CANDIDATE_PAIR_STATE_WAITING;
     }
+
+    if (pIceAgent->pBindingRequest != NULL) {
+        CHK_STATUS(freeStunPacket(&pIceAgent->pBindingRequest));
+    }
+    CHK_STATUS(createStunPacket(STUN_PACKET_TYPE_BINDING_REQUEST, NULL, &pIceAgent->pBindingRequest));
+    CHK_STATUS(appendStunUsernameAttribute(pIceAgent->pBindingRequest, pIceAgent->combinedUserName));
+    CHK_STATUS(appendStunPriorityAttribute(pIceAgent->pBindingRequest, 0));
+    CHK_STATUS(appendStunIceControllAttribute(
+            pIceAgent->pBindingRequest,
+            pIceAgent->isControlling ? STUN_ATTRIBUTE_TYPE_ICE_CONTROLLING : STUN_ATTRIBUTE_TYPE_ICE_CONTROLLED,
+            pIceAgent->tieBreaker));
 
     pIceAgent->stateEndTime = GETTIME() + pIceAgent->kvsRtcConfiguration.iceConnectionCheckTimeout;
 
@@ -745,6 +761,18 @@ STATUS executeNominatingIceAgentState(UINT64 customData, UINT64 time)
 
     if (pIceAgent->isControlling) {
         CHK_STATUS(iceAgentNominateCandidatePair(pIceAgent));
+
+        if (pIceAgent->pBindingRequest != NULL) {
+            CHK_STATUS(freeStunPacket(&pIceAgent->pBindingRequest));
+        }
+        CHK_STATUS(createStunPacket(STUN_PACKET_TYPE_BINDING_REQUEST, NULL, &pIceAgent->pBindingRequest));
+        CHK_STATUS(appendStunUsernameAttribute(pIceAgent->pBindingRequest, pIceAgent->combinedUserName));
+        CHK_STATUS(appendStunPriorityAttribute(pIceAgent->pBindingRequest, 0));
+        CHK_STATUS(appendStunIceControllAttribute(
+                pIceAgent->pBindingRequest,
+                STUN_ATTRIBUTE_TYPE_ICE_CONTROLLING,
+                pIceAgent->tieBreaker));
+        CHK_STATUS(appendStunFlagAttribute(pIceAgent->pBindingRequest, STUN_ATTRIBUTE_TYPE_USE_CANDIDATE));
     }
 
     pIceAgent->stateEndTime = GETTIME() + pIceAgent->kvsRtcConfiguration.iceCandidateNominationTimeout;
