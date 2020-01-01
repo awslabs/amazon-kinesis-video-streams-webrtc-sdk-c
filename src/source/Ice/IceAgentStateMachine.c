@@ -193,10 +193,9 @@ STATUS executeNewIceAgentState(UINT64 customData, UINT64 time)
 
     pIceAgent->iceAgentState = ICE_AGENT_STATE_NEW;
 
-
     CHK_STATUS(timerQueueAddTimer(pIceAgent->timerQueueHandle,
                                   0,
-                                  KVS_ICE_STATE_NEW_TIMER_POLLING_INTERVAL,
+                                  pIceAgent->kvsRtcConfiguration.iceConnectionCheckPollingInterval,
                                   iceAgentStateNewTimerCallback,
                                   (UINT64) pIceAgent,
                                   &pIceAgent->iceAgentStateTimerCallback));
@@ -390,11 +389,11 @@ STATUS executeGatheringIceAgentState(UINT64 customData, UINT64 time)
     // start listening for incoming data
     CHK_STATUS(connectionListenerStart(pIceAgent->pConnectionListener));
 
-    pIceAgent->stateEndTime = GETTIME() + KVS_ICE_GATHER_REFLEXIVE_AND_RELAYED_CANDIDATE_TIMEOUT;
+    pIceAgent->stateEndTime = GETTIME() + pIceAgent->kvsRtcConfiguration.iceLocalCandidateGatheringTimeout;
 
     CHK_STATUS(timerQueueAddTimer(pIceAgent->timerQueueHandle,
                                   0,
-                                  KVS_ICE_CONNECTION_CHECK_POLLING_INTERVAL,
+                                  pIceAgent->kvsRtcConfiguration.iceConnectionCheckPollingInterval,
                                   iceAgentStateGatheringTimerCallback,
                                   (UINT64) pIceAgent,
                                   &pIceAgent->iceAgentStateTimerCallback));
@@ -519,11 +518,11 @@ STATUS executeCheckConnectionIceAgentState(UINT64 customData, UINT64 time)
         pIceAgent->candidatePairs[i]->state = ICE_CANDIDATE_PAIR_STATE_WAITING;
     }
 
-    pIceAgent->stateEndTime = GETTIME() + KVS_ICE_CONNECTIVITY_CHECK_TIMEOUT;
+    pIceAgent->stateEndTime = GETTIME() + pIceAgent->kvsRtcConfiguration.iceConnectionCheckTimeout;
 
     CHK_STATUS(timerQueueAddTimer(pIceAgent->timerQueueHandle,
                                   0,
-                                  KVS_ICE_CONNECTION_CHECK_POLLING_INTERVAL,
+                                  pIceAgent->kvsRtcConfiguration.iceConnectionCheckPollingInterval,
                                   iceAgentStateCheckConnectionTimerCallback,
                                   (UINT64) pIceAgent,
                                   &pIceAgent->iceAgentStateTimerCallback));
@@ -729,12 +728,12 @@ STATUS executeNominatingIceAgentState(UINT64 customData, UINT64 time)
         CHK_STATUS(iceAgentNominateCandidatePair(pIceAgent));
     }
 
-    pIceAgent->stateEndTime = GETTIME() + KVS_ICE_CANDIDATE_NOMINATION_TIMEOUT;
+    pIceAgent->stateEndTime = GETTIME() + pIceAgent->kvsRtcConfiguration.iceCandidateNominationTimeout;
 
     // schedule nomination timer task
     CHK_STATUS(timerQueueAddTimer(pIceAgent->timerQueueHandle,
                                   0,
-                                  KVS_ICE_CONNECTION_CHECK_POLLING_INTERVAL,
+                                  pIceAgent->kvsRtcConfiguration.iceConnectionCheckPollingInterval,
                                   iceAgentStateNominatingTimerCallback,
                                   (UINT64) pIceAgent,
                                   &pIceAgent->iceAgentStateTimerCallback));

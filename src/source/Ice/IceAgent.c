@@ -33,6 +33,8 @@ STATUS createIceAgent(PCHAR username, PCHAR password, UINT64 customData, PIceAge
     pIceAgent->isControlling = FALSE;
     pIceAgent->tieBreaker = (UINT64) RAND();
     pIceAgent->iceTransportPolicy = pRtcConfiguration->iceTransportPolicy;
+    pIceAgent->kvsRtcConfiguration = pRtcConfiguration->kvsRtcConfiguration;
+    CHK_STATUS(iceAgentValidateKvsRtcConfig(&pIceAgent->kvsRtcConfiguration));
 
     if (pIceAgentCallbacks != NULL) {
         pIceAgent->iceAgentCallbacks = *pIceAgentCallbacks;
@@ -191,6 +193,42 @@ STATUS freeIceAgent(PIceAgent* ppIceAgent)
 CleanUp:
 
     LEAVES();
+    return retStatus;
+}
+
+STATUS iceAgentValidateKvsRtcConfig(PKvsRtcConfiguration pKvsRtcConfiguration)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(pKvsRtcConfiguration != NULL, STATUS_NULL_ARG);
+
+    if (pKvsRtcConfiguration->iceLocalCandidateGatheringTimeout == 0) {
+        pKvsRtcConfiguration->iceLocalCandidateGatheringTimeout = KVS_ICE_GATHER_REFLEXIVE_AND_RELAYED_CANDIDATE_TIMEOUT;
+    }
+
+    if (pKvsRtcConfiguration->iceConnectionCheckTimeout == 0) {
+        pKvsRtcConfiguration->iceConnectionCheckTimeout = KVS_ICE_CONNECTIVITY_CHECK_TIMEOUT;
+    }
+
+    if (pKvsRtcConfiguration->iceCandidateNominationTimeout == 0) {
+        pKvsRtcConfiguration->iceCandidateNominationTimeout = KVS_ICE_CANDIDATE_NOMINATION_TIMEOUT;
+    }
+
+    if (pKvsRtcConfiguration->iceConnectionCheckPollingInterval == 0) {
+        pKvsRtcConfiguration->iceConnectionCheckPollingInterval = KVS_ICE_CONNECTION_CHECK_POLLING_INTERVAL;
+    }
+
+    DLOGD("\n\ticeLocalCandidateGatheringTimeout: %u ms"
+          "\n\ticeConnectionCheckTimeout: %u ms"
+          "\n\ticeCandidateNominationTimeout: %u ms"
+          "\n\ticeConnectionCheckPollingInterval: %u ms",
+          pKvsRtcConfiguration->iceLocalCandidateGatheringTimeout / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
+          pKvsRtcConfiguration->iceConnectionCheckTimeout / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
+          pKvsRtcConfiguration->iceCandidateNominationTimeout / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
+          pKvsRtcConfiguration->iceConnectionCheckPollingInterval / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+
+CleanUp:
+
     return retStatus;
 }
 
@@ -966,7 +1004,7 @@ STATUS iceAgentStateCheckConnectionTimerCallback(UINT32 timerId, UINT64 currentT
     } else if (!pIceAgent->agentStarted) {
         // extend endtime if no candidate pair is available or startIceAgent has not been called, in which case we would not
         // have the remote password.
-        pIceAgent->stateEndTime = GETTIME() + KVS_ICE_CONNECTIVITY_CHECK_TIMEOUT;
+        pIceAgent->stateEndTime = GETTIME() + pIceAgent->kvsRtcConfiguration.iceConnectionCheckTimeout;
         CHK(FALSE, retStatus);
     }
 

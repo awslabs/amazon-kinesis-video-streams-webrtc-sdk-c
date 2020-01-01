@@ -21,7 +21,6 @@ extern "C" {
 
 // Ta in https://tools.ietf.org/html/rfc8445
 #define KVS_ICE_CONNECTION_CHECK_POLLING_INTERVAL                       50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
-#define KVS_ICE_STATE_NEW_TIMER_POLLING_INTERVAL                        100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
 #define KVS_ICE_STATE_READY_TIMER_POLLING_INTERVAL                      1 * HUNDREDS_OF_NANOS_IN_A_SECOND
 
 // Disconnection timeout should be as long as KVS_ICE_SEND_KEEP_ALIVE_INTERVAL because peer can just be receiving
@@ -156,6 +155,7 @@ typedef struct {
     UINT64 disconnectionGracePeriodEndTime;
 
     ICE_TRANSPORT_POLICY iceTransportPolicy;
+    KvsRtcConfiguration kvsRtcConfiguration;
 } IceAgent, *PIceAgent;
 
 
@@ -260,6 +260,7 @@ STATUS iceAgentGatherLocalCandidate(PIceAgent);
 STATUS iceAgentPopulateSdpMediaDescriptionCandidates(PIceAgent, PSdpMediaDescription, UINT32, PUINT32);
 
 STATUS iceAgentReportNewLocalCandidate(PIceAgent, PIceCandidate);
+STATUS iceAgentValidateKvsRtcConfig(PKvsRtcConfiguration);
 
 // Incoming data handling functions
 STATUS newRelayCandidateHandler(UINT64, PKvsIpAddress, PSocketConnection);
