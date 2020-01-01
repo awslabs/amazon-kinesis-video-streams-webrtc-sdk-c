@@ -155,6 +155,10 @@ typedef struct {
 
     ICE_TRANSPORT_POLICY iceTransportPolicy;
     KvsRtcConfiguration kvsRtcConfiguration;
+
+    // Pre-allocated stun packets
+    PStunPacket pBindingIndication;
+    PStunPacket pBindingRequest;
 } IceAgent, *PIceAgent;
 
 

@@ -65,6 +65,15 @@ STATUS connectionListenerAddConnection(PConnectionListener, PSocketConnection);
 STATUS connectionListenerRemoveConnection(PConnectionListener, PSocketConnection);
 
 /**
+ * remove all listening PSocketConnection
+ *
+ * @param - PConnectionListener      - IN - the ConnectionListener struct to use
+ *
+ * @return - STATUS status of execution
+ */
+STATUS connectionListenerRemoveAllConnection(PConnectionListener);
+
+/**
  * Spin off a listener thread that listen for incoming traffic for all PSocketConnection stored in connectionList.
  * Whenever a PSocketConnection receives data, invoke ConnectionDataAvailableFunc passed in.
  *
