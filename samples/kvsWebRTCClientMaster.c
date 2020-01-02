@@ -49,7 +49,7 @@ INT32 main(INT32 argc, CHAR *argv[])
     signalingClientCallbacks.customData = (UINT64) pSampleConfiguration;
 
     clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
-    clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
+    clientInfo.loggingLevel = loggerGetLogLevel();
     STRCPY(clientInfo.clientId, SAMPLE_MASTER_CLIENT_ID);
 
     CHK_STATUS(createSignalingClientSync(&clientInfo,
