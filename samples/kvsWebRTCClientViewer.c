@@ -29,7 +29,7 @@ INT32 main(INT32 argc, CHAR *argv[])
     signalingClientCallbacks.stateChangeFn = signalingClientStateChanged;
 
     clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
-    clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
+    clientInfo.loggingLevel = loggerGetLogLevel();
     STRCPY(clientInfo.clientId, SAMPLE_VIEWER_CLIENT_ID);
 
     CHK_STATUS(createSignalingClientSync(&clientInfo,
