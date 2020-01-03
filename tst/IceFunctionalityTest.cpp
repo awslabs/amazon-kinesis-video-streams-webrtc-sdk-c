@@ -6,19 +6,23 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
     };
 
     // check if iceCandidatePairs is in descending order
-    BOOL candidatePairsInOrder(PIceCandidatePair *iceCandidatePairs, UINT32 candidatePairCount)
+    BOOL candidatePairsInOrder(PDoubleList iceCandidatePairs)
     {
         BOOL inOrder = TRUE;
-        UINT32 i;
+        UINT64 previousPriority = UINT64_MAX;
+        PDoubleListNode pCurNode = NULL;
+        PIceCandidatePair pIceCandidatePair = NULL;
 
-        if (candidatePairCount < 2) {
-            return inOrder;
-        }
+        EXPECT_EQ(STATUS_SUCCESS, doubleListGetHeadNode(iceCandidatePairs, &pCurNode));
+        while (pCurNode != NULL && inOrder) {
+            pIceCandidatePair = (PIceCandidatePair) pCurNode->data;
+            pCurNode = pCurNode->pNext;
 
-        for(i = 0; i < candidatePairCount - 1 && inOrder; ++i) {
-            if (iceCandidatePairs[i]->priority < iceCandidatePairs[i+1]->priority) {
+            if (pIceCandidatePair->priority > previousPriority) {
                 inOrder = FALSE;
             }
+
+            previousPriority = pIceCandidatePair->priority;
         }
 
         return inOrder;
@@ -29,46 +33,50 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         IceAgent iceAgent;
         IceCandidatePair iceCandidatePair[10];
         UINT32 i;
-        for (i = 0; i < 10; ++i) {
-            iceAgent.candidatePairs[i] = &iceCandidatePair[i];
-        }
 
-        iceAgent.candidatePairCount = 0;
-        EXPECT_EQ(STATUS_SUCCESS, sortIceCandidatePairs(&iceAgent));
-        EXPECT_EQ(TRUE, candidatePairsInOrder(iceAgent.candidatePairs, iceAgent.candidatePairCount));
+        doubleListCreate(&iceAgent.iceCandidatePairs);
 
-        iceAgent.candidatePairCount = 1;
+        EXPECT_EQ(TRUE, candidatePairsInOrder(iceAgent.iceCandidatePairs));
+
         iceCandidatePair[0].priority = 1;
-        EXPECT_EQ(STATUS_SUCCESS, sortIceCandidatePairs(&iceAgent));
-        EXPECT_EQ(TRUE, candidatePairsInOrder(iceAgent.candidatePairs, iceAgent.candidatePairCount));
+        EXPECT_EQ(STATUS_SUCCESS, insertIceCandidatePair(iceAgent.iceCandidatePairs, &iceCandidatePair[0]));
+        EXPECT_EQ(TRUE, candidatePairsInOrder(iceAgent.iceCandidatePairs));
+        EXPECT_EQ(STATUS_SUCCESS, doubleListClear(iceAgent.iceCandidatePairs, FALSE));
 
-        iceAgent.candidatePairCount = 2;
         iceCandidatePair[0].priority = 1;
         iceCandidatePair[1].priority = 2;
-        EXPECT_EQ(STATUS_SUCCESS, sortIceCandidatePairs(&iceAgent));
-        EXPECT_EQ(TRUE, candidatePairsInOrder(iceAgent.candidatePairs, iceAgent.candidatePairCount));
+        for (i = 0; i < 2; ++i) {
+            EXPECT_EQ(STATUS_SUCCESS, insertIceCandidatePair(iceAgent.iceCandidatePairs, &iceCandidatePair[i]));
+        }
+        EXPECT_EQ(TRUE, candidatePairsInOrder(iceAgent.iceCandidatePairs));
+        EXPECT_EQ(STATUS_SUCCESS, doubleListClear(iceAgent.iceCandidatePairs, FALSE));
 
-        iceAgent.candidatePairCount = 2;
         iceCandidatePair[0].priority = 2;
         iceCandidatePair[1].priority = 1;
-        EXPECT_EQ(STATUS_SUCCESS, sortIceCandidatePairs(&iceAgent));
-        EXPECT_EQ(TRUE, candidatePairsInOrder(iceAgent.candidatePairs, iceAgent.candidatePairCount));
+        for (i = 0; i < 2; ++i) {
+            EXPECT_EQ(STATUS_SUCCESS, insertIceCandidatePair(iceAgent.iceCandidatePairs, &iceCandidatePair[i]));
+        }
+        EXPECT_EQ(TRUE, candidatePairsInOrder(iceAgent.iceCandidatePairs));
+        EXPECT_EQ(STATUS_SUCCESS, doubleListClear(iceAgent.iceCandidatePairs, FALSE));
 
-        iceAgent.candidatePairCount = 3;
         iceCandidatePair[0].priority = 1;
         iceCandidatePair[1].priority = 1;
         iceCandidatePair[2].priority = 2;
-        EXPECT_EQ(STATUS_SUCCESS, sortIceCandidatePairs(&iceAgent));
-        EXPECT_EQ(TRUE, candidatePairsInOrder(iceAgent.candidatePairs, iceAgent.candidatePairCount));
+        for (i = 0; i < 3; ++i) {
+            EXPECT_EQ(STATUS_SUCCESS, insertIceCandidatePair(iceAgent.iceCandidatePairs, &iceCandidatePair[i]));
+        }
+        EXPECT_EQ(TRUE, candidatePairsInOrder(iceAgent.iceCandidatePairs));
+        EXPECT_EQ(STATUS_SUCCESS, doubleListClear(iceAgent.iceCandidatePairs, FALSE));
 
-        iceAgent.candidatePairCount = 3;
         iceCandidatePair[0].priority = 1;
         iceCandidatePair[1].priority = 2;
         iceCandidatePair[2].priority = 1;
-        EXPECT_EQ(STATUS_SUCCESS, sortIceCandidatePairs(&iceAgent));
-        EXPECT_EQ(TRUE, candidatePairsInOrder(iceAgent.candidatePairs, iceAgent.candidatePairCount));
+        for (i = 0; i < 3; ++i) {
+            EXPECT_EQ(STATUS_SUCCESS, insertIceCandidatePair(iceAgent.iceCandidatePairs, &iceCandidatePair[i]));
+        }
+        EXPECT_EQ(TRUE, candidatePairsInOrder(iceAgent.iceCandidatePairs));
+        EXPECT_EQ(STATUS_SUCCESS, doubleListClear(iceAgent.iceCandidatePairs, FALSE));
 
-        iceAgent.candidatePairCount = 10;
         iceCandidatePair[0].priority = 12312;
         iceCandidatePair[1].priority = 23;
         iceCandidatePair[2].priority = 656;
@@ -79,8 +87,12 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         iceCandidatePair[7].priority = 4546457;
         iceCandidatePair[8].priority = 87867;
         iceCandidatePair[9].priority = 87678;
-        EXPECT_EQ(STATUS_SUCCESS, sortIceCandidatePairs(&iceAgent));
-        EXPECT_EQ(TRUE, candidatePairsInOrder(iceAgent.candidatePairs, iceAgent.candidatePairCount));
+        for (i = 0; i < 10; ++i) {
+            EXPECT_EQ(STATUS_SUCCESS, insertIceCandidatePair(iceAgent.iceCandidatePairs, &iceCandidatePair[i]));
+        }
+        EXPECT_EQ(TRUE, candidatePairsInOrder(iceAgent.iceCandidatePairs));
+        EXPECT_EQ(STATUS_SUCCESS, doubleListClear(iceAgent.iceCandidatePairs, FALSE));
+        EXPECT_EQ(STATUS_SUCCESS, doubleListFree(iceAgent.iceCandidatePairs));
     }
 
     ///////////////////////////////////////////////
@@ -257,10 +269,12 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
     TEST_F(IceFunctionalityTest, IceAgentAddRemoteCandidateUnitTest)
     {
         IceAgent iceAgent;
-        UINT32 remoteCandidateCount = 0;
+        UINT32 remoteCandidateCount = 0, iceCandidateCount = 0;
         PCHAR hostCandidateStr = (PCHAR) "sdpMidate:543899094 1 udp 2122260223 12.131.158.132 64616 typ host generation 0 ufrag OFZ/ network-id 1 network-cost 10";
         PCHAR relayCandidateStr = (PCHAR) "sdpMidate:1501054171 1 udp 41885439 59.189.124.250 62834 typ relay raddr 205.251.233.176 rport 14669 generation 0 ufrag OFZ/ network-id 1 network-cost 10";
         IceCandidate testLocalCandidate;
+        PDoubleListNode pCurNode = NULL;
+        PIceCandidatePair pIceCandidatePair = NULL;
 
         MEMSET(&iceAgent, 0x00, SIZEOF(IceAgent));
         MEMSET(&testLocalCandidate, 0x00, SIZEOF(IceCandidate));
@@ -269,6 +283,7 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         iceAgent.lock = MUTEX_CREATE(TRUE);
         EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&iceAgent.remoteCandidates));
         EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&iceAgent.localCandidates));
+        EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&iceAgent.iceCandidatePairs));
         iceAgent.pTurnConnection = NULL;
         iceAgent.iceAgentState = ICE_AGENT_STATE_GATHERING;
 
@@ -287,18 +302,27 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         // duplicated candidates are not added
         EXPECT_EQ(1, remoteCandidateCount);
         // no candidate pair is formed since iceAgentState is ICE_AGENT_STATE_GATHERING
-        EXPECT_EQ(0, iceAgent.candidatePairCount);
+        EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(iceAgent.iceCandidatePairs, &iceCandidateCount));
+        EXPECT_EQ(0, iceCandidateCount);
 
         iceAgent.iceAgentState = ICE_AGENT_STATE_CHECK_CONNECTION;
         EXPECT_EQ(STATUS_SUCCESS, iceAgentAddRemoteCandidate(&iceAgent, relayCandidateStr));
         EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(iceAgent.remoteCandidates, &remoteCandidateCount));
         EXPECT_EQ(2, remoteCandidateCount);
         // candidate pair is formed since iceAgentState is not ICE_AGENT_STATE_GATHERING
-        EXPECT_EQ(1, iceAgent.candidatePairCount);
+        EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(iceAgent.iceCandidatePairs, &iceCandidateCount));
+        EXPECT_EQ(1, iceCandidateCount);
 
         MUTEX_FREE(iceAgent.lock);
-        freeTransactionIdStore(&iceAgent.candidatePairs[0]->pTransactionIdStore);
-        SAFE_MEMFREE(iceAgent.candidatePairs[0]);
+        EXPECT_EQ(STATUS_SUCCESS, doubleListGetHeadNode(iceAgent.iceCandidatePairs, &pCurNode));
+        while (pCurNode != NULL) {
+            pIceCandidatePair = (PIceCandidatePair) pCurNode->data;
+            pCurNode = pCurNode->pNext;
+
+            CHK_LOG_ERR_NV(freeIceCandidatePair(&pIceCandidatePair));
+        }
+        EXPECT_EQ(STATUS_SUCCESS, doubleListClear(iceAgent.iceCandidatePairs, FALSE));
+        EXPECT_EQ(STATUS_SUCCESS, doubleListFree(iceAgent.iceCandidatePairs));
         EXPECT_EQ(STATUS_SUCCESS, doubleListClear(iceAgent.remoteCandidates, TRUE));
         EXPECT_EQ(STATUS_SUCCESS, doubleListFree(iceAgent.remoteCandidates));
         EXPECT_EQ(STATUS_SUCCESS, doubleListClear(iceAgent.localCandidates, FALSE));
@@ -392,7 +416,9 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         IceAgent iceAgent;
         IceCandidate localCandidate1, localCandidate2;
         IceCandidate remoteCandidate1, remoteCandidate2;
-        UINT32 i;
+        UINT32 iceCandidateCount = 0;
+        PDoubleListNode pCurNode = NULL;
+        PIceCandidatePair pIceCandidatePair = NULL;
 
         MEMSET(&iceAgent, 0x00, SIZEOF(IceAgent));
         MEMSET(&localCandidate1, 0x00, SIZEOF(IceCandidate));
@@ -401,7 +427,7 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         MEMSET(&remoteCandidate2, 0x00, SIZEOF(IceCandidate));
         EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&iceAgent.localCandidates));
         EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&iceAgent.remoteCandidates));
-
+        EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&iceAgent.iceCandidatePairs));
 
         EXPECT_NE(STATUS_SUCCESS, createIceCandidatePairs(NULL, NULL, FALSE));
         EXPECT_NE(STATUS_SUCCESS, createIceCandidatePairs(&iceAgent, NULL, FALSE));
@@ -410,22 +436,28 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         EXPECT_EQ(STATUS_SUCCESS, doubleListInsertItemHead(iceAgent.localCandidates, (UINT64) &localCandidate1));
         EXPECT_EQ(STATUS_SUCCESS, createIceCandidatePairs(&iceAgent, &localCandidate1, FALSE));
         // no remote candidate to form pair with
-        EXPECT_EQ(0, iceAgent.candidatePairCount);
+        EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(iceAgent.iceCandidatePairs, &iceCandidateCount));
+        EXPECT_EQ(0, iceCandidateCount);
 
         EXPECT_EQ(STATUS_SUCCESS, doubleListInsertItemHead(iceAgent.remoteCandidates, (UINT64) &remoteCandidate1));
         EXPECT_EQ(STATUS_SUCCESS, createIceCandidatePairs(&iceAgent, &remoteCandidate1, TRUE));
-        EXPECT_EQ(1, iceAgent.candidatePairCount);
-        EXPECT_EQ(&localCandidate1, iceAgent.candidatePairs[0]->local);
-        EXPECT_EQ(&remoteCandidate1, iceAgent.candidatePairs[0]->remote);
+        EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(iceAgent.iceCandidatePairs, &iceCandidateCount));
+        EXPECT_EQ(1, iceCandidateCount);
+        EXPECT_EQ(STATUS_SUCCESS, doubleListGetHeadNode(iceAgent.iceCandidatePairs, &pCurNode));
+        pIceCandidatePair = (PIceCandidatePair) pCurNode->data;
+        EXPECT_EQ(&localCandidate1, pIceCandidatePair->local);
+        EXPECT_EQ(&remoteCandidate1, pIceCandidatePair->remote);
 
         EXPECT_EQ(STATUS_SUCCESS, doubleListInsertItemHead(iceAgent.localCandidates, (UINT64) &localCandidate2));
         EXPECT_EQ(STATUS_SUCCESS, createIceCandidatePairs(&iceAgent, &localCandidate2, FALSE));
         // 2 local vs 1 remote, thus 2 pairs
-        EXPECT_EQ(2, iceAgent.candidatePairCount);
+        EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(iceAgent.iceCandidatePairs, &iceCandidateCount));
+        EXPECT_EQ(2, iceCandidateCount);
 
         EXPECT_EQ(STATUS_SUCCESS, doubleListInsertItemHead(iceAgent.remoteCandidates, (UINT64) &remoteCandidate2));
         EXPECT_EQ(STATUS_SUCCESS, createIceCandidatePairs(&iceAgent, &remoteCandidate2, TRUE));
-        EXPECT_EQ(4, iceAgent.candidatePairCount);
+        EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(iceAgent.iceCandidatePairs, &iceCandidateCount));
+        EXPECT_EQ(4, iceCandidateCount);
 
         EXPECT_EQ(STATUS_SUCCESS, doubleListClear(iceAgent.localCandidates, FALSE));
         EXPECT_EQ(STATUS_SUCCESS, doubleListClear(iceAgent.remoteCandidates, FALSE));
@@ -433,40 +465,59 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         EXPECT_EQ(STATUS_SUCCESS, doubleListFree(iceAgent.localCandidates));
         EXPECT_EQ(STATUS_SUCCESS, doubleListFree(iceAgent.remoteCandidates));
 
-        for (i = 0; i < iceAgent.candidatePairCount; ++i) {
-            EXPECT_EQ(STATUS_SUCCESS, freeTransactionIdStore(&iceAgent.candidatePairs[i]->pTransactionIdStore));
-            SAFE_MEMFREE(iceAgent.candidatePairs[i]);
+        EXPECT_EQ(STATUS_SUCCESS, doubleListGetHeadNode(iceAgent.iceCandidatePairs, &pCurNode));
+        while (pCurNode != NULL) {
+            pIceCandidatePair = (PIceCandidatePair) pCurNode->data;
+            pCurNode = pCurNode->pNext;
+
+            CHK_LOG_ERR_NV(freeIceCandidatePair(&pIceCandidatePair));
         }
+        EXPECT_EQ(STATUS_SUCCESS, doubleListClear(iceAgent.iceCandidatePairs, FALSE));
+        EXPECT_EQ(STATUS_SUCCESS, doubleListFree(iceAgent.iceCandidatePairs));
     }
 
     TEST_F(IceFunctionalityTest, IceAgentPruneUnconnectedIceCandidatePairUnitTest)
     {
         IceAgent iceAgent;
-        UINT32 i;
+        UINT32 i, iceCandidateCount = 0;
+        PIceCandidatePair iceCandidatePairs[5];
+        PDoubleListNode pCurNode = NULL;
+        PIceCandidatePair pIceCandidatePair = NULL;
 
         MEMSET(&iceAgent, 0x00, SIZEOF(IceAgent));
+        doubleListCreate(&iceAgent.iceCandidatePairs);
 
         EXPECT_NE(STATUS_SUCCESS, pruneUnconnectedIceCandidatePair(NULL));
         // candidate pair count can be 0
         EXPECT_EQ(STATUS_SUCCESS, pruneUnconnectedIceCandidatePair(&iceAgent));
 
         for (i = 0; i < 5; ++i) {
-            iceAgent.candidatePairs[i] = (PIceCandidatePair) MEMALLOC(SIZEOF(IceCandidatePair));
-            iceAgent.candidatePairs[i]->priority = i * 100;
-            iceAgent.candidatePairs[i]->state = (ICE_CANDIDATE_PAIR_STATE) i;
+            iceCandidatePairs[i] = (PIceCandidatePair) MEMCALLOC(1, SIZEOF(IceCandidatePair));
+            iceCandidatePairs[i]->priority = i * 100;
+            iceCandidatePairs[i]->state = (ICE_CANDIDATE_PAIR_STATE) i;
             EXPECT_EQ(STATUS_SUCCESS, createTransactionIdStore(DEFAULT_MAX_STORED_TRANSACTION_ID_COUNT,
-                                                               &iceAgent.candidatePairs[i]->pTransactionIdStore));
+                                                               &iceCandidatePairs[i]->pTransactionIdStore));
+            EXPECT_EQ(STATUS_SUCCESS, insertIceCandidatePair(iceAgent.iceCandidatePairs, iceCandidatePairs[i]));
         }
 
-        iceAgent.candidatePairCount = 5;
         EXPECT_EQ(STATUS_SUCCESS, pruneUnconnectedIceCandidatePair(&iceAgent));
-        EXPECT_EQ(1, iceAgent.candidatePairCount);
+        EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(iceAgent.iceCandidatePairs, &iceCandidateCount));
+        EXPECT_EQ(1, iceCandidateCount);
         // candidate pair at index 3 is in state ICE_CANDIDATE_PAIR_STATE_SUCCEEDED.
         // only candidate pair with state ICE_CANDIDATE_PAIR_STATE_SUCCEEDED wont get deleted
-        EXPECT_EQ(300, iceAgent.candidatePairs[0]->priority);
+        doubleListGetHeadNode(iceAgent.iceCandidatePairs, &pCurNode);
+        pIceCandidatePair = (PIceCandidatePair) pCurNode->data;
+        EXPECT_EQ(300, pIceCandidatePair->priority);
 
-        freeTransactionIdStore(&iceAgent.candidatePairs[0]->pTransactionIdStore);
-        SAFE_MEMFREE(iceAgent.candidatePairs[0]);
+        EXPECT_EQ(STATUS_SUCCESS, doubleListGetHeadNode(iceAgent.iceCandidatePairs, &pCurNode));
+        while (pCurNode != NULL) {
+            pIceCandidatePair = (PIceCandidatePair) pCurNode->data;
+            pCurNode = pCurNode->pNext;
+
+            CHK_LOG_ERR_NV(freeIceCandidatePair(&pIceCandidatePair));
+        }
+        EXPECT_EQ(STATUS_SUCCESS, doubleListClear(iceAgent.iceCandidatePairs, FALSE));
+        EXPECT_EQ(STATUS_SUCCESS, doubleListFree(iceAgent.iceCandidatePairs));
     }
 
 }
