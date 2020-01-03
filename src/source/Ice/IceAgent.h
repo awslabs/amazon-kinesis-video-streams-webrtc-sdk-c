@@ -117,9 +117,8 @@ typedef struct {
     PDoubleList remoteCandidates;
     // store PIceCandidatePair which will be immediately checked for connectivity when the timer is fired.
     PStackQueue triggeredCheckQueue;
+    PDoubleList iceCandidatePairs;
 
-    PIceCandidatePair candidatePairs[KVS_ICE_MAX_CANDIDATE_PAIR_COUNT];
-    UINT32 candidatePairCount;
     PConnectionListener pConnectionListener;
     volatile BOOL agentStarted;
     BOOL isControlling;
@@ -274,10 +273,10 @@ STATUS findCandidateWithSocketConnection(PSocketConnection, PDoubleList, PIceCan
 
 // IceCandidatePair functions
 STATUS createIceCandidatePairs(PIceAgent, PIceCandidate, BOOL);
-STATUS sortIceCandidatePairs(PIceAgent);
+STATUS freeIceCandidatePair(PIceCandidatePair*);
+STATUS insertIceCandidatePair(PDoubleList, PIceCandidatePair);
 STATUS findIceCandidatePairWithLocalConnectionHandleAndRemoteAddr(PIceAgent, PSocketConnection, PKvsIpAddress, BOOL, PIceCandidatePair*);
 STATUS pruneUnconnectedIceCandidatePair(PIceAgent);
-STATUS pruneIceCandidatePairWithLocalCandidate(PIceAgent, PIceCandidate);
 STATUS iceCandidatePairCheckConnection(PStunPacket, PIceAgent, PIceCandidatePair);
 
 // timer callbacks. timer callbacks are interlocked by time queue lock.
