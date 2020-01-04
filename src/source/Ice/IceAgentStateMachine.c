@@ -36,13 +36,16 @@ STATUS stepIceAgentStateMachine(PIceAgent pIceAgent)
 
     CHK_STATUS(stepStateMachine(pIceAgent->pStateMachine));
 
-    if (pIceAgent->iceAgentCallbacks.connectionStateChangedFn != NULL && oldState != pIceAgent->iceAgentState) {
-        DLOGD("Ice agent state changed from %s to %s.",
-              iceAgentStateToString(oldState),
-              iceAgentStateToString(pIceAgent->iceAgentState));
-        pIceAgent->iceAgentCallbacks.connectionStateChangedFn(pIceAgent->customData, pIceAgent->iceAgentState);
+    if (oldState != pIceAgent->iceAgentState) {
+        if (pIceAgent->iceAgentCallbacks.connectionStateChangedFn != NULL) {
+            DLOGD("Ice agent state changed from %s to %s.",
+                  iceAgentStateToString(oldState),
+                  iceAgentStateToString(pIceAgent->iceAgentState));
+            pIceAgent->iceAgentCallbacks.connectionStateChangedFn(pIceAgent->customData, pIceAgent->iceAgentState);
+        }
+    } else {
+        CHK_STATUS(resetStateMachineRetryCount(pIceAgent->pStateMachine));
     }
-
 
 CleanUp:
 
