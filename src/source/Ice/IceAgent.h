@@ -13,6 +13,7 @@ extern "C" {
 #define KVS_ICE_MAX_CANDIDATE_PAIR_COUNT                                1024
 #define KVS_ICE_MAX_REMOTE_CANDIDATE_COUNT                              100
 #define KVS_ICE_MAX_LOCAL_CANDIDATE_COUNT                               100
+#define KVS_ICE_MAX_SRFLX_CANDIDATE_COUNT                               10
 #define KVS_ICE_GATHER_REFLEXIVE_AND_RELAYED_CANDIDATE_TIMEOUT          10 * HUNDREDS_OF_NANOS_IN_A_SECOND
 #define KVS_ICE_CONNECTIVITY_CHECK_TIMEOUT                              10 * HUNDREDS_OF_NANOS_IN_A_SECOND
 #define KVS_ICE_CANDIDATE_NOMINATION_TIMEOUT                            10 * HUNDREDS_OF_NANOS_IN_A_SECOND
@@ -118,6 +119,8 @@ typedef struct {
     // store PIceCandidatePair which will be immediately checked for connectivity when the timer is fired.
     PStackQueue triggeredCheckQueue;
     PDoubleList iceCandidatePairs;
+    IceCandidate pendingSrflxCandidates[KVS_ICE_MAX_SRFLX_CANDIDATE_COUNT];
+    UINT32 pendingSrflxCandidateCount;
 
     PConnectionListener pConnectionListener;
     volatile BOOL agentStarted;
@@ -128,6 +131,7 @@ typedef struct {
 
     // Current ice agent state
     UINT64 iceAgentState;
+    UINT32 iceAgentSrflxCandidateGatherTimerCallback;
     UINT32 iceAgentStateTimerCallback;
     UINT32 keepAliveTimerCallback;
     // The state machine
@@ -241,14 +245,14 @@ STATUS iceCandidateSerialize(PIceCandidate, PCHAR, PUINT32);
 STATUS iceAgentSendPacket(PIceAgent, PBYTE, UINT32);
 
 /**
- * gather local ip addresses and create a udp port. If port creation succeeded then create a new candidate
+ * gather host ip addresses and create a udp port. If port creation succeeded then create a new candidate
  * and store it in localCandidates. Ips that are already a local candidate will not be added again.
  *
  * @param - PIceAgent - IN - IceAgent object
  *
  * @return - STATUS - status of execution
  */
-STATUS iceAgentGatherLocalCandidate(PIceAgent);
+STATUS iceAgentGatherHostCandidate(PIceAgent);
 
 /**
  * Starting from given index, fillout PSdpMediaDescription->sdpAttributes with serialize local candidate strings.
@@ -264,6 +268,7 @@ STATUS iceAgentPopulateSdpMediaDescriptionCandidates(PIceAgent, PSdpMediaDescrip
 
 STATUS iceAgentReportNewLocalCandidate(PIceAgent, PIceCandidate);
 STATUS iceAgentValidateKvsRtcConfig(PKvsRtcConfiguration);
+STATUS iceAgentAddNewLocalCandidate(PIceAgent, PIceCandidate);
 
 // Incoming data handling functions
 STATUS newRelayCandidateHandler(UINT64, PKvsIpAddress, PSocketConnection);
@@ -271,7 +276,6 @@ STATUS incomingDataHandler(UINT64, PSocketConnection, PBYTE, UINT32, PKvsIpAddre
 STATUS handleStunPacket(PIceAgent, PBYTE, UINT32, PSocketConnection, PKvsIpAddress, PKvsIpAddress);
 
 // IceCandidate functions
-STATUS updateCandidateAddress(PIceCandidate, PKvsIpAddress);
 STATUS findCandidateWithIp(PKvsIpAddress, PDoubleList, PIceCandidate*);
 STATUS findCandidateWithSocketConnection(PSocketConnection, PDoubleList, PIceCandidate*);
 
@@ -284,8 +288,8 @@ STATUS pruneUnconnectedIceCandidatePair(PIceAgent);
 STATUS iceCandidatePairCheckConnection(PStunPacket, PIceAgent, PIceCandidatePair);
 
 // timer callbacks. timer callbacks are interlocked by time queue lock.
-STATUS iceAgentStateNewTimerCallback(UINT32, UINT64, UINT64);
-STATUS iceAgentStateGatheringTimerCallback(UINT32, UINT64, UINT64);
+STATUS iceAgentGatherSrflxCandidateTimerCallback(UINT32, UINT64, UINT64);
+STATUS iceAgentStepStateTimerCallback(UINT32, UINT64, UINT64);
 STATUS iceAgentStateCheckConnectionTimerCallback(UINT32, UINT64, UINT64);
 STATUS iceAgentSendKeepAliveTimerCallback(UINT32, UINT64, UINT64);
 STATUS iceAgentStateNominatingTimerCallback(UINT32, UINT64, UINT64);

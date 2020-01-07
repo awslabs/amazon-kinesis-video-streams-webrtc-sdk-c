@@ -221,31 +221,6 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         EXPECT_EQ(priority, computeCandidatePairPriority(&iceCandidatePair, TRUE));
     }
 
-    TEST_F(IceFunctionalityTest, IceAgentUpdateCandidateAddressUnitTest)
-    {
-        IceCandidate localCandidate;
-        KvsIpAddress newIpAddress;
-
-        MEMSET(&newIpAddress, 0x0, SIZEOF(KvsIpAddress));
-
-        newIpAddress.port = 8080;
-        newIpAddress.family = KVS_IP_FAMILY_TYPE_IPV4;
-        newIpAddress.isPointToPoint = FALSE;
-        MEMSET(newIpAddress.address, 0x11, ARRAY_SIZE(newIpAddress.address));
-
-        localCandidate.state = ICE_CANDIDATE_STATE_NEW;
-
-        EXPECT_NE(STATUS_SUCCESS, updateCandidateAddress(NULL, &newIpAddress));
-        EXPECT_NE(STATUS_SUCCESS, updateCandidateAddress(&localCandidate, NULL));
-        localCandidate.iceCandidateType = ICE_CANDIDATE_TYPE_HOST;
-        EXPECT_NE(STATUS_SUCCESS, updateCandidateAddress(&localCandidate, &newIpAddress));
-        localCandidate.iceCandidateType = ICE_CANDIDATE_TYPE_SERVER_REFLEXIVE;
-        EXPECT_EQ(STATUS_SUCCESS, updateCandidateAddress(&localCandidate, &newIpAddress));
-
-        EXPECT_EQ(localCandidate.ipAddress.port, newIpAddress.port);
-        EXPECT_EQ(0, MEMCMP(localCandidate.ipAddress.address, newIpAddress.address, IPV4_ADDRESS_LENGTH));
-    }
-
     TEST_F(IceFunctionalityTest, IceAgentIceAgentAddIceServerUnitTest)
     {
         IceServer iceServer;

@@ -114,6 +114,7 @@ struct __TurnConnection {
     IceServer turnServer;
 
     MUTEX lock;
+    MUTEX sendLock;
 
     volatile TURN_CONNECTION_STATE state;
 

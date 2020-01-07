@@ -23,6 +23,7 @@ STATUS createTurnConnection(PIceServer pTurnServer, TIMER_QUEUE_HANDLE timerQueu
     CHK(pTurnConnection != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
     pTurnConnection->lock = MUTEX_CREATE(TRUE);
+    pTurnConnection->sendLock = MUTEX_CREATE(FALSE);
     pTurnConnection->timerQueueHandle = timerQueueHandle;
     pTurnConnection->turnServer = *pTurnServer;
     pTurnConnection->state = TURN_STATE_NEW;
@@ -105,6 +106,10 @@ STATUS freeTurnConnection(PTurnConnection* ppTurnConnection)
 
     if (IS_VALID_MUTEX_VALUE(pTurnConnection->lock)) {
         MUTEX_FREE(pTurnConnection->lock);
+    }
+
+    if (IS_VALID_MUTEX_VALUE(pTurnConnection->sendLock)) {
+        MUTEX_FREE(pTurnConnection->sendLock);
     }
 
     turnConnectionFreePreAllocatedPackets(pTurnConnection);
@@ -532,7 +537,7 @@ STATUS turnConnectionSendData(PTurnConnection pTurnConnection, PBYTE pBuf, UINT3
     PTurnPeer pTurnPeer = NULL, pSendPeer = NULL;
     UINT32 paddedDataLen = 0;
     CHAR ipAddrStr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
-    BOOL locked = FALSE;
+    BOOL locked = FALSE, sendLocked = FALSE;
 
     CHK(pTurnConnection != NULL && pDestIp != NULL, STATUS_NULL_ARG);
     CHK(pBuf != NULL && bufLen > 0, STATUS_INVALID_ARG);
@@ -576,6 +581,9 @@ STATUS turnConnectionSendData(PTurnConnection pTurnConnection, PBYTE pBuf, UINT3
         CHK(FALSE, retStatus);
     }
 
+    MUTEX_LOCK(pTurnConnection->sendLock);
+    sendLocked = TRUE;
+
     CHK(pTurnConnection->dataBufferSize - TURN_DATA_CHANNEL_SEND_OVERHEAD >= bufLen, STATUS_BUFFER_TOO_SMALL);
 
     paddedDataLen = (UINT32) ROUND_UP(TURN_DATA_CHANNEL_SEND_OVERHEAD + bufLen, 4);
@@ -589,6 +597,10 @@ STATUS turnConnectionSendData(PTurnConnection pTurnConnection, PBYTE pBuf, UINT3
                                          pTurnConnection->sendDataBuffer,
                                          paddedDataLen,
                                          &pTurnConnection->turnServer.ipAddress);
+
+    MUTEX_UNLOCK(pTurnConnection->sendLock);
+    sendLocked = FALSE;
+
     if (STATUS_FAILED(retStatus)) {
         DLOGW("socketConnectionSendData failed with 0x%08x", retStatus);
         retStatus = STATUS_SUCCESS;
@@ -600,6 +612,10 @@ CleanUp:
 
     if (locked) {
         MUTEX_UNLOCK(pTurnConnection->lock);
+    }
+
+    if (sendLocked) {
+        MUTEX_UNLOCK(pTurnConnection->sendLock);
     }
 
     return retStatus;
@@ -663,9 +679,14 @@ STATUS turnConnectionRefreshAllocation(PTurnConnection pTurnConnection)
 
     pStunAttributeLifetime->lifetime = DEFAULT_TURN_ALLOCATION_LIFETIME_SECONDS;
 
-    CHK_STATUS(iceUtilsSendStunPacket(pTurnConnection->pTurnAllocationRefreshPacket, pTurnConnection->longTermKey,
-                                      ARRAY_SIZE(pTurnConnection->longTermKey), &pTurnConnection->turnServer.ipAddress,
-                                      pTurnConnection->pControlChannel, NULL, FALSE));
+    retStatus = iceUtilsSendStunPacket(pTurnConnection->pTurnAllocationRefreshPacket, pTurnConnection->longTermKey,
+                                       ARRAY_SIZE(pTurnConnection->longTermKey), &pTurnConnection->turnServer.ipAddress,
+                                       pTurnConnection->pControlChannel, NULL, FALSE);
+
+    if (STATUS_FAILED(retStatus)) {
+        DLOGD("iceUtilsSendStunPacket failed with 0x%08x", retStatus);
+        retStatus = STATUS_SUCCESS;
+    }
 
     pTurnConnection->nextAllocationRefreshTime = currTime + DEFAULT_TURN_SEND_REFRESH_INVERVAL;
 
@@ -1092,7 +1113,7 @@ STATUS turnConnectionTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 cu
 {
     UNUSED_PARAM(timerId);
     UNUSED_PARAM(currentTime);
-    STATUS retStatus = STATUS_SUCCESS;
+    STATUS retStatus = STATUS_SUCCESS, iceUtilsSendStunPacketStatus = STATUS_SUCCESS;
     PTurnConnection pTurnConnection = (PTurnConnection) customData;
     BOOL locked = FALSE;
     PDoubleListNode pCurNode = NULL;
@@ -1109,14 +1130,14 @@ STATUS turnConnectionTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 cu
 
     switch(pTurnConnection->state) {
         case TURN_STATE_GET_CREDENTIALS:
-            CHK_STATUS(iceUtilsSendStunPacket(pTurnConnection->pTurnPacket, NULL, 0, &pTurnConnection->turnServer.ipAddress,
-                                              pTurnConnection->pControlChannel, NULL, FALSE));
+            iceUtilsSendStunPacketStatus = iceUtilsSendStunPacket(pTurnConnection->pTurnPacket, NULL, 0, &pTurnConnection->turnServer.ipAddress,
+                                                                  pTurnConnection->pControlChannel, NULL, FALSE);
             break;
 
         case TURN_STATE_ALLOCATION:
-            CHK_STATUS(iceUtilsSendStunPacket(pTurnConnection->pTurnPacket, pTurnConnection->longTermKey,
-                                              ARRAY_SIZE(pTurnConnection->longTermKey), &pTurnConnection->turnServer.ipAddress,
-                                              pTurnConnection->pControlChannel, NULL, FALSE));
+            iceUtilsSendStunPacketStatus = iceUtilsSendStunPacket(pTurnConnection->pTurnPacket, pTurnConnection->longTermKey,
+                                                                  ARRAY_SIZE(pTurnConnection->longTermKey), &pTurnConnection->turnServer.ipAddress,
+                                                                  pTurnConnection->pControlChannel, NULL, FALSE);
             break;
 
         case TURN_STATE_CREATE_PERMISSION:
@@ -1139,9 +1160,9 @@ STATUS turnConnectionTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 cu
                     CHK_STATUS(iceUtilsGenerateTransactionId(pTurnConnection->pTurnCreatePermissionPacket->header.transactionId,
                                                              ARRAY_SIZE(pTurnConnection->pTurnCreatePermissionPacket->header.transactionId)));
                     transactionIdStoreInsert(pTurnPeer->pTransactionIdStore, pTurnConnection->pTurnCreatePermissionPacket->header.transactionId);
-                    CHK_STATUS(iceUtilsSendStunPacket(pTurnConnection->pTurnCreatePermissionPacket, pTurnConnection->longTermKey,
-                                                      ARRAY_SIZE(pTurnConnection->longTermKey), &pTurnConnection->turnServer.ipAddress,
-                                                      pTurnConnection->pControlChannel, NULL, FALSE));
+                    iceUtilsSendStunPacketStatus = iceUtilsSendStunPacket(pTurnConnection->pTurnCreatePermissionPacket, pTurnConnection->longTermKey,
+                                                                          ARRAY_SIZE(pTurnConnection->longTermKey), &pTurnConnection->turnServer.ipAddress,
+                                                                          pTurnConnection->pControlChannel, NULL, FALSE);
 
                 } else if (pTurnPeer->connectionState == TURN_PEER_CONN_STATE_BIND_CHANNEL) {
                     // update peer address;
@@ -1160,9 +1181,9 @@ STATUS turnConnectionTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 cu
                     CHK_STATUS(iceUtilsGenerateTransactionId(pTurnConnection->pTurnChannelBindPacket->header.transactionId,
                                                              ARRAY_SIZE(pTurnConnection->pTurnChannelBindPacket->header.transactionId)));
                     transactionIdStoreInsert(pTurnPeer->pTransactionIdStore, pTurnConnection->pTurnChannelBindPacket->header.transactionId);
-                    CHK_STATUS(iceUtilsSendStunPacket(pTurnConnection->pTurnChannelBindPacket, pTurnConnection->longTermKey,
-                                                      ARRAY_SIZE(pTurnConnection->longTermKey), &pTurnConnection->turnServer.ipAddress,
-                                                      pTurnConnection->pControlChannel, NULL, FALSE));
+                    iceUtilsSendStunPacketStatus = iceUtilsSendStunPacket(pTurnConnection->pTurnChannelBindPacket, pTurnConnection->longTermKey,
+                                                                          ARRAY_SIZE(pTurnConnection->longTermKey), &pTurnConnection->turnServer.ipAddress,
+                                                                          pTurnConnection->pControlChannel, NULL, FALSE);
                 }
             }
 
@@ -1178,15 +1199,19 @@ STATUS turnConnectionTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 cu
             CHK(pStunAttributeLifetime != NULL, STATUS_INTERNAL_ERROR);
 
             pStunAttributeLifetime->lifetime = 0;
-            CHK_STATUS(iceUtilsSendStunPacket(pTurnConnection->pTurnAllocationRefreshPacket, pTurnConnection->longTermKey,
-                                              ARRAY_SIZE(pTurnConnection->longTermKey), &pTurnConnection->turnServer.ipAddress,
-                                              pTurnConnection->pControlChannel, NULL, FALSE));
+            iceUtilsSendStunPacketStatus = iceUtilsSendStunPacket(pTurnConnection->pTurnAllocationRefreshPacket, pTurnConnection->longTermKey,
+                                                                  ARRAY_SIZE(pTurnConnection->longTermKey), &pTurnConnection->turnServer.ipAddress,
+                                                                  pTurnConnection->pControlChannel, NULL, FALSE);
 
             break;
 
         default:
             break;
 
+    }
+
+    if (STATUS_FAILED(iceUtilsSendStunPacketStatus)) {
+        DLOGD("iceUtilsSendStunPacket failed with 0x%08x", retStatus);
     }
 
     // drive the state machine.

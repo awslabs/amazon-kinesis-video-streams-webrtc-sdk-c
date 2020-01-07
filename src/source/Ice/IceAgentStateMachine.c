@@ -199,7 +199,7 @@ STATUS executeNewIceAgentState(UINT64 customData, UINT64 time)
     CHK_STATUS(timerQueueAddTimer(pIceAgent->timerQueueHandle,
                                   0,
                                   pIceAgent->kvsRtcConfiguration.iceConnectionCheckPollingInterval,
-                                  iceAgentStateNewTimerCallback,
+                                  iceAgentStepStateTimerCallback,
                                   (UINT64) pIceAgent,
                                   &pIceAgent->iceAgentStateTimerCallback));
 CleanUp:
@@ -213,61 +213,26 @@ STATUS fromGatheringIceAgentState(UINT64 customData, PUINT64 pState)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
-    UINT64 state = ICE_AGENT_STATE_GATHERING;
-    PDoubleListNode pNextNode = NULL, pCurNode = NULL;
-    UINT64 data, currentTime = GETTIME();
-    PIceCandidate pCandidate;
-    UINT32 validLocalCandidateCount = 0, totalLocalCandidateCount = 0;
-    CHAR ipAddrStr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
+    UINT64 state = ICE_AGENT_STATE_GATHERING, currentTime;
+    UINT32 validLocalCandidateCount = 0;
 
     CHK(pIceAgent != NULL && pState != NULL, STATUS_NULL_ARG);
 
     // move to failed state if any error happened.
     CHK_STATUS(pIceAgent->iceAgentStatus);
 
-    // return early if changing to disconnected state
-    CHK(state != ICE_AGENT_STATE_DISCONNECTED, retStatus);
+    currentTime = GETTIME();
 
-    // count number of valid candidates
-    CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
-    while (pCurNode != NULL) {
-        CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
-        pCurNode = pCurNode->pNext;
-        pCandidate = (PIceCandidate) data;
+    // at this point there should be only host candidates in the list.
+    CHK_STATUS(doubleListGetNodeCount(pIceAgent->localCandidates, &validLocalCandidateCount));
 
-        if (pCandidate->state == ICE_CANDIDATE_STATE_VALID) {
-            validLocalCandidateCount++;
-        } else {
-            CHK_STATUS(getIpAddrStr(&pCandidate->ipAddress,
-                                    ipAddrStr,
-                                    ARRAY_SIZE(ipAddrStr)));
-            DLOGD("checking local candidate type %s, ip %s", iceAgentGetCandidateTypeStr(pCandidate->iceCandidateType), ipAddrStr);
-        }
+    if (currentTime >= pIceAgent->stateEndTime) {
+        // at timeout, should have at least one local candidate (most likely host candidate)
+        CHK(validLocalCandidateCount > 0, STATUS_ICE_NO_LOCAL_CANDIDATE_AVAILABLE);
+    } else if (validLocalCandidateCount == 0) {
+        CHK(FALSE, retStatus);
     }
-
-    CHK_STATUS(doubleListGetNodeCount(pIceAgent->localCandidates, &totalLocalCandidateCount));
-
-    // return early and remain in ICE_AGENT_STATE_GATHERING if condition not met
-    CHK((validLocalCandidateCount > 0 && validLocalCandidateCount == totalLocalCandidateCount) ||
-        currentTime >= pIceAgent->stateEndTime, retStatus);
-
-    // filter out invalid candidates, and compute priority for valid candidates
-    CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pNextNode));
-    while (pNextNode != NULL) {
-        pCurNode = pNextNode;
-        pNextNode = pNextNode->pNext;
-        CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
-        pCandidate = (PIceCandidate) data;
-
-        if (pCandidate->state != ICE_CANDIDATE_STATE_VALID) {
-            doubleListRemoveNode(pIceAgent->localCandidates, pCurNode);
-            MEMFREE(pCandidate);
-        } else {
-            validLocalCandidateCount++;
-        }
-    }
-
-    CHK(validLocalCandidateCount > 0, STATUS_ICE_NO_LOCAL_CANDIDATE_AVAILABLE_AFTER_GATHERING_TIMEOUT);
+    // proceed to check connection if we have at least one candidate
 
     // proceed to next state since since we have at least one local candidate
     state = ICE_AGENT_STATE_CHECK_CONNECTION;
@@ -315,11 +280,12 @@ STATUS executeGatheringIceAgentState(UINT64 customData, UINT64 time)
 
     // skip gathering host candidate and srflx candidate if relay only
     if (pIceAgent->iceTransportPolicy != ICE_TRANSPORT_POLICY_RELAY) {
-        CHK_STATUS(iceAgentGatherLocalCandidate(pIceAgent));
+        CHK_STATUS(iceAgentGatherHostCandidate(pIceAgent));
 
         CHK_STATUS(doubleListGetNodeCount(pIceAgent->localCandidates, &localCandidateCount));
         CHK(localCandidateCount != 0, STATUS_ICE_NO_LOCAL_HOST_CANDIDATE_AVAILABLE);
 
+        // start gathering of srflx candidates
         CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
         while (pCurNode != NULL) {
             CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
@@ -330,9 +296,14 @@ STATUS executeGatheringIceAgentState(UINT64 customData, UINT64 time)
                 CHK_STATUS(connectionListenerAddConnection(pIceAgent->pConnectionListener, pCandidate->pSocketConnection));
 
                 for (j = 0; j < pIceAgent->iceServersCount; j++) {
-                    if (!pIceAgent->iceServers[j].isTurn) {
-                        CHK((pNewCandidate = (PIceCandidate) MEMCALLOC(1, SIZEOF(IceCandidate))) != NULL,
-                            STATUS_NOT_ENOUGH_MEMORY);
+                    if (pIceAgent->pendingSrflxCandidateCount == ARRAY_SIZE(pIceAgent->pendingSrflxCandidates)) {
+                        // break the loop if max number of srflx candidate reached.
+                        DLOGI("Maximum number of %u srflx candidates reached", ARRAY_SIZE(pIceAgent->pendingSrflxCandidates));
+                        pCurNode = NULL;
+                        break;
+
+                    } else if (!pIceAgent->iceServers[j].isTurn) {
+                        pNewCandidate = &pIceAgent->pendingSrflxCandidates[pIceAgent->pendingSrflxCandidateCount++];
 
                         // copy over host candidate's address to open up a new socket at that address.
                         pNewCandidate->ipAddress = pCandidate->ipAddress;
@@ -346,14 +317,11 @@ STATUS executeGatheringIceAgentState(UINT64 customData, UINT64 time)
                         CHK_STATUS(connectionListenerAddConnection(pIceAgent->pConnectionListener,
                                                                    pNewCandidate->pSocketConnection));
 
-                        pNewCandidate->iceCandidateType = pIceAgent->iceServers[j].isTurn ? ICE_CANDIDATE_TYPE_RELAYED
-                                                                                          : ICE_CANDIDATE_TYPE_SERVER_REFLEXIVE;
+                        pNewCandidate->iceCandidateType = ICE_CANDIDATE_TYPE_SERVER_REFLEXIVE;
                         pNewCandidate->state = ICE_CANDIDATE_STATE_NEW;
                         pNewCandidate->iceServerIndex = j;
                         pNewCandidate->foundation = pIceAgent->foundationCounter++; // we dont generate candidates that have the same foundation.
                         pNewCandidate->priority = computeCandidatePriority(pNewCandidate);
-                        CHK_STATUS(doubleListInsertItemHead(pIceAgent->localCandidates, (UINT64) pNewCandidate));
-                        pNewCandidate = NULL;
                     }
                 }
             } else {
@@ -402,11 +370,22 @@ STATUS executeGatheringIceAgentState(UINT64 customData, UINT64 time)
     CHK_STATUS(timerQueueAddTimer(pIceAgent->timerQueueHandle,
                                   0,
                                   pIceAgent->kvsRtcConfiguration.iceConnectionCheckPollingInterval,
-                                  iceAgentStateGatheringTimerCallback,
+                                  iceAgentStepStateTimerCallback,
                                   (UINT64) pIceAgent,
                                   &pIceAgent->iceAgentStateTimerCallback));
 
+    // queue up srflx candidate gathering task. it will cancel itself from timer queue once all srflx candidate have been gathered.
+    CHK_STATUS(timerQueueAddTimer(pIceAgent->timerQueueHandle,
+                                  0,
+                                  pIceAgent->kvsRtcConfiguration.iceConnectionCheckPollingInterval,
+                                  iceAgentGatherSrflxCandidateTimerCallback,
+                                  (UINT64) pIceAgent,
+                                  &pIceAgent->iceAgentSrflxCandidateGatherTimerCallback));
+
     pIceAgent->iceAgentState = ICE_AGENT_STATE_GATHERING;
+
+    // step into next state
+    CHK_STATUS(stepIceAgentStateMachine(pIceAgent));
 
 CleanUp:
 
@@ -419,10 +398,6 @@ CleanUp:
 
         // fix up retStatus so we can successfully transition to failed state.
         retStatus = STATUS_SUCCESS;
-    }
-
-    if (pNewCandidate != NULL) {
-        SAFE_MEMFREE(pNewCandidate);
     }
 
     LEAVES();
