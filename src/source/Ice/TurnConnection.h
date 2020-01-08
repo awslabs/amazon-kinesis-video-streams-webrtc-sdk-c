@@ -115,6 +115,8 @@ struct __TurnConnection {
 
     MUTEX lock;
 
+    MUTEX sendLock;
+
     volatile TURN_CONNECTION_STATE state;
 
     UINT64 stateTimeoutTime;
