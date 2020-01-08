@@ -92,10 +92,12 @@ STATUS masterMessageReceived(UINT64 customData, PReceivedSignalingMessage pRecei
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) customData;
     PSampleStreamingSession pSampleStreamingSession = NULL;
     UINT32 i;
+    BOOL locked = FALSE;
 
     CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
 
     MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
+    locked = TRUE;
 
     // ice candidate message and offer message can come at any order. Therefore, if we see a new peerId, then create
     // a new SampleStreamingSession, which in turn creates a new peerConnection
@@ -119,6 +121,7 @@ STATUS masterMessageReceived(UINT64 customData, PReceivedSignalingMessage pRecei
     }
 
     MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
+    locked = FALSE;
 
     switch (pReceivedSignalingMessage->signalingMessage.messageType) {
         case SIGNALING_MESSAGE_TYPE_OFFER:
@@ -137,6 +140,10 @@ STATUS masterMessageReceived(UINT64 customData, PReceivedSignalingMessage pRecei
     }
 
 CleanUp:
+
+    if (locked) {
+        MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
+    }
 
     // Return success to continue
     return retStatus;
@@ -165,7 +172,6 @@ STATUS handleOffer(PSampleConfiguration pSampleConfiguration, PSampleStreamingSe
                    PSignalingMessage pSignalingMessage)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    BOOL locked = FALSE;
     RtcSessionDescriptionInit offerSessionDescriptionInit;
 
     CHK(pSampleConfiguration != NULL && pSignalingMessage != NULL, STATUS_NULL_ARG);
@@ -214,10 +220,6 @@ STATUS handleOffer(PSampleConfiguration pSampleConfiguration, PSampleStreamingSe
 CleanUp:
 
     CHK_LOG_ERR_NV(retStatus);
-
-    if (locked) {
-        MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
-    }
 
     return retStatus;
 }
