@@ -2,6 +2,16 @@
 #include <gst/gst.h>
 #include <gst/app/gstappsink.h>
 
+static PSampleConfiguration gSampleConfiguration = NULL;
+VOID sigintHandler(INT32 sigNum)
+{
+    UNUSED_PARAM(sigNum);
+    if (gSampleConfiguration != NULL) {
+        ATOMIC_STORE_BOOL(&gSampleConfiguration->interrupted, TRUE);
+        CVAR_BROADCAST(gSampleConfiguration->cvar);
+    }
+}
+
 GstFlowReturn on_new_sample(GstElement *sink, gpointer data, UINT64 trackid)
 {
     GstBuffer *buffer;
@@ -285,6 +295,8 @@ INT32 main(INT32 argc, CHAR *argv[])
     UINT32 i;
     PSampleStreamingSession pSampleStreamingSession = NULL;
 
+    signal(SIGINT, sigintHandler);
+
     // do trickle-ice by default
     printf("[KVS GStreamer Master] Using trickleICE by default\n");
 
@@ -356,6 +368,8 @@ INT32 main(INT32 argc, CHAR *argv[])
 
     printf("[KVS Gstreamer Master] Beginning streaming...check the stream over channel %s\n",
             (argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME));
+
+    gSampleConfiguration = pSampleConfiguration;
 
     // Checking for termination
     while(!ATOMIC_LOAD_BOOL(&pSampleConfiguration->interrupted)) {
