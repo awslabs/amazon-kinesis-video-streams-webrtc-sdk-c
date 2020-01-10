@@ -23,24 +23,33 @@ INT32 main(INT32 argc, CHAR *argv[])
     signal(SIGINT, sigintHandler);
 
     // do tricketIce by default
+    printf("[KVS Master] Using trickleICE by default\n");
+
     CHK_STATUS(createSampleConfiguration(argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME,
             SIGNALING_CHANNEL_ROLE_TYPE_MASTER,
             TRUE,
             TRUE,
             &pSampleConfiguration));
+    printf("[KVS Master] Created signaling channel %s\n", (argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME));
+
     // Set the audio and video handlers
     pSampleConfiguration->audioSource = sendAudioPackets;
     pSampleConfiguration->videoSource = sendVideoPackets;
     pSampleConfiguration->receiveAudioVideoSource = sampleReceiveAudioFrame;
     pSampleConfiguration->onDataChannel = onDataChannel;
     pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
+    printf("[KVS Master] Finished setting audio and video handlers\n");
 
     // Check if the samples are present
+
     CHK_STATUS(readFrameFromDisk(NULL, &frameSize, "./h264SampleFrames/frame-001.h264"));
+    printf("[KVS Master] Checked sample video frame availability....available\n");
     CHK_STATUS(readFrameFromDisk(NULL, &frameSize, "./opusSampleFrames/sample-001.opus"));
+    printf("[KVS Master] Checked sample audio frame availability....available\n");
 
     // Initialize KVS WebRTC. This must be done before anything else, and must only be done once.
     CHK_STATUS(initKvsWebRtc());
+    printf("[KVS Master] KVS WebRTC initialization completed successfully\n");
 
     signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
     signalingClientCallbacks.messageReceivedFn = masterMessageReceived;
@@ -56,15 +65,19 @@ INT32 main(INT32 argc, CHAR *argv[])
             &signalingClientCallbacks,
             pSampleConfiguration->pCredentialProvider,
             &pSampleConfiguration->signalingClientHandle));
+    printf("[KVS Master] Signaling client created successfully\n");
 
     // Enable the processing of the messages
     CHK_STATUS(signalingClientConnectSync(pSampleConfiguration->signalingClientHandle));
+    printf("[KVS Master] Signaling client connection to socket established\n");
 
     gSampleConfiguration = pSampleConfiguration;
 
     MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
     locked = TRUE;
 
+    printf("[KVS Master] Beginning audio-video streaming...check the stream over channel %s\n",
+            (argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME));
     // Checking for termination
     while(!ATOMIC_LOAD_BOOL(&pSampleConfiguration->interrupted)) {
 
@@ -90,9 +103,10 @@ INT32 main(INT32 argc, CHAR *argv[])
         // periodically wake up and clean up terminated streaming session
         CVAR_WAIT(pSampleConfiguration->cvar, pSampleConfiguration->sampleConfigurationObjLock, 5 * HUNDREDS_OF_NANOS_IN_A_SECOND);
     }
+    printf("[KVS Master] Streaming session terminated\n");
 
 CleanUp:
-
+    printf("[KVS Master] Cleaning up....\n");
     CHK_LOG_ERR_NV(retStatus);
 
     if (locked) {
@@ -115,7 +129,7 @@ CleanUp:
         CHK_LOG_ERR_NV(freeSignalingClient(&pSampleConfiguration->signalingClientHandle));
         CHK_LOG_ERR_NV(freeSampleConfiguration(&pSampleConfiguration));
     }
-
+    printf("[KVS Master] Cleanup done\n");
     return (INT32) retStatus;
 }
 
