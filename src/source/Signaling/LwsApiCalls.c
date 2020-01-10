@@ -26,6 +26,7 @@ INT32 lwsHttpCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
     PSingleListNode pCurNode;
     UINT64 item;
     UINT32 headerCount;
+    UINT32 logLevel;
     PRequestHeader pRequestHeader;
     PSignalingClient pSignalingClient = NULL;
     BOOL locked = FALSE;
@@ -47,6 +48,7 @@ INT32 lwsHttpCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
     pRequestInfo = pLwsCallInfo->callInfo.pRequestInfo;
     pBuffer = pLwsCallInfo->buffer + LWS_PRE;
 
+    logLevel = loggerGetLogLevel();
     switch (reason) {
         case LWS_CALLBACK_CLIENT_CONNECTION_ERROR:
             MUTEX_LOCK(pSignalingClient->lwsServiceLock);
@@ -100,7 +102,10 @@ INT32 lwsHttpCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
             locked = TRUE;
 
             DLOGD("Received client http read: %d bytes", (INT32) dataSize);
-            lwsl_hexdump_notice(pDataIn, dataSize);
+
+            if(logLevel > LOG_LEVEL_INFO && logLevel < LOG_LEVEL_SILENT) {
+                lwsl_hexdump_notice(pDataIn, dataSize);
+            }
 
             if (dataSize != 0) {
                 CHK(NULL != (pLwsCallInfo->callInfo.responseData = (PCHAR) MEMALLOC(dataSize)),
