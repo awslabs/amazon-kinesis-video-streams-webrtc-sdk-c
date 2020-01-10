@@ -100,7 +100,7 @@ Run any of the sample applications by passing to it the name that you want to gi
 ./kvsWebrtcClientMaster myChannel
 ```
 
-When the command line application prints "[KVS Master] Signaling client connection to socket established", you can proceed to the next step.
+When the command line application prints "Signaling client connection to socket established", you can proceed to the next step.
 
 Now that your signaling channel is created and the connected master is streaming media to it, you can view this stream. To do so, open the [WebRTC SDK Test Page](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-js/examples/index.html) using the steps in Using the Kinesis Video Streams with WebRTC Test Page and set the following values using the same AWS credentials and the same signaling channel that you specified for the master above:
 * Access key ID

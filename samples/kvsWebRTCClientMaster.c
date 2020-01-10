@@ -44,6 +44,7 @@ INT32 main(INT32 argc, CHAR *argv[])
 
     CHK_STATUS(readFrameFromDisk(NULL, &frameSize, "./h264SampleFrames/frame-001.h264"));
     printf("[KVS Master] Checked sample video frame availability....available\n");
+
     CHK_STATUS(readFrameFromDisk(NULL, &frameSize, "./opusSampleFrames/sample-001.opus"));
     printf("[KVS Master] Checked sample audio frame availability....available\n");
 

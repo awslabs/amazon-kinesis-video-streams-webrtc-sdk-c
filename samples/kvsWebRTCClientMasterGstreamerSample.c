@@ -317,8 +317,7 @@ INT32 main(INT32 argc, CHAR *argv[])
             printf("[KVS Gstreamer Master] Streaming video only\n");
         }
     }
-    else
-    {
+    else {
         printf("[KVS Gstreamer Master] Streaming video only\n");
     }
 

@@ -45,9 +45,8 @@ INT32 main(INT32 argc, CHAR *argv[])
     MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
     locked = TRUE;
 
-    printf("[KVS Viewer] Creating streaming session...");
     CHK_STATUS(createSampleStreamingSession(pSampleConfiguration, NULL, FALSE, &pSampleStreamingSession));
-    printf("Completed\n");
+    printf("[KVS Viewer] Creating streaming session...completed\n");
     pSampleConfiguration->sampleStreamingSessionList[pSampleConfiguration->streamingSessionCount++] = pSampleStreamingSession;
 
     MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
@@ -59,7 +58,7 @@ INT32 main(INT32 argc, CHAR *argv[])
 
     MEMSET(&offerSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
     CHK_STATUS(createOffer(pSampleStreamingSession->pPeerConnection, &offerSessionDescriptionInit));
-    printf("[KVS Viewer] Offer creation successful");
+    printf("[KVS Viewer] Offer creation successful\n");
 
     CHK_STATUS(setLocalDescription(pSampleStreamingSession->pPeerConnection, &offerSessionDescriptionInit));
     printf("[KVS Viewer] Completed setting local description\n");
