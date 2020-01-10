@@ -2,6 +2,16 @@
 #include <gst/gst.h>
 #include <gst/app/gstappsink.h>
 
+static PSampleConfiguration gSampleConfiguration = NULL;
+VOID sigintHandler(INT32 sigNum)
+{
+    UNUSED_PARAM(sigNum);
+    if (gSampleConfiguration != NULL) {
+        ATOMIC_STORE_BOOL(&gSampleConfiguration->interrupted, TRUE);
+        CVAR_BROADCAST(gSampleConfiguration->cvar);
+    }
+}
+
 GstFlowReturn on_new_sample(GstElement *sink, gpointer data, UINT64 trackid)
 {
     GstBuffer *buffer;
@@ -285,6 +295,8 @@ INT32 main(INT32 argc, CHAR *argv[])
     UINT32 i;
     PSampleStreamingSession pSampleStreamingSession = NULL;
 
+    signal(SIGINT, sigintHandler);
+
     // do trickle-ice by default
     CHK_STATUS(createSampleConfiguration(argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME,
             SIGNALING_CHANNEL_ROLE_TYPE_MASTER,
@@ -341,6 +353,8 @@ INT32 main(INT32 argc, CHAR *argv[])
 
     // Enable the processing of the messages
     CHK_STATUS(signalingClientConnectSync(pSampleConfiguration->signalingClientHandle));
+
+    gSampleConfiguration = pSampleConfiguration;
 
     // Checking for termination
     while(!ATOMIC_LOAD_BOOL(&pSampleConfiguration->interrupted)) {
