@@ -3,14 +3,15 @@
 namespace com { namespace amazonaws { namespace kinesis { namespace video { namespace webrtcclient {
 
 class PeerConnectionFunctionalityTest : public WebRtcClientTestBase {
+public:
+    SIZE_T stateChangeCount[RTC_PEER_CONNECTION_TOTAL_STATE_COUNT] = {0};
 };
 
 // Connect two RtcPeerConnections, and wait for them to be connected
 // in the given amount of time. Return false if they don't go to connected in
 // the expected amounted of time
-bool connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerConnection answerPc) {
+bool connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerConnection answerPc, PeerConnectionFunctionalityTest *testBase) {
     RtcSessionDescriptionInit sdp;
-    volatile SIZE_T connectedCount = 0;
 
     auto onICECandidateHdlr = [](UINT64 customData, PCHAR candidateStr) -> void {
         if (candidateStr != NULL) {
@@ -26,12 +27,11 @@ bool connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerConnection answerPc) {
     EXPECT_EQ(peerConnectionOnIceCandidate(answerPc, (UINT64) offerPc, onICECandidateHdlr), STATUS_SUCCESS);
 
     auto onICEConnectionStateChangeHdlr = [](UINT64 customData, RTC_PEER_CONNECTION_STATE newState) -> void {
-        if (newState == RTC_PEER_CONNECTION_STATE_CONNECTED) {
-            ATOMIC_INCREMENT((PSIZE_T)customData);
-        }
+        ATOMIC_INCREMENT((PSIZE_T)customData + newState);
     };
-    EXPECT_EQ(peerConnectionOnConnectionStateChange(offerPc, (UINT64) &connectedCount, onICEConnectionStateChangeHdlr), STATUS_SUCCESS);
-    EXPECT_EQ(peerConnectionOnConnectionStateChange(answerPc, (UINT64) &connectedCount, onICEConnectionStateChangeHdlr), STATUS_SUCCESS);
+
+    EXPECT_EQ(peerConnectionOnConnectionStateChange(offerPc, (UINT64) testBase->stateChangeCount, onICEConnectionStateChangeHdlr), STATUS_SUCCESS);
+    EXPECT_EQ(peerConnectionOnConnectionStateChange(answerPc, (UINT64) testBase->stateChangeCount, onICEConnectionStateChangeHdlr), STATUS_SUCCESS);
 
     EXPECT_EQ(createOffer(offerPc, &sdp), STATUS_SUCCESS);
     EXPECT_EQ(setLocalDescription(offerPc, &sdp), STATUS_SUCCESS);
@@ -41,11 +41,11 @@ bool connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerConnection answerPc) {
     EXPECT_EQ(setLocalDescription(answerPc, &sdp), STATUS_SUCCESS);
     EXPECT_EQ(setRemoteDescription(offerPc, &sdp), STATUS_SUCCESS);
 
-    for (auto i = 0; i <= 10 && ATOMIC_LOAD(&connectedCount) != 2; i++) {
+    for (auto i = 0; i <= 10 && ATOMIC_LOAD(&testBase->stateChangeCount[RTC_PEER_CONNECTION_STATE_CONNECTED]) != 2; i++) {
         THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
     }
 
-    return ATOMIC_LOAD(&connectedCount) ==  2;
+    return ATOMIC_LOAD(&testBase->stateChangeCount[RTC_PEER_CONNECTION_STATE_CONNECTED]) == 2;
 }
 
 // Assert that two PeerConnections can connect to each other and go to connected
@@ -59,7 +59,7 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeers)
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
     EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
 
-    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc, this), TRUE);
 
     freePeerConnection(&offerPc);
     freePeerConnection(&answerPc);
@@ -83,6 +83,9 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersForcedTURN)
     initializeSignalingClient();
     EXPECT_EQ(signalingClientGetIceConfigInfoCount(mSignalingClientHandle, &iceConfigCount), STATUS_SUCCESS);
 
+    // Set the  STUN server
+    SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION);
+
     for (uriCount = 0, i = 0; i < iceConfigCount; i++) {
         EXPECT_EQ(signalingClientGetIceConfigInfo(mSignalingClientHandle, i, &pIceConfigInfo), STATUS_SUCCESS);
         for (j = 0; j < pIceConfigInfo->uriCount; j++) {
@@ -98,12 +101,159 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersForcedTURN)
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
     EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
 
-    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc, this), TRUE);
 
     freePeerConnection(&offerPc);
     freePeerConnection(&answerPc);
 
     deinitializeSignalingClient();
+}
+
+// Assert that two PeerConnections with host and stun candidate can go to connected
+TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithHostAndStun)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+
+    // Set the  STUN server
+    SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION);
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc, this), TRUE);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+}
+
+// Assert that two PeerConnections can connect and then termintate one of them, the other one will eventually report disconnection
+TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersThenDisconnectTest)
+{
+    if (!mAccessKeyIdSet) {
+        return;
+    }
+
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    UINT32 i;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc, this), TRUE);
+
+    // free offerPc so it wont send anymore keep alives and answerPc will detect disconnection
+    freePeerConnection(&offerPc);
+
+    THREAD_SLEEP(KVS_ICE_ENTER_STATE_DISCONNECTION_GRACE_PERIOD);
+
+    for (i = 0; i < 10; ++i) {
+        if (ATOMIC_LOAD(&stateChangeCount[RTC_PEER_CONNECTION_STATE_DISCONNECTED]) > 0) {
+            break;
+        }
+
+        THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
+    }
+
+    EXPECT_TRUE(ATOMIC_LOAD(&stateChangeCount[RTC_PEER_CONNECTION_STATE_DISCONNECTED]) > 0);
+
+    freePeerConnection(&answerPc);
+}
+
+// Assert that PeerConnection will go to failed state when no turn server was given in turn only mode.
+TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersExpectFailureBecauseNoCandidatePair)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_RELAY;
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc, this), FALSE);
+
+    // give time for to gathering to time out.
+    THREAD_SLEEP(KVS_ICE_GATHER_REFLEXIVE_AND_RELAYED_CANDIDATE_TIMEOUT);
+    EXPECT_TRUE(ATOMIC_LOAD(&stateChangeCount[RTC_PEER_CONNECTION_STATE_FAILED]) == 2);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+}
+
+// Assert that two PeerConnections can connect and then send media until the receiver gets both audio/video
+TEST_F(PeerConnectionFunctionalityTest, exchangeMedia)
+{
+    if (!mAccessKeyIdSet) {
+        return;
+    }
+
+    // Create track and transceiver and adds to PeerConnection
+    auto addTrackToPeerConnection = [](PRtcPeerConnection pRtcPeerConnection, PRtcMediaStreamTrack track, PRtcRtpTransceiver *transceiver, RTC_CODEC codec, MEDIA_STREAM_TRACK_KIND kind) -> void {
+
+        MEMSET(track, 0x00, SIZEOF(RtcMediaStreamTrack));
+
+        EXPECT_EQ(addSupportedCodec(pRtcPeerConnection, codec), STATUS_SUCCESS);
+
+        track->kind = kind;
+        track->codec = codec;
+        EXPECT_EQ(generateJSONSafeString(track->streamId, MAX_MEDIA_STREAM_ID_LEN), STATUS_SUCCESS);
+        EXPECT_EQ(generateJSONSafeString(track->trackId, MAX_MEDIA_STREAM_ID_LEN), STATUS_SUCCESS);
+
+        EXPECT_EQ(addTransceiver(pRtcPeerConnection, track, NULL, transceiver), STATUS_SUCCESS);
+    };
+
+    auto const frameBufferSize = 200000;
+
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    RtcMediaStreamTrack offerVideoTrack, answerVideoTrack, offerAudioTrack, answerAudioTrack;
+    PRtcRtpTransceiver offerVideoTransceiver, answerVideoTransceiver, offerAudioTransceiver, answerAudioTransceiver;
+    SIZE_T seenVideo = 0;
+    Frame videoFrame;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    MEMSET(&videoFrame, 0x00, SIZEOF(Frame));
+
+    videoFrame.frameData = (PBYTE) MEMALLOC(frameBufferSize);
+    videoFrame.size = frameBufferSize;
+
+    EXPECT_EQ(readFrameData(videoFrame.frameData, &(videoFrame.size), 1, (PCHAR) "../samples/h264SampleFrames"), STATUS_SUCCESS);
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    addTrackToPeerConnection(offerPc, &offerVideoTrack, &offerVideoTransceiver,RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+    addTrackToPeerConnection(offerPc, &offerAudioTrack, &offerAudioTransceiver,RTC_CODEC_OPUS, MEDIA_STREAM_TRACK_KIND_AUDIO);
+    addTrackToPeerConnection(answerPc, &answerVideoTrack, &answerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+    addTrackToPeerConnection(answerPc, &answerAudioTrack, &answerAudioTransceiver, RTC_CODEC_OPUS, MEDIA_STREAM_TRACK_KIND_AUDIO);
+
+    auto onFrameHandler = [](UINT64 customData, PFrame pFrame) -> void {
+        UNUSED_PARAM(pFrame);
+        ATOMIC_STORE((PSIZE_T) customData, 1);
+    };
+    EXPECT_EQ(transceiverOnFrame(answerVideoTransceiver, (UINT64) &seenVideo, onFrameHandler), STATUS_SUCCESS);
+
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc, this), TRUE);
+
+    for (auto i = 0; i <= 1000 && ATOMIC_LOAD(&seenVideo) != 1; i++) {
+        EXPECT_EQ(writeFrame(offerVideoTransceiver, &videoFrame), STATUS_SUCCESS);
+        videoFrame.presentationTs += (HUNDREDS_OF_NANOS_IN_A_SECOND / 25);
+
+        THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+
+    MEMFREE(videoFrame.frameData);
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+
+    EXPECT_EQ(ATOMIC_LOAD(&seenVideo), 1);
 }
 
 

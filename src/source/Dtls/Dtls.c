@@ -77,7 +77,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS createCertificateAndKey(X509 **ppCert, EVP_PKEY **ppPkey)
+STATUS createCertificateAndKey(INT32 certificateBits, X509 **ppCert, EVP_PKEY **ppPkey)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -94,7 +94,7 @@ STATUS createCertificateAndKey(X509 **ppCert, EVP_PKEY **ppPkey)
     CHK((*ppPkey = EVP_PKEY_new()) != NULL, STATUS_CERTIFICATE_GENERATION_FAILED);
 
     CHK((pRsa = RSA_new()) != NULL, STATUS_CERTIFICATE_GENERATION_FAILED);
-    CHK(RSA_generate_key_ex(pRsa, GENERATED_CERTIFICATE_BITS, pBne, NULL) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);
+    CHK(RSA_generate_key_ex(pRsa, certificateBits, pBne, NULL) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);
     CHK((EVP_PKEY_assign_RSA(*ppPkey, pRsa)) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);
     pRsa = NULL;
 
@@ -239,7 +239,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS createDtlsSession(PDtlsSessionCallbacks pDtlsSessionCallbacks, TIMER_QUEUE_HANDLE timerQueueHandle, PDtlsSession* ppDtlsSession)
+STATUS createDtlsSession(PDtlsSessionCallbacks pDtlsSessionCallbacks, TIMER_QUEUE_HANDLE timerQueueHandle, INT32 certificateBits, PDtlsSession* ppDtlsSession)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -257,7 +257,11 @@ STATUS createDtlsSession(PDtlsSessionCallbacks pDtlsSessionCallbacks, TIMER_QUEU
 
     pDtlsSession->dtlsSessionCallbacks = *pDtlsSessionCallbacks;
 
-    CHK_STATUS(createCertificateAndKey(&(pDtlsSession->pCert), &(pDtlsSession->pKey)));
+    if (certificateBits == 0) {
+        certificateBits = GENERATED_CERTIFICATE_BITS;
+    }
+
+    CHK_STATUS(createCertificateAndKey(certificateBits, &(pDtlsSession->pCert), &(pDtlsSession->pKey)));
     CHK_STATUS(createSslCtx(pDtlsSession->pCert, pDtlsSession->pKey, &(pDtlsSession->pSslCtx)));
     CHK_STATUS(createSsl(pDtlsSession->pSslCtx, &(pDtlsSession->pSsl)));
 
@@ -570,6 +574,10 @@ STATUS dtlsSessionVerifyRemoteCertificateFingerprint(PDtlsSession pDtlsSession, 
     CHK(STRCMP(pExpectedFingerprint, actualFingerprint) == 0,  STATUS_SSL_REMOTE_CERTIFICATE_VERIFICATION_FAILED);
 
 CleanUp:
+    if (pRemoteCertificate != NULL) {
+        X509_free(pRemoteCertificate);
+    }
+
     if (locked) {
         MUTEX_UNLOCK(pDtlsSession->sslLock);
     }

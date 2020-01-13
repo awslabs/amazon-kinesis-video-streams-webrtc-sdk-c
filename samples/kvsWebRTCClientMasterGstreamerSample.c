@@ -2,6 +2,16 @@
 #include <gst/gst.h>
 #include <gst/app/gstappsink.h>
 
+static PSampleConfiguration gSampleConfiguration = NULL;
+VOID sigintHandler(INT32 sigNum)
+{
+    UNUSED_PARAM(sigNum);
+    if (gSampleConfiguration != NULL) {
+        ATOMIC_STORE_BOOL(&gSampleConfiguration->interrupted, TRUE);
+        CVAR_BROADCAST(gSampleConfiguration->cvar);
+    }
+}
+
 GstFlowReturn on_new_sample(GstElement *sink, gpointer data, UINT64 trackid)
 {
     GstBuffer *buffer;
@@ -285,13 +295,17 @@ INT32 main(INT32 argc, CHAR *argv[])
     UINT32 i;
     PSampleStreamingSession pSampleStreamingSession = NULL;
 
+    signal(SIGINT, sigintHandler);
+
     // do trickle-ice by default
+    printf("[KVS GStreamer Master] Using trickleICE by default\n");
+
     CHK_STATUS(createSampleConfiguration(argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME,
             SIGNALING_CHANNEL_ROLE_TYPE_MASTER,
             TRUE,
             TRUE,
             &pSampleConfiguration));
-
+    printf("[KVS GStreamer Master] Created signaling channel %s\n", (argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME));
 
     pSampleConfiguration->videoSource = sendGstreamerAudioVideo;
     pSampleConfiguration->mediaType = SAMPLE_STREAMING_VIDEO_ONLY;
@@ -301,15 +315,22 @@ INT32 main(INT32 argc, CHAR *argv[])
 
     /* Initialize GStreamer */
     gst_init(&argc, &argv);
+    printf("[KVS Gstreamer Master] Finished initializing GStreamer\n");
 
     if (argc > 2) {
         if (STRCMP(argv[2], "video-only") == 0) {
             pSampleConfiguration->mediaType = SAMPLE_STREAMING_VIDEO_ONLY;
+            printf("[KVS Gstreamer Master] Streaming video only\n");
         } else if (STRCMP(argv[2], "audio-video") == 0) {
             pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
+            printf("[KVS Gstreamer Master] Streaming audio and video\n");
         } else {
             DLOGD("Unrecognized streaming type. Default to video-only");
+            printf("[KVS Gstreamer Master] Streaming video only\n");
         }
+    }
+    else {
+        printf("[KVS Gstreamer Master] Streaming video only\n");
     }
 
     switch (pSampleConfiguration->mediaType) {
@@ -323,6 +344,7 @@ INT32 main(INT32 argc, CHAR *argv[])
 
     // Initalize KVS WebRTC. This must be done before anything else, and must only be done once.
     CHK_STATUS(initKvsWebRtc());
+    printf("[KVS GStreamer Master] KVS WebRTC initialization completed successfully\n");
 
     signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
     signalingClientCallbacks.messageReceivedFn = masterMessageReceived;
@@ -331,7 +353,6 @@ INT32 main(INT32 argc, CHAR *argv[])
     signalingClientCallbacks.customData = (UINT64) pSampleConfiguration;
 
     clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
-    clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
     STRCPY(clientInfo.clientId, SAMPLE_MASTER_CLIENT_ID);
 
     CHK_STATUS(createSignalingClientSync(&clientInfo,
@@ -339,9 +360,16 @@ INT32 main(INT32 argc, CHAR *argv[])
             &signalingClientCallbacks,
             pSampleConfiguration->pCredentialProvider,
             &pSampleConfiguration->signalingClientHandle));
+    printf("[KVS GStreamer Master] Signaling client created successfully\n");
 
     // Enable the processing of the messages
     CHK_STATUS(signalingClientConnectSync(pSampleConfiguration->signalingClientHandle));
+    printf("[KVS GStreamer Master] Signaling client connection to socket established\n");
+
+    printf("[KVS Gstreamer Master] Beginning streaming...check the stream over channel %s\n",
+            (argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME));
+
+    gSampleConfiguration = pSampleConfiguration;
 
     // Checking for termination
     while(!ATOMIC_LOAD_BOOL(&pSampleConfiguration->interrupted)) {
@@ -368,9 +396,11 @@ INT32 main(INT32 argc, CHAR *argv[])
         // periodically wake up and clean up terminated streaming session
         CVAR_WAIT(pSampleConfiguration->cvar, pSampleConfiguration->sampleConfigurationObjLock, 5 * HUNDREDS_OF_NANOS_IN_A_SECOND);
     }
+    printf("[KVS GStreamer Master] Streaming session terminated\n");
 
 CleanUp:
 
+    printf("[KVS GStreamer Master] Cleaning up....\n");
     CHK_LOG_ERR_NV(retStatus);
 
     if (pSampleConfiguration != NULL) {
@@ -386,6 +416,6 @@ CleanUp:
         CHK_LOG_ERR_NV(freeSignalingClient(&pSampleConfiguration->signalingClientHandle));
         CHK_LOG_ERR_NV(freeSampleConfiguration(&pSampleConfiguration));
     }
-
+    printf("[KVS Gstreamer Master] Cleanup done\n");
     return (INT32) retStatus;
 }

@@ -153,6 +153,41 @@ CleanUp:
     return retStatus;
 }
 
+STATUS connectionListenerRemoveAllConnection(PConnectionListener pConnectionListener)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    BOOL locked = FALSE, connectionRemovalLocked = FALSE;
+
+    CHK(pConnectionListener != NULL, STATUS_NULL_ARG);
+    CHK(!ATOMIC_LOAD_BOOL(&pConnectionListener->terminate), retStatus);
+
+    MUTEX_LOCK(pConnectionListener->lock);
+    locked = TRUE;
+
+    // to make sure that we remove only when select() is unblocked. Otherwise we could close socket that select()
+    // is still listening and cause bad file descriptor error.
+    MUTEX_LOCK(pConnectionListener->connectionRemovalLock);
+    connectionRemovalLocked = TRUE;
+
+    // not freeing the PSocketConnection as it is not owned by connectionListener
+    CHK_STATUS(doubleListClear(pConnectionListener->connectionList, FALSE));
+
+    MUTEX_UNLOCK(pConnectionListener->connectionRemovalLock);
+    connectionRemovalLocked = FALSE;
+
+CleanUp:
+
+    if (connectionRemovalLocked) {
+        MUTEX_UNLOCK(pConnectionListener->connectionRemovalLock);
+    }
+
+    if (locked) {
+        MUTEX_UNLOCK(pConnectionListener->lock);
+    }
+
+    return retStatus;
+}
+
 STATUS connectionListenerStart(PConnectionListener pConnectionListener)
 {
     STATUS retStatus = STATUS_SUCCESS;

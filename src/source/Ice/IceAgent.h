@@ -13,7 +13,7 @@ extern "C" {
 #define KVS_ICE_MAX_CANDIDATE_PAIR_COUNT                                1024
 #define KVS_ICE_MAX_REMOTE_CANDIDATE_COUNT                              100
 #define KVS_ICE_MAX_LOCAL_CANDIDATE_COUNT                               100
-#define KVS_ICE_GATHER_REFLEXIVE_AND_RELAYED_CANDIDATE_TIMEOUT          20 * HUNDREDS_OF_NANOS_IN_A_SECOND
+#define KVS_ICE_GATHER_REFLEXIVE_AND_RELAYED_CANDIDATE_TIMEOUT          10 * HUNDREDS_OF_NANOS_IN_A_SECOND
 #define KVS_ICE_CONNECTIVITY_CHECK_TIMEOUT                              10 * HUNDREDS_OF_NANOS_IN_A_SECOND
 #define KVS_ICE_CANDIDATE_NOMINATION_TIMEOUT                            10 * HUNDREDS_OF_NANOS_IN_A_SECOND
 #define KVS_ICE_SEND_KEEP_ALIVE_INTERVAL                                15 * HUNDREDS_OF_NANOS_IN_A_SECOND
@@ -21,7 +21,6 @@ extern "C" {
 
 // Ta in https://tools.ietf.org/html/rfc8445
 #define KVS_ICE_CONNECTION_CHECK_POLLING_INTERVAL                       50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
-#define KVS_ICE_STATE_NEW_TIMER_POLLING_INTERVAL                        100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
 #define KVS_ICE_STATE_READY_TIMER_POLLING_INTERVAL                      1 * HUNDREDS_OF_NANOS_IN_A_SECOND
 
 // Disconnection timeout should be as long as KVS_ICE_SEND_KEEP_ALIVE_INTERVAL because peer can just be receiving
@@ -118,9 +117,8 @@ typedef struct {
     PDoubleList remoteCandidates;
     // store PIceCandidatePair which will be immediately checked for connectivity when the timer is fired.
     PStackQueue triggeredCheckQueue;
+    PDoubleList iceCandidatePairs;
 
-    PIceCandidatePair candidatePairs[KVS_ICE_MAX_CANDIDATE_PAIR_COUNT];
-    UINT32 candidatePairCount;
     PConnectionListener pConnectionListener;
     volatile BOOL agentStarted;
     BOOL isControlling;
@@ -156,6 +154,11 @@ typedef struct {
     UINT64 disconnectionGracePeriodEndTime;
 
     ICE_TRANSPORT_POLICY iceTransportPolicy;
+    KvsRtcConfiguration kvsRtcConfiguration;
+
+    // Pre-allocated stun packets
+    PStunPacket pBindingIndication;
+    PStunPacket pBindingRequest;
 } IceAgent, *PIceAgent;
 
 
@@ -260,6 +263,7 @@ STATUS iceAgentGatherLocalCandidate(PIceAgent);
 STATUS iceAgentPopulateSdpMediaDescriptionCandidates(PIceAgent, PSdpMediaDescription, UINT32, PUINT32);
 
 STATUS iceAgentReportNewLocalCandidate(PIceAgent, PIceCandidate);
+STATUS iceAgentValidateKvsRtcConfig(PKvsRtcConfiguration);
 
 // Incoming data handling functions
 STATUS newRelayCandidateHandler(UINT64, PKvsIpAddress, PSocketConnection);
@@ -273,10 +277,10 @@ STATUS findCandidateWithSocketConnection(PSocketConnection, PDoubleList, PIceCan
 
 // IceCandidatePair functions
 STATUS createIceCandidatePairs(PIceAgent, PIceCandidate, BOOL);
-STATUS sortIceCandidatePairs(PIceAgent);
+STATUS freeIceCandidatePair(PIceCandidatePair*);
+STATUS insertIceCandidatePair(PDoubleList, PIceCandidatePair);
 STATUS findIceCandidatePairWithLocalConnectionHandleAndRemoteAddr(PIceAgent, PSocketConnection, PKvsIpAddress, BOOL, PIceCandidatePair*);
 STATUS pruneUnconnectedIceCandidatePair(PIceAgent);
-STATUS pruneIceCandidatePairWithLocalCandidate(PIceAgent, PIceCandidate);
 STATUS iceCandidatePairCheckConnection(PStunPacket, PIceAgent, PIceCandidatePair);
 
 // timer callbacks. timer callbacks are interlocked by time queue lock.

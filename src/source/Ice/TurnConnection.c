@@ -23,6 +23,7 @@ STATUS createTurnConnection(PIceServer pTurnServer, TIMER_QUEUE_HANDLE timerQueu
     CHK(pTurnConnection != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
     pTurnConnection->lock = MUTEX_CREATE(TRUE);
+    pTurnConnection->sendLock = MUTEX_CREATE(FALSE);
     pTurnConnection->timerQueueHandle = timerQueueHandle;
     pTurnConnection->turnServer = *pTurnServer;
     pTurnConnection->state = TURN_STATE_NEW;
@@ -84,7 +85,9 @@ STATUS freeTurnConnection(PTurnConnection* ppTurnConnection)
 
     // tear down control channel
     if (pTurnConnection->pControlChannel != NULL) {
-        connectionListenerRemoveConnection(pTurnConnection->pConnectionListener, pTurnConnection->pControlChannel);
+        if (pTurnConnection->pConnectionListener != NULL) {
+            connectionListenerRemoveConnection(pTurnConnection->pConnectionListener, pTurnConnection->pControlChannel);
+        }
         freeSocketConnection(&pTurnConnection->pControlChannel);
     }
 
@@ -103,6 +106,10 @@ STATUS freeTurnConnection(PTurnConnection* ppTurnConnection)
 
     if (IS_VALID_MUTEX_VALUE(pTurnConnection->lock)) {
         MUTEX_FREE(pTurnConnection->lock);
+    }
+
+    if (IS_VALID_MUTEX_VALUE(pTurnConnection->sendLock)) {
+        MUTEX_FREE(pTurnConnection->sendLock);
     }
 
     turnConnectionFreePreAllocatedPackets(pTurnConnection);
@@ -531,6 +538,7 @@ STATUS turnConnectionSendData(PTurnConnection pTurnConnection, PBYTE pBuf, UINT3
     UINT32 paddedDataLen = 0;
     CHAR ipAddrStr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
     BOOL locked = FALSE;
+    BOOL sendLocked = FALSE;
 
     CHK(pTurnConnection != NULL && pDestIp != NULL, STATUS_NULL_ARG);
     CHK(pBuf != NULL && bufLen > 0, STATUS_INVALID_ARG);
@@ -562,6 +570,8 @@ STATUS turnConnectionSendData(PTurnConnection pTurnConnection, PBYTE pBuf, UINT3
 
     MUTEX_UNLOCK(pTurnConnection->lock);
     locked = FALSE;
+    MUTEX_LOCK(pTurnConnection->sendLock);
+    sendLocked = TRUE;
 
     CHK_STATUS(getIpAddrStr(pDestIp, ipAddrStr, ARRAY_SIZE(ipAddrStr)));
     if (pSendPeer == NULL) {
@@ -595,6 +605,10 @@ STATUS turnConnectionSendData(PTurnConnection pTurnConnection, PBYTE pBuf, UINT3
 CleanUp:
 
     CHK_LOG_ERR_NV(retStatus);
+
+    if (sendLocked) {
+        MUTEX_UNLOCK(pTurnConnection->sendLock);
+    }
 
     if (locked) {
         MUTEX_UNLOCK(pTurnConnection->lock);

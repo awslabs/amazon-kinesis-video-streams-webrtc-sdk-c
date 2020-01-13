@@ -84,10 +84,13 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
             CHK_STATUS(putSctpPacket(pKvsPeerConnection->pSctpSession, buff, signedBuffLen));
         }
 
-        if (pKvsPeerConnection->pSrtpSession == NULL) {
-            dtlsSessionIsInitFinished(pKvsPeerConnection->pDtlsSession, &isDtlsConnected);
-            if (isDtlsConnected) {
-                allocateSrtp(pKvsPeerConnection);
+        CHK_STATUS(dtlsSessionIsInitFinished(pKvsPeerConnection->pDtlsSession, &isDtlsConnected));
+        if (isDtlsConnected) {
+            if (pKvsPeerConnection->pSrtpSession == NULL) {
+                CHK_STATUS(allocateSrtp(pKvsPeerConnection));
+            }
+
+            if (pKvsPeerConnection->pSctpSession == NULL) {
                 CHK_STATUS(allocateSctp(pKvsPeerConnection));
             }
         }
@@ -111,6 +114,9 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
     }
 
 CleanUp:
+
+    CHK_LOG_ERR_NV(retStatus);
+
     return;
 }
 
@@ -418,7 +424,7 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
 
     dtlsSessionCallbacks.customData = (UINT64) pKvsPeerConnection;
     dtlsSessionCallbacks.outboundPacketFn = onDtlsOutboundPacket;
-    CHK_STATUS(createDtlsSession(&dtlsSessionCallbacks, pKvsPeerConnection->timerQueueHandle, &(pKvsPeerConnection->pDtlsSession)));
+    CHK_STATUS(createDtlsSession(&dtlsSessionCallbacks, pKvsPeerConnection->timerQueueHandle, pConfiguration->kvsRtcConfiguration.generatedCertificateBits, &(pKvsPeerConnection->pDtlsSession)));
 
     CHK_STATUS(hashTableCreateWithParams(CODEC_HASH_TABLE_BUCKET_COUNT, CODEC_HASH_TABLE_BUCKET_LENGTH, &pKvsPeerConnection->pCodecTable));
     CHK_STATUS(hashTableCreateWithParams(CODEC_HASH_TABLE_BUCKET_COUNT, CODEC_HASH_TABLE_BUCKET_LENGTH, &pKvsPeerConnection->pDataChannels));
@@ -435,6 +441,7 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
     pKvsPeerConnection->pSrtpSessionLock = MUTEX_CREATE(TRUE);
     pKvsPeerConnection->peerConnectionObjLock = MUTEX_CREATE(FALSE);
     pKvsPeerConnection->previousConnectionState = RTC_PEER_CONNECTION_STATE_NONE;
+    pKvsPeerConnection->MTU = pConfiguration->kvsRtcConfiguration.maximumTransmissionUnit == 0 ? DEFAULT_MTU_SIZE : pConfiguration->kvsRtcConfiguration.maximumTransmissionUnit;
 
     iceAgentCallbacks.customData = (UINT64) pKvsPeerConnection;
     iceAgentCallbacks.inboundPacketFn = onInboundPacket;
@@ -468,6 +475,8 @@ STATUS freePeerConnection(PRtcPeerConnection *ppPeerConnection)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PKvsPeerConnection pKvsPeerConnection;
+    PDoubleListNode pCurNode = NULL;
+    UINT64 item = 0;
 
     CHK(ppPeerConnection != NULL, STATUS_NULL_ARG);
 
@@ -485,9 +494,18 @@ STATUS freePeerConnection(PRtcPeerConnection *ppPeerConnection)
     CHK_LOG_ERR_NV(freeSctpSession(&pKvsPeerConnection->pSctpSession));
     CHK_LOG_ERR_NV(freeIceAgent(&pKvsPeerConnection->pIceAgent));
 
+    // free transceivers
+    CHK_LOG_ERR_NV(doubleListGetHeadNode(pKvsPeerConnection->pTransceievers, &pCurNode));
+    while(pCurNode != NULL) {
+        CHK_LOG_ERR_NV(doubleListGetNodeData(pCurNode, &item));
+        CHK_LOG_ERR_NV(freeKvsRtpTransceiver((PKvsRtpTransceiver *) &item));
+
+        pCurNode = pCurNode->pNext;
+    }
+
     // free rest of structs
+    CHK_LOG_ERR_NV(freeSrtpSession(&pKvsPeerConnection->pSrtpSession));
     CHK_LOG_ERR_NV(freeDtlsSession(&pKvsPeerConnection->pDtlsSession));
-    CHK_LOG_ERR_NV(doubleListClear(pKvsPeerConnection->pTransceievers, TRUE));
     CHK_LOG_ERR_NV(doubleListFree(pKvsPeerConnection->pTransceievers));
     CHK_LOG_ERR_NV(hashTableFree(pKvsPeerConnection->pDataChannels));
     CHK_LOG_ERR_NV(hashTableFree(pKvsPeerConnection->pCodecTable));
@@ -850,6 +868,7 @@ STATUS initKvsWebRtc(VOID)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
+    CHK(!ATOMIC_LOAD_BOOL(&gKvsWebRtcInitialized), retStatus);
 
     SRAND(GETTIME());
 
@@ -881,6 +900,10 @@ STATUS deinitKvsWebRtc(VOID)
     CHK(ATOMIC_LOAD_BOOL(&gKvsWebRtcInitialized), retStatus);
 
     deinitSctpSession();
+
+    srtp_shutdown();
+
+    ATOMIC_STORE_BOOL(&gKvsWebRtcInitialized, FALSE);
 
 CleanUp:
 

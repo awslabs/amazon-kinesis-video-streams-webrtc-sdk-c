@@ -135,13 +135,14 @@ STATUS freeSctpSession(PSctpSession* ppSctpSession)
 
     CHK(pSctpSession != NULL, retStatus);
 
-    usrsctp_deregister_address(pSctpSession);
     if (pSctpSession->socket != NULL) {
-        usrsctp_shutdown(pSctpSession->socket, SHUT_RDWR);
         usrsctp_close(pSctpSession->socket);
+        usrsctp_deregister_address(pSctpSession);
     }
 
     SAFE_MEMFREE(*ppSctpSession);
+
+    *ppSctpSession = NULL;
 
 CleanUp:
 
@@ -176,7 +177,7 @@ INT32 onSctpOutboundPacket(PVOID addr, PVOID data, ULONG length, UINT8 tos, UINT
 
     PSctpSession pSctpSession = (PSctpSession) addr;
 
-    if (pSctpSession != NULL && pSctpSession->sctpSessionCallbacks.outboundPacketFunc) {
+    if (pSctpSession != NULL && pSctpSession->sctpSessionCallbacks.outboundPacketFunc != NULL) {
         pSctpSession->sctpSessionCallbacks.outboundPacketFunc(pSctpSession->sctpSessionCallbacks.customData, data, length);
     } else {
         DLOGE("SCTP attempted to send packet but outboundPacketFunc is not defined");
@@ -256,6 +257,7 @@ INT32 onSctpInboundPacket(struct socket* sock, union sctp_sockstore addr, PVOID 
     }
 
 CleanUp:
+    SAFE_MEMFREE(data);
 
     return 1;
 }

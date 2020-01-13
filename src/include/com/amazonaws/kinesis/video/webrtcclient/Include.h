@@ -97,7 +97,7 @@ extern "C" {
 #define STATUS_CREATE_SSL_FAILED                                                    STATUS_NETWORKING_BASE + 0x0000001e
 #define STATUS_SSL_CONNECTION_FAILED                                                STATUS_NETWORKING_BASE + 0x0000001f
 #define STATUS_SECURE_SOCKET_READ_FAILED                                            STATUS_NETWORKING_BASE + 0x00000020
-#define STATUS_SECURE_SOCKET_CONNECTION_NOT_READY                                   STATUS_NETWORKING_BASE + 0x00000021
+#define STATUS_SOCKET_CONNECTION_NOT_READY_TO_SEND                                  STATUS_NETWORKING_BASE + 0x00000021
 #define STATUS_SOCKET_CONNECTION_CLOSED_ALREADY                                     STATUS_NETWORKING_BASE + 0x00000022
 
 //
@@ -124,7 +124,7 @@ extern "C" {
 #define STATUS_ICE_URL_TURN_MISSING_USERNAME                                        STATUS_ICE_BASE  + 0x00000008
 #define STATUS_ICE_URL_TURN_MISSING_CREDENTIAL                                      STATUS_ICE_BASE  + 0x00000009
 #define STATUS_ICE_AGENT_STATE_CHANGE_FAILED                                        STATUS_ICE_BASE  + 0x0000000a
-#define STATUS_ICE_NO_LOCAL_CANDIDATE_AVAILABLE                                     STATUS_ICE_BASE  + 0x0000000b
+#define STATUS_ICE_NO_LOCAL_CANDIDATE_AVAILABLE_AFTER_GATHERING_TIMEOUT             STATUS_ICE_BASE  + 0x0000000b
 #define STATUS_ICE_AGENT_TERMINATED_ALREADY                                         STATUS_ICE_BASE  + 0x0000000c
 #define STATUS_ICE_NO_CONNECTED_CANDIDATE_PAIR                                      STATUS_ICE_BASE  + 0x0000000d
 #define STATUS_ICE_CANDIDATE_PAIR_LIST_EMPTY                                        STATUS_ICE_BASE  + 0x0000000e
@@ -456,6 +456,7 @@ typedef enum {
     RTC_PEER_CONNECTION_STATE_DISCONNECTED  = 4,
     RTC_PEER_CONNECTION_STATE_FAILED        = 5,
     RTC_PEER_CONNECTION_STATE_CLOSED        = 6,
+    RTC_PEER_CONNECTION_TOTAL_STATE_COUNT   = 7,
 } RTC_PEER_CONNECTION_STATE;
 
 /*
@@ -596,6 +597,44 @@ typedef struct {
 } RtcIceServer, *PRtcIceServer;
 
 /**
+ *  KvsRtcConfiguration is a collection of non-standard extensions to RTCConfiguration
+ *  these exist to serve use cases that currently aren't being served by the W3C standard
+ *
+ *  These options will be removed/modified as the WebRTC standard changes, and exist to unblock
+ *  issues that we have today.
+ */
+typedef struct {
+    // maximumTransmissionUnit (MTU) controls the size of the largest packet the WebRTC SDK will send
+    // Some networks may drop packets if they exceed a certain size, and is useful in those conditions.
+    // A smaller MTU will incur higher bandwidth usage however since more packets will be generated with smaller payloads
+    // If unset DEFAULT_MTU_SIZE will be used
+    UINT16 maximumTransmissionUnit;
+
+    // iceLocalCandidateGatheringTimeout is the maximum time ice will wait for gathering STUN and RELAY candidates. Once
+    // it's reached, ice will proceed with whatever candidate it current has. Use default value if 0.
+    UINT32 iceLocalCandidateGatheringTimeout;
+
+    // iceConnectionCheckTimeout is the maximum time allowed waiting for at least one ice candidate pair to receive
+    // binding response from the peer. Use default value if 0.
+    UINT32 iceConnectionCheckTimeout;
+
+    // If client is ice controlling, this is the timeout for receiving bind response of requests that has USE_CANDIDATE
+    // attribute. If client is ice controlled, this is the timeout for receiving binding request that has USE_CANDIDATE
+    // attribute after connection check is done. Use default value if 0.
+    UINT32 iceCandidateNominationTimeout;
+
+    // Ta in https://tools.ietf.org/html/rfc8445
+    // rate at which binding request packets are sent during connection check. Use default interval if 0.
+    UINT32 iceConnectionCheckPollingInterval;
+
+    // generatedCertificateBits controls the amount of bits the locally generated self-signed certificate uses
+    // A smaller amount of bits may result in less CPU usage on startup, but will cause a weaker certificate to be generated
+    // If unset GENERATED_CERTIFICATE_BITS will be used
+    INT32 generatedCertificateBits;
+
+} KvsRtcConfiguration, *PKvsRtcConfiguration;
+
+/**
  *  The Configuration defines a set of parameters to configure how the peer-to-peer
  *  communication established via RtcPeerConnection is established or re-established.
  *  https://www.w3.org/TR/webrtc/#rtcconfiguration-dictionary
@@ -604,7 +643,11 @@ typedef struct {
     // Indicates which candidates the ICE Agent is allowed to use.
     ICE_TRANSPORT_POLICY iceTransportPolicy;
 
+    // servers available to be used by ICE, such as STUN and TURN servers.
     RtcIceServer iceServers[MAX_ICE_SERVERS_COUNT];
+
+    // non-standard configuration options
+    KvsRtcConfiguration kvsRtcConfiguration;
 } RtcConfiguration, *PRtcConfiguration;
 
 /*

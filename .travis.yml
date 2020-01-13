@@ -15,8 +15,7 @@ addons:
       - ubuntu-toolchain-r-test
     packages:
       - gcc-4.4
-install:
-  - sudo apt-get install -y gdb
+      - gdb
 
 script:
   - export AWS_KVS_LOG_LEVEL=2
@@ -37,7 +36,6 @@ matrix:
     - name: "OSX GCC"
       os: osx
       compiler: gcc
-      install: skip # apt-get not available on MacOS
       before_script:
         - mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE
       script:
@@ -48,7 +46,6 @@ matrix:
     - name: "OSX Clang"
       os: osx
       compiler: clang
-      install: skip # apt-get not available on MacOS
       before_script:
         - mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
       script:
@@ -70,8 +67,15 @@ matrix:
     - name: "Linux Clang AddressSanitizer"
       os: linux
       compiler: clang
-      env: ASAN_OPTIONS=detect_odr_violation=0
+      env: ASAN_OPTIONS=detect_odr_violation=0:detect_leaks=1
       before_script: mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE -DADDRESS_SANITIZER=TRUE
+
+    # UndefinedBehaviorSanitizer
+    - name: "Linux Clang UndefinedBehaviorSanitizer"
+      os: linux
+      compiler: clang
+      env: UBSAN_OPTIONS=halt_on_error=1
+      before_script: mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE -DUNDEFINED_BEHAVIOR_SANITIZER=TRUE
 
     # MemorySanitizer
     - name: "Linux Clang MemorySanitizer"
@@ -87,16 +91,16 @@ matrix:
       env: allowTestFail=true
       before_script: mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE -DTHREAD_SANITIZER=TRUE
 
-    # UndefinedBehaviorSanitizer
-    - name: "Linux Clang UndefinedBehaviorSanitizer"
-      os: linux
-      compiler: clang
-      before_script: mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE -DUNDEFINED_BEHAVIOR_SANITIZER=TRUE
-
     # Old Version GCC 4.4
     - name: "Linux GCC 4.4 Build"
       os: linux
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - gcc-4.4
+            - gdb
       compiler: gcc
       before_script:
         - export CC=gcc-4.4 && mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE
-
