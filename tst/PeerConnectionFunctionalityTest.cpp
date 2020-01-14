@@ -41,7 +41,7 @@ bool connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerConnection answerPc, Pe
     EXPECT_EQ(setLocalDescription(answerPc, &sdp), STATUS_SUCCESS);
     EXPECT_EQ(setRemoteDescription(offerPc, &sdp), STATUS_SUCCESS);
 
-    for (auto i = 0; i <= 10 && ATOMIC_LOAD(&testBase->stateChangeCount[RTC_PEER_CONNECTION_STATE_CONNECTED]) != 2; i++) {
+    for (auto i = 0; i <= 100 && ATOMIC_LOAD(&testBase->stateChangeCount[RTC_PEER_CONNECTION_STATE_CONNECTED]) != 2; i++) {
         THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
     }
 
