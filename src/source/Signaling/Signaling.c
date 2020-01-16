@@ -339,6 +339,7 @@ STATUS signalingConnectSync(PSignalingClient pSignalingClient)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
+    PStateMachineState pState = NULL;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
@@ -351,6 +352,9 @@ STATUS signalingConnectSync(PSignalingClient pSignalingClient)
     // Self-prime through the ready state
     pSignalingClient->continueOnReady = TRUE;
 
+    // Store the signaling state in case we error/timeout so we can re-set it on exit
+    CHK_STATUS(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pState));
+
     // Set the time out before execution
     pSignalingClient->stepUntil = GETTIME() + SIGNALING_CONNECT_STATE_TIMEOUT;
 
@@ -359,6 +363,12 @@ STATUS signalingConnectSync(PSignalingClient pSignalingClient)
 CleanUp:
 
     CHK_LOG_ERR_NV(retStatus);
+
+    // Re-set the state if we failed
+    if (STATUS_FAILED(retStatus) && (pState != NULL)) {
+        resetStateMachineRetryCount(pSignalingClient->pStateMachine);
+        setStateMachineCurrentState(pSignalingClient->pStateMachine, pState->state);
+    }
 
     LEAVES();
     return retStatus;

@@ -39,6 +39,9 @@ typedef struct {
 
     // Injected ICE server refresh period
     UINT64 iceRefreshPeriod;
+
+    // Injected connect timeout
+    UINT64 connectTimeout;
 } SignalingClientInfoInternal, *PSignalingClientInfoInternal;
 
 /**
