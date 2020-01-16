@@ -5,6 +5,9 @@ project(KinesisVideoWebRTCClient LANGUAGES C)
 option(ADD_MUCLIBC "Add -muclibc c flag" OFF)
 option(BUILD_DEPENDENCIES "Whether or not to build depending libraries from source" ON)
 option(BUILD_OPENSSL "If building dependencies, whether or not building openssl from source" OFF)
+option(BUILD_OPENSSL_PLATFORM "If buildng OpenSSL what is the target platform" OFF)
+option(BUILD_LIBSRTP_HOST_PLATFORM "If buildng LibSRTP what is the current platform" OFF)
+option(BUILD_LIBSRTP_DESTINATION_PLATFORM "If buildng LibSRTP what is the destination platform" OFF)
 
 # Developer Flags
 option(BUILD_TEST "Build the testing tree." OFF)
@@ -108,7 +111,7 @@ if(BUILD_DEPENDENCIES)
               ${CMAKE_SOURCE_DIR}/cmake-scripts/libopenssl-CMakeLists.txt
               ${OPEN_SOURCE_DIR}/libopenssl/CMakeLists.txt COPYONLY)
       execute_process(
-              COMMAND ${CMAKE_COMMAND} -DOPEN_SRC_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX} -G ${CMAKE_GENERATOR} .
+              COMMAND ${CMAKE_COMMAND} -DBUILD_OPENSSL_PLATFORM=${BUILD_OPENSSL_PLATFORM} -DOPEN_SRC_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX} -G ${CMAKE_GENERATOR} .
               RESULT_VARIABLE result
               WORKING_DIRECTORY ${OPEN_SOURCE_DIR}/libopenssl)
       if(result)
@@ -168,7 +171,7 @@ if(BUILD_DEPENDENCIES)
     configure_file(${CMAKE_SOURCE_DIR}/cmake-scripts/libsrtp-CMakeLists.txt
                    ${OPEN_SOURCE_DIR}/libsrtp/CMakeLists.txt COPYONLY)
     execute_process(
-      COMMAND ${CMAKE_COMMAND} -DOPENSSL_DIR=${OPENSSL_DIR} -DOPEN_SRC_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX} -G ${CMAKE_GENERATOR} .
+      COMMAND ${CMAKE_COMMAND} -DOPENSSL_DIR=${OPENSSL_DIR} -DBUILD_LIBSRTP_HOST_PLATFORM=${BUILD_LIBSRTP_HOST_PLATFORM} -DBUILD_LIBSRTP_DESTINATION_PLATFORM=${BUILD_LIBSRTP_DESTINATION_PLATFORM} -DOPEN_SRC_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX} -G ${CMAKE_GENERATOR} .
       RESULT_VARIABLE result
       WORKING_DIRECTORY ${OPEN_SOURCE_DIR}/libsrtp)
     if(result)
