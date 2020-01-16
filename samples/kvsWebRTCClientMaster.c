@@ -1,24 +1,14 @@
 #include "Samples.h"
 
-static PSampleConfiguration gSampleConfiguration = NULL;
-VOID sigintHandler(INT32 sigNum)
-{
-    UNUSED_PARAM(sigNum);
-    if (gSampleConfiguration != NULL) {
-        ATOMIC_STORE_BOOL(&gSampleConfiguration->interrupted, TRUE);
-        CVAR_BROADCAST(gSampleConfiguration->cvar);
-    }
-}
+extern PSampleConfiguration gSampleConfiguration;
 
 INT32 main(INT32 argc, CHAR *argv[])
 {
     STATUS retStatus = STATUS_SUCCESS;
     SignalingClientCallbacks signalingClientCallbacks;
     SignalingClientInfo clientInfo;
-    UINT32 frameSize, i;
+    UINT32 frameSize;
     PSampleConfiguration pSampleConfiguration = NULL;
-    PSampleStreamingSession pSampleStreamingSession = NULL;
-    BOOL locked = FALSE;
 
     signal(SIGINT, sigintHandler);
 
@@ -74,45 +64,17 @@ INT32 main(INT32 argc, CHAR *argv[])
 
     gSampleConfiguration = pSampleConfiguration;
 
-    MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
-    locked = TRUE;
-
     printf("[KVS Master] Beginning audio-video streaming...check the stream over channel %s\n",
             (argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME));
+
     // Checking for termination
-    while(!ATOMIC_LOAD_BOOL(&pSampleConfiguration->interrupted)) {
+    CHK_STATUS(sessionCleanupWait(pSampleConfiguration));
 
-        // scan and cleanup terminated streaming session
-        for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
-            if (ATOMIC_LOAD_BOOL(&pSampleConfiguration->sampleStreamingSessionList[i]->terminateFlag)) {
-                pSampleStreamingSession = pSampleConfiguration->sampleStreamingSessionList[i];
-
-                ATOMIC_STORE_BOOL(&pSampleConfiguration->updatingSampleStreamingSessionList, TRUE);
-                while(ATOMIC_LOAD(&pSampleConfiguration->streamingSessionListReadingThreadCount) != 0) {
-                    // busy loop until all media thread stopped reading stream session list
-                    THREAD_SLEEP(5 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
-                }
-
-                // swap with last element and decrement count
-                pSampleConfiguration->streamingSessionCount--;
-                pSampleConfiguration->sampleStreamingSessionList[i] = pSampleConfiguration->sampleStreamingSessionList[pSampleConfiguration->streamingSessionCount];
-                CHK_STATUS(freeSampleStreamingSession(&pSampleStreamingSession));
-                ATOMIC_STORE_BOOL(&pSampleConfiguration->updatingSampleStreamingSessionList, FALSE);
-            }
-        }
-
-        // periodically wake up and clean up terminated streaming session
-        CVAR_WAIT(pSampleConfiguration->cvar, pSampleConfiguration->sampleConfigurationObjLock, 5 * HUNDREDS_OF_NANOS_IN_A_SECOND);
-    }
     printf("[KVS Master] Streaming session terminated\n");
 
 CleanUp:
     printf("[KVS Master] Cleaning up....\n");
     CHK_LOG_ERR_NV(retStatus);
-
-    if (locked) {
-        MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
-    }
 
     if (pSampleConfiguration != NULL) {
         // Kick of the termination sequence
@@ -213,7 +175,6 @@ PVOID sendAudioPackets(PVOID args)
     Frame frame;
     UINT32 fileIndex = 0, frameSize;
     CHAR filePath[MAX_PATH_LEN + 1];
-    BOOL locked = FALSE;
     UINT32 i;
     STATUS status;
 
@@ -254,10 +215,6 @@ PVOID sendAudioPackets(PVOID args)
     }
 
 CleanUp:
-
-    if (locked) {
-        MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
-    }
 
     CHK_LOG_ERR_NV(retStatus);
     return (PVOID) (ULONG_PTR) retStatus;

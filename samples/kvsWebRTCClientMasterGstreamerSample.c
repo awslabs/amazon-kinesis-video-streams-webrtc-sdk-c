@@ -2,15 +2,7 @@
 #include <gst/gst.h>
 #include <gst/app/gstappsink.h>
 
-static PSampleConfiguration gSampleConfiguration = NULL;
-VOID sigintHandler(INT32 sigNum)
-{
-    UNUSED_PARAM(sigNum);
-    if (gSampleConfiguration != NULL) {
-        ATOMIC_STORE_BOOL(&gSampleConfiguration->interrupted, TRUE);
-        CVAR_BROADCAST(gSampleConfiguration->cvar);
-    }
-}
+extern PSampleConfiguration gSampleConfiguration;
 
 GstFlowReturn on_new_sample(GstElement *sink, gpointer data, UINT64 trackid)
 {
@@ -292,8 +284,6 @@ INT32 main(INT32 argc, CHAR *argv[])
     SignalingClientCallbacks signalingClientCallbacks;
     SignalingClientInfo clientInfo;
     PSampleConfiguration pSampleConfiguration = NULL;
-    UINT32 i;
-    PSampleStreamingSession pSampleStreamingSession = NULL;
 
     signal(SIGINT, sigintHandler);
 
@@ -372,30 +362,8 @@ INT32 main(INT32 argc, CHAR *argv[])
     gSampleConfiguration = pSampleConfiguration;
 
     // Checking for termination
-    while(!ATOMIC_LOAD_BOOL(&pSampleConfiguration->interrupted)) {
+    CHK_STATUS(sessionCleanupWait(pSampleConfiguration));
 
-        // scan and cleanup terminated streaming session
-        for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
-            if (ATOMIC_LOAD_BOOL(&pSampleConfiguration->sampleStreamingSessionList[i]->terminateFlag)) {
-                pSampleStreamingSession = pSampleConfiguration->sampleStreamingSessionList[i];
-
-                ATOMIC_STORE_BOOL(&pSampleConfiguration->updatingSampleStreamingSessionList, TRUE);
-                while(ATOMIC_LOAD(&pSampleConfiguration->streamingSessionListReadingThreadCount) != 0) {
-                    // busy loop until all media thread stopped reading stream session list
-                    THREAD_SLEEP(5 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
-                }
-
-                // swap with last element and decrement count
-                pSampleConfiguration->streamingSessionCount--;
-                pSampleConfiguration->sampleStreamingSessionList[i] = pSampleConfiguration->sampleStreamingSessionList[pSampleConfiguration->streamingSessionCount];
-                CHK_STATUS(freeSampleStreamingSession(&pSampleStreamingSession));
-                ATOMIC_STORE_BOOL(&pSampleConfiguration->updatingSampleStreamingSessionList, FALSE);
-            }
-        }
-
-        // periodically wake up and clean up terminated streaming session
-        CVAR_WAIT(pSampleConfiguration->cvar, pSampleConfiguration->sampleConfigurationObjLock, 5 * HUNDREDS_OF_NANOS_IN_A_SECOND);
-    }
     printf("[KVS GStreamer Master] Streaming session terminated\n");
 
 CleanUp:
