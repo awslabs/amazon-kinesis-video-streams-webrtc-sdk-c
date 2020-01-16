@@ -84,6 +84,7 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
 
         // wait until channel is created
         while(!turnReady) {
+            THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
             MUTEX_LOCK(pTurnConnection->lock);
             if (pTurnConnection->state == TURN_STATE_READY) {
                 turnReady = TRUE;
@@ -111,6 +112,7 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         turnReady = FALSE;
 
         while(!turnReady) {
+            THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
             MUTEX_LOCK(pTurnConnection->lock);
             if (pTurnConnection->state == TURN_STATE_READY) {
                 turnReady = TRUE;
@@ -158,6 +160,7 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
 
         // wait until channel is created
         while(!turnReady) {
+            THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
             MUTEX_LOCK(pTurnConnection->lock);
             if (pTurnConnection->state == TURN_STATE_READY) {
                 turnReady = TRUE;
@@ -246,6 +249,7 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
 
         // wait until channel is created
         while(!turnReady) {
+            THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
             MUTEX_LOCK(pTurnConnection->lock);
             if (pTurnConnection->state == TURN_STATE_READY) {
                 turnReady = TRUE;
@@ -259,6 +263,64 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         // socket
         EXPECT_EQ(STATUS_SUCCESS, turnConnectionHandleChannelDataTcpMode(pTurnConnection, channelMsg, 120));
         EXPECT_EQ(STATUS_SUCCESS, turnConnectionHandleChannelDataTcpMode(pTurnConnection, channelMsg + 120, ARRAY_SIZE(channelMsg) - 120));
+
+        freeTestTurnConnection(&pTurnConnection);
+    }
+
+    TEST_F(TurnConnectionFunctionalityTest, turnConnectionCallMultipleTurnSendDataInThreads)
+    {
+        PTurnConnection pTurnConnection = NULL;
+        BOOL turnReady = FALSE;
+        KvsIpAddress turnPeerAddr;
+        const UINT32 bufLen = 5;
+        const UINT32 reqCount = 5;
+        BYTE buf[reqCount][bufLen];
+        std::thread threads[reqCount];
+        UINT32 i, j;
+
+        initializeTestTurnConnection(&pTurnConnection);
+
+        turnPeerAddr.port = (UINT16) getInt16(8080);
+        turnPeerAddr.family = KVS_IP_FAMILY_TYPE_IPV4;
+        turnPeerAddr.isPointToPoint = FALSE;
+        // random peer 10.1.1.1, we are not actually sending anything to it.
+        turnPeerAddr.address[0] = 0x0A;
+        turnPeerAddr.address[1] = 0x01;
+        turnPeerAddr.address[2] = 0x01;
+        turnPeerAddr.address[3] = 0x01;
+
+        EXPECT_EQ(STATUS_SUCCESS, turnConnectionAddPeer(pTurnConnection, &turnPeerAddr));
+        EXPECT_EQ(STATUS_SUCCESS, turnConnectionStart(pTurnConnection));
+
+        // wait until channel is created
+        while(!turnReady) {
+            THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+            MUTEX_LOCK(pTurnConnection->lock);
+            if (pTurnConnection->state == TURN_STATE_READY) {
+                turnReady = TRUE;
+            }
+            MUTEX_UNLOCK(pTurnConnection->lock);
+        }
+
+        EXPECT_TRUE(turnReady == TRUE);
+
+        for (i = 0; i < reqCount; i++) {
+            for (j = 0; j < bufLen; j++) {
+                buf[i][j] = i;
+            }
+            threads[i] = std::thread([](PTurnConnection pTurnConnection, PBYTE pBuf, UINT32 bufLen, PKvsIpAddress pKvsIpAddress) -> void {
+                EXPECT_EQ(STATUS_SUCCESS, turnConnectionSendData(pTurnConnection, pBuf, bufLen, pKvsIpAddress));
+            }, pTurnConnection, (PBYTE) buf[i], bufLen, &turnPeerAddr);
+        }
+
+        for (i = 0; i < reqCount; i++) {
+            threads[i].join();
+        }
+
+        // allocation should be refreshed.
+        MUTEX_LOCK(pTurnConnection->lock);
+        EXPECT_GE(pTurnConnection->allocationExpirationTime, GETTIME());
+        MUTEX_UNLOCK(pTurnConnection->lock);
 
         freeTestTurnConnection(&pTurnConnection);
     }
