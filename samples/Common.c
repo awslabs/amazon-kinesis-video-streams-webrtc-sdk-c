@@ -572,6 +572,10 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
         MUTEX_FREE(pSampleConfiguration->sampleConfigurationObjLock);
     }
 
+    if (IS_VALID_CVAR_VALUE(pSampleConfiguration->cvar)) {
+        CVAR_FREE(pSampleConfiguration->cvar);
+    }
+
     freeStaticCredentialProvider(&pSampleConfiguration->pCredentialProvider);
 
     MEMFREE(*ppSampleConfiguration);
