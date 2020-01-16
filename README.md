@@ -37,6 +37,7 @@
 * Portable
   - Tested on Linux/MacOS
   - Tested on x64, ARMv5
+  - Build system designed for pleasant cross-compilation
 * Small Install Size
   - Sub 200k library size
   - OpenSSL, libsrtp, libjsmn, libusrsctp and libwebsockets dependencies.
@@ -60,11 +61,21 @@ GStreamer is installed on your system.
 By default we download all the libraries from GitHub and build them locally, so should require nothing to be installed ahead of time.
 If you do wish to link to existing libraries you can use the following flags to customize your build.
 
+
+#### Cross-Compilation
+
+If you wish to cross-compile `CC` and `CXX` are respected when building the library and all its dependencies. You will also need to set `BUILD_OPENSSL_PLATFORM`, `BUILD_LIBSRTP_HOST_PLATFORM` and `BUILD_LIBSRTP_DESTINATION_PLATFORM`. See our [.travis.yml](.travis.yml) for an example of this. Every commit is cross compiled to ensure that it continues to work.
+
+
+#### CMake Arguments
 You can pass the following options to `cmake ..`.
 
 * `-DADD_MUCLIBC` -- Add -muclibc c flag
 * `-DBUILD_DEPENDENCIES` -- Whether or not to build depending libraries from source
 * `-DBUILD_OPENSSL` -- If building dependencies, whether or not building openssl from source
+* `-DBUILD_OPENSSL_PLATFORM` -- If buildng OpenSSL what is the target platform
+* `-DBUILD_LIBSRTP_HOST_PLATFORM` -- If buildng LibSRTP what is the current platform
+* `-DBUILD_LIBSRTP_DESTINATION_PLATFORM` -- If buildng LibSRTP what is the destination platform
 * `-DBUILD_TEST=TRUE` -- Build unit/integration tests, may be useful for confirm support for your device. `./tst/webrtc_client_test`
 * `-DCODE_COVERAGE` --  Enable coverage reporting
 * `-DCOMPILER_WARNINGS` -- Enable all compiler warnings

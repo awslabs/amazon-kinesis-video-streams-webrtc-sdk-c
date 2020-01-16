@@ -4,12 +4,18 @@ project(libopenssl-download NONE)
 
 find_program(MAKE_EXE NAMES make)
 
+if (DEFINED BUILD_OPENSSL_PLATFORM AND NOT BUILD_OPENSSL_PLATFORM STREQUAL OFF)
+  SET(CONFIGURE_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/build/src/project_libopenssl/Configure --prefix=${OPEN_SRC_INSTALL_PREFIX} --openssldir=${OPEN_SRC_INSTALL_PREFIX} ${BUILD_OPENSSL_PLATFORM})
+else()
+  SET(CONFIGURE_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/build/src/project_libopenssl/config --prefix=${OPEN_SRC_INSTALL_PREFIX} --openssldir=${OPEN_SRC_INSTALL_PREFIX})
+endif()
+
 include(ExternalProject)
 ExternalProject_Add(project_libopenssl
     GIT_REPOSITORY    https://github.com/openssl/openssl.git
     GIT_TAG           OpenSSL_1_1_0l
     PREFIX            ${CMAKE_CURRENT_BINARY_DIR}/build
-    CONFIGURE_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/build/src/project_libopenssl/config --prefix=${OPEN_SRC_INSTALL_PREFIX} --openssldir=${OPEN_SRC_INSTALL_PREFIX}
+    CONFIGURE_COMMAND ${CONFIGURE_COMMAND}
     BUILD_COMMAND     ${MAKE_EXE} -j 4
     BUILD_IN_SOURCE   TRUE
     INSTALL_COMMAND   ${MAKE_EXE} install_sw
