@@ -21,7 +21,7 @@ script:
   - export AWS_KVS_LOG_LEVEL=1
   - make
   - ulimit -c unlimited -S
-  - timeout --signal=SIGABRT 20m ./tst/webrtc_client_test --gtest_break_on_failure --gtest_filter="SignalingApiFunctionalityTest.connectTimeoutEmulation" --gtest_repeat=5
+  - timeout --signal=SIGABRT 20m ./tst/webrtc_client_test
 
 after_failure:
   - for i in $(find ./ -maxdepth 1 -name 'core*' -print); do gdb $(pwd)/tst/webrtc_client_test core* -ex "thread apply all bt" -ex "set pagination 0" -batch; done;
