@@ -85,6 +85,7 @@ struct __SampleStreamingSession {
     UINT64 shutdownCallbackCustomData;
 };
 
+VOID sigintHandler(INT32);
 STATUS readFrameFromDisk(PBYTE, PUINT32, PCHAR);
 PVOID sendVideoPackets(PVOID);
 PVOID sendAudioPackets(PVOID);
@@ -107,6 +108,7 @@ STATUS resetSampleConfigurationState(PSampleConfiguration);
 VOID sampleFrameHandler(UINT64, PFrame);
 VOID onDataChannel(UINT64, PRtcDataChannel);
 VOID onConnectionStateChange(UINT64, RTC_PEER_CONNECTION_STATE);
+STATUS sessionCleanupWait(PSampleConfiguration);
 
 #ifdef  __cplusplus
 }

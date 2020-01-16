@@ -1,6 +1,17 @@
 #define LOG_CLASS "WebRtcSamples"
 #include "Samples.h"
 
+PSampleConfiguration gSampleConfiguration = NULL;
+
+VOID sigintHandler(INT32 sigNum)
+{
+    UNUSED_PARAM(sigNum);
+    if (gSampleConfiguration != NULL) {
+        ATOMIC_STORE_BOOL(&gSampleConfiguration->interrupted, TRUE);
+        CVAR_BROADCAST(gSampleConfiguration->cvar);
+    }
+}
+
 VOID onDataChannelMessage(UINT64 customData, BOOL isBinary, PBYTE pMessage, UINT32 pMessageLen)
 {
     UNUSED_PARAM(customData);
@@ -567,6 +578,54 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
     *ppSampleConfiguration = NULL;
 
 CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PSampleStreamingSession pSampleStreamingSession = NULL;
+    UINT32 i;
+    BOOL locked = FALSE;
+
+    CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
+
+    MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
+    locked = TRUE;
+
+    while(!ATOMIC_LOAD_BOOL(&pSampleConfiguration->interrupted)) {
+
+        // scan and cleanup terminated streaming session
+        for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
+            if (ATOMIC_LOAD_BOOL(&pSampleConfiguration->sampleStreamingSessionList[i]->terminateFlag)) {
+                pSampleStreamingSession = pSampleConfiguration->sampleStreamingSessionList[i];
+
+                ATOMIC_STORE_BOOL(&pSampleConfiguration->updatingSampleStreamingSessionList, TRUE);
+                while(ATOMIC_LOAD(&pSampleConfiguration->streamingSessionListReadingThreadCount) != 0) {
+                    // busy loop until all media thread stopped reading stream session list
+                    THREAD_SLEEP(5 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+                }
+
+                // swap with last element and decrement count
+                pSampleConfiguration->streamingSessionCount--;
+                pSampleConfiguration->sampleStreamingSessionList[i] = pSampleConfiguration->sampleStreamingSessionList[pSampleConfiguration->streamingSessionCount];
+                CHK_STATUS(freeSampleStreamingSession(&pSampleStreamingSession));
+                ATOMIC_STORE_BOOL(&pSampleConfiguration->updatingSampleStreamingSessionList, FALSE);
+            }
+        }
+
+        // periodically wake up and clean up terminated streaming session
+        CVAR_WAIT(pSampleConfiguration->cvar, pSampleConfiguration->sampleConfigurationObjLock, 5 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+    }
+
+CleanUp:
+
+    if (locked) {
+        MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
+    }
 
     LEAVES();
     return retStatus;
