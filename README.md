@@ -97,6 +97,27 @@ First set the appropriate environment variables so you can connect to KVS
 export AWS_ACCESS_KEY_ID= <AWS account access key>
 export AWS_SECRET_ACCESS_KEY= <AWS account secret key>
 ```
+### Setup desired log level:
+Set up the desired log level. The log levels and corresponding values currently available are:
+1. `LOG_LEVEL_VERBOSE` ---- 1
+2. `LOG_LEVEL_DEBUG`   ---- 2
+3. `LOG_LEVEL_INFO`    ---- 3
+4. `LOG_LEVEL_WARN`    ---- 4
+5. `LOG_LEVEL_ERROR`   ---- 5
+6. `LOG_LEVEL_FATAL`   ---- 6
+7. `LOG_LEVEL_SILENT`  ---- 7
+
+To set a log level, run the following command:
+```
+export AWS_KVS_LOG_LEVEL = <LOG_LEVEL>
+```
+
+For example:
+```
+export AWS_KVS_LOG_LEVEL = 2 switches on DEBUG level logs while runnning the samples
+```
+
+Note: The default log level is `LOG_LEVEL_WARN`.
 
 ### Running the Samples
 After executing `make` you will have the following sample applications in your `build` directory:
