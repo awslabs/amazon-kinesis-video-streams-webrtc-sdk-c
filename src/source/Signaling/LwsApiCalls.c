@@ -727,7 +727,7 @@ STATUS describeChannelLws(PSignalingClient pSignalingClient, UINT64 time)
 
 CleanUp:
 
-    if (STATUS_FAILED(retStatus)) {
+    if (STATUS_FAILED(retStatus) && pSignalingClient != NULL) {
         ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
     }
 
@@ -838,7 +838,7 @@ STATUS createChannelLws(PSignalingClient pSignalingClient, UINT64 time)
 
 CleanUp:
 
-    if (STATUS_FAILED(retStatus)) {
+    if (STATUS_FAILED(retStatus) && pSignalingClient != NULL) {
         ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
     }
 
@@ -976,7 +976,7 @@ STATUS getChannelEndpointLws(PSignalingClient pSignalingClient, UINT64 time)
 
 CleanUp:
 
-    if (STATUS_FAILED(retStatus)) {
+    if (STATUS_FAILED(retStatus) && pSignalingClient != NULL) {
         ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
     }
 
@@ -1107,7 +1107,7 @@ STATUS getIceConfigLws(PSignalingClient pSignalingClient, UINT64 time)
 
 CleanUp:
 
-    if (STATUS_FAILED(retStatus)) {
+    if (STATUS_FAILED(retStatus) && pSignalingClient != NULL) {
         ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
     }
 
@@ -1173,7 +1173,7 @@ STATUS deleteChannelLws(PSignalingClient pSignalingClient, UINT64 time)
 
 CleanUp:
 
-    if (STATUS_FAILED(retStatus)) {
+    if (STATUS_FAILED(retStatus) && pSignalingClient != NULL) {
         ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
     }
 
