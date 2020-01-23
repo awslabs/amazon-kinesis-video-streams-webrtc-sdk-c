@@ -39,19 +39,61 @@ CleanUp:
     return retStatus;
 }
 
+STATUS allocateSctpSortDataChannelsDataCallback(UINT64 customData, PHashEntry pHashEntry)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PAllocateSctpSortDataChannelsData data = (PAllocateSctpSortDataChannelsData) customData;
+    PKvsDataChannel pKvsDataChannel = (PKvsDataChannel) pHashEntry->value;
+
+    CHK(customData != 0, STATUS_NULL_ARG);
+
+    pKvsDataChannel->channelId = data->currentDataChannelId;
+    CHK_STATUS(hashTablePut(data->pKvsPeerConnection->pDataChannels, pKvsDataChannel->channelId, (UINT64) pKvsDataChannel));
+
+    data->currentDataChannelId += 2;
+
+CleanUp:
+    return retStatus;
+}
+
 STATUS allocateSctp(PKvsPeerConnection pKvsPeerConnection)
 {
     STATUS retStatus = STATUS_SUCCESS;
     SctpSessionCallbacks sctpSessionCallbacks;
+    AllocateSctpSortDataChannelsData data;
+    UINT32 currentDataChannelId = 0;
+    PKvsDataChannel pKvsDataChannel = NULL;
 
-    CHK(pKvsPeerConnection != NULL, STATUS_SUCCESS);
+    CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
+    currentDataChannelId = (pKvsPeerConnection->dtlsIsServer) ? 1 : 0;
 
+    // Re-sort DataChannel hashmap using proper streamIds if we are offerer or answerer
+    data.currentDataChannelId = currentDataChannelId;
+    data.pKvsPeerConnection = pKvsPeerConnection;
+    data.unkeyedDataChannels = pKvsPeerConnection->pDataChannels;
+    CHK_STATUS(hashTableCreateWithParams(CODEC_HASH_TABLE_BUCKET_COUNT, CODEC_HASH_TABLE_BUCKET_LENGTH, &pKvsPeerConnection->pDataChannels));
+    CHK_STATUS(hashTableIterateEntries(data.unkeyedDataChannels, (UINT64) &data, allocateSctpSortDataChannelsDataCallback));
+
+    // Free unkeyed DataChannels
+    CHK_LOG_ERR_NV(hashTableClear(data.unkeyedDataChannels));
+    CHK_LOG_ERR_NV(hashTableFree(data.unkeyedDataChannels));
+
+    // Create the SCTP Session
     sctpSessionCallbacks.outboundPacketFunc = onSctpSessionOutboundPacket;
     sctpSessionCallbacks.dataChannelMessageFunc = onSctpSessionDataChannelMessage;
     sctpSessionCallbacks.dataChannelOpenFunc = onSctpSessionDataChannelOpen;
     sctpSessionCallbacks.customData = (UINT64) pKvsPeerConnection;
-
     CHK_STATUS(createSctpSession(&sctpSessionCallbacks, &(pKvsPeerConnection->pSctpSession)));
+
+    for (; currentDataChannelId < data.currentDataChannelId; currentDataChannelId += 2) {
+        CHK_STATUS(hashTableGet(pKvsPeerConnection->pDataChannels, currentDataChannelId, (PUINT64) &pKvsDataChannel));
+        CHK(pKvsDataChannel != NULL, STATUS_INTERNAL_ERROR);
+        sctpSessionWriteDcep(pKvsPeerConnection->pSctpSession, currentDataChannelId, pKvsDataChannel->dataChannel.name, STRLEN(pKvsDataChannel->dataChannel.name), NULL);
+
+        if (pKvsDataChannel->onOpen != NULL) {
+            pKvsDataChannel->onOpen(pKvsDataChannel->onOpenCustomData);
+        }
+    }
 
 CleanUp:
     return retStatus;
@@ -467,6 +509,13 @@ CleanUp:
     return retStatus;
 }
 
+STATUS freeHashEntry(UINT64 customData, PHashEntry pHashEntry)
+{
+    UNUSED_PARAM(customData);
+    MEMFREE((PVOID) pHashEntry->value);
+    return STATUS_SUCCESS;
+}
+
 /*
  * NOT thread-safe
  */
@@ -503,11 +552,14 @@ STATUS freePeerConnection(PRtcPeerConnection *ppPeerConnection)
         pCurNode = pCurNode->pNext;
     }
 
+    // Free DataChannels
+    CHK_STATUS(hashTableIterateEntries(pKvsPeerConnection->pDataChannels, 0, freeHashEntry));
+    CHK_LOG_ERR_NV(hashTableFree(pKvsPeerConnection->pDataChannels));
+
     // free rest of structs
     CHK_LOG_ERR_NV(freeSrtpSession(&pKvsPeerConnection->pSrtpSession));
     CHK_LOG_ERR_NV(freeDtlsSession(&pKvsPeerConnection->pDtlsSession));
     CHK_LOG_ERR_NV(doubleListFree(pKvsPeerConnection->pTransceievers));
-    CHK_LOG_ERR_NV(hashTableFree(pKvsPeerConnection->pDataChannels));
     CHK_LOG_ERR_NV(hashTableFree(pKvsPeerConnection->pCodecTable));
     CHK_LOG_ERR_NV(hashTableFree(pKvsPeerConnection->pRtxTable));
     if (IS_VALID_MUTEX_VALUE(pKvsPeerConnection->pSrtpSessionLock)) {

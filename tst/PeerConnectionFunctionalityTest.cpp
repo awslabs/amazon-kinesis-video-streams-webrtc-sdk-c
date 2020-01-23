@@ -3,50 +3,7 @@
 namespace com { namespace amazonaws { namespace kinesis { namespace video { namespace webrtcclient {
 
 class PeerConnectionFunctionalityTest : public WebRtcClientTestBase {
-public:
-    SIZE_T stateChangeCount[RTC_PEER_CONNECTION_TOTAL_STATE_COUNT] = {0};
 };
-
-// Connect two RtcPeerConnections, and wait for them to be connected
-// in the given amount of time. Return false if they don't go to connected in
-// the expected amounted of time
-bool connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerConnection answerPc, PeerConnectionFunctionalityTest *testBase) {
-    RtcSessionDescriptionInit sdp;
-
-    auto onICECandidateHdlr = [](UINT64 customData, PCHAR candidateStr) -> void {
-        if (candidateStr != NULL) {
-            std::thread([customData] (std::string candidate) {
-                RtcIceCandidateInit iceCandidate;
-                EXPECT_EQ(deserializeRtcIceCandidateInit((PCHAR) candidate.c_str(), STRLEN(candidate.c_str()), &iceCandidate), STATUS_SUCCESS);
-                EXPECT_EQ(addIceCandidate((PRtcPeerConnection) customData, iceCandidate.candidate), STATUS_SUCCESS);
-            }, std::string(candidateStr)).detach();
-        }
-    };
-
-    EXPECT_EQ(peerConnectionOnIceCandidate(offerPc, (UINT64) answerPc, onICECandidateHdlr), STATUS_SUCCESS);
-    EXPECT_EQ(peerConnectionOnIceCandidate(answerPc, (UINT64) offerPc, onICECandidateHdlr), STATUS_SUCCESS);
-
-    auto onICEConnectionStateChangeHdlr = [](UINT64 customData, RTC_PEER_CONNECTION_STATE newState) -> void {
-        ATOMIC_INCREMENT((PSIZE_T)customData + newState);
-    };
-
-    EXPECT_EQ(peerConnectionOnConnectionStateChange(offerPc, (UINT64) testBase->stateChangeCount, onICEConnectionStateChangeHdlr), STATUS_SUCCESS);
-    EXPECT_EQ(peerConnectionOnConnectionStateChange(answerPc, (UINT64) testBase->stateChangeCount, onICEConnectionStateChangeHdlr), STATUS_SUCCESS);
-
-    EXPECT_EQ(createOffer(offerPc, &sdp), STATUS_SUCCESS);
-    EXPECT_EQ(setLocalDescription(offerPc, &sdp), STATUS_SUCCESS);
-    EXPECT_EQ(setRemoteDescription(answerPc, &sdp), STATUS_SUCCESS);
-
-    EXPECT_EQ(createAnswer(answerPc, &sdp), STATUS_SUCCESS);
-    EXPECT_EQ(setLocalDescription(answerPc, &sdp), STATUS_SUCCESS);
-    EXPECT_EQ(setRemoteDescription(offerPc, &sdp), STATUS_SUCCESS);
-
-    for (auto i = 0; i <= 100 && ATOMIC_LOAD(&testBase->stateChangeCount[RTC_PEER_CONNECTION_STATE_CONNECTED]) != 2; i++) {
-        THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
-    }
-
-    return ATOMIC_LOAD(&testBase->stateChangeCount[RTC_PEER_CONNECTION_STATE_CONNECTED]) == 2;
-}
 
 // Assert that two PeerConnections can connect to each other and go to connected
 TEST_F(PeerConnectionFunctionalityTest, connectTwoPeers)
@@ -59,7 +16,7 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeers)
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
     EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
 
-    EXPECT_EQ(connectTwoPeers(offerPc, answerPc, this), TRUE);
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
 
     freePeerConnection(&offerPc);
     freePeerConnection(&answerPc);
@@ -101,7 +58,7 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersForcedTURN)
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
     EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
 
-    EXPECT_EQ(connectTwoPeers(offerPc, answerPc, this), TRUE);
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
 
     freePeerConnection(&offerPc);
     freePeerConnection(&answerPc);
@@ -123,7 +80,7 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithHostAndStun)
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
     EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
 
-    EXPECT_EQ(connectTwoPeers(offerPc, answerPc, this), TRUE);
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
 
     freePeerConnection(&offerPc);
     freePeerConnection(&answerPc);
@@ -145,7 +102,7 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersThenDisconnectTest)
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
     EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
 
-    EXPECT_EQ(connectTwoPeers(offerPc, answerPc, this), TRUE);
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
 
     // free offerPc so it wont send anymore keep alives and answerPc will detect disconnection
     freePeerConnection(&offerPc);
@@ -177,7 +134,7 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersExpectFailureBecauseNoCan
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
     EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
 
-    EXPECT_EQ(connectTwoPeers(offerPc, answerPc, this), FALSE);
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), FALSE);
 
     // give time for to gathering to time out.
     THREAD_SLEEP(KVS_ICE_GATHER_REFLEXIVE_AND_RELAYED_CANDIDATE_TIMEOUT);
@@ -240,7 +197,7 @@ TEST_F(PeerConnectionFunctionalityTest, exchangeMedia)
     };
     EXPECT_EQ(transceiverOnFrame(answerVideoTransceiver, (UINT64) &seenVideo, onFrameHandler), STATUS_SUCCESS);
 
-    EXPECT_EQ(connectTwoPeers(offerPc, answerPc, this), TRUE);
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
 
     for (auto i = 0; i <= 1000 && ATOMIC_LOAD(&seenVideo) != 1; i++) {
         EXPECT_EQ(writeFrame(offerVideoTransceiver, &videoFrame), STATUS_SUCCESS);

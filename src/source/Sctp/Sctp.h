@@ -30,6 +30,10 @@ enum {
     DCEP_DATA_CHANNEL_OPEN = 0x03,
 };
 
+enum {
+    DCEP_DATA_CHANNEL_RELIABLE = 0x00,
+};
+
 // Callback that is fired when SCTP Association wishes to send packet
 typedef VOID (*SctpSessionOutboundPacketFunc)(UINT64, PBYTE, UINT32);
 
@@ -59,6 +63,7 @@ STATUS createSctpSession(PSctpSessionCallbacks, PSctpSession*);
 STATUS freeSctpSession(PSctpSession*);
 STATUS putSctpPacket(PSctpSession, PBYTE, UINT32);
 STATUS sctpSessionWriteMessage(PSctpSession, UINT32, BOOL, PBYTE, UINT32);
+STATUS sctpSessionWriteDcep(PSctpSession, UINT32, PCHAR, UINT32, PRtcDataChannelInit);
 
 // Callbacks used by usrsctp
 INT32 onSctpOutboundPacket(PVOID, PVOID, ULONG, UINT8, UINT8);

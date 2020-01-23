@@ -378,7 +378,12 @@ extern "C" {
 /*
  * Maximum size of DataChannel name
  */
-#define MAX_DATA_CHANEL_NAME_LEN                                                    255
+#define MAX_DATA_CHANNEL_NAME_LEN                                                    255
+
+/*
+ * Maximum size of DataChannel Protocol
+ */
+#define MAX_DATA_CHANNEL_PROTOCOL_LEN                                                    255
 
 /**
  * Current versions of the structures
@@ -428,6 +433,13 @@ typedef VOID (*RtcOnFrame)(UINT64, PFrame);
  * https://www.w3.org/TR/webrtc/#dom-rtcdatachannel-onmessage
  */
 typedef VOID (*RtcOnMessage)(UINT64, BOOL, PBYTE, UINT32);
+
+/*
+ * RtcOnOpen is fired when the DataChannel has opened
+ *
+ * https://www.w3.org/TR/webrtc/#dom-rtcdatachannel-onopen
+ */
+typedef VOID (*RtcOnOpen)(UINT64);
 
 /*
  * RtcOnDataChannel is fired when the remote PeerConnection
@@ -1034,8 +1046,22 @@ typedef struct {
  * https://www.w3.org/TR/webrtc/#dom-rtcdatachannel
  */
 typedef struct __RtcDataChannel {
-    CHAR name[MAX_DATA_CHANEL_NAME_LEN];
+    CHAR name[MAX_DATA_CHANNEL_NAME_LEN + 1];
 } RtcDataChannel, *PRtcDataChannel;
+
+/*
+ * RtcDataChannelInit dictionary used to configure properties of the
+ * underlying channel such as data reliability
+ *
+ * https://www.w3.org/TR/webrtc/#dom-rtcdatachannelinit
+ */
+typedef struct {
+    BOOL ordered;
+    UINT16 maxPacketLifeTime;
+    UINT16 maxRetransmits;
+    CHAR protocol[MAX_DATA_CHANNEL_PROTOCOL_LEN + 1];
+    BOOL negotiated;
+} RtcDataChannelInit, *PRtcDataChannelInit;
 
 ////////////////////////////////////////////////////
 // Public functions
@@ -1265,6 +1291,14 @@ PUBLIC_API STATUS writeFrame(PRtcRtpTransceiver, PFrame);
  */
 STATUS addIceCandidate(PRtcPeerConnection, PCHAR);
 
+/*
+ * createDataChannel creates a new RtcDataChannel object with the given label. The RtcDataChannelInit dictionary can be
+ * used to configure properties of the underlying channel such as data reliability.
+ *
+ * https://www.w3.org/TR/webrtc/#methods-11
+ */
+STATUS createDataChannel(PRtcPeerConnection, PCHAR, PRtcDataChannelInit, PRtcDataChannel*);
+
 /**
  * Set a callback for data channel message
  *
@@ -1275,6 +1309,17 @@ STATUS addIceCandidate(PRtcPeerConnection, PCHAR);
  * @return - STATUS code of the execution
  */
 PUBLIC_API STATUS dataChannelOnMessage(PRtcDataChannel, UINT64, RtcOnMessage);
+
+/**
+ * Set a callback for data channel message
+ *
+ * @param - PRtcDataChannel* - IN - RtcDataChannel struct
+ * @param - UINT64 - IN - User customData that will be passed along when RtcOnOpen is called
+ * @param - RtcOnOpen - IN - User RtcOnOpen callback
+ *
+ * @return - STATUS code of the execution
+ */
+PUBLIC_API STATUS dataChannelOnOpen(PRtcDataChannel, UINT64, RtcOnOpen);
 
 /*
  * dataChannelSend send data via the PRtcDataChannel
