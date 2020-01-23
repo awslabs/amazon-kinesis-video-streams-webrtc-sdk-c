@@ -144,6 +144,47 @@ VOID WebRtcClientTestBase::clearJitterBufferForTest()
     }
 }
 
+// Connect two RtcPeerConnections, and wait for them to be connected
+// in the given amount of time. Return false if they don't go to connected in
+// the expected amounted of time
+bool WebRtcClientTestBase::connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerConnection answerPc) {
+    RtcSessionDescriptionInit sdp;
+
+    auto onICECandidateHdlr = [](UINT64 customData, PCHAR candidateStr) -> void {
+        if (candidateStr != NULL) {
+            std::thread([customData] (std::string candidate) {
+                RtcIceCandidateInit iceCandidate;
+                EXPECT_EQ(deserializeRtcIceCandidateInit((PCHAR) candidate.c_str(), STRLEN(candidate.c_str()), &iceCandidate), STATUS_SUCCESS);
+                EXPECT_EQ(addIceCandidate((PRtcPeerConnection) customData, iceCandidate.candidate), STATUS_SUCCESS);
+            }, std::string(candidateStr)).detach();
+        }
+    };
+
+    EXPECT_EQ(peerConnectionOnIceCandidate(offerPc, (UINT64) answerPc, onICECandidateHdlr), STATUS_SUCCESS);
+    EXPECT_EQ(peerConnectionOnIceCandidate(answerPc, (UINT64) offerPc, onICECandidateHdlr), STATUS_SUCCESS);
+
+    auto onICEConnectionStateChangeHdlr = [](UINT64 customData, RTC_PEER_CONNECTION_STATE newState) -> void {
+        ATOMIC_INCREMENT((PSIZE_T)customData + newState);
+    };
+
+    EXPECT_EQ(peerConnectionOnConnectionStateChange(offerPc, (UINT64) this->stateChangeCount, onICEConnectionStateChangeHdlr), STATUS_SUCCESS);
+    EXPECT_EQ(peerConnectionOnConnectionStateChange(answerPc, (UINT64) this->stateChangeCount, onICEConnectionStateChangeHdlr), STATUS_SUCCESS);
+
+    EXPECT_EQ(createOffer(offerPc, &sdp), STATUS_SUCCESS);
+    EXPECT_EQ(setLocalDescription(offerPc, &sdp), STATUS_SUCCESS);
+    EXPECT_EQ(setRemoteDescription(answerPc, &sdp), STATUS_SUCCESS);
+
+    EXPECT_EQ(createAnswer(answerPc, &sdp), STATUS_SUCCESS);
+    EXPECT_EQ(setLocalDescription(answerPc, &sdp), STATUS_SUCCESS);
+    EXPECT_EQ(setRemoteDescription(offerPc, &sdp), STATUS_SUCCESS);
+
+    for (auto i = 0; i <= 100 && ATOMIC_LOAD(&this->stateChangeCount[RTC_PEER_CONNECTION_STATE_CONNECTED]) != 2; i++) {
+        THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
+    }
+
+    return ATOMIC_LOAD(&this->stateChangeCount[RTC_PEER_CONNECTION_STATE_CONNECTED]) == 2;
+}
+
 PCHAR WebRtcClientTestBase::GetTestName()
 {
     return (PCHAR) ::testing::UnitTest::GetInstance()->current_test_info()->test_case_name();

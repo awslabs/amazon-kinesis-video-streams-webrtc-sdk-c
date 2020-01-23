@@ -193,6 +193,8 @@ public:
         return retStatus;
     }
 
+    bool connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerConnection answerPc);
+
 protected:
 
     virtual void SetUp();
@@ -210,6 +212,8 @@ protected:
     PCHAR mRegion;
     PCHAR mCaCertPath;
     UINT64 mStreamingRotationPeriod;
+
+    SIZE_T stateChangeCount[RTC_PEER_CONNECTION_TOTAL_STATE_COUNT] = {0};
 
     CHAR mDefaultRegion[MAX_REGION_NAME_LEN + 1];
     BOOL mAccessKeyIdSet;

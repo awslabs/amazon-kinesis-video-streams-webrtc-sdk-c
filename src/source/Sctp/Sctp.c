@@ -170,6 +170,38 @@ CleanUp:
     return retStatus;
 }
 
+STATUS sctpSessionWriteDcep(PSctpSession pSctpSession, UINT32 streamId, PCHAR pChannelName, UINT32 pChannelNameLen, PRtcDataChannelInit pRtcDataChannelInit)
+{
+     UNUSED_PARAM(pRtcDataChannelInit);
+     ENTERS();
+     STATUS retStatus = STATUS_SUCCESS;
+     struct sctp_sendv_spa spa;
+     PBYTE pPacket = NULL;
+     UINT32 pPacketSize = SCTP_DCEP_HEADER_LENGTH + pChannelNameLen;
+     UINT16 channelLenNetworkOrder = htons(pChannelNameLen);
+
+     CHK(pSctpSession != NULL && pChannelName != NULL, STATUS_NULL_ARG);
+     CHK((pPacket = (PBYTE) MEMCALLOC(1, pPacketSize)) != NULL, STATUS_NOT_ENOUGH_MEMORY);
+
+     pPacket[0] = DCEP_DATA_CHANNEL_OPEN;
+     pPacket[1] = DCEP_DATA_CHANNEL_RELIABLE;
+     MEMCPY(pPacket + 8, &channelLenNetworkOrder, SIZEOF(UINT16));
+
+     MEMSET(&spa, 0x00, SIZEOF(struct sctp_sendv_spa));
+     spa.sendv_flags |= SCTP_SEND_SNDINFO_VALID;
+     spa.sendv_sndinfo.snd_sid = streamId;
+
+     putInt32((PINT32) &spa.sendv_sndinfo.snd_ppid, SCTP_PPID_DCEP);
+     CHK(usrsctp_sendv(pSctpSession->socket, pPacket, pPacketSize, NULL, 0, &spa, SIZEOF(spa), SCTP_SENDV_SPA, 0) > 0, STATUS_INTERNAL_ERROR);
+
+CleanUp:
+    SAFE_MEMFREE(pPacket);
+
+    LEAVES();
+    return retStatus;
+}
+
+
 INT32 onSctpOutboundPacket(PVOID addr, PVOID data, ULONG length, UINT8 tos, UINT8 set_df)
 {
     UNUSED_PARAM(tos);

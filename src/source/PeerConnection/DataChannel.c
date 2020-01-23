@@ -2,6 +2,43 @@
 
 #include "../Include_i.h"
 
+
+STATUS connectLocalDataChannel() {
+    return STATUS_SUCCESS;
+}
+
+STATUS createDataChannel(PRtcPeerConnection pPeerConnection, PCHAR pDataChannelName, PRtcDataChannelInit pRtcDataChannelInit, PRtcDataChannel* ppRtcDataChannel)
+{
+    UNUSED_PARAM(pRtcDataChannelInit);
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pPeerConnection;
+    UINT32 channelId = 0;
+    PKvsDataChannel pKvsDataChannel = NULL;
+
+    CHK(pKvsPeerConnection != NULL && pDataChannelName != NULL && ppRtcDataChannel != NULL, STATUS_NULL_ARG);
+
+    // Only support creating DataChannels before signaling for now
+    CHK(pKvsPeerConnection->pSctpSession == NULL, STATUS_INTERNAL_ERROR);
+
+    CHK((pKvsDataChannel = (PKvsDataChannel) MEMCALLOC(1, SIZEOF(KvsDataChannel))) != NULL, STATUS_NOT_ENOUGH_MEMORY);
+    STRNCPY(pKvsDataChannel->dataChannel.name, pDataChannelName, MAX_DATA_CHANNEL_NAME_LEN);
+    pKvsDataChannel->pRtcPeerConnection = (PRtcPeerConnection) pKvsPeerConnection;
+
+    CHK_STATUS(hashTableGetCount(pKvsPeerConnection->pDataChannels, &channelId));
+    CHK_STATUS(hashTablePut(pKvsPeerConnection->pDataChannels, channelId, (UINT64) pKvsDataChannel));
+
+CleanUp:
+    if (STATUS_SUCCEEDED(retStatus)) {
+        *ppRtcDataChannel = (PRtcDataChannel) pKvsDataChannel;
+    } else {
+        SAFE_MEMFREE(pKvsDataChannel);
+    }
+
+    LEAVES();
+    return retStatus;
+}
+
 STATUS dataChannelSend(PRtcDataChannel pRtcDataChannel, BOOL isBinary, PBYTE pMessage, UINT32 pMessageLen)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -29,6 +66,23 @@ STATUS dataChannelOnMessage(PRtcDataChannel pRtcPeerConnection, UINT64 customDat
 
     pKvsDataChannel->onMessage = rtcOnMessage;
     pKvsDataChannel->onMessageCustomData = customData;
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS dataChannelOnOpen(PRtcDataChannel pRtcDataChannel, UINT64 customData, RtcOnOpen rtcOnOpen)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PKvsDataChannel pKvsDataChannel = (PKvsDataChannel) pRtcDataChannel;
+
+    CHK(pKvsDataChannel != NULL && rtcOnOpen != NULL, STATUS_NULL_ARG);
+
+    pKvsDataChannel->onOpen = rtcOnOpen;
+    pKvsDataChannel->onOpenCustomData = customData;
 
 CleanUp:
 
