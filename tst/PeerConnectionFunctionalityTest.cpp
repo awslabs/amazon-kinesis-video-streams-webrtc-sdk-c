@@ -22,6 +22,50 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeers)
     freePeerConnection(&answerPc);
 }
 
+TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithPresetCerts)
+{
+    RtcConfiguration offerConfig, answerConfig;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    X509* pOfferCert = NULL;
+    X509* pAnswerCert = NULL;
+    EVP_PKEY* pOfferKey = NULL;
+    EVP_PKEY* pAnswerKey = NULL;
+    CHAR offerCertFingerprint[CERTIFICATE_FINGERPRINT_LENGTH];
+    CHAR answerCertFingerprint[CERTIFICATE_FINGERPRINT_LENGTH];
+
+    // Generate offer cert
+    ASSERT_EQ(STATUS_SUCCESS, createCertificateAndKey(GENERATED_CERTIFICATE_BITS, true, &pOfferCert, &pOfferKey));
+    ASSERT_EQ(STATUS_SUCCESS, dtlsCertificateFingerprint(pOfferCert, offerCertFingerprint));
+
+    // Generate answer cert
+    ASSERT_EQ(STATUS_SUCCESS, createCertificateAndKey(GENERATED_CERTIFICATE_BITS, true, &pAnswerCert, &pAnswerKey));
+    ASSERT_EQ(STATUS_SUCCESS, dtlsCertificateFingerprint(pAnswerCert, answerCertFingerprint));
+
+    MEMSET(&offerConfig, 0x00, SIZEOF(RtcConfiguration));
+    offerConfig.certificates[0].pCertificate = (PBYTE) pOfferCert;
+    offerConfig.certificates[0].certificateSize = 0;
+    offerConfig.certificates[0].pPrivateKey = (PBYTE) pOfferKey;
+    offerConfig.certificates[0].privateKeySize = 0;
+
+    MEMSET(&answerConfig, 0x00, SIZEOF(RtcConfiguration));
+    answerConfig.certificates[0].pCertificate = (PBYTE) pAnswerCert;
+    answerConfig.certificates[0].certificateSize = 0;
+    answerConfig.certificates[0].pPrivateKey = (PBYTE) pAnswerKey;
+    answerConfig.certificates[0].privateKeySize = 0;
+
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&offerConfig, &offerPc));
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&answerConfig, &answerPc));
+
+    // Should be fine to free right after create peer connection
+    freeCertificateAndKey(&pOfferCert, &pOfferKey);
+    freeCertificateAndKey(&pAnswerCert, &pAnswerKey);
+
+    EXPECT_EQ(TRUE, connectTwoPeers(offerPc, answerPc, offerCertFingerprint, answerCertFingerprint));
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+}
+
 // Assert that two PeerConnections with forced TURN can connect to each other and go to connected
 TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersForcedTURN)
 {
@@ -233,8 +277,6 @@ TEST_F(PeerConnectionFunctionalityTest, exchangeMediaRSA)
 
     EXPECT_EQ(ATOMIC_LOAD(&seenVideo), 1);
 }
-
-
 
 TEST_F(PeerConnectionFunctionalityTest, DISABLED_exchangeMediaThroughTurnRandomStop)
 {
