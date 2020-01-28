@@ -86,6 +86,13 @@ TEST_F(RtcpFunctionalityTest, rtcpNackListCompound) {
     EXPECT_EQ(compoundBuffer[1], 3327);
 }
 
+TEST_F(RtcpFunctionalityTest, onRtcpPacketCompound) {
+    KvsPeerConnection peerConnection;
+
+    BYTE compound[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0c, 0xa8, 0x00, 0x00, 0x0c, 0xff, 0x00, 0x00};
+    EXPECT_EQ(STATUS_SUCCESS, onRtcpPacket(&peerConnection, compound, SIZEOF(compound)));
+}
+
 }
 }
 }

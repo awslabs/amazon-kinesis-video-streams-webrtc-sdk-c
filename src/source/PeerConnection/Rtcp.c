@@ -9,6 +9,7 @@ STATUS onRtcpPacket(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuff, INT32 pB
 
     CHK(pKvsPeerConnection != NULL && pBuff != NULL, STATUS_NULL_ARG);
 
+    MEMSET(&rtcpPacket, 0x00, SIZEOF(rtcpPacket));
     CHK_STATUS(setRtcpPacketFromBytes(pBuff, pBuffLen, &rtcpPacket));
 
     if (rtcpPacket.header.packetType == RTCP_PACKET_TYPE_GENERIC_RTP_FEEDBACK
