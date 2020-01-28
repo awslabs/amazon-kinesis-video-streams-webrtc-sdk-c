@@ -147,7 +147,8 @@ VOID WebRtcClientTestBase::clearJitterBufferForTest()
 // Connect two RtcPeerConnections, and wait for them to be connected
 // in the given amount of time. Return false if they don't go to connected in
 // the expected amounted of time
-bool WebRtcClientTestBase::connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerConnection answerPc) {
+bool WebRtcClientTestBase::connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerConnection answerPc,
+        PCHAR pOfferCertFingerprint, PCHAR pAnswerCertFingerprint) {
     RtcSessionDescriptionInit sdp;
 
     auto onICECandidateHdlr = [](UINT64 customData, PCHAR candidateStr) -> void {
@@ -174,9 +175,18 @@ bool WebRtcClientTestBase::connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerC
     EXPECT_EQ(setLocalDescription(offerPc, &sdp), STATUS_SUCCESS);
     EXPECT_EQ(setRemoteDescription(answerPc, &sdp), STATUS_SUCCESS);
 
+    // Validate the cert fingerprint if we are asked to do so
+    if (pOfferCertFingerprint != NULL) {
+        EXPECT_NE((PCHAR) NULL, STRSTR(sdp.sdp, pOfferCertFingerprint));
+    }
+
     EXPECT_EQ(createAnswer(answerPc, &sdp), STATUS_SUCCESS);
     EXPECT_EQ(setLocalDescription(answerPc, &sdp), STATUS_SUCCESS);
     EXPECT_EQ(setRemoteDescription(offerPc, &sdp), STATUS_SUCCESS);
+
+    if (pAnswerCertFingerprint != NULL) {
+        EXPECT_NE((PCHAR) NULL, STRSTR(sdp.sdp, pAnswerCertFingerprint));
+    }
 
     for (auto i = 0; i <= 100 && ATOMIC_LOAD(&this->stateChangeCount[RTC_PEER_CONNECTION_STATE_CONNECTED]) != 2; i++) {
         THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);

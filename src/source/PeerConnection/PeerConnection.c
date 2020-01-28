@@ -472,10 +472,10 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
 
     dtlsSessionCallbacks.customData = (UINT64) pKvsPeerConnection;
     dtlsSessionCallbacks.outboundPacketFn = onDtlsOutboundPacket;
-    CHK_STATUS(createDtlsSession(
-                &dtlsSessionCallbacks, pKvsPeerConnection->timerQueueHandle, pConfiguration->kvsRtcConfiguration.generatedCertificateBits,
-                pConfiguration->kvsRtcConfiguration.generateRSACertificate, &(pKvsPeerConnection->pDtlsSession)
-    ));
+    CHK_STATUS(createDtlsSession(&dtlsSessionCallbacks, pKvsPeerConnection->timerQueueHandle,
+            pConfiguration->kvsRtcConfiguration.generatedCertificateBits,
+	    pConfiguration->kvsRtcConfiguration.generateRSACertificate,
+            pConfiguration->certificates, &pKvsPeerConnection->pDtlsSession));
 
     CHK_STATUS(hashTableCreateWithParams(CODEC_HASH_TABLE_BUCKET_COUNT, CODEC_HASH_TABLE_BUCKET_LENGTH, &pKvsPeerConnection->pCodecTable));
     CHK_STATUS(hashTableCreateWithParams(CODEC_HASH_TABLE_BUCKET_COUNT, CODEC_HASH_TABLE_BUCKET_LENGTH, &pKvsPeerConnection->pDataChannels));
@@ -562,7 +562,7 @@ STATUS freePeerConnection(PRtcPeerConnection *ppPeerConnection)
     }
 
     // Free DataChannels
-    CHK_STATUS(hashTableIterateEntries(pKvsPeerConnection->pDataChannels, 0, freeHashEntry));
+    CHK_LOG_ERR_NV(hashTableIterateEntries(pKvsPeerConnection->pDataChannels, 0, freeHashEntry));
     CHK_LOG_ERR_NV(hashTableFree(pKvsPeerConnection->pDataChannels));
 
     // free rest of structs

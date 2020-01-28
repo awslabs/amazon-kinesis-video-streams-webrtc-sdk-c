@@ -197,7 +197,8 @@ public:
         return retStatus;
     }
 
-    bool connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerConnection answerPc);
+    bool connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerConnection answerPc,
+            PCHAR pOfferCertFingerprint = NULL, PCHAR pAnswerCertFingerprint = NULL);
     void addTrackToPeerConnection(PRtcPeerConnection pRtcPeerConnection, PRtcMediaStreamTrack track,
                                   PRtcRtpTransceiver *transceiver, RTC_CODEC codec, MEDIA_STREAM_TRACK_KIND kind);
     void getIceServers(PRtcConfiguration pRtcConfiguration);
