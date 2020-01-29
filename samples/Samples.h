@@ -24,6 +24,7 @@ extern "C" {
 #define SAMPLE_AUDIO_FRAME_DURATION                                             (20 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
 #define SAMPLE_VIDEO_FRAME_DURATION                                             (HUNDREDS_OF_NANOS_IN_A_SECOND / DEFAULT_FPS_VALUE)
 
+#define CA_CERT_PEM_FILE_EXTENSION                                              ".pem"
 typedef enum {
     SAMPLE_STREAMING_VIDEO_ONLY,
     SAMPLE_STREAMING_AUDIO_VIDEO,
@@ -100,6 +101,7 @@ STATUS handleAnswer(PSampleConfiguration, PSampleStreamingSession, PSignalingMes
 STATUS handleOffer(PSampleConfiguration, PSampleStreamingSession, PSignalingMessage);
 STATUS handleRemoteCandidate(PSampleStreamingSession, PSignalingMessage);
 STATUS initializePeerConnection(PSampleConfiguration, PRtcPeerConnection*);
+STATUS lookForSslCert(PSampleConfiguration*);
 STATUS createSampleStreamingSession(PSampleConfiguration, PCHAR, BOOL, PSampleStreamingSession*);
 STATUS freeSampleStreamingSession(PSampleStreamingSession*);
 STATUS streamingSessionOnShutdown(PSampleStreamingSession, UINT64, StreamSessionShutdownCallback);
