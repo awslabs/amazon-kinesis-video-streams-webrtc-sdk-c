@@ -764,6 +764,8 @@ STATUS turnConnectionDeliverChannelData(PTurnConnection pTurnConnection, PBYTE p
     UINT64 data;
     PTurnPeer pTurnPeer = NULL;
     UINT32 paddedDataLen;
+    PConnectionDataAvailableWrapper pWrapper = NULL;
+    TID callbackTid = INVALID_TID_VALUE;
 
     CHK(pTurnConnection != NULL, STATUS_NULL_ARG);
     CHK(pChannelMsg != NULL && channelMsgLen > 0, STATUS_INVALID_ARG);
@@ -781,6 +783,10 @@ STATUS turnConnectionDeliverChannelData(PTurnConnection pTurnConnection, PBYTE p
             channelMsgLen == paddedDataLen + TURN_DATA_CHANNEL_SEND_OVERHEAD, STATUS_INVALID_ARG);
     }
 
+    DLOGV("Data available from channel %u", channelNumber);
+    // Bail out early if we have no callback
+    CHK(pTurnConnection->turnConnectionCallbacks.applicationDataAvailableFn != NULL, retStatus);
+
     CHK_STATUS(doubleListGetHeadNode(pTurnConnection->turnPeerList, &pCurNode));
     while (pCurNode != NULL) {
         CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
@@ -788,17 +794,27 @@ STATUS turnConnectionDeliverChannelData(PTurnConnection pTurnConnection, PBYTE p
 
         pTurnPeer = (PTurnPeer) data;
         if (pTurnPeer->channelNumber == channelNumber) {
-            DLOGV("data available from channel %u", channelNumber);
-            if (pTurnConnection->turnConnectionCallbacks.applicationDataAvailableFn != NULL) {
-                pTurnConnection->turnConnectionCallbacks.applicationDataAvailableFn(
-                        pTurnConnection->turnConnectionCallbacks.customData,
-                        pTurnConnection->pControlChannel,
-                        pChannelMsg + TURN_DATA_CHANNEL_SEND_OVERHEAD,
-                        channelDataSize,
-                        &pTurnPeer->address,
-                        NULL);
-            }
-            break;
+            // Handling of the data is on a separate thread due to potential of a deadlock and in case the callback is
+            // not a prompt operation taking long period of time.
+            CHK(NULL != (pWrapper = (PConnectionDataAvailableWrapper)
+                    MEMALLOC(SIZEOF(ConnectionDataAvailableWrapper) + channelDataSize)), STATUS_NOT_ENOUGH_MEMORY);
+
+            // Store the data for the thread call
+            pWrapper->address = pTurnPeer->address;
+            pWrapper->customData = pTurnConnection->turnConnectionCallbacks.customData;
+            pWrapper->dataSize = channelDataSize;
+            pWrapper->channelNumber = channelNumber;
+            pWrapper->pTurnConnection = pTurnConnection;
+
+            // Set the pointer and store the data within the wrapper
+            pWrapper->pData = (PBYTE)(pWrapper + 1);
+            MEMCPY(pWrapper->pData, pChannelMsg + TURN_DATA_CHANNEL_SEND_OVERHEAD, channelDataSize);
+
+            CHK_STATUS(THREAD_CREATE(&callbackTid, turnDataAvailableWrapper, (PVOID) pWrapper));
+            CHK_STATUS(THREAD_DETACH(callbackTid));
+
+            // Stop the loop iteration
+            pCurNode = NULL;
         }
     }
 
@@ -806,7 +822,42 @@ CleanUp:
 
     CHK_LOG_ERR_NV(retStatus);
 
+    if (STATUS_FAILED(retStatus) && pWrapper != NULL) {
+        if (IS_VALID_TID_VALUE(callbackTid)) {
+            THREAD_CANCEL(callbackTid);
+        }
+
+        MEMFREE(pWrapper);
+    }
+
     return retStatus;
+}
+
+PVOID turnDataAvailableWrapper(PVOID args)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PConnectionDataAvailableWrapper pWrapper = (PConnectionDataAvailableWrapper) args;
+    PTurnConnection pTurnConnection;
+
+    CHK(pWrapper != NULL, STATUS_NULL_ARG);
+    pTurnConnection = pWrapper->pTurnConnection;
+    CHK(pTurnConnection != NULL && pTurnConnection->turnConnectionCallbacks.applicationDataAvailableFn != NULL, STATUS_INTERNAL_ERROR);
+
+    DLOGV("Handling data from channel %u", pWrapper->channelNumber);
+    pTurnConnection->turnConnectionCallbacks.applicationDataAvailableFn(
+            pTurnConnection->turnConnectionCallbacks.customData,
+            pTurnConnection->pControlChannel,
+            pWrapper->pData,
+            pWrapper->dataSize,
+            &pWrapper->address,
+            NULL);
+
+CleanUp:
+    CHK_LOG_ERR_NV(retStatus);
+
+    SAFE_MEMFREE(pWrapper);
+
+    return (PVOID) (ULONG_PTR) retStatus;
 }
 
 STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
