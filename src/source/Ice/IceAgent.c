@@ -1288,7 +1288,8 @@ STATUS incomingDataHandler(UINT64 customData, PSocketConnection pSocketConnectio
 {
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
-    BOOL locked = FALSE;
+    PStunPacket pStunResponse;
+    BOOL locked = FALSE, useTurn;
 
     CHK(pIceAgent != NULL && pSocketConnection != NULL, STATUS_NULL_ARG);
 
@@ -1304,10 +1305,24 @@ STATUS incomingDataHandler(UINT64 customData, PSocketConnection pSocketConnectio
         locked = FALSE;
 
         pIceAgent->iceAgentCallbacks.inboundPacketFn(pIceAgent->customData, pBuffer, bufferLen);
-        CHK(FALSE, retStatus);
-    }
+    } else {
+        CHK_STATUS(handleStunPacket(pIceAgent, pBuffer, bufferLen, pSocketConnection, pSrc, pDest,
+                &pStunResponse, &useTurn));
 
-    CHK_STATUS(handleStunPacket(pIceAgent, pBuffer, bufferLen, pSocketConnection, pSrc, pDest));
+        if (pStunResponse != NULL) {
+            // Release the lock before proceeding
+            MUTEX_UNLOCK(pIceAgent->lock);
+            locked = FALSE;
+
+            CHK_STATUS(iceUtilsSendStunPacket(pStunResponse,
+                    (PBYTE) pIceAgent->localPassword,
+                    (UINT32) STRLEN(pIceAgent->localPassword) * SIZEOF(CHAR),
+                    pSrc,
+                    pSocketConnection,
+                    pIceAgent->pTurnConnection,
+                    useTurn));
+        }
+    }
 
 CleanUp:
     CHK_LOG_ERR_NV(retStatus);
@@ -1359,7 +1374,7 @@ CleanUp:
 }
 
 STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PSocketConnection pSocketConnection,
-                        PKvsIpAddress pSrcAddr, PKvsIpAddress pDestAddr)
+                        PKvsIpAddress pSrcAddr, PKvsIpAddress pDestAddr, PStunPacket* ppStunResponse, PBOOL pUseTurn)
 {
     UNUSED_PARAM(pDestAddr);
 
@@ -1372,6 +1387,8 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
     PStunAttributePriority pStunAttributePriority = NULL;
     UINT32 priority = 0;
     PIceCandidate pIceCandidate = NULL;
+
+    CHK(pIceAgent != NULL && ppStunResponse != NULL && pUseTurn != NULL, STATUS_NULL_ARG);
 
     // need to determine stunPacketType before deserializing because different password should be used depending on the packet type
     stunPacketType = (UINT16) getInt16(*((PUINT16) pBuffer));
@@ -1393,13 +1410,8 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
 
             CHK_STATUS(findIceCandidatePairWithLocalConnectionHandleAndRemoteAddr(pIceAgent, pSocketConnection, pSrcAddr, TRUE, &pIceCandidatePair));
 
-            CHK_STATUS(iceUtilsSendStunPacket(pStunResponse,
-                                              (PBYTE) pIceAgent->localPassword,
-                                              (UINT32) STRLEN(pIceAgent->localPassword) * SIZEOF(CHAR),
-                                              pSrcAddr,
-                                              pSocketConnection,
-                                              pIceAgent->pTurnConnection,
-                                              pIceCandidatePair == NULL ? FALSE : IS_CANN_PAIR_SENDING_FROM_RELAYED(pIceCandidatePair)));
+            // Store whether we will be using turn
+            *pUseTurn = pIceCandidatePair == NULL ? FALSE : IS_CANN_PAIR_SENDING_FROM_RELAYED(pIceCandidatePair);
 
             // return early if there is no candidate pair. This can happen when we get connectivity check from the peer
             // before we receive the answer.
@@ -1486,14 +1498,13 @@ CleanUp:
         freeStunPacket(&pStunPacket);
     }
 
-    if (pStunResponse != NULL) {
-        freeStunPacket(&pStunResponse);
-    }
-
     // No need to fail on packet handling failures. #TODO send error packet
     if (STATUS_FAILED(retStatus)) {
         DLOGW("handleStunPacket failed with 0x%08x", retStatus);
         retStatus = STATUS_SUCCESS;
+    } else {
+        // Store the stun response to be used in case we need to send STUN packet
+        *ppStunResponse = pStunResponse;
     }
 
     return retStatus;
