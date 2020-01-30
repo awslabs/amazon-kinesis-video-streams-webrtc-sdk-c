@@ -159,6 +159,15 @@ struct __TurnConnection {
 };
 typedef struct __TurnConnection* PTurnConnection;
 
+typedef struct {
+    UINT64 customData;
+    PTurnConnection pTurnConnection;
+    PBYTE pData;
+    UINT32 dataSize;
+    UINT16 channelNumber;
+    KvsIpAddress address;
+} ConnectionDataAvailableWrapper, *PConnectionDataAvailableWrapper;
+
 STATUS createTurnConnection(PIceServer, TIMER_QUEUE_HANDLE, PConnectionListener, TURN_CONNECTION_DATA_TRANSFER_MODE,
                             KVS_SOCKET_PROTOCOL, PTurnConnectionCallbacks , PTurnConnection*);
 STATUS freeTurnConnection(PTurnConnection*);
@@ -183,7 +192,7 @@ STATUS turnConnectionIncomingDataHandler(UINT64, PSocketConnection, PBYTE, UINT3
 STATUS turnConnectionHandleStun(PTurnConnection, PSocketConnection, PBYTE, UINT32);
 STATUS turnConnectionHandleStunError(PTurnConnection, PSocketConnection, PBYTE, UINT32);
 STATUS turnConnectionHandleChannelDataTcpMode(PTurnConnection, PBYTE, UINT32);
-
+PVOID turnDataAvailableWrapper(PVOID);
 #ifdef  __cplusplus
 }
 #endif
