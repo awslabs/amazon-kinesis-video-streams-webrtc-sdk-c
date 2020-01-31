@@ -138,7 +138,7 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         freeTestTurnConnection(&pTurnConnection);
     }
 
-    TEST_F(TurnConnectionFunctionalityTest, turnConnectionSelfCleanUpWhenNotUsed)
+    TEST_F(TurnConnectionFunctionalityTest, turnConnectionStop)
     {
         PTurnConnection pTurnConnection = NULL;
         BOOL turnReady = FALSE;
@@ -169,6 +169,7 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         }
 
         EXPECT_TRUE(turnReady == TRUE);
+        EXPECT_EQ(STATUS_SUCCESS, turnConnectionStop(pTurnConnection));
 
         // once clean up starts, turn connection still needs to send allocation with lifetime 0 and wait for response before
         // moving to state new. Thus multiplying 1.5
