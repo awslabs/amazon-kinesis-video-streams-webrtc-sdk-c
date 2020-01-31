@@ -35,6 +35,8 @@ STATUS createTurnConnection(PIceServer pTurnServer, TIMER_QUEUE_HANDLE timerQueu
     pTurnConnection->pConnectionListener = pConnectionListener;
     pTurnConnection->dataTransferMode = TURN_CONNECTION_DATA_TRANSFER_MODE_DATA_CHANNEL; // only TURN_CONNECTION_DATA_TRANSFER_MODE_DATA_CHANNEL for now
     pTurnConnection->protocol = protocol;
+    ATOMIC_STORE(&pTurnConnection->stopTurnConnection, FALSE);
+
     if (pTurnConnectionCallbacks != NULL) {
         pTurnConnection->turnConnectionCallbacks = *pTurnConnectionCallbacks;
     }
@@ -43,7 +45,6 @@ STATUS createTurnConnection(PIceServer pTurnServer, TIMER_QUEUE_HANDLE timerQueu
     pTurnConnection->sendDataBuffer = (PBYTE) (pTurnConnection + 1);
     pTurnConnection->recvDataBuffer = pTurnConnection->sendDataBuffer + pTurnConnection->dataBufferSize;
     pTurnConnection->currRecvDataLen = 0;
-    pTurnConnection->lastApplicationDataSentTime = INVALID_TIMESTAMP_VALUE;
     pTurnConnection->allocationFreed = TRUE;
     pTurnConnection->allocationExpirationTime = INVALID_TIMESTAMP_VALUE;
     pTurnConnection->nextAllocationRefreshTime = 0;
@@ -551,10 +552,6 @@ STATUS turnConnectionSendData(PTurnConnection pTurnConnection, PBYTE pBuf, UINT3
     MUTEX_LOCK(pTurnConnection->lock);
     locked = TRUE;
 
-    // lastApplicationDataSentTime is used to detect when application finds a better connection then using turn, thus
-    // update lastApplicationDataSentTime regardless of whether turn peer is ready.
-    pTurnConnection->lastApplicationDataSentTime = GETTIME();
-
     // find TurnPeer with pDestIp
     CHK_STATUS(doubleListGetHeadNode(pTurnConnection->turnPeerList, &pCurNode));
     while (pCurNode != NULL) {
@@ -831,8 +828,6 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
 
     previousState = pTurnConnection->state;
 
-    CHK_STATUS(turnConnectionCheckTurnBeingUsed(pTurnConnection));
-
     switch (pTurnConnection->state) {
         case TURN_STATE_NEW:
             // find a host address to create new socket
@@ -988,16 +983,17 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
                 CHK(readyPeerCount > 0, STATUS_TURN_CONNECTION_FAILED_TO_BIND_CHANNEL);
                 // go to next state if we have at least one ready peer
                 pTurnConnection->state = TURN_STATE_READY;
-
-                // init lastApplicationDataSentTime to current time in case no data is ever sent through turn, we can still detect
-                // lastApplicationDataSentTime is falling behind specfied time range and deallocate turn.
-                pTurnConnection->lastApplicationDataSentTime = GETTIME();
             }
+            break;
 
         case TURN_STATE_READY:
 
             CHK_STATUS(turnConnectionRefreshPermission(pTurnConnection, &refreshPeerPermission));
-            if (refreshPeerPermission) {
+            if (ATOMIC_LOAD(&pTurnConnection->stopTurnConnection)) {
+                pTurnConnection->state = TURN_STATE_CLEAN_UP;
+                pTurnConnection->stateTimeoutTime = currentTime + DEFAULT_TURN_CLEAN_UP_TIMEOUT;
+
+            } else if (refreshPeerPermission) {
                 // reset pTurnPeer->connectionState to make them go through create permission and channel bind again
                 CHK_STATUS(doubleListGetHeadNode(pTurnConnection->turnPeerList, &pCurNode));
                 while (pCurNode != NULL) {
@@ -1023,7 +1019,6 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
             break;
 
         case TURN_STATE_CLEAN_UP:
-
             // start cleanning up even if we dont receive allocation freed response in time, since we already sent
             // multiple STUN refresh packets with 0 lifetime.
             if (pTurnConnection->allocationFreed || currentTime >= pTurnConnection->stateTimeoutTime) {
@@ -1077,26 +1072,13 @@ CleanUp:
     return retStatus;
 }
 
-STATUS turnConnectionCheckTurnBeingUsed(PTurnConnection pTurnConnection)
+STATUS turnConnectionStop(PTurnConnection pTurnConnection)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    UINT64 currentTime;
 
     CHK(pTurnConnection != NULL, STATUS_NULL_ARG);
-    CHK(pTurnConnection->state != TURN_STATE_FAILED, retStatus);
-    // assume holding the lock
-    currentTime = GETTIME();
 
-    if (!pTurnConnection->allocationFreed &&
-        pTurnConnection->state != TURN_STATE_CLEAN_UP &&
-        IS_VALID_TIMESTAMP(pTurnConnection->lastApplicationDataSentTime) &&
-        pTurnConnection->lastApplicationDataSentTime + DEFAULT_TURN_START_CLEAN_UP_TIMEOUT < currentTime) {
-        pTurnConnection->state = TURN_STATE_CLEAN_UP;
-
-        DLOGD("Detected turn connection not being used, start freeing turn allocation");
-
-        pTurnConnection->stateTimeoutTime = currentTime + DEFAULT_TURN_CLEAN_UP_TIMEOUT;
-    }
+    ATOMIC_STORE(&pTurnConnection->stopTurnConnection, TRUE);
 
 CleanUp:
 
