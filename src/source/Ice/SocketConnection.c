@@ -5,7 +5,8 @@
 #include "../Include_i.h"
 
 STATUS createSocketConnection(PKvsIpAddress pHostIpAddr, PKvsIpAddress pPeerIpAddr, KVS_SOCKET_PROTOCOL protocol,
-                              UINT64 customData, ConnectionDataAvailableFunc dataAvailableFn, PSocketConnection *ppSocketConnection)
+                              UINT64 customData, ConnectionDataAvailableFunc dataAvailableFn, UINT32 sendBufLen,
+                              PSocketConnection *ppSocketConnection)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -20,7 +21,7 @@ STATUS createSocketConnection(PKvsIpAddress pHostIpAddr, PKvsIpAddress pPeerIpAd
     pSocketConnection->lock = MUTEX_CREATE(FALSE);
     CHK(pSocketConnection->lock != INVALID_MUTEX_VALUE, STATUS_INVALID_OPERATION);
 
-    CHK_STATUS(createSocket(pHostIpAddr, pPeerIpAddr, protocol, &pSocketConnection->localSocket));
+    CHK_STATUS(createSocket(pHostIpAddr, pPeerIpAddr, protocol, sendBufLen, &pSocketConnection->localSocket));
 
     pSocketConnection->secureConnection = FALSE;
     pSocketConnection->protocol = protocol;

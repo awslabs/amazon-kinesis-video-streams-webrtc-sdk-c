@@ -6,7 +6,7 @@
 
 STATUS createTurnConnection(PIceServer pTurnServer, TIMER_QUEUE_HANDLE timerQueueHandle, PConnectionListener pConnectionListener,
                             TURN_CONNECTION_DATA_TRANSFER_MODE dataTransferMode, KVS_SOCKET_PROTOCOL protocol,
-                            PTurnConnectionCallbacks pTurnConnectionCallbacks, PTurnConnection* ppTurnConnection)
+                            PTurnConnectionCallbacks pTurnConnectionCallbacks, KvsRtcConfiguration kvsRtcConfiguration, PTurnConnection* ppTurnConnection)
 {
     UNUSED_PARAM(dataTransferMode);
     ENTERS();
@@ -35,6 +35,7 @@ STATUS createTurnConnection(PIceServer pTurnServer, TIMER_QUEUE_HANDLE timerQueu
     pTurnConnection->pConnectionListener = pConnectionListener;
     pTurnConnection->dataTransferMode = TURN_CONNECTION_DATA_TRANSFER_MODE_DATA_CHANNEL; // only TURN_CONNECTION_DATA_TRANSFER_MODE_DATA_CHANNEL for now
     pTurnConnection->protocol = protocol;
+    pTurnConnection->kvsRtcConfiguration = kvsRtcConfiguration;
     if (pTurnConnectionCallbacks != NULL) {
         pTurnConnection->turnConnectionCallbacks = *pTurnConnectionCallbacks;
     }
@@ -897,7 +898,8 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
             // create controlling TCP connection with turn server.
             CHK_STATUS(createSocketConnection(&pTurnConnection->hostAddress, &pTurnConnection->turnServer.ipAddress,
                                               pTurnConnection->protocol, (UINT64) pTurnConnection,
-                                              turnConnectionIncomingDataHandler, &pTurnConnection->pControlChannel));
+                                              turnConnectionIncomingDataHandler, pTurnConnection->kvsRtcConfiguration.sendBufLen,
+                                              &pTurnConnection->pControlChannel));
             if (pTurnConnection->protocol == KVS_SOCKET_PROTOCOL_TCP) {
                 CHK_STATUS(socketConnectionInitSecureConnection(pTurnConnection->pControlChannel, FALSE));
             }

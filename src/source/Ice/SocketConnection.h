@@ -47,7 +47,7 @@ typedef struct __SocketConnection* PSocketConnection;
  *
  * @return - STATUS - status of execution
  */
-STATUS createSocketConnection(PKvsIpAddress, PKvsIpAddress, KVS_SOCKET_PROTOCOL, UINT64, ConnectionDataAvailableFunc, PSocketConnection*);
+STATUS createSocketConnection(PKvsIpAddress, PKvsIpAddress, KVS_SOCKET_PROTOCOL, UINT64, ConnectionDataAvailableFunc, UINT32, PSocketConnection*);
 
 /**
  * Free the SocketConnection struct

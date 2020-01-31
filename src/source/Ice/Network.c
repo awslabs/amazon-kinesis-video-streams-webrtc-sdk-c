@@ -60,13 +60,13 @@ CleanUp:
     return retStatus;
 }
 
-STATUS createSocket(PKvsIpAddress pHostIpAddress, PKvsIpAddress pPeerAddress, KVS_SOCKET_PROTOCOL protocol, PINT32 pSockFd)
+STATUS createSocket(PKvsIpAddress pHostIpAddress, PKvsIpAddress pPeerAddress, KVS_SOCKET_PROTOCOL protocol, UINT32 sendBufLen, PINT32 pSockFd)
 {
     STATUS retStatus = STATUS_SUCCESS;
 
     struct sockaddr_in ipv4Addr, ipv4PeerAddr;
     struct sockaddr_in6 ipv6Addr, ipv6PeerAddr;
-    INT32 sockfd, sockType;
+    INT32 sockfd, sockType, flags;
     struct sockaddr *sockAddr = NULL, *peerSockAddr = NULL;
     socklen_t addrLen;
     CHAR ipAddrStr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
@@ -78,6 +78,12 @@ STATUS createSocket(PKvsIpAddress pHostIpAddress, PKvsIpAddress pPeerAddress, KV
     sockType = protocol == KVS_SOCKET_PROTOCOL_UDP ? SOCK_DGRAM : SOCK_STREAM;
 
     sockfd = socket(pHostIpAddress->family == KVS_IP_FAMILY_TYPE_IPV4 ? AF_INET : AF_INET6, sockType, 0);
+
+    if (sendBufLen > 0 && setsockopt(sockfd, SOL_SOCKET, SO_SNDBUF, &sendBufLen, SIZEOF(sendBufLen)) < 0) {
+        DLOGW("setsockopt() failed with errno %s", strerror(errno));
+        CHK(FALSE, STATUS_INTERNAL_ERROR);
+    }
+
     if (sockfd == -1) {
         DLOGW("socket() failed to create socket with errno %s", strerror(errno));
         CHK(FALSE, STATUS_CREATE_UDP_SOCKET_FAILED);
@@ -133,12 +139,15 @@ STATUS createSocket(PKvsIpAddress pHostIpAddress, PKvsIpAddress pPeerAddress, KV
     pHostIpAddress->port = (UINT16) pHostIpAddress->family == KVS_IP_FAMILY_TYPE_IPV4 ? ipv4Addr.sin_port : ipv6Addr.sin6_port;
     *pSockFd = (INT32) sockfd;
 
-    // done at this point for UDP
-    CHK(protocol == KVS_SOCKET_PROTOCOL_TCP, retStatus);
-
-    if (connect(sockfd, peerSockAddr, addrLen) < 0) {
+    if (protocol == KVS_SOCKET_PROTOCOL_TCP && connect(sockfd, peerSockAddr, addrLen) < 0) {
         DLOGW("connect() failed with errno %s", strerror(errno));
-        CHK(FALSE, STATUS_SOCKET_CONNECT_FAILED);
+        CHK(FALSE, STATUS_SOCKET_CONNECT_FAILED);    
+    }
+
+    flags = fcntl(sockfd, F_GETFL, 0);
+    if (flags < 0 || fcntl(sockfd, F_SETFL, flags | O_NONBLOCK) < 0) {
+        DLOGW("failed to set socket flag with errno %s", strerror(errno));
+        CHK(FALSE, STATUS_SET_SOCKET_FLAG_FAILED);
     }
 
 CleanUp:

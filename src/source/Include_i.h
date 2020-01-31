@@ -48,6 +48,7 @@ struct __SocketConnection;
 #include <netdb.h>
 #include <net/if.h>
 #include <arpa/inet.h>
+#include <fcntl.h>
 #endif
 
 // Max uFrag and uPwd length as documented in https://tools.ietf.org/html/rfc5245#section-15.4

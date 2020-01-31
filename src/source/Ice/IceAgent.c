@@ -376,7 +376,7 @@ STATUS iceAgentGatherLocalCandidate(PIceAgent pIceAgent)
         if (pIpAddress->family == KVS_IP_FAMILY_TYPE_IPV4 && // Disable ipv6 gathering for now
             pDuplicatedIceCandidate == NULL &&
             STATUS_SUCCEEDED(createSocketConnection(pIpAddress, NULL, KVS_SOCKET_PROTOCOL_UDP, (UINT64) pIceAgent,
-                                                    incomingDataHandler, &pSocketConnection))) {
+                                                    incomingDataHandler, pIceAgent->kvsRtcConfiguration.sendBufLen, &pSocketConnection))) {
             pTmpIceCandidate = MEMCALLOC(1, SIZEOF(IceCandidate));
             pTmpIceCandidate->ipAddress = localIpAddresses[i];
             pTmpIceCandidate->iceCandidateType = ICE_CANDIDATE_TYPE_HOST;

@@ -341,7 +341,7 @@ STATUS executeGatheringIceAgentState(UINT64 customData, UINT64 time)
                         // with the correct ip address once the STUN response is received. Relay candidate's socket is manageed
                         // by TurnConnectino struct.
                         CHK_STATUS(createSocketConnection(&pNewCandidate->ipAddress, NULL, KVS_SOCKET_PROTOCOL_UDP,
-                                                          (UINT64) pIceAgent, incomingDataHandler,
+                                                          (UINT64) pIceAgent, incomingDataHandler, pIceAgent->kvsRtcConfiguration.sendBufLen,
                                                           &pNewCandidate->pSocketConnection));
                         CHK_STATUS(connectionListenerAddConnection(pIceAgent->pConnectionListener,
                                                                    pNewCandidate->pSocketConnection));
@@ -371,7 +371,7 @@ STATUS executeGatheringIceAgentState(UINT64 customData, UINT64 time)
 
             CHK_STATUS(createTurnConnection(&pIceAgent->iceServers[j], pIceAgent->timerQueueHandle,
                                             pIceAgent->pConnectionListener, TURN_CONNECTION_DATA_TRANSFER_MODE_SEND_INDIDATION,
-                                            KVS_ICE_DEFAULT_TURN_PROTOCOL, &turnConnectionCallbacks, &pIceAgent->pTurnConnection));
+                                            KVS_ICE_DEFAULT_TURN_PROTOCOL, &turnConnectionCallbacks, pIceAgent->kvsRtcConfiguration, &pIceAgent->pTurnConnection));
 
             // when connecting with non-trickle peer, when remote candidates are added, turnConnection would not be created
             // yet. So we need to add them here. turnConnectionAddPeer does ignore duplicates
