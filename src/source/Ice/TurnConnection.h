@@ -97,6 +97,7 @@ typedef struct {
 
 typedef struct __TurnConnection TurnConnection;
 struct __TurnConnection {
+    volatile ATOMIC_BOOL stopTurnConnection;
 
     // realm attribute in Allocation response
     CHAR turnRealm[STUN_MAX_REALM_LEN + 1];
@@ -149,7 +150,6 @@ struct __TurnConnection {
     UINT32 recvDataBufferSize;
     UINT32 currRecvDataLen;
 
-    UINT64 lastApplicationDataSentTime;
     BOOL allocationFreed;
 
     UINT64 allocationExpirationTime;
@@ -165,6 +165,7 @@ STATUS freeTurnConnection(PTurnConnection*);
 STATUS turnConnectionAddPeer(PTurnConnection, PKvsIpAddress);
 STATUS turnConnectionSendData(PTurnConnection, PBYTE, UINT32, PKvsIpAddress);
 STATUS turnConnectionStart(PTurnConnection);
+STATUS turnConnectionStop(PTurnConnection);
 STATUS turnConnectionRefreshAllocation(PTurnConnection);
 STATUS turnConnectionRefreshPermission(PTurnConnection, PBOOL);
 STATUS turnConnectionFreePreAllocatedPackets(PTurnConnection);
