@@ -160,10 +160,6 @@ STATUS turnConnectionIncomingDataHandler(UINT64 customData, PSocketConnection pS
         CHK_STATUS(turnConnectionHandleChannelDataTcpMode(pTurnConnection, pBuffer, bufferLen));
     }
 
-    // Unlock before checking if need to deliver to data channel callback
-    MUTEX_UNLOCK(pTurnConnection->lock);
-    locked = FALSE;
-
 CleanUp:
 
     CHK_LOG_ERR_NV(retStatus);
