@@ -1288,7 +1288,7 @@ STATUS incomingDataHandler(UINT64 customData, PSocketConnection pSocketConnectio
 {
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
-    PStunPacket pStunResponse;
+    PStunPacket pStunResponse = NULL;
     BOOL locked = FALSE, useTurn;
 
     CHK(pIceAgent != NULL && pSocketConnection != NULL, STATUS_NULL_ARG);
@@ -1329,6 +1329,10 @@ CleanUp:
 
     if (locked) {
         MUTEX_UNLOCK(pIceAgent->lock);
+    }
+
+    if (pStunResponse != NULL) {
+        freeStunPacket(&pStunResponse);
     }
 
     return retStatus;
