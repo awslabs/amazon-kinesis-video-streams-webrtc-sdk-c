@@ -886,6 +886,11 @@ STATUS executeReadyIceAgentState(UINT64 customData, UINT64 time)
 
     pIceAgent->iceAgentState = ICE_AGENT_STATE_READY;
 
+    if (!IS_CANN_PAIR_SENDING_FROM_RELAYED(pIceAgent->pDataSendingIceCandidatePair) && pIceAgent->pTurnConnection != NULL) {
+        DLOGI("Relayed candidate is not selected. Turn allocation will be freed");
+        CHK_STATUS(turnConnectionStop(pIceAgent->pTurnConnection));
+    }
+
 CleanUp:
 
     if (STATUS_FAILED(retStatus)) {
