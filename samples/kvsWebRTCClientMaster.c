@@ -9,6 +9,12 @@ INT32 main(INT32 argc, CHAR *argv[])
     SignalingClientInfo clientInfo;
     UINT32 frameSize;
     PSampleConfiguration pSampleConfiguration = NULL;
+    CLIENT_HANDLE clientHandle = INVALID_CLIENT_HANDLE_VALUE;
+    STREAM_HANDLE streamHandle = INVALID_STREAM_HANDLE_VALUE;
+    PDeviceInfo pDeviceInfo = NULL;
+    PStreamInfo pStreamInfo = NULL;
+    PClientCallbacks pClientCallbacks = NULL;
+    PAwsCredentials pAwsCredentials;
 
     signal(SIGINT, sigintHandler);
 
@@ -62,6 +68,28 @@ INT32 main(INT32 argc, CHAR *argv[])
     CHK_STATUS(signalingClientConnectSync(pSampleConfiguration->signalingClientHandle));
     printf("[KVS Master] Signaling client connection to socket established\n");
 
+    // Create KVS stream object graph
+    CHK_STATUS(createDefaultDeviceInfo(&pDeviceInfo));
+    CHK_STATUS(createRealtimeVideoStreamInfoProvider(DEFAULT_STREAM_NAME, DEFAULT_RETENTION_PERIOD, DEFAULT_BUFFER_DURATION, &pStreamInfo));
+    CHK_STATUS(pSampleConfiguration->pCredentialProvider->getCredentialsFn(pSampleConfiguration->pCredentialProvider, &pAwsCredentials));
+    CHK_STATUS(createDefaultCallbacksProviderWithAwsCredentials(pAwsCredentials->accessKeyId,
+                                                                pAwsCredentials->secretKey,
+                                                                pAwsCredentials->sessionToken,
+                                                                MAX_UINT64,
+                                                                pSampleConfiguration->channelInfo.pRegion,
+                                                                pSampleConfiguration->pCaCertPath,
+                                                                NULL,
+                                                                NULL,
+                                                                FALSE,
+                                                                &pClientCallbacks));
+
+    CHK_STATUS(createKinesisVideoClient(pDeviceInfo, pClientCallbacks, &clientHandle));
+    CHK_STATUS(createKinesisVideoStreamSync(clientHandle, pStreamInfo, &streamHandle));
+
+    // Store the client and the stream handles in the config
+    pSampleConfiguration->clientHandle = clientHandle;
+    pSampleConfiguration->streamHandle = streamHandle;
+
     gSampleConfiguration = pSampleConfiguration;
 
     printf("[KVS Master] Beginning audio-video streaming...check the stream over channel %s\n",
@@ -70,7 +98,11 @@ INT32 main(INT32 argc, CHAR *argv[])
     // Checking for termination
     CHK_STATUS(sessionCleanupWait(pSampleConfiguration));
 
-    printf("[KVS Master] Streaming session terminated\n");
+    printf("[KVS Master] Streaming session terminated. Awaiting for the stream termination.\n");
+
+    CHK_STATUS(stopKinesisVideoStreamSync(streamHandle));
+    CHK_STATUS(freeKinesisVideoStream(&streamHandle));
+    CHK_STATUS(freeKinesisVideoClient(&clientHandle));
 
 CleanUp:
     printf("[KVS Master] Cleaning up....\n");
@@ -92,6 +124,27 @@ CleanUp:
         CHK_LOG_ERR_NV(freeSignalingClient(&pSampleConfiguration->signalingClientHandle));
         CHK_LOG_ERR_NV(freeSampleConfiguration(&pSampleConfiguration));
     }
+
+    if (pDeviceInfo != NULL) {
+        freeDeviceInfo(&pDeviceInfo);
+    }
+
+    if (pStreamInfo != NULL) {
+        freeStreamInfoProvider(&pStreamInfo);
+    }
+
+    if (IS_VALID_STREAM_HANDLE(streamHandle)) {
+        freeKinesisVideoStream(&streamHandle);
+    }
+
+    if (IS_VALID_CLIENT_HANDLE(clientHandle)) {
+        freeKinesisVideoClient(&clientHandle);
+    }
+
+    if (pClientCallbacks != NULL) {
+        freeCallbacksProvider(&pClientCallbacks);
+    }
+
     printf("[KVS Master] Cleanup done\n");
     return (INT32) retStatus;
 }
@@ -156,6 +209,13 @@ PVOID sendVideoPackets(PVOID args)
                     DLOGD("writeFrame failed with 0x%08x", status);
                 }
             }
+
+            // Output the frame to KVS stream as well
+            status = putKinesisVideoFrame(pSampleConfiguration->streamHandle, &frame);
+            if (STATUS_FAILED(status)) {
+                DLOGD("putKinesisVideoFrame failed with 0x%08x", status);
+            }
+
             ATOMIC_DECREMENT(&pSampleConfiguration->streamingSessionListReadingThreadCount);
         }
 

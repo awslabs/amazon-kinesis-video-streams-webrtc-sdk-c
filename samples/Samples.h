@@ -11,11 +11,16 @@ extern "C" {
 #endif
 
 #include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
+#include <com/amazonaws/kinesis/video/cproducer/Include.h>
 
 #define NUMBER_OF_H264_FRAME_FILES                                              403
 #define NUMBER_OF_OPUS_FRAME_FILES                                              618
 #define DEFAULT_FPS_VALUE                                                       25
 #define DEFAULT_MAX_CONCURRENT_STREAMING_SESSION                                10
+
+#define DEFAULT_RETENTION_PERIOD                                                2 * HUNDREDS_OF_NANOS_IN_AN_HOUR
+#define DEFAULT_BUFFER_DURATION                                                 120 * HUNDREDS_OF_NANOS_IN_A_SECOND
+#define DEFAULT_STREAM_NAME                                                     "ScaryTestStream"
 
 #define SAMPLE_MASTER_CLIENT_ID                                                 "ProducerMaster"
 #define SAMPLE_VIEWER_CLIENT_ID                                                 "ConsumerViewer"
@@ -62,6 +67,8 @@ typedef struct {
     UINT64 customData;
     PSampleStreamingSession sampleStreamingSessionList[DEFAULT_MAX_CONCURRENT_STREAMING_SESSION];
     UINT32 streamingSessionCount;
+    CLIENT_HANDLE clientHandle;
+    STREAM_HANDLE streamHandle;
 } SampleConfiguration, *PSampleConfiguration;
 
 typedef VOID (*StreamSessionShutdownCallback)(UINT64, PSampleStreamingSession);
