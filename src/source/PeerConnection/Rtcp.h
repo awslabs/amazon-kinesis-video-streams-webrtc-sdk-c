@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-STATUS onRtcpPacket(PKvsPeerConnection, PBYTE, INT32);
+STATUS onRtcpPacket(PKvsPeerConnection, PBYTE, UINT32);
 
 #ifdef  __cplusplus
 }
