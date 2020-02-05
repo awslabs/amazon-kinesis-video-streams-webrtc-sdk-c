@@ -1,4 +1,6 @@
-[submodule "open-source/amazon-kinesis-video-streams-producer-sdk-cpp"]
-	path = open-source/amazon-kinesis-video-streams-producer-sdk-cpp
-	url = https://github.com/awslabs/amazon-kinesis-video-streams-producer-sdk-cpp.git
-	branch = aligned_mem
+[submodule "open-source/amazon-kinesis-video-streams-pic"]
+	path = open-source/amazon-kinesis-video-streams-pic
+	url = https://github.com/awslabs/amazon-kinesis-video-streams-pic.git
+[submodule "open-source/amazon-kinesis-video-streams-producer-c"]
+	path = open-source/amazon-kinesis-video-streams-producer-c
+	url = https://github.com/awslabs/amazon-kinesis-video-streams-producer-c.git

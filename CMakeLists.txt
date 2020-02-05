@@ -26,7 +26,7 @@ if(NOT KINESIS_VIDEO_PIC_SRC)
     set(KINESIS_VIDEO_PIC_SRC $ENV{KINESIS_VIDEO_PIC_SRC})
   else()
     set(KINESIS_VIDEO_PIC_SRC
-        "${CMAKE_CURRENT_SOURCE_DIR}/open-source/amazon-kinesis-video-streams-producer-sdk-cpp/kinesis-video-pic/")
+        "${CMAKE_CURRENT_SOURCE_DIR}/open-source/amazon-kinesis-video-streams-pic/")
   endif()
 endif()
 
@@ -35,7 +35,7 @@ if(NOT KINESIS_VIDEO_PRODUCER_C_SRC)
     set(KINESIS_VIDEO_PRODUCER_C_SRC $ENV{KINESIS_VIDEO_PRODUCER_C_SRC})
   else()
     set(KINESIS_VIDEO_PRODUCER_C_SRC
-        "${CMAKE_CURRENT_SOURCE_DIR}/open-source/amazon-kinesis-video-streams-producer-sdk-cpp/kinesis-video-c-producer/")
+        "${CMAKE_CURRENT_SOURCE_DIR}/open-source/amazon-kinesis-video-streams-producer-c/")
   endif()
 endif()
 
@@ -397,9 +397,9 @@ include_directories(${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/include)
 include_directories(${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/ice)
 include_directories(${KINESIS_VIDEO_PRODUCER_C_SRC}/src/include)
 
-set(BUILD_COMMON_LWS TRUE)
-add_subdirectory(${KINESIS_VIDEO_PRODUCER_C_SRC} ./kvscproducer
-                 EXCLUDE_FROM_ALL)
+set(BUILD_COMMON_LWS TRUE CACHE BOOL "Build ProducerC with LWS Support" FORCE)
+set(BUILD_COMMON_CURL FALSE CACHE BOOL "Build ProducerC without CURL Support" FORCE)
+add_subdirectory(${KINESIS_VIDEO_PRODUCER_C_SRC} ./kvscproducer EXCLUDE_FROM_ALL)
 
 add_library(kvsWebrtcClient SHARED ${WEBRTC_CLIENT_SOURCE_FILES})
 
