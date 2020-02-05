@@ -121,6 +121,7 @@ struct __TurnConnection {
     volatile TURN_CONNECTION_STATE state;
 
     UINT64 stateTimeoutTime;
+    UINT64 filterCustomData;
 
     STATUS errorStatus;
 
@@ -156,11 +157,13 @@ struct __TurnConnection {
     UINT64 nextAllocationRefreshTime;
 
     UINT64 currentTimerCallingPeriod;
+
+    IceSetInterfaceFilterFunc iceSetInterfaceFilterFunc;
 };
 typedef struct __TurnConnection* PTurnConnection;
 
 STATUS createTurnConnection(PIceServer, TIMER_QUEUE_HANDLE, PConnectionListener, TURN_CONNECTION_DATA_TRANSFER_MODE,
-                            KVS_SOCKET_PROTOCOL, PTurnConnectionCallbacks , PTurnConnection*);
+                            KVS_SOCKET_PROTOCOL, PTurnConnectionCallbacks , PTurnConnection*, IceSetInterfaceFilterFunc);
 STATUS freeTurnConnection(PTurnConnection*);
 STATUS turnConnectionAddPeer(PTurnConnection, PKvsIpAddress);
 STATUS turnConnectionSendData(PTurnConnection, PBYTE, UINT32, PKvsIpAddress);

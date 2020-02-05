@@ -32,9 +32,12 @@ typedef enum {
  *                                   will be in network byte order.
  * @param - UINT32 - IN/OUT - length of the array, upon return it will be updated to the actual number of ips in the array
  *
+ *@param - IceSetInterfaceFilterFunc - IN - set to custom interface filter callback
+ *
+ *@param - UINT64 - IN - Set to custom data that can be used in the callback later
  * @return - STATUS status of execution
  */
-STATUS getLocalhostIpAddresses(PKvsIpAddress, PUINT32);
+STATUS getLocalhostIpAddresses(PKvsIpAddress, PUINT32, IceSetInterfaceFilterFunc, UINT64);
 
 /**
  * @param - PKvsIpAddress - IN - Attempt to create an udp socket with the ip address given. Upon success, fill PKvsIpAddress'

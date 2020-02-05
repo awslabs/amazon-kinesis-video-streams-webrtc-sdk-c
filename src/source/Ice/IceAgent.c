@@ -364,8 +364,10 @@ STATUS iceAgentGatherLocalCandidate(PIceAgent pIceAgent)
     KvsIpAddress localIpAddresses[MAX_LOCAL_NETWORK_INTERFACE_COUNT];
     UINT32 localIpAddressesCount = MAX_LOCAL_NETWORK_INTERFACE_COUNT, i;
     PSocketConnection pSocketConnection = NULL;
-
-    CHK_STATUS(getLocalhostIpAddresses(localIpAddresses, &localIpAddressesCount));
+    CHK_STATUS(getLocalhostIpAddresses(localIpAddresses,
+                                       &localIpAddressesCount,
+                                       pIceAgent->kvsRtcConfiguration.iceSetInterfaceFilterFunc,
+                                       pIceAgent->kvsRtcConfiguration.filterCustomData));
 
     for(i = 0; i < localIpAddressesCount; ++i) {
         pIpAddress = localIpAddresses + i;
