@@ -90,13 +90,15 @@ To build the library and the provided samples run make in the build directory yo
 `make`
 
 ## Run
-### Setup your environment with your AWS account credentials:
-First set the appropriate environment variables so you can connect to KVS
+### Setup your environment with your AWS account credentials and AWS region:
+First set the appropriate environment variables so you can connect to KVS. Region is optional, if not being set, then us-west-2 will be used as default region. 
 
 ```
 export AWS_ACCESS_KEY_ID= <AWS account access key>
 export AWS_SECRET_ACCESS_KEY= <AWS account secret key>
+export AWS_DEFAULT_REGION= <AWS region>
 ```
+
 ### Setup desired log level:
 Set up the desired log level. The log levels and corresponding values currently available are:
 1. `LOG_LEVEL_VERBOSE` ---- 1
