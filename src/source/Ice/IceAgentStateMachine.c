@@ -371,7 +371,7 @@ STATUS executeGatheringIceAgentState(UINT64 customData, UINT64 time)
 
             CHK_STATUS(createTurnConnection(&pIceAgent->iceServers[j], pIceAgent->timerQueueHandle,
                                             pIceAgent->pConnectionListener, TURN_CONNECTION_DATA_TRANSFER_MODE_SEND_INDIDATION,
-                                            KVS_ICE_DEFAULT_TURN_PROTOCOL, &turnConnectionCallbacks, &pIceAgent->pTurnConnection));
+                                            KVS_ICE_DEFAULT_TURN_PROTOCOL, &turnConnectionCallbacks, &pIceAgent->pTurnConnection, pIceAgent->kvsRtcConfiguration.iceSetInterfaceFilterFunc));
 
             // when connecting with non-trickle peer, when remote candidates are added, turnConnection would not be created
             // yet. So we need to add them here. turnConnectionAddPeer does ignore duplicates

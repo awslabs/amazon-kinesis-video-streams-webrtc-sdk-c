@@ -298,6 +298,9 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
 
     MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
 
+    // Set this to custom callback to enable filtering of interfaces
+    configuration.kvsRtcConfiguration.iceSetInterfaceFilterFunc = NULL;
+
     // Set the  STUN server
     SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, pSampleConfiguration->channelInfo.pRegion);
 

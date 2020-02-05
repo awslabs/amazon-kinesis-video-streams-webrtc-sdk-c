@@ -458,6 +458,12 @@ typedef VOID (*RtcOnDataChannel)(UINT64, struct __RtcDataChannel*);
 typedef VOID (*RtcOnIceCandidate)(UINT64, PCHAR);
 
 /*
+ * IceSetInterfaceFilterFunc is fired when a callback function to filter network interfaces is assigned.
+ * The callback function is expected to check for specific interface names to be whitelisted/blacklisted
+ */
+typedef BOOL (*IceSetInterfaceFilterFunc) (UINT64, PCHAR);
+
+/*
  * https://www.w3.org/TR/webrtc/#rtcpeerconnectionstate-enum
  */
 typedef enum {
@@ -644,6 +650,8 @@ typedef struct {
     // If unset GENERATED_CERTIFICATE_BITS will be used
     INT32 generatedCertificateBits;
 
+    UINT64 filterCustomData;
+    IceSetInterfaceFilterFunc iceSetInterfaceFilterFunc;
 } KvsRtcConfiguration, *PKvsRtcConfiguration;
 
 /**

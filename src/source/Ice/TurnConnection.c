@@ -6,7 +6,7 @@
 
 STATUS createTurnConnection(PIceServer pTurnServer, TIMER_QUEUE_HANDLE timerQueueHandle, PConnectionListener pConnectionListener,
                             TURN_CONNECTION_DATA_TRANSFER_MODE dataTransferMode, KVS_SOCKET_PROTOCOL protocol,
-                            PTurnConnectionCallbacks pTurnConnectionCallbacks, PTurnConnection* ppTurnConnection)
+                            PTurnConnectionCallbacks pTurnConnectionCallbacks, PTurnConnection* ppTurnConnection, IceSetInterfaceFilterFunc filter)
 {
     UNUSED_PARAM(dataTransferMode);
     ENTERS();
@@ -35,6 +35,8 @@ STATUS createTurnConnection(PIceServer pTurnServer, TIMER_QUEUE_HANDLE timerQueu
     pTurnConnection->pConnectionListener = pConnectionListener;
     pTurnConnection->dataTransferMode = TURN_CONNECTION_DATA_TRANSFER_MODE_DATA_CHANNEL; // only TURN_CONNECTION_DATA_TRANSFER_MODE_DATA_CHANNEL for now
     pTurnConnection->protocol = protocol;
+    pTurnConnection->iceSetInterfaceFilterFunc = filter;
+
     ATOMIC_STORE(&pTurnConnection->stopTurnConnection, FALSE);
 
     if (pTurnConnectionCallbacks != NULL) {
@@ -832,7 +834,10 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
         case TURN_STATE_NEW:
             // find a host address to create new socket
             // TODO currently we use the first address found. Need to handle case when VPN is involved.
-            CHK_STATUS(getLocalhostIpAddresses(localhostIps, &localhostIpsLen));
+            CHK_STATUS(getLocalhostIpAddresses(localhostIps,
+                                               &localhostIpsLen,
+                                               pTurnConnection->iceSetInterfaceFilterFunc,
+                                               pTurnConnection->filterCustomData));
             for(i = 0; i < localhostIpsLen && !hostAddrFound; ++i) {
                 if(localhostIps[i].family == pTurnConnection->turnServer.ipAddress.family) {
                     hostAddrFound = TRUE;

@@ -4,11 +4,12 @@
 #define LOG_CLASS "Network"
 #include "../Include_i.h"
 
-STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen)
+STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen, IceSetInterfaceFilterFunc filter, UINT64 customData)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 ipCount = 0, destIpListLen;
+    BOOL filterSet = TRUE;
 
     struct ifaddrs *ifaddr = NULL, *ifa = NULL;
     struct sockaddr_in *pIpv4Addr = NULL;
@@ -28,21 +29,35 @@ STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen)
             // mark vpn interface
             destIpList[ipCount].isPointToPoint = ((ifa->ifa_flags & IFF_POINTOPOINT) != 0);
 
-            if (ifa->ifa_addr->sa_family == AF_INET) {
-                destIpList[ipCount].family = KVS_IP_FAMILY_TYPE_IPV4;
-                destIpList[ipCount].port = 0;
-                pIpv4Addr = (struct sockaddr_in *) ifa->ifa_addr;
-                MEMCPY(destIpList[ipCount].address, &pIpv4Addr->sin_addr, IPV4_ADDRESS_LENGTH);
+            if(filter != NULL) {
+                DLOGI("Callback set to allow network interface filtering");
+                // The callback evaluates to a FALSE if the application is interested in black listing an interface
+                if(filter(customData, ifa->ifa_name) == FALSE) {
+                    filterSet = FALSE;
+                } else {
+                    filterSet = TRUE;
+                }
+             }
 
-            } else {
-                destIpList[ipCount].family = KVS_IP_FAMILY_TYPE_IPV6;
-                destIpList[ipCount].port = 0;
-                pIpv6Addr = (struct sockaddr_in6 *) ifa->ifa_addr;
-                MEMCPY(destIpList[ipCount].address, &pIpv6Addr->sin6_addr, IPV6_ADDRESS_LENGTH);
+            // If filter is set, ensure the details are collected for the interface
+            if(filterSet == TRUE) {
+                 if (ifa->ifa_addr->sa_family == AF_INET) {
+                    destIpList[ipCount].family = KVS_IP_FAMILY_TYPE_IPV4;
+                    destIpList[ipCount].port = 0;
+                    pIpv4Addr = (struct sockaddr_in *) ifa->ifa_addr;
+                    MEMCPY(destIpList[ipCount].address, &pIpv4Addr->sin_addr, IPV4_ADDRESS_LENGTH);
+
+                 } else {
+                    destIpList[ipCount].family = KVS_IP_FAMILY_TYPE_IPV6;
+                    destIpList[ipCount].port = 0;
+                    pIpv6Addr = (struct sockaddr_in6 *) ifa->ifa_addr;
+                    MEMCPY(destIpList[ipCount].address, &pIpv6Addr->sin6_addr, IPV6_ADDRESS_LENGTH);
+
+                 }
+
+                 // in case of overfilling destIpList
+                 ipCount++;
             }
-
-            // in case of overfilling destIpList
-            ipCount++;
         }
     }
 
