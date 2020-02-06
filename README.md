@@ -91,11 +91,16 @@ To build the library and the provided samples run make in the build directory yo
 
 ## Run
 ### Setup your environment with your AWS account credentials and AWS region:
-First set the appropriate environment variables so you can connect to KVS. Region is optional, if not being set, then us-west-2 will be used as default region. 
+* First set the appropriate environment variables so you can connect to KVS. If you want to use IoT certificate instead, check <a href="#setup-iot">Setup IoT</a>.
 
 ```
 export AWS_ACCESS_KEY_ID= <AWS account access key>
 export AWS_SECRET_ACCESS_KEY= <AWS account secret key>
+```
+
+* Region is optional, if not being set, then us-west-2 will be used as default region.
+
+```
 export AWS_DEFAULT_REGION= <AWS region>
 ```
 
@@ -143,6 +148,47 @@ Now that your signaling channel is created and the connected master is streaming
 * Client ID (optional)
 
 Choose Start viewer to start live video streaming of the sample H264/Opus frames.
+
+## Setup IoT
+* To use IoT certificate to authenticate with KVS signaling, please refer to [Controlling Access to Kinesis Video Streams Resources Using AWS IoT](https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/how-iot.html) for provisioning details.
+* A sample IAM policy for the IoT role looks like below, policy can be modified based on your permission requirement.
+
+```
+{
+   "Version":"2012-10-17",
+   "Statement":[
+      {
+          "Effect":"Allow",
+          "Action":[
+            "kinesisvideo:DescribeSignalingChannel",
+            "kinesisvideo:CreateSignalingChannel",
+            "kinesisvideo:GetSignalingChannelEndpoint",
+            "kinesisvideo:GetIceServerConfig",
+            "kinesisvideo:ConnectAsMaster",
+          ],
+          "Resource":"arn:aws:kinesisvideo:*:*:channel/\${credentials-iot:ThingName}/*"
+      }
+   ]
+}
+```
+
+Note: "kinesisvideo:CreateSignalingChannel" can be removed if you are running with existing KVS signaling channels. Viewer sample requires "kinesisvideo:ConnectAsViewer" permission. Integration test requires both "kinesisvideo:ConnectAsViewer" and "kinesisvideo:DeleteSignalingChannel" permission.
+
+* With the IoT certificate, IoT credentials provider endpoint (Note: it is not the endpoint on IoT AWS Console!), public key and private key ready, you can replace the static credentials provider createStaticCredentialProvider() and freeStaticCredentialProvider() with IoT credentials provider like below, the credentials provider for [samples](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/blob/master/samples/Common.c) is in createSampleConfiguration():
+
+```
+createLwsIotCredentialProvider(
+            "coxxxxxxxx168.credentials.iot.us-west-2.amazonaws.com",  // IoT credentials endpoint
+            "/Users/username/Downloads/iot-signaling/certificate.pem",  // path to iot certificate
+            "/Users/username/Downloads/iot-signaling/private.pem.key", // path to iot private key
+            "/Users/username/Downloads/iot-signaling/cacert.pem", // path to CA cert
+            "KinesisVideoSignalingCameraIoTRoleAlias", // IoT role alias
+            channelName, // iot thing name, recommended to be same as your channel name
+            &pSampleConfiguration->pCredentialProvider));
+
+freeIotCredentialProvider(&pSampleConfiguration->pCredentialProvider);
+```
+
 
 ## Documentation
 All Public APIs are documented in our [Include.h](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/blob/master/src/include/com/amazonaws/kinesis/video/webrtcclient/Include.h) refer to [related](#related) for more about WebRTC and KVS.
