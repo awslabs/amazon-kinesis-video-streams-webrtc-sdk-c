@@ -122,11 +122,6 @@ extern "C" {
     putInt16((PINT16) (pBuf), (UINT16) (type)); \
     putInt16((PINT16) ((pBuf) + STUN_ATTRIBUTE_HEADER_TYPE_LEN), (UINT16) (dataLen)); \
 
-/*
- * Taking a PBYTE pointing to a buffer containing stun packet, return whether the stun packet is error packet or not
- */
-#define STUN_PACKET_IS_TYPE_ERROR(pPacketBuffer)        ((*((pPacketBuffer) + 1) & 0x10) > 0)
-
 /**
  * STUN packet types
  */
@@ -155,6 +150,16 @@ typedef enum {
     STUN_PACKET_TYPE_CREATE_PERMISSION_ERROR_RESPONSE   = (UINT16) 0x0118,
     STUN_PACKET_TYPE_CHANNEL_BIND_ERROR_RESPONSE        = (UINT16) 0x0119,
 } STUN_PACKET_TYPE;
+
+/*
+ * Taking a PBYTE pointing to a buffer containing stun packet, return whether the stun packet is error packet or not
+ */
+#define STUN_PACKET_IS_TYPE_ERROR(pPacketBuffer)        ((getInt16(*(PINT16) pPacketBuffer) == STUN_PACKET_TYPE_BINDING_RESPONSE_ERROR)\
+    || (getInt16(*(PINT16) pPacketBuffer) == STUN_PACKET_TYPE_SHARED_SECRET_ERROR_RESPONSE)\
+    || (getInt16(*(PINT16) pPacketBuffer) == STUN_PACKET_TYPE_ALLOCATE_ERROR_RESPONSE)\
+    || (getInt16(*(PINT16) pPacketBuffer) == STUN_PACKET_TYPE_REFRESH_ERROR_RESPONSE)\
+    || (getInt16(*(PINT16) pPacketBuffer) == STUN_PACKET_TYPE_CREATE_PERMISSION_ERROR_RESPONSE)\
+    || (getInt16(*(PINT16) pPacketBuffer) == STUN_PACKET_TYPE_CHANNEL_BIND_ERROR_RESPONSE))
 
 /**
  * STUN error codes
