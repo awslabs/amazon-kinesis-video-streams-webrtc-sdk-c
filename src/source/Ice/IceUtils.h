@@ -40,6 +40,7 @@ STATUS populateIpFromString(PKvsIpAddress, PCHAR);
 
 typedef struct {
     BOOL isTurn;
+    BOOL failed;
     CHAR url[MAX_ICE_CONFIG_URI_LEN + 1];
     KvsIpAddress ipAddress;
     CHAR username[MAX_ICE_CONFIG_USER_NAME_LEN + 1];

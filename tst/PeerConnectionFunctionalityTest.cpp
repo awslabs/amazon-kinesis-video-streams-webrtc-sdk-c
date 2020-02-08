@@ -86,7 +86,7 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithHostAndStun)
     freePeerConnection(&answerPc);
 }
 
-// Assert that two PeerConnections can connect and then termintate one of them, the other one will eventually report disconnection
+// Assert that two PeerConnections can connect and then terminate one of them, the other one will eventually report disconnection
 TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersThenDisconnectTest)
 {
     if (!mAccessKeyIdSet) {
@@ -103,6 +103,9 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersThenDisconnectTest)
     EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
 
     EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+
+    // Await some time to connect
+    THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
 
     // free offerPc so it wont send anymore keep alives and answerPc will detect disconnection
     freePeerConnection(&offerPc);

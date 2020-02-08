@@ -1,5 +1,8 @@
 #include "WebRTCClientTestFixture.h"
 
+extern StateMachineState ICE_AGENT_STATE_MACHINE_STATES[];
+extern UINT32 ICE_AGENT_STATE_MACHINE_STATE_COUNT;
+
 namespace com { namespace amazonaws { namespace kinesis { namespace video { namespace webrtcclient {
 
     class IceFunctionalityTest : public WebRtcClientTestBase {
@@ -126,7 +129,7 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         for(i = 0; i < pCustomData->connectionToAdd; ++i) {
             randomDelay = (UINT64) (RAND() % 300) * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
             THREAD_SLEEP(randomDelay);
-            CHECK(STATUS_SUCCEEDED(createSocketConnection(&localhost, NULL, KVS_SOCKET_PROTOCOL_UDP, 0, NULL, &pSocketConnection)));
+            CHECK(STATUS_SUCCEEDED(createSocketConnection(&localhost, NULL, KVS_SOCKET_PROTOCOL_UDP, 0, NULL, 0, &pSocketConnection)));
             CHECK(STATUS_SUCCEEDED(connectionListenerAddConnection(pCustomData->pConnectionListener, pSocketConnection)));
         }
 
@@ -173,7 +176,7 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(pConnectionListener->connectionList, &connectionCount));
         EXPECT_EQ(connectionCount, routine1CustomData.connectionToAdd + routine2CustomData.connectionToAdd);
 
-        CHECK(STATUS_SUCCEEDED(createSocketConnection(&localhost, NULL, KVS_SOCKET_PROTOCOL_UDP, 0, NULL, &pSocketConnection)));
+        CHECK(STATUS_SUCCEEDED(createSocketConnection(&localhost, NULL, KVS_SOCKET_PROTOCOL_UDP, 0, NULL, 0, &pSocketConnection)));
         EXPECT_EQ(STATUS_SUCCESS, connectionListenerAddConnection(pConnectionListener, pSocketConnection));
 
         EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(pConnectionListener->connectionList, &newConnectionCount));
@@ -275,9 +278,20 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         IceCandidate testLocalCandidate;
         PDoubleListNode pCurNode = NULL;
         PIceCandidatePair pIceCandidatePair = NULL;
+        PStateMachine pStateMachine = NULL;
 
         MEMSET(&iceAgent, 0x00, SIZEOF(IceAgent));
         MEMSET(&testLocalCandidate, 0x00, SIZEOF(IceCandidate));
+
+        // Create the state machine
+        ASSERT_EQ(STATUS_SUCCESS, createStateMachine(ICE_AGENT_STATE_MACHINE_STATES,
+                ICE_AGENT_STATE_MACHINE_STATE_COUNT,
+                (UINT64) &iceAgent,
+                kinesisVideoStreamDefaultGetCurrentTime,
+                (UINT64) &iceAgent,
+                &pStateMachine));
+
+        iceAgent.pStateMachine = pStateMachine;
 
         // init needed members in iceAgent
         iceAgent.lock = MUTEX_CREATE(TRUE);
@@ -285,7 +299,7 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&iceAgent.localCandidates));
         EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&iceAgent.iceCandidatePairs));
         iceAgent.pTurnConnection = NULL;
-        iceAgent.iceAgentState = ICE_AGENT_STATE_GATHERING;
+        setStateMachineCurrentState(iceAgent.pStateMachine, ICE_AGENT_STATE_GATHERING);
 
         // invalid input
         EXPECT_NE(STATUS_SUCCESS, iceAgentAddRemoteCandidate(NULL, NULL));
@@ -305,7 +319,7 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(iceAgent.iceCandidatePairs, &iceCandidateCount));
         EXPECT_EQ(0, iceCandidateCount);
 
-        iceAgent.iceAgentState = ICE_AGENT_STATE_CHECK_CONNECTION;
+        setStateMachineCurrentState(iceAgent.pStateMachine, ICE_AGENT_STATE_CHECK_CONNECTION);
         EXPECT_EQ(STATUS_SUCCESS, iceAgentAddRemoteCandidate(&iceAgent, relayCandidateStr));
         EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(iceAgent.remoteCandidates, &remoteCandidateCount));
         EXPECT_EQ(2, remoteCandidateCount);
@@ -327,6 +341,8 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         EXPECT_EQ(STATUS_SUCCESS, doubleListFree(iceAgent.remoteCandidates));
         EXPECT_EQ(STATUS_SUCCESS, doubleListClear(iceAgent.localCandidates, FALSE));
         EXPECT_EQ(STATUS_SUCCESS, doubleListFree(iceAgent.localCandidates));
+
+        freeStateMachine(pStateMachine);
     }
 
     TEST_F(IceFunctionalityTest, IceAgentFindCandidateWithIpUnitTest)

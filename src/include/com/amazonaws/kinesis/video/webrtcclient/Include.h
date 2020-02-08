@@ -99,6 +99,9 @@ extern "C" {
 #define STATUS_SECURE_SOCKET_READ_FAILED                                            STATUS_NETWORKING_BASE + 0x00000020
 #define STATUS_SOCKET_CONNECTION_NOT_READY_TO_SEND                                  STATUS_NETWORKING_BASE + 0x00000021
 #define STATUS_SOCKET_CONNECTION_CLOSED_ALREADY                                     STATUS_NETWORKING_BASE + 0x00000022
+#define STATUS_SOCKET_SET_SEND_BUFFER_SIZE_FAILED                                   STATUS_NETWORKING_BASE + 0x00000023
+#define STATUS_GET_SOCKET_FLAG_FAILED                                               STATUS_NETWORKING_BASE + 0x00000024
+#define STATUS_SET_SOCKET_FLAG_FAILED                                               STATUS_NETWORKING_BASE + 0x00000025
 
 //
 // DTLS related errors starting from 0x59000000
@@ -643,6 +646,9 @@ typedef struct {
     // A smaller amount of bits may result in less CPU usage on startup, but will cause a weaker certificate to be generated
     // If unset GENERATED_CERTIFICATE_BITS will be used
     INT32 generatedCertificateBits;
+
+    // Socket send buffer len. Item larger then this size will get dropped. Use system default if 0.
+    UINT32 sendBufSize;
 
 } KvsRtcConfiguration, *PKvsRtcConfiguration;
 

@@ -20,7 +20,6 @@ typedef struct {
     volatile ATOMIC_BOOL listenerRoutineStarted;
     PDoubleList connectionList;
     MUTEX lock;
-    MUTEX connectionRemovalLock;
     TID receiveDataRoutine;
     PBYTE pBuffer;
     UINT64 bufferLen;

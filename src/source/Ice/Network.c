@@ -60,13 +60,13 @@ CleanUp:
     return retStatus;
 }
 
-STATUS createSocket(PKvsIpAddress pHostIpAddress, PKvsIpAddress pPeerAddress, KVS_SOCKET_PROTOCOL protocol, PINT32 pSockFd)
+STATUS createSocket(PKvsIpAddress pHostIpAddress, PKvsIpAddress pPeerAddress, KVS_SOCKET_PROTOCOL protocol, UINT32 sendBufSize, PINT32 pSockFd)
 {
     STATUS retStatus = STATUS_SUCCESS;
 
     struct sockaddr_in ipv4Addr, ipv4PeerAddr;
     struct sockaddr_in6 ipv6Addr, ipv6PeerAddr;
-    INT32 sockfd, sockType;
+    INT32 sockfd, sockType, flags, retVal;
     struct sockaddr *sockAddr = NULL, *peerSockAddr = NULL;
     socklen_t addrLen;
     CHAR ipAddrStr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
@@ -81,6 +81,11 @@ STATUS createSocket(PKvsIpAddress pHostIpAddress, PKvsIpAddress pPeerAddress, KV
     if (sockfd == -1) {
         DLOGW("socket() failed to create socket with errno %s", strerror(errno));
         CHK(FALSE, STATUS_CREATE_UDP_SOCKET_FAILED);
+    }
+
+    if (sendBufSize > 0 && setsockopt(sockfd, SOL_SOCKET, SO_SNDBUF, &sendBufSize, SIZEOF(sendBufSize)) < 0) {
+        DLOGW("setsockopt() failed with errno %s", strerror(errno));
+        CHK(FALSE, STATUS_SOCKET_SET_SEND_BUFFER_SIZE_FAILED);
     }
 
     if (pHostIpAddress->family == KVS_IP_FAMILY_TYPE_IPV4) {
@@ -133,13 +138,16 @@ STATUS createSocket(PKvsIpAddress pHostIpAddress, PKvsIpAddress pPeerAddress, KV
     pHostIpAddress->port = (UINT16) pHostIpAddress->family == KVS_IP_FAMILY_TYPE_IPV4 ? ipv4Addr.sin_port : ipv6Addr.sin6_port;
     *pSockFd = (INT32) sockfd;
 
+    // Set the non-blocking mode for the socket
+    flags = fcntl(sockfd, F_GETFL, 0);
+    CHK_ERR(flags >= 0, STATUS_GET_SOCKET_FLAG_FAILED, "Failed to get the socket flags with system error %s", strerror(errno));
+    CHK_ERR(0 <= fcntl(sockfd, F_SETFL, flags | O_NONBLOCK), STATUS_SET_SOCKET_FLAG_FAILED, "Failed to Set the socket flags with system error %s", strerror(errno));
+
     // done at this point for UDP
     CHK(protocol == KVS_SOCKET_PROTOCOL_TCP, retStatus);
 
-    if (connect(sockfd, peerSockAddr, addrLen) < 0) {
-        DLOGW("connect() failed with errno %s", strerror(errno));
-        CHK(FALSE, STATUS_SOCKET_CONNECT_FAILED);
-    }
+    retVal = connect(sockfd, peerSockAddr, addrLen);
+    CHK_ERR(retVal >= 0 || errno == EINPROGRESS, STATUS_SOCKET_CONNECT_FAILED, "connect() failed with errno %s", strerror(errno));
 
 CleanUp:
 
@@ -219,4 +227,45 @@ BOOL isSameIpAddress(PKvsIpAddress pAddr1, PKvsIpAddress pAddr2, BOOL checkPort)
            (!checkPort || pAddr1->port == pAddr2->port));
 
     return ret;
+}
+
+BOOL isSocketConnected(INT32 socketFd, KVS_SOCKET_PROTOCOL protocol, PKvsIpAddress pPeerAddress)
+{
+    INT32 retVal;
+    struct sockaddr *peerSockAddr = NULL;
+    socklen_t addrLen;
+    struct sockaddr_in ipv4PeerAddr;
+    struct sockaddr_in6 ipv6PeerAddr;
+
+    if (protocol == KVS_SOCKET_PROTOCOL_UDP) {
+        return TRUE;
+    }
+
+    if (pPeerAddress == NULL) {
+        return FALSE;
+    }
+
+    if (pPeerAddress->family == KVS_IP_FAMILY_TYPE_IPV4) {
+        addrLen = SIZEOF(struct sockaddr_in);
+        MEMSET(&ipv4PeerAddr, 0x00, SIZEOF(ipv4PeerAddr));
+        ipv4PeerAddr.sin_family = AF_INET;
+        ipv4PeerAddr.sin_port = pPeerAddress->port;
+        MEMCPY(&ipv4PeerAddr.sin_addr, pPeerAddress->address, IPV4_ADDRESS_LENGTH);
+        peerSockAddr = (struct sockaddr *) &ipv4PeerAddr;
+    } else {
+        addrLen = SIZEOF(struct sockaddr_in6);
+        MEMSET(&ipv6PeerAddr, 0x00, SIZEOF(ipv6PeerAddr));
+        ipv6PeerAddr.sin6_family = AF_INET6;
+        ipv6PeerAddr.sin6_port = pPeerAddress->port;
+        MEMCPY(&ipv6PeerAddr.sin6_addr, pPeerAddress->address, IPV6_ADDRESS_LENGTH);
+        peerSockAddr = (struct sockaddr *) &ipv6PeerAddr;
+    }
+
+    retVal = connect(socketFd, peerSockAddr, addrLen);
+    if (retVal == 0 || errno == EISCONN) {
+        return TRUE;
+    }
+
+    DLOGD("socket connection check failed with errno %s", strerror(errno));
+    return FALSE;
 }

@@ -28,7 +28,6 @@ STATUS createIceAgent(PCHAR username, PCHAR password, UINT64 customData, PIceAge
 
     // candidatePairs start off being invalid since we MEMCALLOC pIceAgent
     pIceAgent->agentStarted = FALSE;
-    ATOMIC_STORE_BOOL(&pIceAgent->agentStartGathering, FALSE);
     pIceAgent->isControlling = FALSE;
     pIceAgent->tieBreaker = (UINT64) RAND();
     pIceAgent->iceTransportPolicy = pRtcConfiguration->iceTransportPolicy;
@@ -53,7 +52,7 @@ STATUS createIceAgent(PCHAR username, PCHAR password, UINT64 customData, PIceAge
                                   (UINT64) pIceAgent,
                                   &pIceAgent->pStateMachine));
     pIceAgent->iceAgentStatus = STATUS_SUCCESS;
-    pIceAgent->iceAgentStateTimerCallback = UINT32_MAX;
+    pIceAgent->iceAgentTimerId = UINT32_MAX;
     pIceAgent->keepAliveTimerCallback = UINT32_MAX;
     pIceAgent->timerQueueHandle = timerQueueHandle;
     pIceAgent->lastDataReceivedTime = INVALID_TIMESTAMP_VALUE;
@@ -187,8 +186,8 @@ STATUS freeIceAgent(PIceAgent* ppIceAgent)
         CHK_LOG_ERR_NV(stackQueueFree(pIceAgent->triggeredCheckQueue));
     }
 
-    if (pIceAgent->iceAgentStateTimerCallback != UINT32_MAX) {
-        CHK_STATUS(timerQueueCancelTimer(pIceAgent->timerQueueHandle, pIceAgent->iceAgentStateTimerCallback, (UINT64) pIceAgent));
+    if (pIceAgent->iceAgentTimerId != UINT32_MAX) {
+        CHK_STATUS(timerQueueCancelTimer(pIceAgent->timerQueueHandle, pIceAgent->iceAgentTimerId, (UINT64) pIceAgent));
     }
 
     if (pIceAgent->keepAliveTimerCallback != UINT32_MAX) {
@@ -336,7 +335,7 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
 
     // at the end of gathering state, candidate pairs will be created with local and remote candidates gathered so far.
     // do createIceCandidatePairs here if state is not gathering in case some remote candidate comes late
-    if (pIceAgent->iceAgentState != ICE_AGENT_STATE_GATHERING) {
+    if (iceAgentGetCurrentState(pIceAgent) != ICE_AGENT_STATE_GATHERING) {
         CHK_STATUS(createIceCandidatePairs(pIceAgent, pIceCandidate, TRUE));
     }
 
@@ -376,7 +375,8 @@ STATUS iceAgentGatherLocalCandidate(PIceAgent pIceAgent)
         if (pIpAddress->family == KVS_IP_FAMILY_TYPE_IPV4 && // Disable ipv6 gathering for now
             pDuplicatedIceCandidate == NULL &&
             STATUS_SUCCEEDED(createSocketConnection(pIpAddress, NULL, KVS_SOCKET_PROTOCOL_UDP, (UINT64) pIceAgent,
-                                                    incomingDataHandler, &pSocketConnection))) {
+                                                    incomingDataHandler, pIceAgent->kvsRtcConfiguration.sendBufSize,
+                                                    &pSocketConnection))) {
             pTmpIceCandidate = MEMCALLOC(1, SIZEOF(IceCandidate));
             pTmpIceCandidate->ipAddress = localIpAddresses[i];
             pTmpIceCandidate->iceCandidateType = ICE_CANDIDATE_TYPE_HOST;
@@ -409,11 +409,14 @@ STATUS iceAgentStartAgent(PIceAgent pIceAgent, PCHAR remoteUsername, PCHAR remot
 
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
+    UINT32 userNameLen, passwordLen;
 
     CHK(pIceAgent != NULL && remoteUsername != NULL && remotePassword != NULL, STATUS_NULL_ARG);
     CHK(!pIceAgent->agentStarted, retStatus); // make iceAgentStartAgent idempotent
-    CHK(STRNLEN(remoteUsername, MAX_ICE_CONFIG_USER_NAME_LEN + 1) <= MAX_ICE_CONFIG_USER_NAME_LEN &&
-        STRNLEN(remotePassword, MAX_ICE_CONFIG_CREDENTIAL_LEN + 1) <= MAX_ICE_CONFIG_CREDENTIAL_LEN, STATUS_INVALID_ARG);
+    userNameLen = STRNLEN(remoteUsername, MAX_ICE_CONFIG_USER_NAME_LEN + 1);
+    passwordLen = STRNLEN(remotePassword, MAX_ICE_CONFIG_CREDENTIAL_LEN + 1);
+    CHK(userNameLen <= MAX_ICE_CONFIG_USER_NAME_LEN && passwordLen <= MAX_ICE_CONFIG_CREDENTIAL_LEN,
+            STATUS_INVALID_ARG);
 
     MUTEX_LOCK(pIceAgent->lock);
     locked = TRUE;
@@ -421,11 +424,17 @@ STATUS iceAgentStartAgent(PIceAgent pIceAgent, PCHAR remoteUsername, PCHAR remot
     pIceAgent->agentStarted = TRUE;
     pIceAgent->isControlling = isControlling;
 
-    STRNCPY(pIceAgent->remoteUsername, remoteUsername, MAX_ICE_CONFIG_USER_NAME_LEN);
-    STRNCPY(pIceAgent->remotePassword, remotePassword, MAX_ICE_CONFIG_CREDENTIAL_LEN);
-    if (STRLEN(pIceAgent->remoteUsername) + STRLEN(pIceAgent->localUsername) + 1 > MAX_ICE_CONFIG_USER_NAME_LEN) {
+    STRCPY(pIceAgent->remoteUsername, remoteUsername);
+    STRCPY(pIceAgent->remotePassword, remotePassword);
+
+    // Force null terminate
+    pIceAgent->remoteUsername[MAX_ICE_CONFIG_USER_NAME_LEN] = '\0';
+    pIceAgent->remotePassword[MAX_ICE_CONFIG_CREDENTIAL_LEN] = '\0';
+
+    if (userNameLen + passwordLen + 1 > MAX_ICE_CONFIG_USER_NAME_LEN) {
         DLOGW("remoteUsername:localUsername will be truncated to stay within %u char limit", MAX_ICE_CONFIG_USER_NAME_LEN);
     }
+
     SNPRINTF(pIceAgent->combinedUserName, ARRAY_SIZE(pIceAgent->combinedUserName), "%s:%s", pIceAgent->remoteUsername, pIceAgent->localUsername);
 
 CleanUp:
@@ -443,11 +452,7 @@ STATUS iceAgentStartGathering(PIceAgent pIceAgent)
     STATUS retStatus = STATUS_SUCCESS;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
-    CHK(!ATOMIC_LOAD_BOOL(&pIceAgent->agentStartGathering), retStatus);
-
-    // Calling thread cant prime the IceAgent state otherwise we could have deadlock.
-    // Need to set the flag here and let timer thread traverse the state.
-    ATOMIC_STORE_BOOL(&pIceAgent->agentStartGathering, TRUE);
+    CHK_STATUS(stepIceAgentStateMachine(pIceAgent));
 
 CleanUp:
 
@@ -642,7 +647,7 @@ STATUS createIceCandidatePairs(PIceAgent pIceAgent, PIceCandidate pIceCandidate,
         pIceCandidatePair->nominated = FALSE;
 
         // if not in gathering state, starting from waiting so new pairs will get picked up connectivity check
-        if (pIceAgent->iceAgentState == ICE_AGENT_STATE_GATHERING) {
+        if (iceAgentGetCurrentState(pIceAgent) == ICE_AGENT_STATE_GATHERING) {
             pIceCandidatePair->state = ICE_CANDIDATE_PAIR_STATE_FROZEN;
         } else {
             pIceCandidatePair->state = ICE_CANDIDATE_PAIR_STATE_WAITING;
@@ -843,45 +848,6 @@ CleanUp:
  * @param customData - custom data passed to timer queue when task was added
  * @return
  */
-STATUS iceAgentStateNewTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
-{
-    UNUSED_PARAM(timerId);
-    UNUSED_PARAM(currentTime);
-    STATUS retStatus = STATUS_SUCCESS;
-    PIceAgent pIceAgent = (PIceAgent) customData;
-    BOOL locked = FALSE;
-
-    CHK(pIceAgent != NULL, STATUS_NULL_ARG);
-
-    MUTEX_LOCK(pIceAgent->lock);
-    locked = TRUE;
-
-    // prime the state machine
-    CHK_STATUS(stepIceAgentStateMachine(pIceAgent));
-
-CleanUp:
-
-    CHK_LOG_ERR_NV(retStatus);
-
-    if (STATUS_FAILED(retStatus)) {
-        iceAgentFatalError(pIceAgent, retStatus);
-    }
-
-    if (locked) {
-        MUTEX_UNLOCK(pIceAgent->lock);
-    }
-
-    return retStatus;
-}
-
-/**
- * timer queue callbacks are interlocked by time queue lock.
- *
- * @param timerId - timer queue task id
- * @param currentTime
- * @param customData - custom data passed to timer queue when task was added
- * @return
- */
 STATUS iceAgentStateGatheringTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
     UNUSED_PARAM(timerId);
@@ -893,23 +859,65 @@ STATUS iceAgentStateGatheringTimerCallback(UINT32 timerId, UINT64 currentTime, U
     UINT64 data;
     PIceCandidate pCandidate = NULL;
     PIceServer pIceServer = NULL;
+    UINT32 validLocalCandidateCount = 0, totalLocalCandidateCount = 0;
+    CHAR ipAddrStr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
 
     MUTEX_LOCK(pIceAgent->lock);
     locked = TRUE;
 
+    // Check for terminal condition - timeout
+    if (currentTime >= pIceAgent->stateEndTime) {
+        pIceAgent->iceAgentStatus = STATUS_ICE_NO_LOCAL_CANDIDATE_AVAILABLE_AFTER_GATHERING_TIMEOUT;
+
+        // Step the state machinery which will end up in the failed state
+        CHK_STATUS(stepIceAgentStateMachine(pIceAgent));
+
+        // Early exit
+        CHK(FALSE, STATUS_SUCCESS);
+    }
+
+    // count number of valid candidates
     CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
     while (pCurNode != NULL) {
         CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
         pCurNode = pCurNode->pNext;
         pCandidate = (PIceCandidate) data;
 
-        if (pCandidate->state == ICE_CANDIDATE_STATE_NEW){
+        if (pCandidate->state == ICE_CANDIDATE_STATE_VALID) {
+            validLocalCandidateCount++;
+        } else {
+            CHK_STATUS(getIpAddrStr(&pCandidate->ipAddress,
+                                    ipAddrStr,
+                                    ARRAY_SIZE(ipAddrStr)));
+            DLOGD("checking local candidate type %s, ip %s", iceAgentGetCandidateTypeStr(pCandidate->iceCandidateType), ipAddrStr);
+        }
+    }
 
+    CHK_STATUS(doubleListGetNodeCount(pIceAgent->localCandidates, &totalLocalCandidateCount));
+
+    // Check if we have the valid local candidate count equal to total and step the machine
+    if (validLocalCandidateCount > 0 && validLocalCandidateCount == totalLocalCandidateCount) {
+        // Step the state machinery which will end up in the failed state
+        CHK_STATUS(stepIceAgentStateMachine(pIceAgent));
+
+        // Early exit
+        CHK(FALSE, STATUS_SUCCESS);
+    }
+
+
+    // Send out the STUN packets
+    CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
+    while (pCurNode != NULL) {
+        CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
+        pCurNode = pCurNode->pNext;
+        pCandidate = (PIceCandidate) data;
+
+        if (pCandidate->state == ICE_CANDIDATE_STATE_NEW) {
             switch(pCandidate->iceCandidateType) {
                 case ICE_CANDIDATE_TYPE_SERVER_REFLEXIVE:
-                    pIceServer = &(pIceAgent->iceServers[pCandidate->iceServerIndex]);
+                    pIceServer = &pIceAgent->iceServers[pCandidate->iceServerIndex];
                     CHK_STATUS(iceUtilsSendStunPacket(pIceAgent->pBindingRequest,
                                                       NULL,
                                                       0,
@@ -925,8 +933,6 @@ STATUS iceAgentStateGatheringTimerCallback(UINT32 timerId, UINT64 currentTime, U
             }
         }
     }
-
-    CHK_STATUS(stepIceAgentStateMachine(pIceAgent));
 
 CleanUp:
 
@@ -962,33 +968,42 @@ STATUS iceAgentStateCheckConnectionTimerCallback(UINT32 timerId, UINT64 currentT
     PIceCandidatePair pIceCandidatePair = NULL;
     PDoubleListNode pCurNode = NULL;
     UINT32 localCandidateCount, remoteCandidateCount, iceCandidatePairCount;
-    UINT64 currTime;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
 
     MUTEX_LOCK(pIceAgent->lock);
     locked = TRUE;
 
-    currTime = GETTIME();
+    // Check for terminal condition - either timed out or succeeded establishing a pair
+    if (currentTime >= pIceAgent->stateEndTime) {
+        pIceAgent->iceAgentStatus = STATUS_ICE_NO_CONNECTED_CANDIDATE_PAIR;
 
-    CHK_STATUS(doubleListGetNodeCount(pIceAgent->iceCandidatePairs, &iceCandidatePairCount));
+        // Step the state machinery which will end up in the failed state
+        CHK_STATUS(stepIceAgentStateMachine(pIceAgent));
+
+        // Early exit
+        CHK(FALSE, STATUS_SUCCESS);
+    }
 
     // if ice agent started, enforce a timeout on candidate pair creation in case no remote ice candidate is received.
-    if (pIceAgent->agentStarted && iceCandidatePairCount == 0) {
-        if (IS_VALID_TIMESTAMP(pIceAgent->candidateGenerationEndTime) && currTime >= pIceAgent->candidateGenerationEndTime) {
-            CHK_STATUS(doubleListGetNodeCount(pIceAgent->localCandidates, &localCandidateCount));
-            CHK_STATUS(doubleListGetNodeCount(pIceAgent->remoteCandidates, &remoteCandidateCount));
-            DLOGE("Failed to generate any ice candidate pair before timeout. Local candidate count: %u, Remote candidate count: %u",
-                  localCandidateCount, remoteCandidateCount);
-            CHK(FALSE, STATUS_ICE_NO_AVAILABLE_ICE_CANDIDATE_PAIR);
+    if (pIceAgent->agentStarted) {
+        CHK_STATUS(doubleListGetNodeCount(pIceAgent->iceCandidatePairs, &iceCandidatePairCount));
 
-        } else if (!IS_VALID_TIMESTAMP(pIceAgent->candidateGenerationEndTime)) {
-            pIceAgent->candidateGenerationEndTime = currTime + KVS_ICE_CANDIDATE_PAIR_GENERATION_TIMEOUT;
+        if (iceCandidatePairCount == 0) {
+            if (!IS_VALID_TIMESTAMP(pIceAgent->candidateGenerationEndTime)) {
+                pIceAgent->candidateGenerationEndTime = currentTime + KVS_ICE_CANDIDATE_PAIR_GENERATION_TIMEOUT;
+            } else if (currentTime >= pIceAgent->candidateGenerationEndTime) {
+                CHK_STATUS(doubleListGetNodeCount(pIceAgent->localCandidates, &localCandidateCount));
+                CHK_STATUS(doubleListGetNodeCount(pIceAgent->remoteCandidates, &remoteCandidateCount));
+                DLOGE("Failed to generate any ice candidate pair before timeout. Local candidate count: %u, Remote candidate count: %u",
+                      localCandidateCount, remoteCandidateCount);
+                CHK(FALSE, STATUS_ICE_NO_AVAILABLE_ICE_CANDIDATE_PAIR);
+            }
         }
-    } else if (!pIceAgent->agentStarted) {
+    } else {
         // extend endtime if no candidate pair is available or startIceAgent has not been called, in which case we would not
         // have the remote password.
-        pIceAgent->stateEndTime = GETTIME() + pIceAgent->kvsRtcConfiguration.iceConnectionCheckTimeout;
+        pIceAgent->stateEndTime = currentTime + pIceAgent->kvsRtcConfiguration.iceConnectionCheckTimeout;
         CHK(FALSE, retStatus);
     }
 
@@ -1002,7 +1017,6 @@ STATUS iceAgentStateCheckConnectionTimerCallback(UINT32 timerId, UINT64 currentT
 
         CHK_STATUS(iceCandidatePairCheckConnection(pIceAgent->pBindingRequest, pIceAgent, pIceCandidatePair));
     } else {
-
         CHK_STATUS(doubleListGetHeadNode(pIceAgent->iceCandidatePairs, &pCurNode));
         while (pCurNode != NULL) {
             pIceCandidatePair = (PIceCandidatePair) pCurNode->data;
@@ -1021,7 +1035,20 @@ STATUS iceAgentStateCheckConnectionTimerCallback(UINT32 timerId, UINT64 currentT
         }
     }
 
-    CHK_STATUS(stepIceAgentStateMachine(pIceAgent));
+    // Check for candidate pair success
+    CHK_STATUS(doubleListGetHeadNode(pIceAgent->iceCandidatePairs, &pCurNode));
+    while (pCurNode != NULL) {
+        pIceCandidatePair = (PIceCandidatePair) pCurNode->data;
+        pCurNode = pCurNode->pNext;
+
+        if (pIceCandidatePair->state == ICE_CANDIDATE_PAIR_STATE_SUCCEEDED) {
+            // Step the state machinery which will end up in the connected state
+            CHK_STATUS(stepIceAgentStateMachine(pIceAgent));
+
+            // Early exit
+            CHK(FALSE, STATUS_SUCCESS);
+        }
+    }
 
 CleanUp:
 
@@ -1266,7 +1293,7 @@ STATUS newRelayCandidateHandler(UINT64 customData, PKvsIpAddress pRelayAddress, 
 
     // at the end of gathering state, candidate pairs will be created with local and remote candidates gathered so far.
     // do createIceCandidatePairs here if state is not gathering in case some remote candidate comes late
-    if (pIceAgent->iceAgentState != ICE_AGENT_STATE_GATHERING) {
+    if (iceAgentGetCurrentState(pIceAgent) != ICE_AGENT_STATE_GATHERING) {
         CHK_STATUS(createIceCandidatePairs(pIceAgent, pNewLocalCandidate, FALSE));
     }
 
@@ -1440,7 +1467,7 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
             break;
 
         case STUN_PACKET_TYPE_BINDING_RESPONSE_SUCCESS:
-            if (pIceAgent->iceAgentState == ICE_AGENT_STATE_GATHERING) {
+            if (iceAgentGetCurrentState(pIceAgent) == ICE_AGENT_STATE_GATHERING) {
                 CHK_STATUS(
                         findCandidateWithSocketConnection(pSocketConnection, pIceAgent->localCandidates, &pIceCandidate));
                 CHK_WARN(pIceCandidate != NULL, retStatus,
@@ -1554,7 +1581,7 @@ STATUS iceAgentCheckPeerReflexiveCandidate(PIceAgent pIceAgent, PKvsIpAddress pI
     freeIceCandidateOnError = FALSE;
     // at the end of gathering state, candidate pairs will be created with local and remote candidates gathered so far.
     // do createIceCandidatePairs here if state is not gathering in case some remote candidate comes late
-    if (pIceAgent->iceAgentState != ICE_AGENT_STATE_GATHERING) {
+    if (iceAgentGetCurrentState(pIceAgent) != ICE_AGENT_STATE_GATHERING) {
         CHK_STATUS(createIceCandidatePairs(pIceAgent, pIceCandidate, isRemote));
     }
 
@@ -1663,4 +1690,15 @@ PCHAR iceAgentGetCandidateTypeStr(ICE_CANDIDATE_TYPE candidateType) {
     }
 }
 
+UINT64 iceAgentGetCurrentState(PIceAgent pIceAgent)
+{
+    PStateMachineState pState;
+    UINT64 state = ICE_AGENT_STATE_NEW;
 
+    if (pIceAgent != NULL && pIceAgent->pStateMachine != NULL &&
+        STATUS_SUCCEEDED(getStateMachineCurrentState(pIceAgent->pStateMachine, &pState))) {
+        state = pState->state;
+    }
+
+    return state;
+}

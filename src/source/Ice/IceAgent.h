@@ -105,8 +105,6 @@ typedef struct {
 } IceCandidatePair, *PIceCandidatePair;
 
 typedef struct {
-    volatile ATOMIC_BOOL agentStartGathering;
-
     CHAR localUsername[MAX_ICE_CONFIG_USER_NAME_LEN + 1];
     CHAR localPassword[MAX_ICE_CONFIG_CREDENTIAL_LEN + 1];
     CHAR remoteUsername[MAX_ICE_CONFIG_USER_NAME_LEN + 1];
@@ -126,9 +124,7 @@ typedef struct {
 
     MUTEX lock;
 
-    // Current ice agent state
-    UINT64 iceAgentState;
-    UINT32 iceAgentStateTimerCallback;
+    UINT32 iceAgentTimerId;
     UINT32 keepAliveTimerCallback;
     // The state machine
     PStateMachine pStateMachine;
@@ -160,7 +156,6 @@ typedef struct {
     PStunPacket pBindingIndication;
     PStunPacket pBindingRequest;
 } IceAgent, *PIceAgent;
-
 
 //////////////////////////////////////////////
 // internal functions
@@ -198,7 +193,7 @@ STATUS freeIceAgent(PIceAgent*);
 STATUS iceAgentAddRemoteCandidate(PIceAgent, PCHAR);
 
 /**
- * Initiates stun commuinication with remote candidates.
+ * Initiates stun communication with remote candidates.
  *
  * @param - PIceAgent - IN - IceAgent object
  * @param - PCHAR - IN - remote username
@@ -284,7 +279,6 @@ STATUS pruneUnconnectedIceCandidatePair(PIceAgent);
 STATUS iceCandidatePairCheckConnection(PStunPacket, PIceAgent, PIceCandidatePair);
 
 // timer callbacks. timer callbacks are interlocked by time queue lock.
-STATUS iceAgentStateNewTimerCallback(UINT32, UINT64, UINT64);
 STATUS iceAgentStateGatheringTimerCallback(UINT32, UINT64, UINT64);
 STATUS iceAgentStateCheckConnectionTimerCallback(UINT32, UINT64, UINT64);
 STATUS iceAgentSendKeepAliveTimerCallback(UINT32, UINT64, UINT64);
@@ -298,6 +292,8 @@ STATUS iceAgentFatalError(PIceAgent, STATUS);
 UINT32 computeCandidatePriority(PIceCandidate);
 UINT64 computeCandidatePairPriority(PIceCandidatePair, BOOL);
 PCHAR iceAgentGetCandidateTypeStr(ICE_CANDIDATE_TYPE);
+
+UINT64 iceAgentGetCurrentState(PIceAgent);
 
 #ifdef  __cplusplus
 }

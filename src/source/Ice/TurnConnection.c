@@ -6,7 +6,8 @@
 
 STATUS createTurnConnection(PIceServer pTurnServer, TIMER_QUEUE_HANDLE timerQueueHandle, PConnectionListener pConnectionListener,
                             TURN_CONNECTION_DATA_TRANSFER_MODE dataTransferMode, KVS_SOCKET_PROTOCOL protocol,
-                            PTurnConnectionCallbacks pTurnConnectionCallbacks, PTurnConnection* ppTurnConnection)
+                            PTurnConnectionCallbacks pTurnConnectionCallbacks,
+                            UINT32 sendBufSize, PTurnConnection* ppTurnConnection)
 {
     UNUSED_PARAM(dataTransferMode);
     ENTERS();
@@ -35,6 +36,7 @@ STATUS createTurnConnection(PIceServer pTurnServer, TIMER_QUEUE_HANDLE timerQueu
     pTurnConnection->pConnectionListener = pConnectionListener;
     pTurnConnection->dataTransferMode = TURN_CONNECTION_DATA_TRANSFER_MODE_DATA_CHANNEL; // only TURN_CONNECTION_DATA_TRANSFER_MODE_DATA_CHANNEL for now
     pTurnConnection->protocol = protocol;
+    pTurnConnection->sendBufSize = sendBufSize;
     ATOMIC_STORE(&pTurnConnection->stopTurnConnection, FALSE);
 
     if (pTurnConnectionCallbacks != NULL) {
@@ -626,10 +628,6 @@ STATUS turnConnectionStart(PTurnConnection pTurnConnection)
     MUTEX_LOCK(pTurnConnection->lock);
     locked = TRUE;
 
-    if (pTurnConnection->timerCallbackId != UINT32_MAX) {
-        CHK_STATUS(timerQueueCancelTimer(pTurnConnection->timerQueueHandle, pTurnConnection->timerCallbackId, (UINT64) pTurnConnection));
-    }
-
     // execute TURN_STATE_NEW to allocate socket and add pTurnConnection->pControlChannel to connectionListener
     // although adding the timer will also call turnConnectionStepState, but since its running in another thread,
     // by the end of turnConnectionStart pTurnConnection->pControlChannel may or may not be added to connectionListener
@@ -637,8 +635,11 @@ STATUS turnConnectionStart(PTurnConnection pTurnConnection)
     CHK_STATUS(turnConnectionStepState(pTurnConnection));
 
     // schedule the timer, which will drive the state machine.
-    CHK_STATUS(timerQueueAddTimer(pTurnConnection->timerQueueHandle, 0, pTurnConnection->currentTimerCallingPeriod,
-                                  turnConnectionTimerCallback, (UINT64) pTurnConnection, &pTurnConnection->timerCallbackId));
+    if (pTurnConnection->timerCallbackId == UINT32_MAX) {
+        CHK_STATUS(timerQueueAddTimer(pTurnConnection->timerQueueHandle, 0, pTurnConnection->currentTimerCallingPeriod,
+                                      turnConnectionTimerCallback, (UINT64) pTurnConnection,
+                                      &pTurnConnection->timerCallbackId));
+    }
 
 CleanUp:
 
@@ -821,7 +822,7 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
     UINT64 data;
     PTurnPeer pTurnPeer = NULL;
     CHAR ipAddrStr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
-    TURN_CONNECTION_STATE previousState;
+    TURN_CONNECTION_STATE previousState = TURN_STATE_NEW;
     BOOL refreshPeerPermission = FALSE;
 
     CHK(pTurnConnection != NULL, STATUS_NULL_ARG);
@@ -842,19 +843,29 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
             CHK(hostAddrFound, STATUS_TURN_CONNECTION_NO_HOST_INTERFACE_FOUND);
 
             // create controlling TCP connection with turn server.
-            CHK_STATUS(createSocketConnection(&pTurnConnection->hostAddress, &pTurnConnection->turnServer.ipAddress,
-                                              pTurnConnection->protocol, (UINT64) pTurnConnection,
-                                              turnConnectionIncomingDataHandler, &pTurnConnection->pControlChannel));
-            if (pTurnConnection->protocol == KVS_SOCKET_PROTOCOL_TCP) {
-                CHK_STATUS(socketConnectionInitSecureConnection(pTurnConnection->pControlChannel, FALSE));
-            }
+            CHK_STATUS(createSocketConnection(&pTurnConnection->hostAddress,
+                    &pTurnConnection->turnServer.ipAddress, pTurnConnection->protocol,
+                    (UINT64) pTurnConnection, turnConnectionIncomingDataHandler,
+                    pTurnConnection->sendBufSize, &pTurnConnection->pControlChannel));
+
             CHK_STATUS(connectionListenerAddConnection(pTurnConnection->pConnectionListener, pTurnConnection->pControlChannel));
 
             // create empty turn allocation request
-            CHK_STATUS(turnConnectionPackageTurnAllocationRequest(NULL, NULL, NULL, 0, DEFAULT_TURN_ALLOCATION_LIFETIME_SECONDS, &pTurnConnection->pTurnPacket));
+            CHK_STATUS(turnConnectionPackageTurnAllocationRequest(NULL, NULL, NULL, 0,
+                    DEFAULT_TURN_ALLOCATION_LIFETIME_SECONDS, &pTurnConnection->pTurnPacket));
 
-            pTurnConnection->state = TURN_STATE_GET_CREDENTIALS;
+            pTurnConnection->state = TURN_STATE_CHECK_CONNECTION;
             pTurnConnection->stateTimeoutTime = currentTime + DEFAULT_TURN_GET_CREDENTIAL_TIMEOUT;
+            break;
+
+        case TURN_STATE_CHECK_CONNECTION:
+
+            if (isSocketConnected(pTurnConnection->pControlChannel->localSocket,
+                    pTurnConnection->pControlChannel->protocol,
+                    &pTurnConnection->turnServer.ipAddress)) {
+                pTurnConnection->state = TURN_STATE_GET_CREDENTIALS;
+            }
+
             break;
 
         case TURN_STATE_GET_CREDENTIALS:
@@ -956,7 +967,8 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
                 CHK(FALSE, retStatus);
             }
 
-            if (currentTime >= pTurnConnection->stateTimeoutTime) {
+            if (currentTime >= pTurnConnection->stateTimeoutTime ||
+                (totalPeerCount > 0 && channelBoundPeerCount == totalPeerCount)) {
                 CHK(channelBoundPeerCount > 0, STATUS_TURN_CONNECTION_FAILED_TO_CREATE_PERMISSION);
 
                 // go to next state if we have at least one ready peer
@@ -1105,6 +1117,13 @@ STATUS turnConnectionTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 cu
     locked = TRUE;
 
     switch(pTurnConnection->state) {
+        case TURN_STATE_CHECK_CONNECTION:
+            if (pTurnConnection->protocol == KVS_SOCKET_PROTOCOL_TCP &&
+                pTurnConnection->pControlChannel->pSsl == NULL &&
+                isSocketConnected(pTurnConnection->pControlChannel->localSocket, pTurnConnection->pControlChannel->protocol, &pTurnConnection->turnServer.ipAddress)) {
+                CHK_STATUS(socketConnectionInitSecureConnection(pTurnConnection->pControlChannel, FALSE));
+            }
+            break;
         case TURN_STATE_GET_CREDENTIALS:
             CHK_STATUS(iceUtilsSendStunPacket(pTurnConnection->pTurnPacket, NULL, 0, &pTurnConnection->turnServer.ipAddress,
                                               pTurnConnection->pControlChannel, NULL, FALSE));
@@ -1257,6 +1276,8 @@ PCHAR turnConnectionGetStateStr(TURN_CONNECTION_STATE state)
     switch (state) {
         case TURN_STATE_NEW:
             return TURN_STATE_NEW_STR;
+        case TURN_STATE_CHECK_CONNECTION:
+            return TURN_STATE_CHECK_CONNECTION_STR;
         case TURN_STATE_GET_CREDENTIALS:
             return TURN_STATE_GET_CREDENTIALS_STR;
         case TURN_STATE_ALLOCATION:

@@ -40,7 +40,7 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
             EXPECT_EQ(STATUS_SUCCESS, connectionListenerStart(pConnectionListener));
             EXPECT_EQ(STATUS_SUCCESS, createTurnConnection(pTurnServer, timerQueueHandle, pConnectionListener,
                                                            TURN_CONNECTION_DATA_TRANSFER_MODE_DATA_CHANNEL,
-                                                           KVS_SOCKET_PROTOCOL_UDP, NULL, &pTurnConnection));
+                                                           KVS_SOCKET_PROTOCOL_UDP, NULL, 0, &pTurnConnection));
 
             *ppTurnConnection = pTurnConnection;
         }

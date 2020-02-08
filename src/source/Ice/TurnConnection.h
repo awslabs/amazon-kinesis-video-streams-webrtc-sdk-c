@@ -46,6 +46,7 @@ extern "C" {
 #define TURN_DATA_CHANNEL_MSG_FIRST_BYTE                                0x40
 
 #define TURN_STATE_NEW_STR                                              (PCHAR) "TURN_STATE_NEW"
+#define TURN_STATE_CHECK_CONNECTION_STR                                 (PCHAR) "TURN_STATE_CHECK_CONNECTION"
 #define TURN_STATE_GET_CREDENTIALS_STR                                  (PCHAR) "TURN_STATE_GET_CREDENTIALS"
 #define TURN_STATE_ALLOCATION_STR                                       (PCHAR) "TURN_STATE_ALLOCATION"
 #define TURN_STATE_CREATE_PERMISSION_STR                                (PCHAR) "TURN_STATE_CREATE_PERMISSION"
@@ -58,6 +59,7 @@ typedef STATUS (*RelayAddressAvailableFunc)(UINT64, PKvsIpAddress, PSocketConnec
 
 typedef enum {
     TURN_STATE_NEW,
+    TURN_STATE_CHECK_CONNECTION,
     TURN_STATE_GET_CREDENTIALS,
     TURN_STATE_ALLOCATION,
     TURN_STATE_CREATE_PERMISSION,
@@ -156,11 +158,13 @@ struct __TurnConnection {
     UINT64 nextAllocationRefreshTime;
 
     UINT64 currentTimerCallingPeriod;
+
+    UINT32 sendBufSize;
 };
 typedef struct __TurnConnection* PTurnConnection;
 
 STATUS createTurnConnection(PIceServer, TIMER_QUEUE_HANDLE, PConnectionListener, TURN_CONNECTION_DATA_TRANSFER_MODE,
-                            KVS_SOCKET_PROTOCOL, PTurnConnectionCallbacks , PTurnConnection*);
+                            KVS_SOCKET_PROTOCOL, PTurnConnectionCallbacks, UINT32, PTurnConnection*);
 STATUS freeTurnConnection(PTurnConnection*);
 STATUS turnConnectionAddPeer(PTurnConnection, PKvsIpAddress);
 STATUS turnConnectionSendData(PTurnConnection, PBYTE, UINT32, PKvsIpAddress);
