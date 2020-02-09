@@ -815,6 +815,7 @@ STATUS iceCandidatePairCheckConnection(PStunPacket pStunBindingRequest, PIceAgen
     CHK_STATUS(iceUtilsGenerateTransactionId(pStunBindingRequest->header.transactionId,
                                      ARRAY_SIZE(pStunBindingRequest->header.transactionId)));
 
+    CHK(pIceCandidatePair->pTransactionIdStore != NULL, STATUS_INVALID_OPERATION);
     transactionIdStoreInsert(pIceCandidatePair->pTransactionIdStore, pStunBindingRequest->header.transactionId);
 
     retStatus = iceUtilsSendStunPacket(pStunBindingRequest,

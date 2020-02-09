@@ -158,8 +158,6 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
 CleanUp:
 
     CHK_LOG_ERR_NV(retStatus);
-
-    return;
 }
 
 STATUS sendPacketToRtpReceiver(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuffer, UINT32 bufferLen)

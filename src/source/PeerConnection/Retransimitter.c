@@ -63,6 +63,8 @@ STATUS resendPacketOnNack(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerCo
         CHK_STATUS(doubleListGetNodeData(pCurNode, &item));
         pTransceiver = (PKvsRtpTransceiver) item;
 
+        CHK(pTransceiver != NULL, STATUS_INTERNAL_ERROR);
+
         if (pTransceiver->jitterBufferSsrc == senderSsrc) {
             pReceiverTransceiver = pTransceiver;
         }
@@ -76,6 +78,9 @@ STATUS resendPacketOnNack(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerCo
 
     CHK_ERR(pReceiverTransceiver != NULL && pSenderTranceiver != NULL, STATUS_RTCP_INPUT_SSRC_INVALID,
             "Receiving NACK for non existing ssrcs: senderSsrc %lu receiverSsrc %lu", senderSsrc, receiverSsrc);
+
+    CHK_ERR(pRetransmitter != NULL, STATUS_INVALID_OPERATION,
+            "Sender re-transmitter is not created successfully for an existing ssrcs: senderSsrc %lu receiverSsrc %lu", senderSsrc, receiverSsrc);
 
     filledLen = pRetransmitter->seqNumListLen;
     CHK_STATUS(rtcpNackListGet(pRtcpPacket->payload, pRtcpPacket->payloadLength, &senderSsrc, &receiverSsrc,

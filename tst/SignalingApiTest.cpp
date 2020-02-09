@@ -33,6 +33,18 @@ TEST_F(SignalingApiTest, signalingSendMessageSync)
     EXPECT_EQ(expectedStatus, signalingClientConnectSync(mSignalingClientHandle));
     EXPECT_EQ(expectedStatus, signalingClientSendMessageSync(mSignalingClientHandle, &signalingMessage));
 
+    // Some correlation id
+    STRCPY(signalingMessage.correlationId, SIGNAING_TEST_CORRELATION_ID);
+    EXPECT_EQ(expectedStatus, signalingClientSendMessageSync(mSignalingClientHandle, &signalingMessage));
+
+    // No peer id
+    signalingMessage.peerClientId[0] = '\0';
+    EXPECT_EQ(expectedStatus, signalingClientSendMessageSync(mSignalingClientHandle, &signalingMessage));
+
+    // No peer id no correlation id
+    signalingMessage.correlationId[0] = '\0';
+    EXPECT_EQ(expectedStatus, signalingClientSendMessageSync(mSignalingClientHandle, &signalingMessage));
+
     deinitializeSignalingClient();
 }
 
