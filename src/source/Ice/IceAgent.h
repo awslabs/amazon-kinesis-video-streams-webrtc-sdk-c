@@ -283,13 +283,23 @@ STATUS findIceCandidatePairWithLocalConnectionHandleAndRemoteAddr(PIceAgent, PSo
 STATUS pruneUnconnectedIceCandidatePair(PIceAgent);
 STATUS iceCandidatePairCheckConnection(PStunPacket, PIceAgent, PIceCandidatePair);
 
+STATUS iceAgentSendSrflxCandidateRequest(PIceAgent);
+STATUS iceAgentCheckCandidatePairConnection(PIceAgent);
+STATUS iceAgentSendCandidateNomination(PIceAgent);
+
+STATUS iceAgentInitHostCandidate(PIceAgent);
+STATUS iceAgentInitSrflxCandidate(PIceAgent);
+STATUS iceAgentInitRelayCandidate(PIceAgent);
+
+STATUS iceAgentGatheringStateSetup(PIceAgent);
+STATUS iceAgentCheckConnectionStateSetup(PIceAgent);
+STATUS iceAgentConnectedStateSetup(PIceAgent);
+STATUS iceAgentNominatingStateSetup(PIceAgent);
+STATUS iceAgentReadyStateSetup(PIceAgent);
+
 // timer callbacks. timer callbacks are interlocked by time queue lock.
-STATUS iceAgentStateNewTimerCallback(UINT32, UINT64, UINT64);
-STATUS iceAgentStateGatheringTimerCallback(UINT32, UINT64, UINT64);
-STATUS iceAgentStateCheckConnectionTimerCallback(UINT32, UINT64, UINT64);
+STATUS iceAgentStateTransitionTimerCallback(UINT32, UINT64, UINT64);
 STATUS iceAgentSendKeepAliveTimerCallback(UINT32, UINT64, UINT64);
-STATUS iceAgentStateNominatingTimerCallback(UINT32, UINT64, UINT64);
-STATUS iceAgentStateReadyTimerCallback(UINT32, UINT64, UINT64);
 
 STATUS iceAgentNominateCandidatePair(PIceAgent);
 STATUS iceAgentCheckPeerReflexiveCandidate(PIceAgent, PKvsIpAddress, UINT32, BOOL, PSocketConnection);

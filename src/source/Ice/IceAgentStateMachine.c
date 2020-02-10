@@ -199,7 +199,7 @@ STATUS executeNewIceAgentState(UINT64 customData, UINT64 time)
     CHK_STATUS(timerQueueAddTimer(pIceAgent->timerQueueHandle,
                                   0,
                                   pIceAgent->kvsRtcConfiguration.iceConnectionCheckPollingInterval,
-                                  iceAgentStateNewTimerCallback,
+                                  iceAgentStateTransitionTimerCallback,
                                   (UINT64) pIceAgent,
                                   &pIceAgent->iceAgentStateTimerCallback));
 CleanUp:
@@ -300,113 +300,15 @@ STATUS executeGatheringIceAgentState(UINT64 customData, UINT64 time)
     UNUSED_PARAM(time);
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
-    UINT32 localCandidateCount, j;
-    PDoubleListNode pCurNode = NULL;
-    UINT64 data;
-    PIceCandidate pCandidate = NULL, pNewCandidate = NULL;
-    TurnConnectionCallbacks turnConnectionCallbacks;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
-    // return early if we are already in ICE_AGENT_STATE_GATHERING
-    CHK(pIceAgent->iceAgentState != ICE_AGENT_STATE_GATHERING, retStatus);
 
-    // stop timer task from previous state
-    CHK_STATUS(timerQueueCancelTimer(pIceAgent->timerQueueHandle, pIceAgent->iceAgentStateTimerCallback, (UINT64) pIceAgent));
-
-    // skip gathering host candidate and srflx candidate if relay only
-    if (pIceAgent->iceTransportPolicy != ICE_TRANSPORT_POLICY_RELAY) {
-        CHK_STATUS(iceAgentGatherLocalCandidate(pIceAgent));
-
-        CHK_STATUS(doubleListGetNodeCount(pIceAgent->localCandidates, &localCandidateCount));
-        CHK(localCandidateCount != 0, STATUS_ICE_NO_LOCAL_HOST_CANDIDATE_AVAILABLE);
-
-        CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
-        while (pCurNode != NULL) {
-            CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
-            pCurNode = pCurNode->pNext;
-            pCandidate = (PIceCandidate) data;
-
-            if (pCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_HOST) {
-                CHK_STATUS(connectionListenerAddConnection(pIceAgent->pConnectionListener, pCandidate->pSocketConnection));
-
-                for (j = 0; j < pIceAgent->iceServersCount; j++) {
-                    if (!pIceAgent->iceServers[j].isTurn) {
-                        CHK((pNewCandidate = (PIceCandidate) MEMCALLOC(1, SIZEOF(IceCandidate))) != NULL,
-                            STATUS_NOT_ENOUGH_MEMORY);
-
-                        // copy over host candidate's address to open up a new socket at that address.
-                        pNewCandidate->ipAddress = pCandidate->ipAddress;
-                        // open up a new socket at host candidate's ip address for server reflex candidate.
-                        // the new port will be stored in pNewCandidate->ipAddress.port. And the Ip address will later be updated
-                        // with the correct ip address once the STUN response is received. Relay candidate's socket is manageed
-                        // by TurnConnectino struct.
-                        CHK_STATUS(createSocketConnection(&pNewCandidate->ipAddress, NULL, KVS_SOCKET_PROTOCOL_UDP,
-                                                          (UINT64) pIceAgent, incomingDataHandler,
-                                                          &pNewCandidate->pSocketConnection));
-                        CHK_STATUS(connectionListenerAddConnection(pIceAgent->pConnectionListener,
-                                                                   pNewCandidate->pSocketConnection));
-
-                        pNewCandidate->iceCandidateType = pIceAgent->iceServers[j].isTurn ? ICE_CANDIDATE_TYPE_RELAYED
-                                                                                          : ICE_CANDIDATE_TYPE_SERVER_REFLEXIVE;
-                        pNewCandidate->state = ICE_CANDIDATE_STATE_NEW;
-                        pNewCandidate->iceServerIndex = j;
-                        pNewCandidate->foundation = pIceAgent->foundationCounter++; // we dont generate candidates that have the same foundation.
-                        pNewCandidate->priority = computeCandidatePriority(pNewCandidate);
-                        CHK_STATUS(doubleListInsertItemHead(pIceAgent->localCandidates, (UINT64) pNewCandidate));
-                        pNewCandidate = NULL;
-                    }
-                }
-            } else {
-                pCurNode = NULL; // break the loop as we have gone through all local candidates
-            }
-        }
+    if (pIceAgent->iceAgentState != ICE_AGENT_STATE_GATHERING) {
+        CHK_STATUS(iceAgentGatheringStateSetup(pIceAgent));
+        pIceAgent->iceAgentState = ICE_AGENT_STATE_GATHERING;
     }
 
-    // start gathering turn candidate
-    for (j = 0; j < pIceAgent->iceServersCount; ++j) {
-        if (pIceAgent->iceServers[j].isTurn) {
-            turnConnectionCallbacks.customData = (UINT64) pIceAgent;
-            turnConnectionCallbacks.applicationDataAvailableFn = incomingDataHandler;
-            turnConnectionCallbacks.relayAddressAvailableFn = newRelayCandidateHandler;
-
-            CHK_STATUS(createTurnConnection(&pIceAgent->iceServers[j], pIceAgent->timerQueueHandle,
-                                            pIceAgent->pConnectionListener, TURN_CONNECTION_DATA_TRANSFER_MODE_SEND_INDIDATION,
-                                            KVS_ICE_DEFAULT_TURN_PROTOCOL, &turnConnectionCallbacks, &pIceAgent->pTurnConnection, pIceAgent->kvsRtcConfiguration.iceSetInterfaceFilterFunc));
-
-            // when connecting with non-trickle peer, when remote candidates are added, turnConnection would not be created
-            // yet. So we need to add them here. turnConnectionAddPeer does ignore duplicates
-            CHK_STATUS(doubleListGetHeadNode(pIceAgent->remoteCandidates, &pCurNode));
-            while (pCurNode != NULL) {
-                CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
-                pCurNode = pCurNode->pNext;
-                pCandidate = (PIceCandidate) data;
-
-                CHK_STATUS(turnConnectionAddPeer(pIceAgent->pTurnConnection, &pCandidate->ipAddress));
-            }
-            CHK_STATUS(turnConnectionStart(pIceAgent->pTurnConnection));
-
-            break;
-        }
-    }
-
-    // start listening for incoming data
-    CHK_STATUS(connectionListenerStart(pIceAgent->pConnectionListener));
-
-    if (pIceAgent->pBindingRequest != NULL) {
-        CHK_STATUS(freeStunPacket(&pIceAgent->pBindingRequest));
-    }
-    CHK_STATUS(createStunPacket(STUN_PACKET_TYPE_BINDING_REQUEST, NULL, &pIceAgent->pBindingRequest));
-
-    pIceAgent->stateEndTime = GETTIME() + pIceAgent->kvsRtcConfiguration.iceLocalCandidateGatheringTimeout;
-
-    CHK_STATUS(timerQueueAddTimer(pIceAgent->timerQueueHandle,
-                                  0,
-                                  pIceAgent->kvsRtcConfiguration.iceConnectionCheckPollingInterval,
-                                  iceAgentStateGatheringTimerCallback,
-                                  (UINT64) pIceAgent,
-                                  &pIceAgent->iceAgentStateTimerCallback));
-
-    pIceAgent->iceAgentState = ICE_AGENT_STATE_GATHERING;
+    CHK_STATUS(iceAgentSendSrflxCandidateRequest(pIceAgent));
 
 CleanUp:
 
@@ -419,10 +321,6 @@ CleanUp:
 
         // fix up retStatus so we can successfully transition to failed state.
         retStatus = STATUS_SUCCESS;
-    }
-
-    if (pNewCandidate != NULL) {
-        SAFE_MEMFREE(pNewCandidate);
     }
 
     LEAVES();
@@ -460,11 +358,9 @@ STATUS fromCheckConnectionIceAgentState(UINT64 customData, PUINT64 pState)
         }
     }
 
-    // return early if connection found and proceed to next state
-    CHK(!connectedCandidatePairFound, retStatus);
-
-    if (currentTime >= pIceAgent->stateEndTime) {
-        CHK(FALSE, STATUS_ICE_NO_CONNECTED_CANDIDATE_PAIR);
+    // return error if no connected pair found within timeout
+    if (!connectedCandidatePairFound && currentTime >= pIceAgent->stateEndTime) {
+        retStatus = STATUS_ICE_NO_CONNECTED_CANDIDATE_PAIR;
     }
 
 CleanUp:
@@ -490,73 +386,21 @@ STATUS executeCheckConnectionIceAgentState(UINT64 customData, UINT64 time)
     UNUSED_PARAM(time);
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
-    UINT32 localCandidateCount, remoteCandidateCount, iceCandidatePairCount = 0;
-    PDoubleListNode pCurNode = NULL;
-    UINT64 data;
-    PIceCandidate pLocalCandidate = NULL;
-    PIceCandidatePair pIceCandidatePair = NULL;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
-    // return early if we are already in ICE_AGENT_STATE_CHECK_CONNECTION
-    CHK(pIceAgent->iceAgentState != ICE_AGENT_STATE_CHECK_CONNECTION, retStatus);
 
-    CHK_STATUS(doubleListGetNodeCount(pIceAgent->localCandidates, &localCandidateCount));
-    CHK_STATUS(doubleListGetNodeCount(pIceAgent->remoteCandidates, &remoteCandidateCount));
-
-    if (localCandidateCount == 0) {
-        DLOGW("no local candidate available when entering ICE_AGENT_STATE_CHECK_CONNECTION state");
+    if (pIceAgent->iceAgentState != ICE_AGENT_STATE_CHECK_CONNECTION) {
+        CHK_STATUS(iceAgentCheckConnectionStateSetup(pIceAgent));
+        pIceAgent->iceAgentState = ICE_AGENT_STATE_CHECK_CONNECTION;
     }
 
-    if (remoteCandidateCount == 0) {
-        DLOGW("no remote candidate available when entering ICE_AGENT_STATE_CHECK_CONNECTION state");
+    if (!pIceAgent->agentStarted) {
+        // extend endtime if no candidate pair is available or startIceAgent has not been called, in which case we would not
+        // have the remote password.
+        pIceAgent->stateEndTime = GETTIME() + pIceAgent->kvsRtcConfiguration.iceConnectionCheckTimeout;
+    } else {
+        CHK_STATUS(iceAgentCheckCandidatePairConnection(pIceAgent));
     }
-
-    CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
-    while (pCurNode != NULL) {
-        CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
-        pCurNode = pCurNode->pNext;
-        pLocalCandidate = (PIceCandidate) data;
-
-        CHK_STATUS(createIceCandidatePairs(pIceAgent, pLocalCandidate, FALSE));
-    }
-
-    CHK_STATUS(doubleListGetNodeCount(pIceAgent->iceCandidatePairs, &iceCandidatePairCount));
-
-    DLOGD("ice candidate pair count %u", iceCandidatePairCount);
-
-    // stop timer task from previous state
-    CHK_STATUS(timerQueueCancelTimer(pIceAgent->timerQueueHandle, pIceAgent->iceAgentStateTimerCallback, (UINT64) pIceAgent));
-
-    // move all candidate pairs out of frozen state
-    CHK_STATUS(doubleListGetHeadNode(pIceAgent->iceCandidatePairs, &pCurNode));
-    while (pCurNode != NULL) {
-        pIceCandidatePair = (PIceCandidatePair) pCurNode->data;
-        pCurNode = pCurNode->pNext;
-
-        pIceCandidatePair->state = ICE_CANDIDATE_PAIR_STATE_WAITING;
-    }
-
-    if (pIceAgent->pBindingRequest != NULL) {
-        CHK_STATUS(freeStunPacket(&pIceAgent->pBindingRequest));
-    }
-    CHK_STATUS(createStunPacket(STUN_PACKET_TYPE_BINDING_REQUEST, NULL, &pIceAgent->pBindingRequest));
-    CHK_STATUS(appendStunUsernameAttribute(pIceAgent->pBindingRequest, pIceAgent->combinedUserName));
-    CHK_STATUS(appendStunPriorityAttribute(pIceAgent->pBindingRequest, 0));
-    CHK_STATUS(appendStunIceControllAttribute(
-            pIceAgent->pBindingRequest,
-            pIceAgent->isControlling ? STUN_ATTRIBUTE_TYPE_ICE_CONTROLLING : STUN_ATTRIBUTE_TYPE_ICE_CONTROLLED,
-            pIceAgent->tieBreaker));
-
-    pIceAgent->stateEndTime = GETTIME() + pIceAgent->kvsRtcConfiguration.iceConnectionCheckTimeout;
-
-    CHK_STATUS(timerQueueAddTimer(pIceAgent->timerQueueHandle,
-                                  0,
-                                  pIceAgent->kvsRtcConfiguration.iceConnectionCheckPollingInterval,
-                                  iceAgentStateCheckConnectionTimerCallback,
-                                  (UINT64) pIceAgent,
-                                  &pIceAgent->iceAgentStateTimerCallback));
-
-    pIceAgent->iceAgentState = ICE_AGENT_STATE_CHECK_CONNECTION;
 
 CleanUp:
 
@@ -579,11 +423,6 @@ STATUS fromConnectedIceAgentState(UINT64 customData, PUINT64 pState)
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
     UINT64 state = ICE_AGENT_STATE_CONNECTED; // original state
-    UINT64 currentTime = GETTIME();
-    UINT32 validCandidatePairCount = 0, iceCandidateCount = 0;
-    BOOL nominatedAndValidCandidatePairFound = FALSE;
-    PDoubleListNode pCurNode = NULL;
-    PIceCandidatePair pIceCandidatePair = NULL;
 
     CHK(pIceAgent != NULL && pState != NULL, STATUS_NULL_ARG);
 
@@ -593,34 +432,8 @@ STATUS fromConnectedIceAgentState(UINT64 customData, PUINT64 pState)
     // return early if changing to disconnected state
     CHK(state != ICE_AGENT_STATE_DISCONNECTED, retStatus);
 
-    // nominatedAndValidCandidatePairFound ? go to ICE_AGENT_STATE_READY : all candidate pairs are valid or connectivity timeout reached ?
-    // go to ICE_AGENT_STATE_NOMINATING : remain in ICE_AGENT_STATE_CONNECTED
-
-    CHK_STATUS(doubleListGetNodeCount(pIceAgent->iceCandidatePairs, &iceCandidateCount));
-
-    CHK_STATUS(doubleListGetHeadNode(pIceAgent->iceCandidatePairs, &pCurNode));
-    while (pCurNode != NULL) {
-        pIceCandidatePair = (PIceCandidatePair) pCurNode->data;
-        pCurNode = pCurNode->pNext;
-
-        if (pIceCandidatePair->state == ICE_CANDIDATE_PAIR_STATE_SUCCEEDED) {
-            validCandidatePairCount++;
-            if (pIceCandidatePair->nominated) {
-                nominatedAndValidCandidatePairFound = TRUE;
-            }
-        }
-    }
-
-    if (nominatedAndValidCandidatePairFound) {
-        state = ICE_AGENT_STATE_READY;
-    } else if (validCandidatePairCount == iceCandidateCount || currentTime >= pIceAgent->stateEndTime) {
-        state = ICE_AGENT_STATE_NOMINATING;
-    }
-
-    // remove unconnected candidate pair when transferring to a new state
-    if (state != ICE_AGENT_STATE_CONNECTED) {
-        CHK_STATUS(pruneUnconnectedIceCandidatePair(pIceAgent));
-    }
+    // Go directly to nominating state from connected state.
+    state = ICE_AGENT_STATE_NOMINATING;
 
 CleanUp:
 
@@ -649,29 +462,8 @@ STATUS executeConnectedIceAgentState(UINT64 customData, UINT64 time)
     PIceCandidatePair pIceCandidatePair = NULL;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
-    // return early if we are already in ICE_AGENT_STATE_CONNECTED
-    CHK(pIceAgent->iceAgentState != ICE_AGENT_STATE_CONNECTED, retStatus);
-    // dont stop timer task from previous state. We want to keep running connectivity check
 
-    // use the first connected pair as the data sending pair
-    CHK_STATUS(doubleListGetHeadNode(pIceAgent->iceCandidatePairs, &pCurNode));
-    while (pCurNode != NULL) {
-        pIceCandidatePair = (PIceCandidatePair) pCurNode->data;
-        pCurNode = pCurNode->pNext;
-
-        if (pIceCandidatePair->state == ICE_CANDIDATE_PAIR_STATE_SUCCEEDED) {
-            pIceAgent->pDataSendingIceCandidatePair = pIceCandidatePair;
-            break;
-        }
-    }
-
-    // schedule sending keep alive
-    CHK_STATUS(timerQueueAddTimer(pIceAgent->timerQueueHandle,
-                                  0,
-                                  KVS_ICE_SEND_KEEP_ALIVE_INTERVAL,
-                                  iceAgentSendKeepAliveTimerCallback,
-                                  (UINT64) pIceAgent,
-                                  &pIceAgent->keepAliveTimerCallback));
+    CHK_STATUS(iceAgentConnectedStateSetup(pIceAgent));
 
     pIceAgent->iceAgentState = ICE_AGENT_STATE_CONNECTED;
 
@@ -753,39 +545,19 @@ STATUS executeNominatingIceAgentState(UINT64 customData, UINT64 time)
     PIceAgent pIceAgent = (PIceAgent) customData;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
-    // return early if we are already in ICE_AGENT_STATE_NOMINATING
-    CHK(pIceAgent->iceAgentState != ICE_AGENT_STATE_NOMINATING, retStatus);
 
-    // stop timer task from previous state
-    CHK_STATUS(timerQueueCancelTimer(pIceAgent->timerQueueHandle, pIceAgent->iceAgentStateTimerCallback, (UINT64) pIceAgent));
-
-    if (pIceAgent->isControlling) {
-        CHK_STATUS(iceAgentNominateCandidatePair(pIceAgent));
-
-        if (pIceAgent->pBindingRequest != NULL) {
-            CHK_STATUS(freeStunPacket(&pIceAgent->pBindingRequest));
-        }
-        CHK_STATUS(createStunPacket(STUN_PACKET_TYPE_BINDING_REQUEST, NULL, &pIceAgent->pBindingRequest));
-        CHK_STATUS(appendStunUsernameAttribute(pIceAgent->pBindingRequest, pIceAgent->combinedUserName));
-        CHK_STATUS(appendStunPriorityAttribute(pIceAgent->pBindingRequest, 0));
-        CHK_STATUS(appendStunIceControllAttribute(
-                pIceAgent->pBindingRequest,
-                STUN_ATTRIBUTE_TYPE_ICE_CONTROLLING,
-                pIceAgent->tieBreaker));
-        CHK_STATUS(appendStunFlagAttribute(pIceAgent->pBindingRequest, STUN_ATTRIBUTE_TYPE_USE_CANDIDATE));
+    if (pIceAgent->iceAgentState != ICE_AGENT_STATE_NOMINATING) {
+        CHK_STATUS(iceAgentNominatingStateSetup(pIceAgent));
+        pIceAgent->iceAgentState = ICE_AGENT_STATE_NOMINATING;
     }
 
-    pIceAgent->stateEndTime = GETTIME() + pIceAgent->kvsRtcConfiguration.iceCandidateNominationTimeout;
-
-    // schedule nomination timer task
-    CHK_STATUS(timerQueueAddTimer(pIceAgent->timerQueueHandle,
-                                  0,
-                                  pIceAgent->kvsRtcConfiguration.iceConnectionCheckPollingInterval,
-                                  iceAgentStateNominatingTimerCallback,
-                                  (UINT64) pIceAgent,
-                                  &pIceAgent->iceAgentStateTimerCallback));
-
-    pIceAgent->iceAgentState = ICE_AGENT_STATE_NOMINATING;
+    if (pIceAgent->isControlling) {
+        CHK_STATUS(iceAgentSendCandidateNomination(pIceAgent));
+    } else {
+        // if not controlling, keep sending connection checks and wait for peer
+        // to nominate a pair.
+        CHK_STATUS(iceAgentCheckCandidatePairConnection(pIceAgent));
+    }
 
 CleanUp:
 
@@ -841,54 +613,12 @@ STATUS executeReadyIceAgentState(UINT64 customData, UINT64 time)
     UNUSED_PARAM(time);
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
-    PIceCandidatePair pNominatedAndValidCandidatePair = NULL;
-    CHAR ipAddrStr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
-    PDoubleListNode pCurNode = NULL;
-    PIceCandidatePair pIceCandidatePair = NULL;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
-    CHK(pIceAgent->iceAgentState != ICE_AGENT_STATE_READY, retStatus);
 
-    // stop timer task from previous state
-    CHK_STATUS(timerQueueCancelTimer(pIceAgent->timerQueueHandle, pIceAgent->iceAgentStateTimerCallback, (UINT64) pIceAgent));
-
-    CHK_STATUS(doubleListGetHeadNode(pIceAgent->iceCandidatePairs, &pCurNode));
-    while (pCurNode != NULL && pNominatedAndValidCandidatePair == NULL) {
-        pIceCandidatePair = (PIceCandidatePair) pCurNode->data;
-        pCurNode = pCurNode->pNext;
-
-        if (pIceCandidatePair->nominated && pIceCandidatePair->state == ICE_CANDIDATE_PAIR_STATE_SUCCEEDED) {
-            pNominatedAndValidCandidatePair = pIceCandidatePair;
-            break;
-        }
-    }
-
-    CHK(pNominatedAndValidCandidatePair != NULL, STATUS_ICE_NO_NOMINATED_VALID_CANDIDATE_PAIR_AVAILABLE);
-
-    pIceAgent->pDataSendingIceCandidatePair = pNominatedAndValidCandidatePair;
-    CHK_STATUS(getIpAddrStr(&pIceAgent->pDataSendingIceCandidatePair->local->ipAddress,
-                            ipAddrStr,
-                            ARRAY_SIZE(ipAddrStr)));
-    DLOGD("Selected pair ip address: %s, port %u, local candidate type: %s",
-          ipAddrStr,
-          (UINT16) getInt16(pIceAgent->pDataSendingIceCandidatePair->local->ipAddress.port),
-          iceAgentGetCandidateTypeStr(pIceAgent->pDataSendingIceCandidatePair->local->iceCandidateType));
-
-    pIceAgent->stateEndTime = INVALID_TIMESTAMP_VALUE;
-
-    // schedule timer task to keep stepping state and check for disconnection
-    CHK_STATUS(timerQueueAddTimer(pIceAgent->timerQueueHandle,
-                                  0,
-                                  KVS_ICE_STATE_READY_TIMER_POLLING_INTERVAL,
-                                  iceAgentStateReadyTimerCallback,
-                                  (UINT64) pIceAgent,
-                                  &pIceAgent->iceAgentStateTimerCallback));
-
-    pIceAgent->iceAgentState = ICE_AGENT_STATE_READY;
-
-    if (!IS_CANN_PAIR_SENDING_FROM_RELAYED(pIceAgent->pDataSendingIceCandidatePair) && pIceAgent->pTurnConnection != NULL) {
-        DLOGD("Relayed candidate is not selected. Turn allocation will be freed");
-        CHK_STATUS(turnConnectionStop(pIceAgent->pTurnConnection));
+    if (pIceAgent->iceAgentState != ICE_AGENT_STATE_READY) {
+        CHK_STATUS(iceAgentReadyStateSetup(pIceAgent));
+        pIceAgent->iceAgentState = ICE_AGENT_STATE_READY;
     }
 
 CleanUp:
