@@ -49,7 +49,7 @@ STATUS resendPacketOnNack(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerCo
     UINT32 senderSsrc = 0, receiverSsrc = 0;
     UINT32 filledLen = 0, validIndexListLen = 0;
     PDoubleListNode pCurNode = NULL;
-    PKvsRtpTransceiver pTransceiver, pReceiverTransceiver = NULL, pSenderTranceiver = NULL;
+    PKvsRtpTransceiver pTransceiver, pSenderTranceiver = NULL;
     UINT64 item;
     UINT32 index;
     PRtpPacket pRtpPacket = NULL, pRtxRtpPacket = NULL;
@@ -59,24 +59,20 @@ STATUS resendPacketOnNack(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerCo
     CHK_STATUS(rtcpNackListGet(pRtcpPacket->payload, pRtcpPacket->payloadLength, &senderSsrc, &receiverSsrc, NULL, &filledLen));
 
     CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pTransceievers, &pCurNode));
-    while(pCurNode != NULL && (pReceiverTransceiver == NULL || pSenderTranceiver == NULL)) {
+    while(pCurNode != NULL && pSenderTranceiver == NULL) {
         CHK_STATUS(doubleListGetNodeData(pCurNode, &item));
         pTransceiver = (PKvsRtpTransceiver) item;
 
         CHK(pTransceiver != NULL, STATUS_INTERNAL_ERROR);
 
-        if (pTransceiver->jitterBufferSsrc == senderSsrc) {
-            pReceiverTransceiver = pTransceiver;
-        }
-
-        if (pTransceiver->sender.ssrc == receiverSsrc) {
+        if (pTransceiver->sender.ssrc == receiverSsrc || pTransceiver->sender.ssrc == senderSsrc) {
             pSenderTranceiver = pTransceiver;
             pRetransmitter = pSenderTranceiver->sender.retransmitter;
         }
         pCurNode = pCurNode->pNext;
     }
 
-    CHK_ERR(pReceiverTransceiver != NULL && pSenderTranceiver != NULL, STATUS_RTCP_INPUT_SSRC_INVALID,
+    CHK_ERR(pSenderTranceiver != NULL, STATUS_RTCP_INPUT_SSRC_INVALID,
             "Receiving NACK for non existing ssrcs: senderSsrc %lu receiverSsrc %lu", senderSsrc, receiverSsrc);
 
     CHK_ERR(pRetransmitter != NULL, STATUS_INVALID_OPERATION,
@@ -95,17 +91,19 @@ STATUS resendPacketOnNack(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerCo
         CHK(retStatus == STATUS_SUCCESS, retStatus);
 
         if (pRtpPacket != NULL) {
-            CHK_STATUS(constructRetransmitRtpPacketFromBytes(pRtpPacket->pRawPacket, pRtpPacket->rawPacketLength,
-                    pSenderTranceiver->sender.rtxSequenceNumber, pSenderTranceiver->sender.rtxPayloadType, pSenderTranceiver->sender.rtxSsrc, &pRtxRtpPacket));
-            pSenderTranceiver->sender.rtxSequenceNumber++;
+            if (pSenderTranceiver->sender.payloadType == pSenderTranceiver->sender.rtxPayloadType) {
+                retStatus = iceAgentSendPacket(pKvsPeerConnection->pIceAgent, pRtpPacket->pRawPacket, pRtpPacket->rawPacketLength);
+            }  else {
+                CHK_STATUS(constructRetransmitRtpPacketFromBytes(pRtpPacket->pRawPacket, pRtpPacket->rawPacketLength,
+                        pSenderTranceiver->sender.rtxSequenceNumber, pSenderTranceiver->sender.rtxPayloadType, pSenderTranceiver->sender.rtxSsrc, &pRtxRtpPacket));
+                pSenderTranceiver->sender.rtxSequenceNumber++;
+                retStatus = writeRtpPacket(pKvsPeerConnection, pRtxRtpPacket);
+            }
             // resendPacket
-            retStatus = writeRtpPacket(pKvsPeerConnection, pRtxRtpPacket);
             if (STATUS_SUCCEEDED(retStatus)) {
-                DLOGV("Resent packet original seq %lu rtx seq %lu succeeded", pRtpPacket->header.sequenceNumber,
-                        pRtxRtpPacket->header.sequenceNumber);
+                DLOGV("Resent packet ssrc %lu seq %lu succeeded", pRtpPacket->header.ssrc, pRtpPacket->header.sequenceNumber);
             } else {
-                DLOGW("Resent packet %lu failed with orignal seq %lu new seq %lu status %lu",
-                        pRtpPacket->header.sequenceNumber, pRtxRtpPacket->header.sequenceNumber, retStatus);
+                DLOGV("Resent packet ssrc %lu seq %lu failed 0x%08x", pRtpPacket->header.ssrc, pRtpPacket->header.sequenceNumber, retStatus);
             }
             // putBackPacketToRollingBuffer
             retStatus = rollingBufferInsertData(pSenderTranceiver->sender.packetBuffer->pRollingBuffer, pRetransmitter->sequenceNumberList[index], item);
