@@ -234,7 +234,6 @@ STATUS setTransceiverPayloadTypes(PHashTable codecTable, PHashTable rtxTable, PD
     STATUS retStatus = STATUS_SUCCESS;
     PDoubleListNode pCurNode = NULL;
     PKvsRtpTransceiver pKvsRtpTransceiver;
-    BOOL containRtx = FALSE;
     UINT64 data;
 
     // Loop over Transceivers and set the payloadType (which what we got from the other side)
@@ -251,32 +250,17 @@ STATUS setTransceiverPayloadTypes(PHashTable codecTable, PHashTable rtxTable, PD
 
             CHK_STATUS(hashTableGet(codecTable, pKvsRtpTransceiver->sender.track.codec, &data));
             pKvsRtpTransceiver->sender.payloadType = (UINT8) data;
-            switch (pKvsRtpTransceiver->sender.track.codec) {
-                case RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE:
-                    retStatus = hashTableGet(rtxTable, RTC_RTX_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, &data);
-                    CHK(retStatus == STATUS_SUCCESS || retStatus == STATUS_HASH_KEY_NOT_PRESENT, retStatus);
-                    break;
-                case RTC_CODEC_VP8:
-                    retStatus = hashTableGet(rtxTable, RTC_RTX_CODEC_VP8, &data);
-                    CHK(retStatus == STATUS_SUCCESS || retStatus == STATUS_HASH_KEY_NOT_PRESENT, retStatus);
-                    break;
-                default:
-                    retStatus = STATUS_HASH_KEY_NOT_PRESENT;
-                    break;
-            }
-            if (retStatus == STATUS_SUCCESS) {
-                containRtx = TRUE;
+            pKvsRtpTransceiver->sender.rtxPayloadType = (UINT8) data;
+
+            // NACKs may have distinct PayloadTypes, look in the rtxTable and check. Otherwise NACKs will just be re-sending the same seqnum
+            if (hashTableGet(rtxTable, pKvsRtpTransceiver->sender.track.codec, &data) == STATUS_SUCCESS) {
                 pKvsRtpTransceiver->sender.rtxPayloadType = (UINT8) data;
             }
-            retStatus = STATUS_SUCCESS;
         }
     }
 
-    // Free rolling buffer and retransmitter if rtx is not needed
-    if (containRtx) {
-        CHK_STATUS(createRtpRollingBuffer(DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS * HIGHEST_EXPECTED_BIT_RATE / 8 / DEFAULT_MTU_SIZE, &pKvsRtpTransceiver->sender.packetBuffer));
-        CHK_STATUS(createRetransmitter(DEFAULT_SEQ_NUM_BUFFER_SIZE, DEFAULT_VALID_INDEX_BUFFER_SIZE, &pKvsRtpTransceiver->sender.retransmitter));
-    }
+    CHK_STATUS(createRtpRollingBuffer(DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS * HIGHEST_EXPECTED_BIT_RATE / 8 / DEFAULT_MTU_SIZE, &pKvsRtpTransceiver->sender.packetBuffer));
+    CHK_STATUS(createRetransmitter(DEFAULT_SEQ_NUM_BUFFER_SIZE, DEFAULT_VALID_INDEX_BUFFER_SIZE, &pKvsRtpTransceiver->sender.retransmitter));
 
 CleanUp:
 

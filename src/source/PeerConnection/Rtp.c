@@ -117,10 +117,10 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
     STATUS retStatus = STATUS_SUCCESS;
     PKvsPeerConnection pKvsPeerConnection = NULL;
     PKvsRtpTransceiver pKvsRtpTransceiver = (PKvsRtpTransceiver) pRtcRtpTransceiver;
-    BOOL locked = FALSE;
+    BOOL locked = FALSE, bufferAfterEncrypt = FALSE;
     PRtpPacket pPacketList = NULL, pRtpPacket = NULL;
     UINT32 i = 0, packetLen = 0;
-    INT32 rawLen = 0;
+    INT32 signedPacketLen = 0;
     PBYTE rawPacket = NULL;
     PPayloadArray pPayloadArray = NULL;
     RtpPayloadFunc rtpPayloadFunc = NULL;
@@ -181,19 +181,27 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
     CHK_STATUS(constructRtpPackets(pPayloadArray, pKvsRtpTransceiver->sender.payloadType, pKvsRtpTransceiver->sender.sequenceNumber, rtpTimestamp, pKvsRtpTransceiver->sender.ssrc, pPacketList, pPayloadArray->payloadSubLenSize));
     pKvsRtpTransceiver->sender.sequenceNumber = GET_UINT16_SEQ_NUM(pKvsRtpTransceiver->sender.sequenceNumber + pPayloadArray->payloadSubLenSize);
 
+    bufferAfterEncrypt = (pKvsRtpTransceiver->sender.payloadType == pKvsRtpTransceiver->sender.rtxPayloadType);
     for (i = 0; i < pPayloadArray->payloadSubLenSize; i++) {
         pRtpPacket = pPacketList + i;
         CHK_STATUS(createBytesFromRtpPacket(pRtpPacket, &rawPacket, &packetLen));
-        rawLen = packetLen;
 
-        rawPacket = MEMREALLOC(rawPacket, packetLen + 10); // For SRTP authentication tag
-        pRtpPacket->pRawPacket = rawPacket;
-        pRtpPacket->rawPacketLength = packetLen;
-        if (pKvsRtpTransceiver->sender.packetBuffer != NULL) {
+        if (!bufferAfterEncrypt) {
+            pRtpPacket->pRawPacket = rawPacket;
+            pRtpPacket->rawPacketLength = packetLen;
             CHK_STATUS(rtpRollingBufferAddRtpPacket(pKvsRtpTransceiver->sender.packetBuffer, pRtpPacket));
         }
-        CHK_STATUS(encryptRtpPacket(pKvsPeerConnection->pSrtpSession, rawPacket, &rawLen));
-        CHK_STATUS(iceAgentSendPacket(pKvsPeerConnection->pIceAgent, rawPacket, rawLen));
+
+        signedPacketLen = packetLen;
+        rawPacket = MEMREALLOC(rawPacket, packetLen + 10); // For SRTP authentication tag
+        CHK_STATUS(encryptRtpPacket(pKvsPeerConnection->pSrtpSession, rawPacket, &signedPacketLen));
+        CHK_STATUS(iceAgentSendPacket(pKvsPeerConnection->pIceAgent, rawPacket, signedPacketLen));
+
+        if (bufferAfterEncrypt) {
+            pRtpPacket->pRawPacket = rawPacket;
+            pRtpPacket->rawPacketLength = signedPacketLen;
+            CHK_STATUS(rtpRollingBufferAddRtpPacket(pKvsRtpTransceiver->sender.packetBuffer, pRtpPacket));
+        }
 
         SAFE_MEMFREE(rawPacket);
         rawPacket = NULL;
