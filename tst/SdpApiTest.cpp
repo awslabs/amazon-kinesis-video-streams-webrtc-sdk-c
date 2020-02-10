@@ -192,8 +192,8 @@ TEST_F(SdpApiTest, setTransceiverPayloadTypes_NoRtxType) {
     EXPECT_EQ(STATUS_SUCCESS, doubleListInsertItemHead(pTransceivers, (UINT64) (&transceiver)));
     EXPECT_EQ(STATUS_SUCCESS, setTransceiverPayloadTypes(pCodecTable, pRtxTable, pTransceivers));
     EXPECT_EQ(1, transceiver.sender.payloadType);
-    EXPECT_EQ((PRtpRollingBuffer) NULL, transceiver.sender.packetBuffer);
-    EXPECT_EQ((PRetransmitter) NULL, transceiver.sender.retransmitter);
+    EXPECT_NE((PRtpRollingBuffer) NULL, transceiver.sender.packetBuffer);
+    EXPECT_NE((PRetransmitter) NULL, transceiver.sender.retransmitter);
     hashTableFree(pCodecTable);
     hashTableFree(pRtxTable);
     freeRtpRollingBuffer(&transceiver.sender.packetBuffer);
