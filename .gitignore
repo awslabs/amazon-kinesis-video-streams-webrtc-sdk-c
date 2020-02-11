@@ -10,5 +10,6 @@ open-source/libopenssl
 open-source/libsrtp
 open-source/libusrsctp
 open-source/libwebsockets
+open-source/libcurl
 open-source/local
 outputs

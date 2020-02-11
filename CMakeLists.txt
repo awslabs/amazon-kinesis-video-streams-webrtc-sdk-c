@@ -398,7 +398,7 @@ include_directories(${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/ice)
 include_directories(${KINESIS_VIDEO_PRODUCER_C_SRC}/src/include)
 
 set(BUILD_COMMON_LWS TRUE CACHE BOOL "Build ProducerC with LWS Support" FORCE)
-set(BUILD_COMMON_CURL FALSE CACHE BOOL "Build ProducerC without CURL Support" FORCE)
+set(BUILD_COMMON_CURL TRUE CACHE BOOL "Build ProducerC without CURL Support" FORCE)
 add_subdirectory(${KINESIS_VIDEO_PRODUCER_C_SRC} ./kvscproducer EXCLUDE_FROM_ALL)
 
 add_library(kvsWebrtcClient SHARED ${WEBRTC_CLIENT_SOURCE_FILES})
@@ -408,6 +408,7 @@ target_link_libraries(
   kvspicUtils
   kvspicClient
   kvspicState
+  cproducer
   ${OPENSSL_SSL_LIBRARY}
   ${OPENSSL_CRYPTO_LIBRARY}
   ${LIBSRTP_LIBRARIES}
