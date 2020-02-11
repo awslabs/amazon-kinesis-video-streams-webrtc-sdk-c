@@ -15,10 +15,11 @@ INT32 main(INT32 argc, CHAR *argv[])
     PStreamInfo pStreamInfo = NULL;
     PClientCallbacks pClientCallbacks = NULL;
     PAwsCredentials pAwsCredentials;
+    BOOL persistence = FALSE;
 
     signal(SIGINT, sigintHandler);
 
-    // do tricketIce by default
+    // do trickle ICE by default
     printf("[KVS Master] Using trickleICE by default\n");
 
     CHK_STATUS(createSampleConfiguration(argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME,
@@ -68,23 +69,31 @@ INT32 main(INT32 argc, CHAR *argv[])
     CHK_STATUS(signalingClientConnectSync(pSampleConfiguration->signalingClientHandle));
     printf("[KVS Master] Signaling client connection to socket established\n");
 
-    // Create KVS stream object graph
-    CHK_STATUS(createDefaultDeviceInfo(&pDeviceInfo));
-    CHK_STATUS(createRealtimeVideoStreamInfoProvider(DEFAULT_STREAM_NAME, DEFAULT_RETENTION_PERIOD, DEFAULT_BUFFER_DURATION, &pStreamInfo));
-    CHK_STATUS(pSampleConfiguration->pCredentialProvider->getCredentialsFn(pSampleConfiguration->pCredentialProvider, &pAwsCredentials));
-    CHK_STATUS(createDefaultCallbacksProviderWithAwsCredentials(pAwsCredentials->accessKeyId,
-                                                                pAwsCredentials->secretKey,
-                                                                pAwsCredentials->sessionToken,
-                                                                MAX_UINT64,
-                                                                pSampleConfiguration->channelInfo.pRegion,
-                                                                pSampleConfiguration->pCaCertPath,
-                                                                NULL,
-                                                                NULL,
-                                                                FALSE,
-                                                                &pClientCallbacks));
+    if (argc > 2) {
+        // Enabling persistence if the second argument is supplied with the stream name
+        printf("[KVS Master] Streaming to KVS stream %s\n", argv[2]);
 
-    CHK_STATUS(createKinesisVideoClient(pDeviceInfo, pClientCallbacks, &clientHandle));
-    CHK_STATUS(createKinesisVideoStreamSync(clientHandle, pStreamInfo, &streamHandle));
+        // Create KVS stream object graph
+        CHK_STATUS(createDefaultDeviceInfo(&pDeviceInfo));
+        CHK_STATUS(createRealtimeVideoStreamInfoProvider(argv[2], DEFAULT_RETENTION_PERIOD,
+                DEFAULT_BUFFER_DURATION, &pStreamInfo));
+        CHK_STATUS(pSampleConfiguration->pCredentialProvider->getCredentialsFn(
+                pSampleConfiguration->pCredentialProvider, &pAwsCredentials));
+        CHK_STATUS(createDefaultCallbacksProviderWithAwsCredentials(pAwsCredentials->accessKeyId,
+                                                                    pAwsCredentials->secretKey,
+                                                                    pAwsCredentials->sessionToken,
+                                                                    MAX_UINT64,
+                                                                    pSampleConfiguration->channelInfo.pRegion,
+                                                                    pSampleConfiguration->pCaCertPath,
+                                                                    NULL,
+                                                                    NULL,
+                                                                    FALSE,
+                                                                    &pClientCallbacks));
+
+        CHK_STATUS(createKinesisVideoClient(pDeviceInfo, pClientCallbacks, &clientHandle));
+        CHK_STATUS(createKinesisVideoStreamSync(clientHandle, pStreamInfo, &streamHandle));
+        persistence = TRUE;
+    }
 
     // Store the client and the stream handles in the config
     pSampleConfiguration->clientHandle = clientHandle;
@@ -94,6 +103,10 @@ INT32 main(INT32 argc, CHAR *argv[])
 
     printf("[KVS Master] Beginning audio-video streaming...check the stream over channel %s\n",
             (argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME));
+
+    if (persistence) {
+        CHK_STATUS(startSenderMediaThreads(pSampleConfiguration));
+    }
 
     // Checking for termination
     CHK_STATUS(sessionCleanupWait(pSampleConfiguration));
@@ -125,25 +138,11 @@ CleanUp:
         CHK_LOG_ERR_NV(freeSampleConfiguration(&pSampleConfiguration));
     }
 
-    if (pDeviceInfo != NULL) {
-        freeDeviceInfo(&pDeviceInfo);
-    }
-
-    if (pStreamInfo != NULL) {
-        freeStreamInfoProvider(&pStreamInfo);
-    }
-
-    if (IS_VALID_STREAM_HANDLE(streamHandle)) {
-        freeKinesisVideoStream(&streamHandle);
-    }
-
-    if (IS_VALID_CLIENT_HANDLE(clientHandle)) {
-        freeKinesisVideoClient(&clientHandle);
-    }
-
-    if (pClientCallbacks != NULL) {
-        freeCallbacksProvider(&pClientCallbacks);
-    }
+    CHK_LOG_ERR_NV(freeDeviceInfo(&pDeviceInfo));
+    CHK_LOG_ERR_NV(freeStreamInfoProvider(&pStreamInfo));
+    CHK_LOG_ERR_NV(freeKinesisVideoStream(&streamHandle));
+    CHK_LOG_ERR_NV(freeKinesisVideoClient(&clientHandle));
+    CHK_LOG_ERR_NV(freeCallbacksProvider(&pClientCallbacks));
 
     printf("[KVS Master] Cleanup done\n");
     return (INT32) retStatus;
@@ -174,18 +173,17 @@ PVOID sendVideoPackets(PVOID args)
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
     Frame frame;
-    UINT32 fileIndex = 0, frameSize;
+    UINT32 fileIndex = 0, frameSize, i;
     CHAR filePath[MAX_PATH_LEN + 1];
     STATUS status;
-    UINT32 i;
 
     CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
 
     frame.presentationTs = 0;
+    frame.decodingTs = 0;
 
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
-        fileIndex = fileIndex % NUMBER_OF_H264_FRAME_FILES + 1;
-        SNPRINTF(filePath, MAX_PATH_LEN, "./h264SampleFrames/frame-%03d.h264", fileIndex);
+        SNPRINTF(filePath, MAX_PATH_LEN, "./h264SampleFrames/frame-%03d.h264", fileIndex % NUMBER_OF_H264_FRAME_FILES + 1);
         CHK_STATUS(readFrameFromDisk(NULL, &frameSize, filePath));
 
         // Re-alloc if needed
@@ -196,10 +194,15 @@ PVOID sendVideoPackets(PVOID args)
 
         frame.frameData = pSampleConfiguration->pVideoFrameBuffer;
         frame.size = frameSize;
+        frame.trackId = DEFAULT_VIDEO_TRACK_ID;
+
+        frame.flags = fileIndex % DEFAULT_KEY_FRAME_INTERVAL == 0 ? FRAME_FLAG_KEY_FRAME : FRAME_FLAG_NONE;
+        frame.index = fileIndex++;
 
         CHK_STATUS(readFrameFromDisk(frame.frameData, &frameSize, filePath));
 
         frame.presentationTs += SAMPLE_VIDEO_FRAME_DURATION;
+        frame.decodingTs = frame.presentationTs;
 
         if (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->updatingSampleStreamingSessionList)) {
             ATOMIC_INCREMENT(&pSampleConfiguration->streamingSessionListReadingThreadCount);
@@ -211,9 +214,11 @@ PVOID sendVideoPackets(PVOID args)
             }
 
             // Output the frame to KVS stream as well
-            status = putKinesisVideoFrame(pSampleConfiguration->streamHandle, &frame);
-            if (STATUS_FAILED(status)) {
-                DLOGD("putKinesisVideoFrame failed with 0x%08x", status);
+            if (IS_VALID_STREAM_HANDLE(pSampleConfiguration->streamHandle)) {
+                status = putKinesisVideoFrame(pSampleConfiguration->streamHandle, &frame);
+                if (STATUS_FAILED(status)) {
+                    DLOGD("putKinesisVideoFrame failed with 0x%08x", status);
+                }
             }
 
             ATOMIC_DECREMENT(&pSampleConfiguration->streamingSessionListReadingThreadCount);

@@ -7,7 +7,7 @@ VOID sigintHandler(INT32 sigNum)
 {
     UNUSED_PARAM(sigNum);
     if (gSampleConfiguration != NULL) {
-        ATOMIC_STORE_BOOL(&gSampleConfiguration->interrupted, TRUE);
+        ATOMIC_STORE_BOOL(&gSampleConfiguration->appTerminateFlag, TRUE);
         CVAR_BROADCAST(gSampleConfiguration->cvar);
     }
 }
@@ -209,6 +209,28 @@ STATUS handleOffer(PSampleConfiguration pSampleConfiguration, PSampleStreamingSe
 
     CHK_STATUS(respondWithAnswer(pSampleStreamingSession));
 
+    // Start the sender media threads
+    CHK_STATUS(startSenderMediaThreads(pSampleConfiguration));
+
+    // The audio video receive routine should be per streaming session
+    if (pSampleConfiguration->receiveAudioVideoSource != NULL) {
+        THREAD_CREATE(&pSampleStreamingSession->receiveAudioVideoSenderTid, pSampleConfiguration->receiveAudioVideoSource,
+                      (PVOID) pSampleStreamingSession);
+    }
+
+CleanUp:
+
+    CHK_LOG_ERR_NV(retStatus);
+
+    return retStatus;
+}
+
+STATUS startSenderMediaThreads(PSampleConfiguration pSampleConfiguration)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
+
     if (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->mediaThreadStarted)) {
         ATOMIC_STORE_BOOL(&pSampleConfiguration->mediaThreadStarted, TRUE);
         if (pSampleConfiguration->videoSource != NULL) {
@@ -220,12 +242,6 @@ STATUS handleOffer(PSampleConfiguration pSampleConfiguration, PSampleStreamingSe
             THREAD_CREATE(&pSampleConfiguration->audioSenderTid, pSampleConfiguration->audioSource,
                           (PVOID) pSampleConfiguration);
         }
-    }
-
-    // The audio video receive routine should be per streaming session
-    if (pSampleConfiguration->receiveAudioVideoSource != NULL) {
-        THREAD_CREATE(&pSampleStreamingSession->receiveAudioVideoSenderTid, pSampleConfiguration->receiveAudioVideoSource,
-                      (PVOID) pSampleStreamingSession);
     }
 
 CleanUp:
@@ -579,7 +595,6 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     pSampleConfiguration->channelInfo.pCertPath = pSampleConfiguration->pCaCertPath;
     pSampleConfiguration->channelInfo.messageTtl = 0; // Default is 60 seconds
 
-    ATOMIC_STORE_BOOL(&pSampleConfiguration->interrupted, FALSE);
     ATOMIC_STORE_BOOL(&pSampleConfiguration->mediaThreadStarted, FALSE);
     ATOMIC_STORE_BOOL(&pSampleConfiguration->appTerminateFlag, FALSE);
     ATOMIC_STORE_BOOL(&pSampleConfiguration->updatingSampleStreamingSessionList, FALSE);
@@ -658,7 +673,7 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
     MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
     locked = TRUE;
 
-    while(!ATOMIC_LOAD_BOOL(&pSampleConfiguration->interrupted)) {
+    while(!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
 
         // scan and cleanup terminated streaming session
         for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {

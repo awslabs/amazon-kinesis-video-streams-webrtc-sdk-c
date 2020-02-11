@@ -16,6 +16,7 @@ extern "C" {
 #define NUMBER_OF_H264_FRAME_FILES                                              403
 #define NUMBER_OF_OPUS_FRAME_FILES                                              618
 #define DEFAULT_FPS_VALUE                                                       25
+#define DEFAULT_KEY_FRAME_INTERVAL                                              45
 #define DEFAULT_MAX_CONCURRENT_STREAMING_SESSION                                10
 
 #define DEFAULT_RETENTION_PERIOD                                                2 * HUNDREDS_OF_NANOS_IN_AN_HOUR
@@ -40,7 +41,6 @@ typedef struct __SampleStreamingSession* PSampleStreamingSession;
 
 typedef struct {
     volatile ATOMIC_BOOL appTerminateFlag;
-    volatile ATOMIC_BOOL interrupted;
     volatile ATOMIC_BOOL mediaThreadStarted;
     volatile ATOMIC_BOOL updatingSampleStreamingSessionList;
     volatile SIZE_T streamingSessionListReadingThreadCount;
@@ -114,6 +114,7 @@ STATUS freeSampleStreamingSession(PSampleStreamingSession*);
 STATUS streamingSessionOnShutdown(PSampleStreamingSession, UINT64, StreamSessionShutdownCallback);
 STATUS respondWithAnswer(PSampleStreamingSession);
 STATUS resetSampleConfigurationState(PSampleConfiguration);
+STATUS startSenderMediaThreads(PSampleConfiguration pSampleConfiguration);
 VOID sampleFrameHandler(UINT64, PFrame);
 VOID onDataChannel(UINT64, PRtcDataChannel);
 VOID onConnectionStateChange(UINT64, RTC_PEER_CONNECTION_STATE);

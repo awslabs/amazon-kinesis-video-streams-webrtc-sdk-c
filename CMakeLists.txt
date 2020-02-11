@@ -408,7 +408,6 @@ target_link_libraries(
   kvspicUtils
   kvspicClient
   kvspicState
-  cproducer
   ${OPENSSL_SSL_LIBRARY}
   ${OPENSSL_CRYPTO_LIBRARY}
   ${LIBSRTP_LIBRARIES}
@@ -426,7 +425,7 @@ add_executable(
   ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/Common.c
   ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/kvsWebRTCClientMaster.c)
 target_link_libraries(kvsWebrtcClientMaster kvsWebrtcClient
-                      kvsWebrtcSignalingClient)
+                      kvsWebrtcSignalingClient cproducer)
 
 add_executable(
   kvsWebrtcClientViewer
