@@ -446,7 +446,7 @@ if(GST_FOUND)
     ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/kvsWebRTCClientMasterGstreamerSample.c
   )
   target_link_libraries(kvsWebrtcClientMasterGstSample kvsWebrtcClient
-                        kvsWebrtcSignalingClient ${GST_SAMPLE_LIBRARIES})
+                        kvsWebrtcSignalingClient cproducer ${GST_SAMPLE_LIBRARIES})
 endif()
 
 if(BUILD_TEST)
