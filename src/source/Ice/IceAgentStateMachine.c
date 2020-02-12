@@ -36,6 +36,11 @@ STATUS stepIceAgentStateMachine(PIceAgent pIceAgent)
 
     CHK_STATUS(stepStateMachine(pIceAgent->pStateMachine));
 
+    // if any failure happened and state machine is not in failed state, stepStateMachine again into failed state.
+    if (pIceAgent->iceAgentState != ICE_AGENT_STATE_FAILED && STATUS_FAILED(pIceAgent->iceAgentStatus)) {
+        CHK_STATUS(stepStateMachine(pIceAgent->pStateMachine));        
+    }
+
     if (oldState != pIceAgent->iceAgentState) {
         if (pIceAgent->iceAgentCallbacks.connectionStateChangedFn != NULL) {
             DLOGD("Ice agent state changed from %s to %s.",
@@ -44,6 +49,8 @@ STATUS stepIceAgentStateMachine(PIceAgent pIceAgent)
             pIceAgent->iceAgentCallbacks.connectionStateChangedFn(pIceAgent->customData, pIceAgent->iceAgentState);
         }
     } else {
+        // state machine retry is not used. resetStateMachineRetryCount just to avoid 
+        // state machine retry grace period overflow warning.
         CHK_STATUS(resetStateMachineRetryCount(pIceAgent->pStateMachine));
     }
 
@@ -316,8 +323,6 @@ CleanUp:
 
     if (STATUS_FAILED(retStatus)) {
         pIceAgent->iceAgentStatus = retStatus;
-        // step into failed state
-        stepStateMachine(pIceAgent->pStateMachine);
 
         // fix up retStatus so we can successfully transition to failed state.
         retStatus = STATUS_SUCCESS;
@@ -406,8 +411,6 @@ CleanUp:
 
     if (STATUS_FAILED(retStatus)) {
         pIceAgent->iceAgentStatus = retStatus;
-        // step into failed state
-        stepStateMachine(pIceAgent->pStateMachine);
 
         // fix up retStatus so we can successfully transition to failed state.
         retStatus = STATUS_SUCCESS;
@@ -469,8 +472,6 @@ CleanUp:
 
     if (STATUS_FAILED(retStatus)) {
         pIceAgent->iceAgentStatus = retStatus;
-        // step into failed state
-        stepStateMachine(pIceAgent->pStateMachine);
 
         // fix up retStatus so we can successfully transition to failed state.
         retStatus = STATUS_SUCCESS;
@@ -561,8 +562,6 @@ CleanUp:
 
     if (STATUS_FAILED(retStatus)) {
         pIceAgent->iceAgentStatus = retStatus;
-        // step into failed state
-        stepStateMachine(pIceAgent->pStateMachine);
 
         // fix up retStatus so we can successfully transition to failed state.
         retStatus = STATUS_SUCCESS;
@@ -623,8 +622,6 @@ CleanUp:
 
     if (STATUS_FAILED(retStatus)) {
         pIceAgent->iceAgentStatus = retStatus;
-        // step into failed state
-        stepStateMachine(pIceAgent->pStateMachine);
 
         // fix up retStatus so we can successfully transition to failed state.
         retStatus = STATUS_SUCCESS;
@@ -693,8 +690,6 @@ CleanUp:
 
     if (STATUS_FAILED(retStatus)) {
         pIceAgent->iceAgentStatus = retStatus;
-        // step into failed state
-        stepStateMachine(pIceAgent->pStateMachine);
 
         // fix up retStatus so we can successfully transition to failed state.
         retStatus = STATUS_SUCCESS;
