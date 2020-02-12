@@ -887,6 +887,8 @@ STATUS iceAgentSendSrflxCandidateRequest(PIceAgent pIceAgent)
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
 
+    // Assume holding pIceAgent->lock
+
     CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
     while (pCurNode != NULL) {
         CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
@@ -935,7 +937,8 @@ STATUS iceAgentCheckCandidatePairConnection(PIceAgent pIceAgent)
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
 
-    // assuming pIceAgent->candidatePairs is sorted by priority
+    // Assuming pIceAgent->candidatePairs is sorted by priority
+    // Assume holding pIceAgent->lock
 
     CHK_STATUS(stackQueueIsEmpty(pIceAgent->triggeredCheckQueue, &triggeredCheckQueueEmpty));
     if (!triggeredCheckQueueEmpty) {
@@ -1040,6 +1043,8 @@ STATUS iceAgentSendCandidateNomination(PIceAgent pIceAgent)
     // do nothing if not controlling
     CHK(pIceAgent->isControlling, retStatus);
 
+    // Assume holding pIceAgent->lock
+
     // send packet with USE_CANDIDATE flag if is controlling
     CHK_STATUS(doubleListGetHeadNode(pIceAgent->iceCandidatePairs, &pCurNode));
     while (pCurNode != NULL) {
@@ -1071,6 +1076,8 @@ STATUS iceAgentInitHostCandidate(PIceAgent pIceAgent)
     UINT32 localCandidateCount = 0;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
+
+    // Assume holding pIceAgent->lock
 
     CHK_STATUS(iceAgentGatherLocalCandidate(pIceAgent));
 
@@ -1108,6 +1115,8 @@ STATUS iceAgentInitSrflxCandidate(PIceAgent pIceAgent)
     UINT32 j;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
+
+    // Assume holding pIceAgent->lock
 
     CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
     while (pCurNode != NULL) {
@@ -1172,6 +1181,8 @@ STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent)
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
 
+    // Assume holding pIceAgent->lock
+
     // start gathering turn candidate
     for (j = 0; j < pIceAgent->iceServersCount; ++j) {
         if (pIceAgent->iceServers[j].isTurn) {
@@ -1217,6 +1228,8 @@ STATUS iceAgentGatheringStateSetup(PIceAgent pIceAgent)
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
 
+    // Assume holding pIceAgent->lock
+
     // skip gathering host candidate and srflx candidate if relay only
     if (pIceAgent->iceTransportPolicy != ICE_TRANSPORT_POLICY_RELAY) {
         CHK_STATUS(iceAgentInitHostCandidate(pIceAgent));
@@ -1256,6 +1269,8 @@ STATUS iceAgentCheckConnectionStateSetup(PIceAgent pIceAgent)
     PIceCandidatePair pIceCandidatePair = NULL;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
+
+    // Assume holding pIceAgent->lock
 
     CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
     while (pCurNode != NULL) {
@@ -1311,6 +1326,8 @@ STATUS iceAgentConnectedStateSetup(PIceAgent pIceAgent)
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
 
+    // Assume holding pIceAgent->lock
+
     // use the first connected pair as the data sending pair
     CHK_STATUS(doubleListGetHeadNode(pIceAgent->iceCandidatePairs, &pCurNode));
     while (pCurNode != NULL) {
@@ -1347,6 +1364,8 @@ STATUS iceAgentNominatingStateSetup(PIceAgent pIceAgent)
     STATUS retStatus = STATUS_SUCCESS;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
+
+    // Assume holding pIceAgent->lock
 
     if (pIceAgent->isControlling) {
         CHK_STATUS(iceAgentNominateCandidatePair(pIceAgent));
@@ -1386,6 +1405,8 @@ STATUS iceAgentReadyStateSetup(PIceAgent pIceAgent)
     PIceCandidatePair pIceCandidatePair = NULL;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
+
+    // Assume holding pIceAgent->lock
 
     // stop timer task and reschedule one with lower frequency.
     CHK_STATUS(timerQueueCancelTimer(pIceAgent->timerQueueHandle, pIceAgent->iceAgentStateTimerCallback, (UINT64) pIceAgent));
@@ -1449,6 +1470,8 @@ STATUS iceAgentNominateCandidatePair(PIceAgent pIceAgent)
     PDoubleListNode pCurNode = NULL;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
+
+    // Assume holding pIceAgent->lock
 
     // Assume holding pIceAgent->lock
     // do nothing if not controlling
