@@ -75,13 +75,13 @@ CleanUp:
     return retStatus;
 }
 
-STATUS createSocket(PKvsIpAddress pHostIpAddress, PKvsIpAddress pPeerAddress, KVS_SOCKET_PROTOCOL protocol, PINT32 pSockFd)
+STATUS createSocket(PKvsIpAddress pHostIpAddress, PKvsIpAddress pPeerAddress, KVS_SOCKET_PROTOCOL protocol, UINT32 sendBufSize, PINT32 pSockFd)
 {
     STATUS retStatus = STATUS_SUCCESS;
 
     struct sockaddr_in ipv4Addr, ipv4PeerAddr;
     struct sockaddr_in6 ipv6Addr, ipv6PeerAddr;
-    INT32 sockfd, sockType;
+    INT32 sockfd, sockType, flags, retVal;
     struct sockaddr *sockAddr = NULL, *peerSockAddr = NULL;
     socklen_t addrLen;
     CHAR ipAddrStr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
@@ -96,6 +96,11 @@ STATUS createSocket(PKvsIpAddress pHostIpAddress, PKvsIpAddress pPeerAddress, KV
     if (sockfd == -1) {
         DLOGW("socket() failed to create socket with errno %s", strerror(errno));
         CHK(FALSE, STATUS_CREATE_UDP_SOCKET_FAILED);
+    }
+
+    if (sendBufSize > 0 && setsockopt(sockfd, SOL_SOCKET, SO_SNDBUF, &sendBufSize, SIZEOF(sendBufSize)) < 0) {
+        DLOGW("setsockopt() failed with errno %s", strerror(errno));
+        CHK(FALSE, STATUS_SOCKET_SET_SEND_BUFFER_SIZE_FAILED);
     }
 
     if (pHostIpAddress->family == KVS_IP_FAMILY_TYPE_IPV4) {
@@ -148,13 +153,16 @@ STATUS createSocket(PKvsIpAddress pHostIpAddress, PKvsIpAddress pPeerAddress, KV
     pHostIpAddress->port = (UINT16) pHostIpAddress->family == KVS_IP_FAMILY_TYPE_IPV4 ? ipv4Addr.sin_port : ipv6Addr.sin6_port;
     *pSockFd = (INT32) sockfd;
 
+    // Set the non-blocking mode for the socket
+    flags = fcntl(sockfd, F_GETFL, 0);
+    CHK_ERR(flags >= 0, STATUS_GET_SOCKET_FLAG_FAILED, "Failed to get the socket flags with system error %s", strerror(errno));
+    CHK_ERR(0 <= fcntl(sockfd, F_SETFL, flags | O_NONBLOCK), STATUS_SET_SOCKET_FLAG_FAILED, "Failed to Set the socket flags with system error %s", strerror(errno));
+
     // done at this point for UDP
     CHK(protocol == KVS_SOCKET_PROTOCOL_TCP, retStatus);
 
-    if (connect(sockfd, peerSockAddr, addrLen) < 0) {
-        DLOGW("connect() failed with errno %s", strerror(errno));
-        CHK(FALSE, STATUS_SOCKET_CONNECT_FAILED);
-    }
+    retVal = connect(sockfd, peerSockAddr, addrLen);
+    CHK_ERR(retVal >= 0 || errno == EINPROGRESS, STATUS_SOCKET_CONNECT_FAILED, "connect() failed with errno %s", strerror(errno));
 
 CleanUp:
 

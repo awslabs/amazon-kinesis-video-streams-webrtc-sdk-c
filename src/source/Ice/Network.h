@@ -44,11 +44,12 @@ STATUS getLocalhostIpAddresses(PKvsIpAddress, PUINT32, IceSetInterfaceFilterFunc
  *                                     port field with the actual port number.
  * @param - PKvsIpAddress - IN - Peer ip address for tcp socket creation
  * @param - KVS_SOCKET_PROTOCOL - IN - either tcp or udp
+ * @param - UINT32 - IN - send buffer size in bytes
  * @param - PINT32 - OUT - PINT32 for the socketfd
  *
  * @return - STATUS status of execution
  */
-STATUS createSocket(PKvsIpAddress, PKvsIpAddress, KVS_SOCKET_PROTOCOL, PINT32);
+STATUS createSocket(PKvsIpAddress, PKvsIpAddress, KVS_SOCKET_PROTOCOL, UINT32, PINT32);
 
 /**
  * @param - PCHAR - IN - hostname to resolve
