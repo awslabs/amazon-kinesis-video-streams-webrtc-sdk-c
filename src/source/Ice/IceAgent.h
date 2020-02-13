@@ -198,7 +198,7 @@ STATUS freeIceAgent(PIceAgent*);
 STATUS iceAgentAddRemoteCandidate(PIceAgent, PCHAR);
 
 /**
- * Initiates stun commuinication with remote candidates.
+ * Initiates stun communication with remote candidates.
  *
  * @param - PIceAgent - IN - IceAgent object
  * @param - PCHAR - IN - remote username

@@ -5,7 +5,8 @@
 #include "../Include_i.h"
 
 STATUS createSocketConnection(PKvsIpAddress pHostIpAddr, PKvsIpAddress pPeerIpAddr, KVS_SOCKET_PROTOCOL protocol,
-                              UINT64 customData, ConnectionDataAvailableFunc dataAvailableFn, PSocketConnection *ppSocketConnection)
+                              UINT64 customData, ConnectionDataAvailableFunc dataAvailableFn, UINT32 sendBufSize,
+                              PSocketConnection *ppSocketConnection)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -20,10 +21,13 @@ STATUS createSocketConnection(PKvsIpAddress pHostIpAddr, PKvsIpAddress pPeerIpAd
     pSocketConnection->lock = MUTEX_CREATE(FALSE);
     CHK(pSocketConnection->lock != INVALID_MUTEX_VALUE, STATUS_INVALID_OPERATION);
 
-    CHK_STATUS(createSocket(pHostIpAddr, pPeerIpAddr, protocol, &pSocketConnection->localSocket));
+    CHK_STATUS(createSocket(pHostIpAddr, pPeerIpAddr, protocol, sendBufSize, &pSocketConnection->localSocket));
 
     pSocketConnection->secureConnection = FALSE;
     pSocketConnection->protocol = protocol;
+    if (protocol == KVS_SOCKET_PROTOCOL_TCP) {
+        pSocketConnection->peerIpAddr = *pPeerIpAddr;
+    }
     pSocketConnection->connectionClosed = FALSE;
     pSocketConnection->freeBios = TRUE;
     pSocketConnection->dataAvailableCallbackCustomData = customData;
@@ -139,8 +143,8 @@ CleanUp:
 STATUS socketConnectionSendData(PSocketConnection pSocketConnection, PBYTE pBuf, UINT32 bufLen, PKvsIpAddress pDestIp)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    BOOL locked = FALSE, socketReady;
-    INT32 sslRet;
+    BOOL locked = FALSE, connected, iterate = TRUE;
+    INT32 sslRet, sslErr;
 
     socklen_t addrLen;
     struct sockaddr *destAddr;
@@ -150,16 +154,23 @@ STATUS socketConnectionSendData(PSocketConnection pSocketConnection, PBYTE pBuf,
     CHK(pSocketConnection != NULL && pBuf != NULL, STATUS_NULL_ARG);
     CHK(bufLen != 0 && (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_TCP || pDestIp != NULL), STATUS_INVALID_ARG);
     CHK(!pSocketConnection->connectionClosed, STATUS_SOCKET_CONNECTION_CLOSED_ALREADY);
-    CHK_STATUS(socketConnectionReadyToSend(pSocketConnection, &socketReady));
-    CHK_WARN(socketReady, STATUS_SOCKET_CONNECTION_NOT_READY_TO_SEND, "Socket connection not ready to send data");
+    CHK_STATUS(socketConnectionReadyToSend(pSocketConnection, &connected));
+    CHK_WARN(connected, STATUS_SOCKET_CONNECTION_NOT_READY_TO_SEND, "Socket connection not ready to send data");
 
     MUTEX_LOCK(pSocketConnection->lock);
     locked = TRUE;
 
     if (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_TCP && pSocketConnection->secureConnection) {
         // underlying BIO has been bound to socket so SSL_write sends the encrypted data.
-        sslRet = SSL_write(pSocketConnection->pSsl, pBuf, bufLen);
-        CHK_WARN(sslRet > 0, retStatus, "%s", ERR_error_string(SSL_get_error(pSocketConnection->pSsl, sslRet), NULL));
+        // because we are using non-blocking socket, SSL_write may return SSL_ERROR_WANT_WRITE in which case
+        // SSL_write should be called again with the same buffer.
+        while(iterate) {
+            sslRet = SSL_write(pSocketConnection->pSsl, pBuf, bufLen);
+            if (sslRet > 0 || (sslErr = SSL_get_error(pSocketConnection->pSsl, sslRet)) != SSL_ERROR_WANT_WRITE) {
+                iterate = FALSE;
+            }
+        }
+        CHK_WARN(sslRet > 0, retStatus, "SSL_write failed with %s", ERR_error_string(sslErr, NULL));
 
     } else if (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_TCP) {
         if (send(pSocketConnection->localSocket, pBuf, bufLen, 0) < 0) {
@@ -185,6 +196,7 @@ STATUS socketConnectionSendData(PSocketConnection pSocketConnection, PBYTE pBuf,
             destAddr = (struct sockaddr *) &ipv6Addr;
         }
 
+        // sending through UDP never block
         if (sendto(pSocketConnection->localSocket, pBuf, bufLen, 0, destAddr, addrLen) < 0) {
             DLOGE("sendto data failed with errno %s", strerror(errno));
             CHK(FALSE, STATUS_SEND_DATA_FAILED);
@@ -245,10 +257,6 @@ STATUS socketConnectionReadData(PSocketConnection pSocketConnection, PBYTE pBuf,
     MUTEX_LOCK(pSocketConnection->lock);
     locked = TRUE;
 
-    if (*pDataLen == 0) {
-        pSocketConnection->connectionClosed = TRUE;
-    }
-
     // return early if connection is not secure or no data
     CHK(pSocketConnection->secureConnection && *pDataLen > 0, retStatus);
 
@@ -279,6 +287,68 @@ CleanUp:
     }
 
     return retStatus;
+}
+
+STATUS socketConnectionClosed(PSocketConnection pSocketConnection)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    BOOL locked = FALSE;
+
+    CHK(pSocketConnection != NULL, STATUS_NULL_ARG);
+
+    MUTEX_LOCK(pSocketConnection->lock);
+    locked = TRUE;
+
+    pSocketConnection->connectionClosed = TRUE;
+
+CleanUp:
+
+    CHK_LOG_ERR_NV(retStatus);
+
+    if (locked) {
+        MUTEX_UNLOCK(pSocketConnection->lock);
+    }
+
+    return retStatus;
+}
+
+BOOL socketConnectionIsConnected(PSocketConnection pSocketConnection)
+{
+    INT32 retVal;
+    struct sockaddr *peerSockAddr = NULL;
+    socklen_t addrLen;
+    struct sockaddr_in ipv4PeerAddr;
+    struct sockaddr_in6 ipv6PeerAddr;
+
+    CHECK(pSocketConnection != NULL);
+
+    if (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_UDP) {
+        return TRUE;
+    }
+
+    if (pSocketConnection->peerIpAddr.family == KVS_IP_FAMILY_TYPE_IPV4) {
+        addrLen = SIZEOF(struct sockaddr_in);
+        MEMSET(&ipv4PeerAddr, 0x00, SIZEOF(ipv4PeerAddr));
+        ipv4PeerAddr.sin_family = AF_INET;
+        ipv4PeerAddr.sin_port = pSocketConnection->peerIpAddr.port;
+        MEMCPY(&ipv4PeerAddr.sin_addr, pSocketConnection->peerIpAddr.address, IPV4_ADDRESS_LENGTH);
+        peerSockAddr = (struct sockaddr *) &ipv4PeerAddr;
+    } else {
+        addrLen = SIZEOF(struct sockaddr_in6);
+        MEMSET(&ipv6PeerAddr, 0x00, SIZEOF(ipv6PeerAddr));
+        ipv6PeerAddr.sin6_family = AF_INET6;
+        ipv6PeerAddr.sin6_port = pSocketConnection->peerIpAddr.port;
+        MEMCPY(&ipv6PeerAddr.sin6_addr, pSocketConnection->peerIpAddr.address, IPV6_ADDRESS_LENGTH);
+        peerSockAddr = (struct sockaddr *) &ipv6PeerAddr;
+    }
+
+    retVal = connect(pSocketConnection->localSocket, peerSockAddr, addrLen);
+    if (retVal == 0 || errno == EISCONN) {
+        return TRUE;
+    }
+
+    DLOGW("socket connection check failed with errno %s", strerror(errno));
+    return FALSE;
 }
 
 // https://www.openssl.org/docs/man1.0.2/man3/SSL_CTX_set_verify.html

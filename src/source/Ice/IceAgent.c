@@ -378,7 +378,7 @@ STATUS iceAgentGatherLocalCandidate(PIceAgent pIceAgent)
         if (pIpAddress->family == KVS_IP_FAMILY_TYPE_IPV4 && // Disable ipv6 gathering for now
             pDuplicatedIceCandidate == NULL &&
             STATUS_SUCCEEDED(createSocketConnection(pIpAddress, NULL, KVS_SOCKET_PROTOCOL_UDP, (UINT64) pIceAgent,
-                                                    incomingDataHandler, &pSocketConnection))) {
+                                                    incomingDataHandler, pIceAgent->kvsRtcConfiguration.sendBufSize, &pSocketConnection))) {
             pTmpIceCandidate = MEMCALLOC(1, SIZEOF(IceCandidate));
             pTmpIceCandidate->ipAddress = localIpAddresses[i];
             pTmpIceCandidate->iceCandidateType = ICE_CANDIDATE_TYPE_HOST;
@@ -1137,7 +1137,7 @@ STATUS iceAgentInitSrflxCandidate(PIceAgent pIceAgent)
                     // with the correct ip address once the STUN response is received. Relay candidate's socket is manageed
                     // by TurnConnectino struct.
                     CHK_STATUS(createSocketConnection(&pNewCandidate->ipAddress, NULL, KVS_SOCKET_PROTOCOL_UDP,
-                                                      (UINT64) pIceAgent, incomingDataHandler,
+                                                      (UINT64) pIceAgent, incomingDataHandler, pIceAgent->kvsRtcConfiguration.sendBufSize,
                                                       &pNewCandidate->pSocketConnection));
                     CHK_STATUS(connectionListenerAddConnection(pIceAgent->pConnectionListener,
                                                                pNewCandidate->pSocketConnection));
@@ -1192,7 +1192,8 @@ STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent)
 
             CHK_STATUS(createTurnConnection(&pIceAgent->iceServers[j], pIceAgent->timerQueueHandle,
                                             pIceAgent->pConnectionListener, TURN_CONNECTION_DATA_TRANSFER_MODE_SEND_INDIDATION,
-                                            KVS_ICE_DEFAULT_TURN_PROTOCOL, &turnConnectionCallbacks, &pIceAgent->pTurnConnection, pIceAgent->kvsRtcConfiguration.iceSetInterfaceFilterFunc));
+                                            KVS_ICE_DEFAULT_TURN_PROTOCOL, &turnConnectionCallbacks, pIceAgent->kvsRtcConfiguration.sendBufSize,
+                                            &pIceAgent->pTurnConnection, pIceAgent->kvsRtcConfiguration.iceSetInterfaceFilterFunc));
 
             // when connecting with non-trickle peer, when remote candidates are added, turnConnection would not be created
             // yet. So we need to add them here. turnConnectionAddPeer does ignore duplicates

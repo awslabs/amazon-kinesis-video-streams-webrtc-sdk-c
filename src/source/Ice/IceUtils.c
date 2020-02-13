@@ -154,10 +154,14 @@ STATUS iceUtilsSendStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 pa
 
     CHK_STATUS(iceUtilsPackageStunPacket(pStunPacket, password, passwordLen, stunPacketBuffer, &stunPacketSize));
     if (useTurn) {
-        CHK_STATUS(turnConnectionSendData(pTurnConnection, stunPacketBuffer, stunPacketSize, pDest));
+        retStatus = turnConnectionSendData(pTurnConnection, stunPacketBuffer, stunPacketSize, pDest);
     } else {
-        CHK_STATUS(socketConnectionSendData(pSocketConnection, stunPacketBuffer, stunPacketSize, pDest));
+        retStatus = socketConnectionSendData(pSocketConnection, stunPacketBuffer, stunPacketSize, pDest);
     }
+
+    // Fix-up the not-yet-ready socket
+    CHK(STATUS_SUCCEEDED(retStatus) || retStatus == STATUS_SOCKET_CONNECTION_NOT_READY_TO_SEND, retStatus);
+    retStatus = STATUS_SUCCESS;
 
 CleanUp:
 
