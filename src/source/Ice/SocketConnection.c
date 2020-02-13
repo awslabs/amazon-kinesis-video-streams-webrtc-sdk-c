@@ -28,7 +28,7 @@ STATUS createSocketConnection(PKvsIpAddress pHostIpAddr, PKvsIpAddress pPeerIpAd
     if (protocol == KVS_SOCKET_PROTOCOL_TCP) {
         pSocketConnection->peerIpAddr = *pPeerIpAddr;
     }
-    pSocketConnection->connectionClosed = FALSE;
+    ATOMIC_STORE_BOOL(&pSocketConnection->connectionClosed, FALSE);
     pSocketConnection->freeBios = TRUE;
     pSocketConnection->dataAvailableCallbackCustomData = customData;
     pSocketConnection->dataAvailableCallbackFn = dataAvailableFn;
@@ -153,7 +153,7 @@ STATUS socketConnectionSendData(PSocketConnection pSocketConnection, PBYTE pBuf,
 
     CHK(pSocketConnection != NULL && pBuf != NULL, STATUS_NULL_ARG);
     CHK(bufLen != 0 && (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_TCP || pDestIp != NULL), STATUS_INVALID_ARG);
-    CHK(!pSocketConnection->connectionClosed, STATUS_SOCKET_CONNECTION_CLOSED_ALREADY);
+    CHK(!ATOMIC_LOAD_BOOL(&pSocketConnection->connectionClosed), STATUS_SOCKET_CONNECTION_CLOSED_ALREADY);
     CHK_STATUS(socketConnectionReadyToSend(pSocketConnection, &connected));
     CHK_WARN(connected, STATUS_SOCKET_CONNECTION_NOT_READY_TO_SEND, "Socket connection not ready to send data");
 
@@ -168,6 +168,8 @@ STATUS socketConnectionSendData(PSocketConnection pSocketConnection, PBYTE pBuf,
             sslRet = SSL_write(pSocketConnection->pSsl, pBuf, bufLen);
             if (sslRet > 0 || (sslErr = SSL_get_error(pSocketConnection->pSsl, sslRet)) != SSL_ERROR_WANT_WRITE) {
                 iterate = FALSE;
+            } else {
+                THREAD_SLEEP(SSL_WRITE_RETRY_DELAY);
             }
         }
         CHK_WARN(sslRet > 0, retStatus, "SSL_write failed with %s", ERR_error_string(sslErr, NULL));
@@ -225,7 +227,7 @@ STATUS socketConnectionReadyToSend(PSocketConnection pSocketConnection, PBOOL pR
     MUTEX_LOCK(pSocketConnection->lock);
     locked = TRUE;
 
-    if (!pSocketConnection->connectionClosed &&
+    if (!ATOMIC_LOAD_BOOL(&pSocketConnection->connectionClosed) &&
         (!pSocketConnection->secureConnection || SSL_is_init_finished(pSocketConnection->pSsl))) {
         readyToSend = TRUE;
     }
@@ -292,22 +294,14 @@ CleanUp:
 STATUS socketConnectionClosed(PSocketConnection pSocketConnection)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    BOOL locked = FALSE;
 
     CHK(pSocketConnection != NULL, STATUS_NULL_ARG);
 
-    MUTEX_LOCK(pSocketConnection->lock);
-    locked = TRUE;
-
-    pSocketConnection->connectionClosed = TRUE;
+    ATOMIC_STORE_BOOL(&pSocketConnection->connectionClosed, TRUE);
 
 CleanUp:
 
     CHK_LOG_ERR_NV(retStatus);
-
-    if (locked) {
-        MUTEX_UNLOCK(pSocketConnection->lock);
-    }
 
     return retStatus;
 }

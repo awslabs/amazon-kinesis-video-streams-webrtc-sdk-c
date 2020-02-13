@@ -10,13 +10,15 @@ Socket Connection internal include file
 extern "C" {
 #endif
 
+#define SSL_WRITE_RETRY_DELAY               10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
+
 typedef STATUS (*ConnectionDataAvailableFunc)(UINT64, struct __SocketConnection*, PBYTE, UINT32, PKvsIpAddress, PKvsIpAddress);
 
 typedef struct __SocketConnection SocketConnection;
 struct __SocketConnection {
+    volatile ATOMIC_BOOL connectionClosed; // for tcp;
     INT32 localSocket;
     KVS_SOCKET_PROTOCOL protocol;
-    BOOL connectionClosed; // for tcp;
     KvsIpAddress peerIpAddr;
 
     BOOL secureConnection;
