@@ -8,14 +8,15 @@
  * Static definitions of the states
  */
 StateMachineState ICE_AGENT_STATE_MACHINE_STATES[] = {
-        {ICE_AGENT_STATE_NEW, ICE_AGENT_STATE_NONE | ICE_AGENT_STATE_NEW, fromNewIceAgentState, executeNewIceAgentState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_ICE_INVALID_NEW_STATE},
-        {ICE_AGENT_STATE_GATHERING, ICE_AGENT_STATE_NEW | ICE_AGENT_STATE_GATHERING | ICE_AGENT_STATE_DISCONNECTED, fromGatheringIceAgentState, executeGatheringIceAgentState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_ICE_INVALID_GATHERING_STATE},
-        {ICE_AGENT_STATE_CHECK_CONNECTION, ICE_AGENT_STATE_GATHERING | ICE_AGENT_STATE_CHECK_CONNECTION | ICE_AGENT_STATE_DISCONNECTED, fromCheckConnectionIceAgentState, executeCheckConnectionIceAgentState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_ICE_INVALID_CHECK_CONNECTION_STATE},
-        {ICE_AGENT_STATE_CONNECTED, ICE_AGENT_STATE_CHECK_CONNECTION | ICE_AGENT_STATE_CONNECTED | ICE_AGENT_STATE_DISCONNECTED, fromConnectedIceAgentState, executeConnectedIceAgentState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_ICE_INVALID_CONNECTED_STATE},
-        {ICE_AGENT_STATE_NOMINATING, ICE_AGENT_STATE_CONNECTED | ICE_AGENT_STATE_NOMINATING | ICE_AGENT_STATE_DISCONNECTED, fromNominatingIceAgentState, executeNominatingIceAgentState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_ICE_INVALID_NOMINATING_STATE},
-        {ICE_AGENT_STATE_READY,  ICE_AGENT_STATE_CONNECTED | ICE_AGENT_STATE_NOMINATING | ICE_AGENT_STATE_READY | ICE_AGENT_STATE_DISCONNECTED, fromReadyIceAgentState, executeReadyIceAgentState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_ICE_INVALID_READY_STATE},
-        {ICE_AGENT_STATE_DISCONNECTED, ICE_AGENT_STATE_GATHERING | ICE_AGENT_STATE_CHECK_CONNECTION | ICE_AGENT_STATE_CONNECTED | ICE_AGENT_STATE_NOMINATING | ICE_AGENT_STATE_READY | ICE_AGENT_STATE_DISCONNECTED, fromDisconnectedIceAgentState, executeDisconnectedIceAgentState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_ICE_INVALID_DISCONNECTED_STATE},
-        {ICE_AGENT_STATE_FAILED, ICE_AGENT_STATE_GATHERING | ICE_AGENT_STATE_CHECK_CONNECTION | ICE_AGENT_STATE_CONNECTED | ICE_AGENT_STATE_NOMINATING | ICE_AGENT_STATE_READY | ICE_AGENT_STATE_DISCONNECTED | ICE_AGENT_STATE_FAILED, fromFailedIceAgentState, executeFailedIceAgentState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_ICE_INVALID_FAILED_STATE},
+        {ICE_AGENT_STATE_NEW, ICE_AGENT_STATE_NONE | ICE_AGENT_STATE_NEW, fromNewIceAgentState, executeNewIceAgentState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_ICE_INVALID_STATE},
+        {ICE_AGENT_STATE_GATHERING, ICE_AGENT_STATE_NEW | ICE_AGENT_STATE_GATHERING, fromGatheringIceAgentState, executeGatheringIceAgentState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_ICE_INVALID_STATE},
+        {ICE_AGENT_STATE_WAITING_REMOTE_CREDENTIAL, ICE_AGENT_STATE_GATHERING | ICE_AGENT_STATE_WAITING_REMOTE_CREDENTIAL, fromWaitingRemoteCredentialIceAgentState, executeWaitingRemoteCredentialIceAgentState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_ICE_INVALID_STATE},
+        {ICE_AGENT_STATE_CHECK_CONNECTION, ICE_AGENT_STATE_WAITING_REMOTE_CREDENTIAL | ICE_AGENT_STATE_CHECK_CONNECTION, fromCheckConnectionIceAgentState, executeCheckConnectionIceAgentState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_ICE_INVALID_STATE},
+        {ICE_AGENT_STATE_CONNECTED, ICE_AGENT_STATE_CHECK_CONNECTION | ICE_AGENT_STATE_CONNECTED, fromConnectedIceAgentState, executeConnectedIceAgentState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_ICE_INVALID_STATE},
+        {ICE_AGENT_STATE_NOMINATING, ICE_AGENT_STATE_CONNECTED | ICE_AGENT_STATE_NOMINATING, fromNominatingIceAgentState, executeNominatingIceAgentState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_ICE_INVALID_STATE},
+        {ICE_AGENT_STATE_READY,  ICE_AGENT_STATE_CONNECTED | ICE_AGENT_STATE_NOMINATING | ICE_AGENT_STATE_READY | ICE_AGENT_STATE_DISCONNECTED, fromReadyIceAgentState, executeReadyIceAgentState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_ICE_INVALID_STATE},
+        {ICE_AGENT_STATE_DISCONNECTED, ICE_AGENT_STATE_GATHERING | ICE_AGENT_STATE_CHECK_CONNECTION | ICE_AGENT_STATE_CONNECTED | ICE_AGENT_STATE_NOMINATING | ICE_AGENT_STATE_READY | ICE_AGENT_STATE_DISCONNECTED, fromDisconnectedIceAgentState, executeDisconnectedIceAgentState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_ICE_INVALID_STATE},
+        {ICE_AGENT_STATE_FAILED, ICE_AGENT_STATE_GATHERING | ICE_AGENT_STATE_CHECK_CONNECTION | ICE_AGENT_STATE_CONNECTED | ICE_AGENT_STATE_NOMINATING | ICE_AGENT_STATE_READY | ICE_AGENT_STATE_DISCONNECTED | ICE_AGENT_STATE_FAILED, fromFailedIceAgentState, executeFailedIceAgentState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_ICE_INVALID_STATE},
 };
 
 UINT32 ICE_AGENT_STATE_MACHINE_STATE_COUNT = ARRAY_SIZE(ICE_AGENT_STATE_MACHINE_STATES);
@@ -38,7 +39,7 @@ STATUS stepIceAgentStateMachine(PIceAgent pIceAgent)
 
     // if any failure happened and state machine is not in failed state, stepStateMachine again into failed state.
     if (pIceAgent->iceAgentState != ICE_AGENT_STATE_FAILED && STATUS_FAILED(pIceAgent->iceAgentStatus)) {
-        CHK_STATUS(stepStateMachine(pIceAgent->pStateMachine));        
+        CHK_STATUS(stepStateMachine(pIceAgent->pStateMachine));
     }
 
     if (oldState != pIceAgent->iceAgentState) {
@@ -139,6 +140,9 @@ PCHAR iceAgentStateToString(UINT64 state)
             break;
         case ICE_AGENT_STATE_GATHERING:
             stateStr = ICE_AGENT_STATE_GATHERING_STR;
+            break;
+        case ICE_AGENT_STATE_WAITING_REMOTE_CREDENTIAL:
+            stateStr = ICE_AGENT_STATE_WAITING_REMOTE_CREDENTIAL_STR;
             break;
         case ICE_AGENT_STATE_CHECK_CONNECTION:
             stateStr = ICE_AGENT_STATE_CHECK_CONNECTION_STR;
@@ -277,7 +281,7 @@ STATUS fromGatheringIceAgentState(UINT64 customData, PUINT64 pState)
     CHK(validLocalCandidateCount > 0, STATUS_ICE_NO_LOCAL_CANDIDATE_AVAILABLE_AFTER_GATHERING_TIMEOUT);
 
     // proceed to next state since since we have at least one local candidate
-    state = ICE_AGENT_STATE_CHECK_CONNECTION;
+    state = ICE_AGENT_STATE_WAITING_REMOTE_CREDENTIAL;
 
     // report NULL candidate to signal that candidate gathering is done.
     if (pIceAgent->iceAgentCallbacks.newLocalCandidateFn != NULL) {
@@ -316,6 +320,57 @@ STATUS executeGatheringIceAgentState(UINT64 customData, UINT64 time)
     }
 
     CHK_STATUS(iceAgentSendSrflxCandidateRequest(pIceAgent));
+
+CleanUp:
+
+    CHK_LOG_ERR_NV(retStatus);
+
+    if (STATUS_FAILED(retStatus)) {
+        pIceAgent->iceAgentStatus = retStatus;
+
+        // fix up retStatus so we can successfully transition to failed state.
+        retStatus = STATUS_SUCCESS;
+    }
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS fromWaitingRemoteCredentialIceAgentState(UINT64 customData, PUINT64 pState)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PIceAgent pIceAgent = (PIceAgent) customData;
+    UINT64 state;
+
+    CHK(pIceAgent != NULL && pState != NULL, STATUS_NULL_ARG);
+
+    if (ATOMIC_LOAD_BOOL(&pIceAgent->remoteCredentialReceived)) {
+        // Transition to check connection state
+        state = ICE_AGENT_STATE_CHECK_CONNECTION;
+    } else {
+        state = ICE_AGENT_STATE_WAITING_REMOTE_CREDENTIAL;
+    }
+
+    *pState = state;
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS executeWaitingRemoteCredentialIceAgentState(UINT64 customData, UINT64 time)
+{
+    ENTERS();
+    UNUSED_PARAM(time);
+    STATUS retStatus = STATUS_SUCCESS;
+    PIceAgent pIceAgent = (PIceAgent) customData;
+
+    CHK(pIceAgent != NULL, STATUS_NULL_ARG);
+
+    pIceAgent->iceAgentState = ICE_AGENT_STATE_WAITING_REMOTE_CREDENTIAL;
+    // nothing to execute, just waiting for remote username and password
 
 CleanUp:
 
@@ -399,13 +454,7 @@ STATUS executeCheckConnectionIceAgentState(UINT64 customData, UINT64 time)
         pIceAgent->iceAgentState = ICE_AGENT_STATE_CHECK_CONNECTION;
     }
 
-    if (!pIceAgent->agentStarted) {
-        // extend endtime if no candidate pair is available or startIceAgent has not been called, in which case we would not
-        // have the remote password.
-        pIceAgent->stateEndTime = GETTIME() + pIceAgent->kvsRtcConfiguration.iceConnectionCheckTimeout;
-    } else {
-        CHK_STATUS(iceAgentCheckCandidatePairConnection(pIceAgent));
-    }
+    CHK_STATUS(iceAgentCheckCandidatePairConnection(pIceAgent));
 
 CleanUp:
 

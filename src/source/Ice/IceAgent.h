@@ -106,6 +106,7 @@ typedef struct {
 
 typedef struct {
     volatile ATOMIC_BOOL agentStartGathering;
+    volatile ATOMIC_BOOL remoteCredentialReceived;
 
     CHAR localUsername[MAX_ICE_CONFIG_USER_NAME_LEN + 1];
     CHAR localPassword[MAX_ICE_CONFIG_CREDENTIAL_LEN + 1];
@@ -120,7 +121,6 @@ typedef struct {
     PDoubleList iceCandidatePairs;
 
     PConnectionListener pConnectionListener;
-    volatile BOOL agentStarted;
     BOOL isControlling;
     UINT64 tieBreaker;
 

@@ -136,14 +136,7 @@ extern "C" {
 #define STATUS_ICE_CANDIDATE_MISSING_CANDIDATE                                      STATUS_ICE_BASE  + 0x00000012
 #define STATUS_ICE_FAILED_TO_NOMINATE_CANDIDATE_PAIR                                STATUS_ICE_BASE  + 0x00000013
 #define STATUS_ICE_MAX_REMOTE_CANDIDATE_COUNT_EXCEEDED                              STATUS_ICE_BASE  + 0x00000014
-#define STATUS_ICE_INVALID_GATHERING_STATE                                          STATUS_ICE_BASE  + 0x00000015
-#define STATUS_ICE_INVALID_CHECK_CONNECTION_STATE                                   STATUS_ICE_BASE  + 0x00000016
-#define STATUS_ICE_INVALID_CONNECTED_STATE                                          STATUS_ICE_BASE  + 0x00000017
-#define STATUS_ICE_INVALID_NOMINATING_STATE                                         STATUS_ICE_BASE  + 0x00000018
-#define STATUS_ICE_INVALID_READY_STATE                                              STATUS_ICE_BASE  + 0x00000019
-#define STATUS_ICE_INVALID_DISCONNECTED_STATE                                       STATUS_ICE_BASE  + 0x0000001a
-#define STATUS_ICE_INVALID_FAILED_STATE                                             STATUS_ICE_BASE  + 0x0000001b
-#define STATUS_ICE_INVALID_NEW_STATE                                                STATUS_ICE_BASE  + 0x0000001c
+#define STATUS_ICE_INVALID_STATE                                                	STATUS_ICE_BASE  + 0x0000001c
 #define STATUS_ICE_NO_LOCAL_HOST_CANDIDATE_AVAILABLE                                STATUS_ICE_BASE  + 0x0000001d
 #define STATUS_ICE_NO_NOMINATED_VALID_CANDIDATE_PAIR_AVAILABLE                      STATUS_ICE_BASE  + 0x0000001e
 #define STATUS_TURN_CONNECTION_NO_HOST_INTERFACE_FOUND                              STATUS_ICE_BASE  + 0x0000001f
