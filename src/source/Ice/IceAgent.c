@@ -467,7 +467,7 @@ STATUS iceAgentSendPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen)
     MUTEX_LOCK(pIceAgent->lock);
     locked = TRUE;
 
-    CHK_WARN(pIceAgent->pDataSendingIceCandidatePair != NULL, retStatus, "No valid ice candidate pair available to send data");
+    CHK(pIceAgent->pDataSendingIceCandidatePair != NULL, retStatus);
 
     pIceAgent->pDataSendingIceCandidatePair->lastDataSentTime = GETTIME();
 

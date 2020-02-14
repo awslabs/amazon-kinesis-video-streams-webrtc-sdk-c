@@ -134,27 +134,15 @@ STATUS createSslCtx(X509 *pCert, EVP_PKEY *pPkey, SSL_CTX **ppSslCtx)
     STATUS retStatus = STATUS_SUCCESS;
     SSL_CTX *pSslCtx = NULL;
     EC_KEY *pEcKey = NULL;
-    #if (OPENSSL_VERSION_NUMBER < 0x10002000L)
-        EC_KEY *ecdh = NULL;
-    #endif
+    EC_KEY *ecdh = NULL;
 
 
-    #if (OPENSSL_VERSION_NUMBER >= 0x10100000L)
-        pSslCtx = SSL_CTX_new(DTLS_method());
-    #elif (OPENSSL_VERSION_NUMBER >= 0x10001000L)
-        pSslCtx = SSL_CTX_new(DTLSv1_method());
-    #else
-        #error "Unsupported OpenSSL Version"
-    #endif
+    pSslCtx = SSL_CTX_new(DTLSv1_2_method());
 
     CHK(pSslCtx != NULL, STATUS_SSL_CTX_CREATION_FAILED);
 
-    #if (OPENSSL_VERSION_NUMBER >= 0x10002000L)
-        SSL_CTX_set_ecdh_auto(pSslCtx, TRUE);
-    #else
-        CHK((ecdh = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1)), STATUS_SSL_CTX_CREATION_FAILED);
-        CHK(SSL_CTX_set_tmp_ecdh(pSslCtx, ecdh) == 1, STATUS_SSL_CTX_CREATION_FAILED);
-    #endif
+    CHK((ecdh = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1)), STATUS_SSL_CTX_CREATION_FAILED);
+    CHK(SSL_CTX_set_tmp_ecdh(pSslCtx, ecdh) == 1, STATUS_SSL_CTX_CREATION_FAILED);
 
     SSL_CTX_set_verify(pSslCtx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, dtlsCertificateVerifyCallback);
     CHK(SSL_CTX_set_tlsext_use_srtp(pSslCtx, "SRTP_AES128_CM_SHA1_32:SRTP_AES128_CM_SHA1_80") == 0, STATUS_SSL_CTX_CREATION_FAILED);
