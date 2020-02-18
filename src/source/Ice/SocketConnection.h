@@ -10,13 +10,16 @@ Socket Connection internal include file
 extern "C" {
 #endif
 
+#define SSL_WRITE_RETRY_DELAY               10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
+
 typedef STATUS (*ConnectionDataAvailableFunc)(UINT64, struct __SocketConnection*, PBYTE, UINT32, PKvsIpAddress, PKvsIpAddress);
 
 typedef struct __SocketConnection SocketConnection;
 struct __SocketConnection {
+    volatile ATOMIC_BOOL connectionClosed; // for tcp;
     INT32 localSocket;
     KVS_SOCKET_PROTOCOL protocol;
-    BOOL connectionClosed; // for tcp;
+    KvsIpAddress peerIpAddr;
 
     BOOL secureConnection;
     SSL_CTX *pSslCtx;
@@ -43,11 +46,12 @@ typedef struct __SocketConnection* PSocketConnection;
  * @param - KVS_SOCKET_PROTOCOL - IN - socket protocol. TCP or UDP
  * @param - UINT64 - IN - data available callback custom data
  * @param - ConnectionDataAvailableFunc - IN - data available callback (OPTIONAL)
+ * @param - UINT32 - IN - send buffer size in bytes
  * @param - PSocketConnection* - OUT - the resulting SocketConnection struct
  *
  * @return - STATUS - status of execution
  */
-STATUS createSocketConnection(PKvsIpAddress, PKvsIpAddress, KVS_SOCKET_PROTOCOL, UINT64, ConnectionDataAvailableFunc, PSocketConnection*);
+STATUS createSocketConnection(PKvsIpAddress, PKvsIpAddress, KVS_SOCKET_PROTOCOL, UINT64, ConnectionDataAvailableFunc, UINT32, PSocketConnection*);
 
 /**
  * Free the SocketConnection struct
@@ -106,6 +110,25 @@ STATUS socketConnectionReadyToSend(PSocketConnection, PBOOL);
  * @return - STATUS - status of execution
  */
 STATUS socketConnectionReadData(PSocketConnection, PBYTE, UINT32, PUINT32);
+
+/**
+ * Mark PSocketConnection as closed
+ *
+ * @param - PSocketConnection - IN - the SocketConnection struct
+ *
+ * @return - STATUS - status of execution
+ */
+STATUS socketConnectionClosed(PSocketConnection);
+
+/**
+ * Return whether socket has been connected. Return TRUE for UDP sockets.
+ * Return TRUE for TCP sockets once the connection has been established, otherwise return FALSE.
+ *
+ * @param - PSocketConnection - IN - the SocketConnection struct
+ *
+ * @return - STATUS - status of execution
+ */
+BOOL socketConnectionIsConnected(PSocketConnection);
 
 // internal functions
 STATUS createConnectionCertificateAndKey(X509 **, EVP_PKEY **);

@@ -7,11 +7,12 @@
 STATUS createConnectionListener(PConnectionListener* ppConnectionListener)
 {
     STATUS retStatus = STATUS_SUCCESS;
+    UINT32 allocationSize = SIZEOF(ConnectionListener) + MAX_UDP_PACKET_SIZE;
     PConnectionListener pConnectionListener = NULL;
 
     CHK(ppConnectionListener != NULL, STATUS_NULL_ARG);
 
-    pConnectionListener = (PConnectionListener) MEMCALLOC(1, SIZEOF(ConnectionListener) + MAX_UDP_PACKET_SIZE);
+    pConnectionListener = (PConnectionListener) MEMCALLOC(1, allocationSize);
     CHK(pConnectionListener != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
     CHK_STATUS(doubleListCreate(&pConnectionListener->connectionList));
@@ -109,7 +110,7 @@ STATUS connectionListenerRemoveConnection(PConnectionListener pConnectionListene
 {
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE, connectionRemovalLocked = FALSE;
-    PDoubleListNode pCurNode = NULL, pTargetNode = NULL;
+    PDoubleListNode pCurNode = NULL;
     UINT64 data;
 
     CHK(pConnectionListener != NULL && pSocketConnection != NULL, STATUS_NULL_ARG);
@@ -119,25 +120,26 @@ STATUS connectionListenerRemoveConnection(PConnectionListener pConnectionListene
     locked = TRUE;
 
     CHK_STATUS(doubleListGetHeadNode(pConnectionListener->connectionList, &pCurNode));
-    while (pCurNode != NULL && pTargetNode == NULL) {
+    while(pCurNode != NULL) {
         CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
         if (((PSocketConnection) data) == pSocketConnection) {
-            pTargetNode = pCurNode;
+            // to make sure that we remove only when select() is unblocked. Otherwise we could close socket that select()
+            // is still listening and cause bad file descriptor error.
+            MUTEX_LOCK(pConnectionListener->connectionRemovalLock);
+            connectionRemovalLocked = TRUE;
+
+            // not freeing the PSocketConnection as it is not owned by connectionListener
+            CHK_STATUS(doubleListDeleteNode(pConnectionListener->connectionList, pCurNode));
+
+            MUTEX_UNLOCK(pConnectionListener->connectionRemovalLock);
+            connectionRemovalLocked = FALSE;
+
+            // break the loop
+            pCurNode = NULL;
+
+        } else {
+            pCurNode = pCurNode->pNext;
         }
-        pCurNode = pCurNode->pNext;
-    }
-
-    if (pTargetNode != NULL) {
-        // to make sure that we remove only when select() is unblocked. Otherwise we could close socket that select()
-        // is still listening and cause bad file descriptor error.
-        MUTEX_LOCK(pConnectionListener->connectionRemovalLock);
-        connectionRemovalLocked = TRUE;
-
-        // not freeing the PSocketConnection as it is not owned by connectionListener
-        CHK_STATUS(doubleListDeleteNode(pConnectionListener->connectionList, pTargetNode));
-
-        MUTEX_UNLOCK(pConnectionListener->connectionRemovalLock);
-        connectionRemovalLocked = FALSE;
     }
 
 CleanUp:
@@ -213,7 +215,7 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
     PDoubleListNode pCurNode = NULL;
     UINT64 data;
     PSocketConnection pSocketConnection;
-    BOOL locked = FALSE;
+    BOOL locked = FALSE, iterate = TRUE;
 
     INT32 nfds = 0;
     fd_set rfds;
@@ -240,7 +242,7 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
         locked = TRUE;
 
         CHK_STATUS(doubleListGetHeadNode(pConnectionListener->connectionList, &pCurNode));
-        while (pCurNode != NULL) {
+        while(pCurNode != NULL) {
             CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
             pSocketConnection = (PSocketConnection) data;
             pCurNode = pCurNode->pNext;
@@ -260,6 +262,7 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
 
         MUTEX_LOCK(pConnectionListener->connectionRemovalLock);
 
+        // blocking call
         retval = select(nfds, &rfds, NULL, NULL, &tv);
 
         MUTEX_UNLOCK(pConnectionListener->connectionRemovalLock);
@@ -272,58 +275,68 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
             locked = TRUE;
 
             CHK_STATUS(doubleListGetHeadNode(pConnectionListener->connectionList, &pCurNode));
-            while (pCurNode != NULL) {
+            while(pCurNode != NULL) {
                 CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
                 pSocketConnection = (PSocketConnection) data;
 
                 if (FD_ISSET(pSocketConnection->localSocket, &rfds)) {
-                    readLen = recvfrom(pSocketConnection->localSocket, pConnectionListener->pBuffer, pConnectionListener->bufferLen, 0,
-                                       (struct sockaddr *) &srcAddrBuff, &srcAddrBuffLen);
-                    if (readLen == -1 ) {
-                        DLOGE("recvfrom() failed with errno %s", strerror(errno));
-                    } else if (readLen == 0) {
-                        CHK_STATUS(doubleListRemoveNode(pConnectionListener->connectionList, pCurNode));
-                    }
-
-                    if (readLen >= 0 &&
-                        pSocketConnection->dataAvailableCallbackFn != NULL &&
-                        // data could be encrypted so they need to be decrypted through socketConnectionReadData
-                        // and get the decrypted data length.
-                        STATUS_SUCCEEDED(socketConnectionReadData(pSocketConnection,
-                                                                  pConnectionListener->pBuffer,
-                                                                  pConnectionListener->bufferLen,
-                                                                  (PUINT32) &readLen))) {
-
-
-
-                        if (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_UDP) {
-                            if (srcAddrBuff.ss_family == AF_INET) {
-                                srcAddr.family = KVS_IP_FAMILY_TYPE_IPV4;
-                                pIpv4Addr = (struct sockaddr_in *) &srcAddrBuff;
-                                MEMCPY(srcAddr.address, (PBYTE) &pIpv4Addr->sin_addr, IPV4_ADDRESS_LENGTH);
-                                srcAddr.port = pIpv4Addr->sin_port;
-                            } else if (srcAddrBuff.ss_family == AF_INET6) {
-                                srcAddr.family = KVS_IP_FAMILY_TYPE_IPV6;
-                                pIpv6Addr = (struct sockaddr_in6 *) &srcAddrBuff;
-                                MEMCPY(srcAddr.address, (PBYTE) &pIpv6Addr->sin6_addr, IPV6_ADDRESS_LENGTH);
-                                srcAddr.port = pIpv6Addr->sin6_port;
+                    iterate = TRUE;
+                    while(iterate) {
+                        readLen = recvfrom(pSocketConnection->localSocket, pConnectionListener->pBuffer, pConnectionListener->bufferLen, 0,
+                                           (struct sockaddr *) &srcAddrBuff, &srcAddrBuffLen);
+                        if (readLen < 0 ) {
+                            if (errno != EWOULDBLOCK) {
+                                DLOGW("recvfrom() failed with errno %s", strerror(errno));
                             }
-                            pSrcAddr = &srcAddr;
-                        } else {
-                            // srcAddr is ignored in TCP callback handlers
-                            pSrcAddr = NULL;
+
+                            iterate = FALSE;
+                        } else if (readLen == 0) {
+                            CHK_STATUS(socketConnectionClosed(pSocketConnection));
+                            CHK_STATUS(doubleListRemoveNode(pConnectionListener->connectionList, pCurNode));
+                            iterate = FALSE;
                         }
 
-                        pSocketConnection->dataAvailableCallbackFn(pSocketConnection->dataAvailableCallbackCustomData,
-                                                                   pSocketConnection,
-                                                                   pConnectionListener->pBuffer,
-                                                                   (UINT32) readLen,
-                                                                   pSrcAddr,
-                                                                   NULL); // no dest information available right now.
-                    }
+                        if (readLen > 0 &&
+                            pSocketConnection->dataAvailableCallbackFn != NULL &&
+                            // data could be encrypted so they need to be decrypted through socketConnectionReadData
+                            // and get the decrypted data length.
+                            STATUS_SUCCEEDED(socketConnectionReadData(pSocketConnection,
+                                                                      pConnectionListener->pBuffer,
+                                                                      pConnectionListener->bufferLen,
+                                                                      (PUINT32) &readLen))) {
+                            if (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_UDP) {
+                                if (srcAddrBuff.ss_family == AF_INET) {
+                                    srcAddr.family = KVS_IP_FAMILY_TYPE_IPV4;
+                                    pIpv4Addr = (struct sockaddr_in *) &srcAddrBuff;
+                                    MEMCPY(srcAddr.address, (PBYTE) &pIpv4Addr->sin_addr, IPV4_ADDRESS_LENGTH);
+                                    srcAddr.port = pIpv4Addr->sin_port;
+                                } else if (srcAddrBuff.ss_family == AF_INET6) {
+                                    srcAddr.family = KVS_IP_FAMILY_TYPE_IPV6;
+                                    pIpv6Addr = (struct sockaddr_in6 *) &srcAddrBuff;
+                                    MEMCPY(srcAddr.address, (PBYTE) &pIpv6Addr->sin6_addr, IPV6_ADDRESS_LENGTH);
+                                    srcAddr.port = pIpv6Addr->sin6_port;
+                                }
+                                pSrcAddr = &srcAddr;
+                            } else {
+                                // srcAddr is ignored in TCP callback handlers
+                                pSrcAddr = NULL;
+                            }
 
-                    // reset srcAddrBuffLen to actual size
-                    srcAddrBuffLen = SIZEOF(srcAddrBuff);
+                            // readLen may be 0 if SSL does not emit any application data.
+                            // in that case, no need to call dataAvailable callback
+                            if (readLen > 0) {
+                                pSocketConnection->dataAvailableCallbackFn(pSocketConnection->dataAvailableCallbackCustomData,
+                                                                       pSocketConnection,
+                                                                       pConnectionListener->pBuffer,
+                                                                       (UINT32) readLen,
+                                                                       pSrcAddr,
+                                                                       NULL); // no dest information available right now.
+                            }
+                        }
+
+                        // reset srcAddrBuffLen to actual size
+                        srcAddrBuffLen = SIZEOF(srcAddrBuff);
+                    }
                 }
 
                 pCurNode = pCurNode->pNext;
