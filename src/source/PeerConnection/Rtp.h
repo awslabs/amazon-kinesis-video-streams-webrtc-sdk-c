@@ -40,6 +40,9 @@ typedef struct {
     UINT64 onFrameCustomData;
     RtcOnFrame onFrame;
 
+    UINT64 onBandwidthEstimationCustomData;
+    RtcOnBandwidthEstimation onBandwidthEstimation;
+
     PBYTE peerFrameBuffer;
     UINT32 peerFrameBufferSize;
 } KvsRtpTransceiver, *PKvsRtpTransceiver;
