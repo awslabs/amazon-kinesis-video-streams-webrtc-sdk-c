@@ -26,7 +26,7 @@
   - Opus
 * Developer Controlled Media Pipeline
   - Raw Media for Input/Output
-  - [API emits feedback for QoS (bitrate suggestions)](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/issues/114)
+  - Callbacks for [Congestion Control](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/pull/201), FIR and PLI (set on RtcRtpTransceiver)
 * DataChannels
 * NACKs
 * STUN/TURN Support

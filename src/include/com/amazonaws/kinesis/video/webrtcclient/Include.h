@@ -244,6 +244,8 @@ extern "C" {
 #define STATUS_RTCP_INPUT_NACK_LIST_INVALID                                         STATUS_RTCP_BASE + 0x00000004
 #define STATUS_RTCP_INPUT_SSRC_INVALID                                              STATUS_RTCP_BASE + 0x00000005
 #define STATUS_RTCP_INPUT_PARTIAL_PACKET                                            STATUS_RTCP_BASE + 0x00000006
+#define STATUS_RTCP_INPUT_REMB_TOO_SMALL                                            STATUS_RTCP_BASE + 0x00000007
+#define STATUS_RTCP_INPUT_REMB_INVALID                                              STATUS_RTCP_BASE + 0x00000008
 
 //
 // RollingBuffer related errors starting from 0x61000000
@@ -423,6 +425,16 @@ extern "C" {
  *
  */
 typedef VOID (*RtcOnFrame)(UINT64, PFrame);
+
+/*
+ * RtcOnBandwidthEstimation is fired everytime a bandwidth estimation value
+ * is computed. This will be fired for sender or receiver side estimation
+ *
+ * RtcOnBandwidthEstimation is a KVS specific method
+ *
+ */
+typedef VOID (*RtcOnBandwidthEstimation)(UINT64, DOUBLE);
+
 
 /*
  * RtcOnMessage is fired when a message is received for the DataChannel
@@ -1248,6 +1260,17 @@ PUBLIC_API STATUS addTransceiver(PRtcPeerConnection, PRtcMediaStreamTrack, PRtcR
  * @return - STATUS code of the execution
  */
 PUBLIC_API STATUS transceiverOnFrame(PRtcRtpTransceiver, UINT64, RtcOnFrame);
+
+/**
+ * Set a callback for bandwidth estimation results
+ *
+ * @param - PRtcRtpTransceiver* - IN - RtcRtpTransceiver struct
+ * @param - UINT64 - IN - User customData that will be passed along when RtcOnBandwidthEstimation is called
+ * @param - RtcOnBandwidthEstimation - IN - User RtcOnBandwidthEstimation callback
+ *
+ * @return - STATUS code of the execution
+ */
+PUBLIC_API STATUS transceiverOnBandwidthEstimation(PRtcRtpTransceiver, UINT64, RtcOnBandwidthEstimation);
 
 /*
  * freeTransceiver frees the previously created transceiver object

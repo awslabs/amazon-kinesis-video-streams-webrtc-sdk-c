@@ -383,6 +383,10 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
                               NULL,
                               &pSampleStreamingSession->pVideoRtcRtpTransceiver));
 
+    CHK_STATUS(transceiverOnBandwidthEstimation(pSampleStreamingSession->pVideoRtcRtpTransceiver,
+                       (UINT64) pSampleStreamingSession,
+                       sampleBandwidthEstimationHandler));
+
     // Add a SendRecv Transceiver of type video
     audioTrack.kind = MEDIA_STREAM_TRACK_KIND_AUDIO;
     audioTrack.codec = RTC_CODEC_OPUS;
@@ -392,6 +396,10 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
                               &audioTrack,
                               NULL,
                               &pSampleStreamingSession->pAudioRtcRtpTransceiver));
+
+    CHK_STATUS(transceiverOnBandwidthEstimation(pSampleStreamingSession->pAudioRtcRtpTransceiver,
+                       (UINT64) pSampleStreamingSession,
+                       sampleBandwidthEstimationHandler));
 
 CleanUp:
 
@@ -457,6 +465,12 @@ VOID sampleFrameHandler(UINT64 customData, PFrame pFrame)
 {
     UNUSED_PARAM(customData);
     DLOGV("Frame received. TrackId: %" PRIu64 ", Size: %u, Flags %u", pFrame->trackId, pFrame->size, pFrame->flags);
+}
+
+VOID sampleBandwidthEstimationHandler(UINT64 customData, DOUBLE maxiumBitrate)
+{
+    UNUSED_PARAM(customData);
+    DLOGV("received bitrate suggestion: %f", maxiumBitrate);
 }
 
 STATUS handleRemoteCandidate(PSampleStreamingSession pSampleStreamingSession, PSignalingMessage pSignalingMessage)
