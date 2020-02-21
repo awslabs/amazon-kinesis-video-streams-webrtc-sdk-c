@@ -17,9 +17,28 @@ option(ADDRESS_SANITIZER "Build with AddressSanitizer." OFF)
 option(MEMORY_SANITIZER "Build with MemorySanitizer." OFF)
 option(THREAD_SANITIZER "Build with ThreadSanitizer." OFF)
 option(UNDEFINED_BEHAVIOR_SANITIZER "Build with UndefinedBehaviorSanitizer." OFF)
+option(BUILD_STATIC "Build with static linkage." OFF)
 
 set(CMAKE_MACOSX_RPATH TRUE)
 get_filename_component(ROOT "${CMAKE_CURRENT_SOURCE_DIR}" ABSOLUTE)
+
+# static settings
+if(BUILD_STATIC)
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
+  set(LINKAGE STATIC)
+
+  set(USRSCTP_LIBNAME "libusrsctp.a") # todo: why doesn't CMAKE_STATIC_LIBRARY_SUFFIX work on my ubuntu cmake 3.10 system? evaluates to .so
+  set(LIBSRTP_LIB_DIR_VARNAME LIBSRTP_STATIC_LIBRARY_DIRS)
+  set(LIBSRTP_LIB_VARNAME LIBSRTP_STATIC_LIBRARIES)
+  set(LIBWEBSOCKET_LIB_DIR_VARNAME LIBWEBSOCKET_STATIC_LIBRARY_DIRS)
+else()
+  set(LINKAGE SHARED)
+
+  set(USRSCTP_LIBNAME "libusrsctp.${CMAKE_SHARED_LIBRARY_SUFFIX}")
+  set(LIBSRTP_LIB_DIR_VARNAME LIBSRTP_LIBRARY_DIRS)
+  set(LIBSRTP_LIB_VARNAME LIBSRTP_LIBRARIES)
+  set(LIBWEBSOCKET_LIB_DIR_VARNAME LIBWEBSOCKET_LIBRARY_DIRS)
+endif()
 
 if(NOT KINESIS_VIDEO_PIC_SRC)
   if(DEFINED ENV{KINESIS_VIDEO_PIC_SRC})
@@ -313,15 +332,15 @@ if("${CMAKE_C_COMPILER_ID}" MATCHES "GNU|Clang")
   # usrsctp dont support pkgconfig yet
   find_library(
     Usrsctp
-    NAMES libusrsctp.${CMAKE_SHARED_LIBRARY_SUFFIX} usrsctp REQUIRED
+    NAMES ${USRSCTP_LIBNAME} usrsctp REQUIRED
     PATHS ${KINESIS_VIDEO_OPEN_SOURCE_SRC}/lib
     NO_DEFAULT_PATH)
 
   set(OPEN_SRC_INCLUDE_DIRS ${LIBSRTP_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR}
                             ${CURL_INCLUDE_DIRS} ${LIBWEBSOCKET_INCLUDE_DIRS})
 
-  link_directories(${LIBSRTP_LIBRARY_DIRS})
-  link_directories(${LIBWEBSOCKET_LIBRARY_DIRS})
+  link_directories(${${LIBSRTP_LIB_DIR_VARNAME}})
+  link_directories(${${LIBWEBSOCKET_LIB_DIR_VARNAME}})
 
   if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     set(ENV{PKG_CONFIG_PATH}
@@ -401,7 +420,7 @@ set(BUILD_COMMON_LWS TRUE CACHE BOOL "Build ProducerC with LWS Support" FORCE)
 set(BUILD_COMMON_CURL FALSE CACHE BOOL "Build ProducerC without CURL Support" FORCE)
 add_subdirectory(${KINESIS_VIDEO_PRODUCER_C_SRC} ./kvscproducer EXCLUDE_FROM_ALL)
 
-add_library(kvsWebrtcClient SHARED ${WEBRTC_CLIENT_SOURCE_FILES})
+add_library(kvsWebrtcClient ${LINKAGE} ${WEBRTC_CLIENT_SOURCE_FILES})
 
 target_link_libraries(
   kvsWebrtcClient
@@ -410,11 +429,11 @@ target_link_libraries(
   kvspicState
   ${OPENSSL_SSL_LIBRARY}
   ${OPENSSL_CRYPTO_LIBRARY}
-  ${LIBSRTP_LIBRARIES}
+  ${${LIBSRTP_LIB_VARNAME}}
   ${Jsmn}
   ${Usrsctp})
 
-add_library(kvsWebrtcSignalingClient SHARED
+add_library(kvsWebrtcSignalingClient ${LINKAGE}
             ${WEBRTC_SIGNALING_CLIENT_SOURCE_FILES})
 
 target_link_libraries(kvsWebrtcSignalingClient kvspicUtils kvspicState
