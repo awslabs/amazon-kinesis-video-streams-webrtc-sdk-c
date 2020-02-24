@@ -6,7 +6,7 @@ include(ExternalProject)
 
 ExternalProject_Add(project_libwebsockets
     GIT_REPOSITORY    https://github.com/warmcat/libwebsockets.git
-    GIT_TAG           v3.2-stable
+    GIT_TAG           3179323afa81448287a15982755ed0e4a34d80cb
     PREFIX            ${CMAKE_CURRENT_BINARY_DIR}/build
     CMAKE_ARGS
         -DCMAKE_INSTALL_PREFIX=${CMAKE_SOURCE_DIR}/../local/
