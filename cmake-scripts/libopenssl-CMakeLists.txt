@@ -13,7 +13,7 @@ else()
   SET(CONFIGURE_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/build/src/project_libopenssl/config --prefix=${OPEN_SRC_INSTALL_PREFIX} --openssldir=${OPEN_SRC_INSTALL_PREFIX})
 endif()
 
-message("OPENSSL CONFIGURE COMMANDO IS '${CONFIGURE_COMMAND}'");
+message("OPENSSL CONFIGURE COMMANDO IS '${CONFIGURE_COMMAND}'")
 
 include(ExternalProject)
 ExternalProject_Add(project_libopenssl
