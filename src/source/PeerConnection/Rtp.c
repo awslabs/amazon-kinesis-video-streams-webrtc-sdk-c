@@ -106,6 +106,21 @@ CleanUp:
     return retStatus;
 }
 
+STATUS transceiverOnBandwidthEstimation(PRtcRtpTransceiver pRtcRtpTransceiver, UINT64 customData, RtcOnBandwidthEstimation rtcOnBandwidthEstimation) {
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PKvsRtpTransceiver pKvsRtpTransceiver = (PKvsRtpTransceiver) pRtcRtpTransceiver;
+
+    CHK(pKvsRtpTransceiver != NULL && rtcOnBandwidthEstimation != NULL, STATUS_NULL_ARG);
+
+    pKvsRtpTransceiver->onBandwidthEstimation = rtcOnBandwidthEstimation;
+    pKvsRtpTransceiver->onBandwidthEstimationCustomData = customData;
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
 
 UINT64 convertTimestampToRTP(UINT64 clockRate, UINT64 pts)
 {

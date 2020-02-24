@@ -8,6 +8,7 @@ extern "C" {
 #endif
 
 STATUS onRtcpPacket(PKvsPeerConnection, PBYTE, UINT32);
+STATUS onRtcpRembPacket(PRtcpPacket, PKvsPeerConnection);
 
 #ifdef  __cplusplus
 }

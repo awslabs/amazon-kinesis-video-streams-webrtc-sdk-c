@@ -116,6 +116,7 @@ STATUS respondWithAnswer(PSampleStreamingSession);
 STATUS resetSampleConfigurationState(PSampleConfiguration);
 STATUS startSenderMediaThreads(PSampleConfiguration pSampleConfiguration);
 VOID sampleFrameHandler(UINT64, PFrame);
+VOID sampleBandwidthEstimationHandler(UINT64, DOUBLE);
 VOID onDataChannel(UINT64, PRtcDataChannel);
 VOID onConnectionStateChange(UINT64, RTC_PEER_CONNECTION_STATE);
 STATUS sessionCleanupWait(PSampleConfiguration);
