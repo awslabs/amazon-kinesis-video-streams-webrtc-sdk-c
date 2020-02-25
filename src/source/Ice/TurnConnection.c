@@ -336,7 +336,7 @@ STATUS turnConnectionHandleStunError(PTurnConnection pTurnConnection, PSocketCon
     DLOGW("Received STUN error response. Error type: 0x%02x, Error Code: %u. Error detail: %s.",
           stunPacketType, pStunAttributeErrorCode->errorCode, pStunAttributeErrorCode->errorPhrase);
 
-    if (!pTurnConnection->credentialObtained && pStunAttributeErrorCode->errorCode == STUN_ERROR_UNAUTHORIZED) {
+    if (pStunAttributeErrorCode->errorCode == STUN_ERROR_UNAUTHORIZED) {
         CHK_STATUS(getStunAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_NONCE, &pStunAttr));
         CHK_WARN(pStunAttr != NULL, retStatus, "No Nonce attribute found in Allocate Error response. Dropping Packet");
         pStunAttributeNonce = (PStunAttributeNonce) pStunAttr;
@@ -353,6 +353,9 @@ STATUS turnConnectionHandleStunError(PTurnConnection pTurnConnection, PSocketCon
         pTurnConnection->turnRealm[pStunAttributeRealm->attribute.length] = '\0';
 
         pTurnConnection->credentialObtained = TRUE;
+
+        CHK_STATUS(turnConnectionUpdateNonce(pTurnConnection));
+
     } else if (pStunAttributeErrorCode->errorCode == STUN_ERROR_STALE_NONCE) {
         DLOGD("Updating stale nonce");
         CHK_STATUS(getStunAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_NONCE, &pStunAttr));
@@ -362,22 +365,7 @@ STATUS turnConnectionHandleStunError(PTurnConnection pTurnConnection, PSocketCon
         pTurnConnection->nonceLen = pStunAttributeNonce->attribute.length;
         MEMCPY(pTurnConnection->turnNonce, pStunAttributeNonce->nonce, pTurnConnection->nonceLen);
 
-        // update nonce for pre-created packets
-        if (pTurnConnection->pTurnPacket != NULL) {
-            CHK_STATUS(updateStunNonceAttribute(pTurnConnection->pTurnPacket, pTurnConnection->turnNonce, pTurnConnection->nonceLen));
-        }
-
-        if (pTurnConnection->pTurnAllocationRefreshPacket != NULL) {
-            CHK_STATUS(updateStunNonceAttribute(pTurnConnection->pTurnAllocationRefreshPacket, pTurnConnection->turnNonce, pTurnConnection->nonceLen));
-        }
-
-        if (pTurnConnection->pTurnChannelBindPacket != NULL) {
-            CHK_STATUS(updateStunNonceAttribute(pTurnConnection->pTurnChannelBindPacket, pTurnConnection->turnNonce, pTurnConnection->nonceLen));
-        }
-
-        if (pTurnConnection->pTurnCreatePermissionPacket != NULL) {
-            CHK_STATUS(updateStunNonceAttribute(pTurnConnection->pTurnCreatePermissionPacket, pTurnConnection->turnNonce, pTurnConnection->nonceLen));
-        }
+        CHK_STATUS(turnConnectionUpdateNonce(pTurnConnection));
     }
 
 CleanUp:
@@ -570,6 +558,8 @@ STATUS turnConnectionSendData(PTurnConnection pTurnConnection, PBYTE pBuf, UINT3
 
     MUTEX_UNLOCK(pTurnConnection->lock);
     locked = FALSE;
+
+    // need to serialize send because every send load data into the same buffer pTurnConnection->sendDataBuffer
     MUTEX_LOCK(pTurnConnection->sendLock);
     sendLocked = TRUE;
 
@@ -852,13 +842,13 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
             // create controlling TCP connection with turn server.
             CHK_STATUS(createSocketConnection(&pTurnConnection->hostAddress, &pTurnConnection->turnServer.ipAddress,
                                               pTurnConnection->protocol, (UINT64) pTurnConnection,
-                                              turnConnectionIncomingDataHandler, pTurnConnection->sendBufSize, 
+                                              turnConnectionIncomingDataHandler, pTurnConnection->sendBufSize,
                                               &pTurnConnection->pControlChannel));
 
             CHK_STATUS(connectionListenerAddConnection(pTurnConnection->pConnectionListener, pTurnConnection->pControlChannel));
 
             // create empty turn allocation request
-            CHK_STATUS(turnConnectionPackageTurnAllocationRequest(NULL, NULL, NULL, 0, 
+            CHK_STATUS(turnConnectionPackageTurnAllocationRequest(NULL, NULL, NULL, 0,
                 DEFAULT_TURN_ALLOCATION_LIFETIME_SECONDS, &pTurnConnection->pTurnPacket));
 
             pTurnConnection->state = TURN_STATE_CHECK_SOCKET_CONNECTION;
@@ -1088,6 +1078,36 @@ CleanUp:
     }
 
     LEAVES();
+    return retStatus;
+}
+
+STATUS turnConnectionUpdateNonce(PTurnConnection pTurnConnection)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+
+    // assume holding pTurnConnection->lock
+
+    // update nonce for pre-created packets
+    if (pTurnConnection->pTurnPacket != NULL) {
+        CHK_STATUS(updateStunNonceAttribute(pTurnConnection->pTurnPacket, pTurnConnection->turnNonce, pTurnConnection->nonceLen));
+    }
+
+    if (pTurnConnection->pTurnAllocationRefreshPacket != NULL) {
+        CHK_STATUS(updateStunNonceAttribute(pTurnConnection->pTurnAllocationRefreshPacket, pTurnConnection->turnNonce, pTurnConnection->nonceLen));
+    }
+
+    if (pTurnConnection->pTurnChannelBindPacket != NULL) {
+        CHK_STATUS(updateStunNonceAttribute(pTurnConnection->pTurnChannelBindPacket, pTurnConnection->turnNonce, pTurnConnection->nonceLen));
+    }
+
+    if (pTurnConnection->pTurnCreatePermissionPacket != NULL) {
+        CHK_STATUS(updateStunNonceAttribute(pTurnConnection->pTurnCreatePermissionPacket, pTurnConnection->turnNonce, pTurnConnection->nonceLen));
+    }
+
+CleanUp:
+
+    CHK_LOG_ERR_NV(retStatus);
+
     return retStatus;
 }
 

@@ -143,7 +143,7 @@ CleanUp:
 STATUS socketConnectionSendData(PSocketConnection pSocketConnection, PBYTE pBuf, UINT32 bufLen, PKvsIpAddress pDestIp)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    BOOL locked = FALSE, connected, iterate = TRUE;
+    BOOL locked = FALSE, iterate = TRUE;
     INT32 sslRet, sslErr;
 
     socklen_t addrLen;
@@ -153,9 +153,7 @@ STATUS socketConnectionSendData(PSocketConnection pSocketConnection, PBYTE pBuf,
 
     CHK(pSocketConnection != NULL && pBuf != NULL, STATUS_NULL_ARG);
     CHK(bufLen != 0 && (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_TCP || pDestIp != NULL), STATUS_INVALID_ARG);
-    CHK(!ATOMIC_LOAD_BOOL(&pSocketConnection->connectionClosed), STATUS_SOCKET_CONNECTION_CLOSED_ALREADY);
-    CHK_STATUS(socketConnectionReadyToSend(pSocketConnection, &connected));
-    CHK_WARN(connected, STATUS_SOCKET_CONNECTION_NOT_READY_TO_SEND, "Socket connection not ready to send data");
+    CHK_WARN(!ATOMIC_LOAD_BOOL(&pSocketConnection->connectionClosed), STATUS_SOCKET_CONNECTION_CLOSED_ALREADY, "Failed to send data. Socket closed already");
 
     MUTEX_LOCK(pSocketConnection->lock);
     locked = TRUE;
@@ -213,36 +211,6 @@ CleanUp:
         MUTEX_UNLOCK(pSocketConnection->lock);
     }
 
-    return retStatus;
-}
-
-STATUS socketConnectionReadyToSend(PSocketConnection pSocketConnection, PBOOL pReadyToSend)
-{
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-    BOOL readyToSend = FALSE, locked = FALSE;
-
-    CHK(pSocketConnection != NULL && pReadyToSend != NULL, STATUS_NULL_ARG);
-
-    MUTEX_LOCK(pSocketConnection->lock);
-    locked = TRUE;
-
-    if (!ATOMIC_LOAD_BOOL(&pSocketConnection->connectionClosed) &&
-        (!pSocketConnection->secureConnection || SSL_is_init_finished(pSocketConnection->pSsl))) {
-        readyToSend = TRUE;
-    }
-
-CleanUp:
-
-    if (pReadyToSend != NULL) {
-        *pReadyToSend = readyToSend;
-    }
-
-    if (locked) {
-        MUTEX_UNLOCK(pSocketConnection->lock);
-    }
-
-    LEAVES();
     return retStatus;
 }
 

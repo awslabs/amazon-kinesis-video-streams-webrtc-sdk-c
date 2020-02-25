@@ -50,7 +50,7 @@ STATUS stepIceAgentStateMachine(PIceAgent pIceAgent)
             pIceAgent->iceAgentCallbacks.connectionStateChangedFn(pIceAgent->customData, pIceAgent->iceAgentState);
         }
     } else {
-        // state machine retry is not used. resetStateMachineRetryCount just to avoid 
+        // state machine retry is not used. resetStateMachineRetryCount just to avoid
         // state machine retry grace period overflow warning.
         CHK_STATUS(resetStateMachineRetryCount(pIceAgent->pStateMachine));
     }
@@ -732,8 +732,8 @@ STATUS executeDisconnectedIceAgentState(UINT64 customData, UINT64 time)
         pIceAgent->iceAgentCallbacks.connectionStateChangedFn(pIceAgent->customData, ICE_AGENT_STATE_DISCONNECTED);
     }
 
-    // step out of disconnection state to retry
-    CHK_STATUS(stepIceAgentStateMachine(pIceAgent));
+    // step out of disconnection state to retry. Do not use stepIceAgentState machine because lock is not re-entrant.
+    CHK_STATUS(stepStateMachine(pIceAgent->pStateMachine));
 
 CleanUp:
 

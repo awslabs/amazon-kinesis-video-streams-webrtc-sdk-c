@@ -178,7 +178,7 @@ STATUS turnConnectionRefreshPermission(PTurnConnection, PBOOL);
 STATUS turnConnectionFreePreAllocatedPackets(PTurnConnection);
 
 STATUS turnConnectionStepState(PTurnConnection);
-STATUS turnConnectionCheckTurnBeingUsed(PTurnConnection);
+STATUS turnConnectionUpdateNonce(PTurnConnection);
 STATUS turnConnectionDeliverChannelData(PTurnConnection, PBYTE, UINT32);
 STATUS turnConnectionTimerCallback(UINT32, UINT64, UINT64);
 STATUS turnConnectionGetLongTermKey(PCHAR, PCHAR, PCHAR, PBYTE, UINT32);

@@ -31,29 +31,12 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersForcedTURN)
 
     RtcConfiguration configuration;
     PRtcPeerConnection offerPc = NULL, answerPc = NULL;
-    UINT32 i, j, iceConfigCount, uriCount;
-    PIceConfigInfo pIceConfigInfo;
 
     MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
     configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_RELAY;
 
     initializeSignalingClient();
-    EXPECT_EQ(signalingClientGetIceConfigInfoCount(mSignalingClientHandle, &iceConfigCount), STATUS_SUCCESS);
-
-    // Set the  STUN server
-    SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION);
-
-    for (uriCount = 0, i = 0; i < iceConfigCount; i++) {
-        EXPECT_EQ(signalingClientGetIceConfigInfo(mSignalingClientHandle, i, &pIceConfigInfo), STATUS_SUCCESS);
-        for (j = 0; j < pIceConfigInfo->uriCount; j++) {
-            STRNCPY(configuration.iceServers[uriCount + 1].urls, pIceConfigInfo->uris[j], MAX_ICE_CONFIG_URI_LEN);
-            STRNCPY(configuration.iceServers[uriCount + 1].credential, pIceConfigInfo->password, MAX_ICE_CONFIG_CREDENTIAL_LEN);
-            STRNCPY(configuration.iceServers[uriCount + 1].username, pIceConfigInfo->userName, MAX_ICE_CONFIG_USER_NAME_LEN);
-
-            uriCount++;
-        }
-    }
-
+    getIceServers(&configuration);
 
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
     EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
@@ -151,21 +134,6 @@ TEST_F(PeerConnectionFunctionalityTest, exchangeMedia)
         return;
     }
 
-    // Create track and transceiver and adds to PeerConnection
-    auto addTrackToPeerConnection = [](PRtcPeerConnection pRtcPeerConnection, PRtcMediaStreamTrack track, PRtcRtpTransceiver *transceiver, RTC_CODEC codec, MEDIA_STREAM_TRACK_KIND kind) -> void {
-
-        MEMSET(track, 0x00, SIZEOF(RtcMediaStreamTrack));
-
-        EXPECT_EQ(addSupportedCodec(pRtcPeerConnection, codec), STATUS_SUCCESS);
-
-        track->kind = kind;
-        track->codec = codec;
-        EXPECT_EQ(generateJSONSafeString(track->streamId, MAX_MEDIA_STREAM_ID_LEN), STATUS_SUCCESS);
-        EXPECT_EQ(generateJSONSafeString(track->trackId, MAX_MEDIA_STREAM_ID_LEN), STATUS_SUCCESS);
-
-        EXPECT_EQ(addTransceiver(pRtcPeerConnection, track, NULL, transceiver), STATUS_SUCCESS);
-    };
-
     auto const frameBufferSize = 200000;
 
     RtcConfiguration configuration;
@@ -179,9 +147,8 @@ TEST_F(PeerConnectionFunctionalityTest, exchangeMedia)
     MEMSET(&videoFrame, 0x00, SIZEOF(Frame));
 
     videoFrame.frameData = (PBYTE) MEMALLOC(frameBufferSize);
-    videoFrame.size = frameBufferSize;
-
-    EXPECT_EQ(readFrameData(videoFrame.frameData, &(videoFrame.size), 1, (PCHAR) "../samples/h264SampleFrames"), STATUS_SUCCESS);
+    videoFrame.size = TEST_VIDEO_FRAME_SIZE;
+    MEMSET(videoFrame.frameData, 0x11, videoFrame.size);
 
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
     EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
@@ -211,6 +178,97 @@ TEST_F(PeerConnectionFunctionalityTest, exchangeMedia)
     freePeerConnection(&answerPc);
 
     EXPECT_EQ(ATOMIC_LOAD(&seenVideo), 1);
+}
+
+
+
+TEST_F(PeerConnectionFunctionalityTest, exchangeMediaThroughTurnRandomStop)
+{
+    if (!mAccessKeyIdSet) {
+        return;
+    }
+
+    initializeSignalingClient();
+
+    auto repeatedStreamingRandomStop = [this](int iteration, int maxStreamingDurationMs, int minStreamingDurationMs, bool expectSeenVideo) -> void
+    {
+        auto const frameBufferSize = 200000;
+        Frame videoFrame;
+        PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+        RtcMediaStreamTrack offerVideoTrack, answerVideoTrack, offerAudioTrack, answerAudioTrack;
+        PRtcRtpTransceiver offerVideoTransceiver, answerVideoTransceiver, offerAudioTransceiver, answerAudioTransceiver;
+        ATOMIC_BOOL offerSeenVideo = 0, answerSeenVideo = 0, offerStopVideo = 0, answerStopVideo = 0;
+        UINT64 streamingTimeMs;
+        RtcConfiguration configuration;
+
+        MEMSET(&videoFrame, 0x00, SIZEOF(Frame));
+        videoFrame.frameData = (PBYTE) MEMALLOC(frameBufferSize);
+        videoFrame.size = TEST_VIDEO_FRAME_SIZE;
+        MEMSET(videoFrame.frameData, 0x11, videoFrame.size);
+
+        for(int i = 0; i < iteration; ++i) {
+            MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+            configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_RELAY;
+            getIceServers(&configuration);
+
+            EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+            EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+            addTrackToPeerConnection(offerPc, &offerVideoTrack, &offerVideoTransceiver,RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+            addTrackToPeerConnection(offerPc, &offerAudioTrack, &offerAudioTransceiver,RTC_CODEC_OPUS, MEDIA_STREAM_TRACK_KIND_AUDIO);
+            addTrackToPeerConnection(answerPc, &answerVideoTrack, &answerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+            addTrackToPeerConnection(answerPc, &answerAudioTrack, &answerAudioTransceiver, RTC_CODEC_OPUS, MEDIA_STREAM_TRACK_KIND_AUDIO);
+
+            auto onFrameHandler = [](UINT64 customData, PFrame pFrame) -> void {
+                UNUSED_PARAM(pFrame);
+                ATOMIC_STORE_BOOL((PSIZE_T) customData, TRUE);
+            };
+            EXPECT_EQ(transceiverOnFrame(offerVideoTransceiver, (UINT64) &offerSeenVideo, onFrameHandler), STATUS_SUCCESS);
+            EXPECT_EQ(transceiverOnFrame(answerVideoTransceiver, (UINT64) &answerSeenVideo, onFrameHandler), STATUS_SUCCESS);
+
+            MEMSET(stateChangeCount, 0x00, SIZEOF(stateChangeCount));
+            EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+
+            streamingTimeMs = (UINT64) (RAND() % (maxStreamingDurationMs - minStreamingDurationMs)) + minStreamingDurationMs;
+            DLOGI("Stop streaming after %u milliseconds.", streamingTimeMs);
+
+            auto sendVideoWorker = [](PRtcRtpTransceiver pRtcRtpTransceiver, Frame frame, PSIZE_T pTerminationFlag) -> void {
+                while(!ATOMIC_LOAD_BOOL(pTerminationFlag)) {
+                    EXPECT_EQ(writeFrame(pRtcRtpTransceiver, &frame), STATUS_SUCCESS);
+                    // frame was copied by value
+                    frame.presentationTs += (HUNDREDS_OF_NANOS_IN_A_SECOND / 25);
+
+                    THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+                }
+            };
+
+            std::thread offerSendVideoWorker(sendVideoWorker, offerVideoTransceiver, videoFrame, &offerStopVideo);
+            std::thread answerSendVideoWorker(sendVideoWorker, answerVideoTransceiver, videoFrame, &answerStopVideo);
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(streamingTimeMs));
+
+            ATOMIC_STORE_BOOL(&offerStopVideo, TRUE);
+            offerSendVideoWorker.join();
+            freePeerConnection(&offerPc);
+
+            ATOMIC_STORE_BOOL(&answerStopVideo, TRUE);
+            answerSendVideoWorker.join();
+            freePeerConnection(&answerPc);
+
+            if (expectSeenVideo) {
+                EXPECT_EQ(ATOMIC_LOAD_BOOL(&offerSeenVideo), TRUE);
+                EXPECT_EQ(ATOMIC_LOAD_BOOL(&answerSeenVideo), TRUE);
+            }
+        }
+
+        MEMFREE(videoFrame.frameData);
+    };
+
+    // Repeated steaming and stop at random times to catch potential deadlocks involving iceAgent and TurnConnection
+    repeatedStreamingRandomStop(30, 5000, 1000, TRUE);
+    repeatedStreamingRandomStop(30, 1000, 500, FALSE);
+
+    deinitializeSignalingClient();
 }
 
 

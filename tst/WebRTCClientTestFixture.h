@@ -11,6 +11,7 @@
 #define TEST_SIGNALING_CHANNEL_NAME                             (PCHAR) "ScaryTestChannel_"
 #define SIGNAING_TEST_CORRELATION_ID                            (PCHAR) "Test_correlation_id"
 #define TEST_SIGNALING_MESSAGE_TTL                              (120 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define TEST_VIDEO_FRAME_SIZE                                   (120 * 1024)
 
 namespace com { namespace amazonaws { namespace kinesis { namespace video { namespace webrtcclient {
 
@@ -194,6 +195,9 @@ public:
     }
 
     bool connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerConnection answerPc);
+    void addTrackToPeerConnection(PRtcPeerConnection pRtcPeerConnection, PRtcMediaStreamTrack track,
+                                  PRtcRtpTransceiver *transceiver, RTC_CODEC codec, MEDIA_STREAM_TRACK_KIND kind);
+    void getIceServers(PRtcConfiguration pRtcConfiguration);
 
 protected:
 
