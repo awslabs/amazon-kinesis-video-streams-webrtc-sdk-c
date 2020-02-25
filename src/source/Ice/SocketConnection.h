@@ -88,17 +88,6 @@ STATUS socketConnectionInitSecureConnection(PSocketConnection, BOOL);
 STATUS socketConnectionSendData(PSocketConnection, PBYTE, UINT32, PKvsIpAddress);
 
 /**
- * Check if SocketConnection is ready to send data. If connection is not secure then TRUE will be returned immediately.
- * Otherwise TRUE will be returned when TLS or DTLS handshake is done.
- *
- * @param - PSocketConnection - IN - the SocketConnection struct
- * @param - PBOOL - OUT - whether connection is ready to send data
- *
- * @return - STATUS - status of execution
- */
-STATUS socketConnectionReadyToSend(PSocketConnection, PBOOL);
-
-/**
  * If PSocketConnection is not secure then nothing happens, otherwise assuming the bytes passed in are encrypted, and
  * the encryted data will be replaced with unencrypted data at function return.
  *

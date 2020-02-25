@@ -150,13 +150,28 @@ STATUS iceUtilsSendStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 pa
     UINT32 stunPacketSize = STUN_PACKET_ALLOCATION_SIZE;
     BYTE stunPacketBuffer[STUN_PACKET_ALLOCATION_SIZE];
 
+    CHK_STATUS(iceUtilsPackageStunPacket(pStunPacket, password, passwordLen, stunPacketBuffer, &stunPacketSize));
+    CHK_STATUS(iceUtilsSendData(stunPacketBuffer, stunPacketSize, pDest, pSocketConnection, pTurnConnection, useTurn));
+
+CleanUp:
+
+    CHK_LOG_ERR_NV(retStatus);
+
+    return retStatus;
+}
+
+STATUS iceUtilsSendData(PBYTE buffer, UINT32 size,
+                        PKvsIpAddress pDest, PSocketConnection pSocketConnection, PTurnConnection pTurnConnection,
+                        BOOL useTurn)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+
     CHK((pSocketConnection != NULL && !useTurn) || (pTurnConnection != NULL && useTurn), STATUS_INVALID_ARG);
 
-    CHK_STATUS(iceUtilsPackageStunPacket(pStunPacket, password, passwordLen, stunPacketBuffer, &stunPacketSize));
     if (useTurn) {
-        retStatus = turnConnectionSendData(pTurnConnection, stunPacketBuffer, stunPacketSize, pDest);
+        retStatus = turnConnectionSendData(pTurnConnection, buffer, size, pDest);
     } else {
-        retStatus = socketConnectionSendData(pSocketConnection, stunPacketBuffer, stunPacketSize, pDest);
+        retStatus = socketConnectionSendData(pSocketConnection, buffer, size, pDest);
     }
 
     // Fix-up the not-yet-ready socket

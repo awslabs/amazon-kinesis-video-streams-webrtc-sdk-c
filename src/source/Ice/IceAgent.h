@@ -268,7 +268,7 @@ STATUS iceAgentValidateKvsRtcConfig(PKvsRtcConfiguration);
 // Incoming data handling functions
 STATUS newRelayCandidateHandler(UINT64, PKvsIpAddress, PSocketConnection);
 STATUS incomingDataHandler(UINT64, PSocketConnection, PBYTE, UINT32, PKvsIpAddress, PKvsIpAddress);
-STATUS handleStunPacket(PIceAgent, PBYTE, UINT32, PSocketConnection, PKvsIpAddress, PKvsIpAddress, PStunPacket*, PBOOL);
+STATUS handleStunPacket(PIceAgent, PBYTE, UINT32, PSocketConnection, PKvsIpAddress, PKvsIpAddress);
 
 // IceCandidate functions
 STATUS updateCandidateAddress(PIceCandidate, PKvsIpAddress);
@@ -286,6 +286,7 @@ STATUS iceCandidatePairCheckConnection(PStunPacket, PIceAgent, PIceCandidatePair
 STATUS iceAgentSendSrflxCandidateRequest(PIceAgent);
 STATUS iceAgentCheckCandidatePairConnection(PIceAgent);
 STATUS iceAgentSendCandidateNomination(PIceAgent);
+STATUS iceAgentSendStunPacket(PStunPacket, PBYTE, UINT32, PIceAgent, PIceCandidatePair);
 
 STATUS iceAgentInitHostCandidate(PIceAgent);
 STATUS iceAgentInitSrflxCandidate(PIceAgent);

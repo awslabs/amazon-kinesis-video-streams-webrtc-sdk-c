@@ -35,6 +35,7 @@ STATUS iceUtilsGenerateTransactionId(PBYTE, UINT32);
 // Stun packaging and sending functions
 STATUS iceUtilsPackageStunPacket(PStunPacket, PBYTE, UINT32, PBYTE, PUINT32);
 STATUS iceUtilsSendStunPacket(PStunPacket, PBYTE, UINT32, PKvsIpAddress, PSocketConnection, struct __TurnConnection*, BOOL);
+STATUS iceUtilsSendData(PBYTE, UINT32, PKvsIpAddress, PSocketConnection, struct __TurnConnection*, BOOL);
 
 STATUS populateIpFromString(PKvsIpAddress, PCHAR);
 

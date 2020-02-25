@@ -185,6 +185,44 @@ bool WebRtcClientTestBase::connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerC
     return ATOMIC_LOAD(&this->stateChangeCount[RTC_PEER_CONNECTION_STATE_CONNECTED]) == 2;
 }
 
+// Create track and transceiver and adds to PeerConnection
+void WebRtcClientTestBase::addTrackToPeerConnection(PRtcPeerConnection pRtcPeerConnection, PRtcMediaStreamTrack track, PRtcRtpTransceiver *transceiver, RTC_CODEC codec, MEDIA_STREAM_TRACK_KIND kind)
+{
+    MEMSET(track, 0x00, SIZEOF(RtcMediaStreamTrack));
+
+    EXPECT_EQ(addSupportedCodec(pRtcPeerConnection, codec), STATUS_SUCCESS);
+
+    track->kind = kind;
+    track->codec = codec;
+    EXPECT_EQ(generateJSONSafeString(track->streamId, MAX_MEDIA_STREAM_ID_LEN), STATUS_SUCCESS);
+    EXPECT_EQ(generateJSONSafeString(track->trackId, MAX_MEDIA_STREAM_ID_LEN), STATUS_SUCCESS);
+
+    EXPECT_EQ(addTransceiver(pRtcPeerConnection, track, NULL, transceiver), STATUS_SUCCESS);
+}
+
+void WebRtcClientTestBase::getIceServers(PRtcConfiguration pRtcConfiguration)
+{
+    UINT32 i, j, iceConfigCount, uriCount;
+    PIceConfigInfo pIceConfigInfo;
+
+    // Assume signaling client is already created
+    EXPECT_EQ(signalingClientGetIceConfigInfoCount(mSignalingClientHandle, &iceConfigCount), STATUS_SUCCESS);
+
+    // Set the  STUN server
+    SNPRINTF(pRtcConfiguration->iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION);
+
+    for (uriCount = 0, i = 0; i < iceConfigCount; i++) {
+        EXPECT_EQ(signalingClientGetIceConfigInfo(mSignalingClientHandle, i, &pIceConfigInfo), STATUS_SUCCESS);
+        for (j = 0; j < pIceConfigInfo->uriCount; j++) {
+            STRNCPY(pRtcConfiguration->iceServers[uriCount + 1].urls, pIceConfigInfo->uris[j], MAX_ICE_CONFIG_URI_LEN);
+            STRNCPY(pRtcConfiguration->iceServers[uriCount + 1].credential, pIceConfigInfo->password, MAX_ICE_CONFIG_CREDENTIAL_LEN);
+            STRNCPY(pRtcConfiguration->iceServers[uriCount + 1].username, pIceConfigInfo->userName, MAX_ICE_CONFIG_USER_NAME_LEN);
+
+            uriCount++;
+        }
+    }
+}
+
 PCHAR WebRtcClientTestBase::GetTestName()
 {
     return (PCHAR) ::testing::UnitTest::GetInstance()->current_test_info()->test_case_name();
