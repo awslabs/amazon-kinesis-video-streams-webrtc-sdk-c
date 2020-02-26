@@ -486,4 +486,4 @@ install(TARGETS kvsWebrtcSignalingClient kvsWebrtcClient
 
 # install library header
 install(DIRECTORY src/include
-        DESTINATION ${CMAKE_INSTALL_PREFIX}/include
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
