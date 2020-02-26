@@ -5,9 +5,10 @@ project(KinesisVideoWebRTCClient LANGUAGES C)
 option(ADD_MUCLIBC "Add -muclibc c flag" OFF)
 option(BUILD_DEPENDENCIES "Whether or not to build depending libraries from source" ON)
 option(BUILD_OPENSSL "If building dependencies, whether or not building openssl from source" OFF)
-option(BUILD_OPENSSL_PLATFORM "If buildng OpenSSL what is the target platform" OFF)
-option(BUILD_LIBSRTP_HOST_PLATFORM "If buildng LibSRTP what is the current platform" OFF)
-option(BUILD_LIBSRTP_DESTINATION_PLATFORM "If buildng LibSRTP what is the destination platform" OFF)
+option(BUILD_STATIC "Build with static linkage." OFF)
+set(BUILD_OPENSSL_PLATFORM "" CACHE STRING "If buildng OpenSSL what is the target platform")
+set(BUILD_LIBSRTP_HOST_PLATFORM "" CACHE STRING "If buildng LibSRTP what is the current platform")
+set(BUILD_LIBSRTP_DESTINATION_PLATFORM "" CACHE STRING "If buildng LibSRTP what is the destination platform")
 
 # Developer Flags
 option(BUILD_TEST "Build the testing tree." OFF)
@@ -17,7 +18,6 @@ option(ADDRESS_SANITIZER "Build with AddressSanitizer." OFF)
 option(MEMORY_SANITIZER "Build with MemorySanitizer." OFF)
 option(THREAD_SANITIZER "Build with ThreadSanitizer." OFF)
 option(UNDEFINED_BEHAVIOR_SANITIZER "Build with UndefinedBehaviorSanitizer." OFF)
-option(BUILD_STATIC "Build with static linkage." OFF)
 
 set(CMAKE_MACOSX_RPATH TRUE)
 get_filename_component(ROOT "${CMAKE_CURRENT_SOURCE_DIR}" ABSOLUTE)
@@ -426,7 +426,7 @@ add_subdirectory(${KINESIS_VIDEO_PRODUCER_C_SRC} ./kvscproducer EXCLUDE_FROM_ALL
 add_library(kvsWebrtcClient ${LINKAGE} ${WEBRTC_CLIENT_SOURCE_FILES})
 
 target_link_libraries(
-  kvsWebrtcClient
+  kvsWebrtcClient PRIVATE
   kvspicUtils
   kvspicClient
   kvspicState
@@ -439,7 +439,7 @@ target_link_libraries(
 add_library(kvsWebrtcSignalingClient ${LINKAGE}
             ${WEBRTC_SIGNALING_CLIENT_SOURCE_FILES})
 
-target_link_libraries(kvsWebrtcSignalingClient kvspicUtils kvspicState
+target_link_libraries(kvsWebrtcSignalingClient PRIVATE kvspicUtils kvspicState
                       kvspicClient kvsCommonLws)
 
 add_executable(
