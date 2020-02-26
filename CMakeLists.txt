@@ -436,6 +436,7 @@ target_link_libraries(
   ${Jsmn}
   ${Usrsctp})
 
+
 add_library(kvsWebrtcSignalingClient ${LINKAGE}
             ${WEBRTC_SIGNALING_CLIENT_SOURCE_FILES})
 
@@ -475,3 +476,6 @@ if(BUILD_TEST)
   set(ENV{KVS_GTEST_ROOT} ${KINESIS_VIDEO_OPEN_SOURCE_SRC})
   add_subdirectory(tst)
 endif()
+
+# install the libraries
+install(kvsWebrtcSignalingClient kvsWebrtcClient)
