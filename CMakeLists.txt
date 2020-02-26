@@ -478,4 +478,4 @@ if(BUILD_TEST)
 endif()
 
 # install the libraries
-install(kvsWebrtcSignalingClient kvsWebrtcClient)
+install(TARGETS kvsWebrtcSignalingClient kvsWebrtcClient)
