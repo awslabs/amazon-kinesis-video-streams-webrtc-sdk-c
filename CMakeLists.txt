@@ -478,4 +478,8 @@ if(BUILD_TEST)
 endif()
 
 # install the libraries
-install(TARGETS kvsWebrtcSignalingClient kvsWebrtcClient)
+install(TARGETS kvsWebrtcSignalingClient kvsWebrtcClient
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
