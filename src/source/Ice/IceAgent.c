@@ -738,7 +738,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS findIceCandidatePairWithLocalConnectionHandleAndRemoteAddr(PIceAgent pIceAgent, PSocketConnection pSocketConnection,
+STATUS findIceCandidatePairWithLocalSocketConnectionAndRemoteAddr(PIceAgent pIceAgent, PSocketConnection pSocketConnection,
                                                                   PKvsIpAddress pRemoteAddr, BOOL checkPort,
                                                                   PIceCandidatePair* ppIceCandidatePair)
 {
@@ -832,7 +832,8 @@ STATUS iceCandidatePairCheckConnection(PStunPacket pStunBindingRequest, PIceAgen
                                       (PBYTE) pIceAgent->remotePassword,
                                       (UINT32) STRLEN(pIceAgent->remotePassword) * SIZEOF(CHAR),
                                       pIceAgent,
-                                      pIceCandidatePair));
+                                      pIceCandidatePair->local,
+                                      &pIceCandidatePair->remote->ipAddress));
 
 CleanUp:
 
@@ -842,7 +843,7 @@ CleanUp:
 }
 
 STATUS iceAgentSendStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passwordLen, PIceAgent pIceAgent,
-                              PIceCandidatePair pIceCandidatePair)
+                              PIceCandidate pLocalCandidate, PKvsIpAddress pDestAddr)
 {
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 stunPacketSize = STUN_PACKET_ALLOCATION_SIZE;
@@ -850,19 +851,18 @@ STATUS iceAgentSendStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 pa
     KvsIpAddress destAddr;
     SocketConnection socketConnection;
     BOOL isRelay = FALSE;
-    PIceCandidatePair pCurrentIceCandidatePair = NULL;
-    PDoubleListNode pCurNode = NULL;
+    PIceCandidatePair pIceCandidatePair = NULL;
 
     // Assuming holding pIceAgent->lock
 
-    CHK(pStunPacket != NULL && pIceAgent != NULL && pIceCandidatePair != NULL, STATUS_NULL_ARG);
+    CHK(pStunPacket != NULL && pIceAgent != NULL && pLocalCandidate != NULL && pDestAddr != NULL, STATUS_NULL_ARG);
 
     // Construct context
     // Stun Binding Indication seems to not expect any response. Therefore not storing transactionId
     CHK_STATUS(iceUtilsPackageStunPacket(pStunPacket, password, passwordLen, stunPacketBuffer, &stunPacketSize));
-    socketConnection = *pIceCandidatePair->local->pSocketConnection;
-    destAddr = pIceCandidatePair->remote->ipAddress;
-    isRelay = IS_CANN_PAIR_SENDING_FROM_RELAYED(pIceCandidatePair);
+    socketConnection = *pLocalCandidate->pSocketConnection;
+    destAddr = *pDestAddr;
+    isRelay = pLocalCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED;
 
     // Unlock pIceAgent->lock before send because we can be sending through turn and in the mean time turn
     // can be invoking incomingDataHandler and cause deadlock.
@@ -883,15 +883,10 @@ STATUS iceAgentSendStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 pa
         retStatus = STATUS_SUCCESS;
 
         // Update iceCandidatePair state to failed. pIceCandidatePair could no longer exist.
-        CHK_STATUS(doubleListGetHeadNode(pIceAgent->iceCandidatePairs, &pCurNode));
-        while (pCurNode != NULL) {
-            pCurrentIceCandidatePair = (PIceCandidatePair) pCurNode->data;
-            pCurNode = pCurNode->pNext;
+        CHK_STATUS(findIceCandidatePairWithLocalSocketConnectionAndRemoteAddr(pIceAgent, pLocalCandidate->pSocketConnection, pDestAddr, TRUE, &pIceCandidatePair));
 
-            if (pCurrentIceCandidatePair == pIceCandidatePair) {
-                pCurrentIceCandidatePair->state = ICE_CANDIDATE_PAIR_STATE_FAILED;
-            }
-
+        if (pIceCandidatePair != NULL) {
+            pIceCandidatePair->state = ICE_CANDIDATE_PAIR_STATE_FAILED;
         }
     }
 
@@ -1058,7 +1053,8 @@ STATUS iceAgentSendKeepAliveTimerCallback(UINT32 timerId, UINT64 currentTime, UI
 
             pIceCandidatePair->lastDataSentTime = currentTime;
             DLOGV("send keep alive");
-            CHK_STATUS(iceAgentSendStunPacket(pIceAgent->pBindingIndication, NULL, 0, pIceAgent, pIceCandidatePair));
+            CHK_STATUS(iceAgentSendStunPacket(pIceAgent->pBindingIndication, NULL, 0, pIceAgent,
+                                              pIceCandidatePair->local, &pIceCandidatePair->remote->ipAddress));
         }
     }
 
@@ -1448,7 +1444,7 @@ STATUS iceAgentReadyStateSetup(PIceAgent pIceAgent)
     CHAR ipAddrStr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
     PDoubleListNode pCurNode = NULL;
     PIceCandidatePair pIceCandidatePair = NULL;
-    BOOL relayCandidateSelected = FALSE, locked = TRUE; // Assume holding pIceAgent->lock
+    BOOL relayCandidateSelected = FALSE;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
 
@@ -1489,10 +1485,6 @@ STATUS iceAgentReadyStateSetup(PIceAgent pIceAgent)
 
     relayCandidateSelected = IS_CANN_PAIR_SENDING_FROM_RELAYED(pIceAgent->pDataSendingIceCandidatePair);
 
-    // unlock ice lock before calling turn api.
-    MUTEX_UNLOCK(pIceAgent->lock);
-    locked = FALSE;
-
     // stop turn if it is not needed
     if (!relayCandidateSelected && pIceAgent->pTurnConnection != NULL) {
         DLOGD("Relayed candidate is not selected. Turn allocation will be freed");
@@ -1505,11 +1497,6 @@ CleanUp:
 
     if (STATUS_FAILED(retStatus)) {
         iceAgentFatalError(pIceAgent, retStatus);
-    }
-
-    // re-acquire lock
-    if (!locked) {
-        MUTEX_LOCK(pIceAgent->lock);
     }
 
     return retStatus;
@@ -1730,15 +1717,19 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
             priority = pStunAttributePriority == NULL ? 0 : pStunAttributePriority->priority;
             CHK_STATUS(iceAgentCheckPeerReflexiveCandidate(pIceAgent, pSrcAddr, priority, TRUE, 0));
 
-            CHK_STATUS(findIceCandidatePairWithLocalConnectionHandleAndRemoteAddr(pIceAgent, pSocketConnection, pSrcAddr, TRUE, &pIceCandidatePair));
+            CHK_STATUS(findCandidateWithSocketConnection(pSocketConnection, pIceAgent->localCandidates, &pIceCandidate));
+            CHK_WARN(pIceCandidate != NULL, retStatus, "Could not find local candidate to send STUN response");
             CHK_STATUS(iceAgentSendStunPacket(pStunResponse,
                                               (PBYTE) pIceAgent->localPassword,
                                               (UINT32) STRLEN(pIceAgent->localPassword) * SIZEOF(CHAR),
                                               pIceAgent,
-                                              pIceCandidatePair));
+                                              pIceCandidate,
+                                              pSrcAddr));
 
             // return early if there is no candidate pair. This can happen when we get connectivity check from the peer
             // before we receive the answer.
+            CHK_STATUS(findIceCandidatePairWithLocalSocketConnectionAndRemoteAddr(pIceAgent, pSocketConnection,
+                                                                                  pSrcAddr, TRUE, &pIceCandidatePair));
             CHK(pIceCandidatePair != NULL, retStatus);
 
             if (!pIceCandidatePair->nominated) {
@@ -1778,7 +1769,7 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
             }
 
 
-            CHK_STATUS(findIceCandidatePairWithLocalConnectionHandleAndRemoteAddr(pIceAgent, pSocketConnection, pSrcAddr, TRUE, &pIceCandidatePair));
+            CHK_STATUS(findIceCandidatePairWithLocalSocketConnectionAndRemoteAddr(pIceAgent, pSocketConnection, pSrcAddr, TRUE, &pIceCandidatePair));
             CHK_WARN(pIceCandidatePair != NULL, retStatus, "ConnectionHandle not found. Dropping stun packet");
 
             CHK_WARN(transactionIdStoreHasId(pIceCandidatePair->pTransactionIdStore, pBuffer + STUN_PACKET_TRANSACTION_ID_OFFSET), retStatus,

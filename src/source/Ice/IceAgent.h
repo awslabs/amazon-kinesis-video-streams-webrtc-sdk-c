@@ -279,14 +279,14 @@ STATUS findCandidateWithSocketConnection(PSocketConnection, PDoubleList, PIceCan
 STATUS createIceCandidatePairs(PIceAgent, PIceCandidate, BOOL);
 STATUS freeIceCandidatePair(PIceCandidatePair*);
 STATUS insertIceCandidatePair(PDoubleList, PIceCandidatePair);
-STATUS findIceCandidatePairWithLocalConnectionHandleAndRemoteAddr(PIceAgent, PSocketConnection, PKvsIpAddress, BOOL, PIceCandidatePair*);
+STATUS findIceCandidatePairWithLocalSocketConnectionAndRemoteAddr(PIceAgent, PSocketConnection, PKvsIpAddress, BOOL, PIceCandidatePair*);
 STATUS pruneUnconnectedIceCandidatePair(PIceAgent);
 STATUS iceCandidatePairCheckConnection(PStunPacket, PIceAgent, PIceCandidatePair);
 
 STATUS iceAgentSendSrflxCandidateRequest(PIceAgent);
 STATUS iceAgentCheckCandidatePairConnection(PIceAgent);
 STATUS iceAgentSendCandidateNomination(PIceAgent);
-STATUS iceAgentSendStunPacket(PStunPacket, PBYTE, UINT32, PIceAgent, PIceCandidatePair);
+STATUS iceAgentSendStunPacket(PStunPacket, PBYTE, UINT32, PIceAgent, PIceCandidate, PKvsIpAddress);
 
 STATUS iceAgentInitHostCandidate(PIceAgent);
 STATUS iceAgentInitSrflxCandidate(PIceAgent);
