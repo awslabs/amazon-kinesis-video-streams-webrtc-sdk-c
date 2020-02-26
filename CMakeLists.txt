@@ -477,8 +477,13 @@ if(BUILD_TEST)
   add_subdirectory(tst)
 endif()
 
+# install library files
 install(TARGETS kvsWebrtcSignalingClient kvsWebrtcClient
         RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
         LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
         ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
 )
+
+# install library header
+install(DIRECTORY src/include
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/include
