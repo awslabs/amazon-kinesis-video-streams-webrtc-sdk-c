@@ -37,6 +37,7 @@ extern "C" {
 
 #define DEFAULT_TURN_MESSAGE_SEND_CHANNEL_DATA_BUFFER_LEN               (10 * 1024)
 #define DEFAULT_TURN_MESSAGE_RECV_CHANNEL_DATA_BUFFER_LEN               (10 * 1024)
+#define DEFAULT_TURN_CHANNEL_DATA_BUFFER_SIZE                           128
 
 // all turn channel numbers must be greater than 0x4000 and less than 0x7FFF
 #define TURN_CHANNEL_BIND_CHANNEL_NUMBER_BASE                           (UINT16) 0x4000
@@ -82,6 +83,12 @@ typedef enum {
 } TURN_CONNECTION_DATA_TRANSFER_MODE;
 
 typedef struct {
+    PBYTE data;
+    UINT32 size;
+    KvsIpAddress senderAddr;
+} TurnChannelData, *PTurnChannelData;
+
+typedef struct {
     UINT64 customData;
     RelayAddressAvailableFunc relayAddressAvailableFn;
     ConnectionDataAvailableFunc applicationDataAvailableFn;
@@ -107,6 +114,7 @@ struct __TurnConnection {
     UINT16 nonceLen;
     BYTE longTermKey[MD5_DIGEST_LENGTH];
     BOOL credentialObtained;
+    BOOL relayAddressReported;
 
     PSocketConnection pControlChannel;
 
@@ -152,6 +160,9 @@ struct __TurnConnection {
     PBYTE recvDataBuffer;
     UINT32 recvDataBufferSize;
     UINT32 currRecvDataLen;
+    // when a complete channel data have been assembled in recvDataBuffer, move it to completeChannelDataBuffer
+    // to make room for subsequent partial channel data.
+    PBYTE completeChannelDataBuffer;
 
     BOOL allocationFreed;
 
@@ -179,7 +190,6 @@ STATUS turnConnectionFreePreAllocatedPackets(PTurnConnection);
 
 STATUS turnConnectionStepState(PTurnConnection);
 STATUS turnConnectionUpdateNonce(PTurnConnection);
-STATUS turnConnectionDeliverChannelData(PTurnConnection, PBYTE, UINT32);
 STATUS turnConnectionTimerCallback(UINT32, UINT64, UINT64);
 STATUS turnConnectionGetLongTermKey(PCHAR, PCHAR, PCHAR, PBYTE, UINT32);
 STATUS turnConnectionPackageTurnAllocationRequest(PCHAR, PCHAR, PBYTE, UINT16, UINT32, PStunPacket*);
@@ -190,7 +200,10 @@ STATUS turnConnectionIncomingDataHandler(UINT64, PSocketConnection, PBYTE, UINT3
 
 STATUS turnConnectionHandleStun(PTurnConnection, PSocketConnection, PBYTE, UINT32);
 STATUS turnConnectionHandleStunError(PTurnConnection, PSocketConnection, PBYTE, UINT32);
-STATUS turnConnectionHandleChannelDataTcpMode(PTurnConnection, PBYTE, UINT32);
+STATUS turnConnectionHandleChannelData(PTurnConnection, PBYTE, UINT32);
+STATUS turnConnectionHandleChannelDataTcpMode(PTurnConnection, PBYTE, UINT32, PTurnChannelData, PUINT32);
+
+PTurnPeer turnConnectionGetPeerWithChannelNumber(PTurnConnection, UINT16);
 
 #ifdef  __cplusplus
 }
