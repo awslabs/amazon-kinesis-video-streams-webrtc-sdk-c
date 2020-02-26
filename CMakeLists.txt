@@ -62,7 +62,7 @@ if(NOT KINESIS_VIDEO_WEBRTC_CLIENT_SRC)
   if(DEFINED ENV{KINESIS_VIDEO_WEBRTC_CLIENT_SRC})
     set(KINESIS_VIDEO_WEBRTC_CLIENT_SRC $ENV{KINESIS_VIDEO_WEBRTC_CLIENT_SRC})
   else()
-    set(KINESIS_VIDEO_WEBRTC_CLIENT_SRC "${CMAKE_CURRENT_SOURCE_DIR}")
+    set(KINESIS_VIDEO_WEBRTC_CLIENT_SRC "${CMAKE_SOURCE_DIR}")
   endif()
 endif()
 
@@ -73,7 +73,7 @@ if(NOT KINESIS_VIDEO_OPEN_SOURCE_SRC)
   if(DEFINED ENV{KINESIS_VIDEO_OPEN_SOURCE_SRC})
     set(KINESIS_VIDEO_OPEN_SOURCE_SRC $ENV{KINESIS_VIDEO_OPEN_SOURCE_SRC})
   elseif(BUILD_DEPENDENCIES)
-    set(KINESIS_VIDEO_OPEN_SOURCE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/open-source/local)
+    set(KINESIS_VIDEO_OPEN_SOURCE_SRC ${CMAKE_SOURCE_DIR}/open-source/local)
   else()
     set(KINESIS_VIDEO_OPEN_SOURCE_SRC
         "${CMAKE_CURRENT_SOURCE_DIR}/open-source/downloads/local"
@@ -107,20 +107,17 @@ elseif(NOT EXISTS ${KINESIS_VIDEO_PRODUCER_C_SRC})
 endif()
 
 # pass ca cert location to sdk
-add_definitions(-DKVS_CA_CERT_PATH="${CMAKE_CURRENT_SOURCE_DIR}/certs/cert.pem")
+add_definitions(-DKVS_CA_CERT_PATH="${CMAKE_SOURCE_DIR}/certs/cert.pem")
 add_definitions(-DCMAKE_DETECTED_CACERT_PATH)
 
 if(BUILD_DEPENDENCIES)
-
-  if(NOT OPEN_SOURCE_DIR)
-    set(OPEN_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/open-source)
-  endif()
+  set(OPEN_SOURCE_DIR ${CMAKE_SOURCE_DIR}/open-source)
 
   if(NOT EXISTS ${OPEN_SOURCE_DIR})
     file(MAKE_DIRECTORY ${OPEN_SOURCE_DIR}/local)
   endif()
 
-  set(OPEN_SRC_INSTALL_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/open-source/local)
+  set(OPEN_SRC_INSTALL_PREFIX ${CMAKE_SOURCE_DIR}/open-source/local)
 
   if(BUILD_OPENSSL)
     if(NOT EXISTS ${OPEN_SOURCE_DIR}/libopenssl)
@@ -130,7 +127,7 @@ if(BUILD_DEPENDENCIES)
 
       # build openssl
       configure_file(
-              ${CMAKE_CURRENT_SOURCE_DIR}/cmake-scripts/libopenssl-CMakeLists.txt
+              ${CMAKE_SOURCE_DIR}/cmake-scripts/libopenssl-CMakeLists.txt
               ${OPEN_SOURCE_DIR}/libopenssl/CMakeLists.txt COPYONLY)
       execute_process(
               COMMAND ${CMAKE_COMMAND} -DOPENSSL_EXTRA=${OPENSSL_EXTRA} -DBUILD_STATIC=${BUILD_STATIC} -DBUILD_OPENSSL_PLATFORM=${BUILD_OPENSSL_PLATFORM} -DOPEN_SRC_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX} -G ${CMAKE_GENERATOR} .
@@ -161,7 +158,7 @@ if(BUILD_DEPENDENCIES)
     if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
       set(OPENSSL_ROOT_DIR "/usr/local/opt/openssl")
     endif()
-  endif() # /BUILD_OPENSSL
+  endif()
 
   find_package(OpenSSL REQUIRED)
   # get openssl dir and pass it to libwebsocket and libsrtp
@@ -170,7 +167,7 @@ if(BUILD_DEPENDENCIES)
   if(NOT EXISTS ${OPEN_SOURCE_DIR}/libwebsockets)
     # build libwebsockets
     configure_file(
-      ${CMAKE_CURRENT_SOURCE_DIR}/cmake-scripts/libwebsockets-CMakeLists.txt
+      ${CMAKE_SOURCE_DIR}/cmake-scripts/libwebsockets-CMakeLists.txt
       ${OPEN_SOURCE_DIR}/libwebsockets/CMakeLists.txt COPYONLY)
     execute_process(
       COMMAND ${CMAKE_COMMAND} -DBUILD_STATIC=${BUILD_STATIC} -DOPENSSL_DIR=${OPENSSL_DIR} -G ${CMAKE_GENERATOR} .
@@ -190,10 +187,10 @@ if(BUILD_DEPENDENCIES)
 
   if(NOT EXISTS ${OPEN_SOURCE_DIR}/libsrtp)
     # build libsrtp
-    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake-scripts/libsrtp-CMakeLists.txt
+    configure_file(${CMAKE_SOURCE_DIR}/cmake-scripts/libsrtp-CMakeLists.txt
                    ${OPEN_SOURCE_DIR}/libsrtp/CMakeLists.txt COPYONLY)
     execute_process(
-      COMMAND ${CMAKE_COMMAND} -DBUILD_STATIC=${BUILD_STATIC} -DOPENSSL_DIR=${OPENSSL_DIR} -DBUILD_LIBSRTP_HOST_PLATFORM=${BUILD_LIBSRTP_HOST_PLATFORM} -DBUILD_LIBSRTP_DESTINATION_PLATFORM=${BUILD_LIBSRTP_DESTINATION_PLATFORM} -DOPEN_SRC_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX} -G ${CMAKE_GENERATOR} .
+      COMMAND ${CMAKE_COMMAND} -DOPENSSL_DIR=${OPENSSL_DIR} -DBUILD_LIBSRTP_HOST_PLATFORM=${BUILD_LIBSRTP_HOST_PLATFORM} -DBUILD_LIBSRTP_DESTINATION_PLATFORM=${BUILD_LIBSRTP_DESTINATION_PLATFORM} -DOPEN_SRC_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX} -G ${CMAKE_GENERATOR} .
       RESULT_VARIABLE result
       WORKING_DIRECTORY ${OPEN_SOURCE_DIR}/libsrtp)
     if(result)
@@ -210,7 +207,7 @@ if(BUILD_DEPENDENCIES)
 
   if(NOT EXISTS ${OPEN_SOURCE_DIR}/libusrsctp)
     # build libusrsctp
-    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake-scripts/libusrsctp-CMakeLists.txt
+    configure_file(${CMAKE_SOURCE_DIR}/cmake-scripts/libusrsctp-CMakeLists.txt
                    ${OPEN_SOURCE_DIR}/libusrsctp/CMakeLists.txt COPYONLY)
     execute_process(
       COMMAND ${CMAKE_COMMAND} -G ${CMAKE_GENERATOR} .
@@ -230,7 +227,7 @@ if(BUILD_DEPENDENCIES)
 
   if(NOT EXISTS ${OPEN_SOURCE_DIR}/libjsmn)
     # build libjsmn
-    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake-scripts/libjsmn-CMakeLists.txt
+    configure_file(${CMAKE_SOURCE_DIR}/cmake-scripts/libjsmn-CMakeLists.txt
                    ${OPEN_SOURCE_DIR}/libjsmn/CMakeLists.txt COPYONLY)
     execute_process(
       COMMAND ${CMAKE_COMMAND} -G ${CMAKE_GENERATOR} .
@@ -250,7 +247,7 @@ if(BUILD_DEPENDENCIES)
 
   if(NOT EXISTS ${OPEN_SOURCE_DIR}/libgtest)
     # build gtest
-    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake-scripts/libgtest-CMakeLists.txt
+    configure_file(${CMAKE_SOURCE_DIR}/cmake-scripts/libgtest-CMakeLists.txt
                    ${OPEN_SOURCE_DIR}/libgtest/CMakeLists.txt COPYONLY)
     execute_process(
       COMMAND ${CMAKE_COMMAND} -G ${CMAKE_GENERATOR} .
@@ -435,7 +432,6 @@ target_link_libraries(
   ${${LIBSRTP_LIB_VARNAME}}
   ${Jsmn}
   ${Usrsctp})
-
 
 add_library(kvsWebrtcSignalingClient ${LINKAGE}
             ${WEBRTC_SIGNALING_CLIENT_SOURCE_FILES})
