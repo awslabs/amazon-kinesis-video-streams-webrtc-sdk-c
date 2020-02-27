@@ -119,7 +119,7 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
                   |       B < 2   -+--> forward to STUN
                   +----------------+
     */
-    if (buff[0] >= 20 && buff[0] <= 63) {
+    if (buff[0] > 19 && buff[0] < 64) {
         dtlsSessionProcessPacket(pKvsPeerConnection->pDtlsSession, buff, &signedBuffLen);
 
         if (signedBuffLen > 0) {
@@ -137,7 +137,7 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
             }
         }
 
-    } else if ((buff[0] >= 127 && buff[0] <= 192) && (pKvsPeerConnection->pSrtpSession != NULL)) {
+    } else if ((buff[0] > 127 && buff[0] < 192) && (pKvsPeerConnection->pSrtpSession != NULL)) {
         if (buff[1] >= 192 && buff[1] <= 223) {
             if (STATUS_FAILED(retStatus = decryptSrtcpPacket(pKvsPeerConnection->pSrtpSession, buff, &signedBuffLen))) {
                 DLOGW("decryptSrtcpPacket failed with 0x%08x", retStatus);
