@@ -182,7 +182,7 @@ TEST_F(PeerConnectionFunctionalityTest, exchangeMedia)
 
 
 
-TEST_F(PeerConnectionFunctionalityTest, exchangeMediaThroughTurnRandomStop)
+TEST_F(PeerConnectionFunctionalityTest, DISABLED_exchangeMediaThroughTurnRandomStop)
 {
     if (!mAccessKeyIdSet) {
         return;
