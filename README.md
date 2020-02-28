@@ -76,6 +76,8 @@ You can pass the following options to `cmake ..`.
 * `-DBUILD_OPENSSL_PLATFORM` -- If buildng OpenSSL what is the target platform
 * `-DBUILD_LIBSRTP_HOST_PLATFORM` -- If buildng LibSRTP what is the current platform
 * `-DBUILD_LIBSRTP_DESTINATION_PLATFORM` -- If buildng LibSRTP what is the destination platform
+* `-DBUILD_LIBCURL_HOST_PLATFORM` -- If buildng LibCurl what is the current platform
+* `-DBUILD_LIBCURL_DESTINATION_PLATFORM` -- If buildng LibCurl what is the destination platform
 * `-DBUILD_TEST=TRUE` -- Build unit/integration tests, may be useful for confirm support for your device. `./tst/webrtc_client_test`
 * `-DCODE_COVERAGE` --  Enable coverage reporting
 * `-DCOMPILER_WARNINGS` -- Enable all compiler warnings

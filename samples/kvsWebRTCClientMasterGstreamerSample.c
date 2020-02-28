@@ -3,8 +3,9 @@
 #include <gst/app/gstappsink.h>
 
 extern PSampleConfiguration gSampleConfiguration;
+static BOOL gStreamingStarted = FALSE;
 
-GstFlowReturn on_new_sample(GstElement *sink, gpointer data, UINT64 trackid)
+GstFlowReturn on_new_sample(GstElement *sink, gpointer data, UINT64 trackId)
 {
     GstBuffer *buffer;
     BOOL isDroppable, delta;
@@ -12,7 +13,7 @@ GstFlowReturn on_new_sample(GstElement *sink, gpointer data, UINT64 trackid)
     GstSample *sample = NULL;
     GstMapInfo info;
     GstSegment *segment;
-    GstClockTime buf_pts;
+    GstClockTime buf_pts, buf_dts;
     Frame frame;
     STATUS retStatus = STATUS_SUCCESS, status;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) data;
@@ -38,9 +39,14 @@ GstFlowReturn on_new_sample(GstElement *sink, gpointer data, UINT64 trackid)
 
         frame.flags = delta ? FRAME_FLAG_NONE : FRAME_FLAG_KEY_FRAME;
 
+        if (frame.flags != FRAME_FLAG_NONE) {
+            gStreamingStarted = TRUE;
+        }
+
         // convert from segment timestamp to running time in live mode.
         segment = gst_sample_get_segment(sample);
         buf_pts = gst_segment_to_running_time(segment, GST_FORMAT_TIME, buffer->pts);
+        buf_dts = gst_segment_to_running_time(segment, GST_FORMAT_TIME, buffer->dts);
         if (!GST_CLOCK_TIME_IS_VALID(buf_pts)) {
             DLOGD("Frame contains invalid PTS dropping the frame.");
             CHK(FALSE, retStatus);
@@ -48,7 +54,7 @@ GstFlowReturn on_new_sample(GstElement *sink, gpointer data, UINT64 trackid)
 
         CHK(gst_buffer_map(buffer, &info, GST_MAP_READ), retStatus);
 
-        frame.trackId = trackid;
+        frame.trackId = trackId;
         frame.duration = 0;
         frame.version = FRAME_CURRENT_VERSION;
         frame.size = (UINT32) info.size;
@@ -61,7 +67,7 @@ GstFlowReturn on_new_sample(GstElement *sink, gpointer data, UINT64 trackid)
                 pSampleStreamingSession = pSampleConfiguration->sampleStreamingSessionList[i];
                 frame.index = (UINT32) ATOMIC_INCREMENT(&pSampleStreamingSession->frameIndex);
 
-                if (trackid == DEFAULT_AUDIO_TRACK_ID) {
+                if (trackId == DEFAULT_AUDIO_TRACK_ID) {
                     pRtcRtpTransceiver = pSampleStreamingSession->pAudioRtcRtpTransceiver;
                     frame.presentationTs = pSampleStreamingSession->audioTimestamp;
                     frame.decodingTs = frame.presentationTs;
@@ -81,6 +87,16 @@ GstFlowReturn on_new_sample(GstElement *sink, gpointer data, UINT64 trackid)
             }
             ATOMIC_DECREMENT(&pSampleConfiguration->streamingSessionListReadingThreadCount);
         }
+
+        // Output the frame to KVS stream as well
+        if (IS_VALID_STREAM_HANDLE(pSampleConfiguration->streamHandle) && gStreamingStarted) {
+            frame.presentationTs = buf_pts / DEFAULT_TIME_UNIT_IN_NANOS;
+            frame.decodingTs = buf_dts / DEFAULT_TIME_UNIT_IN_NANOS;
+            status = putKinesisVideoFrame(pSampleConfiguration->streamHandle, &frame);
+            if (STATUS_FAILED(status)) {
+                DLOGD("putKinesisVideoFrame failed with 0x%08x", status);
+            }
+        }
     }
 
 CleanUp:
@@ -97,7 +113,7 @@ CleanUp:
         ret = GST_FLOW_EOS;
     }
 
-    return ret;
+    return STATUS_FAILED(retStatus) ? GST_FLOW_ERROR : ret;
 }
 
 GstFlowReturn on_new_sample_video(GstElement *sink, gpointer data) {
@@ -284,6 +300,13 @@ INT32 main(INT32 argc, CHAR *argv[])
     SignalingClientCallbacks signalingClientCallbacks;
     SignalingClientInfo clientInfo;
     PSampleConfiguration pSampleConfiguration = NULL;
+    CLIENT_HANDLE clientHandle = INVALID_CLIENT_HANDLE_VALUE;
+    STREAM_HANDLE streamHandle = INVALID_STREAM_HANDLE_VALUE;
+    PDeviceInfo pDeviceInfo = NULL;
+    PStreamInfo pStreamInfo = NULL;
+    PClientCallbacks pClientCallbacks = NULL;
+    PAwsCredentials pAwsCredentials;
+    BOOL persistence = FALSE;
 
     signal(SIGINT, sigintHandler);
 
@@ -356,15 +379,58 @@ INT32 main(INT32 argc, CHAR *argv[])
     CHK_STATUS(signalingClientConnectSync(pSampleConfiguration->signalingClientHandle));
     printf("[KVS GStreamer Master] Signaling client connection to socket established\n");
 
+    if (argc > 3) {
+        // Enabling persistence if the second argument is supplied with the stream name
+        printf("[KVS Master] Streaming to KVS stream %s\n", argv[3]);
+
+        // Create KVS stream object graph
+        CHK_STATUS(createDefaultDeviceInfo(&pDeviceInfo));
+        if (pSampleConfiguration->mediaType == SAMPLE_STREAMING_VIDEO_ONLY) {
+            CHK_STATUS(createRealtimeVideoStreamInfoProvider(argv[3], DEFAULT_RETENTION_PERIOD,
+                                                             DEFAULT_BUFFER_DURATION, &pStreamInfo));
+        } else {
+            CHK_STATUS(createRealtimeAudioVideoStreamInfoProvider(argv[3], DEFAULT_RETENTION_PERIOD,
+                                                             DEFAULT_BUFFER_DURATION, &pStreamInfo));
+        }
+        CHK_STATUS(pSampleConfiguration->pCredentialProvider->getCredentialsFn(
+                pSampleConfiguration->pCredentialProvider, &pAwsCredentials));
+        CHK_STATUS(createDefaultCallbacksProviderWithAwsCredentials(pAwsCredentials->accessKeyId,
+                                                                    pAwsCredentials->secretKey,
+                                                                    pAwsCredentials->sessionToken,
+                                                                    MAX_UINT64,
+                                                                    pSampleConfiguration->channelInfo.pRegion,
+                                                                    pSampleConfiguration->pCaCertPath,
+                                                                    NULL,
+                                                                    NULL,
+                                                                    FALSE,
+                                                                    &pClientCallbacks));
+
+        CHK_STATUS(createKinesisVideoClient(pDeviceInfo, pClientCallbacks, &clientHandle));
+        CHK_STATUS(createKinesisVideoStreamSync(clientHandle, pStreamInfo, &streamHandle));
+        persistence = TRUE;
+    }
+
     printf("[KVS Gstreamer Master] Beginning streaming...check the stream over channel %s\n",
             (argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME));
 
+    // Store the client and the stream handles in the config
+    pSampleConfiguration->clientHandle = clientHandle;
+    pSampleConfiguration->streamHandle = streamHandle;
+
     gSampleConfiguration = pSampleConfiguration;
+
+    if (persistence) {
+        CHK_STATUS(startSenderMediaThreads(pSampleConfiguration));
+    }
 
     // Checking for termination
     CHK_STATUS(sessionCleanupWait(pSampleConfiguration));
 
-    printf("[KVS GStreamer Master] Streaming session terminated\n");
+    printf("[KVS GStreamer Master] Streaming session terminated. Awaiting for the stream termination.\n");
+
+    CHK_STATUS(stopKinesisVideoStreamSync(streamHandle));
+    CHK_STATUS(freeKinesisVideoStream(&streamHandle));
+    CHK_STATUS(freeKinesisVideoClient(&clientHandle));
 
 CleanUp:
 
@@ -384,6 +450,13 @@ CleanUp:
         CHK_LOG_ERR_NV(freeSignalingClient(&pSampleConfiguration->signalingClientHandle));
         CHK_LOG_ERR_NV(freeSampleConfiguration(&pSampleConfiguration));
     }
+
+    CHK_LOG_ERR_NV(freeDeviceInfo(&pDeviceInfo));
+    CHK_LOG_ERR_NV(freeStreamInfoProvider(&pStreamInfo));
+    CHK_LOG_ERR_NV(freeKinesisVideoStream(&streamHandle));
+    CHK_LOG_ERR_NV(freeKinesisVideoClient(&clientHandle));
+    CHK_LOG_ERR_NV(freeCallbacksProvider(&pClientCallbacks));
+
     printf("[KVS Gstreamer Master] Cleanup done\n");
     return (INT32) retStatus;
 }

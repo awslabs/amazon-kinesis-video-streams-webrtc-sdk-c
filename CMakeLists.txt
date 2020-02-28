@@ -398,7 +398,7 @@ include_directories(${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/ice)
 include_directories(${KINESIS_VIDEO_PRODUCER_C_SRC}/src/include)
 
 set(BUILD_COMMON_LWS TRUE CACHE BOOL "Build ProducerC with LWS Support" FORCE)
-set(BUILD_COMMON_CURL FALSE CACHE BOOL "Build ProducerC without CURL Support" FORCE)
+set(BUILD_COMMON_CURL TRUE CACHE BOOL "Build ProducerC without CURL Support" FORCE)
 add_subdirectory(${KINESIS_VIDEO_PRODUCER_C_SRC} ./kvscproducer EXCLUDE_FROM_ALL)
 
 add_library(kvsWebrtcClient SHARED ${WEBRTC_CLIENT_SOURCE_FILES})
@@ -425,7 +425,7 @@ add_executable(
   ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/Common.c
   ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/kvsWebRTCClientMaster.c)
 target_link_libraries(kvsWebrtcClientMaster kvsWebrtcClient
-                      kvsWebrtcSignalingClient)
+                      kvsWebrtcSignalingClient cproducer)
 
 add_executable(
   kvsWebrtcClientViewer
@@ -446,7 +446,7 @@ if(GST_FOUND)
     ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/kvsWebRTCClientMasterGstreamerSample.c
   )
   target_link_libraries(kvsWebrtcClientMasterGstSample kvsWebrtcClient
-                        kvsWebrtcSignalingClient ${GST_SAMPLE_LIBRARIES})
+                        kvsWebrtcSignalingClient cproducer ${GST_SAMPLE_LIBRARIES})
 endif()
 
 if(BUILD_TEST)
