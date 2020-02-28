@@ -398,7 +398,22 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
     SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%d", mediaSectionId);
     attributeCount++;
 
-    STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "sendrecv");
+    switch(pKvsRtpTransceiver->transceiver.direction) {
+    case RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV:
+        STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "sendrecv");
+        break;
+    case RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY:
+        STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "sendonly");
+        break;
+    case RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY:
+        STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "recvonly");
+        break;
+    default:
+        // https://www.w3.org/TR/webrtc/#dom-rtcrtptransceiverdirection
+        DLOGW("Incorrect/no transceiver direction set...this attribute will be set to inactive");
+        STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "inactive");
+    }
+
     attributeCount++;
 
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtcp-mux");
