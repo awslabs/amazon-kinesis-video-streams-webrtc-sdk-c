@@ -101,7 +101,8 @@ STATUS jitterBufferPush(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket)
         pJitterBuffer->lastPushTimestamp = pRtpPacket->header.timestamp;
     }
 
-    if (pRtpPacket->header.timestamp < pJitterBuffer->maxLatency || pRtpPacket->header.timestamp >= pJitterBuffer->lastPushTimestamp - pJitterBuffer->maxLatency) {
+    if ((pRtpPacket->header.timestamp < pJitterBuffer->maxLatency && pJitterBuffer->lastPushTimestamp <= pJitterBuffer->maxLatency)
+        || pRtpPacket->header.timestamp >= pJitterBuffer->lastPushTimestamp - pJitterBuffer->maxLatency) {
         pCurPacket = pJitterBuffer->pktBuffer[pRtpPacket->header.sequenceNumber];
         if (pCurPacket != NULL) {
             freeRtpPacket(&pCurPacket);
@@ -110,6 +111,9 @@ STATUS jitterBufferPush(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket)
         pJitterBuffer->pktBuffer[pRtpPacket->header.sequenceNumber] = pRtpPacket;
         pJitterBuffer->lastPopTimestamp = MIN(pJitterBuffer->lastPopTimestamp, pRtpPacket->header.timestamp);
         DLOGS("jitterBufferPush get packet timestamp %lu seqNum %lu", pRtpPacket->header.timestamp, pRtpPacket->header.sequenceNumber);
+    } else {
+        // Free the packet if it is out of range, jitter buffer need to own the packet and do free
+        freeRtpPacketAndRawPacket(&pRtpPacket);
     }
 
     CHK_STATUS(jitterBufferPop(pJitterBuffer, FALSE));

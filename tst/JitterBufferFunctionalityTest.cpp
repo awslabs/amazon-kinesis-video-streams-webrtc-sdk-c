@@ -720,6 +720,56 @@ TEST_F(JitterBufferFunctionalityTest, getFrameReadyAfterDroppedFrame)
     clearJitterBufferForTest();
 }
 
+TEST_F(JitterBufferFunctionalityTest, pushFrameArrivingLate)
+{
+    UINT32 i = 0;
+    initializeJitterBuffer(1, 0, 2);
+
+    // First frame "1" at timestamp 3000 - rtp packet #1
+    mPRtpPackets[0]->payloadLength = 1;
+    mPRtpPackets[0]->payload = (PBYTE) MEMALLOC(mPRtpPackets[0]->payloadLength + 1);
+    mPRtpPackets[0]->payload[0] = 1;
+    mPRtpPackets[0]->payload[1] = 1; // First packet of a frame
+    mPRtpPackets[0]->header.timestamp = 3000;
+    mPRtpPackets[0]->header.sequenceNumber = 1;
+
+    // Expected to get frame "1" at timestamp 3000
+    mPExpectedFrameArr[0] = (PBYTE) MEMALLOC(1);
+    mPExpectedFrameArr[0][0] = 1;
+    mExpectedFrameSizeArr[0] = 1;
+
+    // Second frame "0" at timestamp 200 - rtp packet #0
+    mPRtpPackets[1]->payloadLength = 1;
+    mPRtpPackets[1]->payload = (PBYTE) MEMALLOC(mPRtpPackets[1]->payloadLength + 1);
+    mPRtpPackets[1]->payload[0] = 0;
+    mPRtpPackets[1]->payload[1] = 1; // First packet of a frame
+    mPRtpPackets[1]->header.timestamp = 200;
+    mPRtpPackets[1]->header.sequenceNumber = 0;
+
+    // No drop frame/frame ready for second frame as it is not pushed into jitter buffer but should get freed
+
+    setPayloadToFree();
+
+    for (i = 0; i < 2; i++) {
+        EXPECT_EQ(STATUS_SUCCESS, jitterBufferPush(mJitterBuffer, mPRtpPackets[i]));
+        switch (i) {
+            case 0:
+                EXPECT_EQ(0, mReadyFrameIndex);
+                EXPECT_EQ(0, mDroppedFrameIndex);
+                break;
+            case 1:
+                EXPECT_EQ(0, mReadyFrameIndex);
+                EXPECT_EQ(0, mDroppedFrameIndex);
+                break;
+            default:
+                ASSERT_TRUE(FALSE);
+        }
+
+    }
+
+    clearJitterBufferForTest();
+}
+
 }
 }
 }
