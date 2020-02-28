@@ -247,13 +247,21 @@ TEST_F(PeerConnectionFunctionalityTest, exchangeMediaThroughTurnRandomStop)
 
             std::this_thread::sleep_for(std::chrono::milliseconds(streamingTimeMs));
 
+            DLOGD("stop offer 1");
             ATOMIC_STORE_BOOL(&offerStopVideo, TRUE);
+            DLOGD("stop offer 2");
             offerSendVideoWorker.join();
+            DLOGD("stop offer 3");
             freePeerConnection(&offerPc);
+            DLOGD("stop offer done");
 
+            DLOGD("stop answer 1");
             ATOMIC_STORE_BOOL(&answerStopVideo, TRUE);
+            DLOGD("stop answer 2");
             answerSendVideoWorker.join();
+            DLOGD("stop answer 3");
             freePeerConnection(&answerPc);
+            DLOGD("stop answer done");
 
             if (expectSeenVideo) {
                 EXPECT_EQ(ATOMIC_LOAD_BOOL(&offerSeenVideo), TRUE);
