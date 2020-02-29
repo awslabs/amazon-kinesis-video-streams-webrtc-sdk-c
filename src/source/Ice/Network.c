@@ -41,22 +41,21 @@ STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen,
 
             // If filter is set, ensure the details are collected for the interface
             if(filterSet == TRUE) {
-                 if (ifa->ifa_addr->sa_family == AF_INET) {
+                if (ifa->ifa_addr->sa_family == AF_INET) {
                     destIpList[ipCount].family = KVS_IP_FAMILY_TYPE_IPV4;
                     destIpList[ipCount].port = 0;
                     pIpv4Addr = (struct sockaddr_in *) ifa->ifa_addr;
                     MEMCPY(destIpList[ipCount].address, &pIpv4Addr->sin_addr, IPV4_ADDRESS_LENGTH);
 
-                 } else {
+                } else {
                     destIpList[ipCount].family = KVS_IP_FAMILY_TYPE_IPV6;
                     destIpList[ipCount].port = 0;
                     pIpv6Addr = (struct sockaddr_in6 *) ifa->ifa_addr;
                     MEMCPY(destIpList[ipCount].address, &pIpv6Addr->sin6_addr, IPV6_ADDRESS_LENGTH);
+                }
 
-                 }
-
-                 // in case of overfilling destIpList
-                 ipCount++;
+                // in case of overfilling destIpList
+                ipCount++;
             }
         }
     }

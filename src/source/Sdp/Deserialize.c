@@ -9,7 +9,7 @@ STATUS deserializeVersion(UINT64 version, PCHAR *ppOutputData, PUINT32 pTotalWri
 
     currentWriteSize = SNPRINTF(*ppOutputData,
                            (*ppOutputData) == NULL ? 0 : *pBufferSize - *pTotalWritten,
-                           SDP_VERSION_MARKER"%llu\n",
+                           SDP_VERSION_MARKER"%" PRIu64 "\n",
                            version);
 
     CHK(*ppOutputData == NULL || ((*pBufferSize - *pTotalWritten) >= currentWriteSize), STATUS_BUFFER_TOO_SMALL);
@@ -40,7 +40,7 @@ STATUS deserializeOrigin(PSdpOrigin pSDPOrigin, PCHAR *ppOutputData, PUINT32 pTo
 
         currentWriteSize = SNPRINTF(*ppOutputData,
                                (*ppOutputData) == NULL ? 0 : *pBufferSize - *pTotalWritten,
-                               SDP_ORIGIN_MARKER"%s %llu %llu %s %s %s\n",
+                               SDP_ORIGIN_MARKER"%s %" PRIu64 " %" PRIu64 " %s %s %s\n",
                                pSDPOrigin->userName,
                                pSDPOrigin->sessionId,
                                pSDPOrigin->sessionVersion,
@@ -94,7 +94,7 @@ STATUS deserializeTimeDescription(PSdpTimeDescription pSDPTimeDescription, PCHAR
 
     currentWriteSize = SNPRINTF(*ppOutputData,
                            (*ppOutputData) == NULL ? 0 : *pBufferSize - *pTotalWritten,
-                           SDP_TIME_DESCRIPTION_MARKER"%llu %llu\n",
+                           SDP_TIME_DESCRIPTION_MARKER"%" PRIu64 " %" PRIu64 "\n",
                            pSDPTimeDescription->startTime,
                            pSDPTimeDescription->stopTime);
 

@@ -83,6 +83,9 @@ public:
         channelInfo.reconnect = TRUE;
         channelInfo.pCertPath = mCaCertPath;
         channelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
+        if ((channelInfo.pRegion = getenv(DEFAULT_REGION_ENV_VAR)) == NULL) {
+            channelInfo.pRegion = (PCHAR) TEST_DEFAULT_REGION;
+        }
 
         retStatus = createSignalingClientSync(&clientInfo, &channelInfo, &signalingClientCallbacks,
                 (PAwsCredentialProvider) mTestCredentialProvider,
