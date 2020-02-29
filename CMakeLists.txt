@@ -304,6 +304,7 @@ if("${CMAKE_C_COMPILER_ID}" MATCHES "GNU|Clang")
     enableSanitizer("undefined")
   endif()
 
+  find_package(Threads)
   find_package(PkgConfig REQUIRED)
   set(ENV{PKG_CONFIG_PATH}
       "$ENV{PKG_CONFIG_PATH}:${KINESIS_VIDEO_OPEN_SOURCE_SRC}/lib/pkgconfig")

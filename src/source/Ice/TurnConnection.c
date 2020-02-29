@@ -874,7 +874,6 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
     switch (pTurnConnection->state) {
         case TURN_STATE_NEW:
             // find a host address to create new socket
-            // TODO currently we use the first address found. Need to handle case when VPN is involved.
             CHK_STATUS(getLocalhostIpAddresses(localhostIps,
                                                &localhostIpsLen,
                                                pTurnConnection->iceSetInterfaceFilterFunc,
