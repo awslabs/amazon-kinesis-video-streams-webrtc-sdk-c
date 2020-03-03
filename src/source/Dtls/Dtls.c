@@ -77,26 +77,38 @@ CleanUp:
     return retStatus;
 }
 
-STATUS createCertificateAndKey(INT32 certificateBits, X509 **ppCert, EVP_PKEY **ppPkey)
+STATUS createCertificateAndKey(INT32 certificateBits, BOOL generateRSACertificate, X509 **ppCert, EVP_PKEY **ppPkey)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     BIGNUM *pBne = NULL;
     RSA *pRsa = NULL;
     X509_NAME *pX509Name = NULL;
-
+    UINT32 eccGroup = 0;
+    EC_KEY *eccKey = NULL;
 
     CHK(ppCert != NULL && ppPkey != NULL, STATUS_NULL_ARG);
-
-    CHK((pBne = BN_new()) != NULL, STATUS_CERTIFICATE_GENERATION_FAILED);
-    CHK(BN_set_word(pBne, RSA_F4) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);
-
     CHK((*ppPkey = EVP_PKEY_new()) != NULL, STATUS_CERTIFICATE_GENERATION_FAILED);
 
-    CHK((pRsa = RSA_new()) != NULL, STATUS_CERTIFICATE_GENERATION_FAILED);
-    CHK(RSA_generate_key_ex(pRsa, certificateBits, pBne, NULL) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);
-    CHK((EVP_PKEY_assign_RSA(*ppPkey, pRsa)) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);
-    pRsa = NULL;
+    if (generateRSACertificate) {
+        CHK((pBne = BN_new()) != NULL, STATUS_CERTIFICATE_GENERATION_FAILED);
+        CHK(BN_set_word(pBne, RSA_F4) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);
+
+
+        CHK((pRsa = RSA_new()) != NULL, STATUS_CERTIFICATE_GENERATION_FAILED);
+        CHK(RSA_generate_key_ex(pRsa, certificateBits, pBne, NULL) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);
+        CHK((EVP_PKEY_assign_RSA(*ppPkey, pRsa)) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);
+        pRsa = NULL;
+    } else {
+        CHK((eccGroup = OBJ_txt2nid("prime256v1")) != NID_undef, STATUS_CERTIFICATE_GENERATION_FAILED);
+        CHK((eccKey = EC_KEY_new_by_curve_name(eccGroup)) != NULL, STATUS_CERTIFICATE_GENERATION_FAILED);
+
+        // void, never fails
+        EC_KEY_set_asn1_flag(eccKey, OPENSSL_EC_NAMED_CURVE);
+
+        CHK(EC_KEY_generate_key(eccKey) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);
+        CHK(EVP_PKEY_assign_EC_KEY(*ppPkey, eccKey) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);
+    }
 
     CHK((*ppCert = X509_new()), STATUS_CERTIFICATE_GENERATION_FAILED);
     X509_set_version(*ppCert, 2);
@@ -239,7 +251,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS createDtlsSession(PDtlsSessionCallbacks pDtlsSessionCallbacks, TIMER_QUEUE_HANDLE timerQueueHandle, INT32 certificateBits, PDtlsSession* ppDtlsSession)
+STATUS createDtlsSession(PDtlsSessionCallbacks pDtlsSessionCallbacks, TIMER_QUEUE_HANDLE timerQueueHandle, INT32 certificateBits, BOOL generateRSACertificate, PDtlsSession* ppDtlsSession)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -261,7 +273,7 @@ STATUS createDtlsSession(PDtlsSessionCallbacks pDtlsSessionCallbacks, TIMER_QUEU
         certificateBits = GENERATED_CERTIFICATE_BITS;
     }
 
-    CHK_STATUS(createCertificateAndKey(certificateBits, &(pDtlsSession->pCert), &(pDtlsSession->pKey)));
+    CHK_STATUS(createCertificateAndKey(certificateBits, generateRSACertificate, &(pDtlsSession->pCert), &(pDtlsSession->pKey)));
     CHK_STATUS(createSslCtx(pDtlsSession->pCert, pDtlsSession->pKey, &(pDtlsSession->pSslCtx)));
     CHK_STATUS(createSsl(pDtlsSession->pSslCtx, &(pDtlsSession->pSsl)));
 
