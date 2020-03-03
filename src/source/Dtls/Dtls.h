@@ -70,10 +70,10 @@ typedef struct {
     MUTEX sslLock;
 } DtlsSession, *PDtlsSession;
 
-STATUS createCertificateAndKey(INT32, X509 **ppCert, EVP_PKEY **ppPkey);
+STATUS createCertificateAndKey(INT32, BOOL, X509 **ppCert, EVP_PKEY **ppPkey);
 STATUS freeCertificateAndKey(X509 **ppCert, EVP_PKEY **ppPkey);
 
-STATUS createDtlsSession(PDtlsSessionCallbacks, TIMER_QUEUE_HANDLE, INT32, PDtlsSession*);
+STATUS createDtlsSession(PDtlsSessionCallbacks, TIMER_QUEUE_HANDLE, INT32, BOOL, PDtlsSession*);
 STATUS freeDtlsSession(PDtlsSession*);
 
 STATUS dtlsSessionStart(PDtlsSession, BOOL);

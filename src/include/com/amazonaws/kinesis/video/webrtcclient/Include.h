@@ -659,6 +659,10 @@ typedef struct {
     // If unset GENERATED_CERTIFICATE_BITS will be used
     INT32 generatedCertificateBits;
 
+    // generateRSACertificate controls if an ECDSA or RSA certificate is generated. By default we generate an ECDSA
+    // certificate but some platforms may not support them.
+    BOOL generateRSACertificate;
+
     // Socket send buffer len. Item larger then this size will get dropped. Use system default if 0.
     UINT32 sendBufSize;
 

@@ -180,6 +180,60 @@ TEST_F(PeerConnectionFunctionalityTest, exchangeMedia)
     EXPECT_EQ(ATOMIC_LOAD(&seenVideo), 1);
 }
 
+// Same test as exchangeMedia, but assert that if one side is RSA DTLS and Key Extraction works
+TEST_F(PeerConnectionFunctionalityTest, exchangeMediaRSA)
+{
+    if (!mAccessKeyIdSet) {
+        return;
+    }
+
+    auto const frameBufferSize = 200000;
+
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    RtcMediaStreamTrack offerVideoTrack, answerVideoTrack, offerAudioTrack, answerAudioTrack;
+    PRtcRtpTransceiver offerVideoTransceiver, answerVideoTransceiver, offerAudioTransceiver, answerAudioTransceiver;
+    SIZE_T seenVideo = 0;
+    Frame videoFrame;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    MEMSET(&videoFrame, 0x00, SIZEOF(Frame));
+
+    videoFrame.frameData = (PBYTE) MEMALLOC(frameBufferSize);
+    videoFrame.size = TEST_VIDEO_FRAME_SIZE;
+    MEMSET(videoFrame.frameData, 0x11, videoFrame.size);
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    configuration.kvsRtcConfiguration.generateRSACertificate = TRUE;
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    addTrackToPeerConnection(offerPc, &offerVideoTrack, &offerVideoTransceiver,RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+    addTrackToPeerConnection(offerPc, &offerAudioTrack, &offerAudioTransceiver,RTC_CODEC_OPUS, MEDIA_STREAM_TRACK_KIND_AUDIO);
+    addTrackToPeerConnection(answerPc, &answerVideoTrack, &answerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+    addTrackToPeerConnection(answerPc, &answerAudioTrack, &answerAudioTransceiver, RTC_CODEC_OPUS, MEDIA_STREAM_TRACK_KIND_AUDIO);
+
+    auto onFrameHandler = [](UINT64 customData, PFrame pFrame) -> void {
+        UNUSED_PARAM(pFrame);
+        ATOMIC_STORE((PSIZE_T) customData, 1);
+    };
+    EXPECT_EQ(transceiverOnFrame(answerVideoTransceiver, (UINT64) &seenVideo, onFrameHandler), STATUS_SUCCESS);
+
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+
+    for (auto i = 0; i <= 1000 && ATOMIC_LOAD(&seenVideo) != 1; i++) {
+        EXPECT_EQ(writeFrame(offerVideoTransceiver, &videoFrame), STATUS_SUCCESS);
+        videoFrame.presentationTs += (HUNDREDS_OF_NANOS_IN_A_SECOND / 25);
+
+        THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+
+    MEMFREE(videoFrame.frameData);
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+
+    EXPECT_EQ(ATOMIC_LOAD(&seenVideo), 1);
+}
+
 
 
 TEST_F(PeerConnectionFunctionalityTest, DISABLED_exchangeMediaThroughTurnRandomStop)

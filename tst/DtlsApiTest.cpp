@@ -10,7 +10,7 @@ TEST_F(DtlsApiTest, createCertificateAndKey_Returns_Success)
     X509 *pCert = NULL;
     EVP_PKEY *pKey = NULL;
 
-    EXPECT_EQ(createCertificateAndKey(GENERATED_CERTIFICATE_BITS, &pCert, &pKey), STATUS_SUCCESS);
+    EXPECT_EQ(createCertificateAndKey(GENERATED_CERTIFICATE_BITS, FALSE, &pCert, &pKey), STATUS_SUCCESS);
     EXPECT_NE(pCert, nullptr);
     EXPECT_NE(pKey, nullptr);
 
