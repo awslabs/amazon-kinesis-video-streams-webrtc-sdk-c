@@ -354,6 +354,8 @@ CleanUp:
         SAFE_MEMFREE(pIceCandidate);
     }
 
+    CHK_LOG_ERR_NV(retStatus);
+
     LEAVES();
     return retStatus;
 }
@@ -952,13 +954,17 @@ STATUS iceAgentSendSrflxCandidateRequest(PIceAgent pIceAgent)
             switch(pCandidate->iceCandidateType) {
                 case ICE_CANDIDATE_TYPE_SERVER_REFLEXIVE:
                     pIceServer = &(pIceAgent->iceServers[pCandidate->iceServerIndex]);
-                    CHK_STATUS(iceUtilsSendStunPacket(pIceAgent->pBindingRequest,
-                                                      NULL,
-                                                      0,
-                                                      &pIceServer->ipAddress,
-                                                      pCandidate->pSocketConnection,
-                                                      NULL,
-                                                      FALSE));
+                    retStatus =  iceUtilsSendStunPacket(pIceAgent->pBindingRequest,
+                                                        NULL,
+                                                        0,
+                                                        &pIceServer->ipAddress,
+                                                        pCandidate->pSocketConnection,
+                                                        NULL,
+                                                        FALSE);
+                    if (STATUS_FAILED(retStatus)) {
+                        DLOGD("iceUtilsSendStunPacket failed with 0x%08x", retStatus);
+                        retStatus = STATUS_SUCCESS;
+                    }
 
                     break;
 
