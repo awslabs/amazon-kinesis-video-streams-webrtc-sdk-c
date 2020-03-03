@@ -53,13 +53,14 @@ STATUS onRtcpRembPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
             CHK(item != 0, STATUS_INTERNAL_ERROR);
 
             pTransceiver = (PKvsRtpTransceiver) item;
-            if (pTransceiver->sender.ssrc != ssrcList[i]) {
+            if (pTransceiver->sender.ssrc != ssrcList[i] && pTransceiver->sender.rtxSsrc != ssrcList[i]) {
                 pTransceiver = NULL;
             }
 
             pCurNode = pCurNode->pNext;
         }
-        CHK_ERR(pTransceiver != NULL, STATUS_RTCP_INPUT_SSRC_INVALID, "Receiving REMB for non existing ssrcs: ssrc %lu", ssrcList[i]);
+
+        CHK_ERR(pTransceiver != NULL, STATUS_RTCP_INPUT_SSRC_INVALID, "Received REMB for non existing ssrcs: ssrc %lu", ssrcList[i]);
         if (pTransceiver->onBandwidthEstimation != NULL) {
             pTransceiver->onBandwidthEstimation(pTransceiver->onBandwidthEstimationCustomData, maximumBitRate);
         }
