@@ -28,6 +28,7 @@ STATUS stepSignalingStateMachine(PSignalingClient pSignalingClient, STATUS statu
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 i;
     BOOL locked = FALSE;
+    UINT64 currentTime;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
@@ -42,13 +43,25 @@ STATUS stepSignalingStateMachine(PSignalingClient pSignalingClient, STATUS statu
         CHK(FALSE, status);
     }
 
-    CHK(pSignalingClient->stepUntil == 0 || GETTIME() <= pSignalingClient->stepUntil, STATUS_OPERATION_TIMED_OUT);
+    currentTime = GETTIME();
+
+    CHK(pSignalingClient->stepUntil == 0 || currentTime <= pSignalingClient->stepUntil, STATUS_OPERATION_TIMED_OUT);
 
     // Check if the status is any of the retry/failed statuses
     if (STATUS_FAILED(status)) {
         for (i = 0; i < SIGNALING_STATE_MACHINE_STATE_COUNT; i++) {
             CHK(status != SIGNALING_STATE_MACHINE_STATES[i].status, SIGNALING_STATE_MACHINE_STATES[i].status);
         }
+    }
+
+    // Fix-up the expired credentials transition
+    // NOTE: Api Gateway might not return an error that can be interpreted as unauthorized to
+    // make the correct transition to auth integration state.
+    if (status == STATUS_SERVICE_CALL_NOT_AUTHORIZED_ERROR ||
+        (SERVICE_CALL_UNKNOWN == (SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) &&
+        pSignalingClient->pAwsCredentials->expiration < currentTime)) {
+        // Set the call status as auth error
+        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_NOT_AUTHORIZED);
     }
 
     // Step the state machine
@@ -266,6 +279,11 @@ STATUS fromDescribeSignalingState(UINT64 customData, PUINT64 pState)
             state = SIGNALING_STATE_CREATE;
             break;
 
+        case SERVICE_CALL_FORBIDDEN:
+        case SERVICE_CALL_NOT_AUTHORIZED:
+            state = SIGNALING_STATE_GET_TOKEN;
+            break;
+
         default:
             break;
     }
@@ -295,8 +313,22 @@ STATUS executeDescribeSignalingState(UINT64 customData, UINT64 time)
                 SIGNALING_CLIENT_STATE_DESCRIBE));
     }
 
+    // Call pre hook func
+    if (pSignalingClient->clientInfo.describePreHookFn != NULL) {
+        retStatus = pSignalingClient->clientInfo.describePreHookFn(SIGNALING_STATE_DESCRIBE,
+                pSignalingClient->clientInfo.hookCustomData);
+    }
+
     // Call DescribeChannel API
-    retStatus = describeChannelLws(pSignalingClient, time);
+    if (STATUS_SUCCEEDED(retStatus)) {
+        retStatus = describeChannelLws(pSignalingClient, time);
+    }
+
+    // Call post hook func
+    if (pSignalingClient->clientInfo.describePostHookFn != NULL) {
+        retStatus = pSignalingClient->clientInfo.describePostHookFn(SIGNALING_STATE_DESCRIBE,
+                pSignalingClient->clientInfo.hookCustomData);
+    }
 
     CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
 
@@ -315,11 +347,23 @@ STATUS fromCreateSignalingState(UINT64 customData, PUINT64 pState)
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
     UINT64 state = SIGNALING_STATE_CREATE;
+    SIZE_T result;
 
     CHK(pSignalingClient != NULL && pState != NULL, STATUS_NULL_ARG);
 
-    if ((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK) {
-        state = SIGNALING_STATE_DESCRIBE;
+    result = ATOMIC_LOAD(&pSignalingClient->result);
+    switch (result) {
+        case SERVICE_CALL_RESULT_OK:
+            state = SIGNALING_STATE_DESCRIBE;
+            break;
+
+        case SERVICE_CALL_FORBIDDEN:
+        case SERVICE_CALL_NOT_AUTHORIZED:
+            state = SIGNALING_STATE_GET_TOKEN;
+            break;
+
+        default:
+            break;
     }
 
     *pState = state;
@@ -347,7 +391,20 @@ STATUS executeCreateSignalingState(UINT64 customData, UINT64 time)
                 SIGNALING_CLIENT_STATE_CREATE));
     }
 
-    retStatus = createChannelLws(pSignalingClient, time);
+    if (pSignalingClient->clientInfo.createPreHookFn != NULL) {
+        retStatus = pSignalingClient->clientInfo.createPreHookFn(SIGNALING_STATE_CREATE,
+                pSignalingClient->clientInfo.hookCustomData);
+    }
+
+    if (STATUS_SUCCEEDED(retStatus)) {
+        retStatus = createChannelLws(pSignalingClient, time);
+    }
+
+    if (pSignalingClient->clientInfo.createPostHookFn != NULL) {
+        retStatus = pSignalingClient->clientInfo.createPostHookFn(SIGNALING_STATE_CREATE,
+                pSignalingClient->clientInfo.hookCustomData);
+    }
+
     CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
 
     // Reset the ret status
@@ -365,11 +422,23 @@ STATUS fromGetEndpointSignalingState(UINT64 customData, PUINT64 pState)
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
     UINT64 state = SIGNALING_STATE_GET_ENDPOINT;
+    SIZE_T result;
 
     CHK(pSignalingClient != NULL && pState != NULL, STATUS_NULL_ARG);
 
-    if ((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK) {
-        state = SIGNALING_STATE_GET_ICE_CONFIG;
+    result = ATOMIC_LOAD(&pSignalingClient->result);
+    switch (result) {
+        case SERVICE_CALL_RESULT_OK:
+            state = SIGNALING_STATE_GET_ICE_CONFIG;
+            break;
+
+        case SERVICE_CALL_FORBIDDEN:
+        case SERVICE_CALL_NOT_AUTHORIZED:
+            state = SIGNALING_STATE_GET_TOKEN;
+            break;
+
+        default:
+            break;
     }
 
     *pState = state;
@@ -397,7 +466,20 @@ STATUS executeGetEndpointSignalingState(UINT64 customData, UINT64 time)
                 SIGNALING_CLIENT_STATE_GET_ENDPOINT));
     }
 
-    retStatus = getChannelEndpointLws(pSignalingClient, time);
+    if (pSignalingClient->clientInfo.getEndpointPreHookFn != NULL) {
+        retStatus = pSignalingClient->clientInfo.getEndpointPreHookFn(SIGNALING_STATE_GET_ENDPOINT,
+                pSignalingClient->clientInfo.hookCustomData);
+    }
+
+    if (STATUS_SUCCEEDED(retStatus)) {
+        retStatus = getChannelEndpointLws(pSignalingClient, time);
+    }
+
+    if (pSignalingClient->clientInfo.getEndpointPostHookFn != NULL) {
+        retStatus = pSignalingClient->clientInfo.getEndpointPostHookFn(SIGNALING_STATE_GET_ENDPOINT,
+                pSignalingClient->clientInfo.hookCustomData);
+    }
+
     CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
 
     // Reset the ret status
@@ -415,11 +497,23 @@ STATUS fromGetIceConfigSignalingState(UINT64 customData, PUINT64 pState)
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
     UINT64 state = SIGNALING_STATE_GET_ICE_CONFIG;
+    SIZE_T result;
 
     CHK(pSignalingClient != NULL && pState != NULL, STATUS_NULL_ARG);
 
-    if ((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK) {
-        state = SIGNALING_STATE_READY;
+    result = ATOMIC_LOAD(&pSignalingClient->result);
+    switch (result) {
+        case SERVICE_CALL_RESULT_OK:
+            state = SIGNALING_STATE_READY;
+            break;
+
+        case SERVICE_CALL_FORBIDDEN:
+        case SERVICE_CALL_NOT_AUTHORIZED:
+            state = SIGNALING_STATE_GET_TOKEN;
+            break;
+
+        default:
+            break;
     }
 
     *pState = state;
@@ -447,7 +541,20 @@ STATUS executeGetIceConfigSignalingState(UINT64 customData, UINT64 time)
                 SIGNALING_CLIENT_STATE_GET_ICE_CONFIG));
     }
 
-    retStatus = getIceConfigLws(pSignalingClient, time);
+    if (pSignalingClient->clientInfo.getIceConfigPreHookFn != NULL) {
+        retStatus = pSignalingClient->clientInfo.getIceConfigPreHookFn(SIGNALING_STATE_GET_ICE_CONFIG,
+                pSignalingClient->clientInfo.hookCustomData);
+    }
+
+    if (STATUS_SUCCEEDED(retStatus)) {
+        retStatus = getIceConfigLws(pSignalingClient, time);
+    }
+
+    if (pSignalingClient->clientInfo.getIceConfigPostHookFn != NULL) {
+        retStatus = pSignalingClient->clientInfo.getIceConfigPostHookFn(SIGNALING_STATE_GET_ICE_CONFIG,
+                pSignalingClient->clientInfo.hookCustomData);
+    }
+
     CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
 
     // Reset the ret status
@@ -555,8 +662,16 @@ STATUS fromConnectSignalingState(UINT64 customData, PUINT64 pState)
             state = SIGNALING_STATE_GET_ENDPOINT;
             break;
 
+        case SERVICE_CALL_NETWORK_CONNECTION_TIMEOUT:
+        case SERVICE_CALL_NETWORK_READ_TIMEOUT:
+        case SERVICE_CALL_REQUEST_TIMEOUT:
+        case SERVICE_CALL_GATEWAY_TIMEOUT:
+            // Attempt to get a new endpoint
+            state = SIGNALING_STATE_GET_ENDPOINT;
+            break;
+
         default:
-            state = SIGNALING_STATE_DESCRIBE;
+            state = SIGNALING_STATE_GET_TOKEN;
             break;
     }
 
@@ -583,12 +698,24 @@ STATUS executeConnectSignalingState(UINT64 customData, UINT64 time)
                 SIGNALING_CLIENT_STATE_CONNECTING));
     }
 
-    // No need to reconnect again if already connected. This can happen if we get to this state after ice refresh
-    if (!ATOMIC_LOAD_BOOL(&pSignalingClient->connected)) {
-        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
-        retStatus = connectSignalingChannelLws(pSignalingClient, time);
-    } else {
-        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_OK);
+    if (pSignalingClient->clientInfo.connectPreHookFn != NULL) {
+        retStatus = pSignalingClient->clientInfo.connectPreHookFn(SIGNALING_STATE_CONNECT,
+                pSignalingClient->clientInfo.hookCustomData);
+    }
+
+    if (STATUS_SUCCEEDED(retStatus)) {
+        // No need to reconnect again if already connected. This can happen if we get to this state after ice refresh
+        if (!ATOMIC_LOAD_BOOL(&pSignalingClient->connected)) {
+            ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
+            retStatus = connectSignalingChannelLws(pSignalingClient, time);
+        } else {
+            ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_OK);
+        }
+    }
+
+    if (pSignalingClient->clientInfo.connectPostHookFn != NULL) {
+        retStatus = pSignalingClient->clientInfo.connectPostHookFn(SIGNALING_STATE_CONNECT,
+                pSignalingClient->clientInfo.hookCustomData);
     }
 
     CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
@@ -647,7 +774,7 @@ STATUS fromConnectedSignalingState(UINT64 customData, PUINT64 pState)
             break;
 
         default:
-            state = SIGNALING_STATE_DESCRIBE;
+            state = SIGNALING_STATE_GET_TOKEN;
             break;
     }
 
@@ -691,15 +818,24 @@ STATUS fromDisconnectedSignalingState(UINT64 customData, PUINT64 pState)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
-    UINT64 state = SIGNALING_STATE_DISCONNECTED;
+    UINT64 state = SIGNALING_STATE_CONNECT;
+    SIZE_T result;
 
     CHK(pSignalingClient != NULL && pState != NULL, STATUS_NULL_ARG);
 
     // See if we need to retry first of all
     CHK(pSignalingClient->pChannelInfo->reconnect, STATUS_SUCCESS);
 
-    // Attempt to reconnect
-    state = SIGNALING_STATE_CONNECT;
+    result = ATOMIC_LOAD(&pSignalingClient->result);
+    switch (result) {
+        case SERVICE_CALL_FORBIDDEN:
+        case SERVICE_CALL_NOT_AUTHORIZED:
+            state = SIGNALING_STATE_GET_TOKEN;
+            break;
+
+        default:
+            break;
+    }
 
     *pState = state;
 

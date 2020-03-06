@@ -218,6 +218,8 @@ extern "C" {
 #define STATUS_SIGNALING_ICE_TTL_LESS_THAN_GRACE_PERIOD                             STATUS_SIGNALING_BASE + 0x0000002C
 #define STATUS_SIGNALING_DISCONNECTED_CALLBACK_FAILED                               STATUS_SIGNALING_BASE + 0x0000002D
 #define STATUS_SIGNALING_INVALID_MESSAGE_TTL_VALUE                                  STATUS_SIGNALING_BASE + 0x0000002E
+#define STATUS_SIGNALING_ICE_CONFIG_REFRESH_FAILED                                  STATUS_SIGNALING_BASE + 0x0000002F
+#define STATUS_SIGNALING_RECONNECT_FAILED                                           STATUS_SIGNALING_BASE + 0x00000030
 
 //
 // PeerConnection related errors starting from 0x5e000000
@@ -788,7 +790,7 @@ typedef enum {
 
     // Max value for the enum
     SIGNALING_CLIENT_STATE_MAX_VALUE,
-} SIGNALING_CLIENT_STATE;
+} SIGNALING_CLIENT_STATE, *PSIGNALING_CLIENT_STATE;
 
 /**
  * Channel type as reported by the service
@@ -1442,6 +1444,26 @@ PUBLIC_API STATUS signalingClientGetIceConfigInfo(SIGNALING_CLIENT_HANDLE, UINT3
  * @return - STATUS code of the execution
  */
 PUBLIC_API STATUS signalingClientConnectSync(SIGNALING_CLIENT_HANDLE);
+
+/*
+ * Gets the Signaling client current state.
+ *
+ * @param - SIGNALING_CLIENT_HANDLE - IN - Signaling client handle
+ * @param - PSIGNALING_CLIENT_STATE - OUT - Current state of the signaling client as an UINT32 enum
+ *
+ * @return - STATUS code of the execution
+ */
+PUBLIC_API STATUS signalingClientGetCurrentState(SIGNALING_CLIENT_HANDLE, PSIGNALING_CLIENT_STATE);
+
+/*
+ * Gets a literal string representing a Signaling client state.
+ *
+ * @param - SIGNALING_CLIENT_STATE - IN - Signaling client state
+ * @param - PCHAR* - OUT - Read only string representing the state
+ *
+ * @return - STATUS code of the execution
+ */
+PUBLIC_API STATUS signalingClientGetStateString(SIGNALING_CLIENT_STATE, PCHAR*);
 
 #ifdef  __cplusplus
 }

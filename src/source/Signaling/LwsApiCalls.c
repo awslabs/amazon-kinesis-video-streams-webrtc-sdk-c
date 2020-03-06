@@ -83,7 +83,6 @@ INT32 lwsHttpCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
             // TODO: Attempt to get more meaningful service return code
 
             ATOMIC_STORE_BOOL(&pRequestInfo->terminating, TRUE);
-            ATOMIC_STORE_BOOL(&pLwsCallInfo->pSignalingClient->connected, FALSE);
             ATOMIC_STORE(&pLwsCallInfo->pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
 
             break;
@@ -1321,14 +1320,18 @@ CleanUp:
     CHK_LOG_ERR_NV(retStatus);
 
     if (STATUS_FAILED(retStatus) && pSignalingClient != NULL) {
+        // Fix-up the timeout case
+        SERVICE_CALL_RESULT serviceCallResult = (retStatus == STATUS_OPERATION_TIMED_OUT) ?
+                SERVICE_CALL_NETWORK_CONNECTION_TIMEOUT :
+                SERVICE_CALL_UNKNOWN;
         // Trigger termination
         if (!ATOMIC_LOAD_BOOL(&pSignalingClient->listenerTracker.terminated) &&
             pSignalingClient->pOngoingCallInfo != NULL &&
             pSignalingClient->pOngoingCallInfo->callInfo.pRequestInfo != NULL) {
-            terminateConnectionWithStatus(pSignalingClient, SERVICE_CALL_UNKNOWN);
+            terminateConnectionWithStatus(pSignalingClient, serviceCallResult);
         }
 
-        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
+        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) serviceCallResult);
     }
 
     if (locked) {
@@ -1396,6 +1399,8 @@ PVOID reconnectHandler(PVOID args)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
+    CHAR reconnectErrMsg[SIGNALING_MAX_ERROR_MESSAGE_LEN + 1];
+    UINT32 reconnectErrLen;
     PSignalingClient pSignalingClient = (PSignalingClient) args;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
@@ -1407,22 +1412,27 @@ PVOID reconnectHandler(PVOID args)
     // Indicate that we started
     ATOMIC_STORE_BOOL(&pSignalingClient->reconnecterTracker.terminated, FALSE);
 
-    while (TRUE) {
-        // Check for a shutdown
-        CHK(!ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown), retStatus);
+    // Set the time out before execution
+    pSignalingClient->stepUntil = GETTIME() + SIGNALING_CONNECT_STATE_TIMEOUT;
 
-        retStatus = stepSignalingStateMachine(pSignalingClient, STATUS_SUCCESS);
-
-        // Break out of the loop and terminate the thread
-        CHK(STATUS_FAILED(retStatus), retStatus);
-
-        // Reset the retry count to allow to renew the same state
-        resetStateMachineRetryCount(pSignalingClient->pStateMachine);
-    }
+    // Attempt to reconnect by driving the state machine to connected state
+    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
 
 CleanUp:
 
     if (pSignalingClient != NULL) {
+        // Call the error handler in case of an error
+        if (STATUS_FAILED(retStatus) &&
+            pSignalingClient->signalingClientCallbacks.errorReportFn != NULL) {
+            reconnectErrLen = SNPRINTF(reconnectErrMsg, SIGNALING_MAX_ERROR_MESSAGE_LEN, SIGNALING_RECONNECT_ERROR_MSG, retStatus);
+            reconnectErrMsg[SIGNALING_MAX_ERROR_MESSAGE_LEN] = '\0';
+            pSignalingClient->signalingClientCallbacks.errorReportFn(
+                    pSignalingClient->signalingClientCallbacks.customData,
+                    STATUS_SIGNALING_RECONNECT_FAILED,
+                    reconnectErrMsg,
+                    reconnectErrLen);
+        }
+
         ATOMIC_STORE_BOOL(&pSignalingClient->reconnecterTracker.terminated, TRUE);
 
         // Notify the listeners to unlock

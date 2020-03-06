@@ -38,6 +38,7 @@ typedef struct {
     volatile ATOMIC_BOOL interrupted;
     volatile ATOMIC_BOOL mediaThreadStarted;
     volatile ATOMIC_BOOL updatingSampleStreamingSessionList;
+    volatile ATOMIC_BOOL recreateSignalingClient;
     volatile SIZE_T streamingSessionListReadingThreadCount;
     ChannelInfo channelInfo;
     PCHAR pCaCertPath;
@@ -62,6 +63,8 @@ typedef struct {
     UINT64 customData;
     PSampleStreamingSession sampleStreamingSessionList[DEFAULT_MAX_CONCURRENT_STREAMING_SESSION];
     UINT32 streamingSessionCount;
+    SignalingClientCallbacks signalingClientCallbacks;
+    SignalingClientInfo clientInfo;
 } SampleConfiguration, *PSampleConfiguration;
 
 typedef VOID (*StreamSessionShutdownCallback)(UINT64, PSampleStreamingSession);

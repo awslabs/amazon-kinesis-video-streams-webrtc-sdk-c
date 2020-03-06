@@ -455,6 +455,8 @@ STATUS refreshIceConfigurationCallback(UINT32 timerId, UINT64 scheduledTime, UIN
     STATUS retStatus = STATUS_SUCCESS;
     PStateMachineState pStateMachineState;
     PSignalingClient pSignalingClient = (PSignalingClient) customData;
+    CHAR iceRefreshErrMsg[SIGNALING_MAX_ERROR_MESSAGE_LEN + 1];
+    UINT32 iceRefreshErrLen;
 
     UNUSED_PARAM(timerId);
     UNUSED_PARAM(scheduledTime);
@@ -478,6 +480,18 @@ STATUS refreshIceConfigurationCallback(UINT32 timerId, UINT64 scheduledTime, UIN
 CleanUp:
 
     CHK_LOG_ERR_NV(retStatus);
+
+    // Notify the client in case of an error
+    if (pSignalingClient != NULL && STATUS_FAILED(retStatus) &&
+        pSignalingClient->signalingClientCallbacks.errorReportFn != NULL) {
+        iceRefreshErrLen = SNPRINTF(iceRefreshErrMsg, SIGNALING_MAX_ERROR_MESSAGE_LEN, SIGNALING_ICE_CONFIG_REFRESH_ERROR_MSG, retStatus);
+        iceRefreshErrMsg[SIGNALING_MAX_ERROR_MESSAGE_LEN] = '\0';
+        pSignalingClient->signalingClientCallbacks.errorReportFn(
+                pSignalingClient->signalingClientCallbacks.customData,
+                STATUS_SIGNALING_ICE_CONFIG_REFRESH_FAILED,
+                iceRefreshErrMsg,
+                iceRefreshErrLen);
+    }
 
     LEAVES();
     return retStatus;
