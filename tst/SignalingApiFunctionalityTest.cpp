@@ -829,7 +829,7 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulation)
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
     // Make sure we get ICE candidate refresh before connecting
-    THREAD_SLEEP(6 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+    THREAD_SLEEP(7 * HUNDREDS_OF_NANOS_IN_A_SECOND);
 
     // Check the states
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
@@ -859,7 +859,7 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulation)
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
     // Wait for ICE refresh while connected
-    THREAD_SLEEP(6 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+    THREAD_SLEEP(7 * HUNDREDS_OF_NANOS_IN_A_SECOND);
 
     // This time the states will circle through connecting/connected again
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
@@ -971,7 +971,7 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionNoDis
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
     // Wait for ICE refresh while connected
-    THREAD_SLEEP(6 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+    THREAD_SLEEP(7 * HUNDREDS_OF_NANOS_IN_A_SECOND);
 
     // This time the states will circle through connecting/connected again
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
@@ -1083,7 +1083,7 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionAuthE
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
     // Wait for ICE refresh while connected
-    THREAD_SLEEP(6 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+    THREAD_SLEEP(7 * HUNDREDS_OF_NANOS_IN_A_SECOND);
 
     // This time the states will circle through connecting/connected again
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
