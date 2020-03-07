@@ -350,6 +350,9 @@ extern "C" {
 // Default message ttl value per API ref guide
 #define SIGNALING_DEFAULT_MESSAGE_TTL_VALUE                                         (60 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
+// Signaling states default retry count. This will evaluate to the last call being made 20 seconds in which will hit a timeout first.
+#define SIGNALING_STATES_DEFAULT_RETRY_COUNT                                        10
+
 // Max signaling message payload length
 #define MAX_SIGNALING_MESSAGE_LEN                                                   (10 * 1024)
 

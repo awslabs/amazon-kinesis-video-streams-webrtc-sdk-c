@@ -729,7 +729,8 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
                                                  &pSampleConfiguration->channelInfo,
                                                  &pSampleConfiguration->signalingClientCallbacks,
                                                  pSampleConfiguration->pCredentialProvider,
-                                                 &pSampleConfiguration->signalingClientHandle););
+                                                 &pSampleConfiguration->signalingClientHandle));
+            CHK_STATUS(signalingClientConnectSync(pSampleConfiguration->signalingClientHandle));
 
             // Re-set the variable again
             ATOMIC_STORE_BOOL(&pSampleConfiguration->recreateSignalingClient, FALSE);
