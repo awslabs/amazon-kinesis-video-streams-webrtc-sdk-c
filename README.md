@@ -66,11 +66,15 @@ If you do wish to link to existing libraries you can use the following flags to 
 
 If you wish to cross-compile `CC` and `CXX` are respected when building the library and all its dependencies. You will also need to set `BUILD_OPENSSL_PLATFORM`, `BUILD_LIBSRTP_HOST_PLATFORM` and `BUILD_LIBSRTP_DESTINATION_PLATFORM`. See our [.travis.yml](.travis.yml) for an example of this. Every commit is cross compiled to ensure that it continues to work.
 
+#### Static Builds
+
+If `-DBUILD_STATIC=TRUE` then all dependencies and KVS WebRTC will be bit with static linkage. Static linkage and glibc have [known issues](https://sourceware.org/bugzilla/show_bug.cgi?id=10652), and is not recommended at this time.
 
 #### CMake Arguments
 You can pass the following options to `cmake ..`.
 
-* `-DADD_MUCLIBC` -- Add -muclibc c flag
+* `-DBUILD_STATIC` -- Enable a static build
+* `-DADD_MUCLIBC`  -- Add -muclibc c flag
 * `-DBUILD_DEPENDENCIES` -- Whether or not to build depending libraries from source
 * `-DBUILD_OPENSSL` -- If building dependencies, whether or not building openssl from source
 * `-DBUILD_OPENSSL_PLATFORM` -- If buildng OpenSSL what is the target platform
