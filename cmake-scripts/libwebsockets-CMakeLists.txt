@@ -4,6 +4,14 @@ project(libwebsocket-download NONE)
 
 include(ExternalProject)
 
+if (BUILD_STATIC)
+  set(LWS_WITH_STATIC 1)
+  set(LWS_WITH_SHARED 0)
+else()
+  set(LWS_WITH_STATIC 0)
+  set(LWS_WITH_SHARED 1)
+endif()
+
 ExternalProject_Add(project_libwebsockets
     GIT_REPOSITORY    https://github.com/warmcat/libwebsockets.git
     GIT_TAG           3179323afa81448287a15982755ed0e4a34d80cb
@@ -21,8 +29,8 @@ ExternalProject_Add(project_libwebsockets
         -DLWS_WITHOUT_TEST_SERVER_EXTPOLL=1
         -DLWS_WITHOUT_TEST_PING=1
         -DLWS_WITHOUT_TEST_CLIENT=1
-        -DLWS_WITH_STATIC=0
-        -DLWS_WITH_SHARED=1
+        -DLWS_WITH_STATIC=${LWS_WITH_STATIC}
+        -DLWS_WITH_SHARED=${LWS_WITH_SHARED}
         -DLWS_STATIC_PIC=1
         -DLWS_WITH_ZLIB=0
 # enable for debug output        -DCMAKE_BUILD_TYPE=DEBUG

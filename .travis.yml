@@ -105,6 +105,21 @@ matrix:
       compiler: gcc
       before_script: export CC=gcc-4.4 && mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE
 
+    # Static Build
+    - name: "Static Build"
+      before_install:
+        - mkdir build
+        - docker run -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -w /src/build -dit --name alpine -v $(pwd):/src alpine
+        - alpine() { docker exec -it alpine "$@"; }
+      install:
+        - alpine apk update
+        - alpine apk add alpine-sdk cmake clang linux-headers perl
+      script:
+        - alpine cmake .. -DBUILD_STATIC=TRUE -DBUILD_OPENSSL=TRUE -DBUILD_TEST=TRUE
+        - alpine make
+        - alpine ./tst/webrtc_client_test
+      after_failure: skip # no coredumps in container
+
     # Cross-compilation to ARM, no tests are run
     - name: "ARM Cross-compilation"
       os: linux
@@ -118,5 +133,5 @@ matrix:
       before_script:
         - export CC=arm-linux-gnueabi-gcc CXX=arm-linux-gnueabi-g++
         - mkdir build && cd build
-        - cmake .. -DBUILD_TEST=TRUE -DBUILD_OPENSSL=TRUE -DBUILD_OPENSSL_PLATFORM=linux-generic32 -DBUILD_LIBSRTP_HOST_PLATFORM=x86_64-unknown-linux-gnu -DBUILD_LIBSRTP_DESTINATION_PLATFORM=arm-unknown-linux-uclibcgnueabi
+        - cmake .. -DBUILD_OPENSSL=TRUE -DBUILD_OPENSSL_PLATFORM=linux-generic32 -DBUILD_LIBSRTP_HOST_PLATFORM=x86_64-unknown-linux-gnu -DBUILD_LIBSRTP_DESTINATION_PLATFORM=arm-unknown-linux-uclibcgnueabi
       script: make

@@ -24,6 +24,7 @@ add_executable(webrtc_client_test ${WEBRTC_CLIENT_TEST_SOURCE_FILES})
 target_link_libraries(webrtc_client_test
         kvsWebrtcClient
         kvsWebrtcSignalingClient
+        kvsCommonLws
         GTest::GTest
         GTest::Main
         ${EXE_LIBRARIES}
