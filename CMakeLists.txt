@@ -437,22 +437,23 @@ target_link_libraries(
 add_library(kvsWebrtcSignalingClient ${LINKAGE}
             ${WEBRTC_SIGNALING_CLIENT_SOURCE_FILES})
 
-target_link_libraries(kvsWebrtcSignalingClient PRIVATE kvspicUtils kvspicState
-                      kvspicClient kvsCommonLws)
+target_link_libraries(kvsWebrtcSignalingClient
+        PRIVATE kvspicUtils kvspicState kvspicClient
+        PUBLIC kvsCommonLws)
 
 add_executable(
   kvsWebrtcClientMaster
   ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/Common.c
   ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/kvsWebRTCClientMaster.c)
 target_link_libraries(kvsWebrtcClientMaster kvsWebrtcClient
-                      kvsWebrtcSignalingClient kvsCommonLws)
+                      kvsWebrtcSignalingClient)
 
 add_executable(
   kvsWebrtcClientViewer
   ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/Common.c
   ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/kvsWebRTCClientViewer.c)
 target_link_libraries(kvsWebrtcClientViewer kvsWebrtcClient
-                      kvsWebrtcSignalingClient kvsCommonLws)
+                      kvsWebrtcSignalingClient)
 
 if(COMPILER_WARNINGS)
   target_compile_options(kvsWebrtcClient PUBLIC -Wall -Werror -pedantic -Wextra -Wno-unknown-warning-option)
