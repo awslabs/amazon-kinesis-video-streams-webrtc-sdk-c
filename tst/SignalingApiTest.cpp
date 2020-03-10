@@ -121,6 +121,31 @@ TEST_F(SignalingApiTest, signalingClientGetIceConfigInfo)
     deinitializeSignalingClient();
 }
 
+TEST_F(SignalingApiTest, signalingClientGetCurrentState)
+{
+    SIGNALING_CLIENT_STATE state;
+    initializeSignalingClient();
+    EXPECT_NE(STATUS_SUCCESS, signalingClientGetCurrentState(INVALID_SIGNALING_CLIENT_HANDLE_VALUE, &state));
+    EXPECT_NE(STATUS_SUCCESS, signalingClientGetCurrentState(mSignalingClientHandle, NULL));
+    EXPECT_NE(STATUS_SUCCESS, signalingClientGetCurrentState(INVALID_SIGNALING_CLIENT_HANDLE_VALUE, NULL));
+
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetCurrentState(mSignalingClientHandle, &state));
+    EXPECT_EQ(SIGNALING_CLIENT_STATE_READY, state);
+
+    deinitializeSignalingClient();
+}
+
+TEST_F(SignalingApiTest, signalingClientGetStateString)
+{
+    EXPECT_NE(STATUS_SUCCESS, signalingClientGetStateString(SIGNALING_CLIENT_STATE_UNKNOWN, NULL));
+
+    for (UINT32 i = 0; i <= (UINT32) SIGNALING_CLIENT_STATE_MAX_VALUE + 1; i++) {
+        PCHAR pStateStr;
+        EXPECT_EQ(STATUS_SUCCESS, signalingClientGetStateString((SIGNALING_CLIENT_STATE) i, &pStateStr));
+        DLOGI("Iterating states \"%s\"", pStateStr);
+    }
+}
+
 }
 }
 }

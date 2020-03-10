@@ -71,11 +71,12 @@ INT32 lwsHttpCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
     pBuffer = pLwsCallInfo->buffer + LWS_PRE;
 
     logLevel = loggerGetLogLevel();
+
+    MUTEX_LOCK(pSignalingClient->lwsServiceLock);
+    locked = TRUE;
+
     switch (reason) {
         case LWS_CALLBACK_CLIENT_CONNECTION_ERROR:
-            MUTEX_LOCK(pSignalingClient->lwsServiceLock);
-            locked = TRUE;
-
             pCurPtr = pDataIn == NULL ? "(None)" : (PCHAR) pDataIn;
             DLOGW("Client connection failed. Connection error string: %s", pCurPtr);
             STRNCPY(pLwsCallInfo->callInfo.errorBuffer, pCurPtr, CALL_INFO_ERROR_BUFFER_LEN);
@@ -83,25 +84,17 @@ INT32 lwsHttpCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
             // TODO: Attempt to get more meaningful service return code
 
             ATOMIC_STORE_BOOL(&pRequestInfo->terminating, TRUE);
-            ATOMIC_STORE_BOOL(&pLwsCallInfo->pSignalingClient->connected, FALSE);
             ATOMIC_STORE(&pLwsCallInfo->pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
 
             break;
 
         case LWS_CALLBACK_CLOSED_CLIENT_HTTP:
             DLOGD("Client http closed");
-
-            MUTEX_LOCK(pSignalingClient->lwsServiceLock);
-            locked = TRUE;
-
             ATOMIC_STORE_BOOL(&pRequestInfo->terminating, TRUE);
 
             break;
 
         case LWS_CALLBACK_ESTABLISHED_CLIENT_HTTP:
-            MUTEX_LOCK(pSignalingClient->lwsServiceLock);
-            locked = TRUE;
-
             status = lws_http_client_http_response(wsi);
             DLOGD("Connected with server response: %d", status);
 
@@ -120,9 +113,6 @@ INT32 lwsHttpCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
             break;
 
         case LWS_CALLBACK_RECEIVE_CLIENT_HTTP_READ:
-            MUTEX_LOCK(pSignalingClient->lwsServiceLock);
-            locked = TRUE;
-
             DLOGD("Received client http read: %d bytes", (INT32) dataSize);
 
             if(logLevel > LOG_LEVEL_INFO && logLevel < LOG_LEVEL_SILENT) {
@@ -142,9 +132,6 @@ INT32 lwsHttpCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
             DLOGD("Received client http");
             size = LWS_SCRATCH_BUFFER_SIZE;
 
-            MUTEX_LOCK(pSignalingClient->lwsServiceLock);
-            locked = TRUE;
-
             if (lws_http_client_read(wsi, &pBuffer, &size) < 0) {
                 retValue = -1;
             }
@@ -153,17 +140,10 @@ INT32 lwsHttpCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
 
         case LWS_CALLBACK_COMPLETED_CLIENT_HTTP:
             DLOGD("Http client completed");
-
-            MUTEX_LOCK(pSignalingClient->lwsServiceLock);
-            locked = TRUE;
-
             break;
 
         case LWS_CALLBACK_CLIENT_APPEND_HANDSHAKE_HEADER:
             DLOGD("Client append handshake header\n");
-
-            MUTEX_LOCK(pSignalingClient->lwsServiceLock);
-            locked = TRUE;
 
             CHK_STATUS(singleListGetNodeCount(pRequestInfo->pRequestHeaders, &headerCount));
             ppStartPtr = (PBYTE*) pDataIn;
@@ -212,10 +192,6 @@ INT32 lwsHttpCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
             break;
 
         case LWS_CALLBACK_CLIENT_HTTP_WRITEABLE:
-
-            MUTEX_LOCK(pSignalingClient->lwsServiceLock);
-            locked = TRUE;
-
             DLOGD("Sending the body %.*s, size %d", pRequestInfo->bodySize, pRequestInfo->body, pRequestInfo->bodySize);
             MEMCPY(pBuffer, pRequestInfo->body, pRequestInfo->bodySize);
 
@@ -507,7 +483,7 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
     struct lws_client_connect_info connectInfo;
     struct lws *clientLws;
     struct lws_context* pContext;
-    BOOL secureConnection;
+    BOOL secureConnection, locked = FALSE;
     CHAR path[MAX_URI_CHAR_LEN + 1];
 
     CHK(pCallInfo != NULL && pCallInfo->callInfo.pRequestInfo != NULL && pCallInfo->pSignalingClient != NULL, STATUS_NULL_ARG);
@@ -573,7 +549,11 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
 
     connectInfo.opaque_user_data = pCallInfo;
 
+    MUTEX_LOCK(pCallInfo->pSignalingClient->lwsServiceLock);
+    locked = TRUE;
     CHK(NULL != lws_client_connect_via_info(&connectInfo), STATUS_SIGNALING_LWS_CLIENT_CONNECT_FAILED);
+    MUTEX_UNLOCK(pCallInfo->pSignalingClient->lwsServiceLock);
+    locked = FALSE;
 
     while (retVal >= 0 && !gInterruptedFlagBySignalHandler &&
         pCallInfo->callInfo.pRequestInfo != NULL &&
@@ -587,6 +567,10 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
     }
 
 CleanUp:
+
+    if (locked) {
+        MUTEX_UNLOCK(pCallInfo->pSignalingClient->lwsServiceLock);
+    }
 
     LEAVES();
     return retStatus;
@@ -1321,14 +1305,18 @@ CleanUp:
     CHK_LOG_ERR_NV(retStatus);
 
     if (STATUS_FAILED(retStatus) && pSignalingClient != NULL) {
+        // Fix-up the timeout case
+        SERVICE_CALL_RESULT serviceCallResult = (retStatus == STATUS_OPERATION_TIMED_OUT) ?
+                SERVICE_CALL_NETWORK_CONNECTION_TIMEOUT :
+                SERVICE_CALL_UNKNOWN;
         // Trigger termination
         if (!ATOMIC_LOAD_BOOL(&pSignalingClient->listenerTracker.terminated) &&
             pSignalingClient->pOngoingCallInfo != NULL &&
             pSignalingClient->pOngoingCallInfo->callInfo.pRequestInfo != NULL) {
-            terminateConnectionWithStatus(pSignalingClient, SERVICE_CALL_UNKNOWN);
+            terminateConnectionWithStatus(pSignalingClient, serviceCallResult);
         }
 
-        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
+        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) serviceCallResult);
     }
 
     if (locked) {
@@ -1396,6 +1384,8 @@ PVOID reconnectHandler(PVOID args)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
+    CHAR reconnectErrMsg[SIGNALING_MAX_ERROR_MESSAGE_LEN + 1];
+    UINT32 reconnectErrLen;
     PSignalingClient pSignalingClient = (PSignalingClient) args;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
@@ -1407,22 +1397,27 @@ PVOID reconnectHandler(PVOID args)
     // Indicate that we started
     ATOMIC_STORE_BOOL(&pSignalingClient->reconnecterTracker.terminated, FALSE);
 
-    while (TRUE) {
-        // Check for a shutdown
-        CHK(!ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown), retStatus);
+    // Set the time out before execution
+    pSignalingClient->stepUntil = GETTIME() + SIGNALING_CONNECT_STATE_TIMEOUT;
 
-        retStatus = stepSignalingStateMachine(pSignalingClient, STATUS_SUCCESS);
-
-        // Break out of the loop and terminate the thread
-        CHK(STATUS_FAILED(retStatus), retStatus);
-
-        // Reset the retry count to allow to renew the same state
-        resetStateMachineRetryCount(pSignalingClient->pStateMachine);
-    }
+    // Attempt to reconnect by driving the state machine to connected state
+    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
 
 CleanUp:
 
     if (pSignalingClient != NULL) {
+        // Call the error handler in case of an error
+        if (STATUS_FAILED(retStatus) &&
+            pSignalingClient->signalingClientCallbacks.errorReportFn != NULL) {
+            reconnectErrLen = SNPRINTF(reconnectErrMsg, SIGNALING_MAX_ERROR_MESSAGE_LEN, SIGNALING_RECONNECT_ERROR_MSG, retStatus);
+            reconnectErrMsg[SIGNALING_MAX_ERROR_MESSAGE_LEN] = '\0';
+            pSignalingClient->signalingClientCallbacks.errorReportFn(
+                    pSignalingClient->signalingClientCallbacks.customData,
+                    STATUS_SIGNALING_RECONNECT_FAILED,
+                    reconnectErrMsg,
+                    reconnectErrLen);
+        }
+
         ATOMIC_STORE_BOOL(&pSignalingClient->reconnecterTracker.terminated, TRUE);
 
         // Notify the listeners to unlock
@@ -1522,11 +1517,8 @@ STATUS writeLwsData(PSignalingClient pSignalingClient, BOOL awaitForResponse)
     // Initialize the send result to none
     ATOMIC_STORE(&pSignalingClient->messageResult, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
 
-    // Wake up the loop to service
-    MUTEX_LOCK(pSignalingClient->lwsServiceLock);
-    lws_callback_on_writable_all_protocol(pSignalingClient->pLwsContext,
-                                          &pSignalingClient->signalingProtocols[WSS_SIGNALING_PROTOCOL_INDEX]);
-    MUTEX_UNLOCK(pSignalingClient->lwsServiceLock);
+    // Wake up the service event loop
+    CHK_STATUS(wakeLwsServiceEventLoop(pSignalingClient));
 
     MUTEX_LOCK(pSignalingClient->sendLock);
     sendLocked = TRUE;
@@ -1810,13 +1802,8 @@ STATUS terminateConnectionWithStatus(PSignalingClient pSignalingClient, SERVICE_
         ATOMIC_STORE_BOOL(&pSignalingClient->pOngoingCallInfo->cancelService, TRUE);
     }
 
-    if (pSignalingClient->pLwsContext != NULL) {
-        MUTEX_LOCK(pSignalingClient->lwsServiceLock);
-        lws_callback_on_writable_all_protocol(pSignalingClient->pLwsContext,
-                                              &pSignalingClient->signalingProtocols[WSS_SIGNALING_PROTOCOL_INDEX]);
-        MUTEX_UNLOCK(pSignalingClient->lwsServiceLock);
-    }
-
+    // Wake up the service event loop
+    CHK_STATUS(wakeLwsServiceEventLoop(pSignalingClient));
     CHK_STATUS(awaitForThreadTermination(&pSignalingClient->listenerTracker, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT));
 
 CleanUp:
@@ -1878,8 +1865,10 @@ STATUS terminateLwsListenerLoop(PSignalingClient pSignalingClient)
     }
 
     if (pSignalingClient->pLwsContext != NULL) {
+        MUTEX_LOCK(pSignalingClient->lwsSerializerLock);
         lws_context_destroy(pSignalingClient->pLwsContext);
         pSignalingClient->pLwsContext = NULL;
+        MUTEX_UNLOCK(pSignalingClient->lwsSerializerLock);
     }
 
 CleanUp:
@@ -1912,4 +1901,24 @@ CleanUp:
     SAFE_MEMFREE(pSignalingMessageWrapper);
 
     return (PVOID) (ULONG_PTR) retStatus;
+}
+
+STATUS wakeLwsServiceEventLoop(PSignalingClient pSignalingClient)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+
+    // Early exit in case we don't need to do anything
+    CHK(pSignalingClient != NULL && pSignalingClient->pLwsContext != NULL, retStatus);
+
+    MUTEX_LOCK(pSignalingClient->lwsServiceLock);
+    lws_callback_on_writable_all_protocol(pSignalingClient->pLwsContext,
+                                          &pSignalingClient->signalingProtocols[WSS_SIGNALING_PROTOCOL_INDEX]);
+    MUTEX_UNLOCK(pSignalingClient->lwsServiceLock);
+
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
 }

@@ -3,8 +3,6 @@
 INT32 main(INT32 argc, CHAR *argv[])
 {
     STATUS retStatus = STATUS_SUCCESS;
-    SignalingClientCallbacks signalingClientCallbacks;
-    SignalingClientInfo clientInfo;
     RtcSessionDescriptionInit offerSessionDescriptionInit;
     UINT32 buffLen = 0;
     SignalingMessage message;
@@ -35,17 +33,12 @@ INT32 main(INT32 argc, CHAR *argv[])
 
     printf("[KVS Viewer] KVS WebRTC initialization completed successfully\n");
 
-    signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
-    signalingClientCallbacks.customData = (UINT64) pSampleConfiguration;
-    signalingClientCallbacks.messageReceivedFn = viewerMessageReceived;
-    signalingClientCallbacks.errorReportFn = NULL;
-    signalingClientCallbacks.stateChangeFn = signalingClientStateChanged;
+    pSampleConfiguration->signalingClientCallbacks.messageReceivedFn = viewerMessageReceived;
 
-    clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
-    strcpy(clientInfo.clientId, SAMPLE_VIEWER_CLIENT_ID);
+    strcpy(pSampleConfiguration->clientInfo.clientId, SAMPLE_VIEWER_CLIENT_ID);
 
-    retStatus = createSignalingClientSync(&clientInfo, &pSampleConfiguration->channelInfo,
-                                          &signalingClientCallbacks, pSampleConfiguration->pCredentialProvider,
+    retStatus = createSignalingClientSync(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
+                                          &pSampleConfiguration->signalingClientCallbacks, pSampleConfiguration->pCredentialProvider,
                                           &pSampleConfiguration->signalingClientHandle);
     if(retStatus != STATUS_SUCCESS) {
         printf("[KVS Viewer] createSignalingClientSync(): operation returned status code: 0x%08x \n", retStatus);

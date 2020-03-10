@@ -23,8 +23,33 @@ extern "C" {
 // Termination timeout
 #define SIGNALING_CLIENT_SHUTDOWN_TIMEOUT                                   (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
+// Signaling client state literal definitions
+#define SIGNALING_CLIENT_STATE_UNKNOWN_STR                                  "Unknown"
+#define SIGNALING_CLIENT_STATE_NEW_STR                                      "New"
+#define SIGNALING_CLIENT_STATE_GET_CREDENTIALS_STR                          "Get Security Credentials"
+#define SIGNALING_CLIENT_STATE_DESCRIBE_STR                                 "Describe Channel"
+#define SIGNALING_CLIENT_STATE_CREATE_STR                                   "Create Channel"
+#define SIGNALING_CLIENT_STATE_GET_ENDPOINT_STR                             "Get Channel Endpoint"
+#define SIGNALING_CLIENT_STATE_GET_ICE_CONFIG_STR                           "Get ICE Server Configuration"
+#define SIGNALING_CLIENT_STATE_READY_STR                                    "Ready"
+#define SIGNALING_CLIENT_STATE_CONNECTING_STR                               "Connecting"
+#define SIGNALING_CLIENT_STATE_CONNECTED_STR                                "Connected"
+#define SIGNALING_CLIENT_STATE_DISCONNECTED_STR                             "Disconnected"
+
+// Error refreshing ICE server configuration string
+#define SIGNALING_ICE_CONFIG_REFRESH_ERROR_MSG                              "Failed refreshing ICE server configuration with status code 0x%08x."
+
+// Error reconnecting to the signaling service
+#define SIGNALING_RECONNECT_ERROR_MSG                                       "Failed to reconnect with status code 0x%08x."
+
+// Max error string length
+#define SIGNALING_MAX_ERROR_MESSAGE_LEN                                     512
+
 // Forward declaration
 typedef struct __LwsCallInfo *PLwsCallInfo;
+
+// Testability hooks functions
+typedef STATUS (*SignalingApiCallHookFunc)(UINT64, UINT64);
 
 /**
  * Internal client info object
@@ -42,6 +67,21 @@ typedef struct {
 
     // Injected connect timeout
     UINT64 connectTimeout;
+
+    // Custom data to be passed to the hooks
+    UINT64 hookCustomData;
+
+    // API pre and post ingestion points
+    SignalingApiCallHookFunc describePreHookFn;
+    SignalingApiCallHookFunc describePostHookFn;
+    SignalingApiCallHookFunc createPreHookFn;
+    SignalingApiCallHookFunc createPostHookFn;
+    SignalingApiCallHookFunc getEndpointPreHookFn;
+    SignalingApiCallHookFunc getEndpointPostHookFn;
+    SignalingApiCallHookFunc getIceConfigPreHookFn;
+    SignalingApiCallHookFunc getIceConfigPostHookFn;
+    SignalingApiCallHookFunc connectPreHookFn;
+    SignalingApiCallHookFunc connectPostHookFn;
 } SignalingClientInfoInternal, *PSignalingClientInfoInternal;
 
 /**

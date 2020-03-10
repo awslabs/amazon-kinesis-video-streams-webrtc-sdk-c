@@ -119,7 +119,7 @@ extern "C" {
 #define BLOCK_ON_CORRELATION_ID                                             FALSE
 
 // Service loop iteration wait time when there is an already servicing thread
-#define LWS_SERVICE_LOOP_ITERATION_WAIT                                     (15 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
+#define LWS_SERVICE_LOOP_ITERATION_WAIT                                     (50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
 
 /**
  * Index of the signaling protocol handling WSS
@@ -202,7 +202,7 @@ STATUS writeLwsData(PSignalingClient, BOOL);
 STATUS terminateLwsListenerLoop(PSignalingClient);
 STATUS receiveLwsMessage(PSignalingClient, PCHAR, UINT32);
 STATUS getMessageTypeFromString(PCHAR, UINT32, SIGNALING_MESSAGE_TYPE*);
-
+STATUS wakeLwsServiceEventLoop(PSignalingClient);
 STATUS terminateConnectionWithStatus(PSignalingClient, SERVICE_CALL_RESULT);
 
 #ifdef  __cplusplus

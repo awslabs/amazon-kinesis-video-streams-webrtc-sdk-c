@@ -119,3 +119,89 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
+
+STATUS signalingClientGetCurrentState(SIGNALING_CLIENT_HANDLE signalingClientHandle, PSIGNALING_CLIENT_STATE pState)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    SIGNALING_CLIENT_STATE state = SIGNALING_CLIENT_STATE_UNKNOWN;
+    PSignalingClient pSignalingClient = FROM_SIGNALING_CLIENT_HANDLE(signalingClientHandle);
+    PStateMachineState pStateMachineState;
+
+    DLOGI("Signaling Client Get Current State");
+
+    CHK(pSignalingClient != NULL && pState != NULL, STATUS_NULL_ARG);
+
+    CHK_STATUS(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pStateMachineState));
+    state = getSignalingStateFromStateMachineState(pStateMachineState->state);
+
+CleanUp:
+
+    if (pState != NULL) {
+        *pState = state;
+    }
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS signalingClientGetStateString(SIGNALING_CLIENT_STATE state, PCHAR* ppStateStr)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(ppStateStr != NULL, STATUS_NULL_ARG);
+
+    switch (state) {
+        case SIGNALING_CLIENT_STATE_NEW:
+            *ppStateStr = SIGNALING_CLIENT_STATE_NEW_STR;
+            break;
+
+        case SIGNALING_CLIENT_STATE_GET_CREDENTIALS:
+            *ppStateStr = SIGNALING_CLIENT_STATE_GET_CREDENTIALS_STR;
+            break;
+
+        case SIGNALING_CLIENT_STATE_DESCRIBE:
+            *ppStateStr = SIGNALING_CLIENT_STATE_DESCRIBE_STR;
+            break;
+
+        case SIGNALING_CLIENT_STATE_CREATE:
+            *ppStateStr = SIGNALING_CLIENT_STATE_CREATE_STR;
+            break;
+
+        case SIGNALING_CLIENT_STATE_GET_ENDPOINT:
+            *ppStateStr = SIGNALING_CLIENT_STATE_GET_ENDPOINT_STR;
+            break;
+
+        case SIGNALING_CLIENT_STATE_GET_ICE_CONFIG:
+            *ppStateStr = SIGNALING_CLIENT_STATE_GET_ICE_CONFIG_STR;
+            break;
+
+        case SIGNALING_CLIENT_STATE_READY:
+            *ppStateStr = SIGNALING_CLIENT_STATE_READY_STR;
+            break;
+
+        case SIGNALING_CLIENT_STATE_CONNECTING:
+            *ppStateStr = SIGNALING_CLIENT_STATE_CONNECTING_STR;
+            break;
+
+        case SIGNALING_CLIENT_STATE_CONNECTED:
+            *ppStateStr = SIGNALING_CLIENT_STATE_CONNECTED_STR;
+            break;
+
+        case SIGNALING_CLIENT_STATE_DISCONNECTED:
+            *ppStateStr = SIGNALING_CLIENT_STATE_DISCONNECTED_STR;
+            break;
+
+        case SIGNALING_CLIENT_STATE_MAX_VALUE:
+        case SIGNALING_CLIENT_STATE_UNKNOWN:
+            // Explicit fall-through
+        default:
+            *ppStateStr = SIGNALING_CLIENT_STATE_UNKNOWN_STR;
+    }
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
