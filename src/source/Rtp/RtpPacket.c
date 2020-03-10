@@ -108,7 +108,6 @@ STATUS createRtpPacketFromBytes(PBYTE rawPacket, UINT32 packetLength, PRtpPacket
     CHK(pRtpPacket != NULL, STATUS_NOT_ENOUGH_MEMORY);
     pRtpPacket->pRawPacket = rawPacket;
     pRtpPacket->rawPacketLength = packetLength;
-    CHK(pRtpPacket != NULL, STATUS_NOT_ENOUGH_MEMORY);
     CHK_STATUS(setRtpPacketFromBytes(rawPacket, packetLength, pRtpPacket));
 
 CleanUp:
