@@ -59,14 +59,13 @@ STATUS freeJitterBuffer(PJitterBuffer* ppJitterBuffer)
     PJitterBuffer pJitterBuffer = NULL;
 
     CHK(ppJitterBuffer != NULL, STATUS_NULL_ARG);
-    // freeRtpPacket is idempotent
+    // freeJitterBuffer is idempotent
     CHK(*ppJitterBuffer != NULL, retStatus);
 
     pJitterBuffer = *ppJitterBuffer;
 
-    if (STATUS_FAILED(retStatus = jitterBufferPop(pJitterBuffer, TRUE))) {
-        jitterBufferDropBufferData(pJitterBuffer, 0, MAX_SEQUENCE_NUM, 0);
-    }
+    jitterBufferPop(pJitterBuffer, TRUE);
+    jitterBufferDropBufferData(pJitterBuffer, 0, MAX_SEQUENCE_NUM, 0);
 
     MEMFREE(*ppJitterBuffer);
 
@@ -93,10 +92,6 @@ STATUS jitterBufferPush(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket)
         pJitterBuffer->lastRemovedSequenceNumber = UINT16_DEC(pRtpPacket->header.sequenceNumber);
     }
 
-    // FIXME: Timestamp need to be fixup with the clock Hz for each payloadType,
-    //  it can be fixed before sending into buffer https://sim.amazon.com/issues/KinesisVideo-4537
-    // pRtpPacket->header.timestamp * pRtpPacket->header.clockRate/pJitterBuffer->clockRate?
-
     if (pJitterBuffer->lastPushTimestamp < pRtpPacket->header.timestamp) {
         pJitterBuffer->lastPushTimestamp = pRtpPacket->header.timestamp;
     }
@@ -105,7 +100,7 @@ STATUS jitterBufferPush(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket)
         || pRtpPacket->header.timestamp >= pJitterBuffer->lastPushTimestamp - pJitterBuffer->maxLatency) {
         pCurPacket = pJitterBuffer->pktBuffer[pRtpPacket->header.sequenceNumber];
         if (pCurPacket != NULL) {
-            freeRtpPacket(&pCurPacket);
+            freeRtpPacketAndRawPacket(&pCurPacket);
             pJitterBuffer->pktBuffer[pRtpPacket->header.sequenceNumber] = NULL;
         }
         pJitterBuffer->pktBuffer[pRtpPacket->header.sequenceNumber] = pRtpPacket;
@@ -240,8 +235,7 @@ STATUS jitterBufferDropBufferData(PJitterBuffer pJitterBuffer, UINT16 startIndex
     for (; UINT16_DEC(index) != endIndex; index++) {
         pCurPacket = pJitterBuffer->pktBuffer[index];
         if (pCurPacket != NULL) {
-            SAFE_MEMFREE(pCurPacket->pRawPacket);
-            freeRtpPacket(&pCurPacket);
+            freeRtpPacketAndRawPacket(&pCurPacket);
             pJitterBuffer->pktBuffer[index] = NULL;
         }
     }
