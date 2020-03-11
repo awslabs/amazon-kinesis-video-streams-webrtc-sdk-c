@@ -306,7 +306,7 @@ PVOID sampleReceiveAudioFrame(PVOID args)
                                    sampleFrameHandler);
     if(retStatus != STATUS_SUCCESS)
     {
-        printf("[KVS Master] transceiverOnFrame(): operation returned status code: 0x%08x \n", STATUS_NULL_ARG);
+        printf("[KVS Master] transceiverOnFrame(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;
     }
 
