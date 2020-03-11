@@ -336,10 +336,10 @@ extern "C" {
 #define SIGNALING_DEFAULT_NON_SSL_PORT                                              DEFAULT_NON_SSL_PORT_NUMBER
 
 // Default timeout for the signaling client create
-#define SIGNALING_CREATE_TIMEOUT                                                    (10 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define SIGNALING_CREATE_TIMEOUT                                                    (45 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
 // Default timeout for the overall connect sync API
-#define SIGNALING_CONNECT_STATE_TIMEOUT                                             (15 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define SIGNALING_CONNECT_STATE_TIMEOUT                                             (55 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
 // Default timeout for the connection establishment
 #define SIGNALING_CONNECT_TIMEOUT                                                   (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
