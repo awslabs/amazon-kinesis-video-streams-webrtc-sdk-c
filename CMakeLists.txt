@@ -425,8 +425,14 @@ target_link_libraries(kvsWebrtcSignalingClient
         PUBLIC kvsCommonLws)
 
 if(BUILD_STATIC_LIBS)
-  target_link_options(kvsWebrtcClient PRIVATE -static)
-  target_link_options(kvsWebrtcSignalingClient PRIVATE -static)
+  #target_link_options() was added in CMake 3.13
+  if (CMAKE_VERSION VERSION_LESS 3.13)
+    target_link_libraries(kvsWebrtcClient PRIVATE -static)
+    target_link_libraries(kvsWebrtcSignalingClient PRIVATE -static)
+  else()
+    target_link_options(kvsWebrtcClient PRIVATE -static) 
+    target_link_options(kvsWebrtcSignalingClient PRIVATE -static)
+  endif()
 endif()
 
 
