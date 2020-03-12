@@ -4,7 +4,7 @@ project(libopenssl-download NONE)
 
 find_program(MAKE_EXE NAMES make)
 
-if (BUILD_STATIC)
+if (BUILD_STATIC_LIBS)
   SET(OPENSSL_EXTRA ${OPENSSL_EXTRA} no-shared no-dso)
 endif()
 

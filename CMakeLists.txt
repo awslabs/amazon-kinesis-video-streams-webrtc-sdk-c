@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8)
 project(KinesisVideoWebRTCClient LANGUAGES C)
 
 # User Flags
-option(BUILD_STATIC "Build with static linkage." OFF)
+option(BUILD_STATIC_LIBS "Build with static linkage." OFF)
 option(ADD_MUCLIBC "Add -muclibc c flag" OFF)
 option(BUILD_DEPENDENCIES "Whether or not to build depending libraries from source" ON)
 option(BUILD_OPENSSL "If building dependencies, whether or not building openssl from source" OFF)
@@ -23,8 +23,7 @@ set(CMAKE_MACOSX_RPATH TRUE)
 get_filename_component(ROOT "${CMAKE_CURRENT_SOURCE_DIR}" ABSOLUTE)
 
 # static settings
-if(BUILD_STATIC)
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
+if(BUILD_STATIC_LIBS)
   set(LINKAGE STATIC)
 
   set(USRSCTP_LIBNAME "libusrsctp.a") # todo: why doesn't CMAKE_STATIC_LIBRARY_SUFFIX work on my ubuntu cmake 3.10 system? evaluates to .so
@@ -130,7 +129,7 @@ if(BUILD_DEPENDENCIES)
               ${CMAKE_SOURCE_DIR}/cmake-scripts/libopenssl-CMakeLists.txt
               ${OPEN_SOURCE_DIR}/libopenssl/CMakeLists.txt COPYONLY)
       execute_process(
-              COMMAND ${CMAKE_COMMAND} -DOPENSSL_EXTRA=${OPENSSL_EXTRA} -DBUILD_STATIC=${BUILD_STATIC} -DBUILD_OPENSSL_PLATFORM=${BUILD_OPENSSL_PLATFORM} -DOPEN_SRC_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX} -G ${CMAKE_GENERATOR} .
+              COMMAND ${CMAKE_COMMAND} -DOPENSSL_EXTRA=${OPENSSL_EXTRA} -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS} -DBUILD_OPENSSL_PLATFORM=${BUILD_OPENSSL_PLATFORM} -DOPEN_SRC_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX} -G ${CMAKE_GENERATOR} .
               RESULT_VARIABLE result
               WORKING_DIRECTORY ${OPEN_SOURCE_DIR}/libopenssl)
       if(result)
@@ -170,7 +169,7 @@ if(BUILD_DEPENDENCIES)
       ${CMAKE_SOURCE_DIR}/cmake-scripts/libwebsockets-CMakeLists.txt
       ${OPEN_SOURCE_DIR}/libwebsockets/CMakeLists.txt COPYONLY)
     execute_process(
-      COMMAND ${CMAKE_COMMAND} -DBUILD_STATIC=${BUILD_STATIC} -DOPENSSL_DIR=${OPENSSL_DIR} -G ${CMAKE_GENERATOR} .
+      COMMAND ${CMAKE_COMMAND} -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS} -DOPENSSL_DIR=${OPENSSL_DIR} -G ${CMAKE_GENERATOR} .
       RESULT_VARIABLE result
       WORKING_DIRECTORY ${OPEN_SOURCE_DIR}/libwebsockets)
     if(result)
@@ -190,7 +189,7 @@ if(BUILD_DEPENDENCIES)
     configure_file(${CMAKE_SOURCE_DIR}/cmake-scripts/libsrtp-CMakeLists.txt
                    ${OPEN_SOURCE_DIR}/libsrtp/CMakeLists.txt COPYONLY)
     execute_process(
-      COMMAND ${CMAKE_COMMAND} -DOPENSSL_DIR=${OPENSSL_DIR} -DBUILD_LIBSRTP_HOST_PLATFORM=${BUILD_LIBSRTP_HOST_PLATFORM} -DBUILD_STATIC=${BUILD_STATIC} -DBUILD_LIBSRTP_DESTINATION_PLATFORM=${BUILD_LIBSRTP_DESTINATION_PLATFORM} -DOPEN_SRC_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX} -G ${CMAKE_GENERATOR} .
+      COMMAND ${CMAKE_COMMAND} -DOPENSSL_DIR=${OPENSSL_DIR} -DBUILD_LIBSRTP_HOST_PLATFORM=${BUILD_LIBSRTP_HOST_PLATFORM} -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS} -DBUILD_LIBSRTP_DESTINATION_PLATFORM=${BUILD_LIBSRTP_DESTINATION_PLATFORM} -DOPEN_SRC_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX} -G ${CMAKE_GENERATOR} .
       RESULT_VARIABLE result
       WORKING_DIRECTORY ${OPEN_SOURCE_DIR}/libsrtp)
     if(result)
@@ -441,6 +440,12 @@ target_link_libraries(kvsWebrtcSignalingClient
         PRIVATE kvspicUtils kvspicState kvspicClient
         PUBLIC kvsCommonLws)
 
+if(BUILD_STATIC_LIBS)
+  target_link_options(kvsWebrtcClient PRIVATE -static)
+  target_link_options(kvsWebrtcSignalingClient PRIVATE -static)
+endif()
+
+      
 add_executable(
   kvsWebrtcClientMaster
   ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/Common.c
