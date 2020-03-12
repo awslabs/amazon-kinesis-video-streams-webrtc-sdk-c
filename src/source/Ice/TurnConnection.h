@@ -71,7 +71,7 @@ typedef enum {
 } TURN_CONNECTION_STATE;
 
 typedef enum {
-    TURN_PEER_CONN_STATE_NEW,
+    TURN_PEER_CONN_STATE_CREATE_PERMISSION,
     TURN_PEER_CONN_STATE_BIND_CHANNEL,
     TURN_PEER_CONN_STATE_READY,
     TURN_PEER_CONN_STATE_FAILED,
@@ -97,6 +97,12 @@ typedef struct {
 typedef struct {
     KvsIpAddress address;
     KvsIpAddress xorAddress;
+    /*
+     * Steps to create a turn channel for a peer:
+     *     - create permission
+     *     - channel bind
+     *     - ready to send data
+     */
     TURN_PEER_CONNECTION_STATE connectionState;
     PTransactionIdStore pTransactionIdStore;
     UINT16 channelNumber;

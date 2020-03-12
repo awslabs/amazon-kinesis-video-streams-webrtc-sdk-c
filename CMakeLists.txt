@@ -5,7 +5,6 @@ project(KinesisVideoWebRTCClient LANGUAGES C)
 option(BUILD_STATIC_LIBS "Build with static linkage." OFF)
 option(ADD_MUCLIBC "Add -muclibc c flag" OFF)
 option(BUILD_DEPENDENCIES "Whether or not to build depending libraries from source" ON)
-option(BUILD_OPENSSL "If building dependencies, whether or not building openssl from source" OFF)
 option(BUILD_OPENSSL_PLATFORM "If buildng OpenSSL what is the target platform" OFF)
 option(BUILD_LIBSRTP_HOST_PLATFORM "If buildng LibSRTP what is the current platform" OFF)
 option(BUILD_LIBSRTP_DESTINATION_PLATFORM "If buildng LibSRTP what is the destination platform" OFF)
@@ -118,46 +117,31 @@ if(BUILD_DEPENDENCIES)
 
   set(OPEN_SRC_INSTALL_PREFIX ${CMAKE_SOURCE_DIR}/open-source/local)
 
-  if(BUILD_OPENSSL)
-    if(NOT EXISTS ${OPEN_SOURCE_DIR}/libopenssl)
-      message(STATUS "Rebuilding libraries that depend on openssl")
-      file(REMOVE_RECURSE ${OPEN_SOURCE_DIR}/libwebsockets)
-      file(REMOVE_RECURSE ${OPEN_SOURCE_DIR}/libsrtp)
+  if(NOT EXISTS ${OPEN_SOURCE_DIR}/libopenssl)
+    message(STATUS "Rebuilding libraries that depend on openssl")
+    file(REMOVE_RECURSE ${OPEN_SOURCE_DIR}/libwebsockets)
+    file(REMOVE_RECURSE ${OPEN_SOURCE_DIR}/libsrtp)
 
-      # build openssl
-      configure_file(
-              ${CMAKE_SOURCE_DIR}/cmake-scripts/libopenssl-CMakeLists.txt
-              ${OPEN_SOURCE_DIR}/libopenssl/CMakeLists.txt COPYONLY)
-      execute_process(
-              COMMAND ${CMAKE_COMMAND} -DOPENSSL_EXTRA=${OPENSSL_EXTRA} -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS} -DBUILD_OPENSSL_PLATFORM=${BUILD_OPENSSL_PLATFORM} -DOPEN_SRC_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX} -G ${CMAKE_GENERATOR} .
-              RESULT_VARIABLE result
-              WORKING_DIRECTORY ${OPEN_SOURCE_DIR}/libopenssl)
-      if(result)
-        message(FATAL_ERROR "CMake step for libopenssl failed: ${result}")
-      endif()
-      execute_process(
-              COMMAND ${CMAKE_COMMAND} --build .
-              RESULT_VARIABLE result
-              WORKING_DIRECTORY ${OPEN_SOURCE_DIR}/libopenssl)
-      if(result)
-        message(FATAL_ERROR "CMake step for libopenssl failed: ${result}")
-      endif()
+    # build openssl
+    configure_file(
+            ${CMAKE_SOURCE_DIR}/cmake-scripts/libopenssl-CMakeLists.txt
+            ${OPEN_SOURCE_DIR}/libopenssl/CMakeLists.txt COPYONLY)
+    execute_process(
+            COMMAND ${CMAKE_COMMAND} -DOPENSSL_EXTRA=${OPENSSL_EXTRA} -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS} -DBUILD_OPENSSL_PLATFORM=${BUILD_OPENSSL_PLATFORM} -DOPEN_SRC_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX} -G ${CMAKE_GENERATOR} .
+            RESULT_VARIABLE result
+            WORKING_DIRECTORY ${OPEN_SOURCE_DIR}/libopenssl)
+    if(result)
+      message(FATAL_ERROR "CMake step for libopenssl failed: ${result}")
     endif()
-    set(OPENSSL_ROOT_DIR ${OPEN_SRC_INSTALL_PREFIX})
-
-  else()
-    if(EXISTS ${OPEN_SOURCE_DIR}/libopenssl)
-      # delete openssl built from source otherwise build wont work
-      file(REMOVE_RECURSE ${OPEN_SOURCE_DIR}/libopenssl)
-      message(STATUS "Rebuilding libraries that depend on openssl")
-      file(REMOVE_RECURSE ${OPEN_SOURCE_DIR}/libwebsockets)
-      file(REMOVE_RECURSE ${OPEN_SOURCE_DIR}/libsrtp)
-    endif()
-
-    if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-      set(OPENSSL_ROOT_DIR "/usr/local/opt/openssl")
+    execute_process(
+            COMMAND ${CMAKE_COMMAND} --build .
+            RESULT_VARIABLE result
+            WORKING_DIRECTORY ${OPEN_SOURCE_DIR}/libopenssl)
+    if(result)
+      message(FATAL_ERROR "CMake step for libopenssl failed: ${result}")
     endif()
   endif()
+  set(OPENSSL_ROOT_DIR ${OPEN_SRC_INSTALL_PREFIX})
 
   find_package(OpenSSL REQUIRED)
   # get openssl dir and pass it to libwebsocket and libsrtp
@@ -445,7 +429,7 @@ if(BUILD_STATIC_LIBS)
   target_link_options(kvsWebrtcSignalingClient PRIVATE -static)
 endif()
 
-      
+
 add_executable(
   kvsWebrtcClientMaster
   ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/Common.c

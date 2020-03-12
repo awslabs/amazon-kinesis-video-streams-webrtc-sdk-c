@@ -76,7 +76,6 @@ You can pass the following options to `cmake ..`.
 * `-DBUILD_STATIC` -- Enable a static build
 * `-DADD_MUCLIBC`  -- Add -muclibc c flag
 * `-DBUILD_DEPENDENCIES` -- Whether or not to build depending libraries from source
-* `-DBUILD_OPENSSL` -- If building dependencies, whether or not building openssl from source
 * `-DBUILD_OPENSSL_PLATFORM` -- If buildng OpenSSL what is the target platform
 * `-DBUILD_LIBSRTP_HOST_PLATFORM` -- If buildng LibSRTP what is the current platform
 * `-DBUILD_LIBSRTP_DESTINATION_PLATFORM` -- If buildng LibSRTP what is the destination platform

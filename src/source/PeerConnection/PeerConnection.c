@@ -169,6 +169,7 @@ STATUS sendPacketToRtpReceiver(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuf
     UINT32 ssrc;
     PRtpPacket pRtpPacket;
     PBYTE pPayload = NULL;
+    BOOL ownedByJitterBuffer = FALSE;
 
     CHK(pKvsPeerConnection != NULL && pBuffer != NULL, STATUS_NULL_ARG);
     CHK(bufferLen >= MIN_HEADER_LENGTH, STATUS_INVALID_ARG);
@@ -183,9 +184,10 @@ STATUS sendPacketToRtpReceiver(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuf
         if (pTransceiver->jitterBufferSsrc == ssrc) {
             CHK(NULL != (pPayload = (PBYTE) MEMALLOC(bufferLen)), STATUS_NOT_ENOUGH_MEMORY);
             MEMCPY(pPayload, pBuffer, bufferLen);
-
+            ownedByJitterBuffer = FALSE;
             CHK_STATUS(createRtpPacketFromBytes(pPayload, bufferLen, &pRtpPacket));
             CHK_STATUS(jitterBufferPush(pTransceiver->pJitterBuffer, pRtpPacket));
+            ownedByJitterBuffer = TRUE;
             CHK(FALSE, STATUS_SUCCESS);
         }
         pCurNode = pCurNode->pNext;
@@ -195,6 +197,10 @@ STATUS sendPacketToRtpReceiver(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuf
 
 
 CleanUp:
+    if (!ownedByJitterBuffer) {
+        MEMFREE(pPayload);
+        CHK_LOG_ERR_NV(retStatus);
+    }
     return retStatus;
 }
 

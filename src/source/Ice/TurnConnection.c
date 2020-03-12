@@ -249,7 +249,7 @@ STATUS turnConnectionHandleStun(PTurnConnection pTurnConnection, PSocketConnecti
 
                 pTurnPeer = (PTurnPeer) data;
                 if (transactionIdStoreHasId(pTurnPeer->pTransactionIdStore, pBuffer + STUN_PACKET_TRANSACTION_ID_OFFSET)) {
-                    if (pTurnPeer->connectionState == TURN_PEER_CONN_STATE_NEW) {
+                    if (pTurnPeer->connectionState == TURN_PEER_CONN_STATE_CREATE_PERMISSION) {
                         pTurnPeer->connectionState = TURN_PEER_CONN_STATE_BIND_CHANNEL;
                     }
 
@@ -597,7 +597,7 @@ STATUS turnConnectionAddPeer(PTurnConnection pTurnConnection, PKvsIpAddress pPee
     CHK(pTurnPeer != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
     peerCount++;
-    pTurnPeer->connectionState = TURN_PEER_CONN_STATE_NEW;
+    pTurnPeer->connectionState = TURN_PEER_CONN_STATE_CREATE_PERMISSION;
     pTurnPeer->address = *pPeerAddress;
     pTurnPeer->xorAddress = *pPeerAddress;
     pTurnPeer->channelNumber = peerCount + TURN_CHANNEL_BIND_CHANNEL_NUMBER_BASE;
@@ -857,7 +857,7 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     KvsIpAddress localhostIps[10];
-    UINT32 localhostIpsLen = ARRAY_SIZE(localhostIps), i, readyPeerCount = 0, totalPeerCount = 0, channelBoundPeerCount = 0;
+    UINT32 localhostIpsLen = ARRAY_SIZE(localhostIps), i, readyPeerCount = 0, totalPeerCount = 0, channelWithPermissionCount = 0;
     BOOL hostAddrFound = FALSE;
     UINT64 currentTime = GETTIME();
     PDoubleListNode pCurNode = NULL;
@@ -992,9 +992,11 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
                 pCurNode = pCurNode->pNext;
 
                 pTurnPeer = (PTurnPeer) data;
+                // As soon as create permission succeeded, we start sending channel bind message.
+                // So connectionState could've already advanced to ready state.
                 if (pTurnPeer->connectionState == TURN_PEER_CONN_STATE_BIND_CHANNEL ||
                     pTurnPeer->connectionState == TURN_PEER_CONN_STATE_READY) {
-                    channelBoundPeerCount++;
+                    channelWithPermissionCount++;
                 }
                 totalPeerCount++;
             }
@@ -1006,7 +1008,7 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
             }
 
             if (currentTime >= pTurnConnection->stateTimeoutTime) {
-                CHK(channelBoundPeerCount > 0, STATUS_TURN_CONNECTION_FAILED_TO_CREATE_PERMISSION);
+                CHK(channelWithPermissionCount > 0, STATUS_TURN_CONNECTION_FAILED_TO_CREATE_PERMISSION);
 
                 // go to next state if we have at least one ready peer
                 pTurnConnection->state = TURN_STATE_BIND_CHANNEL;
@@ -1050,7 +1052,7 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
                     pCurNode = pCurNode->pNext;
                     pTurnPeer = (PTurnPeer) data;
 
-                    pTurnPeer->connectionState = TURN_PEER_CONN_STATE_NEW;
+                    pTurnPeer->connectionState = TURN_PEER_CONN_STATE_CREATE_PERMISSION;
                 }
 
                 pTurnConnection->currentTimerCallingPeriod = DEFAULT_TURN_TIMER_INTERVAL_BEFORE_READY;
@@ -1204,7 +1206,7 @@ STATUS turnConnectionTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 cu
                 pCurNode = pCurNode->pNext;
 
                 pTurnPeer = (PTurnPeer) data;
-                if (pTurnPeer->connectionState == TURN_PEER_CONN_STATE_NEW) {
+                if (pTurnPeer->connectionState == TURN_PEER_CONN_STATE_CREATE_PERMISSION) {
                     // update peer address;
                     CHK_STATUS(getStunAttribute(pTurnConnection->pTurnCreatePermissionPacket,
                                                 STUN_ATTRIBUTE_TYPE_XOR_PEER_ADDRESS,
