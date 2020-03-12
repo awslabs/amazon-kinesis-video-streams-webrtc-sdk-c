@@ -17,7 +17,7 @@ ExternalProject_Add(project_libwebsockets
     GIT_TAG           3179323afa81448287a15982755ed0e4a34d80cb
     PREFIX            ${CMAKE_CURRENT_BINARY_DIR}/build
     CMAKE_ARGS
-        -DCMAKE_INSTALL_PREFIX=${CMAKE_SOURCE_DIR}/../local/
+        -DCMAKE_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX}
         -DLWS_WITH_HTTP2=1
         -DLWS_HAVE_HMAC_CTX_new=1
         -DLWS_HAVE_SSL_EXTRA_CHAIN_CERTS=1
