@@ -119,10 +119,6 @@ if(BUILD_DEPENDENCIES)
   set(OPEN_SRC_INSTALL_PREFIX ${CMAKE_SOURCE_DIR}/open-source/local)
 
   if(NOT EXISTS ${OPEN_SOURCE_DIR}/libopenssl)
-    message(STATUS "Rebuilding libraries that depend on openssl")
-    file(REMOVE_RECURSE ${OPEN_SOURCE_DIR}/libwebsockets)
-    file(REMOVE_RECURSE ${OPEN_SOURCE_DIR}/libsrtp)
-
     # build openssl
     configure_file(
             ${CMAKE_SOURCE_DIR}/cmake-scripts/libopenssl-CMakeLists.txt
