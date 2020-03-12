@@ -13,9 +13,9 @@ ExternalProject_Add(project_libjsmn
     BUILD_COMMAND     ${MAKE_EXE} CFLAGS=-fPIC
     BUILD_IN_SOURCE   TRUE
     INSTALL_COMMAND
-        ${CMAKE_COMMAND} -E make_directory ${CMAKE_SOURCE_DIR}/../local/lib &&
-        ${CMAKE_COMMAND} -E make_directory ${CMAKE_SOURCE_DIR}/../local/include &&
-        ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/build/src/project_libjsmn/libjsmn.a ${CMAKE_SOURCE_DIR}/../local/lib &&
-        ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/build/src/project_libjsmn/jsmn.h ${CMAKE_SOURCE_DIR}/../local/include
+        ${CMAKE_COMMAND} -E make_directory ${OPEN_SRC_INSTALL_PREFIX}/lib &&
+        ${CMAKE_COMMAND} -E make_directory ${OPEN_SRC_INSTALL_PREFIX}/include &&
+        ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/build/src/project_libjsmn/libjsmn.a ${OPEN_SRC_INSTALL_PREFIX}/lib &&
+        ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/build/src/project_libjsmn/jsmn.h ${OPEN_SRC_INSTALL_PREFIX}/include
     TEST_COMMAND      ""
 )
