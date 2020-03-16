@@ -26,6 +26,10 @@ TEST_F(PeerConnectionApiTest, deserializeRtcIceCandidateInit)
     auto validCandidate = "{candidate: \"foobar\"}";
     EXPECT_EQ(deserializeRtcIceCandidateInit((PCHAR) validCandidate, STRLEN(validCandidate), &rtcIceCandidateInit), STATUS_SUCCESS);
     EXPECT_STREQ(rtcIceCandidateInit.candidate, "foobar");
+
+    auto validCandidate2 = "{candidate: \"candidate: 1 2 3\", \"sdpMid\": 0}";
+    EXPECT_EQ(deserializeRtcIceCandidateInit((PCHAR) validCandidate2, STRLEN(validCandidate2), &rtcIceCandidateInit), STATUS_SUCCESS);
+    EXPECT_STREQ(rtcIceCandidateInit.candidate, "candidate: 1 2 3");
 }
 
 TEST_F(PeerConnectionApiTest, serializeSessionDescriptionInit)
