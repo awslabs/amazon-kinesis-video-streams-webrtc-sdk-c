@@ -351,7 +351,7 @@ TEST_F(JitterBufferFunctionalityTest, closeBufferWithSingleImcompletePacket)
     mPRtpPackets[1]->payloadLength = 1;
     mPRtpPackets[1]->payload = (PBYTE) MEMALLOC(mPRtpPackets[1]->payloadLength + 1);
     mPRtpPackets[1]->payload[0] = 3;
-    mPRtpPackets[0]->payload[1] = 0; // Following packet of a frame
+    mPRtpPackets[1]->payload[1] = 0; // Following packet of a frame
     mPRtpPackets[1]->header.timestamp = 100;
     mPRtpPackets[1]->header.sequenceNumber = 2;
 
