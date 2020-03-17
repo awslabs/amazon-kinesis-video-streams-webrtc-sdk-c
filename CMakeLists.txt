@@ -118,8 +118,7 @@ pkg_check_modules(LIBSRTP REQUIRED libsrtp2)
 find_library(
   Usrsctp
   NAMES ${USRSCTP_LIBNAME} usrsctp REQUIRED
-  PATHS ${OPEN_SRC_INSTALL_PREFIX}/lib
-  NO_DEFAULT_PATH)
+  PATHS ${OPEN_SRC_INSTALL_PREFIX}/lib)
 
 set(OPEN_SRC_INCLUDE_DIRS ${LIBSRTP_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR}
                           ${CURL_INCLUDE_DIRS} ${LIBWEBSOCKET_INCLUDE_DIRS})
@@ -130,8 +129,7 @@ link_directories(${${LIBWEBSOCKET_LIB_DIR_VARNAME}})
 find_library(
   Jsmn
   NAMES jsmn REQUIRED
-  PATHS ${OPEN_SRC_INSTALL_PREFIX}/lib
-  NO_DEFAULT_PATH)
+  PATHS ${OPEN_SRC_INSTALL_PREFIX}/lib)
 
 pkg_check_modules(GST gstreamer-1.0)
 if(GST_FOUND)
