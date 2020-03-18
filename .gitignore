@@ -1,10 +1,11 @@
 *.iml
 .DS_Store
+.github/github_deploy_key.enc
 .idea
 build
-doc/
 cmake-build-debug/
 cmake-build-release/
+doc/
 open-source/libgtest
 open-source/libjsmn
 open-source/libopenssl
