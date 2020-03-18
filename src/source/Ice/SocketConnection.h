@@ -10,7 +10,8 @@ Socket Connection internal include file
 extern "C" {
 #endif
 
-#define SSL_WRITE_RETRY_DELAY               10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
+#define SSL_WRITE_RETRY_DELAY                       10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
+#define SOCKET_SEND_RETRY_TIMEOUT_MICRO_SECOND      500000
 
 typedef STATUS (*ConnectionDataAvailableFunc)(UINT64, struct __SocketConnection*, PBYTE, UINT32, PKvsIpAddress, PKvsIpAddress);
 

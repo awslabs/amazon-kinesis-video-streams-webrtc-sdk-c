@@ -144,12 +144,14 @@ STATUS socketConnectionSendData(PSocketConnection pSocketConnection, PBYTE pBuf,
 {
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE, iterate = TRUE;
-    INT32 sslRet, sslErr;
+    INT32 sslRet, sslErr, result;
 
     socklen_t addrLen;
     struct sockaddr *destAddr;
     struct sockaddr_in ipv4Addr;
     struct sockaddr_in6 ipv6Addr;
+    fd_set wfds;
+    struct timeval tv;
 
     CHK(pSocketConnection != NULL && pBuf != NULL, STATUS_NULL_ARG);
     CHK(bufLen != 0 && (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_TCP || pDestIp != NULL), STATUS_INVALID_ARG);
@@ -197,8 +199,28 @@ STATUS socketConnectionSendData(PSocketConnection pSocketConnection, PBYTE pBuf,
         }
 
         // sending through UDP never block
-        if (sendto(pSocketConnection->localSocket, pBuf, bufLen, 0, destAddr, addrLen) < 0) {
-            DLOGE("sendto data failed with errno %s", strerror(errno));
+        result = sendto(pSocketConnection->localSocket, pBuf, bufLen, 0, destAddr, addrLen);
+        // In non-blocking mode, socket could return EAGAIN or EWOULDBLOCK if it havent finish previous send.
+        // In that case, use select to wait until socket is ready for write and send again.
+        if (result < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+            FD_ZERO(&wfds);
+            FD_SET(pSocketConnection->localSocket, &wfds);
+            tv.tv_sec = 0;
+            tv.tv_usec = SOCKET_SEND_RETRY_TIMEOUT_MICRO_SECOND;
+            result = select(pSocketConnection->localSocket + 1, NULL, &wfds, NULL, &tv);
+
+            if (result > 0) {
+                result = sendto(pSocketConnection->localSocket, pBuf, bufLen, 0, destAddr, addrLen);
+            } else if (result == 0) {
+                DLOGD("select() timed out");
+                CHK(FALSE, STATUS_SEND_DATA_FAILED);
+            } else {
+                DLOGD("select() failed with errno %s", strerror(errno));
+                CHK(FALSE, STATUS_SEND_DATA_FAILED);
+            }
+        }
+        if (result < 0) {
+            DLOGD("sendto data failed with errno %s", strerror(errno));
             CHK(FALSE, STATUS_SEND_DATA_FAILED);
         }
     } else {
