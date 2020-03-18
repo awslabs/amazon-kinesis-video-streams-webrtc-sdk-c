@@ -860,26 +860,21 @@ typedef struct {
 } RtcIceServer, *PRtcIceServer;
 
 /**
-<<<<<<< HEAD
- *  @brief KvsRtcConfiguration is a collection of non-standard extensions to RTCConfiguration
-=======
- * Specifies the certificate and the private key used by the certificate.
- *
+ * @brief Specifies the certificate and the private key used by the certificate.
  * The Certificates are in the form of x509 certs
  */
 typedef struct {
     // The certificate bits and the size
-    PBYTE pCertificate;
-    UINT32 certificateSize;
+    PBYTE pCertificate; //!< Certificate bits
+    UINT32 certificateSize; //!< Size of certificate
 
     // The private key bits and the size in bytes
-    PBYTE pPrivateKey;
-    UINT32 privateKeySize;
+    PBYTE pPrivateKey; //!< Private key bit
+    UINT32 privateKeySize; //!< Size of private key in bytes
 } RtcCertificate, *PRtcCertificate;
 
 /**
  *  KvsRtcConfiguration is a collection of non-standard extensions to RTCConfiguration
->>>>>>> Enabling pre-generated certificates for DTLS
  *  these exist to serve use cases that currently aren't being served by the W3C standard
  *
  *  NOTE: These options will be removed/modified as the WebRTC standard changes, and exist to unblock
