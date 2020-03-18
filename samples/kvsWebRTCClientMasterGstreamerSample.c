@@ -22,7 +22,6 @@ GstFlowReturn on_new_sample(GstElement *sink, gpointer data, UINT64 trackid)
     PRtcRtpTransceiver pRtcRtpTransceiver = NULL;
     UINT32 i;
 
-
     if(pSampleConfiguration == NULL) {
         printf("[KVS GStreamer Master] on_new_sample(): operation returned status code: 0x%08x \n", STATUS_NULL_ARG);
         goto CleanUp;
