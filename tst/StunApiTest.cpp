@@ -13,15 +13,14 @@ TEST_F(StunApiTest, serializeValidityTests)
     CHAR password[256];
     PBYTE pBuffer = NULL;
     BYTE buffer[10000];
-    UINT32 size;
+    UINT32 size = 0;
 
     STRCPY(password, "test password");
-    stunPacket.attributesCount = 0;
-    stunPacket.attributeList = NULL;
+
+    MEMSET(&stunPacket, 0x0, SIZEOF(stunPacket));
     stunPacket.allocationSize = SIZEOF(StunPacket);
     stunPacket.header.stunMessageType = STUN_PACKET_TYPE_BINDING_REQUEST;
     stunPacket.header.magicCookie = STUN_HEADER_MAGIC_COOKIE;
-    stunPacket.header.messageLength = 0;
 
     pBuffer = buffer;
 
@@ -187,7 +186,7 @@ TEST_F(StunApiTest, packageIpValidityTests)
 
 TEST_F(StunApiTest, createStunPackageValidityTests)
 {
-    BYTE transactionId[STUN_TRANSACTION_ID_LEN];
+    BYTE transactionId[STUN_TRANSACTION_ID_LEN] = {0};
     PStunPacket pStunPacket;
 
     EXPECT_NE(STATUS_SUCCESS, createStunPacket(STUN_PACKET_TYPE_BINDING_REQUEST, transactionId, NULL));

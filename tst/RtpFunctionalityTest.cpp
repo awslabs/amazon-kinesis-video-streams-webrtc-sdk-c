@@ -180,8 +180,8 @@ TEST_F(RtpFunctionalityTest, marshallUnmarshallH264Data)
 
 TEST_F(RtpFunctionalityTest, packingUnpackingVerifySameH264Frame)
 {
-    PBYTE payload = (PBYTE) MEMALLOC(200000); // Assuming this is enough
-    PBYTE depayload = (PBYTE) MEMALLOC(1500); // This is more than max mtu
+    PBYTE payload = (PBYTE) MEMCALLOC(1, 200000); // Assuming this is enough
+    PBYTE depayload = (PBYTE) MEMCALLOC(1, 1500); // This is more than max mtu
     UINT32 depayloadSize = 1500;
     UINT32 payloadLen = 0;
     UINT32 fileIndex = 0;

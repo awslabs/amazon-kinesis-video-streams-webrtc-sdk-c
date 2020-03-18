@@ -529,7 +529,7 @@ TEST_F(StunFunctionalityTest, roundtripAfterCreateAddFidelityTest)
 
 TEST_F(StunFunctionalityTest, serializeStunRequestWithNoAttribute)
 {
-    BYTE transactionId[STUN_TRANSACTION_ID_LEN];
+    BYTE transactionId[STUN_TRANSACTION_ID_LEN] = {0};
     PStunPacket pStunPacket;
     UINT32 stunPacketBufferSize = STUN_PACKET_ALLOCATION_SIZE, actualPacketSize = 0;
     BYTE stunPacketBuffer[STUN_PACKET_ALLOCATION_SIZE];
