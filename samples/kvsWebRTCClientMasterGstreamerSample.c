@@ -16,7 +16,7 @@ GstFlowReturn on_new_sample(GstElement *sink, gpointer data, UINT64 trackid)
     GstSegment *segment;
     GstClockTime buf_pts;
     Frame frame;
-    STATUS retStatus = STATUS_SUCCESS, status;
+    STATUS status;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) data;
     PSampleStreamingSession pSampleStreamingSession = NULL;
     PRtcRtpTransceiver pRtcRtpTransceiver = NULL;

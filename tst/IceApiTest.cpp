@@ -44,6 +44,8 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         MEMSET(&testIpAddr, 0x0, SIZEOF(KvsIpAddress));
         MEMSET(&testSocketConn, 0x0, SIZEOF(SocketConnection));
         MEMSET(&testTurnConn, 0x0, SIZEOF(TurnConnection));
+        MEMSET(&testBuffer, 0x0, testBufferLen);
+        MEMSET(&testPassword, 0x0, testPasswordLen);
 
         EXPECT_NE(STATUS_SUCCESS, createTransactionIdStore(20, NULL));
         EXPECT_NE(STATUS_SUCCESS, createTransactionIdStore(0, &pTransactionIdStore));
