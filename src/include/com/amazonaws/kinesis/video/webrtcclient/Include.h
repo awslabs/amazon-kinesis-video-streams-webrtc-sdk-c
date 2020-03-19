@@ -138,6 +138,8 @@ extern "C" {
 #define STATUS_SSL_REMOTE_CERTIFICATE_VERIFICATION_FAILED                           STATUS_DTLS_BASE + 0x00000003
 #define STATUS_SSL_PACKET_BEFORE_DTLS_READY                                         STATUS_DTLS_BASE + 0x00000004
 #define STATUS_SSL_UNKNOWN_SRTP_PROFILE                                             STATUS_DTLS_BASE + 0x00000005
+#define STATUS_SSL_INVALID_CERTIFICATE_BITS                                         STATUS_DTLS_BASE + 0x00000006
+
 /*!@} */
 
 /*===========================================================================================*/
@@ -392,6 +394,12 @@ extern "C" {
  * Maximum length of a MediaStream's ID
  */
 #define MAX_MEDIA_STREAM_ID_LEN                                                     255
+
+
+/**
+ * Max certificates an RtcConfiguration can accept
+ */
+#define MAX_RTCCONFIGURATION_CERTIFICATES                                           3
 
 /**
  * Maximum length of a MediaStream's Track ID
@@ -852,7 +860,21 @@ typedef struct {
 } RtcIceServer, *PRtcIceServer;
 
 /**
- *  @brief KvsRtcConfiguration is a collection of non-standard extensions to RTCConfiguration
+ * @brief Specifies the certificate and the private key used by the certificate.
+ * The Certificates are in the form of x509 certs
+ */
+typedef struct {
+    // The certificate bits and the size
+    PBYTE pCertificate; //!< Certificate bits
+    UINT32 certificateSize; //!< Size of certificate
+
+    // The private key bits and the size in bytes
+    PBYTE pPrivateKey; //!< Private key bit
+    UINT32 privateKeySize; //!< Size of private key in bytes
+} RtcCertificate, *PRtcCertificate;
+
+/**
+ *  KvsRtcConfiguration is a collection of non-standard extensions to RTCConfiguration
  *  these exist to serve use cases that currently aren't being served by the W3C standard
  *
  *  NOTE: These options will be removed/modified as the WebRTC standard changes, and exist to unblock
@@ -909,6 +931,26 @@ typedef struct {
     ICE_TRANSPORT_POLICY iceTransportPolicy; //!< Indicates which candidates the ICE Agent is allowed to use.
     RtcIceServer iceServers[MAX_ICE_SERVERS_COUNT]; //!< Servers available to be used by ICE, such as STUN and TURN servers.
     KvsRtcConfiguration kvsRtcConfiguration; //!< Non-standard configuration options
+
+    //!< Set of certificates that the RtcPeerConnection uses to authenticate.
+    //!< Although any given DTLS connection will use only one certificate, this
+    //!< attribute allows the caller to provide multiple certificates that support
+    //!< different algorithms.
+    //!<
+    //!< If this value is absent, then a default set of certificates is generated
+    //!< for each RtcPeerConnection.
+    //!<
+    //!< An absent value is determined by the certificate pointing to NULL
+    //!<
+    //!< Doc: https://www.w3.org/TR/webrtc/#dom-rtcconfiguration-certificates
+    //!<
+    //!< !!!!!!!!!! IMPORTANT !!!!!!!!!!
+    //!< It is recommended to rotate the certificates often - preferably for every peer connection
+    //!< to avoid a compromised client weakening the security of the new connections.
+    //!<
+    //!< NOTE: The certificates, if specified, can be freed after the peer connection create call
+    //!<
+    RtcCertificate certificates[MAX_RTCCONFIGURATION_CERTIFICATES];
 } RtcConfiguration, *PRtcConfiguration;
 
 /**

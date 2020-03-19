@@ -14,7 +14,9 @@
   <a href="#key-features">Key Features</a> •
   <a href="#build">Build</a> •
   <a href="#run">Run</a> •
-  <a href="#documentation">documentation</a> •
+  <a href="#documentation">Documentation</a> •
+  <a href="#setup-iot">Setup IoT</a> •
+  <a href="#use-pre-generated-certificates">Use Pre-generated Certificates</a> •
   <a href="#related">Related</a> •
   <a href="#license">License</a>
 </p>
@@ -192,6 +194,22 @@ createLwsIotCredentialProvider(
 freeIotCredentialProvider(&pSampleConfiguration->pCredentialProvider);
 ```
 
+## Use Pre-generated Certificates
+The certificate generating function (createCertificateAndKey) in createDtlsSession() can take between 5 - 15 seconds in low performance embedded devices, it is called for every peer connection creation when KVS WebRTC receives an offer. To avoid this extra start-up latency, certificate can be pre-generated and passed in when offer comes.
+
+Important Note: It is recommended to rotate the certificates often - preferably for every peer connection to avoid a compromised client weakening the security of the new connections.
+
+Take kvsWebRTCClientMaster as sample, add RtcCertificate certificates[CERT_COUNT]; to **SampleConfiguration** in Samples.h, call create certificate before signalingClientCallbacks.messageReceivedFn = masterMessageReceived; in kvsWebRTCClientMaster.c
+```
+createCertificateAndKey(GENERATED_CERTIFICATE_BITS, &pSampleConfiguration->certificates[0].pCertificate, &pSampleConfiguration->certificates[0].pPrivateKey);
+```
+
+Then pass in the pre-generated certificate in initializePeerConnection() in common.c.
+
+```
+configuration.certificates[0].pCertificate = pSampleConfiguration->rtcConfig.certificates[0].pCertificate;
+configuration.certificates[0].pPrivateKey = pSampleConfiguration->rtcConfig.certificates[0].pPrivateKey;
+```
 
 ## Documentation
 All Public APIs are documented in our [Include.h](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/blob/master/src/include/com/amazonaws/kinesis/video/webrtcclient/Include.h) refer to [related](#related) for more about WebRTC and KVS.

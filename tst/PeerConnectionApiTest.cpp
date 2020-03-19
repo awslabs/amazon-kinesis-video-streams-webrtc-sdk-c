@@ -26,6 +26,10 @@ TEST_F(PeerConnectionApiTest, deserializeRtcIceCandidateInit)
     auto validCandidate = "{candidate: \"foobar\"}";
     EXPECT_EQ(deserializeRtcIceCandidateInit((PCHAR) validCandidate, STRLEN(validCandidate), &rtcIceCandidateInit), STATUS_SUCCESS);
     EXPECT_STREQ(rtcIceCandidateInit.candidate, "foobar");
+
+    auto validCandidate2 = "{candidate: \"candidate: 1 2 3\", \"sdpMid\": 0}";
+    EXPECT_EQ(deserializeRtcIceCandidateInit((PCHAR) validCandidate2, STRLEN(validCandidate2), &rtcIceCandidateInit), STATUS_SUCCESS);
+    EXPECT_STREQ(rtcIceCandidateInit.candidate, "candidate: 1 2 3");
 }
 
 TEST_F(PeerConnectionApiTest, serializeSessionDescriptionInit)
@@ -45,6 +49,45 @@ TEST_F(PeerConnectionApiTest, serializeSessionDescriptionInit)
 
     EXPECT_EQ(serializeSessionDescriptionInit(&rtcSessionDescriptionInit, sessionDescriptionJSON, &sessionDescriptionJSONLen), STATUS_SUCCESS);
     EXPECT_STREQ(sessionDescriptionJSON, "{\"type\": \"offer\", \"sdp\": \"KVS\\r\\nWebRTC\\r\\nSDP\\r\\nValue\\r\\n\"}");
+}
+
+TEST_F(PeerConnectionApiTest, suppliedCertificatesVariation)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection pRtcPeerConnection;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_RELAY;
+
+    // Private key is null but the size is not zero
+    configuration.certificates[0].pCertificate = (PBYTE) 1;
+    configuration.certificates[0].certificateSize = 0;
+    configuration.certificates[0].pPrivateKey = NULL;
+    configuration.certificates[0].privateKeySize = 1;
+    EXPECT_EQ(STATUS_SSL_INVALID_CERTIFICATE_BITS, createPeerConnection(&configuration, &pRtcPeerConnection));
+
+    // Private key is null but the size is not zero with specified size for the cert
+    configuration.certificates[0].pCertificate = (PBYTE) 1;
+    configuration.certificates[0].certificateSize = 100;
+    configuration.certificates[0].pPrivateKey = NULL;
+    configuration.certificates[0].privateKeySize = 1;
+    EXPECT_EQ(STATUS_SSL_INVALID_CERTIFICATE_BITS, createPeerConnection(&configuration, &pRtcPeerConnection));
+
+    // Bad private key size later in the chain that should be ignored
+    configuration.certificates[0].pCertificate = NULL;
+    configuration.certificates[0].certificateSize = 0;
+    configuration.certificates[0].pPrivateKey = NULL;
+    configuration.certificates[0].privateKeySize = 1;
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+
+    // Bad private key size later in the chain with cert size not zero that should be ignored
+    configuration.certificates[0].pCertificate = NULL;
+    configuration.certificates[0].certificateSize = 100;
+    configuration.certificates[0].pPrivateKey = NULL;
+    configuration.certificates[0].privateKeySize = 1;
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
 }
 
 TEST_F(PeerConnectionApiTest, deserializeSessionDescriptionInit)

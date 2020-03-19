@@ -16,12 +16,11 @@ GstFlowReturn on_new_sample(GstElement *sink, gpointer data, UINT64 trackid)
     GstSegment *segment;
     GstClockTime buf_pts;
     Frame frame;
-    STATUS retStatus = STATUS_SUCCESS, status;
+    STATUS status;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) data;
     PSampleStreamingSession pSampleStreamingSession = NULL;
     PRtcRtpTransceiver pRtcRtpTransceiver = NULL;
     UINT32 i;
-
 
     if(pSampleConfiguration == NULL) {
         printf("[KVS GStreamer Master] on_new_sample(): operation returned status code: 0x%08x \n", STATUS_NULL_ARG);

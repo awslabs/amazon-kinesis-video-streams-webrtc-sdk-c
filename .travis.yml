@@ -47,7 +47,7 @@ matrix:
         - mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
       script:
         - make
-        - ./tst/webrtc_client_test
+        - ./tst/webrtc_client_test || travis_terminate 1;
         # Execute selected tests without auth integration
         - unset AWS_ACCESS_KEY_ID
         - unset AWS_SECRET_ACCESS_KEY
@@ -80,10 +80,15 @@ matrix:
 
     # MemorySanitizer
     - name: "Linux Clang MemorySanitizer"
-      os: linux
-      compiler: clang
-      env: allowTestFail=true
-      before_script: mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE -DMEMORY_SANITIZER=TRUE
+      before_install:
+        - mkdir build
+        - docker run -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -w /src/build -dit --name msan-tester -v $(pwd):/src seaduboi/kvs-msan-tester
+        - msan-tester() { docker exec -it msan-tester "$@"; }
+      script:
+        - msan-tester cmake .. -DBUILD_DEPENDENCIES=FALSE -DBUILD_TEST=TRUE -DMEMORY_SANITIZER=TRUE -DCMAKE_CXX_FLAGS="-stdlib=libc++ -L/usr/src/libcxx_msan/lib -lc++abi -I/usr/src/libcxx_msan/include -I/usr/src/libcxx_msan/include/c++/v1"
+        - msan-tester make
+        - msan-tester ./tst/webrtc_client_test
+      after_failure: skip # no coredumps in container
 
     # ThreadSanitizer
     - name: "Linux Clang ThreadSanitizer"
