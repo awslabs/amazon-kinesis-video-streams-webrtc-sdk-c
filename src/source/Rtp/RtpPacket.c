@@ -308,7 +308,7 @@ STATUS setBytesFromRtpPacket(PRtpPacket pRtpPacket, PBYTE pRawPacket, UINT32 pac
     pCurPtr += SIZEOF(UINT32);
 
     for (i = 0; i < pHeader->csrcCount; i++, pCurPtr += SIZEOF(UINT32)) {
-        putUnalignedInt32BigEndian((PINT32) pCurPtr, pHeader->csrcArray[i]);
+        putUnalignedInt32BigEndian(pCurPtr, pHeader->csrcArray[i]);
     }
 
     if (pHeader->extension) {
