@@ -19,7 +19,7 @@ extern "C" {
 #define PEER_FRAME_BUFFER_SIZE_INCREMENT_FACTOR     1.5
 
 // A non-comprehensive list of valid JSON characters
-#define VALID_CHAR_SET_FOR_JSON         "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()_+="
+#define VALID_CHAR_SET_FOR_JSON         "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+/"
 
 #define ICE_CANDIDATE_JSON_TEMPLATE     (PCHAR) "{\"candidate\":\"candidate:%s\",\"sdpMid\":\"0\",\"sdpMLineIndex\":0}"
 
