@@ -295,26 +295,29 @@ STATUS setBytesFromRtpPacket(PRtpPacket pRtpPacket, PBYTE pRawPacket, UINT32 pac
     }
     pCurPtr++;
 
-    putInt16((PINT16) pCurPtr, pHeader->sequenceNumber);
+    //https://tools.ietf.org/html/rfc7741#page-5
+    //All integer fields in the specifications are encoded as
+    //   unsigned integers in network octet order.
+    putUnalignedInt16BigEndian(pCurPtr, pHeader->sequenceNumber);
     pCurPtr += SIZEOF(UINT16);
 
-    putInt32((PINT32) pCurPtr, pHeader->timestamp);
+    putUnalignedInt32BigEndian(pCurPtr, pHeader->timestamp);
     pCurPtr += SIZEOF(UINT32);
 
-    putInt32((PINT32) pCurPtr, pHeader->ssrc);
+    putUnalignedInt32BigEndian(pCurPtr, pHeader->ssrc);
     pCurPtr += SIZEOF(UINT32);
 
     for (i = 0; i < pHeader->csrcCount; i++, pCurPtr += SIZEOF(UINT32)) {
-        putInt32((PINT32) pCurPtr, pHeader->csrcArray[i]);
+        putUnalignedInt32BigEndian(pCurPtr, pHeader->csrcArray[i]);
     }
 
     if (pHeader->extension) {
         //the payload must be in 32-bit words.
         CHK((pHeader->extensionLength) % SIZEOF(UINT32) == 0, STATUS_RTP_INVALID_EXTENSION_LEN);
 
-        putInt16((PINT16) pCurPtr, pHeader->extensionProfile);
+        putUnalignedInt16BigEndian(pCurPtr, pHeader->extensionProfile);
         pCurPtr += SIZEOF(UINT16);
-        putInt16((PINT16) pCurPtr, pHeader->extensionLength / SIZEOF(UINT32));
+        putUnalignedInt16BigEndian(pCurPtr, pHeader->extensionLength / SIZEOF(UINT32));
         pCurPtr += SIZEOF(UINT16);
         MEMCPY(pCurPtr, pHeader->extensionPayload, pHeader->extensionLength);
         pCurPtr += pHeader->extensionLength;
