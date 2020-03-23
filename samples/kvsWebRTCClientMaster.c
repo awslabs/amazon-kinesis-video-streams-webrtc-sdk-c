@@ -37,7 +37,7 @@ INT32 main(INT32 argc, CHAR *argv[])
 
     // Check if the samples are present
 
-    retStatus = readFrameFromDisk(NULL, &frameSize, "./h264SampleFrames/frame-001.h264");
+    retStatus = readFrameFromDisk(NULL, &frameSize, "./vp8SampleFrames/frame-001.vp8");
     if(retStatus != STATUS_SUCCESS) {
         printf("[KVS Master] readFrameFromDisk(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;
@@ -174,7 +174,7 @@ PVOID sendVideoPackets(PVOID args)
 
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
         fileIndex = fileIndex % NUMBER_OF_H264_FRAME_FILES + 1;
-        snprintf(filePath, MAX_PATH_LEN, "./h264SampleFrames/frame-%03d.h264", fileIndex);
+        snprintf(filePath, MAX_PATH_LEN, "./vp8SampleFrames/frame-%03d.vp8", fileIndex);
 
         retStatus = readFrameFromDisk(NULL, &frameSize, filePath);
         if(retStatus != STATUS_SUCCESS) {

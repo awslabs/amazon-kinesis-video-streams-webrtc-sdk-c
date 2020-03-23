@@ -219,6 +219,7 @@ file(GLOB PIC_HEADERS "${KINESIS_VIDEO_PIC_SRC}/src/*/include")
 
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/samples/opusSampleFrames" DESTINATION .)
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/samples/h264SampleFrames" DESTINATION .)
+file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/samples/vp8SampleFrames" DESTINATION .)
 
 include_directories(${PIC_HEADERS})
 include_directories(${OPEN_SRC_INCLUDE_DIRS})
