@@ -1098,6 +1098,8 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
 
         case TURN_STATE_FAILED:
             DLOGW("TurnConnection in TURN_STATE_FAILED due to 0x%08x", pTurnConnection->errorStatus);
+            pTurnConnection->state = TURN_STATE_CLEAN_UP;
+            pTurnConnection->stateTimeoutTime = currentTime + DEFAULT_TURN_CLEAN_UP_TIMEOUT;
             break;
 
         default:
