@@ -62,6 +62,10 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
      */
     TEST_F(TurnConnectionFunctionalityTest, turnConnectionRefreshPermissionTest)
     {
+        if (!mAccessKeyIdSet) {
+            return;
+        }
+
         PTurnConnection pTurnConnection = NULL;
         BOOL turnReady = FALSE;
         KvsIpAddress turnPeerAddr;
@@ -140,6 +144,10 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
 
     TEST_F(TurnConnectionFunctionalityTest, turnConnectionStop)
     {
+        if (!mAccessKeyIdSet) {
+            return;
+        }
+
         PTurnConnection pTurnConnection = NULL;
         BOOL turnReady = FALSE;
         KvsIpAddress turnPeerAddr;
@@ -205,6 +213,11 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
 
     TEST_F(TurnConnectionFunctionalityTest, turnConnectionReceivePartialChannelMessageTest)
     {
+        if (!mAccessKeyIdSet) {
+            return;
+        }
+
+
         // there are 3 channel messages for channel 0x4001
         BYTE channelMsg[] = {0x40, 0x01, 0x00, 0x64, 0x00, 0x01, 0x00, 0x50, 0x21, 0x12, 0xa4, 0x42, 0x42, 0x37, 0x73, 0x2f,
                              0x51, 0x48, 0x7a, 0x54, 0x69, 0x69, 0x32, 0x7a, 0x00, 0x06, 0x00, 0x09, 0x79, 0x45, 0x78, 0x55,
@@ -314,6 +327,10 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
 
     TEST_F(TurnConnectionFunctionalityTest, turnConnectionCallMultipleTurnSendDataInThreads)
     {
+        if (!mAccessKeyIdSet) {
+            return;
+        }
+
         PTurnConnection pTurnConnection = NULL;
         BOOL turnReady = FALSE;
         KvsIpAddress turnPeerAddr;
