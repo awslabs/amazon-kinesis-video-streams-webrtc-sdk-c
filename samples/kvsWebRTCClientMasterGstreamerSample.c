@@ -408,6 +408,10 @@ INT32 main(INT32 argc, CHAR *argv[])
 
 CleanUp:
 
+    if (retStatus != STATUS_SUCCESS) {
+        printf("[KVS GStreamer Master] Terminated with status code 0x%08x", retStatus);
+    }
+
     printf("[KVS GStreamer Master] Cleaning up....\n");
 
     if (pSampleConfiguration != NULL) {

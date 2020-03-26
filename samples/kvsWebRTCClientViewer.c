@@ -132,6 +132,11 @@ INT32 main(INT32 argc, CHAR *argv[])
     THREAD_SLEEP(MAX_UINT64);
 
 CleanUp:
+
+    if (retStatus != STATUS_SUCCESS) {
+        printf("[KVS Viewer] Terminated with status code 0x%08x", retStatus);
+    }
+
     printf("[KVS Viewer] Cleaning up....\n");
 
     if (locked) {
@@ -142,11 +147,6 @@ CleanUp:
         retStatus = freeSignalingClient(&pSampleConfiguration->signalingClientHandle);
         if(retStatus != STATUS_SUCCESS) {
             printf("[KVS Master] freeSignalingClient(): operation returned status code: 0x%08x \n", retStatus);
-        }
-
-        retStatus = freeSampleStreamingSession(&pSampleStreamingSession);
-        if(retStatus != STATUS_SUCCESS) {
-            printf("[KVS Master] freeSampleStreamingSession(): operation returned status code: 0x%08x \n", retStatus);
         }
 
         retStatus = freeSampleConfiguration(&pSampleConfiguration);
