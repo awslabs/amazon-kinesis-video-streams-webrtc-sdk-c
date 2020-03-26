@@ -567,8 +567,9 @@ CleanUp:
 STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE roleType, BOOL trickleIce, BOOL useTurn, PSampleConfiguration* ppSampleConfiguration)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    PCHAR pAccessKey, pSecretKey, pSessionToken;
+    PCHAR pAccessKey, pSecretKey, pSessionToken, pLogLevel;
     PSampleConfiguration pSampleConfiguration = NULL;
+    UINT32 logLevel = LOG_LEVEL_WARN;
 
     CHK(ppSampleConfiguration != NULL, STATUS_NULL_ARG);
 
@@ -583,6 +584,15 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     }
 
     CHK_STATUS(lookForSslCert(&pSampleConfiguration));
+
+    // Set the logger log level
+    if (NULL != (pLogLevel = getenv(DEBUG_LOG_LEVEL_ENV_VAR))) {
+        CHK_ERR(STRTOUI32(pLogLevel, NULL, 10, &logLevel) == STATUS_SUCCESS,
+                STATUS_INVALID_OPERATION,
+                "Failed to parse the logger log level");
+    }
+
+    SET_LOGGER_LOG_LEVEL(logLevel);
 
     CHK_STATUS(createStaticCredentialProvider(pAccessKey, 0,
                                               pSecretKey, 0,
