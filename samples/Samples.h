@@ -17,6 +17,8 @@ extern "C" {
 #define DEFAULT_FPS_VALUE                                                       25
 #define DEFAULT_MAX_CONCURRENT_STREAMING_SESSION                                10
 
+#define SAMPLE_VERSION_MINOR                                                    1
+#define SAMPLE_VERSION_MAJOR                                                    0
 #define SAMPLE_MASTER_CLIENT_ID                                                 "ProducerMaster"
 #define SAMPLE_VIEWER_CLIENT_ID                                                 "ConsumerViewer"
 #define SAMPLE_CHANNEL_NAME                                                     (PCHAR) "ScaryTestChannel"

@@ -141,7 +141,7 @@ After executing `make` you will have the following sample applications in your `
 Run any of the sample applications by passing to it the name that you want to give to your signaling channel. The application creates the signaling channel using the name you provide. For example, to create a signaling channel called myChannel and to start sending sample H264/Opus frames via this channel, run the following command:
 
 ```
-./kvsWebrtcClientMaster myChannel
+./kvsWebrtcClientMaster -c myChannel
 ```
 
 When the command line application prints "Signaling client connection to socket established", you can proceed to the next step.

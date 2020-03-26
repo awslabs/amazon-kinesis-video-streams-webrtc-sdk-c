@@ -1,31 +1,123 @@
+#include <getopt.h>
 #include "Samples.h"
 
 extern PSampleConfiguration gSampleConfiguration;
 
+
+static PCHAR gChannelName = SAMPLE_CHANNEL_NAME;
+static BOOL gUseTrickleIce = TRUE;
+static BOOL gUseTurn = TRUE;
+static UINT32 gDebugLevel = LOG_LEVEL_INFO;
+
+
 // #define VERBOSE
+
+static void usage()
+{
+    printf("Run a sample code.\n\n");
+    printf("  -h, --help\t\tPrint this message.\n");
+    printf("  -c, --channel-name\tCreate channel. Default: %s\n", SAMPLE_CHANNEL_NAME);
+    printf("  -i, --ice\t\tEnable trickle ice or not. Default: enable. enable or disable\n");
+    printf("  -t, --turn\t\tEnable turn or not. Default: enable. enable or disable\n");
+    printf("  -d, --debug-level\tSetup debug level.\n");
+    printf("  -v, --version\t\tPrint version information and exit.\n");
+    printf("\n");
+}
+
+static void parse_opts(int argc, char **argv)
+{
+    static struct option longopts[] = {
+        {"help", no_argument, NULL, 'h'},
+        {"channel-name", required_argument, NULL, 'c'},
+        {"ice", required_argument, NULL, 't'},
+        {"turn", required_argument, NULL, 'r'},
+        {"debug-level", required_argument, NULL, 'd'},
+        {"version", no_argument, NULL, 'v'},
+        {NULL, 0, NULL, 0}
+    };
+    int c;
+
+    const char* opts_spec = "hc:i:t:d:v";
+
+    while (1) {
+        c = getopt_long(argc, argv, opts_spec, longopts, (int *) 0);
+        if (c == -1) {
+            break;
+        }
+
+        switch (c) {
+        case 'h':
+            usage();
+            exit(0);
+        case 'c':
+            gChannelName = optarg;
+            printf("%s\n", gChannelName);
+            break;
+        case 'i':
+            if(STRCMP(optarg, "enable")==0){
+                printf("enable the functionality of trickle ice\n");
+                gUseTrickleIce = TRUE; 
+            }else if (STRCMP(optarg, "disable")==0){
+                printf("disable the functionality of trickle ice\n");
+                gUseTrickleIce = FALSE;
+            }else{
+                printf("invalid parameters\n");
+            }
+            break;
+        case 't':
+            if(STRCMP(optarg, "enable")==0){
+                printf("enable the functionality of turn\n");
+                gUseTurn = TRUE; 
+            }else if (STRCMP(optarg, "disable")==0){
+                printf("disable the functionality of turn\n");
+                gUseTurn = FALSE;
+            }else{
+                printf("invalid parameters\n");
+            }
+            break;
+        case 'd':
+            gDebugLevel = STRTOUL (optarg, NULL, 0);
+            if(gDebugLevel>=1 && gDebugLevel<=7 && setenv("AWS_KVS_LOG_LEVEL", optarg, 1)==0){
+                printf("set the debug level as %d\n", gDebugLevel);
+            }else{
+                printf("invalid debug level value: %d\n", gDebugLevel);
+                gDebugLevel = LOG_LEVEL_INFO;
+            }
+            break;
+        case 'v':
+            printf("master version: %d.%d\n", SAMPLE_VERSION_MAJOR, SAMPLE_VERSION_MINOR);
+            exit(0);
+        default:
+            usage();
+            exit(2);
+        }
+    }
+}
+
 
 INT32 main(INT32 argc, CHAR *argv[])
 {
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 frameSize;
     PSampleConfiguration pSampleConfiguration = NULL;
-
+    parse_opts(argc, argv);
     signal(SIGINT, sigintHandler);
 
     // do tricketIce by default
-    printf("[KVS Master] Using trickleICE by default\n");
+    printf("[KVS Master] %s trickle ice\n", (gUseTrickleIce==TRUE)?"Enable":"Disable");
+    printf("[KVS Master] %s turn\n", (gUseTurn==TRUE)?"Enable":"Disable");
 
-    retStatus = createSampleConfiguration(argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME,
+    retStatus = createSampleConfiguration(gChannelName,
                                           SIGNALING_CHANNEL_ROLE_TYPE_MASTER,
-                                          TRUE,
-                                          TRUE,
+                                          gUseTrickleIce,
+                                          gUseTurn,
                                           &pSampleConfiguration);
     if(retStatus != STATUS_SUCCESS) {
         printf("[KVS Master] createSampleConfiguration(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;
     }
 
-    printf("[KVS Master] Created signaling channel %s\n", (argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME));
+    printf("[KVS Master] Created signaling channel %s\n", gChannelName);
 
     // Set the audio and video handlers
     pSampleConfiguration->audioSource = sendAudioPackets;
@@ -84,7 +176,7 @@ INT32 main(INT32 argc, CHAR *argv[])
     gSampleConfiguration = pSampleConfiguration;
 
     printf("[KVS Master] Beginning audio-video streaming...check the stream over channel %s\n",
-            (argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME));
+            gChannelName);
 
     // Checking for termination
     retStatus = sessionCleanupWait(pSampleConfiguration);
