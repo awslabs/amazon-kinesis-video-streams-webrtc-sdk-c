@@ -115,7 +115,7 @@ INT32 lwsHttpCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
         case LWS_CALLBACK_RECEIVE_CLIENT_HTTP_READ:
             DLOGD("Received client http read: %d bytes", (INT32) dataSize);
 
-            if(logLevel > LOG_LEVEL_INFO && logLevel < LOG_LEVEL_SILENT) {
+            if (logLevel > LOG_LEVEL_INFO && logLevel < LOG_LEVEL_SILENT) {
                 lwsl_hexdump_notice(pDataIn, dataSize);
             }
 

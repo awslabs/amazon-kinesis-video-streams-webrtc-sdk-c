@@ -96,6 +96,11 @@ INT32 main(INT32 argc, CHAR *argv[])
     printf("[KVS Master] Streaming session terminated\n");
 
 CleanUp:
+
+    if (retStatus != STATUS_SUCCESS) {
+        printf("[KVS Master] Terminated with status code 0x%08x", retStatus);
+    }
+
     printf("[KVS Master] Cleaning up....\n");
 
     if (pSampleConfiguration != NULL) {
