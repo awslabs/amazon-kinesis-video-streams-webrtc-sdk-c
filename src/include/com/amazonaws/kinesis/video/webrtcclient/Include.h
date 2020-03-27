@@ -621,6 +621,17 @@ typedef VOID (*RtcOnFrame)(UINT64, PFrame);
  */
 typedef VOID (*RtcOnBandwidthEstimation)(UINT64, DOUBLE);
 
+/**
+ * @brief RtcOnPictureLoss is fired everytime a Picture Loss Indication (PLI)
+ * feedback message is received. Receiving such message normally indicates that
+ * you sent a video frame which receiver could not decode.
+ * It may happen either because of packet loss or for any other reason.
+ * Generating an intra frame (aka keyframe, aka I-frame) in response to such message is considered a good strategy.
+ *
+ * See https://tools.ietf.org/html/rfc4585#section-6.3 for more details
+ */
+typedef VOID (*RtcOnPictureLoss)(UINT64);
+
 
 /**
  * @brief RtcOnMessage is fired when a message is received for the DataChannel
