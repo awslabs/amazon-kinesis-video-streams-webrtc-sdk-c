@@ -228,6 +228,7 @@ STATUS executeGetTokenSignalingState(UINT64 customData, UINT64 time)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
+    SERVICE_CALL_RESULT serviceCallResult;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
@@ -245,7 +246,14 @@ STATUS executeGetTokenSignalingState(UINT64 customData, UINT64 time)
     retStatus = pSignalingClient->pCredentialProvider->getCredentialsFn(pSignalingClient->pCredentialProvider,
                                                                         &pSignalingClient->pAwsCredentials);
 
-    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_OK);
+    // Check the expiration
+    if (GETTIME() >= pSignalingClient->pAwsCredentials->expiration) {
+        serviceCallResult = SERVICE_CALL_NOT_AUTHORIZED;
+    } else {
+        serviceCallResult = SERVICE_CALL_RESULT_OK;
+    }
+
+    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) serviceCallResult);
 
     // Self-prime the next state
     CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));

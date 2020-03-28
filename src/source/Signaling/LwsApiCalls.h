@@ -121,6 +121,15 @@ extern "C" {
 // Service loop iteration wait time when there is an already servicing thread
 #define LWS_SERVICE_LOOP_ITERATION_WAIT                                     (50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
 
+// Check for the stale credentials
+#define CHECK_SIGNALING_CREDENTIALS_EXPIRATION(p) \
+    do { \
+        if (GETTIME() >= (p)->pAwsCredentials->expiration) { \
+            ATOMIC_STORE(&(p)->result, (SIZE_T) SERVICE_CALL_NOT_AUTHORIZED); \
+            CHK(FALSE, retStatus); \
+        } \
+    } while (FALSE)
+
 /**
  * Index of the signaling protocol handling WSS
  * IMPORTANT!!! This should match the correct index in the
