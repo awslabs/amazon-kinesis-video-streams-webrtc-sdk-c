@@ -8,7 +8,7 @@ static PCHAR gChannelName = SAMPLE_CHANNEL_NAME;
 static BOOL gUseTrickleIce = TRUE;
 static BOOL gUseTurn = TRUE;
 static UINT32 gDebugLevel = LOG_LEVEL_INFO;
-
+static FILE* logHandler = NULL;
 
 // #define VERBOSE
 
@@ -20,6 +20,7 @@ static void usage()
     printf("  -i, --ice\t\tEnable trickle ice or not. Default: enable. enable or disable\n");
     printf("  -t, --turn\t\tEnable turn or not. Default: enable. enable or disable\n");
     printf("  -d, --debug-level\tSetup debug level.\n");
+    printf("  -l, --logfile=logname\tAappend log to file instead of stdout.\n");
     printf("  -v, --version\t\tPrint version information and exit.\n");
     printf("\n");
 }
@@ -32,12 +33,13 @@ static void parse_opts(int argc, char **argv)
         {"ice", required_argument, NULL, 't'},
         {"turn", required_argument, NULL, 'r'},
         {"debug-level", required_argument, NULL, 'd'},
+        {"log-file", required_argument, NULL, 'l'},
         {"version", no_argument, NULL, 'v'},
         {NULL, 0, NULL, 0}
     };
     int c;
 
-    const char* opts_spec = "hc:i:t:d:v";
+    const char* opts_spec = "hc:i:t:d:l:v";
 
     while (1) {
         c = getopt_long(argc, argv, opts_spec, longopts, (int *) 0);
@@ -82,6 +84,17 @@ static void parse_opts(int argc, char **argv)
             }else{
                 printf("invalid debug level value: %d\n", gDebugLevel);
                 gDebugLevel = LOG_LEVEL_INFO;
+            }
+            break;
+        case 'l':
+            if (!*optarg) {
+                printf("It is an empty filename\n");
+                usage();
+                exit(2);
+            }
+            logHandler = freopen(optarg, "a", stdout);
+            if (!logHandler) {
+                printf("fdreopen error: %s\n", strerror(errno));
             }
             break;
         case 'v':
@@ -221,6 +234,7 @@ CleanUp:
         }
     }
     printf("[KVS Master] Cleanup done\n");
+    FCLOSE(logHandler);
     return (INT32) retStatus;
 }
 
