@@ -85,7 +85,7 @@ STATUS onRtcpPLIPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConne
     UINT64 item;
 
     CHK(pKvsPeerConnection != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
-    mediaSSRC = getInt32(*(PUINT32) (pRtcpPacket->payload + (SIZEOF(UINT32))));
+    mediaSSRC = getUnalignedInt32BigEndian((pRtcpPacket->payload + (SIZEOF(UINT32))));
 
     CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pTransceievers, &pCurNode));
     while(pCurNode != NULL && pTransceiver == NULL) {
