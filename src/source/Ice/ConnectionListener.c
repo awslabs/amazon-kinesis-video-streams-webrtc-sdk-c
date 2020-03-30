@@ -285,8 +285,14 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
                         readLen = recvfrom(pSocketConnection->localSocket, pConnectionListener->pBuffer, pConnectionListener->bufferLen, 0,
                                            (struct sockaddr *) &srcAddrBuff, &srcAddrBuffLen);
                         if (readLen < 0 ) {
-                            if (errno != EWOULDBLOCK) {
-                                DLOGW("recvfrom() failed with errno %s", strerror(errno));
+                            switch (errno) {
+                                case EWOULDBLOCK:
+                                    break;
+                                default:
+                                    // on any other error, log error and remove socketConnection from list
+                                    CHK_STATUS(doubleListRemoveNode(pConnectionListener->connectionList, pCurNode));
+                                    DLOGD("recvfrom() failed with errno %s for socket %d", strerror(errno), pSocketConnection->localSocket);
+                                    break;
                             }
 
                             iterate = FALSE;
