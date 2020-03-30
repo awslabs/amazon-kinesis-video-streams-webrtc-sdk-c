@@ -58,6 +58,15 @@ STATUS setPayloadTypesFromOffer(PHashTable, PHashTable, PSessionDescription);
 STATUS setPayloadTypesForOffer(PHashTable);
 
 STATUS setTransceiverPayloadTypes(PHashTable, PHashTable, PDoubleList);
+/**
+ * @brief Populate a SessionDescription with the current state of the KvsPeerConnection
+ *
+ * @param[in] PKvsPeerConnection 
+ * @param[in,out] PSessionDescription 
+ * @param[in,out] PSessionDescription 
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
 STATUS populateSessionDescription(PKvsPeerConnection, PSessionDescription, PSessionDescription);
 STATUS reorderTransceiverByRemoteDescription(PKvsPeerConnection, PSessionDescription);
 STATUS setReceiversSsrc(PSessionDescription, PDoubleList);

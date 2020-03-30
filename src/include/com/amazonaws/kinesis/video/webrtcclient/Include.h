@@ -648,7 +648,12 @@ typedef VOID (*RtcOnDataChannel)(UINT64, struct __RtcDataChannel*);
 /**
  * @brief RtcOnIceCandidate is fired when new iceCandidate is found. if PCHAR is NULL then candidate gathering is done.
  *
- * Reference: https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-ondatachannel
+ * Reference: https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-onicecandidate
+ * 
+ * @param[in] UINT64 the custom data
+ * @param[in] PCHAR the json of new candidate
+ * 
+ * @return
  */
 typedef VOID (*RtcOnIceCandidate)(UINT64, PCHAR);
 

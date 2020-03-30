@@ -540,8 +540,15 @@ CleanUp:
     return retStatus;
 }
 
-
-// Populate the media sections of a SessionDescription with the current state of the KvsPeerConnection
+/**
+ * @brief Populate the media sections of a SessionDescription with the current state of the KvsPeerConnection
+ *
+ * @param[in] PKvsPeerConnection 
+ * @param[in,out] pRemoteSessionDescription 
+ * @param[in,out] pLocalSessionDescription 
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
 STATUS populateSessionDescriptionMedia(PKvsPeerConnection pKvsPeerConnection, PSessionDescription pRemoteSessionDescription, PSessionDescription pLocalSessionDescription)
 {
     ENTERS();
@@ -597,7 +604,7 @@ CleanUp:
 }
 
 
-// Populate a SessionDescription with the current state of the KvsPeerConnection
+
 STATUS populateSessionDescription(PKvsPeerConnection pKvsPeerConnection, PSessionDescription pRemoteSessionDescription, PSessionDescription pLocalSessionDescription)
 {
     ENTERS();

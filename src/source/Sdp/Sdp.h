@@ -196,10 +196,25 @@ typedef struct {
     UINT8 bandwidthCount;
 } SessionDescription, *PSessionDescription;
 
-// Return code maps to a code if we are trying to serialize an invalid session_description
+/**
+ * @brief Return code maps to a code if we are trying to serialize an invalid session_description
+ *
+ * @param[in] PSessionDescription 
+ * @param[in,out] PCHAR 
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
 STATUS serializeSessionDescription(PSessionDescription, PCHAR);
 
-// Return code maps to an errno just for SDP parsing
+/**
+ * @brief Return code maps to an errno just for SDP parsing
+ *
+ * @param[in] PSessionDescription 
+ * @param[in,out] PCHAR 
+ * @param[in,out] PUINT32 
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
 STATUS deserializeSessionDescription(PSessionDescription, PCHAR, PUINT32);
 
 STATUS parseMediaName(PSessionDescription, PCHAR, UINT32);

@@ -275,7 +275,14 @@ CleanUp:
     CHK_LOG_ERR_NV(retStatus);
     return retStatus;
 }
-
+/**
+ * @brief handle the incoming ice candidate.
+ *
+ * @param[in] customData the handler of custom data.
+ * @param[in] candidateJson If it is null, it means there is no other candidates.
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
 VOID onIceCandidateHandler(UINT64 customData, PCHAR candidateJson)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -285,6 +292,7 @@ VOID onIceCandidateHandler(UINT64 customData, PCHAR candidateJson)
     CHK(pSampleStreamingSession != NULL, STATUS_NULL_ARG);
 
     if (candidateJson == NULL) {
+        /** the process of gathering ice candidate is done. */
         DLOGD("ice candidate gathering finished");
         ATOMIC_STORE_BOOL(&pSampleStreamingSession->candidateGatheringDone, TRUE);
         CVAR_BROADCAST(pSampleStreamingSession->pSampleConfiguration->cvar);

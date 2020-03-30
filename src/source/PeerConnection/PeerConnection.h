@@ -82,7 +82,7 @@ typedef struct {
     RtcOnDataChannel onDataChannel;
 
     UINT64 onIceCandidateCustomData;
-    RtcOnIceCandidate onIceCandidate;
+    RtcOnIceCandidate onIceCandidate;//!< the callback of new local ice candidate. Json format.
 
     UINT64 onConnectionStateChangeCustomData;
     RtcOnConnectionStateChange onConnectionStateChange;

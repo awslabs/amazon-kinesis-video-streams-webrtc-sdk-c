@@ -72,8 +72,8 @@ typedef struct {
 typedef VOID (*StreamSessionShutdownCallback)(UINT64, PSampleStreamingSession);
 
 struct __SampleStreamingSession {
-    volatile ATOMIC_BOOL terminateFlag;
-    volatile ATOMIC_BOOL candidateGatheringDone;
+    volatile ATOMIC_BOOL terminateFlag;//!< the flag of terminated rtc peer connection.
+    volatile ATOMIC_BOOL candidateGatheringDone;//!< the process of gathering ice candidate is done.
     volatile ATOMIC_BOOL peerIdReceived;
     volatile SIZE_T frameIndex;
     PRtcPeerConnection pPeerConnection;
@@ -99,6 +99,17 @@ PVOID sendGstreamerAudioVideo(PVOID);
 PVOID sampleReceiveAudioFrame(PVOID args);
 STATUS createSampleConfiguration(PCHAR, SIGNALING_CHANNEL_ROLE_TYPE, BOOL, BOOL, PSampleConfiguration*);
 STATUS freeSampleConfiguration(PSampleConfiguration*);
+
+/**
+ * @brief Callback that is fired when the message is received by the signaling client of viewer.
+ *
+ * NOTE: pSampleConfiguration->signalingClientCallbacks.messageReceivedFn = viewerMessageReceived;
+ *
+ * @param[in] UINT64 - Custom data passed in to the signaling client
+ * @param[in] PReceivedSignalingMessage - The status code of the error
+ *
+ * @return STATUS code of the operation
+ */
 STATUS viewerMessageReceived(UINT64, PReceivedSignalingMessage);
 STATUS signalingClientStateChanged(UINT64, SIGNALING_CLIENT_STATE);
 STATUS masterMessageReceived(UINT64, PReceivedSignalingMessage);
@@ -107,6 +118,16 @@ STATUS handleOffer(PSampleConfiguration, PSampleStreamingSession, PSignalingMess
 STATUS handleRemoteCandidate(PSampleStreamingSession, PSignalingMessage);
 STATUS initializePeerConnection(PSampleConfiguration, PRtcPeerConnection*);
 STATUS lookForSslCert(PSampleConfiguration*);
+/**
+ * @brief 
+ *
+ * @param[in] PSampleConfiguration 
+ * @param[in] PCHAR 
+ * @param[in] BOOL 
+ * @param[out] PSampleStreamingSession 
+ *
+ * @return STATUS code of the operation
+ */
 STATUS createSampleStreamingSession(PSampleConfiguration, PCHAR, BOOL, PSampleStreamingSession*);
 STATUS freeSampleStreamingSession(PSampleStreamingSession*);
 STATUS streamingSessionOnShutdown(PSampleStreamingSession, UINT64, StreamSessionShutdownCallback);
@@ -115,6 +136,14 @@ STATUS resetSampleConfigurationState(PSampleConfiguration);
 VOID sampleFrameHandler(UINT64, PFrame);
 VOID sampleBandwidthEstimationHandler(UINT64, DOUBLE);
 VOID onDataChannel(UINT64, PRtcDataChannel);
+
+/**
+ * @brief User RtcOnConnectionStateChange callback.
+ *
+ * @param[in] UINT64 Custom data passed in to the signaling client.
+ * @param[in] RTC_PEER_CONNECTION_STATE the new state of rtc on connection.
+ *
+ */
 VOID onConnectionStateChange(UINT64, RTC_PEER_CONNECTION_STATE);
 STATUS sessionCleanupWait(PSampleConfiguration);
 

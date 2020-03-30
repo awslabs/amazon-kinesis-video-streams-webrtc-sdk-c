@@ -265,13 +265,42 @@ STATUS iceAgentPopulateSdpMediaDescriptionCandidates(PIceAgent, PSdpMediaDescrip
 STATUS iceAgentReportNewLocalCandidate(PIceAgent, PIceCandidate);
 STATUS iceAgentValidateKvsRtcConfig(PKvsRtcConfiguration);
 
-// Incoming data handling functions
+/**
+ * @brief Incoming data handling functions. It is used as the callback of turn connection.
+ *
+ * @param - UINT64 
+ * @param - PKvsIpAddress 
+ * @param - PSocketConnection 
+ *
+ * @return - STATUS - status of execution
+ */
 STATUS newRelayCandidateHandler(UINT64, PKvsIpAddress, PSocketConnection);
+/**
+ * @brief Incoming data handling functions. It is used as the callback of turn connection.
+ *
+ * @param[in] UINT64 the handler of the custome data.
+ * @param PSocketConnection 
+ * @param PBYTE 
+ * @param UINT32
+ * @param PKvsIpAddress
+ * @param PKvsIpAddress
+ *
+ * @return - STATUS - status of execution
+ */
 STATUS incomingDataHandler(UINT64, PSocketConnection, PBYTE, UINT32, PKvsIpAddress, PKvsIpAddress);
 STATUS handleStunPacket(PIceAgent, PBYTE, UINT32, PSocketConnection, PKvsIpAddress, PKvsIpAddress);
 
 // IceCandidate functions
 STATUS updateCandidateAddress(PIceCandidate, PKvsIpAddress);
+/**
+ * @brief Find the ice candidate with target ip from ip list.
+ *
+ * @param[in] PKvsIpAddress target ip address.
+ * @param[in] PDoubleList ip list.
+ * @param[out] PIceCandidate ice candidate with target ip address.
+ *
+ * @return - STATUS - status of execution
+ */
 STATUS findCandidateWithIp(PKvsIpAddress, PDoubleList, PIceCandidate*);
 STATUS findCandidateWithSocketConnection(PSocketConnection, PDoubleList, PIceCandidate*);
 
