@@ -7,6 +7,10 @@ class SignalingApiTest : public WebRtcClientTestBase {
 
 TEST_F(SignalingApiTest, signalingSendMessageSync)
 {
+    if (!mAccessKeyIdSet) {
+        return;
+    }
+
     STATUS expectedStatus;
     SignalingMessage signalingMessage;
 
@@ -50,6 +54,10 @@ TEST_F(SignalingApiTest, signalingSendMessageSync)
 
 TEST_F(SignalingApiTest, signalingClientConnectSync)
 {
+    if (!mAccessKeyIdSet) {
+        return;
+    }
+
     STATUS expectedStatus;
 
     initializeSignalingClient();
@@ -67,6 +75,10 @@ TEST_F(SignalingApiTest, signalingClientConnectSync)
 
 TEST_F(SignalingApiTest, signalingClientGetIceConfigInfoCount)
 {
+    if (!mAccessKeyIdSet) {
+        return;
+    }
+
     STATUS expectedStatus;
     UINT32 count;
 
@@ -87,6 +99,10 @@ TEST_F(SignalingApiTest, signalingClientGetIceConfigInfoCount)
 
 TEST_F(SignalingApiTest, signalingClientGetIceConfigInfo)
 {
+    if (!mAccessKeyIdSet) {
+        return;
+    }
+
     UINT32 i, j, count;
     PIceConfigInfo pIceConfigInfo;
 
@@ -123,6 +139,10 @@ TEST_F(SignalingApiTest, signalingClientGetIceConfigInfo)
 
 TEST_F(SignalingApiTest, signalingClientGetCurrentState)
 {
+    if (!mAccessKeyIdSet) {
+        return;
+    }
+
     SIGNALING_CLIENT_STATE state;
     initializeSignalingClient();
     EXPECT_NE(STATUS_SUCCESS, signalingClientGetCurrentState(INVALID_SIGNALING_CLIENT_HANDLE_VALUE, &state));

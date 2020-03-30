@@ -3,6 +3,10 @@
 #include <memory>
 #include <thread>
 
+#define KVS_USE_OPENSSL
+#define KVS_BUILD_WITH_LWS
+#include "../open-source/amazon-kinesis-video-streams-producer-c/src/source/Common/Include_i.h"
+
 #define TEST_DEFAULT_REGION                                     ((PCHAR) "us-west-2")
 #define TEST_STREAMING_TOKEN_DURATION                           (40 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define TEST_JITTER_BUFFER_CLOCK_RATE                           (1000)
