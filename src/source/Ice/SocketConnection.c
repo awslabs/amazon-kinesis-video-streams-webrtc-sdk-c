@@ -22,6 +22,7 @@ STATUS createSocketConnection(PKvsIpAddress pHostIpAddr, PKvsIpAddress pPeerIpAd
     CHK(pSocketConnection->lock != INVALID_MUTEX_VALUE, STATUS_INVALID_OPERATION);
 
     CHK_STATUS(createSocket(pHostIpAddr, pPeerIpAddr, protocol, sendBufSize, &pSocketConnection->localSocket));
+    pSocketConnection->hostIpAddr = *pHostIpAddr;
 
     pSocketConnection->secureConnection = FALSE;
     pSocketConnection->protocol = protocol;
@@ -240,7 +241,7 @@ STATUS socketConnectionReadData(PSocketConnection pSocketConnection, PBYTE pBuf,
 {
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
-    INT32 sslReadRet = 0;
+    INT32 sslReadRet = 0, sslErrorRet = 0;
     UINT32 writtenBytes = 0;
 
     CHK(pSocketConnection != NULL && pBuf != NULL && pDataLen != NULL, STATUS_NULL_ARG);
@@ -261,7 +262,10 @@ STATUS socketConnectionReadData(PSocketConnection pSocketConnection, PBYTE pBuf,
         // Unlikely that we will get sslReadRet == 0 here because socketConnectionReadData is only called when
         // socket recevies data. If ssl handshake is not done then -1 is returned.
         if (sslReadRet <= 0) {
-            DLOGV("SSL_read returned %d. Length of data already written %u", sslReadRet, writtenBytes);
+            sslErrorRet = SSL_get_error(pSocketConnection->pSsl, sslReadRet);
+            if (sslErrorRet != SSL_ERROR_WANT_WRITE && sslErrorRet != SSL_ERROR_WANT_READ) {
+                DLOGV("SSL_read failed with %s. Length of data already written %u", ERR_error_string(sslErrorRet, NULL), writtenBytes);
+            }
             break;
         }
 
