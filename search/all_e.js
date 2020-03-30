@@ -38,11 +38,12 @@ var searchData=
   ['rtconicecandidate_184',['RtcOnIceCandidate',['../Include_8h.html#abad4874074cecf3de44c82498437355a',1,'Include.h']]],
   ['rtconmessage_185',['RtcOnMessage',['../Include_8h.html#a9076ac4f31a29ed413ad20bd31c5cfde',1,'Include.h']]],
   ['rtconopen_186',['RtcOnOpen',['../Include_8h.html#a148ed1868bd8ec813749211f5c87b98a',1,'Include.h']]],
-  ['rtcp_187',['RTCP',['../group__RTCP.html',1,'']]],
-  ['rtcpeerconnection_188',['RtcPeerConnection',['../structRtcPeerConnection.html',1,'']]],
-  ['rtcrtpreceiver_189',['RtcRtpReceiver',['../structRtcRtpReceiver.html',1,'']]],
-  ['rtcrtptransceiver_190',['RtcRtpTransceiver',['../structRtcRtpTransceiver.html',1,'']]],
-  ['rtcrtptransceiverinit_191',['RtcRtpTransceiverInit',['../structRtcRtpTransceiverInit.html',1,'']]],
-  ['rtcsessiondescriptioninit_192',['RtcSessionDescriptionInit',['../structRtcSessionDescriptionInit.html',1,'']]],
-  ['rtp_193',['RTP',['../group__RTP.html',1,'']]]
+  ['rtconpictureloss_187',['RtcOnPictureLoss',['../Include_8h.html#ac7f4225ac2545664aabdc88d0b58e329',1,'Include.h']]],
+  ['rtcp_188',['RTCP',['../group__RTCP.html',1,'']]],
+  ['rtcpeerconnection_189',['RtcPeerConnection',['../structRtcPeerConnection.html',1,'']]],
+  ['rtcrtpreceiver_190',['RtcRtpReceiver',['../structRtcRtpReceiver.html',1,'']]],
+  ['rtcrtptransceiver_191',['RtcRtpTransceiver',['../structRtcRtpTransceiver.html',1,'']]],
+  ['rtcrtptransceiverinit_192',['RtcRtpTransceiverInit',['../structRtcRtpTransceiverInit.html',1,'']]],
+  ['rtcsessiondescriptioninit_193',['RtcSessionDescriptionInit',['../structRtcSessionDescriptionInit.html',1,'']]],
+  ['rtp_194',['RTP',['../group__RTP.html',1,'']]]
 ];

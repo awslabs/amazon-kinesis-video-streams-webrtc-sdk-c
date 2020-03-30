@@ -280,6 +280,7 @@ var Include_8h =
     [ "RtcOnIceCandidate", "Include_8h.html#abad4874074cecf3de44c82498437355a", null ],
     [ "RtcOnMessage", "Include_8h.html#a9076ac4f31a29ed413ad20bd31c5cfde", null ],
     [ "RtcOnOpen", "Include_8h.html#a148ed1868bd8ec813749211f5c87b98a", null ],
+    [ "RtcOnPictureLoss", "Include_8h.html#ac7f4225ac2545664aabdc88d0b58e329", null ],
     [ "SIGNALING_CLIENT_HANDLE", "Include_8h.html#a1a31b45408a80e1064d39d578bd3b751", null ],
     [ "SignalingClientErrorReportFunc", "Include_8h.html#a0d69d0e35a1bddfa483f288ec208546c", null ],
     [ "SignalingClientMessageReceivedFunc", "Include_8h.html#a1fc095ba30b81713c3fed9a275355b2c", null ],
