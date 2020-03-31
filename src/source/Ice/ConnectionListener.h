@@ -10,17 +10,16 @@ Connection Listener internal include file
 extern "C" {
 #endif
 
-#define MAX_UDP_PACKET_SIZE                         65507
-#define SOCKET_WAIT_FOR_DATA_TIMEOUT_SECONDS        2
-
-
+#define MAX_UDP_PACKET_SIZE                                         65507
+#define SOCKET_WAIT_FOR_DATA_TIMEOUT_SECONDS                        2
+#define CONNECTION_LISTENER_DEFAULT_MAX_LISTENING_CONNECTION        64
 
 typedef struct {
     volatile ATOMIC_BOOL terminate;
     volatile ATOMIC_BOOL listenerRoutineStarted;
+    volatile ATOMIC_BOOL connectionListChanged;
     PDoubleList connectionList;
     MUTEX lock;
-    MUTEX connectionRemovalLock;
     TID receiveDataRoutine;
     PBYTE pBuffer;
     UINT64 bufferLen;
