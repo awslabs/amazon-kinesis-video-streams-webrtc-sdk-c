@@ -8,9 +8,21 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
     TEST_F(IceApiTest, ConnectionListenerApiTest)
     {
         PConnectionListener pConnectionListener = NULL;
-        SocketConnection dummySocketConnection;
+        PSocketConnection pDummySocketConnection = NULL;
+        KvsIpAddress localhost;
 
-        MEMSET(&dummySocketConnection, 0x0, SIZEOF(SocketConnection));
+        localhost.family = KVS_IP_FAMILY_TYPE_IPV4;
+        localhost.isPointToPoint = FALSE;
+        // 127.0.0.1
+        localhost.address[0] = 0x7f;
+        localhost.address[1] = 0x00;
+        localhost.address[2] = 0x00;
+        localhost.address[3] = 0x01;
+        localhost.port = 0;
+
+        MEMSET(&localhost, 0x00, SIZEOF(KvsIpAddress));
+
+        EXPECT_EQ(STATUS_SUCCESS, createSocketConnection(&localhost, NULL, KVS_SOCKET_PROTOCOL_UDP, 0, NULL, 0, &pDummySocketConnection));
 
         EXPECT_NE(STATUS_SUCCESS, createConnectionListener(NULL));
         EXPECT_NE(STATUS_SUCCESS, freeConnectionListener(NULL));
@@ -22,9 +34,10 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         EXPECT_NE(STATUS_SUCCESS, connectionListenerRemoveConnection(pConnectionListener, NULL));
         EXPECT_NE(STATUS_SUCCESS, connectionListenerAddConnection(pConnectionListener, NULL));
 
-        EXPECT_EQ(STATUS_SUCCESS, connectionListenerAddConnection(pConnectionListener, &dummySocketConnection));
-        EXPECT_EQ(STATUS_SUCCESS, connectionListenerRemoveConnection(pConnectionListener, &dummySocketConnection));
+        EXPECT_EQ(STATUS_SUCCESS, connectionListenerAddConnection(pConnectionListener, pDummySocketConnection));
+        EXPECT_EQ(STATUS_SUCCESS, connectionListenerRemoveConnection(pConnectionListener, pDummySocketConnection));
 
+        // pDummySocketConnection is freed too
         EXPECT_EQ(STATUS_SUCCESS, freeConnectionListener(&pConnectionListener));
         // free is idempotent
         EXPECT_EQ(STATUS_SUCCESS, freeConnectionListener(&pConnectionListener));

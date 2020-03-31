@@ -141,7 +141,6 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         UINT32 connectionCount = 0, newConnectionCount = 0;
         PSocketConnection pSocketConnection = NULL;
         KvsIpAddress localhost;
-        PDoubleListNode pCurNode;
 
         MEMSET(&routine1CustomData, 0x0, SIZEOF(ConnectionListenerTestCustomData));
         MEMSET(&routine2CustomData, 0x0, SIZEOF(ConnectionListenerTestCustomData));
@@ -181,8 +180,7 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
 
         EXPECT_EQ(STATUS_SUCCESS, connectionListenerRemoveConnection(pConnectionListener, pSocketConnection));
         EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(pConnectionListener->connectionList, &newConnectionCount));
-        EXPECT_EQ(connectionCount, newConnectionCount);
-        EXPECT_EQ(STATUS_SUCCESS, freeSocketConnection(&pSocketConnection));
+        EXPECT_EQ(connectionCount + 1, newConnectionCount);
 
         EXPECT_EQ(TRUE, IS_VALID_TID_VALUE(pConnectionListener->receiveDataRoutine));
         ATOMIC_STORE_BOOL(&pConnectionListener->terminate, TRUE);
@@ -190,13 +188,6 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         THREAD_SLEEP((SOCKET_WAIT_FOR_DATA_TIMEOUT_SECONDS + 1) * HUNDREDS_OF_NANOS_IN_A_SECOND);
 
         EXPECT_EQ(FALSE, ATOMIC_LOAD_BOOL(&pConnectionListener->listenerRoutineStarted));
-
-        EXPECT_EQ(STATUS_SUCCESS, doubleListGetHeadNode(pConnectionListener->connectionList, &pCurNode));
-        while(pCurNode != NULL) {
-            pSocketConnection = (PSocketConnection) pCurNode->data;
-            EXPECT_EQ(STATUS_SUCCESS, freeSocketConnection(&pSocketConnection));
-            pCurNode = pCurNode->pNext;
-        }
 
         EXPECT_EQ(STATUS_SUCCESS, freeConnectionListener(&pConnectionListener));
     }
@@ -278,14 +269,15 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
 
         MEMSET(&iceAgent, 0x00, SIZEOF(IceAgent));
         MEMSET(&testLocalCandidate, 0x00, SIZEOF(IceCandidate));
+        testLocalCandidate.state = ICE_CANDIDATE_STATE_VALID;
 
         // init needed members in iceAgent
         iceAgent.lock = MUTEX_CREATE(TRUE);
         EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&iceAgent.remoteCandidates));
         EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&iceAgent.localCandidates));
         EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&iceAgent.iceCandidatePairs));
-        iceAgent.pTurnConnection = NULL;
-        iceAgent.iceAgentState = ICE_AGENT_STATE_GATHERING;
+        iceAgent.turnConnectionTracker.pTurnConnection = NULL;
+        iceAgent.iceAgentState = ICE_CANDIDATE_STATE_NEW;
 
         // invalid input
         EXPECT_NE(STATUS_SUCCESS, iceAgentAddRemoteCandidate(NULL, NULL));
@@ -301,17 +293,17 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(iceAgent.remoteCandidates, &remoteCandidateCount));
         // duplicated candidates are not added
         EXPECT_EQ(1, remoteCandidateCount);
-        // no candidate pair is formed since iceAgentState is ICE_AGENT_STATE_GATHERING
+        // candidate pair formed
         EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(iceAgent.iceCandidatePairs, &iceCandidateCount));
-        EXPECT_EQ(0, iceCandidateCount);
+        EXPECT_EQ(1, iceCandidateCount);
 
         iceAgent.iceAgentState = ICE_AGENT_STATE_CHECK_CONNECTION;
         EXPECT_EQ(STATUS_SUCCESS, iceAgentAddRemoteCandidate(&iceAgent, relayCandidateStr));
         EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(iceAgent.remoteCandidates, &remoteCandidateCount));
         EXPECT_EQ(2, remoteCandidateCount);
-        // candidate pair is formed since iceAgentState is not ICE_AGENT_STATE_GATHERING
+        // candidate pair formed
         EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(iceAgent.iceCandidatePairs, &iceCandidateCount));
-        EXPECT_EQ(1, iceCandidateCount);
+        EXPECT_EQ(2, iceCandidateCount);
 
         MUTEX_FREE(iceAgent.lock);
         EXPECT_EQ(STATUS_SUCCESS, doubleListGetHeadNode(iceAgent.iceCandidatePairs, &pCurNode));
@@ -423,8 +415,12 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         MEMSET(&iceAgent, 0x00, SIZEOF(IceAgent));
         MEMSET(&localCandidate1, 0x00, SIZEOF(IceCandidate));
         MEMSET(&localCandidate2, 0x00, SIZEOF(IceCandidate));
+        localCandidate1.state = ICE_CANDIDATE_STATE_VALID;
+        localCandidate2.state = ICE_CANDIDATE_STATE_VALID;
         MEMSET(&remoteCandidate1, 0x00, SIZEOF(IceCandidate));
         MEMSET(&remoteCandidate2, 0x00, SIZEOF(IceCandidate));
+        remoteCandidate1.state = ICE_CANDIDATE_STATE_VALID;
+        remoteCandidate2.state = ICE_CANDIDATE_STATE_VALID;
         EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&iceAgent.localCandidates));
         EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&iceAgent.remoteCandidates));
         EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&iceAgent.iceCandidatePairs));
@@ -440,8 +436,24 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         EXPECT_EQ(0, iceCandidateCount);
 
         EXPECT_EQ(STATUS_SUCCESS, doubleListInsertItemHead(iceAgent.remoteCandidates, (UINT64) &remoteCandidate1));
+        remoteCandidate1.state = ICE_CANDIDATE_STATE_NEW;
         EXPECT_EQ(STATUS_SUCCESS, createIceCandidatePairs(&iceAgent, &remoteCandidate1, TRUE));
         EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(iceAgent.iceCandidatePairs, &iceCandidateCount));
+        // candidate has to be in ICE_CANDIDATE_STATE_VALID to form pair
+        EXPECT_EQ(0, iceCandidateCount);
+
+        remoteCandidate1.state = ICE_CANDIDATE_STATE_VALID;
+        localCandidate1.state = ICE_CANDIDATE_STATE_NEW;
+        EXPECT_EQ(STATUS_SUCCESS, createIceCandidatePairs(&iceAgent, &remoteCandidate1, TRUE));
+        EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(iceAgent.iceCandidatePairs, &iceCandidateCount));
+        // candidate has to be in ICE_CANDIDATE_STATE_VALID to form pair
+        EXPECT_EQ(0, iceCandidateCount);
+
+        remoteCandidate1.state = ICE_CANDIDATE_STATE_VALID;
+        localCandidate1.state = ICE_CANDIDATE_STATE_VALID;
+        EXPECT_EQ(STATUS_SUCCESS, createIceCandidatePairs(&iceAgent, &remoteCandidate1, TRUE));
+        EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(iceAgent.iceCandidatePairs, &iceCandidateCount));
+        // both candidate are valid now. Ice candidate pair should be created
         EXPECT_EQ(1, iceCandidateCount);
         EXPECT_EQ(STATUS_SUCCESS, doubleListGetHeadNode(iceAgent.iceCandidatePairs, &pCurNode));
         pIceCandidatePair = (PIceCandidatePair) pCurNode->data;
@@ -520,6 +532,80 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         EXPECT_EQ(STATUS_SUCCESS, doubleListFree(iceAgent.iceCandidatePairs));
     }
 
+    TEST_F(IceFunctionalityTest, IceAgentCandidateGatheringTest)
+    {
+        typedef struct {
+            std::vector<std::string> list;
+            std::mutex lock;
+        } CandidateList;
+
+        PIceAgent pIceAgent = NULL;
+        CHAR localIceUfrag[LOCAL_ICE_UFRAG_LEN + 1];
+        CHAR localIcePwd[LOCAL_ICE_PWD_LEN + 1];
+        RtcConfiguration configuration;
+        IceAgentCallbacks iceAgentCallbacks;
+        PConnectionListener pConnectionListener = NULL;
+        TIMER_QUEUE_HANDLE timerQueueHandle = INVALID_TIMER_QUEUE_HANDLE_VALUE;
+        BOOL foundHostCandidate = FALSE, foundSrflxCandidate = FALSE, foundRelayCandidate = FALSE;
+        CandidateList candidateList;
+
+        MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+        MEMSET(localIceUfrag, 0x00, SIZEOF(localIceUfrag));
+        MEMSET(localIcePwd, 0x00, SIZEOF(localIcePwd));
+        MEMSET(&iceAgentCallbacks, 0x00, SIZEOF(IceAgentCallbacks));
+
+        initializeSignalingClient();
+        getIceServers(&configuration);
+
+        auto onICECandidateHdlr = [](UINT64 customData, PCHAR candidateStr) -> void {
+            CandidateList *candidateList1 = (CandidateList*) customData;
+            candidateList1->lock.lock();
+            if (candidateStr != NULL) {
+                candidateList1->list.push_back(std::string(candidateStr));
+            } else {
+                candidateList1->list.push_back("");
+            }
+            candidateList1->lock.unlock();
+        };
+
+        iceAgentCallbacks.customData = (UINT64) &candidateList;
+        iceAgentCallbacks.newLocalCandidateFn = onICECandidateHdlr;
+
+        EXPECT_EQ(STATUS_SUCCESS, generateJSONSafeString(localIceUfrag, LOCAL_ICE_UFRAG_LEN));
+        EXPECT_EQ(STATUS_SUCCESS, generateJSONSafeString(localIcePwd, LOCAL_ICE_PWD_LEN));
+        EXPECT_EQ(STATUS_SUCCESS, createConnectionListener(&pConnectionListener));
+        EXPECT_EQ(STATUS_SUCCESS, timerQueueCreate(&timerQueueHandle));
+        EXPECT_EQ(STATUS_SUCCESS, createIceAgent(localIceUfrag, localIcePwd, &iceAgentCallbacks, &configuration,
+                                                 timerQueueHandle, pConnectionListener, &pIceAgent));
+
+        EXPECT_EQ(STATUS_SUCCESS, iceAgentStartGathering(pIceAgent));
+
+        THREAD_SLEEP(KVS_ICE_GATHER_REFLEXIVE_AND_RELAYED_CANDIDATE_TIMEOUT + 2 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+
+        // newLocalCandidateFn should've returned null in its last invocation, which was converted to empty string
+        candidateList.lock.lock();
+        EXPECT_TRUE(candidateList.list[candidateList.list.size() - 1].empty());
+
+        for (std::vector<std::string>::iterator it = candidateList.list.begin() ; it != candidateList.list.end(); ++it) {
+            std::string candidateStr = *it;
+            if (candidateStr.find(std::string(SDP_CANDIDATE_TYPE_HOST)) != std::string::npos) {
+                foundHostCandidate = TRUE;
+            } else if (candidateStr.find(std::string(SDP_CANDIDATE_TYPE_SERFLX)) != std::string::npos) {
+                foundSrflxCandidate = TRUE;
+            } else if (candidateStr.find(std::string(SDP_CANDIDATE_TYPE_RELAY)) != std::string::npos) {
+                foundRelayCandidate = TRUE;
+            }
+        }
+        candidateList.lock.unlock();
+
+        EXPECT_TRUE(foundHostCandidate && foundSrflxCandidate && foundRelayCandidate);
+        EXPECT_EQ(STATUS_SUCCESS, iceAgentShutdown(pIceAgent));
+        EXPECT_EQ(STATUS_SUCCESS, timerQueueShutdown(timerQueueHandle));
+        EXPECT_EQ(STATUS_SUCCESS, freeIceAgent(&pIceAgent));
+        EXPECT_EQ(STATUS_SUCCESS, timerQueueFree(&timerQueueHandle));
+
+        deinitializeSignalingClient();
+    }
 }
 }
 }

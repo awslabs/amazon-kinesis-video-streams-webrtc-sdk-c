@@ -9,14 +9,12 @@
  */
 StateMachineState ICE_AGENT_STATE_MACHINE_STATES[] = {
         {ICE_AGENT_STATE_NEW, ICE_AGENT_STATE_NONE | ICE_AGENT_STATE_NEW, fromNewIceAgentState, executeNewIceAgentState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_ICE_INVALID_STATE},
-        {ICE_AGENT_STATE_GATHERING, ICE_AGENT_STATE_NEW | ICE_AGENT_STATE_GATHERING, fromGatheringIceAgentState, executeGatheringIceAgentState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_ICE_INVALID_STATE},
-        {ICE_AGENT_STATE_WAITING_REMOTE_CREDENTIAL, ICE_AGENT_STATE_GATHERING | ICE_AGENT_STATE_WAITING_REMOTE_CREDENTIAL, fromWaitingRemoteCredentialIceAgentState, executeWaitingRemoteCredentialIceAgentState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_ICE_INVALID_STATE},
-        {ICE_AGENT_STATE_CHECK_CONNECTION, ICE_AGENT_STATE_WAITING_REMOTE_CREDENTIAL | ICE_AGENT_STATE_CHECK_CONNECTION, fromCheckConnectionIceAgentState, executeCheckConnectionIceAgentState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_ICE_INVALID_STATE},
+        {ICE_AGENT_STATE_CHECK_CONNECTION, ICE_AGENT_STATE_NEW | ICE_AGENT_STATE_CHECK_CONNECTION, fromCheckConnectionIceAgentState, executeCheckConnectionIceAgentState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_ICE_INVALID_STATE},
         {ICE_AGENT_STATE_CONNECTED, ICE_AGENT_STATE_CHECK_CONNECTION | ICE_AGENT_STATE_CONNECTED, fromConnectedIceAgentState, executeConnectedIceAgentState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_ICE_INVALID_STATE},
         {ICE_AGENT_STATE_NOMINATING, ICE_AGENT_STATE_CONNECTED | ICE_AGENT_STATE_NOMINATING, fromNominatingIceAgentState, executeNominatingIceAgentState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_ICE_INVALID_STATE},
         {ICE_AGENT_STATE_READY,  ICE_AGENT_STATE_CONNECTED | ICE_AGENT_STATE_NOMINATING | ICE_AGENT_STATE_READY | ICE_AGENT_STATE_DISCONNECTED, fromReadyIceAgentState, executeReadyIceAgentState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_ICE_INVALID_STATE},
-        {ICE_AGENT_STATE_DISCONNECTED, ICE_AGENT_STATE_GATHERING | ICE_AGENT_STATE_CHECK_CONNECTION | ICE_AGENT_STATE_CONNECTED | ICE_AGENT_STATE_NOMINATING | ICE_AGENT_STATE_READY | ICE_AGENT_STATE_DISCONNECTED, fromDisconnectedIceAgentState, executeDisconnectedIceAgentState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_ICE_INVALID_STATE},
-        {ICE_AGENT_STATE_FAILED, ICE_AGENT_STATE_GATHERING | ICE_AGENT_STATE_CHECK_CONNECTION | ICE_AGENT_STATE_CONNECTED | ICE_AGENT_STATE_NOMINATING | ICE_AGENT_STATE_READY | ICE_AGENT_STATE_DISCONNECTED | ICE_AGENT_STATE_FAILED, fromFailedIceAgentState, executeFailedIceAgentState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_ICE_INVALID_STATE},
+        {ICE_AGENT_STATE_DISCONNECTED,  ICE_AGENT_STATE_CHECK_CONNECTION | ICE_AGENT_STATE_CONNECTED | ICE_AGENT_STATE_NOMINATING | ICE_AGENT_STATE_READY | ICE_AGENT_STATE_DISCONNECTED, fromDisconnectedIceAgentState, executeDisconnectedIceAgentState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_ICE_INVALID_STATE},
+        {ICE_AGENT_STATE_FAILED, ICE_AGENT_STATE_CHECK_CONNECTION | ICE_AGENT_STATE_CONNECTED | ICE_AGENT_STATE_NOMINATING | ICE_AGENT_STATE_READY | ICE_AGENT_STATE_DISCONNECTED | ICE_AGENT_STATE_FAILED, fromFailedIceAgentState, executeFailedIceAgentState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_ICE_INVALID_STATE},
 };
 
 UINT32 ICE_AGENT_STATE_MACHINE_STATE_COUNT = ARRAY_SIZE(ICE_AGENT_STATE_MACHINE_STATES);
@@ -47,7 +45,7 @@ STATUS stepIceAgentStateMachine(PIceAgent pIceAgent)
             DLOGD("Ice agent state changed from %s to %s.",
                   iceAgentStateToString(oldState),
                   iceAgentStateToString(pIceAgent->iceAgentState));
-            pIceAgent->iceAgentCallbacks.connectionStateChangedFn(pIceAgent->customData, pIceAgent->iceAgentState);
+            pIceAgent->iceAgentCallbacks.connectionStateChangedFn(pIceAgent->iceAgentCallbacks.customData, pIceAgent->iceAgentState);
         }
     } else {
         // state machine retry is not used. resetStateMachineRetryCount just to avoid
@@ -115,7 +113,7 @@ STATUS iceAgentStateMachineCheckDisconnection(PIceAgent pIceAgent, PUINT64 pNext
             DLOGD("recovered from disconnection");
             pIceAgent->detectedDisconnection = FALSE;
             if (pIceAgent->iceAgentCallbacks.connectionStateChangedFn != NULL) {
-                pIceAgent->iceAgentCallbacks.connectionStateChangedFn(pIceAgent->customData, pIceAgent->iceAgentState);
+                pIceAgent->iceAgentCallbacks.connectionStateChangedFn(pIceAgent->iceAgentCallbacks.customData, pIceAgent->iceAgentState);
             }
         } else if (currentTime >= pIceAgent->disconnectionGracePeriodEndTime) {
             CHK(FALSE, STATUS_ICE_FAILED_TO_RECOVER_FROM_DISCONNECTION);
@@ -137,12 +135,6 @@ PCHAR iceAgentStateToString(UINT64 state)
             break;
         case ICE_AGENT_STATE_NEW:
             stateStr = ICE_AGENT_STATE_NEW_STR;
-            break;
-        case ICE_AGENT_STATE_GATHERING:
-            stateStr = ICE_AGENT_STATE_GATHERING_STR;
-            break;
-        case ICE_AGENT_STATE_WAITING_REMOTE_CREDENTIAL:
-            stateStr = ICE_AGENT_STATE_WAITING_REMOTE_CREDENTIAL_STR;
             break;
         case ICE_AGENT_STATE_CHECK_CONNECTION:
             stateStr = ICE_AGENT_STATE_CHECK_CONNECTION_STR;
@@ -179,12 +171,8 @@ STATUS fromNewIceAgentState(UINT64 customData, PUINT64 pState)
 
     CHK(pIceAgent != NULL && pState != NULL, STATUS_NULL_ARG);
 
-    if (ATOMIC_LOAD_BOOL(&pIceAgent->agentStartGathering)) {
-        // Transition to gathering state
-        state = ICE_AGENT_STATE_GATHERING;
-    } else {
-        state = ICE_AGENT_STATE_NEW;
-    }
+    // go directly to next state
+    state = ICE_AGENT_STATE_CHECK_CONNECTION;
 
     *pState = state;
 
@@ -207,181 +195,7 @@ STATUS executeNewIceAgentState(UINT64 customData, UINT64 time)
 
     pIceAgent->iceAgentState = ICE_AGENT_STATE_NEW;
 
-    CHK_STATUS(timerQueueAddTimer(pIceAgent->timerQueueHandle,
-                                  0,
-                                  pIceAgent->kvsRtcConfiguration.iceConnectionCheckPollingInterval,
-                                  iceAgentStateTransitionTimerCallback,
-                                  (UINT64) pIceAgent,
-                                  &pIceAgent->iceAgentStateTimerCallback));
 CleanUp:
-
-    LEAVES();
-    return retStatus;
-}
-
-STATUS fromGatheringIceAgentState(UINT64 customData, PUINT64 pState)
-{
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-    PIceAgent pIceAgent = (PIceAgent) customData;
-    UINT64 state = ICE_AGENT_STATE_GATHERING;
-    PDoubleListNode pNextNode = NULL, pCurNode = NULL;
-    UINT64 data, currentTime = GETTIME();
-    PIceCandidate pCandidate;
-    UINT32 validLocalCandidateCount = 0, totalLocalCandidateCount = 0;
-    CHAR ipAddrStr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
-
-    CHK(pIceAgent != NULL && pState != NULL, STATUS_NULL_ARG);
-
-    // move to failed state if any error happened.
-    CHK_STATUS(pIceAgent->iceAgentStatus);
-
-    // return early if changing to disconnected state
-    CHK(state != ICE_AGENT_STATE_DISCONNECTED, retStatus);
-
-    // count number of valid candidates
-    CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
-    while (pCurNode != NULL) {
-        CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
-        pCurNode = pCurNode->pNext;
-        pCandidate = (PIceCandidate) data;
-
-        if (pCandidate->state == ICE_CANDIDATE_STATE_VALID) {
-            validLocalCandidateCount++;
-        } else {
-            CHK_STATUS(getIpAddrStr(&pCandidate->ipAddress,
-                                    ipAddrStr,
-                                    ARRAY_SIZE(ipAddrStr)));
-            DLOGD("checking local candidate type %s, ip %s", iceAgentGetCandidateTypeStr(pCandidate->iceCandidateType), ipAddrStr);
-        }
-    }
-
-    CHK_STATUS(doubleListGetNodeCount(pIceAgent->localCandidates, &totalLocalCandidateCount));
-
-    // return early and remain in ICE_AGENT_STATE_GATHERING if condition not met
-    CHK((validLocalCandidateCount > 0 && validLocalCandidateCount == totalLocalCandidateCount) ||
-        currentTime >= pIceAgent->stateEndTime, retStatus);
-
-    // filter out invalid candidates, and compute priority for valid candidates
-    CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pNextNode));
-    while (pNextNode != NULL) {
-        pCurNode = pNextNode;
-        pNextNode = pNextNode->pNext;
-        CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
-        pCandidate = (PIceCandidate) data;
-
-        if (pCandidate->state != ICE_CANDIDATE_STATE_VALID) {
-            doubleListRemoveNode(pIceAgent->localCandidates, pCurNode);
-            MEMFREE(pCandidate);
-        } else {
-            validLocalCandidateCount++;
-        }
-    }
-
-    CHK(validLocalCandidateCount > 0, STATUS_ICE_NO_LOCAL_CANDIDATE_AVAILABLE_AFTER_GATHERING_TIMEOUT);
-
-    // proceed to next state since since we have at least one local candidate
-    state = ICE_AGENT_STATE_WAITING_REMOTE_CREDENTIAL;
-
-    // report NULL candidate to signal that candidate gathering is done.
-    if (pIceAgent->iceAgentCallbacks.newLocalCandidateFn != NULL) {
-        pIceAgent->iceAgentCallbacks.newLocalCandidateFn(pIceAgent->customData, NULL);
-    }
-
-CleanUp:
-
-    if (STATUS_FAILED(retStatus)) {
-        state = ICE_AGENT_STATE_FAILED;
-        pIceAgent->iceAgentStatus = retStatus;
-        // fix up retStatus so we can successfully transition to failed state.
-        retStatus = STATUS_SUCCESS;
-    }
-
-    if (pState != NULL) {
-        *pState = state;
-    }
-
-    LEAVES();
-    return retStatus;
-}
-
-STATUS executeGatheringIceAgentState(UINT64 customData, UINT64 time)
-{
-    ENTERS();
-    UNUSED_PARAM(time);
-    STATUS retStatus = STATUS_SUCCESS;
-    PIceAgent pIceAgent = (PIceAgent) customData;
-
-    CHK(pIceAgent != NULL, STATUS_NULL_ARG);
-
-    if (pIceAgent->iceAgentState != ICE_AGENT_STATE_GATHERING) {
-        CHK_STATUS(iceAgentGatheringStateSetup(pIceAgent));
-        pIceAgent->iceAgentState = ICE_AGENT_STATE_GATHERING;
-    }
-
-    CHK_STATUS(iceAgentSendSrflxCandidateRequest(pIceAgent));
-
-CleanUp:
-
-    CHK_LOG_ERR(retStatus);
-
-    if (STATUS_FAILED(retStatus)) {
-        pIceAgent->iceAgentStatus = retStatus;
-
-        // fix up retStatus so we can successfully transition to failed state.
-        retStatus = STATUS_SUCCESS;
-    }
-
-    LEAVES();
-    return retStatus;
-}
-
-STATUS fromWaitingRemoteCredentialIceAgentState(UINT64 customData, PUINT64 pState)
-{
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-    PIceAgent pIceAgent = (PIceAgent) customData;
-    UINT64 state;
-
-    CHK(pIceAgent != NULL && pState != NULL, STATUS_NULL_ARG);
-
-    if (ATOMIC_LOAD_BOOL(&pIceAgent->remoteCredentialReceived)) {
-        // Transition to check connection state
-        state = ICE_AGENT_STATE_CHECK_CONNECTION;
-    } else {
-        state = ICE_AGENT_STATE_WAITING_REMOTE_CREDENTIAL;
-    }
-
-    *pState = state;
-
-CleanUp:
-
-    LEAVES();
-    return retStatus;
-}
-
-STATUS executeWaitingRemoteCredentialIceAgentState(UINT64 customData, UINT64 time)
-{
-    ENTERS();
-    UNUSED_PARAM(time);
-    STATUS retStatus = STATUS_SUCCESS;
-    PIceAgent pIceAgent = (PIceAgent) customData;
-
-    CHK(pIceAgent != NULL, STATUS_NULL_ARG);
-
-    pIceAgent->iceAgentState = ICE_AGENT_STATE_WAITING_REMOTE_CREDENTIAL;
-    // nothing to execute, just waiting for remote username and password
-
-CleanUp:
-
-    CHK_LOG_ERR(retStatus);
-
-    if (STATUS_FAILED(retStatus)) {
-        pIceAgent->iceAgentStatus = retStatus;
-
-        // fix up retStatus so we can successfully transition to failed state.
-        retStatus = STATUS_SUCCESS;
-    }
 
     LEAVES();
     return retStatus;
@@ -729,7 +543,7 @@ STATUS executeDisconnectedIceAgentState(UINT64 customData, UINT64 time)
     pIceAgent->disconnectionGracePeriodEndTime = GETTIME() + KVS_ICE_ENTER_STATE_FAILED_GRACE_PERIOD;
 
     if (pIceAgent->iceAgentCallbacks.connectionStateChangedFn != NULL) {
-        pIceAgent->iceAgentCallbacks.connectionStateChangedFn(pIceAgent->customData, ICE_AGENT_STATE_DISCONNECTED);
+        pIceAgent->iceAgentCallbacks.connectionStateChangedFn(pIceAgent->iceAgentCallbacks.customData, ICE_AGENT_STATE_DISCONNECTED);
     }
 
     // step out of disconnection state to retry. Do not use stepIceAgentState machine because lock is not re-entrant.

@@ -18,9 +18,9 @@ STATUS createConnectionListener(PConnectionListener* ppConnectionListener)
     CHK_STATUS(doubleListCreate(&pConnectionListener->connectionList));
     ATOMIC_STORE_BOOL(&pConnectionListener->terminate, FALSE);
     ATOMIC_STORE_BOOL(&pConnectionListener->listenerRoutineStarted, FALSE);
+    ATOMIC_STORE_BOOL(&pConnectionListener->connectionListChanged, FALSE);
     pConnectionListener->receiveDataRoutine = INVALID_TID_VALUE;
     pConnectionListener->lock = MUTEX_CREATE(FALSE);
-    pConnectionListener->connectionRemovalLock = MUTEX_CREATE(FALSE);
 
     // pConnectionListener->pBuffer starts at the end of ConnectionListener struct
     pConnectionListener->pBuffer = (PBYTE) (pConnectionListener + 1);
@@ -44,6 +44,8 @@ STATUS freeConnectionListener(PConnectionListener* ppConnectionListener)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PConnectionListener pConnectionListener = NULL;
+    PDoubleListNode pCurNode = NULL;
+    PSocketConnection pSocketConnection = NULL;
 
     CHK(ppConnectionListener != NULL, STATUS_NULL_ARG);
     CHK(*ppConnectionListener != NULL, retStatus);
@@ -57,17 +59,19 @@ STATUS freeConnectionListener(PConnectionListener* ppConnectionListener)
         pConnectionListener->receiveDataRoutine = INVALID_TID_VALUE;
     }
 
-    // PSocketConnections stored here are not owned by ConnectionListener
     if (pConnectionListener->connectionList != NULL) {
+        CHK_LOG_ERR(doubleListGetHeadNode(pConnectionListener->connectionList, &pCurNode));
+        while(pCurNode != NULL) {
+            pSocketConnection = (PSocketConnection) pCurNode->data;
+            pCurNode = pCurNode->pNext;
+            CHK_STATUS(freeSocketConnection(&pSocketConnection));
+        }
+        CHK_LOG_ERR(doubleListClear(pConnectionListener->connectionList, FALSE));
         CHK_LOG_ERR(doubleListFree(pConnectionListener->connectionList));
     }
 
     if (pConnectionListener->lock != INVALID_MUTEX_VALUE) {
         MUTEX_FREE(pConnectionListener->lock);
-    }
-
-    if (pConnectionListener->connectionRemovalLock != INVALID_MUTEX_VALUE) {
-        MUTEX_FREE(pConnectionListener->connectionRemovalLock);
     }
 
     MEMFREE(pConnectionListener);
@@ -97,6 +101,8 @@ STATUS connectionListenerAddConnection(PConnectionListener pConnectionListener, 
     MUTEX_UNLOCK(pConnectionListener->lock);
     locked = FALSE;
 
+    ATOMIC_STORE_BOOL(&pConnectionListener->connectionListChanged, TRUE);
+
 CleanUp:
 
     if (locked) {
@@ -109,48 +115,16 @@ CleanUp:
 STATUS connectionListenerRemoveConnection(PConnectionListener pConnectionListener, PSocketConnection pSocketConnection)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    BOOL locked = FALSE, connectionRemovalLocked = FALSE;
-    PDoubleListNode pCurNode = NULL;
-    UINT64 data;
 
     CHK(pConnectionListener != NULL && pSocketConnection != NULL, STATUS_NULL_ARG);
     CHK(!ATOMIC_LOAD_BOOL(&pConnectionListener->terminate), retStatus);
 
-    MUTEX_LOCK(pConnectionListener->lock);
-    locked = TRUE;
+    // mark socket as closed. Will be cleaned up by connectionListenerReceiveDataRoutine
+    CHK_STATUS(socketConnectionClosed(pSocketConnection));
 
-    CHK_STATUS(doubleListGetHeadNode(pConnectionListener->connectionList, &pCurNode));
-    while(pCurNode != NULL) {
-        CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
-        if (((PSocketConnection) data) == pSocketConnection) {
-            // to make sure that we remove only when select() is unblocked. Otherwise we could close socket that select()
-            // is still listening and cause bad file descriptor error.
-            MUTEX_LOCK(pConnectionListener->connectionRemovalLock);
-            connectionRemovalLocked = TRUE;
-
-            // not freeing the PSocketConnection as it is not owned by connectionListener
-            CHK_STATUS(doubleListDeleteNode(pConnectionListener->connectionList, pCurNode));
-
-            MUTEX_UNLOCK(pConnectionListener->connectionRemovalLock);
-            connectionRemovalLocked = FALSE;
-
-            // break the loop
-            pCurNode = NULL;
-
-        } else {
-            pCurNode = pCurNode->pNext;
-        }
-    }
+    ATOMIC_STORE_BOOL(&pConnectionListener->connectionListChanged, TRUE);
 
 CleanUp:
-
-    if (connectionRemovalLocked) {
-        MUTEX_UNLOCK(pConnectionListener->connectionRemovalLock);
-    }
-
-    if (locked) {
-        MUTEX_UNLOCK(pConnectionListener->lock);
-    }
 
     return retStatus;
 }
@@ -158,7 +132,9 @@ CleanUp:
 STATUS connectionListenerRemoveAllConnection(PConnectionListener pConnectionListener)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    BOOL locked = FALSE, connectionRemovalLocked = FALSE;
+    BOOL locked = FALSE;
+    PDoubleListNode pCurNode = NULL;
+    PSocketConnection pSocketConnection = NULL;
 
     CHK(pConnectionListener != NULL, STATUS_NULL_ARG);
     CHK(!ATOMIC_LOAD_BOOL(&pConnectionListener->terminate), retStatus);
@@ -166,22 +142,18 @@ STATUS connectionListenerRemoveAllConnection(PConnectionListener pConnectionList
     MUTEX_LOCK(pConnectionListener->lock);
     locked = TRUE;
 
-    // to make sure that we remove only when select() is unblocked. Otherwise we could close socket that select()
-    // is still listening and cause bad file descriptor error.
-    MUTEX_LOCK(pConnectionListener->connectionRemovalLock);
-    connectionRemovalLocked = TRUE;
+    // mark all socket as closed. Will be cleaned up by connectionListenerReceiveDataRoutine
+    CHK_STATUS(doubleListGetHeadNode(pConnectionListener->connectionList, &pCurNode));
+    while (pCurNode != NULL) {
+        pSocketConnection = (PSocketConnection) pCurNode->data;
+        pCurNode = pCurNode->pNext;
 
-    // not freeing the PSocketConnection as it is not owned by connectionListener
-    CHK_STATUS(doubleListClear(pConnectionListener->connectionList, FALSE));
+        CHK_STATUS(socketConnectionClosed(pSocketConnection));
+    }
 
-    MUTEX_UNLOCK(pConnectionListener->connectionRemovalLock);
-    connectionRemovalLocked = FALSE;
+    ATOMIC_STORE_BOOL(&pConnectionListener->connectionListChanged, TRUE);
 
 CleanUp:
-
-    if (connectionRemovalLocked) {
-        MUTEX_UNLOCK(pConnectionListener->connectionRemovalLock);
-    }
 
     if (locked) {
         MUTEX_UNLOCK(pConnectionListener->lock);
@@ -212,10 +184,11 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PConnectionListener pConnectionListener = (PConnectionListener) arg;
-    PDoubleListNode pCurNode = NULL;
-    UINT64 data;
+    PDoubleListNode pCurNode = NULL, pNodeToDelete = NULL;
     PSocketConnection pSocketConnection;
     BOOL locked = FALSE, iterate = TRUE;
+    PSocketConnection socketList[CONNECTION_LISTENER_DEFAULT_MAX_LISTENING_CONNECTION];
+    UINT32 socketCount = 0, i;
 
     INT32 nfds = 0;
     fd_set rfds;
@@ -232,55 +205,77 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
 
     CHK(pConnectionListener != NULL, STATUS_NULL_ARG);
 
+    /* Ensure that memory sanitizers consider
+     * rfds initialized even if FD_ZERO is
+     * implemented in assembly. */
+    MEMSET(&rfds, 0x00, SIZEOF(fd_set));
+
     srcAddr.isPointToPoint = FALSE;
 
     while(!ATOMIC_LOAD_BOOL(&pConnectionListener->terminate)) {
         FD_ZERO(&rfds);
         nfds = 0;
 
-        MUTEX_LOCK(pConnectionListener->lock);
-        locked = TRUE;
+        // update connection list.
+        if (ATOMIC_LOAD_BOOL(&pConnectionListener->connectionListChanged)) {
+            MUTEX_LOCK(pConnectionListener->lock);
+            locked = TRUE;
 
-        CHK_STATUS(doubleListGetHeadNode(pConnectionListener->connectionList, &pCurNode));
-        while(pCurNode != NULL) {
-            CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
-            pSocketConnection = (PSocketConnection) data;
-            pCurNode = pCurNode->pNext;
-            FD_SET(pSocketConnection->localSocket, &rfds);
-            nfds = MAX(nfds, pSocketConnection->localSocket);
+            socketCount = 0;
+            CHK_STATUS(doubleListGetHeadNode(pConnectionListener->connectionList, &pCurNode));
+            while(pCurNode != NULL) {
+                pSocketConnection = (PSocketConnection) pCurNode->data;
+                if (ATOMIC_LOAD_BOOL(&pSocketConnection->connectionClosed)) {
+                    pNodeToDelete = pCurNode;
+                    pCurNode = pCurNode->pNext;
+
+                    CHK_STATUS(freeSocketConnection(&pSocketConnection));
+                    CHK_STATUS(doubleListDeleteNode(pConnectionListener->connectionList, pNodeToDelete));
+                } else {
+                    pCurNode = pCurNode->pNext;
+                    if (socketCount < ARRAY_SIZE(socketList)) {
+                        socketList[socketCount] = pSocketConnection;
+                        socketCount++;
+                    } else {
+                        DLOGW("Max socket list size of %u exceeded. Will not receive data from socket %d",
+                              ARRAY_SIZE(socketList), pSocketConnection->localSocket);
+                    }
+                }
+            }
+
+            MUTEX_UNLOCK(pConnectionListener->lock);
+            locked = FALSE;
+
+            ATOMIC_STORE_BOOL(&pConnectionListener->connectionListChanged, FALSE);
+        }
+
+        for (i = 0; i < socketCount; ++i) {
+            pSocketConnection = socketList[i];
+            if (ATOMIC_LOAD_BOOL(&pSocketConnection->receiveData)) {
+                FD_SET(pSocketConnection->localSocket, &rfds);
+                nfds = MAX(nfds, pSocketConnection->localSocket);
+            }
         }
 
         nfds++;
-
-        MUTEX_UNLOCK(pConnectionListener->lock);
-        locked = FALSE;
 
         // timeout select every SOCKET_WAIT_FOR_DATA_TIMEOUT_SECONDS seconds and check if terminate
         // on linux tv need to be reinitialized after select is done.
         tv.tv_sec = SOCKET_WAIT_FOR_DATA_TIMEOUT_SECONDS;
         tv.tv_usec = 0;
 
-        MUTEX_LOCK(pConnectionListener->connectionRemovalLock);
-
         // blocking call
         retval = select(nfds, &rfds, NULL, NULL, &tv);
-
-        MUTEX_UNLOCK(pConnectionListener->connectionRemovalLock);
 
         if (retval == -1) {
             DLOGE("select() failed with errno %s", strerror(errno));
         } else if (retval > 0) {
 
-            MUTEX_LOCK(pConnectionListener->lock);
-            locked = TRUE;
-
-            CHK_STATUS(doubleListGetHeadNode(pConnectionListener->connectionList, &pCurNode));
-            while(pCurNode != NULL) {
-                CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
-                pSocketConnection = (PSocketConnection) data;
+            for (i = 0; i < socketCount; ++i) {
+                pSocketConnection = socketList[i];
 
                 if (FD_ISSET(pSocketConnection->localSocket, &rfds)) {
-                    iterate = TRUE;
+                    iterate = !ATOMIC_LOAD_BOOL(&pSocketConnection->connectionClosed);
                     while(iterate) {
                         readLen = recvfrom(pSocketConnection->localSocket, pConnectionListener->pBuffer, pConnectionListener->bufferLen, 0,
                                            (struct sockaddr *) &srcAddrBuff, &srcAddrBuffLen);
@@ -298,7 +293,6 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
                             iterate = FALSE;
                         } else if (readLen == 0) {
                             CHK_STATUS(socketConnectionClosed(pSocketConnection));
-                            CHK_STATUS(doubleListRemoveNode(pConnectionListener->connectionList, pCurNode));
                             iterate = FALSE;
                         }
 
@@ -332,11 +326,11 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
                             // in that case, no need to call dataAvailable callback
                             if (readLen > 0) {
                                 pSocketConnection->dataAvailableCallbackFn(pSocketConnection->dataAvailableCallbackCustomData,
-                                                                       pSocketConnection,
-                                                                       pConnectionListener->pBuffer,
-                                                                       (UINT32) readLen,
-                                                                       pSrcAddr,
-                                                                       NULL); // no dest information available right now.
+                                                                           pSocketConnection,
+                                                                           pConnectionListener->pBuffer,
+                                                                           (UINT32) readLen,
+                                                                           pSrcAddr,
+                                                                           NULL); // no dest information available right now.
                             }
                         }
 
@@ -344,12 +338,7 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
                         srcAddrBuffLen = SIZEOF(srcAddrBuff);
                     }
                 }
-
-                pCurNode = pCurNode->pNext;
             }
-
-            MUTEX_UNLOCK(pConnectionListener->lock);
-            locked = FALSE;
         }
     }
 

@@ -30,6 +30,7 @@ STATUS createSocketConnection(PKvsIpAddress pHostIpAddr, PKvsIpAddress pPeerIpAd
         pSocketConnection->peerIpAddr = *pPeerIpAddr;
     }
     ATOMIC_STORE_BOOL(&pSocketConnection->connectionClosed, FALSE);
+    ATOMIC_STORE_BOOL(&pSocketConnection->receiveData, FALSE);
     pSocketConnection->freeBios = TRUE;
     pSocketConnection->dataAvailableCallbackCustomData = customData;
     pSocketConnection->dataAvailableCallbackFn = dataAvailableFn;
@@ -60,6 +61,7 @@ STATUS freeSocketConnection(PSocketConnection* ppSocketConnection)
     CHK(ppSocketConnection != NULL, STATUS_NULL_ARG);
     pSocketConnection = *ppSocketConnection;
     CHK(pSocketConnection != NULL, retStatus);
+    ATOMIC_STORE_BOOL(&pSocketConnection->connectionClosed, TRUE);
 
     if (IS_VALID_MUTEX_VALUE(pSocketConnection->lock)) {
         MUTEX_FREE(pSocketConnection->lock);
@@ -145,7 +147,7 @@ STATUS socketConnectionSendData(PSocketConnection pSocketConnection, PBYTE pBuf,
 {
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE, iterate = TRUE;
-    INT32 sslRet, sslErr, result;
+    INT32 sslRet = 0, sslErr = 0, result = 0;
 
     socklen_t addrLen;
     struct sockaddr *destAddr;
@@ -173,7 +175,9 @@ STATUS socketConnectionSendData(PSocketConnection pSocketConnection, PBYTE pBuf,
                 THREAD_SLEEP(SSL_WRITE_RETRY_DELAY);
             }
         }
-        CHK_WARN(sslRet > 0, retStatus, "SSL_write failed with %s", ERR_error_string(sslErr, NULL));
+        if (sslRet < 0 && sslErr != SSL_ERROR_WANT_READ) {
+            DLOGW("SSL_write failed with %s", ERR_error_string(sslErr, NULL));
+        }
 
     } else if (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_TCP) {
         if (send(pSocketConnection->localSocket, pBuf, bufLen, 0) < 0) {
