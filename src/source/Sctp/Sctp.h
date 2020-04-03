@@ -16,6 +16,12 @@ extern "C" {
 #define SCTP_ASSOCIATION_DEFAULT_PORT 5000
 #define SCTP_DCEP_HEADER_LENGTH 12
 
+#define SCTP_SESSION_ACTIVE                     0
+#define SCTP_SESSION_SHUTDOWN_INITIATED         1
+#define SCTP_SESSION_SHUTDOWN_COMPLETED         2
+
+#define DEFAULT_SCTP_SHUTDOWN_TIMEOUT           2 * HUNDREDS_OF_NANOS_IN_A_SECOND
+
 #define DEFAULT_USRSCTP_TEARDOWN_POLLING_INTERVAL           (10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
 
 enum {
@@ -53,6 +59,7 @@ typedef struct {
 } SctpSessionCallbacks, *PSctpSessionCallbacks;
 
 typedef struct {
+    volatile SIZE_T shutdownStatus;
     struct socket *socket;
     SctpSessionCallbacks sctpSessionCallbacks;
 } SctpSession, *PSctpSession;
