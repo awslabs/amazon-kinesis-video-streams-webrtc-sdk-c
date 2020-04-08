@@ -273,6 +273,7 @@ TEST_F(RtpFunctionalityTest, packingUnpackingVerifySameH264Frame)
             }
             EXPECT_TRUE(MEMCMP(pCurPtrInPayload, depayload + startLen, newPayloadSubLen - startLen) == 0);
             pCurPtrInPayload += newPayloadSubLen - startLen;
+            remainPayloadLen -= newPayloadSubLen;
             offset += payloadArray.payloadSubLength[i];
         }
     }
