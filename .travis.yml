@@ -100,11 +100,13 @@ matrix:
     # Old Version GCC 4.4
     - name: "Linux GCC 4.4 Build"
       os: linux
-      before_install:
-              - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-              - sudo apt-get -q update
-              - sudo apt-get -y install gcc-4.4
-              - sudo apt-get -y install gdb
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - gcc-4.4
+            - gdb
       compiler: gcc
       before_script: export CC=gcc-4.4 && mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE
 
