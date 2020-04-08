@@ -21,6 +21,7 @@ struct __SocketConnection {
     INT32 localSocket;
     KVS_SOCKET_PROTOCOL protocol;
     KvsIpAddress peerIpAddr;
+    KvsIpAddress hostIpAddr;
 
     BOOL secureConnection;
     SSL_CTX *pSslCtx;

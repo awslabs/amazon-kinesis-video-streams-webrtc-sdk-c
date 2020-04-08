@@ -317,6 +317,112 @@ TEST_F(SdpApiTest, populateSingleMediaSection_TestTxRecvOnly) {
     freePeerConnection(&offerPc);
 }
 
+TEST_F(SdpApiTest, populateSingleMediaSection_TestPayloadNoFmtp) {
+    auto remoteSessionDescription = R"(v=0
+o=- 7732334361409071710 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=group:BUNDLE 0
+a=msid-semantic: WMS
+m=video 16485 UDP/TLS/RTP/SAVPF 96 102
+c=IN IP4 205.251.233.176
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:9YRc
+a=ice-pwd:/ELMEiczRSsx2OEi2ynq+TbZ
+a=ice-options:trickle
+a=fingerprint:sha-256 51:04:F9:20:45:5C:9D:85:AF:D7:AF:FB:2B:F8:DB:24:66:7B:6A:E3:E3:EF:EC:72:93:6E:01:B8:C9:53:A6:31
+a=setup:actpass
+a=mid:1
+a=recvonly
+a=rtcp-mux
+a=rtcp-rsize
+a=rtpmap:96 VP8/90000
+a=rtpmap:102 H264/90000
+)";
+
+    PRtcPeerConnection pRtcPeerConnection = NULL;
+    PRtcRtpTransceiver pRtcRtpTransceiver = NULL;
+    RtcConfiguration rtcConfiguration;
+    RtcMediaStreamTrack rtcMediaStreamTrack;
+    RtcRtpTransceiverInit rtcRtpTransceiverInit;
+    RtcSessionDescriptionInit rtcSessionDescriptionInit;
+
+    MEMSET(&rtcConfiguration, 0x00, SIZEOF(RtcConfiguration));
+    MEMSET(&rtcMediaStreamTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
+    MEMSET(&rtcSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
+
+    EXPECT_EQ(createPeerConnection(&rtcConfiguration, &pRtcPeerConnection), STATUS_SUCCESS);
+    EXPECT_EQ(addSupportedCodec(pRtcPeerConnection, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE), STATUS_SUCCESS);
+
+    rtcRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY;
+    rtcMediaStreamTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+    rtcMediaStreamTrack.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+    STRCPY(rtcMediaStreamTrack.streamId, "myKvsVideoStream");
+    STRCPY(rtcMediaStreamTrack.trackId, "myTrack");
+    EXPECT_EQ(addTransceiver(pRtcPeerConnection, &rtcMediaStreamTrack, &rtcRtpTransceiverInit, &pRtcRtpTransceiver), STATUS_SUCCESS);
+
+    STRCPY(rtcSessionDescriptionInit.sdp, remoteSessionDescription);
+    rtcSessionDescriptionInit.type = SDP_TYPE_OFFER;
+    EXPECT_EQ(setRemoteDescription(pRtcPeerConnection, &rtcSessionDescriptionInit), STATUS_SUCCESS);
+    EXPECT_EQ(createAnswer(pRtcPeerConnection, &rtcSessionDescriptionInit), STATUS_SUCCESS);
+    EXPECT_PRED_FORMAT2(testing::IsNotSubstring, "fmtp:102 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f", rtcSessionDescriptionInit.sdp);
+    freePeerConnection(&pRtcPeerConnection);
+}
+
+TEST_F(SdpApiTest, populateSingleMediaSection_TestPayloadFmtp) {
+    auto remoteSessionDescription = R"(v=0
+o=- 7732334361409071710 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=group:BUNDLE 0
+a=msid-semantic: WMS
+m=video 16485 UDP/TLS/RTP/SAVPF 96 102
+c=IN IP4 205.251.233.176
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:9YRc
+a=ice-pwd:/ELMEiczRSsx2OEi2ynq+TbZ
+a=ice-options:trickle
+a=fingerprint:sha-256 51:04:F9:20:45:5C:9D:85:AF:D7:AF:FB:2B:F8:DB:24:66:7B:6A:E3:E3:EF:EC:72:93:6E:01:B8:C9:53:A6:31
+a=setup:actpass
+a=mid:1
+a=recvonly
+a=rtcp-mux
+a=rtcp-rsize
+a=rtpmap:96 VP8/90000
+a=rtpmap:102 H264/90000
+a=fmtp:102 strange
+)";
+
+    PRtcPeerConnection pRtcPeerConnection = NULL;
+    PRtcRtpTransceiver pRtcRtpTransceiver = NULL;
+    RtcConfiguration rtcConfiguration;
+    RtcMediaStreamTrack rtcMediaStreamTrack;
+    RtcRtpTransceiverInit rtcRtpTransceiverInit;
+    RtcSessionDescriptionInit rtcSessionDescriptionInit;
+
+    MEMSET(&rtcConfiguration, 0x00, SIZEOF(RtcConfiguration));
+    MEMSET(&rtcMediaStreamTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
+    MEMSET(&rtcSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
+
+    EXPECT_EQ(createPeerConnection(&rtcConfiguration, &pRtcPeerConnection), STATUS_SUCCESS);
+    EXPECT_EQ(addSupportedCodec(pRtcPeerConnection, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE), STATUS_SUCCESS);
+
+    rtcRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY;
+    rtcMediaStreamTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+    rtcMediaStreamTrack.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+    STRCPY(rtcMediaStreamTrack.streamId, "myKvsVideoStream");
+    STRCPY(rtcMediaStreamTrack.trackId, "myTrack");
+    EXPECT_EQ(addTransceiver(pRtcPeerConnection, &rtcMediaStreamTrack, &rtcRtpTransceiverInit, &pRtcRtpTransceiver), STATUS_SUCCESS);
+
+    STRCPY(rtcSessionDescriptionInit.sdp, remoteSessionDescription);
+    rtcSessionDescriptionInit.type = SDP_TYPE_OFFER;
+    EXPECT_EQ(setRemoteDescription(pRtcPeerConnection, &rtcSessionDescriptionInit), STATUS_SUCCESS);
+    EXPECT_EQ(createAnswer(pRtcPeerConnection, &rtcSessionDescriptionInit), STATUS_SUCCESS);
+    EXPECT_PRED_FORMAT2(testing::IsSubstring, "fmtp:102 strange", rtcSessionDescriptionInit.sdp);
+    EXPECT_PRED_FORMAT2(testing::IsNotSubstring, "fmtp:102 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f", rtcSessionDescriptionInit.sdp);
+    freePeerConnection(&pRtcPeerConnection);
+}
+
 }
 }
 }
