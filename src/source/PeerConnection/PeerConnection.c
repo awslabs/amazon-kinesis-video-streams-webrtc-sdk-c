@@ -429,7 +429,7 @@ STATUS generateJSONSafeString(PCHAR pDst, UINT32 len)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 i = 0;
-    BYTE randBuffer[MAX_RAND_BUFFER_SIZE_FOR_NAME];
+    BYTE randBuffer[MAX_RAND_BUFFER_SIZE_FOR_NAME] = {0};
 
     CHK(pDst != NULL, STATUS_NULL_ARG);
     CHK(RAND_bytes(randBuffer, MIN(len, MAX_RAND_BUFFER_SIZE_FOR_NAME)), STATUS_INTERNAL_ERROR );
