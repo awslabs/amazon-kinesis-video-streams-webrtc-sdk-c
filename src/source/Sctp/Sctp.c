@@ -93,7 +93,6 @@ STATUS createSctpSession(PSctpSessionCallbacks pSctpSessionCallbacks, PSctpSessi
     MEMSET(&localConn, 0x00, SIZEOF(struct sockaddr_conn));
     MEMSET(&remoteConn, 0x00, SIZEOF(struct sockaddr_conn));
 
-    ATOMIC_STORE(&pSctpSession->shutdownStatus, SCTP_SESSION_ACTIVE);
     pSctpSession->sctpSessionCallbacks = *pSctpSessionCallbacks;
 
     CHK_STATUS(initSctpAddrConn(pSctpSession, &localConn));
@@ -131,18 +130,12 @@ STATUS freeSctpSession(PSctpSession* ppSctpSession)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSctpSession pSctpSession;
-    UINT64 shutdownTimeout;
 
     CHK(ppSctpSession != NULL, STATUS_NULL_ARG);
 
     pSctpSession = *ppSctpSession;
 
     CHK(pSctpSession != NULL, retStatus);
-
-    usrsctp_deregister_address(pSctpSession);
-    /* handle issue mentioned here: https://github.com/sctplab/usrsctp/issues/147
-     * the change in shutdownStatus will trigger onSctpOutboundPacket to return -1 */
-    ATOMIC_STORE(&pSctpSession->shutdownStatus, SCTP_SESSION_SHUTDOWN_INITIATED);
 
     if (pSctpSession->socket != NULL) {
         usrsctp_set_ulpinfo(pSctpSession->socket, NULL);
@@ -283,8 +276,6 @@ INT32 onSctpOutboundPacket(PVOID addr, PVOID data, ULONG length, UINT8 tos, UINT
         }
         return -1;
     }
-
-    pSctpSession->sctpSessionCallbacks.outboundPacketFunc(pSctpSession->sctpSessionCallbacks.customData, data, length);
 
     return 0;
 }
