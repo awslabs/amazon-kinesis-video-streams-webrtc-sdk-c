@@ -1,6 +1,8 @@
 #define LOG_CLASS "SCTP"
 #include "../Include_i.h"
 
+static volatile PSctpSessionControl pSctpSessionControl = NULL;
+
 STATUS initSctpAddrConn(PSctpSession pSctpSession, struct sockaddr_conn *sconn)
 {
     ENTERS();
@@ -63,14 +65,32 @@ STATUS initSctpSession()
     // Disable Explicit Congestion Notification
     usrsctp_sysctl_set_sctp_ecn_enable(0);
 
+    pSctpSessionControl = MEMALLOC(SIZEOF(SctpSessionControl));
+    pSctpSessionControl->lock = MUTEX_CREATE(FALSE);
+    CHK_STATUS(hashTableCreate(&pSctpSessionControl->activeSctpSessions));
+
+CleanUp:
+
     return retStatus;
 }
 
 VOID deinitSctpSession()
 {
+    if (pSctpSessionControl != NULL) {
+        MUTEX_LOCK(pSctpSessionControl->lock);
+        hashTableClear(pSctpSessionControl->activeSctpSessions);
+        MUTEX_UNLOCK(pSctpSessionControl->lock);
+    }
+
     // need to block until usrsctp_finish or sctp thread could be calling free objects and cause segfault
     while (usrsctp_finish() != 0) {
         THREAD_SLEEP(DEFAULT_USRSCTP_TEARDOWN_POLLING_INTERVAL);
+    }
+
+    if (pSctpSessionControl != NULL) {
+        MUTEX_FREE(pSctpSessionControl->lock);
+        hashTableFree(pSctpSessionControl->activeSctpSessions);
+        SAFE_MEMFREE(pSctpSessionControl);
     }
 }
 
@@ -92,6 +112,12 @@ STATUS createSctpSession(PSctpSessionCallbacks pSctpSessionCallbacks, PSctpSessi
     MEMSET(&localConn, 0x00, SIZEOF(struct sockaddr_conn));
     MEMSET(&remoteConn, 0x00, SIZEOF(struct sockaddr_conn));
 
+    // use timestamp as key
+    pSctpSession->key = GETTIME();
+    MUTEX_LOCK(pSctpSessionControl->lock);
+    CHK_STATUS(hashTableUpsert(pSctpSessionControl->activeSctpSessions, pSctpSession->key, (UINT64) pSctpSession));
+    MUTEX_UNLOCK(pSctpSessionControl->lock);
+
     pSctpSession->sctpSessionCallbacks = *pSctpSessionCallbacks;
 
     CHK_STATUS(initSctpAddrConn(pSctpSession, &localConn));
@@ -106,11 +132,10 @@ STATUS createSctpSession(PSctpSessionCallbacks pSctpSessionCallbacks, PSctpSessi
     connectStatus = usrsctp_connect(pSctpSession->socket, (struct sockaddr*) &remoteConn, SIZEOF(remoteConn));
     CHK(connectStatus >= 0 || errno == EINPROGRESS, STATUS_SCTP_SESSION_SETUP_FAILED);
 
-    memcpy(&params.spp_address, &remoteConn, SIZEOF(remoteConn));
+    MEMCPY(&params.spp_address, &remoteConn, SIZEOF(remoteConn));
     params.spp_flags = SPP_PMTUD_DISABLE;
     params.spp_pathmtu = SCTP_MTU;
     CHK(usrsctp_setsockopt(pSctpSession->socket, IPPROTO_SCTP, SCTP_PEER_ADDR_PARAMS, &params, SIZEOF(params)) == 0, STATUS_SCTP_SESSION_SETUP_FAILED);
-
 
 CleanUp:
     if (STATUS_FAILED(retStatus)) {
@@ -135,10 +160,18 @@ STATUS freeSctpSession(PSctpSession* ppSctpSession)
 
     CHK(pSctpSession != NULL, retStatus);
 
+    usrsctp_deregister_address(pSctpSession);
+
     if (pSctpSession->socket != NULL) {
+        usrsctp_set_ulpinfo(pSctpSession->socket, NULL);
+        usrsctp_shutdown (pSctpSession->socket, SHUT_RDWR);
         usrsctp_close(pSctpSession->socket);
-        usrsctp_deregister_address(pSctpSession);
+        pSctpSession->socket = NULL;
     }
+
+    MUTEX_LOCK(pSctpSessionControl->lock);
+    hashTableRemove(pSctpSessionControl->activeSctpSessions, pSctpSession->key);
+    MUTEX_UNLOCK(pSctpSessionControl->lock);
 
     SAFE_MEMFREE(*ppSctpSession);
 
@@ -206,15 +239,25 @@ INT32 onSctpOutboundPacket(PVOID addr, PVOID data, ULONG length, UINT8 tos, UINT
 {
     UNUSED_PARAM(tos);
     UNUSED_PARAM(set_df);
-
+    BOOL containKey;
     PSctpSession pSctpSession = (PSctpSession) addr;
 
-    if (pSctpSession != NULL && pSctpSession->sctpSessionCallbacks.outboundPacketFunc != NULL) {
-        pSctpSession->sctpSessionCallbacks.outboundPacketFunc(pSctpSession->sctpSessionCallbacks.customData, data, length);
-    } else {
-        DLOGE("SCTP attempted to send packet but outboundPacketFunc is not defined");
+    if (pSctpSession == NULL || pSctpSession->sctpSessionCallbacks.outboundPacketFunc == NULL) {
+        return -1;
     }
 
+    MUTEX_LOCK(pSctpSessionControl->lock);
+    hashTableContains(pSctpSessionControl->activeSctpSessions, pSctpSession->key, &containKey);
+    MUTEX_UNLOCK(pSctpSessionControl->lock);
+
+    /* If the key is not in activeSctpSessions, then the session must have been freed. Thus do not call callback.
+     * Fixes issue stated here: https://github.com/sctplab/usrsctp/issues/147.
+     * (return -1 otherwise usrsctp_finish() won't finish) */
+    if (!containKey) {
+        return 0;
+    }
+
+    pSctpSession->sctpSessionCallbacks.outboundPacketFunc(pSctpSession->sctpSessionCallbacks.customData, data, length);
     return 0;
 }
 

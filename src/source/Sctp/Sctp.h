@@ -55,7 +55,18 @@ typedef struct {
 typedef struct {
     struct socket *socket;
     SctpSessionCallbacks sctpSessionCallbacks;
+    UINT64 key;
 } SctpSession, *PSctpSession;
+
+typedef struct {
+    /* Protect activeSctpSessions access */
+    MUTEX lock;
+
+    /* This hash table is used as a set. When sctpSession get created it will be assigned with a key
+     * and the key is inserted into the table. When sctpSession is freed, its key is removed from
+     * the table. */
+    PHashTable activeSctpSessions;
+} SctpSessionControl, *PSctpSessionControl;
 
 STATUS initSctpSession();
 VOID deinitSctpSession();
