@@ -200,15 +200,16 @@ STATUS executeNewIceAgentState(UINT64 customData, UINT64 time)
     UNUSED_PARAM(time);
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
+    BOOL locked = FALSE;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
     // return early if we are already in ICE_AGENT_STATE_GATHERING
     CHK(pIceAgent->iceAgentState != ICE_AGENT_STATE_NEW, retStatus);
 
-    pIceAgent->iceAgentState = ICE_AGENT_STATE_NEW;
-
     //assumes this is called while holding pIceAgent->lock
-    BOOL locked = TRUE;
+    locked = TRUE;
+
+    pIceAgent->iceAgentState = ICE_AGENT_STATE_NEW;
 
     //unlocking here to make thread sanitizer happy
 
