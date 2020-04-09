@@ -490,6 +490,7 @@ STATUS iceAgentSendPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen)
     // can be invoking incomingDataHandler and cause deadlock.
     // pIceAgent->lock has to be non-reentrant !!
     MUTEX_UNLOCK(pIceAgent->lock);
+    locked = FALSE;
 
     retStatus = iceUtilsSendData(pBuffer,
                                  bufferLen,

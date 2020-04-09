@@ -207,13 +207,36 @@ STATUS executeNewIceAgentState(UINT64 customData, UINT64 time)
 
     pIceAgent->iceAgentState = ICE_AGENT_STATE_NEW;
 
+    //assumes this is called while holding pIceAgent->lock
+    BOOL locked = TRUE;
+
+    //unlocking here to make thread sanitizer happy
+
+    // Thread1: TimerQueue thread
+    // timerQueueExecutor holds pTimerQueue->executorLock
+    //  calls iceAgentStateTransitionTimerCallback -> stepIceAgentStateMachine acquires pIceAgent->lock
+
+    // Thread2: main thread
+    // createPeerConnection -> createIceAgent -> stepIceAgentStateMachine holds pIceAgent->lock
+    // -> stepStateMachine -> executeNewIceAgentState tries to call timerQueueAddTimer which will acquire pTimerQueue->executorLock
+
+    // pTimerQueue->executorLock aka TQL
+    // pIceAgent->lock aka IAL
+    // deadlock graph TQL => IAL => TQL
+
+    MUTEX_UNLOCK(pIceAgent->lock);
+    locked = FALSE;
     CHK_STATUS(timerQueueAddTimer(pIceAgent->timerQueueHandle,
                                   0,
                                   pIceAgent->kvsRtcConfiguration.iceConnectionCheckPollingInterval,
                                   iceAgentStateTransitionTimerCallback,
                                   (UINT64) pIceAgent,
                                   &pIceAgent->iceAgentStateTimerCallback));
+
 CleanUp:
+    if (!locked) {
+        MUTEX_LOCK(pIceAgent->lock);
+    }
 
     LEAVES();
     return retStatus;
