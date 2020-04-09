@@ -142,18 +142,35 @@ PVOID sendGstreamerAudioVideo(PVOID args)
 
     switch (pSampleConfiguration->mediaType) {
         case SAMPLE_STREAMING_VIDEO_ONLY:
-            pipeline = gst_parse_launch(
-                    "autovideosrc ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=30/1 ! x264enc bframes=0 speed-preset=veryfast key-int-max=30 bitrate=512 ! "
+            if(pSampleConfiguration->useTestSrc) {
+                pipeline = gst_parse_launch(
+                    "videotestsrc ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=30/1 ! x264enc bframes=0 speed-preset=veryfast key-int-max=30 bitrate=512 ! "
                     "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE emit-signals=TRUE name=appsink-video",
-                    &error);
+                     &error);
+            }
+            else {
+                pipeline = gst_parse_launch(
+                        "autovideosrc ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=30/1 ! x264enc bframes=0 speed-preset=veryfast key-int-max=30 bitrate=512 ! "
+                        "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE emit-signals=TRUE name=appsink-video",
+                        &error);
+            }
             break;
 
         case SAMPLE_STREAMING_AUDIO_VIDEO:
-            pipeline = gst_parse_launch(
-                    "autovideosrc ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=30/1 ! x264enc bframes=0 speed-preset=veryfast key-int-max=30 bitrate=512 ! "
-                            "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE emit-signals=TRUE name=appsink-video autoaudiosrc ! "
-                            "queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample ! opusenc ! audio/x-opus,rate=48000,channels=2 ! appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
+             if(pSampleConfiguration->useTestSrc) {
+                 pipeline = gst_parse_launch(
+                    "videotestsrc ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=30/1 ! x264enc bframes=0 speed-preset=veryfast key-int-max=30 bitrate=512 ! "
+                    "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE emit-signals=TRUE name=appsink-video audiotestsrc ! "
+                    "queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample ! opusenc ! audio/x-opus,rate=48000,channels=2 ! appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
                     &error);
+            }
+            else {
+                pipeline = gst_parse_launch(
+                    "autovideosrc ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=30/1 ! x264enc bframes=0 speed-preset=veryfast key-int-max=30 bitrate=512 ! "
+                    "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE emit-signals=TRUE name=appsink-video autoaudiosrc ! "
+                    "queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample ! opusenc ! audio/x-opus,rate=48000,channels=2 ! appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
+                    &error);
+            }
             break;
     }
 
@@ -335,7 +352,7 @@ INT32 main(INT32 argc, CHAR *argv[])
     pSampleConfiguration->receiveAudioVideoSource = receiveGstreamerAudioVideo;
     pSampleConfiguration->onDataChannel = onDataChannel;
     pSampleConfiguration->customData = (UINT64) pSampleConfiguration;
-
+    pSampleConfiguration->useTestSrc = FALSE;
     /* Initialize GStreamer */
     gst_init(&argc, &argv);
     printf("[KVS Gstreamer Master] Finished initializing GStreamer\n");
@@ -353,6 +370,13 @@ INT32 main(INT32 argc, CHAR *argv[])
     }
     else {
         printf("[KVS Gstreamer Master] Streaming video only\n");
+    }
+
+    if(argc > 3) {
+        if (STRCMP(argv[3], "testsrc") == 0) {
+            printf("[KVS GStreamer Master] Using test source in GStreamer\n");
+            pSampleConfiguration->useTestSrc = TRUE;
+        }
     }
 
     switch (pSampleConfiguration->mediaType) {
