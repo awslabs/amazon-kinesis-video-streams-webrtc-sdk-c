@@ -1527,7 +1527,7 @@ STATUS writeLwsData(PSignalingClient pSignalingClient, BOOL awaitForResponse)
     // See if anything needs to be done
     CHK(pSignalingClient->pOngoingCallInfo->sendBufferSize != pSignalingClient->pOngoingCallInfo->sendOffset, retStatus);
 
-    DLOGV("Sending data over web socket: %s", pSignalingClient->pOngoingCallInfo->sendBuffer + LWS_PRE);
+    DLOGD("Sending data over web socket: %s", pSignalingClient->pOngoingCallInfo->sendBuffer + LWS_PRE);
 
     // Initialize the send result to none
     ATOMIC_STORE(&pSignalingClient->messageResult, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);

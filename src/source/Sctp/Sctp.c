@@ -92,6 +92,7 @@ STATUS createSctpSession(PSctpSessionCallbacks pSctpSessionCallbacks, PSctpSessi
     MEMSET(&localConn, 0x00, SIZEOF(struct sockaddr_conn));
     MEMSET(&remoteConn, 0x00, SIZEOF(struct sockaddr_conn));
 
+    ATOMIC_STORE(&pSctpSession->shutdownStatus, SCTP_SESSION_ACTIVE);
     pSctpSession->sctpSessionCallbacks = *pSctpSessionCallbacks;
 
     CHK_STATUS(initSctpAddrConn(pSctpSession, &localConn));
@@ -128,6 +129,7 @@ STATUS freeSctpSession(PSctpSession* ppSctpSession)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSctpSession pSctpSession;
+    UINT64 shutdownTimeout;
 
     CHK(ppSctpSession != NULL, STATUS_NULL_ARG);
 
@@ -135,9 +137,20 @@ STATUS freeSctpSession(PSctpSession* ppSctpSession)
 
     CHK(pSctpSession != NULL, retStatus);
 
+    usrsctp_deregister_address(pSctpSession);
+    /* handle issue mentioned here: https://github.com/sctplab/usrsctp/issues/147
+     * the change in shutdownStatus will trigger onSctpOutboundPacket to return -1 */
+    ATOMIC_STORE(&pSctpSession->shutdownStatus, SCTP_SESSION_SHUTDOWN_INITIATED);
+
     if (pSctpSession->socket != NULL) {
+        usrsctp_set_ulpinfo(pSctpSession->socket, NULL);
+        usrsctp_shutdown (pSctpSession->socket, SHUT_RDWR);
         usrsctp_close(pSctpSession->socket);
-        usrsctp_deregister_address(pSctpSession);
+    }
+
+    shutdownTimeout = GETTIME() + DEFAULT_SCTP_SHUTDOWN_TIMEOUT;
+    while(ATOMIC_LOAD(&pSctpSession->shutdownStatus) != SCTP_SESSION_SHUTDOWN_COMPLETED && GETTIME() < shutdownTimeout) {
+        THREAD_SLEEP(DEFAULT_USRSCTP_TEARDOWN_POLLING_INTERVAL);
     }
 
     SAFE_MEMFREE(*ppSctpSession);
@@ -209,11 +222,15 @@ INT32 onSctpOutboundPacket(PVOID addr, PVOID data, ULONG length, UINT8 tos, UINT
 
     PSctpSession pSctpSession = (PSctpSession) addr;
 
-    if (pSctpSession != NULL && pSctpSession->sctpSessionCallbacks.outboundPacketFunc != NULL) {
-        pSctpSession->sctpSessionCallbacks.outboundPacketFunc(pSctpSession->sctpSessionCallbacks.customData, data, length);
-    } else {
-        DLOGE("SCTP attempted to send packet but outboundPacketFunc is not defined");
+    if (pSctpSession == NULL || ATOMIC_LOAD(&pSctpSession->shutdownStatus) == SCTP_SESSION_SHUTDOWN_INITIATED ||
+            pSctpSession->sctpSessionCallbacks.outboundPacketFunc == NULL) {
+        if (pSctpSession != NULL) {
+            ATOMIC_STORE(&pSctpSession->shutdownStatus, SCTP_SESSION_SHUTDOWN_COMPLETED);
+        }
+        return -1;
     }
+
+    pSctpSession->sctpSessionCallbacks.outboundPacketFunc(pSctpSession->sctpSessionCallbacks.customData, data, length);
 
     return 0;
 }
