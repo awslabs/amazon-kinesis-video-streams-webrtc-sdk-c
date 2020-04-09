@@ -77,6 +77,7 @@ void WebRtcClientTestBase::SetUp()
     }
 
     *pCur = '\0';
+    mSignalingClientHandle = INVALID_SIGNALING_CLIENT_HANDLE_VALUE;
 }
 
 void WebRtcClientTestBase::TearDown()
