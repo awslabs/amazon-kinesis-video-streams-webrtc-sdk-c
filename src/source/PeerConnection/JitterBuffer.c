@@ -70,7 +70,7 @@ STATUS freeJitterBuffer(PJitterBuffer* ppJitterBuffer)
     MEMFREE(*ppJitterBuffer);
 
 CleanUp:
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     LEAVES();
     return retStatus;
@@ -113,7 +113,7 @@ STATUS jitterBufferPush(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket)
 
     CHK_STATUS(jitterBufferPop(pJitterBuffer, FALSE));
 CleanUp:
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     LEAVES();
     return retStatus;
@@ -218,7 +218,7 @@ STATUS jitterBufferPop(PJitterBuffer pJitterBuffer, BOOL bufferClosed)
     }
 
 CleanUp:
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     LEAVES();
     return retStatus;
@@ -243,7 +243,7 @@ STATUS jitterBufferDropBufferData(PJitterBuffer pJitterBuffer, UINT16 startIndex
     pJitterBuffer->lastRemovedSequenceNumber = endIndex;
 
 CleanUp:
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     LEAVES();
     return retStatus;
@@ -273,7 +273,7 @@ CleanUp:
     if (pFilledSize != NULL) {
         *pFilledSize = frameSize - remainingFrameSize;
     }
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     LEAVES();
     return retStatus;

@@ -57,7 +57,7 @@ STATUS stepIceAgentStateMachine(PIceAgent pIceAgent)
 
 CleanUp:
 
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     if (locked) {
         MUTEX_UNLOCK(pIceAgent->lock);
@@ -323,7 +323,7 @@ STATUS executeGatheringIceAgentState(UINT64 customData, UINT64 time)
 
 CleanUp:
 
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     if (STATUS_FAILED(retStatus)) {
         pIceAgent->iceAgentStatus = retStatus;
@@ -374,7 +374,7 @@ STATUS executeWaitingRemoteCredentialIceAgentState(UINT64 customData, UINT64 tim
 
 CleanUp:
 
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     if (STATUS_FAILED(retStatus)) {
         pIceAgent->iceAgentStatus = retStatus;

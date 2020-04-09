@@ -75,8 +75,8 @@ STATUS allocateSctp(PKvsPeerConnection pKvsPeerConnection)
     CHK_STATUS(hashTableIterateEntries(data.unkeyedDataChannels, (UINT64) &data, allocateSctpSortDataChannelsDataCallback));
 
     // Free unkeyed DataChannels
-    CHK_LOG_ERR_NV(hashTableClear(data.unkeyedDataChannels));
-    CHK_LOG_ERR_NV(hashTableFree(data.unkeyedDataChannels));
+    CHK_LOG_ERR(hashTableClear(data.unkeyedDataChannels));
+    CHK_LOG_ERR(hashTableFree(data.unkeyedDataChannels));
 
     // Create the SCTP Session
     sctpSessionCallbacks.outboundPacketFunc = onSctpSessionOutboundPacket;
@@ -157,7 +157,7 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
 
 CleanUp:
 
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 }
 
 STATUS sendPacketToRtpReceiver(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuffer, UINT32 bufferLen)
@@ -199,7 +199,7 @@ STATUS sendPacketToRtpReceiver(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuf
 CleanUp:
     if (!ownedByJitterBuffer) {
         MEMFREE(pPayload);
-        CHK_LOG_ERR_NV(retStatus);
+        CHK_LOG_ERR(retStatus);
     }
     return retStatus;
 }
@@ -312,7 +312,7 @@ CleanUp:
         MUTEX_UNLOCK(pKvsPeerConnection->peerConnectionObjLock);
     }
 
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 }
 
 VOID onNewIceLocalCandidate(UINT64 customData, PCHAR candidateSdpStr)
@@ -343,7 +343,7 @@ VOID onNewIceLocalCandidate(UINT64 customData, PCHAR candidateSdpStr)
 
 CleanUp:
 
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     if (locked) {
         MUTEX_UNLOCK(pKvsPeerConnection->peerConnectionObjLock);
@@ -407,7 +407,7 @@ VOID onSctpSessionDataChannelOpen(UINT64 customData, UINT32 channelId, PBYTE pNa
 
 CleanUp:
 
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 }
 
 VOID onDtlsOutboundPacket(UINT64 customData, PBYTE pBuffer, UINT32 bufferLen)
@@ -508,7 +508,7 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
 
 CleanUp:
 
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     if (STATUS_FAILED(retStatus)) {
         freePeerConnection((PRtcPeerConnection*) &pKvsPeerConnection);
@@ -549,28 +549,28 @@ STATUS freePeerConnection(PRtcPeerConnection *ppPeerConnection)
 
     // free structs that have their own thread. sctp has threads created by sctp library. iceAgent has the
     // connectionListener thread
-    CHK_LOG_ERR_NV(freeSctpSession(&pKvsPeerConnection->pSctpSession));
-    CHK_LOG_ERR_NV(freeIceAgent(&pKvsPeerConnection->pIceAgent));
+    CHK_LOG_ERR(freeSctpSession(&pKvsPeerConnection->pSctpSession));
+    CHK_LOG_ERR(freeIceAgent(&pKvsPeerConnection->pIceAgent));
 
     // free transceivers
-    CHK_LOG_ERR_NV(doubleListGetHeadNode(pKvsPeerConnection->pTransceievers, &pCurNode));
+    CHK_LOG_ERR(doubleListGetHeadNode(pKvsPeerConnection->pTransceievers, &pCurNode));
     while(pCurNode != NULL) {
-        CHK_LOG_ERR_NV(doubleListGetNodeData(pCurNode, &item));
-        CHK_LOG_ERR_NV(freeKvsRtpTransceiver((PKvsRtpTransceiver *) &item));
+        CHK_LOG_ERR(doubleListGetNodeData(pCurNode, &item));
+        CHK_LOG_ERR(freeKvsRtpTransceiver((PKvsRtpTransceiver *) &item));
 
         pCurNode = pCurNode->pNext;
     }
 
     // Free DataChannels
-    CHK_LOG_ERR_NV(hashTableIterateEntries(pKvsPeerConnection->pDataChannels, 0, freeHashEntry));
-    CHK_LOG_ERR_NV(hashTableFree(pKvsPeerConnection->pDataChannels));
+    CHK_LOG_ERR(hashTableIterateEntries(pKvsPeerConnection->pDataChannels, 0, freeHashEntry));
+    CHK_LOG_ERR(hashTableFree(pKvsPeerConnection->pDataChannels));
 
     // free rest of structs
-    CHK_LOG_ERR_NV(freeSrtpSession(&pKvsPeerConnection->pSrtpSession));
-    CHK_LOG_ERR_NV(freeDtlsSession(&pKvsPeerConnection->pDtlsSession));
-    CHK_LOG_ERR_NV(doubleListFree(pKvsPeerConnection->pTransceievers));
-    CHK_LOG_ERR_NV(hashTableFree(pKvsPeerConnection->pCodecTable));
-    CHK_LOG_ERR_NV(hashTableFree(pKvsPeerConnection->pRtxTable));
+    CHK_LOG_ERR(freeSrtpSession(&pKvsPeerConnection->pSrtpSession));
+    CHK_LOG_ERR(freeDtlsSession(&pKvsPeerConnection->pDtlsSession));
+    CHK_LOG_ERR(doubleListFree(pKvsPeerConnection->pTransceievers));
+    CHK_LOG_ERR(hashTableFree(pKvsPeerConnection->pCodecTable));
+    CHK_LOG_ERR(hashTableFree(pKvsPeerConnection->pRtxTable));
     if (IS_VALID_MUTEX_VALUE(pKvsPeerConnection->pSrtpSessionLock)) {
         MUTEX_FREE(pKvsPeerConnection->pSrtpSessionLock);
     }

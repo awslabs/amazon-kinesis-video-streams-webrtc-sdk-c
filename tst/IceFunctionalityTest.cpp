@@ -319,7 +319,7 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
             pIceCandidatePair = (PIceCandidatePair) pCurNode->data;
             pCurNode = pCurNode->pNext;
 
-            CHK_LOG_ERR_NV(freeIceCandidatePair(&pIceCandidatePair));
+            CHK_LOG_ERR(freeIceCandidatePair(&pIceCandidatePair));
         }
         EXPECT_EQ(STATUS_SUCCESS, doubleListClear(iceAgent.iceCandidatePairs, FALSE));
         EXPECT_EQ(STATUS_SUCCESS, doubleListFree(iceAgent.iceCandidatePairs));
@@ -470,7 +470,7 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
             pIceCandidatePair = (PIceCandidatePair) pCurNode->data;
             pCurNode = pCurNode->pNext;
 
-            CHK_LOG_ERR_NV(freeIceCandidatePair(&pIceCandidatePair));
+            CHK_LOG_ERR(freeIceCandidatePair(&pIceCandidatePair));
         }
         EXPECT_EQ(STATUS_SUCCESS, doubleListClear(iceAgent.iceCandidatePairs, FALSE));
         EXPECT_EQ(STATUS_SUCCESS, doubleListFree(iceAgent.iceCandidatePairs));
@@ -514,7 +514,7 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
             pIceCandidatePair = (PIceCandidatePair) pCurNode->data;
             pCurNode = pCurNode->pNext;
 
-            CHK_LOG_ERR_NV(freeIceCandidatePair(&pIceCandidatePair));
+            CHK_LOG_ERR(freeIceCandidatePair(&pIceCandidatePair));
         }
         EXPECT_EQ(STATUS_SUCCESS, doubleListClear(iceAgent.iceCandidatePairs, FALSE));
         EXPECT_EQ(STATUS_SUCCESS, doubleListFree(iceAgent.iceCandidatePairs));

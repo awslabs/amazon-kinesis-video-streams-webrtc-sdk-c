@@ -52,7 +52,7 @@ STATUS masterMessageReceived(UINT64 customData, PReceivedSignalingMessage pRecei
     message.payloadLen = 0;
 
     status = signalingSendMessageSync(pTest->pActiveClient, &message);
-    CHK_LOG_ERR(status, "Master failed to send an answer with 0x%08x", status);
+    CHK_LOG_ERR(status);
 
     // Return success to continue
     return STATUS_SUCCESS;
