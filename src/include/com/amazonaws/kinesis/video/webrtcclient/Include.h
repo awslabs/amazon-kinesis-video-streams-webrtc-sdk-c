@@ -569,16 +569,9 @@ extern "C" {
  */
 #define SIGNALING_DEFAULT_NON_SSL_PORT                                              DEFAULT_NON_SSL_PORT_NUMBER
 
-/**
- * Macro that logs one of the status codes if the operation does not return STATUS_SUCCESS
- */
+/* CHK_LOG_ERR_NV has been replaced with CHK_LOG_ERR. */
 #define CHK_LOG_ERR_NV(condition) \
-    do { \
-        STATUS __status = condition; \
-        if (STATUS_FAILED(__status)) { \
-            DLOGE("operation returned status code: 0x%08x", __status); \
-        } \
-    } while (FALSE)
+    DLOGE("CHK_LOG_ERR_NV has been replaced with CHK_LOG_ERR");
 
 /**
  * @brief Definition of the signaling client handle

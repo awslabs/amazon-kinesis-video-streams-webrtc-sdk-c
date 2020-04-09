@@ -59,7 +59,7 @@ STATUS freeConnectionListener(PConnectionListener* ppConnectionListener)
 
     // PSocketConnections stored here are not owned by ConnectionListener
     if (pConnectionListener->connectionList != NULL) {
-        CHK_LOG_ERR_NV(doubleListFree(pConnectionListener->connectionList));
+        CHK_LOG_ERR(doubleListFree(pConnectionListener->connectionList));
     }
 
     if (pConnectionListener->lock != INVALID_MUTEX_VALUE) {
@@ -76,7 +76,7 @@ STATUS freeConnectionListener(PConnectionListener* ppConnectionListener)
 
 CleanUp:
 
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     return retStatus;
 }

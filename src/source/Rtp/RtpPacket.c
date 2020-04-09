@@ -75,7 +75,7 @@ STATUS freeRtpPacket(PRtpPacket * ppRtpPacket)
 
     SAFE_MEMFREE(*ppRtpPacket);
 CleanUp:
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     LEAVES();
     return retStatus;
@@ -94,7 +94,7 @@ STATUS freeRtpPacketAndRawPacket(PRtpPacket * ppRtpPacket)
     }
     SAFE_MEMFREE(*ppRtpPacket);
 CleanUp:
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     LEAVES();
     return retStatus;

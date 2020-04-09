@@ -60,7 +60,7 @@ STATUS freeRollingBuffer(PRollingBuffer* ppRollingBuffer)
     MUTEX_FREE(pRollingBuffer->lock);
     SAFE_MEMFREE(*ppRollingBuffer);
 CleanUp:
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     LEAVES();
     return retStatus;
@@ -99,7 +99,7 @@ CleanUp:
         MUTEX_UNLOCK(pRollingBuffer->lock);
     }
 
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     LEAVES();
     return retStatus;
@@ -154,7 +154,7 @@ CleanUp:
     if (isLocked) {
         MUTEX_UNLOCK(pRollingBuffer->lock);
     }
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     LEAVES();
     return retStatus;
@@ -168,7 +168,7 @@ STATUS rollingBufferGetSize(PRollingBuffer pRollingBuffer, PUINT32 pSize)
     CHK(pRollingBuffer != NULL && pSize != NULL, STATUS_NULL_ARG);
     *pSize = pRollingBuffer->headIndex - pRollingBuffer->tailIndex;
 CleanUp:
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     LEAVES();
     return retStatus;
@@ -182,7 +182,7 @@ STATUS rollingBufferIsEmpty(PRollingBuffer pRollingBuffer, PBOOL pIsEmpty)
     *pIsEmpty = (pRollingBuffer->headIndex == pRollingBuffer->tailIndex);
 
 CleanUp:
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     LEAVES();
     return retStatus;

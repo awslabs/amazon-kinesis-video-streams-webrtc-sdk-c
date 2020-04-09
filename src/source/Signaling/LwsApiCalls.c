@@ -1317,7 +1317,7 @@ STATUS connectSignalingChannelLws(PSignalingClient pSignalingClient, UINT64 time
 
 CleanUp:
 
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     if (STATUS_FAILED(retStatus) && pSignalingClient != NULL) {
         // Fix-up the timeout case
@@ -1776,7 +1776,7 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
 
 CleanUp:
 
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     if (pSignalingClient != NULL && STATUS_FAILED(retStatus)) {
         if (pSignalingClient->signalingClientCallbacks.errorReportFn != NULL) {
@@ -1911,7 +1911,7 @@ PVOID receiveLwsMessageWrapper(PVOID args)
     }
 
 CleanUp:
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     SAFE_MEMFREE(pSignalingMessageWrapper);
 

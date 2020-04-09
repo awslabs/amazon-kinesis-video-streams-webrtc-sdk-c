@@ -152,7 +152,7 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
 
 CleanUp:
 
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     if (STATUS_FAILED(retStatus)) {
         freeSignaling(&pSignalingClient);
@@ -283,7 +283,7 @@ STATUS signalingSendMessageSync(PSignalingClient pSignalingClient, PSignalingMes
 
 CleanUp:
 
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     // Remove from the list if previously added
     if (removeFromList) {
@@ -308,7 +308,7 @@ STATUS signalingGetIceConfigInfoCout(PSignalingClient pSignalingClient, PUINT32 
 
 CleanUp:
 
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     LEAVES();
     return retStatus;
@@ -329,7 +329,7 @@ STATUS signalingGetIceConfigInfo(PSignalingClient pSignalingClient, UINT32 index
 
 CleanUp:
 
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     LEAVES();
     return retStatus;
@@ -362,7 +362,7 @@ STATUS signalingConnectSync(PSignalingClient pSignalingClient)
 
 CleanUp:
 
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     // Re-set the state if we failed
     if (STATUS_FAILED(retStatus) && (pState != NULL)) {
@@ -387,7 +387,7 @@ STATUS validateSignalingCallbacks(PSignalingClient pSignalingClient, PSignalingC
 
 CleanUp:
 
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     LEAVES();
     return retStatus;
@@ -479,7 +479,7 @@ STATUS refreshIceConfigurationCallback(UINT32 timerId, UINT64 scheduledTime, UIN
 
 CleanUp:
 
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     // Notify the client in case of an error
     if (pSignalingClient != NULL && STATUS_FAILED(retStatus) &&
