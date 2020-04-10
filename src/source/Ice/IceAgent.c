@@ -348,7 +348,7 @@ STATUS iceAgentInitHostCandidate(PIceAgent pIceAgent)
     BOOL locked = FALSE;
 
     for(i = 0; i < pIceAgent->localNetworkInterfaceCount; ++i) {
-        pIpAddress = pIceAgent->localNetworkInterfaces + i;
+        pIpAddress = &pIceAgent->localNetworkInterfaces[i];
 
         // make sure pIceAgent->localCandidates has no duplicates
         CHK_STATUS(findCandidateWithIp(pIpAddress, pIceAgent->localCandidates, &pDuplicatedIceCandidate));
@@ -366,6 +366,9 @@ STATUS iceAgentInitHostCandidate(PIceAgent pIceAgent)
             pTmpIceCandidate->pSocketConnection = pSocketConnection;
             pTmpIceCandidate->priority = computeCandidatePriority(pTmpIceCandidate);
 
+            /* Another thread could be calling iceAgentAddRemoteCandidate which triggers createIceCandidatePairs.
+             * createIceCandidatePairs will read through localCandidates, since we are mutating localCandidates here,
+             * need to acquire lock. */
             MUTEX_LOCK(pIceAgent->lock);
             locked = TRUE;
 
@@ -477,11 +480,6 @@ STATUS iceAgentStartGathering(PIceAgent pIceAgent)
     // start listening for incoming data
     CHK_STATUS(connectionListenerStart(pIceAgent->pConnectionListener));
 
-    if (pIceAgent->pBindingRequest != NULL) {
-        CHK_STATUS(freeStunPacket(&pIceAgent->pBindingRequest));
-    }
-    CHK_STATUS(createStunPacket(STUN_PACKET_TYPE_BINDING_REQUEST, NULL, &pIceAgent->pBindingRequest));
-
     pIceAgent->candidateGatheringEndTime = GETTIME() + pIceAgent->kvsRtcConfiguration.iceLocalCandidateGatheringTimeout;
 
     CHK_STATUS(timerQueueAddTimer(pIceAgent->timerQueueHandle,
@@ -493,7 +491,7 @@ STATUS iceAgentStartGathering(PIceAgent pIceAgent)
 
 CleanUp:
 
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     if (STATUS_FAILED(retStatus)) {
         iceAgentFatalError(pIceAgent, retStatus);
@@ -626,7 +624,7 @@ STATUS iceAgentShutdown(PIceAgent pIceAgent)
             pIceAgent->turnConnectionTracker.freeTurnConnectionTimerId = UINT32_MAX;
         }
         CHK_STATUS(turnConnectionShutdown(pIceAgent->turnConnectionTracker.pTurnConnection, KVS_ICE_TURN_CONNECTION_SHUTDOWN_TIMEOUT));
-        CHK_LOG_ERR_NV(freeTurnConnection(&pIceAgent->turnConnectionTracker.pTurnConnection));
+        CHK_LOG_ERR(freeTurnConnection(&pIceAgent->turnConnectionTracker.pTurnConnection));
     }
 
     // remove all connections first so no more incoming packets
@@ -636,7 +634,7 @@ STATUS iceAgentShutdown(PIceAgent pIceAgent)
 
 CleanUp:
 
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     if (locked) {
         MUTEX_UNLOCK(pIceAgent->lock);
@@ -718,6 +716,9 @@ CleanUp:
     return retStatus;
 }
 
+/*
+ * Need to acquire pIceAgent->lock first
+ */
 STATUS createIceCandidatePairs(PIceAgent pIceAgent, PIceCandidate pIceCandidate, BOOL isRemoteCandidate)
 {
     ENTERS();
@@ -1030,10 +1031,15 @@ STATUS iceAgentSendSrflxCandidateRequest(PIceAgent pIceAgent)
     UINT64 data;
     PIceCandidate pCandidate = NULL;
     PIceServer pIceServer = NULL;
+    PStunPacket pBindingRequest = NULL;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
 
     // Assume holding pIceAgent->lock
+
+    /* Can't reuse pIceAgent->pBindingRequest because candidate gathering could be running in parallel with
+     * connection check. */
+    CHK_STATUS(createStunPacket(STUN_PACKET_TYPE_BINDING_REQUEST, NULL, &pBindingRequest));
 
     CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
     while (pCurNode != NULL) {
@@ -1045,11 +1051,9 @@ STATUS iceAgentSendSrflxCandidateRequest(PIceAgent pIceAgent)
             switch(pCandidate->iceCandidateType) {
                 case ICE_CANDIDATE_TYPE_SERVER_REFLEXIVE:
                     pIceServer = &(pIceAgent->iceServers[pCandidate->iceServerIndex]);
-                    CHK_STATUS(iceUtilsGenerateTransactionId(pIceAgent->pBindingRequest->header.transactionId,
-                                                             ARRAY_SIZE(pIceAgent->pBindingRequest->header.transactionId)));
                     transactionIdStoreInsert(pIceAgent->pStunBindingRequestTransactionIdStore,
-                                             pIceAgent->pBindingRequest->header.transactionId);
-                    retStatus =  iceUtilsSendStunPacket(pIceAgent->pBindingRequest,
+                                             pBindingRequest->header.transactionId);
+                    retStatus =  iceUtilsSendStunPacket(pBindingRequest,
                                                         NULL,
                                                         0,
                                                         &pIceServer->ipAddress,
@@ -1072,6 +1076,10 @@ STATUS iceAgentSendSrflxCandidateRequest(PIceAgent pIceAgent)
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
+
+    if (pBindingRequest != NULL) {
+        freeStunPacket(&pBindingRequest);
+    }
 
     if (STATUS_FAILED(retStatus)) {
         iceAgentFatalError(pIceAgent, retStatus);
@@ -1316,6 +1324,7 @@ STATUS iceAgentInitSrflxCandidate(PIceAgent pIceAgent)
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
 
+    /* There should be no other thread mutating localCandidates at this time, so safe to read without lock. */
     CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
     while (pCurNode != NULL) {
         CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
@@ -1346,6 +1355,9 @@ STATUS iceAgentInitSrflxCandidate(PIceAgent pIceAgent)
                     pNewCandidate->foundation = pIceAgent->foundationCounter++; // we dont generate candidates that have the same foundation.
                     pNewCandidate->priority = computeCandidatePriority(pNewCandidate);
 
+                    /* There could be another thread calling iceAgentAddRemoteCandidate which triggers createIceCandidatePairs.
+                     * createIceCandidatePairs will read through localCandidates, since we are mutating localCandidates here,
+                     * need to acquire lock. */
                     MUTEX_LOCK(pIceAgent->lock);
                     locked = TRUE;
 
@@ -1390,8 +1402,6 @@ STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent)
     BOOL locked = FALSE;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
-
-    // Assume holding pIceAgent->lock
 
     for (j = 0; j < pIceAgent->iceServersCount; j++) {
         if (pIceAgent->iceServers[j].isTurn) {
@@ -1440,8 +1450,8 @@ STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent)
             MUTEX_LOCK(pIceAgent->lock);
             locked = TRUE;
 
-            // when connecting with non-trickle peer, when remote candidates are added, turnConnection would not be created
-            // yet. So we need to add them here. turnConnectionAddPeer does ignore duplicates
+            /* add existing remote candidates to turn. Need to acuiqre lock because remoteCandidates can be mutated by
+             * iceAgentAddRemoteCandidate calls. */
             CHK_STATUS(doubleListGetHeadNode(pIceAgent->remoteCandidates, &pCurNode));
             while (pCurNode != NULL) {
                 CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
@@ -1466,7 +1476,7 @@ CleanUp:
         MUTEX_UNLOCK(pIceAgent->lock);
     }
 
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     SAFE_MEMFREE(pNewCandidate);
 
@@ -1744,7 +1754,7 @@ STATUS incomingRelayedDataHandler(UINT64 customData, PSocketConnection pSocketCo
     }
 
 CleanUp:
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     return retStatus;
 }

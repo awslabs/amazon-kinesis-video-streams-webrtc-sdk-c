@@ -91,12 +91,12 @@ STATUS freeTurnConnection(PTurnConnection* ppTurnConnection)
 
     MUTEX_LOCK(pTurnConnection->lock);
     if (pTurnConnection->timerCallbackId != UINT32_MAX) {
-        CHK_LOG_ERR_NV(timerQueueCancelTimer(pTurnConnection->timerQueueHandle, pTurnConnection->timerCallbackId, (UINT64) pTurnConnection));
+        CHK_LOG_ERR(timerQueueCancelTimer(pTurnConnection->timerQueueHandle, pTurnConnection->timerCallbackId, (UINT64) pTurnConnection));
     }
     MUTEX_UNLOCK(pTurnConnection->lock);
 
     // shutdown control channel
-    CHK_LOG_ERR_NV(connectionListenerRemoveConnection(pTurnConnection->pConnectionListener, pTurnConnection->pControlChannel));
+    CHK_LOG_ERR(connectionListenerRemoveConnection(pTurnConnection->pConnectionListener, pTurnConnection->pControlChannel));
 
     // free transactionId store for each turn peer
     CHK_STATUS(doubleListGetHeadNode(pTurnConnection->turnPeerList, &pCurNode));
@@ -108,13 +108,8 @@ STATUS freeTurnConnection(PTurnConnection* ppTurnConnection)
         freeTransactionIdStore(&pTurnPeer->pTransactionIdStore);
     }
     // free turn peers
-<<<<<<< HEAD
-    CHK_STATUS(doubleListClear(pTurnConnection->turnPeerList, TRUE));
+    CHK_LOG_ERR(doubleListClear(pTurnConnection->turnPeerList, TRUE));
     CHK_LOG_ERR(doubleListFree(pTurnConnection->turnPeerList));
-=======
-    CHK_LOG_ERR_NV(doubleListClear(pTurnConnection->turnPeerList, TRUE));
-    CHK_LOG_ERR_NV(doubleListFree(pTurnConnection->turnPeerList));
->>>>>>> fix pr comments
 
     if (IS_VALID_MUTEX_VALUE(pTurnConnection->lock)) {
         MUTEX_FREE(pTurnConnection->lock);
@@ -136,7 +131,7 @@ STATUS freeTurnConnection(PTurnConnection* ppTurnConnection)
 
 CleanUp:
 
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     LEAVES();
     return retStatus;
@@ -454,7 +449,7 @@ STATUS turnConnectionHandleChannelData(PTurnConnection pTurnConnection, PBYTE pB
 
 CleanUp:
 
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     if (pChannelDataCount != NULL) {
         *pChannelDataCount = turnChannelDataCount;

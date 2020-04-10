@@ -534,13 +534,13 @@ STATUS freePeerConnection(PRtcPeerConnection *ppPeerConnection)
 
     CHK(pKvsPeerConnection != NULL, retStatus);
 
-    CHK_LOG_ERR_NV(iceAgentShutdown(pKvsPeerConnection->pIceAgent));
+    CHK_LOG_ERR(iceAgentShutdown(pKvsPeerConnection->pIceAgent));
 
     // free timer queue first to remove liveness provided by timer
     if (IS_VALID_TIMER_QUEUE_HANDLE(pKvsPeerConnection->timerQueueHandle)) {
         timerQueueShutdown(pKvsPeerConnection->timerQueueHandle);
     }
-    
+
     /* Free structs that have their own thread. SCTP has threads created by SCTP library. IceAgent has the
      * connectionListener thread. Free IceAgent first so there is no more incoming packets which can cause
      * SCTP to be allocated again after SCTP is freed. */
