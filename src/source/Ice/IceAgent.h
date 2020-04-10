@@ -47,8 +47,8 @@ extern "C" {
 #define ICE_URL_PREFIX_TURN                                             "turn:"
 #define ICE_URL_PREFIX_TURN_SECURE                                      "turns:"
 
-#define IS_STUN_PACKET(pBuf)                    (getInt32(*(PUINT32)((pBuf) + STUN_HEADER_MAGIC_BYTE_OFFSET)) == STUN_HEADER_MAGIC_COOKIE)
-#define GET_STUN_PACKET_SIZE(pBuf)              ((UINT32) getInt16(*(PINT16) ((pBuf) + SIZEOF(UINT16))))
+#define IS_STUN_PACKET(pBuf)                                            (getInt32(*(PUINT32)((pBuf) + STUN_HEADER_MAGIC_BYTE_OFFSET)) == STUN_HEADER_MAGIC_COOKIE)
+#define GET_STUN_PACKET_SIZE(pBuf)                                      ((UINT32) getInt16(*(PINT16) ((pBuf) + SIZEOF(UINT16))))
 
 #define IS_CANN_PAIR_SENDING_FROM_RELAYED(p)                            ((p)->local->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED)
 
