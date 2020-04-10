@@ -1,4 +1,5 @@
 # Some of these suppressions are heavy handed, but can't trace them down to a single cause
+race:freeIceAgent
 race:iceAgentSendPacket
 race:stepIceAgentStateMachine
 
