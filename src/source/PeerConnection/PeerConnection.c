@@ -540,11 +540,12 @@ STATUS freePeerConnection(PRtcPeerConnection *ppPeerConnection)
     if (IS_VALID_TIMER_QUEUE_HANDLE(pKvsPeerConnection->timerQueueHandle)) {
         timerQueueShutdown(pKvsPeerConnection->timerQueueHandle);
     }
-
-    // free structs that have their own thread. sctp has threads created by sctp library. iceAgent has the
-    // connectionListener thread
-    CHK_LOG_ERR(freeSctpSession(&pKvsPeerConnection->pSctpSession));
+    
+    /* Free structs that have their own thread. SCTP has threads created by SCTP library. IceAgent has the
+     * connectionListener thread. Free IceAgent first so there is no more incoming packets which can cause
+     * SCTP to be allocated again after SCTP is freed. */
     CHK_LOG_ERR(freeIceAgent(&pKvsPeerConnection->pIceAgent));
+    CHK_LOG_ERR(freeSctpSession(&pKvsPeerConnection->pSctpSession));
 
     // free transceivers
     CHK_LOG_ERR(doubleListGetHeadNode(pKvsPeerConnection->pTransceievers, &pCurNode));
