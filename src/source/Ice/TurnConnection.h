@@ -21,6 +21,7 @@ extern "C" {
 #define DEFAULT_TURN_SEND_REFRESH_INVERVAL                              (1 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
 // turn state timeouts
+#define DEFAULT_TURN_SOCKET_CONNECT_TIMEOUT                             (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define DEFAULT_TURN_GET_CREDENTIAL_TIMEOUT                             (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define DEFAULT_TURN_ALLOCATION_TIMEOUT                                 (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define DEFAULT_TURN_CREATE_PERMISSION_TIMEOUT                          (2 * HUNDREDS_OF_NANOS_IN_A_SECOND)

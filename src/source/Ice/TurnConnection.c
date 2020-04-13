@@ -881,6 +881,7 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
                 DEFAULT_TURN_ALLOCATION_LIFETIME_SECONDS, &pTurnConnection->pTurnPacket));
 
             pTurnConnection->state = TURN_STATE_CHECK_SOCKET_CONNECTION;
+            pTurnConnection->stateTimeoutTime = currentTime + DEFAULT_TURN_SOCKET_CONNECT_TIMEOUT;
             break;
 
         case TURN_STATE_CHECK_SOCKET_CONNECTION:
@@ -895,6 +896,8 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
 
                 pTurnConnection->state = TURN_STATE_GET_CREDENTIALS;
                 pTurnConnection->stateTimeoutTime = currentTime + DEFAULT_TURN_GET_CREDENTIAL_TIMEOUT;
+            } else {
+                CHK(currentTime < pTurnConnection->stateTimeoutTime, STATUS_TURN_CONNECTION_STATE_TRANSITION_TIMEOUT);
             }
 
         case TURN_STATE_GET_CREDENTIALS:
