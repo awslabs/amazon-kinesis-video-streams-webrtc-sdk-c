@@ -9,8 +9,8 @@
  */
 StateMachineState SIGNALING_STATE_MACHINE_STATES[] = {
         {SIGNALING_STATE_NEW, SIGNALING_STATE_NONE | SIGNALING_STATE_NEW, fromNewSignalingState, executeNewSignalingState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_INVALID_READY_STATE},
-        {SIGNALING_STATE_GET_TOKEN, SIGNALING_STATE_NEW | SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_CREATE | SIGNALING_STATE_GET_ENDPOINT | SIGNALING_STATE_GET_ICE_CONFIG | SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_GET_TOKEN, fromGetTokenSignalingState, executeGetTokenSignalingState, SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_GET_TOKEN_CALL_FAILED},
-        {SIGNALING_STATE_DESCRIBE, SIGNALING_STATE_GET_TOKEN | SIGNALING_STATE_CREATE | SIGNALING_STATE_GET_ENDPOINT | SIGNALING_STATE_GET_ICE_CONFIG | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_DESCRIBE, fromDescribeSignalingState, executeDescribeSignalingState, SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_DESCRIBE_CALL_FAILED},
+        {SIGNALING_STATE_GET_TOKEN, SIGNALING_STATE_NEW | SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_CREATE | SIGNALING_STATE_GET_ENDPOINT | SIGNALING_STATE_GET_ICE_CONFIG | SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_DELETE | SIGNALING_STATE_GET_TOKEN, fromGetTokenSignalingState, executeGetTokenSignalingState, SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_GET_TOKEN_CALL_FAILED},
+        {SIGNALING_STATE_DESCRIBE, SIGNALING_STATE_GET_TOKEN | SIGNALING_STATE_CREATE | SIGNALING_STATE_GET_ENDPOINT | SIGNALING_STATE_GET_ICE_CONFIG | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_DELETE | SIGNALING_STATE_DESCRIBE, fromDescribeSignalingState, executeDescribeSignalingState, SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_DESCRIBE_CALL_FAILED},
         {SIGNALING_STATE_CREATE, SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_CREATE, fromCreateSignalingState, executeCreateSignalingState, SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_CREATE_CALL_FAILED},
         {SIGNALING_STATE_GET_ENDPOINT, SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_CREATE | SIGNALING_STATE_GET_TOKEN | SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_GET_ENDPOINT, fromGetEndpointSignalingState, executeGetEndpointSignalingState, SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_GET_ENDPOINT_CALL_FAILED},
         {SIGNALING_STATE_GET_ICE_CONFIG, SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_GET_ENDPOINT | SIGNALING_STATE_READY | SIGNALING_STATE_GET_ICE_CONFIG, fromGetIceConfigSignalingState, executeGetIceConfigSignalingState, SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_GET_ICE_CONFIG_CALL_FAILED},
@@ -18,6 +18,8 @@ StateMachineState SIGNALING_STATE_MACHINE_STATES[] = {
         {SIGNALING_STATE_CONNECT, SIGNALING_STATE_READY | SIGNALING_STATE_DISCONNECTED | SIGNALING_STATE_CONNECT, fromConnectSignalingState, executeConnectSignalingState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_CONNECT_CALL_FAILED},
         {SIGNALING_STATE_CONNECTED, SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED, fromConnectedSignalingState, executeConnectedSignalingState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_CONNECTED_CALLBACK_FAILED},
         {SIGNALING_STATE_DISCONNECTED, SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED, fromDisconnectedSignalingState, executeDisconnectedSignalingState, SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_DISCONNECTED_CALLBACK_FAILED},
+        {SIGNALING_STATE_DELETE, SIGNALING_STATE_GET_TOKEN | SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_CREATE | SIGNALING_STATE_GET_ENDPOINT | SIGNALING_STATE_GET_ICE_CONFIG | SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_DISCONNECTED | SIGNALING_STATE_DELETE, fromDeleteSignalingState, executeDeleteSignalingState, SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_DELETE_CALL_FAILED},
+        {SIGNALING_STATE_DELETED, SIGNALING_STATE_DELETE | SIGNALING_STATE_DELETED, fromDeletedSignalingState, executeDeletedSignalingState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_DELETE_CALL_FAILED},
 };
 
 UINT32 SIGNALING_STATE_MACHINE_STATE_COUNT = ARRAY_SIZE(SIGNALING_STATE_MACHINE_STATES);
@@ -114,6 +116,12 @@ SIGNALING_CLIENT_STATE getSignalingStateFromStateMachineState(UINT64 state)
         case SIGNALING_STATE_DISCONNECTED:
             clientState = SIGNALING_CLIENT_STATE_DISCONNECTED;
             break;
+        case SIGNALING_STATE_DELETE:
+            clientState = SIGNALING_CLIENT_STATE_DELETE;
+            break;
+        case SIGNALING_STATE_DELETED:
+            clientState = SIGNALING_CLIENT_STATE_DELETED;
+            break;
         default:
             clientState = SIGNALING_CLIENT_STATE_UNKNOWN;
     }
@@ -201,10 +209,15 @@ STATUS fromGetTokenSignalingState(UINT64 customData, PUINT64 pState)
     CHK(pSignalingClient != NULL && pState != NULL, STATUS_NULL_ARG);
 
     if ((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK) {
-        // If the client application has specified the Channel ARN then we will skip describe and create states
-        if (pSignalingClient->pChannelInfo->pChannelArn != NULL && pSignalingClient->pChannelInfo->pChannelArn[0] != '\0') {
+        // Check if we are trying to delete a channel
+        if (ATOMIC_LOAD_BOOL(&pSignalingClient->deleting)) {
+            state = SIGNALING_STATE_DELETE;
+        } else if (pSignalingClient->pChannelInfo->pChannelArn != NULL &&
+                   pSignalingClient->pChannelInfo->pChannelArn[0] != '\0') {
+            // If the client application has specified the Channel ARN then we will skip describe and create states
             // Store the ARN in the stream description object first
-            STRNCPY(pSignalingClient->channelDescription.channelArn, pSignalingClient->pChannelInfo->pChannelArn, MAX_ARN_LEN);
+            STRNCPY(pSignalingClient->channelDescription.channelArn, pSignalingClient->pChannelInfo->pChannelArn,
+                    MAX_ARN_LEN);
             pSignalingClient->channelDescription.channelArn[MAX_ARN_LEN] = '\0';
 
             // Move to get endpoint state
@@ -280,7 +293,13 @@ STATUS fromDescribeSignalingState(UINT64 customData, PUINT64 pState)
     result = ATOMIC_LOAD(&pSignalingClient->result);
     switch (result) {
         case SERVICE_CALL_RESULT_OK:
-            state = SIGNALING_STATE_GET_ENDPOINT;
+            // If we are trying to delete the channel then move to delete state
+            if (ATOMIC_LOAD_BOOL(&pSignalingClient->deleting)) {
+                state = SIGNALING_STATE_DELETE;
+            } else {
+                state = SIGNALING_STATE_GET_ENDPOINT;
+            }
+
             break;
 
         case SERVICE_CALL_RESOURCE_NOT_FOUND:
@@ -581,11 +600,27 @@ STATUS fromReadySignalingState(UINT64 customData, PUINT64 pState)
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
     UINT64 state = SIGNALING_STATE_CONNECT;
 
+    SIZE_T result;
+
     CHK(pSignalingClient != NULL && pState != NULL, STATUS_NULL_ARG);
 
-    // Move to connect only when we had previously connected
-    if(SERVICE_CALL_RESULT_SIGNALING_RECONNECT_ICE == (SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result)) {
-        state = SIGNALING_STATE_GET_ICE_CONFIG;
+    result = ATOMIC_LOAD(&pSignalingClient->result);
+    switch (result) {
+        case SERVICE_CALL_RESULT_OK:
+            state = SIGNALING_STATE_READY;
+            break;
+
+        case SERVICE_CALL_RESULT_SIGNALING_RECONNECT_ICE:
+            state = SIGNALING_STATE_GET_ICE_CONFIG;
+            break;
+
+        case SERVICE_CALL_FORBIDDEN:
+        case SERVICE_CALL_NOT_AUTHORIZED:
+            state = SIGNALING_STATE_GET_TOKEN;
+            break;
+
+        default:
+            break;
     }
 
     *pState = state;
@@ -871,6 +906,135 @@ STATUS executeDisconnectedSignalingState(UINT64 customData, UINT64 time)
 
     // Self-prime the next state
     CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS fromDeleteSignalingState(UINT64 customData, PUINT64 pState)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
+    UINT64 state = SIGNALING_STATE_DELETE;
+
+    SIZE_T result;
+
+    CHK(pSignalingClient != NULL && pState != NULL, STATUS_NULL_ARG);
+
+    result = ATOMIC_LOAD(&pSignalingClient->result);
+    switch (result) {
+        case SERVICE_CALL_FORBIDDEN:
+        case SERVICE_CALL_NOT_AUTHORIZED:
+            state = SIGNALING_STATE_GET_TOKEN;
+            break;
+
+        case SERVICE_CALL_RESULT_OK:
+        case SERVICE_CALL_RESOURCE_DELETED:
+        case SERVICE_CALL_RESOURCE_NOT_FOUND:
+            state = SIGNALING_STATE_DELETED;
+            break;
+
+        case SERVICE_CALL_BAD_REQUEST:
+            // This can happen if we come in from specifying ARN and skipping Describe state
+            // during the creation in which case we still need to get the proper update version
+            state = SIGNALING_STATE_DESCRIBE;
+            break;
+
+        default:
+            break;
+    }
+
+    *pState = state;
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS executeDeleteSignalingState(UINT64 customData, UINT64 time)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
+
+    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
+    ATOMIC_STORE_BOOL(&pSignalingClient->clientReady, FALSE);
+
+    // Notify of the state change
+    if (pSignalingClient->signalingClientCallbacks.stateChangeFn != NULL) {
+        CHK_STATUS(pSignalingClient->signalingClientCallbacks.stateChangeFn(
+                pSignalingClient->signalingClientCallbacks.customData,
+                SIGNALING_CLIENT_STATE_DELETE));
+    }
+
+    // Call pre hook func
+    if (pSignalingClient->clientInfo.deletePreHookFn != NULL) {
+        retStatus = pSignalingClient->clientInfo.deletePreHookFn(SIGNALING_STATE_DELETE,
+                pSignalingClient->clientInfo.hookCustomData);
+    }
+
+    // Call DescribeChannel API
+    if (STATUS_SUCCEEDED(retStatus)) {
+        retStatus = deleteChannelLws(pSignalingClient, time);
+    }
+
+    // Call post hook func
+    if (pSignalingClient->clientInfo.deletePostHookFn != NULL) {
+        retStatus = pSignalingClient->clientInfo.deletePostHookFn(SIGNALING_STATE_DELETE,
+                pSignalingClient->clientInfo.hookCustomData);
+    }
+
+    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
+
+    // Reset the ret status
+    retStatus = STATUS_SUCCESS;
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS fromDeletedSignalingState(UINT64 customData, PUINT64 pState)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
+    UINT64 state = SIGNALING_STATE_DELETED;
+
+    CHK(pSignalingClient != NULL && pState != NULL, STATUS_NULL_ARG);
+
+    // This is a terminal state
+    *pState = state;
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS executeDeletedSignalingState(UINT64 customData, UINT64 time)
+{
+    ENTERS();
+    UNUSED_PARAM(time);
+    STATUS retStatus = STATUS_SUCCESS;
+    PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
+
+    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+
+    // Notify of the state change
+    if (pSignalingClient->signalingClientCallbacks.stateChangeFn != NULL) {
+        CHK_STATUS(pSignalingClient->signalingClientCallbacks.stateChangeFn(
+                pSignalingClient->signalingClientCallbacks.customData,
+                SIGNALING_CLIENT_STATE_DELETED));
+    }
+
+    // No-op
 
 CleanUp:
 

@@ -35,6 +35,8 @@ extern "C" {
 #define SIGNALING_CLIENT_STATE_CONNECTING_STR                               "Connecting"
 #define SIGNALING_CLIENT_STATE_CONNECTED_STR                                "Connected"
 #define SIGNALING_CLIENT_STATE_DISCONNECTED_STR                             "Disconnected"
+#define SIGNALING_CLIENT_STATE_DELETE_STR                                   "Delete"
+#define SIGNALING_CLIENT_STATE_DELETED_STR                                  "Deleted"
 
 // Error refreshing ICE server configuration string
 #define SIGNALING_ICE_CONFIG_REFRESH_ERROR_MSG                              "Failed refreshing ICE server configuration with status code 0x%08x."
@@ -82,6 +84,8 @@ typedef struct {
     SignalingApiCallHookFunc getIceConfigPostHookFn;
     SignalingApiCallHookFunc connectPreHookFn;
     SignalingApiCallHookFunc connectPostHookFn;
+    SignalingApiCallHookFunc deletePreHookFn;
+    SignalingApiCallHookFunc deletePostHookFn;
 } SignalingClientInfoInternal, *PSignalingClientInfoInternal;
 
 /**
@@ -112,6 +116,12 @@ typedef struct {
 
     // Wss is connected
     volatile ATOMIC_BOOL connected;
+
+    // The channel is being deleted
+    volatile ATOMIC_BOOL deleting;
+
+    // The channel is deleted
+    volatile ATOMIC_BOOL deleted;
 
     // Current version of the structure
     UINT32 version;
@@ -221,6 +231,7 @@ STATUS signalingSendMessageSync(PSignalingClient, PSignalingMessage);
 STATUS signalingGetIceConfigInfoCout(PSignalingClient, PUINT32);
 STATUS signalingGetIceConfigInfo(PSignalingClient, UINT32, PIceConfigInfo*);
 STATUS signalingConnectSync(PSignalingClient);
+STATUS signalingDeleteSync(PSignalingClient);
 
 STATUS validateSignalingCallbacks(PSignalingClient, PSignalingClientCallbacks);
 STATUS validateSignalingClientInfo(PSignalingClient, PSignalingClientInfoInternal);
@@ -235,6 +246,8 @@ STATUS refreshIceConfigurationCallback(UINT32, UINT64, UINT64);
 STATUS awaitForThreadTermination(PThreadTracker, UINT64);
 STATUS initializeThreadTracker(PThreadTracker);
 STATUS uninitializeThreadTracker(PThreadTracker);
+
+STATUS terminateOngoingOperations(PSignalingClient);
 
 #ifdef  __cplusplus
 }

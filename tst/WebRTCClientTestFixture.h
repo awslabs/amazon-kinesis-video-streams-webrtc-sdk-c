@@ -99,6 +99,7 @@ public:
         if (mAccessKeyIdSet) {
             EXPECT_EQ(STATUS_SUCCESS, retStatus);
         } else {
+            mSignalingClientHandle = INVALID_SIGNALING_CLIENT_HANDLE_VALUE;
             EXPECT_NE(STATUS_SUCCESS, retStatus);
         }
 
