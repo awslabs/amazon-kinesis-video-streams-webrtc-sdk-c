@@ -268,6 +268,7 @@ extern "C" {
 #define STATUS_SIGNALING_INVALID_MESSAGE_TTL_VALUE                                  STATUS_SIGNALING_BASE + 0x0000002E
 #define STATUS_SIGNALING_ICE_CONFIG_REFRESH_FAILED                                  STATUS_SIGNALING_BASE + 0x0000002F
 #define STATUS_SIGNALING_RECONNECT_FAILED                                           STATUS_SIGNALING_BASE + 0x00000030
+#define STATUS_SIGNALING_DELETE_CALL_FAILED                                         STATUS_SIGNALING_BASE + 0x00000031
 
 /*!@} */
 /*===========================================================================================*/
@@ -533,6 +534,11 @@ extern "C" {
 #define SIGNALING_SEND_TIMEOUT                                                      (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
 /**
+ * Default timeout for deleting a channel
+ */
+#define SIGNALING_DELETE_TIMEOUT                                                    (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+
+/**
  * Default signaling message alive time
  */
 #define SIGNALING_DEFAULT_MESSAGE_TTL_VALUE                                         (60 * HUNDREDS_OF_NANOS_IN_A_SECOND)
@@ -782,6 +788,8 @@ typedef enum {
                                              //!< we get to this state after ICE refresh
     SIGNALING_CLIENT_STATE_CONNECTED,        //!< On transitioning to this state, the timeout on the state machine is reset
     SIGNALING_CLIENT_STATE_DISCONNECTED,     //!< This state transition happens either from connect or connected state
+    SIGNALING_CLIENT_STATE_DELETE,           //!< This state transition happens when the application calls signalingClientDeleteSync API.
+    SIGNALING_CLIENT_STATE_DELETED,          //!< This state transition happens after the channel gets deleted as a result of a signalingClientDeleteSync API. This is a terminal state.
     SIGNALING_CLIENT_STATE_MAX_VALUE,        //!< This state indicates maximum number of signaling client states
 } SIGNALING_CLIENT_STATE, *PSIGNALING_CLIENT_STATE;
 
@@ -1557,7 +1565,7 @@ PUBLIC_API STATUS signalingClientGetIceConfigInfoCount(SIGNALING_CLIENT_HANDLE, 
  * IMPORTANT: The returned pointer to the ICE configuration information object points to internal structures
  * and its contents should not be modified.
  *
- * @param SIGNALING_CLIENT_HANDLE
+ * @param[in] SIGNALING_CLIENT_HANDLE Signaling client handle
  * @param[in] UINT32 Index of the ICE configuration information object to retrieve
  * @param[out] PIceConfigInfo The pointer to the ICE configuration information object
  *
@@ -1565,36 +1573,54 @@ PUBLIC_API STATUS signalingClientGetIceConfigInfoCount(SIGNALING_CLIENT_HANDLE, 
  */
 PUBLIC_API STATUS signalingClientGetIceConfigInfo(SIGNALING_CLIENT_HANDLE, UINT32, PIceConfigInfo*);
 
-
 /**
  * @brief Connects the signaling client to the socket in order to send/receive messages.
  *
  * NOTE: The call will succeed only when the signaling client is in a ready state.
- * @param SIGNALING_CLIENT_HANDLE
  *
- * @return STATUS function execution status. STATUS_SUCCESS on success
+ * @param[in] SIGNALING_CLIENT_HANDLE Signaling client handle
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
  */
 PUBLIC_API STATUS signalingClientConnectSync(SIGNALING_CLIENT_HANDLE);
 
 /*
- * Gets the Signaling client current state.
+ * @brief Gets the Signaling client current state.
  *
- * @param - SIGNALING_CLIENT_HANDLE - IN - Signaling client handle
- * @param - PSIGNALING_CLIENT_STATE - OUT - Current state of the signaling client as an UINT32 enum
+ * @param[in] SIGNALING_CLIENT_HANDLE Signaling client handle
+ * @param[out] PSIGNALING_CLIENT_STATE Current state of the signaling client as an UINT32 enum
  *
- * @return - STATUS code of the execution
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
  */
 PUBLIC_API STATUS signalingClientGetCurrentState(SIGNALING_CLIENT_HANDLE, PSIGNALING_CLIENT_STATE);
 
 /*
  * Gets a literal string representing a Signaling client state.
  *
- * @param - SIGNALING_CLIENT_STATE - IN - Signaling client state
- * @param - PCHAR* - OUT - Read only string representing the state
+ * @param[in] SIGNALING_CLIENT_HANDLE Signaling client handle
+ * @param[out] PCHAR* Read only string representing the state
  *
- * @return - STATUS code of the execution
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
  */
 PUBLIC_API STATUS signalingClientGetStateString(SIGNALING_CLIENT_STATE, PCHAR*);
+
+/**
+ * @brief Deletes the signaling channel referenced by SIGNALING_CLIENT_HANDLE
+ *
+ * NOTE: The function is intended to be used to clean up the backend resources and
+ * as such should be called at the end of the lifecycle of the signaling channel resource.
+ * Attempting to connect to the channel or send a message will result in an
+ * error or an unpredictable results after this call.
+ *
+ * NOTE: The call transitions the signaling client state machine to a terminal state
+ * even if the call fails. The proper handling on success and on an error is to
+ * free the signaling client.
+ *
+ * @param[in] SIGNALING_CLIENT_HANDLE Signaling client handle
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
+PUBLIC_API STATUS signalingClientDeleteSync(SIGNALING_CLIENT_HANDLE);
 
 #ifdef  __cplusplus
 }

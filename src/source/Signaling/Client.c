@@ -88,6 +88,22 @@ CleanUp:
     return retStatus;
 }
 
+STATUS signalingClientDeleteSync(SIGNALING_CLIENT_HANDLE signalingClientHandle)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PSignalingClient pSignalingClient = FROM_SIGNALING_CLIENT_HANDLE(signalingClientHandle);
+
+    DLOGI("Signaling Client Delete Sync");
+
+    CHK_STATUS(signalingDeleteSync(pSignalingClient));
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
+
 STATUS signalingClientGetIceConfigInfoCount(SIGNALING_CLIENT_HANDLE signalingClientHandle, PUINT32 pIceConfigCount)
 {
     ENTERS();
@@ -191,6 +207,14 @@ STATUS signalingClientGetStateString(SIGNALING_CLIENT_STATE state, PCHAR* ppStat
 
         case SIGNALING_CLIENT_STATE_DISCONNECTED:
             *ppStateStr = SIGNALING_CLIENT_STATE_DISCONNECTED_STR;
+            break;
+
+        case SIGNALING_CLIENT_STATE_DELETE:
+            *ppStateStr = SIGNALING_CLIENT_STATE_DELETE_STR;
+            break;
+
+        case SIGNALING_CLIENT_STATE_DELETED:
+            *ppStateStr = SIGNALING_CLIENT_STATE_DELETED_STR;
             break;
 
         case SIGNALING_CLIENT_STATE_MAX_VALUE:

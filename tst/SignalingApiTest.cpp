@@ -7,10 +7,6 @@ class SignalingApiTest : public WebRtcClientTestBase {
 
 TEST_F(SignalingApiTest, signalingSendMessageSync)
 {
-    if (!mAccessKeyIdSet) {
-        return;
-    }
-
     STATUS expectedStatus;
     SignalingMessage signalingMessage;
 
@@ -54,11 +50,7 @@ TEST_F(SignalingApiTest, signalingSendMessageSync)
 
 TEST_F(SignalingApiTest, signalingClientConnectSync)
 {
-    if (!mAccessKeyIdSet) {
-        return;
-    }
-
-    STATUS expectedStatus;
+     STATUS expectedStatus;
 
     initializeSignalingClient();
     EXPECT_NE(STATUS_SUCCESS, signalingClientConnectSync(INVALID_SIGNALING_CLIENT_HANDLE_VALUE));
@@ -66,19 +58,44 @@ TEST_F(SignalingApiTest, signalingClientConnectSync)
     EXPECT_EQ(expectedStatus, signalingClientConnectSync(mSignalingClientHandle));
 
     // Connect again
+    EXPECT_EQ(expectedStatus, signalingClientConnectSync(mSignalingClientHandle));
+    EXPECT_EQ(expectedStatus, signalingClientConnectSync(mSignalingClientHandle));
+
+    deinitializeSignalingClient();
+}
+
+TEST_F(SignalingApiTest, signalingClientDeleteSync)
+{
+    STATUS expectedStatus;
+
+    initializeSignalingClient();
+    EXPECT_NE(STATUS_SUCCESS, signalingClientDeleteSync(INVALID_SIGNALING_CLIENT_HANDLE_VALUE));
+    expectedStatus = mAccessKeyIdSet ? STATUS_SUCCESS : STATUS_NULL_ARG;
+    EXPECT_EQ(expectedStatus, signalingClientDeleteSync(mSignalingClientHandle));
+
+    // Call again - idempotent
+    EXPECT_EQ(expectedStatus, signalingClientDeleteSync(mSignalingClientHandle));
+
+    // Attempt to call a connect should fail
     expectedStatus = mAccessKeyIdSet ? STATUS_INVALID_STREAM_STATE : STATUS_NULL_ARG;
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(mSignalingClientHandle));
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(mSignalingClientHandle));
+    EXPECT_EQ(expectedStatus, signalingClientConnectSync(mSignalingClientHandle));
+
+    // Attempt to send a message should fail
+    SignalingMessage signalingMessage;
+    signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
+    signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
+    STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    MEMSET(signalingMessage.payload, 'A', 100);
+    signalingMessage.payload[100] = '\0';
+    signalingMessage.payloadLen = 0;
+    signalingMessage.correlationId[0] = '\0';
+    EXPECT_EQ(expectedStatus, signalingClientSendMessageSync(mSignalingClientHandle, &signalingMessage));
 
     deinitializeSignalingClient();
 }
 
 TEST_F(SignalingApiTest, signalingClientGetIceConfigInfoCount)
 {
-    if (!mAccessKeyIdSet) {
-        return;
-    }
-
     STATUS expectedStatus;
     UINT32 count;
 
@@ -99,10 +116,6 @@ TEST_F(SignalingApiTest, signalingClientGetIceConfigInfoCount)
 
 TEST_F(SignalingApiTest, signalingClientGetIceConfigInfo)
 {
-    if (!mAccessKeyIdSet) {
-        return;
-    }
-
     UINT32 i, j, count;
     PIceConfigInfo pIceConfigInfo;
 
@@ -139,18 +152,19 @@ TEST_F(SignalingApiTest, signalingClientGetIceConfigInfo)
 
 TEST_F(SignalingApiTest, signalingClientGetCurrentState)
 {
-    if (!mAccessKeyIdSet) {
-        return;
-    }
+    STATUS expectedStatus;
+    SIGNALING_CLIENT_STATE state, expectedState;
 
-    SIGNALING_CLIENT_STATE state;
     initializeSignalingClient();
     EXPECT_NE(STATUS_SUCCESS, signalingClientGetCurrentState(INVALID_SIGNALING_CLIENT_HANDLE_VALUE, &state));
     EXPECT_NE(STATUS_SUCCESS, signalingClientGetCurrentState(mSignalingClientHandle, NULL));
     EXPECT_NE(STATUS_SUCCESS, signalingClientGetCurrentState(INVALID_SIGNALING_CLIENT_HANDLE_VALUE, NULL));
 
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetCurrentState(mSignalingClientHandle, &state));
-    EXPECT_EQ(SIGNALING_CLIENT_STATE_READY, state);
+    expectedStatus = mAccessKeyIdSet ? STATUS_SUCCESS : STATUS_NULL_ARG;
+    EXPECT_EQ(expectedStatus, signalingClientGetCurrentState(mSignalingClientHandle, &state));
+
+    expectedState = mAccessKeyIdSet ? SIGNALING_CLIENT_STATE_READY : SIGNALING_CLIENT_STATE_UNKNOWN;
+    EXPECT_EQ(expectedState, state);
 
     deinitializeSignalingClient();
 }

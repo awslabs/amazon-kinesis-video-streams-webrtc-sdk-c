@@ -24,6 +24,8 @@ extern "C" {
 #define SIGNALING_STATE_CONNECT                         ((UINT64) (1 << 7))
 #define SIGNALING_STATE_CONNECTED                       ((UINT64) (1 << 8))
 #define SIGNALING_STATE_DISCONNECTED                    ((UINT64) (1 << 9))
+#define SIGNALING_STATE_DELETE                          ((UINT64) (1 << 10))
+#define SIGNALING_STATE_DELETED                         ((UINT64) (1 << 11))
 
 // Indicates infinite retries
 #define INFINITE_RETRY_COUNT_SENTINEL                   0
@@ -57,6 +59,10 @@ STATUS fromConnectedSignalingState(UINT64, PUINT64);
 STATUS executeConnectedSignalingState(UINT64, UINT64);
 STATUS fromDisconnectedSignalingState(UINT64, PUINT64);
 STATUS executeDisconnectedSignalingState(UINT64, UINT64);
+STATUS fromDeleteSignalingState(UINT64, PUINT64);
+STATUS executeDeleteSignalingState(UINT64, UINT64);
+STATUS fromDeletedSignalingState(UINT64, PUINT64);
+STATUS executeDeletedSignalingState(UINT64, UINT64);
 
 #ifdef  __cplusplus
 }

@@ -1121,6 +1121,7 @@ STATUS deleteChannelLws(PSignalingClient pSignalingClient, UINT64 time)
     CHAR url[MAX_URI_CHAR_LEN + 1];
     CHAR paramsJson[MAX_JSON_PARAMETER_STRING_LEN];
     PLwsCallInfo pLwsCallInfo = NULL;
+    SIZE_T result;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     CHK(pSignalingClient->channelDescription.channelArn[0] != '\0', STATUS_INVALID_OPERATION);
@@ -1167,8 +1168,13 @@ STATUS deleteChannelLws(PSignalingClient pSignalingClient, UINT64 time)
     // Set the service call result
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) pLwsCallInfo->callInfo.callResult);
 
-    // Early return if we have a non-success result
-    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK, retStatus);
+    // Early return if we have a non-success result and it's not a resource not found
+    result = ATOMIC_LOAD(&pSignalingClient->result);
+    CHK((SERVICE_CALL_RESULT) result == SERVICE_CALL_RESULT_OK ||
+                (SERVICE_CALL_RESULT) result == SERVICE_CALL_RESOURCE_NOT_FOUND, retStatus);
+
+    // Mark the channel as deleted
+    ATOMIC_STORE_BOOL(&pSignalingClient->deleted, TRUE);
 
 CleanUp:
 
@@ -1877,13 +1883,6 @@ STATUS terminateLwsListenerLoop(PSignalingClient pSignalingClient)
 
         // Terminate the listener
         terminateConnectionWithStatus(pSignalingClient, SERVICE_CALL_RESULT_OK);
-    }
-
-    if (pSignalingClient->pLwsContext != NULL) {
-        MUTEX_LOCK(pSignalingClient->lwsSerializerLock);
-        lws_context_destroy(pSignalingClient->pLwsContext);
-        pSignalingClient->pLwsContext = NULL;
-        MUTEX_UNLOCK(pSignalingClient->lwsSerializerLock);
     }
 
 CleanUp:

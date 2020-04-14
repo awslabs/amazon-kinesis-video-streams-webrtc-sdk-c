@@ -534,6 +534,10 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
 
     TEST_F(IceFunctionalityTest, IceAgentCandidateGatheringTest)
     {
+        if (!mAccessKeyIdSet) {
+            return;
+        }
+        
         typedef struct {
             std::vector<std::string> list;
             std::mutex lock;
