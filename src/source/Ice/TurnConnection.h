@@ -39,6 +39,7 @@ extern "C" {
 #define DEFAULT_TURN_MESSAGE_SEND_CHANNEL_DATA_BUFFER_LEN               (10 * 1024)
 #define DEFAULT_TURN_MESSAGE_RECV_CHANNEL_DATA_BUFFER_LEN               (10 * 1024)
 #define DEFAULT_TURN_CHANNEL_DATA_BUFFER_SIZE                           128
+#define DEFAULT_TURN_MAX_PEER_COUNT                                     16
 
 // all turn channel numbers must be greater than 0x4000 and less than 0x7FFF
 #define TURN_CHANNEL_BIND_CHANNEL_NUMBER_BASE                           (UINT16) 0x4000
@@ -206,6 +207,7 @@ STATUS turnConnectionHandleChannelData(PTurnConnection, PBYTE, UINT32, PTurnChan
 STATUS turnConnectionHandleChannelDataTcpMode(PTurnConnection, PBYTE, UINT32, PTurnChannelData, PUINT32);
 
 PTurnPeer turnConnectionGetPeerWithChannelNumber(PTurnConnection, UINT16);
+PTurnPeer turnConnectionGetPeerWithIp(PTurnConnection, PKvsIpAddress);
 
 #ifdef  __cplusplus
 }

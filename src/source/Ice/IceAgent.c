@@ -950,34 +950,26 @@ STATUS iceAgentSendStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 pa
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 stunPacketSize = STUN_PACKET_ALLOCATION_SIZE;
     BYTE stunPacketBuffer[STUN_PACKET_ALLOCATION_SIZE];
-    KvsIpAddress destAddr;
-    SocketConnection socketConnection;
-    BOOL isRelay = FALSE;
     PIceCandidatePair pIceCandidatePair = NULL;
 
     // Assuming holding pIceAgent->lock
 
     CHK(pStunPacket != NULL && pIceAgent != NULL && pLocalCandidate != NULL && pDestAddr != NULL, STATUS_NULL_ARG);
 
-    // Construct context
-    // Stun Binding Indication seems to not expect any response. Therefore not storing transactionId
     CHK_STATUS(iceUtilsPackageStunPacket(pStunPacket, password, passwordLen, stunPacketBuffer, &stunPacketSize));
-    socketConnection = *pLocalCandidate->pSocketConnection;
-    destAddr = *pDestAddr;
-    isRelay = pLocalCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED;
-
     retStatus = iceUtilsSendData((PBYTE) stunPacketBuffer,
                                  stunPacketSize,
-                                 &destAddr,
-                                 &socketConnection,
+                                 pDestAddr,
+                                 pLocalCandidate->pSocketConnection,
                                  pIceAgent->turnConnectionTracker.pTurnConnection,
-                                 isRelay);
+                                 pLocalCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED);
 
     if (STATUS_FAILED(retStatus)) {
-        DLOGW("iceUtilsSendData failed with 0x%08x", retStatus);
+        DLOGW("iceUtilsSendData failed with 0x%08x. Mark candidate pair as failed.", retStatus);
         retStatus = STATUS_SUCCESS;
 
-        // Update iceCandidatePair state to failed. pIceCandidatePair could no longer exist.
+        /* Update iceCandidatePair state to failed.
+         * pIceCandidatePair could no longer exist. */
         CHK_STATUS(findIceCandidatePairWithLocalSocketConnectionAndRemoteAddr(pIceAgent, pLocalCandidate->pSocketConnection, pDestAddr, TRUE, &pIceCandidatePair));
 
         if (pIceCandidatePair != NULL) {
