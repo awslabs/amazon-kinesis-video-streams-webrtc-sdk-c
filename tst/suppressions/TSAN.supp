@@ -307,6 +307,24 @@ race:connectSignalingChannelLws
 #     #11 void testing::internal::HandleSehExceptionsInMethodIfSupported<testing::Test, void>(testing::Test*, void (testing::Test::*)(), char const*) <null> (webrtc_client_test+0x000000672819)
 deadlock:connectSignalingChannelLws
 
+# WARNING: ThreadSanitizer: data race (pid=21078)
+#   Write of size 8 at 0x7b08000200a0 by thread T16 (mutexes: write M266973569391553680, write M274010443809316528):
+#     #0 free /tmp/final/llvm.src/projects/compiler-rt/lib/tsan/rtl/tsan_interceptors.cc:707:3 (webrtc_client_test+0x4db8f4)
+#     #1 _realloc <null> (libwebsockets.so.15+0xa80d)
+#     #2 lwsListenerHandler /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/LwsApiCalls.c:1373:5 (libkvsWebrtcSignalingClient.so+0x19666)
+#
+#   Previous write of size 8 at 0x7b08000200a0 by main thread (mutexes: write M273728968832621472):
+#     #0 realloc /tmp/final/llvm.src/projects/compiler-rt/lib/tsan/rtl/tsan_interceptors.cc:694:5 (webrtc_client_test+0x4db7e7)
+#     #1 _realloc <null> (libwebsockets.so.15+0xa7dd)
+#     #2 terminateConnectionWithStatus /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/LwsApiCalls.c:1827:5 (libkvsWebrtcSignalingClient.so+0x18709)
+#     #3 terminateLwsListenerLoop /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/LwsApiCalls.c:1885:9 (libkvsWebrtcSignalingClient.so+0x1ae86)
+#     #4 terminateOngoingOperations /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/Signaling.c:262:5 (libkvsWebrtcSignalingClient.so+0x1d6c5)
+#     #5 signalingDeleteSync /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/Signaling.c:416:5 (libkvsWebrtcSignalingClient.so+0x1ea4d)
+#     #6 signalingClientDeleteSync /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/Client.c:99:5 (libkvsWebrtcSignalingClient.so+0xc50e)
+#     #7 com::amazonaws::kinesis::video::webrtcclient::SignalingApiFunctionalityTest_deleteChannelCreatedWithArn_Test::TestBody() /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/tst/SignalingApiFunctionalityTest.cpp:1835:5 (webrtc_client_test+0x638aa7)
+#     #8 void testing::internal::HandleSehExceptionsInMethodIfSupported<testing::Test, void>(testing::Test*, void (testing::Test::*)(), char const*) <null> (webrtc_client_test+0x6cc5dd)
+race:terminateConnectionWithStatus
+
 # test code synchronized by sleep
 race:PeerConnectionFunctionalityTest_freeTurnDueToP2PFoundBeforeTurnEstablished_Test
 race:PeerConnectionFunctionalityTest_freeTurnDueToP2PFoundAfterTurnEstablished
