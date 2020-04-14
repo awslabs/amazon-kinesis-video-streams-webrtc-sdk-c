@@ -1847,6 +1847,8 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
     UINT32 priority = 0;
     PIceCandidate pIceCandidate = NULL;
     CHAR ipAddrStr[KVS_IP_ADDRESS_STRING_BUFFER_LEN], ipAddrStr2[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
+    PCHAR hexStr = NULL;
+    UINT32 hexStrLen = 0;
 
     // need to determine stunPacketType before deserializing because different password should be used depending on the packet type
     stunPacketType = (UINT16) getInt16(*((PUINT16) pBuffer));
@@ -1955,7 +1957,12 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
             break;
 
         default:
-            DLOGW("Dropping unrecognized STUN packet. Packet type: 0x%02", stunPacketType);
+            CHK_STATUS(hexEncode(pBuffer, bufferLen, NULL, &hexStrLen));
+            hexStr = MEMCALLOC(1, hexStrLen * SIZEOF(CHAR));
+            CHK(hexStr != NULL, STATUS_NOT_ENOUGH_MEMORY);
+            CHK_STATUS(hexEncode(pBuffer, bufferLen, hexStr, &hexStrLen));
+            DLOGW("Dropping unrecognized STUN packet. Packet type: 0x%02x. Packet content: \n\t%s", stunPacketType, hexStr);
+            MEMFREE(hexStr);
             break;
     }
 
@@ -1979,7 +1986,7 @@ CleanUp:
 STATUS iceAgentCheckPeerReflexiveCandidate(PIceAgent pIceAgent, PKvsIpAddress pIpAddress, UINT32 priority, BOOL isRemote, PSocketConnection pSocketConnection)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    PIceCandidate pIceCandidate = NULL, pLocalIceCandidate = NULL;;
+    PIceCandidate pIceCandidate = NULL, pLocalIceCandidate = NULL;
     BOOL freeIceCandidateOnError = TRUE;
     UINT32 candidateCount;
 

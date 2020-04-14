@@ -121,14 +121,15 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         KvsIpAddress turnPeerAddr;
         PTurnPeer pTurnPeer = NULL;
         PDoubleListNode pDoubleListNode = NULL;
+        UINT64 turnReadyTimeout = GETTIME() + 10 * HUNDREDS_OF_NANOS_IN_A_SECOND;
 
         initializeTestTurnConnection();
 
         turnPeerAddr.port = (UINT16) getInt16(8080);
         turnPeerAddr.family = KVS_IP_FAMILY_TYPE_IPV4;
         turnPeerAddr.isPointToPoint = FALSE;
-        // random peer 10.1.1.1, we are not actually sending anything to it.
-        turnPeerAddr.address[0] = 0x0A;
+        /* random peer 77.1.1.1, we are not actually sending anything to it. */
+        turnPeerAddr.address[0] = 0x4d;
         turnPeerAddr.address[1] = 0x01;
         turnPeerAddr.address[2] = 0x01;
         turnPeerAddr.address[3] = 0x01;
@@ -137,7 +138,7 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         EXPECT_EQ(STATUS_SUCCESS, turnConnectionStart(pTurnConnection));
 
         // wait until channel is created
-        while(!turnReady) {
+        while(!turnReady && GETTIME() < turnReadyTimeout) {
             THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
             MUTEX_LOCK(pTurnConnection->lock);
             if (pTurnConnection->state == TURN_STATE_READY) {
@@ -164,8 +165,9 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         MUTEX_UNLOCK(pTurnConnection->lock);
 
         turnReady = FALSE;
+        turnReadyTimeout = GETTIME() + 10 * HUNDREDS_OF_NANOS_IN_A_SECOND;
 
-        while(!turnReady) {
+        while(!turnReady && GETTIME() < turnReadyTimeout) {
             THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
             MUTEX_LOCK(pTurnConnection->lock);
             if (pTurnConnection->state == TURN_STATE_READY) {
@@ -200,14 +202,15 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
 
         BOOL turnReady = FALSE;
         KvsIpAddress turnPeerAddr;
+        UINT64 turnReadyTimeout = GETTIME() + 10 * HUNDREDS_OF_NANOS_IN_A_SECOND;
 
         initializeTestTurnConnection();
 
         turnPeerAddr.port = (UINT16) getInt16(8080);
         turnPeerAddr.family = KVS_IP_FAMILY_TYPE_IPV4;
         turnPeerAddr.isPointToPoint = FALSE;
-        // random peer 10.1.1.1, we are not actually sending anything to it.
-        turnPeerAddr.address[0] = 0x0A;
+        /* random peer 77.1.1.1, we are not actually sending anything to it. */
+        turnPeerAddr.address[0] = 0x4d;
         turnPeerAddr.address[1] = 0x01;
         turnPeerAddr.address[2] = 0x01;
         turnPeerAddr.address[3] = 0x01;
@@ -216,7 +219,7 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         EXPECT_EQ(STATUS_SUCCESS, turnConnectionStart(pTurnConnection));
 
         // wait until channel is created
-        while(!turnReady) {
+        while(!turnReady && GETTIME() < turnReadyTimeout) {
             THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
             MUTEX_LOCK(pTurnConnection->lock);
             if (pTurnConnection->state == TURN_STATE_READY) {
@@ -244,14 +247,15 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         BOOL turnReady = FALSE;
         KvsIpAddress turnPeerAddr;
         UINT64 shutdownTimeout;
+        UINT64 turnReadyTimeout = GETTIME() + 10 * HUNDREDS_OF_NANOS_IN_A_SECOND;
 
         initializeTestTurnConnection();
 
         turnPeerAddr.port = (UINT16) getInt16(8080);
         turnPeerAddr.family = KVS_IP_FAMILY_TYPE_IPV4;
         turnPeerAddr.isPointToPoint = FALSE;
-        // random peer 10.1.1.1, we are not actually sending anything to it.
-        turnPeerAddr.address[0] = 0x0A;
+        /* random peer 77.1.1.1, we are not actually sending anything to it. */
+        turnPeerAddr.address[0] = 0x4d;
         turnPeerAddr.address[1] = 0x01;
         turnPeerAddr.address[2] = 0x01;
         turnPeerAddr.address[3] = 0x01;
@@ -260,7 +264,7 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         EXPECT_EQ(STATUS_SUCCESS, turnConnectionStart(pTurnConnection));
 
         // wait until channel is created
-        while(!turnReady) {
+        while(!turnReady && GETTIME() < turnReadyTimeout) {
             THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
             MUTEX_LOCK(pTurnConnection->lock);
             if (pTurnConnection->state == TURN_STATE_READY) {
@@ -345,14 +349,15 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         KvsIpAddress turnPeerAddr;
         TurnChannelData turnChannelData[10];
         UINT32 turnChannelDataCount = 0;
+        UINT64 turnReadyTimeout = GETTIME() + 10 * HUNDREDS_OF_NANOS_IN_A_SECOND;
 
         initializeTestTurnConnection();
 
         turnPeerAddr.port = (UINT16) getInt16(8080);
         turnPeerAddr.family = KVS_IP_FAMILY_TYPE_IPV4;
         turnPeerAddr.isPointToPoint = FALSE;
-        // random peer 10.1.1.1, we are not actually sending anything to it.
-        turnPeerAddr.address[0] = 0x0A;
+        /* random peer 77.1.1.1, we are not actually sending anything to it. */
+        turnPeerAddr.address[0] = 0x4d;
         turnPeerAddr.address[1] = 0x01;
         turnPeerAddr.address[2] = 0x01;
         turnPeerAddr.address[3] = 0x01;
@@ -361,7 +366,7 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         EXPECT_EQ(STATUS_SUCCESS, turnConnectionStart(pTurnConnection));
 
         // wait until channel is created
-        while(!turnReady) {
+        while(!turnReady && GETTIME() < turnReadyTimeout) {
             THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
             MUTEX_LOCK(pTurnConnection->lock);
             if (pTurnConnection->state == TURN_STATE_READY) {
@@ -405,14 +410,15 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         BYTE buf[reqCount][bufLen];
         std::thread threads[reqCount];
         UINT32 i, j;
+        UINT64 turnReadyTimeout = GETTIME() + 10 * HUNDREDS_OF_NANOS_IN_A_SECOND;
 
         initializeTestTurnConnection();
 
         turnPeerAddr.port = (UINT16) getInt16(8080);
         turnPeerAddr.family = KVS_IP_FAMILY_TYPE_IPV4;
         turnPeerAddr.isPointToPoint = FALSE;
-        // random peer 10.1.1.1, we are not actually sending anything to it.
-        turnPeerAddr.address[0] = 0x0A;
+        /* random peer 77.1.1.1, we are not actually sending anything to it. */
+        turnPeerAddr.address[0] = 0x4d;
         turnPeerAddr.address[1] = 0x01;
         turnPeerAddr.address[2] = 0x01;
         turnPeerAddr.address[3] = 0x01;
@@ -421,7 +427,7 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         EXPECT_EQ(STATUS_SUCCESS, turnConnectionStart(pTurnConnection));
 
         // wait until channel is created
-        while(!turnReady) {
+        while(!turnReady && GETTIME() < turnReadyTimeout) {
             THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
             MUTEX_LOCK(pTurnConnection->lock);
             if (pTurnConnection->state == TURN_STATE_READY) {
