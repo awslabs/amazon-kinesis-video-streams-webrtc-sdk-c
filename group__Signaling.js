@@ -5,6 +5,7 @@ var group__Signaling =
     [ "STATUS_SIGNALING_CONNECT_CALL_FAILED", "group__Signaling.html#ga2bfd4aafe1379557e4ff578832e35ba0", null ],
     [ "STATUS_SIGNALING_CONNECTED_CALLBACK_FAILED", "group__Signaling.html#ga47f46e6fa1b0aef00c2a53266bdcf295", null ],
     [ "STATUS_SIGNALING_CREATE_CALL_FAILED", "group__Signaling.html#gacb814f6fa3d67a2273a165960e40fa1e", null ],
+    [ "STATUS_SIGNALING_DELETE_CALL_FAILED", "group__Signaling.html#ga2ea5261e8d5a54c65a628dea6719dd00", null ],
     [ "STATUS_SIGNALING_DESCRIBE_CALL_FAILED", "group__Signaling.html#ga700932a3b6c29c5a977ca392e7976588", null ],
     [ "STATUS_SIGNALING_DISCONNECTED_CALLBACK_FAILED", "group__Signaling.html#ga4b015acb42be7a79b7f02f343404e55b", null ],
     [ "STATUS_SIGNALING_DUPLICATE_MESSAGE_BEING_SENT", "group__Signaling.html#ga1625c3d3568ebb751258a53a5ac28585", null ],

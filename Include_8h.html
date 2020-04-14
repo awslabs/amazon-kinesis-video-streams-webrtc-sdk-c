@@ -508,6 +508,8 @@ Macros</h2></td></tr>
 <tr class="separator:ga4ccf6085053e4acf22f3184a6ed5fc2c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga6e87e9f2235dd13cdb3da1582fd0d505"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Signaling.html#ga6e87e9f2235dd13cdb3da1582fd0d505">STATUS_SIGNALING_RECONNECT_FAILED</a>&#160;&#160;&#160;<a class="el" href="group__Signaling.html#gadbbb866674b4468ffde7fdab897ec8e2">STATUS_SIGNALING_BASE</a> + 0x00000030</td></tr>
 <tr class="separator:ga6e87e9f2235dd13cdb3da1582fd0d505"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga2ea5261e8d5a54c65a628dea6719dd00"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Signaling.html#ga2ea5261e8d5a54c65a628dea6719dd00">STATUS_SIGNALING_DELETE_CALL_FAILED</a>&#160;&#160;&#160;<a class="el" href="group__Signaling.html#gadbbb866674b4468ffde7fdab897ec8e2">STATUS_SIGNALING_BASE</a> + 0x00000031</td></tr>
+<tr class="separator:ga2ea5261e8d5a54c65a628dea6719dd00"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gac3d7a5485b623f884b9dff4600af8d03"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PeerConnection.html#gac3d7a5485b623f884b9dff4600af8d03">STATUS_PEERCONNECTION_BASE</a>&#160;&#160;&#160;<a class="el" href="group__Signaling.html#gadbbb866674b4468ffde7fdab897ec8e2">STATUS_SIGNALING_BASE</a> + 0x01000000</td></tr>
 <tr class="separator:gac3d7a5485b623f884b9dff4600af8d03"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga65782295dc5babc9378d8d27df9b9c67"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PeerConnection.html#ga65782295dc5babc9378d8d27df9b9c67">STATUS_PEERCONNECTION_CREATE_ANSWER_WITHOUT_REMOTE_DESCRIPTION</a>&#160;&#160;&#160;<a class="el" href="group__PeerConnection.html#gac3d7a5485b623f884b9dff4600af8d03">STATUS_PEERCONNECTION_BASE</a> + 0x00000001</td></tr>
@@ -612,6 +614,8 @@ Macros</h2></td></tr>
 <tr class="separator:gafc91aa7fd8995fa426f68d31de70b3e6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gad1b8f63e3ef3b4e3d3d1c40792929896"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Timeouts.html#gad1b8f63e3ef3b4e3d3d1c40792929896">SIGNALING_SEND_TIMEOUT</a>&#160;&#160;&#160;(5 * HUNDREDS_OF_NANOS_IN_A_SECOND)</td></tr>
 <tr class="separator:gad1b8f63e3ef3b4e3d3d1c40792929896"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaf8435cf31d8d11ee2261c227a7b913ea"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Timeouts.html#gaf8435cf31d8d11ee2261c227a7b913ea">SIGNALING_DELETE_TIMEOUT</a>&#160;&#160;&#160;(5 * HUNDREDS_OF_NANOS_IN_A_SECOND)</td></tr>
+<tr class="separator:gaf8435cf31d8d11ee2261c227a7b913ea"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gac679be5d732c8be8e40cece56ddaaf7a"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Timeouts.html#gac679be5d732c8be8e40cece56ddaaf7a">SIGNALING_DEFAULT_MESSAGE_TTL_VALUE</a>&#160;&#160;&#160;(60 * HUNDREDS_OF_NANOS_IN_A_SECOND)</td></tr>
 <tr class="separator:gac679be5d732c8be8e40cece56ddaaf7a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga68734a4d3e800489c25681de0f08259e"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Timeouts.html#ga68734a4d3e800489c25681de0f08259e">DEFAULT_JITTER_BUFFER_MAX_LATENCY</a>&#160;&#160;&#160;(2000L * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)</td></tr>
@@ -800,6 +804,9 @@ Enumerations</h2></td></tr>
 &#160;&#160;<a class="el" href="Include_8h.html#a647050ade80304e5c5e55d76831d984dad03b8b74159e3c9365d6f307a516e37b">SIGNALING_CLIENT_STATE_CONNECTING</a>, 
 <a class="el" href="Include_8h.html#a647050ade80304e5c5e55d76831d984da28d309d5126b5f9b4537bc695996f068">SIGNALING_CLIENT_STATE_CONNECTED</a>, 
 <a class="el" href="Include_8h.html#a647050ade80304e5c5e55d76831d984dabb96ba5134abf86a76ff9c9aba9f44e3">SIGNALING_CLIENT_STATE_DISCONNECTED</a>, 
+<a class="el" href="Include_8h.html#a647050ade80304e5c5e55d76831d984dab0fcc5d526f0e854f7e828b86a921135">SIGNALING_CLIENT_STATE_DELETE</a>, 
+<br />
+&#160;&#160;<a class="el" href="Include_8h.html#a647050ade80304e5c5e55d76831d984dac677f77ae861a4a3f4afc488f9f6ac22">SIGNALING_CLIENT_STATE_DELETED</a>, 
 <a class="el" href="Include_8h.html#a647050ade80304e5c5e55d76831d984da9bd01d62129c18f2d7da18b7680e6bf7">SIGNALING_CLIENT_STATE_MAX_VALUE</a>
 <br />
  }</td></tr>
@@ -916,6 +923,9 @@ Functions</h2></td></tr>
 <tr class="separator:ab9b925bdc5aba1999e9192308f9cc6a9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a955a06c05bfb620db461837f2ebca4a8"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#a955a06c05bfb620db461837f2ebca4a8">signalingClientGetStateString</a> (<a class="el" href="Include_8h.html#a647050ade80304e5c5e55d76831d984d">SIGNALING_CLIENT_STATE</a>, PCHAR *)</td></tr>
 <tr class="separator:a955a06c05bfb620db461837f2ebca4a8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad85555f757662d1585efd00d496e5c13"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#ad85555f757662d1585efd00d496e5c13">signalingClientDeleteSync</a> (<a class="el" href="Include_8h.html#a1a31b45408a80e1064d39d578bd3b751">SIGNALING_CLIENT_HANDLE</a>)</td></tr>
+<tr class="memdesc:ad85555f757662d1585efd00d496e5c13"><td class="mdescLeft">&#160;</td><td class="mdescRight">Deletes the signaling channel referenced by SIGNALING_CLIENT_HANDLE.  <a href="Include_8h.html#ad85555f757662d1585efd00d496e5c13">More...</a><br /></td></tr>
+<tr class="separator:ad85555f757662d1585efd00d496e5c13"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Macro Definition Documentation</h2>
 <a id="a39137beaf587d297125406df4bd48b55"></a>
@@ -1876,6 +1886,10 @@ Functions</h2></td></tr>
 <tr><td class="fieldname"><a id="a647050ade80304e5c5e55d76831d984da28d309d5126b5f9b4537bc695996f068"></a>SIGNALING_CLIENT_STATE_CONNECTED&#160;</td><td class="fielddoc"><p>On transitioning to this state, the timeout on the state machine is reset. </p>
 </td></tr>
 <tr><td class="fieldname"><a id="a647050ade80304e5c5e55d76831d984dabb96ba5134abf86a76ff9c9aba9f44e3"></a>SIGNALING_CLIENT_STATE_DISCONNECTED&#160;</td><td class="fielddoc"><p>This state transition happens either from connect or connected state. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="a647050ade80304e5c5e55d76831d984dab0fcc5d526f0e854f7e828b86a921135"></a>SIGNALING_CLIENT_STATE_DELETE&#160;</td><td class="fielddoc"><p>This state transition happens when the application calls signalingClientDeleteSync API. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="a647050ade80304e5c5e55d76831d984dac677f77ae861a4a3f4afc488f9f6ac22"></a>SIGNALING_CLIENT_STATE_DELETED&#160;</td><td class="fielddoc"><p>This state transition happens after the channel gets deleted as a result of a signalingClientDeleteSync API. This is a terminal state. </p>
 </td></tr>
 <tr><td class="fieldname"><a id="a647050ade80304e5c5e55d76831d984da9bd01d62129c18f2d7da18b7680e6bf7"></a>SIGNALING_CLIENT_STATE_MAX_VALUE&#160;</td><td class="fielddoc"><p>This state indicates maximum number of signaling client states. </p>
 </td></tr>
@@ -2945,13 +2959,43 @@ Functions</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Connects the signaling client to the socket in order to send/receive messages. </p>
-<p>NOTE: The call will succeed only when the signaling client is in a ready state. </p><dl class="params"><dt>Parameters</dt><dd>
+<p>NOTE: The call will succeed only when the signaling client is in a ready state.</p>
+<dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">SIGNALING_CLIENT_HANDLE</td><td></td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">SIGNALING_CLIENT_HANDLE</td><td>Signaling client handle</td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>STATUS function execution status. STATUS_SUCCESS on success </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>STATUS code of the execution. STATUS_SUCCESS on success </dd></dl>
+
+</div>
+</div>
+<a id="ad85555f757662d1585efd00d496e5c13"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad85555f757662d1585efd00d496e5c13">&#9670;&nbsp;</a></span>signalingClientDeleteSync()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">PUBLIC_API STATUS signalingClientDeleteSync </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="Include_8h.html#a1a31b45408a80e1064d39d578bd3b751">SIGNALING_CLIENT_HANDLE</a>&#160;</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Deletes the signaling channel referenced by SIGNALING_CLIENT_HANDLE. </p>
+<p>NOTE: The function is intended to be used to clean up the backend resources and as such should be called at the end of the lifecycle of the signaling channel resource. Attempting to connect to the channel or send a message will result in an error or an unpredictable results after this call.</p>
+<p>NOTE: The call transitions the signaling client state machine to a terminal state even if the call fails. The proper handling on success and on an error is to free the signaling client.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">SIGNALING_CLIENT_HANDLE</td><td>Signaling client handle</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>STATUS code of the execution. STATUS_SUCCESS on success </dd></dl>
 
 </div>
 </div>
@@ -3019,7 +3063,7 @@ Functions</h2></td></tr>
 <p>NOTE: The call will fail if the client is not in the CONNECTED state. IMPORTANT: The returned pointer to the ICE configuration information object points to internal structures and its contents should not be modified.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir"></td><td class="paramname">SIGNALING_CLIENT_HANDLE</td><td></td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">SIGNALING_CLIENT_HANDLE</td><td>Signaling client handle </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">UINT32</td><td>Index of the ICE configuration information object to retrieve </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">PIceConfigInfo</td><td>The pointer to the ICE configuration information object</td></tr>
   </table>
@@ -3269,7 +3313,7 @@ Functions</h2></td></tr>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_b0856f6b0d80ccb263b2f415c91f9e17.html">include</a></li><li class="navelem"><a class="el" href="dir_8f5ac45a6ada111b95e80af22bb6017d.html">com</a></li><li class="navelem"><a class="el" href="dir_6eddcaa8cb3f84b1b7290fa7880ed0c5.html">amazonaws</a></li><li class="navelem"><a class="el" href="dir_ffe25b375dd9c47f978782781b252738.html">kinesis</a></li><li class="navelem"><a class="el" href="dir_40be0bfe93e499fae0ac3fc2c0b3ca29.html">video</a></li><li class="navelem"><a class="el" href="dir_4165afa699965307903ffe413a1cdec9.html">webrtcclient</a></li><li class="navelem"><a class="el" href="Include_8h.html">Include.h</a></li>
-    <li class="footer">Generated on Tue Apr 14 2020 21:08:54 for Amazon Kinesis Webrtc C SDK by
+    <li class="footer">Generated on Tue Apr 14 2020 22:02:59 for Amazon Kinesis Webrtc C SDK by
     <a href="http://www.doxygen.org/index.html">
     <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.16 </li>
   </ul>

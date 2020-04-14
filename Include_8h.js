@@ -59,6 +59,7 @@ var Include_8h =
     [ "SIGNALING_DEFAULT_MESSAGE_TTL_VALUE", "group__Timeouts.html#gac679be5d732c8be8e40cece56ddaaf7a", null ],
     [ "SIGNALING_DEFAULT_NON_SSL_PORT", "Include_8h.html#a1410303128efe2263a439489f49300ab", null ],
     [ "SIGNALING_DEFAULT_SSL_PORT", "Include_8h.html#a88c324018b021dba73e56d93ddab2427", null ],
+    [ "SIGNALING_DELETE_TIMEOUT", "group__Timeouts.html#gaf8435cf31d8d11ee2261c227a7b913ea", null ],
     [ "SIGNALING_ICE_CONFIG_INFO_CURRENT_VERSION", "group__StructureVersions.html#ga86b84654a2df2822d338f6d83dcc1351", null ],
     [ "SIGNALING_MESSAGE_CURRENT_VERSION", "group__StructureVersions.html#ga49b3de2b6188a87f337eece2d9d02456", null ],
     [ "SIGNALING_SEND_TIMEOUT", "group__Timeouts.html#gad1b8f63e3ef3b4e3d3d1c40792929896", null ],
@@ -156,6 +157,7 @@ var Include_8h =
     [ "STATUS_SIGNALING_CONNECT_CALL_FAILED", "group__Signaling.html#ga2bfd4aafe1379557e4ff578832e35ba0", null ],
     [ "STATUS_SIGNALING_CONNECTED_CALLBACK_FAILED", "group__Signaling.html#ga47f46e6fa1b0aef00c2a53266bdcf295", null ],
     [ "STATUS_SIGNALING_CREATE_CALL_FAILED", "group__Signaling.html#gacb814f6fa3d67a2273a165960e40fa1e", null ],
+    [ "STATUS_SIGNALING_DELETE_CALL_FAILED", "group__Signaling.html#ga2ea5261e8d5a54c65a628dea6719dd00", null ],
     [ "STATUS_SIGNALING_DESCRIBE_CALL_FAILED", "group__Signaling.html#ga700932a3b6c29c5a977ca392e7976588", null ],
     [ "STATUS_SIGNALING_DISCONNECTED_CALLBACK_FAILED", "group__Signaling.html#ga4b015acb42be7a79b7f02f343404e55b", null ],
     [ "STATUS_SIGNALING_DUPLICATE_MESSAGE_BEING_SENT", "group__Signaling.html#ga1625c3d3568ebb751258a53a5ac28585", null ],
@@ -346,6 +348,8 @@ var Include_8h =
       [ "SIGNALING_CLIENT_STATE_CONNECTING", "Include_8h.html#a647050ade80304e5c5e55d76831d984dad03b8b74159e3c9365d6f307a516e37b", null ],
       [ "SIGNALING_CLIENT_STATE_CONNECTED", "Include_8h.html#a647050ade80304e5c5e55d76831d984da28d309d5126b5f9b4537bc695996f068", null ],
       [ "SIGNALING_CLIENT_STATE_DISCONNECTED", "Include_8h.html#a647050ade80304e5c5e55d76831d984dabb96ba5134abf86a76ff9c9aba9f44e3", null ],
+      [ "SIGNALING_CLIENT_STATE_DELETE", "Include_8h.html#a647050ade80304e5c5e55d76831d984dab0fcc5d526f0e854f7e828b86a921135", null ],
+      [ "SIGNALING_CLIENT_STATE_DELETED", "Include_8h.html#a647050ade80304e5c5e55d76831d984dac677f77ae861a4a3f4afc488f9f6ac22", null ],
       [ "SIGNALING_CLIENT_STATE_MAX_VALUE", "Include_8h.html#a647050ade80304e5c5e55d76831d984da9bd01d62129c18f2d7da18b7680e6bf7", null ]
     ] ],
     [ "SIGNALING_MESSAGE_TYPE", "Include_8h.html#a863b17793bf973897892564e7afbe65f", [
@@ -383,6 +387,7 @@ var Include_8h =
     [ "setLocalDescription", "Include_8h.html#a060e71a4e33e0b7a8087317d4839fa8a", null ],
     [ "setRemoteDescription", "Include_8h.html#a4378f3c6aec4d69c647c46852bdfe6ed", null ],
     [ "signalingClientConnectSync", "Include_8h.html#acb53537d7d1c72a9e304ed095fe1252f", null ],
+    [ "signalingClientDeleteSync", "Include_8h.html#ad85555f757662d1585efd00d496e5c13", null ],
     [ "signalingClientGetCurrentState", "Include_8h.html#ab9b925bdc5aba1999e9192308f9cc6a9", null ],
     [ "signalingClientGetIceConfigInfo", "Include_8h.html#a94ed483b34bb395015b7d44fd98c8f5b", null ],
     [ "signalingClientGetIceConfigInfoCount", "Include_8h.html#a22f59c80e99e533e5e1d78d52145eb7c", null ],
