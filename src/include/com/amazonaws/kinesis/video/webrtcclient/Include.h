@@ -180,7 +180,7 @@ extern "C" {
 #define STATUS_TURN_MISSING_CHANNEL_DATA_HEADER                                     STATUS_ICE_BASE  + 0x00000024
 #define STATUS_ICE_FAILED_TO_RECOVER_FROM_DISCONNECTION                             STATUS_ICE_BASE  + 0x00000025
 #define STATUS_ICE_NO_AVAILABLE_ICE_CANDIDATE_PAIR                                  STATUS_ICE_BASE  + 0x00000026
-#define STATUS_TURN_CONNECTION_STATE_NOT_READY_TO_SEND_DATA                         STATUS_ICE_BASE  + 0x00000027
+#define STATUS_TURN_CONNECTION_PEER_NOT_USABLE                                      STATUS_ICE_BASE  + 0x00000027
 /*!@} */
 
 /*===========================================================================================*/
