@@ -17,11 +17,13 @@ extern "C" {
 #define KVS_ICE_CONNECTIVITY_CHECK_TIMEOUT                              10 * HUNDREDS_OF_NANOS_IN_A_SECOND
 #define KVS_ICE_CANDIDATE_NOMINATION_TIMEOUT                            10 * HUNDREDS_OF_NANOS_IN_A_SECOND
 #define KVS_ICE_SEND_KEEP_ALIVE_INTERVAL                                15 * HUNDREDS_OF_NANOS_IN_A_SECOND
-#define KVS_ICE_CANDIDATE_PAIR_GENERATION_TIMEOUT                       1 * HUNDREDS_OF_NANOS_IN_A_MINUTE
+#define KVS_ICE_TURN_CONNECTION_SHUTDOWN_TIMEOUT                        3 * HUNDREDS_OF_NANOS_IN_A_SECOND
+#define KVS_ICE_DEFAULT_TIMER_START_DELAY                               3 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
 
 // Ta in https://tools.ietf.org/html/rfc8445
 #define KVS_ICE_CONNECTION_CHECK_POLLING_INTERVAL                       50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
 #define KVS_ICE_STATE_READY_TIMER_POLLING_INTERVAL                      1 * HUNDREDS_OF_NANOS_IN_A_SECOND
+#define KVS_ICE_GATHER_CANDIDATE_TIMER_POLLING_INTERVAL                 1 * HUNDREDS_OF_NANOS_IN_A_SECOND
 
 // Disconnection timeout should be as long as KVS_ICE_SEND_KEEP_ALIVE_INTERVAL because peer can just be receiving
 // media and not sending anything back except keep alives
@@ -40,13 +42,13 @@ extern "C" {
 #define ICE_PRIORITY_LOCAL_PREFERENCE                                   65535
 
 #define ICE_STUN_DEFAULT_PORT                                           3478
-#define ICE_MAX_CONNECTIVITY_REQUEST_COUNT                              20
 
 #define ICE_URL_PREFIX_STUN                                             "stun:"
 #define ICE_URL_PREFIX_TURN                                             "turn:"
 #define ICE_URL_PREFIX_TURN_SECURE                                      "turns:"
 
-#define IS_STUN_PACKET(pBuf)                    (getInt32(*(PUINT32)((pBuf) + STUN_HEADER_MAGIC_BYTE_OFFSET)) == STUN_HEADER_MAGIC_COOKIE)
+#define IS_STUN_PACKET(pBuf)                                            (getInt32(*(PUINT32)((pBuf) + STUN_HEADER_MAGIC_BYTE_OFFSET)) == STUN_HEADER_MAGIC_COOKIE)
+#define GET_STUN_PACKET_SIZE(pBuf)                                      ((UINT32) getInt16(*(PINT16) ((pBuf) + SIZEOF(UINT16))))
 
 #define IS_CANN_PAIR_SENDING_FROM_RELAYED(p)                            ((p)->local->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED)
 
@@ -105,8 +107,18 @@ typedef struct {
 } IceCandidatePair, *PIceCandidatePair;
 
 typedef struct {
+    struct __TurnConnection* pTurnConnection;
+    UINT32 freeTurnConnectionTimerId;
+    UINT64 freeTurnConnectionEndTime;
+
+    // the ice candidate this TurnConnectionTracker is associated to.
+    PIceCandidate pRelayCandidate;
+} TurnConnectionTracker, *PTurnConnectionTracker;
+
+typedef struct {
     volatile ATOMIC_BOOL agentStartGathering;
     volatile ATOMIC_BOOL remoteCredentialReceived;
+    volatile ATOMIC_BOOL candidateGatheringFinished;
 
     CHAR localUsername[MAX_ICE_CONFIG_USER_NAME_LEN + 1];
     CHAR localPassword[MAX_ICE_CONFIG_CREDENTIAL_LEN + 1];
@@ -126,26 +138,31 @@ typedef struct {
 
     MUTEX lock;
 
+    // timer tasks
+    UINT32 iceAgentStateTimerTask;
+    UINT32 keepAliveTimerTask;
+    UINT32 iceCandidateGatheringTimerTask;
+
     // Current ice agent state
     UINT64 iceAgentState;
-    UINT32 iceAgentStateTimerCallback;
-    UINT32 keepAliveTimerCallback;
     // The state machine
     PStateMachine pStateMachine;
     STATUS iceAgentStatus;
     UINT64 stateEndTime;
-    UINT64 candidateGenerationEndTime;
+    UINT64 candidateGatheringEndTime;
     PIceCandidatePair pDataSendingIceCandidatePair;
 
     IceAgentCallbacks iceAgentCallbacks;
-    UINT64 customData; // customData for iceAgentCallbacks
 
     IceServer iceServers[KVS_ICE_MAX_ICE_SERVERS];
     UINT32 iceServersCount;
 
+    KvsIpAddress localNetworkInterfaces[MAX_LOCAL_NETWORK_INTERFACE_COUNT];
+    UINT32 localNetworkInterfaceCount;
+
     UINT32 foundationCounter;
 
-    struct __TurnConnection* pTurnConnection;
+    TurnConnectionTracker turnConnectionTracker;
 
     TIMER_QUEUE_HANDLE timerQueueHandle;
 
@@ -159,6 +176,9 @@ typedef struct {
     // Pre-allocated stun packets
     PStunPacket pBindingIndication;
     PStunPacket pBindingRequest;
+
+    // store transaction ids for stun binding request.
+    PTransactionIdStore pStunBindingRequestTransactionIdStore;
 } IceAgent, *PIceAgent;
 
 
@@ -171,14 +191,13 @@ typedef struct {
  *
  * @param - PCHAR - IN - username
  * @param - PCHAR - IN - password
- * @param - UINT64 - IN - customData
  * @param - PIceAgentCallbacks - IN - callback for inbound packets
  * @param - PRtcConfiguration - IN - RtcConfig
  * @param - PIceAgent* - OUT - the created IceAgent struct
  *
  * @return - STATUS - status of execution
  */
-STATUS createIceAgent(PCHAR, PCHAR, UINT64, PIceAgentCallbacks, PRtcConfiguration, TIMER_QUEUE_HANDLE, PConnectionListener, PIceAgent*);
+STATUS createIceAgent(PCHAR, PCHAR, PIceAgentCallbacks, PRtcConfiguration, TIMER_QUEUE_HANDLE, PConnectionListener, PIceAgent*);
 
 /**
  * deallocate the PIceAgent object and all its resources.
@@ -248,7 +267,7 @@ STATUS iceAgentSendPacket(PIceAgent, PBYTE, UINT32);
  *
  * @return - STATUS - status of execution
  */
-STATUS iceAgentGatherLocalCandidate(PIceAgent);
+STATUS iceAgentInitHostCandidate(PIceAgent);
 
 /**
  * Starting from given index, fillout PSdpMediaDescription->sdpAttributes with serialize local candidate strings.
@@ -262,12 +281,21 @@ STATUS iceAgentGatherLocalCandidate(PIceAgent);
  */
 STATUS iceAgentPopulateSdpMediaDescriptionCandidates(PIceAgent, PSdpMediaDescription, UINT32, PUINT32);
 
+/**
+ * Start shutdown sequence for IceAgent. Once the function returns IceAgent is ready to be freed.
+ *
+ * @param - PIceAgent - IN - IceAgent object
+ *
+ * @return - STATUS - status of execution
+ */
+STATUS iceAgentShutdown(PIceAgent);
+
 STATUS iceAgentReportNewLocalCandidate(PIceAgent, PIceCandidate);
 STATUS iceAgentValidateKvsRtcConfig(PKvsRtcConfiguration);
 
 // Incoming data handling functions
-STATUS newRelayCandidateHandler(UINT64, PKvsIpAddress, PSocketConnection);
 STATUS incomingDataHandler(UINT64, PSocketConnection, PBYTE, UINT32, PKvsIpAddress, PKvsIpAddress);
+STATUS incomingRelayedDataHandler(UINT64, PSocketConnection, PBYTE, UINT32, PKvsIpAddress, PKvsIpAddress);
 STATUS handleStunPacket(PIceAgent, PBYTE, UINT32, PSocketConnection, PKvsIpAddress, PKvsIpAddress);
 
 // IceCandidate functions
@@ -292,7 +320,6 @@ STATUS iceAgentInitHostCandidate(PIceAgent);
 STATUS iceAgentInitSrflxCandidate(PIceAgent);
 STATUS iceAgentInitRelayCandidate(PIceAgent);
 
-STATUS iceAgentGatheringStateSetup(PIceAgent);
 STATUS iceAgentCheckConnectionStateSetup(PIceAgent);
 STATUS iceAgentConnectedStateSetup(PIceAgent);
 STATUS iceAgentNominatingStateSetup(PIceAgent);
@@ -301,6 +328,8 @@ STATUS iceAgentReadyStateSetup(PIceAgent);
 // timer callbacks. timer callbacks are interlocked by time queue lock.
 STATUS iceAgentStateTransitionTimerCallback(UINT32, UINT64, UINT64);
 STATUS iceAgentSendKeepAliveTimerCallback(UINT32, UINT64, UINT64);
+STATUS iceAgentFreeTurnConnectionTimerCallback(UINT32, UINT64, UINT64);
+STATUS iceAgentGatherCandidateTimerCallback(UINT32, UINT64, UINT64);
 
 STATUS iceAgentNominateCandidatePair(PIceAgent);
 STATUS iceAgentCheckPeerReflexiveCandidate(PIceAgent, PKvsIpAddress, UINT32, BOOL, PSocketConnection);

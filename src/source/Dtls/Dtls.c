@@ -309,7 +309,7 @@ STATUS createDtlsSession(PDtlsSessionCallbacks pDtlsSessionCallbacks, TIMER_QUEU
 
 CleanUp:
 
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     // Free the created cert and private key
     for (i = 0; i < MAX_RTCCONFIGURATION_CERTIFICATES; i++) {
@@ -392,7 +392,7 @@ STATUS dtlsSessionStart(PDtlsSession pDtlsSession, BOOL isServer)
 
 CleanUp:
 
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     if (locked) {
         MUTEX_UNLOCK(pDtlsSession->sslLock);
@@ -472,7 +472,7 @@ STATUS dtlsSessionProcessPacket(PDtlsSession pDtlsSession, PBYTE pData, PINT32 p
 
 CleanUp:
 
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     if (pDataLen != NULL) {
         *pDataLen = dataLen;

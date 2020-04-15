@@ -35,7 +35,7 @@ STATUS freeRetransmitter(PRetransmitter* ppRetransmitter)
     CHK(ppRetransmitter != NULL, STATUS_NULL_ARG);
     SAFE_MEMFREE(*ppRetransmitter);
 CleanUp:
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     LEAVES();
     return retStatus;
@@ -123,7 +123,7 @@ STATUS resendPacketOnNack(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerCo
         }
     }
 CleanUp:
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
     if (pRtpPacket != NULL) {
         // free the packet as it is not put back into rolling buffer
         freeRtpPacket(&pRtpPacket);

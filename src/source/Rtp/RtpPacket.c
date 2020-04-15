@@ -75,7 +75,7 @@ STATUS freeRtpPacket(PRtpPacket * ppRtpPacket)
 
     SAFE_MEMFREE(*ppRtpPacket);
 CleanUp:
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     LEAVES();
     return retStatus;
@@ -94,7 +94,7 @@ STATUS freeRtpPacketAndRawPacket(PRtpPacket * ppRtpPacket)
     }
     SAFE_MEMFREE(*ppRtpPacket);
 CleanUp:
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     LEAVES();
     return retStatus;
@@ -135,7 +135,7 @@ STATUS constructRetransmitRtpPacketFromBytes(PBYTE rawPacket, UINT32 packetLengt
     pPayload = (PBYTE) MEMALLOC(pRtpPacket->payloadLength + SIZEOF(UINT16));
     CHK(pPayload != NULL, STATUS_NOT_ENOUGH_MEMORY);
     // Retransmission payload header is OSN original sequence number
-    putInt16((PINT16) pPayload, pRtpPacket->header.sequenceNumber);
+    putUnalignedInt16BigEndian((PINT16) pPayload, pRtpPacket->header.sequenceNumber);
     MEMCPY(pPayload + SIZEOF(UINT16), pRtpPacket->payload, pRtpPacket->payloadLength);
     pRtpPacket->payloadLength += SIZEOF(UINT16);
     pRtpPacket->payload = pPayload;

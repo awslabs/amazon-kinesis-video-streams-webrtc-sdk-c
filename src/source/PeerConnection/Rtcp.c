@@ -20,13 +20,18 @@ STATUS onRtcpPacket(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuff, UINT32 b
                    isRembPacket(rtcpPacket.payload, rtcpPacket.payloadLength) == STATUS_SUCCESS)
         {
             CHK_STATUS(onRtcpRembPacket(&rtcpPacket, pKvsPeerConnection));
+        } else if (rtcpPacket.header.packetType == RTCP_PACKET_TYPE_PAYLOAD_SPECIFIC_FEEDBACK &&
+                   rtcpPacket.header.receptionReportCount == RTCP_PSFB_PLI)
+        {
+            CHK_STATUS(onRtcpPLIPacket(&rtcpPacket, pKvsPeerConnection));
         }
+
 
         currentOffset += (rtcpPacket.payloadLength + RTCP_PACKET_HEADER_LEN);
     }
 
 CleanUp:
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     return retStatus;
 }
@@ -64,6 +69,40 @@ STATUS onRtcpRembPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
         if (pTransceiver->onBandwidthEstimation != NULL) {
             pTransceiver->onBandwidthEstimation(pTransceiver->onBandwidthEstimationCustomData, maximumBitRate);
         }
+    }
+
+CleanUp:
+
+    return retStatus;
+}
+
+STATUS onRtcpPLIPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConnection)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    UINT32 mediaSSRC = 0;
+    PDoubleListNode pCurNode = NULL;
+    PKvsRtpTransceiver pTransceiver = NULL;
+    UINT64 item;
+
+    CHK(pKvsPeerConnection != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
+    mediaSSRC = getUnalignedInt32BigEndian((pRtcpPacket->payload + (SIZEOF(UINT32))));
+
+    CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pTransceievers, &pCurNode));
+    while(pCurNode != NULL && pTransceiver == NULL) {
+        CHK_STATUS(doubleListGetNodeData(pCurNode, &item));
+        CHK(item != 0, STATUS_INTERNAL_ERROR);
+
+        pTransceiver = (PKvsRtpTransceiver) item;
+        if (pTransceiver->sender.ssrc != mediaSSRC && pTransceiver->sender.rtxSsrc != mediaSSRC) {
+            pTransceiver = NULL;
+        }
+
+        pCurNode = pCurNode->pNext;
+    }
+
+    CHK_ERR(pTransceiver != NULL, STATUS_RTCP_INPUT_SSRC_INVALID, "Received PLI for non existing ssrcs: ssrc %lu", mediaSSRC);
+    if (pTransceiver->onPictureLoss != NULL) {
+        pTransceiver->onPictureLoss(pTransceiver->onPictureLossCustomData);
     }
 
 CleanUp:

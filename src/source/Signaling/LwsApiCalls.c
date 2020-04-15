@@ -597,9 +597,12 @@ STATUS describeChannelLws(PSignalingClient pSignalingClient, UINT64 time)
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
-    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
-
     THREAD_SLEEP_UNTIL(time);
+
+    // Check for the stale credentials
+    CHECK_SIGNALING_CREDENTIALS_EXPIRATION(pSignalingClient);
+
+    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
 
     // Create the API url
     STRCPY(url, pSignalingClient->pChannelInfo->pControlPlaneUrl);
@@ -739,9 +742,12 @@ STATUS createChannelLws(PSignalingClient pSignalingClient, UINT64 time)
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
-    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
-
     THREAD_SLEEP_UNTIL(time);
+
+    // Check for the stale credentials
+    CHECK_SIGNALING_CREDENTIALS_EXPIRATION(pSignalingClient);
+
+    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
 
     // Create the API url
     STRCPY(url, pSignalingClient->pChannelInfo->pControlPlaneUrl);
@@ -849,9 +855,12 @@ STATUS getChannelEndpointLws(PSignalingClient pSignalingClient, UINT64 time)
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
-    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
-
     THREAD_SLEEP_UNTIL(time);
+
+    // Check for the stale credentials
+    CHECK_SIGNALING_CREDENTIALS_EXPIRATION(pSignalingClient);
+
+    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
 
     // Create the API url
     STRCPY(url, pSignalingClient->pChannelInfo->pControlPlaneUrl);
@@ -990,9 +999,12 @@ STATUS getIceConfigLws(PSignalingClient pSignalingClient, UINT64 time)
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     CHK(pSignalingClient->channelEndpointHttps[0] != '\0', STATUS_INTERNAL_ERROR);
 
-    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
-
     THREAD_SLEEP_UNTIL(time);
+
+    // Check for the stale credentials
+    CHECK_SIGNALING_CREDENTIALS_EXPIRATION(pSignalingClient);
+
+    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
 
     // Create the API url
     STRCPY(url, pSignalingClient->channelEndpointHttps);
@@ -1109,13 +1121,17 @@ STATUS deleteChannelLws(PSignalingClient pSignalingClient, UINT64 time)
     CHAR url[MAX_URI_CHAR_LEN + 1];
     CHAR paramsJson[MAX_JSON_PARAMETER_STRING_LEN];
     PLwsCallInfo pLwsCallInfo = NULL;
+    SIZE_T result;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     CHK(pSignalingClient->channelDescription.channelArn[0] != '\0', STATUS_INVALID_OPERATION);
 
-    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
-
     THREAD_SLEEP_UNTIL(time);
+
+    // Check for the stale credentials
+    CHECK_SIGNALING_CREDENTIALS_EXPIRATION(pSignalingClient);
+
+    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
 
     // Check if we need to terminate the ongoing listener
     if (!ATOMIC_LOAD_BOOL(&pSignalingClient->listenerTracker.terminated) &&
@@ -1152,8 +1168,13 @@ STATUS deleteChannelLws(PSignalingClient pSignalingClient, UINT64 time)
     // Set the service call result
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) pLwsCallInfo->callInfo.callResult);
 
-    // Early return if we have a non-success result
-    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK, retStatus);
+    // Early return if we have a non-success result and it's not a resource not found
+    result = ATOMIC_LOAD(&pSignalingClient->result);
+    CHK((SERVICE_CALL_RESULT) result == SERVICE_CALL_RESULT_OK ||
+                (SERVICE_CALL_RESULT) result == SERVICE_CALL_RESOURCE_NOT_FOUND, retStatus);
+
+    // Mark the channel as deleted
+    ATOMIC_STORE_BOOL(&pSignalingClient->deleted, TRUE);
 
 CleanUp:
 
@@ -1302,7 +1323,7 @@ STATUS connectSignalingChannelLws(PSignalingClient pSignalingClient, UINT64 time
 
 CleanUp:
 
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     if (STATUS_FAILED(retStatus) && pSignalingClient != NULL) {
         // Fix-up the timeout case
@@ -1512,7 +1533,7 @@ STATUS writeLwsData(PSignalingClient pSignalingClient, BOOL awaitForResponse)
     // See if anything needs to be done
     CHK(pSignalingClient->pOngoingCallInfo->sendBufferSize != pSignalingClient->pOngoingCallInfo->sendOffset, retStatus);
 
-    DLOGV("Sending data over web socket: %s", pSignalingClient->pOngoingCallInfo->sendBuffer + LWS_PRE);
+    DLOGD("Sending data over web socket: %s", pSignalingClient->pOngoingCallInfo->sendBuffer + LWS_PRE);
 
     // Initialize the send result to none
     ATOMIC_STORE(&pSignalingClient->messageResult, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
@@ -1761,7 +1782,7 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
 
 CleanUp:
 
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     if (pSignalingClient != NULL && STATUS_FAILED(retStatus)) {
         if (pSignalingClient->signalingClientCallbacks.errorReportFn != NULL) {
@@ -1864,13 +1885,6 @@ STATUS terminateLwsListenerLoop(PSignalingClient pSignalingClient)
         terminateConnectionWithStatus(pSignalingClient, SERVICE_CALL_RESULT_OK);
     }
 
-    if (pSignalingClient->pLwsContext != NULL) {
-        MUTEX_LOCK(pSignalingClient->lwsSerializerLock);
-        lws_context_destroy(pSignalingClient->pLwsContext);
-        pSignalingClient->pLwsContext = NULL;
-        MUTEX_UNLOCK(pSignalingClient->lwsSerializerLock);
-    }
-
 CleanUp:
 
     LEAVES();
@@ -1896,7 +1910,7 @@ PVOID receiveLwsMessageWrapper(PVOID args)
     }
 
 CleanUp:
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     SAFE_MEMFREE(pSignalingMessageWrapper);
 

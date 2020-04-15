@@ -97,6 +97,8 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     ATOMIC_STORE_BOOL(&pSignalingClient->clientReady, FALSE);
     ATOMIC_STORE_BOOL(&pSignalingClient->shutdown, FALSE);
     ATOMIC_STORE_BOOL(&pSignalingClient->connected, FALSE);
+    ATOMIC_STORE_BOOL(&pSignalingClient->deleting, FALSE);
+    ATOMIC_STORE_BOOL(&pSignalingClient->deleted, FALSE);
 
     // Add to the signal handler
     // signal(SIGINT, lwsSignalHandler);
@@ -152,7 +154,7 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
 
 CleanUp:
 
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     if (STATUS_FAILED(retStatus)) {
         freeSignaling(&pSignalingClient);
@@ -179,13 +181,14 @@ STATUS freeSignaling(PSignalingClient* ppSignalingClient)
 
     ATOMIC_STORE_BOOL(&pSignalingClient->shutdown, TRUE);
 
-    timerQueueFree(&pSignalingClient->timerQueueHandle);
+    terminateOngoingOperations(pSignalingClient);
 
-    // Terminate the listener thread if alive
-    terminateLwsListenerLoop(pSignalingClient);
-
-    // Await for the reconnect thread to exit
-    awaitForThreadTermination(&pSignalingClient->reconnecterTracker, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT);
+    if (pSignalingClient->pLwsContext != NULL) {
+        MUTEX_LOCK(pSignalingClient->lwsSerializerLock);
+        lws_context_destroy(pSignalingClient->pLwsContext);
+        pSignalingClient->pLwsContext = NULL;
+        MUTEX_UNLOCK(pSignalingClient->lwsSerializerLock);
+    }
 
     freeStateMachine(pSignalingClient->pStateMachine);
 
@@ -246,11 +249,34 @@ CleanUp:
     return retStatus;
 }
 
+STATUS terminateOngoingOperations(PSignalingClient pSignalingClient)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+
+    timerQueueFree(&pSignalingClient->timerQueueHandle);
+
+    // Terminate the listener thread if alive
+    terminateLwsListenerLoop(pSignalingClient);
+
+    // Await for the reconnect thread to exit
+    awaitForThreadTermination(&pSignalingClient->reconnecterTracker, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT);
+
+CleanUp:
+
+    CHK_LOG_ERR(retStatus);
+
+    LEAVES();
+    return retStatus;
+}
+
 STATUS signalingSendMessageSync(PSignalingClient pSignalingClient, PSignalingMessage pSignalingMessage)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    PCHAR pOfferType;
+    PCHAR pOfferType = NULL;
     BOOL removeFromList = FALSE;
 
     CHK(pSignalingClient != NULL && pSignalingMessage != NULL, STATUS_NULL_ARG);
@@ -283,7 +309,7 @@ STATUS signalingSendMessageSync(PSignalingClient pSignalingClient, PSignalingMes
 
 CleanUp:
 
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     // Remove from the list if previously added
     if (removeFromList) {
@@ -308,7 +334,7 @@ STATUS signalingGetIceConfigInfoCout(PSignalingClient pSignalingClient, PUINT32 
 
 CleanUp:
 
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     LEAVES();
     return retStatus;
@@ -329,7 +355,7 @@ STATUS signalingGetIceConfigInfo(PSignalingClient pSignalingClient, UINT32 index
 
 CleanUp:
 
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     LEAVES();
     return retStatus;
@@ -362,13 +388,44 @@ STATUS signalingConnectSync(PSignalingClient pSignalingClient)
 
 CleanUp:
 
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     // Re-set the state if we failed
     if (STATUS_FAILED(retStatus) && (pState != NULL)) {
         resetStateMachineRetryCount(pSignalingClient->pStateMachine);
         setStateMachineCurrentState(pSignalingClient->pStateMachine, pState->state);
     }
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS signalingDeleteSync(PSignalingClient pSignalingClient)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+
+    // Check if we are already deleting
+    CHK (!ATOMIC_LOAD_BOOL(&pSignalingClient->deleted), retStatus);
+
+    // Mark as being deleted
+    ATOMIC_STORE_BOOL(&pSignalingClient->deleting, TRUE);
+
+    CHK_STATUS(terminateOngoingOperations(pSignalingClient));
+
+    // Set the state directly
+    setStateMachineCurrentState(pSignalingClient->pStateMachine, SIGNALING_STATE_DELETE);
+
+    // Set the time out before execution
+    pSignalingClient->stepUntil = GETTIME() + SIGNALING_DELETE_TIMEOUT;
+
+    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
+
+CleanUp:
+
+    CHK_LOG_ERR(retStatus);
 
     LEAVES();
     return retStatus;
@@ -387,7 +444,7 @@ STATUS validateSignalingCallbacks(PSignalingClient pSignalingClient, PSignalingC
 
 CleanUp:
 
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     LEAVES();
     return retStatus;
@@ -479,7 +536,7 @@ STATUS refreshIceConfigurationCallback(UINT32 timerId, UINT64 scheduledTime, UIN
 
 CleanUp:
 
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     // Notify the client in case of an error
     if (pSignalingClient != NULL && STATUS_FAILED(retStatus) &&

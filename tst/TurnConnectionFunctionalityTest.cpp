@@ -6,16 +6,21 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         PIceConfigInfo pIceConfigInfo;
         TIMER_QUEUE_HANDLE timerQueueHandle = INVALID_TIMER_QUEUE_HANDLE_VALUE;
         PConnectionListener pConnectionListener = NULL;
-
     public:
-        VOID initializeTestTurnConnection(PTurnConnection *ppTurnConnection)
+
+        PTurnConnection pTurnConnection = NULL;
+        TurnChannelData turnChannelData[DEFAULT_TURN_CHANNEL_DATA_BUFFER_SIZE];
+        UINT32 turnChannelDataCount = ARRAY_SIZE(turnChannelData);
+
+        VOID initializeTestTurnConnection()
         {
             UINT32 i, j, iceConfigCount, uriCount;
             IceServer iceServers[MAX_ICE_SERVERS_COUNT];
             PIceServer pTurnServer = NULL;
-            PTurnConnection pTurnConnection = NULL;
-
-            EXPECT_TRUE(ppTurnConnection != NULL);
+            KvsIpAddress localIpInterfaces[MAX_LOCAL_NETWORK_INTERFACE_COUNT];
+            UINT32 localIpInterfaceCount = ARRAY_SIZE(localIpInterfaces);
+            PKvsIpAddress pTurnSocketAddr = NULL;
+            PSocketConnection pTurnSocket = NULL;
 
             initializeSignalingClient();
             EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(mSignalingClientHandle, &iceConfigCount));
@@ -37,24 +42,70 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
             EXPECT_TRUE(pTurnServer != NULL);
             EXPECT_EQ(STATUS_SUCCESS, timerQueueCreate(&timerQueueHandle));
             EXPECT_EQ(STATUS_SUCCESS, createConnectionListener(&pConnectionListener));
-            EXPECT_EQ(STATUS_SUCCESS, connectionListenerStart(pConnectionListener));
-            EXPECT_EQ(STATUS_SUCCESS, createTurnConnection(pTurnServer, timerQueueHandle, pConnectionListener,
-                                                           TURN_CONNECTION_DATA_TRANSFER_MODE_DATA_CHANNEL,
-                                                           KVS_SOCKET_PROTOCOL_UDP, NULL, 0, &pTurnConnection, NULL));
 
-            *ppTurnConnection = pTurnConnection;
+            EXPECT_EQ(STATUS_SUCCESS, getLocalhostIpAddresses(localIpInterfaces, &localIpInterfaceCount, NULL, 0));
+            for(i = 0; i < localIpInterfaceCount; ++i) {
+                if(localIpInterfaces[i].family == pTurnServer->ipAddress.family &&
+                   (pTurnSocketAddr == NULL || localIpInterfaces[i].isPointToPoint)) {
+                    pTurnSocketAddr = &localIpInterfaces[i];
+                }
+            }
+
+            auto onDataHandler = [](UINT64 customData, PSocketConnection pSocketConnection, PBYTE pBuffer,
+                                    UINT32 bufferLen, PKvsIpAddress pSrc, PKvsIpAddress pDest) -> STATUS {
+                UNUSED_PARAM(pSocketConnection);
+                TurnConnectionFunctionalityTest *pTestBase = (TurnConnectionFunctionalityTest*) customData;
+                pTestBase->turnChannelDataCount = ARRAY_SIZE(pTestBase->turnChannelData);
+                EXPECT_EQ(STATUS_SUCCESS, turnConnectionIncomingDataHandler(pTestBase->pTurnConnection,
+                                                                            pBuffer, bufferLen, pSrc,
+                                                                            pDest, pTestBase->turnChannelData,
+                                                                            &pTestBase->turnChannelDataCount));
+
+                return STATUS_SUCCESS;
+            };
+            EXPECT_EQ(STATUS_SUCCESS, createSocketConnection(pTurnSocketAddr, &pTurnServer->ipAddress,
+                                                             KVS_ICE_DEFAULT_TURN_PROTOCOL, (UINT64) this, onDataHandler,
+                                                             0, &pTurnSocket));
+            EXPECT_EQ(STATUS_SUCCESS, connectionListenerAddConnection(pConnectionListener, pTurnSocket));
+            ASSERT_EQ(STATUS_SUCCESS, createTurnConnection(pTurnServer, timerQueueHandle,
+                                                           TURN_CONNECTION_DATA_TRANSFER_MODE_DATA_CHANNEL,
+                                                           KVS_ICE_DEFAULT_TURN_PROTOCOL, NULL, pTurnSocket, pConnectionListener,
+                                                           &pTurnConnection));
+            EXPECT_EQ(STATUS_SUCCESS, connectionListenerStart(pConnectionListener));
         }
 
-        VOID freeTestTurnConnection(PTurnConnection *ppTurnConnection)
+        VOID freeTestTurnConnection()
         {
-            EXPECT_TRUE(ppTurnConnection != NULL);
-
-            EXPECT_EQ(STATUS_SUCCESS, freeTurnConnection(ppTurnConnection));
+            EXPECT_TRUE(pTurnConnection != NULL);
+            EXPECT_EQ(STATUS_SUCCESS, freeTurnConnection(&pTurnConnection));
             EXPECT_EQ(STATUS_SUCCESS, freeConnectionListener(&pConnectionListener));
             timerQueueFree(&timerQueueHandle);
             deinitializeSignalingClient();
         }
     };
+
+    TEST_F(TurnConnectionFunctionalityTest, turnConnectionReceiveRelayedAddress)
+    {
+        if (!mAccessKeyIdSet) {
+            return;
+        }
+
+        UINT64 getRelayAddrTimeout;
+        PKvsIpAddress pRelayAddress = NULL;
+
+        initializeTestTurnConnection();
+
+        EXPECT_EQ(STATUS_SUCCESS, turnConnectionStart(pTurnConnection));
+
+        getRelayAddrTimeout = GETTIME() + 3 * HUNDREDS_OF_NANOS_IN_A_SECOND;
+        while((pRelayAddress = turnConnectionGetRelayAddress(pTurnConnection)) == NULL && GETTIME() < getRelayAddrTimeout) {
+            THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
+        }
+
+        EXPECT_TRUE(pRelayAddress != NULL);
+
+        freeTestTurnConnection();
+    }
 
     /*
      * Given a valid turn endpoint and credentials, turnConnection should successfully allocate,
@@ -66,19 +117,19 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
             return;
         }
 
-        PTurnConnection pTurnConnection = NULL;
         BOOL turnReady = FALSE;
         KvsIpAddress turnPeerAddr;
         PTurnPeer pTurnPeer = NULL;
         PDoubleListNode pDoubleListNode = NULL;
+        UINT64 turnReadyTimeout = GETTIME() + 10 * HUNDREDS_OF_NANOS_IN_A_SECOND;
 
-        initializeTestTurnConnection(&pTurnConnection);
+        initializeTestTurnConnection();
 
         turnPeerAddr.port = (UINT16) getInt16(8080);
         turnPeerAddr.family = KVS_IP_FAMILY_TYPE_IPV4;
         turnPeerAddr.isPointToPoint = FALSE;
-        // random peer 10.1.1.1, we are not actually sending anything to it.
-        turnPeerAddr.address[0] = 0x0A;
+        /* random peer 77.1.1.1, we are not actually sending anything to it. */
+        turnPeerAddr.address[0] = 0x4d;
         turnPeerAddr.address[1] = 0x01;
         turnPeerAddr.address[2] = 0x01;
         turnPeerAddr.address[3] = 0x01;
@@ -87,7 +138,7 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         EXPECT_EQ(STATUS_SUCCESS, turnConnectionStart(pTurnConnection));
 
         // wait until channel is created
-        while(!turnReady) {
+        while(!turnReady && GETTIME() < turnReadyTimeout) {
             THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
             MUTEX_LOCK(pTurnConnection->lock);
             if (pTurnConnection->state == TURN_STATE_READY) {
@@ -114,8 +165,9 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         MUTEX_UNLOCK(pTurnConnection->lock);
 
         turnReady = FALSE;
+        turnReadyTimeout = GETTIME() + 10 * HUNDREDS_OF_NANOS_IN_A_SECOND;
 
-        while(!turnReady) {
+        while(!turnReady && GETTIME() < turnReadyTimeout) {
             THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
             MUTEX_LOCK(pTurnConnection->lock);
             if (pTurnConnection->state == TURN_STATE_READY) {
@@ -139,26 +191,26 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         EXPECT_GE(pTurnConnection->allocationExpirationTime, GETTIME());
         MUTEX_UNLOCK(pTurnConnection->lock);
 
-        freeTestTurnConnection(&pTurnConnection);
+        freeTestTurnConnection();
     }
 
-    TEST_F(TurnConnectionFunctionalityTest, turnConnectionStop)
+    TEST_F(TurnConnectionFunctionalityTest, turnConnectionShutdownCompleteBeforeTimeout)
     {
         if (!mAccessKeyIdSet) {
             return;
         }
 
-        PTurnConnection pTurnConnection = NULL;
         BOOL turnReady = FALSE;
         KvsIpAddress turnPeerAddr;
+        UINT64 turnReadyTimeout = GETTIME() + 10 * HUNDREDS_OF_NANOS_IN_A_SECOND;
 
-        initializeTestTurnConnection(&pTurnConnection);
+        initializeTestTurnConnection();
 
         turnPeerAddr.port = (UINT16) getInt16(8080);
         turnPeerAddr.family = KVS_IP_FAMILY_TYPE_IPV4;
         turnPeerAddr.isPointToPoint = FALSE;
-        // random peer 10.1.1.1, we are not actually sending anything to it.
-        turnPeerAddr.address[0] = 0x0A;
+        /* random peer 77.1.1.1, we are not actually sending anything to it. */
+        turnPeerAddr.address[0] = 0x4d;
         turnPeerAddr.address[1] = 0x01;
         turnPeerAddr.address[2] = 0x01;
         turnPeerAddr.address[3] = 0x01;
@@ -167,7 +219,7 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         EXPECT_EQ(STATUS_SUCCESS, turnConnectionStart(pTurnConnection));
 
         // wait until channel is created
-        while(!turnReady) {
+        while(!turnReady && GETTIME() < turnReadyTimeout) {
             THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
             MUTEX_LOCK(pTurnConnection->lock);
             if (pTurnConnection->state == TURN_STATE_READY) {
@@ -177,38 +229,62 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         }
 
         EXPECT_TRUE(turnReady == TRUE);
-        EXPECT_EQ(STATUS_SUCCESS, turnConnectionStop(pTurnConnection));
+        EXPECT_EQ(STATUS_SUCCESS, turnConnectionShutdown(pTurnConnection, KVS_ICE_TURN_CONNECTION_SHUTDOWN_TIMEOUT));
 
-        // once clean up starts, turn connection still needs to send allocation with lifetime 0 and wait for response before
-        // moving to state new. Thus multiplying 1.5
-        THREAD_SLEEP((UINT64) (DEFAULT_TURN_START_CLEAN_UP_TIMEOUT * 1.5));
         MUTEX_LOCK(pTurnConnection->lock);
-        // turn connection should've cleaned itself up and move to NEW state.
-        EXPECT_TRUE(pTurnConnection->state == TURN_STATE_NEW);
+        EXPECT_TRUE(ATOMIC_LOAD_BOOL(&pTurnConnection->allocationFreed));
         MUTEX_UNLOCK(pTurnConnection->lock);
 
-        freeTestTurnConnection(&pTurnConnection);
+        freeTestTurnConnection();
     }
 
-    STATUS turnConnectionReceivePartialChannelMessageTestTurnApplicationDataHandler(
-            UINT64 customData, PSocketConnection pSocketConnection, PBYTE pBuffer, UINT32 bufferLen,
-            PKvsIpAddress pSrc, PKvsIpAddress pDest)
+    TEST_F(TurnConnectionFunctionalityTest, turnConnectionShutdownAsync)
     {
-        UNUSED_PARAM(pSocketConnection);
-        UNUSED_PARAM(pSrc);
-        UNUSED_PARAM(pDest);
-        PBYTE *pCurrentMessagePosition = (PBYTE*) customData;
-        PBYTE currentMessagePosition = *pCurrentMessagePosition;
-        UINT16 messageLen = (UINT16) getInt16(*(PINT16) (currentMessagePosition + 2));
+        if (!mAccessKeyIdSet) {
+            return;
+        }
 
-        // should receive complete data each time callback is called.
-        EXPECT_EQ(messageLen, bufferLen);
-        EXPECT_EQ(0, MEMCMP(currentMessagePosition + 4, pBuffer, messageLen));
-        // move pointer to next channel message
-        currentMessagePosition += (4 + messageLen);
-        *pCurrentMessagePosition = currentMessagePosition;
+        BOOL turnReady = FALSE;
+        KvsIpAddress turnPeerAddr;
+        UINT64 shutdownTimeout;
+        UINT64 turnReadyTimeout = GETTIME() + 10 * HUNDREDS_OF_NANOS_IN_A_SECOND;
 
-        return STATUS_SUCCESS;
+        initializeTestTurnConnection();
+
+        turnPeerAddr.port = (UINT16) getInt16(8080);
+        turnPeerAddr.family = KVS_IP_FAMILY_TYPE_IPV4;
+        turnPeerAddr.isPointToPoint = FALSE;
+        /* random peer 77.1.1.1, we are not actually sending anything to it. */
+        turnPeerAddr.address[0] = 0x4d;
+        turnPeerAddr.address[1] = 0x01;
+        turnPeerAddr.address[2] = 0x01;
+        turnPeerAddr.address[3] = 0x01;
+
+        EXPECT_EQ(STATUS_SUCCESS, turnConnectionAddPeer(pTurnConnection, &turnPeerAddr));
+        EXPECT_EQ(STATUS_SUCCESS, turnConnectionStart(pTurnConnection));
+
+        // wait until channel is created
+        while(!turnReady && GETTIME() < turnReadyTimeout) {
+            THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+            MUTEX_LOCK(pTurnConnection->lock);
+            if (pTurnConnection->state == TURN_STATE_READY) {
+                turnReady = TRUE;
+            }
+            MUTEX_UNLOCK(pTurnConnection->lock);
+        }
+
+        EXPECT_TRUE(turnReady == TRUE);
+        // return immediately
+        EXPECT_EQ(STATUS_SUCCESS, turnConnectionShutdown(pTurnConnection, 0));
+
+        shutdownTimeout = GETTIME() + KVS_ICE_TURN_CONNECTION_SHUTDOWN_TIMEOUT;
+        while(!turnConnectionIsShutdownComplete(pTurnConnection) && GETTIME() < shutdownTimeout) {
+            THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
+        }
+
+        EXPECT_TRUE(turnConnectionIsShutdownComplete(pTurnConnection));
+
+        freeTestTurnConnection();
     }
 
     TEST_F(TurnConnectionFunctionalityTest, turnConnectionReceivePartialChannelMessageTest)
@@ -216,7 +292,6 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         if (!mAccessKeyIdSet) {
             return;
         }
-
 
         // there are 3 channel messages for channel 0x4001
         BYTE channelMsg[] = {0x40, 0x01, 0x00, 0x64, 0x00, 0x01, 0x00, 0x50, 0x21, 0x12, 0xa4, 0x42, 0x42, 0x37, 0x73, 0x2f,
@@ -270,31 +345,28 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
                 0x94, 0x6c, 0x5d, 0x00,
         };
 
-        PTurnConnection pTurnConnection = NULL;
         BOOL turnReady = FALSE;
         KvsIpAddress turnPeerAddr;
-        PBYTE currentMessagePosition = channelMsg;
         TurnChannelData turnChannelData[10];
         UINT32 turnChannelDataCount = 0;
+        UINT64 turnReadyTimeout = GETTIME() + 10 * HUNDREDS_OF_NANOS_IN_A_SECOND;
 
-        initializeTestTurnConnection(&pTurnConnection);
+        initializeTestTurnConnection();
 
         turnPeerAddr.port = (UINT16) getInt16(8080);
         turnPeerAddr.family = KVS_IP_FAMILY_TYPE_IPV4;
         turnPeerAddr.isPointToPoint = FALSE;
-        // random peer 10.1.1.1, we are not actually sending anything to it.
-        turnPeerAddr.address[0] = 0x0A;
+        /* random peer 77.1.1.1, we are not actually sending anything to it. */
+        turnPeerAddr.address[0] = 0x4d;
         turnPeerAddr.address[1] = 0x01;
         turnPeerAddr.address[2] = 0x01;
         turnPeerAddr.address[3] = 0x01;
 
-        pTurnConnection->turnConnectionCallbacks.applicationDataAvailableFn = turnConnectionReceivePartialChannelMessageTestTurnApplicationDataHandler;
-        pTurnConnection->turnConnectionCallbacks.customData = (UINT64) &currentMessagePosition;
         EXPECT_EQ(STATUS_SUCCESS, turnConnectionAddPeer(pTurnConnection, &turnPeerAddr));
         EXPECT_EQ(STATUS_SUCCESS, turnConnectionStart(pTurnConnection));
 
         // wait until channel is created
-        while(!turnReady) {
+        while(!turnReady && GETTIME() < turnReadyTimeout) {
             THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
             MUTEX_LOCK(pTurnConnection->lock);
             if (pTurnConnection->state == TURN_STATE_READY) {
@@ -310,19 +382,19 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         turnChannelDataCount = ARRAY_SIZE(turnChannelData);
         EXPECT_EQ(STATUS_SUCCESS, turnConnectionHandleChannelDataTcpMode(pTurnConnection, channelMsg, 120, turnChannelData, &turnChannelDataCount));
         EXPECT_EQ(turnChannelDataCount, 1);
-        EXPECT_EQ(turnChannelData[0].size, ARRAY_SIZE(channelData1));
-        EXPECT_EQ(0, MEMCMP(turnChannelData[0].data, channelData1, turnChannelData[0].size));
+        EXPECT_EQ(turnChannelData[0].size, ARRAY_SIZE(channelData1) - TURN_DATA_CHANNEL_SEND_OVERHEAD);
+        EXPECT_EQ(0, MEMCMP(turnChannelData[0].data, channelData1 + TURN_DATA_CHANNEL_SEND_OVERHEAD, turnChannelData[0].size));
 
         turnChannelDataCount = ARRAY_SIZE(turnChannelData);
         EXPECT_EQ(STATUS_SUCCESS, turnConnectionHandleChannelDataTcpMode(pTurnConnection, channelMsg + 120,
                                                                          ARRAY_SIZE(channelMsg) - 120, turnChannelData, &turnChannelDataCount));
         EXPECT_EQ(turnChannelDataCount, 2);
-        EXPECT_EQ(turnChannelData[0].size, ARRAY_SIZE(channelData2));
-        EXPECT_EQ(turnChannelData[1].size, ARRAY_SIZE(channelData3));
-        EXPECT_EQ(0, MEMCMP(turnChannelData[0].data, channelData2, turnChannelData[0].size));
-        EXPECT_EQ(0, MEMCMP(turnChannelData[1].data, channelData3, turnChannelData[1].size));
+        EXPECT_EQ(turnChannelData[0].size, ARRAY_SIZE(channelData2) - TURN_DATA_CHANNEL_SEND_OVERHEAD);
+        EXPECT_EQ(turnChannelData[1].size, ARRAY_SIZE(channelData3) - TURN_DATA_CHANNEL_SEND_OVERHEAD);
+        EXPECT_EQ(0, MEMCMP(turnChannelData[0].data, channelData2 + TURN_DATA_CHANNEL_SEND_OVERHEAD, turnChannelData[0].size));
+        EXPECT_EQ(0, MEMCMP(turnChannelData[1].data, channelData3 + TURN_DATA_CHANNEL_SEND_OVERHEAD, turnChannelData[1].size));
 
-        freeTestTurnConnection(&pTurnConnection);
+        freeTestTurnConnection();
     }
 
     TEST_F(TurnConnectionFunctionalityTest, turnConnectionCallMultipleTurnSendDataInThreads)
@@ -331,7 +403,6 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
             return;
         }
 
-        PTurnConnection pTurnConnection = NULL;
         BOOL turnReady = FALSE;
         KvsIpAddress turnPeerAddr;
         const UINT32 bufLen = 5;
@@ -339,14 +410,15 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         BYTE buf[reqCount][bufLen];
         std::thread threads[reqCount];
         UINT32 i, j;
+        UINT64 turnReadyTimeout = GETTIME() + 10 * HUNDREDS_OF_NANOS_IN_A_SECOND;
 
-        initializeTestTurnConnection(&pTurnConnection);
+        initializeTestTurnConnection();
 
         turnPeerAddr.port = (UINT16) getInt16(8080);
         turnPeerAddr.family = KVS_IP_FAMILY_TYPE_IPV4;
         turnPeerAddr.isPointToPoint = FALSE;
-        // random peer 10.1.1.1, we are not actually sending anything to it.
-        turnPeerAddr.address[0] = 0x0A;
+        /* random peer 77.1.1.1, we are not actually sending anything to it. */
+        turnPeerAddr.address[0] = 0x4d;
         turnPeerAddr.address[1] = 0x01;
         turnPeerAddr.address[2] = 0x01;
         turnPeerAddr.address[3] = 0x01;
@@ -355,7 +427,7 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         EXPECT_EQ(STATUS_SUCCESS, turnConnectionStart(pTurnConnection));
 
         // wait until channel is created
-        while(!turnReady) {
+        while(!turnReady && GETTIME() < turnReadyTimeout) {
             THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
             MUTEX_LOCK(pTurnConnection->lock);
             if (pTurnConnection->state == TURN_STATE_READY) {
@@ -384,7 +456,7 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         EXPECT_GE(pTurnConnection->allocationExpirationTime, GETTIME());
         MUTEX_UNLOCK(pTurnConnection->lock);
 
-        freeTestTurnConnection(&pTurnConnection);
+        freeTestTurnConnection();
     }
 
 }

@@ -2,6 +2,11 @@
 #include "../src/source/Include_i.h"
 #include <memory>
 #include <thread>
+#include <mutex>
+
+#define KVS_USE_OPENSSL
+#define KVS_BUILD_WITH_LWS
+#include "../open-source/amazon-kinesis-video-streams-producer-c/src/source/Common/Include_i.h"
 
 #define TEST_DEFAULT_REGION                                     ((PCHAR) "us-west-2")
 #define TEST_STREAMING_TOKEN_DURATION                           (40 * HUNDREDS_OF_NANOS_IN_A_SECOND)
@@ -94,6 +99,7 @@ public:
         if (mAccessKeyIdSet) {
             EXPECT_EQ(STATUS_SUCCESS, retStatus);
         } else {
+            mSignalingClientHandle = INVALID_SIGNALING_CLIENT_HANDLE_VALUE;
             EXPECT_NE(STATUS_SUCCESS, retStatus);
         }
 

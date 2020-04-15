@@ -155,34 +155,34 @@ bool WebRtcClientTestBase::connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerC
         if (candidateStr != NULL) {
             std::thread([customData] (std::string candidate) {
                 RtcIceCandidateInit iceCandidate;
-                EXPECT_EQ(deserializeRtcIceCandidateInit((PCHAR) candidate.c_str(), STRLEN(candidate.c_str()), &iceCandidate), STATUS_SUCCESS);
-                EXPECT_EQ(addIceCandidate((PRtcPeerConnection) customData, iceCandidate.candidate), STATUS_SUCCESS);
+                EXPECT_EQ(STATUS_SUCCESS, deserializeRtcIceCandidateInit((PCHAR) candidate.c_str(), STRLEN(candidate.c_str()), &iceCandidate));
+                EXPECT_EQ(STATUS_SUCCESS, addIceCandidate((PRtcPeerConnection) customData, iceCandidate.candidate));
             }, std::string(candidateStr)).detach();
         }
     };
 
-    EXPECT_EQ(peerConnectionOnIceCandidate(offerPc, (UINT64) answerPc, onICECandidateHdlr), STATUS_SUCCESS);
-    EXPECT_EQ(peerConnectionOnIceCandidate(answerPc, (UINT64) offerPc, onICECandidateHdlr), STATUS_SUCCESS);
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(offerPc, (UINT64) answerPc, onICECandidateHdlr));
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(answerPc, (UINT64) offerPc, onICECandidateHdlr));
 
     auto onICEConnectionStateChangeHdlr = [](UINT64 customData, RTC_PEER_CONNECTION_STATE newState) -> void {
         ATOMIC_INCREMENT((PSIZE_T)customData + newState);
     };
 
-    EXPECT_EQ(peerConnectionOnConnectionStateChange(offerPc, (UINT64) this->stateChangeCount, onICEConnectionStateChangeHdlr), STATUS_SUCCESS);
-    EXPECT_EQ(peerConnectionOnConnectionStateChange(answerPc, (UINT64) this->stateChangeCount, onICEConnectionStateChangeHdlr), STATUS_SUCCESS);
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnConnectionStateChange(offerPc, (UINT64) this->stateChangeCount, onICEConnectionStateChangeHdlr));
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnConnectionStateChange(answerPc, (UINT64) this->stateChangeCount, onICEConnectionStateChangeHdlr));
 
-    EXPECT_EQ(createOffer(offerPc, &sdp), STATUS_SUCCESS);
-    EXPECT_EQ(setLocalDescription(offerPc, &sdp), STATUS_SUCCESS);
-    EXPECT_EQ(setRemoteDescription(answerPc, &sdp), STATUS_SUCCESS);
+    EXPECT_EQ(STATUS_SUCCESS, createOffer(offerPc, &sdp));
+    EXPECT_EQ(STATUS_SUCCESS, setLocalDescription(offerPc, &sdp));
+    EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(answerPc, &sdp));
 
     // Validate the cert fingerprint if we are asked to do so
     if (pOfferCertFingerprint != NULL) {
         EXPECT_NE((PCHAR) NULL, STRSTR(sdp.sdp, pOfferCertFingerprint));
     }
 
-    EXPECT_EQ(createAnswer(answerPc, &sdp), STATUS_SUCCESS);
-    EXPECT_EQ(setLocalDescription(answerPc, &sdp), STATUS_SUCCESS);
-    EXPECT_EQ(setRemoteDescription(offerPc, &sdp), STATUS_SUCCESS);
+    EXPECT_EQ(STATUS_SUCCESS, createAnswer(answerPc, &sdp));
+    EXPECT_EQ(STATUS_SUCCESS, setLocalDescription(answerPc, &sdp));
+    EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(offerPc, &sdp));
 
     if (pAnswerCertFingerprint != NULL) {
         EXPECT_NE((PCHAR) NULL, STRSTR(sdp.sdp, pAnswerCertFingerprint));
@@ -200,14 +200,14 @@ void WebRtcClientTestBase::addTrackToPeerConnection(PRtcPeerConnection pRtcPeerC
 {
     MEMSET(track, 0x00, SIZEOF(RtcMediaStreamTrack));
 
-    EXPECT_EQ(addSupportedCodec(pRtcPeerConnection, codec), STATUS_SUCCESS);
+    EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(pRtcPeerConnection, codec));
 
     track->kind = kind;
     track->codec = codec;
-    EXPECT_EQ(generateJSONSafeString(track->streamId, MAX_MEDIA_STREAM_ID_LEN), STATUS_SUCCESS);
-    EXPECT_EQ(generateJSONSafeString(track->trackId, MAX_MEDIA_STREAM_ID_LEN), STATUS_SUCCESS);
+    EXPECT_EQ(STATUS_SUCCESS, generateJSONSafeString(track->streamId, MAX_MEDIA_STREAM_ID_LEN));
+    EXPECT_EQ(STATUS_SUCCESS, generateJSONSafeString(track->trackId, MAX_MEDIA_STREAM_ID_LEN));
 
-    EXPECT_EQ(addTransceiver(pRtcPeerConnection, track, NULL, transceiver), STATUS_SUCCESS);
+    EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, track, NULL, transceiver));
 }
 
 void WebRtcClientTestBase::getIceServers(PRtcConfiguration pRtcConfiguration)
@@ -216,13 +216,13 @@ void WebRtcClientTestBase::getIceServers(PRtcConfiguration pRtcConfiguration)
     PIceConfigInfo pIceConfigInfo;
 
     // Assume signaling client is already created
-    EXPECT_EQ(signalingClientGetIceConfigInfoCount(mSignalingClientHandle, &iceConfigCount), STATUS_SUCCESS);
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(mSignalingClientHandle, &iceConfigCount));
 
     // Set the  STUN server
     SNPRINTF(pRtcConfiguration->iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION);
 
     for (uriCount = 0, i = 0; i < iceConfigCount; i++) {
-        EXPECT_EQ(signalingClientGetIceConfigInfo(mSignalingClientHandle, i, &pIceConfigInfo), STATUS_SUCCESS);
+        EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(mSignalingClientHandle, i, &pIceConfigInfo));
         for (j = 0; j < pIceConfigInfo->uriCount; j++) {
             STRNCPY(pRtcConfiguration->iceServers[uriCount + 1].urls, pIceConfigInfo->uris[j], MAX_ICE_CONFIG_URI_LEN);
             STRNCPY(pRtcConfiguration->iceServers[uriCount + 1].credential, pIceConfigInfo->password, MAX_ICE_CONFIG_CREDENTIAL_LEN);

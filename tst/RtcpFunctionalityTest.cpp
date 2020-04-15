@@ -175,6 +175,31 @@ TEST_F(RtcpFunctionalityTest, rembValueGet) {
     EXPECT_EQ(STATUS_RTCP_INPUT_REMB_INVALID, rembValueGet(invalidSSRCLength, SIZEOF(invalidSSRCLength), &maximumBitRate, ssrcList, &ssrcListLen));
 }
 
+TEST_F(RtcpFunctionalityTest, onpli) {
+    BYTE rawRtcpPacket[] = {0x81, 0xCE, 0x00, 0x02, 0x00, 0x00, 0x00, 0x01, 0x1D, 0xC8, 0x69, 0x91};
+    RtcpPacket rtcpPacket;
+    KvsPeerConnection kpc;
+    KvsRtpTransceiver kvsRtpTransceiver;
+    BOOL on_picture_loss_called = FALSE;
+    MEMSET(&kvsRtpTransceiver, 0, sizeof(KvsRtpTransceiver));
+
+    doubleListCreate(&kpc.pTransceievers);
+    doubleListInsertItemHead(kpc.pTransceievers, (UINT64) &kvsRtpTransceiver);
+    kvsRtpTransceiver.sender.ssrc =  0x1DC86991;
+    kvsRtpTransceiver.onPictureLossCustomData = (UINT64) &on_picture_loss_called;
+    kvsRtpTransceiver.onPictureLoss = [](UINT64 customData) -> void {
+      *(PBOOL)customData = TRUE;
+    };
+
+    EXPECT_EQ(STATUS_SUCCESS, setRtcpPacketFromBytes(rawRtcpPacket, SIZEOF(rawRtcpPacket), &rtcpPacket));
+    ASSERT_TRUE(rtcpPacket.header.packetType == RTCP_PACKET_TYPE_PAYLOAD_SPECIFIC_FEEDBACK &&
+              rtcpPacket.header.receptionReportCount == RTCP_PSFB_PLI);
+
+    onRtcpPLIPacket(&rtcpPacket, &kpc);
+    ASSERT_TRUE(on_picture_loss_called);
+    doubleListFree(kpc.pTransceievers);
+}
+
 }
 }
 }

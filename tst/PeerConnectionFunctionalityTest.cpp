@@ -93,6 +93,113 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersForcedTURN)
     deinitializeSignalingClient();
 }
 
+TEST_F(PeerConnectionFunctionalityTest, freeTurnDueToP2PFoundBeforeTurnEstablished)
+{
+    if (!mAccessKeyIdSet) {
+        return;
+    }
+
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+
+    initializeSignalingClient();
+    getIceServers(&configuration);
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+
+    THREAD_SLEEP(5 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+
+    EXPECT_TRUE(((PKvsPeerConnection)offerPc)->pIceAgent->turnConnectionTracker.pTurnConnection == NULL);
+    EXPECT_TRUE(((PKvsPeerConnection)answerPc)->pIceAgent->turnConnectionTracker.pTurnConnection == NULL);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+
+    deinitializeSignalingClient();
+}
+
+TEST_F(PeerConnectionFunctionalityTest, freeTurnDueToP2PFoundAfterTurnEstablished)
+{
+    if (!mAccessKeyIdSet) {
+        return;
+    }
+
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    RtcSessionDescriptionInit sdp;
+    SIZE_T offerPcDoneGatherCandidate = 0, answerPcDoneGatherCandidate = 0;
+    UINT64 candidateGatherTimeout;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+
+    initializeSignalingClient();
+    getIceServers(&configuration);
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    auto onICECandidateHdlr = [](UINT64 customData, PCHAR candidateStr) -> void {
+        PSIZE_T pDoneGatherCandidate = (PSIZE_T) customData;
+        if (candidateStr == NULL) {
+            ATOMIC_STORE(pDoneGatherCandidate, 1);
+        }
+    };
+
+    EXPECT_EQ(peerConnectionOnIceCandidate(offerPc, (UINT64) &offerPcDoneGatherCandidate, onICECandidateHdlr), STATUS_SUCCESS);
+    EXPECT_EQ(peerConnectionOnIceCandidate(answerPc, (UINT64) &answerPcDoneGatherCandidate, onICECandidateHdlr), STATUS_SUCCESS);
+
+    auto onICEConnectionStateChangeHdlr = [](UINT64 customData, RTC_PEER_CONNECTION_STATE newState) -> void {
+        ATOMIC_INCREMENT((PSIZE_T)customData + newState);
+    };
+
+    EXPECT_EQ(peerConnectionOnConnectionStateChange(offerPc, (UINT64) this->stateChangeCount, onICEConnectionStateChangeHdlr), STATUS_SUCCESS);
+    EXPECT_EQ(peerConnectionOnConnectionStateChange(answerPc, (UINT64) this->stateChangeCount, onICEConnectionStateChangeHdlr), STATUS_SUCCESS);
+
+    // start gathering candidates
+    EXPECT_EQ(setLocalDescription(offerPc, &sdp), STATUS_SUCCESS);
+    EXPECT_EQ(setLocalDescription(answerPc, &sdp), STATUS_SUCCESS);
+
+    // give time for turn allocation to be finished
+    candidateGatherTimeout = GETTIME() + KVS_ICE_GATHER_REFLEXIVE_AND_RELAYED_CANDIDATE_TIMEOUT + 2 * HUNDREDS_OF_NANOS_IN_A_SECOND;
+    while (!(ATOMIC_LOAD(&offerPcDoneGatherCandidate) > 0 && ATOMIC_LOAD(&answerPcDoneGatherCandidate) > 0) &&
+            GETTIME() < candidateGatherTimeout) {
+        THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
+    }
+
+    EXPECT_TRUE(ATOMIC_LOAD(&offerPcDoneGatherCandidate) > 0);
+    EXPECT_TRUE(ATOMIC_LOAD(&answerPcDoneGatherCandidate) > 0);
+
+    EXPECT_EQ(createOffer(offerPc, &sdp), STATUS_SUCCESS);
+    EXPECT_EQ(peerConnectionGetCurrentLocalDescription(offerPc, &sdp), STATUS_SUCCESS);
+    EXPECT_EQ(setRemoteDescription(answerPc, &sdp), STATUS_SUCCESS);
+
+    EXPECT_EQ(createAnswer(answerPc, &sdp), STATUS_SUCCESS);
+    EXPECT_EQ(peerConnectionGetCurrentLocalDescription(answerPc, &sdp), STATUS_SUCCESS);
+    EXPECT_EQ(setRemoteDescription(offerPc, &sdp), STATUS_SUCCESS);
+
+    for (auto i = 0; i <= 100 && ATOMIC_LOAD(&this->stateChangeCount[RTC_PEER_CONNECTION_STATE_CONNECTED]) != 2; i++) {
+        THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
+    }
+
+    EXPECT_TRUE(ATOMIC_LOAD(&this->stateChangeCount[RTC_PEER_CONNECTION_STATE_CONNECTED]) == 2);
+
+    // give time for turn allocated to be freed
+    THREAD_SLEEP(5 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+
+    EXPECT_TRUE(((PKvsPeerConnection)offerPc)->pIceAgent->turnConnectionTracker.pTurnConnection == NULL);
+    EXPECT_TRUE(((PKvsPeerConnection)answerPc)->pIceAgent->turnConnectionTracker.pTurnConnection == NULL);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+
+    deinitializeSignalingClient();
+}
+
 // Assert that two PeerConnections with host and stun candidate can go to connected
 TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithHostAndStun)
 {

@@ -75,8 +75,8 @@ STATUS allocateSctp(PKvsPeerConnection pKvsPeerConnection)
     CHK_STATUS(hashTableIterateEntries(data.unkeyedDataChannels, (UINT64) &data, allocateSctpSortDataChannelsDataCallback));
 
     // Free unkeyed DataChannels
-    CHK_LOG_ERR_NV(hashTableClear(data.unkeyedDataChannels));
-    CHK_LOG_ERR_NV(hashTableFree(data.unkeyedDataChannels));
+    CHK_LOG_ERR(hashTableClear(data.unkeyedDataChannels));
+    CHK_LOG_ERR(hashTableFree(data.unkeyedDataChannels));
 
     // Create the SCTP Session
     sctpSessionCallbacks.outboundPacketFunc = onSctpSessionOutboundPacket;
@@ -157,7 +157,7 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
 
 CleanUp:
 
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 }
 
 STATUS sendPacketToRtpReceiver(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuffer, UINT32 bufferLen)
@@ -199,7 +199,7 @@ STATUS sendPacketToRtpReceiver(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuf
 CleanUp:
     if (!ownedByJitterBuffer) {
         MEMFREE(pPayload);
-        CHK_LOG_ERR_NV(retStatus);
+        CHK_LOG_ERR(retStatus);
     }
     return retStatus;
 }
@@ -254,7 +254,7 @@ VOID onIceConnectionStateChange(UINT64 customData, UINT64 connectionState)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) customData;
-    BOOL locked = FALSE, reportConnectionStateChange = TRUE;
+    BOOL locked = FALSE;
     RTC_PEER_CONNECTION_STATE newConnectionState = RTC_PEER_CONNECTION_STATE_NEW;
 
     CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
@@ -265,13 +265,6 @@ VOID onIceConnectionStateChange(UINT64 customData, UINT64 connectionState)
 
     switch (connectionState) {
         case ICE_AGENT_STATE_NEW:
-            // ice agent internal state. nothing to report
-            reportConnectionStateChange = FALSE;
-            break;
-
-        case ICE_AGENT_STATE_GATHERING:
-            // explicit fall-through
-        case ICE_AGENT_STATE_WAITING_REMOTE_CREDENTIAL:
             newConnectionState = RTC_PEER_CONNECTION_STATE_NEW;
             break;
 
@@ -300,7 +293,7 @@ VOID onIceConnectionStateChange(UINT64 customData, UINT64 connectionState)
             break;
     }
 
-    if (reportConnectionStateChange && newConnectionState != pKvsPeerConnection->previousConnectionState) {
+    if (newConnectionState != pKvsPeerConnection->previousConnectionState) {
         pKvsPeerConnection->previousConnectionState = newConnectionState;
         pKvsPeerConnection->onConnectionStateChange(pKvsPeerConnection->onConnectionStateChangeCustomData,
                                                     newConnectionState);
@@ -312,7 +305,7 @@ CleanUp:
         MUTEX_UNLOCK(pKvsPeerConnection->peerConnectionObjLock);
     }
 
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 }
 
 VOID onNewIceLocalCandidate(UINT64 customData, PCHAR candidateSdpStr)
@@ -343,7 +336,7 @@ VOID onNewIceLocalCandidate(UINT64 customData, PCHAR candidateSdpStr)
 
 CleanUp:
 
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     if (locked) {
         MUTEX_UNLOCK(pKvsPeerConnection->peerConnectionObjLock);
@@ -407,7 +400,7 @@ VOID onSctpSessionDataChannelOpen(UINT64 customData, UINT32 channelId, PBYTE pNa
 
 CleanUp:
 
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 }
 
 VOID onDtlsOutboundPacket(UINT64 customData, PBYTE pBuffer, UINT32 bufferLen)
@@ -429,7 +422,7 @@ STATUS generateJSONSafeString(PCHAR pDst, UINT32 len)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 i = 0;
-    BYTE randBuffer[MAX_RAND_BUFFER_SIZE_FOR_NAME];
+    BYTE randBuffer[MAX_RAND_BUFFER_SIZE_FOR_NAME] = {0};
 
     CHK(pDst != NULL, STATUS_NULL_ARG);
     CHK(RAND_bytes(randBuffer, MIN(len, MAX_RAND_BUFFER_SIZE_FOR_NAME)), STATUS_INTERNAL_ERROR );
@@ -500,15 +493,14 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
     iceAgentCallbacks.newLocalCandidateFn = onNewIceLocalCandidate;
     CHK_STATUS(createConnectionListener(&pConnectionListener));
     // IceAgent will own the lifecycle of pConnectionListener;
-    CHK_STATUS(createIceAgent(pKvsPeerConnection->localIceUfrag, pKvsPeerConnection->localIcePwd,
-                              iceAgentCallbacks.customData, &iceAgentCallbacks, pConfiguration,
+    CHK_STATUS(createIceAgent(pKvsPeerConnection->localIceUfrag, pKvsPeerConnection->localIcePwd, &iceAgentCallbacks, pConfiguration,
                               pKvsPeerConnection->timerQueueHandle, pConnectionListener, &pKvsPeerConnection->pIceAgent));
 
     *ppPeerConnection = (PRtcPeerConnection) pKvsPeerConnection;
 
 CleanUp:
 
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     if (STATUS_FAILED(retStatus)) {
         freePeerConnection((PRtcPeerConnection*) &pKvsPeerConnection);
@@ -542,35 +534,38 @@ STATUS freePeerConnection(PRtcPeerConnection *ppPeerConnection)
 
     CHK(pKvsPeerConnection != NULL, retStatus);
 
+    CHK_LOG_ERR(iceAgentShutdown(pKvsPeerConnection->pIceAgent));
+
     // free timer queue first to remove liveness provided by timer
     if (IS_VALID_TIMER_QUEUE_HANDLE(pKvsPeerConnection->timerQueueHandle)) {
         timerQueueShutdown(pKvsPeerConnection->timerQueueHandle);
     }
 
-    // free structs that have their own thread. sctp has threads created by sctp library. iceAgent has the
-    // connectionListener thread
-    CHK_LOG_ERR_NV(freeSctpSession(&pKvsPeerConnection->pSctpSession));
-    CHK_LOG_ERR_NV(freeIceAgent(&pKvsPeerConnection->pIceAgent));
+    /* Free structs that have their own thread. SCTP has threads created by SCTP library. IceAgent has the
+     * connectionListener thread. Free IceAgent first so there is no more incoming packets which can cause
+     * SCTP to be allocated again after SCTP is freed. */
+    CHK_LOG_ERR(freeIceAgent(&pKvsPeerConnection->pIceAgent));
+    CHK_LOG_ERR(freeSctpSession(&pKvsPeerConnection->pSctpSession));
 
     // free transceivers
-    CHK_LOG_ERR_NV(doubleListGetHeadNode(pKvsPeerConnection->pTransceievers, &pCurNode));
+    CHK_LOG_ERR(doubleListGetHeadNode(pKvsPeerConnection->pTransceievers, &pCurNode));
     while(pCurNode != NULL) {
-        CHK_LOG_ERR_NV(doubleListGetNodeData(pCurNode, &item));
-        CHK_LOG_ERR_NV(freeKvsRtpTransceiver((PKvsRtpTransceiver *) &item));
+        CHK_LOG_ERR(doubleListGetNodeData(pCurNode, &item));
+        CHK_LOG_ERR(freeKvsRtpTransceiver((PKvsRtpTransceiver *) &item));
 
         pCurNode = pCurNode->pNext;
     }
 
     // Free DataChannels
-    CHK_LOG_ERR_NV(hashTableIterateEntries(pKvsPeerConnection->pDataChannels, 0, freeHashEntry));
-    CHK_LOG_ERR_NV(hashTableFree(pKvsPeerConnection->pDataChannels));
+    CHK_LOG_ERR(hashTableIterateEntries(pKvsPeerConnection->pDataChannels, 0, freeHashEntry));
+    CHK_LOG_ERR(hashTableFree(pKvsPeerConnection->pDataChannels));
 
     // free rest of structs
-    CHK_LOG_ERR_NV(freeSrtpSession(&pKvsPeerConnection->pSrtpSession));
-    CHK_LOG_ERR_NV(freeDtlsSession(&pKvsPeerConnection->pDtlsSession));
-    CHK_LOG_ERR_NV(doubleListFree(pKvsPeerConnection->pTransceievers));
-    CHK_LOG_ERR_NV(hashTableFree(pKvsPeerConnection->pCodecTable));
-    CHK_LOG_ERR_NV(hashTableFree(pKvsPeerConnection->pRtxTable));
+    CHK_LOG_ERR(freeSrtpSession(&pKvsPeerConnection->pSrtpSession));
+    CHK_LOG_ERR(freeDtlsSession(&pKvsPeerConnection->pDtlsSession));
+    CHK_LOG_ERR(doubleListFree(pKvsPeerConnection->pTransceievers));
+    CHK_LOG_ERR(hashTableFree(pKvsPeerConnection->pCodecTable));
+    CHK_LOG_ERR(hashTableFree(pKvsPeerConnection->pRtxTable));
     if (IS_VALID_MUTEX_VALUE(pKvsPeerConnection->pSrtpSessionLock)) {
         MUTEX_FREE(pKvsPeerConnection->pSrtpSessionLock);
     }
@@ -702,10 +697,11 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
     PCHAR remoteIceUfrag = NULL, remoteIcePwd = NULL;
     UINT32 i, j;
 
+    CHK(pPeerConnection != NULL, STATUS_NULL_ARG);
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pPeerConnection;
     PSessionDescription pSessionDescription = &(pKvsPeerConnection->remoteSessionDescription);
 
-    CHK(pPeerConnection != NULL && pSessionDescriptionInit != NULL, STATUS_NULL_ARG);
+    CHK(pSessionDescriptionInit != NULL, STATUS_NULL_ARG);
 
     MEMSET(pSessionDescription, 0x00, SIZEOF(SessionDescription));
     pKvsPeerConnection->dtlsIsServer = FALSE;

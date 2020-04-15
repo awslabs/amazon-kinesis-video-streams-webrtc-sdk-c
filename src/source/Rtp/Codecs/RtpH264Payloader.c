@@ -80,30 +80,49 @@ STATUS getNextNaluLength(PBYTE nalus, UINT32 nalusLength, PUINT32 pStart, PUINT3
     ENTERS();
 
     STATUS retStatus = STATUS_SUCCESS;
-    UINT32 zeroCount = 0;
-    PBYTE pCurPtr = nalus;
-    UINT32 i;
+    UINT32 zeroCount = 0, offset;
+    BOOL naluFound = FALSE;
+    PBYTE pCurrent = NULL;
 
     CHK(nalus != NULL && pStart != NULL && pNaluLength != NULL, STATUS_NULL_ARG);
 
     // Annex-B Nalu will have 0x000000001 or 0x000001 start code, at most 4 bytes
-    for (i = 0; i < 4 && i < nalusLength && nalus[i] == 0; i++);
+    for (offset = 0; offset < 4 && offset < nalusLength && nalus[offset] == 0; offset++);
 
-    CHK(i < nalusLength && i < 4 && i >= 2 && nalus[i] == 1, STATUS_RTP_INVALID_NALU);
-    *pStart = ++i;
+    CHK(offset < nalusLength && offset < 4 && offset >= 2 && nalus[offset] == 1, STATUS_RTP_INVALID_NALU);
+    *pStart = ++offset;
+    pCurrent = nalus + offset;
 
-    for (pCurPtr = nalus + i; i < nalusLength && !(*pCurPtr == 1 && (zeroCount == 2 || zeroCount == 3)); i++, pCurPtr++)
-    {
-        if (*pCurPtr == 0) {
-            zeroCount++;
+    /* Not doing validation on number of consecutive zeros being less than 4 because some device can produce
+     * data with trailing zeros. */
+    while(offset < nalusLength) {
+        if (*pCurrent == 0) {
+            /* Maybe next byte is 1 */
+            offset++;
+            pCurrent++;
+
+        } else if (*pCurrent == 1) {
+            if (*(pCurrent - 1) == 0 && *(pCurrent - 2) == 0) {
+                zeroCount = *(pCurrent - 3) == 0 ? 3 : 2;
+                naluFound = TRUE;
+                break;
+            }
+
+            /* The jump is always 3 because of the 1 previously matched.
+             * All the 0's must be after this '1' matched at offset */
+            offset += 3;
+            pCurrent += 3;
         } else {
-            zeroCount = 0;
+
+            /* Can jump 3 bytes forward */
+            offset += 3;
+            pCurrent += 3;
         }
     }
-    *pNaluLength = i - *pStart - (zeroCount >= 2 && zeroCount < 4 && i < nalusLength? zeroCount : 0);
+    *pNaluLength = MIN(offset, nalusLength) - *pStart - (naluFound? zeroCount : 0);
 
 CleanUp:
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     LEAVES();
     return retStatus;

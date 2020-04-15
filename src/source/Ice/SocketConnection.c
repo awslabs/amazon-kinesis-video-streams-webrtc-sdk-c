@@ -22,6 +22,7 @@ STATUS createSocketConnection(PKvsIpAddress pHostIpAddr, PKvsIpAddress pPeerIpAd
     CHK(pSocketConnection->lock != INVALID_MUTEX_VALUE, STATUS_INVALID_OPERATION);
 
     CHK_STATUS(createSocket(pHostIpAddr, pPeerIpAddr, protocol, sendBufSize, &pSocketConnection->localSocket));
+    pSocketConnection->hostIpAddr = *pHostIpAddr;
 
     pSocketConnection->secureConnection = FALSE;
     pSocketConnection->protocol = protocol;
@@ -29,13 +30,14 @@ STATUS createSocketConnection(PKvsIpAddress pHostIpAddr, PKvsIpAddress pPeerIpAd
         pSocketConnection->peerIpAddr = *pPeerIpAddr;
     }
     ATOMIC_STORE_BOOL(&pSocketConnection->connectionClosed, FALSE);
+    ATOMIC_STORE_BOOL(&pSocketConnection->receiveData, FALSE);
     pSocketConnection->freeBios = TRUE;
     pSocketConnection->dataAvailableCallbackCustomData = customData;
     pSocketConnection->dataAvailableCallbackFn = dataAvailableFn;
 
 CleanUp:
 
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     if (STATUS_FAILED(retStatus) && pSocketConnection != NULL) {
         freeSocketConnection(&pSocketConnection);
@@ -59,6 +61,7 @@ STATUS freeSocketConnection(PSocketConnection* ppSocketConnection)
     CHK(ppSocketConnection != NULL, STATUS_NULL_ARG);
     pSocketConnection = *ppSocketConnection;
     CHK(pSocketConnection != NULL, retStatus);
+    ATOMIC_STORE_BOOL(&pSocketConnection->connectionClosed, TRUE);
 
     if (IS_VALID_MUTEX_VALUE(pSocketConnection->lock)) {
         MUTEX_FREE(pSocketConnection->lock);
@@ -130,7 +133,7 @@ STATUS socketConnectionInitSecureConnection(PSocketConnection pSocketConnection,
 
 CleanUp:
 
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     if (STATUS_FAILED(retStatus)) {
         ERR_print_errors_fp (stderr);
@@ -144,7 +147,7 @@ STATUS socketConnectionSendData(PSocketConnection pSocketConnection, PBYTE pBuf,
 {
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE, iterate = TRUE;
-    INT32 sslRet, sslErr, result;
+    INT32 sslRet = 0, sslErr = 0, result = 0;
 
     socklen_t addrLen;
     struct sockaddr *destAddr;
@@ -172,7 +175,9 @@ STATUS socketConnectionSendData(PSocketConnection pSocketConnection, PBYTE pBuf,
                 THREAD_SLEEP(SSL_WRITE_RETRY_DELAY);
             }
         }
-        CHK_WARN(sslRet > 0, retStatus, "SSL_write failed with %s", ERR_error_string(sslErr, NULL));
+        if (sslRet < 0 && sslErr != SSL_ERROR_WANT_READ) {
+            DLOGW("SSL_write failed with %s", ERR_error_string(sslErr, NULL));
+        }
 
     } else if (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_TCP) {
         if (send(pSocketConnection->localSocket, pBuf, bufLen, 0) < 0) {
@@ -240,7 +245,7 @@ STATUS socketConnectionReadData(PSocketConnection pSocketConnection, PBYTE pBuf,
 {
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
-    INT32 sslReadRet = 0;
+    INT32 sslReadRet = 0, sslErrorRet = 0;
     UINT32 writtenBytes = 0;
 
     CHK(pSocketConnection != NULL && pBuf != NULL && pDataLen != NULL, STATUS_NULL_ARG);
@@ -261,7 +266,10 @@ STATUS socketConnectionReadData(PSocketConnection pSocketConnection, PBYTE pBuf,
         // Unlikely that we will get sslReadRet == 0 here because socketConnectionReadData is only called when
         // socket recevies data. If ssl handshake is not done then -1 is returned.
         if (sslReadRet <= 0) {
-            DLOGV("SSL_read returned %d. Length of data already written %u", sslReadRet, writtenBytes);
+            sslErrorRet = SSL_get_error(pSocketConnection->pSsl, sslReadRet);
+            if (sslErrorRet != SSL_ERROR_WANT_WRITE && sslErrorRet != SSL_ERROR_WANT_READ) {
+                DLOGV("SSL_read failed with %s. Length of data already written %u", ERR_error_string(sslErrorRet, NULL), writtenBytes);
+            }
             break;
         }
 
@@ -272,7 +280,7 @@ STATUS socketConnectionReadData(PSocketConnection pSocketConnection, PBYTE pBuf,
 
 CleanUp:
 
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     if (locked) {
         MUTEX_UNLOCK(pSocketConnection->lock);
@@ -291,7 +299,7 @@ STATUS socketConnectionClosed(PSocketConnection pSocketConnection)
 
 CleanUp:
 
-    CHK_LOG_ERR_NV(retStatus);
+    CHK_LOG_ERR(retStatus);
 
     return retStatus;
 }

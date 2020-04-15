@@ -17,10 +17,14 @@ typedef STATUS (*ConnectionDataAvailableFunc)(UINT64, struct __SocketConnection*
 
 typedef struct __SocketConnection SocketConnection;
 struct __SocketConnection {
-    volatile ATOMIC_BOOL connectionClosed; // for tcp;
+    /* Indicate whether this socket is marked for cleanup */
+    volatile ATOMIC_BOOL connectionClosed;
+    /* Process incoming bits */
+    volatile ATOMIC_BOOL receiveData;
     INT32 localSocket;
     KVS_SOCKET_PROTOCOL protocol;
     KvsIpAddress peerIpAddr;
+    KvsIpAddress hostIpAddr;
 
     BOOL secureConnection;
     SSL_CTX *pSslCtx;
