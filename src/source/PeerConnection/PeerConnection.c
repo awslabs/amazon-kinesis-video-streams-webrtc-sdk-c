@@ -273,10 +273,12 @@ VOID onIceConnectionStateChange(UINT64 customData, UINT64 connectionState)
             break;
 
         case ICE_AGENT_STATE_CONNECTED:
-            // explicit fall-through
+            /* explicit fall-through */
         case ICE_AGENT_STATE_NOMINATING:
-            // explicit fall-through
+            /* explicit fall-through */
         case ICE_AGENT_STATE_READY:
+            /* start dtlsSession as soon as ice is connected */
+            CHK_STATUS(dtlsSessionStart(pKvsPeerConnection->pDtlsSession, pKvsPeerConnection->dtlsIsServer));
             newConnectionState = RTC_PEER_CONNECTION_STATE_CONNECTED;
             break;
 
@@ -740,7 +742,6 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
     CHK(remoteIceUfrag != NULL && remoteIcePwd != NULL, STATUS_SESSION_DESCRIPTION_MISSING_ICE_VALUES);
     CHK(pKvsPeerConnection->remoteCertificateFingerprint[0] != '\0', STATUS_SESSION_DESCRIPTION_MISSING_CERTIFICATE_FINGERPRINT);
 
-    CHK_STATUS(dtlsSessionStart(pKvsPeerConnection->pDtlsSession, pKvsPeerConnection->dtlsIsServer));
     CHK_STATUS(iceAgentStartAgent(pKvsPeerConnection->pIceAgent, remoteIceUfrag, remoteIcePwd, pKvsPeerConnection->isOffer));
     if (!pKvsPeerConnection->isOffer) {
         CHK_STATUS(setPayloadTypesFromOffer(pKvsPeerConnection->pCodecTable, pKvsPeerConnection->pRtxTable, pSessionDescription));

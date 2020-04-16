@@ -23,7 +23,9 @@ extern "C" {
 /*
  * DTLS transmission interval timer (in 100ns)
  */
-#define DTLS_TRANSMISSION_INTERVAL (200 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
+#define DTLS_TRANSMISSION_INTERVAL          (200 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
+
+#define DTLS_SESSION_TIMER_START_DELAY      (100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
 
 #define LOG_OPENSSL_ERROR(s)                    while ((sslErr = ERR_get_error()) != 0) { \
                                                     if (sslErr != SSL_ERROR_WANT_WRITE && sslErr != SSL_ERROR_WANT_READ) { \
@@ -61,13 +63,13 @@ typedef struct {
 } DtlsSessionCertificateInfo, *PDtlsSessionCertificateInfo;
 
 typedef struct {
+    volatile ATOMIC_BOOL isStarted;
     SSL_CTX *pSslCtx;
     CHAR certFingerprints[MAX_RTCCONFIGURATION_CERTIFICATES][CERTIFICATE_FINGERPRINT_LENGTH + 1];
     UINT32 certificateCount;
     DtlsSessionCallbacks dtlsSessionCallbacks;
     TIMER_QUEUE_HANDLE timerQueueHandle;
     UINT32 timerId;
-    volatile BOOL isStarted;
     // dtls message must fit into a UDP packet
     BYTE outgoingDataBuffer[MAX_UDP_PACKET_SIZE];
     UINT32 outgoingDataLen;
@@ -76,15 +78,32 @@ typedef struct {
     MUTEX sslLock;
 } DtlsSession, *PDtlsSession;
 
-STATUS createCertificateAndKey(INT32, BOOL, X509 **ppCert, EVP_PKEY **ppPkey);
-STATUS freeCertificateAndKey(X509 **ppCert, EVP_PKEY **ppPkey);
-
+/**
+ * Create DTLS session. Not thread safe.
+ * @param PDtlsSessionCallbacks - callbacks
+ * @param TIMER_QUEUE_HANDLE - timer handle to schedule timer task with
+ * @param INT32 - size of generated certificate
+ * @param BOOL - whether to generate certificate or not
+ * @param PRtcCertificate - user provided certificate
+ * @param PDtlsSession* - pointer to created DtlsSession object
+ *
+ * @return STATUS - status of operation
+ */
 STATUS createDtlsSession(PDtlsSessionCallbacks, TIMER_QUEUE_HANDLE, INT32, BOOL, PRtcCertificate, PDtlsSession*);
+
+/**
+ * Free DTLS session. Not thread safe.
+ * @param PDtlsSession - DtlsSession object to free
+ * @return STATUS - status of operation
+ */
 STATUS freeDtlsSession(PDtlsSession*);
 
-STATUS createSslCtx(PDtlsSessionCertificateInfo, UINT32, SSL_CTX**);
-
-STATUS dtlsValidateRtcCertificates(PRtcCertificate, PUINT32);
+/**
+ * Start DTLS handshake. Not thread safe.
+ * @param PDtlsSession - DtlsSession object
+ * @param BOOL - is server
+ * @return STATUS - status of operation
+ */
 STATUS dtlsSessionStart(PDtlsSession, BOOL);
 STATUS dtlsSessionProcessPacket(PDtlsSession, PBYTE, PINT32);
 STATUS dtlsSessionIsInitFinished(PDtlsSession, PBOOL);
@@ -92,9 +111,15 @@ STATUS dtlsSessionPopulateKeyingMaterial(PDtlsSession, PDtlsKeyingMaterial);
 STATUS dtlsSessionGetLocalCertificateFingerprint(PDtlsSession, PCHAR, UINT32);
 STATUS dtlsSessionVerifyRemoteCertificateFingerprint(PDtlsSession, PCHAR);
 STATUS dtlsSessionPutApplicationData(PDtlsSession, PBYTE, INT32);
+
+/******** Internal Functions **********/
 STATUS dtlsCheckOutgoingDataBuffer(PDtlsSession);
 STATUS dtlsCertificateFingerprint(X509*, PCHAR);
 STATUS dtlsGenerateCertificateFingerprints(PDtlsSession, PDtlsSessionCertificateInfo);
+STATUS createCertificateAndKey(INT32, BOOL, X509 **ppCert, EVP_PKEY **ppPkey);
+STATUS freeCertificateAndKey(X509 **ppCert, EVP_PKEY **ppPkey);
+STATUS dtlsValidateRtcCertificates(PRtcCertificate, PUINT32);
+STATUS createSslCtx(PDtlsSessionCertificateInfo, UINT32, SSL_CTX**);
 
 #ifdef  __cplusplus
 }
