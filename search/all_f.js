@@ -260,7 +260,7 @@ var searchData=
   ['status_5fturn_5fconnection_5ffailed_5fto_5fbind_5fchannel_452',['STATUS_TURN_CONNECTION_FAILED_TO_BIND_CHANNEL',['../group__ICE.html#gacc938bee658deb6c85703526e19dbe10',1,'Include.h']]],
   ['status_5fturn_5fconnection_5ffailed_5fto_5fcreate_5fpermission_453',['STATUS_TURN_CONNECTION_FAILED_TO_CREATE_PERMISSION',['../group__ICE.html#ga34dfa9cfb52aa5eea97dce2502d3f975',1,'Include.h']]],
   ['status_5fturn_5fconnection_5fno_5fhost_5finterface_5ffound_454',['STATUS_TURN_CONNECTION_NO_HOST_INTERFACE_FOUND',['../group__ICE.html#ga2689bc8b71216444cbcefec30b20a2e8',1,'Include.h']]],
-  ['status_5fturn_5fconnection_5fstate_5fnot_5fready_5fto_5fsend_5fdata_455',['STATUS_TURN_CONNECTION_STATE_NOT_READY_TO_SEND_DATA',['../group__ICE.html#gaa507e5b70f537d0e3afdfaf66e5b115e',1,'Include.h']]],
+  ['status_5fturn_5fconnection_5fpeer_5fnot_5fusable_455',['STATUS_TURN_CONNECTION_PEER_NOT_USABLE',['../group__ICE.html#ga2d77c9b7b2362ac0fd76cb85d903e4d0',1,'Include.h']]],
   ['status_5fturn_5fconnection_5fstate_5ftransition_5ftimeout_456',['STATUS_TURN_CONNECTION_STATE_TRANSITION_TIMEOUT',['../group__ICE.html#ga72041071e715ee4a7453655c64db8a45',1,'Include.h']]],
   ['status_5fturn_5fmissing_5fchannel_5fdata_5fheader_457',['STATUS_TURN_MISSING_CHANNEL_DATA_HEADER',['../group__ICE.html#ga1b9ec90b1798287230fc0f73e621feff',1,'Include.h']]],
   ['status_5fturn_5fnew_5fdata_5fchannel_5fmsg_5fheader_5fbefore_5fprevious_5fmsg_5ffinish_458',['STATUS_TURN_NEW_DATA_CHANNEL_MSG_HEADER_BEFORE_PREVIOUS_MSG_FINISH',['../group__ICE.html#ga418b5fd3de2e95c260e06eb85f954d23',1,'Include.h']]],
