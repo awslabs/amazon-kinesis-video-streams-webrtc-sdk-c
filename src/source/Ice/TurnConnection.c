@@ -1051,9 +1051,10 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
             break;
 
         case TURN_STATE_CLEAN_UP:
-            // start cleanning up even if we dont receive allocation freed response in time, since we already sent
-            // multiple STUN refresh packets with 0 lifetime.
-            if (ATOMIC_LOAD_BOOL(&pTurnConnection->allocationFreed) || currentTime >= pTurnConnection->stateTimeoutTime) {
+            /* start cleanning up even if we dont receive allocation freed response in time, or if connection is already closed,
+             * since we already sent multiple STUN refresh packets with 0 lifetime. */
+            if (socketConnectionIsClosed(pTurnConnection->pControlChannel) ||
+                ATOMIC_LOAD_BOOL(&pTurnConnection->allocationFreed) || currentTime >= pTurnConnection->stateTimeoutTime) {
                 if (pTurnConnection->timerCallbackId != UINT32_MAX) {
                     CHK_STATUS(timerQueueCancelTimer(pTurnConnection->timerQueueHandle, pTurnConnection->timerCallbackId, (UINT64) pTurnConnection));
                     pTurnConnection->timerCallbackId = UINT32_MAX;
@@ -1086,11 +1087,17 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
             break;
     }
 
+    if (socketConnectionIsClosed(pTurnConnection->pControlChannel)) {
+        DLOGE("TurnConnection socket %d closed unexpectedly", pTurnConnection->pControlChannel->localSocket);
+        /* trigger transition to TURN_STATE_FAILED */
+        retStatus = STATUS_SOCKET_CONNECTION_CLOSED_ALREADY;
+    }
+
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
 
-    // move to failed state if retStatus is failed status and state is not yet TURN_STATE_FAILED
+    /* move to failed state if retStatus is failed status and state is not yet TURN_STATE_FAILED */
     if (STATUS_FAILED(retStatus) && pTurnConnection->state != TURN_STATE_FAILED) {
         pTurnConnection->errorStatus = retStatus;
         pTurnConnection->state = TURN_STATE_FAILED;

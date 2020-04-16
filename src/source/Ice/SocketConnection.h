@@ -115,6 +115,15 @@ STATUS socketConnectionReadData(PSocketConnection, PBYTE, UINT32, PUINT32);
 STATUS socketConnectionClosed(PSocketConnection);
 
 /**
+ * Check if PSocketConnection is closed
+ *
+ * @param - PSocketConnection - IN - the SocketConnection struct
+ *
+ * @return - BOOL - whether connection is closed
+ */
+BOOL socketConnectionIsClosed(PSocketConnection);
+
+/**
  * Return whether socket has been connected. Return TRUE for UDP sockets.
  * Return TRUE for TCP sockets once the connection has been established, otherwise return FALSE.
  *
@@ -127,6 +136,7 @@ BOOL socketConnectionIsConnected(PSocketConnection);
 // internal functions
 STATUS createConnectionCertificateAndKey(X509 **, EVP_PKEY **);
 INT32 certificateVerifyCallback(INT32 preverify_ok, X509_STORE_CTX *ctx);
+BOOL socketShouldRetry(INT32);
 
 #ifdef  __cplusplus
 }

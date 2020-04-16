@@ -84,6 +84,7 @@ STATUS createSocket(PKvsIpAddress pHostIpAddress, PKvsIpAddress pPeerAddress, KV
     struct sockaddr *sockAddr = NULL, *peerSockAddr = NULL;
     socklen_t addrLen;
     CHAR ipAddrStr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
+    INT32 optionValue;
 
     CHK(pHostIpAddress != NULL && pSockFd != NULL, STATUS_NULL_ARG);
     CHK(protocol == KVS_SOCKET_PROTOCOL_UDP || pPeerAddress != NULL, STATUS_INVALID_ARG);
@@ -95,6 +96,11 @@ STATUS createSocket(PKvsIpAddress pHostIpAddress, PKvsIpAddress pPeerAddress, KV
     if (sockfd == -1) {
         DLOGW("socket() failed to create socket with errno %s", strerror(errno));
         CHK(FALSE, STATUS_CREATE_UDP_SOCKET_FAILED);
+    }
+
+    optionValue = 1;
+    if (setsockopt(sockfd, SOL_SOCKET, NO_SIGNAL, &optionValue, SIZEOF(optionValue)) < 0) {
+        DLOGW("setsockopt() failed with errno %s", strerror(errno));
     }
 
     if (sendBufSize > 0 && setsockopt(sockfd, SOL_SOCKET, SO_SNDBUF, &sendBufSize, SIZEOF(sendBufSize)) < 0) {

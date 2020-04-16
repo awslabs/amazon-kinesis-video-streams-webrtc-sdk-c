@@ -22,6 +22,12 @@ extern "C" {
 
 #define KVS_GET_IP_ADDRESS_PORT(a)                      ((UINT16) getInt16((a)->port))
 
+#if defined(__MACH__)
+#    define NO_SIGNAL SO_NOSIGPIPE
+#else
+#    define NO_SIGNAL MSG_NOSIGNAL
+#endif
+
 typedef enum {
     KVS_SOCKET_PROTOCOL_TCP,
     KVS_SOCKET_PROTOCOL_UDP,
