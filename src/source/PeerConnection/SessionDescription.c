@@ -690,7 +690,7 @@ STATUS reorderTransceiverByRemoteDescription(PKvsPeerConnection pKvsPeerConnecti
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    UINT32 currentMedia, currentAttribute, transceieverCount = 0, i, tokenLen;
+    UINT32 currentMedia, currentAttribute, transceieverCount = 0, tokenLen;
     PSdpMediaDescription pMediaDescription = NULL;
     PCHAR attributeValue, end;
     BOOL supportCodec, foundMediaSectionWithCodec;
