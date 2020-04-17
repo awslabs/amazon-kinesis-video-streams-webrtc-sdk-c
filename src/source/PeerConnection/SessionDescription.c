@@ -666,13 +666,15 @@ STATUS copyTransceiverWithCodec(PKvsPeerConnection pKvsPeerConnection, RTC_CODEC
     *pDidFindCodec = FALSE;
 
     CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pTransceievers, &pCurNode));
-    while (pCurNode != NULL && pTargetKvsRtpTransceiver == NULL) {
+    while (pCurNode != NULL) {
         CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
-        pCurNode = pCurNode->pNext;
         pKvsRtpTransceiver = (PKvsRtpTransceiver) data;
         if (pKvsRtpTransceiver != NULL && pKvsRtpTransceiver->sender.track.codec == rtcCodec) {
             pTargetKvsRtpTransceiver = pKvsRtpTransceiver;
+            doubleListDeleteNode(pKvsPeerConnection->pTransceievers, pCurNode);
+            break;
         }
+        pCurNode = pCurNode->pNext;
     }
     if (pTargetKvsRtpTransceiver != NULL) {
         CHK_STATUS(doubleListInsertItemTail(pKvsPeerConnection->pTransceievers, (UINT64) pTargetKvsRtpTransceiver));
@@ -757,10 +759,6 @@ STATUS reorderTransceiverByRemoteDescription(PKvsPeerConnection pKvsPeerConnecti
         }
     }
 
-    // delete the unordered part in pKvsPeerConnection->pTransceievers
-    for (i = 0; i < transceieverCount; ++i) {
-        CHK_STATUS(doubleListDeleteHead(pKvsPeerConnection->pTransceievers));
-    }
 
 CleanUp:
 
