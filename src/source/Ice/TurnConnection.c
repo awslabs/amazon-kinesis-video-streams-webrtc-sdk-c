@@ -1087,11 +1087,10 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
             break;
     }
 
-    if (socketConnectionIsClosed(pTurnConnection->pControlChannel)) {
-        DLOGE("TurnConnection socket %d closed unexpectedly", pTurnConnection->pControlChannel->localSocket);
-        /* trigger transition to TURN_STATE_FAILED */
-        retStatus = STATUS_SOCKET_CONNECTION_CLOSED_ALREADY;
-    }
+    /* trigger transition to TURN_STATE_FAILED if socket is closed */
+    CHK_ERR(!socketConnectionIsClosed(pTurnConnection->pControlChannel),
+            STATUS_SOCKET_CONNECTION_CLOSED_ALREADY,
+            "TurnConnection socket %d closed unexpectedly", pTurnConnection->pControlChannel->localSocket);
 
 CleanUp:
 

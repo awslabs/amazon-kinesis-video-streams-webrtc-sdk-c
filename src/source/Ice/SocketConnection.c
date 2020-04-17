@@ -197,12 +197,7 @@ STATUS socketConnectionSendData(PSocketConnection pSocketConnection, PBYTE pBuf,
         CHK_ERR(wBioDataLen >= 0, STATUS_SEND_DATA_FAILED, "BIO_get_mem_data failed");
         if (wBioDataLen > 0 && send(pSocketConnection->localSocket, wBioBuffer, wBioDataLen, NO_SIGNAL) < 0) {
             DLOGE("send data failed with errno %s", strerror(errno));
-
-            if (!socketShouldRetry(errno)) {
-                DLOGD("Close socket %d", pSocketConnection->localSocket);
-                ATOMIC_STORE_BOOL(&pSocketConnection->connectionClosed, TRUE);
-            }
-
+            CLOSE_SOCKET_IF_CANT_RETRY(errno, pSocketConnection);
             /* need to also reset BIO on negative path */
             retStatus = STATUS_SEND_DATA_FAILED;
         }
@@ -216,12 +211,7 @@ STATUS socketConnectionSendData(PSocketConnection pSocketConnection, PBYTE pBuf,
 
         if (send(pSocketConnection->localSocket, pBuf, bufLen, NO_SIGNAL) < 0) {
             DLOGE("send data failed with errno %s", strerror(errno));
-
-            if (!socketShouldRetry(errno)) {
-                DLOGD("Close socket %d", pSocketConnection->localSocket);
-                ATOMIC_STORE_BOOL(&pSocketConnection->connectionClosed, TRUE);
-            }
-
+            CLOSE_SOCKET_IF_CANT_RETRY(errno, pSocketConnection);
             CHK(FALSE, STATUS_SEND_DATA_FAILED);
         }
 
@@ -269,12 +259,7 @@ STATUS socketConnectionSendData(PSocketConnection pSocketConnection, PBYTE pBuf,
         }
         if (result < 0) {
             DLOGD("sendto data failed with errno %s", strerror(errno));
-
-            if (!socketShouldRetry(errno)) {
-                DLOGD("Close socket %d", pSocketConnection->localSocket);
-                ATOMIC_STORE_BOOL(&pSocketConnection->connectionClosed, TRUE);
-            }
-
+            CLOSE_SOCKET_IF_CANT_RETRY(errno, pSocketConnection);
             CHK(FALSE, STATUS_SEND_DATA_FAILED);
         }
     } else {
@@ -408,17 +393,4 @@ INT32 certificateVerifyCallback(INT32 preverify_ok, X509_STORE_CTX *ctx)
     UNUSED_PARAM(preverify_ok);
     UNUSED_PARAM(ctx);
     return 1;
-}
-
-BOOL socketShouldRetry(INT32 err)
-{
-    if (err == EAGAIN ||
-        err == EWOULDBLOCK ||
-        err == EINTR ||
-        err == EINPROGRESS ||
-        err == EALREADY) {
-        return TRUE;
-    }
-
-    return FALSE;
 }

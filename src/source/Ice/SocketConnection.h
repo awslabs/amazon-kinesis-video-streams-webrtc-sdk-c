@@ -13,6 +13,15 @@ extern "C" {
 #define SSL_WRITE_RETRY_DELAY                       10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
 #define SOCKET_SEND_RETRY_TIMEOUT_MICRO_SECOND      500000
 
+#define CLOSE_SOCKET_IF_CANT_RETRY(e,ps)             if ((e) != EAGAIN && \
+                                                        (e) != EWOULDBLOCK && \
+                                                        (e) != EINTR && \
+                                                        (e) != EINPROGRESS && \
+                                                        (e) != EALREADY) { \
+                                                        DLOGD("Close socket %d", (ps)->localSocket); \
+                                                        ATOMIC_STORE_BOOL(&(ps)->connectionClosed, TRUE); \
+                                                    }
+
 typedef STATUS (*ConnectionDataAvailableFunc)(UINT64, struct __SocketConnection*, PBYTE, UINT32, PKvsIpAddress, PKvsIpAddress);
 
 typedef struct __SocketConnection SocketConnection;
@@ -136,7 +145,6 @@ BOOL socketConnectionIsConnected(PSocketConnection);
 // internal functions
 STATUS createConnectionCertificateAndKey(X509 **, EVP_PKEY **);
 INT32 certificateVerifyCallback(INT32 preverify_ok, X509_STORE_CTX *ctx);
-BOOL socketShouldRetry(INT32);
 
 #ifdef  __cplusplus
 }
