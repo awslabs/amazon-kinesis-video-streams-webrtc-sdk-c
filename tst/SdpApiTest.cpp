@@ -369,6 +369,112 @@ a=rtpmap:102 H264/90000
     freePeerConnection(&pRtcPeerConnection);
 }
 
+// i receive offer for two video tracks with the same codec
+// i add two transceivers with VP8 tracks
+// expected answer MUST contain two different ssrc
+TEST_F(SdpApiTest, twoVideoTracksWithSameCodec) {
+    auto offer = R"(v=0
+o=- 59125572 1587098218 IN IP4 0.0.0.0
+s=-
+t=0 0
+a=fingerprint:sha-256 4D:FD:34:E5:97:F5:DA:21:1F:97:36:3D:92:FB:29:A7:7C:5E:27:E3:C9:2E:8E:0A:04:6B:92:DF:CB:72:41:E6
+a=group:BUNDLE 0 1 2
+m=application 9 DTLS/SCTP 5000
+c=IN IP4 0.0.0.0
+a=setup:actpass
+a=mid:0
+a=sendrecv
+a=sctpmap:5000 webrtc-datachannel 1024
+a=ice-ufrag:AIYDVLsshQYmwjKt
+a=ice-pwd:nfUKrCyCexbfghChxlytInZADRmiHrNQ
+a=candidate:foundation 1 udp 16777215 10.128.132.55 62872 typ relay raddr 0.0.0.0 rport 46485 generation 0
+a=candidate:foundation 2 udp 16777215 10.128.132.55 62872 typ relay raddr 0.0.0.0 rport 46485 generation 0
+a=end-of-candidates
+a=candidate:foundation 1 udp 16777215 10.128.132.55 62872 typ relay raddr 0.0.0.0 rport 46485 generation 0
+a=candidate:foundation 2 udp 16777215 10.128.132.55 62872 typ relay raddr 0.0.0.0 rport 46485 generation 0
+a=end-of-candidates
+m=video 9 UDP/TLS/RTP/SAVPF 96
+c=IN IP4 0.0.0.0
+a=setup:actpass
+a=mid:1
+a=ice-ufrag:AIYDVLsshQYmwjKt
+a=ice-pwd:nfUKrCyCexbfghChxlytInZADRmiHrNQ
+a=rtcp-mux
+a=rtcp-rsize
+a=rtpmap:96 VP8/90000
+a=recvonly
+a=candidate:foundation 1 udp 16777215 10.128.132.55 62872 typ relay raddr 0.0.0.0 rport 46485 generation 0
+a=candidate:foundation 2 udp 16777215 10.128.132.55 62872 typ relay raddr 0.0.0.0 rport 46485 generation 0
+a=end-of-candidates
+a=candidate:foundation 1 udp 16777215 10.128.132.55 62872 typ relay raddr 0.0.0.0 rport 46485 generation 0
+a=candidate:foundation 2 udp 16777215 10.128.132.55 62872 typ relay raddr 0.0.0.0 rport 46485 generation 0
+a=end-of-candidates
+m=video 9 UDP/TLS/RTP/SAVPF 96
+c=IN IP4 0.0.0.0
+a=setup:actpass
+a=mid:2
+a=ice-ufrag:AIYDVLsshQYmwjKt
+a=ice-pwd:nfUKrCyCexbfghChxlytInZADRmiHrNQ
+a=rtcp-mux
+a=rtcp-rsize
+a=rtpmap:96 VP8/90000
+a=recvonly
+a=candidate:foundation 1 udp 16777215 10.128.132.55 62872 typ relay raddr 0.0.0.0 rport 46485 generation 0
+a=candidate:foundation 2 udp 16777215 10.128.132.55 62872 typ relay raddr 0.0.0.0 rport 46485 generation 0
+a=end-of-candidates
+a=candidate:foundation 1 udp 16777215 10.128.132.55 62872 typ relay raddr 0.0.0.0 rport 46485 generation 0
+a=candidate:foundation 2 udp 16777215 10.128.132.55 62872 typ relay raddr 0.0.0.0 rport 46485 generation 0
+a=end-of-candidates
+)";
+    RtcConfiguration configuration{};
+    PRtcPeerConnection pRtcPeerConnection = nullptr;
+    RtcMediaStreamTrack track1{};
+    RtcMediaStreamTrack track2{};
+    PRtcRtpTransceiver transceiver1 = nullptr;
+    PRtcRtpTransceiver transceiver2 = nullptr;
+    RtcSessionDescriptionInit offerSdp{};
+    RtcSessionDescriptionInit answerSdp{};
+
+    SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION);
+
+    track1.kind  = MEDIA_STREAM_TRACK_KIND_VIDEO;
+    track1.codec = RTC_CODEC_VP8;
+    STRNCPY(track1.streamId, "track1", MAX_MEDIA_STREAM_ID_LEN);
+    STRNCPY(track1.trackId, "track1", MAX_MEDIA_STREAM_ID_LEN);
+
+    track2.kind  = MEDIA_STREAM_TRACK_KIND_VIDEO;
+    track2.codec = RTC_CODEC_VP8;
+    STRNCPY(track2.streamId, "track2", MAX_MEDIA_STREAM_ID_LEN);
+    STRNCPY(track2.trackId, "track2", MAX_MEDIA_STREAM_ID_LEN);
+
+    offerSdp.type = SDP_TYPE_OFFER;
+    STRNCPY(offerSdp.sdp, offer, MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+    EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(pRtcPeerConnection, RTC_CODEC_VP8));
+    EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, &track1, nullptr, &transceiver1));
+    EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, &track2, nullptr, &transceiver2));
+
+    EXPECT_EQ(STATUS_SUCCESS,setRemoteDescription(pRtcPeerConnection, &offerSdp));
+    EXPECT_EQ(STATUS_SUCCESS,createAnswer(pRtcPeerConnection, &answerSdp));
+
+    std::string answer = answerSdp.sdp;
+    std::set<std::string> ssrcLines;
+
+    std::size_t current, previous = 0;
+    current = answer.find("a=ssrc:");
+    while (current != std::string::npos) {
+        const auto pos = answer.find_first_of(' ', current);
+        const auto &ssrc = answer.substr(current, pos - current);
+        ssrcLines.insert(ssrc);
+        previous = current + 1;
+        current = answer.find("a=ssrc:", previous);
+    }
+
+    ASSERT_EQ(2, ssrcLines.size());
+}
+
+
 TEST_F(SdpApiTest, populateSingleMediaSection_TestPayloadFmtp) {
     auto remoteSessionDescription = R"(v=0
 o=- 7732334361409071710 2 IN IP4 127.0.0.1
