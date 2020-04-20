@@ -916,7 +916,7 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
 
                 // Copy the padded error phrase
                 MEMCPY(pStunAttributeErrorCode->errorPhrase, ((PBYTE) pStunAttributeHeader + STUN_ATTRIBUTE_HEADER_LEN + STUN_ERROR_CODE_PACKET_ERROR_PHRASE_OFFSET),
-                       pStunAttributeErrorCode->paddedLength);
+                       pStunAttributeErrorCode->paddedLength - STUN_ERROR_CODE_PACKET_ERROR_PHRASE_OFFSET);
                 attributeSize = SIZEOF(StunAttributeErrorCode) + pStunAttributeErrorCode->paddedLength;
 
                 break;

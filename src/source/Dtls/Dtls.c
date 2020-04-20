@@ -48,12 +48,15 @@ STATUS dtlsTransmissionTimerCallback(UINT32 timerID, UINT64 currentTime, UINT64 
     MUTEX_LOCK(pDtlsSession->sslLock);
     locked = TRUE;
 
+    /* In case we need to initiate the handshake */
+    CHK_STATUS(dtlsCheckOutgoingDataBuffer(pDtlsSession));
+
     CHK(!SSL_is_init_finished(pDtlsSession->pSsl), STATUS_TIMER_QUEUE_STOP_SCHEDULING);
 
-    // https://commondatastorage.googleapis.com/chromium-boringssl-docs/ssl.h.html#DTLSv1_get_timeout
+    /* https://commondatastorage.googleapis.com/chromium-boringssl-docs/ssl.h.html#DTLSv1_get_timeout */
     dtlsTimeoutRet = DTLSv1_get_timeout(pDtlsSession->pSsl, &timeout);
     if (dtlsTimeoutRet == 0) {
-        // try again on next iteration
+        /* try again on next iteration */
         CHK(FALSE, retStatus);
     } else if (dtlsTimeoutRet < 0) {
         CHK_ERR(FALSE, STATUS_TIMER_QUEUE_STOP_SCHEDULING, "DTLS handshake timed out too many times. Terminating dtls session timer.");
@@ -63,7 +66,8 @@ STATUS dtlsTransmissionTimerCallback(UINT32 timerID, UINT64 currentTime, UINT64 
             (UINT64) timeout.tv_usec * HUNDREDS_OF_NANOS_IN_A_MICROSECOND;
 
     if (timeoutValDefaultTimeUnit == 0) {
-        // Retransmit the packet
+        DLOGD("DTLS handshake timeout event");
+        /* Retransmit the packet */
         DTLSv1_handle_timeout(pDtlsSession->pSsl);
         CHK_STATUS(dtlsCheckOutgoingDataBuffer(pDtlsSession));
     }
@@ -276,8 +280,8 @@ STATUS createDtlsSession(PDtlsSessionCallbacks pDtlsSessionCallbacks, TIMER_QUEU
 
     pDtlsSession->timerQueueHandle = timerQueueHandle;
     pDtlsSession->timerId = UINT32_MAX;
-    pDtlsSession->isStarted = FALSE;
     pDtlsSession->sslLock = MUTEX_CREATE(TRUE);
+    ATOMIC_STORE_BOOL(&pDtlsSession->isStarted, FALSE);
 
     pDtlsSession->dtlsSessionCallbacks = *pDtlsSessionCallbacks;
 
@@ -368,14 +372,18 @@ STATUS dtlsSessionStart(PDtlsSession pDtlsSession, BOOL isServer)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-
     BOOL locked = FALSE;
     INT32 sslRet, sslErr;
 
     CHK(pDtlsSession != NULL && pDtlsSession != NULL, STATUS_NULL_ARG);
+    CHK(!ATOMIC_LOAD_BOOL(&pDtlsSession->isStarted), retStatus);
 
     MUTEX_LOCK(pDtlsSession->sslLock);
     locked = TRUE;
+
+    /* Need to set isStarted to TRUE after acquiring the lock to make sure dtlsSessionProcessPacket
+     * dont proceed before dtlsSessionStart finish */
+    ATOMIC_STORE_BOOL(&pDtlsSession->isStarted, TRUE);
 
     if (isServer) {
         SSL_set_accept_state(pDtlsSession->pSsl);
@@ -387,8 +395,9 @@ STATUS dtlsSessionStart(PDtlsSession pDtlsSession, BOOL isServer)
         LOG_OPENSSL_ERROR("SSL_do_handshake");
     }
 
-    CHK_STATUS(timerQueueAddTimer(pDtlsSession->timerQueueHandle, 0, DTLS_TRANSMISSION_INTERVAL, dtlsTransmissionTimerCallback, (UINT64) pDtlsSession, &pDtlsSession->timerId));
-    pDtlsSession->isStarted = TRUE;
+    CHK_STATUS(timerQueueAddTimer(pDtlsSession->timerQueueHandle, DTLS_SESSION_TIMER_START_DELAY,
+                                  DTLS_TRANSMISSION_INTERVAL, dtlsTransmissionTimerCallback, (UINT64) pDtlsSession,
+                                  &pDtlsSession->timerId));
 
 CleanUp:
 
@@ -446,7 +455,7 @@ STATUS dtlsSessionProcessPacket(PDtlsSession pDtlsSession, PBYTE pData, PINT32 p
     INT32 dataLen = 0;
 
     CHK(pDtlsSession != NULL && pDtlsSession != NULL && pDataLen != NULL, STATUS_NULL_ARG);
-    CHK(pDtlsSession->isStarted, STATUS_SSL_PACKET_BEFORE_DTLS_READY);
+    CHK(ATOMIC_LOAD_BOOL(&pDtlsSession->isStarted), STATUS_SSL_PACKET_BEFORE_DTLS_READY);
 
     MUTEX_LOCK(pDtlsSession->sslLock);
     locked = TRUE;

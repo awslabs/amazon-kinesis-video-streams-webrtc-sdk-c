@@ -339,6 +339,8 @@ STATUS turnConnectionHandleStunError(PTurnConnection pTurnConnection, PBYTE pBuf
     PStunAttributeRealm pStunAttributeRealm = NULL;
     PStunPacket pStunPacket = NULL;
     BOOL locked = FALSE;
+    PTurnPeer pTurnPeer = NULL;
+    PDoubleListNode pCurNode = NULL;
 
     CHK(pTurnConnection != NULL, STATUS_NULL_ARG);
     CHK(pBuffer != NULL && bufferLen > 0, STATUS_INVALID_ARG);
@@ -350,49 +352,68 @@ STATUS turnConnectionHandleStunError(PTurnConnection pTurnConnection, PBYTE pBuf
     if (pTurnConnection->credentialObtained) {
         retStatus = deserializeStunPacket(pBuffer, bufferLen, pTurnConnection->longTermKey, MD5_DIGEST_LENGTH, &pStunPacket);
     }
-    // if deserializing with password didnt work, try deserialize without password again
+    /* if deserializing with password didnt work, try deserialize without password again */
     if (!pTurnConnection->credentialObtained || STATUS_FAILED(retStatus)) {
         CHK_STATUS(deserializeStunPacket(pBuffer, bufferLen, NULL, 0, &pStunPacket));
         retStatus = STATUS_SUCCESS;
     }
 
     CHK_STATUS(getStunAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_ERROR_CODE, &pStunAttr));
-
     CHK_WARN(pStunAttr != NULL, retStatus, "No error code attribute found in Stun Error response. Dropping Packet");
     pStunAttributeErrorCode = (PStunAttributeErrorCode) pStunAttr;
-    DLOGW("Received STUN error response. Error type: 0x%02x, Error Code: %u. Error detail: %s.",
-          stunPacketType, pStunAttributeErrorCode->errorCode, pStunAttributeErrorCode->errorPhrase);
 
-    if (pStunAttributeErrorCode->errorCode == STUN_ERROR_UNAUTHORIZED) {
-        CHK_STATUS(getStunAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_NONCE, &pStunAttr));
-        CHK_WARN(pStunAttr != NULL, retStatus, "No Nonce attribute found in Allocate Error response. Dropping Packet");
-        pStunAttributeNonce = (PStunAttributeNonce) pStunAttr;
-        CHK_WARN(pStunAttributeNonce->attribute.length <= STUN_MAX_NONCE_LEN, retStatus, "Invalid Nonce found in Allocate Error response. Dropping Packet");
-        pTurnConnection->nonceLen = pStunAttributeNonce->attribute.length;
-        MEMCPY(pTurnConnection->turnNonce, pStunAttributeNonce->nonce, pTurnConnection->nonceLen);
+    switch (pStunAttributeErrorCode->errorCode) {
+        case STUN_ERROR_UNAUTHORIZED:
+            CHK_STATUS(getStunAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_NONCE, &pStunAttr));
+            CHK_WARN(pStunAttr != NULL, retStatus, "No Nonce attribute found in Allocate Error response. Dropping Packet");
+            pStunAttributeNonce = (PStunAttributeNonce) pStunAttr;
+            CHK_WARN(pStunAttributeNonce->attribute.length <= STUN_MAX_NONCE_LEN, retStatus, "Invalid Nonce found in Allocate Error response. Dropping Packet");
+            pTurnConnection->nonceLen = pStunAttributeNonce->attribute.length;
+            MEMCPY(pTurnConnection->turnNonce, pStunAttributeNonce->nonce, pTurnConnection->nonceLen);
 
-        CHK_STATUS(getStunAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_REALM, &pStunAttr));
-        CHK_WARN(pStunAttr != NULL, retStatus, "No Realm attribute found in Allocate Error response. Dropping Packet");
-        pStunAttributeRealm = (PStunAttributeRealm) pStunAttr;
-        CHK_WARN(pStunAttributeRealm->attribute.length <= STUN_MAX_REALM_LEN, retStatus, "Invalid Realm found in Allocate Error response. Dropping Packet");
-        // pStunAttributeRealm->attribute.length does not include null terminator and pStunAttributeRealm->realm is not null terminated
-        STRNCPY(pTurnConnection->turnRealm, pStunAttributeRealm->realm, pStunAttributeRealm->attribute.length);
-        pTurnConnection->turnRealm[pStunAttributeRealm->attribute.length] = '\0';
+            CHK_STATUS(getStunAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_REALM, &pStunAttr));
+            CHK_WARN(pStunAttr != NULL, retStatus, "No Realm attribute found in Allocate Error response. Dropping Packet");
+            pStunAttributeRealm = (PStunAttributeRealm) pStunAttr;
+            CHK_WARN(pStunAttributeRealm->attribute.length <= STUN_MAX_REALM_LEN, retStatus, "Invalid Realm found in Allocate Error response. Dropping Packet");
+            // pStunAttributeRealm->attribute.length does not include null terminator and pStunAttributeRealm->realm is not null terminated
+            STRNCPY(pTurnConnection->turnRealm, pStunAttributeRealm->realm, pStunAttributeRealm->attribute.length);
+            pTurnConnection->turnRealm[pStunAttributeRealm->attribute.length] = '\0';
 
-        pTurnConnection->credentialObtained = TRUE;
+            pTurnConnection->credentialObtained = TRUE;
 
-        CHK_STATUS(turnConnectionUpdateNonce(pTurnConnection));
+            CHK_STATUS(turnConnectionUpdateNonce(pTurnConnection));
+            break;
 
-    } else if (pStunAttributeErrorCode->errorCode == STUN_ERROR_STALE_NONCE) {
-        DLOGD("Updating stale nonce");
-        CHK_STATUS(getStunAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_NONCE, &pStunAttr));
-        CHK_WARN(pStunAttr != NULL, retStatus, "No Nonce attribute found in Refresh Error response. Dropping Packet");
-        pStunAttributeNonce = (PStunAttributeNonce) pStunAttr;
-        CHK_WARN(pStunAttributeNonce->attribute.length <= STUN_MAX_NONCE_LEN, retStatus, "Invalid Nonce found in Refresh Error response. Dropping Packet");
-        pTurnConnection->nonceLen = pStunAttributeNonce->attribute.length;
-        MEMCPY(pTurnConnection->turnNonce, pStunAttributeNonce->nonce, pTurnConnection->nonceLen);
+        case STUN_ERROR_STALE_NONCE:
+            DLOGD("Updating stale nonce");
+            CHK_STATUS(getStunAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_NONCE, &pStunAttr));
+            CHK_WARN(pStunAttr != NULL, retStatus, "No Nonce attribute found in Refresh Error response. Dropping Packet");
+            pStunAttributeNonce = (PStunAttributeNonce) pStunAttr;
+            CHK_WARN(pStunAttributeNonce->attribute.length <= STUN_MAX_NONCE_LEN, retStatus, "Invalid Nonce found in Refresh Error response. Dropping Packet");
+            pTurnConnection->nonceLen = pStunAttributeNonce->attribute.length;
+            MEMCPY(pTurnConnection->turnNonce, pStunAttributeNonce->nonce, pTurnConnection->nonceLen);
 
-        CHK_STATUS(turnConnectionUpdateNonce(pTurnConnection));
+            CHK_STATUS(turnConnectionUpdateNonce(pTurnConnection));
+            break;
+
+        default:
+            /* Remove peer for any other error */
+            DLOGW("Received STUN error response. Error type: 0x%02x, Error Code: %u. attribute len %u, Error detail: %s.",
+                  stunPacketType, pStunAttributeErrorCode->errorCode, pStunAttributeErrorCode->attribute.length,
+                  pStunAttributeErrorCode->errorPhrase);
+
+            /* Find TurnPeer using transaction Id, then mark it as failed */
+            doubleListGetHeadNode(pTurnConnection->turnPeerList, &pCurNode);
+            while (pCurNode != NULL) {
+                pTurnPeer = (PTurnPeer) pCurNode->data;
+                pCurNode = pCurNode->pNext;
+                if (transactionIdStoreHasId(pTurnPeer->pTransactionIdStore, pBuffer + STUN_PACKET_TRANSACTION_ID_OFFSET)) {
+                    pTurnPeer->connectionState = TURN_PEER_CONN_STATE_FAILED;
+                    /* break the loop */
+                    pCurNode = NULL;
+                }
+            }
+            break;
     }
 
 CleanUp:
@@ -572,10 +593,8 @@ STATUS turnConnectionAddPeer(PTurnConnection pTurnConnection, PKvsIpAddress pPee
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PTurnPeer pTurnPeer = NULL;
-    BOOL locked = FALSE, duplicatedPeer = FALSE;
-    PDoubleListNode pCurNode = NULL;
-    UINT64 data;
-    UINT16 peerCount = 0;
+    BOOL locked = FALSE;
+    UINT32 peerCount = 0;
 
     CHK(pTurnConnection != NULL && pPeerAddress != NULL, STATUS_NULL_ARG);
     CHK(pTurnConnection->turnServer.ipAddress.family == pPeerAddress->family, STATUS_INVALID_ARG);
@@ -584,20 +603,11 @@ STATUS turnConnectionAddPeer(PTurnConnection pTurnConnection, PKvsIpAddress pPee
     MUTEX_LOCK(pTurnConnection->lock);
     locked = TRUE;
 
-    // check for duplicate
-    CHK_STATUS(doubleListGetHeadNode(pTurnConnection->turnPeerList, &pCurNode));
-    while (pCurNode != NULL) {
-        CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
-        pCurNode = pCurNode->pNext;
-
-        pTurnPeer = (PTurnPeer) data;
-        if (isSameIpAddress(&pTurnPeer->address, pPeerAddress, TRUE)) {
-            duplicatedPeer = TRUE;
-            break;
-        }
-        peerCount++;
-    }
-    CHK(!duplicatedPeer, retStatus);
+    /* check for duplicate */
+    CHK(turnConnectionGetPeerWithIp(pTurnConnection, pPeerAddress) == NULL, retStatus);
+    CHK_STATUS(doubleListGetNodeCount(pTurnConnection->turnPeerList, &peerCount));
+    CHK_WARN(peerCount < DEFAULT_TURN_MAX_PEER_COUNT, STATUS_INVALID_OPERATION,
+             "Add peer failed. Max peer count reached");
 
     pTurnPeer = (PTurnPeer) MEMCALLOC(1, SIZEOF(TurnPeer));
     CHK(pTurnPeer != NULL, STATUS_NOT_ENOUGH_MEMORY);
@@ -606,11 +616,12 @@ STATUS turnConnectionAddPeer(PTurnConnection pTurnConnection, PKvsIpAddress pPee
     pTurnPeer->connectionState = TURN_PEER_CONN_STATE_CREATE_PERMISSION;
     pTurnPeer->address = *pPeerAddress;
     pTurnPeer->xorAddress = *pPeerAddress;
-    pTurnPeer->channelNumber = peerCount + TURN_CHANNEL_BIND_CHANNEL_NUMBER_BASE;
+    /* safe to down cast because DEFAULT_TURN_MAX_PEER_COUNT is enforced */
+    pTurnPeer->channelNumber = (UINT16) peerCount + TURN_CHANNEL_BIND_CHANNEL_NUMBER_BASE;
     pTurnPeer->permissionExpirationTime = INVALID_TIMESTAMP_VALUE;
     pTurnPeer->ready = FALSE;
 
-    CHK_STATUS(xorIpAddress(&pTurnPeer->xorAddress, NULL)); // only work for IPv4 for now
+    CHK_STATUS(xorIpAddress(&pTurnPeer->xorAddress, NULL)); /* only work for IPv4 for now */
     CHK_STATUS(createTransactionIdStore(DEFAULT_MAX_STORED_TRANSACTION_ID_COUNT, &pTurnPeer->pTransactionIdStore));
 
     CHK_STATUS(doubleListInsertItemTail(pTurnConnection->turnPeerList, (UINT64) pTurnPeer));
@@ -634,9 +645,7 @@ CleanUp:
 STATUS turnConnectionSendData(PTurnConnection pTurnConnection, PBYTE pBuf, UINT32 bufLen, PKvsIpAddress pDestIp)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    PDoubleListNode pCurNode = NULL;
-    UINT64 data;
-    PTurnPeer pTurnPeer = NULL, pSendPeer = NULL;
+    PTurnPeer pSendPeer = NULL;
     UINT32 paddedDataLen = 0;
     CHAR ipAddrStr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
     BOOL locked = FALSE;
@@ -656,18 +665,7 @@ STATUS turnConnectionSendData(PTurnConnection pTurnConnection, PBYTE pBuf, UINT3
     MUTEX_LOCK(pTurnConnection->lock);
     locked = TRUE;
 
-    // find TurnPeer with pDestIp
-    CHK_STATUS(doubleListGetHeadNode(pTurnConnection->turnPeerList, &pCurNode));
-    while (pCurNode != NULL) {
-        CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
-        pCurNode = pCurNode->pNext;
-
-        pTurnPeer = (PTurnPeer) data;
-        if (isSameIpAddress(&pTurnPeer->address, pDestIp, TRUE)) {
-            pSendPeer = pTurnPeer;
-            break;
-        }
-    }
+    pSendPeer = turnConnectionGetPeerWithIp(pTurnConnection, pDestIp);
 
     MUTEX_UNLOCK(pTurnConnection->lock);
     locked = FALSE;
@@ -677,13 +675,15 @@ STATUS turnConnectionSendData(PTurnConnection pTurnConnection, PBYTE pBuf, UINT3
         DLOGV("Unable to send data through turn because peer with address %s:%u is not found",
               ipAddrStr, KVS_GET_IP_ADDRESS_PORT(pDestIp));
         CHK(FALSE, retStatus);
+    } else if (pSendPeer->connectionState == TURN_PEER_CONN_STATE_FAILED) {
+        CHK(FALSE, STATUS_TURN_CONNECTION_PEER_NOT_USABLE);
     } else if (!pSendPeer->ready) {
         DLOGV("Unable to send data through turn because turn channel is not established with peer with address %s:%u",
               ipAddrStr, KVS_GET_IP_ADDRESS_PORT(pDestIp));
         CHK(FALSE, retStatus);
     }
 
-    // need to serialize send because every send load data into the same buffer pTurnConnection->sendDataBuffer
+    /* need to serialize send because every send load data into the same buffer pTurnConnection->sendDataBuffer */
     MUTEX_LOCK(pTurnConnection->sendLock);
     sendLocked = TRUE;
 
@@ -691,7 +691,7 @@ STATUS turnConnectionSendData(PTurnConnection pTurnConnection, PBYTE pBuf, UINT3
 
     paddedDataLen = (UINT32) ROUND_UP(TURN_DATA_CHANNEL_SEND_OVERHEAD + bufLen, 4);
 
-    // generate data channel TURN message
+    /* generate data channel TURN message */
     putInt16((PINT16) (pTurnConnection->sendDataBuffer), pSendPeer->channelNumber);
     putInt16((PINT16) (pTurnConnection->sendDataBuffer + 2), (UINT16) bufLen);
     MEMCPY(pTurnConnection->sendDataBuffer + TURN_DATA_CHANNEL_SEND_OVERHEAD, pBuf, bufLen);
@@ -1051,9 +1051,10 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
             break;
 
         case TURN_STATE_CLEAN_UP:
-            // start cleanning up even if we dont receive allocation freed response in time, since we already sent
-            // multiple STUN refresh packets with 0 lifetime.
-            if (ATOMIC_LOAD_BOOL(&pTurnConnection->allocationFreed) || currentTime >= pTurnConnection->stateTimeoutTime) {
+            /* start cleanning up even if we dont receive allocation freed response in time, or if connection is already closed,
+             * since we already sent multiple STUN refresh packets with 0 lifetime. */
+            if (socketConnectionIsClosed(pTurnConnection->pControlChannel) ||
+                ATOMIC_LOAD_BOOL(&pTurnConnection->allocationFreed) || currentTime >= pTurnConnection->stateTimeoutTime) {
                 if (pTurnConnection->timerCallbackId != UINT32_MAX) {
                     CHK_STATUS(timerQueueCancelTimer(pTurnConnection->timerQueueHandle, pTurnConnection->timerCallbackId, (UINT64) pTurnConnection));
                     pTurnConnection->timerCallbackId = UINT32_MAX;
@@ -1086,11 +1087,16 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
             break;
     }
 
+    /* trigger transition to TURN_STATE_FAILED if socket is closed */
+    CHK_ERR(!socketConnectionIsClosed(pTurnConnection->pControlChannel),
+            STATUS_SOCKET_CONNECTION_CLOSED_ALREADY,
+            "TurnConnection socket %d closed unexpectedly", pTurnConnection->pControlChannel->localSocket);
+
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
 
-    // move to failed state if retStatus is failed status and state is not yet TURN_STATE_FAILED
+    /* move to failed state if retStatus is failed status and state is not yet TURN_STATE_FAILED */
     if (STATUS_FAILED(retStatus) && pTurnConnection->state != TURN_STATE_FAILED) {
         pTurnConnection->errorStatus = retStatus;
         pTurnConnection->state = TURN_STATE_FAILED;
@@ -1413,6 +1419,28 @@ PTurnPeer turnConnectionGetPeerWithChannelNumber(PTurnConnection pTurnConnection
 
         pCurrTurnPeer = (PTurnPeer) data;
         if (pCurrTurnPeer->channelNumber == channelNumber) {
+            pTurnPeer = pCurrTurnPeer;
+            // Stop the loop iteration
+            pCurNode = NULL;
+        }
+    }
+
+    return pTurnPeer;
+}
+
+PTurnPeer turnConnectionGetPeerWithIp(PTurnConnection pTurnConnection, PKvsIpAddress pKvsIpAddress)
+{
+    PTurnPeer pTurnPeer = NULL, pCurrTurnPeer = NULL;
+    PDoubleListNode pCurNode = NULL;
+    UINT64 data;
+
+    doubleListGetHeadNode(pTurnConnection->turnPeerList, &pCurNode);
+    while (pCurNode != NULL) {
+        doubleListGetNodeData(pCurNode, &data);
+        pCurNode = pCurNode->pNext;
+
+        pCurrTurnPeer = (PTurnPeer) data;
+        if (isSameIpAddress(&pCurrTurnPeer->address, pKvsIpAddress, TRUE)) {
             pTurnPeer = pCurrTurnPeer;
             // Stop the loop iteration
             pCurNode = NULL;

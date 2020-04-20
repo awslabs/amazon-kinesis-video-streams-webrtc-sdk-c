@@ -121,15 +121,20 @@ STATUS socketConnectionInitSecureConnection(PSocketConnection pSocketConnection,
     }
 
     SSL_set_mode(pSocketConnection->pSsl, SSL_MODE_AUTO_RETRY);
-    CHK((pSocketConnection->pWriteBio = BIO_new_fd(pSocketConnection->localSocket, BIO_NOCLOSE)) != NULL, STATUS_SSL_CTX_CREATION_FAILED);
     CHK((pSocketConnection->pReadBio = BIO_new(BIO_s_mem())) != NULL, STATUS_SSL_CTX_CREATION_FAILED);
+    CHK((pSocketConnection->pWriteBio = BIO_new(BIO_s_mem())) != NULL, STATUS_SSL_CTX_CREATION_FAILED);
+
     BIO_set_mem_eof_return(pSocketConnection->pReadBio, -1);
+    BIO_set_mem_eof_return(pSocketConnection->pWriteBio, -1);
     SSL_set_bio(pSocketConnection->pSsl, pSocketConnection->pReadBio, pSocketConnection->pWriteBio);
     pSocketConnection->freeBios = FALSE;
 
-    // init handshake
-    SSL_connect(pSocketConnection->pSsl);
+    /* init handshake */
+    SSL_do_handshake(pSocketConnection->pSsl);
     pSocketConnection->secureConnection = TRUE;
+
+    /* send hand shake */
+    CHK_STATUS(socketConnectionSendData(pSocketConnection, NULL, 0, NULL));
 
 CleanUp:
 
@@ -146,7 +151,7 @@ CleanUp:
 STATUS socketConnectionSendData(PSocketConnection pSocketConnection, PBYTE pBuf, UINT32 bufLen, PKvsIpAddress pDestIp)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    BOOL locked = FALSE, iterate = TRUE;
+    BOOL locked = FALSE;
     INT32 sslRet = 0, sslErr = 0, result = 0;
 
     socklen_t addrLen;
@@ -155,37 +160,65 @@ STATUS socketConnectionSendData(PSocketConnection pSocketConnection, PBYTE pBuf,
     struct sockaddr_in6 ipv6Addr;
     fd_set wfds;
     struct timeval tv;
+    SIZE_T wBioDataLen = 0;
+    PCHAR wBioBuffer = NULL;
 
-    CHK(pSocketConnection != NULL && pBuf != NULL, STATUS_NULL_ARG);
-    CHK(bufLen != 0 && (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_TCP || pDestIp != NULL), STATUS_INVALID_ARG);
+    CHK(pSocketConnection != NULL, STATUS_NULL_ARG);
+    CHK((pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_TCP || pDestIp != NULL), STATUS_INVALID_ARG);
     CHK_WARN(!ATOMIC_LOAD_BOOL(&pSocketConnection->connectionClosed), STATUS_SOCKET_CONNECTION_CLOSED_ALREADY, "Failed to send data. Socket closed already");
 
     MUTEX_LOCK(pSocketConnection->lock);
     locked = TRUE;
 
     if (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_TCP && pSocketConnection->secureConnection) {
-        // underlying BIO has been bound to socket so SSL_write sends the encrypted data.
-        // because we are using non-blocking socket, SSL_write may return SSL_ERROR_WANT_WRITE in which case
-        // SSL_write should be called again with the same buffer.
-        while(iterate) {
+        if (SSL_is_init_finished(pSocketConnection->pSsl)) {
+            /* Should have a valid buffer */
+            CHK(pBuf != NULL && bufLen > 0, STATUS_INVALID_ARG);
             sslRet = SSL_write(pSocketConnection->pSsl, pBuf, bufLen);
-            if (sslRet > 0 || (sslErr = SSL_get_error(pSocketConnection->pSsl, sslRet)) != SSL_ERROR_WANT_WRITE) {
-                iterate = FALSE;
-            } else {
-                THREAD_SLEEP(SSL_WRITE_RETRY_DELAY);
+            if (sslRet < 0){
+                sslErr = SSL_get_error(pSocketConnection->pSsl, sslRet);
+                switch (sslErr) {
+                    case SSL_ERROR_WANT_READ:
+                        /* explicit fall-through */
+                    case SSL_ERROR_WANT_WRITE:
+                        break;
+                    default:
+                        DLOGW("SSL_write failed with %s", ERR_error_string(sslErr, NULL));
+                        DLOGD("Close socket %d", pSocketConnection->localSocket);
+                        ATOMIC_STORE_BOOL(&pSocketConnection->connectionClosed, TRUE);
+                        break;
+                }
+
+                CHK(FALSE, STATUS_SEND_DATA_FAILED);
             }
         }
-        if (sslRet < 0 && sslErr != SSL_ERROR_WANT_READ) {
-            DLOGW("SSL_write failed with %s", ERR_error_string(sslErr, NULL));
+
+        wBioDataLen = (SIZE_T) BIO_get_mem_data(SSL_get_wbio(pSocketConnection->pSsl), &wBioBuffer);
+        CHK_ERR(wBioDataLen >= 0, STATUS_SEND_DATA_FAILED, "BIO_get_mem_data failed");
+        if (wBioDataLen > 0 && send(pSocketConnection->localSocket, wBioBuffer, wBioDataLen, NO_SIGNAL) < 0) {
+            DLOGE("send data failed with errno %s", strerror(errno));
+            CLOSE_SOCKET_IF_CANT_RETRY(errno, pSocketConnection);
+            /* need to also reset BIO on negative path */
+            retStatus = STATUS_SEND_DATA_FAILED;
         }
 
+        /* reset bio to clear its content since it's already sent */
+        BIO_reset(SSL_get_wbio(pSocketConnection->pSsl));
+
     } else if (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_TCP) {
-        if (send(pSocketConnection->localSocket, pBuf, bufLen, 0) < 0) {
+        /* Should have a valid buffer */
+        CHK(pBuf != NULL && bufLen > 0, STATUS_INVALID_ARG);
+
+        if (send(pSocketConnection->localSocket, pBuf, bufLen, NO_SIGNAL) < 0) {
             DLOGE("send data failed with errno %s", strerror(errno));
+            CLOSE_SOCKET_IF_CANT_RETRY(errno, pSocketConnection);
             CHK(FALSE, STATUS_SEND_DATA_FAILED);
         }
 
     } else if (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_UDP) {
+        /* Should have a valid buffer */
+        CHK(pBuf != NULL && bufLen > 0, STATUS_INVALID_ARG);
+
         if (IS_IPV4_ADDR(pDestIp)) {
             addrLen = SIZEOF(ipv4Addr);
             MEMSET(&ipv4Addr, 0x00, SIZEOF(ipv4Addr));
@@ -226,6 +259,7 @@ STATUS socketConnectionSendData(PSocketConnection pSocketConnection, PBYTE pBuf,
         }
         if (result < 0) {
             DLOGD("sendto data failed with errno %s", strerror(errno));
+            CLOSE_SOCKET_IF_CANT_RETRY(errno, pSocketConnection);
             CHK(FALSE, STATUS_SEND_DATA_FAILED);
         }
     } else {
@@ -294,7 +328,8 @@ STATUS socketConnectionClosed(PSocketConnection pSocketConnection)
     STATUS retStatus = STATUS_SUCCESS;
 
     CHK(pSocketConnection != NULL, STATUS_NULL_ARG);
-
+    CHK(!ATOMIC_LOAD_BOOL(&pSocketConnection->connectionClosed), retStatus);
+    DLOGD("Close socket %d", pSocketConnection->localSocket);
     ATOMIC_STORE_BOOL(&pSocketConnection->connectionClosed, TRUE);
 
 CleanUp:
@@ -302,6 +337,15 @@ CleanUp:
     CHK_LOG_ERR(retStatus);
 
     return retStatus;
+}
+
+BOOL socketConnectionIsClosed(PSocketConnection pSocketConnection)
+{
+    if (pSocketConnection == NULL) {
+        return TRUE;
+    } else {
+        return ATOMIC_LOAD_BOOL(&pSocketConnection->connectionClosed);
+    }
 }
 
 BOOL socketConnectionIsConnected(PSocketConnection pSocketConnection)
