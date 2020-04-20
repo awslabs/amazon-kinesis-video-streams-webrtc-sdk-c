@@ -32,7 +32,7 @@ extern "C" {
 
 #define STUN_HEADER_MAGIC_BYTE_OFFSET                                   4
 
-#define KVS_ICE_MAX_ICE_SERVERS 3
+#define KVS_ICE_MAX_ICE_SERVERS                                         3
 
 // https://tools.ietf.org/html/rfc5245#section-4.1.2.1
 #define ICE_PRIORITY_HOST_CANDIDATE_TYPE_PREFERENCE                     126
@@ -79,6 +79,11 @@ typedef VOID (*IceInboundPacketFunc)(UINT64, PBYTE, UINT32);
 typedef VOID (*IceConnectionStateChangedFunc)(UINT64, UINT64);
 typedef VOID (*IceNewLocalCandidateFunc)(UINT64, PCHAR);
 
+typedef struct __TurnConnectionTracker TurnConnectionTracker;
+typedef struct __TurnConnectionTracker* PTurnConnectionTracker;
+typedef struct __IceAgent IceAgent;
+typedef struct __IceAgent* PIceAgent;
+
 typedef struct {
     UINT64 customData;
     IceInboundPacketFunc inboundPacketFn;
@@ -91,9 +96,12 @@ typedef struct {
     KvsIpAddress ipAddress;
     PSocketConnection pSocketConnection;
     ICE_CANDIDATE_STATE state;
-    UINT32 priority;            // stun priority attribute takes UINT32
+    UINT32 priority;
     UINT32 iceServerIndex;
     UINT32 foundation;
+    /* If candidate is local and relay, then store the
+     * TurnConnectionTracker this candidate is associated to */
+    PTurnConnectionTracker pTurnConnectionTracker;
 } IceCandidate, *PIceCandidate;
 
 typedef struct {
@@ -106,16 +114,20 @@ typedef struct {
     UINT64 lastDataSentTime;
 } IceCandidatePair, *PIceCandidatePair;
 
-typedef struct {
+struct __TurnConnectionTracker {
     struct __TurnConnection* pTurnConnection;
     UINT32 freeTurnConnectionTimerId;
     UINT64 freeTurnConnectionEndTime;
 
-    // the ice candidate this TurnConnectionTracker is associated to.
+    /* the ice candidate this TurnConnectionTracker is associated to. */
     PIceCandidate pRelayCandidate;
-} TurnConnectionTracker, *PTurnConnectionTracker;
+    /* store pointer to iceAgent to pass it to incomingDataHandler in incomingRelayedDataHandler
+     * we pass pTurnConnectionTrack as customData to incomingRelayedDataHandler to avoid look up
+     * turnConnectionTracker every time. */
+    PIceAgent pIceAgent;
+};
 
-typedef struct {
+struct __IceAgent {
     volatile ATOMIC_BOOL agentStartGathering;
     volatile ATOMIC_BOOL remoteCredentialReceived;
     volatile ATOMIC_BOOL candidateGatheringFinished;
@@ -162,7 +174,8 @@ typedef struct {
 
     UINT32 foundationCounter;
 
-    TurnConnectionTracker turnConnectionTracker;
+    TurnConnectionTracker turnConnectionTrackers[KVS_ICE_MAX_ICE_SERVERS];
+    UINT32 turnConnectionTrackerCount;
 
     TIMER_QUEUE_HANDLE timerQueueHandle;
 
@@ -179,7 +192,7 @@ typedef struct {
 
     // store transaction ids for stun binding request.
     PTransactionIdStore pStunBindingRequestTransactionIdStore;
-} IceAgent, *PIceAgent;
+};
 
 
 //////////////////////////////////////////////
@@ -332,6 +345,7 @@ STATUS iceAgentFreeTurnConnectionTimerCallback(UINT32, UINT64, UINT64);
 STATUS iceAgentGatherCandidateTimerCallback(UINT32, UINT64, UINT64);
 
 STATUS iceAgentNominateCandidatePair(PIceAgent);
+STATUS iceAgentInvalidateCandidatePair(PIceAgent);
 STATUS iceAgentCheckPeerReflexiveCandidate(PIceAgent, PKvsIpAddress, UINT32, BOOL, PSocketConnection);
 STATUS iceAgentFatalError(PIceAgent, STATUS);
 
