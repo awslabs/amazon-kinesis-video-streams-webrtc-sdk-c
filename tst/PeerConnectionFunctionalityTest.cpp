@@ -114,8 +114,8 @@ TEST_F(PeerConnectionFunctionalityTest, freeTurnDueToP2PFoundBeforeTurnEstablish
 
     THREAD_SLEEP(5 * HUNDREDS_OF_NANOS_IN_A_SECOND);
 
-    EXPECT_TRUE(((PKvsPeerConnection)offerPc)->pIceAgent->turnConnectionTracker.pTurnConnection == NULL);
-    EXPECT_TRUE(((PKvsPeerConnection)answerPc)->pIceAgent->turnConnectionTracker.pTurnConnection == NULL);
+    EXPECT_TRUE(((PKvsPeerConnection)offerPc)->pIceAgent->turnConnectionTrackerCount == 0);
+    EXPECT_TRUE(((PKvsPeerConnection)answerPc)->pIceAgent->turnConnectionTrackerCount == 0);
 
     freePeerConnection(&offerPc);
     freePeerConnection(&answerPc);
@@ -191,8 +191,8 @@ TEST_F(PeerConnectionFunctionalityTest, freeTurnDueToP2PFoundAfterTurnEstablishe
     // give time for turn allocated to be freed
     THREAD_SLEEP(5 * HUNDREDS_OF_NANOS_IN_A_SECOND);
 
-    EXPECT_TRUE(((PKvsPeerConnection)offerPc)->pIceAgent->turnConnectionTracker.pTurnConnection == NULL);
-    EXPECT_TRUE(((PKvsPeerConnection)answerPc)->pIceAgent->turnConnectionTracker.pTurnConnection == NULL);
+    EXPECT_TRUE(((PKvsPeerConnection)offerPc)->pIceAgent->turnConnectionTrackerCount == 0);
+    EXPECT_TRUE(((PKvsPeerConnection)answerPc)->pIceAgent->turnConnectionTrackerCount == 0);
 
     freePeerConnection(&offerPc);
     freePeerConnection(&answerPc);

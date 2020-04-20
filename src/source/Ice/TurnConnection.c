@@ -99,7 +99,7 @@ STATUS freeTurnConnection(PTurnConnection* ppTurnConnection)
     CHK_LOG_ERR(connectionListenerRemoveConnection(pTurnConnection->pConnectionListener, pTurnConnection->pControlChannel));
 
     // free transactionId store for each turn peer
-    CHK_STATUS(doubleListGetHeadNode(pTurnConnection->turnPeerList, &pCurNode));
+    CHK_LOG_ERR(doubleListGetHeadNode(pTurnConnection->turnPeerList, &pCurNode));
     while (pCurNode != NULL) {
         CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
         pCurNode = pCurNode->pNext;
@@ -1178,6 +1178,8 @@ STATUS turnConnectionShutdown(PTurnConnection pTurnConnection, UINT64 waitUntilA
     }
 
 CleanUp:
+
+    CHK_LOG_ERR(retStatus);
 
     if (locked) {
         MUTEX_UNLOCK(pTurnConnection->lock);
