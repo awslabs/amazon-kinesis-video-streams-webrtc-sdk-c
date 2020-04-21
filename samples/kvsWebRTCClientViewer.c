@@ -1,5 +1,7 @@
 #include "Samples.h"
 
+extern PSampleConfiguration gSampleConfiguration;
+
 INT32 main(INT32 argc, CHAR *argv[])
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -24,6 +26,8 @@ INT32 main(INT32 argc, CHAR *argv[])
         printf("[KVS Viewer] createSampleConfiguration(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;
     }
+    gSampleConfiguration = pSampleConfiguration;
+
     printf("[KVS Viewer] Created signaling channel %s\n", (argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME));
 
     // Initialize KVS WebRTC. This must be done before anything else, and must only be done once.
@@ -130,8 +134,10 @@ INT32 main(INT32 argc, CHAR *argv[])
         goto CleanUp;
     }
 
-    // Block forever
-    THREAD_SLEEP(MAX_UINT64);
+    // Block until interrupted
+    while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->interrupted)) {
+        THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
+    }
 
 CleanUp:
 
