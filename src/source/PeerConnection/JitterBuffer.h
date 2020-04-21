@@ -21,7 +21,6 @@ typedef struct {
     DepayRtpPayloadFunc depayPayloadFn;
 
     UINT32 lastPushTimestamp;
-    UINT32 lastRemovedTimestamp;
     UINT16 lastRemovedSequenceNumber;
     UINT16 lastPopSequenceNumber;
     UINT32 lastPopTimestamp;

@@ -96,7 +96,7 @@ STATUS freeRtpPacketAndRawPacket(PRtpPacket*);
 STATUS createRtpPacketFromBytes(PBYTE, UINT32, PRtpPacket*);
 STATUS constructRetransmitRtpPacketFromBytes(PBYTE, UINT32, UINT16, UINT8, UINT32, PRtpPacket*);
 STATUS setRtpPacketFromBytes(PBYTE, UINT32, PRtpPacket);
-STATUS createBytesFromRtpPacket(PRtpPacket, PBYTE*, PUINT32);
+STATUS createBytesFromRtpPacket(PRtpPacket, PBYTE, PUINT32);
 STATUS setBytesFromRtpPacket(PRtpPacket, PBYTE, UINT32);
 STATUS constructRtpPackets(PPayloadArray, UINT8, UINT16, UINT32, UINT32, PRtpPacket, UINT32);
 

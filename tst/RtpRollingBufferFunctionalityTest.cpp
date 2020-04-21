@@ -7,13 +7,17 @@ class RtpRollingBufferFunctionalityTest : public WebRtcClientTestBase {
 
 STATUS createRtpPacketWithSeqNum(UINT16 seqNum, PRtpPacket *ppRtpPacket) {
     STATUS retStatus = STATUS_SUCCESS;
-    PBYTE payload = NULL;
+    BYTE payload[10];
+    PRtpPacket pRtpPacket = NULL;
 
-    payload = (PBYTE) MEMALLOC(10);
     CHK_STATUS(createRtpPacket(2, FALSE, FALSE, 0, FALSE,
-            96, seqNum, 100, 0x1234ABCD, NULL, 0, 0, NULL, payload, 10, ppRtpPacket));
-    CHK_STATUS(createBytesFromRtpPacket(*ppRtpPacket, &(*ppRtpPacket)->pRawPacket, &(*ppRtpPacket)->rawPacketLength));
-    SAFE_MEMFREE(payload);
+            96, seqNum, 100, 0x1234ABCD, NULL, 0, 0, NULL, payload, 10, &pRtpPacket));
+    *ppRtpPacket = pRtpPacket;
+
+    CHK_STATUS(createBytesFromRtpPacket(pRtpPacket, NULL, &pRtpPacket->rawPacketLength));
+    CHK(NULL != (pRtpPacket->pRawPacket = (PBYTE) MEMALLOC(pRtpPacket->rawPacketLength)), STATUS_NOT_ENOUGH_MEMORY);
+    CHK_STATUS(createBytesFromRtpPacket(pRtpPacket, pRtpPacket->pRawPacket, &pRtpPacket->rawPacketLength));
+
 CleanUp:
     return retStatus;
 }

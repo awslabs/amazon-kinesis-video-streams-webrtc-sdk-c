@@ -134,8 +134,7 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
     PKvsRtpTransceiver pKvsRtpTransceiver = (PKvsRtpTransceiver) pRtcRtpTransceiver;
     BOOL locked = FALSE, bufferAfterEncrypt = FALSE;
     PRtpPacket pPacketList = NULL, pRtpPacket = NULL;
-    UINT32 i = 0, packetLen = 0;
-    INT32 signedPacketLen = 0;
+    UINT32 i = 0, packetLen = 0, allocSize;
     PBYTE rawPacket = NULL;
     PPayloadArray pPayloadArray = NULL;
     RtpPayloadFunc rtpPayloadFunc = NULL;
@@ -177,16 +176,12 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
 
     CHK_STATUS(rtpPayloadFunc(pKvsPeerConnection->MTU, (PBYTE) pFrame->frameData, pFrame->size, NULL, &(pPayloadArray->payloadLength), NULL, &(pPayloadArray->payloadSubLenSize)));
     if (pPayloadArray->payloadLength > pPayloadArray->maxPayloadLength) {
-        if (pPayloadArray->payloadBuffer != NULL) {
-            SAFE_MEMFREE(pPayloadArray->payloadBuffer);
-        }
+        SAFE_MEMFREE(pPayloadArray->payloadBuffer);
         pPayloadArray->payloadBuffer = (PBYTE) MEMALLOC(pPayloadArray->payloadLength);
         pPayloadArray->maxPayloadLength = pPayloadArray->payloadLength;
     }
     if (pPayloadArray->payloadSubLenSize > pPayloadArray->maxPayloadSubLenSize) {
-        if (pPayloadArray->payloadSubLength != NULL) {
-            SAFE_MEMFREE(pPayloadArray->payloadSubLength);
-        }
+        SAFE_MEMFREE(pPayloadArray->payloadSubLength);
         pPayloadArray->payloadSubLength = (PUINT32) MEMALLOC(pPayloadArray->payloadSubLenSize * SIZEOF(UINT32));
         pPayloadArray->maxPayloadSubLenSize = pPayloadArray->payloadSubLenSize;
     }
@@ -199,7 +194,14 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
     bufferAfterEncrypt = (pKvsRtpTransceiver->sender.payloadType == pKvsRtpTransceiver->sender.rtxPayloadType);
     for (i = 0; i < pPayloadArray->payloadSubLenSize; i++) {
         pRtpPacket = pPacketList + i;
-        CHK_STATUS(createBytesFromRtpPacket(pRtpPacket, &rawPacket, &packetLen));
+
+        // Get the required size first
+        CHK_STATUS(createBytesFromRtpPacket(pRtpPacket, NULL, &packetLen));
+
+        // Account for SRTP authentication tag
+        allocSize = bufferAfterEncrypt ? packetLen + SRTP_AUTH_TAG_OVERHEAD : packetLen;
+        CHK(NULL != (rawPacket = (PBYTE) MEMALLOC(allocSize)), STATUS_NOT_ENOUGH_MEMORY);
+        CHK_STATUS(createBytesFromRtpPacket(pRtpPacket, rawPacket, &packetLen));
 
         if (!bufferAfterEncrypt) {
             pRtpPacket->pRawPacket = rawPacket;
@@ -207,27 +209,27 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
             CHK_STATUS(rtpRollingBufferAddRtpPacket(pKvsRtpTransceiver->sender.packetBuffer, pRtpPacket));
         }
 
-        signedPacketLen = packetLen;
-        rawPacket = MEMREALLOC(rawPacket, packetLen + 10); // For SRTP authentication tag
-        CHK_STATUS(encryptRtpPacket(pKvsPeerConnection->pSrtpSession, rawPacket, &signedPacketLen));
-        CHK_STATUS(iceAgentSendPacket(pKvsPeerConnection->pIceAgent, rawPacket, signedPacketLen));
+        CHK_STATUS(encryptRtpPacket(pKvsPeerConnection->pSrtpSession, rawPacket, (PINT32) &packetLen));
+        CHK_STATUS(iceAgentSendPacket(pKvsPeerConnection->pIceAgent, rawPacket, packetLen));
 
         if (bufferAfterEncrypt) {
             pRtpPacket->pRawPacket = rawPacket;
-            pRtpPacket->rawPacketLength = signedPacketLen;
+            pRtpPacket->rawPacketLength = packetLen;
             CHK_STATUS(rtpRollingBufferAddRtpPacket(pKvsRtpTransceiver->sender.packetBuffer, pRtpPacket));
         }
 
         SAFE_MEMFREE(rawPacket);
-        rawPacket = NULL;
     }
 
 CleanUp:
     if (locked) {
         MUTEX_UNLOCK(pKvsPeerConnection->pSrtpSessionLock);
     }
+
     SAFE_MEMFREE(rawPacket);
     SAFE_MEMFREE(pPacketList);
+
+    CHK_LOG_ERR(retStatus);
 
     return retStatus;
 }
@@ -243,7 +245,7 @@ STATUS writeRtpPacket(PKvsPeerConnection pKvsPeerConnection, PRtpPacket pRtpPack
     MUTEX_LOCK(pKvsPeerConnection->pSrtpSessionLock);
     locked = TRUE;
     CHK(pKvsPeerConnection->pSrtpSession != NULL, STATUS_SUCCESS); // Discard packets till SRTP is ready
-    pRawPacket = MEMALLOC(pRtpPacket->rawPacketLength + 10); // For SRTP authentication tag
+    pRawPacket = MEMALLOC(pRtpPacket->rawPacketLength + SRTP_AUTH_TAG_OVERHEAD); // For SRTP authentication tag
     rawLen = pRtpPacket->rawPacketLength;
     MEMCPY(pRawPacket, pRtpPacket->pRawPacket, pRtpPacket->rawPacketLength);
     CHK_STATUS(encryptRtpPacket(pKvsPeerConnection->pSrtpSession, pRawPacket, &rawLen));

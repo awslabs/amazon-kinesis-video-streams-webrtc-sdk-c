@@ -306,7 +306,14 @@ INT32 onSctpInboundPacket(struct socket* sock, union sctp_sockstore addr, PVOID 
     }
 
 CleanUp:
-    SAFE_MEMFREE(data);
+
+    /*
+     * IMPORTANT!!! The allocation is done in the sctp library using default allocator
+     * so we need to use the default free API.
+     */
+    if (data != NULL) {
+        free(data);
+    }
 
     return 1;
 }

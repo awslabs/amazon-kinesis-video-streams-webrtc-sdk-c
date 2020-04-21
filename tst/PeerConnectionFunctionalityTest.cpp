@@ -220,7 +220,7 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithHostAndStun)
     freePeerConnection(&answerPc);
 }
 
-// Assert that two PeerConnections can connect and then termintate one of them, the other one will eventually report disconnection
+// Assert that two PeerConnections can connect and then terminate one of them, the other one will eventually report disconnection
 TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersThenDisconnectTest)
 {
     if (!mAccessKeyIdSet) {

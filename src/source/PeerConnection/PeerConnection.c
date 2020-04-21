@@ -194,7 +194,6 @@ STATUS sendPacketToRtpReceiver(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuf
 
     DLOGW("No transceiver to handle inbound ssrc %u", ssrc);
 
-
 CleanUp:
     if (!ownedByJitterBuffer) {
         SAFE_MEMFREE(pPayload);

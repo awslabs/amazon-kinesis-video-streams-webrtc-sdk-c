@@ -472,6 +472,8 @@ a=end-of-candidates
     }
 
     ASSERT_EQ(2, ssrcLines.size());
+
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
 }
 
 

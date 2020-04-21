@@ -74,7 +74,9 @@ STATUS freeRtpPacket(PRtpPacket * ppRtpPacket)
     CHK(ppRtpPacket != NULL, STATUS_NULL_ARG);
 
     SAFE_MEMFREE(*ppRtpPacket);
+
 CleanUp:
+
     CHK_LOG_ERR(retStatus);
 
     LEAVES();
@@ -93,7 +95,9 @@ STATUS freeRtpPacketAndRawPacket(PRtpPacket * ppRtpPacket)
         SAFE_MEMFREE((*ppRtpPacket)->pRawPacket);
     }
     SAFE_MEMFREE(*ppRtpPacket);
+
 CleanUp:
+
     CHK_LOG_ERR(retStatus);
 
     LEAVES();
@@ -111,6 +115,7 @@ STATUS createRtpPacketFromBytes(PBYTE rawPacket, UINT32 packetLength, PRtpPacket
     CHK_STATUS(setRtpPacketFromBytes(rawPacket, packetLength, pRtpPacket));
 
 CleanUp:
+
     if (STATUS_FAILED(retStatus) && pRtpPacket != NULL) {
         freeRtpPacket(&pRtpPacket);
         pRtpPacket = NULL;
@@ -119,6 +124,9 @@ CleanUp:
     if (ppRtpPacket != NULL) {
         *ppRtpPacket = pRtpPacket;
     }
+
+    CHK_LOG_ERR(retStatus);
+
     LEAVES();
     return retStatus;
 }
@@ -146,8 +154,11 @@ STATUS constructRetransmitRtpPacketFromBytes(PBYTE rawPacket, UINT32 packetLengt
     pRtpPacket->header.padding = FALSE;
     pRtpPacket->pRawPacket = NULL;
 
-    CHK_STATUS(createBytesFromRtpPacket(pRtpPacket, &pRtpPacket->pRawPacket, &pRtpPacket->rawPacketLength));
+    CHK_STATUS(createBytesFromRtpPacket(pRtpPacket, NULL, &pRtpPacket->rawPacketLength));
+    CHK(NULL != (pRtpPacket->pRawPacket = (PBYTE) MEMALLOC(pRtpPacket->rawPacketLength)), STATUS_NOT_ENOUGH_MEMORY);
+    CHK_STATUS(createBytesFromRtpPacket(pRtpPacket, pRtpPacket->pRawPacket, &pRtpPacket->rawPacketLength));
     pRtpPacket->payload = pRtpPacket->pRawPacket + RTP_GET_RAW_PACKET_SIZE(pRtpPacket) - pRtpPacket->payloadLength;
+
 CleanUp:
     SAFE_MEMFREE(pPayload);
     if (STATUS_FAILED(retStatus) && pRtpPacket != NULL) {
@@ -217,35 +228,36 @@ STATUS setRtpPacketFromBytes(PBYTE rawPacket, UINT32 packetLength, PRtpPacket pR
             packetLength - currOffset, pRtpPacket));
     pRtpPacket->pRawPacket = rawPacket;
     pRtpPacket->rawPacketLength = packetLength;
+
 CleanUp:
     LEAVES();
     return retStatus;
 }
 
-STATUS createBytesFromRtpPacket(PRtpPacket pRtpPacket, PBYTE* ppRawPacket, PUINT32 pPacketLength)
+STATUS createBytesFromRtpPacket(PRtpPacket pRtpPacket, PBYTE pRawPacket, PUINT32 pPacketLength)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    PBYTE pRawPacket = NULL;
     UINT32 packetLength = 0;
 
-    CHK(pRtpPacket != NULL && pPacketLength != NULL && ppRawPacket != NULL, STATUS_NULL_ARG);
+    CHK(pRtpPacket != NULL && pPacketLength != NULL, STATUS_NULL_ARG);
 
     packetLength = RTP_GET_RAW_PACKET_SIZE(pRtpPacket);
-    pRawPacket = (PBYTE) MEMALLOC(packetLength);
-    CHK(pRawPacket != NULL, STATUS_NOT_ENOUGH_MEMORY);
+
+    // Check if we are trying to calculate the required size only
+    CHK (pRawPacket != NULL, retStatus);
+
+    // Otherwise, check if the specified size is enough
+    CHK (*pPacketLength >= packetLength, STATUS_NOT_ENOUGH_MEMORY);
+
     CHK_STATUS(setBytesFromRtpPacket(pRtpPacket, pRawPacket, packetLength));
 
 CleanUp:
-    if (STATUS_FAILED(retStatus) && pRawPacket != NULL) {
-        MEMFREE(pRawPacket);
-        pRawPacket = NULL;
-    }
 
-    if (ppRawPacket != NULL && pPacketLength != NULL) {
-        *ppRawPacket = pRawPacket;
+    if (pPacketLength != NULL) {
         *pPacketLength = packetLength;
     }
+
     LEAVES();
     return retStatus;
 }
