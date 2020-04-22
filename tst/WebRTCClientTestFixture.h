@@ -1,6 +1,8 @@
 #include "gtest/gtest.h"
 #include "../src/source/Include_i.h"
+#include <memory>
 #include <thread>
+#include <mutex>
 
 #define KVS_USE_OPENSSL
 #define KVS_BUILD_WITH_LWS
