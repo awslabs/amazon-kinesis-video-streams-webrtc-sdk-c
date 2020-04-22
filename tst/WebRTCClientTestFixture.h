@@ -1,8 +1,6 @@
 #include "gtest/gtest.h"
 #include "../src/source/Include_i.h"
-#include <memory>
 #include <thread>
-#include <mutex>
 
 #define KVS_USE_OPENSSL
 #define KVS_BUILD_WITH_LWS
@@ -232,6 +230,8 @@ protected:
     CHAR mDefaultRegion[MAX_REGION_NAME_LEN + 1];
     BOOL mAccessKeyIdSet;
     CHAR mChannelName[MAX_CHANNEL_NAME_LEN + 1];
+
+    MUTEX mInitLock;
 
     PJitterBuffer mJitterBuffer;
     PBYTE mFrame;

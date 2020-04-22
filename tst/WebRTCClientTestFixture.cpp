@@ -18,7 +18,8 @@ WebRtcClientTestBase::WebRtcClientTestBase() :
         mSessionToken(NULL),
         mRegion(NULL),
         mCaCertPath(NULL),
-        mAccessKeyIdSet(FALSE)
+        mAccessKeyIdSet(FALSE),
+        mInitLock(INVALID_MUTEX_VALUE)
 {
     // Initialize the endianness of the library
     initializeEndianness();
@@ -26,6 +27,8 @@ WebRtcClientTestBase::WebRtcClientTestBase() :
     SRAND(12345);
 
     mStreamingRotationPeriod = TEST_STREAMING_TOKEN_DURATION;
+
+    mInitLock = MUTEX_CREATE(FALSE);
 }
 
 void WebRtcClientTestBase::SetUp()
@@ -36,7 +39,9 @@ void WebRtcClientTestBase::SetUp()
     mExpectedFrameCount = 0;
     mExpectedDroppedFrameCount = 0;
 
+    MUTEX_LOCK(mInitLock);
     SET_INSTRUMENTED_ALLOCATORS();
+    MUTEX_UNLOCK(mInitLock);
 
     SET_LOGGER_LOG_LEVEL(LOG_LEVEL_DEBUG);
 
@@ -89,7 +94,11 @@ void WebRtcClientTestBase::TearDown()
 
     freeStaticCredentialProvider(&mTestCredentialProvider);
 
+    MUTEX_LOCK(mInitLock);
     EXPECT_EQ(STATUS_SUCCESS, RESET_INSTRUMENTED_ALLOCATORS());
+    MUTEX_UNLOCK(mInitLock);
+
+    MUTEX_FREE(mInitLock);
 }
 
 VOID WebRtcClientTestBase::initializeJitterBuffer(UINT32 expectedFrameCount, UINT32 expectedDroppedFrameCount, UINT32 rtpPacketCount)
