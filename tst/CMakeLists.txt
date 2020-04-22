@@ -20,6 +20,9 @@ file(GLOB WEBRTC_CLIENT_TEST_SOURCE_FILES "*.cpp" )
 
 include_directories(${KINESIS_VIDEO_WEBRTC_CLIENT_SRC})
 
+# Enabling the instrumented allocators to track memory
+add_definitions(-DINSTRUMENTED_ALLOCATORS)
+
 add_executable(webrtc_client_test ${WEBRTC_CLIENT_TEST_SOURCE_FILES})
 target_link_libraries(webrtc_client_test
         kvsWebrtcClient

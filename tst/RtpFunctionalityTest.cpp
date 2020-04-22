@@ -50,7 +50,9 @@ TEST_F(RtpFunctionalityTest, marshallUnmarshallGettingSameData)
     {
         pRtpPacket = packetList + i;
 
-        EXPECT_EQ(STATUS_SUCCESS, createBytesFromRtpPacket(pRtpPacket, &rawPacket, &packetLen));
+        EXPECT_EQ(STATUS_SUCCESS, createBytesFromRtpPacket(pRtpPacket, NULL, &packetLen));
+        EXPECT_TRUE(NULL != (rawPacket = (PBYTE) MEMALLOC(packetLen)));
+        EXPECT_EQ(STATUS_SUCCESS, createBytesFromRtpPacket(pRtpPacket, rawPacket, &packetLen));
         EXPECT_EQ(STATUS_SUCCESS, createRtpPacketFromBytes(rawPacket, packetLen, &pNewRtpPacket));
         // Verify the extracted header is the same as original header
         EXPECT_EQ(pRtpPacket->header.version, pNewRtpPacket->header.version);
@@ -161,7 +163,10 @@ TEST_F(RtpFunctionalityTest, marshallUnmarshallH264Data)
         for (i = 0; i < payloadArray.payloadSubLenSize; i++)
         {
             pRtpPacket = pPacketList + i;
-            EXPECT_EQ(STATUS_SUCCESS, createBytesFromRtpPacket(pRtpPacket, &rawPacket, &packetLen));
+            EXPECT_EQ(STATUS_SUCCESS, createBytesFromRtpPacket(pRtpPacket, NULL, &packetLen));
+            EXPECT_TRUE(NULL != (rawPacket = (PBYTE) MEMALLOC(packetLen)));
+            EXPECT_EQ(STATUS_SUCCESS, createBytesFromRtpPacket(pRtpPacket, rawPacket, &packetLen));
+
             MEMFREE(rawPacket);
             rawPacket = NULL;
         }

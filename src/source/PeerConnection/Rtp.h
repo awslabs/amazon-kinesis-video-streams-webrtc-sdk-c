@@ -13,6 +13,7 @@ extern "C" {
 #define DEFAULT_SEQ_NUM_BUFFER_SIZE                             1000
 #define DEFAULT_VALID_INDEX_BUFFER_SIZE                         1000
 #define DEFAULT_PEER_FRAME_BUFFER_SIZE                          (5 * 1024)
+#define SRTP_AUTH_TAG_OVERHEAD                                  10
 
 typedef struct {
     UINT8 payloadType;

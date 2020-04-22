@@ -179,7 +179,6 @@ CleanUp:
     return retStatus;
 }
 
-
 PVOID connectionListenerReceiveDataRoutine(PVOID arg)
 {
     STATUS retStatus = STATUS_SUCCESS;

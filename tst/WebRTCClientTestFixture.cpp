@@ -36,6 +36,8 @@ void WebRtcClientTestBase::SetUp()
     mExpectedFrameCount = 0;
     mExpectedDroppedFrameCount = 0;
 
+    SET_INSTRUMENTED_ALLOCATORS();
+
     SET_LOGGER_LOG_LEVEL(LOG_LEVEL_DEBUG);
 
     initKvsWebRtc();
@@ -86,6 +88,8 @@ void WebRtcClientTestBase::TearDown()
     deinitKvsWebRtc();
 
     freeStaticCredentialProvider(&mTestCredentialProvider);
+
+    EXPECT_EQ(STATUS_SUCCESS, RESET_INSTRUMENTED_ALLOCATORS());
 }
 
 VOID WebRtcClientTestBase::initializeJitterBuffer(UINT32 expectedFrameCount, UINT32 expectedDroppedFrameCount, UINT32 rtpPacketCount)

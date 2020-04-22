@@ -31,7 +31,6 @@ STATUS createJitterBuffer(FrameReadyFunc onFrameReadyFunc, FrameDroppedFunc onFr
 
     pJitterBuffer->lastPushTimestamp = 0;
     pJitterBuffer->lastPopTimestamp = MAX_UINT32;
-    pJitterBuffer->lastRemovedTimestamp = 0;
     pJitterBuffer->lastRemovedSequenceNumber = MAX_SEQUENCE_NUM;
     pJitterBuffer->started = FALSE;
 
@@ -83,9 +82,8 @@ STATUS jitterBufferPush(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket)
     PRtpPacket pCurPacket = NULL;
 
     CHK(pJitterBuffer != NULL && pJitterBuffer->pktBuffer != NULL && pRtpPacket != NULL, STATUS_NULL_ARG);
-    CHK(pJitterBuffer->lastRemovedTimestamp < pRtpPacket->header.timestamp, retStatus);
 
-    if (!pJitterBuffer->started || (pJitterBuffer->lastRemovedTimestamp == 0 && pJitterBuffer->lastPopTimestamp == pRtpPacket->header.sequenceNumber
+    if (!pJitterBuffer->started || (pJitterBuffer->lastPopTimestamp == pRtpPacket->header.sequenceNumber
         && pJitterBuffer->lastRemovedSequenceNumber >= pRtpPacket->header.sequenceNumber)) {
         // Set to started and initialize the sequence number
         pJitterBuffer->started = TRUE;
@@ -112,7 +110,9 @@ STATUS jitterBufferPush(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket)
     }
 
     CHK_STATUS(jitterBufferPop(pJitterBuffer, FALSE));
+
 CleanUp:
+
     CHK_LOG_ERR(retStatus);
 
     LEAVES();
