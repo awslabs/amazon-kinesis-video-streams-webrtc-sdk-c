@@ -233,8 +233,6 @@ protected:
     BOOL mAccessKeyIdSet;
     CHAR mChannelName[MAX_CHANNEL_NAME_LEN + 1];
 
-    MUTEX mInitLock;
-
     PJitterBuffer mJitterBuffer;
     PBYTE mFrame;
     UINT32 mReadyFrameIndex;

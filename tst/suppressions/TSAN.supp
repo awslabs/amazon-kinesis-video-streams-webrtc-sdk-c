@@ -328,3 +328,33 @@ race:terminateConnectionWithStatus
 # test code synchronized by sleep
 race:PeerConnectionFunctionalityTest_freeTurnDueToP2PFoundBeforeTurnEstablished_Test
 race:PeerConnectionFunctionalityTest_freeTurnDueToP2PFoundAfterTurnEstablished
+
+# For some reason the test pre-amble (setup) interferes with the instrumented allocators.
+# WARNING: ThreadSanitizer: data race (pid=21041)
+#   Write of size 8 at 0x000001426a90 by main thread (mutexes: write M340438538313008496):
+#     #0 setInstrumentedAllocators /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/open-source/amazon-kinesis-video-streams-pic/src/utils/src/InstrumentedAllocators.c:17:42 (webrtc_client_test+0x6db53b)
+#     #1 com::amazonaws::kinesis::video::webrtcclient::WebRtcClientTestBase::SetUp() /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/tst/WebRTCClientTestFixture.cpp:43:5 (webrtc_client_test+0x691e72)
+#     #2 void testing::internal::HandleSehExceptionsInMethodIfSupported<testing::Test, void>(testing::Test*, void (testing::Test::*)(), char const*) <null> (webrtc_client_test+0x6d38bd)
+#
+#   Previous read of size 8 at 0x000001426a90 by thread T8:
+#     [failed to restore the stack]
+#
+#   As if synchronized via sleep:
+#     #0 usleep /tmp/final/llvm.src/projects/compiler-rt/lib/tsan/rtl/tsan_interceptors.cc:348:3 (webrtc_client_test+0x4dbf72)
+#     #1 defaultThreadSleep /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/open-source/amazon-kinesis-video-streams-pic/src/utils/src/Thread.c:235:13 (libkvsWebrtcClient.so+0x6d6d9)
+#     #2 com::amazonaws::kinesis::video::webrtcclient::SignalingApiFunctionalityTest_unknownMessageTypeEmulation_Test::TestBody() /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/tst/SignalingApiFunctionalityTest.cpp:1466:5 (webrtc_client_test+0x631411)
+#     #3 void testing::internal::HandleSehExceptionsInMethodIfSupported<testing::Test, void>(testing::Test*, void (testing::Test::*)(), char const*) <null> (webrtc_client_test+0x6d38bd)
+#
+#   Location is global 'gInstrumentedAllocatorsStoredMemFree' of size 8 at 0x000001426a90 (webrtc_client_test+0x000001426a90)
+#
+#   Mutex M340438538313008496 is already destroyed.
+#
+#   Thread T8 (tid=21592, finished) created by main thread at:
+#     #0 pthread_create /tmp/final/llvm.src/projects/compiler-rt/lib/tsan/rtl/tsan_interceptors.cc:965:3 (webrtc_client_test+0x4de515)
+#     #1 defaultCreateThread /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/open-source/amazon-kinesis-video-streams-pic/src/utils/src/Thread.c:171:14 (libkvsWebrtcClient.so+0x6d45a)
+#     #2 receiveLwsMessage /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/LwsApiCalls.c:1780:5 (libkvsWebrtcSignalingClient.so+0x11953)
+#     #3 com::amazonaws::kinesis::video::webrtcclient::SignalingApiFunctionalityTest_unknownMessageTypeEmulation_Test::TestBody() /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/tst/SignalingApiFunctionalityTest.cpp:1461:5 (webrtc_client_test+0x631218)
+#     #4 void testing::internal::HandleSehExceptionsInMethodIfSupported<testing::Test, void>(testing::Test*, void (testing::Test::*)(), char const*) <null> (webrtc_client_test+0x6d38bd)
+#
+# SUMMARY: ThreadSanitizer: data race /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/open-source/amazon-kinesis-video-streams-pic/src/utils/src/InstrumentedAllocators.c:17:42 in setInstrumentedAllocators
+race:setInstrumentedAllocators
