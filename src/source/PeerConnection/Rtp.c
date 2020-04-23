@@ -199,7 +199,7 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
         CHK_STATUS(createBytesFromRtpPacket(pRtpPacket, NULL, &packetLen));
 
         // Account for SRTP authentication tag
-        allocSize = bufferAfterEncrypt ? packetLen + SRTP_AUTH_TAG_OVERHEAD : packetLen;
+        allocSize = packetLen + SRTP_AUTH_TAG_OVERHEAD;
         CHK(NULL != (rawPacket = (PBYTE) MEMALLOC(allocSize)), STATUS_NOT_ENOUGH_MEMORY);
         CHK_STATUS(createBytesFromRtpPacket(pRtpPacket, rawPacket, &packetLen));
 
