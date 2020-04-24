@@ -102,6 +102,7 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
     typedef struct {
         PConnectionListener pConnectionListener;
         UINT32 connectionToAdd;
+        KVS_IP_FAMILY_TYPE family;
     } ConnectionListenerTestCustomData,*PConnectionListenerTestCustomData;
 
     PVOID connectionListenAddConnectionRoutine(PVOID arg)
@@ -113,15 +114,20 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         KvsIpAddress localhost;
 
         MEMSET(&localhost, 0x00, SIZEOF(KvsIpAddress));
-
-        localhost.family = KVS_IP_FAMILY_TYPE_IPV4;
+        
         localhost.isPointToPoint = FALSE;
-        // 127.0.0.1
-        localhost.address[0] = 0x7f;
-        localhost.address[1] = 0x00;
-        localhost.address[2] = 0x00;
-        localhost.address[3] = 0x01;
         localhost.port = 0;
+        localhost.family = pCustomData->family;
+        if (pCustomData->family == KVS_IP_FAMILY_TYPE_IPV4) {
+          // 127.0.0.1
+          localhost.address[0] = 0x7f;
+          localhost.address[1] = 0x00;
+          localhost.address[2] = 0x00;
+          localhost.address[3] = 0x01;
+        } else {
+          // ::1
+          localhost.address[15] = 1;
+        }
 
         for(i = 0; i < pCustomData->connectionToAdd; ++i) {
             randomDelay = (UINT64) (RAND() % 300) * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
@@ -162,6 +168,8 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         routine2CustomData.pConnectionListener = pConnectionListener;
         routine1CustomData.connectionToAdd = 3;
         routine2CustomData.connectionToAdd = 7;
+        routine1CustomData.family = KVS_IP_FAMILY_TYPE_IPV4;
+        routine2CustomData.family = KVS_IP_FAMILY_TYPE_IPV6;
 
         THREAD_CREATE(&routine1, connectionListenAddConnectionRoutine, (PVOID) &routine1CustomData);
         THREAD_CREATE(&routine2, connectionListenAddConnectionRoutine, (PVOID) &routine2CustomData);
@@ -235,6 +243,13 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
 
         EXPECT_EQ(localCandidate.ipAddress.port, newIpAddress.port);
         EXPECT_EQ(0, MEMCMP(localCandidate.ipAddress.address, newIpAddress.address, IPV4_ADDRESS_LENGTH));
+
+        newIpAddress.family = KVS_IP_FAMILY_TYPE_IPV6;
+        localCandidate.state = ICE_CANDIDATE_STATE_NEW;
+        EXPECT_EQ(STATUS_SUCCESS, updateCandidateAddress(&localCandidate, &newIpAddress));
+
+        EXPECT_EQ(localCandidate.ipAddress.port, newIpAddress.port);
+        EXPECT_EQ(0, MEMCMP(localCandidate.ipAddress.address, newIpAddress.address, IPV6_ADDRESS_LENGTH));
     }
 
     TEST_F(IceFunctionalityTest, IceAgentIceAgentAddIceServerUnitTest)
@@ -261,15 +276,20 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
     {
         IceAgent iceAgent;
         UINT32 remoteCandidateCount = 0, iceCandidateCount = 0;
-        PCHAR hostCandidateStr = (PCHAR) "sdpMidate:543899094 1 udp 2122260223 12.131.158.132 64616 typ host generation 0 ufrag OFZ/ network-id 1 network-cost 10";
+        PCHAR ip4HostCandidateStr = (PCHAR) "sdpMidate:543899094 1 udp 2122260223 12.131.158.132 64616 typ host generation 0 ufrag OFZ/ network-id 1 network-cost 10";
+        PCHAR ip6HostCandidateStr = (PCHAR) "candidate:2526845803 1 udp 2122262783 2600:1700:cd70:2540:fd41:66ab:a9cd:f0aa 55216 typ host generation 0 ufrag qnXe network-id 2 network-cost 10";
         PCHAR relayCandidateStr = (PCHAR) "sdpMidate:1501054171 1 udp 41885439 59.189.124.250 62834 typ relay raddr 205.251.233.176 rport 14669 generation 0 ufrag OFZ/ network-id 1 network-cost 10";
-        IceCandidate testLocalCandidate;
+        IceCandidate ip4TestLocalCandidate, ip6TestLocalCandidate;
         PDoubleListNode pCurNode = NULL;
         PIceCandidatePair pIceCandidatePair = NULL;
 
         MEMSET(&iceAgent, 0x00, SIZEOF(IceAgent));
-        MEMSET(&testLocalCandidate, 0x00, SIZEOF(IceCandidate));
-        testLocalCandidate.state = ICE_CANDIDATE_STATE_VALID;
+        MEMSET(&ip4TestLocalCandidate, 0x00, SIZEOF(IceCandidate));
+        MEMSET(&ip6TestLocalCandidate, 0x00, SIZEOF(IceCandidate));
+        ip4TestLocalCandidate.state = ICE_CANDIDATE_STATE_VALID;
+        ip4TestLocalCandidate.ipAddress.family = KVS_IP_FAMILY_TYPE_IPV4;
+        ip6TestLocalCandidate.state = ICE_CANDIDATE_STATE_VALID;
+        ip6TestLocalCandidate.ipAddress.family = KVS_IP_FAMILY_TYPE_IPV6;
 
         // init needed members in iceAgent
         iceAgent.lock = MUTEX_CREATE(TRUE);
@@ -282,14 +302,14 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         // invalid input
         EXPECT_NE(STATUS_SUCCESS, iceAgentAddRemoteCandidate(NULL, NULL));
         EXPECT_NE(STATUS_SUCCESS, iceAgentAddRemoteCandidate(&iceAgent, NULL));
-        EXPECT_NE(STATUS_SUCCESS, iceAgentAddRemoteCandidate(NULL, hostCandidateStr));
+        EXPECT_NE(STATUS_SUCCESS, iceAgentAddRemoteCandidate(NULL, ip4HostCandidateStr));
         EXPECT_NE(STATUS_SUCCESS, iceAgentAddRemoteCandidate(&iceAgent, (PCHAR) ""));
         EXPECT_NE(STATUS_SUCCESS, iceAgentAddRemoteCandidate(&iceAgent, (PCHAR) "randomStuff"));
 
-        // add a local candidate so that iceCandidate pair will be formed when add remote candidate succeeded
-        EXPECT_EQ(STATUS_SUCCESS, doubleListInsertItemTail(iceAgent.localCandidates, (UINT64) &testLocalCandidate));
-        EXPECT_EQ(STATUS_SUCCESS, iceAgentAddRemoteCandidate(&iceAgent, hostCandidateStr));
-        EXPECT_EQ(STATUS_SUCCESS, iceAgentAddRemoteCandidate(&iceAgent, hostCandidateStr));
+        // add a ip4 local candidate so that iceCandidate pair will be formed when add remote candidate succeeded
+        EXPECT_EQ(STATUS_SUCCESS, doubleListInsertItemTail(iceAgent.localCandidates, (UINT64) &ip4TestLocalCandidate));
+        EXPECT_EQ(STATUS_SUCCESS, iceAgentAddRemoteCandidate(&iceAgent, ip4HostCandidateStr));
+        EXPECT_EQ(STATUS_SUCCESS, iceAgentAddRemoteCandidate(&iceAgent, ip4HostCandidateStr));
         EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(iceAgent.remoteCandidates, &remoteCandidateCount));
         // duplicated candidates are not added
         EXPECT_EQ(1, remoteCandidateCount);
@@ -297,13 +317,24 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(iceAgent.iceCandidatePairs, &iceCandidateCount));
         EXPECT_EQ(1, iceCandidateCount);
 
-        iceAgent.iceAgentState = ICE_AGENT_STATE_CHECK_CONNECTION;
-        EXPECT_EQ(STATUS_SUCCESS, iceAgentAddRemoteCandidate(&iceAgent, relayCandidateStr));
+        // add an ip6 local candidate so that iceCandidate pair will be formed when add remote candidate succeeded
+        EXPECT_EQ(STATUS_SUCCESS, doubleListInsertItemTail(iceAgent.localCandidates, (UINT64) &ip6TestLocalCandidate));
+        EXPECT_EQ(STATUS_SUCCESS, iceAgentAddRemoteCandidate(&iceAgent, ip6HostCandidateStr));
+        EXPECT_EQ(STATUS_SUCCESS, iceAgentAddRemoteCandidate(&iceAgent, ip6HostCandidateStr));
         EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(iceAgent.remoteCandidates, &remoteCandidateCount));
+        // duplicated candidates are not added
         EXPECT_EQ(2, remoteCandidateCount);
         // candidate pair formed
         EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(iceAgent.iceCandidatePairs, &iceCandidateCount));
         EXPECT_EQ(2, iceCandidateCount);
+
+        iceAgent.iceAgentState = ICE_AGENT_STATE_CHECK_CONNECTION;
+        EXPECT_EQ(STATUS_SUCCESS, iceAgentAddRemoteCandidate(&iceAgent, relayCandidateStr));
+        EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(iceAgent.remoteCandidates, &remoteCandidateCount));
+        EXPECT_EQ(3, remoteCandidateCount);
+        // candidate pair formed
+        EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(iceAgent.iceCandidatePairs, &iceCandidateCount));
+        EXPECT_EQ(3, iceCandidateCount);
 
         MUTEX_FREE(iceAgent.lock);
         EXPECT_EQ(STATUS_SUCCESS, doubleListGetHeadNode(iceAgent.iceCandidatePairs, &pCurNode));
@@ -407,7 +438,7 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
     {
         IceAgent iceAgent;
         IceCandidate localCandidate1, localCandidate2;
-        IceCandidate remoteCandidate1, remoteCandidate2;
+        IceCandidate remoteCandidate1, remoteCandidate2, remoteCandidate3;
         UINT32 iceCandidateCount = 0;
         PDoubleListNode pCurNode = NULL;
         PIceCandidatePair pIceCandidatePair = NULL;
@@ -417,10 +448,17 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         MEMSET(&localCandidate2, 0x00, SIZEOF(IceCandidate));
         localCandidate1.state = ICE_CANDIDATE_STATE_VALID;
         localCandidate2.state = ICE_CANDIDATE_STATE_VALID;
+        localCandidate1.ipAddress.family = KVS_IP_FAMILY_TYPE_IPV4;
+        localCandidate2.ipAddress.family = KVS_IP_FAMILY_TYPE_IPV6;
         MEMSET(&remoteCandidate1, 0x00, SIZEOF(IceCandidate));
         MEMSET(&remoteCandidate2, 0x00, SIZEOF(IceCandidate));
+        MEMSET(&remoteCandidate3, 0x00, SIZEOF(IceCandidate));
         remoteCandidate1.state = ICE_CANDIDATE_STATE_VALID;
         remoteCandidate2.state = ICE_CANDIDATE_STATE_VALID;
+        remoteCandidate3.state = ICE_CANDIDATE_STATE_VALID;
+        remoteCandidate1.ipAddress.family = KVS_IP_FAMILY_TYPE_IPV6;
+        remoteCandidate2.ipAddress.family = KVS_IP_FAMILY_TYPE_IPV6;
+        remoteCandidate3.ipAddress.family = KVS_IP_FAMILY_TYPE_IPV6;
         EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&iceAgent.localCandidates));
         EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&iceAgent.remoteCandidates));
         EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&iceAgent.iceCandidatePairs));
@@ -453,6 +491,12 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         localCandidate1.state = ICE_CANDIDATE_STATE_VALID;
         EXPECT_EQ(STATUS_SUCCESS, createIceCandidatePairs(&iceAgent, &remoteCandidate1, TRUE));
         EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(iceAgent.iceCandidatePairs, &iceCandidateCount));
+        // candidate has to be the same socket family type
+        EXPECT_EQ(0, iceCandidateCount);
+        
+        remoteCandidate1.ipAddress.family = KVS_IP_FAMILY_TYPE_IPV4;
+        EXPECT_EQ(STATUS_SUCCESS, createIceCandidatePairs(&iceAgent, &remoteCandidate1, TRUE));
+        EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(iceAgent.iceCandidatePairs, &iceCandidateCount));
         // both candidate are valid now. Ice candidate pair should be created
         EXPECT_EQ(1, iceCandidateCount);
         EXPECT_EQ(STATUS_SUCCESS, doubleListGetHeadNode(iceAgent.iceCandidatePairs, &pCurNode));
@@ -462,14 +506,21 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
 
         EXPECT_EQ(STATUS_SUCCESS, doubleListInsertItemHead(iceAgent.localCandidates, (UINT64) &localCandidate2));
         EXPECT_EQ(STATUS_SUCCESS, createIceCandidatePairs(&iceAgent, &localCandidate2, FALSE));
-        // 2 local vs 1 remote, thus 2 pairs
+        // 1 local ip4 & 1 local ip6 vs 1 remote ip4, thus 1 pair
         EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(iceAgent.iceCandidatePairs, &iceCandidateCount));
-        EXPECT_EQ(2, iceCandidateCount);
+        EXPECT_EQ(1, iceCandidateCount);
 
         EXPECT_EQ(STATUS_SUCCESS, doubleListInsertItemHead(iceAgent.remoteCandidates, (UINT64) &remoteCandidate2));
         EXPECT_EQ(STATUS_SUCCESS, createIceCandidatePairs(&iceAgent, &remoteCandidate2, TRUE));
+        // 1 local ip4 & 1 local ip6 vs 1 remote ip4 & 1 remote ip6, thus 2 pairs
         EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(iceAgent.iceCandidatePairs, &iceCandidateCount));
-        EXPECT_EQ(4, iceCandidateCount);
+        EXPECT_EQ(2, iceCandidateCount);
+
+        EXPECT_EQ(STATUS_SUCCESS, doubleListInsertItemHead(iceAgent.remoteCandidates, (UINT64) &remoteCandidate3));
+        EXPECT_EQ(STATUS_SUCCESS, createIceCandidatePairs(&iceAgent, &remoteCandidate3, TRUE));
+        // 1 local ip4 & 1 local ip6 vs 1 remote ip4 & 2 remote ip6, thus 3 pairs
+        EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(iceAgent.iceCandidatePairs, &iceCandidateCount));
+        EXPECT_EQ(3, iceCandidateCount);
 
         EXPECT_EQ(STATUS_SUCCESS, doubleListClear(iceAgent.localCandidates, FALSE));
         EXPECT_EQ(STATUS_SUCCESS, doubleListClear(iceAgent.remoteCandidates, FALSE));

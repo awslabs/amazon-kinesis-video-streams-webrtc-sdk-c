@@ -254,8 +254,10 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
     BOOL locked = FALSE;
     PIceCandidate pIceCandidate = NULL, pDuplicatedIceCandidate = NULL;
     PCHAR curr, tail, next;
-    UINT32 tokenLen, portValue, remoteCandidateCount, i;
+    UINT32 tokenLen, portValue, remoteCandidateCount, i, len;
     BOOL foundIpAndPort = FALSE, freeIceCandidateIfFail = TRUE;
+    BOOL foundIp6 = FALSE;
+    CHAR ip6Buf[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
     KvsIpAddress candidateIpAddr;
 
     CHK(pIceAgent != NULL && pIceCandidateString != NULL, STATUS_NULL_ARG);
@@ -275,22 +277,27 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
         tokenLen = (UINT32) (next - curr);
         CHK(STRNCMPI("tcp", curr, tokenLen) != 0, STATUS_ICE_CANDIDATE_STRING_IS_TCP);
 
-        if (candidateIpAddr.address[0] != 0) {
+        if (candidateIpAddr.address[0] != 0 || foundIp6) {
             CHK_STATUS(STRTOUI32(curr, curr + tokenLen, 10, &portValue));
 
             candidateIpAddr.port = htons(portValue);
-            candidateIpAddr.family = KVS_IP_FAMILY_TYPE_IPV4;
+            candidateIpAddr.family = foundIp6 ? KVS_IP_FAMILY_TYPE_IPV6 : KVS_IP_FAMILY_TYPE_IPV4;
         } else if (STRNCHR(curr, tokenLen, '.') != NULL) {
             CHK(tokenLen <= KVS_MAX_IPV4_ADDRESS_STRING_LEN, STATUS_ICE_CANDIDATE_STRING_INVALID_IP); // IPv4 is 15 characters at most
             CHK_STATUS(populateIpFromString(&candidateIpAddr, curr));
+        } else {
+            len = MIN(next - curr, KVS_IP_ADDRESS_STRING_BUFFER_LEN - 1);
+            STRNCPY(ip6Buf, curr, len);
+            ip6Buf[len] = '\0';
+            foundIp6 = inet_pton(AF_INET6, ip6Buf, candidateIpAddr.address) == 1 ? TRUE : FALSE;
         }
 
         curr = next + 1;
-        foundIpAndPort = (candidateIpAddr.port != 0) && (candidateIpAddr.address[0] != 0);
+        foundIpAndPort = (candidateIpAddr.port != 0) && ((candidateIpAddr.address[0] != 0) || foundIp6);
     }
 
     CHK(candidateIpAddr.port != 0, STATUS_ICE_CANDIDATE_STRING_MISSING_PORT);
-    CHK(candidateIpAddr.address[0] != 0, STATUS_ICE_CANDIDATE_STRING_MISSING_IP);
+    CHK(candidateIpAddr.address[0] != 0 || foundIp6, STATUS_ICE_CANDIDATE_STRING_MISSING_IP);
 
     CHK_STATUS(findCandidateWithIp(&candidateIpAddr, pIceAgent->remoteCandidates, &pDuplicatedIceCandidate));
     CHK(pDuplicatedIceCandidate == NULL, retStatus);
@@ -341,8 +348,7 @@ STATUS iceAgentInitHostCandidate(PIceAgent pIceAgent)
         // make sure pIceAgent->localCandidates has no duplicates
         CHK_STATUS(findCandidateWithIp(pIpAddress, pIceAgent->localCandidates, &pDuplicatedIceCandidate));
 
-        if (pIpAddress->family == KVS_IP_FAMILY_TYPE_IPV4 && // Disable ipv6 gathering for now
-            pDuplicatedIceCandidate == NULL &&
+        if (pDuplicatedIceCandidate == NULL &&
             STATUS_SUCCEEDED(createSocketConnection(pIpAddress, NULL, KVS_SOCKET_PROTOCOL_UDP, (UINT64) pIceAgent,
                                                     incomingDataHandler, pIceAgent->kvsRtcConfiguration.sendBufSize, &pSocketConnection))) {
             pTmpIceCandidate = MEMCALLOC(1, SIZEOF(IceCandidate));
@@ -747,7 +753,10 @@ STATUS createIceCandidatePairs(PIceAgent pIceAgent, PIceCandidate pIceCandidate,
         pCurrentIceCandidate = (PIceCandidate) data;
         pCurNode = pCurNode->pNext;
 
-        if (pCurrentIceCandidate->state == ICE_CANDIDATE_STATE_VALID) {
+        // https://tools.ietf.org/html/rfc8445#section-6.1.2.2
+        // pair local and remote candidates with the same family
+        if (pCurrentIceCandidate->state == ICE_CANDIDATE_STATE_VALID &&
+                pCurrentIceCandidate->ipAddress.family == pIceCandidate->ipAddress.family) {
             pIceCandidatePair = (PIceCandidatePair) MEMCALLOC(1, SIZEOF(IceCandidatePair));
             CHK(pIceCandidatePair != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
@@ -1047,20 +1056,21 @@ STATUS iceAgentSendSrflxCandidateRequest(PIceAgent pIceAgent)
             switch(pCandidate->iceCandidateType) {
                 case ICE_CANDIDATE_TYPE_SERVER_REFLEXIVE:
                     pIceServer = &(pIceAgent->iceServers[pCandidate->iceServerIndex]);
-                    transactionIdStoreInsert(pIceAgent->pStunBindingRequestTransactionIdStore,
-                                             pBindingRequest->header.transactionId);
-                    retStatus =  iceUtilsSendStunPacket(pBindingRequest,
-                                                        NULL,
-                                                        0,
-                                                        &pIceServer->ipAddress,
-                                                        pCandidate->pSocketConnection,
-                                                        NULL,
-                                                        FALSE);
-                    if (STATUS_FAILED(retStatus)) {
-                        DLOGD("iceUtilsSendStunPacket failed with 0x%08x", retStatus);
-                        retStatus = STATUS_SUCCESS;
+                    if (pIceServer->ipAddress.family == pCandidate->ipAddress.family) {
+                        transactionIdStoreInsert(pIceAgent->pStunBindingRequestTransactionIdStore,
+                                                 pBindingRequest->header.transactionId);
+                        retStatus =  iceUtilsSendStunPacket(pBindingRequest,
+                                                            NULL,
+                                                            0,
+                                                            &pIceServer->ipAddress,
+                                                            pCandidate->pSocketConnection,
+                                                            NULL,
+                                                            FALSE);
+                        if (STATUS_FAILED(retStatus)) {
+                            DLOGD("iceUtilsSendStunPacket failed with 0x%08x", retStatus);
+                            retStatus = STATUS_SUCCESS;
+                        }
                     }
-
                     break;
 
                 default:
@@ -1324,7 +1334,9 @@ STATUS iceAgentInitSrflxCandidate(PIceAgent pIceAgent)
         pCurNode = pCurNode->pNext;
         pCandidate = (PIceCandidate) data;
 
-        if (pCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_HOST) {
+        // TODO: Stop skipping IPv6. Stun serialization and deserialization needs to be implemented properly first.
+        if (pCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_HOST && 
+              IS_IPV4_ADDR(&pCandidate->ipAddress)) {
             for (j = 0; j < pIceAgent->iceServersCount; j++) {
                 if (!pIceAgent->iceServers[j].isTurn) {
                     CHK((pNewCandidate = (PIceCandidate) MEMCALLOC(1, SIZEOF(IceCandidate))) != NULL,
@@ -1402,8 +1414,15 @@ STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent)
             pSocketAddrForTurn = NULL;
             // if an VPN interface (isPointToPoint is TRUE) is found, use that instead
             for(i = 0; i < pIceAgent->localNetworkInterfaceCount; ++i) {
-                if(pIceAgent->localNetworkInterfaces[i].family == pIceAgent->iceServers[j].ipAddress.family &&
-                   (pSocketAddrForTurn == NULL || pIceAgent->localNetworkInterfaces[i].isPointToPoint)) {
+                // TODO: Stop skipping IPv6. Stun serialization and deserialization needs to be implemented properly first. 
+                // Also, we need to handle the following kinds of relays:
+                //   1. IPv4-to-IPv6
+                //   2. IPv6-to-IPv6
+                //   3. IPv6-to-IPv4
+                // RFC: https://tools.ietf.org/html/rfc6156
+                if(pIceAgent->localNetworkInterfaces[i].family == KVS_IP_FAMILY_TYPE_IPV4 &&
+                    pIceAgent->localNetworkInterfaces[i].family == pIceAgent->iceServers[j].ipAddress.family &&
+                    (pSocketAddrForTurn == NULL || pIceAgent->localNetworkInterfaces[i].isPointToPoint)) {
                     pSocketAddrForTurn = &pIceAgent->localNetworkInterfaces[i];
                 }
             }
@@ -1460,8 +1479,12 @@ STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent)
                     pCurNode = pCurNode->pNext;
                     pCandidate = (PIceCandidate) data;
 
-                    CHK_STATUS(turnConnectionAddPeer(pCurrentTurnConnectionTracker->pTurnConnection,
-                                                     &pCandidate->ipAddress));
+                    // TODO: Stop skipping IPv6. Since we're allowing IPv6 remote candidates from iceAgentAddRemoteCandidate for host candidates,
+                    // it's possible to have a situation where the turn server uses IPv4 and the remote candidate uses IPv6.
+                    if (IS_IPV4_ADDR(&pCandidate->ipAddress)) {
+                      CHK_STATUS(turnConnectionAddPeer(pCurrentTurnConnectionTracker->pTurnConnection,
+                                                       &pCandidate->ipAddress));
+                    }
                 }
 
                 MUTEX_UNLOCK(pIceAgent->lock);
@@ -1863,18 +1886,32 @@ STATUS iceCandidateSerialize(PIceCandidate pIceCandidate, PCHAR pOutputData, PUI
                                  pIceCandidate->ipAddress.address[3],
                                  (UINT16) getInt16(pIceCandidate->ipAddress.port),
                                  iceAgentGetCandidateTypeStr(pIceCandidate->iceCandidateType));
-
-        CHK_WARN(amountWritten > 0, STATUS_INTERNAL_ERROR, "SNPRINTF failed");
-
-        if (pOutputData == NULL) {
-            *pOutputLength = ((UINT32) amountWritten) + 1; // +1 for null terminator
-        } else {
-            // amountWritten doesnt account for null char
-            CHK(amountWritten < (INT32) *pOutputLength, STATUS_BUFFER_TOO_SMALL);
-        }
-
     } else {
-        DLOGW("ipv6 not supported yet");
+        amountWritten = SNPRINTF(pOutputData,
+                                 pOutputData == NULL ? 0 : *pOutputLength,
+                                 "%u 1 udp %u %02X%02X:%02X%02X:%02X%02X:%02X%02X:%02X%02X:%02X%02X:%02X%02X:%02X%02X "
+                                 "%d typ %s raddr ::/0 rport 0 generation 0 network-cost 999",
+                                 pIceCandidate->foundation,
+                                 pIceCandidate->priority,
+                                 pIceCandidate->ipAddress.address[0], pIceCandidate->ipAddress.address[1],
+                                 pIceCandidate->ipAddress.address[2], pIceCandidate->ipAddress.address[3],
+                                 pIceCandidate->ipAddress.address[4], pIceCandidate->ipAddress.address[5],
+                                 pIceCandidate->ipAddress.address[6], pIceCandidate->ipAddress.address[7],
+                                 pIceCandidate->ipAddress.address[8], pIceCandidate->ipAddress.address[9],
+                                 pIceCandidate->ipAddress.address[10], pIceCandidate->ipAddress.address[11],
+                                 pIceCandidate->ipAddress.address[12], pIceCandidate->ipAddress.address[13],
+                                 pIceCandidate->ipAddress.address[14], pIceCandidate->ipAddress.address[15],
+                                 (UINT16) getInt16(pIceCandidate->ipAddress.port),
+                                 iceAgentGetCandidateTypeStr(pIceCandidate->iceCandidateType));
+    }
+
+    CHK_WARN(amountWritten > 0, STATUS_INTERNAL_ERROR, "SNPRINTF failed");
+
+    if (pOutputData == NULL) {
+        *pOutputLength = ((UINT32) amountWritten) + 1; // +1 for null terminator
+    } else {
+        // amountWritten doesnt account for null char
+        CHK(amountWritten < (INT32) *pOutputLength, STATUS_BUFFER_TOO_SMALL);
     }
 
 CleanUp:
