@@ -156,6 +156,7 @@ STATUS masterMessageReceived(UINT64 customData, PReceivedSignalingMessage pRecei
     switch (pReceivedSignalingMessage->signalingMessage.messageType) {
         case SIGNALING_MESSAGE_TYPE_OFFER:
             if (!sessionExisted) {
+                pSampleStreamingSession->firtSdpMsgReceiveTime = GETTIME();
                 CHK_STATUS(handleOffer(pSampleConfiguration,
                                        pSampleStreamingSession,
                                        &pReceivedSignalingMessage->signalingMessage));
@@ -222,14 +223,11 @@ STATUS handleOffer(PSampleConfiguration pSampleConfiguration, PSampleStreamingSe
     if (!pSampleConfiguration->trickleIce) {
         MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
         locked = TRUE;
-        
+
         while (!ATOMIC_LOAD_BOOL(&pSampleStreamingSession->candidateGatheringDone)) {
-            MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
-            locked = TRUE;
             CHK_WARN(!ATOMIC_LOAD_BOOL(&pSampleStreamingSession->terminateFlag), STATUS_INTERNAL_ERROR, "application terminated and candidate gathering still not done");
             CVAR_WAIT(pSampleConfiguration->cvar, pSampleConfiguration->sampleConfigurationObjLock, 5 * HUNDREDS_OF_NANOS_IN_A_SECOND);
         }
-
         MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
         locked = FALSE;
 
@@ -240,6 +238,8 @@ STATUS handleOffer(PSampleConfiguration pSampleConfiguration, PSampleStreamingSe
     }
 
     CHK_STATUS(respondWithAnswer(pSampleStreamingSession));
+    DLOGD("time taken to send answer %" PRIu64 " ms",
+          (GETTIME() - pSampleStreamingSession->firtSdpMsgReceiveTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 
     if (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->mediaThreadStarted)) {
         ATOMIC_STORE_BOOL(&pSampleConfiguration->mediaThreadStarted, TRUE);
@@ -329,6 +329,7 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     RtcConfiguration configuration;
     UINT32 i, j, iceConfigCount, uriCount;
     PIceConfigInfo pIceConfigInfo;
+    const UINT32 maxTurnServer = 1;
 
     CHK(pSampleConfiguration != NULL && ppRtcPeerConnection != NULL, STATUS_NULL_ARG);
 
@@ -344,7 +345,9 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
         // Set the URIs from the configuration
         CHK_STATUS(signalingClientGetIceConfigInfoCount(pSampleConfiguration->signalingClientHandle, &iceConfigCount));
 
-        for (uriCount = 0, i = 0; i < iceConfigCount; i++) {
+        /* signalingClientGetIceConfigInfoCount can return more than one turn server. Use only one to optimize
+         * candidate gathering latency. */
+        for (uriCount = 0, i = 0; i < maxTurnServer; i++) {
             CHK_STATUS(signalingClientGetIceConfigInfo(pSampleConfiguration->signalingClientHandle, i, &pIceConfigInfo));
             for (j = 0; j < pIceConfigInfo->uriCount; j++) {
                 CHECK(uriCount < MAX_ICE_SERVERS_COUNT);
@@ -748,7 +751,7 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
 
         // periodically wake up and clean up terminated streaming session
         CVAR_WAIT(pSampleConfiguration->cvar, pSampleConfiguration->sampleConfigurationObjLock,
-                  5 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+                  1 * HUNDREDS_OF_NANOS_IN_A_SECOND);
 
         // Check if we need to re-create the signaling client on-the-fly
         if (ATOMIC_LOAD_BOOL(&pSampleConfiguration->recreateSignalingClient) &&

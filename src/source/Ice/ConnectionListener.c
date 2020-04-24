@@ -18,7 +18,8 @@ STATUS createConnectionListener(PConnectionListener* ppConnectionListener)
     CHK_STATUS(doubleListCreate(&pConnectionListener->connectionList));
     ATOMIC_STORE_BOOL(&pConnectionListener->terminate, FALSE);
     ATOMIC_STORE_BOOL(&pConnectionListener->listenerRoutineStarted, FALSE);
-    ATOMIC_STORE_BOOL(&pConnectionListener->connectionListChanged, FALSE);
+    /* always update list when receiveDataRoutine first start */
+    ATOMIC_STORE_BOOL(&pConnectionListener->connectionListChanged, TRUE);
     pConnectionListener->receiveDataRoutine = INVALID_TID_VALUE;
     pConnectionListener->lock = MUTEX_CREATE(FALSE);
 
@@ -252,10 +253,8 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
 
         for (i = 0; i < socketCount; ++i) {
             pSocketConnection = socketList[i];
-            if (ATOMIC_LOAD_BOOL(&pSocketConnection->receiveData)) {
-                FD_SET(pSocketConnection->localSocket, &rfds);
-                nfds = MAX(nfds, pSocketConnection->localSocket);
-            }
+            FD_SET(pSocketConnection->localSocket, &rfds);
+            nfds = MAX(nfds, pSocketConnection->localSocket);
         }
 
         nfds++;
@@ -298,7 +297,9 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
                     } else if (readLen == 0) {
                         CHK_STATUS(socketConnectionClosed(pSocketConnection));
                         iterate = FALSE;
-                    } else if (pSocketConnection->dataAvailableCallbackFn != NULL && /* readLen > 0 */
+                    } else if (/* readLen > 0 */
+                               ATOMIC_LOAD_BOOL(&pSocketConnection->receiveData) &&
+                               pSocketConnection->dataAvailableCallbackFn != NULL &&
                                /* data could be encrypted so they need to be decrypted through socketConnectionReadData
                                 * and get the decrypted data length. */
                                STATUS_SUCCEEDED(socketConnectionReadData(pSocketConnection,

@@ -51,7 +51,10 @@ STATUS dtlsTransmissionTimerCallback(UINT32 timerID, UINT64 currentTime, UINT64 
     /* In case we need to initiate the handshake */
     CHK_STATUS(dtlsCheckOutgoingDataBuffer(pDtlsSession));
 
-    CHK(!SSL_is_init_finished(pDtlsSession->pSsl), STATUS_TIMER_QUEUE_STOP_SCHEDULING);
+    if (SSL_is_init_finished(pDtlsSession->pSsl)) {
+        DLOGD("DTLS init completed");
+        CHK(FALSE, STATUS_TIMER_QUEUE_STOP_SCHEDULING);
+    }
 
     /* https://commondatastorage.googleapis.com/chromium-boringssl-docs/ssl.h.html#DTLSv1_get_timeout */
     dtlsTimeoutRet = DTLSv1_get_timeout(pDtlsSession->pSsl, &timeout);

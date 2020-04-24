@@ -84,6 +84,7 @@ struct __SampleStreamingSession {
     UINT32 videoTimestamp;
     CHAR peerId[MAX_SIGNALING_CLIENT_ID_LEN + 1];
     TID receiveAudioVideoSenderTid;
+    UINT64 firtSdpMsgReceiveTime;
 
     // this is called when the SampleStreamingSession is being freed
     StreamSessionShutdownCallback shutdownCallback;

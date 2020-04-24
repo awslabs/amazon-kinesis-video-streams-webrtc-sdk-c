@@ -12,6 +12,7 @@ extern "C" {
 
 #define DEFAULT_MAX_STORED_TRANSACTION_ID_COUNT                         20
 #define MAX_STORED_TRANSACTION_ID_COUNT                                 100
+#define ICE_UTIL_RANDOM_CHAR_LIST                                       "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
 /**
  * Ring buffer storing transactionIds
@@ -38,6 +39,7 @@ STATUS iceUtilsSendStunPacket(PStunPacket, PBYTE, UINT32, PKvsIpAddress, PSocket
 STATUS iceUtilsSendData(PBYTE, UINT32, PKvsIpAddress, PSocketConnection, struct __TurnConnection*, BOOL);
 
 STATUS populateIpFromString(PKvsIpAddress, PCHAR);
+VOID iceUtilGenerateRandomStr(PCHAR, UINT32);
 
 typedef struct {
     BOOL isTurn;

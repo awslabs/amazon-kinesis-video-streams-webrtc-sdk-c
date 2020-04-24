@@ -58,6 +58,7 @@ STATUS createTurnConnection(PIceServer pTurnServer, TIMER_QUEUE_HANDLE timerQueu
     pTurnConnection->currentTimerCallingPeriod = DEFAULT_TURN_TIMER_INTERVAL_BEFORE_READY;
     CHK_STATUS(doubleListCreate(&pTurnConnection->turnPeerList));
 
+    pTurnConnection->turnCreateTime = GETTIME();
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
@@ -265,10 +266,10 @@ STATUS turnConnectionHandleStun(PTurnConnection pTurnConnection, PBYTE pBuffer, 
                 if (transactionIdStoreHasId(pTurnPeer->pTransactionIdStore, pBuffer + STUN_PACKET_TRANSACTION_ID_OFFSET)) {
                     if (pTurnPeer->connectionState == TURN_PEER_CONN_STATE_CREATE_PERMISSION) {
                         pTurnPeer->connectionState = TURN_PEER_CONN_STATE_BIND_CHANNEL;
+                        CHK_STATUS(getIpAddrStr(&pTurnPeer->address, ipAddrStr, ARRAY_SIZE(ipAddrStr)));
+                        DLOGD("create permission succeeded for peer %s", ipAddrStr);
                     }
 
-                    CHK_STATUS(getIpAddrStr(&pTurnPeer->address, ipAddrStr, ARRAY_SIZE(ipAddrStr)));
-                    DLOGD("create permission succeeded for peer %s", ipAddrStr);
                     pTurnPeer->permissionExpirationTime = TURN_PERMISSION_LIFETIME + currentTime;
                 }
             }
@@ -886,13 +887,17 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
 
         case TURN_STATE_CHECK_SOCKET_CONNECTION:
             if (socketConnectionIsConnected(pTurnConnection->pControlChannel)) {
-                // initialize TLS once tcp connection is established
+                DLOGD("TCP connection establishment done. Time taken: %" PRIu64" ms",
+                      (GETTIME() - pTurnConnection->turnCreateTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+
+                /* initialize TLS once tcp connection is established */
+                /* Start receiving data for TLS handshake */
+                ATOMIC_STORE_BOOL(&pTurnConnection->pControlChannel->receiveData, TRUE);
+
                 if (pTurnConnection->protocol == KVS_SOCKET_PROTOCOL_TCP &&
                     pTurnConnection->pControlChannel->pSsl == NULL) {
                     CHK_STATUS(socketConnectionInitSecureConnection(pTurnConnection->pControlChannel, FALSE));
                 }
-
-                ATOMIC_STORE_BOOL(&pTurnConnection->pControlChannel->receiveData, TRUE);
 
                 pTurnConnection->state = TURN_STATE_GET_CREDENTIALS;
                 pTurnConnection->stateTimeoutTime = currentTime + DEFAULT_TURN_GET_CREDENTIAL_TIMEOUT;

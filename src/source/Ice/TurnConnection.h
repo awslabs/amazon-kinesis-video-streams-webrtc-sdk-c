@@ -16,7 +16,7 @@ extern "C" {
 #define DEFAULT_TURN_ALLOCATION_LIFETIME_SECONDS                        600
 // required by rfc5766 to be 300s
 #define TURN_PERMISSION_LIFETIME                                        (300 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define DEFAULT_TURN_TIMER_INTERVAL_BEFORE_READY                        (100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
+#define DEFAULT_TURN_TIMER_INTERVAL_BEFORE_READY                        (50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
 #define DEFAULT_TURN_TIMER_INTERVAL_AFTER_READY                         (1 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define DEFAULT_TURN_SEND_REFRESH_INVERVAL                              (1 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
@@ -38,7 +38,7 @@ extern "C" {
 
 #define DEFAULT_TURN_MESSAGE_SEND_CHANNEL_DATA_BUFFER_LEN               (10 * 1024)
 #define DEFAULT_TURN_MESSAGE_RECV_CHANNEL_DATA_BUFFER_LEN               (10 * 1024)
-#define DEFAULT_TURN_CHANNEL_DATA_BUFFER_SIZE                           128
+#define DEFAULT_TURN_CHANNEL_DATA_BUFFER_SIZE                           512
 #define DEFAULT_TURN_MAX_PEER_COUNT                                     16
 
 // all turn channel numbers must be greater than 0x4000 and less than 0x7FFF
@@ -175,6 +175,8 @@ struct __TurnConnection {
     UINT64 nextAllocationRefreshTime;
 
     UINT64 currentTimerCallingPeriod;
+
+    UINT64 turnCreateTime;
 };
 typedef struct __TurnConnection* PTurnConnection;
 

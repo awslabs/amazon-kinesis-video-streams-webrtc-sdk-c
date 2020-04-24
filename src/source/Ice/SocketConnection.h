@@ -10,8 +10,8 @@ Socket Connection internal include file
 extern "C" {
 #endif
 
-#define SSL_WRITE_RETRY_DELAY                       10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
 #define SOCKET_SEND_RETRY_TIMEOUT_MICRO_SECOND      500000
+#define MAX_SOCKET_WRITE_RETRY                      3
 
 #define CLOSE_SOCKET_IF_CANT_RETRY(e,ps)             if ((e) != EAGAIN && \
                                                         (e) != EWOULDBLOCK && \
@@ -47,6 +47,7 @@ struct __SocketConnection {
 
     ConnectionDataAvailableFunc dataAvailableCallbackFn;
     UINT64 dataAvailableCallbackCustomData;
+    UINT64 tlsHandshakeStartTime;
 };
 typedef struct __SocketConnection* PSocketConnection;
 
@@ -145,6 +146,7 @@ BOOL socketConnectionIsConnected(PSocketConnection);
 // internal functions
 STATUS createConnectionCertificateAndKey(X509 **, EVP_PKEY **);
 INT32 certificateVerifyCallback(INT32 preverify_ok, X509_STORE_CTX *ctx);
+STATUS socketSendDataWithRetry(PSocketConnection, PBYTE, UINT32, PKvsIpAddress, PUINT32);
 
 #ifdef  __cplusplus
 }

@@ -224,6 +224,18 @@ CleanUp:
     return retStatus;
 }
 
+VOID iceUtilGenerateRandomStr(PCHAR buf, UINT32 bufLen)
+{
+    UINT32 i;
+
+    if (buf != NULL && bufLen > 0) {
+        for(i = 0; i < bufLen - 1; ++i) {
+            buf[i] = ICE_UTIL_RANDOM_CHAR_LIST[RAND() % (ARRAY_SIZE(ICE_UTIL_RANDOM_CHAR_LIST) - 1)];
+        }
+        buf[i] = '\0';
+    }
+}
+
 STATUS parseIceServer(PIceServer pIceServer, PCHAR url, PCHAR username, PCHAR credential)
 {
     ENTERS();

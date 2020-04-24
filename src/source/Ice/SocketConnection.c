@@ -34,6 +34,7 @@ STATUS createSocketConnection(PKvsIpAddress pHostIpAddr, PKvsIpAddress pPeerIpAd
     pSocketConnection->freeBios = TRUE;
     pSocketConnection->dataAvailableCallbackCustomData = customData;
     pSocketConnection->dataAvailableCallbackFn = dataAvailableFn;
+    pSocketConnection->tlsHandshakeStartTime = INVALID_TIMESTAMP_VALUE;
 
 CleanUp:
 
@@ -109,8 +110,6 @@ STATUS socketConnectionInitSecureConnection(PSocketConnection pSocketConnection,
     SSL_CTX_set_read_ahead(pSocketConnection->pSslCtx, 1);
     SSL_CTX_set_verify(pSocketConnection->pSslCtx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, certificateVerifyCallback);
 
-    CHK(SSL_CTX_set_cipher_list(pSocketConnection->pSslCtx, "HIGH:!aNULL:!MD5:!RC4"), STATUS_SSL_CTX_CREATION_FAILED);
-
     pSocketConnection->pSsl = SSL_new(pSocketConnection->pSslCtx);
     CHK(pSocketConnection->pSsl != NULL, STATUS_CREATE_SSL_FAILED);
 
@@ -132,8 +131,9 @@ STATUS socketConnectionInitSecureConnection(PSocketConnection pSocketConnection,
     /* init handshake */
     SSL_do_handshake(pSocketConnection->pSsl);
     pSocketConnection->secureConnection = TRUE;
+    pSocketConnection->tlsHandshakeStartTime = GETTIME();
 
-    /* send hand shake */
+    /* send handshake */
     CHK_STATUS(socketConnectionSendData(pSocketConnection, NULL, 0, NULL));
 
 CleanUp:
@@ -152,7 +152,9 @@ STATUS socketConnectionSendData(PSocketConnection pSocketConnection, PBYTE pBuf,
 {
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
-    INT32 sslRet = 0, sslErr = 0, result = 0;
+    INT32 sslRet = 0, sslErr = 0, socketWriteAttempt;
+    SSIZE_T result = 0;
+    UINT32 bytesWritten = 0;
 
     socklen_t addrLen;
     struct sockaddr *destAddr;
@@ -172,6 +174,11 @@ STATUS socketConnectionSendData(PSocketConnection pSocketConnection, PBYTE pBuf,
 
     if (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_TCP && pSocketConnection->secureConnection) {
         if (SSL_is_init_finished(pSocketConnection->pSsl)) {
+            if (IS_VALID_TIMESTAMP(pSocketConnection->tlsHandshakeStartTime)) {
+                DLOGD("TLS handshake done. Time taken %" PRIu64 " ms",
+                      (GETTIME() - pSocketConnection->tlsHandshakeStartTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+                pSocketConnection->tlsHandshakeStartTime = INVALID_TIMESTAMP_VALUE;
+            }
             /* Should have a valid buffer */
             CHK(pBuf != NULL && bufLen > 0, STATUS_INVALID_ARG);
             sslRet = SSL_write(pSocketConnection->pSsl, pBuf, bufLen);
@@ -195,73 +202,23 @@ STATUS socketConnectionSendData(PSocketConnection pSocketConnection, PBYTE pBuf,
 
         wBioDataLen = (SIZE_T) BIO_get_mem_data(SSL_get_wbio(pSocketConnection->pSsl), &wBioBuffer);
         CHK_ERR(wBioDataLen >= 0, STATUS_SEND_DATA_FAILED, "BIO_get_mem_data failed");
-        if (wBioDataLen > 0 && send(pSocketConnection->localSocket, wBioBuffer, wBioDataLen, NO_SIGNAL) < 0) {
-            DLOGE("send data failed with errno %s", strerror(errno));
-            CLOSE_SOCKET_IF_CANT_RETRY(errno, pSocketConnection);
-            /* need to also reset BIO on negative path */
-            retStatus = STATUS_SEND_DATA_FAILED;
-        }
 
-        /* reset bio to clear its content since it's already sent */
-        BIO_reset(SSL_get_wbio(pSocketConnection->pSsl));
+        if (wBioDataLen > 0) {
+            retStatus = socketSendDataWithRetry(pSocketConnection, (PBYTE) wBioBuffer, (UINT32) wBioDataLen, NULL, NULL);
+
+            /* reset bio to clear its content since it's already sent if possible */
+            BIO_reset(SSL_get_wbio(pSocketConnection->pSsl));
+        }
 
     } else if (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_TCP) {
         /* Should have a valid buffer */
         CHK(pBuf != NULL && bufLen > 0, STATUS_INVALID_ARG);
-
-        if (send(pSocketConnection->localSocket, pBuf, bufLen, NO_SIGNAL) < 0) {
-            DLOGE("send data failed with errno %s", strerror(errno));
-            CLOSE_SOCKET_IF_CANT_RETRY(errno, pSocketConnection);
-            CHK(FALSE, STATUS_SEND_DATA_FAILED);
-        }
+        CHK_STATUS(retStatus = socketSendDataWithRetry(pSocketConnection, pBuf, bufLen, NULL, NULL));
 
     } else if (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_UDP) {
         /* Should have a valid buffer */
         CHK(pBuf != NULL && bufLen > 0, STATUS_INVALID_ARG);
-
-        if (IS_IPV4_ADDR(pDestIp)) {
-            addrLen = SIZEOF(ipv4Addr);
-            MEMSET(&ipv4Addr, 0x00, SIZEOF(ipv4Addr));
-            ipv4Addr.sin_family = AF_INET;
-            ipv4Addr.sin_port = pDestIp->port;
-            MEMCPY(&ipv4Addr.sin_addr, pDestIp->address, IPV4_ADDRESS_LENGTH);
-            destAddr = (struct sockaddr *) &ipv4Addr;
-
-        } else {
-            addrLen = SIZEOF(ipv6Addr);
-            MEMSET(&ipv6Addr, 0x00, SIZEOF(ipv6Addr));
-            ipv6Addr.sin6_family = AF_INET6;
-            ipv6Addr.sin6_port = pDestIp->port;
-            MEMCPY(&ipv6Addr.sin6_addr, pDestIp->address, IPV6_ADDRESS_LENGTH);
-            destAddr = (struct sockaddr *) &ipv6Addr;
-        }
-
-        // sending through UDP never block
-        result = sendto(pSocketConnection->localSocket, pBuf, bufLen, 0, destAddr, addrLen);
-        // In non-blocking mode, socket could return EAGAIN or EWOULDBLOCK if it havent finish previous send.
-        // In that case, use select to wait until socket is ready for write and send again.
-        if (result < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
-            FD_ZERO(&wfds);
-            FD_SET(pSocketConnection->localSocket, &wfds);
-            tv.tv_sec = 0;
-            tv.tv_usec = SOCKET_SEND_RETRY_TIMEOUT_MICRO_SECOND;
-            result = select(pSocketConnection->localSocket + 1, NULL, &wfds, NULL, &tv);
-
-            if (result > 0) {
-                result = sendto(pSocketConnection->localSocket, pBuf, bufLen, 0, destAddr, addrLen);
-            } else if (result == 0) {
-                DLOGD("select() timed out");
-                CHK(FALSE, STATUS_SEND_DATA_FAILED);
-            } else {
-                DLOGD("select() failed with errno %s", strerror(errno));
-                CHK(FALSE, STATUS_SEND_DATA_FAILED);
-            }
-        }
-        if (result < 0) {
-            DLOGD("sendto data failed with errno %s", strerror(errno));
-            CLOSE_SOCKET_IF_CANT_RETRY(errno, pSocketConnection);
-            CHK(FALSE, STATUS_SEND_DATA_FAILED);
-        }
+        CHK_STATUS(retStatus = socketSendDataWithRetry(pSocketConnection, pBuf, bufLen, pDestIp, NULL));
     } else {
         CHECK_EXT(FALSE, "socketConnectionSendData should not reach here. Nothing is sent.");
     }
@@ -393,4 +350,90 @@ INT32 certificateVerifyCallback(INT32 preverify_ok, X509_STORE_CTX *ctx)
     UNUSED_PARAM(preverify_ok);
     UNUSED_PARAM(ctx);
     return 1;
+}
+
+STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, UINT32 bufLen, PKvsIpAddress pDestIp, PUINT32 pBytesWritten)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    INT32 socketWriteAttempt = 0;
+    SSIZE_T result = 0;
+    UINT32 bytesWritten = 0;
+
+    fd_set wfds;
+    struct timeval tv;
+    socklen_t addrLen = 0;
+    struct sockaddr *destAddr = NULL;
+    struct sockaddr_in ipv4Addr;
+    struct sockaddr_in6 ipv6Addr;
+
+    CHK(pSocketConnection != NULL, STATUS_NULL_ARG);
+    CHK(buf != NULL && bufLen > 0, STATUS_INVALID_ARG);
+
+    if (pDestIp != NULL) {
+        if (IS_IPV4_ADDR(pDestIp)) {
+            addrLen = SIZEOF(ipv4Addr);
+            MEMSET(&ipv4Addr, 0x00, SIZEOF(ipv4Addr));
+            ipv4Addr.sin_family = AF_INET;
+            ipv4Addr.sin_port = pDestIp->port;
+            MEMCPY(&ipv4Addr.sin_addr, pDestIp->address, IPV4_ADDRESS_LENGTH);
+            destAddr = (struct sockaddr *) &ipv4Addr;
+
+        } else {
+            addrLen = SIZEOF(ipv6Addr);
+            MEMSET(&ipv6Addr, 0x00, SIZEOF(ipv6Addr));
+            ipv6Addr.sin6_family = AF_INET6;
+            ipv6Addr.sin6_port = pDestIp->port;
+            MEMCPY(&ipv6Addr.sin6_addr, pDestIp->address, IPV6_ADDRESS_LENGTH);
+            destAddr = (struct sockaddr *) &ipv6Addr;
+        }
+    }
+
+    while (socketWriteAttempt < MAX_SOCKET_WRITE_RETRY && bytesWritten < bufLen) {
+        result = sendto(pSocketConnection->localSocket, buf, bufLen, NO_SIGNAL, destAddr, addrLen);
+        if (result < 0) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                FD_ZERO(&wfds);
+                FD_SET(pSocketConnection->localSocket, &wfds);
+                tv.tv_sec = 0;
+                tv.tv_usec = SOCKET_SEND_RETRY_TIMEOUT_MICRO_SECOND;
+                result = select(pSocketConnection->localSocket + 1, NULL, &wfds, NULL, &tv);
+
+                if (result == 0) {
+                    /* loop back and try again */
+                    DLOGD("select() timed out");
+                } else if (result < 0) {
+                    DLOGD("select() failed with errno %s", strerror(errno));
+                    break;
+                }
+            } else if (errno == EINTR) {
+                /* nothing need to be done, just retry */
+            } else {
+                /* fatal error from send() */
+                DLOGD("sendto() failed with errno %s", strerror(errno));
+                break;
+            }
+        } else {
+            bytesWritten += result;
+        }
+        socketWriteAttempt++;
+    }
+
+    if (pBytesWritten != NULL) {
+        *pBytesWritten = bytesWritten;
+    }
+
+    if (result < 0) {
+        CLOSE_SOCKET_IF_CANT_RETRY(errno, pSocketConnection);
+    }
+
+    if (bytesWritten < bufLen) {
+        DLOGD("Failed to send data. Bytes sent %u. Data len %u. Retry count %u",
+              bytesWritten, bufLen, socketWriteAttempt);
+        retStatus = STATUS_SEND_DATA_FAILED;
+    }
+
+CleanUp:
+
+    CHK_LOG_ERR(retStatus);
+    return retStatus;
 }
