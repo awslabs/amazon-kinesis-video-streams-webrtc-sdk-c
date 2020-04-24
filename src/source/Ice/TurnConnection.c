@@ -212,9 +212,11 @@ STATUS turnConnectionHandleStun(PTurnConnection pTurnConnection, PBYTE pBuffer, 
             DLOGD("TURN Allocation succeeded. Allocation expiration epoch %" PRIu64, pTurnConnection->allocationExpirationTime / DEFAULT_TIME_UNIT_IN_NANOS);
 
             pStunAttributeAddress = (PStunAttributeAddress) pStunAttr;
-            pTurnConnection->relayAddress = pStunAttributeAddress->address;
-            ATOMIC_STORE_BOOL(&pTurnConnection->allocationFreed, FALSE);
-            ATOMIC_STORE_BOOL(&pTurnConnection->relayAddressReceived, TRUE);
+            if (!ATOMIC_LOAD_BOOL(&pTurnConnection->relayAddressReceived)) {
+                pTurnConnection->relayAddress = pStunAttributeAddress->address;
+                ATOMIC_STORE_BOOL(&pTurnConnection->allocationFreed, FALSE);
+                ATOMIC_STORE_BOOL(&pTurnConnection->relayAddressReceived, TRUE);
+            }
 
             if (!pTurnConnection->relayAddressReported && pTurnConnection->turnConnectionCallbacks.relayAddressAvailableFn != NULL) {
                 pTurnConnection->relayAddressReported = TRUE;
@@ -265,10 +267,10 @@ STATUS turnConnectionHandleStun(PTurnConnection pTurnConnection, PBYTE pBuffer, 
                 if (transactionIdStoreHasId(pTurnPeer->pTransactionIdStore, pBuffer + STUN_PACKET_TRANSACTION_ID_OFFSET)) {
                     if (pTurnPeer->connectionState == TURN_PEER_CONN_STATE_CREATE_PERMISSION) {
                         pTurnPeer->connectionState = TURN_PEER_CONN_STATE_BIND_CHANNEL;
+                        CHK_STATUS(getIpAddrStr(&pTurnPeer->address, ipAddrStr, ARRAY_SIZE(ipAddrStr)));
+                        DLOGD("create permission succeeded for peer %s", ipAddrStr);
                     }
 
-                    CHK_STATUS(getIpAddrStr(&pTurnPeer->address, ipAddrStr, ARRAY_SIZE(ipAddrStr)));
-                    DLOGD("create permission succeeded for peer %s", ipAddrStr);
                     pTurnPeer->permissionExpirationTime = TURN_PERMISSION_LIFETIME + currentTime;
                 }
             }
@@ -886,13 +888,14 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
 
         case TURN_STATE_CHECK_SOCKET_CONNECTION:
             if (socketConnectionIsConnected(pTurnConnection->pControlChannel)) {
-                // initialize TLS once tcp connection is established
+                /* initialize TLS once tcp connection is established */
+                /* Start receiving data for TLS handshake */
+                ATOMIC_STORE_BOOL(&pTurnConnection->pControlChannel->receiveData, TRUE);
+
                 if (pTurnConnection->protocol == KVS_SOCKET_PROTOCOL_TCP &&
                     pTurnConnection->pControlChannel->pSsl == NULL) {
                     CHK_STATUS(socketConnectionInitSecureConnection(pTurnConnection->pControlChannel, FALSE));
                 }
-
-                ATOMIC_STORE_BOOL(&pTurnConnection->pControlChannel->receiveData, TRUE);
 
                 pTurnConnection->state = TURN_STATE_GET_CREDENTIALS;
                 pTurnConnection->stateTimeoutTime = currentTime + DEFAULT_TURN_GET_CREDENTIAL_TIMEOUT;

@@ -23,7 +23,8 @@ extern "C" {
 // Ta in https://tools.ietf.org/html/rfc8445
 #define KVS_ICE_CONNECTION_CHECK_POLLING_INTERVAL                       50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
 #define KVS_ICE_STATE_READY_TIMER_POLLING_INTERVAL                      1 * HUNDREDS_OF_NANOS_IN_A_SECOND
-#define KVS_ICE_GATHER_CANDIDATE_TIMER_POLLING_INTERVAL                 1 * HUNDREDS_OF_NANOS_IN_A_SECOND
+/* Control the calling rate of iceCandidateGatheringTimerTask. Can affect STUN TURN candidate gathering time */
+#define KVS_ICE_GATHER_CANDIDATE_TIMER_POLLING_INTERVAL                 50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
 
 // Disconnection timeout should be as long as KVS_ICE_SEND_KEEP_ALIVE_INTERVAL because peer can just be receiving
 // media and not sending anything back except keep alives
