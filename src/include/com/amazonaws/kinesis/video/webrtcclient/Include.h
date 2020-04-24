@@ -396,7 +396,6 @@ extern "C" {
  */
 #define MAX_MEDIA_STREAM_ID_LEN                                                     255
 
-
 /**
  * Max certificates an RtcConfiguration can accept
  */
@@ -443,7 +442,7 @@ extern "C" {
 /**
  * Version of ChannelInfo structure
  */
-#define CHANNEL_INFO_CURRENT_VERSION                                                0
+#define CHANNEL_INFO_CURRENT_VERSION                                                1
 
 /**
  * Version of SignalingClientInfo structure
@@ -454,11 +453,6 @@ extern "C" {
  * Version of SignalingClientCallbacks structure
  */
 #define SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION                                  0
-
-/**
- * Signaling states default retry count. This will evaluate to the last call being made 20 seconds in which will hit a timeout first.
- */
-#define SIGNALING_STATES_DEFAULT_RETRY_COUNT                                        10
 
 /**
  * Version of signaling client
@@ -554,7 +548,6 @@ extern "C" {
  */
 #define SIGNALING_VALID_NAME_CHARS                                                  "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_.-"
 
-
 /**
  * Maximum sequence number in rtp packet/jitter buffer
  */
@@ -578,6 +571,21 @@ extern "C" {
 /* CHK_LOG_ERR_NV has been replaced with CHK_LOG_ERR. */
 #define CHK_LOG_ERR_NV(condition) \
     DLOGE("CHK_LOG_ERR_NV has been replaced with CHK_LOG_ERR");
+
+/**
+* Signaling states default retry count. This will evaluate to the last call being made 20 seconds in which will hit a timeout first.
+*/
+#define SIGNALING_STATES_DEFAULT_RETRY_COUNT                                        10
+
+/**
+ * Signaling caching policy default TTL period
+ */
+#define SIGNALING_DEFAULT_API_CALL_CACHE_TTL                                        (10 * HUNDREDS_OF_NANOS_IN_AN_HOUR)
+
+/**
+ * Signaling caching policy TTL period sentinel value which will force the default period.
+ */
+#define SIGNALING_API_CALL_CACHE_TTL_SENTINEL_VALUE                                  0
 
 /**
  * @brief Definition of the signaling client handle
@@ -630,7 +638,6 @@ typedef VOID (*RtcOnBandwidthEstimation)(UINT64, DOUBLE);
  * See https://tools.ietf.org/html/rfc4585#section-6.3 for more details
  */
 typedef VOID (*RtcOnPictureLoss)(UINT64);
-
 
 /**
  * @brief RtcOnMessage is fired when a message is received for the DataChannel
@@ -1019,6 +1026,23 @@ typedef struct {
 } ReceivedSignalingMessage, *PReceivedSignalingMessage;
 
 /**
+ * @brief Type of caching implementation to use with the signaling client
+ */
+typedef enum {
+    SIGNALING_API_CALL_CACHE_TYPE_NONE, //!< No caching. The calls to the backend will be made for every API.
+
+    SIGNALING_API_CALL_CACHE_TYPE_DESCRIBE_GETENDPOINT, //!< Cache DeleteSignalingChannel and GetSignalingChannelEndpoint
+                                                        //!< backend API calls.
+                                                        //!< In this mode, the actual backend APIs will be
+                                                        //!< called once and the
+                                                        //!< information will be cached.
+                                                        //!< This mode is the recommended mode for most of the
+                                                        //!< use cases when the
+                                                        //!< signaling channel is not being constantly
+                                                        //!< created/deleted by other entities.
+} SIGNALING_API_CALL_CACHE_TYPE;
+
+/**
  * @brief Populate Signaling client with client ID and application log level
  */
 typedef struct {
@@ -1034,6 +1058,7 @@ typedef struct {
  */
 typedef struct {
     UINT32 version; //!< Version of the structure
+
     PCHAR pChannelName; //!< Name of the signaling channel name. Maximum length is defined by MAX_CHANNEL_NAME_LEN + 1
 
     PCHAR pChannelArn; //!< Channel Amazon Resource Name (ARN). This is an optional parameter
@@ -1060,9 +1085,12 @@ typedef struct {
 
     SIGNALING_CHANNEL_ROLE_TYPE channelRoleType; //!< Channel role type for the endpoint - master/viewer
 
-    BOOL cachingEndpoint; //!< Flag determines if the endpoint is to be cached
+    BOOL reserved;         //!< Reserved field for compatibility
 
-    UINT64 endpointCachingPeriod; //!< Endpoint caching TTL
+    UINT64 cachingPeriod; //!< Endpoint caching TTL.
+                          //!< For no caching policy this param will be ignored.
+                          //!< For caching policies the default value will be used
+                          //!< if this parameter is 0 (SIGNALING_API_CALL_CACHE_TTL_SENTINEL_VALUE).
 
     BOOL retry; //!< Flag determines if a retry of the network calls is to be done on errors up to max retry times
 
@@ -1074,6 +1102,13 @@ typedef struct {
     UINT32 tagCount; //!< Number of tags associated with the stream
 
     PTag pTags; //!< Stream tags array
+
+    /* --- V1 members --- */
+
+    SIGNALING_API_CALL_CACHE_TYPE cachingPolicy; //!< Backend API call caching policy
+
+    BOOL asyncIceServerConfig;  //!< When creating channel synchronously, do not await for the ICE
+                                //!< server configurations before returning from the call.
 } ChannelInfo, *PChannelInfo;
 
 /**
@@ -1297,7 +1332,6 @@ PUBLIC_API STATUS createOffer(PRtcPeerConnection, PRtcSessionDescriptionInit);
  */
 PUBLIC_API STATUS createAnswer(PRtcPeerConnection, PRtcSessionDescriptionInit);
 
-
 /**
  * @brief Create a JSON string from RtcSessionDescriptionInit
 
@@ -1308,7 +1342,6 @@ PUBLIC_API STATUS createAnswer(PRtcPeerConnection, PRtcSessionDescriptionInit);
  * @return STATUS code of the execution. STATUS_SUCCESS on success
  */
 PUBLIC_API STATUS serializeSessionDescriptionInit(PRtcSessionDescriptionInit, PCHAR, PUINT32);
-
 
 /**
  * @brief Parses a JSON string and returns an allocated PSessionDescriptionInit
@@ -1574,7 +1607,7 @@ PUBLIC_API STATUS signalingClientGetIceConfigInfoCount(SIGNALING_CLIENT_HANDLE, 
 PUBLIC_API STATUS signalingClientGetIceConfigInfo(SIGNALING_CLIENT_HANDLE, UINT32, PIceConfigInfo*);
 
 /**
- * @brief Connects the signaling client to the socket in order to send/receive messages.
+ * @brief Connects the signaling client to the web socket in order to send/receive messages.
  *
  * NOTE: The call will succeed only when the signaling client is in a ready state.
  *
@@ -1583,6 +1616,15 @@ PUBLIC_API STATUS signalingClientGetIceConfigInfo(SIGNALING_CLIENT_HANDLE, UINT3
  * @return STATUS code of the execution. STATUS_SUCCESS on success
  */
 PUBLIC_API STATUS signalingClientConnectSync(SIGNALING_CLIENT_HANDLE);
+
+/**
+ * @brief Disconnects the signaling client.
+ *
+ * @param[in] SIGNALING_CLIENT_HANDLE Signaling client handle
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
+PUBLIC_API STATUS signalingClientDisconnectSync(SIGNALING_CLIENT_HANDLE);
 
 /*
  * @brief Gets the Signaling client current state.

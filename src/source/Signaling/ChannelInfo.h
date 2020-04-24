@@ -32,7 +32,13 @@ extern "C" {
 #define MIN_SIGNALING_MESSAGE_TTL_VALUE                         (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define MAX_SIGNALING_MESSAGE_TTL_VALUE                         (120 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
-STATUS createChannelInfo(PCHAR, PCHAR, PCHAR, PCHAR, PCHAR, PCHAR, PCHAR, PCHAR, SIGNALING_CHANNEL_TYPE, SIGNALING_CHANNEL_ROLE_TYPE, BOOL, UINT64, BOOL, BOOL, UINT64, UINT32, PTag, PChannelInfo*);
+/**
+ * Takes in a pointer to a public version of ChannelInfo object.
+ * Validates and creates an internal object
+ *
+ * @return - STATUS code of the execution
+ */
+STATUS createValidateChannelInfo(PChannelInfo, PChannelInfo*);
 
 /**
  * Frees the channel info object.

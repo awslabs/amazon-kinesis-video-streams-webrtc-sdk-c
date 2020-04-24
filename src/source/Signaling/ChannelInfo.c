@@ -1,24 +1,7 @@
 #define LOG_CLASS "ChannelInfo"
 #include "../Include_i.h"
 
-STATUS createChannelInfo(PCHAR pChannelName,
-                         PCHAR pChannelArn,
-                         PCHAR pRegion,
-                         PCHAR pControlPlaneUrl,
-                         PCHAR pCertPath,
-                         PCHAR pUserAgentPostfix,
-                         PCHAR pCustomUserAgent,
-                         PCHAR pKmsKeyId,
-                         SIGNALING_CHANNEL_TYPE channelType,
-                         SIGNALING_CHANNEL_ROLE_TYPE channelRoleType,
-                         BOOL cachingEndpoint,
-                         UINT64 endpointCachingPeriod,
-                         BOOL retry,
-                         BOOL reconnect,
-                         UINT64 messageTtl,
-                         UINT32 tagCount,
-                         PTag pTags,
-                         PChannelInfo* ppChannelInfo)
+STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* ppChannelInfo)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -28,72 +11,75 @@ STATUS createChannelInfo(PCHAR pChannelName,
     PCHAR pCurPtr, pRegionPtr;
     PChannelInfo pChannelInfo = NULL;
 
-    CHK((pChannelName != NULL || pChannelArn != NULL) &&
+    CHK(pOrigChannelInfo != NULL && ppChannelInfo != NULL, STATUS_NULL_ARG);
+
+    CHK((pOrigChannelInfo->pChannelName != NULL || pOrigChannelInfo->pChannelArn != NULL) &&
         ppChannelInfo != NULL, STATUS_NULL_ARG);
 
     // Get and validate the lengths for all strings and store lengths excluding null terminator
-    if (pChannelName != NULL) {
-        CHK((nameLen = (UINT32) STRNLEN(pChannelName, MAX_CHANNEL_NAME_LEN + 1)) <= MAX_CHANNEL_NAME_LEN,
+    if (pOrigChannelInfo->pChannelName != NULL) {
+        CHK((nameLen = (UINT32) STRNLEN(pOrigChannelInfo->pChannelName, MAX_CHANNEL_NAME_LEN + 1)) <= MAX_CHANNEL_NAME_LEN,
             STATUS_SIGNALING_INVALID_CHANNEL_NAME_LENGTH);
     }
 
-    if (pChannelArn != NULL) {
-        CHK((arnLen = (UINT32) STRNLEN(pChannelArn, MAX_ARN_LEN + 1)) <= MAX_ARN_LEN,
+    if (pOrigChannelInfo->pChannelArn != NULL) {
+        CHK((arnLen = (UINT32) STRNLEN(pOrigChannelInfo->pChannelArn, MAX_ARN_LEN + 1)) <= MAX_ARN_LEN,
             STATUS_SIGNALING_INVALID_CHANNEL_ARN_LENGTH);
     }
 
     // Fix-up the region
-    if (pRegion != NULL) {
-        CHK((regionLen = (UINT32) STRNLEN(pRegion, MAX_REGION_NAME_LEN + 1)) <= MAX_REGION_NAME_LEN,
+    if (pOrigChannelInfo->pRegion != NULL) {
+        CHK((regionLen = (UINT32) STRNLEN(pOrigChannelInfo->pRegion, MAX_REGION_NAME_LEN + 1)) <= MAX_REGION_NAME_LEN,
             STATUS_SIGNALING_INVALID_REGION_LENGTH);
-        pRegionPtr = pRegion;
+        pRegionPtr = pOrigChannelInfo->pRegion;
     } else {
         regionLen = ARRAY_SIZE(DEFAULT_AWS_REGION) - 1;
         pRegionPtr = DEFAULT_AWS_REGION;
     }
 
-    if (pControlPlaneUrl != NULL) {
-        CHK((cplLen = (UINT32) STRNLEN(pControlPlaneUrl, MAX_URI_CHAR_LEN + 1)) <= MAX_URI_CHAR_LEN,
+    if (pOrigChannelInfo->pControlPlaneUrl != NULL) {
+        CHK((cplLen = (UINT32) STRNLEN(pOrigChannelInfo->pControlPlaneUrl, MAX_URI_CHAR_LEN + 1)) <= MAX_URI_CHAR_LEN,
             STATUS_SIGNALING_INVALID_CPL_LENGTH);
     } else {
         cplLen = MAX_CONTROL_PLANE_URI_CHAR_LEN;
     }
 
-    if (pCertPath != NULL) {
-        CHK((certLen = (UINT32) STRNLEN(pCertPath, MAX_PATH_LEN + 1)) <= MAX_PATH_LEN,
+    if (pOrigChannelInfo->pCertPath != NULL) {
+        CHK((certLen = (UINT32) STRNLEN(pOrigChannelInfo->pCertPath, MAX_PATH_LEN + 1)) <= MAX_PATH_LEN,
             STATUS_SIGNALING_INVALID_CERTIFICATE_PATH_LENGTH);
     }
 
     userAgentLen = MAX_USER_AGENT_LEN;
 
-    if (pUserAgentPostfix != NULL) {
-        CHK((postfixLen = (UINT32) STRNLEN(pUserAgentPostfix, MAX_CUSTOM_USER_AGENT_NAME_POSTFIX_LEN + 1)) <=
+    if (pOrigChannelInfo->pUserAgentPostfix != NULL) {
+        CHK((postfixLen = (UINT32) STRNLEN(pOrigChannelInfo->pUserAgentPostfix, MAX_CUSTOM_USER_AGENT_NAME_POSTFIX_LEN + 1)) <=
             MAX_CUSTOM_USER_AGENT_NAME_POSTFIX_LEN,
             STATUS_SIGNALING_INVALID_AGENT_POSTFIX_LENGTH);
     }
 
-    if (pCustomUserAgent != NULL) {
-        CHK((agentLen = (UINT32) STRNLEN(pCustomUserAgent, MAX_CUSTOM_USER_AGENT_LEN + 1)) <=
+    if (pOrigChannelInfo->pCustomUserAgent != NULL) {
+        CHK((agentLen = (UINT32) STRNLEN(pOrigChannelInfo->pCustomUserAgent, MAX_CUSTOM_USER_AGENT_LEN + 1)) <=
             MAX_CUSTOM_USER_AGENT_LEN,
             STATUS_SIGNALING_INVALID_AGENT_LENGTH);
     }
 
-    if (pKmsKeyId != NULL) {
-        CHK((kmsLen = (UINT32) STRNLEN(pKmsKeyId, MAX_ARN_LEN + 1)) <= MAX_ARN_LEN,
+    if (pOrigChannelInfo->pKmsKeyId != NULL) {
+        CHK((kmsLen = (UINT32) STRNLEN(pOrigChannelInfo->pKmsKeyId, MAX_ARN_LEN + 1)) <= MAX_ARN_LEN,
             STATUS_SIGNALING_INVALID_KMS_KEY_LENGTH);
     }
 
-    if (messageTtl == 0) {
-        messageTtl = SIGNALING_DEFAULT_MESSAGE_TTL_VALUE;
+    if (pOrigChannelInfo->messageTtl == 0) {
+        pOrigChannelInfo->messageTtl = SIGNALING_DEFAULT_MESSAGE_TTL_VALUE;
     } else {
-        CHK(messageTtl >= MIN_SIGNALING_MESSAGE_TTL_VALUE && messageTtl <= MAX_SIGNALING_MESSAGE_TTL_VALUE, STATUS_SIGNALING_INVALID_MESSAGE_TTL_VALUE);
+        CHK(pOrigChannelInfo->messageTtl >= MIN_SIGNALING_MESSAGE_TTL_VALUE &&
+            pOrigChannelInfo->messageTtl <= MAX_SIGNALING_MESSAGE_TTL_VALUE, STATUS_SIGNALING_INVALID_MESSAGE_TTL_VALUE);
     }
 
     // If tags count is not zero then pTags shouldn't be NULL
-    CHK_STATUS(validateTags(tagCount, pTags));
+    CHK_STATUS(validateTags(pOrigChannelInfo->tagCount, pOrigChannelInfo->pTags));
 
     // Account for the tags
-    CHK_STATUS(packageTags(tagCount, pTags, 0, NULL, &tagsSize));
+    CHK_STATUS(packageTags(pOrigChannelInfo->tagCount, pOrigChannelInfo->pTags, 0, NULL, &tagsSize));
 
     // Allocate enough storage to hold the data with aligned strings size and set the pointers and NULL terminators
     allocSize = SIZEOF(ChannelInfo) +
@@ -110,14 +96,22 @@ STATUS createChannelInfo(PCHAR pChannelName,
     CHK(NULL != (pChannelInfo = (PChannelInfo) MEMCALLOC(1, allocSize)), STATUS_NOT_ENOUGH_MEMORY);
 
     pChannelInfo->version = CHANNEL_INFO_CURRENT_VERSION;
-    pChannelInfo->channelType = channelType;
-    pChannelInfo->channelRoleType = channelRoleType;
-    pChannelInfo->cachingEndpoint = cachingEndpoint;
-    pChannelInfo->endpointCachingPeriod = endpointCachingPeriod;
-    pChannelInfo->retry = retry;
-    pChannelInfo->reconnect = reconnect;
-    pChannelInfo->messageTtl = messageTtl;
-    pChannelInfo->tagCount = tagCount;
+    pChannelInfo->channelType = pOrigChannelInfo->channelType;
+    pChannelInfo->channelRoleType = pOrigChannelInfo->channelRoleType;
+    pChannelInfo->cachingPeriod = pOrigChannelInfo->cachingPeriod;
+    pChannelInfo->retry = pOrigChannelInfo->retry;
+    pChannelInfo->reconnect = pOrigChannelInfo->reconnect;
+    pChannelInfo->messageTtl = pOrigChannelInfo->messageTtl;
+    pChannelInfo->tagCount = pOrigChannelInfo->tagCount;
+
+    // V1 handling
+    if (pOrigChannelInfo->version > 0) {
+        pChannelInfo->cachingPolicy = pOrigChannelInfo->cachingPolicy;
+        pChannelInfo->asyncIceServerConfig = pOrigChannelInfo->asyncIceServerConfig;
+    } else {
+        pChannelInfo->cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_NONE;
+        pChannelInfo->asyncIceServerConfig = FALSE;
+    }
 
     // Set the current pointer to the end
     pCurPtr = (PCHAR) (pChannelInfo + 1);
@@ -125,13 +119,13 @@ STATUS createChannelInfo(PCHAR pChannelName,
     // Set the pointers to the end and copy the data.
     // NOTE: the structure is calloc-ed so the strings will be NULL terminated
     if (nameLen != 0) {
-        STRCPY(pCurPtr, pChannelName);
+        STRCPY(pCurPtr, pOrigChannelInfo->pChannelName);
         pChannelInfo->pChannelName = pCurPtr;
         pCurPtr += ALIGN_UP_TO_MACHINE_WORD(nameLen + 1); // For the NULL terminator
     }
 
     if (arnLen != 0) {
-        STRCPY(pCurPtr, pChannelArn);
+        STRCPY(pCurPtr, pOrigChannelInfo->pChannelArn);
         pChannelInfo->pChannelArn = pCurPtr;
         pCurPtr += ALIGN_UP_TO_MACHINE_WORD(arnLen + 1);
     }
@@ -140,8 +134,8 @@ STATUS createChannelInfo(PCHAR pChannelName,
     pChannelInfo->pRegion = pCurPtr;
     pCurPtr += ALIGN_UP_TO_MACHINE_WORD(regionLen + 1);
 
-    if (pControlPlaneUrl != NULL && *pControlPlaneUrl != '\0') {
-        STRCPY(pCurPtr, pControlPlaneUrl);
+    if (pOrigChannelInfo->pControlPlaneUrl != NULL && *pOrigChannelInfo->pControlPlaneUrl != '\0') {
+        STRCPY(pCurPtr, pOrigChannelInfo->pControlPlaneUrl);
     } else {
         // Create a fully qualified URI
         SNPRINTF(pCurPtr,
@@ -157,41 +151,46 @@ STATUS createChannelInfo(PCHAR pChannelName,
     pCurPtr += ALIGN_UP_TO_MACHINE_WORD(cplLen + 1);
 
     if (certLen != 0) {
-        STRCPY(pCurPtr, pCertPath);
+        STRCPY(pCurPtr, pOrigChannelInfo->pCertPath);
         pChannelInfo->pCertPath = pCurPtr;
         pCurPtr += ALIGN_UP_TO_MACHINE_WORD(certLen + 1);
     }
 
     if (postfixLen != 0) {
-        STRCPY(pCurPtr, pUserAgentPostfix);
+        STRCPY(pCurPtr, pOrigChannelInfo->pUserAgentPostfix);
         pChannelInfo->pUserAgentPostfix = pCurPtr;
         pCurPtr += ALIGN_UP_TO_MACHINE_WORD(postfixLen + 1);
     }
 
     if (agentLen != 0) {
-        STRCPY(pCurPtr, pCustomUserAgent);
+        STRCPY(pCurPtr, pOrigChannelInfo->pCustomUserAgent);
         pChannelInfo->pCustomUserAgent = pCurPtr;
         pCurPtr += ALIGN_UP_TO_MACHINE_WORD(agentLen + 1);
     }
 
-    getUserAgentString(pUserAgentPostfix, pCustomUserAgent, MAX_USER_AGENT_LEN, pCurPtr);
+    getUserAgentString(pOrigChannelInfo->pUserAgentPostfix, pOrigChannelInfo->pCustomUserAgent, MAX_USER_AGENT_LEN, pCurPtr);
     pChannelInfo->pUserAgent = pCurPtr;
     pChannelInfo->pUserAgent[MAX_USER_AGENT_LEN] = '\0';
     pCurPtr += ALIGN_UP_TO_MACHINE_WORD(userAgentLen + 1);
 
     if (kmsLen != 0) {
-        STRCPY(pCurPtr, pCustomUserAgent);
+        STRCPY(pCurPtr, pOrigChannelInfo->pCustomUserAgent);
         pChannelInfo->pKmsKeyId = pCurPtr;
         pCurPtr += ALIGN_UP_TO_MACHINE_WORD(kmsLen + 1);
     }
 
+    // Fix-up the caching period
+    if (pChannelInfo->cachingPeriod == SIGNALING_API_CALL_CACHE_TTL_SENTINEL_VALUE) {
+        pChannelInfo->cachingPeriod = SIGNALING_DEFAULT_API_CALL_CACHE_TTL;
+    }
+
     // Process tags
-    pChannelInfo->tagCount = tagCount;
-    if (tagCount != 0) {
+    pChannelInfo->tagCount = pOrigChannelInfo->tagCount;
+    if (pOrigChannelInfo->tagCount != 0) {
         pChannelInfo->pTags = (PTag) pCurPtr;
 
         // Package the tags after the structure
-        CHK_STATUS(packageTags(tagCount, pTags, tagsSize, pChannelInfo->pTags, NULL));
+        CHK_STATUS(packageTags(pOrigChannelInfo->tagCount, pOrigChannelInfo->pTags, tagsSize, pChannelInfo->pTags, NULL));
     }
 
 CleanUp:
