@@ -74,6 +74,7 @@ struct __SampleStreamingSession {
     volatile ATOMIC_BOOL terminateFlag;
     volatile ATOMIC_BOOL candidateGatheringDone;
     volatile ATOMIC_BOOL peerIdReceived;
+    volatile ATOMIC_BOOL sdpOfferAnswerExchanged;
     volatile SIZE_T frameIndex;
     PRtcPeerConnection pPeerConnection;
     PRtcRtpTransceiver pVideoRtcRtpTransceiver;
