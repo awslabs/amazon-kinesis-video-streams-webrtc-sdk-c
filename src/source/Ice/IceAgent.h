@@ -55,6 +55,11 @@ extern "C" {
 
 #define KVS_ICE_DEFAULT_TURN_PROTOCOL                                   KVS_SOCKET_PROTOCOL_TCP
 
+#define ICE_HASH_TABLE_BUCKET_COUNT                                     50
+#define ICE_HASH_TABLE_BUCKET_LENGTH                                    2
+
+#define ICE_CANDIDATE_ID_LEN                                            8
+
 typedef enum {
     ICE_CANDIDATE_TYPE_HOST             = 0,
     ICE_CANDIDATE_TYPE_PEER_REFLEXIVE   = 1,
@@ -94,6 +99,7 @@ typedef struct {
 
 typedef struct {
     ICE_CANDIDATE_TYPE iceCandidateType;
+    BOOL isRemote;
     KvsIpAddress ipAddress;
     PSocketConnection pSocketConnection;
     ICE_CANDIDATE_STATE state;
@@ -103,6 +109,8 @@ typedef struct {
     /* If candidate is local and relay, then store the
      * TurnConnectionTracker this candidate is associated to */
     PTurnConnectionTracker pTurnConnectionTracker;
+
+    CHAR id[ICE_CANDIDATE_ID_LEN + 1];
 } IceCandidate, *PIceCandidate;
 
 typedef struct {
@@ -113,6 +121,8 @@ typedef struct {
     ICE_CANDIDATE_PAIR_STATE state;
     PTransactionIdStore pTransactionIdStore;
     UINT64 lastDataSentTime;
+    PHashTable requestSentTime;
+    UINT64 roundTripTime;
 } IceCandidatePair, *PIceCandidatePair;
 
 struct __TurnConnectionTracker {
@@ -349,6 +359,7 @@ STATUS iceAgentNominateCandidatePair(PIceAgent);
 STATUS iceAgentInvalidateCandidatePair(PIceAgent);
 STATUS iceAgentCheckPeerReflexiveCandidate(PIceAgent, PKvsIpAddress, UINT32, BOOL, PSocketConnection);
 STATUS iceAgentFatalError(PIceAgent, STATUS);
+VOID iceAgentLogNewCandidate(PIceCandidate);
 
 UINT32 computeCandidatePriority(PIceCandidate);
 UINT64 computeCandidatePairPriority(PIceCandidatePair, BOOL);
