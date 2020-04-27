@@ -51,7 +51,11 @@ STATUS dtlsTransmissionTimerCallback(UINT32 timerID, UINT64 currentTime, UINT64 
     /* In case we need to initiate the handshake */
     CHK_STATUS(dtlsCheckOutgoingDataBuffer(pDtlsSession));
 
-    CHK(!SSL_is_init_finished(pDtlsSession->pSsl), STATUS_TIMER_QUEUE_STOP_SCHEDULING);
+    if (SSL_is_init_finished(pDtlsSession->pSsl)) {
+        DLOGD("DTLS init completed. Time taken %" PRIu64 " ms",
+              (GETTIME() - pDtlsSession->dtlsSessionStartTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+        CHK(FALSE, STATUS_TIMER_QUEUE_STOP_SCHEDULING);
+    }
 
     /* https://commondatastorage.googleapis.com/chromium-boringssl-docs/ssl.h.html#DTLSv1_get_timeout */
     dtlsTimeoutRet = DTLSv1_get_timeout(pDtlsSession->pSsl, &timeout);
@@ -395,6 +399,7 @@ STATUS dtlsSessionStart(PDtlsSession pDtlsSession, BOOL isServer)
         LOG_OPENSSL_ERROR("SSL_do_handshake");
     }
 
+    pDtlsSession->dtlsSessionStartTime = GETTIME();
     CHK_STATUS(timerQueueAddTimer(pDtlsSession->timerQueueHandle, DTLS_SESSION_TIMER_START_DELAY,
                                   DTLS_TRANSMISSION_INTERVAL, dtlsTransmissionTimerCallback, (UINT64) pDtlsSession,
                                   &pDtlsSession->timerId));
