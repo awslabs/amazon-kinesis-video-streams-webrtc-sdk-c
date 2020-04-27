@@ -121,19 +121,18 @@ STATUS masterMessageReceived(UINT64 customData, PReceivedSignalingMessage pRecei
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) customData;
     PSampleStreamingSession pSampleStreamingSession = NULL;
     UINT32 i;
-    BOOL locked = FALSE, sessionExisted = FALSE;
+    BOOL locked = FALSE;
+    ATOMIC_BOOL expected = FALSE;
 
     CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
 
     MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
     locked = TRUE;
-
     // ice candidate message and offer message can come at any order. Therefore, if we see a new peerId, then create
     // a new SampleStreamingSession, which in turn creates a new peerConnection
     for (i = 0; i < pSampleConfiguration->streamingSessionCount && pSampleStreamingSession == NULL; ++i) {
         if (0 == STRCMP(pReceivedSignalingMessage->signalingMessage.peerClientId, pSampleConfiguration->sampleStreamingSessionList[i]->peerId)) {
             pSampleStreamingSession = pSampleConfiguration->sampleStreamingSessionList[i];
-            sessionExisted = TRUE;
         }
     }
 
@@ -155,12 +154,13 @@ STATUS masterMessageReceived(UINT64 customData, PReceivedSignalingMessage pRecei
 
     switch (pReceivedSignalingMessage->signalingMessage.messageType) {
         case SIGNALING_MESSAGE_TYPE_OFFER:
-            if (!sessionExisted) {
+            if (ATOMIC_COMPARE_EXCHANGE_BOOL(&pSampleStreamingSession->sdpOfferAnswerExchanged, &expected, TRUE)) {
                 CHK_STATUS(handleOffer(pSampleConfiguration,
                                        pSampleStreamingSession,
                                        &pReceivedSignalingMessage->signalingMessage));
             } else {
-                DLOGD("session still active, ignore new offer that has the same client id");
+                DLOGD("Offer already received, ignore new offer from client id %s",
+                      pReceivedSignalingMessage->signalingMessage.peerClientId);
             }
             break;
         case SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE:

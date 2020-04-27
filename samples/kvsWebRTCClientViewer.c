@@ -41,7 +41,7 @@ INT32 main(INT32 argc, CHAR *argv[])
 
     pSampleConfiguration->signalingClientCallbacks.messageReceivedFn = viewerMessageReceived;
 
-    strcpy(pSampleConfiguration->clientInfo.clientId, SAMPLE_VIEWER_CLIENT_ID);
+    sprintf(pSampleConfiguration->clientInfo.clientId, "%s_%u", SAMPLE_VIEWER_CLIENT_ID, RAND() % UINT32_MAX);
 
     retStatus = createSignalingClientSync(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
                                           &pSampleConfiguration->signalingClientCallbacks, pSampleConfiguration->pCredentialProvider,
