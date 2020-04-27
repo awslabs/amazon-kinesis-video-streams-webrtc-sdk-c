@@ -535,6 +535,8 @@ STATUS freePeerConnection(PRtcPeerConnection *ppPeerConnection)
 
     CHK(pKvsPeerConnection != NULL, retStatus);
 
+    /* Free dtlsSession before ice to stop dtlsSession's timer from sending anymore data. */
+    CHK_LOG_ERR(freeDtlsSession(&pKvsPeerConnection->pDtlsSession));
     CHK_LOG_ERR(iceAgentShutdown(pKvsPeerConnection->pIceAgent));
 
     // free timer queue first to remove liveness provided by timer
@@ -563,7 +565,6 @@ STATUS freePeerConnection(PRtcPeerConnection *ppPeerConnection)
 
     // free rest of structs
     CHK_LOG_ERR(freeSrtpSession(&pKvsPeerConnection->pSrtpSession));
-    CHK_LOG_ERR(freeDtlsSession(&pKvsPeerConnection->pDtlsSession));
     CHK_LOG_ERR(doubleListFree(pKvsPeerConnection->pTransceievers));
     CHK_LOG_ERR(hashTableFree(pKvsPeerConnection->pCodecTable));
     CHK_LOG_ERR(hashTableFree(pKvsPeerConnection->pRtxTable));

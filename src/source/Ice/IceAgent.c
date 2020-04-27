@@ -493,8 +493,6 @@ STATUS iceAgentSendPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen)
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
 
-    SocketConnection socketConnection;
-    KvsIpAddress destAddr;
     BOOL isRelay = FALSE;
     PTurnConnection pTurnConnection = NULL;
 
@@ -507,10 +505,6 @@ STATUS iceAgentSendPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen)
     CHK_WARN(pIceAgent->pDataSendingIceCandidatePair != NULL, retStatus, "No valid ice candidate pair available to send data");
 
     pIceAgent->pDataSendingIceCandidatePair->lastDataSentTime = GETTIME();
-
-    // Construct context
-    socketConnection = *pIceAgent->pDataSendingIceCandidatePair->local->pSocketConnection;
-    destAddr = pIceAgent->pDataSendingIceCandidatePair->remote->ipAddress;
     isRelay = IS_CANN_PAIR_SENDING_FROM_RELAYED(pIceAgent->pDataSendingIceCandidatePair);
 
     if (isRelay) {
@@ -521,8 +515,8 @@ STATUS iceAgentSendPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen)
 
     retStatus = iceUtilsSendData(pBuffer,
                                  bufferLen,
-                                 &destAddr,
-                                 &socketConnection,
+                                 &pIceAgent->pDataSendingIceCandidatePair->remote->ipAddress,
+                                 pIceAgent->pDataSendingIceCandidatePair->local->pSocketConnection,
                                  pTurnConnection,
                                  isRelay);
 
