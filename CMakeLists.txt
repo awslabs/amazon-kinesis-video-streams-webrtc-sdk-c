@@ -4,9 +4,9 @@ include(Utilities)
 project(KinesisVideoWebRTCClient LANGUAGES C)
 
 # User Flags
-option(BUILD_STATIC "Build with static linkage." OFF)
 option(ADD_MUCLIBC "Add -muclibc c flag" OFF)
 option(BUILD_DEPENDENCIES "Whether or not to build depending libraries from source" ON)
+option(BUILD_STATIC_LIBS "Build all libraries statically. (This includes third-party libraries.)" OFF)
 option(BUILD_OPENSSL_PLATFORM "If buildng OpenSSL what is the target platform" OFF)
 option(BUILD_LIBSRTP_HOST_PLATFORM "If buildng LibSRTP what is the current platform" OFF)
 option(BUILD_LIBSRTP_DESTINATION_PLATFORM "If buildng LibSRTP what is the destination platform" OFF)
@@ -24,8 +24,7 @@ set(CMAKE_MACOSX_RPATH TRUE)
 get_filename_component(ROOT "${CMAKE_CURRENT_SOURCE_DIR}" ABSOLUTE)
 
 # static settings
-if(BUILD_STATIC)
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
+if(BUILD_STATIC_LIBS)
   set(LINKAGE STATIC)
 
   set(USRSCTP_LIBNAME "libusrsctp.a") # todo: why doesn't CMAKE_STATIC_LIBRARY_SUFFIX work on my ubuntu cmake 3.10 system? evaluates to .so
@@ -78,17 +77,18 @@ if(BUILD_DEPENDENCIES)
 
   message(STATUS "Begin building dependencies.")
 
-  set(BUILD_ARGS -DBUILD_STATIC=${BUILD_STATIC}
-                 -DBUILD_OPENSSL_PLATFORM=${BUILD_OPENSSL_PLATFORM})
+  set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
+                 -DBUILD_OPENSSL_PLATFORM=${BUILD_OPENSSL_PLATFORM}
+                 -DOPENSSL_EXTRA=${OPENSSL_EXTRA})
   build_dependency(openssl ${BUILD_ARGS})
   set(OPENSSL_ROOT_DIR ${OPEN_SRC_INSTALL_PREFIX})
 
-  set(BUILD_ARGS -DBUILD_STATIC=${BUILD_STATIC}
+  set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
                  -DOPENSSL_DIR=${OPEN_SRC_INSTALL_PREFIX})
   build_dependency(websockets ${BUILD_ARGS})
 
   set(BUILD_ARGS
-      -DBUILD_STATIC=${BUILD_STATIC}
+      -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
       -DOPENSSL_DIR=${OPEN_SRC_INSTALL_PREFIX}
       -DBUILD_LIBSRTP_HOST_PLATFORM=${BUILD_LIBSRTP_HOST_PLATFORM}
       -DBUILD_LIBSRTP_DESTINATION_PLATFORM=${BUILD_LIBSRTP_DESTINATION_PLATFORM}
