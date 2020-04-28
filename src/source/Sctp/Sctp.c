@@ -199,6 +199,9 @@ STATUS sctpSessionWriteDcep(PSctpSession pSctpSession, UINT32 streamId, PCHAR pC
      pPacket[0] = DCEP_DATA_CHANNEL_OPEN;
      pPacket[1] = DCEP_DATA_CHANNEL_RELIABLE;
      MEMCPY(pPacket + 8, &channelLenNetworkOrder, SIZEOF(UINT16));
+     //TODO: proto len
+     MEMCPY(pPacket + 12, pChannelName, pChannelNameLen);
+     //TODO: proto string
 
      MEMSET(&spa, 0x00, SIZEOF(struct sctp_sendv_spa));
      spa.sendv_flags |= SCTP_SEND_SNDINFO_VALID;
