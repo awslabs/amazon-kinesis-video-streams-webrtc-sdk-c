@@ -205,6 +205,7 @@ STATUS turnConnectionHandleStun(PTurnConnection, PBYTE, UINT32);
 STATUS turnConnectionHandleStunError(PTurnConnection, PBYTE, UINT32);
 STATUS turnConnectionHandleChannelData(PTurnConnection, PBYTE, UINT32, PTurnChannelData, PUINT32);
 STATUS turnConnectionHandleChannelDataTcpMode(PTurnConnection, PBYTE, UINT32, PTurnChannelData, PUINT32);
+VOID turnConnectionFatalError(PTurnConnection, STATUS);
 
 PTurnPeer turnConnectionGetPeerWithChannelNumber(PTurnConnection, UINT16);
 PTurnPeer turnConnectionGetPeerWithIp(PTurnConnection, PKvsIpAddress);
