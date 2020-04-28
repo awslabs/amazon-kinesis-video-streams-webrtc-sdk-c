@@ -366,7 +366,7 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         EXPECT_NE(STATUS_SUCCESS, findCandidateWithIp(&ipAddress, NULL, NULL));
         EXPECT_NE(STATUS_SUCCESS, findCandidateWithIp(&ipAddress, &candidateList, NULL));
 
-        EXPECT_EQ(STATUS_SUCCESS, populateIpFromString(&ipAddress, (PCHAR) "127.0.0.1"));
+        EXPECT_EQ(1, inet_pton(AF_INET, (PCHAR) "127.0.0.1", &ipAddress.address));
         ipAddress.port = 123;
         ipAddress.family = KVS_IP_FAMILY_TYPE_IPV4;
         EXPECT_EQ(STATUS_SUCCESS, findCandidateWithIp(&ipAddress, &candidateList, &pIceCandidate));
@@ -382,12 +382,12 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         EXPECT_EQ(NULL, pIceCandidate);
 
         ipAddress.family = KVS_IP_FAMILY_TYPE_IPV4;
-        EXPECT_EQ(STATUS_SUCCESS, populateIpFromString(&ipAddress, (PCHAR) "127.0.0.2"));
+        EXPECT_EQ(1, inet_pton(AF_INET, (PCHAR) "127.0.0.2", &ipAddress.address));
         EXPECT_EQ(STATUS_SUCCESS, findCandidateWithIp(&ipAddress, &candidateList, &pIceCandidate));
         // address not match
         EXPECT_EQ(NULL, pIceCandidate);
 
-        EXPECT_EQ(STATUS_SUCCESS, populateIpFromString(&ipAddress, (PCHAR) "127.0.0.1"));
+        EXPECT_EQ(1, inet_pton(AF_INET, (PCHAR) "127.0.0.1", &ipAddress.address));
         ipAddress.port = 124;
         EXPECT_EQ(STATUS_SUCCESS, findCandidateWithIp(&ipAddress, &candidateList, &pIceCandidate));
         // port not match

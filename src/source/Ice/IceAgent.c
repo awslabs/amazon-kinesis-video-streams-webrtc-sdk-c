@@ -255,9 +255,9 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
     PIceCandidate pIceCandidate = NULL, pDuplicatedIceCandidate = NULL;
     PCHAR curr, tail, next;
     UINT32 tokenLen, portValue, remoteCandidateCount, i, len;
-    BOOL foundIpAndPort = FALSE, freeIceCandidateIfFail = TRUE;
-    BOOL foundIp6 = FALSE;
-    CHAR ip6Buf[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
+    BOOL freeIceCandidateIfFail = TRUE;
+    BOOL foundIp = FALSE, foundPort = FALSE;
+    CHAR ipBuf[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
     KvsIpAddress candidateIpAddr;
 
     CHK(pIceAgent != NULL && pIceCandidateString != NULL, STATUS_NULL_ARG);
@@ -273,31 +273,32 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
 
     curr = pIceCandidateString;
     tail = pIceCandidateString + STRLEN(pIceCandidateString);
-    while ((next = STRNCHR(curr, tail - curr, ' ')) != NULL && !foundIpAndPort) {
+    while ((next = STRNCHR(curr, tail - curr, ' ')) != NULL && !(foundIp && foundPort)) {
         tokenLen = (UINT32) (next - curr);
         CHK(STRNCMPI("tcp", curr, tokenLen) != 0, STATUS_ICE_CANDIDATE_STRING_IS_TCP);
 
-        if (candidateIpAddr.address[0] != 0 || foundIp6) {
+        if (foundIp) {
             CHK_STATUS(STRTOUI32(curr, curr + tokenLen, 10, &portValue));
 
             candidateIpAddr.port = htons(portValue);
-            candidateIpAddr.family = foundIp6 ? KVS_IP_FAMILY_TYPE_IPV6 : KVS_IP_FAMILY_TYPE_IPV4;
-        } else if (STRNCHR(curr, tokenLen, '.') != NULL) {
-            CHK(tokenLen <= KVS_MAX_IPV4_ADDRESS_STRING_LEN, STATUS_ICE_CANDIDATE_STRING_INVALID_IP); // IPv4 is 15 characters at most
-            CHK_STATUS(populateIpFromString(&candidateIpAddr, curr));
+            foundPort = TRUE;
         } else {
             len = MIN(next - curr, KVS_IP_ADDRESS_STRING_BUFFER_LEN - 1);
-            STRNCPY(ip6Buf, curr, len);
-            ip6Buf[len] = '\0';
-            foundIp6 = inet_pton(AF_INET6, ip6Buf, candidateIpAddr.address) == 1 ? TRUE : FALSE;
+            STRNCPY(ipBuf, curr, len);
+            ipBuf[len] = '\0';
+
+            if ((foundIp = inet_pton(AF_INET, ipBuf, candidateIpAddr.address) == 1 ? TRUE : FALSE)) {
+                candidateIpAddr.family = KVS_IP_FAMILY_TYPE_IPV4;
+            } else if ((foundIp = inet_pton(AF_INET6, ipBuf, candidateIpAddr.address) == 1 ? TRUE : FALSE)) {
+                candidateIpAddr.family = KVS_IP_FAMILY_TYPE_IPV6;
+            }
         }
 
         curr = next + 1;
-        foundIpAndPort = (candidateIpAddr.port != 0) && ((candidateIpAddr.address[0] != 0) || foundIp6);
     }
 
-    CHK(candidateIpAddr.port != 0, STATUS_ICE_CANDIDATE_STRING_MISSING_PORT);
-    CHK(candidateIpAddr.address[0] != 0 || foundIp6, STATUS_ICE_CANDIDATE_STRING_MISSING_IP);
+    CHK(foundPort, STATUS_ICE_CANDIDATE_STRING_MISSING_PORT);
+    CHK(foundIp, STATUS_ICE_CANDIDATE_STRING_MISSING_IP);
 
     CHK_STATUS(findCandidateWithIp(&candidateIpAddr, pIceAgent->remoteCandidates, &pDuplicatedIceCandidate));
     CHK(pDuplicatedIceCandidate == NULL, retStatus);
