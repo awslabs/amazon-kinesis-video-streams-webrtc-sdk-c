@@ -17,7 +17,7 @@ extern "C" {
 #define KVS_ICE_CONNECTIVITY_CHECK_TIMEOUT                              10 * HUNDREDS_OF_NANOS_IN_A_SECOND
 #define KVS_ICE_CANDIDATE_NOMINATION_TIMEOUT                            10 * HUNDREDS_OF_NANOS_IN_A_SECOND
 #define KVS_ICE_SEND_KEEP_ALIVE_INTERVAL                                15 * HUNDREDS_OF_NANOS_IN_A_SECOND
-#define KVS_ICE_TURN_CONNECTION_SHUTDOWN_TIMEOUT                        3 * HUNDREDS_OF_NANOS_IN_A_SECOND
+#define KVS_ICE_TURN_CONNECTION_SHUTDOWN_TIMEOUT                        5 * HUNDREDS_OF_NANOS_IN_A_SECOND
 #define KVS_ICE_DEFAULT_TIMER_START_DELAY                               3 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
 
 // Ta in https://tools.ietf.org/html/rfc8445
@@ -54,6 +54,11 @@ extern "C" {
 #define IS_CANN_PAIR_SENDING_FROM_RELAYED(p)                            ((p)->local->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED)
 
 #define KVS_ICE_DEFAULT_TURN_PROTOCOL                                   KVS_SOCKET_PROTOCOL_TCP
+
+#define ICE_HASH_TABLE_BUCKET_COUNT                                     50
+#define ICE_HASH_TABLE_BUCKET_LENGTH                                    2
+
+#define ICE_CANDIDATE_ID_LEN                                            8
 
 typedef enum {
     ICE_CANDIDATE_TYPE_HOST             = 0,
@@ -94,6 +99,7 @@ typedef struct {
 
 typedef struct {
     ICE_CANDIDATE_TYPE iceCandidateType;
+    BOOL isRemote;
     KvsIpAddress ipAddress;
     PSocketConnection pSocketConnection;
     ICE_CANDIDATE_STATE state;
@@ -103,6 +109,8 @@ typedef struct {
     /* If candidate is local and relay, then store the
      * TurnConnectionTracker this candidate is associated to */
     PTurnConnectionTracker pTurnConnectionTracker;
+
+    CHAR id[ICE_CANDIDATE_ID_LEN + 1];
 } IceCandidate, *PIceCandidate;
 
 typedef struct {
@@ -113,6 +121,8 @@ typedef struct {
     ICE_CANDIDATE_PAIR_STATE state;
     PTransactionIdStore pTransactionIdStore;
     UINT64 lastDataSentTime;
+    PHashTable requestSentTime;
+    UINT64 roundTripTime;
 } IceCandidatePair, *PIceCandidatePair;
 
 struct __TurnConnectionTracker {
@@ -132,6 +142,7 @@ struct __IceAgent {
     volatile ATOMIC_BOOL agentStartGathering;
     volatile ATOMIC_BOOL remoteCredentialReceived;
     volatile ATOMIC_BOOL candidateGatheringFinished;
+    volatile ATOMIC_BOOL shutdown;
 
     CHAR localUsername[MAX_ICE_CONFIG_USER_NAME_LEN + 1];
     CHAR localPassword[MAX_ICE_CONFIG_CREDENTIAL_LEN + 1];
@@ -349,6 +360,7 @@ STATUS iceAgentNominateCandidatePair(PIceAgent);
 STATUS iceAgentInvalidateCandidatePair(PIceAgent);
 STATUS iceAgentCheckPeerReflexiveCandidate(PIceAgent, PKvsIpAddress, UINT32, BOOL, PSocketConnection);
 STATUS iceAgentFatalError(PIceAgent, STATUS);
+VOID iceAgentLogNewCandidate(PIceCandidate);
 
 UINT32 computeCandidatePriority(PIceCandidate);
 UINT64 computeCandidatePairPriority(PIceCandidatePair, BOOL);

@@ -73,6 +73,7 @@ typedef struct {
     // dtls message must fit into a UDP packet
     BYTE outgoingDataBuffer[MAX_UDP_PACKET_SIZE];
     UINT32 outgoingDataLen;
+    UINT64 dtlsSessionStartTime;
 
     SSL *pSsl;
     MUTEX sslLock;

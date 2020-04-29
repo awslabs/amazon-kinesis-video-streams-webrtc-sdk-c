@@ -70,12 +70,12 @@ If you wish to cross-compile `CC` and `CXX` are respected when building the libr
 
 #### Static Builds
 
-If `-DBUILD_STATIC=TRUE` then all dependencies and KVS WebRTC will be bit with static linkage. Static linkage and glibc have [known issues](https://sourceware.org/bugzilla/show_bug.cgi?id=10652), and is not recommended at this time.
+If `-DBUILD_STATIC_LIBS=TRUE` then all dependencies and KVS WebRTC libraries will be built as static libraries.
 
 #### CMake Arguments
 You can pass the following options to `cmake ..`.
 
-* `-DBUILD_STATIC` -- Enable a static build
+* `-DBUILD_STATIC_LIBS` -- Build all KVS WebRTC and third-party libraries as static libraries.
 * `-DADD_MUCLIBC`  -- Add -muclibc c flag
 * `-DBUILD_DEPENDENCIES` -- Whether or not to build depending libraries from source
 * `-DBUILD_OPENSSL_PLATFORM` -- If buildng OpenSSL what is the target platform

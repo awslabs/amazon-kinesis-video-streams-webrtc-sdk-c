@@ -99,8 +99,10 @@ TEST_F(PeerConnectionFunctionalityTest, freeTurnDueToP2PFoundBeforeTurnEstablish
         return;
     }
 
+    UINT32 i;
     RtcConfiguration configuration;
     PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    PIceAgent pIceAgent = NULL;
 
     MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
 
@@ -114,8 +116,15 @@ TEST_F(PeerConnectionFunctionalityTest, freeTurnDueToP2PFoundBeforeTurnEstablish
 
     THREAD_SLEEP(5 * HUNDREDS_OF_NANOS_IN_A_SECOND);
 
-    EXPECT_TRUE(((PKvsPeerConnection)offerPc)->pIceAgent->turnConnectionTrackerCount == 0);
-    EXPECT_TRUE(((PKvsPeerConnection)answerPc)->pIceAgent->turnConnectionTrackerCount == 0);
+    pIceAgent = ((PKvsPeerConnection)offerPc)->pIceAgent;
+    for(i = 0; i < pIceAgent->turnConnectionTrackerCount; ++i) {
+        EXPECT_TRUE(turnConnectionIsShutdownComplete(pIceAgent->turnConnectionTrackers[i].pTurnConnection));
+    }
+
+    pIceAgent = ((PKvsPeerConnection)answerPc)->pIceAgent;
+    for(i = 0; i < pIceAgent->turnConnectionTrackerCount; ++i) {
+        EXPECT_TRUE(turnConnectionIsShutdownComplete(pIceAgent->turnConnectionTrackers[i].pTurnConnection));
+    }
 
     freePeerConnection(&offerPc);
     freePeerConnection(&answerPc);
@@ -134,6 +143,8 @@ TEST_F(PeerConnectionFunctionalityTest, freeTurnDueToP2PFoundAfterTurnEstablishe
     RtcSessionDescriptionInit sdp;
     SIZE_T offerPcDoneGatherCandidate = 0, answerPcDoneGatherCandidate = 0;
     UINT64 candidateGatherTimeout;
+    PIceAgent pIceAgent = NULL;
+    UINT32 i;
 
     MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
 
@@ -191,8 +202,15 @@ TEST_F(PeerConnectionFunctionalityTest, freeTurnDueToP2PFoundAfterTurnEstablishe
     // give time for turn allocated to be freed
     THREAD_SLEEP(5 * HUNDREDS_OF_NANOS_IN_A_SECOND);
 
-    EXPECT_TRUE(((PKvsPeerConnection)offerPc)->pIceAgent->turnConnectionTrackerCount == 0);
-    EXPECT_TRUE(((PKvsPeerConnection)answerPc)->pIceAgent->turnConnectionTrackerCount == 0);
+    pIceAgent = ((PKvsPeerConnection)offerPc)->pIceAgent;
+    for(i = 0; i < pIceAgent->turnConnectionTrackerCount; ++i) {
+        EXPECT_TRUE(turnConnectionIsShutdownComplete(pIceAgent->turnConnectionTrackers[i].pTurnConnection));
+    }
+
+    pIceAgent = ((PKvsPeerConnection)answerPc)->pIceAgent;
+    for(i = 0; i < pIceAgent->turnConnectionTrackerCount; ++i) {
+        EXPECT_TRUE(turnConnectionIsShutdownComplete(pIceAgent->turnConnectionTrackers[i].pTurnConnection));
+    }
 
     freePeerConnection(&offerPc);
     freePeerConnection(&answerPc);

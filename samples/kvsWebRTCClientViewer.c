@@ -33,7 +33,7 @@ INT32 main(INT32 argc, CHAR *argv[])
     // Initialize KVS WebRTC. This must be done before anything else, and must only be done once.
     retStatus = initKvsWebRtc();
     if(retStatus != STATUS_SUCCESS) {
-        printf("[KVS Master] initKvsWebRtc(): operation returned status code: 0x%08x \n", retStatus);
+        printf("[KVS Viewer] initKvsWebRtc(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;
     }
 
@@ -41,7 +41,7 @@ INT32 main(INT32 argc, CHAR *argv[])
 
     pSampleConfiguration->signalingClientCallbacks.messageReceivedFn = viewerMessageReceived;
 
-    strcpy(pSampleConfiguration->clientInfo.clientId, SAMPLE_VIEWER_CLIENT_ID);
+    sprintf(pSampleConfiguration->clientInfo.clientId, "%s_%u", SAMPLE_VIEWER_CLIENT_ID, RAND() % UINT32_MAX);
 
     retStatus = createSignalingClientSync(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
                                           &pSampleConfiguration->signalingClientCallbacks, pSampleConfiguration->pCredentialProvider,
@@ -100,6 +100,26 @@ INT32 main(INT32 argc, CHAR *argv[])
     if(retStatus != STATUS_SUCCESS) {
         printf("[KVS Viewer] transceiverOnFrame(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;
+    }
+
+    if (!pSampleConfiguration->trickleIce) {
+        printf("[KVS Viewer] Non trickle ice. Wait for Candidate collection to complete\n");
+        MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
+        locked = TRUE;
+
+        while (!ATOMIC_LOAD_BOOL(&pSampleStreamingSession->candidateGatheringDone)) {
+            CHK_WARN(!ATOMIC_LOAD_BOOL(&pSampleStreamingSession->terminateFlag), STATUS_OPERATION_TIMED_OUT,
+                     "application terminated and candidate gathering still not done");
+            CVAR_WAIT(pSampleConfiguration->cvar, pSampleConfiguration->sampleConfigurationObjLock, 5 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+        }
+
+        MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
+        locked = FALSE;
+
+        printf("[KVS Viewer] Candidate collection completed\n");
+        // get the latest local description once candidate gathering is done
+        CHK_STATUS(peerConnectionGetCurrentLocalDescription(pSampleStreamingSession->pPeerConnection,
+                                                            &offerSessionDescriptionInit));
     }
 
     printf("[KVS Viewer] Generating JSON of session description....");

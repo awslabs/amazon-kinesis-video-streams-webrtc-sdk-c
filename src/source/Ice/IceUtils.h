@@ -37,8 +37,6 @@ STATUS iceUtilsPackageStunPacket(PStunPacket, PBYTE, UINT32, PBYTE, PUINT32);
 STATUS iceUtilsSendStunPacket(PStunPacket, PBYTE, UINT32, PKvsIpAddress, PSocketConnection, struct __TurnConnection*, BOOL);
 STATUS iceUtilsSendData(PBYTE, UINT32, PKvsIpAddress, PSocketConnection, struct __TurnConnection*, BOOL);
 
-STATUS populateIpFromString(PKvsIpAddress, PCHAR);
-
 typedef struct {
     BOOL isTurn;
     CHAR url[MAX_ICE_CONFIG_URI_LEN + 1];

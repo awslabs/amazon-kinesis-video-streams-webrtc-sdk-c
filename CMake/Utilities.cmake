@@ -40,7 +40,7 @@ function(build_dependency lib_name)
 
   # build library
   configure_file(
-    ${CMAKE_SOURCE_DIR}/CMake/Dependencies/lib${lib_name}-CMakeLists.txt
+    ./CMake/Dependencies/lib${lib_name}-CMakeLists.txt
     ${KINESIS_VIDEO_OPEN_SOURCE_SRC}/lib${lib_name}/CMakeLists.txt COPYONLY)
   execute_process(
     COMMAND ${CMAKE_COMMAND} ${build_args}

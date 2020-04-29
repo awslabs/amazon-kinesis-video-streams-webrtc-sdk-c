@@ -74,6 +74,7 @@ struct __SampleStreamingSession {
     volatile ATOMIC_BOOL terminateFlag;
     volatile ATOMIC_BOOL candidateGatheringDone;
     volatile ATOMIC_BOOL peerIdReceived;
+    volatile ATOMIC_BOOL sdpOfferAnswerExchanged;
     volatile SIZE_T frameIndex;
     PRtcPeerConnection pPeerConnection;
     PRtcRtpTransceiver pVideoRtcRtpTransceiver;
@@ -84,6 +85,7 @@ struct __SampleStreamingSession {
     UINT32 videoTimestamp;
     CHAR peerId[MAX_SIGNALING_CLIENT_ID_LEN + 1];
     TID receiveAudioVideoSenderTid;
+    UINT64 firstSdpMsgReceiveTime;
 
     // this is called when the SampleStreamingSession is being freed
     StreamSessionShutdownCallback shutdownCallback;

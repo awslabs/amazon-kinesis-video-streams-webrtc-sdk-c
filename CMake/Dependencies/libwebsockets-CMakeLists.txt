@@ -4,7 +4,7 @@ project(libwebsocket-download NONE)
 
 include(ExternalProject)
 
-if (BUILD_STATIC)
+if (BUILD_STATIC_LIBS)
   set(LWS_WITH_STATIC 1)
   set(LWS_WITH_SHARED 0)
 else()
@@ -23,6 +23,7 @@ ExternalProject_Add(project_libwebsockets
         -DLWS_HAVE_SSL_EXTRA_CHAIN_CERTS=1
         -DLWS_HAVE_OPENSSL_ECDH_H=1
         -DLWS_HAVE_EVP_MD_CTX_free=1
+	-DLWS_HAVE_LIBCAP=0
         -DLWS_WITHOUT_SERVER=1
         -DLWS_WITHOUT_TESTAPPS=1
         -DLWS_WITH_THREADPOOL=1

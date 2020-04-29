@@ -160,7 +160,7 @@ STATUS signalingClientGetCurrentState(SIGNALING_CLIENT_HANDLE signalingClientHan
     PSignalingClient pSignalingClient = FROM_SIGNALING_CLIENT_HANDLE(signalingClientHandle);
     PStateMachineState pStateMachineState;
 
-    DLOGI("Signaling Client Get Current State");
+    DLOGV("Signaling Client Get Current State");
 
     CHK(pSignalingClient != NULL && pState != NULL, STATUS_NULL_ARG);
 

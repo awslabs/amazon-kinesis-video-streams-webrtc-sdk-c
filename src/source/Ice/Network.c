@@ -51,6 +51,12 @@ STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen,
                     destIpList[ipCount].family = KVS_IP_FAMILY_TYPE_IPV6;
                     destIpList[ipCount].port = 0;
                     pIpv6Addr = (struct sockaddr_in6 *) ifa->ifa_addr;
+                    // Ignore link local: not very useful and will add work unnecessarily
+                    // Ignore site local: https://tools.ietf.org/html/rfc8445#section-5.1.1.1
+                    if (IN6_IS_ADDR_LINKLOCAL(&pIpv6Addr->sin6_addr) ||
+                        IN6_IS_ADDR_SITELOCAL(&pIpv6Addr->sin6_addr)) {
+                      continue;
+                    }
                     MEMCPY(destIpList[ipCount].address, &pIpv6Addr->sin6_addr, IPV6_ADDRESS_LENGTH);
                 }
 
@@ -177,20 +183,32 @@ CleanUp:
 STATUS getIpWithHostName(PCHAR hostname, PKvsIpAddress destIp)
 {
     STATUS retStatus = STATUS_SUCCESS;
+    UINT32 errCode;
+    struct addrinfo *res, *rp;
+    BOOL resolved = FALSE;
+    struct sockaddr_in *ipv4Addr;
+    struct sockaddr_in6 *ipv6Addr;
 
     CHK(hostname != NULL, STATUS_NULL_ARG);
 
-    struct hostent *entry = gethostbyname(hostname);
-    CHK_ERR(entry != NULL, STATUS_RESOLVE_HOSTNAME_FAILED, "gethostbyname() with errno %s", strerror(errno));
-    CHK_ERR(entry->h_length != 0, STATUS_HOSTNAME_NOT_FOUND, "could not find network address of %s", hostname);
+    CHK_ERR((errCode = getaddrinfo(hostname, NULL, NULL, &res)) == 0, STATUS_RESOLVE_HOSTNAME_FAILED, "getaddrinfo() with errno %s", gai_strerror(errCode));
 
-    if (entry->h_addrtype == AF_INET) {
-        destIp->family = KVS_IP_FAMILY_TYPE_IPV4;
-        MEMCPY(destIp->address, entry->h_addr_list[0], IPV4_ADDRESS_LENGTH);
-    } else {
-        destIp->family = KVS_IP_FAMILY_TYPE_IPV6;
-        MEMCPY(destIp->address, entry->h_addr_list[0], IPV6_ADDRESS_LENGTH);
+    for (rp = res; rp != NULL && !resolved; rp = rp->ai_next) {
+        if (rp->ai_family == AF_INET) {
+            ipv4Addr = (struct sockaddr_in*)rp->ai_addr;
+            destIp->family = KVS_IP_FAMILY_TYPE_IPV4;
+            MEMCPY(destIp->address, &ipv4Addr->sin_addr, IPV4_ADDRESS_LENGTH);
+            resolved = TRUE;
+        } else if (rp->ai_family == AF_INET6) {
+            ipv6Addr = (struct sockaddr_in6*)rp->ai_addr;
+            destIp->family = KVS_IP_FAMILY_TYPE_IPV6;
+            MEMCPY(destIp->address, &ipv6Addr->sin6_addr, IPV6_ADDRESS_LENGTH);
+            resolved = TRUE;
+        }
     }
+
+    freeaddrinfo(res);
+    CHK_ERR(resolved, STATUS_HOSTNAME_NOT_FOUND, "could not find network address of %s", hostname);
 
 CleanUp:
 
