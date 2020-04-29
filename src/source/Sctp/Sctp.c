@@ -183,6 +183,26 @@ CleanUp:
     return retStatus;
 }
 
+//https://tools.ietf.org/html/draft-ietf-rtcweb-data-protocol-09#section-5.1
+//      0                   1                   2                   3
+//      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+//     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//     |  Message Type |  Channel Type |            Priority           |
+//     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//     |                    Reliability Parameter                      |
+//     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//     |         Label Length          |       Protocol Length         |
+//     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//     \                                                               /
+//     |                             Label                             |
+//     /                                                               \
+//     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//     \                                                               /
+//     |                            Protocol                           |
+//     /                                                               \
+//     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#define DCEP_LABEL_LEN_OFFSET 8
+#define DCEP_LABEL_OFFSET 12
 STATUS sctpSessionWriteDcep(PSctpSession pSctpSession, UINT32 streamId, PCHAR pChannelName, UINT32 pChannelNameLen, PRtcDataChannelInit pRtcDataChannelInit)
 {
      UNUSED_PARAM(pRtcDataChannelInit);
@@ -191,17 +211,14 @@ STATUS sctpSessionWriteDcep(PSctpSession pSctpSession, UINT32 streamId, PCHAR pC
      struct sctp_sendv_spa spa;
      PBYTE pPacket = NULL;
      UINT32 pPacketSize = SCTP_DCEP_HEADER_LENGTH + pChannelNameLen;
-     UINT16 channelLenNetworkOrder = htons(pChannelNameLen);
 
      CHK(pSctpSession != NULL && pChannelName != NULL, STATUS_NULL_ARG);
      CHK((pPacket = (PBYTE) MEMCALLOC(1, pPacketSize)) != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
      pPacket[0] = DCEP_DATA_CHANNEL_OPEN;
      pPacket[1] = DCEP_DATA_CHANNEL_RELIABLE;
-     MEMCPY(pPacket + 8, &channelLenNetworkOrder, SIZEOF(UINT16));
-     //TODO: proto len
-     MEMCPY(pPacket + 12, pChannelName, pChannelNameLen);
-     //TODO: proto string
+     putUnalignedInt16BigEndian(pPacket + DCEP_LABEL_LEN_OFFSET, pChannelNameLen);
+     MEMCPY(pPacket + DCEP_LABEL_OFFSET, pChannelName, pChannelNameLen);
 
      MEMSET(&spa, 0x00, SIZEOF(struct sctp_sendv_spa));
      spa.sendv_flags |= SCTP_SEND_SNDINFO_VALID;
