@@ -52,7 +52,7 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     CHK_STATUS(createStateMachine(SIGNALING_STATE_MACHINE_STATES,
                                   SIGNALING_STATE_MACHINE_STATE_COUNT,
                                   CUSTOM_DATA_FROM_SIGNALING_CLIENT(pSignalingClient),
-                                  kinesisVideoStreamDefaultGetCurrentTime,
+                                  signalingGetCurrentTime,
                                   CUSTOM_DATA_FROM_SIGNALING_CLIENT(pSignalingClient),
                                   &pSignalingClient->pStateMachine));
 
@@ -1108,4 +1108,10 @@ CleanUp:
 
     LEAVES();
     return retStatus;
+}
+
+UINT64 signalingGetCurrentTime(UINT64 customData)
+{
+    UNUSED_PARAM(customData);
+    return GETTIME();
 }

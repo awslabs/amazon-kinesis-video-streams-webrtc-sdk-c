@@ -240,7 +240,6 @@ add_library(kvsWebrtcClient ${LINKAGE} ${WEBRTC_CLIENT_SOURCE_FILES})
 target_link_libraries(
   kvsWebrtcClient
   PRIVATE kvspicUtils
-          kvspicClient
           kvspicState
           ${OPENSSL_SSL_LIBRARY}
           ${OPENSSL_CRYPTO_LIBRARY}
@@ -252,7 +251,7 @@ add_library(kvsWebrtcSignalingClient ${LINKAGE} ${WEBRTC_SIGNALING_CLIENT_SOURCE
 
 target_link_libraries(
   kvsWebrtcSignalingClient
-  PRIVATE kvspicUtils kvspicState kvspicClient
+  PRIVATE kvspicUtils kvspicState
   PUBLIC kvsCommonLws)
 
 add_executable(

@@ -266,6 +266,8 @@ STATUS signalingGetOngoingMessage(PSignalingClient, PCHAR, PCHAR, PSignalingMess
 
 STATUS refreshIceConfigurationCallback(UINT32, UINT64, UINT64);
 
+UINT64 signalingGetCurrentTime(UINT64);
+
 STATUS awaitForThreadTermination(PThreadTracker, UINT64);
 STATUS initializeThreadTracker(PThreadTracker);
 STATUS uninitializeThreadTracker(PThreadTracker);

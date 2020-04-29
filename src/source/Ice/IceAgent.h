@@ -356,6 +356,9 @@ STATUS iceAgentSendKeepAliveTimerCallback(UINT32, UINT64, UINT64);
 STATUS iceAgentFreeTurnConnectionTimerCallback(UINT32, UINT64, UINT64);
 STATUS iceAgentGatherCandidateTimerCallback(UINT32, UINT64, UINT64);
 
+// Default time callback for the state machine
+UINT64 iceAgentGetCurrentTime(UINT64);
+
 STATUS iceAgentNominateCandidatePair(PIceAgent);
 STATUS iceAgentInvalidateCandidatePair(PIceAgent);
 STATUS iceAgentCheckPeerReflexiveCandidate(PIceAgent, PKvsIpAddress, UINT32, BOOL, PSocketConnection);
