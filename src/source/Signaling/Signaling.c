@@ -619,7 +619,7 @@ STATUS signalingStoreOngoingMessage(PSignalingClient pSignalingClient, PSignalin
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
-    PSignalingMessage pExistingMessage;
+    PSignalingMessage pExistingMessage = NULL;
 
     CHK(pSignalingClient != NULL && pSignalingMessage != NULL, STATUS_NULL_ARG);
     MUTEX_LOCK(pSignalingClient->messageQueueLock);
