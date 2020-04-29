@@ -201,8 +201,6 @@ CleanUp:
 //     |                            Protocol                           |
 //     /                                                               \
 //     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-#define DCEP_LABEL_LEN_OFFSET 8
-#define DCEP_LABEL_OFFSET 12
 STATUS sctpSessionWriteDcep(PSctpSession pSctpSession, UINT32 streamId, PCHAR pChannelName, UINT32 pChannelNameLen, PRtcDataChannelInit pRtcDataChannelInit)
 {
      UNUSED_PARAM(pRtcDataChannelInit);
@@ -217,8 +215,8 @@ STATUS sctpSessionWriteDcep(PSctpSession pSctpSession, UINT32 streamId, PCHAR pC
 
      pPacket[0] = DCEP_DATA_CHANNEL_OPEN;
      pPacket[1] = DCEP_DATA_CHANNEL_RELIABLE;
-     putUnalignedInt16BigEndian(pPacket + DCEP_LABEL_LEN_OFFSET, pChannelNameLen);
-     MEMCPY(pPacket + DCEP_LABEL_OFFSET, pChannelName, pChannelNameLen);
+     putUnalignedInt16BigEndian(pPacket + SCTP_DCEP_LABEL_LEN_OFFSET, pChannelNameLen);
+     MEMCPY(pPacket + SCTP_DCEP_LABEL_OFFSET, pChannelName, pChannelNameLen);
 
      MEMSET(&spa, 0x00, SIZEOF(struct sctp_sendv_spa));
      spa.sendv_flags |= SCTP_SEND_SNDINFO_VALID;
