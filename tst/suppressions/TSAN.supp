@@ -358,3 +358,54 @@ race:PeerConnectionFunctionalityTest_freeTurnDueToP2PFoundAfterTurnEstablished
 #
 # SUMMARY: ThreadSanitizer: data race /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/open-source/amazon-kinesis-video-streams-pic/src/utils/src/InstrumentedAllocators.c:17:42 in setInstrumentedAllocators
 race:setInstrumentedAllocators
+
+# WARNING: ThreadSanitizer: lock-order-inversion (potential deadlock) (pid=20990)
+#   Cycle in lock order graph: M877774268853663472 (0x000000000000) => M880307543644078960 (0x000000000000) => M877774268853663472
+#
+#   Mutex M880307543644078960 acquired here while holding mutex M877774268853663472 in main thread:
+#     #0 pthread_mutex_lock /tmp/final/llvm.src/projects/compiler-rt/lib/tsan/../sanitizer_common/sanitizer_common_interceptors.inc:4071:3 (webrtc_client_test+0x4fcb0e)
+#     #1 defaultLockMutex /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/open-source/amazon-kinesis-video-streams-pic/src/utils/src/Mutex.c:202:5 (libkvsWebrtcClient.so+0x6b9b8)
+#     #2 timerQueueAddTimer /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/open-source/amazon-kinesis-video-streams-pic/src/utils/src/TimerQueue.c:65:5 (libkvsWebrtcClient.so+0x7059b)
+#     #3 getIceConfig /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/Signaling.c:980:9 (libkvsWebrtcSignalingClient.so+0x2020b)
+#     #4 executeGetIceConfigSignalingState /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/StateMachine.c:536:17 (libkvsWebrtcSignalingClient.so+0x2204a)
+#     #5 stepStateMachine /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/open-source/amazon-kinesis-video-streams-pic/src/state/src/State.c:182:9 (libkvsWebrtcClient.so+0x757e5)
+#     #6 stepSignalingStateMachine /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/StateMachine.c:70:5 (libkvsWebrtcSignalingClient.so+0x23ad9)
+#     #7 executeGetEndpointSignalingState /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/StateMachine.c:474:5 (libkvsWebrtcSignalingClient.so+0x21d39)
+#     #8 stepStateMachine /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/open-source/amazon-kinesis-video-streams-pic/src/state/src/State.c:182:9 (libkvsWebrtcClient.so+0x757e5)
+#     #9 stepSignalingStateMachine /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/StateMachine.c:70:5 (libkvsWebrtcSignalingClient.so+0x23ad9)
+#     #10 executeDescribeSignalingState /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/StateMachine.c:346:5 (libkvsWebrtcSignalingClient.so+0x216f9)
+#     #11 stepStateMachine /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/open-source/amazon-kinesis-video-streams-pic/src/state/src/State.c:182:9 (libkvsWebrtcClient.so+0x757e5)
+#     #12 stepSignalingStateMachine /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/StateMachine.c:70:5 (libkvsWebrtcSignalingClient.so+0x23ad9)
+#     #13 executeCreateSignalingState /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/StateMachine.c:410:5 (libkvsWebrtcSignalingClient.so+0x21a19)
+#     #14 stepStateMachine /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/open-source/amazon-kinesis-video-streams-pic/src/state/src/State.c:182:9 (libkvsWebrtcClient.so+0x757e5)
+#     #15 stepSignalingStateMachine /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/StateMachine.c:70:5 (libkvsWebrtcSignalingClient.so+0x23ad9)
+#     #16 executeDescribeSignalingState /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/StateMachine.c:346:5 (libkvsWebrtcSignalingClient.so+0x216f9)
+#     #17 stepStateMachine /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/open-source/amazon-kinesis-video-streams-pic/src/state/src/State.c:182:9 (libkvsWebrtcClient.so+0x757e5)
+#     #18 stepSignalingStateMachine /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/StateMachine.c:70:5 (libkvsWebrtcSignalingClient.so+0x23ad9)
+#     #19 executeGetTokenSignalingState /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/StateMachine.c:272:5 (libkvsWebrtcSignalingClient.so+0x2135a)
+#     #20 stepStateMachine /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/open-source/amazon-kinesis-video-streams-pic/src/state/src/State.c:182:9 (libkvsWebrtcClient.so+0x757e5)
+#     #21 stepSignalingStateMachine /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/StateMachine.c:70:5 (libkvsWebrtcSignalingClient.so+0x23ad9)
+#     #22 createSignalingSync /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/Signaling.c:151:5 (libkvsWebrtcSignalingClient.so+0x1c045)
+#     #23 com::amazonaws::kinesis::video::webrtcclient::SignalingApiFunctionalityTest_asyncIceConfigRefreshBeforeConnect_Test::TestBody() /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/tst/SignalingApiFunctionalityTest.cpp:2253:5 (webrtc_client_test+0x651aca)
+#     #24 void testing::internal::HandleSehExceptionsInMethodIfSupported<testing::Test, void>(testing::Test*, void (testing::Test::*)(), char const*) <null> (webrtc_client_test+0x6ec65d)
+#
+#     Hint: use TSAN_OPTIONS=second_deadlock_stack=1 to get more informative warning message
+#
+#   Mutex M877774268853663472 acquired here while holding mutex M880307543644078960 in thread T572:
+#     #0 pthread_mutex_lock /tmp/final/llvm.src/projects/compiler-rt/lib/tsan/../sanitizer_common/sanitizer_common_interceptors.inc:4071:3 (webrtc_client_test+0x4fcb0e)
+#     #1 defaultLockMutex /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/open-source/amazon-kinesis-video-streams-pic/src/utils/src/Mutex.c:202:5 (libkvsWebrtcClient.so+0x6b9b8)
+#     #2 stepSignalingStateMachine /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/StateMachine.c:40:5 (libkvsWebrtcSignalingClient.so+0x23815)
+#     #3 refreshIceConfigurationCallback /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/Signaling.c:593:9 (libkvsWebrtcSignalingClient.so+0x1ee93)
+#     #4 timerQueueExecutor /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/open-source/amazon-kinesis-video-streams-pic/src/utils/src/TimerQueue.c:561:37 (libkvsWebrtcClient.so+0x72745)
+#
+#   Thread T4 (tid=21606, running) created by main thread at:
+#     #0 pthread_create /tmp/final/llvm.src/projects/compiler-rt/lib/tsan/rtl/tsan_interceptors.cc:965:3 (webrtc_client_test+0x4e1005)
+#     #1 defaultCreateThread /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/open-source/amazon-kinesis-video-streams-pic/src/utils/src/Thread.c:171:14 (libkvsWebrtcClient.so+0x6e6ea)
+#     #2 timerQueueCreateInternal /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/open-source/amazon-kinesis-video-streams-pic/src/utils/src/TimerQueue.c:378:5 (libkvsWebrtcClient.so+0x6f632)
+#     #3 timerQueueCreate /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/open-source/amazon-kinesis-video-streams-pic/src/utils/src/TimerQueue.c:14:5 (libkvsWebrtcClient.so+0x6ee6e)
+#     #4 createSignalingSync /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/Signaling.c:121:5 (libkvsWebrtcSignalingClient.so+0x1bb70)
+#     #5 com::amazonaws::kinesis::video::webrtcclient::SignalingApiFunctionalityTest_asyncIceConfigRefreshBeforeConnect_Test::TestBody() /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/tst/SignalingApiFunctionalityTest.cpp:2253:5 (webrtc_client_test+0x651aca)
+#     #6 void testing::internal::HandleSehExceptionsInMethodIfSupported<testing::Test, void>(testing::Test*, void (testing::Test::*)(), char const*) <null> (webrtc_client_test+0x6ec65d)
+#
+# SUMMARY: ThreadSanitizer: lock-order-inversion (potential deadlock) /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/open-source/amazon-kinesis-video-streams-pic/src/utils/src/Mutex.c:202:5 in defaultLockMutex
+deadlock:getIceConfig
