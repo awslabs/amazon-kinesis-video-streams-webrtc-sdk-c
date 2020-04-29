@@ -42,7 +42,7 @@ endif()
 
 set(KINESIS_VIDEO_PIC_SRC "${CMAKE_CURRENT_SOURCE_DIR}/open-source/amazon-kinesis-video-streams-pic/")
 set(KINESIS_VIDEO_PRODUCER_C_SRC "${CMAKE_CURRENT_SOURCE_DIR}/open-source/amazon-kinesis-video-streams-producer-c/")
-set(KINESIS_VIDEO_WEBRTC_CLIENT_SRC "${CMAKE_SOURCE_DIR}")
+set(KINESIS_VIDEO_WEBRTC_CLIENT_SRC "${CMAKE_CURRENT_SOURCE_DIR}")
 
 # expecting libjsmn, libwebsockets and gtest to be in
 # ${KINESIS_VIDEO_OPEN_SOURCE_SRC}/lib and their headers in
