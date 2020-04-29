@@ -2048,6 +2048,7 @@ TEST_F(SignalingApiFunctionalityTest, signalingClientDisconnectSyncVariations)
     MEMSET(message.payload, 'A', 200);
     message.payload[200] = '\0';
     message.payloadLen = 0;
+    message.correlationId[0] = '\0';
 
     EXPECT_EQ(STATUS_INVALID_STREAM_STATE, signalingClientSendMessageSync(mSignalingClientHandle, &message));
 
