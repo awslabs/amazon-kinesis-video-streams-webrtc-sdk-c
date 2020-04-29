@@ -146,6 +146,7 @@ STATUS masterMessageReceived(UINT64 customData, PReceivedSignalingMessage pRecei
                                                        pReceivedSignalingMessage->signalingMessage.peerClientId,
                                                        TRUE,
                                                        &pSampleStreamingSession));
+        pSampleStreamingSession->firstSdpMsgReceiveTime = GETTIME();
         pSampleConfiguration->sampleStreamingSessionList[pSampleConfiguration->streamingSessionCount++] = pSampleStreamingSession;
     }
 
