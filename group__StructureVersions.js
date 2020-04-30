@@ -7,6 +7,5 @@ var group__StructureVersions =
     [ "SIGNALING_CLIENT_CURRENT_VERSION", "group__StructureVersions.html#ga65c38a586218952b181af6f5054e7398", null ],
     [ "SIGNALING_CLIENT_INFO_CURRENT_VERSION", "group__StructureVersions.html#gaaa3ff5ce9fd22e235c8b175e3878737d", null ],
     [ "SIGNALING_ICE_CONFIG_INFO_CURRENT_VERSION", "group__StructureVersions.html#ga86b84654a2df2822d338f6d83dcc1351", null ],
-    [ "SIGNALING_MESSAGE_CURRENT_VERSION", "group__StructureVersions.html#ga49b3de2b6188a87f337eece2d9d02456", null ],
-    [ "SIGNALING_STATES_DEFAULT_RETRY_COUNT", "group__StructureVersions.html#gabd9e28b068f08097cc3fb11239c8c4ef", null ]
+    [ "SIGNALING_MESSAGE_CURRENT_VERSION", "group__StructureVersions.html#ga49b3de2b6188a87f337eece2d9d02456", null ]
 ];

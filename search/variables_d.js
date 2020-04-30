@@ -1,9 +1,7 @@
 var searchData=
 [
-  ['sdp_598',['sdp',['../structRtcSessionDescriptionInit.html#a62c6f63074c9ca7e465cb1bf39854db9',1,'RtcSessionDescriptionInit']]],
-  ['sendbufsize_599',['sendBufSize',['../structKvsRtcConfiguration.html#a208adbb095ca7a9b4bf55c1ec15ee038',1,'KvsRtcConfiguration']]],
-  ['signalingmessage_600',['signalingMessage',['../structReceivedSignalingMessage.html#adffadd7d879a948434b9fa7904eb5358',1,'ReceivedSignalingMessage']]],
-  ['statechangefn_601',['stateChangeFn',['../structSignalingClientCallbacks.html#a8a72e56bbf4b4dae2b19306acda39523',1,'SignalingClientCallbacks']]],
-  ['statuscode_602',['statusCode',['../structReceivedSignalingMessage.html#a9cb75a0987f4fc93a64b7dc45962b52f',1,'ReceivedSignalingMessage']]],
-  ['streamid_603',['streamId',['../structRtcMediaStreamTrack.html#a531a05b7b40a5ff298f6f238e0fe4613',1,'RtcMediaStreamTrack']]]
+  ['receiver_605',['receiver',['../structRtcRtpTransceiver.html#a9da0bde056ac3a5dc58eba5039c24a63',1,'RtcRtpTransceiver']]],
+  ['reconnect_606',['reconnect',['../structChannelInfo.html#af6aedc152cf044872d63fbe4619971ce',1,'ChannelInfo']]],
+  ['reserved_607',['reserved',['../structChannelInfo.html#a3e223c7cb71dcce2963818551782c052',1,'ChannelInfo']]],
+  ['retry_608',['retry',['../structChannelInfo.html#a0c0868239cfea2dddc22abe841c66f2a',1,'ChannelInfo']]]
 ];

@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['logginglevel_567',['loggingLevel',['../structSignalingClientInfo.html#a8df6838b31452ecf1bd1cf1a0fffa680',1,'SignalingClientInfo']]]
+  ['kind_575',['kind',['../structRtcMediaStreamTrack.html#a0ab3d1535c557003a68f2c0d9abde2c3',1,'RtcMediaStreamTrack']]],
+  ['kvsrtcconfiguration_576',['kvsRtcConfiguration',['../structRtcConfiguration.html#a69bb47ece52e306b555cf69a153db483',1,'RtcConfiguration']]]
 ];

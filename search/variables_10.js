@@ -1,4 +1,8 @@
 var searchData=
 [
-  ['version_614',['version',['../structRtcPeerConnection.html#a19b58ac2436203028cd705d575ab7ea6',1,'RtcPeerConnection::version()'],['../structSignalingMessage.html#a278d902dd02371c74db3f9aa2a90960b',1,'SignalingMessage::version()'],['../structSignalingClientInfo.html#aad776eab978b30bd3f21ecd3432c93a0',1,'SignalingClientInfo::version()'],['../structChannelInfo.html#a7aef1a2aa352519fb948d32416fc94f3',1,'ChannelInfo::version()'],['../structIceConfigInfo.html#a804c9f31a8d542f6ffee45d353f24c4e',1,'IceConfigInfo::version()'],['../structSignalingClientCallbacks.html#a28e1f7ffcd30600fbeecd7f682e6afed',1,'SignalingClientCallbacks::version()'],['../structSignalingChannelDescription.html#a2654c67d8cf48a3c4eb29e2454109b4d',1,'SignalingChannelDescription::version()']]]
+  ['updateversion_620',['updateVersion',['../structSignalingChannelDescription.html#a49a4ec273b31909f4e94e17513869a55',1,'SignalingChannelDescription']]],
+  ['uricount_621',['uriCount',['../structIceConfigInfo.html#a0994081094894c3559834299e4ce85fb',1,'IceConfigInfo']]],
+  ['uris_622',['uris',['../structIceConfigInfo.html#a223f06386852e206da201cd92b5f4b04',1,'IceConfigInfo']]],
+  ['urls_623',['urls',['../structRtcIceServer.html#a61295588ec2ba33f881ad9fe409d3266',1,'RtcIceServer']]],
+  ['username_624',['userName',['../structIceConfigInfo.html#a7ee9fc8595a6f4e47d6716aae4d6945a',1,'IceConfigInfo::userName()'],['../structRtcIceServer.html#acc02ab16ed6b946cf1b8e4621ab67bf7',1,'RtcIceServer::username()']]]
 ];

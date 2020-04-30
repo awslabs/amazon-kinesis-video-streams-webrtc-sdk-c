@@ -49,6 +49,7 @@ var Include_8h =
     [ "MAX_SIGNALING_MESSAGE_LEN", "group__NameLengths.html#ga70759b8e8d1dd4e3ecd8a947d6314f56", null ],
     [ "MAX_STATUS_CODE_STRING_LEN", "group__NameLengths.html#gaa69e7eb59adb93e7e8d1de9ade885343", null ],
     [ "PEER_CONNECTION_CURRENT_VERSION", "group__StructureVersions.html#gaa0f2c940f478034f48566420b85f6a8b", null ],
+    [ "SIGNALING_API_CALL_CACHE_TTL_SENTINEL_VALUE", "Include_8h.html#afffcbc366bf0d963121a10259b988d31", null ],
     [ "SIGNALING_CHANNEL_DESCRIPTION_CURRENT_VERSION", "group__StructureVersions.html#gad43eff9ad752a5282f3d7e11623034eb", null ],
     [ "SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION", "group__StructureVersions.html#gaeb27b6f96e2e014bf6f4ced98dc20572", null ],
     [ "SIGNALING_CLIENT_CURRENT_VERSION", "group__StructureVersions.html#ga65c38a586218952b181af6f5054e7398", null ],
@@ -56,6 +57,7 @@ var Include_8h =
     [ "SIGNALING_CONNECT_STATE_TIMEOUT", "group__Timeouts.html#ga17391f7d627fe5b1f054ac25f21795f8", null ],
     [ "SIGNALING_CONNECT_TIMEOUT", "group__Timeouts.html#gafc91aa7fd8995fa426f68d31de70b3e6", null ],
     [ "SIGNALING_CREATE_TIMEOUT", "group__Timeouts.html#ga7a6d2c97c3035f4b8825717aa973a17b", null ],
+    [ "SIGNALING_DEFAULT_API_CALL_CACHE_TTL", "Include_8h.html#ac8463c011b7295366ecfcefa4caa22aa", null ],
     [ "SIGNALING_DEFAULT_MESSAGE_TTL_VALUE", "group__Timeouts.html#gac679be5d732c8be8e40cece56ddaaf7a", null ],
     [ "SIGNALING_DEFAULT_NON_SSL_PORT", "Include_8h.html#a1410303128efe2263a439489f49300ab", null ],
     [ "SIGNALING_DEFAULT_SSL_PORT", "Include_8h.html#a88c324018b021dba73e56d93ddab2427", null ],
@@ -63,7 +65,7 @@ var Include_8h =
     [ "SIGNALING_ICE_CONFIG_INFO_CURRENT_VERSION", "group__StructureVersions.html#ga86b84654a2df2822d338f6d83dcc1351", null ],
     [ "SIGNALING_MESSAGE_CURRENT_VERSION", "group__StructureVersions.html#ga49b3de2b6188a87f337eece2d9d02456", null ],
     [ "SIGNALING_SEND_TIMEOUT", "group__Timeouts.html#gad1b8f63e3ef3b4e3d3d1c40792929896", null ],
-    [ "SIGNALING_STATES_DEFAULT_RETRY_COUNT", "group__StructureVersions.html#gabd9e28b068f08097cc3fb11239c8c4ef", null ],
+    [ "SIGNALING_STATES_DEFAULT_RETRY_COUNT", "Include_8h.html#abd9e28b068f08097cc3fb11239c8c4ef", null ],
     [ "SIGNALING_VALID_NAME_CHARS", "Include_8h.html#a5bfed0cf073cb1b1d572e6c5fe6ca401", null ],
     [ "STATUS_BINDING_SOCKET_FAILED", "group__Networking.html#gae461b5a9d0eb049c8b7a6c7abfeee95b", null ],
     [ "STATUS_CERTIFICATE_GENERATION_FAILED", "group__DTLS.html#ga4999e97b2991ab225df0297475895735", null ],
@@ -321,6 +323,10 @@ var Include_8h =
       [ "SDP_TYPE_OFFER", "Include_8h.html#abaa9adac53ec269df1574665ec4ec222adb6426a7bfdd3d7729301adf5caf066c", null ],
       [ "SDP_TYPE_ANSWER", "Include_8h.html#abaa9adac53ec269df1574665ec4ec222a0bbd9e55f1f177c7dac968af5f0a7c4d", null ]
     ] ],
+    [ "SIGNALING_API_CALL_CACHE_TYPE", "Include_8h.html#ac3fea669f2ac4c7db6d7e9528955a4c1", [
+      [ "SIGNALING_API_CALL_CACHE_TYPE_NONE", "Include_8h.html#ac3fea669f2ac4c7db6d7e9528955a4c1a887c5433bc1a60c8d331b220138b413a", null ],
+      [ "SIGNALING_API_CALL_CACHE_TYPE_DESCRIBE_GETENDPOINT", "Include_8h.html#ac3fea669f2ac4c7db6d7e9528955a4c1a21d8468dffe94ffe6c6144b984b5ead3", null ]
+    ] ],
     [ "SIGNALING_CHANNEL_ROLE_TYPE", "Include_8h.html#a67e678c57beb89ab9de7c9861f7d41cd", [
       [ "SIGNALING_CHANNEL_ROLE_TYPE_UNKNOWN", "Include_8h.html#a67e678c57beb89ab9de7c9861f7d41cdaec455a51fb62c109260fc311048802ea", null ],
       [ "SIGNALING_CHANNEL_ROLE_TYPE_MASTER", "Include_8h.html#a67e678c57beb89ab9de7c9861f7d41cda3ac6eed03ce4f267855e50ecd51dc38e", null ],
@@ -388,6 +394,7 @@ var Include_8h =
     [ "setRemoteDescription", "Include_8h.html#a4378f3c6aec4d69c647c46852bdfe6ed", null ],
     [ "signalingClientConnectSync", "Include_8h.html#acb53537d7d1c72a9e304ed095fe1252f", null ],
     [ "signalingClientDeleteSync", "Include_8h.html#ad85555f757662d1585efd00d496e5c13", null ],
+    [ "signalingClientDisconnectSync", "Include_8h.html#a6130116416557558b66728a8db2c6ee7", null ],
     [ "signalingClientGetCurrentState", "Include_8h.html#ab9b925bdc5aba1999e9192308f9cc6a9", null ],
     [ "signalingClientGetIceConfigInfo", "Include_8h.html#a94ed483b34bb395015b7d44fd98c8f5b", null ],
     [ "signalingClientGetIceConfigInfoCount", "Include_8h.html#a22f59c80e99e533e5e1d78d52145eb7c", null ],

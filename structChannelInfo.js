@@ -1,9 +1,10 @@
 var structChannelInfo =
 [
-    [ "cachingEndpoint", "structChannelInfo.html#aca8b7032e16dadcfe52fec292b07cb7c", null ],
+    [ "asyncIceServerConfig", "structChannelInfo.html#aa9746b411ce24f571591c2402fc2eaf9", null ],
+    [ "cachingPeriod", "structChannelInfo.html#a75623de5dcaea5c8a4db3c28947f79cb", null ],
+    [ "cachingPolicy", "structChannelInfo.html#acd86cb8e6c4f92d93635c2c58a8073d2", null ],
     [ "channelRoleType", "structChannelInfo.html#acc498395a65985dca82ce2e49a2c6e73", null ],
     [ "channelType", "structChannelInfo.html#a520316c48a0898343e670e427cbdcbbf", null ],
-    [ "endpointCachingPeriod", "structChannelInfo.html#a536e78c98eaa65113a9167b6e776fe03", null ],
     [ "messageTtl", "structChannelInfo.html#aa3fa299e94073522ed7ffe62efe39233", null ],
     [ "pCertPath", "structChannelInfo.html#a18ee8dc9965a0bc9744012b3c57e82ba", null ],
     [ "pChannelArn", "structChannelInfo.html#a48e8eda47fef8691b5e1f0f98af09492", null ],
@@ -16,6 +17,7 @@ var structChannelInfo =
     [ "pUserAgent", "structChannelInfo.html#a96bd36b833500aa9cdeb911090b81b54", null ],
     [ "pUserAgentPostfix", "structChannelInfo.html#af9844307e1563b060be0be199bcdf0f8", null ],
     [ "reconnect", "structChannelInfo.html#af6aedc152cf044872d63fbe4619971ce", null ],
+    [ "reserved", "structChannelInfo.html#a3e223c7cb71dcce2963818551782c052", null ],
     [ "retry", "structChannelInfo.html#a0c0868239cfea2dddc22abe841c66f2a", null ],
     [ "tagCount", "structChannelInfo.html#a068126ee9a6ec0eec32278185d0bb4fe", null ],
     [ "version", "structChannelInfo.html#a7aef1a2aa352519fb948d32416fc94f3", null ]

@@ -142,12 +142,11 @@ Public Attributes</h2></td></tr>
 <tr class="memitem:acc498395a65985dca82ce2e49a2c6e73"><td class="memItemLeft" align="right" valign="top"><a class="el" href="Include_8h.html#a67e678c57beb89ab9de7c9861f7d41cd">SIGNALING_CHANNEL_ROLE_TYPE</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structChannelInfo.html#acc498395a65985dca82ce2e49a2c6e73">channelRoleType</a></td></tr>
 <tr class="memdesc:acc498395a65985dca82ce2e49a2c6e73"><td class="mdescLeft">&#160;</td><td class="mdescRight">Channel role type for the endpoint - master/viewer.  <a href="structChannelInfo.html#acc498395a65985dca82ce2e49a2c6e73">More...</a><br /></td></tr>
 <tr class="separator:acc498395a65985dca82ce2e49a2c6e73"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aca8b7032e16dadcfe52fec292b07cb7c"><td class="memItemLeft" align="right" valign="top">BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structChannelInfo.html#aca8b7032e16dadcfe52fec292b07cb7c">cachingEndpoint</a></td></tr>
-<tr class="memdesc:aca8b7032e16dadcfe52fec292b07cb7c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Flag determines if the endpoint is to be cached.  <a href="structChannelInfo.html#aca8b7032e16dadcfe52fec292b07cb7c">More...</a><br /></td></tr>
-<tr class="separator:aca8b7032e16dadcfe52fec292b07cb7c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a536e78c98eaa65113a9167b6e776fe03"><td class="memItemLeft" align="right" valign="top">UINT64&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structChannelInfo.html#a536e78c98eaa65113a9167b6e776fe03">endpointCachingPeriod</a></td></tr>
-<tr class="memdesc:a536e78c98eaa65113a9167b6e776fe03"><td class="mdescLeft">&#160;</td><td class="mdescRight">Endpoint caching TTL.  <a href="structChannelInfo.html#a536e78c98eaa65113a9167b6e776fe03">More...</a><br /></td></tr>
-<tr class="separator:a536e78c98eaa65113a9167b6e776fe03"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3e223c7cb71dcce2963818551782c052"><td class="memItemLeft" align="right" valign="top">BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structChannelInfo.html#a3e223c7cb71dcce2963818551782c052">reserved</a></td></tr>
+<tr class="memdesc:a3e223c7cb71dcce2963818551782c052"><td class="mdescLeft">&#160;</td><td class="mdescRight">Reserved field for compatibility.  <a href="structChannelInfo.html#a3e223c7cb71dcce2963818551782c052">More...</a><br /></td></tr>
+<tr class="separator:a3e223c7cb71dcce2963818551782c052"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a75623de5dcaea5c8a4db3c28947f79cb"><td class="memItemLeft" align="right" valign="top">UINT64&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structChannelInfo.html#a75623de5dcaea5c8a4db3c28947f79cb">cachingPeriod</a></td></tr>
+<tr class="separator:a75623de5dcaea5c8a4db3c28947f79cb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0c0868239cfea2dddc22abe841c66f2a"><td class="memItemLeft" align="right" valign="top">BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structChannelInfo.html#a0c0868239cfea2dddc22abe841c66f2a">retry</a></td></tr>
 <tr class="memdesc:a0c0868239cfea2dddc22abe841c66f2a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Flag determines if a retry of the network calls is to be done on errors up to max retry times.  <a href="structChannelInfo.html#a0c0868239cfea2dddc22abe841c66f2a">More...</a><br /></td></tr>
 <tr class="separator:a0c0868239cfea2dddc22abe841c66f2a"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -162,23 +161,58 @@ Public Attributes</h2></td></tr>
 <tr class="memitem:a3aa4cefce4b890d78079217c5c7025fb"><td class="memItemLeft" align="right" valign="top">PTag&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structChannelInfo.html#a3aa4cefce4b890d78079217c5c7025fb">pTags</a></td></tr>
 <tr class="memdesc:a3aa4cefce4b890d78079217c5c7025fb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Stream tags array.  <a href="structChannelInfo.html#a3aa4cefce4b890d78079217c5c7025fb">More...</a><br /></td></tr>
 <tr class="separator:a3aa4cefce4b890d78079217c5c7025fb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:acd86cb8e6c4f92d93635c2c58a8073d2"><td class="memItemLeft" align="right" valign="top"><a class="el" href="Include_8h.html#ac3fea669f2ac4c7db6d7e9528955a4c1">SIGNALING_API_CALL_CACHE_TYPE</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structChannelInfo.html#acd86cb8e6c4f92d93635c2c58a8073d2">cachingPolicy</a></td></tr>
+<tr class="memdesc:acd86cb8e6c4f92d93635c2c58a8073d2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Backend API call caching policy.  <a href="structChannelInfo.html#acd86cb8e6c4f92d93635c2c58a8073d2">More...</a><br /></td></tr>
+<tr class="separator:acd86cb8e6c4f92d93635c2c58a8073d2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa9746b411ce24f571591c2402fc2eaf9"><td class="memItemLeft" align="right" valign="top">BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structChannelInfo.html#aa9746b411ce24f571591c2402fc2eaf9">asyncIceServerConfig</a></td></tr>
+<tr class="separator:aa9746b411ce24f571591c2402fc2eaf9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Contains all signaling channel related information. </p>
 </div><h2 class="groupheader">Member Data Documentation</h2>
-<a id="aca8b7032e16dadcfe52fec292b07cb7c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aca8b7032e16dadcfe52fec292b07cb7c">&#9670;&nbsp;</a></span>cachingEndpoint</h2>
+<a id="aa9746b411ce24f571591c2402fc2eaf9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa9746b411ce24f571591c2402fc2eaf9">&#9670;&nbsp;</a></span>asyncIceServerConfig</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">BOOL ChannelInfo::cachingEndpoint</td>
+          <td class="memname">BOOL ChannelInfo::asyncIceServerConfig</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>When creating channel synchronously, do not await for the ICE server configurations before returning from the call. </p>
+
+</div>
+</div>
+<a id="a75623de5dcaea5c8a4db3c28947f79cb"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a75623de5dcaea5c8a4db3c28947f79cb">&#9670;&nbsp;</a></span>cachingPeriod</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">UINT64 ChannelInfo::cachingPeriod</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Endpoint caching TTL. For no caching policy this param will be ignored. For caching policies the default value will be used if this parameter is 0 (SIGNALING_API_CALL_CACHE_TTL_SENTINEL_VALUE). </p>
+
+</div>
+</div>
+<a id="acd86cb8e6c4f92d93635c2c58a8073d2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#acd86cb8e6c4f92d93635c2c58a8073d2">&#9670;&nbsp;</a></span>cachingPolicy</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="Include_8h.html#ac3fea669f2ac4c7db6d7e9528955a4c1">SIGNALING_API_CALL_CACHE_TYPE</a> ChannelInfo::cachingPolicy</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p>Flag determines if the endpoint is to be cached. </p>
+<p>Backend API call caching policy. </p>
 
 </div>
 </div>
@@ -211,22 +245,6 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Channel type when creating. </p>
-
-</div>
-</div>
-<a id="a536e78c98eaa65113a9167b6e776fe03"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a536e78c98eaa65113a9167b6e776fe03">&#9670;&nbsp;</a></span>endpointCachingPeriod</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">UINT64 ChannelInfo::endpointCachingPeriod</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Endpoint caching TTL. </p>
 
 </div>
 </div>
@@ -417,6 +435,22 @@ Public Attributes</h2></td></tr>
 
 </div>
 </div>
+<a id="a3e223c7cb71dcce2963818551782c052"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a3e223c7cb71dcce2963818551782c052">&#9670;&nbsp;</a></span>reserved</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">BOOL ChannelInfo::reserved</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Reserved field for compatibility. </p>
+
+</div>
+</div>
 <a id="a0c0868239cfea2dddc22abe841c66f2a"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a0c0868239cfea2dddc22abe841c66f2a">&#9670;&nbsp;</a></span>retry</h2>
 
@@ -474,7 +508,7 @@ Public Attributes</h2></td></tr>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="structChannelInfo.html">ChannelInfo</a></li>
-    <li class="footer">Generated on Wed Apr 29 2020 21:24:36 for Amazon Kinesis Webrtc C SDK by
+    <li class="footer">Generated on Thu Apr 30 2020 19:17:34 for Amazon Kinesis Webrtc C SDK by
     <a href="http://www.doxygen.org/index.html">
     <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.16 </li>
   </ul>

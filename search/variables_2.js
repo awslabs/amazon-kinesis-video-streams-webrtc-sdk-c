@@ -1,6 +1,5 @@
 var searchData=
 [
-  ['endpointcachingperiod_552',['endpointCachingPeriod',['../structChannelInfo.html#a536e78c98eaa65113a9167b6e776fe03',1,'ChannelInfo']]],
-  ['errorreportfn_553',['errorReportFn',['../structSignalingClientCallbacks.html#a541b18458a4b4ec54117a6130fd48d6a',1,'SignalingClientCallbacks']]],
-  ['errortype_554',['errorType',['../structReceivedSignalingMessage.html#afae937b08befda5ffdbb7b6b17d481e1',1,'ReceivedSignalingMessage']]]
+  ['description_561',['description',['../structReceivedSignalingMessage.html#a5403ef07ec82c273c2720446ce4a0bbf',1,'ReceivedSignalingMessage']]],
+  ['direction_562',['direction',['../structRtcRtpTransceiver.html#a834bb77641bccbaa371190e37a900203',1,'RtcRtpTransceiver::direction()'],['../structRtcRtpTransceiverInit.html#a6f66c0c096b4ed45b0627ab13e3b2c69',1,'RtcRtpTransceiverInit::direction()']]]
 ];
