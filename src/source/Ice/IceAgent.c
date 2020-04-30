@@ -1326,6 +1326,7 @@ STATUS iceAgentInitSrflxCandidate(PIceAgent pIceAgent)
     STATUS retStatus = STATUS_SUCCESS;
     PDoubleListNode pCurNode = NULL;
     UINT64 data;
+    PIceServer pIceServer = NULL;
     PIceCandidate pCandidate = NULL, pNewCandidate = NULL;
     UINT32 j;
     BOOL locked = FALSE;
@@ -1339,11 +1340,10 @@ STATUS iceAgentInitSrflxCandidate(PIceAgent pIceAgent)
         pCurNode = pCurNode->pNext;
         pCandidate = (PIceCandidate) data;
 
-        // TODO: Stop skipping IPv6. Stun serialization and deserialization needs to be implemented properly first.
-        if (pCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_HOST &&
-              IS_IPV4_ADDR(&pCandidate->ipAddress)) {
+        if (pCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_HOST) {
             for (j = 0; j < pIceAgent->iceServersCount; j++) {
-                if (!pIceAgent->iceServers[j].isTurn) {
+                pIceServer = &pIceAgent->iceServers[j];
+                if (!pIceServer->isTurn && pIceServer->ipAddress.family == pCandidate->ipAddress.family) {
                     CHK((pNewCandidate = (PIceCandidate) MEMCALLOC(1, SIZEOF(IceCandidate))) != NULL,
                         STATUS_NOT_ENOUGH_MEMORY);
                     generateJSONSafeString(pNewCandidate->id, ARRAY_SIZE(pNewCandidate->id));
