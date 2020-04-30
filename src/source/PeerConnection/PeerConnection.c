@@ -665,6 +665,36 @@ CleanUp:
     return retStatus;
 }
 
+STATUS peerConnectionGetLocalDescription(PRtcPeerConnection pRtcPeerConnection, PRtcSessionDescriptionInit pRtcSessionDescriptionInit)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    SessionDescription sessionDescription;
+    UINT32 deserializeLen = 0;
+    PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pRtcPeerConnection;
+
+    CHK(pRtcPeerConnection != NULL && pRtcSessionDescriptionInit != NULL, STATUS_NULL_ARG);
+
+    MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
+
+    if (pKvsPeerConnection->isOffer) {
+        pRtcSessionDescriptionInit->type = SDP_TYPE_OFFER;
+    } else {
+        pRtcSessionDescriptionInit->type = SDP_TYPE_ANSWER;
+    }
+
+    CHK_STATUS(populateSessionDescription(pKvsPeerConnection, &(pKvsPeerConnection->remoteSessionDescription), &sessionDescription));
+    CHK_STATUS(deserializeSessionDescription(&sessionDescription, NULL, &deserializeLen));
+    CHK(deserializeLen <= MAX_SESSION_DESCRIPTION_INIT_SDP_LEN, STATUS_NOT_ENOUGH_MEMORY);
+
+    CHK_STATUS(deserializeSessionDescription(&sessionDescription, pRtcSessionDescriptionInit->sdp, &deserializeLen));
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
+
 STATUS peerConnectionGetCurrentLocalDescription(PRtcPeerConnection pRtcPeerConnection, PRtcSessionDescriptionInit pRtcSessionDescriptionInit)
 {
     ENTERS();

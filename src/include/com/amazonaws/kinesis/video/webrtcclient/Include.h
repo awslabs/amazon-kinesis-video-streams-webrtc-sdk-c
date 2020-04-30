@@ -1297,7 +1297,17 @@ PUBLIC_API STATUS peerConnectionOnDataChannel(PRtcPeerConnection, UINT64, RtcOnD
 PUBLIC_API STATUS peerConnectionOnConnectionStateChange(PRtcPeerConnection, UINT64, RtcOnConnectionStateChange);
 
 /**
- * Load the sdp field of PRtcSessionDescriptionInit with latest local session description
+ * Load the sdp field of PRtcSessionDescriptionInit with pending or current local session description
+ *
+ * @param[in] PRtcPeerConnection Initialized RtcPeerConnection
+ * @param[in,out] PRtcSessionDescriptionInit IN/PRtcSessionDescriptionInit whose sdp field will be modified.
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
+PUBLIC_API STATUS peerConnectionGetLocalDescription(PRtcPeerConnection, PRtcSessionDescriptionInit);
+
+/**
+ * Load the sdp field of PRtcSessionDescriptionInit with current local session description
  *
  * @param[in] PRtcPeerConnection Initialized RtcPeerConnection
  * @param[in,out] PRtcSessionDescriptionInit IN/PRtcSessionDescriptionInit whose sdp field will be modified.
