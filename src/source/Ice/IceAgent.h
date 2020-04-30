@@ -26,14 +26,14 @@ extern "C" {
 /* Control the calling rate of iceCandidateGatheringTimerTask. Can affect STUN TURN candidate gathering time */
 #define KVS_ICE_GATHER_CANDIDATE_TIMER_POLLING_INTERVAL                 50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
 
-// Disconnection timeout should be as long as KVS_ICE_SEND_KEEP_ALIVE_INTERVAL because peer can just be receiving
-// media and not sending anything back except keep alives
-#define KVS_ICE_ENTER_STATE_DISCONNECTION_GRACE_PERIOD                  15 * HUNDREDS_OF_NANOS_IN_A_SECOND
-#define KVS_ICE_ENTER_STATE_FAILED_GRACE_PERIOD                         30 * HUNDREDS_OF_NANOS_IN_A_SECOND
+/* Should see at least one keep alive within this period */
+#define KVS_ICE_ENTER_STATE_DISCONNECTION_GRACE_PERIOD                  2 * KVS_ICE_SEND_KEEP_ALIVE_INTERVAL
+#define KVS_ICE_ENTER_STATE_FAILED_GRACE_PERIOD                         15 * HUNDREDS_OF_NANOS_IN_A_SECOND
 
 #define STUN_HEADER_MAGIC_BYTE_OFFSET                                   4
 
 #define KVS_ICE_MAX_ICE_SERVERS                                         3
+#define KVS_ICE_TURN_CONECTION_TRACKERS                                 4
 
 // https://tools.ietf.org/html/rfc5245#section-4.1.2.1
 #define ICE_PRIORITY_HOST_CANDIDATE_TYPE_PREFERENCE                     126
@@ -41,12 +41,6 @@ extern "C" {
 #define ICE_PRIORITY_PEER_REFLEXIVE_CANDIDATE_TYPE_PREFERENCE           110
 #define ICE_PRIORITY_RELAYED_CANDIDATE_TYPE_PREFERENCE                  0
 #define ICE_PRIORITY_LOCAL_PREFERENCE                                   65535
-
-#define ICE_STUN_DEFAULT_PORT                                           3478
-
-#define ICE_URL_PREFIX_STUN                                             "stun:"
-#define ICE_URL_PREFIX_TURN                                             "turn:"
-#define ICE_URL_PREFIX_TURN_SECURE                                      "turns:"
 
 #define IS_STUN_PACKET(pBuf)                                            (getInt32(*(PUINT32)((pBuf) + STUN_HEADER_MAGIC_BYTE_OFFSET)) == STUN_HEADER_MAGIC_COOKIE)
 #define GET_STUN_PACKET_SIZE(pBuf)                                      ((UINT32) getInt16(*(PINT16) ((pBuf) + SIZEOF(UINT16))))
@@ -127,8 +121,6 @@ typedef struct {
 
 struct __TurnConnectionTracker {
     struct __TurnConnection* pTurnConnection;
-    UINT32 freeTurnConnectionTimerId;
-    UINT64 freeTurnConnectionEndTime;
 
     /* the ice candidate this TurnConnectionTracker is associated to. */
     PIceCandidate pRelayCandidate;
@@ -186,7 +178,7 @@ struct __IceAgent {
 
     UINT32 foundationCounter;
 
-    TurnConnectionTracker turnConnectionTrackers[KVS_ICE_MAX_ICE_SERVERS];
+    TurnConnectionTracker turnConnectionTrackers[KVS_ICE_TURN_CONECTION_TRACKERS];
     UINT32 turnConnectionTrackerCount;
 
     TIMER_QUEUE_HANDLE timerQueueHandle;
@@ -343,7 +335,8 @@ STATUS iceAgentSendStunPacket(PStunPacket, PBYTE, UINT32, PIceAgent, PIceCandida
 
 STATUS iceAgentInitHostCandidate(PIceAgent);
 STATUS iceAgentInitSrflxCandidate(PIceAgent);
-STATUS iceAgentInitRelayCandidate(PIceAgent);
+STATUS iceAgentInitRelayCandidates(PIceAgent);
+STATUS iceAgentInitRelayCandidate(PIceAgent, PKvsIpAddress, UINT32, KVS_SOCKET_PROTOCOL);
 
 STATUS iceAgentCheckConnectionStateSetup(PIceAgent);
 STATUS iceAgentConnectedStateSetup(PIceAgent);
@@ -353,7 +346,6 @@ STATUS iceAgentReadyStateSetup(PIceAgent);
 // timer callbacks. timer callbacks are interlocked by time queue lock.
 STATUS iceAgentStateTransitionTimerCallback(UINT32, UINT64, UINT64);
 STATUS iceAgentSendKeepAliveTimerCallback(UINT32, UINT64, UINT64);
-STATUS iceAgentFreeTurnConnectionTimerCallback(UINT32, UINT64, UINT64);
 STATUS iceAgentGatherCandidateTimerCallback(UINT32, UINT64, UINT64);
 
 // Default time callback for the state machine

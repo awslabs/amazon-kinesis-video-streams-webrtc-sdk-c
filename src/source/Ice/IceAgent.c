@@ -480,7 +480,7 @@ STATUS iceAgentStartGathering(PIceAgent pIceAgent)
         CHK_STATUS(iceAgentInitSrflxCandidate(pIceAgent));
     }
 
-    CHK_STATUS(iceAgentInitRelayCandidate(pIceAgent));
+    CHK_STATUS(iceAgentInitRelayCandidates(pIceAgent));
 
     // start listening for incoming data
     CHK_STATUS(connectionListenerStart(pIceAgent->pConnectionListener));
@@ -1214,27 +1214,6 @@ CleanUp:
     return retStatus;
 }
 
-STATUS iceAgentFreeTurnConnectionTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
-{
-    UNUSED_PARAM(timerId);
-    STATUS retStatus = STATUS_SUCCESS;
-    PTurnConnectionTracker pTurnConnectionTracker = (PTurnConnectionTracker) customData;
-
-    CHK(pTurnConnectionTracker != NULL, STATUS_NULL_ARG);
-
-    if (turnConnectionIsShutdownComplete(pTurnConnectionTracker->pTurnConnection) ||
-            currentTime > pTurnConnectionTracker->freeTurnConnectionEndTime) {
-        freeTurnConnection(&pTurnConnectionTracker->pTurnConnection);
-        pTurnConnectionTracker->pTurnConnection = NULL;
-        pTurnConnectionTracker->freeTurnConnectionTimerId = UINT32_MAX;
-        retStatus = STATUS_TIMER_QUEUE_STOP_SCHEDULING;
-    }
-
-CleanUp:
-
-    return retStatus;
-}
-
 STATUS iceAgentGatherCandidateTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
     UNUSED_PARAM(timerId);
@@ -1424,17 +1403,13 @@ CleanUp:
     return retStatus;
 }
 
-STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent)
+STATUS iceAgentInitRelayCandidates(PIceAgent pIceAgent)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    PDoubleListNode pCurNode = NULL;
-    UINT64 data;
-    PIceCandidate pNewCandidate = NULL, pCandidate = NULL;
     UINT32 j, i;
     PKvsIpAddress pSocketAddrForTurn = NULL;
     BOOL locked = FALSE;
     CHAR ipAddrStr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
-    PTurnConnectionTracker pCurrentTurnConnectionTracker = NULL;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
     for (j = 0; j < pIceAgent->iceServersCount; j++) {
@@ -1460,69 +1435,15 @@ STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent)
                 DLOGW("No suitable local interface found for turn server %s", ipAddrStr);
 
             } else {
-                pCurrentTurnConnectionTracker = &pIceAgent->turnConnectionTrackers[pIceAgent->turnConnectionTrackerCount];
-                CHK((pNewCandidate = (PIceCandidate) MEMCALLOC(1, SIZEOF(IceCandidate))) != NULL,
-                    STATUS_NOT_ENOUGH_MEMORY);
-
-                generateJSONSafeString(pNewCandidate->id, ARRAY_SIZE(pNewCandidate->id));
-                pNewCandidate->isRemote = FALSE;
-
-                // copy over host candidate's address to open up a new socket at that address, because createSocketConnection
-                // would store port info into pNewCandidate->ipAddress
-                pNewCandidate->ipAddress = *pSocketAddrForTurn;
-                // open up a new socket at host candidate's ip address for relay candidate.
-                // the new port will be stored in pNewCandidate->ipAddress.port. And the Ip address will later be updated
-                // with the correct ip address once the STUN response is received. Relay candidate's socket is managed
-                // by TurnConnection struct.
-                CHK_STATUS(createSocketConnection(&pNewCandidate->ipAddress, &pIceAgent->iceServers[j].ipAddress, KVS_ICE_DEFAULT_TURN_PROTOCOL,
-                                                  (UINT64) pNewCandidate, incomingRelayedDataHandler, pIceAgent->kvsRtcConfiguration.sendBufSize,
-                                                  &pNewCandidate->pSocketConnection));
-                // connectionListener will free the pSocketConnection at the end.
-                CHK_STATUS(connectionListenerAddConnection(pIceAgent->pConnectionListener,
-                                                           pNewCandidate->pSocketConnection));
-
-                pNewCandidate->iceCandidateType = ICE_CANDIDATE_TYPE_RELAYED;
-                pNewCandidate->state = ICE_CANDIDATE_STATE_NEW;
-                pNewCandidate->iceServerIndex = j;
-                pNewCandidate->foundation = pIceAgent->foundationCounter++; // we dont generate candidates that have the same foundation.
-                pNewCandidate->priority = computeCandidatePriority(pNewCandidate);
-
-                CHK_STATUS(createTurnConnection(&pIceAgent->iceServers[j], pIceAgent->timerQueueHandle, TURN_CONNECTION_DATA_TRANSFER_MODE_SEND_INDIDATION,
-                                                KVS_ICE_DEFAULT_TURN_PROTOCOL, NULL, pNewCandidate->pSocketConnection, pIceAgent->pConnectionListener,
-                                                &pCurrentTurnConnectionTracker->pTurnConnection));
-                pCurrentTurnConnectionTracker->pRelayCandidate = pNewCandidate;
-                pCurrentTurnConnectionTracker->pIceAgent = pIceAgent;
-                pCurrentTurnConnectionTracker->freeTurnConnectionTimerId = UINT32_MAX;
-                pCurrentTurnConnectionTracker->freeTurnConnectionEndTime = INVALID_TIMESTAMP_VALUE;
-                pNewCandidate->pTurnConnectionTracker = pCurrentTurnConnectionTracker;
-
-                CHK_STATUS(doubleListInsertItemHead(pIceAgent->localCandidates, (UINT64) pNewCandidate));
-                pNewCandidate = NULL;
-
-                MUTEX_LOCK(pIceAgent->lock);
-                locked = TRUE;
-
-                /* add existing remote candidates to turn. Need to acquire lock because remoteCandidates can be mutated by
-                 * iceAgentAddRemoteCandidate calls. */
-                CHK_STATUS(doubleListGetHeadNode(pIceAgent->remoteCandidates, &pCurNode));
-                while (pCurNode != NULL) {
-                    CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
-                    pCurNode = pCurNode->pNext;
-                    pCandidate = (PIceCandidate) data;
-
-                    // TODO: Stop skipping IPv6. Since we're allowing IPv6 remote candidates from iceAgentAddRemoteCandidate for host candidates,
-                    // it's possible to have a situation where the turn server uses IPv4 and the remote candidate uses IPv6.
-                    if (IS_IPV4_ADDR(&pCandidate->ipAddress)) {
-                      CHK_STATUS(turnConnectionAddPeer(pCurrentTurnConnectionTracker->pTurnConnection,
-                                                       &pCandidate->ipAddress));
-                    }
+                if (pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_UDP ||
+                    pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_NONE) {
+                    CHK_STATUS(iceAgentInitRelayCandidate(pIceAgent, pSocketAddrForTurn, j, KVS_SOCKET_PROTOCOL_UDP));
                 }
 
-                MUTEX_UNLOCK(pIceAgent->lock);
-                locked = FALSE;
-
-                CHK_STATUS(turnConnectionStart(pCurrentTurnConnectionTracker->pTurnConnection));
-                pIceAgent->turnConnectionTrackerCount++;
+                if (pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_TCP ||
+                    pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_NONE) {
+                    CHK_STATUS(iceAgentInitRelayCandidate(pIceAgent, pSocketAddrForTurn, j, KVS_SOCKET_PROTOCOL_TCP));
+                }
             }
         }
     }
@@ -1535,11 +1456,98 @@ CleanUp:
 
     CHK_LOG_ERR(retStatus);
 
-    SAFE_MEMFREE(pNewCandidate);
-
     if (STATUS_FAILED(retStatus)) {
         iceAgentFatalError(pIceAgent, retStatus);
     }
+
+    return retStatus;
+}
+
+STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent, PKvsIpAddress pLocalInterface, UINT32 iceServerIndex, KVS_SOCKET_PROTOCOL protocol)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PTurnConnectionTracker pCurrentTurnConnectionTracker = NULL;
+    PDoubleListNode pCurNode = NULL;
+    UINT64 data;
+    PIceCandidate pNewCandidate = NULL, pCandidate = NULL;
+    BOOL locked = FALSE;
+
+    CHK(pIceAgent != NULL, STATUS_NULL_ARG);
+    CHK_WARN(pIceAgent->turnConnectionTrackerCount < ARRAY_SIZE(pIceAgent->turnConnectionTrackers), retStatus,
+             "Cannot create more TurnConnection because max count of %u is reached",
+             ARRAY_SIZE(pIceAgent->turnConnectionTrackers));
+
+    pCurrentTurnConnectionTracker = &pIceAgent->turnConnectionTrackers[pIceAgent->turnConnectionTrackerCount];
+    CHK((pNewCandidate = (PIceCandidate) MEMCALLOC(1, SIZEOF(IceCandidate))) != NULL,
+        STATUS_NOT_ENOUGH_MEMORY);
+
+    generateJSONSafeString(pNewCandidate->id, ARRAY_SIZE(pNewCandidate->id));
+    pNewCandidate->isRemote = FALSE;
+
+    // copy over host candidate's address to open up a new socket at that address, because createSocketConnection
+    // would store port info into pNewCandidate->ipAddress
+    pNewCandidate->ipAddress = *pLocalInterface;
+    // open up a new socket at host candidate's ip address for relay candidate.
+    // the new port will be stored in pNewCandidate->ipAddress.port. And the Ip address will later be updated
+    // with the correct ip address once the STUN response is received. Relay candidate's socket is managed
+    // by TurnConnection struct.
+    CHK_STATUS(createSocketConnection(&pNewCandidate->ipAddress, &pIceAgent->iceServers[iceServerIndex].ipAddress, protocol,
+                                      (UINT64) pNewCandidate, incomingRelayedDataHandler, pIceAgent->kvsRtcConfiguration.sendBufSize,
+                                      &pNewCandidate->pSocketConnection));
+    // connectionListener will free the pSocketConnection at the end.
+    CHK_STATUS(connectionListenerAddConnection(pIceAgent->pConnectionListener,
+                                               pNewCandidate->pSocketConnection));
+
+    pNewCandidate->iceCandidateType = ICE_CANDIDATE_TYPE_RELAYED;
+    pNewCandidate->state = ICE_CANDIDATE_STATE_NEW;
+    pNewCandidate->iceServerIndex = iceServerIndex;
+    pNewCandidate->foundation = pIceAgent->foundationCounter++; // we dont generate candidates that have the same foundation.
+    pNewCandidate->priority = computeCandidatePriority(pNewCandidate);
+
+    CHK_STATUS(createTurnConnection(&pIceAgent->iceServers[iceServerIndex], pIceAgent->timerQueueHandle, TURN_CONNECTION_DATA_TRANSFER_MODE_SEND_INDIDATION,
+                                    protocol, NULL, pNewCandidate->pSocketConnection, pIceAgent->pConnectionListener,
+                                    &pCurrentTurnConnectionTracker->pTurnConnection));
+    pCurrentTurnConnectionTracker->pRelayCandidate = pNewCandidate;
+    pCurrentTurnConnectionTracker->pIceAgent = pIceAgent;
+    pNewCandidate->pTurnConnectionTracker = pCurrentTurnConnectionTracker;
+
+    CHK_STATUS(doubleListInsertItemHead(pIceAgent->localCandidates, (UINT64) pNewCandidate));
+    pNewCandidate = NULL;
+
+    MUTEX_LOCK(pIceAgent->lock);
+    locked = TRUE;
+
+    /* add existing remote candidates to turn. Need to acquire lock because remoteCandidates can be mutated by
+     * iceAgentAddRemoteCandidate calls. */
+    CHK_STATUS(doubleListGetHeadNode(pIceAgent->remoteCandidates, &pCurNode));
+    while (pCurNode != NULL) {
+        CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
+        pCurNode = pCurNode->pNext;
+        pCandidate = (PIceCandidate) data;
+
+        // TODO: Stop skipping IPv6. Since we're allowing IPv6 remote candidates from iceAgentAddRemoteCandidate for host candidates,
+        // it's possible to have a situation where the turn server uses IPv4 and the remote candidate uses IPv6.
+        if (IS_IPV4_ADDR(&pCandidate->ipAddress)) {
+            CHK_STATUS(turnConnectionAddPeer(pCurrentTurnConnectionTracker->pTurnConnection,
+                                             &pCandidate->ipAddress));
+        }
+    }
+
+    MUTEX_UNLOCK(pIceAgent->lock);
+    locked = FALSE;
+
+    CHK_STATUS(turnConnectionStart(pCurrentTurnConnectionTracker->pTurnConnection));
+    pIceAgent->turnConnectionTrackerCount++;
+
+CleanUp:
+
+    CHK_LOG_ERR(retStatus);
+
+    if (locked) {
+        MUTEX_UNLOCK(pIceAgent->lock);
+    }
+
+    SAFE_MEMFREE(pNewCandidate);
 
     return retStatus;
 }
