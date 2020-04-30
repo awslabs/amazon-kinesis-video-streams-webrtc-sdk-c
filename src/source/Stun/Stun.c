@@ -801,18 +801,12 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
                     pStunAttributeAddress->address.port ^= (UINT16) stunMagicCookie;
 
                     // Perform the XOR-ing
-                    if (IS_IPV4_ADDR(&pStunAttributeAddress->address)) {
-                        data = *(PUINT32) pStunAttributeAddress->address.address;
-                        data ^= stunMagicCookie;
-                        *(PUINT32) pStunAttributeAddress->address.address = data;
-                    } else {
-                        // TODO Ensure we interpret the RFC properly with the host byte order thing
-                        // Process the first 4 bytes exactly the same way as the ipV4
-                        data = (UINT32) getInt32(*(PINT32) pStunAttributeAddress->address.address);
-                        data ^= STUN_HEADER_MAGIC_COOKIE;
-                        *(PUINT32) pStunAttributeAddress->address.address = data;
+                    data = *(PUINT32) pStunAttributeAddress->address.address;
+                    data ^= stunMagicCookie;
+                    *(PUINT32) pStunAttributeAddress->address.address = data;
 
-                        // Process the rest of 12 bytes
+                    if (pStunAttributeAddress->address.family == KVS_IP_FAMILY_TYPE_IPV6) {
+                        // Process the rest of 12 bytes for IPv6
                         pData = &pStunAttributeAddress->address.address[SIZEOF(UINT32)];
                         pTransaction = pStunPacket->header.transactionId;
                         for (j = 0; j < STUN_TRANSACTION_ID_LEN; j++) {
@@ -1235,8 +1229,6 @@ STATUS xorIpAddress(PKvsIpAddress pAddress, PBYTE pTransactionId)
     putInt32((PINT32) pAddress->address, data);
 
     if (pAddress->family == KVS_IP_FAMILY_TYPE_IPV6) {
-        // TODO Ensure we interpret the RFC properly with the host byte order thing
-
         // Process the rest of 12 bytes
         pData = &pAddress->address[SIZEOF(UINT32)];
         for (i = 0; i < STUN_TRANSACTION_ID_LEN; i++) {
