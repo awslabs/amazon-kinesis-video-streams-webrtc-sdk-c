@@ -47,11 +47,14 @@ extern "C" {
 // Max error string length
 #define SIGNALING_MAX_ERROR_MESSAGE_LEN                                     512
 
+// Async ICE config refresh delay in case if the signaling is not yet in READY state
+#define SIGNALING_ASYNC_ICE_CONFIG_REFRESH_DELAY                            (50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
+
 // Forward declaration
 typedef struct __LwsCallInfo *PLwsCallInfo;
 
 // Testability hooks functions
-typedef STATUS (*SignalingApiCallHookFunc)(UINT64, UINT64);
+typedef STATUS (*SignalingApiCallHookFunc)(UINT64);
 
 /**
  * Internal client info object
@@ -122,6 +125,17 @@ typedef struct {
 
     // The channel is deleted
     volatile ATOMIC_BOOL deleted;
+
+    // Based on the channel info we can async the ice config on create channel
+    // call only and not async on repeat state transition when refreshing for example.
+    volatile ATOMIC_BOOL asyncGetIceConfig;
+
+    // Having state machine logic rely on call result of SERVICE_CALL_RESULT_SIGNALING_RECONNECT_ICE
+    // to transition to ICE config state is not enough in Async update mode when
+    // connect is in progress as the result of connect will override the result
+    // of SERVICE_CALL_RESULT_SIGNALING_RECONNECT_ICE indicating state transition
+    // if it comes first forcing the state machine to loop back to connected state.
+    volatile ATOMIC_BOOL refreshIceConfig;
 
     // Current version of the structure
     UINT32 version;
@@ -218,6 +232,14 @@ typedef struct {
 
     // Timer queue to handle stale ICE configuration
     TIMER_QUEUE_HANDLE timerQueueHandle;
+
+    // Tracking when was the Last time the APIs were called
+    UINT64 describeTime;
+    UINT64 createTime;
+    UINT64 getEndpointTime;
+    UINT64 getIceConfigTime;
+    UINT64 deleteTime;
+    UINT64 connectTime;
 } SignalingClient, *PSignalingClient;
 
 // Public handle to and from object converters
@@ -231,6 +253,7 @@ STATUS signalingSendMessageSync(PSignalingClient, PSignalingMessage);
 STATUS signalingGetIceConfigInfoCout(PSignalingClient, PUINT32);
 STATUS signalingGetIceConfigInfo(PSignalingClient, UINT32, PIceConfigInfo*);
 STATUS signalingConnectSync(PSignalingClient);
+STATUS signalingDisconnectSync(PSignalingClient);
 STATUS signalingDeleteSync(PSignalingClient);
 
 STATUS validateSignalingCallbacks(PSignalingClient, PSignalingClientCallbacks);
@@ -243,11 +266,20 @@ STATUS signalingGetOngoingMessage(PSignalingClient, PCHAR, PCHAR, PSignalingMess
 
 STATUS refreshIceConfigurationCallback(UINT32, UINT64, UINT64);
 
+UINT64 signalingGetCurrentTime(UINT64);
+
 STATUS awaitForThreadTermination(PThreadTracker, UINT64);
 STATUS initializeThreadTracker(PThreadTracker);
 STATUS uninitializeThreadTracker(PThreadTracker);
 
-STATUS terminateOngoingOperations(PSignalingClient);
+STATUS terminateOngoingOperations(PSignalingClient, BOOL);
+
+STATUS describeChannel(PSignalingClient, UINT64);
+STATUS createChannel(PSignalingClient, UINT64);
+STATUS getChannelEndpoint(PSignalingClient, UINT64);
+STATUS getIceConfig(PSignalingClient, UINT64);
+STATUS connectSignalingChannel(PSignalingClient, UINT64);
+STATUS deleteChannel(PSignalingClient, UINT64);
 
 #ifdef  __cplusplus
 }

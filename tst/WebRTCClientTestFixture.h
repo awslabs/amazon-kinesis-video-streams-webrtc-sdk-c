@@ -83,7 +83,8 @@ public:
         channelInfo.pTags = tags;
         channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
         channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
-        channelInfo.cachingEndpoint = FALSE;
+        channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_NONE;
+        channelInfo.cachingPeriod = 0;
         channelInfo.retry = TRUE;
         channelInfo.reconnect = TRUE;
         channelInfo.pCertPath = mCaCertPath;

@@ -13,9 +13,9 @@ StateMachineState SIGNALING_STATE_MACHINE_STATES[] = {
         {SIGNALING_STATE_DESCRIBE, SIGNALING_STATE_GET_TOKEN | SIGNALING_STATE_CREATE | SIGNALING_STATE_GET_ENDPOINT | SIGNALING_STATE_GET_ICE_CONFIG | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_DELETE | SIGNALING_STATE_DESCRIBE, fromDescribeSignalingState, executeDescribeSignalingState, SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_DESCRIBE_CALL_FAILED},
         {SIGNALING_STATE_CREATE, SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_CREATE, fromCreateSignalingState, executeCreateSignalingState, SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_CREATE_CALL_FAILED},
         {SIGNALING_STATE_GET_ENDPOINT, SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_CREATE | SIGNALING_STATE_GET_TOKEN | SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_GET_ENDPOINT, fromGetEndpointSignalingState, executeGetEndpointSignalingState, SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_GET_ENDPOINT_CALL_FAILED},
-        {SIGNALING_STATE_GET_ICE_CONFIG, SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_GET_ENDPOINT | SIGNALING_STATE_READY | SIGNALING_STATE_GET_ICE_CONFIG, fromGetIceConfigSignalingState, executeGetIceConfigSignalingState, SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_GET_ICE_CONFIG_CALL_FAILED},
-        {SIGNALING_STATE_READY, SIGNALING_STATE_GET_ICE_CONFIG | SIGNALING_STATE_READY, fromReadySignalingState, executeReadySignalingState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_READY_CALLBACK_FAILED},
-        {SIGNALING_STATE_CONNECT, SIGNALING_STATE_READY | SIGNALING_STATE_DISCONNECTED | SIGNALING_STATE_CONNECT, fromConnectSignalingState, executeConnectSignalingState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_CONNECT_CALL_FAILED},
+        {SIGNALING_STATE_GET_ICE_CONFIG, SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_GET_ENDPOINT | SIGNALING_STATE_READY | SIGNALING_STATE_GET_ICE_CONFIG, fromGetIceConfigSignalingState, executeGetIceConfigSignalingState, SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_GET_ICE_CONFIG_CALL_FAILED},
+        {SIGNALING_STATE_READY, SIGNALING_STATE_GET_ICE_CONFIG | SIGNALING_STATE_DISCONNECTED | SIGNALING_STATE_READY, fromReadySignalingState, executeReadySignalingState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_READY_CALLBACK_FAILED},
+        {SIGNALING_STATE_CONNECT, SIGNALING_STATE_READY | SIGNALING_STATE_DISCONNECTED | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_CONNECT, fromConnectSignalingState, executeConnectSignalingState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_CONNECT_CALL_FAILED},
         {SIGNALING_STATE_CONNECTED, SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED, fromConnectedSignalingState, executeConnectedSignalingState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_CONNECTED_CALLBACK_FAILED},
         {SIGNALING_STATE_DISCONNECTED, SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED, fromDisconnectedSignalingState, executeDisconnectedSignalingState, SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_DISCONNECTED_CALLBACK_FAILED},
         {SIGNALING_STATE_DELETE, SIGNALING_STATE_GET_TOKEN | SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_CREATE | SIGNALING_STATE_GET_ENDPOINT | SIGNALING_STATE_GET_ICE_CONFIG | SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_DISCONNECTED | SIGNALING_STATE_DELETE, fromDeleteSignalingState, executeDeleteSignalingState, SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_DELETE_CALL_FAILED},
@@ -340,22 +340,8 @@ STATUS executeDescribeSignalingState(UINT64 customData, UINT64 time)
                 SIGNALING_CLIENT_STATE_DESCRIBE));
     }
 
-    // Call pre hook func
-    if (pSignalingClient->clientInfo.describePreHookFn != NULL) {
-        retStatus = pSignalingClient->clientInfo.describePreHookFn(SIGNALING_STATE_DESCRIBE,
-                pSignalingClient->clientInfo.hookCustomData);
-    }
-
-    // Call DescribeChannel API
-    if (STATUS_SUCCEEDED(retStatus)) {
-        retStatus = describeChannelLws(pSignalingClient, time);
-    }
-
-    // Call post hook func
-    if (pSignalingClient->clientInfo.describePostHookFn != NULL) {
-        retStatus = pSignalingClient->clientInfo.describePostHookFn(SIGNALING_STATE_DESCRIBE,
-                pSignalingClient->clientInfo.hookCustomData);
-    }
+    // Call the aggregate function
+    retStatus = describeChannel(pSignalingClient, time);
 
     CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
 
@@ -418,19 +404,8 @@ STATUS executeCreateSignalingState(UINT64 customData, UINT64 time)
                 SIGNALING_CLIENT_STATE_CREATE));
     }
 
-    if (pSignalingClient->clientInfo.createPreHookFn != NULL) {
-        retStatus = pSignalingClient->clientInfo.createPreHookFn(SIGNALING_STATE_CREATE,
-                pSignalingClient->clientInfo.hookCustomData);
-    }
-
-    if (STATUS_SUCCEEDED(retStatus)) {
-        retStatus = createChannelLws(pSignalingClient, time);
-    }
-
-    if (pSignalingClient->clientInfo.createPostHookFn != NULL) {
-        retStatus = pSignalingClient->clientInfo.createPostHookFn(SIGNALING_STATE_CREATE,
-                pSignalingClient->clientInfo.hookCustomData);
-    }
+    // Call the aggregate function
+    retStatus = createChannel(pSignalingClient, time);
 
     CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
 
@@ -493,19 +468,8 @@ STATUS executeGetEndpointSignalingState(UINT64 customData, UINT64 time)
                 SIGNALING_CLIENT_STATE_GET_ENDPOINT));
     }
 
-    if (pSignalingClient->clientInfo.getEndpointPreHookFn != NULL) {
-        retStatus = pSignalingClient->clientInfo.getEndpointPreHookFn(SIGNALING_STATE_GET_ENDPOINT,
-                pSignalingClient->clientInfo.hookCustomData);
-    }
-
-    if (STATUS_SUCCEEDED(retStatus)) {
-        retStatus = getChannelEndpointLws(pSignalingClient, time);
-    }
-
-    if (pSignalingClient->clientInfo.getEndpointPostHookFn != NULL) {
-        retStatus = pSignalingClient->clientInfo.getEndpointPostHookFn(SIGNALING_STATE_GET_ENDPOINT,
-                pSignalingClient->clientInfo.hookCustomData);
-    }
+    // Call the aggregate function
+    retStatus = getChannelEndpoint(pSignalingClient, time);
 
     CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
 
@@ -568,19 +532,8 @@ STATUS executeGetIceConfigSignalingState(UINT64 customData, UINT64 time)
                 SIGNALING_CLIENT_STATE_GET_ICE_CONFIG));
     }
 
-    if (pSignalingClient->clientInfo.getIceConfigPreHookFn != NULL) {
-        retStatus = pSignalingClient->clientInfo.getIceConfigPreHookFn(SIGNALING_STATE_GET_ICE_CONFIG,
-                pSignalingClient->clientInfo.hookCustomData);
-    }
-
-    if (STATUS_SUCCEEDED(retStatus)) {
-        retStatus = getIceConfigLws(pSignalingClient, time);
-    }
-
-    if (pSignalingClient->clientInfo.getIceConfigPostHookFn != NULL) {
-        retStatus = pSignalingClient->clientInfo.getIceConfigPostHookFn(SIGNALING_STATE_GET_ICE_CONFIG,
-                pSignalingClient->clientInfo.hookCustomData);
-    }
+    // Call the aggregate function
+    retStatus = getIceConfig(pSignalingClient, time);
 
     CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
 
@@ -623,6 +576,10 @@ STATUS fromReadySignalingState(UINT64 customData, PUINT64 pState)
             break;
     }
 
+    // Overwrite the state if we are force refreshing
+    state = ATOMIC_EXCHANGE_BOOL(&pSignalingClient->refreshIceConfig, FALSE) ?
+            SIGNALING_STATE_GET_ICE_CONFIG : state;
+
     *pState = state;
 
 CleanUp:
@@ -648,6 +605,9 @@ STATUS executeReadySignalingState(UINT64 customData, UINT64 time)
                 pSignalingClient->signalingClientCallbacks.customData,
                 SIGNALING_CLIENT_STATE_READY));
     }
+
+    // Ensure we won't async the GetIceConfig as we reach the ready state
+    ATOMIC_STORE_BOOL(&pSignalingClient->asyncGetIceConfig, FALSE);
 
     if (pSignalingClient->continueOnReady) {
         // Self-prime the connect
@@ -705,6 +665,10 @@ STATUS fromConnectSignalingState(UINT64 customData, PUINT64 pState)
             state = SIGNALING_STATE_GET_ENDPOINT;
             break;
 
+        case SERVICE_CALL_RESULT_SIGNALING_RECONNECT_ICE:
+            state = SIGNALING_STATE_GET_ICE_CONFIG;
+            break;
+
         case SERVICE_CALL_NETWORK_CONNECTION_TIMEOUT:
         case SERVICE_CALL_NETWORK_READ_TIMEOUT:
         case SERVICE_CALL_REQUEST_TIMEOUT:
@@ -717,6 +681,10 @@ STATUS fromConnectSignalingState(UINT64 customData, PUINT64 pState)
             state = SIGNALING_STATE_GET_TOKEN;
             break;
     }
+
+    // Overwrite the state if we are force refreshing
+    state = ATOMIC_EXCHANGE_BOOL(&pSignalingClient->refreshIceConfig, FALSE) ?
+            SIGNALING_STATE_GET_ICE_CONFIG : state;
 
     *pState = state;
 
@@ -741,25 +709,7 @@ STATUS executeConnectSignalingState(UINT64 customData, UINT64 time)
                 SIGNALING_CLIENT_STATE_CONNECTING));
     }
 
-    if (pSignalingClient->clientInfo.connectPreHookFn != NULL) {
-        retStatus = pSignalingClient->clientInfo.connectPreHookFn(SIGNALING_STATE_CONNECT,
-                pSignalingClient->clientInfo.hookCustomData);
-    }
-
-    if (STATUS_SUCCEEDED(retStatus)) {
-        // No need to reconnect again if already connected. This can happen if we get to this state after ice refresh
-        if (!ATOMIC_LOAD_BOOL(&pSignalingClient->connected)) {
-            ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
-            retStatus = connectSignalingChannelLws(pSignalingClient, time);
-        } else {
-            ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_OK);
-        }
-    }
-
-    if (pSignalingClient->clientInfo.connectPostHookFn != NULL) {
-        retStatus = pSignalingClient->clientInfo.connectPostHookFn(SIGNALING_STATE_CONNECT,
-                pSignalingClient->clientInfo.hookCustomData);
-    }
+    retStatus = connectSignalingChannel(pSignalingClient, time);
 
     CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
 
@@ -821,6 +771,10 @@ STATUS fromConnectedSignalingState(UINT64 customData, PUINT64 pState)
             break;
     }
 
+    // Overwrite the state if we are force refreshing
+    state = ATOMIC_EXCHANGE_BOOL(&pSignalingClient->refreshIceConfig, FALSE) ?
+            SIGNALING_STATE_GET_ICE_CONFIG : state;
+
     *pState = state;
 
 CleanUp:
@@ -861,7 +815,7 @@ STATUS fromDisconnectedSignalingState(UINT64 customData, PUINT64 pState)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
-    UINT64 state = SIGNALING_STATE_CONNECT;
+    UINT64 state = SIGNALING_STATE_READY;
     SIZE_T result;
 
     CHK(pSignalingClient != NULL && pState != NULL, STATUS_NULL_ARG);
@@ -876,9 +830,17 @@ STATUS fromDisconnectedSignalingState(UINT64 customData, PUINT64 pState)
             state = SIGNALING_STATE_GET_TOKEN;
             break;
 
+        case SERVICE_CALL_RESULT_SIGNALING_RECONNECT_ICE:
+            state = SIGNALING_STATE_GET_ICE_CONFIG;
+            break;
+
         default:
             break;
     }
+
+    // Overwrite the state if we are force refreshing
+    state = ATOMIC_EXCHANGE_BOOL(&pSignalingClient->refreshIceConfig, FALSE) ?
+            SIGNALING_STATE_GET_ICE_CONFIG : state;
 
     *pState = state;
 
@@ -972,22 +934,8 @@ STATUS executeDeleteSignalingState(UINT64 customData, UINT64 time)
                 SIGNALING_CLIENT_STATE_DELETE));
     }
 
-    // Call pre hook func
-    if (pSignalingClient->clientInfo.deletePreHookFn != NULL) {
-        retStatus = pSignalingClient->clientInfo.deletePreHookFn(SIGNALING_STATE_DELETE,
-                pSignalingClient->clientInfo.hookCustomData);
-    }
-
-    // Call DescribeChannel API
-    if (STATUS_SUCCEEDED(retStatus)) {
-        retStatus = deleteChannelLws(pSignalingClient, time);
-    }
-
-    // Call post hook func
-    if (pSignalingClient->clientInfo.deletePostHookFn != NULL) {
-        retStatus = pSignalingClient->clientInfo.deletePostHookFn(SIGNALING_STATE_DELETE,
-                pSignalingClient->clientInfo.hookCustomData);
-    }
+    // Call the aggregate function
+    retStatus = deleteChannel(pSignalingClient, time);
 
     CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
 

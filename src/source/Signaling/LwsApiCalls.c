@@ -583,6 +583,8 @@ STATUS describeChannelLws(PSignalingClient pSignalingClient, UINT64 time)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
+    UNUSED_PARAM(time);
+
     PRequestInfo pRequestInfo = NULL;
     CHAR url[MAX_URI_CHAR_LEN + 1];
     CHAR paramsJson[MAX_JSON_PARAMETER_STRING_LEN];
@@ -596,13 +598,6 @@ STATUS describeChannelLws(PSignalingClient pSignalingClient, UINT64 time)
     BOOL jsonInChannelDescription = FALSE, jsonInMvConfiguration = FALSE;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
-
-    THREAD_SLEEP_UNTIL(time);
-
-    // Check for the stale credentials
-    CHECK_SIGNALING_CREDENTIALS_EXPIRATION(pSignalingClient);
-
-    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
 
     // Create the API url
     STRCPY(url, pSignalingClient->pChannelInfo->pControlPlaneUrl);
@@ -714,10 +709,6 @@ STATUS describeChannelLws(PSignalingClient pSignalingClient, UINT64 time)
 
 CleanUp:
 
-    if (STATUS_FAILED(retStatus) && pSignalingClient != NULL) {
-        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
-    }
-
     freeLwsCallInfo(&pLwsCallInfo);
 
     LEAVES();
@@ -728,6 +719,8 @@ STATUS createChannelLws(PSignalingClient pSignalingClient, UINT64 time)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
+    UNUSED_PARAM(time);
+
     PRequestInfo pRequestInfo = NULL;
     CHAR url[MAX_URI_CHAR_LEN + 1];
     CHAR paramsJson[MAX_JSON_PARAMETER_STRING_LEN];
@@ -741,13 +734,6 @@ STATUS createChannelLws(PSignalingClient pSignalingClient, UINT64 time)
     UINT32 tokenCount;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
-
-    THREAD_SLEEP_UNTIL(time);
-
-    // Check for the stale credentials
-    CHECK_SIGNALING_CREDENTIALS_EXPIRATION(pSignalingClient);
-
-    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
 
     // Create the API url
     STRCPY(url, pSignalingClient->pChannelInfo->pControlPlaneUrl);
@@ -828,10 +814,6 @@ STATUS createChannelLws(PSignalingClient pSignalingClient, UINT64 time)
 
 CleanUp:
 
-    if (STATUS_FAILED(retStatus) && pSignalingClient != NULL) {
-        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
-    }
-
     freeLwsCallInfo(&pLwsCallInfo);
 
     LEAVES();
@@ -842,6 +824,8 @@ STATUS getChannelEndpointLws(PSignalingClient pSignalingClient, UINT64 time)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
+    UNUSED_PARAM(time);
+
     PRequestInfo pRequestInfo = NULL;
     CHAR url[MAX_URI_CHAR_LEN + 1];
     CHAR paramsJson[MAX_JSON_PARAMETER_STRING_LEN];
@@ -854,13 +838,6 @@ STATUS getChannelEndpointLws(PSignalingClient pSignalingClient, UINT64 time)
     BOOL jsonInResourceEndpointList = FALSE, protocol = FALSE, endpoint = FALSE, inEndpointArray = FALSE;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
-
-    THREAD_SLEEP_UNTIL(time);
-
-    // Check for the stale credentials
-    CHECK_SIGNALING_CREDENTIALS_EXPIRATION(pSignalingClient);
-
-    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
 
     // Create the API url
     STRCPY(url, pSignalingClient->pChannelInfo->pControlPlaneUrl);
@@ -969,10 +946,6 @@ STATUS getChannelEndpointLws(PSignalingClient pSignalingClient, UINT64 time)
 
 CleanUp:
 
-    if (STATUS_FAILED(retStatus) && pSignalingClient != NULL) {
-        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
-    }
-
     freeLwsCallInfo(&pLwsCallInfo);
 
     LEAVES();
@@ -983,6 +956,8 @@ STATUS getIceConfigLws(PSignalingClient pSignalingClient, UINT64 time)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
+    UNUSED_PARAM(time);
+
     PRequestInfo pRequestInfo = NULL;
     CHAR url[MAX_URI_CHAR_LEN + 1];
     CHAR paramsJson[MAX_JSON_PARAMETER_STRING_LEN];
@@ -998,13 +973,6 @@ STATUS getIceConfigLws(PSignalingClient pSignalingClient, UINT64 time)
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     CHK(pSignalingClient->channelEndpointHttps[0] != '\0', STATUS_INTERNAL_ERROR);
-
-    THREAD_SLEEP_UNTIL(time);
-
-    // Check for the stale credentials
-    CHECK_SIGNALING_CREDENTIALS_EXPIRATION(pSignalingClient);
-
-    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
 
     // Create the API url
     STRCPY(url, pSignalingClient->channelEndpointHttps);
@@ -1103,10 +1071,6 @@ STATUS getIceConfigLws(PSignalingClient pSignalingClient, UINT64 time)
 
 CleanUp:
 
-    if (STATUS_FAILED(retStatus) && pSignalingClient != NULL) {
-        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
-    }
-
     freeLwsCallInfo(&pLwsCallInfo);
 
     LEAVES();
@@ -1117,6 +1081,8 @@ STATUS deleteChannelLws(PSignalingClient pSignalingClient, UINT64 time)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
+    UNUSED_PARAM(time);
+
     PRequestInfo pRequestInfo = NULL;
     CHAR url[MAX_URI_CHAR_LEN + 1];
     CHAR paramsJson[MAX_JSON_PARAMETER_STRING_LEN];
@@ -1125,13 +1091,6 @@ STATUS deleteChannelLws(PSignalingClient pSignalingClient, UINT64 time)
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     CHK(pSignalingClient->channelDescription.channelArn[0] != '\0', STATUS_INVALID_OPERATION);
-
-    THREAD_SLEEP_UNTIL(time);
-
-    // Check for the stale credentials
-    CHECK_SIGNALING_CREDENTIALS_EXPIRATION(pSignalingClient);
-
-    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
 
     // Check if we need to terminate the ongoing listener
     if (!ATOMIC_LOAD_BOOL(&pSignalingClient->listenerTracker.terminated) &&
@@ -1177,10 +1136,6 @@ STATUS deleteChannelLws(PSignalingClient pSignalingClient, UINT64 time)
     ATOMIC_STORE_BOOL(&pSignalingClient->deleted, TRUE);
 
 CleanUp:
-
-    if (STATUS_FAILED(retStatus) && pSignalingClient != NULL) {
-        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
-    }
 
     freeLwsCallInfo(&pLwsCallInfo);
 
@@ -1246,6 +1201,8 @@ STATUS connectSignalingChannelLws(PSignalingClient pSignalingClient, UINT64 time
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
+    UNUSED_PARAM(time);
+
     PRequestInfo pRequestInfo = NULL;
     CHAR url[MAX_URI_CHAR_LEN + 1];
     PLwsCallInfo pLwsCallInfo = NULL;
@@ -1255,8 +1212,6 @@ STATUS connectSignalingChannelLws(PSignalingClient pSignalingClient, UINT64 time
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     CHK(pSignalingClient->channelEndpointWss[0] != '\0', STATUS_INTERNAL_ERROR);
-
-    THREAD_SLEEP_UNTIL(time);
 
     // Prepare the json params for the call
     if (pSignalingClient->pChannelInfo->channelRoleType == SIGNALING_CHANNEL_ROLE_TYPE_VIEWER) {

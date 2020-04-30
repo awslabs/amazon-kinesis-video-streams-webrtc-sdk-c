@@ -51,7 +51,7 @@ STATUS createIceAgent(PCHAR username, PCHAR password, PIceAgentCallbacks pIceAge
     CHK_STATUS(createStateMachine(ICE_AGENT_STATE_MACHINE_STATES,
                                   ICE_AGENT_STATE_MACHINE_STATE_COUNT,
                                   (UINT64) pIceAgent,
-                                  kinesisVideoStreamDefaultGetCurrentTime,
+                                  iceAgentGetCurrentTime,
                                   (UINT64) pIceAgent,
                                   &pIceAgent->pStateMachine));
     pIceAgent->iceAgentStatus = STATUS_SUCCESS;
@@ -2257,4 +2257,8 @@ PCHAR iceAgentGetCandidateTypeStr(ICE_CANDIDATE_TYPE candidateType) {
     }
 }
 
-
+UINT64 iceAgentGetCurrentTime(UINT64 customData)
+{
+    UNUSED_PARAM(customData);
+    return GETTIME();
+}

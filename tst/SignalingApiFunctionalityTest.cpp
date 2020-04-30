@@ -13,18 +13,49 @@ public:
         getIceConfigRecover = 0;
         getIceConfigResult = STATUS_SUCCESS;
 
+        connectCount = 0;
+        connectFail = MAX_UINT32;
+        connectRecover = 0;
+        connectResult = STATUS_SUCCESS;
+
+        describeCount = 0;
+        describeFail = MAX_UINT32;
+        describeRecover = 0;
+        describeResult = STATUS_SUCCESS;
+
+        getEndpointCount = 0;
+        getEndpointFail = MAX_UINT32;
+        getEndpointRecover = 0;
+        getEndpointResult = STATUS_SUCCESS;
+
         errStatus = STATUS_SUCCESS;
         errMsg[0] = '\0';
+
     };
 
     PSignalingClient pActiveClient;
     UINT32 getIceConfigFail;
     UINT32 getIceConfigRecover;
     UINT32 getIceConfigCount;
-    UINT64 getIceConfigResult;
+    STATUS getIceConfigResult;
     UINT32 signalingStatesCounts[SIGNALING_CLIENT_STATE_MAX_VALUE];
     STATUS errStatus;
     CHAR errMsg[1024];
+
+    STATUS connectResult;
+    UINT32 connectFail;
+    UINT32 connectRecover;
+    UINT32 connectCount;
+
+    STATUS describeResult;
+    UINT32 describeFail;
+    UINT32 describeRecover;
+    UINT32 describeCount;
+
+    STATUS getEndpointResult;
+    UINT32 getEndpointFail;
+    UINT32 getEndpointRecover;
+    UINT32 getEndpointCount;
 };
 
 STATUS masterMessageReceived(UINT64 customData, PReceivedSignalingMessage pReceivedSignalingMessage)
@@ -101,9 +132,8 @@ STATUS viewerMessageReceived(UINT64 customData, PReceivedSignalingMessage pRecei
     return STATUS_SUCCESS;
 }
 
-STATUS getIceConfigPreHook(UINT64 state, UINT64 hookCustomData)
+STATUS getIceConfigPreHook(UINT64 hookCustomData)
 {
-    UNUSED_PARAM(state);
     STATUS retStatus = STATUS_SUCCESS;
     SignalingApiFunctionalityTest* pTest = (SignalingApiFunctionalityTest*) hookCustomData;
     CHECK(pTest != NULL);
@@ -116,6 +146,51 @@ STATUS getIceConfigPreHook(UINT64 state, UINT64 hookCustomData)
     DLOGD("Signaling client getIceConfigPreHook returning 0x%08x", retStatus);
     return retStatus;
 }
+
+STATUS connectPreHook(UINT64 hookCustomData)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    SignalingApiFunctionalityTest* pTest = (SignalingApiFunctionalityTest*) hookCustomData;
+    CHECK(pTest != NULL);
+
+    if (pTest->connectCount >= pTest->connectFail && pTest->connectCount < pTest->connectRecover) {
+        retStatus = pTest->connectResult;
+    }
+
+    pTest->connectCount++;
+    DLOGD("Signaling client connect hook returning 0x%08x", retStatus);
+    return retStatus;
+};
+
+STATUS describePreHook(UINT64 hookCustomData)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    SignalingApiFunctionalityTest* pTest = (SignalingApiFunctionalityTest*) hookCustomData;
+    CHECK(pTest != NULL);
+
+    if (pTest->describeCount >= pTest->describeFail && pTest->describeCount < pTest->describeRecover) {
+        retStatus = pTest->describeResult;
+    }
+
+    pTest->describeCount++;
+    DLOGD("Signaling client describe hook returning 0x%08x", retStatus);
+    return retStatus;
+};
+
+STATUS getEndpointPreHook(UINT64 hookCustomData)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    SignalingApiFunctionalityTest* pTest = (SignalingApiFunctionalityTest*) hookCustomData;
+    CHECK(pTest != NULL);
+
+    if (pTest->getEndpointCount >= pTest->getEndpointFail && pTest->getEndpointCount < pTest->getEndpointRecover) {
+        retStatus = pTest->getEndpointResult;
+    }
+
+    pTest->getEndpointCount++;
+    DLOGD("Signaling client get endpoint hook returning 0x%08x", retStatus);
+    return retStatus;
+};
 
 ////////////////////////////////////////////////////////////////////
 // Functionality Tests
@@ -149,7 +224,7 @@ TEST_F(SignalingApiFunctionalityTest, basicCreateConnectFree)
     channelInfo.pTags = NULL;
     channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
     channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
-    channelInfo.cachingEndpoint = FALSE;
+    channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_NONE;
     channelInfo.retry = TRUE;
     channelInfo.reconnect = TRUE;
     channelInfo.pCertPath = mCaCertPath;
@@ -207,7 +282,7 @@ TEST_F(SignalingApiFunctionalityTest, mockMaster)
     channelInfo.pTags = tags;
     channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
     channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
-    channelInfo.cachingEndpoint = FALSE;
+    channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_NONE;
     channelInfo.retry = TRUE;
     channelInfo.reconnect = TRUE;
     channelInfo.pCertPath = mCaCertPath;
@@ -341,7 +416,7 @@ TEST_F(SignalingApiFunctionalityTest, mockViewer)
     channelInfo.pTags = tags;
     channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
     channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_VIEWER;
-    channelInfo.cachingEndpoint = FALSE;
+    channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_NONE;
     channelInfo.retry = TRUE;
     channelInfo.reconnect = TRUE;
     channelInfo.pCertPath = mCaCertPath;
@@ -442,8 +517,8 @@ TEST_F(SignalingApiFunctionalityTest, invalidChannelInfoInput)
     channelInfo.pUserAgentPostfix = (PCHAR) "Postfix";
     channelInfo.pCustomUserAgent = (PCHAR) "Agent";
     channelInfo.pKmsKeyId = (PCHAR) "Kms Key ID";
-    channelInfo.cachingEndpoint = TRUE;
-    channelInfo.endpointCachingPeriod = 10 * HUNDREDS_OF_NANOS_IN_AN_HOUR;
+    channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_NONE;
+    channelInfo.cachingPeriod = SIGNALING_API_CALL_CACHE_TTL_SENTINEL_VALUE;
     channelInfo.retry = TRUE;
     channelInfo.reconnect = TRUE;
     channelInfo.tagCount = 3;
@@ -650,7 +725,7 @@ TEST_F(SignalingApiFunctionalityTest, invalidChannelInfoInput)
     channelInfo.pTags = NULL;
     channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
     channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_VIEWER;
-    channelInfo.cachingEndpoint = FALSE;
+    channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_NONE;
     channelInfo.retry = TRUE;
     channelInfo.reconnect = TRUE;
     channelInfo.pCertPath = mCaCertPath;
@@ -719,7 +794,7 @@ TEST_F(SignalingApiFunctionalityTest, iceReconnectEmulation)
     channelInfo.pTags = NULL;
     channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
     channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
-    channelInfo.cachingEndpoint = FALSE;
+    channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_NONE;
     channelInfo.retry = TRUE;
     channelInfo.reconnect = TRUE;
     channelInfo.pCertPath = mCaCertPath;
@@ -803,7 +878,7 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulation)
     channelInfo.pTags = NULL;
     channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
     channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
-    channelInfo.cachingEndpoint = FALSE;
+    channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_NONE;
     channelInfo.retry = TRUE;
     channelInfo.reconnect = TRUE;
     channelInfo.pCertPath = mCaCertPath;
@@ -923,7 +998,7 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationAuthExpiration)
     channelInfo.pTags = NULL;
     channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
     channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
-    channelInfo.cachingEndpoint = FALSE;
+    channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_NONE;
     channelInfo.retry = TRUE;
     channelInfo.reconnect = TRUE;
     channelInfo.pCertPath = mCaCertPath;
@@ -1017,7 +1092,7 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionNoDis
     channelInfo.pTags = NULL;
     channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
     channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
-    channelInfo.cachingEndpoint = FALSE;
+    channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_NONE;
     channelInfo.retry = TRUE;
     channelInfo.reconnect = TRUE;
     channelInfo.pCertPath = mCaCertPath;
@@ -1129,7 +1204,7 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionAuthE
     channelInfo.pTags = NULL;
     channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
     channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
-    channelInfo.cachingEndpoint = FALSE;
+    channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_NONE;
     channelInfo.retry = TRUE;
     channelInfo.reconnect = TRUE;
     channelInfo.pCertPath = mCaCertPath;
@@ -1236,7 +1311,7 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionError
     channelInfo.pTags = NULL;
     channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
     channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
-    channelInfo.cachingEndpoint = FALSE;
+    channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_NONE;
     channelInfo.retry = TRUE;
     channelInfo.reconnect = TRUE;
     channelInfo.pCertPath = mCaCertPath;
@@ -1347,7 +1422,7 @@ TEST_F(SignalingApiFunctionalityTest, goAwayEmulation)
     channelInfo.pTags = NULL;
     channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
     channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
-    channelInfo.cachingEndpoint = FALSE;
+    channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_NONE;
     channelInfo.retry = TRUE;
     channelInfo.reconnect = TRUE;
     channelInfo.pCertPath = mCaCertPath;
@@ -1428,7 +1503,7 @@ TEST_F(SignalingApiFunctionalityTest, unknownMessageTypeEmulation)
     channelInfo.pTags = NULL;
     channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
     channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
-    channelInfo.cachingEndpoint = FALSE;
+    channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_NONE;
     channelInfo.retry = TRUE;
     channelInfo.reconnect = TRUE;
     channelInfo.pCertPath = mCaCertPath;
@@ -1516,7 +1591,7 @@ TEST_F(SignalingApiFunctionalityTest, connectTimeoutEmulation)
     channelInfo.pTags = NULL;
     channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
     channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
-    channelInfo.cachingEndpoint = FALSE;
+    channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_NONE;
     channelInfo.retry = TRUE;
     channelInfo.reconnect = TRUE;
     channelInfo.pCertPath = mCaCertPath;
@@ -1614,7 +1689,7 @@ TEST_F(SignalingApiFunctionalityTest, channelInfoArnSkipDescribe)
     channelInfo.pTags = NULL;
     channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
     channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
-    channelInfo.cachingEndpoint = FALSE;
+    channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_NONE;
     channelInfo.retry = TRUE;
     channelInfo.reconnect = TRUE;
     channelInfo.pCertPath = mCaCertPath;
@@ -1743,7 +1818,7 @@ TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedWithArn)
     channelInfo.pTags = NULL;
     channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
     channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
-    channelInfo.cachingEndpoint = FALSE;
+    channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_NONE;
     channelInfo.retry = TRUE;
     channelInfo.reconnect = TRUE;
     channelInfo.pCertPath = mCaCertPath;
@@ -1871,7 +1946,7 @@ TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedAuthExpiration)
     channelInfo.pTags = NULL;
     channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
     channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
-    channelInfo.cachingEndpoint = FALSE;
+    channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_NONE;
     channelInfo.retry = TRUE;
     channelInfo.reconnect = TRUE;
     channelInfo.pCertPath = mCaCertPath;
@@ -1941,6 +2016,406 @@ TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedAuthExpiration)
 
     // Shouldn't be able to connect as it's not in ready state
     EXPECT_NE(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
+
+    deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
+
+    EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+}
+
+TEST_F(SignalingApiFunctionalityTest, signalingClientDisconnectSyncVariations)
+{
+    if (!mAccessKeyIdSet) {
+        return;
+    }
+
+    initializeSignalingClient();
+
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientDisconnectSync(mSignalingClientHandle));
+
+    // Connect and disconnect
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(mSignalingClientHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientDisconnectSync(mSignalingClientHandle));
+
+    // Retry
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(mSignalingClientHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientDisconnectSync(mSignalingClientHandle));
+
+    // Can't send a message
+    SignalingMessage message;
+    message.version = SIGNALING_MESSAGE_CURRENT_VERSION;
+    message.messageType = SIGNALING_MESSAGE_TYPE_ANSWER;
+    STRCPY(message.peerClientId, TEST_SIGNALING_VIEWER_CLIENT_ID);
+    MEMSET(message.payload, 'A', 200);
+    message.payload[200] = '\0';
+    message.payloadLen = 0;
+    message.correlationId[0] = '\0';
+
+    EXPECT_EQ(STATUS_INVALID_STREAM_STATE, signalingClientSendMessageSync(mSignalingClientHandle, &message));
+
+    // Get ICE info is OK
+    UINT32 count;
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(mSignalingClientHandle, &count));
+
+    // State should be in Ready state
+    SIGNALING_CLIENT_STATE state;
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetCurrentState(mSignalingClientHandle, &state));
+    EXPECT_EQ(SIGNALING_CLIENT_STATE_READY, state);
+
+    // Reconnect and send a message successfully
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(mSignalingClientHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(mSignalingClientHandle, &message));
+
+    deinitializeSignalingClient();
+}
+
+TEST_F(SignalingApiFunctionalityTest, cachingWithFaultInjection)
+{
+    if (!mAccessKeyIdSet) {
+        return;
+    }
+
+    ChannelInfo channelInfo;
+    SignalingClientCallbacks signalingClientCallbacks;
+    SignalingClientInfoInternal clientInfoInternal;
+    PSignalingClient pSignalingClient;
+    SIGNALING_CLIENT_HANDLE signalingHandle;
+
+    signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
+    signalingClientCallbacks.customData = (UINT64) this;
+    signalingClientCallbacks.messageReceivedFn = NULL;
+    signalingClientCallbacks.errorReportFn = signalingClientError;
+    signalingClientCallbacks.stateChangeFn = signalingClientStateChanged;
+
+    MEMSET(&clientInfoInternal, 0x00, SIZEOF(SignalingClientInfoInternal));
+
+    clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
+    clientInfoInternal.signalingClientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
+    STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    clientInfoInternal.hookCustomData = (UINT64) this;
+    clientInfoInternal.connectPreHookFn = connectPreHook;
+    clientInfoInternal.describePreHookFn = describePreHook;
+    clientInfoInternal.getEndpointPreHookFn = getEndpointPreHook;
+
+    // Make describe and getendpoint fail once so we can check the no-caching behavior
+    // in case when there is a failure.
+    describeResult = STATUS_SERVICE_CALL_TIMEOUT_ERROR;
+    describeFail = 0;
+    describeRecover = 1;
+    getEndpointResult = STATUS_SERVICE_CALL_TIMEOUT_ERROR;
+    getEndpointFail = 0;
+    getEndpointRecover = 1;
+
+    MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
+    channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
+    channelInfo.pChannelName = mChannelName;
+    channelInfo.pKmsKeyId = NULL;
+    channelInfo.tagCount = 0;
+    channelInfo.pTags = NULL;
+    channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
+    channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
+    channelInfo.retry = TRUE;
+    channelInfo.reconnect = TRUE;
+    channelInfo.pCertPath = mCaCertPath;
+    channelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
+    // NOTE: the default 15 seconds of retries + 5 second of wait in the test
+    // should make the cached value to expire.
+    channelInfo.cachingPeriod = 20 * HUNDREDS_OF_NANOS_IN_A_SECOND;
+    channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_DESCRIBE_GETENDPOINT;
+
+    EXPECT_EQ(STATUS_SUCCESS, createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks,
+                                                  (PAwsCredentialProvider) mTestCredentialProvider, &pSignalingClient));
+    signalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
+    EXPECT_TRUE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
+
+    pActiveClient = pSignalingClient;
+
+    // Check the states first
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
+
+    // Accounting for 1 failure 1 more time to loop back from the create
+    EXPECT_EQ(3, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
+
+    // Account for 1 time failure
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
+
+    // Validate the hook count
+    EXPECT_EQ(2, describeCount);
+    EXPECT_EQ(2, getEndpointCount);
+
+    // Connect to the signaling client and make it fail
+    connectResult = STATUS_SERVICE_CALL_NOT_AUTHORIZED_ERROR;
+    connectFail = 0;
+    connectRecover = MAX_UINT32;
+    EXPECT_NE(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
+
+    // Check the states
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
+    EXPECT_LE(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
+    EXPECT_LE(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
+    EXPECT_LE(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
+    EXPECT_LE(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_LE(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_LE(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
+
+    // Validate the hook count
+    EXPECT_EQ(2, describeCount);
+    EXPECT_EQ(2, getEndpointCount);
+
+    // Wait for the cache TTL to expire and retry
+    THREAD_SLEEP(5 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+    // Connect to the signaling client after failing once to test the caching
+    connectRecover = connectCount + 1;
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
+
+    // Check the states
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
+    EXPECT_LE(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
+    EXPECT_LE(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
+    EXPECT_LE(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
+    EXPECT_LE(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_LE(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_LE(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
+
+    // Validate the hook count is incremented due to cache miss
+    EXPECT_EQ(3, describeCount);
+    EXPECT_EQ(3, getEndpointCount);
+
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientDisconnectSync(signalingHandle));
+
+    deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
+
+    EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+}
+
+TEST_F(SignalingApiFunctionalityTest, asyncIceConfigRefreshBeforeConnect)
+{
+    if (!mAccessKeyIdSet) {
+        return;
+    }
+
+    ChannelInfo channelInfo;
+    SignalingClientCallbacks signalingClientCallbacks;
+    SignalingClientInfoInternal clientInfoInternal;
+    PSignalingClient pSignalingClient;
+    SIGNALING_CLIENT_HANDLE signalingHandle;
+    UINT32 iceConfigCalls = 0, iceConfigCount;
+
+    auto getIceConfigHook = [](UINT64 customData) -> STATUS {
+        PUINT32 pCount = (PUINT32) customData;
+        (*pCount)++;
+        return STATUS_SUCCESS;
+    };
+
+    signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
+    signalingClientCallbacks.customData = (UINT64) this;
+    signalingClientCallbacks.messageReceivedFn = NULL;
+    signalingClientCallbacks.errorReportFn = signalingClientError;
+    signalingClientCallbacks.stateChangeFn = signalingClientStateChanged;
+
+    MEMSET(&clientInfoInternal, 0x00, SIZEOF(SignalingClientInfoInternal));
+
+    clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
+    clientInfoInternal.signalingClientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
+    STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    clientInfoInternal.hookCustomData = (UINT64) &iceConfigCalls;
+    clientInfoInternal.getIceConfigPostHookFn = getIceConfigHook;
+
+    MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
+    channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
+    channelInfo.pChannelName = mChannelName;
+    channelInfo.pKmsKeyId = NULL;
+    channelInfo.tagCount = 0;
+    channelInfo.pTags = NULL;
+    channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
+    channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
+    channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_NONE;
+    channelInfo.retry = TRUE;
+    channelInfo.reconnect = TRUE;
+    channelInfo.pCertPath = mCaCertPath;
+    channelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
+
+    // should make the cached value to expire.
+    channelInfo.asyncIceServerConfig = TRUE;
+
+    EXPECT_EQ(STATUS_SUCCESS, createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks,
+                                                  (PAwsCredentialProvider) mTestCredentialProvider, &pSignalingClient));
+    signalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
+    EXPECT_TRUE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
+
+    pActiveClient = pSignalingClient;
+
+    EXPECT_EQ(0, iceConfigCalls);
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceConfigCount));
+    EXPECT_EQ(0, iceConfigCount);
+
+    // Check the states first
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
+
+    THREAD_SLEEP(5 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+
+    // Validate the ice config was called
+    EXPECT_EQ(1, iceConfigCalls);
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceConfigCount));
+    EXPECT_LE(1, iceConfigCount);
+
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
+
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
+    EXPECT_LE(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_LE(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
+
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientDisconnectSync(signalingHandle));
+
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
+    EXPECT_LE(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_LE(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
+
+    deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
+
+    EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+}
+
+TEST_F(SignalingApiFunctionalityTest, asyncIceConfigRefreshParallelToConnect)
+{
+    if (!mAccessKeyIdSet) {
+        return;
+    }
+
+    ChannelInfo channelInfo;
+    SignalingClientCallbacks signalingClientCallbacks;
+    SignalingClientInfoInternal clientInfoInternal;
+    PSignalingClient pSignalingClient;
+    SIGNALING_CLIENT_HANDLE signalingHandle;
+    UINT32 iceConfigCalls = 0, iceConfigCount;
+
+    auto getIceConfigHook = [](UINT64 customData) -> STATUS {
+        PUINT32 pCount = (PUINT32) customData;
+        (*pCount)++;
+        return STATUS_SUCCESS;
+    };
+
+    signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
+    signalingClientCallbacks.customData = (UINT64) this;
+    signalingClientCallbacks.messageReceivedFn = NULL;
+    signalingClientCallbacks.errorReportFn = signalingClientError;
+    signalingClientCallbacks.stateChangeFn = signalingClientStateChanged;
+
+    MEMSET(&clientInfoInternal, 0x00, SIZEOF(SignalingClientInfoInternal));
+
+    clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
+    clientInfoInternal.signalingClientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
+    STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    clientInfoInternal.hookCustomData = (UINT64) &iceConfigCalls;
+    clientInfoInternal.getIceConfigPostHookFn = getIceConfigHook;
+
+    MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
+    channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
+    channelInfo.pChannelName = mChannelName;
+    channelInfo.pKmsKeyId = NULL;
+    channelInfo.tagCount = 0;
+    channelInfo.pTags = NULL;
+    channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
+    channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
+    channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_NONE;
+    channelInfo.retry = TRUE;
+    channelInfo.reconnect = TRUE;
+    channelInfo.pCertPath = mCaCertPath;
+    channelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
+
+    // should make the cached value to expire.
+    channelInfo.asyncIceServerConfig = TRUE;
+
+    EXPECT_EQ(STATUS_SUCCESS, createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks,
+                                                  (PAwsCredentialProvider) mTestCredentialProvider, &pSignalingClient));
+    signalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
+    EXPECT_TRUE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
+
+    pActiveClient = pSignalingClient;
+
+    EXPECT_EQ(0, iceConfigCalls);
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceConfigCount));
+    EXPECT_EQ(0, iceConfigCount);
+
+    // Check the states first
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
+
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
+
+    THREAD_SLEEP(5 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+
+    // Validate the ice config was called
+    EXPECT_EQ(1, iceConfigCalls);
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceConfigCount));
+    EXPECT_LE(1, iceConfigCount);
+
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
+    EXPECT_LE(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_LE(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_LE(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
+
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientDisconnectSync(signalingHandle));
+
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
+    EXPECT_LE(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_LE(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_LE(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 

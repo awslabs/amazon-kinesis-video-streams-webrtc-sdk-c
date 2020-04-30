@@ -65,7 +65,6 @@ extern "C" {
 #define IPV6_ADDRESS_LENGTH             (UINT16) 16
 #define IPV4_ADDRESS_LENGTH             (UINT16) 4
 
-
 #define CERTIFICATE_FINGERPRINT_LENGTH 160
 
 typedef enum {

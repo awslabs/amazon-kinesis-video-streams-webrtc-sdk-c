@@ -180,6 +180,11 @@ TEST_F(SignalingApiTest, signalingClientGetStateString)
     }
 }
 
+TEST_F(SignalingApiTest, signalingClientDisconnectSync)
+{
+    EXPECT_NE(STATUS_SUCCESS, signalingClientDisconnectSync(INVALID_SIGNALING_CLIENT_HANDLE_VALUE));
+}
+
 }
 }
 }
