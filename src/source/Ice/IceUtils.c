@@ -189,7 +189,7 @@ STATUS parseIceServer(PIceServer pIceServer, PCHAR url, PCHAR username, PCHAR cr
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    PCHAR separator = NULL, urlNoPrefix = NULL;
+    PCHAR separator = NULL, urlNoPrefix = NULL, paramStart = NULL;
     UINT32 port = ICE_STUN_DEFAULT_PORT;
 
     // username and credential is only mandatory for turn server
@@ -208,13 +208,23 @@ STATUS parseIceServer(PIceServer pIceServer, PCHAR url, PCHAR username, PCHAR cr
         STRNCPY(pIceServer->credential, credential, MAX_ICE_CONFIG_CREDENTIAL_LEN);
         urlNoPrefix = STRCHR(url, ':') + 1;
         pIceServer->isTurn = TRUE;
+        pIceServer->isSecure = STRNCMP(ICE_URL_PREFIX_TURN_SECURE, url, STRLEN(ICE_URL_PREFIX_TURN_SECURE)) == 0;
+
+        pIceServer->transport = KVS_SOCKET_PROTOCOL_NONE;
+        if (STRSTR(url, ICE_URL_TRANSPORT_UDP) != NULL) {
+            pIceServer->transport = KVS_SOCKET_PROTOCOL_UDP;
+        } else if (STRSTR(url, ICE_URL_TRANSPORT_TCP) != NULL) {
+            pIceServer->transport = KVS_SOCKET_PROTOCOL_TCP;
+        }
+
     } else {
         CHK(FALSE, STATUS_ICE_URL_INVALID_PREFIX);
     }
 
     if ((separator = STRCHR(urlNoPrefix, ':')) != NULL) {
         separator++;
-        CHK_STATUS(STRTOUI32(separator, separator + STRLEN(separator), 10, &port));
+        paramStart = STRCHR(urlNoPrefix, '?');
+        CHK_STATUS(STRTOUI32(separator, paramStart, 10, &port));
         STRNCPY(pIceServer->url, urlNoPrefix, separator - urlNoPrefix - 1);
         // need to null terminate since we are not copying the entire urlNoPrefix
         pIceServer->url[separator - urlNoPrefix - 1] = '\0';

@@ -891,6 +891,8 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
                 /* Start receiving data for TLS handshake */
                 ATOMIC_STORE_BOOL(&pTurnConnection->pControlChannel->receiveData, TRUE);
 
+                /* We dont support DTLS and TCP, so only options are TCP/TLS and UDP. */
+                /* TODO: add plain TCP once it becomes available. */
                 if (pTurnConnection->protocol == KVS_SOCKET_PROTOCOL_TCP &&
                     pTurnConnection->pControlChannel->pSsl == NULL) {
                     CHK_STATUS(socketConnectionInitSecureConnection(pTurnConnection->pControlChannel, FALSE));

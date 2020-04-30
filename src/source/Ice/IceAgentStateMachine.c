@@ -535,7 +535,8 @@ STATUS executeDisconnectedIceAgentState(UINT64 customData, UINT64 time)
 
     // not stopping timer task from previous state as we want it to continue and perhaps recover.
     // not setting pIceAgent->iceAgentState as it stores the previous state and we want to step back into it to continue retry
-    DLOGD("Ice agent detected disconnection. current state %s", iceAgentStateToString(pIceAgent->iceAgentState));
+    DLOGD("Ice agent detected disconnection. current state %s. Last data received time %" PRIu64 " s",
+          iceAgentStateToString(pIceAgent->iceAgentState), pIceAgent->lastDataReceivedTime / HUNDREDS_OF_NANOS_IN_A_SECOND);
     pIceAgent->detectedDisconnection = TRUE;
 
     // after detecting disconnection, store disconnectionGracePeriodEndTime and when it is reached and ice still hasnt recover

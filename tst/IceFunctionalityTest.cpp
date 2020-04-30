@@ -114,7 +114,7 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         KvsIpAddress localhost;
 
         MEMSET(&localhost, 0x00, SIZEOF(KvsIpAddress));
-        
+
         localhost.isPointToPoint = FALSE;
         localhost.port = 0;
         localhost.family = pCustomData->family;
@@ -269,7 +269,27 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         EXPECT_NE(STATUS_SUCCESS, parseIceServer(NULL, (PCHAR) "turn:54.202.170.151:443", (PCHAR) "username", (PCHAR) "password"));
         EXPECT_EQ(STATUS_SUCCESS, parseIceServer(&iceServer, (PCHAR) "turn:54.202.170.151:443", (PCHAR) "username", (PCHAR) "password"));
         EXPECT_EQ(STATUS_SUCCESS, parseIceServer(&iceServer, (PCHAR) "turns:54.202.170.151:443", (PCHAR) "username", (PCHAR) "password"));
+        EXPECT_TRUE(iceServer.isSecure);
+        EXPECT_EQ(iceServer.transport, KVS_SOCKET_PROTOCOL_NONE);
         EXPECT_EQ(STATUS_ICE_URL_INVALID_PREFIX, parseIceServer(&iceServer, (PCHAR) "randomUrl", (PCHAR) "username", (PCHAR) "password"));
+
+        EXPECT_EQ(STATUS_SUCCESS, parseIceServer(&iceServer, (PCHAR) "turns:54.202.170.151:443?transport=tcp", (PCHAR) "username", (PCHAR) "password"));
+        EXPECT_TRUE(iceServer.isSecure);
+        EXPECT_EQ(iceServer.transport, KVS_SOCKET_PROTOCOL_TCP);
+        EXPECT_EQ(STATUS_SUCCESS, parseIceServer(&iceServer, (PCHAR) "turns:54.202.170.151:443?transport=udp", (PCHAR) "username", (PCHAR) "password"));
+        EXPECT_TRUE(iceServer.isSecure);
+        EXPECT_EQ(iceServer.transport, KVS_SOCKET_PROTOCOL_UDP);
+        EXPECT_EQ(STATUS_SUCCESS, parseIceServer(&iceServer, (PCHAR) "turn:54.202.170.151:443?transport=tcp", (PCHAR) "username", (PCHAR) "password"));
+        EXPECT_TRUE(!iceServer.isSecure);
+        EXPECT_EQ(iceServer.transport, KVS_SOCKET_PROTOCOL_TCP);
+        EXPECT_EQ(STATUS_SUCCESS, parseIceServer(&iceServer, (PCHAR) "turn:54.202.170.151:443?transport=udp", (PCHAR) "username", (PCHAR) "password"));
+        EXPECT_TRUE(!iceServer.isSecure);
+        EXPECT_EQ(iceServer.transport, KVS_SOCKET_PROTOCOL_UDP);
+        EXPECT_EQ(443, (UINT16) getInt16(iceServer.ipAddress.port));
+
+        /* we are not doing full validation. Only parsing out what we know */
+        EXPECT_EQ(STATUS_SUCCESS, parseIceServer(&iceServer, (PCHAR) "turn:54.202.170.151:443?randomstuff", (PCHAR) "username", (PCHAR) "password"));
+        EXPECT_EQ(iceServer.transport, KVS_SOCKET_PROTOCOL_NONE);
     }
 
     TEST_F(IceFunctionalityTest, IceAgentAddRemoteCandidateUnitTest)
@@ -493,7 +513,7 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(iceAgent.iceCandidatePairs, &iceCandidateCount));
         // candidate has to be the same socket family type
         EXPECT_EQ(0, iceCandidateCount);
-        
+
         remoteCandidate1.ipAddress.family = KVS_IP_FAMILY_TYPE_IPV4;
         EXPECT_EQ(STATUS_SUCCESS, createIceCandidatePairs(&iceAgent, &remoteCandidate1, TRUE));
         EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(iceAgent.iceCandidatePairs, &iceCandidateCount));

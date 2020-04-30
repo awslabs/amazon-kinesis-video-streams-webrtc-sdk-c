@@ -29,6 +29,7 @@ extern "C" {
 #endif
 
 typedef enum {
+    KVS_SOCKET_PROTOCOL_NONE,
     KVS_SOCKET_PROTOCOL_TCP,
     KVS_SOCKET_PROTOCOL_UDP,
 } KVS_SOCKET_PROTOCOL;
