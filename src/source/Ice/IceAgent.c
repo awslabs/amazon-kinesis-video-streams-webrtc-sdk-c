@@ -620,6 +620,11 @@ STATUS iceAgentShutdown(PIceAgent pIceAgent)
         pIceAgent->keepAliveTimerTask = UINT32_MAX;
     }
 
+    if (pIceAgent->iceCandidateGatheringTimerTask != UINT32_MAX) {
+        CHK_STATUS(timerQueueCancelTimer(pIceAgent->timerQueueHandle, pIceAgent->iceCandidateGatheringTimerTask, (UINT64) pIceAgent));
+        pIceAgent->iceCandidateGatheringTimerTask = UINT32_MAX;
+    }
+
     MUTEX_LOCK(pIceAgent->lock);
     locked = TRUE;
 
