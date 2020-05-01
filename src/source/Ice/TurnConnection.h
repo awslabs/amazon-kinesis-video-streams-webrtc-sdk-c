@@ -116,6 +116,7 @@ struct __TurnConnection {
     volatile ATOMIC_BOOL stopTurnConnection;
     volatile ATOMIC_BOOL allocationFreed;
     volatile ATOMIC_BOOL relayAddressReceived;
+    volatile SIZE_T timerCallbackId;
 
     // realm attribute in Allocation response
     CHAR turnRealm[STUN_MAX_REALM_LEN + 1];
@@ -142,8 +143,6 @@ struct __TurnConnection {
     UINT64 stateTimeoutTime;
 
     STATUS errorStatus;
-
-    UINT32 timerCallbackId;
 
     PStunPacket pTurnPacket;
     PStunPacket pTurnCreatePermissionPacket;
