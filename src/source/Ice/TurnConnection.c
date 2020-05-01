@@ -145,21 +145,41 @@ STATUS turnConnectionIncomingDataHandler(PTurnConnection pTurnConnection, PBYTE 
     UNUSED_PARAM(pSrc);
     UNUSED_PARAM(pDest);
     STATUS retStatus = STATUS_SUCCESS;
+    UINT32 remainingDataSize = 0, processedDataLen, channelDataCount = 0, totalChannelDataCount = 0, channelDataListSize;
+    PBYTE pCurrent = NULL;
 
     CHK(pTurnConnection != NULL && channelDataList != NULL && pChannelDataCount != NULL, STATUS_NULL_ARG);
     CHK_WARN(bufferLen > 0 && pBuffer != NULL, retStatus, "Got empty buffer");
 
-    if (IS_STUN_PACKET(pBuffer)) {
-        if (STUN_PACKET_IS_TYPE_ERROR(pBuffer)) {
-            CHK_STATUS(turnConnectionHandleStunError(pTurnConnection, pBuffer, bufferLen));
+    /* initially pChannelDataCount contains size of channelDataList */
+    channelDataListSize = *pChannelDataCount;
+    remainingDataSize = bufferLen;
+    pCurrent = pBuffer;
+    while (remainingDataSize > 0 && totalChannelDataCount < channelDataListSize) {
+        processedDataLen = 0;
+        channelDataCount = 0;
+        if (IS_STUN_PACKET(pCurrent)) {
+            processedDataLen = GET_STUN_PACKET_SIZE(pCurrent) + STUN_HEADER_LEN; /* size of entire STUN packet */
+            if (STUN_PACKET_IS_TYPE_ERROR(pCurrent)) {
+                CHK_STATUS(turnConnectionHandleStunError(pTurnConnection, pCurrent, processedDataLen));
+            } else {
+                CHK_STATUS(turnConnectionHandleStun(pTurnConnection, pCurrent, processedDataLen));
+            }
         } else {
-            CHK_STATUS(turnConnectionHandleStun(pTurnConnection, pBuffer, bufferLen));
+            /* must be channel data if not stun */
+            CHK_STATUS(turnConnectionHandleChannelData(pTurnConnection, pCurrent, remainingDataSize,
+                                                       &channelDataList[totalChannelDataCount], &channelDataCount,
+                                                       &processedDataLen));
         }
-        *pChannelDataCount = 0;
-    } else {
-        // must be channel data if not stun
-        CHK_STATUS(turnConnectionHandleChannelData(pTurnConnection, pBuffer, bufferLen, channelDataList, pChannelDataCount));
+
+        CHK(remainingDataSize >= processedDataLen, STATUS_INVALID_ARG_LEN);
+        pCurrent += processedDataLen;
+        remainingDataSize -= processedDataLen;
+        /* channelDataCount will be either 1 or 0 */
+        totalChannelDataCount += channelDataCount;
     }
+
+    *pChannelDataCount = totalChannelDataCount;
 
 CleanUp:
 
@@ -434,7 +454,7 @@ CleanUp:
 }
 
 STATUS turnConnectionHandleChannelData(PTurnConnection pTurnConnection, PBYTE pBuffer, UINT32 bufferLen,
-                                       PTurnChannelData channelDataList, PUINT32 pChannelDataCount)
+                                       PTurnChannelData pChannelData, PUINT32 pChannelDataCount, PUINT32 pProcessedDataLen)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -444,8 +464,9 @@ STATUS turnConnectionHandleChannelData(PTurnConnection pTurnConnection, PBYTE pB
     UINT16 channelNumber = 0;
     PTurnPeer pTurnPeer = NULL;
 
-    CHK(pTurnConnection != NULL && channelDataList != NULL && pChannelDataCount != NULL, STATUS_NULL_ARG);
-    CHK(pBuffer != NULL && bufferLen > 0 && *pChannelDataCount > 0, STATUS_INVALID_ARG);
+    CHK(pTurnConnection != NULL && pChannelData != NULL && pChannelDataCount != NULL && pProcessedDataLen != NULL,
+        STATUS_NULL_ARG);
+    CHK(pBuffer != NULL && bufferLen > 0, STATUS_INVALID_ARG);
 
     MUTEX_LOCK(pTurnConnection->lock);
     locked = TRUE;
@@ -453,29 +474,35 @@ STATUS turnConnectionHandleChannelData(PTurnConnection pTurnConnection, PBYTE pB
     if (pTurnConnection->protocol == KVS_SOCKET_PROTOCOL_UDP) {
         channelNumber = (UINT16) getInt16(*(PINT16) pBuffer);
         if ((pTurnPeer = turnConnectionGetPeerWithChannelNumber(pTurnConnection, channelNumber)) != NULL) {
-            // Not expecting fragmented channel message in UDP mode.
-            // Data channel messages from UDP connection may or may not padded. Thus turnConnectionHandleChannelDataTcpMode wont
-            // be able to parse it.
-            channelDataList[0].data = pBuffer + TURN_DATA_CHANNEL_SEND_OVERHEAD;
-            channelDataList[0].size = GET_STUN_PACKET_SIZE(pBuffer);
-            channelDataList[0].senderAddr = pTurnPeer->address;
+            /*
+             * Not expecting fragmented channel message in UDP mode.
+             * Data channel messages from UDP connection may or may not padded. Thus turnConnectionHandleChannelDataTcpMode wont
+             * be able to parse it.
+             */
+            pChannelData->data = pBuffer + TURN_DATA_CHANNEL_SEND_OVERHEAD;
+            pChannelData->size = GET_STUN_PACKET_SIZE(pBuffer);
+            pChannelData->senderAddr = pTurnPeer->address;
             turnChannelDataCount = 1;
+
+            if (pChannelData->size + TURN_DATA_CHANNEL_SEND_OVERHEAD < bufferLen) {
+                DLOGD("Not expecting multiple channel data messages in one UDP packet.");
+            }
+
         } else {
             turnChannelDataCount = 0;
         }
+        *pProcessedDataLen = bufferLen;
 
     } else {
-        turnChannelDataCount = *pChannelDataCount;
-        CHK_STATUS(turnConnectionHandleChannelDataTcpMode(pTurnConnection, pBuffer, bufferLen, channelDataList, &turnChannelDataCount));
+        CHK_STATUS(turnConnectionHandleChannelDataTcpMode(pTurnConnection, pBuffer, bufferLen, pChannelData,
+                                                          &turnChannelDataCount, pProcessedDataLen));
     }
+
+    *pChannelDataCount = turnChannelDataCount;
 
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
-
-    if (pChannelDataCount != NULL) {
-        *pChannelDataCount = turnChannelDataCount;
-    }
 
     if (locked) {
         MUTEX_UNLOCK(pTurnConnection->lock);
@@ -485,8 +512,14 @@ CleanUp:
     return retStatus;
 }
 
+/*
+ * turnConnectionHandleChannelDataTcpMode will process a single turn channel data item from pBuffer then return.
+ * If there is a complete channel data item in buffer, upon return *pTurnChannelDataCount will be 1, *pTurnChannelData
+ * will data details about the parsed channel data. *pProcessedDataLen will be the length of data processed.
+ */
 STATUS turnConnectionHandleChannelDataTcpMode(PTurnConnection pTurnConnection, PBYTE pBuffer, UINT32 bufferLen,
-                                              PTurnChannelData pTurnChannelData, PUINT32 pTurnChannelDataCount)
+                                              PTurnChannelData pChannelData, PUINT32 pTurnChannelDataCount,
+                                              PUINT32 pProcessedDataLen)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -495,23 +528,25 @@ STATUS turnConnectionHandleChannelDataTcpMode(PTurnConnection pTurnConnection, P
     UINT16 channelNumber = 0;
     PTurnPeer pTurnPeer = NULL;
 
-    CHK(pTurnConnection != NULL && pTurnChannelData != NULL && pTurnChannelDataCount != NULL, STATUS_NULL_ARG);
-    // *pTurnChannelDataCount contains size of pTurnChannelData list
-    CHK(pBuffer != NULL && bufferLen > 0 && *pTurnChannelDataCount > 0, STATUS_INVALID_ARG);
+    CHK(pTurnConnection != NULL && pChannelData != NULL && pTurnChannelDataCount != NULL && pProcessedDataLen != NULL,
+        STATUS_NULL_ARG);
+    CHK(pBuffer != NULL && bufferLen > 0, STATUS_INVALID_ARG);
 
     pCurPos = pBuffer;
     remainingBufLen = bufferLen;
-    while(remainingBufLen != 0 && channelDataCount < *pTurnChannelDataCount) {
+    /* process only one channel data and return. Because channel data can be intermixed with STUN packet.
+     * need to check remainingBufLen too because channel data could be incomplete. */
+    while(remainingBufLen != 0 && channelDataCount == 0) {
         if (pTurnConnection->currRecvDataLen != 0) {
             if (pTurnConnection->currRecvDataLen >= TURN_DATA_CHANNEL_SEND_OVERHEAD) {
-                // pTurnConnection->recvDataBuffer always has channel data start
+                /* pTurnConnection->recvDataBuffer always has channel data start */
                 paddedChannelDataLen = ROUND_UP((UINT32) getInt16(*(PINT16) (pTurnConnection->recvDataBuffer + SIZEOF(channelNumber))), 4);
                 remainingMsgSize = paddedChannelDataLen - (pTurnConnection->currRecvDataLen - TURN_DATA_CHANNEL_SEND_OVERHEAD);
                 bytesToCopy = MIN(remainingMsgSize, remainingBufLen);
                 remainingBufLen -= bytesToCopy;
 
                 if (bytesToCopy > (pTurnConnection->recvDataBufferSize - pTurnConnection->currRecvDataLen)) {
-                    // drop current message if it is longer than buffer size
+                    /* drop current message if it is longer than buffer size. */
                     pTurnConnection->currRecvDataLen = 0;
                     CHK(FALSE, STATUS_BUFFER_TOO_SMALL);
                 }
@@ -523,38 +558,40 @@ STATUS turnConnectionHandleChannelDataTcpMode(PTurnConnection pTurnConnection, P
                 CHECK_EXT(pTurnConnection->currRecvDataLen <= paddedChannelDataLen + TURN_DATA_CHANNEL_SEND_OVERHEAD,
                           "Should not store more than one channel data message in recvDataBuffer");
 
-                // once assembled a complete channel data in recvDataBuffer, copy over to completeChannelDataBuffer to
-                // make room for subsequent partial channel data.
+                /*
+                 * once assembled a complete channel data in recvDataBuffer, copy over to completeChannelDataBuffer to
+                 * make room for subsequent partial channel data.
+                 */
                 if (pTurnConnection->currRecvDataLen == (paddedChannelDataLen + TURN_DATA_CHANNEL_SEND_OVERHEAD)) {
                     channelNumber = (UINT16) getInt16(*(PINT16) pTurnConnection->recvDataBuffer);
                     if ((pTurnPeer = turnConnectionGetPeerWithChannelNumber(pTurnConnection, channelNumber)) != NULL) {
                         MEMCPY(pTurnConnection->completeChannelDataBuffer, pTurnConnection->recvDataBuffer, pTurnConnection->currRecvDataLen);
-                        pTurnChannelData[channelDataCount].data = pTurnConnection->completeChannelDataBuffer + TURN_DATA_CHANNEL_SEND_OVERHEAD;
-                        pTurnChannelData[channelDataCount].size = GET_STUN_PACKET_SIZE(pTurnConnection->completeChannelDataBuffer);
-                        pTurnChannelData[channelDataCount].senderAddr = pTurnPeer->address;
+                        pChannelData->data = pTurnConnection->completeChannelDataBuffer + TURN_DATA_CHANNEL_SEND_OVERHEAD;
+                        pChannelData->size = GET_STUN_PACKET_SIZE(pTurnConnection->completeChannelDataBuffer);
+                        pChannelData->senderAddr = pTurnPeer->address;
                         channelDataCount++;
                     }
 
                     pTurnConnection->currRecvDataLen = 0;
                 }
             } else {
-                // copy just enough to make a complete channel data header
+                /* copy just enough to make a complete channel data header */
                 bytesToCopy = MIN(remainingMsgSize, TURN_DATA_CHANNEL_SEND_OVERHEAD - pTurnConnection->currRecvDataLen);
                 MEMCPY(pTurnConnection->recvDataBuffer + pTurnConnection->currRecvDataLen, pCurPos, bytesToCopy);
                 pTurnConnection->currRecvDataLen += bytesToCopy;
                 pCurPos += bytesToCopy;
             }
         } else {
-            // new channel message start
+            /* new channel message start */
             CHK(*pCurPos == TURN_DATA_CHANNEL_MSG_FIRST_BYTE, STATUS_TURN_MISSING_CHANNEL_DATA_HEADER);
 
             paddedChannelDataLen = ROUND_UP((UINT32) getInt16(*(PINT16) (pCurPos + SIZEOF(UINT16))), 4);
             if (remainingBufLen >= (paddedChannelDataLen + TURN_DATA_CHANNEL_SEND_OVERHEAD)) {
                 channelNumber = (UINT16) getInt16(*(PINT16) pCurPos);
                 if ((pTurnPeer = turnConnectionGetPeerWithChannelNumber(pTurnConnection, channelNumber)) != NULL) {
-                    pTurnChannelData[channelDataCount].data = pCurPos + TURN_DATA_CHANNEL_SEND_OVERHEAD;
-                    pTurnChannelData[channelDataCount].size = GET_STUN_PACKET_SIZE(pCurPos);
-                    pTurnChannelData[channelDataCount].senderAddr = pTurnPeer->address;
+                    pChannelData->data = pCurPos + TURN_DATA_CHANNEL_SEND_OVERHEAD;
+                    pChannelData->size = GET_STUN_PACKET_SIZE(pCurPos);
+                    pChannelData->senderAddr = pTurnPeer->address;
                     channelDataCount++;
                 }
 
@@ -572,14 +609,9 @@ STATUS turnConnectionHandleChannelDataTcpMode(PTurnConnection pTurnConnection, P
         }
     }
 
-    // Should not run into this. *pTurnChannelDataCount should always be big enough.
-    if (channelDataCount >= *pTurnChannelDataCount) {
-        DLOGW("channelDataCount reached maximum list size of %u. Remaining buffer size is %u bytes",
-              *pTurnChannelDataCount, remainingBufLen);
-    }
-
-    // return actual channel data count
+    /* return actual channel data count */
     *pTurnChannelDataCount = channelDataCount;
+    *pProcessedDataLen = bufferLen - remainingBufLen;
 
 CleanUp:
 
