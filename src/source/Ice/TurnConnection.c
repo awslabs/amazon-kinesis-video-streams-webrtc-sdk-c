@@ -82,6 +82,7 @@ STATUS freeTurnConnection(PTurnConnection* ppTurnConnection)
     PDoubleListNode pCurNode = NULL;
     UINT64 data;
     PTurnPeer pTurnPeer = NULL;
+    SIZE_T timerCallbackId;
 
     CHK(ppTurnConnection != NULL, STATUS_NULL_ARG);
     // free is idempotent
@@ -89,10 +90,13 @@ STATUS freeTurnConnection(PTurnConnection* ppTurnConnection)
 
     pTurnConnection = *ppTurnConnection;
 
-    MUTEX_LOCK(pTurnConnection->lock);
-    if (pTurnConnection->timerCallbackId != UINT32_MAX) {
-        CHK_LOG_ERR(timerQueueCancelTimer(pTurnConnection->timerQueueHandle, pTurnConnection->timerCallbackId, (UINT64) pTurnConnection));
+    timerCallbackId = ATOMIC_EXCHANGE(&pTurnConnection->timerCallbackId, UINT32_MAX);
+    if (timerCallbackId != UINT32_MAX) {
+        CHK_LOG_ERR(timerQueueCancelTimer(pTurnConnection->timerQueueHandle, (UINT32) timerCallbackId, (UINT64) pTurnConnection));
     }
+
+    /* acquire lock to make sure timerCallbackId is completely finished  */
+    MUTEX_LOCK(pTurnConnection->lock);
     MUTEX_UNLOCK(pTurnConnection->lock);
 
     // shutdown control channel
@@ -261,10 +265,6 @@ STATUS turnConnectionHandleStun(PTurnConnection pTurnConnection, PBYTE pBuffer, 
                 CHK(!ATOMIC_LOAD_BOOL(&pTurnConnection->allocationFreed), retStatus);
                 DLOGD("TURN Allocation freed.");
                 ATOMIC_STORE_BOOL(&pTurnConnection->allocationFreed, TRUE);
-                if (pTurnConnection->timerCallbackId != UINT32_MAX) {
-                    CHK_STATUS(timerQueueCancelTimer(pTurnConnection->timerQueueHandle, pTurnConnection->timerCallbackId, (UINT64) pTurnConnection));
-                    pTurnConnection->timerCallbackId = UINT32_MAX;
-                }
                 CVAR_SIGNAL(pTurnConnection->freeAllocationCvar);
             } else {
                 // convert lifetime to 100ns and store it
@@ -757,21 +757,29 @@ STATUS turnConnectionStart(PTurnConnection pTurnConnection)
 {
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
+    SIZE_T timerCallbackId;
 
     CHK(pTurnConnection != NULL, STATUS_NULL_ARG);
-    // only execute when turnConnection is in TURN_STATE_NEW
-    CHK(pTurnConnection->state == TURN_STATE_NEW, retStatus);
 
     MUTEX_LOCK(pTurnConnection->lock);
     locked = TRUE;
 
-    if (pTurnConnection->timerCallbackId != UINT32_MAX) {
-        CHK_STATUS(timerQueueCancelTimer(pTurnConnection->timerQueueHandle, pTurnConnection->timerCallbackId, (UINT64) pTurnConnection));
+    /* only execute when turnConnection is in TURN_STATE_NEW */
+    CHK(pTurnConnection->state == TURN_STATE_NEW, retStatus);
+
+    MUTEX_UNLOCK(pTurnConnection->lock);
+    locked = FALSE;
+
+    timerCallbackId = ATOMIC_EXCHANGE(&pTurnConnection->timerCallbackId, UINT32_MAX);
+    if (timerCallbackId != UINT32_MAX) {
+        CHK_STATUS(timerQueueCancelTimer(pTurnConnection->timerQueueHandle, (UINT32) timerCallbackId, (UINT64) pTurnConnection));
     }
 
-    // schedule the timer, which will drive the state machine.
+    /* schedule the timer, which will drive the state machine. */
     CHK_STATUS(timerQueueAddTimer(pTurnConnection->timerQueueHandle, KVS_ICE_DEFAULT_TIMER_START_DELAY, pTurnConnection->currentTimerCallingPeriod,
-                                  turnConnectionTimerCallback, (UINT64) pTurnConnection, &pTurnConnection->timerCallbackId));
+                                  turnConnectionTimerCallback, (UINT64) pTurnConnection, (PUINT32) &timerCallbackId));
+
+    ATOMIC_STORE(&pTurnConnection->timerCallbackId, timerCallbackId);
 
 CleanUp:
 
@@ -1074,14 +1082,15 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
 
                 pTurnConnection->currentTimerCallingPeriod = DEFAULT_TURN_TIMER_INTERVAL_BEFORE_READY;
                 CHK_STATUS(timerQueueUpdateTimerPeriod(pTurnConnection->timerQueueHandle, (UINT64) pTurnConnection,
-                                                       pTurnConnection->timerCallbackId, pTurnConnection->currentTimerCallingPeriod));
+                           (UINT32) ATOMIC_LOAD(&pTurnConnection->timerCallbackId), pTurnConnection->currentTimerCallingPeriod));
                 pTurnConnection->state = TURN_STATE_CREATE_PERMISSION;
                 pTurnConnection->stateTimeoutTime = currentTime + DEFAULT_TURN_CREATE_PERMISSION_TIMEOUT;
             } else if (pTurnConnection->currentTimerCallingPeriod != DEFAULT_TURN_TIMER_INTERVAL_AFTER_READY) {
                 // use longer timer interval as now it just needs to check disconnection and permission expiration.
                 pTurnConnection->currentTimerCallingPeriod = DEFAULT_TURN_TIMER_INTERVAL_AFTER_READY;
                 CHK_STATUS(timerQueueUpdateTimerPeriod(pTurnConnection->timerQueueHandle, (UINT64) pTurnConnection,
-                                                       pTurnConnection->timerCallbackId, pTurnConnection->currentTimerCallingPeriod));
+                                                       (UINT32) ATOMIC_LOAD(&pTurnConnection->timerCallbackId),
+                                                       pTurnConnection->currentTimerCallingPeriod));
             }
 
             break;
@@ -1091,10 +1100,6 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
              * since we already sent multiple STUN refresh packets with 0 lifetime. */
             if (socketConnectionIsClosed(pTurnConnection->pControlChannel) ||
                 ATOMIC_LOAD_BOOL(&pTurnConnection->allocationFreed) || currentTime >= pTurnConnection->stateTimeoutTime) {
-                if (pTurnConnection->timerCallbackId != UINT32_MAX) {
-                    CHK_STATUS(timerQueueCancelTimer(pTurnConnection->timerQueueHandle, pTurnConnection->timerCallbackId, (UINT64) pTurnConnection));
-                    pTurnConnection->timerCallbackId = UINT32_MAX;
-                }
 
                 // clean transactionId store for each turn peer, preserving the peers
                 CHK_STATUS(doubleListGetHeadNode(pTurnConnection->turnPeerList, &pCurNode));
@@ -1188,15 +1193,7 @@ STATUS turnConnectionShutdown(PTurnConnection pTurnConnection, UINT64 waitUntilA
     MUTEX_LOCK(pTurnConnection->lock);
     locked = TRUE;
 
-    if (ATOMIC_LOAD_BOOL(&pTurnConnection->allocationFreed)) {
-        // if allocation is already freed, we can cancel the time right now
-        if (pTurnConnection->timerCallbackId != UINT32_MAX) {
-            CHK_STATUS(timerQueueCancelTimer(pTurnConnection->timerQueueHandle, pTurnConnection->timerCallbackId, (UINT64) pTurnConnection));
-            pTurnConnection->timerCallbackId = UINT32_MAX;
-        }
-
-        CHK(FALSE, retStatus);
-    }
+    CHK(!ATOMIC_LOAD_BOOL(&pTurnConnection->allocationFreed), retStatus);
 
     if (waitUntilAllocationFreedTimeout > 0) {
         currentTime = GETTIME();
@@ -1334,9 +1331,9 @@ STATUS turnConnectionTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 cu
             CHK_STATUS(getStunAttribute(pTurnConnection->pTurnAllocationRefreshPacket, STUN_ATTRIBUTE_TYPE_LIFETIME, (PStunAttributeHeader*) &pStunAttributeLifetime));
             CHK(pStunAttributeLifetime != NULL, STATUS_INTERNAL_ERROR);
             pStunAttributeLifetime->lifetime = 0;
-            sendStatus =  iceUtilsSendStunPacket(pTurnConnection->pTurnAllocationRefreshPacket, pTurnConnection->longTermKey,
-                                                 ARRAY_SIZE(pTurnConnection->longTermKey), &pTurnConnection->turnServer.ipAddress,
-                                                 pTurnConnection->pControlChannel, NULL, FALSE);
+            sendStatus = iceUtilsSendStunPacket(pTurnConnection->pTurnAllocationRefreshPacket, pTurnConnection->longTermKey,
+                                                ARRAY_SIZE(pTurnConnection->longTermKey), &pTurnConnection->turnServer.ipAddress,
+                                                pTurnConnection->pControlChannel, NULL, FALSE);
 
             break;
 
@@ -1354,19 +1351,28 @@ STATUS turnConnectionTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 cu
         turnConnectionFatalError(pTurnConnection, sendStatus);
     }
 
-    // drive the state machine.
+    /* drive the state machine. */
     CHK_STATUS(turnConnectionStepState(pTurnConnection));
+
+    /* after turnConnectionStepState(), turn state is TURN_STATE_NEW only if TURN_STATE_CLEAN_UP is completed. Thus
+     * we can stop the timer. */
+    if (pTurnConnection->state == TURN_STATE_NEW) {
+        stopScheduling = TRUE;
+    }
 
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
 
-    if (locked) {
-        MUTEX_UNLOCK(pTurnConnection->lock);
-    }
-
     if (stopScheduling) {
         retStatus = STATUS_TIMER_QUEUE_STOP_SCHEDULING;
+        if (pTurnConnection != NULL) {
+            ATOMIC_STORE(&pTurnConnection->timerCallbackId, UINT32_MAX);
+        }
+    }
+
+    if (locked) {
+        MUTEX_UNLOCK(pTurnConnection->lock);
     }
 
     return retStatus;
