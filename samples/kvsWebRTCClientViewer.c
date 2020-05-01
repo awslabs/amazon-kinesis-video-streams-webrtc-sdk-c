@@ -53,6 +53,15 @@ INT32 main(INT32 argc, CHAR *argv[])
 
     printf("[KVS Viewer] Signaling client created successfully\n");
 
+    // Enable the processing of the messages
+    retStatus = signalingClientConnectSync(pSampleConfiguration->signalingClientHandle);
+    if(retStatus != STATUS_SUCCESS) {
+        printf("[KVS Viewer] signalingClientConnectSync(): operation returned status code: 0x%08x \n", retStatus);
+        goto CleanUp;
+    }
+
+    printf("[KVS Viewer] Signaling client connection to socket established\n");
+
     // Initialize streaming session
     MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
     locked = TRUE;
@@ -68,15 +77,6 @@ INT32 main(INT32 argc, CHAR *argv[])
 
     MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
     locked = FALSE;
-
-    // Enable the processing of the messages
-    retStatus = signalingClientConnectSync(pSampleConfiguration->signalingClientHandle);
-    if(retStatus != STATUS_SUCCESS) {
-        printf("[KVS Viewer] signalingClientConnectSync(): operation returned status code: 0x%08x \n", retStatus);
-        goto CleanUp;
-    }
-
-    printf("[KVS Viewer] Signaling client connection to socket established\n");
 
     memset(&offerSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
 

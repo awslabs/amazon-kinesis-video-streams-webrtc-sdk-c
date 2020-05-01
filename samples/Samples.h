@@ -24,6 +24,9 @@ extern "C" {
 #define SAMPLE_AUDIO_FRAME_DURATION                                             (20 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
 #define SAMPLE_VIDEO_FRAME_DURATION                                             (HUNDREDS_OF_NANOS_IN_A_SECOND / DEFAULT_FPS_VALUE)
 
+#define ASYNC_ICE_CONFIG_INFO_WAIT_TIMEOUT                                      (3 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define ICE_CONFIG_INFO_POLL_PERIOD                                             (20 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
+
 #define CA_CERT_PEM_FILE_EXTENSION                                              ".pem"
 typedef enum {
     SAMPLE_STREAMING_VIDEO_ONLY,
@@ -118,6 +121,7 @@ VOID sampleBandwidthEstimationHandler(UINT64, DOUBLE);
 VOID onDataChannel(UINT64, PRtcDataChannel);
 VOID onConnectionStateChange(UINT64, RTC_PEER_CONNECTION_STATE);
 STATUS sessionCleanupWait(PSampleConfiguration);
+STATUS awaitGetIceConfigInfoCount(SIGNALING_CLIENT_HANDLE, PUINT32);
 
 #ifdef  __cplusplus
 }
