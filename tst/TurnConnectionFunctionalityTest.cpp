@@ -347,8 +347,115 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
 
         BOOL turnReady = FALSE;
         KvsIpAddress turnPeerAddr;
+        TurnChannelData turnChannelData;
+        UINT32 turnChannelDataCount = 0, dataLenProcessed = 0;
+        UINT64 turnReadyTimeout = GETTIME() + 10 * HUNDREDS_OF_NANOS_IN_A_SECOND;
+        PBYTE pCurrent = NULL;
+
+        initializeTestTurnConnection();
+
+        turnPeerAddr.port = (UINT16) getInt16(8080);
+        turnPeerAddr.family = KVS_IP_FAMILY_TYPE_IPV4;
+        turnPeerAddr.isPointToPoint = FALSE;
+        /* random peer 77.1.1.1, we are not actually sending anything to it. */
+        turnPeerAddr.address[0] = 0x4d;
+        turnPeerAddr.address[1] = 0x01;
+        turnPeerAddr.address[2] = 0x01;
+        turnPeerAddr.address[3] = 0x01;
+
+        EXPECT_EQ(STATUS_SUCCESS, turnConnectionAddPeer(pTurnConnection, &turnPeerAddr));
+        EXPECT_EQ(STATUS_SUCCESS, turnConnectionStart(pTurnConnection));
+
+        // wait until channel is created
+        while(!turnReady && GETTIME() < turnReadyTimeout) {
+            THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+            MUTEX_LOCK(pTurnConnection->lock);
+            if (pTurnConnection->state == TURN_STATE_READY) {
+                turnReady = TRUE;
+            }
+            MUTEX_UNLOCK(pTurnConnection->lock);
+        }
+
+        EXPECT_TRUE(turnReady == TRUE);
+
+        pCurrent = channelMsg;
+
+        EXPECT_EQ(STATUS_SUCCESS, turnConnectionHandleChannelDataTcpMode(pTurnConnection, pCurrent, ARRAY_SIZE(channelMsg), &turnChannelData,
+                                                                         &turnChannelDataCount, &dataLenProcessed));
+        /* Only parse out single channel data message */
+        EXPECT_EQ(turnChannelDataCount, 1);
+        EXPECT_EQ(turnChannelData.size, ARRAY_SIZE(channelData1) - TURN_DATA_CHANNEL_SEND_OVERHEAD);
+        EXPECT_EQ(0, MEMCMP(turnChannelData.data, channelData1 + TURN_DATA_CHANNEL_SEND_OVERHEAD, turnChannelData.size));
+        pCurrent += dataLenProcessed;
+
+
+        EXPECT_EQ(STATUS_SUCCESS, turnConnectionHandleChannelDataTcpMode(pTurnConnection, pCurrent,
+                                                                         20, &turnChannelData,
+                                                                         &turnChannelDataCount, &dataLenProcessed));
+        /* didnt parse out anything because not complete message was given */
+        EXPECT_EQ(turnChannelDataCount, 0);
+        pCurrent += dataLenProcessed;
+
+        EXPECT_EQ(STATUS_SUCCESS, turnConnectionHandleChannelDataTcpMode(pTurnConnection, pCurrent,
+                                                                         ARRAY_SIZE(channelMsg), &turnChannelData,
+                                                                         &turnChannelDataCount, &dataLenProcessed));
+        EXPECT_EQ(turnChannelDataCount, 1);
+        EXPECT_EQ(turnChannelData.size, ARRAY_SIZE(channelData2) - TURN_DATA_CHANNEL_SEND_OVERHEAD);
+        EXPECT_EQ(0, MEMCMP(turnChannelData.data, channelData2 + TURN_DATA_CHANNEL_SEND_OVERHEAD, turnChannelData.size));
+        pCurrent += dataLenProcessed;
+
+        EXPECT_EQ(STATUS_SUCCESS, turnConnectionHandleChannelDataTcpMode(pTurnConnection, pCurrent,
+                                                                         ARRAY_SIZE(channelMsg), &turnChannelData,
+                                                                         &turnChannelDataCount, &dataLenProcessed));
+        EXPECT_EQ(turnChannelDataCount, 1);
+        EXPECT_EQ(turnChannelData.size, ARRAY_SIZE(channelData3) - TURN_DATA_CHANNEL_SEND_OVERHEAD);
+        EXPECT_EQ(0, MEMCMP(turnChannelData.data, channelData3 + TURN_DATA_CHANNEL_SEND_OVERHEAD, turnChannelData.size));
+
+        freeTestTurnConnection();
+    }
+
+    TEST_F(TurnConnectionFunctionalityTest, turnConnectionReceiveChannelDataMixedWithStunMessage)
+    {
+        if (!mAccessKeyIdSet) {
+            return;
+        }
+
+        BYTE incomingData[] = {
+                0x40, 0x01, 0x00, 0x60, 0x00, 0x01, 0x00, 0x4c, 0x21, 0x12, 0xa4, 0x42, 0x2f, 0x77, 0x59, 0x57,
+                0x39, 0x4b, 0x69, 0x4a, 0x53, 0x75, 0x4b, 0x45, 0x00, 0x06, 0x00, 0x09, 0x79, 0x45, 0x78, 0x55,
+                0x3a, 0x31, 0x63, 0x39, 0x64, 0x00, 0x00, 0x00, 0xc0, 0x57, 0x00, 0x04, 0x00, 0x01, 0x00, 0x0a,
+                0x80, 0x2a, 0x00, 0x08, 0xe9, 0x60, 0x24, 0x7e, 0x0a, 0xd6, 0xc4, 0x79, 0x00, 0x24, 0x00, 0x04,
+                0x6e, 0x7e, 0x1e, 0xff, 0x00, 0x08, 0x00, 0x14, 0x3e, 0x39, 0x07, 0x98, 0xe5, 0x83, 0x14, 0x85,
+                0x23, 0xb3, 0x29, 0xc1, 0x92, 0x47, 0x45, 0x0c, 0xad, 0xdb, 0xa1, 0x6d, 0x80, 0x28, 0x00, 0x04,
+                0x94, 0x6c, 0x5d, 0x00,
+                /* The second part is a STUN create permission success response */
+                0x00, 0x08, 0x00, 0x9c, 0x21, 0x12, 0xa4, 0x42, 0x30, 0x51, 0x33, 0x61, 0x36, 0x73, 0x47, 0x33,
+                0x2f, 0x39, 0x69, 0x55, 0x00, 0x12, 0x00, 0x08, 0x00, 0x01, 0xa6, 0x68, 0xe1, 0xba, 0x82, 0x84,
+                0x00, 0x06, 0x00, 0x58, 0x31, 0x35, 0x37, 0x30, 0x36, 0x36, 0x39, 0x34, 0x37, 0x31, 0x3a, 0x61,
+                0x72, 0x6e, 0x3a, 0x61, 0x77, 0x73, 0x3a, 0x6b, 0x69, 0x6e, 0x65, 0x73, 0x69, 0x73, 0x76, 0x69,
+                0x64, 0x65, 0x6f, 0x3a, 0x75, 0x73, 0x2d, 0x77, 0x65, 0x73, 0x74, 0x2d, 0x32, 0x3a, 0x38, 0x33,
+                0x36, 0x32, 0x30, 0x33, 0x31, 0x31, 0x37, 0x39, 0x37, 0x31, 0x3a, 0x63, 0x68, 0x61, 0x6e, 0x6e,
+                0x65, 0x6c, 0x2f, 0x66, 0x6f, 0x6f, 0x34, 0x2f, 0x31, 0x35, 0x36, 0x39, 0x30, 0x33, 0x33, 0x30,
+                0x34, 0x32, 0x32, 0x30, 0x37, 0x3a, 0x56, 0x49, 0x45, 0x57, 0x45, 0x52, 0x00, 0x14, 0x00, 0x03,
+                0x6b, 0x76, 0x73, 0x00, 0x00, 0x15, 0x00, 0x10, 0x33, 0x37, 0x35, 0x37, 0x64, 0x32, 0x38, 0x34,
+                0x38, 0x31, 0x30, 0x34, 0x32, 0x32, 0x32, 0x65, 0x00, 0x08, 0x00, 0x14, 0x32, 0x2f, 0xac, 0xaf,
+                0x98, 0x84, 0x74, 0x19, 0xd1, 0x4b, 0xda, 0x26, 0x2c, 0x89, 0x1a, 0x0d, 0x24, 0x39, 0xbf, 0xd6,
+        };
+
+        BYTE channelData[] = {
+                0x40, 0x01, 0x00, 0x60, 0x00, 0x01, 0x00, 0x4c, 0x21, 0x12, 0xa4, 0x42, 0x2f, 0x77, 0x59, 0x57,
+                0x39, 0x4b, 0x69, 0x4a, 0x53, 0x75, 0x4b, 0x45, 0x00, 0x06, 0x00, 0x09, 0x79, 0x45, 0x78, 0x55,
+                0x3a, 0x31, 0x63, 0x39, 0x64, 0x00, 0x00, 0x00, 0xc0, 0x57, 0x00, 0x04, 0x00, 0x01, 0x00, 0x0a,
+                0x80, 0x2a, 0x00, 0x08, 0xe9, 0x60, 0x24, 0x7e, 0x0a, 0xd6, 0xc4, 0x79, 0x00, 0x24, 0x00, 0x04,
+                0x6e, 0x7e, 0x1e, 0xff, 0x00, 0x08, 0x00, 0x14, 0x3e, 0x39, 0x07, 0x98, 0xe5, 0x83, 0x14, 0x85,
+                0x23, 0xb3, 0x29, 0xc1, 0x92, 0x47, 0x45, 0x0c, 0xad, 0xdb, 0xa1, 0x6d, 0x80, 0x28, 0x00, 0x04,
+                0x94, 0x6c, 0x5d, 0x00,
+        };
+
+        BOOL turnReady = FALSE;
+        KvsIpAddress turnPeerAddr;
         TurnChannelData turnChannelData[10];
-        UINT32 turnChannelDataCount = 0;
+        UINT32 turnChannelDataCount = ARRAY_SIZE(turnChannelData);
         UINT64 turnReadyTimeout = GETTIME() + 10 * HUNDREDS_OF_NANOS_IN_A_SECOND;
 
         initializeTestTurnConnection();
@@ -377,22 +484,12 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
 
         EXPECT_TRUE(turnReady == TRUE);
 
-        // index 120 lands in the middle of the second channel message. Simulating a partial channel message received from
-        // socket
-        turnChannelDataCount = ARRAY_SIZE(turnChannelData);
-        EXPECT_EQ(STATUS_SUCCESS, turnConnectionHandleChannelDataTcpMode(pTurnConnection, channelMsg, 120, turnChannelData, &turnChannelDataCount));
+        EXPECT_EQ(STATUS_SUCCESS, turnConnectionIncomingDataHandler(pTurnConnection, incomingData, ARRAY_SIZE(incomingData),
+                                                                    NULL, NULL, turnChannelData, &turnChannelDataCount));
+        /* parsed out item is what we expected */
         EXPECT_EQ(turnChannelDataCount, 1);
-        EXPECT_EQ(turnChannelData[0].size, ARRAY_SIZE(channelData1) - TURN_DATA_CHANNEL_SEND_OVERHEAD);
-        EXPECT_EQ(0, MEMCMP(turnChannelData[0].data, channelData1 + TURN_DATA_CHANNEL_SEND_OVERHEAD, turnChannelData[0].size));
-
-        turnChannelDataCount = ARRAY_SIZE(turnChannelData);
-        EXPECT_EQ(STATUS_SUCCESS, turnConnectionHandleChannelDataTcpMode(pTurnConnection, channelMsg + 120,
-                                                                         ARRAY_SIZE(channelMsg) - 120, turnChannelData, &turnChannelDataCount));
-        EXPECT_EQ(turnChannelDataCount, 2);
-        EXPECT_EQ(turnChannelData[0].size, ARRAY_SIZE(channelData2) - TURN_DATA_CHANNEL_SEND_OVERHEAD);
-        EXPECT_EQ(turnChannelData[1].size, ARRAY_SIZE(channelData3) - TURN_DATA_CHANNEL_SEND_OVERHEAD);
-        EXPECT_EQ(0, MEMCMP(turnChannelData[0].data, channelData2 + TURN_DATA_CHANNEL_SEND_OVERHEAD, turnChannelData[0].size));
-        EXPECT_EQ(0, MEMCMP(turnChannelData[1].data, channelData3 + TURN_DATA_CHANNEL_SEND_OVERHEAD, turnChannelData[1].size));
+        EXPECT_EQ(turnChannelData[0].size, ARRAY_SIZE(channelData) - TURN_DATA_CHANNEL_SEND_OVERHEAD);
+        EXPECT_EQ(0, MEMCMP(turnChannelData[0].data, channelData + TURN_DATA_CHANNEL_SEND_OVERHEAD, turnChannelData[0].size));
 
         freeTestTurnConnection();
     }
