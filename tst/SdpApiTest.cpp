@@ -369,63 +369,81 @@ a=rtpmap:102 H264/90000
     freePeerConnection(&pRtcPeerConnection);
 }
 
-// i receive offer for two video tracks with the same codec
-// i add two transceivers with VP8 tracks
-// expected answer MUST contain two different ssrc
-TEST_F(SdpApiTest, twoVideoTracksWithSameCodec) {
-    auto offer = R"(v=0
-o=- 59125572 1587098218 IN IP4 0.0.0.0
-s=-
-t=0 0
-a=fingerprint:sha-256 4D:FD:34:E5:97:F5:DA:21:1F:97:36:3D:92:FB:29:A7:7C:5E:27:E3:C9:2E:8E:0A:04:6B:92:DF:CB:72:41:E6
-a=group:BUNDLE 0 1 2
-m=application 9 DTLS/SCTP 5000
+const auto sdpdata = R"(m=application 9 DTLS/SCTP 5000
 c=IN IP4 0.0.0.0
 a=setup:actpass
 a=mid:0
 a=sendrecv
 a=sctpmap:5000 webrtc-datachannel 1024
-a=ice-ufrag:AIYDVLsshQYmwjKt
-a=ice-pwd:nfUKrCyCexbfghChxlytInZADRmiHrNQ
-a=candidate:foundation 1 udp 16777215 10.128.132.55 62872 typ relay raddr 0.0.0.0 rport 46485 generation 0
-a=candidate:foundation 2 udp 16777215 10.128.132.55 62872 typ relay raddr 0.0.0.0 rport 46485 generation 0
+a=ice-ufrag:WWlXtoHfeAVCwqHc
+a=ice-pwd:GvmyTnsfVtQuxuoareyqyAapQRoAeMdp
+a=candidate:foundation 1 udp 16777215 10.128.132.55 54118 typ relay raddr 0.0.0.0 rport 56317 generation 0
+a=candidate:foundation 2 udp 16777215 10.128.132.55 54118 typ relay raddr 0.0.0.0 rport 56317 generation 0
 a=end-of-candidates
-a=candidate:foundation 1 udp 16777215 10.128.132.55 62872 typ relay raddr 0.0.0.0 rport 46485 generation 0
-a=candidate:foundation 2 udp 16777215 10.128.132.55 62872 typ relay raddr 0.0.0.0 rport 46485 generation 0
-a=end-of-candidates
-m=video 9 UDP/TLS/RTP/SAVPF 96
+a=candidate:foundation 1 udp 16777215 10.128.132.55 54118 typ relay raddr 0.0.0.0 rport 56317 generation 0
+a=candidate:foundation 2 udp 16777215 10.128.132.55 54118 typ relay raddr 0.0.0.0 rport 56317 generation 0
+a=end-of-candidates)";
+
+const auto sdpvideo = R"(m=video 9 UDP/TLS/RTP/SAVPF 96
 c=IN IP4 0.0.0.0
 a=setup:actpass
 a=mid:1
-a=ice-ufrag:AIYDVLsshQYmwjKt
-a=ice-pwd:nfUKrCyCexbfghChxlytInZADRmiHrNQ
+a=ice-ufrag:WWlXtoHfeAVCwqHc
+a=ice-pwd:GvmyTnsfVtQuxuoareyqyAapQRoAeMdp
 a=rtcp-mux
 a=rtcp-rsize
 a=rtpmap:96 VP8/90000
 a=recvonly
-a=candidate:foundation 1 udp 16777215 10.128.132.55 62872 typ relay raddr 0.0.0.0 rport 46485 generation 0
-a=candidate:foundation 2 udp 16777215 10.128.132.55 62872 typ relay raddr 0.0.0.0 rport 46485 generation 0
+a=candidate:foundation 1 udp 16777215 10.128.132.55 54118 typ relay raddr 0.0.0.0 rport 56317 generation 0
+a=candidate:foundation 2 udp 16777215 10.128.132.55 54118 typ relay raddr 0.0.0.0 rport 56317 generation 0
 a=end-of-candidates
-a=candidate:foundation 1 udp 16777215 10.128.132.55 62872 typ relay raddr 0.0.0.0 rport 46485 generation 0
-a=candidate:foundation 2 udp 16777215 10.128.132.55 62872 typ relay raddr 0.0.0.0 rport 46485 generation 0
-a=end-of-candidates
-m=video 9 UDP/TLS/RTP/SAVPF 96
-c=IN IP4 0.0.0.0
-a=setup:actpass
-a=mid:2
-a=ice-ufrag:AIYDVLsshQYmwjKt
-a=ice-pwd:nfUKrCyCexbfghChxlytInZADRmiHrNQ
-a=rtcp-mux
-a=rtcp-rsize
-a=rtpmap:96 VP8/90000
-a=recvonly
-a=candidate:foundation 1 udp 16777215 10.128.132.55 62872 typ relay raddr 0.0.0.0 rport 46485 generation 0
-a=candidate:foundation 2 udp 16777215 10.128.132.55 62872 typ relay raddr 0.0.0.0 rport 46485 generation 0
-a=end-of-candidates
-a=candidate:foundation 1 udp 16777215 10.128.132.55 62872 typ relay raddr 0.0.0.0 rport 46485 generation 0
-a=candidate:foundation 2 udp 16777215 10.128.132.55 62872 typ relay raddr 0.0.0.0 rport 46485 generation 0
-a=end-of-candidates
-)";
+a=candidate:foundation 1 udp 16777215 10.128.132.55 54118 typ relay raddr 0.0.0.0 rport 56317 generation 0
+a=candidate:foundation 2 udp 16777215 10.128.132.55 54118 typ relay raddr 0.0.0.0 rport 56317 generation 0
+a=end-of-candidates)";
+
+TEST_F(SdpApiTest, threeVideoTracksWithSameCodec) {
+    auto offer3 = std::string(R"(v=0
+o=- 481034601 1588366671 IN IP4 0.0.0.0
+s=-
+t=0 0
+a=fingerprint:sha-256 87:E6:EC:59:93:76:9F:42:7D:15:17:F6:8F:C4:29:AB:EA:3F:28:B6:DF:F8:14:2F:96:62:2F:16:98:F5:76:E5
+a=group:BUNDLE 0 1 2 3
+)");
+    offer3 += sdpdata;
+    offer3 += "\n";
+    offer3 += sdpvideo;
+    offer3 += "\n";
+    offer3 += sdpvideo;
+    offer3 += "\n";
+    offer3 += sdpvideo;
+    offer3 += "\n";
+
+
+    SessionDescription sessionDescription;
+    MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
+    // as log as Sdp.h  MAX_SDP_SESSION_MEDIA_COUNT 2 this should fail instead of overwriting memory
+    EXPECT_EQ(STATUS_BUFFER_TOO_SMALL, serializeSessionDescription(&sessionDescription, (PCHAR) offer3.c_str()));
+}
+
+
+// i receive offer for two video tracks with the same codec
+// i add two transceivers with VP8 tracks
+// expected answer MUST contain two different ssrc
+TEST_F(SdpApiTest, twoVideoTracksWithSameCodec) {
+    auto offer = std::string(R"(v=0
+o=- 481034601 1588366671 IN IP4 0.0.0.0
+s=-
+t=0 0
+a=fingerprint:sha-256 87:E6:EC:59:93:76:9F:42:7D:15:17:F6:8F:C4:29:AB:EA:3F:28:B6:DF:F8:14:2F:96:62:2F:16:98:F5:76:E5
+a=group:BUNDLE 0 1 2
+)");
+    offer += sdpdata;
+    offer += "\n";
+    offer += sdpvideo;
+    offer += "\n";
+    offer += sdpvideo;
+    offer += "\n";
+
     RtcConfiguration configuration{};
     PRtcPeerConnection pRtcPeerConnection = nullptr;
     RtcMediaStreamTrack track1{};
@@ -448,7 +466,7 @@ a=end-of-candidates
     STRNCPY(track2.trackId, "track2", MAX_MEDIA_STREAM_ID_LEN);
 
     offerSdp.type = SDP_TYPE_OFFER;
-    STRNCPY(offerSdp.sdp, offer, MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+    STRNCPY(offerSdp.sdp, offer.c_str(), MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
 
     EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
     EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(pRtcPeerConnection, RTC_CODEC_VP8));
