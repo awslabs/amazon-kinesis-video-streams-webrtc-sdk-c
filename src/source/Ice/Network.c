@@ -172,6 +172,12 @@ STATUS createSocket(PKvsIpAddress pHostIpAddress, PKvsIpAddress pPeerAddress, KV
     // done at this point for UDP
     CHK(protocol == KVS_SOCKET_PROTOCOL_TCP, retStatus);
 
+    /* disable Nagle algorithm to not delay sending packets. We should have enough density to justify using it. */
+    optionValue = 1;
+    if (setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, &optionValue, SIZEOF(optionValue)) < 0) {
+        DLOGW("setsockopt() TCP_NODELAY failed with errno %s", strerror(errno));
+    }
+
     retVal = connect(sockfd, peerSockAddr, addrLen);
     CHK_ERR(retVal >= 0 || errno == EINPROGRESS, STATUS_SOCKET_CONNECT_FAILED, "connect() failed with errno %s", strerror(errno));
 
