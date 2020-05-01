@@ -137,6 +137,9 @@ typedef struct {
     // if it comes first forcing the state machine to loop back to connected state.
     volatile ATOMIC_BOOL refreshIceConfig;
 
+    // Indicate whether the ICE configuration has been retrieved at least once
+    volatile ATOMIC_BOOL iceConfigRetrieved;
+
     // Current version of the structure
     UINT32 version;
 

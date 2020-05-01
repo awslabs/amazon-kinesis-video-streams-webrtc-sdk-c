@@ -83,6 +83,7 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     ATOMIC_STORE_BOOL(&pSignalingClient->connected, FALSE);
     ATOMIC_STORE_BOOL(&pSignalingClient->deleting, FALSE);
     ATOMIC_STORE_BOOL(&pSignalingClient->deleted, FALSE);
+    ATOMIC_STORE_BOOL(&pSignalingClient->iceConfigRetrieved, FALSE);
 
     // Add to the signal handler
     // signal(SIGINT, lwsSignalHandler);
@@ -327,10 +328,18 @@ STATUS signalingGetIceConfigInfoCout(PSignalingClient pSignalingClient, PUINT32 
 
     CHK(pSignalingClient != NULL && pIceConfigCount != NULL, STATUS_NULL_ARG);
 
-    // Validate the state
-    CHK_STATUS(acceptStateMachineState(pSignalingClient->pStateMachine, SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED));
+    // Validate the state in sync ICE config mode only
+    if (!pSignalingClient->pChannelInfo->asyncIceServerConfig) {
+        CHK_STATUS(acceptStateMachineState(pSignalingClient->pStateMachine,
+                                           SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT |
+                                           SIGNALING_STATE_CONNECTED));
+    }
 
-    *pIceConfigCount = pSignalingClient->iceConfigCount;
+    if (ATOMIC_LOAD_BOOL(&pSignalingClient->iceConfigRetrieved)) {
+        *pIceConfigCount = pSignalingClient->iceConfigCount;
+    } else {
+        *pIceConfigCount = 0;
+    }
 
 CleanUp:
 
@@ -348,8 +357,12 @@ STATUS signalingGetIceConfigInfo(PSignalingClient pSignalingClient, UINT32 index
     CHK(pSignalingClient != NULL && ppIceConfigInfo != NULL, STATUS_NULL_ARG);
     CHK(index < pSignalingClient->iceConfigCount, STATUS_INVALID_ARG);
 
-    // Validate the state
-    CHK_STATUS(acceptStateMachineState(pSignalingClient->pStateMachine, SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED));
+    // Validate the state in sync ICE config mode only
+    if (!pSignalingClient->pChannelInfo->asyncIceServerConfig) {
+        CHK_STATUS(acceptStateMachineState(pSignalingClient->pStateMachine,
+                                           SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT |
+                                           SIGNALING_STATE_CONNECTED));
+    }
 
     *ppIceConfigInfo = &pSignalingClient->iceConfigs[index];
 
@@ -515,6 +528,9 @@ STATUS validateIceConfiguration(PSignalingClient pSignalingClient)
     }
 
     CHK(minTtl > ICE_CONFIGURATION_REFRESH_GRACE_PERIOD, STATUS_SIGNALING_ICE_TTL_LESS_THAN_GRACE_PERIOD);
+
+    // Indicate that we have successfully retrieved ICE configs
+    ATOMIC_STORE_BOOL(&pSignalingClient->iceConfigRetrieved, TRUE);
 
     refreshPeriod = (pSignalingClient->clientInfo.iceRefreshPeriod != 0) ? pSignalingClient->clientInfo.iceRefreshPeriod :
             minTtl - ICE_CONFIGURATION_REFRESH_GRACE_PERIOD;
