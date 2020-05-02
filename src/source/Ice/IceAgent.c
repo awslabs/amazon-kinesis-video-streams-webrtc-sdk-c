@@ -391,7 +391,6 @@ STATUS iceAgentInitHostCandidate(PIceAgent pIceAgent)
             ATOMIC_STORE_BOOL(&pSocketConnection->receiveData, TRUE);
             // connectionListener will free the pSocketConnection at the end.
             CHK_STATUS(connectionListenerAddConnection(pIceAgent->pConnectionListener, pNewIceCandidate->pSocketConnection));
-            CHK_STATUS(iceAgentReportNewLocalCandidate(pIceAgent, pNewIceCandidate));
         }
     }
 
@@ -1223,15 +1222,18 @@ STATUS iceAgentGatherCandidateTimerCallback(UINT32 timerId, UINT64 currentTime, 
 {
     UNUSED_PARAM(timerId);
     STATUS retStatus = STATUS_SUCCESS;
+    IceCandidate newLocalCandidates[KVS_ICE_MAX_NEW_LOCAL_CANDIDATES_TO_REPORT_AT_ONCE];
+    UINT32 newLocalCandidateCount = 0;
     PIceAgent pIceAgent = (PIceAgent) customData;
     BOOL locked = FALSE, stopScheduling = FALSE;
     PDoubleListNode pCurNode = NULL;
     UINT64 data;
     PIceCandidate pIceCandidate = NULL;
-    UINT32 pendingSrflxCandidateCount = 0, pendingCandidateCount = 0;
+    UINT32 pendingSrflxCandidateCount = 0, pendingCandidateCount = 0, i;
     PKvsIpAddress pRelayAddress = NULL;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
+    MEMSET(newLocalCandidates, 0x00, SIZEOF(newLocalCandidates));
 
     MUTEX_LOCK(pIceAgent->lock);
     locked = TRUE;
@@ -1251,24 +1253,47 @@ STATUS iceAgentGatherCandidateTimerCallback(UINT32 timerId, UINT64 currentTime, 
                        (pRelayAddress = turnConnectionGetRelayAddress(pIceCandidate->pTurnConnectionTracker->pTurnConnection)) != NULL) {
                 /* Check if any relay address has been obtained. */
                 CHK_STATUS(updateCandidateAddress(pIceCandidate, pRelayAddress));
-                CHK_STATUS(iceAgentReportNewLocalCandidate(pIceAgent, pIceCandidate));
                 CHK_STATUS(createIceCandidatePairs(pIceAgent, pIceCandidate, FALSE));
             }
         }
     }
 
-    // keep sending binding request if there is still pending srflx candidate
+    /* keep sending binding request if there is still pending srflx candidate */
     if (pendingSrflxCandidateCount > 0) {
         CHK_STATUS(iceAgentSendSrflxCandidateRequest(pIceAgent));
     }
 
-    // stop scheduling if there is no more pending candidate or if timeout is reached.
+    /* stop scheduling if there is no more pending candidate or if timeout is reached. */
     if (pendingCandidateCount == 0 || currentTime >= pIceAgent->candidateGatheringEndTime) {
         DLOGD("Candidate gathering completed.");
         stopScheduling = TRUE;
         pIceAgent->iceCandidateGatheringTimerTask = UINT32_MAX;
+    }
+
+    CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
+    while (pCurNode != NULL && newLocalCandidateCount < ARRAY_SIZE(newLocalCandidates)) {
+        CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
+        pCurNode = pCurNode->pNext;
+        pIceCandidate = (PIceCandidate) data;
+
+        if (pIceCandidate->state == ICE_CANDIDATE_STATE_VALID && !pIceCandidate->reported){
+            newLocalCandidates[newLocalCandidateCount++] = *pIceCandidate;
+            pIceCandidate->reported = TRUE;
+        }
+    }
+
+    MUTEX_UNLOCK(pIceAgent->lock);
+    locked = FALSE;
+
+    /* newLocalCandidateCount is at most ARRAY_SIZE(newLocalCandidates). Candidates not reported in this invocation
+     * will be reported in next invocation. */
+    for (i = 0; i < newLocalCandidateCount; ++i) {
+        CHK_STATUS(iceAgentReportNewLocalCandidate(pIceAgent, &newLocalCandidates[i]));
+    }
+
+    if (stopScheduling) {
         ATOMIC_STORE_BOOL(&pIceAgent->candidateGatheringFinished, TRUE);
-        // notify that candidate gathering is finished.
+        /* notify that candidate gathering is finished. */
         if (pIceAgent->iceAgentCallbacks.newLocalCandidateFn != NULL) {
             pIceAgent->iceAgentCallbacks.newLocalCandidateFn(pIceAgent->iceAgentCallbacks.customData, NULL);
         }
@@ -2035,7 +2060,6 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
 
                 pStunAttributeAddress = (PStunAttributeAddress) pStunAttr;
                 CHK_STATUS(updateCandidateAddress(pIceCandidate, &pStunAttributeAddress->address));
-                CHK_STATUS(iceAgentReportNewLocalCandidate(pIceAgent, pIceCandidate));
                 CHK(FALSE, retStatus);
             }
 
