@@ -34,6 +34,7 @@ extern "C" {
 
 #define KVS_ICE_MAX_ICE_SERVERS                                         3
 #define KVS_ICE_TURN_CONECTION_TRACKERS                                 4
+#define KVS_ICE_MAX_NEW_LOCAL_CANDIDATES_TO_REPORT_AT_ONCE              10
 
 // https://tools.ietf.org/html/rfc5245#section-4.1.2.1
 #define ICE_PRIORITY_HOST_CANDIDATE_TYPE_PREFERENCE                     126
@@ -104,6 +105,9 @@ typedef struct {
      * TurnConnectionTracker this candidate is associated to */
     PTurnConnectionTracker pTurnConnectionTracker;
 
+    /* If candidate is local. Indicate whether candidate
+     * has been reported through IceNewLocalCandidateFunc */
+    BOOL reported;
     CHAR id[ICE_CANDIDATE_ID_LEN + 1];
 } IceCandidate, *PIceCandidate;
 

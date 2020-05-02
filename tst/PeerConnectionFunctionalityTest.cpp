@@ -93,7 +93,7 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersForcedTURN)
     deinitializeSignalingClient();
 }
 
-TEST_F(PeerConnectionFunctionalityTest, freeTurnDueToP2PFoundBeforeTurnEstablished)
+TEST_F(PeerConnectionFunctionalityTest, shutdownTurnDueToP2PFoundBeforeTurnEstablished)
 {
     if (!mAccessKeyIdSet) {
         return;
@@ -118,12 +118,12 @@ TEST_F(PeerConnectionFunctionalityTest, freeTurnDueToP2PFoundBeforeTurnEstablish
 
     pIceAgent = ((PKvsPeerConnection)offerPc)->pIceAgent;
     for(i = 0; i < pIceAgent->turnConnectionTrackerCount; ++i) {
-        EXPECT_TRUE(turnConnectionIsShutdownComplete(pIceAgent->turnConnectionTrackers[i].pTurnConnection));
+        EXPECT_TRUE(ATOMIC_LOAD_BOOL(&pIceAgent->turnConnectionTrackers[i].pTurnConnection->stopTurnConnection));
     }
 
     pIceAgent = ((PKvsPeerConnection)answerPc)->pIceAgent;
     for(i = 0; i < pIceAgent->turnConnectionTrackerCount; ++i) {
-        EXPECT_TRUE(turnConnectionIsShutdownComplete(pIceAgent->turnConnectionTrackers[i].pTurnConnection));
+        EXPECT_TRUE(ATOMIC_LOAD_BOOL(&pIceAgent->turnConnectionTrackers[i].pTurnConnection->stopTurnConnection));
     }
 
     freePeerConnection(&offerPc);
@@ -132,7 +132,7 @@ TEST_F(PeerConnectionFunctionalityTest, freeTurnDueToP2PFoundBeforeTurnEstablish
     deinitializeSignalingClient();
 }
 
-TEST_F(PeerConnectionFunctionalityTest, freeTurnDueToP2PFoundAfterTurnEstablished)
+TEST_F(PeerConnectionFunctionalityTest, shutdownTurnDueToP2PFoundAfterTurnEstablished)
 {
     if (!mAccessKeyIdSet) {
         return;
@@ -204,12 +204,12 @@ TEST_F(PeerConnectionFunctionalityTest, freeTurnDueToP2PFoundAfterTurnEstablishe
 
     pIceAgent = ((PKvsPeerConnection)offerPc)->pIceAgent;
     for(i = 0; i < pIceAgent->turnConnectionTrackerCount; ++i) {
-        EXPECT_TRUE(turnConnectionIsShutdownComplete(pIceAgent->turnConnectionTrackers[i].pTurnConnection));
+        EXPECT_TRUE(ATOMIC_LOAD_BOOL(&pIceAgent->turnConnectionTrackers[i].pTurnConnection->stopTurnConnection));
     }
 
     pIceAgent = ((PKvsPeerConnection)answerPc)->pIceAgent;
     for(i = 0; i < pIceAgent->turnConnectionTrackerCount; ++i) {
-        EXPECT_TRUE(turnConnectionIsShutdownComplete(pIceAgent->turnConnectionTrackers[i].pTurnConnection));
+        EXPECT_TRUE(ATOMIC_LOAD_BOOL(&pIceAgent->turnConnectionTrackers[i].pTurnConnection->stopTurnConnection));
     }
 
     freePeerConnection(&offerPc);
