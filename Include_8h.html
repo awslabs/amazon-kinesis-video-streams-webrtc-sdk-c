@@ -848,6 +848,8 @@ Functions</h2></td></tr>
 <tr class="separator:a41afed748235c04e38fa7481e421055d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae937526652e3287c3e2dd9bee74ea799"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#ae937526652e3287c3e2dd9bee74ea799">peerConnectionOnConnectionStateChange</a> (<a class="el" href="Include_8h.html#a70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>, UINT64, <a class="el" href="Include_8h.html#ad3f715dac4dd4d756e1728a37fb46eb9">RtcOnConnectionStateChange</a>)</td></tr>
 <tr class="separator:ae937526652e3287c3e2dd9bee74ea799"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa1940a0ddabf41c445b55f1317476e96"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#aa1940a0ddabf41c445b55f1317476e96">peerConnectionGetLocalDescription</a> (<a class="el" href="Include_8h.html#a70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>, <a class="el" href="Include_8h.html#a3dfb483be12d184408e3f58df5273be7">PRtcSessionDescriptionInit</a>)</td></tr>
+<tr class="separator:aa1940a0ddabf41c445b55f1317476e96"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a19dfcbdcf4d136b56ce366fe2fb9bfb3"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#a19dfcbdcf4d136b56ce366fe2fb9bfb3">peerConnectionGetCurrentLocalDescription</a> (<a class="el" href="Include_8h.html#a70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>, <a class="el" href="Include_8h.html#a3dfb483be12d184408e3f58df5273be7">PRtcSessionDescriptionInit</a>)</td></tr>
 <tr class="separator:a19dfcbdcf4d136b56ce366fe2fb9bfb3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1779d268b0993835d80f0948281e2274"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#a1779d268b0993835d80f0948281e2274">createOffer</a> (<a class="el" href="Include_8h.html#a70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>, <a class="el" href="Include_8h.html#a3dfb483be12d184408e3f58df5273be7">PRtcSessionDescriptionInit</a>)</td></tr>
@@ -2753,7 +2755,44 @@ Functions</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Load the sdp field of PRtcSessionDescriptionInit with latest local session description</p>
+<p>Load the sdp field of PRtcSessionDescriptionInit with current local session description</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">PRtcPeerConnection</td><td>Initialized <a class="el" href="structRtcPeerConnection.html" title="An RtcPeerConnection instance allows an application to establish peer-to-peer communications with ano...">RtcPeerConnection</a> </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">PRtcSessionDescriptionInit</td><td>IN/PRtcSessionDescriptionInit whose sdp field will be modified.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>STATUS code of the execution. STATUS_SUCCESS on success </dd></dl>
+
+</div>
+</div>
+<a id="aa1940a0ddabf41c445b55f1317476e96"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa1940a0ddabf41c445b55f1317476e96">&#9670;&nbsp;</a></span>peerConnectionGetLocalDescription()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">PUBLIC_API STATUS peerConnectionGetLocalDescription </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="Include_8h.html#a70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>&#160;</td>
+          <td class="paramname">, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="Include_8h.html#a3dfb483be12d184408e3f58df5273be7">PRtcSessionDescriptionInit</a>&#160;</td>
+          <td class="paramname">&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Load the sdp field of PRtcSessionDescriptionInit with pending or current local session description</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">PRtcPeerConnection</td><td>Initialized <a class="el" href="structRtcPeerConnection.html" title="An RtcPeerConnection instance allows an application to establish peer-to-peer communications with ano...">RtcPeerConnection</a> </td></tr>
@@ -3419,7 +3458,7 @@ Functions</h2></td></tr>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_b0856f6b0d80ccb263b2f415c91f9e17.html">include</a></li><li class="navelem"><a class="el" href="dir_8f5ac45a6ada111b95e80af22bb6017d.html">com</a></li><li class="navelem"><a class="el" href="dir_6eddcaa8cb3f84b1b7290fa7880ed0c5.html">amazonaws</a></li><li class="navelem"><a class="el" href="dir_ffe25b375dd9c47f978782781b252738.html">kinesis</a></li><li class="navelem"><a class="el" href="dir_40be0bfe93e499fae0ac3fc2c0b3ca29.html">video</a></li><li class="navelem"><a class="el" href="dir_4165afa699965307903ffe413a1cdec9.html">webrtcclient</a></li><li class="navelem"><a class="el" href="Include_8h.html">Include.h</a></li>
-    <li class="footer">Generated on Mon May 4 2020 18:51:25 for Amazon Kinesis Webrtc C SDK by
+    <li class="footer">Generated on Mon May 4 2020 20:07:52 for Amazon Kinesis Webrtc C SDK by
     <a href="http://www.doxygen.org/index.html">
     <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.16 </li>
   </ul>

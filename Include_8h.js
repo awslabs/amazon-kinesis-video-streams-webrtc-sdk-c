@@ -386,6 +386,7 @@ var Include_8h =
     [ "freeTransceiver", "Include_8h.html#a10479b49a6df2035fd1549809e11d9f5", null ],
     [ "initKvsWebRtc", "Include_8h.html#a0091e2920ba137e0e80d40402a675abb", null ],
     [ "peerConnectionGetCurrentLocalDescription", "Include_8h.html#a19dfcbdcf4d136b56ce366fe2fb9bfb3", null ],
+    [ "peerConnectionGetLocalDescription", "Include_8h.html#aa1940a0ddabf41c445b55f1317476e96", null ],
     [ "peerConnectionOnConnectionStateChange", "Include_8h.html#ae937526652e3287c3e2dd9bee74ea799", null ],
     [ "peerConnectionOnDataChannel", "Include_8h.html#a41afed748235c04e38fa7481e421055d", null ],
     [ "peerConnectionOnIceCandidate", "Include_8h.html#a5a45606d264d6005c559b10fa42338bf", null ],
