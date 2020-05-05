@@ -203,7 +203,6 @@ CleanUp:
 //     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 STATUS sctpSessionWriteDcep(PSctpSession pSctpSession, UINT32 streamId, PCHAR pChannelName, UINT32 pChannelNameLen, PRtcDataChannelInit pRtcDataChannelInit)
 {
-     UNUSED_PARAM(pRtcDataChannelInit);
      ENTERS();
      STATUS retStatus = STATUS_SUCCESS;
      struct sctp_sendv_spa spa;
@@ -213,11 +212,50 @@ STATUS sctpSessionWriteDcep(PSctpSession pSctpSession, UINT32 streamId, PCHAR pC
      CHK(pSctpSession != NULL && pChannelName != NULL, STATUS_NULL_ARG);
      CHK((pPacket = (PBYTE) MEMCALLOC(1, pPacketSize)) != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
-     pPacket[0] = DCEP_DATA_CHANNEL_OPEN;
+     /* Setting the fields of DATA_CHANNEL_OPEN message */
+
+     pPacket[0] = DCEP_DATA_CHANNEL_OPEN; // message type
+
+     // Set Channel type based on supplied parameters
      pPacket[1] = DCEP_DATA_CHANNEL_RELIABLE;
+
+     // Set channel type and reliability parameters based on input
+     // SCTP allows fine tuning the channel robustness:
+     // 1. Ordering: The data packets can be sent out in an ordered/unordered fashion
+     // 2. Reliability: This determines how the retransmission of packets is handled.
+     // There are 2 parameters that can be fine tuned to achieve this:
+     //     a. Number of retransmits
+     //     b. Packet lifetime
+     // Default values for the parameters is 0. This falls back to reliable channel
+
+     if(pRtcDataChannelInit->ordered) {
+        if(pRtcDataChannelInit->maxRetransmits > 0) {
+            pPacket[1] = DCEP_DATA_CHANNEL_PARTIAL_RELIABLE_REXMIT;
+            putUnalignedInt16BigEndian(pPacket + 6, pRtcDataChannelInit->maxRetransmits);
+        }
+        else if(pRtcDataChannelInit->maxPacketLifeTime > 0) {
+            pPacket[1] = DCEP_DATA_CHANNEL_PARTIAL_RELIABLE_TIMED;
+            putUnalignedInt16BigEndian(pPacket + 6, pRtcDataChannelInit->maxPacketLifeTime);
+         }
+     }
+     else {
+         spa.sendv_sndinfo.snd_flags = SCTP_UNORDERED;
+         if(pRtcDataChannelInit->maxRetransmits > 0) {
+             pPacket[1] = DCEP_DATA_CHANNEL_PARTIAL_RELIABLE_REXMIT_UNORDERED;
+             putUnalignedInt16BigEndian(pPacket + 6, pRtcDataChannelInit->maxRetransmits);
+         }
+         else if(pRtcDataChannelInit->maxPacketLifeTime > 0) {
+             pPacket[1] = DATA_CHANNEL_PARTIAL_RELIABLE_TIMED_UNORDERED;
+             putUnalignedInt16BigEndian(pPacket + 6, pRtcDataChannelInit->maxPacketLifeTime);
+         }
+         else {
+             pPacket[1] = DCEP_DATA_CHANNEL_RELIABLE_UNORDERED;
+         }
+     }
+
+     DLOGD("PARTIAL RELIABILITY PARAMS: 0x%02x [CHANNEL_TYPE] 0x%02x%02x%02x%02x [PARAMETER]", pPacket[1], pPacket[4], pPacket[5], pPacket[6], pPacket[7]);
      putUnalignedInt16BigEndian(pPacket + SCTP_DCEP_LABEL_LEN_OFFSET, pChannelNameLen);
      MEMCPY(pPacket + SCTP_DCEP_LABEL_OFFSET, pChannelName, pChannelNameLen);
-
      MEMSET(&spa, 0x00, SIZEOF(struct sctp_sendv_spa));
      spa.sendv_flags |= SCTP_SEND_SNDINFO_VALID;
      spa.sendv_sndinfo.snd_sid = streamId;
