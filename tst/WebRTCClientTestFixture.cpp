@@ -36,9 +36,7 @@ void WebRtcClientTestBase::SetUp()
     mExpectedFrameCount = 0;
     mExpectedDroppedFrameCount = 0;
 
-    /* Disable instrumented allocator for now due to inconsistent behavior.
-     * Sometimes it report leaks but running the same test again it doesnt report leak again. */
-    /* SET_INSTRUMENTED_ALLOCATORS(); */
+    SET_INSTRUMENTED_ALLOCATORS();
 
     SET_LOGGER_LOG_LEVEL(LOG_LEVEL_DEBUG);
 
@@ -91,9 +89,7 @@ void WebRtcClientTestBase::TearDown()
 
     freeStaticCredentialProvider(&mTestCredentialProvider);
 
-    /* Disable instrumented allocator for now due to inconsistent behavior.
-     * Sometimes it report leaks but running the same test again it doesnt report leak again. */
-    /* EXPECT_EQ(STATUS_SUCCESS, RESET_INSTRUMENTED_ALLOCATORS()); */
+    EXPECT_EQ(STATUS_SUCCESS, RESET_INSTRUMENTED_ALLOCATORS());
 }
 
 VOID WebRtcClientTestBase::initializeJitterBuffer(UINT32 expectedFrameCount, UINT32 expectedDroppedFrameCount, UINT32 rtpPacketCount)
