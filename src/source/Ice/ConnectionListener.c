@@ -6,6 +6,9 @@
 
 STATUS createConnectionListener(PConnectionListener* ppConnectionListener)
 {
+    const UINT32 hashTableBucketCount = 50;
+    const UINT32 hashTableBucketLen = 2;
+
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 allocationSize = SIZEOF(ConnectionListener) + MAX_UDP_PACKET_SIZE;
     PConnectionListener pConnectionListener = NULL;
@@ -22,6 +25,7 @@ STATUS createConnectionListener(PConnectionListener* ppConnectionListener)
     ATOMIC_STORE_BOOL(&pConnectionListener->connectionListChanged, TRUE);
     pConnectionListener->receiveDataRoutine = INVALID_TID_VALUE;
     pConnectionListener->lock = MUTEX_CREATE(FALSE);
+    hashTableCreateWithParams(hashTableBucketCount, hashTableBucketLen, &pConnectionListener->activeSocketConnections);
 
     // pConnectionListener->pBuffer starts at the end of ConnectionListener struct
     pConnectionListener->pBuffer = (PBYTE) (pConnectionListener + 1);
@@ -75,6 +79,11 @@ STATUS freeConnectionListener(PConnectionListener* ppConnectionListener)
         MUTEX_FREE(pConnectionListener->lock);
     }
 
+    if (pConnectionListener->activeSocketConnections != NULL) {
+        hashTableClear(pConnectionListener->activeSocketConnections);
+        hashTableFree(pConnectionListener->activeSocketConnections);
+    }
+
     MEMFREE(pConnectionListener);
 
     *ppConnectionListener = NULL;
@@ -98,6 +107,7 @@ STATUS connectionListenerAddConnection(PConnectionListener pConnectionListener, 
     locked = TRUE;
 
     CHK_STATUS(doubleListInsertItemHead(pConnectionListener->connectionList, (UINT64) pSocketConnection));
+    CHK_STATUS(hashTableUpsert(pConnectionListener->activeSocketConnections, (UINT64) pSocketConnection, 0));
 
     MUTEX_UNLOCK(pConnectionListener->lock);
     locked = FALSE;
@@ -116,9 +126,16 @@ CleanUp:
 STATUS connectionListenerRemoveConnection(PConnectionListener pConnectionListener, PSocketConnection pSocketConnection)
 {
     STATUS retStatus = STATUS_SUCCESS;
+    BOOL locked = FALSE, socketConnectionActive = FALSE;
 
     CHK(pConnectionListener != NULL && pSocketConnection != NULL, STATUS_NULL_ARG);
     CHK(!ATOMIC_LOAD_BOOL(&pConnectionListener->terminate), retStatus);
+
+    MUTEX_LOCK(pConnectionListener->lock);
+    locked = TRUE;
+
+    CHK_STATUS(hashTableContains(pConnectionListener->activeSocketConnections, ((UINT64) pSocketConnection), &socketConnectionActive));
+    CHK(socketConnectionActive, retStatus);
 
     // mark socket as closed. Will be cleaned up by connectionListenerReceiveDataRoutine
     CHK_STATUS(socketConnectionClosed(pSocketConnection));
@@ -126,6 +143,10 @@ STATUS connectionListenerRemoveConnection(PConnectionListener pConnectionListene
     ATOMIC_STORE_BOOL(&pConnectionListener->connectionListChanged, TRUE);
 
 CleanUp:
+
+    if (locked) {
+        MUTEX_UNLOCK(pConnectionListener->lock);
+    }
 
     return retStatus;
 }
@@ -142,6 +163,8 @@ STATUS connectionListenerRemoveAllConnection(PConnectionListener pConnectionList
 
     MUTEX_LOCK(pConnectionListener->lock);
     locked = TRUE;
+
+    CHK_STATUS(hashTableClear(pConnectionListener->activeSocketConnections));
 
     // mark all socket as closed. Will be cleaned up by connectionListenerReceiveDataRoutine
     CHK_STATUS(doubleListGetHeadNode(pConnectionListener->connectionList, &pCurNode));
@@ -229,6 +252,7 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
                     pNodeToDelete = pCurNode;
                     pCurNode = pCurNode->pNext;
 
+                    CHK_STATUS(hashTableRemove(pConnectionListener->activeSocketConnections, (UINT64) pSocketConnection));
                     CHK_STATUS(freeSocketConnection(&pSocketConnection));
                     CHK_STATUS(doubleListDeleteNode(pConnectionListener->connectionList, pNodeToDelete));
                 } else {

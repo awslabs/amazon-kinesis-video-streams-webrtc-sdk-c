@@ -23,6 +23,7 @@ typedef struct {
     TID receiveDataRoutine;
     PBYTE pBuffer;
     UINT64 bufferLen;
+    PHashTable activeSocketConnections;
 } ConnectionListener, *PConnectionListener;
 
 /**
