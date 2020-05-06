@@ -15,6 +15,8 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     UINT32 userLogLevel;
     struct lws_context_creation_info creationInfo;
     PStateMachineState pStateMachineState;
+    BOOL cacheFound = FALSE;
+    SignalingFileCacheEntry fileCacheEntry;
 
     CHK(pClientInfo != NULL &&
          pChannelInfo != NULL &&
@@ -31,10 +33,33 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     CHK_STATUS(initializeThreadTracker(&pSignalingClient->reconnecterTracker));
 
     // Validate and store the input
-    CHK_STATUS(createValidateChannelInfo(pChannelInfo,
-                                 &pSignalingClient->pChannelInfo));
+    CHK_STATUS(createValidateChannelInfo(pChannelInfo, &pSignalingClient->pChannelInfo));
     CHK_STATUS(validateSignalingCallbacks(pSignalingClient, pCallbacks));
     CHK_STATUS(validateSignalingClientInfo(pSignalingClient, pClientInfo));
+
+    // Set invalid call times
+    pSignalingClient->describeTime = INVALID_TIMESTAMP_VALUE;
+    pSignalingClient->createTime = INVALID_TIMESTAMP_VALUE;
+    pSignalingClient->getEndpointTime = INVALID_TIMESTAMP_VALUE;
+    pSignalingClient->getIceConfigTime = INVALID_TIMESTAMP_VALUE;
+    pSignalingClient->deleteTime = INVALID_TIMESTAMP_VALUE;
+    pSignalingClient->connectTime = INVALID_TIMESTAMP_VALUE;
+
+    if (pSignalingClient->pChannelInfo->cachingPolicy == SIGNALING_API_CALL_CACHE_TYPE_FILE) {
+        if (STATUS_FAILED(signalingCacheLoadFromFile(pChannelInfo->pChannelName,
+                                                     pChannelInfo->pRegion,
+                                                     pChannelInfo->channelRoleType,
+                                                     &fileCacheEntry,
+                                                     &cacheFound))) {
+            DLOGW("Failed to load signaling cache from file");
+        } else if (cacheFound) {
+            STRCPY(pSignalingClient->channelDescription.channelArn, fileCacheEntry.channelArn);
+            STRCPY(pSignalingClient->channelEndpointHttps, fileCacheEntry.httpsEndpoint);
+            STRCPY(pSignalingClient->channelEndpointWss, fileCacheEntry.wssEndpoint);
+            pSignalingClient->describeTime = fileCacheEntry.creationTsEpochSeconds * HUNDREDS_OF_NANOS_IN_A_SECOND;
+            pSignalingClient->getEndpointTime = fileCacheEntry.creationTsEpochSeconds * HUNDREDS_OF_NANOS_IN_A_SECOND;
+        }
+    }
 
     // Attempting to get the logging level from the env var and if it fails then set it from the client info
     if ((userLogLevelStr = GETENV(DEBUG_LOG_LEVEL_ENV_VAR)) != NULL && STATUS_SUCCEEDED(STRTOUI32(userLogLevelStr, NULL, 10, &userLogLevel))) {
@@ -133,14 +158,6 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
                 pSignalingClient->signalingClientCallbacks.customData,
                 getSignalingStateFromStateMachineState(pStateMachineState->state)));
     }
-
-    // Set invalid call times
-    pSignalingClient->describeTime = INVALID_TIMESTAMP_VALUE;
-    pSignalingClient->createTime = INVALID_TIMESTAMP_VALUE;
-    pSignalingClient->getEndpointTime = INVALID_TIMESTAMP_VALUE;
-    pSignalingClient->getIceConfigTime = INVALID_TIMESTAMP_VALUE;
-    pSignalingClient->deleteTime = INVALID_TIMESTAMP_VALUE;
-    pSignalingClient->connectTime = INVALID_TIMESTAMP_VALUE;
 
     // Set the async processing based on the channel info
     ATOMIC_STORE_BOOL(&pSignalingClient->asyncGetIceConfig, pChannelInfo->asyncIceServerConfig);
@@ -835,6 +852,8 @@ STATUS describeChannel(PSignalingClient pSignalingClient, UINT64 time)
             break;
 
         case SIGNALING_API_CALL_CACHE_TYPE_DESCRIBE_GETENDPOINT:
+            /* explicit fall-through */
+        case SIGNALING_API_CALL_CACHE_TYPE_FILE:
             if (IS_VALID_TIMESTAMP(pSignalingClient->describeTime) &&
                     time <= pSignalingClient->describeTime + pSignalingClient->pChannelInfo->cachingPeriod) {
                 apiCall = FALSE;
@@ -927,6 +946,7 @@ STATUS getChannelEndpoint(PSignalingClient pSignalingClient, UINT64 time)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     BOOL apiCall = TRUE;
+    SignalingFileCacheEntry signalingFileCacheEntry;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
@@ -942,6 +962,8 @@ STATUS getChannelEndpoint(PSignalingClient pSignalingClient, UINT64 time)
             break;
 
         case SIGNALING_API_CALL_CACHE_TYPE_DESCRIBE_GETENDPOINT:
+            /* explicit fall-through */
+        case SIGNALING_API_CALL_CACHE_TYPE_FILE:
             if (IS_VALID_TIMESTAMP(pSignalingClient->getEndpointTime) &&
                 time <= pSignalingClient->getEndpointTime + pSignalingClient->pChannelInfo->cachingPeriod) {
                 apiCall = FALSE;
@@ -961,6 +983,19 @@ STATUS getChannelEndpoint(PSignalingClient pSignalingClient, UINT64 time)
 
                 if (STATUS_SUCCEEDED(retStatus)) {
                     pSignalingClient->getEndpointTime = time;
+
+                    if (pSignalingClient->pChannelInfo->cachingPolicy == SIGNALING_API_CALL_CACHE_TYPE_FILE) {
+                        signalingFileCacheEntry.creationTsEpochSeconds = time / HUNDREDS_OF_NANOS_IN_A_SECOND;
+                        signalingFileCacheEntry.role = pSignalingClient->pChannelInfo->channelRoleType;
+                        STRCPY(signalingFileCacheEntry.channelName, pSignalingClient->pChannelInfo->pChannelName);
+                        STRCPY(signalingFileCacheEntry.region, pSignalingClient->pChannelInfo->pRegion);
+                        STRCPY(signalingFileCacheEntry.channelArn, pSignalingClient->channelDescription.channelArn);
+                        STRCPY(signalingFileCacheEntry.httpsEndpoint, pSignalingClient->channelEndpointHttps);
+                        STRCPY(signalingFileCacheEntry.wssEndpoint, pSignalingClient->channelEndpointWss);
+                        if (STATUS_FAILED(signalingCacheSaveToFile(&signalingFileCacheEntry))) {
+                            DLOGW("Failed to save signaling cache to file");
+                        }
+                    }
                 }
             }
 
