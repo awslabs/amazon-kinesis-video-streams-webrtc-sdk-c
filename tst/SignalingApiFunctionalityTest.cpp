@@ -2200,6 +2200,81 @@ TEST_F(SignalingApiFunctionalityTest, cachingWithFaultInjection)
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
 }
 
+TEST_F(SignalingApiFunctionalityTest, fileCachingTest)
+{
+    if (!mAccessKeyIdSet) {
+        return;
+    }
+
+    ChannelInfo channelInfo;
+    SignalingClientCallbacks signalingClientCallbacks;
+    SignalingClientInfoInternal clientInfoInternal;
+    PSignalingClient pSignalingClient;
+    SIGNALING_CLIENT_HANDLE signalingHandle;
+    CHAR signalingChannelName[64];
+    const UINT32 totalChannelCount = MAX_SIGNALING_CACHE_ENTRY_COUNT + 1;
+    UINT32 i, describeCountNoCache, getEndpointCountNoCache;
+
+    signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
+    signalingClientCallbacks.customData = (UINT64) this;
+    signalingClientCallbacks.messageReceivedFn = NULL;
+    signalingClientCallbacks.errorReportFn = signalingClientError;
+    signalingClientCallbacks.stateChangeFn = signalingClientStateChanged;
+
+    MEMSET(&clientInfoInternal, 0x00, SIZEOF(SignalingClientInfoInternal));
+
+    clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
+    clientInfoInternal.signalingClientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
+    STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    clientInfoInternal.hookCustomData = (UINT64) this;
+    clientInfoInternal.connectPreHookFn = connectPreHook;
+    clientInfoInternal.describePreHookFn = describePreHook;
+    clientInfoInternal.getEndpointPreHookFn = getEndpointPreHook;
+
+    MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
+    channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
+    channelInfo.pKmsKeyId = NULL;
+    channelInfo.tagCount = 0;
+    channelInfo.pTags = NULL;
+    channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
+    channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
+    channelInfo.retry = TRUE;
+    channelInfo.reconnect = TRUE;
+    channelInfo.pCertPath = mCaCertPath;
+    channelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
+    channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_FILE;
+    channelInfo.pRegion = TEST_DEFAULT_REGION;
+
+    FREMOVE(DEFAULT_CACHE_FILE_PATH);
+
+    for (i = 0; i < totalChannelCount; ++i) {
+        SPRINTF(signalingChannelName, "%s%u", TEST_SIGNALING_CHANNEL_NAME, i);
+        channelInfo.pChannelName = signalingChannelName;
+        EXPECT_EQ(STATUS_SUCCESS, createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks,
+                                                      (PAwsCredentialProvider) mTestCredentialProvider, &pSignalingClient));
+        signalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
+        EXPECT_TRUE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
+        EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+    }
+
+    describeCountNoCache = describeCount;
+    getEndpointCountNoCache = getEndpointCount;
+
+    for (i = 0; i < totalChannelCount; ++i) {
+        SPRINTF(signalingChannelName, "%s%u", TEST_SIGNALING_CHANNEL_NAME, i);
+        channelInfo.pChannelName = signalingChannelName;
+        EXPECT_EQ(STATUS_SUCCESS, createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks,
+                                                      (PAwsCredentialProvider) mTestCredentialProvider, &pSignalingClient));
+        signalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
+        EXPECT_TRUE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
+        EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+    }
+
+    /* describeCount and getEndpointCount should only increase by 1 because they are cached for all channels except one */
+    EXPECT_TRUE(describeCount > describeCountNoCache && (describeCount - describeCountNoCache) == 1);
+    EXPECT_TRUE(getEndpointCount > getEndpointCountNoCache && (getEndpointCount - getEndpointCountNoCache) == 1);
+}
+
 TEST_F(SignalingApiFunctionalityTest, asyncIceConfigRefreshBeforeConnect)
 {
     if (!mAccessKeyIdSet) {
