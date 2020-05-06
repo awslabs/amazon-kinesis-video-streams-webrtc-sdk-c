@@ -662,16 +662,17 @@ STATUS iceAgentShutdown(PIceAgent pIceAgent)
               KVS_ICE_TURN_CONNECTION_SHUTDOWN_TIMEOUT / HUNDREDS_OF_NANOS_IN_A_SECOND);
     }
 
-    /* second pass free TurnConnection */
-    for(i = 0; i < pIceAgent->turnConnectionTrackerCount; ++i) {
-        CHK_LOG_ERR(freeTurnConnection(&pIceAgent->turnConnectionTrackers[i].pTurnConnection));
-    }
-    pIceAgent->turnConnectionTrackerCount = 0;
-
     /* remove connections last because still need to send data to deallocate turn */
     if (pIceAgent->pConnectionListener != NULL) {
         CHK_STATUS(connectionListenerRemoveAllConnection(pIceAgent->pConnectionListener));
     }
+
+    /* free TurnConnection after connectionListenerRemoveAllConnection so turnConnection wont have to process data
+     * while freeing. */
+    for(i = 0; i < pIceAgent->turnConnectionTrackerCount; ++i) {
+        CHK_LOG_ERR(freeTurnConnection(&pIceAgent->turnConnectionTrackers[i].pTurnConnection));
+    }
+    pIceAgent->turnConnectionTrackerCount = 0;
 
 CleanUp:
 
