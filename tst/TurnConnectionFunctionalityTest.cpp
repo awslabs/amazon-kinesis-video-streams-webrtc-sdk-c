@@ -91,18 +91,21 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         }
 
         UINT64 getRelayAddrTimeout;
-        PKvsIpAddress pRelayAddress = NULL;
+        KvsIpAddress relayAddress;
+        BOOL relayAddressReceived = FALSE;
 
         initializeTestTurnConnection();
+
+        MEMSET(&relayAddress, 0x00, SIZEOF(KvsIpAddress));
 
         EXPECT_EQ(STATUS_SUCCESS, turnConnectionStart(pTurnConnection));
 
         getRelayAddrTimeout = GETTIME() + 3 * HUNDREDS_OF_NANOS_IN_A_SECOND;
-        while((pRelayAddress = turnConnectionGetRelayAddress(pTurnConnection)) == NULL && GETTIME() < getRelayAddrTimeout) {
+        while((relayAddressReceived = turnConnectionGetRelayAddress(pTurnConnection, &relayAddress)) == FALSE && GETTIME() < getRelayAddrTimeout) {
             THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
         }
 
-        EXPECT_TRUE(pRelayAddress != NULL);
+        EXPECT_TRUE(relayAddressReceived);
 
         freeTestTurnConnection();
     }
@@ -231,9 +234,8 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         EXPECT_TRUE(turnReady == TRUE);
         EXPECT_EQ(STATUS_SUCCESS, turnConnectionShutdown(pTurnConnection, KVS_ICE_TURN_CONNECTION_SHUTDOWN_TIMEOUT));
 
-        MUTEX_LOCK(pTurnConnection->lock);
-        EXPECT_TRUE(ATOMIC_LOAD_BOOL(&pTurnConnection->allocationFreed));
-        MUTEX_UNLOCK(pTurnConnection->lock);
+        EXPECT_TRUE(!ATOMIC_LOAD_BOOL(&pTurnConnection->hasAllocation) ||
+                    ATOMIC_LOAD_BOOL(&pTurnConnection->stopTurnConnection));
 
         freeTestTurnConnection();
     }
@@ -282,7 +284,8 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
             THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
         }
 
-        EXPECT_TRUE(turnConnectionIsShutdownComplete(pTurnConnection));
+        EXPECT_TRUE(!ATOMIC_LOAD_BOOL(&pTurnConnection->hasAllocation) ||
+                    ATOMIC_LOAD_BOOL(&pTurnConnection->stopTurnConnection));
 
         freeTestTurnConnection();
     }

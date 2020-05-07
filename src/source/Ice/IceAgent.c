@@ -1231,10 +1231,11 @@ STATUS iceAgentGatherCandidateTimerCallback(UINT32 timerId, UINT64 currentTime, 
     UINT64 data;
     PIceCandidate pIceCandidate = NULL;
     UINT32 pendingSrflxCandidateCount = 0, pendingCandidateCount = 0, i;
-    PKvsIpAddress pRelayAddress = NULL;
+    KvsIpAddress relayAddress;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
     MEMSET(newLocalCandidates, 0x00, SIZEOF(newLocalCandidates));
+    MEMSET(&relayAddress, 0x00, SIZEOF(KvsIpAddress));
 
     MUTEX_LOCK(pIceAgent->lock);
     locked = TRUE;
@@ -1251,9 +1252,9 @@ STATUS iceAgentGatherCandidateTimerCallback(UINT32 timerId, UINT64 currentTime, 
                 pendingSrflxCandidateCount++;
             } else if (pIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED &&
                        pIceCandidate->pTurnConnectionTracker != NULL &&
-                       (pRelayAddress = turnConnectionGetRelayAddress(pIceCandidate->pTurnConnectionTracker->pTurnConnection)) != NULL) {
+                       turnConnectionGetRelayAddress(pIceCandidate->pTurnConnectionTracker->pTurnConnection, &relayAddress)) {
                 /* Check if any relay address has been obtained. */
-                CHK_STATUS(updateCandidateAddress(pIceCandidate, pRelayAddress));
+                CHK_STATUS(updateCandidateAddress(pIceCandidate, &relayAddress));
                 CHK_STATUS(createIceCandidatePairs(pIceAgent, pIceCandidate, FALSE));
             }
         }

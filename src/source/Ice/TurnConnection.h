@@ -115,8 +115,7 @@ typedef struct {
 typedef struct __TurnConnection TurnConnection;
 struct __TurnConnection {
     volatile ATOMIC_BOOL stopTurnConnection;
-    volatile ATOMIC_BOOL allocationFreed;
-    volatile ATOMIC_BOOL relayAddressReceived;
+    volatile ATOMIC_BOOL hasAllocation;
     volatile SIZE_T timerCallbackId;
 
     // realm attribute in Allocation response
@@ -186,7 +185,7 @@ STATUS turnConnectionSendData(PTurnConnection, PBYTE, UINT32, PKvsIpAddress);
 STATUS turnConnectionStart(PTurnConnection);
 STATUS turnConnectionShutdown(PTurnConnection, UINT64);
 BOOL turnConnectionIsShutdownComplete(PTurnConnection);
-PKvsIpAddress turnConnectionGetRelayAddress(PTurnConnection);
+BOOL turnConnectionGetRelayAddress(PTurnConnection, PKvsIpAddress);
 STATUS turnConnectionRefreshAllocation(PTurnConnection);
 STATUS turnConnectionRefreshPermission(PTurnConnection, PBOOL);
 STATUS turnConnectionFreePreAllocatedPackets(PTurnConnection);
