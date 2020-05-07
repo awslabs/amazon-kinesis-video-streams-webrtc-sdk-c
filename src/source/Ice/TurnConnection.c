@@ -40,8 +40,8 @@ STATUS createTurnConnection(PIceServer pTurnServer, TIMER_QUEUE_HANDLE timerQueu
     pTurnConnection->relayAddressReported = FALSE;
     pTurnConnection->pControlChannel = pTurnSocket;
 
-    ATOMIC_STORE(&pTurnConnection->stopTurnConnection, FALSE);
-    ATOMIC_STORE(&pTurnConnection->allocationFreed, TRUE);
+    ATOMIC_STORE_BOOL(&pTurnConnection->stopTurnConnection, FALSE);
+    ATOMIC_STORE_BOOL(&pTurnConnection->hasAllocation, FALSE);
 
     if (pTurnConnectionCallbacks != NULL) {
         pTurnConnection->turnConnectionCallbacks = *pTurnConnectionCallbacks;
@@ -204,6 +204,7 @@ STATUS turnConnectionHandleStun(PTurnConnection pTurnConnection, PBYTE pBuffer, 
     PStunPacket pStunPacket = NULL;
     CHAR ipAddrStr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
     BOOL locked = FALSE;
+    ATOMIC_BOOL hasAllocation = FALSE;
 
     PDoubleListNode pCurNode = NULL;
     UINT64 data;
@@ -235,11 +236,8 @@ STATUS turnConnectionHandleStun(PTurnConnection pTurnConnection, PBYTE pBuffer, 
                   pStunAttributeLifetime->lifetime, pTurnConnection->allocationExpirationTime / DEFAULT_TIME_UNIT_IN_NANOS);
 
             pStunAttributeAddress = (PStunAttributeAddress) pStunAttr;
-            if (!ATOMIC_LOAD_BOOL(&pTurnConnection->relayAddressReceived)) {
-                pTurnConnection->relayAddress = pStunAttributeAddress->address;
-                ATOMIC_STORE_BOOL(&pTurnConnection->allocationFreed, FALSE);
-                ATOMIC_STORE_BOOL(&pTurnConnection->relayAddressReceived, TRUE);
-            }
+            pTurnConnection->relayAddress = pStunAttributeAddress->address;
+            ATOMIC_STORE_BOOL(&pTurnConnection->hasAllocation, TRUE);
 
             if (!pTurnConnection->relayAddressReported && pTurnConnection->turnConnectionCallbacks.relayAddressAvailableFn != NULL) {
                 pTurnConnection->relayAddressReported = TRUE;
@@ -262,9 +260,9 @@ STATUS turnConnectionHandleStun(PTurnConnection pTurnConnection, PBYTE pBuffer, 
             CHK_WARN(pStunAttributeLifetime != NULL, retStatus, "No lifetime attribute found in TURN refresh response. Dropping Packet");
 
             if (pStunAttributeLifetime->lifetime == 0) {
-                CHK(!ATOMIC_LOAD_BOOL(&pTurnConnection->allocationFreed), retStatus);
+                hasAllocation = ATOMIC_EXCHANGE_BOOL(&pTurnConnection->hasAllocation, FALSE);
+                CHK(hasAllocation, retStatus);
                 DLOGD("TURN Allocation freed.");
-                ATOMIC_STORE_BOOL(&pTurnConnection->allocationFreed, TRUE);
                 CVAR_SIGNAL(pTurnConnection->freeAllocationCvar);
             } else {
                 // convert lifetime to 100ns and store it
@@ -910,11 +908,6 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
 
     previousState = pTurnConnection->state;
 
-    if (ATOMIC_LOAD(&pTurnConnection->stopTurnConnection)) {
-        pTurnConnection->state = TURN_STATE_CLEAN_UP;
-        pTurnConnection->stateTimeoutTime = currentTime + DEFAULT_TURN_CLEAN_UP_TIMEOUT;
-    }
-
     switch (pTurnConnection->state) {
         case TURN_STATE_NEW:
             // create empty turn allocation request
@@ -968,7 +961,7 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
 
         case TURN_STATE_ALLOCATION:
 
-            if (ATOMIC_LOAD_BOOL(&pTurnConnection->relayAddressReceived)) {
+            if (ATOMIC_LOAD_BOOL(&pTurnConnection->hasAllocation)) {
                 CHK_STATUS(getIpAddrStr(&pTurnConnection->relayAddress, ipAddrStr, ARRAY_SIZE(ipAddrStr)));
                 DLOGD("Relay address received: %s, port: %u", ipAddrStr, (UINT16) getInt16(pTurnConnection->relayAddress.port));
 
@@ -1099,7 +1092,7 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
             /* start cleanning up even if we dont receive allocation freed response in time, or if connection is already closed,
              * since we already sent multiple STUN refresh packets with 0 lifetime. */
             if (socketConnectionIsClosed(pTurnConnection->pControlChannel) ||
-                ATOMIC_LOAD_BOOL(&pTurnConnection->allocationFreed) || currentTime >= pTurnConnection->stateTimeoutTime) {
+                !ATOMIC_LOAD_BOOL(&pTurnConnection->hasAllocation) || currentTime >= pTurnConnection->stateTimeoutTime) {
 
                 // clean transactionId store for each turn peer, preserving the peers
                 CHK_STATUS(doubleListGetHeadNode(pTurnConnection->turnPeerList, &pCurNode));
@@ -1122,12 +1115,23 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
             DLOGW("TurnConnection in TURN_STATE_FAILED due to 0x%08x. Aborting TurnConnection",
                   pTurnConnection->errorStatus);
             /* Since we are aborting, not gonna do cleanup */
-            ATOMIC_STORE_BOOL(&pTurnConnection->allocationFreed, TRUE);
+            ATOMIC_STORE_BOOL(&pTurnConnection->hasAllocation, FALSE);
 
             break;
 
         default:
             break;
+    }
+
+    if (ATOMIC_LOAD_BOOL(&pTurnConnection->stopTurnConnection) &&
+        pTurnConnection->state != TURN_STATE_CLEAN_UP &&
+        pTurnConnection->state != TURN_STATE_NEW) {
+        if (ATOMIC_LOAD_BOOL(&pTurnConnection->hasAllocation)) {
+            pTurnConnection->state = TURN_STATE_CLEAN_UP;
+            pTurnConnection->stateTimeoutTime = currentTime + DEFAULT_TURN_CLEAN_UP_TIMEOUT;
+        } else {
+            pTurnConnection->state = TURN_STATE_NEW;
+        }
     }
 
 CleanUp:
@@ -1193,18 +1197,18 @@ STATUS turnConnectionShutdown(PTurnConnection pTurnConnection, UINT64 waitUntilA
     MUTEX_LOCK(pTurnConnection->lock);
     locked = TRUE;
 
-    CHK(!ATOMIC_LOAD_BOOL(&pTurnConnection->allocationFreed), retStatus);
+    CHK(ATOMIC_LOAD_BOOL(&pTurnConnection->hasAllocation), retStatus);
 
     if (waitUntilAllocationFreedTimeout > 0) {
         currentTime = GETTIME();
         timeoutTime = currentTime + waitUntilAllocationFreedTimeout;
 
-        while (!ATOMIC_LOAD_BOOL(&pTurnConnection->allocationFreed) && currentTime < timeoutTime) {
+        while (ATOMIC_LOAD_BOOL(&pTurnConnection->hasAllocation) && currentTime < timeoutTime) {
             CVAR_WAIT(pTurnConnection->freeAllocationCvar, pTurnConnection->lock, waitUntilAllocationFreedTimeout);
             currentTime = GETTIME();
         }
 
-        if (!ATOMIC_LOAD_BOOL(&pTurnConnection->allocationFreed)) {
+        if (ATOMIC_LOAD_BOOL(&pTurnConnection->hasAllocation)) {
             DLOGD("Failed to free turn allocation within timeout of %" PRIu64 " milliseconds", waitUntilAllocationFreedTimeout / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
         }
     }
@@ -1225,17 +1229,22 @@ BOOL turnConnectionIsShutdownComplete(PTurnConnection pTurnConnection)
     if (pTurnConnection == NULL) {
         return TRUE;
     } else {
-        return ATOMIC_LOAD_BOOL(&pTurnConnection->allocationFreed);
+        return !ATOMIC_LOAD_BOOL(&pTurnConnection->hasAllocation);
     }
 }
 
-PKvsIpAddress turnConnectionGetRelayAddress(PTurnConnection pTurnConnection)
+BOOL turnConnectionGetRelayAddress(PTurnConnection pTurnConnection, PKvsIpAddress pKvsIpAddress)
 {
-    if (pTurnConnection == NULL || !ATOMIC_LOAD_BOOL(&pTurnConnection->relayAddressReceived)) {
-        return NULL;
-    } else {
-        return &pTurnConnection->relayAddress;
+    if (pTurnConnection == NULL || !ATOMIC_LOAD_BOOL(&pTurnConnection->hasAllocation)) {
+        return FALSE;
+    } else if (pKvsIpAddress != NULL) {
+        MUTEX_LOCK(pTurnConnection->lock);
+        *pKvsIpAddress = pTurnConnection->relayAddress;
+        MUTEX_UNLOCK(pTurnConnection->lock);
+        return TRUE;
     }
+
+    return FALSE;
 }
 
 STATUS turnConnectionTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
@@ -1328,12 +1337,14 @@ STATUS turnConnectionTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 cu
             break;
 
         case TURN_STATE_CLEAN_UP:
-            CHK_STATUS(getStunAttribute(pTurnConnection->pTurnAllocationRefreshPacket, STUN_ATTRIBUTE_TYPE_LIFETIME, (PStunAttributeHeader*) &pStunAttributeLifetime));
-            CHK(pStunAttributeLifetime != NULL, STATUS_INTERNAL_ERROR);
-            pStunAttributeLifetime->lifetime = 0;
-            sendStatus = iceUtilsSendStunPacket(pTurnConnection->pTurnAllocationRefreshPacket, pTurnConnection->longTermKey,
-                                                ARRAY_SIZE(pTurnConnection->longTermKey), &pTurnConnection->turnServer.ipAddress,
-                                                pTurnConnection->pControlChannel, NULL, FALSE);
+            if (ATOMIC_LOAD_BOOL(&pTurnConnection->hasAllocation)) {
+                CHK_STATUS(getStunAttribute(pTurnConnection->pTurnAllocationRefreshPacket, STUN_ATTRIBUTE_TYPE_LIFETIME, (PStunAttributeHeader*) &pStunAttributeLifetime));
+                CHK(pStunAttributeLifetime != NULL, STATUS_INTERNAL_ERROR);
+                pStunAttributeLifetime->lifetime = 0;
+                sendStatus = iceUtilsSendStunPacket(pTurnConnection->pTurnAllocationRefreshPacket, pTurnConnection->longTermKey,
+                                                    ARRAY_SIZE(pTurnConnection->longTermKey), &pTurnConnection->turnServer.ipAddress,
+                                                    pTurnConnection->pControlChannel, NULL, FALSE);
+            }
 
             break;
 

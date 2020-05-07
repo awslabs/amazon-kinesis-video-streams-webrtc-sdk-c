@@ -118,12 +118,14 @@ TEST_F(PeerConnectionFunctionalityTest, shutdownTurnDueToP2PFoundBeforeTurnEstab
 
     pIceAgent = ((PKvsPeerConnection)offerPc)->pIceAgent;
     for(i = 0; i < pIceAgent->turnConnectionTrackerCount; ++i) {
-        EXPECT_TRUE(ATOMIC_LOAD_BOOL(&pIceAgent->turnConnectionTrackers[i].pTurnConnection->stopTurnConnection));
+        EXPECT_TRUE(!ATOMIC_LOAD_BOOL(&pIceAgent->turnConnectionTrackers[i].pTurnConnection->hasAllocation) ||
+                    ATOMIC_LOAD_BOOL(&pIceAgent->turnConnectionTrackers[i].pTurnConnection->stopTurnConnection));
     }
 
     pIceAgent = ((PKvsPeerConnection)answerPc)->pIceAgent;
     for(i = 0; i < pIceAgent->turnConnectionTrackerCount; ++i) {
-        EXPECT_TRUE(ATOMIC_LOAD_BOOL(&pIceAgent->turnConnectionTrackers[i].pTurnConnection->stopTurnConnection));
+        EXPECT_TRUE(!ATOMIC_LOAD_BOOL(&pIceAgent->turnConnectionTrackers[i].pTurnConnection->hasAllocation) ||
+                    ATOMIC_LOAD_BOOL(&pIceAgent->turnConnectionTrackers[i].pTurnConnection->stopTurnConnection));
     }
 
     freePeerConnection(&offerPc);
@@ -204,12 +206,14 @@ TEST_F(PeerConnectionFunctionalityTest, shutdownTurnDueToP2PFoundAfterTurnEstabl
 
     pIceAgent = ((PKvsPeerConnection)offerPc)->pIceAgent;
     for(i = 0; i < pIceAgent->turnConnectionTrackerCount; ++i) {
-        EXPECT_TRUE(ATOMIC_LOAD_BOOL(&pIceAgent->turnConnectionTrackers[i].pTurnConnection->stopTurnConnection));
+        EXPECT_TRUE(!ATOMIC_LOAD_BOOL(&pIceAgent->turnConnectionTrackers[i].pTurnConnection->hasAllocation) ||
+                    ATOMIC_LOAD_BOOL(&pIceAgent->turnConnectionTrackers[i].pTurnConnection->stopTurnConnection));
     }
 
     pIceAgent = ((PKvsPeerConnection)answerPc)->pIceAgent;
     for(i = 0; i < pIceAgent->turnConnectionTrackerCount; ++i) {
-        EXPECT_TRUE(ATOMIC_LOAD_BOOL(&pIceAgent->turnConnectionTrackers[i].pTurnConnection->stopTurnConnection));
+        EXPECT_TRUE(!ATOMIC_LOAD_BOOL(&pIceAgent->turnConnectionTrackers[i].pTurnConnection->hasAllocation) ||
+                    ATOMIC_LOAD_BOOL(&pIceAgent->turnConnectionTrackers[i].pTurnConnection->stopTurnConnection));
     }
 
     freePeerConnection(&offerPc);
