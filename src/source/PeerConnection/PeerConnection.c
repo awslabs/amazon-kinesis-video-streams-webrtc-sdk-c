@@ -88,7 +88,7 @@ STATUS allocateSctp(PKvsPeerConnection pKvsPeerConnection)
     for (; currentDataChannelId < data.currentDataChannelId; currentDataChannelId += 2) {
         CHK_STATUS(hashTableGet(pKvsPeerConnection->pDataChannels, currentDataChannelId, (PUINT64) &pKvsDataChannel));
         CHK(pKvsDataChannel != NULL, STATUS_INTERNAL_ERROR);
-        sctpSessionWriteDcep(pKvsPeerConnection->pSctpSession, currentDataChannelId, pKvsDataChannel->dataChannel.name, STRLEN(pKvsDataChannel->dataChannel.name), NULL);
+        sctpSessionWriteDcep(pKvsPeerConnection->pSctpSession, currentDataChannelId, pKvsDataChannel->dataChannel.name, STRLEN(pKvsDataChannel->dataChannel.name), &pKvsDataChannel->rtcDataChannelInit);
 
         if (pKvsDataChannel->onOpen != NULL) {
             pKvsDataChannel->onOpen(pKvsDataChannel->onOpenCustomData);
