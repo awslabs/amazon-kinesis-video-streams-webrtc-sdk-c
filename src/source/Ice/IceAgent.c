@@ -1438,7 +1438,6 @@ STATUS iceAgentInitRelayCandidates(PIceAgent pIceAgent)
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 j, i;
     PKvsIpAddress pSocketAddrForTurn = NULL;
-    BOOL locked = FALSE;
     CHAR ipAddrStr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
@@ -1479,10 +1478,6 @@ STATUS iceAgentInitRelayCandidates(PIceAgent pIceAgent)
     }
 
 CleanUp:
-
-    if (locked) {
-        MUTEX_UNLOCK(pIceAgent->lock);
-    }
 
     CHK_LOG_ERR(retStatus);
 
@@ -1563,11 +1558,12 @@ STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent, PKvsIpAddress pLocalInter
         }
     }
 
+    pIceAgent->turnConnectionTrackerCount++;
+
     MUTEX_UNLOCK(pIceAgent->lock);
     locked = FALSE;
 
     CHK_STATUS(turnConnectionStart(pCurrentTurnConnectionTracker->pTurnConnection));
-    pIceAgent->turnConnectionTrackerCount++;
 
 CleanUp:
 
