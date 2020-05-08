@@ -23,6 +23,7 @@ typedef struct {
     TID receiveDataRoutine;
     PBYTE pBuffer;
     UINT64 bufferLen;
+    CVAR removeConnectionComplete;
 } ConnectionListener, *PConnectionListener;
 
 /**

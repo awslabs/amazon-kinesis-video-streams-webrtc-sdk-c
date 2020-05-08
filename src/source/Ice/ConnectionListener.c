@@ -22,6 +22,7 @@ STATUS createConnectionListener(PConnectionListener* ppConnectionListener)
     ATOMIC_STORE_BOOL(&pConnectionListener->connectionListChanged, TRUE);
     pConnectionListener->receiveDataRoutine = INVALID_TID_VALUE;
     pConnectionListener->lock = MUTEX_CREATE(FALSE);
+    pConnectionListener->removeConnectionComplete = CVAR_CREATE();
 
     // pConnectionListener->pBuffer starts at the end of ConnectionListener struct
     pConnectionListener->pBuffer = (PBYTE) (pConnectionListener + 1);
@@ -55,6 +56,10 @@ STATUS freeConnectionListener(PConnectionListener* ppConnectionListener)
 
     ATOMIC_STORE_BOOL(&pConnectionListener->terminate, TRUE);
 
+    if (IS_VALID_CVAR_VALUE(pConnectionListener->removeConnectionComplete)) {
+        CVAR_SIGNAL(pConnectionListener->removeConnectionComplete);
+    }
+
     if (IS_VALID_TID_VALUE(pConnectionListener->receiveDataRoutine)) {
         THREAD_JOIN(pConnectionListener->receiveDataRoutine, NULL);
         pConnectionListener->receiveDataRoutine = INVALID_TID_VALUE;
@@ -73,6 +78,10 @@ STATUS freeConnectionListener(PConnectionListener* ppConnectionListener)
 
     if (pConnectionListener->lock != INVALID_MUTEX_VALUE) {
         MUTEX_FREE(pConnectionListener->lock);
+    }
+
+    if (IS_VALID_CVAR_VALUE(pConnectionListener->removeConnectionComplete)) {
+        CVAR_FREE(pConnectionListener->removeConnectionComplete);
     }
 
     MEMFREE(pConnectionListener);
@@ -116,16 +125,33 @@ CleanUp:
 STATUS connectionListenerRemoveConnection(PConnectionListener pConnectionListener, PSocketConnection pSocketConnection)
 {
     STATUS retStatus = STATUS_SUCCESS;
+    BOOL locked = FALSE;
+    const UINT64 longTimeout = 1 * HUNDREDS_OF_NANOS_IN_AN_HOUR;
 
     CHK(pConnectionListener != NULL && pSocketConnection != NULL, STATUS_NULL_ARG);
     CHK(!ATOMIC_LOAD_BOOL(&pConnectionListener->terminate), retStatus);
 
-    // mark socket as closed. Will be cleaned up by connectionListenerReceiveDataRoutine
+    /* mark socket as closed. Will be cleaned up by connectionListenerReceiveDataRoutine */
     CHK_STATUS(socketConnectionClosed(pSocketConnection));
 
     ATOMIC_STORE_BOOL(&pConnectionListener->connectionListChanged, TRUE);
 
+    MUTEX_LOCK(pConnectionListener->lock);
+    locked = TRUE;
+    /* make sure connectionListenerRemoveConnection return after connectionListenerReceiveDataRoutine has picked up
+     * the change. */
+    while(ATOMIC_LOAD_BOOL(&pConnectionListener->listenerRoutineStarted) &&
+          !ATOMIC_LOAD_BOOL(&pConnectionListener->terminate) &&
+          ATOMIC_LOAD_BOOL(&pConnectionListener->connectionListChanged)) {
+        /* use longTimeout because connectionListenerReceiveDataRoutine should wake this up soon enough */
+        CVAR_WAIT(pConnectionListener->removeConnectionComplete, pConnectionListener->lock, longTimeout);
+    }
+
 CleanUp:
+
+    if (locked) {
+        MUTEX_UNLOCK(pConnectionListener->lock);
+    }
 
     return retStatus;
 }
@@ -136,6 +162,7 @@ STATUS connectionListenerRemoveAllConnection(PConnectionListener pConnectionList
     BOOL locked = FALSE;
     PDoubleListNode pCurNode = NULL;
     PSocketConnection pSocketConnection = NULL;
+    const UINT64 longTimeout = 1 * HUNDREDS_OF_NANOS_IN_AN_HOUR;
 
     CHK(pConnectionListener != NULL, STATUS_NULL_ARG);
     CHK(!ATOMIC_LOAD_BOOL(&pConnectionListener->terminate), retStatus);
@@ -153,6 +180,15 @@ STATUS connectionListenerRemoveAllConnection(PConnectionListener pConnectionList
     }
 
     ATOMIC_STORE_BOOL(&pConnectionListener->connectionListChanged, TRUE);
+
+    /* make sure connectionListenerRemoveAllConnection return after connectionListenerReceiveDataRoutine has picked up
+     * the change. */
+    while(ATOMIC_LOAD_BOOL(&pConnectionListener->listenerRoutineStarted) &&
+          !ATOMIC_LOAD_BOOL(&pConnectionListener->terminate) &&
+          ATOMIC_LOAD_BOOL(&pConnectionListener->connectionListChanged)) {
+        /* use longTimeout because connectionListenerReceiveDataRoutine should wake this up soon enough */
+        CVAR_WAIT(pConnectionListener->removeConnectionComplete, pConnectionListener->lock, longTimeout);
+    }
 
 CleanUp:
 
@@ -249,6 +285,7 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
             locked = FALSE;
 
             ATOMIC_STORE_BOOL(&pConnectionListener->connectionListChanged, FALSE);
+            CVAR_SIGNAL(pConnectionListener->removeConnectionComplete);
         }
 
         for (i = 0; i < socketCount; ++i) {
