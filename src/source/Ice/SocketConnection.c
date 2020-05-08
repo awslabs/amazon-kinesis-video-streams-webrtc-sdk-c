@@ -230,8 +230,9 @@ STATUS socketConnectionReadData(PSocketConnection pSocketConnection, PBYTE pBuf,
 {
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
-    INT32 sslReadRet = 0, sslErrorRet = 0;
+    INT32 sslReadRet = 0;
     UINT32 writtenBytes = 0;
+    UINT64 sslErrorRet;
 
     CHK(pSocketConnection != NULL && pBuf != NULL && pDataLen != NULL, STATUS_NULL_ARG);
     CHK(bufferLen != 0, STATUS_INVALID_ARG);
@@ -251,9 +252,10 @@ STATUS socketConnectionReadData(PSocketConnection pSocketConnection, PBYTE pBuf,
         // Unlikely that we will get sslReadRet == 0 here because socketConnectionReadData is only called when
         // socket recevies data. If ssl handshake is not done then -1 is returned.
         if (sslReadRet <= 0) {
-            sslErrorRet = SSL_get_error(pSocketConnection->pSsl, sslReadRet);
-            if (sslErrorRet != SSL_ERROR_WANT_WRITE && sslErrorRet != SSL_ERROR_WANT_READ) {
-                DLOGV("SSL_read failed with %s. Length of data already written %u", ERR_error_string(sslErrorRet, NULL), writtenBytes);
+            while ((sslErrorRet = ERR_get_error()) != 0) {
+                if (sslErrorRet != SSL_ERROR_WANT_WRITE && sslErrorRet != SSL_ERROR_WANT_READ) {
+                    DLOGW("SSL_read failed with %s", ERR_error_string(sslErrorRet, NULL));
+                }
             }
             break;
         }

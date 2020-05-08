@@ -95,12 +95,9 @@ STATUS freeTurnConnection(PTurnConnection* ppTurnConnection)
         CHK_LOG_ERR(timerQueueCancelTimer(pTurnConnection->timerQueueHandle, (UINT32) timerCallbackId, (UINT64) pTurnConnection));
     }
 
-    /* acquire lock to make sure timerCallbackId is completely finished  */
-    MUTEX_LOCK(pTurnConnection->lock);
-    MUTEX_UNLOCK(pTurnConnection->lock);
-
     // shutdown control channel
     CHK_LOG_ERR(connectionListenerRemoveConnection(pTurnConnection->pConnectionListener, pTurnConnection->pControlChannel));
+    CHK_LOG_ERR(freeSocketConnection(&pTurnConnection->pControlChannel));
 
     // free transactionId store for each turn peer
     CHK_LOG_ERR(doubleListGetHeadNode(pTurnConnection->turnPeerList, &pCurNode));
@@ -727,12 +724,14 @@ STATUS turnConnectionSendData(PTurnConnection pTurnConnection, PBYTE pBuf, UINT3
     putInt16((PINT16) (pTurnConnection->sendDataBuffer + 2), (UINT16) bufLen);
     MEMCPY(pTurnConnection->sendDataBuffer + TURN_DATA_CHANNEL_SEND_OVERHEAD, pBuf, bufLen);
 
-    retStatus = socketConnectionSendData(pTurnConnection->pControlChannel,
-                                         pTurnConnection->sendDataBuffer,
-                                         paddedDataLen,
-                                         &pTurnConnection->turnServer.ipAddress);
+    retStatus = iceUtilsSendData(pTurnConnection->sendDataBuffer,
+                                 paddedDataLen,
+                                 &pTurnConnection->turnServer.ipAddress,
+                                 pTurnConnection->pControlChannel,
+                                 NULL, FALSE);
+
     if (STATUS_FAILED(retStatus)) {
-        DLOGW("socketConnectionSendData failed with 0x%08x", retStatus);
+        DLOGW("iceUtilsSendData failed with 0x%08x", retStatus);
         retStatus = STATUS_SUCCESS;
     }
 
@@ -1358,7 +1357,7 @@ STATUS turnConnectionTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 cu
     }
 
     if (sendStatus == STATUS_SOCKET_CONNECTION_CLOSED_ALREADY) {
-        DLOGE("TurnConnection socket %d closed unexpectedly");
+        DLOGE("TurnConnection socket %d closed unexpectedly", pTurnConnection->pControlChannel->localSocket);
         turnConnectionFatalError(pTurnConnection, sendStatus);
     }
 

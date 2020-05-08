@@ -41,6 +41,8 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         EXPECT_EQ(STATUS_SUCCESS, freeConnectionListener(&pConnectionListener));
         // free is idempotent
         EXPECT_EQ(STATUS_SUCCESS, freeConnectionListener(&pConnectionListener));
+
+        EXPECT_EQ(STATUS_SUCCESS, freeSocketConnection(&pDummySocketConnection));
     }
 
     TEST_F(IceApiTest, IceUtilApiTest)
