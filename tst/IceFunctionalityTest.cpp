@@ -103,6 +103,7 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         PConnectionListener pConnectionListener;
         UINT32 connectionToAdd;
         KVS_IP_FAMILY_TYPE family;
+        PSocketConnection socketConnectionList[10];
     } ConnectionListenerTestCustomData,*PConnectionListenerTestCustomData;
 
     PVOID connectionListenAddConnectionRoutine(PVOID arg)
@@ -133,6 +134,7 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
             randomDelay = (UINT64) (RAND() % 300) * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
             THREAD_SLEEP(randomDelay);
             CHECK(STATUS_SUCCEEDED(createSocketConnection(&localhost, NULL, KVS_SOCKET_PROTOCOL_UDP, 0, NULL, 0, &pSocketConnection)));
+            pCustomData->socketConnectionList[i] = pSocketConnection;
             CHECK(STATUS_SUCCEEDED(connectionListenerAddConnection(pCustomData->pConnectionListener, pSocketConnection)));
         }
 
@@ -144,7 +146,7 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         PConnectionListener pConnectionListener;
         ConnectionListenerTestCustomData routine1CustomData, routine2CustomData;
         TID routine1, routine2;
-        UINT32 connectionCount = 0, newConnectionCount = 0;
+        UINT32 connectionCount = 0, newConnectionCount = 0, i;
         PSocketConnection pSocketConnection = NULL;
         KvsIpAddress localhost;
 
@@ -188,7 +190,7 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
 
         EXPECT_EQ(STATUS_SUCCESS, connectionListenerRemoveConnection(pConnectionListener, pSocketConnection));
         EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(pConnectionListener->connectionList, &newConnectionCount));
-        EXPECT_EQ(connectionCount + 1, newConnectionCount);
+        EXPECT_EQ(connectionCount, newConnectionCount);
 
         EXPECT_EQ(TRUE, IS_VALID_TID_VALUE(pConnectionListener->receiveDataRoutine));
         ATOMIC_STORE_BOOL(&pConnectionListener->terminate, TRUE);
@@ -198,6 +200,16 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         EXPECT_EQ(FALSE, ATOMIC_LOAD_BOOL(&pConnectionListener->listenerRoutineStarted));
 
         EXPECT_EQ(STATUS_SUCCESS, freeConnectionListener(&pConnectionListener));
+
+        EXPECT_EQ(STATUS_SUCCESS, freeSocketConnection(&pSocketConnection));
+
+        for (i = 0; i < routine1CustomData.connectionToAdd; ++i) {
+            EXPECT_EQ(STATUS_SUCCESS, freeSocketConnection(&routine1CustomData.socketConnectionList[i]));
+        }
+
+        for (i = 0; i < routine2CustomData.connectionToAdd; ++i) {
+            EXPECT_EQ(STATUS_SUCCESS, freeSocketConnection(&routine2CustomData.socketConnectionList[i]));
+        }
     }
 
     ///////////////////////////////////////////////

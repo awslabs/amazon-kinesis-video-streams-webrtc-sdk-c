@@ -46,8 +46,6 @@ STATUS freeConnectionListener(PConnectionListener* ppConnectionListener)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PConnectionListener pConnectionListener = NULL;
-    PDoubleListNode pCurNode = NULL;
-    PSocketConnection pSocketConnection = NULL;
 
     CHK(ppConnectionListener != NULL, STATUS_NULL_ARG);
     CHK(*ppConnectionListener != NULL, retStatus);
@@ -66,12 +64,6 @@ STATUS freeConnectionListener(PConnectionListener* ppConnectionListener)
     }
 
     if (pConnectionListener->connectionList != NULL) {
-        CHK_LOG_ERR(doubleListGetHeadNode(pConnectionListener->connectionList, &pCurNode));
-        while(pCurNode != NULL) {
-            pSocketConnection = (PSocketConnection) pCurNode->data;
-            pCurNode = pCurNode->pNext;
-            CHK_STATUS(freeSocketConnection(&pSocketConnection));
-        }
         CHK_LOG_ERR(doubleListClear(pConnectionListener->connectionList, FALSE));
         CHK_LOG_ERR(doubleListFree(pConnectionListener->connectionList));
     }
@@ -124,9 +116,8 @@ CleanUp:
 
 STATUS connectionListenerRemoveConnection(PConnectionListener pConnectionListener, PSocketConnection pSocketConnection)
 {
-    STATUS retStatus = STATUS_SUCCESS;
+    STATUS retStatus = STATUS_SUCCESS, cvarWaitStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
-    const UINT64 longTimeout = 1 * HUNDREDS_OF_NANOS_IN_AN_HOUR;
 
     CHK(pConnectionListener != NULL && pSocketConnection != NULL, STATUS_NULL_ARG);
     CHK(!ATOMIC_LOAD_BOOL(&pConnectionListener->terminate), retStatus);
@@ -142,9 +133,15 @@ STATUS connectionListenerRemoveConnection(PConnectionListener pConnectionListene
      * the change. */
     while(ATOMIC_LOAD_BOOL(&pConnectionListener->listenerRoutineStarted) &&
           !ATOMIC_LOAD_BOOL(&pConnectionListener->terminate) &&
-          ATOMIC_LOAD_BOOL(&pConnectionListener->connectionListChanged)) {
-        /* use longTimeout because connectionListenerReceiveDataRoutine should wake this up soon enough */
-        CVAR_WAIT(pConnectionListener->removeConnectionComplete, pConnectionListener->lock, longTimeout);
+          ATOMIC_LOAD_BOOL(&pConnectionListener->connectionListChanged) &&
+          STATUS_SUCCEEDED(cvarWaitStatus)) {
+        /* use longTimeout because connectionListenerReceiveDataRoutine should wake this up */
+        CVAR_WAIT(pConnectionListener->removeConnectionComplete, pConnectionListener->lock, CONNECTION_AWAIT_CONNECTION_REMOVAL_TIMEOUT);
+        cvarWaitStatus = CVAR_WAIT(pConnectionListener->removeConnectionComplete, pConnectionListener->lock, CONNECTION_AWAIT_CONNECTION_REMOVAL_TIMEOUT);
+        /* CVAR_WAIT should never time out */
+        if (STATUS_FAILED(cvarWaitStatus)) {
+            DLOGW("CVAR_WAIT() failed with 0x%08x", cvarWaitStatus);
+        }
     }
 
 CleanUp:
@@ -158,11 +155,10 @@ CleanUp:
 
 STATUS connectionListenerRemoveAllConnection(PConnectionListener pConnectionListener)
 {
-    STATUS retStatus = STATUS_SUCCESS;
+    STATUS retStatus = STATUS_SUCCESS, cvarWaitStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
     PDoubleListNode pCurNode = NULL;
     PSocketConnection pSocketConnection = NULL;
-    const UINT64 longTimeout = 1 * HUNDREDS_OF_NANOS_IN_AN_HOUR;
 
     CHK(pConnectionListener != NULL, STATUS_NULL_ARG);
     CHK(!ATOMIC_LOAD_BOOL(&pConnectionListener->terminate), retStatus);
@@ -185,9 +181,14 @@ STATUS connectionListenerRemoveAllConnection(PConnectionListener pConnectionList
      * the change. */
     while(ATOMIC_LOAD_BOOL(&pConnectionListener->listenerRoutineStarted) &&
           !ATOMIC_LOAD_BOOL(&pConnectionListener->terminate) &&
-          ATOMIC_LOAD_BOOL(&pConnectionListener->connectionListChanged)) {
-        /* use longTimeout because connectionListenerReceiveDataRoutine should wake this up soon enough */
-        CVAR_WAIT(pConnectionListener->removeConnectionComplete, pConnectionListener->lock, longTimeout);
+          ATOMIC_LOAD_BOOL(&pConnectionListener->connectionListChanged) &&
+          STATUS_SUCCEEDED(cvarWaitStatus)) {
+        /* use longTimeout because connectionListenerReceiveDataRoutine should wake this up */
+        cvarWaitStatus = CVAR_WAIT(pConnectionListener->removeConnectionComplete, pConnectionListener->lock, CONNECTION_AWAIT_CONNECTION_REMOVAL_TIMEOUT);
+        /* CVAR_WAIT should never time out */
+        if (STATUS_FAILED(cvarWaitStatus)) {
+            DLOGW("CVAR_WAIT() failed with 0x%08x", cvarWaitStatus);
+        }
     }
 
 CleanUp:
@@ -202,11 +203,12 @@ CleanUp:
 STATUS connectionListenerStart(PConnectionListener pConnectionListener)
 {
     STATUS retStatus = STATUS_SUCCESS;
+    ATOMIC_BOOL listenerRoutineStarted = FALSE;
 
     CHK(pConnectionListener != NULL, STATUS_NULL_ARG);
-    CHK(!ATOMIC_LOAD_BOOL(&pConnectionListener->terminate) && !ATOMIC_LOAD_BOOL(&pConnectionListener->listenerRoutineStarted), retStatus);
-
-    ATOMIC_STORE_BOOL(&pConnectionListener->listenerRoutineStarted, TRUE);
+    CHK(!ATOMIC_LOAD_BOOL(&pConnectionListener->terminate), retStatus);
+    listenerRoutineStarted = ATOMIC_EXCHANGE_BOOL(&pConnectionListener->listenerRoutineStarted, TRUE);
+    CHK(!listenerRoutineStarted, retStatus);
     CHK_STATUS(THREAD_CREATE(&pConnectionListener->receiveDataRoutine,
                              connectionListenerReceiveDataRoutine,
                              (PVOID) pConnectionListener));
@@ -265,7 +267,6 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
                     pNodeToDelete = pCurNode;
                     pCurNode = pCurNode->pNext;
 
-                    CHK_STATUS(freeSocketConnection(&pSocketConnection));
                     CHK_STATUS(doubleListDeleteNode(pConnectionListener->connectionList, pNodeToDelete));
                 } else {
                     pCurNode = pCurNode->pNext;
@@ -313,9 +314,8 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
 
         for (i = 0; i < socketCount; ++i) {
             pSocketConnection = socketList[i];
-
-            if (FD_ISSET(pSocketConnection->localSocket, &rfds)) {
-                iterate = !ATOMIC_LOAD_BOOL(&pSocketConnection->connectionClosed);
+            if (!socketConnectionIsClosed(pSocketConnection) && FD_ISSET(pSocketConnection->localSocket, &rfds)) {
+                iterate = TRUE;
                 while(iterate) {
                     readLen = recvfrom(pSocketConnection->localSocket, pConnectionListener->pBuffer, pConnectionListener->bufferLen, 0,
                                        (struct sockaddr *) &srcAddrBuff, &srcAddrBuffLen);
@@ -324,8 +324,8 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
                             case EWOULDBLOCK:
                                 break;
                             default:
-                                // on any other error, log error and remove socketConnection from list
-                                CHK_STATUS(doubleListRemoveNode(pConnectionListener->connectionList, pCurNode));
+                                /* on any other error, close connection */
+                                CHK_STATUS(socketConnectionClosed(pSocketConnection));
                                 DLOGD("recvfrom() failed with errno %s for socket %d", strerror(errno), pSocketConnection->localSocket);
                                 break;
                         }
@@ -385,6 +385,8 @@ CleanUp:
     if (locked) {
         MUTEX_UNLOCK(pConnectionListener->lock);
     }
+
+    CHK_LOG_ERR(retStatus);
 
     ATOMIC_STORE_BOOL(&pConnectionListener->listenerRoutineStarted, FALSE);
 

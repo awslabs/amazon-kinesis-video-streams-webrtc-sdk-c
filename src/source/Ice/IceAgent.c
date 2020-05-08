@@ -120,12 +120,19 @@ STATUS freeIceAgent(PIceAgent* ppIceAgent)
     PDoubleListNode pCurNode = NULL;
     UINT64 data;
     PIceCandidatePair pIceCandidatePair = NULL;
+    PIceCandidate pIceCandidate = NULL;
+    UINT32 i;
 
     CHK(ppIceAgent != NULL, STATUS_NULL_ARG);
     // freeIceAgent is idempotent
     CHK(*ppIceAgent != NULL, retStatus);
 
     pIceAgent = *ppIceAgent;
+
+    for(i = 0; i < pIceAgent->turnConnectionTrackerCount; ++i) {
+        CHK_LOG_ERR(freeTurnConnection(&pIceAgent->turnConnectionTrackers[i].pTurnConnection));
+    }
+    pIceAgent->turnConnectionTrackerCount = 0;
 
     if (pIceAgent->pConnectionListener != NULL) {
         CHK_LOG_ERR(freeConnectionListener(&pIceAgent->pConnectionListener));
@@ -146,7 +153,17 @@ STATUS freeIceAgent(PIceAgent* ppIceAgent)
     }
 
     if (pIceAgent->localCandidates != NULL) {
-        // socketConnections already freed by connectionListener
+        CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
+        while (pCurNode != NULL) {
+            CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
+            pCurNode = pCurNode->pNext;
+            pIceCandidate = (PIceCandidate) data;
+
+            /* turn sockets are freed by freeTurnConnection */
+            if (pIceCandidate->iceCandidateType != ICE_CANDIDATE_TYPE_RELAYED) {
+                CHK_LOG_ERR(freeSocketConnection(&pIceCandidate->pSocketConnection));
+            }
+        }
         // free all stored candidates
         CHK_LOG_ERR(doubleListClear(pIceAgent->localCandidates, TRUE));
         CHK_LOG_ERR(doubleListFree(pIceAgent->localCandidates));
@@ -666,13 +683,6 @@ STATUS iceAgentShutdown(PIceAgent pIceAgent)
     if (pIceAgent->pConnectionListener != NULL) {
         CHK_STATUS(connectionListenerRemoveAllConnection(pIceAgent->pConnectionListener));
     }
-
-    /* free TurnConnection after connectionListenerRemoveAllConnection so turnConnection wont have to process data
-     * while freeing. */
-    for(i = 0; i < pIceAgent->turnConnectionTrackerCount; ++i) {
-        CHK_LOG_ERR(freeTurnConnection(&pIceAgent->turnConnectionTrackers[i].pTurnConnection));
-    }
-    pIceAgent->turnConnectionTrackerCount = 0;
 
 CleanUp:
 
