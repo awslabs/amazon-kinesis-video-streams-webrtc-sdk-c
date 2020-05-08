@@ -1,5 +1,6 @@
 var NAVTREEINDEX3 =
 {
+"structSignalingClientCallbacks.html#a8a72e56bbf4b4dae2b19306acda39523":[1,0,17,3],
 "structSignalingClientCallbacks.html#ac1108b3f0f014f820025b0eaf345ffc4":[1,0,17,0],
 "structSignalingClientCallbacks.html#af62848d4a3bdf038a7a05ae5cc792610":[1,0,17,2],
 "structSignalingClientInfo.html":[1,0,18],

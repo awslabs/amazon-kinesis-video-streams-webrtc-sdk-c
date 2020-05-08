@@ -325,7 +325,8 @@ var Include_8h =
     ] ],
     [ "SIGNALING_API_CALL_CACHE_TYPE", "Include_8h.html#ac3fea669f2ac4c7db6d7e9528955a4c1", [
       [ "SIGNALING_API_CALL_CACHE_TYPE_NONE", "Include_8h.html#ac3fea669f2ac4c7db6d7e9528955a4c1a887c5433bc1a60c8d331b220138b413a", null ],
-      [ "SIGNALING_API_CALL_CACHE_TYPE_DESCRIBE_GETENDPOINT", "Include_8h.html#ac3fea669f2ac4c7db6d7e9528955a4c1a21d8468dffe94ffe6c6144b984b5ead3", null ]
+      [ "SIGNALING_API_CALL_CACHE_TYPE_DESCRIBE_GETENDPOINT", "Include_8h.html#ac3fea669f2ac4c7db6d7e9528955a4c1a21d8468dffe94ffe6c6144b984b5ead3", null ],
+      [ "SIGNALING_API_CALL_CACHE_TYPE_FILE", "Include_8h.html#ac3fea669f2ac4c7db6d7e9528955a4c1a9ac35384c83c5ca9a1ec198f28f7008e", null ]
     ] ],
     [ "SIGNALING_CHANNEL_ROLE_TYPE", "Include_8h.html#a67e678c57beb89ab9de7c9861f7d41cd", [
       [ "SIGNALING_CHANNEL_ROLE_TYPE_UNKNOWN", "Include_8h.html#a67e678c57beb89ab9de7c9861f7d41cdaec455a51fb62c109260fc311048802ea", null ],
