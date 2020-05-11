@@ -646,14 +646,15 @@ typedef VOID (*RtcOnPictureLoss)(UINT64);
  *
  * Reference: https://www.w3.org/TR/webrtc/#dom-rtcdatachannel-onmessage
  */
-typedef VOID (*RtcOnMessage)(UINT64, BOOL, PBYTE, UINT32);
+struct __RtcDataChannel;
+typedef VOID (*RtcOnMessage)(UINT64, struct __RtcDataChannel*, BOOL, PBYTE, UINT32);
 
 /**
  * RtcOnOpen is fired when the DataChannel has opened
  *
  * Reference: https://www.w3.org/TR/webrtc/#dom-rtcdatachannel-onopen
  */
-typedef VOID (*RtcOnOpen)(UINT64);
+typedef VOID (*RtcOnOpen)(UINT64, struct __RtcDataChannel*);
 
 /**
  * @brief RtcOnDataChannel is fired when the remote PeerConnection
@@ -661,7 +662,6 @@ typedef VOID (*RtcOnOpen)(UINT64);
  *
  * Reference: https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-ondatachannel
  */
-struct __RtcDataChannel;
 typedef VOID (*RtcOnDataChannel)(UINT64, struct __RtcDataChannel*);
 
 /**

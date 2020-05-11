@@ -91,7 +91,7 @@ STATUS allocateSctp(PKvsPeerConnection pKvsPeerConnection)
         sctpSessionWriteDcep(pKvsPeerConnection->pSctpSession, currentDataChannelId, pKvsDataChannel->dataChannel.name, STRLEN(pKvsDataChannel->dataChannel.name), &pKvsDataChannel->rtcDataChannelInit);
 
         if (pKvsDataChannel->onOpen != NULL) {
-            pKvsDataChannel->onOpen(pKvsDataChannel->onOpenCustomData);
+            pKvsDataChannel->onOpen(pKvsDataChannel->onOpenCustomData, pKvsDataChannel);
         }
     }
 
@@ -396,7 +396,7 @@ VOID onSctpSessionDataChannelMessage(UINT64 customData, UINT32 channelId, BOOL i
     CHK_STATUS(hashTableGet(pKvsPeerConnection->pDataChannels, channelId, (PUINT64) &pKvsDataChannel));
     CHK(pKvsDataChannel != NULL && pKvsDataChannel->onMessage != NULL, STATUS_INTERNAL_ERROR);
 
-    pKvsDataChannel->onMessage(pKvsDataChannel->onMessageCustomData, isBinary, pMessage, pMessageLen);
+    pKvsDataChannel->onMessage(pKvsDataChannel->onMessageCustomData, pKvsDataChannel, isBinary, pMessage, pMessageLen);
 
 CleanUp:
     if (STATUS_FAILED(retStatus)) {

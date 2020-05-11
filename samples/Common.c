@@ -12,9 +12,10 @@ VOID sigintHandler(INT32 sigNum)
     }
 }
 
-VOID onDataChannelMessage(UINT64 customData, BOOL isBinary, PBYTE pMessage, UINT32 pMessageLen)
+VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL isBinary, PBYTE pMessage, UINT32 pMessageLen)
 {
     UNUSED_PARAM(customData);
+    UNUSED_PARAM(pDataChannel);
     if (isBinary) {
         DLOGI("DataChannel Binary Message");
     } else {
