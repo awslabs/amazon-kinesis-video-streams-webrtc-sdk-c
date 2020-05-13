@@ -33,7 +33,7 @@ extern "C" {
 #define STUN_HEADER_MAGIC_BYTE_OFFSET                                   4
 
 #define KVS_ICE_MAX_ICE_SERVERS                                         3
-#define KVS_ICE_TURN_CONECTION_TRACKERS                                 4
+#define KVS_ICE_MAX_RELAY_CANDIDATE_COUNT                               4
 #define KVS_ICE_MAX_NEW_LOCAL_CANDIDATES_TO_REPORT_AT_ONCE              10
 
 // https://tools.ietf.org/html/rfc5245#section-4.1.2.1
@@ -80,8 +80,6 @@ typedef VOID (*IceInboundPacketFunc)(UINT64, PBYTE, UINT32);
 typedef VOID (*IceConnectionStateChangedFunc)(UINT64, UINT64);
 typedef VOID (*IceNewLocalCandidateFunc)(UINT64, PCHAR);
 
-typedef struct __TurnConnectionTracker TurnConnectionTracker;
-typedef struct __TurnConnectionTracker* PTurnConnectionTracker;
 typedef struct __IceAgent IceAgent;
 typedef struct __IceAgent* PIceAgent;
 
@@ -102,8 +100,13 @@ typedef struct {
     UINT32 iceServerIndex;
     UINT32 foundation;
     /* If candidate is local and relay, then store the
-     * TurnConnectionTracker this candidate is associated to */
-    PTurnConnectionTracker pTurnConnectionTracker;
+     * pTurnConnection this candidate is associated to */
+    struct __TurnConnection* pTurnConnection;
+
+    /* store pointer to iceAgent to pass it to incomingDataHandler in incomingRelayedDataHandler
+     * we pass pTurnConnectionTrack as customData to incomingRelayedDataHandler to avoid look up
+     * pTurnConnection every time. */
+    PIceAgent pIceAgent;
 
     /* If candidate is local. Indicate whether candidate
      * has been reported through IceNewLocalCandidateFunc */
@@ -123,22 +126,13 @@ typedef struct {
     UINT64 roundTripTime;
 } IceCandidatePair, *PIceCandidatePair;
 
-struct __TurnConnectionTracker {
-    struct __TurnConnection* pTurnConnection;
-
-    /* the ice candidate this TurnConnectionTracker is associated to. */
-    PIceCandidate pRelayCandidate;
-    /* store pointer to iceAgent to pass it to incomingDataHandler in incomingRelayedDataHandler
-     * we pass pTurnConnectionTrack as customData to incomingRelayedDataHandler to avoid look up
-     * turnConnectionTracker every time. */
-    PIceAgent pIceAgent;
-};
-
 struct __IceAgent {
     volatile ATOMIC_BOOL agentStartGathering;
     volatile ATOMIC_BOOL remoteCredentialReceived;
     volatile ATOMIC_BOOL candidateGatheringFinished;
     volatile ATOMIC_BOOL shutdown;
+    volatile ATOMIC_BOOL restart;
+    volatile ATOMIC_BOOL processStun;
 
     CHAR localUsername[MAX_ICE_CONFIG_USER_NAME_LEN + 1];
     CHAR localPassword[MAX_ICE_CONFIG_CREDENTIAL_LEN + 1];
@@ -182,8 +176,7 @@ struct __IceAgent {
 
     UINT32 foundationCounter;
 
-    TurnConnectionTracker turnConnectionTrackers[KVS_ICE_TURN_CONECTION_TRACKERS];
-    UINT32 turnConnectionTrackerCount;
+    UINT32 relayCandidateCount;
 
     TIMER_QUEUE_HANDLE timerQueueHandle;
 
@@ -303,13 +296,27 @@ STATUS iceAgentInitHostCandidate(PIceAgent);
 STATUS iceAgentPopulateSdpMediaDescriptionCandidates(PIceAgent, PSdpMediaDescription, UINT32, PUINT32);
 
 /**
- * Start shutdown sequence for IceAgent. Once the function returns IceAgent is ready to be freed.
+ * Start shutdown sequence for IceAgent. Once the function returns Ice will not deliver anymore data and
+ * IceAgent is ready to be freed. User should stop calling iceAgentSendPacket after iceAgentShutdown returns.
  *
  * @param - PIceAgent - IN - IceAgent object
  *
  * @return - STATUS - status of execution
  */
 STATUS iceAgentShutdown(PIceAgent);
+
+/**
+ * Restart IceAgent. IceAgent is reset back to the same state when it was first created. Once iceAgentRestart() return,
+ * call iceAgentStartGathering() to start gathering and call iceAgentStartAgent() to give iceAgent the new remote uFrag
+ * and uPwd. While Ice is restarting, iceAgentSendPacket can still be called to send data if a connected pair exists.
+ *
+ * @param - PIceAgent - IN - IceAgent object
+ * @param - PCHAR - IN - new local uFrag
+ * @param - PCHAR - IN - new local uPwd
+ *
+ * @return - STATUS - status of execution
+ */
+STATUS iceAgentRestart(PIceAgent, PCHAR, PCHAR);
 
 STATUS iceAgentReportNewLocalCandidate(PIceAgent, PIceCandidate);
 STATUS iceAgentValidateKvsRtcConfig(PKvsRtcConfiguration);

@@ -56,6 +56,9 @@ typedef struct {
     CHAR localIceUfrag[LOCAL_ICE_UFRAG_LEN + 1];
     CHAR localIcePwd[LOCAL_ICE_PWD_LEN + 1];
 
+    CHAR remoteIceUfrag[LOCAL_ICE_UFRAG_LEN + 1];
+    CHAR remoteIcePwd[LOCAL_ICE_PWD_LEN + 1];
+
     CHAR localCNAME[LOCAL_CNAME_LEN + 1];
 
     CHAR remoteCertificateFingerprint[CERTIFICATE_FINGERPRINT_LENGTH + 1];

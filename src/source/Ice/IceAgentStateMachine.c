@@ -23,13 +23,9 @@ STATUS stepIceAgentStateMachine(PIceAgent pIceAgent)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    BOOL locked = FALSE;
     UINT64 oldState;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
-
-    MUTEX_LOCK(pIceAgent->lock);
-    locked = TRUE;
 
     oldState = pIceAgent->iceAgentState;
 
@@ -56,10 +52,6 @@ STATUS stepIceAgentStateMachine(PIceAgent pIceAgent)
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
-
-    if (locked) {
-        MUTEX_UNLOCK(pIceAgent->lock);
-    }
 
     LEAVES();
     return retStatus;
@@ -211,8 +203,12 @@ STATUS fromCheckConnectionIceAgentState(UINT64 customData, PUINT64 pState)
     UINT64 currentTime = GETTIME();
     PDoubleListNode pCurNode = NULL;
     PIceCandidatePair pIceCandidatePair = NULL;
+    BOOL locked = FALSE;
 
     CHK(pIceAgent != NULL && pState != NULL, STATUS_NULL_ARG);
+
+    MUTEX_LOCK(pIceAgent->lock);
+    locked = TRUE;
 
     // move to failed state if any error happened.
     CHK_STATUS(pIceAgent->iceAgentStatus);
@@ -248,6 +244,10 @@ CleanUp:
 
     if (pState != NULL) {
         *pState = state;
+    }
+
+    if (locked) {
+        MUTEX_UNLOCK(pIceAgent->lock);
     }
 
     LEAVES();
@@ -289,8 +289,12 @@ STATUS fromConnectedIceAgentState(UINT64 customData, PUINT64 pState)
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
     UINT64 state = ICE_AGENT_STATE_CONNECTED; // original state
+    BOOL locked = FALSE;
 
     CHK(pIceAgent != NULL && pState != NULL, STATUS_NULL_ARG);
+
+    MUTEX_LOCK(pIceAgent->lock);
+    locked = TRUE;
 
     // move to failed state if any error happened.
     CHK_STATUS(pIceAgent->iceAgentStatus);
@@ -312,6 +316,10 @@ CleanUp:
 
     if (pState != NULL) {
         *pState = state;
+    }
+
+    if (locked) {
+        MUTEX_UNLOCK(pIceAgent->lock);
     }
 
     LEAVES();
@@ -351,11 +359,14 @@ STATUS fromNominatingIceAgentState(UINT64 customData, PUINT64 pState)
     PIceAgent pIceAgent = (PIceAgent) customData;
     UINT64 state = ICE_AGENT_STATE_NOMINATING; // original state
     UINT64 currentTime = GETTIME();
-    BOOL nominatedAndValidCandidatePairFound = FALSE;
+    BOOL nominatedAndValidCandidatePairFound = FALSE, locked = FALSE;
     PDoubleListNode pCurNode = NULL;
     PIceCandidatePair pIceCandidatePair = NULL;
 
     CHK(pIceAgent != NULL && pState != NULL, STATUS_NULL_ARG);
+
+    MUTEX_LOCK(pIceAgent->lock);
+    locked = TRUE;
 
     // move to failed state if any error happened.
     CHK_STATUS(pIceAgent->iceAgentStatus);
@@ -393,6 +404,10 @@ CleanUp:
 
     if (pState != NULL) {
         *pState = state;
+    }
+
+    if (locked) {
+        MUTEX_UNLOCK(pIceAgent->lock);
     }
 
     LEAVES();
@@ -440,8 +455,12 @@ STATUS fromReadyIceAgentState(UINT64 customData, PUINT64 pState)
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
     UINT64 state = ICE_AGENT_STATE_READY; // original state
+    BOOL locked = FALSE;
 
     CHK(pIceAgent != NULL && pState != NULL, STATUS_NULL_ARG);
+
+    MUTEX_LOCK(pIceAgent->lock);
+    locked = TRUE;
 
     // move to failed state if any error happened.
     CHK_STATUS(pIceAgent->iceAgentStatus);
@@ -461,6 +480,10 @@ CleanUp:
 
     if (pState != NULL) {
         *pState = state;
+    }
+
+    if (locked) {
+        MUTEX_UNLOCK(pIceAgent->lock);
     }
 
     LEAVES();
@@ -500,8 +523,12 @@ STATUS fromDisconnectedIceAgentState(UINT64 customData, PUINT64 pState)
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
     UINT64 state = pIceAgent->iceAgentState; // state before ICE_AGENT_STATE_DISCONNECTED
+    BOOL locked = FALSE;
 
     CHK(pIceAgent != NULL && pState != NULL, STATUS_NULL_ARG);
+
+    MUTEX_LOCK(pIceAgent->lock);
+    locked = TRUE;
 
     // move to failed state if any error happened.
     CHK_STATUS(pIceAgent->iceAgentStatus);
@@ -517,6 +544,10 @@ CleanUp:
 
     if (pState != NULL) {
         *pState = state;
+    }
+
+    if (locked) {
+        MUTEX_UNLOCK(pIceAgent->lock);
     }
 
     LEAVES();

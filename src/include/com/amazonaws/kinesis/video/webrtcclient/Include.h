@@ -1408,6 +1408,18 @@ PUBLIC_API STATUS setLocalDescription(PRtcPeerConnection, PRtcSessionDescription
 PUBLIC_API STATUS setRemoteDescription(PRtcPeerConnection, PRtcSessionDescriptionInit);
 
 /**
+ * @brief Instructs the RtcPeerConnection that ICE should be restarted. Subsequent calls to createOffer will create
+ * descriptions to restart ICE.
+ *
+ * Reference: https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-restartice
+ *
+ * @param[in] PRtcPeerConnection Initialized RtcPeerConnection
+ *
+ * @return - STATUS code of the execution. STATUS_SUCCESS on success
+ */
+PUBLIC_API STATUS restartIce(PRtcPeerConnection);
+
+/**
  * @brief Create a new RtcRtpTransceiver and add it to the set of transceivers.
  *
  * Reference https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-addtransceiver

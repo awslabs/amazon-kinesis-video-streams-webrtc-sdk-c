@@ -255,6 +255,7 @@ VOID onIceConnectionStateChange(UINT64 customData, UINT64 connectionState)
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) customData;
     BOOL locked = FALSE;
     RTC_PEER_CONNECTION_STATE newConnectionState = RTC_PEER_CONNECTION_STATE_NEW;
+    BOOL startDtlsSession = FALSE;
 
     CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
     CHK(pKvsPeerConnection->onConnectionStateChange != NULL, retStatus);
@@ -277,7 +278,7 @@ VOID onIceConnectionStateChange(UINT64 customData, UINT64 connectionState)
             /* explicit fall-through */
         case ICE_AGENT_STATE_READY:
             /* start dtlsSession as soon as ice is connected */
-            CHK_STATUS(dtlsSessionStart(pKvsPeerConnection->pDtlsSession, pKvsPeerConnection->dtlsIsServer));
+            startDtlsSession = TRUE;
             newConnectionState = RTC_PEER_CONNECTION_STATE_CONNECTED;
             break;
 
@@ -298,6 +299,13 @@ VOID onIceConnectionStateChange(UINT64 customData, UINT64 connectionState)
         pKvsPeerConnection->previousConnectionState = newConnectionState;
         pKvsPeerConnection->onConnectionStateChange(pKvsPeerConnection->onConnectionStateChangeCustomData,
                                                     newConnectionState);
+    }
+
+    MUTEX_UNLOCK(pKvsPeerConnection->peerConnectionObjLock);
+    locked = FALSE;
+
+    if (startDtlsSession) {
+        CHK_STATUS(dtlsSessionStart(pKvsPeerConnection->pDtlsSession, pKvsPeerConnection->dtlsIsServer));
     }
 
 CleanUp:
@@ -535,6 +543,8 @@ STATUS freePeerConnection(PRtcPeerConnection *ppPeerConnection)
 
     CHK(pKvsPeerConnection != NULL, retStatus);
 
+    /* Shutdown IceAgent first so there is no more incoming packets which can cause
+     * SCTP to be allocated again after SCTP is freed. */
     CHK_LOG_ERR(iceAgentShutdown(pKvsPeerConnection->pIceAgent));
 
     // free timer queue first to remove liveness provided by timer
@@ -543,10 +553,9 @@ STATUS freePeerConnection(PRtcPeerConnection *ppPeerConnection)
     }
 
     /* Free structs that have their own thread. SCTP has threads created by SCTP library. IceAgent has the
-     * connectionListener thread. Free IceAgent first so there is no more incoming packets which can cause
-     * SCTP to be allocated again after SCTP is freed. */
-    CHK_LOG_ERR(freeIceAgent(&pKvsPeerConnection->pIceAgent));
+     * connectionListener thread. Free SCTP first so it wont try to send anything through ICE. */
     CHK_LOG_ERR(freeSctpSession(&pKvsPeerConnection->pSctpSession));
+    CHK_LOG_ERR(freeIceAgent(&pKvsPeerConnection->pIceAgent));
 
     // free transceivers
     CHK_LOG_ERR(doubleListGetHeadNode(pKvsPeerConnection->pTransceievers, &pCurNode));
@@ -771,7 +780,27 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
     CHK(remoteIceUfrag != NULL && remoteIcePwd != NULL, STATUS_SESSION_DESCRIPTION_MISSING_ICE_VALUES);
     CHK(pKvsPeerConnection->remoteCertificateFingerprint[0] != '\0', STATUS_SESSION_DESCRIPTION_MISSING_CERTIFICATE_FINGERPRINT);
 
-    CHK_STATUS(iceAgentStartAgent(pKvsPeerConnection->pIceAgent, remoteIceUfrag, remoteIcePwd, pKvsPeerConnection->isOffer));
+    if (!IS_EMPTY_STRING(pKvsPeerConnection->remoteIceUfrag) &&
+        !IS_EMPTY_STRING(pKvsPeerConnection->remoteIcePwd) &&
+        STRNCMP(pKvsPeerConnection->remoteIceUfrag, remoteIceUfrag, LOCAL_ICE_UFRAG_LEN) != 0 &&
+        STRNCMP(pKvsPeerConnection->remoteIcePwd, remoteIcePwd, LOCAL_ICE_PWD_LEN) != 0) {
+
+        CHK_STATUS(generateJSONSafeString(pKvsPeerConnection->localIceUfrag, LOCAL_ICE_UFRAG_LEN));
+        CHK_STATUS(generateJSONSafeString(pKvsPeerConnection->localIcePwd, LOCAL_ICE_PWD_LEN));
+        CHK_STATUS(iceAgentRestart(pKvsPeerConnection->pIceAgent,
+                                   pKvsPeerConnection->localIceUfrag,
+                                   pKvsPeerConnection->localIcePwd));
+        CHK_STATUS(iceAgentStartGathering(pKvsPeerConnection->pIceAgent));
+    }
+
+    STRNCPY(pKvsPeerConnection->remoteIceUfrag, remoteIceUfrag, LOCAL_ICE_UFRAG_LEN);
+    STRNCPY(pKvsPeerConnection->remoteIcePwd, remoteIcePwd, LOCAL_ICE_PWD_LEN);
+
+    CHK_STATUS(iceAgentStartAgent(pKvsPeerConnection->pIceAgent,
+                                  pKvsPeerConnection->remoteIceUfrag,
+                                  pKvsPeerConnection->remoteIcePwd,
+                                  pKvsPeerConnection->isOffer));
+
     if (!pKvsPeerConnection->isOffer) {
         CHK_STATUS(setPayloadTypesFromOffer(pKvsPeerConnection->pCodecTable, pKvsPeerConnection->pRtxTable, pSessionDescription));
     }
@@ -952,7 +981,31 @@ CleanUp:
 
     LEAVES();
     return retStatus;
+}
 
+STATUS restartIce(PRtcPeerConnection pPeerConnection)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pPeerConnection;
+
+    CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
+
+    /* generate new local uFrag and uPwd and clear out remote uFrag and uPwd */
+    CHK_STATUS(generateJSONSafeString(pKvsPeerConnection->localIceUfrag, LOCAL_ICE_UFRAG_LEN));
+    CHK_STATUS(generateJSONSafeString(pKvsPeerConnection->localIcePwd, LOCAL_ICE_PWD_LEN));
+    pKvsPeerConnection->remoteIceUfrag[0] = '\0';
+    pKvsPeerConnection->remoteIcePwd[0] = '\0';
+    CHK_STATUS(iceAgentRestart(pKvsPeerConnection->pIceAgent,
+                               pKvsPeerConnection->localIceUfrag,
+                               pKvsPeerConnection->localIcePwd));
+
+CleanUp:
+
+    CHK_LOG_ERR(retStatus);
+
+    LEAVES();
+    return retStatus;
 }
 
 STATUS initKvsWebRtc(VOID)
