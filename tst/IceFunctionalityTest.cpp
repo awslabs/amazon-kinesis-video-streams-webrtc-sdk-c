@@ -328,7 +328,6 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&iceAgent.remoteCandidates));
         EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&iceAgent.localCandidates));
         EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&iceAgent.iceCandidatePairs));
-        iceAgent.turnConnectionTrackers[0].pTurnConnection = NULL;
         iceAgent.iceAgentState = ICE_CANDIDATE_STATE_NEW;
 
         // invalid input

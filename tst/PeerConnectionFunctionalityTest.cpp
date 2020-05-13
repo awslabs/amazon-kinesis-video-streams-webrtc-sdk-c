@@ -99,10 +99,11 @@ TEST_F(PeerConnectionFunctionalityTest, shutdownTurnDueToP2PFoundBeforeTurnEstab
         return;
     }
 
-    UINT32 i;
     RtcConfiguration configuration;
     PRtcPeerConnection offerPc = NULL, answerPc = NULL;
     PIceAgent pIceAgent = NULL;
+    PDoubleListNode pCurNode = NULL;
+    PIceCandidate pIceCandidate = NULL;
 
     MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
 
@@ -117,15 +118,27 @@ TEST_F(PeerConnectionFunctionalityTest, shutdownTurnDueToP2PFoundBeforeTurnEstab
     THREAD_SLEEP(5 * HUNDREDS_OF_NANOS_IN_A_SECOND);
 
     pIceAgent = ((PKvsPeerConnection)offerPc)->pIceAgent;
-    for(i = 0; i < pIceAgent->turnConnectionTrackerCount; ++i) {
-        EXPECT_TRUE(!ATOMIC_LOAD_BOOL(&pIceAgent->turnConnectionTrackers[i].pTurnConnection->hasAllocation) ||
-                    ATOMIC_LOAD_BOOL(&pIceAgent->turnConnectionTrackers[i].pTurnConnection->stopTurnConnection));
+    EXPECT_EQ(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode), STATUS_SUCCESS);
+    while (pCurNode != NULL) {
+        pIceCandidate = (PIceCandidate) pCurNode->data;
+        pCurNode = pCurNode->pNext;
+
+        if (pIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED) {
+            EXPECT_TRUE(!ATOMIC_LOAD_BOOL(&pIceCandidate->pTurnConnection->hasAllocation) ||
+                        ATOMIC_LOAD_BOOL(&pIceCandidate->pTurnConnection->stopTurnConnection));
+        }
     }
 
     pIceAgent = ((PKvsPeerConnection)answerPc)->pIceAgent;
-    for(i = 0; i < pIceAgent->turnConnectionTrackerCount; ++i) {
-        EXPECT_TRUE(!ATOMIC_LOAD_BOOL(&pIceAgent->turnConnectionTrackers[i].pTurnConnection->hasAllocation) ||
-                    ATOMIC_LOAD_BOOL(&pIceAgent->turnConnectionTrackers[i].pTurnConnection->stopTurnConnection));
+    EXPECT_EQ(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode), STATUS_SUCCESS);
+    while (pCurNode != NULL) {
+        pIceCandidate = (PIceCandidate) pCurNode->data;
+        pCurNode = pCurNode->pNext;
+
+        if (pIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED) {
+            EXPECT_TRUE(!ATOMIC_LOAD_BOOL(&pIceCandidate->pTurnConnection->hasAllocation) ||
+                        ATOMIC_LOAD_BOOL(&pIceCandidate->pTurnConnection->stopTurnConnection));
+        }
     }
 
     freePeerConnection(&offerPc);
@@ -146,7 +159,8 @@ TEST_F(PeerConnectionFunctionalityTest, shutdownTurnDueToP2PFoundAfterTurnEstabl
     SIZE_T offerPcDoneGatherCandidate = 0, answerPcDoneGatherCandidate = 0;
     UINT64 candidateGatherTimeout;
     PIceAgent pIceAgent = NULL;
-    UINT32 i;
+    PDoubleListNode pCurNode = NULL;
+    PIceCandidate pIceCandidate = NULL;
 
     MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
 
@@ -205,15 +219,27 @@ TEST_F(PeerConnectionFunctionalityTest, shutdownTurnDueToP2PFoundAfterTurnEstabl
     THREAD_SLEEP(5 * HUNDREDS_OF_NANOS_IN_A_SECOND);
 
     pIceAgent = ((PKvsPeerConnection)offerPc)->pIceAgent;
-    for(i = 0; i < pIceAgent->turnConnectionTrackerCount; ++i) {
-        EXPECT_TRUE(!ATOMIC_LOAD_BOOL(&pIceAgent->turnConnectionTrackers[i].pTurnConnection->hasAllocation) ||
-                    ATOMIC_LOAD_BOOL(&pIceAgent->turnConnectionTrackers[i].pTurnConnection->stopTurnConnection));
+    EXPECT_EQ(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode), STATUS_SUCCESS);
+    while (pCurNode != NULL) {
+        pIceCandidate = (PIceCandidate) pCurNode->data;
+        pCurNode = pCurNode->pNext;
+
+        if (pIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED) {
+            EXPECT_TRUE(!ATOMIC_LOAD_BOOL(&pIceCandidate->pTurnConnection->hasAllocation) ||
+                        ATOMIC_LOAD_BOOL(&pIceCandidate->pTurnConnection->stopTurnConnection));
+        }
     }
 
     pIceAgent = ((PKvsPeerConnection)answerPc)->pIceAgent;
-    for(i = 0; i < pIceAgent->turnConnectionTrackerCount; ++i) {
-        EXPECT_TRUE(!ATOMIC_LOAD_BOOL(&pIceAgent->turnConnectionTrackers[i].pTurnConnection->hasAllocation) ||
-                    ATOMIC_LOAD_BOOL(&pIceAgent->turnConnectionTrackers[i].pTurnConnection->stopTurnConnection));
+    EXPECT_EQ(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode), STATUS_SUCCESS);
+    while (pCurNode != NULL) {
+        pIceCandidate = (PIceCandidate) pCurNode->data;
+        pCurNode = pCurNode->pNext;
+
+        if (pIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED) {
+            EXPECT_TRUE(!ATOMIC_LOAD_BOOL(&pIceCandidate->pTurnConnection->hasAllocation) ||
+                        ATOMIC_LOAD_BOOL(&pIceCandidate->pTurnConnection->stopTurnConnection));
+        }
     }
 
     freePeerConnection(&offerPc);
@@ -405,6 +431,58 @@ TEST_F(PeerConnectionFunctionalityTest, exchangeMediaRSA)
     freePeerConnection(&answerPc);
 
     EXPECT_EQ(ATOMIC_LOAD(&seenVideo), 1);
+}
+
+TEST_F(PeerConnectionFunctionalityTest, iceRestartTest)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+
+    EXPECT_EQ(restartIce(offerPc), STATUS_SUCCESS);
+
+    /* reset state change count */
+    MEMSET(&stateChangeCount, 0x00, SIZEOF(stateChangeCount));
+
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+}
+
+TEST_F(PeerConnectionFunctionalityTest, iceRestartTestForcedTurn)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_RELAY;
+
+    initializeSignalingClient();
+    getIceServers(&configuration);
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+
+    EXPECT_EQ(restartIce(offerPc), STATUS_SUCCESS);
+
+    /* reset state change count */
+    MEMSET(&stateChangeCount, 0x00, SIZEOF(stateChangeCount));
+
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+
+    deinitializeSignalingClient();
 }
 
 TEST_F(PeerConnectionFunctionalityTest, DISABLED_exchangeMediaThroughTurnRandomStop)

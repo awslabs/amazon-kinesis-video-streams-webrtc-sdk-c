@@ -681,6 +681,10 @@ STATUS turnConnectionSendData(PTurnConnection pTurnConnection, PBYTE pBuf, UINT3
 
     CHK(pTurnConnection != NULL && pDestIp != NULL, STATUS_NULL_ARG);
     CHK(pBuf != NULL && bufLen > 0, STATUS_INVALID_ARG);
+
+    MUTEX_LOCK(pTurnConnection->lock);
+    locked = TRUE;
+
     if (!(pTurnConnection->state == TURN_STATE_CREATE_PERMISSION ||
           pTurnConnection->state == TURN_STATE_BIND_CHANNEL ||
           pTurnConnection->state == TURN_STATE_READY)) {
@@ -690,13 +694,7 @@ STATUS turnConnectionSendData(PTurnConnection pTurnConnection, PBYTE pBuf, UINT3
         CHK(FALSE, retStatus);
     }
 
-    MUTEX_LOCK(pTurnConnection->lock);
-    locked = TRUE;
-
     pSendPeer = turnConnectionGetPeerWithIp(pTurnConnection, pDestIp);
-
-    MUTEX_UNLOCK(pTurnConnection->lock);
-    locked = FALSE;
 
     CHK_STATUS(getIpAddrStr(pDestIp, ipAddrStr, ARRAY_SIZE(ipAddrStr)));
     if (pSendPeer == NULL) {
@@ -710,6 +708,9 @@ STATUS turnConnectionSendData(PTurnConnection pTurnConnection, PBYTE pBuf, UINT3
               ipAddrStr, KVS_GET_IP_ADDRESS_PORT(pDestIp));
         CHK(FALSE, retStatus);
     }
+
+    MUTEX_UNLOCK(pTurnConnection->lock);
+    locked = FALSE;
 
     /* need to serialize send because every send load data into the same buffer pTurnConnection->sendDataBuffer */
     MUTEX_LOCK(pTurnConnection->sendLock);
@@ -1374,15 +1375,15 @@ CleanUp:
 
     CHK_LOG_ERR(retStatus);
 
+    if (locked) {
+        MUTEX_UNLOCK(pTurnConnection->lock);
+    }
+
     if (stopScheduling) {
         retStatus = STATUS_TIMER_QUEUE_STOP_SCHEDULING;
         if (pTurnConnection != NULL) {
             ATOMIC_STORE(&pTurnConnection->timerCallbackId, UINT32_MAX);
         }
-    }
-
-    if (locked) {
-        MUTEX_UNLOCK(pTurnConnection->lock);
     }
 
     return retStatus;
