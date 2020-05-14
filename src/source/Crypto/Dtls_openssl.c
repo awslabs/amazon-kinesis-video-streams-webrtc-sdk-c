@@ -1,4 +1,4 @@
-#define LOG_CLASS "DTLS"
+#define LOG_CLASS "DTLS_openssl"
 #include "../Include_i.h"
 
 // Allow all certificates since they are checked via fingerprint in SDP later
@@ -52,8 +52,6 @@ STATUS dtlsTransmissionTimerCallback(UINT32 timerID, UINT64 currentTime, UINT64 
     CHK_STATUS(dtlsCheckOutgoingDataBuffer(pDtlsSession));
 
     if (SSL_is_init_finished(pDtlsSession->pSsl)) {
-        DLOGD("DTLS init completed. Time taken %" PRIu64 " ms",
-              (GETTIME() - pDtlsSession->dtlsSessionStartTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
         CHK_STATUS(dtlsSessionChangeState(pDtlsSession, CONNECTED));
         ATOMIC_STORE_BOOL(&pDtlsSession->sslInitFinished, TRUE);
         CHK(FALSE, STATUS_TIMER_QUEUE_STOP_SCHEDULING);
@@ -102,7 +100,7 @@ STATUS createCertificateAndKey(INT32 certificateBits, BOOL generateRSACertificat
 
     if (generateRSACertificate) {
         CHK((pBne = BN_new()) != NULL, STATUS_CERTIFICATE_GENERATION_FAILED);
-        CHK(BN_set_word(pBne, RSA_F4) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);
+        CHK(BN_set_word(pBne, KVS_RSA_F4) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);
 
 
         CHK((pRsa = RSA_new()) != NULL, STATUS_CERTIFICATE_GENERATION_FAILED);
@@ -128,8 +126,8 @@ STATUS createCertificateAndKey(INT32 certificateBits, BOOL generateRSACertificat
     CHK(X509_set_pubkey(*ppCert, *ppPkey) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);
 
     CHK((pX509Name = X509_get_subject_name(*ppCert)) != NULL, STATUS_CERTIFICATE_GENERATION_FAILED);
-    X509_NAME_add_entry_by_txt(pX509Name, "O", MBSTRING_ASC, GENERATED_CERTIFICATE_NAME, -1, -1, 0);
-    X509_NAME_add_entry_by_txt(pX509Name, "CN", MBSTRING_ASC, GENERATED_CERTIFICATE_NAME, -1, -1, 0);
+    X509_NAME_add_entry_by_txt(pX509Name, "O", MBSTRING_ASC, (PUINT8) GENERATED_CERTIFICATE_NAME, -1, -1, 0);
+    X509_NAME_add_entry_by_txt(pX509Name, "CN", MBSTRING_ASC, (PUINT8) GENERATED_CERTIFICATE_NAME, -1, -1, 0);
 
     CHK(X509_set_issuer_name(*ppCert, pX509Name) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);
     CHK(X509_sign(*ppCert, *ppPkey, EVP_sha1()) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);
@@ -203,27 +201,6 @@ CleanUp:
     if (pEcKey != NULL) {
         EC_KEY_free(pEcKey);
     }
-
-    LEAVES();
-    return retStatus;
-}
-
-STATUS dtlsSessionChangeState(PDtlsSession pDtlsSession, RTC_DTLS_TRANSPORT_STATE newState)
-{
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-
-    CHK(pDtlsSession != NULL, STATUS_NULL_ARG);
-    CHK(pDtlsSession->state != newState, retStatus);
-
-    pDtlsSession->state = newState;
-    if (pDtlsSession->dtlsSessionCallbacks.stateChangeFn != NULL) {
-        pDtlsSession->dtlsSessionCallbacks.stateChangeFn(
-                pDtlsSession->dtlsSessionCallbacks.stateChangeFnCustomData,
-                newState);
-    }
-
-CleanUp:
 
     LEAVES();
     return retStatus;
@@ -354,26 +331,6 @@ CleanUp:
     if (STATUS_FAILED(retStatus)) {
         freeDtlsSession(&pDtlsSession);
     }
-
-    LEAVES();
-    return retStatus;
-}
-
-STATUS dtlsValidateRtcCertificates(PRtcCertificate pRtcCertificates, PUINT32 pCount)
-{
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-    UINT32 i;
-
-    CHK(pRtcCertificates != NULL && pCount != NULL, retStatus);
-
-    for (i = 0, *pCount = 0; pRtcCertificates[i].pCertificate != NULL && i < MAX_RTCCONFIGURATION_CERTIFICATES; i++) {
-        CHK(pRtcCertificates[i].privateKeySize == 0 || pRtcCertificates[i].pPrivateKey != NULL, STATUS_SSL_INVALID_CERTIFICATE_BITS);
-    }
-
-    *pCount = i;
-
-CleanUp:
 
     LEAVES();
     return retStatus;
@@ -596,32 +553,6 @@ CleanUp:
     return retStatus;
 }
 
-STATUS dtlsSessionOnOutBoundData(PDtlsSession pDtlsSession, UINT64 customData, DtlsSessionOutboundPacketFunc callbackFn)
-{
-    STATUS retStatus = STATUS_SUCCESS;
-
-    CHK(pDtlsSession != NULL && callbackFn != NULL, STATUS_NULL_ARG);
-
-    pDtlsSession->dtlsSessionCallbacks.outboundPacketFn = callbackFn;
-    pDtlsSession->dtlsSessionCallbacks.outBoundPacketFnCustomData = customData;
-
-CleanUp:
-    return retStatus;
-}
-
-STATUS dtlsSessionOnStateChange(PDtlsSession pDtlsSession, UINT64 customData, DtlsSessionOnStateChange callbackFn)
-{
-    STATUS retStatus = STATUS_SUCCESS;
-
-    CHK(pDtlsSession != NULL && callbackFn != NULL, STATUS_NULL_ARG);
-
-    pDtlsSession->dtlsSessionCallbacks.stateChangeFn = callbackFn;
-    pDtlsSession->dtlsSessionCallbacks.stateChangeFnCustomData = customData;
-
-CleanUp:
-    return retStatus;
-}
-
 STATUS dtlsCheckOutgoingDataBuffer(PDtlsSession pDtlsSession)
 {
     ENTERS();
@@ -702,8 +633,8 @@ STATUS dtlsSessionPopulateKeyingMaterial(PDtlsSession pDtlsSession, PDtlsKeyingM
     MEMCPY(pDtlsKeyingMaterial->serverWriteKey + MAX_SRTP_MASTER_KEY_LEN, &keyingMaterialBuffer[offset], MAX_SRTP_SALT_KEY_LEN);
 
     switch(SSL_get_selected_srtp_profile(pDtlsSession->pSsl)->id) {
-      case SRTP_AES128_CM_SHA1_32:
-      case SRTP_AES128_CM_SHA1_80:
+      case KVS_SRTP_PROFILE_AES128_CM_HMAC_SHA1_32:
+      case KVS_SRTP_PROFILE_AES128_CM_HMAC_SHA1_80:
           pDtlsKeyingMaterial->srtpProfile = SSL_get_selected_srtp_profile(pDtlsSession->pSsl)->id;
           break;
     default:

@@ -223,7 +223,7 @@ STATUS turnConnectionHandleStun(PTurnConnection pTurnConnection, PBYTE pBuffer, 
 
     switch (stunPacketType) {
         case STUN_PACKET_TYPE_ALLOCATE_SUCCESS_RESPONSE:
-            CHK_STATUS(deserializeStunPacket(pBuffer, bufferLen, pTurnConnection->longTermKey, MD5_DIGEST_LENGTH, &pStunPacket));
+            CHK_STATUS(deserializeStunPacket(pBuffer, bufferLen, pTurnConnection->longTermKey, KVS_MD5_DIGEST_LENGTH, &pStunPacket));
             CHK_STATUS(getStunAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_XOR_RELAYED_ADDRESS, &pStunAttr));
             CHK_WARN(pStunAttr != NULL, retStatus, "No relay address attribute found in TURN allocate response. Dropping Packet");
             CHK_STATUS(getStunAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_LIFETIME, (PStunAttributeHeader*) &pStunAttributeLifetime));
@@ -254,7 +254,7 @@ STATUS turnConnectionHandleStun(PTurnConnection pTurnConnection, PBYTE pBuffer, 
             break;
 
         case STUN_PACKET_TYPE_REFRESH_SUCCESS_RESPONSE:
-            CHK_STATUS(deserializeStunPacket(pBuffer, bufferLen, pTurnConnection->longTermKey, MD5_DIGEST_LENGTH, &pStunPacket));
+            CHK_STATUS(deserializeStunPacket(pBuffer, bufferLen, pTurnConnection->longTermKey, KVS_MD5_DIGEST_LENGTH, &pStunPacket));
             CHK_STATUS(getStunAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_LIFETIME, (PStunAttributeHeader*) &pStunAttributeLifetime));
             CHK_WARN(pStunAttributeLifetime != NULL, retStatus, "No lifetime attribute found in TURN refresh response. Dropping Packet");
 
@@ -368,7 +368,7 @@ STATUS turnConnectionHandleStunError(PTurnConnection pTurnConnection, PBYTE pBuf
     locked = TRUE;
 
     if (pTurnConnection->credentialObtained) {
-        retStatus = deserializeStunPacket(pBuffer, bufferLen, pTurnConnection->longTermKey, MD5_DIGEST_LENGTH, &pStunPacket);
+        retStatus = deserializeStunPacket(pBuffer, bufferLen, pTurnConnection->longTermKey, KVS_MD5_DIGEST_LENGTH, &pStunPacket);
     }
     /* if deserializing with password didnt work, try deserialize without password again */
     if (!pTurnConnection->credentialObtained || STATUS_FAILED(retStatus)) {
@@ -1400,12 +1400,13 @@ STATUS turnConnectionGetLongTermKey(PCHAR username, PCHAR realm, PCHAR password,
     CHAR stringBuffer[STUN_MAX_USERNAME_LEN + MAX_ICE_CONFIG_CREDENTIAL_LEN + STUN_MAX_REALM_LEN + 2]; // 2 for two ":" between each value
 
     CHK(username != NULL && realm != NULL && password != NULL && pBuffer != NULL, STATUS_NULL_ARG);
-    CHK(username[0] != '\0' && realm[0] != '\0' && password[0] != '\0' && bufferLen >= MD5_DIGEST_LENGTH, STATUS_INVALID_ARG);
+    CHK(username[0] != '\0' && realm[0] != '\0' && password[0] != '\0' && bufferLen >= KVS_MD5_DIGEST_LENGTH, STATUS_INVALID_ARG);
     CHK((STRLEN(username) + STRLEN(realm) + STRLEN(password)) <= ARRAY_SIZE(stringBuffer) - 2, STATUS_INVALID_ARG);
 
     SPRINTF(stringBuffer, "%s:%s:%s", username, realm, password);
 
-    CHK(NULL != MD5((PBYTE) stringBuffer, STRLEN(stringBuffer), pBuffer), STATUS_ICE_FAILED_TO_COMPUTE_MD5_FOR_LONG_TERM_CREDENTIAL);
+    // TODO: Return back the error check
+    KVS_MD5_DIGEST((PBYTE) stringBuffer, STRLEN(stringBuffer), pBuffer);
 
 CleanUp:
 

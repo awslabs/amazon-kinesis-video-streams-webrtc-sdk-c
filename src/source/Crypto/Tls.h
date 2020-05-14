@@ -1,5 +1,5 @@
-#ifndef __KINESIS_VIDEO_WEBRTC_CLIENT_ICE_TLS__
-#define __KINESIS_VIDEO_WEBRTC_CLIENT_ICE_TLS__
+#ifndef __KINESIS_VIDEO_WEBRTC_CLIENT_CRYPTO_TLS__
+#define __KINESIS_VIDEO_WEBRTC_CLIENT_CRYPTO_TLS__
 
 #pragma once
 
@@ -33,9 +33,21 @@ typedef struct __TlsSession TlsSession, *PTlsSession;
 struct __TlsSession {
     TlsSessionCallbacks callbacks;
     TLS_SESSION_STATE state;
-  
+
+#ifdef KVS_USE_OPENSSL
     SSL_CTX *pSslCtx;
     SSL *pSsl;
+#elif KVS_USE_MBEDTLS
+    IOBuffer *pReadBuffer;
+
+    mbedtls_ssl_context sslCtx;
+    mbedtls_ssl_config sslCtxConfig;
+    mbedtls_entropy_context entropy;
+    mbedtls_ctr_drbg_context ctrDrbg;
+    mbedtls_x509_crt cacert;
+#else
+#error "A Crypto implementation is required."
+#endif
 };
 
 /**
@@ -93,9 +105,20 @@ STATUS tlsSessionShutdown(PTlsSession);
 
 /* internal functions */
 STATUS tlsSessionChangeState(PTlsSession, TLS_SESSION_STATE);
+
+#ifdef KVS_USE_OPENSSL
 INT32 tlsSessionCertificateVerifyCallback(INT32, X509_STORE_CTX*);
+#elif KVS_USE_MBEDTLS
+// following are required callbacks for mbedtls
+// NOTE: const is not a pure C qualifier, they're here because there's no way to type cast
+//       a callback signature.
+INT32 tlsSessionSendCallback(PVOID, const unsigned char*, ULONG);
+INT32 tlsSessionReceiveCallback(PVOID, unsigned char*, ULONG);
+#else
+#error "A Crypto implementation is required."
+#endif
 
 #ifdef  __cplusplus
 }
 #endif
-#endif  //__KINESIS_VIDEO_WEBRTC_CLIENT_ICE_TLS__
+#endif  //__KINESIS_VIDEO_WEBRTC_CLIENT_CRYPTO_TLS__

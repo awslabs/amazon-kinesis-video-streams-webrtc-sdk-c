@@ -6,6 +6,8 @@ project(KinesisVideoWebRTCClient LANGUAGES C)
 # User Flags
 option(ADD_MUCLIBC "Add -muclibc c flag" OFF)
 option(BUILD_DEPENDENCIES "Whether or not to build depending libraries from source" ON)
+option(USE_OPENSSL "Use openssl as crypto library" ON)
+option(USE_MBEDTLS "Use mbedtls as crypto library" OFF)
 option(BUILD_STATIC_LIBS "Build all libraries statically. (This includes third-party libraries.)" OFF)
 option(BUILD_OPENSSL_PLATFORM "If buildng OpenSSL what is the target platform" OFF)
 option(BUILD_LIBSRTP_HOST_PLATFORM "If buildng LibSRTP what is the current platform" OFF)
@@ -40,6 +42,12 @@ message(STATUS "dependencies install path is ${OPEN_SRC_INSTALL_PREFIX}")
 add_definitions(-DKVS_CA_CERT_PATH="${CMAKE_SOURCE_DIR}/certs/cert.pem")
 add_definitions(-DCMAKE_DETECTED_CACERT_PATH)
 
+if(USE_OPENSSL)
+  add_definitions(-DKVS_USE_OPENSSL)
+elseif(USE_MBEDTLS)
+  add_definitions(-DKVS_USE_MBEDTLS)
+endif()
+
 if(BUILD_DEPENDENCIES)
   set(OPEN_SRC_INSTALL_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/open-source)
   if(NOT EXISTS ${OPEN_SRC_INSTALL_PREFIX})
@@ -51,14 +59,29 @@ if(BUILD_DEPENDENCIES)
 
   message(STATUS "Begin building dependencies.")
 
-  set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
-                 -DBUILD_OPENSSL_PLATFORM=${BUILD_OPENSSL_PLATFORM}
-                 -DOPENSSL_EXTRA=${OPENSSL_EXTRA})
-  build_dependency(openssl ${BUILD_ARGS})
-  set(OPENSSL_ROOT_DIR ${OPEN_SRC_INSTALL_PREFIX})
+  set(SSL_OPTIONS USE_OPENSSL USE_MBEDTLS)
+  count_true(ENABLED_SSL_OPTION_COUNT ${SSL_OPTIONS})
+
+  if(ENABLED_SSL_OPTION_COUNT GREATER "1")
+    message(FATAL_ERROR "Only one of ${SSL_OPTIONS} can be enabled")
+  endif()
+
+  if (USE_OPENSSL)
+    set(BUILD_ARGS -DBUILD_STATIC=${BUILD_STATIC}
+                   -DBUILD_OPENSSL_PLATFORM=${BUILD_OPENSSL_PLATFORM}
+                   -DOPENSSL_EXTRA=${OPENSSL_EXTRA})
+    build_dependency(openssl ${BUILD_ARGS})
+    set(OPENSSL_ROOT_DIR ${OPEN_SRC_INSTALL_PREFIX})
+  elseif(USE_MBEDTLS)
+    set(BUILD_ARGS -DBUILD_STATIC=${BUILD_STATIC})
+    build_dependency(mbedtls ${BUILD_ARGS})
+  endif()
+
 
   set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
-                 -DOPENSSL_DIR=${OPEN_SRC_INSTALL_PREFIX})
+                 -DOPENSSL_DIR=${OPEN_SRC_INSTALL_PREFIX}
+                 -DUSE_OPENSSL=${USE_OPENSSL}
+                 -DUSE_MBEDTLS=${USE_MBEDTLS})
   build_dependency(websockets ${BUILD_ARGS})
 
   set(BUILD_ARGS
@@ -66,6 +89,8 @@ if(BUILD_DEPENDENCIES)
       -DOPENSSL_DIR=${OPEN_SRC_INSTALL_PREFIX}
       -DBUILD_LIBSRTP_HOST_PLATFORM=${BUILD_LIBSRTP_HOST_PLATFORM}
       -DBUILD_LIBSRTP_DESTINATION_PLATFORM=${BUILD_LIBSRTP_DESTINATION_PLATFORM}
+      -DUSE_OPENSSL=${USE_OPENSSL}
+      -DUSE_MBEDTLS=${USE_MBEDTLS}
   )
   build_dependency(srtp ${BUILD_ARGS})
 
@@ -75,7 +100,10 @@ if(BUILD_DEPENDENCIES)
   endif()
 
   # building kvsCommonLws also builds kvspic
-  set(BUILD_ARGS -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE})
+  set(BUILD_ARGS
+      -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+      -DUSE_OPENSSL=${USE_OPENSSL}
+      -DUSE_MBEDTLS=${USE_MBEDTLS})
   build_dependency(kvsCommonLws ${BUILD_ARGS})
 
   message(STATUS "Finished building dependencies.")
@@ -85,7 +113,13 @@ endif()
 
 find_package(Threads)
 find_package(PkgConfig REQUIRED)
-find_package(OpenSSL REQUIRED)
+if (USE_OPENSSL)
+  find_package(OpenSSL REQUIRED)
+  set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR})
+else()
+  find_package(MbedTLS REQUIRED)
+  set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${MBEDTLS_INCLUDE_DIRS})
+endif()
 
 if (OPEN_SRC_INSTALL_PREFIX)
   find_library(SRTP_LIBRARIES srtp2 REQUIRED PATHS ${OPEN_SRC_INSTALL_PREFIX})
@@ -105,7 +139,7 @@ find_library(
   NAMES ${USRSCTP_LIBNAME} usrsctp REQUIRED
   PATHS ${OPEN_SRC_INSTALL_PREFIX}/lib)
 
-set(OPEN_SRC_INCLUDE_DIRS ${LIBSRTP_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR}
+set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${LIBSRTP_INCLUDE_DIRS} 
                           ${CURL_INCLUDE_DIRS} ${LIBWEBSOCKETS_INCLUDE_DIRS})
 
 link_directories(${LIBSRTP_LIBRARY_DIRS})
@@ -183,7 +217,7 @@ endif()
 file(
   GLOB
   WEBRTC_CLIENT_SOURCE_FILES
-  "src/source/Dtls/*.c"
+  "src/source/Crypto/*.c"
   "src/source/Ice/*.c"
   "src/source/PeerConnection/*.c"
   "src/source/Rtcp/*.c"
@@ -194,6 +228,12 @@ file(
   "src/source/Stun/*.c"
   "src/source/Sctp/*.c"
   "src/source/Metrics/*.c")
+
+if (USE_OPENSSL)
+  list(FILTER WEBRTC_CLIENT_SOURCE_FILES EXCLUDE REGEX ".*_mbedtls\\.c")
+elseif (USE_MBEDTLS)
+  list(FILTER WEBRTC_CLIENT_SOURCE_FILES EXCLUDE REGEX ".*_openssl\\.c")
+endif()
 
 file(GLOB WEBRTC_SIGNALING_CLIENT_SOURCE_FILES "src/source/Signaling/*.c")
 
@@ -211,10 +251,12 @@ target_link_libraries(
   kvsWebrtcClient
   PRIVATE kvspicUtils
           kvspicState
+          ${CMAKE_THREAD_LIBS_INIT}
           ${OPENSSL_SSL_LIBRARY}
           ${OPENSSL_CRYPTO_LIBRARY}
           ${SRTP_LIBRARIES}
           ${Usrsctp}
+          ${MBEDTLS_LIBRARIES}
           ${EXTRA_DEPS})
 
 add_library(kvsWebrtcSignalingClient ${LINKAGE} ${WEBRTC_SIGNALING_CLIENT_SOURCE_FILES})
@@ -223,10 +265,12 @@ target_link_libraries(
   kvsWebrtcSignalingClient
   PRIVATE kvspicUtils
           kvspicState
+          ${CMAKE_THREAD_LIBS_INIT}
           ${LIBWEBSOCKETS_LIBRARIES}
           ${EXTRA_DEPS}
           ${OPENSSL_SSL_LIBRARY}
           ${OPENSSL_CRYPTO_LIBRARY}
+          ${MBEDTLS_LIBRARIES}
   PUBLIC kvsCommonLws)
 
 if (WIN32)

@@ -1,7 +1,7 @@
 /**
- * Kinesis Video Tcp
+ * Kinesis Video TLS
  */
-#define LOG_CLASS "Tls"
+#define LOG_CLASS "TLS_openssl"
 #include "../Include_i.h"
 
 STATUS createTlsSession(PTlsSessionCallbacks pCallbacks, PTlsSession *ppTlsSession)
@@ -240,26 +240,5 @@ CleanUp:
 
     CHK_LOG_ERR(retStatus);
 
-    return retStatus;
-}
-
-STATUS tlsSessionChangeState(PTlsSession pTlsSession, TLS_SESSION_STATE newState)
-{
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-
-    CHK(pTlsSession != NULL, STATUS_NULL_ARG);
-    CHK(pTlsSession->state != newState, retStatus);
-
-    pTlsSession->state = newState;
-    if (pTlsSession->callbacks.stateChangeFn != NULL) {
-        pTlsSession->callbacks.stateChangeFn(
-                pTlsSession->callbacks.stateChangeFnCustomData,
-                newState);
-    }
-
-CleanUp:
-
-    LEAVES();
     return retStatus;
 }

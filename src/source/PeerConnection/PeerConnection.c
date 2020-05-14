@@ -1107,10 +1107,7 @@ STATUS initKvsWebRtc(VOID)
     // init endianness handling
     initializeEndianness();
 
-    OpenSSL_add_ssl_algorithms();
-    SSL_load_error_strings();
-    // SSL_library_init() always returns "1", so it is safe to discard the return value.
-    UNUSED_PARAM(SSL_library_init());
+    KVS_CRYPTO_INIT();
 
     CHK_STATUS(initSctpSession());
 

@@ -26,6 +26,7 @@ extern "C" {
 ////////////////////////////////////////////////////
 #include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
 
+#ifdef KVS_USE_OPENSSL
 #include <openssl/bio.h>
 #include <openssl/err.h>
 #include <openssl/hmac.h>
@@ -33,6 +34,15 @@ extern "C" {
 #include <openssl/rand.h>
 #include <openssl/sha.h>
 #include <openssl/ssl.h>
+#elif KVS_USE_MBEDTLS
+#include <mbedtls/ssl.h>
+#include <mbedtls/entropy.h>
+#include <mbedtls/ctr_drbg.h>
+#include <mbedtls/error.h>
+#include <mbedtls/certs.h>
+#include <mbedtls/sha256.h>
+#endif
+
 #include <srtp2/srtp.h>
 
 // INET/INET6 MUST be defined before usrsctp
@@ -78,6 +88,8 @@ extern "C" {
 
 #define CERTIFICATE_FINGERPRINT_LENGTH 160
 
+#define MAX_UDP_PACKET_SIZE             65507
+
 typedef enum {
     KVS_IP_FAMILY_TYPE_IPV4             = (UINT16) 0x0001,
     KVS_IP_FAMILY_TYPE_IPV6             = (UINT16) 0x0002,
@@ -105,14 +117,16 @@ STATUS generateJSONSafeString(PCHAR, UINT32);
 ////////////////////////////////////////////////////
 // Project internal includes
 ////////////////////////////////////////////////////
+#include "Crypto/IOBuffer.h"
+#include "Crypto/Crypto.h"
+#include "Crypto/Dtls.h"
+#include "Crypto/Tls.h"
 #include "Ice/Network.h"
-#include "Ice/Tls.h"
 #include "Ice/SocketConnection.h"
 #include "Ice/ConnectionListener.h"
 #include "Stun/Stun.h"
 #include "Ice/IceUtils.h"
 #include "Sdp/Sdp.h"
-#include "Dtls/Dtls.h"
 #include "Ice/IceAgent.h"
 #include "Ice/TurnConnection.h"
 #include "Ice/IceAgentStateMachine.h"

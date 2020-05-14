@@ -472,14 +472,12 @@ STATUS serializeStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passw
 
             // Calculate the HMAC for the integrity of the packet including STUN header and excluding the integrity attribute
             size = (UINT16) (pCurrentBufferPosition - pBuffer);
-            CHK(NULL != HMAC(EVP_sha1(),
-                             password,
+            KVS_SHA1_HMAC(password,
                              (INT32) passwordLen,
                              pBuffer,
                              size,
                              pCurrentBufferPosition + STUN_ATTRIBUTE_HEADER_LEN,
-                             &hmacLen),
-                STATUS_INTERNAL_ERROR);
+                             &hmacLen);
 
             // Advance the current position
             pCurrentBufferPosition += encodedLen;
@@ -1020,14 +1018,12 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
 
                 // Calculate the HMAC for the integrity of the packet including STUN header and excluding the integrity attribute
                 size = (UINT16) ((PBYTE) pStunAttributeHeader - pStunBuffer);
-                CHK(NULL != HMAC(EVP_sha1(),
-                                 password,
+                KVS_SHA1_HMAC(password,
                                  (INT32) passwordLen,
                                  pStunBuffer,
                                  size,
                                  pStunAttributeMessageIntegrity->messageIntegrity,
-                                 &hmacLen),
-                    STATUS_INTERNAL_ERROR);
+                                 &hmacLen);
 
                 // Reset the original size in the buffer
                 putInt16((PINT16) (pStunBuffer + STUN_HEADER_TYPE_LEN), pStunPacket->header.messageLength);

@@ -11,14 +11,17 @@
 extern "C" {
 #endif
 
-#define MAX_SRTP_MASTER_KEY_LEN 16
-#define MAX_SRTP_SALT_KEY_LEN 14
+#define MAX_SRTP_MASTER_KEY_LEN             16
+#define MAX_SRTP_SALT_KEY_LEN               14
+#define MAX_DTLS_RANDOM_BYTES_LEN           32
+#define MAX_DTLS_MASTER_KEY_LEN             48
 
-#define GENERATED_CERTIFICATE_BITS 2048
-#define GENERATED_CERTIFICATE_SERIAL 0
-#define GENERATED_CERTIFICATE_DAYS 365
-#define GENERATED_CERTIFICATE_NAME (PUINT8) "KVS-WebRTC-Client"
-#define KEYING_EXTRACTOR_LABEL "EXTRACTOR-dtls_srtp"
+#define GENERATED_CERTIFICATE_MAX_SIZE      4096
+#define GENERATED_CERTIFICATE_BITS          2048
+#define GENERATED_CERTIFICATE_SERIAL        1
+#define GENERATED_CERTIFICATE_DAYS          365
+#define GENERATED_CERTIFICATE_NAME          "KVS-WebRTC-Client"
+#define KEYING_EXTRACTOR_LABEL              "EXTRACTOR-dtls_srtp"
 
 /*
  * DTLS transmission interval timer (in 100ns)
@@ -29,16 +32,7 @@ extern "C" {
 
 #define SECONDS_IN_A_DAY                    (24 * 60 * 60LL)
 
-#define LOG_OPENSSL_ERROR(s)                    while ((sslErr = ERR_get_error()) != 0) { \
-                                                    if (sslErr != SSL_ERROR_WANT_WRITE && sslErr != SSL_ERROR_WANT_READ) { \
-                                                        DLOGW("%s failed with %s", (s), ERR_error_string(sslErr, NULL)); \
-                                                    } \
-                                                }
-
-typedef enum {
-   SRTP_PROFILE_AES128_CM_HMAC_SHA1_80 = SRTP_AES128_CM_SHA1_80,
-   SRTP_PROFILE_AES128_CM_HMAC_SHA1_32 = SRTP_AES128_CM_SHA1_32,
-} SRTP_PROFILE;
+#define HUNDREDS_OF_NANOS_IN_A_DAY          (HUNDREDS_OF_NANOS_IN_AN_HOUR * 24LL)
 
 typedef enum {
     NEW,
@@ -68,34 +62,73 @@ typedef struct {
   BYTE serverWriteKey[MAX_SRTP_MASTER_KEY_LEN + MAX_SRTP_SALT_KEY_LEN];
   UINT8 key_length;
 
-  SRTP_PROFILE srtpProfile;
+  KVS_SRTP_PROFILE srtpProfile;
 } DtlsKeyingMaterial, *PDtlsKeyingMaterial;
 
+#ifdef KVS_USE_OPENSSL
 typedef struct {
     BOOL created;
     X509 *pCert;
     EVP_PKEY *pKey;
 } DtlsSessionCertificateInfo, *PDtlsSessionCertificateInfo;
 
+#elif KVS_USE_MBEDTLS
 typedef struct {
+    mbedtls_x509_crt cert;
+    mbedtls_pk_context privateKey;
+    CHAR fingerprint[CERTIFICATE_FINGERPRINT_LENGTH + 1];
+} DtlsSessionCertificateInfo, *PDtlsSessionCertificateInfo;
+
+typedef struct {
+    UINT64 updatedTime;
+    UINT32 intermediateDelay, finalDelay;
+} DtlsSessionTimer, *PDtlsSessionTimer;
+
+typedef struct {
+    BYTE masterSecret[MAX_DTLS_MASTER_KEY_LEN];
+    // client random bytes + server random bytes
+    BYTE randBytes[2 * MAX_DTLS_RANDOM_BYTES_LEN];
+    mbedtls_tls_prf_types tlsProfile;
+} TlsKeys, *PTlsKeys;
+#else
+#error "A Crypto implementation is required."
+#endif
+
+typedef struct __DtlsSession DtlsSession, *PDtlsSession;
+struct __DtlsSession {
     volatile ATOMIC_BOOL isStarted;
-    volatile ATOMIC_BOOL sslInitFinished;
     volatile ATOMIC_BOOL shutdown;
-    SSL_CTX *pSslCtx;
-    CHAR certFingerprints[MAX_RTCCONFIGURATION_CERTIFICATES][CERTIFICATE_FINGERPRINT_LENGTH + 1];
     UINT32 certificateCount;
     DtlsSessionCallbacks dtlsSessionCallbacks;
     TIMER_QUEUE_HANDLE timerQueueHandle;
     UINT32 timerId;
+    UINT64 dtlsSessionStartTime;
+    RTC_DTLS_TRANSPORT_STATE state;
+    MUTEX sslLock;
+
+#ifdef KVS_USE_OPENSSL
+    volatile ATOMIC_BOOL sslInitFinished;
     // dtls message must fit into a UDP packet
     BYTE outgoingDataBuffer[MAX_UDP_PACKET_SIZE];
     UINT32 outgoingDataLen;
-    UINT64 dtlsSessionStartTime;
-    RTC_DTLS_TRANSPORT_STATE state;
+    CHAR certFingerprints[MAX_RTCCONFIGURATION_CERTIFICATES][CERTIFICATE_FINGERPRINT_LENGTH + 1];
 
+    SSL_CTX *pSslCtx;
     SSL *pSsl;
-    MUTEX sslLock;
-} DtlsSession, *PDtlsSession;
+#elif KVS_USE_MBEDTLS
+    DtlsSessionTimer transmissionTimer;
+    TlsKeys tlsKeys;
+    PIOBuffer pReadBuffer;
+
+    mbedtls_entropy_context entropy;
+    mbedtls_ctr_drbg_context ctrDrbg;
+    mbedtls_ssl_config sslCtxConfig;
+    mbedtls_ssl_context sslCtx;
+    DtlsSessionCertificateInfo certificates[MAX_RTCCONFIGURATION_CERTIFICATES];
+#else
+#error "A Crypto implementation is required."
+#endif
+};
 
 /**
  * Create DTLS session. Not thread safe.
@@ -136,6 +169,10 @@ STATUS dtlsSessionOnOutBoundData(PDtlsSession, UINT64, DtlsSessionOutboundPacket
 STATUS dtlsSessionOnStateChange(PDtlsSession, UINT64, DtlsSessionOnStateChange);
 
 /******** Internal Functions **********/
+STATUS dtlsValidateRtcCertificates(PRtcCertificate, PUINT32);
+STATUS dtlsSessionChangeState(PDtlsSession, RTC_DTLS_TRANSPORT_STATE);
+
+#ifdef KVS_USE_OPENSSL
 STATUS dtlsCheckOutgoingDataBuffer(PDtlsSession);
 STATUS dtlsCertificateFingerprint(X509*, PCHAR);
 STATUS dtlsGenerateCertificateFingerprints(PDtlsSession, PDtlsSessionCertificateInfo);
@@ -143,7 +180,31 @@ STATUS createCertificateAndKey(INT32, BOOL, X509 **ppCert, EVP_PKEY **ppPkey);
 STATUS freeCertificateAndKey(X509 **ppCert, EVP_PKEY **ppPkey);
 STATUS dtlsValidateRtcCertificates(PRtcCertificate, PUINT32);
 STATUS createSslCtx(PDtlsSessionCertificateInfo, UINT32, SSL_CTX**);
-STATUS dtlsSessionChangeState(PDtlsSession, RTC_DTLS_TRANSPORT_STATE);
+#elif KVS_USE_MBEDTLS
+STATUS dtlsCertificateFingerprint(mbedtls_x509_crt*, PCHAR);
+STATUS copyCertificateAndKey(mbedtls_x509_crt*, mbedtls_pk_context*, PDtlsSessionCertificateInfo);
+STATUS createCertificateAndKey(INT32, BOOL, mbedtls_x509_crt*, mbedtls_pk_context*);
+STATUS freeCertificateAndKey(mbedtls_x509_crt*, mbedtls_pk_context*);
+
+// following are required callbacks for mbedtls
+// NOTE: const is not a pure C qualifier, they're here because there's no way to type cast
+//       a callback signature.
+INT32 dtlsSessionSendCallback(PVOID, const unsigned char*, ULONG);
+INT32 dtlsSessionReceiveCallback(PVOID, unsigned char*, ULONG);
+VOID dtlsSessionSetTimerCallback(PVOID, UINT32, UINT32);
+INT32 dtlsSessionGetTimerCallback(PVOID);
+INT32 dtlsSessionKeyDerivationCallback(PVOID, 
+                                const unsigned char*,
+                                const unsigned char*,
+                                ULONG,
+                                ULONG,
+                                ULONG,
+                                const unsigned char[MAX_DTLS_RANDOM_BYTES_LEN],
+                                const unsigned char[MAX_DTLS_RANDOM_BYTES_LEN],
+                                mbedtls_tls_prf_types);
+#else
+#error "A Crypto implementation is required."
+#endif
 
 #ifdef  __cplusplus
 }
