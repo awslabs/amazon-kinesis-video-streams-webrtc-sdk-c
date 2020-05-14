@@ -135,8 +135,6 @@ STATUS connectionListenerRemoveConnection(PConnectionListener pConnectionListene
           !ATOMIC_LOAD_BOOL(&pConnectionListener->terminate) &&
           ATOMIC_LOAD_BOOL(&pConnectionListener->connectionListChanged) &&
           STATUS_SUCCEEDED(cvarWaitStatus)) {
-        /* use longTimeout because connectionListenerReceiveDataRoutine should wake this up */
-        CVAR_WAIT(pConnectionListener->removeConnectionComplete, pConnectionListener->lock, CONNECTION_AWAIT_CONNECTION_REMOVAL_TIMEOUT);
         cvarWaitStatus = CVAR_WAIT(pConnectionListener->removeConnectionComplete, pConnectionListener->lock, CONNECTION_AWAIT_CONNECTION_REMOVAL_TIMEOUT);
         /* CVAR_WAIT should never time out */
         if (STATUS_FAILED(cvarWaitStatus)) {
@@ -183,7 +181,6 @@ STATUS connectionListenerRemoveAllConnection(PConnectionListener pConnectionList
           !ATOMIC_LOAD_BOOL(&pConnectionListener->terminate) &&
           ATOMIC_LOAD_BOOL(&pConnectionListener->connectionListChanged) &&
           STATUS_SUCCEEDED(cvarWaitStatus)) {
-        /* use longTimeout because connectionListenerReceiveDataRoutine should wake this up */
         cvarWaitStatus = CVAR_WAIT(pConnectionListener->removeConnectionComplete, pConnectionListener->lock, CONNECTION_AWAIT_CONNECTION_REMOVAL_TIMEOUT);
         /* CVAR_WAIT should never time out */
         if (STATUS_FAILED(cvarWaitStatus)) {
