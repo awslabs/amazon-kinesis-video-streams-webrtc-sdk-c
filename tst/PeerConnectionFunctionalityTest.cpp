@@ -25,6 +25,7 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeers)
     freePeerConnection(&answerPc);
 }
 
+#ifdef KVS_USE_OPENSSL
 TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithPresetCerts)
 {
     RtcConfiguration offerConfig, answerConfig;
@@ -71,6 +72,54 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithPresetCerts)
     freePeerConnection(&offerPc);
     freePeerConnection(&answerPc);
 }
+#elif KVS_USE_MBEDTLS
+TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithPresetCerts)
+{
+    RtcConfiguration offerConfig, answerConfig;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    mbedtls_x509_crt offerCert;
+    mbedtls_x509_crt answerCert;
+    mbedtls_pk_context offerKey;
+    mbedtls_pk_context answerKey;
+    CHAR offerCertFingerprint[CERTIFICATE_FINGERPRINT_LENGTH];
+    CHAR answerCertFingerprint[CERTIFICATE_FINGERPRINT_LENGTH];
+
+    // Generate offer cert
+    ASSERT_EQ(STATUS_SUCCESS, createCertificateAndKey(GENERATED_CERTIFICATE_BITS, true, &offerCert, &offerKey));
+    ASSERT_EQ(STATUS_SUCCESS, dtlsCertificateFingerprint(&offerCert, offerCertFingerprint));
+
+    // Generate answer cert
+    ASSERT_EQ(STATUS_SUCCESS, createCertificateAndKey(GENERATED_CERTIFICATE_BITS, true, &answerCert, &answerKey));
+    ASSERT_EQ(STATUS_SUCCESS, dtlsCertificateFingerprint(&answerCert, answerCertFingerprint));
+
+    MEMSET(&offerConfig, 0x00, SIZEOF(RtcConfiguration));
+    offerConfig.certificates[0].pCertificate = (PBYTE) &offerCert;
+    offerConfig.certificates[0].certificateSize = 0;
+    offerConfig.certificates[0].pPrivateKey = (PBYTE) &offerKey;
+    offerConfig.certificates[0].privateKeySize = 0;
+
+    MEMSET(&answerConfig, 0x00, SIZEOF(RtcConfiguration));
+    answerConfig.certificates[0].pCertificate = (PBYTE) &answerCert;
+    answerConfig.certificates[0].certificateSize = 0;
+    answerConfig.certificates[0].pPrivateKey = (PBYTE) &answerKey;
+    answerConfig.certificates[0].privateKeySize = 0;
+
+    ASSERT_EQ(STATUS_SUCCESS, createPeerConnection(&offerConfig, &offerPc));
+    ASSERT_EQ(STATUS_SUCCESS, createPeerConnection(&answerConfig, &answerPc));
+
+    // Should be fine to free right after create peer connection
+    freeCertificateAndKey(&offerCert, &offerKey);
+    freeCertificateAndKey(&answerCert, &answerKey);
+
+    ASSERT_EQ(TRUE, connectTwoPeers(offerPc, answerPc, offerCertFingerprint, answerCertFingerprint));
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+}
+#endif
 
 // Assert that two PeerConnections with forced TURN can connect to each other and go to connected
 TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersForcedTURN)

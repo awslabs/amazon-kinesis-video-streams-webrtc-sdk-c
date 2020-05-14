@@ -85,7 +85,7 @@ extern "C" {
 /**
  * STUN HMAC attribute value length
  */
-#define STUN_HMAC_VALUE_LEN                             SHA_DIGEST_LENGTH
+#define STUN_HMAC_VALUE_LEN                             KVS_SHA1_DIGEST_LENGTH
 
 /**
  * Max number of attributes allowed

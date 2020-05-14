@@ -117,7 +117,7 @@ struct __TurnConnection {
     CHAR turnRealm[STUN_MAX_REALM_LEN + 1];
     BYTE turnNonce[STUN_MAX_NONCE_LEN];
     UINT16 nonceLen;
-    BYTE longTermKey[MD5_DIGEST_LENGTH];
+    BYTE longTermKey[KVS_MD5_DIGEST_LENGTH];
     BOOL credentialObtained;
     BOOL relayAddressReported;
 

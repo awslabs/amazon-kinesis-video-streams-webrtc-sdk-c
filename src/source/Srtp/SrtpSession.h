@@ -21,7 +21,7 @@ struct __SrtpSession {
 };
 typedef SrtpSession* PSrtpSession;
 
-STATUS initSrtpSession(PBYTE receiveKey, PBYTE transmitKey, SRTP_PROFILE profile, PSrtpSession* ppSrtpSession);
+STATUS initSrtpSession(PBYTE receiveKey, PBYTE transmitKey, KVS_SRTP_PROFILE profile, PSrtpSession* ppSrtpSession);
 
 STATUS decryptSrtpPacket(PSrtpSession pSrtpSession, PVOID encryptedMessage, PINT32 len);
 STATUS decryptSrtcpPacket(PSrtpSession pSrtpSession, PVOID encryptedMessage, PINT32 len);
