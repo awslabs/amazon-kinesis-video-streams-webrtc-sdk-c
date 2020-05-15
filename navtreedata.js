@@ -50,8 +50,8 @@ var NAVTREEINDEX =
 [
 "Include_8h.html",
 "group__ICE.html#ga72041071e715ee4a7453655c64db8a45",
-"group__SessionDescriptionInit.html#ga609b523c9a213fa2bf6379b5a9ebd20e",
-"structSignalingClientCallbacks.html#a8a72e56bbf4b4dae2b19306acda39523"
+"group__SessionDescriptionInit.html#ga343a981dbb557abd75258c628a55882b",
+"structSignalingClientCallbacks.html#a541b18458a4b4ec54117a6130fd48d6a"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

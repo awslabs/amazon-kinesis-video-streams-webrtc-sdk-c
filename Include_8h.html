@@ -874,6 +874,9 @@ Functions</h2></td></tr>
 <tr class="memitem:a4378f3c6aec4d69c647c46852bdfe6ed"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#a4378f3c6aec4d69c647c46852bdfe6ed">setRemoteDescription</a> (<a class="el" href="Include_8h.html#a70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>, <a class="el" href="Include_8h.html#a3dfb483be12d184408e3f58df5273be7">PRtcSessionDescriptionInit</a>)</td></tr>
 <tr class="memdesc:a4378f3c6aec4d69c647c46852bdfe6ed"><td class="mdescLeft">&#160;</td><td class="mdescRight">Instructs the <a class="el" href="structRtcPeerConnection.html" title="An RtcPeerConnection instance allows an application to establish peer-to-peer communications with ano...">RtcPeerConnection</a> to apply the supplied <a class="el" href="structRtcSessionDescriptionInit.html" title="SessionDescription is used by RtcPeerConnection to expose local and remote session descriptions.">RtcSessionDescriptionInit</a> as the remote description.  <a href="Include_8h.html#a4378f3c6aec4d69c647c46852bdfe6ed">More...</a><br /></td></tr>
 <tr class="separator:a4378f3c6aec4d69c647c46852bdfe6ed"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ade9fcbb056cb321f33890c1cf1222e64"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#ade9fcbb056cb321f33890c1cf1222e64">restartIce</a> (<a class="el" href="Include_8h.html#a70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>)</td></tr>
+<tr class="memdesc:ade9fcbb056cb321f33890c1cf1222e64"><td class="mdescLeft">&#160;</td><td class="mdescRight">Instructs the <a class="el" href="structRtcPeerConnection.html" title="An RtcPeerConnection instance allows an application to establish peer-to-peer communications with ano...">RtcPeerConnection</a> that ICE should be restarted. Subsequent calls to createOffer will create descriptions to restart ICE.  <a href="Include_8h.html#ade9fcbb056cb321f33890c1cf1222e64">More...</a><br /></td></tr>
+<tr class="separator:ade9fcbb056cb321f33890c1cf1222e64"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5b89dc2e301e35f30330c57bc1361dcb"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#a5b89dc2e301e35f30330c57bc1361dcb">addTransceiver</a> (<a class="el" href="Include_8h.html#a70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>, <a class="el" href="Include_8h.html#a7b5ee097cf66780a017592c4cf712773">PRtcMediaStreamTrack</a>, <a class="el" href="Include_8h.html#a403f9b55f053a068d56e8aa51c0bc739">PRtcRtpTransceiverInit</a>, <a class="el" href="Include_8h.html#a575b38a26ceae3044dd16d8d72667ebf">PRtcRtpTransceiver</a> *)</td></tr>
 <tr class="memdesc:a5b89dc2e301e35f30330c57bc1361dcb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create a new <a class="el" href="structRtcRtpTransceiver.html" title="The RTCRtpTransceiver represents a combination of an RTCRtpSender and an RTCRtpReceiver that share a ...">RtcRtpTransceiver</a> and add it to the set of transceivers.  <a href="Include_8h.html#a5b89dc2e301e35f30330c57bc1361dcb">More...</a><br /></td></tr>
 <tr class="separator:a5b89dc2e301e35f30330c57bc1361dcb"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -2941,6 +2944,34 @@ Functions</h2></td></tr>
 
 </div>
 </div>
+<a id="ade9fcbb056cb321f33890c1cf1222e64"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ade9fcbb056cb321f33890c1cf1222e64">&#9670;&nbsp;</a></span>restartIce()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">PUBLIC_API STATUS restartIce </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="Include_8h.html#a70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>&#160;</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Instructs the <a class="el" href="structRtcPeerConnection.html" title="An RtcPeerConnection instance allows an application to establish peer-to-peer communications with ano...">RtcPeerConnection</a> that ICE should be restarted. Subsequent calls to createOffer will create descriptions to restart ICE. </p>
+<p>Reference: <a href="https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-restartice">https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-restartice</a></p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">PRtcPeerConnection</td><td>Initialized <a class="el" href="structRtcPeerConnection.html" title="An RtcPeerConnection instance allows an application to establish peer-to-peer communications with ano...">RtcPeerConnection</a></td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>- STATUS code of the execution. STATUS_SUCCESS on success </dd></dl>
+
+</div>
+</div>
 <a id="a66d6bc8b6d11743303900831b52c76f2"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a66d6bc8b6d11743303900831b52c76f2">&#9670;&nbsp;</a></span>serializeSessionDescriptionInit()</h2>
 
@@ -3461,7 +3492,7 @@ Functions</h2></td></tr>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_b0856f6b0d80ccb263b2f415c91f9e17.html">include</a></li><li class="navelem"><a class="el" href="dir_8f5ac45a6ada111b95e80af22bb6017d.html">com</a></li><li class="navelem"><a class="el" href="dir_6eddcaa8cb3f84b1b7290fa7880ed0c5.html">amazonaws</a></li><li class="navelem"><a class="el" href="dir_ffe25b375dd9c47f978782781b252738.html">kinesis</a></li><li class="navelem"><a class="el" href="dir_40be0bfe93e499fae0ac3fc2c0b3ca29.html">video</a></li><li class="navelem"><a class="el" href="dir_4165afa699965307903ffe413a1cdec9.html">webrtcclient</a></li><li class="navelem"><a class="el" href="Include_8h.html">Include.h</a></li>
-    <li class="footer">Generated on Thu May 14 2020 01:09:16 for Amazon Kinesis Webrtc C SDK by
+    <li class="footer">Generated on Fri May 15 2020 18:15:18 for Amazon Kinesis Webrtc C SDK by
     <a href="http://www.doxygen.org/index.html">
     <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.16 </li>
   </ul>
