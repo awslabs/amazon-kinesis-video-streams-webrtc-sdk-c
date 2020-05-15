@@ -1,15 +1,15 @@
 var searchData=
 [
-  ['receivedsignalingmessage_494',['ReceivedSignalingMessage',['../structReceivedSignalingMessage.html',1,'']]],
-  ['rtccertificate_495',['RtcCertificate',['../structRtcCertificate.html',1,'']]],
-  ['rtcconfiguration_496',['RtcConfiguration',['../structRtcConfiguration.html',1,'']]],
-  ['rtcdatachannelinit_497',['RtcDataChannelInit',['../structRtcDataChannelInit.html',1,'']]],
-  ['rtcicecandidateinit_498',['RtcIceCandidateInit',['../structRtcIceCandidateInit.html',1,'']]],
-  ['rtciceserver_499',['RtcIceServer',['../structRtcIceServer.html',1,'']]],
-  ['rtcmediastreamtrack_500',['RtcMediaStreamTrack',['../structRtcMediaStreamTrack.html',1,'']]],
-  ['rtcpeerconnection_501',['RtcPeerConnection',['../structRtcPeerConnection.html',1,'']]],
-  ['rtcrtpreceiver_502',['RtcRtpReceiver',['../structRtcRtpReceiver.html',1,'']]],
-  ['rtcrtptransceiver_503',['RtcRtpTransceiver',['../structRtcRtpTransceiver.html',1,'']]],
-  ['rtcrtptransceiverinit_504',['RtcRtpTransceiverInit',['../structRtcRtpTransceiverInit.html',1,'']]],
-  ['rtcsessiondescriptioninit_505',['RtcSessionDescriptionInit',['../structRtcSessionDescriptionInit.html',1,'']]]
+  ['nullablebool_512',['NullableBool',['../structNullableBool.html',1,'']]],
+  ['nullabledouble_513',['NullableDouble',['../structNullableDouble.html',1,'']]],
+  ['nullablefloat_514',['NullableFloat',['../structNullableFloat.html',1,'']]],
+  ['nullableint16_515',['NullableInt16',['../structNullableInt16.html',1,'']]],
+  ['nullableint32_516',['NullableInt32',['../structNullableInt32.html',1,'']]],
+  ['nullableint64_517',['NullableInt64',['../structNullableInt64.html',1,'']]],
+  ['nullableint8_518',['NullableInt8',['../structNullableInt8.html',1,'']]],
+  ['nullablelongdouble_519',['NullableLongDouble',['../structNullableLongDouble.html',1,'']]],
+  ['nullableuint16_520',['NullableUint16',['../structNullableUint16.html',1,'']]],
+  ['nullableuint32_521',['NullableUint32',['../structNullableUint32.html',1,'']]],
+  ['nullableuint64_522',['NullableUint64',['../structNullableUint64.html',1,'']]],
+  ['nullableuint8_523',['NullableUint8',['../structNullableUint8.html',1,'']]]
 ];

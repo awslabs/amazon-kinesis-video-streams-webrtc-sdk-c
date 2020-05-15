@@ -1,9 +1,6 @@
 var searchData=
 [
-  ['signaling_5fapi_5fcall_5fcache_5fttl_5fsentinel_5fvalue_739',['SIGNALING_API_CALL_CACHE_TTL_SENTINEL_VALUE',['../Include_8h.html#afffcbc366bf0d963121a10259b988d31',1,'Include.h']]],
-  ['signaling_5fdefault_5fapi_5fcall_5fcache_5fttl_740',['SIGNALING_DEFAULT_API_CALL_CACHE_TTL',['../Include_8h.html#ac8463c011b7295366ecfcefa4caa22aa',1,'Include.h']]],
-  ['signaling_5fdefault_5fnon_5fssl_5fport_741',['SIGNALING_DEFAULT_NON_SSL_PORT',['../Include_8h.html#a1410303128efe2263a439489f49300ab',1,'Include.h']]],
-  ['signaling_5fdefault_5fssl_5fport_742',['SIGNALING_DEFAULT_SSL_PORT',['../Include_8h.html#a88c324018b021dba73e56d93ddab2427',1,'Include.h']]],
-  ['signaling_5fstates_5fdefault_5fretry_5fcount_743',['SIGNALING_STATES_DEFAULT_RETRY_COUNT',['../Include_8h.html#abd9e28b068f08097cc3fb11239c8c4ef',1,'Include.h']]],
-  ['signaling_5fvalid_5fname_5fchars_744',['SIGNALING_VALID_NAME_CHARS',['../Include_8h.html#a5bfed0cf073cb1b1d572e6c5fe6ca401',1,'Include.h']]]
+  ['nullable_5fcheck_5fempty_772',['NULLABLE_CHECK_EMPTY',['../NullableDefs_8h.html#a38215173740fcd566a24c73cf4a279d9',1,'NullableDefs.h']]],
+  ['nullable_5fset_5fempty_773',['NULLABLE_SET_EMPTY',['../NullableDefs_8h.html#a5e5ba0bf427884089b6300da7689c681',1,'NullableDefs.h']]],
+  ['nullable_5fset_5fvalue_774',['NULLABLE_SET_VALUE',['../NullableDefs_8h.html#a4051af3bf5333c07bc72a7e74398fb85',1,'NullableDefs.h']]]
 ];
