@@ -505,6 +505,8 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
     CHK_STATUS(createIceAgent(pKvsPeerConnection->localIceUfrag, pKvsPeerConnection->localIcePwd, &iceAgentCallbacks, pConfiguration,
                               pKvsPeerConnection->timerQueueHandle, pConnectionListener, &pKvsPeerConnection->pIceAgent));
 
+    NULLABLE_SET_EMPTY(pKvsPeerConnection->canTrickleIce);
+
     *ppPeerConnection = (PRtcPeerConnection) pKvsPeerConnection;
 
 CleanUp:
@@ -745,6 +747,8 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
 
     MEMSET(pSessionDescription, 0x00, SIZEOF(SessionDescription));
     pKvsPeerConnection->dtlsIsServer = FALSE;
+    /* Assume cant trickle at first */
+    NULLABLE_SET_VALUE(pKvsPeerConnection->canTrickleIce, FALSE);
 
     CHK_STATUS(serializeSessionDescription(pSessionDescription, pSessionDescriptionInit->sdp));
 
@@ -773,6 +777,9 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
                 STRNCPY(pKvsPeerConnection->remoteCertificateFingerprint, pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeValue + 8, CERTIFICATE_FINGERPRINT_LENGTH);
             } else if (pKvsPeerConnection->isOffer && STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeName, "setup") == 0) {
                 pKvsPeerConnection->dtlsIsServer = STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeValue, "active") == 0;
+            } else if (STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeName, "ice-options") == 0 &&
+                       STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeValue, "trickle") == 0) {
+                NULLABLE_SET_VALUE(pKvsPeerConnection->canTrickleIce, TRUE);
             }
         }
     }
@@ -1006,6 +1013,23 @@ CleanUp:
 
     LEAVES();
     return retStatus;
+}
+
+PUBLIC_API NullableBool canTrickleIceCandidates(PRtcPeerConnection pPeerConnection)
+{
+    NullableBool canTrickle = {FALSE, FALSE};
+    PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pPeerConnection;
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
+    if (pKvsPeerConnection != NULL) {
+        canTrickle = pKvsPeerConnection->canTrickleIce;
+    }
+
+CleanUp:
+
+    CHK_LOG_ERR(retStatus);
+    return canTrickle;
 }
 
 STATUS initKvsWebRtc(VOID)

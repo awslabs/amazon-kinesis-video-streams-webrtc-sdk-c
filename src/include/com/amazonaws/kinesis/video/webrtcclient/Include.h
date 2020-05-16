@@ -1338,6 +1338,19 @@ PUBLIC_API STATUS peerConnectionGetCurrentLocalDescription(PRtcPeerConnection, P
 PUBLIC_API STATUS createOffer(PRtcPeerConnection, PRtcSessionDescriptionInit);
 
 /**
+ * @brief The canTrickleIceCandidates attribute indicates whether the remote peer is able to accept trickled ICE candidates.
+ * The value is determined based on whether a remote description indicates support for trickle ICE. Prior to the completion
+ * of setRemoteDescription, this value is null.
+ *
+ * Reference: https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-cantrickleicecandidates
+ *
+ * @param[in] PRtcPeerConnection Initialized RtcPeerConnection
+ *
+ * @return NullableBool if not null, indicate whether remote support trickle ICE.
+ */
+PUBLIC_API NullableBool canTrickleIceCandidates(PRtcPeerConnection);
+
+/**
  * @brief Populate the provided answer that contains an RFC 3264 answer
  * with the supported configurations for the session.
  *

@@ -92,6 +92,8 @@ typedef struct {
     RTC_PEER_CONNECTION_STATE previousConnectionState;
 
     UINT16 MTU;
+
+    NullableBool canTrickleIce;
 } KvsPeerConnection, *PKvsPeerConnection;
 
 typedef struct {

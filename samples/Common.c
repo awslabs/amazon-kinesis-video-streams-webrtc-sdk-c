@@ -109,7 +109,7 @@ STATUS signalingClientError(UINT64 customData, STATUS status, PCHAR msg, UINT32 
     // We will force re-create the signaling client on the following errors
     if (status == STATUS_SIGNALING_ICE_CONFIG_REFRESH_FAILED || status == STATUS_SIGNALING_RECONNECT_FAILED) {
         ATOMIC_STORE_BOOL(&pSampleConfiguration->recreateSignalingClient, TRUE);
-        CVAR_BROADCAST(gSampleConfiguration->cvar);
+        CVAR_BROADCAST(pSampleConfiguration->cvar);
     }
 
     return STATUS_SUCCESS;
@@ -206,6 +206,7 @@ STATUS handleOffer(PSampleConfiguration pSampleConfiguration, PSampleStreamingSe
     STATUS retStatus = STATUS_SUCCESS;
     RtcSessionDescriptionInit offerSessionDescriptionInit;
     BOOL locked = FALSE;
+    NullableBool canTrickle;
 
     CHK(pSampleConfiguration != NULL && pSignalingMessage != NULL, STATUS_NULL_ARG);
 
@@ -214,6 +215,10 @@ STATUS handleOffer(PSampleConfiguration pSampleConfiguration, PSampleStreamingSe
 
     CHK_STATUS(deserializeSessionDescriptionInit(pSignalingMessage->payload, pSignalingMessage->payloadLen, &offerSessionDescriptionInit));
     CHK_STATUS(setRemoteDescription(pSampleStreamingSession->pPeerConnection, &offerSessionDescriptionInit));
+    canTrickle = canTrickleIceCandidates(pSampleStreamingSession->pPeerConnection);
+    /* cannot be null after setRemoteDescription */
+    CHECK(!NULLABLE_CHECK_EMPTY(canTrickle));
+    pSampleConfiguration->trickleIce = canTrickle.value;
     CHK_STATUS(createAnswer(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->answerSessionDescriptionInit));
     CHK_STATUS(setLocalDescription(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->answerSessionDescriptionInit));
 
@@ -657,6 +662,8 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     pSampleConfiguration->signalingClientHandle = INVALID_SIGNALING_CLIENT_HANDLE_VALUE;
     pSampleConfiguration->sampleConfigurationObjLock = MUTEX_CREATE(TRUE);
     pSampleConfiguration->cvar = CVAR_CREATE();
+    /* This is ignored for master. Master can extract the info from offer. Viewer has to know if peer can trickle or
+     * not ahead of time. */
     pSampleConfiguration->trickleIce = trickleIce;
     pSampleConfiguration->useTurn = useTurn;
 
