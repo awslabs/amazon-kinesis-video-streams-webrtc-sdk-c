@@ -522,7 +522,7 @@ extern "C" {
 /**
  * Default signaling connection establishment timeout
  */
-#define SIGNALING_CONNECT_TIMEOUT                                                   (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define SIGNALING_CONNECT_TIMEOUT                                                   (60 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
 /**
  * Default timeout for sending data
