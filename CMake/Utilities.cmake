@@ -1,3 +1,9 @@
+include(ProcessorCount)
+processorcount(__processor_count)
+if(__processor_count EQUAL 0)
+    set(__processor_count 1)
+endif()
+
 # build library from source
 function(build_dependency lib_name)
   set(supported_libs
@@ -20,6 +26,12 @@ function(build_dependency lib_name)
     set(lib_file_name ssl)
   elseif(${lib_name} STREQUAL "srtp")
     set(lib_file_name srtp2)
+  elseif(${lib_name} STREQUAL "gtest")
+    set(lib_file_name gtest;gtestd)
+  elseif(${lib_name} STREQUAL "websockets")
+    if(WIN32)
+      set(lib_file_name websockets_static)
+    endif()
   endif()
   set(library_found NOTFOUND)
   find_library(
@@ -42,6 +54,12 @@ function(build_dependency lib_name)
   configure_file(
     ./CMake/Dependencies/lib${lib_name}-CMakeLists.txt
     ${KINESIS_VIDEO_OPEN_SOURCE_SRC}/lib${lib_name}/CMakeLists.txt COPYONLY)
+
+  if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/CMake/Dependencies/lib${lib_name}-patch.txt)
+    configure_file(
+      ./CMake/Dependencies/lib${lib_name}-patch.txt
+      ${KINESIS_VIDEO_OPEN_SOURCE_SRC}/lib${lib_name}/patch.txt COPYONLY)
+  endif()
   execute_process(
     COMMAND ${CMAKE_COMMAND} ${build_args}
             -DOPEN_SRC_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX} -G
@@ -52,7 +70,7 @@ function(build_dependency lib_name)
     message(FATAL_ERROR "CMake step for lib${lib_name} failed: ${result}")
   endif()
   execute_process(
-    COMMAND ${CMAKE_COMMAND} --build .
+    COMMAND ${CMAKE_COMMAND} --build . --parallel ${__processor_count}
     RESULT_VARIABLE result
     WORKING_DIRECTORY ${KINESIS_VIDEO_OPEN_SOURCE_SRC}/lib${lib_name})
   if(result)

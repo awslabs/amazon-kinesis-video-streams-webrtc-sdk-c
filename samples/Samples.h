@@ -11,7 +11,11 @@ extern "C" {
 #endif
 
 #include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
-
+#include <stdint.h>
+#ifdef _WIN32
+#include "dirent.h"
+#endif
+    
 #define NUMBER_OF_H264_FRAME_FILES                                              403
 #define NUMBER_OF_OPUS_FRAME_FILES                                              618
 #define DEFAULT_FPS_VALUE                                                       25

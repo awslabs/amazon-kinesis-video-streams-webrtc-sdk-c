@@ -4,7 +4,8 @@ project(libwebsocket-download NONE)
 
 include(ExternalProject)
 
-if (BUILD_STATIC_LIBS)
+# on windows use static always better
+if (BUILD_STATIC_LIBS OR WIN32)
   set(LWS_WITH_STATIC 1)
   set(LWS_WITH_SHARED 0)
 else()
@@ -12,10 +13,22 @@ else()
   set(LWS_WITH_SHARED 1)
 endif()
 
+# MANUALLY SET THE LIB OPENSSL
+set(OPENSSL ${OPEN_SRC_INSTALL_PREFIX}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}ssl${CMAKE_STATIC_LIBRARY_SUFFIX})
+set(CRYPTO ${OPEN_SRC_INSTALL_PREFIX}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}crypto${CMAKE_STATIC_LIBRARY_SUFFIX})
+
+if(WIN32)
+    set(win_extra _static)
+    set(step_target "STEP_TARGETS win_websocket_rename")
+endif()
+
+set(WEBSOCKETS ${OPEN_SRC_INSTALL_PREFIX}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}websockets${win_extra}${CMAKE_STATIC_LIBRARY_SUFFIX})
+
 ExternalProject_Add(project_libwebsockets
     GIT_REPOSITORY    https://github.com/warmcat/libwebsockets.git
     GIT_TAG           3179323afa81448287a15982755ed0e4a34d80cb
     PREFIX            ${CMAKE_CURRENT_BINARY_DIR}/build
+    LIST_SEPARATOR | # Use the alternate list separator
     CMAKE_ARGS
         -DCMAKE_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX}
         -DLWS_WITH_HTTP2=1
@@ -35,7 +48,18 @@ ExternalProject_Add(project_libwebsockets
         -DLWS_STATIC_PIC=1
         -DLWS_WITH_ZLIB=0
 # enable for debug output        -DCMAKE_BUILD_TYPE=DEBUG
-        -DOPENSSL_ROOT_DIR=${OPENSSL_DIR}
+        -DOPENSSL_FOUND=ON
+        -DOPENSSL_INCLUDE_DIRS=${OPEN_SRC_INSTALL_PREFIX}/include;
+        -DOPENSSL_LIBRARIES=${OPENSSL}|${CRYPTO}
         BUILD_ALWAYS      TRUE
+    ${step_target}
     TEST_COMMAND      ""
 )
+
+if(WIN32)
+    ExternalProject_Add_Step(project_libwebsockets win_websocket_rename
+        COMMAND ${CMAKE_COMMAND} -E copy ${WEBSOCKETS} ${OPEN_SRC_INSTALL_PREFIX}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}websockets${CMAKE_STATIC_LIBRARY_SUFFIX}
+        DEPENDEES install
+        ALWAYS 1
+    )
+endif()

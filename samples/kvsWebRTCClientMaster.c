@@ -10,7 +10,9 @@ INT32 main(INT32 argc, CHAR *argv[])
     UINT32 frameSize;
     PSampleConfiguration pSampleConfiguration = NULL;
 
+#ifndef _WIN32
     signal(SIGINT, sigintHandler);
+#endif
 
     // do tricketIce by default
     printf("[KVS Master] Using trickleICE by default\n");

@@ -23,21 +23,30 @@ option(UNDEFINED_BEHAVIOR_SANITIZER "Build with UndefinedBehaviorSanitizer." OFF
 set(CMAKE_MACOSX_RPATH TRUE)
 get_filename_component(ROOT "${CMAKE_CURRENT_SOURCE_DIR}" ABSOLUTE)
 
+# WINDOWS BUILD STATIC
+IF (WIN32)
+  SET(BUILD_STATIC_LIBS ON)
+ENDIF()
+
 # static settings
 if(BUILD_STATIC_LIBS)
   set(LINKAGE STATIC)
-
-  set(USRSCTP_LIBNAME "libusrsctp.a") # todo: why doesn't CMAKE_STATIC_LIBRARY_SUFFIX work on my ubuntu cmake 3.10 system? evaluates to .so
-  set(LIBSRTP_LIB_DIR_VARNAME LIBSRTP_STATIC_LIBRARY_DIRS)
-  set(LIBSRTP_LIB_VARNAME LIBSRTP_STATIC_LIBRARIES)
+  set(SRTP_LIBNAME "${CMAKE_STATIC_LIBRARY_PREFIX}srtp2${CMAKE_STATIC_LIBRARY_SUFFIX}")
+  set(WEBSOCKET_LIBNAME "${CMAKE_STATIC_LIBRARY_PREFIX}websockets${CMAKE_STATIC_LIBRARY_SUFFIX}")
+  set(USRSCTP_LIBNAME "${CMAKE_STATIC_LIBRARY_PREFIX}usrsctp${CMAKE_STATIC_LIBRARY_SUFFIX}") # todo: why doesn't CMAKE_STATIC_LIBRARY_SUFFIX work on my ubuntu cmake 3.10 system? evaluates to .so
+  set(LIBSRTP_LIB_DIR_VARNAME LIBSRTP_LIBRARY_DIRS)
+  set(LIBSRTP_LIB_VARNAME LIBSRTP_LIBRARIES)
   set(LIBWEBSOCKET_LIB_DIR_VARNAME LIBWEBSOCKET_STATIC_LIBRARY_DIRS)
+  set(LIBWEBSOCKET_LIB_VARNAME WEBSOCKET_LIBRARIES)
 else()
   set(LINKAGE SHARED)
-
-  set(USRSCTP_LIBNAME "libusrsctp.${CMAKE_SHARED_LIBRARY_SUFFIX}")
+  set(SRTP_LIBNAME "${CMAKE_SHARED_LIBRARY_PREFIX}srtp2${CMAKE_SHARED_LIBRARY_SUFFIX}")
+  set(WEBSOCKET_LIBNAME "${CMAKE_SHARED_LIBRARY_PREFIX}websockets${CMAKE_SHARED_LIBRARY_SUFFIX}")
+  set(USRSCTP_LIBNAME "${CMAKE_SHARED_LIBRARY_PREFIX}usrsctp${CMAKE_SHARED_LIBRARY_SUFFIX}") 
   set(LIBSRTP_LIB_DIR_VARNAME LIBSRTP_LIBRARY_DIRS)
   set(LIBSRTP_LIB_VARNAME LIBSRTP_LIBRARIES)
   set(LIBWEBSOCKET_LIB_DIR_VARNAME LIBWEBSOCKET_LIBRARY_DIRS)
+  set(LIBWEBSOCKET_LIB_VARNAME WEBSOCKET_LIBRARIES)
 endif()
 
 set(KINESIS_VIDEO_PIC_SRC "${CMAKE_CURRENT_SOURCE_DIR}/open-source/amazon-kinesis-video-streams-pic/")
@@ -108,11 +117,22 @@ endif()
 ############# find dependent libraries ############
 
 find_package(Threads)
-find_package(PkgConfig REQUIRED)
+find_package(PkgConfig REQUIRED)  
 find_package(OpenSSL REQUIRED)
 
-pkg_check_modules(LIBWEBSOCKET REQUIRED libwebsockets)
-pkg_check_modules(LIBSRTP REQUIRED libsrtp2)
+find_library(
+  LIBSRTP_LIBRARIES
+  NAMES ${SRTP_LIBNAME} libsrtp2 REQUIRED
+  PATHS ${OPEN_SRC_INSTALL_PREFIX}/lib
+)
+
+find_library(
+  WEBSOCKET_LIBRARIES
+  NAMES ${WEBSOCKET_LIBNAME} libwebsockets REQUIRED
+  PATHS ${OPEN_SRC_INSTALL_PREFIX}/lib
+)
+
+MESSAGE("${WEBSOCKET_LIBNAME} ${${LIBWEBSOCKET_LIB_DIR_VARNAME}} ${${LIBWEBSOCKET_LIB_VARNAME}}")
 
 # usrsctp dont support pkgconfig yet
 find_library(
@@ -233,33 +253,41 @@ set(BUILD_COMMON_LWS
 set(BUILD_COMMON_CURL
     FALSE
     CACHE BOOL "Build ProducerC without CURL Support" FORCE)
+
 add_subdirectory(${KINESIS_VIDEO_PRODUCER_C_SRC} ./kvscproducer EXCLUDE_FROM_ALL)
 
 add_library(kvsWebrtcClient ${LINKAGE} ${WEBRTC_CLIENT_SOURCE_FILES})
+
+if(WIN32)
+  set(EXTRA_DEPS Ws2_32)
+elseif(UNIX AND NOT APPLE)
+  set(EXTRA_DEPS dl)
+endif()
 
 target_link_libraries(
   kvsWebrtcClient
   PRIVATE kvspicUtils
           kvspicState
-          ${OPENSSL_SSL_LIBRARY}
-          ${OPENSSL_CRYPTO_LIBRARY}
+	  ${OPENSSL_SSL_LIBRARY}
+	  ${OPENSSL_CRYPTO_LIBRARY}
           ${${LIBSRTP_LIB_VARNAME}}
+          ${${LIBWEBSOCKET_LIB_VARNAME}}
           ${Jsmn}
-          ${Usrsctp})
+	  ${Usrsctp})
 
 add_library(kvsWebrtcSignalingClient ${LINKAGE} ${WEBRTC_SIGNALING_CLIENT_SOURCE_FILES})
 
 target_link_libraries(
   kvsWebrtcSignalingClient
   PRIVATE kvspicUtils kvspicState
-  PUBLIC kvsCommonLws)
+  PUBLIC kvsCommonLws ${EXTRA_DEPS})
 
 add_executable(
   kvsWebrtcClientMaster
   ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/Common.c
   ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/kvsWebRTCClientMaster.c)
 target_link_libraries(kvsWebrtcClientMaster kvsWebrtcClient
-                      kvsWebrtcSignalingClient)
+	kvsWebrtcSignalingClient)
 
 add_executable(
   kvsWebrtcClientViewer

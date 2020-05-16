@@ -12,7 +12,9 @@ INT32 main(INT32 argc, CHAR *argv[])
     PSampleStreamingSession pSampleStreamingSession = NULL;
     BOOL locked = FALSE;
 
+#ifndef _WIN32
     signal(SIGINT, sigintHandler);
+#endif
 
     // do trickle-ice by default
     printf("[KVS Master] Using trickleICE by default\n");

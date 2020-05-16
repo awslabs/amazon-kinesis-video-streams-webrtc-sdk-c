@@ -2,26 +2,30 @@ cmake_minimum_required(VERSION 2.8)
 
 project(libopenssl-download NONE)
 
-find_program(MAKE_EXE NAMES make)
-
-if (BUILD_STATIC_LIBS)
-  SET(OPENSSL_EXTRA ${OPENSSL_EXTRA} no-shared no-dso)
+if(WIN32)
+    set(win_extra -1_1-x64)
+    set(step_target "STEP_TARGETS win_rename")
 endif()
-
-if (DEFINED BUILD_OPENSSL_PLATFORM AND NOT BUILD_OPENSSL_PLATFORM STREQUAL OFF)
-  SET(CONFIGURE_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/build/src/project_libopenssl/Configure ${OPENSSL_EXTRA} --prefix=${OPEN_SRC_INSTALL_PREFIX} --openssldir=${OPEN_SRC_INSTALL_PREFIX} ${BUILD_OPENSSL_PLATFORM})
-else()
-  SET(CONFIGURE_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/build/src/project_libopenssl/config ${OPENSSL_EXTRA} --prefix=${OPEN_SRC_INSTALL_PREFIX} --openssldir=${OPEN_SRC_INSTALL_PREFIX})
-endif()
+set(OPENSSL ${OPEN_SRC_INSTALL_PREFIX}/lib/libssl${win_extra}${CMAKE_STATIC_LIBRARY_SUFFIX})
+set(CRYPTO ${OPEN_SRC_INSTALL_PREFIX}/lib/libcrypto${win_extra}${CMAKE_STATIC_LIBRARY_SUFFIX})
 
 include(ExternalProject)
 ExternalProject_Add(project_libopenssl
-    GIT_REPOSITORY    https://github.com/openssl/openssl.git
-    GIT_TAG           OpenSSL_1_1_1g
+    GIT_REPOSITORY    https://github.com/janbar/openssl-cmake.git
+    GIT_TAG           1.1.1g-20200510
     PREFIX            ${CMAKE_CURRENT_BINARY_DIR}/build
-    CONFIGURE_COMMAND ${CONFIGURE_COMMAND}
-    BUILD_COMMAND     ${MAKE_EXE} -j 4
-    BUILD_IN_SOURCE   TRUE
-    INSTALL_COMMAND   ${MAKE_EXE} install_sw
-    TEST_COMMAND      ""
+    CMAKE_ARGS        ${CFLAGS}
+	              -D CMAKE_POSITION_INDEPENDENT_CODE=ON
+                      -D CMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
+                      -D CMAKE_INSTALL_PREFIX:STRING=${OPEN_SRC_INSTALL_PREFIX}
+    ${step_target}
 )
+
+if(WIN32)
+    ExternalProject_Add_Step(project_libopenssl win_rename
+        COMMAND ${CMAKE_COMMAND} -E copy ${OPENSSL} ${OPEN_SRC_INSTALL_PREFIX}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}ssl${CMAKE_STATIC_LIBRARY_SUFFIX}
+        COMMAND ${CMAKE_COMMAND} -E copy ${CRYPTO} ${OPEN_SRC_INSTALL_PREFIX}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}crypto${CMAKE_STATIC_LIBRARY_SUFFIX}
+        DEPENDEES install
+        ALWAYS 1
+    )
+endif()
