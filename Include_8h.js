@@ -371,6 +371,7 @@ var Include_8h =
     [ "addIceCandidate", "Include_8h.html#aaa9d865c9801d2e01bc756856f2a0fac", null ],
     [ "addSupportedCodec", "Include_8h.html#af401e47dc585171339bf0fd6751ff66f", null ],
     [ "addTransceiver", "Include_8h.html#a5b89dc2e301e35f30330c57bc1361dcb", null ],
+    [ "canTrickleIceCandidates", "Include_8h.html#adee138e84132fe3adb2a8c7d144c7188", null ],
     [ "createAnswer", "Include_8h.html#a7dc5ad4eb5cc7e000396547279108d9b", null ],
     [ "createDataChannel", "Include_8h.html#a52388bddbaae20b12fdac9bb3b596211", null ],
     [ "createOffer", "Include_8h.html#a1779d268b0993835d80f0948281e2274", null ],

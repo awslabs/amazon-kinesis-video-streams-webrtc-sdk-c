@@ -857,6 +857,9 @@ Functions</h2></td></tr>
 <tr class="memitem:a1779d268b0993835d80f0948281e2274"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#a1779d268b0993835d80f0948281e2274">createOffer</a> (<a class="el" href="Include_8h.html#a70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>, <a class="el" href="Include_8h.html#a3dfb483be12d184408e3f58df5273be7">PRtcSessionDescriptionInit</a>)</td></tr>
 <tr class="memdesc:a1779d268b0993835d80f0948281e2274"><td class="mdescLeft">&#160;</td><td class="mdescRight">Populate the provided answer that contains an RFC 3264 offer with the supported configurations for the session.  <a href="Include_8h.html#a1779d268b0993835d80f0948281e2274">More...</a><br /></td></tr>
 <tr class="separator:a1779d268b0993835d80f0948281e2274"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:adee138e84132fe3adb2a8c7d144c7188"><td class="memItemLeft" align="right" valign="top">PUBLIC_API <a class="el" href="structNullableBool.html">NullableBool</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#adee138e84132fe3adb2a8c7d144c7188">canTrickleIceCandidates</a> (<a class="el" href="Include_8h.html#a70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>)</td></tr>
+<tr class="memdesc:adee138e84132fe3adb2a8c7d144c7188"><td class="mdescLeft">&#160;</td><td class="mdescRight">The canTrickleIceCandidates attribute indicates whether the remote peer is able to accept trickled ICE candidates. The value is determined based on whether a remote description indicates support for trickle ICE. Prior to the completion of setRemoteDescription, this value is null.  <a href="Include_8h.html#adee138e84132fe3adb2a8c7d144c7188">More...</a><br /></td></tr>
+<tr class="separator:adee138e84132fe3adb2a8c7d144c7188"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7dc5ad4eb5cc7e000396547279108d9b"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#a7dc5ad4eb5cc7e000396547279108d9b">createAnswer</a> (<a class="el" href="Include_8h.html#a70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>, <a class="el" href="Include_8h.html#a3dfb483be12d184408e3f58df5273be7">PRtcSessionDescriptionInit</a>)</td></tr>
 <tr class="memdesc:a7dc5ad4eb5cc7e000396547279108d9b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Populate the provided answer that contains an RFC 3264 answer with the supported configurations for the session.  <a href="Include_8h.html#a7dc5ad4eb5cc7e000396547279108d9b">More...</a><br /></td></tr>
 <tr class="separator:a7dc5ad4eb5cc7e000396547279108d9b"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -2147,6 +2150,34 @@ Functions</h2></td></tr>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>STATUS code of the execution. STATUS_SUCCESS on success </dd></dl>
+
+</div>
+</div>
+<a id="adee138e84132fe3adb2a8c7d144c7188"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#adee138e84132fe3adb2a8c7d144c7188">&#9670;&nbsp;</a></span>canTrickleIceCandidates()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">PUBLIC_API <a class="el" href="structNullableBool.html">NullableBool</a> canTrickleIceCandidates </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="Include_8h.html#a70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>&#160;</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>The canTrickleIceCandidates attribute indicates whether the remote peer is able to accept trickled ICE candidates. The value is determined based on whether a remote description indicates support for trickle ICE. Prior to the completion of setRemoteDescription, this value is null. </p>
+<p>Reference: <a href="https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-cantrickleicecandidates">https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-cantrickleicecandidates</a></p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">PRtcPeerConnection</td><td>Initialized <a class="el" href="structRtcPeerConnection.html" title="An RtcPeerConnection instance allows an application to establish peer-to-peer communications with ano...">RtcPeerConnection</a></td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd><a class="el" href="structNullableBool.html">NullableBool</a> if not null, indicate whether remote support trickle ICE. </dd></dl>
 
 </div>
 </div>
@@ -3493,7 +3524,7 @@ Functions</h2></td></tr>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_b0856f6b0d80ccb263b2f415c91f9e17.html">include</a></li><li class="navelem"><a class="el" href="dir_8f5ac45a6ada111b95e80af22bb6017d.html">com</a></li><li class="navelem"><a class="el" href="dir_6eddcaa8cb3f84b1b7290fa7880ed0c5.html">amazonaws</a></li><li class="navelem"><a class="el" href="dir_ffe25b375dd9c47f978782781b252738.html">kinesis</a></li><li class="navelem"><a class="el" href="dir_40be0bfe93e499fae0ac3fc2c0b3ca29.html">video</a></li><li class="navelem"><a class="el" href="dir_4165afa699965307903ffe413a1cdec9.html">webrtcclient</a></li><li class="navelem"><a class="el" href="Include_8h.html">Include.h</a></li>
-    <li class="footer">Generated on Fri May 15 2020 23:06:09 for Amazon Kinesis Webrtc C SDK by
+    <li class="footer">Generated on Mon May 18 2020 20:13:20 for Amazon Kinesis Webrtc C SDK by
     <a href="http://www.doxygen.org/index.html">
     <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.16 </li>
   </ul>
