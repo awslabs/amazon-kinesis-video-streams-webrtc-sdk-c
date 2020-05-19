@@ -23,7 +23,7 @@ extern "C" {
 
 #define ICE_CANDIDATE_JSON_TEMPLATE     (PCHAR) "{\"candidate\":\"candidate:%s\",\"sdpMid\":\"0\",\"sdpMLineIndex\":0}"
 
-#define MAX_ICE_CANDIDATE_JSON_LEN      (MAX_SDP_ATTRIBUTE_VALUE_LENGTH + STRLEN(ICE_CANDIDATE_JSON_TEMPLATE) + 1)
+#define MAX_ICE_CANDIDATE_JSON_LEN      (MAX_SDP_ATTRIBUTE_VALUE_LENGTH + SIZEOF(ICE_CANDIDATE_JSON_TEMPLATE) + 1)
 
 #define CODEC_HASH_TABLE_BUCKET_COUNT                   50
 #define CODEC_HASH_TABLE_BUCKET_LENGTH                  2

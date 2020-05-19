@@ -10,6 +10,17 @@ Main internal include file
 extern "C" {
 #endif
 
+#ifdef _WIN32
+#include <winsock2.h>
+#include <iphlpapi.h>
+#include <ws2tcpip.h>
+
+#ifndef MSG_NOSIGNAL
+#define MSG_NOSIGNAL 0
+#endif
+
+#endif
+
 ////////////////////////////////////////////////////
 // Project include files
 ////////////////////////////////////////////////////

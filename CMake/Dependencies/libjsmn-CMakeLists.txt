@@ -2,20 +2,13 @@ cmake_minimum_required(VERSION 2.8)
 
 project(libjsmn-download NONE)
 
-find_program(MAKE_EXE NAMES make)
-
 include(ExternalProject)
 ExternalProject_Add(project_libjsmn
     GIT_REPOSITORY    https://github.com/zserge/jsmn.git
     GIT_TAG           v1.0.0
     PREFIX            ${CMAKE_CURRENT_BINARY_DIR}/build
-    CONFIGURE_COMMAND ""
-    BUILD_COMMAND     ${MAKE_EXE} CFLAGS=-fPIC
-    BUILD_IN_SOURCE   TRUE
-    INSTALL_COMMAND
-        ${CMAKE_COMMAND} -E make_directory ${OPEN_SRC_INSTALL_PREFIX}/lib &&
-        ${CMAKE_COMMAND} -E make_directory ${OPEN_SRC_INSTALL_PREFIX}/include &&
-        ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/build/src/project_libjsmn/libjsmn.a ${OPEN_SRC_INSTALL_PREFIX}/lib &&
-        ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/build/src/project_libjsmn/jsmn.h ${OPEN_SRC_INSTALL_PREFIX}/include
+    PATCH_COMMAND     git apply --ignore-whitespace ${CMAKE_SOURCE_DIR}/../../CMake/Dependencies/libjsmn-add-cmakelists.patch
+    CMAKE_ARGS        -DCMAKE_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX}
+    BUILD_ALWAYS      TRUE
     TEST_COMMAND      ""
 )
