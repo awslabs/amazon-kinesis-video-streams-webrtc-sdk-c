@@ -29,6 +29,5 @@ target_link_libraries(webrtc_client_test
         kvsWebrtcSignalingClient
         kvsCommonLws
         GTest::GTest
-        GTest::Main
         ${EXE_LIBRARIES}
         ${Jsmn})
