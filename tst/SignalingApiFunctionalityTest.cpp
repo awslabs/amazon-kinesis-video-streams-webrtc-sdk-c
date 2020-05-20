@@ -2275,6 +2275,36 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingTest)
     EXPECT_TRUE(getEndpointCount > getEndpointCountNoCache && (getEndpointCount - getEndpointCountNoCache) == 1);
 }
 
+TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateCache)
+{
+    FREMOVE(DEFAULT_CACHE_FILE_PATH);
+
+    SignalingFileCacheEntry testEntry;
+    SignalingFileCacheEntry testEntry2;
+
+    testEntry.role = SIGNALING_CHANNEL_ROLE_TYPE_VIEWER;
+    STRCPY(testEntry.wssEndpoint, "testWssEnpoint");
+    STRCPY(testEntry.httpsEndpoint, "testHttpsEnpoint");
+    STRCPY(testEntry.region, "testRegion");
+    STRCPY(testEntry.channelArn, "testChannelArn");
+    STRCPY(testEntry.channelName, "testChannel");
+    testEntry.creationTsEpochSeconds = GETTIME() / HUNDREDS_OF_NANOS_IN_A_SECOND;
+    EXPECT_EQ(STATUS_SUCCESS, signalingCacheSaveToFile(&testEntry));
+
+    testEntry.role = SIGNALING_CHANNEL_ROLE_TYPE_VIEWER;
+    STRCPY(testEntry2.wssEndpoint, "testWssEnpoint");
+    STRCPY(testEntry2.httpsEndpoint, "testHttpsEnpoint");
+    STRCPY(testEntry2.region, "testRegion");
+    STRCPY(testEntry2.channelArn, "testChannelArn2");
+    STRCPY(testEntry2.channelName, "testChannel2");
+    testEntry2.creationTsEpochSeconds = GETTIME() / HUNDREDS_OF_NANOS_IN_A_SECOND;
+    EXPECT_EQ(STATUS_SUCCESS, signalingCacheSaveToFile(&testEntry2));
+
+    testEntry.creationTsEpochSeconds = GETTIME() / HUNDREDS_OF_NANOS_IN_A_SECOND;
+    /* update first cache entry*/
+    EXPECT_EQ(STATUS_SUCCESS, signalingCacheSaveToFile(&testEntry));
+}
+
 TEST_F(SignalingApiFunctionalityTest, asyncIceConfigRefreshBeforeConnect)
 {
     if (!mAccessKeyIdSet) {
