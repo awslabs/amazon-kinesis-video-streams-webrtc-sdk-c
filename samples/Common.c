@@ -563,16 +563,32 @@ CleanUp:
     return retStatus;
 }
 
+STATUS traverseDirectoryPEMFileScan(UINT64 customData, DIR_ENTRY_TYPES entryType, PCHAR fullPath, PCHAR fileName) {
+    UNUSED_PARAM(entryType);
+    UNUSED_PARAM(fullPath);
+
+    PCHAR certName = (PCHAR) customData;
+    UINT32 fileNameLen = STRLEN(fileName);
+
+    if(fileNameLen > ARRAY_SIZE(CA_CERT_PEM_FILE_EXTENSION) + 1 &&
+       (STRCMPI(CA_CERT_PEM_FILE_EXTENSION, &fileName[fileNameLen - ARRAY_SIZE(CA_CERT_PEM_FILE_EXTENSION) + 1]) == 0))
+    {
+        certName[0] = FPATHSEPARATOR;
+        certName++;
+        STRCPY(certName, fileName);
+    }
+
+    return STATUS_SUCCESS;
+}
+
 STATUS lookForSslCert(PSampleConfiguration* ppSampleConfiguration)
 {
     STATUS retStatus = STATUS_SUCCESS;
     struct stat pathStat;
-    UINT32 length = 0;
-    DIR *dp;
-    struct dirent *entry;
-    BOOL certFound = FALSE;
+    CHAR certName[MAX_PATH_LEN];
     PSampleConfiguration pSampleConfiguration = *ppSampleConfiguration;
 
+    MEMSET(certName, 0x0, ARRAY_SIZE(certName));
     pSampleConfiguration->pCaCertPath = getenv(CACERT_PATH_ENV_VAR);
 
     // if ca cert path is not set from the environment, try to use the one that cmake detected
@@ -583,36 +599,17 @@ STATUS lookForSslCert(PSampleConfiguration* ppSampleConfiguration)
         // Check if the environment variable is a path
         CHK(0 == FSTAT(pSampleConfiguration->pCaCertPath, &pathStat), STATUS_DIRECTORY_ENTRY_STAT_ERROR);
 
-        // If CaCertPath is a directory, check for a file with .pem extension in this directory
-        if(S_ISDIR(pathStat.st_mode)) {
-            CHK_ERR((dp = opendir(pSampleConfiguration->pCaCertPath)) != NULL, STATUS_DIRECTORY_OPEN_FAILED, "Cannot open directory");
+        if (S_ISDIR(pathStat.st_mode)) {
+            CHK_STATUS(traverseDirectory(pSampleConfiguration->pCaCertPath, (UINT64) &certName, /* iterate */ FALSE, traverseDirectoryPEMFileScan));
 
-            while((entry = readdir(dp)) != NULL) {
-                if(entry->d_type != DT_DIR) {
-                    // Get length of detected filename
-                    length = (UINT32) STRLEN(entry->d_name);
-                    CHK(length > (ARRAY_SIZE(CA_CERT_PEM_FILE_EXTENSION) - 1), STATUS_INVALID_ARG_LEN);
-                    if((0 == STRCMPI(CA_CERT_PEM_FILE_EXTENSION, &entry->d_name[length - ARRAY_SIZE(CA_CERT_PEM_FILE_EXTENSION) + 1]))) {
-                        // Check if the length of path and filename together is less than MAX_PATH_LEN
-                        CHK((length + STRLEN(pSampleConfiguration->pCaCertPath) + 1) <= MAX_PATH_LEN, STATUS_INVALID_ARG_LEN);
-                        // If the length checks out, it means we can form a valid absolute path to file
-                        STRCAT(pSampleConfiguration->pCaCertPath, entry->d_name);
-                        certFound = TRUE;
-                        break;
-                    }
-                }
-            }
-
-            // If cert is not found in given path, consider the path given by CMake
-            if(certFound == FALSE) {
+            if(certName[0] != 0x0) {
+                STRCAT(pSampleConfiguration->pCaCertPath, certName);
+            } else {
                 DLOGW("Cert not found in path set...checking if CMake detected a path\n");
                 CHK_ERR(STRNLEN(DEFAULT_KVS_CACERT_PATH, MAX_PATH_LEN) > 0, STATUS_INVALID_OPERATION, "No ca cert path given (error:%s)", strerror(errno));
                 DLOGI("CMake detected cert path\n");
                 pSampleConfiguration->pCaCertPath = DEFAULT_KVS_CACERT_PATH;
             }
-            closedir(dp);
-        } else {
-            CHK_ERR(length !=  MAX_PATH_LEN, STATUS_INVALID_OPERATION, "No ca cert path given");
         }
     }
 
