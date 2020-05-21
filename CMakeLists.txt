@@ -24,54 +24,28 @@ set(CMAKE_MACOSX_RPATH TRUE)
 get_filename_component(ROOT "${CMAKE_CURRENT_SOURCE_DIR}" ABSOLUTE)
 
 # static settings
-if(BUILD_STATIC_LIBS)
+if(BUILD_STATIC_LIBS OR WIN32)
   set(LINKAGE STATIC)
-
-  set(USRSCTP_LIBNAME "libusrsctp.a") # todo: why doesn't CMAKE_STATIC_LIBRARY_SUFFIX work on my ubuntu cmake 3.10 system? evaluates to .so
-  set(LIBSRTP_LIB_DIR_VARNAME LIBSRTP_STATIC_LIBRARY_DIRS)
-  set(LIBSRTP_LIB_VARNAME LIBSRTP_STATIC_LIBRARIES)
-  set(LIBWEBSOCKET_LIB_DIR_VARNAME LIBWEBSOCKET_STATIC_LIBRARY_DIRS)
 else()
   set(LINKAGE SHARED)
-
-  set(USRSCTP_LIBNAME "libusrsctp.${CMAKE_SHARED_LIBRARY_SUFFIX}")
-  set(LIBSRTP_LIB_DIR_VARNAME LIBSRTP_LIBRARY_DIRS)
-  set(LIBSRTP_LIB_VARNAME LIBSRTP_LIBRARIES)
-  set(LIBWEBSOCKET_LIB_DIR_VARNAME LIBWEBSOCKET_LIBRARY_DIRS)
 endif()
 
-set(KINESIS_VIDEO_PIC_SRC "${CMAKE_CURRENT_SOURCE_DIR}/open-source/amazon-kinesis-video-streams-pic/")
-set(KINESIS_VIDEO_PRODUCER_C_SRC "${CMAKE_CURRENT_SOURCE_DIR}/open-source/amazon-kinesis-video-streams-producer-c/")
 set(KINESIS_VIDEO_WEBRTC_CLIENT_SRC "${CMAKE_CURRENT_SOURCE_DIR}")
 
-# expecting libjsmn, libwebsockets and gtest to be in
-# ${KINESIS_VIDEO_OPEN_SOURCE_SRC}/lib and their headers in
-# ${KINESIS_VIDEO_OPEN_SOURCE_SRC}/include
-set(KINESIS_VIDEO_OPEN_SOURCE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/open-source)
 
-message(STATUS "Kinesis Video PIC path is ${KINESIS_VIDEO_PIC_SRC}")
-message(STATUS "Kinesis Video C Producer path is ${KINESIS_VIDEO_PRODUCER_C_SRC}")
 message(STATUS "Kinesis Video WebRTC Client path is ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}")
-message(STATUS "dependencies install path is ${KINESIS_VIDEO_OPEN_SOURCE_SRC}")
-
-if(NOT EXISTS ${KINESIS_VIDEO_PIC_SRC})
-  message(FATAL_ERROR "KINESIS_VIDEO_PIC_SRC ${KINESIS_VIDEO_PIC_SRC} does not exist")
-elseif(NOT EXISTS ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC})
-  message(FATAL_ERROR "KINESIS_VIDEO_WEBRTC_CLIENT_SRC ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC} does not exist")
-elseif(NOT EXISTS ${KINESIS_VIDEO_PRODUCER_C_SRC})
-  message(FATAL_ERROR "KINESIS_VIDEO_PRODUCER_C_SRC ${KINESIS_VIDEO_PRODUCER_C_SRC} does not exist")
-endif()
+message(STATUS "dependencies install path is ${OPEN_SRC_INSTALL_PREFIX}")
 
 # pass ca cert location to sdk
 add_definitions(-DKVS_CA_CERT_PATH="${CMAKE_SOURCE_DIR}/certs/cert.pem")
 add_definitions(-DCMAKE_DETECTED_CACERT_PATH)
 
 if(BUILD_DEPENDENCIES)
-  if(NOT EXISTS ${KINESIS_VIDEO_OPEN_SOURCE_SRC})
-    file(MAKE_DIRECTORY ${KINESIS_VIDEO_OPEN_SOURCE_SRC}/local)
+  set(OPEN_SRC_INSTALL_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/open-source)
+  if(NOT EXISTS ${OPEN_SRC_INSTALL_PREFIX})
+    file(MAKE_DIRECTORY ${OPEN_SRC_INSTALL_PREFIX})
   endif()
 
-  set(OPEN_SRC_INSTALL_PREFIX ${KINESIS_VIDEO_OPEN_SOURCE_SRC}/local)
   set(ENV{PKG_CONFIG_PATH} "$ENV{PKG_CONFIG_PATH}:${OPEN_SRC_INSTALL_PREFIX}/lib/pkgconfig")
   set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${OPEN_SRC_INSTALL_PREFIX})
 
@@ -97,10 +71,12 @@ if(BUILD_DEPENDENCIES)
 
   build_dependency(usrsctp)
   build_dependency(jsmn)
-
   if(BUILD_TEST)
-    build_dependency(gtest)
+   build_dependency(gtest)
   endif()
+
+  build_dependency(kvspic)
+  build_dependency(kvsCommonLws)
 
   message(STATUS "Finished building dependencies.")
 endif()
@@ -111,8 +87,17 @@ find_package(Threads)
 find_package(PkgConfig REQUIRED)
 find_package(OpenSSL REQUIRED)
 
-pkg_check_modules(LIBWEBSOCKET REQUIRED libwebsockets)
-pkg_check_modules(LIBSRTP REQUIRED libsrtp2)
+if (OPEN_SRC_INSTALL_PREFIX)
+  find_library(SRTP_LIBRARIES srtp2 REQUIRED PATHS ${OPEN_SRC_INSTALL_PREFIX})
+else()
+  find_library(SRTP_LIBRARIES srtp2 REQUIRED )
+endif()
+
+if (WIN32)
+    SET(LIBWEBSOCKET_LIBRARIES "websockets.lib")
+else()
+    pkg_check_modules(LIBWEBSOCKET REQUIRED libwebsockets)
+endif()
 
 # usrsctp dont support pkgconfig yet
 find_library(
@@ -123,8 +108,9 @@ find_library(
 set(OPEN_SRC_INCLUDE_DIRS ${LIBSRTP_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR}
                           ${CURL_INCLUDE_DIRS} ${LIBWEBSOCKET_INCLUDE_DIRS})
 
-link_directories(${${LIBSRTP_LIB_DIR_VARNAME}})
-link_directories(${${LIBWEBSOCKET_LIB_DIR_VARNAME}})
+link_directories(${LIBSRTP_LIBRARY_DIRS})
+link_directories(${LIBWEBSOCKET_LIBRARY_DIRS})
+link_directories(${OPEN_SRC_INSTALL_PREFIX}/lib)
 
 find_library(
   Jsmn
@@ -220,20 +206,11 @@ file(GLOB PIC_HEADERS "${KINESIS_VIDEO_PIC_SRC}/src/*/include")
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/samples/opusSampleFrames" DESTINATION .)
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/samples/h264SampleFrames" DESTINATION .)
 
-include_directories(${PIC_HEADERS})
 include_directories(${OPEN_SRC_INCLUDE_DIRS})
-include_directories(${KINESIS_VIDEO_OPEN_SOURCE_SRC}/include)
+include_directories(${OPEN_SRC_INSTALL_PREFIX}/include)
 include_directories(${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/include)
 include_directories(${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/ice)
 include_directories(${KINESIS_VIDEO_PRODUCER_C_SRC}/src/include)
-
-set(BUILD_COMMON_LWS
-    TRUE
-    CACHE BOOL "Build ProducerC with LWS Support" FORCE)
-set(BUILD_COMMON_CURL
-    FALSE
-    CACHE BOOL "Build ProducerC without CURL Support" FORCE)
-add_subdirectory(${KINESIS_VIDEO_PRODUCER_C_SRC} ./kvscproducer EXCLUDE_FROM_ALL)
 
 add_library(kvsWebrtcClient ${LINKAGE} ${WEBRTC_CLIENT_SOURCE_FILES})
 
@@ -243,29 +220,39 @@ target_link_libraries(
           kvspicState
           ${OPENSSL_SSL_LIBRARY}
           ${OPENSSL_CRYPTO_LIBRARY}
-          ${${LIBSRTP_LIB_VARNAME}}
+          ${SRTP_LIBRARIES}
           ${Jsmn}
-          ${Usrsctp})
+          ${Usrsctp}
+          ${EXTRA_DEPS})
 
 add_library(kvsWebrtcSignalingClient ${LINKAGE} ${WEBRTC_SIGNALING_CLIENT_SOURCE_FILES})
 
 target_link_libraries(
   kvsWebrtcSignalingClient
-  PRIVATE kvspicUtils kvspicState
+  PRIVATE kvspicUtils
+          kvspicState
+          ${LIBWEBSOCKET_LIBRARIES}
+          ${EXTRA_DEPS}
+          ${Jsmn}
+          ${OPENSSL_SSL_LIBRARY}
+          ${OPENSSL_CRYPTO_LIBRARY}
   PUBLIC kvsCommonLws)
+
+if (WIN32)
+  target_link_libraries(kvsWebrtcClient PRIVATE "Ws2_32" "iphlpapi")
+endif()
 
 add_executable(
   kvsWebrtcClientMaster
   ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/Common.c
   ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/kvsWebRTCClientMaster.c)
-target_link_libraries(kvsWebrtcClientMaster kvsWebrtcClient
-                      kvsWebrtcSignalingClient)
+target_link_libraries(kvsWebrtcClientMaster kvsWebrtcClient kvsWebrtcSignalingClient kvspicUtils)
 
 add_executable(
   kvsWebrtcClientViewer
   ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/Common.c
   ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/kvsWebRTCClientViewer.c)
-target_link_libraries(kvsWebrtcClientViewer kvsWebrtcClient kvsWebrtcSignalingClient)
+target_link_libraries(kvsWebrtcClientViewer kvsWebrtcClient kvsWebrtcSignalingClient kvspicUtils)
 
 if(COMPILER_WARNINGS)
   target_compile_options(kvsWebrtcClient PUBLIC -Wall -Werror -pedantic -Wextra -Wno-unknown-warning-option)
@@ -278,11 +265,9 @@ if(GST_FOUND)
     ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/Common.c
     ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/kvsWebRTCClientMasterGstreamerSample.c
   )
-  target_link_libraries(kvsWebrtcClientMasterGstSample kvsWebrtcClient
-                        kvsWebrtcSignalingClient ${GST_SAMPLE_LIBRARIES})
+  target_link_libraries(kvsWebrtcClientMasterGstSample kvsWebrtcClient kvsWebrtcSignalingClient ${GST_SAMPLE_LIBRARIES} kvspicUtils)
 endif()
 
 if(BUILD_TEST)
-  set(ENV{KVS_GTEST_ROOT} ${KINESIS_VIDEO_OPEN_SOURCE_SRC})
   add_subdirectory(tst)
 endif()

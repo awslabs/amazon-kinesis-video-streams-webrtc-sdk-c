@@ -6,12 +6,6 @@ build
 cmake-build-debug/
 cmake-build-release/
 doc/
-open-source/libgtest
-open-source/libjsmn
-open-source/libopenssl
-open-source/libsrtp
-open-source/libusrsctp
-open-source/libwebsockets
-open-source/local
+open-source/
 outputs
 tags
