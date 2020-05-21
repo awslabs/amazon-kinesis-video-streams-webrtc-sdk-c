@@ -17,6 +17,8 @@
 #define SIGNAING_TEST_CORRELATION_ID                            (PCHAR) "Test_correlation_id"
 #define TEST_SIGNALING_MESSAGE_TTL                              (120 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define TEST_VIDEO_FRAME_SIZE                                   (120 * 1024)
+#define TEST_ICE_CONFIG_INFO_POLL_PERIOD                        (20 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
+#define TEST_ASYNC_ICE_CONFIG_INFO_WAIT_TIMEOUT                 (3 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
 namespace com { namespace amazonaws { namespace kinesis { namespace video { namespace webrtcclient {
 
