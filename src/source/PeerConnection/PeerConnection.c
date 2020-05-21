@@ -203,6 +203,38 @@ CleanUp:
     return retStatus;
 }
 
+STATUS changePeerConnectionState(PKvsPeerConnection pKvsPeerConnection, RTC_PEER_CONNECTION_STATE newState)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    BOOL locked = FALSE;
+    CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
+
+    MUTEX_LOCK(pKvsPeerConnection->peerConnectionObjLock);
+    locked = TRUE;
+
+    /* new and closed state are terminal*/
+    CHK(pKvsPeerConnection->connectionState != newState &&
+        pKvsPeerConnection->connectionState != RTC_PEER_CONNECTION_STATE_FAILED &&
+        pKvsPeerConnection->connectionState != RTC_PEER_CONNECTION_STATE_CLOSED , retStatus);
+
+    pKvsPeerConnection->connectionState = newState;
+    MUTEX_UNLOCK(pKvsPeerConnection->peerConnectionObjLock);
+    locked = FALSE;
+
+    if (pKvsPeerConnection->onConnectionStateChange != NULL) {
+        pKvsPeerConnection->onConnectionStateChange(pKvsPeerConnection->onConnectionStateChangeCustomData, newState);
+    }
+
+CleanUp:
+
+    if (locked) {
+        MUTEX_UNLOCK(pKvsPeerConnection->peerConnectionObjLock);
+    }
+
+    CHK_LOG_ERR(retStatus);
+    return retStatus;
+}
+
 STATUS onFrameReadyFunc(UINT64 customData, UINT16 startIndex, UINT16 endIndex, UINT32 frameSize)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -253,15 +285,10 @@ VOID onIceConnectionStateChange(UINT64 customData, UINT64 connectionState)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) customData;
-    BOOL locked = FALSE;
     RTC_PEER_CONNECTION_STATE newConnectionState = RTC_PEER_CONNECTION_STATE_NEW;
     BOOL startDtlsSession = FALSE;
 
     CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
-    CHK(pKvsPeerConnection->onConnectionStateChange != NULL, retStatus);
-
-    MUTEX_LOCK(pKvsPeerConnection->peerConnectionObjLock);
-    locked = TRUE;
 
     switch (connectionState) {
         case ICE_AGENT_STATE_NEW:
@@ -295,24 +322,13 @@ VOID onIceConnectionStateChange(UINT64 customData, UINT64 connectionState)
             break;
     }
 
-    if (newConnectionState != pKvsPeerConnection->previousConnectionState) {
-        pKvsPeerConnection->previousConnectionState = newConnectionState;
-        pKvsPeerConnection->onConnectionStateChange(pKvsPeerConnection->onConnectionStateChangeCustomData,
-                                                    newConnectionState);
-    }
-
-    MUTEX_UNLOCK(pKvsPeerConnection->peerConnectionObjLock);
-    locked = FALSE;
-
     if (startDtlsSession) {
         CHK_STATUS(dtlsSessionStart(pKvsPeerConnection->pDtlsSession, pKvsPeerConnection->dtlsIsServer));
     }
 
-CleanUp:
+    CHK_STATUS(changePeerConnectionState(pKvsPeerConnection, newConnectionState));
 
-    if (locked) {
-        MUTEX_UNLOCK(pKvsPeerConnection->peerConnectionObjLock);
-    }
+CleanUp:
 
     CHK_LOG_ERR(retStatus);
 }
@@ -423,6 +439,20 @@ VOID onDtlsOutboundPacket(UINT64 customData, PBYTE pBuffer, UINT32 bufferLen)
     iceAgentSendPacket(pKvsPeerConnection->pIceAgent, pBuffer, bufferLen);
 }
 
+VOID onDtlsStateChange(UINT64 customData, RTC_DTLS_TRANSPORT_STATE newDtlsState)
+{
+    PKvsPeerConnection pKvsPeerConnection = NULL;
+    if (customData == 0) {
+        return;
+    }
+
+    pKvsPeerConnection = (PKvsPeerConnection) customData;
+
+    if (newDtlsState == CLOSED) {
+        changePeerConnectionState(pKvsPeerConnection, RTC_PEER_CONNECTION_STATE_CLOSED);
+    }
+}
+
 /* Generate a printable string that does not
  * need to be escaped when encoding in JSON
  */
@@ -472,12 +502,12 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
     CHK_STATUS(generateJSONSafeString(pKvsPeerConnection->localIcePwd, LOCAL_ICE_PWD_LEN));
     CHK_STATUS(generateJSONSafeString(pKvsPeerConnection->localCNAME, LOCAL_CNAME_LEN));
 
-    dtlsSessionCallbacks.customData = (UINT64) pKvsPeerConnection;
-    dtlsSessionCallbacks.outboundPacketFn = onDtlsOutboundPacket;
     CHK_STATUS(createDtlsSession(&dtlsSessionCallbacks, pKvsPeerConnection->timerQueueHandle,
             pConfiguration->kvsRtcConfiguration.generatedCertificateBits,
 	    pConfiguration->kvsRtcConfiguration.generateRSACertificate,
             pConfiguration->certificates, &pKvsPeerConnection->pDtlsSession));
+    CHK_STATUS(dtlsSessionOnOutBoundData(pKvsPeerConnection->pDtlsSession, (UINT64) pKvsPeerConnection, onDtlsOutboundPacket));
+    CHK_STATUS(dtlsSessionOnStateChange(pKvsPeerConnection->pDtlsSession, (UINT64) pKvsPeerConnection, onDtlsStateChange));
 
     CHK_STATUS(hashTableCreateWithParams(CODEC_HASH_TABLE_BUCKET_COUNT, CODEC_HASH_TABLE_BUCKET_LENGTH, &pKvsPeerConnection->pCodecTable));
     CHK_STATUS(hashTableCreateWithParams(CODEC_HASH_TABLE_BUCKET_COUNT, CODEC_HASH_TABLE_BUCKET_LENGTH, &pKvsPeerConnection->pDataChannels));
@@ -493,7 +523,7 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
 
     pKvsPeerConnection->pSrtpSessionLock = MUTEX_CREATE(TRUE);
     pKvsPeerConnection->peerConnectionObjLock = MUTEX_CREATE(FALSE);
-    pKvsPeerConnection->previousConnectionState = RTC_PEER_CONNECTION_STATE_NONE;
+    pKvsPeerConnection->connectionState = RTC_PEER_CONNECTION_STATE_NONE;
     pKvsPeerConnection->MTU = pConfiguration->kvsRtcConfiguration.maximumTransmissionUnit == 0 ? DEFAULT_MTU_SIZE : pConfiguration->kvsRtcConfiguration.maximumTransmissionUnit;
 
     iceAgentCallbacks.customData = (UINT64) pKvsPeerConnection;

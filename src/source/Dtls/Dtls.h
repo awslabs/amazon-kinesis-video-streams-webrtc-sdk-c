@@ -38,12 +38,25 @@ typedef enum {
    SRTP_PROFILE_AES128_CM_HMAC_SHA1_32 = SRTP_AES128_CM_SHA1_32,
 } SRTP_PROFILE;
 
-// Callback that is fired when Dtls Server wishes to send packet
+typedef enum {
+    NEW,
+    CONNECTING, /* DTLS is in the process of negotiating a secure connection and verifying the remote fingerprint. */
+    CONNECTED,  /* DTLS has completed negotiation of a secure connection and verified the remote fingerprint. */
+    CLOSED,     /* The transport has been closed intentionally as the result of receipt of a close_notify alert */
+    FAILED,     /* The transport has failed as the result of an error */
+} RTC_DTLS_TRANSPORT_STATE;
+
+/* Callback that is fired when Dtls Server wishes to send packet */
 typedef VOID (*DtlsSessionOutboundPacketFunc)(UINT64, PBYTE, UINT32);
 
+/*  Callback that is fired when Dtls state has changed */
+typedef VOID (*DtlsSessionOnStateChange)(UINT64, RTC_DTLS_TRANSPORT_STATE);
+
 typedef struct {
-    UINT64 customData;
+    UINT64 outBoundPacketFnCustomData;
     DtlsSessionOutboundPacketFunc outboundPacketFn;
+    UINT64 stateChangeFnCustomData;
+    DtlsSessionOnStateChange stateChangeFn;
 } DtlsSessionCallbacks, *PDtlsSessionCallbacks;
 
 // DtlsKeyingMaterial is information extracted via https://tools.ietf.org/html/rfc5705
@@ -74,6 +87,7 @@ typedef struct {
     BYTE outgoingDataBuffer[MAX_UDP_PACKET_SIZE];
     UINT32 outgoingDataLen;
     UINT64 dtlsSessionStartTime;
+    RTC_DTLS_TRANSPORT_STATE state;
 
     SSL *pSsl;
     MUTEX sslLock;
@@ -113,6 +127,9 @@ STATUS dtlsSessionGetLocalCertificateFingerprint(PDtlsSession, PCHAR, UINT32);
 STATUS dtlsSessionVerifyRemoteCertificateFingerprint(PDtlsSession, PCHAR);
 STATUS dtlsSessionPutApplicationData(PDtlsSession, PBYTE, INT32);
 
+STATUS dtlsSessionOnOutBoundData(PDtlsSession, UINT64, DtlsSessionOutboundPacketFunc);
+STATUS dtlsSessionOnStateChange(PDtlsSession, UINT64, DtlsSessionOnStateChange);
+
 /******** Internal Functions **********/
 STATUS dtlsCheckOutgoingDataBuffer(PDtlsSession);
 STATUS dtlsCertificateFingerprint(X509*, PCHAR);
@@ -121,6 +138,7 @@ STATUS createCertificateAndKey(INT32, BOOL, X509 **ppCert, EVP_PKEY **ppPkey);
 STATUS freeCertificateAndKey(X509 **ppCert, EVP_PKEY **ppPkey);
 STATUS dtlsValidateRtcCertificates(PRtcCertificate, PUINT32);
 STATUS createSslCtx(PDtlsSessionCertificateInfo, UINT32, SSL_CTX**);
+STATUS dtlsSessionChangeState(PDtlsSession, RTC_DTLS_TRANSPORT_STATE);
 
 #ifdef  __cplusplus
 }
