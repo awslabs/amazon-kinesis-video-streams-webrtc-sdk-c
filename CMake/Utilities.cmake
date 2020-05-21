@@ -8,7 +8,9 @@ function(build_dependency lib_name)
       usrsctp
       websockets
       curl
-      mbedtls)
+      mbedtls
+      kvspic
+      kvsCommonLws)
   list(FIND supported_libs ${lib_name} index)
   if(${index} EQUAL -1)
     message(WARNING "${lib_name} is not supported to build from source")
@@ -36,30 +38,30 @@ function(build_dependency lib_name)
   # library building cmake.
   set(build_args ${ARGN})
 
-  file(REMOVE_RECURSE ${KINESIS_VIDEO_OPEN_SOURCE_SRC}/lib${lib_name})
+  file(REMOVE_RECURSE ${OPEN_SRC_INSTALL_PREFIX}/lib${lib_name})
 
   # build library
   configure_file(
     ./CMake/Dependencies/lib${lib_name}-CMakeLists.txt
-    ${KINESIS_VIDEO_OPEN_SOURCE_SRC}/lib${lib_name}/CMakeLists.txt COPYONLY)
+    ${OPEN_SRC_INSTALL_PREFIX}/lib${lib_name}/CMakeLists.txt COPYONLY)
   execute_process(
     COMMAND ${CMAKE_COMMAND} ${build_args}
             -DOPEN_SRC_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX} -G
             ${CMAKE_GENERATOR} .
     RESULT_VARIABLE result
-    WORKING_DIRECTORY ${KINESIS_VIDEO_OPEN_SOURCE_SRC}/lib${lib_name})
+    WORKING_DIRECTORY ${OPEN_SRC_INSTALL_PREFIX}/lib${lib_name})
   if(result)
     message(FATAL_ERROR "CMake step for lib${lib_name} failed: ${result}")
   endif()
   execute_process(
     COMMAND ${CMAKE_COMMAND} --build .
     RESULT_VARIABLE result
-    WORKING_DIRECTORY ${KINESIS_VIDEO_OPEN_SOURCE_SRC}/lib${lib_name})
+    WORKING_DIRECTORY ${OPEN_SRC_INSTALL_PREFIX}/lib${lib_name})
   if(result)
     message(FATAL_ERROR "CMake step for lib${lib_name} failed: ${result}")
   endif()
 
-  file(REMOVE_RECURSE ${KINESIS_VIDEO_OPEN_SOURCE_SRC}/lib${lib_name})
+  file(REMOVE_RECURSE ${OPEN_SRC_INSTALL_PREFIX}/lib${lib_name})
 endfunction()
 
 function(enableSanitizer SANITIZER)
