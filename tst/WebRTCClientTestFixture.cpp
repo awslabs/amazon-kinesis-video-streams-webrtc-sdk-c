@@ -36,6 +36,13 @@ void WebRtcClientTestBase::SetUp()
     mExpectedFrameCount = 0;
     mExpectedDroppedFrameCount = 0;
 
+    // We need to reset the current for every run of the test.
+    // This is done so a failed test that leaked will not cause
+    // failures for every other test that follows as the accounting
+    // is done in a global that has a lifespan tied with the process
+    // rather than the particular test run
+    gInstrumentedAllocatorsTotalAllocationSize = 0;
+    
     SET_INSTRUMENTED_ALLOCATORS();
 
     SET_LOGGER_LOG_LEVEL(LOG_LEVEL_DEBUG);
