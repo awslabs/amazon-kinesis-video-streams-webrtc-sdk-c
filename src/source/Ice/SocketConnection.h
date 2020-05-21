@@ -17,6 +17,7 @@ extern "C" {
                                                         (e) != EWOULDBLOCK && \
                                                         (e) != EINTR && \
                                                         (e) != EINPROGRESS && \
+                                                        (e) != EPERM && \
                                                         (e) != EALREADY) { \
                                                         DLOGD("Close socket %d", (ps)->localSocket); \
                                                         ATOMIC_STORE_BOOL(&(ps)->connectionClosed, TRUE); \
