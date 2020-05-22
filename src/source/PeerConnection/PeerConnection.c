@@ -1053,6 +1053,25 @@ CleanUp:
     return retStatus;
 }
 
+STATUS closePeerConnection(PRtcPeerConnection pPeerConnection)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pPeerConnection;
+
+    CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
+
+    CHK_LOG_ERR(dtlsSessionShutdown(pKvsPeerConnection->pDtlsSession));
+    CHK_LOG_ERR(iceAgentShutdown(pKvsPeerConnection->pIceAgent));
+
+CleanUp:
+
+    CHK_LOG_ERR(retStatus);
+
+    LEAVES();
+    return retStatus;
+}
+
 PUBLIC_API NullableBool canTrickleIceCandidates(PRtcPeerConnection pPeerConnection)
 {
     NullableBool canTrickle = {FALSE, FALSE};

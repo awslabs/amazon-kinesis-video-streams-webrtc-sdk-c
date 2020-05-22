@@ -325,10 +325,6 @@ deadlock:connectSignalingChannelLws
 #     #8 void testing::internal::HandleSehExceptionsInMethodIfSupported<testing::Test, void>(testing::Test*, void (testing::Test::*)(), char const*) <null> (webrtc_client_test+0x6cc5dd)
 race:terminateConnectionWithStatus
 
-# test code synchronized by sleep
-race:PeerConnectionFunctionalityTest_freeTurnDueToP2PFoundBeforeTurnEstablished_Test
-race:PeerConnectionFunctionalityTest_freeTurnDueToP2PFoundAfterTurnEstablished
-
 # For some reason the test pre-amble (setup) interferes with the instrumented allocators.
 # WARNING: ThreadSanitizer: data race (pid=21041)
 #   Write of size 8 at 0x000001426a90 by main thread (mutexes: write M340438538313008496):
@@ -455,3 +451,42 @@ deadlock:getIceConfig
 #
 # SUMMARY: ThreadSanitizer: data race (/home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/open-source/local/lib/libwebsockets.so.15+0xa80d) in _realloc
 race:getIceConfigLws
+
+#  Mutex M17034 acquired here while holding mutex M17028 in main thread:
+#    #0 pthread_mutex_lock /tmp/final/llvm.src/projects/compiler-rt/lib/tsan/../sanitizer_common/sanitizer_common_interceptors.inc:4071:3 (webrtc_client_test+0x50bd4e)
+#    #1 defaultLockMutex <null> (libkvsWebrtcClient.so+0x6db34)
+#    #2 executeGetIceConfigSignalingState /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/StateMachine.c:536:17 (libkvsWebrtcSignalingClient.so+0x2426a)
+#    #3 stepStateMachine <null> (libkvsWebrtcClient.so+0x72dda)
+#    #4 executeGetEndpointSignalingState /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/StateMachine.c:474:5 (libkvsWebrtcSignalingClient.so+0x23f59)
+#    #5 stepStateMachine <null> (libkvsWebrtcClient.so+0x72dda)
+#    #6 executeDescribeSignalingState /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/StateMachine.c:346:5 (libkvsWebrtcSignalingClient.so+0x23919)
+#    #7 stepStateMachine <null> (libkvsWebrtcClient.so+0x72dda)
+#    #8 executeCreateSignalingState /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/StateMachine.c:410:5 (libkvsWebrtcSignalingClient.so+0x23c39)
+#    #9 stepStateMachine <null> (libkvsWebrtcClient.so+0x72dda)
+#    #10 executeDescribeSignalingState /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/StateMachine.c:346:5 (libkvsWebrtcSignalingClient.so+0x23919)
+#    #11 stepStateMachine <null> (libkvsWebrtcClient.so+0x72dda)
+#    #12 executeGetTokenSignalingState /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/StateMachine.c:272:5 (libkvsWebrtcSignalingClient.so+0x2357a)
+#    #13 stepStateMachine <null> (libkvsWebrtcClient.so+0x72dda)
+#    #14 createSignalingSync /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/Signaling.c:169:5 (libkvsWebrtcSignalingClient.so+0x1dcf9)
+#    #15 com::amazonaws::kinesis::video::webrtcclient::SignalingApiFunctionalityTest_asyncIceConfigRefreshBeforeConnect_Test::TestBody() /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/tst/SignalingApiFunctionalityTest.cpp:2358:5 (webrtc_client_test+0x670a4a)
+#    #16 void testing::internal::HandleSehExceptionsInMethodIfSupported<testing::Test, void>(testing::Test*, void (testing::Test::*)(), char const*) <null> (webrtc_client_test+0x71de6d)
+#    #17 main /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/tst/main.cpp:66:14 (webrtc_client_test+0x6db282)
+#    Hint: use TSAN_OPTIONS=second_deadlock_stack=1 to get more informative warning message
+#  Mutex M17028 acquired here while holding mutex M17034 in thread T709:
+#    #0 pthread_mutex_lock /tmp/final/llvm.src/projects/compiler-rt/lib/tsan/../sanitizer_common/sanitizer_common_interceptors.inc:4071:3 (webrtc_client_test+0x50bd4e)
+#    #1 defaultLockMutex <null> (libkvsWebrtcClient.so+0x6db34)
+#    #2 refreshIceConfigurationCallback /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/Signaling.c:626:9 (libkvsWebrtcSignalingClient.so+0x20c63)
+#    #3 timerQueueExecutor <null> (libkvsWebrtcClient.so+0x71690)
+#  Thread T27 (tid=20249, running) created by main thread at:
+#    #0 pthread_create /tmp/final/llvm.src/projects/compiler-rt/lib/tsan/rtl/tsan_interceptors.cc:965:3 (webrtc_client_test+0x4f0245)
+#    #1 defaultCreateThread <null> (libkvsWebrtcClient.so+0x6f8a3)
+#    #2 com::amazonaws::kinesis::video::webrtcclient::SignalingApiFunctionalityTest_asyncIceConfigRefreshBeforeConnect_Test::TestBody() /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/tst/SignalingApiFunctionalityTest.cpp:2358:5 (webrtc_client_test+0x670a4a)
+#    #3 void testing::internal::HandleSehExceptionsInMethodIfSupported<testing::Test, void>(testing::Test*, void (testing::Test::*)(), char const*) <null> (webrtc_client_test+0x71de6d)
+#    #4 main /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/tst/main.cpp:66:14 (webrtc_client_test+0x6db282)
+deadlock:executeGetIceConfigSignalingState
+
+# test code synchronized by sleep
+race:PeerConnectionFunctionalityTest_freeTurnDueToP2PFoundBeforeTurnEstablished_Test
+race:PeerConnectionFunctionalityTest_freeTurnDueToP2PFoundAfterTurnEstablished
+race:DataChannelFunctionalityTest_createDataChannel_Disconnected_Test
+race:SignalingApiFunctionalityTest_iceRefreshEmulationWithFaultInjectionErrorDisconnect_Test

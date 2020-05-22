@@ -1435,6 +1435,17 @@ PUBLIC_API STATUS setRemoteDescription(PRtcPeerConnection, PRtcSessionDescriptio
 PUBLIC_API STATUS restartIce(PRtcPeerConnection);
 
 /**
+ * @brief Close the underlying DTLS session and IceAgent connection. Trigger RtcOnConnectionStateChange to RTC_PEER_CONNECTION_STATE_CLOSED
+ *
+ * Reference: https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-close
+ *
+ * @param[in] PRtcPeerConnection Initialized RtcPeerConnection
+ *
+ * @return - STATUS code of the execution. STATUS_SUCCESS on success
+ */
+PUBLIC_API STATUS closePeerConnection(PRtcPeerConnection);
+
+/**
  * @brief Create a new RtcRtpTransceiver and add it to the set of transceivers.
  *
  * Reference https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-addtransceiver

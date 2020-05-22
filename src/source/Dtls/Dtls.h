@@ -77,6 +77,8 @@ typedef struct {
 
 typedef struct {
     volatile ATOMIC_BOOL isStarted;
+    volatile ATOMIC_BOOL sslInitFinished;
+    volatile ATOMIC_BOOL shutdown;
     SSL_CTX *pSslCtx;
     CHAR certFingerprints[MAX_RTCCONFIGURATION_CERTIFICATES][CERTIFICATE_FINGERPRINT_LENGTH + 1];
     UINT32 certificateCount;
@@ -126,6 +128,7 @@ STATUS dtlsSessionPopulateKeyingMaterial(PDtlsSession, PDtlsKeyingMaterial);
 STATUS dtlsSessionGetLocalCertificateFingerprint(PDtlsSession, PCHAR, UINT32);
 STATUS dtlsSessionVerifyRemoteCertificateFingerprint(PDtlsSession, PCHAR);
 STATUS dtlsSessionPutApplicationData(PDtlsSession, PBYTE, INT32);
+STATUS dtlsSessionShutdown(PDtlsSession);
 
 STATUS dtlsSessionOnOutBoundData(PDtlsSession, UINT64, DtlsSessionOutboundPacketFunc);
 STATUS dtlsSessionOnStateChange(PDtlsSession, UINT64, DtlsSessionOnStateChange);

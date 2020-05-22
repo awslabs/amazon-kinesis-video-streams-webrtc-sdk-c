@@ -84,6 +84,9 @@ TEST_F(DataChannelFunctionalityTest, createDataChannel_Disconnected)
     ASSERT_EQ(1u, remoteOpen.channels.at("Offer PeerConnection"));
     ASSERT_EQ(1u, remoteOpen.channels.at("Answer PeerConnection"));
 
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+
     freePeerConnection(&offerPc);
     freePeerConnection(&answerPc);
 }
