@@ -19,6 +19,7 @@ STATUS createSignalingClientSync(PSignalingClientInfo pClientInfo,
     MEMSET(&signalingClientInfoInternal, 0x00, SIZEOF(signalingClientInfoInternal));
     signalingClientInfoInternal.signalingClientInfo = *pClientInfo;
 
+    DLOGI("%p, %p, %p, %p, %p", &signalingClientInfoInternal, pChannelInfo, pCallbacks, pCredentialProvider, &pSignalingClient);
     CHK_STATUS(createSignalingSync(&signalingClientInfoInternal, pChannelInfo, pCallbacks, pCredentialProvider, &pSignalingClient));
 
     *pSignalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);

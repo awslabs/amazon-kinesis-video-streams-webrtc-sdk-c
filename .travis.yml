@@ -37,7 +37,7 @@ matrix:
         - mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE
       script:
         - make
-        - ./tst/webrtc_client_test
+        - ./tst/webrtc_client_test --gtest_filter="PeerConnectionFunctionalityTest.iceRestartTestForcedTurn"
       after_failure: skip # timeout not available on MacOS
 
     - name: "OSX Clang"
@@ -101,7 +101,7 @@ matrix:
       script:
         - msan-tester cmake .. -DBUILD_DEPENDENCIES=FALSE -DBUILD_TEST=TRUE -DMEMORY_SANITIZER=TRUE -DCMAKE_CXX_FLAGS="-stdlib=libc++ -L/usr/src/libcxx_msan/lib -lc++abi -I/usr/src/libcxx_msan/include -I/usr/src/libcxx_msan/include/c++/v1"
         - msan-tester make
-        - msan-tester ./tst/webrtc_client_test
+        - msan-tester ./tst/webrtc_client_test --gtest_filter="PeerConnectionFunctionalityTest.iceRestartTestForcedTurn"
       after_failure: skip # no coredumps in container
 
     # ThreadSanitizer
@@ -142,7 +142,7 @@ matrix:
       script:
         - alpine cmake .. -DBUILD_STATIC=TRUE -DBUILD_OPENSSL=TRUE -DBUILD_TEST=TRUE
         - alpine make
-        - alpine ./tst/webrtc_client_test
+        - alpine ./tst/webrtc_client_test --gtest_filter="PeerConnectionFunctionalityTest.iceRestartTestForcedTurn"
       after_failure: skip # no coredumps in container
 
     # Cross-compilation to ARM, no tests are run

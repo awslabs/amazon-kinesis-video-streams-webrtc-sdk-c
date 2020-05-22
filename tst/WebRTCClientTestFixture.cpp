@@ -57,6 +57,7 @@ void WebRtcClientTestBase::SetUp()
         mCaCertPath = (PCHAR) DEFAULT_KVS_CACERT_PATH;
     }
 
+    DLOGI("ACCESS_KEY_ID: %s", mAccessKey ? "EXISTS" : "NOPE");
     if (mAccessKey) {
         ASSERT_EQ(STATUS_SUCCESS, createStaticCredentialProvider(mAccessKey, 0, mSecretKey, 0,
                                                                  mSessionToken, 0, MAX_UINT64, &mTestCredentialProvider));
