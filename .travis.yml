@@ -14,6 +14,12 @@ addons:
     packages:
       - gdb
 
+before_install:
+  # Guard PRs from forks because they won't be able to get credentials, which will cause the tests to always fail
+  - [[ -z $AWS_ACCESS_KEY_ID || -z $AWS_SECRET_ACCESS_KEY ]] && \
+      echo "Creating a PR from a fork is not allowed. Travis doesn't allow sharing secret keys with fork builds." && \
+      exit 1
+
 script:
   - export AWS_KVS_LOG_LEVEL=2
   - make
