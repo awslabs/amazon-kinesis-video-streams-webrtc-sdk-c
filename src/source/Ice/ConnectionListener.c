@@ -169,7 +169,6 @@ STATUS connectionListenerRemoveAllConnection(PConnectionListener pConnectionList
     while (pCurNode != NULL) {
         pSocketConnection = (PSocketConnection) pCurNode->data;
         pCurNode = pCurNode->pNext;
-
         CHK_STATUS(socketConnectionClosed(pSocketConnection));
     }
 

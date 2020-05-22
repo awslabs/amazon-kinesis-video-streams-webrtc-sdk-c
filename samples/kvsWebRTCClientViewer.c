@@ -157,7 +157,7 @@ INT32 main(INT32 argc, CHAR *argv[])
     }
 
     // Block until interrupted
-    while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->interrupted)) {
+    while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->interrupted) && !ATOMIC_LOAD_BOOL(&pSampleStreamingSession->terminateFlag)) {
         THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
     }
 

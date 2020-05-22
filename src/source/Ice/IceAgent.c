@@ -659,7 +659,7 @@ STATUS iceAgentShutdown(PIceAgent pIceAgent)
     UINT32 turnConnectionCount = 0;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
-    ATOMIC_STORE_BOOL(&pIceAgent->shutdown, TRUE);
+    CHK(!ATOMIC_EXCHANGE_BOOL(&pIceAgent->shutdown, TRUE), retStatus);
 
     if (pIceAgent->iceAgentStateTimerTask != UINT32_MAX) {
         CHK_STATUS(timerQueueCancelTimer(pIceAgent->timerQueueHandle, pIceAgent->iceAgentStateTimerTask, (UINT64) pIceAgent));
