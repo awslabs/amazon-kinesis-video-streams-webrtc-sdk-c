@@ -844,6 +844,10 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
     CHK_STATUS(setTransceiverPayloadTypes(pKvsPeerConnection->pCodecTable, pKvsPeerConnection->pRtxTable, pKvsPeerConnection->pTransceievers));
     CHK_STATUS(setReceiversSsrc(pSessionDescription, pKvsPeerConnection->pTransceievers));
 
+    if (NULL != getenv(DEBUG_LOG_SDP)) {
+        DLOGD("REMOTE_SDP:%s\n", pSessionDescriptionInit->sdp);
+    }
+
 CleanUp:
 
     LEAVES();
@@ -904,12 +908,16 @@ STATUS setLocalDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescri
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
+
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pPeerConnection;
 
     CHK(pKvsPeerConnection != NULL && pSessionDescriptionInit != NULL, STATUS_NULL_ARG);
 
     CHK_STATUS(iceAgentStartGathering(pKvsPeerConnection->pIceAgent));
 
+    if (NULL != getenv(DEBUG_LOG_SDP)) {
+        DLOGD("LOCAL_SDP:%s", pSessionDescriptionInit->sdp);
+    }
 CleanUp:
 
     LEAVES();

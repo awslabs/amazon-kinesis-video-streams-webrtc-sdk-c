@@ -33,6 +33,9 @@ extern "C" {
 #define DATA_CHANNEL_HASH_TABLE_BUCKET_COUNT            200
 #define DATA_CHANNEL_HASH_TABLE_BUCKET_LENGTH           2
 
+// Environment variable to display SDPs
+#define DEBUG_LOG_SDP                                                     ((PCHAR) "DEBUG_LOG_SDP")
+
 typedef enum {
     RTC_RTX_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE = 1,
     RTC_RTX_CODEC_VP8 = 2,
