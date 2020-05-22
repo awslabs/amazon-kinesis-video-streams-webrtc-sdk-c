@@ -211,6 +211,10 @@ configuration.certificates[0].pCertificate = pSampleConfiguration->rtcConfig.cer
 configuration.certificates[0].pPrivateKey = pSampleConfiguration->rtcConfig.certificates[0].pPrivateKey;
 ```
 
+## Getting the SDPs
+If you would like to print out the SDPs, run this command:
+`export DEBUG_LOG_SDP=TRUE`
+
 ## Documentation
 All Public APIs are documented in our [Include.h](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/blob/master/src/include/com/amazonaws/kinesis/video/webrtcclient/Include.h), we also generate a [Doxygen](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-c/) each commit for easier navigation.
 
