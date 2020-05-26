@@ -209,7 +209,8 @@ STATUS signalingCacheSaveToFile(PSignalingFileCacheEntry pSignalingFileCacheEntr
         }
     }
 
-    CHK_WARN(i == entryCount && entryCount < MAX_SIGNALING_CACHE_ENTRY_COUNT, STATUS_INVALID_OPERATION,
+    /* at this point i is at most entryCount */
+    CHK_WARN(entryCount < MAX_SIGNALING_CACHE_ENTRY_COUNT, STATUS_INVALID_OPERATION,
              "Failed to store signaling cache because max entry count of %u reached", MAX_SIGNALING_CACHE_ENTRY_COUNT);
 
     entries[i] = *pSignalingFileCacheEntry;

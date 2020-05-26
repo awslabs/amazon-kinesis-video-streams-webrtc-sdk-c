@@ -54,6 +54,7 @@ STATUS dtlsTransmissionTimerCallback(UINT32 timerID, UINT64 currentTime, UINT64 
     if (SSL_is_init_finished(pDtlsSession->pSsl)) {
         DLOGD("DTLS init completed. Time taken %" PRIu64 " ms",
               (GETTIME() - pDtlsSession->dtlsSessionStartTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+        CHK_STATUS(dtlsSessionChangeState(pDtlsSession, CONNECTED));
         CHK(FALSE, STATUS_TIMER_QUEUE_STOP_SCHEDULING);
     }
 
@@ -206,6 +207,27 @@ CleanUp:
     return retStatus;
 }
 
+STATUS dtlsSessionChangeState(PDtlsSession pDtlsSession, RTC_DTLS_TRANSPORT_STATE newState)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(pDtlsSession != NULL, STATUS_NULL_ARG);
+    CHK(pDtlsSession->state != newState, retStatus);
+
+    pDtlsSession->state = newState;
+    if (pDtlsSession->dtlsSessionCallbacks.stateChangeFn != NULL) {
+        pDtlsSession->dtlsSessionCallbacks.stateChangeFn(
+                pDtlsSession->dtlsSessionCallbacks.stateChangeFnCustomData,
+                newState);
+    }
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
+
 STATUS createSsl(SSL_CTX *pSslCtx, SSL **ppSsl)
 {
     ENTERS();
@@ -285,6 +307,7 @@ STATUS createDtlsSession(PDtlsSessionCallbacks pDtlsSessionCallbacks, TIMER_QUEU
     pDtlsSession->timerQueueHandle = timerQueueHandle;
     pDtlsSession->timerId = UINT32_MAX;
     pDtlsSession->sslLock = MUTEX_CREATE(TRUE);
+    pDtlsSession->state = NEW;
     ATOMIC_STORE_BOOL(&pDtlsSession->isStarted, FALSE);
 
     pDtlsSession->dtlsSessionCallbacks = *pDtlsSessionCallbacks;
@@ -385,6 +408,8 @@ STATUS dtlsSessionStart(PDtlsSession pDtlsSession, BOOL isServer)
     MUTEX_LOCK(pDtlsSession->sslLock);
     locked = TRUE;
 
+    CHK_STATUS(dtlsSessionChangeState(pDtlsSession, CONNECTING));
+
     /* Need to set isStarted to TRUE after acquiring the lock to make sure dtlsSessionProcessPacket
      * dont proceed before dtlsSessionStart finish */
     ATOMIC_STORE_BOOL(&pDtlsSession->isStarted, TRUE);
@@ -473,7 +498,11 @@ STATUS dtlsSessionProcessPacket(PDtlsSession pDtlsSession, PBYTE pData, PINT32 p
     // should clear error before SSL_read: https://stackoverflow.com/a/47218133
     ERR_clear_error();
     sslRet = SSL_read(pDtlsSession->pSsl, pData, *pDataLen);
-    if (sslRet <= 0) {
+
+    if (sslRet == 0 && SSL_get_error(pDtlsSession->pSsl, sslRet) == SSL_ERROR_ZERO_RETURN) {
+        DLOGD("Detected DTLS close_notify alert");
+        CHK_STATUS(dtlsSessionChangeState(pDtlsSession, CLOSED));
+    } else if (sslRet <= 0) {
         LOG_OPENSSL_ERROR("SSL_read");
     }
 
@@ -520,7 +549,7 @@ STATUS dtlsSessionPutApplicationData(PDtlsSession pDtlsSession, PBYTE pData, INT
     if ((pending = BIO_ctrl_pending(wbio)) > 0) {
         pending = BIO_read(wbio, buf, pending);
         pDtlsSession->dtlsSessionCallbacks.outboundPacketFn(
-                pDtlsSession->dtlsSessionCallbacks.customData,
+                pDtlsSession->dtlsSessionCallbacks.outBoundPacketFnCustomData,
                 buf,
                 (UINT32) pending);
     }
@@ -529,6 +558,32 @@ CleanUp:
     MUTEX_UNLOCK(pDtlsSession->sslLock);
 
     LEAVES();
+    return retStatus;
+}
+
+STATUS dtlsSessionOnOutBoundData(PDtlsSession pDtlsSession, UINT64 customData, DtlsSessionOutboundPacketFunc callbackFn)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(pDtlsSession != NULL && callbackFn != NULL, STATUS_NULL_ARG);
+
+    pDtlsSession->dtlsSessionCallbacks.outboundPacketFn = callbackFn;
+    pDtlsSession->dtlsSessionCallbacks.outBoundPacketFnCustomData = customData;
+
+CleanUp:
+    return retStatus;
+}
+
+STATUS dtlsSessionOnStateChange(PDtlsSession pDtlsSession, UINT64 customData, DtlsSessionOnStateChange callbackFn)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(pDtlsSession != NULL && callbackFn != NULL, STATUS_NULL_ARG);
+
+    pDtlsSession->dtlsSessionCallbacks.stateChangeFn = callbackFn;
+    pDtlsSession->dtlsSessionCallbacks.stateChangeFnCustomData = customData;
+
+CleanUp:
     return retStatus;
 }
 
@@ -548,7 +603,7 @@ STATUS dtlsCheckOutgoingDataBuffer(PDtlsSession pDtlsSession)
     if (dataLenWritten > 0) {
         pDtlsSession->outgoingDataLen = (UINT32) dataLenWritten;
         pDtlsSession->dtlsSessionCallbacks.outboundPacketFn(
-                pDtlsSession->dtlsSessionCallbacks.customData,
+                pDtlsSession->dtlsSessionCallbacks.outBoundPacketFnCustomData,
                 pDtlsSession->outgoingDataBuffer,
                 pDtlsSession->outgoingDataLen);
     } else {
@@ -676,6 +731,10 @@ STATUS dtlsSessionVerifyRemoteCertificateFingerprint(PDtlsSession pDtlsSession, 
 CleanUp:
     if (pRemoteCertificate != NULL) {
         X509_free(pRemoteCertificate);
+    }
+
+    if (retStatus == STATUS_SSL_REMOTE_CERTIFICATE_VERIFICATION_FAILED) {
+        dtlsSessionChangeState(pDtlsSession, FAILED);
     }
 
     if (locked) {

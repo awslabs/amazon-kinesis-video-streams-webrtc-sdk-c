@@ -177,6 +177,20 @@ STATUS freeIceAgent(PIceAgent* ppIceAgent)
         CHK_LOG_ERR(doubleListFree(pIceAgent->localCandidates));
     }
 
+    /* In case we fail in the middle of a ICE restart */
+    if (ATOMIC_LOAD_BOOL(&pIceAgent->restart) && pIceAgent->pDataSendingIceCandidatePair != NULL) {
+        if (IS_CANN_PAIR_SENDING_FROM_RELAYED(pIceAgent->pDataSendingIceCandidatePair)) {
+            CHK_LOG_ERR(freeTurnConnection(&pIceAgent->pDataSendingIceCandidatePair->local->pTurnConnection));
+        } else {
+            CHK_LOG_ERR(freeSocketConnection(&pIceAgent->pDataSendingIceCandidatePair->local->pSocketConnection));
+        }
+
+        MEMFREE(pIceAgent->pDataSendingIceCandidatePair->local);
+        CHK_LOG_ERR(freeIceCandidatePair(&pIceAgent->pDataSendingIceCandidatePair));
+
+        pIceAgent->pDataSendingIceCandidatePair = NULL;
+    }
+
     if (pIceAgent->remoteCandidates != NULL) {
         // remote candidates dont have socketConnection
         CHK_LOG_ERR(doubleListClear(pIceAgent->remoteCandidates, TRUE));
