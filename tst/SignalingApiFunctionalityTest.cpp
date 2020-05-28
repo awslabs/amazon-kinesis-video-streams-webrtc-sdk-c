@@ -2214,6 +2214,7 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingTest)
     CHAR signalingChannelName[64];
     const UINT32 totalChannelCount = MAX_SIGNALING_CACHE_ENTRY_COUNT + 1;
     UINT32 i, describeCountNoCache, getEndpointCountNoCache;
+    CHAR channelArn[MAX_ARN_LEN + 1];
 
     signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
     signalingClientCallbacks.customData = (UINT64) this;
@@ -2264,7 +2265,23 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingTest)
         SPRINTF(signalingChannelName, "%s%u", TEST_SIGNALING_CHANNEL_NAME, i);
         channelInfo.pChannelName = signalingChannelName;
         EXPECT_EQ(STATUS_SUCCESS, createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks,
+                                                      (PAwsCredentialProvider) mTestCredentialProvider, &pSignalingClient))
+                                                      << "Failed on channel name: " << channelInfo.pChannelName;
+
+        // Store the channel ARN to be used later
+        STRCPY(channelArn, pSignalingClient->channelDescription.channelArn);
+
+        signalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
+        EXPECT_TRUE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
+        EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+
+        // Repeat the same with the ARN only
+        channelInfo.pChannelName = NULL;
+        channelInfo.pChannelArn = channelArn;
+
+        EXPECT_EQ(STATUS_SUCCESS, createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks,
                                                       (PAwsCredentialProvider) mTestCredentialProvider, &pSignalingClient));
+
         signalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
         EXPECT_TRUE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
         EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
