@@ -58,6 +58,11 @@ extern "C" {
 #define STUN_ATTRIBUTE_CHANNEL_NUMBER_LEN               (UINT16) 4
 
 /**
+ * The flag is 32 bit long but only 2 bits are used
+ */
+#define STUN_ATTRIBUTE_CHANGE_REQUEST_FLAG_LEN          (UINT16) 4
+
+/**
  * Ice-controll and Ice-controlling attribute value length = 8 bytes = 64 bits for a UINT64 tie breaker
  */
 #define STUN_ATTRIBUTE_ICE_CONTROL_LEN                  (UINT16) 8
@@ -108,6 +113,12 @@ extern "C" {
 #define STUN_ERROR_CODE_PACKET_ERROR_CODE_OFFSET        3
 #define STUN_ERROR_CODE_PACKET_ERROR_PHRASE_OFFSET      4
 #define STUN_PACKET_TRANSACTION_ID_OFFSET               8
+
+/**
+ * https://tools.ietf.org/html/rfc3489#section-11.2.4
+ */
+#define STUN_ATTRIBUTE_CHANGE_REQUEST_FLAG_CHANGE_IP    4
+#define STUN_ATTRIBUTE_CHANGE_REQUEST_FLAG_CHANGE_PORT  2
 
 /**
  * Taking a PBYTE pointing to stun error packet's error code attribute's error class location and another PBYTE
@@ -177,7 +188,7 @@ typedef enum {
     STUN_ATTRIBUTE_TYPE_RESPONSE_ADDRESS                = (UINT16) 0x0002,
     STUN_ATTRIBUTE_TYPE_CHANGE_REQUEST                  = (UINT16) 0x0003,
     STUN_ATTRIBUTE_TYPE_SOURCE_ADDRESS                  = (UINT16) 0x0004,
-    STUN_ATTRIBUTE_TYPE_CHANGE_ADDRESS                  = (UINT16) 0x0005,
+    STUN_ATTRIBUTE_TYPE_CHANGED_ADDRESS                 = (UINT16) 0x0005,
     STUN_ATTRIBUTE_TYPE_USERNAME                        = (UINT16) 0x0006,
     STUN_ATTRIBUTE_TYPE_PASSWORD                        = (UINT16) 0x0007,
     STUN_ATTRIBUTE_TYPE_MESSAGE_INTEGRITY               = (UINT16) 0x0008,
@@ -330,6 +341,13 @@ typedef struct {
     UINT16 reserve;
 } StunAttributeChannelNumber, *PStunAttributeChannelNumber;
 
+typedef struct {
+    StunAttributeHeader attribute;
+
+    /* only two bit of changeFlag is used. 0x00000002 means change ip. 0x00000004 means change port */
+    UINT32 changeFlag;
+} StunAttributeChangeRequest, *PStunAttributeChangeRequest;
+
 /**
  * Internal representation of the STUN packet.
  *
@@ -366,6 +384,7 @@ STATUS appendStunErrorCodeAttribute(PStunPacket, PCHAR, UINT16);
 STATUS appendStunIceControllAttribute(PStunPacket, STUN_ATTRIBUTE_TYPE, UINT64);
 STATUS appendStunDataAttribute(PStunPacket, PBYTE, UINT16);
 STATUS appendStunChannelNumberAttribute(PStunPacket, UINT16);
+STATUS appendStunChangeRequestAttribute(PStunPacket, UINT32);
 
 /**
  * check if PStunPacket has an attribute of type STUN_ATTRIBUTE_TYPE. If so, return the first occurrence through
