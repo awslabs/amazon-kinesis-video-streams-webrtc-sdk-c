@@ -92,7 +92,6 @@ STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen,
             destIpList[ipCount].isPointToPoint = ((ifa->ifa_flags & IFF_POINTOPOINT) != 0);
 
             if(filter != NULL) {
-                DLOGI("Callback set to allow network interface filtering");
                 // The callback evaluates to a FALSE if the application is interested in black listing an interface
                 if(filter(customData, ifa->ifa_name) == FALSE) {
                     filterSet = FALSE;

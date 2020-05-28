@@ -79,6 +79,7 @@ STATUS serializeStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passw
     PStunAttributeUsername pStunAttributeUsername;
     PStunAttributePriority pStunAttributePriority;
     PStunAttributeLifetime pStunAttributeLifetime;
+    PStunAttributeChangeRequest pStunAttributeChangeRequest;
     PStunAttributeRequestedTransport pStunAttributeRequestedTransport;
     PStunAttributeRealm pStunAttributeRealm;
     PStunAttributeNonce pStunAttributeNonce;
@@ -133,6 +134,7 @@ STATUS serializeStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passw
             case STUN_ATTRIBUTE_TYPE_SOURCE_ADDRESS:
             case STUN_ATTRIBUTE_TYPE_REFLECTED_FROM:
             case STUN_ATTRIBUTE_TYPE_XOR_PEER_ADDRESS:
+            case STUN_ATTRIBUTE_TYPE_CHANGED_ADDRESS:
 
                 // Set the size before proceeding - this will get reset by the actual required size
                 encodedLen = remaining;
@@ -225,6 +227,28 @@ STATUS serializeStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passw
 
                     // Package the value
                     putInt32((PINT32) (pCurrentBufferPosition + STUN_ATTRIBUTE_HEADER_LEN), pStunAttributeLifetime->lifetime);
+                }
+
+                break;
+
+            case STUN_ATTRIBUTE_TYPE_CHANGE_REQUEST:
+
+                pStunAttributeChangeRequest = (PStunAttributeChangeRequest) pStunAttributeHeader;
+
+                encodedLen = STUN_ATTRIBUTE_HEADER_LEN + STUN_ATTRIBUTE_CHANGE_REQUEST_FLAG_LEN;
+
+                CHK(!fingerprintFound && !messaageIntegrityFound, STATUS_STUN_ATTRIBUTES_AFTER_FINGERPRINT_MESSAGE_INTEGRITY);
+
+                if (pBuffer != NULL) {
+                    CHK(remaining >= encodedLen, STATUS_NOT_ENOUGH_MEMORY);
+
+                    // Package the message header first
+                    PACKAGE_STUN_ATTR_HEADER(pCurrentBufferPosition, pStunAttributeHeader->type,
+                                             pStunAttributeHeader->length);
+
+                    // Package the value
+                    putInt32((PINT32) (pCurrentBufferPosition + STUN_ATTRIBUTE_HEADER_LEN),
+                             pStunAttributeChangeRequest->changeFlag);
                 }
 
                 break;
@@ -539,6 +563,7 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
     PStunAttributeFingerprint pStunAttributeFingerprint;
     PStunAttributePriority pStunAttributePriority;
     PStunAttributeLifetime pStunAttributeLifetime;
+    PStunAttributeChangeRequest pStunAttributeChangeRequest;
     PStunAttributeRequestedTransport pStunAttributeRequestedTransport;
     PStunAttributeRealm pStunAttributeRealm;
     PStunAttributeNonce pStunAttributeNonce;
@@ -591,6 +616,7 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
             case STUN_ATTRIBUTE_TYPE_REFLECTED_FROM:
             case STUN_ATTRIBUTE_TYPE_XOR_RELAYED_ADDRESS:
             case STUN_ATTRIBUTE_TYPE_XOR_PEER_ADDRESS:
+            case STUN_ATTRIBUTE_TYPE_CHANGED_ADDRESS:
                 attributeSize = SIZEOF(StunAttributeAddress);
 
                 // Cast, swap and get the size
@@ -636,6 +662,15 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
                 attributeSize = SIZEOF(StunAttributeLifetime);
 
                 CHK(stunAttributeHeader.length == STUN_ATTRIBUTE_LIFETIME_LEN, STATUS_STUN_INVALID_LIFETIME_ATTRIBUTE_LENGTH);
+                CHK(!fingerprintFound && !messaageIntegrityFound, STATUS_STUN_ATTRIBUTES_AFTER_FINGERPRINT_MESSAGE_INTEGRITY);
+
+                break;
+
+            case STUN_ATTRIBUTE_TYPE_CHANGE_REQUEST:
+                attributeSize = SIZEOF(StunAttributeChangeRequest);
+
+                CHK(stunAttributeHeader.length == STUN_ATTRIBUTE_CHANGE_REQUEST_FLAG_LEN,
+                    STATUS_STUN_INVALID_CHANGE_REQUEST_ATTRIBUTE_LENGTH);
                 CHK(!fingerprintFound && !messaageIntegrityFound, STATUS_STUN_ATTRIBUTES_AFTER_FINGERPRINT_MESSAGE_INTEGRITY);
 
                 break;
@@ -787,6 +822,7 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
             case STUN_ATTRIBUTE_TYPE_REFLECTED_FROM:
             case STUN_ATTRIBUTE_TYPE_XOR_RELAYED_ADDRESS:
             case STUN_ATTRIBUTE_TYPE_XOR_PEER_ADDRESS:
+            case STUN_ATTRIBUTE_TYPE_CHANGED_ADDRESS:
                 pStunAttributeAddress = (PStunAttributeAddress) pDestAttribute;
 
                 // Copy the entire structure and swap
@@ -853,6 +889,15 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
                 pStunAttributeLifetime->lifetime = (UINT32) getInt32(* (PUINT32) ((PBYTE) pStunAttributeHeader + STUN_ATTRIBUTE_HEADER_LEN));
 
                 attributeSize = SIZEOF(StunAttributeLifetime);
+
+                break;
+
+            case STUN_ATTRIBUTE_TYPE_CHANGE_REQUEST:
+                pStunAttributeChangeRequest = (PStunAttributeChangeRequest) pDestAttribute;
+
+                pStunAttributeChangeRequest->changeFlag = (UINT32) getInt32(* (PUINT32) ((PBYTE) pStunAttributeHeader + STUN_ATTRIBUTE_HEADER_LEN));
+
+                attributeSize = SIZEOF(StunAttributeChangeRequest);
 
                 break;
 
@@ -1337,6 +1382,39 @@ CleanUp:
     return retStatus;
 }
 
+STATUS appendStunChangeRequestAttribute(PStunPacket pStunPacket, UINT32 changeFlag)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PStunAttributeChangeRequest pAttribute = NULL;
+    PStunAttributeHeader pAttributeHeader = NULL;
+
+    CHK_STATUS(getFirstAvailableStunAttribute(pStunPacket, &pAttributeHeader));
+    pAttribute = (PStunAttributeChangeRequest) pAttributeHeader;
+
+    // Validate the overall size
+    CHK((PBYTE) pStunPacket + pStunPacket->allocationSize >=
+        (PBYTE) pAttribute + ROUND_UP(SIZEOF(StunAttributeChangeRequest), 8),
+        STATUS_NOT_ENOUGH_MEMORY);
+
+    // Set up the new entry and copy data over
+    pStunPacket->attributeList[pStunPacket->attributesCount++] = (PStunAttributeHeader) pAttribute;
+
+    pAttribute->attribute.length = STUN_ATTRIBUTE_CHANGE_REQUEST_FLAG_LEN;
+    pAttribute->attribute.type = STUN_ATTRIBUTE_TYPE_CHANGE_REQUEST;
+
+    // Set the change flag
+    pAttribute->changeFlag = changeFlag;
+
+    // Fix-up the STUN header message length
+    pStunPacket->header.messageLength += pAttribute->attribute.length + STUN_ATTRIBUTE_HEADER_LEN;
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
+
 STATUS appendStunRequestedTransportAttribute(PStunPacket pStunPacket, UINT8 protocol)
 {
     ENTERS();
@@ -1655,6 +1733,7 @@ UINT16 getPackagedStunAttributeSize(PStunAttributeHeader pStunAttributeHeader)
         case STUN_ATTRIBUTE_TYPE_SOURCE_ADDRESS:
         case STUN_ATTRIBUTE_TYPE_REFLECTED_FROM:
         case STUN_ATTRIBUTE_TYPE_XOR_PEER_ADDRESS:
+        case STUN_ATTRIBUTE_TYPE_CHANGED_ADDRESS:
             length = SIZEOF(StunAttributeAddress);
             break;
         case STUN_ATTRIBUTE_TYPE_USE_CANDIDATE:
@@ -1666,6 +1745,9 @@ UINT16 getPackagedStunAttributeSize(PStunAttributeHeader pStunAttributeHeader)
             break;
         case STUN_ATTRIBUTE_TYPE_LIFETIME:
             length = SIZEOF(StunAttributeLifetime);
+            break;
+        case STUN_ATTRIBUTE_TYPE_CHANGE_REQUEST:
+            length = SIZEOF(StunAttributeChangeRequest);
             break;
         case STUN_ATTRIBUTE_TYPE_REQUESTED_TRANSPORT:
             length = SIZEOF(StunAttributeRequestedTransport);

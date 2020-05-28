@@ -101,6 +101,7 @@ extern "C" {
 #define STATUS_STUN_INVALID_ERROR_CODE_ATTRIBUTE_LENGTH                             STATUS_STUN_BASE + 0x00000016
 #define STATUS_STUN_INVALID_ICE_CONTROL_ATTRIBUTE_LENGTH                            STATUS_STUN_BASE + 0x00000017
 #define STATUS_STUN_INVALID_CHANNEL_NUMBER_ATTRIBUTE_LENGTH                         STATUS_STUN_BASE + 0x00000018
+#define STATUS_STUN_INVALID_CHANGE_REQUEST_ATTRIBUTE_LENGTH                         STATUS_STUN_BASE + 0x00000019
 /*!@} */
 
 /*===========================================================================================*/
@@ -845,7 +846,17 @@ typedef enum {
     SIGNALING_CHANNEL_ROLE_TYPE_VIEWER,  //!< Channel role is viewer
 } SIGNALING_CHANNEL_ROLE_TYPE;
 
-
+/**
+ * @brief detected network environment
+ */
+typedef enum {
+    NAT_BEHAVIOR_NONE,                  //!< Dummy placeholder
+    NAT_BEHAVIOR_NOT_BEHIND_ANY_NAT,    //!< Host is not behind any NAT
+    NAT_BEHAVIOR_NO_UDP_CONNECTIVITY,   //!< No UDP connectvity
+    NAT_BEHAVIOR_ENDPOINT_INDEPENDENT,  //!< Nat behavior is irregardless of change in external address
+    NAT_BEHAVIOR_ADDRESS_DEPENDENT,     //!< Nat behavior changes changes when external address is changed, but remain same if only port is changed.
+    NAT_BEHAVIOR_PORT_DEPENDENT,        //!< Nat behavior changes when external address or port is changed.
+} NAT_BEHAVIOR;
 
 /**
  * @brief An RtcPeerConnection instance allows an application to establish peer-to-peer
@@ -1604,7 +1615,7 @@ PUBLIC_API STATUS writeFrame(PRtcRtpTransceiver, PFrame);
  *
  * @return STATUS code of the execution. STATUS_SUCCESS on success
  */
-STATUS addIceCandidate(PRtcPeerConnection, PCHAR);
+PUBLIC_API STATUS addIceCandidate(PRtcPeerConnection, PCHAR);
 
 /**
  * @brief createDataChannel creates a new RtcDataChannel object with the given label.
@@ -1622,7 +1633,7 @@ STATUS addIceCandidate(PRtcPeerConnection, PCHAR);
  *
  * @return STATUS code of the execution. STATUS_SUCCESS on success
  */
-STATUS createDataChannel(PRtcPeerConnection, PCHAR, PRtcDataChannelInit, PRtcDataChannel*);
+PUBLIC_API STATUS createDataChannel(PRtcPeerConnection, PCHAR, PRtcDataChannelInit, PRtcDataChannel*);
 
 /**
  * @brief Set a callback for data channel message
@@ -1659,7 +1670,33 @@ PUBLIC_API STATUS dataChannelOnOpen(PRtcDataChannel, UINT64, RtcOnOpen);
  * @return STATUS code of the execution. STATUS_SUCCESS on success
  *
  */
-STATUS dataChannelSend(PRtcDataChannel, BOOL, PBYTE, UINT32);
+PUBLIC_API STATUS dataChannelSend(PRtcDataChannel, BOOL, PBYTE, UINT32);
+
+/**
+ * @brief Use the process described in https://tools.ietf.org/html/rfc5780#section-4.3 to
+ * discover NAT behavior.
+ *
+ * @param[in] PCHAR STUN hostname. Need to in form of stun:hostname:port
+ * @param[out] NAT_BEHAVIOR* detected NAT mapping behavior
+ * @param[out] NAT_BEHAVIOR* detected NAT filtering behavior
+ * @param[in] IceSetInterfaceFilterFunc filter function for selecting local network interface to create socket. Optional.
+ * @param[in] UINT64 User data for filter function
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ *
+ */
+PUBLIC_API STATUS discoverNatBehavior(PCHAR, NAT_BEHAVIOR *, NAT_BEHAVIOR *,
+                                      IceSetInterfaceFilterFunc, UINT64);
+
+/**
+ * @brief Return the string representation for each NAT_BEHAVIOR enum
+ *
+ * @param[in] NAT_BEHAVIOR the NAT_BEHAVIOR enum
+ *
+ * @return PCHAR string representation for the NAT_BEHAVIOR enum
+ *
+ */
+PUBLIC_API PCHAR getNatBehaviorStr(NAT_BEHAVIOR natBehavior);
 
 /**
  * @brief Creates a Signaling client and returns a handle to it
