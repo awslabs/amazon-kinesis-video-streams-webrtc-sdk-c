@@ -76,6 +76,11 @@ TEST_F(DataChannelFunctionalityTest, createDataChannel_Disconnected)
         THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
     }
 
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+
     ASSERT_EQ(ATOMIC_LOAD(&datachannelLocalOpenCount), 2);
     ASSERT_EQ(ATOMIC_LOAD(&msgCount), 2);
     ASSERT_EQ(2, remoteOpen.channels.size());
@@ -83,12 +88,6 @@ TEST_F(DataChannelFunctionalityTest, createDataChannel_Disconnected)
     ASSERT_EQ(1, remoteOpen.channels.count("Answer PeerConnection"));
     ASSERT_EQ(1u, remoteOpen.channels.at("Offer PeerConnection"));
     ASSERT_EQ(1u, remoteOpen.channels.at("Answer PeerConnection"));
-
-    closePeerConnection(offerPc);
-    closePeerConnection(answerPc);
-
-    freePeerConnection(&offerPc);
-    freePeerConnection(&answerPc);
 }
 
 }
