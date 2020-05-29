@@ -229,7 +229,7 @@ CleanUp:
 STATUS socketConnectionReadData(PSocketConnection pSocketConnection, PBYTE pBuf, UINT32 bufferLen, PUINT32 pDataLen)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    BOOL locked = FALSE;
+    BOOL locked = FALSE, continueRead = TRUE;
     INT32 sslReadRet = 0;
     UINT32 writtenBytes = 0;
     UINT64 sslErrorRet;
@@ -246,21 +246,25 @@ STATUS socketConnectionReadData(PSocketConnection pSocketConnection, PBYTE pBuf,
     CHK(BIO_write(pSocketConnection->pReadBio, pBuf, *pDataLen) > 0, STATUS_SECURE_SOCKET_READ_FAILED);
 
     // read as much as possible
-    while(writtenBytes < bufferLen) {
+    while(continueRead && writtenBytes < bufferLen) {
         sslReadRet = SSL_read(pSocketConnection->pSsl, pBuf + writtenBytes, bufferLen - writtenBytes);
-        // if SSL_read fail or has no more data, break and consume already written data.
-        // Unlikely that we will get sslReadRet == 0 here because socketConnectionReadData is only called when
-        // socket recevies data. If ssl handshake is not done then -1 is returned.
         if (sslReadRet <= 0) {
-            while ((sslErrorRet = ERR_get_error()) != 0) {
-                if (sslErrorRet != SSL_ERROR_WANT_WRITE && sslErrorRet != SSL_ERROR_WANT_READ) {
+            sslReadRet = SSL_get_error(pSocketConnection->pSsl, sslReadRet);
+            switch (sslReadRet) {
+                case SSL_ERROR_WANT_WRITE:
+                    continueRead = FALSE;
+                    break;
+                case SSL_ERROR_WANT_READ:
+                    break;
+                default:
+                    sslErrorRet = ERR_get_error();
                     DLOGW("SSL_read failed with %s", ERR_error_string(sslErrorRet, NULL));
-                }
+                    break;
             }
             break;
+        } else {
+            writtenBytes += sslReadRet;
         }
-
-        writtenBytes += sslReadRet;
     }
 
     *pDataLen = writtenBytes;
