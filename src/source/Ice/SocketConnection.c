@@ -163,7 +163,7 @@ STATUS socketConnectionSendData(PSocketConnection pSocketConnection, PBYTE pBuf,
     CHK((pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_TCP || pDestIp != NULL), STATUS_INVALID_ARG);
 
     // Using a single CHK_WARN might output too much spew in bad network conditions
-    if (!ATOMIC_LOAD_BOOL(&pSocketConnection->connectionClosed)) {
+    if (ATOMIC_LOAD_BOOL(&pSocketConnection->connectionClosed)) {
         DLOGD("Warning: Failed to send data. Socket closed already");
         CHK(FALSE, STATUS_SOCKET_CONNECTION_CLOSED_ALREADY);
     }
