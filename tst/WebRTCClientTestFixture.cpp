@@ -38,9 +38,9 @@ void WebRtcClientTestBase::SetUp()
 
     SET_INSTRUMENTED_ALLOCATORS();
 
-    auto logLevel = LOG_LEVEL_DEBUG;
+    UINT32 logLevel = LOG_LEVEL_DEBUG;
 
-    auto logLevelStr = GETENV(DEBUG_LOG_LEVEL_ENV_VAR);
+    PCHAR logLevelStr = GETENV(DEBUG_LOG_LEVEL_ENV_VAR);
     if (logLevelStr != NULL) {
         ASSERT_EQ(STATUS_SUCCESS, STRTOUI32(logLevelStr, NULL, 10, &logLevel));
     }
