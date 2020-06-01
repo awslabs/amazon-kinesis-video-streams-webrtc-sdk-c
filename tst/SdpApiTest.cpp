@@ -254,6 +254,7 @@ TEST_F(SdpApiTest, populateSingleMediaSection_TestTxSendRecv) {
     EXPECT_EQ(STATUS_SUCCESS, createOffer(offerPc, &sessionDescriptionInit));
     EXPECT_PRED_FORMAT2(testing::IsSubstring, "sendrecv", sessionDescriptionInit.sdp);
 
+    closePeerConnection(offerPc);
     freePeerConnection(&offerPc);
 }
 
@@ -284,6 +285,7 @@ TEST_F(SdpApiTest, populateSingleMediaSection_TestTxSendOnly) {
     EXPECT_EQ(STATUS_SUCCESS, createOffer(offerPc, &sessionDescriptionInit));
     EXPECT_PRED_FORMAT2(testing::IsSubstring, "sendonly", sessionDescriptionInit.sdp);
 
+    closePeerConnection(offerPc);
     freePeerConnection(&offerPc);
 }
 
@@ -314,6 +316,7 @@ TEST_F(SdpApiTest, populateSingleMediaSection_TestTxRecvOnly) {
     EXPECT_EQ(STATUS_SUCCESS, createOffer(offerPc, &sessionDescriptionInit));
     EXPECT_PRED_FORMAT2(testing::IsSubstring, "recvonly", sessionDescriptionInit.sdp);
 
+    closePeerConnection(offerPc);
     freePeerConnection(&offerPc);
 }
 
@@ -366,6 +369,8 @@ a=rtpmap:102 H264/90000
     EXPECT_EQ(setRemoteDescription(pRtcPeerConnection, &rtcSessionDescriptionInit), STATUS_SUCCESS);
     EXPECT_EQ(createAnswer(pRtcPeerConnection, &rtcSessionDescriptionInit), STATUS_SUCCESS);
     EXPECT_PRED_FORMAT2(testing::IsNotSubstring, "fmtp:102 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f", rtcSessionDescriptionInit.sdp);
+
+    closePeerConnection(pRtcPeerConnection);
     freePeerConnection(&pRtcPeerConnection);
 }
 
@@ -491,6 +496,7 @@ a=group:BUNDLE 0 1 2
 
     ASSERT_EQ(2, ssrcLines.size());
 
+    closePeerConnection(pRtcPeerConnection);
     EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
 }
 
@@ -546,6 +552,7 @@ a=fmtp:102 strange
     EXPECT_EQ(createAnswer(pRtcPeerConnection, &rtcSessionDescriptionInit), STATUS_SUCCESS);
     EXPECT_PRED_FORMAT2(testing::IsSubstring, "fmtp:102 strange", rtcSessionDescriptionInit.sdp);
     EXPECT_PRED_FORMAT2(testing::IsNotSubstring, "fmtp:102 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f", rtcSessionDescriptionInit.sdp);
+    closePeerConnection(pRtcPeerConnection);
     freePeerConnection(&pRtcPeerConnection);
 }
 

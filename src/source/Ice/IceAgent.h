@@ -298,6 +298,7 @@ STATUS iceAgentPopulateSdpMediaDescriptionCandidates(PIceAgent, PSdpMediaDescrip
 /**
  * Start shutdown sequence for IceAgent. Once the function returns Ice will not deliver anymore data and
  * IceAgent is ready to be freed. User should stop calling iceAgentSendPacket after iceAgentShutdown returns.
+ * iceAgentShutdown is idempotent.
  *
  * @param - PIceAgent - IN - IceAgent object
  *

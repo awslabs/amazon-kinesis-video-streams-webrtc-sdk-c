@@ -512,7 +512,8 @@ STATUS freeSampleStreamingSession(PSampleStreamingSession* ppSampleStreamingSess
         THREAD_JOIN(pSampleStreamingSession->receiveAudioVideoSenderTid, NULL);
     }
 
-    freePeerConnection(&pSampleStreamingSession->pPeerConnection);
+    CHK_LOG_ERR(closePeerConnection(pSampleStreamingSession->pPeerConnection));
+    CHK_LOG_ERR(freePeerConnection(&pSampleStreamingSession->pPeerConnection));
     SAFE_MEMFREE(pSampleStreamingSession);
 
 CleanUp:
