@@ -501,6 +501,10 @@ TEST_F(PeerConnectionFunctionalityTest, iceRestartTestForcedTurn)
     RtcConfiguration configuration;
     PRtcPeerConnection offerPc = NULL, answerPc = NULL;
 
+    if (!mAccessKeyIdSet) {
+        return;
+    }
+
     MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
     configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_RELAY;
 
@@ -533,6 +537,10 @@ TEST_F(PeerConnectionFunctionalityTest, peerConnectionOfferCloseConnection)
     RtcConfiguration configuration;
     PRtcPeerConnection offerPc = NULL, answerPc = NULL;
 
+    if (!mAccessKeyIdSet) {
+        return;
+    }
+
     MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
 
     initializeSignalingClient();
@@ -557,6 +565,10 @@ TEST_F(PeerConnectionFunctionalityTest, peerConnectionAnswerCloseConnection)
 {
     RtcConfiguration configuration;
     PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+
+    if (!mAccessKeyIdSet) {
+        return;
+    }
 
     MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
 
@@ -666,7 +678,6 @@ TEST_F(PeerConnectionFunctionalityTest, DISABLED_exchangeMediaThroughTurnRandomS
 
     deinitializeSignalingClient();
 }
-
 
 }
 }
