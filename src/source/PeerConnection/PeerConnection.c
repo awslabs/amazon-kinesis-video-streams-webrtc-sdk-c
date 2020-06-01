@@ -819,8 +819,8 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
 
     if (!IS_EMPTY_STRING(pKvsPeerConnection->remoteIceUfrag) &&
         !IS_EMPTY_STRING(pKvsPeerConnection->remoteIcePwd) &&
-        STRNCMP(pKvsPeerConnection->remoteIceUfrag, remoteIceUfrag, LOCAL_ICE_UFRAG_LEN) != 0 &&
-        STRNCMP(pKvsPeerConnection->remoteIcePwd, remoteIcePwd, LOCAL_ICE_PWD_LEN) != 0) {
+        STRNCMP(pKvsPeerConnection->remoteIceUfrag, remoteIceUfrag, MAX_ICE_UFRAG_LEN) != 0 &&
+        STRNCMP(pKvsPeerConnection->remoteIcePwd, remoteIcePwd, MAX_ICE_PWD_LEN) != 0) {
 
         CHK_STATUS(generateJSONSafeString(pKvsPeerConnection->localIceUfrag, LOCAL_ICE_UFRAG_LEN));
         CHK_STATUS(generateJSONSafeString(pKvsPeerConnection->localIcePwd, LOCAL_ICE_PWD_LEN));
@@ -830,8 +830,8 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
         CHK_STATUS(iceAgentStartGathering(pKvsPeerConnection->pIceAgent));
     }
 
-    STRNCPY(pKvsPeerConnection->remoteIceUfrag, remoteIceUfrag, LOCAL_ICE_UFRAG_LEN);
-    STRNCPY(pKvsPeerConnection->remoteIcePwd, remoteIcePwd, LOCAL_ICE_PWD_LEN);
+    STRNCPY(pKvsPeerConnection->remoteIceUfrag, remoteIceUfrag, MAX_ICE_UFRAG_LEN);
+    STRNCPY(pKvsPeerConnection->remoteIcePwd, remoteIcePwd, MAX_ICE_PWD_LEN);
 
     CHK_STATUS(iceAgentStartAgent(pKvsPeerConnection->pIceAgent,
                                   pKvsPeerConnection->remoteIceUfrag,
