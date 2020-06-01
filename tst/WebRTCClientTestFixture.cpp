@@ -38,7 +38,14 @@ void WebRtcClientTestBase::SetUp()
 
     SET_INSTRUMENTED_ALLOCATORS();
 
-    SET_LOGGER_LOG_LEVEL(LOG_LEVEL_DEBUG);
+    mLogLevel = LOG_LEVEL_DEBUG;
+
+    PCHAR logLevelStr = GETENV(DEBUG_LOG_LEVEL_ENV_VAR);
+    if (logLevelStr != NULL) {
+        ASSERT_EQ(STATUS_SUCCESS, STRTOUI32(logLevelStr, NULL, 10, &mLogLevel));
+    }
+
+    SET_LOGGER_LOG_LEVEL(mLogLevel);
 
     initKvsWebRtc();
 

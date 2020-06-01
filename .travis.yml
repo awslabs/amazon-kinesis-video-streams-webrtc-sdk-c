@@ -15,7 +15,7 @@ addons:
       - gdb
 
 script:
-  - export AWS_KVS_LOG_LEVEL=2
+  - export AWS_KVS_LOG_LEVEL=3
   - make
   - ulimit -c unlimited -S
   - timeout --signal=SIGABRT 60m ./tst/webrtc_client_test

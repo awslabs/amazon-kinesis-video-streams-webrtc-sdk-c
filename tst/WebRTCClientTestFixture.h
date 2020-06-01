@@ -232,6 +232,7 @@ protected:
     PCHAR mRegion;
     PCHAR mCaCertPath;
     UINT64 mStreamingRotationPeriod;
+    UINT32 mLogLevel;
 
     SIZE_T stateChangeCount[RTC_PEER_CONNECTION_TOTAL_STATE_COUNT] = {0};
 

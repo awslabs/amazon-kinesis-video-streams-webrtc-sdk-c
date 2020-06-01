@@ -122,7 +122,11 @@ STATUS getNextNaluLength(PBYTE nalus, UINT32 nalusLength, PUINT32 pStart, PUINT3
     *pNaluLength = MIN(offset, nalusLength) - *pStart - (naluFound? zeroCount : 0);
 
 CleanUp:
-    CHK_LOG_ERR(retStatus);
+
+    // As we might hit error often in a "bad" frame scenario, we can't use CHK_LOG_ERR as it will be too frequent
+    if (STATUS_FAILED(retStatus)) {
+        DLOGD("Warning: Failed to get the next NALu in H264 payload with 0x%08x", retStatus);
+    }
 
     LEAVES();
     return retStatus;
