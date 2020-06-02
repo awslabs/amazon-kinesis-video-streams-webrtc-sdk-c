@@ -19,7 +19,6 @@ extern "C" {
 #include <com/amazonaws/kinesis/video/common/Include.h>
 #include <com/amazonaws/kinesis/video/webrtcclient/NullableDefs.h>
 #include <com/amazonaws/kinesis/video/webrtcclient/Stats.h>
-
 #pragma clang diagnostic pop
 
 /*===========================================================================================*/
@@ -1272,9 +1271,9 @@ typedef struct {
  */
 typedef struct {
     UINT32 version; //!< Structure version
-    PRtcIceServerStats pRTCIceServerStats; //!< Server related stats. Reference in Stats.h
-    PRtcIceCandidateStats pRTCIceCandidateStats; //!< Single candidate stats. Reference in Stats.h
-    PRtcIceCandidatePairStats pRTCIceCandidatePairStats; //!< Candidate pair stats. Reference in Stats.h
+    RtcIceServerStats rtcIceServerStats; //!< Server related stats. Reference in Stats.h
+    RtcIceCandidateStats rtcIceCandidateStats; //!< Single candidate stats. Reference in Stats.h
+    RtcIceCandidatePairStats rtcIceCandidatePairStats; //!< Candidate pair stats. Reference in Stats.h
 } RtcIceMetrics, *PRtcIceMetrics;
 
 /**
@@ -1285,9 +1284,9 @@ typedef struct {
  */
 typedef struct {
     UINT32 version; //!< Structure version
-    PRtcRemoteInboundRtpStreamStats pRTCInboundStats; //!< Inbound RTP Stats. Reference in Stats.h
-    PRtcOutboundRtpStreamStats pRTCOutboundStats; //!< Outbound RTP Stats. Reference in Stats.h
-    PRtcTransportStats pRTCTransportStats; //!< Transport stats. Reference in Stats.h
+    RtcRemoteInboundRtpStreamStats rtcInboundStats; //!< Inbound RTP Stats. Reference in Stats.h
+    RtcOutboundRtpStreamStats rtcOutboundStats; //!< Outbound RTP Stats. Reference in Stats.h
+    RtcTransportStats rtcTransportStats; //!< Transport stats. Reference in Stats.h
 } RtcStreamMetrics, *PRtcStreamMetrics;
 
 /**
@@ -1295,7 +1294,7 @@ typedef struct {
  */
 typedef struct {
     UINT32 version; //!< Structure version
-    PSignalingClientStats pSignalingClientMetrics; //!< Signaling client metrics stats. Reference in Stats.h
+    SignalingClientStats signalingClientMetrics; //!< Signaling client metrics stats. Reference in Stats.h
 } SignalingClientMetrics, *PSignalingClientMetrics;
 
 /**

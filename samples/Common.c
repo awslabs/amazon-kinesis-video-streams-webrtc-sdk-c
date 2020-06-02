@@ -208,7 +208,7 @@ STATUS handleOffer(PSampleConfiguration pSampleConfiguration, PSampleStreamingSe
     RtcSessionDescriptionInit offerSessionDescriptionInit;
     BOOL locked = FALSE;
     NullableBool canTrickle;
-
+//    RTCStats rtcMetrics;
     CHK(pSampleConfiguration != NULL && pSignalingMessage != NULL, STATUS_NULL_ARG);
 
     MEMSET(&offerSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
@@ -264,7 +264,9 @@ STATUS handleOffer(PSampleConfiguration pSampleConfiguration, PSampleStreamingSe
         THREAD_CREATE(&pSampleStreamingSession->receiveAudioVideoSenderTid, pSampleConfiguration->receiveAudioVideoSource,
                       (PVOID) pSampleStreamingSession);
     }
-
+//    rtcMetrics.requestedTypeOfStats = RTC_STATS_TYPE_CANDIDATE_PAIR;
+//    getRtcPeerConnectionStats(pSampleStreamingSession->pPeerConnection, &rtcMetrics);
+//    printf("Requests Received:%lf\n", rtcMetrics.rtcStatsObject.iceCandidatePairStats.currentRoundTripTime);
 CleanUp:
 
     CHK_LOG_ERR(retStatus);

@@ -68,14 +68,6 @@ typedef enum {
     ICE_CANDIDATE_STATE_INVALID,
 } ICE_CANDIDATE_STATE;
 
-typedef enum {
-    ICE_CANDIDATE_PAIR_STATE_FROZEN         = 0,
-    ICE_CANDIDATE_PAIR_STATE_WAITING        = 1,
-    ICE_CANDIDATE_PAIR_STATE_IN_PROGRESS    = 2,
-    ICE_CANDIDATE_PAIR_STATE_SUCCEEDED      = 3,
-    ICE_CANDIDATE_PAIR_STATE_FAILED         = 4,
-} ICE_CANDIDATE_PAIR_STATE;
-
 typedef VOID (*IceInboundPacketFunc)(UINT64, PBYTE, UINT32);
 typedef VOID (*IceConnectionStateChangedFunc)(UINT64, UINT64);
 typedef VOID (*IceNewLocalCandidateFunc)(UINT64, PCHAR);
@@ -123,7 +115,13 @@ typedef struct {
     PTransactionIdStore pTransactionIdStore;
     UINT64 lastDataSentTime;
     PHashTable requestSentTime;
+    RtcIceCandidatePairStats rtcIceCandidatePairStats;
     UINT64 roundTripTime;
+    UINT64 totalRoundTripTime;
+    UINT64 requestsReceived; //!< Total number of connectivity check requests received (including retransmission)
+    UINT64 requestsSent; //!< The total number of connectivity check requests sent (without retransmissions).
+    UINT64 responsesReceived; //!< The total number of connectivity check responses received.
+    UINT64 responsesSent; //!< The total number of connectivity check responses sent.
 } IceCandidatePair, *PIceCandidatePair;
 
 struct __IceAgent {
@@ -139,7 +137,7 @@ struct __IceAgent {
     CHAR remoteUsername[MAX_ICE_CONFIG_USER_NAME_LEN + 1];
     CHAR remotePassword[MAX_ICE_CONFIG_CREDENTIAL_LEN + 1];
     CHAR combinedUserName[MAX_ICE_CONFIG_USER_NAME_LEN + 1];
-
+    RtcIceMetrics rtcIceMetrics;
     PDoubleList localCandidates;
     PDoubleList remoteCandidates;
     // store PIceCandidatePair which will be immediately checked for connectivity when the timer is fired.

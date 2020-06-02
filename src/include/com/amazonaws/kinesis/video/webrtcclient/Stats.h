@@ -59,12 +59,12 @@ typedef enum {
  * Reference: https://www.w3.org/TR/webrtc-stats/#rtcstatsicecandidatepairstate-enum
  */
 typedef enum {
-    RTC_STATS_ICE_CANDIDATE_PAIR_STATE_FROZEN,    //!< A check for the pair hasn't been performed because it is waiting for other checks to complete
-    RTC_STATS_ICE_CANDIDATE_PAIR_STATE_WAITING,   //!< A check has not been performed for this pair
-    RTC_STATS_ICE_CANDIDATE_PAIR_STATE_IN_PROGRESS,//!< A check has been sent for this pair
-    RTC_STATS_ICE_CANDIDATE_PAIR_STATE_FAILED,    //!< A check for the pair was already done and failed
-    RTC_STATS_ICE_CANDIDATE_PAIR_STATE_SUCCEEDED  //!< A check for the pair was already done and produced a successful result
-} RTC_STATS_ICE_CANDIDATE_PAIR_STATE;
+    ICE_CANDIDATE_PAIR_STATE_FROZEN         = 0,
+    ICE_CANDIDATE_PAIR_STATE_WAITING        = 1,
+    ICE_CANDIDATE_PAIR_STATE_IN_PROGRESS    = 2,
+    ICE_CANDIDATE_PAIR_STATE_SUCCEEDED      = 3,
+    ICE_CANDIDATE_PAIR_STATE_FAILED         = 4,
+} ICE_CANDIDATE_PAIR_STATE;
 
 /**
  * @brief Set details of the IceAgent based on STUN_ATTRIBUTE_TYPE_USE_CANDIDATE flag
@@ -81,12 +81,12 @@ typedef enum {
  * Reference: https://www.w3.org/TR/webrtc/#rtcdtlstransport-interface
  */
 typedef enum {
-    RTC_DTLS_TRANSPORT_STATE_NEW,       //!< DTLS has not started negotiating yet
-    RTC_DTLS_TRANSPORT_STATE_CONNECTING,//!< DTLS is in the process of negotiating a secure connection
-    RTC_DTLS_TRANSPORT_STATE_CONNECTED, //!< DTLS has completed negotiation of a secure connection
-    RTC_DTLS_TRANSPORT_STATE_CLOSED,    //!< The transport has been closed intentionally
-    RTC_DTLS_TRANSPORT_STATE_FAILED     //!< The transport has failed as the result of an error
-} RTC_DTLS_TRANSPORT_STATE;
+    RTC_DTLS_TRANSPORT_STATE_STATS_NEW,       //!< DTLS has not started negotiating yet
+    RTC_DTLS_TRANSPORT_STATE_STATS_CONNECTING,//!< DTLS is in the process of negotiating a secure connection
+    RTC_DTLS_TRANSPORT_STATE_STATS_CONNECTED, //!< DTLS has completed negotiation of a secure connection
+    RTC_DTLS_TRANSPORT_STATE_STATS_CLOSED,    //!< The transport has been closed intentionally
+    RTC_DTLS_TRANSPORT_STATE_STATS_FAILED     //!< The transport has failed as the result of an error
+} RTC_DTLS_TRANSPORT_STATE_STATS;
 
 /**
  * @brief Defines reasons for quality limitation for sending streams
@@ -118,15 +118,6 @@ typedef struct {
 } DscpPacketsSentRecord, *PDscpPacketsSentRecord;
 
 /**
- * @brief Since C does not have an explicit undefined value like JS does, this structure uses a bool flag to
- * determine if the value has a definite value. By default, the value is undefined (isDefined is False), with val = 0
- */
-typedef struct {
-    BOOL isDefined; //!< If set to TRUE, the value is defined, else value is treated to be undefined
-    UINT32 val; //!< Value of the item. A value of 0 could be treated as defined/undefined based on the bool flag
-} DefineableUint32;
-
-/**
  * @brief RtcIceCandidatePairStats Stats related to the local-remote ICE candidate pair
  *
  * Reference: https://www.w3.org/TR/webrtc-stats/#candidatepair-dict*
@@ -136,10 +127,10 @@ typedef struct {
     CHAR transportId[MAX_STRING_LENGTH + 1]; //!< ID of object that was inspected for RTCTransportStats
     CHAR localCandidateId[MAX_CANDIDATE_ID_LENGTH + 1]; //!< Local candidate that is inspected in RTCIceCandidateStats
     CHAR remoteCandidateId[MAX_CANDIDATE_ID_LENGTH + 1]; //!< Remote candidate that is inspected in RTCIceCandidateStats
-    RTC_STATS_ICE_CANDIDATE_PAIR_STATE state; //!< State of checklist for the local-remote candidate pair
+    ICE_CANDIDATE_PAIR_STATE state; //!< State of checklist for the local-remote candidate pair
     BOOL nominated; //!< Flag is TRUE if the agent is a controlling agent and FALSE otherwise. The agent role is based on the
                     //!< STUN_ATTRIBUTE_TYPE_USE_CANDIDATE flag
-    DefineableUint32 circuitBreakerTriggerCount; //!< Represents number of times circuit breaker is triggered during media transmission
+    NullableUint32 circuitBreakerTriggerCount; //!< Represents number of times circuit breaker is triggered during media transmission
                                        //!< It is undefined if the user agent does not use this
     UINT32 packetsDiscardedOnSend; //!< Total number of packets discarded for candidate pair due to socket errors,
     UINT64 packetsSent; //!< Total number of packets sent on this candidate pair;
@@ -155,14 +146,14 @@ typedef struct {
                                  //!< The average interval between two consecutive connectivity checks sent can be calculated:
                                  //! (lastRequestTimestamp - firstRequestTimestamp) / requestsSent.
     UINT64 lastResponseTimestamp; //!< Represents the timestamp at which the last STUN response was received on this particular candidate pair.
-    UINT64 totalRoundTripTime; //!< The sum of all round trip time (seconds) since the beginning of the session, based
+    DOUBLE totalRoundTripTime; //!< The sum of all round trip time (seconds) since the beginning of the session, based
                                //!< on STUN connectivity check responses (responsesReceived), including those that reply to requests
                                //!< that are sent in order to verify consent. The average round trip time can be computed from
                                //!< totalRoundTripTime by dividing it by responsesReceived.
-    UINT64 currentRoundTripTime; //!< Latest round trip time (seconds)
-    UINT64 availableOutgoingBitrate; //!< Total available bit rate for all the outgoing RTP streams on this candidate pair. Calculated by underlying
+    DOUBLE currentRoundTripTime; //!< Latest round trip time (seconds)
+    DOUBLE availableOutgoingBitrate; //!< Total available bit rate for all the outgoing RTP streams on this candidate pair. Calculated by underlying
                                      //!< congestion control
-    UINT64 availableIncomingBitrate; //!< Total available bit rate for all the outgoing RTP streams on this candidate pair. Calculated by underlying
+    DOUBLE availableIncomingBitrate; //!< Total available bit rate for all the outgoing RTP streams on this candidate pair. Calculated by underlying
                                      //!< congestion control
     UINT64 requestsReceived; //!< Total number of connectivity check requests received (including retransmission)
     UINT64 requestsSent; //!< The total number of connectivity check requests sent (without retransmissions).
@@ -225,7 +216,7 @@ typedef struct {
     CHAR tlsGroup[MAX_TLS_GROUP_LENGHTH + 1]; //!< Descriptive name of the group used for the encryption
                                               //!< Acceptable values: https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-8
     RTC_ICE_ROLE iceRole; //!< Set to the current value of the "role" attribute of the underlying RTCDtlsTransport's "transport"
-    RTC_DTLS_TRANSPORT_STATE dtlsState; //!< Set to the current value of the "state" attribute of the underlying RTCDtlsTransport
+    RTC_DTLS_TRANSPORT_STATE_STATS dtlsState; //!< Set to the current value of the "state" attribute of the underlying RTCDtlsTransport
     UINT64 packetsSent; //!< Total number of packets sent over the transport
     UINT64 packetsReceived; //!< Total number of packets received over the transport
     UINT64 bytesSent; //!< The total number of payload bytes sent on this PeerConnection (excluding header and padding)

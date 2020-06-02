@@ -12,7 +12,6 @@ STATUS createIceAgent(PCHAR username, PCHAR password, PIceAgentCallbacks pIceAge
                       PConnectionListener pConnectionListener, PIceAgent* ppIceAgent)
 {
     ENTERS();
-
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = NULL;
     UINT32 i;
@@ -36,6 +35,7 @@ STATUS createIceAgent(PCHAR username, PCHAR password, PIceAgentCallbacks pIceAge
     pIceAgent->tieBreaker = (UINT64) RAND();
     pIceAgent->iceTransportPolicy = pRtcConfiguration->iceTransportPolicy;
     pIceAgent->kvsRtcConfiguration = pRtcConfiguration->kvsRtcConfiguration;
+    NULLABLE_SET_EMPTY(pIceAgent->rtcIceMetrics.rtcIceCandidatePairStats.circuitBreakerTriggerCount);
     CHK_STATUS(iceAgentValidateKvsRtcConfig(&pIceAgent->kvsRtcConfiguration));
 
     if (pIceAgentCallbacks != NULL) {
@@ -65,6 +65,7 @@ STATUS createIceAgent(PCHAR username, PCHAR password, PIceAgentCallbacks pIceAge
     pIceAgent->disconnectionGracePeriodEndTime = INVALID_TIMESTAMP_VALUE;
     pIceAgent->pConnectionListener = pConnectionListener;
     pIceAgent->pDataSendingIceCandidatePair = NULL;
+
     CHK_STATUS(createTransactionIdStore(DEFAULT_MAX_STORED_TRANSACTION_ID_COUNT,
                                         &pIceAgent->pStunBindingRequestTransactionIdStore));
 
@@ -512,7 +513,6 @@ CleanUp:
 STATUS iceAgentStartGathering(PIceAgent pIceAgent)
 {
     STATUS retStatus = STATUS_SUCCESS;
-
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
     CHK(!ATOMIC_LOAD_BOOL(&pIceAgent->agentStartGathering), retStatus);
 
@@ -1170,6 +1170,7 @@ STATUS iceCandidatePairCheckConnection(PStunPacket pStunBindingRequest, PIceAgen
                                       pIceCandidatePair->local,
                                       &pIceCandidatePair->remote->ipAddress));
 
+
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
@@ -1210,7 +1211,7 @@ STATUS iceAgentSendStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 pa
             pIceCandidatePair->state = ICE_CANDIDATE_PAIR_STATE_FAILED;
         }
     }
-
+    pIceAgent->rtcIceMetrics.rtcIceCandidatePairStats.responsesSent++;
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
@@ -1340,6 +1341,7 @@ STATUS iceAgentCheckCandidatePairConnection(PIceAgent pIceAgent)
                     pIceCandidatePair->state = ICE_CANDIDATE_PAIR_STATE_IN_PROGRESS;
                     // NOTE: Explicit fall-through
                 case ICE_CANDIDATE_PAIR_STATE_IN_PROGRESS:
+                    pIceAgent->rtcIceMetrics.rtcIceCandidatePairStats.requestsSent++;
                     CHK_STATUS(iceCandidatePairCheckConnection(pIceAgent->pBindingRequest, pIceAgent, pIceCandidatePair));
                     break;
                 default:
@@ -1526,7 +1528,7 @@ STATUS iceAgentSendCandidateNomination(PIceAgent pIceAgent)
     while (pCurNode != NULL) {
         pIceCandidatePair = (PIceCandidatePair) pCurNode->data;
         pCurNode = pCurNode->pNext;
-
+        pIceAgent->rtcIceMetrics.rtcIceCandidatePairStats.nominated = pIceCandidatePair->nominated;
         if (pIceCandidatePair->nominated) {
             CHK_STATUS(iceCandidatePairCheckConnection(pIceAgent->pBindingRequest, pIceAgent, pIceCandidatePair));
         }
@@ -1979,7 +1981,7 @@ STATUS iceAgentReadyStateSetup(PIceAgent pIceAgent)
           pIceAgent->pDataSendingIceCandidatePair->remote->id,
           iceAgentGetCandidateTypeStr(pIceAgent->pDataSendingIceCandidatePair->local->iceCandidateType),
           pIceAgent->pDataSendingIceCandidatePair->roundTripTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
-
+          pIceAgent->pDataSendingIceCandidatePair->totalRoundTripTime += pIceAgent->pDataSendingIceCandidatePair->roundTripTime;
     /* no state timeout for ready state */
     pIceAgent->stateEndTime = INVALID_TIMESTAMP_VALUE;
 
@@ -2224,7 +2226,6 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
                         PKvsIpAddress pSrcAddr, PKvsIpAddress pDestAddr)
 {
     UNUSED_PARAM(pDestAddr);
-
     STATUS retStatus = STATUS_SUCCESS;
     PStunPacket pStunPacket = NULL, pStunResponse = NULL;
     PStunAttributeHeader pStunAttr = NULL;
@@ -2244,6 +2245,8 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
 
     switch (stunPacketType) {
         case STUN_PACKET_TYPE_BINDING_REQUEST:
+            pIceAgent->rtcIceMetrics.rtcIceCandidatePairStats.requestsReceived++;
+            // printf("Requests received:%d\n", pIceAgent->pRtcIceMetrics->pRTCIceCandidatePairStats->requestsReceived++);
             CHK_STATUS(deserializeStunPacket(pBuffer, bufferLen, (PBYTE) pIceAgent->localPassword, (UINT32) STRLEN(pIceAgent->localPassword) * SIZEOF(CHAR), &pStunPacket));
             CHK_STATUS(createStunPacket(STUN_PACKET_TYPE_BINDING_RESPONSE_SUCCESS, pStunPacket->header.transactionId, &pStunResponse));
             CHK_STATUS(appendStunAddressAttribute(pStunResponse, STUN_ATTRIBUTE_TYPE_XOR_MAPPED_ADDRESS, pSrcAddr));
@@ -2291,7 +2294,7 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
             break;
 
         case STUN_PACKET_TYPE_BINDING_RESPONSE_SUCCESS:
-
+            pIceAgent->rtcIceMetrics.rtcIceCandidatePairStats.responsesReceived++;
             // check if Binding Response is for finding srflx candidate
             if (transactionIdStoreHasId(pIceAgent->pStunBindingRequestTransactionIdStore, pBuffer + STUN_PACKET_TRANSACTION_ID_OFFSET)) {
                 CHK_STATUS(findCandidateWithSocketConnection(pSocketConnection, pIceAgent->localCandidates, &pIceCandidate));
@@ -2345,6 +2348,7 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
                       pIceCandidatePair->local->id,
                       pIceCandidatePair->remote->id,
                       pIceCandidatePair->roundTripTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+                pIceCandidatePair->totalRoundTripTime += pIceCandidatePair->roundTripTime;
                 pIceCandidatePair->state = ICE_CANDIDATE_PAIR_STATE_SUCCEEDED;
             }
 
@@ -2363,6 +2367,11 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
             break;
     }
 
+    pIceAgent->rtcIceMetrics.rtcIceCandidatePairStats.currentRoundTripTime = (DOUBLE) (pIceCandidatePair->roundTripTime / 1000.0);
+    pIceAgent->rtcIceMetrics.rtcIceCandidatePairStats.state = pIceCandidatePair->state;
+    pIceAgent->rtcIceMetrics.rtcIceCandidatePairStats.totalRoundTripTime = (DOUBLE) (pIceCandidatePair->totalRoundTripTime / 1000.0);
+    DLOGD("Current round trip time:%lf\n", pIceAgent->rtcIceMetrics.rtcIceCandidatePairStats.currentRoundTripTime);
+    DLOGD("Total round trip time:%lf\n", pIceAgent->rtcIceMetrics.rtcIceCandidatePairStats.totalRoundTripTime);
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
@@ -2376,7 +2385,6 @@ CleanUp:
     }
 
     // TODO send error packet
-
     return retStatus;
 }
 
