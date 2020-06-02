@@ -109,6 +109,9 @@ $(document).ready(function(){initNavTree('Include_8h.html',''); initResizable();
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="nested-classes"></a>
 Classes</h2></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct____RtcDataChannel.html">__RtcDataChannel</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">RtcDataChannel represents a bi-directional data channel between two peers.  <a href="struct____RtcDataChannel.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRtcPeerConnection.html">RtcPeerConnection</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">An <a class="el" href="structRtcPeerConnection.html" title="An RtcPeerConnection instance allows an application to establish peer-to-peer communications with ano...">RtcPeerConnection</a> instance allows an application to establish peer-to-peer communications with another <a class="el" href="structRtcPeerConnection.html" title="An RtcPeerConnection instance allows an application to establish peer-to-peer communications with ano...">RtcPeerConnection</a>, or to another endpoint implementing the required protocols.  <a href="structRtcPeerConnection.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -161,9 +164,6 @@ Classes</h2></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRtcRtpTransceiverInit.html">RtcRtpTransceiverInit</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="structRtcRtpTransceiverInit.html" title="RtcRtpTransceiverInit is used to configure a transceiver when creating it.">RtcRtpTransceiverInit</a> is used to configure a transceiver when creating it.  <a href="structRtcRtpTransceiverInit.html#details">More...</a><br /></td></tr>
-<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct____RtcDataChannel.html">__RtcDataChannel</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">RtcDataChannel represents a bi-directional data channel between two peers.  <a href="struct____RtcDataChannel.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRtcDataChannelInit.html">RtcDataChannelInit</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="structRtcDataChannelInit.html" title="RtcDataChannelInit dictionary used to configure properties of the underlying channel such as data rel...">RtcDataChannelInit</a> dictionary used to configure properties of the underlying channel such as data reliability.  <a href="structRtcDataChannelInit.html#details">More...</a><br /></td></tr>
@@ -656,13 +656,19 @@ Typedefs</h2></td></tr>
 <tr class="memitem:ac7f4225ac2545664aabdc88d0b58e329"><td class="memItemLeft" align="right" valign="top">typedef VOID(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#ac7f4225ac2545664aabdc88d0b58e329">RtcOnPictureLoss</a>) (UINT64)</td></tr>
 <tr class="memdesc:ac7f4225ac2545664aabdc88d0b58e329"><td class="mdescLeft">&#160;</td><td class="mdescRight">RtcOnPictureLoss is fired everytime a Picture Loss Indication (PLI) feedback message is received. Receiving such message normally indicates that you sent a video frame which receiver could not decode. It may happen either because of packet loss or for any other reason. Generating an intra frame (aka keyframe, aka I-frame) in response to such message is considered a good strategy.  <a href="Include_8h.html#ac7f4225ac2545664aabdc88d0b58e329">More...</a><br /></td></tr>
 <tr class="separator:ac7f4225ac2545664aabdc88d0b58e329"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a9076ac4f31a29ed413ad20bd31c5cfde"><td class="memItemLeft" align="right" valign="top">typedef VOID(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#a9076ac4f31a29ed413ad20bd31c5cfde">RtcOnMessage</a>) (UINT64, BOOL, PBYTE, UINT32)</td></tr>
-<tr class="memdesc:a9076ac4f31a29ed413ad20bd31c5cfde"><td class="mdescLeft">&#160;</td><td class="mdescRight">RtcOnMessage is fired when a message is received for the DataChannel.  <a href="Include_8h.html#a9076ac4f31a29ed413ad20bd31c5cfde">More...</a><br /></td></tr>
-<tr class="separator:a9076ac4f31a29ed413ad20bd31c5cfde"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a148ed1868bd8ec813749211f5c87b98a"><td class="memItemLeft" align="right" valign="top">typedef VOID(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#a148ed1868bd8ec813749211f5c87b98a">RtcOnOpen</a>) (UINT64)</td></tr>
-<tr class="separator:a148ed1868bd8ec813749211f5c87b98a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a750b71698b51cb05fec761921c64c6f9"><td class="memItemLeft" align="right" valign="top">typedef VOID(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#a750b71698b51cb05fec761921c64c6f9">RtcOnDataChannel</a>) (UINT64, struct <a class="el" href="struct____RtcDataChannel.html">__RtcDataChannel</a> *)</td></tr>
-<tr class="separator:a750b71698b51cb05fec761921c64c6f9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa6f47a9f98e9103afc97434dd3a5cd8c"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct____RtcDataChannel.html">__RtcDataChannel</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#aa6f47a9f98e9103afc97434dd3a5cd8c">RtcDataChannel</a></td></tr>
+<tr class="memdesc:aa6f47a9f98e9103afc97434dd3a5cd8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">RtcDataChannel represents a bi-directional data channel between two peers.  <a href="Include_8h.html#aa6f47a9f98e9103afc97434dd3a5cd8c">More...</a><br /></td></tr>
+<tr class="separator:aa6f47a9f98e9103afc97434dd3a5cd8c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2be6b5f6da1b3a0471ad7b4443b90779"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct____RtcDataChannel.html">__RtcDataChannel</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#a2be6b5f6da1b3a0471ad7b4443b90779">PRtcDataChannel</a></td></tr>
+<tr class="separator:a2be6b5f6da1b3a0471ad7b4443b90779"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a19016a711a2550a8544e6c86c7f45d0f"><td class="memItemLeft" align="right" valign="top">typedef VOID(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#a19016a711a2550a8544e6c86c7f45d0f">RtcOnMessage</a>) (UINT64, <a class="el" href="Include_8h.html#a2be6b5f6da1b3a0471ad7b4443b90779">PRtcDataChannel</a>, BOOL, PBYTE, UINT32)</td></tr>
+<tr class="memdesc:a19016a711a2550a8544e6c86c7f45d0f"><td class="mdescLeft">&#160;</td><td class="mdescRight">RtcOnMessage is fired when a message is received for the DataChannel.  <a href="Include_8h.html#a19016a711a2550a8544e6c86c7f45d0f">More...</a><br /></td></tr>
+<tr class="separator:a19016a711a2550a8544e6c86c7f45d0f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0c9cbf4449a44e9a3847be0ef53b22a8"><td class="memItemLeft" align="right" valign="top">typedef VOID(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#a0c9cbf4449a44e9a3847be0ef53b22a8">RtcOnOpen</a>) (UINT64, <a class="el" href="Include_8h.html#a2be6b5f6da1b3a0471ad7b4443b90779">PRtcDataChannel</a>)</td></tr>
+<tr class="separator:a0c9cbf4449a44e9a3847be0ef53b22a8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a264cd66b2d9905c3085cab6f3faf650b"><td class="memItemLeft" align="right" valign="top">typedef VOID(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#a264cd66b2d9905c3085cab6f3faf650b">RtcOnDataChannel</a>) (UINT64, <a class="el" href="Include_8h.html#a2be6b5f6da1b3a0471ad7b4443b90779">PRtcDataChannel</a>)</td></tr>
+<tr class="memdesc:a264cd66b2d9905c3085cab6f3faf650b"><td class="mdescLeft">&#160;</td><td class="mdescRight">RtcOnDataChannel is fired when the remote PeerConnection creates a new DataChannel.  <a href="Include_8h.html#a264cd66b2d9905c3085cab6f3faf650b">More...</a><br /></td></tr>
+<tr class="separator:a264cd66b2d9905c3085cab6f3faf650b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abad4874074cecf3de44c82498437355a"><td class="memItemLeft" align="right" valign="top">typedef VOID(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#abad4874074cecf3de44c82498437355a">RtcOnIceCandidate</a>) (UINT64, PCHAR)</td></tr>
 <tr class="memdesc:abad4874074cecf3de44c82498437355a"><td class="mdescLeft">&#160;</td><td class="mdescRight">RtcOnIceCandidate is fired when new iceCandidate is found. if PCHAR is NULL then candidate gathering is done.  <a href="Include_8h.html#abad4874074cecf3de44c82498437355a">More...</a><br /></td></tr>
 <tr class="separator:abad4874074cecf3de44c82498437355a"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -716,11 +722,6 @@ Typedefs</h2></td></tr>
 <tr class="separator:ae012798e59bf247342e5d433604d415a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a403f9b55f053a068d56e8aa51c0bc739"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRtcRtpTransceiverInit.html">RtcRtpTransceiverInit</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#a403f9b55f053a068d56e8aa51c0bc739">PRtcRtpTransceiverInit</a></td></tr>
 <tr class="separator:a403f9b55f053a068d56e8aa51c0bc739"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa6f47a9f98e9103afc97434dd3a5cd8c"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct____RtcDataChannel.html">__RtcDataChannel</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#aa6f47a9f98e9103afc97434dd3a5cd8c">RtcDataChannel</a></td></tr>
-<tr class="memdesc:aa6f47a9f98e9103afc97434dd3a5cd8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">RtcDataChannel represents a bi-directional data channel between two peers.  <a href="Include_8h.html#aa6f47a9f98e9103afc97434dd3a5cd8c">More...</a><br /></td></tr>
-<tr class="separator:aa6f47a9f98e9103afc97434dd3a5cd8c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a2be6b5f6da1b3a0471ad7b4443b90779"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct____RtcDataChannel.html">__RtcDataChannel</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#a2be6b5f6da1b3a0471ad7b4443b90779">PRtcDataChannel</a></td></tr>
-<tr class="separator:a2be6b5f6da1b3a0471ad7b4443b90779"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab970e0095d779c18c106620eac5fbbc6"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRtcDataChannelInit.html">RtcDataChannelInit</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#ab970e0095d779c18c106620eac5fbbc6">PRtcDataChannelInit</a></td></tr>
 <tr class="separator:ab970e0095d779c18c106620eac5fbbc6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
@@ -842,7 +843,7 @@ Functions</h2></td></tr>
 <tr class="memitem:a5a45606d264d6005c559b10fa42338bf"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#a5a45606d264d6005c559b10fa42338bf">peerConnectionOnIceCandidate</a> (<a class="el" href="Include_8h.html#a70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>, UINT64, <a class="el" href="Include_8h.html#abad4874074cecf3de44c82498437355a">RtcOnIceCandidate</a>)</td></tr>
 <tr class="memdesc:a5a45606d264d6005c559b10fa42338bf"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set a callback when new Ice collects new local candidate.  <a href="Include_8h.html#a5a45606d264d6005c559b10fa42338bf">More...</a><br /></td></tr>
 <tr class="separator:a5a45606d264d6005c559b10fa42338bf"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a41afed748235c04e38fa7481e421055d"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#a41afed748235c04e38fa7481e421055d">peerConnectionOnDataChannel</a> (<a class="el" href="Include_8h.html#a70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>, UINT64, <a class="el" href="Include_8h.html#a750b71698b51cb05fec761921c64c6f9">RtcOnDataChannel</a>)</td></tr>
+<tr class="memitem:a41afed748235c04e38fa7481e421055d"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#a41afed748235c04e38fa7481e421055d">peerConnectionOnDataChannel</a> (<a class="el" href="Include_8h.html#a70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>, UINT64, <a class="el" href="Include_8h.html#a264cd66b2d9905c3085cab6f3faf650b">RtcOnDataChannel</a>)</td></tr>
 <tr class="separator:a41afed748235c04e38fa7481e421055d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae937526652e3287c3e2dd9bee74ea799"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#ae937526652e3287c3e2dd9bee74ea799">peerConnectionOnConnectionStateChange</a> (<a class="el" href="Include_8h.html#a70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>, UINT64, <a class="el" href="Include_8h.html#ad3f715dac4dd4d756e1728a37fb46eb9">RtcOnConnectionStateChange</a>)</td></tr>
 <tr class="separator:ae937526652e3287c3e2dd9bee74ea799"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -910,10 +911,10 @@ Functions</h2></td></tr>
 <tr class="memitem:a52388bddbaae20b12fdac9bb3b596211"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#a52388bddbaae20b12fdac9bb3b596211">createDataChannel</a> (<a class="el" href="Include_8h.html#a70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>, PCHAR, <a class="el" href="Include_8h.html#ab970e0095d779c18c106620eac5fbbc6">PRtcDataChannelInit</a>, <a class="el" href="Include_8h.html#a2be6b5f6da1b3a0471ad7b4443b90779">PRtcDataChannel</a> *)</td></tr>
 <tr class="memdesc:a52388bddbaae20b12fdac9bb3b596211"><td class="mdescLeft">&#160;</td><td class="mdescRight">createDataChannel creates a new RtcDataChannel object with the given label.  <a href="Include_8h.html#a52388bddbaae20b12fdac9bb3b596211">More...</a><br /></td></tr>
 <tr class="separator:a52388bddbaae20b12fdac9bb3b596211"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a92ed55e9b079e7b9a12812d7530b2595"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#a92ed55e9b079e7b9a12812d7530b2595">dataChannelOnMessage</a> (<a class="el" href="Include_8h.html#a2be6b5f6da1b3a0471ad7b4443b90779">PRtcDataChannel</a>, UINT64, <a class="el" href="Include_8h.html#a9076ac4f31a29ed413ad20bd31c5cfde">RtcOnMessage</a>)</td></tr>
+<tr class="memitem:a92ed55e9b079e7b9a12812d7530b2595"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#a92ed55e9b079e7b9a12812d7530b2595">dataChannelOnMessage</a> (<a class="el" href="Include_8h.html#a2be6b5f6da1b3a0471ad7b4443b90779">PRtcDataChannel</a>, UINT64, <a class="el" href="Include_8h.html#a19016a711a2550a8544e6c86c7f45d0f">RtcOnMessage</a>)</td></tr>
 <tr class="memdesc:a92ed55e9b079e7b9a12812d7530b2595"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set a callback for data channel message.  <a href="Include_8h.html#a92ed55e9b079e7b9a12812d7530b2595">More...</a><br /></td></tr>
 <tr class="separator:a92ed55e9b079e7b9a12812d7530b2595"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a324f46d98cbdeaf9385590a4be190551"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#a324f46d98cbdeaf9385590a4be190551">dataChannelOnOpen</a> (<a class="el" href="Include_8h.html#a2be6b5f6da1b3a0471ad7b4443b90779">PRtcDataChannel</a>, UINT64, <a class="el" href="Include_8h.html#a148ed1868bd8ec813749211f5c87b98a">RtcOnOpen</a>)</td></tr>
+<tr class="memitem:a324f46d98cbdeaf9385590a4be190551"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#a324f46d98cbdeaf9385590a4be190551">dataChannelOnOpen</a> (<a class="el" href="Include_8h.html#a2be6b5f6da1b3a0471ad7b4443b90779">PRtcDataChannel</a>, UINT64, <a class="el" href="Include_8h.html#a0c9cbf4449a44e9a3847be0ef53b22a8">RtcOnOpen</a>)</td></tr>
 <tr class="memdesc:a324f46d98cbdeaf9385590a4be190551"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set a callback for data channel open.  <a href="Include_8h.html#a324f46d98cbdeaf9385590a4be190551">More...</a><br /></td></tr>
 <tr class="separator:a324f46d98cbdeaf9385590a4be190551"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9804f2dc24d904b1c24e39d9a6880418"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#a9804f2dc24d904b1c24e39d9a6880418">dataChannelSend</a> (<a class="el" href="Include_8h.html#a2be6b5f6da1b3a0471ad7b4443b90779">PRtcDataChannel</a>, BOOL, PBYTE, UINT32)</td></tr>
@@ -1499,17 +1500,20 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a750b71698b51cb05fec761921c64c6f9"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a750b71698b51cb05fec761921c64c6f9">&#9670;&nbsp;</a></span>RtcOnDataChannel</h2>
+<a id="a264cd66b2d9905c3085cab6f3faf650b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a264cd66b2d9905c3085cab6f3faf650b">&#9670;&nbsp;</a></span>RtcOnDataChannel</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">typedef VOID(* RtcOnDataChannel) (UINT64, struct <a class="el" href="struct____RtcDataChannel.html">__RtcDataChannel</a> *)</td>
+          <td class="memname">typedef VOID(* RtcOnDataChannel) (UINT64, <a class="el" href="Include_8h.html#a2be6b5f6da1b3a0471ad7b4443b90779">PRtcDataChannel</a>)</td>
         </tr>
       </table>
 </div><div class="memdoc">
+
+<p>RtcOnDataChannel is fired when the remote PeerConnection creates a new DataChannel. </p>
+<p>Reference: <a href="https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-ondatachannel">https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-ondatachannel</a> </p>
 
 </div>
 </div>
@@ -1548,14 +1552,14 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a9076ac4f31a29ed413ad20bd31c5cfde"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a9076ac4f31a29ed413ad20bd31c5cfde">&#9670;&nbsp;</a></span>RtcOnMessage</h2>
+<a id="a19016a711a2550a8544e6c86c7f45d0f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a19016a711a2550a8544e6c86c7f45d0f">&#9670;&nbsp;</a></span>RtcOnMessage</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">typedef VOID(* RtcOnMessage) (UINT64, BOOL, PBYTE, UINT32)</td>
+          <td class="memname">typedef VOID(* RtcOnMessage) (UINT64, <a class="el" href="Include_8h.html#a2be6b5f6da1b3a0471ad7b4443b90779">PRtcDataChannel</a>, BOOL, PBYTE, UINT32)</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -1565,14 +1569,14 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a148ed1868bd8ec813749211f5c87b98a"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a148ed1868bd8ec813749211f5c87b98a">&#9670;&nbsp;</a></span>RtcOnOpen</h2>
+<a id="a0c9cbf4449a44e9a3847be0ef53b22a8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0c9cbf4449a44e9a3847be0ef53b22a8">&#9670;&nbsp;</a></span>RtcOnOpen</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">typedef VOID(* RtcOnOpen) (UINT64)</td>
+          <td class="memname">typedef VOID(* RtcOnOpen) (UINT64, <a class="el" href="Include_8h.html#a2be6b5f6da1b3a0471ad7b4443b90779">PRtcDataChannel</a>)</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -2459,7 +2463,7 @@ Functions</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype"><a class="el" href="Include_8h.html#a9076ac4f31a29ed413ad20bd31c5cfde">RtcOnMessage</a>&#160;</td>
+          <td class="paramtype"><a class="el" href="Include_8h.html#a19016a711a2550a8544e6c86c7f45d0f">RtcOnMessage</a>&#160;</td>
           <td class="paramname">&#160;</td>
         </tr>
         <tr>
@@ -2504,7 +2508,7 @@ Functions</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype"><a class="el" href="Include_8h.html#a148ed1868bd8ec813749211f5c87b98a">RtcOnOpen</a>&#160;</td>
+          <td class="paramtype"><a class="el" href="Include_8h.html#a0c9cbf4449a44e9a3847be0ef53b22a8">RtcOnOpen</a>&#160;</td>
           <td class="paramname">&#160;</td>
         </tr>
         <tr>
@@ -2934,7 +2938,7 @@ Functions</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype"><a class="el" href="Include_8h.html#a750b71698b51cb05fec761921c64c6f9">RtcOnDataChannel</a>&#160;</td>
+          <td class="paramtype"><a class="el" href="Include_8h.html#a264cd66b2d9905c3085cab6f3faf650b">RtcOnDataChannel</a>&#160;</td>
           <td class="paramname">&#160;</td>
         </tr>
         <tr>
@@ -3551,7 +3555,7 @@ Functions</h2></td></tr>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_b0856f6b0d80ccb263b2f415c91f9e17.html">include</a></li><li class="navelem"><a class="el" href="dir_8f5ac45a6ada111b95e80af22bb6017d.html">com</a></li><li class="navelem"><a class="el" href="dir_6eddcaa8cb3f84b1b7290fa7880ed0c5.html">amazonaws</a></li><li class="navelem"><a class="el" href="dir_ffe25b375dd9c47f978782781b252738.html">kinesis</a></li><li class="navelem"><a class="el" href="dir_40be0bfe93e499fae0ac3fc2c0b3ca29.html">video</a></li><li class="navelem"><a class="el" href="dir_4165afa699965307903ffe413a1cdec9.html">webrtcclient</a></li><li class="navelem"><a class="el" href="Include_8h.html">Include.h</a></li>
-    <li class="footer">Generated on Tue Jun 2 2020 06:41:42 for Amazon Kinesis Webrtc C SDK by
+    <li class="footer">Generated on Tue Jun 2 2020 19:21:53 for Amazon Kinesis Webrtc C SDK by
     <a href="http://www.doxygen.org/index.html">
     <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.18 </li>
   </ul>
