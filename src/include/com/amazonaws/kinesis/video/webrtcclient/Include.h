@@ -642,19 +642,27 @@ typedef VOID (*RtcOnBandwidthEstimation)(UINT64, DOUBLE);
 typedef VOID (*RtcOnPictureLoss)(UINT64);
 
 /**
+ * @brief RtcDataChannel represents a bi-directional data channel between two peers.
+ *
+ * Reference: https://www.w3.org/TR/webrtc/#dom-rtcdatachannel
+ */
+typedef struct __RtcDataChannel {
+    CHAR name[MAX_DATA_CHANNEL_NAME_LEN + 1]; //!< Define name of data channel. Max length is 256 characters
+} RtcDataChannel, *PRtcDataChannel;
+
+/**
  * @brief RtcOnMessage is fired when a message is received for the DataChannel
  *
  * Reference: https://www.w3.org/TR/webrtc/#dom-rtcdatachannel-onmessage
  */
-struct __RtcDataChannel;
-typedef VOID (*RtcOnMessage)(UINT64, struct __RtcDataChannel*, BOOL, PBYTE, UINT32);
+typedef VOID (*RtcOnMessage)(UINT64, PRtcDataChannel, BOOL, PBYTE, UINT32);
 
 /**
  * RtcOnOpen is fired when the DataChannel has opened
  *
  * Reference: https://www.w3.org/TR/webrtc/#dom-rtcdatachannel-onopen
  */
-typedef VOID (*RtcOnOpen)(UINT64, struct __RtcDataChannel*);
+typedef VOID (*RtcOnOpen)(UINT64, PRtcDataChannel);
 
 /**
  * @brief RtcOnDataChannel is fired when the remote PeerConnection
@@ -662,7 +670,7 @@ typedef VOID (*RtcOnOpen)(UINT64, struct __RtcDataChannel*);
  *
  * Reference: https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-ondatachannel
  */
-typedef VOID (*RtcOnDataChannel)(UINT64, struct __RtcDataChannel*);
+typedef VOID (*RtcOnDataChannel)(UINT64, PRtcDataChannel);
 
 /**
  * @brief RtcOnIceCandidate is fired when new iceCandidate is found. if PCHAR is NULL then candidate gathering is done.
@@ -1216,15 +1224,6 @@ typedef struct {
 typedef struct {
     RTC_RTP_TRANSCEIVER_DIRECTION direction; //!< Transceiver direction - SENDONLY, RECVONLY, SENDRECV
 } RtcRtpTransceiverInit, *PRtcRtpTransceiverInit;
-
-/**
- * @brief RtcDataChannel represents a bi-directional data channel between two peers.
- *
- * Reference: https://www.w3.org/TR/webrtc/#dom-rtcdatachannel
- */
-typedef struct __RtcDataChannel {
-    CHAR name[MAX_DATA_CHANNEL_NAME_LEN + 1]; //!< Define name of data channel. Max length is 256 characters
-} RtcDataChannel, *PRtcDataChannel;
 
 /**
  * @brief RtcDataChannelInit dictionary used to configure properties of the
