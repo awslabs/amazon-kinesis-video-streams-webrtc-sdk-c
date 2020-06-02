@@ -45,11 +45,13 @@ TEST_F(DataChannelFunctionalityTest, createDataChannel_Disconnected)
       dataChannelSend(pRtcDataChannel, FALSE, (PBYTE) TEST_DATA_CHANNEL_MESSAGE, STRLEN(TEST_DATA_CHANNEL_MESSAGE));
     };
 
-    auto dataChannelOnOpenCallback = [](UINT64 customData) {
+    auto dataChannelOnOpenCallback = [](UINT64 customData, PRtcDataChannel pDataChannel) {
+        UNUSED_PARAM(pDataChannel);
         ATOMIC_INCREMENT((PSIZE_T) customData);
     };
 
-    auto dataChannelOnMessageCallback = [](UINT64 customData, BOOL isBinary, PBYTE pMsg, UINT32 pMsgLen) {
+    auto dataChannelOnMessageCallback = [](UINT64 customData, PRtcDataChannel pDataChannel, BOOL isBinary, PBYTE pMsg, UINT32 pMsgLen) {
+        UNUSED_PARAM(pDataChannel);
         UNUSED_PARAM(isBinary);
         if (STRNCMP((PCHAR) pMsg, TEST_DATA_CHANNEL_MESSAGE, pMsgLen) == 0) {
           ATOMIC_INCREMENT((PSIZE_T) customData);
