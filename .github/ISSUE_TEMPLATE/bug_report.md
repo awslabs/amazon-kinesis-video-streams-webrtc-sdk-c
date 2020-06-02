@@ -10,6 +10,12 @@ assignees: ''
 **Describe the bug**
 A clear and concise description of what the bug is.
 
+**SDK version number**
+Include the SDK version you are running. If it is a specific commit on master branch, include that
+
+**Open source building**
+If it is a build issue, include 3rd party library version and steps to how you are building it
+
 **To Reproduce**
 Steps to reproduce the behavior:
 1. Go to '...'
@@ -36,3 +42,4 @@ If applicable, add screenshots to help explain your problem.
 
 **Additional context**
 Add any other context about the problem here.
+

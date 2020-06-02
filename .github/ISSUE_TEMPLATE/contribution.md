@@ -1,7 +1,6 @@
 ---
 name: Contribution
-about: We always welcome open-source contributions! Please open an issue to tag to
-  your pull request
+about: We always welcome open-source contributions! Please open an issue to tag your pull request
 title: "[CONTRIBUTION]"
 labels: contribution
 assignees: ''
