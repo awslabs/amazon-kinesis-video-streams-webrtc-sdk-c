@@ -508,7 +508,7 @@ STATUS dtlsSessionProcessPacket(PDtlsSession pDtlsSession, PBYTE pData, PINT32 p
         LOG_OPENSSL_ERROR("SSL_read");
     }
 
-    if (ATOMIC_LOAD_BOOL(&pDtlsSession->sslInitFinished)) {
+    if (!ATOMIC_LOAD_BOOL(&pDtlsSession->sslInitFinished)) {
         CHK_STATUS(dtlsCheckOutgoingDataBuffer(pDtlsSession));
     } else {
         // if dtls handshake is done, and SSL_read did not fail, then sslRet and number of sctp bytes read
