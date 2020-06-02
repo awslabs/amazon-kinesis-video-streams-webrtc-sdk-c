@@ -15,6 +15,7 @@
 #define TEST_VIDEO_FRAME_SIZE                                   (120 * 1024)
 #define TEST_ICE_CONFIG_INFO_POLL_PERIOD                        (20 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
 #define TEST_ASYNC_ICE_CONFIG_INFO_WAIT_TIMEOUT                 (3 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define TEST_FILE_CREDENTIALS_FILE_PATH                         (PCHAR) "credsFile"
 
 namespace com { namespace amazonaws { namespace kinesis { namespace video { namespace webrtcclient {
 
@@ -53,7 +54,7 @@ public:
         return mSessionToken;
     }
 
-    STATUS initializeSignalingClient() {
+    STATUS initializeSignalingClient(PAwsCredentialProvider pCredentialProvider = NULL) {
         ChannelInfo channelInfo;
         SignalingClientCallbacks signalingClientCallbacks;
         SignalingClientInfo clientInfo;
@@ -99,7 +100,7 @@ public:
         }
 
         retStatus = createSignalingClientSync(&clientInfo, &channelInfo, &signalingClientCallbacks,
-                (PAwsCredentialProvider) mTestCredentialProvider,
+                pCredentialProvider != NULL ? pCredentialProvider : mTestCredentialProvider,
                 &mSignalingClientHandle);
 
         if (mAccessKeyIdSet) {

@@ -48,6 +48,56 @@ TEST_F(SignalingApiTest, signalingSendMessageSync)
     deinitializeSignalingClient();
 }
 
+TEST_F(SignalingApiTest, signalingSendMessageSyncFileCredsProvider)
+{
+    SignalingMessage signalingMessage;
+    PAwsCredentialProvider pAwsCredentialProvider = NULL;
+    CHAR fileContent[10000];
+    UINT32 length = ARRAY_SIZE(fileContent);
+
+    if (!mAccessKeyIdSet) {
+        return;
+    }
+
+    // Store the credentials in a file under the current dir
+    length = SNPRINTF(fileContent, length, "CREDENTIALS %s %s", mAccessKey, mSecretKey);
+    ASSERT_GT(ARRAY_SIZE(fileContent), length);
+    ASSERT_EQ(STATUS_SUCCESS, writeFile(TEST_FILE_CREDENTIALS_FILE_PATH, FALSE, FALSE, (PBYTE) fileContent, length));
+
+    // Create file creds provider from the file
+    EXPECT_EQ(STATUS_SUCCESS, createFileCredentialProvider(TEST_FILE_CREDENTIALS_FILE_PATH,
+                                            &pAwsCredentialProvider));
+
+    initializeSignalingClient(pAwsCredentialProvider);
+
+    signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
+    signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
+    STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    MEMSET(signalingMessage.payload, 'A', 100);
+    signalingMessage.payload[100] = '\0';
+    signalingMessage.payloadLen = 0;
+    signalingMessage.correlationId[0] = '\0';
+
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(mSignalingClientHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(mSignalingClientHandle, &signalingMessage));
+
+    // Some correlation id
+    STRCPY(signalingMessage.correlationId, SIGNAING_TEST_CORRELATION_ID);
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(mSignalingClientHandle, &signalingMessage));
+
+    // No peer id
+    signalingMessage.peerClientId[0] = '\0';
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(mSignalingClientHandle, &signalingMessage));
+
+    // No peer id no correlation id
+    signalingMessage.correlationId[0] = '\0';
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(mSignalingClientHandle, &signalingMessage));
+
+    deinitializeSignalingClient();
+
+    EXPECT_EQ(STATUS_SUCCESS, freeFileCredentialProvider(&pAwsCredentialProvider));
+}
+
 TEST_F(SignalingApiTest, signalingClientConnectSync)
 {
      STATUS expectedStatus;
