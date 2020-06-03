@@ -296,8 +296,8 @@ STATUS socketConnectionClosed(PSocketConnection pSocketConnection)
 
     CHK(pSocketConnection != NULL, STATUS_NULL_ARG);
     CHK(!ATOMIC_LOAD_BOOL(&pSocketConnection->connectionClosed), retStatus);
-    PVOID trace[3];
-    INT32 q = backtrace(trace, 3);
+    PVOID trace[8];
+    INT32 q = backtrace(trace, 8);
     PCHAR *symbols = backtrace_symbols(trace, q);
     INT32 j;
     for(j = 0; j < q; ++j) {
