@@ -15,10 +15,10 @@ addons:
       - gdb
 
 script:
-  - export AWS_KVS_LOG_LEVEL=3
+  - export AWS_KVS_LOG_LEVEL=2
   - make
   - ulimit -c unlimited -S
-  - timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+  - timeout --signal=SIGABRT 60m ./tst/webrtc_client_test --gtest_filter="PeerConnectionFunctionalityTest.iceRestartTest"
 
 after_failure:
   - for i in $(find ./ -maxdepth 1 -name 'core*' -print); do gdb $(pwd)/tst/webrtc_client_test core* -ex "thread apply all bt" -ex "set pagination 0" -batch; done;
@@ -38,7 +38,7 @@ matrix:
       script:
         - make
         - export DYLD_LIBRARY_PATH="$DYLD_LIBRARY_PATH:`pwd`/../open-source/lib"
-        - ./tst/webrtc_client_test
+        - ./tst/webrtc_client_test --gtest_filter="PeerConnectionFunctionalityTest.iceRestartTest"
       after_failure: skip # timeout not available on MacOS
 
     - name: "OSX Clang"
@@ -53,7 +53,7 @@ matrix:
         # Execute selected tests without auth integration
         - unset AWS_ACCESS_KEY_ID
         - unset AWS_SECRET_ACCESS_KEY
-        - ./tst/webrtc_client_test --gtest_break_on_failure --gtest_filter="SignalingApiFunctionalityTest.*:SignalingApiTest.*:TurnConnectionFunctionalityTest.*"
+        - ./tst/webrtc_client_test --gtest_break_on_failure --gtest_filter="PeerConnectionFunctionalityTest.iceRestartTest"
       after_failure: skip # timeout not available on MacOS
 
     # Code Coverage
