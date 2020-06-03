@@ -785,8 +785,8 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
                 // swap with last element and decrement count
                 pSampleConfiguration->streamingSessionCount--;
                 pSampleConfiguration->sampleStreamingSessionList[i] = pSampleConfiguration->sampleStreamingSessionList[pSampleConfiguration->streamingSessionCount];
-                CHK_STATUS(freeSampleStreamingSession(&pSampleStreamingSession));
                 ATOMIC_STORE_BOOL(&pSampleConfiguration->updatingSampleStreamingSessionList, FALSE);
+                CHK_STATUS(freeSampleStreamingSession(&pSampleStreamingSession));
             }
         }
 
