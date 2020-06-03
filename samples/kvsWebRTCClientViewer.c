@@ -21,7 +21,7 @@ INT32 main(INT32 argc, CHAR *argv[])
 
     retStatus = createSampleConfiguration(argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME,
                                           SIGNALING_CHANNEL_ROLE_TYPE_VIEWER,
-                                          TRUE,
+                                          FALSE,
                                           TRUE,
                                           &pSampleConfiguration);
     if(retStatus != STATUS_SUCCESS) {
