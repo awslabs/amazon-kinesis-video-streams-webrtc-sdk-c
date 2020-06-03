@@ -2,6 +2,8 @@
  * Kinesis Video Tcp
  */
 #define LOG_CLASS "SocketConnection"
+
+#include <execinfo.h>
 #include "../Include_i.h"
 
 STATUS createSocketConnection(PKvsIpAddress pHostIpAddr, PKvsIpAddress pPeerIpAddr, KVS_SOCKET_PROTOCOL protocol,
@@ -294,6 +296,14 @@ STATUS socketConnectionClosed(PSocketConnection pSocketConnection)
 
     CHK(pSocketConnection != NULL, STATUS_NULL_ARG);
     CHK(!ATOMIC_LOAD_BOOL(&pSocketConnection->connectionClosed), retStatus);
+    PVOID trace[3];
+    INT32 q = backtrace(trace, 3);
+    PCHAR *symbols = backtrace_symbols(trace, q);
+    INT32 j;
+    for(j = 0; j < q; ++j) {
+        DLOGD("%s", symbols[j]);
+    }
+
     DLOGD("Close socket %d", pSocketConnection->localSocket);
     ATOMIC_STORE_BOOL(&pSocketConnection->connectionClosed, TRUE);
 
