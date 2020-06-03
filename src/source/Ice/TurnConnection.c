@@ -96,6 +96,7 @@ STATUS freeTurnConnection(PTurnConnection* ppTurnConnection)
     }
 
     // shutdown control channel
+    DLOGD("lala remove");
     CHK_LOG_ERR(connectionListenerRemoveConnection(pTurnConnection->pConnectionListener, pTurnConnection->pControlChannel));
     CHK_LOG_ERR(freeSocketConnection(&pTurnConnection->pControlChannel));
 

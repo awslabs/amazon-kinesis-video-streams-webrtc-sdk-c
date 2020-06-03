@@ -815,6 +815,7 @@ STATUS iceAgentRestart(PIceAgent pIceAgent, PCHAR localIceUfrag, PCHAR localIceP
     for (i = 0; i < localCandidateCount; ++i) {
         if (localCandidates[i] != pIceAgent->pDataSendingIceCandidatePair->local) {
             if (localCandidates[i]->iceCandidateType != ICE_CANDIDATE_TYPE_RELAYED) {
+                DLOGD("lala remove");
                 CHK_STATUS(connectionListenerRemoveConnection(pIceAgent->pConnectionListener, localCandidates[i]->pSocketConnection));
                 CHK_STATUS(freeSocketConnection(&localCandidates[i]->pSocketConnection));
             } else {
@@ -1844,6 +1845,7 @@ STATUS iceAgentConnectedStateSetup(PIceAgent pIceAgent)
             CHK_STATUS(freeTurnConnection(&pIceAgent->pDataSendingIceCandidatePair->local->pTurnConnection));
 
         } else {
+            DLOGD("lala remove");
             CHK_STATUS(connectionListenerRemoveConnection(pIceAgent->pConnectionListener,
                                                           pIceAgent->pDataSendingIceCandidatePair->local->pSocketConnection));
             CHK_STATUS(freeSocketConnection(&pIceAgent->pDataSendingIceCandidatePair->local->pSocketConnection));
