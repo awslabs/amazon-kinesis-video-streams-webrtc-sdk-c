@@ -63,8 +63,11 @@ STATUS allocateSctp(PKvsPeerConnection pKvsPeerConnection)
     AllocateSctpSortDataChannelsData data;
     UINT32 currentDataChannelId = 0;
     PKvsDataChannel pKvsDataChannel = NULL;
+    BOOL locked = TRUE;
 
     CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
+    MUTEX_LOCK(pKvsPeerConnection->peerConnectionObjLock);
+    locked = TRUE;
     currentDataChannelId = (pKvsPeerConnection->dtlsIsServer) ? 1 : 0;
 
     // Re-sort DataChannel hashmap using proper streamIds if we are offerer or answerer
@@ -96,6 +99,11 @@ STATUS allocateSctp(PKvsPeerConnection pKvsPeerConnection)
     }
 
 CleanUp:
+
+    if (locked) {
+        MUTEX_UNLOCK(pKvsPeerConnection->peerConnectionObjLock);
+    }
+
     return retStatus;
 }
 
