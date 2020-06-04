@@ -1833,32 +1833,39 @@ STATUS iceAgentConnectedStateSetup(PIceAgent pIceAgent)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PDoubleListNode pCurNode = NULL;
-    PIceCandidatePair pIceCandidatePair = NULL;
+    PIceCandidatePair pIceCandidatePair = NULL, pLastDataSendingIceCandidatePair = NULL;
     BOOL locked = FALSE;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
 
     if (pIceAgent->pDataSendingIceCandidatePair != NULL) {
+        MUTEX_LOCK(pIceAgent->lock);
+        locked = TRUE;
+
+        /* at this point ice restart is complete */
+        ATOMIC_STORE_BOOL(&pIceAgent->restart, FALSE);
+        pLastDataSendingIceCandidatePair = pIceAgent->pDataSendingIceCandidatePair;
+        pIceAgent->pDataSendingIceCandidatePair = NULL;
+
+        MUTEX_UNLOCK(pIceAgent->lock);
+        locked = FALSE;
+
         /* If pDataSendingIceCandidatePair is not NULL, then it must be the data sending pair before ice restart.
          * Free its resource here since not there is a new connected pair to replace it. */
-        if (IS_CANN_PAIR_SENDING_FROM_RELAYED(pIceAgent->pDataSendingIceCandidatePair)) {
-            CHK_STATUS(turnConnectionShutdown(pIceAgent->pDataSendingIceCandidatePair->local->pTurnConnection,
+        if (IS_CANN_PAIR_SENDING_FROM_RELAYED(pLastDataSendingIceCandidatePair)) {
+            CHK_STATUS(turnConnectionShutdown(pLastDataSendingIceCandidatePair->local->pTurnConnection,
                                               KVS_ICE_TURN_CONNECTION_SHUTDOWN_TIMEOUT));
-            CHK_STATUS(freeTurnConnection(&pIceAgent->pDataSendingIceCandidatePair->local->pTurnConnection));
+            CHK_STATUS(freeTurnConnection(&pLastDataSendingIceCandidatePair->local->pTurnConnection));
 
         } else {
             DLOGD("lala remove");
             CHK_STATUS(connectionListenerRemoveConnection(pIceAgent->pConnectionListener,
-                                                          pIceAgent->pDataSendingIceCandidatePair->local->pSocketConnection));
-            CHK_STATUS(freeSocketConnection(&pIceAgent->pDataSendingIceCandidatePair->local->pSocketConnection));
+                                                          pLastDataSendingIceCandidatePair->local->pSocketConnection));
+            CHK_STATUS(freeSocketConnection(&pLastDataSendingIceCandidatePair->local->pSocketConnection));
         }
 
-        MEMFREE(pIceAgent->pDataSendingIceCandidatePair->local);
-        CHK_STATUS(freeIceCandidatePair(&pIceAgent->pDataSendingIceCandidatePair));
-
-        /* at this point ice restart is complete */
-        ATOMIC_STORE_BOOL(&pIceAgent->restart, FALSE);
-        pIceAgent->pDataSendingIceCandidatePair = NULL;
+        MEMFREE(pLastDataSendingIceCandidatePair->local);
+        CHK_STATUS(freeIceCandidatePair(&pLastDataSendingIceCandidatePair));
     }
 
     MUTEX_LOCK(pIceAgent->lock);
