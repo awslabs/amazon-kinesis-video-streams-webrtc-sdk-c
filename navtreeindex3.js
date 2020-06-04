@@ -1,5 +1,7 @@
 var NAVTREEINDEX3 =
 {
+"structRtcCertificate.html#ab10962af2a62249c831fc8bda813371b":[1,0,17,3],
+"structRtcCertificate.html#acf9edbaf8bcf6068a19ddeadea9aa9ba":[1,0,17,2],
 "structRtcConfiguration.html":[1,0,18],
 "structRtcConfiguration.html#a5088878594e4eab3d1b5010960fc15a5":[1,0,18,2],
 "structRtcConfiguration.html#a69bb47ece52e306b555cf69a153db483":[1,0,18,3],

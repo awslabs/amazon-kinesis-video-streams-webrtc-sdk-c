@@ -7,6 +7,7 @@ var group__SessionDescriptionInit =
     [ "STATUS_SESSION_DESCRIPTION_INIT_MISSING_TYPE", "group__SessionDescriptionInit.html#ga343a981dbb557abd75258c628a55882b", null ],
     [ "STATUS_SESSION_DESCRIPTION_INIT_NOT_OBJECT", "group__SessionDescriptionInit.html#ga609b523c9a213fa2bf6379b5a9ebd20e", null ],
     [ "STATUS_SESSION_DESCRIPTION_INVALID_SESSION_DESCRIPTION", "group__SessionDescriptionInit.html#gaf762c67c2a4c7e1a28e9e5e89bdd7cc6", null ],
+    [ "STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT", "group__SessionDescriptionInit.html#gac6a14fdc090f7e323fa0dcaab20b2bf3", null ],
     [ "STATUS_SESSION_DESCRIPTION_MISSING_CERTIFICATE_FINGERPRINT", "group__SessionDescriptionInit.html#gaf3af5b7f030c25a9db82899e1d4fc63b", null ],
     [ "STATUS_SESSION_DESCRIPTION_MISSING_ICE_VALUES", "group__SessionDescriptionInit.html#gac670dee04e58c02bddeeaf31b989a5be", null ],
     [ "STATUS_WEBRTC_BASE", "group__SessionDescriptionInit.html#ga9b55ffc88e2786cc34f6ef948d563420", null ]
