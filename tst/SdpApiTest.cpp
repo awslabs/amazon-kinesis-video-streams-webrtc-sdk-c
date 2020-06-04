@@ -258,6 +258,44 @@ TEST_F(SdpApiTest, populateSingleMediaSection_TestTxSendRecv) {
     freePeerConnection(&offerPc);
 }
 
+TEST_F(SdpApiTest, populateSingleMediaSection_TestTxSendRecvMaxTransceivers) {
+    PRtcPeerConnection offerPc = NULL;
+    RtcConfiguration configuration;
+    RtcSessionDescriptionInit sessionDescriptionInit;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+
+    // Create peer connection
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+
+    RtcMediaStreamTrack track;
+    PRtcRtpTransceiver pTransceiver;
+    RtcRtpTransceiverInit rtcRtpTransceiverInit;
+    rtcRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+
+    MEMSET(&track, 0x00, SIZEOF(RtcMediaStreamTrack));
+
+    track.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+    track.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+    STRCPY(track.streamId, "myKvsVideoStream");
+    STRCPY(track.trackId, "myTrack");
+
+    // Max transceivers
+    for (UINT32 i = 0; i < MAX_SDP_SESSION_MEDIA_COUNT - 1; i++) {
+        EXPECT_EQ(STATUS_SUCCESS, addTransceiver(offerPc, &track, &rtcRtpTransceiverInit, &pTransceiver));
+    }
+
+    EXPECT_EQ(STATUS_SUCCESS, createOffer(offerPc, &sessionDescriptionInit));
+    EXPECT_PRED_FORMAT2(testing::IsSubstring, "sendrecv", sessionDescriptionInit.sdp);
+
+    // Adding one more should fail
+    EXPECT_EQ(STATUS_SUCCESS, addTransceiver(offerPc, &track, &rtcRtpTransceiverInit, &pTransceiver));
+    EXPECT_EQ(STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT, createOffer(offerPc, &sessionDescriptionInit));
+
+    closePeerConnection(offerPc);
+    freePeerConnection(&offerPc);
+}
+
 TEST_F(SdpApiTest, populateSingleMediaSection_TestTxSendOnly) {
 
     PRtcPeerConnection offerPc = NULL;
@@ -422,14 +460,16 @@ a=group:BUNDLE 0 1 2 3
     offer3 += "\n";
     offer3 += sdpvideo;
     offer3 += "\n";
+    offer3 += sdpvideo;
+    offer3 += "\n";
+    offer3 += sdpvideo;
+    offer3 += "\n";
 
-
-    SessionDescription sessionDescription;
+                        SessionDescription sessionDescription;
     MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
-    // as log as Sdp.h  MAX_SDP_SESSION_MEDIA_COUNT 2 this should fail instead of overwriting memory
+    // as log as Sdp.h  MAX_SDP_SESSION_MEDIA_COUNT 5 this should fail instead of overwriting memory
     EXPECT_EQ(STATUS_BUFFER_TOO_SMALL, serializeSessionDescription(&sessionDescription, (PCHAR) offer3.c_str()));
 }
-
 
 // i receive offer for two video tracks with the same codec
 // i add two transceivers with VP8 tracks

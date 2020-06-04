@@ -39,6 +39,7 @@ extern "C" {
 #define STATUS_SESSION_DESCRIPTION_INVALID_SESSION_DESCRIPTION                      STATUS_WEBRTC_BASE + 0x00000007
 #define STATUS_SESSION_DESCRIPTION_MISSING_ICE_VALUES                               STATUS_WEBRTC_BASE + 0x00000008
 #define STATUS_SESSION_DESCRIPTION_MISSING_CERTIFICATE_FINGERPRINT                  STATUS_WEBRTC_BASE + 0x00000009
+#define STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT                                  STATUS_WEBRTC_BASE + 0x0000000A
 /*!@} */
 
 /*===========================================================================================*/

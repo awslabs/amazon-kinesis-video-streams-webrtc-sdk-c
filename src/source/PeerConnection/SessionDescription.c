@@ -574,6 +574,7 @@ STATUS populateSessionDescriptionMedia(PKvsPeerConnection pKvsPeerConnection, PS
         pCurNode = pCurNode->pNext;
         pKvsRtpTransceiver = (PKvsRtpTransceiver) data;
         if (pKvsRtpTransceiver != NULL) {
+            CHK(pLocalSessionDescription->mediaCount < MAX_SDP_SESSION_MEDIA_COUNT, STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT);
             CHK_STATUS(populateSingleMediaSection(
                         pKvsPeerConnection,
                         pKvsRtpTransceiver,
@@ -587,6 +588,7 @@ STATUS populateSessionDescriptionMedia(PKvsPeerConnection pKvsPeerConnection, PS
     }
 
     if (pKvsPeerConnection->sctpIsEnabled) {
+        CHK(pLocalSessionDescription->mediaCount < MAX_SDP_SESSION_MEDIA_COUNT, STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT);
         CHK_STATUS(populateSessionDescriptionDataChannel(
                         pKvsPeerConnection,
                         &(pLocalSessionDescription->mediaDescriptions[pLocalSessionDescription->mediaCount]),
