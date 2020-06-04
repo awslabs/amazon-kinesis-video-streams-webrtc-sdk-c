@@ -416,6 +416,7 @@ STATUS iceAgentInitHostCandidate(PIceAgent pIceAgent)
             // we dont generate candidates that have the same foundation.
             pTmpIceCandidate->foundation = pIceAgent->foundationCounter++;
             pTmpIceCandidate->pSocketConnection = pSocketConnection;
+            DLOGD("host candidate socket %d", pSocketConnection->localSocket);
             pTmpIceCandidate->priority = computeCandidatePriority(pTmpIceCandidate);
 
             /* Another thread could be calling iceAgentAddRemoteCandidate which triggers createIceCandidatePairs.
@@ -1584,6 +1585,7 @@ STATUS iceAgentInitSrflxCandidate(PIceAgent pIceAgent)
                     CHK_STATUS(createSocketConnection(&pNewCandidate->ipAddress, NULL, KVS_SOCKET_PROTOCOL_UDP,
                                                       (UINT64) pIceAgent, incomingDataHandler, pIceAgent->kvsRtcConfiguration.sendBufSize,
                                                       &pNewCandidate->pSocketConnection));
+                    DLOGD("srflx candidate socket %d", pNewCandidate->pSocketConnection->localSocket);
                     ATOMIC_STORE_BOOL(&pNewCandidate->pSocketConnection->receiveData, TRUE);
                     // connectionListener will free the pSocketConnection at the end.
                     CHK_STATUS(connectionListenerAddConnection(pIceAgent->pConnectionListener,
