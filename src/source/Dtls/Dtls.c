@@ -510,10 +510,10 @@ STATUS dtlsSessionProcessPacket(PDtlsSession pDtlsSession, PBYTE pData, PINT32 p
 
     if (!ATOMIC_LOAD_BOOL(&pDtlsSession->sslInitFinished)) {
         CHK_STATUS(dtlsCheckOutgoingDataBuffer(pDtlsSession));
-    } else {
-        // if dtls handshake is done, and SSL_read did not fail, then sslRet and number of sctp bytes read
-        dataLen = sslRet < 0 ? 0 : sslRet;
     }
+
+    /* if SSL_read failed then set to 0 */
+    dataLen = sslRet < 0 ? 0 : sslRet;
 
     if (isClosed) {
         ATOMIC_STORE_BOOL(&pDtlsSession->shutdown, TRUE);
@@ -578,7 +578,7 @@ STATUS dtlsSessionShutdown(PDtlsSession pDtlsSession)
 
     MUTEX_LOCK(pDtlsSession->sslLock);
     locked = TRUE;
-    
+
     CHK(!ATOMIC_LOAD_BOOL(&pDtlsSession->shutdown), retStatus);
     CHK(ATOMIC_LOAD_BOOL(&pDtlsSession->sslInitFinished), retStatus);
 
