@@ -2,6 +2,9 @@
 
 extern PSampleConfiguration gSampleConfiguration;
 
+#define DEFAULT_AUDIO_BUFFER_SIZE               500
+#define DEFAULT_VIDEO_BUFFER_SIZE               120 * 1024
+
 // #define VERBOSE
 
 INT32 main(INT32 argc, CHAR *argv[])
@@ -35,6 +38,10 @@ INT32 main(INT32 argc, CHAR *argv[])
     pSampleConfiguration->receiveAudioVideoSource = sampleReceiveAudioFrame;
     pSampleConfiguration->onDataChannel = onDataChannel;
     pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
+    pSampleConfiguration->videoBufferSize = DEFAULT_VIDEO_BUFFER_SIZE;
+    pSampleConfiguration->audioBufferSize = DEFAULT_AUDIO_BUFFER_SIZE;
+    pSampleConfiguration->pVideoFrameBuffer = malloc(DEFAULT_VIDEO_BUFFER_SIZE);
+    pSampleConfiguration->pAudioFrameBuffer = malloc(DEFAULT_AUDIO_BUFFER_SIZE);
     printf("[KVS Master] Finished setting audio and video handlers\n");
 
     // Check if the samples are present
