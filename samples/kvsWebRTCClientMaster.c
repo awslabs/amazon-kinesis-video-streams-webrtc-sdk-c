@@ -191,7 +191,7 @@ PVOID sendVideoPackets(PVOID args)
 
         // Re-alloc if needed
         if (frameSize > pSampleConfiguration->videoBufferSize) {
-            pSampleConfiguration->pVideoFrameBuffer = (PBYTE) realloc(pSampleConfiguration->pVideoFrameBuffer, frameSize);
+            pSampleConfiguration->pVideoFrameBuffer = (PBYTE) MEMREALLOC(pSampleConfiguration->pVideoFrameBuffer, frameSize);
             if(pSampleConfiguration->pVideoFrameBuffer == NULL)
             {
                 printf("[KVS Master] Video frame Buffer reallocation failed...%s (code %d)\n", strerror(errno), errno);
@@ -262,7 +262,7 @@ PVOID sendAudioPackets(PVOID args)
 
         // Re-alloc if needed
         if (frameSize > pSampleConfiguration->audioBufferSize) {
-            pSampleConfiguration->pAudioFrameBuffer = (UINT8*) realloc(pSampleConfiguration->pAudioFrameBuffer, frameSize);
+            pSampleConfiguration->pAudioFrameBuffer = (UINT8*) MEMREALLOC(pSampleConfiguration->pAudioFrameBuffer, frameSize);
             if(pSampleConfiguration->pAudioFrameBuffer == NULL) {
                 printf("[KVS Master] Audio frame Buffer reallocation failed...%s (code %d)\n", strerror(errno), errno);
                 printf("[KVS Master] realloc(): operation returned status code: 0x%08x \n", STATUS_NOT_ENOUGH_MEMORY);
