@@ -32,6 +32,15 @@ INT32 main(INT32 argc, CHAR *argv[])
 
     printf("[KVS Viewer] Created signaling channel %s\n", (argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME));
 
+    if(pSampleConfiguration->enableFileLogging) {
+        retStatus = createFileLogger(FILE_LOGGING_BUFFER_SIZE, MAX_NUMBER_OF_LOG_FILES,
+                     (PCHAR) FILE_LOGGER_LOG_FILE_DIRECTORY_PATH, TRUE, TRUE, NULL);
+        if(retStatus != STATUS_SUCCESS) {
+            printf("[KVS Master] createFileLogger(): operation returned status code: 0x%08x \n", retStatus);
+            pSampleConfiguration->enableFileLogging = FALSE;
+        }
+    }
+
     // Initialize KVS WebRTC. This must be done before anything else, and must only be done once.
     retStatus = initKvsWebRtc();
     if(retStatus != STATUS_SUCCESS) {
@@ -173,6 +182,9 @@ CleanUp:
         MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
     }
 
+    if(pSampleConfiguration->enableFileLogging) {
+        freeFileLogger();
+    }
     if (pSampleConfiguration != NULL) {
         retStatus = freeSignalingClient(&pSampleConfiguration->signalingClientHandle);
         if(retStatus != STATUS_SUCCESS) {

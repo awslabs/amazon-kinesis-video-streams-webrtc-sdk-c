@@ -356,6 +356,15 @@ INT32 main(INT32 argc, CHAR *argv[])
 
     printf("[KVS GStreamer Master] Created signaling channel %s\n", (argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME));
 
+    if(pSampleConfiguration->enableFileLogging) {
+        retStatus = createFileLogger(FILE_LOGGING_BUFFER_SIZE, MAX_NUMBER_OF_LOG_FILES,
+                     (PCHAR) FILE_LOGGER_LOG_FILE_DIRECTORY_PATH, TRUE, TRUE, NULL);
+        if(retStatus != STATUS_SUCCESS) {
+            printf("[KVS Master] createFileLogger(): operation returned status code: 0x%08x \n", retStatus);
+            pSampleConfiguration->enableFileLogging = FALSE;
+        }
+    }
+
     pSampleConfiguration->videoSource = sendGstreamerAudioVideo;
     pSampleConfiguration->mediaType = SAMPLE_STREAMING_VIDEO_ONLY;
     pSampleConfiguration->receiveAudioVideoSource = receiveGstreamerAudioVideo;
@@ -457,6 +466,9 @@ CleanUp:
             THREAD_JOIN(pSampleConfiguration->videoSenderTid, NULL);
         }
 
+        if(pSampleConfiguration->enableFileLogging) {
+            freeFileLogger();
+        }
         retStatus = freeSignalingClient(&pSampleConfiguration->signalingClientHandle);
         if(retStatus != STATUS_SUCCESS) {
             printf("[KVS GStreamer Master] freeSignalingClient(): operation returned status code: 0x%08x \n", retStatus);
