@@ -1,7 +1,6 @@
 var searchData=
 [
-  ['filtercustomdata_44',['filterCustomData',['../structKvsRtcConfiguration.html#a02a5e6d0b5cdd1916c3b6c7a295849d3',1,'KvsRtcConfiguration']]],
-  ['freepeerconnection_45',['freePeerConnection',['../Include_8h.html#a433b1bd125e7f221bcdad97a2a0e8949',1,'Include.h']]],
-  ['freesignalingclient_46',['freeSignalingClient',['../Include_8h.html#afb4629e6a81552152c1b475a32e06e9c',1,'Include.h']]],
-  ['freetransceiver_47',['freeTransceiver',['../Include_8h.html#a10479b49a6df2035fd1549809e11d9f5',1,'Include.h']]]
+  ['encoderimplementation_60',['encoderImplementation',['../structRtcOutboundRtpStreamStats.html#ae6109a0f7c748fa8ce86c77136c9bc6d',1,'RtcOutboundRtpStreamStats']]],
+  ['errorreportfn_61',['errorReportFn',['../structSignalingClientCallbacks.html#a541b18458a4b4ec54117a6130fd48d6a',1,'SignalingClientCallbacks']]],
+  ['errortype_62',['errorType',['../structReceivedSignalingMessage.html#afae937b08befda5ffdbb7b6b17d481e1',1,'ReceivedSignalingMessage']]]
 ];

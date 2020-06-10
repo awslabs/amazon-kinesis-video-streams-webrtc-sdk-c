@@ -104,6 +104,7 @@ $(document).ready(function(){initNavTree('Include_8h.html',''); initResizable();
 <div class="textblock"><code>#include &lt;com/amazonaws/kinesis/video/client/Include.h&gt;</code><br />
 <code>#include &lt;com/amazonaws/kinesis/video/common/Include.h&gt;</code><br />
 <code>#include &lt;<a class="el" href="NullableDefs_8h_source.html">com/amazonaws/kinesis/video/webrtcclient/NullableDefs.h</a>&gt;</code><br />
+<code>#include &lt;<a class="el" href="Stats_8h_source.html">com/amazonaws/kinesis/video/webrtcclient/Stats.h</a>&gt;</code><br />
 </div>
 <p><a href="Include_8h_source.html">Go to the source code of this file.</a></p>
 <table class="memberdecls">
@@ -167,6 +168,18 @@ Classes</h2></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRtcDataChannelInit.html">RtcDataChannelInit</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="structRtcDataChannelInit.html" title="RtcDataChannelInit dictionary used to configure properties of the underlying channel such as data rel...">RtcDataChannelInit</a> dictionary used to configure properties of the underlying channel such as data reliability.  <a href="structRtcDataChannelInit.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRtcIceMetrics.html">RtcIceMetrics</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Metrics/Stats Related structures.  <a href="structRtcIceMetrics.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRtcStreamMetrics.html">RtcStreamMetrics</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Collection of RTP stream related stats Reference: <a href="https://www.w3.org/TR/webrtc-stats/#remoteinboundrtpstats-dict">https://www.w3.org/TR/webrtc-stats/#remoteinboundrtpstats-dict</a>* Reference: <a href="https://www.w3.org/TR/webrtc-stats/#outboundrtpstats-dict">https://www.w3.org/TR/webrtc-stats/#outboundrtpstats-dict</a>* Reference: <a href="https://www.w3.org/TR/webrtc-stats/#transportstats-dict">https://www.w3.org/TR/webrtc-stats/#transportstats-dict</a>*.  <a href="structRtcStreamMetrics.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClientMetrics.html">SignalingClientMetrics</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">SignalingStats Collection of signaling related stats. Can be expanded in the future.  <a href="structSignalingClientMetrics.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRtcStats.html">RtcStats</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">The stats object is populated based on RTCStatsType request.  <a href="structRtcStats.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="define-members"></a>
@@ -597,6 +610,12 @@ Macros</h2></td></tr>
 <tr class="separator:ga86b84654a2df2822d338f6d83dcc1351"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga49b3de2b6188a87f337eece2d9d02456"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StructureVersions.html#ga49b3de2b6188a87f337eece2d9d02456">SIGNALING_MESSAGE_CURRENT_VERSION</a>&#160;&#160;&#160;0</td></tr>
 <tr class="separator:ga49b3de2b6188a87f337eece2d9d02456"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaa80794687556eb5f0c2b180a1c6a24c9"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StructureVersions.html#gaa80794687556eb5f0c2b180a1c6a24c9">RTC_ICE_METRICS_CURRENT_VERSION</a>&#160;&#160;&#160;0</td></tr>
+<tr class="separator:gaa80794687556eb5f0c2b180a1c6a24c9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaf30a982ce920e96a99d1b171f3e7592d"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StructureVersions.html#gaf30a982ce920e96a99d1b171f3e7592d">RTC_STREAM_METRICS_CURRENT_VERSION</a>&#160;&#160;&#160;0</td></tr>
+<tr class="separator:gaf30a982ce920e96a99d1b171f3e7592d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga9a000afcb54122521c547851528af0eb"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StructureVersions.html#ga9a000afcb54122521c547851528af0eb">SIGNALING_CLIENT_METRICS_CURRENT_VERSION</a>&#160;&#160;&#160;0</td></tr>
+<tr class="separator:ga9a000afcb54122521c547851528af0eb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga4e6cbb5c5fbb3b5b4eb065e6182051e9"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Counts.html#ga4e6cbb5c5fbb3b5b4eb065e6182051e9">MAX_ICE_CONFIG_URI_COUNT</a>&#160;&#160;&#160;4</td></tr>
 <tr class="separator:ga4e6cbb5c5fbb3b5b4eb065e6182051e9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga1bba324d8b527831b53d9412da235656"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Counts.html#ga1bba324d8b527831b53d9412da235656">MAX_ICE_CONFIG_COUNT</a>&#160;&#160;&#160;5</td></tr>
@@ -726,6 +745,14 @@ Typedefs</h2></td></tr>
 <tr class="separator:a403f9b55f053a068d56e8aa51c0bc739"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab970e0095d779c18c106620eac5fbbc6"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRtcDataChannelInit.html">RtcDataChannelInit</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#ab970e0095d779c18c106620eac5fbbc6">PRtcDataChannelInit</a></td></tr>
 <tr class="separator:ab970e0095d779c18c106620eac5fbbc6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af75ec0fba0bdf1da6dd91ca1fa13ae73"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRtcIceMetrics.html">RtcIceMetrics</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#af75ec0fba0bdf1da6dd91ca1fa13ae73">PRtcIceMetrics</a></td></tr>
+<tr class="separator:af75ec0fba0bdf1da6dd91ca1fa13ae73"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4dbcedb5303986f1f9f88b41c411f24f"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRtcStreamMetrics.html">RtcStreamMetrics</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#a4dbcedb5303986f1f9f88b41c411f24f">PRtcStreamMetrics</a></td></tr>
+<tr class="separator:a4dbcedb5303986f1f9f88b41c411f24f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9db7af67932ea54332e1978fae9240ba"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structSignalingClientMetrics.html">SignalingClientMetrics</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#a9db7af67932ea54332e1978fae9240ba">PSignalingClientMetrics</a></td></tr>
+<tr class="separator:a9db7af67932ea54332e1978fae9240ba"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abdd6279872601de0a012f1f3f50c8c82"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRtcStats.html">RtcStats</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#abdd6279872601de0a012f1f3f50c8c82">PRtcStats</a></td></tr>
+<tr class="separator:abdd6279872601de0a012f1f3f50c8c82"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="enum-members"></a>
 Enumerations</h2></td></tr>
@@ -950,6 +977,12 @@ Functions</h2></td></tr>
 <tr class="memitem:ad85555f757662d1585efd00d496e5c13"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#ad85555f757662d1585efd00d496e5c13">signalingClientDeleteSync</a> (<a class="el" href="Include_8h.html#a1a31b45408a80e1064d39d578bd3b751">SIGNALING_CLIENT_HANDLE</a>)</td></tr>
 <tr class="memdesc:ad85555f757662d1585efd00d496e5c13"><td class="mdescLeft">&#160;</td><td class="mdescRight">Deletes the signaling channel referenced by SIGNALING_CLIENT_HANDLE.  <a href="Include_8h.html#ad85555f757662d1585efd00d496e5c13">More...</a><br /></td></tr>
 <tr class="separator:ad85555f757662d1585efd00d496e5c13"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad600c2fa22f9ac2817a6fdfed8b2f407"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#ad600c2fa22f9ac2817a6fdfed8b2f407">signalingClientGetMetrics</a> (<a class="el" href="Include_8h.html#a1a31b45408a80e1064d39d578bd3b751">SIGNALING_CLIENT_HANDLE</a>, <a class="el" href="Include_8h.html#a9db7af67932ea54332e1978fae9240ba">PSignalingClientMetrics</a>)</td></tr>
+<tr class="memdesc:ad600c2fa22f9ac2817a6fdfed8b2f407"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get signaling related metrics.  <a href="Include_8h.html#ad600c2fa22f9ac2817a6fdfed8b2f407">More...</a><br /></td></tr>
+<tr class="separator:ad600c2fa22f9ac2817a6fdfed8b2f407"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aef471d3d4b3c96b8896145550b09b6ff"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#aef471d3d4b3c96b8896145550b09b6ff">RtcPeerConnectionGetMetrics</a> (<a class="el" href="Include_8h.html#a70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>, <a class="el" href="Include_8h.html#abdd6279872601de0a012f1f3f50c8c82">PRtcStats</a>)</td></tr>
+<tr class="memdesc:aef471d3d4b3c96b8896145550b09b6ff"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the relevant/all metrics based on the RTCStatsType field. This does not include any signaling related metrics.  <a href="Include_8h.html#aef471d3d4b3c96b8896145550b09b6ff">More...</a><br /></td></tr>
+<tr class="separator:aef471d3d4b3c96b8896145550b09b6ff"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Macro Definition Documentation</h2>
 <a id="a39137beaf587d297125406df4bd48b55"></a>
@@ -1269,6 +1302,20 @@ Functions</h2></td></tr>
 
 </div>
 </div>
+<a id="af75ec0fba0bdf1da6dd91ca1fa13ae73"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af75ec0fba0bdf1da6dd91ca1fa13ae73">&#9670;&nbsp;</a></span>PRtcIceMetrics</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef  struct <a class="el" href="structRtcIceMetrics.html">RtcIceMetrics</a> * <a class="el" href="Include_8h.html#af75ec0fba0bdf1da6dd91ca1fa13ae73">PRtcIceMetrics</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a id="a3dac633294f8d8a99f3edaa2a193f808"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a3dac633294f8d8a99f3edaa2a193f808">&#9670;&nbsp;</a></span>PRtcIceServer</h2>
 
@@ -1367,6 +1414,34 @@ Functions</h2></td></tr>
 
 </div>
 </div>
+<a id="abdd6279872601de0a012f1f3f50c8c82"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#abdd6279872601de0a012f1f3f50c8c82">&#9670;&nbsp;</a></span>PRtcStats</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef  struct <a class="el" href="structRtcStats.html">RtcStats</a> * <a class="el" href="Include_8h.html#abdd6279872601de0a012f1f3f50c8c82">PRtcStats</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a4dbcedb5303986f1f9f88b41c411f24f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4dbcedb5303986f1f9f88b41c411f24f">&#9670;&nbsp;</a></span>PRtcStreamMetrics</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef  struct <a class="el" href="structRtcStreamMetrics.html">RtcStreamMetrics</a> * <a class="el" href="Include_8h.html#a4dbcedb5303986f1f9f88b41c411f24f">PRtcStreamMetrics</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a id="ae65f311050fbaa62d447a4cb7f1f884a"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ae65f311050fbaa62d447a4cb7f1f884a">&#9670;&nbsp;</a></span>PSIGNALING_CLIENT_HANDLE</h2>
 
@@ -1431,6 +1506,20 @@ Functions</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname">typedef  struct <a class="el" href="structSignalingClientInfo.html">SignalingClientInfo</a> * <a class="el" href="Include_8h.html#a344ee607e6512a97313fb08d72ea4ac1">PSignalingClientInfo</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a9db7af67932ea54332e1978fae9240ba"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9db7af67932ea54332e1978fae9240ba">&#9670;&nbsp;</a></span>PSignalingClientMetrics</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef  struct <a class="el" href="structSignalingClientMetrics.html">SignalingClientMetrics</a> * <a class="el" href="Include_8h.html#a9db7af67932ea54332e1978fae9240ba">PSignalingClientMetrics</a></td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -3037,6 +3126,43 @@ Functions</h2></td></tr>
 
 </div>
 </div>
+<a id="aef471d3d4b3c96b8896145550b09b6ff"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aef471d3d4b3c96b8896145550b09b6ff">&#9670;&nbsp;</a></span>RtcPeerConnectionGetMetrics()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">PUBLIC_API STATUS RtcPeerConnectionGetMetrics </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="Include_8h.html#a70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>&#160;</td>
+          <td class="paramname">, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="Include_8h.html#abdd6279872601de0a012f1f3f50c8c82">PRtcStats</a>&#160;</td>
+          <td class="paramname">&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get the relevant/all metrics based on the RTCStatsType field. This does not include any signaling related metrics. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">PRtcPeerConnection</td><td>Peer connection for which the stats need to be collected </td></tr>
+    <tr><td class="paramname">[in/out]</td><td>PRtcStats The stats object with the RTCStatsType field populated </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
 <a id="a66d6bc8b6d11743303900831b52c76f2"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a66d6bc8b6d11743303900831b52c76f2">&#9670;&nbsp;</a></span>serializeSessionDescriptionInit()</h2>
 
@@ -3356,6 +3482,43 @@ Functions</h2></td></tr>
 
 </div>
 </div>
+<a id="ad600c2fa22f9ac2817a6fdfed8b2f407"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad600c2fa22f9ac2817a6fdfed8b2f407">&#9670;&nbsp;</a></span>signalingClientGetMetrics()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">PUBLIC_API STATUS signalingClientGetMetrics </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="Include_8h.html#a1a31b45408a80e1064d39d578bd3b751">SIGNALING_CLIENT_HANDLE</a>&#160;</td>
+          <td class="paramname">, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="Include_8h.html#a9db7af67932ea54332e1978fae9240ba">PSignalingClientMetrics</a>&#160;</td>
+          <td class="paramname">&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get signaling related metrics. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">SIGNALING_CLIENT_HANDLE</td><td>Signaling client handle </td></tr>
+    <tr><td class="paramdir"></td><td class="paramname">[in/out]</td><td>PSignalingClientMetrics Signaling stats </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
 <a id="a955a06c05bfb620db461837f2ebca4a8"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a955a06c05bfb620db461837f2ebca4a8">&#9670;&nbsp;</a></span>signalingClientGetStateString()</h2>
 
@@ -3557,7 +3720,7 @@ Functions</h2></td></tr>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_b0856f6b0d80ccb263b2f415c91f9e17.html">include</a></li><li class="navelem"><a class="el" href="dir_8f5ac45a6ada111b95e80af22bb6017d.html">com</a></li><li class="navelem"><a class="el" href="dir_6eddcaa8cb3f84b1b7290fa7880ed0c5.html">amazonaws</a></li><li class="navelem"><a class="el" href="dir_ffe25b375dd9c47f978782781b252738.html">kinesis</a></li><li class="navelem"><a class="el" href="dir_40be0bfe93e499fae0ac3fc2c0b3ca29.html">video</a></li><li class="navelem"><a class="el" href="dir_4165afa699965307903ffe413a1cdec9.html">webrtcclient</a></li><li class="navelem"><a class="el" href="Include_8h.html">Include.h</a></li>
-    <li class="footer">Generated on Fri Jun 5 2020 08:01:19 for Amazon Kinesis Webrtc C SDK by
+    <li class="footer">Generated on Wed Jun 10 2020 17:33:18 for Amazon Kinesis Webrtc C SDK by
     <a href="http://www.doxygen.org/index.html">
     <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.18 </li>
   </ul>

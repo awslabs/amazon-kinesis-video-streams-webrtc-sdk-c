@@ -1,5 +1,19 @@
 var searchData=
 [
-  ['value_667',['value',['../structNullableBool.html#ab83b6ae4816b67c05f5c78dfeffb27ce',1,'NullableBool::value()'],['../structNullableUint8.html#a283eac266ed7a804584c233d429e6e4b',1,'NullableUint8::value()'],['../structNullableInt8.html#a7b609011e80d3dd28a8b856ad6f7eff6',1,'NullableInt8::value()'],['../structNullableUint16.html#a0b5687bb233ebf457c452281dec98f5b',1,'NullableUint16::value()'],['../structNullableInt16.html#a771ed959be76b57dc5949b3222a14193',1,'NullableInt16::value()'],['../structNullableUint32.html#ab02b4b5602e80eb2da8aa0b548e1c69d',1,'NullableUint32::value()'],['../structNullableInt32.html#a84332a0ba0cea2a974c2a6f1ccc20250',1,'NullableInt32::value()'],['../structNullableUint64.html#a538943c16cb89ee0663e950ac94ae8b6',1,'NullableUint64::value()'],['../structNullableInt64.html#a276264e9105e2fe9ec8cac69a835265f',1,'NullableInt64::value()'],['../structNullableFloat.html#aa969eaa29d6b452017b649c5116556ef',1,'NullableFloat::value()'],['../structNullableDouble.html#a3ee3ebfebd872d579fa3421d42a9e5a5',1,'NullableDouble::value()'],['../structNullableLongDouble.html#a07c93ed10582731924bab9da0d3adcae',1,'NullableLongDouble::value()']]],
-  ['version_668',['version',['../structRtcPeerConnection.html#a19b58ac2436203028cd705d575ab7ea6',1,'RtcPeerConnection::version()'],['../structSignalingMessage.html#a278d902dd02371c74db3f9aa2a90960b',1,'SignalingMessage::version()'],['../structSignalingClientInfo.html#aad776eab978b30bd3f21ecd3432c93a0',1,'SignalingClientInfo::version()'],['../structChannelInfo.html#a7aef1a2aa352519fb948d32416fc94f3',1,'ChannelInfo::version()'],['../structIceConfigInfo.html#a804c9f31a8d542f6ffee45d353f24c4e',1,'IceConfigInfo::version()'],['../structSignalingClientCallbacks.html#a28e1f7ffcd30600fbeecd7f682e6afed',1,'SignalingClientCallbacks::version()'],['../structSignalingChannelDescription.html#a2654c67d8cf48a3c4eb29e2454109b4d',1,'SignalingChannelDescription::version()']]]
+  ['samplesencodedwithcelt_951',['samplesEncodedWithCelt',['../structRtcOutboundRtpStreamStats.html#a80ed6b5980f1c163a9b42ba3c0418b29',1,'RtcOutboundRtpStreamStats']]],
+  ['samplesencodedwithsilk_952',['samplesEncodedWithSilk',['../structRtcOutboundRtpStreamStats.html#a968b4a54816b8d11aeb60cf3e161e240',1,'RtcOutboundRtpStreamStats']]],
+  ['sdp_953',['sdp',['../structRtcSessionDescriptionInit.html#a62c6f63074c9ca7e465cb1bf39854db9',1,'RtcSessionDescriptionInit']]],
+  ['selectedcandidatepairchanges_954',['selectedCandidatePairChanges',['../structRtcTransportStats.html#ae0bcc748dd5668d3290ec82827f674ea',1,'RtcTransportStats']]],
+  ['selectedcandidatepairid_955',['selectedCandidatePairId',['../structRtcTransportStats.html#aa37cf30c64e4d3f8e1a7e8b643764956',1,'RtcTransportStats']]],
+  ['sendbufsize_956',['sendBufSize',['../structKvsRtcConfiguration.html#a208adbb095ca7a9b4bf55c1ec15ee038',1,'KvsRtcConfiguration']]],
+  ['senderid_957',['senderId',['../structRtcOutboundRtpStreamStats.html#ac2f7923ba536126c3ea1e9d954f4eb2a',1,'RtcOutboundRtpStreamStats']]],
+  ['signalingclientstats_958',['signalingClientStats',['../structSignalingClientMetrics.html#a19e455ef17680d69fc2de9f0c886ea80',1,'SignalingClientMetrics']]],
+  ['signalingclientuptime_959',['signalingClientUptime',['../structSignalingClientStats.html#ac581ceebed9a391235a48dba8e4cff34',1,'SignalingClientStats']]],
+  ['signalingmessage_960',['signalingMessage',['../structReceivedSignalingMessage.html#adffadd7d879a948434b9fa7904eb5358',1,'ReceivedSignalingMessage']]],
+  ['slicount_961',['sliCount',['../structRtcOutboundRtpStreamStats.html#a8c65e682c74a049dc239b6fe2ab68a03',1,'RtcOutboundRtpStreamStats']]],
+  ['srtpcipher_962',['srtpCipher',['../structRtcTransportStats.html#adbe6f939214e3dbc4e3dd96ce74df1a9',1,'RtcTransportStats']]],
+  ['state_963',['state',['../structRtcIceCandidatePairStats.html#a80a49c7e38ddd794e53744c873b5e629',1,'RtcIceCandidatePairStats']]],
+  ['statechangefn_964',['stateChangeFn',['../structSignalingClientCallbacks.html#a8a72e56bbf4b4dae2b19306acda39523',1,'SignalingClientCallbacks']]],
+  ['statuscode_965',['statusCode',['../structReceivedSignalingMessage.html#a9cb75a0987f4fc93a64b7dc45962b52f',1,'ReceivedSignalingMessage']]],
+  ['streamid_966',['streamId',['../structRtcMediaStreamTrack.html#a531a05b7b40a5ff298f6f238e0fe4613',1,'RtcMediaStreamTrack']]]
 ];

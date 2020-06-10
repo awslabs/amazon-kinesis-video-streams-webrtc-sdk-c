@@ -1,4 +1,6 @@
 var searchData=
 [
-  ['filtercustomdata_606',['filterCustomData',['../structKvsRtcConfiguration.html#a02a5e6d0b5cdd1916c3b6c7a295849d3',1,'KvsRtcConfiguration']]]
+  ['encoderimplementation_832',['encoderImplementation',['../structRtcOutboundRtpStreamStats.html#ae6109a0f7c748fa8ce86c77136c9bc6d',1,'RtcOutboundRtpStreamStats']]],
+  ['errorreportfn_833',['errorReportFn',['../structSignalingClientCallbacks.html#a541b18458a4b4ec54117a6130fd48d6a',1,'SignalingClientCallbacks']]],
+  ['errortype_834',['errorType',['../structReceivedSignalingMessage.html#afae937b08befda5ffdbb7b6b17d481e1',1,'ReceivedSignalingMessage']]]
 ];

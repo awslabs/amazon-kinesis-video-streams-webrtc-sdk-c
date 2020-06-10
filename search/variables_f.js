@@ -1,8 +1,7 @@
 var searchData=
 [
-  ['tagcount_657',['tagCount',['../structChannelInfo.html#a068126ee9a6ec0eec32278185d0bb4fe',1,'ChannelInfo']]],
-  ['track_658',['track',['../structRtcRtpReceiver.html#a9fb4cf0070f8631a2638334b6190ba60',1,'RtcRtpReceiver']]],
-  ['trackid_659',['trackId',['../structRtcMediaStreamTrack.html#ab4644bbc1b1ecaee5c87a646e67d1566',1,'RtcMediaStreamTrack']]],
-  ['ttl_660',['ttl',['../structIceConfigInfo.html#aa2a1f0b6e706876479142eb0f47bc7fe',1,'IceConfigInfo']]],
-  ['type_661',['type',['../structRtcSessionDescriptionInit.html#a66e8134ccd2c83b700bbf4e8e6649a6f',1,'RtcSessionDescriptionInit']]]
+  ['qpsum_916',['qpSum',['../structRtcOutboundRtpStreamStats.html#a7b5258b117ec34aa05092e6840f10a04',1,'RtcOutboundRtpStreamStats']]],
+  ['qualitylimitationdurations_917',['qualityLimitationDurations',['../structRtcOutboundRtpStreamStats.html#aaa15ed430daffabe10164e88b07d5a1c',1,'RtcOutboundRtpStreamStats']]],
+  ['qualitylimitationreason_918',['qualityLimitationReason',['../structQualityLimitationDurationsRecord.html#a8606dc7d8a3dd3c5f0cd9b8bf6630ca8',1,'QualityLimitationDurationsRecord::qualityLimitationReason()'],['../structRtcOutboundRtpStreamStats.html#a4d0dbe884c0e806618cb197caaa7d679',1,'RtcOutboundRtpStreamStats::qualityLimitationReason()']]],
+  ['qualitylimitationresolutionchanges_919',['qualityLimitationResolutionChanges',['../structRtcOutboundRtpStreamStats.html#ad54c4e64935776d25af0dc376f7185ab',1,'RtcOutboundRtpStreamStats']]]
 ];
