@@ -75,7 +75,7 @@ if(BUILD_DEPENDENCIES)
    build_dependency(gtest)
   endif()
 
-  build_dependency(kvspic)
+  # building kvsCommonLws also builds kvspic
   build_dependency(kvsCommonLws)
 
   message(STATUS "Finished building dependencies.")
@@ -233,7 +233,6 @@ target_link_libraries(
           kvspicState
           ${LIBWEBSOCKET_LIBRARIES}
           ${EXTRA_DEPS}
-          ${Jsmn}
           ${OPENSSL_SSL_LIBRARY}
           ${OPENSSL_CRYPTO_LIBRARY}
   PUBLIC kvsCommonLws)
