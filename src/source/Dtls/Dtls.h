@@ -16,7 +16,7 @@ extern "C" {
 
 #define GENERATED_CERTIFICATE_BITS 2048
 #define GENERATED_CERTIFICATE_SERIAL 0
-#define GENERATED_CERTIFICATE_DAYS 36500
+#define GENERATED_CERTIFICATE_DAYS 365
 #define GENERATED_CERTIFICATE_NAME (PUINT8) "KVS-WebRTC-Client"
 #define KEYING_EXTRACTOR_LABEL "EXTRACTOR-dtls_srtp"
 
@@ -26,6 +26,8 @@ extern "C" {
 #define DTLS_TRANSMISSION_INTERVAL          (200 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
 
 #define DTLS_SESSION_TIMER_START_DELAY      (100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
+
+#define SECONDS_IN_A_DAY                    (24 * 60 * 60LL)
 
 #define LOG_OPENSSL_ERROR(s)                    while ((sslErr = ERR_get_error()) != 0) { \
                                                     if (sslErr != SSL_ERROR_WANT_WRITE && sslErr != SSL_ERROR_WANT_READ) { \
