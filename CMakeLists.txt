@@ -70,7 +70,6 @@ if(BUILD_DEPENDENCIES)
   build_dependency(srtp ${BUILD_ARGS})
 
   build_dependency(usrsctp)
-  build_dependency(jsmn)
   if(BUILD_TEST)
    build_dependency(gtest)
   endif()
@@ -111,11 +110,6 @@ set(OPEN_SRC_INCLUDE_DIRS ${LIBSRTP_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR}
 link_directories(${LIBSRTP_LIBRARY_DIRS})
 link_directories(${LIBWEBSOCKET_LIBRARY_DIRS})
 link_directories(${OPEN_SRC_INSTALL_PREFIX}/lib)
-
-find_library(
-  Jsmn
-  NAMES jsmn REQUIRED
-  PATHS ${OPEN_SRC_INSTALL_PREFIX}/lib)
 
 pkg_check_modules(GST gstreamer-1.0)
 if(GST_FOUND)
@@ -221,7 +215,6 @@ target_link_libraries(
           ${OPENSSL_SSL_LIBRARY}
           ${OPENSSL_CRYPTO_LIBRARY}
           ${SRTP_LIBRARIES}
-          ${Jsmn}
           ${Usrsctp}
           ${EXTRA_DEPS})
 
