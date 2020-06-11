@@ -1,5 +1,6 @@
 #define LOG_CLASS "SessionDescription"
 #include "../Include_i.h"
+#include "jsmn.h"
 
 STATUS serializeSessionDescriptionInit(PRtcSessionDescriptionInit pSessionDescriptionInit, PCHAR sessionDescriptionJSON, PUINT32 sessionDescriptionJSONLen)
 {

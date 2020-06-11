@@ -26,7 +26,6 @@ extern "C" {
 ////////////////////////////////////////////////////
 #include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
 
-#include <jsmn.h>
 #include <openssl/bio.h>
 #include <openssl/err.h>
 #include <openssl/hmac.h>
