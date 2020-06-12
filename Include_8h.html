@@ -288,6 +288,8 @@ Macros</h2></td></tr>
 <tr class="separator:ga6330712fd6050441928503126dccdb5b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gacd8fd40e6304484ab9abc8488c9d39d3"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__STUN.html#gacd8fd40e6304484ab9abc8488c9d39d3">STATUS_STUN_INVALID_CHANNEL_NUMBER_ATTRIBUTE_LENGTH</a>&#160;&#160;&#160;<a class="el" href="group__STUN.html#gaf218806a8b7baa71cbf8d5c9891ba395">STATUS_STUN_BASE</a> + 0x00000018</td></tr>
 <tr class="separator:gacd8fd40e6304484ab9abc8488c9d39d3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga766a9b56a5c1c1431ee267b1958de58b"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__STUN.html#ga766a9b56a5c1c1431ee267b1958de58b">STATUS_STUN_INVALID_CHANGE_REQUEST_ATTRIBUTE_LENGTH</a>&#160;&#160;&#160;<a class="el" href="group__STUN.html#gaf218806a8b7baa71cbf8d5c9891ba395">STATUS_STUN_BASE</a> + 0x00000019</td></tr>
+<tr class="separator:ga766a9b56a5c1c1431ee267b1958de58b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga570d11f47891af68b4d9682318ddd0ee"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Networking.html#ga570d11f47891af68b4d9682318ddd0ee">STATUS_NETWORKING_BASE</a>&#160;&#160;&#160;<a class="el" href="group__STUN.html#gaf218806a8b7baa71cbf8d5c9891ba395">STATUS_STUN_BASE</a> + 0x01000000</td></tr>
 <tr class="separator:ga570d11f47891af68b4d9682318ddd0ee"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga31f0ece3e32eb36c9e138d4a7effd547"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Networking.html#ga31f0ece3e32eb36c9e138d4a7effd547">STATUS_GET_LOCAL_IP_ADDRESSES_FAILED</a>&#160;&#160;&#160;<a class="el" href="group__Networking.html#ga570d11f47891af68b4d9682318ddd0ee">STATUS_NETWORKING_BASE</a> + 0x00000016</td></tr>
@@ -854,6 +856,18 @@ Enumerations</h2></td></tr>
  }</td></tr>
 <tr class="memdesc:a67e678c57beb89ab9de7c9861f7d41cd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Channel role type.  <a href="Include_8h.html#a67e678c57beb89ab9de7c9861f7d41cd">More...</a><br /></td></tr>
 <tr class="separator:a67e678c57beb89ab9de7c9861f7d41cd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad42c829d5095ba5e3ab0b6fff6ff8678"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#ad42c829d5095ba5e3ab0b6fff6ff8678">NAT_BEHAVIOR</a> { <br />
+&#160;&#160;<a class="el" href="Include_8h.html#ad42c829d5095ba5e3ab0b6fff6ff8678abffe8707aa6a01e4f949c22d4c189e57">NAT_BEHAVIOR_NONE</a>, 
+<a class="el" href="Include_8h.html#ad42c829d5095ba5e3ab0b6fff6ff8678a1dd503f12e5dc038196c5ca882320b61">NAT_BEHAVIOR_NOT_BEHIND_ANY_NAT</a>, 
+<a class="el" href="Include_8h.html#ad42c829d5095ba5e3ab0b6fff6ff8678a0c5c0cac508158371cf57c5ae4e08547">NAT_BEHAVIOR_NO_UDP_CONNECTIVITY</a>, 
+<a class="el" href="Include_8h.html#ad42c829d5095ba5e3ab0b6fff6ff8678a116e5ba6a09e28d6d6f5885bafaf36de">NAT_BEHAVIOR_ENDPOINT_INDEPENDENT</a>, 
+<br />
+&#160;&#160;<a class="el" href="Include_8h.html#ad42c829d5095ba5e3ab0b6fff6ff8678afb72759d662497abc396c07ae5dea519">NAT_BEHAVIOR_ADDRESS_DEPENDENT</a>, 
+<a class="el" href="Include_8h.html#ad42c829d5095ba5e3ab0b6fff6ff8678a9255d14292683ad9f73b58b91e373a25">NAT_BEHAVIOR_PORT_DEPENDENT</a>
+<br />
+ }</td></tr>
+<tr class="memdesc:ad42c829d5095ba5e3ab0b6fff6ff8678"><td class="mdescLeft">&#160;</td><td class="mdescRight">detected network environment  <a href="Include_8h.html#ad42c829d5095ba5e3ab0b6fff6ff8678">More...</a><br /></td></tr>
+<tr class="separator:ad42c829d5095ba5e3ab0b6fff6ff8678"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac3fea669f2ac4c7db6d7e9528955a4c1"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#ac3fea669f2ac4c7db6d7e9528955a4c1">SIGNALING_API_CALL_CACHE_TYPE</a> { <a class="el" href="Include_8h.html#ac3fea669f2ac4c7db6d7e9528955a4c1a887c5433bc1a60c8d331b220138b413a">SIGNALING_API_CALL_CACHE_TYPE_NONE</a>, 
 <a class="el" href="Include_8h.html#ac3fea669f2ac4c7db6d7e9528955a4c1a21d8468dffe94ffe6c6144b984b5ead3">SIGNALING_API_CALL_CACHE_TYPE_DESCRIBE_GETENDPOINT</a>, 
 <a class="el" href="Include_8h.html#ac3fea669f2ac4c7db6d7e9528955a4c1a9ac35384c83c5ca9a1ec198f28f7008e">SIGNALING_API_CALL_CACHE_TYPE_FILE</a>
@@ -934,21 +948,27 @@ Functions</h2></td></tr>
 <tr class="memitem:a40c7caf6325f426d82030beec50cc86e"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#a40c7caf6325f426d82030beec50cc86e">writeFrame</a> (<a class="el" href="Include_8h.html#a575b38a26ceae3044dd16d8d72667ebf">PRtcRtpTransceiver</a>, PFrame)</td></tr>
 <tr class="memdesc:a40c7caf6325f426d82030beec50cc86e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Packetizes and sends media via the configuration specified by the <a class="el" href="structRtcRtpTransceiver.html" title="The RTCRtpTransceiver represents a combination of an RTCRtpSender and an RTCRtpReceiver that share a ...">RtcRtpTransceiver</a>.  <a href="Include_8h.html#a40c7caf6325f426d82030beec50cc86e">More...</a><br /></td></tr>
 <tr class="separator:a40c7caf6325f426d82030beec50cc86e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aaa9d865c9801d2e01bc756856f2a0fac"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#aaa9d865c9801d2e01bc756856f2a0fac">addIceCandidate</a> (<a class="el" href="Include_8h.html#a70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>, PCHAR)</td></tr>
-<tr class="memdesc:aaa9d865c9801d2e01bc756856f2a0fac"><td class="mdescLeft">&#160;</td><td class="mdescRight">Provides a remote candidate to the ICE Agent.  <a href="Include_8h.html#aaa9d865c9801d2e01bc756856f2a0fac">More...</a><br /></td></tr>
-<tr class="separator:aaa9d865c9801d2e01bc756856f2a0fac"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a52388bddbaae20b12fdac9bb3b596211"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#a52388bddbaae20b12fdac9bb3b596211">createDataChannel</a> (<a class="el" href="Include_8h.html#a70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>, PCHAR, <a class="el" href="Include_8h.html#ab970e0095d779c18c106620eac5fbbc6">PRtcDataChannelInit</a>, <a class="el" href="Include_8h.html#a2be6b5f6da1b3a0471ad7b4443b90779">PRtcDataChannel</a> *)</td></tr>
-<tr class="memdesc:a52388bddbaae20b12fdac9bb3b596211"><td class="mdescLeft">&#160;</td><td class="mdescRight">createDataChannel creates a new RtcDataChannel object with the given label.  <a href="Include_8h.html#a52388bddbaae20b12fdac9bb3b596211">More...</a><br /></td></tr>
-<tr class="separator:a52388bddbaae20b12fdac9bb3b596211"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1722e3794e91a87ba8d73d36b62d8727"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#a1722e3794e91a87ba8d73d36b62d8727">addIceCandidate</a> (<a class="el" href="Include_8h.html#a70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>, PCHAR)</td></tr>
+<tr class="memdesc:a1722e3794e91a87ba8d73d36b62d8727"><td class="mdescLeft">&#160;</td><td class="mdescRight">Provides a remote candidate to the ICE Agent.  <a href="Include_8h.html#a1722e3794e91a87ba8d73d36b62d8727">More...</a><br /></td></tr>
+<tr class="separator:a1722e3794e91a87ba8d73d36b62d8727"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a70b9d70f77fae56f1a2f223cb3054416"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#a70b9d70f77fae56f1a2f223cb3054416">createDataChannel</a> (<a class="el" href="Include_8h.html#a70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>, PCHAR, <a class="el" href="Include_8h.html#ab970e0095d779c18c106620eac5fbbc6">PRtcDataChannelInit</a>, <a class="el" href="Include_8h.html#a2be6b5f6da1b3a0471ad7b4443b90779">PRtcDataChannel</a> *)</td></tr>
+<tr class="memdesc:a70b9d70f77fae56f1a2f223cb3054416"><td class="mdescLeft">&#160;</td><td class="mdescRight">createDataChannel creates a new RtcDataChannel object with the given label.  <a href="Include_8h.html#a70b9d70f77fae56f1a2f223cb3054416">More...</a><br /></td></tr>
+<tr class="separator:a70b9d70f77fae56f1a2f223cb3054416"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a92ed55e9b079e7b9a12812d7530b2595"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#a92ed55e9b079e7b9a12812d7530b2595">dataChannelOnMessage</a> (<a class="el" href="Include_8h.html#a2be6b5f6da1b3a0471ad7b4443b90779">PRtcDataChannel</a>, UINT64, <a class="el" href="Include_8h.html#a19016a711a2550a8544e6c86c7f45d0f">RtcOnMessage</a>)</td></tr>
 <tr class="memdesc:a92ed55e9b079e7b9a12812d7530b2595"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set a callback for data channel message.  <a href="Include_8h.html#a92ed55e9b079e7b9a12812d7530b2595">More...</a><br /></td></tr>
 <tr class="separator:a92ed55e9b079e7b9a12812d7530b2595"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a324f46d98cbdeaf9385590a4be190551"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#a324f46d98cbdeaf9385590a4be190551">dataChannelOnOpen</a> (<a class="el" href="Include_8h.html#a2be6b5f6da1b3a0471ad7b4443b90779">PRtcDataChannel</a>, UINT64, <a class="el" href="Include_8h.html#a0c9cbf4449a44e9a3847be0ef53b22a8">RtcOnOpen</a>)</td></tr>
 <tr class="memdesc:a324f46d98cbdeaf9385590a4be190551"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set a callback for data channel open.  <a href="Include_8h.html#a324f46d98cbdeaf9385590a4be190551">More...</a><br /></td></tr>
 <tr class="separator:a324f46d98cbdeaf9385590a4be190551"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a9804f2dc24d904b1c24e39d9a6880418"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#a9804f2dc24d904b1c24e39d9a6880418">dataChannelSend</a> (<a class="el" href="Include_8h.html#a2be6b5f6da1b3a0471ad7b4443b90779">PRtcDataChannel</a>, BOOL, PBYTE, UINT32)</td></tr>
-<tr class="memdesc:a9804f2dc24d904b1c24e39d9a6880418"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send data via the PRtcDataChannel.  <a href="Include_8h.html#a9804f2dc24d904b1c24e39d9a6880418">More...</a><br /></td></tr>
-<tr class="separator:a9804f2dc24d904b1c24e39d9a6880418"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a12ab55171a0f53ec8e248e2d193d6bd0"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#a12ab55171a0f53ec8e248e2d193d6bd0">dataChannelSend</a> (<a class="el" href="Include_8h.html#a2be6b5f6da1b3a0471ad7b4443b90779">PRtcDataChannel</a>, BOOL, PBYTE, UINT32)</td></tr>
+<tr class="memdesc:a12ab55171a0f53ec8e248e2d193d6bd0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send data via the PRtcDataChannel.  <a href="Include_8h.html#a12ab55171a0f53ec8e248e2d193d6bd0">More...</a><br /></td></tr>
+<tr class="separator:a12ab55171a0f53ec8e248e2d193d6bd0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6c4139787f87c307c2033b51d65284ce"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#a6c4139787f87c307c2033b51d65284ce">discoverNatBehavior</a> (PCHAR, <a class="el" href="Include_8h.html#ad42c829d5095ba5e3ab0b6fff6ff8678">NAT_BEHAVIOR</a> *, <a class="el" href="Include_8h.html#ad42c829d5095ba5e3ab0b6fff6ff8678">NAT_BEHAVIOR</a> *, <a class="el" href="Include_8h.html#ac5ca9698d23bb785c59e148b1f438244">IceSetInterfaceFilterFunc</a>, UINT64)</td></tr>
+<tr class="memdesc:a6c4139787f87c307c2033b51d65284ce"><td class="mdescLeft">&#160;</td><td class="mdescRight">Use the process described in <a href="https://tools.ietf.org/html/rfc5780#section-4.3">https://tools.ietf.org/html/rfc5780#section-4.3</a> to discover NAT behavior.  <a href="Include_8h.html#a6c4139787f87c307c2033b51d65284ce">More...</a><br /></td></tr>
+<tr class="separator:a6c4139787f87c307c2033b51d65284ce"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4f424e3e5d36f5a83c108d50d8599292"><td class="memItemLeft" align="right" valign="top">PUBLIC_API PCHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#a4f424e3e5d36f5a83c108d50d8599292">getNatBehaviorStr</a> (<a class="el" href="Include_8h.html#ad42c829d5095ba5e3ab0b6fff6ff8678">NAT_BEHAVIOR</a> natBehavior)</td></tr>
+<tr class="memdesc:a4f424e3e5d36f5a83c108d50d8599292"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the string representation for each NAT_BEHAVIOR enum.  <a href="Include_8h.html#a4f424e3e5d36f5a83c108d50d8599292">More...</a><br /></td></tr>
+<tr class="separator:a4f424e3e5d36f5a83c108d50d8599292"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a375ddffe8376298cdaafe63799b53b1e"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#a375ddffe8376298cdaafe63799b53b1e">createSignalingClientSync</a> (<a class="el" href="Include_8h.html#a344ee607e6512a97313fb08d72ea4ac1">PSignalingClientInfo</a>, <a class="el" href="Include_8h.html#ab1a88feab2cf5a556a90170eb434910a">PChannelInfo</a>, <a class="el" href="Include_8h.html#a16d2c84287d86c11906950bf39ab92be">PSignalingClientCallbacks</a>, PAwsCredentialProvider, <a class="el" href="Include_8h.html#ae65f311050fbaa62d447a4cb7f1f884a">PSIGNALING_CLIENT_HANDLE</a>)</td></tr>
 <tr class="memdesc:a375ddffe8376298cdaafe63799b53b1e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a Signaling client and returns a handle to it.  <a href="Include_8h.html#a375ddffe8376298cdaafe63799b53b1e">More...</a><br /></td></tr>
 <tr class="separator:a375ddffe8376298cdaafe63799b53b1e"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -1831,6 +1851,36 @@ Functions</h2></td></tr>
 
 </div>
 </div>
+<a id="ad42c829d5095ba5e3ab0b6fff6ff8678"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad42c829d5095ba5e3ab0b6fff6ff8678">&#9670;&nbsp;</a></span>NAT_BEHAVIOR</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">enum <a class="el" href="Include_8h.html#ad42c829d5095ba5e3ab0b6fff6ff8678">NAT_BEHAVIOR</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>detected network environment </p>
+<table class="fieldtable">
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="ad42c829d5095ba5e3ab0b6fff6ff8678abffe8707aa6a01e4f949c22d4c189e57"></a>NAT_BEHAVIOR_NONE&#160;</td><td class="fielddoc"><p>Dummy placeholder. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="ad42c829d5095ba5e3ab0b6fff6ff8678a1dd503f12e5dc038196c5ca882320b61"></a>NAT_BEHAVIOR_NOT_BEHIND_ANY_NAT&#160;</td><td class="fielddoc"><p>Host is not behind any NAT. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="ad42c829d5095ba5e3ab0b6fff6ff8678a0c5c0cac508158371cf57c5ae4e08547"></a>NAT_BEHAVIOR_NO_UDP_CONNECTIVITY&#160;</td><td class="fielddoc"><p>No UDP connectvity. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="ad42c829d5095ba5e3ab0b6fff6ff8678a116e5ba6a09e28d6d6f5885bafaf36de"></a>NAT_BEHAVIOR_ENDPOINT_INDEPENDENT&#160;</td><td class="fielddoc"><p>Nat behavior is irregardless of change in external address. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="ad42c829d5095ba5e3ab0b6fff6ff8678afb72759d662497abc396c07ae5dea519"></a>NAT_BEHAVIOR_ADDRESS_DEPENDENT&#160;</td><td class="fielddoc"><p>Nat behavior changes changes when external address is changed, but remain same if only port is changed. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="ad42c829d5095ba5e3ab0b6fff6ff8678a9255d14292683ad9f73b58b91e373a25"></a>NAT_BEHAVIOR_PORT_DEPENDENT&#160;</td><td class="fielddoc"><p>Nat behavior changes when external address or port is changed. </p>
+</td></tr>
+</table>
+
+</div>
+</div>
 <a id="a93240fd6a0e599dfb0c69ca76e406665"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a93240fd6a0e599dfb0c69ca76e406665">&#9670;&nbsp;</a></span>RTC_CODEC</h2>
 
@@ -2115,14 +2165,14 @@ Functions</h2></td></tr>
 </div>
 </div>
 <h2 class="groupheader">Function Documentation</h2>
-<a id="aaa9d865c9801d2e01bc756856f2a0fac"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aaa9d865c9801d2e01bc756856f2a0fac">&#9670;&nbsp;</a></span>addIceCandidate()</h2>
+<a id="a1722e3794e91a87ba8d73d36b62d8727"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1722e3794e91a87ba8d73d36b62d8727">&#9670;&nbsp;</a></span>addIceCandidate()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">STATUS addIceCandidate </td>
+          <td class="memname">PUBLIC_API STATUS addIceCandidate </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="Include_8h.html#a70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>&#160;</td>
           <td class="paramname">, </td>
@@ -2342,14 +2392,14 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a52388bddbaae20b12fdac9bb3b596211"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a52388bddbaae20b12fdac9bb3b596211">&#9670;&nbsp;</a></span>createDataChannel()</h2>
+<a id="a70b9d70f77fae56f1a2f223cb3054416"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a70b9d70f77fae56f1a2f223cb3054416">&#9670;&nbsp;</a></span>createDataChannel()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">STATUS createDataChannel </td>
+          <td class="memname">PUBLIC_API STATUS createDataChannel </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="Include_8h.html#a70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>&#160;</td>
           <td class="paramname">, </td>
@@ -2568,7 +2618,7 @@ Functions</h2></td></tr>
 <p>Set a callback for data channel message. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">PRtcDataChannel</td><td>Data channel struct created by <a class="el" href="Include_8h.html#a52388bddbaae20b12fdac9bb3b596211" title="createDataChannel creates a new RtcDataChannel object with the given label.">createDataChannel()</a> </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">PRtcDataChannel</td><td>Data channel struct created by <a class="el" href="Include_8h.html#a70b9d70f77fae56f1a2f223cb3054416" title="createDataChannel creates a new RtcDataChannel object with the given label.">createDataChannel()</a> </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">UINT64</td><td>User customData that will be passed along when RtcOnMessage is called </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">RtcOnMessage</td><td>User RtcOnMessage callback</td></tr>
   </table>
@@ -2613,7 +2663,7 @@ Functions</h2></td></tr>
 <p>Set a callback for data channel open. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">PRtcDataChannel</td><td>Data channel struct created by <a class="el" href="Include_8h.html#a52388bddbaae20b12fdac9bb3b596211" title="createDataChannel creates a new RtcDataChannel object with the given label.">createDataChannel()</a> </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">PRtcDataChannel</td><td>Data channel struct created by <a class="el" href="Include_8h.html#a70b9d70f77fae56f1a2f223cb3054416" title="createDataChannel creates a new RtcDataChannel object with the given label.">createDataChannel()</a> </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">UINT64</td><td>User customData that will be passed along when RtcOnOpen is called </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">RtcOnOpen</td><td>User RtcOnOpen callback</td></tr>
   </table>
@@ -2623,14 +2673,14 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a9804f2dc24d904b1c24e39d9a6880418"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a9804f2dc24d904b1c24e39d9a6880418">&#9670;&nbsp;</a></span>dataChannelSend()</h2>
+<a id="a12ab55171a0f53ec8e248e2d193d6bd0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a12ab55171a0f53ec8e248e2d193d6bd0">&#9670;&nbsp;</a></span>dataChannelSend()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">STATUS dataChannelSend </td>
+          <td class="memname">PUBLIC_API STATUS dataChannelSend </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="Include_8h.html#a2be6b5f6da1b3a0471ad7b4443b90779">PRtcDataChannel</a>&#160;</td>
           <td class="paramname">, </td>
@@ -2787,6 +2837,65 @@ Functions</h2></td></tr>
 
 </div>
 </div>
+<a id="a6c4139787f87c307c2033b51d65284ce"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6c4139787f87c307c2033b51d65284ce">&#9670;&nbsp;</a></span>discoverNatBehavior()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">PUBLIC_API STATUS discoverNatBehavior </td>
+          <td>(</td>
+          <td class="paramtype">PCHAR&#160;</td>
+          <td class="paramname">, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="Include_8h.html#ad42c829d5095ba5e3ab0b6fff6ff8678">NAT_BEHAVIOR</a> *&#160;</td>
+          <td class="paramname">, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="Include_8h.html#ad42c829d5095ba5e3ab0b6fff6ff8678">NAT_BEHAVIOR</a> *&#160;</td>
+          <td class="paramname">, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="Include_8h.html#ac5ca9698d23bb785c59e148b1f438244">IceSetInterfaceFilterFunc</a>&#160;</td>
+          <td class="paramname">, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">UINT64&#160;</td>
+          <td class="paramname">&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Use the process described in <a href="https://tools.ietf.org/html/rfc5780#section-4.3">https://tools.ietf.org/html/rfc5780#section-4.3</a> to discover NAT behavior. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">PCHAR</td><td>STUN hostname. Need to in form of stun:hostname:port </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">NAT_BEHAVIOR*</td><td>detected NAT mapping behavior </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">NAT_BEHAVIOR*</td><td>detected NAT filtering behavior </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">IceSetInterfaceFilterFunc</td><td>filter function for selecting local network interface to create socket. Optional. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">UINT64</td><td>User data for filter function</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>STATUS code of the execution. STATUS_SUCCESS on success </dd></dl>
+
+</div>
+</div>
 <a id="a433b1bd125e7f221bcdad97a2a0e8949"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a433b1bd125e7f221bcdad97a2a0e8949">&#9670;&nbsp;</a></span>freePeerConnection()</h2>
 
@@ -2866,6 +2975,33 @@ Functions</h2></td></tr>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>STATUS code of the execution. STATUS_SUCCESS on success </dd></dl>
+
+</div>
+</div>
+<a id="a4f424e3e5d36f5a83c108d50d8599292"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4f424e3e5d36f5a83c108d50d8599292">&#9670;&nbsp;</a></span>getNatBehaviorStr()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">PUBLIC_API PCHAR getNatBehaviorStr </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="Include_8h.html#ad42c829d5095ba5e3ab0b6fff6ff8678">NAT_BEHAVIOR</a>&#160;</td>
+          <td class="paramname"><em>natBehavior</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Return the string representation for each NAT_BEHAVIOR enum. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">NAT_BEHAVIOR</td><td>the NAT_BEHAVIOR enum</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>PCHAR string representation for the NAT_BEHAVIOR enum </dd></dl>
 
 </div>
 </div>
@@ -3720,7 +3856,7 @@ Functions</h2></td></tr>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_b0856f6b0d80ccb263b2f415c91f9e17.html">include</a></li><li class="navelem"><a class="el" href="dir_8f5ac45a6ada111b95e80af22bb6017d.html">com</a></li><li class="navelem"><a class="el" href="dir_6eddcaa8cb3f84b1b7290fa7880ed0c5.html">amazonaws</a></li><li class="navelem"><a class="el" href="dir_ffe25b375dd9c47f978782781b252738.html">kinesis</a></li><li class="navelem"><a class="el" href="dir_40be0bfe93e499fae0ac3fc2c0b3ca29.html">video</a></li><li class="navelem"><a class="el" href="dir_4165afa699965307903ffe413a1cdec9.html">webrtcclient</a></li><li class="navelem"><a class="el" href="Include_8h.html">Include.h</a></li>
-    <li class="footer">Generated on Fri Jun 12 2020 03:01:14 for Amazon Kinesis Webrtc C SDK by
+    <li class="footer">Generated on Fri Jun 12 2020 22:08:04 for Amazon Kinesis Webrtc C SDK by
     <a href="http://www.doxygen.org/index.html">
     <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.18 </li>
   </ul>

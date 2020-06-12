@@ -1,5 +1,17 @@
 var NAVTREEINDEX4 =
 {
+"structRtcOutboundRtpStreamStats.html#af484c40e4ad9d4dd57d91e2733f9ff5a":[1,0,29,13],
+"structRtcPeerConnection.html":[1,0,30],
+"structRtcPeerConnection.html#a19b58ac2436203028cd705d575ab7ea6":[1,0,30,0],
+"structRtcRemoteInboundRtpStreamStats.html":[1,0,31],
+"structRtcRemoteInboundRtpStreamStats.html#a0102aabe3cba5adbe5e2aa950f0654c0":[1,0,31,1],
+"structRtcRemoteInboundRtpStreamStats.html#a0c1860018838774cce5774ce9a7c6ea9":[1,0,31,5],
+"structRtcRemoteInboundRtpStreamStats.html#a1d6ab410390c8b98de1e38be4a55dc76":[1,0,31,3],
+"structRtcRemoteInboundRtpStreamStats.html#a56de74ac280d0bb4e31e5cccc3b2231b":[1,0,31,4],
+"structRtcRemoteInboundRtpStreamStats.html#abe4fa73b504faaebe18b25fb3210a62a":[1,0,31,2],
+"structRtcRemoteInboundRtpStreamStats.html#acd9242c12b665d00bc1ac7b96df255d7":[1,0,31,0],
+"structRtcRtpReceiver.html":[1,0,32],
+"structRtcRtpReceiver.html#a9fb4cf0070f8631a2638334b6190ba60":[1,0,32,0],
 "structRtcRtpTransceiver.html":[1,0,33],
 "structRtcRtpTransceiver.html#a834bb77641bccbaa371190e37a900203":[1,0,33,0],
 "structRtcRtpTransceiver.html#a9da0bde056ac3a5dc58eba5039c24a63":[1,0,33,1],

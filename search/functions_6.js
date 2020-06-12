@@ -1,5 +1,8 @@
 var searchData=
 [
-  ['restartice_779',['restartIce',['../Include_8h.html#ade9fcbb056cb321f33890c1cf1222e64',1,'Include.h']]],
-  ['rtcpeerconnectiongetmetrics_780',['RtcPeerConnectionGetMetrics',['../Include_8h.html#aef471d3d4b3c96b8896145550b09b6ff',1,'Include.h']]]
+  ['peerconnectiongetcurrentlocaldescription_786',['peerConnectionGetCurrentLocalDescription',['../Include_8h.html#a19dfcbdcf4d136b56ce366fe2fb9bfb3',1,'Include.h']]],
+  ['peerconnectiongetlocaldescription_787',['peerConnectionGetLocalDescription',['../Include_8h.html#aa1940a0ddabf41c445b55f1317476e96',1,'Include.h']]],
+  ['peerconnectiononconnectionstatechange_788',['peerConnectionOnConnectionStateChange',['../Include_8h.html#ae937526652e3287c3e2dd9bee74ea799',1,'Include.h']]],
+  ['peerconnectionondatachannel_789',['peerConnectionOnDataChannel',['../Include_8h.html#a41afed748235c04e38fa7481e421055d',1,'Include.h']]],
+  ['peerconnectiononicecandidate_790',['peerConnectionOnIceCandidate',['../Include_8h.html#a5a45606d264d6005c559b10fa42338bf',1,'Include.h']]]
 ];
