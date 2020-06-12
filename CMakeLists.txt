@@ -93,9 +93,9 @@ else()
 endif()
 
 if (WIN32)
-    SET(LIBWEBSOCKET_LIBRARIES "websockets.lib")
+  SET(LIBWEBSOCKETS_LIBRARIES "websockets.lib")
 else()
-    pkg_check_modules(LIBWEBSOCKET REQUIRED libwebsockets)
+  pkg_check_modules(LIBWEBSOCKETS REQUIRED libwebsockets)
 endif()
 
 # usrsctp dont support pkgconfig yet
@@ -105,10 +105,10 @@ find_library(
   PATHS ${OPEN_SRC_INSTALL_PREFIX}/lib)
 
 set(OPEN_SRC_INCLUDE_DIRS ${LIBSRTP_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR}
-                          ${CURL_INCLUDE_DIRS} ${LIBWEBSOCKET_INCLUDE_DIRS})
+                          ${CURL_INCLUDE_DIRS} ${LIBWEBSOCKETS_INCLUDE_DIRS})
 
 link_directories(${LIBSRTP_LIBRARY_DIRS})
-link_directories(${LIBWEBSOCKET_LIBRARY_DIRS})
+link_directories(${LIBWEBSOCKETS_LIBRARY_DIRS})
 link_directories(${OPEN_SRC_INSTALL_PREFIX}/lib)
 
 pkg_check_modules(GST gstreamer-1.0)
@@ -221,7 +221,7 @@ target_link_libraries(
   kvsWebrtcSignalingClient
   PRIVATE kvspicUtils
           kvspicState
-          ${LIBWEBSOCKET_LIBRARIES}
+          ${LIBWEBSOCKETS_LIBRARIES}
           ${EXTRA_DEPS}
           ${OPENSSL_SSL_LIBRARY}
           ${OPENSSL_CRYPTO_LIBRARY}
