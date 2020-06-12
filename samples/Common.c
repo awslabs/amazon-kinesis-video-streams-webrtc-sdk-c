@@ -635,7 +635,10 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     CHK_ERR((pAccessKey = getenv(ACCESS_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_ACCESS_KEY_ID must be set");
     CHK_ERR((pSecretKey = getenv(SECRET_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_SECRET_ACCESS_KEY must be set");
     pSessionToken = getenv(SESSION_TOKEN_ENV_VAR);
-
+    pSampleConfiguration->enableFileLogging = FALSE;
+    if(NULL != getenv(ENABLE_FILE_LOGGING)) {
+        pSampleConfiguration->enableFileLogging = TRUE;
+    }
     if ((pSampleConfiguration->channelInfo.pRegion = getenv(DEFAULT_REGION_ENV_VAR)) == NULL) {
         pSampleConfiguration->channelInfo.pRegion = DEFAULT_AWS_REGION;
     }

@@ -28,6 +28,9 @@ extern "C" {
 #define ICE_CONFIG_INFO_POLL_PERIOD                                             (20 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
 
 #define CA_CERT_PEM_FILE_EXTENSION                                              ".pem"
+
+#define FILE_LOGGING_BUFFER_SIZE                                                (100 * 1024)
+#define MAX_NUMBER_OF_LOG_FILES                                                  5
 typedef enum {
     SAMPLE_STREAMING_VIDEO_ONLY,
     SAMPLE_STREAMING_AUDIO_VIDEO,
@@ -64,6 +67,7 @@ typedef struct {
     CVAR cvar;
     BOOL trickleIce;
     BOOL useTurn;
+    BOOL enableFileLogging;
     UINT64 customData;
     PSampleStreamingSession sampleStreamingSessionList[DEFAULT_MAX_CONCURRENT_STREAMING_SESSION];
     UINT32 streamingSessionCount;
