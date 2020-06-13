@@ -326,12 +326,12 @@ typedef struct {
  * be populated internally
  */
 typedef struct {
-    RtcIceCandidatePairStats iceCandidatePairStats;             //!< ICE Candidate Pair  stats object
-    RtcIceCandidateStats localIceCandidateStats;                //!< local ICE Candidate stats object
-    RtcIceCandidateStats remoteIceCandidateStats;               //!< remote ICE Candidate stats object
-    RtcIceServerStats iceServerStats;                           //!< ICE Server Pair stats object
-    RtcTransportStats transportStats;                           //!< Transport stats object
-    RtcOutboundRtpStreamStats outboundRtpStreamStats;           //!< Outbound RTP Stream stats object
+    RtcIceCandidatePairStats iceCandidatePairStats; //!< ICE Candidate Pair  stats object
+    RtcIceCandidateStats localRtcIceCandidateStats; //!< Local candidate stats. Reference in Stats.h
+    RtcIceCandidateStats remoteRtcIceCandidateStats; //!< Remote candidate stats. Reference in Stats.h
+    RtcIceServerStats iceServerStats; //!< ICE Server Pair stats object
+    RtcTransportStats transportStats; //!< Transport stats object
+    RtcOutboundRtpStreamStats remoteOutboundRtpStreamStats; //!< Outbound RTP Stream stats object
     RtcRemoteInboundRtpStreamStats remoteInboundRtpStreamStats; //!< Inbound RTP Stream stats object
 } RtcStatsObject, *PRtcStatsObject;
 

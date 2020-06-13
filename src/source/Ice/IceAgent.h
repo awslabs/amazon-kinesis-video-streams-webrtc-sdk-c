@@ -129,6 +129,8 @@ typedef struct {
     PIceCandidate local;
     PIceCandidate remote;
     BOOL nominated;
+    BOOL firstStunRequestTimestampRecorded;
+    BOOL lastStunRequestTimestampRecorded;
     UINT64 priority;
     ICE_CANDIDATE_PAIR_STATE state;
     PTransactionIdStore pTransactionIdStore;
@@ -206,6 +208,7 @@ struct __IceAgent {
 
     // store transaction ids for stun binding request.
     PTransactionIdStore pStunBindingRequestTransactionIdStore;
+    RtcIceMetrics rtcIceMetrics;
 };
 
 //////////////////////////////////////////////

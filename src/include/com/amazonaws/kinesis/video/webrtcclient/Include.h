@@ -1283,9 +1283,16 @@ typedef struct {
  * Reference: https://www.w3.org/TR/webrtc-stats/#candidatepair-dict*
  */
 typedef struct {
+<<<<<<< HEAD
     UINT32 version;                                    //!< Structure version
     RtcIceServerStats rtcIceServerStats;               //!< Server related stats. Reference in Stats.h
     RtcIceCandidateStats rtcIceCandidateStats;         //!< Single candidate stats. Reference in Stats.h
+=======
+    UINT32 version; //!< Structure version
+    RtcIceServerStats rtcIceServerStats; //!< Server related stats. Reference in Stats.h
+    RtcIceCandidateStats localRtcIceCandidateStats; //!< Local candidate stats. Reference in Stats.h
+    RtcIceCandidateStats remoteRtcIceCandidateStats; //!< Remote candidate stats. Reference in Stats.h
+>>>>>>> Ice Metrics
     RtcIceCandidatePairStats rtcIceCandidatePairStats; //!< Candidate pair stats. Reference in Stats.h
 } RtcIceMetrics, *PRtcIceMetrics;
 
