@@ -138,6 +138,7 @@ STATUS generateJSONSafeString(PCHAR, UINT32);
 #include "Signaling/ChannelInfo.h"
 #include "Signaling/StateMachine.h"
 #include "Signaling/LwsApiCalls.h"
+#include "Metrics/Metrics.h"
 
 ////////////////////////////////////////////////////
 // Project internal defines

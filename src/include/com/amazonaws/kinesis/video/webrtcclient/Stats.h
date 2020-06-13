@@ -59,12 +59,12 @@ typedef enum {
  * Reference: https://www.w3.org/TR/webrtc-stats/#rtcstatsicecandidatepairstate-enum
  */
 typedef enum {
-    RTC_ICE_CANDIDATE_PAIR_STATE_FROZEN         = 0,
-    RTC_ICE_CANDIDATE_PAIR_STATE_WAITING        = 1,
-    RTC_ICE_CANDIDATE_PAIR_STATE_IN_PROGRESS    = 2,
-    RTC_ICE_CANDIDATE_PAIR_STATE_SUCCEEDED      = 3,
-    RTC_ICE_CANDIDATE_PAIR_STATE_FAILED         = 4,
-} RTC_ICE_CANDIDATE_PAIR_STATE;
+    ICE_CANDIDATE_PAIR_STATE_FROZEN         = 0,
+    ICE_CANDIDATE_PAIR_STATE_WAITING        = 1,
+    ICE_CANDIDATE_PAIR_STATE_IN_PROGRESS    = 2,
+    ICE_CANDIDATE_PAIR_STATE_SUCCEEDED      = 3,
+    ICE_CANDIDATE_PAIR_STATE_FAILED         = 4,
+} ICE_CANDIDATE_PAIR_STATE;
 
 /**
  * @brief Set details of the IceAgent based on STUN_ATTRIBUTE_TYPE_USE_CANDIDATE flag
@@ -127,7 +127,7 @@ typedef struct {
     CHAR transportId[MAX_STATS_STRING_LENGTH + 1]; //!< ID of object that was inspected for RTCTransportStats
     CHAR localCandidateId[MAX_CANDIDATE_ID_LENGTH + 1]; //!< Local candidate that is inspected in RTCIceCandidateStats
     CHAR remoteCandidateId[MAX_CANDIDATE_ID_LENGTH + 1]; //!< Remote candidate that is inspected in RTCIceCandidateStats
-    RTC_ICE_CANDIDATE_PAIR_STATE state; //!< State of checklist for the local-remote candidate pair
+    ICE_CANDIDATE_PAIR_STATE state; //!< State of checklist for the local-remote candidate pair
     BOOL nominated; //!< Flag is TRUE if the agent is a controlling agent and FALSE otherwise. The agent role is based on the
                     //!< STUN_ATTRIBUTE_TYPE_USE_CANDIDATE flag
     NullableUint32 circuitBreakerTriggerCount; //!< Represents number of times circuit breaker is triggered during media transmission
@@ -308,7 +308,8 @@ typedef struct {
  */
 typedef struct {
     RtcIceCandidatePairStats iceCandidatePairStats; //!< ICE Candidate Pair  stats object
-    RtcIceCandidateStats iceCandidateStats; //!< ICE Candidate stats object
+    RtcIceCandidateStats localRtcIceCandidateStats; //!< Local candidate stats. Reference in Stats.h
+    RtcIceCandidateStats remoteRtcIceCandidateStats; //!< Remote candidate stats. Reference in Stats.h
     RtcIceServerStats iceServerStats; //!< ICE Server Pair stats object
     RtcTransportStats transportStats; //!< Transport stats object
     RtcOutboundRtpStreamStats remoteOutboundRtpStreamStats; //!< Outbound RTP Stream stats object

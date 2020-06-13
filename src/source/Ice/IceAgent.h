@@ -68,14 +68,6 @@ typedef enum {
     ICE_CANDIDATE_STATE_INVALID,
 } ICE_CANDIDATE_STATE;
 
-typedef enum {
-    ICE_CANDIDATE_PAIR_STATE_FROZEN         = 0,
-    ICE_CANDIDATE_PAIR_STATE_WAITING        = 1,
-    ICE_CANDIDATE_PAIR_STATE_IN_PROGRESS    = 2,
-    ICE_CANDIDATE_PAIR_STATE_SUCCEEDED      = 3,
-    ICE_CANDIDATE_PAIR_STATE_FAILED         = 4,
-} ICE_CANDIDATE_PAIR_STATE;
-
 typedef VOID (*IceInboundPacketFunc)(UINT64, PBYTE, UINT32);
 typedef VOID (*IceConnectionStateChangedFunc)(UINT64, UINT64);
 typedef VOID (*IceNewLocalCandidateFunc)(UINT64, PCHAR);
@@ -118,6 +110,8 @@ typedef struct {
     PIceCandidate local;
     PIceCandidate remote;
     BOOL nominated;
+    BOOL firstStunRequestTimestampRecorded;
+    BOOL lastStunRequestTimestampRecorded;
     UINT64 priority;
     ICE_CANDIDATE_PAIR_STATE state;
     PTransactionIdStore pTransactionIdStore;
@@ -193,6 +187,7 @@ struct __IceAgent {
 
     // store transaction ids for stun binding request.
     PTransactionIdStore pStunBindingRequestTransactionIdStore;
+    RtcIceMetrics rtcIceMetrics;
 };
 
 

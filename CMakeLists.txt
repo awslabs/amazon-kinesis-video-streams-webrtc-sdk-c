@@ -191,7 +191,8 @@ file(
   "src/source/Sdp/*.c"
   "src/source/Srtp/*.c"
   "src/source/Stun/*.c"
-  "src/source/Sctp/*.c")
+  "src/source/Sctp/*.c"
+  "src/source/Metrics/*.c")
 
 file(GLOB WEBRTC_SIGNALING_CLIENT_SOURCE_FILES "src/source/Signaling/*.c")
 
