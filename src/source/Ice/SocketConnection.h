@@ -6,22 +6,18 @@ Socket Connection internal include file
 
 #pragma once
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
-#define SOCKET_SEND_RETRY_TIMEOUT_MICRO_SECOND      500000
-#define MAX_SOCKET_WRITE_RETRY                      3
+#define SOCKET_SEND_RETRY_TIMEOUT_MICRO_SECOND 500000
+#define MAX_SOCKET_WRITE_RETRY                 3
 
-#define CLOSE_SOCKET_IF_CANT_RETRY(e,ps)             if ((e) != EAGAIN && \
-                                                        (e) != EWOULDBLOCK && \
-                                                        (e) != EINTR && \
-                                                        (e) != EINPROGRESS && \
-                                                        (e) != EPERM && \
-                                                        (e) != EALREADY) { \
-                                                        DLOGD("Close socket %d", (ps)->localSocket); \
-                                                        ATOMIC_STORE_BOOL(&(ps)->connectionClosed, TRUE); \
-                                                    }
+#define CLOSE_SOCKET_IF_CANT_RETRY(e, ps)                                                                                                            \
+    if ((e) != EAGAIN && (e) != EWOULDBLOCK && (e) != EINTR && (e) != EINPROGRESS && (e) != EPERM && (e) != EALREADY) {                              \
+        DLOGD("Close socket %d", (ps)->localSocket);                                                                                                 \
+        ATOMIC_STORE_BOOL(&(ps)->connectionClosed, TRUE);                                                                                            \
+    }
 
 typedef STATUS (*ConnectionDataAvailableFunc)(UINT64, struct __SocketConnection*, PBYTE, UINT32, PKvsIpAddress, PKvsIpAddress);
 
@@ -63,7 +59,8 @@ typedef struct __SocketConnection* PSocketConnection;
  *
  * @return - STATUS - status of execution
  */
-STATUS createSocketConnection(KVS_IP_FAMILY_TYPE, KVS_SOCKET_PROTOCOL, PKvsIpAddress, PKvsIpAddress, UINT64, ConnectionDataAvailableFunc, UINT32, PSocketConnection*);
+STATUS createSocketConnection(KVS_IP_FAMILY_TYPE, KVS_SOCKET_PROTOCOL, PKvsIpAddress, PKvsIpAddress, UINT64, ConnectionDataAvailableFunc, UINT32,
+                              PSocketConnection*);
 
 /**
  * Free the SocketConnection struct
@@ -145,7 +142,7 @@ STATUS socketSendDataWithRetry(PSocketConnection, PBYTE, UINT32, PKvsIpAddress, 
 STATUS socketConnectionTlsSessionOutBoundPacket(UINT64, PBYTE, UINT32);
 VOID socketConnectionTlsSessionOnStateChange(UINT64, TLS_SESSION_STATE);
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 }
 #endif
-#endif  /* __KINESIS_VIDEO_WEBRTC_SOCKET_CONNECTION__ */
+#endif /* __KINESIS_VIDEO_WEBRTC_SOCKET_CONNECTION__ */

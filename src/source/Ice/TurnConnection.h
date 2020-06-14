@@ -6,53 +6,53 @@ TurnConnection internal include file
 
 #pragma once
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
 // https://en.wikipedia.org/wiki/List_of_IP_protocol_numbers
-#define TURN_REQUEST_TRANSPORT_UDP                                      17
-#define TURN_REQUEST_TRANSPORT_TCP                                      6
-#define DEFAULT_TURN_ALLOCATION_LIFETIME_SECONDS                        600
+#define TURN_REQUEST_TRANSPORT_UDP               17
+#define TURN_REQUEST_TRANSPORT_TCP               6
+#define DEFAULT_TURN_ALLOCATION_LIFETIME_SECONDS 600
 // required by rfc5766 to be 300s
-#define TURN_PERMISSION_LIFETIME                                        (300 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define DEFAULT_TURN_TIMER_INTERVAL_BEFORE_READY                        (50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
-#define DEFAULT_TURN_TIMER_INTERVAL_AFTER_READY                         (1 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define DEFAULT_TURN_SEND_REFRESH_INVERVAL                              (1 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define TURN_PERMISSION_LIFETIME                 (300 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define DEFAULT_TURN_TIMER_INTERVAL_BEFORE_READY (50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
+#define DEFAULT_TURN_TIMER_INTERVAL_AFTER_READY  (1 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define DEFAULT_TURN_SEND_REFRESH_INVERVAL       (1 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
 // turn state timeouts
-#define DEFAULT_TURN_SOCKET_CONNECT_TIMEOUT                             (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define DEFAULT_TURN_GET_CREDENTIAL_TIMEOUT                             (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define DEFAULT_TURN_ALLOCATION_TIMEOUT                                 (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define DEFAULT_TURN_CREATE_PERMISSION_TIMEOUT                          (2 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define DEFAULT_TURN_BIND_CHANNEL_TIMEOUT                               (3 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define DEFAULT_TURN_CLEAN_UP_TIMEOUT                                   (10 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define DEFAULT_TURN_SOCKET_CONNECT_TIMEOUT    (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define DEFAULT_TURN_GET_CREDENTIAL_TIMEOUT    (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define DEFAULT_TURN_ALLOCATION_TIMEOUT        (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define DEFAULT_TURN_CREATE_PERMISSION_TIMEOUT (2 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define DEFAULT_TURN_BIND_CHANNEL_TIMEOUT      (3 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define DEFAULT_TURN_CLEAN_UP_TIMEOUT          (10 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
-#define DEFAULT_TURN_ALLOCATION_REFRESH_GRACE_PERIOD                    (30 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define DEFAULT_TURN_PERMISSION_REFRESH_GRACE_PERIOD                    (30 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define DEFAULT_TURN_ALLOCATION_REFRESH_GRACE_PERIOD (30 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define DEFAULT_TURN_PERMISSION_REFRESH_GRACE_PERIOD (30 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
-#define MAX_TURN_CHANNEL_DATA_MESSAGE_SIZE                              4 + 65536 /* header + data */
-#define DEFAULT_TURN_MESSAGE_SEND_CHANNEL_DATA_BUFFER_LEN               MAX_TURN_CHANNEL_DATA_MESSAGE_SIZE
-#define DEFAULT_TURN_MESSAGE_RECV_CHANNEL_DATA_BUFFER_LEN               MAX_TURN_CHANNEL_DATA_MESSAGE_SIZE
-#define DEFAULT_TURN_CHANNEL_DATA_BUFFER_SIZE                           512
-#define DEFAULT_TURN_MAX_PEER_COUNT                                     32
+#define MAX_TURN_CHANNEL_DATA_MESSAGE_SIZE                4 + 65536 /* header + data */
+#define DEFAULT_TURN_MESSAGE_SEND_CHANNEL_DATA_BUFFER_LEN MAX_TURN_CHANNEL_DATA_MESSAGE_SIZE
+#define DEFAULT_TURN_MESSAGE_RECV_CHANNEL_DATA_BUFFER_LEN MAX_TURN_CHANNEL_DATA_MESSAGE_SIZE
+#define DEFAULT_TURN_CHANNEL_DATA_BUFFER_SIZE             512
+#define DEFAULT_TURN_MAX_PEER_COUNT                       32
 
 // all turn channel numbers must be greater than 0x4000 and less than 0x7FFF
-#define TURN_CHANNEL_BIND_CHANNEL_NUMBER_BASE                           (UINT16) 0x4000
+#define TURN_CHANNEL_BIND_CHANNEL_NUMBER_BASE (UINT16) 0x4000
 
 // 2 byte channel number 2 data byte size
-#define TURN_DATA_CHANNEL_SEND_OVERHEAD                                 4
-#define TURN_DATA_CHANNEL_MSG_FIRST_BYTE                                0x40
+#define TURN_DATA_CHANNEL_SEND_OVERHEAD  4
+#define TURN_DATA_CHANNEL_MSG_FIRST_BYTE 0x40
 
-#define TURN_STATE_NEW_STR                                              (PCHAR) "TURN_STATE_NEW"
-#define TURN_STATE_CHECK_SOCKET_CONNECTION_STR                          (PCHAR) "TURN_STATE_CHECK_SOCKET_CONNECTION"
-#define TURN_STATE_GET_CREDENTIALS_STR                                  (PCHAR) "TURN_STATE_GET_CREDENTIALS"
-#define TURN_STATE_ALLOCATION_STR                                       (PCHAR) "TURN_STATE_ALLOCATION"
-#define TURN_STATE_CREATE_PERMISSION_STR                                (PCHAR) "TURN_STATE_CREATE_PERMISSION"
-#define TURN_STATE_BIND_CHANNEL_STR                                     (PCHAR) "TURN_STATE_BIND_CHANNEL"
-#define TURN_STATE_READY_STR                                            (PCHAR) "TURN_STATE_READY"
-#define TURN_STATE_CLEAN_UP_STR                                         (PCHAR) "TURN_STATE_CLEAN_UP"
-#define TURN_STATE_FAILED_STR                                           (PCHAR) "TURN_STATE_FAILED"
+#define TURN_STATE_NEW_STR                     (PCHAR) "TURN_STATE_NEW"
+#define TURN_STATE_CHECK_SOCKET_CONNECTION_STR (PCHAR) "TURN_STATE_CHECK_SOCKET_CONNECTION"
+#define TURN_STATE_GET_CREDENTIALS_STR         (PCHAR) "TURN_STATE_GET_CREDENTIALS"
+#define TURN_STATE_ALLOCATION_STR              (PCHAR) "TURN_STATE_ALLOCATION"
+#define TURN_STATE_CREATE_PERMISSION_STR       (PCHAR) "TURN_STATE_CREATE_PERMISSION"
+#define TURN_STATE_BIND_CHANNEL_STR            (PCHAR) "TURN_STATE_BIND_CHANNEL"
+#define TURN_STATE_READY_STR                   (PCHAR) "TURN_STATE_READY"
+#define TURN_STATE_CLEAN_UP_STR                (PCHAR) "TURN_STATE_CLEAN_UP"
+#define TURN_STATE_FAILED_STR                  (PCHAR) "TURN_STATE_FAILED"
 
 typedef STATUS (*RelayAddressAvailableFunc)(UINT64, PKvsIpAddress, PSocketConnection);
 
@@ -172,8 +172,8 @@ struct __TurnConnection {
 };
 typedef struct __TurnConnection* PTurnConnection;
 
-STATUS createTurnConnection(PIceServer, TIMER_QUEUE_HANDLE, TURN_CONNECTION_DATA_TRANSFER_MODE,
-                            KVS_SOCKET_PROTOCOL, PTurnConnectionCallbacks, PSocketConnection, PConnectionListener, PTurnConnection*);
+STATUS createTurnConnection(PIceServer, TIMER_QUEUE_HANDLE, TURN_CONNECTION_DATA_TRANSFER_MODE, KVS_SOCKET_PROTOCOL, PTurnConnectionCallbacks,
+                            PSocketConnection, PConnectionListener, PTurnConnection*);
 STATUS freeTurnConnection(PTurnConnection*);
 STATUS turnConnectionAddPeer(PTurnConnection, PKvsIpAddress);
 STATUS turnConnectionSendData(PTurnConnection, PBYTE, UINT32, PKvsIpAddress);
@@ -192,8 +192,7 @@ STATUS turnConnectionGetLongTermKey(PCHAR, PCHAR, PCHAR, PBYTE, UINT32);
 STATUS turnConnectionPackageTurnAllocationRequest(PCHAR, PCHAR, PBYTE, UINT16, UINT32, PStunPacket*);
 PCHAR turnConnectionGetStateStr(TURN_CONNECTION_STATE);
 
-STATUS turnConnectionIncomingDataHandler(PTurnConnection, PBYTE, UINT32,
-                                         PKvsIpAddress, PKvsIpAddress, PTurnChannelData, PUINT32);
+STATUS turnConnectionIncomingDataHandler(PTurnConnection, PBYTE, UINT32, PKvsIpAddress, PKvsIpAddress, PTurnChannelData, PUINT32);
 
 STATUS turnConnectionHandleStun(PTurnConnection, PBYTE, UINT32);
 STATUS turnConnectionHandleStunError(PTurnConnection, PBYTE, UINT32);
@@ -204,7 +203,7 @@ VOID turnConnectionFatalError(PTurnConnection, STATUS);
 PTurnPeer turnConnectionGetPeerWithChannelNumber(PTurnConnection, UINT16);
 PTurnPeer turnConnectionGetPeerWithIp(PTurnConnection, PKvsIpAddress);
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 }
 #endif
-#endif  /* __KINESIS_VIDEO_WEBRTC_CLIENT_TURN_CONNECTION__ */
+#endif /* __KINESIS_VIDEO_WEBRTC_CLIENT_TURN_CONNECTION__ */

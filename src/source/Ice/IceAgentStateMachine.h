@@ -6,7 +6,7 @@ Signaling State Machine internal include file
 
 #pragma once
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -22,23 +22,23 @@ extern "C" {
  * ICE_AGENT_STATE_DISCONNECTED:                Lost connection after ICE_AGENT_STATE_READY
  * ICE_AGENT_STATE_FAILED:                      Terminal state with an error stored in iceAgentStatus
  */
-#define ICE_AGENT_STATE_NONE                            ((UINT64) 0)
-#define ICE_AGENT_STATE_NEW                             ((UINT64) (1 << 0))
-#define ICE_AGENT_STATE_CHECK_CONNECTION                ((UINT64) (1 << 1))
-#define ICE_AGENT_STATE_CONNECTED                       ((UINT64) (1 << 2))
-#define ICE_AGENT_STATE_NOMINATING                      ((UINT64) (1 << 3))
-#define ICE_AGENT_STATE_READY                           ((UINT64) (1 << 4))
-#define ICE_AGENT_STATE_DISCONNECTED                    ((UINT64) (1 << 5))
-#define ICE_AGENT_STATE_FAILED                          ((UINT64) (1 << 6))
+#define ICE_AGENT_STATE_NONE             ((UINT64) 0)
+#define ICE_AGENT_STATE_NEW              ((UINT64)(1 << 0))
+#define ICE_AGENT_STATE_CHECK_CONNECTION ((UINT64)(1 << 1))
+#define ICE_AGENT_STATE_CONNECTED        ((UINT64)(1 << 2))
+#define ICE_AGENT_STATE_NOMINATING       ((UINT64)(1 << 3))
+#define ICE_AGENT_STATE_READY            ((UINT64)(1 << 4))
+#define ICE_AGENT_STATE_DISCONNECTED     ((UINT64)(1 << 5))
+#define ICE_AGENT_STATE_FAILED           ((UINT64)(1 << 6))
 
-#define ICE_AGENT_STATE_NONE_STR                        (PCHAR) "ICE_AGENT_STATE_NONE"
-#define ICE_AGENT_STATE_NEW_STR                         (PCHAR) "ICE_AGENT_STATE_NEW"
-#define ICE_AGENT_STATE_CHECK_CONNECTION_STR            (PCHAR) "ICE_AGENT_STATE_CHECK_CONNECTION"
-#define ICE_AGENT_STATE_CONNECTED_STR                   (PCHAR) "ICE_AGENT_STATE_CONNECTED"
-#define ICE_AGENT_STATE_NOMINATING_STR                  (PCHAR) "ICE_AGENT_STATE_NOMINATING"
-#define ICE_AGENT_STATE_READY_STR                       (PCHAR) "ICE_AGENT_STATE_READY"
-#define ICE_AGENT_STATE_DISCONNECTED_STR                (PCHAR) "ICE_AGENT_STATE_DISCONNECTED"
-#define ICE_AGENT_STATE_FAILED_STR                      (PCHAR) "ICE_AGENT_STATE_FAILED"
+#define ICE_AGENT_STATE_NONE_STR             (PCHAR) "ICE_AGENT_STATE_NONE"
+#define ICE_AGENT_STATE_NEW_STR              (PCHAR) "ICE_AGENT_STATE_NEW"
+#define ICE_AGENT_STATE_CHECK_CONNECTION_STR (PCHAR) "ICE_AGENT_STATE_CHECK_CONNECTION"
+#define ICE_AGENT_STATE_CONNECTED_STR        (PCHAR) "ICE_AGENT_STATE_CONNECTED"
+#define ICE_AGENT_STATE_NOMINATING_STR       (PCHAR) "ICE_AGENT_STATE_NOMINATING"
+#define ICE_AGENT_STATE_READY_STR            (PCHAR) "ICE_AGENT_STATE_READY"
+#define ICE_AGENT_STATE_DISCONNECTED_STR     (PCHAR) "ICE_AGENT_STATE_DISCONNECTED"
+#define ICE_AGENT_STATE_FAILED_STR           (PCHAR) "ICE_AGENT_STATE_FAILED"
 
 // Whether to step the state machine
 STATUS stepIceAgentStateMachine(PIceAgent);
@@ -64,7 +64,7 @@ STATUS executeDisconnectedIceAgentState(UINT64, UINT64);
 STATUS fromFailedIceAgentState(UINT64, PUINT64);
 STATUS executeFailedIceAgentState(UINT64, UINT64);
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 }
 #endif
-#endif  /* __KINESIS_VIDEO_WEBRTC_ICE_STATE_MACHINE__ */
+#endif /* __KINESIS_VIDEO_WEBRTC_ICE_STATE_MACHINE__ */

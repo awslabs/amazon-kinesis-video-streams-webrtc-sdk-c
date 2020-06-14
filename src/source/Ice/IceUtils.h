@@ -6,20 +6,20 @@ Ice Utils internal include file
 
 #pragma once
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
-#define DEFAULT_MAX_STORED_TRANSACTION_ID_COUNT                         20
-#define MAX_STORED_TRANSACTION_ID_COUNT                                 100
+#define DEFAULT_MAX_STORED_TRANSACTION_ID_COUNT 20
+#define MAX_STORED_TRANSACTION_ID_COUNT         100
 
-#define ICE_STUN_DEFAULT_PORT                                           3478
+#define ICE_STUN_DEFAULT_PORT 3478
 
-#define ICE_URL_PREFIX_STUN                                             "stun:"
-#define ICE_URL_PREFIX_TURN                                             "turn:"
-#define ICE_URL_PREFIX_TURN_SECURE                                      "turns:"
-#define ICE_URL_TRANSPORT_UDP                                           "transport=udp"
-#define ICE_URL_TRANSPORT_TCP                                           "transport=tcp"
+#define ICE_URL_PREFIX_STUN        "stun:"
+#define ICE_URL_PREFIX_TURN        "turn:"
+#define ICE_URL_PREFIX_TURN_SECURE "turns:"
+#define ICE_URL_TRANSPORT_UDP      "transport=udp"
+#define ICE_URL_TRANSPORT_TCP      "transport=tcp"
 
 /**
  * Ring buffer storing transactionIds
@@ -57,7 +57,7 @@ typedef struct {
 
 STATUS parseIceServer(PIceServer, PCHAR, PCHAR, PCHAR);
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 }
 #endif
-#endif  /* __KINESIS_VIDEO_WEBRTC_ICE_UTILS__ */
+#endif /* __KINESIS_VIDEO_WEBRTC_ICE_UTILS__ */

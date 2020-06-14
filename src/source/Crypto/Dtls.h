@@ -7,7 +7,7 @@
 
 #pragma once
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -26,11 +26,11 @@ extern "C" {
 /*
  * DTLS transmission interval timer (in 100ns)
  */
-#define DTLS_TRANSMISSION_INTERVAL          (200 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
+#define DTLS_TRANSMISSION_INTERVAL (200 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
 
-#define DTLS_SESSION_TIMER_START_DELAY      (100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
+#define DTLS_SESSION_TIMER_START_DELAY (100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
 
-#define SECONDS_IN_A_DAY                    (24 * 60 * 60LL)
+#define SECONDS_IN_A_DAY (24 * 60 * 60LL)
 
 #define HUNDREDS_OF_NANOS_IN_A_DAY          (HUNDREDS_OF_NANOS_IN_AN_HOUR * 24LL)
 
@@ -58,9 +58,9 @@ typedef struct {
 // DtlsKeyingMaterial is information extracted via https://tools.ietf.org/html/rfc5705
 // also includes the use_srtp value from Handshake
 typedef struct {
-  BYTE clientWriteKey[MAX_SRTP_MASTER_KEY_LEN + MAX_SRTP_SALT_KEY_LEN];
-  BYTE serverWriteKey[MAX_SRTP_MASTER_KEY_LEN + MAX_SRTP_SALT_KEY_LEN];
-  UINT8 key_length;
+    BYTE clientWriteKey[MAX_SRTP_MASTER_KEY_LEN + MAX_SRTP_SALT_KEY_LEN];
+    BYTE serverWriteKey[MAX_SRTP_MASTER_KEY_LEN + MAX_SRTP_SALT_KEY_LEN];
+    UINT8 key_length;
 
   KVS_SRTP_PROFILE srtpProfile;
 } DtlsKeyingMaterial, *PDtlsKeyingMaterial;
@@ -68,8 +68,8 @@ typedef struct {
 #ifdef KVS_USE_OPENSSL
 typedef struct {
     BOOL created;
-    X509 *pCert;
-    EVP_PKEY *pKey;
+    X509* pCert;
+    EVP_PKEY* pKey;
 } DtlsSessionCertificateInfo, *PDtlsSessionCertificateInfo;
 
 #elif KVS_USE_MBEDTLS
@@ -112,7 +112,6 @@ struct __DtlsSession {
     BYTE outgoingDataBuffer[MAX_UDP_PACKET_SIZE];
     UINT32 outgoingDataLen;
     CHAR certFingerprints[MAX_RTCCONFIGURATION_CERTIFICATES][CERTIFICATE_FINGERPRINT_LENGTH + 1];
-
     SSL_CTX *pSslCtx;
     SSL *pSsl;
 #elif KVS_USE_MBEDTLS
@@ -176,8 +175,8 @@ STATUS dtlsSessionChangeState(PDtlsSession, RTC_DTLS_TRANSPORT_STATE);
 STATUS dtlsCheckOutgoingDataBuffer(PDtlsSession);
 STATUS dtlsCertificateFingerprint(X509*, PCHAR);
 STATUS dtlsGenerateCertificateFingerprints(PDtlsSession, PDtlsSessionCertificateInfo);
-STATUS createCertificateAndKey(INT32, BOOL, X509 **ppCert, EVP_PKEY **ppPkey);
-STATUS freeCertificateAndKey(X509 **ppCert, EVP_PKEY **ppPkey);
+STATUS createCertificateAndKey(INT32, BOOL, X509** ppCert, EVP_PKEY** ppPkey);
+STATUS freeCertificateAndKey(X509** ppCert, EVP_PKEY** ppPkey);
 STATUS dtlsValidateRtcCertificates(PRtcCertificate, PUINT32);
 STATUS createSslCtx(PDtlsSessionCertificateInfo, UINT32, SSL_CTX**);
 #elif KVS_USE_MBEDTLS
@@ -206,7 +205,7 @@ INT32 dtlsSessionKeyDerivationCallback(PVOID,
 #error "A Crypto implementation is required."
 #endif
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 }
 #endif
-#endif  //__KINESIS_VIDEO_WEBRTC_CLIENT_DTLS_DTLS__
+#endif //__KINESIS_VIDEO_WEBRTC_CLIENT_DTLS_DTLS__

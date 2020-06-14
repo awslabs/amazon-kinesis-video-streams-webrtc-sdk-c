@@ -1,11 +1,8 @@
 #define LOG_CLASS "SignalingClient"
 #include "../Include_i.h"
 
-STATUS createSignalingClientSync(PSignalingClientInfo pClientInfo,
-                                 PChannelInfo pChannelInfo,
-                                 PSignalingClientCallbacks pCallbacks,
-                                 PAwsCredentialProvider pCredentialProvider,
-                                 PSIGNALING_CLIENT_HANDLE pSignalingHandle)
+STATUS createSignalingClientSync(PSignalingClientInfo pClientInfo, PChannelInfo pChannelInfo, PSignalingClientCallbacks pCallbacks,
+                                 PAwsCredentialProvider pCredentialProvider, PSIGNALING_CLIENT_HANDLE pSignalingHandle)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;

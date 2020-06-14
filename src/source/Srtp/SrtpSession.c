@@ -53,18 +53,16 @@ STATUS initSrtpSession(PBYTE receiveKey, PBYTE transmitKey, KVS_SRTP_PROFILE pro
     *ppSrtpSession = pSrtpSession;
 
 CleanUp:
-    if (STATUS_FAILED(retStatus)){
+    if (STATUS_FAILED(retStatus)) {
         freeSrtpSession(&pSrtpSession);
     }
 
     LEAVES();
     return retStatus;
-
 }
 
 STATUS freeSrtpSession(PSrtpSession* ppSrtpSession)
 {
-
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     srtp_err_status_t errStatus;
@@ -76,12 +74,10 @@ STATUS freeSrtpSession(PSrtpSession* ppSrtpSession)
 
     pSrtpSession = *ppSrtpSession;
 
-    if ((pSrtpSession->srtp_transmit_session != NULL) &&
-        (errStatus = srtp_dealloc(pSrtpSession->srtp_transmit_session)) != srtp_err_status_ok) {
+    if ((pSrtpSession->srtp_transmit_session != NULL) && (errStatus = srtp_dealloc(pSrtpSession->srtp_transmit_session)) != srtp_err_status_ok) {
         DLOGW("Dealloc of transmit session failed with error code %d\n", errStatus);
     }
-    if ((pSrtpSession->srtp_receive_session != NULL) &&
-        (errStatus = srtp_dealloc(pSrtpSession->srtp_receive_session)) != srtp_err_status_ok) {
+    if ((pSrtpSession->srtp_receive_session != NULL) && (errStatus = srtp_dealloc(pSrtpSession->srtp_receive_session)) != srtp_err_status_ok) {
         DLOGW("Dealloc of receive session failed with error code %d\n", errStatus);
     }
 
@@ -118,7 +114,6 @@ CleanUp:
     return retStatus;
 }
 
-
 STATUS encryptRtpPacket(PSrtpSession pSrtpSession, PVOID message, PINT32 len)
 {
     ENTERS();
@@ -127,11 +122,10 @@ STATUS encryptRtpPacket(PSrtpSession pSrtpSession, PVOID message, PINT32 len)
 
     status = srtp_protect(pSrtpSession->srtp_transmit_session, message, len);
 
-    CHK_ERR(status == srtp_err_status_ok, STATUS_SRTP_ENCRYPT_FAILED,
-            "srtp_protect returned %lu on srtp session %llu", status, pSrtpSession->srtp_transmit_session);
+    CHK_ERR(status == srtp_err_status_ok, STATUS_SRTP_ENCRYPT_FAILED, "srtp_protect returned %lu on srtp session %llu", status,
+            pSrtpSession->srtp_transmit_session);
 
 CleanUp:
     LEAVES();
     return retStatus;
 }
-

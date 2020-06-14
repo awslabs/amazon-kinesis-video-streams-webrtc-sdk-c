@@ -7,7 +7,7 @@
 
 #pragma once
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -18,18 +18,18 @@ extern "C" {
 #pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
 #pragma clang diagnostic pop
 
-#define NULLABLE_SET_EMPTY(a) \
-    do { \
-        (a).isNull = TRUE; \
-    } while(FALSE)
+#define NULLABLE_SET_EMPTY(a)                                                                                                                        \
+    do {                                                                                                                                             \
+        (a).isNull = TRUE;                                                                                                                           \
+    } while (FALSE)
 
 #define NULLABLE_CHECK_EMPTY(a) ((a).isNull == TRUE)
 
-#define NULLABLE_SET_VALUE(a, val) \
-    do { \
-        (a).isNull = FALSE; \
-        (a).value = val; \
-    } while(FALSE)
+#define NULLABLE_SET_VALUE(a, val)                                                                                                                   \
+    do {                                                                                                                                             \
+        (a).isNull = FALSE;                                                                                                                          \
+        (a).value = val;                                                                                                                             \
+    } while (FALSE)
 
 typedef struct {
     BOOL isNull;
@@ -91,7 +91,7 @@ typedef struct {
     LDOUBLE value;
 } NullableLongDouble;
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 }
 #endif
 #endif /* __KINESIS_VIDEO_WEBRTC_CLIENT_NULLABLEDEFS__ */

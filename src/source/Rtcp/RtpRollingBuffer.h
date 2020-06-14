@@ -6,7 +6,7 @@ RTCP Rolling Buffer include file
 
 #pragma once
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -22,8 +22,7 @@ STATUS freeRtpRollingBufferData(PUINT64);
 STATUS rtpRollingBufferAddRtpPacket(PRtpRollingBuffer, PRtpPacket);
 STATUS rtpRollingBufferGetValidSeqIndexList(PRtpRollingBuffer, PUINT16, UINT32, PUINT64, PUINT32);
 
-#ifdef  __cplusplus
-
+#ifdef __cplusplus
 }
 #endif
 #endif //__KINESIS_VIDEO_WEBRTC_CLIENT_RTCP_RTP_ROLLING_BUFFER_H

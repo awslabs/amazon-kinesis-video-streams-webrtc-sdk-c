@@ -2,7 +2,7 @@
 
 extern PSampleConfiguration gSampleConfiguration;
 
-INT32 main(INT32 argc, CHAR *argv[])
+INT32 main(INT32 argc, CHAR* argv[])
 {
     STATUS retStatus = STATUS_SUCCESS;
     RtcSessionDescriptionInit offerSessionDescriptionInit;
@@ -19,12 +19,9 @@ INT32 main(INT32 argc, CHAR *argv[])
     // do trickle-ice by default
     printf("[KVS Master] Using trickleICE by default\n");
 
-    retStatus = createSampleConfiguration(argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME,
-                                          SIGNALING_CHANNEL_ROLE_TYPE_VIEWER,
-                                          TRUE,
-                                          TRUE,
-                                          &pSampleConfiguration);
-    if(retStatus != STATUS_SUCCESS) {
+    retStatus =
+        createSampleConfiguration(argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME, SIGNALING_CHANNEL_ROLE_TYPE_VIEWER, TRUE, TRUE, &pSampleConfiguration);
+    if (retStatus != STATUS_SUCCESS) {
         printf("[KVS Viewer] createSampleConfiguration(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;
     }
@@ -32,10 +29,10 @@ INT32 main(INT32 argc, CHAR *argv[])
 
     printf("[KVS Viewer] Created signaling channel %s\n", (argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME));
 
-    if(pSampleConfiguration->enableFileLogging) {
-        retStatus = createFileLogger(FILE_LOGGING_BUFFER_SIZE, MAX_NUMBER_OF_LOG_FILES,
-                     (PCHAR) FILE_LOGGER_LOG_FILE_DIRECTORY_PATH, TRUE, TRUE, NULL);
-        if(retStatus != STATUS_SUCCESS) {
+    if (pSampleConfiguration->enableFileLogging) {
+        retStatus =
+            createFileLogger(FILE_LOGGING_BUFFER_SIZE, MAX_NUMBER_OF_LOG_FILES, (PCHAR) FILE_LOGGER_LOG_FILE_DIRECTORY_PATH, TRUE, TRUE, NULL);
+        if (retStatus != STATUS_SUCCESS) {
             printf("[KVS Master] createFileLogger(): operation returned status code: 0x%08x \n", retStatus);
             pSampleConfiguration->enableFileLogging = FALSE;
         }
@@ -43,7 +40,7 @@ INT32 main(INT32 argc, CHAR *argv[])
 
     // Initialize KVS WebRTC. This must be done before anything else, and must only be done once.
     retStatus = initKvsWebRtc();
-    if(retStatus != STATUS_SUCCESS) {
+    if (retStatus != STATUS_SUCCESS) {
         printf("[KVS Viewer] initKvsWebRtc(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;
     }
@@ -57,7 +54,7 @@ INT32 main(INT32 argc, CHAR *argv[])
     retStatus = createSignalingClientSync(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
                                           &pSampleConfiguration->signalingClientCallbacks, pSampleConfiguration->pCredentialProvider,
                                           &pSampleConfiguration->signalingClientHandle);
-    if(retStatus != STATUS_SUCCESS) {
+    if (retStatus != STATUS_SUCCESS) {
         printf("[KVS Viewer] createSignalingClientSync(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;
     }
@@ -66,7 +63,7 @@ INT32 main(INT32 argc, CHAR *argv[])
 
     // Enable the processing of the messages
     retStatus = signalingClientConnectSync(pSampleConfiguration->signalingClientHandle);
-    if(retStatus != STATUS_SUCCESS) {
+    if (retStatus != STATUS_SUCCESS) {
         printf("[KVS Viewer] signalingClientConnectSync(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;
     }
@@ -78,7 +75,7 @@ INT32 main(INT32 argc, CHAR *argv[])
     locked = TRUE;
 
     retStatus = createSampleStreamingSession(pSampleConfiguration, NULL, FALSE, &pSampleStreamingSession);
-    if(retStatus != STATUS_SUCCESS) {
+    if (retStatus != STATUS_SUCCESS) {
         printf("[KVS Viewer] createSampleStreamingSession(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;
     }
@@ -92,23 +89,21 @@ INT32 main(INT32 argc, CHAR *argv[])
     memset(&offerSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
 
     retStatus = createOffer(pSampleStreamingSession->pPeerConnection, &offerSessionDescriptionInit);
-    if(retStatus != STATUS_SUCCESS) {
+    if (retStatus != STATUS_SUCCESS) {
         printf("[KVS Viewer] createOffer(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;
     }
     printf("[KVS Viewer] Offer creation successful\n");
 
     retStatus = setLocalDescription(pSampleStreamingSession->pPeerConnection, &offerSessionDescriptionInit);
-    if(retStatus != STATUS_SUCCESS) {
+    if (retStatus != STATUS_SUCCESS) {
         printf("[KVS Viewer] setLocalDescription(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;
     }
     printf("[KVS Viewer] Completed setting local description\n");
 
-    retStatus = transceiverOnFrame(pSampleStreamingSession->pAudioRtcRtpTransceiver,
-                                   (UINT64) pSampleStreamingSession,
-                                    sampleFrameHandler);
-    if(retStatus != STATUS_SUCCESS) {
+    retStatus = transceiverOnFrame(pSampleStreamingSession->pAudioRtcRtpTransceiver, (UINT64) pSampleStreamingSession, sampleFrameHandler);
+    if (retStatus != STATUS_SUCCESS) {
         printf("[KVS Viewer] transceiverOnFrame(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;
     }
@@ -129,24 +124,23 @@ INT32 main(INT32 argc, CHAR *argv[])
 
         printf("[KVS Viewer] Candidate collection completed\n");
         // get the latest local description once candidate gathering is done
-        CHK_STATUS(peerConnectionGetCurrentLocalDescription(pSampleStreamingSession->pPeerConnection,
-                                                            &offerSessionDescriptionInit));
+        CHK_STATUS(peerConnectionGetCurrentLocalDescription(pSampleStreamingSession->pPeerConnection, &offerSessionDescriptionInit));
     }
 
     printf("[KVS Viewer] Generating JSON of session description....");
     retStatus = serializeSessionDescriptionInit(&offerSessionDescriptionInit, NULL, &buffLen);
-    if(retStatus != STATUS_SUCCESS) {
+    if (retStatus != STATUS_SUCCESS) {
         printf("[KVS Viewer] serializeSessionDescriptionInit(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;
     }
-    if(buffLen >= SIZEOF(message.payload)) {
+    if (buffLen >= SIZEOF(message.payload)) {
         printf("[KVS Viewer] serializeSessionDescriptionInit(): operation returned status code: 0x%08x \n", STATUS_INVALID_OPERATION);
         retStatus = STATUS_INVALID_OPERATION;
         goto CleanUp;
     }
 
     retStatus = serializeSessionDescriptionInit(&offerSessionDescriptionInit, message.payload, &buffLen);
-    if(retStatus != STATUS_SUCCESS) {
+    if (retStatus != STATUS_SUCCESS) {
         printf("[KVS Viewer] serializeSessionDescriptionInit(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;
     }
@@ -160,7 +154,7 @@ INT32 main(INT32 argc, CHAR *argv[])
     message.correlationId[0] = '\0';
 
     retStatus = signalingClientSendMessageSync(pSampleConfiguration->signalingClientHandle, &message);
-    if(retStatus != STATUS_SUCCESS) {
+    if (retStatus != STATUS_SUCCESS) {
         printf("[KVS Viewer] signalingClientSendMessageSync(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;
     }
@@ -182,17 +176,17 @@ CleanUp:
         MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
     }
 
-    if(pSampleConfiguration->enableFileLogging) {
+    if (pSampleConfiguration->enableFileLogging) {
         freeFileLogger();
     }
     if (pSampleConfiguration != NULL) {
         retStatus = freeSignalingClient(&pSampleConfiguration->signalingClientHandle);
-        if(retStatus != STATUS_SUCCESS) {
+        if (retStatus != STATUS_SUCCESS) {
             printf("[KVS Master] freeSignalingClient(): operation returned status code: 0x%08x \n", retStatus);
         }
 
         retStatus = freeSampleConfiguration(&pSampleConfiguration);
-        if(retStatus != STATUS_SUCCESS) {
+        if (retStatus != STATUS_SUCCESS) {
             printf("[KVS Master] freeSampleConfiguration(): operation returned status code: 0x%08x \n", retStatus);
         }
     }

@@ -6,26 +6,26 @@ HostInfo internal include file
 
 #pragma once
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
-#define MAX_LOCAL_NETWORK_INTERFACE_COUNT               128
+#define MAX_LOCAL_NETWORK_INTERFACE_COUNT 128
 
 // string buffer size for ipv4 and ipv6. Null terminator included.
 // for ipv6: 0000:0000:0000:0000:0000:0000:0000:0000 = 39
 // for ipv4 mapped ipv6: 0000:0000:0000:0000:0000:ffff:192.168.100.228 = 45
-#define KVS_IP_ADDRESS_STRING_BUFFER_LEN                46
+#define KVS_IP_ADDRESS_STRING_BUFFER_LEN 46
 
 // 000.000.000.000
-#define KVS_MAX_IPV4_ADDRESS_STRING_LEN                 15
+#define KVS_MAX_IPV4_ADDRESS_STRING_LEN 15
 
-#define KVS_GET_IP_ADDRESS_PORT(a)                      ((UINT16) getInt16((a)->port))
+#define KVS_GET_IP_ADDRESS_PORT(a) ((UINT16) getInt16((a)->port))
 
 #if defined(__MACH__)
-#    define NO_SIGNAL SO_NOSIGPIPE
+#define NO_SIGNAL SO_NOSIGPIPE
 #else
-#    define NO_SIGNAL MSG_NOSIGNAL
+#define NO_SIGNAL MSG_NOSIGNAL
 #endif
 
 // Some systems such as Windows doesn't have this value
@@ -90,7 +90,7 @@ STATUS getIpAddrStr(PKvsIpAddress, PCHAR, UINT32);
 
 BOOL isSameIpAddress(PKvsIpAddress, PKvsIpAddress, BOOL);
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 }
 #endif
-#endif  /* __KINESIS_VIDEO_WEBRTC_CLIENT_NETWORK__ */
+#endif /* __KINESIS_VIDEO_WEBRTC_CLIENT_NETWORK__ */

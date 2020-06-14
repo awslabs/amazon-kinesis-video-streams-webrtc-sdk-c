@@ -2,7 +2,8 @@
 
 #include "../../Include_i.h"
 
-STATUS createPayloadForOpus(UINT32 mtu, PBYTE opusFrame, UINT32 opusFrameLength, PBYTE payloadBuffer, PUINT32 pPayloadLength, PUINT32 pPayloadSubLength, PUINT32 pPayloadSubLenSize)
+STATUS createPayloadForOpus(UINT32 mtu, PBYTE opusFrame, UINT32 opusFrameLength, PBYTE payloadBuffer, PUINT32 pPayloadLength,
+                            PUINT32 pPayloadSubLength, PUINT32 pPayloadSubLenSize)
 {
     UNUSED_PARAM(mtu);
     ENTERS();
@@ -11,7 +12,8 @@ STATUS createPayloadForOpus(UINT32 mtu, PBYTE opusFrame, UINT32 opusFrameLength,
     UINT32 payloadSubLenSize = 0;
     BOOL sizeCalculationOnly = (payloadBuffer == NULL);
 
-    CHK(opusFrame != NULL && pPayloadSubLenSize != NULL && pPayloadLength != NULL && (sizeCalculationOnly || pPayloadSubLength != NULL), STATUS_NULL_ARG);
+    CHK(opusFrame != NULL && pPayloadSubLenSize != NULL && pPayloadLength != NULL && (sizeCalculationOnly || pPayloadSubLength != NULL),
+        STATUS_NULL_ARG);
 
     payloadLength = opusFrameLength;
     payloadSubLenSize = 1;
