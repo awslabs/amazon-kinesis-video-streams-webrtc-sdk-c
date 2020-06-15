@@ -260,6 +260,7 @@ STATUS socketConnectionReadData(PSocketConnection pSocketConnection, PBYTE pBuf,
                     continueRead = FALSE;
                     break;
                 case SSL_ERROR_WANT_READ:
+                case SSL_ERROR_ZERO_RETURN:
                     break;
                 default:
                     sslErrorRet = ERR_get_error();
