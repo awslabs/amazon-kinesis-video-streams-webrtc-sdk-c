@@ -1694,6 +1694,8 @@ STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent, PKvsIpAddress pLocalInter
     PTurnConnection pTurnConnection = NULL;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
+    /* we dont support TURN on DTLS yet. */
+    CHK(protocol != KVS_SOCKET_PROTOCOL_UDP || !pIceAgent->iceServers[iceServerIndex].isSecure, retStatus);
     CHK_WARN(pIceAgent->relayCandidateCount < KVS_ICE_MAX_RELAY_CANDIDATE_COUNT, retStatus,
              "Cannot create more relay candidate because max count of %u is reached",
              KVS_ICE_MAX_RELAY_CANDIDATE_COUNT);
@@ -2460,16 +2462,21 @@ CleanUp:
 VOID iceAgentLogNewCandidate(PIceCandidate pIceCandidate)
 {
     CHAR ipAddr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
+    PCHAR protocol = "UDP";
 
     if (pIceCandidate != NULL) {
         getIpAddrStr(&pIceCandidate->ipAddress, ipAddr, ARRAY_SIZE(ipAddr));
-        DLOGD("New %s ice candidate discovered. Id: %s. Ip: %s:%u. Type: %s",
+        if (pIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED &&
+            pIceCandidate->pTurnConnection->protocol == KVS_SOCKET_PROTOCOL_UDP) {
+            protocol = "TCP";
+        }
+        DLOGD("New %s ice candidate discovered. Id: %s. Ip: %s:%u. Type: %s. Protocol: %s.",
               pIceCandidate->isRemote ? "remote" : "local",
               pIceCandidate->id,
               ipAddr,
               (UINT16) getInt16(pIceCandidate->ipAddress.port),
-              iceAgentGetCandidateTypeStr(pIceCandidate->iceCandidateType)
-        );
+              iceAgentGetCandidateTypeStr(pIceCandidate->iceCandidateType),
+              protocol);
     }
 }
 

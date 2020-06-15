@@ -262,7 +262,7 @@ CleanUp:
 STATUS getIpWithHostName(PCHAR hostname, PKvsIpAddress destIp)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    UINT32 errCode;
+    INT32 errCode;
     struct addrinfo *res, *rp;
     BOOL resolved = FALSE;
     struct sockaddr_in *ipv4Addr;
