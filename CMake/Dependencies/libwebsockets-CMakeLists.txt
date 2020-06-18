@@ -33,6 +33,7 @@ ExternalProject_Add(project_libwebsockets
         -DLWS_WITH_SHARED=${LWS_WITH_SHARED}
         -DLWS_STATIC_PIC=1
         -DLWS_WITH_ZLIB=0
+        -DLWS_HAVE_EVENTFD=0
 # enable for debug output        -DCMAKE_BUILD_TYPE=DEBUG
         -DOPENSSL_ROOT_DIR=${OPENSSL_DIR}
         BUILD_ALWAYS      TRUE
