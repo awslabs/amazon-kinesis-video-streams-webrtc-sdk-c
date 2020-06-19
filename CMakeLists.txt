@@ -238,6 +238,12 @@ add_executable(
 target_link_libraries(kvsWebrtcClientMaster kvsWebrtcClient kvsWebrtcSignalingClient kvspicUtils)
 
 add_executable(
+        kvsWebrtcEchoMaster
+        ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/Common.c
+        ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/kvsWebRTCEchoMaster.c)
+target_link_libraries(kvsWebrtcEchoMaster kvsWebrtcClient kvsWebrtcSignalingClient kvspicUtils)
+
+add_executable(
   kvsWebrtcClientViewer
   ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/Common.c
   ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/kvsWebRTCClientViewer.c)
