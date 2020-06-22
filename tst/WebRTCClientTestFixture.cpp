@@ -77,12 +77,10 @@ void WebRtcClientTestBase::SetUp()
     UINT32 testNameLen = STRLEN(TEST_SIGNALING_CHANNEL_NAME);
     const UINT32 randSize = 16;
 
-    BYTE randBuffer[randSize];
-    RAND_bytes(randBuffer, randSize);
     PCHAR pCur = &mChannelName[testNameLen];
 
     for (UINT32 i = 0; i < randSize; i++) {
-        *pCur++ = SIGNALING_VALID_NAME_CHARS[randBuffer[i % MAX_RAND_BUFFER_SIZE_FOR_NAME] % (ARRAY_SIZE(SIGNALING_VALID_NAME_CHARS) - 1)];
+        *pCur++ = SIGNALING_VALID_NAME_CHARS[RAND() % (ARRAY_SIZE(SIGNALING_VALID_NAME_CHARS) - 1)];
     }
 
     *pCur = '\0';
