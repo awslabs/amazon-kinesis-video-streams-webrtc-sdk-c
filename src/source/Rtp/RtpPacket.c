@@ -208,8 +208,6 @@ STATUS setRtpPacketFromBytes(PBYTE rawPacket, UINT32 packetLength, PRtpPacket pR
             payloadType, sequenceNumber, timestamp, ssrc, csrcArray, extensionProfile,
             extensionLength, extensionPayload, rawPacket + currOffset,
             packetLength - currOffset, pRtpPacket));
-    pRtpPacket->pRawPacket = rawPacket;
-    pRtpPacket->rawPacketLength = packetLength;
 
 CleanUp:
     LEAVES();
