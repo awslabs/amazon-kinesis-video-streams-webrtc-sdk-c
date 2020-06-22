@@ -74,8 +74,6 @@ TEST_F(RtpFunctionalityTest, marshallUnmarshallGettingSameData)
         EXPECT_TRUE(MEMCMP(pRtpPacket->payload, pNewRtpPacket->payload, pRtpPacket->payloadLength) == 0);
 
         EXPECT_EQ(STATUS_SUCCESS, freeRtpPacket(&pNewRtpPacket));
-        MEMFREE(rawPacket);
-        rawPacket = NULL;
     }
 
     MEMFREE(packetList);

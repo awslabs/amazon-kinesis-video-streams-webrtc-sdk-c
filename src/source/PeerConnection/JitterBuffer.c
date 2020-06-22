@@ -98,7 +98,7 @@ STATUS jitterBufferPush(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket)
         || pRtpPacket->header.timestamp >= pJitterBuffer->lastPushTimestamp - pJitterBuffer->maxLatency) {
         pCurPacket = pJitterBuffer->pktBuffer[pRtpPacket->header.sequenceNumber];
         if (pCurPacket != NULL) {
-            freeRtpPacketAndRawPacket(&pCurPacket);
+            freeRtpPacket(&pCurPacket);
             pJitterBuffer->pktBuffer[pRtpPacket->header.sequenceNumber] = NULL;
         }
         pJitterBuffer->pktBuffer[pRtpPacket->header.sequenceNumber] = pRtpPacket;
@@ -106,7 +106,7 @@ STATUS jitterBufferPush(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket)
         DLOGS("jitterBufferPush get packet timestamp %lu seqNum %lu", pRtpPacket->header.timestamp, pRtpPacket->header.sequenceNumber);
     } else {
         // Free the packet if it is out of range, jitter buffer need to own the packet and do free
-        freeRtpPacketAndRawPacket(&pRtpPacket);
+        freeRtpPacket(&pRtpPacket);
     }
 
     CHK_STATUS(jitterBufferPop(pJitterBuffer, FALSE));
@@ -235,7 +235,7 @@ STATUS jitterBufferDropBufferData(PJitterBuffer pJitterBuffer, UINT16 startIndex
     for (; UINT16_DEC(index) != endIndex; index++) {
         pCurPacket = pJitterBuffer->pktBuffer[index];
         if (pCurPacket != NULL) {
-            freeRtpPacketAndRawPacket(&pCurPacket);
+            freeRtpPacket(&pCurPacket);
             pJitterBuffer->pktBuffer[index] = NULL;
         }
     }
