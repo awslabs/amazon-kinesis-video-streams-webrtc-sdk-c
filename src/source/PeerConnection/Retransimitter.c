@@ -118,7 +118,7 @@ STATUS resendPacketOnNack(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerCo
                 DLOGS("Retransmit add back to rolling %lu", pRtpPacket->header.sequenceNumber);
             }
 
-            freeRtpPacketAndRawPacket(&pRtxRtpPacket);
+            freeRtpPacket(&pRtxRtpPacket);
             pRtpPacket = NULL;
         }
     }
@@ -129,7 +129,7 @@ CleanUp:
         freeRtpPacket(&pRtpPacket);
         pRtpPacket = NULL;
     }
-    freeRtpPacketAndRawPacket(&pRtpPacket);
+    freeRtpPacket(&pRtpPacket);
 
     LEAVES();
     return retStatus;
