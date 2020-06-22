@@ -18,8 +18,6 @@ extern "C" {
 #define MAX_ICE_UFRAG_LEN               256
 #define MAX_ICE_PWD_LEN                 256
 
-#define MAX_RAND_BUFFER_SIZE_FOR_NAME               256
-
 #define PEER_FRAME_BUFFER_SIZE_INCREMENT_FACTOR     1.5
 
 // A non-comprehensive list of valid JSON characters
