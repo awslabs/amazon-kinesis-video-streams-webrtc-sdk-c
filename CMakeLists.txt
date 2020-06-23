@@ -75,7 +75,8 @@ if(BUILD_DEPENDENCIES)
   endif()
 
   # building kvsCommonLws also builds kvspic
-  build_dependency(kvsCommonLws)
+  set(BUILD_ARGS -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE})
+  build_dependency(kvsCommonLws ${BUILD_ARGS})
 
   message(STATUS "Finished building dependencies.")
 endif()
