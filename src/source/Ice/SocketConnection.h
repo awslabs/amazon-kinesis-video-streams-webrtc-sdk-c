@@ -52,9 +52,10 @@ typedef struct __SocketConnection* PSocketConnection;
  * specified, and bind it to the host ip address. If the protocol is tcp, then peer ip address is required and it will
  * try to establish the tcp connection.
  *
- * @param - PKvsIpAddress - IN - host ip address to bind to
- * @param - PKvsIpAddress - IN - peer ip address to connect in case of TCP
+ * @param - KVS_IP_FAMILY_TYPE - IN - Family for the socket. Must be one of KVS_IP_FAMILY_TYPE
  * @param - KVS_SOCKET_PROTOCOL - IN - socket protocol. TCP or UDP
+ * @param - PKvsIpAddress - IN - host ip address to bind to (OPTIONAL)
+ * @param - PKvsIpAddress - IN - peer ip address to connect in case of TCP (OPTIONAL)
  * @param - UINT64 - IN - data available callback custom data
  * @param - ConnectionDataAvailableFunc - IN - data available callback (OPTIONAL)
  * @param - UINT32 - IN - send buffer size in bytes
@@ -62,7 +63,7 @@ typedef struct __SocketConnection* PSocketConnection;
  *
  * @return - STATUS - status of execution
  */
-STATUS createSocketConnection(PKvsIpAddress, PKvsIpAddress, KVS_SOCKET_PROTOCOL, UINT64, ConnectionDataAvailableFunc, UINT32, PSocketConnection*);
+STATUS createSocketConnection(KVS_IP_FAMILY_TYPE, KVS_SOCKET_PROTOCOL, PKvsIpAddress, PKvsIpAddress, UINT64, ConnectionDataAvailableFunc, UINT32, PSocketConnection*);
 
 /**
  * Free the SocketConnection struct
