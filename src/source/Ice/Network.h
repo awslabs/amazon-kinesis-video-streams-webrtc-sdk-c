@@ -47,16 +47,30 @@ typedef enum {
 STATUS getLocalhostIpAddresses(PKvsIpAddress, PUINT32, IceSetInterfaceFilterFunc, UINT64);
 
 /**
- * @param - PKvsIpAddress - IN - Attempt to create an udp socket with the ip address given. Upon success, fill PKvsIpAddress'
- *                                     port field with the actual port number.
- * @param - PKvsIpAddress - IN - Peer ip address for tcp socket creation
+ * @param - KVS_IP_FAMILY_TYPE - IN - Family for the socket. Must be one of KVS_IP_FAMILY_TYPE
  * @param - KVS_SOCKET_PROTOCOL - IN - either tcp or udp
  * @param - UINT32 - IN - send buffer size in bytes
  * @param - PINT32 - OUT - PINT32 for the socketfd
  *
  * @return - STATUS status of execution
  */
-STATUS createSocket(PKvsIpAddress, PKvsIpAddress, KVS_SOCKET_PROTOCOL, UINT32, PINT32);
+STATUS createSocket(KVS_IP_FAMILY_TYPE, KVS_SOCKET_PROTOCOL, UINT32, PINT32);
+
+/**
+ * @param - PKvsIpAddress - IN - address for the socket to bind. PKvsIpAddress->port will be changed to the actual port number
+ * @param - INT32 - IN - valid socket fd
+ *
+ * @return - STATUS status of execution
+ */
+STATUS socketBind(PKvsIpAddress, INT32);
+
+/**
+ * @param - PKvsIpAddress - IN - address for the socket to connect.
+ * @param - INT32 - IN - valid socket fd
+ *
+ * @return - STATUS status of execution
+ */
+STATUS socketConnect(PKvsIpAddress, INT32);
 
 /**
  * @param - PCHAR - IN - hostname to resolve

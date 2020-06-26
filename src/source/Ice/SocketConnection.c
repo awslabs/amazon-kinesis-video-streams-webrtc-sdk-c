@@ -4,7 +4,8 @@
 #define LOG_CLASS "SocketConnection"
 #include "../Include_i.h"
 
-STATUS createSocketConnection(PKvsIpAddress pHostIpAddr, PKvsIpAddress pPeerIpAddr, KVS_SOCKET_PROTOCOL protocol,
+STATUS createSocketConnection(KVS_IP_FAMILY_TYPE familyType, KVS_SOCKET_PROTOCOL protocol,
+                              PKvsIpAddress pBindAddr, PKvsIpAddress pPeerIpAddr,
                               UINT64 customData, ConnectionDataAvailableFunc dataAvailableFn, UINT32 sendBufSize,
                               PSocketConnection *ppSocketConnection)
 {
@@ -12,7 +13,7 @@ STATUS createSocketConnection(PKvsIpAddress pHostIpAddr, PKvsIpAddress pPeerIpAd
     STATUS retStatus = STATUS_SUCCESS;
     PSocketConnection pSocketConnection = NULL;
 
-    CHK(pHostIpAddr != NULL && ppSocketConnection != NULL, STATUS_NULL_ARG);
+    CHK(ppSocketConnection != NULL, STATUS_NULL_ARG);
     CHK(protocol == KVS_SOCKET_PROTOCOL_UDP || pPeerIpAddr != NULL, STATUS_INVALID_ARG);
 
     pSocketConnection = (PSocketConnection) MEMCALLOC(1, SIZEOF(SocketConnection));
@@ -21,13 +22,17 @@ STATUS createSocketConnection(PKvsIpAddress pHostIpAddr, PKvsIpAddress pPeerIpAd
     pSocketConnection->lock = MUTEX_CREATE(FALSE);
     CHK(pSocketConnection->lock != INVALID_MUTEX_VALUE, STATUS_INVALID_OPERATION);
 
-    CHK_STATUS(createSocket(pHostIpAddr, pPeerIpAddr, protocol, sendBufSize, &pSocketConnection->localSocket));
-    pSocketConnection->hostIpAddr = *pHostIpAddr;
+    CHK_STATUS(createSocket(familyType, protocol, sendBufSize, &pSocketConnection->localSocket));
+    if (pBindAddr) {
+        CHK_STATUS(socketBind(pBindAddr, pSocketConnection->localSocket));
+        pSocketConnection->hostIpAddr = *pBindAddr;
+    }
 
     pSocketConnection->secureConnection = FALSE;
     pSocketConnection->protocol = protocol;
     if (protocol == KVS_SOCKET_PROTOCOL_TCP) {
         pSocketConnection->peerIpAddr = *pPeerIpAddr;
+        CHK_STATUS(socketConnect(pPeerIpAddr, pSocketConnection->localSocket));
     }
     ATOMIC_STORE_BOOL(&pSocketConnection->connectionClosed, FALSE);
     ATOMIC_STORE_BOOL(&pSocketConnection->receiveData, FALSE);
@@ -128,7 +133,7 @@ STATUS socketConnectionInitSecureConnection(PSocketConnection pSocketConnection,
     ENTERS();
     TlsSessionCallbacks callbacks;
     STATUS retStatus = STATUS_SUCCESS;
-    
+
     CHK(pSocketConnection != NULL, STATUS_NULL_ARG);
     CHK(pSocketConnection->pTlsSession == NULL, STATUS_INVALID_ARG);
 

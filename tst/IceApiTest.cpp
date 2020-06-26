@@ -11,6 +11,7 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         PSocketConnection pDummySocketConnection = NULL;
         KvsIpAddress localhost;
 
+        MEMSET(&localhost, 0x00, SIZEOF(KvsIpAddress));
         localhost.family = KVS_IP_FAMILY_TYPE_IPV4;
         localhost.isPointToPoint = FALSE;
         // 127.0.0.1
@@ -20,9 +21,8 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         localhost.address[3] = 0x01;
         localhost.port = 0;
 
-        MEMSET(&localhost, 0x00, SIZEOF(KvsIpAddress));
 
-        EXPECT_EQ(STATUS_SUCCESS, createSocketConnection(&localhost, NULL, KVS_SOCKET_PROTOCOL_UDP, 0, NULL, 0, &pDummySocketConnection));
+        EXPECT_EQ(STATUS_SUCCESS, createSocketConnection(KVS_IP_FAMILY_TYPE_IPV4, KVS_SOCKET_PROTOCOL_UDP, &localhost, NULL, 0, NULL, 0, &pDummySocketConnection));
 
         EXPECT_NE(STATUS_SUCCESS, createConnectionListener(NULL));
         EXPECT_NE(STATUS_SUCCESS, freeConnectionListener(NULL));

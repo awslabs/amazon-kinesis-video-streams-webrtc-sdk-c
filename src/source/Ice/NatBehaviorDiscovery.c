@@ -311,7 +311,7 @@ STATUS discoverNatBehavior(PCHAR stunServer, NAT_BEHAVIOR *pNatMappingBehavior,
     }
     CHK_WARN(pSelectedLocalInterface != NULL, retStatus, "No usable local interface");
 
-    CHK_STATUS(createSocketConnection(pSelectedLocalInterface, NULL, KVS_SOCKET_PROTOCOL_UDP,
+    CHK_STATUS(createSocketConnection(iceServerStun.ipAddress.family, KVS_SOCKET_PROTOCOL_UDP, pSelectedLocalInterface, NULL,
                                       (UINT64) &customData, natTestIncomingDataHandler, 0,
                                       &pSocketConnection));
     ATOMIC_STORE_BOOL(&pSocketConnection->receiveData, TRUE);
@@ -337,7 +337,7 @@ STATUS discoverNatBehavior(PCHAR stunServer, NAT_BEHAVIOR *pNatMappingBehavior,
 
     CHK_STATUS(connectionListenerRemoveAllConnection(pConnectionListener));
     freeSocketConnection(&pSocketConnection);
-    CHK_STATUS(createSocketConnection(pSelectedLocalInterface, NULL, KVS_SOCKET_PROTOCOL_UDP,
+    CHK_STATUS(createSocketConnection(iceServerStun.ipAddress.family, KVS_SOCKET_PROTOCOL_UDP, pSelectedLocalInterface, NULL,
                                       (UINT64) &customData, natTestIncomingDataHandler, 0,
                                       &pSocketConnection));
     ATOMIC_STORE_BOOL(&pSocketConnection->receiveData, TRUE);

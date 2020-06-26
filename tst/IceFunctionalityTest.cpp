@@ -133,7 +133,7 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         for(i = 0; i < pCustomData->connectionToAdd; ++i) {
             randomDelay = (UINT64) (RAND() % 300) * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
             THREAD_SLEEP(randomDelay);
-            CHECK(STATUS_SUCCEEDED(createSocketConnection(&localhost, NULL, KVS_SOCKET_PROTOCOL_UDP, 0, NULL, 0, &pSocketConnection)));
+            CHECK(STATUS_SUCCEEDED(createSocketConnection((KVS_IP_FAMILY_TYPE)localhost.family, KVS_SOCKET_PROTOCOL_UDP, &localhost, NULL, 0, NULL, 0, &pSocketConnection)));
             pCustomData->socketConnectionList[i] = pSocketConnection;
             CHECK(STATUS_SUCCEEDED(connectionListenerAddConnection(pCustomData->pConnectionListener, pSocketConnection)));
         }
@@ -182,7 +182,7 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
         EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(pConnectionListener->connectionList, &connectionCount));
         EXPECT_EQ(connectionCount, routine1CustomData.connectionToAdd + routine2CustomData.connectionToAdd);
 
-        CHECK(STATUS_SUCCEEDED(createSocketConnection(&localhost, NULL, KVS_SOCKET_PROTOCOL_UDP, 0, NULL, 0, &pSocketConnection)));
+        CHECK(STATUS_SUCCEEDED(createSocketConnection((KVS_IP_FAMILY_TYPE) localhost.family, KVS_SOCKET_PROTOCOL_UDP, &localhost, NULL, 0, NULL, 0, &pSocketConnection)));
         EXPECT_EQ(STATUS_SUCCESS, connectionListenerAddConnection(pConnectionListener, pSocketConnection));
 
         EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(pConnectionListener->connectionList, &newConnectionCount));

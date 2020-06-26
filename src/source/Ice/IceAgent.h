@@ -347,7 +347,7 @@ STATUS iceAgentSendStunPacket(PStunPacket, PBYTE, UINT32, PIceAgent, PIceCandida
 STATUS iceAgentInitHostCandidate(PIceAgent);
 STATUS iceAgentInitSrflxCandidate(PIceAgent);
 STATUS iceAgentInitRelayCandidates(PIceAgent);
-STATUS iceAgentInitRelayCandidate(PIceAgent, PKvsIpAddress, UINT32, KVS_SOCKET_PROTOCOL);
+STATUS iceAgentInitRelayCandidate(PIceAgent, UINT32, KVS_SOCKET_PROTOCOL);
 
 STATUS iceAgentCheckConnectionStateSetup(PIceAgent);
 STATUS iceAgentConnectedStateSetup(PIceAgent);
