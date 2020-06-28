@@ -11,15 +11,77 @@ STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen,
     UINT32 ipCount = 0, destIpListLen;
     BOOL filterSet = TRUE;
 
+#ifdef _WIN32
+    DWORD retWinStatus, sizeAAPointer;
+    PIP_ADAPTER_ADDRESSES adapterAddresses, aa = NULL;
+    PIP_ADAPTER_UNICAST_ADDRESS ua;
+#else
     struct ifaddrs *ifaddr = NULL, *ifa = NULL;
+#endif
     struct sockaddr_in *pIpv4Addr = NULL;
     struct sockaddr_in6 *pIpv6Addr = NULL;
 
     CHK(destIpList != NULL && pDestIpListLen != NULL, STATUS_NULL_ARG);
     CHK(*pDestIpListLen != 0, STATUS_INVALID_ARG);
-    CHK(getifaddrs(&ifaddr) != -1, STATUS_GET_LOCAL_IP_ADDRESSES_FAILED);
 
     destIpListLen = *pDestIpListLen;
+#ifdef _WIN32
+    retWinStatus = GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_INCLUDE_PREFIX, NULL, NULL, &sizeAAPointer);
+    CHK(retWinStatus == ERROR_BUFFER_OVERFLOW, STATUS_GET_LOCAL_IP_ADDRESSES_FAILED);
+
+    adapterAddresses = (PIP_ADAPTER_ADDRESSES)MEMALLOC(sizeAAPointer);
+
+    retWinStatus = GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_INCLUDE_PREFIX, NULL, adapterAddresses, &sizeAAPointer);
+    CHK(retWinStatus == ERROR_SUCCESS, STATUS_GET_LOCAL_IP_ADDRESSES_FAILED);
+
+    for (aa = adapterAddresses; aa != NULL && ipCount < destIpListLen; aa = aa->Next) {
+
+        char ifa_name[BUFSIZ];
+        memset(ifa_name, 0, BUFSIZ);
+        WideCharToMultiByte(CP_ACP, 0, aa->FriendlyName, wcslen(aa->FriendlyName), ifa_name, BUFSIZ, NULL, NULL);
+
+        for (ua = aa->FirstUnicastAddress; ua != NULL; ua = ua->Next) {
+
+            if (filter != NULL) {
+                DLOGI("Callback set to allow network interface filtering");
+                // The callback evaluates to a FALSE if the application is interested in black listing an interface
+                if (filter(customData, ifa_name) == FALSE) {
+                    filterSet = FALSE;
+                } else {
+                    filterSet = TRUE;
+                }
+            }
+
+            // If filter is set, ensure the details are collected for the interface
+            if (filterSet == TRUE) {
+                int family = ua->Address.lpSockaddr->sa_family;
+
+                if (family == AF_INET) {
+                    destIpList[ipCount].family = KVS_IP_FAMILY_TYPE_IPV4;
+                    destIpList[ipCount].port = 0;
+
+                    pIpv4Addr = (struct sockaddr_in*)(ua->Address.lpSockaddr);
+                    MEMCPY(destIpList[ipCount].address, &pIpv4Addr->sin_addr, IPV4_ADDRESS_LENGTH);
+                } else {
+                    destIpList[ipCount].family = KVS_IP_FAMILY_TYPE_IPV6;
+                    destIpList[ipCount].port = 0;
+
+                    pIpv6Addr = (struct sockaddr_in6*)(ua->Address.lpSockaddr);
+                    // Ignore link local: not very useful and will add work unnecessarily
+                    // Ignore site local: https://tools.ietf.org/html/rfc8445#section-5.1.1.1
+                    if (IN6_IS_ADDR_LINKLOCAL(&pIpv6Addr->sin6_addr) || IN6_IS_ADDR_SITELOCAL(&pIpv6Addr->sin6_addr)) {
+                        continue;
+                    }
+                    MEMCPY(destIpList[ipCount].address, &pIpv6Addr->sin6_addr, IPV6_ADDRESS_LENGTH);
+                }
+
+                // in case of overfilling destIpList
+                ipCount++;
+            }
+        }
+    }
+#else
+    CHK(getifaddrs(&ifaddr) != -1, STATUS_GET_LOCAL_IP_ADDRESSES_FAILED);
     for (ifa = ifaddr; ifa != NULL && ipCount < destIpListLen; ifa = ifa->ifa_next) {
         if (ifa->ifa_addr != NULL &&
             (ifa->ifa_flags & IFF_LOOPBACK) == 0 && // ignore loopback interface
@@ -30,7 +92,6 @@ STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen,
             destIpList[ipCount].isPointToPoint = ((ifa->ifa_flags & IFF_POINTOPOINT) != 0);
 
             if(filter != NULL) {
-                DLOGI("Callback set to allow network interface filtering");
                 // The callback evaluates to a FALSE if the application is interested in black listing an interface
                 if(filter(customData, ifa->ifa_name) == FALSE) {
                     filterSet = FALSE;
@@ -65,12 +126,19 @@ STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen,
             }
         }
     }
+#endif
 
 CleanUp:
 
-    if (ifaddr != NULL) {
-        freeifaddrs(ifaddr);
+#ifdef _WIN32
+    if (adapterAddresses != NULL) {
+        SAFE_MEMFREE(adapterAddresses);
     }
+#else
+     if (ifaddr != NULL) {
+        freeifaddrs(ifaddr);
+     }
+#endif
 
     if (pDestIpListLen != NULL) {
         *pDestIpListLen = ipCount;
@@ -164,10 +232,15 @@ STATUS createSocket(PKvsIpAddress pHostIpAddress, PKvsIpAddress pPeerAddress, KV
     pHostIpAddress->port = (UINT16) pHostIpAddress->family == KVS_IP_FAMILY_TYPE_IPV4 ? ipv4Addr.sin_port : ipv6Addr.sin6_port;
     *pSockFd = (INT32) sockfd;
 
+#ifdef _WIN32
+    UINT32 nonblock = 1;
+    ioctlsocket(sockfd, FIONBIO, &nonblock);
+#else
     // Set the non-blocking mode for the socket
     flags = fcntl(sockfd, F_GETFL, 0);
     CHK_ERR(flags >= 0, STATUS_GET_SOCKET_FLAG_FAILED, "Failed to get the socket flags with system error %s", strerror(errno));
     CHK_ERR(0 <= fcntl(sockfd, F_SETFL, flags | O_NONBLOCK), STATUS_SET_SOCKET_FLAG_FAILED, "Failed to Set the socket flags with system error %s", strerror(errno));
+#endif
 
     // done at this point for UDP
     CHK(protocol == KVS_SOCKET_PROTOCOL_TCP, retStatus);
@@ -189,7 +262,7 @@ CleanUp:
 STATUS getIpWithHostName(PCHAR hostname, PKvsIpAddress destIp)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    UINT32 errCode;
+    INT32 errCode;
     struct addrinfo *res, *rp;
     BOOL resolved = FALSE;
     struct sockaddr_in *ipv4Addr;

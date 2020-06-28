@@ -73,24 +73,6 @@ STATUS freeRtpPacket(PRtpPacket * ppRtpPacket)
 
     CHK(ppRtpPacket != NULL, STATUS_NULL_ARG);
 
-    SAFE_MEMFREE(*ppRtpPacket);
-
-CleanUp:
-
-    CHK_LOG_ERR(retStatus);
-
-    LEAVES();
-    return retStatus;
-}
-
-STATUS freeRtpPacketAndRawPacket(PRtpPacket * ppRtpPacket)
-{
-    ENTERS();
-
-    STATUS retStatus = STATUS_SUCCESS;
-
-    CHK(ppRtpPacket != NULL, STATUS_NULL_ARG);
-
     if (*ppRtpPacket != NULL) {
         SAFE_MEMFREE((*ppRtpPacket)->pRawPacket);
     }
@@ -226,8 +208,6 @@ STATUS setRtpPacketFromBytes(PBYTE rawPacket, UINT32 packetLength, PRtpPacket pR
             payloadType, sequenceNumber, timestamp, ssrc, csrcArray, extensionProfile,
             extensionLength, extensionPayload, rawPacket + currOffset,
             packetLength - currOffset, pRtpPacket));
-    pRtpPacket->pRawPacket = rawPacket;
-    pRtpPacket->rawPacketLength = packetLength;
 
 CleanUp:
     LEAVES();

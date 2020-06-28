@@ -55,6 +55,7 @@ STATUS dtlsTransmissionTimerCallback(UINT32 timerID, UINT64 currentTime, UINT64 
         DLOGD("DTLS init completed. Time taken %" PRIu64 " ms",
               (GETTIME() - pDtlsSession->dtlsSessionStartTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
         CHK_STATUS(dtlsSessionChangeState(pDtlsSession, CONNECTED));
+        ATOMIC_STORE_BOOL(&pDtlsSession->sslInitFinished, TRUE);
         CHK(FALSE, STATUS_TIMER_QUEUE_STOP_SCHEDULING);
     }
 
@@ -122,8 +123,8 @@ STATUS createCertificateAndKey(INT32 certificateBits, BOOL generateRSACertificat
     CHK((*ppCert = X509_new()) != NULL, STATUS_CERTIFICATE_GENERATION_FAILED);
     X509_set_version(*ppCert, 2);
     ASN1_INTEGER_set(X509_get_serialNumber(*ppCert), GENERATED_CERTIFICATE_SERIAL);
-    X509_gmtime_adj(X509_get_notBefore(*ppCert), -1 * GENERATED_CERTIFICATE_DAYS);
-    X509_gmtime_adj(X509_get_notAfter(*ppCert), GENERATED_CERTIFICATE_DAYS);
+    X509_gmtime_adj(X509_get_notBefore(*ppCert), -1 * GENERATED_CERTIFICATE_DAYS * SECONDS_IN_A_DAY);
+    X509_gmtime_adj(X509_get_notAfter(*ppCert), GENERATED_CERTIFICATE_DAYS * SECONDS_IN_A_DAY);
     CHK(X509_set_pubkey(*ppCert, *ppPkey) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);
 
     CHK((pX509Name = X509_get_subject_name(*ppCert)) != NULL, STATUS_CERTIFICATE_GENERATION_FAILED);
@@ -309,6 +310,7 @@ STATUS createDtlsSession(PDtlsSessionCallbacks pDtlsSessionCallbacks, TIMER_QUEU
     pDtlsSession->sslLock = MUTEX_CREATE(TRUE);
     pDtlsSession->state = NEW;
     ATOMIC_STORE_BOOL(&pDtlsSession->isStarted, FALSE);
+    ATOMIC_STORE_BOOL(&pDtlsSession->sslInitFinished, FALSE);
 
     pDtlsSession->dtlsSessionCallbacks = *pDtlsSessionCallbacks;
 
@@ -480,7 +482,7 @@ STATUS dtlsSessionProcessPacket(PDtlsSession pDtlsSession, PBYTE pData, PINT32 p
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    BOOL locked = FALSE;
+    BOOL locked = FALSE, isClosed = FALSE;
     INT32 sslRet = 0, sslErr;
     INT32 dataLen = 0;
 
@@ -501,16 +503,21 @@ STATUS dtlsSessionProcessPacket(PDtlsSession pDtlsSession, PBYTE pData, PINT32 p
 
     if (sslRet == 0 && SSL_get_error(pDtlsSession->pSsl, sslRet) == SSL_ERROR_ZERO_RETURN) {
         DLOGD("Detected DTLS close_notify alert");
-        CHK_STATUS(dtlsSessionChangeState(pDtlsSession, CLOSED));
+        isClosed = TRUE;
     } else if (sslRet <= 0) {
         LOG_OPENSSL_ERROR("SSL_read");
     }
 
-    if (!SSL_is_init_finished(pDtlsSession->pSsl)) {
+    if (!ATOMIC_LOAD_BOOL(&pDtlsSession->sslInitFinished)) {
         CHK_STATUS(dtlsCheckOutgoingDataBuffer(pDtlsSession));
-    } else {
-        // if dtls handshake is done, and SSL_read did not fail, then sslRet and number of sctp bytes read
-        dataLen = sslRet < 0 ? 0 : sslRet;
+    }
+
+    /* if SSL_read failed then set to 0 */
+    dataLen = sslRet < 0 ? 0 : sslRet;
+
+    if (isClosed) {
+        ATOMIC_STORE_BOOL(&pDtlsSession->shutdown, TRUE);
+        CHK_STATUS(dtlsSessionChangeState(pDtlsSession, CLOSED));
     }
 
 CleanUp:
@@ -539,6 +546,7 @@ STATUS dtlsSessionPutApplicationData(PDtlsSession pDtlsSession, PBYTE pData, INT
     SIZE_T pending;
 
     MUTEX_LOCK(pDtlsSession->sslLock);
+    CHK(!ATOMIC_LOAD_BOOL(&pDtlsSession->shutdown), retStatus);
 
     if ((amountWritten = SSL_write(pDtlsSession->pSsl, pData, dataLen)) != dataLen && SSL_get_error(pDtlsSession->pSsl, amountWritten) == SSL_ERROR_SSL) {
         DLOGW("SSL_write failed with %s", ERR_error_string(SSL_get_error(pDtlsSession->pSsl, dataLen), NULL));
@@ -558,6 +566,33 @@ CleanUp:
     MUTEX_UNLOCK(pDtlsSession->sslLock);
 
     LEAVES();
+    return retStatus;
+}
+
+STATUS dtlsSessionShutdown(PDtlsSession pDtlsSession)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    BOOL locked = FALSE;
+
+    CHK(pDtlsSession != NULL, STATUS_NULL_ARG);
+
+    MUTEX_LOCK(pDtlsSession->sslLock);
+    locked = TRUE;
+
+    CHK(!ATOMIC_LOAD_BOOL(&pDtlsSession->shutdown), retStatus);
+    CHK(ATOMIC_LOAD_BOOL(&pDtlsSession->sslInitFinished), retStatus);
+
+    SSL_shutdown(pDtlsSession->pSsl);
+    ATOMIC_STORE_BOOL(&pDtlsSession->shutdown, TRUE);
+    CHK_STATUS(dtlsCheckOutgoingDataBuffer(pDtlsSession));
+    CHK_STATUS(dtlsSessionChangeState(pDtlsSession, CLOSED));
+
+CleanUp:
+
+    if (locked) {
+        MUTEX_UNLOCK(pDtlsSession->sslLock);
+    }
+
     return retStatus;
 }
 

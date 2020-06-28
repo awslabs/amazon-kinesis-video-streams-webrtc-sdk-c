@@ -45,7 +45,7 @@ STATUS freeRtpRollingBufferData(PUINT64 pData)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     CHK(pData != NULL, STATUS_NULL_ARG);
-    CHK_STATUS(freeRtpPacketAndRawPacket((PRtpPacket*) pData));
+    CHK_STATUS(freeRtpPacket((PRtpPacket*) pData));
 CleanUp:
     LEAVES();
     return retStatus;

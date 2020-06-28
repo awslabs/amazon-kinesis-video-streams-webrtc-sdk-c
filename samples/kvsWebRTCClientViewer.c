@@ -12,7 +12,9 @@ INT32 main(INT32 argc, CHAR *argv[])
     PSampleStreamingSession pSampleStreamingSession = NULL;
     BOOL locked = FALSE;
 
+#ifndef _WIN32
     signal(SIGINT, sigintHandler);
+#endif
 
     // do trickle-ice by default
     printf("[KVS Master] Using trickleICE by default\n");
@@ -30,6 +32,15 @@ INT32 main(INT32 argc, CHAR *argv[])
 
     printf("[KVS Viewer] Created signaling channel %s\n", (argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME));
 
+    if(pSampleConfiguration->enableFileLogging) {
+        retStatus = createFileLogger(FILE_LOGGING_BUFFER_SIZE, MAX_NUMBER_OF_LOG_FILES,
+                     (PCHAR) FILE_LOGGER_LOG_FILE_DIRECTORY_PATH, TRUE, TRUE, NULL);
+        if(retStatus != STATUS_SUCCESS) {
+            printf("[KVS Master] createFileLogger(): operation returned status code: 0x%08x \n", retStatus);
+            pSampleConfiguration->enableFileLogging = FALSE;
+        }
+    }
+
     // Initialize KVS WebRTC. This must be done before anything else, and must only be done once.
     retStatus = initKvsWebRtc();
     if(retStatus != STATUS_SUCCESS) {
@@ -41,7 +52,7 @@ INT32 main(INT32 argc, CHAR *argv[])
 
     pSampleConfiguration->signalingClientCallbacks.messageReceivedFn = viewerMessageReceived;
 
-    sprintf(pSampleConfiguration->clientInfo.clientId, "%s_%u", SAMPLE_VIEWER_CLIENT_ID, RAND() % UINT32_MAX);
+    sprintf(pSampleConfiguration->clientInfo.clientId, "%s_%u", SAMPLE_VIEWER_CLIENT_ID, RAND() % MAX_UINT32);
 
     retStatus = createSignalingClientSync(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
                                           &pSampleConfiguration->signalingClientCallbacks, pSampleConfiguration->pCredentialProvider,
@@ -155,7 +166,7 @@ INT32 main(INT32 argc, CHAR *argv[])
     }
 
     // Block until interrupted
-    while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->interrupted)) {
+    while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->interrupted) && !ATOMIC_LOAD_BOOL(&pSampleStreamingSession->terminateFlag)) {
         THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
     }
 
@@ -171,6 +182,9 @@ CleanUp:
         MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
     }
 
+    if(pSampleConfiguration->enableFileLogging) {
+        freeFileLogger();
+    }
     if (pSampleConfiguration != NULL) {
         retStatus = freeSignalingClient(&pSampleConfiguration->signalingClientHandle);
         if(retStatus != STATUS_SUCCESS) {

@@ -15,7 +15,7 @@ addons:
       - gdb
 
 script:
-  - export AWS_KVS_LOG_LEVEL=2
+  - export AWS_KVS_LOG_LEVEL=3
   - make
   - ulimit -c unlimited -S
   - timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
@@ -34,9 +34,10 @@ matrix:
       os: osx
       compiler: gcc
       before_script:
-        - mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE
+        - mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TEST=TRUE
       script:
         - make
+        - export DYLD_LIBRARY_PATH="$DYLD_LIBRARY_PATH:`pwd`/../open-source/lib"
         - ./tst/webrtc_client_test
       after_failure: skip # timeout not available on MacOS
 
@@ -47,6 +48,7 @@ matrix:
         - mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
       script:
         - make
+        - export DYLD_LIBRARY_PATH="$DYLD_LIBRARY_PATH:`pwd`/../open-source/lib"
         - ./tst/webrtc_client_test || travis_terminate 1;
         # Execute selected tests without auth integration
         - unset AWS_ACCESS_KEY_ID
@@ -77,7 +79,7 @@ matrix:
       before_install:
         # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
         - sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-      before_script: mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE -DADDRESS_SANITIZER=TRUE
+      before_script: mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TEST=TRUE -DADDRESS_SANITIZER=TRUE
 
     # UndefinedBehaviorSanitizer
     - name: "Linux Clang UndefinedBehaviorSanitizer"
@@ -87,10 +89,11 @@ matrix:
       before_install:
         # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
         - sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-      before_script: mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE -DUNDEFINED_BEHAVIOR_SANITIZER=TRUE
+      before_script: mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TEST=TRUE -DUNDEFINED_BEHAVIOR_SANITIZER=TRUE
 
     # MemorySanitizer
     - name: "Linux Clang MemorySanitizer"
+      env: allowTestFail=true
       before_install:
         # TODO: Remove the following 2 lines. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
         - echo '{"ipv6":true,"fixed-cidr-v6":"2001:db8:1::/64"}' | sudo tee /etc/docker/daemon.json
@@ -99,7 +102,7 @@ matrix:
         - docker run -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -w /src/build -dit --name msan-tester -v $(pwd):/src seaduboi/kvs-msan-tester
         - msan-tester() { docker exec -it msan-tester "$@"; }
       script:
-        - msan-tester cmake .. -DBUILD_DEPENDENCIES=FALSE -DBUILD_TEST=TRUE -DMEMORY_SANITIZER=TRUE -DCMAKE_CXX_FLAGS="-stdlib=libc++ -L/usr/src/libcxx_msan/lib -lc++abi -I/usr/src/libcxx_msan/include -I/usr/src/libcxx_msan/include/c++/v1"
+        - msan-tester cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_DEPENDENCIES=FALSE -DBUILD_TEST=TRUE -DMEMORY_SANITIZER=TRUE -DCMAKE_CXX_FLAGS="-stdlib=libc++ -L/usr/src/libcxx_msan/lib -lc++abi -I/usr/src/libcxx_msan/include -I/usr/src/libcxx_msan/include/c++/v1 -fsanitize=memory -fno-omit-frame-pointer -fno-optimize-sibling-calls -fsanitize-memory-track-origins"
         - msan-tester make
         - msan-tester ./tst/webrtc_client_test
       after_failure: skip # no coredumps in container
@@ -112,7 +115,7 @@ matrix:
       before_install:
         # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
         - sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-      before_script: mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE -DTHREAD_SANITIZER=TRUE
+      before_script: mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TEST=TRUE -DTHREAD_SANITIZER=TRUE
 
     # Old Version GCC 4.4
     - name: "Linux GCC 4.4 Build"
@@ -163,6 +166,15 @@ matrix:
         - mkdir build && cd build
         - cmake .. -DBUILD_OPENSSL=TRUE -DBUILD_OPENSSL_PLATFORM=linux-generic32 -DBUILD_LIBSRTP_HOST_PLATFORM=x86_64-unknown-linux-gnu -DBUILD_LIBSRTP_DESTINATION_PLATFORM=arm-unknown-linux-uclibcgnueabi
       script: make
+
+    - name: "Windows MSVC"
+      os: windows
+      script:
+        - choco install nasm strawberryperl
+        - unset CC CC_FOR_BUILD CXX CXX_FOR_BUILD # We want to use MSVC
+        - export "PATH=/c/Strawberry/perl/site/bin:/c/Strawberry/perl/bin:/c/Strawberry/c/bin:/c/Program Files/NASM:`pwd`/open-source/lib:`pwd`/open-source/bin:$PATH"
+        - .github/build_windows.bat
+        - cd build/tst && ./webrtc_client_test.exe --gtest_filter="-DataChannelFunctionalityTest.*:IceApiTest.*:IceFunctionalityTest.*:PeerConnectionFunctionalityTest.*:SignalingApiFunctionalityTest.*:TurnConnectionFunctionalityTest.*:RtpFunctionalityTest.marshallUnmarshallH264Data:RtpFunctionalityTest.packingUnpackingVerifySameH264Frame"
 
     # Generate Doxygen
     - name: "Generate Doxygen"

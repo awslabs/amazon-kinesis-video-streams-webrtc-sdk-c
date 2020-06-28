@@ -18,6 +18,7 @@ extern "C" {
 #include <com/amazonaws/kinesis/video/client/Include.h>
 #include <com/amazonaws/kinesis/video/common/Include.h>
 #include <com/amazonaws/kinesis/video/webrtcclient/NullableDefs.h>
+#include <com/amazonaws/kinesis/video/webrtcclient/Stats.h>
 
 #pragma clang diagnostic pop
 
@@ -39,6 +40,7 @@ extern "C" {
 #define STATUS_SESSION_DESCRIPTION_INVALID_SESSION_DESCRIPTION                      STATUS_WEBRTC_BASE + 0x00000007
 #define STATUS_SESSION_DESCRIPTION_MISSING_ICE_VALUES                               STATUS_WEBRTC_BASE + 0x00000008
 #define STATUS_SESSION_DESCRIPTION_MISSING_CERTIFICATE_FINGERPRINT                  STATUS_WEBRTC_BASE + 0x00000009
+#define STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT                                  STATUS_WEBRTC_BASE + 0x0000000A
 /*!@} */
 
 /*===========================================================================================*/
@@ -99,6 +101,7 @@ extern "C" {
 #define STATUS_STUN_INVALID_ERROR_CODE_ATTRIBUTE_LENGTH                             STATUS_STUN_BASE + 0x00000016
 #define STATUS_STUN_INVALID_ICE_CONTROL_ATTRIBUTE_LENGTH                            STATUS_STUN_BASE + 0x00000017
 #define STATUS_STUN_INVALID_CHANNEL_NUMBER_ATTRIBUTE_LENGTH                         STATUS_STUN_BASE + 0x00000018
+#define STATUS_STUN_INVALID_CHANGE_REQUEST_ATTRIBUTE_LENGTH                         STATUS_STUN_BASE + 0x00000019
 /*!@} */
 
 /*===========================================================================================*/
@@ -475,6 +478,22 @@ extern "C" {
  * Version of SignalingMessage structure
  */
 #define SIGNALING_MESSAGE_CURRENT_VERSION                                           0
+
+/**
+ * Version of RtcIceMetrics structure
+ */
+#define RTC_ICE_METRICS_CURRENT_VERSION                                             0
+
+/**
+ * Version of RtcStreamMetrics structure
+ */
+#define RTC_STREAM_METRICS_CURRENT_VERSION                                          0
+
+/**
+ * Version of SignalingClientMetrics structure
+ */
+#define SIGNALING_CLIENT_METRICS_CURRENT_VERSION                                    0
+
 /*!@} */
 
 /*===========================================================================================*/
@@ -642,18 +661,27 @@ typedef VOID (*RtcOnBandwidthEstimation)(UINT64, DOUBLE);
 typedef VOID (*RtcOnPictureLoss)(UINT64);
 
 /**
+ * @brief RtcDataChannel represents a bi-directional data channel between two peers.
+ *
+ * Reference: https://www.w3.org/TR/webrtc/#dom-rtcdatachannel
+ */
+typedef struct __RtcDataChannel {
+    CHAR name[MAX_DATA_CHANNEL_NAME_LEN + 1]; //!< Define name of data channel. Max length is 256 characters
+} RtcDataChannel, *PRtcDataChannel;
+
+/**
  * @brief RtcOnMessage is fired when a message is received for the DataChannel
  *
  * Reference: https://www.w3.org/TR/webrtc/#dom-rtcdatachannel-onmessage
  */
-typedef VOID (*RtcOnMessage)(UINT64, BOOL, PBYTE, UINT32);
+typedef VOID (*RtcOnMessage)(UINT64, PRtcDataChannel, BOOL, PBYTE, UINT32);
 
 /**
  * RtcOnOpen is fired when the DataChannel has opened
  *
  * Reference: https://www.w3.org/TR/webrtc/#dom-rtcdatachannel-onopen
  */
-typedef VOID (*RtcOnOpen)(UINT64);
+typedef VOID (*RtcOnOpen)(UINT64, PRtcDataChannel);
 
 /**
  * @brief RtcOnDataChannel is fired when the remote PeerConnection
@@ -661,8 +689,7 @@ typedef VOID (*RtcOnOpen)(UINT64);
  *
  * Reference: https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-ondatachannel
  */
-struct __RtcDataChannel;
-typedef VOID (*RtcOnDataChannel)(UINT64, struct __RtcDataChannel*);
+typedef VOID (*RtcOnDataChannel)(UINT64, PRtcDataChannel);
 
 /**
  * @brief RtcOnIceCandidate is fired when new iceCandidate is found. if PCHAR is NULL then candidate gathering is done.
@@ -819,7 +846,17 @@ typedef enum {
     SIGNALING_CHANNEL_ROLE_TYPE_VIEWER,  //!< Channel role is viewer
 } SIGNALING_CHANNEL_ROLE_TYPE;
 
-
+/**
+ * @brief detected network environment
+ */
+typedef enum {
+    NAT_BEHAVIOR_NONE,                  //!< Dummy placeholder
+    NAT_BEHAVIOR_NOT_BEHIND_ANY_NAT,    //!< Host is not behind any NAT
+    NAT_BEHAVIOR_NO_UDP_CONNECTIVITY,   //!< No UDP connectvity
+    NAT_BEHAVIOR_ENDPOINT_INDEPENDENT,  //!< Nat behavior is irregardless of change in external address
+    NAT_BEHAVIOR_ADDRESS_DEPENDENT,     //!< Nat behavior changes changes when external address is changed, but remain same if only port is changed.
+    NAT_BEHAVIOR_PORT_DEPENDENT,        //!< Nat behavior changes when external address or port is changed.
+} NAT_BEHAVIOR;
 
 /**
  * @brief An RtcPeerConnection instance allows an application to establish peer-to-peer
@@ -1218,15 +1255,6 @@ typedef struct {
 } RtcRtpTransceiverInit, *PRtcRtpTransceiverInit;
 
 /**
- * @brief RtcDataChannel represents a bi-directional data channel between two peers.
- *
- * Reference: https://www.w3.org/TR/webrtc/#dom-rtcdatachannel
- */
-typedef struct __RtcDataChannel {
-    CHAR name[MAX_DATA_CHANNEL_NAME_LEN + 1]; //!< Define name of data channel. Max length is 256 characters
-} RtcDataChannel, *PRtcDataChannel;
-
-/**
  * @brief RtcDataChannelInit dictionary used to configure properties of the
  * underlying channel such as data reliability
  *
@@ -1242,6 +1270,54 @@ typedef struct {
     BOOL negotiated; //!< If set to true, it is up to the application to negotiate the channel and create an
                      //!< RTCDataChannel object with the same id as the other peer.
 } RtcDataChannelInit, *PRtcDataChannelInit;
+
+/////////////////////////////////////////////////////
+/// Metrics/Stats Related structures
+/////////////////////////////////////////////////////
+
+/**
+ * @brief Collection of ICE related stats
+ * Reference: https://www.w3.org/TR/webrtc-stats/#ice-server-dict*
+ * Reference: https://www.w3.org/TR/webrtc-stats/#icecandidate-dict*
+ * Reference: https://www.w3.org/TR/webrtc-stats/#candidatepair-dict*
+ */
+typedef struct {
+    UINT32 version; //!< Structure version
+    RtcIceServerStats rtcIceServerStats; //!< Server related stats. Reference in Stats.h
+    RtcIceCandidateStats rtcIceCandidateStats; //!< Single candidate stats. Reference in Stats.h
+    RtcIceCandidatePairStats rtcIceCandidatePairStats; //!< Candidate pair stats. Reference in Stats.h
+} RtcIceMetrics, *PRtcIceMetrics;
+
+/**
+ * @brief Collection of RTP stream related stats
+ * Reference: https://www.w3.org/TR/webrtc-stats/#remoteinboundrtpstats-dict*
+ * Reference: https://www.w3.org/TR/webrtc-stats/#outboundrtpstats-dict*
+ * Reference: https://www.w3.org/TR/webrtc-stats/#transportstats-dict*
+ */
+typedef struct {
+    UINT32 version; //!< Structure version
+    RtcRemoteInboundRtpStreamStats rtcInboundStats; //!< Inbound RTP Stats. Reference in Stats.h
+    RtcOutboundRtpStreamStats rtcOutboundStats; //!< Outbound RTP Stats. Reference in Stats.h
+    RtcTransportStats rtcTransportStats; //!< Transport stats. Reference in Stats.h
+} RtcStreamMetrics, *PRtcStreamMetrics;
+
+/**
+ * @brief SignalingStats Collection of signaling related stats. Can be expanded in the future
+ */
+typedef struct {
+    UINT32 version; //!< Structure version
+    SignalingClientStats signalingClientStats; //!< Signaling client metrics stats. Reference in Stats.h
+} SignalingClientMetrics, *PSignalingClientMetrics;
+
+/**
+ * @brief The stats object is populated based on RTCStatsType request
+ *
+ */
+typedef struct {
+    UINT64 timestamp; //!< Timestamp of request for stats
+    RTC_STATS_TYPE requestedTypeOfStats; //!< Type of stats requested. Set to RTC_ALL to get all supported stats
+    RtcStatsObject rtcStatsObject; //!< Object that is populated by the SDK on request
+} RtcStats, *PRtcStats;
 
 ////////////////////////////////////////////////////
 // Public functions
@@ -1435,6 +1511,17 @@ PUBLIC_API STATUS setRemoteDescription(PRtcPeerConnection, PRtcSessionDescriptio
 PUBLIC_API STATUS restartIce(PRtcPeerConnection);
 
 /**
+ * @brief Close the underlying DTLS session and IceAgent connection. Trigger RtcOnConnectionStateChange to RTC_PEER_CONNECTION_STATE_CLOSED
+ *
+ * Reference: https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-close
+ *
+ * @param[in] PRtcPeerConnection Initialized RtcPeerConnection
+ *
+ * @return - STATUS code of the execution. STATUS_SUCCESS on success
+ */
+PUBLIC_API STATUS closePeerConnection(PRtcPeerConnection);
+
+/**
  * @brief Create a new RtcRtpTransceiver and add it to the set of transceivers.
  *
  * Reference https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-addtransceiver
@@ -1528,7 +1615,7 @@ PUBLIC_API STATUS writeFrame(PRtcRtpTransceiver, PFrame);
  *
  * @return STATUS code of the execution. STATUS_SUCCESS on success
  */
-STATUS addIceCandidate(PRtcPeerConnection, PCHAR);
+PUBLIC_API STATUS addIceCandidate(PRtcPeerConnection, PCHAR);
 
 /**
  * @brief createDataChannel creates a new RtcDataChannel object with the given label.
@@ -1546,7 +1633,7 @@ STATUS addIceCandidate(PRtcPeerConnection, PCHAR);
  *
  * @return STATUS code of the execution. STATUS_SUCCESS on success
  */
-STATUS createDataChannel(PRtcPeerConnection, PCHAR, PRtcDataChannelInit, PRtcDataChannel*);
+PUBLIC_API STATUS createDataChannel(PRtcPeerConnection, PCHAR, PRtcDataChannelInit, PRtcDataChannel*);
 
 /**
  * @brief Set a callback for data channel message
@@ -1583,7 +1670,33 @@ PUBLIC_API STATUS dataChannelOnOpen(PRtcDataChannel, UINT64, RtcOnOpen);
  * @return STATUS code of the execution. STATUS_SUCCESS on success
  *
  */
-STATUS dataChannelSend(PRtcDataChannel, BOOL, PBYTE, UINT32);
+PUBLIC_API STATUS dataChannelSend(PRtcDataChannel, BOOL, PBYTE, UINT32);
+
+/**
+ * @brief Use the process described in https://tools.ietf.org/html/rfc5780#section-4.3 to
+ * discover NAT behavior.
+ *
+ * @param[in] PCHAR STUN hostname. Need to in form of stun:hostname:port
+ * @param[out] NAT_BEHAVIOR* detected NAT mapping behavior
+ * @param[out] NAT_BEHAVIOR* detected NAT filtering behavior
+ * @param[in] IceSetInterfaceFilterFunc filter function for selecting local network interface to create socket. Optional.
+ * @param[in] UINT64 User data for filter function
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ *
+ */
+PUBLIC_API STATUS discoverNatBehavior(PCHAR, NAT_BEHAVIOR *, NAT_BEHAVIOR *,
+                                      IceSetInterfaceFilterFunc, UINT64);
+
+/**
+ * @brief Return the string representation for each NAT_BEHAVIOR enum
+ *
+ * @param[in] NAT_BEHAVIOR the NAT_BEHAVIOR enum
+ *
+ * @return PCHAR string representation for the NAT_BEHAVIOR enum
+ *
+ */
+PUBLIC_API PCHAR getNatBehaviorStr(NAT_BEHAVIOR natBehavior);
 
 /**
  * @brief Creates a Signaling client and returns a handle to it
@@ -1706,6 +1819,23 @@ PUBLIC_API STATUS signalingClientGetStateString(SIGNALING_CLIENT_STATE, PCHAR*);
  * @return STATUS code of the execution. STATUS_SUCCESS on success
  */
 PUBLIC_API STATUS signalingClientDeleteSync(SIGNALING_CLIENT_HANDLE);
+
+/**
+ * @brief Get signaling related metrics
+ *
+ * @param[in] SIGNALING_CLIENT_HANDLE Signaling client handle
+ * @param[in/out] PSignalingClientMetrics Signaling stats
+ */
+PUBLIC_API STATUS signalingClientGetMetrics(SIGNALING_CLIENT_HANDLE, PSignalingClientMetrics);
+
+/**
+ * @brief Get the relevant/all metrics based on the RTCStatsType field. This does not include
+ * any signaling related metrics
+ *
+ * @param PRtcPeerConnection Peer connection for which the stats need to be collected
+ * @param[in/out] PRtcStats The stats object with the RTCStatsType field populated
+ */
+PUBLIC_API STATUS RtcPeerConnectionGetMetrics(PRtcPeerConnection, PRtcStats);
 
 #ifdef  __cplusplus
 }

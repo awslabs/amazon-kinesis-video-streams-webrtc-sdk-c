@@ -37,14 +37,9 @@ struct __SocketConnection {
     KvsIpAddress hostIpAddr;
 
     BOOL secureConnection;
-    SSL_CTX *pSslCtx;
-    BIO *pReadBio;
-    BIO *pWriteBio;
-    SSL *pSsl;
+    PTlsSession pTlsSession;
 
     MUTEX lock;
-
-    BOOL freeBios;
 
     ConnectionDataAvailableFunc dataAvailableCallbackFn;
     UINT64 dataAvailableCallbackCustomData;
@@ -145,9 +140,9 @@ BOOL socketConnectionIsClosed(PSocketConnection);
 BOOL socketConnectionIsConnected(PSocketConnection);
 
 // internal functions
-STATUS createConnectionCertificateAndKey(X509 **, EVP_PKEY **);
-INT32 certificateVerifyCallback(INT32 preverify_ok, X509_STORE_CTX *ctx);
 STATUS socketSendDataWithRetry(PSocketConnection, PBYTE, UINT32, PKvsIpAddress, PUINT32);
+STATUS socketConnectionTlsSessionOutBoundPacket(UINT64, PBYTE, UINT32);
+VOID socketConnectionTlsSessionOnStateChange(UINT64, TLS_SESSION_STATE);
 
 #ifdef  __cplusplus
 }

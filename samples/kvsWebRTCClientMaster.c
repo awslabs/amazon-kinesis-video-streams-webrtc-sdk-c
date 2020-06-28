@@ -10,11 +10,12 @@ INT32 main(INT32 argc, CHAR *argv[])
     UINT32 frameSize;
     PSampleConfiguration pSampleConfiguration = NULL;
 
+#ifndef _WIN32
     signal(SIGINT, sigintHandler);
+#endif
 
     // do tricketIce by default
     printf("[KVS Master] Using trickleICE by default\n");
-
     retStatus = createSampleConfiguration(argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME,
                                           SIGNALING_CHANNEL_ROLE_TYPE_MASTER,
                                           TRUE,
@@ -26,6 +27,15 @@ INT32 main(INT32 argc, CHAR *argv[])
     }
 
     printf("[KVS Master] Created signaling channel %s\n", (argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME));
+
+    if(pSampleConfiguration->enableFileLogging) {
+        retStatus = createFileLogger(FILE_LOGGING_BUFFER_SIZE, MAX_NUMBER_OF_LOG_FILES,
+                     (PCHAR) FILE_LOGGER_LOG_FILE_DIRECTORY_PATH, TRUE, TRUE, NULL);
+        if(retStatus != STATUS_SUCCESS) {
+            printf("[KVS Master] createFileLogger(): operation returned status code: 0x%08x \n", retStatus);
+            pSampleConfiguration->enableFileLogging = FALSE;
+        }
+    }
 
     // Set the audio and video handlers
     pSampleConfiguration->audioSource = sendAudioPackets;
@@ -118,6 +128,9 @@ CleanUp:
             THREAD_JOIN(pSampleConfiguration->audioSenderTid, NULL);
         }
 
+        if(pSampleConfiguration->enableFileLogging) {
+            freeFileLogger();
+        }
         retStatus = freeSignalingClient(&pSampleConfiguration->signalingClientHandle);
         if(retStatus != STATUS_SUCCESS) {
             printf("[KVS Master] freeSignalingClient(): operation returned status code: 0x%08x", retStatus);
@@ -260,7 +273,7 @@ PVOID sendAudioPackets(PVOID args)
 
         // Re-alloc if needed
         if (frameSize > pSampleConfiguration->audioBufferSize) {
-            pSampleConfiguration->pAudioFrameBuffer = (uint8_t*) realloc(pSampleConfiguration->pAudioFrameBuffer, frameSize);
+            pSampleConfiguration->pAudioFrameBuffer = (UINT8*) realloc(pSampleConfiguration->pAudioFrameBuffer, frameSize);
             if(pSampleConfiguration->pAudioFrameBuffer == NULL) {
                 printf("[KVS Master] Audio frame Buffer reallocation failed...%s (code %d)\n", strerror(errno), errno);
                 printf("[KVS Master] realloc(): operation returned status code: 0x%08x \n", STATUS_NOT_ENOUGH_MEMORY);

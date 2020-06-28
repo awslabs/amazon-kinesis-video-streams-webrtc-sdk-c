@@ -14,7 +14,9 @@ extern "C" {
 #define LOCAL_ICE_PWD_LEN               24
 #define LOCAL_CNAME_LEN                 16
 
-#define MAX_RAND_BUFFER_SIZE_FOR_NAME               256
+// https://tools.ietf.org/html/rfc5245#section-15.4
+#define MAX_ICE_UFRAG_LEN               256
+#define MAX_ICE_PWD_LEN                 256
 
 #define PEER_FRAME_BUFFER_SIZE_INCREMENT_FACTOR     1.5
 
@@ -23,7 +25,7 @@ extern "C" {
 
 #define ICE_CANDIDATE_JSON_TEMPLATE     (PCHAR) "{\"candidate\":\"candidate:%s\",\"sdpMid\":\"0\",\"sdpMLineIndex\":0}"
 
-#define MAX_ICE_CANDIDATE_JSON_LEN      (MAX_SDP_ATTRIBUTE_VALUE_LENGTH + STRLEN(ICE_CANDIDATE_JSON_TEMPLATE) + 1)
+#define MAX_ICE_CANDIDATE_JSON_LEN      (MAX_SDP_ATTRIBUTE_VALUE_LENGTH + SIZEOF(ICE_CANDIDATE_JSON_TEMPLATE) + 1)
 
 #define CODEC_HASH_TABLE_BUCKET_COUNT                   50
 #define CODEC_HASH_TABLE_BUCKET_LENGTH                  2
@@ -59,8 +61,8 @@ typedef struct {
     CHAR localIceUfrag[LOCAL_ICE_UFRAG_LEN + 1];
     CHAR localIcePwd[LOCAL_ICE_PWD_LEN + 1];
 
-    CHAR remoteIceUfrag[LOCAL_ICE_UFRAG_LEN + 1];
-    CHAR remoteIcePwd[LOCAL_ICE_PWD_LEN + 1];
+    CHAR remoteIceUfrag[MAX_ICE_UFRAG_LEN + 1];
+    CHAR remoteIcePwd[MAX_ICE_PWD_LEN + 1];
 
     CHAR localCNAME[LOCAL_CNAME_LEN + 1];
 

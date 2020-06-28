@@ -866,7 +866,7 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulation)
     MEMSET(&clientInfoInternal, 0x00, SIZEOF(SignalingClientInfoInternal));
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
-    clientInfoInternal.signalingClientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
+    clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfoInternal.iceRefreshPeriod = 5 * HUNDREDS_OF_NANOS_IN_A_SECOND;
 
@@ -986,7 +986,7 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationAuthExpiration)
     MEMSET(&clientInfoInternal, 0x00, SIZEOF(SignalingClientInfoInternal));
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
-    clientInfoInternal.signalingClientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
+    clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfoInternal.iceRefreshPeriod = 5 * HUNDREDS_OF_NANOS_IN_A_SECOND;
 
@@ -1073,7 +1073,7 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionNoDis
     MEMSET(&clientInfoInternal, 0x00, SIZEOF(SignalingClientInfoInternal));
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
-    clientInfoInternal.signalingClientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
+    clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfoInternal.iceRefreshPeriod = 5 * HUNDREDS_OF_NANOS_IN_A_SECOND;
     clientInfoInternal.hookCustomData = (UINT64) this;
@@ -1185,7 +1185,7 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionAuthE
     MEMSET(&clientInfoInternal, 0x00, SIZEOF(SignalingClientInfoInternal));
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
-    clientInfoInternal.signalingClientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
+    clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfoInternal.iceRefreshPeriod = 5 * HUNDREDS_OF_NANOS_IN_A_SECOND;
     clientInfoInternal.hookCustomData = (UINT64) this;
@@ -1297,7 +1297,7 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionError
     MEMSET(&clientInfoInternal, 0x00, SIZEOF(SignalingClientInfoInternal));
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
-    clientInfoInternal.signalingClientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
+    clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfoInternal.iceRefreshPeriod = 5 * HUNDREDS_OF_NANOS_IN_A_SECOND;
     clientInfoInternal.hookCustomData = (UINT64) this;
@@ -1578,7 +1578,7 @@ TEST_F(SignalingApiFunctionalityTest, connectTimeoutEmulation)
     MEMSET(&clientInfoInternal, 0x00, SIZEOF(SignalingClientInfoInternal));
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
-    clientInfoInternal.signalingClientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
+    clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfoInternal.iceRefreshPeriod = 0;
     clientInfoInternal.connectTimeout = 100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
@@ -1676,7 +1676,7 @@ TEST_F(SignalingApiFunctionalityTest, channelInfoArnSkipDescribe)
     MEMSET(&clientInfoInternal, 0x00, SIZEOF(SignalingClientInfoInternal));
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
-    clientInfoInternal.signalingClientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
+    clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfoInternal.iceRefreshPeriod = 0;
     clientInfoInternal.connectTimeout = 0;
@@ -1805,7 +1805,7 @@ TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedWithArn)
     MEMSET(&clientInfoInternal, 0x00, SIZEOF(SignalingClientInfoInternal));
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
-    clientInfoInternal.signalingClientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
+    clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfoInternal.iceRefreshPeriod = 0;
     clientInfoInternal.connectTimeout = 0;
@@ -1933,7 +1933,7 @@ TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedAuthExpiration)
     MEMSET(&clientInfoInternal, 0x00, SIZEOF(SignalingClientInfoInternal));
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
-    clientInfoInternal.signalingClientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
+    clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfoInternal.iceRefreshPeriod = 0;
     clientInfoInternal.connectTimeout = 0;
@@ -2089,7 +2089,7 @@ TEST_F(SignalingApiFunctionalityTest, cachingWithFaultInjection)
     MEMSET(&clientInfoInternal, 0x00, SIZEOF(SignalingClientInfoInternal));
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
-    clientInfoInternal.signalingClientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
+    clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfoInternal.hookCustomData = (UINT64) this;
     clientInfoInternal.connectPreHookFn = connectPreHook;
@@ -2214,6 +2214,7 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingTest)
     CHAR signalingChannelName[64];
     const UINT32 totalChannelCount = MAX_SIGNALING_CACHE_ENTRY_COUNT + 1;
     UINT32 i, describeCountNoCache, getEndpointCountNoCache;
+    CHAR channelArn[MAX_ARN_LEN + 1];
 
     signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
     signalingClientCallbacks.customData = (UINT64) this;
@@ -2224,7 +2225,7 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingTest)
     MEMSET(&clientInfoInternal, 0x00, SIZEOF(SignalingClientInfoInternal));
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
-    clientInfoInternal.signalingClientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
+    clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfoInternal.hookCustomData = (UINT64) this;
     clientInfoInternal.connectPreHookFn = connectPreHook;
@@ -2263,8 +2264,25 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingTest)
     for (i = 0; i < totalChannelCount; ++i) {
         SPRINTF(signalingChannelName, "%s%u", TEST_SIGNALING_CHANNEL_NAME, i);
         channelInfo.pChannelName = signalingChannelName;
+        channelInfo.pChannelArn = NULL;
+        EXPECT_EQ(STATUS_SUCCESS, createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks,
+                                                      (PAwsCredentialProvider) mTestCredentialProvider, &pSignalingClient))
+                                                      << "Failed on channel name: " << channelInfo.pChannelName;
+
+        // Store the channel ARN to be used later
+        STRCPY(channelArn, pSignalingClient->channelDescription.channelArn);
+
+        signalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
+        EXPECT_TRUE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
+        EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+
+        // Repeat the same with the ARN only
+        channelInfo.pChannelName = NULL;
+        channelInfo.pChannelArn = channelArn;
+
         EXPECT_EQ(STATUS_SUCCESS, createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks,
                                                       (PAwsCredentialProvider) mTestCredentialProvider, &pSignalingClient));
+
         signalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
         EXPECT_TRUE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
         EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
@@ -2272,7 +2290,7 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingTest)
 
     /* describeCount and getEndpointCount should only increase by 1 because they are cached for all channels except one */
     EXPECT_TRUE(describeCount > describeCountNoCache && (describeCount - describeCountNoCache) == 1);
-    EXPECT_TRUE(getEndpointCount > getEndpointCountNoCache && (getEndpointCount - getEndpointCountNoCache) == 1);
+    EXPECT_TRUE(getEndpointCount > getEndpointCountNoCache && (getEndpointCount - 2 * getEndpointCountNoCache) == 1);
 }
 
 TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateCache)
@@ -2333,7 +2351,7 @@ TEST_F(SignalingApiFunctionalityTest, asyncIceConfigRefreshBeforeConnect)
     MEMSET(&clientInfoInternal, 0x00, SIZEOF(SignalingClientInfoInternal));
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
-    clientInfoInternal.signalingClientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
+    clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfoInternal.hookCustomData = (UINT64) &iceConfigCalls;
     clientInfoInternal.getIceConfigPostHookFn = getIceConfigHook;
@@ -2444,7 +2462,7 @@ TEST_F(SignalingApiFunctionalityTest, asyncIceConfigRefreshParallelToConnect)
     MEMSET(&clientInfoInternal, 0x00, SIZEOF(SignalingClientInfoInternal));
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
-    clientInfoInternal.signalingClientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
+    clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfoInternal.hookCustomData = (UINT64) &iceConfigCalls;
     clientInfoInternal.getIceConfigPostHookFn = getIceConfigHook;

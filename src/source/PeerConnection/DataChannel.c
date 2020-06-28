@@ -64,11 +64,11 @@ CleanUp:
     return retStatus;
 }
 
-STATUS dataChannelOnMessage(PRtcDataChannel pRtcPeerConnection, UINT64 customData, RtcOnMessage rtcOnMessage)
+STATUS dataChannelOnMessage(PRtcDataChannel pRtcDataChannel, UINT64 customData, RtcOnMessage rtcOnMessage)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    PKvsDataChannel pKvsDataChannel = (PKvsDataChannel) pRtcPeerConnection;
+    PKvsDataChannel pKvsDataChannel = (PKvsDataChannel) pRtcDataChannel;
 
     CHK(pKvsDataChannel != NULL && rtcOnMessage != NULL, STATUS_NULL_ARG);
 

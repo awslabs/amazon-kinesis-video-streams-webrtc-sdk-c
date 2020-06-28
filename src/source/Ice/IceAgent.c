@@ -659,7 +659,7 @@ STATUS iceAgentShutdown(PIceAgent pIceAgent)
     UINT32 turnConnectionCount = 0;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
-    ATOMIC_STORE_BOOL(&pIceAgent->shutdown, TRUE);
+    CHK(!ATOMIC_EXCHANGE_BOOL(&pIceAgent->shutdown, TRUE), retStatus);
 
     if (pIceAgent->iceAgentStateTimerTask != UINT32_MAX) {
         CHK_STATUS(timerQueueCancelTimer(pIceAgent->timerQueueHandle, pIceAgent->iceAgentStateTimerTask, (UINT64) pIceAgent));
@@ -1694,6 +1694,8 @@ STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent, PKvsIpAddress pLocalInter
     PTurnConnection pTurnConnection = NULL;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
+    /* we dont support TURN on DTLS yet. */
+    CHK(protocol != KVS_SOCKET_PROTOCOL_UDP || !pIceAgent->iceServers[iceServerIndex].isSecure, retStatus);
     CHK_WARN(pIceAgent->relayCandidateCount < KVS_ICE_MAX_RELAY_CANDIDATE_COUNT, retStatus,
              "Cannot create more relay candidate because max count of %u is reached",
              KVS_ICE_MAX_RELAY_CANDIDATE_COUNT);
@@ -1830,31 +1832,38 @@ STATUS iceAgentConnectedStateSetup(PIceAgent pIceAgent)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PDoubleListNode pCurNode = NULL;
-    PIceCandidatePair pIceCandidatePair = NULL;
+    PIceCandidatePair pIceCandidatePair = NULL, pLastDataSendingIceCandidatePair = NULL;
     BOOL locked = FALSE;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
 
     if (pIceAgent->pDataSendingIceCandidatePair != NULL) {
-        /* If pDataSendingIceCandidatePair is not NULL, then it must be the data sending pair before ice restart.
-         * Free its resource here since not there is a new connected pair to replace it. */
-        if (IS_CANN_PAIR_SENDING_FROM_RELAYED(pIceAgent->pDataSendingIceCandidatePair)) {
-            CHK_STATUS(turnConnectionShutdown(pIceAgent->pDataSendingIceCandidatePair->local->pTurnConnection,
-                                              KVS_ICE_TURN_CONNECTION_SHUTDOWN_TIMEOUT));
-            CHK_STATUS(freeTurnConnection(&pIceAgent->pDataSendingIceCandidatePair->local->pTurnConnection));
-
-        } else {
-            CHK_STATUS(connectionListenerRemoveConnection(pIceAgent->pConnectionListener,
-                                                          pIceAgent->pDataSendingIceCandidatePair->local->pSocketConnection));
-            CHK_STATUS(freeSocketConnection(&pIceAgent->pDataSendingIceCandidatePair->local->pSocketConnection));
-        }
-
-        MEMFREE(pIceAgent->pDataSendingIceCandidatePair->local);
-        CHK_STATUS(freeIceCandidatePair(&pIceAgent->pDataSendingIceCandidatePair));
+        MUTEX_LOCK(pIceAgent->lock);
+        locked = TRUE;
 
         /* at this point ice restart is complete */
         ATOMIC_STORE_BOOL(&pIceAgent->restart, FALSE);
+        pLastDataSendingIceCandidatePair = pIceAgent->pDataSendingIceCandidatePair;
         pIceAgent->pDataSendingIceCandidatePair = NULL;
+
+        MUTEX_UNLOCK(pIceAgent->lock);
+        locked = FALSE;
+
+        /* If pDataSendingIceCandidatePair is not NULL, then it must be the data sending pair before ice restart.
+         * Free its resource here since not there is a new connected pair to replace it. */
+        if (IS_CANN_PAIR_SENDING_FROM_RELAYED(pLastDataSendingIceCandidatePair)) {
+            CHK_STATUS(turnConnectionShutdown(pLastDataSendingIceCandidatePair->local->pTurnConnection,
+                                              KVS_ICE_TURN_CONNECTION_SHUTDOWN_TIMEOUT));
+            CHK_STATUS(freeTurnConnection(&pLastDataSendingIceCandidatePair->local->pTurnConnection));
+
+        } else {
+            CHK_STATUS(connectionListenerRemoveConnection(pIceAgent->pConnectionListener,
+                                                          pLastDataSendingIceCandidatePair->local->pSocketConnection));
+            CHK_STATUS(freeSocketConnection(&pLastDataSendingIceCandidatePair->local->pSocketConnection));
+        }
+
+        MEMFREE(pLastDataSendingIceCandidatePair->local);
+        CHK_STATUS(freeIceCandidatePair(&pLastDataSendingIceCandidatePair));
     }
 
     MUTEX_LOCK(pIceAgent->lock);
@@ -2453,16 +2462,21 @@ CleanUp:
 VOID iceAgentLogNewCandidate(PIceCandidate pIceCandidate)
 {
     CHAR ipAddr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
+    PCHAR protocol = "UDP";
 
     if (pIceCandidate != NULL) {
         getIpAddrStr(&pIceCandidate->ipAddress, ipAddr, ARRAY_SIZE(ipAddr));
-        DLOGD("New %s ice candidate discovered. Id: %s. Ip: %s:%u. Type: %s",
+        if (pIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED &&
+            pIceCandidate->pTurnConnection->protocol == KVS_SOCKET_PROTOCOL_UDP) {
+            protocol = "TCP";
+        }
+        DLOGD("New %s ice candidate discovered. Id: %s. Ip: %s:%u. Type: %s. Protocol: %s.",
               pIceCandidate->isRemote ? "remote" : "local",
               pIceCandidate->id,
               ipAddr,
               (UINT16) getInt16(pIceCandidate->ipAddress.port),
-              iceAgentGetCandidateTypeStr(pIceCandidate->iceCandidateType)
-        );
+              iceAgentGetCandidateTypeStr(pIceCandidate->iceCandidateType),
+              protocol);
     }
 }
 

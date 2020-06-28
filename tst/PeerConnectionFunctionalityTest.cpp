@@ -18,6 +18,9 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeers)
 
     EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
 
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+
     freePeerConnection(&offerPc);
     freePeerConnection(&answerPc);
 }
@@ -62,6 +65,9 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithPresetCerts)
 
     EXPECT_EQ(TRUE, connectTwoPeers(offerPc, answerPc, offerCertFingerprint, answerCertFingerprint));
 
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+
     freePeerConnection(&offerPc);
     freePeerConnection(&answerPc);
 }
@@ -86,6 +92,9 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersForcedTURN)
     EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
 
     EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
 
     freePeerConnection(&offerPc);
     freePeerConnection(&answerPc);
@@ -118,6 +127,7 @@ TEST_F(PeerConnectionFunctionalityTest, shutdownTurnDueToP2PFoundBeforeTurnEstab
     THREAD_SLEEP(5 * HUNDREDS_OF_NANOS_IN_A_SECOND);
 
     pIceAgent = ((PKvsPeerConnection)offerPc)->pIceAgent;
+    MUTEX_LOCK(pIceAgent->lock);
     EXPECT_EQ(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode), STATUS_SUCCESS);
     while (pCurNode != NULL) {
         pIceCandidate = (PIceCandidate) pCurNode->data;
@@ -128,8 +138,10 @@ TEST_F(PeerConnectionFunctionalityTest, shutdownTurnDueToP2PFoundBeforeTurnEstab
                         ATOMIC_LOAD_BOOL(&pIceCandidate->pTurnConnection->stopTurnConnection));
         }
     }
+    MUTEX_UNLOCK(pIceAgent->lock);
 
     pIceAgent = ((PKvsPeerConnection)answerPc)->pIceAgent;
+    MUTEX_LOCK(pIceAgent->lock);
     EXPECT_EQ(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode), STATUS_SUCCESS);
     while (pCurNode != NULL) {
         pIceCandidate = (PIceCandidate) pCurNode->data;
@@ -140,6 +152,10 @@ TEST_F(PeerConnectionFunctionalityTest, shutdownTurnDueToP2PFoundBeforeTurnEstab
                         ATOMIC_LOAD_BOOL(&pIceCandidate->pTurnConnection->stopTurnConnection));
         }
     }
+    MUTEX_UNLOCK(pIceAgent->lock);
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
 
     freePeerConnection(&offerPc);
     freePeerConnection(&answerPc);
@@ -219,6 +235,7 @@ TEST_F(PeerConnectionFunctionalityTest, shutdownTurnDueToP2PFoundAfterTurnEstabl
     THREAD_SLEEP(5 * HUNDREDS_OF_NANOS_IN_A_SECOND);
 
     pIceAgent = ((PKvsPeerConnection)offerPc)->pIceAgent;
+    MUTEX_LOCK(pIceAgent->lock);
     EXPECT_EQ(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode), STATUS_SUCCESS);
     while (pCurNode != NULL) {
         pIceCandidate = (PIceCandidate) pCurNode->data;
@@ -229,8 +246,10 @@ TEST_F(PeerConnectionFunctionalityTest, shutdownTurnDueToP2PFoundAfterTurnEstabl
                         ATOMIC_LOAD_BOOL(&pIceCandidate->pTurnConnection->stopTurnConnection));
         }
     }
+    MUTEX_UNLOCK(pIceAgent->lock);
 
     pIceAgent = ((PKvsPeerConnection)answerPc)->pIceAgent;
+    MUTEX_LOCK(pIceAgent->lock);
     EXPECT_EQ(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode), STATUS_SUCCESS);
     while (pCurNode != NULL) {
         pIceCandidate = (PIceCandidate) pCurNode->data;
@@ -241,6 +260,10 @@ TEST_F(PeerConnectionFunctionalityTest, shutdownTurnDueToP2PFoundAfterTurnEstabl
                         ATOMIC_LOAD_BOOL(&pIceCandidate->pTurnConnection->stopTurnConnection));
         }
     }
+    MUTEX_UNLOCK(pIceAgent->lock);
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
 
     freePeerConnection(&offerPc);
     freePeerConnection(&answerPc);
@@ -263,6 +286,9 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithHostAndStun)
     EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
 
     EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
 
     freePeerConnection(&offerPc);
     freePeerConnection(&answerPc);
@@ -322,6 +348,9 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersExpectFailureBecauseNoCan
     THREAD_SLEEP(KVS_ICE_GATHER_REFLEXIVE_AND_RELAYED_CANDIDATE_TIMEOUT);
     EXPECT_TRUE(ATOMIC_LOAD(&stateChangeCount[RTC_PEER_CONNECTION_STATE_FAILED]) == 2);
 
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+
     freePeerConnection(&offerPc);
     freePeerConnection(&answerPc);
 }
@@ -373,6 +402,10 @@ TEST_F(PeerConnectionFunctionalityTest, exchangeMedia)
     }
 
     MEMFREE(videoFrame.frameData);
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+
     freePeerConnection(&offerPc);
     freePeerConnection(&answerPc);
 
@@ -427,6 +460,10 @@ TEST_F(PeerConnectionFunctionalityTest, exchangeMediaRSA)
     }
 
     MEMFREE(videoFrame.frameData);
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+
     freePeerConnection(&offerPc);
     freePeerConnection(&answerPc);
 
@@ -452,6 +489,9 @@ TEST_F(PeerConnectionFunctionalityTest, iceRestartTest)
 
     EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
 
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+
     freePeerConnection(&offerPc);
     freePeerConnection(&answerPc);
 }
@@ -460,6 +500,10 @@ TEST_F(PeerConnectionFunctionalityTest, iceRestartTestForcedTurn)
 {
     RtcConfiguration configuration;
     PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+
+    if (!mAccessKeyIdSet) {
+        return;
+    }
 
     MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
     configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_RELAY;
@@ -478,6 +522,67 @@ TEST_F(PeerConnectionFunctionalityTest, iceRestartTestForcedTurn)
     MEMSET(&stateChangeCount, 0x00, SIZEOF(stateChangeCount));
 
     EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+
+    deinitializeSignalingClient();
+}
+
+TEST_F(PeerConnectionFunctionalityTest, peerConnectionOfferCloseConnection)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+
+    if (!mAccessKeyIdSet) {
+        return;
+    }
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+
+    initializeSignalingClient();
+    getIceServers(&configuration);
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+
+    closePeerConnection(offerPc);
+    EXPECT_EQ(ATOMIC_LOAD(&stateChangeCount[RTC_PEER_CONNECTION_STATE_CLOSED]), 2);
+    closePeerConnection(answerPc);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+
+    deinitializeSignalingClient();
+}
+
+TEST_F(PeerConnectionFunctionalityTest, peerConnectionAnswerCloseConnection)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+
+    if (!mAccessKeyIdSet) {
+        return;
+    }
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+
+    initializeSignalingClient();
+    getIceServers(&configuration);
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+
+    closePeerConnection(answerPc);
+    EXPECT_EQ(stateChangeCount[RTC_PEER_CONNECTION_STATE_CLOSED], 2);
+    closePeerConnection(offerPc);
 
     freePeerConnection(&offerPc);
     freePeerConnection(&answerPc);
@@ -573,7 +678,6 @@ TEST_F(PeerConnectionFunctionalityTest, DISABLED_exchangeMediaThroughTurnRandomS
 
     deinitializeSignalingClient();
 }
-
 
 }
 }

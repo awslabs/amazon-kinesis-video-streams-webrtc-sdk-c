@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y \
   && rm -rf /var/lib/apt/lists/*
 
 # Build libcxx with MSAN
-RUN git clone --depth 1 https://github.com/llvm/llvm-project.git \
+RUN git clone --depth 1 https://github.com/llvm/llvm-project.git -b llvmorg-9.0.1 \
 	&& cd llvm-project \
 	&& cp -r libcxx llvm/projects/ \
 	&& cp -r libcxxabi llvm/projects/ \
@@ -99,5 +99,22 @@ RUN git clone https://github.com/sctplab/usrsctp.git \
 	&& make install \
 	&& rm -rf /usr/src/usrsctp
 
+RUN git clone https://github.com/awslabs/amazon-kinesis-video-streams-pic.git \
+	&& cd amazon-kinesis-video-streams-pic \
+	&& mkdir build \
+	&& cd build \
+	&& cmake .. -DBUILD_DEPENDENCIES=FALSE -DMEMORY_SANITIZER=TRUE -DCMAKE_C_FLAGS="$MSAN_CFLAGS" -DCMAKE_CXX_FLAGS="$MSAN_CFLAGS" \
+	&& make \
+	&& make install \
+	&& rm -rf /usr/src/amazon-kinesis-video-streams-pic
+
+RUN git clone https://github.com/awslabs/amazon-kinesis-video-streams-producer-c.git \
+	&& cd amazon-kinesis-video-streams-producer-c \
+	&& mkdir build \
+	&& cd build \
+	&& cmake .. -DBUILD_COMMON_CURL=FALSE -DBUILD_COMMON_LWS=TRUE -DBUILD_DEPENDENCIES=FALSE -DMEMORY_SANITIZER=TRUE -DCMAKE_C_FLAGS="$MSAN_CFLAGS" -DCMAKE_CXX_FLAGS="$MSAN_CFLAGS" \
+	&& make \
+	&& make install \
+	&& rm -rf /usr/src/amazon-kinesis-video-streams-producer-c
 
 ENV LD_LIBRARY_PATH='/usr/src/libcxx_msan/lib/'

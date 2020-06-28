@@ -46,7 +46,10 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     pSignalingClient->connectTime = INVALID_TIMESTAMP_VALUE;
 
     if (pSignalingClient->pChannelInfo->cachingPolicy == SIGNALING_API_CALL_CACHE_TYPE_FILE) {
-        if (STATUS_FAILED(signalingCacheLoadFromFile(pChannelInfo->pChannelName,
+        // Signaling channel name can be NULL in case of pre-created channels in which case we use ARN as the name
+        if (STATUS_FAILED(signalingCacheLoadFromFile(pChannelInfo->pChannelName != NULL ?
+                                                     pChannelInfo->pChannelName :
+                                                     pChannelInfo->pChannelArn,
                                                      pChannelInfo->pRegion,
                                                      pChannelInfo->channelRoleType,
                                                      &fileCacheEntry,
@@ -987,7 +990,11 @@ STATUS getChannelEndpoint(PSignalingClient pSignalingClient, UINT64 time)
                     if (pSignalingClient->pChannelInfo->cachingPolicy == SIGNALING_API_CALL_CACHE_TYPE_FILE) {
                         signalingFileCacheEntry.creationTsEpochSeconds = time / HUNDREDS_OF_NANOS_IN_A_SECOND;
                         signalingFileCacheEntry.role = pSignalingClient->pChannelInfo->channelRoleType;
-                        STRCPY(signalingFileCacheEntry.channelName, pSignalingClient->pChannelInfo->pChannelName);
+                        // In case of pre-created channels, the channel name can be NULL in which case we will use ARN.
+                        // The validation logic in the channel info validates that both can't be NULL at the same time.
+                        STRCPY(signalingFileCacheEntry.channelName, pSignalingClient->pChannelInfo->pChannelName != NULL ?
+                                                                    pSignalingClient->pChannelInfo->pChannelName :
+                                                                    pSignalingClient->pChannelInfo->pChannelArn);
                         STRCPY(signalingFileCacheEntry.region, pSignalingClient->pChannelInfo->pRegion);
                         STRCPY(signalingFileCacheEntry.channelArn, pSignalingClient->channelDescription.channelArn);
                         STRCPY(signalingFileCacheEntry.httpsEndpoint, pSignalingClient->channelEndpointHttps);
