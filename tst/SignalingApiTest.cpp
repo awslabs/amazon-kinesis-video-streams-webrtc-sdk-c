@@ -235,6 +235,72 @@ TEST_F(SignalingApiTest, signalingClientDisconnectSync)
     EXPECT_NE(STATUS_SUCCESS, signalingClientDisconnectSync(INVALID_SIGNALING_CLIENT_HANDLE_VALUE));
 }
 
+TEST_F(SignalingApiTest, signalingClientGetMetrics)
+{
+    SignalingClientMetrics metrics;
+    SignalingMessage signalingMessage;
+    metrics.version = SIGNALING_CLIENT_METRICS_CURRENT_VERSION;
+
+    // Invalid input
+    EXPECT_NE(STATUS_SUCCESS, signalingClientGetMetrics(INVALID_SIGNALING_CLIENT_HANDLE_VALUE, &metrics));
+    EXPECT_NE(STATUS_SUCCESS, signalingClientGetMetrics(INVALID_SIGNALING_CLIENT_HANDLE_VALUE, NULL));
+    EXPECT_NE(STATUS_SUCCESS, signalingClientGetMetrics(mSignalingClientHandle, NULL));
+
+    if (!mAccessKeyIdSet) {
+        return;
+    }
+
+    initializeSignalingClient();
+    // Valid call
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetMetrics(mSignalingClientHandle, &metrics));
+
+    EXPECT_EQ(0, metrics.signalingClientStats.numberOfReconnects);
+    EXPECT_EQ(0, metrics.signalingClientStats.numberOfMessagesSent);
+    EXPECT_EQ(0, metrics.signalingClientStats.numberOfMessagesReceived);
+    EXPECT_EQ(0, metrics.signalingClientStats.numberOfDynamicErrors);
+    EXPECT_EQ(1, metrics.signalingClientStats.iceRefreshCount);
+    EXPECT_NE(0, metrics.signalingClientStats.signalingClientUptime);
+    EXPECT_EQ(INVALID_TIMESTAMP_VALUE, metrics.signalingClientStats.connectionDuration);
+    EXPECT_NE(0, metrics.signalingClientStats.cpApiCallLatency);
+    EXPECT_NE(0, metrics.signalingClientStats.dpApiCallLatency);
+
+    // Connect and get metrics
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(mSignalingClientHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetMetrics(mSignalingClientHandle, &metrics));
+    EXPECT_EQ(0, metrics.signalingClientStats.numberOfReconnects);
+    EXPECT_EQ(0, metrics.signalingClientStats.numberOfMessagesSent);
+    EXPECT_EQ(0, metrics.signalingClientStats.numberOfMessagesReceived);
+    EXPECT_EQ(0, metrics.signalingClientStats.numberOfDynamicErrors);
+    EXPECT_EQ(1, metrics.signalingClientStats.iceRefreshCount);
+    EXPECT_NE(0, metrics.signalingClientStats.signalingClientUptime);
+    EXPECT_NE(INVALID_TIMESTAMP_VALUE, metrics.signalingClientStats.connectionDuration);
+    EXPECT_NE(0, metrics.signalingClientStats.cpApiCallLatency);
+    EXPECT_NE(0, metrics.signalingClientStats.dpApiCallLatency);
+
+    // Send a message and get metrics
+    signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
+    signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
+    STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    MEMSET(signalingMessage.payload, 'A', 100);
+    signalingMessage.payload[100] = '\0';
+    signalingMessage.payloadLen = 0;
+    signalingMessage.correlationId[0] = '\0';
+
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(mSignalingClientHandle, &signalingMessage));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetMetrics(mSignalingClientHandle, &metrics));
+    EXPECT_EQ(0, metrics.signalingClientStats.numberOfReconnects);
+    EXPECT_EQ(1, metrics.signalingClientStats.numberOfMessagesSent);
+    EXPECT_EQ(0, metrics.signalingClientStats.numberOfMessagesReceived);
+    EXPECT_EQ(0, metrics.signalingClientStats.numberOfDynamicErrors);
+    EXPECT_EQ(1, metrics.signalingClientStats.iceRefreshCount);
+    EXPECT_NE(0, metrics.signalingClientStats.signalingClientUptime);
+    EXPECT_NE(INVALID_TIMESTAMP_VALUE, metrics.signalingClientStats.connectionDuration);
+    EXPECT_NE(0, metrics.signalingClientStats.cpApiCallLatency);
+    EXPECT_NE(0, metrics.signalingClientStats.dpApiCallLatency);
+
+    deinitializeSignalingClient();
+}
+
 }
 }
 }

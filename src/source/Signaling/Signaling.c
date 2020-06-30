@@ -149,10 +149,17 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     pSignalingClient->timerQueueHandle = INVALID_TIMER_QUEUE_HANDLE_VALUE;
     CHK_STATUS(timerQueueCreate(&pSignalingClient->timerQueueHandle));
 
+    // Initializing the diagnostics mostly is taken care of by zero-mem in MEMCALLOC
+    pSignalingClient->diagnostics.createTime = GETTIME();
+    pSignalingClient->diagnostics.connectTime = INVALID_TIMESTAMP_VALUE;
+    pSignalingClient->diagnostics.cpApiLatency = 0;
+    pSignalingClient->diagnostics.dpApiLatency = 0;
+
+    // At this point we have constructed the main object and we can assign to the returned pointer
     *ppSignalingClient = pSignalingClient;
 
     // Set the time out before execution
-    pSignalingClient->stepUntil = GETTIME() + SIGNALING_CREATE_TIMEOUT;
+    pSignalingClient->stepUntil = pSignalingClient->diagnostics.createTime + SIGNALING_CREATE_TIMEOUT;
 
     // Notify of the state change initially as the state machinery is already in the NEW state
     if (pSignalingClient->signalingClientCallbacks.stateChangeFn != NULL) {
@@ -327,6 +334,9 @@ STATUS signalingSendMessageSync(PSignalingClient pSignalingClient, PSignalingMes
     CHK_STATUS(sendLwsMessage(pSignalingClient, pOfferType, pSignalingMessage->peerClientId,
                               pSignalingMessage->payload, pSignalingMessage->payloadLen,
                               pSignalingMessage->correlationId, 0));
+
+    // Update the internal diagnostics only after successfully sending
+    pSignalingClient->diagnostics.numberOfMessagesSent++;
 
 CleanUp:
 
@@ -634,16 +644,19 @@ CleanUp:
     CHK_LOG_ERR(retStatus);
 
     // Notify the client in case of an error
-    if (pSignalingClient != NULL && STATUS_FAILED(retStatus) &&
-        pSignalingClient->signalingClientCallbacks.errorReportFn != NULL) {
-        iceRefreshErrLen = SNPRINTF(iceRefreshErrMsg, SIGNALING_MAX_ERROR_MESSAGE_LEN,
-                                    SIGNALING_ICE_CONFIG_REFRESH_ERROR_MSG, retStatus);
-        iceRefreshErrMsg[SIGNALING_MAX_ERROR_MESSAGE_LEN] = '\0';
-        pSignalingClient->signalingClientCallbacks.errorReportFn(
-                pSignalingClient->signalingClientCallbacks.customData,
-                STATUS_SIGNALING_ICE_CONFIG_REFRESH_FAILED,
-                iceRefreshErrMsg,
-                iceRefreshErrLen);
+    if (pSignalingClient != NULL && STATUS_FAILED(retStatus)) {
+        // Update the diagnostics info prior calling the error callback
+        pSignalingClient->diagnostics.numberOfDynamicErrors++;
+        if (pSignalingClient->signalingClientCallbacks.errorReportFn != NULL) {
+            iceRefreshErrLen = SNPRINTF(iceRefreshErrMsg, SIGNALING_MAX_ERROR_MESSAGE_LEN,
+                                        SIGNALING_ICE_CONFIG_REFRESH_ERROR_MSG, retStatus);
+            iceRefreshErrMsg[SIGNALING_MAX_ERROR_MESSAGE_LEN] = '\0';
+            pSignalingClient->signalingClientCallbacks.errorReportFn(
+                    pSignalingClient->signalingClientCallbacks.customData,
+                    STATUS_SIGNALING_ICE_CONFIG_REFRESH_FAILED,
+                    iceRefreshErrMsg,
+                    iceRefreshErrLen);
+        }
     }
 
     LEAVES();
@@ -880,6 +893,9 @@ STATUS describeChannel(PSignalingClient pSignalingClient, UINT64 time)
                 if (STATUS_SUCCEEDED(retStatus)) {
                     pSignalingClient->describeTime = time;
                 }
+
+                // Calculate the latency whether the call succeeded or not
+                pSignalingClient->diagnostics.cpApiLatency = SIGNALING_API_LATENCY_CALCULATION(time);
             }
 
             // Call post hook func
@@ -928,6 +944,9 @@ STATUS createChannel(PSignalingClient pSignalingClient, UINT64 time)
         if (STATUS_SUCCEEDED(retStatus)) {
             pSignalingClient->createTime = time;
         }
+
+        // Calculate the latency whether the call succeeded or not
+        pSignalingClient->diagnostics.cpApiLatency = SIGNALING_API_LATENCY_CALCULATION(time);
     }
 
     if (pSignalingClient->clientInfo.createPostHookFn != NULL) {
@@ -1004,6 +1023,9 @@ STATUS getChannelEndpoint(PSignalingClient pSignalingClient, UINT64 time)
                         }
                     }
                 }
+
+                // Calculate the latency whether the call succeeded or not
+                pSignalingClient->diagnostics.cpApiLatency = SIGNALING_API_LATENCY_CALCULATION(time);
             }
 
             if (pSignalingClient->clientInfo.getEndpointPostHookFn != NULL) {
@@ -1066,6 +1088,9 @@ STATUS getIceConfig(PSignalingClient pSignalingClient, UINT64 time)
         if (STATUS_SUCCEEDED(retStatus)) {
             pSignalingClient->getIceConfigTime = time;
         }
+
+        // Calculate the latency whether the call succeeded or not
+        pSignalingClient->diagnostics.dpApiLatency = SIGNALING_API_LATENCY_CALCULATION(time);
     }
 
     if (pSignalingClient->clientInfo.getIceConfigPostHookFn != NULL) {
@@ -1109,6 +1134,9 @@ STATUS deleteChannel(PSignalingClient pSignalingClient, UINT64 time)
         if (STATUS_SUCCEEDED(retStatus)) {
             pSignalingClient->deleteTime = time;
         }
+
+        // Calculate the latency whether the call succeeded or not
+        pSignalingClient->diagnostics.cpApiLatency = SIGNALING_API_LATENCY_CALCULATION(time);
     }
 
     if (pSignalingClient->clientInfo.deletePostHookFn != NULL) {
@@ -1172,4 +1200,35 @@ UINT64 signalingGetCurrentTime(UINT64 customData)
 {
     UNUSED_PARAM(customData);
     return GETTIME();
+}
+
+STATUS signalingGetMetrics(PSignalingClient pSignalingClient, PSignalingClientMetrics pSignalingClientMetrics)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    UINT64 curTime = GETTIME();
+
+    CHK(pSignalingClient != NULL && pSignalingClientMetrics != NULL, STATUS_NULL_ARG);
+    CHK(pSignalingClientMetrics->version <= SIGNALING_CLIENT_METRICS_CURRENT_VERSION, STATUS_SIGNALING_INVALID_METRICS_VERSION);
+
+    // Fill in the data structures according to the version of the requested structure - currently only v0
+    pSignalingClientMetrics->signalingClientStats.signalingClientUptime = curTime - pSignalingClient->diagnostics.createTime;
+    pSignalingClientMetrics->signalingClientStats.numberOfMessagesSent = pSignalingClient->diagnostics.numberOfMessagesSent;
+    pSignalingClientMetrics->signalingClientStats.numberOfMessagesReceived = pSignalingClient->diagnostics.numberOfMessagesReceived;
+    pSignalingClientMetrics->signalingClientStats.iceRefreshCount = pSignalingClient->diagnostics.iceRefreshCount;
+    pSignalingClientMetrics->signalingClientStats.numberOfDynamicErrors = pSignalingClient->diagnostics.numberOfDynamicErrors;
+    pSignalingClientMetrics->signalingClientStats.numberOfReconnects = pSignalingClient->diagnostics.numberOfReconnects;
+    pSignalingClientMetrics->signalingClientStats.cpApiCallLatency = pSignalingClient->diagnostics.cpApiLatency;
+    pSignalingClientMetrics->signalingClientStats.dpApiCallLatency = pSignalingClient->diagnostics.dpApiLatency;
+
+    if (ATOMIC_LOAD_BOOL(&pSignalingClient->connected)) {
+        pSignalingClientMetrics->signalingClientStats.connectionDuration = curTime - pSignalingClient->diagnostics.connectTime;
+    } else {
+        pSignalingClientMetrics->signalingClientStats.connectionDuration = INVALID_TIMESTAMP_VALUE;
+    }
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
 }

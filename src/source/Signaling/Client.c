@@ -245,3 +245,19 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
+
+STATUS signalingClientGetMetrics(SIGNALING_CLIENT_HANDLE signalingClientHandle, PSignalingClientMetrics pSignalingClientMetrics)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+
+    DLOGV("Signaling Client Get Metrics");
+
+    CHK_STATUS(signalingGetMetrics(FROM_SIGNALING_CLIENT_HANDLE(signalingClientHandle),
+            pSignalingClientMetrics));
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
+}

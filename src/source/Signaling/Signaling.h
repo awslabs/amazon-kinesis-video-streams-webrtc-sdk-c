@@ -50,6 +50,10 @@ extern "C" {
 // Async ICE config refresh delay in case if the signaling is not yet in READY state
 #define SIGNALING_ASYNC_ICE_CONFIG_REFRESH_DELAY                            (50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
 
+
+// API call latency calculation
+#define SIGNALING_API_LATENCY_CALCULATION(t)                                (GETTIME() - (t))
+
 // Forward declaration
 typedef struct __LwsCallInfo *PLwsCallInfo;
 
@@ -100,6 +104,21 @@ typedef struct {
     MUTEX lock;
     CVAR await;
 } ThreadTracker, *PThreadTracker;
+
+/**
+ * Internal structure tracking various parameters for diagnostics and metrics/stats
+ */
+typedef struct {
+    UINT64 createTime;
+    UINT64 connectTime;
+    UINT64 numberOfMessagesSent;
+    UINT64 numberOfMessagesReceived;
+    UINT64 iceRefreshCount;
+    UINT64 numberOfDynamicErrors;
+    UINT64 numberOfReconnects;
+    UINT64 cpApiLatency;
+    UINT64 dpApiLatency;
+} SignalingDiagnostics, PSignalingDiagnostics;
 
 /**
  * Internal representation of the Signaling client.
@@ -236,6 +255,9 @@ typedef struct {
     // Timer queue to handle stale ICE configuration
     TIMER_QUEUE_HANDLE timerQueueHandle;
 
+    // Internal diagnostics object
+    SignalingDiagnostics diagnostics;
+
     // Tracking when was the Last time the APIs were called
     UINT64 describeTime;
     UINT64 createTime;
@@ -283,6 +305,7 @@ STATUS getChannelEndpoint(PSignalingClient, UINT64);
 STATUS getIceConfig(PSignalingClient, UINT64);
 STATUS connectSignalingChannel(PSignalingClient, UINT64);
 STATUS deleteChannel(PSignalingClient, UINT64);
+STATUS signalingGetMetrics(PSignalingClient, PSignalingClientMetrics);
 
 #ifdef  __cplusplus
 }
