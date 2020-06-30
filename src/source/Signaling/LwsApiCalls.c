@@ -326,7 +326,9 @@ INT32 lwsWssCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
             ATOMIC_STORE_BOOL(&pSignalingClient->connected, TRUE);
 
             // Store the time when we connect for diagnostics
+            MUTEX_LOCK(pSignalingClient->diagnosticsLock);
             pSignalingClient->diagnostics.connectTime = GETTIME();
+            MUTEX_UNLOCK(pSignalingClient->diagnosticsLock);
 
             // Notify the listener thread
             CVAR_BROADCAST(pSignalingClient->connectedCvar);
@@ -978,7 +980,7 @@ STATUS getIceConfigLws(PSignalingClient pSignalingClient, UINT64 time)
     CHK(pSignalingClient->channelEndpointHttps[0] != '\0', STATUS_INTERNAL_ERROR);
 
     // Update the diagnostics info on the number of ICE refresh calls
-    pSignalingClient->diagnostics.iceRefreshCount++;
+    ATOMIC_INCREMENT(&pSignalingClient->diagnostics.iceRefreshCount);
 
     // Create the API url
     STRCPY(url, pSignalingClient->channelEndpointHttps);
@@ -1383,7 +1385,7 @@ PVOID reconnectHandler(PVOID args)
     pSignalingClient->stepUntil = GETTIME() + SIGNALING_CONNECT_STATE_TIMEOUT;
 
     // Update the diagnostics info
-    pSignalingClient->diagnostics.numberOfReconnects++;
+    ATOMIC_INCREMENT(&pSignalingClient->diagnostics.numberOfReconnects);
 
     // Attempt to reconnect by driving the state machine to connected state
     CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
@@ -1394,7 +1396,7 @@ CleanUp:
         // Call the error handler in case of an error
         if (STATUS_FAILED(retStatus)) {
             // Update the diagnostics before calling the error callback
-            pSignalingClient->diagnostics.numberOfDynamicErrors++;
+            ATOMIC_INCREMENT(&pSignalingClient->diagnostics.numberOfDynamicErrors);
             if (pSignalingClient->signalingClientCallbacks.errorReportFn != NULL) {
                 reconnectErrLen = SNPRINTF(reconnectErrMsg, SIGNALING_MAX_ERROR_MESSAGE_LEN,
                                            SIGNALING_RECONNECT_ERROR_MSG, retStatus);
@@ -1753,7 +1755,7 @@ CleanUp:
     CHK_LOG_ERR(retStatus);
 
     if (pSignalingClient != NULL && STATUS_FAILED(retStatus)) {
-        pSignalingClient->diagnostics.numberOfDynamicErrors++;
+        ATOMIC_INCREMENT(&pSignalingClient->diagnostics.numberOfDynamicErrors);
         if (pSignalingClient->signalingClientCallbacks.errorReportFn != NULL) {
             retStatus = pSignalingClient->signalingClientCallbacks.errorReportFn(
                     pSignalingClient->signalingClientCallbacks.customData,
@@ -1873,7 +1875,7 @@ PVOID receiveLwsMessageWrapper(PVOID args)
     CHK(pSignalingClient != NULL, STATUS_INTERNAL_ERROR);
 
     // Updating the diagnostics info before calling the client callback
-    pSignalingClient->diagnostics.numberOfMessagesReceived++;
+    ATOMIC_INCREMENT(&pSignalingClient->diagnostics.numberOfMessagesReceived);
 
     // Calling client receive message callback if specified
     if (pSignalingClient->signalingClientCallbacks.messageReceivedFn != NULL) {

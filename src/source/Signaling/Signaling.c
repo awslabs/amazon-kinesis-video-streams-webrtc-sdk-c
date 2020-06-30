@@ -142,6 +142,9 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     pSignalingClient->lwsSerializerLock = MUTEX_CREATE(TRUE);
     CHK(IS_VALID_MUTEX_VALUE(pSignalingClient->lwsSerializerLock), STATUS_INVALID_OPERATION);
 
+    pSignalingClient->diagnosticsLock = MUTEX_CREATE(TRUE);
+    CHK(IS_VALID_MUTEX_VALUE(pSignalingClient->diagnosticsLock), STATUS_INVALID_OPERATION);
+
     // Create the ongoing message list
     CHK_STATUS(stackQueueCreate(&pSignalingClient->pMessageQueue));
 
@@ -262,6 +265,10 @@ STATUS freeSignaling(PSignalingClient* ppSignalingClient)
         MUTEX_FREE(pSignalingClient->lwsSerializerLock);
     }
 
+    if (IS_VALID_MUTEX_VALUE(pSignalingClient->diagnosticsLock)) {
+        MUTEX_FREE(pSignalingClient->diagnosticsLock);
+    }
+
     uninitializeThreadTracker(&pSignalingClient->reconnecterTracker);
     uninitializeThreadTracker(&pSignalingClient->listenerTracker);
 
@@ -336,7 +343,7 @@ STATUS signalingSendMessageSync(PSignalingClient pSignalingClient, PSignalingMes
                               pSignalingMessage->correlationId, 0));
 
     // Update the internal diagnostics only after successfully sending
-    pSignalingClient->diagnostics.numberOfMessagesSent++;
+    ATOMIC_INCREMENT(&pSignalingClient->diagnostics.numberOfMessagesSent);
 
 CleanUp:
 
@@ -646,7 +653,7 @@ CleanUp:
     // Notify the client in case of an error
     if (pSignalingClient != NULL && STATUS_FAILED(retStatus)) {
         // Update the diagnostics info prior calling the error callback
-        pSignalingClient->diagnostics.numberOfDynamicErrors++;
+        ATOMIC_INCREMENT(&pSignalingClient->diagnostics.numberOfDynamicErrors);
         if (pSignalingClient->signalingClientCallbacks.errorReportFn != NULL) {
             iceRefreshErrLen = SNPRINTF(iceRefreshErrMsg, SIGNALING_MAX_ERROR_MESSAGE_LEN,
                                         SIGNALING_ICE_CONFIG_REFRESH_ERROR_MSG, retStatus);
@@ -895,7 +902,7 @@ STATUS describeChannel(PSignalingClient pSignalingClient, UINT64 time)
                 }
 
                 // Calculate the latency whether the call succeeded or not
-                pSignalingClient->diagnostics.cpApiLatency = SIGNALING_API_LATENCY_CALCULATION(time);
+                SIGNALING_API_LATENCY_CALCULATION(pSignalingClient, time, TRUE);
             }
 
             // Call post hook func
@@ -946,7 +953,7 @@ STATUS createChannel(PSignalingClient pSignalingClient, UINT64 time)
         }
 
         // Calculate the latency whether the call succeeded or not
-        pSignalingClient->diagnostics.cpApiLatency = SIGNALING_API_LATENCY_CALCULATION(time);
+        SIGNALING_API_LATENCY_CALCULATION(pSignalingClient, time, TRUE);
     }
 
     if (pSignalingClient->clientInfo.createPostHookFn != NULL) {
@@ -1025,7 +1032,7 @@ STATUS getChannelEndpoint(PSignalingClient pSignalingClient, UINT64 time)
                 }
 
                 // Calculate the latency whether the call succeeded or not
-                pSignalingClient->diagnostics.cpApiLatency = SIGNALING_API_LATENCY_CALCULATION(time);
+                SIGNALING_API_LATENCY_CALCULATION(pSignalingClient, time, TRUE);
             }
 
             if (pSignalingClient->clientInfo.getEndpointPostHookFn != NULL) {
@@ -1090,7 +1097,7 @@ STATUS getIceConfig(PSignalingClient pSignalingClient, UINT64 time)
         }
 
         // Calculate the latency whether the call succeeded or not
-        pSignalingClient->diagnostics.dpApiLatency = SIGNALING_API_LATENCY_CALCULATION(time);
+        SIGNALING_API_LATENCY_CALCULATION(pSignalingClient, time, FALSE);
     }
 
     if (pSignalingClient->clientInfo.getIceConfigPostHookFn != NULL) {
@@ -1136,7 +1143,7 @@ STATUS deleteChannel(PSignalingClient pSignalingClient, UINT64 time)
         }
 
         // Calculate the latency whether the call succeeded or not
-        pSignalingClient->diagnostics.cpApiLatency = SIGNALING_API_LATENCY_CALCULATION(time);
+        SIGNALING_API_LATENCY_CALCULATION(pSignalingClient, time, TRUE);
     }
 
     if (pSignalingClient->clientInfo.deletePostHookFn != NULL) {
@@ -1211,13 +1218,16 @@ STATUS signalingGetMetrics(PSignalingClient pSignalingClient, PSignalingClientMe
     CHK(pSignalingClient != NULL && pSignalingClientMetrics != NULL, STATUS_NULL_ARG);
     CHK(pSignalingClientMetrics->version <= SIGNALING_CLIENT_METRICS_CURRENT_VERSION, STATUS_SIGNALING_INVALID_METRICS_VERSION);
 
+    // Interlock the threading due to data race possibility
+    MUTEX_LOCK(pSignalingClient->diagnosticsLock);
+
     // Fill in the data structures according to the version of the requested structure - currently only v0
     pSignalingClientMetrics->signalingClientStats.signalingClientUptime = curTime - pSignalingClient->diagnostics.createTime;
-    pSignalingClientMetrics->signalingClientStats.numberOfMessagesSent = pSignalingClient->diagnostics.numberOfMessagesSent;
-    pSignalingClientMetrics->signalingClientStats.numberOfMessagesReceived = pSignalingClient->diagnostics.numberOfMessagesReceived;
-    pSignalingClientMetrics->signalingClientStats.iceRefreshCount = pSignalingClient->diagnostics.iceRefreshCount;
-    pSignalingClientMetrics->signalingClientStats.numberOfDynamicErrors = pSignalingClient->diagnostics.numberOfDynamicErrors;
-    pSignalingClientMetrics->signalingClientStats.numberOfReconnects = pSignalingClient->diagnostics.numberOfReconnects;
+    pSignalingClientMetrics->signalingClientStats.numberOfMessagesSent = (UINT32) pSignalingClient->diagnostics.numberOfMessagesSent;
+    pSignalingClientMetrics->signalingClientStats.numberOfMessagesReceived = (UINT32) pSignalingClient->diagnostics.numberOfMessagesReceived;
+    pSignalingClientMetrics->signalingClientStats.iceRefreshCount = (UINT32) pSignalingClient->diagnostics.iceRefreshCount;
+    pSignalingClientMetrics->signalingClientStats.numberOfDynamicErrors = (UINT32) pSignalingClient->diagnostics.numberOfDynamicErrors;
+    pSignalingClientMetrics->signalingClientStats.numberOfReconnects = (UINT32) pSignalingClient->diagnostics.numberOfReconnects;
     pSignalingClientMetrics->signalingClientStats.cpApiCallLatency = pSignalingClient->diagnostics.cpApiLatency;
     pSignalingClientMetrics->signalingClientStats.dpApiCallLatency = pSignalingClient->diagnostics.dpApiLatency;
 
@@ -1226,6 +1236,8 @@ STATUS signalingGetMetrics(PSignalingClient pSignalingClient, PSignalingClientMe
     } else {
         pSignalingClientMetrics->signalingClientStats.connectionDuration = INVALID_TIMESTAMP_VALUE;
     }
+
+    MUTEX_UNLOCK(pSignalingClient->diagnosticsLock);
 
 CleanUp:
 

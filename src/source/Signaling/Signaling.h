@@ -52,7 +52,14 @@ extern "C" {
 
 
 // API call latency calculation
-#define SIGNALING_API_LATENCY_CALCULATION(t)                                (GETTIME() - (t))
+#define SIGNALING_API_LATENCY_CALCULATION(pClient, time, isCpApi) \
+        MUTEX_LOCK((pClient)->diagnosticsLock); \
+        if (isCpApi) { \
+            (pClient)->diagnostics.cpApiLatency = (GETTIME() - (time)); \
+        } else { \
+            (pClient)->diagnostics.dpApiLatency = (GETTIME() - (time)); \
+        } \
+        MUTEX_UNLOCK((pClient)->diagnosticsLock); \
 
 // Forward declaration
 typedef struct __LwsCallInfo *PLwsCallInfo;
@@ -109,13 +116,13 @@ typedef struct {
  * Internal structure tracking various parameters for diagnostics and metrics/stats
  */
 typedef struct {
+    volatile SIZE_T numberOfMessagesSent;
+    volatile SIZE_T numberOfMessagesReceived;
+    volatile SIZE_T iceRefreshCount;
+    volatile SIZE_T numberOfDynamicErrors;
+    volatile SIZE_T numberOfReconnects;
     UINT64 createTime;
     UINT64 connectTime;
-    UINT64 numberOfMessagesSent;
-    UINT64 numberOfMessagesReceived;
-    UINT64 iceRefreshCount;
-    UINT64 numberOfDynamicErrors;
-    UINT64 numberOfReconnects;
     UINT64 cpApiLatency;
     UINT64 dpApiLatency;
 } SignalingDiagnostics, PSignalingDiagnostics;
@@ -251,6 +258,9 @@ typedef struct {
 
     // Serialized access to LWS service call
     MUTEX lwsSerializerLock;
+
+    // Re-entrant lock for diagnostics/stats
+    MUTEX diagnosticsLock;
 
     // Timer queue to handle stale ICE configuration
     TIMER_QUEUE_HANDLE timerQueueHandle;

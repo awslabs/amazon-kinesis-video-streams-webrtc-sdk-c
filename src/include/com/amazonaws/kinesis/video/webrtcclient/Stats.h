@@ -296,17 +296,17 @@ typedef struct {
     UINT64 dpApiCallLatency; //!< Latency (in 100 ns) incurred per backend API call for the data plane APIs
     UINT64 signalingClientUptime; //!< Client uptime (in 100 ns). Timestamp will be recorded at every SIGNALING_CLIENT_STATE_CONNECTED
     UINT64 connectionDuration; //!< Duration of connection (in 100 ns)
-    UINT64 numberOfMessagesSent; //!< Number of messages sent by the signaling client
-    UINT64 numberOfMessagesReceived; //!< Number of messages received by the signaling client
-    UINT64 iceRefreshCount; //!< Number of times the ICE is refreshed
-    UINT64 numberOfDynamicErrors; //!< Number of indirect errors. These are errors that are not returned as part of
+    UINT32 numberOfMessagesSent; //!< Number of messages sent by the signaling client
+    UINT32 numberOfMessagesReceived; //!< Number of messages received by the signaling client
+    UINT32 iceRefreshCount; //!< Number of times the ICE is refreshed
+    UINT32 numberOfDynamicErrors; //!< Number of indirect errors. These are errors that are not returned as part of
                                   //!< public API calls but rather when an error occurs on background threads
                                   //!< for example:
                                   //!< * When received message on the background thread is "bad"
                                   //!< * When re-connect logic fails after pre-configured retries/times out
                                   //!< * When refreshing ICE server configuration fails after pre-configured retries
                                   //!< In all of these cases the error callback (if specified) will be called.
-    UINT64 numberOfReconnects; //!< Number of reconnects in the session
+    UINT32 numberOfReconnects; //!< Number of reconnects in the session
 } SignalingClientStats, PSignalingClientStats;
 
 /**
