@@ -261,8 +261,22 @@ if(GST_FOUND)
     ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/kvsWebRTCClientMasterGstreamerSample.c
   )
   target_link_libraries(kvsWebrtcClientMasterGstSample kvsWebrtcClient kvsWebrtcSignalingClient ${GST_SAMPLE_LIBRARIES} kvspicUtils)
+
+  install(TARGETS kvsWebrtcClientMasterGstSample
+    RUNTIME DESTINATION bin
+  )
 endif()
 
 if(BUILD_TEST)
   add_subdirectory(tst)
 endif()
+
+install(TARGETS kvsWebrtcClient kvsWebrtcSignalingClient kvsWebrtcClientMaster kvsWebrtcClientViewer discoverNatBehavior
+  RUNTIME DESTINATION bin
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  )
+
+install(DIRECTORY ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/include/
+  DESTINATION include
+  )
