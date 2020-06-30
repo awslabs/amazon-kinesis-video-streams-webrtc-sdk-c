@@ -55,9 +55,9 @@ extern "C" {
 #define SIGNALING_API_LATENCY_CALCULATION(pClient, time, isCpApi) \
         MUTEX_LOCK((pClient)->diagnosticsLock); \
         if (isCpApi) { \
-            (pClient)->diagnostics.cpApiLatency = (GETTIME() - (time)); \
+            (pClient)->diagnostics.cpApiLatency = EMA_ACCUMULATOR_GET_NEXT((pClient)->diagnostics.cpApiLatency, GETTIME() - (time)); \
         } else { \
-            (pClient)->diagnostics.dpApiLatency = (GETTIME() - (time)); \
+            (pClient)->diagnostics.dpApiLatency = EMA_ACCUMULATOR_GET_NEXT((pClient)->diagnostics.dpApiLatency, GETTIME() - (time)); \
         } \
         MUTEX_UNLOCK((pClient)->diagnosticsLock); \
 
@@ -119,7 +119,7 @@ typedef struct {
     volatile SIZE_T numberOfMessagesSent;
     volatile SIZE_T numberOfMessagesReceived;
     volatile SIZE_T iceRefreshCount;
-    volatile SIZE_T numberOfDynamicErrors;
+    volatile SIZE_T numberOfRuntimeErrors;
     volatile SIZE_T numberOfReconnects;
     UINT64 createTime;
     UINT64 connectTime;

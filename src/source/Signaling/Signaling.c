@@ -154,7 +154,7 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
 
     // Initializing the diagnostics mostly is taken care of by zero-mem in MEMCALLOC
     pSignalingClient->diagnostics.createTime = GETTIME();
-    pSignalingClient->diagnostics.connectTime = INVALID_TIMESTAMP_VALUE;
+    pSignalingClient->diagnostics.connectTime = 0;
     pSignalingClient->diagnostics.cpApiLatency = 0;
     pSignalingClient->diagnostics.dpApiLatency = 0;
 
@@ -653,7 +653,7 @@ CleanUp:
     // Notify the client in case of an error
     if (pSignalingClient != NULL && STATUS_FAILED(retStatus)) {
         // Update the diagnostics info prior calling the error callback
-        ATOMIC_INCREMENT(&pSignalingClient->diagnostics.numberOfDynamicErrors);
+        ATOMIC_INCREMENT(&pSignalingClient->diagnostics.numberOfRuntimeErrors);
         if (pSignalingClient->signalingClientCallbacks.errorReportFn != NULL) {
             iceRefreshErrLen = SNPRINTF(iceRefreshErrMsg, SIGNALING_MAX_ERROR_MESSAGE_LEN,
                                         SIGNALING_ICE_CONFIG_REFRESH_ERROR_MSG, retStatus);
@@ -1226,16 +1226,13 @@ STATUS signalingGetMetrics(PSignalingClient pSignalingClient, PSignalingClientMe
     pSignalingClientMetrics->signalingClientStats.numberOfMessagesSent = (UINT32) pSignalingClient->diagnostics.numberOfMessagesSent;
     pSignalingClientMetrics->signalingClientStats.numberOfMessagesReceived = (UINT32) pSignalingClient->diagnostics.numberOfMessagesReceived;
     pSignalingClientMetrics->signalingClientStats.iceRefreshCount = (UINT32) pSignalingClient->diagnostics.iceRefreshCount;
-    pSignalingClientMetrics->signalingClientStats.numberOfDynamicErrors = (UINT32) pSignalingClient->diagnostics.numberOfDynamicErrors;
+    pSignalingClientMetrics->signalingClientStats.numberOfRuntimeErrors = (UINT32) pSignalingClient->diagnostics.numberOfRuntimeErrors;
     pSignalingClientMetrics->signalingClientStats.numberOfReconnects = (UINT32) pSignalingClient->diagnostics.numberOfReconnects;
     pSignalingClientMetrics->signalingClientStats.cpApiCallLatency = pSignalingClient->diagnostics.cpApiLatency;
     pSignalingClientMetrics->signalingClientStats.dpApiCallLatency = pSignalingClient->diagnostics.dpApiLatency;
 
-    if (ATOMIC_LOAD_BOOL(&pSignalingClient->connected)) {
-        pSignalingClientMetrics->signalingClientStats.connectionDuration = curTime - pSignalingClient->diagnostics.connectTime;
-    } else {
-        pSignalingClientMetrics->signalingClientStats.connectionDuration = INVALID_TIMESTAMP_VALUE;
-    }
+    pSignalingClientMetrics->signalingClientStats.connectionDuration = ATOMIC_LOAD_BOOL(&pSignalingClient->connected) ?
+            curTime - pSignalingClient->diagnostics.connectTime : 0;
 
     MUTEX_UNLOCK(pSignalingClient->diagnosticsLock);
 

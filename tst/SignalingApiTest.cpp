@@ -257,10 +257,10 @@ TEST_F(SignalingApiTest, signalingClientGetMetrics)
     EXPECT_EQ(0, metrics.signalingClientStats.numberOfReconnects);
     EXPECT_EQ(0, metrics.signalingClientStats.numberOfMessagesSent);
     EXPECT_EQ(0, metrics.signalingClientStats.numberOfMessagesReceived);
-    EXPECT_EQ(0, metrics.signalingClientStats.numberOfDynamicErrors);
+    EXPECT_EQ(0, metrics.signalingClientStats.numberOfRuntimeErrors);
     EXPECT_EQ(1, metrics.signalingClientStats.iceRefreshCount);
     EXPECT_NE(0, metrics.signalingClientStats.signalingClientUptime);
-    EXPECT_EQ(INVALID_TIMESTAMP_VALUE, metrics.signalingClientStats.connectionDuration);
+    EXPECT_EQ(0, metrics.signalingClientStats.connectionDuration);
     EXPECT_NE(0, metrics.signalingClientStats.cpApiCallLatency);
     EXPECT_NE(0, metrics.signalingClientStats.dpApiCallLatency);
 
@@ -270,10 +270,10 @@ TEST_F(SignalingApiTest, signalingClientGetMetrics)
     EXPECT_EQ(0, metrics.signalingClientStats.numberOfReconnects);
     EXPECT_EQ(0, metrics.signalingClientStats.numberOfMessagesSent);
     EXPECT_EQ(0, metrics.signalingClientStats.numberOfMessagesReceived);
-    EXPECT_EQ(0, metrics.signalingClientStats.numberOfDynamicErrors);
+    EXPECT_EQ(0, metrics.signalingClientStats.numberOfRuntimeErrors);
     EXPECT_EQ(1, metrics.signalingClientStats.iceRefreshCount);
     EXPECT_NE(0, metrics.signalingClientStats.signalingClientUptime);
-    EXPECT_NE(INVALID_TIMESTAMP_VALUE, metrics.signalingClientStats.connectionDuration);
+    EXPECT_NE(0, metrics.signalingClientStats.connectionDuration);
     EXPECT_NE(0, metrics.signalingClientStats.cpApiCallLatency);
     EXPECT_NE(0, metrics.signalingClientStats.dpApiCallLatency);
 
@@ -291,10 +291,10 @@ TEST_F(SignalingApiTest, signalingClientGetMetrics)
     EXPECT_EQ(0, metrics.signalingClientStats.numberOfReconnects);
     EXPECT_EQ(1, metrics.signalingClientStats.numberOfMessagesSent);
     EXPECT_EQ(0, metrics.signalingClientStats.numberOfMessagesReceived);
-    EXPECT_EQ(0, metrics.signalingClientStats.numberOfDynamicErrors);
+    EXPECT_EQ(0, metrics.signalingClientStats.numberOfRuntimeErrors);
     EXPECT_EQ(1, metrics.signalingClientStats.iceRefreshCount);
     EXPECT_NE(0, metrics.signalingClientStats.signalingClientUptime);
-    EXPECT_NE(INVALID_TIMESTAMP_VALUE, metrics.signalingClientStats.connectionDuration);
+    EXPECT_NE(0, metrics.signalingClientStats.connectionDuration);
     EXPECT_NE(0, metrics.signalingClientStats.cpApiCallLatency);
     EXPECT_NE(0, metrics.signalingClientStats.dpApiCallLatency);
 

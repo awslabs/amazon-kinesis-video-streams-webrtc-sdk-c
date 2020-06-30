@@ -1396,7 +1396,7 @@ CleanUp:
         // Call the error handler in case of an error
         if (STATUS_FAILED(retStatus)) {
             // Update the diagnostics before calling the error callback
-            ATOMIC_INCREMENT(&pSignalingClient->diagnostics.numberOfDynamicErrors);
+            ATOMIC_INCREMENT(&pSignalingClient->diagnostics.numberOfRuntimeErrors);
             if (pSignalingClient->signalingClientCallbacks.errorReportFn != NULL) {
                 reconnectErrLen = SNPRINTF(reconnectErrMsg, SIGNALING_MAX_ERROR_MESSAGE_LEN,
                                            SIGNALING_RECONNECT_ERROR_MSG, retStatus);
@@ -1755,7 +1755,7 @@ CleanUp:
     CHK_LOG_ERR(retStatus);
 
     if (pSignalingClient != NULL && STATUS_FAILED(retStatus)) {
-        ATOMIC_INCREMENT(&pSignalingClient->diagnostics.numberOfDynamicErrors);
+        ATOMIC_INCREMENT(&pSignalingClient->diagnostics.numberOfRuntimeErrors);
         if (pSignalingClient->signalingClientCallbacks.errorReportFn != NULL) {
             retStatus = pSignalingClient->signalingClientCallbacks.errorReportFn(
                     pSignalingClient->signalingClientCallbacks.customData,
