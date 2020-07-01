@@ -1831,12 +1831,13 @@ PUBLIC_API STATUS signalingClientGetMetrics(SIGNALING_CLIENT_HANDLE, PSignalingC
 
 /**
  * @brief Get the relevant/all metrics based on the RTCStatsType field. This does not include
- * any signaling related metrics
+ * any signaling related metrics. The caller of the API is expected to populate requestedTypeOfStats
+ * member of PRtcStats object with one of the values in RTC_STATS_TYPE
  *
  * @param PRtcPeerConnection Peer connection for which the stats need to be collected
  * @param[in/out] PRtcStats The stats object with the RTCStatsType field populated
  */
-PUBLIC_API STATUS RtcPeerConnectionGetMetrics(PRtcPeerConnection, PRtcStats);
+PUBLIC_API STATUS rtcPeerConnectionGetMetrics(PRtcPeerConnection, PRtcStats);
 
 #ifdef  __cplusplus
 }

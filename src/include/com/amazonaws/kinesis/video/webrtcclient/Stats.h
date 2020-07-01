@@ -321,10 +321,11 @@ typedef struct {
  */
 typedef struct {
     RtcIceCandidatePairStats iceCandidatePairStats; //!< ICE Candidate Pair  stats object
-    RtcIceCandidateStats iceCandidateStats; //!< ICE Candidate stats object
+    RtcIceCandidateStats localIceCandidateStats; //!< local ICE Candidate stats object
+    RtcIceCandidateStats remoteIceCandidateStats; //!< remote ICE Candidate stats object
     RtcIceServerStats iceServerStats; //!< ICE Server Pair stats object
     RtcTransportStats transportStats; //!< Transport stats object
-    RtcOutboundRtpStreamStats remoteOutboundRtpStreamStats; //!< Outbound RTP Stream stats object
+    RtcOutboundRtpStreamStats outboundRtpStreamStats; //!< Outbound RTP Stream stats object
     RtcRemoteInboundRtpStreamStats remoteInboundRtpStreamStats; //!< Inbound RTP Stream stats object
 } RtcStatsObject, *PRtcStatsObject;
 
