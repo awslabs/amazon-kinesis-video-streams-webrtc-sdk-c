@@ -50,7 +50,6 @@ extern "C" {
 // Async ICE config refresh delay in case if the signaling is not yet in READY state
 #define SIGNALING_ASYNC_ICE_CONFIG_REFRESH_DELAY                            (50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
 
-
 // API call latency calculation
 #define SIGNALING_API_LATENCY_CALCULATION(pClient, time, isCpApi) \
         MUTEX_LOCK((pClient)->diagnosticsLock); \
@@ -60,6 +59,11 @@ extern "C" {
             (pClient)->diagnostics.dpApiLatency = EMA_ACCUMULATOR_GET_NEXT((pClient)->diagnostics.dpApiLatency, GETTIME() - (time)); \
         } \
         MUTEX_UNLOCK((pClient)->diagnosticsLock); \
+
+#define SIGNALING_UPDATE_ERROR_COUNT(pClient, status) \
+        if((pClient) != NULL && STATUS_FAILED(status)) { \
+            ATOMIC_INCREMENT(&(pClient)->diagnostics.numberOfErrors); \
+        } \
 
 // Forward declaration
 typedef struct __LwsCallInfo *PLwsCallInfo;
@@ -119,6 +123,7 @@ typedef struct {
     volatile SIZE_T numberOfMessagesSent;
     volatile SIZE_T numberOfMessagesReceived;
     volatile SIZE_T iceRefreshCount;
+    volatile SIZE_T numberOfErrors;
     volatile SIZE_T numberOfRuntimeErrors;
     volatile SIZE_T numberOfReconnects;
     UINT64 createTime;

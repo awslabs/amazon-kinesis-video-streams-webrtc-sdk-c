@@ -68,6 +68,7 @@ STATUS signalingClientSendMessageSync(SIGNALING_CLIENT_HANDLE signalingClientHan
 
 CleanUp:
 
+    SIGNALING_UPDATE_ERROR_COUNT(pSignalingClient, retStatus);
     LEAVES();
     return retStatus;
 }
@@ -84,6 +85,7 @@ STATUS signalingClientConnectSync(SIGNALING_CLIENT_HANDLE signalingClientHandle)
 
 CleanUp:
 
+    SIGNALING_UPDATE_ERROR_COUNT(pSignalingClient, retStatus);
     LEAVES();
     return retStatus;
 }
@@ -100,6 +102,7 @@ STATUS signalingClientDisconnectSync(SIGNALING_CLIENT_HANDLE signalingClientHand
 
 CleanUp:
 
+    SIGNALING_UPDATE_ERROR_COUNT(pSignalingClient, retStatus);
     LEAVES();
     return retStatus;
 }
@@ -116,6 +119,7 @@ STATUS signalingClientDeleteSync(SIGNALING_CLIENT_HANDLE signalingClientHandle)
 
 CleanUp:
 
+    SIGNALING_UPDATE_ERROR_COUNT(pSignalingClient, retStatus);
     LEAVES();
     return retStatus;
 }
@@ -132,6 +136,7 @@ STATUS signalingClientGetIceConfigInfoCount(SIGNALING_CLIENT_HANDLE signalingCli
 
 CleanUp:
 
+    SIGNALING_UPDATE_ERROR_COUNT(pSignalingClient, retStatus);
     LEAVES();
     return retStatus;
 }
@@ -148,6 +153,7 @@ STATUS signalingClientGetIceConfigInfo(SIGNALING_CLIENT_HANDLE signalingClientHa
 
 CleanUp:
 
+    SIGNALING_UPDATE_ERROR_COUNT(pSignalingClient, retStatus);
     LEAVES();
     return retStatus;
 }
@@ -173,6 +179,7 @@ CleanUp:
         *pState = state;
     }
 
+    SIGNALING_UPDATE_ERROR_COUNT(pSignalingClient, retStatus);
     LEAVES();
     return retStatus;
 }
@@ -250,14 +257,15 @@ STATUS signalingClientGetMetrics(SIGNALING_CLIENT_HANDLE signalingClientHandle, 
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
+    PSignalingClient pSignalingClient = FROM_SIGNALING_CLIENT_HANDLE(signalingClientHandle);
 
     DLOGV("Signaling Client Get Metrics");
 
-    CHK_STATUS(signalingGetMetrics(FROM_SIGNALING_CLIENT_HANDLE(signalingClientHandle),
-            pSignalingClientMetrics));
+    CHK_STATUS(signalingGetMetrics(pSignalingClient, pSignalingClientMetrics));
 
 CleanUp:
 
+    SIGNALING_UPDATE_ERROR_COUNT(pSignalingClient, retStatus);
     LEAVES();
     return retStatus;
 }
