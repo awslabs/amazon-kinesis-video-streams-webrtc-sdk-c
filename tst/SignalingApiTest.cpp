@@ -267,6 +267,10 @@ TEST_F(SignalingApiTest, signalingClientGetMetrics)
 
     // Connect and get metrics
     EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(mSignalingClientHandle));
+
+    // Await for a little to ensure we get some metrics for the connection duration
+    THREAD_SLEEP(200 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+
     EXPECT_EQ(STATUS_SUCCESS, signalingClientGetMetrics(mSignalingClientHandle, &metrics));
     EXPECT_EQ(0, metrics.signalingClientStats.numberOfReconnects);
     EXPECT_EQ(0, metrics.signalingClientStats.numberOfMessagesSent);
