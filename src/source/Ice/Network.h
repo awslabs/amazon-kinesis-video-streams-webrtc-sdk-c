@@ -28,6 +28,11 @@ extern "C" {
 #    define NO_SIGNAL MSG_NOSIGNAL
 #endif
 
+// Some systems such as Windows doesn't have this value
+#ifndef EAI_SYSTEM
+#define EAI_SYSTEM -11
+#endif
+
 typedef enum {
     KVS_SOCKET_PROTOCOL_NONE,
     KVS_SOCKET_PROTOCOL_TCP,
