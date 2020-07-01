@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['kvsrtcconfiguration_719',['KvsRtcConfiguration',['../structKvsRtcConfiguration.html',1,'']]]
+  ['kvsrtcconfiguration_720',['KvsRtcConfiguration',['../structKvsRtcConfiguration.html',1,'']]]
 ];

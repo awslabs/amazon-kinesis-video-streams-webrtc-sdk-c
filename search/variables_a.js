@@ -6,6 +6,7 @@ var searchData=
   ['lastresponsetimestamp_882',['lastResponseTimestamp',['../structRtcIceCandidatePairStats.html#a71057f5bd034b42cfcd17cc7e5755d05',1,'RtcIceCandidatePairStats']]],
   ['localcandidateid_883',['localCandidateId',['../structRtcIceCandidatePairStats.html#ae263ce92ce328d94a32a4a6995d5ec7b',1,'RtcIceCandidatePairStats']]],
   ['localcertificateid_884',['localCertificateId',['../structRtcTransportStats.html#a98d843faafb976352c1f3c3efdb06e31',1,'RtcTransportStats']]],
-  ['localid_885',['localId',['../structRtcRemoteInboundRtpStreamStats.html#a0102aabe3cba5adbe5e2aa950f0654c0',1,'RtcRemoteInboundRtpStreamStats']]],
-  ['logginglevel_886',['loggingLevel',['../structSignalingClientInfo.html#a8df6838b31452ecf1bd1cf1a0fffa680',1,'SignalingClientInfo']]]
+  ['localicecandidatestats_885',['localIceCandidateStats',['../structRtcStatsObject.html#a0dee9a39573da6cb111d992e800dd61e',1,'RtcStatsObject']]],
+  ['localid_886',['localId',['../structRtcRemoteInboundRtpStreamStats.html#a0102aabe3cba5adbe5e2aa950f0654c0',1,'RtcRemoteInboundRtpStreamStats']]],
+  ['logginglevel_887',['loggingLevel',['../structSignalingClientInfo.html#a8df6838b31452ecf1bd1cf1a0fffa680',1,'SignalingClientInfo']]]
 ];

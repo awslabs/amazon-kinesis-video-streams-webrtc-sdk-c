@@ -1,8 +1,7 @@
 var searchData=
 [
-  ['icecandidatenominationtimeout_863',['iceCandidateNominationTimeout',['../structKvsRtcConfiguration.html#ad347ab88ff79f98c0d5e68c7047e3097',1,'KvsRtcConfiguration']]],
-  ['icecandidatepairstats_864',['iceCandidatePairStats',['../structRtcStatsObject.html#a4593b66b951d6cdb12d059548a2af36c',1,'RtcStatsObject']]],
-  ['icecandidatestats_865',['iceCandidateStats',['../structRtcStatsObject.html#a3aff881985efaef6392e22aa0593b1b5',1,'RtcStatsObject']]],
+  ['icecandidatenominationtimeout_864',['iceCandidateNominationTimeout',['../structKvsRtcConfiguration.html#ad347ab88ff79f98c0d5e68c7047e3097',1,'KvsRtcConfiguration']]],
+  ['icecandidatepairstats_865',['iceCandidatePairStats',['../structRtcStatsObject.html#a4593b66b951d6cdb12d059548a2af36c',1,'RtcStatsObject']]],
   ['iceconnectioncheckpollinginterval_866',['iceConnectionCheckPollingInterval',['../structKvsRtcConfiguration.html#ad84c0128149bfec8df224f29c0a3e06a',1,'KvsRtcConfiguration']]],
   ['iceconnectionchecktimeout_867',['iceConnectionCheckTimeout',['../structKvsRtcConfiguration.html#acf25b325df8767b3fba43757df453763',1,'KvsRtcConfiguration']]],
   ['icelocalcandidategatheringtimeout_868',['iceLocalCandidateGatheringTimeout',['../structKvsRtcConfiguration.html#a3d8f81c01b537e49a7152aa4bbaa728d',1,'KvsRtcConfiguration']]],

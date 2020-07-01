@@ -417,7 +417,7 @@ var Include_8h =
     [ "peerConnectionOnDataChannel", "Include_8h.html#a41afed748235c04e38fa7481e421055d", null ],
     [ "peerConnectionOnIceCandidate", "Include_8h.html#a5a45606d264d6005c559b10fa42338bf", null ],
     [ "restartIce", "Include_8h.html#ade9fcbb056cb321f33890c1cf1222e64", null ],
-    [ "RtcPeerConnectionGetMetrics", "Include_8h.html#aef471d3d4b3c96b8896145550b09b6ff", null ],
+    [ "rtcPeerConnectionGetMetrics", "Include_8h.html#a79ca49eb3fd599e1846dab19ab650ccd", null ],
     [ "serializeSessionDescriptionInit", "Include_8h.html#a66d6bc8b6d11743303900831b52c76f2", null ],
     [ "setLocalDescription", "Include_8h.html#a060e71a4e33e0b7a8087317d4839fa8a", null ],
     [ "setRemoteDescription", "Include_8h.html#a4378f3c6aec4d69c647c46852bdfe6ed", null ],
