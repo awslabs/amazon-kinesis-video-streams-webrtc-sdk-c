@@ -291,6 +291,7 @@ STATUS getIpWithHostName(PCHAR hostname, PKvsIpAddress destIp)
 {
     STATUS retStatus = STATUS_SUCCESS;
     INT32 errCode;
+    PCHAR errStr;
     struct addrinfo *res, *rp;
     BOOL resolved = FALSE;
     struct sockaddr_in *ipv4Addr;
@@ -298,7 +299,11 @@ STATUS getIpWithHostName(PCHAR hostname, PKvsIpAddress destIp)
 
     CHK(hostname != NULL, STATUS_NULL_ARG);
 
-    CHK_ERR((errCode = getaddrinfo(hostname, NULL, NULL, &res)) == 0, STATUS_RESOLVE_HOSTNAME_FAILED, "getaddrinfo() with errno %s", gai_strerror(errCode));
+    errCode = getaddrinfo(hostname, NULL, NULL, &res);
+    if (errCode != 0) {
+        errStr = errCode == EAI_SYSTEM ? strerror(errno) : (PCHAR) gai_strerror(errCode);
+        CHK_ERR(FALSE, STATUS_RESOLVE_HOSTNAME_FAILED, "getaddrinfo() with errno %s", errStr);
+    }
 
     for (rp = res; rp != NULL && !resolved; rp = rp->ai_next) {
         if (rp->ai_family == AF_INET) {
