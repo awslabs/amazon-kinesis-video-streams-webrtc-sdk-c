@@ -11,6 +11,7 @@ extern "C" {
 #endif
 
 STATUS getIceCandidatePairStats(PRtcPeerConnection, PRtcIceCandidatePairStats);
+// TODO: docs
 STATUS getIceCandidateStats(PRtcPeerConnection, PRtcIceCandidateStats);
 #ifdef __cplusplus
 }
