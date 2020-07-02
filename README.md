@@ -103,6 +103,12 @@ export AWS_ACCESS_KEY_ID= <AWS account access key>
 export AWS_SECRET_ACCESS_KEY= <AWS account secret key>
 ```
 
+* Optionally, set AWS_SESSION_TOKEN if integrating with temporary token
+
+```
+export AWS_SESSION_TOKEN=<session token>
+```
+
 * Region is optional, if not being set, then us-west-2 will be used as default region.
 
 ```
@@ -211,15 +217,20 @@ configuration.certificates[0].pCertificate = pSampleConfiguration->rtcConfig.cer
 configuration.certificates[0].pPrivateKey = pSampleConfiguration->rtcConfig.certificates[0].pPrivateKey;
 ```
 
-## Getting the SDPs
+## DEBUG
+### Getting the SDPs
 If you would like to print out the SDPs, run this command:
 `export DEBUG_LOG_SDP=TRUE`
 
-## File logging
+### File logging
 If you would like to enable file logging, run this command:
 `export AWS_ENABLE_FILE_LOGGING=TRUE`
+You can also change settings such as buffer size, number of log files for rotation and log file path in the samples
 
-You can also change settings such as buffer size, number of log files for rotation and log file path in the samples 
+### Adjust MTU
+If ICE connection can be established successfully but media can not be transferred, make sure the actual MTU is higher than the MTU setting here: https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/blob/master/src/source/PeerConnection/Rtp.h#L12.
+
+You can also change settings such as buffer size, number of log files for rotation and log file path in the samples
 
 ## Clang Checks
 This SDK has clang format checks enforced in builds. In order to avoid re-iterating and make sure your code
@@ -229,6 +240,15 @@ complies, use the `check-clang.sh` to check for compliance and `clang-format.sh`
 All Public APIs are documented in our [Include.h](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/blob/master/src/include/com/amazonaws/kinesis/video/webrtcclient/Include.h), we also generate a [Doxygen](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-c/) each commit for easier navigation.
 
 Refer to [related](#related) for more about WebRTC and KVS.
+
+## Outbound hostname and port requirements
+* KVS endpoint : TCP 443 (ex: kinesisvideo.us-west-2.amazonaws.com)
+* HTTPS channel endpoint : TCP 443 (ex: r-2c136a55.kinesisvideo.us-west-2.amazonaws.com)
+* WSS channel endpoint : TCP 443 (ex: m-26d02974.kinesisvideo.us-west-2.amazonaws.com)
+* STUN endpoint : UDP 443 (ex: stun.kinesisvideo.us-west-2.amazonaws.com)
+* TURN endpoint : UDP/TCP 443 (ex: 34-219-91-62.t-1cd92f6b.kinesisvideo.us-west-2.amazonaws.com:443)
+
+The least common denominator for hostname is `*.kinesisvideo.<region>.amazonaws.com` and port is 443.
 
 ## Related
 * [What Is Amazon Kinesis Video Streams with WebRTC](https://docs.aws.amazon.com/kinesisvideostreams-webrtc-dg/latest/devguide/what-is-kvswebrtc.html)

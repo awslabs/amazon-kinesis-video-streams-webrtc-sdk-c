@@ -1,6 +1,10 @@
 #include "WebRTCClientTestFixture.h"
 
-namespace com { namespace amazonaws { namespace kinesis { namespace video { namespace webrtcclient {
+namespace com {
+namespace amazonaws {
+namespace kinesis {
+namespace video {
+namespace webrtcclient {
 
 class MetricsApiTest : public WebRtcClientTestBase {
 };
@@ -37,11 +41,11 @@ TEST_F(MetricsApiTest, webRtcIceGetMetrics)
     MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
     STRNCPY(configuration.iceServers[0].urls, (PCHAR) "stun:stun.kinesisvideo.us-west-2.amazonaws.com:443", MAX_ICE_CONFIG_URI_LEN);
     STRNCPY(configuration.iceServers[0].credential, (PCHAR) "", MAX_ICE_CONFIG_CREDENTIAL_LEN);
-    STRNCPY(configuration.iceServers[0].username,  (PCHAR) "", MAX_ICE_CONFIG_USER_NAME_LEN);
+    STRNCPY(configuration.iceServers[0].username, (PCHAR) "", MAX_ICE_CONFIG_USER_NAME_LEN);
 
     STRNCPY(configuration.iceServers[1].urls, (PCHAR) "turns:54.202.170.151:443?transport=tcp", MAX_ICE_CONFIG_URI_LEN);
     STRNCPY(configuration.iceServers[1].credential, (PCHAR) "username", MAX_ICE_CONFIG_CREDENTIAL_LEN);
-    STRNCPY(configuration.iceServers[1].username,  (PCHAR) "password", MAX_ICE_CONFIG_USER_NAME_LEN);
+    STRNCPY(configuration.iceServers[1].username, (PCHAR) "password", MAX_ICE_CONFIG_USER_NAME_LEN);
 
     EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
 
@@ -63,8 +67,8 @@ TEST_F(MetricsApiTest, webRtcIceGetMetrics)
     EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
 }
 
-}
-}
-}
-}
-}
+} // namespace webrtcclient
+} // namespace video
+} // namespace kinesis
+} // namespace amazonaws
+} // namespace com

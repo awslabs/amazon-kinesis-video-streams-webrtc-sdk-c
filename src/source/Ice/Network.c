@@ -162,7 +162,7 @@ STATUS createSocket(KVS_IP_FAMILY_TYPE familyType, KVS_SOCKET_PROTOCOL protocol,
 
     optionValue = 1;
     if (setsockopt(sockfd, SOL_SOCKET, NO_SIGNAL, &optionValue, SIZEOF(optionValue)) < 0) {
-        DLOGW("setsockopt() failed with errno %s", strerror(errno));
+        DLOGD("setsockopt() failed with errno %s", strerror(errno));
     }
 
     if (sendBufSize > 0 && setsockopt(sockfd, SOL_SOCKET, SO_SNDBUF, &sendBufSize, SIZEOF(sendBufSize)) < 0) {
