@@ -14,7 +14,6 @@ CleanUp:
     return retStatus;
 }
 
-
 STATUS getIceCandidateStats(PRtcPeerConnection pRtcPeerConnection, PRtcIceCandidateStats pRtcIceCandidateStats)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -81,48 +80,48 @@ CleanUp:
 
 STATUS rtcPeerConnectionGetMetrics(PRtcPeerConnection pRtcPeerConnection, PRtcStats pRtcMetrics)
 {
-  STATUS retStatus = STATUS_SUCCESS;
-  CHK(pRtcPeerConnection != NULL || pRtcMetrics != NULL, STATUS_NULL_ARG);
-  switch(pRtcMetrics->requestedTypeOfStats) {
-  case RTC_STATS_TYPE_CANDIDATE_PAIR:
-    getIceCandidatePairStats(pRtcPeerConnection, &pRtcMetrics->rtcStatsObject.iceCandidatePairStats);
-    break;
-  case RTC_STATS_TYPE_LOCAL_CANDIDATE:
-    getIceCandidateStats(pRtcPeerConnection, &pRtcMetrics->rtcStatsObject.localIceCandidateStats);
-    break;
-  case RTC_STATS_TYPE_REMOTE_CANDIDATE:
-    getIceCandidateStats(pRtcPeerConnection, &pRtcMetrics->rtcStatsObject.remoteIceCandidateStats);
-    break;
-  case  RTC_STATS_TYPE_TRANSPORT:
-    getTransportStats(pRtcPeerConnection, &pRtcMetrics->rtcStatsObject.transportStats);
-    break;
-  case  RTC_STATS_TYPE_REMOTE_INBOUND_RTP:
-    getRtpRemoteInboundStats(pRtcPeerConnection, &pRtcMetrics->rtcStatsObject.remoteInboundRtpStreamStats);
-    break;
-  case  RTC_STATS_TYPE_OUTBOUND_RTP:
-    getRtpOutboundStats(pRtcPeerConnection, &pRtcMetrics->rtcStatsObject.outboundRtpStreamStats);
-    break;
-  case  RTC_STATS_TYPE_ICE_SERVER:
-    getIceServerStats(pRtcPeerConnection, &pRtcMetrics->rtcStatsObject.iceServerStats);
-    break;
-  case  RTC_STATS_TYPE_CERTIFICATE:
-  case  RTC_STATS_TYPE_CSRC:
-  case  RTC_STATS_TYPE_INBOUND_RTP:
-  case  RTC_STATS_TYPE_REMOTE_OUTBOUND_RTP:
-  case  RTC_STATS_TYPE_PEER_CONNECTION:
-  case  RTC_STATS_TYPE_DATA_CHANNEL:
-  case  RTC_STATS_TYPE_RECEIVER:
-  case  RTC_STATS_TYPE_SENDER:
-  case  RTC_STATS_TYPE_TRACK:
-  case  RTC_STATS_TYPE_CODEC:
-  case  RTC_STATS_TYPE_SCTP_TRANSPORT:
-  case  RTC_STATS_TYPE_TRANSCEIVER:
-  case  RTC_STATS_TYPE_RTC_ALL:
-  default:
-    CHK(FALSE, STATUS_NOT_IMPLEMENTED);
-  }
-  CleanUp:
-  return retStatus;
+    STATUS retStatus = STATUS_SUCCESS;
+    CHK(pRtcPeerConnection != NULL || pRtcMetrics != NULL, STATUS_NULL_ARG);
+    switch(pRtcMetrics->requestedTypeOfStats) {
+    case RTC_STATS_TYPE_CANDIDATE_PAIR:
+        getIceCandidatePairStats(pRtcPeerConnection, &pRtcMetrics->rtcStatsObject.iceCandidatePairStats);
+        break;
+    case RTC_STATS_TYPE_LOCAL_CANDIDATE:
+        getIceCandidateStats(pRtcPeerConnection, &pRtcMetrics->rtcStatsObject.localIceCandidateStats);
+        break;
+    case RTC_STATS_TYPE_REMOTE_CANDIDATE:
+        getIceCandidateStats(pRtcPeerConnection, &pRtcMetrics->rtcStatsObject.remoteIceCandidateStats);
+        break;
+    case  RTC_STATS_TYPE_TRANSPORT:
+        getTransportStats(pRtcPeerConnection, &pRtcMetrics->rtcStatsObject.transportStats);
+        break;
+    case  RTC_STATS_TYPE_REMOTE_INBOUND_RTP:
+        getRtpRemoteInboundStats(pRtcPeerConnection, &pRtcMetrics->rtcStatsObject.remoteInboundRtpStreamStats);
+        break;
+    case  RTC_STATS_TYPE_OUTBOUND_RTP:
+        getRtpOutboundStats(pRtcPeerConnection, &pRtcMetrics->rtcStatsObject.outboundRtpStreamStats);
+        break;
+    case  RTC_STATS_TYPE_ICE_SERVER:
+        getIceServerStats(pRtcPeerConnection, &pRtcMetrics->rtcStatsObject.iceServerStats);
+        break;
+    case  RTC_STATS_TYPE_CERTIFICATE:
+    case  RTC_STATS_TYPE_CSRC:
+    case  RTC_STATS_TYPE_INBOUND_RTP:
+    case  RTC_STATS_TYPE_REMOTE_OUTBOUND_RTP:
+    case  RTC_STATS_TYPE_PEER_CONNECTION:
+    case  RTC_STATS_TYPE_DATA_CHANNEL:
+    case  RTC_STATS_TYPE_RECEIVER:
+    case  RTC_STATS_TYPE_SENDER:
+    case  RTC_STATS_TYPE_TRACK:
+    case  RTC_STATS_TYPE_CODEC:
+    case  RTC_STATS_TYPE_SCTP_TRANSPORT:
+    case  RTC_STATS_TYPE_TRANSCEIVER:
+    case  RTC_STATS_TYPE_RTC_ALL:
+    default:
+        CHK(FALSE, STATUS_NOT_IMPLEMENTED);
+    }
+CleanUp:
+    return retStatus;
 }
 STATUS getSignalingClientStats(SIGNALING_CLIENT_HANDLE signalingClientHandle, PSignalingClientMetrics pSignalingMetrics)
 {
