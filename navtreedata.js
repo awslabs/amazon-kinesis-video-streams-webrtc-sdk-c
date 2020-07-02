@@ -53,8 +53,8 @@ var NAVTREEINDEX =
 "Include_8h.html",
 "functions.html",
 "group__RTCP.html#ga9ecbc594d09e2545c56fa4263fc207b3",
-"group__Signaling.html#gaf2800951426ad32b6d447d6883e4410a",
-"structRtcOutboundRtpStreamStats.html#af484c40e4ad9d4dd57d91e2733f9ff5a"
+"group__Signaling.html#gaee344b8cd67a5137f346f2baa0b97b08",
+"structRtcOutboundRtpStreamStats.html#af1fcfee690456cda16406e3d2280af8b"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

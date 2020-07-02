@@ -27,6 +27,7 @@ var group__Signaling =
     [ "STATUS_SIGNALING_INVALID_KMS_KEY_LENGTH", "group__Signaling.html#ga6f9bf017a6e31852718a472575248a0d", null ],
     [ "STATUS_SIGNALING_INVALID_MESSAGE_TTL_VALUE", "group__Signaling.html#ga69341c098acc7c06345c68862cb06f44", null ],
     [ "STATUS_SIGNALING_INVALID_MESSAGE_TYPE", "group__Signaling.html#ga16c2a0ed78836e02e33f388e1adbfdbf", null ],
+    [ "STATUS_SIGNALING_INVALID_METRICS_VERSION", "group__Signaling.html#gaea916cd391b638a9549a7335a9df5c3c", null ],
     [ "STATUS_SIGNALING_INVALID_PAYLOAD_LEN_IN_MESSAGE", "group__Signaling.html#ga6668b5a4e9351440b321afde4eb4b1cd", null ],
     [ "STATUS_SIGNALING_INVALID_READY_STATE", "group__Signaling.html#ga5f3b0bc37893253d457ce9555bd4fcd5", null ],
     [ "STATUS_SIGNALING_INVALID_REGION_LENGTH", "group__Signaling.html#ga434d1a99d37ff342fd3b2e50a18b6c88", null ],

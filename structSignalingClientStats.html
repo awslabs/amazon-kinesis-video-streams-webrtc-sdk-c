@@ -106,50 +106,38 @@ $(document).ready(function(){initNavTree('structSignalingClientStats.html',''); 
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
-<tr class="memitem:ac108267dd28fbbea20c5a722a6ee4cc1"><td class="memItemLeft" align="right" valign="top">UINT64&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClientStats.html#ac108267dd28fbbea20c5a722a6ee4cc1">apiCallLatency</a></td></tr>
-<tr class="memdesc:ac108267dd28fbbea20c5a722a6ee4cc1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Latency (milliseconds) incurred per backend API call.  <a href="structSignalingClientStats.html#ac108267dd28fbbea20c5a722a6ee4cc1">More...</a><br /></td></tr>
-<tr class="separator:ac108267dd28fbbea20c5a722a6ee4cc1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6dc71a2165fa2c15cd1ab1391337d932"><td class="memItemLeft" align="right" valign="top">UINT64&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClientStats.html#a6dc71a2165fa2c15cd1ab1391337d932">cpApiCallLatency</a></td></tr>
+<tr class="memdesc:a6dc71a2165fa2c15cd1ab1391337d932"><td class="mdescLeft">&#160;</td><td class="mdescRight">Latency (in 100 ns) incurred per backend API call for the control plane APIs.  <a href="structSignalingClientStats.html#a6dc71a2165fa2c15cd1ab1391337d932">More...</a><br /></td></tr>
+<tr class="separator:a6dc71a2165fa2c15cd1ab1391337d932"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a00f3d2b3ea61ddc1353a4a7d5ed6084a"><td class="memItemLeft" align="right" valign="top">UINT64&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClientStats.html#a00f3d2b3ea61ddc1353a4a7d5ed6084a">dpApiCallLatency</a></td></tr>
+<tr class="memdesc:a00f3d2b3ea61ddc1353a4a7d5ed6084a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Latency (in 100 ns) incurred per backend API call for the data plane APIs.  <a href="structSignalingClientStats.html#a00f3d2b3ea61ddc1353a4a7d5ed6084a">More...</a><br /></td></tr>
+<tr class="separator:a00f3d2b3ea61ddc1353a4a7d5ed6084a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac581ceebed9a391235a48dba8e4cff34"><td class="memItemLeft" align="right" valign="top">UINT64&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClientStats.html#ac581ceebed9a391235a48dba8e4cff34">signalingClientUptime</a></td></tr>
-<tr class="memdesc:ac581ceebed9a391235a48dba8e4cff34"><td class="mdescLeft">&#160;</td><td class="mdescRight">Client uptime (milliseconds). Timestamp will be recorded at every SIGNALING_CLIENT_STATE_CONNECTED.  <a href="structSignalingClientStats.html#ac581ceebed9a391235a48dba8e4cff34">More...</a><br /></td></tr>
+<tr class="memdesc:ac581ceebed9a391235a48dba8e4cff34"><td class="mdescLeft">&#160;</td><td class="mdescRight">Client uptime (in 100 ns). Timestamp will be recorded at every SIGNALING_CLIENT_STATE_CONNECTED.  <a href="structSignalingClientStats.html#ac581ceebed9a391235a48dba8e4cff34">More...</a><br /></td></tr>
 <tr class="separator:ac581ceebed9a391235a48dba8e4cff34"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a11d655b6febcfa1b84596b769248d086"><td class="memItemLeft" align="right" valign="top">UINT64&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClientStats.html#a11d655b6febcfa1b84596b769248d086">connectionDuration</a></td></tr>
-<tr class="memdesc:a11d655b6febcfa1b84596b769248d086"><td class="mdescLeft">&#160;</td><td class="mdescRight">Duration of connection (milliseconds)  <a href="structSignalingClientStats.html#a11d655b6febcfa1b84596b769248d086">More...</a><br /></td></tr>
+<tr class="memdesc:a11d655b6febcfa1b84596b769248d086"><td class="mdescLeft">&#160;</td><td class="mdescRight">Duration of connection (in 100 ns)  <a href="structSignalingClientStats.html#a11d655b6febcfa1b84596b769248d086">More...</a><br /></td></tr>
 <tr class="separator:a11d655b6febcfa1b84596b769248d086"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a88b2666c4ad66ca9fb8940111619003e"><td class="memItemLeft" align="right" valign="top">UINT64&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClientStats.html#a88b2666c4ad66ca9fb8940111619003e">numberOfMessagesSent</a></td></tr>
-<tr class="memdesc:a88b2666c4ad66ca9fb8940111619003e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Number of messages sent by the signaling client.  <a href="structSignalingClientStats.html#a88b2666c4ad66ca9fb8940111619003e">More...</a><br /></td></tr>
-<tr class="separator:a88b2666c4ad66ca9fb8940111619003e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af98a3da7d5e02b534df0d801bb57af85"><td class="memItemLeft" align="right" valign="top">UINT64&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClientStats.html#af98a3da7d5e02b534df0d801bb57af85">numberOfMessagesReceived</a></td></tr>
-<tr class="memdesc:af98a3da7d5e02b534df0d801bb57af85"><td class="mdescLeft">&#160;</td><td class="mdescRight">Number of messages received by the signaling client.  <a href="structSignalingClientStats.html#af98a3da7d5e02b534df0d801bb57af85">More...</a><br /></td></tr>
-<tr class="separator:af98a3da7d5e02b534df0d801bb57af85"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae22aaf0c69e1d6b07cda7d56a2ebef69"><td class="memItemLeft" align="right" valign="top">UINT64&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClientStats.html#ae22aaf0c69e1d6b07cda7d56a2ebef69">iceRefreshCount</a></td></tr>
-<tr class="memdesc:ae22aaf0c69e1d6b07cda7d56a2ebef69"><td class="mdescLeft">&#160;</td><td class="mdescRight">Number of times the ICE is refreshed.  <a href="structSignalingClientStats.html#ae22aaf0c69e1d6b07cda7d56a2ebef69">More...</a><br /></td></tr>
-<tr class="separator:ae22aaf0c69e1d6b07cda7d56a2ebef69"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a9e8fe9be69c2c9ae9d4ab0f995480ce2"><td class="memItemLeft" align="right" valign="top">UINT64&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClientStats.html#a9e8fe9be69c2c9ae9d4ab0f995480ce2">numberOfRecoverableErrors</a></td></tr>
-<tr class="memdesc:a9e8fe9be69c2c9ae9d4ab0f995480ce2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Number of recoverable errors. Will be a static count returned when requested.  <a href="structSignalingClientStats.html#a9e8fe9be69c2c9ae9d4ab0f995480ce2">More...</a><br /></td></tr>
-<tr class="separator:a9e8fe9be69c2c9ae9d4ab0f995480ce2"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a676a3eefbd011944d20a59e834ae9cda"><td class="memItemLeft" align="right" valign="top">UINT64&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClientStats.html#a676a3eefbd011944d20a59e834ae9cda">numberOfReconnects</a></td></tr>
-<tr class="memdesc:a676a3eefbd011944d20a59e834ae9cda"><td class="mdescLeft">&#160;</td><td class="mdescRight">Number of reconnects in the session.  <a href="structSignalingClientStats.html#a676a3eefbd011944d20a59e834ae9cda">More...</a><br /></td></tr>
-<tr class="separator:a676a3eefbd011944d20a59e834ae9cda"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a76b01fd641d9e83b517ac40aaba4d42a"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClientStats.html#a76b01fd641d9e83b517ac40aaba4d42a">numberOfMessagesSent</a></td></tr>
+<tr class="memdesc:a76b01fd641d9e83b517ac40aaba4d42a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Number of messages sent by the signaling client.  <a href="structSignalingClientStats.html#a76b01fd641d9e83b517ac40aaba4d42a">More...</a><br /></td></tr>
+<tr class="separator:a76b01fd641d9e83b517ac40aaba4d42a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aca900ed2e3622b2605c81790768df294"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClientStats.html#aca900ed2e3622b2605c81790768df294">numberOfMessagesReceived</a></td></tr>
+<tr class="memdesc:aca900ed2e3622b2605c81790768df294"><td class="mdescLeft">&#160;</td><td class="mdescRight">Number of messages received by the signaling client.  <a href="structSignalingClientStats.html#aca900ed2e3622b2605c81790768df294">More...</a><br /></td></tr>
+<tr class="separator:aca900ed2e3622b2605c81790768df294"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a86d9e6bea63d4c69c4b04223d59c5142"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClientStats.html#a86d9e6bea63d4c69c4b04223d59c5142">iceRefreshCount</a></td></tr>
+<tr class="memdesc:a86d9e6bea63d4c69c4b04223d59c5142"><td class="mdescLeft">&#160;</td><td class="mdescRight">Number of times the ICE is refreshed.  <a href="structSignalingClientStats.html#a86d9e6bea63d4c69c4b04223d59c5142">More...</a><br /></td></tr>
+<tr class="separator:a86d9e6bea63d4c69c4b04223d59c5142"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a30f98d510f5ecdd19c53afb8f9ef1f6b"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClientStats.html#a30f98d510f5ecdd19c53afb8f9ef1f6b">numberOfErrors</a></td></tr>
+<tr class="separator:a30f98d510f5ecdd19c53afb8f9ef1f6b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac9ba962af79e44d73aac0688f09019ca"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClientStats.html#ac9ba962af79e44d73aac0688f09019ca">numberOfRuntimeErrors</a></td></tr>
+<tr class="separator:ac9ba962af79e44d73aac0688f09019ca"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a88a95942f794d84724583ef8b6d9f181"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClientStats.html#a88a95942f794d84724583ef8b6d9f181">numberOfReconnects</a></td></tr>
+<tr class="memdesc:a88a95942f794d84724583ef8b6d9f181"><td class="mdescLeft">&#160;</td><td class="mdescRight">Number of reconnects in the session.  <a href="structSignalingClientStats.html#a88a95942f794d84724583ef8b6d9f181">More...</a><br /></td></tr>
+<tr class="separator:a88a95942f794d84724583ef8b6d9f181"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p><a class="el" href="structSignalingClientMetrics.html" title="SignalingStats Collection of signaling related stats. Can be expanded in the future.">SignalingClientMetrics</a> Represent the stats related to the KVS WebRTC SDK signaling client. </p>
 </div><h2 class="groupheader">Member Data Documentation</h2>
-<a id="ac108267dd28fbbea20c5a722a6ee4cc1"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac108267dd28fbbea20c5a722a6ee4cc1">&#9670;&nbsp;</a></span>apiCallLatency</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">UINT64 SignalingClientStats::apiCallLatency</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Latency (milliseconds) incurred per backend API call. </p>
-
-</div>
-</div>
 <a id="a11d655b6febcfa1b84596b769248d086"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a11d655b6febcfa1b84596b769248d086">&#9670;&nbsp;</a></span>connectionDuration</h2>
 
@@ -162,18 +150,50 @@ Public Attributes</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Duration of connection (milliseconds) </p>
+<p>Duration of connection (in 100 ns) </p>
 
 </div>
 </div>
-<a id="ae22aaf0c69e1d6b07cda7d56a2ebef69"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ae22aaf0c69e1d6b07cda7d56a2ebef69">&#9670;&nbsp;</a></span>iceRefreshCount</h2>
+<a id="a6dc71a2165fa2c15cd1ab1391337d932"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6dc71a2165fa2c15cd1ab1391337d932">&#9670;&nbsp;</a></span>cpApiCallLatency</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">UINT64 SignalingClientStats::iceRefreshCount</td>
+          <td class="memname">UINT64 SignalingClientStats::cpApiCallLatency</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Latency (in 100 ns) incurred per backend API call for the control plane APIs. </p>
+
+</div>
+</div>
+<a id="a00f3d2b3ea61ddc1353a4a7d5ed6084a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a00f3d2b3ea61ddc1353a4a7d5ed6084a">&#9670;&nbsp;</a></span>dpApiCallLatency</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">UINT64 SignalingClientStats::dpApiCallLatency</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Latency (in 100 ns) incurred per backend API call for the data plane APIs. </p>
+
+</div>
+</div>
+<a id="a86d9e6bea63d4c69c4b04223d59c5142"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a86d9e6bea63d4c69c4b04223d59c5142">&#9670;&nbsp;</a></span>iceRefreshCount</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">UINT32 SignalingClientStats::iceRefreshCount</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -182,14 +202,29 @@ Public Attributes</h2></td></tr>
 
 </div>
 </div>
-<a id="af98a3da7d5e02b534df0d801bb57af85"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#af98a3da7d5e02b534df0d801bb57af85">&#9670;&nbsp;</a></span>numberOfMessagesReceived</h2>
+<a id="a30f98d510f5ecdd19c53afb8f9ef1f6b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a30f98d510f5ecdd19c53afb8f9ef1f6b">&#9670;&nbsp;</a></span>numberOfErrors</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">UINT64 SignalingClientStats::numberOfMessagesReceived</td>
+          <td class="memname">UINT32 SignalingClientStats::numberOfErrors</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Number of signaling client API call failures. These errors are the result of non STATUS_SUCCESS returns from all of the public APIs defined for the signaling client with the exception of createSignalingClientSync and freeSignalingClient invocation and errors where the signaling client handle is invalid </p>
+
+</div>
+</div>
+<a id="aca900ed2e3622b2605c81790768df294"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aca900ed2e3622b2605c81790768df294">&#9670;&nbsp;</a></span>numberOfMessagesReceived</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">UINT32 SignalingClientStats::numberOfMessagesReceived</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -198,14 +233,14 @@ Public Attributes</h2></td></tr>
 
 </div>
 </div>
-<a id="a88b2666c4ad66ca9fb8940111619003e"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a88b2666c4ad66ca9fb8940111619003e">&#9670;&nbsp;</a></span>numberOfMessagesSent</h2>
+<a id="a76b01fd641d9e83b517ac40aaba4d42a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a76b01fd641d9e83b517ac40aaba4d42a">&#9670;&nbsp;</a></span>numberOfMessagesSent</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">UINT64 SignalingClientStats::numberOfMessagesSent</td>
+          <td class="memname">UINT32 SignalingClientStats::numberOfMessagesSent</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -214,14 +249,14 @@ Public Attributes</h2></td></tr>
 
 </div>
 </div>
-<a id="a676a3eefbd011944d20a59e834ae9cda"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a676a3eefbd011944d20a59e834ae9cda">&#9670;&nbsp;</a></span>numberOfReconnects</h2>
+<a id="a88a95942f794d84724583ef8b6d9f181"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a88a95942f794d84724583ef8b6d9f181">&#9670;&nbsp;</a></span>numberOfReconnects</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">UINT64 SignalingClientStats::numberOfReconnects</td>
+          <td class="memname">UINT32 SignalingClientStats::numberOfReconnects</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -230,19 +265,22 @@ Public Attributes</h2></td></tr>
 
 </div>
 </div>
-<a id="a9e8fe9be69c2c9ae9d4ab0f995480ce2"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a9e8fe9be69c2c9ae9d4ab0f995480ce2">&#9670;&nbsp;</a></span>numberOfRecoverableErrors</h2>
+<a id="ac9ba962af79e44d73aac0688f09019ca"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac9ba962af79e44d73aac0688f09019ca">&#9670;&nbsp;</a></span>numberOfRuntimeErrors</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">UINT64 SignalingClientStats::numberOfRecoverableErrors</td>
+          <td class="memname">UINT32 SignalingClientStats::numberOfRuntimeErrors</td>
         </tr>
       </table>
 </div><div class="memdoc">
-
-<p>Number of recoverable errors. Will be a static count returned when requested. </p>
+<p>Number of indirect or runtime errors. These are errors that are not returned as part of public API calls but rather when an error occurs on background threads for example:</p><ul>
+<li>When received message on the background thread is "bad"</li>
+<li>When re-connect logic fails after pre-configured retries/times out</li>
+<li>When refreshing ICE server configuration fails after pre-configured retries In all of these cases the error callback (if specified) will be called. </li>
+</ul>
 
 </div>
 </div>
@@ -258,7 +296,7 @@ Public Attributes</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Client uptime (milliseconds). Timestamp will be recorded at every SIGNALING_CLIENT_STATE_CONNECTED. </p>
+<p>Client uptime (in 100 ns). Timestamp will be recorded at every SIGNALING_CLIENT_STATE_CONNECTED. </p>
 
 </div>
 </div>
@@ -271,7 +309,7 @@ Public Attributes</h2></td></tr>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="structSignalingClientStats.html">SignalingClientStats</a></li>
-    <li class="footer">Generated on Wed Jul 1 2020 20:23:16 for Amazon Kinesis Webrtc C SDK by
+    <li class="footer">Generated on Thu Jul 2 2020 00:53:56 for Amazon Kinesis Webrtc C SDK by
     <a href="http://www.doxygen.org/index.html">
     <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.18 </li>
   </ul>
