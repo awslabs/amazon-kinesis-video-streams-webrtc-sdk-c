@@ -4,6 +4,7 @@
 #define LOG_CLASS "Metrics"
 #include "../Include_i.h"
 
+<<<<<<< HEAD
 STATUS logIceServerMetrics(PRtcIceServerStats pRtcIceServerStats)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -19,12 +20,21 @@ CleanUp:
 }
 
 STATUS getIceCandidatePairStats(PRtcPeerConnection pRtcPeerConnection, PRtcIceCandidatePairStats pRtcIceCandidatePairStats)
+=======
+STATUS getIceCandidatePairStats(PRtcPeerConnection pRtcPeerConnection,
+                                PRtcIceCandidatePairStats pRtcIceCandidatePairStats)
+>>>>>>> clang format
 {
     STATUS retStatus = STATUS_SUCCESS;
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pRtcPeerConnection;
     UNUSED_PARAM(pKvsPeerConnection);
     CHK((pRtcPeerConnection != NULL || pRtcIceCandidatePairStats != NULL), STATUS_NULL_ARG);
+<<<<<<< HEAD
     CHK(FALSE, STATUS_NOT_IMPLEMENTED);
+=======
+    pRtcIceCandidatePairStats->requestsReceived =
+        pKvsPeerConnection->pIceAgent->rtcIceMetrics.rtcIceCandidatePairStats.requestsReceived;
+>>>>>>> clang format
 CleanUp:
     return retStatus;
 }
@@ -72,7 +82,8 @@ CleanUp:
     return retStatus;
 }
 
-STATUS getRtpRemoteInboundStats(PRtcPeerConnection pRtcPeerConnection, PRtcRemoteInboundRtpStreamStats pRtcRemoteInboundRtpStreamStats)
+STATUS getRtpRemoteInboundStats(PRtcPeerConnection pRtcPeerConnection,
+                                PRtcRemoteInboundRtpStreamStats pRtcRemoteInboundRtpStreamStats)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pRtcPeerConnection;
@@ -107,7 +118,7 @@ CleanUp:
 STATUS rtcPeerConnectionGetMetrics(PRtcPeerConnection pRtcPeerConnection, PRtcStats pRtcMetrics)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    CHK(pRtcPeerConnection != NULL && pRtcMetrics != NULL, STATUS_NULL_ARG);
+    CHK(pRtcPeerConnection != NULL || pRtcMetrics != NULL, STATUS_NULL_ARG);
     switch (pRtcMetrics->requestedTypeOfStats) {
         case RTC_STATS_TYPE_CANDIDATE_PAIR:
             getIceCandidatePairStats(pRtcPeerConnection, &pRtcMetrics->rtcStatsObject.iceCandidatePairStats);
