@@ -13,6 +13,7 @@ UINT64 gTotalWebRtcClientMemoryUsage = 0;
 MUTEX gTotalWebRtcClientMemoryMutex;
 
 WebRtcClientTestBase::WebRtcClientTestBase() :
+        mSignalingClientHandle(INVALID_SIGNALING_CLIENT_HANDLE_VALUE),
         mAccessKey(NULL),
         mSecretKey(NULL),
         mSessionToken(NULL),
