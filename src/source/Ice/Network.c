@@ -148,25 +148,18 @@ CleanUp:
     return retStatus;
 }
 
-STATUS createSocket(PKvsIpAddress pHostIpAddress, PKvsIpAddress pPeerAddress, KVS_SOCKET_PROTOCOL protocol, UINT32 sendBufSize, PINT32 pSockFd)
+STATUS createSocket(KVS_IP_FAMILY_TYPE familyType, KVS_SOCKET_PROTOCOL protocol, UINT32 sendBufSize, PINT32 pOutSockFd)
 {
     STATUS retStatus = STATUS_SUCCESS;
 
-    struct sockaddr_in ipv4Addr, ipv4PeerAddr;
-    struct sockaddr_in6 ipv6Addr, ipv6PeerAddr;
-    INT32 sockfd, sockType, flags, retVal;
-    struct sockaddr *sockAddr = NULL, *peerSockAddr = NULL;
-    socklen_t addrLen;
-    CHAR ipAddrStr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
+    INT32 sockfd, sockType, flags;
     INT32 optionValue;
 
-    CHK(pHostIpAddress != NULL && pSockFd != NULL, STATUS_NULL_ARG);
-    CHK(protocol == KVS_SOCKET_PROTOCOL_UDP || pPeerAddress != NULL, STATUS_INVALID_ARG);
-    CHK(pPeerAddress == NULL || pPeerAddress->family == pHostIpAddress->family, STATUS_INVALID_ARG);
+    CHK(pOutSockFd != NULL, STATUS_NULL_ARG);
 
     sockType = protocol == KVS_SOCKET_PROTOCOL_UDP ? SOCK_DGRAM : SOCK_STREAM;
 
-    sockfd = socket(pHostIpAddress->family == KVS_IP_FAMILY_TYPE_IPV4 ? AF_INET : AF_INET6, sockType, 0);
+    sockfd = socket(familyType == KVS_IP_FAMILY_TYPE_IPV4 ? AF_INET : AF_INET6, sockType, 0);
     if (sockfd == -1) {
         DLOGW("socket() failed to create socket with errno %s", strerror(errno));
         CHK(FALSE, STATUS_CREATE_UDP_SOCKET_FAILED);
@@ -182,55 +175,7 @@ STATUS createSocket(PKvsIpAddress pHostIpAddress, PKvsIpAddress pPeerAddress, KV
         CHK(FALSE, STATUS_SOCKET_SET_SEND_BUFFER_SIZE_FAILED);
     }
 
-    if (pHostIpAddress->family == KVS_IP_FAMILY_TYPE_IPV4) {
-        MEMSET(&ipv4Addr, 0x00, SIZEOF(ipv4Addr));
-        ipv4Addr.sin_family = AF_INET;
-        ipv4Addr.sin_port = 0;      // use next available port
-        MEMCPY(&ipv4Addr.sin_addr, pHostIpAddress->address, IPV4_ADDRESS_LENGTH);
-        // TODO: Properly handle the non-portable sin_len field if needed per https://issues.amazon.com/KinesisVideo-4952
-        // ipv4Addr.sin_len = SIZEOF(ipv4Addr);
-        sockAddr = (struct sockaddr *) &ipv4Addr;
-        addrLen = SIZEOF(struct sockaddr_in);
-
-        if (pPeerAddress != NULL) {
-            MEMSET(&ipv4PeerAddr, 0x00, SIZEOF(ipv4PeerAddr));
-            ipv4PeerAddr.sin_family = AF_INET;
-            ipv4PeerAddr.sin_port = pPeerAddress->port;
-            MEMCPY(&ipv4PeerAddr.sin_addr, pPeerAddress->address, IPV4_ADDRESS_LENGTH);
-            peerSockAddr = (struct sockaddr *) &ipv4PeerAddr;
-        }
-    } else {
-        MEMSET(&ipv6Addr, 0x00, SIZEOF(ipv6Addr));
-        ipv6Addr.sin6_family = AF_INET6;
-        ipv6Addr.sin6_port = 0;     // use next available port
-        MEMCPY(&ipv6Addr.sin6_addr, pHostIpAddress->address, IPV6_ADDRESS_LENGTH);
-        // TODO: Properly handle the non-portable sin6_len field if needed per https://issues.amazon.com/KinesisVideo-4952
-        // ipv6Addr.sin6_len = SIZEOF(ipv6Addr);
-        sockAddr = (struct sockaddr *) &ipv6Addr;
-        addrLen = SIZEOF(struct sockaddr_in6);
-
-        if (pPeerAddress != NULL) {
-            MEMSET(&ipv6PeerAddr, 0x00, SIZEOF(ipv6PeerAddr));
-            ipv6PeerAddr.sin6_family = AF_INET6;
-            ipv6PeerAddr.sin6_port = pPeerAddress->port;
-            MEMCPY(&ipv6PeerAddr.sin6_addr, pPeerAddress->address, IPV6_ADDRESS_LENGTH);
-            peerSockAddr = (struct sockaddr *) &ipv6PeerAddr;
-        }
-    }
-
-    if (bind(sockfd, sockAddr, addrLen) < 0) {
-        CHK_STATUS(getIpAddrStr(pHostIpAddress, ipAddrStr, ARRAY_SIZE(ipAddrStr)));
-        DLOGW("bind() failed for ip%s address: %s, port %u with errno %s", IS_IPV4_ADDR(pHostIpAddress) ? EMPTY_STRING : "V6", ipAddrStr, (UINT16) getInt16(pHostIpAddress->port), strerror(errno));
-        CHK(FALSE, STATUS_BINDING_SOCKET_FAILED);
-    }
-
-    if (getsockname(sockfd, sockAddr, &addrLen) < 0) {
-        DLOGW("getsockname() failed with errno %s", strerror(errno));
-        CHK(FALSE, STATUS_GET_PORT_NUMBER_FAILED);
-    }
-
-    pHostIpAddress->port = (UINT16) pHostIpAddress->family == KVS_IP_FAMILY_TYPE_IPV4 ? ipv4Addr.sin_port : ipv6Addr.sin6_port;
-    *pSockFd = (INT32) sockfd;
+    *pOutSockFd = (INT32) sockfd;
 
 #ifdef _WIN32
     UINT32 nonblock = 1;
@@ -251,18 +196,102 @@ STATUS createSocket(PKvsIpAddress pHostIpAddress, PKvsIpAddress pPeerAddress, KV
         DLOGW("setsockopt() TCP_NODELAY failed with errno %s", strerror(errno));
     }
 
+CleanUp:
+
+    return retStatus;
+}
+
+STATUS socketBind(PKvsIpAddress pHostIpAddress, INT32 sockfd)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    struct sockaddr_in ipv4Addr;
+    struct sockaddr_in6 ipv6Addr;
+    struct sockaddr *sockAddr = NULL;
+    socklen_t addrLen;
+
+    CHAR ipAddrStr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
+
+    CHK(pHostIpAddress != NULL, STATUS_NULL_ARG);
+
+    if (pHostIpAddress->family == KVS_IP_FAMILY_TYPE_IPV4) {
+        MEMSET(&ipv4Addr, 0x00, SIZEOF(ipv4Addr));
+        ipv4Addr.sin_family = AF_INET;
+        ipv4Addr.sin_port = 0;      // use next available port
+        MEMCPY(&ipv4Addr.sin_addr, pHostIpAddress->address, IPV4_ADDRESS_LENGTH);
+        // TODO: Properly handle the non-portable sin_len field if needed per https://issues.amazon.com/KinesisVideo-4952
+        // ipv4Addr.sin_len = SIZEOF(ipv4Addr);
+        sockAddr = (struct sockaddr *) &ipv4Addr;
+        addrLen = SIZEOF(struct sockaddr_in);
+
+
+    } else {
+        MEMSET(&ipv6Addr, 0x00, SIZEOF(ipv6Addr));
+        ipv6Addr.sin6_family = AF_INET6;
+        ipv6Addr.sin6_port = 0;     // use next available port
+        MEMCPY(&ipv6Addr.sin6_addr, pHostIpAddress->address, IPV6_ADDRESS_LENGTH);
+        // TODO: Properly handle the non-portable sin6_len field if needed per https://issues.amazon.com/KinesisVideo-4952
+        // ipv6Addr.sin6_len = SIZEOF(ipv6Addr);
+        sockAddr = (struct sockaddr *) &ipv6Addr;
+        addrLen = SIZEOF(struct sockaddr_in6);
+    }
+
+    if (bind(sockfd, sockAddr, addrLen) < 0) {
+        CHK_STATUS(getIpAddrStr(pHostIpAddress, ipAddrStr, ARRAY_SIZE(ipAddrStr)));
+        DLOGW("bind() failed for ip%s address: %s, port %u with errno %s", IS_IPV4_ADDR(pHostIpAddress) ? EMPTY_STRING : "V6", ipAddrStr, (UINT16) getInt16(pHostIpAddress->port), strerror(errno));
+        CHK(FALSE, STATUS_BINDING_SOCKET_FAILED);
+    }
+
+    if (getsockname(sockfd, sockAddr, &addrLen) < 0) {
+        DLOGW("getsockname() failed with errno %s", strerror(errno));
+        CHK(FALSE, STATUS_GET_PORT_NUMBER_FAILED);
+    }
+
+    pHostIpAddress->port = (UINT16) pHostIpAddress->family == KVS_IP_FAMILY_TYPE_IPV4 ? ipv4Addr.sin_port : ipv6Addr.sin6_port;
+
+CleanUp:
+    return retStatus;
+}
+
+
+STATUS socketConnect(PKvsIpAddress pPeerAddress, INT32 sockfd)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    struct sockaddr_in ipv4PeerAddr;
+    struct sockaddr_in6 ipv6PeerAddr;
+    struct sockaddr *peerSockAddr = NULL;
+    socklen_t addrLen;
+    INT32 retVal;
+
+    CHK(pPeerAddress != NULL, STATUS_NULL_ARG);
+
+    if (pPeerAddress->family == KVS_IP_FAMILY_TYPE_IPV4) {
+        MEMSET(&ipv4PeerAddr, 0x00, SIZEOF(ipv4PeerAddr));
+        ipv4PeerAddr.sin_family = AF_INET;
+        ipv4PeerAddr.sin_port = pPeerAddress->port;
+        MEMCPY(&ipv4PeerAddr.sin_addr, pPeerAddress->address, IPV4_ADDRESS_LENGTH);
+        peerSockAddr = (struct sockaddr *) &ipv4PeerAddr;
+        addrLen = SIZEOF(struct sockaddr_in);
+    } else {
+        MEMSET(&ipv6PeerAddr, 0x00, SIZEOF(ipv6PeerAddr));
+        ipv6PeerAddr.sin6_family = AF_INET6;
+        ipv6PeerAddr.sin6_port = pPeerAddress->port;
+        MEMCPY(&ipv6PeerAddr.sin6_addr, pPeerAddress->address, IPV6_ADDRESS_LENGTH);
+        peerSockAddr = (struct sockaddr *) &ipv6PeerAddr;
+        addrLen = SIZEOF(struct sockaddr_in6);
+    }
+
     retVal = connect(sockfd, peerSockAddr, addrLen);
     CHK_ERR(retVal >= 0 || errno == EINPROGRESS, STATUS_SOCKET_CONNECT_FAILED, "connect() failed with errno %s", strerror(errno));
 
 CleanUp:
-
     return retStatus;
 }
 
 STATUS getIpWithHostName(PCHAR hostname, PKvsIpAddress destIp)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    UINT32 errCode;
+    INT32 errCode;
+    PCHAR errStr;
     struct addrinfo *res, *rp;
     BOOL resolved = FALSE;
     struct sockaddr_in *ipv4Addr;
@@ -270,7 +299,11 @@ STATUS getIpWithHostName(PCHAR hostname, PKvsIpAddress destIp)
 
     CHK(hostname != NULL, STATUS_NULL_ARG);
 
-    CHK_ERR((errCode = getaddrinfo(hostname, NULL, NULL, &res)) == 0, STATUS_RESOLVE_HOSTNAME_FAILED, "getaddrinfo() with errno %s", gai_strerror(errCode));
+    errCode = getaddrinfo(hostname, NULL, NULL, &res);
+    if (errCode != 0) {
+        errStr = errCode == EAI_SYSTEM ? strerror(errno) : (PCHAR) gai_strerror(errCode);
+        CHK_ERR(FALSE, STATUS_RESOLVE_HOSTNAME_FAILED, "getaddrinfo() with errno %s", errStr);
+    }
 
     for (rp = res; rp != NULL && !resolved; rp = rp->ai_next) {
         if (rp->ai_family == AF_INET) {

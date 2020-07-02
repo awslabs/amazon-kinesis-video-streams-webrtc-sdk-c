@@ -4,7 +4,8 @@
 #define LOG_CLASS "SocketConnection"
 #include "../Include_i.h"
 
-STATUS createSocketConnection(PKvsIpAddress pHostIpAddr, PKvsIpAddress pPeerIpAddr, KVS_SOCKET_PROTOCOL protocol,
+STATUS createSocketConnection(KVS_IP_FAMILY_TYPE familyType, KVS_SOCKET_PROTOCOL protocol,
+                              PKvsIpAddress pBindAddr, PKvsIpAddress pPeerIpAddr,
                               UINT64 customData, ConnectionDataAvailableFunc dataAvailableFn, UINT32 sendBufSize,
                               PSocketConnection *ppSocketConnection)
 {
@@ -12,7 +13,7 @@ STATUS createSocketConnection(PKvsIpAddress pHostIpAddr, PKvsIpAddress pPeerIpAd
     STATUS retStatus = STATUS_SUCCESS;
     PSocketConnection pSocketConnection = NULL;
 
-    CHK(pHostIpAddr != NULL && ppSocketConnection != NULL, STATUS_NULL_ARG);
+    CHK(ppSocketConnection != NULL, STATUS_NULL_ARG);
     CHK(protocol == KVS_SOCKET_PROTOCOL_UDP || pPeerIpAddr != NULL, STATUS_INVALID_ARG);
 
     pSocketConnection = (PSocketConnection) MEMCALLOC(1, SIZEOF(SocketConnection));
@@ -21,20 +22,22 @@ STATUS createSocketConnection(PKvsIpAddress pHostIpAddr, PKvsIpAddress pPeerIpAd
     pSocketConnection->lock = MUTEX_CREATE(FALSE);
     CHK(pSocketConnection->lock != INVALID_MUTEX_VALUE, STATUS_INVALID_OPERATION);
 
-    CHK_STATUS(createSocket(pHostIpAddr, pPeerIpAddr, protocol, sendBufSize, &pSocketConnection->localSocket));
-    pSocketConnection->hostIpAddr = *pHostIpAddr;
+    CHK_STATUS(createSocket(familyType, protocol, sendBufSize, &pSocketConnection->localSocket));
+    if (pBindAddr) {
+        CHK_STATUS(socketBind(pBindAddr, pSocketConnection->localSocket));
+        pSocketConnection->hostIpAddr = *pBindAddr;
+    }
 
     pSocketConnection->secureConnection = FALSE;
     pSocketConnection->protocol = protocol;
     if (protocol == KVS_SOCKET_PROTOCOL_TCP) {
         pSocketConnection->peerIpAddr = *pPeerIpAddr;
+        CHK_STATUS(socketConnect(pPeerIpAddr, pSocketConnection->localSocket));
     }
     ATOMIC_STORE_BOOL(&pSocketConnection->connectionClosed, FALSE);
     ATOMIC_STORE_BOOL(&pSocketConnection->receiveData, FALSE);
-    pSocketConnection->freeBios = TRUE;
     pSocketConnection->dataAvailableCallbackCustomData = customData;
     pSocketConnection->dataAvailableCallbackFn = dataAvailableFn;
-    pSocketConnection->tlsHandshakeStartTime = INVALID_TIMESTAMP_VALUE;
 
 CleanUp:
 
@@ -68,20 +71,8 @@ STATUS freeSocketConnection(PSocketConnection* ppSocketConnection)
         MUTEX_FREE(pSocketConnection->lock);
     }
 
-    if (pSocketConnection->pSslCtx != NULL) {
-        SSL_CTX_free(pSocketConnection->pSslCtx);
-    }
-
-    if (pSocketConnection->freeBios && pSocketConnection->pReadBio != NULL) {
-        BIO_free(pSocketConnection->pReadBio);
-    }
-
-    if (pSocketConnection->freeBios && pSocketConnection->pWriteBio != NULL) {
-        BIO_free(pSocketConnection->pWriteBio);
-    }
-
-    if (pSocketConnection->pSsl != NULL) {
-        SSL_free(pSocketConnection->pSsl);
+    if (pSocketConnection->pTlsSession != NULL) {
+        freeTlsSession(&pSocketConnection->pTlsSession);
     }
 
     close(pSocketConnection->localSocket);
@@ -96,54 +87,67 @@ CleanUp:
     return retStatus;
 }
 
+STATUS socketConnectionTlsSessionOutBoundPacket(UINT64 customData, PBYTE pBuffer, UINT32 bufferLen)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PSocketConnection pSocketConnection = NULL;
+    CHK(customData != 0, STATUS_NULL_ARG);
+
+    pSocketConnection = (PSocketConnection) customData;
+    CHK_STATUS(socketSendDataWithRetry(pSocketConnection, pBuffer, bufferLen, NULL, NULL));
+
+CleanUp:
+    return retStatus;
+}
+
+VOID socketConnectionTlsSessionOnStateChange(UINT64 customData, TLS_SESSION_STATE state)
+{
+    PSocketConnection pSocketConnection = NULL;
+    if (customData == 0) {
+        return;
+    }
+
+    pSocketConnection = (PSocketConnection) customData;
+    switch (state) {
+        case TLS_SESSION_STATE_NEW:
+            pSocketConnection->tlsHandshakeStartTime = INVALID_TIMESTAMP_VALUE;
+            break;
+        case TLS_SESSION_STATE_CONNECTING:
+            pSocketConnection->tlsHandshakeStartTime = GETTIME();
+            break;
+        case TLS_SESSION_STATE_CONNECTED:
+            if (IS_VALID_TIMESTAMP(pSocketConnection->tlsHandshakeStartTime)) {
+                DLOGD("TLS handshake done. Time taken %" PRIu64 " ms",
+                      (GETTIME() - pSocketConnection->tlsHandshakeStartTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+                pSocketConnection->tlsHandshakeStartTime = INVALID_TIMESTAMP_VALUE;
+            }
+            break;
+        case TLS_SESSION_STATE_CLOSED:
+            ATOMIC_STORE_BOOL(&pSocketConnection->connectionClosed, TRUE);
+            break;
+    }
+}
+
 STATUS socketConnectionInitSecureConnection(PSocketConnection pSocketConnection, BOOL isServer)
 {
     ENTERS();
+    TlsSessionCallbacks callbacks;
     STATUS retStatus = STATUS_SUCCESS;
 
     CHK(pSocketConnection != NULL, STATUS_NULL_ARG);
+    CHK(pSocketConnection->pTlsSession == NULL, STATUS_INVALID_ARG);
 
-    pSocketConnection->pSslCtx = SSL_CTX_new(SSLv23_method());
+    callbacks.outBoundPacketFnCustomData = callbacks.stateChangeFnCustomData = (UINT64) pSocketConnection;
+    callbacks.outboundPacketFn = socketConnectionTlsSessionOutBoundPacket;
+    callbacks.stateChangeFn = socketConnectionTlsSessionOnStateChange;
 
-    CHK(pSocketConnection->pSslCtx != NULL, STATUS_SSL_CTX_CREATION_FAILED);
-
-    SSL_CTX_set_read_ahead(pSocketConnection->pSslCtx, 1);
-    SSL_CTX_set_verify(pSocketConnection->pSslCtx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, certificateVerifyCallback);
-
-    CHK(SSL_CTX_set_cipher_list(pSocketConnection->pSslCtx, "HIGH:!aNULL:!MD5:!RC4"), STATUS_SSL_CTX_CREATION_FAILED);
-
-    pSocketConnection->pSsl = SSL_new(pSocketConnection->pSslCtx);
-    CHK(pSocketConnection->pSsl != NULL, STATUS_CREATE_SSL_FAILED);
-
-    if (isServer) {
-        SSL_set_accept_state(pSocketConnection->pSsl);
-    } else {
-        SSL_set_connect_state(pSocketConnection->pSsl);
-    }
-
-    SSL_set_mode(pSocketConnection->pSsl, SSL_MODE_AUTO_RETRY);
-    CHK((pSocketConnection->pReadBio = BIO_new(BIO_s_mem())) != NULL, STATUS_SSL_CTX_CREATION_FAILED);
-    CHK((pSocketConnection->pWriteBio = BIO_new(BIO_s_mem())) != NULL, STATUS_SSL_CTX_CREATION_FAILED);
-
-    BIO_set_mem_eof_return(pSocketConnection->pReadBio, -1);
-    BIO_set_mem_eof_return(pSocketConnection->pWriteBio, -1);
-    SSL_set_bio(pSocketConnection->pSsl, pSocketConnection->pReadBio, pSocketConnection->pWriteBio);
-    pSocketConnection->freeBios = FALSE;
-
-    /* init handshake */
-    SSL_do_handshake(pSocketConnection->pSsl);
+    CHK_STATUS(createTlsSession(&callbacks, &pSocketConnection->pTlsSession));
+    CHK_STATUS(tlsSessionStart(pSocketConnection->pTlsSession, isServer));
     pSocketConnection->secureConnection = TRUE;
-    pSocketConnection->tlsHandshakeStartTime = GETTIME();
-
-    /* send handshake */
-    CHK_STATUS(socketConnectionSendData(pSocketConnection, NULL, 0, NULL));
 
 CleanUp:
-
-    CHK_LOG_ERR(retStatus);
-
-    if (STATUS_FAILED(retStatus)) {
-        ERR_print_errors_fp (stderr);
+    if (STATUS_FAILED(retStatus) && pSocketConnection->pTlsSession != NULL) {
+        freeTlsSession(&pSocketConnection->pTlsSession);
     }
 
     LEAVES();
@@ -154,10 +158,6 @@ STATUS socketConnectionSendData(PSocketConnection pSocketConnection, PBYTE pBuf,
 {
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
-    INT32 sslRet = 0, sslErr = 0;
-
-    SIZE_T wBioDataLen = 0;
-    PCHAR wBioBuffer = NULL;
 
     CHK(pSocketConnection != NULL, STATUS_NULL_ARG);
     CHK((pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_TCP || pDestIp != NULL), STATUS_INVALID_ARG);
@@ -171,52 +171,13 @@ STATUS socketConnectionSendData(PSocketConnection pSocketConnection, PBYTE pBuf,
     MUTEX_LOCK(pSocketConnection->lock);
     locked = TRUE;
 
+    /* Should have a valid buffer */
+    CHK(pBuf != NULL && bufLen > 0, STATUS_INVALID_ARG);
     if (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_TCP && pSocketConnection->secureConnection) {
-        if (SSL_is_init_finished(pSocketConnection->pSsl)) {
-            if (IS_VALID_TIMESTAMP(pSocketConnection->tlsHandshakeStartTime)) {
-                DLOGD("TLS handshake done. Time taken %" PRIu64 " ms",
-                      (GETTIME() - pSocketConnection->tlsHandshakeStartTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
-                pSocketConnection->tlsHandshakeStartTime = INVALID_TIMESTAMP_VALUE;
-            }
-            /* Should have a valid buffer */
-            CHK(pBuf != NULL && bufLen > 0, STATUS_INVALID_ARG);
-            sslRet = SSL_write(pSocketConnection->pSsl, pBuf, bufLen);
-            if (sslRet < 0){
-                sslErr = SSL_get_error(pSocketConnection->pSsl, sslRet);
-                switch (sslErr) {
-                    case SSL_ERROR_WANT_READ:
-                        /* explicit fall-through */
-                    case SSL_ERROR_WANT_WRITE:
-                        break;
-                    default:
-                        DLOGD("Warning: SSL_write failed with %s", ERR_error_string(sslErr, NULL));
-                        DLOGD("Close socket %d", pSocketConnection->localSocket);
-                        ATOMIC_STORE_BOOL(&pSocketConnection->connectionClosed, TRUE);
-                        break;
-                }
-
-                CHK(FALSE, STATUS_SEND_DATA_FAILED);
-            }
-        }
-
-        wBioDataLen = (SIZE_T) BIO_get_mem_data(SSL_get_wbio(pSocketConnection->pSsl), &wBioBuffer);
-        CHK_ERR(wBioDataLen >= 0, STATUS_SEND_DATA_FAILED, "BIO_get_mem_data failed");
-
-        if (wBioDataLen > 0) {
-            retStatus = socketSendDataWithRetry(pSocketConnection, (PBYTE) wBioBuffer, (UINT32) wBioDataLen, NULL, NULL);
-
-            /* reset bio to clear its content since it's already sent if possible */
-            BIO_reset(SSL_get_wbio(pSocketConnection->pSsl));
-        }
-
+        CHK_STATUS(tlsSessionPutApplicationData(pSocketConnection->pTlsSession, pBuf, bufLen));
     } else if (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_TCP) {
-        /* Should have a valid buffer */
-        CHK(pBuf != NULL && bufLen > 0, STATUS_INVALID_ARG);
         CHK_STATUS(retStatus = socketSendDataWithRetry(pSocketConnection, pBuf, bufLen, NULL, NULL));
-
     } else if (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_UDP) {
-        /* Should have a valid buffer */
-        CHK(pBuf != NULL && bufLen > 0, STATUS_INVALID_ARG);
         CHK_STATUS(retStatus = socketSendDataWithRetry(pSocketConnection, pBuf, bufLen, pDestIp, NULL));
     } else {
         CHECK_EXT(FALSE, "socketConnectionSendData should not reach here. Nothing is sent.");
@@ -234,10 +195,7 @@ CleanUp:
 STATUS socketConnectionReadData(PSocketConnection pSocketConnection, PBYTE pBuf, UINT32 bufferLen, PUINT32 pDataLen)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    BOOL locked = FALSE, continueRead = TRUE;
-    INT32 sslReadRet = 0;
-    UINT32 writtenBytes = 0;
-    UINT64 sslErrorRet;
+    BOOL locked = FALSE;
 
     CHK(pSocketConnection != NULL && pBuf != NULL && pDataLen != NULL, STATUS_NULL_ARG);
     CHK(bufferLen != 0, STATUS_INVALID_ARG);
@@ -245,34 +203,10 @@ STATUS socketConnectionReadData(PSocketConnection pSocketConnection, PBYTE pBuf,
     MUTEX_LOCK(pSocketConnection->lock);
     locked = TRUE;
 
-    // return early if connection is not secure or no data
-    CHK(pSocketConnection->secureConnection && *pDataLen > 0, retStatus);
+    // return early if connection is not secure
+    CHK(pSocketConnection->secureConnection, retStatus);
 
-    CHK(BIO_write(pSocketConnection->pReadBio, pBuf, *pDataLen) > 0, STATUS_SECURE_SOCKET_READ_FAILED);
-
-    // read as much as possible
-    while(continueRead && writtenBytes < bufferLen) {
-        sslReadRet = SSL_read(pSocketConnection->pSsl, pBuf + writtenBytes, bufferLen - writtenBytes);
-        if (sslReadRet <= 0) {
-            sslReadRet = SSL_get_error(pSocketConnection->pSsl, sslReadRet);
-            switch (sslReadRet) {
-                case SSL_ERROR_WANT_WRITE:
-                    continueRead = FALSE;
-                    break;
-                case SSL_ERROR_WANT_READ:
-                    break;
-                default:
-                    sslErrorRet = ERR_get_error();
-                    DLOGW("SSL_read failed with %s", ERR_error_string(sslErrorRet, NULL));
-                    break;
-            }
-            break;
-        } else {
-            writtenBytes += sslReadRet;
-        }
-    }
-
-    *pDataLen = writtenBytes;
+    CHK_STATUS(tlsSessionProcessPacket(pSocketConnection->pTlsSession, pBuf, bufferLen, pDataLen));
 
 CleanUp:
 
@@ -294,8 +228,13 @@ STATUS socketConnectionClosed(PSocketConnection pSocketConnection)
 
     CHK(pSocketConnection != NULL, STATUS_NULL_ARG);
     CHK(!ATOMIC_LOAD_BOOL(&pSocketConnection->connectionClosed), retStatus);
+    MUTEX_LOCK(pSocketConnection->lock);
     DLOGD("Close socket %d", pSocketConnection->localSocket);
     ATOMIC_STORE_BOOL(&pSocketConnection->connectionClosed, TRUE);
+    if (pSocketConnection->pTlsSession != NULL) {
+        tlsSessionShutdown(pSocketConnection->pTlsSession);
+    }
+    MUTEX_UNLOCK(pSocketConnection->lock);
 
 CleanUp:
 
@@ -350,14 +289,6 @@ BOOL socketConnectionIsConnected(PSocketConnection pSocketConnection)
 
     DLOGW("socket connection check failed with errno %s", strerror(errno));
     return FALSE;
-}
-
-// https://www.openssl.org/docs/man1.0.2/man3/SSL_CTX_set_verify.html
-INT32 certificateVerifyCallback(INT32 preverify_ok, X509_STORE_CTX *ctx)
-{
-    UNUSED_PARAM(preverify_ok);
-    UNUSED_PARAM(ctx);
-    return 1;
 }
 
 STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, UINT32 bufLen, PKvsIpAddress pDestIp, PUINT32 pBytesWritten)

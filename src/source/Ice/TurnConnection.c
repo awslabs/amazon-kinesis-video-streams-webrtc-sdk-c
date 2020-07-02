@@ -927,7 +927,7 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
                 /* We dont support DTLS and TCP, so only options are TCP/TLS and UDP. */
                 /* TODO: add plain TCP once it becomes available. */
                 if (pTurnConnection->protocol == KVS_SOCKET_PROTOCOL_TCP &&
-                    pTurnConnection->pControlChannel->pSsl == NULL) {
+                    pTurnConnection->pControlChannel->pTlsSession == NULL) {
                     CHK_STATUS(socketConnectionInitSecureConnection(pTurnConnection->pControlChannel, FALSE));
                 }
 

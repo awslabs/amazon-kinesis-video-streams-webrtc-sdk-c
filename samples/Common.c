@@ -356,14 +356,17 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
             CHK_STATUS(signalingClientGetIceConfigInfo(pSampleConfiguration->signalingClientHandle, i, &pIceConfigInfo));
             for (j = 0; j < pIceConfigInfo->uriCount; j++) {
                 CHECK(uriCount < MAX_ICE_SERVERS_COUNT);
-                /* - change url to "turn:ip:port?transport=udp" to do turn through UDP
-                 * - change url to "turn:ip:port?transport=tcp" will do turn through TCP/TLS currently,
-                 *   but later will be changed to plain tcp
-                 * - change url to "turns:ip:port?transport=tcp" to do turn through TCP/TLS
-                 * - "turns:ip:port?transport=udp" will just do UDP.
-                 * Currently if "transport=" is missing, ICE will try both UDP and TCP/TLS
-                 * By default use UDP since it's fastest. */
-                SNPRINTF(configuration.iceServers[uriCount + 1].urls, MAX_ICE_CONFIG_URI_LEN, "%s?transport=udp", pIceConfigInfo->uris[j]);
+                /*
+                 * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port?transport=udp" then ICE will try TURN over UDP
+                 * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port?transport=tcp" then ICE will try TURN over TCP/TLS
+                 * if configuration.iceServers[uriCount + 1].urls is "turns:ip:port?transport=udp", it's currently ignored because sdk dont do TURN over DTLS yet.
+                 * if configuration.iceServers[uriCount + 1].urls is "turns:ip:port?transport=tcp" then ICE will try TURN over TCP/TLS
+                 * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port" then ICE will try both TURN over UPD and TCP/TLS
+                 *
+                 * It's recommended to not pass too many TURN iceServers to configuration because it will slow down ice gathering in non-trickle mode.
+                 */
+
+                STRNCPY(configuration.iceServers[uriCount + 1].urls, pIceConfigInfo->uris[j], MAX_ICE_CONFIG_URI_LEN);
                 STRNCPY(configuration.iceServers[uriCount + 1].credential, pIceConfigInfo->password, MAX_ICE_CONFIG_CREDENTIAL_LEN);
                 STRNCPY(configuration.iceServers[uriCount + 1].username, pIceConfigInfo->userName, MAX_ICE_CONFIG_USER_NAME_LEN);
 

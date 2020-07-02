@@ -7,7 +7,9 @@
 extern "C" {
 #endif
 
-#define DEFAULT_MTU_SIZE                                        1300
+// Default MTU comes from libwebrtc
+// https://groups.google.com/forum/#!topic/discuss-webrtc/gH5ysR3SoZI
+#define DEFAULT_MTU_SIZE                                        1200
 #define DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS              3
 #define HIGHEST_EXPECTED_BIT_RATE                               (10 * 1024 * 1024)
 #define DEFAULT_SEQ_NUM_BUFFER_SIZE                             1000

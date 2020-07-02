@@ -32,7 +32,6 @@ extern "C" {
 
 #define STUN_HEADER_MAGIC_BYTE_OFFSET                                   4
 
-#define KVS_ICE_MAX_ICE_SERVERS                                         3
 #define KVS_ICE_MAX_RELAY_CANDIDATE_COUNT                               4
 #define KVS_ICE_MAX_NEW_LOCAL_CANDIDATES_TO_REPORT_AT_ONCE              10
 
@@ -162,7 +161,7 @@ struct __IceAgent {
 
     IceAgentCallbacks iceAgentCallbacks;
 
-    IceServer iceServers[KVS_ICE_MAX_ICE_SERVERS];
+    IceServer iceServers[MAX_ICE_SERVERS_COUNT];
     UINT32 iceServersCount;
 
     KvsIpAddress localNetworkInterfaces[MAX_LOCAL_NETWORK_INTERFACE_COUNT];
@@ -343,7 +342,7 @@ STATUS iceAgentSendStunPacket(PStunPacket, PBYTE, UINT32, PIceAgent, PIceCandida
 STATUS iceAgentInitHostCandidate(PIceAgent);
 STATUS iceAgentInitSrflxCandidate(PIceAgent);
 STATUS iceAgentInitRelayCandidates(PIceAgent);
-STATUS iceAgentInitRelayCandidate(PIceAgent, PKvsIpAddress, UINT32, KVS_SOCKET_PROTOCOL);
+STATUS iceAgentInitRelayCandidate(PIceAgent, UINT32, KVS_SOCKET_PROTOCOL);
 
 STATUS iceAgentCheckConnectionStateSetup(PIceAgent);
 STATUS iceAgentConnectedStateSetup(PIceAgent);
