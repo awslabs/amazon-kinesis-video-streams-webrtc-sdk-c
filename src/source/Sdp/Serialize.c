@@ -10,7 +10,7 @@ STATUS parseMediaName(PSessionDescription pSessionDescription, PCHAR pch, UINT32
 
     STRNCPY(pSessionDescription->mediaDescriptions[pSessionDescription->mediaCount].mediaName,
             (pch + SDP_ATTRIBUTE_LENGTH),
-            MIN(MAX_SDP_MEDIA_NAME_LENGTH, lineLen - (SDP_ATTRIBUTE_LENGTH - 1)));
+            MIN(MAX_SDP_MEDIA_NAME_LENGTH, lineLen - SDP_ATTRIBUTE_LENGTH));
     pSessionDescription->mediaCount++;
 
 CleanUp:
@@ -36,7 +36,7 @@ STATUS parseSessionAttributes(PSessionDescription pSessionDescription, PCHAR pch
                 (search - (pch + SDP_ATTRIBUTE_LENGTH)));
         STRNCPY(pSessionDescription->sdpAttributes[pSessionDescription->sessionAttributesCount].attributeValue,
                 search + 1,
-                MIN(MAX_SDP_ATTRIBUTE_VALUE_LENGTH, lineLen - (search - pch)));
+                MIN(MAX_SDP_ATTRIBUTE_VALUE_LENGTH, lineLen - (search - pch + 1)));
     }
 
     pSessionDescription->sessionAttributesCount++;
@@ -69,7 +69,7 @@ STATUS parseMediaAttributes(PSessionDescription pSessionDescription, PCHAR pch, 
                 (search - (pch + SDP_ATTRIBUTE_LENGTH)));
         STRNCPY(pSessionDescription->mediaDescriptions[pSessionDescription->mediaCount - 1].sdpAttributes[currentMediaAttributesCount].attributeValue,
                 search + 1,
-                MIN(MAX_SDP_ATTRIBUTE_VALUE_LENGTH, lineLen - (search - pch)));
+                MIN(MAX_SDP_ATTRIBUTE_VALUE_LENGTH, lineLen - (search - pch + 1)));
     }
     pSessionDescription->mediaDescriptions[pSessionDescription->mediaCount - 1].mediaAttributesCount++;
 
@@ -91,8 +91,7 @@ STATUS serializeSessionDescription(PSessionDescription pSessionDescription, PCHA
     tail = sdpBytes + STRLEN(sdpBytes);
 
     while ((next = STRNCHR(curr, tail - curr, '\n')) != NULL) {
-        lineLen = (UINT32) (next - curr) - 1;
-
+        lineLen = (UINT32) (next - curr);
 
         if (0 == STRNCMP(curr, SDP_MEDIA_NAME_MARKER, (ARRAY_SIZE(SDP_MEDIA_NAME_MARKER) - 1))) {
             CHK_STATUS(parseMediaName(pSessionDescription, curr, lineLen));
@@ -107,7 +106,7 @@ STATUS serializeSessionDescription(PSessionDescription pSessionDescription, PCHA
             if (0 == STRNCMP(curr, SDP_INFORMATION_MARKER, (ARRAY_SIZE(SDP_INFORMATION_MARKER) - 1))) {
                 STRNCPY(pSessionDescription->mediaDescriptions[pSessionDescription->mediaCount - 1].mediaTitle,
                         (curr + SDP_ATTRIBUTE_LENGTH),
-                        MIN(MAX_SDP_MEDIA_NAME_LENGTH, lineLen - (SDP_ATTRIBUTE_LENGTH - 1)));
+                        MIN(MAX_SDP_MEDIA_NAME_LENGTH, lineLen - SDP_ATTRIBUTE_LENGTH));
             }
         } else {
 
@@ -115,35 +114,35 @@ STATUS serializeSessionDescription(PSessionDescription pSessionDescription, PCHA
             if (0 == STRNCMP(curr, SDP_SESSION_NAME_MARKER, (ARRAY_SIZE(SDP_SESSION_NAME_MARKER) - 1))) {
                 STRNCPY(pSessionDescription->sessionName,
                         (curr + SDP_ATTRIBUTE_LENGTH),
-                        MIN(MAX_SDP_MEDIA_NAME_LENGTH, lineLen - (SDP_ATTRIBUTE_LENGTH - 1)));
+                        MIN(MAX_SDP_MEDIA_NAME_LENGTH, lineLen - SDP_ATTRIBUTE_LENGTH));
             }
 
             // SDP Session Name
             if (0 == STRNCMP(curr, SDP_INFORMATION_MARKER, (ARRAY_SIZE(SDP_INFORMATION_MARKER) - 1))) {
                 STRNCPY(pSessionDescription->sessionInformation,
                         (curr + SDP_ATTRIBUTE_LENGTH),
-                        MIN(MAX_SDP_MEDIA_NAME_LENGTH, lineLen - (SDP_ATTRIBUTE_LENGTH - 1)));
+                        MIN(MAX_SDP_MEDIA_NAME_LENGTH, lineLen - SDP_ATTRIBUTE_LENGTH));
             }
 
             // SDP URI
             if (0 == STRNCMP(curr, SDP_URI_MARKER, (ARRAY_SIZE(SDP_URI_MARKER) - 1))) {
                 STRNCPY(pSessionDescription->uri,
                         (curr + SDP_ATTRIBUTE_LENGTH),
-                        MIN(MAX_SDP_MEDIA_NAME_LENGTH, lineLen - (SDP_ATTRIBUTE_LENGTH - 1)));
+                        MIN(MAX_SDP_MEDIA_NAME_LENGTH, lineLen - SDP_ATTRIBUTE_LENGTH));
             }
 
             // SDP Email Address
             if (0 == STRNCMP(curr, SDP_EMAIL_ADDRESS_MARKER, (ARRAY_SIZE(SDP_EMAIL_ADDRESS_MARKER) - 1))) {
                 STRNCPY(pSessionDescription->emailAddress,
                         (curr + SDP_ATTRIBUTE_LENGTH),
-                        MIN(MAX_SDP_MEDIA_NAME_LENGTH, lineLen - (SDP_ATTRIBUTE_LENGTH - 1)));
+                        MIN(MAX_SDP_MEDIA_NAME_LENGTH, lineLen - SDP_ATTRIBUTE_LENGTH));
             }
 
             // SDP Phone number
             if (0 == STRNCMP(curr, SDP_PHONE_NUMBER_MARKER, (ARRAY_SIZE(SDP_PHONE_NUMBER_MARKER) - 1))) {
                 STRNCPY(pSessionDescription->phoneNumber,
                         (curr + SDP_ATTRIBUTE_LENGTH),
-                        MIN(MAX_SDP_MEDIA_NAME_LENGTH, lineLen - (SDP_ATTRIBUTE_LENGTH - 1)));
+                        MIN(MAX_SDP_MEDIA_NAME_LENGTH, lineLen - SDP_ATTRIBUTE_LENGTH));
             }
 
             if (0 == STRNCMP(curr, SDP_VERSION_MARKER, (ARRAY_SIZE(SDP_VERSION_MARKER) - 1))) {
