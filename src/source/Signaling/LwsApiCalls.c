@@ -325,6 +325,11 @@ INT32 lwsWssCallbackRoutine(struct lws *wsi, enum lws_callback_reasons reason,
             ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_OK);
             ATOMIC_STORE_BOOL(&pSignalingClient->connected, TRUE);
 
+            // Store the time when we connect for diagnostics
+            MUTEX_LOCK(pSignalingClient->diagnosticsLock);
+            pSignalingClient->diagnostics.connectTime = GETTIME();
+            MUTEX_UNLOCK(pSignalingClient->diagnosticsLock);
+
             // Notify the listener thread
             CVAR_BROADCAST(pSignalingClient->connectedCvar);
 
@@ -974,6 +979,9 @@ STATUS getIceConfigLws(PSignalingClient pSignalingClient, UINT64 time)
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     CHK(pSignalingClient->channelEndpointHttps[0] != '\0', STATUS_INTERNAL_ERROR);
 
+    // Update the diagnostics info on the number of ICE refresh calls
+    ATOMIC_INCREMENT(&pSignalingClient->diagnostics.iceRefreshCount);
+
     // Create the API url
     STRCPY(url, pSignalingClient->channelEndpointHttps);
     STRCAT(url, GET_ICE_CONFIG_API_POSTFIX);
@@ -1376,6 +1384,9 @@ PVOID reconnectHandler(PVOID args)
     // Set the time out before execution
     pSignalingClient->stepUntil = GETTIME() + SIGNALING_CONNECT_STATE_TIMEOUT;
 
+    // Update the diagnostics info
+    ATOMIC_INCREMENT(&pSignalingClient->diagnostics.numberOfReconnects);
+
     // Attempt to reconnect by driving the state machine to connected state
     CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
 
@@ -1383,15 +1394,19 @@ CleanUp:
 
     if (pSignalingClient != NULL) {
         // Call the error handler in case of an error
-        if (STATUS_FAILED(retStatus) &&
-            pSignalingClient->signalingClientCallbacks.errorReportFn != NULL) {
-            reconnectErrLen = SNPRINTF(reconnectErrMsg, SIGNALING_MAX_ERROR_MESSAGE_LEN, SIGNALING_RECONNECT_ERROR_MSG, retStatus);
-            reconnectErrMsg[SIGNALING_MAX_ERROR_MESSAGE_LEN] = '\0';
-            pSignalingClient->signalingClientCallbacks.errorReportFn(
-                    pSignalingClient->signalingClientCallbacks.customData,
-                    STATUS_SIGNALING_RECONNECT_FAILED,
-                    reconnectErrMsg,
-                    reconnectErrLen);
+        if (STATUS_FAILED(retStatus)) {
+            // Update the diagnostics before calling the error callback
+            ATOMIC_INCREMENT(&pSignalingClient->diagnostics.numberOfRuntimeErrors);
+            if (pSignalingClient->signalingClientCallbacks.errorReportFn != NULL) {
+                reconnectErrLen = SNPRINTF(reconnectErrMsg, SIGNALING_MAX_ERROR_MESSAGE_LEN,
+                                           SIGNALING_RECONNECT_ERROR_MSG, retStatus);
+                reconnectErrMsg[SIGNALING_MAX_ERROR_MESSAGE_LEN] = '\0';
+                pSignalingClient->signalingClientCallbacks.errorReportFn(
+                        pSignalingClient->signalingClientCallbacks.customData,
+                        STATUS_SIGNALING_RECONNECT_FAILED,
+                        reconnectErrMsg,
+                        reconnectErrLen);
+            }
         }
 
         ATOMIC_STORE_BOOL(&pSignalingClient->reconnecterTracker.terminated, TRUE);
@@ -1740,6 +1755,7 @@ CleanUp:
     CHK_LOG_ERR(retStatus);
 
     if (pSignalingClient != NULL && STATUS_FAILED(retStatus)) {
+        ATOMIC_INCREMENT(&pSignalingClient->diagnostics.numberOfRuntimeErrors);
         if (pSignalingClient->signalingClientCallbacks.errorReportFn != NULL) {
             retStatus = pSignalingClient->signalingClientCallbacks.errorReportFn(
                     pSignalingClient->signalingClientCallbacks.customData,
@@ -1858,6 +1874,10 @@ PVOID receiveLwsMessageWrapper(PVOID args)
 
     CHK(pSignalingClient != NULL, STATUS_INTERNAL_ERROR);
 
+    // Updating the diagnostics info before calling the client callback
+    ATOMIC_INCREMENT(&pSignalingClient->diagnostics.numberOfMessagesReceived);
+
+    // Calling client receive message callback if specified
     if (pSignalingClient->signalingClientCallbacks.messageReceivedFn != NULL) {
         CHK_STATUS(pSignalingClient->signalingClientCallbacks.messageReceivedFn(
                 pSignalingClient->signalingClientCallbacks.customData,

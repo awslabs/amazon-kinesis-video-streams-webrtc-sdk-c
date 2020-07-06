@@ -28,11 +28,6 @@ extern "C" {
 #define DEFAULT_TURN_BIND_CHANNEL_TIMEOUT                               (3 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define DEFAULT_TURN_CLEAN_UP_TIMEOUT                                   (10 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
-/*
- * if no application data is sent through turn for this much time then we assume that a better connection is found
- * and initiate turn clean up.
- */
-#define DEFAULT_TURN_START_CLEAN_UP_TIMEOUT                             (10 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define DEFAULT_TURN_ALLOCATION_REFRESH_GRACE_PERIOD                    (30 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define DEFAULT_TURN_PERMISSION_REFRESH_GRACE_PERIOD                    (30 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
@@ -40,7 +35,7 @@ extern "C" {
 #define DEFAULT_TURN_MESSAGE_SEND_CHANNEL_DATA_BUFFER_LEN               MAX_TURN_CHANNEL_DATA_MESSAGE_SIZE
 #define DEFAULT_TURN_MESSAGE_RECV_CHANNEL_DATA_BUFFER_LEN               MAX_TURN_CHANNEL_DATA_MESSAGE_SIZE
 #define DEFAULT_TURN_CHANNEL_DATA_BUFFER_SIZE                           512
-#define DEFAULT_TURN_MAX_PEER_COUNT                                     16
+#define DEFAULT_TURN_MAX_PEER_COUNT                                     32
 
 // all turn channel numbers must be greater than 0x4000 and less than 0x7FFF
 #define TURN_CHANNEL_BIND_CHANNEL_NUMBER_BASE                           (UINT16) 0x4000

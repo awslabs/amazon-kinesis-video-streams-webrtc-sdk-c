@@ -63,8 +63,7 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
 
                 return STATUS_SUCCESS;
             };
-            EXPECT_EQ(STATUS_SUCCESS, createSocketConnection(pTurnSocketAddr, &pTurnServer->ipAddress,
-                                                             KVS_ICE_DEFAULT_TURN_PROTOCOL, (UINT64) this, onDataHandler,
+            EXPECT_EQ(STATUS_SUCCESS, createSocketConnection((KVS_IP_FAMILY_TYPE) pTurnServer->ipAddress.family, KVS_ICE_DEFAULT_TURN_PROTOCOL, NULL, &pTurnServer->ipAddress, (UINT64) this, onDataHandler,
                                                              0, &pTurnSocket));
             EXPECT_EQ(STATUS_SUCCESS, connectionListenerAddConnection(pConnectionListener, pTurnSocket));
             ASSERT_EQ(STATUS_SUCCESS, createTurnConnection(pTurnServer, timerQueueHandle,

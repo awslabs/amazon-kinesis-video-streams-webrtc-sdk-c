@@ -12,6 +12,12 @@ extern "C" {
 
 STATUS getIceCandidatePairStats(PRtcPeerConnection, PRtcIceCandidatePairStats);
 STATUS getIceCandidateStats(PRtcPeerConnection, PRtcIceCandidateStats);
+STATUS getIceServerStats(PRtcPeerConnection, PRtcIceServerStats);
+STATUS getTransportStats(PRtcPeerConnection, PRtcTransportStats);
+STATUS logWebRTCMetrics(PRtcPeerConnection, RTC_STATS_TYPE);
+STATUS getRtpRemoteInboundStats(PRtcPeerConnection, PRtcRemoteInboundRtpStreamStats);
+STATUS getRtpOutboundStats(PRtcPeerConnection, PRtcOutboundRtpStreamStats);
+
 #ifdef __cplusplus
 }
 #endif

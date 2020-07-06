@@ -106,6 +106,7 @@ STATUS generateJSONSafeString(PCHAR, UINT32);
 // Project internal includes
 ////////////////////////////////////////////////////
 #include "Ice/Network.h"
+#include "Ice/Tls.h"
 #include "Ice/SocketConnection.h"
 #include "Ice/ConnectionListener.h"
 #include "Stun/Stun.h"

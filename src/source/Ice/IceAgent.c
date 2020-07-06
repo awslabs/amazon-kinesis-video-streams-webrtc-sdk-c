@@ -405,7 +405,7 @@ STATUS iceAgentInitHostCandidate(PIceAgent pIceAgent)
         CHK_STATUS(findCandidateWithIp(pIpAddress, pIceAgent->localCandidates, &pDuplicatedIceCandidate));
 
         if (pDuplicatedIceCandidate == NULL &&
-            STATUS_SUCCEEDED(createSocketConnection(pIpAddress, NULL, KVS_SOCKET_PROTOCOL_UDP, (UINT64) pIceAgent,
+            STATUS_SUCCEEDED(createSocketConnection(pIpAddress->family, KVS_SOCKET_PROTOCOL_UDP, pIpAddress, NULL, (UINT64) pIceAgent,
                                                     incomingDataHandler, pIceAgent->kvsRtcConfiguration.sendBufSize, &pSocketConnection))) {
             pTmpIceCandidate = MEMCALLOC(1, SIZEOF(IceCandidate));
             generateJSONSafeString(pTmpIceCandidate->id, ARRAY_SIZE(pTmpIceCandidate->id));
@@ -1597,7 +1597,7 @@ STATUS iceAgentInitSrflxCandidate(PIceAgent pIceAgent)
                     // open up a new socket at host candidate's ip address for server reflex candidate.
                     // the new port will be stored in pNewCandidate->ipAddress.port. And the Ip address will later be updated
                     // with the correct ip address once the STUN response is received.
-                    CHK_STATUS(createSocketConnection(&pNewCandidate->ipAddress, NULL, KVS_SOCKET_PROTOCOL_UDP,
+                    CHK_STATUS(createSocketConnection(pCandidate->ipAddress.family, KVS_SOCKET_PROTOCOL_UDP, &pNewCandidate->ipAddress, NULL,
                                                       (UINT64) pIceAgent, incomingDataHandler, pIceAgent->kvsRtcConfiguration.sendBufSize,
                                                       &pNewCandidate->pSocketConnection));
                     ATOMIC_STORE_BOOL(&pNewCandidate->pSocketConnection->receiveData, TRUE);
@@ -1649,43 +1649,19 @@ CleanUp:
 STATUS iceAgentInitRelayCandidates(PIceAgent pIceAgent)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    UINT32 j, i;
-    PKvsIpAddress pSocketAddrForTurn = NULL;
-    CHAR ipAddrStr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
+    UINT32 j;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
     for (j = 0; j < pIceAgent->iceServersCount; j++) {
         if (pIceAgent->iceServers[j].isTurn) {
-            pSocketAddrForTurn = NULL;
-            // if an VPN interface (isPointToPoint is TRUE) is found, use that instead
-            for(i = 0; i < pIceAgent->localNetworkInterfaceCount; ++i) {
-                // TODO: Stop skipping IPv6. Stun serialization and deserialization needs to be implemented properly first.
-                // Also, we need to handle the following kinds of relays:
-                //   1. IPv4-to-IPv6
-                //   2. IPv6-to-IPv6
-                //   3. IPv6-to-IPv4
-                // RFC: https://tools.ietf.org/html/rfc6156
-                if(pIceAgent->localNetworkInterfaces[i].family == KVS_IP_FAMILY_TYPE_IPV4 &&
-                    pIceAgent->localNetworkInterfaces[i].family == pIceAgent->iceServers[j].ipAddress.family &&
-                    (pSocketAddrForTurn == NULL || pIceAgent->localNetworkInterfaces[i].isPointToPoint)) {
-                    pSocketAddrForTurn = &pIceAgent->localNetworkInterfaces[i];
-                }
+            if (pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_UDP ||
+                pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_NONE) {
+                CHK_STATUS(iceAgentInitRelayCandidate(pIceAgent, j, KVS_SOCKET_PROTOCOL_UDP));
             }
 
-            if (pSocketAddrForTurn == NULL) {
-                getIpAddrStr(&pIceAgent->iceServers[j].ipAddress, ipAddrStr, SIZEOF(ipAddrStr));
-                DLOGW("No suitable local interface found for turn server %s", ipAddrStr);
-
-            } else {
-                if (pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_UDP ||
-                    pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_NONE) {
-                    CHK_STATUS(iceAgentInitRelayCandidate(pIceAgent, pSocketAddrForTurn, j, KVS_SOCKET_PROTOCOL_UDP));
-                }
-
-                if (pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_TCP ||
-                    pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_NONE) {
-                    CHK_STATUS(iceAgentInitRelayCandidate(pIceAgent, pSocketAddrForTurn, j, KVS_SOCKET_PROTOCOL_TCP));
-                }
+            if (pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_TCP ||
+                pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_NONE) {
+                CHK_STATUS(iceAgentInitRelayCandidate(pIceAgent, j, KVS_SOCKET_PROTOCOL_TCP));
             }
         }
     }
@@ -1701,7 +1677,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent, PKvsIpAddress pLocalInterface, UINT32 iceServerIndex, KVS_SOCKET_PROTOCOL protocol)
+STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent, UINT32 iceServerIndex, KVS_SOCKET_PROTOCOL protocol)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PDoubleListNode pCurNode = NULL;
@@ -1711,6 +1687,8 @@ STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent, PKvsIpAddress pLocalInter
     PTurnConnection pTurnConnection = NULL;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
+    /* we dont support TURN on DTLS yet. */
+    CHK(protocol != KVS_SOCKET_PROTOCOL_UDP || !pIceAgent->iceServers[iceServerIndex].isSecure, retStatus);
     CHK_WARN(pIceAgent->relayCandidateCount < KVS_ICE_MAX_RELAY_CANDIDATE_COUNT, retStatus,
              "Cannot create more relay candidate because max count of %u is reached",
              KVS_ICE_MAX_RELAY_CANDIDATE_COUNT);
@@ -1721,14 +1699,10 @@ STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent, PKvsIpAddress pLocalInter
     generateJSONSafeString(pNewCandidate->id, ARRAY_SIZE(pNewCandidate->id));
     pNewCandidate->isRemote = FALSE;
 
-    // copy over host candidate's address to open up a new socket at that address, because createSocketConnection
-    // would store port info into pNewCandidate->ipAddress
-    pNewCandidate->ipAddress = *pLocalInterface;
-    // open up a new socket at host candidate's ip address for relay candidate.
-    // the new port will be stored in pNewCandidate->ipAddress.port. And the Ip address will later be updated
-    // with the correct ip address once the STUN response is received. Relay candidate's socket is managed
+    // open up a new socket without binding to any host address. The candidate Ip address will later be updated
+    // with the correct relay ip address once the Allocation success response is received. Relay candidate's socket is managed
     // by TurnConnection struct.
-    CHK_STATUS(createSocketConnection(&pNewCandidate->ipAddress, &pIceAgent->iceServers[iceServerIndex].ipAddress, protocol,
+    CHK_STATUS(createSocketConnection(KVS_IP_FAMILY_TYPE_IPV4, protocol, NULL, &pIceAgent->iceServers[iceServerIndex].ipAddress,
                                       (UINT64) pNewCandidate, incomingRelayedDataHandler, pIceAgent->kvsRtcConfiguration.sendBufSize,
                                       &pNewCandidate->pSocketConnection));
     // connectionListener will free the pSocketConnection at the end.
@@ -2484,16 +2458,21 @@ CleanUp:
 VOID iceAgentLogNewCandidate(PIceCandidate pIceCandidate)
 {
     CHAR ipAddr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
+    PCHAR protocol = "UDP";
 
     if (pIceCandidate != NULL) {
         getIpAddrStr(&pIceCandidate->ipAddress, ipAddr, ARRAY_SIZE(ipAddr));
-        DLOGD("New %s ice candidate discovered. Id: %s. Ip: %s:%u. Type: %s",
+        if (pIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED &&
+            pIceCandidate->pTurnConnection->protocol == KVS_SOCKET_PROTOCOL_UDP) {
+            protocol = "TCP";
+        }
+        DLOGD("New %s ice candidate discovered. Id: %s. Ip: %s:%u. Type: %s. Protocol: %s.",
               pIceCandidate->isRemote ? "remote" : "local",
               pIceCandidate->id,
               ipAddr,
               (UINT16) getInt16(pIceCandidate->ipAddress.port),
-              iceAgentGetCandidateTypeStr(pIceCandidate->iceCandidateType)
-        );
+              iceAgentGetCandidateTypeStr(pIceCandidate->iceCandidateType),
+              protocol);
     }
 }
 
@@ -2505,9 +2484,7 @@ STATUS updateCandidateAddress(PIceCandidate pIceCandidate, PKvsIpAddress pIpAddr
     CHK(pIceCandidate->iceCandidateType != ICE_CANDIDATE_TYPE_HOST, STATUS_INVALID_ARG);
     CHK(pIceCandidate->state == ICE_CANDIDATE_STATE_NEW, retStatus);
 
-    MEMCPY(pIceCandidate->ipAddress.address, pIpAddr->address, IS_IPV4_ADDR(pIpAddr) ? IPV4_ADDRESS_LENGTH : IPV6_ADDRESS_LENGTH);
-    pIceCandidate->ipAddress.port = pIpAddr->port;
-
+    pIceCandidate->ipAddress = *pIpAddr;
     pIceCandidate->state = ICE_CANDIDATE_STATE_VALID;
 
 CleanUp:
