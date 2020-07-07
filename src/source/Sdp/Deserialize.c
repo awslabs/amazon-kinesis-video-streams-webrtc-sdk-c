@@ -93,6 +93,10 @@ STATUS deserializeSessionDescription(PSessionDescription pSessionDescription, PC
     while ((next = STRNCHR(curr, tail - curr, '\n')) != NULL) {
         lineLen = (UINT32) (next - curr);
 
+        if (lineLen > 0 && curr[lineLen - 1] == '\r') {
+            lineLen--;
+        }
+
         if (0 == STRNCMP(curr, SDP_MEDIA_NAME_MARKER, (ARRAY_SIZE(SDP_MEDIA_NAME_MARKER) - 1))) {
             CHK_STATUS(parseMediaName(pSessionDescription, curr, lineLen));
         }
