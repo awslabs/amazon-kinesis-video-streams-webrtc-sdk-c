@@ -5,9 +5,33 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
 class SdpApiTest : public WebRtcClientTestBase {
 };
 
+auto lfToCRLF = [](PCHAR sdp, INT32 sdpLen) -> std::string {
+    std::string newSDP;
+    INT32 i;
+    CHAR c;
+
+    for (i = 0; i < sdpLen; i++) {
+        c = sdp[i];
+        if (c == '\n') {
+            newSDP += "\r\n";
+        } else {
+            newSDP += c;
+        }
+    }
+
+    return newSDP;
+};
+
+template<typename Func>
+void assertLFAndCRLF(PCHAR sdp, INT32 sdpLen, Func&& assertFn) {
+    assertFn(sdp);
+    auto converted = lfToCRLF(sdp, sdpLen);
+    assertFn((PCHAR) converted.c_str());
+};
+
 TEST_F(SdpApiTest, deserializeSessionDescription_NoMedia)
 {
-    auto sessionDescriptionNoMedia = R"(v=2
+    CHAR sessionDescriptionNoMedia[] = R"(v=2
 o=- 1904080082932320671 2 IN IP4 127.0.0.1
 s=-
 t=0 0
@@ -15,22 +39,24 @@ a=group:BUNDLE 0 1
 a=msid-semantic: WMS f327e13b-3518-47fc-8b53-9cf74d22d03e
 )";
 
-    SessionDescription sessionDescription;
-    MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
-    EXPECT_EQ(deserializeSessionDescription(&sessionDescription, (PCHAR) sessionDescriptionNoMedia), STATUS_SUCCESS);
+    assertLFAndCRLF(sessionDescriptionNoMedia, ARRAY_SIZE(sessionDescriptionNoMedia) - 1, [](PCHAR sdp) {
+        SessionDescription sessionDescription;
+        MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
+        EXPECT_EQ(deserializeSessionDescription(&sessionDescription, sdp), STATUS_SUCCESS);
 
-    EXPECT_EQ(sessionDescription.sessionAttributesCount, 2);
+        EXPECT_EQ(sessionDescription.sessionAttributesCount, 2);
 
-    EXPECT_STREQ(sessionDescription.sdpAttributes[0].attributeName, "group");
-    EXPECT_STREQ(sessionDescription.sdpAttributes[0].attributeValue, "BUNDLE 0 1");
+        EXPECT_STREQ(sessionDescription.sdpAttributes[0].attributeName, "group");
+        EXPECT_STREQ(sessionDescription.sdpAttributes[0].attributeValue, "BUNDLE 0 1");
 
-    EXPECT_STREQ(sessionDescription.sdpAttributes[1].attributeName, "msid-semantic");
-    EXPECT_STREQ(sessionDescription.sdpAttributes[1].attributeValue, " WMS f327e13b-3518-47fc-8b53-9cf74d22d03e");
+        EXPECT_STREQ(sessionDescription.sdpAttributes[1].attributeName, "msid-semantic");
+        EXPECT_STREQ(sessionDescription.sdpAttributes[1].attributeValue, " WMS f327e13b-3518-47fc-8b53-9cf74d22d03e");
+    });
 }
 
 TEST_F(SdpApiTest, deserializeSessionDescription_Media)
 {
-    auto sessionDescriptionMedia = R"(v=2
+    CHAR sessionDescriptionMedia[] = R"(v=2
 o=- 1904080082932320671 2 IN IP4 127.0.0.1
 s=-
 t=0 0
@@ -44,21 +70,23 @@ a=ssrc:45567500 cname:AZdzrek14WN2tYrw
 a=candidate:842163049 1 udp 1677729535 54.240.196.188 15632 typ srflx raddr 10.111.144.78 rport 53846 generation 0 network-cost 999
 )";
 
-    SessionDescription sessionDescription;
-    MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
-    EXPECT_EQ(deserializeSessionDescription(&sessionDescription, (PCHAR) sessionDescriptionMedia), STATUS_SUCCESS);
+    assertLFAndCRLF(sessionDescriptionMedia, ARRAY_SIZE(sessionDescriptionMedia) - 1, [](PCHAR sdp) {
+        SessionDescription sessionDescription;
+        MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
+        EXPECT_EQ(deserializeSessionDescription(&sessionDescription, sdp), STATUS_SUCCESS);
 
-    EXPECT_EQ(sessionDescription.mediaCount, 2);
+        EXPECT_EQ(sessionDescription.mediaCount, 2);
 
-    EXPECT_STREQ(sessionDescription.mediaDescriptions[0].mediaName, "audio 3554 UDP/TLS/RTP/SAVPF 111 103 9 102 0 8 105 13 110 113 126");
-    EXPECT_EQ(sessionDescription.mediaDescriptions[0].mediaAttributesCount, 2);
-    EXPECT_STREQ(sessionDescription.mediaDescriptions[0].sdpAttributes[0].attributeName, "candidate");
-    EXPECT_STREQ(sessionDescription.mediaDescriptions[0].sdpAttributes[0].attributeValue, "1682923840 1 udp 2113937151 10.111.144.78 63135 typ host generation 0 network-cost 999");
+        EXPECT_STREQ(sessionDescription.mediaDescriptions[0].mediaName, "audio 3554 UDP/TLS/RTP/SAVPF 111 103 9 102 0 8 105 13 110 113 126");
+        EXPECT_EQ(sessionDescription.mediaDescriptions[0].mediaAttributesCount, 2);
+        EXPECT_STREQ(sessionDescription.mediaDescriptions[0].sdpAttributes[0].attributeName, "candidate");
+        EXPECT_STREQ(sessionDescription.mediaDescriptions[0].sdpAttributes[0].attributeValue, "1682923840 1 udp 2113937151 10.111.144.78 63135 typ host generation 0 network-cost 999");
 
-    EXPECT_STREQ(sessionDescription.mediaDescriptions[1].mediaName, "video 15632 UDP/TLS/RTP/SAVPF 96 97 98 99 100 101 127 125 104");
-    EXPECT_EQ(sessionDescription.mediaDescriptions[1].mediaAttributesCount, 2);
-    EXPECT_STREQ(sessionDescription.mediaDescriptions[1].sdpAttributes[0].attributeName, "ssrc");
-    EXPECT_STREQ(sessionDescription.mediaDescriptions[1].sdpAttributes[0].attributeValue, "45567500 cname:AZdzrek14WN2tYrw");
+        EXPECT_STREQ(sessionDescription.mediaDescriptions[1].mediaName, "video 15632 UDP/TLS/RTP/SAVPF 96 97 98 99 100 101 127 125 104");
+        EXPECT_EQ(sessionDescription.mediaDescriptions[1].mediaAttributesCount, 2);
+        EXPECT_STREQ(sessionDescription.mediaDescriptions[1].sdpAttributes[0].attributeName, "ssrc");
+        EXPECT_STREQ(sessionDescription.mediaDescriptions[1].sdpAttributes[0].attributeValue, "45567500 cname:AZdzrek14WN2tYrw");
+    });
 }
 
 auto populate_session_description = [](PSessionDescription pSessionDescription) {
@@ -89,7 +117,7 @@ auto populate_session_description = [](PSessionDescription pSessionDescription) 
 
 TEST_F(SdpApiTest, serializeSessionDescription_NoMedia)
 {
-    auto sessionDescriptionNoMedia = R"(v=2
+    CHAR sessionDescriptionNoMedia[] = R"(v=2
 o=- 1904080082932320671 2 IN IP4 127.0.0.1
 s=-
 t=0 0
@@ -99,24 +127,25 @@ a=msid-semantic: WMS f327e13b-3518-47fc-8b53-9cf74d22d03e
 
     SessionDescription sessionDescription;
     UINT32 buff_len = 0, invalid_buffer_len = 5;
-    std::unique_ptr<CHAR[]> buff(new CHAR[135]);
+    const UINT32 expectedLen = ARRAY_SIZE(sessionDescriptionNoMedia) + 6;
+    std::unique_ptr<CHAR[]> buff(new CHAR[expectedLen]);
 
     populate_session_description(&sessionDescription);
 
     EXPECT_EQ(serializeSessionDescription(&sessionDescription, NULL, &buff_len), STATUS_SUCCESS);
-    EXPECT_EQ(buff_len, 135);
+    EXPECT_EQ(buff_len, expectedLen);
 
     std::fill_n(buff.get(), buff_len, '\0');
 
     EXPECT_EQ(serializeSessionDescription(&sessionDescription, buff.get(), &invalid_buffer_len), STATUS_BUFFER_TOO_SMALL);
 
     EXPECT_EQ(serializeSessionDescription(&sessionDescription, buff.get(), &buff_len), STATUS_SUCCESS);
-    EXPECT_STREQ(buff.get(), sessionDescriptionNoMedia);
+    EXPECT_STREQ(buff.get(), (PCHAR) (lfToCRLF(sessionDescriptionNoMedia, ARRAY_SIZE(sessionDescriptionNoMedia) - 1).c_str()));
 }
 
 TEST_F(SdpApiTest, serializeSessionDescription_Media)
 {
-    auto sessionDescriptionNoMedia = R"(v=2
+    CHAR sessionDescriptionNoMedia[] = R"(v=2
 o=- 1904080082932320671 2 IN IP4 127.0.0.1
 s=-
 t=0 0
@@ -130,7 +159,8 @@ a=ssrc:45567500 cname:AZdzrek14WN2tYrw
 
     SessionDescription sessionDescription;
     UINT32 buff_len = 0, invalid_buffer_len = 5;
-    std::unique_ptr<CHAR[]> buff(new CHAR[405]);
+    const UINT32 expectedLen = ARRAY_SIZE(sessionDescriptionNoMedia) + 10;
+    std::unique_ptr<CHAR[]> buff(new CHAR[expectedLen]);
 
     populate_session_description(&sessionDescription);
 
@@ -149,14 +179,14 @@ a=ssrc:45567500 cname:AZdzrek14WN2tYrw
     STRCPY(sessionDescription.mediaDescriptions[1].sdpAttributes[0].attributeValue, "45567500 cname:AZdzrek14WN2tYrw");
 
     EXPECT_EQ(serializeSessionDescription(&sessionDescription, NULL, &buff_len), STATUS_SUCCESS);
-    EXPECT_EQ(buff_len, 405);
+    EXPECT_EQ(buff_len, expectedLen);
 
     std::fill_n(buff.get(), buff_len, '\0');
 
     EXPECT_EQ(serializeSessionDescription(&sessionDescription, buff.get(), &invalid_buffer_len), STATUS_BUFFER_TOO_SMALL);
 
     EXPECT_EQ(serializeSessionDescription(&sessionDescription, buff.get(), &buff_len), STATUS_SUCCESS);
-    EXPECT_STREQ(buff.get(), sessionDescriptionNoMedia);
+    EXPECT_STREQ(buff.get(), (PCHAR) lfToCRLF(sessionDescriptionNoMedia, ARRAY_SIZE(sessionDescriptionNoMedia) - 1).c_str());
 }
 
 TEST_F(SdpApiTest, serializeSessionDescription_AttributeOverflow)
@@ -173,7 +203,10 @@ t=0 0
 
     SessionDescription sessionDescription;
     MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
-    EXPECT_EQ(deserializeSessionDescription(&sessionDescription, (PCHAR) sessionDescriptionNoMedia.c_str()), STATUS_SDP_ATTRIBUTE_MAX_EXCEEDED);
+    auto converted = lfToCRLF((PCHAR) sessionDescriptionNoMedia.c_str(), sessionDescriptionNoMedia.size());
+    EXPECT_EQ(
+        deserializeSessionDescription(&sessionDescription, (PCHAR) converted.c_str()),
+        STATUS_SDP_ATTRIBUTE_MAX_EXCEEDED);
 }
 
 TEST_F(SdpApiTest, setTransceiverPayloadTypes_NoRtxType) {
@@ -359,7 +392,7 @@ TEST_F(SdpApiTest, populateSingleMediaSection_TestTxRecvOnly) {
 }
 
 TEST_F(SdpApiTest, populateSingleMediaSection_TestPayloadNoFmtp) {
-    auto remoteSessionDescription = R"(v=0
+    CHAR remoteSessionDescription[] = R"(v=0
 o=- 7732334361409071710 2 IN IP4 127.0.0.1
 s=-
 t=0 0
@@ -381,35 +414,37 @@ a=rtpmap:96 VP8/90000
 a=rtpmap:102 H264/90000
 )";
 
-    PRtcPeerConnection pRtcPeerConnection = NULL;
-    PRtcRtpTransceiver pRtcRtpTransceiver = NULL;
-    RtcConfiguration rtcConfiguration;
-    RtcMediaStreamTrack rtcMediaStreamTrack;
-    RtcRtpTransceiverInit rtcRtpTransceiverInit;
-    RtcSessionDescriptionInit rtcSessionDescriptionInit;
+    assertLFAndCRLF(remoteSessionDescription, ARRAY_SIZE(remoteSessionDescription) - 1, [](PCHAR sdp) {
+        PRtcPeerConnection pRtcPeerConnection = NULL;
+        PRtcRtpTransceiver pRtcRtpTransceiver = NULL;
+        RtcConfiguration rtcConfiguration;
+        RtcMediaStreamTrack rtcMediaStreamTrack;
+        RtcRtpTransceiverInit rtcRtpTransceiverInit;
+        RtcSessionDescriptionInit rtcSessionDescriptionInit;
 
-    MEMSET(&rtcConfiguration, 0x00, SIZEOF(RtcConfiguration));
-    MEMSET(&rtcMediaStreamTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
-    MEMSET(&rtcSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
+        MEMSET(&rtcConfiguration, 0x00, SIZEOF(RtcConfiguration));
+        MEMSET(&rtcMediaStreamTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
+        MEMSET(&rtcSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
 
-    EXPECT_EQ(createPeerConnection(&rtcConfiguration, &pRtcPeerConnection), STATUS_SUCCESS);
-    EXPECT_EQ(addSupportedCodec(pRtcPeerConnection, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE), STATUS_SUCCESS);
+        EXPECT_EQ(createPeerConnection(&rtcConfiguration, &pRtcPeerConnection), STATUS_SUCCESS);
+        EXPECT_EQ(addSupportedCodec(pRtcPeerConnection, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE), STATUS_SUCCESS);
 
-    rtcRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY;
-    rtcMediaStreamTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
-    rtcMediaStreamTrack.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
-    STRCPY(rtcMediaStreamTrack.streamId, "myKvsVideoStream");
-    STRCPY(rtcMediaStreamTrack.trackId, "myTrack");
-    EXPECT_EQ(addTransceiver(pRtcPeerConnection, &rtcMediaStreamTrack, &rtcRtpTransceiverInit, &pRtcRtpTransceiver), STATUS_SUCCESS);
+        rtcRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY;
+        rtcMediaStreamTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+        rtcMediaStreamTrack.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+        STRCPY(rtcMediaStreamTrack.streamId, "myKvsVideoStream");
+        STRCPY(rtcMediaStreamTrack.trackId, "myTrack");
+        EXPECT_EQ(addTransceiver(pRtcPeerConnection, &rtcMediaStreamTrack, &rtcRtpTransceiverInit, &pRtcRtpTransceiver), STATUS_SUCCESS);
 
-    STRCPY(rtcSessionDescriptionInit.sdp, remoteSessionDescription);
-    rtcSessionDescriptionInit.type = SDP_TYPE_OFFER;
-    EXPECT_EQ(setRemoteDescription(pRtcPeerConnection, &rtcSessionDescriptionInit), STATUS_SUCCESS);
-    EXPECT_EQ(createAnswer(pRtcPeerConnection, &rtcSessionDescriptionInit), STATUS_SUCCESS);
-    EXPECT_PRED_FORMAT2(testing::IsNotSubstring, "fmtp:102 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f", rtcSessionDescriptionInit.sdp);
+        STRCPY(rtcSessionDescriptionInit.sdp, (PCHAR) sdp);
+        rtcSessionDescriptionInit.type = SDP_TYPE_OFFER;
+        EXPECT_EQ(setRemoteDescription(pRtcPeerConnection, &rtcSessionDescriptionInit), STATUS_SUCCESS);
+        EXPECT_EQ(createAnswer(pRtcPeerConnection, &rtcSessionDescriptionInit), STATUS_SUCCESS);
+        EXPECT_PRED_FORMAT2(testing::IsNotSubstring, "fmtp:102 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f", rtcSessionDescriptionInit.sdp);
 
-    closePeerConnection(pRtcPeerConnection);
-    freePeerConnection(&pRtcPeerConnection);
+        closePeerConnection(pRtcPeerConnection);
+        freePeerConnection(&pRtcPeerConnection);
+    });
 }
 
 const auto sdpdata = R"(m=application 9 DTLS/SCTP 5000
@@ -465,10 +500,12 @@ a=group:BUNDLE 0 1 2 3
     offer3 += sdpvideo;
     offer3 += "\n";
 
-                        SessionDescription sessionDescription;
-    MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
-    // as log as Sdp.h  MAX_SDP_SESSION_MEDIA_COUNT 5 this should fail instead of overwriting memory
-    EXPECT_EQ(STATUS_BUFFER_TOO_SMALL, deserializeSessionDescription(&sessionDescription, (PCHAR) offer3.c_str()));
+    assertLFAndCRLF((PCHAR) offer3.c_str(), offer3.size(), [](PCHAR sdp) {
+        SessionDescription sessionDescription;
+        MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
+        // as log as Sdp.h  MAX_SDP_SESSION_MEDIA_COUNT 5 this should fail instead of overwriting memory
+        EXPECT_EQ(STATUS_BUFFER_TOO_SMALL, deserializeSessionDescription(&sessionDescription, (PCHAR) sdp));
+    });
 }
 
 // i receive offer for two video tracks with the same codec
@@ -489,60 +526,62 @@ a=group:BUNDLE 0 1 2
     offer += sdpvideo;
     offer += "\n";
 
-    RtcConfiguration configuration{};
-    PRtcPeerConnection pRtcPeerConnection = nullptr;
-    RtcMediaStreamTrack track1{};
-    RtcMediaStreamTrack track2{};
-    PRtcRtpTransceiver transceiver1 = nullptr;
-    PRtcRtpTransceiver transceiver2 = nullptr;
-    RtcSessionDescriptionInit offerSdp{};
-    RtcSessionDescriptionInit answerSdp{};
+    assertLFAndCRLF((PCHAR) offer.c_str(), offer.size(), [](PCHAR sdp) {
+        RtcConfiguration configuration{};
+        PRtcPeerConnection pRtcPeerConnection = nullptr;
+        RtcMediaStreamTrack track1{};
+        RtcMediaStreamTrack track2{};
+        PRtcRtpTransceiver transceiver1 = nullptr;
+        PRtcRtpTransceiver transceiver2 = nullptr;
+        RtcSessionDescriptionInit offerSdp{};
+        RtcSessionDescriptionInit answerSdp{};
 
-    SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION);
+        SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION);
 
-    track1.kind  = MEDIA_STREAM_TRACK_KIND_VIDEO;
-    track1.codec = RTC_CODEC_VP8;
-    STRNCPY(track1.streamId, "track1", MAX_MEDIA_STREAM_ID_LEN);
-    STRNCPY(track1.trackId, "track1", MAX_MEDIA_STREAM_ID_LEN);
+        track1.kind  = MEDIA_STREAM_TRACK_KIND_VIDEO;
+        track1.codec = RTC_CODEC_VP8;
+        STRNCPY(track1.streamId, "track1", MAX_MEDIA_STREAM_ID_LEN);
+        STRNCPY(track1.trackId, "track1", MAX_MEDIA_STREAM_ID_LEN);
 
-    track2.kind  = MEDIA_STREAM_TRACK_KIND_VIDEO;
-    track2.codec = RTC_CODEC_VP8;
-    STRNCPY(track2.streamId, "track2", MAX_MEDIA_STREAM_ID_LEN);
-    STRNCPY(track2.trackId, "track2", MAX_MEDIA_STREAM_ID_LEN);
+        track2.kind  = MEDIA_STREAM_TRACK_KIND_VIDEO;
+        track2.codec = RTC_CODEC_VP8;
+        STRNCPY(track2.streamId, "track2", MAX_MEDIA_STREAM_ID_LEN);
+        STRNCPY(track2.trackId, "track2", MAX_MEDIA_STREAM_ID_LEN);
 
-    offerSdp.type = SDP_TYPE_OFFER;
-    STRNCPY(offerSdp.sdp, offer.c_str(), MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+        offerSdp.type = SDP_TYPE_OFFER;
+        STRNCPY(offerSdp.sdp, (PCHAR) sdp, MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
 
-    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
-    EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(pRtcPeerConnection, RTC_CODEC_VP8));
-    EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, &track1, nullptr, &transceiver1));
-    EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, &track2, nullptr, &transceiver2));
+        EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+        EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(pRtcPeerConnection, RTC_CODEC_VP8));
+        EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, &track1, nullptr, &transceiver1));
+        EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, &track2, nullptr, &transceiver2));
 
-    EXPECT_EQ(STATUS_SUCCESS,setRemoteDescription(pRtcPeerConnection, &offerSdp));
-    EXPECT_EQ(STATUS_SUCCESS,createAnswer(pRtcPeerConnection, &answerSdp));
+        EXPECT_EQ(STATUS_SUCCESS,setRemoteDescription(pRtcPeerConnection, &offerSdp));
+        EXPECT_EQ(STATUS_SUCCESS,createAnswer(pRtcPeerConnection, &answerSdp));
 
-    std::string answer = answerSdp.sdp;
-    std::set<std::string> ssrcLines;
+        std::string answer = answerSdp.sdp;
+        std::set<std::string> ssrcLines;
 
-    std::size_t current, previous = 0;
-    current = answer.find("a=ssrc:");
-    while (current != std::string::npos) {
-        const auto pos = answer.find_first_of(' ', current);
-        const auto &ssrc = answer.substr(current, pos - current);
-        ssrcLines.insert(ssrc);
-        previous = current + 1;
-        current = answer.find("a=ssrc:", previous);
-    }
+        std::size_t current, previous = 0;
+        current = answer.find("a=ssrc:");
+        while (current != std::string::npos) {
+            const auto pos = answer.find_first_of(' ', current);
+            const auto &ssrc = answer.substr(current, pos - current);
+            ssrcLines.insert(ssrc);
+            previous = current + 1;
+            current = answer.find("a=ssrc:", previous);
+        }
 
-    ASSERT_EQ(2, ssrcLines.size());
+        ASSERT_EQ(2, ssrcLines.size());
 
-    closePeerConnection(pRtcPeerConnection);
-    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+        closePeerConnection(pRtcPeerConnection);
+        EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+    });
 }
 
 
 TEST_F(SdpApiTest, populateSingleMediaSection_TestPayloadFmtp) {
-    auto remoteSessionDescription = R"(v=0
+    CHAR remoteSessionDescription[] = R"(v=0
 o=- 7732334361409071710 2 IN IP4 127.0.0.1
 s=-
 t=0 0
@@ -565,35 +604,37 @@ a=rtpmap:102 H264/90000
 a=fmtp:102 strange
 )";
 
-    PRtcPeerConnection pRtcPeerConnection = NULL;
-    PRtcRtpTransceiver pRtcRtpTransceiver = NULL;
-    RtcConfiguration rtcConfiguration;
-    RtcMediaStreamTrack rtcMediaStreamTrack;
-    RtcRtpTransceiverInit rtcRtpTransceiverInit;
-    RtcSessionDescriptionInit rtcSessionDescriptionInit;
+    assertLFAndCRLF(remoteSessionDescription, ARRAY_SIZE(remoteSessionDescription) - 1, [](PCHAR sdp) {
+        PRtcPeerConnection pRtcPeerConnection = NULL;
+        PRtcRtpTransceiver pRtcRtpTransceiver = NULL;
+        RtcConfiguration rtcConfiguration;
+        RtcMediaStreamTrack rtcMediaStreamTrack;
+        RtcRtpTransceiverInit rtcRtpTransceiverInit;
+        RtcSessionDescriptionInit rtcSessionDescriptionInit;
 
-    MEMSET(&rtcConfiguration, 0x00, SIZEOF(RtcConfiguration));
-    MEMSET(&rtcMediaStreamTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
-    MEMSET(&rtcSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
+        MEMSET(&rtcConfiguration, 0x00, SIZEOF(RtcConfiguration));
+        MEMSET(&rtcMediaStreamTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
+        MEMSET(&rtcSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
 
-    EXPECT_EQ(createPeerConnection(&rtcConfiguration, &pRtcPeerConnection), STATUS_SUCCESS);
-    EXPECT_EQ(addSupportedCodec(pRtcPeerConnection, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE), STATUS_SUCCESS);
+        EXPECT_EQ(createPeerConnection(&rtcConfiguration, &pRtcPeerConnection), STATUS_SUCCESS);
+        EXPECT_EQ(addSupportedCodec(pRtcPeerConnection, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE), STATUS_SUCCESS);
 
-    rtcRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY;
-    rtcMediaStreamTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
-    rtcMediaStreamTrack.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
-    STRCPY(rtcMediaStreamTrack.streamId, "myKvsVideoStream");
-    STRCPY(rtcMediaStreamTrack.trackId, "myTrack");
-    EXPECT_EQ(addTransceiver(pRtcPeerConnection, &rtcMediaStreamTrack, &rtcRtpTransceiverInit, &pRtcRtpTransceiver), STATUS_SUCCESS);
+        rtcRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY;
+        rtcMediaStreamTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+        rtcMediaStreamTrack.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+        STRCPY(rtcMediaStreamTrack.streamId, "myKvsVideoStream");
+        STRCPY(rtcMediaStreamTrack.trackId, "myTrack");
+        EXPECT_EQ(addTransceiver(pRtcPeerConnection, &rtcMediaStreamTrack, &rtcRtpTransceiverInit, &pRtcRtpTransceiver), STATUS_SUCCESS);
 
-    STRCPY(rtcSessionDescriptionInit.sdp, remoteSessionDescription);
-    rtcSessionDescriptionInit.type = SDP_TYPE_OFFER;
-    EXPECT_EQ(setRemoteDescription(pRtcPeerConnection, &rtcSessionDescriptionInit), STATUS_SUCCESS);
-    EXPECT_EQ(createAnswer(pRtcPeerConnection, &rtcSessionDescriptionInit), STATUS_SUCCESS);
-    EXPECT_PRED_FORMAT2(testing::IsSubstring, "fmtp:102 strange", rtcSessionDescriptionInit.sdp);
-    EXPECT_PRED_FORMAT2(testing::IsNotSubstring, "fmtp:102 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f", rtcSessionDescriptionInit.sdp);
-    closePeerConnection(pRtcPeerConnection);
-    freePeerConnection(&pRtcPeerConnection);
+        STRCPY(rtcSessionDescriptionInit.sdp, (PCHAR) sdp);
+        rtcSessionDescriptionInit.type = SDP_TYPE_OFFER;
+        EXPECT_EQ(setRemoteDescription(pRtcPeerConnection, &rtcSessionDescriptionInit), STATUS_SUCCESS);
+        EXPECT_EQ(createAnswer(pRtcPeerConnection, &rtcSessionDescriptionInit), STATUS_SUCCESS);
+        EXPECT_PRED_FORMAT2(testing::IsSubstring, "fmtp:102 strange", rtcSessionDescriptionInit.sdp);
+        EXPECT_PRED_FORMAT2(testing::IsNotSubstring, "fmtp:102 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f", rtcSessionDescriptionInit.sdp);
+        closePeerConnection(pRtcPeerConnection);
+        freePeerConnection(&pRtcPeerConnection);
+    });
 }
 
 }

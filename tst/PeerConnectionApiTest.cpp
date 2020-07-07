@@ -115,7 +115,7 @@ TEST_F(PeerConnectionApiTest, deserializeSessionDescriptionInit)
 
     auto validSessionDescriptionInit = "{sdp: \"KVS\\r\\nWebRTC\\r\\nSDP\\r\\nValue\\r\\n\", type: \"offer\"}";
     EXPECT_EQ(deserializeSessionDescriptionInit((PCHAR) validSessionDescriptionInit, STRLEN(validSessionDescriptionInit), &rtcSessionDescriptionInit), STATUS_SUCCESS);
-    EXPECT_STREQ(rtcSessionDescriptionInit.sdp, "KVS\nWebRTC\nSDP\nValue\n");
+    EXPECT_STREQ(rtcSessionDescriptionInit.sdp, "KVS\r\nWebRTC\r\nSDP\r\nValue\r\n");
     EXPECT_EQ(rtcSessionDescriptionInit.type, SDP_TYPE_OFFER);
 }
 

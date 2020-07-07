@@ -29,6 +29,12 @@ extern "C" {
 #define    SDP_URI_MARKER                      "u="
 #define    SDP_VERSION_MARKER                  "v="
 
+// The sequence CRLF (0x0d0a) is used to end a record, although parsers SHOULD be
+// tolerant and also accept records terminated with a single newline
+// character.
+// Reference: https://tools.ietf.org/html/rfc4566#section-5
+#define    SDP_LINE_SEPARATOR                  "\r\n"
+
 #define    SDP_CANDIDATE_TYPE_HOST             "host"
 #define    SDP_CANDIDATE_TYPE_SERFLX           "srflx"
 #define    SDP_CANDIDATE_TYPE_PRFLX            "prflx"

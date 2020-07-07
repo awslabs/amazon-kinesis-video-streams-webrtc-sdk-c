@@ -10,7 +10,8 @@ SessionDescription internal include file
 extern "C" {
 #endif
 
-#define SESSION_DESCRIPTION_INIT_LINE_ENDING "\\r\\n"
+#define SESSION_DESCRIPTION_INIT_LINE_ENDING            "\\r\\n"
+#define SESSION_DESCRIPTION_INIT_LINE_ENDING_WITHOUT_CR "\\n"
 
 #define SESSION_DESCRIPTION_INIT_TEMPLATE_HEAD "{\"type\": \"%s\", \"sdp\": \""
 #define SESSION_DESCRIPTION_INIT_TEMPLATE_TAIL "\"}"

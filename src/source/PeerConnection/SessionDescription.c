@@ -27,7 +27,11 @@ STATUS serializeSessionDescriptionInit(PRtcSessionDescriptionInit pSessionDescri
     while ((next = STRNCHR(curr, (UINT32) (tail - curr), '\n')) != NULL) {
         lineLen = (UINT32) (next - curr);
 
-         amountWritten = SNPRINTF(
+        if (lineLen > 0 && curr[lineLen - 1] == '\r') {
+            lineLen--;
+        }
+
+        amountWritten = SNPRINTF(
                 sessionDescriptionJSON + *sessionDescriptionJSONLen,
                 sessionDescriptionJSON == NULL ? 0 : inputSize - *sessionDescriptionJSONLen,
                 "%*.*s%s",
@@ -62,7 +66,7 @@ STATUS deserializeSessionDescriptionInit(PCHAR sessionDescriptionJSON, UINT32 se
     jsmn_parser parser;
     INT8 i;
     INT32 j, tokenCount, lineLen;
-    PCHAR curr, last, tail;
+    PCHAR curr, next, tail;
 
     CHK(pSessionDescriptionInit != NULL && sessionDescriptionJSON != NULL, STATUS_NULL_ARG);
     MEMSET(pSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
@@ -85,23 +89,38 @@ STATUS deserializeSessionDescriptionInit(PCHAR sessionDescriptionJSON, UINT32 se
         } else if (STRNCMP(SDP_KEY, sessionDescriptionJSON + tokens[i].start, ARRAY_SIZE(SDP_KEY) - 1) == 0) {
             CHK((tokens[i + 1].end - tokens[i + 1].start) <= MAX_SESSION_DESCRIPTION_INIT_SDP_LEN,
                 STATUS_SESSION_DESCRIPTION_INIT_MAX_SDP_LEN_EXCEEDED);
-            last = curr = sessionDescriptionJSON + tokens[i + 1].start;
-            last -= ARRAY_SIZE(SESSION_DESCRIPTION_INIT_LINE_ENDING) - 1;
+            curr = sessionDescriptionJSON + tokens[i + 1].start;
             tail = sessionDescriptionJSON + tokens[i + 1].end;
             j = 0;
 
-            for (;curr <= tail; curr++) {
-                if (STRNCMP(curr, SESSION_DESCRIPTION_INIT_LINE_ENDING, ARRAY_SIZE(SESSION_DESCRIPTION_INIT_LINE_ENDING) - 1) == 0) {
-                    last += ARRAY_SIZE(SESSION_DESCRIPTION_INIT_LINE_ENDING) - 1;
-                    lineLen = (curr - last);
+            // Unescape carriage return and line feed characters. The SDP that we receive at this point is in 
+            // JSON format, meaning that carriage return and line feed characters are escaped. So, to represent 
+            // these characters, a single escape character is prepended to each of them.
+            //
+            // When we store the sdp in memory, we want to recover the original format, without the escape characters.
+            //
+            // For example:
+            //     \r becomes '\' and 'r'
+            //     \n becomes '\' and 'n'
+            while ((next = STRNSTR(curr, SESSION_DESCRIPTION_INIT_LINE_ENDING_WITHOUT_CR, tail - curr)) != NULL) {
+                lineLen = (INT32) (next - curr);
 
-                    MEMCPY((pSessionDescriptionInit->sdp) + j, last, lineLen);
-                    j += (lineLen + 1);
-                    pSessionDescriptionInit->sdp[j - 1] = '\n';
-
-                    last = curr;
+                // Check if the SDP format is using \r\n or \n separator.
+                // There are escape characters before \n and \r, so we need to move back 1 more character
+                if (lineLen > 1 && curr[lineLen - 2] == '\\' && curr[lineLen - 1] == 'r') {
+                    lineLen -= 2;
                 }
-            }
+
+                MEMCPY((pSessionDescriptionInit->sdp) + j, curr, lineLen * SIZEOF(CHAR));
+                // Since we're adding 2 characters to the line, \r and \n (SDP record is separated by crlf),
+                // we need to add 2 to the serialized line so that the next iteration will not overwrite
+                // these 2 characters.
+                j += (lineLen + 2);
+                pSessionDescriptionInit->sdp[j - 2] = '\r';
+                pSessionDescriptionInit->sdp[j - 1] = '\n';
+
+                curr = next + 2;
+            } 
         }
     }
 

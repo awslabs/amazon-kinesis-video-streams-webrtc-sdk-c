@@ -9,7 +9,7 @@ STATUS serializeVersion(UINT64 version, PCHAR *ppOutputData, PUINT32 pTotalWritt
 
     currentWriteSize = SNPRINTF(*ppOutputData,
                            (*ppOutputData) == NULL ? 0 : *pBufferSize - *pTotalWritten,
-                           SDP_VERSION_MARKER"%" PRIu64 "\n",
+                           SDP_VERSION_MARKER"%" PRIu64 SDP_LINE_SEPARATOR,
                            version);
 
     CHK(*ppOutputData == NULL || ((*pBufferSize - *pTotalWritten) >= currentWriteSize), STATUS_BUFFER_TOO_SMALL);
@@ -40,7 +40,7 @@ STATUS serializeOrigin(PSdpOrigin pSDPOrigin, PCHAR *ppOutputData, PUINT32 pTota
 
         currentWriteSize = SNPRINTF(*ppOutputData,
                                (*ppOutputData) == NULL ? 0 : *pBufferSize - *pTotalWritten,
-                               SDP_ORIGIN_MARKER"%s %" PRIu64 " %" PRIu64 " %s %s %s\n",
+                               SDP_ORIGIN_MARKER"%s %" PRIu64 " %" PRIu64 " %s %s %s" SDP_LINE_SEPARATOR,
                                pSDPOrigin->userName,
                                pSDPOrigin->sessionId,
                                pSDPOrigin->sessionVersion,
@@ -70,7 +70,7 @@ STATUS serializeSessionName(PCHAR sessionName, PCHAR *ppOutputData, PUINT32 pTot
     if (sessionName[0] != '\0') {
         currentWriteSize = SNPRINTF(*ppOutputData,
                                (*ppOutputData) == NULL ? 0 : *pBufferSize - *pTotalWritten,
-                               SDP_SESSION_NAME_MARKER"%s\n",
+                               SDP_SESSION_NAME_MARKER"%s" SDP_LINE_SEPARATOR,
                                sessionName);
 
         CHK(*ppOutputData == NULL || ((*pBufferSize - *pTotalWritten) >= currentWriteSize), STATUS_BUFFER_TOO_SMALL);
@@ -94,7 +94,7 @@ STATUS serializeTimeDescription(PSdpTimeDescription pSDPTimeDescription, PCHAR *
 
     currentWriteSize = SNPRINTF(*ppOutputData,
                            (*ppOutputData) == NULL ? 0 : *pBufferSize - *pTotalWritten,
-                           SDP_TIME_DESCRIPTION_MARKER"%" PRIu64 " %" PRIu64 "\n",
+                           SDP_TIME_DESCRIPTION_MARKER"%" PRIu64 " %" PRIu64 SDP_LINE_SEPARATOR,
                            pSDPTimeDescription->startTime,
                            pSDPTimeDescription->stopTime);
 
@@ -116,12 +116,12 @@ STATUS serializeAttribute(PSdpAttributes pSDPAttributes, PCHAR *ppOutputData, PU
     if (pSDPAttributes->attributeValue[0] == '\0') {
         currentWriteSize = SNPRINTF(*ppOutputData,
                                (*ppOutputData) == NULL ? 0 : *pBufferSize - *pTotalWritten,
-                               SDP_ATTRIBUTE_MARKER"%s\n",
+                               SDP_ATTRIBUTE_MARKER"%s" SDP_LINE_SEPARATOR,
                                pSDPAttributes->attributeName);
     } else {
         currentWriteSize = snprintf(*ppOutputData,
                                (*ppOutputData) == NULL ? 0 : *pBufferSize - *pTotalWritten,
-                               SDP_ATTRIBUTE_MARKER"%s:%s\n",
+                               SDP_ATTRIBUTE_MARKER"%s:%s" SDP_LINE_SEPARATOR,
                                pSDPAttributes->attributeName,
                                pSDPAttributes->attributeValue);
     }
@@ -144,7 +144,7 @@ STATUS serializeMediaName(PCHAR pMediaName, PCHAR *ppOutputData, PUINT32 pTotalW
     if (pMediaName[0] != '\0') {
         currentWriteSize = snprintf(*ppOutputData,
                                (*ppOutputData) == NULL ? 0 : *pBufferSize - *pTotalWritten,
-                               SDP_MEDIA_NAME_MARKER"%s\n",
+                               SDP_MEDIA_NAME_MARKER"%s" SDP_LINE_SEPARATOR,
                                pMediaName);
 
         CHK(*ppOutputData == NULL || ((*pBufferSize - *pTotalWritten) >= currentWriteSize), STATUS_BUFFER_TOO_SMALL);
@@ -169,7 +169,7 @@ STATUS serializeMediaConnectionInformation(PSdpConnectionInformation pSdpConnect
     if (pSdpConnectionInformation->networkType[0] != '\0') {
         currentWriteSize = SNPRINTF(*ppOutputData,
                                (*ppOutputData) == NULL ? 0 : *pBufferSize - *pTotalWritten,
-                               SDP_CONNECTION_INFORMATION_MARKER"%s %s %s\n",
+                               SDP_CONNECTION_INFORMATION_MARKER"%s %s %s" SDP_LINE_SEPARATOR,
                                pSdpConnectionInformation->networkType,
                                pSdpConnectionInformation->addressType,
                                pSdpConnectionInformation->connectionAddress);
