@@ -45,7 +45,7 @@ STATUS getIceServerStats(PRtcPeerConnection pRtcPeerConnection, PRtcIceServerSta
     STATUS retStatus = STATUS_SUCCESS;
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pRtcPeerConnection;
     UNUSED_PARAM(pKvsPeerConnection);
-    CHK((pRtcPeerConnection != NULL || pRtcIceServerStats != NULL), STATUS_NULL_ARG);
+    CHK((pRtcPeerConnection != NULL && pRtcIceServerStats != NULL), STATUS_NULL_ARG);
     CHK(pRtcIceServerStats->iceServerIndex < pKvsPeerConnection->pIceAgent->iceServersCount, STATUS_ICE_SERVER_INDEX_INVALID);
 
     pRtcIceServerStats->port = pKvsPeerConnection->pIceAgent->rtcIceServerDiagnostics[pRtcIceServerStats->iceServerIndex].port;
@@ -103,7 +103,7 @@ CleanUp:
 STATUS rtcPeerConnectionGetMetrics(PRtcPeerConnection pRtcPeerConnection, PRtcStats pRtcMetrics)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    CHK(pRtcPeerConnection != NULL || pRtcMetrics != NULL, STATUS_NULL_ARG);
+    CHK(pRtcPeerConnection != NULL && pRtcMetrics != NULL, STATUS_NULL_ARG);
     switch(pRtcMetrics->requestedTypeOfStats) {
         case RTC_STATS_TYPE_CANDIDATE_PAIR:
             getIceCandidatePairStats(pRtcPeerConnection, &pRtcMetrics->rtcStatsObject.iceCandidatePairStats);
