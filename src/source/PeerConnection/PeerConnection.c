@@ -709,7 +709,7 @@ STATUS peerConnectionGetLocalDescription(PRtcPeerConnection pRtcPeerConnection, 
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSessionDescription pSessionDescription = NULL;
-    UINT32 deserializeLen = 0;
+    UINT32 serializeLen = 0;
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pRtcPeerConnection;
 
     CHK(pRtcPeerConnection != NULL && pRtcSessionDescriptionInit != NULL, STATUS_NULL_ARG);
@@ -723,10 +723,10 @@ STATUS peerConnectionGetLocalDescription(PRtcPeerConnection pRtcPeerConnection, 
     }
 
     CHK_STATUS(populateSessionDescription(pKvsPeerConnection, &(pKvsPeerConnection->remoteSessionDescription), pSessionDescription));
-    CHK_STATUS(deserializeSessionDescription(pSessionDescription, NULL, &deserializeLen));
-    CHK(deserializeLen <= MAX_SESSION_DESCRIPTION_INIT_SDP_LEN, STATUS_NOT_ENOUGH_MEMORY);
+    CHK_STATUS(serializeSessionDescription(pSessionDescription, NULL, &serializeLen));
+    CHK(serializeLen <= MAX_SESSION_DESCRIPTION_INIT_SDP_LEN, STATUS_NOT_ENOUGH_MEMORY);
 
-    CHK_STATUS(deserializeSessionDescription(pSessionDescription, pRtcSessionDescriptionInit->sdp, &deserializeLen));
+    CHK_STATUS(serializeSessionDescription(pSessionDescription, pRtcSessionDescriptionInit->sdp, &serializeLen));
 
 CleanUp:
 
@@ -741,7 +741,7 @@ STATUS peerConnectionGetCurrentLocalDescription(PRtcPeerConnection pRtcPeerConne
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSessionDescription pSessionDescription = NULL;
-    UINT32 deserializeLen = 0;
+    UINT32 serializeLen = 0;
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pRtcPeerConnection;
 
     CHK(pRtcPeerConnection != NULL && pRtcSessionDescriptionInit != NULL, STATUS_NULL_ARG);
@@ -751,10 +751,10 @@ STATUS peerConnectionGetCurrentLocalDescription(PRtcPeerConnection pRtcPeerConne
     CHK(NULL != (pSessionDescription = (PSessionDescription) MEMCALLOC(1, SIZEOF(SessionDescription))), STATUS_NOT_ENOUGH_MEMORY);
 
     CHK_STATUS(populateSessionDescription(pKvsPeerConnection, &(pKvsPeerConnection->remoteSessionDescription), pSessionDescription));
-    CHK_STATUS(deserializeSessionDescription(pSessionDescription, NULL, &deserializeLen));
-    CHK(deserializeLen <= MAX_SESSION_DESCRIPTION_INIT_SDP_LEN, STATUS_NOT_ENOUGH_MEMORY);
+    CHK_STATUS(serializeSessionDescription(pSessionDescription, NULL, &serializeLen));
+    CHK(serializeLen <= MAX_SESSION_DESCRIPTION_INIT_SDP_LEN, STATUS_NOT_ENOUGH_MEMORY);
 
-    CHK_STATUS(deserializeSessionDescription(pSessionDescription, pRtcSessionDescriptionInit->sdp, &deserializeLen));
+    CHK_STATUS(serializeSessionDescription(pSessionDescription, pRtcSessionDescriptionInit->sdp, &serializeLen));
 
 CleanUp:
 
@@ -782,7 +782,7 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
     /* Assume cant trickle at first */
     NULLABLE_SET_VALUE(pKvsPeerConnection->canTrickleIce, FALSE);
 
-    CHK_STATUS(serializeSessionDescription(pSessionDescription, pSessionDescriptionInit->sdp));
+    CHK_STATUS(deserializeSessionDescription(pSessionDescription, pSessionDescriptionInit->sdp));
 
     for (i = 0; i < pSessionDescription->sessionAttributesCount; i++) {
         if (STRCMP(pSessionDescription->sdpAttributes[i].attributeName, "fingerprint") == 0) {
@@ -861,7 +861,7 @@ STATUS createOffer(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionIni
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSessionDescription pSessionDescription = NULL;
-    UINT32 deserializeLen = 0;
+    UINT32 serializeLen = 0;
 
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pPeerConnection;
 
@@ -876,10 +876,10 @@ STATUS createOffer(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionIni
     CHK_STATUS(setPayloadTypesForOffer(pKvsPeerConnection->pCodecTable));
 
     CHK_STATUS(populateSessionDescription(pKvsPeerConnection, &(pKvsPeerConnection->remoteSessionDescription), pSessionDescription));
-    CHK_STATUS(deserializeSessionDescription(pSessionDescription, NULL, &deserializeLen));
-    CHK(deserializeLen <= MAX_SESSION_DESCRIPTION_INIT_SDP_LEN, STATUS_NOT_ENOUGH_MEMORY);
+    CHK_STATUS(serializeSessionDescription(pSessionDescription, NULL, &serializeLen));
+    CHK(serializeLen <= MAX_SESSION_DESCRIPTION_INIT_SDP_LEN, STATUS_NOT_ENOUGH_MEMORY);
 
-    CHK_STATUS(deserializeSessionDescription(pSessionDescription, pSessionDescriptionInit->sdp, &deserializeLen));
+    CHK_STATUS(serializeSessionDescription(pSessionDescription, pSessionDescriptionInit->sdp, &serializeLen));
 
 CleanUp:
 
