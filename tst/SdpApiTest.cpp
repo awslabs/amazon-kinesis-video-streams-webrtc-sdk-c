@@ -5,7 +5,7 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
 class SdpApiTest : public WebRtcClientTestBase {
 };
 
-TEST_F(SdpApiTest, serializeSessionDescription_NoMedia)
+TEST_F(SdpApiTest, deserializeSessionDescription_NoMedia)
 {
     auto sessionDescriptionNoMedia = R"(v=2
 o=- 1904080082932320671 2 IN IP4 127.0.0.1
@@ -17,7 +17,7 @@ a=msid-semantic: WMS f327e13b-3518-47fc-8b53-9cf74d22d03e
 
     SessionDescription sessionDescription;
     MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
-    EXPECT_EQ(serializeSessionDescription(&sessionDescription, (PCHAR) sessionDescriptionNoMedia), STATUS_SUCCESS);
+    EXPECT_EQ(deserializeSessionDescription(&sessionDescription, (PCHAR) sessionDescriptionNoMedia), STATUS_SUCCESS);
 
     EXPECT_EQ(sessionDescription.sessionAttributesCount, 2);
 
@@ -28,7 +28,7 @@ a=msid-semantic: WMS f327e13b-3518-47fc-8b53-9cf74d22d03e
     EXPECT_STREQ(sessionDescription.sdpAttributes[1].attributeValue, " WMS f327e13b-3518-47fc-8b53-9cf74d22d03e");
 }
 
-TEST_F(SdpApiTest, serializeSessionDescription_Media)
+TEST_F(SdpApiTest, deserializeSessionDescription_Media)
 {
     auto sessionDescriptionMedia = R"(v=2
 o=- 1904080082932320671 2 IN IP4 127.0.0.1
@@ -46,7 +46,7 @@ a=candidate:842163049 1 udp 1677729535 54.240.196.188 15632 typ srflx raddr 10.1
 
     SessionDescription sessionDescription;
     MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
-    EXPECT_EQ(serializeSessionDescription(&sessionDescription, (PCHAR) sessionDescriptionMedia), STATUS_SUCCESS);
+    EXPECT_EQ(deserializeSessionDescription(&sessionDescription, (PCHAR) sessionDescriptionMedia), STATUS_SUCCESS);
 
     EXPECT_EQ(sessionDescription.mediaCount, 2);
 
@@ -87,7 +87,7 @@ auto populate_session_description = [](PSessionDescription pSessionDescription) 
     STRCPY(pSessionDescription->sdpAttributes[1].attributeValue, " WMS f327e13b-3518-47fc-8b53-9cf74d22d03e");
 };
 
-TEST_F(SdpApiTest, deserializeSessionDescription_NoMedia)
+TEST_F(SdpApiTest, serializeSessionDescription_NoMedia)
 {
     auto sessionDescriptionNoMedia = R"(v=2
 o=- 1904080082932320671 2 IN IP4 127.0.0.1
@@ -103,18 +103,18 @@ a=msid-semantic: WMS f327e13b-3518-47fc-8b53-9cf74d22d03e
 
     populate_session_description(&sessionDescription);
 
-    EXPECT_EQ(deserializeSessionDescription(&sessionDescription, NULL, &buff_len), STATUS_SUCCESS);
+    EXPECT_EQ(serializeSessionDescription(&sessionDescription, NULL, &buff_len), STATUS_SUCCESS);
     EXPECT_EQ(buff_len, 135);
 
     std::fill_n(buff.get(), buff_len, '\0');
 
-    EXPECT_EQ(deserializeSessionDescription(&sessionDescription, buff.get(), &invalid_buffer_len), STATUS_BUFFER_TOO_SMALL);
+    EXPECT_EQ(serializeSessionDescription(&sessionDescription, buff.get(), &invalid_buffer_len), STATUS_BUFFER_TOO_SMALL);
 
-    EXPECT_EQ(deserializeSessionDescription(&sessionDescription, buff.get(), &buff_len), STATUS_SUCCESS);
+    EXPECT_EQ(serializeSessionDescription(&sessionDescription, buff.get(), &buff_len), STATUS_SUCCESS);
     EXPECT_STREQ(buff.get(), sessionDescriptionNoMedia);
 }
 
-TEST_F(SdpApiTest, deserializeSessionDescription_Media)
+TEST_F(SdpApiTest, serializeSessionDescription_Media)
 {
     auto sessionDescriptionNoMedia = R"(v=2
 o=- 1904080082932320671 2 IN IP4 127.0.0.1
@@ -148,18 +148,18 @@ a=ssrc:45567500 cname:AZdzrek14WN2tYrw
     STRCPY(sessionDescription.mediaDescriptions[1].sdpAttributes[0].attributeName, "ssrc");
     STRCPY(sessionDescription.mediaDescriptions[1].sdpAttributes[0].attributeValue, "45567500 cname:AZdzrek14WN2tYrw");
 
-    EXPECT_EQ(deserializeSessionDescription(&sessionDescription, NULL, &buff_len), STATUS_SUCCESS);
+    EXPECT_EQ(serializeSessionDescription(&sessionDescription, NULL, &buff_len), STATUS_SUCCESS);
     EXPECT_EQ(buff_len, 405);
 
     std::fill_n(buff.get(), buff_len, '\0');
 
-    EXPECT_EQ(deserializeSessionDescription(&sessionDescription, buff.get(), &invalid_buffer_len), STATUS_BUFFER_TOO_SMALL);
+    EXPECT_EQ(serializeSessionDescription(&sessionDescription, buff.get(), &invalid_buffer_len), STATUS_BUFFER_TOO_SMALL);
 
-    EXPECT_EQ(deserializeSessionDescription(&sessionDescription, buff.get(), &buff_len), STATUS_SUCCESS);
+    EXPECT_EQ(serializeSessionDescription(&sessionDescription, buff.get(), &buff_len), STATUS_SUCCESS);
     EXPECT_STREQ(buff.get(), sessionDescriptionNoMedia);
 }
 
-TEST_F(SdpApiTest, deserializeSessionDescription_AttributeOverflow)
+TEST_F(SdpApiTest, serializeSessionDescription_AttributeOverflow)
 {
     std::string sessionDescriptionNoMedia = R"(v=2
 o=- 1904080082932320671 2 IN IP4 127.0.0.1
@@ -173,7 +173,7 @@ t=0 0
 
     SessionDescription sessionDescription;
     MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
-    EXPECT_EQ(serializeSessionDescription(&sessionDescription, (PCHAR) sessionDescriptionNoMedia.c_str()), STATUS_SDP_ATTRIBUTE_MAX_EXCEEDED);
+    EXPECT_EQ(deserializeSessionDescription(&sessionDescription, (PCHAR) sessionDescriptionNoMedia.c_str()), STATUS_SDP_ATTRIBUTE_MAX_EXCEEDED);
 }
 
 TEST_F(SdpApiTest, setTransceiverPayloadTypes_NoRtxType) {
@@ -468,7 +468,7 @@ a=group:BUNDLE 0 1 2 3
                         SessionDescription sessionDescription;
     MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
     // as log as Sdp.h  MAX_SDP_SESSION_MEDIA_COUNT 5 this should fail instead of overwriting memory
-    EXPECT_EQ(STATUS_BUFFER_TOO_SMALL, serializeSessionDescription(&sessionDescription, (PCHAR) offer3.c_str()));
+    EXPECT_EQ(STATUS_BUFFER_TOO_SMALL, deserializeSessionDescription(&sessionDescription, (PCHAR) offer3.c_str()));
 }
 
 // i receive offer for two video tracks with the same codec

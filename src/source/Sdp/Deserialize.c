@@ -1,158 +1,45 @@
 #define LOG_CLASS "SDP"
 #include "../Include_i.h"
 
-STATUS deserializeVersion(UINT64 version, PCHAR *ppOutputData, PUINT32 pTotalWritten, PUINT32 pBufferSize)
+STATUS parseMediaName(PSessionDescription pSessionDescription, PCHAR pch, UINT32 lineLen)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    UINT32 currentWriteSize = 0;
 
-    currentWriteSize = SNPRINTF(*ppOutputData,
-                           (*ppOutputData) == NULL ? 0 : *pBufferSize - *pTotalWritten,
-                           SDP_VERSION_MARKER"%" PRIu64 "\n",
-                           version);
+    CHK(pSessionDescription->mediaCount < MAX_SDP_SESSION_MEDIA_COUNT, STATUS_BUFFER_TOO_SMALL);
 
-    CHK(*ppOutputData == NULL || ((*pBufferSize - *pTotalWritten) >= currentWriteSize), STATUS_BUFFER_TOO_SMALL);
-    *pTotalWritten += currentWriteSize;
-    if (*ppOutputData != NULL) {
-        *ppOutputData += currentWriteSize;
-    }
+    STRNCPY(pSessionDescription->mediaDescriptions[pSessionDescription->mediaCount].mediaName,
+            (pch + SDP_ATTRIBUTE_LENGTH),
+            MIN(MAX_SDP_MEDIA_NAME_LENGTH, lineLen - SDP_ATTRIBUTE_LENGTH));
+    pSessionDescription->mediaCount++;
 
 CleanUp:
-
     LEAVES();
     return retStatus;
 }
 
-STATUS deserializeOrigin(PSdpOrigin pSDPOrigin, PCHAR *ppOutputData, PUINT32 pTotalWritten, PUINT32 pBufferSize)
+STATUS parseSessionAttributes(PSessionDescription pSessionDescription, PCHAR pch, UINT32 lineLen)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    UINT32 currentWriteSize = 0;
+    PCHAR search;
 
-    CHK(pSDPOrigin != NULL, STATUS_NULL_ARG);
+    CHK(pSessionDescription->sessionAttributesCount < MAX_SDP_ATTRIBUTES_COUNT, STATUS_SDP_ATTRIBUTE_MAX_EXCEEDED);
 
-     if (pSDPOrigin->userName[0] != '\0' &&
-         pSDPOrigin->sdpConnectionInformation.connectionAddress[0] != '\0' &&
-         pSDPOrigin->sdpConnectionInformation.connectionAddress[0] != '\0' &&
-         pSDPOrigin->sdpConnectionInformation.connectionAddress[0] != '\0')
-     {
-
-        currentWriteSize = SNPRINTF(*ppOutputData,
-                               (*ppOutputData) == NULL ? 0 : *pBufferSize - *pTotalWritten,
-                               SDP_ORIGIN_MARKER"%s %" PRIu64 " %" PRIu64 " %s %s %s\n",
-                               pSDPOrigin->userName,
-                               pSDPOrigin->sessionId,
-                               pSDPOrigin->sessionVersion,
-                               pSDPOrigin->sdpConnectionInformation.networkType,
-                               pSDPOrigin->sdpConnectionInformation.addressType,
-                               pSDPOrigin->sdpConnectionInformation.connectionAddress);
-
-        CHK(*ppOutputData == NULL || ((*pBufferSize - *pTotalWritten) >= currentWriteSize), STATUS_BUFFER_TOO_SMALL);
-        *pTotalWritten += currentWriteSize;
-        if (*ppOutputData != NULL) {
-            *ppOutputData += currentWriteSize;
-        }
-     }
-
-CleanUp:
-
-    LEAVES();
-    return retStatus;
-}
-
-STATUS deserializeSessionName(PCHAR sessionName, PCHAR *ppOutputData, PUINT32 pTotalWritten, PUINT32 pBufferSize)
-{
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-    UINT32 currentWriteSize = 0;
-
-    if (sessionName[0] != '\0') {
-        currentWriteSize = SNPRINTF(*ppOutputData,
-                               (*ppOutputData) == NULL ? 0 : *pBufferSize - *pTotalWritten,
-                               SDP_SESSION_NAME_MARKER"%s\n",
-                               sessionName);
-
-        CHK(*ppOutputData == NULL || ((*pBufferSize - *pTotalWritten) >= currentWriteSize), STATUS_BUFFER_TOO_SMALL);
-        *pTotalWritten += currentWriteSize;
-        if (*ppOutputData != NULL) {
-            *ppOutputData += currentWriteSize;
-        }
-    }
-
-CleanUp:
-
-    LEAVES();
-    return retStatus;
-}
-
-STATUS deserializeTimeDescription(PSdpTimeDescription pSDPTimeDescription, PCHAR *ppOutputData, PUINT32 pTotalWritten, PUINT32 pBufferSize)
-{
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-    UINT32 currentWriteSize = 0;
-
-    currentWriteSize = SNPRINTF(*ppOutputData,
-                           (*ppOutputData) == NULL ? 0 : *pBufferSize - *pTotalWritten,
-                           SDP_TIME_DESCRIPTION_MARKER"%" PRIu64 " %" PRIu64 "\n",
-                           pSDPTimeDescription->startTime,
-                           pSDPTimeDescription->stopTime);
-
-    *pTotalWritten += currentWriteSize;
-    if (*ppOutputData != NULL) {
-        *ppOutputData += currentWriteSize;
-    }
-
-    LEAVES();
-    return retStatus;
-}
-
-STATUS deserializeAttribute(PSdpAttributes pSDPAttributes, PCHAR *ppOutputData, PUINT32 pTotalWritten, PUINT32 pBufferSize)
-{
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-    UINT32 currentWriteSize = 0;
-
-    if (pSDPAttributes->attributeValue[0] == '\0') {
-        currentWriteSize = SNPRINTF(*ppOutputData,
-                               (*ppOutputData) == NULL ? 0 : *pBufferSize - *pTotalWritten,
-                               SDP_ATTRIBUTE_MARKER"%s\n",
-                               pSDPAttributes->attributeName);
+    if ((search = STRNCHR(pch, lineLen, ':')) == NULL) {
+        STRNCPY(pSessionDescription->sdpAttributes[pSessionDescription->sessionAttributesCount].attributeName,
+                pch + SDP_ATTRIBUTE_LENGTH,
+                MIN(MAX_SDP_ATTRIBUTE_NAME_LENGTH, lineLen - SDP_ATTRIBUTE_LENGTH));
     } else {
-        currentWriteSize = snprintf(*ppOutputData,
-                               (*ppOutputData) == NULL ? 0 : *pBufferSize - *pTotalWritten,
-                               SDP_ATTRIBUTE_MARKER"%s:%s\n",
-                               pSDPAttributes->attributeName,
-                               pSDPAttributes->attributeValue);
+        STRNCPY(pSessionDescription->sdpAttributes[pSessionDescription->sessionAttributesCount].attributeName,
+                pch + SDP_ATTRIBUTE_LENGTH,
+                (search - (pch + SDP_ATTRIBUTE_LENGTH)));
+        STRNCPY(pSessionDescription->sdpAttributes[pSessionDescription->sessionAttributesCount].attributeValue,
+                search + 1,
+                MIN(MAX_SDP_ATTRIBUTE_VALUE_LENGTH, lineLen - (search - pch + 1)));
     }
 
-    *pTotalWritten += currentWriteSize;
-    if (*ppOutputData != NULL) {
-        *ppOutputData += currentWriteSize;
-    }
-
-    LEAVES();
-    return retStatus;
-}
-
-STATUS deserializeMediaName(PCHAR pMediaName, PCHAR *ppOutputData, PUINT32 pTotalWritten, PUINT32 pBufferSize)
-{
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-    UINT32 currentWriteSize = 0;
-
-    if (pMediaName[0] != '\0') {
-        currentWriteSize = snprintf(*ppOutputData,
-                               (*ppOutputData) == NULL ? 0 : *pBufferSize - *pTotalWritten,
-                               SDP_MEDIA_NAME_MARKER"%s\n",
-                               pMediaName);
-
-        CHK(*ppOutputData == NULL || ((*pBufferSize - *pTotalWritten) >= currentWriteSize), STATUS_BUFFER_TOO_SMALL);
-        *pTotalWritten += currentWriteSize;
-        if (*ppOutputData != NULL) {
-            *ppOutputData += currentWriteSize;
-        }
-    }
+    pSessionDescription->sessionAttributesCount++;
 
 CleanUp:
 
@@ -160,26 +47,31 @@ CleanUp:
     return retStatus;
 }
 
-STATUS deserializeMediaConnectionInformation(PSdpConnectionInformation pSdpConnectionInformation, PCHAR *ppOutputData, PUINT32 pTotalWritten, PUINT32 pBufferSize)
+STATUS parseMediaAttributes(PSessionDescription pSessionDescription, PCHAR pch, UINT32 lineLen)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    UINT32 currentWriteSize = 0;
+    PCHAR search;
+    UINT8 currentMediaAttributesCount;
 
-    if (pSdpConnectionInformation->networkType[0] != '\0') {
-        currentWriteSize = SNPRINTF(*ppOutputData,
-                               (*ppOutputData) == NULL ? 0 : *pBufferSize - *pTotalWritten,
-                               SDP_CONNECTION_INFORMATION_MARKER"%s %s %s\n",
-                               pSdpConnectionInformation->networkType,
-                               pSdpConnectionInformation->addressType,
-                               pSdpConnectionInformation->connectionAddress);
+    currentMediaAttributesCount =
+        pSessionDescription->mediaDescriptions[pSessionDescription->mediaCount - 1].mediaAttributesCount;
 
-        CHK(*ppOutputData == NULL || ((*pBufferSize - *pTotalWritten) >= currentWriteSize), STATUS_BUFFER_TOO_SMALL);
-        *pTotalWritten += currentWriteSize;
-        if (*ppOutputData != NULL) {
-            *ppOutputData += currentWriteSize;
-        }
+    CHK(currentMediaAttributesCount < MAX_SDP_ATTRIBUTES_COUNT, STATUS_SDP_ATTRIBUTE_MAX_EXCEEDED);
+
+    if ((search = STRNCHR(pch, lineLen, ':')) == NULL) {
+        STRNCPY(pSessionDescription->mediaDescriptions[pSessionDescription->mediaCount - 1].
+                sdpAttributes[currentMediaAttributesCount].attributeName, pch + SDP_ATTRIBUTE_LENGTH,
+                MIN(MAX_SDP_ATTRIBUTE_NAME_LENGTH, lineLen - SDP_ATTRIBUTE_LENGTH));
+    } else {
+        STRNCPY(pSessionDescription->mediaDescriptions[pSessionDescription->mediaCount - 1].sdpAttributes[currentMediaAttributesCount].attributeName,
+                pch + SDP_ATTRIBUTE_LENGTH,
+                (search - (pch + SDP_ATTRIBUTE_LENGTH)));
+        STRNCPY(pSessionDescription->mediaDescriptions[pSessionDescription->mediaCount - 1].sdpAttributes[currentMediaAttributesCount].attributeValue,
+                search + 1,
+                MIN(MAX_SDP_ATTRIBUTE_VALUE_LENGTH, lineLen - (search - pch + 1)));
     }
+    pSessionDescription->mediaDescriptions[pSessionDescription->mediaCount - 1].mediaAttributesCount++;
 
 CleanUp:
 
@@ -187,40 +79,86 @@ CleanUp:
     return retStatus;
 }
 
-
-STATUS deserializeSessionDescription(PSessionDescription pSessionDescription, PCHAR sdpBytes, PUINT32 sdpBytesLength)
+STATUS deserializeSessionDescription(PSessionDescription pSessionDescription, PCHAR sdpBytes)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    PCHAR curr = sdpBytes;
-    UINT32 i, j, bufferSize = 0;
+    PCHAR curr, tail, next;
+    UINT32 lineLen;
+    CHK(sdpBytes != NULL, STATUS_SESSION_DESCRIPTION_INVALID_SESSION_DESCRIPTION);
 
-    CHK(pSessionDescription != NULL && sdpBytesLength != NULL, STATUS_NULL_ARG);
+    curr = sdpBytes;
+    tail = sdpBytes + STRLEN(sdpBytes);
 
-    bufferSize = *sdpBytesLength;
-    *sdpBytesLength = 0;
+    while ((next = STRNCHR(curr, tail - curr, '\n')) != NULL) {
+        lineLen = (UINT32) (next - curr);
 
-    CHK_STATUS(deserializeVersion(pSessionDescription->version, &curr, sdpBytesLength, &bufferSize));
-    CHK_STATUS(deserializeOrigin(&pSessionDescription->sdpOrigin, &curr, sdpBytesLength, &bufferSize));
-    CHK_STATUS(deserializeSessionName(pSessionDescription->sessionName, &curr, sdpBytesLength, &bufferSize));
-    for (i = 0; i < pSessionDescription->timeDescriptionCount; i++) {
-        CHK_STATUS(deserializeTimeDescription(&pSessionDescription->sdpTimeDescription[i], &curr, sdpBytesLength, &bufferSize));
-    }
-    for (i = 0; i < pSessionDescription->sessionAttributesCount; i++) {
-        CHK_STATUS(deserializeAttribute(&pSessionDescription->sdpAttributes[i], &curr, sdpBytesLength, &bufferSize));
-    }
-
-    for (i = 0; i < pSessionDescription->mediaCount; i++) {
-        CHK_STATUS(deserializeMediaName(pSessionDescription->mediaDescriptions[i].mediaName, &curr, sdpBytesLength, &bufferSize));
-        CHK_STATUS(deserializeMediaConnectionInformation(&(pSessionDescription->mediaDescriptions[i].sdpConnectionInformation), &curr, sdpBytesLength, &bufferSize));
-        for (j = 0; j < pSessionDescription->mediaDescriptions[i].mediaAttributesCount; j++) {
-            CHK_STATUS(deserializeAttribute(&pSessionDescription->mediaDescriptions[i].sdpAttributes[j], &curr, sdpBytesLength, &bufferSize));
+        if (0 == STRNCMP(curr, SDP_MEDIA_NAME_MARKER, (ARRAY_SIZE(SDP_MEDIA_NAME_MARKER) - 1))) {
+            CHK_STATUS(parseMediaName(pSessionDescription, curr, lineLen));
         }
-    }
 
-    *sdpBytesLength += 1; // NULL terminator
+        if (pSessionDescription->mediaCount != 0) {
+            if (0 == STRNCMP(curr, SDP_ATTRIBUTE_MARKER, (ARRAY_SIZE(SDP_ATTRIBUTE_MARKER) - 1))) {
+                CHK_STATUS(parseMediaAttributes(pSessionDescription, curr, lineLen));
+            }
+
+            //Media Title
+            if (0 == STRNCMP(curr, SDP_INFORMATION_MARKER, (ARRAY_SIZE(SDP_INFORMATION_MARKER) - 1))) {
+                STRNCPY(pSessionDescription->mediaDescriptions[pSessionDescription->mediaCount - 1].mediaTitle,
+                        (curr + SDP_ATTRIBUTE_LENGTH),
+                        MIN(MAX_SDP_MEDIA_NAME_LENGTH, lineLen - SDP_ATTRIBUTE_LENGTH));
+            }
+        } else {
+
+            // SDP Session Name
+            if (0 == STRNCMP(curr, SDP_SESSION_NAME_MARKER, (ARRAY_SIZE(SDP_SESSION_NAME_MARKER) - 1))) {
+                STRNCPY(pSessionDescription->sessionName,
+                        (curr + SDP_ATTRIBUTE_LENGTH),
+                        MIN(MAX_SDP_MEDIA_NAME_LENGTH, lineLen - SDP_ATTRIBUTE_LENGTH));
+            }
+
+            // SDP Session Name
+            if (0 == STRNCMP(curr, SDP_INFORMATION_MARKER, (ARRAY_SIZE(SDP_INFORMATION_MARKER) - 1))) {
+                STRNCPY(pSessionDescription->sessionInformation,
+                        (curr + SDP_ATTRIBUTE_LENGTH),
+                        MIN(MAX_SDP_MEDIA_NAME_LENGTH, lineLen - SDP_ATTRIBUTE_LENGTH));
+            }
+
+            // SDP URI
+            if (0 == STRNCMP(curr, SDP_URI_MARKER, (ARRAY_SIZE(SDP_URI_MARKER) - 1))) {
+                STRNCPY(pSessionDescription->uri,
+                        (curr + SDP_ATTRIBUTE_LENGTH),
+                        MIN(MAX_SDP_MEDIA_NAME_LENGTH, lineLen - SDP_ATTRIBUTE_LENGTH));
+            }
+
+            // SDP Email Address
+            if (0 == STRNCMP(curr, SDP_EMAIL_ADDRESS_MARKER, (ARRAY_SIZE(SDP_EMAIL_ADDRESS_MARKER) - 1))) {
+                STRNCPY(pSessionDescription->emailAddress,
+                        (curr + SDP_ATTRIBUTE_LENGTH),
+                        MIN(MAX_SDP_MEDIA_NAME_LENGTH, lineLen - SDP_ATTRIBUTE_LENGTH));
+            }
+
+            // SDP Phone number
+            if (0 == STRNCMP(curr, SDP_PHONE_NUMBER_MARKER, (ARRAY_SIZE(SDP_PHONE_NUMBER_MARKER) - 1))) {
+                STRNCPY(pSessionDescription->phoneNumber,
+                        (curr + SDP_ATTRIBUTE_LENGTH),
+                        MIN(MAX_SDP_MEDIA_NAME_LENGTH, lineLen - SDP_ATTRIBUTE_LENGTH));
+            }
+
+            if (0 == STRNCMP(curr, SDP_VERSION_MARKER, (ARRAY_SIZE(SDP_VERSION_MARKER) - 1))) {
+                STRTOUI64(curr, curr + MAX_SDP_TOKEN_LENGTH, 10, &pSessionDescription->version);
+            }
+
+            if (0 == STRNCMP(curr, SDP_ATTRIBUTE_MARKER, (ARRAY_SIZE(SDP_ATTRIBUTE_MARKER) - 1))) {
+                CHK_STATUS(parseSessionAttributes(pSessionDescription, curr, lineLen));
+            }
+        }
+
+        curr = next + 1;
+    }
 
 CleanUp:
+
     LEAVES();
     return retStatus;
 }
