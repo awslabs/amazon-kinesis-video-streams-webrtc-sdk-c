@@ -90,14 +90,15 @@ STATUS createIceAgent(PCHAR username, PCHAR password, PIceAgentCallbacks pIceAge
                                             (PCHAR) pRtcConfiguration->iceServers[i].username,
                                             (PCHAR) pRtcConfiguration->iceServers[i].credential))) {
             pIceAgent->rtcIceServerDiagnostics[i].port = (INT32)getInt16(pIceAgent->iceServers[i].ipAddress.port);
-            if(pIceAgent->iceServers[pIceAgent->iceServersCount].transport == KVS_SOCKET_PROTOCOL_UDP) {
-                STRCPY(pIceAgent->rtcIceServerDiagnostics[i].protocol, ICE_URL_TRANSPORT_UDP);
-            }
-            else if(pIceAgent->iceServers[pIceAgent->iceServersCount].transport == KVS_SOCKET_PROTOCOL_TCP) {
-                STRCPY(pIceAgent->rtcIceServerDiagnostics[i].protocol, ICE_URL_TRANSPORT_TCP);
-            }
-            else {
-                MEMSET(pIceAgent->rtcIceServerDiagnostics[i].protocol, 0, SIZEOF(pIceAgent->rtcIceServerDiagnostics[i].url));
+            switch(pIceAgent->iceServers[pIceAgent->iceServersCount].transport) {
+                case KVS_SOCKET_PROTOCOL_UDP:
+                    STRCPY(pIceAgent->rtcIceServerDiagnostics[i].protocol, ICE_URL_TRANSPORT_UDP);
+                    break;
+                case KVS_SOCKET_PROTOCOL_TCP:
+                    STRCPY(pIceAgent->rtcIceServerDiagnostics[i].protocol, ICE_URL_TRANSPORT_TCP);
+                    break;
+                default:
+                    MEMSET(pIceAgent->rtcIceServerDiagnostics[i].protocol, 0, SIZEOF(pIceAgent->rtcIceServerDiagnostics[i].protocol));
             }
             STRCPY(pIceAgent->rtcIceServerDiagnostics[i].url, pRtcConfiguration->iceServers[i].urls);
             pIceAgent->iceServersCount++;
