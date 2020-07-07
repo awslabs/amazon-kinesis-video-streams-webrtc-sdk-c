@@ -89,7 +89,19 @@ STATUS createIceAgent(PCHAR username, PCHAR password, PIceAgentCallbacks pIceAge
                                             (PCHAR) pRtcConfiguration->iceServers[i].urls,
                                             (PCHAR) pRtcConfiguration->iceServers[i].username,
                                             (PCHAR) pRtcConfiguration->iceServers[i].credential))) {
+            pIceAgent->rtcIceServerDiagnostics[i].port = pIceAgent->iceServers[pIceAgent->iceServersCount].ipAddress.port;
+            if(pIceAgent->iceServers[pIceAgent->iceServersCount].transport == KVS_SOCKET_PROTOCOL_UDP) {
+                STRCPY(pIceAgent->rtcIceServerDiagnostics[i].protocol, ICE_URL_TRANSPORT_UDP);
+            }
+            else if(pIceAgent->iceServers[pIceAgent->iceServersCount].transport == KVS_SOCKET_PROTOCOL_TCP) {
+                STRCPY(pIceAgent->rtcIceServerDiagnostics[i].protocol, ICE_URL_TRANSPORT_TCP);
+            }
+            else {
+                MEMSET(pIceAgent->rtcIceServerDiagnostics[i].protocol, '\0', SIZEOF(pIceAgent->rtcIceServerDiagnostics[i].url));
+            }
+            STRCPY(pIceAgent->rtcIceServerDiagnostics[i].url, pRtcConfiguration->iceServers[i].urls);
             pIceAgent->iceServersCount++;
+            CHK_STATUS(hashTableCreateWithParams(ICE_HASH_TABLE_BUCKET_COUNT, ICE_HASH_TABLE_BUCKET_LENGTH, &pIceAgent->rtcIceServerDiagnostics[i].requestTimestampDiagnostics));
         }
     }
 
@@ -123,12 +135,17 @@ STATUS freeIceAgent(PIceAgent* ppIceAgent)
     UINT64 data;
     PIceCandidatePair pIceCandidatePair = NULL;
     PIceCandidate pIceCandidate = NULL;
+    UINT32 i = 0;
 
     CHK(ppIceAgent != NULL, STATUS_NULL_ARG);
     // freeIceAgent is idempotent
     CHK(*ppIceAgent != NULL, retStatus);
 
     pIceAgent = *ppIceAgent;
+
+    for(; i < pIceAgent->iceServersCount; i++) {
+        hashTableFree(pIceAgent->rtcIceServerDiagnostics[i].requestTimestampDiagnostics);
+    }
 
     if (pIceAgent->localCandidates != NULL) {
         CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
@@ -1163,13 +1180,13 @@ STATUS iceCandidatePairCheckConnection(PStunPacket pStunBindingRequest, PIceAgen
     checkSum = COMPUTE_CRC32(pStunBindingRequest->header.transactionId, ARRAY_SIZE(pStunBindingRequest->header.transactionId));
     CHK_STATUS(hashTableUpsert(pIceCandidatePair->requestSentTime, checkSum, GETTIME()));
 
+    pIceAgent->rtcIceServerDiagnostics[pIceCandidatePair->local->iceServerIndex].totalRequestsSent++;
     CHK_STATUS(iceAgentSendStunPacket(pStunBindingRequest,
                                       (PBYTE) pIceAgent->remotePassword,
                                       (UINT32) STRLEN(pIceAgent->remotePassword) * SIZEOF(CHAR),
                                       pIceAgent,
                                       pIceCandidatePair->local,
                                       &pIceCandidatePair->remote->ipAddress));
-
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
@@ -1258,6 +1275,7 @@ STATUS iceAgentSendSrflxCandidateRequest(PIceAgent pIceAgent)
     PIceCandidate pCandidate = NULL;
     PIceServer pIceServer = NULL;
     PStunPacket pBindingRequest = NULL;
+    UINT64 checkSum = 0;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
 
@@ -1280,8 +1298,11 @@ STATUS iceAgentSendSrflxCandidateRequest(PIceAgent pIceAgent)
                     if (pIceServer->ipAddress.family == pCandidate->ipAddress.family) {
                         transactionIdStoreInsert(pIceAgent->pStunBindingRequestTransactionIdStore,
                                                  pBindingRequest->header.transactionId);
+                        checkSum = COMPUTE_CRC32(pBindingRequest->header.transactionId, ARRAY_SIZE(pBindingRequest->header.transactionId));
+                        pIceAgent->rtcIceServerDiagnostics[pCandidate->iceServerIndex].totalRequestsSent++;
                         CHK_STATUS(iceAgentSendStunPacket(pBindingRequest, NULL, 0, pIceAgent, pCandidate,
                                                           &pIceServer->ipAddress));
+                        CHK_STATUS(hashTableUpsert(pIceAgent->rtcIceServerDiagnostics[pCandidate->iceServerIndex].requestTimestampDiagnostics, checkSum, GETTIME()));
                     }
                     break;
 
@@ -2272,13 +2293,17 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
             break;
 
         case STUN_PACKET_TYPE_BINDING_RESPONSE_SUCCESS:
-
             // check if Binding Response is for finding srflx candidate
             if (transactionIdStoreHasId(pIceAgent->pStunBindingRequestTransactionIdStore, pBuffer + STUN_PACKET_TRANSACTION_ID_OFFSET)) {
                 CHK_STATUS(findCandidateWithSocketConnection(pSocketConnection, pIceAgent->localCandidates, &pIceCandidate));
                 CHK_WARN(pIceCandidate != NULL, retStatus,
                          "Local candidate with socket %d not found. Dropping STUN binding success response",
                          pSocketConnection->localSocket);
+
+                checkSum = COMPUTE_CRC32(pBuffer + STUN_PACKET_TRANSACTION_ID_OFFSET, STUN_TRANSACTION_ID_LEN);
+                CHK_STATUS(hashTableGet(pIceAgent->rtcIceServerDiagnostics[pIceCandidate->iceServerIndex].requestTimestampDiagnostics, checkSum, &requestSentTime));
+                pIceAgent->rtcIceServerDiagnostics[pIceCandidate->iceServerIndex].totalRoundTripTime += GETTIME() - requestSentTime;
+                pIceAgent->rtcIceServerDiagnostics[pIceCandidate->iceServerIndex].totalResponsesReceived++;
 
                 CHK_STATUS(deserializeStunPacket(pBuffer, bufferLen, NULL, 0, &pStunPacket));
                 CHK_STATUS(getStunAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_XOR_MAPPED_ADDRESS, &pStunAttr));
@@ -2299,6 +2324,8 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
 
             CHK_WARN(transactionIdStoreHasId(pIceCandidatePair->pTransactionIdStore, pBuffer + STUN_PACKET_TRANSACTION_ID_OFFSET), retStatus,
                      "Dropping response packet because transaction id does not match");
+            pIceAgent->rtcIceServerDiagnostics[pIceCandidatePair->local->iceServerIndex].totalResponsesReceived++;
+
             CHK_STATUS(deserializeStunPacket(pBuffer, bufferLen, (PBYTE) pIceAgent->remotePassword, (UINT32) STRLEN(pIceAgent->remotePassword) * SIZEOF(CHAR), &pStunPacket));
             CHK_STATUS(getStunAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_XOR_MAPPED_ADDRESS, &pStunAttr));
             CHK_WARN(pStunAttr != NULL, retStatus, "No mapped address attribute found in STUN response. Dropping Packet");
@@ -2327,6 +2354,7 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
                       pIceCandidatePair->remote->id,
                       pIceCandidatePair->roundTripTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
                 pIceCandidatePair->state = ICE_CANDIDATE_PAIR_STATE_SUCCEEDED;
+                pIceAgent->rtcIceServerDiagnostics[pIceCandidatePair->local->iceServerIndex].totalRoundTripTime += pIceCandidatePair->roundTripTime;
             }
 
             break;

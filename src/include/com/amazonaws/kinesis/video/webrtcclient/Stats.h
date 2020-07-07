@@ -174,6 +174,7 @@ typedef struct {
 typedef struct {
     CHAR url[MAX_STATS_STRING_LENGTH + 1]; //!< STUN/TURN server URL
     CHAR protocol[MAX_STATS_STRING_LENGTH + 1]; //!< Valid values: UDP, TCP
+    UINT32 iceServerIndex;
     INT32 port; //!< Port number used by client
     UINT64 totalRequestsSent; //!< Total amount of requests that have been sent to the server
     UINT64 totalResponsesReceived; //!< Total number of responses received from the server

@@ -82,6 +82,21 @@ typedef VOID (*IceNewLocalCandidateFunc)(UINT64, PCHAR);
 typedef struct __IceAgent IceAgent;
 typedef struct __IceAgent* PIceAgent;
 
+
+/**
+ * Internal structure tracking ICE server parameters for diagnostics and metrics/stats
+ */
+typedef struct {
+    CHAR url[MAX_STATS_STRING_LENGTH + 1]; //!< STUN/TURN server URL
+    CHAR protocol[MAX_STATS_STRING_LENGTH + 1]; //!< Valid values: UDP, TCP
+    INT32 port; //!< Port number used by client
+    UINT64 totalRequestsSent; //!< Total amount of requests that have been sent to the server
+    UINT64 totalResponsesReceived; //!< Total number of responses received from the server
+    UINT64 requestSentTimestamp;
+    UINT64 totalRoundTripTime; //!< Sum of RTTs of all the requests for which response has been received
+    PHashTable requestTimestampDiagnostics;
+} RtcIceServerDiagnostics, *PRtcIceServerDiagnostics;
+
 typedef struct {
     UINT64 customData;
     IceInboundPacketFunc inboundPacketFn;
@@ -139,6 +154,8 @@ struct __IceAgent {
     CHAR remotePassword[MAX_ICE_CONFIG_CREDENTIAL_LEN + 1];
     CHAR combinedUserName[MAX_ICE_CONFIG_USER_NAME_LEN + 1];
 
+    RtcIceServerDiagnostics rtcIceServerDiagnostics[MAX_ICE_SERVERS_COUNT];
+
     PDoubleList localCandidates;
     PDoubleList remoteCandidates;
     // store PIceCandidatePair which will be immediately checked for connectivity when the timer is fired.
@@ -193,7 +210,6 @@ struct __IceAgent {
     // store transaction ids for stun binding request.
     PTransactionIdStore pStunBindingRequestTransactionIdStore;
 };
-
 
 //////////////////////////////////////////////
 // internal functions
