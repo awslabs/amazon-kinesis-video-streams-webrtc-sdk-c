@@ -7,11 +7,12 @@
 STATUS logIceServerMetrics(PRtcIceServerStats pRtcIceServerStats) {
     STATUS retStatus = STATUS_SUCCESS;
     CHK(pRtcIceServerStats != NULL, STATUS_NULL_ARG);
-    DLOGD("ICE Server URL:%s", pRtcIceServerStats->url);
-    DLOGD("ICE Server port:%d", pRtcIceServerStats->port);
-    DLOGD("ICE Server protocol:%s", pRtcIceServerStats->protocol);
-    DLOGD("Total requests sent:%llu\n", pRtcIceServerStats->totalRequestsSent);
-    DLOGD("Total responses received:%llu\n", pRtcIceServerStats->totalResponsesReceived);
+    DLOGD("ICE Server URL: %s", pRtcIceServerStats->url);
+    DLOGD("ICE Server port: %d", pRtcIceServerStats->port);
+    DLOGD("ICE Server protocol: %s", pRtcIceServerStats->protocol);
+    DLOGD("Total requests sent:%" PRIu64, pRtcIceServerStats->totalRequestsSent);
+    DLOGD("Total responses received: %" PRIu64, pRtcIceServerStats->totalResponsesReceived);
+    DLOGD("Total round trip time: %" PRIu64 "ms", pRtcIceServerStats->totalRoundTripTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 CleanUp:
     return retStatus;
 }
@@ -45,13 +46,14 @@ STATUS getIceServerStats(PRtcPeerConnection pRtcPeerConnection, PRtcIceServerSta
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pRtcPeerConnection;
     UNUSED_PARAM(pKvsPeerConnection);
     CHK((pRtcPeerConnection != NULL || pRtcIceServerStats != NULL), STATUS_NULL_ARG);
-    CHK(pRtcIceServerStats->iceServerIndex < pKvsPeerConnection->pIceAgent->iceServersCount, STATUS_ICE_SERVER_COUNT_INVALID);
+    CHK(pRtcIceServerStats->iceServerIndex < pKvsPeerConnection->pIceAgent->iceServersCount, STATUS_ICE_SERVER_INDEX_INVALID);
 
     pRtcIceServerStats->port = pKvsPeerConnection->pIceAgent->rtcIceServerDiagnostics[pRtcIceServerStats->iceServerIndex].port;
     STRCPY(pRtcIceServerStats->protocol, pKvsPeerConnection->pIceAgent->rtcIceServerDiagnostics[pRtcIceServerStats->iceServerIndex].protocol);
     STRCPY(pRtcIceServerStats->url, pKvsPeerConnection->pIceAgent->rtcIceServerDiagnostics[pRtcIceServerStats->iceServerIndex].url);
     pRtcIceServerStats->totalRequestsSent = pKvsPeerConnection->pIceAgent->rtcIceServerDiagnostics[pRtcIceServerStats->iceServerIndex].totalRequestsSent;
     pRtcIceServerStats->totalResponsesReceived = pKvsPeerConnection->pIceAgent->rtcIceServerDiagnostics[pRtcIceServerStats->iceServerIndex].totalResponsesReceived;
+    pRtcIceServerStats->totalRoundTripTime = pKvsPeerConnection->pIceAgent->rtcIceServerDiagnostics[pRtcIceServerStats->iceServerIndex].totalRoundTripTime;
 CleanUp:
     return retStatus;
 }
@@ -122,8 +124,12 @@ STATUS rtcPeerConnectionGetMetrics(PRtcPeerConnection pRtcPeerConnection, PRtcSt
             getRtpOutboundStats(pRtcPeerConnection, &pRtcMetrics->rtcStatsObject.outboundRtpStreamStats);
             break;
         case  RTC_STATS_TYPE_ICE_SERVER:
+            pRtcMetrics->timestamp = GETTIME();
             CHK_STATUS(getIceServerStats(pRtcPeerConnection, &pRtcMetrics->rtcStatsObject.iceServerStats));
-            logIceServerMetrics(&pRtcMetrics->rtcStatsObject.iceServerStats);
+            if(NULL != getenv(LOG_STATS)) {
+                DLOGD("ICE Server Stats requested at %" PRIu64, pRtcMetrics->timestamp);
+                logIceServerMetrics(&pRtcMetrics->rtcStatsObject.iceServerStats);
+            }
             break;
         case  RTC_STATS_TYPE_CERTIFICATE:
         case  RTC_STATS_TYPE_CSRC:

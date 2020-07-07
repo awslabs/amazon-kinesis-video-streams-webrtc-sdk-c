@@ -186,7 +186,7 @@ extern "C" {
 #define STATUS_ICE_FAILED_TO_RECOVER_FROM_DISCONNECTION                             STATUS_ICE_BASE  + 0x00000025
 #define STATUS_ICE_NO_AVAILABLE_ICE_CANDIDATE_PAIR                                  STATUS_ICE_BASE  + 0x00000026
 #define STATUS_TURN_CONNECTION_PEER_NOT_USABLE                                      STATUS_ICE_BASE  + 0x00000027
-#define STATUS_ICE_SERVER_COUNT_INVALID                                             STATUS_ICE_BASE  + 0x00000028
+#define STATUS_ICE_SERVER_INDEX_INVALID                                             STATUS_ICE_BASE  + 0x00000028
 
 /*!@} */
 

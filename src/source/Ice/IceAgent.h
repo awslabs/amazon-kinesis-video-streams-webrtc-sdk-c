@@ -92,9 +92,7 @@ typedef struct {
     INT32 port; //!< Port number used by client
     UINT64 totalRequestsSent; //!< Total amount of requests that have been sent to the server
     UINT64 totalResponsesReceived; //!< Total number of responses received from the server
-    UINT64 requestSentTimestamp;
     UINT64 totalRoundTripTime; //!< Sum of RTTs of all the requests for which response has been received
-    PHashTable requestTimestampDiagnostics;
 } RtcIceServerDiagnostics, *PRtcIceServerDiagnostics;
 
 typedef struct {
@@ -155,6 +153,7 @@ struct __IceAgent {
     CHAR combinedUserName[MAX_ICE_CONFIG_USER_NAME_LEN + 1];
 
     RtcIceServerDiagnostics rtcIceServerDiagnostics[MAX_ICE_SERVERS_COUNT];
+    PHashTable requestTimestampDiagnostics;
 
     PDoubleList localCandidates;
     PDoubleList remoteCandidates;
@@ -195,7 +194,6 @@ struct __IceAgent {
     UINT32 relayCandidateCount;
 
     TIMER_QUEUE_HANDLE timerQueueHandle;
-
     UINT64 lastDataReceivedTime;
     BOOL detectedDisconnection;
     UINT64 disconnectionGracePeriodEndTime;

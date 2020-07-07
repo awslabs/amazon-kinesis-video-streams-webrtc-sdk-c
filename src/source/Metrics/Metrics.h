@@ -10,6 +10,8 @@ WebRTC Client Metrics internal include file
 extern "C" {
 #endif
 
+#define LOG_STATS ((PCHAR) "LOG_STATS")
+
 /**
  * @brief Get specific ICE candidate pair stats
  * @param [in] PRtcPeerConnection Contains the Ice agent object with diagnostics object
