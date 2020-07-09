@@ -23,11 +23,9 @@ STATUS onRtcpPacket(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuff, UINT32 b
                 if (rtcpPacket.header.receptionReportCount == RTCP_FEEDBACK_MESSAGE_TYPE_APPLICATION_LAYER_FEEDBACK &&
                     isRembPacket(rtcpPacket.payload, rtcpPacket.payloadLength) == STATUS_SUCCESS) {
                     CHK_STATUS(onRtcpRembPacket(&rtcpPacket, pKvsPeerConnection));
-                }
-                else if (rtcpPacket.header.receptionReportCount == RTCP_PSFB_PLI) {
+                } else if (rtcpPacket.header.receptionReportCount == RTCP_PSFB_PLI) {
                     CHK_STATUS(onRtcpPLIPacket(&rtcpPacket, pKvsPeerConnection));
-                }
-                else {
+                } else {
                     DLOGW("unhandled packet type RTCP_PACKET_TYPE_PAYLOAD_SPECIFIC_FEEDBACK");
                 }
                 break;
@@ -42,8 +40,7 @@ STATUS onRtcpPacket(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuff, UINT32 b
                     UINT32 packetCnt = (UINT32) getUnalignedInt32BigEndian(rtcpPacket.payload + 16);
                     UINT32 octetCnt = (UINT32) getUnalignedInt32BigEndian(rtcpPacket.payload + 20);
                     DLOGD("RTCP_PACKET_TYPE_SENDER_REPORT %d %u %u rtpTs: %u %u pkts %u bytes", senderSSRC, ntpHi, ntpLo, rtpTs, packetCnt, octetCnt);
-                }
-                else {
+                } else {
                     DLOGW("unhandled packet type RTCP_PACKET_TYPE_SENDER_REPORT size %d", x);
                 }
 
@@ -64,7 +61,7 @@ STATUS onRtcpPacket(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuff, UINT32 b
                     DLOGD("RTCP_PACKET_TYPE_RECEIVER_REPORT %u %u loss: %u %u seq: %u jit: %u lsr: %u dlsr: %u", senderSSRC, ssrc1, fractionLost,
                           cumulativeLost, extendedHighestSeqNumberReceived, interarrivalJitter, lastSR, delaySinceLastSR);
                     if (lastSR != 0) {
-                        //https://tools.ietf.org/html/rfc3550#section-6.4.1
+                        // https://tools.ietf.org/html/rfc3550#section-6.4.1
                         //      Source SSRC_n can compute the round-trip propagation delay to
                         //      SSRC_r by recording the time A when this reception report block is
                         //      received.  It calculates the total round-trip time A-LSR using the
@@ -75,8 +72,7 @@ STATUS onRtcpPacket(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuff, UINT32 b
                         UINT32 rttPropDelayMsec = CONVERT_TIMESCALE(rttPropDelay, DLSR_TIMESCALE, 1000);
                         DLOGD("RTCP_PACKET_TYPE_RECEIVER_REPORT rttPropDelay %u msec", rttPropDelayMsec);
                     }
-                }
-                else {
+                } else {
                     DLOGW("unhandled packet type RTCP_PACKET_TYPE_RECEIVER_REPORT size %d", x);
                 }
                 break;
