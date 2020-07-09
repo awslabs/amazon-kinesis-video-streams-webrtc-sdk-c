@@ -490,8 +490,7 @@ STATUS rtcpReportsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData
         currentTime - pKvsRtpTransceiver->sender.firstFrameWallClockTime >= 2500 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
     if (!ready) {
         DLOGD("sender report no frames sent %u", ssrc);
-    }
-    else {
+    } else {
         // create rtcp sender report packet
         // https://tools.ietf.org/html/rfc3550#section-6.4.1
         UINT64 ntpTime = convertTimestampToNTP(currentTime);
