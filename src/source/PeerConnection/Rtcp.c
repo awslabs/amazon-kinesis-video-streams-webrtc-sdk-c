@@ -41,7 +41,7 @@ STATUS onRtcpPacket(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuff, UINT32 b
                     rtpTs      = getUnalignedInt32BigEndian(rtcpPacket.payload + 12);
                     packetCnt  = getUnalignedInt32BigEndian(rtcpPacket.payload + 16);
                     octetCnt   = getUnalignedInt32BigEndian(rtcpPacket.payload + 20);
-                    DLOGD("RTCP_PACKET_TYPE_SENDER_REPORT %d " PRIu64 " rtpTs: %u %u pkts %u bytes", senderSSRC, ntpTime, rtpTs, packetCnt, octetCnt);
+                    DLOGD("RTCP_PACKET_TYPE_SENDER_REPORT %d %" PRIu64 " rtpTs: %u %u pkts %u bytes", senderSSRC, ntpTime, rtpTs, packetCnt, octetCnt);
                 } else {
                     DLOGW("unhandled packet type RTCP_PACKET_TYPE_SENDER_REPORT size %d", rtcpPacket.payloadLength);
                 }
