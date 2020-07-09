@@ -122,11 +122,6 @@ CleanUp:
     return retStatus;
 }
 
-UINT64 convertTimestampToRTP(UINT64 clockRate, UINT64 pts)
-{
-    return CONVERT_TIMESCALE(pts, HUNDREDS_OF_NANOS_IN_A_SECOND, clockRate);
-}
-
 STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
 {
     STATUS retStatus = STATUS_SUCCESS;

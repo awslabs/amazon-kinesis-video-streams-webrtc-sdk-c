@@ -69,7 +69,7 @@ STATUS onRtcpPacket(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuff, UINT32 b
                         //      last SR timestamp (LSR) field, and then subtracting this field to
                         //      leave the round-trip propagation delay as (A - LSR - DLSR).
                         rttPropDelay     = MID_NTP(currentTimeNTP) - lastSR - delaySinceLastSR;
-                        rttPropDelayMsec = CONVERT_TIMESCALE(rttPropDelay, DLSR_TIMESCALE, 1000);
+                        rttPropDelayMsec = KVS_CONVERT_TIMESCALE(rttPropDelay, DLSR_TIMESCALE, 1000);
                         DLOGD("RTCP_PACKET_TYPE_RECEIVER_REPORT rttPropDelay %u msec", rttPropDelayMsec);
                     }
                 } else {
