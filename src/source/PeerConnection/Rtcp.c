@@ -33,24 +33,25 @@ STATUS onRtcpPacket(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuff, UINT32 b
                     DLOGW("unhandled packet type RTCP_PACKET_TYPE_PAYLOAD_SPECIFIC_FEEDBACK");
                 }
                 break;
-            case RTCP_PACKET_TYPE_SENDER_REPORT: {
+            case RTCP_PACKET_TYPE_SENDER_REPORT:
                 // https://tools.ietf.org/html/rfc3550#section-6.4.1
-                if (rtcpPacket.payloadLength == 24) {
+                if (rtcpPacket.payloadLength == RTCP_PACKET_SENDER_REPORT_MINLEN) {
                     senderSSRC = getUnalignedInt32BigEndian(rtcpPacket.payload);
                     ntpTime    = getUnalignedInt64BigEndian(rtcpPacket.payload + 4);
                     rtpTs      = getUnalignedInt32BigEndian(rtcpPacket.payload + 12);
                     packetCnt  = getUnalignedInt32BigEndian(rtcpPacket.payload + 16);
                     octetCnt   = getUnalignedInt32BigEndian(rtcpPacket.payload + 20);
-                    DLOGD("RTCP_PACKET_TYPE_SENDER_REPORT %d %" PRIu64 " rtpTs: %u %u pkts %u bytes", senderSSRC, ntpTime, rtpTs, packetCnt, octetCnt);
+                    DLOGD("RTCP_PACKET_TYPE_SENDER_REPORT %d %" PRIu64 " rtpTs: %u %u pkts %u bytes", senderSSRC, ntpTime, rtpTs, packetCnt,
+                          octetCnt);
                 } else {
+                    // TODO: handle sender report containing receiver report blocks
                     DLOGW("unhandled packet type RTCP_PACKET_TYPE_SENDER_REPORT size %d", rtcpPacket.payloadLength);
                 }
 
                 break;
-            }
-            case RTCP_PACKET_TYPE_RECEIVER_REPORT: {
+            case RTCP_PACKET_TYPE_RECEIVER_REPORT:
                 // https://tools.ietf.org/html/rfc3550#section-6.4.2
-                if (rtcpPacket.payloadLength == 28) {
+                if (rtcpPacket.payloadLength == RTCP_PACKET_RECEIVER_REPORT_MINLEN) {
                     senderSSRC          = getUnalignedInt32BigEndian(rtcpPacket.payload);
                     ssrc1               = getUnalignedInt32BigEndian(rtcpPacket.payload + 4);
                     fractionLost        = rtcpPacket.payload[8];
@@ -73,10 +74,10 @@ STATUS onRtcpPacket(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuff, UINT32 b
                         DLOGD("RTCP_PACKET_TYPE_RECEIVER_REPORT rttPropDelay %u msec", rttPropDelayMsec);
                     }
                 } else {
+                    // TODO: handle multiple receiver report blocks
                     DLOGW("unhandled packet type RTCP_PACKET_TYPE_RECEIVER_REPORT size %d", rtcpPacket.payloadLength);
                 }
                 break;
-            }
             case RTCP_PACKET_TYPE_SOURCE_DESCRIPTION:
                 DLOGD("unhandled packet type RTCP_PACKET_TYPE_SOURCE_DESCRIPTION");
                 break;

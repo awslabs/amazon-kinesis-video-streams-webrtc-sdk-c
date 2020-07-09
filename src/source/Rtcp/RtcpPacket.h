@@ -26,6 +26,10 @@ extern "C" {
 #define RTCP_PACKET_REMB_IDENTIFIER_OFFSET 8
 #define RTCP_PACKET_REMB_MANTISSA_BITMASK  0x3FFFF
 
+#define RTCP_PACKET_SENDER_REPORT_MINLEN      24
+#define RTCP_PACKET_RECEIVER_REPORT_BLOCK_LEN 24
+#define RTCP_PACKET_RECEIVER_REPORT_MINLEN    4 + RTCP_PACKET_RECEIVER_REPORT_BLOCK_LEN
+
 // https://tools.ietf.org/html/rfc3550#section-4
 // If the participant has not yet sent an RTCP packet (the variable
 // initial is true), the constant Tmin is set to 2.5 seconds, else it
