@@ -13,6 +13,7 @@ addons:
   apt:
     packages:
       - gdb
+      - clang-format
 
 script:
   - export AWS_KVS_LOG_LEVEL=3
@@ -29,6 +30,16 @@ matrix:
     - env: allowTestFail=true
 
   include:
+
+    # Clang check
+    - name: "Clang check"
+      os: linux
+      compiler: gcc
+      before_script:
+        - mkdir build && cd build && cmake .. && make && cd ..
+      script: 
+        bash check-clang.sh
+
     # MacOS Builds
     - name: "OSX GCC"
       os: osx
@@ -66,7 +77,6 @@ matrix:
       before_script:
         - mkdir build && cd build && cmake .. -DCODE_COVERAGE=TRUE -DBUILD_TEST=TRUE
       after_success:
-        - ./check-clang.sh
         - for test_file in $(find CMakeFiles/kvsWebrtcClient.dir CMakeFiles/kvsWebrtcSignalingClient.dir -name '*.gcno'); do gcov $test_file; done
         - bash <(curl -s https://codecov.io/bash)
 
