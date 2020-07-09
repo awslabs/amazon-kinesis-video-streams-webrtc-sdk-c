@@ -483,7 +483,7 @@ STATUS rtcpReportsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData
     PBYTE rawPacket = NULL;
 
     UINT32 ssrc = pKvsRtpTransceiver->sender.ssrc;
-    DLOGD("rtcpReportsCallback %llu ssrc: %u rtxssrc: %u", currentTime, ssrc, pKvsRtpTransceiver->sender.rtxSsrc);
+    DLOGD("rtcpReportsCallback " PRIu64 " ssrc: %u rtxssrc: %u", currentTime, ssrc, pKvsRtpTransceiver->sender.rtxSsrc);
 
     // check if ice agent is connected, reschedule in 200msec if not
     BOOL ready = pKvsPeerConnection->pSrtpSession != NULL &&
@@ -498,7 +498,7 @@ STATUS rtcpReportsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData
             convertTimestampToRTP(pKvsRtpTransceiver->pJitterBuffer->clockRate, currentTime - pKvsRtpTransceiver->sender.firstFrameWallClockTime);
         UINT32 packetCount = pKvsRtpTransceiver->sender.outboundRtpStreamStats.sentRtpStreamStats.packetsSent;
         UINT32 octetCount = pKvsRtpTransceiver->sender.outboundRtpStreamStats.sentRtpStreamStats.bytesSent;
-        DLOGD("sender report %u %llu %llu : %u packets %u bytes", ssrc, ntpTime, rtpTime, packetCount, octetCount);
+        DLOGD("sender report %u " PRIu64 " " PRIu64 " : %u packets %u bytes", ssrc, ntpTime, rtpTime, packetCount, octetCount);
         UINT32 packetLen = RTCP_PACKET_HEADER_LEN + 24;
         UINT32 allocSize = packetLen + SRTP_AUTH_TAG_OVERHEAD;
         CHK(NULL != (rawPacket = (PBYTE) MEMALLOC(allocSize)), STATUS_NOT_ENOUGH_MEMORY);
@@ -516,7 +516,7 @@ STATUS rtcpReportsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData
     }
 
     UINT64 delay = 100 + (RAND() % 200);
-    DLOGD("next sender report %u in %llu msec", ssrc, delay);
+    DLOGD("next sender report %u in " PRIu64 " msec", ssrc, delay);
     // reschedule timer with 200msec +- 100ms
     CHK_STATUS(timerQueueAddTimer(pKvsPeerConnection->timerQueueHandle, delay * HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
                                   TIMER_QUEUE_SINGLE_INVOCATION_PERIOD, rtcpReportsCallback, (UINT64) pKvsRtpTransceiver,
