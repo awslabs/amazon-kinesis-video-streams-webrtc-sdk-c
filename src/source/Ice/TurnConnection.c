@@ -96,8 +96,10 @@ STATUS freeTurnConnection(PTurnConnection* ppTurnConnection)
     }
 
     // shutdown control channel
-    CHK_LOG_ERR(connectionListenerRemoveConnection(pTurnConnection->pConnectionListener, pTurnConnection->pControlChannel));
-    CHK_LOG_ERR(freeSocketConnection(&pTurnConnection->pControlChannel));
+    if (pTurnConnection->pControlChannel) {
+        CHK_LOG_ERR(connectionListenerRemoveConnection(pTurnConnection->pConnectionListener, pTurnConnection->pControlChannel));
+        CHK_LOG_ERR(freeSocketConnection(&pTurnConnection->pControlChannel));
+    }
 
     // free transactionId store for each turn peer
     CHK_LOG_ERR(doubleListGetHeadNode(pTurnConnection->turnPeerList, &pCurNode));
@@ -1107,6 +1109,9 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
                 CHK_STATUS(turnConnectionFreePreAllocatedPackets(pTurnConnection));
 
                 pTurnConnection->state = TURN_STATE_NEW;
+
+                CHK_STATUS(connectionListenerRemoveConnection(pTurnConnection->pConnectionListener, pTurnConnection->pControlChannel));
+                CHK_STATUS(freeSocketConnection(&pTurnConnection->pControlChannel));
             }
 
             break;
