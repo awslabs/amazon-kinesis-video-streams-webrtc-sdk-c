@@ -31,6 +31,7 @@ typedef struct {
     PRetransmitter retransmitter;
 
     RtcOutboundRtpStreamStats outboundRtpStreamStats;
+    RtcRemoteInboundRtpStreamStats remoteInboundRtpStreamStats;
     UINT64 rtpTimeOffset;
     UINT64 firstFrameWallClockTime; //100ns precision
 

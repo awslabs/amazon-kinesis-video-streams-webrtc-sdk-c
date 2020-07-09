@@ -289,11 +289,12 @@ typedef struct {
  */
 typedef struct {
     CHAR localId[MAX_STATS_STRING_LENGTH + 1]; //!< Used to look up RTCOutboundRtpStreamStats for the SSRC
-    UINT64 roundTripTime; //!< Estimated round trip time (seconds) for this SSRC based on the RTCP timestamps
-    UINT64 totalRoundTripTime; //!< The cumulative sum of all round trip time measurements in seconds since the beginning of the session
-    UINT64 fractionLost; //!< The fraction packet loss reported for this SSRC
-    UINT64 reportsReceived; //!< Total number of RTCP RR blocks received for this SSRC
-    UINT64 roundTripTimeMeasurements; //!< Total number of RTCP RR blocks received for this SSRC that contain a valid round trip time
+    volatile SIZE_T roundTripTime; //!< Estimated round trip time (milliseconds) for this SSRC based on the RTCP timestamps
+    volatile SIZE_T totalRoundTripTime; //!< The cumulative sum of all round trip time measurements in seconds since the beginning of the session
+    volatile DOUBLE fractionLost;    //!< The fraction packet loss reported for this SSRC. This fraction is defined to be the number of packets lost
+                                     //!< divided by the number of packets expected
+    volatile SIZE_T reportsReceived; //!< Total number of RTCP RR blocks received for this SSRC
+    volatile SIZE_T roundTripTimeMeasurements; //!< Total number of RTCP RR blocks received for this SSRC that contain a valid round trip time
 } RtcRemoteInboundRtpStreamStats, *PRtcRemoteInboundRtpStreamStats;
 
 /**

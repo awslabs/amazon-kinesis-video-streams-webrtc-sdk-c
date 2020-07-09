@@ -2,9 +2,32 @@
 
 #include "../Include_i.h"
 
+STATUS findTransceiverBySsrc(PKvsPeerConnection pKvsPeerConnection, PKvsRtpTransceiver* ppTransceiver)
+{
+    STATUS retStatus                = STATUS_SUCCESS;
+    PDoubleListNode pCurNode        = NULL;
+    UINT64 item                     = 0;
+    PKvsRtpTransceiver pTransceiver = NULL;
+
+    CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pTransceievers, &pCurNode));
+    while (pCurNode != NULL) {
+        CHK_STATUS(doubleListGetNodeData(pCurNode, &item));
+        pTransceiver = (PKvsRtpTransceiver) item;
+        if (pTransceiver->sender.ssrc || pTransceiver->sender.rtxSsrc) {
+            break;
+        }
+    }
+    *ppTransceiver = pTransceiver;
+
+CleanUp:
+    CHK_LOG_ERR(retStatus);
+    return retStatus;
+}
+
 STATUS onRtcpPacket(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuff, UINT32 buffLen)
 {
     STATUS retStatus = STATUS_SUCCESS;
+    PKvsRtpTransceiver pTransceiver = NULL;
     RtcpPacket rtcpPacket;
     UINT8 fractionLost;
     UINT32 senderSSRC, rtpTs, packetCnt, octetCnt, ssrc1, cumulativeLost, extHiSeqNumReceived, interarrivalJitter, lastSR, delaySinceLastSR;
@@ -54,12 +77,20 @@ STATUS onRtcpPacket(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuff, UINT32 b
                 if (rtcpPacket.payloadLength == RTCP_PACKET_RECEIVER_REPORT_MINLEN) {
                     senderSSRC          = getUnalignedInt32BigEndian(rtcpPacket.payload);
                     ssrc1               = getUnalignedInt32BigEndian(rtcpPacket.payload + 4);
+
+                    CHK_STATUS(findTransceiverBySsrc(pKvsPeerConnection, &pTransceiver));
+                    CHK(pTransceiver != NULL, STATUS_SUCCESS); // TODO: change to some "not found" status
+
                     fractionLost        = rtcpPacket.payload[8];
                     cumulativeLost      = ((UINT32) getUnalignedInt32BigEndian(rtcpPacket.payload + 8)) & 0x00ffffffu;
                     extHiSeqNumReceived = getUnalignedInt32BigEndian(rtcpPacket.payload + 12);
                     interarrivalJitter  = getUnalignedInt32BigEndian(rtcpPacket.payload + 16);
                     lastSR              = getUnalignedInt32BigEndian(rtcpPacket.payload + 20);
                     delaySinceLastSR    = getUnalignedInt32BigEndian(rtcpPacket.payload + 24);
+
+                    ATOMIC_INCREMENT(&pTransceiver->sender.remoteInboundRtpStreamStats.reportsReceived);
+                    ATOMIC_STORE((volatile SIZE_T*) &pTransceiver->sender.remoteInboundRtpStreamStats.fractionLost, (UINT64)(1.0 / fractionLost));
+
                     DLOGD("RTCP_PACKET_TYPE_RECEIVER_REPORT %u %u loss: %u %u seq: %u jit: %u lsr: %u dlsr: %u", senderSSRC, ssrc1, fractionLost,
                           cumulativeLost, extHiSeqNumReceived, interarrivalJitter, lastSR, delaySinceLastSR);
                     if (lastSR != 0) {
@@ -72,6 +103,9 @@ STATUS onRtcpPacket(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuff, UINT32 b
                         rttPropDelay     = MID_NTP(currentTimeNTP) - lastSR - delaySinceLastSR;
                         rttPropDelayMsec = KVS_CONVERT_TIMESCALE(rttPropDelay, DLSR_TIMESCALE, 1000);
                         DLOGD("RTCP_PACKET_TYPE_RECEIVER_REPORT rttPropDelay %u msec", rttPropDelayMsec);
+                        ATOMIC_INCREMENT(&pTransceiver->sender.remoteInboundRtpStreamStats.roundTripTimeMeasurements);
+                        ATOMIC_ADD(&pTransceiver->sender.remoteInboundRtpStreamStats.totalRoundTripTime, rttPropDelayMsec);
+                        ATOMIC_STORE(&pTransceiver->sender.remoteInboundRtpStreamStats.roundTripTime, rttPropDelayMsec);
                     }
                 } else {
                     // TODO: handle multiple receiver report blocks
