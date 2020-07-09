@@ -149,6 +149,8 @@ STATUS generateJSONSafeString(PCHAR, UINT32);
 // Project internal functions
 ////////////////////////////////////////////////////
 
+#define CONVERT_TIMESCALE(pts, from_timescale, to_timescale) (pts * to_timescale / from_timescale)
+
 #ifdef  __cplusplus
 }
 #endif
