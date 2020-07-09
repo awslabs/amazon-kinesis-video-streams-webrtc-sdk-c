@@ -523,9 +523,7 @@ STATUS rtcpReportsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData
                                   &pKvsRtpTransceiver->rtcpReportsTimerId));
 
 CleanUp:
-    if (retStatus != STATUS_SUCCESS) {
-        DLOGW("rtcpReportsCallback error 0x%x", retStatus);
-    }
+    CHK_LOG_ERR(retStatus);
     SAFE_MEMFREE(rawPacket);
     return retStatus;
 }
