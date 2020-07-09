@@ -6,8 +6,12 @@ STATUS onRtcpPacket(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuff, UINT32 b
 {
     STATUS retStatus = STATUS_SUCCESS;
     RtcpPacket rtcpPacket;
-    UINT32 currentOffset = 0;
+    UINT8 fractionLost;
+    UINT32 senderSSRC, rtpTs, packetCnt, octetCnt, ssrc1, cumulativeLost, extHiSeqNumReceived, interarrivalJitter, lastSR, delaySinceLastSR;
+    UINT32 rttPropDelay, rttPropDelayMsec;
+    UINT64 ntpTime;
     UINT64 currentTimeNTP = convertTimestampToNTP(GETTIME());
+    UINT32 currentOffset  = 0;
 
     CHK(pKvsPeerConnection != NULL && pBuff != NULL, STATUS_NULL_ARG);
 
@@ -31,35 +35,32 @@ STATUS onRtcpPacket(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuff, UINT32 b
                 break;
             case RTCP_PACKET_TYPE_SENDER_REPORT: {
                 // https://tools.ietf.org/html/rfc3550#section-6.4.1
-                UINT32 x = rtcpPacket.payloadLength;
-                if (x == 24) {
-                    INT32 senderSSRC = getUnalignedInt32BigEndian(rtcpPacket.payload);
-                    UINT32 ntpHi = (UINT32) getUnalignedInt32BigEndian(rtcpPacket.payload + 4);
-                    UINT32 ntpLo = (UINT32) getUnalignedInt32BigEndian(rtcpPacket.payload + 8);
-                    UINT32 rtpTs = (UINT32) getUnalignedInt32BigEndian(rtcpPacket.payload + 12);
-                    UINT32 packetCnt = (UINT32) getUnalignedInt32BigEndian(rtcpPacket.payload + 16);
-                    UINT32 octetCnt = (UINT32) getUnalignedInt32BigEndian(rtcpPacket.payload + 20);
-                    DLOGD("RTCP_PACKET_TYPE_SENDER_REPORT %d %u %u rtpTs: %u %u pkts %u bytes", senderSSRC, ntpHi, ntpLo, rtpTs, packetCnt, octetCnt);
+                if (rtcpPacket.payloadLength == 24) {
+                    senderSSRC = getUnalignedInt32BigEndian(rtcpPacket.payload);
+                    ntpTime    = getUnalignedInt64BigEndian(rtcpPacket.payload + 4);
+                    rtpTs      = getUnalignedInt32BigEndian(rtcpPacket.payload + 12);
+                    packetCnt  = getUnalignedInt32BigEndian(rtcpPacket.payload + 16);
+                    octetCnt   = getUnalignedInt32BigEndian(rtcpPacket.payload + 20);
+                    DLOGD("RTCP_PACKET_TYPE_SENDER_REPORT %d " PRIu64 " rtpTs: %u %u pkts %u bytes", senderSSRC, ntpTime, rtpTs, packetCnt, octetCnt);
                 } else {
-                    DLOGW("unhandled packet type RTCP_PACKET_TYPE_SENDER_REPORT size %d", x);
+                    DLOGW("unhandled packet type RTCP_PACKET_TYPE_SENDER_REPORT size %d", rtcpPacket.payloadLength);
                 }
 
                 break;
             }
             case RTCP_PACKET_TYPE_RECEIVER_REPORT: {
                 // https://tools.ietf.org/html/rfc3550#section-6.4.2
-                UINT32 x = rtcpPacket.payloadLength;
-                if (x == 28) {
-                    INT32 senderSSRC = getUnalignedInt32BigEndian(rtcpPacket.payload);
-                    UINT32 ssrc1 = (UINT32) getUnalignedInt32BigEndian(rtcpPacket.payload + 4);
-                    UINT8 fractionLost = rtcpPacket.payload[8];
-                    UINT32 cumulativeLost = ((UINT32) getUnalignedInt32BigEndian(rtcpPacket.payload + 8)) & 0x00ffffffu;
-                    UINT32 extendedHighestSeqNumberReceived = (UINT32) getUnalignedInt32BigEndian(rtcpPacket.payload + 12);
-                    UINT32 interarrivalJitter = (UINT32) getUnalignedInt32BigEndian(rtcpPacket.payload + 16);
-                    UINT32 lastSR = (UINT32) getUnalignedInt32BigEndian(rtcpPacket.payload + 20);
-                    UINT32 delaySinceLastSR = (UINT32) getUnalignedInt32BigEndian(rtcpPacket.payload + 24);
+                if (rtcpPacket.payloadLength == 28) {
+                    senderSSRC          = getUnalignedInt32BigEndian(rtcpPacket.payload);
+                    ssrc1               = getUnalignedInt32BigEndian(rtcpPacket.payload + 4);
+                    fractionLost        = rtcpPacket.payload[8];
+                    cumulativeLost      = ((UINT32) getUnalignedInt32BigEndian(rtcpPacket.payload + 8)) & 0x00ffffffu;
+                    extHiSeqNumReceived = getUnalignedInt32BigEndian(rtcpPacket.payload + 12);
+                    interarrivalJitter  = getUnalignedInt32BigEndian(rtcpPacket.payload + 16);
+                    lastSR              = getUnalignedInt32BigEndian(rtcpPacket.payload + 20);
+                    delaySinceLastSR    = getUnalignedInt32BigEndian(rtcpPacket.payload + 24);
                     DLOGD("RTCP_PACKET_TYPE_RECEIVER_REPORT %u %u loss: %u %u seq: %u jit: %u lsr: %u dlsr: %u", senderSSRC, ssrc1, fractionLost,
-                          cumulativeLost, extendedHighestSeqNumberReceived, interarrivalJitter, lastSR, delaySinceLastSR);
+                          cumulativeLost, extHiSeqNumReceived, interarrivalJitter, lastSR, delaySinceLastSR);
                     if (lastSR != 0) {
                         // https://tools.ietf.org/html/rfc3550#section-6.4.1
                         //      Source SSRC_n can compute the round-trip propagation delay to
@@ -67,18 +68,17 @@ STATUS onRtcpPacket(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuff, UINT32 b
                         //      received.  It calculates the total round-trip time A-LSR using the
                         //      last SR timestamp (LSR) field, and then subtracting this field to
                         //      leave the round-trip propagation delay as (A - LSR - DLSR).
-                        UINT32 A = MID_NTP(currentTimeNTP);
-                        UINT32 rttPropDelay = A - lastSR - delaySinceLastSR;
-                        UINT32 rttPropDelayMsec = CONVERT_TIMESCALE(rttPropDelay, DLSR_TIMESCALE, 1000);
+                        rttPropDelay     = MID_NTP(currentTimeNTP) - lastSR - delaySinceLastSR;
+                        rttPropDelayMsec = CONVERT_TIMESCALE(rttPropDelay, DLSR_TIMESCALE, 1000);
                         DLOGD("RTCP_PACKET_TYPE_RECEIVER_REPORT rttPropDelay %u msec", rttPropDelayMsec);
                     }
                 } else {
-                    DLOGW("unhandled packet type RTCP_PACKET_TYPE_RECEIVER_REPORT size %d", x);
+                    DLOGW("unhandled packet type RTCP_PACKET_TYPE_RECEIVER_REPORT size %d", rtcpPacket.payloadLength);
                 }
                 break;
             }
             case RTCP_PACKET_TYPE_SOURCE_DESCRIPTION:
-                DLOGI("unhandled packet type RTCP_PACKET_TYPE_SOURCE_DESCRIPTION");
+                DLOGD("unhandled packet type RTCP_PACKET_TYPE_SOURCE_DESCRIPTION");
                 break;
             default:
                 DLOGW("unhandled packet type %d", rtcpPacket.header.packetType);
