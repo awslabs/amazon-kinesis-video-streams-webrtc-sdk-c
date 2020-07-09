@@ -163,7 +163,9 @@ STATUS generateJSONSafeString(PCHAR, UINT32);
 // Project internal functions
 ////////////////////////////////////////////////////
 
-#ifdef __cplusplus
+#define CONVERT_TIMESCALE(pts, from_timescale, to_timescale) (pts * to_timescale / from_timescale)
+
+#ifdef  __cplusplus
 }
 #endif
 #endif /* __KINESIS_VIDEO_WEBRTC_CLIENT_INCLUDE_I__ */

@@ -129,3 +129,19 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
+
+STATUS encryptRtcpPacket(PSrtpSession pSrtpSession, PVOID message, PINT32 len)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    srtp_err_status_t status;
+
+    status = srtp_protect_rtcp(pSrtpSession->srtp_transmit_session, message, len);
+
+    CHK_ERR(status == srtp_err_status_ok, STATUS_SRTP_ENCRYPT_FAILED, "srtp_protect_rtcp returned %lu on srtp session %llu", status,
+            pSrtpSession->srtp_transmit_session);
+
+CleanUp:
+    LEAVES();
+    return retStatus;
+}

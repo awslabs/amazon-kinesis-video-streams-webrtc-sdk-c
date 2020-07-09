@@ -26,6 +26,7 @@ STATUS decryptSrtpPacket(PSrtpSession pSrtpSession, PVOID encryptedMessage, PINT
 STATUS decryptSrtcpPacket(PSrtpSession pSrtpSession, PVOID encryptedMessage, PINT32 len);
 
 STATUS encryptRtpPacket(PSrtpSession pSrtpSession, PVOID message, PINT32 len);
+STATUS encryptRtcpPacket(PSrtpSession pSrtpSession, PVOID message, PINT32 len);
 
 STATUS freeSrtpSession(PSrtpSession* ppSrtpSession);
 

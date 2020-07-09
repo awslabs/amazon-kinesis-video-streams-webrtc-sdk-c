@@ -130,7 +130,7 @@ CleanUp:
 
 UINT64 convertTimestampToRTP(UINT64 clockRate, UINT64 pts)
 {
-    return (pts * clockRate) / HUNDREDS_OF_NANOS_IN_A_SECOND;
+    return CONVERT_TIMESCALE(pts, HUNDREDS_OF_NANOS_IN_A_SECOND, clockRate);
 }
 
 STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
@@ -144,7 +144,9 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
     PBYTE rawPacket = NULL;
     PPayloadArray pPayloadArray = NULL;
     RtpPayloadFunc rtpPayloadFunc = NULL;
+    UINT64 randomRtpTimeoffset = 0; // TODO: spec requires random rtp time offset
     UINT64 rtpTimestamp = 0;
+    UINT64 now = GETTIME();
 
     CHK(pKvsRtpTransceiver != NULL, STATUS_NULL_ARG);
     pKvsPeerConnection = pKvsRtpTransceiver->pKvsPeerConnection;
@@ -179,6 +181,8 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
         default:
             CHK(FALSE, STATUS_NOT_IMPLEMENTED);
     }
+
+    rtpTimestamp += randomRtpTimeoffset;
 
     CHK_STATUS(rtpPayloadFunc(pKvsPeerConnection->MTU, (PBYTE) pFrame->frameData, pFrame->size, NULL, &(pPayloadArray->payloadLength), NULL,
                               &(pPayloadArray->payloadSubLenSize)));
@@ -227,7 +231,17 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
             CHK_STATUS(rtpRollingBufferAddRtpPacket(pKvsRtpTransceiver->sender.packetBuffer, pRtpPacket));
         }
 
+        // https://tools.ietf.org/html/rfc3550#section-6.4.1
+        // The total number of payload octets (i.e., not including header or padding) transmitted in RTP data packets by the sender
+        ATOMIC_ADD(&pKvsRtpTransceiver->sender.outboundRtpStreamStats.sentRtpStreamStats.bytesSent, pRtpPacket->payloadLength);
+        ATOMIC_INCREMENT(&pKvsRtpTransceiver->sender.outboundRtpStreamStats.sentRtpStreamStats.packetsSent);
+
         SAFE_MEMFREE(rawPacket);
+    }
+
+    if (pKvsRtpTransceiver->sender.firstFrameWallClockTime == 0) {
+        pKvsRtpTransceiver->sender.rtpTimeOffset = randomRtpTimeoffset;
+        pKvsRtpTransceiver->sender.firstFrameWallClockTime = now;
     }
 
 CleanUp:

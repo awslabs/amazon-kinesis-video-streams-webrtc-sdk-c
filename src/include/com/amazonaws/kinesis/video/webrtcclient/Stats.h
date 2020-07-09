@@ -228,12 +228,20 @@ typedef struct {
     UINT32 selectedCandidatePairChanges;      //!< The number of times that the selected candidate pair of this transport has changed
 } RtcTransportStats, *PRtcTransportStats;
 
+// https://www.w3.org/TR/webrtc-stats/#dom-rtcsentrtpstreamstats
+typedef struct {
+    volatile SIZE_T packetsSent;
+    volatile SIZE_T bytesSent;
+} RTCSentRtpStreamStats, *PRTCSentRtpStreamStats;
+
 /**
  * @brief RtcOutboundRtpStreamStats
  *
  * Reference: https://www.w3.org/TR/webrtc-stats/#outboundrtpstats-dict*
  */
 typedef struct {
+    // RTCOutboundRtpStreamStats extends RTCSentRtpStreamStats as per https://www.w3.org/TR/webrtc-stats/#dom-rtcoutboundrtpstreamstats
+    RTCSentRtpStreamStats sentRtpStreamStats;
     BOOL voiceActivityFlag; //!< Only valid for audio. Whether the last RTP packet sent contained voice activity or not based on the presence
                             //!< of the V bit in the extension header
     CHAR trackId[MAX_STATS_STRING_LENGTH + 1];       //!< ID representing current track attached to the sender of the stream
