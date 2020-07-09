@@ -112,6 +112,8 @@ Public Attributes</h2></td></tr>
 <tr class="memitem:a87b945e732047558a7f4b998067ffc4e"><td class="memItemLeft" align="right" valign="top">CHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRtcIceServerStats.html#a87b945e732047558a7f4b998067ffc4e">protocol</a> [255U+1]</td></tr>
 <tr class="memdesc:a87b945e732047558a7f4b998067ffc4e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Valid values: UDP, TCP.  <a href="structRtcIceServerStats.html#a87b945e732047558a7f4b998067ffc4e">More...</a><br /></td></tr>
 <tr class="separator:a87b945e732047558a7f4b998067ffc4e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3c3c3a06e3748ab080eb70c71f5274fb"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRtcIceServerStats.html#a3c3c3a06e3748ab080eb70c71f5274fb">iceServerIndex</a></td></tr>
+<tr class="separator:a3c3c3a06e3748ab080eb70c71f5274fb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a27c5b9c1c86d202813b4a055d44bb6a3"><td class="memItemLeft" align="right" valign="top">INT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRtcIceServerStats.html#a27c5b9c1c86d202813b4a055d44bb6a3">port</a></td></tr>
 <tr class="memdesc:a27c5b9c1c86d202813b4a055d44bb6a3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Port number used by client.  <a href="structRtcIceServerStats.html#a27c5b9c1c86d202813b4a055d44bb6a3">More...</a><br /></td></tr>
 <tr class="separator:a27c5b9c1c86d202813b4a055d44bb6a3"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -129,6 +131,21 @@ Public Attributes</h2></td></tr>
 <div class="textblock"><p>: <a class="el" href="structRtcIceServerStats.html" title=": RtcIceServerStats Stats related to the ICE Server">RtcIceServerStats</a> Stats related to the ICE Server </p>
 <p>Reference: <a href="https://www.w3.org/TR/webrtc-stats/#ice-server-dict">https://www.w3.org/TR/webrtc-stats/#ice-server-dict</a>* </p>
 </div><h2 class="groupheader">Member Data Documentation</h2>
+<a id="a3c3c3a06e3748ab080eb70c71f5274fb"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a3c3c3a06e3748ab080eb70c71f5274fb">&#9670;&nbsp;</a></span>iceServerIndex</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">UINT32 RtcIceServerStats::iceServerIndex</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Ice server index to get stats from. Not available in spec! Needs to be populated by the application to get specific server stats </p>
+
+</div>
+</div>
 <a id="a27c5b9c1c86d202813b4a055d44bb6a3"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a27c5b9c1c86d202813b4a055d44bb6a3">&#9670;&nbsp;</a></span>port</h2>
 
@@ -234,7 +251,7 @@ Public Attributes</h2></td></tr>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="structRtcIceServerStats.html">RtcIceServerStats</a></li>
-    <li class="footer">Generated on Thu Jul 9 2020 19:56:38 for Amazon Kinesis Webrtc C SDK by
+    <li class="footer">Generated on Thu Jul 9 2020 22:00:31 for Amazon Kinesis Webrtc C SDK by
     <a href="http://www.doxygen.org/index.html">
     <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.18 </li>
   </ul>
