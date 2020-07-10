@@ -142,3 +142,14 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
+
+// converts 100ns precision time to ntp time
+UINT64 convertTimestampToNTP(UINT64 time100ns)
+{
+    UINT64 sec = time100ns / HUNDREDS_OF_NANOS_IN_A_SECOND;
+    UINT64 _100ns = time100ns % HUNDREDS_OF_NANOS_IN_A_SECOND;
+
+    UINT64 ntp_sec = sec + NTP_OFFSET;
+    UINT64 ntp_frac = KVS_CONVERT_TIMESCALE(_100ns, HUNDREDS_OF_NANOS_IN_A_SECOND, NTP_TIMESCALE);
+    return (ntp_sec << 32U | ntp_frac);
+}

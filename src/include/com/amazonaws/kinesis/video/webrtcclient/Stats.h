@@ -59,12 +59,12 @@ typedef enum {
  * Reference: https://www.w3.org/TR/webrtc-stats/#rtcstatsicecandidatepairstate-enum
  */
 typedef enum {
-    RTC_ICE_CANDIDATE_PAIR_STATE_FROZEN         = 0,
-    RTC_ICE_CANDIDATE_PAIR_STATE_WAITING        = 1,
-    RTC_ICE_CANDIDATE_PAIR_STATE_IN_PROGRESS    = 2,
-    RTC_ICE_CANDIDATE_PAIR_STATE_SUCCEEDED      = 3,
-    RTC_ICE_CANDIDATE_PAIR_STATE_FAILED         = 4,
-} RTC_ICE_CANDIDATE_PAIR_STATE;
+    ICE_CANDIDATE_PAIR_STATE_FROZEN      = 0,
+    ICE_CANDIDATE_PAIR_STATE_WAITING     = 1,
+    ICE_CANDIDATE_PAIR_STATE_IN_PROGRESS = 2,
+    ICE_CANDIDATE_PAIR_STATE_SUCCEEDED   = 3,
+    ICE_CANDIDATE_PAIR_STATE_FAILED      = 4,
+} ICE_CANDIDATE_PAIR_STATE;
 
 /**
  * @brief Set details of the IceAgent based on STUN_ATTRIBUTE_TYPE_USE_CANDIDATE flag
@@ -127,7 +127,7 @@ typedef struct {
     CHAR transportId[MAX_STATS_STRING_LENGTH + 1]; //!< ID of object that was inspected for RTCTransportStats
     CHAR localCandidateId[MAX_CANDIDATE_ID_LENGTH + 1]; //!< Local candidate that is inspected in RTCIceCandidateStats
     CHAR remoteCandidateId[MAX_CANDIDATE_ID_LENGTH + 1]; //!< Remote candidate that is inspected in RTCIceCandidateStats
-    RTC_ICE_CANDIDATE_PAIR_STATE state; //!< State of checklist for the local-remote candidate pair
+    ICE_CANDIDATE_PAIR_STATE state; //!< State of checklist for the local-remote candidate pair
     BOOL nominated; //!< Flag is TRUE if the agent is a controlling agent and FALSE otherwise. The agent role is based on the
                     //!< STUN_ATTRIBUTE_TYPE_USE_CANDIDATE flag
     NullableUint32 circuitBreakerTriggerCount; //!< Represents number of times circuit breaker is triggered during media transmission
@@ -224,12 +224,20 @@ typedef struct {
     UINT32 selectedCandidatePairChanges; //!< The number of times that the selected candidate pair of this transport has changed
 } RtcTransportStats, *PRtcTransportStats;
 
+// https://www.w3.org/TR/webrtc-stats/#dom-rtcsentrtpstreamstats
+typedef struct {
+    volatile SIZE_T packetsSent;
+    volatile SIZE_T bytesSent;
+} RTCSentRtpStreamStats, *PRTCSentRtpStreamStats;
+
 /**
  * @brief RtcOutboundRtpStreamStats
  *
  * Reference: https://www.w3.org/TR/webrtc-stats/#outboundrtpstats-dict*
  */
 typedef struct {
+    // RTCOutboundRtpStreamStats extends RTCSentRtpStreamStats as per https://www.w3.org/TR/webrtc-stats/#dom-rtcoutboundrtpstreamstats
+    RTCSentRtpStreamStats sentRtpStreamStats;
     BOOL voiceActivityFlag; //!< Only valid for audio. Whether the last RTP packet sent contained voice activity or not based on the presence
                             //!< of the V bit in the extension header
     CHAR trackId[MAX_STATS_STRING_LENGTH + 1]; //!< ID representing current track attached to the sender of the stream
