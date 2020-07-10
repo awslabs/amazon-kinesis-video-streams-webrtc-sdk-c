@@ -449,13 +449,8 @@ STATUS serializeStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passw
             // CHK((size & 0x003f) == 0, STATUS_WEBRTC_STUN_MESSAGE_INTEGRITY_SIZE_ALIGNMENT);
 
             // Calculate the HMAC for the integrity of the packet including STUN header and excluding the integrity attribute
-            size = (UINT16) (pCurrentBufferPosition - pBuffer);
-            KVS_SHA1_HMAC(password,
-                             (INT32) passwordLen,
-                             pBuffer,
-                             size,
-                             pCurrentBufferPosition + STUN_ATTRIBUTE_HEADER_LEN,
-                             &hmacLen);
+            size = (UINT16)(pCurrentBufferPosition - pBuffer);
+            KVS_SHA1_HMAC(password, (INT32) passwordLen, pBuffer, size, pCurrentBufferPosition + STUN_ATTRIBUTE_HEADER_LEN, &hmacLen);
 
             // Advance the current position
             pCurrentBufferPosition += encodedLen;
@@ -997,13 +992,8 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
                 // CHK((size & 0x003f) == 0, STATUS_WEBRTC_STUN_MESSAGE_INTEGRITY_SIZE_ALIGNMENT);
 
                 // Calculate the HMAC for the integrity of the packet including STUN header and excluding the integrity attribute
-                size = (UINT16) ((PBYTE) pStunAttributeHeader - pStunBuffer);
-                KVS_SHA1_HMAC(password,
-                                 (INT32) passwordLen,
-                                 pStunBuffer,
-                                 size,
-                                 pStunAttributeMessageIntegrity->messageIntegrity,
-                                 &hmacLen);
+                size = (UINT16)((PBYTE) pStunAttributeHeader - pStunBuffer);
+                KVS_SHA1_HMAC(password, (INT32) passwordLen, pStunBuffer, size, pStunAttributeMessageIntegrity->messageIntegrity, &hmacLen);
 
                 // Reset the original size in the buffer
                 putInt16((PINT16)(pStunBuffer + STUN_HEADER_TYPE_LEN), pStunPacket->header.messageLength);

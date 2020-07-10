@@ -3,7 +3,7 @@
 
 #pragma once
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -20,7 +20,7 @@ STATUS ioBufferReset(PIOBuffer);
 STATUS ioBufferWrite(PIOBuffer, PBYTE, UINT32);
 STATUS ioBufferRead(PIOBuffer, PBYTE, UINT32, PUINT32);
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 }
 #endif
-#endif  //__KINESIS_VIDEO_WEBRTC_CLIENT_CRYPTO_IOBUFFER__
+#endif //__KINESIS_VIDEO_WEBRTC_CLIENT_CRYPTO_IOBUFFER__

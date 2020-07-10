@@ -88,7 +88,7 @@ extern "C" {
 
 #define CERTIFICATE_FINGERPRINT_LENGTH 160
 
-#define MAX_UDP_PACKET_SIZE             65507
+#define MAX_UDP_PACKET_SIZE 65507
 
 typedef enum {
     KVS_IP_FAMILY_TYPE_IPV4 = (UINT16) 0x0001,

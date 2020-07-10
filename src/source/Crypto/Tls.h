@@ -35,10 +35,10 @@ struct __TlsSession {
     TLS_SESSION_STATE state;
 
 #ifdef KVS_USE_OPENSSL
-    SSL_CTX *pSslCtx;
-    SSL *pSsl;
+    SSL_CTX* pSslCtx;
+    SSL* pSsl;
 #elif KVS_USE_MBEDTLS
-    IOBuffer *pReadBuffer;
+    IOBuffer* pReadBuffer;
 
     mbedtls_ssl_context sslCtx;
     mbedtls_ssl_config sslCtxConfig;
@@ -121,4 +121,4 @@ INT32 tlsSessionReceiveCallback(PVOID, unsigned char*, ULONG);
 #ifdef __cplusplus
 }
 #endif
-#endif  //__KINESIS_VIDEO_WEBRTC_CLIENT_CRYPTO_TLS__
+#endif //__KINESIS_VIDEO_WEBRTC_CLIENT_CRYPTO_TLS__

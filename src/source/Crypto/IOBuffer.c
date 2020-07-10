@@ -1,7 +1,8 @@
 #define LOG_CLASS "IOBuffer"
 #include "../Include_i.h"
 
-STATUS createIOBuffer(UINT32 initialCap, PIOBuffer* ppBuffer) {
+STATUS createIOBuffer(UINT32 initialCap, PIOBuffer* ppBuffer)
+{
     STATUS retStatus = STATUS_SUCCESS;
     PIOBuffer pBuffer = NULL;
 
@@ -25,12 +26,13 @@ CleanUp:
     return retStatus;
 }
 
-STATUS freeIOBuffer(PIOBuffer* ppBuffer) {
+STATUS freeIOBuffer(PIOBuffer* ppBuffer)
+{
     STATUS retStatus = STATUS_SUCCESS;
     PIOBuffer pBuffer;
 
     CHK(ppBuffer != NULL, STATUS_NULL_ARG);
-  
+
     pBuffer = *ppBuffer;
     CHK(pBuffer != NULL, retStatus);
 
@@ -42,7 +44,8 @@ CleanUp:
     return retStatus;
 }
 
-STATUS ioBufferReset(PIOBuffer pBuffer) {
+STATUS ioBufferReset(PIOBuffer pBuffer)
+{
     STATUS retStatus = STATUS_SUCCESS;
 
     CHK(pBuffer != NULL, STATUS_NULL_ARG);
@@ -55,7 +58,8 @@ CleanUp:
     return retStatus;
 }
 
-STATUS ioBufferWrite(PIOBuffer pBuffer, PBYTE pData, UINT32 dataLen) {
+STATUS ioBufferWrite(PIOBuffer pBuffer, PBYTE pData, UINT32 dataLen)
+{
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 freeSpace;
     UINT32 newCap;
@@ -78,7 +82,8 @@ CleanUp:
     return retStatus;
 }
 
-STATUS ioBufferRead(PIOBuffer pBuffer, PBYTE pData, UINT32 bufferLen, PUINT32 pDataLen) {
+STATUS ioBufferRead(PIOBuffer pBuffer, PBYTE pData, UINT32 bufferLen, PUINT32 pDataLen)
+{
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 dataLen;
 
