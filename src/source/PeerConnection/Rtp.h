@@ -74,7 +74,7 @@ STATUS freeKvsRtpTransceiver(PKvsRtpTransceiver*);
 
 STATUS kvsRtpTransceiverSetJitterBuffer(PKvsRtpTransceiver, PJitterBuffer);
 
-#define convertTimestampToRTP(clockRate, pts) (pts * clockRate / HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define CONVERT_TIMESTAMP_TO_RTP(clockRate, pts) (pts * clockRate / HUNDREDS_OF_NANOS_IN_A_SECOND)
 
 STATUS writeRtpPacket(PKvsPeerConnection pKvsPeerConnection, PRtpPacket pRtpPacket);
 

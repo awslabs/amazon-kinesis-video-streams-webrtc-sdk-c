@@ -183,23 +183,23 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pRtcFrame)
     switch (pKvsRtpTransceiver->sender.track.codec) {
         case RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE:
             rtpPayloadFunc = createPayloadForH264;
-            rtpTimestamp = convertTimestampToRTP(VIDEO_CLOCKRATE, pFrame->presentationTs);
+            rtpTimestamp = CONVERT_TIMESTAMP_TO_RTP(VIDEO_CLOCKRATE, pFrame->presentationTs);
             break;
 
         case RTC_CODEC_OPUS:
             rtpPayloadFunc = createPayloadForOpus;
-            rtpTimestamp = convertTimestampToRTP(OPUS_CLOCKRATE, pFrame->presentationTs);
+            rtpTimestamp = CONVERT_TIMESTAMP_TO_RTP(OPUS_CLOCKRATE, pFrame->presentationTs);
             break;
 
         case RTC_CODEC_MULAW:
         case RTC_CODEC_ALAW:
             rtpPayloadFunc = createPayloadForG711;
-            rtpTimestamp = convertTimestampToRTP(PCM_CLOCKRATE, pFrame->presentationTs);
+            rtpTimestamp = CONVERT_TIMESTAMP_TO_RTP(PCM_CLOCKRATE, pFrame->presentationTs);
             break;
 
         case RTC_CODEC_VP8:
             rtpPayloadFunc = createPayloadForVP8;
-            rtpTimestamp = convertTimestampToRTP(VIDEO_CLOCKRATE, pFrame->presentationTs);
+            rtpTimestamp = CONVERT_TIMESTAMP_TO_RTP(VIDEO_CLOCKRATE, pFrame->presentationTs);
             break;
 
         default:

@@ -500,7 +500,7 @@ STATUS rtcpReportsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData
         // https://tools.ietf.org/html/rfc3550#section-6.4.1
         ntpTime = convertTimestampToNTP(currentTime);
         rtpTime = pKvsRtpTransceiver->sender.rtpTimeOffset +
-            convertTimestampToRTP(pKvsRtpTransceiver->pJitterBuffer->clockRate, currentTime - pKvsRtpTransceiver->sender.firstFrameWallClockTime);
+            CONVERT_TIMESTAMP_TO_RTP(pKvsRtpTransceiver->pJitterBuffer->clockRate, currentTime - pKvsRtpTransceiver->sender.firstFrameWallClockTime);
         packetCount = pKvsRtpTransceiver->sender.outboundRtpStreamStats.sentRtpStreamStats.packetsSent;
         octetCount  = pKvsRtpTransceiver->sender.outboundRtpStreamStats.sentRtpStreamStats.bytesSent;
         DLOGD("sender report %u %" PRIu64 " %" PRIu64 " : %u packets %u bytes", ssrc, ntpTime, rtpTime, packetCount, octetCount);
