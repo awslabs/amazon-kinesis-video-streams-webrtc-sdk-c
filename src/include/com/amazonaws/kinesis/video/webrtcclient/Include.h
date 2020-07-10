@@ -1321,6 +1321,25 @@ typedef struct {
     RtcStatsObject rtcStatsObject; //!< Object that is populated by the SDK on request
 } RtcStats, *PRtcStats;
 
+typedef struct {
+    Frame frame; //RtcFrame extends Frame for backwards compatibility with writeFrame(..., PFrame)
+
+    // fields below needed for rtc stats
+    /**
+     * It is the current target bitrate configured for this particular SSRC and is the Transport Independent Application Specific (TIAS) bitrate
+     * [RFC3890]. Typically, the target bitrate is a configuration parameter provided to the codec's encoder and does not count the size of the IP or
+     * other transport layers like TCP or UDP. It is measured in bits per second and the bitrate is calculated over a 1 second window.
+     */
+    UINT32 targetBitrate;
+
+    UINT16 width;
+    UINT16 height;
+
+    /** milliseconds spent encoding the frame */
+    UINT32 encodeTimeMsec;
+
+} RtcFrame, *PRtcFrame;
+
 ////////////////////////////////////////////////////
 // Public functions
 ////////////////////////////////////////////////////
@@ -1602,7 +1621,7 @@ PUBLIC_API STATUS addSupportedCodec(PRtcPeerConnection, RTC_CODEC);
  *
  * @return STATUS code of the execution. STATUS_SUCCESS on success
  */
-PUBLIC_API STATUS writeFrame(PRtcRtpTransceiver, PFrame);
+PUBLIC_API STATUS writeFrame(PRtcRtpTransceiver, PRtcFrame);
 
 /**
  * @brief Provides a remote candidate to the ICE Agent.

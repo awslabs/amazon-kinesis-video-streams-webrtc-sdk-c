@@ -122,24 +122,47 @@ CleanUp:
     return retStatus;
 }
 
-STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
+STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PRtcFrame pRtcFrame)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PKvsPeerConnection pKvsPeerConnection = NULL;
     PKvsRtpTransceiver pKvsRtpTransceiver = (PKvsRtpTransceiver) pRtcRtpTransceiver;
     BOOL locked = FALSE, bufferAfterEncrypt = FALSE;
     PRtpPacket pPacketList = NULL, pRtpPacket = NULL;
-    UINT32 i = 0, packetLen = 0, allocSize;
+    UINT32 i = 0, packetLen = 0, headerLen = 0, allocSize;
     PBYTE rawPacket = NULL;
     PPayloadArray pPayloadArray = NULL;
     RtpPayloadFunc rtpPayloadFunc = NULL;
     UINT64 randomRtpTimeoffset = 0; // TODO: spec requires random rtp time offset
     UINT64 rtpTimestamp = 0;
     UINT64 now = GETTIME();
+    PFrame pFrame = (PFrame) pRtcFrame;
 
     CHK(pKvsRtpTransceiver != NULL, STATUS_NULL_ARG);
     pKvsPeerConnection = pKvsRtpTransceiver->pKvsPeerConnection;
     pPayloadArray = &(pKvsRtpTransceiver->sender.payloadArray);
+    ATOMIC_ADD(&pKvsRtpTransceiver->sender.outboundRtpStreamStats.totalEncodedBytesTarget, pFrame->size);
+    ATOMIC_ADD(&pKvsRtpTransceiver->sender.outboundRtpStreamStats.totalEncodeTime, pRtcFrame->encodeTimeMsec);
+    ATOMIC_STORE(&pKvsRtpTransceiver->sender.outboundRtpStreamStats.targetBitrate, pRtcFrame->targetBitrate);
+    if (MEDIA_STREAM_TRACK_KIND_VIDEO == pKvsRtpTransceiver->sender.track.kind) {
+        ATOMIC_INCREMENT(&pKvsRtpTransceiver->sender.outboundRtpStreamStats.framesEncoded);
+        if (0 != (pFrame->flags & FRAME_FLAG_KEY_FRAME)) {
+            ATOMIC_INCREMENT(&pKvsRtpTransceiver->sender.outboundRtpStreamStats.keyFramesEncoded);
+        }
+        if (pKvsRtpTransceiver->sender.lastKnownFrameCountTime == 0) {
+            pKvsRtpTransceiver->sender.lastKnownFrameCountTime = now;
+            pKvsRtpTransceiver->sender.lastKnownFrameCount     = pKvsRtpTransceiver->sender.outboundRtpStreamStats.framesEncoded;
+        } else if (now - pKvsRtpTransceiver->sender.lastKnownFrameCountTime > HUNDREDS_OF_NANOS_IN_A_SECOND) {
+            UINT64 frames = pKvsRtpTransceiver->sender.outboundRtpStreamStats.framesEncoded - pKvsRtpTransceiver->sender.lastKnownFrameCount;
+            UINT64 time   = now - pKvsRtpTransceiver->sender.lastKnownFrameCountTime;
+            DOUBLE fps    = (DOUBLE)(frames * HUNDREDS_OF_NANOS_IN_A_SECOND) / (DOUBLE) time;
+            ATOMIC_STORE(&pKvsRtpTransceiver->sender.outboundRtpStreamStats.framesPerSecond, fps);
+            pKvsRtpTransceiver->sender.lastKnownFrameCountTime = now;
+            pKvsRtpTransceiver->sender.lastKnownFrameCount     = pKvsRtpTransceiver->sender.outboundRtpStreamStats.framesEncoded;
+        }
+        ATOMIC_STORE(&pKvsRtpTransceiver->sender.outboundRtpStreamStats.frameWidth, pRtcFrame->width);
+        ATOMIC_STORE(&pKvsRtpTransceiver->sender.outboundRtpStreamStats.frameHeight, pRtcFrame->height);
+    }
 
     MUTEX_LOCK(pKvsPeerConnection->pSrtpSessionLock);
     locked = TRUE;
@@ -219,10 +242,28 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
 
         // https://tools.ietf.org/html/rfc3550#section-6.4.1
         // The total number of payload octets (i.e., not including header or padding) transmitted in RTP data packets by the sender
-        ATOMIC_ADD(&pKvsRtpTransceiver->sender.outboundRtpStreamStats.sentRtpStreamStats.bytesSent, pRtpPacket->payloadLength);
+        headerLen = RTP_HEADER_LEN(pRtpPacket);
+        ATOMIC_ADD(&pKvsRtpTransceiver->sender.outboundRtpStreamStats.sentRtpStreamStats.bytesSent, packetLen - headerLen);
         ATOMIC_INCREMENT(&pKvsRtpTransceiver->sender.outboundRtpStreamStats.sentRtpStreamStats.packetsSent);
+        ATOMIC_STORE(&pKvsRtpTransceiver->sender.outboundRtpStreamStats.lastPacketSentTimestamp,
+                     KVS_CONVERT_TIMESCALE(GETTIME(), HUNDREDS_OF_NANOS_IN_A_SECOND, 1000));
+        ATOMIC_STORE(&pKvsRtpTransceiver->sender.outboundRtpStreamStats.headerBytesSent, headerLen);
+        // TODO packetsDiscardedOnSend, bytesDiscardedOnSend, framesDiscardedOnSend - socket errors, i.e. a socket error occured when handing the
+        // packets to the socket. This might happen due to various reasons, including full buffer or no available memory. iceAgentSendPacket return
+        // value?
 
         SAFE_MEMFREE(rawPacket);
+    }
+
+    if (MEDIA_STREAM_TRACK_KIND_VIDEO == pKvsRtpTransceiver->sender.track.kind) {
+        ATOMIC_INCREMENT(&pKvsRtpTransceiver->sender.outboundRtpStreamStats.framesSent);
+        if (pKvsRtpTransceiver->sender.outboundRtpStreamStats.framesPerSecond > 0.0) {
+            DOUBLE avgFrameSize =
+                pKvsRtpTransceiver->sender.outboundRtpStreamStats.targetBitrate / pKvsRtpTransceiver->sender.outboundRtpStreamStats.framesPerSecond;
+            if (pFrame->size >= avgFrameSize * HUGE_FRAME_MULTIPLIER) {
+                ATOMIC_INCREMENT(&pKvsRtpTransceiver->sender.outboundRtpStreamStats.hugeFramesSent);
+            }
+        }
     }
 
     if (pKvsRtpTransceiver->sender.firstFrameWallClockTime == 0) {

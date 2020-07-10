@@ -17,6 +17,10 @@ extern "C" {
 #define DEFAULT_PEER_FRAME_BUFFER_SIZE                          (5 * 1024)
 #define SRTP_AUTH_TAG_OVERHEAD                                  10
 
+// https://www.w3.org/TR/webrtc-stats/#dom-rtcoutboundrtpstreamstats-huge
+// Huge frames, by definition, are frames that have an encoded size at least 2.5 times the average size of the frames.
+#define HUGE_FRAME_MULTIPLIER 2.5
+
 typedef struct {
     UINT8 payloadType;
     UINT8 rtxPayloadType;
@@ -34,6 +38,10 @@ typedef struct {
     RtcRemoteInboundRtpStreamStats remoteInboundRtpStreamStats;
     UINT64 rtpTimeOffset;
     UINT64 firstFrameWallClockTime; //100ns precision
+
+    // used for fps calculation
+    UINT64 lastKnownFrameCount;
+    UINT64 lastKnownFrameCountTime; // 100ns precision
 
 } RtcRtpSender, *PRtcRtpSender;
 
