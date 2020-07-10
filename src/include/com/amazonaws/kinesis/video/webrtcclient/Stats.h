@@ -224,8 +224,23 @@ typedef struct {
     UINT32 selectedCandidatePairChanges; //!< The number of times that the selected candidate pair of this transport has changed
 } RtcTransportStats, *PRtcTransportStats;
 
+typedef char DOMString[MAX_STATS_STRING_LENGTH + 1];
+
+// https://www.w3.org/TR/webrtc-stats/#dom-rtcrtpstreamstats
+typedef struct {
+    UINT32 ssrc; //!< The 32-bit unsigned integer value per [RFC3550] used to identify the source of the stream of RTP packets that this stats object
+                 //!< concerns.
+    DOMString kind; //!< Either "audio" or "video". This MUST match the media type part of the information in the corresponding codecType member of
+                    //!< RTCCodecStats, and MUST match the "kind" attribute of the related MediaStreamTrack.
+    DOMString transportId; //!< It is a unique identifier that is associated to the object that was inspected to produce the RTCTransportStats
+                           //!< associated with this RTP stream.
+    DOMString codecId; //!< It is a unique identifier that is associated to the object that was inspected to produce the RTCCodecStats associated with
+                       //!< this RTP stream.
+} RTCRtpStreamStats, *PRTCRtpStreamStats;
+
 // https://www.w3.org/TR/webrtc-stats/#dom-rtcsentrtpstreamstats
 typedef struct {
+    RTCRtpStreamStats rtpStreamStats;
     volatile SIZE_T packetsSent;
     volatile SIZE_T bytesSent;
 } RTCSentRtpStreamStats, *PRTCSentRtpStreamStats;
@@ -262,7 +277,7 @@ typedef struct {
     UINT32 sliCount; //!< Only valid for video. Count the total number of Slice Loss Indication (SLI) packets received by this sender
     UINT32 qualityLimitationResolutionChanges; //!< Only valid for video. The number of times that the resolution has changed because we are quality limited
     INT32 fecPacketsSent; //!< Total number of RTP FEC packets sent for this SSRC. Can also be incremented while sending FEC packets in band
-    UINT64 lastPacketSentTimestamp; //!< The timestamp at which the last packet was sent for this SSRC
+    UINT64 lastPacketSentTimestamp; //!< The timestamp in milliseconds at which the last packet was sent for this SSRC
     UINT64 headerBytesSent; //!< Total number of RTP header and padding bytes sent for this SSRC
     UINT64 bytesDiscardedOnSend; //!< Total number of bytes for this SSRC that have been discarded due to socket errors
     UINT64 retransmittedPacketsSent; //!< The total number of packets that were retransmitted for this SSRC
