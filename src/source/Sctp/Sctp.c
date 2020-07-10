@@ -177,18 +177,18 @@ STATUS sctpSessionWriteMessage(PSctpSession pSctpSession, UINT32 streamId, BOOL 
     pSctpSession->spa.sendv_flags |= SCTP_SEND_SNDINFO_VALID;
     pSctpSession->spa.sendv_sndinfo.snd_sid = streamId;
 
-    if(pSctpSession->pPacket[1] & DCEP_DATA_CHANNEL_RELIABLE_UNORDERED) {
+    if((pSctpSession->packet[1] & DCEP_DATA_CHANNEL_RELIABLE_UNORDERED) != 0) {
         pSctpSession->spa.sendv_sndinfo.snd_flags |= SCTP_UNORDERED;
     }
-    if(pSctpSession->pPacket[1] & DCEP_DATA_CHANNEL_REXMIT) {
+    if((pSctpSession->packet[1] & DCEP_DATA_CHANNEL_REXMIT) != 0) {
         pSctpSession->spa.sendv_prinfo.pr_policy = SCTP_PR_SCTP_RTX;
-        MEMCPY(&pSctpSession->spa.sendv_prinfo.pr_value, pSctpSession->pPacket+4, SIZEOF(UINT32));
+        MEMCPY(&pSctpSession->spa.sendv_prinfo.pr_value, pSctpSession->packet + SIZEOF(UINT32), SIZEOF(UINT32));
         putUnalignedInt32BigEndian(&pSctpSession->spa.sendv_prinfo.pr_value, pSctpSession->spa.sendv_prinfo.pr_value);
 
     }
-    if(pSctpSession->pPacket[1] & DCEP_DATA_CHANNEL_TIMED) {
+    if((pSctpSession->packet[1] & DCEP_DATA_CHANNEL_TIMED) != 0) {
         pSctpSession->spa.sendv_prinfo.pr_policy = SCTP_PR_SCTP_TTL;
-        MEMCPY(&pSctpSession->spa.sendv_prinfo.pr_value, pSctpSession->pPacket+4, SIZEOF(UINT32));
+        MEMCPY(&pSctpSession->spa.sendv_prinfo.pr_value, pSctpSession->packet + SIZEOF(UINT32), SIZEOF(UINT32));
         putUnalignedInt32BigEndian(&pSctpSession->spa.sendv_prinfo.pr_value, pSctpSession->spa.sendv_prinfo.pr_value);
 
     }
@@ -227,47 +227,47 @@ STATUS sctpSessionWriteDcep(PSctpSession pSctpSession, UINT32 streamId, PCHAR pC
      PBYTE pPacket = NULL;
      UINT32 pPacketSize = SCTP_DCEP_HEADER_LENGTH + pChannelNameLen;
 
-    CHK(pSctpSession != NULL && pChannelName != NULL, STATUS_NULL_ARG);
-    CHK((pPacket = (PBYTE) MEMCALLOC(1, pPacketSize)) != NULL, STATUS_NOT_ENOUGH_MEMORY);
+     CHK(pSctpSession != NULL && pChannelName != NULL, STATUS_NULL_ARG);
+     CHK((pPacket = (PBYTE) MEMCALLOC(1, pPacketSize)) != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
-    MEMSET(&pSctpSession->spa, 0x00, SIZEOF(struct sctp_sendv_spa));
-    MEMSET(pSctpSession->pPacket, 0x00, SIZEOF(pSctpSession->pPacket));
-    pSctpSession->pPacketSize = SCTP_DCEP_HEADER_LENGTH + pChannelNameLen;
-    /* Setting the fields of DATA_CHANNEL_OPEN message */
+     MEMSET(&pSctpSession->spa, 0x00, SIZEOF(struct sctp_sendv_spa));
+     MEMSET(pSctpSession->packet, 0x00, SIZEOF(pSctpSession->packet));
+     pSctpSession->packetSize = SCTP_DCEP_HEADER_LENGTH + pChannelNameLen;
+     /* Setting the fields of DATA_CHANNEL_OPEN message */
 
-    pSctpSession->pPacket[0] = DCEP_DATA_CHANNEL_OPEN; // message type
+     pSctpSession->packet[0] = DCEP_DATA_CHANNEL_OPEN; // message type
 
-    // Set Channel type based on supplied parameters
-    pSctpSession->pPacket[1] = DCEP_DATA_CHANNEL_RELIABLE_ORDERED;
+     // Set Channel type based on supplied parameters
+     pSctpSession->packet[1] = DCEP_DATA_CHANNEL_RELIABLE_ORDERED;
 
-    //   Set channel type and reliability parameters based on input
-    //   SCTP allows fine tuning the channel robustness:
-    //      1. Ordering: The data packets can be sent out in an ordered/unordered fashion
-    //      2. Reliability: This determines how the retransmission of packets is handled.
-    //   There are 2 parameters that can be fine tuned to achieve this:
-    //      a. Number of retransmits
-    //      b. Packet lifetime
-    //   Default values for the parameters is 0. This falls back to reliable channel
+     //   Set channel type and reliability parameters based on input
+     //   SCTP allows fine tuning the channel robustness:
+     //      1. Ordering: The data packets can be sent out in an ordered/unordered fashion
+     //      2. Reliability: This determines how the retransmission of packets is handled.
+     //   There are 2 parameters that can be fine tuned to achieve this:
+     //      a. Number of retransmits
+     //      b. Packet lifetime
+     //   Default values for the parameters is 0. This falls back to reliable channel
 
-    if(!pRtcDataChannelInit->ordered) {
-         pSctpSession->pPacket[1] |= DCEP_DATA_CHANNEL_RELIABLE_UNORDERED;
-    }
-    if(pRtcDataChannelInit->maxRetransmits.value >= 0 && pRtcDataChannelInit->maxRetransmits.isNull == FALSE) {
-        pSctpSession->pPacket[1] |= DCEP_DATA_CHANNEL_REXMIT;
-        putUnalignedInt32BigEndian(pSctpSession->pPacket + 4, pRtcDataChannelInit->maxRetransmits.value);
-    }
-    else if(pRtcDataChannelInit->maxPacketLifeTime.value >= 0 && pRtcDataChannelInit->maxPacketLifeTime.isNull == FALSE) {
-        pSctpSession->pPacket[1] |= DCEP_DATA_CHANNEL_TIMED;
-        putUnalignedInt32BigEndian(pSctpSession->pPacket + 4, pRtcDataChannelInit->maxPacketLifeTime.value);
-    }
+     if(!pRtcDataChannelInit->ordered) {
+          pSctpSession->packet[1] |= DCEP_DATA_CHANNEL_RELIABLE_UNORDERED;
+     }
+     if(pRtcDataChannelInit->maxRetransmits.value >= 0 && pRtcDataChannelInit->maxRetransmits.isNull == FALSE) {
+         pSctpSession->packet[1] |= DCEP_DATA_CHANNEL_REXMIT;
+         putUnalignedInt32BigEndian(pSctpSession->packet + SIZEOF(UINT32), pRtcDataChannelInit->maxRetransmits.value);
+      }
+     else if(pRtcDataChannelInit->maxPacketLifeTime.value >= 0 && pRtcDataChannelInit->maxPacketLifeTime.isNull == FALSE) {
+         pSctpSession->packet[1] |= DCEP_DATA_CHANNEL_TIMED;
+         putUnalignedInt32BigEndian(pSctpSession->packet + SIZEOF(UINT32), pRtcDataChannelInit->maxPacketLifeTime.value);
+     }
 
-    putUnalignedInt16BigEndian(pSctpSession->pPacket + SCTP_DCEP_LABEL_LEN_OFFSET, pChannelNameLen);
-    MEMCPY(pSctpSession->pPacket + SCTP_DCEP_LABEL_OFFSET, pChannelName, pChannelNameLen);
-    pSctpSession->spa.sendv_flags |= SCTP_SEND_SNDINFO_VALID;
-    pSctpSession->spa.sendv_sndinfo.snd_sid = streamId;
+     putUnalignedInt16BigEndian(pSctpSession->packet + SCTP_DCEP_LABEL_LEN_OFFSET, pChannelNameLen);
+     MEMCPY(pSctpSession->packet + SCTP_DCEP_LABEL_OFFSET, pChannelName, pChannelNameLen);
+     pSctpSession->spa.sendv_flags |= SCTP_SEND_SNDINFO_VALID;
+     pSctpSession->spa.sendv_sndinfo.snd_sid = streamId;
 
-    putInt32((PINT32) &pSctpSession->spa.sendv_sndinfo.snd_ppid, SCTP_PPID_DCEP);
-    CHK(usrsctp_sendv(pSctpSession->socket, pSctpSession->pPacket, pSctpSession->pPacketSize, NULL, 0, &pSctpSession->spa, SIZEOF(pSctpSession->spa), SCTP_SENDV_SPA, 0) > 0, STATUS_INTERNAL_ERROR);
+     putInt32((PINT32) &pSctpSession->spa.sendv_sndinfo.snd_ppid, SCTP_PPID_DCEP);
+     CHK(usrsctp_sendv(pSctpSession->socket, pSctpSession->packet, pSctpSession->packetSize, NULL, 0, &pSctpSession->spa, SIZEOF(pSctpSession->spa), SCTP_SENDV_SPA, 0) > 0, STATUS_INTERNAL_ERROR);
 CleanUp:
     SAFE_MEMFREE(pPacket);
 

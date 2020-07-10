@@ -62,8 +62,8 @@ typedef struct {
     volatile SIZE_T shutdownStatus;
     struct socket *socket;
     struct sctp_sendv_spa spa;
-    BYTE pPacket[SCTP_MAX_ALLOWABLE_PACKET_LENGTH];
-    UINT32 pPacketSize;
+    BYTE packet[SCTP_MAX_ALLOWABLE_PACKET_LENGTH];
+    UINT32 packetSize;
     SctpSessionCallbacks sctpSessionCallbacks;
 } SctpSession, *PSctpSession;
 
