@@ -224,7 +224,7 @@ typedef struct {
     UINT32 selectedCandidatePairChanges; //!< The number of times that the selected candidate pair of this transport has changed
 } RtcTransportStats, *PRtcTransportStats;
 
-typedef char DOMString[MAX_STATS_STRING_LENGTH + 1];
+typedef CHAR DOMString[MAX_STATS_STRING_LENGTH + 1];
 
 // https://www.w3.org/TR/webrtc-stats/#dom-rtcrtpstreamstats
 typedef struct {
