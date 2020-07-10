@@ -1563,6 +1563,9 @@ PUBLIC_API STATUS transceiverOnBandwidthEstimation(PRtcRtpTransceiver, UINT64, R
 /**
  * @brief Frees the previously created transceiver object
  *
+ * This method is currently a no-op as Transceivers are freed when freePeerConnection is called
+ * in the future when renegotiation is supported this will be useful to remove Transceivers at anytime
+ *
  * @param[in/out/opt] PRtcRtpTransceiver* IN/OUT/OPT RtcRtpTransceiver to be freed
  *
  * @return STATUS code of the execution. STATUS_SUCCESS on success

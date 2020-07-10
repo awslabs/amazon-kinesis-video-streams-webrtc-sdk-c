@@ -43,6 +43,11 @@ CleanUp:
     return retStatus;
 }
 
+STATUS freeTransceiver(PRtcRtpTransceiver *pRtcRtpTransceiver) {
+    UNUSED_PARAM(pRtcRtpTransceiver);
+    return STATUS_NOT_IMPLEMENTED;
+}
+
 STATUS freeKvsRtpTransceiver(PKvsRtpTransceiver* ppKvsRtpTransceiver)
 {
     STATUS retStatus = STATUS_SUCCESS;
