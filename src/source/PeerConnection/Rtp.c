@@ -138,7 +138,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pRtcFrame)
+STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PKvsPeerConnection pKvsPeerConnection = NULL;
@@ -152,7 +152,6 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pRtcFrame)
     UINT64 randomRtpTimeoffset = 0; // TODO: spec requires random rtp time offset
     UINT64 rtpTimestamp = 0;
     UINT64 now = GETTIME();
-    PFrame pFrame = (PFrame) pRtcFrame;
 
     CHK(pKvsRtpTransceiver != NULL, STATUS_NULL_ARG);
     pKvsPeerConnection = pKvsRtpTransceiver->pKvsPeerConnection;
