@@ -89,7 +89,7 @@ STATUS onRtcpPacket(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuff, UINT32 b
                     delaySinceLastSR    = getUnalignedInt32BigEndian(rtcpPacket.payload + 24);
 
                     ATOMIC_INCREMENT(&pTransceiver->sender.remoteInboundRtpStreamStats.reportsReceived);
-                    ATOMIC_STORE((volatile SIZE_T*) &pTransceiver->sender.remoteInboundRtpStreamStats.fractionLost, (UINT64)(1.0 / fractionLost));
+                    ATOMIC_STORE((volatile SIZE_T*) &pTransceiver->sender.remoteInboundRtpStreamStats.fractionLost, (UINT64)(fractionLost / 255.0));
 
                     DLOGD("RTCP_PACKET_TYPE_RECEIVER_REPORT %u %u loss: %u %u seq: %u jit: %u lsr: %u dlsr: %u", senderSSRC, ssrc1, fractionLost,
                           cumulativeLost, extHiSeqNumReceived, interarrivalJitter, lastSR, delaySinceLastSR);
