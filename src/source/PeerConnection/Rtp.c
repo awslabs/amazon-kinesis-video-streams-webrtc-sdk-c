@@ -122,7 +122,23 @@ CleanUp:
     return retStatus;
 }
 
-STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PRtcFrame pRtcFrame)
+STATUS updateEncoderStats(PRtcRtpTransceiver pRtcRtpTransceiver, PRtcEncoderStats encoderStats)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PKvsRtpTransceiver pKvsRtpTransceiver = (PKvsRtpTransceiver) pRtcRtpTransceiver;
+    CHK(pKvsRtpTransceiver != NULL && encoderStats != NULL, STATUS_NULL_ARG);
+    ATOMIC_ADD(&pKvsRtpTransceiver->sender.outboundRtpStreamStats.totalEncodeTime, encoderStats->encodeTimeMsec);
+    ATOMIC_STORE(&pKvsRtpTransceiver->sender.outboundRtpStreamStats.targetBitrate, encoderStats->targetBitrate);
+    ATOMIC_STORE(&pKvsRtpTransceiver->sender.outboundRtpStreamStats.frameWidth, encoderStats->width);
+    ATOMIC_STORE(&pKvsRtpTransceiver->sender.outboundRtpStreamStats.frameHeight, encoderStats->height);
+
+CleanUp:
+    CHK_LOG_ERR(retStatus);
+
+    return retStatus;
+}
+
+STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pRtcFrame)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PKvsPeerConnection pKvsPeerConnection = NULL;
@@ -142,8 +158,6 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PRtcFrame pRtcFrame)
     pKvsPeerConnection = pKvsRtpTransceiver->pKvsPeerConnection;
     pPayloadArray = &(pKvsRtpTransceiver->sender.payloadArray);
     ATOMIC_ADD(&pKvsRtpTransceiver->sender.outboundRtpStreamStats.totalEncodedBytesTarget, pFrame->size);
-    ATOMIC_ADD(&pKvsRtpTransceiver->sender.outboundRtpStreamStats.totalEncodeTime, pRtcFrame->encodeTimeMsec);
-    ATOMIC_STORE(&pKvsRtpTransceiver->sender.outboundRtpStreamStats.targetBitrate, pRtcFrame->targetBitrate);
     if (MEDIA_STREAM_TRACK_KIND_VIDEO == pKvsRtpTransceiver->sender.track.kind) {
         ATOMIC_INCREMENT(&pKvsRtpTransceiver->sender.outboundRtpStreamStats.framesEncoded);
         if (0 != (pFrame->flags & FRAME_FLAG_KEY_FRAME)) {
@@ -160,8 +174,6 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PRtcFrame pRtcFrame)
             pKvsRtpTransceiver->sender.lastKnownFrameCountTime = now;
             pKvsRtpTransceiver->sender.lastKnownFrameCount     = pKvsRtpTransceiver->sender.outboundRtpStreamStats.framesEncoded;
         }
-        ATOMIC_STORE(&pKvsRtpTransceiver->sender.outboundRtpStreamStats.frameWidth, pRtcFrame->width);
-        ATOMIC_STORE(&pKvsRtpTransceiver->sender.outboundRtpStreamStats.frameHeight, pRtcFrame->height);
     }
 
     MUTEX_LOCK(pKvsPeerConnection->pSrtpSessionLock);

@@ -177,11 +177,13 @@ PVOID sendVideoPackets(PVOID args)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
+    RtcEncoderStats encoderStats;
     Frame frame;
     UINT32 fileIndex = 0, frameSize;
     CHAR filePath[MAX_PATH_LEN + 1];
     STATUS status;
     UINT32 i;
+    MEMSET(&encoderStats, 0x00, SIZEOF(RtcEncoderStats));
 
     if(pSampleConfiguration == NULL) {
         printf("[KVS Master] sendVideoPackets(): operation returned status code: 0x%08x \n", STATUS_NULL_ARG);
@@ -222,12 +224,18 @@ PVOID sendVideoPackets(PVOID args)
             goto CleanUp;
         }
 
+        // based on bitrate of samples/h264SampleFrames/frame-*
+        encoderStats.width = 640;
+        encoderStats.height = 480;
+        encoderStats.targetBitrate = 262000;
         frame.presentationTs += SAMPLE_VIDEO_FRAME_DURATION;
 
         if (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->updatingSampleStreamingSessionList)) {
             ATOMIC_INCREMENT(&pSampleConfiguration->streamingSessionListReadingThreadCount);
             for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
                 status = writeFrame(pSampleConfiguration->sampleStreamingSessionList[i]->pVideoRtcRtpTransceiver, &frame);
+                encoderStats.encodeTimeMsec = 4; // update encode time to an arbitrary number to demonstrate stats update
+                updateEncoderStats(pSampleConfiguration->sampleStreamingSessionList[i]->pVideoRtcRtpTransceiver, &encoderStats);
                 if (status != STATUS_SUCCESS) {
                     #ifdef VERBOSE
                         printf("writeFrame() failed with 0x%08x", status);
