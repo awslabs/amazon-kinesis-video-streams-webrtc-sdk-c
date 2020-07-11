@@ -31,7 +31,7 @@ var structRtcOutboundRtpStreamStats =
     [ "rid", "structRtcOutboundRtpStreamStats.html#adb15de2b4695d42af4228c61be52bcd1", null ],
     [ "samplesEncodedWithCelt", "structRtcOutboundRtpStreamStats.html#a80ed6b5980f1c163a9b42ba3c0418b29", null ],
     [ "samplesEncodedWithSilk", "structRtcOutboundRtpStreamStats.html#a968b4a54816b8d11aeb60cf3e161e240", null ],
-    [ "senderId", "structRtcOutboundRtpStreamStats.html#ac2f7923ba536126c3ea1e9d954f4eb2a", null ],
+    [ "senderId", "structRtcOutboundRtpStreamStats.html#a21eb65e184cff2381afd14b55ff768be", null ],
     [ "sliCount", "structRtcOutboundRtpStreamStats.html#a8c65e682c74a049dc239b6fe2ab68a03", null ],
     [ "targetBitrate", "structRtcOutboundRtpStreamStats.html#a701b855226bd94f148b5eef64f51f708", null ],
     [ "totalEncodedBytesTarget", "structRtcOutboundRtpStreamStats.html#af22097ea22424182c64ee540de90e02c", null ],

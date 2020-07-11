@@ -220,6 +220,7 @@ var NAVTREEINDEX3 =
 "structRtcOutboundRtpStreamStats.html#a0d6c5166d5c082f3bc258ec1c7be0b53":[1,0,29,37],
 "structRtcOutboundRtpStreamStats.html#a13a4bf38dff0462acb8a16bcece3a54c":[1,0,29,5],
 "structRtcOutboundRtpStreamStats.html#a1d135d3e8075a3b24cb60009faf62b51":[1,0,29,26],
+"structRtcOutboundRtpStreamStats.html#a21eb65e184cff2381afd14b55ff768be":[1,0,29,31],
 "structRtcOutboundRtpStreamStats.html#a23c25d74c16cfc7ef1905d98026dcf3a":[1,0,29,18],
 "structRtcOutboundRtpStreamStats.html#a314c0adc68d070905a9ace7d7c63422f":[1,0,29,0],
 "structRtcOutboundRtpStreamStats.html#a4d0dbe884c0e806618cb197caaa7d679":[1,0,29,23],
@@ -246,7 +247,6 @@ var NAVTREEINDEX3 =
 "structRtcOutboundRtpStreamStats.html#aabac05ae9872c432c2b8d86adfddd0fc":[1,0,29,9],
 "structRtcOutboundRtpStreamStats.html#ab7eaa4cc7ecb8343676618a25b0ede61":[1,0,29,25],
 "structRtcOutboundRtpStreamStats.html#ac25610f5d29008a7ee282afed875f3cc":[1,0,29,36],
-"structRtcOutboundRtpStreamStats.html#ac2f7923ba536126c3ea1e9d954f4eb2a":[1,0,29,31],
 "structRtcOutboundRtpStreamStats.html#ad2a85770b0d77bdbb3b548e4704b709c":[1,0,29,35],
 "structRtcOutboundRtpStreamStats.html#ad54c4e64935776d25af0dc376f7185ab":[1,0,29,24],
 "structRtcOutboundRtpStreamStats.html#adb15de2b4695d42af4228c61be52bcd1":[1,0,29,28]

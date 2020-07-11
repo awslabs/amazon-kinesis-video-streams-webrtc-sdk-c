@@ -114,9 +114,9 @@ Public Attributes</h2></td></tr>
 <tr class="memitem:a6578d5025cb4139922bf066dd8696d1b"><td class="memItemLeft" align="right" valign="top">CHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRtcOutboundRtpStreamStats.html#a6578d5025cb4139922bf066dd8696d1b">mediaSourceId</a> [255U+1]</td></tr>
 <tr class="memdesc:a6578d5025cb4139922bf066dd8696d1b"><td class="mdescLeft">&#160;</td><td class="mdescRight">ID representing the current media source.  <a href="structRtcOutboundRtpStreamStats.html#a6578d5025cb4139922bf066dd8696d1b">More...</a><br /></td></tr>
 <tr class="separator:a6578d5025cb4139922bf066dd8696d1b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac2f7923ba536126c3ea1e9d954f4eb2a"><td class="memItemLeft" align="right" valign="top">CHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRtcOutboundRtpStreamStats.html#ac2f7923ba536126c3ea1e9d954f4eb2a">senderId</a> [255U+1]</td></tr>
-<tr class="memdesc:ac2f7923ba536126c3ea1e9d954f4eb2a"><td class="mdescLeft">&#160;</td><td class="mdescRight">The stats ID used to look up the RTCAudioSenderStats or RTCVideoSenderStats object sending this stream.  <a href="structRtcOutboundRtpStreamStats.html#ac2f7923ba536126c3ea1e9d954f4eb2a">More...</a><br /></td></tr>
-<tr class="separator:ac2f7923ba536126c3ea1e9d954f4eb2a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a21eb65e184cff2381afd14b55ff768be"><td class="memItemLeft" align="right" valign="top">CHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRtcOutboundRtpStreamStats.html#a21eb65e184cff2381afd14b55ff768be">senderId</a> [255U+1]</td></tr>
+<tr class="memdesc:a21eb65e184cff2381afd14b55ff768be"><td class="mdescLeft">&#160;</td><td class="mdescRight">The stats ID used to look up the RTCAudioSenderStats or RTCVideoSenderStats object sending this stream.  <a href="structRtcOutboundRtpStreamStats.html#a21eb65e184cff2381afd14b55ff768be">More...</a><br /></td></tr>
+<tr class="separator:a21eb65e184cff2381afd14b55ff768be"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab7eaa4cc7ecb8343676618a25b0ede61"><td class="memItemLeft" align="right" valign="top">CHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRtcOutboundRtpStreamStats.html#ab7eaa4cc7ecb8343676618a25b0ede61">remoteId</a> [255U+1]</td></tr>
 <tr class="memdesc:ab7eaa4cc7ecb8343676618a25b0ede61"><td class="mdescLeft">&#160;</td><td class="mdescRight">ID to look up the remote RTCRemoteInboundRtpStreamStats object for the same SSRC.  <a href="structRtcOutboundRtpStreamStats.html#ab7eaa4cc7ecb8343676618a25b0ede61">More...</a><br /></td></tr>
 <tr class="separator:ab7eaa4cc7ecb8343676618a25b0ede61"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -165,7 +165,6 @@ Public Attributes</h2></td></tr>
 <tr class="memdesc:a8c65e682c74a049dc239b6fe2ab68a03"><td class="mdescLeft">&#160;</td><td class="mdescRight">Only valid for video. Count the total number of Slice Loss Indication (SLI) packets received by this sender.  <a href="structRtcOutboundRtpStreamStats.html#a8c65e682c74a049dc239b6fe2ab68a03">More...</a><br /></td></tr>
 <tr class="separator:a8c65e682c74a049dc239b6fe2ab68a03"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad54c4e64935776d25af0dc376f7185ab"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRtcOutboundRtpStreamStats.html#ad54c4e64935776d25af0dc376f7185ab">qualityLimitationResolutionChanges</a></td></tr>
-<tr class="memdesc:ad54c4e64935776d25af0dc376f7185ab"><td class="mdescLeft">&#160;</td><td class="mdescRight">Only valid for video. The number of times that the resolution has changed because we are quality limited.  <a href="structRtcOutboundRtpStreamStats.html#ad54c4e64935776d25af0dc376f7185ab">More...</a><br /></td></tr>
 <tr class="separator:ad54c4e64935776d25af0dc376f7185ab"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4ee11be440f71d83a6c64ebcb4c95e19"><td class="memItemLeft" align="right" valign="top">INT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRtcOutboundRtpStreamStats.html#a4ee11be440f71d83a6c64ebcb4c95e19">fecPacketsSent</a></td></tr>
 <tr class="memdesc:a4ee11be440f71d83a6c64ebcb4c95e19"><td class="mdescLeft">&#160;</td><td class="mdescRight">Total number of RTP FEC packets sent for this SSRC. Can also be incremented while sending FEC packets in band.  <a href="structRtcOutboundRtpStreamStats.html#a4ee11be440f71d83a6c64ebcb4c95e19">More...</a><br /></td></tr>
@@ -623,8 +622,7 @@ Public Attributes</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-
-<p>Only valid for video. The number of times that the resolution has changed because we are quality limited. </p>
+<p>Only valid for video. The number of times that the resolution has changed because we are quality limited </p>
 
 </div>
 </div>
@@ -724,14 +722,14 @@ Public Attributes</h2></td></tr>
 
 </div>
 </div>
-<a id="ac2f7923ba536126c3ea1e9d954f4eb2a"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac2f7923ba536126c3ea1e9d954f4eb2a">&#9670;&nbsp;</a></span>senderId</h2>
+<a id="a21eb65e184cff2381afd14b55ff768be"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a21eb65e184cff2381afd14b55ff768be">&#9670;&nbsp;</a></span>senderId</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">CHAR RtcOutboundRtpStreamStats::senderId[255U+1]</td>
+          <td class="memname">CHAR RtcOutboundRtpStreamStats::senderId[255U+ 1]</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -876,7 +874,7 @@ Public Attributes</h2></td></tr>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="structRtcOutboundRtpStreamStats.html">RtcOutboundRtpStreamStats</a></li>
-    <li class="footer">Generated on Fri Jul 10 2020 22:46:47 for Amazon Kinesis Webrtc C SDK by
+    <li class="footer">Generated on Sat Jul 11 2020 02:31:41 for Amazon Kinesis Webrtc C SDK by
     <a href="http://www.doxygen.org/index.html">
     <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.18 </li>
   </ul>

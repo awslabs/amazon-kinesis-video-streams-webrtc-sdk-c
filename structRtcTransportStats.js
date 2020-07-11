@@ -2,7 +2,7 @@ var structRtcTransportStats =
 [
     [ "bytesReceived", "structRtcTransportStats.html#a3fa053029d90716837b3570752dd3dde", null ],
     [ "bytesSent", "structRtcTransportStats.html#a76a9c5aea1b53281ee60be22777584c7", null ],
-    [ "dtlsCipher", "structRtcTransportStats.html#ad04ca3254be09327250f68fd065422a2", null ],
+    [ "dtlsCipher", "structRtcTransportStats.html#aa4665f3c96d174312aba49a9c49e9c24", null ],
     [ "dtlsState", "structRtcTransportStats.html#a3117bc410de7332c634ff4b07f61dca8", null ],
     [ "iceRole", "structRtcTransportStats.html#a9ab68965ee238d0111c3dfd220f121b9", null ],
     [ "localCertificateId", "structRtcTransportStats.html#a98d843faafb976352c1f3c3efdb06e31", null ],
@@ -13,6 +13,6 @@ var structRtcTransportStats =
     [ "selectedCandidatePairChanges", "structRtcTransportStats.html#ae0bcc748dd5668d3290ec82827f674ea", null ],
     [ "selectedCandidatePairId", "structRtcTransportStats.html#aa37cf30c64e4d3f8e1a7e8b643764956", null ],
     [ "srtpCipher", "structRtcTransportStats.html#adbe6f939214e3dbc4e3dd96ce74df1a9", null ],
-    [ "tlsGroup", "structRtcTransportStats.html#a1146f900260b00189a689628f48146ca", null ],
+    [ "tlsGroup", "structRtcTransportStats.html#a839815f9654ac84b8802c202bdee6d05", null ],
     [ "tlsVersion", "structRtcTransportStats.html#af427529e0da28e07ad98008f64983274", null ]
 ];
