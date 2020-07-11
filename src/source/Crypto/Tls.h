@@ -3,15 +3,15 @@
 
 #pragma once
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
 typedef enum {
-  TLS_SESSION_STATE_NEW,        /* Tls is just created, but the handshake process has not started */
-  TLS_SESSION_STATE_CONNECTING, /* TLS is in the process of negotiating a secure connection and verifying the remote fingerprint. */
-  TLS_SESSION_STATE_CONNECTED,  /* TLS has completed negotiation of a secure connection and verified the remote fingerprint. */
-  TLS_SESSION_STATE_CLOSED,     /* The transport has been closed intentionally as the result of receipt of a close_notify alert */
+    TLS_SESSION_STATE_NEW,        /* Tls is just created, but the handshake process has not started */
+    TLS_SESSION_STATE_CONNECTING, /* TLS is in the process of negotiating a secure connection and verifying the remote fingerprint. */
+    TLS_SESSION_STATE_CONNECTED,  /* TLS has completed negotiation of a secure connection and verified the remote fingerprint. */
+    TLS_SESSION_STATE_CLOSED,     /* The transport has been closed intentionally as the result of receipt of a close_notify alert */
 } TLS_SESSION_STATE;
 
 /* Callback that is fired when Tls session wishes to send packet */
@@ -35,10 +35,10 @@ struct __TlsSession {
     TLS_SESSION_STATE state;
 
 #ifdef KVS_USE_OPENSSL
-    SSL_CTX *pSslCtx;
-    SSL *pSsl;
+    SSL_CTX* pSslCtx;
+    SSL* pSsl;
 #elif KVS_USE_MBEDTLS
-    IOBuffer *pReadBuffer;
+    IOBuffer* pReadBuffer;
 
     mbedtls_ssl_context sslCtx;
     mbedtls_ssl_config sslCtxConfig;
@@ -68,7 +68,7 @@ STATUS createTlsSession(PTlsSessionCallbacks, PTlsSession*);
 STATUS freeTlsSession(PTlsSession*);
 
 /**
- * Start TLS handshake. 
+ * Start TLS handshake.
  * NOT THREAD SAFE.
  * @param PTlsSession - TlsSession object
  * @param BOOL - is server
@@ -118,7 +118,7 @@ INT32 tlsSessionReceiveCallback(PVOID, unsigned char*, ULONG);
 #error "A Crypto implementation is required."
 #endif
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 }
 #endif
-#endif  //__KINESIS_VIDEO_WEBRTC_CLIENT_CRYPTO_TLS__
+#endif //__KINESIS_VIDEO_WEBRTC_CLIENT_CRYPTO_TLS__

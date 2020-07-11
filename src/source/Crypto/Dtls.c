@@ -49,7 +49,7 @@ CleanUp:
 
     LEAVES();
     return retStatus;
-} 
+}
 
 STATUS dtlsSessionChangeState(PDtlsSession pDtlsSession, RTC_DTLS_TRANSPORT_STATE newState)
 {
@@ -65,9 +65,7 @@ STATUS dtlsSessionChangeState(PDtlsSession pDtlsSession, RTC_DTLS_TRANSPORT_STAT
     }
     pDtlsSession->state = newState;
     if (pDtlsSession->dtlsSessionCallbacks.stateChangeFn != NULL) {
-        pDtlsSession->dtlsSessionCallbacks.stateChangeFn(
-                pDtlsSession->dtlsSessionCallbacks.stateChangeFnCustomData,
-                newState);
+        pDtlsSession->dtlsSessionCallbacks.stateChangeFn(pDtlsSession->dtlsSessionCallbacks.stateChangeFnCustomData, newState);
     }
 
 CleanUp:

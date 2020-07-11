@@ -13,19 +13,17 @@ STATUS onRtcpPacket(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuff, UINT32 b
     while (currentOffset < buffLen) {
         CHK_STATUS(setRtcpPacketFromBytes(pBuff + currentOffset, buffLen - currentOffset, &rtcpPacket));
 
-        if (rtcpPacket.header.packetType == RTCP_PACKET_TYPE_GENERIC_RTP_FEEDBACK && rtcpPacket.header.receptionReportCount == RTCP_FEEDBACK_MESSAGE_TYPE_NACK) {
+        if (rtcpPacket.header.packetType == RTCP_PACKET_TYPE_GENERIC_RTP_FEEDBACK &&
+            rtcpPacket.header.receptionReportCount == RTCP_FEEDBACK_MESSAGE_TYPE_NACK) {
             CHK_STATUS(resendPacketOnNack(&rtcpPacket, pKvsPeerConnection));
         } else if (rtcpPacket.header.packetType == RTCP_PACKET_TYPE_PAYLOAD_SPECIFIC_FEEDBACK &&
                    rtcpPacket.header.receptionReportCount == RTCP_FEEDBACK_MESSAGE_TYPE_APPLICATION_LAYER_FEEDBACK &&
-                   isRembPacket(rtcpPacket.payload, rtcpPacket.payloadLength) == STATUS_SUCCESS)
-        {
+                   isRembPacket(rtcpPacket.payload, rtcpPacket.payloadLength) == STATUS_SUCCESS) {
             CHK_STATUS(onRtcpRembPacket(&rtcpPacket, pKvsPeerConnection));
         } else if (rtcpPacket.header.packetType == RTCP_PACKET_TYPE_PAYLOAD_SPECIFIC_FEEDBACK &&
-                   rtcpPacket.header.receptionReportCount == RTCP_PSFB_PLI)
-        {
+                   rtcpPacket.header.receptionReportCount == RTCP_PSFB_PLI) {
             CHK_STATUS(onRtcpPLIPacket(&rtcpPacket, pKvsPeerConnection));
         }
-
 
         currentOffset += (rtcpPacket.payloadLength + RTCP_PACKET_HEADER_LEN);
     }
@@ -53,7 +51,7 @@ STATUS onRtcpRembPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
 
     for (i = 0; i < ssrcListLen; i++) {
         CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pTransceievers, &pCurNode));
-        while(pCurNode != NULL && pTransceiver == NULL) {
+        while (pCurNode != NULL && pTransceiver == NULL) {
             CHK_STATUS(doubleListGetNodeData(pCurNode, &item));
             CHK(item != 0, STATUS_INTERNAL_ERROR);
 
@@ -88,7 +86,7 @@ STATUS onRtcpPLIPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConne
     mediaSSRC = getUnalignedInt32BigEndian((pRtcpPacket->payload + (SIZEOF(UINT32))));
 
     CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pTransceievers, &pCurNode));
-    while(pCurNode != NULL && pTransceiver == NULL) {
+    while (pCurNode != NULL && pTransceiver == NULL) {
         CHK_STATUS(doubleListGetNodeData(pCurNode, &item));
         CHK(item != 0, STATUS_INTERNAL_ERROR);
 

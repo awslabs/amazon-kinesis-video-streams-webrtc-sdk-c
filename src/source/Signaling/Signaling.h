@@ -6,67 +6,67 @@ Signaling internal include file
 
 #pragma once
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
 // Request id header name
-#define SIGNALING_REQUEST_ID_HEADER_NAME                                    KVS_REQUEST_ID_HEADER_NAME ":"
+#define SIGNALING_REQUEST_ID_HEADER_NAME KVS_REQUEST_ID_HEADER_NAME ":"
 
 // Signaling client from custom data conversion
-#define SIGNALING_CLIENT_FROM_CUSTOM_DATA(h) ((PSignalingClient) (h))
-#define CUSTOM_DATA_FROM_SIGNALING_CLIENT(p) ((UINT64) (p))
+#define SIGNALING_CLIENT_FROM_CUSTOM_DATA(h) ((PSignalingClient)(h))
+#define CUSTOM_DATA_FROM_SIGNALING_CLIENT(p) ((UINT64)(p))
 
 // Grace period for refreshing the ICE configuration
-#define ICE_CONFIGURATION_REFRESH_GRACE_PERIOD                              (30 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define ICE_CONFIGURATION_REFRESH_GRACE_PERIOD (30 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
 // Termination timeout
-#define SIGNALING_CLIENT_SHUTDOWN_TIMEOUT                                   (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define SIGNALING_CLIENT_SHUTDOWN_TIMEOUT (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
 // Signaling client state literal definitions
-#define SIGNALING_CLIENT_STATE_UNKNOWN_STR                                  "Unknown"
-#define SIGNALING_CLIENT_STATE_NEW_STR                                      "New"
-#define SIGNALING_CLIENT_STATE_GET_CREDENTIALS_STR                          "Get Security Credentials"
-#define SIGNALING_CLIENT_STATE_DESCRIBE_STR                                 "Describe Channel"
-#define SIGNALING_CLIENT_STATE_CREATE_STR                                   "Create Channel"
-#define SIGNALING_CLIENT_STATE_GET_ENDPOINT_STR                             "Get Channel Endpoint"
-#define SIGNALING_CLIENT_STATE_GET_ICE_CONFIG_STR                           "Get ICE Server Configuration"
-#define SIGNALING_CLIENT_STATE_READY_STR                                    "Ready"
-#define SIGNALING_CLIENT_STATE_CONNECTING_STR                               "Connecting"
-#define SIGNALING_CLIENT_STATE_CONNECTED_STR                                "Connected"
-#define SIGNALING_CLIENT_STATE_DISCONNECTED_STR                             "Disconnected"
-#define SIGNALING_CLIENT_STATE_DELETE_STR                                   "Delete"
-#define SIGNALING_CLIENT_STATE_DELETED_STR                                  "Deleted"
+#define SIGNALING_CLIENT_STATE_UNKNOWN_STR         "Unknown"
+#define SIGNALING_CLIENT_STATE_NEW_STR             "New"
+#define SIGNALING_CLIENT_STATE_GET_CREDENTIALS_STR "Get Security Credentials"
+#define SIGNALING_CLIENT_STATE_DESCRIBE_STR        "Describe Channel"
+#define SIGNALING_CLIENT_STATE_CREATE_STR          "Create Channel"
+#define SIGNALING_CLIENT_STATE_GET_ENDPOINT_STR    "Get Channel Endpoint"
+#define SIGNALING_CLIENT_STATE_GET_ICE_CONFIG_STR  "Get ICE Server Configuration"
+#define SIGNALING_CLIENT_STATE_READY_STR           "Ready"
+#define SIGNALING_CLIENT_STATE_CONNECTING_STR      "Connecting"
+#define SIGNALING_CLIENT_STATE_CONNECTED_STR       "Connected"
+#define SIGNALING_CLIENT_STATE_DISCONNECTED_STR    "Disconnected"
+#define SIGNALING_CLIENT_STATE_DELETE_STR          "Delete"
+#define SIGNALING_CLIENT_STATE_DELETED_STR         "Deleted"
 
 // Error refreshing ICE server configuration string
-#define SIGNALING_ICE_CONFIG_REFRESH_ERROR_MSG                              "Failed refreshing ICE server configuration with status code 0x%08x."
+#define SIGNALING_ICE_CONFIG_REFRESH_ERROR_MSG "Failed refreshing ICE server configuration with status code 0x%08x."
 
 // Error reconnecting to the signaling service
-#define SIGNALING_RECONNECT_ERROR_MSG                                       "Failed to reconnect with status code 0x%08x."
+#define SIGNALING_RECONNECT_ERROR_MSG "Failed to reconnect with status code 0x%08x."
 
 // Max error string length
-#define SIGNALING_MAX_ERROR_MESSAGE_LEN                                     512
+#define SIGNALING_MAX_ERROR_MESSAGE_LEN 512
 
 // Async ICE config refresh delay in case if the signaling is not yet in READY state
-#define SIGNALING_ASYNC_ICE_CONFIG_REFRESH_DELAY                            (50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
+#define SIGNALING_ASYNC_ICE_CONFIG_REFRESH_DELAY (50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
 
 // API call latency calculation
-#define SIGNALING_API_LATENCY_CALCULATION(pClient, time, isCpApi) \
-        MUTEX_LOCK((pClient)->diagnosticsLock); \
-        if (isCpApi) { \
-            (pClient)->diagnostics.cpApiLatency = EMA_ACCUMULATOR_GET_NEXT((pClient)->diagnostics.cpApiLatency, GETTIME() - (time)); \
-        } else { \
-            (pClient)->diagnostics.dpApiLatency = EMA_ACCUMULATOR_GET_NEXT((pClient)->diagnostics.dpApiLatency, GETTIME() - (time)); \
-        } \
-        MUTEX_UNLOCK((pClient)->diagnosticsLock); \
+#define SIGNALING_API_LATENCY_CALCULATION(pClient, time, isCpApi)                                                                                    \
+    MUTEX_LOCK((pClient)->diagnosticsLock);                                                                                                          \
+    if (isCpApi) {                                                                                                                                   \
+        (pClient)->diagnostics.cpApiLatency = EMA_ACCUMULATOR_GET_NEXT((pClient)->diagnostics.cpApiLatency, GETTIME() - (time));                     \
+    } else {                                                                                                                                         \
+        (pClient)->diagnostics.dpApiLatency = EMA_ACCUMULATOR_GET_NEXT((pClient)->diagnostics.dpApiLatency, GETTIME() - (time));                     \
+    }                                                                                                                                                \
+    MUTEX_UNLOCK((pClient)->diagnosticsLock);
 
-#define SIGNALING_UPDATE_ERROR_COUNT(pClient, status) \
-        if((pClient) != NULL && STATUS_FAILED(status)) { \
-            ATOMIC_INCREMENT(&(pClient)->diagnostics.numberOfErrors); \
-        } \
+#define SIGNALING_UPDATE_ERROR_COUNT(pClient, status)                                                                                                \
+    if ((pClient) != NULL && STATUS_FAILED(status)) {                                                                                                \
+        ATOMIC_INCREMENT(&(pClient)->diagnostics.numberOfErrors);                                                                                    \
+    }
 
 // Forward declaration
-typedef struct __LwsCallInfo *PLwsCallInfo;
+typedef struct __LwsCallInfo* PLwsCallInfo;
 
 // Testability hooks functions
 typedef STATUS (*SignalingApiCallHookFunc)(UINT64);
@@ -283,8 +283,8 @@ typedef struct {
 } SignalingClient, *PSignalingClient;
 
 // Public handle to and from object converters
-#define TO_SIGNALING_CLIENT_HANDLE(p) ((SIGNALING_CLIENT_HANDLE) (p))
-#define FROM_SIGNALING_CLIENT_HANDLE(h) (IS_VALID_SIGNALING_CLIENT_HANDLE(h) ? (PSignalingClient) (h) : NULL)
+#define TO_SIGNALING_CLIENT_HANDLE(p)   ((SIGNALING_CLIENT_HANDLE)(p))
+#define FROM_SIGNALING_CLIENT_HANDLE(h) (IS_VALID_SIGNALING_CLIENT_HANDLE(h) ? (PSignalingClient)(h) : NULL)
 
 STATUS createSignalingSync(PSignalingClientInfoInternal, PChannelInfo, PSignalingClientCallbacks, PAwsCredentialProvider, PSignalingClient*);
 STATUS freeSignaling(PSignalingClient*);
@@ -322,7 +322,7 @@ STATUS connectSignalingChannel(PSignalingClient, UINT64);
 STATUS deleteChannel(PSignalingClient, UINT64);
 STATUS signalingGetMetrics(PSignalingClient, PSignalingClientMetrics);
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 }
 #endif
-#endif  /* __KINESIS_VIDEO_WEBRTC_SIGNALING_CLIENT__ */
+#endif /* __KINESIS_VIDEO_WEBRTC_SIGNALING_CLIENT__ */

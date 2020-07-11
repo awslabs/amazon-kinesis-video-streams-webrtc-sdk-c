@@ -1,19 +1,19 @@
 #include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
 
-#define NETWORK_INTERFACE_NAME_PARAM                "-i"
-#define STUN_HOSTNAME_PARAM                         "-s"
-#define DEFAULT_STUN_HOST                           "stun:stun.sipgate.net:3478"
+#define NETWORK_INTERFACE_NAME_PARAM "-i"
+#define STUN_HOSTNAME_PARAM          "-s"
+#define DEFAULT_STUN_HOST            "stun:stun.sipgate.net:3478"
 
 BOOL filterFunc(UINT64 data, PCHAR name)
 {
-    CHAR *desiredInterface = (CHAR *) data;
+    CHAR* desiredInterface = (CHAR*) data;
     if (desiredInterface == NULL || STRCMP(name, desiredInterface) == 0) {
         return TRUE;
     }
     return FALSE;
 }
 
-INT32 main(INT32 argc, CHAR **argv)
+INT32 main(INT32 argc, CHAR** argv)
 {
     PCHAR interfaceName = NULL, stunHostname = NULL;
     printf("Usage: ./discoverNatBehavior -i network-interface-name -s stun-hostname\n");
@@ -21,7 +21,7 @@ INT32 main(INT32 argc, CHAR **argv)
     INT32 i;
     UINT32 logLevel = LOG_LEVEL_DEBUG;
     STATUS status = STATUS_SUCCESS;
-    CHAR *logLevelStr = NULL;
+    CHAR* logLevelStr = NULL;
 
     for (i = 1; i < argc; ++i) {
         if (STRCMP(argv[i], NETWORK_INTERFACE_NAME_PARAM) == 0) {

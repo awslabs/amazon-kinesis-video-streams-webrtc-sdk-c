@@ -4,7 +4,7 @@
 #define LOG_CLASS "TLS_mbedtls"
 #include "../Include_i.h"
 
-STATUS createTlsSession(PTlsSessionCallbacks pCallbacks, PTlsSession *ppTlsSession)
+STATUS createTlsSession(PTlsSessionCallbacks pCallbacks, PTlsSession* ppTlsSession)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -36,7 +36,7 @@ CleanUp:
     if (ppTlsSession != NULL) {
         *ppTlsSession = pTlsSession;
     }
-    
+
     LEAVES();
     return retStatus;
 }
@@ -66,7 +66,7 @@ CleanUp:
     return retStatus;
 }
 
-INT32 tlsSessionSendCallback(PVOID customData, const unsigned char *buf, ULONG len)
+INT32 tlsSessionSendCallback(PVOID customData, const unsigned char* buf, ULONG len)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PTlsSession pTlsSession = (PTlsSession) customData;
@@ -80,7 +80,7 @@ CleanUp:
     return STATUS_FAILED(retStatus) ? -retStatus : len;
 }
 
-INT32 tlsSessionReceiveCallback(PVOID customData, unsigned char *buf, ULONG len)
+INT32 tlsSessionReceiveCallback(PVOID customData, unsigned char* buf, ULONG len)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PTlsSession pTlsSession = (PTlsSession) customData;
@@ -109,14 +109,13 @@ STATUS tlsSessionStart(PTlsSession pTlsSession, BOOL isServer)
     CHK(pTlsSession != NULL, STATUS_NULL_ARG);
     CHK(pTlsSession->state == TLS_SESSION_STATE_NEW, retStatus);
 
-    CHK(mbedtls_ssl_config_defaults(&pTlsSession->sslCtxConfig,
-                            isServer ? MBEDTLS_SSL_IS_SERVER : MBEDTLS_SSL_IS_CLIENT,
-                            MBEDTLS_SSL_TRANSPORT_STREAM,
-                            MBEDTLS_SSL_PRESET_DEFAULT) == 0, STATUS_CREATE_SSL_FAILED);
+    CHK(mbedtls_ssl_config_defaults(&pTlsSession->sslCtxConfig, isServer ? MBEDTLS_SSL_IS_SERVER : MBEDTLS_SSL_IS_CLIENT,
+                                    MBEDTLS_SSL_TRANSPORT_STREAM, MBEDTLS_SSL_PRESET_DEFAULT) == 0,
+        STATUS_CREATE_SSL_FAILED);
 
     mbedtls_ssl_conf_ca_chain(&pTlsSession->sslCtxConfig, &pTlsSession->cacert, NULL);
     mbedtls_ssl_conf_authmode(&pTlsSession->sslCtxConfig, MBEDTLS_SSL_VERIFY_REQUIRED);
-    mbedtls_ssl_conf_rng(&pTlsSession->sslCtxConfig, mbedtls_ctr_drbg_random, &pTlsSession->ctrDrbg); 
+    mbedtls_ssl_conf_rng(&pTlsSession->sslCtxConfig, mbedtls_ctr_drbg_random, &pTlsSession->ctrDrbg);
     CHK(mbedtls_ssl_setup(&pTlsSession->sslCtx, &pTlsSession->sslCtxConfig) == 0, STATUS_SSL_CTX_CREATION_FAILED);
     mbedtls_ssl_set_mtu(&pTlsSession->sslCtx, DEFAULT_MTU_SIZE);
     mbedtls_ssl_set_bio(&pTlsSession->sslCtx, pTlsSession, tlsSessionSendCallback, tlsSessionReceiveCallback, NULL);
@@ -186,7 +185,7 @@ CleanUp:
     if (STATUS_FAILED(retStatus)) {
         DLOGD("Warning: reading socket data failed with 0x%08x", retStatus);
     }
-    
+
     LEAVES();
     return retStatus;
 }

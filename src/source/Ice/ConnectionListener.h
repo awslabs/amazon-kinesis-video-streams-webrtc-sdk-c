@@ -6,14 +6,14 @@ Connection Listener internal include file
 
 #pragma once
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
-#define SOCKET_WAIT_FOR_DATA_TIMEOUT_SECONDS                        1
-#define CONNECTION_LISTENER_DEFAULT_MAX_LISTENING_CONNECTION        64
+#define SOCKET_WAIT_FOR_DATA_TIMEOUT_SECONDS                 1
+#define CONNECTION_LISTENER_DEFAULT_MAX_LISTENING_CONNECTION 64
 
-#define CONNECTION_AWAIT_CONNECTION_REMOVAL_TIMEOUT                 5 * HUNDREDS_OF_NANOS_IN_A_SECOND
+#define CONNECTION_AWAIT_CONNECTION_REMOVAL_TIMEOUT 5 * HUNDREDS_OF_NANOS_IN_A_SECOND
 
 typedef struct {
     volatile ATOMIC_BOOL terminate;
@@ -89,7 +89,7 @@ STATUS connectionListenerStart(PConnectionListener);
 ////////////////////////////////////////////
 PVOID connectionListenerReceiveDataRoutine(PVOID arg);
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 }
 #endif
-#endif  /* __KINESIS_VIDEO_WEBRTC_CONNECTION_LISTENER__ */
+#endif /* __KINESIS_VIDEO_WEBRTC_CONNECTION_LISTENER__ */
