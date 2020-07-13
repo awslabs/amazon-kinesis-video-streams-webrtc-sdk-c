@@ -211,15 +211,20 @@ configuration.certificates[0].pCertificate = pSampleConfiguration->rtcConfig.cer
 configuration.certificates[0].pPrivateKey = pSampleConfiguration->rtcConfig.certificates[0].pPrivateKey;
 ```
 
-## Getting the SDPs
+## DEBUG
+### Getting the SDPs
 If you would like to print out the SDPs, run this command:
 `export DEBUG_LOG_SDP=TRUE`
 
-## File logging
+### File logging
 If you would like to enable file logging, run this command:
 `export AWS_ENABLE_FILE_LOGGING=TRUE`
+You can also change settings such as buffer size, number of log files for rotation and log file path in the samples
 
-You can also change settings such as buffer size, number of log files for rotation and log file path in the samples 
+### Adjust MTU
+If ICE connection can be established successfully but media can not be transferred, make sure the actual MTU is higher than the MTU setting here: https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/blob/master/src/source/PeerConnection/Rtp.h#L12.
+
+You can also change settings such as buffer size, number of log files for rotation and log file path in the samples
 
 ## Clang Checks
 This SDK has clang format checks enforced in builds. In order to avoid re-iterating and make sure your code
