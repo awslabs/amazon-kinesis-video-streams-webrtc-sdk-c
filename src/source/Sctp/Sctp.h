@@ -12,12 +12,12 @@ extern "C" {
 #endif
 
 // 1200 - 12 (SCTP header Size)
-#define SCTP_MTU                      1188
-#define SCTP_ASSOCIATION_DEFAULT_PORT 5000
-#define SCTP_DCEP_HEADER_LENGTH 12
-#define SCTP_DCEP_LABEL_LEN_OFFSET 8
-#define SCTP_DCEP_LABEL_OFFSET 12
-#define SCTP_MAX_ALLOWABLE_PACKET_LENGTH        (SCTP_DCEP_HEADER_LENGTH + MAX_DATA_CHANNEL_NAME_LEN + MAX_DATA_CHANNEL_PROTOCOL_LEN + 2)
+#define SCTP_MTU                         1188
+#define SCTP_ASSOCIATION_DEFAULT_PORT    5000
+#define SCTP_DCEP_HEADER_LENGTH          12
+#define SCTP_DCEP_LABEL_LEN_OFFSET       8
+#define SCTP_DCEP_LABEL_OFFSET           12
+#define SCTP_MAX_ALLOWABLE_PACKET_LENGTH (SCTP_DCEP_HEADER_LENGTH + MAX_DATA_CHANNEL_NAME_LEN + MAX_DATA_CHANNEL_PROTOCOL_LEN + 2)
 
 #define SCTP_SESSION_ACTIVE             0
 #define SCTP_SESSION_SHUTDOWN_INITIATED 1
@@ -34,10 +34,10 @@ enum {
 };
 
 typedef enum {
-    DCEP_DATA_CHANNEL_RELIABLE_ORDERED = (BYTE)0x00,
-    DCEP_DATA_CHANNEL_RELIABLE_UNORDERED = (BYTE)0x80,
-    DCEP_DATA_CHANNEL_REXMIT = (BYTE)0x01,
-    DCEP_DATA_CHANNEL_TIMED = (BYTE)0x02
+    DCEP_DATA_CHANNEL_RELIABLE_ORDERED = (BYTE) 0x00,
+    DCEP_DATA_CHANNEL_RELIABLE_UNORDERED = (BYTE) 0x80,
+    DCEP_DATA_CHANNEL_REXMIT = (BYTE) 0x01,
+    DCEP_DATA_CHANNEL_TIMED = (BYTE) 0x02
 } DATA_CHANNEL_TYPE;
 
 // Callback that is fired when SCTP Association wishes to send packet
@@ -60,7 +60,7 @@ typedef struct {
 
 typedef struct {
     volatile SIZE_T shutdownStatus;
-    struct socket *socket;
+    struct socket* socket;
     struct sctp_sendv_spa spa;
     BYTE packet[SCTP_MAX_ALLOWABLE_PACKET_LENGTH];
     UINT32 packetSize;
