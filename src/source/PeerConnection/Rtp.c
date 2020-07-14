@@ -168,6 +168,9 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
     UINT32 frames = 0, keyframes = 0, bytesSent = 0, packetsSent = 0, headerBytesSent = 0, framesSent = 0, hugeFramesSent = 0;
     UINT64 lastPacketSentTimestamp = 0;
 
+    // temp vars :(
+    UINT64 tmpFrames, tmpTime;
+
     CHK(pKvsRtpTransceiver != NULL, STATUS_NULL_ARG);
     pKvsPeerConnection = pKvsRtpTransceiver->pKvsPeerConnection;
     pPayloadArray = &(pKvsRtpTransceiver->sender.payloadArray);
@@ -180,9 +183,9 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
             pKvsRtpTransceiver->sender.lastKnownFrameCountTime = now;
             pKvsRtpTransceiver->sender.lastKnownFrameCount = pKvsRtpTransceiver->sender.outboundRtpStreamStats.framesEncoded;
         } else if (now - pKvsRtpTransceiver->sender.lastKnownFrameCountTime > HUNDREDS_OF_NANOS_IN_A_SECOND) {
-            UINT64 _frames = pKvsRtpTransceiver->sender.outboundRtpStreamStats.framesEncoded - pKvsRtpTransceiver->sender.lastKnownFrameCount;
-            UINT64 time = now - pKvsRtpTransceiver->sender.lastKnownFrameCountTime;
-            fps = (DOUBLE)(_frames * HUNDREDS_OF_NANOS_IN_A_SECOND) / (DOUBLE) time;
+            tmpFrames = pKvsRtpTransceiver->sender.outboundRtpStreamStats.framesEncoded - pKvsRtpTransceiver->sender.lastKnownFrameCount;
+            tmpTime = now - pKvsRtpTransceiver->sender.lastKnownFrameCountTime;
+            fps = (DOUBLE)(tmpFrames * HUNDREDS_OF_NANOS_IN_A_SECOND) / (DOUBLE) tmpTime;
         }
     }
 
