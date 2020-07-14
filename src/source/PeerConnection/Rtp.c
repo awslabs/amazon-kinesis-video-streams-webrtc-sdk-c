@@ -20,6 +20,7 @@ STATUS createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION direction, PKvsPeer
     pKvsRtpTransceiver->peerFrameBuffer = (PBYTE) MEMALLOC(pKvsRtpTransceiver->peerFrameBufferSize);
     CHK(pKvsRtpTransceiver->peerFrameBuffer != NULL, STATUS_NOT_ENOUGH_MEMORY);
     pKvsRtpTransceiver->pKvsPeerConnection = pKvsPeerConnection;
+    pKvsRtpTransceiver->sender.statsLock = MUTEX_CREATE(FALSE);
     pKvsRtpTransceiver->sender.ssrc = ssrc;
     pKvsRtpTransceiver->sender.rtxSsrc = rtxSsrc;
     pKvsRtpTransceiver->sender.track = *pRtcMediaStreamTrack;
@@ -42,7 +43,8 @@ CleanUp:
     return retStatus;
 }
 
-STATUS freeTransceiver(PRtcRtpTransceiver *pRtcRtpTransceiver) {
+STATUS freeTransceiver(PRtcRtpTransceiver* pRtcRtpTransceiver)
+{
     UNUSED_PARAM(pRtcRtpTransceiver);
     return STATUS_NOT_IMPLEMENTED;
 }
@@ -133,10 +135,12 @@ STATUS updateEncoderStats(PRtcRtpTransceiver pRtcRtpTransceiver, PRtcEncoderStat
     STATUS retStatus = STATUS_SUCCESS;
     PKvsRtpTransceiver pKvsRtpTransceiver = (PKvsRtpTransceiver) pRtcRtpTransceiver;
     CHK(pKvsRtpTransceiver != NULL && encoderStats != NULL, STATUS_NULL_ARG);
-    ATOMIC_ADD(&pKvsRtpTransceiver->sender.outboundRtpStreamStats.totalEncodeTime, encoderStats->encodeTimeMsec);
-    ATOMIC_STORE(&pKvsRtpTransceiver->sender.outboundRtpStreamStats.targetBitrate, encoderStats->targetBitrate);
-    ATOMIC_STORE(&pKvsRtpTransceiver->sender.outboundRtpStreamStats.frameWidth, encoderStats->width);
-    ATOMIC_STORE(&pKvsRtpTransceiver->sender.outboundRtpStreamStats.frameHeight, encoderStats->height);
+    MUTEX_LOCK(pKvsRtpTransceiver->sender.statsLock);
+    pKvsRtpTransceiver->sender.outboundRtpStreamStats.totalEncodeTime += encoderStats->encodeTimeMsec;
+    pKvsRtpTransceiver->sender.outboundRtpStreamStats.targetBitrate = encoderStats->targetBitrate;
+    pKvsRtpTransceiver->sender.outboundRtpStreamStats.frameWidth = encoderStats->width;
+    pKvsRtpTransceiver->sender.outboundRtpStreamStats.frameHeight = encoderStats->height;
+    MUTEX_UNLOCK(pKvsRtpTransceiver->sender.statsLock);
 
 CleanUp:
     CHK_LOG_ERR(retStatus);
@@ -159,25 +163,26 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
     UINT64 rtpTimestamp = 0;
     UINT64 now = GETTIME();
 
+    // stats updates
+    DOUBLE fps = 0.0;
+    UINT32 frames = 0, keyframes = 0, bytesSent = 0, packetsSent = 0, headerBytesSent = 0, framesSent = 0, hugeFramesSent = 0;
+    UINT64 lastPacketSentTimestamp = 0;
+
     CHK(pKvsRtpTransceiver != NULL, STATUS_NULL_ARG);
     pKvsPeerConnection = pKvsRtpTransceiver->pKvsPeerConnection;
     pPayloadArray = &(pKvsRtpTransceiver->sender.payloadArray);
-    ATOMIC_ADD(&pKvsRtpTransceiver->sender.outboundRtpStreamStats.totalEncodedBytesTarget, pFrame->size);
     if (MEDIA_STREAM_TRACK_KIND_VIDEO == pKvsRtpTransceiver->sender.track.kind) {
-        ATOMIC_INCREMENT(&pKvsRtpTransceiver->sender.outboundRtpStreamStats.framesEncoded);
+        frames++;
         if (0 != (pFrame->flags & FRAME_FLAG_KEY_FRAME)) {
-            ATOMIC_INCREMENT(&pKvsRtpTransceiver->sender.outboundRtpStreamStats.keyFramesEncoded);
+            keyframes++;
         }
         if (pKvsRtpTransceiver->sender.lastKnownFrameCountTime == 0) {
             pKvsRtpTransceiver->sender.lastKnownFrameCountTime = now;
-            pKvsRtpTransceiver->sender.lastKnownFrameCount     = pKvsRtpTransceiver->sender.outboundRtpStreamStats.framesEncoded;
+            pKvsRtpTransceiver->sender.lastKnownFrameCount = pKvsRtpTransceiver->sender.outboundRtpStreamStats.framesEncoded;
         } else if (now - pKvsRtpTransceiver->sender.lastKnownFrameCountTime > HUNDREDS_OF_NANOS_IN_A_SECOND) {
-            UINT64 frames = pKvsRtpTransceiver->sender.outboundRtpStreamStats.framesEncoded - pKvsRtpTransceiver->sender.lastKnownFrameCount;
-            UINT64 time   = now - pKvsRtpTransceiver->sender.lastKnownFrameCountTime;
-            DOUBLE fps    = (DOUBLE)(frames * HUNDREDS_OF_NANOS_IN_A_SECOND) / (DOUBLE) time;
-            ATOMIC_STORE(&pKvsRtpTransceiver->sender.outboundRtpStreamStats.framesPerSecond, fps);
-            pKvsRtpTransceiver->sender.lastKnownFrameCountTime = now;
-            pKvsRtpTransceiver->sender.lastKnownFrameCount     = pKvsRtpTransceiver->sender.outboundRtpStreamStats.framesEncoded;
+            UINT64 _frames = pKvsRtpTransceiver->sender.outboundRtpStreamStats.framesEncoded - pKvsRtpTransceiver->sender.lastKnownFrameCount;
+            UINT64 time = now - pKvsRtpTransceiver->sender.lastKnownFrameCountTime;
+            fps = (DOUBLE)(_frames * HUNDREDS_OF_NANOS_IN_A_SECOND) / (DOUBLE) time;
         }
     }
 
@@ -263,11 +268,10 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
         // https://tools.ietf.org/html/rfc3550#section-6.4.1
         // The total number of payload octets (i.e., not including header or padding) transmitted in RTP data packets by the sender
         headerLen = RTP_HEADER_LEN(pRtpPacket);
-        ATOMIC_ADD(&pKvsRtpTransceiver->sender.outboundRtpStreamStats.sentRtpStreamStats.bytesSent, packetLen - headerLen);
-        ATOMIC_INCREMENT(&pKvsRtpTransceiver->sender.outboundRtpStreamStats.sentRtpStreamStats.packetsSent);
-        ATOMIC_STORE(&pKvsRtpTransceiver->sender.outboundRtpStreamStats.lastPacketSentTimestamp,
-                     KVS_CONVERT_TIMESCALE(GETTIME(), HUNDREDS_OF_NANOS_IN_A_SECOND, 1000));
-        ATOMIC_STORE(&pKvsRtpTransceiver->sender.outboundRtpStreamStats.headerBytesSent, headerLen);
+        bytesSent += packetLen - headerLen;
+        packetsSent++;
+        lastPacketSentTimestamp = KVS_CONVERT_TIMESCALE(GETTIME(), HUNDREDS_OF_NANOS_IN_A_SECOND, 1000);
+        pKvsRtpTransceiver->sender.outboundRtpStreamStats.headerBytesSent += headerLen;
         // TODO packetsDiscardedOnSend, bytesDiscardedOnSend, framesDiscardedOnSend - socket errors, i.e. a socket error occured when handing the
         // packets to the socket. This might happen due to various reasons, including full buffer or no available memory. iceAgentSendPacket return
         // value?
@@ -276,14 +280,7 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
     }
 
     if (MEDIA_STREAM_TRACK_KIND_VIDEO == pKvsRtpTransceiver->sender.track.kind) {
-        ATOMIC_INCREMENT(&pKvsRtpTransceiver->sender.outboundRtpStreamStats.framesSent);
-        if (pKvsRtpTransceiver->sender.outboundRtpStreamStats.framesPerSecond > 0.0) {
-            DOUBLE avgFrameSize =
-                pKvsRtpTransceiver->sender.outboundRtpStreamStats.targetBitrate / pKvsRtpTransceiver->sender.outboundRtpStreamStats.framesPerSecond;
-            if (pFrame->size >= avgFrameSize * HUGE_FRAME_MULTIPLIER) {
-                ATOMIC_INCREMENT(&pKvsRtpTransceiver->sender.outboundRtpStreamStats.hugeFramesSent);
-            }
-        }
+        framesSent++;
     }
 
     if (pKvsRtpTransceiver->sender.firstFrameWallClockTime == 0) {
@@ -295,6 +292,28 @@ CleanUp:
     if (locked) {
         MUTEX_UNLOCK(pKvsPeerConnection->pSrtpSessionLock);
     }
+    MUTEX_LOCK(pKvsRtpTransceiver->sender.statsLock);
+    pKvsRtpTransceiver->sender.outboundRtpStreamStats.totalEncodedBytesTarget += pFrame->size;
+    pKvsRtpTransceiver->sender.outboundRtpStreamStats.framesEncoded += frames;
+    pKvsRtpTransceiver->sender.outboundRtpStreamStats.keyFramesEncoded += keyframes;
+    if (fps > 0.0)
+        pKvsRtpTransceiver->sender.outboundRtpStreamStats.framesPerSecond = fps;
+    pKvsRtpTransceiver->sender.lastKnownFrameCountTime = now;
+    pKvsRtpTransceiver->sender.lastKnownFrameCount = pKvsRtpTransceiver->sender.outboundRtpStreamStats.framesEncoded;
+    pKvsRtpTransceiver->sender.outboundRtpStreamStats.sentRtpStreamStats.bytesSent += bytesSent;
+    pKvsRtpTransceiver->sender.outboundRtpStreamStats.sentRtpStreamStats.packetsSent++;
+    if (lastPacketSentTimestamp > 0)
+        pKvsRtpTransceiver->sender.outboundRtpStreamStats.lastPacketSentTimestamp = lastPacketSentTimestamp;
+    pKvsRtpTransceiver->sender.outboundRtpStreamStats.headerBytesSent += headerBytesSent;
+    pKvsRtpTransceiver->sender.outboundRtpStreamStats.framesSent += framesSent;
+    if (pKvsRtpTransceiver->sender.outboundRtpStreamStats.framesPerSecond > 0.0) {
+        DOUBLE avgFrameSize =
+            pKvsRtpTransceiver->sender.outboundRtpStreamStats.targetBitrate / pKvsRtpTransceiver->sender.outboundRtpStreamStats.framesPerSecond;
+        if (pFrame->size >= avgFrameSize * HUGE_FRAME_MULTIPLIER) {
+            pKvsRtpTransceiver->sender.outboundRtpStreamStats.hugeFramesSent++;
+        }
+    }
+    MUTEX_UNLOCK(pKvsRtpTransceiver->sender.statsLock);
 
     SAFE_MEMFREE(rawPacket);
     SAFE_MEMFREE(pPacketList);

@@ -34,6 +34,7 @@ typedef struct {
     PRtpRollingBuffer packetBuffer;
     PRetransmitter retransmitter;
 
+    MUTEX statsLock;
     RtcOutboundRtpStreamStats outboundRtpStreamStats;
     RtcRemoteInboundRtpStreamStats remoteInboundRtpStreamStats;
     UINT64 rtpTimeOffset;
