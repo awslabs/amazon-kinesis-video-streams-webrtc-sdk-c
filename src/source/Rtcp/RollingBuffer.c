@@ -17,7 +17,7 @@ STATUS createRollingBuffer(UINT32 capacity, FreeDataFunc freeDataFunc, PRollingB
     pRollingBuffer->tailIndex = 0;
     pRollingBuffer->freeDataFn = freeDataFunc;
     pRollingBuffer->lock = MUTEX_CREATE(FALSE);
-    pRollingBuffer->dataBuffer = (PUINT64) (pRollingBuffer + 1);
+    pRollingBuffer->dataBuffer = (PUINT64)(pRollingBuffer + 1);
     MEMSET(pRollingBuffer->dataBuffer, 0, SIZEOF(UINT64) * pRollingBuffer->capacity);
 
 CleanUp:
@@ -79,12 +79,13 @@ STATUS rollingBufferAppendData(PRollingBuffer pRollingBuffer, UINT64 data, PUINT
 
     if (pRollingBuffer->headIndex == pRollingBuffer->tailIndex) {
         // Empty buffer
-        pRollingBuffer->dataBuffer[ROLLING_BUFFER_MAP_INDEX(pRollingBuffer, pRollingBuffer->tailIndex)] =data;
+        pRollingBuffer->dataBuffer[ROLLING_BUFFER_MAP_INDEX(pRollingBuffer, pRollingBuffer->tailIndex)] = data;
         pRollingBuffer->headIndex = pRollingBuffer->tailIndex + 1;
     } else {
         if (pRollingBuffer->headIndex == pRollingBuffer->tailIndex + pRollingBuffer->capacity) {
             if (pRollingBuffer->freeDataFn != NULL) {
-                CHK_STATUS(pRollingBuffer->freeDataFn(pRollingBuffer->dataBuffer + ROLLING_BUFFER_MAP_INDEX(pRollingBuffer, pRollingBuffer->tailIndex)));
+                CHK_STATUS(
+                    pRollingBuffer->freeDataFn(pRollingBuffer->dataBuffer + ROLLING_BUFFER_MAP_INDEX(pRollingBuffer, pRollingBuffer->tailIndex)));
             }
             pRollingBuffer->tailIndex++;
         }

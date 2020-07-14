@@ -16,7 +16,7 @@ STATUS createTransactionIdStore(UINT32 maxIdCount, PTransactionIdStore* ppTransa
     pTransactionIdStore = (PTransactionIdStore) MEMCALLOC(1, SIZEOF(TransactionIdStore) + STUN_TRANSACTION_ID_LEN * maxIdCount);
     CHK(pTransactionIdStore != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
-    pTransactionIdStore->transactionIds = (PBYTE) (pTransactionIdStore + 1);
+    pTransactionIdStore->transactionIds = (PBYTE)(pTransactionIdStore + 1);
     pTransactionIdStore->maxTransactionIdsCount = maxIdCount;
 
 CleanUp:
@@ -60,13 +60,14 @@ VOID transactionIdStoreInsert(PTransactionIdStore pTransactionIdStore, PBYTE tra
     CHECK(pTransactionIdStore != NULL);
 
     storeLocation = pTransactionIdStore->transactionIds +
-            ((pTransactionIdStore->nextTransactionIdIndex % pTransactionIdStore->maxTransactionIdsCount) * STUN_TRANSACTION_ID_LEN);
+        ((pTransactionIdStore->nextTransactionIdIndex % pTransactionIdStore->maxTransactionIdsCount) * STUN_TRANSACTION_ID_LEN);
     MEMCPY(storeLocation, transactionId, STUN_TRANSACTION_ID_LEN);
 
     pTransactionIdStore->nextTransactionIdIndex = (pTransactionIdStore->nextTransactionIdIndex + 1) % pTransactionIdStore->maxTransactionIdsCount;
 
     if (pTransactionIdStore->nextTransactionIdIndex == pTransactionIdStore->earliestTransactionIdIndex) {
-        pTransactionIdStore->earliestTransactionIdIndex = (pTransactionIdStore->earliestTransactionIdIndex + 1) % pTransactionIdStore->maxTransactionIdsCount;
+        pTransactionIdStore->earliestTransactionIdIndex =
+            (pTransactionIdStore->earliestTransactionIdIndex + 1) % pTransactionIdStore->maxTransactionIdsCount;
     }
 
     pTransactionIdStore->transactionIdCount = MIN(pTransactionIdStore->transactionIdCount + 1, pTransactionIdStore->maxTransactionIdsCount);
@@ -79,7 +80,7 @@ BOOL transactionIdStoreHasId(PTransactionIdStore pTransactionIdStore, PBYTE tran
 
     CHECK(pTransactionIdStore != NULL);
 
-    for(i = pTransactionIdStore->earliestTransactionIdIndex, j = 0; j < pTransactionIdStore->maxTransactionIdsCount && !idFound; ++j) {
+    for (i = pTransactionIdStore->earliestTransactionIdIndex, j = 0; j < pTransactionIdStore->maxTransactionIdsCount && !idFound; ++j) {
         if (MEMCMP(transactionId, pTransactionIdStore->transactionIds + i * STUN_TRANSACTION_ID_LEN, STUN_TRANSACTION_ID_LEN) == 0) {
             idFound = TRUE;
         }
@@ -107,8 +108,8 @@ STATUS iceUtilsGenerateTransactionId(PBYTE pBuffer, UINT32 bufferLen)
     CHK(pBuffer != NULL, STATUS_NULL_ARG);
     CHK(bufferLen == STUN_TRANSACTION_ID_LEN, STATUS_INVALID_ARG);
 
-    for(i = 0; i < STUN_TRANSACTION_ID_LEN; ++i) {
-        pBuffer[i] = ((BYTE) (RAND() % 0x100));
+    for (i = 0; i < STUN_TRANSACTION_ID_LEN; ++i) {
+        pBuffer[i] = ((BYTE)(RAND() % 0x100));
     }
 
 CleanUp:
@@ -116,8 +117,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS iceUtilsPackageStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passwordLen,
-                         PBYTE pBuffer, PUINT32 pBufferLen)
+STATUS iceUtilsPackageStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passwordLen, PBYTE pBuffer, PUINT32 pBufferLen)
 {
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 stunPacketSize = 0;
@@ -142,9 +142,8 @@ CleanUp:
     return retStatus;
 }
 
-STATUS iceUtilsSendStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passwordLen,
-                              PKvsIpAddress pDest, PSocketConnection pSocketConnection, PTurnConnection pTurnConnection,
-                              BOOL useTurn)
+STATUS iceUtilsSendStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passwordLen, PKvsIpAddress pDest, PSocketConnection pSocketConnection,
+                              PTurnConnection pTurnConnection, BOOL useTurn)
 {
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 stunPacketSize = STUN_PACKET_ALLOCATION_SIZE;
@@ -160,8 +159,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS iceUtilsSendData(PBYTE buffer, UINT32 size,
-                        PKvsIpAddress pDest, PSocketConnection pSocketConnection, PTurnConnection pTurnConnection,
+STATUS iceUtilsSendData(PBYTE buffer, UINT32 size, PKvsIpAddress pDest, PSocketConnection pSocketConnection, PTurnConnection pTurnConnection,
                         BOOL useTurn)
 {
     STATUS retStatus = STATUS_SUCCESS;

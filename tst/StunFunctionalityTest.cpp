@@ -708,7 +708,7 @@ TEST_F(StunFunctionalityTest, deserializeStunErrorCode)
     PStunAttributeHeader pStunAttr = NULL;
 
     EXPECT_EQ(STATUS_SUCCESS, deserializeStunPacket(stunErrorBuffer, ARRAY_SIZE(stunErrorBuffer), turnKey,
-                                                    MD5_DIGEST_LENGTH, &pStunPacket));
+                                                    KVS_MD5_DIGEST_LENGTH, &pStunPacket));
 
     EXPECT_EQ(STATUS_SUCCESS, getStunAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_ERROR_CODE, &pStunAttr));
     EXPECT_TRUE(pStunAttr != NULL);

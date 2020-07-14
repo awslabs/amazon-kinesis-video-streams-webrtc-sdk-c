@@ -6,7 +6,7 @@ Retransmitter internal include file
 
 #pragma once
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -21,7 +21,7 @@ STATUS createRetransmitter(UINT32, UINT32, PRetransmitter*);
 STATUS freeRetransmitter(PRetransmitter*);
 STATUS resendPacketOnNack(PRtcpPacket, PKvsPeerConnection);
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 }
 #endif
-#endif  /* __KINESIS_VIDEO_WEBRTC_CLIENT_PEERCONNECTION_RETRANSIMITTER__ */
+#endif /* __KINESIS_VIDEO_WEBRTC_CLIENT_PEERCONNECTION_RETRANSIMITTER__ */

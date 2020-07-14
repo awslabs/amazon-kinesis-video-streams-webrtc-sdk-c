@@ -5,7 +5,7 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
 class SrtpApiTest : public WebRtcClientTestBase {
 };
 
-auto DEFAULT_TEST_PROFILE = SRTP_PROFILE_AES128_CM_HMAC_SHA1_80;
+auto DEFAULT_TEST_PROFILE = KVS_SRTP_PROFILE_AES128_CM_HMAC_SHA1_80;
 auto DEFAULT_TEST_PROFILE_AUTH_TAG_SIZE = 10;
 BYTE SKEL_RTP_PACKET[17] = {0x80, 0x60, 0x69, 0x8f, 0xd9, 0xc2, 0x93, 0xda, 0x1c, 0x64, 0x27, 0x82, 0x98, 0x36, 0xbe, 0x88, 0x9e};
 

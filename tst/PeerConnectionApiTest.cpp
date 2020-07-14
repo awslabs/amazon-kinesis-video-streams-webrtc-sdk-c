@@ -115,7 +115,7 @@ TEST_F(PeerConnectionApiTest, deserializeSessionDescriptionInit)
 
     auto validSessionDescriptionInit = "{sdp: \"KVS\\r\\nWebRTC\\r\\nSDP\\r\\nValue\\r\\n\", type: \"offer\"}";
     EXPECT_EQ(deserializeSessionDescriptionInit((PCHAR) validSessionDescriptionInit, STRLEN(validSessionDescriptionInit), &rtcSessionDescriptionInit), STATUS_SUCCESS);
-    EXPECT_STREQ(rtcSessionDescriptionInit.sdp, "KVS\nWebRTC\nSDP\nValue\n");
+    EXPECT_STREQ(rtcSessionDescriptionInit.sdp, "KVS\r\nWebRTC\r\nSDP\r\nValue\r\n");
     EXPECT_EQ(rtcSessionDescriptionInit.type, SDP_TYPE_OFFER);
 }
 
@@ -135,7 +135,7 @@ a=fmtp:97 profile-level-id=42e01f;level-asymmetry-allowed=1
 
     SessionDescription sessionDescription;
     MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
-    EXPECT_EQ(serializeSessionDescription(&sessionDescription, (PCHAR) rawSessionDescription), STATUS_SUCCESS);
+    EXPECT_EQ(deserializeSessionDescription(&sessionDescription, (PCHAR) rawSessionDescription), STATUS_SUCCESS);
 
     EXPECT_STREQ(fmtpForPayloadType(97, &sessionDescription), "profile-level-id=42e01f;level-asymmetry-allowed=1");
     EXPECT_STREQ(fmtpForPayloadType(109, &sessionDescription), "minptime=10;useinbandfec=1");

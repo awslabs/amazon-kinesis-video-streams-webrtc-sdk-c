@@ -1,10 +1,10 @@
 /**
- * Kinesis Video Tcp
+ * Kinesis Video TLS
  */
-#define LOG_CLASS "Tls"
+#define LOG_CLASS "TLS_openssl"
 #include "../Include_i.h"
 
-STATUS createTlsSession(PTlsSessionCallbacks pCallbacks, PTlsSession *ppTlsSession)
+STATUS createTlsSession(PTlsSessionCallbacks pCallbacks, PTlsSession* ppTlsSession)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -27,7 +27,7 @@ CleanUp:
     if (ppTlsSession != NULL) {
         *ppTlsSession = pTlsSession;
     }
-    
+
     LEAVES();
     return retStatus;
 }
@@ -59,7 +59,7 @@ CleanUp:
 }
 
 // https://www.openssl.org/docs/man1.0.2/man3/SSL_CTX_set_verify.html
-INT32 tlsSessionCertificateVerifyCallback(INT32 preverify_ok, X509_STORE_CTX *ctx)
+INT32 tlsSessionCertificateVerifyCallback(INT32 preverify_ok, X509_STORE_CTX* ctx)
 {
     UNUSED_PARAM(preverify_ok);
     UNUSED_PARAM(ctx);
@@ -122,7 +122,7 @@ CleanUp:
                 BIO_free(pWriteBio);
             }
         }
-        ERR_print_errors_fp (stderr);
+        ERR_print_errors_fp(stderr);
     }
 
     LEAVES();
@@ -147,7 +147,7 @@ STATUS tlsSessionProcessPacket(PTlsSession pTlsSession, PBYTE pData, UINT32 buff
     CHK(BIO_write(SSL_get_rbio(pTlsSession->pSsl), pData, *pDataLen) > 0, STATUS_SECURE_SOCKET_READ_FAILED);
 
     // read as much as possible
-    while(continueRead && writtenBytes < bufferLen) {
+    while (continueRead && writtenBytes < bufferLen) {
         sslReadRet = SSL_read(pTlsSession->pSsl, pData + writtenBytes, bufferLen - writtenBytes);
         if (sslReadRet <= 0) {
             sslReadRet = SSL_get_error(pTlsSession->pSsl, sslReadRet);
@@ -195,7 +195,7 @@ STATUS tlsSessionPutApplicationData(PTlsSession pTlsSession, PBYTE pData, UINT32
         tlsSessionChangeState(pTlsSession, TLS_SESSION_STATE_CONNECTED);
 
         sslRet = SSL_write(pTlsSession->pSsl, pData, dataLen);
-        if (sslRet < 0){
+        if (sslRet < 0) {
             sslErr = SSL_get_error(pTlsSession->pSsl, sslRet);
             switch (sslErr) {
                 case SSL_ERROR_WANT_READ:
@@ -216,13 +216,12 @@ STATUS tlsSessionPutApplicationData(PTlsSession pTlsSession, PBYTE pData, UINT32
     CHK_ERR(wBioDataLen >= 0, STATUS_SEND_DATA_FAILED, "BIO_get_mem_data failed");
 
     if (wBioDataLen > 0) {
-        retStatus = pTlsSession->callbacks.outboundPacketFn(pTlsSession->callbacks.outBoundPacketFnCustomData, 
-                                                            (PBYTE) wBioBuffer, (UINT32) wBioDataLen);
+        retStatus =
+            pTlsSession->callbacks.outboundPacketFn(pTlsSession->callbacks.outBoundPacketFnCustomData, (PBYTE) wBioBuffer, (UINT32) wBioDataLen);
 
         /* reset bio to clear its content since it's already sent if possible */
         BIO_reset(SSL_get_wbio(pTlsSession->pSsl));
     }
-
 
 CleanUp:
     return retStatus;
@@ -240,26 +239,5 @@ CleanUp:
 
     CHK_LOG_ERR(retStatus);
 
-    return retStatus;
-}
-
-STATUS tlsSessionChangeState(PTlsSession pTlsSession, TLS_SESSION_STATE newState)
-{
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-
-    CHK(pTlsSession != NULL, STATUS_NULL_ARG);
-    CHK(pTlsSession->state != newState, retStatus);
-
-    pTlsSession->state = newState;
-    if (pTlsSession->callbacks.stateChangeFn != NULL) {
-        pTlsSession->callbacks.stateChangeFn(
-                pTlsSession->callbacks.stateChangeFnCustomData,
-                newState);
-    }
-
-CleanUp:
-
-    LEAVES();
     return retStatus;
 }

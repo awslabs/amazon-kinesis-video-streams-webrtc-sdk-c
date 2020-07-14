@@ -6,7 +6,7 @@ Main internal include file
 
 #pragma once
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -26,6 +26,7 @@ extern "C" {
 ////////////////////////////////////////////////////
 #include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
 
+#ifdef KVS_USE_OPENSSL
 #include <openssl/bio.h>
 #include <openssl/err.h>
 #include <openssl/hmac.h>
@@ -33,11 +34,20 @@ extern "C" {
 #include <openssl/rand.h>
 #include <openssl/sha.h>
 #include <openssl/ssl.h>
+#elif KVS_USE_MBEDTLS
+#include <mbedtls/ssl.h>
+#include <mbedtls/entropy.h>
+#include <mbedtls/ctr_drbg.h>
+#include <mbedtls/error.h>
+#include <mbedtls/certs.h>
+#include <mbedtls/sha256.h>
+#endif
+
 #include <srtp2/srtp.h>
 
 // INET/INET6 MUST be defined before usrsctp
 // If removed will cause corruption that is hard to determine at runtime
-#define INET 1
+#define INET  1
 #define INET6 1
 #include <usrsctp.h>
 
@@ -57,43 +67,45 @@ extern "C" {
 #endif
 
 // Max uFrag and uPwd length as documented in https://tools.ietf.org/html/rfc5245#section-15.4
-#define ICE_MAX_UFRAG_LEN               256
-#define ICE_MAX_UPWD_LEN                256
+#define ICE_MAX_UFRAG_LEN 256
+#define ICE_MAX_UPWD_LEN  256
 
 // Max stun username attribute len: https://tools.ietf.org/html/rfc5389#section-15.3
-#define STUN_MAX_USERNAME_LEN           (UINT16) 512
+#define STUN_MAX_USERNAME_LEN (UINT16) 512
 
 // https://tools.ietf.org/html/rfc5389#section-15.7
-#define STUN_MAX_REALM_LEN              (UINT16) 128
+#define STUN_MAX_REALM_LEN (UINT16) 128
 
 // https://tools.ietf.org/html/rfc5389#section-15.8
-#define STUN_MAX_NONCE_LEN              (UINT16) 128
+#define STUN_MAX_NONCE_LEN (UINT16) 128
 
 // https://tools.ietf.org/html/rfc5389#section-15.6
-#define STUN_MAX_ERROR_PHRASE_LEN       (UINT16) 128
+#define STUN_MAX_ERROR_PHRASE_LEN (UINT16) 128
 
 // Byte sizes of the IP addresses
-#define IPV6_ADDRESS_LENGTH             (UINT16) 16
-#define IPV4_ADDRESS_LENGTH             (UINT16) 4
+#define IPV6_ADDRESS_LENGTH (UINT16) 16
+#define IPV4_ADDRESS_LENGTH (UINT16) 4
 
 #define CERTIFICATE_FINGERPRINT_LENGTH 160
 
+#define MAX_UDP_PACKET_SIZE 65507
+
 typedef enum {
-    KVS_IP_FAMILY_TYPE_IPV4             = (UINT16) 0x0001,
-    KVS_IP_FAMILY_TYPE_IPV6             = (UINT16) 0x0002,
+    KVS_IP_FAMILY_TYPE_IPV4 = (UINT16) 0x0001,
+    KVS_IP_FAMILY_TYPE_IPV6 = (UINT16) 0x0002,
 } KVS_IP_FAMILY_TYPE;
 
 typedef struct {
     UINT16 family;
-    UINT16 port;                        // port is stored in network byte order
-    BYTE address[IPV6_ADDRESS_LENGTH];  // address is stored in network byte order
+    UINT16 port;                       // port is stored in network byte order
+    BYTE address[IPV6_ADDRESS_LENGTH]; // address is stored in network byte order
     BOOL isPointToPoint;
 } KvsIpAddress, *PKvsIpAddress;
 
 #define IS_IPV4_ADDR(pAddress) ((pAddress)->family == KVS_IP_FAMILY_TYPE_IPV4)
 
 // Used for ensuring alignment
-#define ALIGN_UP_TO_MACHINE_WORD(x)             ROUND_UP((x), SIZEOF(SIZE_T))
+#define ALIGN_UP_TO_MACHINE_WORD(x) ROUND_UP((x), SIZEOF(SIZE_T))
 
 ////////////////////////////////////////////////////
 // Project forward declarations
@@ -105,14 +117,16 @@ STATUS generateJSONSafeString(PCHAR, UINT32);
 ////////////////////////////////////////////////////
 // Project internal includes
 ////////////////////////////////////////////////////
+#include "Crypto/IOBuffer.h"
+#include "Crypto/Crypto.h"
+#include "Crypto/Dtls.h"
+#include "Crypto/Tls.h"
 #include "Ice/Network.h"
-#include "Ice/Tls.h"
 #include "Ice/SocketConnection.h"
 #include "Ice/ConnectionListener.h"
 #include "Stun/Stun.h"
 #include "Ice/IceUtils.h"
 #include "Sdp/Sdp.h"
-#include "Dtls/Dtls.h"
 #include "Ice/IceAgent.h"
 #include "Ice/TurnConnection.h"
 #include "Ice/IceAgentStateMachine.h"
@@ -151,8 +165,7 @@ STATUS generateJSONSafeString(PCHAR, UINT32);
 
 #define KVS_CONVERT_TIMESCALE(pts, from_timescale, to_timescale) (pts * to_timescale / from_timescale)
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 }
 #endif
-#endif  /* __KINESIS_VIDEO_WEBRTC_CLIENT_INCLUDE_I__ */
-
+#endif /* __KINESIS_VIDEO_WEBRTC_CLIENT_INCLUDE_I__ */

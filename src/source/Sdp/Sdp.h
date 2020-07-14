@@ -7,64 +7,70 @@
 
 #pragma once
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
-#define    SDP_ATTRIBUTE_MARKER                "a="
-#define    SDP_BANDWIDTH_MARKER                "b="
-#define    SDP_CONNECTION_INFORMATION_MARKER   "c="
-#define    SDP_EMAIL_ADDRESS_MARKER            "e="
-#define    SDP_ENCRYPTION_KEY_MARKER           "k="
+#define SDP_ATTRIBUTE_MARKER              "a="
+#define SDP_BANDWIDTH_MARKER              "b="
+#define SDP_CONNECTION_INFORMATION_MARKER "c="
+#define SDP_EMAIL_ADDRESS_MARKER          "e="
+#define SDP_ENCRYPTION_KEY_MARKER         "k="
 
 // Media title information or Session information
-#define    SDP_INFORMATION_MARKER              "i="
+#define SDP_INFORMATION_MARKER "i="
 
-#define    SDP_MEDIA_NAME_MARKER               "m="
-#define    SDP_ORIGIN_MARKER                   "o="
-#define    SDP_PHONE_NUMBER_MARKER             "p="
-#define    SDP_SESSION_NAME_MARKER             "s="
-#define    SDP_TIME_DESCRIPTION_MARKER         "t="
-#define    SDP_TIMEZONE_MARKER                 "z="
-#define    SDP_URI_MARKER                      "u="
-#define    SDP_VERSION_MARKER                  "v="
+#define SDP_MEDIA_NAME_MARKER       "m="
+#define SDP_ORIGIN_MARKER           "o="
+#define SDP_PHONE_NUMBER_MARKER     "p="
+#define SDP_SESSION_NAME_MARKER     "s="
+#define SDP_TIME_DESCRIPTION_MARKER "t="
+#define SDP_TIMEZONE_MARKER         "z="
+#define SDP_URI_MARKER              "u="
+#define SDP_VERSION_MARKER          "v="
 
-#define    SDP_CANDIDATE_TYPE_HOST             "host"
-#define    SDP_CANDIDATE_TYPE_SERFLX           "srflx"
-#define    SDP_CANDIDATE_TYPE_PRFLX            "prflx"
-#define    SDP_CANDIDATE_TYPE_RELAY            "relay"
+// The sequence CRLF (0x0d0a) is used to end a record, although parsers SHOULD be
+// tolerant and also accept records terminated with a single newline
+// character.
+// Reference: https://tools.ietf.org/html/rfc4566#section-5
+#define SDP_LINE_SEPARATOR "\r\n"
 
-#define    SDP_ATTRIBUTE_LENGTH 2
+#define SDP_CANDIDATE_TYPE_HOST   "host"
+#define SDP_CANDIDATE_TYPE_SERFLX "srflx"
+#define SDP_CANDIDATE_TYPE_PRFLX  "prflx"
+#define SDP_CANDIDATE_TYPE_RELAY  "relay"
 
-#define MAX_SDP_OFFSET_LENGTH 255
+#define SDP_ATTRIBUTE_LENGTH 2
+
+#define MAX_SDP_OFFSET_LENGTH                255
 #define MAX_SDP_ENCRYPTION_KEY_METHOD_LENGTH 255
-#define MAX_SDP_ENCRYPTION_KEY_LENGTH 255
-#define MAX_SDP_NETWORK_TYPE_LENGTH 255
-#define MAX_SDP_ADDRESS_TYPE_LENGTH 255
-#define MAX_SDP_CONNECTION_ADDRESS_LENGTH 255
-#define MAX_SDP_SESSION_USERNAME_LENGTH 255
-#define MAX_SDP_ATTRIBUTE_NAME_LENGTH 255
-#define MAX_SDP_ATTRIBUTE_VALUE_LENGTH 255
-#define MAX_SDP_MEDIA_NAME_LENGTH 255
-#define MAX_SDP_MEDIA_TITLE_LENGTH 255
-#define MAX_SDP_BANDWIDTH_LENGTH 255
-#define MAX_SDP_SESSION_NAME_LENGTH 255
-#define MAX_SDP_SESSION_INFORMATION_LENGTH 255
-#define MAX_SDP_SESSION_URI_LENGTH 255
+#define MAX_SDP_ENCRYPTION_KEY_LENGTH        255
+#define MAX_SDP_NETWORK_TYPE_LENGTH          255
+#define MAX_SDP_ADDRESS_TYPE_LENGTH          255
+#define MAX_SDP_CONNECTION_ADDRESS_LENGTH    255
+#define MAX_SDP_SESSION_USERNAME_LENGTH      255
+#define MAX_SDP_ATTRIBUTE_NAME_LENGTH        255
+#define MAX_SDP_ATTRIBUTE_VALUE_LENGTH       255
+#define MAX_SDP_MEDIA_NAME_LENGTH            255
+#define MAX_SDP_MEDIA_TITLE_LENGTH           255
+#define MAX_SDP_BANDWIDTH_LENGTH             255
+#define MAX_SDP_SESSION_NAME_LENGTH          255
+#define MAX_SDP_SESSION_INFORMATION_LENGTH   255
+#define MAX_SDP_SESSION_URI_LENGTH           255
 #define MAX_SDP_SESSION_EMAIL_ADDRESS_LENGTH 255
-#define MAX_SDP_SESSION_PHONE_NUMBER_LENGTH 255
+#define MAX_SDP_SESSION_PHONE_NUMBER_LENGTH  255
 
 #define MAX_SDP_TOKEN_LENGTH 128
 
-#define MAX_SDP_SESSION_BANDWIDTH_COUNT 2
+#define MAX_SDP_SESSION_BANDWIDTH_COUNT        2
 #define MAX_SDP_SESSION_TIME_DESCRIPTION_COUNT 2
-#define MAX_SDP_SESSION_TIMEZONE_COUNT 2
+#define MAX_SDP_SESSION_TIMEZONE_COUNT         2
 /**
  * https://tools.ietf.org/html/rfc4566#section-5.14
  *
  * reserving enough for audio, video, text, application and message for now
  */
-#define MAX_SDP_SESSION_MEDIA_COUNT 5
+#define MAX_SDP_SESSION_MEDIA_COUNT   5
 #define MAX_SDP_MEDIA_BANDWIDTH_COUNT 2
 
 #define MAX_SDP_ATTRIBUTES_COUNT 128
@@ -74,9 +80,9 @@ extern "C" {
  * https://tools.ietf.org/html/rfc4566#section-5.7
  */
 typedef struct {
-    CHAR networkType [MAX_SDP_NETWORK_TYPE_LENGTH + 1];
-    CHAR addressType [MAX_SDP_ADDRESS_TYPE_LENGTH + 1];
-    CHAR connectionAddress [MAX_SDP_CONNECTION_ADDRESS_LENGTH + 1];
+    CHAR networkType[MAX_SDP_NETWORK_TYPE_LENGTH + 1];
+    CHAR addressType[MAX_SDP_ADDRESS_TYPE_LENGTH + 1];
+    CHAR connectionAddress[MAX_SDP_CONNECTION_ADDRESS_LENGTH + 1];
 } SdpConnectionInformation, *PSdpConnectionInformation;
 
 /*
@@ -92,7 +98,7 @@ typedef struct {
 
 typedef struct {
     CHAR sdpBandwidthType[MAX_SDP_BANDWIDTH_LENGTH + 1];
-    UINT64 sdpBandwidthValue; //bps
+    UINT64 sdpBandwidthValue; // bps
 } SdpBandwidth, *PSdpBandwidth;
 
 /*
@@ -201,18 +207,17 @@ typedef struct {
     UINT8 bandwidthCount;
 } SessionDescription, *PSessionDescription;
 
-// Return code maps to a code if we are trying to serialize an invalid session_description
-STATUS serializeSessionDescription(PSessionDescription, PCHAR);
-
 // Return code maps to an errno just for SDP parsing
-STATUS deserializeSessionDescription(PSessionDescription, PCHAR, PUINT32);
+STATUS deserializeSessionDescription(PSessionDescription, PCHAR);
+
+// Return code maps to a code if we are trying to serialize an invalid session_description
+STATUS serializeSessionDescription(PSessionDescription, PCHAR, PUINT32);
 
 STATUS parseMediaName(PSessionDescription, PCHAR, UINT32);
 STATUS parseSessionAttributes(PSessionDescription, PCHAR, UINT32);
 STATUS parseMediaAttributes(PSessionDescription, PCHAR, UINT32);
 
-#ifdef  __cplusplus
-
+#ifdef __cplusplus
 }
 #endif
-#endif  //__KINESIS_VIDEO_WEBRTC_CLIENT_SDP_SDP__
+#endif //__KINESIS_VIDEO_WEBRTC_CLIENT_SDP_SDP__

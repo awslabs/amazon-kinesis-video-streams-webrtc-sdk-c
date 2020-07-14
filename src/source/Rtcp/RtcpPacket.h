@@ -6,7 +6,7 @@ RTCP Packet include file
 
 #pragma once
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -15,16 +15,16 @@ extern "C" {
 
 #define RTCP_PACKET_RRC_BITMASK 0x1F
 
-#define RTCP_PACKET_HEADER_LEN  4
-#define RTCP_NACK_LIST_LEN  8
+#define RTCP_PACKET_HEADER_LEN 4
+#define RTCP_NACK_LIST_LEN     8
 
 #define RTCP_PACKET_VERSION_VAL 2
 
 #define RTCP_PACKET_LEN_WORD_SIZE 4
 
-#define RTCP_PACKET_REMB_MIN_SIZE 16
+#define RTCP_PACKET_REMB_MIN_SIZE          16
 #define RTCP_PACKET_REMB_IDENTIFIER_OFFSET 8
-#define RTCP_PACKET_REMB_MANTISSA_BITMASK 0x3FFFF
+#define RTCP_PACKET_REMB_MANTISSA_BITMASK  0x3FFFF
 
 #define RTCP_PACKET_SENDER_REPORT_MINLEN      24
 #define RTCP_PACKET_RECEIVER_REPORT_BLOCK_LEN 24
@@ -46,7 +46,7 @@ typedef enum {
 
 typedef enum {
     RTCP_FEEDBACK_MESSAGE_TYPE_NACK = 1,
-    RTCP_PSFB_PLI = 1, //https://tools.ietf.org/html/rfc4585#section-6.3
+    RTCP_PSFB_PLI = 1, // https://tools.ietf.org/html/rfc4585#section-6.3
     RTCP_FEEDBACK_MESSAGE_TYPE_APPLICATION_LAYER_FEEDBACK = 15,
 } RTCP_FEEDBACK_MESSAGE_TYPE;
 
@@ -93,7 +93,7 @@ UINT64 convertTimestampToNTP(UINT64 time100ns);
 //   bits of the integer part and the high 16 bits of the fractional part.
 #define MID_NTP(ntp_time) (UINT32)((currentTimeNTP >> 16U) & 0xffffffffULL)
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 }
 #endif
 

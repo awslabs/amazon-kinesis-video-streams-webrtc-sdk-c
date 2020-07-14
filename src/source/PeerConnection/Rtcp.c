@@ -147,7 +147,7 @@ STATUS onRtcpRembPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
 
     for (i = 0; i < ssrcListLen; i++) {
         CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pTransceievers, &pCurNode));
-        while(pCurNode != NULL && pTransceiver == NULL) {
+        while (pCurNode != NULL && pTransceiver == NULL) {
             CHK_STATUS(doubleListGetNodeData(pCurNode, &item));
             CHK(item != 0, STATUS_INTERNAL_ERROR);
 
@@ -182,7 +182,7 @@ STATUS onRtcpPLIPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConne
     mediaSSRC = getUnalignedInt32BigEndian((pRtcpPacket->payload + (SIZEOF(UINT32))));
 
     CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pTransceievers, &pCurNode));
-    while(pCurNode != NULL && pTransceiver == NULL) {
+    while (pCurNode != NULL && pTransceiver == NULL) {
         CHK_STATUS(doubleListGetNodeData(pCurNode, &item));
         CHK(item != 0, STATUS_INTERNAL_ERROR);
 

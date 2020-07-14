@@ -29,6 +29,17 @@ matrix:
     - env: allowTestFail=true
 
   include:
+    #clang check
+    - name: "clang-format Check"
+      os: osx
+      compiler: clang
+      before_script:
+        - brew install clang-format
+        - mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TEST=TRUE
+      script:
+        - cd ..
+        - bash check-clang.sh
+
     # MacOS Builds
     - name: "OSX GCC"
       os: osx
@@ -167,6 +178,15 @@ matrix:
         - cmake .. -DBUILD_OPENSSL=TRUE -DBUILD_OPENSSL_PLATFORM=linux-generic32 -DBUILD_LIBSRTP_HOST_PLATFORM=x86_64-unknown-linux-gnu -DBUILD_LIBSRTP_DESTINATION_PLATFORM=arm-unknown-linux-uclibcgnueabi
       script: make
 
+    # mbedTLS. TODO: we probably should run mbedTLS build after each OpenSSL build to cover all platforms?
+    - name: "mbedTLS"
+      os: linux
+      compiler: gcc
+      before_install:
+        # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
+        - sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+      before_script: mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
+
     - name: "Windows MSVC"
       os: windows
       script:
@@ -175,7 +195,7 @@ matrix:
         - export "PATH=/c/Strawberry/perl/site/bin:/c/Strawberry/perl/bin:/c/Strawberry/c/bin:/c/Program Files/NASM:`pwd`/open-source/lib:`pwd`/open-source/bin:$PATH"
         - .github/build_windows.bat
         - cd build/tst && ./webrtc_client_test.exe --gtest_filter="-DataChannelFunctionalityTest.*:IceApiTest.*:IceFunctionalityTest.*:PeerConnectionFunctionalityTest.*:SignalingApiFunctionalityTest.*:TurnConnectionFunctionalityTest.*:RtpFunctionalityTest.marshallUnmarshallH264Data:RtpFunctionalityTest.packingUnpackingVerifySameH264Frame"
-
+            
     # Generate Doxygen
     - name: "Generate Doxygen"
       if: type = push

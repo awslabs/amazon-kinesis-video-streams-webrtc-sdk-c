@@ -6,20 +6,20 @@ H264 RTP Payloader include file
 
 #pragma once
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
-#define FU_A_HEADER_SIZE 2
-#define FU_B_HEADER_SIZE 4
-#define STAP_A_HEADER_SIZE 1
-#define STAP_B_HEADER_SIZE 3
+#define FU_A_HEADER_SIZE     2
+#define FU_B_HEADER_SIZE     4
+#define STAP_A_HEADER_SIZE   1
+#define STAP_B_HEADER_SIZE   3
 #define SINGLE_U_HEADER_SIZE 1
-#define FU_A_INDICATOR 28
-#define FU_B_INDICATOR 29
-#define STAP_A_INDICATOR 24
-#define STAP_B_INDICATOR 25
-#define NAL_TYPE_MASK 31
+#define FU_A_INDICATOR       28
+#define FU_B_INDICATOR       29
+#define STAP_A_INDICATOR     24
+#define STAP_B_INDICATOR     25
+#define NAL_TYPE_MASK        31
 
 /*
  *   0                   1                   2                   3
@@ -40,8 +40,7 @@ STATUS getNextNaluLength(PBYTE, UINT32, PUINT32, PUINT32);
 STATUS createPayloadFromNalu(UINT32, PBYTE, UINT32, PPayloadArray, PUINT32, PUINT32);
 STATUS depayH264FromRtpPayload(PBYTE, UINT32, PBYTE, PUINT32, PBOOL);
 
-#ifdef  __cplusplus
-
+#ifdef __cplusplus
 }
 #endif
 #endif //__KINESIS_VIDEO_WEBRTC_CLIENT_RTPH264PAYLOADER_H
