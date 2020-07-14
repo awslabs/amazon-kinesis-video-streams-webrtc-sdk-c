@@ -310,9 +310,8 @@ CleanUp:
     pKvsRtpTransceiver->sender.outboundRtpStreamStats.headerBytesSent += headerBytesSent;
     pKvsRtpTransceiver->sender.outboundRtpStreamStats.framesSent += framesSent;
     if (pKvsRtpTransceiver->sender.outboundRtpStreamStats.framesPerSecond > 0.0) {
-        DOUBLE avgFrameSize =
-            pKvsRtpTransceiver->sender.outboundRtpStreamStats.targetBitrate / pKvsRtpTransceiver->sender.outboundRtpStreamStats.framesPerSecond;
-        if (pFrame->size >= avgFrameSize * HUGE_FRAME_MULTIPLIER) {
+        if (pFrame->size >= pKvsRtpTransceiver->sender.outboundRtpStreamStats.targetBitrate /
+                pKvsRtpTransceiver->sender.outboundRtpStreamStats.framesPerSecond * HUGE_FRAME_MULTIPLIER) {
             pKvsRtpTransceiver->sender.outboundRtpStreamStats.hugeFramesSent++;
         }
     }
