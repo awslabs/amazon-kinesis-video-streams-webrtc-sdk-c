@@ -123,7 +123,8 @@ struct __TurnConnection {
 
     PSocketConnection pControlChannel;
 
-    PDoubleList turnPeerList;
+    TurnPeer turnPeerList[DEFAULT_TURN_MAX_PEER_COUNT];
+    UINT32 turnPeerCount;
 
     TIMER_QUEUE_HANDLE timerQueueHandle;
 
@@ -169,6 +170,7 @@ struct __TurnConnection {
     UINT64 nextAllocationRefreshTime;
 
     UINT64 currentTimerCallingPeriod;
+    BOOL deallocatePacketSent;
 };
 typedef struct __TurnConnection* PTurnConnection;
 

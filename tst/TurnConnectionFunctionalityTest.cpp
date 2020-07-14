@@ -121,8 +121,6 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
 
         BOOL turnReady = FALSE;
         KvsIpAddress turnPeerAddr;
-        PTurnPeer pTurnPeer = NULL;
-        PDoubleListNode pDoubleListNode = NULL;
         UINT64 turnReadyTimeout = GETTIME() + 10 * HUNDREDS_OF_NANOS_IN_A_SECOND;
 
         initializeTestTurnConnection();
@@ -153,9 +151,7 @@ namespace com { namespace amazonaws { namespace kinesis { namespace video { name
 
         // modify permission expiration time to trigger refresh permission
         MUTEX_LOCK(pTurnConnection->lock);
-        EXPECT_EQ(STATUS_SUCCESS, doubleListGetHeadNode(pTurnConnection->turnPeerList, &pDoubleListNode));
-        pTurnPeer = (PTurnPeer) pDoubleListNode->data;
-        pTurnPeer->permissionExpirationTime = GETTIME();
+        pTurnConnection->turnPeerList[0].permissionExpirationTime = GETTIME();
         MUTEX_UNLOCK(pTurnConnection->lock);
 
         // turn Connection timer run happens every second when at ready state.

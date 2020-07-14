@@ -277,7 +277,7 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
             locked = FALSE;
 
             ATOMIC_STORE_BOOL(&pConnectionListener->connectionListChanged, FALSE);
-            CVAR_SIGNAL(pConnectionListener->removeConnectionComplete);
+            CVAR_BROADCAST(pConnectionListener->removeConnectionComplete);
         }
 
         for (i = 0; i < socketCount; ++i) {
