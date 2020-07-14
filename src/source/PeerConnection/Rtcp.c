@@ -2,12 +2,13 @@
 
 #include "../Include_i.h"
 
-STATUS findTransceiverBySsrc(PKvsPeerConnection pKvsPeerConnection, PKvsRtpTransceiver* ppTransceiver)
+static STATUS findTransceiverBySsrc(PKvsPeerConnection pKvsPeerConnection, PKvsRtpTransceiver* ppTransceiver)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PDoubleListNode pCurNode = NULL;
     UINT64 item = 0;
     PKvsRtpTransceiver pTransceiver = NULL;
+    CHK(pKvsPeerConnection != NULL && ppTransceiver != NULL, STATUS_NULL_ARG);
 
     CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pTransceievers, &pCurNode));
     while (pCurNode != NULL) {
