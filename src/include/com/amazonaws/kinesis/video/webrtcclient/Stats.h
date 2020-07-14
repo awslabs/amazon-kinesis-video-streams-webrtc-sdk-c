@@ -59,11 +59,11 @@ typedef enum {
  * Reference: https://www.w3.org/TR/webrtc-stats/#rtcstatsicecandidatepairstate-enum
  */
 typedef enum {
-    ICE_CANDIDATE_PAIR_STATE_FROZEN      = 0,
-    ICE_CANDIDATE_PAIR_STATE_WAITING     = 1,
+    ICE_CANDIDATE_PAIR_STATE_FROZEN = 0,
+    ICE_CANDIDATE_PAIR_STATE_WAITING = 1,
     ICE_CANDIDATE_PAIR_STATE_IN_PROGRESS = 2,
-    ICE_CANDIDATE_PAIR_STATE_SUCCEEDED   = 3,
-    ICE_CANDIDATE_PAIR_STATE_FAILED      = 4,
+    ICE_CANDIDATE_PAIR_STATE_SUCCEEDED = 3,
+    ICE_CANDIDATE_PAIR_STATE_FAILED = 4,
 } ICE_CANDIDATE_PAIR_STATE;
 
 /**
@@ -127,7 +127,7 @@ typedef struct {
     CHAR transportId[MAX_STATS_STRING_LENGTH + 1];       //!< ID of object that was inspected for RTCTransportStats
     CHAR localCandidateId[MAX_CANDIDATE_ID_LENGTH + 1];  //!< Local candidate that is inspected in RTCIceCandidateStats
     CHAR remoteCandidateId[MAX_CANDIDATE_ID_LENGTH + 1]; //!< Remote candidate that is inspected in RTCIceCandidateStats
-    ICE_CANDIDATE_PAIR_STATE state;                  //!< State of checklist for the local-remote candidate pair
+    ICE_CANDIDATE_PAIR_STATE state;                      //!< State of checklist for the local-remote candidate pair
     BOOL nominated; //!< Flag is TRUE if the agent is a controlling agent and FALSE otherwise. The agent role is based on the
                     //!< STUN_ATTRIBUTE_TYPE_USE_CANDIDATE flag
     NullableUint32 circuitBreakerTriggerCount; //!< Represents number of times circuit breaker is triggered during media transmission
@@ -245,11 +245,11 @@ typedef struct {
 // https://www.w3.org/TR/webrtc-stats/#dom-rtcsentrtpstreamstats
 typedef struct {
     RTCRtpStreamStats rtpStreamStats;
-    volatile UINT64 packetsSent;
-    volatile UINT64 bytesSent; //!< Total number of bytes sent for this SSRC. Calculated as defined in [RFC3550]
-                                //!< section 6.4.1.
-                                //!< The total number of payload octets (i.e., not including header or padding)
-                                //!< transmitted in RTP data packets by the sender since starting transmission
+    UINT64 packetsSent;
+    UINT64 bytesSent; //!< Total number of bytes sent for this SSRC. Calculated as defined in [RFC3550]
+                      //!< section 6.4.1.
+                      //!< The total number of payload octets (i.e., not including header or padding)
+                      //!< transmitted in RTP data packets by the sender since starting transmission
 } RTCSentRtpStreamStats, *PRTCSentRtpStreamStats;
 
 /**
@@ -270,14 +270,14 @@ typedef struct {
     CHAR rid[MAX_STATS_STRING_LENGTH + 1]; //!< Exposes the rid encoding parameter of this RTP stream if it has been set, otherwise it is undefined
     CHAR encoderImplementation[MAX_STATS_STRING_LENGTH + 1]; //!< Identifies the encoder implementation used.
     UINT32 packetsDiscardedOnSend; //!< Total number of RTP packets for this SSRC that have been discarded due to socket errors
-    volatile UINT64 framesSent;             //!< Only valid for video. Represents the total number of frames sent on this RTP stream
-    volatile UINT64 hugeFramesSent; //!< Only valid for video. Represents the total number of huge frames sent by this RTP stream
-                                    //!< Huge frames have an encoded size at least 2.5 times the average size of the frames
-    volatile UINT64 framesEncoded;          //!< Only valid for video. It represents the total number of frames successfully encoded for this RTP media stream
-    volatile UINT64 keyFramesEncoded;       //!< Only valid for video. It represents the total number of key frames encoded successfully in the RTP Stream
+    UINT32 framesSent;             //!< Only valid for video. Represents the total number of frames sent on this RTP stream
+    UINT32 hugeFramesSent;         //!< Only valid for video. Represents the total number of huge frames sent by this RTP stream
+                                   //!< Huge frames have an encoded size at least 2.5 times the average size of the frames
+    UINT32 framesEncoded;          //!< Only valid for video. It represents the total number of frames successfully encoded for this RTP media stream
+    UINT32 keyFramesEncoded;       //!< Only valid for video. It represents the total number of key frames encoded successfully in the RTP Stream
     UINT32 framesDiscardedOnSend;  //!< Total number of video frames that have been discarded for this SSRC due to socket errors
-    volatile UINT64 frameWidth;             //!< Only valid for video. Represents the width of the last encoded frame
-    volatile UINT64 frameHeight;            //!< Only valid for video. Represents the height of the last encoded frame
+    UINT32 frameWidth;             //!< Only valid for video. Represents the width of the last encoded frame
+    UINT32 frameHeight;            //!< Only valid for video. Represents the height of the last encoded frame
     UINT32 frameBitDepth;          //!< Only valid for video. Represents the bit depth per pixel of the last encoded frame. Typical values: 24, 30, 36
     UINT32 nackCount;              //!< Count the total number of Negative ACKnowledgement (NACK) packets received by this sender.
     UINT32 firCount;               //!< Only valid for video. Count the total number of Full Intra Request (FIR) packets received by this sender
@@ -286,19 +286,19 @@ typedef struct {
     UINT32 qualityLimitationResolutionChanges; //!< Only valid for video. The number of times that the resolution has changed because we are quality
                                                //!< limited
     INT32 fecPacketsSent;           //!< Total number of RTP FEC packets sent for this SSRC. Can also be incremented while sending FEC packets in band
-    volatile UINT64 lastPacketSentTimestamp; //!< The timestamp in milliseconds at which the last packet was sent for this SSRC
-    volatile UINT64 headerBytesSent; //!< Total number of RTP header and padding bytes sent for this SSRC
-    UINT64 bytesDiscardedOnSend; //!< Total number of bytes for this SSRC that have been discarded due to socket errors
+    UINT64 lastPacketSentTimestamp; //!< The timestamp in milliseconds at which the last packet was sent for this SSRC
+    UINT64 headerBytesSent;         //!< Total number of RTP header and padding bytes sent for this SSRC
+    UINT64 bytesDiscardedOnSend;    //!< Total number of bytes for this SSRC that have been discarded due to socket errors
     UINT64 retransmittedPacketsSent; //!< The total number of packets that were retransmitted for this SSRC
     UINT64 retransmittedBytesSent;   //!< The total number of PAYLOAD bytes retransmitted for this SSRC
-    volatile UINT64 targetBitrate;            //!< Current target TIAS bitrate configured for this particular SSRC
-    volatile UINT64 totalEncodedBytesTarget;  //!< Increased by the target frame size in bytes every time a frame has been encoded
-    volatile DOUBLE framesPerSecond;          //!< Only valid for video. The number of encoded frames during the last second
+    UINT64 targetBitrate;            //!< Current target TIAS bitrate configured for this particular SSRC
+    UINT64 totalEncodedBytesTarget;  //!< Increased by the target frame size in bytes every time a frame has been encoded
+    DOUBLE framesPerSecond;          //!< Only valid for video. The number of encoded frames during the last second
     UINT64 qpSum;                  //!< Only valid for video. The sum of the QP values of frames encoded by this sender. QP value depends on the codec
     UINT64 totalSamplesSent;       //!< Only valid for audio. The total number of samples that have been sent over this RTP stream
     UINT64 samplesEncodedWithSilk; //!< Only valid for audio and when the audio codec is Opus. Represnets only SILK portion of codec
     UINT64 samplesEncodedWithCelt; //!< Only valid for audio and when the audio codec is Opus. Represnets only CELT portion of codec
-    volatile UINT64 totalEncodeTime;        //!< Total number of milliseconds that has been spent encoding the framesEncoded frames of the stream
+    UINT64 totalEncodeTime;        //!< Total number of milliseconds that has been spent encoding the framesEncoded frames of the stream
     UINT64 totalPacketSendDelay;   //!< Total time (seconds) packets have spent buffered locally before being transmitted onto the network
     UINT64 averageRtcpInterval;    //!< The average RTCP interval between two consecutive compound RTCP packets
     QualityLimitationDurationsRecord qualityLimitationDurations; //!< Total time (seconds) spent in each reason state
@@ -313,12 +313,12 @@ typedef struct {
  */
 typedef struct {
     CHAR localId[MAX_STATS_STRING_LENGTH + 1]; //!< Used to look up RTCOutboundRtpStreamStats for the SSRC
-    volatile SIZE_T roundTripTime;                      //!< Estimated round trip time (milliseconds) for this SSRC based on the RTCP timestamps
-    volatile SIZE_T totalRoundTripTime;        //!< The cumulative sum of all round trip time measurements in seconds since the beginning of the session
-    volatile DOUBLE fractionLost;    //!< The fraction packet loss reported for this SSRC. This fraction is defined to be the number of packets lost
-                                     //!< divided by the number of packets expected
-    volatile SIZE_T reportsReceived;           //!< Total number of RTCP RR blocks received for this SSRC
-    volatile SIZE_T roundTripTimeMeasurements; //!< Total number of RTCP RR blocks received for this SSRC that contain a valid round trip time
+    UINT64 roundTripTime;                      //!< Estimated round trip time (milliseconds) for this SSRC based on the RTCP timestamps
+    UINT64 totalRoundTripTime;        //!< The cumulative sum of all round trip time measurements in seconds since the beginning of the session
+    DOUBLE fractionLost;              //!< The fraction packet loss reported for this SSRC. This fraction is defined to be the number of packets lost
+                                      //!< divided by the number of packets expected
+    UINT64 reportsReceived;           //!< Total number of RTCP RR blocks received for this SSRC
+    UINT64 roundTripTimeMeasurements; //!< Total number of RTCP RR blocks received for this SSRC that contain a valid round trip time
 } RtcRemoteInboundRtpStreamStats, *PRtcRemoteInboundRtpStreamStats;
 
 /**
