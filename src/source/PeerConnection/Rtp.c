@@ -70,6 +70,7 @@ STATUS freeKvsRtpTransceiver(PKvsRtpTransceiver* ppKvsRtpTransceiver)
     if (pKvsRtpTransceiver->sender.retransmitter != NULL) {
         freeRetransmitter(&pKvsRtpTransceiver->sender.retransmitter);
     }
+    MUTEX_FREE(pKvsRtpTransceiver->sender.statsLock);
 
     SAFE_MEMFREE(pKvsRtpTransceiver->peerFrameBuffer);
     SAFE_MEMFREE(pKvsRtpTransceiver->sender.payloadArray.payloadBuffer);
