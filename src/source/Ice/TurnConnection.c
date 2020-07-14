@@ -57,7 +57,6 @@ STATUS createTurnConnection(PIceServer pTurnServer, TIMER_QUEUE_HANDLE timerQueu
     pTurnConnection->allocationExpirationTime = INVALID_TIMESTAMP_VALUE;
     pTurnConnection->nextAllocationRefreshTime = 0;
     pTurnConnection->currentTimerCallingPeriod = DEFAULT_TURN_TIMER_INTERVAL_BEFORE_READY;
-    CHK_STATUS(doubleListCreate(&pTurnConnection->turnPeerList));
 
 CleanUp:
 
@@ -80,10 +79,9 @@ STATUS freeTurnConnection(PTurnConnection* ppTurnConnection)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PTurnConnection pTurnConnection = NULL;
-    PDoubleListNode pCurNode = NULL;
-    UINT64 data;
     PTurnPeer pTurnPeer = NULL;
     SIZE_T timerCallbackId;
+    UINT32 i;
 
     CHK(ppTurnConnection != NULL, STATUS_NULL_ARG);
     // free is idempotent
@@ -103,17 +101,10 @@ STATUS freeTurnConnection(PTurnConnection* ppTurnConnection)
     }
 
     // free transactionId store for each turn peer
-    CHK_LOG_ERR(doubleListGetHeadNode(pTurnConnection->turnPeerList, &pCurNode));
-    while (pCurNode != NULL) {
-        CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
-        pCurNode = pCurNode->pNext;
-
-        pTurnPeer = (PTurnPeer) data;
+    for (i = 0; i < pTurnConnection->turnPeerCount; ++i) {
+        pTurnPeer = &pTurnConnection->turnPeerList[i];
         freeTransactionIdStore(&pTurnPeer->pTransactionIdStore);
     }
-    // free turn peers
-    CHK_LOG_ERR(doubleListClear(pTurnConnection->turnPeerList, TRUE));
-    CHK_LOG_ERR(doubleListFree(pTurnConnection->turnPeerList));
 
     if (IS_VALID_MUTEX_VALUE(pTurnConnection->lock)) {
         MUTEX_FREE(pTurnConnection->lock);
@@ -203,11 +194,9 @@ STATUS turnConnectionHandleStun(PTurnConnection pTurnConnection, PBYTE pBuffer, 
     CHAR ipAddrStr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
     BOOL locked = FALSE;
     ATOMIC_BOOL hasAllocation = FALSE;
-
-    PDoubleListNode pCurNode = NULL;
-    UINT64 data;
     PTurnPeer pTurnPeer = NULL;
     UINT64 currentTime;
+    UINT32 i;
 
     CHK(pTurnConnection != NULL, STATUS_NULL_ARG);
     CHK(pBuffer != NULL && bufferLen > 0, STATUS_INVALID_ARG);
@@ -270,12 +259,8 @@ STATUS turnConnectionHandleStun(PTurnConnection pTurnConnection, PBYTE pBuffer, 
             break;
 
         case STUN_PACKET_TYPE_CREATE_PERMISSION_SUCCESS_RESPONSE:
-            CHK_STATUS(doubleListGetHeadNode(pTurnConnection->turnPeerList, &pCurNode));
-            while (pCurNode != NULL) {
-                CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
-                pCurNode = pCurNode->pNext;
-
-                pTurnPeer = (PTurnPeer) data;
+            for (i = 0; i < pTurnConnection->turnPeerCount; ++i) {
+                pTurnPeer = &pTurnConnection->turnPeerList[i];
                 if (transactionIdStoreHasId(pTurnPeer->pTransactionIdStore, pBuffer + STUN_PACKET_TRANSACTION_ID_OFFSET)) {
                     if (pTurnPeer->connectionState == TURN_PEER_CONN_STATE_CREATE_PERMISSION) {
                         pTurnPeer->connectionState = TURN_PEER_CONN_STATE_BIND_CHANNEL;
@@ -290,12 +275,8 @@ STATUS turnConnectionHandleStun(PTurnConnection pTurnConnection, PBYTE pBuffer, 
             break;
 
         case STUN_PACKET_TYPE_CHANNEL_BIND_SUCCESS_RESPONSE:
-            CHK_STATUS(doubleListGetHeadNode(pTurnConnection->turnPeerList, &pCurNode));
-            while (pCurNode != NULL) {
-                CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
-                pCurNode = pCurNode->pNext;
-
-                pTurnPeer = (PTurnPeer) data;
+            for (i = 0; i < pTurnConnection->turnPeerCount; ++i) {
+                pTurnPeer = &pTurnConnection->turnPeerList[i];
                 if (pTurnPeer->connectionState == TURN_PEER_CONN_STATE_BIND_CHANNEL &&
                     transactionIdStoreHasId(pTurnPeer->pTransactionIdStore, pBuffer + STUN_PACKET_TRANSACTION_ID_OFFSET)) {
                     // pTurnPeer->ready means this peer is ready to receive data. pTurnPeer->connectionState could
@@ -351,9 +332,9 @@ STATUS turnConnectionHandleStunError(PTurnConnection pTurnConnection, PBYTE pBuf
     PStunAttributeNonce pStunAttributeNonce = NULL;
     PStunAttributeRealm pStunAttributeRealm = NULL;
     PStunPacket pStunPacket = NULL;
-    BOOL locked = FALSE;
+    BOOL locked = FALSE, iterate = TRUE;
     PTurnPeer pTurnPeer = NULL;
-    PDoubleListNode pCurNode = NULL;
+    UINT32 i;
 
     CHK(pTurnConnection != NULL, STATUS_NULL_ARG);
     CHK(pBuffer != NULL && bufferLen > 0, STATUS_INVALID_ARG);
@@ -361,6 +342,15 @@ STATUS turnConnectionHandleStunError(PTurnConnection pTurnConnection, PBYTE pBuf
 
     MUTEX_LOCK(pTurnConnection->lock);
     locked = TRUE;
+
+    /* we could get errors like expired nonce after sending the deallocation packet. The allocate would have been
+     * deallocated even if the response is error response, and if we try to deallocate again we would get invalid
+     * allocation error. Therefore if we get an error after we've sent the deallocation packet, consider the
+     * deallocation process finished. */
+    if (pTurnConnection->deallocatePacketSent) {
+        ATOMIC_STORE_BOOL(&pTurnConnection->hasAllocation, FALSE);
+        CHK(FALSE, retStatus);
+    }
 
     if (pTurnConnection->credentialObtained) {
         retStatus = deserializeStunPacket(pBuffer, bufferLen, pTurnConnection->longTermKey, KVS_MD5_DIGEST_LENGTH, &pStunPacket);
@@ -418,14 +408,11 @@ STATUS turnConnectionHandleStunError(PTurnConnection pTurnConnection, PBYTE pBuf
                   pStunAttributeErrorCode->errorCode, pStunAttributeErrorCode->attribute.length, pStunAttributeErrorCode->errorPhrase);
 
             /* Find TurnPeer using transaction Id, then mark it as failed */
-            doubleListGetHeadNode(pTurnConnection->turnPeerList, &pCurNode);
-            while (pCurNode != NULL) {
-                pTurnPeer = (PTurnPeer) pCurNode->data;
-                pCurNode = pCurNode->pNext;
+            for (i = 0; iterate && i < pTurnConnection->turnPeerCount; ++i) {
+                pTurnPeer = &pTurnConnection->turnPeerList[i];
                 if (transactionIdStoreHasId(pTurnPeer->pTransactionIdStore, pBuffer + STUN_PACKET_TRANSACTION_ID_OFFSET)) {
                     pTurnPeer->connectionState = TURN_PEER_CONN_STATE_FAILED;
-                    /* break the loop */
-                    pCurNode = NULL;
+                    iterate = FALSE;
                 }
             }
             break;
@@ -618,7 +605,6 @@ STATUS turnConnectionAddPeer(PTurnConnection pTurnConnection, PKvsIpAddress pPee
     STATUS retStatus = STATUS_SUCCESS;
     PTurnPeer pTurnPeer = NULL;
     BOOL locked = FALSE;
-    UINT32 peerCount = 0;
 
     CHK(pTurnConnection != NULL && pPeerAddress != NULL, STATUS_NULL_ARG);
     CHK(pTurnConnection->turnServer.ipAddress.family == pPeerAddress->family, STATUS_INVALID_ARG);
@@ -629,32 +615,28 @@ STATUS turnConnectionAddPeer(PTurnConnection pTurnConnection, PKvsIpAddress pPee
 
     /* check for duplicate */
     CHK(turnConnectionGetPeerWithIp(pTurnConnection, pPeerAddress) == NULL, retStatus);
-    CHK_STATUS(doubleListGetNodeCount(pTurnConnection->turnPeerList, &peerCount));
-    CHK_WARN(peerCount < DEFAULT_TURN_MAX_PEER_COUNT, STATUS_INVALID_OPERATION, "Add peer failed. Max peer count reached");
+    CHK_WARN(pTurnConnection->turnPeerCount < DEFAULT_TURN_MAX_PEER_COUNT, STATUS_INVALID_OPERATION, "Add peer failed. Max peer count reached");
 
-    pTurnPeer = (PTurnPeer) MEMCALLOC(1, SIZEOF(TurnPeer));
+    pTurnPeer = &pTurnConnection->turnPeerList[pTurnConnection->turnPeerCount++];
     CHK(pTurnPeer != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
-    peerCount++;
     pTurnPeer->connectionState = TURN_PEER_CONN_STATE_CREATE_PERMISSION;
     pTurnPeer->address = *pPeerAddress;
     pTurnPeer->xorAddress = *pPeerAddress;
     /* safe to down cast because DEFAULT_TURN_MAX_PEER_COUNT is enforced */
-    pTurnPeer->channelNumber = (UINT16) peerCount + TURN_CHANNEL_BIND_CHANNEL_NUMBER_BASE;
+    pTurnPeer->channelNumber = (UINT16) pTurnConnection->turnPeerCount + TURN_CHANNEL_BIND_CHANNEL_NUMBER_BASE;
     pTurnPeer->permissionExpirationTime = INVALID_TIMESTAMP_VALUE;
     pTurnPeer->ready = FALSE;
 
     CHK_STATUS(xorIpAddress(&pTurnPeer->xorAddress, NULL)); /* only work for IPv4 for now */
     CHK_STATUS(createTransactionIdStore(DEFAULT_MAX_STORED_TRANSACTION_ID_COUNT, &pTurnPeer->pTransactionIdStore));
-
-    CHK_STATUS(doubleListInsertItemTail(pTurnConnection->turnPeerList, (UINT64) pTurnPeer));
     pTurnPeer = NULL;
 
 CleanUp:
 
     if (STATUS_FAILED(retStatus) && pTurnPeer != NULL) {
         freeTransactionIdStore(&pTurnPeer->pTransactionIdStore);
-        MEMFREE(pTurnPeer);
+        pTurnConnection->turnPeerCount--;
     }
 
     if (locked) {
@@ -819,22 +801,18 @@ CleanUp:
 STATUS turnConnectionRefreshPermission(PTurnConnection pTurnConnection, PBOOL pNeedRefresh)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    UINT64 currTime = 0, data;
-    PDoubleListNode pCurNode = NULL;
+    UINT64 currTime = 0;
     PTurnPeer pTurnPeer = NULL;
     BOOL needRefresh = FALSE;
+    UINT32 i;
 
     CHK(pTurnConnection != NULL && pNeedRefresh != NULL, STATUS_NULL_ARG);
 
     currTime = GETTIME();
 
     // refresh all peers whenever one of them expire is close to expiration
-    CHK_STATUS(doubleListGetHeadNode(pTurnConnection->turnPeerList, &pCurNode));
-    while (pCurNode != NULL && !needRefresh) {
-        CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
-        pCurNode = pCurNode->pNext;
-        pTurnPeer = (PTurnPeer) data;
-
+    for (i = 0; i < pTurnConnection->turnPeerCount; ++i) {
+        pTurnPeer = &pTurnConnection->turnPeerList[i];
         if (IS_VALID_TIMESTAMP(pTurnPeer->permissionExpirationTime) &&
             currTime + DEFAULT_TURN_PERMISSION_REFRESH_GRACE_PERIOD >= pTurnPeer->permissionExpirationTime) {
             DLOGD("Refreshing turn permission");
@@ -849,7 +827,6 @@ CleanUp:
     }
 
     CHK_LOG_ERR(retStatus);
-
     return retStatus;
 }
 
@@ -878,7 +855,6 @@ STATUS turnConnectionFreePreAllocatedPackets(PTurnConnection pTurnConnection)
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
-
     return retStatus;
 }
 
@@ -886,14 +862,12 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    UINT32 readyPeerCount = 0, totalPeerCount = 0, channelWithPermissionCount = 0;
+    UINT32 readyPeerCount = 0, channelWithPermissionCount = 0;
     UINT64 currentTime = GETTIME();
-    PDoubleListNode pCurNode = NULL;
-    UINT64 data;
-    PTurnPeer pTurnPeer = NULL;
     CHAR ipAddrStr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
     TURN_CONNECTION_STATE previousState = TURN_STATE_NEW;
     BOOL refreshPeerPermission = FALSE;
+    UINT32 i = 0;
 
     CHK(pTurnConnection != NULL, STATUS_NULL_ARG);
 
@@ -1000,22 +974,17 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
 
         case TURN_STATE_CREATE_PERMISSION:
 
-            CHK_STATUS(doubleListGetHeadNode(pTurnConnection->turnPeerList, &pCurNode));
-            while (pCurNode != NULL) {
-                CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
-                pCurNode = pCurNode->pNext;
-
-                pTurnPeer = (PTurnPeer) data;
+            for (i = 0; i < pTurnConnection->turnPeerCount; ++i) {
                 // As soon as create permission succeeded, we start sending channel bind message.
                 // So connectionState could've already advanced to ready state.
-                if (pTurnPeer->connectionState == TURN_PEER_CONN_STATE_BIND_CHANNEL || pTurnPeer->connectionState == TURN_PEER_CONN_STATE_READY) {
+                if (pTurnConnection->turnPeerList[i].connectionState == TURN_PEER_CONN_STATE_BIND_CHANNEL ||
+                    pTurnConnection->turnPeerList[i].connectionState == TURN_PEER_CONN_STATE_READY) {
                     channelWithPermissionCount++;
                 }
-                totalPeerCount++;
             }
 
             // push back timeout if no peer is available yet
-            if (totalPeerCount == 0) {
+            if (pTurnConnection->turnPeerCount == 0) {
                 pTurnConnection->stateTimeoutTime = currentTime + DEFAULT_TURN_CREATE_PERMISSION_TIMEOUT;
                 CHK(FALSE, retStatus);
             }
@@ -1031,19 +1000,13 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
 
         case TURN_STATE_BIND_CHANNEL:
 
-            CHK_STATUS(doubleListGetHeadNode(pTurnConnection->turnPeerList, &pCurNode));
-            while (pCurNode != NULL) {
-                CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
-                pCurNode = pCurNode->pNext;
-
-                pTurnPeer = (PTurnPeer) data;
-                if (pTurnPeer->connectionState == TURN_PEER_CONN_STATE_READY) {
+            for (i = 0; i < pTurnConnection->turnPeerCount; ++i) {
+                if (pTurnConnection->turnPeerList[i].connectionState == TURN_PEER_CONN_STATE_READY) {
                     readyPeerCount++;
                 }
-                totalPeerCount++;
             }
 
-            if (currentTime >= pTurnConnection->stateTimeoutTime || readyPeerCount == totalPeerCount) {
+            if (currentTime >= pTurnConnection->stateTimeoutTime || readyPeerCount == pTurnConnection->turnPeerCount) {
                 CHK(readyPeerCount > 0, STATUS_TURN_CONNECTION_FAILED_TO_BIND_CHANNEL);
                 // go to next state if we have at least one ready peer
                 pTurnConnection->state = TURN_STATE_READY;
@@ -1055,13 +1018,8 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
             CHK_STATUS(turnConnectionRefreshPermission(pTurnConnection, &refreshPeerPermission));
             if (refreshPeerPermission) {
                 // reset pTurnPeer->connectionState to make them go through create permission and channel bind again
-                CHK_STATUS(doubleListGetHeadNode(pTurnConnection->turnPeerList, &pCurNode));
-                while (pCurNode != NULL) {
-                    CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
-                    pCurNode = pCurNode->pNext;
-                    pTurnPeer = (PTurnPeer) data;
-
-                    pTurnPeer->connectionState = TURN_PEER_CONN_STATE_CREATE_PERMISSION;
+                for (i = 0; i < pTurnConnection->turnPeerCount; ++i) {
+                    pTurnConnection->turnPeerList[i].connectionState = TURN_PEER_CONN_STATE_CREATE_PERMISSION;
                 }
 
                 pTurnConnection->currentTimerCallingPeriod = DEFAULT_TURN_TIMER_INTERVAL_BEFORE_READY;
@@ -1086,13 +1044,8 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
             if (socketConnectionIsClosed(pTurnConnection->pControlChannel) || !ATOMIC_LOAD_BOOL(&pTurnConnection->hasAllocation) ||
                 currentTime >= pTurnConnection->stateTimeoutTime) {
                 // clean transactionId store for each turn peer, preserving the peers
-                CHK_STATUS(doubleListGetHeadNode(pTurnConnection->turnPeerList, &pCurNode));
-                while (pCurNode != NULL) {
-                    CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
-                    pCurNode = pCurNode->pNext;
-
-                    pTurnPeer = (PTurnPeer) data;
-                    transactionIdStoreClear(pTurnPeer->pTransactionIdStore);
+                for (i = 0; i < pTurnConnection->turnPeerCount; ++i) {
+                    transactionIdStoreClear(pTurnConnection->turnPeerList[i].pTransactionIdStore);
                 }
 
                 CHK_STATUS(turnConnectionFreePreAllocatedPackets(pTurnConnection));
@@ -1100,7 +1053,6 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
                 pTurnConnection->state = TURN_STATE_NEW;
 
                 CHK_STATUS(connectionListenerRemoveConnection(pTurnConnection->pConnectionListener, pTurnConnection->pControlChannel));
-                CHK_STATUS(freeSocketConnection(&pTurnConnection->pControlChannel));
             }
 
             break;
@@ -1173,7 +1125,6 @@ STATUS turnConnectionUpdateNonce(PTurnConnection pTurnConnection)
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
-
     return retStatus;
 }
 
@@ -1247,12 +1198,11 @@ STATUS turnConnectionTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 cu
     STATUS retStatus = STATUS_SUCCESS, sendStatus = STATUS_SUCCESS;
     PTurnConnection pTurnConnection = (PTurnConnection) customData;
     BOOL locked = FALSE, stopScheduling = FALSE;
-    PDoubleListNode pCurNode = NULL;
-    UINT64 data;
     PTurnPeer pTurnPeer = NULL;
     PStunAttributeAddress pStunAttributeAddress = NULL;
     PStunAttributeChannelNumber pStunAttributeChannelNumber = NULL;
     PStunAttributeLifetime pStunAttributeLifetime = NULL;
+    UINT32 i = 0;
 
     CHK(pTurnConnection != NULL, STATUS_NULL_ARG);
 
@@ -1273,12 +1223,11 @@ STATUS turnConnectionTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 cu
         case TURN_STATE_CREATE_PERMISSION:
             // explicit fall-through
         case TURN_STATE_BIND_CHANNEL:
-            CHK_STATUS(doubleListGetHeadNode(pTurnConnection->turnPeerList, &pCurNode));
-            while (pCurNode != NULL) {
-                CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
-                pCurNode = pCurNode->pNext;
+            // explicit fall-through
+        case TURN_STATE_READY:
+            for (i = 0; i < pTurnConnection->turnPeerCount; ++i) {
+                pTurnPeer = &pTurnConnection->turnPeerList[i];
 
-                pTurnPeer = (PTurnPeer) data;
                 if (pTurnPeer->connectionState == TURN_PEER_CONN_STATE_CREATE_PERMISSION) {
                     // update peer address;
                     CHK_STATUS(getStunAttribute(pTurnConnection->pTurnCreatePermissionPacket, STUN_ATTRIBUTE_TYPE_XOR_PEER_ADDRESS,
@@ -1319,10 +1268,6 @@ STATUS turnConnectionTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 cu
                 }
             }
 
-            break;
-
-        case TURN_STATE_READY:
-
             CHK_STATUS(turnConnectionRefreshAllocation(pTurnConnection));
             break;
 
@@ -1335,6 +1280,7 @@ STATUS turnConnectionTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 cu
                 sendStatus = iceUtilsSendStunPacket(pTurnConnection->pTurnAllocationRefreshPacket, pTurnConnection->longTermKey,
                                                     ARRAY_SIZE(pTurnConnection->longTermKey), &pTurnConnection->turnServer.ipAddress,
                                                     pTurnConnection->pControlChannel, NULL, FALSE);
+                pTurnConnection->deallocatePacketSent = TRUE;
             }
 
             break;
@@ -1459,20 +1405,12 @@ PCHAR turnConnectionGetStateStr(TURN_CONNECTION_STATE state)
 
 PTurnPeer turnConnectionGetPeerWithChannelNumber(PTurnConnection pTurnConnection, UINT16 channelNumber)
 {
-    PTurnPeer pTurnPeer = NULL, pCurrTurnPeer = NULL;
-    PDoubleListNode pCurNode = NULL;
-    UINT64 data;
+    PTurnPeer pTurnPeer = NULL;
+    UINT32 i = 0;
 
-    doubleListGetHeadNode(pTurnConnection->turnPeerList, &pCurNode);
-    while (pCurNode != NULL) {
-        doubleListGetNodeData(pCurNode, &data);
-        pCurNode = pCurNode->pNext;
-
-        pCurrTurnPeer = (PTurnPeer) data;
-        if (pCurrTurnPeer->channelNumber == channelNumber) {
-            pTurnPeer = pCurrTurnPeer;
-            // Stop the loop iteration
-            pCurNode = NULL;
+    for (; i < pTurnConnection->turnPeerCount; ++i) {
+        if (pTurnConnection->turnPeerList[i].channelNumber == channelNumber) {
+            pTurnPeer = &pTurnConnection->turnPeerList[i];
         }
     }
 
@@ -1481,20 +1419,12 @@ PTurnPeer turnConnectionGetPeerWithChannelNumber(PTurnConnection pTurnConnection
 
 PTurnPeer turnConnectionGetPeerWithIp(PTurnConnection pTurnConnection, PKvsIpAddress pKvsIpAddress)
 {
-    PTurnPeer pTurnPeer = NULL, pCurrTurnPeer = NULL;
-    PDoubleListNode pCurNode = NULL;
-    UINT64 data;
+    PTurnPeer pTurnPeer = NULL;
+    UINT32 i = 0;
 
-    doubleListGetHeadNode(pTurnConnection->turnPeerList, &pCurNode);
-    while (pCurNode != NULL) {
-        doubleListGetNodeData(pCurNode, &data);
-        pCurNode = pCurNode->pNext;
-
-        pCurrTurnPeer = (PTurnPeer) data;
-        if (isSameIpAddress(&pCurrTurnPeer->address, pKvsIpAddress, TRUE)) {
-            pTurnPeer = pCurrTurnPeer;
-            // Stop the loop iteration
-            pCurNode = NULL;
+    for (; i < pTurnConnection->turnPeerCount; ++i) {
+        if (isSameIpAddress(&pTurnConnection->turnPeerList[i].address, pKvsIpAddress, TRUE)) {
+            pTurnPeer = &pTurnConnection->turnPeerList[i];
         }
     }
 
