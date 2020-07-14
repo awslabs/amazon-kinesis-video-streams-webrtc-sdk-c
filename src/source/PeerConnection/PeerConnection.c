@@ -521,7 +521,7 @@ STATUS rtcpReportsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData
     }
 
     delay = 100 + (RAND() % 200);
-    DLOGD("next sender report %u in %" PRIu64 " msec", ssrc, delay);
+    DLOGV("next sender report %u in %" PRIu64 " msec", ssrc, delay);
     // reschedule timer with 200msec +- 100ms
     CHK_STATUS(timerQueueAddTimer(pKvsPeerConnection->timerQueueHandle, delay * HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
                                   TIMER_QUEUE_SINGLE_INVOCATION_PERIOD, rtcpReportsCallback, (UINT64) pKvsRtpTransceiver,
