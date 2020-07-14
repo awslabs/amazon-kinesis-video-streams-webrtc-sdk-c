@@ -471,11 +471,12 @@ CleanUp:
 
 STATUS rtcpReportsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
+    UNUSED_PARAM(timerId);
     STATUS retStatus = STATUS_SUCCESS;
-    BOOL ready       = FALSE;
+    BOOL ready = FALSE;
     UINT64 ntpTime, rtpTime, delay;
     UINT32 packetCount, octetCount, packetLen, allocSize, ssrc;
-    PBYTE rawPacket                       = NULL;
+    PBYTE rawPacket = NULL;
     PKvsPeerConnection pKvsPeerConnection = NULL;
 
     PKvsRtpTransceiver pKvsRtpTransceiver = (PKvsRtpTransceiver) customData;
@@ -497,12 +498,12 @@ STATUS rtcpReportsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData
         rtpTime = pKvsRtpTransceiver->sender.rtpTimeOffset +
             convertTimestampToRTP(pKvsRtpTransceiver->pJitterBuffer->clockRate, currentTime - pKvsRtpTransceiver->sender.firstFrameWallClockTime);
         packetCount = pKvsRtpTransceiver->sender.outboundRtpStreamStats.sentRtpStreamStats.packetsSent;
-        octetCount  = pKvsRtpTransceiver->sender.outboundRtpStreamStats.sentRtpStreamStats.bytesSent;
+        octetCount = pKvsRtpTransceiver->sender.outboundRtpStreamStats.sentRtpStreamStats.bytesSent;
         DLOGD("sender report %u %" PRIu64 " %" PRIu64 " : %u packets %u bytes", ssrc, ntpTime, rtpTime, packetCount, octetCount);
         packetLen = RTCP_PACKET_HEADER_LEN + 24;
         allocSize = packetLen + SRTP_AUTH_TAG_OVERHEAD;
         CHK(NULL != (rawPacket = (PBYTE) MEMALLOC(allocSize)), STATUS_NOT_ENOUGH_MEMORY);
-        rawPacket[0]                       = RTCP_PACKET_VERSION_VAL << 6;
+        rawPacket[0] = RTCP_PACKET_VERSION_VAL << 6;
         rawPacket[RTCP_PACKET_TYPE_OFFSET] = RTCP_PACKET_TYPE_SENDER_REPORT;
         putUnalignedInt16BigEndian(rawPacket + RTCP_PACKET_LEN_OFFSET,
                                    (packetLen / RTCP_PACKET_LEN_WORD_SIZE) - 1); // The length of this RTCP packet in 32-bit words minus one

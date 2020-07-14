@@ -32,7 +32,7 @@ typedef struct {
 
     RtcOutboundRtpStreamStats outboundRtpStreamStats;
     UINT64 rtpTimeOffset;
-    UINT64 firstFrameWallClockTime; //100ns precision
+    UINT64 firstFrameWallClockTime; // 100ns precision
 
 } RtcRtpSender, *PRtcRtpSender;
 

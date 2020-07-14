@@ -38,7 +38,7 @@ extern "C" {
 
 typedef enum {
     RTCP_PACKET_TYPE_SENDER_REPORT = 200,
-    RTCP_PACKET_TYPE_RECEIVER_REPORT = 201, //https://tools.ietf.org/html/rfc3550#section-6.4.2
+    RTCP_PACKET_TYPE_RECEIVER_REPORT = 201, // https://tools.ietf.org/html/rfc3550#section-6.4.2
     RTCP_PACKET_TYPE_SOURCE_DESCRIPTION = 202,
     RTCP_PACKET_TYPE_GENERIC_RTP_FEEDBACK = 205,
     RTCP_PACKET_TYPE_PAYLOAD_SPECIFIC_FEEDBACK = 206,
@@ -79,7 +79,6 @@ STATUS rtcpNackListGet(PBYTE, UINT32, PUINT32, PUINT32, PUINT16, PUINT32);
 STATUS rembValueGet(PBYTE, UINT32, PDOUBLE, PUINT32, PUINT8);
 STATUS isRembPacket(PBYTE, UINT32);
 
-#ifdef __cplusplus
 #define NTP_OFFSET    2208988800ULL
 #define NTP_TIMESCALE 4294967296ULL
 
@@ -94,7 +93,7 @@ UINT64 convertTimestampToNTP(UINT64 time100ns);
 //   bits of the integer part and the high 16 bits of the fractional part.
 #define MID_NTP(ntp_time) (UINT32)((currentTimeNTP >> 16U) & 0xffffffffULL)
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 }
 #endif
 

@@ -165,7 +165,7 @@ STATUS generateJSONSafeString(PCHAR, UINT32);
 
 #define KVS_CONVERT_TIMESCALE(pts, from_timescale, to_timescale) (pts * to_timescale / from_timescale)
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 }
 #endif
 #endif /* __KINESIS_VIDEO_WEBRTC_CLIENT_INCLUDE_I__ */

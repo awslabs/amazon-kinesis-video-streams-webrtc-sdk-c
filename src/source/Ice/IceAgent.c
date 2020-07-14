@@ -36,7 +36,6 @@ STATUS createIceAgent(PCHAR username, PCHAR password, PIceAgentCallbacks pIceAge
     pIceAgent->tieBreaker = (UINT64) RAND();
     pIceAgent->iceTransportPolicy = pRtcConfiguration->iceTransportPolicy;
     pIceAgent->kvsRtcConfiguration = pRtcConfiguration->kvsRtcConfiguration;
-    NULLABLE_SET_EMPTY(pIceAgent->rtcIceMetrics.rtcIceCandidatePairStats.circuitBreakerTriggerCount);
     CHK_STATUS(iceAgentValidateKvsRtcConfig(&pIceAgent->kvsRtcConfiguration));
 
     if (pIceAgentCallbacks != NULL) {
@@ -281,6 +280,7 @@ STATUS iceAgentReportNewLocalCandidate(PIceAgent pIceAgent, PIceCandidate pIceCa
     UINT32 serializedIceCandidateBufLen = ARRAY_SIZE(serializedIceCandidateBuf);
 
     CHK(pIceAgent != NULL && pIceCandidate != NULL, STATUS_NULL_ARG);
+
     iceAgentLogNewCandidate(pIceCandidate);
 
     CHK_WARN(pIceAgent->iceAgentCallbacks.newLocalCandidateFn != NULL, retStatus, "newLocalCandidateFn callback not implemented");
@@ -974,18 +974,9 @@ STATUS createIceCandidatePairs(PIceAgent pIceAgent, PIceCandidate pIceCandidate,
                 pIceCandidatePair->remote = (PIceCandidate) data;
             }
             pIceCandidatePair->nominated = FALSE;
-            pIceAgent->rtcIceMetrics.rtcIceCandidatePairStats.nominated = pIceCandidatePair->nominated;
 
             // ensure the new pair will go through connectivity check as soon as possible
             pIceCandidatePair->state = ICE_CANDIDATE_PAIR_STATE_WAITING;
-            pIceAgent->rtcIceMetrics.rtcIceCandidatePairStats.state = pIceCandidatePair->state;
-
-            STRNCPY(pIceAgent->rtcIceMetrics.rtcIceCandidatePairStats.localCandidateId, pIceCandidatePair->local->id, STRLEN(pIceCandidatePair->local->id));
-            STRNCPY(pIceAgent->rtcIceMetrics.rtcIceCandidatePairStats.remoteCandidateId, pIceCandidatePair->remote->id, STRLEN(pIceCandidatePair->remote->id));
-            pIceAgent->rtcIceMetrics.rtcIceCandidatePairStats.nominated = pIceCandidatePair->nominated;
-            pIceAgent->rtcIceMetrics.rtcIceCandidatePairStats.state = pIceCandidatePair->state;
-
-            printf("Local Candidate recorded:%s\n", pIceAgent->rtcIceMetrics.rtcIceCandidatePairStats.localCandidateId);
 
             CHK_STATUS(createTransactionIdStore(DEFAULT_MAX_STORED_TRANSACTION_ID_COUNT, &pIceCandidatePair->pTransactionIdStore));
             CHK_STATUS(hashTableCreateWithParams(ICE_HASH_TABLE_BUCKET_COUNT, ICE_HASH_TABLE_BUCKET_LENGTH, &pIceCandidatePair->requestSentTime));
@@ -1162,12 +1153,6 @@ STATUS iceCandidatePairCheckConnection(PStunPacket pStunBindingRequest, PIceAgen
     CHK_STATUS(iceAgentSendStunPacket(pStunBindingRequest, (PBYTE) pIceAgent->remotePassword,
                                       (UINT32) STRLEN(pIceAgent->remotePassword) * SIZEOF(CHAR), pIceAgent, pIceCandidatePair->local,
                                       &pIceCandidatePair->remote->ipAddress));
-    // The timestamp will be set to 0 at startup of ICE agent
-    if(!pIceCandidatePair->firstStunRequestTimestampRecorded) {
-        pIceAgent->rtcIceMetrics.rtcIceCandidatePairStats.firstRequestTimestamp = GETTIME();
-        pIceCandidatePair->firstStunRequestTimestampRecorded = TRUE;
-    }
-    pIceAgent->rtcIceMetrics.rtcIceCandidatePairStats.requestsSent++;
 
 CleanUp:
 
@@ -1207,7 +1192,6 @@ STATUS iceAgentSendStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 pa
         if (pIceCandidatePair != NULL) {
             DLOGD("mark candidate pair %s_%s as failed", pIceCandidatePair->local->id, pIceCandidatePair->remote->id);
             pIceCandidatePair->state = ICE_CANDIDATE_PAIR_STATE_FAILED;
-            pIceAgent->rtcIceMetrics.rtcIceCandidatePairStats.state = pIceCandidatePair->state;
         }
     }
 
@@ -1339,7 +1323,6 @@ STATUS iceAgentCheckCandidatePairConnection(PIceAgent pIceAgent)
             switch (pIceCandidatePair->state) {
                 case ICE_CANDIDATE_PAIR_STATE_WAITING:
                     pIceCandidatePair->state = ICE_CANDIDATE_PAIR_STATE_IN_PROGRESS;
-                    pIceAgent->rtcIceMetrics.rtcIceCandidatePairStats.state = pIceCandidatePair->state;
                     // NOTE: Explicit fall-through
                 case ICE_CANDIDATE_PAIR_STATE_IN_PROGRESS:
                     CHK_STATUS(iceCandidatePairCheckConnection(pIceAgent->pBindingRequest, pIceAgent, pIceCandidatePair));
@@ -2023,7 +2006,6 @@ STATUS iceAgentNominateCandidatePair(PIceAgent pIceAgent)
 
         if (!pIceCandidatePair->nominated) {
             pIceCandidatePair->state = ICE_CANDIDATE_PAIR_STATE_FROZEN;
-            pIceAgent->rtcIceMetrics.rtcIceCandidatePairStats.state = pIceCandidatePair->state;
         }
     }
 
@@ -2053,7 +2035,6 @@ STATUS iceAgentInvalidateCandidatePair(PIceAgent pIceAgent)
 
         if (pIceCandidatePair->local->state != ICE_CANDIDATE_STATE_VALID) {
             pIceCandidatePair->state = ICE_CANDIDATE_PAIR_STATE_FAILED;
-            pIceAgent->rtcIceMetrics.rtcIceCandidatePairStats.state = pIceCandidatePair->state;
         }
     }
 
@@ -2190,13 +2171,8 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
 
     switch (stunPacketType) {
         case STUN_PACKET_TYPE_BINDING_REQUEST:
-<<<<<<< HEAD
             CHK_STATUS(deserializeStunPacket(pBuffer, bufferLen, (PBYTE) pIceAgent->localPassword,
                                              (UINT32) STRLEN(pIceAgent->localPassword) * SIZEOF(CHAR), &pStunPacket));
-=======
-            pIceAgent->rtcIceMetrics.rtcIceCandidatePairStats.requestsReceived++;
-            CHK_STATUS(deserializeStunPacket(pBuffer, bufferLen, (PBYTE) pIceAgent->localPassword, (UINT32) STRLEN(pIceAgent->localPassword) * SIZEOF(CHAR), &pStunPacket));
->>>>>>> Ice Metrics
             CHK_STATUS(createStunPacket(STUN_PACKET_TYPE_BINDING_RESPONSE_SUCCESS, pStunPacket->header.transactionId, &pStunResponse));
             CHK_STATUS(appendStunAddressAttribute(pStunResponse, STUN_ATTRIBUTE_TYPE_XOR_MAPPED_ADDRESS, pSrcAddr));
             CHK_STATUS(appendStunIceControllAttribute(
@@ -2209,18 +2185,8 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
 
             CHK_STATUS(findCandidateWithSocketConnection(pSocketConnection, pIceAgent->localCandidates, &pIceCandidate));
             CHK_WARN(pIceCandidate != NULL, retStatus, "Could not find local candidate to send STUN response");
-<<<<<<< HEAD
             CHK_STATUS(iceAgentSendStunPacket(pStunResponse, (PBYTE) pIceAgent->localPassword,
                                               (UINT32) STRLEN(pIceAgent->localPassword) * SIZEOF(CHAR), pIceAgent, pIceCandidate, pSrcAddr));
-=======
-            CHK_STATUS(iceAgentSendStunPacket(pStunResponse,
-                                              (PBYTE) pIceAgent->localPassword,
-                                              (UINT32) STRLEN(pIceAgent->localPassword) * SIZEOF(CHAR),
-                                              pIceAgent,
-                                              pIceCandidate,
-                                              pSrcAddr));
-            pIceAgent->rtcIceMetrics.rtcIceCandidatePairStats.responsesSent++;
->>>>>>> Ice Metrics
 
             // return early if there is no candidate pair. This can happen when we get connectivity check from the peer
             // before we receive the answer.
@@ -2233,7 +2199,6 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
                     DLOGD("received candidate with USE_CANDIDATE flag, local candidate type %s.",
                           iceAgentGetCandidateTypeStr(pIceCandidatePair->local->iceCandidateType));
                     pIceCandidatePair->nominated = TRUE;
-                    pIceAgent->rtcIceMetrics.rtcIceCandidatePairStats.nominated = pIceCandidatePair->nominated;
                 }
             }
 
@@ -2246,10 +2211,7 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
             break;
 
         case STUN_PACKET_TYPE_BINDING_RESPONSE_SUCCESS:
-<<<<<<< HEAD
             checkSum = COMPUTE_CRC32(pBuffer + STUN_PACKET_TRANSACTION_ID_OFFSET, STUN_TRANSACTION_ID_LEN);
-=======
->>>>>>> Ice Metrics
             // check if Binding Response is for finding srflx candidate
             if (transactionIdStoreHasId(pIceAgent->pStunBindingRequestTransactionIdStore, pBuffer + STUN_PACKET_TRANSACTION_ID_OFFSET)) {
                 CHK_STATUS(findCandidateWithSocketConnection(pSocketConnection, pIceAgent->localCandidates, &pIceCandidate));
@@ -2323,10 +2285,7 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
                 DLOGD("Ice candidate pair %s_%s is connected. Round trip time: %" PRIu64 "ms", pIceCandidatePair->local->id,
                       pIceCandidatePair->remote->id, pIceCandidatePair->roundTripTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
                 pIceCandidatePair->state = ICE_CANDIDATE_PAIR_STATE_SUCCEEDED;
-                pIceAgent->rtcIceMetrics.rtcIceCandidatePairStats.currentRoundTripTime = (DOUBLE)(pIceCandidatePair->roundTripTime);
-                pIceAgent->rtcIceMetrics.rtcIceCandidatePairStats.totalRoundTripTime += (DOUBLE) (pIceCandidatePair->roundTripTime);
             }
-            pIceAgent->rtcIceMetrics.rtcIceCandidatePairStats.responsesReceived++;
 
             break;
         case STUN_PACKET_TYPE_BINDING_INDICATION:

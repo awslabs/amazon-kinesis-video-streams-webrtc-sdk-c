@@ -232,7 +232,7 @@ typedef struct {
 typedef struct {
     volatile SIZE_T packetsSent;
     volatile SIZE_T bytesSent;
-} RTCSentRtpStreamStats, *PRTCSentRtpStreamStats;
+} RtcSentRtpStreamStats, *PRtcSentRtpStreamStats;
 
 /**
  * @brief RtcOutboundRtpStreamStats
@@ -241,7 +241,7 @@ typedef struct {
  */
 typedef struct {
     // RTCOutboundRtpStreamStats extends RTCSentRtpStreamStats as per https://www.w3.org/TR/webrtc-stats/#dom-rtcoutboundrtpstreamstats
-    RTCSentRtpStreamStats sentRtpStreamStats;
+    RtcSentRtpStreamStats sentRtpStreamStats;
     BOOL voiceActivityFlag; //!< Only valid for audio. Whether the last RTP packet sent contained voice activity or not based on the presence
                             //!< of the V bit in the extension header
     CHAR trackId[MAX_STATS_STRING_LENGTH + 1];       //!< ID representing current track attached to the sender of the stream
@@ -334,12 +334,12 @@ typedef struct {
  * be populated internally
  */
 typedef struct {
-    RtcIceCandidatePairStats iceCandidatePairStats; //!< ICE Candidate Pair  stats object
-    RtcIceCandidateStats localRtcIceCandidateStats; //!< Local candidate stats. Reference in Stats.h
-    RtcIceCandidateStats remoteRtcIceCandidateStats; //!< Remote candidate stats. Reference in Stats.h
-    RtcIceServerStats iceServerStats; //!< ICE Server Pair stats object
-    RtcTransportStats transportStats; //!< Transport stats object
-    RtcOutboundRtpStreamStats remoteOutboundRtpStreamStats; //!< Outbound RTP Stream stats object
+    RtcIceCandidatePairStats iceCandidatePairStats;             //!< ICE Candidate Pair  stats object
+    RtcIceCandidateStats localIceCandidateStats;                //!< local ICE Candidate stats object
+    RtcIceCandidateStats remoteIceCandidateStats;               //!< remote ICE Candidate stats object
+    RtcIceServerStats iceServerStats;                           //!< ICE Server Pair stats object
+    RtcTransportStats transportStats;                           //!< Transport stats object
+    RtcOutboundRtpStreamStats outboundRtpStreamStats;           //!< Outbound RTP Stream stats object
     RtcRemoteInboundRtpStreamStats remoteInboundRtpStreamStats; //!< Inbound RTP Stream stats object
 } RtcStatsObject, *PRtcStatsObject;
 
