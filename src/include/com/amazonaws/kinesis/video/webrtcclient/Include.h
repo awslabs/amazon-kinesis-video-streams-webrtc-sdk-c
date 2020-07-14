@@ -1285,8 +1285,8 @@ typedef struct {
 typedef struct {
     UINT32 version;                                    //!< Structure version
     RtcIceServerStats rtcIceServerStats;               //!< Server related stats. Reference in Stats.h
-    RtcIceCandidateStats localRtcIceCandidateStats; //!< Local candidate stats. Reference in Stats.h
-    RtcIceCandidateStats remoteRtcIceCandidateStats; //!< Remote candidate stats. Reference in Stats.h
+    RtcIceCandidateStats localRtcIceCandidateStats;    //!< Local candidate stats. Reference in Stats.h
+    RtcIceCandidateStats remoteRtcIceCandidateStats;   //!< Remote candidate stats. Reference in Stats.h
     RtcIceCandidatePairStats rtcIceCandidatePairStats; //!< Candidate pair stats. Reference in Stats.h
 } RtcIceMetrics, *PRtcIceMetrics;
 
