@@ -35,6 +35,7 @@ var annotated_dup =
     [ "RtcRtpReceiver", "structRtcRtpReceiver.html", "structRtcRtpReceiver" ],
     [ "RtcRtpTransceiver", "structRtcRtpTransceiver.html", "structRtcRtpTransceiver" ],
     [ "RtcRtpTransceiverInit", "structRtcRtpTransceiverInit.html", "structRtcRtpTransceiverInit" ],
+    [ "RtcSentRtpStreamStats", "structRtcSentRtpStreamStats.html", "structRtcSentRtpStreamStats" ],
     [ "RtcSessionDescriptionInit", "structRtcSessionDescriptionInit.html", "structRtcSessionDescriptionInit" ],
     [ "RtcStats", "structRtcStats.html", "structRtcStats" ],
     [ "RtcStatsObject", "structRtcStatsObject.html", "structRtcStatsObject" ],

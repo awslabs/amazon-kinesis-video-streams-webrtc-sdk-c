@@ -8,5 +8,6 @@ var searchData=
   ['localcertificateid_116',['localCertificateId',['../structRtcTransportStats.html#a98d843faafb976352c1f3c3efdb06e31',1,'RtcTransportStats']]],
   ['localicecandidatestats_117',['localIceCandidateStats',['../structRtcStatsObject.html#a0dee9a39573da6cb111d992e800dd61e',1,'RtcStatsObject']]],
   ['localid_118',['localId',['../structRtcRemoteInboundRtpStreamStats.html#a0102aabe3cba5adbe5e2aa950f0654c0',1,'RtcRemoteInboundRtpStreamStats']]],
-  ['logginglevel_119',['loggingLevel',['../structSignalingClientInfo.html#a8df6838b31452ecf1bd1cf1a0fffa680',1,'SignalingClientInfo']]]
+  ['localrtcicecandidatestats_119',['localRtcIceCandidateStats',['../structRtcIceMetrics.html#a68e096213b6c4dd37b46b9a1aa484c02',1,'RtcIceMetrics']]],
+  ['logginglevel_120',['loggingLevel',['../structSignalingClientInfo.html#a8df6838b31452ecf1bd1cf1a0fffa680',1,'SignalingClientInfo']]]
 ];
