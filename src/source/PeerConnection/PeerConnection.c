@@ -469,6 +469,66 @@ CleanUp:
     return retStatus;
 }
 
+STATUS rtcpReportsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
+{
+    UNUSED_PARAM(timerId);
+    STATUS retStatus = STATUS_SUCCESS;
+    BOOL ready = FALSE;
+    UINT64 ntpTime, rtpTime, delay;
+    UINT32 packetCount, octetCount, packetLen, allocSize, ssrc;
+    PBYTE rawPacket = NULL;
+    PKvsPeerConnection pKvsPeerConnection = NULL;
+
+    PKvsRtpTransceiver pKvsRtpTransceiver = (PKvsRtpTransceiver) customData;
+    CHK(pKvsRtpTransceiver != NULL && pKvsRtpTransceiver->pJitterBuffer != NULL && pKvsRtpTransceiver->pKvsPeerConnection != NULL, STATUS_NULL_ARG);
+    pKvsPeerConnection = pKvsRtpTransceiver->pKvsPeerConnection;
+
+    ssrc = pKvsRtpTransceiver->sender.ssrc;
+    DLOGD("rtcpReportsCallback %" PRIu64 " ssrc: %u rtxssrc: %u", currentTime, ssrc, pKvsRtpTransceiver->sender.rtxSsrc);
+
+    // check if ice agent is connected, reschedule in 200msec if not
+    ready = pKvsPeerConnection->pSrtpSession != NULL &&
+        currentTime - pKvsRtpTransceiver->sender.firstFrameWallClockTime >= 2500 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+    if (!ready) {
+        DLOGD("sender report no frames sent %u", ssrc);
+    } else {
+        // create rtcp sender report packet
+        // https://tools.ietf.org/html/rfc3550#section-6.4.1
+        ntpTime = convertTimestampToNTP(currentTime);
+        rtpTime = pKvsRtpTransceiver->sender.rtpTimeOffset +
+            convertTimestampToRTP(pKvsRtpTransceiver->pJitterBuffer->clockRate, currentTime - pKvsRtpTransceiver->sender.firstFrameWallClockTime);
+        packetCount = pKvsRtpTransceiver->sender.outboundRtpStreamStats.sentRtpStreamStats.packetsSent;
+        octetCount = pKvsRtpTransceiver->sender.outboundRtpStreamStats.sentRtpStreamStats.bytesSent;
+        DLOGD("sender report %u %" PRIu64 " %" PRIu64 " : %u packets %u bytes", ssrc, ntpTime, rtpTime, packetCount, octetCount);
+        packetLen = RTCP_PACKET_HEADER_LEN + 24;
+        allocSize = packetLen + SRTP_AUTH_TAG_OVERHEAD;
+        CHK(NULL != (rawPacket = (PBYTE) MEMALLOC(allocSize)), STATUS_NOT_ENOUGH_MEMORY);
+        rawPacket[0] = RTCP_PACKET_VERSION_VAL << 6;
+        rawPacket[RTCP_PACKET_TYPE_OFFSET] = RTCP_PACKET_TYPE_SENDER_REPORT;
+        putUnalignedInt16BigEndian(rawPacket + RTCP_PACKET_LEN_OFFSET,
+                                   (packetLen / RTCP_PACKET_LEN_WORD_SIZE) - 1); // The length of this RTCP packet in 32-bit words minus one
+        putUnalignedInt32BigEndian(rawPacket + 4, ssrc);
+        putUnalignedInt64BigEndian(rawPacket + 8, ntpTime);
+        putUnalignedInt32BigEndian(rawPacket + 16, rtpTime);
+        putUnalignedInt32BigEndian(rawPacket + 20, packetCount);
+        putUnalignedInt32BigEndian(rawPacket + 24, octetCount);
+        CHK_STATUS(encryptRtcpPacket(pKvsPeerConnection->pSrtpSession, rawPacket, (PINT32) &packetLen));
+        CHK_STATUS(iceAgentSendPacket(pKvsPeerConnection->pIceAgent, rawPacket, packetLen));
+    }
+
+    delay = 100 + (RAND() % 200);
+    DLOGD("next sender report %u in %" PRIu64 " msec", ssrc, delay);
+    // reschedule timer with 200msec +- 100ms
+    CHK_STATUS(timerQueueAddTimer(pKvsPeerConnection->timerQueueHandle, delay * HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
+                                  TIMER_QUEUE_SINGLE_INVOCATION_PERIOD, rtcpReportsCallback, (UINT64) pKvsRtpTransceiver,
+                                  &pKvsRtpTransceiver->rtcpReportsTimerId));
+
+CleanUp:
+    CHK_LOG_ERR(retStatus);
+    SAFE_MEMFREE(rawPacket);
+    return retStatus;
+}
+
 STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection* ppPeerConnection)
 {
     ENTERS();
@@ -979,6 +1039,10 @@ STATUS addTransceiver(PRtcPeerConnection pPeerConnection, PRtcMediaStreamTrack p
 
     CHK_STATUS(doubleListInsertItemHead(pKvsPeerConnection->pTransceievers, (UINT64) pKvsRtpTransceiver));
     *ppRtcRtpTransceiver = (PRtcRtpTransceiver) pKvsRtpTransceiver;
+
+    CHK_STATUS(timerQueueAddTimer(pKvsPeerConnection->timerQueueHandle, RTCP_FIRST_REPORT_DELAY, TIMER_QUEUE_SINGLE_INVOCATION_PERIOD,
+                                  rtcpReportsCallback, (UINT64) pKvsRtpTransceiver, &pKvsRtpTransceiver->rtcpReportsTimerId));
+
     pKvsRtpTransceiver = NULL;
 
 CleanUp:
