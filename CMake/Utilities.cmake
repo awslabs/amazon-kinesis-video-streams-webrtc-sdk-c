@@ -2,6 +2,7 @@
 function(build_dependency lib_name)
   set(supported_libs
       gtest
+      benchmark
       jsmn
       openssl
       srtp
