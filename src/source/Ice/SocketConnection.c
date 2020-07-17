@@ -296,6 +296,7 @@ STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, U
     INT32 socketWriteAttempt = 0;
     SSIZE_T result = 0;
     UINT32 bytesWritten = 0;
+    INT32 errorNum = 0;
 
     fd_set wfds;
     struct timeval tv;
@@ -329,7 +330,8 @@ STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, U
     while (socketWriteAttempt < MAX_SOCKET_WRITE_RETRY && bytesWritten < bufLen) {
         result = sendto(pSocketConnection->localSocket, buf, bufLen, NO_SIGNAL, destAddr, addrLen);
         if (result < 0) {
-            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            errorNum = errno;
+            if (errorNum == EAGAIN || errorNum == EWOULDBLOCK) {
                 FD_ZERO(&wfds);
                 FD_SET(pSocketConnection->localSocket, &wfds);
                 tv.tv_sec = 0;
@@ -340,14 +342,14 @@ STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, U
                     /* loop back and try again */
                     DLOGD("select() timed out");
                 } else if (result < 0) {
-                    DLOGD("select() failed with errno %s", strerror(errno));
+                    DLOGD("select() failed with errno %s", strerror(errorNum));
                     break;
                 }
-            } else if (errno == EINTR) {
+            } else if (errorNum == EINTR) {
                 /* nothing need to be done, just retry */
             } else {
                 /* fatal error from send() */
-                DLOGD("sendto() failed with errno %s", strerror(errno));
+                DLOGD("sendto() failed with errno %s", strerror(errorNum));
                 break;
             }
         } else {
@@ -361,7 +363,7 @@ STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, U
     }
 
     if (result < 0) {
-        CLOSE_SOCKET_IF_CANT_RETRY(errno, pSocketConnection);
+        CLOSE_SOCKET_IF_CANT_RETRY(errorNum, pSocketConnection);
     }
 
     if (bytesWritten < bufLen) {
