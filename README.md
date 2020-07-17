@@ -230,6 +230,15 @@ All Public APIs are documented in our [Include.h](https://github.com/awslabs/ama
 
 Refer to [related](#related) for more about WebRTC and KVS.
 
+## Outbound hostname and port requirements
+* KVS endpoint : TCP 443 (ex: kinesisvideo.us-west-2.amazonaws.com)
+* HTTPS channel endpoint : TCP 443 (ex: r-2c136a55.kinesisvideo.us-west-2.amazonaws.com)
+* WSS channel endpoint : TCP 443 (ex: m-26d02974.kinesisvideo.us-west-2.amazonaws.com)
+* STUN endpoint : UDP 443 (ex: stun.kinesisvideo.us-west-2.amazonaws.com)
+* TURN endpoint : UDP/TCP 443 (ex: 34-219-91-62.t-1cd92f6b.kinesisvideo.us-west-2.amazonaws.com:443)
+
+The least common denominator for hostname is `*.kinesisvideo.<region>.amazonaws.com` and port is 443.
+
 ## Related
 * [What Is Amazon Kinesis Video Streams with WebRTC](https://docs.aws.amazon.com/kinesisvideostreams-webrtc-dg/latest/devguide/what-is-kvswebrtc.html)
 * [JS SDK](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-js/)
