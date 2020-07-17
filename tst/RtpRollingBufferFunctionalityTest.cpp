@@ -1,17 +1,21 @@
 #include "WebRTCClientTestFixture.h"
 
-namespace com { namespace amazonaws { namespace kinesis { namespace video { namespace webrtcclient {
+namespace com {
+namespace amazonaws {
+namespace kinesis {
+namespace video {
+namespace webrtcclient {
 
 class RtpRollingBufferFunctionalityTest : public WebRtcClientTestBase {
 };
 
-STATUS createRtpPacketWithSeqNum(UINT16 seqNum, PRtpPacket *ppRtpPacket) {
+STATUS createRtpPacketWithSeqNum(UINT16 seqNum, PRtpPacket* ppRtpPacket)
+{
     STATUS retStatus = STATUS_SUCCESS;
     BYTE payload[10];
     PRtpPacket pRtpPacket = NULL;
 
-    CHK_STATUS(createRtpPacket(2, FALSE, FALSE, 0, FALSE,
-            96, seqNum, 100, 0x1234ABCD, NULL, 0, 0, NULL, payload, 10, &pRtpPacket));
+    CHK_STATUS(createRtpPacket(2, FALSE, FALSE, 0, FALSE, 96, seqNum, 100, 0x1234ABCD, NULL, 0, 0, NULL, payload, 10, &pRtpPacket));
     *ppRtpPacket = pRtpPacket;
 
     CHK_STATUS(createBytesFromRtpPacket(pRtpPacket, NULL, &pRtpPacket->rawPacketLength));
@@ -22,11 +26,13 @@ CleanUp:
     return retStatus;
 }
 
-VOID updateRtpPacketSeqNum(PRtpPacket pRtpPacket, UINT16 seqNum) {
+VOID updateRtpPacketSeqNum(PRtpPacket pRtpPacket, UINT16 seqNum)
+{
     pRtpPacket->header.sequenceNumber = seqNum;
 }
 
-VOID pushConsecutiveRtpPacketsIntoBuffer(UINT32 packetCount, UINT32 bufferCapacity, PRtpRollingBuffer *ppRtpRollingBuffer, PRtpPacket *ppRtpPacket) {
+VOID pushConsecutiveRtpPacketsIntoBuffer(UINT32 packetCount, UINT32 bufferCapacity, PRtpRollingBuffer* ppRtpRollingBuffer, PRtpPacket* ppRtpPacket)
+{
     PRtpPacket pRtpPacket;
     PRtpRollingBuffer pRtpRollingBuffer;
     UINT32 i;
@@ -167,10 +173,8 @@ TEST_F(RtpRollingBufferFunctionalityTest, getIndexForSeqListReturnCorrectIndexsW
     EXPECT_EQ(STATUS_SUCCESS, freeRtpPacket(&pRtpPacket));
 }
 
-
-}
-}
-}
-}
-}
-
+} // namespace webrtcclient
+} // namespace video
+} // namespace kinesis
+} // namespace amazonaws
+} // namespace com

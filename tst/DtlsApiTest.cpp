@@ -1,6 +1,10 @@
 #include "WebRTCClientTestFixture.h"
 
-namespace com { namespace amazonaws { namespace kinesis { namespace video { namespace webrtcclient {
+namespace com {
+namespace amazonaws {
+namespace kinesis {
+namespace video {
+namespace webrtcclient {
 
 class DtlsApiTest : public WebRtcClientTestBase {
 };
@@ -8,8 +12,8 @@ class DtlsApiTest : public WebRtcClientTestBase {
 #ifdef KVS_USE_OPENSSL
 TEST_F(DtlsApiTest, createCertificateAndKey_Returns_Success)
 {
-    X509 *pCert = NULL;
-    EVP_PKEY *pKey = NULL;
+    X509* pCert = NULL;
+    EVP_PKEY* pKey = NULL;
 
     EXPECT_EQ(createCertificateAndKey(GENERATED_CERTIFICATE_BITS, FALSE, &pCert, &pKey), STATUS_SUCCESS);
     EXPECT_NE(pCert, nullptr);
@@ -40,8 +44,8 @@ TEST_F(DtlsApiTest, createCertificateAndKey_Returns_Success)
 }
 #endif
 
-}
-}
-}
-}
-}
+} // namespace webrtcclient
+} // namespace video
+} // namespace kinesis
+} // namespace amazonaws
+} // namespace com

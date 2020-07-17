@@ -1,6 +1,10 @@
 #include "WebRTCClientTestFixture.h"
 
-namespace com { namespace amazonaws { namespace kinesis { namespace video { namespace webrtcclient {
+namespace com {
+namespace amazonaws {
+namespace kinesis {
+namespace video {
+namespace webrtcclient {
 
 class DataChannelFunctionalityTest : public WebRtcClientTestBase {
 };
@@ -29,20 +33,20 @@ TEST_F(DataChannelFunctionalityTest, createDataChannel_Disconnected)
     EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
 
     auto onDataChannel = [](UINT64 customData, PRtcDataChannel pRtcDataChannel) {
-      auto remoteOpen = reinterpret_cast<RemoteOpen*>(customData);
-      DLOGD("onDataChannel '%s'", pRtcDataChannel->name);
-      std::string name(pRtcDataChannel->name);
-      {
-          std::lock_guard<std::mutex> lock(remoteOpen->lock);
-          if (remoteOpen->channels.count(name) == 0) {
-              remoteOpen->channels.emplace(name, 1u);
-          } else {
-              auto count = remoteOpen->channels.at(name);
-              remoteOpen->channels.erase(name);
-              remoteOpen->channels.emplace(name, count + 1);
-          }
-      }
-      dataChannelSend(pRtcDataChannel, FALSE, (PBYTE) TEST_DATA_CHANNEL_MESSAGE, STRLEN(TEST_DATA_CHANNEL_MESSAGE));
+        auto remoteOpen = reinterpret_cast<RemoteOpen*>(customData);
+        DLOGD("onDataChannel '%s'", pRtcDataChannel->name);
+        std::string name(pRtcDataChannel->name);
+        {
+            std::lock_guard<std::mutex> lock(remoteOpen->lock);
+            if (remoteOpen->channels.count(name) == 0) {
+                remoteOpen->channels.emplace(name, 1u);
+            } else {
+                auto count = remoteOpen->channels.at(name);
+                remoteOpen->channels.erase(name);
+                remoteOpen->channels.emplace(name, count + 1);
+            }
+        }
+        dataChannelSend(pRtcDataChannel, FALSE, (PBYTE) TEST_DATA_CHANNEL_MESSAGE, STRLEN(TEST_DATA_CHANNEL_MESSAGE));
     };
 
     auto dataChannelOnOpenCallback = [](UINT64 customData, PRtcDataChannel pDataChannel) {
@@ -54,7 +58,7 @@ TEST_F(DataChannelFunctionalityTest, createDataChannel_Disconnected)
         UNUSED_PARAM(pDataChannel);
         UNUSED_PARAM(isBinary);
         if (STRNCMP((PCHAR) pMsg, TEST_DATA_CHANNEL_MESSAGE, pMsgLen) == 0) {
-          ATOMIC_INCREMENT((PSIZE_T) customData);
+            ATOMIC_INCREMENT((PSIZE_T) customData);
         }
     };
 
@@ -74,7 +78,7 @@ TEST_F(DataChannelFunctionalityTest, createDataChannel_Disconnected)
     EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
 
     // Busy wait until DataChannels connect and send a message
-    for (auto i = 0; i <= 100 && (ATOMIC_LOAD(&datachannelLocalOpenCount) + ATOMIC_LOAD(&msgCount)) != 4 ; i++) {
+    for (auto i = 0; i <= 100 && (ATOMIC_LOAD(&datachannelLocalOpenCount) + ATOMIC_LOAD(&msgCount)) != 4; i++) {
         THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
     }
 
@@ -103,9 +107,7 @@ TEST_F(DataChannelFunctionalityTest, dataChannelSendRecvMessageAfterDtlsComplete
 
     MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
 
-    auto onDataChannel = [](UINT64 customData, PRtcDataChannel pRtcDataChannel) {
-        ATOMIC_STORE((PSIZE_T) customData, (SIZE_T) pRtcDataChannel);
-    };
+    auto onDataChannel = [](UINT64 customData, PRtcDataChannel pRtcDataChannel) { ATOMIC_STORE((PSIZE_T) customData, (SIZE_T) pRtcDataChannel); };
 
     auto dataChannelOnOpenCallback = [](UINT64 customData, PRtcDataChannel pDataChannel) {
         UNUSED_PARAM(pDataChannel);
@@ -139,18 +141,18 @@ TEST_F(DataChannelFunctionalityTest, dataChannelSendRecvMessageAfterDtlsComplete
     EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
 
     // Busy wait until remote channel open and dtls completed
-    for (auto i = 0; i <= 100 && (dtlsSessionIsInitFinished(((PKvsPeerConnection) offerPc)->pDtlsSession, &dtlsCompleted) || ATOMIC_LOAD(&pOfferRemoteDataChannel) == 0); i++) {
+    for (auto i = 0; i <= 100 &&
+         (dtlsSessionIsInitFinished(((PKvsPeerConnection) offerPc)->pDtlsSession, &dtlsCompleted) || ATOMIC_LOAD(&pOfferRemoteDataChannel) == 0);
+         i++) {
         THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
     }
 
     EXPECT_EQ(dtlsCompleted, TRUE);
     EXPECT_TRUE(ATOMIC_LOAD(&pOfferRemoteDataChannel) != 0);
 
-    EXPECT_EQ(dataChannelSend(
-            (PRtcDataChannel) ATOMIC_LOAD(&pOfferRemoteDataChannel),
-            FALSE,
-            (PBYTE) TEST_DATA_CHANNEL_MESSAGE,
-            STRLEN(TEST_DATA_CHANNEL_MESSAGE)), STATUS_SUCCESS);
+    EXPECT_EQ(dataChannelSend((PRtcDataChannel) ATOMIC_LOAD(&pOfferRemoteDataChannel), FALSE, (PBYTE) TEST_DATA_CHANNEL_MESSAGE,
+                              STRLEN(TEST_DATA_CHANNEL_MESSAGE)),
+              STATUS_SUCCESS);
 
     /* wait until the channel message is received */
     for (auto i = 0; i <= 5 && ATOMIC_LOAD(&msgCount) == 0; i++) {
@@ -164,8 +166,8 @@ TEST_F(DataChannelFunctionalityTest, dataChannelSendRecvMessageAfterDtlsComplete
     freePeerConnection(&answerPc);
 }
 
-}
-}
-}
-}
-}
+} // namespace webrtcclient
+} // namespace video
+} // namespace kinesis
+} // namespace amazonaws
+} // namespace com

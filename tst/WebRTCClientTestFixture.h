@@ -4,20 +4,24 @@
 #include <thread>
 #include <mutex>
 
-#define TEST_DEFAULT_REGION                                     ((PCHAR) "us-west-2")
-#define TEST_STREAMING_TOKEN_DURATION                           (40 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define TEST_JITTER_BUFFER_CLOCK_RATE                           (1000)
-#define TEST_SIGNALING_MASTER_CLIENT_ID                         (PCHAR) "Test_Master_ClientId"
-#define TEST_SIGNALING_VIEWER_CLIENT_ID                         (PCHAR) "Test_Viewer_ClientId"
-#define TEST_SIGNALING_CHANNEL_NAME                             (PCHAR) "ScaryTestChannel_"
-#define SIGNAING_TEST_CORRELATION_ID                            (PCHAR) "Test_correlation_id"
-#define TEST_SIGNALING_MESSAGE_TTL                              (120 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define TEST_VIDEO_FRAME_SIZE                                   (120 * 1024)
-#define TEST_ICE_CONFIG_INFO_POLL_PERIOD                        (20 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
-#define TEST_ASYNC_ICE_CONFIG_INFO_WAIT_TIMEOUT                 (3 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define TEST_FILE_CREDENTIALS_FILE_PATH                         (PCHAR) "credsFile"
+#define TEST_DEFAULT_REGION                     ((PCHAR) "us-west-2")
+#define TEST_STREAMING_TOKEN_DURATION           (40 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define TEST_JITTER_BUFFER_CLOCK_RATE           (1000)
+#define TEST_SIGNALING_MASTER_CLIENT_ID         (PCHAR) "Test_Master_ClientId"
+#define TEST_SIGNALING_VIEWER_CLIENT_ID         (PCHAR) "Test_Viewer_ClientId"
+#define TEST_SIGNALING_CHANNEL_NAME             (PCHAR) "ScaryTestChannel_"
+#define SIGNAING_TEST_CORRELATION_ID            (PCHAR) "Test_correlation_id"
+#define TEST_SIGNALING_MESSAGE_TTL              (120 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define TEST_VIDEO_FRAME_SIZE                   (120 * 1024)
+#define TEST_ICE_CONFIG_INFO_POLL_PERIOD        (20 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
+#define TEST_ASYNC_ICE_CONFIG_INFO_WAIT_TIMEOUT (3 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define TEST_FILE_CREDENTIALS_FILE_PATH         (PCHAR) "credsFile"
 
-namespace com { namespace amazonaws { namespace kinesis { namespace video { namespace webrtcclient {
+namespace com {
+namespace amazonaws {
+namespace kinesis {
+namespace video {
+namespace webrtcclient {
 
 // This comes from Producer-C, but is not exported. We are copying it here instead of making it part of the public API.
 // It *MAY* become de-synchronized. If you hit issues after updating Producer-C confirm these two structs are in sync
@@ -27,9 +31,9 @@ typedef struct {
 } StaticCredentialProvider, *PStaticCredentialProvider;
 
 class WebRtcClientTestBase : public ::testing::Test {
-public:
+  public:
     PUINT32 mExpectedFrameSizeArr;
-    PBYTE *mPExpectedFrameArr;
+    PBYTE* mPExpectedFrameArr;
     UINT32 mExpectedFrameCount;
     PUINT32 mExpectedDroppedFrameTimestampArr;
     UINT32 mExpectedDroppedFrameCount;
@@ -54,7 +58,8 @@ public:
         return mSessionToken;
     }
 
-    STATUS initializeSignalingClient(PAwsCredentialProvider pCredentialProvider = NULL) {
+    STATUS initializeSignalingClient(PAwsCredentialProvider pCredentialProvider = NULL)
+    {
         ChannelInfo channelInfo;
         SignalingClientCallbacks signalingClientCallbacks;
         SignalingClientInfo clientInfo;
@@ -100,8 +105,7 @@ public:
         }
 
         retStatus = createSignalingClientSync(&clientInfo, &channelInfo, &signalingClientCallbacks,
-                pCredentialProvider != NULL ? pCredentialProvider : mTestCredentialProvider,
-                &mSignalingClientHandle);
+                                              pCredentialProvider != NULL ? pCredentialProvider : mTestCredentialProvider, &mSignalingClientHandle);
 
         if (mAccessKeyIdSet) {
             EXPECT_EQ(STATUS_SUCCESS, retStatus);
@@ -113,8 +117,8 @@ public:
         return retStatus;
     }
 
-    STATUS deinitializeSignalingClient() {
-
+    STATUS deinitializeSignalingClient()
+    {
         // Delete the created channel
         if (mAccessKeyIdSet) {
             deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(mSignalingClientHandle), 0);
@@ -124,7 +128,6 @@ public:
 
         return STATUS_SUCCESS;
     }
-
 
     static STATUS testFrameReadyFunc(UINT64 customData, UINT16 startIndex, UINT16 endIndex, UINT32 frameSize)
     {
@@ -210,14 +213,13 @@ public:
         return retStatus;
     }
 
-    bool connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerConnection answerPc,
-            PCHAR pOfferCertFingerprint = NULL, PCHAR pAnswerCertFingerprint = NULL);
-    void addTrackToPeerConnection(PRtcPeerConnection pRtcPeerConnection, PRtcMediaStreamTrack track,
-                                  PRtcRtpTransceiver *transceiver, RTC_CODEC codec, MEDIA_STREAM_TRACK_KIND kind);
+    bool connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerConnection answerPc, PCHAR pOfferCertFingerprint = NULL,
+                         PCHAR pAnswerCertFingerprint = NULL);
+    void addTrackToPeerConnection(PRtcPeerConnection pRtcPeerConnection, PRtcMediaStreamTrack track, PRtcRtpTransceiver* transceiver, RTC_CODEC codec,
+                                  MEDIA_STREAM_TRACK_KIND kind);
     void getIceServers(PRtcConfiguration pRtcConfiguration);
 
-protected:
-
+  protected:
     virtual void SetUp();
     virtual void TearDown();
     PCHAR GetTestName();
@@ -247,8 +249,8 @@ protected:
     UINT32 mDroppedFrameIndex;
 };
 
-}  // namespace webrtcclient
-}  // namespace video
-}  // namespace kinesis
-}  // namespace amazonaws
-}  // namespace com;
+} // namespace webrtcclient
+} // namespace video
+} // namespace kinesis
+} // namespace amazonaws
+} // namespace com

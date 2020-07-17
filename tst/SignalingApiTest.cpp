@@ -1,6 +1,10 @@
 #include "WebRTCClientTestFixture.h"
 
-namespace com { namespace amazonaws { namespace kinesis { namespace video { namespace webrtcclient {
+namespace com {
+namespace amazonaws {
+namespace kinesis {
+namespace video {
+namespace webrtcclient {
 
 class SignalingApiTest : public WebRtcClientTestBase {
 };
@@ -65,8 +69,7 @@ TEST_F(SignalingApiTest, signalingSendMessageSyncFileCredsProvider)
     ASSERT_EQ(STATUS_SUCCESS, writeFile(TEST_FILE_CREDENTIALS_FILE_PATH, FALSE, FALSE, (PBYTE) fileContent, length));
 
     // Create file creds provider from the file
-    EXPECT_EQ(STATUS_SUCCESS, createFileCredentialProvider(TEST_FILE_CREDENTIALS_FILE_PATH,
-                                            &pAwsCredentialProvider));
+    EXPECT_EQ(STATUS_SUCCESS, createFileCredentialProvider(TEST_FILE_CREDENTIALS_FILE_PATH, &pAwsCredentialProvider));
 
     initializeSignalingClient(pAwsCredentialProvider);
 
@@ -100,7 +103,7 @@ TEST_F(SignalingApiTest, signalingSendMessageSyncFileCredsProvider)
 
 TEST_F(SignalingApiTest, signalingClientConnectSync)
 {
-     STATUS expectedStatus;
+    STATUS expectedStatus;
 
     initializeSignalingClient();
     EXPECT_NE(STATUS_SUCCESS, signalingClientConnectSync(INVALID_SIGNALING_CLIENT_HANDLE_VALUE));
@@ -327,8 +330,8 @@ TEST_F(SignalingApiTest, signalingClientGetMetrics)
     deinitializeSignalingClient();
 }
 
-}
-}
-}
-}
-}
+} // namespace webrtcclient
+} // namespace video
+} // namespace kinesis
+} // namespace amazonaws
+} // namespace com
