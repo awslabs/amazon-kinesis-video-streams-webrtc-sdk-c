@@ -1,6 +1,10 @@
 #include "WebRTCClientTestFixture.h"
 
-namespace com { namespace amazonaws { namespace kinesis { namespace video { namespace webrtcclient {
+namespace com {
+namespace amazonaws {
+namespace kinesis {
+namespace video {
+namespace webrtcclient {
 
 //
 // Global memory allocation counter
@@ -12,14 +16,9 @@ UINT64 gTotalWebRtcClientMemoryUsage = 0;
 //
 MUTEX gTotalWebRtcClientMemoryMutex;
 
-WebRtcClientTestBase::WebRtcClientTestBase() :
-        mSignalingClientHandle(INVALID_SIGNALING_CLIENT_HANDLE_VALUE),
-        mAccessKey(NULL),
-        mSecretKey(NULL),
-        mSessionToken(NULL),
-        mRegion(NULL),
-        mCaCertPath(NULL),
-        mAccessKeyIdSet(FALSE)
+WebRtcClientTestBase::WebRtcClientTestBase()
+    : mSignalingClientHandle(INVALID_SIGNALING_CLIENT_HANDLE_VALUE), mAccessKey(NULL), mSecretKey(NULL), mSessionToken(NULL), mRegion(NULL),
+      mCaCertPath(NULL), mAccessKeyIdSet(FALSE)
 {
     // Initialize the endianness of the library
     initializeEndianness();
@@ -66,8 +65,8 @@ void WebRtcClientTestBase::SetUp()
     }
 
     if (mAccessKey) {
-        ASSERT_EQ(STATUS_SUCCESS, createStaticCredentialProvider(mAccessKey, 0, mSecretKey, 0,
-                                                                 mSessionToken, 0, MAX_UINT64, &mTestCredentialProvider));
+        ASSERT_EQ(STATUS_SUCCESS,
+                  createStaticCredentialProvider(mAccessKey, 0, mSecretKey, 0, mSessionToken, 0, MAX_UINT64, &mTestCredentialProvider));
     } else {
         mTestCredentialProvider = nullptr;
     }
@@ -101,11 +100,13 @@ void WebRtcClientTestBase::TearDown()
 VOID WebRtcClientTestBase::initializeJitterBuffer(UINT32 expectedFrameCount, UINT32 expectedDroppedFrameCount, UINT32 rtpPacketCount)
 {
     UINT32 i, timestamp;
-    EXPECT_EQ(STATUS_SUCCESS, createJitterBuffer(testFrameReadyFunc, testFrameDroppedFunc, testDepayRtpFunc, DEFAULT_JITTER_BUFFER_MAX_LATENCY, TEST_JITTER_BUFFER_CLOCK_RATE, (UINT64) this, &mJitterBuffer));
+    EXPECT_EQ(STATUS_SUCCESS,
+              createJitterBuffer(testFrameReadyFunc, testFrameDroppedFunc, testDepayRtpFunc, DEFAULT_JITTER_BUFFER_MAX_LATENCY,
+                                 TEST_JITTER_BUFFER_CLOCK_RATE, (UINT64) this, &mJitterBuffer));
     mExpectedFrameCount = expectedFrameCount;
     mFrame = NULL;
     if (expectedFrameCount > 0) {
-        mPExpectedFrameArr = (PBYTE *) MEMALLOC(SIZEOF(PBYTE) * expectedFrameCount);
+        mPExpectedFrameArr = (PBYTE*) MEMALLOC(SIZEOF(PBYTE) * expectedFrameCount);
         mExpectedFrameSizeArr = (PUINT32) MEMALLOC(SIZEOF(UINT32) * expectedFrameCount);
     }
     mExpectedDroppedFrameCount = expectedDroppedFrameCount;
@@ -118,9 +119,8 @@ VOID WebRtcClientTestBase::initializeJitterBuffer(UINT32 expectedFrameCount, UIN
 
     // Assume timestamp is on time unit ms for test
     for (i = 0, timestamp = 0; i < rtpPacketCount; i++, timestamp += 200) {
-        EXPECT_EQ(STATUS_SUCCESS, createRtpPacket(2, FALSE, FALSE, 0, FALSE,
-                                                  96, i, timestamp, 0x1234ABCD, NULL,
-                                                  0, 0, NULL, NULL, 0, mPRtpPackets + i));
+        EXPECT_EQ(STATUS_SUCCESS,
+                  createRtpPacket(2, FALSE, FALSE, 0, FALSE, 96, i, timestamp, 0x1234ABCD, NULL, 0, 0, NULL, NULL, 0, mPRtpPackets + i));
     }
 }
 
@@ -157,17 +157,21 @@ VOID WebRtcClientTestBase::clearJitterBufferForTest()
 // Connect two RtcPeerConnections, and wait for them to be connected
 // in the given amount of time. Return false if they don't go to connected in
 // the expected amounted of time
-bool WebRtcClientTestBase::connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerConnection answerPc,
-        PCHAR pOfferCertFingerprint, PCHAR pAnswerCertFingerprint) {
+bool WebRtcClientTestBase::connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerConnection answerPc, PCHAR pOfferCertFingerprint,
+                                           PCHAR pAnswerCertFingerprint)
+{
     RtcSessionDescriptionInit sdp;
 
     auto onICECandidateHdlr = [](UINT64 customData, PCHAR candidateStr) -> void {
         if (candidateStr != NULL) {
-            std::thread([customData] (std::string candidate) {
-                RtcIceCandidateInit iceCandidate;
-                EXPECT_EQ(STATUS_SUCCESS, deserializeRtcIceCandidateInit((PCHAR) candidate.c_str(), STRLEN(candidate.c_str()), &iceCandidate));
-                EXPECT_EQ(STATUS_SUCCESS, addIceCandidate((PRtcPeerConnection) customData, iceCandidate.candidate));
-            }, std::string(candidateStr)).detach();
+            std::thread(
+                [customData](std::string candidate) {
+                    RtcIceCandidateInit iceCandidate;
+                    EXPECT_EQ(STATUS_SUCCESS, deserializeRtcIceCandidateInit((PCHAR) candidate.c_str(), STRLEN(candidate.c_str()), &iceCandidate));
+                    EXPECT_EQ(STATUS_SUCCESS, addIceCandidate((PRtcPeerConnection) customData, iceCandidate.candidate));
+                },
+                std::string(candidateStr))
+                .detach();
         }
     };
 
@@ -175,7 +179,7 @@ bool WebRtcClientTestBase::connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerC
     EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(answerPc, (UINT64) offerPc, onICECandidateHdlr));
 
     auto onICEConnectionStateChangeHdlr = [](UINT64 customData, RTC_PEER_CONNECTION_STATE newState) -> void {
-        ATOMIC_INCREMENT((PSIZE_T)customData + newState);
+        ATOMIC_INCREMENT((PSIZE_T) customData + newState);
     };
 
     EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnConnectionStateChange(offerPc, (UINT64) this->stateChangeCount, onICEConnectionStateChangeHdlr));
@@ -206,7 +210,8 @@ bool WebRtcClientTestBase::connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerC
 }
 
 // Create track and transceiver and adds to PeerConnection
-void WebRtcClientTestBase::addTrackToPeerConnection(PRtcPeerConnection pRtcPeerConnection, PRtcMediaStreamTrack track, PRtcRtpTransceiver *transceiver, RTC_CODEC codec, MEDIA_STREAM_TRACK_KIND kind)
+void WebRtcClientTestBase::addTrackToPeerConnection(PRtcPeerConnection pRtcPeerConnection, PRtcMediaStreamTrack track,
+                                                    PRtcRtpTransceiver* transceiver, RTC_CODEC codec, MEDIA_STREAM_TRACK_KIND kind)
 {
     MEMSET(track, 0x00, SIZEOF(RtcMediaStreamTrack));
 
@@ -219,7 +224,6 @@ void WebRtcClientTestBase::addTrackToPeerConnection(PRtcPeerConnection pRtcPeerC
 
     EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, track, NULL, transceiver));
 }
-
 
 STATUS awaitGetIceConfigInfoCount(SIGNALING_CLIENT_HANDLE signalingClientHandle, PUINT32 pIceConfigInfoCount)
 {
@@ -236,7 +240,8 @@ STATUS awaitGetIceConfigInfoCount(SIGNALING_CLIENT_HANDLE signalingClientHandle,
         CHK(*pIceConfigInfoCount == 0, retStatus);
 
         // Check for timeout
-        CHK_ERR(elapsed <= TEST_ASYNC_ICE_CONFIG_INFO_WAIT_TIMEOUT, STATUS_OPERATION_TIMED_OUT, "Couldn't retrieve ICE configurations in alotted time.");
+        CHK_ERR(elapsed <= TEST_ASYNC_ICE_CONFIG_INFO_WAIT_TIMEOUT, STATUS_OPERATION_TIMED_OUT,
+                "Couldn't retrieve ICE configurations in alotted time.");
 
         THREAD_SLEEP(TEST_ICE_CONFIG_INFO_POLL_PERIOD);
         elapsed += TEST_ICE_CONFIG_INFO_POLL_PERIOD;
@@ -272,11 +277,11 @@ void WebRtcClientTestBase::getIceServers(PRtcConfiguration pRtcConfiguration)
 
 PCHAR WebRtcClientTestBase::GetTestName()
 {
-    return (PCHAR) ::testing::UnitTest::GetInstance()->current_test_info()->test_case_name();
+    return (PCHAR)::testing::UnitTest::GetInstance()->current_test_info()->test_case_name();
 }
 
-}  // namespace webrtcclient
-}  // namespace video
-}  // namespace kinesis
-}  // namespace amazonaws
-}  // namespace com;
+} // namespace webrtcclient
+} // namespace video
+} // namespace kinesis
+} // namespace amazonaws
+} // namespace com

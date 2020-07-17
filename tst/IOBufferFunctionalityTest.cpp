@@ -1,6 +1,10 @@
 #include "WebRTCClientTestFixture.h"
 
-namespace com { namespace amazonaws { namespace kinesis { namespace video { namespace webrtcclient {
+namespace com {
+namespace amazonaws {
+namespace kinesis {
+namespace video {
+namespace webrtcclient {
 
 class IOBufferFunctionalityTest : public WebRtcClientTestBase {
 };
@@ -25,7 +29,7 @@ TEST_F(IOBufferFunctionalityTest, writeReadDataAndVerifyStartWithEmptyBuffer)
     EXPECT_EQ(dataLen, pIOBuffer->len);
     EXPECT_EQ(dataLen, pIOBuffer->cap);
     EXPECT_EQ(0, pIOBuffer->off);
-    EXPECT_EQ(0, MEMCMP(pIOBuffer->raw, data, dataLen)); 
+    EXPECT_EQ(0, MEMCMP(pIOBuffer->raw, data, dataLen));
 
     EXPECT_EQ(STATUS_SUCCESS, ioBufferWrite(pIOBuffer, (PBYTE) data, dataLen));
     EXPECT_EQ(2 * dataLen, pIOBuffer->len);
@@ -74,7 +78,7 @@ TEST_F(IOBufferFunctionalityTest, writeReadDataAndVerifyStartWithPreinitializedB
     EXPECT_EQ(dataLen, pIOBuffer->len);
     EXPECT_EQ(initCap, pIOBuffer->cap);
     EXPECT_EQ(0, pIOBuffer->off);
-    EXPECT_EQ(0, MEMCMP(pIOBuffer->raw, data, dataLen)); 
+    EXPECT_EQ(0, MEMCMP(pIOBuffer->raw, data, dataLen));
 
     EXPECT_EQ(STATUS_SUCCESS, ioBufferWrite(pIOBuffer, (PBYTE) data, dataLen));
     EXPECT_EQ(2 * dataLen, pIOBuffer->len);
@@ -102,8 +106,8 @@ TEST_F(IOBufferFunctionalityTest, writeReadDataAndVerifyStartWithPreinitializedB
     MEMFREE(pBuff);
 }
 
-}
-}
-}
-}
-}
+} // namespace webrtcclient
+} // namespace video
+} // namespace kinesis
+} // namespace amazonaws
+} // namespace com

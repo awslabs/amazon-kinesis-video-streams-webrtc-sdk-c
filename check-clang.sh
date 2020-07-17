@@ -10,7 +10,7 @@ if NOT type $CLANG_FORMAT 2> /dev/null ; then
 fi
 
 FAIL=0
-SOURCE_FILES=`find src samples -type f \( -name '*.h' -o -name '*.c' \) -not -path "*/external/*"`
+SOURCE_FILES=`find src samples tst -type f \( -name '*.h' -o -name '*.c' \) -not -path "*/external/*"`
 echo "Performing clang format compliance check...."
 for i in $SOURCE_FILES
 do
