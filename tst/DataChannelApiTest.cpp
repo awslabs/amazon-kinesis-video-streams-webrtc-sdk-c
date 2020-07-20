@@ -1,6 +1,10 @@
 #include "WebRTCClientTestFixture.h"
 
-namespace com { namespace amazonaws { namespace kinesis { namespace video { namespace webrtcclient {
+namespace com {
+namespace amazonaws {
+namespace kinesis {
+namespace video {
+namespace webrtcclient {
 
 class DataChannelApiTest : public WebRtcClientTestBase {
 };
@@ -28,8 +32,8 @@ TEST_F(DataChannelApiTest, createDataChannel_Disconnected)
     freePeerConnection(&pPeerConnection);
 }
 
-}
-}
-}
-}
-}
+} // namespace webrtcclient
+} // namespace video
+} // namespace kinesis
+} // namespace amazonaws
+} // namespace com

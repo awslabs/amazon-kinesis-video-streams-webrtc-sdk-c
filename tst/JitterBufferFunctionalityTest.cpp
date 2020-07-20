@@ -1,6 +1,10 @@
 #include "WebRTCClientTestFixture.h"
 
-namespace com { namespace amazonaws { namespace kinesis { namespace video { namespace webrtcclient {
+namespace com {
+namespace amazonaws {
+namespace kinesis {
+namespace video {
+namespace webrtcclient {
 
 class JitterBufferFunctionalityTest : public WebRtcClientTestBase {
 };
@@ -714,7 +718,6 @@ TEST_F(JitterBufferFunctionalityTest, getFrameReadyAfterDroppedFrame)
             default:
                 ASSERT_TRUE(FALSE);
         }
-
     }
 
     clearJitterBufferForTest();
@@ -764,14 +767,13 @@ TEST_F(JitterBufferFunctionalityTest, pushFrameArrivingLate)
             default:
                 ASSERT_TRUE(FALSE);
         }
-
     }
 
     clearJitterBufferForTest();
 }
 
-}
-}
-}
-}
-}
+} // namespace webrtcclient
+} // namespace video
+} // namespace kinesis
+} // namespace amazonaws
+} // namespace com

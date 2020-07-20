@@ -2445,7 +2445,15 @@ UINT32 computeCandidatePriority(PIceCandidate pIceCandidate)
         localPreference = ICE_PRIORITY_LOCAL_PREFERENCE;
     }
 
-    return (2 ^ 24) * (typePreference) + (2 ^ 8) * (localPreference) + 255;
+    // Reference: https://tools.ietf.org/html/rfc5245#section-4.1.2.1
+    // priority = (2^24)*(type preference) +
+    //   (2^8)*(local preference) +
+    //   (2^0)*(256 - component ID)
+    //
+    // Since type preference <= 126 and local preference <= 65535, the maximum possible
+    // priority is (2^24) * (126) + (2^8) * (65535) + 255 = 2130706431. So, it's safe
+    // to use UINT32 since 2130706431 < 2 ^ 32.
+    return (1 << 24) * (typePreference) + (1 << 8) * (localPreference) + 255;
 }
 
 UINT64 computeCandidatePairPriority(PIceCandidatePair pIceCandidatePair, BOOL isLocalControlling)
