@@ -9,6 +9,8 @@ INT32 main(INT32 argc, CHAR* argv[])
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 frameSize;
     PSampleConfiguration pSampleConfiguration = NULL;
+    SignalingClientMetrics signalingClientMetrics;
+    signalingClientMetrics.version = 0;
 
 #ifndef _WIN32
     signal(SIGINT, sigintHandler);
@@ -89,7 +91,7 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     gSampleConfiguration = pSampleConfiguration;
 
-    printf("[KVS Master] Beginning audio-video streaming...check the stream over channel %s\n", (argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME));
+    printf("[KVS Master] Channel %s set up done \n", (argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME));
 
     // Checking for termination
     retStatus = sessionCleanupWait(pSampleConfiguration);
@@ -125,6 +127,12 @@ CleanUp:
 
         if (pSampleConfiguration->enableFileLogging) {
             freeFileLogger();
+        }
+        retStatus = signalingClientGetMetrics(pSampleConfiguration->signalingClientHandle, &signalingClientMetrics);
+        if (retStatus == STATUS_SUCCESS) {
+            logSignalingClientStats(&signalingClientMetrics);
+        } else {
+            printf("[KVS Master] signalingClientGetMetrics() operation returned status code: 0x%08x", retStatus);
         }
         retStatus = freeSignalingClient(&pSampleConfiguration->signalingClientHandle);
         if (retStatus != STATUS_SUCCESS) {
