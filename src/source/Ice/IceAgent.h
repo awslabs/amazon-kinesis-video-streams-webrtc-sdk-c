@@ -54,13 +54,7 @@ extern "C" {
 
 #define ICE_CANDIDATE_ID_LEN 8
 
-typedef enum {
-    ICE_CANDIDATE_TYPE_HOST = 0,
-    ICE_CANDIDATE_TYPE_PEER_REFLEXIVE = 1,
-    ICE_CANDIDATE_TYPE_SERVER_REFLEXIVE = 2,
-    ICE_CANDIDATE_TYPE_RELAYED = 3,
-} ICE_CANDIDATE_TYPE;
-
+#define STATS_NOT_APPLICABLE_STR (PCHAR) "N/A"
 typedef enum {
     ICE_CANDIDATE_STATE_NEW,
     ICE_CANDIDATE_STATE_VALID,
@@ -93,6 +87,18 @@ typedef struct {
     UINT64 totalResponsesReceived;              //!< Total number of responses received from the server
     UINT64 totalRoundTripTime;                  //!< Sum of RTTs of all the requests for which response has been received
 } RtcIceServerDiagnostics, *PRtcIceServerDiagnostics;
+
+typedef struct {
+    DOMString url; //!< For local candidates this is the URL of the ICE server from which the candidate was obtained
+    DOMString transportId[MAX_STATS_STRING_LENGTH + 1]; //!< ID of object that was inspected for RTCTransportStats
+    CHAR address[KVS_IP_ADDRESS_STRING_BUFFER_LEN];     //!< IPv4 or IPv6 address of the candidate
+    DOMString protocol;                                 //!< Valid values: UDP, TCP
+    DOMString relayProtocol;                            //!< Protocol used by endpoint to communicate with TURN server.
+                                                        //!< Valid values: UDP, TCP, TLS
+    INT32 priority;                                     //!< Computed using the formula in https://tools.ietf.org/html/rfc5245#section-15.1
+    INT32 port;                                         //!< Port number of the candidate
+    DOMString candidateType;                            //!< Type of local/remote ICE candidate
+} RtcIceCandidateDiagnostics, *PRtcIceCandidateDiagnostics;
 
 typedef struct {
     UINT64 customData;
@@ -152,6 +158,8 @@ struct __IceAgent {
     CHAR combinedUserName[MAX_ICE_CONFIG_USER_NAME_LEN + 1];
 
     RtcIceServerDiagnostics rtcIceServerDiagnostics[MAX_ICE_SERVERS_COUNT];
+    RtcIceCandidateDiagnostics rtcSelectedLocalIceCandidateDiagnostics;
+    RtcIceCandidateDiagnostics rtcSelectedRemoteIceCandidateDiagnostics;
     PHashTable requestTimestampDiagnostics;
 
     PDoubleList localCandidates;
@@ -384,6 +392,7 @@ VOID iceAgentLogNewCandidate(PIceCandidate);
 UINT32 computeCandidatePriority(PIceCandidate);
 UINT64 computeCandidatePairPriority(PIceCandidatePair, BOOL);
 PCHAR iceAgentGetCandidateTypeStr(ICE_CANDIDATE_TYPE);
+STATUS updateSelectedLocalRemoteCandidateStats(PIceAgent);
 
 #ifdef __cplusplus
 }
