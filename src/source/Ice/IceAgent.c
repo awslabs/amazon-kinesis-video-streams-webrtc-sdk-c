@@ -1774,6 +1774,59 @@ CleanUp:
     return retStatus;
 }
 
+STATUS updateCandidateStats(PIceAgent pIceAgent, BOOL isRemote)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    CHK(pIceAgent != NULL && pIceAgent->pDataSendingIceCandidatePair != NULL, STATUS_NULL_ARG);
+    PIceCandidate pIceCandidate = pIceAgent->pDataSendingIceCandidatePair->remote;
+    PRtcIceCandidateDiagnostics pRtcIceCandidateDiagnostics = &pIceAgent->rtcSelectedRemoteIceCandidateDiagnostics;
+    if (!isRemote) {
+        pIceCandidate = pIceAgent->pDataSendingIceCandidatePair->local;
+        pRtcIceCandidateDiagnostics = &pIceAgent->rtcSelectedLocalIceCandidateDiagnostics;
+        // URL and relay protocol are populated only for local candidate by spec
+        STRNCPY(pRtcIceCandidateDiagnostics->url, pIceAgent->iceServers[pIceCandidate->iceServerIndex].url,
+                ARRAY_SIZE(pRtcIceCandidateDiagnostics->url));
+
+        // Only if candidate is obtained from TURN server will relay protocol be populated. Else, relay protocol is
+        // not applicable.
+        STRNCPY(pRtcIceCandidateDiagnostics->relayProtocol, STATS_NOT_APPLICABLE_STR, ARRAY_SIZE(pRtcIceCandidateDiagnostics->relayProtocol));
+        if (pIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED && pIceCandidate->pTurnConnection != NULL) {
+            switch (pIceCandidate->pTurnConnection->protocol) {
+                case KVS_SOCKET_PROTOCOL_UDP:
+                    STRNCPY(pRtcIceCandidateDiagnostics->relayProtocol, ICE_URL_TRANSPORT_UDP,
+                            ARRAY_SIZE(pRtcIceCandidateDiagnostics->relayProtocol));
+                    break;
+                case KVS_SOCKET_PROTOCOL_TCP:
+                    STRNCPY(pRtcIceCandidateDiagnostics->relayProtocol, ICE_URL_TRANSPORT_TCP,
+                            ARRAY_SIZE(pIceAgent->rtcSelectedLocalIceCandidateDiagnostics.relayProtocol));
+                    break;
+                default:
+                    MEMSET(pRtcIceCandidateDiagnostics->relayProtocol, 0, SIZEOF(pRtcIceCandidateDiagnostics->relayProtocol));
+            }
+        }
+    }
+    getIpAddrStr(&pIceCandidate->ipAddress, pRtcIceCandidateDiagnostics->address, ARRAY_SIZE(pRtcIceCandidateDiagnostics->address));
+    pRtcIceCandidateDiagnostics->port = pIceCandidate->ipAddress.port;
+    pRtcIceCandidateDiagnostics->priority = pIceCandidate->priority;
+    STRNCPY(pRtcIceCandidateDiagnostics->candidateType, iceAgentGetCandidateTypeStr(pIceCandidate->iceCandidateType),
+            ARRAY_SIZE(pRtcIceCandidateDiagnostics->candidateType));
+    STRNCPY(pRtcIceCandidateDiagnostics->protocol, pIceAgent->rtcIceServerDiagnostics[pIceCandidate->iceServerIndex].protocol,
+            ARRAY_SIZE(pRtcIceCandidateDiagnostics->protocol));
+CleanUp:
+    return retStatus;
+}
+STATUS updateSelectedLocalRemoteCandidateStats(PIceAgent pIceAgent)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    CHK(pIceAgent != NULL, STATUS_NULL_ARG);
+    // Update local candidate stats
+    CHK_STATUS(updateCandidateStats(pIceAgent, FALSE));
+    // Update remote candidate stats
+    CHK_STATUS(updateCandidateStats(pIceAgent, TRUE));
+CleanUp:
+    return retStatus;
+}
+
 STATUS iceAgentConnectedStateSetup(PIceAgent pIceAgent)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -1822,6 +1875,10 @@ STATUS iceAgentConnectedStateSetup(PIceAgent pIceAgent)
 
         if (pIceCandidatePair->state == ICE_CANDIDATE_PAIR_STATE_SUCCEEDED) {
             pIceAgent->pDataSendingIceCandidatePair = pIceCandidatePair;
+            retStatus = updateSelectedLocalRemoteCandidateStats(pIceAgent);
+            if (STATUS_FAILED(retStatus)) {
+                DLOGW("Failed to update candidate stats with status code 0x%08x", retStatus);
+            }
             break;
         }
     }

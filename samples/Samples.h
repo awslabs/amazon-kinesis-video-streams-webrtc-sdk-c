@@ -128,6 +128,7 @@ VOID onConnectionStateChange(UINT64, RTC_PEER_CONNECTION_STATE);
 STATUS sessionCleanupWait(PSampleConfiguration);
 STATUS awaitGetIceConfigInfoCount(SIGNALING_CLIENT_HANDLE, PUINT32);
 STATUS logSignalingClientStats(PSignalingClientMetrics);
+STATUS logSelectedIceCandidatesInformation(PSampleStreamingSession);
 
 #ifdef __cplusplus
 }

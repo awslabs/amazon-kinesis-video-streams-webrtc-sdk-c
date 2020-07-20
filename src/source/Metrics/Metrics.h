@@ -10,8 +10,6 @@ WebRTC Client Metrics internal include file
 extern "C" {
 #endif
 
-#define LOG_STATS ((PCHAR) "LOG_STATS")
-
 /**
  * @brief Get specific ICE candidate pair stats
  * @param [in] PRtcPeerConnection Contains the Ice agent object with diagnostics object
@@ -25,10 +23,11 @@ STATUS getIceCandidatePairStats(PRtcPeerConnection, PRtcIceCandidatePairStats);
  * @brief Get specific ICE candidate stats
  * @param [in] PRtcPeerConnection Contains the Ice agent object with diagnostics object
  * @param [in/out] PRtcIceCandidateStats Fill up the ICE candidate stats for application consumption
+ * @param [in] BOOL If TRUE, local candidate stats are extracted, else remote candidate stats are extracted
  * @return Pass/Fail
  *
  */
-STATUS getIceCandidateStats(PRtcPeerConnection, PRtcIceCandidateStats);
+STATUS getIceCandidateStats(PRtcPeerConnection, PRtcIceCandidateStats, BOOL);
 
 /**
  * @brief Get specific ICE server stats
@@ -42,14 +41,6 @@ STATUS getIceCandidateStats(PRtcPeerConnection, PRtcIceCandidateStats);
  *
  */
 STATUS getIceServerStats(PRtcPeerConnection, PRtcIceServerStats);
-
-/**
- * @brief Log ICE Server Metrics. Can be enabled by `export LOG_STATS=TRUE`
- * @param [in] PRtcIceServerStats Stats to be logged
- * @return Pass/Fail
- *
- */
-STATUS logIceServerMetrics(PRtcIceServerStats);
 
 /**
  * @brief Get specific transport stats
