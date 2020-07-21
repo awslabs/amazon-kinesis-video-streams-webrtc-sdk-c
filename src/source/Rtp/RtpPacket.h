@@ -27,9 +27,10 @@ extern "C" {
 #define CSRC_OFFSET       12
 #define CSRC_LENGTH       4
 
-#define RTP_GET_RAW_PACKET_SIZE(pRtpPacket)                                                                                                          \
-    (12 + (pRtpPacket)->header.csrcCount * CSRC_LENGTH + ((pRtpPacket)->header.extension ? 4 + (pRtpPacket)->header.extensionLength : 0) +           \
-     (pRtpPacket)->payloadLength)
+#define RTP_HEADER_LEN(pRtpPacket)                                                                                                                   \
+    (12 + (pRtpPacket)->header.csrcCount * CSRC_LENGTH + ((pRtpPacket)->header.extension ? 4 + (pRtpPacket)->header.extensionLength : 0))
+
+#define RTP_GET_RAW_PACKET_SIZE(pRtpPacket) (RTP_HEADER_LEN(pRtpPacket) + ((pRtpPacket)->payloadLength))
 
 #define GET_UINT16_SEQ_NUM(seqIndex) ((UINT16)((seqIndex) % (MAX_UINT16 + 1)))
 

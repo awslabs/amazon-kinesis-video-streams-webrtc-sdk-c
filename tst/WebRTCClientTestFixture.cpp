@@ -16,9 +16,31 @@ UINT64 gTotalWebRtcClientMemoryUsage = 0;
 //
 MUTEX gTotalWebRtcClientMemoryMutex;
 
-WebRtcClientTestBase::WebRtcClientTestBase()
-    : mSignalingClientHandle(INVALID_SIGNALING_CLIENT_HANDLE_VALUE), mAccessKey(NULL), mSecretKey(NULL), mSessionToken(NULL), mRegion(NULL),
-      mCaCertPath(NULL), mAccessKeyIdSet(FALSE)
+STATUS createRtpPacketWithSeqNum(UINT16 seqNum, PRtpPacket *ppRtpPacket) {
+    STATUS retStatus = STATUS_SUCCESS;
+    BYTE payload[10];
+    PRtpPacket pRtpPacket = NULL;
+
+    CHK_STATUS(createRtpPacket(2, FALSE, FALSE, 0, FALSE,
+                               96, seqNum, 100, 0x1234ABCD, NULL, 0, 0, NULL, payload, 10, &pRtpPacket));
+    *ppRtpPacket = pRtpPacket;
+
+    CHK_STATUS(createBytesFromRtpPacket(pRtpPacket, NULL, &pRtpPacket->rawPacketLength));
+    CHK(NULL != (pRtpPacket->pRawPacket = (PBYTE) MEMALLOC(pRtpPacket->rawPacketLength)), STATUS_NOT_ENOUGH_MEMORY);
+    CHK_STATUS(createBytesFromRtpPacket(pRtpPacket, pRtpPacket->pRawPacket, &pRtpPacket->rawPacketLength));
+
+    CleanUp:
+    return retStatus;
+}
+
+WebRtcClientTestBase::WebRtcClientTestBase() :
+        mSignalingClientHandle(INVALID_SIGNALING_CLIENT_HANDLE_VALUE),
+        mAccessKey(NULL),
+        mSecretKey(NULL),
+        mSessionToken(NULL),
+        mRegion(NULL),
+        mCaCertPath(NULL),
+        mAccessKeyIdSet(FALSE)
 {
     // Initialize the endianness of the library
     initializeEndianness();

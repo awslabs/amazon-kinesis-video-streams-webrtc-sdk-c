@@ -25,6 +25,8 @@ extern "C" {
 
 #define MAX_STATS_STRING_LENGTH 255U
 
+typedef CHAR DOMString[MAX_STATS_STRING_LENGTH + 1];
+
 /**
  * @brief Type of Stats object requested by the application
  * Reference https://www.w3.org/TR/webrtc-stats/#rtcstatstype-str*
@@ -113,8 +115,8 @@ typedef struct {
  * object
  */
 typedef struct {
-    CHAR dscp[MAX_STATS_STRING_LENGTH + 1]; //!< DSCP String
-    UINT64 totalNumberOfPacketsSent;        //!< Number of packets sent
+    DOMString dscp;                  //!< DSCP String
+    UINT64 totalNumberOfPacketsSent; //!< Number of packets sent
 } DscpPacketsSentRecord, *PDscpPacketsSentRecord;
 
 /**
@@ -124,12 +126,12 @@ typedef struct {
  */
 
 typedef struct {
-    CHAR transportId[MAX_STATS_STRING_LENGTH + 1];       //!< ID of object that was inspected for RTCTransportStats
-    CHAR localCandidateId[MAX_CANDIDATE_ID_LENGTH + 1];  //!< Local candidate that is inspected in RTCIceCandidateStats
-    CHAR remoteCandidateId[MAX_CANDIDATE_ID_LENGTH + 1]; //!< Remote candidate that is inspected in RTCIceCandidateStats
-    RTC_ICE_CANDIDATE_PAIR_STATE state;                  //!< State of checklist for the local-remote candidate pair
-    BOOL nominated; //!< Flag is TRUE if the agent is a controlling agent and FALSE otherwise. The agent role is based on the
-                    //!< STUN_ATTRIBUTE_TYPE_USE_CANDIDATE flag
+    DOMString transportId;              //!< ID of object that was inspected for RTCTransportStats
+    DOMString localCandidateId;         //!< Local candidate that is inspected in RTCIceCandidateStats
+    DOMString remoteCandidateId;        //!< Remote candidate that is inspected in RTCIceCandidateStats
+    RTC_ICE_CANDIDATE_PAIR_STATE state; //!< State of checklist for the local-remote candidate pair
+    BOOL nominated;                     //!< Flag is TRUE if the agent is a controlling agent and FALSE otherwise. The agent role is based on the
+                                        //!< STUN_ATTRIBUTE_TYPE_USE_CANDIDATE flag
     NullableUint32 circuitBreakerTriggerCount; //!< Represents number of times circuit breaker is triggered during media transmission
                                                //!< It is undefined if the user agent does not use this
     UINT32 packetsDiscardedOnSend;             //!< Total number of packets discarded for candidate pair due to socket errors,
@@ -172,14 +174,14 @@ typedef struct {
  * Reference: https://www.w3.org/TR/webrtc-stats/#ice-server-dict*
  */
 typedef struct {
-    CHAR url[MAX_STATS_STRING_LENGTH + 1];      //!< STUN/TURN server URL
-    CHAR protocol[MAX_STATS_STRING_LENGTH + 1]; //!< Valid values: UDP, TCP
-    UINT32 iceServerIndex;                      //!< Ice server index to get stats from. Not available in spec! Needs to be
-                                                //!< populated by the application to get specific server stats
-    INT32 port;                                 //!< Port number used by client
-    UINT64 totalRequestsSent;                   //!< Total amount of requests that have been sent to the server
-    UINT64 totalResponsesReceived;              //!< Total number of responses received from the server
-    UINT64 totalRoundTripTime;                  //!< Sum of RTTs of all the requests for which response has been received
+    DOMString url;                 //!< STUN/TURN server URL
+    DOMString protocol;            //!< Valid values: UDP, TCP
+    UINT32 iceServerIndex;         //!< Ice server index to get stats from. Not available in spec! Needs to be
+                                   //!< populated by the application to get specific server stats
+    INT32 port;                    //!< Port number used by client
+    UINT64 totalRequestsSent;      //!< Total amount of requests that have been sent to the server
+    UINT64 totalResponsesReceived; //!< Total number of responses received from the server
+    UINT64 totalRoundTripTime;     //!< Sum of RTTs of all the requests for which response has been received
 } RtcIceServerStats, *PRtcIceServerStats;
 
 /**
@@ -189,10 +191,10 @@ typedef struct {
  */
 
 typedef struct {
-    CHAR url[MAX_STATS_STRING_LENGTH + 1];         //!< For local candidates this is the URL of the ICE server from which the candidate was obtained
-    CHAR transportId[MAX_STATS_STRING_LENGTH + 1]; //!< ID of object that was inspected for RTCTransportStats
-    BYTE address[MAX_STATS_ADDRESS_LENGTH];        //!< IPv4 or IPv6 address of the candidate
-    CHAR protocol[MAX_PROTOCOL_LENGTH + 1];        //!< Valid values: UDP, TCP
+    DOMString url;                          //!< For local candidates this is the URL of the ICE server from which the candidate was obtained
+    DOMString transportId;                  //!< ID of object that was inspected for RTCTransportStats
+    BYTE address[MAX_STATS_ADDRESS_LENGTH]; //!< IPv4 or IPv6 address of the candidate
+    CHAR protocol[MAX_PROTOCOL_LENGTH + 1]; //!< Valid values: UDP, TCP
     CHAR relayProtocol[MAX_RELAY_PROTOCOL_LENGTH + 1]; //!< Protocol used by endpoint to communicate with TURN server.
                                                        //!< Valid values: UDP, TCP, TLS
     INT32 priority;                                    //!< Computed using the formula in https://tools.ietf.org/html/rfc5245#section-15.1
@@ -206,11 +208,11 @@ typedef struct {
  * Reference: https://www.w3.org/TR/webrtc-stats/#transportstats-dict*
  */
 typedef struct {
-    CHAR rtcpTransportStatsId[MAX_STATS_STRING_LENGTH + 1];    //!< ID of the transport that gives stats for the RTCP component
-    CHAR selectedCandidatePairId[MAX_STATS_STRING_LENGTH + 1]; //!< ID of the object inspected to produce RtcIceCandidatePairStats
-    CHAR localCertificateId[MAX_STATS_STRING_LENGTH + 1];      //!< For components where DTLS is negotiated, give local certificate
-    CHAR remoteCertificateId[MAX_STATS_STRING_LENGTH + 1];     //!< For components where DTLS is negotiated, give remote certificate
-    CHAR tlsVersion[MAX_TLS_VERSION_LENGTH + 1];               //!< For components where DTLS is negotiated, the TLS version agreed
+    DOMString rtcpTransportStatsId;              //!< ID of the transport that gives stats for the RTCP component
+    DOMString selectedCandidatePairId;           //!< ID of the object inspected to produce RtcIceCandidatePairStats
+    DOMString localCertificateId;                //!< For components where DTLS is negotiated, give local certificate
+    DOMString remoteCertificateId;               //!< For components where DTLS is negotiated, give remote certificate
+    CHAR tlsVersion[MAX_TLS_VERSION_LENGTH + 1]; //!< For components where DTLS is negotiated, the TLS version agreed
     CHAR dtlsCipher[MAX_DTLS_CIPHER_LENGTH +
                     1]; //!< Descriptive name of the cipher suite used for the DTLS transport.
                         //!< Acceptable values: https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-4
@@ -228,11 +230,28 @@ typedef struct {
     UINT32 selectedCandidatePairChanges;      //!< The number of times that the selected candidate pair of this transport has changed
 } RtcTransportStats, *PRtcTransportStats;
 
+// https://www.w3.org/TR/webrtc-stats/#dom-rtcrtpstreamstats
+typedef struct {
+    UINT32 ssrc; //!< The 32-bit unsigned integer value per [RFC3550] used to identify the source of the stream of RTP packets that this stats object
+                 //!< concerns.
+    DOMString kind; //!< Either "audio" or "video". This MUST match the media type part of the information in the corresponding codecType member of
+                    //!< RTCCodecStats, and MUST match the "kind" attribute of the related MediaStreamTrack.
+    // TODO: transportId and codecId not yet populated
+    DOMString transportId; //!< It is a unique identifier that is associated to the object that was inspected to produce the RTCTransportStats
+                           //!< associated with this RTP stream.
+    DOMString codecId; //!< It is a unique identifier that is associated to the object that was inspected to produce the RTCCodecStats associated with
+                       //!< this RTP stream.
+} RTCRtpStreamStats, *PRTCRtpStreamStats;
+
 // https://www.w3.org/TR/webrtc-stats/#dom-rtcsentrtpstreamstats
 typedef struct {
-    volatile SIZE_T packetsSent;
-    volatile SIZE_T bytesSent;
-} RtcSentRtpStreamStats, *PRtcSentRtpStreamStats;
+    RTCRtpStreamStats rtpStream;
+    UINT64 packetsSent;
+    UINT64 bytesSent; //!< Total number of bytes sent for this SSRC. Calculated as defined in [RFC3550]
+                      //!< section 6.4.1.
+                      //!< The total number of payload octets (i.e., not including header or padding)
+                      //!< transmitted in RTP data packets by the sender since starting transmission
+} RTCSentRtpStreamStats, *PRTCSentRtpStreamStats;
 
 /**
  * @brief RtcOutboundRtpStreamStats
@@ -241,46 +260,45 @@ typedef struct {
  */
 typedef struct {
     // RTCOutboundRtpStreamStats extends RTCSentRtpStreamStats as per https://www.w3.org/TR/webrtc-stats/#dom-rtcoutboundrtpstreamstats
-    RtcSentRtpStreamStats sentRtpStreamStats;
-    BOOL voiceActivityFlag; //!< Only valid for audio. Whether the last RTP packet sent contained voice activity or not based on the presence
-                            //!< of the V bit in the extension header
-    CHAR trackId[MAX_STATS_STRING_LENGTH + 1];       //!< ID representing current track attached to the sender of the stream
-    CHAR mediaSourceId[MAX_STATS_STRING_LENGTH + 1]; //!< ID representing the current media source
-    CHAR senderId[MAX_STATS_STRING_LENGTH +
-                  1]; //!< The stats ID used to look up the RTCAudioSenderStats or RTCVideoSenderStats object sending this stream
-    CHAR remoteId[MAX_STATS_STRING_LENGTH + 1]; //!< ID to look up the remote RTCRemoteInboundRtpStreamStats object for the same SSRC
-    CHAR rid[MAX_STATS_STRING_LENGTH + 1]; //!< Exposes the rid encoding parameter of this RTP stream if it has been set, otherwise it is undefined
-    CHAR encoderImplementation[MAX_STATS_STRING_LENGTH + 1]; //!< Identifies the encoder implementation used.
-    UINT32 packetsDiscardedOnSend; //!< Total number of RTP packets for this SSRC that have been discarded due to socket errors
-    UINT32 framesSent;             //!< Only valid for video. Represents the total number of frames sent on this RTP stream
-    UINT32 hugeFramesSent;         //!< Only valid for video. Represents the total number of huge frames sent by this RTP stream
-                                   //!< Huge frames have an encoded size at least 2.5 times the average size of the frames
-    UINT32 framesEncoded;          //!< Only valid for video. It represents the total number of frames successfully encoded for this RTP media stream
-    UINT32 keyFramesEncoded;       //!< Only valid for video. It represents the total number of key frames encoded successfully in the RTP Stream
-    UINT32 framesDiscardedOnSend;  //!< Total number of video frames that have been discarded for this SSRC due to socket errors
-    UINT32 frameWidth;             //!< Only valid for video. Represents the width of the last encoded frame
-    UINT32 frameHeight;            //!< Only valid for video. Represents the height of the last encoded frame
-    UINT32 frameBitDepth;          //!< Only valid for video. Represents the bit depth per pixel of the last encoded frame. Typical values: 24, 30, 36
-    UINT32 nackCount;              //!< Count the total number of Negative ACKnowledgement (NACK) packets received by this sender.
-    UINT32 firCount;               //!< Only valid for video. Count the total number of Full Intra Request (FIR) packets received by this sender
-    UINT32 pliCount;               //!< Only valid for video. Count the total number of Picture Loss Indication (PLI) packets received by this sender
-    UINT32 sliCount;               //!< Only valid for video. Count the total number of Slice Loss Indication (SLI) packets received by this sender
+    RTCSentRtpStreamStats sent;
+    BOOL voiceActivityFlag;          //!< Only valid for audio. Whether the last RTP packet sent contained voice activity or not based on the presence
+                                     //!< of the V bit in the extension header
+    DOMString trackId;               //!< ID representing current track attached to the sender of the stream
+    DOMString mediaSourceId;         //!< TODO ID representing the current media source
+    DOMString senderId;              //!< TODO The stats ID used to look up the RTCAudioSenderStats or RTCVideoSenderStats object sending this stream
+    DOMString remoteId;              //!< TODO ID to look up the remote RTCRemoteInboundRtpStreamStats object for the same SSRC
+    DOMString rid;                   //!< TODO Exposes the rid encoding parameter of this RTP stream if it has been set, otherwise it is undefined
+    DOMString encoderImplementation; //!< Identifies the encoder implementation used.
+    UINT32 packetsDiscardedOnSend;   //!< Total number of RTP packets for this SSRC that have been discarded due to socket errors
+    UINT32 framesSent;               //!< Only valid for video. Represents the total number of frames sent on this RTP stream
+    UINT32 hugeFramesSent;           //!< Only valid for video. Represents the total number of huge frames sent by this RTP stream
+                                     //!< Huge frames have an encoded size at least 2.5 times the average size of the frames
+    UINT32 framesEncoded;         //!< Only valid for video. It represents the total number of frames successfully encoded for this RTP media stream
+    UINT32 keyFramesEncoded;      //!< Only valid for video. It represents the total number of key frames encoded successfully in the RTP Stream
+    UINT32 framesDiscardedOnSend; //!< Total number of video frames that have been discarded for this SSRC due to socket errors
+    UINT32 frameWidth;            //!< Only valid for video. Represents the width of the last encoded frame
+    UINT32 frameHeight;           //!< Only valid for video. Represents the height of the last encoded frame
+    UINT32 frameBitDepth;         //!< Only valid for video. Represents the bit depth per pixel of the last encoded frame. Typical values: 24, 30, 36
+    UINT32 nackCount;             //!< Count the total number of Negative ACKnowledgement (NACK) packets received by this sender.
+    UINT32 firCount;              //!< Only valid for video. Count the total number of Full Intra Request (FIR) packets received by this sender
+    UINT32 pliCount;              //!< Only valid for video. Count the total number of Picture Loss Indication (PLI) packets received by this sender
+    UINT32 sliCount;              //!< Only valid for video. Count the total number of Slice Loss Indication (SLI) packets received by this sender
     UINT32 qualityLimitationResolutionChanges; //!< Only valid for video. The number of times that the resolution has changed because we are quality
                                                //!< limited
-    INT32 fecPacketsSent;           //!< Total number of RTP FEC packets sent for this SSRC. Can also be incremented while sending FEC packets in band
-    UINT64 lastPacketSentTimestamp; //!< The timestamp at which the last packet was sent for this SSRC
-    UINT64 headerBytesSent;         //!< Total number of RTP header and padding bytes sent for this SSRC
-    UINT64 bytesDiscardedOnSend;    //!< Total number of bytes for this SSRC that have been discarded due to socket errors
+    INT32 fecPacketsSent; //!< TODO Total number of RTP FEC packets sent for this SSRC. Can also be incremented while sending FEC packets in band
+    UINT64 lastPacketSentTimestamp;  //!< The timestamp in milliseconds at which the last packet was sent for this SSRC
+    UINT64 headerBytesSent;          //!< Total number of RTP header and padding bytes sent for this SSRC
+    UINT64 bytesDiscardedOnSend;     //!< Total number of bytes for this SSRC that have been discarded due to socket errors
     UINT64 retransmittedPacketsSent; //!< The total number of packets that were retransmitted for this SSRC
     UINT64 retransmittedBytesSent;   //!< The total number of PAYLOAD bytes retransmitted for this SSRC
     UINT64 targetBitrate;            //!< Current target TIAS bitrate configured for this particular SSRC
     UINT64 totalEncodedBytesTarget;  //!< Increased by the target frame size in bytes every time a frame has been encoded
-    UINT64 framesPerSecond;          //!< Only valid for video. The number of encoded frames during the last second
-    UINT64 qpSum;                  //!< Only valid for video. The sum of the QP values of frames encoded by this sender. QP value depends on the codec
-    UINT64 totalSamplesSent;       //!< Only valid for audio. The total number of samples that have been sent over this RTP stream
-    UINT64 samplesEncodedWithSilk; //!< Only valid for audio and when the audio codec is Opus. Represnets only SILK portion of codec
-    UINT64 samplesEncodedWithCelt; //!< Only valid for audio and when the audio codec is Opus. Represnets only CELT portion of codec
-    UINT64 totalEncodeTime;        //!< Total number of seconds that has been spent encoding the framesEncoded frames of the stream
+    DOUBLE framesPerSecond;          //!< Only valid for video. The number of encoded frames during the last second
+    UINT64 qpSum;            //!< TODO Only valid for video. The sum of the QP values of frames encoded by this sender. QP value depends on the codec
+    UINT64 totalSamplesSent; //!< TODO Only valid for audio. The total number of samples that have been sent over this RTP stream
+    UINT64 samplesEncodedWithSilk; //!< TODO Only valid for audio and when the audio codec is Opus. Represnets only SILK portion of codec
+    UINT64 samplesEncodedWithCelt; //!< TODO Only valid for audio and when the audio codec is Opus. Represnets only CELT portion of codec
+    UINT64 totalEncodeTime;        //!< Total number of milliseconds that has been spent encoding the framesEncoded frames of the stream
     UINT64 totalPacketSendDelay;   //!< Total time (seconds) packets have spent buffered locally before being transmitted onto the network
     UINT64 averageRtcpInterval;    //!< The average RTCP interval between two consecutive compound RTCP packets
     QualityLimitationDurationsRecord qualityLimitationDurations; //!< Total time (seconds) spent in each reason state
@@ -294,8 +312,8 @@ typedef struct {
  * Reference: https://www.w3.org/TR/webrtc-stats/#remoteinboundrtpstats-dict*
  */
 typedef struct {
-    CHAR localId[MAX_STATS_STRING_LENGTH + 1]; //!< Used to look up RTCOutboundRtpStreamStats for the SSRC
-    UINT64 roundTripTime;                      //!< Estimated round trip time (seconds) for this SSRC based on the RTCP timestamps
+    DOMString localId;                //!< Used to look up RTCOutboundRtpStreamStats for the SSRC
+    UINT64 roundTripTime;             //!< Estimated round trip time (milliseconds) for this SSRC based on the RTCP timestamps
     UINT64 totalRoundTripTime;        //!< The cumulative sum of all round trip time measurements in seconds since the beginning of the session
     UINT64 fractionLost;              //!< The fraction packet loss reported for this SSRC
     UINT64 reportsReceived;           //!< Total number of RTCP RR blocks received for this SSRC

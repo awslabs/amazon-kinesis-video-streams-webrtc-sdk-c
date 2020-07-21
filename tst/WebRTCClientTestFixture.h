@@ -30,6 +30,8 @@ typedef struct {
     PAwsCredentials pAwsCredentials;
 } StaticCredentialProvider, *PStaticCredentialProvider;
 
+STATUS createRtpPacketWithSeqNum(UINT16 seqNum, PRtpPacket* ppRtpPacket);
+
 class WebRtcClientTestBase : public ::testing::Test {
   public:
     PUINT32 mExpectedFrameSizeArr;
