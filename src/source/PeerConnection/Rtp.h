@@ -17,6 +17,10 @@ extern "C" {
 #define DEFAULT_PEER_FRAME_BUFFER_SIZE             (5 * 1024)
 #define SRTP_AUTH_TAG_OVERHEAD                     10
 
+// https://www.w3.org/TR/webrtc-stats/#dom-rtcoutboundrtpstreamstats-huge
+// Huge frames, by definition, are frames that have an encoded size at least 2.5 times the average size of the frames.
+#define HUGE_FRAME_MULTIPLIER 2.5
+
 typedef struct {
     UINT8 payloadType;
     UINT8 rtxPayloadType;
@@ -30,9 +34,15 @@ typedef struct {
     PRtpRollingBuffer packetBuffer;
     PRetransmitter retransmitter;
 
-    RtcOutboundRtpStreamStats outboundRtpStreamStats;
+    MUTEX statsLock;
+    RtcOutboundRtpStreamStats outboundStats;
+    RtcRemoteInboundRtpStreamStats remoteInboundStats;
     UINT64 rtpTimeOffset;
     UINT64 firstFrameWallClockTime; // 100ns precision
+
+    // used for fps calculation
+    UINT64 lastKnownFrameCount;
+    UINT64 lastKnownFrameCountTime; // 100ns precision
 
 } RtcRtpSender, *PRtcRtpSender;
 
@@ -65,9 +75,12 @@ STATUS freeKvsRtpTransceiver(PKvsRtpTransceiver*);
 
 STATUS kvsRtpTransceiverSetJitterBuffer(PKvsRtpTransceiver, PJitterBuffer);
 
-#define convertTimestampToRTP(clockRate, pts) (pts * clockRate / HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define CONVERT_TIMESTAMP_TO_RTP(clockRate, pts) (pts * clockRate / HUNDREDS_OF_NANOS_IN_A_SECOND)
 
 STATUS writeRtpPacket(PKvsPeerConnection pKvsPeerConnection, PRtpPacket pRtpPacket);
+
+STATUS hasTransceiverWithSsrc(PKvsPeerConnection pKvsPeerConnection, UINT32 ssrc);
+STATUS findTransceiverBySsrc(PKvsPeerConnection pKvsPeerConnection, PKvsRtpTransceiver* ppTransceiver, UINT32 ssrc);
 
 #ifdef __cplusplus
 }
