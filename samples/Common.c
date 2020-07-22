@@ -322,6 +322,7 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     UINT32 i, j, iceConfigCount, uriCount;
     PIceConfigInfo pIceConfigInfo;
     const UINT32 maxTurnServer = 1;
+    uriCount = 0;
 
     CHK(pSampleConfiguration != NULL && ppRtcPeerConnection != NULL, STATUS_NULL_ARG);
 
@@ -361,11 +362,35 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
             }
         }
     }
-
+    pSampleConfiguration->iceUriCount = uriCount + 1;
     CHK_STATUS(createPeerConnection(&configuration, ppRtcPeerConnection));
 
 CleanUp:
 
+    return retStatus;
+}
+
+// Return ICE server stats for a specific streaming session
+STATUS gatherIceServerStats(PSampleStreamingSession pSampleStreamingSession)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    RtcStats rtcmetrics;
+    UINT32 j = 0;
+    rtcmetrics.requestedTypeOfStats = RTC_STATS_TYPE_ICE_SERVER;
+    for (; j < pSampleStreamingSession->pSampleConfiguration->iceUriCount; j++) {
+        rtcmetrics.rtcStatsObject.iceServerStats.iceServerIndex = j;
+        CHK_STATUS(rtcPeerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, &rtcmetrics));
+        DLOGD("ICE Server URL: %s", rtcmetrics.rtcStatsObject.iceServerStats.url);
+        DLOGD("ICE Server port: %d", rtcmetrics.rtcStatsObject.iceServerStats.port);
+        DLOGD("ICE Server protocol: %s", rtcmetrics.rtcStatsObject.iceServerStats.protocol);
+        DLOGD("Total requests sent:%" PRIu64, rtcmetrics.rtcStatsObject.iceServerStats.totalRequestsSent);
+        DLOGD("Total responses received: %" PRIu64, rtcmetrics.rtcStatsObject.iceServerStats.totalResponsesReceived);
+        DLOGD("Total round trip time: %" PRIu64 "ms",
+              rtcmetrics.rtcStatsObject.iceServerStats.totalRoundTripTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+CleanUp:
+    LEAVES();
     return retStatus;
 }
 
@@ -674,6 +699,8 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     ATOMIC_STORE_BOOL(&pSampleConfiguration->updatingSampleStreamingSessionList, FALSE);
     ATOMIC_STORE_BOOL(&pSampleConfiguration->recreateSignalingClient, FALSE);
 
+    pSampleConfiguration->iceUriCount = 0;
+
 CleanUp:
 
     if (STATUS_FAILED(retStatus)) {
@@ -687,6 +714,27 @@ CleanUp:
     return retStatus;
 }
 
+STATUS logSignalingClientStats(PSignalingClientMetrics pSignalingClientMetrics)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    CHK(pSignalingClientMetrics != NULL, STATUS_NULL_ARG);
+    DLOGD("Signaling client connection duration: %" PRIu64 " ms",
+          (pSignalingClientMetrics->signalingClientStats.connectionDuration / HUNDREDS_OF_NANOS_IN_A_MILLISECOND));
+    DLOGD("Number of signaling client API errors: %d", pSignalingClientMetrics->signalingClientStats.numberOfErrors);
+    DLOGD("Number of runtime errors in the session: %d", pSignalingClientMetrics->signalingClientStats.numberOfRuntimeErrors);
+    DLOGD("Signaling client uptime: %" PRIu64 " ms",
+          (pSignalingClientMetrics->signalingClientStats.connectionDuration / HUNDREDS_OF_NANOS_IN_A_MILLISECOND));
+    // This gives the EMA of the createChannel, describeChannel, getChannelEndpoint and deleteChannel calls
+    DLOGD("Control Plane API call latency: %" PRIu64 " ms",
+          (pSignalingClientMetrics->signalingClientStats.cpApiCallLatency / HUNDREDS_OF_NANOS_IN_A_MILLISECOND));
+    // This gives the EMA of the getIceConfig() call.
+    DLOGD("Data Plane API call latency: %" PRIu64 " ms",
+          (pSignalingClientMetrics->signalingClientStats.dpApiCallLatency / HUNDREDS_OF_NANOS_IN_A_MILLISECOND));
+CleanUp:
+    LEAVES();
+    return retStatus;
+}
 STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
 {
     ENTERS();
@@ -698,8 +746,11 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
     pSampleConfiguration = *ppSampleConfiguration;
 
     CHK(pSampleConfiguration != NULL, retStatus);
-
     for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
+        retStatus = gatherIceServerStats(pSampleConfiguration->sampleStreamingSessionList[i]);
+        if (STATUS_FAILED(retStatus)) {
+            DLOGW("Failed to ICE Server Stats for streaming session %d: %08x", i, retStatus);
+        }
         freeSampleStreamingSession(&pSampleConfiguration->sampleStreamingSessionList[i]);
     }
 
