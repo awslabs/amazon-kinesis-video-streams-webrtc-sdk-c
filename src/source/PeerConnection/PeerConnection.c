@@ -499,9 +499,12 @@ STATUS rtcpReportsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData
             convertTimestampToRTP(pKvsRtpTransceiver->pJitterBuffer->clockRate, currentTime - pKvsRtpTransceiver->sender.firstFrameWallClockTime);
         packetCount = pKvsRtpTransceiver->sender.outboundRtpStreamStats.sentRtpStreamStats.packetsSent;
         octetCount = pKvsRtpTransceiver->sender.outboundRtpStreamStats.sentRtpStreamStats.bytesSent;
-        DLOGD("sender report %u %" PRIu64 " %" PRIu64 " : %u packets %u bytes", ssrc, ntpTime, rtpTime, packetCount, octetCount);
+        DLOGV("sender report %u %" PRIu64 " %" PRIu64 " : %u packets %u bytes", ssrc, ntpTime, rtpTime, packetCount, octetCount);
         packetLen = RTCP_PACKET_HEADER_LEN + 24;
-        allocSize = packetLen + SRTP_AUTH_TAG_OVERHEAD;
+
+        // srtp_protect_rtcp() in encryptRtcpPacket() assumes memory availability to write 10 bytes of authentication tag and
+        // SRTP_MAX_TRAILER_LEN + 4 following the actual rtcp Packet payload
+        allocSize = packetLen + SRTP_AUTH_TAG_OVERHEAD + SRTP_MAX_TRAILER_LEN + 4;
         CHK(NULL != (rawPacket = (PBYTE) MEMALLOC(allocSize)), STATUS_NOT_ENOUGH_MEMORY);
         rawPacket[0] = RTCP_PACKET_VERSION_VAL << 6;
         rawPacket[RTCP_PACKET_TYPE_OFFSET] = RTCP_PACKET_TYPE_SENDER_REPORT;
@@ -517,7 +520,7 @@ STATUS rtcpReportsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData
     }
 
     delay = 100 + (RAND() % 200);
-    DLOGD("next sender report %u in %" PRIu64 " msec", ssrc, delay);
+    DLOGV("next sender report %u in %" PRIu64 " msec", ssrc, delay);
     // reschedule timer with 200msec +- 100ms
     CHK_STATUS(timerQueueAddTimer(pKvsPeerConnection->timerQueueHandle, delay * HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
                                   TIMER_QUEUE_SINGLE_INVOCATION_PERIOD, rtcpReportsCallback, (UINT64) pKvsRtpTransceiver,
