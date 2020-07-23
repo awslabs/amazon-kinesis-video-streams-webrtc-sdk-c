@@ -260,6 +260,7 @@ typedef struct {
  */
 typedef struct {
     // RTCOutboundRtpStreamStats extends RTCSentRtpStreamStats as per https://www.w3.org/TR/webrtc-stats/#dom-rtcoutboundrtpstreamstats
+
     RTCSentRtpStreamStats sent;
     BOOL voiceActivityFlag;          //!< Only valid for audio. Whether the last RTP packet sent contained voice activity or not based on the presence
                                      //!< of the V bit in the extension header
@@ -285,22 +286,25 @@ typedef struct {
     UINT32 sliCount;              //!< Only valid for video. Count the total number of Slice Loss Indication (SLI) packets received by this sender
     UINT32 qualityLimitationResolutionChanges; //!< Only valid for video. The number of times that the resolution has changed because we are quality
                                                //!< limited
-    INT32 fecPacketsSent;           //!< Total number of RTP FEC packets sent for this SSRC. Can also be incremented while sending FEC packets in band
-    UINT64 lastPacketSentTimestamp; //!< The timestamp at which the last packet was sent for this SSRC
-    UINT64 headerBytesSent;         //!< Total number of RTP header and padding bytes sent for this SSRC
-    UINT64 bytesDiscardedOnSend;    //!< Total number of bytes for this SSRC that have been discarded due to socket errors
+    INT32 fecPacketsSent; //!< TODO Total number of RTP FEC packets sent for this SSRC. Can also be incremented while sending FEC packets in band
+    UINT64 lastPacketSentTimestamp;  //!< The timestamp in milliseconds at which the last packet was sent for this SSRC
+    UINT64 headerBytesSent;          //!< Total number of RTP header and padding bytes sent for this SSRC
+    UINT64 bytesDiscardedOnSend;     //!< Total number of bytes for this SSRC that have been discarded due to socket errors    UINT64
+                                     //!< retransmittedPacketsSent; //!< The total number of packets that were retransmitted for this SSRC
     UINT64 retransmittedPacketsSent; //!< The total number of packets that were retransmitted for this SSRC
     UINT64 retransmittedBytesSent;   //!< The total number of PAYLOAD bytes retransmitted for this SSRC
     UINT64 targetBitrate;            //!< Current target TIAS bitrate configured for this particular SSRC
     UINT64 totalEncodedBytesTarget;  //!< Increased by the target frame size in bytes every time a frame has been encoded
     DOUBLE framesPerSecond;          //!< Only valid for video. The number of encoded frames during the last second
-    UINT64 qpSum;                  //!< Only valid for video. The sum of the QP values of frames encoded by this sender. QP value depends on the codec
-    UINT64 totalSamplesSent;       //!< Only valid for audio. The total number of samples that have been sent over this RTP stream
-    UINT64 samplesEncodedWithSilk; //!< Only valid for audio and when the audio codec is Opus. Represnets only SILK portion of codec
-    UINT64 samplesEncodedWithCelt; //!< Only valid for audio and when the audio codec is Opus. Represnets only CELT portion of codec
-    UINT64 totalEncodeTime;        //!< Total number of seconds that has been spent encoding the framesEncoded frames of the stream
-    UINT64 totalPacketSendDelay;   //!< Total time (seconds) packets have spent buffered locally before being transmitted onto the network
-    UINT64 averageRtcpInterval;    //!< The average RTCP interval between two consecutive compound RTCP packets
+    UINT64 qpSum;            //!< TODO Only valid for video. The sum of the QP values of frames encoded by this sender. QP value depends on the codec
+    UINT64 totalSamplesSent; //!< TODO Only valid for audio. The total number of samples that have been sent over this RTP stream
+    UINT64 samplesEncodedWithSilk; //!< TODO Only valid for audio and when the audio codec is Opus. Represnets only SILK portion of codec
+    UINT64 samplesEncodedWithCelt; //!< TODO Only valid for audio and when the audio codec is Opus. Represnets only CELT portion of codec
+    UINT64 totalEncodeTime;        //!< Total number of milliseconds that has been spent encoding the framesEncoded frames of the stream    UINT64
+                            //!< totalPacketSendDelay;   //!< Total time (seconds) packets have spent buffered locally before being transmitted onto
+                            //!< the network
+    UINT64 totalPacketSendDelay; //!< Total time (seconds) packets have spent buffered locally before being transmitted onto the network
+    UINT64 averageRtcpInterval;  //!< The average RTCP interval between two consecutive compound RTCP packets
     QualityLimitationDurationsRecord qualityLimitationDurations; //!< Total time (seconds) spent in each reason state
     DscpPacketsSentRecord perDscpPacketsSent;                    //!< Total number of packets sent for this SSRC, per DSCP
     RTC_QUALITY_LIMITATION_REASON qualityLimitationReason;       //!< Only valid for video.
@@ -312,11 +316,13 @@ typedef struct {
  * Reference: https://www.w3.org/TR/webrtc-stats/#remoteinboundrtpstats-dict*
  */
 typedef struct {
-    CHAR localId[MAX_STATS_STRING_LENGTH + 1]; //!< Used to look up RTCOutboundRtpStreamStats for the SSRC
-    UINT64 roundTripTime;                      //!< Estimated round trip time (seconds) for this SSRC based on the RTCP timestamps
-    UINT64 totalRoundTripTime;        //!< The cumulative sum of all round trip time measurements in seconds since the beginning of the session
-    DOUBLE fractionLost;              //!< The fraction packet loss reported for this SSRC
-    UINT64 reportsReceived;           //!< Total number of RTCP RR blocks received for this SSRC
+    DOMString localId;         //!< Used to look up RTCOutboundRtpStreamStats for the SSRC
+    UINT64 roundTripTime;      //!< Estimated round trip time (milliseconds) for this SSRC based on the RTCP timestamps
+    UINT64 totalRoundTripTime; //!< The cumulative sum of all round trip time measurements in seconds since the beginning of the session   UINT64
+                               //!< totalRoundTripTime;        //!< The cumulative sum of all round trip time measurements in seconds since the
+                               //!< beginning of the session
+    DOUBLE fractionLost;       //!< The fraction packet loss reported for this SSRC
+    UINT64 reportsReceived;    //!< Total number of RTCP RR blocks received for this SSRC
     UINT64 roundTripTimeMeasurements; //!< Total number of RTCP RR blocks received for this SSRC that contain a valid round trip time
 } RtcRemoteInboundRtpStreamStats, *PRtcRemoteInboundRtpStreamStats;
 
