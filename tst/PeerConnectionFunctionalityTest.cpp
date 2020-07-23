@@ -410,10 +410,6 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersExpectFailureBecauseNoCan
 // Assert that two PeerConnections can connect and then send media until the receiver gets both audio/video
 TEST_F(PeerConnectionFunctionalityTest, exchangeMedia)
 {
-    if (!mAccessKeyIdSet) {
-        return;
-    }
-
     auto const frameBufferSize = 200000;
 
     RtcConfiguration configuration;
@@ -454,6 +450,17 @@ TEST_F(PeerConnectionFunctionalityTest, exchangeMedia)
     }
 
     MEMFREE(videoFrame.frameData);
+    RtcOutboundRtpStreamStats stats{};
+    EXPECT_EQ(STATUS_SUCCESS, getRtpOutboundStats(offerPc, offerVideoTransceiver, &stats));
+    EXPECT_EQ(2, stats.sent.packetsSent);
+#ifdef KVS_USE_MBEDTLS
+    EXPECT_EQ(248026, stats.sent.bytesSent);
+#else
+    EXPECT_EQ(246790, stats.sent.bytesSent);
+#endif
+    EXPECT_EQ(2, stats.framesSent);
+    EXPECT_EQ(2472, stats.headerBytesSent);
+    EXPECT_LT(0, stats.lastPacketSentTimestamp);
 
     closePeerConnection(offerPc);
     closePeerConnection(answerPc);

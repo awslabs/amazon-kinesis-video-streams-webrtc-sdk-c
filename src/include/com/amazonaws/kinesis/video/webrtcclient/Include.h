@@ -1321,6 +1321,26 @@ typedef struct {
     RtcStatsObject rtcStatsObject;       //!< Object that is populated by the SDK on request
 } RtcStats, *PRtcStats;
 
+typedef struct {
+    /**
+     * It is the current target bitrate configured for this particular SSRC and is the Transport Independent Application Specific (TIAS) bitrate
+     * [RFC3890]. Typically, the target bitrate is a configuration parameter provided to the codec's encoder and does not count the size of the IP or
+     * other transport layers like TCP or UDP. It is measured in bits per second and the bitrate is calculated over a 1 second window.
+     */
+    UINT32 targetBitrate;
+
+    UINT16 width;    //!< Only valid for video.
+    UINT16 height;   //!< Only valid for video.
+    UINT16 bitDepth; //!< Only valid for video. bits per pixel (24, 30, 36), note it's not per channel but per pixel
+
+    /** milliseconds spent encoding frames since last encoder update */
+    UINT32 encodeTimeMsec;
+
+    BOOL voiceActivity;              //!< Only valid for audio. TRUE if last audio packet contained voice.
+    DOMString encoderImplementation; //!< encoder name eg "libvpx" or "x264"
+
+} RtcEncoderStats, *PRtcEncoderStats;
+
 ////////////////////////////////////////////////////
 // Public functions
 ////////////////////////////////////////////////////
@@ -1606,6 +1626,11 @@ PUBLIC_API STATUS addSupportedCodec(PRtcPeerConnection, RTC_CODEC);
  * @return STATUS code of the execution. STATUS_SUCCESS on success
  */
 PUBLIC_API STATUS writeFrame(PRtcRtpTransceiver, PFrame);
+
+/** @brief call this function to update stats which depend on external encoder
+ * TODO: add better docs
+ */
+PUBLIC_API STATUS updateEncoderStats(PRtcRtpTransceiver, PRtcEncoderStats);
 
 /**
  * @brief Provides a remote candidate to the ICE Agent.
