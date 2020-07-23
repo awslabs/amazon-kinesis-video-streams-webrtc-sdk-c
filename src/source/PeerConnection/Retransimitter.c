@@ -129,7 +129,6 @@ CleanUp:
         freeRtpPacket(&pRtpPacket);
         pRtpPacket = NULL;
     }
-    freeRtpPacket(&pRtpPacket);
 
     LEAVES();
     return retStatus;
