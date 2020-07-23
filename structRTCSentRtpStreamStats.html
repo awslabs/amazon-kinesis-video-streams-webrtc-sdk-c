@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.18"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Amazon Kinesis Webrtc C SDK: RtcSentRtpStreamStats Struct Reference</title>
+<title>Amazon Kinesis Webrtc C SDK: RTCSentRtpStreamStats Struct Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -72,7 +72,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 </div>
 <script type="text/javascript">
 /* @license magnet:?xt=urn:btih:cf05388f2679ee054f2beb29a391d25f4e673ac3&amp;dn=gpl-2.0.txt GPL-v2 */
-$(document).ready(function(){initNavTree('structRtcSentRtpStreamStats.html',''); initResizable(); });
+$(document).ready(function(){initNavTree('structRTCSentRtpStreamStats.html',''); initResizable(); });
 /* @license-end */
 </script>
 <div id="doc-content">
@@ -93,9 +93,9 @@ $(document).ready(function(){initNavTree('structRtcSentRtpStreamStats.html','');
 <div class="header">
   <div class="summary">
 <a href="#pub-attribs">Public Attributes</a> &#124;
-<a href="structRtcSentRtpStreamStats-members.html">List of all members</a>  </div>
+<a href="structRTCSentRtpStreamStats-members.html">List of all members</a>  </div>
   <div class="headertitle">
-<div class="title">RtcSentRtpStreamStats Struct Reference</div>  </div>
+<div class="title">RTCSentRtpStreamStats Struct Reference</div>  </div>
 </div><!--header-->
 <div class="contents">
 
@@ -103,34 +103,51 @@ $(document).ready(function(){initNavTree('structRtcSentRtpStreamStats.html','');
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
-<tr class="memitem:a1db7d4dae320fad1945727dc62380950"><td class="memItemLeft" align="right" valign="top">volatile SIZE_T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRtcSentRtpStreamStats.html#a1db7d4dae320fad1945727dc62380950">packetsSent</a></td></tr>
-<tr class="separator:a1db7d4dae320fad1945727dc62380950"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7a4f5e55e42efdd2291911853b9aad0d"><td class="memItemLeft" align="right" valign="top">volatile SIZE_T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRtcSentRtpStreamStats.html#a7a4f5e55e42efdd2291911853b9aad0d">bytesSent</a></td></tr>
-<tr class="separator:a7a4f5e55e42efdd2291911853b9aad0d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af59ae5f50053c04a04788c42ae4234d2"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structRTCRtpStreamStats.html">RTCRtpStreamStats</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRTCSentRtpStreamStats.html#af59ae5f50053c04a04788c42ae4234d2">rtpStream</a></td></tr>
+<tr class="separator:af59ae5f50053c04a04788c42ae4234d2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab8478366cd1707b6ad11b2b6f752b78d"><td class="memItemLeft" align="right" valign="top">UINT64&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRTCSentRtpStreamStats.html#ab8478366cd1707b6ad11b2b6f752b78d">packetsSent</a></td></tr>
+<tr class="separator:ab8478366cd1707b6ad11b2b6f752b78d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abe1cc70b4dfdf42c69131690a8f50e80"><td class="memItemLeft" align="right" valign="top">UINT64&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRTCSentRtpStreamStats.html#abe1cc70b4dfdf42c69131690a8f50e80">bytesSent</a></td></tr>
+<tr class="separator:abe1cc70b4dfdf42c69131690a8f50e80"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Member Data Documentation</h2>
-<a id="a7a4f5e55e42efdd2291911853b9aad0d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a7a4f5e55e42efdd2291911853b9aad0d">&#9670;&nbsp;</a></span>bytesSent</h2>
+<a id="abe1cc70b4dfdf42c69131690a8f50e80"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#abe1cc70b4dfdf42c69131690a8f50e80">&#9670;&nbsp;</a></span>bytesSent</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">volatile SIZE_T RtcSentRtpStreamStats::bytesSent</td>
+          <td class="memname">UINT64 RTCSentRtpStreamStats::bytesSent</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Total number of bytes sent for this SSRC. Calculated as defined in [RFC3550] section 6.4.1. The total number of payload octets (i.e., not including header or padding) transmitted in RTP data packets by the sender since starting transmission </p>
+
+</div>
+</div>
+<a id="ab8478366cd1707b6ad11b2b6f752b78d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab8478366cd1707b6ad11b2b6f752b78d">&#9670;&nbsp;</a></span>packetsSent</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">UINT64 RTCSentRtpStreamStats::packetsSent</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
 </div>
 </div>
-<a id="a1db7d4dae320fad1945727dc62380950"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a1db7d4dae320fad1945727dc62380950">&#9670;&nbsp;</a></span>packetsSent</h2>
+<a id="af59ae5f50053c04a04788c42ae4234d2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af59ae5f50053c04a04788c42ae4234d2">&#9670;&nbsp;</a></span>rtpStream</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">volatile SIZE_T RtcSentRtpStreamStats::packetsSent</td>
+          <td class="memname"><a class="el" href="structRTCRtpStreamStats.html">RTCRtpStreamStats</a> RTCSentRtpStreamStats::rtpStream</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -145,8 +162,8 @@ Public Attributes</h2></td></tr>
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="navelem"><a class="el" href="structRtcSentRtpStreamStats.html">RtcSentRtpStreamStats</a></li>
-    <li class="footer">Generated on Thu Jul 23 2020 19:40:21 for Amazon Kinesis Webrtc C SDK by
+    <li class="navelem"><a class="el" href="structRTCSentRtpStreamStats.html">RTCSentRtpStreamStats</a></li>
+    <li class="footer">Generated on Thu Jul 23 2020 23:19:43 for Amazon Kinesis Webrtc C SDK by
     <a href="http://www.doxygen.org/index.html">
     <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.18 </li>
   </ul>

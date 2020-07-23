@@ -24,6 +24,7 @@ var Include_8h =
     [ "RtcStreamMetrics", "structRtcStreamMetrics.html", "structRtcStreamMetrics" ],
     [ "SignalingClientMetrics", "structSignalingClientMetrics.html", "structSignalingClientMetrics" ],
     [ "RtcStats", "structRtcStats.html", "structRtcStats" ],
+    [ "RtcEncoderStats", "structRtcEncoderStats.html", "structRtcEncoderStats" ],
     [ "CHANNEL_INFO_CURRENT_VERSION", "group__StructureVersions.html#gae7a5b2883ec07248e6c913777cabfbab", null ],
     [ "CHK_LOG_ERR_NV", "Include_8h.html#a39137beaf587d297125406df4bd48b55", null ],
     [ "DEFAULT_JITTER_BUFFER_MAX_LATENCY", "group__Timeouts.html#ga68734a4d3e800489c25681de0f08259e", null ],
@@ -273,6 +274,7 @@ var Include_8h =
     [ "PRtcConfiguration", "Include_8h.html#ab085c3d89945657593ef4c32a48928c1", null ],
     [ "PRtcDataChannel", "Include_8h.html#a2be6b5f6da1b3a0471ad7b4443b90779", null ],
     [ "PRtcDataChannelInit", "Include_8h.html#ab970e0095d779c18c106620eac5fbbc6", null ],
+    [ "PRtcEncoderStats", "Include_8h.html#a8927731e3a97833866d3a5ecb00a3460", null ],
     [ "PRtcIceCandidateInit", "Include_8h.html#ac00fdb7844950b5ae47a60ba2a5481db", null ],
     [ "PRtcIceMetrics", "Include_8h.html#af75ec0fba0bdf1da6dd91ca1fa13ae73", null ],
     [ "PRtcIceServer", "Include_8h.html#a3dac633294f8d8a99f3edaa2a193f808", null ],
@@ -434,5 +436,6 @@ var Include_8h =
     [ "signalingClientSendMessageSync", "Include_8h.html#ae6d8d80d47699c5494de1dc3d455b1f4", null ],
     [ "transceiverOnBandwidthEstimation", "Include_8h.html#aa919159204f486007c559c0e636268c1", null ],
     [ "transceiverOnFrame", "Include_8h.html#aaac28c64135c6cd9727b9b01992b9df1", null ],
+    [ "updateEncoderStats", "Include_8h.html#aba8d6226887ac3b7c24ec3a5f686e5c5", null ],
     [ "writeFrame", "Include_8h.html#a40c7caf6325f426d82030beec50cc86e", null ]
 ];

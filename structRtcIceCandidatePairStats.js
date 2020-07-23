@@ -14,12 +14,12 @@ var structRtcIceCandidatePairStats =
     [ "lastPacketSentTimestamp", "structRtcIceCandidatePairStats.html#ade069eeed216733900ec7535cf1d1ed1", null ],
     [ "lastRequestTimestamp", "structRtcIceCandidatePairStats.html#a39bf92a151b70beee216bd2a9e48605b", null ],
     [ "lastResponseTimestamp", "structRtcIceCandidatePairStats.html#a71057f5bd034b42cfcd17cc7e5755d05", null ],
-    [ "localCandidateId", "structRtcIceCandidatePairStats.html#ae263ce92ce328d94a32a4a6995d5ec7b", null ],
+    [ "localCandidateId", "structRtcIceCandidatePairStats.html#a673d07fcd8688f59e31c1e98bc682749", null ],
     [ "nominated", "structRtcIceCandidatePairStats.html#a25a4a9ef167cff9692ac39d0a9191ee7", null ],
     [ "packetsDiscardedOnSend", "structRtcIceCandidatePairStats.html#a56cc5e5a17f8d0924868f9a38beb9a29", null ],
     [ "packetsReceived", "structRtcIceCandidatePairStats.html#afe78dc8769bb441016e095608a687dd1", null ],
     [ "packetsSent", "structRtcIceCandidatePairStats.html#a1e39cc5fa2ed411a69a5f9a4b2315164", null ],
-    [ "remoteCandidateId", "structRtcIceCandidatePairStats.html#a14c632352a81e1023a38a00b442951e3", null ],
+    [ "remoteCandidateId", "structRtcIceCandidatePairStats.html#a1bd091dffc37d387f84aa80a8df3c7d1", null ],
     [ "requestsReceived", "structRtcIceCandidatePairStats.html#aeae2acf2970f73ebf4fa11cebed1edc8", null ],
     [ "requestsSent", "structRtcIceCandidatePairStats.html#a4591fc4e25756909e5def3df215c4c4e", null ],
     [ "responsesReceived", "structRtcIceCandidatePairStats.html#a0f64384f33b03c14e02a02be4f14bc65", null ],
@@ -28,5 +28,5 @@ var structRtcIceCandidatePairStats =
     [ "retransmissionsSent", "structRtcIceCandidatePairStats.html#a2acc0ae43d707b41c02ff442fe3edee2", null ],
     [ "state", "structRtcIceCandidatePairStats.html#a80a49c7e38ddd794e53744c873b5e629", null ],
     [ "totalRoundTripTime", "structRtcIceCandidatePairStats.html#a094d17f582ad8f6625f232642afc2ecc", null ],
-    [ "transportId", "structRtcIceCandidatePairStats.html#aa2fbd787ba7a4de2b83e0dca103f201c", null ]
+    [ "transportId", "structRtcIceCandidatePairStats.html#abbd7664deaca834369d8fab86daf4f9c", null ]
 ];

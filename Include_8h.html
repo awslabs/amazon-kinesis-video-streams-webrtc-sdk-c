@@ -181,6 +181,8 @@ Classes</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRtcStats.html">RtcStats</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">The stats object is populated based on RTCStatsType request.  <a href="structRtcStats.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRtcEncoderStats.html">RtcEncoderStats</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="define-members"></a>
 Macros</h2></td></tr>
@@ -759,6 +761,8 @@ Typedefs</h2></td></tr>
 <tr class="separator:a9db7af67932ea54332e1978fae9240ba"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abdd6279872601de0a012f1f3f50c8c82"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRtcStats.html">RtcStats</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#abdd6279872601de0a012f1f3f50c8c82">PRtcStats</a></td></tr>
 <tr class="separator:abdd6279872601de0a012f1f3f50c8c82"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8927731e3a97833866d3a5ecb00a3460"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRtcEncoderStats.html">RtcEncoderStats</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#a8927731e3a97833866d3a5ecb00a3460">PRtcEncoderStats</a></td></tr>
+<tr class="separator:a8927731e3a97833866d3a5ecb00a3460"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="enum-members"></a>
 Enumerations</h2></td></tr>
@@ -952,6 +956,9 @@ Functions</h2></td></tr>
 <tr class="memitem:a40c7caf6325f426d82030beec50cc86e"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#a40c7caf6325f426d82030beec50cc86e">writeFrame</a> (<a class="el" href="Include_8h.html#a575b38a26ceae3044dd16d8d72667ebf">PRtcRtpTransceiver</a>, PFrame)</td></tr>
 <tr class="memdesc:a40c7caf6325f426d82030beec50cc86e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Packetizes and sends media via the configuration specified by the <a class="el" href="structRtcRtpTransceiver.html" title="The RTCRtpTransceiver represents a combination of an RTCRtpSender and an RTCRtpReceiver that share a ...">RtcRtpTransceiver</a>.  <a href="Include_8h.html#a40c7caf6325f426d82030beec50cc86e">More...</a><br /></td></tr>
 <tr class="separator:a40c7caf6325f426d82030beec50cc86e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aba8d6226887ac3b7c24ec3a5f686e5c5"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#aba8d6226887ac3b7c24ec3a5f686e5c5">updateEncoderStats</a> (<a class="el" href="Include_8h.html#a575b38a26ceae3044dd16d8d72667ebf">PRtcRtpTransceiver</a>, <a class="el" href="Include_8h.html#a8927731e3a97833866d3a5ecb00a3460">PRtcEncoderStats</a>)</td></tr>
+<tr class="memdesc:aba8d6226887ac3b7c24ec3a5f686e5c5"><td class="mdescLeft">&#160;</td><td class="mdescRight">call this function to update stats which depend on external encoder TODO: add better docs  <a href="Include_8h.html#aba8d6226887ac3b7c24ec3a5f686e5c5">More...</a><br /></td></tr>
+<tr class="separator:aba8d6226887ac3b7c24ec3a5f686e5c5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1722e3794e91a87ba8d73d36b62d8727"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#a1722e3794e91a87ba8d73d36b62d8727">addIceCandidate</a> (<a class="el" href="Include_8h.html#a70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>, PCHAR)</td></tr>
 <tr class="memdesc:a1722e3794e91a87ba8d73d36b62d8727"><td class="mdescLeft">&#160;</td><td class="mdescRight">Provides a remote candidate to the ICE Agent.  <a href="Include_8h.html#a1722e3794e91a87ba8d73d36b62d8727">More...</a><br /></td></tr>
 <tr class="separator:a1722e3794e91a87ba8d73d36b62d8727"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -1306,6 +1313,20 @@ Functions</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname">typedef  struct <a class="el" href="structRtcDataChannelInit.html">RtcDataChannelInit</a> * <a class="el" href="Include_8h.html#ab970e0095d779c18c106620eac5fbbc6">PRtcDataChannelInit</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a8927731e3a97833866d3a5ecb00a3460"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8927731e3a97833866d3a5ecb00a3460">&#9670;&nbsp;</a></span>PRtcEncoderStats</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef  struct <a class="el" href="structRtcEncoderStats.html">RtcEncoderStats</a> * <a class="el" href="Include_8h.html#a8927731e3a97833866d3a5ecb00a3460">PRtcEncoderStats</a></td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -3819,6 +3840,36 @@ Functions</h2></td></tr>
 
 </div>
 </div>
+<a id="aba8d6226887ac3b7c24ec3a5f686e5c5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aba8d6226887ac3b7c24ec3a5f686e5c5">&#9670;&nbsp;</a></span>updateEncoderStats()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">PUBLIC_API STATUS updateEncoderStats </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="Include_8h.html#a575b38a26ceae3044dd16d8d72667ebf">PRtcRtpTransceiver</a>&#160;</td>
+          <td class="paramname">, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="Include_8h.html#a8927731e3a97833866d3a5ecb00a3460">PRtcEncoderStats</a>&#160;</td>
+          <td class="paramname">&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>call this function to update stats which depend on external encoder TODO: add better docs </p>
+
+</div>
+</div>
 <a id="a40c7caf6325f426d82030beec50cc86e"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a40c7caf6325f426d82030beec50cc86e">&#9670;&nbsp;</a></span>writeFrame()</h2>
 
@@ -3863,7 +3914,7 @@ Functions</h2></td></tr>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_b0856f6b0d80ccb263b2f415c91f9e17.html">include</a></li><li class="navelem"><a class="el" href="dir_8f5ac45a6ada111b95e80af22bb6017d.html">com</a></li><li class="navelem"><a class="el" href="dir_6eddcaa8cb3f84b1b7290fa7880ed0c5.html">amazonaws</a></li><li class="navelem"><a class="el" href="dir_ffe25b375dd9c47f978782781b252738.html">kinesis</a></li><li class="navelem"><a class="el" href="dir_40be0bfe93e499fae0ac3fc2c0b3ca29.html">video</a></li><li class="navelem"><a class="el" href="dir_4165afa699965307903ffe413a1cdec9.html">webrtcclient</a></li><li class="navelem"><a class="el" href="Include_8h.html">Include.h</a></li>
-    <li class="footer">Generated on Thu Jul 23 2020 19:40:21 for Amazon Kinesis Webrtc C SDK by
+    <li class="footer">Generated on Thu Jul 23 2020 23:19:43 for Amazon Kinesis Webrtc C SDK by
     <a href="http://www.doxygen.org/index.html">
     <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.18 </li>
   </ul>
