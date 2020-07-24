@@ -26,6 +26,8 @@
   - VP8
   - H264
   - Opus
+  - G.711 PCM (A-law)
+  - G.711 PCM (µ-law)
 * Developer Controlled Media Pipeline
   - Raw Media for Input/Output
   - Callbacks for [Congestion Control](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/pull/201), FIR and PLI (set on RtcRtpTransceiver)
