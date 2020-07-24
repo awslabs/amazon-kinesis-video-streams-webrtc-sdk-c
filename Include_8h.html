@@ -1011,9 +1011,9 @@ Functions</h2></td></tr>
 <tr class="memitem:ad600c2fa22f9ac2817a6fdfed8b2f407"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#ad600c2fa22f9ac2817a6fdfed8b2f407">signalingClientGetMetrics</a> (<a class="el" href="Include_8h.html#a1a31b45408a80e1064d39d578bd3b751">SIGNALING_CLIENT_HANDLE</a>, <a class="el" href="Include_8h.html#a9db7af67932ea54332e1978fae9240ba">PSignalingClientMetrics</a>)</td></tr>
 <tr class="memdesc:ad600c2fa22f9ac2817a6fdfed8b2f407"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get signaling related metrics.  <a href="Include_8h.html#ad600c2fa22f9ac2817a6fdfed8b2f407">More...</a><br /></td></tr>
 <tr class="separator:ad600c2fa22f9ac2817a6fdfed8b2f407"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a79ca49eb3fd599e1846dab19ab650ccd"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#a79ca49eb3fd599e1846dab19ab650ccd">rtcPeerConnectionGetMetrics</a> (<a class="el" href="Include_8h.html#a70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>, <a class="el" href="Include_8h.html#abdd6279872601de0a012f1f3f50c8c82">PRtcStats</a>)</td></tr>
-<tr class="memdesc:a79ca49eb3fd599e1846dab19ab650ccd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the relevant/all metrics based on the RTCStatsType field. This does not include any signaling related metrics. The caller of the API is expected to populate requestedTypeOfStats member of PRtcStats object with one of the values in RTC_STATS_TYPE.  <a href="Include_8h.html#a79ca49eb3fd599e1846dab19ab650ccd">More...</a><br /></td></tr>
-<tr class="separator:a79ca49eb3fd599e1846dab19ab650ccd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a469e0f69e03630ad5b03d8921afd62be"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#a469e0f69e03630ad5b03d8921afd62be">rtcPeerConnectionGetMetrics</a> (<a class="el" href="Include_8h.html#a70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>, <a class="el" href="Include_8h.html#a575b38a26ceae3044dd16d8d72667ebf">PRtcRtpTransceiver</a>, <a class="el" href="Include_8h.html#abdd6279872601de0a012f1f3f50c8c82">PRtcStats</a>)</td></tr>
+<tr class="memdesc:a469e0f69e03630ad5b03d8921afd62be"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the relevant/all metrics based on the RTCStatsType field. This does not include any signaling related metrics. The caller of the API is expected to populate requestedTypeOfStats member of PRtcStats object with one of the values in RTC_STATS_TYPE.  <a href="Include_8h.html#a469e0f69e03630ad5b03d8921afd62be">More...</a><br /></td></tr>
+<tr class="separator:a469e0f69e03630ad5b03d8921afd62be"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Macro Definition Documentation</h2>
 <a id="a39137beaf587d297125406df4bd48b55"></a>
@@ -3289,8 +3289,8 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a79ca49eb3fd599e1846dab19ab650ccd"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a79ca49eb3fd599e1846dab19ab650ccd">&#9670;&nbsp;</a></span>rtcPeerConnectionGetMetrics()</h2>
+<a id="a469e0f69e03630ad5b03d8921afd62be"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a469e0f69e03630ad5b03d8921afd62be">&#9670;&nbsp;</a></span>rtcPeerConnectionGetMetrics()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -3299,6 +3299,12 @@ Functions</h2></td></tr>
           <td class="memname">PUBLIC_API STATUS rtcPeerConnectionGetMetrics </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="Include_8h.html#a70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>&#160;</td>
+          <td class="paramname">, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="Include_8h.html#a575b38a26ceae3044dd16d8d72667ebf">PRtcRtpTransceiver</a>&#160;</td>
           <td class="paramname">, </td>
         </tr>
         <tr>
@@ -3320,10 +3326,12 @@ Functions</h2></td></tr>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">PRtcPeerConnection</td><td>Peer connection for which the stats need to be collected </td></tr>
-    <tr><td class="paramdir"></td><td class="paramname">[in/out]</td><td>PRtcStats The stats object with the RTCStatsType field populated </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">PRtcRtpTransceiver</td><td>set to desired transceiver for RTP stats, NULL otherwise If set to NULL for RTP stats, the stats for the first transceiver are returned. </td></tr>
+    <tr><td class="paramdir"></td><td class="paramname">[in/out]</td><td>PRtcStats The stats object with the RTCStatsType field populated</td></tr>
   </table>
   </dd>
 </dl>
+<p>Reference: <a href="https://www.w3.org/TR/webrtc/#rtcpeerconnection-interface-extensions-1">https://www.w3.org/TR/webrtc/#rtcpeerconnection-interface-extensions-1</a> </p>
 
 </div>
 </div>
@@ -3914,7 +3922,7 @@ Functions</h2></td></tr>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_b0856f6b0d80ccb263b2f415c91f9e17.html">include</a></li><li class="navelem"><a class="el" href="dir_8f5ac45a6ada111b95e80af22bb6017d.html">com</a></li><li class="navelem"><a class="el" href="dir_6eddcaa8cb3f84b1b7290fa7880ed0c5.html">amazonaws</a></li><li class="navelem"><a class="el" href="dir_ffe25b375dd9c47f978782781b252738.html">kinesis</a></li><li class="navelem"><a class="el" href="dir_40be0bfe93e499fae0ac3fc2c0b3ca29.html">video</a></li><li class="navelem"><a class="el" href="dir_4165afa699965307903ffe413a1cdec9.html">webrtcclient</a></li><li class="navelem"><a class="el" href="Include_8h.html">Include.h</a></li>
-    <li class="footer">Generated on Thu Jul 23 2020 23:19:43 for Amazon Kinesis Webrtc C SDK by
+    <li class="footer">Generated on Fri Jul 24 2020 04:14:55 for Amazon Kinesis Webrtc C SDK by
     <a href="http://www.doxygen.org/index.html">
     <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.18 </li>
   </ul>

@@ -115,7 +115,7 @@ var searchData=
   ['rtcoutboundstats_391',['rtcOutboundStats',['../structRtcStreamMetrics.html#a815801a211ca3fbdf1e70821ab808b2a',1,'RtcStreamMetrics']]],
   ['rtcp_392',['RTCP',['../group__RTCP.html',1,'']]],
   ['rtcpeerconnection_393',['RtcPeerConnection',['../structRtcPeerConnection.html',1,'']]],
-  ['rtcpeerconnectiongetmetrics_394',['rtcPeerConnectionGetMetrics',['../Include_8h.html#a79ca49eb3fd599e1846dab19ab650ccd',1,'Include.h']]],
+  ['rtcpeerconnectiongetmetrics_394',['rtcPeerConnectionGetMetrics',['../Include_8h.html#a469e0f69e03630ad5b03d8921afd62be',1,'Include.h']]],
   ['rtcptransportstatsid_395',['rtcpTransportStatsId',['../structRtcTransportStats.html#a07bfb515944cd5aa6dd183fb888e3b26',1,'RtcTransportStats']]],
   ['rtcremoteinboundrtpstreamstats_396',['RtcRemoteInboundRtpStreamStats',['../structRtcRemoteInboundRtpStreamStats.html',1,'']]],
   ['rtcrtpreceiver_397',['RtcRtpReceiver',['../structRtcRtpReceiver.html',1,'']]],
