@@ -1869,9 +1869,13 @@ PUBLIC_API STATUS signalingClientGetMetrics(SIGNALING_CLIENT_HANDLE, PSignalingC
  * is expected to pass in the specific iceServerIndex for which the stats are desired
 
  * @param [in] PRtcPeerConnection Peer connection for which the stats need to be collected
+ * @param [in] PRtcRtpTransceiver set to desired transceiver for RTP stats, NULL otherwise
+ * If set to NULL for RTP stats, the stats for the first transceiver are returned.
  * @param [in/out] PRtcStats The stats object with the RTCStatsType field populated
+ *
+ * Reference: https://www.w3.org/TR/webrtc/#rtcpeerconnection-interface-extensions-1
  */
-PUBLIC_API STATUS rtcPeerConnectionGetMetrics(PRtcPeerConnection, PRtcStats);
+PUBLIC_API STATUS rtcPeerConnectionGetMetrics(PRtcPeerConnection, PRtcRtpTransceiver, PRtcStats);
 
 #ifdef __cplusplus
 }

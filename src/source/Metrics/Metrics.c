@@ -116,17 +116,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS logWebRTCMetrics(PRtcPeerConnection pRtcPeerConnection, RTC_STATS_TYPE statsType)
-{
-    UNUSED_PARAM(statsType);
-    STATUS retStatus = STATUS_SUCCESS;
-    CHK(pRtcPeerConnection != NULL, STATUS_NULL_ARG);
-    DLOGW("logWebRTCMetrics not supported currently");
-CleanUp:
-    return retStatus;
-}
-
-STATUS rtcPeerConnectionGetMetrics(PRtcPeerConnection pRtcPeerConnection, PRtcStats pRtcMetrics)
+STATUS rtcPeerConnectionGetMetrics(PRtcPeerConnection pRtcPeerConnection, PRtcRtpTransceiver pRtcRtpTransceiver, PRtcStats pRtcMetrics)
 {
     STATUS retStatus = STATUS_SUCCESS;
     CHK(pRtcPeerConnection != NULL && pRtcMetrics != NULL, STATUS_NULL_ARG);
@@ -144,10 +134,10 @@ STATUS rtcPeerConnectionGetMetrics(PRtcPeerConnection pRtcPeerConnection, PRtcSt
             getTransportStats(pRtcPeerConnection, &pRtcMetrics->rtcStatsObject.transportStats);
             break;
         case RTC_STATS_TYPE_REMOTE_INBOUND_RTP:
-            getRtpRemoteInboundStats(pRtcPeerConnection, NULL, &pRtcMetrics->rtcStatsObject.remoteInboundRtpStreamStats);
+            getRtpRemoteInboundStats(pRtcPeerConnection, pRtcRtpTransceiver, &pRtcMetrics->rtcStatsObject.remoteInboundRtpStreamStats);
             break;
         case RTC_STATS_TYPE_OUTBOUND_RTP:
-            getRtpOutboundStats(pRtcPeerConnection, NULL, &pRtcMetrics->rtcStatsObject.outboundRtpStreamStats);
+            getRtpOutboundStats(pRtcPeerConnection, pRtcRtpTransceiver, &pRtcMetrics->rtcStatsObject.outboundRtpStreamStats);
             break;
         case RTC_STATS_TYPE_ICE_SERVER:
             pRtcMetrics->timestamp = GETTIME();

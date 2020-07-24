@@ -380,7 +380,7 @@ STATUS gatherIceServerStats(PSampleStreamingSession pSampleStreamingSession)
     rtcmetrics.requestedTypeOfStats = RTC_STATS_TYPE_ICE_SERVER;
     for (; j < pSampleStreamingSession->pSampleConfiguration->iceUriCount; j++) {
         rtcmetrics.rtcStatsObject.iceServerStats.iceServerIndex = j;
-        CHK_STATUS(rtcPeerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, &rtcmetrics));
+        CHK_STATUS(rtcPeerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, NULL, &rtcmetrics));
         DLOGD("ICE Server URL: %s", rtcmetrics.rtcStatsObject.iceServerStats.url);
         DLOGD("ICE Server port: %d", rtcmetrics.rtcStatsObject.iceServerStats.port);
         DLOGD("ICE Server protocol: %s", rtcmetrics.rtcStatsObject.iceServerStats.protocol);
