@@ -47,32 +47,27 @@ STATUS resendPacketOnNack(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerCo
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 senderSsrc = 0, receiverSsrc = 0;
     UINT32 filledLen = 0, validIndexListLen = 0;
-    PDoubleListNode pCurNode = NULL;
-    PKvsRtpTransceiver pTransceiver, pSenderTranceiver = NULL;
-    UINT64 item;
-    UINT32 index;
+    PKvsRtpTransceiver pSenderTranceiver = NULL;
+    UINT64 item, index;
+    STATUS tmpStatus = STATUS_SUCCESS;
     PRtpPacket pRtpPacket = NULL, pRtxRtpPacket = NULL;
     PRetransmitter pRetransmitter = NULL;
+    // stats
+    UINT32 retransmittedPacketsSent = 0, retransmittedBytesSent = 0, nackCount = 0;
 
     CHK(pKvsPeerConnection != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
     CHK_STATUS(rtcpNackListGet(pRtcpPacket->payload, pRtcpPacket->payloadLength, &senderSsrc, &receiverSsrc, NULL, &filledLen));
 
-    CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pTransceievers, &pCurNode));
-    while (pCurNode != NULL && pSenderTranceiver == NULL) {
-        CHK_STATUS(doubleListGetNodeData(pCurNode, &item));
-        pTransceiver = (PKvsRtpTransceiver) item;
-
-        CHK(pTransceiver != NULL, STATUS_INTERNAL_ERROR);
-
-        if (pTransceiver->sender.ssrc == receiverSsrc || pTransceiver->sender.ssrc == senderSsrc) {
-            pSenderTranceiver = pTransceiver;
-            pRetransmitter = pSenderTranceiver->sender.retransmitter;
-        }
-        pCurNode = pCurNode->pNext;
+    tmpStatus = findTransceiverBySsrc(pKvsPeerConnection, &pSenderTranceiver, receiverSsrc);
+    if (STATUS_NOT_FOUND == tmpStatus) {
+        CHK_STATUS_ERR(findTransceiverBySsrc(pKvsPeerConnection, &pSenderTranceiver, senderSsrc), STATUS_RTCP_INPUT_SSRC_INVALID,
+                       "Receiving NACK for non existing ssrcs: senderSsrc %lu receiverSsrc %lu", senderSsrc, receiverSsrc);
     }
+    CHK_STATUS(tmpStatus);
 
-    CHK_ERR(pSenderTranceiver != NULL, STATUS_RTCP_INPUT_SSRC_INVALID, "Receiving NACK for non existing ssrcs: senderSsrc %lu receiverSsrc %lu",
-            senderSsrc, receiverSsrc);
+    pRetransmitter = pSenderTranceiver->sender.retransmitter;
+    // TODO it is not very clear from the spec whether nackCount is number of packets received or number of rtp packets lost reported in nack packets
+    nackCount++;
 
     CHK_ERR(pRetransmitter != NULL, STATUS_INVALID_OPERATION,
             "Sender re-transmitter is not created successfully for an existing ssrcs: senderSsrc %lu receiverSsrc %lu", senderSsrc, receiverSsrc);
@@ -100,6 +95,8 @@ STATUS resendPacketOnNack(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerCo
             }
             // resendPacket
             if (STATUS_SUCCEEDED(retStatus)) {
+                retransmittedPacketsSent++;
+                retransmittedBytesSent += pRtpPacket->rawPacketLength - RTP_HEADER_LEN(pRtpPacket);
                 DLOGV("Resent packet ssrc %lu seq %lu succeeded", pRtpPacket->header.ssrc, pRtpPacket->header.sequenceNumber);
             } else {
                 DLOGV("Resent packet ssrc %lu seq %lu failed 0x%08x", pRtpPacket->header.ssrc, pRtpPacket->header.sequenceNumber, retStatus);
@@ -123,13 +120,19 @@ STATUS resendPacketOnNack(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerCo
         }
     }
 CleanUp:
+
+    MUTEX_LOCK(pSenderTranceiver->sender.statsLock);
+    pSenderTranceiver->sender.outboundStats.nackCount += nackCount;
+    pSenderTranceiver->sender.outboundStats.retransmittedPacketsSent += retransmittedPacketsSent;
+    pSenderTranceiver->sender.outboundStats.retransmittedBytesSent += retransmittedBytesSent;
+    MUTEX_UNLOCK(pSenderTranceiver->sender.statsLock);
+
     CHK_LOG_ERR(retStatus);
     if (pRtpPacket != NULL) {
         // free the packet as it is not put back into rolling buffer
         freeRtpPacket(&pRtpPacket);
         pRtpPacket = NULL;
     }
-    freeRtpPacket(&pRtpPacket);
 
     LEAVES();
     return retStatus;

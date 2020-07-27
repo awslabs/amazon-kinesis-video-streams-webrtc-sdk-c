@@ -1263,10 +1263,10 @@ typedef struct {
  */
 typedef struct {
     BOOL ordered;                                     //!< Decides the order in which data is sent. If true, data is sent in order
-    UINT16 maxPacketLifeTime;                         //!< Limits the time (in milliseconds) during which the channel will (re)transmit
+    NullableUint16 maxPacketLifeTime;                 //!< Limits the time (in milliseconds) during which the channel will (re)transmit
                                                       //!< data if not acknowledged. This value may be clamped if it exceeds the maximum
                                                       //!< value supported by the user agent.
-    UINT16 maxRetransmits;                            //!< Control number of times a channel retransmits data if not delivered successfully
+    NullableUint16 maxRetransmits;                    //!< Control number of times a channel retransmits data if not delivered successfully
     CHAR protocol[MAX_DATA_CHANNEL_PROTOCOL_LEN + 1]; //!< Sub protocol name for the channel
     BOOL negotiated;                                  //!< If set to true, it is up to the application to negotiate the channel and create an
                                                       //!< RTCDataChannel object with the same id as the other peer.
@@ -1320,6 +1320,26 @@ typedef struct {
     RTC_STATS_TYPE requestedTypeOfStats; //!< Type of stats requested. Set to RTC_ALL to get all supported stats
     RtcStatsObject rtcStatsObject;       //!< Object that is populated by the SDK on request
 } RtcStats, *PRtcStats;
+
+typedef struct {
+    /**
+     * It is the current target bitrate configured for this particular SSRC and is the Transport Independent Application Specific (TIAS) bitrate
+     * [RFC3890]. Typically, the target bitrate is a configuration parameter provided to the codec's encoder and does not count the size of the IP or
+     * other transport layers like TCP or UDP. It is measured in bits per second and the bitrate is calculated over a 1 second window.
+     */
+    UINT32 targetBitrate;
+
+    UINT16 width;    //!< Only valid for video.
+    UINT16 height;   //!< Only valid for video.
+    UINT16 bitDepth; //!< Only valid for video. bits per pixel (24, 30, 36), note it's not per channel but per pixel
+
+    /** milliseconds spent encoding frames since last encoder update */
+    UINT32 encodeTimeMsec;
+
+    BOOL voiceActivity;              //!< Only valid for audio. TRUE if last audio packet contained voice.
+    DOMString encoderImplementation; //!< encoder name eg "libvpx" or "x264"
+
+} RtcEncoderStats, *PRtcEncoderStats;
 
 ////////////////////////////////////////////////////
 // Public functions
@@ -1607,6 +1627,11 @@ PUBLIC_API STATUS addSupportedCodec(PRtcPeerConnection, RTC_CODEC);
  */
 PUBLIC_API STATUS writeFrame(PRtcRtpTransceiver, PFrame);
 
+/** @brief call this function to update stats which depend on external encoder
+ * TODO: add better docs
+ */
+PUBLIC_API STATUS updateEncoderStats(PRtcRtpTransceiver, PRtcEncoderStats);
+
 /**
  * @brief Provides a remote candidate to the ICE Agent.
  *
@@ -1844,9 +1869,13 @@ PUBLIC_API STATUS signalingClientGetMetrics(SIGNALING_CLIENT_HANDLE, PSignalingC
  * is expected to pass in the specific iceServerIndex for which the stats are desired
 
  * @param [in] PRtcPeerConnection Peer connection for which the stats need to be collected
+ * @param [in] PRtcRtpTransceiver set to desired transceiver for RTP stats, NULL otherwise
+ * If set to NULL for RTP stats, the stats for the first transceiver are returned.
  * @param [in/out] PRtcStats The stats object with the RTCStatsType field populated
+ *
+ * Reference: https://www.w3.org/TR/webrtc/#rtcpeerconnection-interface-extensions-1
  */
-PUBLIC_API STATUS rtcPeerConnectionGetMetrics(PRtcPeerConnection, PRtcStats);
+PUBLIC_API STATUS rtcPeerConnectionGetMetrics(PRtcPeerConnection, PRtcRtpTransceiver, PRtcStats);
 
 #ifdef __cplusplus
 }

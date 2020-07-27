@@ -15,17 +15,17 @@ TEST_F(MetricsApiTest, webRtcGetMetrics)
     PRtcPeerConnection pRtcPeerConnection;
     RtcStats rtcMetrics;
 
-    EXPECT_EQ(STATUS_NULL_ARG, rtcPeerConnectionGetMetrics(NULL, NULL));
-    EXPECT_EQ(STATUS_NULL_ARG, rtcPeerConnectionGetMetrics(NULL, &rtcMetrics));
+    EXPECT_EQ(STATUS_NULL_ARG, rtcPeerConnectionGetMetrics(NULL, NULL, NULL));
+    EXPECT_EQ(STATUS_NULL_ARG, rtcPeerConnectionGetMetrics(NULL, NULL, &rtcMetrics));
 
     MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
 
     EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
 
-    EXPECT_EQ(STATUS_NULL_ARG, rtcPeerConnectionGetMetrics(pRtcPeerConnection, NULL));
+    EXPECT_EQ(STATUS_NULL_ARG, rtcPeerConnectionGetMetrics(pRtcPeerConnection, NULL, NULL));
 
     rtcMetrics.requestedTypeOfStats = (RTC_STATS_TYPE) 20; // Supplying a type that is unavailable
-    EXPECT_EQ(STATUS_NOT_IMPLEMENTED, rtcPeerConnectionGetMetrics(pRtcPeerConnection, &rtcMetrics));
+    EXPECT_EQ(STATUS_NOT_IMPLEMENTED, rtcPeerConnectionGetMetrics(pRtcPeerConnection, NULL, &rtcMetrics));
 
     EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
 }
@@ -49,17 +49,17 @@ TEST_F(MetricsApiTest, webRtcIceGetMetrics)
 
     EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
 
-    EXPECT_EQ(STATUS_ICE_SERVER_INDEX_INVALID, rtcPeerConnectionGetMetrics(pRtcPeerConnection, &rtcIceMetrics));
+    EXPECT_EQ(STATUS_ICE_SERVER_INDEX_INVALID, rtcPeerConnectionGetMetrics(pRtcPeerConnection, NULL, &rtcIceMetrics));
 
     rtcIceMetrics.rtcStatsObject.iceServerStats.iceServerIndex = 0;
-    EXPECT_EQ(STATUS_SUCCESS, rtcPeerConnectionGetMetrics(pRtcPeerConnection, &rtcIceMetrics));
+    EXPECT_EQ(STATUS_SUCCESS, rtcPeerConnectionGetMetrics(pRtcPeerConnection, NULL, &rtcIceMetrics));
 
     EXPECT_EQ(443, rtcIceMetrics.rtcStatsObject.iceServerStats.port);
     EXPECT_PRED_FORMAT2(testing::IsSubstring, configuration.iceServers[0].urls, rtcIceMetrics.rtcStatsObject.iceServerStats.url);
     EXPECT_PRED_FORMAT2(testing::IsSubstring, "", rtcIceMetrics.rtcStatsObject.iceServerStats.protocol);
 
     rtcIceMetrics.rtcStatsObject.iceServerStats.iceServerIndex = 1;
-    EXPECT_EQ(STATUS_SUCCESS, rtcPeerConnectionGetMetrics(pRtcPeerConnection, &rtcIceMetrics));
+    EXPECT_EQ(STATUS_SUCCESS, rtcPeerConnectionGetMetrics(pRtcPeerConnection, NULL, &rtcIceMetrics));
     EXPECT_EQ(443, rtcIceMetrics.rtcStatsObject.iceServerStats.port);
     EXPECT_PRED_FORMAT2(testing::IsSubstring, configuration.iceServers[1].urls, rtcIceMetrics.rtcStatsObject.iceServerStats.url);
     EXPECT_PRED_FORMAT2(testing::IsSubstring, "transport=tcp", rtcIceMetrics.rtcStatsObject.iceServerStats.protocol);

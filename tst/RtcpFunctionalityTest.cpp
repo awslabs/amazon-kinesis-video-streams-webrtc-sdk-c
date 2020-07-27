@@ -7,6 +7,29 @@ namespace video {
 namespace webrtcclient {
 
 class RtcpFunctionalityTest : public WebRtcClientTestBase {
+  public:
+    PKvsRtpTransceiver pKvsRtpTransceiver = nullptr;
+    PKvsPeerConnection pKvsPeerConnection = nullptr;
+    PRtcPeerConnection pRtcPeerConnection = nullptr;
+
+    STATUS initTransceiver(UINT32 ssrc)
+    {
+        RtcConfiguration config{};
+        EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pRtcPeerConnection));
+        pKvsPeerConnection = reinterpret_cast<PKvsPeerConnection>(pRtcPeerConnection);
+        pKvsRtpTransceiver = reinterpret_cast<PKvsRtpTransceiver>(addTransceiver(ssrc));
+        return STATUS_SUCCESS;
+    }
+
+    PRtcRtpTransceiver addTransceiver(UINT32 ssrc)
+    {
+        RtcMediaStreamTrack track{};
+        track.codec = RTC_CODEC_VP8;
+        PRtcRtpTransceiver out = nullptr;
+        EXPECT_EQ(STATUS_SUCCESS, ::addTransceiver(pRtcPeerConnection, &track, nullptr, &out));
+        ((PKvsRtpTransceiver) out)->sender.ssrc = ssrc;
+        return out;
+    }
 };
 
 TEST_F(RtcpFunctionalityTest, setRtpPacketFromBytes)
@@ -122,9 +145,33 @@ TEST_F(RtcpFunctionalityTest, rtcpNackListCompound)
     EXPECT_EQ(compoundBuffer[1], 3327);
 }
 
+
+TEST_F(RtcpFunctionalityTest, onRtcpPacketCompoundNack)
+{
+    PRtpPacket pRtpPacket = nullptr;
+    BYTE validRtcpPacket[] = {0x81, 0xcd, 0x00, 0x03, 0x2c, 0xd1, 0xa0, 0xde, 0x00, 0x00, 0xab, 0xe0, 0x00, 0x00, 0x00, 0x00};
+    initTransceiver(44000);
+    ASSERT_EQ(STATUS_SUCCESS,
+              createRtpRollingBuffer(DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS * HIGHEST_EXPECTED_BIT_RATE / 8 / DEFAULT_MTU_SIZE,
+                                     &pKvsRtpTransceiver->sender.packetBuffer));
+    ASSERT_EQ(STATUS_SUCCESS,
+              createRetransmitter(DEFAULT_SEQ_NUM_BUFFER_SIZE, DEFAULT_VALID_INDEX_BUFFER_SIZE, &pKvsRtpTransceiver->sender.retransmitter));
+    ASSERT_EQ(STATUS_SUCCESS, createRtpPacketWithSeqNum(0, &pRtpPacket));
+
+    ASSERT_EQ(STATUS_SUCCESS, rtpRollingBufferAddRtpPacket(pKvsRtpTransceiver->sender.packetBuffer, pRtpPacket));
+    ASSERT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, validRtcpPacket, SIZEOF(validRtcpPacket)));
+    RtcOutboundRtpStreamStats  stats{};
+    getRtpOutboundStats(pRtcPeerConnection, nullptr, &stats);
+    ASSERT_EQ(1, stats.nackCount);
+    ASSERT_EQ(1, stats.retransmittedPacketsSent);
+    ASSERT_EQ(10, stats.retransmittedBytesSent);
+    freePeerConnection(&pRtcPeerConnection);
+    freeRtpPacket(&pRtpPacket);
+}
+
 TEST_F(RtcpFunctionalityTest, onRtcpPacketCompound)
 {
-    KvsPeerConnection peerConnection;
+    KvsPeerConnection peerConnection{};
 
     BYTE compound[] = {
         0x80, 0xc8, 0x00, 0x06, 0xf1, 0x2d, 0x7b, 0x4b, 0xe1, 0xe3, 0x20, 0x43, 0xe5, 0x3d, 0x10, 0x2b, 0xbf, 0x58, 0xf7,
@@ -134,10 +181,35 @@ TEST_F(RtcpFunctionalityTest, onRtcpPacketCompound)
     EXPECT_EQ(STATUS_SUCCESS, onRtcpPacket(&peerConnection, compound, SIZEOF(compound)));
 }
 
-TEST_F(RtcpFunctionalityTest, rembValueGet)
+TEST_F(RtcpFunctionalityTest, onRtcpPacketCompoundSenderReport)
 {
-    BYTE rawRtcpPacket[] = {0x8f, 0xce, 0x00, 0x05, 0x61, 0x7a, 0x37, 0x43, 0x00, 0x00, 0x00, 0x00,
-                            0x52, 0x45, 0x4d, 0x42, 0x01, 0x12, 0x46, 0x73, 0x6c, 0x76, 0xe8, 0x55};
+    auto hexpacket = (PCHAR) "81C900076C1B58915E0C6E520400000000000002000000000102030400424344";
+    BYTE rawpacket[64] = {0};
+    UINT32 rawpacketSize = 64;
+    EXPECT_EQ(STATUS_SUCCESS, hexDecode(hexpacket, strlen(hexpacket), rawpacket, &rawpacketSize));
+
+    //added two transceivers to test correct transceiver stats in getRtpRemoteInboundStats
+    initTransceiver(4242); // fake transceiver
+    auto t = addTransceiver(1577872978); // real transceiver
+
+    EXPECT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, rawpacket, rawpacketSize));
+
+    RtcRemoteInboundRtpStreamStats stats{};
+    EXPECT_EQ(STATUS_SUCCESS, getRtpRemoteInboundStats(pRtcPeerConnection, t, &stats));
+    EXPECT_EQ(1, stats.reportsReceived);
+    EXPECT_EQ(1, stats.roundTripTimeMeasurements);
+    // onRtcpPacket uses real time clock GETTIME to calculate roundTripTime, cant test
+    EXPECT_EQ(4.0 / 255.0, stats.fractionLost);
+    EXPECT_LT(0, stats.totalRoundTripTime);
+    EXPECT_LT(0, stats.roundTripTime);
+    freePeerConnection(&pRtcPeerConnection);
+}
+
+TEST_F(RtcpFunctionalityTest, rembValueGet) {
+    BYTE rawRtcpPacket[] = {
+        0x8f, 0xce, 0x00, 0x05, 0x61, 0x7a, 0x37, 0x43, 0x00, 0x00, 0x00, 0x00, 0x52, 0x45, 0x4d, 0x42,
+        0x01, 0x12, 0x46, 0x73, 0x6c, 0x76, 0xe8, 0x55
+    };
     RtcpPacket rtcpPacket;
 
     MEMSET(&rtcpPacket, 0x00, SIZEOF(RtcpPacket));
@@ -171,25 +243,23 @@ TEST_F(RtcpFunctionalityTest, rembValueGet)
 TEST_F(RtcpFunctionalityTest, onpli)
 {
     BYTE rawRtcpPacket[] = {0x81, 0xCE, 0x00, 0x02, 0x00, 0x00, 0x00, 0x01, 0x1D, 0xC8, 0x69, 0x91};
-    RtcpPacket rtcpPacket;
-    KvsPeerConnection kpc;
-    KvsRtpTransceiver kvsRtpTransceiver;
+    RtcpPacket rtcpPacket{};
     BOOL on_picture_loss_called = FALSE;
-    MEMSET(&kvsRtpTransceiver, 0, sizeof(KvsRtpTransceiver));
+    this->initTransceiver(0x1DC86991);
 
-    doubleListCreate(&kpc.pTransceievers);
-    doubleListInsertItemHead(kpc.pTransceievers, (UINT64) &kvsRtpTransceiver);
-    kvsRtpTransceiver.sender.ssrc = 0x1DC86991;
-    kvsRtpTransceiver.onPictureLossCustomData = (UINT64) &on_picture_loss_called;
-    kvsRtpTransceiver.onPictureLoss = [](UINT64 customData) -> void { *(PBOOL) customData = TRUE; };
+    pKvsRtpTransceiver->onPictureLossCustomData = (UINT64) &on_picture_loss_called;
+    pKvsRtpTransceiver->onPictureLoss = [](UINT64 customData) -> void { *(PBOOL) customData = TRUE; };
 
     EXPECT_EQ(STATUS_SUCCESS, setRtcpPacketFromBytes(rawRtcpPacket, SIZEOF(rawRtcpPacket), &rtcpPacket));
     ASSERT_TRUE(rtcpPacket.header.packetType == RTCP_PACKET_TYPE_PAYLOAD_SPECIFIC_FEEDBACK &&
                 rtcpPacket.header.receptionReportCount == RTCP_PSFB_PLI);
 
-    onRtcpPLIPacket(&rtcpPacket, &kpc);
+    onRtcpPLIPacket(&rtcpPacket, pKvsPeerConnection);
     ASSERT_TRUE(on_picture_loss_called);
-    doubleListFree(kpc.pTransceievers);
+    RtcOutboundRtpStreamStats stats{};
+    EXPECT_EQ(STATUS_SUCCESS, getRtpOutboundStats(pRtcPeerConnection, nullptr, &stats));
+    EXPECT_EQ(1, stats.pliCount);
+    freePeerConnection(&pRtcPeerConnection);
 }
 
 } // namespace webrtcclient
