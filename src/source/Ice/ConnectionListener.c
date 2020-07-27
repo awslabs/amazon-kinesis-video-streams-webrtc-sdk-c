@@ -117,7 +117,9 @@ CleanUp:
 STATUS connectionListenerRemoveConnection(PConnectionListener pConnectionListener, PSocketConnection pSocketConnection)
 {
     STATUS retStatus = STATUS_SUCCESS, cvarWaitStatus = STATUS_SUCCESS;
-    BOOL locked = FALSE;
+    BOOL locked = FALSE, hasConnection = FALSE;
+    PDoubleListNode pCurNode = NULL;
+    PSocketConnection pCurrSocketConnection = NULL;
 
     CHK(pConnectionListener != NULL && pSocketConnection != NULL, STATUS_NULL_ARG);
     CHK(!ATOMIC_LOAD_BOOL(&pConnectionListener->terminate), retStatus);
@@ -129,6 +131,19 @@ STATUS connectionListenerRemoveConnection(PConnectionListener pConnectionListene
 
     MUTEX_LOCK(pConnectionListener->lock);
     locked = TRUE;
+
+    CHK_STATUS(doubleListGetHeadNode(pConnectionListener->connectionList, &pCurNode));
+    while (!hasConnection && pCurNode != NULL) {
+        pCurrSocketConnection = (PSocketConnection) pCurNode->data;
+        pCurNode = pCurNode->pNext;
+        if (pCurrSocketConnection == pSocketConnection) {
+            hasConnection = TRUE;
+        }
+    }
+
+    /* If connection is not found then return early */
+    CHK(hasConnection, retStatus);
+
     /* make sure connectionListenerRemoveConnection return after connectionListenerReceiveDataRoutine has picked up
      * the change. */
     while (ATOMIC_LOAD_BOOL(&pConnectionListener->listenerRoutineStarted) && !ATOMIC_LOAD_BOOL(&pConnectionListener->terminate) &&
@@ -216,7 +231,7 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
     PConnectionListener pConnectionListener = (PConnectionListener) arg;
     PDoubleListNode pCurNode = NULL, pNodeToDelete = NULL;
     PSocketConnection pSocketConnection;
-    BOOL locked = FALSE, iterate = TRUE;
+    BOOL locked = FALSE, iterate = TRUE, updateSocketList = FALSE, connectionListChanged = FALSE;
     PSocketConnection socketList[CONNECTION_LISTENER_DEFAULT_MAX_LISTENING_CONNECTION];
     UINT32 socketCount = 0, i;
 
@@ -247,7 +262,8 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
         nfds = 0;
 
         // update connection list.
-        if (ATOMIC_LOAD_BOOL(&pConnectionListener->connectionListChanged)) {
+        connectionListChanged = ATOMIC_LOAD_BOOL(&pConnectionListener->connectionListChanged);
+        if (connectionListChanged || updateSocketList) {
             MUTEX_LOCK(pConnectionListener->lock);
             locked = TRUE;
 
@@ -276,8 +292,12 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
             MUTEX_UNLOCK(pConnectionListener->lock);
             locked = FALSE;
 
-            ATOMIC_STORE_BOOL(&pConnectionListener->connectionListChanged, FALSE);
-            CVAR_BROADCAST(pConnectionListener->removeConnectionComplete);
+            updateSocketList = FALSE;
+
+            if (connectionListChanged) {
+                ATOMIC_STORE_BOOL(&pConnectionListener->connectionListChanged, FALSE);
+                CVAR_BROADCAST(pConnectionListener->removeConnectionComplete);
+            }
         }
 
         for (i = 0; i < socketCount; ++i) {
@@ -305,7 +325,10 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
 
         for (i = 0; i < socketCount; ++i) {
             pSocketConnection = socketList[i];
-            if (!socketConnectionIsClosed(pSocketConnection) && FD_ISSET(pSocketConnection->localSocket, &rfds)) {
+            if (socketConnectionIsClosed(pSocketConnection)) {
+                /* update the connection list to remove the closed sockets */
+                updateSocketList = TRUE;
+            } else if (FD_ISSET(pSocketConnection->localSocket, &rfds)) {
                 iterate = TRUE;
                 while (iterate) {
                     readLen = recvfrom(pSocketConnection->localSocket, pConnectionListener->pBuffer, pConnectionListener->bufferLen, 0,

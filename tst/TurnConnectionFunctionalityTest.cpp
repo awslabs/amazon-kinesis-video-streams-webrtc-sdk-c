@@ -9,9 +9,9 @@ namespace webrtcclient {
 class TurnConnectionFunctionalityTest : public WebRtcClientTestBase {
     PIceConfigInfo pIceConfigInfo;
     TIMER_QUEUE_HANDLE timerQueueHandle = INVALID_TIMER_QUEUE_HANDLE_VALUE;
-    PConnectionListener pConnectionListener = NULL;
 
   public:
+    PConnectionListener pConnectionListener = NULL;
     PTurnConnection pTurnConnection = NULL;
     TurnChannelData turnChannelData[DEFAULT_TURN_CHANNEL_DATA_BUFFER_SIZE];
     UINT32 turnChannelDataCount = ARRAY_SIZE(turnChannelData);
@@ -281,6 +281,93 @@ TEST_F(TurnConnectionFunctionalityTest, turnConnectionShutdownAsync)
     }
 
     EXPECT_TRUE(!ATOMIC_LOAD_BOOL(&pTurnConnection->hasAllocation) || ATOMIC_LOAD_BOOL(&pTurnConnection->stopTurnConnection));
+
+    freeTestTurnConnection();
+}
+
+TEST_F(TurnConnectionFunctionalityTest, turnConnectionShutdownWithAllocationRemovesTurnSocketConnection)
+{
+    if (!mAccessKeyIdSet) {
+        return;
+    }
+
+    BOOL doneAllocate = FALSE;
+    UINT64 shutdownTimeout;
+    UINT64 doneAllocateTimeout = GETTIME() + 10 * HUNDREDS_OF_NANOS_IN_A_SECOND;
+    PSocketConnection pTurnSocketConnection = NULL;
+
+    initializeTestTurnConnection();
+    pTurnSocketConnection = pTurnConnection->pControlChannel;
+
+    EXPECT_EQ(STATUS_SUCCESS, turnConnectionStart(pTurnConnection));
+
+    // wait until channel is created
+    while (!doneAllocate && GETTIME() < doneAllocateTimeout) {
+        THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+        MUTEX_LOCK(pTurnConnection->lock);
+        if (pTurnConnection->state == TURN_STATE_CREATE_PERMISSION) {
+            doneAllocate = TRUE;
+        }
+        MUTEX_UNLOCK(pTurnConnection->lock);
+    }
+
+    EXPECT_TRUE(doneAllocate == TRUE);
+    // return immediately
+    EXPECT_EQ(STATUS_SUCCESS, turnConnectionShutdown(pTurnConnection, 0));
+
+    shutdownTimeout = GETTIME() + 5 * HUNDREDS_OF_NANOS_IN_A_SECOND;
+    while (!turnConnectionIsShutdownComplete(pTurnConnection) && GETTIME() < shutdownTimeout) {
+        THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
+    }
+
+    EXPECT_TRUE(!ATOMIC_LOAD_BOOL(&pTurnConnection->hasAllocation) || ATOMIC_LOAD_BOOL(&pTurnConnection->stopTurnConnection));
+
+    MUTEX_LOCK(pTurnConnection->lock);
+    EXPECT_TRUE(ATOMIC_LOAD_BOOL(&pTurnSocketConnection->connectionClosed));
+    MUTEX_UNLOCK(pTurnConnection->lock);
+
+    freeTestTurnConnection();
+}
+
+TEST_F(TurnConnectionFunctionalityTest, turnConnectionShutdownWithoutAllocationRemovesTurnSocketConnection)
+{
+    if (!mAccessKeyIdSet) {
+        return;
+    }
+
+    BOOL atGetCredential = FALSE;
+    UINT64 shutdownTimeout;
+    UINT64 atGetCredentialTimeout = GETTIME() + 10 * HUNDREDS_OF_NANOS_IN_A_SECOND;
+    PSocketConnection pTurnSocketConnection = NULL;
+
+    initializeTestTurnConnection();
+    pTurnSocketConnection = pTurnConnection->pControlChannel;
+
+    EXPECT_EQ(STATUS_SUCCESS, turnConnectionStart(pTurnConnection));
+
+    // wait until get credential state
+    while (!atGetCredential && GETTIME() < atGetCredentialTimeout) {
+        THREAD_SLEEP(10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+        MUTEX_LOCK(pTurnConnection->lock);
+        if (pTurnConnection->state == TURN_STATE_GET_CREDENTIALS) {
+            atGetCredential = TRUE;
+        }
+        MUTEX_UNLOCK(pTurnConnection->lock);
+    }
+
+    // return immediately
+    EXPECT_EQ(STATUS_SUCCESS, turnConnectionShutdown(pTurnConnection, 0));
+
+    shutdownTimeout = GETTIME() + 5 * HUNDREDS_OF_NANOS_IN_A_SECOND;
+    while (!turnConnectionIsShutdownComplete(pTurnConnection) && GETTIME() < shutdownTimeout) {
+        THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
+    }
+
+    EXPECT_TRUE(!ATOMIC_LOAD_BOOL(&pTurnConnection->hasAllocation) || ATOMIC_LOAD_BOOL(&pTurnConnection->stopTurnConnection));
+
+    MUTEX_LOCK(pTurnConnection->lock);
+    EXPECT_TRUE(ATOMIC_LOAD_BOOL(&pTurnSocketConnection->connectionClosed));
+    MUTEX_UNLOCK(pTurnConnection->lock);
 
     freeTestTurnConnection();
 }
