@@ -218,7 +218,7 @@ STATUS turnConnectionHandleStun(PTurnConnection pTurnConnection, PBYTE pBuffer, 
 
     switch (stunPacketType) {
         case STUN_PACKET_TYPE_ALLOCATE_SUCCESS_RESPONSE:
-            /* If shutdown has been initiated, ignore the alloaction response */
+            /* If shutdown has been initiated, ignore the allocation response */
             CHK(!ATOMIC_LOAD(&pTurnConnection->stopTurnConnection), retStatus);
             CHK_STATUS(deserializeStunPacket(pBuffer, bufferLen, pTurnConnection->longTermKey, KVS_MD5_DIGEST_LENGTH, &pStunPacket));
             CHK_STATUS(getStunAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_XOR_RELAYED_ADDRESS, &pStunAttr));
@@ -1058,7 +1058,7 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
 
                 CHK_STATUS(turnConnectionFreePreAllocatedPackets(pTurnConnection));
                 CHK_STATUS(socketConnectionClosed(pTurnConnection->pControlChannel));
-                pTurnConnection->state = TURN_STATE_NEW;
+                pTurnConnection->state = STATUS_SUCCEEDED(pTurnConnection->errorStatus) ? TURN_STATE_NEW : TURN_STATE_FAILED;
                 ATOMIC_STORE_BOOL(&pTurnConnection->shutdownComplete, TRUE);
             }
 
@@ -1068,6 +1068,11 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
             DLOGW("TurnConnection in TURN_STATE_FAILED due to 0x%08x. Aborting TurnConnection", pTurnConnection->errorStatus);
             /* Since we are aborting, not gonna do cleanup */
             ATOMIC_STORE_BOOL(&pTurnConnection->hasAllocation, FALSE);
+            /* If we haven't done cleanup, go to cleanup state which will do the cleanup then go to failed state again. */
+            if (!ATOMIC_LOAD_BOOL(&pTurnConnection->shutdownComplete)) {
+                pTurnConnection->state = TURN_STATE_CLEAN_UP;
+                pTurnConnection->stateTimeoutTime = currentTime + DEFAULT_TURN_CLEAN_UP_TIMEOUT;
+            }
 
             break;
 
@@ -1289,7 +1294,7 @@ STATUS turnConnectionTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 cu
             break;
 
         case TURN_STATE_FAILED:
-            stopScheduling = TRUE;
+            stopScheduling = ATOMIC_LOAD_BOOL(&pTurnConnection->shutdownComplete);
             break;
 
         default:
