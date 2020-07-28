@@ -136,9 +136,7 @@ STATUS connectionListenerRemoveConnection(PConnectionListener pConnectionListene
     while (!hasConnection && pCurNode != NULL) {
         pCurrSocketConnection = (PSocketConnection) pCurNode->data;
         pCurNode = pCurNode->pNext;
-        if (pCurrSocketConnection == pSocketConnection) {
-            hasConnection = TRUE;
-        }
+        hasConnection = pCurrSocketConnection == pSocketConnection;
     }
 
     /* If connection is not found then return early */
@@ -302,8 +300,12 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
 
         for (i = 0; i < socketCount; ++i) {
             pSocketConnection = socketList[i];
-            FD_SET(pSocketConnection->localSocket, &rfds);
-            nfds = MAX(nfds, pSocketConnection->localSocket);
+            if (socketConnectionIsClosed(pSocketConnection)) {
+                updateSocketList = TRUE;
+            } else {
+                FD_SET(pSocketConnection->localSocket, &rfds);
+                nfds = MAX(nfds, pSocketConnection->localSocket);
+            }
         }
 
         nfds++;
