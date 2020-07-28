@@ -143,11 +143,6 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
 
             CHK_STATUS(onRtcpPacket(pKvsPeerConnection, buff, signedBuffLen));
         } else {
-            if (STATUS_FAILED(retStatus = decryptSrtpPacket(pKvsPeerConnection->pSrtpSession, buff, &signedBuffLen))) {
-                DLOGW("decryptSrtpPacket failed with 0x%08x", retStatus);
-                CHK(FALSE, STATUS_SUCCESS);
-            }
-
             CHK_STATUS(sendPacketToRtpReceiver(pKvsPeerConnection, buff, signedBuffLen));
         }
     }
@@ -162,11 +157,14 @@ STATUS sendPacketToRtpReceiver(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuf
     STATUS retStatus = STATUS_SUCCESS;
     PDoubleListNode pCurNode = NULL;
     PKvsRtpTransceiver pTransceiver;
-    UINT64 item;
+    UINT64 item, now;
     UINT32 ssrc;
     PRtpPacket pRtpPacket = NULL;
     PBYTE pPayload = NULL;
-    BOOL ownedByJitterBuffer = FALSE;
+    BOOL ownedByJitterBuffer = FALSE, discarded = FALSE;
+    UINT64 packetsReceived = 0, packetsFailedDecryption = 0, lastPacketReceivedTimestamp = 0, headerBytesReceived = 0, bytesReceived = 0,
+           packetsDiscarded = 0;
+    INT64 arrival, r_ts, transit, delta;
 
     CHK(pKvsPeerConnection != NULL && pBuffer != NULL, STATUS_NULL_ARG);
     CHK(bufferLen >= MIN_HEADER_LENGTH, STATUS_INVALID_ARG);
@@ -179,10 +177,36 @@ STATUS sendPacketToRtpReceiver(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuf
         pTransceiver = (PKvsRtpTransceiver) item;
 
         if (pTransceiver->jitterBufferSsrc == ssrc) {
+            packetsReceived++;
+            if (STATUS_FAILED(retStatus = decryptSrtpPacket(pKvsPeerConnection->pSrtpSession, pBuffer, (PINT32) &bufferLen))) {
+                DLOGW("decryptSrtpPacket failed with 0x%08x", retStatus);
+                packetsFailedDecryption++;
+                CHK(FALSE, STATUS_SUCCESS);
+            }
+            now = GETTIME();
             CHK(NULL != (pPayload = (PBYTE) MEMALLOC(bufferLen)), STATUS_NOT_ENOUGH_MEMORY);
             MEMCPY(pPayload, pBuffer, bufferLen);
             CHK_STATUS(createRtpPacketFromBytes(pPayload, bufferLen, &pRtpPacket));
-            CHK_STATUS(jitterBufferPush(pTransceiver->pJitterBuffer, pRtpPacket));
+            pRtpPacket->receivedTime = now;
+
+            // https://tools.ietf.org/html/rfc3550#section-6.4.1
+            // https://tools.ietf.org/html/rfc3550#appendix-A.8
+            // interarrival jitter
+            // arrival, the current time in the same units.
+            // r_ts, the timestamp from   the incoming packet
+            arrival = KVS_CONVERT_TIMESCALE(now, HUNDREDS_OF_NANOS_IN_A_SECOND, pTransceiver->pJitterBuffer->clockRate);
+            r_ts = pRtpPacket->header.timestamp;
+            transit = arrival - r_ts;
+            delta = transit - pTransceiver->pJitterBuffer->transit;
+            pTransceiver->pJitterBuffer->transit = transit;
+            pTransceiver->pJitterBuffer->jitter += (1. / 16.) * ((DOUBLE) ABS(delta) - pTransceiver->pJitterBuffer->jitter);
+            CHK_STATUS(jitterBufferPush(pTransceiver->pJitterBuffer, pRtpPacket, &discarded));
+            if (discarded) {
+                packetsDiscarded++;
+            }
+            lastPacketReceivedTimestamp = KVS_CONVERT_TIMESCALE(now, HUNDREDS_OF_NANOS_IN_A_SECOND, 1000);
+            headerBytesReceived += RTP_HEADER_LEN(pRtpPacket);
+            bytesReceived += pRtpPacket->rawPacketLength - RTP_HEADER_LEN(pRtpPacket);
             ownedByJitterBuffer = TRUE;
             CHK(FALSE, STATUS_SUCCESS);
         }
@@ -192,6 +216,17 @@ STATUS sendPacketToRtpReceiver(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuf
     DLOGW("No transceiver to handle inbound ssrc %u", ssrc);
 
 CleanUp:
+    if (packetsReceived > 0) {
+        MUTEX_LOCK(pTransceiver->statsLock);
+        pTransceiver->inboundStats.received.packetsReceived += packetsReceived;
+        pTransceiver->inboundStats.packetsFailedDecryption += packetsFailedDecryption;
+        pTransceiver->inboundStats.lastPacketReceivedTimestamp = lastPacketReceivedTimestamp;
+        pTransceiver->inboundStats.headerBytesReceived += headerBytesReceived;
+        pTransceiver->inboundStats.bytesReceived += bytesReceived;
+        pTransceiver->inboundStats.received.jitter = pTransceiver->pJitterBuffer->jitter / pTransceiver->pJitterBuffer->clockRate;
+        pTransceiver->inboundStats.received.packetsDiscarded = packetsDiscarded;
+        MUTEX_UNLOCK(pTransceiver->statsLock);
+    }
     if (!ownedByJitterBuffer) {
         SAFE_MEMFREE(pPayload);
         freeRtpPacket(&pRtpPacket);
@@ -243,7 +278,16 @@ STATUS onFrameReadyFunc(UINT64 customData, UINT16 startIndex, UINT16 endIndex, U
     CHK(pTransceiver != NULL, STATUS_NULL_ARG);
 
     pPacket = pTransceiver->pJitterBuffer->pktBuffer[startIndex];
+    // TODO: handle multi-packet frames
     CHK(pPacket != NULL, STATUS_NULL_ARG);
+    MUTEX_LOCK(pTransceiver->statsLock);
+    // https://www.w3.org/TR/webrtc-stats/#dom-rtcinboundrtpstreamstats-jitterbufferdelay
+    pTransceiver->inboundStats.jitterBufferDelay += (DOUBLE)(GETTIME() - pPacket->receivedTime) / HUNDREDS_OF_NANOS_IN_A_SECOND;
+    pTransceiver->inboundStats.jitterBufferEmittedCount++;
+    if (MEDIA_STREAM_TRACK_KIND_VIDEO == pTransceiver->transceiver.receiver.track.kind) {
+        pTransceiver->inboundStats.framesReceived++;
+    }
+    MUTEX_UNLOCK(pTransceiver->statsLock);
 
     if (frameSize > pTransceiver->peerFrameBufferSize) {
         MEMFREE(pTransceiver->peerFrameBuffer);
@@ -270,11 +314,27 @@ CleanUp:
     return retStatus;
 }
 
-STATUS onFrameDroppedFunc(UINT64 customData, UINT32 timestamp)
+STATUS onFrameDroppedFunc(UINT64 customData, UINT16 startIndex, UINT16 endIndex, UINT32 timestamp)
 {
-    UNUSED_PARAM(customData);
+    UNUSED_PARAM(endIndex);
+    STATUS retStatus = STATUS_SUCCESS;
+    PRtpPacket pPacket = NULL;
+    PKvsRtpTransceiver pTransceiver = (PKvsRtpTransceiver) customData;
     DLOGW("Frame with timestamp %ld is dropped!", timestamp);
-    return STATUS_SUCCESS;
+    CHK(pTransceiver != NULL, STATUS_NULL_ARG);
+    pPacket = pTransceiver->pJitterBuffer->pktBuffer[startIndex];
+    // TODO: handle multi-packet frames
+    CHK(pPacket != NULL, STATUS_NULL_ARG);
+    MUTEX_LOCK(pTransceiver->statsLock);
+    // https://www.w3.org/TR/webrtc-stats/#dom-rtcinboundrtpstreamstats-jitterbufferdelay
+    pTransceiver->inboundStats.jitterBufferDelay += (DOUBLE)(GETTIME() - pPacket->receivedTime) / HUNDREDS_OF_NANOS_IN_A_SECOND;
+    pTransceiver->inboundStats.jitterBufferEmittedCount++;
+    pTransceiver->inboundStats.received.framesDropped++;
+    pTransceiver->inboundStats.received.fullFramesLost++;
+    MUTEX_UNLOCK(pTransceiver->statsLock);
+
+CleanUp:
+    return retStatus;
 }
 
 VOID onIceConnectionStateChange(UINT64 customData, UINT64 connectionState)
@@ -497,10 +557,10 @@ STATUS rtcpReportsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData
         ntpTime = convertTimestampToNTP(currentTime);
         rtpTime = pKvsRtpTransceiver->sender.rtpTimeOffset +
             CONVERT_TIMESTAMP_TO_RTP(pKvsRtpTransceiver->pJitterBuffer->clockRate, currentTime - pKvsRtpTransceiver->sender.firstFrameWallClockTime);
-        MUTEX_LOCK(pKvsRtpTransceiver->sender.statsLock);
-        packetCount = pKvsRtpTransceiver->sender.outboundStats.sent.packetsSent;
-        octetCount = pKvsRtpTransceiver->sender.outboundStats.sent.bytesSent;
-        MUTEX_UNLOCK(pKvsRtpTransceiver->sender.statsLock);
+        MUTEX_LOCK(pKvsRtpTransceiver->statsLock);
+        packetCount = pKvsRtpTransceiver->outboundStats.sent.packetsSent;
+        octetCount = pKvsRtpTransceiver->outboundStats.sent.bytesSent;
+        MUTEX_UNLOCK(pKvsRtpTransceiver->statsLock);
         DLOGV("sender report %u %" PRIu64 " %" PRIu64 " : %u packets %u bytes", ssrc, ntpTime, rtpTime, packetCount, octetCount);
         packetLen = RTCP_PACKET_HEADER_LEN + 24;
 

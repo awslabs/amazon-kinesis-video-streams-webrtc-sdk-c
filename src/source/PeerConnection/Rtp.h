@@ -34,9 +34,6 @@ typedef struct {
     PRtpRollingBuffer packetBuffer;
     PRetransmitter retransmitter;
 
-    MUTEX statsLock;
-    RtcOutboundRtpStreamStats outboundStats;
-    RtcRemoteInboundRtpStreamStats remoteInboundStats;
     UINT64 rtpTimeOffset;
     UINT64 firstFrameWallClockTime; // 100ns precision
 
@@ -67,6 +64,11 @@ typedef struct {
     UINT32 peerFrameBufferSize;
 
     UINT32 rtcpReportsTimerId;
+
+    MUTEX statsLock;
+    RtcOutboundRtpStreamStats outboundStats;
+    RtcRemoteInboundRtpStreamStats remoteInboundStats;
+    RtcInboundRtpStreamStats inboundStats;
 } KvsRtpTransceiver, *PKvsRtpTransceiver;
 
 STATUS createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION, PKvsPeerConnection, UINT32, UINT32, PRtcMediaStreamTrack, PJitterBuffer, RTC_CODEC,

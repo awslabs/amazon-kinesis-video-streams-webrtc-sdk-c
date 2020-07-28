@@ -14,6 +14,8 @@ TEST_F(MetricsApiTest, webRtcGetMetrics)
     RtcConfiguration configuration;
     PRtcPeerConnection pRtcPeerConnection;
     RtcStats rtcMetrics;
+    RtcMediaStreamTrack videoTrack;
+    PRtcRtpTransceiver videoTransceiver;
 
     EXPECT_EQ(STATUS_NULL_ARG, rtcPeerConnectionGetMetrics(NULL, NULL, NULL));
     EXPECT_EQ(STATUS_NULL_ARG, rtcPeerConnectionGetMetrics(NULL, NULL, &rtcMetrics));
@@ -26,6 +28,10 @@ TEST_F(MetricsApiTest, webRtcGetMetrics)
 
     rtcMetrics.requestedTypeOfStats = (RTC_STATS_TYPE) 20; // Supplying a type that is unavailable
     EXPECT_EQ(STATUS_NOT_IMPLEMENTED, rtcPeerConnectionGetMetrics(pRtcPeerConnection, NULL, &rtcMetrics));
+
+    addTrackToPeerConnection(pRtcPeerConnection, &videoTrack, &videoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+    rtcMetrics.requestedTypeOfStats = RTC_STATS_TYPE_INBOUND_RTP;
+    EXPECT_EQ(STATUS_SUCCESS, rtcPeerConnectionGetMetrics(pRtcPeerConnection, NULL, &rtcMetrics));
 
     EXPECT_EQ(STATUS_SUCCESS, closePeerConnection(pRtcPeerConnection));
     EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));

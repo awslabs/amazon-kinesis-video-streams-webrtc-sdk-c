@@ -29,6 +29,14 @@ extern "C" {
 typedef CHAR DOMString[MAX_STATS_STRING_LENGTH + 1];
 
 /**
+ * @brief The DOMHighResTimeStamp type is used to store a time value in milliseconds, measured relative from the time origin, global monotonic clock,
+ * or a time value that represents a duration between two DOMHighResTimeStamps.
+ *
+ * Reference: https://www.w3.org/TR/hr-time-2/#sec-domhighrestimestamp
+ */
+typedef UINT64 DOMHighResTimeStamp;
+
+/**
  * Type of ICE Candidate
  */
 typedef enum {
@@ -248,9 +256,11 @@ typedef struct {
                  //!< concerns.
     DOMString kind; //!< Either "audio" or "video". This MUST match the media type part of the information in the corresponding codecType member of
                     //!< RTCCodecStats, and MUST match the "kind" attribute of the related MediaStreamTrack.
-    // TODO: transportId and codecId not yet populated
+    // TODO: transportId not yet populated
     DOMString transportId; //!< It is a unique identifier that is associated to the object that was inspected to produce the RTCTransportStats
                            //!< associated with this RTP stream.
+
+    // TODO: codecId not yet populated
     DOMString codecId; //!< It is a unique identifier that is associated to the object that was inspected to produce the RTCCodecStats associated with
                        //!< this RTP stream.
 } RTCRtpStreamStats, *PRTCRtpStreamStats;
@@ -332,6 +342,153 @@ typedef struct {
     UINT64 roundTripTimeMeasurements; //!< Total number of RTCP RR blocks received for this SSRC that contain a valid round trip time
 } RtcRemoteInboundRtpStreamStats, *PRtcRemoteInboundRtpStreamStats;
 
+typedef struct {
+    // dictionary RTCReceivedRtpStreamStats : RTCRtpStreamStats
+    RTCRtpStreamStats rtpStream;
+    UINT64 packetsReceived; //!< Total number of RTP packets received for this SSRC.
+    INT64 packetsLost; //!< TODO Total number of RTP packets lost for this SSRC. Calculated as defined in [RFC3550] section 6.4.1. Note that because
+                       //!< of how this is estimated, it can be negative if more packets are received than sent.
+    DOUBLE jitter;     //!< Packet Jitter measured in seconds for this SSRC. Calculated as defined in section 6.4.1. of [RFC3550].
+    UINT64 packetsDiscarded; //!< The cumulative number of RTP packets discarded by the jitter buffer due to late or early-arrival, i.e., these
+                             //!< packets are not played out. RTP packets discarded due to packet duplication are not reported in this metric
+                             //!< [XRBLOCK-STATS]. Calculated as defined in [RFC7002] section 3.2 and Appendix A.a.
+    UINT64 packetsRepaired; //!< TODO The cumulative number of lost RTP packets repaired after applying an error-resilience mechanism [XRBLOCK-STATS].
+    UINT64 burstPacketsLost;      //!< TODO The cumulative number of RTP packets lost during loss bursts, Appendix A (c) of [RFC6958].
+    UINT64 burstPacketsDiscarded; //!< TODO The cumulative number of RTP packets discarded during discard bursts, Appendix A (b) of [RFC7003].
+    UINT32 burstLossCount; //!< TODO The cumulative number of bursts of lost RTP packets, Appendix A (e) of [RFC6958].     [RFC3611] recommends a Gmin
+                           //!< (threshold) value of 16 for classifying a sequence of packet losses or discards as a burst.
+    UINT32 burstDiscardCount; //!< TODO The cumulative number of bursts of discarded RTP packets, Appendix A (e) of [RFC8015].
+    DOUBLE burstLossRate;     //!< TODO The fraction of RTP packets lost during bursts to the total number of RTP packets expected in the bursts. As
+                              //!< defined in Appendix A (a) of [RFC7004], however, the actual value is reported without multiplying by 32768.
+    DOUBLE burstDiscardRate;  //!< TODO The fraction of RTP packets discarded during bursts to the total number of RTP packets expected in bursts. As
+                              //!< defined in Appendix A (e) of [RFC7004], however, the actual value is reported without multiplying by 32768.
+    DOUBLE gapLossRate; //!< TODO The fraction of RTP packets lost during the gap periods. Appendix A (b) of [RFC7004], however, the actual value is
+                        //!< reported without multiplying by 32768.
+    DOUBLE gapDiscardRate;    //!< TODO The fraction of RTP packets discarded during the gap periods. Appendix A (f) of [RFC7004], however, the actual
+                              //!< value is reported without multiplying by 32768.
+    UINT32 framesDropped;     //!< Only valid for video. The total number of frames dropped prior to decode or dropped because the frame missed its
+                              //!< display deadline for this receiver's track. The measurement begins when the receiver is created and is a cumulative
+                              //!< metric as defined in Appendix A (g) of [RFC7004].
+    UINT32 partialFramesLost; //!< TODO Only valid for video. The cumulative number of partial frames lost. The measurement begins when the receiver
+                              //!< is created and is a cumulative metric as defined in Appendix A (j) of [RFC7004]. This metric is incremented when
+                              //!< the frame is sent to the decoder. If the partial frame is received and recovered via retransmission or FEC before
+                              //!< decoding, the framesReceived counter is incremented.
+    UINT32 fullFramesLost; //!< Only valid for video. The cumulative number of full frames lost. The measurement begins when the receiver is created
+                           //!< and is a cumulative metric as defined in Appendix A (i) of [RFC7004].
+} RtcReceivedRtpStreamStats, *PRtcReceivedRtpStreamStats;
+
+/**
+ * @brief The RTCInboundRtpStreamStats dictionary represents the measurement metrics for the incoming RTP media stream. The timestamp reported in the
+ * statistics object is the time at which the data was sampled.
+ *
+ * Reference: https://www.w3.org/TR/webrtc-stats/#dom-rtcinboundrtpstreamstats
+ */
+typedef struct {
+    RtcReceivedRtpStreamStats received; // dictionary RTCInboundRtpStreamStats : RTCReceivedRtpStreamStats
+    DOMString trackId;    //!< TODO The identifier of the stats object representing the receiving track, an RTCReceiverAudioTrackAttachmentStats or
+                          //!< RTCReceiverVideoTrackAttachmentStats.
+    DOMString receiverId; //!< TODO The stats ID used to look up the RTCAudioReceiverStats or RTCVideoReceiverStats object receiving this stream.
+    DOMString remoteId;   //!< TODO The remoteId is used for looking up the remote RTCRemoteOutboundRtpStreamStats object for the same SSRC.
+    UINT32 framesDecoded; //!< TODO Only valid for video. It represents the total number of frames correctly decoded for this RTP stream, i.e., frames
+                          //!< that would be displayed if no frames are dropped.
+    UINT32 keyFramesDecoded; //!< TODO Only valid for video. It represents the total number of key frames, such as key frames in VP8 [RFC6386] or
+                             //!< IDR-frames in H.264 [RFC6184], successfully decoded for this RTP media stream. This is a subset of framesDecoded.
+                             //!< framesDecoded - keyFramesDecoded gives you the number of delta frames decoded.
+    UINT16 frameWidth;       //!< TODO Only valid for video. Represents the width of the last decoded frame. Before the first frame is decoded this
+                             //!< attribute is missing.
+    UINT16 frameHeight;      //!< TODO Only valid for video. Represents the height of the last decoded frame. Before the first frame is decoded this
+                             //!< attribute is missing.
+    UINT8 frameBitDepth; //!< TODO Only valid for video. Represents the bit depth per pixel of the last decoded frame. Typical values are 24, 30, or
+                         //!< 36 bits. Before the first frame is decoded this attribute is missing.
+    DOUBLE framesPerSecond; //!< TODO Only valid for video. The number of decoded frames in the last second.
+    UINT64 qpSum;           //!< TODO Only valid for video. The sum of the QP values of frames decoded by this receiver. The count of frames is in
+                  //!< framesDecoded. The definition of QP value depends on the codec; for VP8, the QP value is the value carried in the frame header
+                  //!< as the syntax element "y_ac_qi", and defined in [RFC6386] section 19.2. Its range is 0..127. Note that the QP value is only an
+                  //!< indication of quantizer values used; many formats have ways to vary the quantizer value within the frame.
+    DOUBLE totalDecodeTime; //!< TODO Total number of seconds that have been spent decoding the framesDecoded frames of this stream. The average
+                            //!< decode time can be calculated by dividing this value with framesDecoded. The time it takes to decode one frame is the
+                            //!< time passed between feeding the decoder a frame and the decoder returning decoded data for that frame.
+    DOUBLE totalInterFrameDelay; //!< TODO Sum of the interframe delays in seconds between consecutively decoded frames, recorded just after a frame
+                                 //!< has been decoded. The interframe delay variance be calculated from totalInterFrameDelay,
+                                 //!< totalSquaredInterFrameDelay, and framesDecoded according to the formula: (totalSquaredInterFrameDelay -
+                                 //!< totalInterFrameDelay^2/ framesDecoded)/framesDecoded.
+    DOUBLE totalSquaredInterFrameDelay; //!< TODO Sum of the squared interframe delays in seconds between consecutively decoded frames, recorded just
+                                        //!< after a frame has been decoded. See totalInterFrameDelay for details on how to calculate the interframe
+                                        //!< delay variance.
+
+    BOOL voiceActivityFlag; //!< TODO Only valid for audio. Whether the last RTP packet whose frame was delivered to the RTCRtpReceiver's
+                            //!< MediaStreamTrack for playout contained voice activity or not based on the presence of the V bit in the extension
+                            //!< header, as defined in [RFC6464]. This is the stats-equivalent of RTCRtpSynchronizationSource.voiceActivityFlag in
+                            //!< [[WEBRTC].
+    DOMHighResTimeStamp
+        lastPacketReceivedTimestamp; //!< Represents the timestamp at which the last packet was received for this SSRC. This differs from timestamp,
+                                     //!< which represents the time at which the statistics were generated by the local endpoint.
+    DOUBLE averageRtcpInterval; //!< TODO The average RTCP interval between two consecutive compound RTCP packets. This is calculated by the sending
+                                //!< endpoint when sending compound RTCP reports. Compound packets must contain at least a RTCP RR or SR block and an
+                                //!< SDES packet with the CNAME item.
+    UINT64 headerBytesReceived; //!< Total number of RTP header and padding bytes received for this SSRC. This does not include the size of transport
+                                //!< layer headers such as IP or UDP. headerBytesReceived + bytesReceived equals the number of bytes received as
+                                //!< payload over the transport.
+    UINT64 fecPacketsReceived;  //!< TODO Total number of RTP FEC packets received for this SSRC. This counter can also be incremented when receiving
+                                //!< FEC packets in-band with media packets (e.g., with Opus).
+    UINT64
+    fecPacketsDiscarded;  //!< TODO Total number of RTP FEC packets received for this SSRC where the error correction payload was discarded by the
+                          //!< application. This may happen 1. if all the source packets protected by the FEC packet were received or already
+                          //!< recovered by a separate FEC packet, or 2. if the FEC packet arrived late, i.e., outside the recovery window, and
+                          //!< the lost RTP packets have already been skipped during playout. This is a subset of fecPacketsReceived.
+    UINT64 bytesReceived; //!< Total number of bytes received for this SSRC. Calculated as defined in [RFC3550] section 6.4.1.
+    UINT64 packetsFailedDecryption; //!< The cumulative number of RTP packets that failed to be decrypted according to the procedures in [RFC3711].
+                                    //!< These packets are not counted by packetsDiscarded.
+    UINT64 packetsDuplicated; //!< TODO The cumulative number of packets discarded because they are duplicated. Duplicate packets are not counted in
+                              //!< packetsDiscarded. Duplicated packets have the same RTP sequence number and content as a previously received
+    //!< packet. If multiple duplicates of a packet are received, all of them are counted. An improved estimate of lost
+    //!< packets can be calculated by adding packetsDuplicated to packetsLost; this will always result in a positive number,
+    //!< but not the same number as RFC 3550 would calculate.
+
+    // TODO: perDscpPacketsReceived
+    /**
+     * Total number of packets received for this SSRC, per Differentiated Services code point (DSCP) [RFC2474]. DSCPs are identified as decimal
+     * integers in string form. Note that due to network remapping and bleaching, these numbers are not expected to match the numbers seen on sending.
+     * Not all OSes make this information available.
+     */
+    //    record<USVString, unsigned long long> perDscpPacketsReceived;
+    UINT32 nackCount; //!< TODO Count the total number of Negative ACKnowledgement (NACK) packets sent by this receiver.
+    UINT32 firCount;  //!< TODO Only valid for video. Count the total number of Full Intra Request (FIR) packets sent by this receiver.
+    UINT32 pliCount;  //!< TODO Only valid for video. Count the total number of Picture Loss Indication (PLI) packets sent by this receiver.
+    UINT32 sliCount;  //!< TODO Only valid for video. Count the total number of Slice Loss Indication (SLI) packets sent by this receiver.
+    DOMHighResTimeStamp estimatedPlayoutTimestamp; //!< TODO This is the estimated playout time of this receiver's track.
+    DOUBLE jitterBufferDelay; //!< TODO It is the sum of the time, in seconds, each audio sample or video frame takes from the time it is received and
+                              //!< to the time it exits the jitter buffer.
+    UINT64 jitterBufferEmittedCount; //!< TODO The total number of audio samples or video frames that have come out of the jitter buffer (increasing
+                                     //!< jitterBufferDelay).
+    UINT64 totalSamplesReceived; //!< TODO Only valid for audio. The total number of samples that have been received on this RTP stream. This includes
+                                 //!< concealedSamples.
+    UINT64 samplesDecodedWithSilk; //!< TODO Only valid for audio and when the audio codec is Opus. The total number of samples decoded by the SILK
+                                   //!< portion of the Opus codec.
+    UINT64 samplesDecodedWithCelt; //!< TODO Only valid for audio and when the audio codec is Opus. The total number of samples decoded by the CELT
+                                   //!< portion of the Opus codec.
+    UINT64 concealedSamples; //!< TODO Only valid for audio. The total number of samples that are concealed samples. A concealed sample is a sample
+                             //!< that was replaced with synthesized samples generated locally before being played out.
+    UINT64 silentConcealedSamples; //!< TODO Only valid for audio. The total number of concealed samples inserted that are "silent".
+    UINT64 concealmentEvents; //!< TODO Only valid for audio. The number of concealment events. This counter increases every time a concealed sample
+                              //!< is synthesized after a non-concealed sample.
+    UINT64 insertedSamplesForDeceleration; //!< TODO Only valid for audio. When playout is slowed down, this counter is increased by the difference
+                                           //!< between the number of samples received and the number of samples played out.
+    UINT64 removedSamplesForAcceleration; //!< TODO Only valid for audio. When playout is sped up, this counter is increased by the difference between
+                                          //!< the number of samples received and the number of samples played out.
+    DOUBLE audioLevel; //!< TODO Only valid for audio. Represents the audio level of the receiving track. For audio levels of tracks attached locally,
+                       //!< see RTCAudioSourceStats instead. The value is between 0..1 (linear), where 1.0 represents 0 dBov, 0 represents silence,
+                       //!< and 0.5 represents approximately 6 dBSPL change in the sound pressure level from 0 dBov.The audioLevel is averaged over
+                       //!< some small interval, using the algortihm described under totalAudioEnergy. The interval used is implementation dependent.
+    DOUBLE totalAudioEnergy; //!< TODO Only valid for audio. Represents the audio energy of the receiving track. For audio energy of tracks attached
+                             //!< locally, see RTCAudioSourceStats instead.
+    DOUBLE totalSamplesDuration; //!< TODO Only valid for audio. Represents the audio duration of the receiving track. For audio durations of tracks
+                                 //!< attached locally, see RTCAudioSourceStats instead.
+    UINT32 framesReceived;       //!< Only valid for video. Represents the total number of complete frames received on this RTP stream. This metric is
+                                 //!< incremented when the complete frame is received.
+    DOMString decoderImplementation; //!<  TODO Identifies the decoder implementation used. This is useful for diagnosing interoperability issues.
+} RtcInboundRtpStreamStats, *PRtcInboundRtpStreamStats;
+
 /**
  * @brief SignalingClientMetrics Represent the stats related to the KVS WebRTC SDK signaling client
  */
@@ -370,7 +527,8 @@ typedef struct {
     RtcIceServerStats iceServerStats;                           //!< ICE Server Pair stats object
     RtcTransportStats transportStats;                           //!< Transport stats object
     RtcOutboundRtpStreamStats outboundRtpStreamStats;           //!< Outbound RTP Stream stats object
-    RtcRemoteInboundRtpStreamStats remoteInboundRtpStreamStats; //!< Inbound RTP Stream stats object
+    RtcRemoteInboundRtpStreamStats remoteInboundRtpStreamStats; //!< Remote Inbound RTP Stream stats object
+    RtcInboundRtpStreamStats inboundRtpStreamStats;             //!< Inbound RTP Stream stats object
 } RtcStatsObject, *PRtcStatsObject;
 
 #ifdef __cplusplus
