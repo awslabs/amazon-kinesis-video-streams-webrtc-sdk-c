@@ -186,6 +186,7 @@ PVOID sendVideoPackets(PVOID args)
     CHAR filePath[MAX_PATH_LEN + 1];
     STATUS status;
     UINT32 i;
+    UINT64 startTime, lastFrameTime, elapsed;
     MEMSET(&encoderStats, 0x00, SIZEOF(RtcEncoderStats));
 
     if (pSampleConfiguration == NULL) {
@@ -194,6 +195,8 @@ PVOID sendVideoPackets(PVOID args)
     }
 
     frame.presentationTs = 0;
+    startTime = GETTIME();
+    lastFrameTime = startTime;
 
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
         fileIndex = fileIndex % NUMBER_OF_H264_FRAME_FILES + 1;
@@ -246,7 +249,14 @@ PVOID sendVideoPackets(PVOID args)
             }
             ATOMIC_DECREMENT(&pSampleConfiguration->streamingSessionListReadingThreadCount);
         }
-        THREAD_SLEEP(SAMPLE_VIDEO_FRAME_DURATION);
+
+        // Adjust sleep in the case the sleep itself and writeFrame take longer than expected. Since sleep makes sure that the thread
+        // will be paused at least until the given amount, we can assume that there's no too early frame scenario.
+        // Also, it's very unlikely to have a delay greater than SAMPLE_VIDEO_FRAME_DURATION, so the logic assumes that this is always
+        // true for simplicity.
+        elapsed = lastFrameTime - startTime;
+        THREAD_SLEEP(SAMPLE_VIDEO_FRAME_DURATION - elapsed % SAMPLE_VIDEO_FRAME_DURATION);
+        lastFrameTime = GETTIME();
     }
 
 CleanUp:
