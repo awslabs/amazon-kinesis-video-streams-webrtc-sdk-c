@@ -41,8 +41,7 @@ STATUS initSrtpSession(PBYTE receiveKey, PBYTE transmitKey, KVS_SRTP_PROFILE pro
     receivePolicy.next = NULL;
 
     CHK_ERR((errStatus = srtp_create(&(pSrtpSession->srtp_receive_session), &receivePolicy)) == srtp_err_status_ok,
-            STATUS_SRTP_RECEIVE_SESSION_CREATION_FAILED,
-            "Create srtp session for the receiver failed with error code %u", errStatus);
+            STATUS_SRTP_RECEIVE_SESSION_CREATION_FAILED, "Create srtp session for the receiver failed with error code %u", errStatus);
 
     srtp_policy_setter(&transmitPolicy.rtp);
     srtcp_policy_setter(&transmitPolicy.rtcp);
@@ -52,8 +51,7 @@ STATUS initSrtpSession(PBYTE receiveKey, PBYTE transmitKey, KVS_SRTP_PROFILE pro
     transmitPolicy.next = NULL;
 
     CHK_ERR((errStatus = srtp_create(&(pSrtpSession->srtp_transmit_session), &transmitPolicy)) == srtp_err_status_ok,
-            STATUS_SRTP_TRANSMIT_SESSION_CREATION_FAILED,
-            "Create srtp session for the transmitter failed with error code %u", errStatus);
+            STATUS_SRTP_TRANSMIT_SESSION_CREATION_FAILED, "Create srtp session for the transmitter failed with error code %u", errStatus);
 
     *ppSrtpSession = pSrtpSession;
 
@@ -101,10 +99,8 @@ STATUS decryptSrtpPacket(PSrtpSession pSrtpSession, PVOID encryptedMessage, PINT
     STATUS retStatus = STATUS_SUCCESS;
     srtp_err_status_t errStatus;
 
-    CHK_ERR((errStatus = srtp_unprotect(pSrtpSession->srtp_receive_session, encryptedMessage, len)) == srtp_err_status_ok,
-            STATUS_SRTP_DECRYPT_FAILED,
-            "Decrypting rtp packet failed with error code %u on srtp session %" PRIu64,
-            errStatus, pSrtpSession->srtp_receive_session);
+    CHK_ERR((errStatus = srtp_unprotect(pSrtpSession->srtp_receive_session, encryptedMessage, len)) == srtp_err_status_ok, STATUS_SRTP_DECRYPT_FAILED,
+            "Decrypting rtp packet failed with error code %u on srtp session %" PRIu64, errStatus, pSrtpSession->srtp_receive_session);
 
 CleanUp:
     LEAVES();
@@ -118,9 +114,8 @@ STATUS decryptSrtcpPacket(PSrtpSession pSrtpSession, PVOID encryptedMessage, PIN
     srtp_err_status_t errStatus;
 
     CHK_ERR((errStatus = srtp_unprotect_rtcp(pSrtpSession->srtp_receive_session, encryptedMessage, len)) == srtp_err_status_ok,
-            STATUS_SRTP_DECRYPT_FAILED,
-            "Decrypting rtcp packet failed with error code %u on srtp session %" PRIu64,
-            errStatus, pSrtpSession->srtp_receive_session);
+            STATUS_SRTP_DECRYPT_FAILED, "Decrypting rtcp packet failed with error code %u on srtp session %" PRIu64, errStatus,
+            pSrtpSession->srtp_receive_session);
 
 CleanUp:
     LEAVES();
