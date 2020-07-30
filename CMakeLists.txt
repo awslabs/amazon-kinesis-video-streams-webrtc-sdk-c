@@ -12,6 +12,7 @@ option(BUILD_STATIC_LIBS "Build all libraries statically. (This includes third-p
 option(BUILD_OPENSSL_PLATFORM "If buildng OpenSSL what is the target platform" OFF)
 option(BUILD_LIBSRTP_HOST_PLATFORM "If buildng LibSRTP what is the current platform" OFF)
 option(BUILD_LIBSRTP_DESTINATION_PLATFORM "If buildng LibSRTP what is the destination platform" OFF)
+option(BUILD_SAMPLE "Build available samples" ON)
 
 # Developer Flags
 option(BUILD_TEST "Build the testing tree." OFF)
@@ -277,37 +278,52 @@ if (WIN32)
   target_link_libraries(kvsWebrtcClient PRIVATE "Ws2_32" "iphlpapi")
 endif()
 
-add_executable(
-  kvsWebrtcClientMaster
-  ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/Common.c
-  ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/kvsWebRTCClientMaster.c)
-target_link_libraries(kvsWebrtcClientMaster kvsWebrtcClient kvsWebrtcSignalingClient kvspicUtils)
-
-add_executable(
-  kvsWebrtcClientViewer
-  ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/Common.c
-  ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/kvsWebRTCClientViewer.c)
-target_link_libraries(kvsWebrtcClientViewer kvsWebrtcClient kvsWebrtcSignalingClient kvspicUtils)
-
-add_executable(
-        discoverNatBehavior
-        ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/discoverNatBehavior.c)
-target_link_libraries(discoverNatBehavior kvsWebrtcClient)
-
 if(COMPILER_WARNINGS)
   target_compile_options(kvsWebrtcClient PUBLIC -Wall -Werror -pedantic -Wextra -Wno-unknown-warning-option)
   target_compile_options(kvsWebrtcSignalingClient PUBLIC -Wall -Werror -pedantic -Wextra -Wno-unknown-warning-option)
 endif()
 
-if(GST_FOUND)
-  add_executable(
-    kvsWebrtcClientMasterGstSample
-    ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/Common.c
-    ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/kvsWebRTCClientMasterGstreamerSample.c
-  )
-  target_link_libraries(kvsWebrtcClientMasterGstSample kvsWebrtcClient kvsWebrtcSignalingClient ${GST_SAMPLE_LIBRARIES} kvspicUtils)
+install(TARGETS kvsWebrtcClient kvsWebrtcSignalingClient
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+)
 
-  install(TARGETS kvsWebrtcClientMasterGstSample
+install(DIRECTORY ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/include/
+  DESTINATION include
+)
+
+if (BUILD_SAMPLE)
+  add_executable(
+    kvsWebrtcClientMaster
+    ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/Common.c
+    ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/kvsWebRTCClientMaster.c)
+  target_link_libraries(kvsWebrtcClientMaster kvsWebrtcClient kvsWebrtcSignalingClient kvspicUtils)
+
+  add_executable(
+    kvsWebrtcClientViewer
+    ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/Common.c
+    ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/kvsWebRTCClientViewer.c)
+  target_link_libraries(kvsWebrtcClientViewer kvsWebrtcClient kvsWebrtcSignalingClient kvspicUtils)
+
+  add_executable(
+          discoverNatBehavior
+          ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/discoverNatBehavior.c)
+  target_link_libraries(discoverNatBehavior kvsWebrtcClient)
+
+  if(GST_FOUND)
+    add_executable(
+      kvsWebrtcClientMasterGstSample
+      ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/Common.c
+      ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/kvsWebRTCClientMasterGstreamerSample.c
+    )
+    target_link_libraries(kvsWebrtcClientMasterGstSample kvsWebrtcClient kvsWebrtcSignalingClient ${GST_SAMPLE_LIBRARIES} kvspicUtils)
+
+    install(TARGETS kvsWebrtcClientMasterGstSample
+      RUNTIME DESTINATION bin
+    )
+  endif()
+
+  install(TARGETS kvsWebrtcClientMaster kvsWebrtcClientViewer discoverNatBehavior
     RUNTIME DESTINATION bin
   )
 endif()
@@ -315,13 +331,3 @@ endif()
 if(BUILD_TEST)
   add_subdirectory(tst)
 endif()
-
-install(TARGETS kvsWebrtcClient kvsWebrtcSignalingClient kvsWebrtcClientMaster kvsWebrtcClientViewer discoverNatBehavior
-  RUNTIME DESTINATION bin
-  LIBRARY DESTINATION lib
-  ARCHIVE DESTINATION lib
-  )
-
-install(DIRECTORY ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/include/
-  DESTINATION include
-  )
