@@ -67,7 +67,7 @@ static STATUS onRtcpSenderReport(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKv
         UINT32 rtpTs = getUnalignedInt32BigEndian(pRtcpPacket->payload + 12);
         UINT32 packetCnt = getUnalignedInt32BigEndian(pRtcpPacket->payload + 16);
         UINT32 octetCnt = getUnalignedInt32BigEndian(pRtcpPacket->payload + 20);
-        DLOGD("RTCP_PACKET_TYPE_SENDER_REPORT %d %" PRIu64 " rtpTs: %u %u pkts %u bytes", senderSSRC, ntpTime, rtpTs, packetCnt, octetCnt);
+        DLOGV("RTCP_PACKET_TYPE_SENDER_REPORT %d %" PRIu64 " rtpTs: %u %u pkts %u bytes", senderSSRC, ntpTime, rtpTs, packetCnt, octetCnt);
     } else {
         DLOGW("Received sender report for non existing ssrc: %u", senderSSRC);
     }
@@ -177,7 +177,7 @@ STATUS onRtcpPacket(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuff, UINT32 b
                 CHK_STATUS(onRtcpReceiverReport(&rtcpPacket, pKvsPeerConnection));
                 break;
             case RTCP_PACKET_TYPE_SOURCE_DESCRIPTION:
-                DLOGD("unhandled packet type RTCP_PACKET_TYPE_SOURCE_DESCRIPTION");
+                DLOGV("unhandled packet type RTCP_PACKET_TYPE_SOURCE_DESCRIPTION");
                 break;
             default:
                 DLOGW("unhandled packet type %d", rtcpPacket.header.packetType);
