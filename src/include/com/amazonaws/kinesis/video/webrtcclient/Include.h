@@ -1580,6 +1580,17 @@ PUBLIC_API STATUS transceiverOnFrame(PRtcRtpTransceiver, UINT64, RtcOnFrame);
 PUBLIC_API STATUS transceiverOnBandwidthEstimation(PRtcRtpTransceiver, UINT64, RtcOnBandwidthEstimation);
 
 /**
+ * @brief Set a callback for picture loss packet (PLI)
+ *
+ * @param[in] PRtcRtpTransceiver Populated RtcRtpTransceiver struct
+ * @param[in] UINT64 User customData that will be passed along when RtcOnPictureLoss is called
+ * @param[in] RtcOnPictureLoss User RtcOnPictureLoss callback
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
+PUBLIC_API STATUS transceiverOnPictureLoss(PRtcRtpTransceiver, UINT64, RtcOnPictureLoss);
+
+/**
  * @brief Frees the previously created transceiver object
  *
  * This method is currently a no-op as Transceivers are freed when freePeerConnection is called
