@@ -60,34 +60,32 @@ GstFlowReturn on_new_sample(GstElement* sink, gpointer data, UINT64 trackid)
         frame.size = (UINT32) info.size;
         frame.frameData = (PBYTE) info.data;
 
-        if (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->updatingSampleStreamingSessionList)) {
-            ATOMIC_INCREMENT(&pSampleConfiguration->streamingSessionListReadingThreadCount);
-            for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
-                pSampleStreamingSession = pSampleConfiguration->sampleStreamingSessionList[i];
-                frame.index = (UINT32) ATOMIC_INCREMENT(&pSampleStreamingSession->frameIndex);
+        MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
+        for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
+            pSampleStreamingSession = pSampleConfiguration->sampleStreamingSessionList[i];
+            frame.index = (UINT32) ATOMIC_INCREMENT(&pSampleStreamingSession->frameIndex);
 
-                if (trackid == DEFAULT_AUDIO_TRACK_ID) {
-                    pRtcRtpTransceiver = pSampleStreamingSession->pAudioRtcRtpTransceiver;
-                    frame.presentationTs = pSampleStreamingSession->audioTimestamp;
-                    frame.decodingTs = frame.presentationTs;
-                    pSampleStreamingSession->audioTimestamp +=
-                        SAMPLE_AUDIO_FRAME_DURATION; // assume audio frame size is 20ms, which is default in opusenc
-                } else {
-                    pRtcRtpTransceiver = pSampleStreamingSession->pVideoRtcRtpTransceiver;
-                    frame.presentationTs = pSampleStreamingSession->videoTimestamp;
-                    frame.decodingTs = frame.presentationTs;
-                    pSampleStreamingSession->videoTimestamp += SAMPLE_VIDEO_FRAME_DURATION; // assume video fps is 30
-                }
-
-                status = writeFrame(pRtcRtpTransceiver, &frame);
-                if (status != STATUS_SUCCESS) {
-#ifdef VERBOSE
-                    printf("writeFrame() failed with 0x%08x", status);
-#endif
-                }
+            if (trackid == DEFAULT_AUDIO_TRACK_ID) {
+                pRtcRtpTransceiver = pSampleStreamingSession->pAudioRtcRtpTransceiver;
+                frame.presentationTs = pSampleStreamingSession->audioTimestamp;
+                frame.decodingTs = frame.presentationTs;
+                pSampleStreamingSession->audioTimestamp +=
+                    SAMPLE_AUDIO_FRAME_DURATION; // assume audio frame size is 20ms, which is default in opusenc
+            } else {
+                pRtcRtpTransceiver = pSampleStreamingSession->pVideoRtcRtpTransceiver;
+                frame.presentationTs = pSampleStreamingSession->videoTimestamp;
+                frame.decodingTs = frame.presentationTs;
+                pSampleStreamingSession->videoTimestamp += SAMPLE_VIDEO_FRAME_DURATION; // assume video fps is 30
             }
-            ATOMIC_DECREMENT(&pSampleConfiguration->streamingSessionListReadingThreadCount);
+
+            status = writeFrame(pRtcRtpTransceiver, &frame);
+            if (status != STATUS_SUCCESS) {
+#ifdef VERBOSE
+                printf("writeFrame() failed with 0x%08x", status);
+#endif
+            }
         }
+        MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
     }
 
 CleanUp:

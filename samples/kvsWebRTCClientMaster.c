@@ -235,20 +235,18 @@ PVOID sendVideoPackets(PVOID args)
         encoderStats.targetBitrate = 262000;
         frame.presentationTs += SAMPLE_VIDEO_FRAME_DURATION;
 
-        if (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->updatingSampleStreamingSessionList)) {
-            ATOMIC_INCREMENT(&pSampleConfiguration->streamingSessionListReadingThreadCount);
-            for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
-                status = writeFrame(pSampleConfiguration->sampleStreamingSessionList[i]->pVideoRtcRtpTransceiver, &frame);
-                encoderStats.encodeTimeMsec = 4; // update encode time to an arbitrary number to demonstrate stats update
-                updateEncoderStats(pSampleConfiguration->sampleStreamingSessionList[i]->pVideoRtcRtpTransceiver, &encoderStats);
-                if (status != STATUS_SUCCESS) {
+        MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
+        for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
+            status = writeFrame(pSampleConfiguration->sampleStreamingSessionList[i]->pVideoRtcRtpTransceiver, &frame);
+            encoderStats.encodeTimeMsec = 4; // update encode time to an arbitrary number to demonstrate stats update
+            updateEncoderStats(pSampleConfiguration->sampleStreamingSessionList[i]->pVideoRtcRtpTransceiver, &encoderStats);
+            if (status != STATUS_SUCCESS) {
 #ifdef VERBOSE
-                    printf("writeFrame() failed with 0x%08x", status);
+                printf("writeFrame() failed with 0x%08x", status);
 #endif
-                }
             }
-            ATOMIC_DECREMENT(&pSampleConfiguration->streamingSessionListReadingThreadCount);
         }
+        MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
 
         // Adjust sleep in the case the sleep itself and writeFrame take longer than expected. Since sleep makes sure that the thread
         // will be paused at least until the given amount, we can assume that there's no too early frame scenario.
@@ -312,16 +310,14 @@ PVOID sendAudioPackets(PVOID args)
 
         frame.presentationTs += SAMPLE_AUDIO_FRAME_DURATION;
 
-        if (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->updatingSampleStreamingSessionList)) {
-            ATOMIC_INCREMENT(&pSampleConfiguration->streamingSessionListReadingThreadCount);
-            for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
-                status = writeFrame(pSampleConfiguration->sampleStreamingSessionList[i]->pAudioRtcRtpTransceiver, &frame);
-                if (status != STATUS_SUCCESS) {
-                    printf("writeFrame failed with 0x%08x", status);
-                }
+        MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
+        for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
+            status = writeFrame(pSampleConfiguration->sampleStreamingSessionList[i]->pAudioRtcRtpTransceiver, &frame);
+            if (status != STATUS_SUCCESS) {
+                printf("writeFrame failed with 0x%08x", status);
             }
-            ATOMIC_DECREMENT(&pSampleConfiguration->streamingSessionListReadingThreadCount);
         }
+        MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
         THREAD_SLEEP(SAMPLE_AUDIO_FRAME_DURATION);
     }
 
