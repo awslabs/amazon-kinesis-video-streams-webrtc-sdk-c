@@ -43,9 +43,7 @@ typedef struct {
     volatile ATOMIC_BOOL appTerminateFlag;
     volatile ATOMIC_BOOL interrupted;
     volatile ATOMIC_BOOL mediaThreadStarted;
-    volatile ATOMIC_BOOL updatingSampleStreamingSessionList;
     volatile ATOMIC_BOOL recreateSignalingClient;
-    volatile SIZE_T streamingSessionListReadingThreadCount;
     BOOL useTestSrc;
     ChannelInfo channelInfo;
     PCHAR pCaCertPath;
