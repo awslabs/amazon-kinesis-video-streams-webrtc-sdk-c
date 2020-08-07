@@ -82,7 +82,13 @@ STATUS allocateSctp(PKvsPeerConnection pKvsPeerConnection)
     CHK_STATUS(createSctpSession(&sctpSessionCallbacks, &(pKvsPeerConnection->pSctpSession)));
 
     for (; currentDataChannelId < data.currentDataChannelId; currentDataChannelId += 2) {
-        CHK_STATUS(hashTableGet(pKvsPeerConnection->pDataChannels, currentDataChannelId, (PUINT64) &pKvsDataChannel));
+        pKvsDataChannel = NULL;
+        retStatus = hashTableGet(pKvsPeerConnection->pDataChannels, currentDataChannelId, (PUINT64) &pKvsDataChannel);
+        if (retStatus == STATUS_SUCCESS || retStatus == STATUS_HASH_KEY_NOT_PRESENT) {
+            retStatus = STATUS_SUCCESS;
+        } else {
+            CHK(FALSE, retStatus);
+        }
         CHK(pKvsDataChannel != NULL, STATUS_INTERNAL_ERROR);
         sctpSessionWriteDcep(pKvsPeerConnection->pSctpSession, currentDataChannelId, pKvsDataChannel->dataChannel.name,
                              STRLEN(pKvsDataChannel->dataChannel.name), &pKvsDataChannel->rtcDataChannelInit);
@@ -282,8 +288,13 @@ STATUS onFrameReadyFunc(UINT64 customData, UINT16 startIndex, UINT16 endIndex, U
 
     CHK(pTransceiver != NULL, STATUS_NULL_ARG);
 
-    pPacket = pTransceiver->pJitterBuffer->pktBuffer[startIndex];
     // TODO: handle multi-packet frames
+    retStatus = hashTableGet(pTransceiver->pJitterBuffer->pPkgBufferHashTable, startIndex, (PUINT64) &pPacket);
+    if (retStatus == STATUS_SUCCESS || retStatus == STATUS_HASH_KEY_NOT_PRESENT) {
+        retStatus = STATUS_SUCCESS;
+    } else {
+        CHK(FALSE, retStatus);
+    }
     CHK(pPacket != NULL, STATUS_NULL_ARG);
     MUTEX_LOCK(pTransceiver->statsLock);
     // https://www.w3.org/TR/webrtc-stats/#dom-rtcinboundrtpstreamstats-jitterbufferdelay
@@ -316,6 +327,7 @@ STATUS onFrameReadyFunc(UINT64 customData, UINT16 startIndex, UINT16 endIndex, U
     }
 
 CleanUp:
+    CHK_LOG_ERR(retStatus);
     return retStatus;
 }
 
@@ -327,7 +339,12 @@ STATUS onFrameDroppedFunc(UINT64 customData, UINT16 startIndex, UINT16 endIndex,
     PKvsRtpTransceiver pTransceiver = (PKvsRtpTransceiver) customData;
     DLOGW("Frame with timestamp %ld is dropped!", timestamp);
     CHK(pTransceiver != NULL, STATUS_NULL_ARG);
-    pPacket = pTransceiver->pJitterBuffer->pktBuffer[startIndex];
+    retStatus = hashTableGet(pTransceiver->pJitterBuffer->pPkgBufferHashTable, startIndex, (PUINT64) &pPacket);
+    if (retStatus == STATUS_SUCCESS || retStatus == STATUS_HASH_KEY_NOT_PRESENT) {
+        retStatus = STATUS_SUCCESS;
+    } else {
+        CHK(FALSE, retStatus);
+    }
     // TODO: handle multi-packet frames
     CHK(pPacket != NULL, STATUS_NULL_ARG);
     MUTEX_LOCK(pTransceiver->statsLock);
@@ -453,7 +470,12 @@ VOID onSctpSessionDataChannelMessage(UINT64 customData, UINT32 channelId, BOOL i
 
     CHK(pKvsPeerConnection != NULL, STATUS_INTERNAL_ERROR);
 
-    CHK_STATUS(hashTableGet(pKvsPeerConnection->pDataChannels, channelId, (PUINT64) &pKvsDataChannel));
+    retStatus = hashTableGet(pKvsPeerConnection->pDataChannels, channelId, (PUINT64) &pKvsDataChannel);
+    if (retStatus == STATUS_SUCCESS || retStatus == STATUS_HASH_KEY_NOT_PRESENT) {
+        retStatus = STATUS_SUCCESS;
+    } else {
+        CHK(FALSE, retStatus);
+    }
     CHK(pKvsDataChannel != NULL && pKvsDataChannel->onMessage != NULL, STATUS_INTERNAL_ERROR);
     pKvsDataChannel->rtcDataChannelDiagnostics.messagesReceived++;
     pKvsDataChannel->rtcDataChannelDiagnostics.bytesReceived += pMessageLen;
