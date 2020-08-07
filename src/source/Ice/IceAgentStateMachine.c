@@ -462,6 +462,8 @@ STATUS fromReadyIceAgentState(UINT64 customData, PUINT64 pState)
     PIceAgent pIceAgent = (PIceAgent) customData;
     UINT64 state = ICE_AGENT_STATE_READY; // original state
     BOOL locked = FALSE;
+    PDoubleListNode pCurNode = NULL, pNodeToDelete = NULL;
+    PIceCandidate pIceCandidate = NULL;
 
     CHK(pIceAgent != NULL && pState != NULL, STATUS_NULL_ARG);
 
@@ -472,6 +474,22 @@ STATUS fromReadyIceAgentState(UINT64 customData, PUINT64 pState)
     CHK_STATUS(pIceAgent->iceAgentStatus);
 
     CHK_STATUS(iceAgentStateMachineCheckDisconnection(pIceAgent, &state));
+
+    // Free TurnConnections that are shutdown
+    CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
+    while (pCurNode != NULL) {
+        pIceCandidate = (PIceCandidate) pCurNode->data;
+        pNodeToDelete = pCurNode;
+        pCurNode = pCurNode->pNext;
+
+        if (pIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED &&
+            turnConnectionIsShutdownComplete(pIceCandidate->pTurnConnection)) {
+            CHK_LOG_ERR(freeTurnConnection(&pIceCandidate->pTurnConnection));
+            MEMFREE(pIceCandidate);
+            CHK_STATUS(doubleListDeleteNode(pIceAgent->localCandidates, pNodeToDelete));
+        }
+    }
+
     // return early if changing to disconnected state
     CHK(state != ICE_AGENT_STATE_DISCONNECTED, retStatus);
 
