@@ -92,7 +92,8 @@ struct __SampleStreamingSession {
     CHAR peerId[MAX_SIGNALING_CLIENT_ID_LEN + 1];
     TID receiveAudioVideoSenderTid;
     UINT64 firstSdpMsgReceiveTime;
-
+    UINT64 startUpLatency;
+    BOOL firstFrame;
     // this is called when the SampleStreamingSession is being freed
     StreamSessionShutdownCallback shutdownCallback;
     UINT64 shutdownCallbackCustomData;
@@ -127,6 +128,7 @@ STATUS sessionCleanupWait(PSampleConfiguration);
 STATUS awaitGetIceConfigInfoCount(SIGNALING_CLIENT_HANDLE, PUINT32);
 STATUS logSignalingClientStats(PSignalingClientMetrics);
 STATUS logSelectedIceCandidatesInformation(PSampleStreamingSession);
+STATUS logStartUpLatency(PSampleConfiguration);
 
 #ifdef __cplusplus
 }
