@@ -13,6 +13,7 @@ option(BUILD_OPENSSL_PLATFORM "If buildng OpenSSL what is the target platform" O
 option(BUILD_LIBSRTP_HOST_PLATFORM "If buildng LibSRTP what is the current platform" OFF)
 option(BUILD_LIBSRTP_DESTINATION_PLATFORM "If buildng LibSRTP what is the destination platform" OFF)
 option(BUILD_SAMPLE "Build available samples" ON)
+option(ENABLE_DATA_CHANNEL "Enable support for data channel" ON)
 
 # Developer Flags
 option(BUILD_TEST "Build the testing tree." OFF)
@@ -140,7 +141,7 @@ find_library(
   NAMES ${USRSCTP_LIBNAME} usrsctp REQUIRED
   PATHS ${OPEN_SRC_INSTALL_PREFIX}/lib)
 
-set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${LIBSRTP_INCLUDE_DIRS} 
+set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${LIBSRTP_INCLUDE_DIRS}
                           ${CURL_INCLUDE_DIRS} ${LIBWEBSOCKETS_INCLUDE_DIRS})
 
 link_directories(${LIBSRTP_LIBRARY_DIRS})
@@ -214,6 +215,10 @@ endif()
 
 # Uncomment below line for very verbose logging
 # add_definitions(-DLOG_STREAMING)
+
+if (ENABLE_DATA_CHANNEL)
+  add_definitions(-DENABLE_DATA_CHANNEL)
+endif()
 
 file(
   GLOB
