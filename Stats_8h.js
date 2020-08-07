@@ -12,6 +12,7 @@ var Stats_8h =
     [ "RtcRemoteInboundRtpStreamStats", "structRtcRemoteInboundRtpStreamStats.html", "structRtcRemoteInboundRtpStreamStats" ],
     [ "SignalingClientStats", "structSignalingClientStats.html", "structSignalingClientStats" ],
     [ "RtcStatsObject", "structRtcStatsObject.html", "structRtcStatsObject" ],
+    [ "IP_ADDR_STR_LENGTH", "Stats_8h.html#a8eb68b1e05b3ae2de5775202931617de", null ],
     [ "MAX_CANDIDATE_ID_LENGTH", "Stats_8h.html#aeb7cb54e2a66447e46fca79db9a8fda0", null ],
     [ "MAX_DTLS_CIPHER_LENGTH", "Stats_8h.html#a12dc5a15dec202406ad4abfa594520ff", null ],
     [ "MAX_PROTOCOL_LENGTH", "Stats_8h.html#ab3b05eb23c726d76352f92e7722f1877", null ],
@@ -34,6 +35,12 @@ var Stats_8h =
     [ "PRtcStatsObject", "Stats_8h.html#a7ee11917e4ab69400576ae7fceea344e", null ],
     [ "PRtcTransportStats", "Stats_8h.html#aa801ef5411f4260b44c1658874999aa3", null ],
     [ "PSignalingClientStats", "Stats_8h.html#aed2abeea73109d8decf11ef16a5b1a88", null ],
+    [ "ICE_CANDIDATE_TYPE", "Stats_8h.html#ac9e1b12f44dc91db1cd6373f87ec55b6", [
+      [ "ICE_CANDIDATE_TYPE_HOST", "Stats_8h.html#ac9e1b12f44dc91db1cd6373f87ec55b6a9fff74323b1829b4afad9e56c27f5c6e", null ],
+      [ "ICE_CANDIDATE_TYPE_PEER_REFLEXIVE", "Stats_8h.html#ac9e1b12f44dc91db1cd6373f87ec55b6ae4bb79539718c2454eb3aa1d8de872f1", null ],
+      [ "ICE_CANDIDATE_TYPE_SERVER_REFLEXIVE", "Stats_8h.html#ac9e1b12f44dc91db1cd6373f87ec55b6ac0ce2fc7bc8da270caa5ebf77f699ddd", null ],
+      [ "ICE_CANDIDATE_TYPE_RELAYED", "Stats_8h.html#ac9e1b12f44dc91db1cd6373f87ec55b6a2fcd25cbc2d1c585d32f9ebae2622045", null ]
+    ] ],
     [ "RTC_DTLS_TRANSPORT_STATE_STATS", "Stats_8h.html#afe55e0b5781ac5fd3b8e5fd915d4795b", [
       [ "RTC_DTLS_TRANSPORT_STATE_STATS_NEW", "Stats_8h.html#afe55e0b5781ac5fd3b8e5fd915d4795bacb39c4daed77b2d3003cacef7e2cacfb", null ],
       [ "RTC_DTLS_TRANSPORT_STATE_STATS_CONNECTING", "Stats_8h.html#afe55e0b5781ac5fd3b8e5fd915d4795ba67c81ab73d16a8531bac3ef052fffc3b", null ],

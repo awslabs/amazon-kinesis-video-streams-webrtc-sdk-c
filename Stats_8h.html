@@ -158,6 +158,8 @@ Macros</h2></td></tr>
 <tr class="separator:aefd9f545d5b4bcd8ce932a79204382b0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab3b05eb23c726d76352f92e7722f1877"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#ab3b05eb23c726d76352f92e7722f1877">MAX_PROTOCOL_LENGTH</a>&#160;&#160;&#160;8U</td></tr>
 <tr class="separator:ab3b05eb23c726d76352f92e7722f1877"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8eb68b1e05b3ae2de5775202931617de"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#a8eb68b1e05b3ae2de5775202931617de">IP_ADDR_STR_LENGTH</a>&#160;&#160;&#160;45U</td></tr>
+<tr class="separator:a8eb68b1e05b3ae2de5775202931617de"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4afa41bce022b8bec8581c021e8d8c81"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#a4afa41bce022b8bec8581c021e8d8c81">MAX_STATS_STRING_LENGTH</a>&#160;&#160;&#160;255U</td></tr>
 <tr class="separator:a4afa41bce022b8bec8581c021e8d8c81"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
@@ -192,6 +194,12 @@ Typedefs</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="enum-members"></a>
 Enumerations</h2></td></tr>
+<tr class="memitem:ac9e1b12f44dc91db1cd6373f87ec55b6"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#ac9e1b12f44dc91db1cd6373f87ec55b6">ICE_CANDIDATE_TYPE</a> { <a class="el" href="Stats_8h.html#ac9e1b12f44dc91db1cd6373f87ec55b6a9fff74323b1829b4afad9e56c27f5c6e">ICE_CANDIDATE_TYPE_HOST</a> = 0, 
+<a class="el" href="Stats_8h.html#ac9e1b12f44dc91db1cd6373f87ec55b6ae4bb79539718c2454eb3aa1d8de872f1">ICE_CANDIDATE_TYPE_PEER_REFLEXIVE</a> = 1, 
+<a class="el" href="Stats_8h.html#ac9e1b12f44dc91db1cd6373f87ec55b6ac0ce2fc7bc8da270caa5ebf77f699ddd">ICE_CANDIDATE_TYPE_SERVER_REFLEXIVE</a> = 2, 
+<a class="el" href="Stats_8h.html#ac9e1b12f44dc91db1cd6373f87ec55b6a2fcd25cbc2d1c585d32f9ebae2622045">ICE_CANDIDATE_TYPE_RELAYED</a> = 3
+ }</td></tr>
+<tr class="separator:ac9e1b12f44dc91db1cd6373f87ec55b6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a47ecb1216cedb68121d018749d82ffb5"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#a47ecb1216cedb68121d018749d82ffb5">RTC_STATS_TYPE</a> { <br />
 &#160;&#160;<a class="el" href="Stats_8h.html#a47ecb1216cedb68121d018749d82ffb5a08c54b60254ca6489c58d26349890e0c">RTC_STATS_TYPE_CANDIDATE_PAIR</a>, 
 <a class="el" href="Stats_8h.html#a47ecb1216cedb68121d018749d82ffb5a765256847140e3699d69bcf5e527387c">RTC_STATS_TYPE_CERTIFICATE</a>, 
@@ -258,6 +266,20 @@ Enumerations</h2></td></tr>
 <tr class="separator:ad4aa3c116b2353dab51a41dc6d4c1b5e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Macro Definition Documentation</h2>
+<a id="a8eb68b1e05b3ae2de5775202931617de"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8eb68b1e05b3ae2de5775202931617de">&#9670;&nbsp;</a></span>IP_ADDR_STR_LENGTH</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define IP_ADDR_STR_LENGTH&#160;&#160;&#160;45U</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a id="aeb7cb54e2a66447e46fca79db9a8fda0"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#aeb7cb54e2a66447e46fca79db9a8fda0">&#9670;&nbsp;</a></span>MAX_CANDIDATE_ID_LENGTH</h2>
 
@@ -568,6 +590,31 @@ Enumerations</h2></td></tr>
 </div>
 </div>
 <h2 class="groupheader">Enumeration Type Documentation</h2>
+<a id="ac9e1b12f44dc91db1cd6373f87ec55b6"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac9e1b12f44dc91db1cd6373f87ec55b6">&#9670;&nbsp;</a></span>ICE_CANDIDATE_TYPE</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">enum <a class="el" href="Stats_8h.html#ac9e1b12f44dc91db1cd6373f87ec55b6">ICE_CANDIDATE_TYPE</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Type of ICE Candidate </p>
+<table class="fieldtable">
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="ac9e1b12f44dc91db1cd6373f87ec55b6a9fff74323b1829b4afad9e56c27f5c6e"></a>ICE_CANDIDATE_TYPE_HOST&#160;</td><td class="fielddoc"><p>ICE_CANDIDATE_TYPE_HOST. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="ac9e1b12f44dc91db1cd6373f87ec55b6ae4bb79539718c2454eb3aa1d8de872f1"></a>ICE_CANDIDATE_TYPE_PEER_REFLEXIVE&#160;</td><td class="fielddoc"><p>ICE_CANDIDATE_TYPE_PEER_REFLEXIVE. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="ac9e1b12f44dc91db1cd6373f87ec55b6ac0ce2fc7bc8da270caa5ebf77f699ddd"></a>ICE_CANDIDATE_TYPE_SERVER_REFLEXIVE&#160;</td><td class="fielddoc"><p>ICE_CANDIDATE_TYPE_SERVER_REFLEXIVE. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="ac9e1b12f44dc91db1cd6373f87ec55b6a2fcd25cbc2d1c585d32f9ebae2622045"></a>ICE_CANDIDATE_TYPE_RELAYED&#160;</td><td class="fielddoc"><p>ICE_CANDIDATE_TYPE_RELAYED. </p>
+</td></tr>
+</table>
+
+</div>
+</div>
 <a id="afe55e0b5781ac5fd3b8e5fd915d4795b"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#afe55e0b5781ac5fd3b8e5fd915d4795b">&#9670;&nbsp;</a></span>RTC_DTLS_TRANSPORT_STATE_STATS</h2>
 
@@ -734,7 +781,7 @@ Enumerations</h2></td></tr>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_b0856f6b0d80ccb263b2f415c91f9e17.html">include</a></li><li class="navelem"><a class="el" href="dir_8f5ac45a6ada111b95e80af22bb6017d.html">com</a></li><li class="navelem"><a class="el" href="dir_6eddcaa8cb3f84b1b7290fa7880ed0c5.html">amazonaws</a></li><li class="navelem"><a class="el" href="dir_ffe25b375dd9c47f978782781b252738.html">kinesis</a></li><li class="navelem"><a class="el" href="dir_40be0bfe93e499fae0ac3fc2c0b3ca29.html">video</a></li><li class="navelem"><a class="el" href="dir_4165afa699965307903ffe413a1cdec9.html">webrtcclient</a></li><li class="navelem"><a class="el" href="Stats_8h.html">Stats.h</a></li>
-    <li class="footer">Generated on Wed Aug 5 2020 17:58:50 for Amazon Kinesis Webrtc C SDK by
+    <li class="footer">Generated on Fri Aug 7 2020 20:43:04 for Amazon Kinesis Webrtc C SDK by
     <a href="http://www.doxygen.org/index.html">
     <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.18 </li>
   </ul>
