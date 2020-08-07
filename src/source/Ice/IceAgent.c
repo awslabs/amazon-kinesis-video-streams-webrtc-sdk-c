@@ -1954,7 +1954,7 @@ STATUS iceAgentReadyStateSetup(PIceAgent pIceAgent)
     STATUS retStatus = STATUS_SUCCESS;
     PIceCandidatePair pNominatedAndValidCandidatePair = NULL;
     CHAR ipAddrStr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
-    PDoubleListNode pCurNode = NULL;
+    PDoubleListNode pCurNode = NULL, pNodeToDelete = NULL;
     PIceCandidatePair pIceCandidatePair = NULL;
     BOOL locked = FALSE;
     PIceCandidate pIceCandidate = NULL;
@@ -1991,20 +1991,33 @@ STATUS iceAgentReadyStateSetup(PIceAgent pIceAgent)
     /* no state timeout for ready state */
     pIceAgent->stateEndTime = INVALID_TIMESTAMP_VALUE;
 
-    /* shutdown turn allocations that are not needed. */
-    if (pIceAgent->relayCandidateCount > 0) {
-        DLOGD("Freeing Turn allocations that are not selected. Total turn allocation count %u", pIceAgent->relayCandidateCount);
-        CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
-        while (pCurNode != NULL) {
-            pIceCandidate = (PIceCandidate) pCurNode->data;
-            pCurNode = pCurNode->pNext;
+    /* shutdown turn allocations that are not needed. Invalidate not selected local ice candidates. */
+    DLOGD("Freeing Turn allocations that are not selected. Total turn allocation count %u", pIceAgent->relayCandidateCount);
+    CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
+    while (pCurNode != NULL) {
+        pIceCandidate = (PIceCandidate) pCurNode->data;
+        pCurNode = pCurNode->pNext;
 
-            if (pIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED && pIceCandidate != pIceAgent->pDataSendingIceCandidatePair->local) {
+        if (pIceCandidate != pIceAgent->pDataSendingIceCandidatePair->local) {
+            if (pIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED) {
                 CHK_STATUS(turnConnectionShutdown(pIceCandidate->pTurnConnection, 0));
-                pIceCandidate->state = ICE_CANDIDATE_STATE_INVALID;
             }
+            pIceCandidate->state = ICE_CANDIDATE_STATE_INVALID;
         }
-        CHK_STATUS(iceAgentInvalidateCandidatePair(pIceAgent));
+    }
+    CHK_STATUS(iceAgentInvalidateCandidatePair(pIceAgent));
+
+    /* Free not selected ice candidate pairs */
+    CHK_STATUS(doubleListGetHeadNode(pIceAgent->iceCandidatePairs, &pCurNode));
+    while (pCurNode != NULL) {
+        pIceCandidatePair = (PIceCandidatePair) pCurNode->data;
+        pNodeToDelete = pCurNode;
+        pCurNode = pCurNode->pNext;
+
+        if (pIceCandidatePair->state ==  ICE_CANDIDATE_PAIR_STATE_FAILED) {
+            freeIceCandidatePair(&pIceCandidatePair);
+            doubleListDeleteNode(pIceAgent->iceCandidatePairs, pNodeToDelete);
+        }
     }
 
 CleanUp:
