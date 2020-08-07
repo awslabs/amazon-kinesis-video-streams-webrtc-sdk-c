@@ -2052,7 +2052,7 @@ STATUS iceAgentReadyStateSetup(PIceAgent pIceAgent)
         pNodeToDelete = pCurNode;
         pCurNode = pCurNode->pNext;
 
-        if (pIceCandidatePair->state ==  ICE_CANDIDATE_PAIR_STATE_FAILED) {
+        if (pIceCandidatePair->state == ICE_CANDIDATE_PAIR_STATE_FAILED) {
             freeIceCandidatePair(&pIceCandidatePair);
             doubleListDeleteNode(pIceAgent->iceCandidatePairs, pNodeToDelete);
         }
@@ -2371,6 +2371,7 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
                     DLOGW("Unable to fetch request Timestamp from the hash table. No update to totalRoundTripTime (error code: 0x%08x)", retStatus);
                 } else {
                     pIceAgent->rtcIceServerDiagnostics[pIceCandidate->iceServerIndex].totalRoundTripTime += GETTIME() - requestSentTime;
+                    CHK_STATUS(hashTableRemove(pIceAgent->requestTimestampDiagnostics, checkSum));
                 }
 
                 CHK_STATUS(deserializeStunPacket(pBuffer, bufferLen, NULL, 0, &pStunPacket));
@@ -2402,6 +2403,7 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
                     DLOGW("Unable to fetch request Timestamp from the hash table. No update to totalRoundTripTime (error code: 0x%08x)", retStatus);
                 } else {
                     pIceAgent->rtcIceServerDiagnostics[pIceCandidatePair->local->iceServerIndex].totalRoundTripTime += GETTIME() - requestSentTime;
+                    CHK_STATUS(hashTableRemove(pIceAgent->requestTimestampDiagnostics, checkSum));
                 }
             }
             CHK_STATUS(deserializeStunPacket(pBuffer, bufferLen, (PBYTE) pIceAgent->remotePassword,
@@ -2435,6 +2437,7 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
                 pIceCandidatePair->rtcIceCandidatePairDiagnostics.totalRoundTripTime +=
                     (DOUBLE)(pIceCandidatePair->roundTripTime) / HUNDREDS_OF_NANOS_IN_A_SECOND;
                 pIceCandidatePair->state = ICE_CANDIDATE_PAIR_STATE_SUCCEEDED;
+                CHK_STATUS(hashTableRemove(pIceAgent->requestTimestampDiagnostics, checkSum));
             }
 
             pIceCandidatePair->rtcIceCandidatePairDiagnostics.responsesReceived += connectivityCheckResponsesReceived;
