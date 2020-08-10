@@ -15,6 +15,9 @@ static STATUS onRtcpFIRPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPe
         MUTEX_LOCK(pTransceiver->sender.statsLock);
         pTransceiver->sender.outboundStats.firCount++;
         MUTEX_UNLOCK(pTransceiver->sender.statsLock);
+        if (pTransceiver->onPictureLoss != NULL) {
+            pTransceiver->onPictureLoss(pTransceiver->onPictureLossCustomData);
+        }
     } else {
         DLOGW("Received FIR for non existing ssrc: %u", mediaSSRC);
     }

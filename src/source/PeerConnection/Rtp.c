@@ -136,6 +136,23 @@ CleanUp:
     return retStatus;
 }
 
+STATUS transceiverOnPictureLoss(PRtcRtpTransceiver pRtcRtpTransceiver, UINT64 customData, RtcOnPictureLoss onPictureLoss)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PKvsRtpTransceiver pKvsRtpTransceiver = (PKvsRtpTransceiver) pRtcRtpTransceiver;
+
+    CHK(pKvsRtpTransceiver != NULL && onPictureLoss != NULL, STATUS_NULL_ARG);
+
+    pKvsRtpTransceiver->onPictureLoss = onPictureLoss;
+    pKvsRtpTransceiver->onPictureLossCustomData = customData;
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
+
 STATUS updateEncoderStats(PRtcRtpTransceiver pRtcRtpTransceiver, PRtcEncoderStats encoderStats)
 {
     STATUS retStatus = STATUS_SUCCESS;
