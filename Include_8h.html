@@ -941,6 +941,9 @@ Functions</h2></td></tr>
 <tr class="memitem:aa919159204f486007c559c0e636268c1"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#aa919159204f486007c559c0e636268c1">transceiverOnBandwidthEstimation</a> (<a class="el" href="Include_8h.html#a575b38a26ceae3044dd16d8d72667ebf">PRtcRtpTransceiver</a>, UINT64, <a class="el" href="Include_8h.html#af77d88f0ced976d3628f86b79ba0b868">RtcOnBandwidthEstimation</a>)</td></tr>
 <tr class="memdesc:aa919159204f486007c559c0e636268c1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set a callback for bandwidth estimation results.  <a href="Include_8h.html#aa919159204f486007c559c0e636268c1">More...</a><br /></td></tr>
 <tr class="separator:aa919159204f486007c559c0e636268c1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a934a685bb5d0fb3d547fcd7e828b7566"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#a934a685bb5d0fb3d547fcd7e828b7566">transceiverOnPictureLoss</a> (<a class="el" href="Include_8h.html#a575b38a26ceae3044dd16d8d72667ebf">PRtcRtpTransceiver</a>, UINT64, <a class="el" href="Include_8h.html#ac7f4225ac2545664aabdc88d0b58e329">RtcOnPictureLoss</a>)</td></tr>
+<tr class="memdesc:a934a685bb5d0fb3d547fcd7e828b7566"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set a callback for picture loss packet (PLI)  <a href="Include_8h.html#a934a685bb5d0fb3d547fcd7e828b7566">More...</a><br /></td></tr>
+<tr class="separator:a934a685bb5d0fb3d547fcd7e828b7566"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a10479b49a6df2035fd1549809e11d9f5"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#a10479b49a6df2035fd1549809e11d9f5">freeTransceiver</a> (<a class="el" href="Include_8h.html#a575b38a26ceae3044dd16d8d72667ebf">PRtcRtpTransceiver</a> *)</td></tr>
 <tr class="memdesc:a10479b49a6df2035fd1549809e11d9f5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Frees the previously created transceiver object.  <a href="Include_8h.html#a10479b49a6df2035fd1549809e11d9f5">More...</a><br /></td></tr>
 <tr class="separator:a10479b49a6df2035fd1549809e11d9f5"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -3848,6 +3851,51 @@ Functions</h2></td></tr>
 
 </div>
 </div>
+<a id="a934a685bb5d0fb3d547fcd7e828b7566"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a934a685bb5d0fb3d547fcd7e828b7566">&#9670;&nbsp;</a></span>transceiverOnPictureLoss()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">PUBLIC_API STATUS transceiverOnPictureLoss </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="Include_8h.html#a575b38a26ceae3044dd16d8d72667ebf">PRtcRtpTransceiver</a>&#160;</td>
+          <td class="paramname">, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">UINT64&#160;</td>
+          <td class="paramname">, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="Include_8h.html#ac7f4225ac2545664aabdc88d0b58e329">RtcOnPictureLoss</a>&#160;</td>
+          <td class="paramname">&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Set a callback for picture loss packet (PLI) </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">PRtcRtpTransceiver</td><td>Populated <a class="el" href="structRtcRtpTransceiver.html" title="The RTCRtpTransceiver represents a combination of an RTCRtpSender and an RTCRtpReceiver that share a ...">RtcRtpTransceiver</a> struct </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">UINT64</td><td>User customData that will be passed along when RtcOnPictureLoss is called </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">RtcOnPictureLoss</td><td>User RtcOnPictureLoss callback</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>STATUS code of the execution. STATUS_SUCCESS on success </dd></dl>
+
+</div>
+</div>
 <a id="aba8d6226887ac3b7c24ec3a5f686e5c5"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#aba8d6226887ac3b7c24ec3a5f686e5c5">&#9670;&nbsp;</a></span>updateEncoderStats()</h2>
 
@@ -3922,7 +3970,7 @@ Functions</h2></td></tr>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_b0856f6b0d80ccb263b2f415c91f9e17.html">include</a></li><li class="navelem"><a class="el" href="dir_8f5ac45a6ada111b95e80af22bb6017d.html">com</a></li><li class="navelem"><a class="el" href="dir_6eddcaa8cb3f84b1b7290fa7880ed0c5.html">amazonaws</a></li><li class="navelem"><a class="el" href="dir_ffe25b375dd9c47f978782781b252738.html">kinesis</a></li><li class="navelem"><a class="el" href="dir_40be0bfe93e499fae0ac3fc2c0b3ca29.html">video</a></li><li class="navelem"><a class="el" href="dir_4165afa699965307903ffe413a1cdec9.html">webrtcclient</a></li><li class="navelem"><a class="el" href="Include_8h.html">Include.h</a></li>
-    <li class="footer">Generated on Fri Aug 7 2020 20:43:04 for Amazon Kinesis Webrtc C SDK by
+    <li class="footer">Generated on Mon Aug 10 2020 21:55:58 for Amazon Kinesis Webrtc C SDK by
     <a href="http://www.doxygen.org/index.html">
     <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.18 </li>
   </ul>

@@ -18,8 +18,9 @@ var searchData=
   ['trackid_727',['trackId',['../structRtcMediaStreamTrack.html#ab4644bbc1b1ecaee5c87a646e67d1566',1,'RtcMediaStreamTrack::trackId()'],['../structRtcOutboundRtpStreamStats.html#aee7f489e52a3a5651d9a7660deb49ce2',1,'RtcOutboundRtpStreamStats::trackId()']]],
   ['transceiveronbandwidthestimation_728',['transceiverOnBandwidthEstimation',['../Include_8h.html#aa919159204f486007c559c0e636268c1',1,'Include.h']]],
   ['transceiveronframe_729',['transceiverOnFrame',['../Include_8h.html#aaac28c64135c6cd9727b9b01992b9df1',1,'Include.h']]],
-  ['transportid_730',['transportId',['../structRtcIceCandidatePairStats.html#abbd7664deaca834369d8fab86daf4f9c',1,'RtcIceCandidatePairStats::transportId()'],['../structRtcIceCandidateStats.html#a8656c25a5c35a02e85f2a8fc24548144',1,'RtcIceCandidateStats::transportId()'],['../structRTCRtpStreamStats.html#ac29873751b74f906f37e927009bccb15',1,'RTCRtpStreamStats::transportId()']]],
-  ['transportstats_731',['transportStats',['../structRtcStatsObject.html#aeda2b94e27f89786810339e7342e0827',1,'RtcStatsObject']]],
-  ['ttl_732',['ttl',['../structIceConfigInfo.html#aa2a1f0b6e706876479142eb0f47bc7fe',1,'IceConfigInfo']]],
-  ['type_733',['type',['../structRtcSessionDescriptionInit.html#a66e8134ccd2c83b700bbf4e8e6649a6f',1,'RtcSessionDescriptionInit']]]
+  ['transceiveronpictureloss_730',['transceiverOnPictureLoss',['../Include_8h.html#a934a685bb5d0fb3d547fcd7e828b7566',1,'Include.h']]],
+  ['transportid_731',['transportId',['../structRtcIceCandidatePairStats.html#abbd7664deaca834369d8fab86daf4f9c',1,'RtcIceCandidatePairStats::transportId()'],['../structRtcIceCandidateStats.html#a8656c25a5c35a02e85f2a8fc24548144',1,'RtcIceCandidateStats::transportId()'],['../structRTCRtpStreamStats.html#ac29873751b74f906f37e927009bccb15',1,'RTCRtpStreamStats::transportId()']]],
+  ['transportstats_732',['transportStats',['../structRtcStatsObject.html#aeda2b94e27f89786810339e7342e0827',1,'RtcStatsObject']]],
+  ['ttl_733',['ttl',['../structIceConfigInfo.html#aa2a1f0b6e706876479142eb0f47bc7fe',1,'IceConfigInfo']]],
+  ['type_734',['type',['../structRtcSessionDescriptionInit.html#a66e8134ccd2c83b700bbf4e8e6649a6f',1,'RtcSessionDescriptionInit']]]
 ];

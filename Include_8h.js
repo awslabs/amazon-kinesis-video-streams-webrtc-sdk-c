@@ -436,6 +436,7 @@ var Include_8h =
     [ "signalingClientSendMessageSync", "Include_8h.html#ae6d8d80d47699c5494de1dc3d455b1f4", null ],
     [ "transceiverOnBandwidthEstimation", "Include_8h.html#aa919159204f486007c559c0e636268c1", null ],
     [ "transceiverOnFrame", "Include_8h.html#aaac28c64135c6cd9727b9b01992b9df1", null ],
+    [ "transceiverOnPictureLoss", "Include_8h.html#a934a685bb5d0fb3d547fcd7e828b7566", null ],
     [ "updateEncoderStats", "Include_8h.html#aba8d6226887ac3b7c24ec3a5f686e5c5", null ],
     [ "writeFrame", "Include_8h.html#a40c7caf6325f426d82030beec50cc86e", null ]
 ];
