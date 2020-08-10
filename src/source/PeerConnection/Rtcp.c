@@ -37,9 +37,9 @@ static STATUS onRtcpSLIPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPe
     CHK(pKvsPeerConnection != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
     mediaSSRC = getUnalignedInt32BigEndian((pRtcpPacket->payload + (SIZEOF(UINT32))));
     if (STATUS_SUCCEEDED(findTransceiverBySsrc(pKvsPeerConnection, &pTransceiver, mediaSSRC))) {
-        MUTEX_LOCK(pTransceiver->statsLock);
-        pTransceiver->outboundStats.sliCount++;
-        MUTEX_UNLOCK(pTransceiver->statsLock);
+        MUTEX_LOCK(pTransceiver->sender.statsLock);
+        pTransceiver->sender.outboundStats.sliCount++;
+        MUTEX_UNLOCK(pTransceiver->sender.statsLock);
     } else {
         DLOGW("Received FIR for non existing ssrc: %u", mediaSSRC);
     }
