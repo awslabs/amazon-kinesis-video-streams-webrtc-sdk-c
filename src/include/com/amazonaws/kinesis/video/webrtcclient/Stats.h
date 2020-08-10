@@ -14,7 +14,7 @@ extern "C" {
 // Public headers
 ////////////////////////////////////////////////////
 
-#define MAX_CANDIDATE_ID_LENGTH   8U
+#define MAX_CANDIDATE_ID_LENGTH   9U
 #define MAX_STATS_ADDRESS_LENGTH  16U
 #define MAX_RELAY_PROTOCOL_LENGTH 8U
 #define MAX_TLS_VERSION_LENGTH    8U
@@ -80,12 +80,12 @@ typedef enum {
  * Reference: https://www.w3.org/TR/webrtc-stats/#rtcstatsicecandidatepairstate-enum
  */
 typedef enum {
-    RTC_ICE_CANDIDATE_PAIR_STATE_FROZEN = 0,
-    RTC_ICE_CANDIDATE_PAIR_STATE_WAITING = 1,
-    RTC_ICE_CANDIDATE_PAIR_STATE_IN_PROGRESS = 2,
-    RTC_ICE_CANDIDATE_PAIR_STATE_SUCCEEDED = 3,
-    RTC_ICE_CANDIDATE_PAIR_STATE_FAILED = 4,
-} RTC_ICE_CANDIDATE_PAIR_STATE;
+    ICE_CANDIDATE_PAIR_STATE_FROZEN = 0,
+    ICE_CANDIDATE_PAIR_STATE_WAITING = 1,
+    ICE_CANDIDATE_PAIR_STATE_IN_PROGRESS = 2,
+    ICE_CANDIDATE_PAIR_STATE_SUCCEEDED = 3,
+    ICE_CANDIDATE_PAIR_STATE_FAILED = 4,
+} ICE_CANDIDATE_PAIR_STATE;
 
 /**
  * @brief Set details of the IceAgent based on STUN_ATTRIBUTE_TYPE_USE_CANDIDATE flag
@@ -145,12 +145,11 @@ typedef struct {
  */
 
 typedef struct {
-    DOMString transportId;              //!< ID of object that was inspected for RTCTransportStats
-    DOMString localCandidateId;         //!< Local candidate that is inspected in RTCIceCandidateStats
-    DOMString remoteCandidateId;        //!< Remote candidate that is inspected in RTCIceCandidateStats
-    RTC_ICE_CANDIDATE_PAIR_STATE state; //!< State of checklist for the local-remote candidate pair
-    BOOL nominated;                     //!< Flag is TRUE if the agent is a controlling agent and FALSE otherwise. The agent role is based on the
-                                        //!< STUN_ATTRIBUTE_TYPE_USE_CANDIDATE flag
+    CHAR localCandidateId[MAX_CANDIDATE_ID_LENGTH + 1];  //!< Local candidate that is inspected in RTCIceCandidateStats
+    CHAR remoteCandidateId[MAX_CANDIDATE_ID_LENGTH + 1]; //!< Remote candidate that is inspected in RTCIceCandidateStats
+    ICE_CANDIDATE_PAIR_STATE state;                      //!< State of checklist for the local-remote candidate pair
+    BOOL nominated; //!< Flag is TRUE if the agent is a controlling agent and FALSE otherwise. The agent role is based on the
+                    //!< STUN_ATTRIBUTE_TYPE_USE_CANDIDATE flag
     NullableUint32 circuitBreakerTriggerCount; //!< Represents number of times circuit breaker is triggered during media transmission
                                                //!< It is undefined if the user agent does not use this
     UINT32 packetsDiscardedOnSend;             //!< Total number of packets discarded for candidate pair due to socket errors,
@@ -172,18 +171,14 @@ typedef struct {
                                      //!< that are sent in order to verify consent. The average round trip time can be computed from
                                      //!< totalRoundTripTime by dividing it by responsesReceived.
     DOUBLE currentRoundTripTime;     //!< Latest round trip time (seconds)
-    DOUBLE availableOutgoingBitrate; //!< Total available bit rate for all the outgoing RTP streams on this candidate pair. Calculated by underlying
-                                     //!< congestion control
-    DOUBLE availableIncomingBitrate; //!< Total available bit rate for all the outgoing RTP streams on this candidate pair. Calculated by underlying
-                                     //!< congestion control
+    DOUBLE availableOutgoingBitrate; //!< TODO: Total available bit rate for all the outgoing RTP streams on this candidate pair. Calculated by
+                                     //!< underlying congestion control
+    DOUBLE availableIncomingBitrate; //!< TODO: Total available bit rate for all the outgoing RTP streams on this candidate pair. Calculated by
+                                     //!< underlying congestion control
     UINT64 requestsReceived;         //!< Total number of connectivity check requests received (including retransmission)
     UINT64 requestsSent;             //!< The total number of connectivity check requests sent (without retransmissions).
     UINT64 responsesReceived;        //!< The total number of connectivity check responses received.
     UINT64 responsesSent;            //!< The total number of connectivity check responses sent.
-    UINT64 retransmissionsReceived;  //!< The total number of connectivity check request retransmissions received
-    UINT64 retransmissionsSent;      //!< The total number of connectivity check request retransmissions sent.
-    UINT64 consentRequestsSent;      //!< The total number of consent requests sent.
-    UINT64 consentExpiredTimestamp;  //!< The timestamp at which the latest valid STUN binding response expired
     UINT64 bytesDiscardedOnSend;     //!< Total number of bytes for this candidate pair discarded due to socket errors
 } RtcIceCandidatePairStats, *PRtcIceCandidatePairStats;
 
