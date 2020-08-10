@@ -147,7 +147,7 @@ STATUS transceiverOnPictureLoss(PRtcRtpTransceiver pRtcRtpTransceiver, UINT64 cu
     pKvsRtpTransceiver->onPictureLoss = onPictureLoss;
     pKvsRtpTransceiver->onPictureLossCustomData = customData;
 
-    CleanUp:
+CleanUp:
 
     LEAVES();
     return retStatus;
