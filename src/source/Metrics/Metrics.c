@@ -7,11 +7,24 @@
 STATUS getIceCandidatePairStats(PRtcPeerConnection pRtcPeerConnection, PRtcIceCandidatePairStats pRtcIceCandidatePairStats)
 {
     STATUS retStatus = STATUS_SUCCESS;
+    BOOL locked = FALSE;
+    PIceAgent pIceAgent = ((PKvsPeerConnection) pRtcPeerConnection)->pIceAgent;
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pRtcPeerConnection;
-    UNUSED_PARAM(pKvsPeerConnection);
     CHK((pRtcPeerConnection != NULL || pRtcIceCandidatePairStats != NULL), STATUS_NULL_ARG);
-    CHK(FALSE, STATUS_NOT_IMPLEMENTED);
+    MUTEX_LOCK(pIceAgent->lock);
+    locked = TRUE;
+    PRtcIceCandidatePairDiagnostics pRtcIceCandidatePairDiagnostics = &pIceAgent->dataSendingrtcIceCandidatePairDiagnostics;
+    STRCPY(pRtcIceCandidatePairStats->localCandidateId, pRtcIceCandidatePairDiagnostics->localCandidateId);
+    STRCPY(pRtcIceCandidatePairStats->remoteCandidateId, pRtcIceCandidatePairDiagnostics->remoteCandidateId);
+    pRtcIceCandidatePairStats->state = pRtcIceCandidatePairDiagnostics->state;
+    pRtcIceCandidatePairStats->packetsDiscardedOnSend = pRtcIceCandidatePairDiagnostics->packetsDiscardedOnSend;
+    pRtcIceCandidatePairStats->lastPacketSentTimestamp = pRtcIceCandidatePairDiagnostics->lastPacketSentTimestamp;
+    pRtcIceCandidatePairStats->bytesSent = pRtcIceCandidatePairDiagnostics->bytesSent;
+    pRtcIceCandidatePairStats->packetsSent = pRtcIceCandidatePairDiagnostics->packetsSent;
 CleanUp:
+    if (locked) {
+        MUTEX_UNLOCK(pIceAgent->lock);
+    }
     return retStatus;
 }
 
