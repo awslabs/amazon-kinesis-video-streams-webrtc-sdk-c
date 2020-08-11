@@ -1,12 +1,10 @@
 var searchData=
 [
-  ['nackcount_940',['nackCount',['../structRtcOutboundRtpStreamStats.html#aa98c742d0a6a969e1e6aed60f3a49825',1,'RtcOutboundRtpStreamStats']]],
-  ['name_941',['name',['../struct____RtcDataChannel.html#add53434650fa42653e4002365f2382c9',1,'__RtcDataChannel']]],
-  ['negotiated_942',['negotiated',['../structRtcDataChannelInit.html#a8c67966c06b4163b51f21392ca5dc654',1,'RtcDataChannelInit']]],
-  ['nominated_943',['nominated',['../structRtcIceCandidatePairStats.html#a25a4a9ef167cff9692ac39d0a9191ee7',1,'RtcIceCandidatePairStats']]],
-  ['numberoferrors_944',['numberOfErrors',['../structSignalingClientStats.html#a30f98d510f5ecdd19c53afb8f9ef1f6b',1,'SignalingClientStats']]],
-  ['numberofmessagesreceived_945',['numberOfMessagesReceived',['../structSignalingClientStats.html#aca900ed2e3622b2605c81790768df294',1,'SignalingClientStats']]],
-  ['numberofmessagessent_946',['numberOfMessagesSent',['../structSignalingClientStats.html#a76b01fd641d9e83b517ac40aaba4d42a',1,'SignalingClientStats']]],
-  ['numberofreconnects_947',['numberOfReconnects',['../structSignalingClientStats.html#a88a95942f794d84724583ef8b6d9f181',1,'SignalingClientStats']]],
-  ['numberofruntimeerrors_948',['numberOfRuntimeErrors',['../structSignalingClientStats.html#ac9ba962af79e44d73aac0688f09019ca',1,'SignalingClientStats']]]
+  ['maximumtransmissionunit_1010',['maximumTransmissionUnit',['../structKvsRtcConfiguration.html#af5a0642e5b4a1b35bb8de850e22c70c5',1,'KvsRtcConfiguration']]],
+  ['maxpacketlifetime_1011',['maxPacketLifeTime',['../structRtcDataChannelInit.html#ad2859a6cb8bd37238ff551227a242154',1,'RtcDataChannelInit']]],
+  ['maxretransmits_1012',['maxRetransmits',['../structRtcDataChannelInit.html#a4f9198d8cefa1b1b276e2973238621a3',1,'RtcDataChannelInit']]],
+  ['mediasourceid_1013',['mediaSourceId',['../structRtcOutboundRtpStreamStats.html#a42a7fd9ea8f12b7883f601a876466384',1,'RtcOutboundRtpStreamStats']]],
+  ['messagereceivedfn_1014',['messageReceivedFn',['../structSignalingClientCallbacks.html#af62848d4a3bdf038a7a05ae5cc792610',1,'SignalingClientCallbacks']]],
+  ['messagettl_1015',['messageTtl',['../structChannelInfo.html#aa3fa299e94073522ed7ffe62efe39233',1,'ChannelInfo::messageTtl()'],['../structSignalingChannelDescription.html#a48313b15065c6f0c6c5fa75c868fd62d',1,'SignalingChannelDescription::messageTtl()']]],
+  ['messagetype_1016',['messageType',['../structSignalingMessage.html#aad3b5f6fd6deea9795143db5d095f6ca',1,'SignalingMessage']]]
 ];

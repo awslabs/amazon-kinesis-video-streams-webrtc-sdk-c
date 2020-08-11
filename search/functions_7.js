@@ -1,5 +1,5 @@
 var searchData=
 [
-  ['restartice_827',['restartIce',['../Include_8h.html#ade9fcbb056cb321f33890c1cf1222e64',1,'Include.h']]],
-  ['rtcpeerconnectiongetmetrics_828',['rtcPeerConnectionGetMetrics',['../Include_8h.html#a469e0f69e03630ad5b03d8921afd62be',1,'Include.h']]]
+  ['restartice_878',['restartIce',['../Include_8h.html#ade9fcbb056cb321f33890c1cf1222e64',1,'Include.h']]],
+  ['rtcpeerconnectiongetmetrics_879',['rtcPeerConnectionGetMetrics',['../Include_8h.html#a469e0f69e03630ad5b03d8921afd62be',1,'Include.h']]]
 ];

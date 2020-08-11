@@ -133,6 +133,11 @@ Classes</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRtcRemoteInboundRtpStreamStats.html">RtcRemoteInboundRtpStreamStats</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">RTCRemoteInboundRtpStreamStats Represents the remote endpoint's measurement metrics for a particular incoming RTP stream.  <a href="structRtcRemoteInboundRtpStreamStats.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRtcReceivedRtpStreamStats.html">RtcReceivedRtpStreamStats</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRtcInboundRtpStreamStats.html">RtcInboundRtpStreamStats</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">The RTCInboundRtpStreamStats dictionary represents the measurement metrics for the incoming RTP media stream. The timestamp reported in the statistics object is the time at which the data was sampled.  <a href="structRtcInboundRtpStreamStats.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClientStats.html">SignalingClientStats</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="structSignalingClientMetrics.html" title="SignalingStats Collection of signaling related stats. Can be expanded in the future.">SignalingClientMetrics</a> Represent the stats related to the KVS WebRTC SDK signaling client.  <a href="structSignalingClientStats.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -167,6 +172,9 @@ Macros</h2></td></tr>
 Typedefs</h2></td></tr>
 <tr class="memitem:a2839bbe57b61cee62093b734df9db744"><td class="memItemLeft" align="right" valign="top">typedef CHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#a2839bbe57b61cee62093b734df9db744">DOMString</a>[255U+1]</td></tr>
 <tr class="separator:a2839bbe57b61cee62093b734df9db744"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af67f446702d9765b52a8abb3116340c4"><td class="memItemLeft" align="right" valign="top">typedef UINT64&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#af67f446702d9765b52a8abb3116340c4">DOMHighResTimeStamp</a></td></tr>
+<tr class="memdesc:af67f446702d9765b52a8abb3116340c4"><td class="mdescLeft">&#160;</td><td class="mdescRight">The DOMHighResTimeStamp type is used to store a time value in milliseconds, measured relative from the time origin, global monotonic clock, or a time value that represents a duration between two DOMHighResTimeStamps.  <a href="Stats_8h.html#af67f446702d9765b52a8abb3116340c4">More...</a><br /></td></tr>
+<tr class="separator:af67f446702d9765b52a8abb3116340c4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5272c41dca467a46b89b9aec4d004122"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structQualityLimitationDurationsRecord.html">QualityLimitationDurationsRecord</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#a5272c41dca467a46b89b9aec4d004122">PQualityLimitationDurationsRecord</a></td></tr>
 <tr class="separator:a5272c41dca467a46b89b9aec4d004122"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7540403bae7393d7da52dcc72e3cc847"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structDscpPacketsSentRecord.html">DscpPacketsSentRecord</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#a7540403bae7393d7da52dcc72e3cc847">PDscpPacketsSentRecord</a></td></tr>
@@ -187,6 +195,10 @@ Typedefs</h2></td></tr>
 <tr class="separator:a63f1d5fb544d7b2252b14044bc474486"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a104a0974d7813be415eded50af91bdd7"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRtcRemoteInboundRtpStreamStats.html">RtcRemoteInboundRtpStreamStats</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#a104a0974d7813be415eded50af91bdd7">PRtcRemoteInboundRtpStreamStats</a></td></tr>
 <tr class="separator:a104a0974d7813be415eded50af91bdd7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ade2d84924c3d7e0acffa4ada821589b9"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRtcReceivedRtpStreamStats.html">RtcReceivedRtpStreamStats</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#ade2d84924c3d7e0acffa4ada821589b9">PRtcReceivedRtpStreamStats</a></td></tr>
+<tr class="separator:ade2d84924c3d7e0acffa4ada821589b9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a95c97b1845412106873b7efdc86e27fb"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRtcInboundRtpStreamStats.html">RtcInboundRtpStreamStats</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#a95c97b1845412106873b7efdc86e27fb">PRtcInboundRtpStreamStats</a></td></tr>
+<tr class="separator:a95c97b1845412106873b7efdc86e27fb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aed2abeea73109d8decf11ef16a5b1a88"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structSignalingClientStats.html">SignalingClientStats</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#aed2abeea73109d8decf11ef16a5b1a88">PSignalingClientStats</a></td></tr>
 <tr class="separator:aed2abeea73109d8decf11ef16a5b1a88"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7ee11917e4ab69400576ae7fceea344e"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRtcStatsObject.html">RtcStatsObject</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#a7ee11917e4ab69400576ae7fceea344e">PRtcStatsObject</a></td></tr>
@@ -407,6 +419,23 @@ Enumerations</h2></td></tr>
 </div>
 </div>
 <h2 class="groupheader">Typedef Documentation</h2>
+<a id="af67f446702d9765b52a8abb3116340c4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af67f446702d9765b52a8abb3116340c4">&#9670;&nbsp;</a></span>DOMHighResTimeStamp</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef UINT64 <a class="el" href="Stats_8h.html#af67f446702d9765b52a8abb3116340c4">DOMHighResTimeStamp</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>The DOMHighResTimeStamp type is used to store a time value in milliseconds, measured relative from the time origin, global monotonic clock, or a time value that represents a duration between two DOMHighResTimeStamps. </p>
+<p>Reference: <a href="https://www.w3.org/TR/hr-time-2/#sec-domhighrestimestamp">https://www.w3.org/TR/hr-time-2/#sec-domhighrestimestamp</a> </p>
+
+</div>
+</div>
 <a id="a2839bbe57b61cee62093b734df9db744"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a2839bbe57b61cee62093b734df9db744">&#9670;&nbsp;</a></span>DOMString</h2>
 
@@ -491,6 +520,20 @@ Enumerations</h2></td></tr>
 
 </div>
 </div>
+<a id="a95c97b1845412106873b7efdc86e27fb"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a95c97b1845412106873b7efdc86e27fb">&#9670;&nbsp;</a></span>PRtcInboundRtpStreamStats</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef  struct <a class="el" href="structRtcInboundRtpStreamStats.html">RtcInboundRtpStreamStats</a> * <a class="el" href="Stats_8h.html#a95c97b1845412106873b7efdc86e27fb">PRtcInboundRtpStreamStats</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a id="a63f1d5fb544d7b2252b14044bc474486"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a63f1d5fb544d7b2252b14044bc474486">&#9670;&nbsp;</a></span>PRtcOutboundRtpStreamStats</h2>
 
@@ -499,6 +542,20 @@ Enumerations</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname">typedef  struct <a class="el" href="structRtcOutboundRtpStreamStats.html">RtcOutboundRtpStreamStats</a> * <a class="el" href="Stats_8h.html#a63f1d5fb544d7b2252b14044bc474486">PRtcOutboundRtpStreamStats</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ade2d84924c3d7e0acffa4ada821589b9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ade2d84924c3d7e0acffa4ada821589b9">&#9670;&nbsp;</a></span>PRtcReceivedRtpStreamStats</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef  struct <a class="el" href="structRtcReceivedRtpStreamStats.html">RtcReceivedRtpStreamStats</a> * <a class="el" href="Stats_8h.html#ade2d84924c3d7e0acffa4ada821589b9">PRtcReceivedRtpStreamStats</a></td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -781,7 +838,7 @@ Enumerations</h2></td></tr>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_b0856f6b0d80ccb263b2f415c91f9e17.html">include</a></li><li class="navelem"><a class="el" href="dir_8f5ac45a6ada111b95e80af22bb6017d.html">com</a></li><li class="navelem"><a class="el" href="dir_6eddcaa8cb3f84b1b7290fa7880ed0c5.html">amazonaws</a></li><li class="navelem"><a class="el" href="dir_ffe25b375dd9c47f978782781b252738.html">kinesis</a></li><li class="navelem"><a class="el" href="dir_40be0bfe93e499fae0ac3fc2c0b3ca29.html">video</a></li><li class="navelem"><a class="el" href="dir_4165afa699965307903ffe413a1cdec9.html">webrtcclient</a></li><li class="navelem"><a class="el" href="Stats_8h.html">Stats.h</a></li>
-    <li class="footer">Generated on Mon Aug 10 2020 21:55:58 for Amazon Kinesis Webrtc C SDK by
+    <li class="footer">Generated on Tue Aug 11 2020 14:37:11 for Amazon Kinesis Webrtc C SDK by
     <a href="http://www.doxygen.org/index.html">
     <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.18 </li>
   </ul>

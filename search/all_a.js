@@ -1,7 +1,6 @@
 var searchData=
 [
-  ['keyframesencoded_119',['keyFramesEncoded',['../structRtcOutboundRtpStreamStats.html#a89792ab59e206e4b27ee817e4127229f',1,'RtcOutboundRtpStreamStats']]],
-  ['kind_120',['kind',['../structRtcMediaStreamTrack.html#a0ab3d1535c557003a68f2c0d9abde2c3',1,'RtcMediaStreamTrack::kind()'],['../structRTCRtpStreamStats.html#a46a1d7a813fd33f8cc41e42b733d5b24',1,'RTCRtpStreamStats::kind()']]],
-  ['kinesis_5fvideo_5fstun_5furl_121',['KINESIS_VIDEO_STUN_URL',['../Include_8h.html#ab921a27e047a959153fde4d7466ec5aa',1,'Include.h']]],
-  ['kvsrtcconfiguration_122',['KvsRtcConfiguration',['../structKvsRtcConfiguration.html',1,'KvsRtcConfiguration'],['../structRtcConfiguration.html#a69bb47ece52e306b555cf69a153db483',1,'RtcConfiguration::kvsRtcConfiguration()']]]
+  ['jitter_142',['jitter',['../structRtcReceivedRtpStreamStats.html#a8b98319cbbc6a815c6200d96a28bdaf8',1,'RtcReceivedRtpStreamStats']]],
+  ['jitterbufferdelay_143',['jitterBufferDelay',['../structRtcInboundRtpStreamStats.html#a15fa29cf993662071f832f002f1d936f',1,'RtcInboundRtpStreamStats']]],
+  ['jitterbufferemittedcount_144',['jitterBufferEmittedCount',['../structRtcInboundRtpStreamStats.html#a39c7330fd9bcb39cd68754d42ce0aac5',1,'RtcInboundRtpStreamStats']]]
 ];
