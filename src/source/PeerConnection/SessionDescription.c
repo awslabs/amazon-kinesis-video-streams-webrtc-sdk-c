@@ -875,6 +875,11 @@ STATUS setReceiversSsrc(PSessionDescription pRemoteSessionDescription, PDoubleLi
                         ((isVideoCodec && isVideoMediaSection) || (isAudioCodec && isAudioMediaSection))) {
                         // Finish iteration, we assigned the ssrc move on to next media section
                         pKvsRtpTransceiver->jitterBufferSsrc = ssrc;
+                        pKvsRtpTransceiver->inboundStats.received.rtpStream.ssrc = ssrc;
+                        STRNCPY(pKvsRtpTransceiver->inboundStats.received.rtpStream.kind,
+                                pKvsRtpTransceiver->transceiver.receiver.track.kind == MEDIA_STREAM_TRACK_KIND_VIDEO ? "video" : "audio",
+                                ARRAY_SIZE(pKvsRtpTransceiver->inboundStats.received.rtpStream.kind));
+
                         pCurNode = NULL;
                     } else {
                         pCurNode = pCurNode->pNext;

@@ -20,7 +20,7 @@ STATUS createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION direction, PKvsPeer
     pKvsRtpTransceiver->peerFrameBuffer = (PBYTE) MEMALLOC(pKvsRtpTransceiver->peerFrameBufferSize);
     CHK(pKvsRtpTransceiver->peerFrameBuffer != NULL, STATUS_NOT_ENOUGH_MEMORY);
     pKvsRtpTransceiver->pKvsPeerConnection = pKvsPeerConnection;
-    pKvsRtpTransceiver->sender.statsLock = MUTEX_CREATE(FALSE);
+    pKvsRtpTransceiver->statsLock = MUTEX_CREATE(FALSE);
     pKvsRtpTransceiver->sender.ssrc = ssrc;
     pKvsRtpTransceiver->sender.rtxSsrc = rtxSsrc;
     pKvsRtpTransceiver->sender.track = *pRtcMediaStreamTrack;
@@ -28,12 +28,13 @@ STATUS createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION direction, PKvsPeer
     pKvsRtpTransceiver->sender.retransmitter = NULL;
     pKvsRtpTransceiver->pJitterBuffer = pJitterBuffer;
     pKvsRtpTransceiver->transceiver.receiver.track.codec = rtcCodec;
+    pKvsRtpTransceiver->transceiver.receiver.track.kind = pRtcMediaStreamTrack->kind;
     pKvsRtpTransceiver->transceiver.direction = direction;
 
-    pKvsRtpTransceiver->sender.outboundStats.sent.rtpStream.ssrc = ssrc;
-    STRNCPY(pKvsRtpTransceiver->sender.outboundStats.sent.rtpStream.kind,
-            pRtcMediaStreamTrack->kind == MEDIA_STREAM_TRACK_KIND_AUDIO ? "audio" : "video", MAX_STATS_STRING_LENGTH);
-    STRNCPY(pKvsRtpTransceiver->sender.outboundStats.trackId, pRtcMediaStreamTrack->trackId, MAX_STATS_STRING_LENGTH);
+    pKvsRtpTransceiver->outboundStats.sent.rtpStream.ssrc = ssrc;
+    STRNCPY(pKvsRtpTransceiver->outboundStats.sent.rtpStream.kind, pRtcMediaStreamTrack->kind == MEDIA_STREAM_TRACK_KIND_AUDIO ? "audio" : "video",
+            MAX_STATS_STRING_LENGTH);
+    STRNCPY(pKvsRtpTransceiver->outboundStats.trackId, pRtcMediaStreamTrack->trackId, MAX_STATS_STRING_LENGTH);
 
 CleanUp:
 
@@ -75,7 +76,7 @@ STATUS freeKvsRtpTransceiver(PKvsRtpTransceiver* ppKvsRtpTransceiver)
     if (pKvsRtpTransceiver->sender.retransmitter != NULL) {
         freeRetransmitter(&pKvsRtpTransceiver->sender.retransmitter);
     }
-    MUTEX_FREE(pKvsRtpTransceiver->sender.statsLock);
+    MUTEX_FREE(pKvsRtpTransceiver->statsLock);
 
     SAFE_MEMFREE(pKvsRtpTransceiver->peerFrameBuffer);
     SAFE_MEMFREE(pKvsRtpTransceiver->sender.payloadArray.payloadBuffer);
@@ -158,22 +159,21 @@ STATUS updateEncoderStats(PRtcRtpTransceiver pRtcRtpTransceiver, PRtcEncoderStat
     STATUS retStatus = STATUS_SUCCESS;
     PKvsRtpTransceiver pKvsRtpTransceiver = (PKvsRtpTransceiver) pRtcRtpTransceiver;
     CHK(pKvsRtpTransceiver != NULL && encoderStats != NULL, STATUS_NULL_ARG);
-    MUTEX_LOCK(pKvsRtpTransceiver->sender.statsLock);
-    pKvsRtpTransceiver->sender.outboundStats.totalEncodeTime += encoderStats->encodeTimeMsec;
-    pKvsRtpTransceiver->sender.outboundStats.targetBitrate = encoderStats->targetBitrate;
-    if (encoderStats->width < pKvsRtpTransceiver->sender.outboundStats.frameWidth ||
-        encoderStats->height < pKvsRtpTransceiver->sender.outboundStats.frameHeight) {
-        pKvsRtpTransceiver->sender.outboundStats.qualityLimitationResolutionChanges++;
+    MUTEX_LOCK(pKvsRtpTransceiver->statsLock);
+    pKvsRtpTransceiver->outboundStats.totalEncodeTime += encoderStats->encodeTimeMsec;
+    pKvsRtpTransceiver->outboundStats.targetBitrate = encoderStats->targetBitrate;
+    if (encoderStats->width < pKvsRtpTransceiver->outboundStats.frameWidth || encoderStats->height < pKvsRtpTransceiver->outboundStats.frameHeight) {
+        pKvsRtpTransceiver->outboundStats.qualityLimitationResolutionChanges++;
     }
 
-    pKvsRtpTransceiver->sender.outboundStats.frameWidth = encoderStats->width;
-    pKvsRtpTransceiver->sender.outboundStats.frameHeight = encoderStats->height;
-    pKvsRtpTransceiver->sender.outboundStats.frameBitDepth = encoderStats->bitDepth;
-    pKvsRtpTransceiver->sender.outboundStats.voiceActivityFlag = encoderStats->voiceActivity;
+    pKvsRtpTransceiver->outboundStats.frameWidth = encoderStats->width;
+    pKvsRtpTransceiver->outboundStats.frameHeight = encoderStats->height;
+    pKvsRtpTransceiver->outboundStats.frameBitDepth = encoderStats->bitDepth;
+    pKvsRtpTransceiver->outboundStats.voiceActivityFlag = encoderStats->voiceActivity;
     if (encoderStats->encoderImplementation[0] != '\0')
-        STRNCPY(pKvsRtpTransceiver->sender.outboundStats.encoderImplementation, encoderStats->encoderImplementation, MAX_STATS_STRING_LENGTH);
+        STRNCPY(pKvsRtpTransceiver->outboundStats.encoderImplementation, encoderStats->encoderImplementation, MAX_STATS_STRING_LENGTH);
 
-    MUTEX_UNLOCK(pKvsRtpTransceiver->sender.statsLock);
+    MUTEX_UNLOCK(pKvsRtpTransceiver->statsLock);
 
 CleanUp:
     CHK_LOG_ERR(retStatus);
@@ -216,9 +216,9 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
         }
         if (pKvsRtpTransceiver->sender.lastKnownFrameCountTime == 0) {
             pKvsRtpTransceiver->sender.lastKnownFrameCountTime = now;
-            pKvsRtpTransceiver->sender.lastKnownFrameCount = pKvsRtpTransceiver->sender.outboundStats.framesEncoded + frames;
+            pKvsRtpTransceiver->sender.lastKnownFrameCount = pKvsRtpTransceiver->outboundStats.framesEncoded + frames;
         } else if (now - pKvsRtpTransceiver->sender.lastKnownFrameCountTime > HUNDREDS_OF_NANOS_IN_A_SECOND) {
-            tmpFrames = (pKvsRtpTransceiver->sender.outboundStats.framesEncoded + frames) - pKvsRtpTransceiver->sender.lastKnownFrameCount;
+            tmpFrames = (pKvsRtpTransceiver->outboundStats.framesEncoded + frames) - pKvsRtpTransceiver->sender.lastKnownFrameCount;
             tmpTime = now - pKvsRtpTransceiver->sender.lastKnownFrameCountTime;
             fps = (DOUBLE)(tmpFrames * HUNDREDS_OF_NANOS_IN_A_SECOND) / (DOUBLE) tmpTime;
         }
@@ -336,35 +336,35 @@ CleanUp:
     if (locked) {
         MUTEX_UNLOCK(pKvsPeerConnection->pSrtpSessionLock);
     }
-    MUTEX_LOCK(pKvsRtpTransceiver->sender.statsLock);
-    pKvsRtpTransceiver->sender.outboundStats.totalEncodedBytesTarget += pFrame->size;
-    pKvsRtpTransceiver->sender.outboundStats.framesEncoded += frames;
-    pKvsRtpTransceiver->sender.outboundStats.keyFramesEncoded += keyframes;
+    MUTEX_LOCK(pKvsRtpTransceiver->statsLock);
+    pKvsRtpTransceiver->outboundStats.totalEncodedBytesTarget += pFrame->size;
+    pKvsRtpTransceiver->outboundStats.framesEncoded += frames;
+    pKvsRtpTransceiver->outboundStats.keyFramesEncoded += keyframes;
     if (fps > 0.0) {
-        pKvsRtpTransceiver->sender.outboundStats.framesPerSecond = fps;
+        pKvsRtpTransceiver->outboundStats.framesPerSecond = fps;
     }
     pKvsRtpTransceiver->sender.lastKnownFrameCountTime = now;
-    pKvsRtpTransceiver->sender.lastKnownFrameCount = pKvsRtpTransceiver->sender.outboundStats.framesEncoded;
-    pKvsRtpTransceiver->sender.outboundStats.sent.bytesSent += bytesSent;
-    pKvsRtpTransceiver->sender.outboundStats.sent.packetsSent++;
+    pKvsRtpTransceiver->sender.lastKnownFrameCount = pKvsRtpTransceiver->outboundStats.framesEncoded;
+    pKvsRtpTransceiver->outboundStats.sent.bytesSent += bytesSent;
+    pKvsRtpTransceiver->outboundStats.sent.packetsSent += packetsSent;
     if (lastPacketSentTimestamp > 0) {
-        pKvsRtpTransceiver->sender.outboundStats.lastPacketSentTimestamp = lastPacketSentTimestamp;
+        pKvsRtpTransceiver->outboundStats.lastPacketSentTimestamp = lastPacketSentTimestamp;
     }
-    pKvsRtpTransceiver->sender.outboundStats.headerBytesSent += headerBytesSent;
-    pKvsRtpTransceiver->sender.outboundStats.framesSent += framesSent;
-    if (pKvsRtpTransceiver->sender.outboundStats.framesPerSecond > 0.0) {
-        if (pFrame->size >= pKvsRtpTransceiver->sender.outboundStats.targetBitrate / pKvsRtpTransceiver->sender.outboundStats.framesPerSecond *
-                HUGE_FRAME_MULTIPLIER) {
-            pKvsRtpTransceiver->sender.outboundStats.hugeFramesSent++;
+    pKvsRtpTransceiver->outboundStats.headerBytesSent += headerBytesSent;
+    pKvsRtpTransceiver->outboundStats.framesSent += framesSent;
+    if (pKvsRtpTransceiver->outboundStats.framesPerSecond > 0.0) {
+        if (pFrame->size >=
+            pKvsRtpTransceiver->outboundStats.targetBitrate / pKvsRtpTransceiver->outboundStats.framesPerSecond * HUGE_FRAME_MULTIPLIER) {
+            pKvsRtpTransceiver->outboundStats.hugeFramesSent++;
         }
     }
     // iceAgentSendPacket tries to send packet immediately, explicitly settings totalPacketSendDelay to 0
-    pKvsRtpTransceiver->sender.outboundStats.totalPacketSendDelay = 0;
+    pKvsRtpTransceiver->outboundStats.totalPacketSendDelay = 0;
 
-    pKvsRtpTransceiver->sender.outboundStats.framesDiscardedOnSend += framesDiscardedOnSend;
-    pKvsRtpTransceiver->sender.outboundStats.packetsDiscardedOnSend += packetsDiscardedOnSend;
-    pKvsRtpTransceiver->sender.outboundStats.bytesDiscardedOnSend += bytesDiscardedOnSend;
-    MUTEX_UNLOCK(pKvsRtpTransceiver->sender.statsLock);
+    pKvsRtpTransceiver->outboundStats.framesDiscardedOnSend += framesDiscardedOnSend;
+    pKvsRtpTransceiver->outboundStats.packetsDiscardedOnSend += packetsDiscardedOnSend;
+    pKvsRtpTransceiver->outboundStats.bytesDiscardedOnSend += bytesDiscardedOnSend;
+    MUTEX_UNLOCK(pKvsRtpTransceiver->statsLock);
 
     SAFE_MEMFREE(rawPacket);
     SAFE_MEMFREE(pPacketList);
@@ -419,7 +419,7 @@ STATUS findTransceiverBySsrc(PKvsPeerConnection pKvsPeerConnection, PKvsRtpTrans
     while (pCurNode != NULL) {
         CHK_STATUS(doubleListGetNodeData(pCurNode, &item));
         pTransceiver = (PKvsRtpTransceiver) item;
-        if (pTransceiver->sender.ssrc == ssrc || pTransceiver->sender.rtxSsrc == ssrc) {
+        if (pTransceiver->sender.ssrc == ssrc || pTransceiver->sender.rtxSsrc == ssrc || pTransceiver->jitterBufferSsrc == ssrc) {
             break;
         }
         pCurNode = pCurNode->pNext;

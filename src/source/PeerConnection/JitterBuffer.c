@@ -74,7 +74,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS jitterBufferPush(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket)
+STATUS jitterBufferPush(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket, PBOOL pPacketDiscarded)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -107,6 +107,9 @@ STATUS jitterBufferPush(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket)
     } else {
         // Free the packet if it is out of range, jitter buffer need to own the packet and do free
         freeRtpPacket(&pRtpPacket);
+        if (pPacketDiscarded != NULL) {
+            *pPacketDiscarded = TRUE;
+        }
     }
 
     CHK_STATUS(jitterBufferPop(pJitterBuffer, FALSE));
@@ -161,7 +164,8 @@ STATUS jitterBufferPop(PJitterBuffer pJitterBuffer, BOOL bufferClosed)
                         curFrameSize = 0;
                         containStartForEarliestFrame = FALSE;
                     } else {
-                        CHK_STATUS(pJitterBuffer->onFrameDroppedFn(pJitterBuffer->customData, pJitterBuffer->lastPopTimestamp));
+                        CHK_STATUS(pJitterBuffer->onFrameDroppedFn(pJitterBuffer->customData, startDropIndex, UINT16_DEC(index),
+                                                                   pJitterBuffer->lastPopTimestamp));
                         CHK_STATUS(jitterBufferDropBufferData(pJitterBuffer, startDropIndex, UINT16_DEC(index), curTimestamp));
                         curFrameSize = 0;
                         isFrameDataContinuous = TRUE;
@@ -205,7 +209,8 @@ STATUS jitterBufferPop(PJitterBuffer pJitterBuffer, BOOL bufferClosed)
             CHK_STATUS(pJitterBuffer->onFrameReadyFn(pJitterBuffer->customData, startDropIndex, lastNonNullIndex, curFrameSize));
             CHK_STATUS(jitterBufferDropBufferData(pJitterBuffer, startDropIndex, lastNonNullIndex, pJitterBuffer->lastPopTimestamp));
         } else {
-            CHK_STATUS(pJitterBuffer->onFrameDroppedFn(pJitterBuffer->customData, pJitterBuffer->lastPopTimestamp));
+            CHK_STATUS(
+                pJitterBuffer->onFrameDroppedFn(pJitterBuffer->customData, startDropIndex, UINT16_DEC(index), pJitterBuffer->lastPopTimestamp));
             CHK_STATUS(jitterBufferDropBufferData(pJitterBuffer, startDropIndex, lastNonNullIndex, pJitterBuffer->lastPopTimestamp));
         }
     }

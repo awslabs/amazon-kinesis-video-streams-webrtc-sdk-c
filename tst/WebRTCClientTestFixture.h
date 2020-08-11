@@ -149,9 +149,11 @@ class WebRtcClientTestBase : public ::testing::Test {
         return STATUS_SUCCESS;
     }
 
-    static STATUS testFrameDroppedFunc(UINT64 customData, UINT32 timestamp)
+    static STATUS testFrameDroppedFunc(UINT64 customData, UINT16 startIndex, UINT16 endIndex, UINT32 timestamp)
     {
-        WebRtcClientTestBase* base = (WebRtcClientTestBase*) customData;
+        UNUSED_PARAM(startIndex);
+        UNUSED_PARAM(endIndex);
+        auto* base = (WebRtcClientTestBase*) customData;
         EXPECT_GT(base->mExpectedDroppedFrameCount, base->mDroppedFrameIndex);
         EXPECT_EQ(base->mExpectedDroppedFrameTimestampArr[base->mDroppedFrameIndex], timestamp);
         base->mDroppedFrameIndex++;

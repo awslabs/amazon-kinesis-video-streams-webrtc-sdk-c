@@ -12,9 +12,9 @@ static STATUS onRtcpFIRPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPe
     CHK(pKvsPeerConnection != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
     mediaSSRC = getUnalignedInt32BigEndian((pRtcpPacket->payload + (SIZEOF(UINT32))));
     if (STATUS_SUCCEEDED(findTransceiverBySsrc(pKvsPeerConnection, &pTransceiver, mediaSSRC))) {
-        MUTEX_LOCK(pTransceiver->sender.statsLock);
-        pTransceiver->sender.outboundStats.firCount++;
-        MUTEX_UNLOCK(pTransceiver->sender.statsLock);
+        MUTEX_LOCK(pTransceiver->statsLock);
+        pTransceiver->outboundStats.firCount++;
+        MUTEX_UNLOCK(pTransceiver->statsLock);
         if (pTransceiver->onPictureLoss != NULL) {
             pTransceiver->onPictureLoss(pTransceiver->onPictureLossCustomData);
         }
@@ -37,9 +37,9 @@ static STATUS onRtcpSLIPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPe
     CHK(pKvsPeerConnection != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
     mediaSSRC = getUnalignedInt32BigEndian((pRtcpPacket->payload + (SIZEOF(UINT32))));
     if (STATUS_SUCCEEDED(findTransceiverBySsrc(pKvsPeerConnection, &pTransceiver, mediaSSRC))) {
-        MUTEX_LOCK(pTransceiver->sender.statsLock);
-        pTransceiver->sender.outboundStats.sliCount++;
-        MUTEX_UNLOCK(pTransceiver->sender.statsLock);
+        MUTEX_LOCK(pTransceiver->statsLock);
+        pTransceiver->outboundStats.sliCount++;
+        MUTEX_UNLOCK(pTransceiver->statsLock);
     } else {
         DLOGW("Received FIR for non existing ssrc: %u", mediaSSRC);
     }
@@ -124,15 +124,15 @@ static STATUS onRtcpReceiverReport(PRtcpPacket pRtcpPacket, PKvsPeerConnection p
         DLOGD("RTCP_PACKET_TYPE_RECEIVER_REPORT rttPropDelay %u msec", rttPropDelayMsec);
     }
 
-    MUTEX_LOCK(pTransceiver->sender.statsLock);
-    pTransceiver->sender.remoteInboundStats.reportsReceived++;
+    MUTEX_LOCK(pTransceiver->statsLock);
+    pTransceiver->remoteInboundStats.reportsReceived++;
     if (fractionLost > -1.0) {
-        pTransceiver->sender.remoteInboundStats.fractionLost = fractionLost;
+        pTransceiver->remoteInboundStats.fractionLost = fractionLost;
     }
-    pTransceiver->sender.remoteInboundStats.roundTripTimeMeasurements++;
-    pTransceiver->sender.remoteInboundStats.totalRoundTripTime += rttPropDelayMsec;
-    pTransceiver->sender.remoteInboundStats.roundTripTime = rttPropDelayMsec;
-    MUTEX_UNLOCK(pTransceiver->sender.statsLock);
+    pTransceiver->remoteInboundStats.roundTripTimeMeasurements++;
+    pTransceiver->remoteInboundStats.totalRoundTripTime += rttPropDelayMsec;
+    pTransceiver->remoteInboundStats.roundTripTime = rttPropDelayMsec;
+    MUTEX_UNLOCK(pTransceiver->statsLock);
 
 CleanUp:
 
@@ -248,9 +248,9 @@ STATUS onRtcpPLIPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConne
     CHK_STATUS_ERR(findTransceiverBySsrc(pKvsPeerConnection, &pTransceiver, mediaSSRC), STATUS_RTCP_INPUT_SSRC_INVALID,
                    "Received PLI for non existing ssrc: %u", mediaSSRC);
 
-    MUTEX_LOCK(pTransceiver->sender.statsLock);
-    pTransceiver->sender.outboundStats.pliCount++;
-    MUTEX_UNLOCK(pTransceiver->sender.statsLock);
+    MUTEX_LOCK(pTransceiver->statsLock);
+    pTransceiver->outboundStats.pliCount++;
+    MUTEX_UNLOCK(pTransceiver->statsLock);
 
     if (pTransceiver->onPictureLoss != NULL) {
         pTransceiver->onPictureLoss(pTransceiver->onPictureLossCustomData);

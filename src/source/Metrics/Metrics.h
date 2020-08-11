@@ -71,6 +71,15 @@ STATUS getRtpRemoteInboundStats(PRtcPeerConnection, PRtcRtpTransceiver, PRtcRemo
  */
 STATUS getRtpOutboundStats(PRtcPeerConnection, PRtcRtpTransceiver, PRtcOutboundRtpStreamStats);
 
+/**
+ * @brief Get RTP inbound stats
+ * @param [in] PRtcPeerConnection
+ * @param [in] PRtcRtpTransceiver transceiver to get stats for, first transceiver if NULL
+ * @param [in/out] PRtcInboundRtpStreamStats Fill up the RTP inbound stats for application consumption
+ * @return Pass/Fail
+ *
+ */
+STATUS getRtpInboundStats(PRtcPeerConnection, PRtcRtpTransceiver, PRtcInboundRtpStreamStats);
 #ifdef __cplusplus
 }
 #endif

@@ -87,6 +87,8 @@ struct __RtpPacket {
     UINT32 payloadLength;
     PBYTE pRawPacket;
     UINT32 rawPacketLength;
+    // used for jitterBufferDelay calculation
+    UINT64 receivedTime;
 };
 typedef RtpPacket* PRtpPacket;
 

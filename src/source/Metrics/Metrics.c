@@ -90,9 +90,9 @@ STATUS getRtpRemoteInboundStats(PRtcPeerConnection pRtcPeerConnection, PRtcRtpTr
     }
     // check if specified transceiver belongs to this connection
     CHK_STATUS(hasTransceiverWithSsrc(pKvsPeerConnection, pKvsRtpTransceiver->sender.ssrc));
-    MUTEX_LOCK(pKvsRtpTransceiver->sender.statsLock);
-    *pRtcRemoteInboundRtpStreamStats = pKvsRtpTransceiver->sender.remoteInboundStats;
-    MUTEX_UNLOCK(pKvsRtpTransceiver->sender.statsLock);
+    MUTEX_LOCK(pKvsRtpTransceiver->statsLock);
+    *pRtcRemoteInboundRtpStreamStats = pKvsRtpTransceiver->remoteInboundStats;
+    MUTEX_UNLOCK(pKvsRtpTransceiver->statsLock);
 CleanUp:
     return retStatus;
 }
@@ -112,9 +112,30 @@ STATUS getRtpOutboundStats(PRtcPeerConnection pRtcPeerConnection, PRtcRtpTransce
     }
     // check if specified transceiver belongs to this connection
     CHK_STATUS(hasTransceiverWithSsrc(pKvsPeerConnection, pKvsRtpTransceiver->sender.ssrc));
-    MUTEX_LOCK(pKvsRtpTransceiver->sender.statsLock);
-    *pRtcOutboundRtpStreamStats = pKvsRtpTransceiver->sender.outboundStats;
-    MUTEX_UNLOCK(pKvsRtpTransceiver->sender.statsLock);
+    MUTEX_LOCK(pKvsRtpTransceiver->statsLock);
+    *pRtcOutboundRtpStreamStats = pKvsRtpTransceiver->outboundStats;
+    MUTEX_UNLOCK(pKvsRtpTransceiver->statsLock);
+CleanUp:
+    return retStatus;
+}
+
+STATUS getRtpInboundStats(PRtcPeerConnection pRtcPeerConnection, PRtcRtpTransceiver pTransceiver, PRtcInboundRtpStreamStats pRtcInboundRtpStreamStats)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PDoubleListNode node = NULL;
+    PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pRtcPeerConnection;
+    CHK(pRtcPeerConnection != NULL || pRtcInboundRtpStreamStats != NULL, STATUS_NULL_ARG);
+    PKvsRtpTransceiver pKvsRtpTransceiver = (PKvsRtpTransceiver) pTransceiver;
+    if (pKvsRtpTransceiver == NULL) {
+        CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pTransceievers, &node));
+        CHK_STATUS(doubleListGetNodeData(node, (PUINT64) &pKvsRtpTransceiver));
+        CHK(pKvsRtpTransceiver != NULL, STATUS_NOT_FOUND);
+    }
+    // check if specified transceiver belongs to this connection
+    CHK_STATUS(hasTransceiverWithSsrc(pKvsPeerConnection, pKvsRtpTransceiver->jitterBufferSsrc));
+    MUTEX_LOCK(pKvsRtpTransceiver->statsLock);
+    *pRtcInboundRtpStreamStats = pKvsRtpTransceiver->inboundStats;
+    MUTEX_UNLOCK(pKvsRtpTransceiver->statsLock);
 CleanUp:
     return retStatus;
 }
@@ -125,7 +146,7 @@ STATUS rtcPeerConnectionGetMetrics(PRtcPeerConnection pRtcPeerConnection, PRtcRt
     CHK(pRtcPeerConnection != NULL && pRtcMetrics != NULL, STATUS_NULL_ARG);
     switch (pRtcMetrics->requestedTypeOfStats) {
         case RTC_STATS_TYPE_CANDIDATE_PAIR:
-            getIceCandidatePairStats(pRtcPeerConnection, &pRtcMetrics->rtcStatsObject.iceCandidatePairStats);
+            CHK_STATUS(getIceCandidatePairStats(pRtcPeerConnection, &pRtcMetrics->rtcStatsObject.iceCandidatePairStats));
             break;
         case RTC_STATS_TYPE_LOCAL_CANDIDATE:
             CHK_STATUS(getIceCandidateStats(pRtcPeerConnection, FALSE, &pRtcMetrics->rtcStatsObject.localIceCandidateStats));
@@ -136,13 +157,16 @@ STATUS rtcPeerConnectionGetMetrics(PRtcPeerConnection pRtcPeerConnection, PRtcRt
             DLOGD("ICE remote candidate Stats requested at %" PRIu64, pRtcMetrics->timestamp);
             break;
         case RTC_STATS_TYPE_TRANSPORT:
-            getTransportStats(pRtcPeerConnection, &pRtcMetrics->rtcStatsObject.transportStats);
+            CHK_STATUS(getTransportStats(pRtcPeerConnection, &pRtcMetrics->rtcStatsObject.transportStats));
             break;
         case RTC_STATS_TYPE_REMOTE_INBOUND_RTP:
-            getRtpRemoteInboundStats(pRtcPeerConnection, pRtcRtpTransceiver, &pRtcMetrics->rtcStatsObject.remoteInboundRtpStreamStats);
+            CHK_STATUS(getRtpRemoteInboundStats(pRtcPeerConnection, pRtcRtpTransceiver, &pRtcMetrics->rtcStatsObject.remoteInboundRtpStreamStats));
             break;
         case RTC_STATS_TYPE_OUTBOUND_RTP:
-            getRtpOutboundStats(pRtcPeerConnection, pRtcRtpTransceiver, &pRtcMetrics->rtcStatsObject.outboundRtpStreamStats);
+            CHK_STATUS(getRtpOutboundStats(pRtcPeerConnection, pRtcRtpTransceiver, &pRtcMetrics->rtcStatsObject.outboundRtpStreamStats));
+            break;
+        case RTC_STATS_TYPE_INBOUND_RTP:
+            CHK_STATUS(getRtpInboundStats(pRtcPeerConnection, pRtcRtpTransceiver, &pRtcMetrics->rtcStatsObject.inboundRtpStreamStats));
             break;
         case RTC_STATS_TYPE_ICE_SERVER:
             pRtcMetrics->timestamp = GETTIME();
@@ -151,7 +175,6 @@ STATUS rtcPeerConnectionGetMetrics(PRtcPeerConnection pRtcPeerConnection, PRtcRt
             break;
         case RTC_STATS_TYPE_CERTIFICATE:
         case RTC_STATS_TYPE_CSRC:
-        case RTC_STATS_TYPE_INBOUND_RTP:
         case RTC_STATS_TYPE_REMOTE_OUTBOUND_RTP:
         case RTC_STATS_TYPE_PEER_CONNECTION:
         case RTC_STATS_TYPE_DATA_CHANNEL:

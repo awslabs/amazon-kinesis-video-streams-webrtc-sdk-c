@@ -11,7 +11,7 @@ extern "C" {
 #endif
 
 typedef STATUS (*FrameReadyFunc)(UINT64, UINT16, UINT16, UINT32);
-typedef STATUS (*FrameDroppedFunc)(UINT64, UINT32);
+typedef STATUS (*FrameDroppedFunc)(UINT64, UINT16, UINT16, UINT32);
 #define UINT16_DEC(a) ((UINT16)((a) -1))
 
 typedef struct {
@@ -20,6 +20,12 @@ typedef struct {
     FrameDroppedFunc onFrameDroppedFn;
     DepayRtpPayloadFunc depayPayloadFn;
 
+    // used for calculating interarrival jitter https://tools.ietf.org/html/rfc3550#section-6.4.1
+    // https://tools.ietf.org/html/rfc3550#appendix-A.8
+    // holds the relative transit time for the previous packet
+    UINT64 transit;
+    // holds estimated jitter, in clockRate units
+    DOUBLE jitter;
     UINT32 lastPushTimestamp;
     UINT16 lastRemovedSequenceNumber;
     UINT16 lastPopSequenceNumber;
@@ -32,7 +38,7 @@ typedef struct {
 
 STATUS createJitterBuffer(FrameReadyFunc, FrameDroppedFunc, DepayRtpPayloadFunc, UINT32, UINT32, UINT64, PJitterBuffer*);
 STATUS freeJitterBuffer(PJitterBuffer*);
-STATUS jitterBufferPush(PJitterBuffer, PRtpPacket);
+STATUS jitterBufferPush(PJitterBuffer, PRtpPacket, PBOOL);
 STATUS jitterBufferPop(PJitterBuffer, BOOL);
 STATUS jitterBufferDropBufferData(PJitterBuffer, UINT16, UINT16, UINT32);
 STATUS jitterBufferFillFrameData(PJitterBuffer, PBYTE, UINT32, PUINT32, UINT16, UINT16);
