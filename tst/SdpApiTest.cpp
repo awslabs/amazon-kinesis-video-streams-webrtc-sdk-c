@@ -40,6 +40,7 @@ o=- 1904080082932320671 2 IN IP4 127.0.0.1
 s=-
 t=0 0
 a=group:BUNDLE 0 1
+a=ice-options:trickle
 a=msid-semantic: WMS f327e13b-3518-47fc-8b53-9cf74d22d03e
 )";
 
@@ -48,13 +49,16 @@ a=msid-semantic: WMS f327e13b-3518-47fc-8b53-9cf74d22d03e
         MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
         EXPECT_EQ(deserializeSessionDescription(&sessionDescription, sdp), STATUS_SUCCESS);
 
-        EXPECT_EQ(sessionDescription.sessionAttributesCount, 2);
+        EXPECT_EQ(sessionDescription.sessionAttributesCount, 3);
 
         EXPECT_STREQ(sessionDescription.sdpAttributes[0].attributeName, "group");
         EXPECT_STREQ(sessionDescription.sdpAttributes[0].attributeValue, "BUNDLE 0 1");
 
-        EXPECT_STREQ(sessionDescription.sdpAttributes[1].attributeName, "msid-semantic");
-        EXPECT_STREQ(sessionDescription.sdpAttributes[1].attributeValue, " WMS f327e13b-3518-47fc-8b53-9cf74d22d03e");
+        EXPECT_STREQ(sessionDescription.sdpAttributes[1].attributeName, "ice-options");
+        EXPECT_STREQ(sessionDescription.sdpAttributes[1].attributeValue, "trickle");
+
+        EXPECT_STREQ(sessionDescription.sdpAttributes[2].attributeName, "msid-semantic");
+        EXPECT_STREQ(sessionDescription.sdpAttributes[2].attributeValue, " WMS f327e13b-3518-47fc-8b53-9cf74d22d03e");
     });
 }
 
@@ -448,6 +452,7 @@ a=rtpmap:102 H264/90000
         STRCPY(rtcSessionDescriptionInit.sdp, (PCHAR) sdp);
         rtcSessionDescriptionInit.type = SDP_TYPE_OFFER;
         EXPECT_EQ(setRemoteDescription(pRtcPeerConnection, &rtcSessionDescriptionInit), STATUS_SUCCESS);
+        EXPECT_EQ(TRUE, canTrickleIceCandidates(pRtcPeerConnection).value);
         EXPECT_EQ(createAnswer(pRtcPeerConnection, &rtcSessionDescriptionInit), STATUS_SUCCESS);
         EXPECT_PRED_FORMAT2(testing::IsNotSubstring, "fmtp:102 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f",
                             rtcSessionDescriptionInit.sdp);
@@ -530,6 +535,7 @@ s=-
 t=0 0
 a=fingerprint:sha-256 87:E6:EC:59:93:76:9F:42:7D:15:17:F6:8F:C4:29:AB:EA:3F:28:B6:DF:F8:14:2F:96:62:2F:16:98:F5:76:E5
 a=group:BUNDLE 0 1 2
+a=ice-options:trickle
 )");
     offer += sdpdata;
     offer += "\n";
@@ -569,6 +575,7 @@ a=group:BUNDLE 0 1 2
         EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, &track2, nullptr, &transceiver2));
 
         EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(pRtcPeerConnection, &offerSdp));
+        EXPECT_EQ(TRUE, canTrickleIceCandidates(pRtcPeerConnection).value);
         EXPECT_EQ(STATUS_SUCCESS, createAnswer(pRtcPeerConnection, &answerSdp));
 
         std::string answer = answerSdp.sdp;
