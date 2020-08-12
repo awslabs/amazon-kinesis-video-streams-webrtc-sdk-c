@@ -110,7 +110,7 @@ static STATUS onRtcpReceiverReport(PRtcpPacket pRtcpPacket, PKvsPeerConnection p
     lastSR = getUnalignedInt32BigEndian(pRtcpPacket->payload + 20);
     delaySinceLastSR = getUnalignedInt32BigEndian(pRtcpPacket->payload + 24);
 
-    DLOGD("RTCP_PACKET_TYPE_RECEIVER_REPORT %u %u loss: %u %u seq: %u jit: %u lsr: %u dlsr: %u", senderSSRC, ssrc1, fractionLost, cumulativeLost,
+    DLOGS("RTCP_PACKET_TYPE_RECEIVER_REPORT %u %u loss: %u %u seq: %u jit: %u lsr: %u dlsr: %u", senderSSRC, ssrc1, fractionLost, cumulativeLost,
           extHiSeqNumReceived, interarrivalJitter, lastSR, delaySinceLastSR);
     if (lastSR != 0) {
         // https://tools.ietf.org/html/rfc3550#section-6.4.1
@@ -121,7 +121,7 @@ static STATUS onRtcpReceiverReport(PRtcpPacket pRtcpPacket, PKvsPeerConnection p
         //      leave the round-trip propagation delay as (A - LSR - DLSR).
         rttPropDelay = MID_NTP(currentTimeNTP) - lastSR - delaySinceLastSR;
         rttPropDelayMsec = KVS_CONVERT_TIMESCALE(rttPropDelay, DLSR_TIMESCALE, 1000);
-        DLOGD("RTCP_PACKET_TYPE_RECEIVER_REPORT rttPropDelay %u msec", rttPropDelayMsec);
+        DLOGS("RTCP_PACKET_TYPE_RECEIVER_REPORT rttPropDelay %u msec", rttPropDelayMsec);
     }
 
     MUTEX_LOCK(pTransceiver->statsLock);
