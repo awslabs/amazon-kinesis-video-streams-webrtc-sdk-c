@@ -617,7 +617,7 @@ STATUS turnConnectionAddPeer(PTurnConnection pTurnConnection, PKvsIpAddress pPee
 
     CHK(pTurnConnection != NULL && pPeerAddress != NULL, STATUS_NULL_ARG);
     CHK(pTurnConnection->turnServer.ipAddress.family == pPeerAddress->family, STATUS_INVALID_ARG);
-    CHECK_EXT(IS_IPV4_ADDR(pPeerAddress), "Only IPv4 is supported right now");
+    CHK_WARN(IS_IPV4_ADDR(pPeerAddress), retStatus, "Drop IPv6 turn peer because only IPv4 turn peer is supported right now");
 
     MUTEX_LOCK(pTurnConnection->lock);
     locked = TRUE;
