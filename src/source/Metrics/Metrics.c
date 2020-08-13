@@ -140,6 +140,23 @@ CleanUp:
     return retStatus;
 }
 
+STATUS getDataChannelStats(PRtcPeerConnection pRtcPeerConnection, PRtcDataChannelStats pRtcDataChannelStats)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PKvsDataChannel pKvsDataChannel = NULL;
+    PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pRtcPeerConnection;
+    CHK(pRtcPeerConnection != NULL && pRtcDataChannelStats != NULL, STATUS_NULL_ARG);
+    CHK_STATUS(hashTableGet(pKvsPeerConnection->pDataChannels, pRtcDataChannelStats->dataChannelIdentifier, (PUINT64) &pKvsDataChannel));
+    pRtcDataChannelStats->bytesReceived = pKvsDataChannel->rtcDataChannelDiagnostics.bytesReceived;
+    pRtcDataChannelStats->bytesSent = pKvsDataChannel->rtcDataChannelDiagnostics.bytesSent;
+    STRCPY(pRtcDataChannelStats->label, pKvsDataChannel->rtcDataChannelDiagnostics.label);
+    pRtcDataChannelStats->messagesReceived = pKvsDataChannel->rtcDataChannelDiagnostics.messagesReceived;
+    pRtcDataChannelStats->messagesSent = pKvsDataChannel->rtcDataChannelDiagnostics.messagesSent;
+    pRtcDataChannelStats->state = pKvsDataChannel->rtcDataChannelDiagnostics.state;
+CleanUp:
+    return retStatus;
+}
+
 STATUS rtcPeerConnectionGetMetrics(PRtcPeerConnection pRtcPeerConnection, PRtcRtpTransceiver pRtcRtpTransceiver, PRtcStats pRtcMetrics)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -173,11 +190,15 @@ STATUS rtcPeerConnectionGetMetrics(PRtcPeerConnection pRtcPeerConnection, PRtcRt
             CHK_STATUS(getIceServerStats(pRtcPeerConnection, &pRtcMetrics->rtcStatsObject.iceServerStats));
             DLOGD("ICE Server Stats requested at %" PRIu64, pRtcMetrics->timestamp);
             break;
+        case RTC_STATS_TYPE_DATA_CHANNEL:
+            pRtcMetrics->timestamp = GETTIME();
+            CHK_STATUS(getDataChannelStats(pRtcPeerConnection, &pRtcMetrics->rtcStatsObject.rtcDataChannelStats));
+            DLOGD("RTC Data Channel Stats requested at %" PRIu64, pRtcMetrics->timestamp);
+            break;
         case RTC_STATS_TYPE_CERTIFICATE:
         case RTC_STATS_TYPE_CSRC:
         case RTC_STATS_TYPE_REMOTE_OUTBOUND_RTP:
         case RTC_STATS_TYPE_PEER_CONNECTION:
-        case RTC_STATS_TYPE_DATA_CHANNEL:
         case RTC_STATS_TYPE_RECEIVER:
         case RTC_STATS_TYPE_SENDER:
         case RTC_STATS_TYPE_TRACK:
