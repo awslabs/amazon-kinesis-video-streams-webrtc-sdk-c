@@ -22,6 +22,7 @@ var annotated_dup =
     [ "RtcCertificate", "structRtcCertificate.html", "structRtcCertificate" ],
     [ "RtcConfiguration", "structRtcConfiguration.html", "structRtcConfiguration" ],
     [ "RtcDataChannelInit", "structRtcDataChannelInit.html", "structRtcDataChannelInit" ],
+    [ "RTCDataChannelStats", "structRTCDataChannelStats.html", "structRTCDataChannelStats" ],
     [ "RtcEncoderStats", "structRtcEncoderStats.html", "structRtcEncoderStats" ],
     [ "RtcIceCandidateInit", "structRtcIceCandidateInit.html", "structRtcIceCandidateInit" ],
     [ "RtcIceCandidatePairStats", "structRtcIceCandidatePairStats.html", "structRtcIceCandidatePairStats" ],

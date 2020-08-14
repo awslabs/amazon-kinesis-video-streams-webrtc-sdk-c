@@ -138,6 +138,8 @@ Classes</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRtcInboundRtpStreamStats.html">RtcInboundRtpStreamStats</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">The RTCInboundRtpStreamStats dictionary represents the measurement metrics for the incoming RTP media stream. The timestamp reported in the statistics object is the time at which the data was sampled.  <a href="structRtcInboundRtpStreamStats.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRTCDataChannelStats.html">RTCDataChannelStats</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClientStats.html">SignalingClientStats</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="structSignalingClientMetrics.html" title="SignalingStats Collection of signaling related stats. Can be expanded in the future.">SignalingClientMetrics</a> Represent the stats related to the KVS WebRTC SDK signaling client.  <a href="structSignalingClientStats.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -199,6 +201,8 @@ Typedefs</h2></td></tr>
 <tr class="separator:ade2d84924c3d7e0acffa4ada821589b9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a95c97b1845412106873b7efdc86e27fb"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRtcInboundRtpStreamStats.html">RtcInboundRtpStreamStats</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#a95c97b1845412106873b7efdc86e27fb">PRtcInboundRtpStreamStats</a></td></tr>
 <tr class="separator:a95c97b1845412106873b7efdc86e27fb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a25083b100606da27236359d49be90823"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRTCDataChannelStats.html">RTCDataChannelStats</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#a25083b100606da27236359d49be90823">PRTCDataChannelStats</a></td></tr>
+<tr class="separator:a25083b100606da27236359d49be90823"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aed2abeea73109d8decf11ef16a5b1a88"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structSignalingClientStats.html">SignalingClientStats</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#aed2abeea73109d8decf11ef16a5b1a88">PSignalingClientStats</a></td></tr>
 <tr class="separator:aed2abeea73109d8decf11ef16a5b1a88"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7ee11917e4ab69400576ae7fceea344e"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRtcStatsObject.html">RtcStatsObject</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#a7ee11917e4ab69400576ae7fceea344e">PRtcStatsObject</a></td></tr>
@@ -276,6 +280,12 @@ Enumerations</h2></td></tr>
  }</td></tr>
 <tr class="memdesc:ad4aa3c116b2353dab51a41dc6d4c1b5e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Defines reasons for quality limitation for sending streams.  <a href="Stats_8h.html#ad4aa3c116b2353dab51a41dc6d4c1b5e">More...</a><br /></td></tr>
 <tr class="separator:ad4aa3c116b2353dab51a41dc6d4c1b5e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a760e5b16b6a0731e5839f9c37dfcb0a4"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#a760e5b16b6a0731e5839f9c37dfcb0a4">RTC_DATA_CHANNEL_STATE</a> { <a class="el" href="Stats_8h.html#a760e5b16b6a0731e5839f9c37dfcb0a4a3458300a4d519b9dcd111e101bd6f9da">RTC_DATA_CHANNEL_STATE_CONNECTING</a>, 
+<a class="el" href="Stats_8h.html#a760e5b16b6a0731e5839f9c37dfcb0a4a17473b170a5066e366408f9f4097d7d0">RTC_DATA_CHANNEL_STATE_OPEN</a>, 
+<a class="el" href="Stats_8h.html#a760e5b16b6a0731e5839f9c37dfcb0a4af56f1041a8e65f98fc7c9751ebf50086">RTC_DATA_CHANNEL_STATE_CLOSING</a>, 
+<a class="el" href="Stats_8h.html#a760e5b16b6a0731e5839f9c37dfcb0a4aedc74b392d8f1083000d1b7031994b6c">RTC_DATA_CHANNEL_STATE_CLOSED</a>
+ }</td></tr>
+<tr class="separator:a760e5b16b6a0731e5839f9c37dfcb0a4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Macro Definition Documentation</h2>
 <a id="a8eb68b1e05b3ae2de5775202931617de"></a>
@@ -478,6 +488,20 @@ Enumerations</h2></td></tr>
 
 </div>
 </div>
+<a id="a25083b100606da27236359d49be90823"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a25083b100606da27236359d49be90823">&#9670;&nbsp;</a></span>PRTCDataChannelStats</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef  struct <a class="el" href="structRTCDataChannelStats.html">RTCDataChannelStats</a> * <a class="el" href="Stats_8h.html#a25083b100606da27236359d49be90823">PRTCDataChannelStats</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a id="ad5c2bddb835a03760d18a36fc0909a9d"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ad5c2bddb835a03760d18a36fc0909a9d">&#9670;&nbsp;</a></span>PRtcIceCandidatePairStats</h2>
 
@@ -672,6 +696,27 @@ Enumerations</h2></td></tr>
 
 </div>
 </div>
+<a id="a760e5b16b6a0731e5839f9c37dfcb0a4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a760e5b16b6a0731e5839f9c37dfcb0a4">&#9670;&nbsp;</a></span>RTC_DATA_CHANNEL_STATE</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">enum <a class="el" href="Stats_8h.html#a760e5b16b6a0731e5839f9c37dfcb0a4">RTC_DATA_CHANNEL_STATE</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Reference: <a href="https://www.w3.org/TR/webrtc/#dom-rtcdatachannelstate">https://www.w3.org/TR/webrtc/#dom-rtcdatachannelstate</a> </p>
+<table class="fieldtable">
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="a760e5b16b6a0731e5839f9c37dfcb0a4a3458300a4d519b9dcd111e101bd6f9da"></a>RTC_DATA_CHANNEL_STATE_CONNECTING&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a760e5b16b6a0731e5839f9c37dfcb0a4a17473b170a5066e366408f9f4097d7d0"></a>RTC_DATA_CHANNEL_STATE_OPEN&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a760e5b16b6a0731e5839f9c37dfcb0a4af56f1041a8e65f98fc7c9751ebf50086"></a>RTC_DATA_CHANNEL_STATE_CLOSING&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a760e5b16b6a0731e5839f9c37dfcb0a4aedc74b392d8f1083000d1b7031994b6c"></a>RTC_DATA_CHANNEL_STATE_CLOSED&#160;</td><td class="fielddoc"></td></tr>
+</table>
+
+</div>
+</div>
 <a id="afe55e0b5781ac5fd3b8e5fd915d4795b"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#afe55e0b5781ac5fd3b8e5fd915d4795b">&#9670;&nbsp;</a></span>RTC_DTLS_TRANSPORT_STATE_STATS</h2>
 
@@ -838,7 +883,7 @@ Enumerations</h2></td></tr>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_b0856f6b0d80ccb263b2f415c91f9e17.html">include</a></li><li class="navelem"><a class="el" href="dir_8f5ac45a6ada111b95e80af22bb6017d.html">com</a></li><li class="navelem"><a class="el" href="dir_6eddcaa8cb3f84b1b7290fa7880ed0c5.html">amazonaws</a></li><li class="navelem"><a class="el" href="dir_ffe25b375dd9c47f978782781b252738.html">kinesis</a></li><li class="navelem"><a class="el" href="dir_40be0bfe93e499fae0ac3fc2c0b3ca29.html">video</a></li><li class="navelem"><a class="el" href="dir_4165afa699965307903ffe413a1cdec9.html">webrtcclient</a></li><li class="navelem"><a class="el" href="Stats_8h.html">Stats.h</a></li>
-    <li class="footer">Generated on Wed Aug 12 2020 21:34:33 for Amazon Kinesis Webrtc C SDK by
+    <li class="footer">Generated on Fri Aug 14 2020 01:45:56 for Amazon Kinesis Webrtc C SDK by
     <a href="http://www.doxygen.org/index.html">
     <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.18 </li>
   </ul>

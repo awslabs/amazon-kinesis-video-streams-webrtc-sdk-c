@@ -12,6 +12,7 @@ var Stats_8h =
     [ "RtcRemoteInboundRtpStreamStats", "structRtcRemoteInboundRtpStreamStats.html", "structRtcRemoteInboundRtpStreamStats" ],
     [ "RtcReceivedRtpStreamStats", "structRtcReceivedRtpStreamStats.html", "structRtcReceivedRtpStreamStats" ],
     [ "RtcInboundRtpStreamStats", "structRtcInboundRtpStreamStats.html", "structRtcInboundRtpStreamStats" ],
+    [ "RTCDataChannelStats", "structRTCDataChannelStats.html", "structRTCDataChannelStats" ],
     [ "SignalingClientStats", "structSignalingClientStats.html", "structSignalingClientStats" ],
     [ "RtcStatsObject", "structRtcStatsObject.html", "structRtcStatsObject" ],
     [ "IP_ADDR_STR_LENGTH", "Stats_8h.html#a8eb68b1e05b3ae2de5775202931617de", null ],
@@ -28,6 +29,7 @@ var Stats_8h =
     [ "DOMString", "Stats_8h.html#a2839bbe57b61cee62093b734df9db744", null ],
     [ "PDscpPacketsSentRecord", "Stats_8h.html#a7540403bae7393d7da52dcc72e3cc847", null ],
     [ "PQualityLimitationDurationsRecord", "Stats_8h.html#a5272c41dca467a46b89b9aec4d004122", null ],
+    [ "PRTCDataChannelStats", "Stats_8h.html#a25083b100606da27236359d49be90823", null ],
     [ "PRtcIceCandidatePairStats", "Stats_8h.html#ad5c2bddb835a03760d18a36fc0909a9d", null ],
     [ "PRtcIceCandidateStats", "Stats_8h.html#a8e33ff95419056e16a23551fb6c148dd", null ],
     [ "PRtcIceServerStats", "Stats_8h.html#a80ee72ddf667966d6f9961623581a483", null ],
@@ -45,6 +47,12 @@ var Stats_8h =
       [ "ICE_CANDIDATE_TYPE_PEER_REFLEXIVE", "Stats_8h.html#ac9e1b12f44dc91db1cd6373f87ec55b6ae4bb79539718c2454eb3aa1d8de872f1", null ],
       [ "ICE_CANDIDATE_TYPE_SERVER_REFLEXIVE", "Stats_8h.html#ac9e1b12f44dc91db1cd6373f87ec55b6ac0ce2fc7bc8da270caa5ebf77f699ddd", null ],
       [ "ICE_CANDIDATE_TYPE_RELAYED", "Stats_8h.html#ac9e1b12f44dc91db1cd6373f87ec55b6a2fcd25cbc2d1c585d32f9ebae2622045", null ]
+    ] ],
+    [ "RTC_DATA_CHANNEL_STATE", "Stats_8h.html#a760e5b16b6a0731e5839f9c37dfcb0a4", [
+      [ "RTC_DATA_CHANNEL_STATE_CONNECTING", "Stats_8h.html#a760e5b16b6a0731e5839f9c37dfcb0a4a3458300a4d519b9dcd111e101bd6f9da", null ],
+      [ "RTC_DATA_CHANNEL_STATE_OPEN", "Stats_8h.html#a760e5b16b6a0731e5839f9c37dfcb0a4a17473b170a5066e366408f9f4097d7d0", null ],
+      [ "RTC_DATA_CHANNEL_STATE_CLOSING", "Stats_8h.html#a760e5b16b6a0731e5839f9c37dfcb0a4af56f1041a8e65f98fc7c9751ebf50086", null ],
+      [ "RTC_DATA_CHANNEL_STATE_CLOSED", "Stats_8h.html#a760e5b16b6a0731e5839f9c37dfcb0a4aedc74b392d8f1083000d1b7031994b6c", null ]
     ] ],
     [ "RTC_DTLS_TRANSPORT_STATE_STATS", "Stats_8h.html#afe55e0b5781ac5fd3b8e5fd915d4795b", [
       [ "RTC_DTLS_TRANSPORT_STATE_STATS_NEW", "Stats_8h.html#afe55e0b5781ac5fd3b8e5fd915d4795bacb39c4daed77b2d3003cacef7e2cacfb", null ],
