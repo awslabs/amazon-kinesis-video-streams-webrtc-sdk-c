@@ -490,6 +490,31 @@ typedef struct {
 } RtcInboundRtpStreamStats, *PRtcInboundRtpStreamStats;
 
 /**
+ * Reference: https://www.w3.org/TR/webrtc/#dom-rtcdatachannelstate
+ */
+typedef enum {
+    RTC_DATA_CHANNEL_STATE_CONNECTING,
+    RTC_DATA_CHANNEL_STATE_OPEN,
+    RTC_DATA_CHANNEL_STATE_CLOSING,
+    RTC_DATA_CHANNEL_STATE_CLOSED
+} RTC_DATA_CHANNEL_STATE;
+
+/**
+ * Reference: https://www.w3.org/TR/webrtc-stats/#dom-rtcdatachannelstats
+ */
+typedef struct {
+    DOMString label;              //!< The "label" value of the RTCDataChannel object.
+    DOMString protocol;           //!< The "protocol" value of the RTCDataChannel object.
+    INT32 dataChannelIdentifier;  //!< The "id" attribute of the RTCDataChannel object.
+    DOMString transportId;        //!< A stats object reference for the transport used to carry this datachannel.
+    RTC_DATA_CHANNEL_STATE state; //!< The "readyState" value of the RTCDataChannel object.
+    UINT32 messagesSent;          //!< Represents the total number of API "message" events sent.
+    UINT64 bytesSent;        //!< Represents the total number of payload bytes sent on this RTCDatachannel, i.e., not including headers or padding.
+    UINT32 messagesReceived; //<! Represents the total number of API "message" events received.
+    UINT64 bytesReceived;    //!< Represents the total number of bytes received on this RTCDatachannel, i.e., not including headers or padding.
+} RTCDataChannelStats, *PRTCDataChannelStats;
+
+/**
  * @brief SignalingClientMetrics Represent the stats related to the KVS WebRTC SDK signaling client
  */
 typedef struct {
