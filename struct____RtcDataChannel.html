@@ -109,11 +109,28 @@ Public Attributes</h2></td></tr>
 <tr class="memitem:add53434650fa42653e4002365f2382c9"><td class="memItemLeft" align="right" valign="top">CHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct____RtcDataChannel.html#add53434650fa42653e4002365f2382c9">name</a> [255+1]</td></tr>
 <tr class="memdesc:add53434650fa42653e4002365f2382c9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Define name of data channel. Max length is 256 characters.  <a href="struct____RtcDataChannel.html#add53434650fa42653e4002365f2382c9">More...</a><br /></td></tr>
 <tr class="separator:add53434650fa42653e4002365f2382c9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a50c0078699a2a62cc69cd30ce726b0ed"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct____RtcDataChannel.html#a50c0078699a2a62cc69cd30ce726b0ed">id</a></td></tr>
+<tr class="separator:a50c0078699a2a62cc69cd30ce726b0ed"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>RtcDataChannel represents a bi-directional data channel between two peers. </p>
 <p>Reference: <a href="https://www.w3.org/TR/webrtc/#dom-rtcdatachannel">https://www.w3.org/TR/webrtc/#dom-rtcdatachannel</a> </p>
 </div><h2 class="groupheader">Member Data Documentation</h2>
+<a id="a50c0078699a2a62cc69cd30ce726b0ed"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a50c0078699a2a62cc69cd30ce726b0ed">&#9670;&nbsp;</a></span>id</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">UINT32 __RtcDataChannel::id</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Read only field. Setting this in the application has no effect. This field is populated with the id set by the peer connection's <a class="el" href="Include_8h.html#a70b9d70f77fae56f1a2f223cb3054416" title="createDataChannel creates a new RtcDataChannel object with the given label.">createDataChannel()</a> call or the channel id is set in <a class="el" href="Include_8h.html#a70b9d70f77fae56f1a2f223cb3054416" title="createDataChannel creates a new RtcDataChannel object with the given label.">createDataChannel()</a> on embedded end. </p>
+
+</div>
+</div>
 <a id="add53434650fa42653e4002365f2382c9"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#add53434650fa42653e4002365f2382c9">&#9670;&nbsp;</a></span>name</h2>
 
@@ -139,7 +156,7 @@ Public Attributes</h2></td></tr>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="struct____RtcDataChannel.html">__RtcDataChannel</a></li>
-    <li class="footer">Generated on Fri Aug 14 2020 01:45:57 for Amazon Kinesis Webrtc C SDK by
+    <li class="footer">Generated on Mon Aug 17 2020 22:57:25 for Amazon Kinesis Webrtc C SDK by
     <a href="http://www.doxygen.org/index.html">
     <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.18 </li>
   </ul>

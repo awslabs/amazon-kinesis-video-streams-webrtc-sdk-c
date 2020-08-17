@@ -152,9 +152,10 @@ var NAVTREEINDEX4 =
 "structRtcStatsObject.html#a4593b66b951d6cdb12d059548a2af36c":[1,0,43,0],
 "structRtcStatsObject.html#a49d60490881d349beb2a8cfddda9572a":[1,0,43,4],
 "structRtcStatsObject.html#a924e3e369ec3ed40109f1d5afb8148e5":[1,0,43,6],
+"structRtcStatsObject.html#a97b6f2971184dd9ec3ba40dc6b97726f":[1,0,43,7],
 "structRtcStatsObject.html#a996f5311a36974ad1255ce4aeda6d699":[1,0,43,1],
 "structRtcStatsObject.html#ab4695790a5a6aea9feacd4e754cada6a":[1,0,43,2],
-"structRtcStatsObject.html#aeda2b94e27f89786810339e7342e0827":[1,0,43,7],
+"structRtcStatsObject.html#aeda2b94e27f89786810339e7342e0827":[1,0,43,8],
 "structRtcStatsObject.html#afb5f9fabf70cbe7e1dae71aeeed0b3bf":[1,0,43,5],
 "structRtcStreamMetrics.html":[1,0,44],
 "structRtcStreamMetrics.html#a3388b9bb359bf647efc46477e06a642a":[1,0,44,0],
@@ -218,5 +219,6 @@ var NAVTREEINDEX4 =
 "structSignalingMessage.html#ad6dc3a93b3b063087a0e5130dea67b05":[1,0,51,3],
 "structSignalingMessage.html#adbcf31bfb32938effe656b38fad3c5d2":[1,0,51,0],
 "struct____RtcDataChannel.html":[1,0,0],
-"struct____RtcDataChannel.html#add53434650fa42653e4002365f2382c9":[1,0,0,0]
+"struct____RtcDataChannel.html#a50c0078699a2a62cc69cd30ce726b0ed":[1,0,0,0],
+"struct____RtcDataChannel.html#add53434650fa42653e4002365f2382c9":[1,0,0,1]
 };

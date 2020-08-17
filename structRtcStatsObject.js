@@ -7,5 +7,6 @@ var structRtcStatsObject =
     [ "outboundRtpStreamStats", "structRtcStatsObject.html#a49d60490881d349beb2a8cfddda9572a", null ],
     [ "remoteIceCandidateStats", "structRtcStatsObject.html#afb5f9fabf70cbe7e1dae71aeeed0b3bf", null ],
     [ "remoteInboundRtpStreamStats", "structRtcStatsObject.html#a924e3e369ec3ed40109f1d5afb8148e5", null ],
+    [ "rtcDataChannelStats", "structRtcStatsObject.html#a97b6f2971184dd9ec3ba40dc6b97726f", null ],
     [ "transportStats", "structRtcStatsObject.html#aeda2b94e27f89786810339e7342e0827", null ]
 ];

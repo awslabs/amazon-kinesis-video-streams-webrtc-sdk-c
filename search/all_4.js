@@ -1,6 +1,6 @@
 var searchData=
 [
-  ['datachannelidentifier_57',['dataChannelIdentifier',['../structRTCDataChannelStats.html#a594f8268b5352ddf09ba5f698e9af808',1,'RTCDataChannelStats']]],
+  ['datachannelidentifier_57',['dataChannelIdentifier',['../structRtcDataChannelStats.html#a5c65ded03fb5572c34d8ddd6eff85c4f',1,'RtcDataChannelStats']]],
   ['datachannelonmessage_58',['dataChannelOnMessage',['../Include_8h.html#a92ed55e9b079e7b9a12812d7530b2595',1,'Include.h']]],
   ['datachannelonopen_59',['dataChannelOnOpen',['../Include_8h.html#a324f46d98cbdeaf9385590a4be190551',1,'Include.h']]],
   ['datachannelsend_60',['dataChannelSend',['../Include_8h.html#a12ab55171a0f53ec8e248e2d193d6bd0',1,'Include.h']]],
