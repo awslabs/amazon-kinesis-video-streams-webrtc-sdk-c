@@ -667,6 +667,9 @@ typedef VOID (*RtcOnPictureLoss)(UINT64);
  */
 typedef struct __RtcDataChannel {
     CHAR name[MAX_DATA_CHANNEL_NAME_LEN + 1]; //!< Define name of data channel. Max length is 256 characters
+    UINT32 id;                                //!< Read only field. Setting this in the application has no effect. This field is populated with the id
+               //!< set by the peer connection's createDataChannel() call or the channel id is set in createDataChannel()
+               //!< on embedded end.
 } RtcDataChannel, *PRtcDataChannel;
 
 /**
