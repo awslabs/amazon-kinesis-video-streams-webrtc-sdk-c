@@ -174,7 +174,7 @@ STATUS sendPacketToRtpReceiver(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuf
 
     ssrc = getInt32(*(PUINT32)(pBuffer + SSRC_OFFSET));
 
-    CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pTransceievers, &pCurNode));
+    CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pTransceivers, &pCurNode));
     while (pCurNode != NULL) {
         CHK_STATUS(doubleListGetNodeData(pCurNode, &item));
         pTransceiver = (PKvsRtpTransceiver) item;
@@ -640,7 +640,7 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
     CHK_STATUS(hashTableCreateWithParams(CODEC_HASH_TABLE_BUCKET_COUNT, CODEC_HASH_TABLE_BUCKET_LENGTH, &pKvsPeerConnection->pCodecTable));
     CHK_STATUS(hashTableCreateWithParams(CODEC_HASH_TABLE_BUCKET_COUNT, CODEC_HASH_TABLE_BUCKET_LENGTH, &pKvsPeerConnection->pDataChannels));
     CHK_STATUS(hashTableCreateWithParams(RTX_HASH_TABLE_BUCKET_COUNT, RTX_HASH_TABLE_BUCKET_LENGTH, &pKvsPeerConnection->pRtxTable));
-    CHK_STATUS(doubleListCreate(&(pKvsPeerConnection->pTransceievers)));
+    CHK_STATUS(doubleListCreate(&(pKvsPeerConnection->pTransceivers)));
 
     if ((logLevelStr = GETENV(DEBUG_LOG_LEVEL_ENV_VAR)) != NULL) {
         CHK_STATUS(STRTOUI32(logLevelStr, NULL, 10, &logLevel));
@@ -720,7 +720,7 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
     CHK_LOG_ERR(freeIceAgent(&pKvsPeerConnection->pIceAgent));
 
     // free transceivers
-    CHK_LOG_ERR(doubleListGetHeadNode(pKvsPeerConnection->pTransceievers, &pCurNode));
+    CHK_LOG_ERR(doubleListGetHeadNode(pKvsPeerConnection->pTransceivers, &pCurNode));
     while (pCurNode != NULL) {
         CHK_LOG_ERR(doubleListGetNodeData(pCurNode, &item));
         CHK_LOG_ERR(freeKvsRtpTransceiver((PKvsRtpTransceiver*) &item));
@@ -735,7 +735,7 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
     // free rest of structs
     CHK_LOG_ERR(freeSrtpSession(&pKvsPeerConnection->pSrtpSession));
     CHK_LOG_ERR(freeDtlsSession(&pKvsPeerConnection->pDtlsSession));
-    CHK_LOG_ERR(doubleListFree(pKvsPeerConnection->pTransceievers));
+    CHK_LOG_ERR(doubleListFree(pKvsPeerConnection->pTransceivers));
     CHK_LOG_ERR(hashTableFree(pKvsPeerConnection->pCodecTable));
     CHK_LOG_ERR(hashTableFree(pKvsPeerConnection->pRtxTable));
     if (IS_VALID_MUTEX_VALUE(pKvsPeerConnection->pSrtpSessionLock)) {
@@ -883,6 +883,7 @@ STATUS peerConnectionGetCurrentLocalDescription(PRtcPeerConnection pRtcPeerConne
     CHK(NULL != (pSessionDescription = (PSessionDescription) MEMCALLOC(1, SIZEOF(SessionDescription))), STATUS_NOT_ENOUGH_MEMORY);
 
     CHK_STATUS(populateSessionDescription(pKvsPeerConnection, &(pKvsPeerConnection->remoteSessionDescription), pSessionDescription));
+
     CHK_STATUS(serializeSessionDescription(pSessionDescription, NULL, &serializeLen));
     CHK(serializeLen <= MAX_SESSION_DESCRIPTION_INIT_SDP_LEN, STATUS_NOT_ENOUGH_MEMORY);
 
@@ -925,6 +926,9 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
             NULLABLE_SET_VALUE(pKvsPeerConnection->canTrickleIce, TRUE);
         } else if (pKvsPeerConnection->isOffer && STRCMP(pSessionDescription->sdpAttributes[i].attributeName, "setup") == 0) {
             pKvsPeerConnection->dtlsIsServer = STRCMP(pSessionDescription->sdpAttributes[i].attributeValue, "active") == 0;
+        } else if (STRCMP(pSessionDescription->sdpAttributes[i].attributeName, "ice-options") == 0 &&
+                   STRCMP(pSessionDescription->sdpAttributes[i].attributeValue, "trickle") == 0) {
+            NULLABLE_SET_VALUE(pKvsPeerConnection->canTrickleIce, TRUE);
         }
     }
 
@@ -950,6 +954,8 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
             } else if (STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeName, "ice-options") == 0 &&
                        STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeValue, "trickle") == 0) {
                 NULLABLE_SET_VALUE(pKvsPeerConnection->canTrickleIce, TRUE);
+                // This code is only here because Chrome does NOT adhere to the standard and adds ice-options as a media level attribute
+                // The standard dictates clearly that it should be a session level attribute:  https://tools.ietf.org/html/rfc5245#page-76
             }
         }
     }
@@ -975,8 +981,8 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
     if (!pKvsPeerConnection->isOffer) {
         CHK_STATUS(setPayloadTypesFromOffer(pKvsPeerConnection->pCodecTable, pKvsPeerConnection->pRtxTable, pSessionDescription));
     }
-    CHK_STATUS(setTransceiverPayloadTypes(pKvsPeerConnection->pCodecTable, pKvsPeerConnection->pRtxTable, pKvsPeerConnection->pTransceievers));
-    CHK_STATUS(setReceiversSsrc(pSessionDescription, pKvsPeerConnection->pTransceievers));
+    CHK_STATUS(setTransceiverPayloadTypes(pKvsPeerConnection->pCodecTable, pKvsPeerConnection->pRtxTable, pKvsPeerConnection->pTransceivers));
+    CHK_STATUS(setReceiversSsrc(pSessionDescription, pKvsPeerConnection->pTransceivers));
 
     if (NULL != getenv(DEBUG_LOG_SDP)) {
         DLOGD("REMOTE_SDP:%s\n", pSessionDescriptionInit->sdp);
@@ -1116,7 +1122,7 @@ STATUS addTransceiver(PRtcPeerConnection pPeerConnection, PRtcMediaStreamTrack p
     // after pKvsRtpTransceiver is successfully created, jitterBuffer will be freed by pKvsRtpTransceiver.
     pJitterBuffer = NULL;
 
-    CHK_STATUS(doubleListInsertItemHead(pKvsPeerConnection->pTransceievers, (UINT64) pKvsRtpTransceiver));
+    CHK_STATUS(doubleListInsertItemHead(pKvsPeerConnection->pTransceivers, (UINT64) pKvsRtpTransceiver));
     *ppRtcRtpTransceiver = (PRtcRtpTransceiver) pKvsRtpTransceiver;
 
     CHK_STATUS(timerQueueAddTimer(pKvsPeerConnection->timerQueueHandle, RTCP_FIRST_REPORT_DELAY, TIMER_QUEUE_SINGLE_INVOCATION_PERIOD,

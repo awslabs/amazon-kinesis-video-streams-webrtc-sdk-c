@@ -781,6 +781,7 @@ typedef enum {
     RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV = 1, //!< This indicates that peer can send and receive data
     RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY = 2, //!< This indicates that the peer can only send information
     RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY = 3, //!< This indicates that the peer can only receive information
+    RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE = 4, //!< This indicates that the peer can not send or receive data
 } RTC_RTP_TRANSCEIVER_DIRECTION;
 
 /**
@@ -1022,7 +1023,7 @@ typedef struct {
  * Reference: https://www.w3.org/TR/webrtc/#rtcsessiondescription-class
  */
 typedef struct {
-    SDP_TYPE type;                                      //!< Indicates an offer/anser SDP type
+    SDP_TYPE type;                                      //!< Indicates an offer/answer SDP type
     CHAR sdp[MAX_SESSION_DESCRIPTION_INIT_SDP_LEN + 1]; //!< SDP Data containing media capabilities, transport addresses
                                                         //!< and related metadata in a transport agnostic manner
 } RtcSessionDescriptionInit, *PRtcSessionDescriptionInit;
@@ -1033,7 +1034,7 @@ typedef struct {
  * Reference: https://www.w3.org/TR/webrtc/#rtcicecandidate-interface
  */
 typedef struct {
-    CHAR candidate[MAX_ICE_CANDIDATE_INIT_CANDIDATE_LEN + 1]; //!< Candidate information contaiing details such as protocol
+    CHAR candidate[MAX_ICE_CANDIDATE_INIT_CANDIDATE_LEN + 1]; //!< Candidate information containing details such as protocol
                                                               //!< (udp/tcp), IP Address, priority and port
 } RtcIceCandidateInit, *PRtcIceCandidateInit;
 

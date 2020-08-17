@@ -524,6 +524,112 @@ a=group:BUNDLE 0 1 2 3
     });
 }
 
+// if offer is recvonly answer must be sendonly
+TEST_F(SdpApiTest, oneVideoTrack_ValidateDirectionInAnswer)
+{
+    auto offer = std::string(R"(v=0
+o=- 481034601 1588366671 IN IP4 0.0.0.0
+s=-
+t=0 0
+a=fingerprint:sha-256 87:E6:EC:59:93:76:9F:42:7D:15:17:F6:8F:C4:29:AB:EA:3F:28:B6:DF:F8:14:2F:96:62:2F:16:98:F5:76:E5
+a=group:BUNDLE 0
+)");
+
+    offer += sdpvideo;
+    offer += "\n";
+
+    assertLFAndCRLF((PCHAR) offer.c_str(), offer.size(), [](PCHAR sdp) {
+        RtcConfiguration configuration{};
+        PRtcPeerConnection pRtcPeerConnection = nullptr;
+        RtcMediaStreamTrack track1{};
+        PRtcRtpTransceiver transceiver1 = nullptr;
+        RtcSessionDescriptionInit offerSdp{};
+        RtcSessionDescriptionInit answerSdp{};
+
+        SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION);
+
+        track1.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+        track1.codec = RTC_CODEC_VP8;
+        STRNCPY(track1.streamId, "track1", MAX_MEDIA_STREAM_ID_LEN);
+        STRNCPY(track1.trackId, "track1", MAX_MEDIA_STREAM_ID_LEN);
+
+        offerSdp.type = SDP_TYPE_OFFER;
+        STRNCPY(offerSdp.sdp, (PCHAR) sdp, MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+
+        EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+        EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(pRtcPeerConnection, RTC_CODEC_VP8));
+        EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, &track1, nullptr, &transceiver1));
+
+        EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(pRtcPeerConnection, &offerSdp));
+        EXPECT_EQ(STATUS_SUCCESS, createAnswer(pRtcPeerConnection, &answerSdp));
+
+        EXPECT_PRED_FORMAT2(testing::IsSubstring, "sendonly", answerSdp.sdp);
+        EXPECT_PRED_FORMAT2(testing::IsNotSubstring, "sendrecv", answerSdp.sdp);
+        EXPECT_PRED_FORMAT2(testing::IsNotSubstring, "recvonly", answerSdp.sdp);
+
+        closePeerConnection(pRtcPeerConnection);
+        EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+    });
+}
+
+// if offer (remote) contains video m-line only then answer (local) should contain video m-line only
+// even if local side has other transceivers, i.e. audio
+TEST_F(SdpApiTest, videoOnlyOffer_validateNoAudioInAnswer)
+{
+    auto offer = std::string(R"(v=0
+o=- 481034601 1588366671 IN IP4 0.0.0.0
+s=-
+t=0 0
+a=fingerprint:sha-256 87:E6:EC:59:93:76:9F:42:7D:15:17:F6:8F:C4:29:AB:EA:3F:28:B6:DF:F8:14:2F:96:62:2F:16:98:F5:76:E5
+a=group:BUNDLE 0
+)");
+
+    offer += sdpvideo;
+    offer += "\n";
+
+    assertLFAndCRLF((PCHAR) offer.c_str(), offer.size(), [](PCHAR sdp) {
+        RtcConfiguration configuration{};
+        PRtcPeerConnection pRtcPeerConnection = nullptr;
+        RtcMediaStreamTrack track1{};
+        RtcMediaStreamTrack track2{};
+        PRtcRtpTransceiver transceiver1 = nullptr;
+        PRtcRtpTransceiver transceiver2 = nullptr;
+        RtcSessionDescriptionInit offerSdp{};
+        RtcSessionDescriptionInit answerSdp{};
+
+        SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION);
+
+        track1.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+        track1.codec = RTC_CODEC_VP8;
+        STRNCPY(track1.streamId, "videoTrack1", MAX_MEDIA_STREAM_ID_LEN);
+        STRNCPY(track1.trackId, "videoTrack1", MAX_MEDIA_STREAM_ID_LEN);
+
+        track2.kind = MEDIA_STREAM_TRACK_KIND_AUDIO;
+        track2.codec = RTC_CODEC_OPUS;
+        STRNCPY(track2.streamId, "audioTrack1", MAX_MEDIA_STREAM_ID_LEN);
+        STRNCPY(track2.trackId, "audioTrack1", MAX_MEDIA_STREAM_ID_LEN);
+
+        offerSdp.type = SDP_TYPE_OFFER;
+        STRNCPY(offerSdp.sdp, (PCHAR) sdp, MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+
+        EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+        EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(pRtcPeerConnection, RTC_CODEC_VP8));
+        EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(pRtcPeerConnection, RTC_CODEC_OPUS));
+
+        EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, &track1, nullptr, &transceiver1));
+        EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, &track2, nullptr, &transceiver2));
+
+        EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(pRtcPeerConnection, &offerSdp));
+        EXPECT_EQ(STATUS_SUCCESS, createAnswer(pRtcPeerConnection, &answerSdp));
+
+        EXPECT_PRED_FORMAT2(testing::IsSubstring, "video", answerSdp.sdp);
+        EXPECT_PRED_FORMAT2(testing::IsNotSubstring, "audio", answerSdp.sdp);
+
+        closePeerConnection(pRtcPeerConnection);
+        EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+    });
+}
+
 // i receive offer for two video tracks with the same codec
 // i add two transceivers with VP8 tracks
 // expected answer MUST contain two different ssrc

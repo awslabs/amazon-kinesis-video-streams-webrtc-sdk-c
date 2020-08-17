@@ -16,7 +16,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     signal(SIGINT, sigintHandler);
 #endif
 
-    // do tricketIce by default
+    // do trickeIce by default
     printf("[KVS Master] Using trickleICE by default\n");
     retStatus =
         createSampleConfiguration(argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, &pSampleConfiguration);
