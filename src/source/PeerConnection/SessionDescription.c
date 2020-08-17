@@ -317,8 +317,10 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
     STATUS retStatus = STATUS_SUCCESS;
     UINT64 payloadType, rtxPayloadType;
     BOOL containRtx = FALSE;
-    UINT32 attributeCount = 0;
+    BOOL directionFound = FALSE;
+    UINT32 i, j, remoteAttributeCount, attributeCount = 0;
     PRtcMediaStreamTrack pRtcMediaStreamTrack = &(pKvsRtpTransceiver->sender.track);
+    PSdpMediaDescription pSdpMediaDescriptionRemote;
     PCHAR currentFmtp = NULL;
 
     CHK_STATUS(hashTableGet(pKvsPeerConnection->pCodecTable, pRtcMediaStreamTrack->codec, &payloadType));
@@ -437,8 +439,7 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
     SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%d", mediaSectionId);
     attributeCount++;
 
-
-    if ( pKvsPeerConnection->isOffer ) {
+    if (pKvsPeerConnection->isOffer) {
         switch (pKvsRtpTransceiver->transceiver.direction) {
             case RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV:
                 STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "sendrecv");
@@ -455,26 +456,20 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
                 STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "inactive");
         }
     } else {
-        for ( int i = 0; i < pRemoteSessionDescription->mediaCount; i++ ) {
+        for (i = 0; i < pRemoteSessionDescription->mediaCount && directionFound == FALSE; i++) {
+            pSdpMediaDescriptionRemote = &pRemoteSessionDescription->mediaDescriptions[i];
+            remoteAttributeCount = pSdpMediaDescriptionRemote->mediaAttributesCount;
 
-            PSdpMediaDescription pSdpMediaDescriptionRemote = &pRemoteSessionDescription->mediaDescriptions[i];
-
-            UINT32 remoteAttributeCount = pSdpMediaDescriptionRemote->mediaAttributesCount;
-
-            for (int i = 0; i < remoteAttributeCount; i++) {
-                if (STRCMP(pSdpMediaDescriptionRemote->sdpAttributes[i].attributeName, "sendrecv") == 0) {
+            for (j = 0; j < remoteAttributeCount && directionFound == FALSE; j++) {
+                if (STRCMP(pSdpMediaDescriptionRemote->sdpAttributes[j].attributeName, "sendrecv") == 0) {
                     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "sendrecv");
-                    break;
-                }
-
-                if (STRCMP(pSdpMediaDescriptionRemote->sdpAttributes[i].attributeName, "recvonly") == 0) {
+                    directionFound = TRUE;
+                } else if (STRCMP(pSdpMediaDescriptionRemote->sdpAttributes[j].attributeName, "recvonly") == 0) {
                     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "sendonly");
-                    break;
-                }
-
-                if (STRCMP(pSdpMediaDescriptionRemote->sdpAttributes[i].attributeName, "sendonly") == 0) {
+                    directionFound = TRUE;
+                } else if (STRCMP(pSdpMediaDescriptionRemote->sdpAttributes[j].attributeName, "sendonly") == 0) {
                     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "recvonly");
-                    break;
+                    directionFound = TRUE;
                 }
             }
         }
@@ -610,17 +605,18 @@ CleanUp:
     return retStatus;
 }
 
-BOOL isPresentInRemote(PKvsRtpTransceiver pKvsRtpTransceiver, PSessionDescription pRemoteSessionDescription) {
-
+BOOL isPresentInRemote(PKvsRtpTransceiver pKvsRtpTransceiver, PSessionDescription pRemoteSessionDescription)
+{
     PCHAR remoteAttributeValue, end;
-    UINT32 remoteTokenLen;
-
+    UINT32 remoteTokenLen, i;
+    PSdpMediaDescription pRemoteMediaDescription;
     MEDIA_STREAM_TRACK_KIND localTrackKind = pKvsRtpTransceiver->sender.track.kind;
+    BOOL wasFound = FALSE;
 
-    for (int i = 0; i < pRemoteSessionDescription->mediaCount; i++) {
-        PSdpMediaDescription pRemoteMediaDescription = &pRemoteSessionDescription->mediaDescriptions[i];
+    for (i = 0; i < pRemoteSessionDescription->mediaCount && wasFound == FALSE; i++) {
+        pRemoteMediaDescription = &pRemoteSessionDescription->mediaDescriptions[i];
         remoteAttributeValue = pRemoteMediaDescription->mediaName;
-        
+
         if ((end = STRCHR(remoteAttributeValue, ' ')) != NULL) {
             remoteTokenLen = (end - remoteAttributeValue);
         } else {
@@ -629,21 +625,23 @@ BOOL isPresentInRemote(PKvsRtpTransceiver pKvsRtpTransceiver, PSessionDescriptio
 
         switch (localTrackKind) {
             case MEDIA_STREAM_TRACK_KIND_AUDIO:
-                if ( remoteTokenLen == STRLEN(MEDIA_SECTION_AUDIO_VALUE) && STRNCMP(MEDIA_SECTION_AUDIO_VALUE, remoteAttributeValue, remoteTokenLen) == 0 ) {
-                    return TRUE;
+                if (remoteTokenLen == (ARRAY_SIZE(MEDIA_SECTION_AUDIO_VALUE) - 1) &&
+                    STRNCMP(MEDIA_SECTION_AUDIO_VALUE, remoteAttributeValue, remoteTokenLen) == 0) {
+                    wasFound = TRUE;
                 }
                 break;
             case MEDIA_STREAM_TRACK_KIND_VIDEO:
-                if ( remoteTokenLen == STRLEN(MEDIA_SECTION_VIDEO_VALUE) && STRNCMP(MEDIA_SECTION_VIDEO_VALUE, remoteAttributeValue, remoteTokenLen) == 0 ) {
-                    return TRUE;
+                if (remoteTokenLen == (ARRAY_SIZE(MEDIA_SECTION_VIDEO_VALUE) - 1) &&
+                    STRNCMP(MEDIA_SECTION_VIDEO_VALUE, remoteAttributeValue, remoteTokenLen) == 0) {
+                    wasFound = TRUE;
                 }
                 break;
             default:
-                return FALSE;
+                DLOGW("Unknown track kind:  %d", localTrackKind);
         }
     }
 
-    return FALSE;
+    return wasFound;
 }
 
 // Populate the media sections of a SessionDescription with the current state of the KvsPeerConnection
@@ -675,15 +673,13 @@ STATUS populateSessionDescriptionMedia(PKvsPeerConnection pKvsPeerConnection, PS
         if (pKvsRtpTransceiver != NULL) {
             CHK(pLocalSessionDescription->mediaCount < MAX_SDP_SESSION_MEDIA_COUNT, STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT);
 
-            // If generating answer, need to check if Local Description is present in remote -- if not, we don't need to create a local description for it
-            // or else our Answer will have an extra m-line, for offer the local is the offer itself, don't care about remote
-            if ( pKvsPeerConnection->isOffer || isPresentInRemote(pKvsRtpTransceiver, pRemoteSessionDescription) ) {
-                    CHK_STATUS(populateSingleMediaSection(pKvsPeerConnection, pKvsRtpTransceiver,
-                                                          &(pLocalSessionDescription->mediaDescriptions[pLocalSessionDescription->mediaCount]),
-                                                          pRemoteSessionDescription,
-                                                          certificateFingerprint, pLocalSessionDescription->mediaCount,
-                                                          pDtlsRole));
-                    pLocalSessionDescription->mediaCount++;
+            // If generating answer, need to check if Local Description is present in remote -- if not, we don't need to create a local description
+            // for it or else our Answer will have an extra m-line, for offer the local is the offer itself, don't care about remote
+            if (pKvsPeerConnection->isOffer || isPresentInRemote(pKvsRtpTransceiver, pRemoteSessionDescription)) {
+                CHK_STATUS(populateSingleMediaSection(
+                    pKvsPeerConnection, pKvsRtpTransceiver, &(pLocalSessionDescription->mediaDescriptions[pLocalSessionDescription->mediaCount]),
+                    pRemoteSessionDescription, certificateFingerprint, pLocalSessionDescription->mediaCount, pDtlsRole));
+                pLocalSessionDescription->mediaCount++;
             }
         }
     }
