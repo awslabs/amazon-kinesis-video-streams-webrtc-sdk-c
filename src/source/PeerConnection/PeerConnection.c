@@ -530,10 +530,10 @@ STATUS generateJSONSafeString(PCHAR pDst, UINT32 len)
 
     CHK(pDst != NULL, STATUS_NULL_ARG);
 
-    for (i = 0; i < len; i++) {
+    for (i = 0; i < len - 1; i++) {
         pDst[i] = VALID_CHAR_SET_FOR_JSON[RAND() % (ARRAY_SIZE(VALID_CHAR_SET_FOR_JSON) - 1)];
     }
-
+    pDst[i] = '\0'; // String must be NULL terminated
 CleanUp:
 
     LEAVES();

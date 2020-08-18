@@ -52,7 +52,7 @@ extern "C" {
 #define ICE_HASH_TABLE_BUCKET_COUNT  50
 #define ICE_HASH_TABLE_BUCKET_LENGTH 2
 
-#define ICE_CANDIDATE_ID_LEN 8
+#define ICE_CANDIDATE_ID_LEN 9
 
 #define STATS_NOT_APPLICABLE_STR (PCHAR) "N/A"
 typedef enum {

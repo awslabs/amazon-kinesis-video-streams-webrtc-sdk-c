@@ -10,9 +10,9 @@ PeerConnection internal include file
 extern "C" {
 #endif
 
-#define LOCAL_ICE_UFRAG_LEN 4
-#define LOCAL_ICE_PWD_LEN   24
-#define LOCAL_CNAME_LEN     16
+#define LOCAL_ICE_UFRAG_LEN 5
+#define LOCAL_ICE_PWD_LEN   25
+#define LOCAL_CNAME_LEN     17
 
 // https://tools.ietf.org/html/rfc5245#section-15.4
 #define MAX_ICE_UFRAG_LEN 256
