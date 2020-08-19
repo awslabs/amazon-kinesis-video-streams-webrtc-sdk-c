@@ -410,7 +410,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     }
     printf("[KVS GStreamer Master] KVS WebRTC initialization completed successfully\n");
 
-    pSampleConfiguration->signalingClientCallbacks.messageReceivedFn = masterMessageReceived;
+    pSampleConfiguration->signalingClientCallbacks.messageReceivedFn = signalingMessageReceived;
 
     strcpy(pSampleConfiguration->clientInfo.clientId, SAMPLE_MASTER_CLIENT_ID);
 

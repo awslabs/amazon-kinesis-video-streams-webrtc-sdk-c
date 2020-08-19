@@ -47,7 +47,7 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     printf("[KVS Viewer] KVS WebRTC initialization completed successfully\n");
 
-    pSampleConfiguration->signalingClientCallbacks.messageReceivedFn = viewerMessageReceived;
+    pSampleConfiguration->signalingClientCallbacks.messageReceivedFn = signalingMessageReceived;
 
     sprintf(pSampleConfiguration->clientInfo.clientId, "%s_%u", SAMPLE_VIEWER_CLIENT_ID, RAND() % MAX_UINT32);
 
