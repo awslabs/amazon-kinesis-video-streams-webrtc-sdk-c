@@ -318,7 +318,7 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
     UINT64 payloadType, rtxPayloadType;
     BOOL containRtx = FALSE;
     BOOL directionFound = FALSE;
-    UINT32 i, j, remoteAttributeCount, attributeCount = 0;
+    UINT32 i, remoteAttributeCount, attributeCount = 0;
     PRtcMediaStreamTrack pRtcMediaStreamTrack = &(pKvsRtpTransceiver->sender.track);
     PSdpMediaDescription pSdpMediaDescriptionRemote;
     PCHAR currentFmtp = NULL;
@@ -456,21 +456,19 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
                 STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "inactive");
         }
     } else {
-        for (i = 0; i < pRemoteSessionDescription->mediaCount && directionFound == FALSE; i++) {
-            pSdpMediaDescriptionRemote = &pRemoteSessionDescription->mediaDescriptions[i];
-            remoteAttributeCount = pSdpMediaDescriptionRemote->mediaAttributesCount;
+        pSdpMediaDescriptionRemote = &pRemoteSessionDescription->mediaDescriptions[mediaSectionId];
+        remoteAttributeCount = pSdpMediaDescriptionRemote->mediaAttributesCount;
 
-            for (j = 0; j < remoteAttributeCount && directionFound == FALSE; j++) {
-                if (STRCMP(pSdpMediaDescriptionRemote->sdpAttributes[j].attributeName, "sendrecv") == 0) {
-                    STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "sendrecv");
-                    directionFound = TRUE;
-                } else if (STRCMP(pSdpMediaDescriptionRemote->sdpAttributes[j].attributeName, "recvonly") == 0) {
-                    STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "sendonly");
-                    directionFound = TRUE;
-                } else if (STRCMP(pSdpMediaDescriptionRemote->sdpAttributes[j].attributeName, "sendonly") == 0) {
-                    STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "recvonly");
-                    directionFound = TRUE;
-                }
+        for (i = 0; i < remoteAttributeCount && directionFound == FALSE; i++) {
+            if (STRCMP(pSdpMediaDescriptionRemote->sdpAttributes[i].attributeName, "sendrecv") == 0) {
+                STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "sendrecv");
+                directionFound = TRUE;
+            } else if (STRCMP(pSdpMediaDescriptionRemote->sdpAttributes[i].attributeName, "recvonly") == 0) {
+                STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "sendonly");
+                directionFound = TRUE;
+            } else if (STRCMP(pSdpMediaDescriptionRemote->sdpAttributes[i].attributeName, "sendonly") == 0) {
+                STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "recvonly");
+                directionFound = TRUE;
             }
         }
     }

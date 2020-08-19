@@ -494,6 +494,26 @@ a=candidate:foundation 1 udp 16777215 10.128.132.55 54118 typ relay raddr 0.0.0.
 a=candidate:foundation 2 udp 16777215 10.128.132.55 54118 typ relay raddr 0.0.0.0 rport 56317 generation 0
 a=end-of-candidates)";
 
+const auto sdpaudio_sendrecv_mid0 = R"(m=audio 9 UDP/TLS/RTP/SAVPF 111
+c=IN IP4 127.0.0.1
+a=msid:myKvsVideoStream myAudioTrack
+a=ssrc:1743019002 cname:4PhjhRU0oaDlWmxI
+a=ssrc:1743019002 msid:myKvsVideoStream myAudioTrack
+a=ssrc:1743019002 mslabel:myKvsVideoStream
+a=ssrc:1743019002 label:myAudioTrack
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:10Po
+a=ice-pwd:nwaL7P3ZiD6LKf/f2NRkvE+M
+a=ice-options:trickle
+a=setup:active
+a=mid:0
+a=sendrecv
+a=rtcp-mux
+a=rtcp-rsize
+a=rtpmap:111 opus/48000/2
+a=fmtp:111 minptime=10;useinbandfec=1
+a=rtcp-fb:111 nack)";
+
 TEST_F(SdpApiTest, threeVideoTracksWithSameCodec)
 {
     auto offer3 = std::string(R"(v=0
@@ -571,6 +591,71 @@ a=group:BUNDLE 0
         EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
     });
 }
+
+
+
+// if offer (remote) contains video m-line only then answer (local) should contain video m-line only
+// even if local side has other transceivers, i.e. audio
+TEST_F(SdpApiTest, offerMediaMultipleDirections_validateAnswerCorrectMatchingDirections)
+{
+    auto offer = std::string(R"(v=0
+o=- 481034601 1588366671 IN IP4 0.0.0.0
+s=-
+t=0 0
+a=fingerprint:sha-256 87:E6:EC:59:93:76:9F:42:7D:15:17:F6:8F:C4:29:AB:EA:3F:28:B6:DF:F8:14:2F:96:62:2F:16:98:F5:76:E5
+a=group:BUNDLE 0
+)");
+
+    offer += sdpaudio_sendrecv_mid0;
+    offer += "\n";
+    offer += sdpvideo;
+    offer += "\n";
+
+    assertLFAndCRLF((PCHAR) offer.c_str(), offer.size(), [](PCHAR sdp) {
+        RtcConfiguration configuration{};
+        PRtcPeerConnection pRtcPeerConnection = nullptr;
+        RtcMediaStreamTrack track1{};
+        RtcMediaStreamTrack track2{};
+        PRtcRtpTransceiver transceiver1 = nullptr;
+        PRtcRtpTransceiver transceiver2 = nullptr;
+        RtcSessionDescriptionInit offerSdp{};
+        RtcSessionDescriptionInit answerSdp{};
+
+        SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION);
+
+        track1.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+        track1.codec = RTC_CODEC_VP8;
+        STRNCPY(track1.streamId, "videoTrack1", MAX_MEDIA_STREAM_ID_LEN);
+        STRNCPY(track1.trackId, "videoTrack1", MAX_MEDIA_STREAM_ID_LEN);
+
+        track2.kind = MEDIA_STREAM_TRACK_KIND_AUDIO;
+        track2.codec = RTC_CODEC_OPUS;
+        STRNCPY(track2.streamId, "audioTrack1", MAX_MEDIA_STREAM_ID_LEN);
+        STRNCPY(track2.trackId, "audioTrack1", MAX_MEDIA_STREAM_ID_LEN);
+
+        offerSdp.type = SDP_TYPE_OFFER;
+        STRNCPY(offerSdp.sdp, (PCHAR) sdp, MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+
+        EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+        EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(pRtcPeerConnection, RTC_CODEC_VP8));
+        EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(pRtcPeerConnection, RTC_CODEC_OPUS));
+
+        EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, &track1, nullptr, &transceiver1));
+        EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, &track2, nullptr, &transceiver2));
+
+        EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(pRtcPeerConnection, &offerSdp));
+        EXPECT_EQ(STATUS_SUCCESS, createAnswer(pRtcPeerConnection, &answerSdp));
+
+        EXPECT_PRED_FORMAT2(testing::IsSubstring, "sendonly", answerSdp.sdp);
+        EXPECT_PRED_FORMAT2(testing::IsSubstring, "sendrecv", answerSdp.sdp);
+
+        closePeerConnection(pRtcPeerConnection);
+        EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+    });
+}
+
+
+
 
 // if offer (remote) contains video m-line only then answer (local) should contain video m-line only
 // even if local side has other transceivers, i.e. audio
