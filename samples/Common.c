@@ -46,49 +46,6 @@ VOID onConnectionStateChange(UINT64 customData, RTC_PEER_CONNECTION_STATE newSta
     }
 }
 
-STATUS viewerMessageReceived(UINT64 customData, PReceivedSignalingMessage pReceivedSignalingMessage)
-{
-    STATUS retStatus = STATUS_SUCCESS;
-    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) customData;
-    PSampleStreamingSession pSampleStreamingSession = NULL;
-    BOOL locked = FALSE;
-
-    CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
-
-    MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
-    locked = TRUE;
-
-    // viewer should only be viewing a single master. So there should only be one streaming session if running viewer sample
-    CHK_ERR(pSampleConfiguration->streamingSessionCount > 0, STATUS_INTERNAL_ERROR, "Should've created streaming session for viewer");
-    pSampleStreamingSession = pSampleConfiguration->sampleStreamingSessionList[0];
-
-    MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
-    locked = FALSE;
-
-    switch (pReceivedSignalingMessage->signalingMessage.messageType) {
-        case SIGNALING_MESSAGE_TYPE_OFFER:
-            DLOGE("Unexpected message SIGNALING_MESSAGE_TYPE_OFFER \n");
-            break;
-        case SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE:
-            CHK_STATUS(handleRemoteCandidate(pSampleStreamingSession, &pReceivedSignalingMessage->signalingMessage));
-            break;
-        case SIGNALING_MESSAGE_TYPE_ANSWER:
-            CHK_STATUS(handleAnswer(pSampleConfiguration, pSampleStreamingSession, &pReceivedSignalingMessage->signalingMessage));
-            break;
-        default:
-            DLOGW("Unknown message type %u", pReceivedSignalingMessage->signalingMessage.messageType);
-    }
-
-CleanUp:
-
-    if (locked) {
-        MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
-    }
-
-    // Return success to continue
-    return retStatus;
-}
-
 STATUS signalingClientStateChanged(UINT64 customData, SIGNALING_CLIENT_STATE state)
 {
     UNUSED_PARAM(customData);
@@ -116,68 +73,6 @@ STATUS signalingClientError(UINT64 customData, STATUS status, PCHAR msg, UINT32 
     }
 
     return STATUS_SUCCESS;
-}
-
-STATUS masterMessageReceived(UINT64 customData, PReceivedSignalingMessage pReceivedSignalingMessage)
-{
-    STATUS retStatus = STATUS_SUCCESS;
-    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) customData;
-    PSampleStreamingSession pSampleStreamingSession = NULL;
-    UINT32 i;
-    BOOL locked = FALSE;
-    ATOMIC_BOOL expected = FALSE;
-
-    CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
-
-    MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
-    locked = TRUE;
-    // ice candidate message and offer message can come at any order. Therefore, if we see a new peerId, then create
-    // a new SampleStreamingSession, which in turn creates a new peerConnection
-    for (i = 0; i < pSampleConfiguration->streamingSessionCount && pSampleStreamingSession == NULL; ++i) {
-        if (0 == STRCMP(pReceivedSignalingMessage->signalingMessage.peerClientId, pSampleConfiguration->sampleStreamingSessionList[i]->peerId)) {
-            pSampleStreamingSession = pSampleConfiguration->sampleStreamingSessionList[i];
-        }
-    }
-
-    if (pSampleStreamingSession == NULL) {
-        CHK_WARN(pSampleConfiguration->streamingSessionCount < ARRAY_SIZE(pSampleConfiguration->sampleStreamingSessionList), retStatus,
-                 "Dropping signalling message from peer %s since maximum simultaneous streaming session of %u is reached",
-                 pReceivedSignalingMessage->signalingMessage.peerClientId, ARRAY_SIZE(pSampleConfiguration->sampleStreamingSessionList));
-
-        DLOGD("Creating new streaming session for peer %s", pReceivedSignalingMessage->signalingMessage.peerClientId);
-        CHK_STATUS(createSampleStreamingSession(pSampleConfiguration, pReceivedSignalingMessage->signalingMessage.peerClientId, TRUE,
-                                                &pSampleStreamingSession));
-        pSampleStreamingSession->firstSdpMsgReceiveTime = GETTIME();
-        pSampleConfiguration->sampleStreamingSessionList[pSampleConfiguration->streamingSessionCount++] = pSampleStreamingSession;
-    }
-
-    switch (pReceivedSignalingMessage->signalingMessage.messageType) {
-        case SIGNALING_MESSAGE_TYPE_OFFER:
-            if (ATOMIC_COMPARE_EXCHANGE_BOOL(&pSampleStreamingSession->sdpOfferAnswerExchanged, &expected, TRUE)) {
-                CHK_STATUS(handleOffer(pSampleConfiguration, pSampleStreamingSession, &pReceivedSignalingMessage->signalingMessage));
-                pSampleStreamingSession->offerReceiveTime = GETTIME();
-            } else {
-                DLOGD("Offer already received, ignore new offer from client id %s", pReceivedSignalingMessage->signalingMessage.peerClientId);
-            }
-            break;
-        case SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE:
-            CHK_STATUS(handleRemoteCandidate(pSampleStreamingSession, &pReceivedSignalingMessage->signalingMessage));
-            break;
-        case SIGNALING_MESSAGE_TYPE_ANSWER:
-            DLOGE("Unexpected message SIGNALING_MESSAGE_TYPE_ANSWER \n");
-            break;
-        default:
-            DLOGW("Unknown message type %u", pReceivedSignalingMessage->signalingMessage.messageType);
-    }
-
-CleanUp:
-
-    if (locked) {
-        MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
-    }
-
-    // Return success to continue
-    return retStatus;
 }
 
 STATUS logSelectedIceCandidatesInformation(PSampleStreamingSession pSampleStreamingSession)
@@ -244,32 +139,15 @@ STATUS handleOffer(PSampleConfiguration pSampleConfiguration, PSampleStreamingSe
     canTrickle = canTrickleIceCandidates(pSampleStreamingSession->pPeerConnection);
     /* cannot be null after setRemoteDescription */
     CHECK(!NULLABLE_CHECK_EMPTY(canTrickle));
-    pSampleConfiguration->trickleIce = canTrickle.value;
+    pSampleStreamingSession->remoteCanTrickleIce = canTrickle.value;
     CHK_STATUS(createAnswer(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->answerSessionDescriptionInit));
     CHK_STATUS(setLocalDescription(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->answerSessionDescriptionInit));
 
-    if (!pSampleConfiguration->trickleIce) {
-        MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
-        locked = TRUE;
-
-        while (!ATOMIC_LOAD_BOOL(&pSampleStreamingSession->candidateGatheringDone)) {
-            CHK_WARN(!ATOMIC_LOAD_BOOL(&pSampleStreamingSession->terminateFlag), STATUS_OPERATION_TIMED_OUT,
-                     "application terminated and candidate gathering still not done");
-            CVAR_WAIT(pSampleConfiguration->cvar, pSampleConfiguration->sampleConfigurationObjLock, 500 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
-        }
-
-        MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
-        locked = FALSE;
-
-        DLOGD("Candidate collection done for non trickle ice");
-        // get the latest local description once candidate gathering is done
-        CHK_STATUS(peerConnectionGetCurrentLocalDescription(pSampleStreamingSession->pPeerConnection,
-                                                            &pSampleStreamingSession->answerSessionDescriptionInit));
+    if (pSampleStreamingSession->remoteCanTrickleIce) {
+        CHK_STATUS(respondWithAnswer(pSampleStreamingSession));
+        DLOGD("time taken to send answer %" PRIu64 " ms",
+              (GETTIME() - pSampleStreamingSession->firstSdpMsgReceiveTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
     }
-
-    CHK_STATUS(respondWithAnswer(pSampleStreamingSession));
-    DLOGD("time taken to send answer %" PRIu64 " ms",
-          (GETTIME() - pSampleStreamingSession->firstSdpMsgReceiveTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 
     if (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->mediaThreadStarted)) {
         ATOMIC_STORE_BOOL(&pSampleConfiguration->mediaThreadStarted, TRUE);
@@ -339,9 +217,15 @@ VOID onIceCandidateHandler(UINT64 customData, PCHAR candidateJson)
 
     if (candidateJson == NULL) {
         DLOGD("ice candidate gathering finished");
+        // if application is master and non-trickle ice, send answer now.
+        if (pSampleStreamingSession->pSampleConfiguration->channelInfo.channelRoleType == SIGNALING_CHANNEL_ROLE_TYPE_MASTER
+            && !pSampleStreamingSession->remoteCanTrickleIce) {
+            CHK_STATUS(respondWithAnswer(pSampleStreamingSession));
+            DLOGD("time taken to send answer %" PRIu64 " ms",
+                  (GETTIME() - pSampleStreamingSession->firstSdpMsgReceiveTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+        }
         ATOMIC_STORE_BOOL(&pSampleStreamingSession->candidateGatheringDone, TRUE);
-        CVAR_BROADCAST(pSampleStreamingSession->pSampleConfiguration->cvar);
-    } else if (pSampleStreamingSession->pSampleConfiguration->trickleIce && ATOMIC_LOAD_BOOL(&pSampleStreamingSession->peerIdReceived)) {
+    } else if (pSampleStreamingSession->remoteCanTrickleIce && ATOMIC_LOAD_BOOL(&pSampleStreamingSession->peerIdReceived)) {
         message.version = SIGNALING_MESSAGE_CURRENT_VERSION;
         message.messageType = SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE;
         STRCPY(message.peerClientId, pSampleStreamingSession->peerId);
@@ -486,6 +370,7 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
 
     pSampleStreamingSession->pSampleConfiguration = pSampleConfiguration;
     pSampleStreamingSession->rtcMetricsHistory.prevTs = GETTIME();
+    pSampleStreamingSession->remoteCanTrickleIce = FALSE;
 
     ATOMIC_STORE_BOOL(&pSampleStreamingSession->terminateFlag, FALSE);
     ATOMIC_STORE_BOOL(&pSampleStreamingSession->candidateGatheringDone, FALSE);
@@ -746,6 +631,12 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
 
     pSampleConfiguration->iceUriCount = 0;
 
+    CHK_STATUS(stackQueueCreate(&pSampleConfiguration->pSignalingMessageQueue));
+    CHK_STATUS(hashTableCreate(&pSampleConfiguration->pPendingSignalingMessageForRemoteClient));
+    CHK_STATUS(hashTableCreate(&pSampleConfiguration->pRtcPeerConnectionForRemoteClient));
+
+    THREAD_CREATE(&pSampleConfiguration->signalingProcessor, signalingProcessingRoutine, (PVOID) pSampleConfiguration);
+
 CleanUp:
 
     if (STATUS_FAILED(retStatus)) {
@@ -781,8 +672,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS getIceCandidatePairStatsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
-{
+STATUS getIceCandidatePairStatsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData) {
     UNUSED_PARAM(timerId);
     UNUSED_PARAM(currentTime);
     STATUS retStatus = STATUS_SUCCESS;
@@ -801,50 +691,60 @@ STATUS getIceCandidatePairStatsCallback(UINT32 timerId, UINT64 currentTime, UINT
         goto CleanUp;
     }
     for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
-        if (STATUS_SUCCEEDED(rtcPeerConnectionGetMetrics(pSampleConfiguration->sampleStreamingSessionList[i]->pPeerConnection, NULL,
-                                                         &pSampleConfiguration->rtcIceCandidatePairMetrics))) {
+        if (STATUS_SUCCEEDED(
+                rtcPeerConnectionGetMetrics(pSampleConfiguration->sampleStreamingSessionList[i]->pPeerConnection, NULL,
+                                            &pSampleConfiguration->rtcIceCandidatePairMetrics))) {
             currentMeasureDuration = (pSampleConfiguration->rtcIceCandidatePairMetrics.timestamp -
                                       pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevTs) /
-                HUNDREDS_OF_NANOS_IN_A_SECOND;
-            DLOGD("Current duration: %" PRIu64 " seconds", currentMeasureDuration);
+                                     HUNDREDS_OF_NANOS_IN_A_SECOND;
+            DLOGD("Current duration: %"
+                          PRIu64
+                          " seconds", currentMeasureDuration);
             if (currentMeasureDuration > 0) {
                 DLOGD("Selected local candidate ID: %s",
                       pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.localCandidateId);
                 DLOGD("Selected remote candidate ID: %s",
                       pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.remoteCandidateId);
                 // TODO: Display state as a string for readability
-                DLOGD("Ice Candidate Pair state: %d", pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.state);
+                DLOGD("Ice Candidate Pair state: %d",
+                      pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.state);
                 DLOGD("Nomination state: %s",
-                      pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.nominated ? "nominated"
-                                                                                                                      : "not nominated");
+                      pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.nominated
+                      ? "nominated"
+                      : "not nominated");
                 averageNumberOfPacketsSentPerSecond =
-                    (DOUBLE)(pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.packetsSent -
-                             pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfPacketsSent) /
-                    (DOUBLE) currentMeasureDuration;
+                        (DOUBLE) (
+                                pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.packetsSent -
+                                pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfPacketsSent) /
+                        (DOUBLE) currentMeasureDuration;
                 DLOGD("Packet send rate: %lf pkts/sec", averageNumberOfPacketsSentPerSecond);
 
                 averageNumberOfPacketsReceivedPerSecond =
-                    (DOUBLE)(pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.packetsReceived -
-                             pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfPacketsReceived) /
-                    (DOUBLE) currentMeasureDuration;
+                        (DOUBLE) (
+                                pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.packetsReceived -
+                                pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfPacketsReceived) /
+                        (DOUBLE) currentMeasureDuration;
                 DLOGD("Packet receive rate: %lf pkts/sec", averageNumberOfPacketsReceivedPerSecond);
 
-                outgoingBitrate = (DOUBLE)((pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.bytesSent -
-                                            pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfBytesSent) *
-                                           8.0) /
-                    currentMeasureDuration;
+                outgoingBitrate = (DOUBLE) (
+                        (pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.bytesSent -
+                         pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfBytesSent) *
+                        8.0) /
+                                  currentMeasureDuration;
                 DLOGD("Outgoing bit rate: %lf bps", outgoingBitrate);
 
-                incomingBitrate = (DOUBLE)((pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.bytesReceived -
-                                            pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfBytesReceived) *
-                                           8.0) /
-                    currentMeasureDuration;
+                incomingBitrate = (DOUBLE) (
+                        (pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.bytesReceived -
+                         pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfBytesReceived) *
+                        8.0) /
+                                  currentMeasureDuration;
                 DLOGD("Incoming bit rate: %lf bps", incomingBitrate);
 
                 averagePacketsDiscardedOnSend =
-                    (DOUBLE)(pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.packetsDiscardedOnSend -
-                             pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevPacketsDiscardedOnSend) /
-                    (DOUBLE) currentMeasureDuration;
+                        (DOUBLE) (
+                                pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.packetsDiscardedOnSend -
+                                pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevPacketsDiscardedOnSend) /
+                        (DOUBLE) currentMeasureDuration;
                 DLOGD("Packet discard rate: %lf pkts/sec", averagePacketsDiscardedOnSend);
 
                 DLOGD("Current STUN request round trip time: %lf sec",
@@ -853,22 +753,32 @@ STATUS getIceCandidatePairStatsCallback(UINT32 timerId, UINT64 currentTime, UINT
                       pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.responsesReceived);
 
                 pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevTs =
-                    pSampleConfiguration->rtcIceCandidatePairMetrics.timestamp;
+                        pSampleConfiguration->rtcIceCandidatePairMetrics.timestamp;
                 pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfPacketsSent =
-                    pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.packetsSent;
+                        pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.packetsSent;
                 pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfPacketsReceived =
-                    pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.packetsReceived;
+                        pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.packetsReceived;
                 pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfBytesSent =
-                    pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.bytesSent;
+                        pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.bytesSent;
                 pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfBytesReceived =
-                    pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.bytesReceived;
+                        pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.bytesReceived;
                 pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevPacketsDiscardedOnSend =
-                    pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.packetsDiscardedOnSend;
+                        pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.packetsDiscardedOnSend;
             }
         }
     }
 CleanUp:
     return retStatus;
+}
+
+
+STATUS freePendingSignalingMessageQueue(UINT64 customData, PHashEntry pHashEntry)
+{
+    UNUSED_PARAM(customData);
+    PStackQueue pStackQueue = (PStackQueue) pHashEntry->value;
+    stackQueueClear(pStackQueue, TRUE);
+    stackQueueFree(pStackQueue);
+    return STATUS_SUCCESS;
 }
 
 STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
@@ -881,6 +791,17 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
 
     CHK(ppSampleConfiguration != NULL, STATUS_NULL_ARG);
     pSampleConfiguration = *ppSampleConfiguration;
+
+    THREAD_JOIN(pSampleConfiguration->signalingProcessor, NULL);
+    stackQueueClear(pSampleConfiguration->pSignalingMessageQueue, TRUE);
+    stackQueueFree(pSampleConfiguration->pSignalingMessageQueue);
+
+    hashTableIterateEntries(pSampleConfiguration->pPendingSignalingMessageForRemoteClient, (UINT64) NULL, freePendingSignalingMessageQueue);
+    hashTableClear(pSampleConfiguration->pPendingSignalingMessageForRemoteClient);
+    hashTableFree(pSampleConfiguration->pPendingSignalingMessageForRemoteClient);
+
+    hashTableClear(pSampleConfiguration->pRtcPeerConnectionForRemoteClient);
+    hashTableFree(pSampleConfiguration->pRtcPeerConnectionForRemoteClient);
 
     CHK(pSampleConfiguration != NULL, retStatus);
 
@@ -905,7 +826,6 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
 
     if (IS_VALID_CVAR_VALUE(pSampleConfiguration->cvar) && IS_VALID_MUTEX_VALUE(pSampleConfiguration->sampleConfigurationObjLock)) {
         CVAR_BROADCAST(pSampleConfiguration->cvar);
-        // lock to wait until awoken thread finish.
         MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
         MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
     }
@@ -945,7 +865,6 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
     PSampleStreamingSession pSampleStreamingSession = NULL;
     UINT32 i;
     BOOL locked = FALSE;
-    SIGNALING_CLIENT_STATE signalingClientState;
 
     CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
 
@@ -962,12 +881,91 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
                 pSampleConfiguration->streamingSessionCount--;
                 pSampleConfiguration->sampleStreamingSessionList[i] =
                     pSampleConfiguration->sampleStreamingSessionList[pSampleConfiguration->streamingSessionCount];
+
+                // unlock here to avoid blocking media pipeline thread because freeSampleStreamingSession can take some
+                // time.
+                MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
+                locked = FALSE;
+
                 CHK_STATUS(freeSampleStreamingSession(&pSampleStreamingSession));
+
+                MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
+                locked = TRUE;
             }
         }
 
         // periodically wake up and clean up terminated streaming session
         CVAR_WAIT(pSampleConfiguration->cvar, pSampleConfiguration->sampleConfigurationObjLock, 5 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+    }
+
+CleanUp:
+
+    CHK_LOG_ERR(retStatus);
+
+    if (locked) {
+        MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
+    }
+
+    LEAVES();
+    return retStatus;
+}
+
+/*
+ * This callback receives all signaling messages. It makes a copy of the signaling message and enqueue it to the
+ * pSignalingMessageQueue for further processing.
+ */
+STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pReceivedSignalingMessage)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) customData;
+    BOOL locked = FALSE;
+    PReceivedSignalingMessage pReceivedSignalingMessageCopy = NULL;
+
+    MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
+    locked = TRUE;
+
+    pReceivedSignalingMessageCopy = MEMCALLOC(1, SIZEOF(ReceivedSignalingMessage));
+    *pReceivedSignalingMessageCopy = *pReceivedSignalingMessage;
+
+    CHK_STATUS(stackQueueEnqueue(pSampleConfiguration->pSignalingMessageQueue, (UINT64) pReceivedSignalingMessageCopy));
+    MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
+    locked = FALSE;
+
+    CVAR_BROADCAST(pSampleConfiguration->cvar);
+
+CleanUp:
+
+    if (locked) {
+        MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
+    }
+
+    // Return success to continue
+    return retStatus;
+}
+
+PVOID signalingProcessingRoutine(PVOID args)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    BOOL noPendingSignalingMessage = FALSE, peerConnectionFound = FALSE;
+    BOOL noPendingSignalingMessageForClient = FALSE, locked = TRUE;
+    SIGNALING_CLIENT_STATE signalingClientState;
+    UINT32 clientIdHash;
+    PStackQueue pPendingMessageQueue = NULL;
+    PSampleStreamingSession pSampleStreamingSession = NULL;
+
+    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
+    if (pSampleConfiguration == NULL) {
+        printf("[KVS Master] signalingProcessingRoutine(): operation returned status code: 0x%08x \n", STATUS_NULL_ARG);
+        goto CleanUp;
+    }
+
+    MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
+    locked = TRUE;
+
+    while(TRUE) {
+        if (ATOMIC_LOAD_BOOL(&pSampleConfiguration->interrupted)) {
+            break;
+        }
 
         // Check if we need to re-create the signaling client on-the-fly
         if (ATOMIC_LOAD_BOOL(&pSampleConfiguration->recreateSignalingClient) &&
@@ -986,16 +984,117 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
                 UNUSED_PARAM(signalingClientConnectSync(pSampleConfiguration->signalingClientHandle));
             }
         }
+
+        // process signaling message in pSignalingMessageQueue
+        do {
+            stackQueueIsEmpty(pSampleConfiguration->pSignalingMessageQueue, &noPendingSignalingMessage);
+
+            if (!noPendingSignalingMessage) {
+                PReceivedSignalingMessage pReceivedSignalingMessage;
+                CHK_STATUS(stackQueueDequeue(pSampleConfiguration->pSignalingMessageQueue,
+                                             (PUINT64) &pReceivedSignalingMessage));
+                clientIdHash = COMPUTE_CRC32((PBYTE) pReceivedSignalingMessage->signalingMessage.peerClientId,
+                                             (UINT32) STRLEN(pReceivedSignalingMessage->signalingMessage.peerClientId));
+                CHK_STATUS(hashTableContains(pSampleConfiguration->pRtcPeerConnectionForRemoteClient, clientIdHash, &peerConnectionFound));
+                if (peerConnectionFound) {
+                    CHK_STATUS(hashTableGet(pSampleConfiguration->pRtcPeerConnectionForRemoteClient, clientIdHash, (PUINT64) &pSampleStreamingSession));
+                }
+
+                if (pReceivedSignalingMessage->signalingMessage.messageType == SIGNALING_MESSAGE_TYPE_OFFER) {
+
+                    /*
+                     * Create new streaming session for each offer, then insert the client id and streaming session into
+                     * pRtcPeerConnectionForRemoteClient for subsequent ice candidate messages. Lastly check if there is
+                     * any ice candidate messages queued in pPendingSignalingMessageForRemoteClient. If so then submit
+                     * all of them.
+                     */
+                    CHK_STATUS(createSampleStreamingSession(pSampleConfiguration, pReceivedSignalingMessage->signalingMessage.peerClientId, TRUE,
+                                                            &pSampleStreamingSession));
+                    pSampleStreamingSession->firstSdpMsgReceiveTime = GETTIME();
+                    pSampleConfiguration->sampleStreamingSessionList[pSampleConfiguration->streamingSessionCount++] = pSampleStreamingSession;
+                    CHK_STATUS(handleOffer(pSampleConfiguration, pSampleStreamingSession, &pReceivedSignalingMessage->signalingMessage));
+                    MEMFREE(pReceivedSignalingMessage);
+                    CHK_STATUS(hashTablePut(pSampleConfiguration->pRtcPeerConnectionForRemoteClient, clientIdHash, (UINT64) pSampleStreamingSession));
+
+                    // If there are any ice candidate messages in the queue for this client id, submit them now.
+                    if (STATUS_SUCCEEDED(hashTableGet(pSampleConfiguration->pPendingSignalingMessageForRemoteClient, clientIdHash, (PUINT64) &pPendingMessageQueue))) {
+                        do {
+                            CHK_STATUS(stackQueueIsEmpty(pPendingMessageQueue, &noPendingSignalingMessageForClient));
+                            if (!noPendingSignalingMessageForClient) {
+                                CHK_STATUS(stackQueueDequeue(pPendingMessageQueue,
+                                                             (PUINT64) &pReceivedSignalingMessage));
+                                if (pReceivedSignalingMessage->signalingMessage.messageType == SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE) {
+                                    CHK_STATUS(handleRemoteCandidate(pSampleStreamingSession, &pReceivedSignalingMessage->signalingMessage));
+                                }
+                                MEMFREE(pReceivedSignalingMessage);
+                            }
+                        } while (!noPendingSignalingMessageForClient);
+                        CHK_STATUS(stackQueueFree(pPendingMessageQueue));
+                        CHK_STATUS(hashTableRemove(pSampleConfiguration->pPendingSignalingMessageForRemoteClient, clientIdHash));
+                    }
+
+                } else if (pReceivedSignalingMessage->signalingMessage.messageType == SIGNALING_MESSAGE_TYPE_ANSWER) {
+
+                    /*
+                     * for viewer, pSampleStreamingSession should've already been created. insert the client id and
+                     * streaming session into pRtcPeerConnectionForRemoteClient for subsequent ice candidate messages.
+                     * Lastly check if there is any ice candidate messages queued in pPendingSignalingMessageForRemoteClient.
+                     * If so then submit all of them.
+                     */
+                    pSampleStreamingSession = pSampleConfiguration->sampleStreamingSessionList[0];
+                    CHK_STATUS(handleAnswer(pSampleConfiguration, pSampleStreamingSession, &pReceivedSignalingMessage->signalingMessage));
+                    MEMFREE(pReceivedSignalingMessage);
+                    CHK_STATUS(hashTablePut(pSampleConfiguration->pRtcPeerConnectionForRemoteClient, clientIdHash, (UINT64) pSampleStreamingSession));
+
+                    // If there are any ice candidate messages in the queue for this client id, submit them now.
+                    if (STATUS_SUCCEEDED(hashTableGet(pSampleConfiguration->pPendingSignalingMessageForRemoteClient, clientIdHash, (PUINT64) &pPendingMessageQueue))) {
+                        do {
+                            CHK_STATUS(stackQueueIsEmpty(pPendingMessageQueue, &noPendingSignalingMessageForClient));
+                            if (!noPendingSignalingMessageForClient) {
+                                CHK_STATUS(stackQueueDequeue(pPendingMessageQueue,
+                                                             (PUINT64) &pReceivedSignalingMessage));
+                                if (pReceivedSignalingMessage->signalingMessage.messageType == SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE) {
+                                    CHK_STATUS(handleRemoteCandidate(pSampleStreamingSession, &pReceivedSignalingMessage->signalingMessage));
+                                }
+                                MEMFREE(pReceivedSignalingMessage);
+                            }
+                        } while (!noPendingSignalingMessageForClient);
+                        CHK_STATUS(stackQueueFree(pPendingMessageQueue));
+                        CHK_STATUS(hashTableRemove(pSampleConfiguration->pPendingSignalingMessageForRemoteClient, clientIdHash));
+                    }
+
+                } else if (pReceivedSignalingMessage->signalingMessage.messageType == SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE) {
+
+                    /*
+                     * if peer connection hasn't been created, create an queue to store the ice candidate message. Otherwise
+                     * submit the signaling message into the corresponding streaming session.
+                     */
+                    if (!peerConnectionFound) {
+                        if (STATUS_HASH_KEY_NOT_PRESENT ==
+                            hashTableGet(pSampleConfiguration->pPendingSignalingMessageForRemoteClient, clientIdHash, (PUINT64) &pPendingMessageQueue)) {
+                            CHK_STATUS(stackQueueCreate(&pPendingMessageQueue));
+                            CHK_STATUS(hashTablePut(pSampleConfiguration->pPendingSignalingMessageForRemoteClient, clientIdHash, (UINT64) pPendingMessageQueue));
+                        }
+
+                        CHK_STATUS(stackQueueEnqueue(pPendingMessageQueue, (UINT64) pReceivedSignalingMessage));
+                    } else {
+                        CHK_STATUS(handleRemoteCandidate(pSampleStreamingSession, &pReceivedSignalingMessage->signalingMessage));
+                        MEMFREE(pReceivedSignalingMessage);
+                    }
+                }
+            }
+        } while (!noPendingSignalingMessage);
+
+        CVAR_WAIT(pSampleConfiguration->cvar, pSampleConfiguration->sampleConfigurationObjLock, UINT64_MAX);
     }
 
 CleanUp:
-
-    CHK_LOG_ERR(retStatus);
 
     if (locked) {
         MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
     }
 
-    LEAVES();
-    return retStatus;
+    CHK_LOG_ERR(retStatus);
+
+    return (PVOID)(ULONG_PTR) retStatus;
 }
