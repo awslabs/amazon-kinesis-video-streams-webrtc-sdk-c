@@ -74,7 +74,6 @@ typedef struct {
     RtcOnDataChannel onDataChannel;
 
     TID signalingProcessor;
-    PStackQueue pSignalingMessageQueue;
     PHashTable pPendingSignalingMessageForRemoteClient;
     PHashTable pRtcPeerConnectionForRemoteClient;
 
@@ -86,6 +85,7 @@ typedef struct {
     UINT64 customData;
     PSampleStreamingSession sampleStreamingSessionList[DEFAULT_MAX_CONCURRENT_STREAMING_SESSION];
     UINT32 streamingSessionCount;
+    MUTEX streamingSessionListReadLock;
     UINT32 iceUriCount;
     SignalingClientCallbacks signalingClientCallbacks;
     SignalingClientInfo clientInfo;
@@ -151,7 +151,6 @@ STATUS awaitGetIceConfigInfoCount(SIGNALING_CLIENT_HANDLE, PUINT32);
 STATUS logSignalingClientStats(PSignalingClientMetrics);
 STATUS logSelectedIceCandidatesInformation(PSampleStreamingSession);
 STATUS logStartUpLatency(PSampleConfiguration);
-PVOID signalingProcessingRoutine(PVOID args);
 
 #ifdef __cplusplus
 }

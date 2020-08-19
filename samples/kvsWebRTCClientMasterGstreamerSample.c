@@ -60,7 +60,7 @@ GstFlowReturn on_new_sample(GstElement* sink, gpointer data, UINT64 trackid)
         frame.size = (UINT32) info.size;
         frame.frameData = (PBYTE) info.data;
 
-        MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
+        MUTEX_LOCK(pSampleConfiguration->streamingSessionListReadLock);
         for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
             pSampleStreamingSession = pSampleConfiguration->sampleStreamingSessionList[i];
             frame.index = (UINT32) ATOMIC_INCREMENT(&pSampleStreamingSession->frameIndex);
@@ -85,7 +85,7 @@ GstFlowReturn on_new_sample(GstElement* sink, gpointer data, UINT64 trackid)
 #endif
             }
         }
-        MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
+        MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
     }
 
 CleanUp:
