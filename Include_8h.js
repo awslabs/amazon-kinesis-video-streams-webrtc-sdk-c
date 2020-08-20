@@ -342,7 +342,8 @@ var Include_8h =
     [ "RTC_RTP_TRANSCEIVER_DIRECTION", "Include_8h.html#a2ec04821e96a8ea582895e206534b9ad", [
       [ "RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV", "Include_8h.html#a2ec04821e96a8ea582895e206534b9ada34db249a5fb131fa33d7dce7005e37bd", null ],
       [ "RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY", "Include_8h.html#a2ec04821e96a8ea582895e206534b9ada7df464eac072ccf1e72ca908f295f6ae", null ],
-      [ "RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY", "Include_8h.html#a2ec04821e96a8ea582895e206534b9adadd9b614bd9f8495972b124e21cb89468", null ]
+      [ "RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY", "Include_8h.html#a2ec04821e96a8ea582895e206534b9adadd9b614bd9f8495972b124e21cb89468", null ],
+      [ "RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE", "Include_8h.html#a2ec04821e96a8ea582895e206534b9ada0ae8727c8e3291ee130332a337649129", null ]
     ] ],
     [ "SDP_TYPE", "Include_8h.html#abaa9adac53ec269df1574665ec4ec222", [
       [ "SDP_TYPE_OFFER", "Include_8h.html#abaa9adac53ec269df1574665ec4ec222adb6426a7bfdd3d7729301adf5caf066c", null ],
