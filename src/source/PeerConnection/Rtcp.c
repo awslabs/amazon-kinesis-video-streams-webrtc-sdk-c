@@ -212,7 +212,7 @@ STATUS onRtcpRembPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
     CHK_STATUS(rembValueGet(pRtcpPacket->payload, pRtcpPacket->payloadLength, &maximumBitRate, (PUINT32) &ssrcList, &ssrcListLen));
 
     for (i = 0; i < ssrcListLen; i++) {
-        CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pTransceievers, &pCurNode));
+        CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pTransceivers, &pCurNode));
         while (pCurNode != NULL && pTransceiver == NULL) {
             CHK_STATUS(doubleListGetNodeData(pCurNode, &item));
             CHK(item != 0, STATUS_INTERNAL_ERROR);
