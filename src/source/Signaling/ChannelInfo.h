@@ -6,31 +6,31 @@ Signaling internal include file
 
 #pragma once
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
 // Max control plane URI char len
-#define MAX_CONTROL_PLANE_URI_CHAR_LEN                          256
+#define MAX_CONTROL_PLANE_URI_CHAR_LEN 256
 
 // Max channel status string length in describe API call in chars
-#define MAX_DESCRIBE_CHANNEL_STATUS_LEN                         32
+#define MAX_DESCRIBE_CHANNEL_STATUS_LEN 32
 
 // Max channel type string length in describe API call in chars
-#define MAX_DESCRIBE_CHANNEL_TYPE_LEN                           128
+#define MAX_DESCRIBE_CHANNEL_TYPE_LEN 128
 
 // Signaling channel type string
-#define SIGNALING_CHANNEL_TYPE_UNKNOWN_STR                      (PCHAR) "UNKOWN"
-#define SIGNALING_CHANNEL_TYPE_SINGLE_MASTER_STR                (PCHAR) "SINGLE_MASTER"
+#define SIGNALING_CHANNEL_TYPE_UNKNOWN_STR       (PCHAR) "UNKOWN"
+#define SIGNALING_CHANNEL_TYPE_SINGLE_MASTER_STR (PCHAR) "SINGLE_MASTER"
 
 // Signaling channel role type string
-#define SIGNALING_CHANNEL_ROLE_TYPE_UNKNOWN_STR                 (PCHAR) "UNKOWN"
-#define SIGNALING_CHANNEL_ROLE_TYPE_MASTER_STR                  (PCHAR) "MASTER"
-#define SIGNALING_CHANNEL_ROLE_TYPE_VIEWER_STR                  (PCHAR) "VIEWER"
+#define SIGNALING_CHANNEL_ROLE_TYPE_UNKNOWN_STR (PCHAR) "UNKOWN"
+#define SIGNALING_CHANNEL_ROLE_TYPE_MASTER_STR  (PCHAR) "MASTER"
+#define SIGNALING_CHANNEL_ROLE_TYPE_VIEWER_STR  (PCHAR) "VIEWER"
 
 // Min and max for the message TTL value
-#define MIN_SIGNALING_MESSAGE_TTL_VALUE                         (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define MAX_SIGNALING_MESSAGE_TTL_VALUE                         (120 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define MIN_SIGNALING_MESSAGE_TTL_VALUE (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define MAX_SIGNALING_MESSAGE_TTL_VALUE (120 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
 /**
  * Takes in a pointer to a public version of ChannelInfo object.
@@ -97,7 +97,7 @@ SIGNALING_CHANNEL_ROLE_TYPE getChannelRoleTypeFromString(PCHAR, UINT32);
  */
 PCHAR getStringFromChannelRoleType(SIGNALING_CHANNEL_ROLE_TYPE);
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 }
 #endif
-#endif  /* __KINESIS_VIDEO_WEBRTC_CHANNEL_INFO__ */
+#endif /* __KINESIS_VIDEO_WEBRTC_CHANNEL_INFO__ */

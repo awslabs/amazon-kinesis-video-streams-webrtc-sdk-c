@@ -6,15 +6,14 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
 
-    UINT32 allocSize, nameLen = 0, arnLen = 0, regionLen = 0, cplLen = 0, certLen = 0, postfixLen = 0,
-            agentLen = 0, userAgentLen = 0, kmsLen = 0, tagsSize;
+    UINT32 allocSize, nameLen = 0, arnLen = 0, regionLen = 0, cplLen = 0, certLen = 0, postfixLen = 0, agentLen = 0, userAgentLen = 0, kmsLen = 0,
+                      tagsSize;
     PCHAR pCurPtr, pRegionPtr;
     PChannelInfo pChannelInfo = NULL;
 
     CHK(pOrigChannelInfo != NULL && ppChannelInfo != NULL, STATUS_NULL_ARG);
 
-    CHK((pOrigChannelInfo->pChannelName != NULL || pOrigChannelInfo->pChannelArn != NULL) &&
-        ppChannelInfo != NULL, STATUS_NULL_ARG);
+    CHK((pOrigChannelInfo->pChannelName != NULL || pOrigChannelInfo->pChannelArn != NULL) && ppChannelInfo != NULL, STATUS_NULL_ARG);
 
     // Get and validate the lengths for all strings and store lengths excluding null terminator
     if (pOrigChannelInfo->pChannelName != NULL) {
@@ -23,8 +22,7 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
     }
 
     if (pOrigChannelInfo->pChannelArn != NULL) {
-        CHK((arnLen = (UINT32) STRNLEN(pOrigChannelInfo->pChannelArn, MAX_ARN_LEN + 1)) <= MAX_ARN_LEN,
-            STATUS_SIGNALING_INVALID_CHANNEL_ARN_LENGTH);
+        CHK((arnLen = (UINT32) STRNLEN(pOrigChannelInfo->pChannelArn, MAX_ARN_LEN + 1)) <= MAX_ARN_LEN, STATUS_SIGNALING_INVALID_CHANNEL_ARN_LENGTH);
     }
 
     // Fix-up the region
@@ -53,26 +51,24 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
 
     if (pOrigChannelInfo->pUserAgentPostfix != NULL) {
         CHK((postfixLen = (UINT32) STRNLEN(pOrigChannelInfo->pUserAgentPostfix, MAX_CUSTOM_USER_AGENT_NAME_POSTFIX_LEN + 1)) <=
-            MAX_CUSTOM_USER_AGENT_NAME_POSTFIX_LEN,
+                MAX_CUSTOM_USER_AGENT_NAME_POSTFIX_LEN,
             STATUS_SIGNALING_INVALID_AGENT_POSTFIX_LENGTH);
     }
 
     if (pOrigChannelInfo->pCustomUserAgent != NULL) {
-        CHK((agentLen = (UINT32) STRNLEN(pOrigChannelInfo->pCustomUserAgent, MAX_CUSTOM_USER_AGENT_LEN + 1)) <=
-            MAX_CUSTOM_USER_AGENT_LEN,
+        CHK((agentLen = (UINT32) STRNLEN(pOrigChannelInfo->pCustomUserAgent, MAX_CUSTOM_USER_AGENT_LEN + 1)) <= MAX_CUSTOM_USER_AGENT_LEN,
             STATUS_SIGNALING_INVALID_AGENT_LENGTH);
     }
 
     if (pOrigChannelInfo->pKmsKeyId != NULL) {
-        CHK((kmsLen = (UINT32) STRNLEN(pOrigChannelInfo->pKmsKeyId, MAX_ARN_LEN + 1)) <= MAX_ARN_LEN,
-            STATUS_SIGNALING_INVALID_KMS_KEY_LENGTH);
+        CHK((kmsLen = (UINT32) STRNLEN(pOrigChannelInfo->pKmsKeyId, MAX_ARN_LEN + 1)) <= MAX_ARN_LEN, STATUS_SIGNALING_INVALID_KMS_KEY_LENGTH);
     }
 
     if (pOrigChannelInfo->messageTtl == 0) {
         pOrigChannelInfo->messageTtl = SIGNALING_DEFAULT_MESSAGE_TTL_VALUE;
     } else {
-        CHK(pOrigChannelInfo->messageTtl >= MIN_SIGNALING_MESSAGE_TTL_VALUE &&
-            pOrigChannelInfo->messageTtl <= MAX_SIGNALING_MESSAGE_TTL_VALUE, STATUS_SIGNALING_INVALID_MESSAGE_TTL_VALUE);
+        CHK(pOrigChannelInfo->messageTtl >= MIN_SIGNALING_MESSAGE_TTL_VALUE && pOrigChannelInfo->messageTtl <= MAX_SIGNALING_MESSAGE_TTL_VALUE,
+            STATUS_SIGNALING_INVALID_MESSAGE_TTL_VALUE);
     }
 
     // If tags count is not zero then pTags shouldn't be NULL
@@ -82,17 +78,10 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
     CHK_STATUS(packageTags(pOrigChannelInfo->tagCount, pOrigChannelInfo->pTags, 0, NULL, &tagsSize));
 
     // Allocate enough storage to hold the data with aligned strings size and set the pointers and NULL terminators
-    allocSize = SIZEOF(ChannelInfo) +
-                ALIGN_UP_TO_MACHINE_WORD(1 + nameLen) +
-                ALIGN_UP_TO_MACHINE_WORD(1 + arnLen) +
-                ALIGN_UP_TO_MACHINE_WORD(1 + regionLen) +
-                ALIGN_UP_TO_MACHINE_WORD(1 + cplLen) +
-                ALIGN_UP_TO_MACHINE_WORD(1 + certLen) +
-                ALIGN_UP_TO_MACHINE_WORD(1 + postfixLen) +
-                ALIGN_UP_TO_MACHINE_WORD(1 + agentLen) +
-                ALIGN_UP_TO_MACHINE_WORD(1 + userAgentLen) +
-                ALIGN_UP_TO_MACHINE_WORD(1 + kmsLen) +
-                tagsSize;
+    allocSize = SIZEOF(ChannelInfo) + ALIGN_UP_TO_MACHINE_WORD(1 + nameLen) + ALIGN_UP_TO_MACHINE_WORD(1 + arnLen) +
+        ALIGN_UP_TO_MACHINE_WORD(1 + regionLen) + ALIGN_UP_TO_MACHINE_WORD(1 + cplLen) + ALIGN_UP_TO_MACHINE_WORD(1 + certLen) +
+        ALIGN_UP_TO_MACHINE_WORD(1 + postfixLen) + ALIGN_UP_TO_MACHINE_WORD(1 + agentLen) + ALIGN_UP_TO_MACHINE_WORD(1 + userAgentLen) +
+        ALIGN_UP_TO_MACHINE_WORD(1 + kmsLen) + tagsSize;
     CHK(NULL != (pChannelInfo = (PChannelInfo) MEMCALLOC(1, allocSize)), STATUS_NOT_ENOUGH_MEMORY);
 
     pChannelInfo->version = CHANNEL_INFO_CURRENT_VERSION;
@@ -114,7 +103,7 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
     }
 
     // Set the current pointer to the end
-    pCurPtr = (PCHAR) (pChannelInfo + 1);
+    pCurPtr = (PCHAR)(pChannelInfo + 1);
 
     // Set the pointers to the end and copy the data.
     // NOTE: the structure is calloc-ed so the strings will be NULL terminated
@@ -138,12 +127,7 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
         STRCPY(pCurPtr, pOrigChannelInfo->pControlPlaneUrl);
     } else {
         // Create a fully qualified URI
-        SNPRINTF(pCurPtr,
-                 MAX_CONTROL_PLANE_URI_CHAR_LEN,
-                 "%s%s.%s%s",
-                 CONTROL_PLANE_URI_PREFIX,
-                 KINESIS_VIDEO_SERVICE_NAME,
-                 pChannelInfo->pRegion,
+        SNPRINTF(pCurPtr, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s%s.%s%s", CONTROL_PLANE_URI_PREFIX, KINESIS_VIDEO_SERVICE_NAME, pChannelInfo->pRegion,
                  CONTROL_PLANE_URI_POSTFIX);
     }
 

@@ -1,6 +1,10 @@
 #include "WebRTCClientTestFixture.h"
 
-namespace com { namespace amazonaws { namespace kinesis { namespace video { namespace webrtcclient {
+namespace com {
+namespace amazonaws {
+namespace kinesis {
+namespace video {
+namespace webrtcclient {
 
 class PeerConnectionFunctionalityTest : public WebRtcClientTestBase {
 };
@@ -25,6 +29,7 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeers)
     freePeerConnection(&answerPc);
 }
 
+#ifdef KVS_USE_OPENSSL
 TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithPresetCerts)
 {
     RtcConfiguration offerConfig, answerConfig;
@@ -71,6 +76,54 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithPresetCerts)
     freePeerConnection(&offerPc);
     freePeerConnection(&answerPc);
 }
+#elif KVS_USE_MBEDTLS
+TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithPresetCerts)
+{
+    RtcConfiguration offerConfig, answerConfig;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    mbedtls_x509_crt offerCert;
+    mbedtls_x509_crt answerCert;
+    mbedtls_pk_context offerKey;
+    mbedtls_pk_context answerKey;
+    CHAR offerCertFingerprint[CERTIFICATE_FINGERPRINT_LENGTH];
+    CHAR answerCertFingerprint[CERTIFICATE_FINGERPRINT_LENGTH];
+
+    // Generate offer cert
+    ASSERT_EQ(STATUS_SUCCESS, createCertificateAndKey(GENERATED_CERTIFICATE_BITS, true, &offerCert, &offerKey));
+    ASSERT_EQ(STATUS_SUCCESS, dtlsCertificateFingerprint(&offerCert, offerCertFingerprint));
+
+    // Generate answer cert
+    ASSERT_EQ(STATUS_SUCCESS, createCertificateAndKey(GENERATED_CERTIFICATE_BITS, true, &answerCert, &answerKey));
+    ASSERT_EQ(STATUS_SUCCESS, dtlsCertificateFingerprint(&answerCert, answerCertFingerprint));
+
+    MEMSET(&offerConfig, 0x00, SIZEOF(RtcConfiguration));
+    offerConfig.certificates[0].pCertificate = (PBYTE) &offerCert;
+    offerConfig.certificates[0].certificateSize = 0;
+    offerConfig.certificates[0].pPrivateKey = (PBYTE) &offerKey;
+    offerConfig.certificates[0].privateKeySize = 0;
+
+    MEMSET(&answerConfig, 0x00, SIZEOF(RtcConfiguration));
+    answerConfig.certificates[0].pCertificate = (PBYTE) &answerCert;
+    answerConfig.certificates[0].certificateSize = 0;
+    answerConfig.certificates[0].pPrivateKey = (PBYTE) &answerKey;
+    answerConfig.certificates[0].privateKeySize = 0;
+
+    ASSERT_EQ(STATUS_SUCCESS, createPeerConnection(&offerConfig, &offerPc));
+    ASSERT_EQ(STATUS_SUCCESS, createPeerConnection(&answerConfig, &answerPc));
+
+    // Should be fine to free right after create peer connection
+    freeCertificateAndKey(&offerCert, &offerKey);
+    freeCertificateAndKey(&answerCert, &answerKey);
+
+    ASSERT_EQ(TRUE, connectTwoPeers(offerPc, answerPc, offerCertFingerprint, answerCertFingerprint));
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+}
+#endif
 
 // Assert that two PeerConnections with forced TURN can connect to each other and go to connected
 TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersForcedTURN)
@@ -126,7 +179,7 @@ TEST_F(PeerConnectionFunctionalityTest, shutdownTurnDueToP2PFoundBeforeTurnEstab
 
     THREAD_SLEEP(5 * HUNDREDS_OF_NANOS_IN_A_SECOND);
 
-    pIceAgent = ((PKvsPeerConnection)offerPc)->pIceAgent;
+    pIceAgent = ((PKvsPeerConnection) offerPc)->pIceAgent;
     MUTEX_LOCK(pIceAgent->lock);
     EXPECT_EQ(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode), STATUS_SUCCESS);
     while (pCurNode != NULL) {
@@ -140,7 +193,7 @@ TEST_F(PeerConnectionFunctionalityTest, shutdownTurnDueToP2PFoundBeforeTurnEstab
     }
     MUTEX_UNLOCK(pIceAgent->lock);
 
-    pIceAgent = ((PKvsPeerConnection)answerPc)->pIceAgent;
+    pIceAgent = ((PKvsPeerConnection) answerPc)->pIceAgent;
     MUTEX_LOCK(pIceAgent->lock);
     EXPECT_EQ(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode), STATUS_SUCCESS);
     while (pCurNode != NULL) {
@@ -197,7 +250,7 @@ TEST_F(PeerConnectionFunctionalityTest, shutdownTurnDueToP2PFoundAfterTurnEstabl
     EXPECT_EQ(peerConnectionOnIceCandidate(answerPc, (UINT64) &answerPcDoneGatherCandidate, onICECandidateHdlr), STATUS_SUCCESS);
 
     auto onICEConnectionStateChangeHdlr = [](UINT64 customData, RTC_PEER_CONNECTION_STATE newState) -> void {
-        ATOMIC_INCREMENT((PSIZE_T)customData + newState);
+        ATOMIC_INCREMENT((PSIZE_T) customData + newState);
     };
 
     EXPECT_EQ(peerConnectionOnConnectionStateChange(offerPc, (UINT64) this->stateChangeCount, onICEConnectionStateChangeHdlr), STATUS_SUCCESS);
@@ -209,8 +262,7 @@ TEST_F(PeerConnectionFunctionalityTest, shutdownTurnDueToP2PFoundAfterTurnEstabl
 
     // give time for turn allocation to be finished
     candidateGatherTimeout = GETTIME() + KVS_ICE_GATHER_REFLEXIVE_AND_RELAYED_CANDIDATE_TIMEOUT + 2 * HUNDREDS_OF_NANOS_IN_A_SECOND;
-    while (!(ATOMIC_LOAD(&offerPcDoneGatherCandidate) > 0 && ATOMIC_LOAD(&answerPcDoneGatherCandidate) > 0) &&
-            GETTIME() < candidateGatherTimeout) {
+    while (!(ATOMIC_LOAD(&offerPcDoneGatherCandidate) > 0 && ATOMIC_LOAD(&answerPcDoneGatherCandidate) > 0) && GETTIME() < candidateGatherTimeout) {
         THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
     }
 
@@ -234,7 +286,7 @@ TEST_F(PeerConnectionFunctionalityTest, shutdownTurnDueToP2PFoundAfterTurnEstabl
     // give time for turn allocated to be freed
     THREAD_SLEEP(5 * HUNDREDS_OF_NANOS_IN_A_SECOND);
 
-    pIceAgent = ((PKvsPeerConnection)offerPc)->pIceAgent;
+    pIceAgent = ((PKvsPeerConnection) offerPc)->pIceAgent;
     MUTEX_LOCK(pIceAgent->lock);
     EXPECT_EQ(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode), STATUS_SUCCESS);
     while (pCurNode != NULL) {
@@ -248,7 +300,7 @@ TEST_F(PeerConnectionFunctionalityTest, shutdownTurnDueToP2PFoundAfterTurnEstabl
     }
     MUTEX_UNLOCK(pIceAgent->lock);
 
-    pIceAgent = ((PKvsPeerConnection)answerPc)->pIceAgent;
+    pIceAgent = ((PKvsPeerConnection) answerPc)->pIceAgent;
     MUTEX_LOCK(pIceAgent->lock);
     EXPECT_EQ(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode), STATUS_SUCCESS);
     while (pCurNode != NULL) {
@@ -358,10 +410,6 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersExpectFailureBecauseNoCan
 // Assert that two PeerConnections can connect and then send media until the receiver gets both audio/video
 TEST_F(PeerConnectionFunctionalityTest, exchangeMedia)
 {
-    if (!mAccessKeyIdSet) {
-        return;
-    }
-
     auto const frameBufferSize = 200000;
 
     RtcConfiguration configuration;
@@ -381,8 +429,8 @@ TEST_F(PeerConnectionFunctionalityTest, exchangeMedia)
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
     EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
 
-    addTrackToPeerConnection(offerPc, &offerVideoTrack, &offerVideoTransceiver,RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
-    addTrackToPeerConnection(offerPc, &offerAudioTrack, &offerAudioTransceiver,RTC_CODEC_OPUS, MEDIA_STREAM_TRACK_KIND_AUDIO);
+    addTrackToPeerConnection(offerPc, &offerVideoTrack, &offerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+    addTrackToPeerConnection(offerPc, &offerAudioTrack, &offerAudioTransceiver, RTC_CODEC_OPUS, MEDIA_STREAM_TRACK_KIND_AUDIO);
     addTrackToPeerConnection(answerPc, &answerVideoTrack, &answerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
     addTrackToPeerConnection(answerPc, &answerAudioTrack, &answerAudioTransceiver, RTC_CODEC_OPUS, MEDIA_STREAM_TRACK_KIND_AUDIO);
 
@@ -402,6 +450,25 @@ TEST_F(PeerConnectionFunctionalityTest, exchangeMedia)
     }
 
     MEMFREE(videoFrame.frameData);
+    RtcOutboundRtpStreamStats stats{};
+    EXPECT_EQ(STATUS_SUCCESS, getRtpOutboundStats(offerPc, offerVideoTransceiver, &stats));
+    EXPECT_EQ(206, stats.sent.packetsSent);
+#ifdef KVS_USE_MBEDTLS
+    EXPECT_EQ(248026, stats.sent.bytesSent);
+#else
+    EXPECT_EQ(246790, stats.sent.bytesSent);
+#endif
+    EXPECT_EQ(2, stats.framesSent);
+    EXPECT_EQ(2472, stats.headerBytesSent);
+    EXPECT_LT(0, stats.lastPacketSentTimestamp);
+
+    RtcInboundRtpStreamStats answerStats{};
+    EXPECT_EQ(STATUS_SUCCESS, getRtpInboundStats(answerPc, answerVideoTransceiver, &answerStats));
+    EXPECT_LE(1, answerStats.framesReceived);
+    EXPECT_LT(103, answerStats.received.packetsReceived);
+    EXPECT_LT(120000, answerStats.bytesReceived);
+    EXPECT_LT(1234, answerStats.headerBytesReceived);
+    EXPECT_LT(0, answerStats.lastPacketReceivedTimestamp);
 
     closePeerConnection(offerPc);
     closePeerConnection(answerPc);
@@ -439,8 +506,8 @@ TEST_F(PeerConnectionFunctionalityTest, exchangeMediaRSA)
     configuration.kvsRtcConfiguration.generateRSACertificate = TRUE;
     EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
 
-    addTrackToPeerConnection(offerPc, &offerVideoTrack, &offerVideoTransceiver,RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
-    addTrackToPeerConnection(offerPc, &offerAudioTrack, &offerAudioTransceiver,RTC_CODEC_OPUS, MEDIA_STREAM_TRACK_KIND_AUDIO);
+    addTrackToPeerConnection(offerPc, &offerVideoTrack, &offerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+    addTrackToPeerConnection(offerPc, &offerAudioTrack, &offerAudioTransceiver, RTC_CODEC_OPUS, MEDIA_STREAM_TRACK_KIND_AUDIO);
     addTrackToPeerConnection(answerPc, &answerVideoTrack, &answerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
     addTrackToPeerConnection(answerPc, &answerAudioTrack, &answerAudioTransceiver, RTC_CODEC_OPUS, MEDIA_STREAM_TRACK_KIND_AUDIO);
 
@@ -598,8 +665,7 @@ TEST_F(PeerConnectionFunctionalityTest, DISABLED_exchangeMediaThroughTurnRandomS
 
     initializeSignalingClient();
 
-    auto repeatedStreamingRandomStop = [this](int iteration, int maxStreamingDurationMs, int minStreamingDurationMs, bool expectSeenVideo) -> void
-    {
+    auto repeatedStreamingRandomStop = [this](int iteration, int maxStreamingDurationMs, int minStreamingDurationMs, bool expectSeenVideo) -> void {
         auto const frameBufferSize = 200000;
         Frame videoFrame;
         PRtcPeerConnection offerPc = NULL, answerPc = NULL;
@@ -614,7 +680,7 @@ TEST_F(PeerConnectionFunctionalityTest, DISABLED_exchangeMediaThroughTurnRandomS
         videoFrame.size = TEST_VIDEO_FRAME_SIZE;
         MEMSET(videoFrame.frameData, 0x11, videoFrame.size);
 
-        for(int i = 0; i < iteration; ++i) {
+        for (int i = 0; i < iteration; ++i) {
             MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
             configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_RELAY;
             getIceServers(&configuration);
@@ -622,8 +688,8 @@ TEST_F(PeerConnectionFunctionalityTest, DISABLED_exchangeMediaThroughTurnRandomS
             EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
             EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
 
-            addTrackToPeerConnection(offerPc, &offerVideoTrack, &offerVideoTransceiver,RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
-            addTrackToPeerConnection(offerPc, &offerAudioTrack, &offerAudioTransceiver,RTC_CODEC_OPUS, MEDIA_STREAM_TRACK_KIND_AUDIO);
+            addTrackToPeerConnection(offerPc, &offerVideoTrack, &offerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+            addTrackToPeerConnection(offerPc, &offerAudioTrack, &offerAudioTransceiver, RTC_CODEC_OPUS, MEDIA_STREAM_TRACK_KIND_AUDIO);
             addTrackToPeerConnection(answerPc, &answerVideoTrack, &answerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
             addTrackToPeerConnection(answerPc, &answerAudioTrack, &answerAudioTransceiver, RTC_CODEC_OPUS, MEDIA_STREAM_TRACK_KIND_AUDIO);
 
@@ -637,11 +703,11 @@ TEST_F(PeerConnectionFunctionalityTest, DISABLED_exchangeMediaThroughTurnRandomS
             MEMSET(stateChangeCount, 0x00, SIZEOF(stateChangeCount));
             EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
 
-            streamingTimeMs = (UINT64) (RAND() % (maxStreamingDurationMs - minStreamingDurationMs)) + minStreamingDurationMs;
+            streamingTimeMs = (UINT64)(RAND() % (maxStreamingDurationMs - minStreamingDurationMs)) + minStreamingDurationMs;
             DLOGI("Stop streaming after %u milliseconds.", streamingTimeMs);
 
             auto sendVideoWorker = [](PRtcRtpTransceiver pRtcRtpTransceiver, Frame frame, PSIZE_T pTerminationFlag) -> void {
-                while(!ATOMIC_LOAD_BOOL(pTerminationFlag)) {
+                while (!ATOMIC_LOAD_BOOL(pTerminationFlag)) {
                     EXPECT_EQ(writeFrame(pRtcRtpTransceiver, &frame), STATUS_SUCCESS);
                     // frame was copied by value
                     frame.presentationTs += (HUNDREDS_OF_NANOS_IN_A_SECOND / 25);
@@ -679,8 +745,8 @@ TEST_F(PeerConnectionFunctionalityTest, DISABLED_exchangeMediaThroughTurnRandomS
     deinitializeSignalingClient();
 }
 
-}
-}
-}
-}
-}
+} // namespace webrtcclient
+} // namespace video
+} // namespace kinesis
+} // namespace amazonaws
+} // namespace com

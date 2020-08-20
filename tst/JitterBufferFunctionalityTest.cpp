@@ -1,6 +1,10 @@
 #include "WebRTCClientTestFixture.h"
 
-namespace com { namespace amazonaws { namespace kinesis { namespace video { namespace webrtcclient {
+namespace com {
+namespace amazonaws {
+namespace kinesis {
+namespace video {
+namespace webrtcclient {
 
 class JitterBufferFunctionalityTest : public WebRtcClientTestBase {
 };
@@ -67,7 +71,7 @@ TEST_F(JitterBufferFunctionalityTest, continousPacketsComeInOrder)
     setPayloadToFree();
 
     for (i = 0; i < pktCount; i++) {
-        EXPECT_EQ(STATUS_SUCCESS, jitterBufferPush(mJitterBuffer, mPRtpPackets[i]));
+        EXPECT_EQ(STATUS_SUCCESS, jitterBufferPush(mJitterBuffer, mPRtpPackets[i], nullptr));
         switch (i) {
             case 0:
                 EXPECT_EQ(0, mReadyFrameIndex);
@@ -155,7 +159,7 @@ TEST_F(JitterBufferFunctionalityTest, continousPacketsComeOutOfOrder)
     setPayloadToFree();
 
     for (i = 0; i < pktCount; i++) {
-        EXPECT_EQ(STATUS_SUCCESS, jitterBufferPush(mJitterBuffer, mPRtpPackets[i]));
+        EXPECT_EQ(STATUS_SUCCESS, jitterBufferPush(mJitterBuffer, mPRtpPackets[i], nullptr));
         switch (i) {
             case 0:
             case 1:
@@ -227,7 +231,7 @@ TEST_F(JitterBufferFunctionalityTest, gapBetweenTwoContinousPackets)
 
     for (i = 0; i < pktCount; i++) {
         // packet "2" "5" is not received
-        EXPECT_EQ(STATUS_SUCCESS, jitterBufferPush(mJitterBuffer, mPRtpPackets[i]));
+        EXPECT_EQ(STATUS_SUCCESS, jitterBufferPush(mJitterBuffer, mPRtpPackets[i], nullptr));
         EXPECT_EQ(0, mDroppedFrameIndex);
         EXPECT_EQ(0, mReadyFrameIndex);
     }
@@ -268,7 +272,7 @@ TEST_F(JitterBufferFunctionalityTest, expiredCompleteFrameGotReadyFunc)
     setPayloadToFree();
 
     for (i = 0; i < pktCount; i++) {
-        EXPECT_EQ(STATUS_SUCCESS, jitterBufferPush(mJitterBuffer, mPRtpPackets[i]));
+        EXPECT_EQ(STATUS_SUCCESS, jitterBufferPush(mJitterBuffer, mPRtpPackets[i], nullptr));
         switch (i) {
             case 0:
                 EXPECT_EQ(0, mReadyFrameIndex);
@@ -319,7 +323,7 @@ TEST_F(JitterBufferFunctionalityTest, expiredIncompleteFrameGotDropFunc)
 
     for (i = 0; i < pktCount; i++) {
         // packet "2" is not received
-        EXPECT_EQ(STATUS_SUCCESS, jitterBufferPush(mJitterBuffer, mPRtpPackets[i]));
+        EXPECT_EQ(STATUS_SUCCESS, jitterBufferPush(mJitterBuffer, mPRtpPackets[i], nullptr));
         switch (i) {
             case 0:
                 EXPECT_EQ(0, mDroppedFrameIndex);
@@ -362,7 +366,7 @@ TEST_F(JitterBufferFunctionalityTest, closeBufferWithSingleImcompletePacket)
 
     for (i = 0; i < pktCount; i++) {
         // packet "2" is not received
-        EXPECT_EQ(STATUS_SUCCESS, jitterBufferPush(mJitterBuffer, mPRtpPackets[i]));
+        EXPECT_EQ(STATUS_SUCCESS, jitterBufferPush(mJitterBuffer, mPRtpPackets[i], nullptr));
         EXPECT_EQ(0, mDroppedFrameIndex);
         EXPECT_EQ(0, mReadyFrameIndex);
     }
@@ -398,7 +402,7 @@ TEST_F(JitterBufferFunctionalityTest, fillDataGiveExpectedData)
     setPayloadToFree();
 
     for (i = 0; i < 2; i++) {
-        EXPECT_EQ(STATUS_SUCCESS, jitterBufferPush(mJitterBuffer, mPRtpPackets[i]));
+        EXPECT_EQ(STATUS_SUCCESS, jitterBufferPush(mJitterBuffer, mPRtpPackets[i], nullptr));
     }
 
     EXPECT_EQ(STATUS_SUCCESS, jitterBufferFillFrameData(mJitterBuffer, buffer, 2, &filledSize, 0, 1));
@@ -435,7 +439,7 @@ TEST_F(JitterBufferFunctionalityTest, fillDataReturnErrorWithImcompleteFrame)
     setPayloadToFree();
 
     for (i = 0; i < 2; i++) {
-        EXPECT_EQ(STATUS_SUCCESS, jitterBufferPush(mJitterBuffer, mPRtpPackets[i]));
+        EXPECT_EQ(STATUS_SUCCESS, jitterBufferPush(mJitterBuffer, mPRtpPackets[i], nullptr));
     }
 
     EXPECT_EQ(STATUS_NULL_ARG, jitterBufferFillFrameData(mJitterBuffer, buffer, 2, &filledSize, 0, 1));
@@ -471,7 +475,7 @@ TEST_F(JitterBufferFunctionalityTest, fillDataReturnErrorWithNotEnoughOutputBuff
     setPayloadToFree();
 
     for (i = 0; i < 2; i++) {
-        EXPECT_EQ(STATUS_SUCCESS, jitterBufferPush(mJitterBuffer, mPRtpPackets[i]));
+        EXPECT_EQ(STATUS_SUCCESS, jitterBufferPush(mJitterBuffer, mPRtpPackets[i], nullptr));
     }
 
     EXPECT_EQ(STATUS_BUFFER_TOO_SMALL, jitterBufferFillFrameData(mJitterBuffer, buffer, 1, &filledSize, 0, 1));
@@ -503,7 +507,7 @@ TEST_F(JitterBufferFunctionalityTest, dropDataGivenSmallStartAndLargeEnd)
     setPayloadToFree();
 
     for (i = 0; i < 2; i++) {
-        EXPECT_EQ(STATUS_SUCCESS, jitterBufferPush(mJitterBuffer, mPRtpPackets[i]));
+        EXPECT_EQ(STATUS_SUCCESS, jitterBufferPush(mJitterBuffer, mPRtpPackets[i], nullptr));
     }
 
     EXPECT_EQ(STATUS_SUCCESS, jitterBufferDropBufferData(mJitterBuffer, 1, 2, 100));
@@ -531,7 +535,7 @@ TEST_F(JitterBufferFunctionalityTest, dropDataGivenLargeStartAndSmallEnd)
     setPayloadToFree();
 
     for (i = 0; i < 2; i++) {
-        EXPECT_EQ(STATUS_SUCCESS, jitterBufferPush(mJitterBuffer, mPRtpPackets[i]));
+        EXPECT_EQ(STATUS_SUCCESS, jitterBufferPush(mJitterBuffer, mPRtpPackets[i], nullptr));
     }
 
     // Directly drops all frames 10 - 65535 and 0 - 2, so no frame will be reported as ready/dropped callback
@@ -601,7 +605,7 @@ TEST_F(JitterBufferFunctionalityTest, continousPacketsComeInCycling)
     setPayloadToFree();
 
     for (i = 0; i < pktCount; i++) {
-        EXPECT_EQ(STATUS_SUCCESS, jitterBufferPush(mJitterBuffer, mPRtpPackets[i]));
+        EXPECT_EQ(STATUS_SUCCESS, jitterBufferPush(mJitterBuffer, mPRtpPackets[i], nullptr));
         switch (i) {
             case 0:
                 EXPECT_EQ(0, mReadyFrameIndex);
@@ -689,7 +693,7 @@ TEST_F(JitterBufferFunctionalityTest, getFrameReadyAfterDroppedFrame)
     setPayloadToFree();
 
     for (i = 0; i < 5; i++) {
-        EXPECT_EQ(STATUS_SUCCESS, jitterBufferPush(mJitterBuffer, mPRtpPackets[i]));
+        EXPECT_EQ(STATUS_SUCCESS, jitterBufferPush(mJitterBuffer, mPRtpPackets[i], nullptr));
         switch (i) {
             case 0:
                 EXPECT_EQ(0, mReadyFrameIndex);
@@ -714,7 +718,6 @@ TEST_F(JitterBufferFunctionalityTest, getFrameReadyAfterDroppedFrame)
             default:
                 ASSERT_TRUE(FALSE);
         }
-
     }
 
     clearJitterBufferForTest();
@@ -751,7 +754,7 @@ TEST_F(JitterBufferFunctionalityTest, pushFrameArrivingLate)
     setPayloadToFree();
 
     for (i = 0; i < 2; i++) {
-        EXPECT_EQ(STATUS_SUCCESS, jitterBufferPush(mJitterBuffer, mPRtpPackets[i]));
+        EXPECT_EQ(STATUS_SUCCESS, jitterBufferPush(mJitterBuffer, mPRtpPackets[i], nullptr));
         switch (i) {
             case 0:
                 EXPECT_EQ(0, mReadyFrameIndex);
@@ -764,14 +767,13 @@ TEST_F(JitterBufferFunctionalityTest, pushFrameArrivingLate)
             default:
                 ASSERT_TRUE(FALSE);
         }
-
     }
 
     clearJitterBufferForTest();
 }
 
-}
-}
-}
-}
-}
+} // namespace webrtcclient
+} // namespace video
+} // namespace kinesis
+} // namespace amazonaws
+} // namespace com

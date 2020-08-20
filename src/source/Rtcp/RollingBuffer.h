@@ -6,11 +6,11 @@ RTCP Rolling Buffer include file
 
 #pragma once
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef STATUS (*FreeDataFunc)(PUINT64 );
+typedef STATUS (*FreeDataFunc)(PUINT64);
 
 typedef struct {
     // Lock guarding the rolling buffer
@@ -37,8 +37,7 @@ STATUS rollingBufferExtractData(PRollingBuffer, UINT64, PUINT64);
 STATUS rollingBufferGetSize(PRollingBuffer, PUINT32);
 STATUS rollingBufferIsEmpty(PRollingBuffer, PBOOL);
 
-#ifdef  __cplusplus
-
+#ifdef __cplusplus
 }
 #endif
 #endif //__KINESIS_VIDEO_WEBRTC_CLIENT_RTCP_ROLLING_BUFFER_H

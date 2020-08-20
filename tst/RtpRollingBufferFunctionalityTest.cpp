@@ -1,32 +1,20 @@
 #include "WebRTCClientTestFixture.h"
 
-namespace com { namespace amazonaws { namespace kinesis { namespace video { namespace webrtcclient {
+namespace com {
+namespace amazonaws {
+namespace kinesis {
+namespace video {
+namespace webrtcclient {
 
 class RtpRollingBufferFunctionalityTest : public WebRtcClientTestBase {
 };
-
-STATUS createRtpPacketWithSeqNum(UINT16 seqNum, PRtpPacket *ppRtpPacket) {
-    STATUS retStatus = STATUS_SUCCESS;
-    BYTE payload[10];
-    PRtpPacket pRtpPacket = NULL;
-
-    CHK_STATUS(createRtpPacket(2, FALSE, FALSE, 0, FALSE,
-            96, seqNum, 100, 0x1234ABCD, NULL, 0, 0, NULL, payload, 10, &pRtpPacket));
-    *ppRtpPacket = pRtpPacket;
-
-    CHK_STATUS(createBytesFromRtpPacket(pRtpPacket, NULL, &pRtpPacket->rawPacketLength));
-    CHK(NULL != (pRtpPacket->pRawPacket = (PBYTE) MEMALLOC(pRtpPacket->rawPacketLength)), STATUS_NOT_ENOUGH_MEMORY);
-    CHK_STATUS(createBytesFromRtpPacket(pRtpPacket, pRtpPacket->pRawPacket, &pRtpPacket->rawPacketLength));
-
-CleanUp:
-    return retStatus;
-}
 
 VOID updateRtpPacketSeqNum(PRtpPacket pRtpPacket, UINT16 seqNum) {
     pRtpPacket->header.sequenceNumber = seqNum;
 }
 
-VOID pushConsecutiveRtpPacketsIntoBuffer(UINT32 packetCount, UINT32 bufferCapacity, PRtpRollingBuffer *ppRtpRollingBuffer, PRtpPacket *ppRtpPacket) {
+VOID pushConsecutiveRtpPacketsIntoBuffer(UINT32 packetCount, UINT32 bufferCapacity, PRtpRollingBuffer* ppRtpRollingBuffer, PRtpPacket* ppRtpPacket)
+{
     PRtpPacket pRtpPacket;
     PRtpRollingBuffer pRtpRollingBuffer;
     UINT32 i;
@@ -64,7 +52,7 @@ TEST_F(RtpRollingBufferFunctionalityTest, appendDataToBufferAndVerify)
     EXPECT_EQ(STATUS_SUCCESS, rtpRollingBufferAddRtpPacket(pRtpRollingBuffer, pRtpPacket));
     EXPECT_EQ(3, pRtpRollingBuffer->lastIndex);
     EXPECT_EQ(STATUS_SUCCESS, freeRtpRollingBuffer(&pRtpRollingBuffer));
-    EXPECT_EQ(STATUS_SUCCESS, freeRtpPacketAndRawPacket(&pRtpPacket));
+    EXPECT_EQ(STATUS_SUCCESS, freeRtpPacket(&pRtpPacket));
 }
 
 TEST_F(RtpRollingBufferFunctionalityTest, getIndexForSeqListReturnEmptyList)
@@ -83,7 +71,7 @@ TEST_F(RtpRollingBufferFunctionalityTest, getIndexForSeqListReturnEmptyList)
     EXPECT_EQ(0, filledIndexListLen);
     EXPECT_EQ(STATUS_SUCCESS, freeRtpRollingBuffer(&pRtpRollingBuffer));
     SAFE_MEMFREE(indexList);
-    EXPECT_EQ(STATUS_SUCCESS, freeRtpPacketAndRawPacket(&pRtpPacket));
+    EXPECT_EQ(STATUS_SUCCESS, freeRtpPacket(&pRtpPacket));
 }
 
 TEST_F(RtpRollingBufferFunctionalityTest, getIndexForSeqListReturnCorrectIndexs)
@@ -104,7 +92,7 @@ TEST_F(RtpRollingBufferFunctionalityTest, getIndexForSeqListReturnCorrectIndexs)
     EXPECT_EQ(5, indexList[1]);
     EXPECT_EQ(STATUS_SUCCESS, freeRtpRollingBuffer(&pRtpRollingBuffer));
     SAFE_MEMFREE(indexList);
-    EXPECT_EQ(STATUS_SUCCESS, freeRtpPacketAndRawPacket(&pRtpPacket));
+    EXPECT_EQ(STATUS_SUCCESS, freeRtpPacket(&pRtpPacket));
 }
 
 TEST_F(RtpRollingBufferFunctionalityTest, getIndexForSeqListReturnIndexsFitIntoSmallBuffer)
@@ -125,7 +113,7 @@ TEST_F(RtpRollingBufferFunctionalityTest, getIndexForSeqListReturnIndexsFitIntoS
     EXPECT_EQ(4, indexList[1]);
     EXPECT_EQ(STATUS_SUCCESS, freeRtpRollingBuffer(&pRtpRollingBuffer));
     SAFE_MEMFREE(indexList);
-    EXPECT_EQ(STATUS_SUCCESS, freeRtpPacketAndRawPacket(&pRtpPacket));
+    EXPECT_EQ(STATUS_SUCCESS, freeRtpPacket(&pRtpPacket));
 }
 
 TEST_F(RtpRollingBufferFunctionalityTest, getIndexForSeqListReturnCorrectIndexsWhenSeqNumGetOver65535)
@@ -149,7 +137,7 @@ TEST_F(RtpRollingBufferFunctionalityTest, getIndexForSeqListReturnCorrectIndexsW
     EXPECT_EQ(65535, indexList[4]);
     EXPECT_EQ(STATUS_SUCCESS, freeRtpRollingBuffer(&pRtpRollingBuffer));
     SAFE_MEMFREE(indexList);
-    EXPECT_EQ(STATUS_SUCCESS, freeRtpPacketAndRawPacket(&pRtpPacket));
+    EXPECT_EQ(STATUS_SUCCESS, freeRtpPacket(&pRtpPacket));
 
     indexList = (PUINT64) MEMALLOC(SIZEOF(UINT64) * 5);
     // add 0 - 131074(65538 + 65536), capacity is 5, 65534(131070) 65335(131071) 0(131072) 1(131073) 2(131074) are in rolling buffer
@@ -164,13 +152,11 @@ TEST_F(RtpRollingBufferFunctionalityTest, getIndexForSeqListReturnCorrectIndexsW
     EXPECT_EQ(131071, indexList[4]);
     EXPECT_EQ(STATUS_SUCCESS, freeRtpRollingBuffer(&pRtpRollingBuffer));
     SAFE_MEMFREE(indexList);
-    EXPECT_EQ(STATUS_SUCCESS, freeRtpPacketAndRawPacket(&pRtpPacket));
+    EXPECT_EQ(STATUS_SUCCESS, freeRtpPacket(&pRtpPacket));
 }
 
-
-}
-}
-}
-}
-}
-
+} // namespace webrtcclient
+} // namespace video
+} // namespace kinesis
+} // namespace amazonaws
+} // namespace com

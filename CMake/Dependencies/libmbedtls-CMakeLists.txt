@@ -1,0 +1,33 @@
+cmake_minimum_required(VERSION 2.8)
+
+project(libmbedtls-download NONE)
+
+include(ExternalProject)
+
+if (BUILD_STATIC)
+  set(BUILD_SHARED 0)
+else()
+  set(BUILD_SHARED 1)
+endif()
+
+if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  set(CMAKE_MACOSX_RPATH 1)
+else()
+  set(CMAKE_MACOSX_RPATH 0)
+endif()
+
+ExternalProject_Add(
+  project_libmbedtls
+  # TODO: needs to replace this with official mbedTLS branch
+  #       when they add DTLS-SRTP extension support.
+  # Reference: https://github.com/ARMmbed/mbedtls/pull/3235
+  GIT_REPOSITORY  https://github.com/lherman-cs/mbedtls.git
+  GIT_TAG         a2c1a8f75f0478bad0479bbc9eb9ec2a4376c5e6
+  PREFIX          ${CMAKE_CURRENT_BINARY_DIR}/build
+  CMAKE_ARGS
+    -DCMAKE_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX}
+    -DUSE_SHARED_MBEDTLS_LIBRARY=${BUILD_SHARED}
+    -DCMAKE_BUILD_TYPE=Release
+    -DCMAKE_MACOSX_RPATH=${CMAKE_MACOSX_RPATH}
+  BUILD_ALWAYS    TRUE
+  TEST_COMMAND    "")

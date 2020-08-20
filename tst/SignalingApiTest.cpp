@@ -1,6 +1,10 @@
 #include "WebRTCClientTestFixture.h"
 
-namespace com { namespace amazonaws { namespace kinesis { namespace video { namespace webrtcclient {
+namespace com {
+namespace amazonaws {
+namespace kinesis {
+namespace video {
+namespace webrtcclient {
 
 class SignalingApiTest : public WebRtcClientTestBase {
 };
@@ -65,8 +69,7 @@ TEST_F(SignalingApiTest, signalingSendMessageSyncFileCredsProvider)
     ASSERT_EQ(STATUS_SUCCESS, writeFile(TEST_FILE_CREDENTIALS_FILE_PATH, FALSE, FALSE, (PBYTE) fileContent, length));
 
     // Create file creds provider from the file
-    EXPECT_EQ(STATUS_SUCCESS, createFileCredentialProvider(TEST_FILE_CREDENTIALS_FILE_PATH,
-                                            &pAwsCredentialProvider));
+    EXPECT_EQ(STATUS_SUCCESS, createFileCredentialProvider(TEST_FILE_CREDENTIALS_FILE_PATH, &pAwsCredentialProvider));
 
     initializeSignalingClient(pAwsCredentialProvider);
 
@@ -100,7 +103,7 @@ TEST_F(SignalingApiTest, signalingSendMessageSyncFileCredsProvider)
 
 TEST_F(SignalingApiTest, signalingClientConnectSync)
 {
-     STATUS expectedStatus;
+    STATUS expectedStatus;
 
     initializeSignalingClient();
     EXPECT_NE(STATUS_SUCCESS, signalingClientConnectSync(INVALID_SIGNALING_CLIENT_HANDLE_VALUE));
@@ -235,8 +238,100 @@ TEST_F(SignalingApiTest, signalingClientDisconnectSync)
     EXPECT_NE(STATUS_SUCCESS, signalingClientDisconnectSync(INVALID_SIGNALING_CLIENT_HANDLE_VALUE));
 }
 
+TEST_F(SignalingApiTest, signalingClientGetMetrics)
+{
+    SignalingClientMetrics metrics;
+    SignalingMessage signalingMessage;
+    metrics.version = SIGNALING_CLIENT_METRICS_CURRENT_VERSION;
+
+    // Invalid input
+    EXPECT_NE(STATUS_SUCCESS, signalingClientGetMetrics(INVALID_SIGNALING_CLIENT_HANDLE_VALUE, &metrics));
+    EXPECT_NE(STATUS_SUCCESS, signalingClientGetMetrics(INVALID_SIGNALING_CLIENT_HANDLE_VALUE, NULL));
+    EXPECT_NE(STATUS_SUCCESS, signalingClientGetMetrics(mSignalingClientHandle, NULL));
+
+    if (!mAccessKeyIdSet) {
+        return;
+    }
+
+    initializeSignalingClient();
+    // Valid call
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetMetrics(mSignalingClientHandle, &metrics));
+
+    EXPECT_EQ(0, metrics.signalingClientStats.numberOfReconnects);
+    EXPECT_EQ(0, metrics.signalingClientStats.numberOfMessagesSent);
+    EXPECT_EQ(0, metrics.signalingClientStats.numberOfMessagesReceived);
+    EXPECT_EQ(0, metrics.signalingClientStats.numberOfErrors);
+    EXPECT_EQ(0, metrics.signalingClientStats.numberOfRuntimeErrors);
+    EXPECT_EQ(1, metrics.signalingClientStats.iceRefreshCount);
+    EXPECT_NE(0, metrics.signalingClientStats.signalingClientUptime);
+    EXPECT_EQ(0, metrics.signalingClientStats.connectionDuration);
+    EXPECT_NE(0, metrics.signalingClientStats.cpApiCallLatency);
+    EXPECT_NE(0, metrics.signalingClientStats.dpApiCallLatency);
+
+    // Connect and get metrics
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(mSignalingClientHandle));
+
+    // Await for a little to ensure we get some metrics for the connection duration
+    THREAD_SLEEP(200 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetMetrics(mSignalingClientHandle, &metrics));
+    EXPECT_EQ(0, metrics.signalingClientStats.numberOfReconnects);
+    EXPECT_EQ(0, metrics.signalingClientStats.numberOfMessagesSent);
+    EXPECT_EQ(0, metrics.signalingClientStats.numberOfMessagesReceived);
+    EXPECT_EQ(0, metrics.signalingClientStats.numberOfErrors);
+    EXPECT_EQ(0, metrics.signalingClientStats.numberOfRuntimeErrors);
+    EXPECT_EQ(1, metrics.signalingClientStats.iceRefreshCount);
+    EXPECT_NE(0, metrics.signalingClientStats.signalingClientUptime);
+    EXPECT_NE(0, metrics.signalingClientStats.connectionDuration);
+    EXPECT_NE(0, metrics.signalingClientStats.cpApiCallLatency);
+    EXPECT_NE(0, metrics.signalingClientStats.dpApiCallLatency);
+
+    // Send a message and get metrics
+    signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
+    signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
+    STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    MEMSET(signalingMessage.payload, 'A', 100);
+    signalingMessage.payload[100] = '\0';
+    signalingMessage.payloadLen = 0;
+    signalingMessage.correlationId[0] = '\0';
+
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(mSignalingClientHandle, &signalingMessage));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetMetrics(mSignalingClientHandle, &metrics));
+    EXPECT_EQ(0, metrics.signalingClientStats.numberOfReconnects);
+    EXPECT_EQ(1, metrics.signalingClientStats.numberOfMessagesSent);
+    EXPECT_EQ(0, metrics.signalingClientStats.numberOfMessagesReceived);
+    EXPECT_EQ(0, metrics.signalingClientStats.numberOfErrors);
+    EXPECT_EQ(0, metrics.signalingClientStats.numberOfRuntimeErrors);
+    EXPECT_EQ(1, metrics.signalingClientStats.iceRefreshCount);
+    EXPECT_NE(0, metrics.signalingClientStats.signalingClientUptime);
+    EXPECT_NE(0, metrics.signalingClientStats.connectionDuration);
+    EXPECT_NE(0, metrics.signalingClientStats.cpApiCallLatency);
+    EXPECT_NE(0, metrics.signalingClientStats.dpApiCallLatency);
+
+    // Make a couple of bad API invocations
+    EXPECT_NE(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(mSignalingClientHandle, NULL));
+    EXPECT_NE(STATUS_SUCCESS, signalingClientGetIceConfigInfo(mSignalingClientHandle, 0, NULL));
+    EXPECT_NE(STATUS_SUCCESS, signalingClientGetCurrentState(mSignalingClientHandle, NULL));
+    EXPECT_NE(STATUS_SUCCESS, signalingClientGetMetrics(mSignalingClientHandle, NULL));
+    EXPECT_NE(STATUS_SUCCESS, signalingClientSendMessageSync(mSignalingClientHandle, NULL));
+
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetMetrics(mSignalingClientHandle, &metrics));
+    EXPECT_EQ(0, metrics.signalingClientStats.numberOfReconnects);
+    EXPECT_EQ(1, metrics.signalingClientStats.numberOfMessagesSent);
+    EXPECT_EQ(0, metrics.signalingClientStats.numberOfMessagesReceived);
+    EXPECT_EQ(5, metrics.signalingClientStats.numberOfErrors);
+    EXPECT_EQ(0, metrics.signalingClientStats.numberOfRuntimeErrors);
+    EXPECT_EQ(1, metrics.signalingClientStats.iceRefreshCount);
+    EXPECT_NE(0, metrics.signalingClientStats.signalingClientUptime);
+    EXPECT_NE(0, metrics.signalingClientStats.connectionDuration);
+    EXPECT_NE(0, metrics.signalingClientStats.cpApiCallLatency);
+    EXPECT_NE(0, metrics.signalingClientStats.dpApiCallLatency);
+
+    deinitializeSignalingClient();
 }
-}
-}
-}
-}
+
+} // namespace webrtcclient
+} // namespace video
+} // namespace kinesis
+} // namespace amazonaws
+} // namespace com

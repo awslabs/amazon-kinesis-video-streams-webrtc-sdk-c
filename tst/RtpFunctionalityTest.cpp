@@ -1,9 +1,13 @@
 #include "WebRTCClientTestFixture.h"
 
-namespace com { namespace amazonaws { namespace kinesis { namespace video { namespace webrtcclient {
+namespace com {
+namespace amazonaws {
+namespace kinesis {
+namespace video {
+namespace webrtcclient {
 
-#define NUMBER_OF_FRAME_FILES               403
-#define DEFAULT_FPS_VALUE                   25
+#define NUMBER_OF_FRAME_FILES 403
+#define DEFAULT_FPS_VALUE     25
 BYTE start4ByteCode[] = {0x00, 0x00, 0x00, 0x01};
 
 class RtpFunctionalityTest : public WebRtcClientTestBase {
@@ -20,7 +24,6 @@ TEST_F(RtpFunctionalityTest, packetUnderflow)
         ASSERT_EQ(setRtpPacketFromBytes(rawPacket, SIZEOF(rawPacket), &rtpPacket), STATUS_RTP_INPUT_PACKET_TOO_SMALL);
     }
 }
-
 
 TEST_F(RtpFunctionalityTest, marshallUnmarshallGettingSameData)
 {
@@ -42,12 +45,12 @@ TEST_F(RtpFunctionalityTest, marshallUnmarshallGettingSameData)
     packetList = (PRtpPacket) MEMALLOC(SIZEOF(RtpPacket));
 
     SRAND(GETTIME());
-    EXPECT_EQ(STATUS_SUCCESS, constructRtpPackets(&payloadArray, 8, 1, 1324857487, 0x1234ABCD, (PRtpPacket) packetList, payloadArray.payloadSubLenSize));
+    EXPECT_EQ(STATUS_SUCCESS,
+              constructRtpPackets(&payloadArray, 8, 1, 1324857487, 0x1234ABCD, (PRtpPacket) packetList, payloadArray.payloadSubLenSize));
 
     EXPECT_NE(NULL, (UINT64) packetList);
 
-    for (i = 0; i < payloadArray.payloadSubLenSize; i++)
-    {
+    for (i = 0; i < payloadArray.payloadSubLenSize; i++) {
         pRtpPacket = packetList + i;
 
         EXPECT_EQ(STATUS_SUCCESS, createBytesFromRtpPacket(pRtpPacket, NULL, &packetLen));
@@ -74,8 +77,6 @@ TEST_F(RtpFunctionalityTest, marshallUnmarshallGettingSameData)
         EXPECT_TRUE(MEMCMP(pRtpPacket->payload, pNewRtpPacket->payload, pRtpPacket->payloadLength) == 0);
 
         EXPECT_EQ(STATUS_SUCCESS, freeRtpPacket(&pNewRtpPacket));
-        MEMFREE(rawPacket);
-        rawPacket = NULL;
     }
 
     MEMFREE(packetList);
@@ -107,31 +108,22 @@ TEST_F(RtpFunctionalityTest, marshallUnmarshallH264Data)
         }
 
         fileIndex = fileIndex % NUMBER_OF_FRAME_FILES + 1;
-        EXPECT_EQ(STATUS_SUCCESS, readFrameData((PBYTE) payload, (PUINT32) &payloadLen, fileIndex,
-                (PCHAR) "../samples/h264SampleFrames"));
+        EXPECT_EQ(STATUS_SUCCESS, readFrameData((PBYTE) payload, (PUINT32) &payloadLen, fileIndex, (PCHAR) "../samples/h264SampleFrames"));
 
         // First call for payload size and sub payload length size
-        EXPECT_EQ(STATUS_SUCCESS, createPayloadForH264(DEFAULT_MTU_SIZE,
-                                                       (PBYTE) payload,
-                                                       payloadLen,
-                                                       NULL,
-                                                       &payloadArray.payloadLength,
-                                                       NULL,
-                                                       &payloadArray.payloadSubLenSize));
+        EXPECT_EQ(STATUS_SUCCESS,
+                  createPayloadForH264(DEFAULT_MTU_SIZE, (PBYTE) payload, payloadLen, NULL, &payloadArray.payloadLength, NULL,
+                                       &payloadArray.payloadSubLenSize));
 
-        if (payloadArray.payloadLength > payloadArray.maxPayloadLength)
-        {
-            if (payloadArray.payloadBuffer != NULL)
-            {
+        if (payloadArray.payloadLength > payloadArray.maxPayloadLength) {
+            if (payloadArray.payloadBuffer != NULL) {
                 MEMFREE(payloadArray.payloadBuffer);
             }
             payloadArray.payloadBuffer = (PBYTE) MEMALLOC(payloadArray.payloadLength);
             payloadArray.maxPayloadLength = payloadArray.payloadLength;
         }
-        if (payloadArray.payloadSubLenSize > payloadArray.maxPayloadSubLenSize)
-        {
-            if (payloadArray.payloadSubLength != NULL)
-            {
+        if (payloadArray.payloadSubLenSize > payloadArray.maxPayloadSubLenSize) {
+            if (payloadArray.payloadSubLength != NULL) {
                 MEMFREE(payloadArray.payloadSubLength);
             }
             payloadArray.payloadSubLength = (PUINT32) MEMALLOC(payloadArray.payloadSubLenSize * SIZEOF(UINT32));
@@ -139,29 +131,19 @@ TEST_F(RtpFunctionalityTest, marshallUnmarshallH264Data)
         }
 
         // Second call with actual buffer to fill in data
-        EXPECT_EQ(STATUS_SUCCESS, createPayloadForH264(DEFAULT_MTU_SIZE,
-                                                       (PBYTE) payload,
-                                                       payloadLen,
-                                                       payloadArray.payloadBuffer,
-                                                       &payloadArray.payloadLength,
-                                                       payloadArray.payloadSubLength,
-                                                       &payloadArray.payloadSubLenSize));
+        EXPECT_EQ(STATUS_SUCCESS,
+                  createPayloadForH264(DEFAULT_MTU_SIZE, (PBYTE) payload, payloadLen, payloadArray.payloadBuffer, &payloadArray.payloadLength,
+                                       payloadArray.payloadSubLength, &payloadArray.payloadSubLenSize));
 
         EXPECT_LT(0, payloadArray.payloadSubLenSize);
         pPacketList = (PRtpPacket) MEMALLOC(payloadArray.payloadSubLenSize * SIZEOF(RtpPacket));
 
-        constructRtpPackets(&payloadArray,
-                            96,
-                            seqNum,
-                            (UINT32) ((curTime - startTimeStamp) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND),
-                            0x1234ABCD,
-                            pPacketList,
-                            payloadArray.payloadSubLenSize);
+        constructRtpPackets(&payloadArray, 96, seqNum, (UINT32)((curTime - startTimeStamp) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND), 0x1234ABCD,
+                            pPacketList, payloadArray.payloadSubLenSize);
 
         seqNum = GET_UINT16_SEQ_NUM(seqNum + payloadArray.payloadSubLenSize);
 
-        for (i = 0; i < payloadArray.payloadSubLenSize; i++)
-        {
+        for (i = 0; i < payloadArray.payloadSubLenSize; i++) {
             pRtpPacket = pPacketList + i;
             EXPECT_EQ(STATUS_SUCCESS, createBytesFromRtpPacket(pRtpPacket, NULL, &packetLen));
             EXPECT_TRUE(NULL != (rawPacket = (PBYTE) MEMALLOC(packetLen)));
@@ -175,7 +157,6 @@ TEST_F(RtpFunctionalityTest, marshallUnmarshallH264Data)
         MEMFREE(pPacketList);
 
         pPacketList = NULL;
-
     }
 
     MEMFREE(payloadArray.payloadBuffer);
@@ -206,17 +187,12 @@ TEST_F(RtpFunctionalityTest, packingUnpackingVerifySameH264Frame)
     payloadArray.payloadSubLength = NULL;
 
     for (fileIndex = 1; fileIndex <= NUMBER_OF_FRAME_FILES; fileIndex++) {
-        EXPECT_EQ(STATUS_SUCCESS, readFrameData((PBYTE) payload, (PUINT32) &payloadLen, fileIndex,
-                (PCHAR) "../samples/h264SampleFrames"));
+        EXPECT_EQ(STATUS_SUCCESS, readFrameData((PBYTE) payload, (PUINT32) &payloadLen, fileIndex, (PCHAR) "../samples/h264SampleFrames"));
 
         // First call for payload size and sub payload length size
-        EXPECT_EQ(STATUS_SUCCESS,createPayloadForH264(DEFAULT_MTU_SIZE,
-                                                      (PBYTE) payload,
-                                                      payloadLen,
-                                                      NULL,
-                                                      &payloadArray.payloadLength,
-                                                      NULL,
-                                                      &payloadArray.payloadSubLenSize));
+        EXPECT_EQ(STATUS_SUCCESS,
+                  createPayloadForH264(DEFAULT_MTU_SIZE, (PBYTE) payload, payloadLen, NULL, &payloadArray.payloadLength, NULL,
+                                       &payloadArray.payloadSubLenSize));
 
         if (payloadArray.payloadLength > payloadArray.maxPayloadLength) {
             if (payloadArray.payloadBuffer != NULL) {
@@ -234,20 +210,18 @@ TEST_F(RtpFunctionalityTest, packingUnpackingVerifySameH264Frame)
         }
 
         // Second call with actual buffer to fill in data
-        EXPECT_EQ(STATUS_SUCCESS, createPayloadForH264(DEFAULT_MTU_SIZE, (PBYTE) payload, payloadLen, payloadArray.payloadBuffer,
-                &payloadArray.payloadLength, payloadArray.payloadSubLength,
-                &payloadArray.payloadSubLenSize));
+        EXPECT_EQ(STATUS_SUCCESS,
+                  createPayloadForH264(DEFAULT_MTU_SIZE, (PBYTE) payload, payloadLen, payloadArray.payloadBuffer, &payloadArray.payloadLength,
+                                       payloadArray.payloadSubLength, &payloadArray.payloadSubLenSize));
 
         EXPECT_LT(0, payloadArray.payloadSubLenSize);
 
         offset = 0;
 
         for (i = 0; i < payloadArray.payloadSubLenSize; i++) {
-            EXPECT_EQ(STATUS_SUCCESS, depayH264FromRtpPayload(payloadArray.payloadBuffer + offset,
-                                                              payloadArray.payloadSubLength[i],
-                                                              NULL,
-                                                              &newPayloadSubLen,
-                                                              &isStartPacket));
+            EXPECT_EQ(STATUS_SUCCESS,
+                      depayH264FromRtpPayload(payloadArray.payloadBuffer + offset, payloadArray.payloadSubLength[i], NULL, &newPayloadSubLen,
+                                              &isStartPacket));
             newPayloadLen += newPayloadSubLen;
             if (isStartPacket) {
                 newPayloadLen -= SIZEOF(start4ByteCode);
@@ -264,11 +238,9 @@ TEST_F(RtpFunctionalityTest, packingUnpackingVerifySameH264Frame)
         remainPayloadLen = payloadLen;
         for (i = 0; i < payloadArray.payloadSubLenSize; i++) {
             newPayloadSubLen = depayloadSize;
-            EXPECT_EQ(STATUS_SUCCESS, depayH264FromRtpPayload(payloadArray.payloadBuffer + offset,
-                                                              payloadArray.payloadSubLength[i],
-                                                              depayload,
-                                                              &newPayloadSubLen,
-                                                              &isStartPacket));
+            EXPECT_EQ(STATUS_SUCCESS,
+                      depayH264FromRtpPayload(payloadArray.payloadBuffer + offset, payloadArray.payloadSubLength[i], depayload, &newPayloadSubLen,
+                                              &isStartPacket));
             if (isStartPacket) {
                 EXPECT_EQ(STATUS_SUCCESS, getNextNaluLength(pCurPtrInPayload, remainPayloadLen, &startIndex, &naluLength));
                 pCurPtrInPayload += startIndex;
@@ -304,8 +276,9 @@ TEST_F(RtpFunctionalityTest, packingUnpackingVerifySameOpusFrame)
     payloadArray.payloadSubLength = NULL;
 
     // First call for payload size and sub payload length size
-    EXPECT_EQ(STATUS_SUCCESS,createPayloadForOpus(DEFAULT_MTU_SIZE, (PBYTE) &payload, payloadLen, NULL, &payloadArray.payloadLength, NULL,
-            &payloadArray.payloadSubLenSize));
+    EXPECT_EQ(STATUS_SUCCESS,
+              createPayloadForOpus(DEFAULT_MTU_SIZE, (PBYTE) &payload, payloadLen, NULL, &payloadArray.payloadLength, NULL,
+                                   &payloadArray.payloadSubLenSize));
 
     if (payloadArray.payloadLength > payloadArray.maxPayloadLength) {
         if (payloadArray.payloadBuffer != NULL) {
@@ -323,25 +296,19 @@ TEST_F(RtpFunctionalityTest, packingUnpackingVerifySameOpusFrame)
     }
 
     // Second call with actual buffer to fill in data
-    EXPECT_EQ(STATUS_SUCCESS, createPayloadForOpus(DEFAULT_MTU_SIZE, (PBYTE) &payload, payloadLen, payloadArray.payloadBuffer,
-            &payloadArray.payloadLength, payloadArray.payloadSubLength, &payloadArray.payloadSubLenSize));
+    EXPECT_EQ(STATUS_SUCCESS,
+              createPayloadForOpus(DEFAULT_MTU_SIZE, (PBYTE) &payload, payloadLen, payloadArray.payloadBuffer, &payloadArray.payloadLength,
+                                   payloadArray.payloadSubLength, &payloadArray.payloadSubLenSize));
 
     EXPECT_EQ(1, payloadArray.payloadSubLenSize);
     EXPECT_EQ(6, payloadArray.payloadSubLength[0]);
 
-    EXPECT_EQ(STATUS_SUCCESS, depayOpusFromRtpPayload(payloadArray.payloadBuffer,
-                                                      payloadArray.payloadSubLength[0],
-                                                      NULL,
-                                                      &newPayloadSubLen,
-                                                      NULL));
+    EXPECT_EQ(STATUS_SUCCESS, depayOpusFromRtpPayload(payloadArray.payloadBuffer, payloadArray.payloadSubLength[0], NULL, &newPayloadSubLen, NULL));
     EXPECT_EQ(6, newPayloadSubLen);
 
     newPayloadSubLen = depayloadSize;
-    EXPECT_EQ(STATUS_SUCCESS, depayOpusFromRtpPayload(payloadArray.payloadBuffer,
-                                                      payloadArray.payloadSubLength[0],
-                                                      depayload,
-                                                      &newPayloadSubLen,
-                                                      NULL));
+    EXPECT_EQ(STATUS_SUCCESS,
+              depayOpusFromRtpPayload(payloadArray.payloadBuffer, payloadArray.payloadSubLength[0], depayload, &newPayloadSubLen, NULL));
     EXPECT_TRUE(MEMCMP(payload, depayload, newPayloadSubLen) == 0);
 
     MEMFREE(payloadArray.payloadBuffer);
@@ -364,13 +331,9 @@ TEST_F(RtpFunctionalityTest, packingUnpackingVerifySameShortG711Frame)
     payloadArray.payloadSubLength = NULL;
 
     // First call for payload size and sub payload length size
-    EXPECT_EQ(STATUS_SUCCESS,createPayloadForG711(DEFAULT_MTU_SIZE,
-                                                  (PBYTE) &payload,
-                                                  payloadLen,
-                                                  NULL,
-                                                  &payloadArray.payloadLength,
-                                                  NULL,
-                                                  &payloadArray.payloadSubLenSize));
+    EXPECT_EQ(STATUS_SUCCESS,
+              createPayloadForG711(DEFAULT_MTU_SIZE, (PBYTE) &payload, payloadLen, NULL, &payloadArray.payloadLength, NULL,
+                                   &payloadArray.payloadSubLenSize));
 
     if (payloadArray.payloadLength > payloadArray.maxPayloadLength) {
         if (payloadArray.payloadBuffer != NULL) {
@@ -388,30 +351,19 @@ TEST_F(RtpFunctionalityTest, packingUnpackingVerifySameShortG711Frame)
     }
 
     // Second call with actual buffer to fill in data
-    EXPECT_EQ(STATUS_SUCCESS, createPayloadForG711(DEFAULT_MTU_SIZE,
-                                                   (PBYTE) &payload,
-                                                   payloadLen,
-                                                   payloadArray.payloadBuffer,
-                                                   &payloadArray.payloadLength,
-                                                   payloadArray.payloadSubLength,
-                                                   &payloadArray.payloadSubLenSize));
+    EXPECT_EQ(STATUS_SUCCESS,
+              createPayloadForG711(DEFAULT_MTU_SIZE, (PBYTE) &payload, payloadLen, payloadArray.payloadBuffer, &payloadArray.payloadLength,
+                                   payloadArray.payloadSubLength, &payloadArray.payloadSubLenSize));
 
     EXPECT_EQ(1, payloadArray.payloadSubLenSize);
     EXPECT_EQ(6, payloadArray.payloadSubLength[0]);
 
-    EXPECT_EQ(STATUS_SUCCESS, depayG711FromRtpPayload(payloadArray.payloadBuffer,
-                                                      payloadArray.payloadSubLength[0],
-                                                      NULL,
-                                                      &newPayloadSubLen,
-                                                      NULL));
+    EXPECT_EQ(STATUS_SUCCESS, depayG711FromRtpPayload(payloadArray.payloadBuffer, payloadArray.payloadSubLength[0], NULL, &newPayloadSubLen, NULL));
     EXPECT_EQ(6, newPayloadSubLen);
 
     newPayloadSubLen = depayloadSize;
-    EXPECT_EQ(STATUS_SUCCESS, depayG711FromRtpPayload(payloadArray.payloadBuffer,
-                                                      payloadArray.payloadSubLength[0],
-                                                      depayload,
-                                                      &newPayloadSubLen,
-                                                      NULL));
+    EXPECT_EQ(STATUS_SUCCESS,
+              depayG711FromRtpPayload(payloadArray.payloadBuffer, payloadArray.payloadSubLength[0], depayload, &newPayloadSubLen, NULL));
     EXPECT_TRUE(MEMCMP(payload, depayload, newPayloadSubLen) == 0);
 
     MEMFREE(payloadArray.payloadBuffer);
@@ -438,12 +390,8 @@ TEST_F(RtpFunctionalityTest, packingUnpackingVerifySameLongG711Frame)
     payloadArray.payloadSubLength = NULL;
 
     // First call for payload size and sub payload length size
-    EXPECT_EQ(STATUS_SUCCESS,createPayloadForG711(4,
-                                                  (PBYTE) &payload,
-                                                  payloadLen, NULL,
-                                                  &payloadArray.payloadLength,
-                                                  NULL,
-                                                  &payloadArray.payloadSubLenSize));
+    EXPECT_EQ(STATUS_SUCCESS,
+              createPayloadForG711(4, (PBYTE) &payload, payloadLen, NULL, &payloadArray.payloadLength, NULL, &payloadArray.payloadSubLenSize));
 
     if (payloadArray.payloadLength > payloadArray.maxPayloadLength) {
         if (payloadArray.payloadBuffer != NULL) {
@@ -461,8 +409,9 @@ TEST_F(RtpFunctionalityTest, packingUnpackingVerifySameLongG711Frame)
     }
 
     // Second call with actual buffer to fill in data
-    EXPECT_EQ(STATUS_SUCCESS, createPayloadForG711(4, (PBYTE) &payload, payloadLen, payloadArray.payloadBuffer,&payloadArray.payloadLength,
-           payloadArray.payloadSubLength, &payloadArray.payloadSubLenSize));
+    EXPECT_EQ(STATUS_SUCCESS,
+              createPayloadForG711(4, (PBYTE) &payload, payloadLen, payloadArray.payloadBuffer, &payloadArray.payloadLength,
+                                   payloadArray.payloadSubLength, &payloadArray.payloadSubLenSize));
 
     EXPECT_EQ(3, payloadArray.payloadSubLenSize);
     EXPECT_EQ(4, payloadArray.payloadSubLength[0]);
@@ -472,7 +421,8 @@ TEST_F(RtpFunctionalityTest, packingUnpackingVerifySameLongG711Frame)
     offset = 0;
 
     for (i = 0; i < payloadArray.payloadSubLenSize; i++) {
-        EXPECT_EQ(STATUS_SUCCESS, depayG711FromRtpPayload(payloadArray.payloadBuffer + offset, payloadArray.payloadSubLength[i], NULL, &newPayloadSubLen, NULL));
+        EXPECT_EQ(STATUS_SUCCESS,
+                  depayG711FromRtpPayload(payloadArray.payloadBuffer + offset, payloadArray.payloadSubLength[i], NULL, &newPayloadSubLen, NULL));
         newPayloadLen += newPayloadSubLen;
         EXPECT_LT(0, newPayloadSubLen);
         offset += payloadArray.payloadSubLength[i];
@@ -483,7 +433,8 @@ TEST_F(RtpFunctionalityTest, packingUnpackingVerifySameLongG711Frame)
     pCurPtrInPayload = payload;
     for (i = 0; i < payloadArray.payloadSubLenSize; i++) {
         newPayloadSubLen = depayloadSize;
-        EXPECT_EQ(STATUS_SUCCESS, depayG711FromRtpPayload(payloadArray.payloadBuffer + offset, payloadArray.payloadSubLength[i], depayload, &newPayloadSubLen, NULL));
+        EXPECT_EQ(STATUS_SUCCESS,
+                  depayG711FromRtpPayload(payloadArray.payloadBuffer + offset, payloadArray.payloadSubLength[i], depayload, &newPayloadSubLen, NULL));
         EXPECT_TRUE(MEMCMP(pCurPtrInPayload, depayload, newPayloadSubLen) == 0);
         pCurPtrInPayload += newPayloadSubLen;
         offset += payloadArray.payloadSubLength[i];
@@ -525,7 +476,6 @@ TEST_F(RtpFunctionalityTest, validMultipleNaluParse)
     EXPECT_EQ(3, naluLength);
 }
 
-
 TEST_F(RtpFunctionalityTest, trailingZerosWouldBeReturned)
 {
     BYTE nalus[] = {0x00, 0x00, 0x00, 0x01, 0x02, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00};
@@ -536,8 +486,8 @@ TEST_F(RtpFunctionalityTest, trailingZerosWouldBeReturned)
     EXPECT_EQ(7, naluLength);
 }
 
-}
-}
-}
-}
-}
+} // namespace webrtcclient
+} // namespace video
+} // namespace kinesis
+} // namespace amazonaws
+} // namespace com

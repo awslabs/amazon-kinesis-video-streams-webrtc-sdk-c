@@ -22,7 +22,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS freeRtpRollingBuffer(PRtpRollingBuffer *ppRtpRollingBuffer)
+STATUS freeRtpRollingBuffer(PRtpRollingBuffer* ppRtpRollingBuffer)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -45,7 +45,7 @@ STATUS freeRtpRollingBufferData(PUINT64 pData)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     CHK(pData != NULL, STATUS_NULL_ARG);
-    CHK_STATUS(freeRtpPacketAndRawPacket((PRtpPacket*) pData));
+    CHK_STATUS(freeRtpPacket((PRtpPacket*) pData));
 CleanUp:
     LEAVES();
     return retStatus;
@@ -75,8 +75,8 @@ CleanUp:
     return retStatus;
 }
 
-STATUS rtpRollingBufferGetValidSeqIndexList(PRtpRollingBuffer pRollingBuffer, PUINT16 pSequenceNumberList,
-                                            UINT32 sequenceNumberListLen, PUINT64 pValidSeqIndexList, PUINT32 pValidIndexListLen)
+STATUS rtpRollingBufferGetValidSeqIndexList(PRtpRollingBuffer pRollingBuffer, PUINT16 pSequenceNumberList, UINT32 sequenceNumberListLen,
+                                            PUINT64 pValidSeqIndexList, PUINT32 pValidIndexListLen)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -101,7 +101,8 @@ STATUS rtpRollingBufferGetValidSeqIndexList(PRtpRollingBuffer pRollingBuffer, PU
         crossMaxSeq = TRUE;
     }
 
-    for (index = 0, pCurSeqPtr = pSequenceNumberList, pCurSeqIndexListPtr = pValidSeqIndexList; index < sequenceNumberListLen; index++, pCurSeqPtr++) {
+    for (index = 0, pCurSeqPtr = pSequenceNumberList, pCurSeqIndexListPtr = pValidSeqIndexList; index < sequenceNumberListLen;
+         index++, pCurSeqPtr++) {
         seqNum = *pCurSeqPtr;
         foundPacket = FALSE;
         if ((!crossMaxSeq && seqNum >= startSeq && seqNum <= endSeq) || (crossMaxSeq && seqNum >= startSeq)) {

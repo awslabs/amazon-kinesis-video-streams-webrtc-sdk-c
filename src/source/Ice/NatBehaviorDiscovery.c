@@ -2,9 +2,8 @@
 #include "../Include_i.h"
 
 /* Store STUN reponse in bindingResponseList. */
-STATUS natTestIncomingDataHandler(
-        UINT64 customData, PSocketConnection pSocketConnection, PBYTE pBuffer, UINT32 bufferLen,
-        PKvsIpAddress pSrc, PKvsIpAddress pDest)
+STATUS natTestIncomingDataHandler(UINT64 customData, PSocketConnection pSocketConnection, PBYTE pBuffer, UINT32 bufferLen, PKvsIpAddress pSrc,
+                                  PKvsIpAddress pDest)
 {
     UNUSED_PARAM(pSocketConnection);
     UNUSED_PARAM(pSrc);
@@ -33,8 +32,8 @@ CleanUp:
  *  response with testIndex as transaction id is received.
  *
  */
-STATUS executeNatTest(PStunPacket bindingRequest, PKvsIpAddress pDestAddr, PSocketConnection pSocketConnection,
-                      UINT32 testIndex, PNatTestData pData, PStunPacket *ppTestReponse)
+STATUS executeNatTest(PStunPacket bindingRequest, PKvsIpAddress pDestAddr, PSocketConnection pSocketConnection, UINT32 testIndex, PNatTestData pData,
+                      PStunPacket* ppTestReponse)
 {
     PStunPacket testResponse = NULL;
     UINT32 i, j;
@@ -76,20 +75,16 @@ CleanUp:
     return retStatus;
 }
 
-STATUS getMappAddressAttribute(PStunPacket pBindingResponse, PStunAttributeAddress *ppStunAttributeAddress)
+STATUS getMappAddressAttribute(PStunPacket pBindingResponse, PStunAttributeAddress* ppStunAttributeAddress)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PStunAttributeAddress pStunAttributeAddress = NULL;
 
     CHK(pBindingResponse != NULL && ppStunAttributeAddress != NULL, STATUS_NULL_ARG);
 
-    CHK_STATUS(getStunAttribute(pBindingResponse,
-                                STUN_ATTRIBUTE_TYPE_XOR_MAPPED_ADDRESS,
-                                (PStunAttributeHeader *) &pStunAttributeAddress));
+    CHK_STATUS(getStunAttribute(pBindingResponse, STUN_ATTRIBUTE_TYPE_XOR_MAPPED_ADDRESS, (PStunAttributeHeader*) &pStunAttributeAddress));
     if (pStunAttributeAddress == NULL) {
-        CHK_STATUS(getStunAttribute(pBindingResponse,
-                                    STUN_ATTRIBUTE_TYPE_MAPPED_ADDRESS,
-                                    (PStunAttributeHeader *) &pStunAttributeAddress));
+        CHK_STATUS(getStunAttribute(pBindingResponse, STUN_ATTRIBUTE_TYPE_MAPPED_ADDRESS, (PStunAttributeHeader*) &pStunAttributeAddress));
     }
 
     CHK_ERR(pStunAttributeAddress != NULL, STATUS_INVALID_OPERATION,
@@ -108,8 +103,7 @@ CleanUp:
 /*
  *  Follow the process described in https://tools.ietf.org/html/rfc5780#section-4.3 to discover the NAT mapping behavior
  */
-STATUS discoverNatMappingBehavior(PIceServer pStunServer, PNatTestData data, PSocketConnection pSocketConnection,
-                              NAT_BEHAVIOR *pNatMappingBehavior)
+STATUS discoverNatMappingBehavior(PIceServer pStunServer, PNatTestData data, PSocketConnection pSocketConnection, NAT_BEHAVIOR* pNatMappingBehavior)
 {
     STATUS retStatus = STATUS_SUCCESS;
 
@@ -137,9 +131,7 @@ STATUS discoverNatMappingBehavior(PIceServer pStunServer, PNatTestData data, PSo
     }
 
     CHK_STATUS(getMappAddressAttribute(bindingResponse, &pStunAttributeMappedAddress));
-    CHK_STATUS(getStunAttribute(bindingResponse,
-                                STUN_ATTRIBUTE_TYPE_CHANGED_ADDRESS,
-                                (PStunAttributeHeader *) &pStunAttributeOtherAddress));
+    CHK_STATUS(getStunAttribute(bindingResponse, STUN_ATTRIBUTE_TYPE_CHANGED_ADDRESS, (PStunAttributeHeader*) &pStunAttributeOtherAddress));
     CHK_ERR(pStunAttributeOtherAddress != NULL, retStatus, "Expect binding response to have other address or changed address attribute");
     mappedAddress = pStunAttributeMappedAddress->address;
     otherAddress = pStunAttributeOtherAddress->address;
@@ -202,7 +194,7 @@ CleanUp:
  *  Follow the process described in https://tools.ietf.org/html/rfc5780#section-4.4 to discover the NAT filtering behavior
  */
 STATUS discoverNatFilteringBehavior(PIceServer pStunServer, PNatTestData data, PSocketConnection pSocketConnection,
-                                NAT_BEHAVIOR *pNatFilteringBehavior)
+                                    NAT_BEHAVIOR* pNatFilteringBehavior)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PStunPacket bindingRequest = NULL, bindingResponse = NULL;
@@ -225,8 +217,7 @@ STATUS discoverNatFilteringBehavior(PIceServer pStunServer, PNatTestData data, P
     /* execute test II */
     DLOGD("Running filtering behavior test II. Send binding request with change ip and change port flag");
     CHK_STATUS(appendStunChangeRequestAttribute(bindingRequest,
-                                                STUN_ATTRIBUTE_CHANGE_REQUEST_FLAG_CHANGE_IP |
-                                                STUN_ATTRIBUTE_CHANGE_REQUEST_FLAG_CHANGE_PORT));
+                                                STUN_ATTRIBUTE_CHANGE_REQUEST_FLAG_CHANGE_IP | STUN_ATTRIBUTE_CHANGE_REQUEST_FLAG_CHANGE_PORT));
 
     CHK_STATUS(executeNatTest(bindingRequest, &pStunServer->ipAddress, pSocketConnection, testIndex++, data, &bindingResponse));
     if (bindingResponse != NULL) {
@@ -236,7 +227,7 @@ STATUS discoverNatFilteringBehavior(PIceServer pStunServer, PNatTestData data, P
 
     /* execute test III */
     DLOGD("Running filtering behavior test III. Send binding request with change port flag");
-    CHK_STATUS(getStunAttribute(bindingRequest, STUN_ATTRIBUTE_TYPE_CHANGE_REQUEST, (PStunAttributeHeader *) &pStunAttributeChangeRequest));
+    CHK_STATUS(getStunAttribute(bindingRequest, STUN_ATTRIBUTE_TYPE_CHANGE_REQUEST, (PStunAttributeHeader*) &pStunAttributeChangeRequest));
     pStunAttributeChangeRequest->changeFlag = STUN_ATTRIBUTE_CHANGE_REQUEST_FLAG_CHANGE_PORT;
 
     CHK_STATUS(executeNatTest(bindingRequest, &pStunServer->ipAddress, pSocketConnection, testIndex++, data, &bindingResponse));
@@ -267,9 +258,8 @@ CleanUp:
     return retStatus;
 }
 
-STATUS discoverNatBehavior(PCHAR stunServer, NAT_BEHAVIOR *pNatMappingBehavior,
-                           NAT_BEHAVIOR *pNatFilteringBehavior, IceSetInterfaceFilterFunc filterFunc,
-                           UINT64 filterFuncCustomData)
+STATUS discoverNatBehavior(PCHAR stunServer, NAT_BEHAVIOR* pNatMappingBehavior, NAT_BEHAVIOR* pNatFilteringBehavior,
+                           IceSetInterfaceFilterFunc filterFunc, UINT64 filterFuncCustomData)
 {
     STATUS retStatus = STATUS_SUCCESS;
     IceServer iceServerStun;
@@ -293,10 +283,7 @@ STATUS discoverNatBehavior(PCHAR stunServer, NAT_BEHAVIOR *pNatMappingBehavior,
     lock = MUTEX_CREATE(FALSE);
     CHK_STATUS(parseIceServer(&iceServerStun, stunServer, NULL, NULL));
 
-    CHK_STATUS(getLocalhostIpAddresses(localNetworkInterfaces,
-                                       &localNetworkInterfaceCount,
-                                       filterFunc,
-                                       filterFuncCustomData));
+    CHK_STATUS(getLocalhostIpAddresses(localNetworkInterfaces, &localNetworkInterfaceCount, filterFunc, filterFuncCustomData));
 
     customData.cvar = cvar;
     customData.lock = lock;
@@ -311,9 +298,8 @@ STATUS discoverNatBehavior(PCHAR stunServer, NAT_BEHAVIOR *pNatMappingBehavior,
     }
     CHK_WARN(pSelectedLocalInterface != NULL, retStatus, "No usable local interface");
 
-    CHK_STATUS(createSocketConnection(pSelectedLocalInterface, NULL, KVS_SOCKET_PROTOCOL_UDP,
-                                      (UINT64) &customData, natTestIncomingDataHandler, 0,
-                                      &pSocketConnection));
+    CHK_STATUS(createSocketConnection(iceServerStun.ipAddress.family, KVS_SOCKET_PROTOCOL_UDP, pSelectedLocalInterface, NULL, (UINT64) &customData,
+                                      natTestIncomingDataHandler, 0, &pSocketConnection));
     ATOMIC_STORE_BOOL(&pSocketConnection->receiveData, TRUE);
 
     CHK_STATUS(createConnectionListener(&pConnectionListener));
@@ -329,17 +315,15 @@ STATUS discoverNatBehavior(PCHAR stunServer, NAT_BEHAVIOR *pNatMappingBehavior,
     MUTEX_UNLOCK(lock);
     locked = FALSE;
 
-    if (*pNatMappingBehavior == NAT_BEHAVIOR_NO_UDP_CONNECTIVITY ||
-        *pNatMappingBehavior == NAT_BEHAVIOR_NOT_BEHIND_ANY_NAT) {
+    if (*pNatMappingBehavior == NAT_BEHAVIOR_NO_UDP_CONNECTIVITY || *pNatMappingBehavior == NAT_BEHAVIOR_NOT_BEHIND_ANY_NAT) {
         *pNatFilteringBehavior = *pNatMappingBehavior;
         CHK(FALSE, retStatus);
     }
 
     CHK_STATUS(connectionListenerRemoveAllConnection(pConnectionListener));
     freeSocketConnection(&pSocketConnection);
-    CHK_STATUS(createSocketConnection(pSelectedLocalInterface, NULL, KVS_SOCKET_PROTOCOL_UDP,
-                                      (UINT64) &customData, natTestIncomingDataHandler, 0,
-                                      &pSocketConnection));
+    CHK_STATUS(createSocketConnection(iceServerStun.ipAddress.family, KVS_SOCKET_PROTOCOL_UDP, pSelectedLocalInterface, NULL, (UINT64) &customData,
+                                      natTestIncomingDataHandler, 0, &pSocketConnection));
     ATOMIC_STORE_BOOL(&pSocketConnection->receiveData, TRUE);
     CHK_STATUS(connectionListenerAddConnection(pConnectionListener, pSocketConnection));
 
@@ -383,7 +367,7 @@ CleanUp:
 
 PCHAR getNatBehaviorStr(NAT_BEHAVIOR natBehavior)
 {
-    switch(natBehavior) {
+    switch (natBehavior) {
         case NAT_BEHAVIOR_NONE:
             return NAT_BEHAVIOR_NONE_STR;
         case NAT_BEHAVIOR_NOT_BEHIND_ANY_NAT:

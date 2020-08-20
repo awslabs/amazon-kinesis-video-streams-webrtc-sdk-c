@@ -2,16 +2,15 @@
 
 #include "../Include_i.h"
 
-STATUS createRetransmitter(UINT32 seqNumListLen, UINT32 validIndexListLen, PRetransmitter *ppRetransmitter)
+STATUS createRetransmitter(UINT32 seqNumListLen, UINT32 validIndexListLen, PRetransmitter* ppRetransmitter)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    PRetransmitter pRetransmitter = MEMALLOC(SIZEOF(Retransmitter) + SIZEOF(UINT16) * seqNumListLen
-            + SIZEOF(UINT64) * validIndexListLen);
+    PRetransmitter pRetransmitter = MEMALLOC(SIZEOF(Retransmitter) + SIZEOF(UINT16) * seqNumListLen + SIZEOF(UINT64) * validIndexListLen);
     CHK(pRetransmitter != NULL, STATUS_NOT_ENOUGH_MEMORY);
-    pRetransmitter->sequenceNumberList = (PUINT16) (pRetransmitter + 1);
+    pRetransmitter->sequenceNumberList = (PUINT16)(pRetransmitter + 1);
     pRetransmitter->seqNumListLen = seqNumListLen;
-    pRetransmitter->validIndexList = (PUINT64) (pRetransmitter->sequenceNumberList + seqNumListLen);
+    pRetransmitter->validIndexList = (PUINT64)(pRetransmitter->sequenceNumberList + seqNumListLen);
     pRetransmitter->validIndexListLen = validIndexListLen;
 
 CleanUp:
@@ -48,43 +47,37 @@ STATUS resendPacketOnNack(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerCo
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 senderSsrc = 0, receiverSsrc = 0;
     UINT32 filledLen = 0, validIndexListLen = 0;
-    PDoubleListNode pCurNode = NULL;
-    PKvsRtpTransceiver pTransceiver, pSenderTranceiver = NULL;
-    UINT64 item;
-    UINT32 index;
+    PKvsRtpTransceiver pSenderTranceiver = NULL;
+    UINT64 item, index;
+    STATUS tmpStatus = STATUS_SUCCESS;
     PRtpPacket pRtpPacket = NULL, pRtxRtpPacket = NULL;
     PRetransmitter pRetransmitter = NULL;
+    // stats
+    UINT32 retransmittedPacketsSent = 0, retransmittedBytesSent = 0, nackCount = 0;
 
     CHK(pKvsPeerConnection != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
     CHK_STATUS(rtcpNackListGet(pRtcpPacket->payload, pRtcpPacket->payloadLength, &senderSsrc, &receiverSsrc, NULL, &filledLen));
 
-    CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pTransceievers, &pCurNode));
-    while(pCurNode != NULL && pSenderTranceiver == NULL) {
-        CHK_STATUS(doubleListGetNodeData(pCurNode, &item));
-        pTransceiver = (PKvsRtpTransceiver) item;
-
-        CHK(pTransceiver != NULL, STATUS_INTERNAL_ERROR);
-
-        if (pTransceiver->sender.ssrc == receiverSsrc || pTransceiver->sender.ssrc == senderSsrc) {
-            pSenderTranceiver = pTransceiver;
-            pRetransmitter = pSenderTranceiver->sender.retransmitter;
-        }
-        pCurNode = pCurNode->pNext;
+    tmpStatus = findTransceiverBySsrc(pKvsPeerConnection, &pSenderTranceiver, receiverSsrc);
+    if (STATUS_NOT_FOUND == tmpStatus) {
+        CHK_STATUS_ERR(findTransceiverBySsrc(pKvsPeerConnection, &pSenderTranceiver, senderSsrc), STATUS_RTCP_INPUT_SSRC_INVALID,
+                       "Receiving NACK for non existing ssrcs: senderSsrc %lu receiverSsrc %lu", senderSsrc, receiverSsrc);
     }
+    CHK_STATUS(tmpStatus);
 
-    CHK_ERR(pSenderTranceiver != NULL, STATUS_RTCP_INPUT_SSRC_INVALID,
-            "Receiving NACK for non existing ssrcs: senderSsrc %lu receiverSsrc %lu", senderSsrc, receiverSsrc);
+    pRetransmitter = pSenderTranceiver->sender.retransmitter;
+    // TODO it is not very clear from the spec whether nackCount is number of packets received or number of rtp packets lost reported in nack packets
+    nackCount++;
 
     CHK_ERR(pRetransmitter != NULL, STATUS_INVALID_OPERATION,
             "Sender re-transmitter is not created successfully for an existing ssrcs: senderSsrc %lu receiverSsrc %lu", senderSsrc, receiverSsrc);
 
     filledLen = pRetransmitter->seqNumListLen;
-    CHK_STATUS(rtcpNackListGet(pRtcpPacket->payload, pRtcpPacket->payloadLength, &senderSsrc, &receiverSsrc,
-            pRetransmitter->sequenceNumberList, &filledLen));
+    CHK_STATUS(rtcpNackListGet(pRtcpPacket->payload, pRtcpPacket->payloadLength, &senderSsrc, &receiverSsrc, pRetransmitter->sequenceNumberList,
+                               &filledLen));
     validIndexListLen = pRetransmitter->validIndexListLen;
-    CHK_STATUS(rtpRollingBufferGetValidSeqIndexList(pSenderTranceiver->sender.packetBuffer,
-                                                    pRetransmitter->sequenceNumberList,
-                                                    filledLen, pRetransmitter->validIndexList, &validIndexListLen));
+    CHK_STATUS(rtpRollingBufferGetValidSeqIndexList(pSenderTranceiver->sender.packetBuffer, pRetransmitter->sequenceNumberList, filledLen,
+                                                    pRetransmitter->validIndexList, &validIndexListLen));
     for (index = 0; index < validIndexListLen; index++) {
         retStatus = rollingBufferExtractData(pSenderTranceiver->sender.packetBuffer->pRollingBuffer, pRetransmitter->validIndexList[index], &item);
         pRtpPacket = (PRtpPacket) item;
@@ -93,20 +86,24 @@ STATUS resendPacketOnNack(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerCo
         if (pRtpPacket != NULL) {
             if (pSenderTranceiver->sender.payloadType == pSenderTranceiver->sender.rtxPayloadType) {
                 retStatus = iceAgentSendPacket(pKvsPeerConnection->pIceAgent, pRtpPacket->pRawPacket, pRtpPacket->rawPacketLength);
-            }  else {
-                CHK_STATUS(constructRetransmitRtpPacketFromBytes(pRtpPacket->pRawPacket, pRtpPacket->rawPacketLength,
-                        pSenderTranceiver->sender.rtxSequenceNumber, pSenderTranceiver->sender.rtxPayloadType, pSenderTranceiver->sender.rtxSsrc, &pRtxRtpPacket));
+            } else {
+                CHK_STATUS(constructRetransmitRtpPacketFromBytes(
+                    pRtpPacket->pRawPacket, pRtpPacket->rawPacketLength, pSenderTranceiver->sender.rtxSequenceNumber,
+                    pSenderTranceiver->sender.rtxPayloadType, pSenderTranceiver->sender.rtxSsrc, &pRtxRtpPacket));
                 pSenderTranceiver->sender.rtxSequenceNumber++;
                 retStatus = writeRtpPacket(pKvsPeerConnection, pRtxRtpPacket);
             }
             // resendPacket
             if (STATUS_SUCCEEDED(retStatus)) {
+                retransmittedPacketsSent++;
+                retransmittedBytesSent += pRtpPacket->rawPacketLength - RTP_HEADER_LEN(pRtpPacket);
                 DLOGV("Resent packet ssrc %lu seq %lu succeeded", pRtpPacket->header.ssrc, pRtpPacket->header.sequenceNumber);
             } else {
                 DLOGV("Resent packet ssrc %lu seq %lu failed 0x%08x", pRtpPacket->header.ssrc, pRtpPacket->header.sequenceNumber, retStatus);
             }
             // putBackPacketToRollingBuffer
-            retStatus = rollingBufferInsertData(pSenderTranceiver->sender.packetBuffer->pRollingBuffer, pRetransmitter->sequenceNumberList[index], item);
+            retStatus =
+                rollingBufferInsertData(pSenderTranceiver->sender.packetBuffer->pRollingBuffer, pRetransmitter->sequenceNumberList[index], item);
             CHK(retStatus == STATUS_SUCCESS || retStatus == STATUS_ROLLING_BUFFER_NOT_IN_RANGE, retStatus);
 
             // free the packet if it is not in the valid range any more
@@ -118,18 +115,24 @@ STATUS resendPacketOnNack(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerCo
                 DLOGS("Retransmit add back to rolling %lu", pRtpPacket->header.sequenceNumber);
             }
 
-            freeRtpPacketAndRawPacket(&pRtxRtpPacket);
+            freeRtpPacket(&pRtxRtpPacket);
             pRtpPacket = NULL;
         }
     }
 CleanUp:
+
+    MUTEX_LOCK(pSenderTranceiver->statsLock);
+    pSenderTranceiver->outboundStats.nackCount += nackCount;
+    pSenderTranceiver->outboundStats.retransmittedPacketsSent += retransmittedPacketsSent;
+    pSenderTranceiver->outboundStats.retransmittedBytesSent += retransmittedBytesSent;
+    MUTEX_UNLOCK(pSenderTranceiver->statsLock);
+
     CHK_LOG_ERR(retStatus);
     if (pRtpPacket != NULL) {
         // free the packet as it is not put back into rolling buffer
         freeRtpPacket(&pRtpPacket);
         pRtpPacket = NULL;
     }
-    freeRtpPacketAndRawPacket(&pRtpPacket);
 
     LEAVES();
     return retStatus;

@@ -4,15 +4,15 @@
 #define LOG_CLASS "SocketConnection"
 #include "../Include_i.h"
 
-STATUS createSocketConnection(PKvsIpAddress pHostIpAddr, PKvsIpAddress pPeerIpAddr, KVS_SOCKET_PROTOCOL protocol,
+STATUS createSocketConnection(KVS_IP_FAMILY_TYPE familyType, KVS_SOCKET_PROTOCOL protocol, PKvsIpAddress pBindAddr, PKvsIpAddress pPeerIpAddr,
                               UINT64 customData, ConnectionDataAvailableFunc dataAvailableFn, UINT32 sendBufSize,
-                              PSocketConnection *ppSocketConnection)
+                              PSocketConnection* ppSocketConnection)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSocketConnection pSocketConnection = NULL;
 
-    CHK(pHostIpAddr != NULL && ppSocketConnection != NULL, STATUS_NULL_ARG);
+    CHK(ppSocketConnection != NULL, STATUS_NULL_ARG);
     CHK(protocol == KVS_SOCKET_PROTOCOL_UDP || pPeerIpAddr != NULL, STATUS_INVALID_ARG);
 
     pSocketConnection = (PSocketConnection) MEMCALLOC(1, SIZEOF(SocketConnection));
@@ -21,13 +21,17 @@ STATUS createSocketConnection(PKvsIpAddress pHostIpAddr, PKvsIpAddress pPeerIpAd
     pSocketConnection->lock = MUTEX_CREATE(FALSE);
     CHK(pSocketConnection->lock != INVALID_MUTEX_VALUE, STATUS_INVALID_OPERATION);
 
-    CHK_STATUS(createSocket(pHostIpAddr, pPeerIpAddr, protocol, sendBufSize, &pSocketConnection->localSocket));
-    pSocketConnection->hostIpAddr = *pHostIpAddr;
+    CHK_STATUS(createSocket(familyType, protocol, sendBufSize, &pSocketConnection->localSocket));
+    if (pBindAddr) {
+        CHK_STATUS(socketBind(pBindAddr, pSocketConnection->localSocket));
+        pSocketConnection->hostIpAddr = *pBindAddr;
+    }
 
     pSocketConnection->secureConnection = FALSE;
     pSocketConnection->protocol = protocol;
     if (protocol == KVS_SOCKET_PROTOCOL_TCP) {
         pSocketConnection->peerIpAddr = *pPeerIpAddr;
+        CHK_STATUS(socketConnect(pPeerIpAddr, pSocketConnection->localSocket));
     }
     ATOMIC_STORE_BOOL(&pSocketConnection->connectionClosed, FALSE);
     ATOMIC_STORE_BOOL(&pSocketConnection->receiveData, FALSE);
@@ -128,7 +132,7 @@ STATUS socketConnectionInitSecureConnection(PSocketConnection pSocketConnection,
     ENTERS();
     TlsSessionCallbacks callbacks;
     STATUS retStatus = STATUS_SUCCESS;
-    
+
     CHK(pSocketConnection != NULL, STATUS_NULL_ARG);
     CHK(pSocketConnection->pTlsSession == NULL, STATUS_INVALID_ARG);
 
@@ -250,7 +254,7 @@ BOOL socketConnectionIsClosed(PSocketConnection pSocketConnection)
 BOOL socketConnectionIsConnected(PSocketConnection pSocketConnection)
 {
     INT32 retVal;
-    struct sockaddr *peerSockAddr = NULL;
+    struct sockaddr* peerSockAddr = NULL;
     socklen_t addrLen;
     struct sockaddr_in ipv4PeerAddr;
     struct sockaddr_in6 ipv6PeerAddr;
@@ -267,14 +271,14 @@ BOOL socketConnectionIsConnected(PSocketConnection pSocketConnection)
         ipv4PeerAddr.sin_family = AF_INET;
         ipv4PeerAddr.sin_port = pSocketConnection->peerIpAddr.port;
         MEMCPY(&ipv4PeerAddr.sin_addr, pSocketConnection->peerIpAddr.address, IPV4_ADDRESS_LENGTH);
-        peerSockAddr = (struct sockaddr *) &ipv4PeerAddr;
+        peerSockAddr = (struct sockaddr*) &ipv4PeerAddr;
     } else {
         addrLen = SIZEOF(struct sockaddr_in6);
         MEMSET(&ipv6PeerAddr, 0x00, SIZEOF(ipv6PeerAddr));
         ipv6PeerAddr.sin6_family = AF_INET6;
         ipv6PeerAddr.sin6_port = pSocketConnection->peerIpAddr.port;
         MEMCPY(&ipv6PeerAddr.sin6_addr, pSocketConnection->peerIpAddr.address, IPV6_ADDRESS_LENGTH);
-        peerSockAddr = (struct sockaddr *) &ipv6PeerAddr;
+        peerSockAddr = (struct sockaddr*) &ipv6PeerAddr;
     }
 
     retVal = connect(pSocketConnection->localSocket, peerSockAddr, addrLen);
@@ -292,11 +296,12 @@ STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, U
     INT32 socketWriteAttempt = 0;
     SSIZE_T result = 0;
     UINT32 bytesWritten = 0;
+    INT32 errorNum = 0;
 
     fd_set wfds;
     struct timeval tv;
     socklen_t addrLen = 0;
-    struct sockaddr *destAddr = NULL;
+    struct sockaddr* destAddr = NULL;
     struct sockaddr_in ipv4Addr;
     struct sockaddr_in6 ipv6Addr;
 
@@ -310,7 +315,7 @@ STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, U
             ipv4Addr.sin_family = AF_INET;
             ipv4Addr.sin_port = pDestIp->port;
             MEMCPY(&ipv4Addr.sin_addr, pDestIp->address, IPV4_ADDRESS_LENGTH);
-            destAddr = (struct sockaddr *) &ipv4Addr;
+            destAddr = (struct sockaddr*) &ipv4Addr;
 
         } else {
             addrLen = SIZEOF(ipv6Addr);
@@ -318,14 +323,15 @@ STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, U
             ipv6Addr.sin6_family = AF_INET6;
             ipv6Addr.sin6_port = pDestIp->port;
             MEMCPY(&ipv6Addr.sin6_addr, pDestIp->address, IPV6_ADDRESS_LENGTH);
-            destAddr = (struct sockaddr *) &ipv6Addr;
+            destAddr = (struct sockaddr*) &ipv6Addr;
         }
     }
 
     while (socketWriteAttempt < MAX_SOCKET_WRITE_RETRY && bytesWritten < bufLen) {
         result = sendto(pSocketConnection->localSocket, buf, bufLen, NO_SIGNAL, destAddr, addrLen);
         if (result < 0) {
-            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            errorNum = errno;
+            if (errorNum == EAGAIN || errorNum == EWOULDBLOCK) {
                 FD_ZERO(&wfds);
                 FD_SET(pSocketConnection->localSocket, &wfds);
                 tv.tv_sec = 0;
@@ -336,14 +342,14 @@ STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, U
                     /* loop back and try again */
                     DLOGD("select() timed out");
                 } else if (result < 0) {
-                    DLOGD("select() failed with errno %s", strerror(errno));
+                    DLOGD("select() failed with errno %s", strerror(errorNum));
                     break;
                 }
-            } else if (errno == EINTR) {
+            } else if (errorNum == EINTR) {
                 /* nothing need to be done, just retry */
             } else {
                 /* fatal error from send() */
-                DLOGD("sendto() failed with errno %s", strerror(errno));
+                DLOGD("sendto() failed with errno %s", strerror(errorNum));
                 break;
             }
         } else {
@@ -357,12 +363,11 @@ STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, U
     }
 
     if (result < 0) {
-        CLOSE_SOCKET_IF_CANT_RETRY(errno, pSocketConnection);
+        CLOSE_SOCKET_IF_CANT_RETRY(errorNum, pSocketConnection);
     }
 
     if (bytesWritten < bufLen) {
-        DLOGD("Failed to send data. Bytes sent %u. Data len %u. Retry count %u",
-              bytesWritten, bufLen, socketWriteAttempt);
+        DLOGD("Failed to send data. Bytes sent %u. Data len %u. Retry count %u", bytesWritten, bufLen, socketWriteAttempt);
         retStatus = STATUS_SEND_DATA_FAILED;
     }
 

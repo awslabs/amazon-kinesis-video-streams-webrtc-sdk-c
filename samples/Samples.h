@@ -6,31 +6,31 @@ Shared include file for the samples
 
 #pragma once
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
 #include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
 
-#define NUMBER_OF_H264_FRAME_FILES                                              403
-#define NUMBER_OF_OPUS_FRAME_FILES                                              618
-#define DEFAULT_FPS_VALUE                                                       25
-#define DEFAULT_MAX_CONCURRENT_STREAMING_SESSION                                10
+#define NUMBER_OF_H264_FRAME_FILES               1500
+#define NUMBER_OF_OPUS_FRAME_FILES               618
+#define DEFAULT_FPS_VALUE                        25
+#define DEFAULT_MAX_CONCURRENT_STREAMING_SESSION 10
 
-#define SAMPLE_MASTER_CLIENT_ID                                                 "ProducerMaster"
-#define SAMPLE_VIEWER_CLIENT_ID                                                 "ConsumerViewer"
-#define SAMPLE_CHANNEL_NAME                                                     (PCHAR) "ScaryTestChannel"
+#define SAMPLE_MASTER_CLIENT_ID "ProducerMaster"
+#define SAMPLE_VIEWER_CLIENT_ID "ConsumerViewer"
+#define SAMPLE_CHANNEL_NAME     (PCHAR) "ScaryTestChannel"
 
-#define SAMPLE_AUDIO_FRAME_DURATION                                             (20 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
-#define SAMPLE_VIDEO_FRAME_DURATION                                             (HUNDREDS_OF_NANOS_IN_A_SECOND / DEFAULT_FPS_VALUE)
+#define SAMPLE_AUDIO_FRAME_DURATION (20 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
+#define SAMPLE_VIDEO_FRAME_DURATION (HUNDREDS_OF_NANOS_IN_A_SECOND / DEFAULT_FPS_VALUE)
 
-#define ASYNC_ICE_CONFIG_INFO_WAIT_TIMEOUT                                      (3 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define ICE_CONFIG_INFO_POLL_PERIOD                                             (20 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
+#define ASYNC_ICE_CONFIG_INFO_WAIT_TIMEOUT (3 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define ICE_CONFIG_INFO_POLL_PERIOD        (20 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
 
-#define CA_CERT_PEM_FILE_EXTENSION                                              ".pem"
+#define CA_CERT_PEM_FILE_EXTENSION ".pem"
 
-#define FILE_LOGGING_BUFFER_SIZE                                                (100 * 1024)
-#define MAX_NUMBER_OF_LOG_FILES                                                  5
+#define FILE_LOGGING_BUFFER_SIZE (100 * 1024)
+#define MAX_NUMBER_OF_LOG_FILES  5
 typedef enum {
     SAMPLE_STREAMING_VIDEO_ONLY,
     SAMPLE_STREAMING_AUDIO_VIDEO,
@@ -43,9 +43,7 @@ typedef struct {
     volatile ATOMIC_BOOL appTerminateFlag;
     volatile ATOMIC_BOOL interrupted;
     volatile ATOMIC_BOOL mediaThreadStarted;
-    volatile ATOMIC_BOOL updatingSampleStreamingSessionList;
     volatile ATOMIC_BOOL recreateSignalingClient;
-    volatile SIZE_T streamingSessionListReadingThreadCount;
     BOOL useTestSrc;
     ChannelInfo channelInfo;
     PCHAR pCaCertPath;
@@ -71,6 +69,7 @@ typedef struct {
     UINT64 customData;
     PSampleStreamingSession sampleStreamingSessionList[DEFAULT_MAX_CONCURRENT_STREAMING_SESSION];
     UINT32 streamingSessionCount;
+    UINT32 iceUriCount;
     SignalingClientCallbacks signalingClientCallbacks;
     SignalingClientInfo clientInfo;
 } SampleConfiguration, *PSampleConfiguration;
@@ -126,8 +125,10 @@ VOID onDataChannel(UINT64, PRtcDataChannel);
 VOID onConnectionStateChange(UINT64, RTC_PEER_CONNECTION_STATE);
 STATUS sessionCleanupWait(PSampleConfiguration);
 STATUS awaitGetIceConfigInfoCount(SIGNALING_CLIENT_HANDLE, PUINT32);
+STATUS logSignalingClientStats(PSignalingClientMetrics);
+STATUS logSelectedIceCandidatesInformation(PSampleStreamingSession);
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 }
 #endif
-#endif  /* __KINESIS_VIDEO_SAMPLE_INCLUDE__ */
+#endif /* __KINESIS_VIDEO_SAMPLE_INCLUDE__ */

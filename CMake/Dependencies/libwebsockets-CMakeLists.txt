@@ -12,6 +12,12 @@ else()
   set(LWS_WITH_SHARED 1)
 endif()
 
+if (USE_OPENSSL)
+  set(LWS_WITH_MBEDTLS OFF)
+else()
+  set(LWS_WITH_MBEDTLS ON)
+endif()
+
 ExternalProject_Add(project_libwebsockets
     GIT_REPOSITORY    https://github.com/warmcat/libwebsockets.git
     GIT_TAG           v3.2.3
@@ -34,6 +40,7 @@ ExternalProject_Add(project_libwebsockets
         -DLWS_STATIC_PIC=1
         -DLWS_WITH_ZLIB=0
         -DLWS_HAVE_EVENTFD=0
+        -DLWS_WITH_MBEDTLS=${LWS_WITH_MBEDTLS}
 # enable for debug output        -DCMAKE_BUILD_TYPE=DEBUG
         -DOPENSSL_ROOT_DIR=${OPENSSL_DIR}
         BUILD_ALWAYS      TRUE

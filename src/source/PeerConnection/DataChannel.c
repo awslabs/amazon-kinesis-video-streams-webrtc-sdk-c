@@ -2,12 +2,13 @@
 
 #include "../Include_i.h"
 
-
-STATUS connectLocalDataChannel() {
+STATUS connectLocalDataChannel()
+{
     return STATUS_SUCCESS;
 }
 
-STATUS createDataChannel(PRtcPeerConnection pPeerConnection, PCHAR pDataChannelName, PRtcDataChannelInit pRtcDataChannelInit, PRtcDataChannel* ppRtcDataChannel)
+STATUS createDataChannel(PRtcPeerConnection pPeerConnection, PCHAR pDataChannelName, PRtcDataChannelInit pRtcDataChannelInit,
+                         PRtcDataChannel* ppRtcDataChannel)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -23,17 +24,23 @@ STATUS createDataChannel(PRtcPeerConnection pPeerConnection, PCHAR pDataChannelN
     CHK((pKvsDataChannel = (PKvsDataChannel) MEMCALLOC(1, SIZEOF(KvsDataChannel))) != NULL, STATUS_NOT_ENOUGH_MEMORY);
     STRNCPY(pKvsDataChannel->dataChannel.name, pDataChannelName, MAX_DATA_CHANNEL_NAME_LEN);
     pKvsDataChannel->pRtcPeerConnection = (PRtcPeerConnection) pKvsPeerConnection;
-    if(pRtcDataChannelInit != NULL) {
+    if (pRtcDataChannelInit != NULL) {
         // Setting negotiated to false. Not supporting at the moment
         pRtcDataChannelInit->negotiated = FALSE;
         pKvsDataChannel->rtcDataChannelInit = *pRtcDataChannelInit;
-    }
-    else {
+    } else {
         // If nothing is set, set default to ordered mode
-        pKvsDataChannel->rtcDataChannelInit.ordered = TRUE;
+        pKvsDataChannel->rtcDataChannelInit.ordered = FALSE;
+        NULLABLE_SET_EMPTY(pKvsDataChannel->rtcDataChannelInit.maxPacketLifeTime);
+        NULLABLE_SET_EMPTY(pKvsDataChannel->rtcDataChannelInit.maxRetransmits);
     }
-
+    STRNCPY(pKvsDataChannel->rtcDataChannelDiagnostics.label, pKvsDataChannel->dataChannel.name, STRLEN(pKvsDataChannel->dataChannel.name));
+    pKvsDataChannel->rtcDataChannelDiagnostics.state = RTC_DATA_CHANNEL_STATE_CONNECTING;
     CHK_STATUS(hashTableGetCount(pKvsPeerConnection->pDataChannels, &channelId));
+    pKvsDataChannel->rtcDataChannelDiagnostics.dataChannelIdentifier = channelId;
+    pKvsDataChannel->dataChannel.id = channelId;
+    STRNCPY(pKvsDataChannel->rtcDataChannelDiagnostics.protocol, DATA_CHANNEL_PROTOCOL_STR,
+            ARRAY_SIZE(pKvsDataChannel->rtcDataChannelDiagnostics.protocol));
     CHK_STATUS(hashTablePut(pKvsPeerConnection->pDataChannels, channelId, (UINT64) pKvsDataChannel));
 
 CleanUp:
@@ -58,7 +65,8 @@ STATUS dataChannelSend(PRtcDataChannel pRtcDataChannel, BOOL isBinary, PBYTE pMe
     pSctpSession = ((PKvsPeerConnection) pKvsDataChannel->pRtcPeerConnection)->pSctpSession;
 
     CHK_STATUS(sctpSessionWriteMessage(pSctpSession, pKvsDataChannel->channelId, isBinary, pMessage, pMessageLen));
-
+    pKvsDataChannel->rtcDataChannelDiagnostics.messagesSent++;
+    pKvsDataChannel->rtcDataChannelDiagnostics.bytesSent += pMessageLen;
 CleanUp:
 
     return retStatus;
