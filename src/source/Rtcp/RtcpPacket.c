@@ -122,7 +122,7 @@ STATUS rembValueGet(PBYTE pPayload, UINT32 payloadLen, PDOUBLE pMaximumBitRate, 
     mantissa &= RTCP_PACKET_REMB_MANTISSA_BITMASK;
 
     exponent = pPayload[RTCP_PACKET_REMB_IDENTIFIER_OFFSET + SIZEOF(UINT32) + SIZEOF(BYTE)] >> 2;
-    maximumBitRate = mantissa * (1 << exponent);
+    maximumBitRate = mantissa << exponent;
 
     // Only populate SSRC list if caller requests
     ssrcListLen = pPayload[RTCP_PACKET_REMB_IDENTIFIER_OFFSET + SIZEOF(UINT32)];
