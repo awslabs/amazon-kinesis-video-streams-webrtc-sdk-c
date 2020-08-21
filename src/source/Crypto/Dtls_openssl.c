@@ -280,7 +280,7 @@ STATUS createDtlsSession(PDtlsSessionCallbacks pDtlsSessionCallbacks, TIMER_QUEU
     CHK(pDtlsSession != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
     pDtlsSession->timerQueueHandle = timerQueueHandle;
-    pDtlsSession->timerId = UINT32_MAX;
+    pDtlsSession->timerId = MAX_UINT32;
     pDtlsSession->sslLock = MUTEX_CREATE(TRUE);
     pDtlsSession->state = NEW;
     ATOMIC_STORE_BOOL(&pDtlsSession->isStarted, FALSE);
@@ -407,7 +407,7 @@ STATUS freeDtlsSession(PDtlsSession* ppDtlsSession)
 
     CHK(pDtlsSession != NULL, retStatus);
 
-    if (pDtlsSession->timerId != UINT32_MAX) {
+    if (pDtlsSession->timerId != MAX_UINT32) {
         timerQueueCancelTimer(pDtlsSession->timerQueueHandle, pDtlsSession->timerId, (UINT64) pDtlsSession);
     }
 
