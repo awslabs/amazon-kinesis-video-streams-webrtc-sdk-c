@@ -7,11 +7,47 @@
 STATUS getIceCandidatePairStats(PRtcPeerConnection pRtcPeerConnection, PRtcIceCandidatePairStats pRtcIceCandidatePairStats)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pRtcPeerConnection;
-    UNUSED_PARAM(pKvsPeerConnection);
+    BOOL locked = FALSE;
+    PIceAgent pIceAgent = NULL;
     CHK((pRtcPeerConnection != NULL || pRtcIceCandidatePairStats != NULL), STATUS_NULL_ARG);
-    CHK(FALSE, STATUS_NOT_IMPLEMENTED);
+    pIceAgent = ((PKvsPeerConnection) pRtcPeerConnection)->pIceAgent;
+    MUTEX_LOCK(pIceAgent->lock);
+    locked = TRUE;
+    CHK(pIceAgent->pDataSendingIceCandidatePair != NULL, STATUS_SUCCESS);
+    PRtcIceCandidatePairDiagnostics pRtcIceCandidatePairDiagnostics = &pIceAgent->pDataSendingIceCandidatePair->rtcIceCandidatePairDiagnostics;
+    STRCPY(pRtcIceCandidatePairStats->localCandidateId, pRtcIceCandidatePairDiagnostics->localCandidateId);
+    STRCPY(pRtcIceCandidatePairStats->remoteCandidateId, pRtcIceCandidatePairDiagnostics->remoteCandidateId);
+    pRtcIceCandidatePairStats->state = pRtcIceCandidatePairDiagnostics->state;
+    pRtcIceCandidatePairStats->nominated = pRtcIceCandidatePairDiagnostics->nominated;
+
+    // Note: circuitBreakerTriggerCount This is set to NULL currently
+    pRtcIceCandidatePairStats->circuitBreakerTriggerCount = pRtcIceCandidatePairDiagnostics->circuitBreakerTriggerCount;
+
+    pRtcIceCandidatePairStats->packetsDiscardedOnSend = pRtcIceCandidatePairDiagnostics->packetsDiscardedOnSend;
+    pRtcIceCandidatePairStats->packetsSent = pRtcIceCandidatePairDiagnostics->packetsSent;
+    pRtcIceCandidatePairStats->packetsReceived = pRtcIceCandidatePairDiagnostics->packetsReceived;
+
+    pRtcIceCandidatePairStats->bytesDiscardedOnSend = pRtcIceCandidatePairDiagnostics->bytesDiscardedOnSend;
+    pRtcIceCandidatePairStats->bytesSent = pRtcIceCandidatePairDiagnostics->bytesSent;
+    pRtcIceCandidatePairStats->bytesReceived = pRtcIceCandidatePairDiagnostics->bytesReceived;
+
+    pRtcIceCandidatePairStats->lastPacketSentTimestamp = pRtcIceCandidatePairDiagnostics->lastPacketSentTimestamp;
+    pRtcIceCandidatePairStats->lastPacketReceivedTimestamp = pRtcIceCandidatePairDiagnostics->lastPacketReceivedTimestamp;
+    pRtcIceCandidatePairStats->lastRequestTimestamp = pRtcIceCandidatePairDiagnostics->lastRequestTimestamp;
+    pRtcIceCandidatePairStats->firstRequestTimestamp = pRtcIceCandidatePairDiagnostics->firstRequestTimestamp;
+    pRtcIceCandidatePairStats->lastResponseTimestamp = pRtcIceCandidatePairDiagnostics->lastResponseTimestamp;
+
+    pRtcIceCandidatePairStats->totalRoundTripTime = pRtcIceCandidatePairDiagnostics->totalRoundTripTime;
+    pRtcIceCandidatePairStats->currentRoundTripTime = pRtcIceCandidatePairDiagnostics->currentRoundTripTime;
+
+    pRtcIceCandidatePairStats->requestsReceived = pRtcIceCandidatePairDiagnostics->requestsReceived;
+    pRtcIceCandidatePairStats->requestsSent = pRtcIceCandidatePairDiagnostics->requestsSent;
+    pRtcIceCandidatePairStats->responsesReceived = pRtcIceCandidatePairDiagnostics->responsesReceived;
+    pRtcIceCandidatePairStats->responsesSent = pRtcIceCandidatePairDiagnostics->responsesSent;
 CleanUp:
+    if (locked) {
+        MUTEX_UNLOCK(pIceAgent->lock);
+    }
     return retStatus;
 }
 
@@ -161,6 +197,7 @@ STATUS rtcPeerConnectionGetMetrics(PRtcPeerConnection pRtcPeerConnection, PRtcRt
 {
     STATUS retStatus = STATUS_SUCCESS;
     CHK(pRtcPeerConnection != NULL && pRtcMetrics != NULL, STATUS_NULL_ARG);
+    pRtcMetrics->timestamp = GETTIME();
     switch (pRtcMetrics->requestedTypeOfStats) {
         case RTC_STATS_TYPE_CANDIDATE_PAIR:
             CHK_STATUS(getIceCandidatePairStats(pRtcPeerConnection, &pRtcMetrics->rtcStatsObject.iceCandidatePairStats));
@@ -186,7 +223,6 @@ STATUS rtcPeerConnectionGetMetrics(PRtcPeerConnection pRtcPeerConnection, PRtcRt
             CHK_STATUS(getRtpInboundStats(pRtcPeerConnection, pRtcRtpTransceiver, &pRtcMetrics->rtcStatsObject.inboundRtpStreamStats));
             break;
         case RTC_STATS_TYPE_ICE_SERVER:
-            pRtcMetrics->timestamp = GETTIME();
             CHK_STATUS(getIceServerStats(pRtcPeerConnection, &pRtcMetrics->rtcStatsObject.iceServerStats));
             DLOGD("ICE Server Stats requested at %" PRIu64, pRtcMetrics->timestamp);
             break;
