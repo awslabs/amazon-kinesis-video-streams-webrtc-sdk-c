@@ -42,6 +42,13 @@ var Stats_8h =
     [ "PRtcStatsObject", "Stats_8h.html#a7ee11917e4ab69400576ae7fceea344e", null ],
     [ "PRtcTransportStats", "Stats_8h.html#aa801ef5411f4260b44c1658874999aa3", null ],
     [ "PSignalingClientStats", "Stats_8h.html#aed2abeea73109d8decf11ef16a5b1a88", null ],
+    [ "ICE_CANDIDATE_PAIR_STATE", "Stats_8h.html#a8671985b535ebf887098423beb5a333b", [
+      [ "ICE_CANDIDATE_PAIR_STATE_FROZEN", "Stats_8h.html#a8671985b535ebf887098423beb5a333babec372f088d7d175cfde32cb25c02fc4", null ],
+      [ "ICE_CANDIDATE_PAIR_STATE_WAITING", "Stats_8h.html#a8671985b535ebf887098423beb5a333bac4b9094acd8ea1504b04c6557f39e82e", null ],
+      [ "ICE_CANDIDATE_PAIR_STATE_IN_PROGRESS", "Stats_8h.html#a8671985b535ebf887098423beb5a333ba2f07a3e420b35576f85ed03b3898f82a", null ],
+      [ "ICE_CANDIDATE_PAIR_STATE_SUCCEEDED", "Stats_8h.html#a8671985b535ebf887098423beb5a333ba87069b5d0a42c0e9672780f6d43e5197", null ],
+      [ "ICE_CANDIDATE_PAIR_STATE_FAILED", "Stats_8h.html#a8671985b535ebf887098423beb5a333badeb5e469e073b8474839ed2b76c7cfb7", null ]
+    ] ],
     [ "ICE_CANDIDATE_TYPE", "Stats_8h.html#ac9e1b12f44dc91db1cd6373f87ec55b6", [
       [ "ICE_CANDIDATE_TYPE_HOST", "Stats_8h.html#ac9e1b12f44dc91db1cd6373f87ec55b6a9fff74323b1829b4afad9e56c27f5c6e", null ],
       [ "ICE_CANDIDATE_TYPE_PEER_REFLEXIVE", "Stats_8h.html#ac9e1b12f44dc91db1cd6373f87ec55b6ae4bb79539718c2454eb3aa1d8de872f1", null ],
@@ -60,13 +67,6 @@ var Stats_8h =
       [ "RTC_DTLS_TRANSPORT_STATE_STATS_CONNECTED", "Stats_8h.html#afe55e0b5781ac5fd3b8e5fd915d4795ba3f99b8dc71e9df928406fafa8b00c775", null ],
       [ "RTC_DTLS_TRANSPORT_STATE_STATS_CLOSED", "Stats_8h.html#afe55e0b5781ac5fd3b8e5fd915d4795bae9d536be6e4f6e21a320948920cc579a", null ],
       [ "RTC_DTLS_TRANSPORT_STATE_STATS_FAILED", "Stats_8h.html#afe55e0b5781ac5fd3b8e5fd915d4795baebd13dac3228fd42babfddfe6c1fdc12", null ]
-    ] ],
-    [ "RTC_ICE_CANDIDATE_PAIR_STATE", "Stats_8h.html#a812ac6343fda77c2fe67fc814eddb89e", [
-      [ "RTC_ICE_CANDIDATE_PAIR_STATE_FROZEN", "Stats_8h.html#a812ac6343fda77c2fe67fc814eddb89eaa661e764abe2f7fafa88be1fc2e475a4", null ],
-      [ "RTC_ICE_CANDIDATE_PAIR_STATE_WAITING", "Stats_8h.html#a812ac6343fda77c2fe67fc814eddb89eaa37c12cb1cbe508062c6885693a79c39", null ],
-      [ "RTC_ICE_CANDIDATE_PAIR_STATE_IN_PROGRESS", "Stats_8h.html#a812ac6343fda77c2fe67fc814eddb89eac125316d960c954514d411576b62118f", null ],
-      [ "RTC_ICE_CANDIDATE_PAIR_STATE_SUCCEEDED", "Stats_8h.html#a812ac6343fda77c2fe67fc814eddb89ea92d9c33b03cece5de4407de4a3fa80af", null ],
-      [ "RTC_ICE_CANDIDATE_PAIR_STATE_FAILED", "Stats_8h.html#a812ac6343fda77c2fe67fc814eddb89ea5965babaf924485c8d90c5c7488b482d", null ]
     ] ],
     [ "RTC_ICE_ROLE", "Stats_8h.html#ab68cb7036453508a43f250f470398828", [
       [ "RTC_ICE_ROLE_UNKNOWN", "Stats_8h.html#ab68cb7036453508a43f250f470398828a9b51f15f831c0266ae52e8d78149d1af", null ],

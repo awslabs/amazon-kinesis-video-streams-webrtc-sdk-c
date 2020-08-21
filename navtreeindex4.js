@@ -1,10 +1,5 @@
 var NAVTREEINDEX4 =
 {
-"structRtcIceMetrics.html":[1,0,27],
-"structRtcIceMetrics.html#a1447ae2dbefa78ca1af68b91d0e5e20c":[1,0,27,3],
-"structRtcIceMetrics.html#a5427abf5f6370d371acb461a1bd36061":[1,0,27,2],
-"structRtcIceMetrics.html#a68e096213b6c4dd37b46b9a1aa484c02":[1,0,27,0],
-"structRtcIceMetrics.html#aee368f82e38baffef4a1e71d55ef1e8b":[1,0,27,4],
 "structRtcIceMetrics.html#afcb5243008cc0bf27f18df01e0a6ae6c":[1,0,27,1],
 "structRtcIceServer.html":[1,0,28],
 "structRtcIceServer.html#a61295588ec2ba33f881ad9fe409d3266":[1,0,28,1],

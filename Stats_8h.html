@@ -149,7 +149,7 @@ Classes</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="define-members"></a>
 Macros</h2></td></tr>
-<tr class="memitem:aeb7cb54e2a66447e46fca79db9a8fda0"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#aeb7cb54e2a66447e46fca79db9a8fda0">MAX_CANDIDATE_ID_LENGTH</a>&#160;&#160;&#160;8U</td></tr>
+<tr class="memitem:aeb7cb54e2a66447e46fca79db9a8fda0"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#aeb7cb54e2a66447e46fca79db9a8fda0">MAX_CANDIDATE_ID_LENGTH</a>&#160;&#160;&#160;9U</td></tr>
 <tr class="separator:aeb7cb54e2a66447e46fca79db9a8fda0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7cc73042a6a21937fea2a51095c5cc17"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#a7cc73042a6a21937fea2a51095c5cc17">MAX_STATS_ADDRESS_LENGTH</a>&#160;&#160;&#160;16U</td></tr>
 <tr class="separator:a7cc73042a6a21937fea2a51095c5cc17"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -245,17 +245,17 @@ Enumerations</h2></td></tr>
  }</td></tr>
 <tr class="memdesc:a47ecb1216cedb68121d018749d82ffb5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Type of Stats object requested by the application Reference <a href="https://www.w3.org/TR/webrtc-stats/#rtcstatstype-str">https://www.w3.org/TR/webrtc-stats/#rtcstatstype-str</a>*.  <a href="Stats_8h.html#a47ecb1216cedb68121d018749d82ffb5">More...</a><br /></td></tr>
 <tr class="separator:a47ecb1216cedb68121d018749d82ffb5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a812ac6343fda77c2fe67fc814eddb89e"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#a812ac6343fda77c2fe67fc814eddb89e">RTC_ICE_CANDIDATE_PAIR_STATE</a> { <br />
-&#160;&#160;<a class="el" href="Stats_8h.html#a812ac6343fda77c2fe67fc814eddb89eaa661e764abe2f7fafa88be1fc2e475a4">RTC_ICE_CANDIDATE_PAIR_STATE_FROZEN</a> = 0, 
-<a class="el" href="Stats_8h.html#a812ac6343fda77c2fe67fc814eddb89eaa37c12cb1cbe508062c6885693a79c39">RTC_ICE_CANDIDATE_PAIR_STATE_WAITING</a> = 1, 
-<a class="el" href="Stats_8h.html#a812ac6343fda77c2fe67fc814eddb89eac125316d960c954514d411576b62118f">RTC_ICE_CANDIDATE_PAIR_STATE_IN_PROGRESS</a> = 2, 
-<a class="el" href="Stats_8h.html#a812ac6343fda77c2fe67fc814eddb89ea92d9c33b03cece5de4407de4a3fa80af">RTC_ICE_CANDIDATE_PAIR_STATE_SUCCEEDED</a> = 3, 
+<tr class="memitem:a8671985b535ebf887098423beb5a333b"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#a8671985b535ebf887098423beb5a333b">ICE_CANDIDATE_PAIR_STATE</a> { <br />
+&#160;&#160;<a class="el" href="Stats_8h.html#a8671985b535ebf887098423beb5a333babec372f088d7d175cfde32cb25c02fc4">ICE_CANDIDATE_PAIR_STATE_FROZEN</a> = 0, 
+<a class="el" href="Stats_8h.html#a8671985b535ebf887098423beb5a333bac4b9094acd8ea1504b04c6557f39e82e">ICE_CANDIDATE_PAIR_STATE_WAITING</a> = 1, 
+<a class="el" href="Stats_8h.html#a8671985b535ebf887098423beb5a333ba2f07a3e420b35576f85ed03b3898f82a">ICE_CANDIDATE_PAIR_STATE_IN_PROGRESS</a> = 2, 
+<a class="el" href="Stats_8h.html#a8671985b535ebf887098423beb5a333ba87069b5d0a42c0e9672780f6d43e5197">ICE_CANDIDATE_PAIR_STATE_SUCCEEDED</a> = 3, 
 <br />
-&#160;&#160;<a class="el" href="Stats_8h.html#a812ac6343fda77c2fe67fc814eddb89ea5965babaf924485c8d90c5c7488b482d">RTC_ICE_CANDIDATE_PAIR_STATE_FAILED</a> = 4
+&#160;&#160;<a class="el" href="Stats_8h.html#a8671985b535ebf887098423beb5a333badeb5e469e073b8474839ed2b76c7cfb7">ICE_CANDIDATE_PAIR_STATE_FAILED</a> = 4
 <br />
  }</td></tr>
-<tr class="memdesc:a812ac6343fda77c2fe67fc814eddb89e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Indicates computing states in the checklist Reference: <a href="https://www.w3.org/TR/webrtc-stats/#rtcstatsicecandidatepairstate-enum">https://www.w3.org/TR/webrtc-stats/#rtcstatsicecandidatepairstate-enum</a>.  <a href="Stats_8h.html#a812ac6343fda77c2fe67fc814eddb89e">More...</a><br /></td></tr>
-<tr class="separator:a812ac6343fda77c2fe67fc814eddb89e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memdesc:a8671985b535ebf887098423beb5a333b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Indicates computing states in the checklist Reference: <a href="https://www.w3.org/TR/webrtc-stats/#rtcstatsicecandidatepairstate-enum">https://www.w3.org/TR/webrtc-stats/#rtcstatsicecandidatepairstate-enum</a>.  <a href="Stats_8h.html#a8671985b535ebf887098423beb5a333b">More...</a><br /></td></tr>
+<tr class="separator:a8671985b535ebf887098423beb5a333b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab68cb7036453508a43f250f470398828"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#ab68cb7036453508a43f250f470398828">RTC_ICE_ROLE</a> { <a class="el" href="Stats_8h.html#ab68cb7036453508a43f250f470398828a9b51f15f831c0266ae52e8d78149d1af">RTC_ICE_ROLE_UNKNOWN</a>, 
 <a class="el" href="Stats_8h.html#ab68cb7036453508a43f250f470398828ada0c0546d897389ee5232c2bd79a6bd9">RTC_ICE_ROLE_CONTROLLING</a>, 
 <a class="el" href="Stats_8h.html#ab68cb7036453508a43f250f470398828a59eb29879839f761ca75220c03bc56fd">RTC_ICE_ROLE_CONTROLLED</a>
@@ -309,7 +309,7 @@ Enumerations</h2></td></tr>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">#define MAX_CANDIDATE_ID_LENGTH&#160;&#160;&#160;8U</td>
+          <td class="memname">#define MAX_CANDIDATE_ID_LENGTH&#160;&#160;&#160;9U</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -671,6 +671,29 @@ Enumerations</h2></td></tr>
 </div>
 </div>
 <h2 class="groupheader">Enumeration Type Documentation</h2>
+<a id="a8671985b535ebf887098423beb5a333b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8671985b535ebf887098423beb5a333b">&#9670;&nbsp;</a></span>ICE_CANDIDATE_PAIR_STATE</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">enum <a class="el" href="Stats_8h.html#a8671985b535ebf887098423beb5a333b">ICE_CANDIDATE_PAIR_STATE</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Indicates computing states in the checklist Reference: <a href="https://www.w3.org/TR/webrtc-stats/#rtcstatsicecandidatepairstate-enum">https://www.w3.org/TR/webrtc-stats/#rtcstatsicecandidatepairstate-enum</a>. </p>
+<table class="fieldtable">
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="a8671985b535ebf887098423beb5a333babec372f088d7d175cfde32cb25c02fc4"></a>ICE_CANDIDATE_PAIR_STATE_FROZEN&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a8671985b535ebf887098423beb5a333bac4b9094acd8ea1504b04c6557f39e82e"></a>ICE_CANDIDATE_PAIR_STATE_WAITING&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a8671985b535ebf887098423beb5a333ba2f07a3e420b35576f85ed03b3898f82a"></a>ICE_CANDIDATE_PAIR_STATE_IN_PROGRESS&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a8671985b535ebf887098423beb5a333ba87069b5d0a42c0e9672780f6d43e5197"></a>ICE_CANDIDATE_PAIR_STATE_SUCCEEDED&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a8671985b535ebf887098423beb5a333badeb5e469e073b8474839ed2b76c7cfb7"></a>ICE_CANDIDATE_PAIR_STATE_FAILED&#160;</td><td class="fielddoc"></td></tr>
+</table>
+
+</div>
+</div>
 <a id="ac9e1b12f44dc91db1cd6373f87ec55b6"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ac9e1b12f44dc91db1cd6373f87ec55b6">&#9670;&nbsp;</a></span>ICE_CANDIDATE_TYPE</h2>
 
@@ -745,29 +768,6 @@ Enumerations</h2></td></tr>
 </td></tr>
 <tr><td class="fieldname"><a id="afe55e0b5781ac5fd3b8e5fd915d4795baebd13dac3228fd42babfddfe6c1fdc12"></a>RTC_DTLS_TRANSPORT_STATE_STATS_FAILED&#160;</td><td class="fielddoc"><p>The transport has failed as the result of an error. </p>
 </td></tr>
-</table>
-
-</div>
-</div>
-<a id="a812ac6343fda77c2fe67fc814eddb89e"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a812ac6343fda77c2fe67fc814eddb89e">&#9670;&nbsp;</a></span>RTC_ICE_CANDIDATE_PAIR_STATE</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">enum <a class="el" href="Stats_8h.html#a812ac6343fda77c2fe67fc814eddb89e">RTC_ICE_CANDIDATE_PAIR_STATE</a></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Indicates computing states in the checklist Reference: <a href="https://www.w3.org/TR/webrtc-stats/#rtcstatsicecandidatepairstate-enum">https://www.w3.org/TR/webrtc-stats/#rtcstatsicecandidatepairstate-enum</a>. </p>
-<table class="fieldtable">
-<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="a812ac6343fda77c2fe67fc814eddb89eaa661e764abe2f7fafa88be1fc2e475a4"></a>RTC_ICE_CANDIDATE_PAIR_STATE_FROZEN&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="a812ac6343fda77c2fe67fc814eddb89eaa37c12cb1cbe508062c6885693a79c39"></a>RTC_ICE_CANDIDATE_PAIR_STATE_WAITING&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="a812ac6343fda77c2fe67fc814eddb89eac125316d960c954514d411576b62118f"></a>RTC_ICE_CANDIDATE_PAIR_STATE_IN_PROGRESS&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="a812ac6343fda77c2fe67fc814eddb89ea92d9c33b03cece5de4407de4a3fa80af"></a>RTC_ICE_CANDIDATE_PAIR_STATE_SUCCEEDED&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="a812ac6343fda77c2fe67fc814eddb89ea5965babaf924485c8d90c5c7488b482d"></a>RTC_ICE_CANDIDATE_PAIR_STATE_FAILED&#160;</td><td class="fielddoc"></td></tr>
 </table>
 
 </div>
@@ -887,7 +887,7 @@ Enumerations</h2></td></tr>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_b0856f6b0d80ccb263b2f415c91f9e17.html">include</a></li><li class="navelem"><a class="el" href="dir_8f5ac45a6ada111b95e80af22bb6017d.html">com</a></li><li class="navelem"><a class="el" href="dir_6eddcaa8cb3f84b1b7290fa7880ed0c5.html">amazonaws</a></li><li class="navelem"><a class="el" href="dir_ffe25b375dd9c47f978782781b252738.html">kinesis</a></li><li class="navelem"><a class="el" href="dir_40be0bfe93e499fae0ac3fc2c0b3ca29.html">video</a></li><li class="navelem"><a class="el" href="dir_4165afa699965307903ffe413a1cdec9.html">webrtcclient</a></li><li class="navelem"><a class="el" href="Stats_8h.html">Stats.h</a></li>
-    <li class="footer">Generated on Fri Aug 21 2020 01:44:39 for Amazon Kinesis Webrtc C SDK by
+    <li class="footer">Generated on Fri Aug 21 2020 05:53:33 for Amazon Kinesis Webrtc C SDK by
     <a href="http://www.doxygen.org/index.html">
     <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.18 </li>
   </ul>
