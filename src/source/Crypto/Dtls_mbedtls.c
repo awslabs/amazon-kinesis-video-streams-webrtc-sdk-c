@@ -30,7 +30,7 @@ STATUS createDtlsSession(PDtlsSessionCallbacks pDtlsSessionCallbacks, TIMER_QUEU
 
     CHK_STATUS(createIOBuffer(DEFAULT_MTU_SIZE, &pDtlsSession->pReadBuffer));
     pDtlsSession->timerQueueHandle = timerQueueHandle;
-    pDtlsSession->timerId = UINT32_MAX;
+    pDtlsSession->timerId = MAX_UINT32;
     pDtlsSession->sslLock = MUTEX_CREATE(TRUE);
     pDtlsSession->dtlsSessionCallbacks = *pDtlsSessionCallbacks;
     if (certificateBits == 0) {
@@ -82,7 +82,7 @@ STATUS freeDtlsSession(PDtlsSession* ppDtlsSession)
     pDtlsSession = *ppDtlsSession;
     CHK(pDtlsSession != NULL, retStatus);
 
-    if (pDtlsSession->timerId != UINT32_MAX) {
+    if (pDtlsSession->timerId != MAX_UINT32) {
         timerQueueCancelTimer(pDtlsSession->timerQueueHandle, pDtlsSession->timerId, (UINT64) pDtlsSession);
     }
 

@@ -13,7 +13,7 @@ class IceFunctionalityTest : public WebRtcClientTestBase {
 BOOL candidatePairsInOrder(PDoubleList iceCandidatePairs)
 {
     BOOL inOrder = TRUE;
-    UINT64 previousPriority = UINT64_MAX;
+    UINT64 previousPriority = MAX_UINT64;
     PDoubleListNode pCurNode = NULL;
     PIceCandidatePair pIceCandidatePair = NULL;
 

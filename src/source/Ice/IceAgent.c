@@ -52,9 +52,9 @@ STATUS createIceAgent(PCHAR username, PCHAR password, PIceAgentCallbacks pIceAge
     CHK_STATUS(createStateMachine(ICE_AGENT_STATE_MACHINE_STATES, ICE_AGENT_STATE_MACHINE_STATE_COUNT, (UINT64) pIceAgent, iceAgentGetCurrentTime,
                                   (UINT64) pIceAgent, &pIceAgent->pStateMachine));
     pIceAgent->iceAgentStatus = STATUS_SUCCESS;
-    pIceAgent->iceAgentStateTimerTask = UINT32_MAX;
-    pIceAgent->keepAliveTimerTask = UINT32_MAX;
-    pIceAgent->iceCandidateGatheringTimerTask = UINT32_MAX;
+    pIceAgent->iceAgentStateTimerTask = MAX_UINT32;
+    pIceAgent->keepAliveTimerTask = MAX_UINT32;
+    pIceAgent->iceCandidateGatheringTimerTask = MAX_UINT32;
     pIceAgent->timerQueueHandle = timerQueueHandle;
     pIceAgent->lastDataReceivedTime = INVALID_TIMESTAMP_VALUE;
     pIceAgent->detectedDisconnection = FALSE;
@@ -673,19 +673,19 @@ STATUS iceAgentShutdown(PIceAgent pIceAgent)
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
     CHK(!ATOMIC_EXCHANGE_BOOL(&pIceAgent->shutdown, TRUE), retStatus);
 
-    if (pIceAgent->iceAgentStateTimerTask != UINT32_MAX) {
+    if (pIceAgent->iceAgentStateTimerTask != MAX_UINT32) {
         CHK_STATUS(timerQueueCancelTimer(pIceAgent->timerQueueHandle, pIceAgent->iceAgentStateTimerTask, (UINT64) pIceAgent));
-        pIceAgent->iceAgentStateTimerTask = UINT32_MAX;
+        pIceAgent->iceAgentStateTimerTask = MAX_UINT32;
     }
 
-    if (pIceAgent->keepAliveTimerTask != UINT32_MAX) {
+    if (pIceAgent->keepAliveTimerTask != MAX_UINT32) {
         CHK_STATUS(timerQueueCancelTimer(pIceAgent->timerQueueHandle, pIceAgent->keepAliveTimerTask, (UINT64) pIceAgent));
-        pIceAgent->keepAliveTimerTask = UINT32_MAX;
+        pIceAgent->keepAliveTimerTask = MAX_UINT32;
     }
 
-    if (pIceAgent->iceCandidateGatheringTimerTask != UINT32_MAX) {
+    if (pIceAgent->iceCandidateGatheringTimerTask != MAX_UINT32) {
         CHK_STATUS(timerQueueCancelTimer(pIceAgent->timerQueueHandle, pIceAgent->iceCandidateGatheringTimerTask, (UINT64) pIceAgent));
-        pIceAgent->iceCandidateGatheringTimerTask = UINT32_MAX;
+        pIceAgent->iceCandidateGatheringTimerTask = MAX_UINT32;
     }
 
     MUTEX_LOCK(pIceAgent->lock);
@@ -762,19 +762,19 @@ STATUS iceAgentRestart(PIceAgent pIceAgent, PCHAR localIceUfrag, PCHAR localIceP
     alreadyRestarting = ATOMIC_EXCHANGE_BOOL(&pIceAgent->restart, TRUE);
     CHK(!alreadyRestarting, retStatus);
 
-    if (pIceAgent->iceAgentStateTimerTask != UINT32_MAX) {
+    if (pIceAgent->iceAgentStateTimerTask != MAX_UINT32) {
         CHK_STATUS(timerQueueCancelTimer(pIceAgent->timerQueueHandle, pIceAgent->iceAgentStateTimerTask, (UINT64) pIceAgent));
-        pIceAgent->iceAgentStateTimerTask = UINT32_MAX;
+        pIceAgent->iceAgentStateTimerTask = MAX_UINT32;
     }
 
-    if (pIceAgent->keepAliveTimerTask != UINT32_MAX) {
+    if (pIceAgent->keepAliveTimerTask != MAX_UINT32) {
         CHK_STATUS(timerQueueCancelTimer(pIceAgent->timerQueueHandle, pIceAgent->keepAliveTimerTask, (UINT64) pIceAgent));
-        pIceAgent->keepAliveTimerTask = UINT32_MAX;
+        pIceAgent->keepAliveTimerTask = MAX_UINT32;
     }
 
-    if (pIceAgent->iceCandidateGatheringTimerTask != UINT32_MAX) {
+    if (pIceAgent->iceCandidateGatheringTimerTask != MAX_UINT32) {
         CHK_STATUS(timerQueueCancelTimer(pIceAgent->timerQueueHandle, pIceAgent->iceCandidateGatheringTimerTask, (UINT64) pIceAgent));
-        pIceAgent->iceCandidateGatheringTimerTask = UINT32_MAX;
+        pIceAgent->iceCandidateGatheringTimerTask = MAX_UINT32;
     }
 
     MUTEX_LOCK(pIceAgent->lock);
@@ -850,9 +850,9 @@ STATUS iceAgentRestart(PIceAgent pIceAgent, PCHAR localIceUfrag, PCHAR localIceP
     pIceAgent->localNetworkInterfaceCount = ARRAY_SIZE(pIceAgent->localNetworkInterfaces);
     pIceAgent->candidateGatheringEndTime = INVALID_TIMESTAMP_VALUE;
 
-    pIceAgent->iceAgentStateTimerTask = UINT32_MAX;
-    pIceAgent->keepAliveTimerTask = UINT32_MAX;
-    pIceAgent->iceCandidateGatheringTimerTask = UINT32_MAX;
+    pIceAgent->iceAgentStateTimerTask = MAX_UINT32;
+    pIceAgent->keepAliveTimerTask = MAX_UINT32;
+    pIceAgent->iceCandidateGatheringTimerTask = MAX_UINT32;
     pIceAgent->detectedDisconnection = FALSE;
     pIceAgent->disconnectionGracePeriodEndTime = INVALID_TIMESTAMP_VALUE;
 
@@ -1479,7 +1479,7 @@ STATUS iceAgentGatherCandidateTimerCallback(UINT32 timerId, UINT64 currentTime, 
     if ((totalCandidateCount > 0 && pendingCandidateCount == 0) || currentTime >= pIceAgent->candidateGatheringEndTime) {
         DLOGD("Candidate gathering completed.");
         stopScheduling = TRUE;
-        pIceAgent->iceCandidateGatheringTimerTask = UINT32_MAX;
+        pIceAgent->iceCandidateGatheringTimerTask = MAX_UINT32;
     }
 
     CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
