@@ -202,6 +202,7 @@ extern "C" {
 #define STATUS_SRTP_TRANSMIT_SESSION_CREATION_FAILED STATUS_SRTP_BASE + 0x00000003
 #define STATUS_SRTP_RECEIVE_SESSION_CREATION_FAILED  STATUS_SRTP_BASE + 0x00000004
 #define STATUS_SRTP_INIT_FAILED                      STATUS_SRTP_BASE + 0x00000005
+#define STATUS_SRTP_NOT_READY_YET                    STATUS_SRTP_BASE + 0x00000006
 /*!@} */
 
 /*===========================================================================================*/
