@@ -109,7 +109,6 @@ CleanUp:
     }
 
     printf("[KVS Master] Cleaning up....\n");
-
     if (pSampleConfiguration != NULL) {
         // Kick of the termination sequence
         ATOMIC_STORE_BOOL(&pSampleConfiguration->appTerminateFlag, TRUE);
@@ -240,10 +239,19 @@ PVOID sendVideoPackets(PVOID args)
             status = writeFrame(pSampleConfiguration->sampleStreamingSessionList[i]->pVideoRtcRtpTransceiver, &frame);
             encoderStats.encodeTimeMsec = 4; // update encode time to an arbitrary number to demonstrate stats update
             updateEncoderStats(pSampleConfiguration->sampleStreamingSessionList[i]->pVideoRtcRtpTransceiver, &encoderStats);
-            if (status != STATUS_SUCCESS) {
+            if (status != STATUS_SRTP_NOT_READY_YET) {
+                if (status != STATUS_SUCCESS) {
 #ifdef VERBOSE
-                printf("writeFrame() failed with 0x%08x", status);
+                    printf("writeFrame() failed with 0x%08x\n", status);
 #endif
+                } else if (pSampleConfiguration->sampleStreamingSessionList[i]->firstFrame) {
+                    pSampleConfiguration->sampleStreamingSessionList[i]->firstFrame = FALSE;
+                    pSampleConfiguration->sampleStreamingSessionList[i]->startUpLatency =
+                        (GETTIME() - pSampleConfiguration->sampleStreamingSessionList[i]->firstSdpMsgReceiveTime) /
+                        HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+                    printf("Start up latency from offer to first frame: %" PRIu64 "ms\n",
+                           pSampleConfiguration->sampleStreamingSessionList[i]->startUpLatency);
+                }
             }
         }
         MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
@@ -313,8 +321,19 @@ PVOID sendAudioPackets(PVOID args)
         MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
         for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
             status = writeFrame(pSampleConfiguration->sampleStreamingSessionList[i]->pAudioRtcRtpTransceiver, &frame);
-            if (status != STATUS_SUCCESS) {
-                printf("writeFrame failed with 0x%08x", status);
+            if (status != STATUS_SRTP_NOT_READY_YET) {
+                if (status != STATUS_SUCCESS) {
+#ifdef VERBOSE
+                    printf("writeFrame() failed with 0x%08x\n", status);
+#endif
+                } else if (pSampleConfiguration->sampleStreamingSessionList[i]->firstFrame) {
+                    pSampleConfiguration->sampleStreamingSessionList[i]->firstFrame = FALSE;
+                    pSampleConfiguration->sampleStreamingSessionList[i]->startUpLatency =
+                        (GETTIME() - pSampleConfiguration->sampleStreamingSessionList[i]->firstSdpMsgReceiveTime) /
+                        HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+                    printf("Start up latency from offer to first frame: %" PRIu64 "ms\n",
+                           pSampleConfiguration->sampleStreamingSessionList[i]->startUpLatency);
+                }
             }
         }
         MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
