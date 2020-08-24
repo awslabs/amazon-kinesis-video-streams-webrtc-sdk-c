@@ -247,8 +247,7 @@ PVOID sendVideoPackets(PVOID args)
                 } else if (pSampleConfiguration->sampleStreamingSessionList[i]->firstFrame) {
                     pSampleConfiguration->sampleStreamingSessionList[i]->firstFrame = FALSE;
                     pSampleConfiguration->sampleStreamingSessionList[i]->startUpLatency =
-                        (GETTIME() - pSampleConfiguration->sampleStreamingSessionList[i]->firstSdpMsgReceiveTime) /
-                        HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+                        (GETTIME() - pSampleConfiguration->sampleStreamingSessionList[i]->offerReceiveTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
                     printf("Start up latency from offer to first frame: %" PRIu64 "ms\n",
                            pSampleConfiguration->sampleStreamingSessionList[i]->startUpLatency);
                 }
@@ -329,8 +328,7 @@ PVOID sendAudioPackets(PVOID args)
                 } else if (pSampleConfiguration->sampleStreamingSessionList[i]->firstFrame) {
                     pSampleConfiguration->sampleStreamingSessionList[i]->firstFrame = FALSE;
                     pSampleConfiguration->sampleStreamingSessionList[i]->startUpLatency =
-                        (GETTIME() - pSampleConfiguration->sampleStreamingSessionList[i]->firstSdpMsgReceiveTime) /
-                        HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+                        (GETTIME() - pSampleConfiguration->sampleStreamingSessionList[i]->offerReceiveTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
                     printf("Start up latency from offer to first frame: %" PRIu64 "ms\n",
                            pSampleConfiguration->sampleStreamingSessionList[i]->startUpLatency);
                 }
