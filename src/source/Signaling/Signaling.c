@@ -1125,6 +1125,8 @@ STATUS connectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time)
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
+    THREAD_SLEEP_UNTIL(time);
+
     // Check for the stale credentials
     CHECK_SIGNALING_CREDENTIALS_EXPIRATION(pSignalingClient);
 
