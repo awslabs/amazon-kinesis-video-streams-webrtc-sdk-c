@@ -59,6 +59,7 @@ STATUS viewerMessageReceived(UINT64 customData, PReceivedSignalingMessage pRecei
     locked = TRUE;
 
     // viewer should only be viewing a single master. So there should only be one streaming session if running viewer sample
+    ATOMIC_LOAD(&pSampleConfiguration->streamingSessionCount);
     CHK_ERR(pSampleConfiguration->streamingSessionCount > 0, STATUS_INTERNAL_ERROR, "Should've created streaming session for viewer");
     pSampleStreamingSession = pSampleConfiguration->sampleStreamingSessionList[0];
 
@@ -133,6 +134,7 @@ STATUS masterMessageReceived(UINT64 customData, PReceivedSignalingMessage pRecei
     locked = TRUE;
     // ice candidate message and offer message can come at any order. Therefore, if we see a new peerId, then create
     // a new SampleStreamingSession, which in turn creates a new peerConnection
+    ATOMIC_LOAD(&pSampleConfiguration->streamingSessionCount);
     for (i = 0; i < pSampleConfiguration->streamingSessionCount && pSampleStreamingSession == NULL; ++i) {
         if (0 == STRCMP(pReceivedSignalingMessage->signalingMessage.peerClientId, pSampleConfiguration->sampleStreamingSessionList[i]->peerId)) {
             pSampleStreamingSession = pSampleConfiguration->sampleStreamingSessionList[i];
@@ -148,13 +150,15 @@ STATUS masterMessageReceived(UINT64 customData, PReceivedSignalingMessage pRecei
         CHK_STATUS(createSampleStreamingSession(pSampleConfiguration, pReceivedSignalingMessage->signalingMessage.peerClientId, TRUE,
                                                 &pSampleStreamingSession));
         pSampleStreamingSession->firstSdpMsgReceiveTime = GETTIME();
-        pSampleConfiguration->sampleStreamingSessionList[pSampleConfiguration->streamingSessionCount++] = pSampleStreamingSession;
+        pSampleConfiguration->sampleStreamingSessionList[pSampleConfiguration->streamingSessionCount] = pSampleStreamingSession;
+        ATOMIC_INCREMENT(&pSampleConfiguration->streamingSessionCount);
     }
 
     switch (pReceivedSignalingMessage->signalingMessage.messageType) {
         case SIGNALING_MESSAGE_TYPE_OFFER:
             if (ATOMIC_COMPARE_EXCHANGE_BOOL(&pSampleStreamingSession->sdpOfferAnswerExchanged, &expected, TRUE)) {
                 CHK_STATUS(handleOffer(pSampleConfiguration, pSampleStreamingSession, &pReceivedSignalingMessage->signalingMessage));
+                pSampleStreamingSession->offerReceiveTime = GETTIME();
             } else {
                 DLOGD("Offer already received, ignore new offer from client id %s", pReceivedSignalingMessage->signalingMessage.peerClientId);
             }
@@ -798,7 +802,8 @@ STATUS getIceCandidatePairStatsCallback(UINT32 timerId, UINT64 currentTime, UINT
         DLOGW("[KVS Master] getPeriodicStats(): operation returned status code: 0x%08x \n", STATUS_NULL_ARG);
         goto CleanUp;
     }
-    for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
+    ATOMIC_LOAD(&pSampleConfiguration->streamingSessionCount);
+    for (i = 0; i < (UINT32) pSampleConfiguration->streamingSessionCount; ++i) {
         if (STATUS_SUCCEEDED(rtcPeerConnectionGetMetrics(pSampleConfiguration->sampleStreamingSessionList[i]->pPeerConnection, NULL,
                                                          &pSampleConfiguration->rtcIceCandidatePairMetrics))) {
             currentMeasureDuration = (pSampleConfiguration->rtcIceCandidatePairMetrics.timestamp -
@@ -880,14 +885,16 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
     pSampleConfiguration = *ppSampleConfiguration;
 
     CHK(pSampleConfiguration != NULL, retStatus);
-    for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
+    ATOMIC_LOAD(&pSampleConfiguration->streamingSessionCount);
+    MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
+    for (i = 0; i < (UINT32) pSampleConfiguration->streamingSessionCount; ++i) {
         retStatus = gatherIceServerStats(pSampleConfiguration->sampleStreamingSessionList[i]);
         if (STATUS_FAILED(retStatus)) {
             DLOGW("Failed to ICE Server Stats for streaming session %d: %08x", i, retStatus);
         }
         freeSampleStreamingSession(&pSampleConfiguration->sampleStreamingSessionList[i]);
     }
-
+    MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
     deinitKvsWebRtc();
 
     SAFE_MEMFREE(pSampleConfiguration->pVideoFrameBuffer);
@@ -944,12 +951,13 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
 
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->interrupted)) {
         // scan and cleanup terminated streaming session
-        for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
+        ATOMIC_LOAD(&pSampleConfiguration->streamingSessionCount);
+        for (i = 0; i < (UINT32) pSampleConfiguration->streamingSessionCount; ++i) {
             if (ATOMIC_LOAD_BOOL(&pSampleConfiguration->sampleStreamingSessionList[i]->terminateFlag)) {
                 pSampleStreamingSession = pSampleConfiguration->sampleStreamingSessionList[i];
 
                 // swap with last element and decrement count
-                pSampleConfiguration->streamingSessionCount--;
+                ATOMIC_DECREMENT(&pSampleConfiguration->streamingSessionCount);
                 pSampleConfiguration->sampleStreamingSessionList[i] =
                     pSampleConfiguration->sampleStreamingSessionList[pSampleConfiguration->streamingSessionCount];
                 CHK_STATUS(freeSampleStreamingSession(&pSampleStreamingSession));

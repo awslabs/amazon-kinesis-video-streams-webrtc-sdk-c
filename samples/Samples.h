@@ -80,7 +80,7 @@ typedef struct {
     BOOL enableFileLogging;
     UINT64 customData;
     PSampleStreamingSession sampleStreamingSessionList[DEFAULT_MAX_CONCURRENT_STREAMING_SESSION];
-    UINT32 streamingSessionCount;
+    volatile SIZE_T streamingSessionCount;
     UINT32 iceUriCount;
     SignalingClientCallbacks signalingClientCallbacks;
     SignalingClientInfo clientInfo;
@@ -105,6 +105,7 @@ struct __SampleStreamingSession {
     CHAR peerId[MAX_SIGNALING_CLIENT_ID_LEN + 1];
     TID receiveAudioVideoSenderTid;
     UINT64 firstSdpMsgReceiveTime;
+    UINT64 offerReceiveTime;
     UINT64 startUpLatency;
     BOOL firstFrame;
     RtcMetricsHistory rtcMetricsHistory;
