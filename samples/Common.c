@@ -155,6 +155,7 @@ STATUS masterMessageReceived(UINT64 customData, PReceivedSignalingMessage pRecei
         case SIGNALING_MESSAGE_TYPE_OFFER:
             if (ATOMIC_COMPARE_EXCHANGE_BOOL(&pSampleStreamingSession->sdpOfferAnswerExchanged, &expected, TRUE)) {
                 CHK_STATUS(handleOffer(pSampleConfiguration, pSampleStreamingSession, &pReceivedSignalingMessage->signalingMessage));
+                pSampleStreamingSession->offerReceiveTime = GETTIME();
             } else {
                 DLOGD("Offer already received, ignore new offer from client id %s", pReceivedSignalingMessage->signalingMessage.peerClientId);
             }
@@ -794,6 +795,7 @@ STATUS getIceCandidatePairStatsCallback(UINT32 timerId, UINT64 currentTime, UINT
     DOUBLE averageNumberOfPacketsReceivedPerSecond = 0.0;
     DOUBLE outgoingBitrate = 0.0;
     DOUBLE incomingBitrate = 0.0;
+
     if (pSampleConfiguration == NULL) {
         DLOGW("[KVS Master] getPeriodicStats(): operation returned status code: 0x%08x \n", STATUS_NULL_ARG);
         goto CleanUp;
@@ -875,11 +877,17 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration;
     UINT32 i;
+    BOOL locked = FALSE;
 
     CHK(ppSampleConfiguration != NULL, STATUS_NULL_ARG);
     pSampleConfiguration = *ppSampleConfiguration;
 
     CHK(pSampleConfiguration != NULL, retStatus);
+
+    if (IS_VALID_MUTEX_VALUE(pSampleConfiguration->sampleConfigurationObjLock)) {
+        MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
+        locked = TRUE;
+    }
     for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
         retStatus = gatherIceServerStats(pSampleConfiguration->sampleStreamingSessionList[i]);
         if (STATUS_FAILED(retStatus)) {
@@ -887,7 +895,9 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
         }
         freeSampleStreamingSession(&pSampleConfiguration->sampleStreamingSessionList[i]);
     }
-
+    if (locked) {
+        MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
+    }
     deinitKvsWebRtc();
 
     SAFE_MEMFREE(pSampleConfiguration->pVideoFrameBuffer);
