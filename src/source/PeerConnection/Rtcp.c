@@ -203,30 +203,18 @@ STATUS onRtcpRembPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
     DOUBLE maximumBitRate = 0;
     UINT8 ssrcListLen;
     UINT32 i;
-    PDoubleListNode pCurNode = NULL;
     PKvsRtpTransceiver pTransceiver = NULL;
-    UINT64 item;
 
     CHK(pKvsPeerConnection != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
 
     CHK_STATUS(rembValueGet(pRtcpPacket->payload, pRtcpPacket->payloadLength, &maximumBitRate, (PUINT32) &ssrcList, &ssrcListLen));
 
     for (i = 0; i < ssrcListLen; i++) {
-        CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pTransceivers, &pCurNode));
-        while (pCurNode != NULL && pTransceiver == NULL) {
-            CHK_STATUS(doubleListGetNodeData(pCurNode, &item));
-            CHK(item != 0, STATUS_INTERNAL_ERROR);
-
-            pTransceiver = (PKvsRtpTransceiver) item;
-            if (pTransceiver->sender.ssrc != ssrcList[i] && pTransceiver->sender.rtxSsrc != ssrcList[i]) {
-                pTransceiver = NULL;
-            }
-
-            pCurNode = pCurNode->pNext;
+        pTransceiver = NULL;
+        if (STATUS_FAILED(findTransceiverBySsrc(pKvsPeerConnection, &pTransceiver, ssrcList[i]))) {
+            DLOGW("Received REMB for non existing ssrcs: ssrc %lu", ssrcList[i]);
         }
-
-        CHK_ERR(pTransceiver != NULL, STATUS_RTCP_INPUT_SSRC_INVALID, "Received REMB for non existing ssrcs: ssrc %lu", ssrcList[i]);
-        if (pTransceiver->onBandwidthEstimation != NULL) {
+        if (pTransceiver != NULL && pTransceiver->onBandwidthEstimation != NULL) {
             pTransceiver->onBandwidthEstimation(pTransceiver->onBandwidthEstimationCustomData, maximumBitRate);
         }
     }
