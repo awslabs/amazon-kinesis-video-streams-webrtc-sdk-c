@@ -74,7 +74,7 @@ STATUS freeSocketConnection(PSocketConnection* ppSocketConnection)
         freeTlsSession(&pSocketConnection->pTlsSession);
     }
 
-    close(pSocketConnection->localSocket);
+    CHK_STATUS(closeSocket(pSocketConnection->localSocket));
 
     MEMFREE(pSocketConnection);
 
