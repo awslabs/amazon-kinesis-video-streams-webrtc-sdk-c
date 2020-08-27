@@ -39,7 +39,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     // Set the audio and video handlers
     pSampleConfiguration->audioSource = sendAudioPackets;
     pSampleConfiguration->videoSource = sendVideoPackets;
-    pSampleConfiguration->receiveAudioVideoSource = sampleReceiveAudioFrame;
+    pSampleConfiguration->receiveAudioVideoSource = sampleReceiveVideoFrame;
     pSampleConfiguration->onDataChannel = onDataChannel;
     pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
     printf("[KVS Master] Finished setting audio and video handlers\n");
@@ -244,12 +244,6 @@ PVOID sendVideoPackets(PVOID args)
 #ifdef VERBOSE
                     printf("writeFrame() failed with 0x%08x\n", status);
 #endif
-                } else if (pSampleConfiguration->sampleStreamingSessionList[i]->firstFrame) {
-                    pSampleConfiguration->sampleStreamingSessionList[i]->firstFrame = FALSE;
-                    pSampleConfiguration->sampleStreamingSessionList[i]->startUpLatency =
-                        (GETTIME() - pSampleConfiguration->sampleStreamingSessionList[i]->offerReceiveTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
-                    printf("Start up latency from offer to first frame: %" PRIu64 "ms\n",
-                           pSampleConfiguration->sampleStreamingSessionList[i]->startUpLatency);
                 }
             }
         }
@@ -325,12 +319,6 @@ PVOID sendAudioPackets(PVOID args)
 #ifdef VERBOSE
                     printf("writeFrame() failed with 0x%08x\n", status);
 #endif
-                } else if (pSampleConfiguration->sampleStreamingSessionList[i]->firstFrame) {
-                    pSampleConfiguration->sampleStreamingSessionList[i]->firstFrame = FALSE;
-                    pSampleConfiguration->sampleStreamingSessionList[i]->startUpLatency =
-                        (GETTIME() - pSampleConfiguration->sampleStreamingSessionList[i]->offerReceiveTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
-                    printf("Start up latency from offer to first frame: %" PRIu64 "ms\n",
-                           pSampleConfiguration->sampleStreamingSessionList[i]->startUpLatency);
                 }
             }
         }
@@ -343,16 +331,16 @@ CleanUp:
     return (PVOID)(ULONG_PTR) retStatus;
 }
 
-PVOID sampleReceiveAudioFrame(PVOID args)
+PVOID sampleReceiveVideoFrame(PVOID args)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) args;
     if (pSampleStreamingSession == NULL) {
-        printf("[KVS Master] sampleReceiveAudioFrame(): operation returned status code: 0x%08x \n", STATUS_NULL_ARG);
+        printf("[KVS Master] sampleReceiveVideoFrame(): operation returned status code: 0x%08x \n", STATUS_NULL_ARG);
         goto CleanUp;
     }
 
-    retStatus = transceiverOnFrame(pSampleStreamingSession->pAudioRtcRtpTransceiver, (UINT64) pSampleStreamingSession, sampleFrameHandler);
+    retStatus = transceiverOnFrame(pSampleStreamingSession->pVideoRtcRtpTransceiver, (UINT64) pSampleStreamingSession, sampleFrameHandler);
     if (retStatus != STATUS_SUCCESS) {
         printf("[KVS Master] transceiverOnFrame(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;

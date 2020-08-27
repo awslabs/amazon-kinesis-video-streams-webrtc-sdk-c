@@ -32,6 +32,10 @@ extern "C" {
 
 #define FILE_LOGGING_BUFFER_SIZE (100 * 1024)
 #define MAX_NUMBER_OF_LOG_FILES  5
+
+#define SAMPLE_HASH_TABLE_BUCKET_COUNT  50
+#define SAMPLE_HASH_TABLE_BUCKET_LENGTH 2
+
 typedef enum {
     SAMPLE_STREAMING_VIDEO_ONLY,
     SAMPLE_STREAMING_AUDIO_VIDEO,
@@ -108,7 +112,6 @@ struct __SampleStreamingSession {
     UINT32 videoTimestamp;
     CHAR peerId[MAX_SIGNALING_CLIENT_ID_LEN + 1];
     TID receiveAudioVideoSenderTid;
-    UINT64 firstSdpMsgReceiveTime;
     UINT64 offerReceiveTime;
     UINT64 startUpLatency;
     BOOL firstFrame;
@@ -125,7 +128,7 @@ STATUS readFrameFromDisk(PBYTE, PUINT32, PCHAR);
 PVOID sendVideoPackets(PVOID);
 PVOID sendAudioPackets(PVOID);
 PVOID sendGstreamerAudioVideo(PVOID);
-PVOID sampleReceiveAudioFrame(PVOID args);
+PVOID sampleReceiveVideoFrame(PVOID args);
 PVOID getPeriodicIceCandidatePairStats(PVOID);
 STATUS getIceCandidatePairStatsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData);
 STATUS createSampleConfiguration(PCHAR, SIGNALING_CHANNEL_ROLE_TYPE, BOOL, BOOL, PSampleConfiguration*);

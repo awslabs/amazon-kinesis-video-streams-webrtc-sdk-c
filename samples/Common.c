@@ -149,7 +149,7 @@ STATUS handleOffer(PSampleConfiguration pSampleConfiguration, PSampleStreamingSe
     if (pSampleStreamingSession->remoteCanTrickleIce) {
         CHK_STATUS(respondWithAnswer(pSampleStreamingSession));
         DLOGD("time taken to send answer %" PRIu64 " ms",
-              (GETTIME() - pSampleStreamingSession->firstSdpMsgReceiveTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+              (GETTIME() - pSampleStreamingSession->offerReceiveTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
     }
 
     if (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->mediaThreadStarted)) {
@@ -225,7 +225,7 @@ VOID onIceCandidateHandler(UINT64 customData, PCHAR candidateJson)
             !pSampleStreamingSession->remoteCanTrickleIce) {
             CHK_STATUS(respondWithAnswer(pSampleStreamingSession));
             DLOGD("time taken to send answer %" PRIu64 " ms",
-                  (GETTIME() - pSampleStreamingSession->firstSdpMsgReceiveTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+                  (GETTIME() - pSampleStreamingSession->offerReceiveTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
         }
         ATOMIC_STORE_BOOL(&pSampleStreamingSession->candidateGatheringDone, TRUE);
     } else if (pSampleStreamingSession->remoteCanTrickleIce && ATOMIC_LOAD_BOOL(&pSampleStreamingSession->peerIdReceived)) {
@@ -477,6 +477,12 @@ VOID sampleFrameHandler(UINT64 customData, PFrame pFrame)
 {
     UNUSED_PARAM(customData);
     DLOGV("Frame received. TrackId: %" PRIu64 ", Size: %u, Flags %u", pFrame->trackId, pFrame->size, pFrame->flags);
+    PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) customData;
+    if (pSampleStreamingSession->firstFrame) {
+        pSampleStreamingSession->firstFrame = FALSE;
+        pSampleStreamingSession->startUpLatency = (GETTIME() - pSampleStreamingSession->offerReceiveTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+        printf("Start up latency from offer to first frame: %" PRIu64 "ms\n", pSampleStreamingSession->startUpLatency);
+    }
 }
 
 VOID sampleBandwidthEstimationHandler(UINT64 customData, DOUBLE maxiumBitrate)
@@ -635,8 +641,10 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
 
     pSampleConfiguration->iceUriCount = 0;
 
-    CHK_STATUS(hashTableCreate(&pSampleConfiguration->pPendingSignalingMessageForRemoteClient));
-    CHK_STATUS(hashTableCreate(&pSampleConfiguration->pRtcPeerConnectionForRemoteClient));
+    CHK_STATUS(hashTableCreateWithParams(SAMPLE_HASH_TABLE_BUCKET_COUNT, SAMPLE_HASH_TABLE_BUCKET_LENGTH,
+                                         &pSampleConfiguration->pPendingSignalingMessageForRemoteClient));
+    CHK_STATUS(hashTableCreateWithParams(SAMPLE_HASH_TABLE_BUCKET_COUNT, SAMPLE_HASH_TABLE_BUCKET_LENGTH,
+                                         &pSampleConfiguration->pRtcPeerConnectionForRemoteClient));
 
 CleanUp:
 
@@ -971,9 +979,13 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
              * any ice candidate messages queued in pPendingSignalingMessageForRemoteClient. If so then submit
              * all of them.
              */
+            if (pSampleConfiguration->streamingSessionCount == SIZEOF(pSampleConfiguration->sampleStreamingSessionList)) {
+                DLOGW("Max simultaneous streaming session count reached.");
+                CHK(FALSE, retStatus);
+            }
             CHK_STATUS(createSampleStreamingSession(pSampleConfiguration, pReceivedSignalingMessage->signalingMessage.peerClientId, TRUE,
                                                     &pSampleStreamingSession));
-            pSampleStreamingSession->firstSdpMsgReceiveTime = GETTIME();
+            pSampleStreamingSession->offerReceiveTime = GETTIME();
             MUTEX_LOCK(pSampleConfiguration->streamingSessionListReadLock);
             pSampleConfiguration->sampleStreamingSessionList[pSampleConfiguration->streamingSessionCount++] = pSampleStreamingSession;
             MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
