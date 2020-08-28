@@ -2193,7 +2193,8 @@ STATUS incomingDataHandler(UINT64 customData, PSocketConnection pSocketConnectio
     if ((bufferLen < 8 || !IS_STUN_PACKET(pBuffer)) && pIceAgent->iceAgentCallbacks.inboundPacketFn != NULL) {
         // release lock early
         addrLen = IS_IPV4_ADDR(pSrc) ? IPV4_ADDRESS_LENGTH : IPV6_ADDRESS_LENGTH;
-        if (pIceAgent->pDataSendingIceCandidatePair->local->pSocketConnection == pSocketConnection &&
+        if (pIceAgent->pDataSendingIceCandidatePair != NULL &&
+            pIceAgent->pDataSendingIceCandidatePair->local->pSocketConnection == pSocketConnection &&
             pIceAgent->pDataSendingIceCandidatePair->remote->ipAddress.family == pSrc->family &&
             MEMCMP(pIceAgent->pDataSendingIceCandidatePair->remote->ipAddress.address, pSrc->address, addrLen) == 0 &&
             (pIceAgent->pDataSendingIceCandidatePair->remote->ipAddress.port == pSrc->port)) {
