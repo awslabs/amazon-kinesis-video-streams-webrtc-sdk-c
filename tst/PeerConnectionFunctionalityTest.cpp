@@ -29,6 +29,67 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeers)
     freePeerConnection(&answerPc);
 }
 
+TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithDelay)
+{
+    RtcConfiguration configuration;
+    RtcSessionDescriptionInit sdp;
+    SIZE_T connectedCount = 0;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    auto onICECandidateHdlr = [](UINT64 customData, PCHAR candidateStr) -> void {
+        if (candidateStr != NULL) {
+            std::thread(
+                [customData](std::string candidate) {
+                    RtcIceCandidateInit iceCandidate;
+                    EXPECT_EQ(STATUS_SUCCESS, deserializeRtcIceCandidateInit((PCHAR) candidate.c_str(), STRLEN(candidate.c_str()), &iceCandidate));
+                    EXPECT_EQ(STATUS_SUCCESS, addIceCandidate((PRtcPeerConnection) customData, iceCandidate.candidate));
+                },
+                std::string(candidateStr))
+                .detach();
+        }
+    };
+
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(offerPc, (UINT64) answerPc, onICECandidateHdlr));
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(answerPc, (UINT64) offerPc, onICECandidateHdlr));
+
+    auto onICEConnectionStateChangeHdlr = [](UINT64 customData, RTC_PEER_CONNECTION_STATE newState) -> void {
+        if (newState == RTC_PEER_CONNECTION_STATE_CONNECTED) {
+            ATOMIC_INCREMENT((PSIZE_T) customData);
+        }
+    };
+
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnConnectionStateChange(offerPc, (UINT64) &connectedCount, onICEConnectionStateChangeHdlr));
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnConnectionStateChange(answerPc, (UINT64) &connectedCount, onICEConnectionStateChangeHdlr));
+
+    EXPECT_EQ(STATUS_SUCCESS, createOffer(offerPc, &sdp));
+    EXPECT_EQ(STATUS_SUCCESS, setLocalDescription(offerPc, &sdp));
+    EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(answerPc, &sdp));
+
+    EXPECT_EQ(STATUS_SUCCESS, createAnswer(answerPc, &sdp));
+    EXPECT_EQ(STATUS_SUCCESS, setLocalDescription(answerPc, &sdp));
+
+    THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
+
+    EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(offerPc, &sdp));
+
+    for (auto i = 0; i <= 100 && ATOMIC_LOAD(&connectedCount) != 2; i++) {
+        THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
+    }
+
+    EXPECT_EQ(2, connectedCount);
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+}
+
 #ifdef KVS_USE_OPENSSL
 TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithPresetCerts)
 {
