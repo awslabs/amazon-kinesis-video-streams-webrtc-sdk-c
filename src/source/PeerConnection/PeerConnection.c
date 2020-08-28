@@ -38,15 +38,13 @@ CleanUp:
 STATUS allocateSctpSortDataChannelsDataCallback(UINT64 customData, PHashEntry pHashEntry)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    PAllocateSctpSortDataChannelsData data = (PAllocateSctpSortDataChannelsData) customData;
+    PINT32 pCurrentChannelId = (PINT32) customData;
     PKvsDataChannel pKvsDataChannel = (PKvsDataChannel) pHashEntry->value;
 
     CHK(customData != 0, STATUS_NULL_ARG);
 
-    pKvsDataChannel->channelId = data->currentDataChannelId;
-    CHK_STATUS(hashTablePut(data->pKvsPeerConnection->pDataChannels, pKvsDataChannel->channelId, (UINT64) pKvsDataChannel));
-
-    data->currentDataChannelId += 2;
+    pKvsDataChannel->channelId = *pCurrentChannelId;
+    *pCurrentChannelId += 2;
 
 CleanUp:
     return retStatus;
@@ -56,23 +54,14 @@ STATUS allocateSctp(PKvsPeerConnection pKvsPeerConnection)
 {
     STATUS retStatus = STATUS_SUCCESS;
     SctpSessionCallbacks sctpSessionCallbacks;
-    AllocateSctpSortDataChannelsData data;
-    UINT32 currentDataChannelId = 0;
+    INT32 currentDataChannelId = 0;
     PKvsDataChannel pKvsDataChannel = NULL;
 
     CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
     currentDataChannelId = (pKvsPeerConnection->dtlsIsServer) ? 1 : 0;
 
     // Re-sort DataChannel hashmap using proper streamIds if we are offerer or answerer
-    data.currentDataChannelId = currentDataChannelId;
-    data.pKvsPeerConnection = pKvsPeerConnection;
-    data.unkeyedDataChannels = pKvsPeerConnection->pDataChannels;
-    CHK_STATUS(hashTableCreateWithParams(CODEC_HASH_TABLE_BUCKET_COUNT, CODEC_HASH_TABLE_BUCKET_LENGTH, &pKvsPeerConnection->pDataChannels));
-    CHK_STATUS(hashTableIterateEntries(data.unkeyedDataChannels, (UINT64) &data, allocateSctpSortDataChannelsDataCallback));
-
-    // Free unkeyed DataChannels
-    CHK_LOG_ERR(hashTableClear(data.unkeyedDataChannels));
-    CHK_LOG_ERR(hashTableFree(data.unkeyedDataChannels));
+    CHK_STATUS(hashTableIterateEntries(pKvsPeerConnection->pDataChannels, (UINT64) &currentDataChannelId, allocateSctpSortDataChannelsDataCallback));
 
     // Create the SCTP Session
     sctpSessionCallbacks.outboundPacketFunc = onSctpSessionOutboundPacket;
@@ -81,7 +70,7 @@ STATUS allocateSctp(PKvsPeerConnection pKvsPeerConnection)
     sctpSessionCallbacks.customData = (UINT64) pKvsPeerConnection;
     CHK_STATUS(createSctpSession(&sctpSessionCallbacks, &(pKvsPeerConnection->pSctpSession)));
 
-    for (; currentDataChannelId < data.currentDataChannelId; currentDataChannelId += 2) {
+    for (; currentDataChannelId >= 0; currentDataChannelId -= 2) {
         CHK_STATUS(hashTableGet(pKvsPeerConnection->pDataChannels, currentDataChannelId, (PUINT64) &pKvsDataChannel));
         CHK(pKvsDataChannel != NULL, STATUS_INTERNAL_ERROR);
         sctpSessionWriteDcep(pKvsPeerConnection->pSctpSession, currentDataChannelId, pKvsDataChannel->dataChannel.name,
