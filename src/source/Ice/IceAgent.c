@@ -2191,9 +2191,6 @@ STATUS incomingDataHandler(UINT64 customData, PSocketConnection pSocketConnectio
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
     BOOL locked = FALSE;
-    UINT64 bytesReceived = 0;
-    UINT64 packetsReceived = 0;
-    BOOL candidatePairFound = FALSE;
     UINT32 addrLen = 0;
     CHK(pIceAgent != NULL && pSocketConnection != NULL, STATUS_NULL_ARG);
 
@@ -2205,21 +2202,22 @@ STATUS incomingDataHandler(UINT64 customData, PSocketConnection pSocketConnectio
     // for stun packets, first 8 bytes are 4 byte type and length, then 4 byte magic byte
     if ((bufferLen < 8 || !IS_STUN_PACKET(pBuffer)) && pIceAgent->iceAgentCallbacks.inboundPacketFn != NULL) {
         // release lock early
+        MUTEX_UNLOCK(pIceAgent->lock);
+        locked = FALSE;
+        pIceAgent->iceAgentCallbacks.inboundPacketFn(pIceAgent->iceAgentCallbacks.customData, pBuffer, bufferLen);
+
+        MUTEX_LOCK(pIceAgent->lock);
+        locked = TRUE;
         addrLen = IS_IPV4_ADDR(pSrc) ? IPV4_ADDRESS_LENGTH : IPV6_ADDRESS_LENGTH;
         if (pIceAgent->pDataSendingIceCandidatePair != NULL &&
             pIceAgent->pDataSendingIceCandidatePair->local->pSocketConnection == pSocketConnection &&
             pIceAgent->pDataSendingIceCandidatePair->remote->ipAddress.family == pSrc->family &&
             MEMCMP(pIceAgent->pDataSendingIceCandidatePair->remote->ipAddress.address, pSrc->address, addrLen) == 0 &&
             (pIceAgent->pDataSendingIceCandidatePair->remote->ipAddress.port == pSrc->port)) {
-            candidatePairFound = TRUE;
-        }
-        MUTEX_UNLOCK(pIceAgent->lock);
-        locked = FALSE;
-        pIceAgent->iceAgentCallbacks.inboundPacketFn(pIceAgent->iceAgentCallbacks.customData, pBuffer, bufferLen);
-        if (candidatePairFound) {
             pIceAgent->pDataSendingIceCandidatePair->rtcIceCandidatePairDiagnostics.lastPacketReceivedTimestamp = GETTIME();
-            bytesReceived += bufferLen;
-            packetsReceived++; // Since every byte buffer translates to a single RTP packet
+            pIceAgent->pDataSendingIceCandidatePair->rtcIceCandidatePairDiagnostics.bytesReceived += bufferLen;
+            pIceAgent->pDataSendingIceCandidatePair->rtcIceCandidatePairDiagnostics
+                .packetsReceived++; // Since every byte buffer translates to a single RTP packet
         }
     } else {
         if (ATOMIC_LOAD_BOOL(&pIceAgent->processStun)) {
@@ -2229,12 +2227,6 @@ STATUS incomingDataHandler(UINT64 customData, PSocketConnection pSocketConnectio
 
 CleanUp:
     CHK_LOG_ERR(retStatus);
-    if (candidatePairFound) {
-        MUTEX_LOCK(pIceAgent->lock);
-        locked = TRUE;
-        pIceAgent->pDataSendingIceCandidatePair->rtcIceCandidatePairDiagnostics.bytesReceived += bytesReceived;
-        pIceAgent->pDataSendingIceCandidatePair->rtcIceCandidatePairDiagnostics.packetsReceived += packetsReceived;
-    }
     if (locked) {
         MUTEX_UNLOCK(pIceAgent->lock);
     }
