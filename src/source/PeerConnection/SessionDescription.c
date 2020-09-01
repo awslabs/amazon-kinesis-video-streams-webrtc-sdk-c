@@ -176,7 +176,9 @@ STATUS setPayloadTypesFromOffer(PHashTable codecTable, PHashTable rtxTable, PSes
                 CHK_STATUS(hashTableUpsert(codecTable, RTC_CODEC_ALAW, DEFAULT_PAYLOAD_ALAW));
             }
 
-            attributeValue = end + 1;
+            if (end != NULL) {
+                attributeValue = end + 1;
+            }
         } while (end != NULL);
 
         for (currentAttribute = 0; currentAttribute < pMediaDescription->mediaAttributesCount; currentAttribute++) {
