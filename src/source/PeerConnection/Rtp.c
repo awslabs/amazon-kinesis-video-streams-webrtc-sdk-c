@@ -421,6 +421,7 @@ STATUS findTransceiverBySsrc(PKvsPeerConnection pKvsPeerConnection, PKvsRtpTrans
         if (pTransceiver->sender.ssrc == ssrc || pTransceiver->sender.rtxSsrc == ssrc || pTransceiver->jitterBufferSsrc == ssrc) {
             break;
         }
+        pTransceiver = NULL;
         pCurNode = pCurNode->pNext;
     }
     CHK(pTransceiver != NULL, STATUS_NOT_FOUND);
