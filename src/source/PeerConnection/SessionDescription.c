@@ -827,7 +827,9 @@ STATUS reorderTransceiverByRemoteDescription(PKvsPeerConnection pKvsPeerConnecti
             if (supportCodec) {
                 CHK_STATUS(copyTransceiverWithCodec(pKvsPeerConnection, rtcCodec, &foundMediaSectionWithCodec));
             }
-            attributeValue = end + 1;
+            if (end != NULL) {
+                attributeValue = end + 1;
+            }
         } while (end != NULL && !foundMediaSectionWithCodec);
 
         // Scan the media section attributes for codecs we support
