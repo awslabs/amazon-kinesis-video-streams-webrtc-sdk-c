@@ -197,6 +197,21 @@ CleanUp:
     return retStatus;
 }
 
+STATUS closeSocket(INT32 sockfd)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+
+#ifdef _WIN32
+    CHK_ERR(closesocket(sockfd) == 0, STATUS_CLOSE_SOCKET_FAILED, "Failed to close the socket %s", strerror(errno));
+#else
+    CHK_ERR(close(sockfd) == 0, STATUS_CLOSE_SOCKET_FAILED, "Failed to close the socket %s", strerror(errno));
+#endif
+
+CleanUp:
+
+    return retStatus;
+}
+
 STATUS socketBind(PKvsIpAddress pHostIpAddress, INT32 sockfd)
 {
     STATUS retStatus = STATUS_SUCCESS;
