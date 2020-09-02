@@ -77,6 +77,7 @@ var Include_8h =
     [ "SIGNALING_VALID_NAME_CHARS", "Include_8h.html#a5bfed0cf073cb1b1d572e6c5fe6ca401", null ],
     [ "STATUS_BINDING_SOCKET_FAILED", "group__Networking.html#gae461b5a9d0eb049c8b7a6c7abfeee95b", null ],
     [ "STATUS_CERTIFICATE_GENERATION_FAILED", "group__DTLS.html#ga4999e97b2991ab225df0297475895735", null ],
+    [ "STATUS_CLOSE_SOCKET_FAILED", "group__Networking.html#ga931b4f49537d4d3651d15998021493c2", null ],
     [ "STATUS_CREATE_SSL_FAILED", "group__Networking.html#ga5e6b8a8e97408a79eb7dcc0174524051", null ],
     [ "STATUS_CREATE_UDP_SOCKET_FAILED", "group__Networking.html#ga44a2446875af0507a862b0c5dc28a453", null ],
     [ "STATUS_DTLS_BASE", "group__DTLS.html#gadda1fe61c08ceea71b9f9a1c61905e05", null ],

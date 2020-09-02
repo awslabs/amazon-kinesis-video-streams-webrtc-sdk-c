@@ -1,6 +1,7 @@
 var group__Networking =
 [
     [ "STATUS_BINDING_SOCKET_FAILED", "group__Networking.html#gae461b5a9d0eb049c8b7a6c7abfeee95b", null ],
+    [ "STATUS_CLOSE_SOCKET_FAILED", "group__Networking.html#ga931b4f49537d4d3651d15998021493c2", null ],
     [ "STATUS_CREATE_SSL_FAILED", "group__Networking.html#ga5e6b8a8e97408a79eb7dcc0174524051", null ],
     [ "STATUS_CREATE_UDP_SOCKET_FAILED", "group__Networking.html#ga44a2446875af0507a862b0c5dc28a453", null ],
     [ "STATUS_GET_LOCAL_IP_ADDRESSES_FAILED", "group__Networking.html#ga31f0ece3e32eb36c9e138d4a7effd547", null ],

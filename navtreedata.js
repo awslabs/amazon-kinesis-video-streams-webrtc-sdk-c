@@ -52,9 +52,9 @@ var NAVTREEINDEX =
 [
 "Include_8h.html",
 "Stats_8h.html#aefd9f545d5b4bcd8ce932a79204382b0",
-"group__Networking.html#gaba8f0ce0461a218c95e6f2250abf6d58",
-"group__Signaling.html#ga932238047852bb2ab0b665cef952be79",
-"structRtcIceMetrics.html#afcb5243008cc0bf27f18df01e0a6ae6c"
+"group__Networking.html#ga931b4f49537d4d3651d15998021493c2",
+"group__Signaling.html#ga916975b02b4b3c261717f22c5b6b336a",
+"structRtcIceMetrics.html#a68e096213b6c4dd37b46b9a1aa484c02"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';
