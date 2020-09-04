@@ -1504,7 +1504,8 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
         }
 
         // Check if anything needs to be done
-        CHK_WARN(pMessage != NULL && messageLen != 0, retStatus, "Signaling received an empty message");
+//        CHK_WARN(pMessage != NULL && messageLen != 0, retStatus, "Signaling received an empty message");
+        CHK(pMessage != NULL && messageLen != 0, retStatus);
     }
 
     // Parse the response

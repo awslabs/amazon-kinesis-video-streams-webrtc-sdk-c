@@ -59,7 +59,7 @@ STATUS signalingClientSendMessageSync(SIGNALING_CLIENT_HANDLE signalingClientHan
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = FROM_SIGNALING_CLIENT_HANDLE(signalingClientHandle);
 
-    DLOGI("Signaling Client Sending Message Sync");
+//    DLOGI("Signaling Client Sending Message Sync");
 
     CHK_STATUS(signalingSendMessageSync(pSignalingClient, pSignalingMessage));
 

@@ -311,6 +311,11 @@ if (BUILD_SAMPLE)
   target_link_libraries(kvsWebrtcClientViewer kvsWebrtcClient kvsWebrtcSignalingClient kvspicUtils)
 
   add_executable(
+    signalingConnectivityTest
+    ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/signalingConnectivityTest.c)
+  target_link_libraries(signalingConnectivityTest kvsWebrtcClient kvsWebrtcSignalingClient kvspicUtils)
+
+  add_executable(
           discoverNatBehavior
           ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/discoverNatBehavior.c)
   target_link_libraries(discoverNatBehavior kvsWebrtcClient)
