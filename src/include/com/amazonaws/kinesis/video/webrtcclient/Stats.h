@@ -10,22 +10,66 @@
 extern "C" {
 #endif
 
-////////////////////////////////////////////////////
-// Public headers
-////////////////////////////////////////////////////
+/////////////////////////////////////////////////////
+/// Stats related string lengths
+/////////////////////////////////////////////////////
 
-#define MAX_CANDIDATE_ID_LENGTH   9U
-#define MAX_STATS_ADDRESS_LENGTH  16U
+/*! \addtogroup StatsNameLengths
+ * Lengths of some string members of different structures
+ *  @{
+ */
+
+/**
+ * Maximum allowed candidate ID length
+ */
+#define MAX_CANDIDATE_ID_LENGTH 9U
+
+/**
+ * Maximum allowed relay protocol length
+ */
 #define MAX_RELAY_PROTOCOL_LENGTH 8U
-#define MAX_TLS_VERSION_LENGTH    8U
-#define MAX_DTLS_CIPHER_LENGTH    64U
-#define MAX_SRTP_CIPHER_LENGTH    64U
-#define MAX_TLS_GROUP_LENGHTH     32U
-#define MAX_PROTOCOL_LENGTH       8U
-#define IP_ADDR_STR_LENGTH        45U
 
+/**
+ * Maximum allowed TLS version length
+ */
+#define MAX_TLS_VERSION_LENGTH 8U
+
+/**
+ * Maximum allowed DTLS cipher length
+ */
+#define MAX_DTLS_CIPHER_LENGTH 64U
+
+/**
+ * Maximum allowed SRTP cipher length
+ */
+#define MAX_SRTP_CIPHER_LENGTH 64U
+
+/**
+ * Maximum allowed TLS group length
+ */
+#define MAX_TLS_GROUP_LENGHTH 32U
+
+/**
+ * Maximum allowed maximum protocol length (allowed values: tcp, udp)
+ */
+#define MAX_PROTOCOL_LENGTH 8U
+
+/**
+ * Maximum allowed length of IP address string
+ */
+#define IP_ADDR_STR_LENGTH 45U
+
+/**
+ * Maximum allowed generic length used in DOMString
+ */
 #define MAX_STATS_STRING_LENGTH 255U
+/*!@} */
 
+/**
+ * @brief DOMString type is used to store strings of size 256 bytes (inclusive of '\0' character
+ *
+ * Reference: https://heycam.github.io/webidl/#idl-DOMString
+ */
 typedef CHAR DOMString[MAX_STATS_STRING_LENGTH + 1];
 
 /**
@@ -121,8 +165,9 @@ typedef enum {
     RTC_QUALITY_LIMITATION_REASON_OTHER,     //!< Limitation due to reasons other than above
 } RTC_QUALITY_LIMITATION_REASON;
 
-/**
+/*! \addtogroup StatsStructures
  * @brief Record of duration and quality reason state
+ * @{
  */
 typedef struct {
     UINT64 durationInSeconds;                              //!< Time (seconds) spent in each state
@@ -245,7 +290,10 @@ typedef struct {
     UINT32 selectedCandidatePairChanges;      //!< The number of times that the selected candidate pair of this transport has changed
 } RtcTransportStats, *PRtcTransportStats;
 
-// https://www.w3.org/TR/webrtc-stats/#dom-rtcrtpstreamstats
+/**
+ * @brief RTCRtpStreamStats captures stream stats that will be used as part of RTCSentRtpStreamStats report
+ * Reference:  https://www.w3.org/TR/webrtc-stats/#dom-rtcrtpstreamstats
+ */
 typedef struct {
     UINT32 ssrc; //!< The 32-bit unsigned integer value per [RFC3550] used to identify the source of the stream of RTP packets that this stats object
                  //!< concerns.
@@ -260,7 +308,10 @@ typedef struct {
                        //!< this RTP stream.
 } RTCRtpStreamStats, *PRTCRtpStreamStats;
 
-// https://www.w3.org/TR/webrtc-stats/#dom-rtcsentrtpstreamstats
+/**
+ * @brief RTCSentRtpStreamStats will be used as part of outbound Rtp stats
+ * Reference: https://www.w3.org/TR/webrtc-stats/#dom-rtcsentrtpstreamstats
+ */
 typedef struct {
     RTCRtpStreamStats rtpStream;
     UINT64 packetsSent;
@@ -271,13 +322,13 @@ typedef struct {
 } RTCSentRtpStreamStats, *PRTCSentRtpStreamStats;
 
 /**
- * @brief RtcOutboundRtpStreamStats
+ * @brief RtcOutboundRtpStreamStats Gathers stats for media stream from the embedded device
+ * Note: RTCOutboundRtpStreamStats extends RTCSentRtpStreamStats as per https://www.w3.org/TR/webrtc-stats/#dom-rtcoutboundrtpstreamstats
  *
  * Reference: https://www.w3.org/TR/webrtc-stats/#outboundrtpstats-dict*
  */
 typedef struct {
-    // RTCOutboundRtpStreamStats extends RTCSentRtpStreamStats as per https://www.w3.org/TR/webrtc-stats/#dom-rtcoutboundrtpstreamstats
-    RTCSentRtpStreamStats sent;
+    RTCSentRtpStreamStats sent;      //!< Comprises of information such as packetsSent and bytesSent
     BOOL voiceActivityFlag;          //!< Only valid for audio. Whether the last RTP packet sent contained voice activity or not based on the presence
                                      //!< of the V bit in the extension header
     DOMString trackId;               //!< ID representing current track attached to the sender of the stream
@@ -338,7 +389,6 @@ typedef struct {
 } RtcRemoteInboundRtpStreamStats, *PRtcRemoteInboundRtpStreamStats;
 
 typedef struct {
-    // dictionary RTCReceivedRtpStreamStats : RTCRtpStreamStats
     RTCRtpStreamStats rtpStream;
     UINT64 packetsReceived; //!< Total number of RTP packets received for this SSRC.
     INT64 packetsLost; //!< TODO Total number of RTP packets lost for this SSRC. Calculated as defined in [RFC3550] section 6.4.1. Note that because
@@ -440,13 +490,6 @@ typedef struct {
     //!< packets can be calculated by adding packetsDuplicated to packetsLost; this will always result in a positive number,
     //!< but not the same number as RFC 3550 would calculate.
 
-    // TODO: perDscpPacketsReceived
-    /**
-     * Total number of packets received for this SSRC, per Differentiated Services code point (DSCP) [RFC2474]. DSCPs are identified as decimal
-     * integers in string form. Note that due to network remapping and bleaching, these numbers are not expected to match the numbers seen on sending.
-     * Not all OSes make this information available.
-     */
-    //    record<USVString, unsigned long long> perDscpPacketsReceived;
     UINT32 nackCount; //!< TODO Count the total number of Negative ACKnowledgement (NACK) packets sent by this receiver.
     UINT32 firCount;  //!< TODO Only valid for video. Count the total number of Full Intra Request (FIR) packets sent by this receiver.
     UINT32 pliCount;  //!< TODO Only valid for video. Count the total number of Picture Loss Indication (PLI) packets sent by this receiver.
@@ -551,6 +594,7 @@ typedef struct {
     RtcInboundRtpStreamStats inboundRtpStreamStats;             //!< Inbound RTP Stream stats object
     RtcDataChannelStats rtcDataChannelStats;
 } RtcStatsObject, *PRtcStatsObject;
+/*!@} */
 
 #ifdef __cplusplus
 }
