@@ -45,7 +45,7 @@ matrix:
       os: osx
       compiler: gcc
       before_script:
-        - mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TEST=TRUE
+        - mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
       script:
         - make
         - export DYLD_LIBRARY_PATH="$DYLD_LIBRARY_PATH:`pwd`/../open-source/lib"
