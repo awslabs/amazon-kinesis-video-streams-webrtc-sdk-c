@@ -66,6 +66,9 @@ INT32 main(INT32 argc, CHAR* argv[])
         channelInfo.pRegion = DEFAULT_AWS_REGION;
     }
 
+    PCHAR channelName = argv[1];
+    printf("Channel name is %s\n", channelName);
+
     CHK_STATUS(
         createStaticCredentialProvider(pAccessKey, 0, pSecretKey, 0, pSessionToken, 0, MAX_UINT64, &pCredentialProvider));
 
@@ -74,7 +77,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     data.response_received = FALSE;
 
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
-    channelInfo.pChannelName = (PCHAR) "foo40";
+    channelInfo.pChannelName = channelName;
     channelInfo.pKmsKeyId = NULL;
     channelInfo.tagCount = 0;
     channelInfo.pTags = NULL;
