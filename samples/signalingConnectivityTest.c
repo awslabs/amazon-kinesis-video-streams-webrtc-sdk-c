@@ -134,7 +134,7 @@ INT32 main(INT32 argc, CHAR* argv[])
         messageSentTime = GETTIME();
         DLOGD("send meesage %" PRIu64 , index);
         CHK_STATUS(signalingClientSendMessageSync(viewerSignalingClientHandle, &message));
-        while(!ATOMIC_LOAD_BOOL(&data.response_received)) {
+        while(!response_received) {
             CVAR_WAIT(data.conditionVariable, data.mutex, 60 * HUNDREDS_OF_NANOS_IN_A_SECOND);
             response_received = ATOMIC_LOAD_BOOL(&data.response_received);
             ATOMIC_STORE_BOOL(&data.response_received, FALSE);
