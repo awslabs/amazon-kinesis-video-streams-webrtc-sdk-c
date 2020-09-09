@@ -127,25 +127,30 @@ INT32 main(INT32 argc, CHAR* argv[])
     STRCPY(message.payload, (PCHAR) "test_message");
     message.correlationId[0] = '\0';
 
+    UINT64 index = 0;
     UINT64 messageSentTime = 0;
+    BOOL response_received = FALSE;
     while(TRUE) {
         messageSentTime = GETTIME();
+        DLOGD("send meesage %" PRIu64 , index);
         CHK_STATUS(signalingClientSendMessageSync(viewerSignalingClientHandle, &message));
         while(!ATOMIC_LOAD_BOOL(&data.response_received)) {
             CVAR_WAIT(data.conditionVariable, data.mutex, 60 * HUNDREDS_OF_NANOS_IN_A_SECOND);
-            if (!ATOMIC_LOAD_BOOL(&data.response_received)) {
-                printf("response not received after one minute\n");
+            response_received = ATOMIC_LOAD_BOOL(&data.response_received);
+            ATOMIC_STORE_BOOL(&data.response_received, FALSE);
+            if (!response_received) {
+                DLOGD("response %" PRIu64 " not received after one minute\n", index);
                 break;
             }
         }
 
-        if (ATOMIC_LOAD_BOOL(&data.response_received)) {
-            ATOMIC_STORE_BOOL(&data.response_received, FALSE);
+        if (response_received) {
             UINT64 currentTime = GETTIME();
             UINT64 delay = (currentTime - messageSentTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
-            printf("delay %" PRIu64 ", %" PRIu64 "\n", currentTime / HUNDREDS_OF_NANOS_IN_A_SECOND, delay);
+            DLOGD("delay for message %" PRIu64 " %" PRIu64 ", %" PRIu64 "\n", index, currentTime / HUNDREDS_OF_NANOS_IN_A_SECOND, delay);
         }
         THREAD_SLEEP(60 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+        index++;
     }
 
     MUTEX_UNLOCK(data.mutex);
