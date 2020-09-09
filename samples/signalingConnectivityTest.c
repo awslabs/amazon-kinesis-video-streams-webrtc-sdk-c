@@ -133,11 +133,12 @@ INT32 main(INT32 argc, CHAR* argv[])
     while(TRUE) {
         messageSentTime = GETTIME();
         DLOGD("send meesage %" PRIu64 , index);
+        response_received = FALSE;
+        ATOMIC_STORE_BOOL(&data.response_received, FALSE);
         CHK_STATUS(signalingClientSendMessageSync(viewerSignalingClientHandle, &message));
         while(!response_received) {
             CVAR_WAIT(data.conditionVariable, data.mutex, 60 * HUNDREDS_OF_NANOS_IN_A_SECOND);
             response_received = ATOMIC_LOAD_BOOL(&data.response_received);
-            ATOMIC_STORE_BOOL(&data.response_received, FALSE);
             if (!response_received) {
                 DLOGD("response %" PRIu64 " not received after one minute\n", index);
                 break;
