@@ -132,7 +132,11 @@ INT32 main(INT32 argc, CHAR* argv[])
         messageSentTime = GETTIME();
         CHK_STATUS(signalingClientSendMessageSync(viewerSignalingClientHandle, &message));
         while(!ATOMIC_LOAD_BOOL(&data.response_received)) {
-            CVAR_WAIT(data.conditionVariable, data.mutex, 5 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+            CVAR_WAIT(data.conditionVariable, data.mutex, 60 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+            if (!ATOMIC_LOAD_BOOL(&data.response_received)) {
+                printf("response not received after one minute\n");
+                break;
+            }
         }
 
         if (ATOMIC_LOAD_BOOL(&data.response_received)) {
