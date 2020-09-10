@@ -19,6 +19,18 @@ STATUS signalingClientErrorViewer(UINT64 customData, STATUS status, PCHAR msg, U
     return STATUS_SUCCESS;
 }
 
+STATUS signalingStateChangedViewer(UINT64 customData, SIGNALING_CLIENT_STATE newState)
+{
+    printf("Signaling viewer state changed to %u\n", newState);
+    return STATUS_SUCCESS;
+}
+
+STATUS signalingStateChangedMaster(UINT64 customData, SIGNALING_CLIENT_STATE newState)
+{
+    printf("Signaling master state changed to %u\n", newState);
+    return STATUS_SUCCESS;
+}
+
 STATUS signalingMessageReceivedMaster(UINT64 customData, PReceivedSignalingMessage pReceivedSignalingMessage)
 {
     PSIGNALING_CLIENT_HANDLE pMasterSignalingClientHandle = (PSIGNALING_CLIENT_HANDLE) customData;
@@ -93,7 +105,7 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
     signalingClientCallbacks.errorReportFn = signalingClientErrorMaster;
-    signalingClientCallbacks.stateChangeFn = NULL;
+    signalingClientCallbacks.stateChangeFn = signalingStateChangedMaster;
     signalingClientCallbacks.messageReceivedFn = signalingMessageReceivedMaster;
     signalingClientCallbacks.customData = (UINT64) &masterSignalingClientHandle;
 
@@ -109,6 +121,7 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     sprintf(clientInfo.clientId, "%s", "TEST_VIEWER");
     signalingClientCallbacks.errorReportFn = signalingClientErrorViewer;
+    signalingClientCallbacks.stateChangeFn = signalingStateChangedViewer;
     channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_VIEWER;
     signalingClientCallbacks.messageReceivedFn = signalingMessageReceivedViewer;
     signalingClientCallbacks.customData = (UINT64) &data;
