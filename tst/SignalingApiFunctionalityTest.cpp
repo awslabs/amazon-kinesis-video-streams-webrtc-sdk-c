@@ -1036,10 +1036,14 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationAuthExpiration)
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
-    // Shouldn't be able to connect as it's not in ready state
-    EXPECT_NE(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
+    // We should have reached the ready state before the ICE refresh started.
+    // We are re-setting to this state on an ice failure
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
 
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
+
+    // Ensure we had failed the ICE config
+    EXPECT_EQ(STATUS_SIGNALING_ICE_CONFIG_REFRESH_FAILED, errStatus);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
 }
@@ -1383,6 +1387,88 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionError
     EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(signalingHandle, &signalingMessage));
 
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
+
+    EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+}
+
+TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionErrorDisconnectNoRecovery)
+{
+    if (!mAccessKeyIdSet) {
+        return;
+    }
+
+    ChannelInfo channelInfo;
+    SignalingClientCallbacks signalingClientCallbacks;
+    SignalingClientInfoInternal clientInfoInternal;
+    PSignalingClient pSignalingClient;
+    SIGNALING_CLIENT_HANDLE signalingHandle;
+
+    signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
+    signalingClientCallbacks.customData = (UINT64) this;
+    signalingClientCallbacks.messageReceivedFn = NULL;
+    signalingClientCallbacks.errorReportFn = signalingClientError;
+    signalingClientCallbacks.stateChangeFn = signalingClientStateChanged;
+
+    MEMSET(&clientInfoInternal, 0x00, SIZEOF(SignalingClientInfoInternal));
+
+    clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
+    clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
+    STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    clientInfoInternal.iceRefreshPeriod = 5 * HUNDREDS_OF_NANOS_IN_A_SECOND;
+
+    MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
+    channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
+    channelInfo.pChannelName = mChannelName;
+    channelInfo.pKmsKeyId = NULL;
+    channelInfo.tagCount = 0;
+    channelInfo.pTags = NULL;
+    channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
+    channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
+    channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_DESCRIBE_GETENDPOINT;
+    channelInfo.retry = TRUE;
+    channelInfo.reconnect = TRUE;
+    channelInfo.pCertPath = mCaCertPath;
+    channelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
+
+    EXPECT_EQ(STATUS_SUCCESS,
+              createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider,
+                                  &pSignalingClient));
+    signalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
+    EXPECT_TRUE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
+
+    pActiveClient = pSignalingClient;
+
+    // Connect to the signaling client
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
+
+    // Cause a bad auth
+    BYTE firstByte = pSignalingClient->pAwsCredentials->secretKey[0];
+    pSignalingClient->pAwsCredentials->secretKey[0] = 'A';
+
+    // Wait for ICE refresh while connected
+    THREAD_SLEEP(6 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+
+    // While the background ICE refresh is happening, we will be blocked for the refresh thread to finish
+    // In this case, the ICE refresh will eventually fail, however, we should still be able to send the
+    // message as we are still connected.
+    SignalingMessage signalingMessage;
+    signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
+    signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
+    STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    MEMSET(signalingMessage.payload, 'A', 100);
+    signalingMessage.payload[100] = '\0';
+    signalingMessage.payloadLen = 0;
+    signalingMessage.correlationId[0] = '\0';
+
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(signalingHandle, &signalingMessage));
+
+    // Reset it back to cause normal execution
+    pSignalingClient->pAwsCredentials->secretKey[0] = firstByte;
+
+    deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
+
+    // Ensure we had failed the ICE config
+    EXPECT_EQ(STATUS_SIGNALING_ICE_CONFIG_REFRESH_FAILED, errStatus);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
 }
