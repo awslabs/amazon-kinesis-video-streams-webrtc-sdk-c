@@ -1,0 +1,57 @@
+digraph "freeSocketConnection"
+{
+ // LATEX_PDF_SIZE
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  rankdir="RL";
+  Node1 [label="freeSocketConnection",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled", fontcolor="black",tooltip=" "];
+  Node1 -> Node2 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node2 [label="createSocketConnection",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$SocketConnection_8h.html#a5ce9dfe7b74d9b52538004c323214965",tooltip=" "];
+  Node2 -> Node3 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node3 [label="discoverNatBehavior",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$group__PublicMemberFunctions.html#ga6c4139787f87c307c2033b51d65284ce",tooltip="Use the process described in https://tools.ietf.org/html/rfc5780#section-4.3 to discover NAT behavior..."];
+  Node2 -> Node4 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node4 [label="iceAgentInitHostCandidate",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$IceAgent_8h.html#ab7fc78b0a2605c5291b7ec8d7ed40cdc",tooltip=" "];
+  Node4 -> Node5 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node5 [label="iceAgentStartGathering",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$IceAgent_8h.html#aaedcdc437dc6d6753a438f7c5ddf0c7c",tooltip=" "];
+  Node5 -> Node6 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node6 [label="setLocalDescription",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$group__PublicMemberFunctions.html#ga060e71a4e33e0b7a8087317d4839fa8a",tooltip="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the local descript..."];
+  Node5 -> Node7 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node7 [label="setRemoteDescription",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed",tooltip="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..."];
+  Node2 -> Node8 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node8 [label="iceAgentInitRelayCandidate",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$IceAgent_8h.html#a16f8a3535bbc9b23cd08b98bd79e49b4",tooltip=" "];
+  Node8 -> Node9 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node9 [label="iceAgentInitRelayCandidates",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$IceAgent_8h.html#a90515bdf78b9dec41ee9c9d579da0045",tooltip=" "];
+  Node9 -> Node5 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node2 -> Node10 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node10 [label="iceAgentInitSrflxCandidate",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$IceAgent_8h.html#ab51095af13e7b515be425c2d7da80833",tooltip=" "];
+  Node10 -> Node5 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node1 -> Node3 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node1 -> Node11 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node11 [label="freeIceAgent",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$IceAgent_8h.html#a2fec382692577e183d98141466cb51f7",tooltip=" "];
+  Node11 -> Node12 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node12 [label="createIceAgent",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$IceAgent_8h.html#a8b4871fcabcb392bb37f78a0a1b129eb",tooltip=" "];
+  Node12 -> Node13 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node13 [label="createPeerConnection",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640",tooltip=" "];
+  Node11 -> Node14 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node14 [label="freePeerConnection",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$group__PublicMemberFunctions.html#ga433b1bd125e7f221bcdad97a2a0e8949",tooltip="Free a RtcPeerConnection."];
+  Node14 -> Node13 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node1 -> Node15 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node15 [label="freeTurnConnection",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$TurnConnection_8h.html#a636cc6844b455700bc4eb56284a0c0ba",tooltip=" "];
+  Node15 -> Node16 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node16 [label="createTurnConnection",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$TurnConnection_8h.html#a71e6fb744871a4b7929790dcf8fa7ffc",tooltip=" "];
+  Node16 -> Node8 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node15 -> Node11 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node15 -> Node17 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node17 [label="fromReadyIceAgentState",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$IceAgentStateMachine_8h.html#aec16a4d41bdf76f1f357d688e3fe9f80",tooltip=" "];
+  Node15 -> Node18 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node18 [label="iceAgentConnectedStateSetup",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$IceAgent_8h.html#a1e97803ab232afca8aecc4e2f77b87ac",tooltip=" "];
+  Node18 -> Node19 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node19 [label="executeConnectedIceAgent\lState",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$IceAgentStateMachine_8h.html#a4fddd35b881d4a51ceaad3633a0bced0",tooltip=" "];
+  Node15 -> Node20 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node20 [label="iceAgentRestart",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$IceAgent_8h.html#aedd06d9faf8856ab8758e8c0e49796ac",tooltip=" "];
+  Node20 -> Node21 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node21 [label="restartIce",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$group__PublicMemberFunctions.html#gade9fcbb056cb321f33890c1cf1222e64",tooltip="Instructs the RtcPeerConnection that ICE should be restarted. Subsequent calls to createOffer will cr..."];
+  Node20 -> Node7 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node1 -> Node18 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node1 -> Node20 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+}

@@ -1,0 +1,24 @@
+digraph "signalingClientSendMessageSync"
+{
+ // LATEX_PDF_SIZE
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  rankdir="LR";
+  Node1 [label="signalingClientSendMessageSync",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled", fontcolor="black",tooltip="Send a message through a Signaling client."];
+  Node1 -> Node2 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node2 [label="signalingSendMessageSync",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Signaling_8c.html#a85fbc5fc8623d113581b2bce92642c93",tooltip=" "];
+  Node2 -> Node3 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node3 [label="sendLwsMessage",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$LwsApiCalls_8c.html#a1dd446403d1e7b425b4591c08a5269b3",tooltip=" "];
+  Node3 -> Node4 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node4 [label="acceptSignalingStateMachine\lState",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$StateMachine_8c.html#a0e4075886bfd0e7be0b6173ee41adace",tooltip=" "];
+  Node3 -> Node5 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node5 [label="writeLwsData",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$LwsApiCalls_8c.html#a79f1b7bc677d4cb0c2eb0c6ab854e8e5",tooltip=" "];
+  Node5 -> Node6 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node6 [label="wakeLwsServiceEventLoop",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$LwsApiCalls_8c.html#a116aedb04e1b2e3c920d5b181477b11a",tooltip=" "];
+  Node2 -> Node7 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node7 [label="signalingRemoveOngoingMessage",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Signaling_8c.html#ad5583fab3f7bd5e1260bc503aeff639a",tooltip=" "];
+  Node2 -> Node8 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node8 [label="signalingStoreOngoingMessage",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Signaling_8c.html#a387148b41883b821111c84bc39811ac7",tooltip=" "];
+  Node8 -> Node9 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node9 [label="signalingGetOngoingMessage",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Signaling_8c.html#ae3eee8f50a486b71e62e7c98291d422d",tooltip=" "];
+}

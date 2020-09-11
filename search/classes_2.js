@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['dscppacketssentrecord_810',['DscpPacketsSentRecord',['../structDscpPacketsSentRecord.html',1,'']]]
+  ['channelinfo_2477',['ChannelInfo',['../structChannelInfo.html',1,'']]],
+  ['connectionlistener_2478',['ConnectionListener',['../structConnectionListener.html',1,'']]]
 ];

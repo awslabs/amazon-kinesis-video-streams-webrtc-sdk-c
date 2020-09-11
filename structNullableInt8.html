@@ -95,20 +95,32 @@ $(document).ready(function(){initNavTree('structNullableInt8.html',''); initResi
 <a href="#pub-attribs">Public Attributes</a> &#124;
 <a href="structNullableInt8-members.html">List of all members</a>  </div>
   <div class="headertitle">
-<div class="title">NullableInt8 Struct Reference</div>  </div>
+<div class="title">NullableInt8 Struct Reference<div class="ingroups"><a class="el" href="group__NullableStructures.html">NullableStructures</a></div></div>  </div>
 </div><!--header-->
 <div class="contents">
 
+<p>Custom data type to allow setting INT8 data type to NULL since C does not support setting basic data types to NULL.  
+ <a href="structNullableInt8.html#details">More...</a></p>
+
 <p><code>#include &lt;<a class="el" href="NullableDefs_8h_source.html">NullableDefs.h</a>&gt;</code></p>
+<div class="dynheader">
+Collaboration diagram for NullableInt8:</div>
+<div class="dyncontent">
+<div class="center"><img src="structNullableInt8__coll__graph.png" border="0" usemap="#NullableInt8_coll__map" alt="Collaboration graph"/></div>
+</div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
 <tr class="memitem:a97907b77351983584b4ef62d2a3272fa"><td class="memItemLeft" align="right" valign="top">BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structNullableInt8.html#a97907b77351983584b4ef62d2a3272fa">isNull</a></td></tr>
+<tr class="memdesc:a97907b77351983584b4ef62d2a3272fa"><td class="mdescLeft">&#160;</td><td class="mdescRight">If this value is set, the value field will be ignored.  <a href="structNullableInt8.html#a97907b77351983584b4ef62d2a3272fa">More...</a><br /></td></tr>
 <tr class="separator:a97907b77351983584b4ef62d2a3272fa"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7b609011e80d3dd28a8b856ad6f7eff6"><td class="memItemLeft" align="right" valign="top">INT8&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structNullableInt8.html#a7b609011e80d3dd28a8b856ad6f7eff6">value</a></td></tr>
+<tr class="memdesc:a7b609011e80d3dd28a8b856ad6f7eff6"><td class="mdescLeft">&#160;</td><td class="mdescRight">This value is used only if isNull is not set. Can be set to a signed 8 bit value.  <a href="structNullableInt8.html#a7b609011e80d3dd28a8b856ad6f7eff6">More...</a><br /></td></tr>
 <tr class="separator:a7b609011e80d3dd28a8b856ad6f7eff6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
-<h2 class="groupheader">Member Data Documentation</h2>
+<a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
+<div class="textblock"><p>Custom data type to allow setting INT8 data type to NULL since C does not support setting basic data types to NULL. </p>
+</div><h2 class="groupheader">Member Data Documentation</h2>
 <a id="a97907b77351983584b4ef62d2a3272fa"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a97907b77351983584b4ef62d2a3272fa">&#9670;&nbsp;</a></span>isNull</h2>
 
@@ -120,6 +132,8 @@ Public Attributes</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+
+<p>If this value is set, the value field will be ignored. </p>
 
 </div>
 </div>
@@ -135,6 +149,8 @@ Public Attributes</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
+<p>This value is used only if isNull is not set. Can be set to a signed 8 bit value. </p>
+
 </div>
 </div>
 <hr/>The documentation for this struct was generated from the following file:<ul>
@@ -146,7 +162,7 @@ Public Attributes</h2></td></tr>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="structNullableInt8.html">NullableInt8</a></li>
-    <li class="footer">Generated on Wed Sep 9 2020 19:28:05 for Amazon Kinesis Webrtc C SDK by
+    <li class="footer">Generated on Fri Sep 11 2020 21:38:17 for Amazon Kinesis Webrtc C SDK by
     <a href="http://www.doxygen.org/index.html">
     <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.18 </li>
   </ul>

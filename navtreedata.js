@@ -25,36 +25,17 @@
 var NAVTREE =
 [
   [ "Amazon Kinesis Webrtc C SDK", "index.html", [
-    [ "Modules", "modules.html", "modules" ],
-    [ "Classes", "annotated.html", [
-      [ "Class List", "annotated.html", "annotated_dup" ],
-      [ "Class Index", "classes.html", null ],
-      [ "Class Members", "functions.html", [
-        [ "All", "functions.html", "functions_dup" ],
-        [ "Variables", "functions_vars.html", "functions_vars" ]
-      ] ]
-    ] ],
-    [ "Files", "files.html", [
-      [ "File List", "files.html", "files_dup" ],
-      [ "File Members", "globals.html", [
-        [ "All", "globals.html", "globals_dup" ],
-        [ "Functions", "globals_func.html", null ],
-        [ "Typedefs", "globals_type.html", null ],
-        [ "Enumerations", "globals_enum.html", null ],
-        [ "Enumerator", "globals_eval.html", null ],
-        [ "Macros", "globals_defs.html", "globals_defs" ]
-      ] ]
-    ] ]
+    [ "Introduction", "md_Introduction.html", null ],
+    [ "Modules", "modules.html", "modules" ]
   ] ]
 ];
 
 var NAVTREEINDEX =
 [
-"Include_8h.html",
-"Stats_8h.html#aefd9f545d5b4bcd8ce932a79204382b0",
-"group__Networking.html#ga931b4f49537d4d3651d15998021493c2",
-"group__Signaling.html#ga916975b02b4b3c261717f22c5b6b336a",
-"structRtcIceMetrics.html#a68e096213b6c4dd37b46b9a1aa484c02"
+"group__Callbacks.html",
+"group__PublicStructures.html#gad5b87b382de979a22ec7096376b5f9bb",
+"structNullableDouble.html#a3ee3ebfebd872d579fa3421d42a9e5a5",
+"structRtcRemoteInboundRtpStreamStats.html#a1d6ab410390c8b98de1e38be4a55dc76"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

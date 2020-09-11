@@ -1,0 +1,18 @@
+digraph "serializeAttribute"
+{
+ // LATEX_PDF_SIZE
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  rankdir="RL";
+  Node1 [label="serializeAttribute",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled", fontcolor="black",tooltip=" "];
+  Node1 -> Node2 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node2 [label="serializeSessionDescription",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Serialize_8c.html#a9c41cb60fca74b4572e2fe2bc816b919",tooltip=" "];
+  Node2 -> Node3 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node3 [label="createOffer",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$group__PublicMemberFunctions.html#ga1779d268b0993835d80f0948281e2274",tooltip="Populate the provided answer that contains an RFC 3264 offer with the supported configurations for th..."];
+  Node2 -> Node4 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node4 [label="peerConnectionGetCurrent\lLocalDescription",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$group__PublicMemberFunctions.html#ga19dfcbdcf4d136b56ce366fe2fb9bfb3",tooltip=" "];
+  Node4 -> Node5 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node5 [label="createAnswer",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$group__PublicMemberFunctions.html#ga7dc5ad4eb5cc7e000396547279108d9b",tooltip="Populate the provided answer that contains an RFC 3264 answer with the supported configurations for t..."];
+  Node2 -> Node6 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node6 [label="peerConnectionGetLocalDescription",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$group__PublicMemberFunctions.html#gaa1940a0ddabf41c445b55f1317476e96",tooltip=" "];
+}

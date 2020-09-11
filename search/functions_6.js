@@ -1,8 +1,6 @@
 var searchData=
 [
-  ['peerconnectiongetcurrentlocaldescription_885',['peerConnectionGetCurrentLocalDescription',['../Include_8h.html#a19dfcbdcf4d136b56ce366fe2fb9bfb3',1,'Include.h']]],
-  ['peerconnectiongetlocaldescription_886',['peerConnectionGetLocalDescription',['../Include_8h.html#aa1940a0ddabf41c445b55f1317476e96',1,'Include.h']]],
-  ['peerconnectiononconnectionstatechange_887',['peerConnectionOnConnectionStateChange',['../Include_8h.html#ae937526652e3287c3e2dd9bee74ea799',1,'Include.h']]],
-  ['peerconnectionondatachannel_888',['peerConnectionOnDataChannel',['../Include_8h.html#a41afed748235c04e38fa7481e421055d',1,'Include.h']]],
-  ['peerconnectiononicecandidate_889',['peerConnectionOnIceCandidate',['../Include_8h.html#a5a45606d264d6005c559b10fa42338bf',1,'Include.h']]]
+  ['handledceppacket_2906',['handleDcepPacket',['../Sctp_8c.html#a8f12cbc92f7a361cec205992aba52480',1,'Sctp.c']]],
+  ['handlestunpacket_2907',['handleStunPacket',['../IceAgent_8c.html#a15dca4483895fee272df46d7e4a955d7',1,'handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PSocketConnection pSocketConnection, PKvsIpAddress pSrcAddr, PKvsIpAddress pDestAddr):&#160;IceAgent.c'],['../IceAgent_8h.html#ac05b87e31e89363944974da428845ef3',1,'handleStunPacket(PIceAgent, PBYTE, UINT32, PSocketConnection, PKvsIpAddress, PKvsIpAddress):&#160;IceAgent.c']]],
+  ['hastransceiverwithssrc_2908',['hasTransceiverWithSsrc',['../Rtp_8c.html#a3f98236c016e0072d6ef135477ffa895',1,'hasTransceiverWithSsrc(PKvsPeerConnection pKvsPeerConnection, UINT32 ssrc):&#160;Rtp.c'],['../Rtp_8h.html#a3f98236c016e0072d6ef135477ffa895',1,'hasTransceiverWithSsrc(PKvsPeerConnection pKvsPeerConnection, UINT32 ssrc):&#160;Rtp.c']]]
 ];

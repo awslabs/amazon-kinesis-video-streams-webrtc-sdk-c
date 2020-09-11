@@ -100,13 +100,17 @@ $(document).ready(function(){initNavTree('Stats_8h.html',''); initResizable(); }
 <div class="title">Stats.h File Reference</div>  </div>
 </div><!--header-->
 <div class="contents">
-
+<div class="textblock"><div class="dynheader">
+This graph shows which files directly or indirectly include this file:</div>
+<div class="dyncontent">
+<div class="center"><img src="Stats_8h__dep__incl.png" border="0" usemap="#_2src_2src_2include_2com_2amazonaws_2kinesis_2video_2webrtcclient_2Stats_8hdep" alt=""/></div>
+</div>
+</div>
 <p><a href="Stats_8h_source.html">Go to the source code of this file.</a></p>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="nested-classes"></a>
 Classes</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structQualityLimitationDurationsRecord.html">QualityLimitationDurationsRecord</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Record of duration and quality reason state.  <a href="structQualityLimitationDurationsRecord.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structDscpPacketsSentRecord.html">DscpPacketsSentRecord</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Record of total number of packets sent per DSCP. Used by RTCOutboundRtpStreamStats object.  <a href="structDscpPacketsSentRecord.html#details">More...</a><br /></td></tr>
@@ -124,11 +128,13 @@ Classes</h2></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="structRtcTransportStats.html" title="RtcTransportStats Represents the stats corresponding to an RTCDtlsTransport and its underlying RTCIce...">RtcTransportStats</a> Represents the stats corresponding to an RTCDtlsTransport and its underlying RTCIceTransport.  <a href="structRtcTransportStats.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRTCRtpStreamStats.html">RTCRtpStreamStats</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="structRTCRtpStreamStats.html" title="RTCRtpStreamStats captures stream stats that will be used as part of RTCSentRtpStreamStats report Ref...">RTCRtpStreamStats</a> captures stream stats that will be used as part of <a class="el" href="structRTCSentRtpStreamStats.html" title="RTCSentRtpStreamStats will be used as part of outbound Rtp stats Reference: https://www....">RTCSentRtpStreamStats</a> report Reference: <a href="https://www.w3.org/TR/webrtc-stats/#dom-rtcrtpstreamstats">https://www.w3.org/TR/webrtc-stats/#dom-rtcrtpstreamstats</a>.  <a href="structRTCRtpStreamStats.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRTCSentRtpStreamStats.html">RTCSentRtpStreamStats</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="structRTCSentRtpStreamStats.html" title="RTCSentRtpStreamStats will be used as part of outbound Rtp stats Reference: https://www....">RTCSentRtpStreamStats</a> will be used as part of outbound Rtp stats Reference: <a href="https://www.w3.org/TR/webrtc-stats/#dom-rtcsentrtpstreamstats">https://www.w3.org/TR/webrtc-stats/#dom-rtcsentrtpstreamstats</a>.  <a href="structRTCSentRtpStreamStats.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRtcOutboundRtpStreamStats.html">RtcOutboundRtpStreamStats</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="structRtcOutboundRtpStreamStats.html" title="RtcOutboundRtpStreamStats.">RtcOutboundRtpStreamStats</a>.  <a href="structRtcOutboundRtpStreamStats.html#details">More...</a><br /></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="structRtcOutboundRtpStreamStats.html" title="RtcOutboundRtpStreamStats Gathers stats for media stream from the embedded device Note: RTCOutboundRt...">RtcOutboundRtpStreamStats</a> Gathers stats for media stream from the embedded device Note: RTCOutboundRtpStreamStats extends <a class="el" href="structRTCSentRtpStreamStats.html" title="RTCSentRtpStreamStats will be used as part of outbound Rtp stats Reference: https://www....">RTCSentRtpStreamStats</a> as per <a href="https://www.w3.org/TR/webrtc-stats/#dom-rtcoutboundrtpstreamstats">https://www.w3.org/TR/webrtc-stats/#dom-rtcoutboundrtpstreamstats</a>.  <a href="structRtcOutboundRtpStreamStats.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRtcRemoteInboundRtpStreamStats.html">RtcRemoteInboundRtpStreamStats</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">RTCRemoteInboundRtpStreamStats Represents the remote endpoint's measurement metrics for a particular incoming RTP stream.  <a href="structRtcRemoteInboundRtpStreamStats.html#details">More...</a><br /></td></tr>
@@ -149,64 +155,63 @@ Classes</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="define-members"></a>
 Macros</h2></td></tr>
-<tr class="memitem:aeb7cb54e2a66447e46fca79db9a8fda0"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#aeb7cb54e2a66447e46fca79db9a8fda0">MAX_CANDIDATE_ID_LENGTH</a>&#160;&#160;&#160;9U</td></tr>
-<tr class="separator:aeb7cb54e2a66447e46fca79db9a8fda0"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7cc73042a6a21937fea2a51095c5cc17"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#a7cc73042a6a21937fea2a51095c5cc17">MAX_STATS_ADDRESS_LENGTH</a>&#160;&#160;&#160;16U</td></tr>
-<tr class="separator:a7cc73042a6a21937fea2a51095c5cc17"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac55f060221aeba8a69391c39ed31de2e"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#ac55f060221aeba8a69391c39ed31de2e">MAX_RELAY_PROTOCOL_LENGTH</a>&#160;&#160;&#160;8U</td></tr>
-<tr class="separator:ac55f060221aeba8a69391c39ed31de2e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:afa949459dea73bcf4792d82eb0dd8834"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#afa949459dea73bcf4792d82eb0dd8834">MAX_TLS_VERSION_LENGTH</a>&#160;&#160;&#160;8U</td></tr>
-<tr class="separator:afa949459dea73bcf4792d82eb0dd8834"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a12dc5a15dec202406ad4abfa594520ff"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#a12dc5a15dec202406ad4abfa594520ff">MAX_DTLS_CIPHER_LENGTH</a>&#160;&#160;&#160;64U</td></tr>
-<tr class="separator:a12dc5a15dec202406ad4abfa594520ff"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af7c143e641acf0feb1e05260dc3f1419"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#af7c143e641acf0feb1e05260dc3f1419">MAX_SRTP_CIPHER_LENGTH</a>&#160;&#160;&#160;64U</td></tr>
-<tr class="separator:af7c143e641acf0feb1e05260dc3f1419"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aefd9f545d5b4bcd8ce932a79204382b0"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#aefd9f545d5b4bcd8ce932a79204382b0">MAX_TLS_GROUP_LENGHTH</a>&#160;&#160;&#160;32U</td></tr>
-<tr class="separator:aefd9f545d5b4bcd8ce932a79204382b0"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab3b05eb23c726d76352f92e7722f1877"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#ab3b05eb23c726d76352f92e7722f1877">MAX_PROTOCOL_LENGTH</a>&#160;&#160;&#160;8U</td></tr>
-<tr class="separator:ab3b05eb23c726d76352f92e7722f1877"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a8eb68b1e05b3ae2de5775202931617de"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#a8eb68b1e05b3ae2de5775202931617de">IP_ADDR_STR_LENGTH</a>&#160;&#160;&#160;45U</td></tr>
-<tr class="separator:a8eb68b1e05b3ae2de5775202931617de"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a4afa41bce022b8bec8581c021e8d8c81"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#a4afa41bce022b8bec8581c021e8d8c81">MAX_STATS_STRING_LENGTH</a>&#160;&#160;&#160;255U</td></tr>
-<tr class="separator:a4afa41bce022b8bec8581c021e8d8c81"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaeb7cb54e2a66447e46fca79db9a8fda0"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatsNameLengths.html#gaeb7cb54e2a66447e46fca79db9a8fda0">MAX_CANDIDATE_ID_LENGTH</a>&#160;&#160;&#160;9U</td></tr>
+<tr class="separator:gaeb7cb54e2a66447e46fca79db9a8fda0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gac55f060221aeba8a69391c39ed31de2e"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatsNameLengths.html#gac55f060221aeba8a69391c39ed31de2e">MAX_RELAY_PROTOCOL_LENGTH</a>&#160;&#160;&#160;8U</td></tr>
+<tr class="separator:gac55f060221aeba8a69391c39ed31de2e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gafa949459dea73bcf4792d82eb0dd8834"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatsNameLengths.html#gafa949459dea73bcf4792d82eb0dd8834">MAX_TLS_VERSION_LENGTH</a>&#160;&#160;&#160;8U</td></tr>
+<tr class="separator:gafa949459dea73bcf4792d82eb0dd8834"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga12dc5a15dec202406ad4abfa594520ff"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatsNameLengths.html#ga12dc5a15dec202406ad4abfa594520ff">MAX_DTLS_CIPHER_LENGTH</a>&#160;&#160;&#160;64U</td></tr>
+<tr class="separator:ga12dc5a15dec202406ad4abfa594520ff"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaf7c143e641acf0feb1e05260dc3f1419"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatsNameLengths.html#gaf7c143e641acf0feb1e05260dc3f1419">MAX_SRTP_CIPHER_LENGTH</a>&#160;&#160;&#160;64U</td></tr>
+<tr class="separator:gaf7c143e641acf0feb1e05260dc3f1419"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaefd9f545d5b4bcd8ce932a79204382b0"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatsNameLengths.html#gaefd9f545d5b4bcd8ce932a79204382b0">MAX_TLS_GROUP_LENGHTH</a>&#160;&#160;&#160;32U</td></tr>
+<tr class="separator:gaefd9f545d5b4bcd8ce932a79204382b0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gab3b05eb23c726d76352f92e7722f1877"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatsNameLengths.html#gab3b05eb23c726d76352f92e7722f1877">MAX_PROTOCOL_LENGTH</a>&#160;&#160;&#160;8U</td></tr>
+<tr class="separator:gab3b05eb23c726d76352f92e7722f1877"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga8eb68b1e05b3ae2de5775202931617de"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatsNameLengths.html#ga8eb68b1e05b3ae2de5775202931617de">IP_ADDR_STR_LENGTH</a>&#160;&#160;&#160;45U</td></tr>
+<tr class="separator:ga8eb68b1e05b3ae2de5775202931617de"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga4afa41bce022b8bec8581c021e8d8c81"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatsNameLengths.html#ga4afa41bce022b8bec8581c021e8d8c81">MAX_STATS_STRING_LENGTH</a>&#160;&#160;&#160;255U</td></tr>
+<tr class="separator:ga4afa41bce022b8bec8581c021e8d8c81"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="typedef-members"></a>
 Typedefs</h2></td></tr>
 <tr class="memitem:a2839bbe57b61cee62093b734df9db744"><td class="memItemLeft" align="right" valign="top">typedef CHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#a2839bbe57b61cee62093b734df9db744">DOMString</a>[255U+1]</td></tr>
+<tr class="memdesc:a2839bbe57b61cee62093b734df9db744"><td class="mdescLeft">&#160;</td><td class="mdescRight">DOMString type is used to store strings of size 256 bytes (inclusive of '\0' character.  <a href="Stats_8h.html#a2839bbe57b61cee62093b734df9db744">More...</a><br /></td></tr>
 <tr class="separator:a2839bbe57b61cee62093b734df9db744"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af67f446702d9765b52a8abb3116340c4"><td class="memItemLeft" align="right" valign="top">typedef UINT64&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#af67f446702d9765b52a8abb3116340c4">DOMHighResTimeStamp</a></td></tr>
 <tr class="memdesc:af67f446702d9765b52a8abb3116340c4"><td class="mdescLeft">&#160;</td><td class="mdescRight">The DOMHighResTimeStamp type is used to store a time value in milliseconds, measured relative from the time origin, global monotonic clock, or a time value that represents a duration between two DOMHighResTimeStamps.  <a href="Stats_8h.html#af67f446702d9765b52a8abb3116340c4">More...</a><br /></td></tr>
 <tr class="separator:af67f446702d9765b52a8abb3116340c4"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a5272c41dca467a46b89b9aec4d004122"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structQualityLimitationDurationsRecord.html">QualityLimitationDurationsRecord</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#a5272c41dca467a46b89b9aec4d004122">PQualityLimitationDurationsRecord</a></td></tr>
-<tr class="separator:a5272c41dca467a46b89b9aec4d004122"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7540403bae7393d7da52dcc72e3cc847"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structDscpPacketsSentRecord.html">DscpPacketsSentRecord</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#a7540403bae7393d7da52dcc72e3cc847">PDscpPacketsSentRecord</a></td></tr>
-<tr class="separator:a7540403bae7393d7da52dcc72e3cc847"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad5c2bddb835a03760d18a36fc0909a9d"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRtcIceCandidatePairStats.html">RtcIceCandidatePairStats</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#ad5c2bddb835a03760d18a36fc0909a9d">PRtcIceCandidatePairStats</a></td></tr>
-<tr class="separator:ad5c2bddb835a03760d18a36fc0909a9d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a80ee72ddf667966d6f9961623581a483"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRtcIceServerStats.html">RtcIceServerStats</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#a80ee72ddf667966d6f9961623581a483">PRtcIceServerStats</a></td></tr>
-<tr class="separator:a80ee72ddf667966d6f9961623581a483"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a8e33ff95419056e16a23551fb6c148dd"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRtcIceCandidateStats.html">RtcIceCandidateStats</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#a8e33ff95419056e16a23551fb6c148dd">PRtcIceCandidateStats</a></td></tr>
-<tr class="separator:a8e33ff95419056e16a23551fb6c148dd"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa801ef5411f4260b44c1658874999aa3"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRtcTransportStats.html">RtcTransportStats</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#aa801ef5411f4260b44c1658874999aa3">PRtcTransportStats</a></td></tr>
-<tr class="separator:aa801ef5411f4260b44c1658874999aa3"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a870228613de079fcbd67691f1a4f7607"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRTCRtpStreamStats.html">RTCRtpStreamStats</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#a870228613de079fcbd67691f1a4f7607">PRTCRtpStreamStats</a></td></tr>
-<tr class="separator:a870228613de079fcbd67691f1a4f7607"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a34caaa42981c35cc76e1cf6a04aa0ef0"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRTCSentRtpStreamStats.html">RTCSentRtpStreamStats</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#a34caaa42981c35cc76e1cf6a04aa0ef0">PRTCSentRtpStreamStats</a></td></tr>
-<tr class="separator:a34caaa42981c35cc76e1cf6a04aa0ef0"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a63f1d5fb544d7b2252b14044bc474486"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRtcOutboundRtpStreamStats.html">RtcOutboundRtpStreamStats</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#a63f1d5fb544d7b2252b14044bc474486">PRtcOutboundRtpStreamStats</a></td></tr>
-<tr class="separator:a63f1d5fb544d7b2252b14044bc474486"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a104a0974d7813be415eded50af91bdd7"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRtcRemoteInboundRtpStreamStats.html">RtcRemoteInboundRtpStreamStats</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#a104a0974d7813be415eded50af91bdd7">PRtcRemoteInboundRtpStreamStats</a></td></tr>
-<tr class="separator:a104a0974d7813be415eded50af91bdd7"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ade2d84924c3d7e0acffa4ada821589b9"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRtcReceivedRtpStreamStats.html">RtcReceivedRtpStreamStats</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#ade2d84924c3d7e0acffa4ada821589b9">PRtcReceivedRtpStreamStats</a></td></tr>
-<tr class="separator:ade2d84924c3d7e0acffa4ada821589b9"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a95c97b1845412106873b7efdc86e27fb"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRtcInboundRtpStreamStats.html">RtcInboundRtpStreamStats</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#a95c97b1845412106873b7efdc86e27fb">PRtcInboundRtpStreamStats</a></td></tr>
-<tr class="separator:a95c97b1845412106873b7efdc86e27fb"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad50fadcf7938259a9cdf1e03c73e87d8"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRtcDataChannelStats.html">RtcDataChannelStats</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#ad50fadcf7938259a9cdf1e03c73e87d8">PRtcDataChannelStats</a></td></tr>
-<tr class="separator:ad50fadcf7938259a9cdf1e03c73e87d8"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aed2abeea73109d8decf11ef16a5b1a88"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structSignalingClientStats.html">SignalingClientStats</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#aed2abeea73109d8decf11ef16a5b1a88">PSignalingClientStats</a></td></tr>
-<tr class="separator:aed2abeea73109d8decf11ef16a5b1a88"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7ee11917e4ab69400576ae7fceea344e"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRtcStatsObject.html">RtcStatsObject</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#a7ee11917e4ab69400576ae7fceea344e">PRtcStatsObject</a></td></tr>
-<tr class="separator:a7ee11917e4ab69400576ae7fceea344e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga5272c41dca467a46b89b9aec4d004122"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structQualityLimitationDurationsRecord.html">QualityLimitationDurationsRecord</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatsStructures.html#ga5272c41dca467a46b89b9aec4d004122">PQualityLimitationDurationsRecord</a></td></tr>
+<tr class="separator:ga5272c41dca467a46b89b9aec4d004122"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga7540403bae7393d7da52dcc72e3cc847"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structDscpPacketsSentRecord.html">DscpPacketsSentRecord</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatsStructures.html#ga7540403bae7393d7da52dcc72e3cc847">PDscpPacketsSentRecord</a></td></tr>
+<tr class="separator:ga7540403bae7393d7da52dcc72e3cc847"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gad5c2bddb835a03760d18a36fc0909a9d"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRtcIceCandidatePairStats.html">RtcIceCandidatePairStats</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatsStructures.html#gad5c2bddb835a03760d18a36fc0909a9d">PRtcIceCandidatePairStats</a></td></tr>
+<tr class="separator:gad5c2bddb835a03760d18a36fc0909a9d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga80ee72ddf667966d6f9961623581a483"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRtcIceServerStats.html">RtcIceServerStats</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatsStructures.html#ga80ee72ddf667966d6f9961623581a483">PRtcIceServerStats</a></td></tr>
+<tr class="separator:ga80ee72ddf667966d6f9961623581a483"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga8e33ff95419056e16a23551fb6c148dd"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRtcIceCandidateStats.html">RtcIceCandidateStats</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatsStructures.html#ga8e33ff95419056e16a23551fb6c148dd">PRtcIceCandidateStats</a></td></tr>
+<tr class="separator:ga8e33ff95419056e16a23551fb6c148dd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaa801ef5411f4260b44c1658874999aa3"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRtcTransportStats.html">RtcTransportStats</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatsStructures.html#gaa801ef5411f4260b44c1658874999aa3">PRtcTransportStats</a></td></tr>
+<tr class="separator:gaa801ef5411f4260b44c1658874999aa3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga870228613de079fcbd67691f1a4f7607"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRTCRtpStreamStats.html">RTCRtpStreamStats</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatsStructures.html#ga870228613de079fcbd67691f1a4f7607">PRTCRtpStreamStats</a></td></tr>
+<tr class="separator:ga870228613de079fcbd67691f1a4f7607"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga34caaa42981c35cc76e1cf6a04aa0ef0"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRTCSentRtpStreamStats.html">RTCSentRtpStreamStats</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatsStructures.html#ga34caaa42981c35cc76e1cf6a04aa0ef0">PRTCSentRtpStreamStats</a></td></tr>
+<tr class="separator:ga34caaa42981c35cc76e1cf6a04aa0ef0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga63f1d5fb544d7b2252b14044bc474486"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRtcOutboundRtpStreamStats.html">RtcOutboundRtpStreamStats</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatsStructures.html#ga63f1d5fb544d7b2252b14044bc474486">PRtcOutboundRtpStreamStats</a></td></tr>
+<tr class="separator:ga63f1d5fb544d7b2252b14044bc474486"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga104a0974d7813be415eded50af91bdd7"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRtcRemoteInboundRtpStreamStats.html">RtcRemoteInboundRtpStreamStats</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatsStructures.html#ga104a0974d7813be415eded50af91bdd7">PRtcRemoteInboundRtpStreamStats</a></td></tr>
+<tr class="separator:ga104a0974d7813be415eded50af91bdd7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gade2d84924c3d7e0acffa4ada821589b9"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRtcReceivedRtpStreamStats.html">RtcReceivedRtpStreamStats</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatsStructures.html#gade2d84924c3d7e0acffa4ada821589b9">PRtcReceivedRtpStreamStats</a></td></tr>
+<tr class="separator:gade2d84924c3d7e0acffa4ada821589b9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga95c97b1845412106873b7efdc86e27fb"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRtcInboundRtpStreamStats.html">RtcInboundRtpStreamStats</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatsStructures.html#ga95c97b1845412106873b7efdc86e27fb">PRtcInboundRtpStreamStats</a></td></tr>
+<tr class="separator:ga95c97b1845412106873b7efdc86e27fb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gad50fadcf7938259a9cdf1e03c73e87d8"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRtcDataChannelStats.html">RtcDataChannelStats</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatsStructures.html#gad50fadcf7938259a9cdf1e03c73e87d8">PRtcDataChannelStats</a></td></tr>
+<tr class="separator:gad50fadcf7938259a9cdf1e03c73e87d8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaed2abeea73109d8decf11ef16a5b1a88"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structSignalingClientStats.html">SignalingClientStats</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatsStructures.html#gaed2abeea73109d8decf11ef16a5b1a88">PSignalingClientStats</a></td></tr>
+<tr class="separator:gaed2abeea73109d8decf11ef16a5b1a88"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga7ee11917e4ab69400576ae7fceea344e"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRtcStatsObject.html">RtcStatsObject</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatsStructures.html#ga7ee11917e4ab69400576ae7fceea344e">PRtcStatsObject</a></td></tr>
+<tr class="separator:ga7ee11917e4ab69400576ae7fceea344e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="enum-members"></a>
 Enumerations</h2></td></tr>
@@ -280,154 +285,13 @@ Enumerations</h2></td></tr>
  }</td></tr>
 <tr class="memdesc:ad4aa3c116b2353dab51a41dc6d4c1b5e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Defines reasons for quality limitation for sending streams.  <a href="Stats_8h.html#ad4aa3c116b2353dab51a41dc6d4c1b5e">More...</a><br /></td></tr>
 <tr class="separator:ad4aa3c116b2353dab51a41dc6d4c1b5e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a760e5b16b6a0731e5839f9c37dfcb0a4"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stats_8h.html#a760e5b16b6a0731e5839f9c37dfcb0a4">RTC_DATA_CHANNEL_STATE</a> { <a class="el" href="Stats_8h.html#a760e5b16b6a0731e5839f9c37dfcb0a4a3458300a4d519b9dcd111e101bd6f9da">RTC_DATA_CHANNEL_STATE_CONNECTING</a>, 
-<a class="el" href="Stats_8h.html#a760e5b16b6a0731e5839f9c37dfcb0a4a17473b170a5066e366408f9f4097d7d0">RTC_DATA_CHANNEL_STATE_OPEN</a>, 
-<a class="el" href="Stats_8h.html#a760e5b16b6a0731e5839f9c37dfcb0a4af56f1041a8e65f98fc7c9751ebf50086">RTC_DATA_CHANNEL_STATE_CLOSING</a>, 
-<a class="el" href="Stats_8h.html#a760e5b16b6a0731e5839f9c37dfcb0a4aedc74b392d8f1083000d1b7031994b6c">RTC_DATA_CHANNEL_STATE_CLOSED</a>
+<tr class="memitem:ga760e5b16b6a0731e5839f9c37dfcb0a4"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatsStructures.html#ga760e5b16b6a0731e5839f9c37dfcb0a4">RTC_DATA_CHANNEL_STATE</a> { <a class="el" href="group__StatsStructures.html#gga760e5b16b6a0731e5839f9c37dfcb0a4a3458300a4d519b9dcd111e101bd6f9da">RTC_DATA_CHANNEL_STATE_CONNECTING</a>, 
+<a class="el" href="group__StatsStructures.html#gga760e5b16b6a0731e5839f9c37dfcb0a4a17473b170a5066e366408f9f4097d7d0">RTC_DATA_CHANNEL_STATE_OPEN</a>, 
+<a class="el" href="group__StatsStructures.html#gga760e5b16b6a0731e5839f9c37dfcb0a4af56f1041a8e65f98fc7c9751ebf50086">RTC_DATA_CHANNEL_STATE_CLOSING</a>, 
+<a class="el" href="group__StatsStructures.html#gga760e5b16b6a0731e5839f9c37dfcb0a4aedc74b392d8f1083000d1b7031994b6c">RTC_DATA_CHANNEL_STATE_CLOSED</a>
  }</td></tr>
-<tr class="separator:a760e5b16b6a0731e5839f9c37dfcb0a4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="separator:ga760e5b16b6a0731e5839f9c37dfcb0a4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
-<h2 class="groupheader">Macro Definition Documentation</h2>
-<a id="a8eb68b1e05b3ae2de5775202931617de"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a8eb68b1e05b3ae2de5775202931617de">&#9670;&nbsp;</a></span>IP_ADDR_STR_LENGTH</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define IP_ADDR_STR_LENGTH&#160;&#160;&#160;45U</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="aeb7cb54e2a66447e46fca79db9a8fda0"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aeb7cb54e2a66447e46fca79db9a8fda0">&#9670;&nbsp;</a></span>MAX_CANDIDATE_ID_LENGTH</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define MAX_CANDIDATE_ID_LENGTH&#160;&#160;&#160;9U</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="a12dc5a15dec202406ad4abfa594520ff"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a12dc5a15dec202406ad4abfa594520ff">&#9670;&nbsp;</a></span>MAX_DTLS_CIPHER_LENGTH</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define MAX_DTLS_CIPHER_LENGTH&#160;&#160;&#160;64U</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="ab3b05eb23c726d76352f92e7722f1877"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ab3b05eb23c726d76352f92e7722f1877">&#9670;&nbsp;</a></span>MAX_PROTOCOL_LENGTH</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define MAX_PROTOCOL_LENGTH&#160;&#160;&#160;8U</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="ac55f060221aeba8a69391c39ed31de2e"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac55f060221aeba8a69391c39ed31de2e">&#9670;&nbsp;</a></span>MAX_RELAY_PROTOCOL_LENGTH</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define MAX_RELAY_PROTOCOL_LENGTH&#160;&#160;&#160;8U</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="af7c143e641acf0feb1e05260dc3f1419"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#af7c143e641acf0feb1e05260dc3f1419">&#9670;&nbsp;</a></span>MAX_SRTP_CIPHER_LENGTH</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define MAX_SRTP_CIPHER_LENGTH&#160;&#160;&#160;64U</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="a7cc73042a6a21937fea2a51095c5cc17"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a7cc73042a6a21937fea2a51095c5cc17">&#9670;&nbsp;</a></span>MAX_STATS_ADDRESS_LENGTH</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define MAX_STATS_ADDRESS_LENGTH&#160;&#160;&#160;16U</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="a4afa41bce022b8bec8581c021e8d8c81"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a4afa41bce022b8bec8581c021e8d8c81">&#9670;&nbsp;</a></span>MAX_STATS_STRING_LENGTH</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define MAX_STATS_STRING_LENGTH&#160;&#160;&#160;255U</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="aefd9f545d5b4bcd8ce932a79204382b0"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aefd9f545d5b4bcd8ce932a79204382b0">&#9670;&nbsp;</a></span>MAX_TLS_GROUP_LENGHTH</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define MAX_TLS_GROUP_LENGHTH&#160;&#160;&#160;32U</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="afa949459dea73bcf4792d82eb0dd8834"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#afa949459dea73bcf4792d82eb0dd8834">&#9670;&nbsp;</a></span>MAX_TLS_VERSION_LENGTH</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define MAX_TLS_VERSION_LENGTH&#160;&#160;&#160;8U</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
 <h2 class="groupheader">Typedef Documentation</h2>
 <a id="af67f446702d9765b52a8abb3116340c4"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#af67f446702d9765b52a8abb3116340c4">&#9670;&nbsp;</a></span>DOMHighResTimeStamp</h2>
@@ -458,215 +322,8 @@ Enumerations</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-</div>
-</div>
-<a id="a7540403bae7393d7da52dcc72e3cc847"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a7540403bae7393d7da52dcc72e3cc847">&#9670;&nbsp;</a></span>PDscpPacketsSentRecord</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">typedef  struct <a class="el" href="structDscpPacketsSentRecord.html">DscpPacketsSentRecord</a> * <a class="el" href="Stats_8h.html#a7540403bae7393d7da52dcc72e3cc847">PDscpPacketsSentRecord</a></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="a5272c41dca467a46b89b9aec4d004122"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a5272c41dca467a46b89b9aec4d004122">&#9670;&nbsp;</a></span>PQualityLimitationDurationsRecord</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">typedef  struct <a class="el" href="structQualityLimitationDurationsRecord.html">QualityLimitationDurationsRecord</a> <a class="el" href="Stats_8h.html#a5272c41dca467a46b89b9aec4d004122">PQualityLimitationDurationsRecord</a></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="ad50fadcf7938259a9cdf1e03c73e87d8"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ad50fadcf7938259a9cdf1e03c73e87d8">&#9670;&nbsp;</a></span>PRtcDataChannelStats</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">typedef  struct <a class="el" href="structRtcDataChannelStats.html">RtcDataChannelStats</a> * <a class="el" href="Stats_8h.html#ad50fadcf7938259a9cdf1e03c73e87d8">PRtcDataChannelStats</a></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="ad5c2bddb835a03760d18a36fc0909a9d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ad5c2bddb835a03760d18a36fc0909a9d">&#9670;&nbsp;</a></span>PRtcIceCandidatePairStats</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">typedef  struct <a class="el" href="structRtcIceCandidatePairStats.html">RtcIceCandidatePairStats</a> * <a class="el" href="Stats_8h.html#ad5c2bddb835a03760d18a36fc0909a9d">PRtcIceCandidatePairStats</a></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="a8e33ff95419056e16a23551fb6c148dd"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a8e33ff95419056e16a23551fb6c148dd">&#9670;&nbsp;</a></span>PRtcIceCandidateStats</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">typedef  struct <a class="el" href="structRtcIceCandidateStats.html">RtcIceCandidateStats</a> * <a class="el" href="Stats_8h.html#a8e33ff95419056e16a23551fb6c148dd">PRtcIceCandidateStats</a></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="a80ee72ddf667966d6f9961623581a483"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a80ee72ddf667966d6f9961623581a483">&#9670;&nbsp;</a></span>PRtcIceServerStats</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">typedef  struct <a class="el" href="structRtcIceServerStats.html">RtcIceServerStats</a> * <a class="el" href="Stats_8h.html#a80ee72ddf667966d6f9961623581a483">PRtcIceServerStats</a></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="a95c97b1845412106873b7efdc86e27fb"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a95c97b1845412106873b7efdc86e27fb">&#9670;&nbsp;</a></span>PRtcInboundRtpStreamStats</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">typedef  struct <a class="el" href="structRtcInboundRtpStreamStats.html">RtcInboundRtpStreamStats</a> * <a class="el" href="Stats_8h.html#a95c97b1845412106873b7efdc86e27fb">PRtcInboundRtpStreamStats</a></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="a63f1d5fb544d7b2252b14044bc474486"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a63f1d5fb544d7b2252b14044bc474486">&#9670;&nbsp;</a></span>PRtcOutboundRtpStreamStats</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">typedef  struct <a class="el" href="structRtcOutboundRtpStreamStats.html">RtcOutboundRtpStreamStats</a> * <a class="el" href="Stats_8h.html#a63f1d5fb544d7b2252b14044bc474486">PRtcOutboundRtpStreamStats</a></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="ade2d84924c3d7e0acffa4ada821589b9"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ade2d84924c3d7e0acffa4ada821589b9">&#9670;&nbsp;</a></span>PRtcReceivedRtpStreamStats</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">typedef  struct <a class="el" href="structRtcReceivedRtpStreamStats.html">RtcReceivedRtpStreamStats</a> * <a class="el" href="Stats_8h.html#ade2d84924c3d7e0acffa4ada821589b9">PRtcReceivedRtpStreamStats</a></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="a104a0974d7813be415eded50af91bdd7"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a104a0974d7813be415eded50af91bdd7">&#9670;&nbsp;</a></span>PRtcRemoteInboundRtpStreamStats</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">typedef  struct <a class="el" href="structRtcRemoteInboundRtpStreamStats.html">RtcRemoteInboundRtpStreamStats</a> * <a class="el" href="Stats_8h.html#a104a0974d7813be415eded50af91bdd7">PRtcRemoteInboundRtpStreamStats</a></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="a870228613de079fcbd67691f1a4f7607"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a870228613de079fcbd67691f1a4f7607">&#9670;&nbsp;</a></span>PRTCRtpStreamStats</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">typedef  struct <a class="el" href="structRTCRtpStreamStats.html">RTCRtpStreamStats</a> * <a class="el" href="Stats_8h.html#a870228613de079fcbd67691f1a4f7607">PRTCRtpStreamStats</a></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="a34caaa42981c35cc76e1cf6a04aa0ef0"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a34caaa42981c35cc76e1cf6a04aa0ef0">&#9670;&nbsp;</a></span>PRTCSentRtpStreamStats</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">typedef  struct <a class="el" href="structRTCSentRtpStreamStats.html">RTCSentRtpStreamStats</a> * <a class="el" href="Stats_8h.html#a34caaa42981c35cc76e1cf6a04aa0ef0">PRTCSentRtpStreamStats</a></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="a7ee11917e4ab69400576ae7fceea344e"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a7ee11917e4ab69400576ae7fceea344e">&#9670;&nbsp;</a></span>PRtcStatsObject</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">typedef  struct <a class="el" href="structRtcStatsObject.html">RtcStatsObject</a> * <a class="el" href="Stats_8h.html#a7ee11917e4ab69400576ae7fceea344e">PRtcStatsObject</a></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="aa801ef5411f4260b44c1658874999aa3"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aa801ef5411f4260b44c1658874999aa3">&#9670;&nbsp;</a></span>PRtcTransportStats</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">typedef  struct <a class="el" href="structRtcTransportStats.html">RtcTransportStats</a> * <a class="el" href="Stats_8h.html#aa801ef5411f4260b44c1658874999aa3">PRtcTransportStats</a></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="aed2abeea73109d8decf11ef16a5b1a88"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aed2abeea73109d8decf11ef16a5b1a88">&#9670;&nbsp;</a></span>PSignalingClientStats</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">typedef  struct <a class="el" href="structSignalingClientStats.html">SignalingClientStats</a> <a class="el" href="Stats_8h.html#aed2abeea73109d8decf11ef16a5b1a88">PSignalingClientStats</a></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
+<p>DOMString type is used to store strings of size 256 bytes (inclusive of '\0' character. </p>
+<p>Reference: <a href="https://heycam.github.io/webidl/#idl-DOMString">https://heycam.github.io/webidl/#idl-DOMString</a> </p>
 
 </div>
 </div>
@@ -714,31 +371,6 @@ Enumerations</h2></td></tr>
 <tr><td class="fieldname"><a id="ac9e1b12f44dc91db1cd6373f87ec55b6ac0ce2fc7bc8da270caa5ebf77f699ddd"></a>ICE_CANDIDATE_TYPE_SERVER_REFLEXIVE&#160;</td><td class="fielddoc"><p>ICE_CANDIDATE_TYPE_SERVER_REFLEXIVE. </p>
 </td></tr>
 <tr><td class="fieldname"><a id="ac9e1b12f44dc91db1cd6373f87ec55b6a2fcd25cbc2d1c585d32f9ebae2622045"></a>ICE_CANDIDATE_TYPE_RELAYED&#160;</td><td class="fielddoc"><p>ICE_CANDIDATE_TYPE_RELAYED. </p>
-</td></tr>
-</table>
-
-</div>
-</div>
-<a id="a760e5b16b6a0731e5839f9c37dfcb0a4"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a760e5b16b6a0731e5839f9c37dfcb0a4">&#9670;&nbsp;</a></span>RTC_DATA_CHANNEL_STATE</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">enum <a class="el" href="Stats_8h.html#a760e5b16b6a0731e5839f9c37dfcb0a4">RTC_DATA_CHANNEL_STATE</a></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>Reference: <a href="https://www.w3.org/TR/webrtc/#dom-rtcdatachannelstate">https://www.w3.org/TR/webrtc/#dom-rtcdatachannelstate</a> </p>
-<table class="fieldtable">
-<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="a760e5b16b6a0731e5839f9c37dfcb0a4a3458300a4d519b9dcd111e101bd6f9da"></a>RTC_DATA_CHANNEL_STATE_CONNECTING&#160;</td><td class="fielddoc"><p>Set while creating data channel. </p>
-</td></tr>
-<tr><td class="fieldname"><a id="a760e5b16b6a0731e5839f9c37dfcb0a4a17473b170a5066e366408f9f4097d7d0"></a>RTC_DATA_CHANNEL_STATE_OPEN&#160;</td><td class="fielddoc"><p>Set on opening data channel on embedded side or receiving onOpen event. </p>
-</td></tr>
-<tr><td class="fieldname"><a id="a760e5b16b6a0731e5839f9c37dfcb0a4af56f1041a8e65f98fc7c9751ebf50086"></a>RTC_DATA_CHANNEL_STATE_CLOSING&#160;</td><td class="fielddoc"><p>TODO: Set the state to closed after adding onClosing handler to data channel. </p>
-</td></tr>
-<tr><td class="fieldname"><a id="a760e5b16b6a0731e5839f9c37dfcb0a4aedc74b392d8f1083000d1b7031994b6c"></a>RTC_DATA_CHANNEL_STATE_CLOSED&#160;</td><td class="fielddoc"><p>TODO: Set the state to closed after adding onClose handler to data channel. </p>
 </td></tr>
 </table>
 
@@ -887,7 +519,7 @@ Enumerations</h2></td></tr>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_b0856f6b0d80ccb263b2f415c91f9e17.html">include</a></li><li class="navelem"><a class="el" href="dir_8f5ac45a6ada111b95e80af22bb6017d.html">com</a></li><li class="navelem"><a class="el" href="dir_6eddcaa8cb3f84b1b7290fa7880ed0c5.html">amazonaws</a></li><li class="navelem"><a class="el" href="dir_ffe25b375dd9c47f978782781b252738.html">kinesis</a></li><li class="navelem"><a class="el" href="dir_40be0bfe93e499fae0ac3fc2c0b3ca29.html">video</a></li><li class="navelem"><a class="el" href="dir_4165afa699965307903ffe413a1cdec9.html">webrtcclient</a></li><li class="navelem"><a class="el" href="Stats_8h.html">Stats.h</a></li>
-    <li class="footer">Generated on Wed Sep 9 2020 19:28:05 for Amazon Kinesis Webrtc C SDK by
+    <li class="footer">Generated on Fri Sep 11 2020 21:38:15 for Amazon Kinesis Webrtc C SDK by
     <a href="http://www.doxygen.org/index.html">
     <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.18 </li>
   </ul>

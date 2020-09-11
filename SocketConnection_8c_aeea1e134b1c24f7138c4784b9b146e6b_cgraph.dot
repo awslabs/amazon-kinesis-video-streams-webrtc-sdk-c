@@ -1,0 +1,18 @@
+digraph "freeSocketConnection"
+{
+ // LATEX_PDF_SIZE
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  rankdir="LR";
+  Node1 [label="freeSocketConnection",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled", fontcolor="black",tooltip=" "];
+  Node1 -> Node2 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node2 [label="closeSocket",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Network_8c.html#a8c64aed52ea980830d0f9db66fc93e1b",tooltip=" "];
+  Node1 -> Node3 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node3 [label="freeTlsSession",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Tls_8h.html#a5913d6c2f44307241d2402af463f9fec",tooltip=" "];
+  Node3 -> Node4 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node4 [label="freeIOBuffer",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$IOBuffer_8c.html#a716982d27f4e9cf43d6737555e684289",tooltip=" "];
+  Node3 -> Node5 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node5 [label="tlsSessionShutdown",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Tls__mbedtls_8c.html#aca41778af81f4d5b5a71dcaf5e686bb9",tooltip=" "];
+  Node5 -> Node6 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node6 [label="tlsSessionChangeState",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Tls_8c.html#a7dbb041b5b15c6784e9f57a09a08d467",tooltip=" "];
+}

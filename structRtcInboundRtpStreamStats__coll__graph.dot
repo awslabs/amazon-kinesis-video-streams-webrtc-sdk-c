@@ -1,0 +1,11 @@
+digraph "RtcInboundRtpStreamStats"
+{
+ // LATEX_PDF_SIZE
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  Node1 [label="{RtcInboundRtpStreamStats\n|+ trackId\l+ receiverId\l+ remoteId\l+ framesDecoded\l+ keyFramesDecoded\l+ frameWidth\l+ frameHeight\l+ frameBitDepth\l+ framesPerSecond\l+ qpSum\land 32 more...\l|}",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled", fontcolor="black",tooltip="The RTCInboundRtpStreamStats dictionary represents the measurement metrics for the incoming RTP media..."];
+  Node2 -> Node1 [color="grey25",fontsize="10",style="solid",label=" +received" ,arrowhead="odiamond",fontname="Helvetica"];
+  Node2 [label="{RtcReceivedRtpStreamStats\n|+ packetsReceived\l+ packetsLost\l+ jitter\l+ packetsDiscarded\l+ packetsRepaired\l+ burstPacketsLost\l+ burstPacketsDiscarded\l+ burstLossCount\l+ burstDiscardCount\l+ burstLossRate\land 6 more...\l|}",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$structRtcReceivedRtpStreamStats.html",tooltip=" "];
+  Node3 -> Node2 [color="grey25",fontsize="10",style="solid",label=" +rtpStream" ,arrowhead="odiamond",fontname="Helvetica"];
+  Node3 [label="{RTCRtpStreamStats\n|+ ssrc\l+ kind\l+ transportId\l+ codecId\l|}",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$structRTCRtpStreamStats.html",tooltip="RTCRtpStreamStats captures stream stats that will be used as part of RTCSentRtpStreamStats report Ref..."];
+}

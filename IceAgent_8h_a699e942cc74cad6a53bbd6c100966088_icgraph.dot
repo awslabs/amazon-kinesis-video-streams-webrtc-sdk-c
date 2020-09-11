@@ -1,0 +1,24 @@
+digraph "computeCandidatePriority"
+{
+ // LATEX_PDF_SIZE
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  rankdir="RL";
+  Node1 [label="computeCandidatePriority",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled", fontcolor="black",tooltip=" "];
+  Node1 -> Node2 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node2 [label="iceAgentInitHostCandidate",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$IceAgent_8h.html#ab7fc78b0a2605c5291b7ec8d7ed40cdc",tooltip=" "];
+  Node2 -> Node3 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node3 [label="iceAgentStartGathering",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$IceAgent_8h.html#aaedcdc437dc6d6753a438f7c5ddf0c7c",tooltip=" "];
+  Node3 -> Node4 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node4 [label="setLocalDescription",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$group__PublicMemberFunctions.html#ga060e71a4e33e0b7a8087317d4839fa8a",tooltip="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the local descript..."];
+  Node3 -> Node5 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node5 [label="setRemoteDescription",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed",tooltip="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..."];
+  Node1 -> Node6 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node6 [label="iceAgentInitRelayCandidate",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$IceAgent_8h.html#a16f8a3535bbc9b23cd08b98bd79e49b4",tooltip=" "];
+  Node6 -> Node7 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node7 [label="iceAgentInitRelayCandidates",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$IceAgent_8h.html#a90515bdf78b9dec41ee9c9d579da0045",tooltip=" "];
+  Node7 -> Node3 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node1 -> Node8 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node8 [label="iceAgentInitSrflxCandidate",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$IceAgent_8h.html#ab51095af13e7b515be425c2d7da80833",tooltip=" "];
+  Node8 -> Node3 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+}

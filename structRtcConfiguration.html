@@ -95,18 +95,23 @@ $(document).ready(function(){initNavTree('structRtcConfiguration.html',''); init
 <a href="#pub-attribs">Public Attributes</a> &#124;
 <a href="structRtcConfiguration-members.html">List of all members</a>  </div>
   <div class="headertitle">
-<div class="title">RtcConfiguration Struct Reference</div>  </div>
+<div class="title">RtcConfiguration Struct Reference<div class="ingroups"><a class="el" href="group__PublicStructures.html">PublicStructures</a></div></div>  </div>
 </div><!--header-->
 <div class="contents">
 
-<p>The Configuration defines a set of parameters to configure how the peer-to-peer communication established via <a class="el" href="structRtcPeerConnection.html" title="An RtcPeerConnection instance allows an application to establish peer-to-peer communications with ano...">RtcPeerConnection</a> is established or re-established.  
+<p>The Configuration defines a set of parameters to configure how the peer-to-peer communication established via <a class="el" href="structRtcPeerConnection.html">RtcPeerConnection</a> is established or re-established.  
  <a href="structRtcConfiguration.html#details">More...</a></p>
 
 <p><code>#include &lt;<a class="el" href="Include_8h_source.html">Include.h</a>&gt;</code></p>
+<div class="dynheader">
+Collaboration diagram for RtcConfiguration:</div>
+<div class="dyncontent">
+<div class="center"><img src="structRtcConfiguration__coll__graph.png" border="0" usemap="#RtcConfiguration_coll__map" alt="Collaboration graph"/></div>
+</div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
-<tr class="memitem:a5088878594e4eab3d1b5010960fc15a5"><td class="memItemLeft" align="right" valign="top"><a class="el" href="Include_8h.html#a9447d6f4c97788d32853140452659f70">ICE_TRANSPORT_POLICY</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRtcConfiguration.html#a5088878594e4eab3d1b5010960fc15a5">iceTransportPolicy</a></td></tr>
+<tr class="memitem:a5088878594e4eab3d1b5010960fc15a5"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#ga9447d6f4c97788d32853140452659f70">ICE_TRANSPORT_POLICY</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRtcConfiguration.html#a5088878594e4eab3d1b5010960fc15a5">iceTransportPolicy</a></td></tr>
 <tr class="memdesc:a5088878594e4eab3d1b5010960fc15a5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Indicates which candidates the ICE Agent is allowed to use.  <a href="structRtcConfiguration.html#a5088878594e4eab3d1b5010960fc15a5">More...</a><br /></td></tr>
 <tr class="separator:a5088878594e4eab3d1b5010960fc15a5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:acf931e2c868176a5f155efca05d517b0"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structRtcIceServer.html">RtcIceServer</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRtcConfiguration.html#acf931e2c868176a5f155efca05d517b0">iceServers</a> [(5 *4+1)]</td></tr>
@@ -119,7 +124,7 @@ Public Attributes</h2></td></tr>
 <tr class="separator:a73ae9949af12346cc594538b711280e7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>The Configuration defines a set of parameters to configure how the peer-to-peer communication established via <a class="el" href="structRtcPeerConnection.html" title="An RtcPeerConnection instance allows an application to establish peer-to-peer communications with ano...">RtcPeerConnection</a> is established or re-established. </p>
+<div class="textblock"><p>The Configuration defines a set of parameters to configure how the peer-to-peer communication established via <a class="el" href="structRtcPeerConnection.html">RtcPeerConnection</a> is established or re-established. </p>
 <p>Reference: <a href="https://www.w3.org/TR/webrtc/#rtcconfiguration-dictionary">https://www.w3.org/TR/webrtc/#rtcconfiguration-dictionary</a> </p>
 </div><h2 class="groupheader">Member Data Documentation</h2>
 <a id="a73ae9949af12346cc594538b711280e7"></a>
@@ -159,7 +164,7 @@ Public Attributes</h2></td></tr>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="Include_8h.html#a9447d6f4c97788d32853140452659f70">ICE_TRANSPORT_POLICY</a> RtcConfiguration::iceTransportPolicy</td>
+          <td class="memname"><a class="el" href="group__PublicEnums.html#ga9447d6f4c97788d32853140452659f70">ICE_TRANSPORT_POLICY</a> RtcConfiguration::iceTransportPolicy</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -181,8 +186,8 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Non-standard configuration options. </p>
-<p>Set of certificates that the <a class="el" href="structRtcPeerConnection.html" title="An RtcPeerConnection instance allows an application to establish peer-to-peer communications with ano...">RtcPeerConnection</a> uses to authenticate. Although any given DTLS connection will use only one certificate, this attribute allows the caller to provide multiple certificates that support different algorithms.</p>
-<p>If this value is absent, then a default set of certificates is generated for each <a class="el" href="structRtcPeerConnection.html" title="An RtcPeerConnection instance allows an application to establish peer-to-peer communications with ano...">RtcPeerConnection</a>.</p>
+<p>Set of certificates that the <a class="el" href="structRtcPeerConnection.html">RtcPeerConnection</a> uses to authenticate. Although any given DTLS connection will use only one certificate, this attribute allows the caller to provide multiple certificates that support different algorithms.</p>
+<p>If this value is absent, then a default set of certificates is generated for each <a class="el" href="structRtcPeerConnection.html">RtcPeerConnection</a>.</p>
 <p>An absent value is determined by the certificate pointing to NULL</p>
 <p>Doc: <a href="https://www.w3.org/TR/webrtc/#dom-rtcconfiguration-certificates">https://www.w3.org/TR/webrtc/#dom-rtcconfiguration-certificates</a></p>
 <p>!!!!!!!!!! IMPORTANT !!!!!!!!!! It is recommended to rotate the certificates often - preferably for every peer connection to avoid a compromised client weakening the security of the new connections.</p>
@@ -199,7 +204,7 @@ Public Attributes</h2></td></tr>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="structRtcConfiguration.html">RtcConfiguration</a></li>
-    <li class="footer">Generated on Wed Sep 9 2020 19:28:05 for Amazon Kinesis Webrtc C SDK by
+    <li class="footer">Generated on Fri Sep 11 2020 21:38:17 for Amazon Kinesis Webrtc C SDK by
     <a href="http://www.doxygen.org/index.html">
     <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.18 </li>
   </ul>

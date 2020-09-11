@@ -1,0 +1,18 @@
+digraph "connectionListenerRemoveAllConnection"
+{
+ // LATEX_PDF_SIZE
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  rankdir="RL";
+  Node1 [label="connectionListenerRemove\lAllConnection",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled", fontcolor="black",tooltip=" "];
+  Node1 -> Node2 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node2 [label="discoverNatBehavior",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$group__PublicMemberFunctions.html#ga6c4139787f87c307c2033b51d65284ce",tooltip="Use the process described in https://tools.ietf.org/html/rfc5780#section-4.3 to discover NAT behavior..."];
+  Node1 -> Node3 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node3 [label="iceAgentShutdown",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$IceAgent_8h.html#a3fc8eda4a254a7c26c3c0ae36dff28b7",tooltip=" "];
+  Node3 -> Node4 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node4 [label="closePeerConnection",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$group__PublicMemberFunctions.html#ga9babad6ea2bc9bb97279c7034697375a",tooltip="Close the underlying DTLS session and IceAgent connection. Trigger RtcOnConnectionStateChange to RTC_..."];
+  Node3 -> Node5 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node5 [label="freePeerConnection",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$group__PublicMemberFunctions.html#ga433b1bd125e7f221bcdad97a2a0e8949",tooltip="Free a RtcPeerConnection."];
+  Node5 -> Node6 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node6 [label="createPeerConnection",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640",tooltip=" "];
+}

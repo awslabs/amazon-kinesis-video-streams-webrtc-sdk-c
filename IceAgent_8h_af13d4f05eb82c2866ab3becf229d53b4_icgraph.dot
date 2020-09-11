@@ -1,0 +1,16 @@
+digraph "iceAgentReportNewLocalCandidate"
+{
+ // LATEX_PDF_SIZE
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  rankdir="RL";
+  Node1 [label="iceAgentReportNewLocalCandidate",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled", fontcolor="black",tooltip=" "];
+  Node1 -> Node2 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node2 [label="iceAgentGatherCandidateTimer\lCallback",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$IceAgent_8h.html#a0015e4e66712c771d2f16c933e1e768f",tooltip=" "];
+  Node2 -> Node3 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node3 [label="iceAgentStartGathering",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$IceAgent_8h.html#aaedcdc437dc6d6753a438f7c5ddf0c7c",tooltip=" "];
+  Node3 -> Node4 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node4 [label="setLocalDescription",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$group__PublicMemberFunctions.html#ga060e71a4e33e0b7a8087317d4839fa8a",tooltip="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the local descript..."];
+  Node3 -> Node5 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node5 [label="setRemoteDescription",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed",tooltip="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..."];
+}

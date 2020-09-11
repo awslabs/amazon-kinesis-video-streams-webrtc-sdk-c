@@ -1,0 +1,48 @@
+digraph "restartIce"
+{
+ // LATEX_PDF_SIZE
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  rankdir="LR";
+  Node1 [label="restartIce",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled", fontcolor="black",tooltip="Instructs the RtcPeerConnection that ICE should be restarted. Subsequent calls to createOffer will cr..."];
+  Node1 -> Node2 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node2 [label="generateJSONSafeString",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$PeerConnection_8c.html#ad6b6bbcdb7fe1c2959acfdaa64f04e48",tooltip=" "];
+  Node1 -> Node3 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node3 [label="iceAgentRestart",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$IceAgent_8c.html#a311a951cf965e83e76372560f2ce1c0f",tooltip=" "];
+  Node3 -> Node4 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node4 [label="connectionListenerRemove\lConnection",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$ConnectionListener_8c.html#aadef069d7cf4137e975a3d91c8a46400",tooltip=" "];
+  Node4 -> Node5 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node5 [label="socketConnectionClosed",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$SocketConnection_8c.html#ae1067d81a0037b1cb7e2275d55b554a4",tooltip=" "];
+  Node5 -> Node6 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node6 [label="tlsSessionShutdown",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Tls_8h.html#a8958186faf233249645017a55c80e1fc",tooltip=" "];
+  Node6 -> Node7 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node7 [label="tlsSessionChangeState",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Tls_8c.html#a7dbb041b5b15c6784e9f57a09a08d467",tooltip=" "];
+  Node3 -> Node8 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node8 [label="freeIceCandidatePair",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$IceAgent_8c.html#a76f0508cf719814537ce707e3f524407",tooltip=" "];
+  Node8 -> Node9 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node9 [label="freeTransactionIdStore",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$IceUtils_8c.html#aed9b171e0c60584515c04c5dd47dd112",tooltip=" "];
+  Node3 -> Node10 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node10 [label="freeSocketConnection",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$SocketConnection_8c.html#aeea1e134b1c24f7138c4784b9b146e6b",tooltip=" "];
+  Node10 -> Node11 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node11 [label="closeSocket",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Network_8c.html#a8c64aed52ea980830d0f9db66fc93e1b",tooltip=" "];
+  Node10 -> Node12 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node12 [label="freeTlsSession",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Tls_8h.html#a5913d6c2f44307241d2402af463f9fec",tooltip=" "];
+  Node12 -> Node13 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node13 [label="freeIOBuffer",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$IOBuffer_8c.html#a716982d27f4e9cf43d6737555e684289",tooltip=" "];
+  Node12 -> Node14 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node14 [label="tlsSessionShutdown",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Tls__mbedtls_8c.html#aca41778af81f4d5b5a71dcaf5e686bb9",tooltip=" "];
+  Node14 -> Node7 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node3 -> Node15 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node15 [label="freeTurnConnection",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$TurnConnection_8c.html#aae1ee157e839fde1869e664af4424c6a",tooltip=" "];
+  Node15 -> Node4 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node15 -> Node10 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node15 -> Node9 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node15 -> Node16 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node16 [label="turnConnectionFreePreAllocated\lPackets",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$TurnConnection_8c.html#aad130b1edfa1b039733e0595c43ffd39",tooltip=" "];
+  Node16 -> Node17 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node17 [label="freeStunPacket",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Stun_8c.html#a2ac5f96729bf2bfce45f59c72db4ff43",tooltip=" "];
+  Node3 -> Node18 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node18 [label="transactionIdStoreClear",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$IceUtils_8c.html#a5b4d042f26dbfd3ca5972e42fde7886e",tooltip=" "];
+  Node3 -> Node19 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node19 [label="turnConnectionShutdown",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$TurnConnection_8c.html#acafa7ed7d0b238b1a6b27a78280712f8",tooltip=" "];
+}

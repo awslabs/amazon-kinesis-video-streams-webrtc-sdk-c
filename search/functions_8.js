@@ -1,15 +1,9 @@
 var searchData=
 [
-  ['serializesessiondescriptioninit_892',['serializeSessionDescriptionInit',['../Include_8h.html#a66d6bc8b6d11743303900831b52c76f2',1,'Include.h']]],
-  ['setlocaldescription_893',['setLocalDescription',['../Include_8h.html#a060e71a4e33e0b7a8087317d4839fa8a',1,'Include.h']]],
-  ['setremotedescription_894',['setRemoteDescription',['../Include_8h.html#a4378f3c6aec4d69c647c46852bdfe6ed',1,'Include.h']]],
-  ['signalingclientconnectsync_895',['signalingClientConnectSync',['../Include_8h.html#acb53537d7d1c72a9e304ed095fe1252f',1,'Include.h']]],
-  ['signalingclientdeletesync_896',['signalingClientDeleteSync',['../Include_8h.html#ad85555f757662d1585efd00d496e5c13',1,'Include.h']]],
-  ['signalingclientdisconnectsync_897',['signalingClientDisconnectSync',['../Include_8h.html#a6130116416557558b66728a8db2c6ee7',1,'Include.h']]],
-  ['signalingclientgetcurrentstate_898',['signalingClientGetCurrentState',['../Include_8h.html#ab9b925bdc5aba1999e9192308f9cc6a9',1,'Include.h']]],
-  ['signalingclientgeticeconfiginfo_899',['signalingClientGetIceConfigInfo',['../Include_8h.html#a94ed483b34bb395015b7d44fd98c8f5b',1,'Include.h']]],
-  ['signalingclientgeticeconfiginfocount_900',['signalingClientGetIceConfigInfoCount',['../Include_8h.html#a22f59c80e99e533e5e1d78d52145eb7c',1,'Include.h']]],
-  ['signalingclientgetmetrics_901',['signalingClientGetMetrics',['../Include_8h.html#ad600c2fa22f9ac2817a6fdfed8b2f407',1,'Include.h']]],
-  ['signalingclientgetstatestring_902',['signalingClientGetStateString',['../Include_8h.html#a955a06c05bfb620db461837f2ebca4a8',1,'Include.h']]],
-  ['signalingclientsendmessagesync_903',['signalingClientSendMessageSync',['../Include_8h.html#ae6d8d80d47699c5494de1dc3d455b1f4',1,'Include.h']]]
+  ['jitterbufferdropbufferdata_2962',['jitterBufferDropBufferData',['../JitterBuffer_8c.html#a825c3656f8f6466c66eccb89f9745814',1,'jitterBufferDropBufferData(PJitterBuffer pJitterBuffer, UINT16 startIndex, UINT16 endIndex, UINT32 nextTimestamp):&#160;JitterBuffer.c'],['../JitterBuffer_8h.html#a9fd70e0dd47a6ce24bcff48d5f247dac',1,'jitterBufferDropBufferData(PJitterBuffer, UINT16, UINT16, UINT32):&#160;JitterBuffer.c']]],
+  ['jitterbufferfillframedata_2963',['jitterBufferFillFrameData',['../JitterBuffer_8c.html#ac1e874891626f3ad027c91d000c2436e',1,'jitterBufferFillFrameData(PJitterBuffer pJitterBuffer, PBYTE pFrame, UINT32 frameSize, PUINT32 pFilledSize, UINT16 startIndex, UINT16 endIndex):&#160;JitterBuffer.c'],['../JitterBuffer_8h.html#abff702b4b2a7fe0153126fc74bebd4ba',1,'jitterBufferFillFrameData(PJitterBuffer, PBYTE, UINT32, PUINT32, UINT16, UINT16):&#160;JitterBuffer.c']]],
+  ['jitterbufferpop_2964',['jitterBufferPop',['../JitterBuffer_8c.html#acb4fec73c43d2ef0755b93d184ea2590',1,'jitterBufferPop(PJitterBuffer pJitterBuffer, BOOL bufferClosed):&#160;JitterBuffer.c'],['../JitterBuffer_8h.html#acc3284bfbbbf676595d8bc86103fbf4a',1,'jitterBufferPop(PJitterBuffer, BOOL):&#160;JitterBuffer.c']]],
+  ['jitterbufferpush_2965',['jitterBufferPush',['../JitterBuffer_8c.html#a3698c62de5f63baf09c350078af5301c',1,'jitterBufferPush(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket, PBOOL pPacketDiscarded):&#160;JitterBuffer.c'],['../JitterBuffer_8h.html#a82caccca44d6ded864b9c4b2770800bd',1,'jitterBufferPush(PJitterBuffer, PRtpPacket, PBOOL):&#160;JitterBuffer.c']]],
+  ['jsmn_5finit_2966',['jsmn_init',['../jsmn_8h.html#a8d4a8b3ce5c3d600feea38615b5f9aa6',1,'jsmn.h']]],
+  ['jsmn_5fparse_2967',['jsmn_parse',['../jsmn_8h.html#acf28c8ae404fb0ad2823270d2a4c322a',1,'jsmn.h']]]
 ];

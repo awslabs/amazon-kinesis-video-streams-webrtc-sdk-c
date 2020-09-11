@@ -1,6 +1,4 @@
 var searchData=
 [
-  ['transceiveronbandwidthestimation_904',['transceiverOnBandwidthEstimation',['../Include_8h.html#aa919159204f486007c559c0e636268c1',1,'Include.h']]],
-  ['transceiveronframe_905',['transceiverOnFrame',['../Include_8h.html#aaac28c64135c6cd9727b9b01992b9df1',1,'Include.h']]],
-  ['transceiveronpictureloss_906',['transceiverOnPictureLoss',['../Include_8h.html#a934a685bb5d0fb3d547fcd7e828b7566',1,'Include.h']]]
+  ['kvsrtptransceiversetjitterbuffer_2968',['kvsRtpTransceiverSetJitterBuffer',['../Rtp_8c.html#a7336e46ecb1e554aa7b3510f9b23efbf',1,'kvsRtpTransceiverSetJitterBuffer(PKvsRtpTransceiver pKvsRtpTransceiver, PJitterBuffer pJitterBuffer):&#160;Rtp.c'],['../Rtp_8h.html#a84f2b4e2dffcbb307e55f956a62c0d4a',1,'kvsRtpTransceiverSetJitterBuffer(PKvsRtpTransceiver, PJitterBuffer):&#160;Rtp.c']]]
 ];
