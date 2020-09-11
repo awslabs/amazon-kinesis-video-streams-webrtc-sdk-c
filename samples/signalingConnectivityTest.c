@@ -118,6 +118,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     CHK_STATUS(createSignalingClientSync(&clientInfo, &channelInfo,
                                           &signalingClientCallbacks, pCredentialProvider,
                                           &masterSignalingClientHandle));
+    CHK_STATUS(signalingClientConnectSync(masterSignalingClientHandle));
 
     sprintf(clientInfo.clientId, "%s", "TEST_VIEWER");
     signalingClientCallbacks.errorReportFn = signalingClientErrorViewer;
@@ -129,8 +130,6 @@ INT32 main(INT32 argc, CHAR* argv[])
     CHK_STATUS(createSignalingClientSync(&clientInfo, &channelInfo,
                                          &signalingClientCallbacks, pCredentialProvider,
                                          &viewerSignalingClientHandle));
-
-    CHK_STATUS(signalingClientConnectSync(masterSignalingClientHandle));
     CHK_STATUS(signalingClientConnectSync(viewerSignalingClientHandle));
 
     MUTEX_LOCK(data.mutex);
