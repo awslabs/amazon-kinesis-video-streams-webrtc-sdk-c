@@ -148,6 +148,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     BOOL response_received = FALSE;
     while(TRUE) {
         messageSentTime = GETTIME();
+        SNPRINTF(message.payload, MAX_SIGNALING_MESSAGE_LEN, "test_message_%" PRIu64, messageSentTime);
         DLOGD("send meesage %" PRIu64 , index);
         response_received = FALSE;
         ATOMIC_STORE_BOOL(&data.response_received, FALSE);
