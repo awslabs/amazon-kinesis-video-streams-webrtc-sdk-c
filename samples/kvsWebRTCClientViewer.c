@@ -88,13 +88,6 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     memset(&offerSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
 
-    retStatus = createOffer(pSampleStreamingSession->pPeerConnection, &offerSessionDescriptionInit);
-    if (retStatus != STATUS_SUCCESS) {
-        printf("[KVS Viewer] createOffer(): operation returned status code: 0x%08x \n", retStatus);
-        goto CleanUp;
-    }
-    printf("[KVS Viewer] Offer creation successful\n");
-
     retStatus = setLocalDescription(pSampleStreamingSession->pPeerConnection, &offerSessionDescriptionInit);
     if (retStatus != STATUS_SUCCESS) {
         printf("[KVS Viewer] setLocalDescription(): operation returned status code: 0x%08x \n", retStatus);
@@ -123,9 +116,14 @@ INT32 main(INT32 argc, CHAR* argv[])
         locked = FALSE;
 
         printf("[KVS Viewer] Candidate collection completed\n");
-        // get the latest local description once candidate gathering is done
-        CHK_STATUS(peerConnectionGetCurrentLocalDescription(pSampleStreamingSession->pPeerConnection, &offerSessionDescriptionInit));
     }
+
+    retStatus = createOffer(pSampleStreamingSession->pPeerConnection, &offerSessionDescriptionInit);
+    if (retStatus != STATUS_SUCCESS) {
+        printf("[KVS Viewer] createOffer(): operation returned status code: 0x%08x \n", retStatus);
+        goto CleanUp;
+    }
+    printf("[KVS Viewer] Offer creation successful\n");
 
     printf("[KVS Viewer] Generating JSON of session description....");
     retStatus = serializeSessionDescriptionInit(&offerSessionDescriptionInit, NULL, &buffLen);

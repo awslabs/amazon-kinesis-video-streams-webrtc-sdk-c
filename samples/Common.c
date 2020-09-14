@@ -140,13 +140,13 @@ STATUS handleOffer(PSampleConfiguration pSampleConfiguration, PSampleStreamingSe
     /* cannot be null after setRemoteDescription */
     CHECK(!NULLABLE_CHECK_EMPTY(canTrickle));
     pSampleStreamingSession->remoteCanTrickleIce = canTrickle.value;
-    CHK_STATUS(createAnswer(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->answerSessionDescriptionInit));
     CHK_STATUS(setLocalDescription(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->answerSessionDescriptionInit));
 
     /*
      * If remote support trickle ice, send answer now. Otherwise answer will be sent once ice candidate gathering is complete.
      */
     if (pSampleStreamingSession->remoteCanTrickleIce) {
+        CHK_STATUS(createAnswer(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->answerSessionDescriptionInit));
         CHK_STATUS(respondWithAnswer(pSampleStreamingSession));
         DLOGD("time taken to send answer %" PRIu64 " ms",
               (GETTIME() - pSampleStreamingSession->offerReceiveTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
@@ -223,6 +223,7 @@ VOID onIceCandidateHandler(UINT64 customData, PCHAR candidateJson)
         // if application is master and non-trickle ice, send answer now.
         if (pSampleStreamingSession->pSampleConfiguration->channelInfo.channelRoleType == SIGNALING_CHANNEL_ROLE_TYPE_MASTER &&
             !pSampleStreamingSession->remoteCanTrickleIce) {
+            CHK_STATUS(createAnswer(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->answerSessionDescriptionInit));
             CHK_STATUS(respondWithAnswer(pSampleStreamingSession));
             DLOGD("time taken to send answer %" PRIu64 " ms",
                   (GETTIME() - pSampleStreamingSession->offerReceiveTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
