@@ -220,6 +220,8 @@ VOID onIceCandidateHandler(UINT64 customData, PCHAR candidateJson)
 
     if (candidateJson == NULL) {
         DLOGD("ice candidate gathering finished");
+        ATOMIC_STORE_BOOL(&pSampleStreamingSession->candidateGatheringDone, TRUE);
+
         // if application is master and non-trickle ice, send answer now.
         if (pSampleStreamingSession->pSampleConfiguration->channelInfo.channelRoleType == SIGNALING_CHANNEL_ROLE_TYPE_MASTER &&
             !pSampleStreamingSession->remoteCanTrickleIce) {
@@ -227,8 +229,11 @@ VOID onIceCandidateHandler(UINT64 customData, PCHAR candidateJson)
             CHK_STATUS(respondWithAnswer(pSampleStreamingSession));
             DLOGD("time taken to send answer %" PRIu64 " ms",
                   (GETTIME() - pSampleStreamingSession->offerReceiveTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+        } else if (pSampleStreamingSession->pSampleConfiguration->channelInfo.channelRoleType == SIGNALING_CHANNEL_ROLE_TYPE_VIEWER &&
+                   !pSampleStreamingSession->pSampleConfiguration->trickleIce) {
+            CVAR_BROADCAST(pSampleStreamingSession->pSampleConfiguration->cvar);
         }
-        ATOMIC_STORE_BOOL(&pSampleStreamingSession->candidateGatheringDone, TRUE);
+
     } else if (pSampleStreamingSession->remoteCanTrickleIce && ATOMIC_LOAD_BOOL(&pSampleStreamingSession->peerIdReceived)) {
         message.version = SIGNALING_MESSAGE_CURRENT_VERSION;
         message.messageType = SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE;
