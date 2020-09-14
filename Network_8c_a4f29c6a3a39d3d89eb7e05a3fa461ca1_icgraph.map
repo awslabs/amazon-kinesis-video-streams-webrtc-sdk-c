@@ -1,0 +1,12 @@
+<map id="socketBind" name="socketBind">
+<area shape="rect" id="node1" title=" " alt="" coords="1528,81,1651,108"/>
+<area shape="rect" id="node2" href="$SocketConnection_8h.html#a5ce9dfe7b74d9b52538004c323214965" title=" " alt="" coords="1237,81,1480,108"/>
+<area shape="rect" id="node3" href="$group__PublicMemberFunctions.html#ga6c4139787f87c307c2033b51d65284ce" title="Use the process described in https://tools.ietf.org/html/rfc5780#section&#45;4.3 to discover NAT behavior..." alt="" coords="942,5,1154,32"/>
+<area shape="rect" id="node4" href="$IceAgent_8h.html#ab7fc78b0a2605c5291b7ec8d7ed40cdc" title=" " alt="" coords="577,56,849,83"/>
+<area shape="rect" id="node8" href="$IceAgent_8h.html#a16f8a3535bbc9b23cd08b98bd79e49b4" title=" " alt="" coords="907,107,1189,133"/>
+<area shape="rect" id="node10" href="$IceAgent_8h.html#ab51095af13e7b515be425c2d7da80833" title=" " alt="" coords="571,157,854,184"/>
+<area shape="rect" id="node5" href="$IceAgent_8h.html#aaedcdc437dc6d6753a438f7c5ddf0c7c" title=" " alt="" coords="276,107,519,133"/>
+<area shape="rect" id="node6" href="$group__PublicMemberFunctions.html#ga060e71a4e33e0b7a8087317d4839fa8a" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the local descript..." alt="" coords="11,81,223,108"/>
+<area shape="rect" id="node7" href="$group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,132,228,159"/>
+<area shape="rect" id="node9" href="$IceAgent_8h.html#a90515bdf78b9dec41ee9c9d579da0045" title=" " alt="" coords="567,107,859,133"/>
+</map>

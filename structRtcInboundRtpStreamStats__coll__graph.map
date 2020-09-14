@@ -1,0 +1,5 @@
+<map id="RtcInboundRtpStreamStats" name="RtcInboundRtpStreamStats">
+<area shape="rect" id="node1" title="The RTCInboundRtpStreamStats dictionary represents the measurement metrics for the incoming RTP media..." alt="" coords="10,476,273,700"/>
+<area shape="rect" id="node2" href="$structRtcReceivedRtpStreamStats.html" title=" " alt="" coords="5,189,277,413"/>
+<area shape="rect" id="node3" href="$structRTCRtpStreamStats.html" title="RTCRtpStreamStats captures stream stats that will be used as part of RTCSentRtpStreamStats report Ref..." alt="" coords="45,5,237,127"/>
+</map>

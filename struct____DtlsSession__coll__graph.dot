@@ -1,9 +1,0 @@
-digraph "__DtlsSession"
-{
- // LATEX_PDF_SIZE
-  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
-  node [fontname="Helvetica",fontsize="10",shape=record];
-  Node1 [label="{__DtlsSession\n|+ isStarted\l+ shutdown\l+ certificateCount\l+ timerQueueHandle\l+ timerId\l+ dtlsSessionStartTime\l+ state\l+ sslLock\l|}",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled", fontcolor="black",tooltip=" "];
-  Node2 -> Node1 [color="grey25",fontsize="10",style="solid",label=" +dtlsSessionCallbacks" ,arrowhead="odiamond",fontname="Helvetica"];
-  Node2 [label="{DtlsSessionCallbacks\n|+ outBoundPacketFnCustomData\l+ outboundPacketFn\l+ stateChangeFnCustomData\l+ stateChangeFn\l|}",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$structDtlsSessionCallbacks.html",tooltip=" "];
-}

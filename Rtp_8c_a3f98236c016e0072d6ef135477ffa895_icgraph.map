@@ -1,0 +1,7 @@
+<map id="hasTransceiverWithSsrc" name="hasTransceiverWithSsrc">
+<area shape="rect" id="node1" title=" " alt="" coords="656,56,899,83"/>
+<area shape="rect" id="node2" href="$Metrics_8h.html#a261ca3c06b9302b43cc67486d14ce5bd" title="Get RTP inbound stats." alt="" coords="375,5,578,32"/>
+<area shape="rect" id="node4" href="$Metrics_8h.html#accdb48eadf8cbbd3a50e6812c5faa356" title="Get RTP outbound stats." alt="" coords="371,56,583,83"/>
+<area shape="rect" id="node5" href="$Metrics_8h.html#a88dfd032b3f06afc5748c8e93f59ab48" title="Get remote RTP inbound stats." alt="" coords="345,107,608,133"/>
+<area shape="rect" id="node3" href="$group__PublicMemberFunctions.html#ga469e0f69e03630ad5b03d8921afd62be" title="Get the relevant/all metrics based on the RTCStatsType field. This does not include any signaling rel..." alt="" coords="5,56,297,83"/>
+</map>

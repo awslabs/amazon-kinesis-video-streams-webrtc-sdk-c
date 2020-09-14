@@ -1,9 +1,0 @@
-digraph "RtcIceCandidatePairDiagnostics"
-{
- // LATEX_PDF_SIZE
-  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
-  node [fontname="Helvetica",fontsize="10",shape=record];
-  Node1 [label="{RtcIceCandidatePairDiagnostics\n|+ localCandidateId\l+ remoteCandidateId\l+ state\l+ nominated\l+ packetsDiscardedOnSend\l+ packetsSent\l+ packetsReceived\l+ bytesSent\l+ bytesReceived\l+ lastPacketSentTimestamp\land 13 more...\l|}",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled", fontcolor="black",tooltip=" "];
-  Node2 -> Node1 [color="grey25",fontsize="10",style="solid",label=" +circuitBreakerTriggerCount" ,arrowhead="odiamond",fontname="Helvetica"];
-  Node2 [label="{NullableUint32\n|+ isNull\l+ value\l|}",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$structNullableUint32.html",tooltip="Custom data type to allow setting UINT32 data type to NULL since C does not support setting basic dat..."];
-}

@@ -1,0 +1,23 @@
+<map id="freeSocketConnection" name="freeSocketConnection">
+<area shape="rect" id="node1" title=" " alt="" coords="1828,233,2051,260"/>
+<area shape="rect" id="node2" href="$SocketConnection_8h.html#a5ce9dfe7b74d9b52538004c323214965" title=" " alt="" coords="1262,107,1505,133"/>
+<area shape="rect" id="node3" href="$group__PublicMemberFunctions.html#ga6c4139787f87c307c2033b51d65284ce" title="Use the process described in https://tools.ietf.org/html/rfc5780#section&#45;4.3 to discover NAT behavior..." alt="" coords="942,5,1154,32"/>
+<area shape="rect" id="node11" href="$IceAgent_8h.html#a2fec382692577e183d98141466cb51f7" title=" " alt="" coords="1312,309,1455,336"/>
+<area shape="rect" id="node15" href="$TurnConnection_8h.html#a636cc6844b455700bc4eb56284a0c0ba" title=" " alt="" coords="1577,259,1780,285"/>
+<area shape="rect" id="node18" href="$IceAgent_8h.html#a1e97803ab232afca8aecc4e2f77b87ac" title=" " alt="" coords="1237,360,1529,387"/>
+<area shape="rect" id="node20" href="$IceAgent_8h.html#aedd06d9faf8856ab8758e8c0e49796ac" title=" " alt="" coords="1297,208,1469,235"/>
+<area shape="rect" id="node4" href="$IceAgent_8h.html#ab7fc78b0a2605c5291b7ec8d7ed40cdc" title=" " alt="" coords="577,56,849,83"/>
+<area shape="rect" id="node8" href="$IceAgent_8h.html#a16f8a3535bbc9b23cd08b98bd79e49b4" title=" " alt="" coords="907,157,1189,184"/>
+<area shape="rect" id="node10" href="$IceAgent_8h.html#ab51095af13e7b515be425c2d7da80833" title=" " alt="" coords="571,107,854,133"/>
+<area shape="rect" id="node5" href="$IceAgent_8h.html#aaedcdc437dc6d6753a438f7c5ddf0c7c" title=" " alt="" coords="276,132,519,159"/>
+<area shape="rect" id="node6" href="$group__PublicMemberFunctions.html#ga060e71a4e33e0b7a8087317d4839fa8a" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the local descript..." alt="" coords="11,132,223,159"/>
+<area shape="rect" id="node7" href="$group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,220,228,247"/>
+<area shape="rect" id="node9" href="$IceAgent_8h.html#a90515bdf78b9dec41ee9c9d579da0045" title=" " alt="" coords="567,157,859,184"/>
+<area shape="rect" id="node12" href="$IceAgent_8h.html#a8b4871fcabcb392bb37f78a0a1b129eb" title=" " alt="" coords="967,309,1129,336"/>
+<area shape="rect" id="node14" href="$group__PublicMemberFunctions.html#ga433b1bd125e7f221bcdad97a2a0e8949" title="Free a RtcPeerConnection." alt="" coords="947,360,1149,387"/>
+<area shape="rect" id="node13" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title=" " alt="" coords="601,335,824,361"/>
+<area shape="rect" id="node16" href="$TurnConnection_8h.html#a71e6fb744871a4b7929790dcf8fa7ffc" title=" " alt="" coords="1272,157,1495,184"/>
+<area shape="rect" id="node17" href="$IceAgentStateMachine_8h.html#aec16a4d41bdf76f1f357d688e3fe9f80" title=" " alt="" coords="1262,259,1505,285"/>
+<area shape="rect" id="node19" href="$IceAgentStateMachine_8h.html#a4fddd35b881d4a51ceaad3633a0bced0" title=" " alt="" coords="917,411,1179,453"/>
+<area shape="rect" id="node21" href="$group__PublicMemberFunctions.html#gade9fcbb056cb321f33890c1cf1222e64" title="Instructs the RtcPeerConnection that ICE should be restarted. Subsequent calls to createOffer will cr..." alt="" coords="987,208,1109,235"/>
+</map>
