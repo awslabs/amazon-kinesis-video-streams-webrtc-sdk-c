@@ -1,0 +1,29 @@
+<map id="socketConnectionClosed" name="socketConnectionClosed">
+<area shape="rect" id="node1" title=" " alt="" coords="3455,179,3851,205"/>
+<area shape="rect" id="node2" href="$ConnectionListener_8h.html#ad4b0c7229cc56aa8bc3eaef7d75c2ab7" title=" " alt="" coords="2960,30,3407,71"/>
+<area shape="rect" id="node8" href="$ConnectionListener_8h.html#a16d5019e5402a94cc6684a33583a1b9a" title=" " alt="" coords="2968,113,3399,154"/>
+<area shape="rect" id="node9" href="$IceAgent_8h.html#a3fc8eda4a254a7c26c3c0ae36dff28b7" title=" " alt="" coords="2524,129,2819,156"/>
+<area shape="rect" id="node13" href="$ConnectionListener_8h.html#a93a44efadf7dbf829d9d361ad0d95905" title=" " alt="" coords="2968,247,3399,289"/>
+<area shape="rect" id="node25" href="$TurnConnection_8h.html#a6a4c556b18348cd3fa9558d697573daa" title=" " alt="" coords="2977,335,3390,361"/>
+<area shape="rect" id="node3" href="$ConnectionListener_8h.html#af99a43457548917a4ca6017eaa1c4470" title=" " alt="" coords="2465,28,2878,55"/>
+<area shape="rect" id="node4" href="$group__PublicMemberFunctions.html#ga6c4139787f87c307c2033b51d65284ce" title="Use the process described in https://tools.ietf.org/html/rfc5780#section&#45;4.3 to discover NAT behavior..." alt="" coords="1969,28,2315,55"/>
+<area shape="rect" id="node5" href="$IceAgent_8h.html#aaedcdc437dc6d6753a438f7c5ddf0c7c" title=" " alt="" coords="416,332,812,359"/>
+<area shape="rect" id="node6" href="$group__PublicMemberFunctions.html#ga060e71a4e33e0b7a8087317d4839fa8a" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the local descript..." alt="" coords="14,332,359,359"/>
+<area shape="rect" id="node7" href="$group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,383,368,409"/>
+<area shape="rect" id="node10" href="$group__PublicMemberFunctions.html#ga9babad6ea2bc9bb97279c7034697375a" title="Close the underlying DTLS session and IceAgent connection. Trigger RtcOnConnectionStateChange to RTC_..." alt="" coords="1969,79,2315,105"/>
+<area shape="rect" id="node11" href="$group__PublicMemberFunctions.html#ga433b1bd125e7f221bcdad97a2a0e8949" title="Free a RtcPeerConnection." alt="" coords="1457,205,1785,232"/>
+<area shape="rect" id="node12" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title=" " alt="" coords="919,231,1282,257"/>
+<area shape="rect" id="node14" href="$TurnConnection_8h.html#a636cc6844b455700bc4eb56284a0c0ba" title=" " alt="" coords="2507,268,2835,295"/>
+<area shape="rect" id="node21" href="$IceAgent_8h.html#a1e97803ab232afca8aecc4e2f77b87ac" title=" " alt="" coords="1901,180,2383,207"/>
+<area shape="rect" id="node23" href="$IceAgent_8h.html#aedd06d9faf8856ab8758e8c0e49796ac" title=" " alt="" coords="2003,383,2281,409"/>
+<area shape="rect" id="node15" href="$TurnConnection_8h.html#a71e6fb744871a4b7929790dcf8fa7ffc" title=" " alt="" coords="1961,332,2323,359"/>
+<area shape="rect" id="node18" href="$IceAgent_8h.html#a2fec382692577e183d98141466cb51f7" title=" " alt="" coords="2029,231,2255,257"/>
+<area shape="rect" id="node20" href="$IceAgentStateMachine_8h.html#aec16a4d41bdf76f1f357d688e3fe9f80" title=" " alt="" coords="1944,281,2340,308"/>
+<area shape="rect" id="node16" href="$IceAgent_8h.html#a16f8a3535bbc9b23cd08b98bd79e49b4" title=" " alt="" coords="1389,332,1853,359"/>
+<area shape="rect" id="node17" href="$IceAgent_8h.html#a90515bdf78b9dec41ee9c9d579da0045" title=" " alt="" coords="860,332,1341,359"/>
+<area shape="rect" id="node19" href="$IceAgent_8h.html#a8b4871fcabcb392bb37f78a0a1b129eb" title=" " alt="" coords="1491,256,1751,283"/>
+<area shape="rect" id="node22" href="$IceAgentStateMachine_8h.html#a4fddd35b881d4a51ceaad3633a0bced0" title=" " alt="" coords="1406,139,1837,181"/>
+<area shape="rect" id="node24" href="$group__PublicMemberFunctions.html#gade9fcbb056cb321f33890c1cf1222e64" title="Instructs the RtcPeerConnection that ICE should be restarted. Subsequent calls to createOffer will cr..." alt="" coords="1525,433,1717,460"/>
+<area shape="rect" id="node26" href="$TurnConnection_8h.html#a74801f6687767a6443b5edd1de9a3798" title=" " alt="" coords="2431,420,2912,447"/>
+<area shape="rect" id="node27" href="$TurnConnection_8h.html#a7805d6421b4cb1f7b401f447a7b5b26a" title=" " alt="" coords="1969,433,2315,460"/>
+</map>

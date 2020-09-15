@@ -1,0 +1,12 @@
+<map id="handleStunPacket" name="handleStunPacket">
+<area shape="rect" id="node1" title=" " alt="" coords="2807,56,3101,83"/>
+<area shape="rect" id="node2" href="$IceAgent_8h.html#a4679168f8e324e0324a8c129fe6d606d" title=" " alt="" coords="2413,56,2759,83"/>
+<area shape="rect" id="node3" href="$IceAgent_8h.html#ab7fc78b0a2605c5291b7ec8d7ed40cdc" title=" " alt="" coords="1398,5,1845,32"/>
+<area shape="rect" id="node7" href="$IceAgent_8h.html#ab51095af13e7b515be425c2d7da80833" title=" " alt="" coords="869,56,1333,83"/>
+<area shape="rect" id="node8" href="$IceAgent_8h.html#ad3b73d0dc0335cf05e9ff5893d1819a4" title=" " alt="" coords="1901,107,2365,133"/>
+<area shape="rect" id="node4" href="$IceAgent_8h.html#aaedcdc437dc6d6753a438f7c5ddf0c7c" title=" " alt="" coords="416,56,812,83"/>
+<area shape="rect" id="node5" href="$group__PublicMemberFunctions.html#ga060e71a4e33e0b7a8087317d4839fa8a" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the local descript..." alt="" coords="14,31,359,57"/>
+<area shape="rect" id="node6" href="$group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,81,368,108"/>
+<area shape="rect" id="node9" href="$IceAgent_8h.html#a16f8a3535bbc9b23cd08b98bd79e49b4" title=" " alt="" coords="1389,107,1853,133"/>
+<area shape="rect" id="node10" href="$IceAgent_8h.html#a90515bdf78b9dec41ee9c9d579da0045" title=" " alt="" coords="860,107,1341,133"/>
+</map>

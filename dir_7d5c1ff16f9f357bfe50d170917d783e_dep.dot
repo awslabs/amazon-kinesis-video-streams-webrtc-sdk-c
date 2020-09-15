@@ -1,9 +1,0 @@
-digraph "/src/src/source/Srtp" {
-  compound=true
-  node [ fontsize="10", fontname="Helvetica"];
-  edge [ labelfontsize="10", labelfontname="Helvetica"];
-  subgraph clusterdir_94e7a0fbe7f8eaf7f05ee7b02c647e9f {
-    graph [ bgcolor="#ddddee", pencolor="black", label="source" fontname="Helvetica", fontsize="10", URL="dir_94e7a0fbe7f8eaf7f05ee7b02c647e9f.html"]
-  dir_7d5c1ff16f9f357bfe50d170917d783e [shape=box, label="Srtp", style="filled", fillcolor="#eeeeff", pencolor="black", URL="dir_7d5c1ff16f9f357bfe50d170917d783e.html"];
-  }
-}

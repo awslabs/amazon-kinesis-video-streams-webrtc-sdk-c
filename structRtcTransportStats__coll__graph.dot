@@ -1,7 +1,0 @@
-digraph "RtcTransportStats"
-{
- // LATEX_PDF_SIZE
-  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
-  node [fontname="Helvetica",fontsize="10",shape=record];
-  Node1 [label="{RtcTransportStats\n|+ rtcpTransportStatsId\l+ selectedCandidatePairId\l+ localCertificateId\l+ remoteCertificateId\l+ tlsVersion\l+ dtlsCipher\l+ srtpCipher\l+ tlsGroup\l+ iceRole\l+ dtlsState\l+ packetsSent\l+ packetsReceived\l+ bytesSent\l+ bytesReceived\l+ selectedCandidatePairChanges\l|}",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled", fontcolor="black",tooltip="RtcTransportStats Represents the stats corresponding to an RTCDtlsTransport and its underlying RTCIce..."];
-}

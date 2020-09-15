@@ -1,0 +1,5 @@
+<map id="signalingClientConnectSync" name="signalingClientConnectSync">
+<area shape="rect" id="node1" title="Connects the signaling client to the web socket in order to send/receive messages." alt="" coords="5,5,469,32"/>
+<area shape="rect" id="node2" href="$Signaling_8c.html#a3c2197526080fd2995dddcdb883068de" title=" " alt="" coords="517,5,880,32"/>
+<area shape="rect" id="node3" href="$StateMachine_8c.html#aec8441c2e021d29e6fdec5f97000431c" title=" " alt="" coords="928,5,1375,32"/>
+</map>
