@@ -1,6 +1,6 @@
 <map id="tlsSessionStart" name="tlsSessionStart">
-<area shape="rect" id="node1" title=" " alt="" coords="5,71,283,98"/>
-<area shape="rect" id="node2" href="$Tls__openssl_8c.html#a30c2f8bab34d33c956a7c11fcd1e6618" title=" " alt="" coords="339,5,821,47"/>
-<area shape="rect" id="node3" href="$Tls_8c.html#a7dbb041b5b15c6784e9f57a09a08d467" title=" " alt="" coords="877,97,1256,123"/>
-<area shape="rect" id="node4" href="$Tls__openssl_8c.html#a64cd202de66bae27a7d0edd8d5a05446" title=" " alt="" coords="331,122,829,149"/>
+<area shape="rect" id="node1" title=" " alt="" coords="5,71,116,98"/>
+<area shape="rect" id="node2" href="$Tls__openssl_8c.html#a30c2f8bab34d33c956a7c11fcd1e6618" title=" " alt="" coords="174,5,349,47"/>
+<area shape="rect" id="node3" href="$Tls_8c.html#a7dbb041b5b15c6784e9f57a09a08d467" title=" " alt="" coords="407,97,565,123"/>
+<area shape="rect" id="node4" href="$Tls__openssl_8c.html#a64cd202de66bae27a7d0edd8d5a05446" title=" " alt="" coords="164,122,359,149"/>
 </map>

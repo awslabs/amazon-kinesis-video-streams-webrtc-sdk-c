@@ -1,6 +1,6 @@
 <map id="createBytesFromRtpPacket" name="createBytesFromRtpPacket">
-<area shape="rect" id="node1" title=" " alt="" coords="928,42,1359,69"/>
-<area shape="rect" id="node2" href="$RtpPacket_8h.html#aed0aaf168ee5fff2577454d4332c54f6" title=" " alt="" coords="381,5,880,47"/>
-<area shape="rect" id="node4" href="$group__PublicMemberFunctions.html#ga40c7caf6325f426d82030beec50cc86e" title="Packetizes and sends media via the configuration specified by the RtcRtpTransceiver." alt="" coords="535,71,727,98"/>
-<area shape="rect" id="node3" href="$Retransmitter_8h.html#a55e0c0bf127bb71130d3187b05e7ed87" title=" " alt="" coords="5,13,333,39"/>
+<area shape="rect" id="node1" title=" " alt="" coords="452,42,635,69"/>
+<area shape="rect" id="node2" href="$RtpPacket_8h.html#aed0aaf168ee5fff2577454d4332c54f6" title=" " alt="" coords="204,5,404,47"/>
+<area shape="rect" id="node4" href="$group__PublicMemberFunctions.html#ga40c7caf6325f426d82030beec50cc86e" title="Packetizes and sends media via the configuration specified by the RtcRtpTransceiver." alt="" coords="261,71,347,98"/>
+<area shape="rect" id="node3" href="$Retransmitter_8h.html#a55e0c0bf127bb71130d3187b05e7ed87" title=" " alt="" coords="5,13,156,39"/>
 </map>

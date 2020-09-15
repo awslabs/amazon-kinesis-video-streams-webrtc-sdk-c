@@ -1,8 +1,8 @@
 <map id="freeSrtpSession" name="freeSrtpSession">
-<area shape="rect" id="node1" title=" " alt="" coords="1443,31,1720,57"/>
-<area shape="rect" id="node2" href="$group__PublicMemberFunctions.html#ga433b1bd125e7f221bcdad97a2a0e8949" title="Free a RtcPeerConnection." alt="" coords="741,5,1069,32"/>
-<area shape="rect" id="node4" href="$SrtpSession_8h.html#a8bb9447fb02c3bd23c4a849e95d9233f" title=" " alt="" coords="1117,56,1395,83"/>
-<area shape="rect" id="node3" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title=" " alt="" coords="5,31,368,57"/>
-<area shape="rect" id="node5" href="$PeerConnection_8c.html#a8550d4c65dc37cbff20ac6179ba1a59b" title=" " alt="" coords="792,56,1019,83"/>
-<area shape="rect" id="node6" href="$PeerConnection_8c.html#a76ad72a51a47dae5e9f43873f36aa34a" title=" " alt="" coords="416,56,693,83"/>
+<area shape="rect" id="node1" title=" " alt="" coords="717,31,832,57"/>
+<area shape="rect" id="node2" href="$group__PublicMemberFunctions.html#ga433b1bd125e7f221bcdad97a2a0e8949" title="Free a RtcPeerConnection." alt="" coords="375,5,511,32"/>
+<area shape="rect" id="node4" href="$SrtpSession_8h.html#a8bb9447fb02c3bd23c4a849e95d9233f" title=" " alt="" coords="559,56,669,83"/>
+<area shape="rect" id="node3" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title=" " alt="" coords="5,31,156,57"/>
+<area shape="rect" id="node5" href="$PeerConnection_8c.html#a8550d4c65dc37cbff20ac6179ba1a59b" title=" " alt="" coords="397,56,488,83"/>
+<area shape="rect" id="node6" href="$PeerConnection_8c.html#a76ad72a51a47dae5e9f43873f36aa34a" title=" " alt="" coords="204,56,327,83"/>
 </map>

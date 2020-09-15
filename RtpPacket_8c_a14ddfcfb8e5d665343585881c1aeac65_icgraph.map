@@ -1,8 +1,8 @@
 <map id="createRtpPacketFromBytes" name="createRtpPacketFromBytes">
-<area shape="rect" id="node1" title=" " alt="" coords="1288,31,1719,57"/>
-<area shape="rect" id="node2" href="$RtpRollingBuffer_8h.html#a55d9bae67aa9d5e200264501027ce6cd" title=" " alt="" coords="741,5,1240,32"/>
-<area shape="rect" id="node4" href="$PeerConnection_8h.html#aa5448d76d0c513e03f33a1aca0375101" title=" " alt="" coords="784,56,1197,83"/>
-<area shape="rect" id="node3" href="$group__PublicMemberFunctions.html#ga40c7caf6325f426d82030beec50cc86e" title="Packetizes and sends media via the configuration specified by the RtcRtpTransceiver." alt="" coords="459,5,651,32"/>
-<area shape="rect" id="node5" href="$PeerConnection_8c.html#a76ad72a51a47dae5e9f43873f36aa34a" title=" " alt="" coords="416,56,693,83"/>
-<area shape="rect" id="node6" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title=" " alt="" coords="5,56,368,83"/>
+<area shape="rect" id="node1" title=" " alt="" coords="617,31,800,57"/>
+<area shape="rect" id="node2" href="$RtpRollingBuffer_8h.html#a55d9bae67aa9d5e200264501027ce6cd" title=" " alt="" coords="375,5,569,32"/>
+<area shape="rect" id="node4" href="$PeerConnection_8h.html#aa5448d76d0c513e03f33a1aca0375101" title=" " alt="" coords="383,56,561,83"/>
+<area shape="rect" id="node3" href="$group__PublicMemberFunctions.html#ga40c7caf6325f426d82030beec50cc86e" title="Packetizes and sends media via the configuration specified by the RtcRtpTransceiver." alt="" coords="222,5,309,32"/>
+<area shape="rect" id="node5" href="$PeerConnection_8c.html#a76ad72a51a47dae5e9f43873f36aa34a" title=" " alt="" coords="204,56,327,83"/>
+<area shape="rect" id="node6" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title=" " alt="" coords="5,56,156,83"/>
 </map>

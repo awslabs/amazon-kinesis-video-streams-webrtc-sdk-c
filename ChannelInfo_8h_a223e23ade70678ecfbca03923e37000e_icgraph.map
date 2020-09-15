@@ -1,6 +1,6 @@
 <map id="getChannelTypeFromString" name="getChannelTypeFromString">
-<area shape="rect" id="node1" title=" " alt="" coords="1185,13,1616,39"/>
-<area shape="rect" id="node2" href="$LwsApiCalls_8h.html#a43ec97f014828e5f79d1cae0587f69f6" title=" " alt="" coords="809,13,1137,39"/>
-<area shape="rect" id="node3" href="$Signaling_8h.html#a5c9505459dce404c6fd56594ed4955af" title=" " alt="" coords="484,13,761,39"/>
-<area shape="rect" id="node4" href="$StateMachine_8h.html#aa3955d8438eb40773c390af393d62804" title=" " alt="" coords="5,5,436,47"/>
+<area shape="rect" id="node1" title=" " alt="" coords="581,13,760,39"/>
+<area shape="rect" id="node2" href="$LwsApiCalls_8h.html#a43ec97f014828e5f79d1cae0587f69f6" title=" " alt="" coords="391,13,533,39"/>
+<area shape="rect" id="node3" href="$Signaling_8h.html#a5c9505459dce404c6fd56594ed4955af" title=" " alt="" coords="224,13,343,39"/>
+<area shape="rect" id="node4" href="$StateMachine_8h.html#aa3955d8438eb40773c390af393d62804" title=" " alt="" coords="5,5,176,47"/>
 </map>

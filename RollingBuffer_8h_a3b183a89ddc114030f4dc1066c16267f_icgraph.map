@@ -1,6 +1,6 @@
 <map id="createRollingBuffer" name="createRollingBuffer">
-<area shape="rect" id="node1" title=" " alt="" coords="1372,5,1717,32"/>
-<area shape="rect" id="node2" href="$RtpRollingBuffer_8h.html#aa54b8dd8691f2ddaba185cd13d445736" title=" " alt="" coords="928,5,1324,32"/>
-<area shape="rect" id="node3" href="$SessionDescription_8h.html#aab043cb26011e36e6cdd1c335826730a" title=" " alt="" coords="416,5,880,32"/>
-<area shape="rect" id="node4" href="$group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,5,368,32"/>
+<area shape="rect" id="node1" title=" " alt="" coords="640,5,771,32"/>
+<area shape="rect" id="node2" href="$RtpRollingBuffer_8h.html#aa54b8dd8691f2ddaba185cd13d445736" title=" " alt="" coords="441,5,592,32"/>
+<area shape="rect" id="node3" href="$SessionDescription_8h.html#aab043cb26011e36e6cdd1c335826730a" title=" " alt="" coords="204,5,393,32"/>
+<area shape="rect" id="node4" href="$group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,5,156,32"/>
 </map>

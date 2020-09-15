@@ -1,11 +1,11 @@
 <map id="freeSignalingClient" name="freeSignalingClient">
-<area shape="rect" id="node1" title="Frees the Signaling client object." alt="" coords="5,56,351,83"/>
-<area shape="rect" id="node2" href="$Signaling_8c.html#a82f76649f6bf874ffc0913857c588837" title=" " alt="" coords="399,56,641,83"/>
-<area shape="rect" id="node3" href="$ChannelInfo_8c.html#a8905e3a1f13ab3a638df50f03ab30bd8" title=" " alt="" coords="783,5,1060,32"/>
-<area shape="rect" id="node4" href="$Signaling_8c.html#ae56c0bb01cc41a1566687dd26dac4248" title=" " alt="" coords="689,56,1153,83"/>
-<area shape="rect" id="node9" href="$Signaling_8c.html#a344d07546bffa0b00dd4282b46e95b75" title=" " alt="" coords="698,107,1145,133"/>
-<area shape="rect" id="node5" href="$Signaling_8c.html#a653edfffd5d129d08f5971d91f16fc5e" title=" " alt="" coords="2243,31,2689,57"/>
-<area shape="rect" id="node6" href="$LwsApiCalls_8c.html#ac8ef143a573f3b4ae83bd3ad0eb9fd6f" title=" " alt="" coords="1201,81,1632,108"/>
-<area shape="rect" id="node7" href="$LwsApiCalls_8c.html#ae7928b7a5bf47cbdf2ccf753f1c1e8df" title=" " alt="" coords="1680,81,2195,108"/>
-<area shape="rect" id="node8" href="$LwsApiCalls_8c.html#a116aedb04e1b2e3c920d5b181477b11a" title=" " alt="" coords="2259,81,2673,108"/>
+<area shape="rect" id="node1" title="Frees the Signaling client object." alt="" coords="5,56,136,83"/>
+<area shape="rect" id="node2" href="$Signaling_8c.html#a82f76649f6bf874ffc0913857c588837" title=" " alt="" coords="184,56,281,83"/>
+<area shape="rect" id="node3" href="$ChannelInfo_8c.html#a8905e3a1f13ab3a638df50f03ab30bd8" title=" " alt="" coords="366,5,479,32"/>
+<area shape="rect" id="node4" href="$Signaling_8c.html#ae56c0bb01cc41a1566687dd26dac4248" title=" " alt="" coords="329,56,516,83"/>
+<area shape="rect" id="node9" href="$Signaling_8c.html#a344d07546bffa0b00dd4282b46e95b75" title=" " alt="" coords="339,107,506,133"/>
+<area shape="rect" id="node5" href="$Signaling_8c.html#a653edfffd5d129d08f5971d91f16fc5e" title=" " alt="" coords="1045,31,1225,57"/>
+<area shape="rect" id="node6" href="$LwsApiCalls_8c.html#ac8ef143a573f3b4ae83bd3ad0eb9fd6f" title=" " alt="" coords="564,81,741,108"/>
+<area shape="rect" id="node7" href="$LwsApiCalls_8c.html#ae7928b7a5bf47cbdf2ccf753f1c1e8df" title=" " alt="" coords="789,81,995,108"/>
+<area shape="rect" id="node8" href="$LwsApiCalls_8c.html#a116aedb04e1b2e3c920d5b181477b11a" title=" " alt="" coords="1043,81,1227,108"/>
 </map>

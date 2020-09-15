@@ -1,7 +1,7 @@
 <map id="RtcOutboundRtpStreamStats" name="RtcOutboundRtpStreamStats">
-<area shape="rect" id="node1" title="RtcOutboundRtpStreamStats Gathers stats for media stream from the embedded device Note: RTCOutboundRt..." alt="" coords="413,359,859,583"/>
-<area shape="rect" id="node2" href="$structRTCSentRtpStreamStats.html" title="RTCSentRtpStreamStats will be used as part of outbound Rtp stats Reference: https://www...." alt="" coords="5,197,384,289"/>
-<area shape="rect" id="node3" href="$structRTCRtpStreamStats.html" title="RTCRtpStreamStats captures stream stats that will be used as part of RTCSentRtpStreamStats report Ref..." alt="" coords="39,5,350,127"/>
-<area shape="rect" id="node4" href="$structDscpPacketsSentRecord.html" title="Record of total number of packets sent per DSCP. Used by RTCOutboundRtpStreamStats object." alt="" coords="409,197,863,289"/>
-<area shape="rect" id="node5" href="$structQualityLimitationDurationsRecord.html" title=" " alt="" coords="888,189,1352,296"/>
+<area shape="rect" id="node1" title="RtcOutboundRtpStreamStats Gathers stats for media stream from the embedded device Note: RTCOutboundRt..." alt="" coords="199,359,390,583"/>
+<area shape="rect" id="node2" href="$structRTCSentRtpStreamStats.html" title="RTCSentRtpStreamStats will be used as part of outbound Rtp stats Reference: https://www...." alt="" coords="5,197,173,289"/>
+<area shape="rect" id="node3" href="$structRTCRtpStreamStats.html" title="RTCRtpStreamStats captures stream stats that will be used as part of RTCSentRtpStreamStats report Ref..." alt="" coords="19,5,160,127"/>
+<area shape="rect" id="node4" href="$structDscpPacketsSentRecord.html" title="Record of total number of packets sent per DSCP. Used by RTCOutboundRtpStreamStats object." alt="" coords="198,197,391,289"/>
+<area shape="rect" id="node5" href="$structQualityLimitationDurationsRecord.html" title=" " alt="" coords="415,189,590,296"/>
 </map>

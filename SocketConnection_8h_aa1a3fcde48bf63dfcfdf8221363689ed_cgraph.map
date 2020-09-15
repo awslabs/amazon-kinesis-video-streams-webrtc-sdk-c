@@ -1,7 +1,7 @@
 <map id="socketConnectionReadData" name="socketConnectionReadData">
-<area shape="rect" id="node1" title=" " alt="" coords="5,56,436,83"/>
-<area shape="rect" id="node2" href="$Tls_8h.html#aa4fe15fc18b9910c16b5c63cc38376d6" title=" " alt="" coords="484,56,897,83"/>
-<area shape="rect" id="node3" href="$IOBuffer_8c.html#a1fd767c00239c83072309f23641b22f6" title=" " alt="" coords="988,5,1231,32"/>
-<area shape="rect" id="node4" href="$Tls_8c.html#a7dbb041b5b15c6784e9f57a09a08d467" title=" " alt="" coords="1321,81,1700,108"/>
-<area shape="rect" id="node5" href="$Tls__mbedtls_8c.html#aca41778af81f4d5b5a71dcaf5e686bb9" title=" " alt="" coords="945,107,1273,133"/>
+<area shape="rect" id="node1" title=" " alt="" coords="5,56,188,83"/>
+<area shape="rect" id="node2" href="$Tls_8h.html#aa4fe15fc18b9910c16b5c63cc38376d6" title=" " alt="" coords="236,56,408,83"/>
+<area shape="rect" id="node3" href="$IOBuffer_8c.html#a1fd767c00239c83072309f23641b22f6" title=" " alt="" coords="479,5,575,32"/>
+<area shape="rect" id="node4" href="$Tls_8c.html#a7dbb041b5b15c6784e9f57a09a08d467" title=" " alt="" coords="645,81,804,108"/>
+<area shape="rect" id="node5" href="$Tls__mbedtls_8c.html#aca41778af81f4d5b5a71dcaf5e686bb9" title=" " alt="" coords="456,107,597,133"/>
 </map>

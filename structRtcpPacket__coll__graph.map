@@ -1,4 +1,4 @@
 <map id="RtcpPacket" name="RtcpPacket">
-<area shape="rect" id="node1" title=" " alt="" coords="65,189,332,281"/>
-<area shape="rect" id="node2" href="$structRtcpPacketHeader.html" title=" " alt="" coords="5,5,392,127"/>
+<area shape="rect" id="node1" title=" " alt="" coords="26,189,143,281"/>
+<area shape="rect" id="node2" href="$structRtcpPacketHeader.html" title=" " alt="" coords="5,5,164,127"/>
 </map>

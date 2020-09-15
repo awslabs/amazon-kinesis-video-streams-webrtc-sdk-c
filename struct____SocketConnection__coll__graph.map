@@ -1,6 +1,6 @@
 <map id="__SocketConnection" name="__SocketConnection">
-<area shape="rect" id="node1" title=" " alt="" coords="5,388,579,568"/>
-<area shape="rect" id="node2" href="$structKvsIpAddress.html" title=" " alt="" coords="38,189,322,311"/>
-<area shape="rect" id="node3" href="$struct____TlsSession.html" title=" " alt="" coords="347,211,573,289"/>
-<area shape="rect" id="node4" href="$structTlsSessionCallbacks.html" title=" " alt="" coords="216,5,704,127"/>
+<area shape="rect" id="node1" title=" " alt="" coords="5,388,239,568"/>
+<area shape="rect" id="node2" href="$structKvsIpAddress.html" title=" " alt="" coords="11,189,129,311"/>
+<area shape="rect" id="node3" href="$struct____TlsSession.html" title=" " alt="" coords="154,211,255,289"/>
+<area shape="rect" id="node4" href="$structTlsSessionCallbacks.html" title=" " alt="" coords="97,5,313,127"/>
 </map>

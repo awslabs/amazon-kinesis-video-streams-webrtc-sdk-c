@@ -1,22 +1,22 @@
 <map id="awaitForThreadTermination" name="awaitForThreadTermination">
-<area shape="rect" id="node1" title=" " alt="" coords="3196,157,3643,184"/>
-<area shape="rect" id="node2" href="$LwsApiCalls_8h.html#a35c27097d8694e053456985681d9f299" title=" " alt="" coords="2633,107,3148,133"/>
-<area shape="rect" id="node14" href="$Signaling_8h.html#acb2932f961b12b958dc125e21bc2a713" title=" " alt="" coords="1609,208,2073,235"/>
-<area shape="rect" id="node3" href="$LwsApiCalls_8h.html#a2ac258834937856ede462e972c15869f" title=" " alt="" coords="2121,5,2585,32"/>
-<area shape="rect" id="node6" href="$LwsApiCalls_8h.html#a3389cab55ec0140e12d28d5174823525" title=" " alt="" coords="2206,56,2501,83"/>
-<area shape="rect" id="node9" href="$LwsApiCalls_8h.html#a3be2b58965f27978a86f44a01a60fdd1" title=" " alt="" coords="2198,107,2509,133"/>
-<area shape="rect" id="node13" href="$LwsApiCalls_8h.html#adaab65fdec20bfa988b6c59e317520aa" title=" " alt="" coords="2138,157,2569,184"/>
-<area shape="rect" id="node4" href="$Signaling_8h.html#a7bbc824772aa5da9ae0f0d32072624a5" title=" " alt="" coords="1635,5,2048,32"/>
-<area shape="rect" id="node5" href="$StateMachine_8h.html#ad61b483e90502a439e3c52e6bdf1b760" title=" " alt="" coords="1063,5,1561,32"/>
-<area shape="rect" id="node7" href="$Signaling_8h.html#a8e737f9e23a9d0be4a2280e6114bd6fc" title=" " alt="" coords="1720,56,1963,83"/>
-<area shape="rect" id="node8" href="$StateMachine_8h.html#aa9f061233a9fdff2c0f1180ac06a1e8b" title=" " alt="" coords="1071,56,1553,83"/>
-<area shape="rect" id="node10" href="$LwsApiCalls_8h.html#aa2eb874b1b028f1648df7736ae344a63" title=" " alt="" coords="1652,107,2031,133"/>
-<area shape="rect" id="node11" href="$Signaling_8h.html#a26907340bcd88230be1b23ace9d19e68" title=" " alt="" coords="585,93,930,120"/>
-<area shape="rect" id="node12" href="$group__PublicMemberFunctions.html#ga375ddffe8376298cdaafe63799b53b1e" title="Creates a Signaling client and returns a handle to it." alt="" coords="5,119,452,145"/>
-<area shape="rect" id="node15" href="$Signaling_8h.html#ad9057954d6494f555ba7b7646fc31ccc" title=" " alt="" coords="1191,169,1433,196"/>
-<area shape="rect" id="node17" href="$Signaling_8h.html#a4bf483684dd1c9457ad84c14d07af7f7" title=" " alt="" coords="1139,233,1485,260"/>
-<area shape="rect" id="node19" href="$Signaling_8h.html#a748192aa75f090e400ec209c2a3afab4" title=" " alt="" coords="1105,296,1519,323"/>
-<area shape="rect" id="node16" href="$group__PublicMemberFunctions.html#gafb4629e6a81552152c1b475a32e06e9c" title="Frees the Signaling client object." alt="" coords="585,195,930,221"/>
-<area shape="rect" id="node18" href="$group__PublicMemberFunctions.html#gad85555f757662d1585efd00d496e5c13" title="Deletes the signaling channel referenced by SIGNALING_CLIENT_HANDLE." alt="" coords="534,245,981,272"/>
-<area shape="rect" id="node20" href="$group__PublicMemberFunctions.html#ga6130116416557558b66728a8db2c6ee7" title="Disconnects the signaling client." alt="" coords="500,296,1015,323"/>
+<area shape="rect" id="node1" title=" " alt="" coords="1451,157,1631,184"/>
+<area shape="rect" id="node2" href="$LwsApiCalls_8h.html#a35c27097d8694e053456985681d9f299" title=" " alt="" coords="1197,107,1403,133"/>
+<area shape="rect" id="node14" href="$Signaling_8h.html#acb2932f961b12b958dc125e21bc2a713" title=" " alt="" coords="721,208,908,235"/>
+<area shape="rect" id="node3" href="$LwsApiCalls_8h.html#a2ac258834937856ede462e972c15869f" title=" " alt="" coords="956,5,1149,32"/>
+<area shape="rect" id="node6" href="$LwsApiCalls_8h.html#a3389cab55ec0140e12d28d5174823525" title=" " alt="" coords="988,56,1117,83"/>
+<area shape="rect" id="node9" href="$LwsApiCalls_8h.html#a3be2b58965f27978a86f44a01a60fdd1" title=" " alt="" coords="981,107,1124,133"/>
+<area shape="rect" id="node13" href="$LwsApiCalls_8h.html#adaab65fdec20bfa988b6c59e317520aa" title=" " alt="" coords="964,157,1141,184"/>
+<area shape="rect" id="node4" href="$Signaling_8h.html#a7bbc824772aa5da9ae0f0d32072624a5" title=" " alt="" coords="731,5,899,32"/>
+<area shape="rect" id="node5" href="$StateMachine_8h.html#ad61b483e90502a439e3c52e6bdf1b760" title=" " alt="" coords="475,5,673,32"/>
+<area shape="rect" id="node7" href="$Signaling_8h.html#a8e737f9e23a9d0be4a2280e6114bd6fc" title=" " alt="" coords="763,56,867,83"/>
+<area shape="rect" id="node8" href="$StateMachine_8h.html#aa9f061233a9fdff2c0f1180ac06a1e8b" title=" " alt="" coords="480,56,668,83"/>
+<area shape="rect" id="node10" href="$LwsApiCalls_8h.html#aa2eb874b1b028f1648df7736ae344a63" title=" " alt="" coords="733,107,896,133"/>
+<area shape="rect" id="node11" href="$Signaling_8h.html#a26907340bcd88230be1b23ace9d19e68" title=" " alt="" coords="257,93,397,120"/>
+<area shape="rect" id="node12" href="$group__PublicMemberFunctions.html#ga375ddffe8376298cdaafe63799b53b1e" title="Creates a Signaling client and returns a handle to it." alt="" coords="5,119,179,145"/>
+<area shape="rect" id="node15" href="$Signaling_8h.html#ad9057954d6494f555ba7b7646fc31ccc" title=" " alt="" coords="525,169,623,196"/>
+<area shape="rect" id="node17" href="$Signaling_8h.html#a4bf483684dd1c9457ad84c14d07af7f7" title=" " alt="" coords="505,233,643,260"/>
+<area shape="rect" id="node19" href="$Signaling_8h.html#a748192aa75f090e400ec209c2a3afab4" title=" " alt="" coords="491,296,657,323"/>
+<area shape="rect" id="node16" href="$group__PublicMemberFunctions.html#gafb4629e6a81552152c1b475a32e06e9c" title="Frees the Signaling client object." alt="" coords="261,195,392,221"/>
+<area shape="rect" id="node18" href="$group__PublicMemberFunctions.html#gad85555f757662d1585efd00d496e5c13" title="Deletes the signaling channel referenced by SIGNALING_CLIENT_HANDLE." alt="" coords="241,245,413,272"/>
+<area shape="rect" id="node20" href="$group__PublicMemberFunctions.html#ga6130116416557558b66728a8db2c6ee7" title="Disconnects the signaling client." alt="" coords="227,296,427,323"/>
 </map>

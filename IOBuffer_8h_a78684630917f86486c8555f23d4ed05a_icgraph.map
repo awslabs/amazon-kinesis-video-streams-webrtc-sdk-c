@@ -1,7 +1,7 @@
 <map id="ioBufferRead" name="ioBufferRead">
-<area shape="rect" id="node1" title=" " alt="" coords="860,31,1087,57"/>
-<area shape="rect" id="node2" href="$Dtls__mbedtls_8c.html#a1587189b7d49a6d1e3a51106638e2b8a" title=" " alt="" coords="348,5,812,32"/>
-<area shape="rect" id="node4" href="$Tls__mbedtls_8c.html#ab4e0a02b8108824c19070e1c837279a2" title=" " alt="" coords="357,56,803,83"/>
-<area shape="rect" id="node3" href="$Dtls__mbedtls_8c.html#a0872f720df900a4176081befd72bedf4" title=" " alt="" coords="5,5,300,32"/>
-<area shape="rect" id="node5" href="$Tls__mbedtls_8c.html#af3ffd0234e13d548e6e11230d4bd57b9" title=" " alt="" coords="14,56,291,83"/>
+<area shape="rect" id="node1" title=" " alt="" coords="407,31,503,57"/>
+<area shape="rect" id="node2" href="$Dtls__mbedtls_8c.html#a1587189b7d49a6d1e3a51106638e2b8a" title=" " alt="" coords="172,5,359,32"/>
+<area shape="rect" id="node4" href="$Tls__mbedtls_8c.html#ab4e0a02b8108824c19070e1c837279a2" title=" " alt="" coords="175,56,355,83"/>
+<area shape="rect" id="node3" href="$Dtls__mbedtls_8c.html#a0872f720df900a4176081befd72bedf4" title=" " alt="" coords="5,5,124,32"/>
+<area shape="rect" id="node5" href="$Tls__mbedtls_8c.html#af3ffd0234e13d548e6e11230d4bd57b9" title=" " alt="" coords="9,56,120,83"/>
 </map>
