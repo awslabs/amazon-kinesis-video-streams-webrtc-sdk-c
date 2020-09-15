@@ -2421,16 +2421,21 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
             }
 
             if (pIceCandidatePair->state != ICE_CANDIDATE_PAIR_STATE_SUCCEEDED) {
-                CHK_STATUS(hashTableGet(pIceCandidatePair->requestSentTime, checkSum, &requestSentTime));
-                pIceCandidatePair->roundTripTime = GETTIME() - requestSentTime;
-                DLOGD("Ice candidate pair %s_%s is connected. Round trip time: %" PRIu64 "ms", pIceCandidatePair->local->id,
-                      pIceCandidatePair->remote->id, pIceCandidatePair->roundTripTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
-                pIceCandidatePair->rtcIceCandidatePairDiagnostics.currentRoundTripTime =
-                    (DOUBLE)(pIceCandidatePair->roundTripTime) / HUNDREDS_OF_NANOS_IN_A_SECOND;
-                pIceCandidatePair->rtcIceCandidatePairDiagnostics.totalRoundTripTime +=
-                    (DOUBLE)(pIceCandidatePair->roundTripTime) / HUNDREDS_OF_NANOS_IN_A_SECOND;
                 pIceCandidatePair->state = ICE_CANDIDATE_PAIR_STATE_SUCCEEDED;
-                CHK_STATUS(hashTableRemove(pIceAgent->requestTimestampDiagnostics, checkSum));
+                retStatus = hashTableGet(pIceCandidatePair->requestSentTime, checkSum, &requestSentTime);
+                if (retStatus != STATUS_SUCCESS) {
+                    DLOGW("Unable to fetch request Timestamp from the hash table. No update to totalRoundTripTime (error code: 0x%08x)", retStatus);
+                } else {
+                    pIceCandidatePair->roundTripTime = GETTIME() - requestSentTime;
+                    DLOGD("Ice candidate pair %s_%s is connected. Round trip time: %" PRIu64 "ms", pIceCandidatePair->local->id,
+                          pIceCandidatePair->remote->id, pIceCandidatePair->roundTripTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+                    pIceCandidatePair->rtcIceCandidatePairDiagnostics.currentRoundTripTime =
+                        (DOUBLE)(pIceCandidatePair->roundTripTime) / HUNDREDS_OF_NANOS_IN_A_SECOND;
+                    pIceCandidatePair->rtcIceCandidatePairDiagnostics.totalRoundTripTime +=
+                        (DOUBLE)(pIceCandidatePair->roundTripTime) / HUNDREDS_OF_NANOS_IN_A_SECOND;
+
+                    CHK_STATUS(hashTableRemove(pIceCandidatePair->requestSentTime, checkSum));
+                }
             }
 
             pIceCandidatePair->rtcIceCandidatePairDiagnostics.responsesReceived += connectivityCheckResponsesReceived;
