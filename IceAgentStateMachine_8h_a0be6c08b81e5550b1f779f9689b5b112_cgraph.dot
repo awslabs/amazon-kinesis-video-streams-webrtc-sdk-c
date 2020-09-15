@@ -1,0 +1,24 @@
+digraph "executeReadyIceAgentState"
+{
+ // LATEX_PDF_SIZE
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  rankdir="LR";
+  Node1 [label="executeReadyIceAgentState",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled", fontcolor="black",tooltip=" "];
+  Node1 -> Node2 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node2 [label="iceAgentReadyStateSetup",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$IceAgent_8c.html#a790f69225c321a1f2ccf0bdcc3a83630",tooltip=" "];
+  Node2 -> Node3 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node3 [label="freeIceCandidatePair",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$IceAgent_8c.html#a76f0508cf719814537ce707e3f524407",tooltip=" "];
+  Node3 -> Node4 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node4 [label="freeTransactionIdStore",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$IceUtils_8c.html#aed9b171e0c60584515c04c5dd47dd112",tooltip=" "];
+  Node2 -> Node5 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node5 [label="getIpAddrStr",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Network_8c.html#afaa547109e09c5a34437553b7258e818",tooltip=" "];
+  Node2 -> Node6 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node6 [label="iceAgentFatalError",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$IceAgent_8c.html#ae7e2880108aafbf93c4f092712d86500",tooltip=" "];
+  Node2 -> Node7 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node7 [label="iceAgentGetCandidateTypeStr",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$IceAgent_8c.html#a58c93902e850d579024bde109e85ab8b",tooltip=" "];
+  Node2 -> Node8 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node8 [label="iceAgentInvalidateCandidatePair",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$IceAgent_8c.html#add07c218275f39a2fdabc9f850eb0609",tooltip=" "];
+  Node2 -> Node9 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node9 [label="turnConnectionShutdown",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$TurnConnection_8c.html#acafa7ed7d0b238b1a6b27a78280712f8",tooltip=" "];
+}

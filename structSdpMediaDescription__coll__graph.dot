@@ -1,0 +1,15 @@
+digraph "SdpMediaDescription"
+{
+ // LATEX_PDF_SIZE
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  Node1 [label="{SdpMediaDescription\n|+ mediaName\l+ mediaTitle\l+ mediaAttributesCount\l+ mediaBandwidthCount\l|}",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled", fontcolor="black",tooltip=" "];
+  Node2 -> Node1 [color="grey25",fontsize="10",style="solid",label=" +sdpBandwidth" ,arrowhead="odiamond",fontname="Helvetica"];
+  Node2 [label="{SdpBandwidth\n|+ sdpBandwidthType\l+ sdpBandwidthValue\l|}",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$structSdpBandwidth.html",tooltip=" "];
+  Node3 -> Node1 [color="grey25",fontsize="10",style="solid",label=" +sdpEncryptionKey" ,arrowhead="odiamond",fontname="Helvetica"];
+  Node3 [label="{SdpEncryptionKey\n|+ method\l+ sdpEncryptionKey\l|}",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$structSdpEncryptionKey.html",tooltip=" "];
+  Node4 -> Node1 [color="grey25",fontsize="10",style="solid",label=" +sdpAttributes" ,arrowhead="odiamond",fontname="Helvetica"];
+  Node4 [label="{SdpAttributes\n|+ attributeName\l+ attributeValue\l|}",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$structSdpAttributes.html",tooltip=" "];
+  Node5 -> Node1 [color="grey25",fontsize="10",style="solid",label=" +sdpConnectionInformation" ,arrowhead="odiamond",fontname="Helvetica"];
+  Node5 [label="{SdpConnectionInformation\n|+ networkType\l+ addressType\l+ connectionAddress\l|}",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$structSdpConnectionInformation.html",tooltip=" "];
+}

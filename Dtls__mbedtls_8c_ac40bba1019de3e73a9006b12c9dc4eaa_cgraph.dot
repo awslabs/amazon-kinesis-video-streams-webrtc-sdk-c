@@ -1,0 +1,26 @@
+digraph "createDtlsSession"
+{
+ // LATEX_PDF_SIZE
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  rankdir="LR";
+  Node1 [label="createDtlsSession",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled", fontcolor="black",tooltip=" "];
+  Node1 -> Node2 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node2 [label="copyCertificateAndKey",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Dtls__mbedtls_8c.html#ae531676f27dfc698ebf5ff4087f4f762",tooltip=" "];
+  Node1 -> Node3 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node3 [label="createCertificateAndKey",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Dtls__mbedtls_8c.html#aeb739e880d3edc3d95e7135805114f13",tooltip=" "];
+  Node3 -> Node4 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node4 [label="freeCertificateAndKey",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Dtls__mbedtls_8c.html#aa6d608da9c875fbfccf37bd3e716e836",tooltip=" "];
+  Node1 -> Node5 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node5 [label="createIOBuffer",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$IOBuffer_8c.html#ab546267bacecbe0c2c65a2286df9dfc4",tooltip=" "];
+  Node5 -> Node6 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node6 [label="freeIOBuffer",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$IOBuffer_8c.html#a716982d27f4e9cf43d6737555e684289",tooltip=" "];
+  Node1 -> Node7 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node7 [label="dtlsCertificateFingerprint",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Dtls__mbedtls_8c.html#aa884d968f928d7c4d9e4a45441cef269",tooltip=" "];
+  Node1 -> Node8 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node8 [label="dtlsValidateRtcCertificates",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Dtls_8c.html#abdb647933c7ddcbdcc5470e66fdc0353",tooltip=" "];
+  Node1 -> Node9 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node9 [label="freeDtlsSession",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Dtls__mbedtls_8c.html#aa1b6a668704b0b7ddf99be1f7977b8ba",tooltip=" "];
+  Node9 -> Node4 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node9 -> Node6 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+}

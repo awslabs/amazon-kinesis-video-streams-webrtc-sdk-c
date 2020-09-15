@@ -1,0 +1,9 @@
+digraph "SdpOrigin"
+{
+ // LATEX_PDF_SIZE
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  Node1 [label="{SdpOrigin\n|+ userName\l+ sessionId\l+ sessionVersion\l|}",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled", fontcolor="black",tooltip=" "];
+  Node2 -> Node1 [color="grey25",fontsize="10",style="solid",label=" +sdpConnectionInformation" ,arrowhead="odiamond",fontname="Helvetica"];
+  Node2 [label="{SdpConnectionInformation\n|+ networkType\l+ addressType\l+ connectionAddress\l|}",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$structSdpConnectionInformation.html",tooltip=" "];
+}

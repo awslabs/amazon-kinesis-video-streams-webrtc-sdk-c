@@ -1,0 +1,31 @@
+digraph "turnConnectionPackageTurnAllocationRequest"
+{
+ // LATEX_PDF_SIZE
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  rankdir="LR";
+  Node1 [label="turnConnectionPackageTurn\lAllocationRequest",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled", fontcolor="black",tooltip=" "];
+  Node1 -> Node2 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node2 [label="appendStunLifetimeAttribute",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Stun_8c.html#a2116190fb63abb09d5f672808425bd87",tooltip=" "];
+  Node2 -> Node3 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node3 [label="getFirstAvailableStunAttribute",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Stun_8c.html#afbb87626b5ffeae605b82cbdc3a9dced",tooltip=" "];
+  Node3 -> Node4 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node4 [label="getPackagedStunAttributeSize",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Stun_8c.html#a7eb2163f10655ff99f6523ffedb30769",tooltip=" "];
+  Node1 -> Node5 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node5 [label="appendStunNonceAttribute",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Stun_8c.html#ac82c9a5d3112633ed3c450c5ccf66e39",tooltip=" "];
+  Node5 -> Node3 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node1 -> Node6 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node6 [label="appendStunRealmAttribute",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Stun_8c.html#a91257d50ef47eba1f7e9d1aa5a3132f5",tooltip=" "];
+  Node6 -> Node3 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node1 -> Node7 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node7 [label="appendStunRequestedTransport\lAttribute",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Stun_8c.html#a66414b6fb7b70d15467fc1ce7543ec8d",tooltip=" "];
+  Node7 -> Node3 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node1 -> Node8 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node8 [label="appendStunUsernameAttribute",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Stun_8c.html#a2a621853bf20ca509f3846e179cd08df",tooltip=" "];
+  Node8 -> Node3 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node1 -> Node9 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node9 [label="createStunPacket",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Stun_8c.html#a82bd20e19952bf247d16b639fc091a34",tooltip=" "];
+  Node9 -> Node10 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node10 [label="freeStunPacket",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Stun_8c.html#a2ac5f96729bf2bfce45f59c72db4ff43",tooltip=" "];
+  Node1 -> Node10 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+}

@@ -1,9 +1,0 @@
-<map id="freeConnectionListener" name="freeConnectionListener">
-<area shape="rect" id="node1" title=" " alt="" coords="847,56,1089,83"/>
-<area shape="rect" id="node2" href="$ConnectionListener_8h.html#a2530e40fd2ed5f3560e51f78501d066a" title=" " alt="" coords="536,5,799,32"/>
-<area shape="rect" id="node4" href="$group__PublicMemberFunctions.html#ga6c4139787f87c307c2033b51d65284ce" title="Use the process described in https://tools.ietf.org/html/rfc5780#section&#45;4.3 to discover NAT behavior..." alt="" coords="276,56,488,83"/>
-<area shape="rect" id="node5" href="$IceAgent_8h.html#a2fec382692577e183d98141466cb51f7" title=" " alt="" coords="596,107,739,133"/>
-<area shape="rect" id="node3" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title=" " alt="" coords="5,107,228,133"/>
-<area shape="rect" id="node6" href="$IceAgent_8h.html#a8b4871fcabcb392bb37f78a0a1b129eb" title=" " alt="" coords="301,107,463,133"/>
-<area shape="rect" id="node7" href="$group__PublicMemberFunctions.html#ga433b1bd125e7f221bcdad97a2a0e8949" title="Free a RtcPeerConnection." alt="" coords="281,157,483,184"/>
-</map>

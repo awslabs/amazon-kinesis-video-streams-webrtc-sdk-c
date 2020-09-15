@@ -1,0 +1,20 @@
+digraph "allocateSrtp"
+{
+ // LATEX_PDF_SIZE
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  rankdir="LR";
+  Node1 [label="allocateSrtp",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled", fontcolor="black",tooltip=" "];
+  Node1 -> Node2 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node2 [label="dtlsSessionPopulateKeying\lMaterial",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Dtls_8h.html#a5dd5fea64da282f37889b28bd63a6d1f",tooltip=" "];
+  Node1 -> Node3 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node3 [label="dtlsSessionVerifyRemoteCertificate\lFingerprint",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Dtls_8h.html#a5402cdc45e9248b9b3a718e6147dfc93",tooltip=" "];
+  Node3 -> Node4 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node4 [label="dtlsCertificateFingerprint",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Dtls__mbedtls_8c.html#aa884d968f928d7c4d9e4a45441cef269",tooltip=" "];
+  Node3 -> Node5 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node5 [label="dtlsSessionChangeState",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Dtls_8c.html#ac7d96e418743c4a3c14e2e766340734c",tooltip=" "];
+  Node1 -> Node6 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node6 [label="initSrtpSession",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$SrtpSession_8c.html#a8bb9447fb02c3bd23c4a849e95d9233f",tooltip=" "];
+  Node6 -> Node7 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node7 [label="freeSrtpSession",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$SrtpSession_8c.html#a2aee174624da64c0e3d5d7638cd8b196",tooltip=" "];
+}

@@ -1,9 +1,0 @@
-<map id="freeJitterBuffer" name="freeJitterBuffer">
-<area shape="rect" id="node1" title=" " alt="" coords="856,29,1039,56"/>
-<area shape="rect" id="node2" href="$group__PublicMemberFunctions.html#ga5b89dc2e301e35f30330c57bc1361dcb" title="Create a new RtcRtpTransceiver and add it to the set of transceivers." alt="" coords="35,54,198,81"/>
-<area shape="rect" id="node3" href="$JitterBuffer_8h.html#affdac48c54f072f9b4e26d6de088cfb2" title=" " alt="" coords="591,29,793,56"/>
-<area shape="rect" id="node4" href="$Rtp_8h.html#ae8c85797caf52813ba0b8ca9859b77c5" title=" " alt="" coords="576,105,808,132"/>
-<area shape="rect" id="node5" href="$Rtp_8h.html#afbd4b909747cdf574518ad6df03a2e76" title=" " alt="" coords="276,130,528,157"/>
-<area shape="rect" id="node6" href="$group__PublicMemberFunctions.html#ga433b1bd125e7f221bcdad97a2a0e8949" title="Free a RtcPeerConnection." alt="" coords="301,181,503,208"/>
-<area shape="rect" id="node7" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title=" " alt="" coords="5,181,228,208"/>
-</map>

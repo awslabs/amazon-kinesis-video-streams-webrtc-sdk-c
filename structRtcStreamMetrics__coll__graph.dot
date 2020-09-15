@@ -1,0 +1,21 @@
+digraph "RtcStreamMetrics"
+{
+ // LATEX_PDF_SIZE
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  Node1 [label="{RtcStreamMetrics\n|+ version\l|}",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled", fontcolor="black",tooltip="Collection of RTP stream related stats Reference: https://www.w3.org/TR/webrtc-stats/#remoteinboundrt..."];
+  Node2 -> Node1 [color="grey25",fontsize="10",style="solid",label=" +rtcOutboundStats" ,arrowhead="odiamond",fontname="Helvetica"];
+  Node2 [label="{RtcOutboundRtpStreamStats\n|+ voiceActivityFlag\l+ trackId\l+ mediaSourceId\l+ senderId\l+ remoteId\l+ rid\l+ encoderImplementation\l+ packetsDiscardedOnSend\l+ framesSent\l+ hugeFramesSent\land 28 more...\l|}",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$structRtcOutboundRtpStreamStats.html",tooltip="RtcOutboundRtpStreamStats Gathers stats for media stream from the embedded device Note: RTCOutboundRt..."];
+  Node3 -> Node2 [color="grey25",fontsize="10",style="solid",label=" +sent" ,arrowhead="odiamond",fontname="Helvetica"];
+  Node3 [label="{RTCSentRtpStreamStats\n|+ packetsSent\l+ bytesSent\l|}",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$structRTCSentRtpStreamStats.html",tooltip="RTCSentRtpStreamStats will be used as part of outbound Rtp stats Reference: https://www...."];
+  Node4 -> Node3 [color="grey25",fontsize="10",style="solid",label=" +rtpStream" ,arrowhead="odiamond",fontname="Helvetica"];
+  Node4 [label="{RTCRtpStreamStats\n|+ ssrc\l+ kind\l+ transportId\l+ codecId\l|}",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$structRTCRtpStreamStats.html",tooltip="RTCRtpStreamStats captures stream stats that will be used as part of RTCSentRtpStreamStats report Ref..."];
+  Node5 -> Node2 [color="grey25",fontsize="10",style="solid",label=" +perDscpPacketsSent" ,arrowhead="odiamond",fontname="Helvetica"];
+  Node5 [label="{DscpPacketsSentRecord\n|+ dscp\l+ totalNumberOfPacketsSent\l|}",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$structDscpPacketsSentRecord.html",tooltip="Record of total number of packets sent per DSCP. Used by RTCOutboundRtpStreamStats object."];
+  Node6 -> Node2 [color="grey25",fontsize="10",style="solid",label=" +qualityLimitationDurations" ,arrowhead="odiamond",fontname="Helvetica"];
+  Node6 [label="{QualityLimitationDurations\lRecord\n|+ durationInSeconds\l+ qualityLimitationReason\l|}",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$structQualityLimitationDurationsRecord.html",tooltip=" "];
+  Node7 -> Node1 [color="grey25",fontsize="10",style="solid",label=" +rtcTransportStats" ,arrowhead="odiamond",fontname="Helvetica"];
+  Node7 [label="{RtcTransportStats\n|+ rtcpTransportStatsId\l+ selectedCandidatePairId\l+ localCertificateId\l+ remoteCertificateId\l+ tlsVersion\l+ dtlsCipher\l+ srtpCipher\l+ tlsGroup\l+ iceRole\l+ dtlsState\l+ packetsSent\l+ packetsReceived\l+ bytesSent\l+ bytesReceived\l+ selectedCandidatePairChanges\l|}",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$structRtcTransportStats.html",tooltip="RtcTransportStats Represents the stats corresponding to an RTCDtlsTransport and its underlying RTCIce..."];
+  Node8 -> Node1 [color="grey25",fontsize="10",style="solid",label=" +rtcInboundStats" ,arrowhead="odiamond",fontname="Helvetica"];
+  Node8 [label="{RtcRemoteInboundRtpStream\lStats\n|+ localId\l+ roundTripTime\l+ totalRoundTripTime\l+ fractionLost\l+ reportsReceived\l+ roundTripTimeMeasurements\l|}",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$structRtcRemoteInboundRtpStreamStats.html",tooltip="RTCRemoteInboundRtpStreamStats Represents the remote endpoint's measurement metrics for a particular ..."];
+}

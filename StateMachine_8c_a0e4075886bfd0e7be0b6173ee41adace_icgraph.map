@@ -1,6 +1,0 @@
-<map id="acceptSignalingStateMachineState" name="acceptSignalingStateMachineState">
-<area shape="rect" id="node1" title=" " alt="" coords="897,5,1189,47"/>
-<area shape="rect" id="node2" href="$LwsApiCalls_8h.html#a73aa82c21d25505351c26ccc31b2f2dd" title=" " alt="" coords="687,13,849,39"/>
-<area shape="rect" id="node3" href="$Signaling_8h.html#a0db26c48fd56f7e976c7db9d0b1a2cac" title=" " alt="" coords="376,13,639,39"/>
-<area shape="rect" id="node4" href="$group__PublicMemberFunctions.html#gae6d8d80d47699c5494de1dc3d455b1f4" title="Send a message through a Signaling client." alt="" coords="5,13,328,39"/>
-</map>

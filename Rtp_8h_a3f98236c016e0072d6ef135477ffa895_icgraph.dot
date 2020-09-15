@@ -1,0 +1,18 @@
+digraph "hasTransceiverWithSsrc"
+{
+ // LATEX_PDF_SIZE
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  rankdir="RL";
+  Node1 [label="hasTransceiverWithSsrc",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled", fontcolor="black",tooltip=" "];
+  Node1 -> Node2 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node2 [label="getRtpInboundStats",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Metrics_8h.html#a261ca3c06b9302b43cc67486d14ce5bd",tooltip="Get RTP inbound stats."];
+  Node2 -> Node3 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node3 [label="rtcPeerConnectionGetMetrics",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$group__PublicMemberFunctions.html#ga469e0f69e03630ad5b03d8921afd62be",tooltip="Get the relevant/all metrics based on the RTCStatsType field. This does not include any signaling rel..."];
+  Node1 -> Node4 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node4 [label="getRtpOutboundStats",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Metrics_8h.html#accdb48eadf8cbbd3a50e6812c5faa356",tooltip="Get RTP outbound stats."];
+  Node4 -> Node3 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node1 -> Node5 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node5 [label="getRtpRemoteInboundStats",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Metrics_8h.html#a88dfd032b3f06afc5748c8e93f59ab48",tooltip="Get remote RTP inbound stats."];
+  Node5 -> Node3 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+}

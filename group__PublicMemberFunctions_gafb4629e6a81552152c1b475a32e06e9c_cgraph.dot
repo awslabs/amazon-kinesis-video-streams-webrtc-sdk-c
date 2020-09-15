@@ -1,0 +1,25 @@
+digraph "freeSignalingClient"
+{
+ // LATEX_PDF_SIZE
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  rankdir="LR";
+  Node1 [label="freeSignalingClient",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled", fontcolor="black",tooltip="Frees the Signaling client object."];
+  Node1 -> Node2 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node2 [label="freeSignaling",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Signaling_8c.html#a82f76649f6bf874ffc0913857c588837",tooltip=" "];
+  Node2 -> Node3 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node3 [label="freeChannelInfo",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$ChannelInfo_8c.html#a8905e3a1f13ab3a638df50f03ab30bd8",tooltip=" "];
+  Node2 -> Node4 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node4 [label="terminateOngoingOperations",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Signaling_8c.html#ae56c0bb01cc41a1566687dd26dac4248",tooltip=" "];
+  Node4 -> Node5 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node5 [label="awaitForThreadTermination",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Signaling_8c.html#a653edfffd5d129d08f5971d91f16fc5e",tooltip=" "];
+  Node4 -> Node6 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node6 [label="terminateLwsListenerLoop",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$LwsApiCalls_8c.html#ac8ef143a573f3b4ae83bd3ad0eb9fd6f",tooltip=" "];
+  Node6 -> Node7 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node7 [label="terminateConnectionWithStatus",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$LwsApiCalls_8c.html#ae7928b7a5bf47cbdf2ccf753f1c1e8df",tooltip=" "];
+  Node7 -> Node5 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node7 -> Node8 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node8 [label="wakeLwsServiceEventLoop",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$LwsApiCalls_8c.html#a116aedb04e1b2e3c920d5b181477b11a",tooltip=" "];
+  Node2 -> Node9 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node9 [label="uninitializeThreadTracker",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Signaling_8c.html#a344d07546bffa0b00dd4282b46e95b75",tooltip=" "];
+}

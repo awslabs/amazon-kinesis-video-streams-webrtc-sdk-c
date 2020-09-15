@@ -1,8 +1,0 @@
-<map id="freeChannelInfo" name="freeChannelInfo">
-<area shape="rect" id="node1" title=" " alt="" coords="905,31,1077,57"/>
-<area shape="rect" id="node2" href="$ChannelInfo_8h.html#af9e8887c9c11678da8f4917362665437" title=" " alt="" coords="585,5,857,32"/>
-<area shape="rect" id="node5" href="$Signaling_8h.html#ad9057954d6494f555ba7b7646fc31ccc" title=" " alt="" coords="645,56,797,83"/>
-<area shape="rect" id="node3" href="$Signaling_8h.html#a26907340bcd88230be1b23ace9d19e68" title=" " alt="" coords="325,5,537,32"/>
-<area shape="rect" id="node4" href="$group__PublicMemberFunctions.html#ga375ddffe8376298cdaafe63799b53b1e" title="Creates a Signaling client and returns a handle to it." alt="" coords="5,31,277,57"/>
-<area shape="rect" id="node6" href="$group__PublicMemberFunctions.html#gafb4629e6a81552152c1b475a32e06e9c" title="Frees the Signaling client object." alt="" coords="325,107,537,133"/>
-</map>

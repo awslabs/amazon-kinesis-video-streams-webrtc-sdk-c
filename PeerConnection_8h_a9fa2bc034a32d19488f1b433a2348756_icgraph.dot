@@ -1,0 +1,15 @@
+digraph "changePeerConnectionState"
+{
+ // LATEX_PDF_SIZE
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  rankdir="RL";
+  Node1 [label="changePeerConnectionState",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled", fontcolor="black",tooltip=" "];
+  Node1 -> Node2 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node2 [label="onDtlsStateChange",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$PeerConnection_8c.html#aa0ee0298b690c7461c019e5e70217b37",tooltip=" "];
+  Node2 -> Node3 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node3 [label="createPeerConnection",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640",tooltip=" "];
+  Node1 -> Node4 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node4 [label="onIceConnectionStateChange",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$PeerConnection_8c.html#a0a0385b5afef472a439ff5d8d8d7c1a0",tooltip=" "];
+  Node4 -> Node3 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+}

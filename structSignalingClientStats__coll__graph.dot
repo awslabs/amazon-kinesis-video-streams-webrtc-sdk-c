@@ -1,0 +1,7 @@
+digraph "SignalingClientStats"
+{
+ // LATEX_PDF_SIZE
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  Node1 [label="{SignalingClientStats\n|+ cpApiCallLatency\l+ dpApiCallLatency\l+ signalingClientUptime\l+ connectionDuration\l+ numberOfMessagesSent\l+ numberOfMessagesReceived\l+ iceRefreshCount\l+ numberOfErrors\l+ numberOfRuntimeErrors\l+ numberOfReconnects\l|}",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled", fontcolor="black",tooltip="SignalingClientMetrics Represent the stats related to the KVS WebRTC SDK signaling client."];
+}

@@ -1,0 +1,35 @@
+digraph "jitterBufferDropBufferData"
+{
+ // LATEX_PDF_SIZE
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  rankdir="RL";
+  Node1 [label="jitterBufferDropBufferData",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled", fontcolor="black",tooltip=" "];
+  Node1 -> Node2 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node2 [label="freeJitterBuffer",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$JitterBuffer_8h.html#ac17c759248be09bc61a5aebd3362b01f",tooltip=" "];
+  Node2 -> Node3 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node3 [label="addTransceiver",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$group__PublicMemberFunctions.html#ga5b89dc2e301e35f30330c57bc1361dcb",tooltip="Create a new RtcRtpTransceiver and add it to the set of transceivers."];
+  Node2 -> Node4 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node4 [label="createJitterBuffer",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$JitterBuffer_8h.html#affdac48c54f072f9b4e26d6de088cfb2",tooltip=" "];
+  Node4 -> Node3 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node2 -> Node5 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node5 [label="freeKvsRtpTransceiver",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Rtp_8h.html#ae8c85797caf52813ba0b8ca9859b77c5",tooltip=" "];
+  Node5 -> Node3 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node5 -> Node6 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node6 [label="createKvsRtpTransceiver",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Rtp_8h.html#afbd4b909747cdf574518ad6df03a2e76",tooltip=" "];
+  Node6 -> Node3 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node5 -> Node7 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node7 [label="freePeerConnection",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$group__PublicMemberFunctions.html#ga433b1bd125e7f221bcdad97a2a0e8949",tooltip="Free a RtcPeerConnection."];
+  Node7 -> Node8 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node8 [label="createPeerConnection",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640",tooltip=" "];
+  Node1 -> Node9 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node9 [label="jitterBufferPop",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$JitterBuffer_8h.html#acc3284bfbbbf676595d8bc86103fbf4a",tooltip=" "];
+  Node9 -> Node2 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node9 -> Node10 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node10 [label="jitterBufferPush",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$JitterBuffer_8h.html#a82caccca44d6ded864b9c4b2770800bd",tooltip=" "];
+  Node10 -> Node11 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node11 [label="sendPacketToRtpReceiver",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$PeerConnection_8h.html#aa5448d76d0c513e03f33a1aca0375101",tooltip=" "];
+  Node11 -> Node12 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node12 [label="onInboundPacket",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$PeerConnection_8c.html#a76ad72a51a47dae5e9f43873f36aa34a",tooltip=" "];
+  Node12 -> Node8 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+}

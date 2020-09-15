@@ -1,0 +1,9 @@
+digraph "/src/src/source/Rtp/Codecs" {
+  compound=true
+  node [ fontsize="10", fontname="Helvetica"];
+  edge [ labelfontsize="10", labelfontname="Helvetica"];
+  subgraph clusterdir_0b17a3b3ab1f965fe1acafe7d60c10e8 {
+    graph [ bgcolor="#ddddee", pencolor="black", label="Rtp" fontname="Helvetica", fontsize="10", URL="dir_0b17a3b3ab1f965fe1acafe7d60c10e8.html"]
+  dir_70231cec3604de55946780f10f565201 [shape=box, label="Codecs", style="filled", fillcolor="#eeeeff", pencolor="black", URL="dir_70231cec3604de55946780f10f565201.html"];
+  }
+}

@@ -1,0 +1,49 @@
+digraph "peerConnectionGetLocalDescription"
+{
+ // LATEX_PDF_SIZE
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  rankdir="LR";
+  Node1 [label="peerConnectionGetLocalDescription",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled", fontcolor="black",tooltip=" "];
+  Node1 -> Node2 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node2 [label="populateSessionDescription",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$SessionDescription_8c.html#a61cd534b376d8c202cc37711aebd3640",tooltip=" "];
+  Node2 -> Node3 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node3 [label="populateSessionDescription\lMedia",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$SessionDescription_8c.html#a1f9d1d11409965815589bc2fdccb5168",tooltip=" "];
+  Node3 -> Node4 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node4 [label="dtlsSessionGetLocalCertificate\lFingerprint",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Dtls_8h.html#a6496e3bbe9fbc063a59c1d19a1732e92",tooltip=" "];
+  Node3 -> Node5 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node5 [label="isPresentInRemote",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$SessionDescription_8c.html#a898075fcd147ac2e41ea84a3bdba0df6",tooltip=" "];
+  Node3 -> Node6 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node6 [label="populateSessionDescription\lDataChannel",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$SessionDescription_8c.html#a6d4a7bcbc9ce3f26093010f4b249d2f0",tooltip=" "];
+  Node6 -> Node7 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node7 [label="iceAgentPopulateSdpMedia\lDescriptionCandidates",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$IceAgent_8c.html#a6288421972b3666ba5a64fd91441dadb",tooltip=" "];
+  Node7 -> Node8 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node8 [label="iceCandidateSerialize",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$IceAgent_8c.html#a8c504c09cfea8efaf7869b8de9ec558c",tooltip=" "];
+  Node8 -> Node9 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node9 [label="iceAgentGetCandidateTypeStr",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$IceAgent_8c.html#a58c93902e850d579024bde109e85ab8b",tooltip=" "];
+  Node3 -> Node10 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node10 [label="populateSingleMediaSection",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$SessionDescription_8c.html#a9c998f5f03d61975f44eee8599cf6ab6",tooltip=" "];
+  Node10 -> Node11 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node11 [label="fmtpForPayloadType",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$SessionDescription_8c.html#ae0d3753b41afc5f9a6f4c2aa4af3b4d8",tooltip=" "];
+  Node10 -> Node7 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node3 -> Node12 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node12 [label="reorderTransceiverByRemote\lDescription",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$SessionDescription_8c.html#a937200a064981dd749ddba9fe6866313",tooltip=" "];
+  Node12 -> Node13 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node13 [label="copyTransceiverWithCodec",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$SessionDescription_8c.html#a397493f9492717b3d2f747bf0a80b630",tooltip=" "];
+  Node1 -> Node14 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node14 [label="serializeSessionDescription",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Sdp_8h.html#a1e5c0750dbf14d9f67ad7ee68c417ac4",tooltip=" "];
+  Node14 -> Node15 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node15 [label="serializeAttribute",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Serialize_8c.html#afa5128b447f8dfb2d9bf224d9d720db4",tooltip=" "];
+  Node14 -> Node16 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node16 [label="serializeMediaConnection\lInformation",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Serialize_8c.html#a96dd428f998a5119c4c210ddf6e06810",tooltip=" "];
+  Node14 -> Node17 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node17 [label="serializeMediaName",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Serialize_8c.html#ac0699e6126a01fe054413d26b9348343",tooltip=" "];
+  Node14 -> Node18 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node18 [label="serializeOrigin",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Serialize_8c.html#acd10030eccbfc928aa360fc45f69c47c",tooltip=" "];
+  Node14 -> Node19 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node19 [label="serializeSessionName",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Serialize_8c.html#a5ba4149920c4aa1834e1eb78987b4320",tooltip=" "];
+  Node14 -> Node20 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node20 [label="serializeTimeDescription",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Serialize_8c.html#a16b10a96a9a84967e5aa8133c65ec33e",tooltip=" "];
+  Node14 -> Node21 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node21 [label="serializeVersion",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Serialize_8c.html#a864e3e307a205326f3cd134c7492f35f",tooltip=" "];
+}

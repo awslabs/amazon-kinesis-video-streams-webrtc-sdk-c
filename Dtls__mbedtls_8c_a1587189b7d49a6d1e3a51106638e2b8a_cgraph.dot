@@ -1,0 +1,12 @@
+digraph "dtlsSessionReceiveCallback"
+{
+ // LATEX_PDF_SIZE
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  rankdir="LR";
+  Node1 [label="dtlsSessionReceiveCallback",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled", fontcolor="black",tooltip=" "];
+  Node1 -> Node2 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node2 [label="ioBufferRead",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$IOBuffer_8c.html#a843a7453279a2960b0dda4d7d7afa45e",tooltip=" "];
+  Node2 -> Node3 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node3 [label="ioBufferReset",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$IOBuffer_8c.html#a04baed52cfc34b413a5dd087bf197c06",tooltip=" "];
+}

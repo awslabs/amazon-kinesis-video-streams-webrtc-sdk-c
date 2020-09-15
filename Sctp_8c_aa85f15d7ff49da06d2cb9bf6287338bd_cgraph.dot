@@ -1,0 +1,18 @@
+digraph "createSctpSession"
+{
+ // LATEX_PDF_SIZE
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  rankdir="LR";
+  Node1 [label="createSctpSession",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled", fontcolor="black",tooltip=" "];
+  Node1 -> Node2 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node2 [label="configureSctpSocket",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Sctp_8c.html#a55eca852bfcd8b72d9a2429a23d39886",tooltip=" "];
+  Node1 -> Node3 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node3 [label="freeSctpSession",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Sctp_8c.html#a7b4902e766599101f22b2f3ae12c3dd9",tooltip=" "];
+  Node1 -> Node4 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node4 [label="initSctpAddrConn",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Sctp_8c.html#a9fd2f5b7216337ea8af7f3fbf0033fa4",tooltip=" "];
+  Node1 -> Node5 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node5 [label="onSctpInboundPacket",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Sctp_8c.html#ad5df1b7c8937f4d8fd9aad0892cd9481",tooltip=" "];
+  Node5 -> Node6 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node6 [label="handleDcepPacket",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Sctp_8c.html#a8f12cbc92f7a361cec205992aba52480",tooltip=" "];
+}

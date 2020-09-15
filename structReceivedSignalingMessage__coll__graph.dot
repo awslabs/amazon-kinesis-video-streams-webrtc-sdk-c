@@ -1,0 +1,9 @@
+digraph "ReceivedSignalingMessage"
+{
+ // LATEX_PDF_SIZE
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  Node1 [label="{ReceivedSignalingMessage\n|+ statusCode\l+ errorType\l+ description\l|}",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled", fontcolor="black",tooltip="Structure defining the signaling message to be received."];
+  Node2 -> Node1 [color="grey25",fontsize="10",style="solid",label=" +signalingMessage" ,arrowhead="odiamond",fontname="Helvetica"];
+  Node2 [label="{SignalingMessage\n|+ version\l+ messageType\l+ correlationId\l+ peerClientId\l+ payloadLen\l+ payload\l|}",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$structSignalingMessage.html",tooltip="Structure defining the basic signaling message."];
+}

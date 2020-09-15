@@ -1,0 +1,29 @@
+digraph "getIceConfig"
+{
+ // LATEX_PDF_SIZE
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  rankdir="LR";
+  Node1 [label="getIceConfig",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled", fontcolor="black",tooltip=" "];
+  Node1 -> Node2 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node2 [label="getIceConfigLws",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$LwsApiCalls_8c.html#a43eb41d369f6ab2469d738d1c1be5ce8",tooltip=" "];
+  Node2 -> Node3 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node3 [label="createLwsCallInfo",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$LwsApiCalls_8c.html#a988b3c6e00aa3e79fce24a41faeb772c",tooltip=" "];
+  Node3 -> Node4 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node4 [label="freeLwsCallInfo",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$LwsApiCalls_8c.html#a22be1d34eb8fe76e2872b23ea9f981d1",tooltip=" "];
+  Node2 -> Node4 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node2 -> Node5 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node5 [label="jsmn_init",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$jsmn_8h.html#a8d4a8b3ce5c3d600feea38615b5f9aa6",tooltip=" "];
+  Node2 -> Node6 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node6 [label="jsmn_parse",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$jsmn_8h.html#acf28c8ae404fb0ad2823270d2a4c322a",tooltip=" "];
+  Node2 -> Node7 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node7 [label="lwsCompleteSync",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$LwsApiCalls_8c.html#a3c3cdd7608d37131d839bc47bd5de90b",tooltip=" "];
+  Node2 -> Node8 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node8 [label="validateIceConfiguration",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Signaling_8c.html#af5819e8bf1d10e24153c35f91b50a735",tooltip=" "];
+  Node8 -> Node9 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node9 [label="refreshIceConfigurationCallback",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$Signaling_8c.html#a7e860f85a297a87067df904947b2ca0d",tooltip=" "];
+  Node9 -> Node9 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node9 -> Node10 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node10 [label="stepSignalingStateMachine",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$StateMachine_8c.html#aec8441c2e021d29e6fdec5f97000431c",tooltip=" "];
+  Node1 -> Node9 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+}
