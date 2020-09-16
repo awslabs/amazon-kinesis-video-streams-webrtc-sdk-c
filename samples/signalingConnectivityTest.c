@@ -72,6 +72,11 @@ STATUS createMaster(SIGNALING_CLIENT_HANDLE *masterHandle, PAwsCredentialProvide
     SignalingClientInfo clientInfo;
     SignalingClientCallbacks signalingClientCallbacks;
 
+    MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
+    MEMSET(&clientInfo, 0x00, SIZEOF(SignalingClientInfo));
+    MEMSET(&signalingClientCallbacks, 0x00, SIZEOF(SignalingClientCallbacks));
+
+    channelInfo.pRegion = DEFAULT_AWS_REGION;
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
     channelInfo.pChannelName = channelName;
     channelInfo.pKmsKeyId = NULL;
@@ -113,6 +118,11 @@ STATUS createViewer(SIGNALING_CLIENT_HANDLE *viewerHandle, PAwsCredentialProvide
     SignalingClientInfo clientInfo;
     SignalingClientCallbacks signalingClientCallbacks;
 
+    MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
+    MEMSET(&clientInfo, 0x00, SIZEOF(SignalingClientInfo));
+    MEMSET(&signalingClientCallbacks, 0x00, SIZEOF(SignalingClientCallbacks));
+
+    channelInfo.pRegion = DEFAULT_AWS_REGION;
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
     channelInfo.pChannelName = channelName;
     channelInfo.pKmsKeyId = NULL;
@@ -152,18 +162,11 @@ INT32 main(INT32 argc, CHAR* argv[])
 {
     STATUS retStatus = STATUS_SUCCESS;
     PCHAR pAccessKey, pSecretKey, pSessionToken = NULL;
-    ChannelInfo channelInfo;
     PAwsCredentialProvider pCredentialProvider;
     TestData data;
 
-    MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
-
     CHK_ERR((pAccessKey = getenv(ACCESS_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_ACCESS_KEY_ID must be set");
     CHK_ERR((pSecretKey = getenv(SECRET_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_SECRET_ACCESS_KEY must be set");
-
-    if ((channelInfo.pRegion = getenv(DEFAULT_REGION_ENV_VAR)) == NULL) {
-        channelInfo.pRegion = DEFAULT_AWS_REGION;
-    }
 
     PCHAR channelName = argv[1];
     printf("Channel name is %s\n", channelName);
