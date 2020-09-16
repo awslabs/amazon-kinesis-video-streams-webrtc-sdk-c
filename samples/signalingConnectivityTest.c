@@ -1,21 +1,28 @@
 #include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
 
 typedef struct {
+    volatile ATOMIC_BOOL master_failed;
+    volatile ATOMIC_BOOL viewer_failed;
     volatile ATOMIC_BOOL response_received;
+    SIGNALING_CLIENT_HANDLE masterHandle;
+    SIGNALING_CLIENT_HANDLE viewerHandle;
     MUTEX mutex;
     CVAR conditionVariable;
 } TestData, *PTestData;
 
 STATUS signalingClientErrorMaster(UINT64 customData, STATUS status, PCHAR msg, UINT32 msgLen)
 {
-
     printf("Signaling master generated an error 0x%08x - '%.*s'\n", status, msgLen, msg);
+    TestData *data = (TestData*) customData;
+    ATOMIC_STORE_BOOL(&data->master_failed, TRUE);
     return STATUS_SUCCESS;
 }
 
 STATUS signalingClientErrorViewer(UINT64 customData, STATUS status, PCHAR msg, UINT32 msgLen)
 {
     printf("Signaling viewer generated an error 0x%08x - '%.*s'\n", status, msgLen, msg);
+    TestData *data = (TestData*) customData;
+    ATOMIC_STORE_BOOL(&data->viewer_failed, TRUE);
     return STATUS_SUCCESS;
 }
 
@@ -33,7 +40,7 @@ STATUS signalingStateChangedMaster(UINT64 customData, SIGNALING_CLIENT_STATE new
 
 STATUS signalingMessageReceivedMaster(UINT64 customData, PReceivedSignalingMessage pReceivedSignalingMessage)
 {
-    PSIGNALING_CLIENT_HANDLE pMasterSignalingClientHandle = (PSIGNALING_CLIENT_HANDLE) customData;
+    TestData *testData = (TestData*) customData;
     SignalingMessage message;
     STATUS retStatus = STATUS_SUCCESS;
 
@@ -43,7 +50,7 @@ STATUS signalingMessageReceivedMaster(UINT64 customData, PReceivedSignalingMessa
     message.payloadLen = pReceivedSignalingMessage->signalingMessage.payloadLen;
     STRCPY(message.payload, pReceivedSignalingMessage->signalingMessage.payload);
     message.correlationId[0] = '\0';
-    CHK_STATUS(signalingClientSendMessageSync(*pMasterSignalingClientHandle, &message));
+    CHK_STATUS(signalingClientSendMessageSync(testData->masterHandle, &message));
 
 CleanUp:
     CHK_LOG_ERR(retStatus);
@@ -58,35 +65,12 @@ STATUS signalingMessageReceivedViewer(UINT64 customData, PReceivedSignalingMessa
     return STATUS_SUCCESS;
 }
 
-INT32 main(INT32 argc, CHAR* argv[])
+STATUS createMaster(SIGNALING_CLIENT_HANDLE *masterHandle, PAwsCredentialProvider pCredentialProvider, PCHAR channelName, TestData *testData)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    PCHAR pAccessKey, pSecretKey, pSessionToken = NULL;
     ChannelInfo channelInfo;
-    PAwsCredentialProvider pCredentialProvider;
-    SIGNALING_CLIENT_HANDLE masterSignalingClientHandle, viewerSignalingClientHandle;
-    SignalingClientCallbacks signalingClientCallbacks;
     SignalingClientInfo clientInfo;
-    TestData data;
-
-    MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
-
-    CHK_ERR((pAccessKey = getenv(ACCESS_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_ACCESS_KEY_ID must be set");
-    CHK_ERR((pSecretKey = getenv(SECRET_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_SECRET_ACCESS_KEY must be set");
-
-    if ((channelInfo.pRegion = getenv(DEFAULT_REGION_ENV_VAR)) == NULL) {
-        channelInfo.pRegion = DEFAULT_AWS_REGION;
-    }
-
-    PCHAR channelName = argv[1];
-    printf("Channel name is %s\n", channelName);
-
-    CHK_STATUS(
-        createStaticCredentialProvider(pAccessKey, 0, pSecretKey, 0, pSessionToken, 0, MAX_UINT64, &pCredentialProvider));
-
-    data.mutex = MUTEX_CREATE(FALSE);
-    data.conditionVariable = CVAR_CREATE();
-    data.response_received = FALSE;
+    SignalingClientCallbacks signalingClientCallbacks;
 
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
     channelInfo.pChannelName = channelName;
@@ -107,30 +91,99 @@ INT32 main(INT32 argc, CHAR* argv[])
     signalingClientCallbacks.errorReportFn = signalingClientErrorMaster;
     signalingClientCallbacks.stateChangeFn = signalingStateChangedMaster;
     signalingClientCallbacks.messageReceivedFn = signalingMessageReceivedMaster;
-    signalingClientCallbacks.customData = (UINT64) &masterSignalingClientHandle;
+    signalingClientCallbacks.customData = (UINT64) testData;
 
     clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfo.loggingLevel = LOG_LEVEL_DEBUG;
     sprintf(clientInfo.clientId, "%s", "TEST_MASTER");
 
-    initKvsWebRtc();
-
     CHK_STATUS(createSignalingClientSync(&clientInfo, &channelInfo,
-                                          &signalingClientCallbacks, pCredentialProvider,
-                                          &masterSignalingClientHandle));
-    CHK_STATUS(signalingClientConnectSync(masterSignalingClientHandle));
+                                         &signalingClientCallbacks, pCredentialProvider,
+                                         masterHandle));
+CleanUp:
 
-    sprintf(clientInfo.clientId, "%s", "TEST_VIEWER");
+    CHK_LOG_ERR(retStatus);
+    return retStatus;
+}
+
+STATUS createViewer(SIGNALING_CLIENT_HANDLE *viewerHandle, PAwsCredentialProvider pCredentialProvider, PCHAR channelName, TestData *testData)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    ChannelInfo channelInfo;
+    SignalingClientInfo clientInfo;
+    SignalingClientCallbacks signalingClientCallbacks;
+
+    channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
+    channelInfo.pChannelName = channelName;
+    channelInfo.pKmsKeyId = NULL;
+    channelInfo.tagCount = 0;
+    channelInfo.pTags = NULL;
+    channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
+    channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_VIEWER;
+    channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_FILE;
+    channelInfo.cachingPeriod = SIGNALING_API_CALL_CACHE_TTL_SENTINEL_VALUE;
+    channelInfo.asyncIceServerConfig = TRUE;
+    channelInfo.retry = TRUE;
+    channelInfo.reconnect = TRUE;
+    channelInfo.pCertPath = KVS_CA_CERT_PATH;
+    channelInfo.messageTtl = 0; // Default is 60 seconds
+
+    signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
     signalingClientCallbacks.errorReportFn = signalingClientErrorViewer;
     signalingClientCallbacks.stateChangeFn = signalingStateChangedViewer;
-    channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_VIEWER;
     signalingClientCallbacks.messageReceivedFn = signalingMessageReceivedViewer;
-    signalingClientCallbacks.customData = (UINT64) &data;
+    signalingClientCallbacks.customData = (UINT64) testData;
+
+    clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
+    clientInfo.loggingLevel = LOG_LEVEL_DEBUG;
+    sprintf(clientInfo.clientId, "%s", "TEST_VIEWER");
 
     CHK_STATUS(createSignalingClientSync(&clientInfo, &channelInfo,
                                          &signalingClientCallbacks, pCredentialProvider,
-                                         &viewerSignalingClientHandle));
-    CHK_STATUS(signalingClientConnectSync(viewerSignalingClientHandle));
+                                         viewerHandle));
+
+CleanUp:
+
+    CHK_LOG_ERR(retStatus);
+    return retStatus;
+}
+
+INT32 main(INT32 argc, CHAR* argv[])
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PCHAR pAccessKey, pSecretKey, pSessionToken = NULL;
+    ChannelInfo channelInfo;
+    PAwsCredentialProvider pCredentialProvider;
+    TestData data;
+
+    MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
+
+    CHK_ERR((pAccessKey = getenv(ACCESS_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_ACCESS_KEY_ID must be set");
+    CHK_ERR((pSecretKey = getenv(SECRET_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_SECRET_ACCESS_KEY must be set");
+
+    if ((channelInfo.pRegion = getenv(DEFAULT_REGION_ENV_VAR)) == NULL) {
+        channelInfo.pRegion = DEFAULT_AWS_REGION;
+    }
+
+    PCHAR channelName = argv[1];
+    printf("Channel name is %s\n", channelName);
+
+    CHK_STATUS(
+        createStaticCredentialProvider(pAccessKey, 0, pSecretKey, 0, pSessionToken, 0, MAX_UINT64, &pCredentialProvider));
+
+    data.mutex = MUTEX_CREATE(FALSE);
+    data.conditionVariable = CVAR_CREATE();
+    data.response_received = FALSE;
+    data.master_failed = FALSE;
+    data.viewer_failed = FALSE;
+
+    initKvsWebRtc();
+
+    CHK_STATUS(createMaster(&data.masterHandle, pCredentialProvider, channelName, &data));
+    CHK_STATUS(signalingClientConnectSync(data.masterHandle));
+
+    CHK_STATUS(createViewer(&data.viewerHandle, pCredentialProvider, channelName, &data));
+    CHK_STATUS(signalingClientConnectSync(data.viewerHandle));
 
     MUTEX_LOCK(data.mutex);
 
@@ -146,12 +199,26 @@ INT32 main(INT32 argc, CHAR* argv[])
     UINT64 messageSentTime = 0;
     BOOL response_received = FALSE;
     while(TRUE) {
+        if (ATOMIC_LOAD_BOOL(&data.master_failed)) {
+            freeSignalingClient(&data.masterHandle);
+            CHK_STATUS(createMaster(&data.masterHandle, pCredentialProvider, channelName, &data));
+            CHK_STATUS(signalingClientConnectSync(data.masterHandle));
+            ATOMIC_STORE_BOOL(&data.master_failed, FALSE);
+        }
+        if (ATOMIC_LOAD_BOOL(&data.viewer_failed)) {
+            freeSignalingClient(&data.viewerHandle);
+            CHK_STATUS(createViewer(&data.viewerHandle, pCredentialProvider, channelName, &data));
+            CHK_STATUS(signalingClientConnectSync(data.viewerHandle));
+            ATOMIC_STORE_BOOL(&data.viewer_failed, FALSE);
+        }
+
         messageSentTime = GETTIME();
-        SNPRINTF(message.payload, MAX_SIGNALING_MESSAGE_LEN, "test_message_%" PRIu64, messageSentTime);
+        UINT32 len = (UINT32) SNPRINTF(message.payload, MAX_SIGNALING_MESSAGE_LEN, "test_message_%" PRIu64, messageSentTime);
+        message.payloadLen = len;
         DLOGD("send meesage %" PRIu64 , index);
         response_received = FALSE;
         ATOMIC_STORE_BOOL(&data.response_received, FALSE);
-        CHK_STATUS(signalingClientSendMessageSync(viewerSignalingClientHandle, &message));
+        CHK_STATUS(signalingClientSendMessageSync(data.viewerHandle, &message));
         while(!response_received) {
             CVAR_WAIT(data.conditionVariable, data.mutex, 60 * HUNDREDS_OF_NANOS_IN_A_SECOND);
             response_received = ATOMIC_LOAD_BOOL(&data.response_received);
