@@ -30,8 +30,10 @@ STATUS serializeOrigin(PSdpOrigin pSDPOrigin, PCHAR* ppOutputData, PUINT32 pTota
 
     CHK(pSDPOrigin != NULL, STATUS_NULL_ARG);
 
-    if (pSDPOrigin->userName[0] != '\0' && pSDPOrigin->sdpConnectionInformation.connectionAddress[0] != '\0' &&
-        pSDPOrigin->sdpConnectionInformation.connectionAddress[0] != '\0' && pSDPOrigin->sdpConnectionInformation.connectionAddress[0] != '\0') {
+    if (pSDPOrigin->userName[0] != '\0' &&
+        pSDPOrigin->sdpConnectionInformation.networkType[0] != '\0' &&
+        pSDPOrigin->sdpConnectionInformation.addressType[0] != '\0' &&
+        pSDPOrigin->sdpConnectionInformation.connectionAddress[0] != '\0') {
         currentWriteSize = SNPRINTF(*ppOutputData, (*ppOutputData) == NULL ? 0 : *pBufferSize - *pTotalWritten,
                                     SDP_ORIGIN_MARKER "%s %" PRIu64 " %" PRIu64 " %s %s %s" SDP_LINE_SEPARATOR, pSDPOrigin->userName,
                                     pSDPOrigin->sessionId, pSDPOrigin->sessionVersion, pSDPOrigin->sdpConnectionInformation.networkType,
