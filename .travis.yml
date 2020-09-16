@@ -222,7 +222,8 @@ matrix:
         - docker run -w /src/.github -dit --name alpine -v $(pwd):/src alpine
         - alpine() { docker exec -it alpine "$@"; }
         - alpine apk update
-        - alpine apk add doxygen
+        - alpine apk add doxygen graphviz 
+        - alpine apk add --no-cache ttf-freefont
       script:
         # Add SSH key to agent
         - |
