@@ -189,5 +189,11 @@ CleanUp:
         }
     }
     printf("[KVS Viewer] Cleanup done\n");
-    return (INT32) retStatus;
+
+    // https://www.gnu.org/software/libc/manual/html_node/Exit-Status.html
+    // We can only return with 0 - 127. Some platforms treat exit code >= 128
+    // to be a success code, which might give an unintended behaviour.
+    // Some platforms also treat 1 or 0 differently, so it's better to use
+    // EXIT_FAILURE and EXIT_SUCCESS macros for portability.
+    return STATUS_FAILED(retStatus) ? EXIT_FAILURE : EXIT_SUCCESS;
 }
