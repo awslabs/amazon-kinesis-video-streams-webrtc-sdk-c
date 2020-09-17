@@ -1025,6 +1025,10 @@ typedef struct {
     //!< rate at which binding request packets are sent during connection check. Use default interval if 0.
     UINT32 iceConnectionCheckPollingInterval;
 
+    //!< Time ICE agent would wait to have a p2p connection. This could have an impact on connection establishment
+    //!< speed.
+    UINT32 iceP2PConnectionWaitTimeMS;
+
     //!< GeneratedCertificateBits controls the amount of bits the locally generated self-signed certificate uses
     //!< A smaller amount of bits may result in less CPU usage on startup, but will cause a weaker certificate to be generated
     //!< If unset GENERATED_CERTIFICATE_BITS will be used

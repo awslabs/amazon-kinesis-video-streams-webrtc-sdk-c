@@ -221,6 +221,7 @@ struct __IceAgent {
     UINT64 stateEndTime;
     UINT64 candidateGatheringEndTime;
     PIceCandidatePair pDataSendingIceCandidatePair;
+    UINT64 p2pConnectedCandidatePairWaitEndTime;
 
     IceAgentCallbacks iceAgentCallbacks;
 

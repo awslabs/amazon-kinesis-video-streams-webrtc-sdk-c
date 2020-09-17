@@ -205,7 +205,7 @@ STATUS fromCheckConnectionIceAgentState(UINT64 customData, PUINT64 pState)
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
     UINT64 state = ICE_AGENT_STATE_CHECK_CONNECTION; // original state
-    BOOL connectedCandidatePairFound = FALSE;
+    BOOL connectedCandidatePairFound = FALSE, connectedNonRelayCandidatePairFound = FALSE;
     UINT64 currentTime = GETTIME();
     PDoubleListNode pCurNode = NULL;
     PIceCandidatePair pIceCandidatePair = NULL;
@@ -224,15 +224,37 @@ STATUS fromCheckConnectionIceAgentState(UINT64 customData, PUINT64 pState)
 
     // connected pair found ? go to ICE_AGENT_STATE_CONNECTED : timeout ? go to error : remain in ICE_AGENT_STATE_CHECK_CONNECTION
     CHK_STATUS(doubleListGetHeadNode(pIceAgent->iceCandidatePairs, &pCurNode));
-    while (pCurNode != NULL && !connectedCandidatePairFound) {
+    while (pCurNode != NULL) {
         pIceCandidatePair = (PIceCandidatePair) pCurNode->data;
         pCurNode = pCurNode->pNext;
 
         if (pIceCandidatePair->state == ICE_CANDIDATE_PAIR_STATE_SUCCEEDED) {
             connectedCandidatePairFound = TRUE;
-            state = ICE_AGENT_STATE_CONNECTED;
+            if (!IS_CANN_PAIR_SENDING_FROM_RELAYED(pIceCandidatePair)) {
+                connectedNonRelayCandidatePairFound = TRUE;
+            }
         }
     }
+
+    if (connectedCandidatePairFound) {
+        state = ICE_AGENT_STATE_CONNECTED;
+        if (!IS_VALID_TIMESTAMP(pIceAgent->p2pConnectedCandidatePairWaitEndTime)) {
+            pIceAgent->p2pConnectedCandidatePairWaitEndTime = GETTIME() +
+                                                              pIceAgent->kvsRtcConfiguration.iceP2PConnectionWaitTimeMS * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+        }
+
+        if (pIceAgent->kvsRtcConfiguration.iceP2PConnectionWaitTimeMS != 0 &&
+            GETTIME() < pIceAgent->p2pConnectedCandidatePairWaitEndTime) {
+            if (connectedNonRelayCandidatePairFound) {
+                DLOGD("ICE found connected p2p candidate pair");
+            } else {
+                state = ICE_AGENT_STATE_CHECK_CONNECTION;
+            }
+        } else if (pIceAgent->kvsRtcConfiguration.iceP2PConnectionWaitTimeMS != 0) {
+            DLOGD("ICE timed out waiting for a connected p2p candidate pair");
+        }
+    }
+
 
     // return error if no connected pair found within timeout
     if (!connectedCandidatePairFound && currentTime >= pIceAgent->stateEndTime) {

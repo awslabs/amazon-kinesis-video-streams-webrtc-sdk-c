@@ -45,6 +45,12 @@ STATUS createIceAgent(PCHAR username, PCHAR password, PIceAgentCallbacks pIceAge
     pIceAgent->foundationCounter = 0;
     pIceAgent->localNetworkInterfaceCount = ARRAY_SIZE(pIceAgent->localNetworkInterfaces);
     pIceAgent->candidateGatheringEndTime = INVALID_TIMESTAMP_VALUE;
+    pIceAgent->p2pConnectedCandidatePairWaitEndTime = INVALID_TIMESTAMP_VALUE;
+
+    // iceP2PConnectionWaitTimeMS should be 0 in relay only mode.
+    if (pIceAgent->iceTransportPolicy == ICE_TRANSPORT_POLICY_RELAY) {
+        pIceAgent->kvsRtcConfiguration.iceP2PConnectionWaitTimeMS = 0;
+    }
 
     pIceAgent->lock = MUTEX_CREATE(FALSE);
 
@@ -1795,6 +1801,10 @@ STATUS iceAgentCheckConnectionStateSetup(PIceAgent pIceAgent)
     CHK_STATUS(appendStunIceControllAttribute(pIceAgent->pBindingRequest,
                                               pIceAgent->isControlling ? STUN_ATTRIBUTE_TYPE_ICE_CONTROLLING : STUN_ATTRIBUTE_TYPE_ICE_CONTROLLED,
                                               pIceAgent->tieBreaker));
+
+    if (pIceAgent->kvsRtcConfiguration.iceP2PConnectionWaitTimeMS != 0) {
+        DLOGD("ICE will wait %u ms for a connected non-relay candidate pair.", pIceAgent->kvsRtcConfiguration.iceP2PConnectionWaitTimeMS);
+    }
 
     pIceAgent->stateEndTime = GETTIME() + pIceAgent->kvsRtcConfiguration.iceConnectionCheckTimeout;
 
