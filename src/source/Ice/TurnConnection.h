@@ -186,7 +186,7 @@ STATUS turnConnectionShutdown(PTurnConnection, UINT64);
 BOOL turnConnectionIsShutdownComplete(PTurnConnection);
 BOOL turnConnectionGetRelayAddress(PTurnConnection, PKvsIpAddress);
 STATUS turnConnectionRefreshAllocation(PTurnConnection);
-STATUS turnConnectionRefreshPermission(PTurnConnection, PBOOL);
+STATUS turnConnectionRefreshPermission(PTurnConnection);
 STATUS turnConnectionFreePreAllocatedPackets(PTurnConnection);
 
 STATUS turnConnectionStepState(PTurnConnection);

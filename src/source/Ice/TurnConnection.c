@@ -834,14 +834,12 @@ STATUS turnConnectionRefreshPermission(PTurnConnection pTurnConnection)
         DLOGD("Refreshing turn permission");
         pTurnConnection->currentTimerCallingPeriod = DEFAULT_TURN_TIMER_INTERVAL_BEFORE_READY;
         CHK_STATUS(timerQueueUpdateTimerPeriod(pTurnConnection->timerQueueHandle, (UINT64) pTurnConnection,
-                                               (UINT32) ATOMIC_LOAD(&pTurnConnection->timerCallbackId),
-                                               pTurnConnection->currentTimerCallingPeriod));
+                                               (UINT32) ATOMIC_LOAD(&pTurnConnection->timerCallbackId), pTurnConnection->currentTimerCallingPeriod));
     } else if (pTurnConnection->currentTimerCallingPeriod != DEFAULT_TURN_TIMER_INTERVAL_AFTER_READY) {
         // use longer timer interval as now it just needs to check disconnection and permission expiration.
         pTurnConnection->currentTimerCallingPeriod = DEFAULT_TURN_TIMER_INTERVAL_AFTER_READY;
         CHK_STATUS(timerQueueUpdateTimerPeriod(pTurnConnection->timerQueueHandle, (UINT64) pTurnConnection,
-                                               (UINT32) ATOMIC_LOAD(&pTurnConnection->timerCallbackId),
-                                               pTurnConnection->currentTimerCallingPeriod));
+                                               (UINT32) ATOMIC_LOAD(&pTurnConnection->timerCallbackId), pTurnConnection->currentTimerCallingPeriod));
     }
 
 CleanUp:
@@ -1306,8 +1304,8 @@ STATUS turnConnectionTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 cu
     CHK_STATUS(turnConnectionStepState(pTurnConnection));
 
     /* after turnConnectionStepState(), turn state is TURN_STATE_NEW only if TURN_STATE_CLEAN_UP is completed. Thus
-     * we can stop the timer. */
-    if (pTurnConnection->state == TURN_STATE_NEW) {
+     * we can stop the timer. Also stop timer if we are in failed state. */
+    if (pTurnConnection->state == TURN_STATE_NEW || pTurnConnection->state == TURN_STATE_FAILED) {
         stopScheduling = TRUE;
     }
 
