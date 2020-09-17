@@ -806,7 +806,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS turnConnectionRefreshPermission(PTurnConnection pTurnConnection, PBOOL pNeedRefresh)
+STATUS turnConnectionRefreshPermission(PTurnConnection pTurnConnection)
 {
     STATUS retStatus = STATUS_SUCCESS;
     UINT64 currTime = 0;
@@ -814,7 +814,7 @@ STATUS turnConnectionRefreshPermission(PTurnConnection pTurnConnection, PBOOL pN
     BOOL needRefresh = FALSE;
     UINT32 i;
 
-    CHK(pTurnConnection != NULL && pNeedRefresh != NULL, STATUS_NULL_ARG);
+    CHK(pTurnConnection != NULL, STATUS_NULL_ARG);
 
     currTime = GETTIME();
 
@@ -823,16 +823,28 @@ STATUS turnConnectionRefreshPermission(PTurnConnection pTurnConnection, PBOOL pN
         pTurnPeer = &pTurnConnection->turnPeerList[i];
         if (IS_VALID_TIMESTAMP(pTurnPeer->permissionExpirationTime) &&
             currTime + DEFAULT_TURN_PERMISSION_REFRESH_GRACE_PERIOD >= pTurnPeer->permissionExpirationTime) {
-            DLOGD("Refreshing turn permission");
             needRefresh = TRUE;
+
+            // reset pTurnPeer->connectionState to make them go through create permission and channel bind again
+            pTurnPeer->connectionState = TURN_PEER_CONN_STATE_CREATE_PERMISSION;
         }
     }
 
-CleanUp:
-
-    if (pNeedRefresh != NULL) {
-        *pNeedRefresh = needRefresh;
+    if (needRefresh) {
+        DLOGD("Refreshing turn permission");
+        pTurnConnection->currentTimerCallingPeriod = DEFAULT_TURN_TIMER_INTERVAL_BEFORE_READY;
+        CHK_STATUS(timerQueueUpdateTimerPeriod(pTurnConnection->timerQueueHandle, (UINT64) pTurnConnection,
+                                               (UINT32) ATOMIC_LOAD(&pTurnConnection->timerCallbackId),
+                                               pTurnConnection->currentTimerCallingPeriod));
+    } else if (pTurnConnection->currentTimerCallingPeriod != DEFAULT_TURN_TIMER_INTERVAL_AFTER_READY) {
+        // use longer timer interval as now it just needs to check disconnection and permission expiration.
+        pTurnConnection->currentTimerCallingPeriod = DEFAULT_TURN_TIMER_INTERVAL_AFTER_READY;
+        CHK_STATUS(timerQueueUpdateTimerPeriod(pTurnConnection->timerQueueHandle, (UINT64) pTurnConnection,
+                                               (UINT32) ATOMIC_LOAD(&pTurnConnection->timerCallbackId),
+                                               pTurnConnection->currentTimerCallingPeriod));
     }
+
+CleanUp:
 
     CHK_LOG_ERR(retStatus);
     return retStatus;
@@ -874,7 +886,6 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
     UINT64 currentTime = GETTIME();
     CHAR ipAddrStr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
     TURN_CONNECTION_STATE previousState = TURN_STATE_NEW;
-    BOOL refreshPeerPermission = FALSE;
     UINT32 i = 0;
 
     CHK(pTurnConnection != NULL, STATUS_NULL_ARG);
@@ -982,27 +993,32 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
 
         case TURN_STATE_CREATE_PERMISSION:
 
-            for (i = 0; i < pTurnConnection->turnPeerCount; ++i) {
-                // As soon as create permission succeeded, we start sending channel bind message.
-                // So connectionState could've already advanced to ready state.
-                if (pTurnConnection->turnPeerList[i].connectionState == TURN_PEER_CONN_STATE_BIND_CHANNEL ||
-                    pTurnConnection->turnPeerList[i].connectionState == TURN_PEER_CONN_STATE_READY) {
-                    channelWithPermissionCount++;
-                }
-            }
-
             // push back timeout if no peer is available yet
             if (pTurnConnection->turnPeerCount == 0) {
                 pTurnConnection->stateTimeoutTime = currentTime + DEFAULT_TURN_CREATE_PERMISSION_TIMEOUT;
                 CHK(FALSE, retStatus);
             }
 
-            if (currentTime >= pTurnConnection->stateTimeoutTime) {
-                CHK(channelWithPermissionCount > 0, STATUS_TURN_CONNECTION_FAILED_TO_CREATE_PERMISSION);
+            for (i = 0; i < pTurnConnection->turnPeerCount; ++i) {
+                // As soon as create permission succeeded, we start sending channel bind message.
+                // So connectionState could've already advanced to ready state.
+                if (pTurnConnection->turnPeerList[i].connectionState == TURN_PEER_CONN_STATE_BIND_CHANNEL) {
+                    channelWithPermissionCount++;
+                } else if (pTurnConnection->turnPeerList[i].connectionState == TURN_PEER_CONN_STATE_READY) {
+                    readyPeerCount++;
+                }
+            }
 
-                // go to next state if we have at least one ready peer
-                pTurnConnection->state = TURN_STATE_BIND_CHANNEL;
-                pTurnConnection->stateTimeoutTime = currentTime + DEFAULT_TURN_BIND_CHANNEL_TIMEOUT;
+            if (currentTime >= pTurnConnection->stateTimeoutTime) {
+                CHK(channelWithPermissionCount > 0 || readyPeerCount > 0, STATUS_TURN_CONNECTION_FAILED_TO_CREATE_PERMISSION);
+
+                if (readyPeerCount > 0) {
+                    pTurnConnection->state = TURN_STATE_READY;
+                } else {
+                    // go to next state if we have at least one ready peer
+                    pTurnConnection->state = TURN_STATE_BIND_CHANNEL;
+                    pTurnConnection->stateTimeoutTime = currentTime + DEFAULT_TURN_BIND_CHANNEL_TIMEOUT;
+                }
             }
             break;
 
@@ -1022,27 +1038,8 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
             break;
 
         case TURN_STATE_READY:
-
-            CHK_STATUS(turnConnectionRefreshPermission(pTurnConnection, &refreshPeerPermission));
-            if (refreshPeerPermission) {
-                // reset pTurnPeer->connectionState to make them go through create permission and channel bind again
-                for (i = 0; i < pTurnConnection->turnPeerCount; ++i) {
-                    pTurnConnection->turnPeerList[i].connectionState = TURN_PEER_CONN_STATE_CREATE_PERMISSION;
-                }
-
-                pTurnConnection->currentTimerCallingPeriod = DEFAULT_TURN_TIMER_INTERVAL_BEFORE_READY;
-                CHK_STATUS(timerQueueUpdateTimerPeriod(pTurnConnection->timerQueueHandle, (UINT64) pTurnConnection,
-                                                       (UINT32) ATOMIC_LOAD(&pTurnConnection->timerCallbackId),
-                                                       pTurnConnection->currentTimerCallingPeriod));
-                pTurnConnection->state = TURN_STATE_CREATE_PERMISSION;
-                pTurnConnection->stateTimeoutTime = currentTime + DEFAULT_TURN_CREATE_PERMISSION_TIMEOUT;
-            } else if (pTurnConnection->currentTimerCallingPeriod != DEFAULT_TURN_TIMER_INTERVAL_AFTER_READY) {
-                // use longer timer interval as now it just needs to check disconnection and permission expiration.
-                pTurnConnection->currentTimerCallingPeriod = DEFAULT_TURN_TIMER_INTERVAL_AFTER_READY;
-                CHK_STATUS(timerQueueUpdateTimerPeriod(pTurnConnection->timerQueueHandle, (UINT64) pTurnConnection,
-                                                       (UINT32) ATOMIC_LOAD(&pTurnConnection->timerCallbackId),
-                                                       pTurnConnection->currentTimerCallingPeriod));
-            }
+            CHK_STATUS(turnConnectionRefreshAllocation(pTurnConnection));
+            CHK_STATUS(turnConnectionRefreshPermission(pTurnConnection));
 
             break;
 
@@ -1276,7 +1273,6 @@ STATUS turnConnectionTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 cu
                 }
             }
 
-            CHK_STATUS(turnConnectionRefreshAllocation(pTurnConnection));
             break;
 
         case TURN_STATE_CLEAN_UP:
