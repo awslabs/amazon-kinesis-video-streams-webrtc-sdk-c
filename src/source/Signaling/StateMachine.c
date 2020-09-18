@@ -279,7 +279,7 @@ STATUS executeGetTokenSignalingState(UINT64 customData, UINT64 time)
     retStatus = pSignalingClient->pCredentialProvider->getCredentialsFn(pSignalingClient->pCredentialProvider, &pSignalingClient->pAwsCredentials);
 
     // Check the expiration
-    if (GETTIME() >= pSignalingClient->pAwsCredentials->expiration) {
+    if (NULL == pSignalingClient->pAwsCredentials || GETTIME() >= pSignalingClient->pAwsCredentials->expiration) {
         serviceCallResult = SERVICE_CALL_NOT_AUTHORIZED;
     } else {
         serviceCallResult = SERVICE_CALL_RESULT_OK;
