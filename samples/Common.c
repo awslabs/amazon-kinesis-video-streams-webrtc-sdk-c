@@ -126,7 +126,6 @@ STATUS handleOffer(PSampleConfiguration pSampleConfiguration, PSampleStreamingSe
 {
     STATUS retStatus = STATUS_SUCCESS;
     RtcSessionDescriptionInit offerSessionDescriptionInit;
-    BOOL locked = FALSE;
     NullableBool canTrickle;
 
     CHK(pSampleConfiguration != NULL && pSignalingMessage != NULL, STATUS_NULL_ARG);
@@ -179,10 +178,6 @@ STATUS handleOffer(PSampleConfiguration pSampleConfiguration, PSampleStreamingSe
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
-
-    if (locked) {
-        MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
-    }
 
     return retStatus;
 }
@@ -343,7 +338,7 @@ STATUS awaitGetIceConfigInfoCount(SIGNALING_CLIENT_HANDLE signalingClientHandle,
         CHK(*pIceConfigInfoCount == 0, retStatus);
 
         // Check for timeout
-        CHK_ERR(elapsed <= ASYNC_ICE_CONFIG_INFO_WAIT_TIMEOUT, STATUS_OPERATION_TIMED_OUT, "Couldn't retrieve ICE configurations in alotted time.");
+        CHK_ERR(elapsed <= ASYNC_ICE_CONFIG_INFO_WAIT_TIMEOUT, STATUS_OPERATION_TIMED_OUT, "Couldn't retrieve ICE configurations in allotted time.");
 
         THREAD_SLEEP(ICE_CONFIG_INFO_POLL_PERIOD);
         elapsed += ICE_CONFIG_INFO_POLL_PERIOD;
@@ -501,6 +496,7 @@ STATUS handleRemoteCandidate(PSampleStreamingSession pSampleStreamingSession, PS
 {
     STATUS retStatus = STATUS_SUCCESS;
     RtcIceCandidateInit iceCandidate;
+    CHK(pSampleStreamingSession != NULL && pSignalingMessage != NULL, STATUS_NULL_ARG);
 
     CHK_STATUS(deserializeRtcIceCandidateInit(pSignalingMessage->payload, pSignalingMessage->payloadLen, &iceCandidate));
     CHK_STATUS(addIceCandidate(pSampleStreamingSession->pPeerConnection, iceCandidate.candidate));
@@ -868,16 +864,17 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSampleStreamingSession pSampleStreamingSession = NULL;
-    UINT32 i;
-    BOOL locked = FALSE;
+    UINT32 i, clientIdHash;;
+    BOOL locked = FALSE, peerConnectionFound = FALSE;
     SIGNALING_CLIENT_STATE signalingClientState;
 
     CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
 
-    MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
-    locked = TRUE;
-
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->interrupted)) {
+        // Keep the main set of operations interlocked until cvar wait which would atomically unlock
+        MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
+        locked = TRUE;
+
         // scan and cleanup terminated streaming session
         for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
             if (ATOMIC_LOAD_BOOL(&pSampleConfiguration->sampleStreamingSessionList[i]->terminateFlag)) {
@@ -890,14 +887,19 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
                 pSampleConfiguration->sampleStreamingSessionList[i] =
                     pSampleConfiguration->sampleStreamingSessionList[pSampleConfiguration->streamingSessionCount];
 
+                // Remove from the hash table
+                clientIdHash = COMPUTE_CRC32((PBYTE) pSampleStreamingSession->peerId,
+                                             (UINT32) STRLEN(pSampleStreamingSession->peerId));
+                CHK_STATUS(hashTableContains(pSampleConfiguration->pRtcPeerConnectionForRemoteClient, clientIdHash, &peerConnectionFound));
+                if (peerConnectionFound) {
+                    CHK_STATUS(hashTableRemove(pSampleConfiguration->pRtcPeerConnectionForRemoteClient, clientIdHash));
+                }
+
                 MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
 
                 CHK_STATUS(freeSampleStreamingSession(&pSampleStreamingSession));
             }
         }
-
-        // periodically wake up and clean up terminated streaming session
-        CVAR_WAIT(pSampleConfiguration->cvar, pSampleConfiguration->sampleConfigurationObjLock, 5 * HUNDREDS_OF_NANOS_IN_A_SECOND);
 
         // Check if we need to re-create the signaling client on-the-fly
         if (ATOMIC_LOAD_BOOL(&pSampleConfiguration->recreateSignalingClient) &&
@@ -916,6 +918,11 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
                 UNUSED_PARAM(signalingClientConnectSync(pSampleConfiguration->signalingClientHandle));
             }
         }
+
+        // periodically wake up and clean up terminated streaming session
+        CVAR_WAIT(pSampleConfiguration->cvar, pSampleConfiguration->sampleConfigurationObjLock, SAMPLE_SESSION_CLEANUP_WAIT_PERIOD);
+        MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
+        locked = FALSE;
     }
 
 CleanUp:
