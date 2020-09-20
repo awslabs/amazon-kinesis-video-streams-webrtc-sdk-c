@@ -864,7 +864,8 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSampleStreamingSession pSampleStreamingSession = NULL;
-    UINT32 i, clientIdHash;;
+    UINT32 i, clientIdHash;
+    ;
     BOOL locked = FALSE, peerConnectionFound = FALSE;
     SIGNALING_CLIENT_STATE signalingClientState;
 
@@ -888,8 +889,7 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
                     pSampleConfiguration->sampleStreamingSessionList[pSampleConfiguration->streamingSessionCount];
 
                 // Remove from the hash table
-                clientIdHash = COMPUTE_CRC32((PBYTE) pSampleStreamingSession->peerId,
-                                             (UINT32) STRLEN(pSampleStreamingSession->peerId));
+                clientIdHash = COMPUTE_CRC32((PBYTE) pSampleStreamingSession->peerId, (UINT32) STRLEN(pSampleStreamingSession->peerId));
                 CHK_STATUS(hashTableContains(pSampleConfiguration->pRtcPeerConnectionForRemoteClient, clientIdHash, &peerConnectionFound));
                 if (peerConnectionFound) {
                     CHK_STATUS(hashTableRemove(pSampleConfiguration->pRtcPeerConnectionForRemoteClient, clientIdHash));
