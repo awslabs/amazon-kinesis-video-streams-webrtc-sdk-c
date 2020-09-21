@@ -77,9 +77,8 @@ GstFlowReturn on_new_sample(GstElement* sink, gpointer data, UINT64 trackid)
                 frame.decodingTs = frame.presentationTs;
                 pSampleStreamingSession->videoTimestamp += SAMPLE_VIDEO_FRAME_DURATION; // assume video fps is 30
             }
-
             status = writeFrame(pRtcRtpTransceiver, &frame);
-            if (status != STATUS_SUCCESS) {
+            if (status != STATUS_SRTP_NOT_READY_YET && status != STATUS_SUCCESS) {
 #ifdef VERBOSE
                 printf("writeFrame() failed with 0x%08x", status);
 #endif
