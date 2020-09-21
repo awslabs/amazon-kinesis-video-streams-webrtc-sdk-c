@@ -865,7 +865,6 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
     STATUS retStatus = STATUS_SUCCESS;
     PSampleStreamingSession pSampleStreamingSession = NULL;
     UINT32 i, clientIdHash;
-    ;
     BOOL locked = FALSE, peerConnectionFound = FALSE;
     SIGNALING_CLIENT_STATE signalingClientState;
 
