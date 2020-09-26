@@ -371,13 +371,15 @@ extern "C" {
 
 /**
  * Maximum allowed ICE configuration user name length
+ * https://docs.aws.amazon.com/zh_tw/kinesisvideostreams/latest/dg/API_AWSAcuitySignalingService_GetIceServerConfig.html#API_AWSAcuitySignalingService_GetIceServerConfig_RequestSyntax
  */
-#define MAX_ICE_CONFIG_USER_NAME_LEN 512
+#define MAX_ICE_CONFIG_USER_NAME_LEN 256
 
 /**
  * Maximum allowed ICE configuration password length
+ * https://docs.aws.amazon.com/zh_tw/kinesisvideostreams/latest/dg/API_AWSAcuitySignalingService_IceServer.html#KinesisVideo-Type-AWSAcuitySignalingService_IceServer-Password
  */
-#define MAX_ICE_CONFIG_CREDENTIAL_LEN 512
+#define MAX_ICE_CONFIG_CREDENTIAL_LEN 256
 
 /**
  * Maximum allowed signaling URI length
