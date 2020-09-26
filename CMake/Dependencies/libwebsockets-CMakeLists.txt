@@ -37,6 +37,7 @@ ExternalProject_Add(project_libwebsockets
         -DLWS_WITHOUT_TEST_CLIENT=1
         -DLWS_WITH_STATIC=${LWS_WITH_STATIC}
         -DLWS_WITH_SHARED=${LWS_WITH_SHARED}
+        -DLWS_WITH_MBEDTLS=${LWS_WITH_MBEDTLS}
         -DLWS_STATIC_PIC=1
         -DLWS_WITH_ZLIB=0
         -DLWS_HAVE_EVENTFD=0
