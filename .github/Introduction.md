@@ -6,7 +6,8 @@ Amazon Kinesis Video Streams provides a standards-compliant WebRTC implementatio
 
 Using Kinesis Video Streams with WebRTC, you can easily build applications for live peer-to-peer media streaming, or real-time audio or video interactivity between camera IoT devices, web browsers, and mobile devices for a variety of use cases. Such applications can help parents keep an eye on their baby’s room, enable homeowners to use a video doorbell to check who’s at the door, enable owners of camera-enabled robot vacuums to remotely control the robot by viewing the live camera stream on a mobile phone, and so on.
 
-This document highlights a list of APIs that are available for a developer to use while using the SDK to develop 
-custom applications. 
+This document highlights a list of APIs, enums and structures that are available for a developer to use while using the SDK to develop custom applications. 
+
+Every publicly accesible members are grouped under modules. Every public member function also has a call graph attached to highlight the overview operation of the APIs.  
 
 

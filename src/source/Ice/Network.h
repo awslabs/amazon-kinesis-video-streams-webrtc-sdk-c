@@ -62,6 +62,13 @@ STATUS getLocalhostIpAddresses(PKvsIpAddress, PUINT32, IceSetInterfaceFilterFunc
 STATUS createSocket(KVS_IP_FAMILY_TYPE, KVS_SOCKET_PROTOCOL, UINT32, PINT32);
 
 /**
+ * @param - INT32 - IN - INT32 for the socketfd
+ *
+ * @return - STATUS status of execution
+ */
+STATUS closeSocket(INT32);
+
+/**
  * @param - PKvsIpAddress - IN - address for the socket to bind. PKvsIpAddress->port will be changed to the actual port number
  * @param - INT32 - IN - valid socket fd
  *

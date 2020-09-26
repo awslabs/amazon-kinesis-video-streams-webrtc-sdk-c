@@ -62,6 +62,11 @@ Create a build directory in the newly checked out repository, and execute CMake 
 We have provided an example of using GStreamer to capture/encode video, and then send via this library. This is only build if `pkg-config` finds
 GStreamer is installed on your system.
 
+On Ubuntu and Raspberry Pi OS you can get the libraries by running
+```
+$ sudo apt-get install libssl-dev libcurl4-openssl-dev liblog4cplus-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev gstreamer1.0-plugins-base-apps gstreamer1.0-plugins-bad gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly gstreamer1.0-tools
+```
+
 By default we download all the libraries from GitHub and build them locally, so should require nothing to be installed ahead of time.
 If you do wish to link to existing libraries you can use the following flags to customize your build.
 
@@ -205,18 +210,18 @@ freeIotCredentialProvider(&pSampleConfiguration->pCredentialProvider);
 ## Use Pre-generated Certificates
 The certificate generating function (createCertificateAndKey) in createDtlsSession() can take between 5 - 15 seconds in low performance embedded devices, it is called for every peer connection creation when KVS WebRTC receives an offer. To avoid this extra start-up latency, certificate can be pre-generated and passed in when offer comes.
 
-Important Note: It is recommended to rotate the certificates often - preferably for every peer connection to avoid a compromised client weakening the security of the new connections.
+**Important Note: It is recommended to rotate the certificates often - preferably for every peer connection to avoid a compromised client weakening the security of the new connections.**
 
-Take kvsWebRTCClientMaster as sample, add RtcCertificate certificates[CERT_COUNT]; to **SampleConfiguration** in Samples.h, call create certificate before signalingClientCallbacks.messageReceivedFn = masterMessageReceived; in kvsWebRTCClientMaster.c
-```
-createCertificateAndKey(GENERATED_CERTIFICATE_BITS, &pSampleConfiguration->certificates[0].pCertificate, &pSampleConfiguration->certificates[0].pPrivateKey);
-```
-
-Then pass in the pre-generated certificate in initializePeerConnection() in common.c.
+Take kvsWebRTCClientMaster as sample, add RtcCertificate certificates[CERT_COUNT]; to **SampleConfiguration** in Samples.h.
+Then pass in the pre-generated certificate in initializePeerConnection() in Common.c.
 
 ```
-configuration.certificates[0].pCertificate = pSampleConfiguration->rtcConfig.certificates[0].pCertificate;
-configuration.certificates[0].pPrivateKey = pSampleConfiguration->rtcConfig.certificates[0].pPrivateKey;
+configuration.certificates[0].pCertificate = pSampleConfiguration->certificates[0].pCertificate;
+configuration.certificates[0].pPrivateKey = pSampleConfiguration->certificates[0].pPrivateKey;
+
+where, `configuration` is of type `RtcConfiguration` in the function that calls `initializePeerConnection()`.
+
+Doing this will make sure that `createCertificateAndKey() would not execute since a certificate is already available.`
 ```
 
 ## DEBUG

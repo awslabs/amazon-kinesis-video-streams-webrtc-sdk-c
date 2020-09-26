@@ -33,6 +33,9 @@ TEST_F(MetricsApiTest, webRtcGetMetrics)
     rtcMetrics.requestedTypeOfStats = RTC_STATS_TYPE_INBOUND_RTP;
     EXPECT_EQ(STATUS_SUCCESS, rtcPeerConnectionGetMetrics(pRtcPeerConnection, NULL, &rtcMetrics));
 
+    rtcMetrics.requestedTypeOfStats = RTC_STATS_TYPE_CANDIDATE_PAIR;
+    EXPECT_EQ(STATUS_SUCCESS, rtcPeerConnectionGetMetrics(pRtcPeerConnection, NULL, &rtcMetrics));
+
     EXPECT_EQ(STATUS_SUCCESS, closePeerConnection(pRtcPeerConnection));
     EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
 }

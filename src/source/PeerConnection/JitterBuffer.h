@@ -14,8 +14,10 @@ typedef STATUS (*FrameReadyFunc)(UINT64, UINT16, UINT16, UINT32);
 typedef STATUS (*FrameDroppedFunc)(UINT64, UINT16, UINT16, UINT32);
 #define UINT16_DEC(a) ((UINT16)((a) -1))
 
+#define JITTER_BUFFER_HASH_TABLE_BUCKET_COUNT  3000
+#define JITTER_BUFFER_HASH_TABLE_BUCKET_LENGTH 2
+
 typedef struct {
-    PRtpPacket pktBuffer[MAX_SEQUENCE_NUM + 1];
     FrameReadyFunc onFrameReadyFn;
     FrameDroppedFunc onFrameDroppedFn;
     DepayRtpPayloadFunc depayPayloadFn;
@@ -34,6 +36,7 @@ typedef struct {
     UINT64 customData;
     UINT32 clockRate;
     BOOL started;
+    PHashTable pPkgBufferHashTable;
 } JitterBuffer, *PJitterBuffer;
 
 STATUS createJitterBuffer(FrameReadyFunc, FrameDroppedFunc, DepayRtpPayloadFunc, UINT32, UINT32, UINT64, PJitterBuffer*);

@@ -16,7 +16,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     signal(SIGINT, sigintHandler);
 #endif
 
-    // do tricketIce by default
+    // do trickleIce by default
     printf("[KVS Master] Using trickleICE by default\n");
     retStatus =
         createSampleConfiguration(argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, &pSampleConfiguration);
@@ -39,7 +39,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     // Set the audio and video handlers
     pSampleConfiguration->audioSource = sendAudioPackets;
     pSampleConfiguration->videoSource = sendVideoPackets;
-    pSampleConfiguration->receiveAudioVideoSource = sampleReceiveAudioFrame;
+    pSampleConfiguration->receiveAudioVideoSource = sampleReceiveVideoFrame;
     pSampleConfiguration->onDataChannel = onDataChannel;
     pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
     printf("[KVS Master] Finished setting audio and video handlers\n");
@@ -68,7 +68,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     }
     printf("[KVS Master] KVS WebRTC initialization completed successfully\n");
 
-    pSampleConfiguration->signalingClientCallbacks.messageReceivedFn = masterMessageReceived;
+    pSampleConfiguration->signalingClientCallbacks.messageReceivedFn = signalingMessageReceived;
 
     strcpy(pSampleConfiguration->clientInfo.clientId, SAMPLE_MASTER_CLIENT_ID);
 
@@ -109,7 +109,6 @@ CleanUp:
     }
 
     printf("[KVS Master] Cleaning up....\n");
-
     if (pSampleConfiguration != NULL) {
         // Kick of the termination sequence
         ATOMIC_STORE_BOOL(&pSampleConfiguration->appTerminateFlag, TRUE);
@@ -145,7 +144,13 @@ CleanUp:
         }
     }
     printf("[KVS Master] Cleanup done\n");
-    return (INT32) retStatus;
+
+    // https://www.gnu.org/software/libc/manual/html_node/Exit-Status.html
+    // We can only return with 0 - 127. Some platforms treat exit code >= 128
+    // to be a success code, which might give an unintended behaviour.
+    // Some platforms also treat 1 or 0 differently, so it's better to use
+    // EXIT_FAILURE and EXIT_SUCCESS macros for portability.
+    return STATUS_FAILED(retStatus) ? EXIT_FAILURE : EXIT_SUCCESS;
 }
 
 STATUS readFrameFromDisk(PBYTE pFrame, PUINT32 pSize, PCHAR frameFilePath)
@@ -235,18 +240,20 @@ PVOID sendVideoPackets(PVOID args)
         encoderStats.targetBitrate = 262000;
         frame.presentationTs += SAMPLE_VIDEO_FRAME_DURATION;
 
-        MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
+        MUTEX_LOCK(pSampleConfiguration->streamingSessionListReadLock);
         for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
             status = writeFrame(pSampleConfiguration->sampleStreamingSessionList[i]->pVideoRtcRtpTransceiver, &frame);
             encoderStats.encodeTimeMsec = 4; // update encode time to an arbitrary number to demonstrate stats update
             updateEncoderStats(pSampleConfiguration->sampleStreamingSessionList[i]->pVideoRtcRtpTransceiver, &encoderStats);
-            if (status != STATUS_SUCCESS) {
+            if (status != STATUS_SRTP_NOT_READY_YET) {
+                if (status != STATUS_SUCCESS) {
 #ifdef VERBOSE
-                printf("writeFrame() failed with 0x%08x", status);
+                    printf("writeFrame() failed with 0x%08x\n", status);
 #endif
+                }
             }
         }
-        MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
+        MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
 
         // Adjust sleep in the case the sleep itself and writeFrame take longer than expected. Since sleep makes sure that the thread
         // will be paused at least until the given amount, we can assume that there's no too early frame scenario.
@@ -310,14 +317,18 @@ PVOID sendAudioPackets(PVOID args)
 
         frame.presentationTs += SAMPLE_AUDIO_FRAME_DURATION;
 
-        MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
+        MUTEX_LOCK(pSampleConfiguration->streamingSessionListReadLock);
         for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
             status = writeFrame(pSampleConfiguration->sampleStreamingSessionList[i]->pAudioRtcRtpTransceiver, &frame);
-            if (status != STATUS_SUCCESS) {
-                printf("writeFrame failed with 0x%08x", status);
+            if (status != STATUS_SRTP_NOT_READY_YET) {
+                if (status != STATUS_SUCCESS) {
+#ifdef VERBOSE
+                    printf("writeFrame() failed with 0x%08x\n", status);
+#endif
+                }
             }
         }
-        MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
+        MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
         THREAD_SLEEP(SAMPLE_AUDIO_FRAME_DURATION);
     }
 
@@ -326,16 +337,16 @@ CleanUp:
     return (PVOID)(ULONG_PTR) retStatus;
 }
 
-PVOID sampleReceiveAudioFrame(PVOID args)
+PVOID sampleReceiveVideoFrame(PVOID args)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) args;
     if (pSampleStreamingSession == NULL) {
-        printf("[KVS Master] sampleReceiveAudioFrame(): operation returned status code: 0x%08x \n", STATUS_NULL_ARG);
+        printf("[KVS Master] sampleReceiveVideoFrame(): operation returned status code: 0x%08x \n", STATUS_NULL_ARG);
         goto CleanUp;
     }
 
-    retStatus = transceiverOnFrame(pSampleStreamingSession->pAudioRtcRtpTransceiver, (UINT64) pSampleStreamingSession, sampleFrameHandler);
+    retStatus = transceiverOnFrame(pSampleStreamingSession->pVideoRtcRtpTransceiver, (UINT64) pSampleStreamingSession, sampleFrameHandler);
     if (retStatus != STATUS_SUCCESS) {
         printf("[KVS Master] transceiverOnFrame(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;

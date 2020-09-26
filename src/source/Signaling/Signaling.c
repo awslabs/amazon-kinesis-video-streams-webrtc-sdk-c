@@ -580,7 +580,7 @@ STATUS refreshIceConfigurationCallback(UINT32 timerId, UINT64 scheduledTime, UIN
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    PStateMachineState pStateMachineState;
+    PStateMachineState pStateMachineState = NULL;
     PSignalingClient pSignalingClient = (PSignalingClient) customData;
     CHAR iceRefreshErrMsg[SIGNALING_MAX_ERROR_MESSAGE_LEN + 1];
     UINT32 iceRefreshErrLen, newTimerId;
@@ -613,6 +613,9 @@ STATUS refreshIceConfigurationCallback(UINT32 timerId, UINT64 scheduledTime, UIN
 
     // Iterate the state machinery in steady states only - ready or connected
     if (pStateMachineState->state == SIGNALING_STATE_READY || pStateMachineState->state == SIGNALING_STATE_CONNECTED) {
+        // Set the time out before execution
+        pSignalingClient->stepUntil = GETTIME() + SIGNALING_REFRESH_ICE_CONFIG_STATE_TIMEOUT;
+
         CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
     }
 
@@ -624,6 +627,13 @@ CleanUp:
     if (pSignalingClient != NULL && STATUS_FAILED(retStatus)) {
         // Update the diagnostics info prior calling the error callback
         ATOMIC_INCREMENT(&pSignalingClient->diagnostics.numberOfRuntimeErrors);
+
+        // Reset the stored state as we could have been connected prior to the ICE refresh and we still need to be connected
+        if (pStateMachineState != NULL) {
+            setStateMachineCurrentState(pSignalingClient->pStateMachine, pStateMachineState->state);
+        }
+
+        // Need to invoke the error handler callback
         if (pSignalingClient->signalingClientCallbacks.errorReportFn != NULL) {
             iceRefreshErrLen = SNPRINTF(iceRefreshErrMsg, SIGNALING_MAX_ERROR_MESSAGE_LEN, SIGNALING_ICE_CONFIG_REFRESH_ERROR_MSG, retStatus);
             iceRefreshErrMsg[SIGNALING_MAX_ERROR_MESSAGE_LEN] = '\0';
@@ -1124,6 +1134,8 @@ STATUS connectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time)
     STATUS retStatus = STATUS_SUCCESS;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+
+    THREAD_SLEEP_UNTIL(time);
 
     // Check for the stale credentials
     CHECK_SIGNALING_CREDENTIALS_EXPIRATION(pSignalingClient);

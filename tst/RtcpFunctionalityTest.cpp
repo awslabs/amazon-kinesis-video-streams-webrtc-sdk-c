@@ -11,13 +11,15 @@ class RtcpFunctionalityTest : public WebRtcClientTestBase {
     PKvsRtpTransceiver pKvsRtpTransceiver = nullptr;
     PKvsPeerConnection pKvsPeerConnection = nullptr;
     PRtcPeerConnection pRtcPeerConnection = nullptr;
+    PRtcRtpTransceiver pRtcRtpTransceiver = nullptr;
 
     STATUS initTransceiver(UINT32 ssrc)
     {
         RtcConfiguration config{};
         EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pRtcPeerConnection));
         pKvsPeerConnection = reinterpret_cast<PKvsPeerConnection>(pRtcPeerConnection);
-        pKvsRtpTransceiver = reinterpret_cast<PKvsRtpTransceiver>(addTransceiver(ssrc));
+        pRtcRtpTransceiver = addTransceiver(ssrc);
+        pKvsRtpTransceiver = reinterpret_cast<PKvsRtpTransceiver>(pRtcRtpTransceiver);
         return STATUS_SUCCESS;
     }
 
@@ -205,11 +207,10 @@ TEST_F(RtcpFunctionalityTest, onRtcpPacketCompoundSenderReport)
     freePeerConnection(&pRtcPeerConnection);
 }
 
-TEST_F(RtcpFunctionalityTest, rembValueGet) {
-    BYTE rawRtcpPacket[] = {
-        0x8f, 0xce, 0x00, 0x05, 0x61, 0x7a, 0x37, 0x43, 0x00, 0x00, 0x00, 0x00, 0x52, 0x45, 0x4d, 0x42,
-        0x01, 0x12, 0x46, 0x73, 0x6c, 0x76, 0xe8, 0x55
-    };
+TEST_F(RtcpFunctionalityTest, rembValueGet)
+{
+    BYTE rawRtcpPacket[] = {0x8f, 0xce, 0x00, 0x05, 0x61, 0x7a, 0x37, 0x43, 0x00, 0x00, 0x00, 0x00,
+                            0x52, 0x45, 0x4d, 0x42, 0x01, 0x12, 0x46, 0x73, 0x6c, 0x76, 0xe8, 0x55};
     RtcpPacket rtcpPacket;
 
     MEMSET(&rtcpPacket, 0x00, SIZEOF(RtcpPacket));
@@ -235,9 +236,42 @@ TEST_F(RtcpFunctionalityTest, rembValueGet) {
     EXPECT_EQ(maximumBitRate, 2581120.0);
     EXPECT_EQ(ssrcList[0], 0x6c76e855);
 
+    BYTE multipleSSRC[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x52, 0x45, 0x4d, 0x42,
+                           0x02, 0x12, 0x76, 0x28, 0x6c, 0x76, 0xe8, 0x55, 0x42, 0x42, 0x42, 0x42};
+    EXPECT_EQ(STATUS_SUCCESS, rembValueGet(multipleSSRC, SIZEOF(multipleSSRC), &maximumBitRate, ssrcList, &ssrcListLen));
+    EXPECT_EQ(ssrcListLen, 2);
+    EXPECT_EQ(maximumBitRate, 2581120.0);
+    EXPECT_EQ(ssrcList[0], 0x6c76e855);
+    EXPECT_EQ(ssrcList[1], 0x42424242);
+
     BYTE invalidSSRCLength[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x52, 0x45,
                                 0x4d, 0x42, 0xFF, 0x12, 0x76, 0x28, 0x6c, 0x76, 0xe8, 0x55};
     EXPECT_EQ(STATUS_RTCP_INPUT_REMB_INVALID, rembValueGet(invalidSSRCLength, SIZEOF(invalidSSRCLength), &maximumBitRate, ssrcList, &ssrcListLen));
+}
+
+TEST_F(RtcpFunctionalityTest, onRtcpRembCalled)
+{
+    RtcpPacket rtcpPacket;
+
+    MEMSET(&rtcpPacket, 0x00, SIZEOF(RtcpPacket));
+
+    BYTE multipleSSRC[] = {0x80, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x52, 0x45,
+                           0x4d, 0x42, 0x02, 0x12, 0x76, 0x28, 0x6c, 0x76, 0xe8, 0x55, 0x42, 0x42, 0x42, 0x42};
+
+    EXPECT_EQ(STATUS_SUCCESS, setRtcpPacketFromBytes(multipleSSRC, ARRAY_SIZE(multipleSSRC), &rtcpPacket));
+    initTransceiver(0x42424242);
+    PRtcRtpTransceiver transceiver43 = addTransceiver(0x43);
+
+    BOOL onBandwidthCalled42 = FALSE;
+    BOOL onBandwidthCalled43 = FALSE;
+    auto callback = [](UINT64 called, DOUBLE /*unused*/) { *((BOOL*) called) = TRUE; };
+    transceiverOnBandwidthEstimation(pRtcRtpTransceiver, reinterpret_cast<UINT64>(&onBandwidthCalled42), callback);
+    transceiverOnBandwidthEstimation(transceiver43, reinterpret_cast<UINT64>(&onBandwidthCalled43), callback);
+
+    onRtcpRembPacket(&rtcpPacket, pKvsPeerConnection);
+    ASSERT_TRUE(onBandwidthCalled42);
+    ASSERT_FALSE(onBandwidthCalled43);
+    freePeerConnection(&pRtcPeerConnection);
 }
 
 TEST_F(RtcpFunctionalityTest, onpli)

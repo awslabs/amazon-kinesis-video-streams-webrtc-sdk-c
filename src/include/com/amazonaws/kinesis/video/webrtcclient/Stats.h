@@ -10,22 +10,66 @@
 extern "C" {
 #endif
 
-////////////////////////////////////////////////////
-// Public headers
-////////////////////////////////////////////////////
+/////////////////////////////////////////////////////
+/// Stats related string lengths
+/////////////////////////////////////////////////////
 
-#define MAX_CANDIDATE_ID_LENGTH   8U
-#define MAX_STATS_ADDRESS_LENGTH  16U
+/*! \addtogroup StatsNameLengths
+ * Lengths of some string members of different structures
+ *  @{
+ */
+
+/**
+ * Maximum allowed candidate ID length
+ */
+#define MAX_CANDIDATE_ID_LENGTH 9U
+
+/**
+ * Maximum allowed relay protocol length
+ */
 #define MAX_RELAY_PROTOCOL_LENGTH 8U
-#define MAX_TLS_VERSION_LENGTH    8U
-#define MAX_DTLS_CIPHER_LENGTH    64U
-#define MAX_SRTP_CIPHER_LENGTH    64U
-#define MAX_TLS_GROUP_LENGHTH     32U
-#define MAX_PROTOCOL_LENGTH       8U
-#define IP_ADDR_STR_LENGTH        45U
 
+/**
+ * Maximum allowed TLS version length
+ */
+#define MAX_TLS_VERSION_LENGTH 8U
+
+/**
+ * Maximum allowed DTLS cipher length
+ */
+#define MAX_DTLS_CIPHER_LENGTH 64U
+
+/**
+ * Maximum allowed SRTP cipher length
+ */
+#define MAX_SRTP_CIPHER_LENGTH 64U
+
+/**
+ * Maximum allowed TLS group length
+ */
+#define MAX_TLS_GROUP_LENGHTH 32U
+
+/**
+ * Maximum allowed maximum protocol length (allowed values: tcp, udp)
+ */
+#define MAX_PROTOCOL_LENGTH 8U
+
+/**
+ * Maximum allowed length of IP address string
+ */
+#define IP_ADDR_STR_LENGTH 45U
+
+/**
+ * Maximum allowed generic length used in DOMString
+ */
 #define MAX_STATS_STRING_LENGTH 255U
+/*!@} */
 
+/**
+ * @brief DOMString type is used to store strings of size 256 bytes (inclusive of '\0' character
+ *
+ * Reference: https://heycam.github.io/webidl/#idl-DOMString
+ */
 typedef CHAR DOMString[MAX_STATS_STRING_LENGTH + 1];
 
 /**
@@ -80,12 +124,12 @@ typedef enum {
  * Reference: https://www.w3.org/TR/webrtc-stats/#rtcstatsicecandidatepairstate-enum
  */
 typedef enum {
-    RTC_ICE_CANDIDATE_PAIR_STATE_FROZEN = 0,
-    RTC_ICE_CANDIDATE_PAIR_STATE_WAITING = 1,
-    RTC_ICE_CANDIDATE_PAIR_STATE_IN_PROGRESS = 2,
-    RTC_ICE_CANDIDATE_PAIR_STATE_SUCCEEDED = 3,
-    RTC_ICE_CANDIDATE_PAIR_STATE_FAILED = 4,
-} RTC_ICE_CANDIDATE_PAIR_STATE;
+    ICE_CANDIDATE_PAIR_STATE_FROZEN = 0,
+    ICE_CANDIDATE_PAIR_STATE_WAITING = 1,
+    ICE_CANDIDATE_PAIR_STATE_IN_PROGRESS = 2,
+    ICE_CANDIDATE_PAIR_STATE_SUCCEEDED = 3,
+    ICE_CANDIDATE_PAIR_STATE_FAILED = 4,
+} ICE_CANDIDATE_PAIR_STATE;
 
 /**
  * @brief Set details of the IceAgent based on STUN_ATTRIBUTE_TYPE_USE_CANDIDATE flag
@@ -121,8 +165,9 @@ typedef enum {
     RTC_QUALITY_LIMITATION_REASON_OTHER,     //!< Limitation due to reasons other than above
 } RTC_QUALITY_LIMITATION_REASON;
 
-/**
+/*! \addtogroup StatsStructures
  * @brief Record of duration and quality reason state
+ * @{
  */
 typedef struct {
     UINT64 durationInSeconds;                              //!< Time (seconds) spent in each state
@@ -145,12 +190,11 @@ typedef struct {
  */
 
 typedef struct {
-    DOMString transportId;              //!< ID of object that was inspected for RTCTransportStats
-    DOMString localCandidateId;         //!< Local candidate that is inspected in RTCIceCandidateStats
-    DOMString remoteCandidateId;        //!< Remote candidate that is inspected in RTCIceCandidateStats
-    RTC_ICE_CANDIDATE_PAIR_STATE state; //!< State of checklist for the local-remote candidate pair
-    BOOL nominated;                     //!< Flag is TRUE if the agent is a controlling agent and FALSE otherwise. The agent role is based on the
-                                        //!< STUN_ATTRIBUTE_TYPE_USE_CANDIDATE flag
+    CHAR localCandidateId[MAX_CANDIDATE_ID_LENGTH + 1];  //!< Local candidate that is inspected in RTCIceCandidateStats
+    CHAR remoteCandidateId[MAX_CANDIDATE_ID_LENGTH + 1]; //!< Remote candidate that is inspected in RTCIceCandidateStats
+    ICE_CANDIDATE_PAIR_STATE state;                      //!< State of checklist for the local-remote candidate pair
+    BOOL nominated; //!< Flag is TRUE if the agent is a controlling agent and FALSE otherwise. The agent role is based on the
+                    //!< STUN_ATTRIBUTE_TYPE_USE_CANDIDATE flag
     NullableUint32 circuitBreakerTriggerCount; //!< Represents number of times circuit breaker is triggered during media transmission
                                                //!< It is undefined if the user agent does not use this
     UINT32 packetsDiscardedOnSend;             //!< Total number of packets discarded for candidate pair due to socket errors,
@@ -172,18 +216,14 @@ typedef struct {
                                      //!< that are sent in order to verify consent. The average round trip time can be computed from
                                      //!< totalRoundTripTime by dividing it by responsesReceived.
     DOUBLE currentRoundTripTime;     //!< Latest round trip time (seconds)
-    DOUBLE availableOutgoingBitrate; //!< Total available bit rate for all the outgoing RTP streams on this candidate pair. Calculated by underlying
-                                     //!< congestion control
-    DOUBLE availableIncomingBitrate; //!< Total available bit rate for all the outgoing RTP streams on this candidate pair. Calculated by underlying
-                                     //!< congestion control
+    DOUBLE availableOutgoingBitrate; //!< TODO: Total available bit rate for all the outgoing RTP streams on this candidate pair. Calculated by
+                                     //!< underlying congestion control
+    DOUBLE availableIncomingBitrate; //!< TODO: Total available bit rate for all the outgoing RTP streams on this candidate pair. Calculated by
+                                     //!< underlying congestion control
     UINT64 requestsReceived;         //!< Total number of connectivity check requests received (including retransmission)
     UINT64 requestsSent;             //!< The total number of connectivity check requests sent (without retransmissions).
     UINT64 responsesReceived;        //!< The total number of connectivity check responses received.
     UINT64 responsesSent;            //!< The total number of connectivity check responses sent.
-    UINT64 retransmissionsReceived;  //!< The total number of connectivity check request retransmissions received
-    UINT64 retransmissionsSent;      //!< The total number of connectivity check request retransmissions sent.
-    UINT64 consentRequestsSent;      //!< The total number of consent requests sent.
-    UINT64 consentExpiredTimestamp;  //!< The timestamp at which the latest valid STUN binding response expired
     UINT64 bytesDiscardedOnSend;     //!< Total number of bytes for this candidate pair discarded due to socket errors
 } RtcIceCandidatePairStats, *PRtcIceCandidatePairStats;
 
@@ -250,7 +290,10 @@ typedef struct {
     UINT32 selectedCandidatePairChanges;      //!< The number of times that the selected candidate pair of this transport has changed
 } RtcTransportStats, *PRtcTransportStats;
 
-// https://www.w3.org/TR/webrtc-stats/#dom-rtcrtpstreamstats
+/**
+ * @brief RTCRtpStreamStats captures stream stats that will be used as part of RTCSentRtpStreamStats report
+ * Reference:  https://www.w3.org/TR/webrtc-stats/#dom-rtcrtpstreamstats
+ */
 typedef struct {
     UINT32 ssrc; //!< The 32-bit unsigned integer value per [RFC3550] used to identify the source of the stream of RTP packets that this stats object
                  //!< concerns.
@@ -265,7 +308,10 @@ typedef struct {
                        //!< this RTP stream.
 } RTCRtpStreamStats, *PRTCRtpStreamStats;
 
-// https://www.w3.org/TR/webrtc-stats/#dom-rtcsentrtpstreamstats
+/**
+ * @brief RTCSentRtpStreamStats will be used as part of outbound Rtp stats
+ * Reference: https://www.w3.org/TR/webrtc-stats/#dom-rtcsentrtpstreamstats
+ */
 typedef struct {
     RTCRtpStreamStats rtpStream;
     UINT64 packetsSent;
@@ -276,13 +322,13 @@ typedef struct {
 } RTCSentRtpStreamStats, *PRTCSentRtpStreamStats;
 
 /**
- * @brief RtcOutboundRtpStreamStats
+ * @brief RtcOutboundRtpStreamStats Gathers stats for media stream from the embedded device
+ * Note: RTCOutboundRtpStreamStats extends RTCSentRtpStreamStats as per https://www.w3.org/TR/webrtc-stats/#dom-rtcoutboundrtpstreamstats
  *
  * Reference: https://www.w3.org/TR/webrtc-stats/#outboundrtpstats-dict*
  */
 typedef struct {
-    // RTCOutboundRtpStreamStats extends RTCSentRtpStreamStats as per https://www.w3.org/TR/webrtc-stats/#dom-rtcoutboundrtpstreamstats
-    RTCSentRtpStreamStats sent;
+    RTCSentRtpStreamStats sent;      //!< Comprises of information such as packetsSent and bytesSent
     BOOL voiceActivityFlag;          //!< Only valid for audio. Whether the last RTP packet sent contained voice activity or not based on the presence
                                      //!< of the V bit in the extension header
     DOMString trackId;               //!< ID representing current track attached to the sender of the stream
@@ -343,7 +389,6 @@ typedef struct {
 } RtcRemoteInboundRtpStreamStats, *PRtcRemoteInboundRtpStreamStats;
 
 typedef struct {
-    // dictionary RTCReceivedRtpStreamStats : RTCRtpStreamStats
     RTCRtpStreamStats rtpStream;
     UINT64 packetsReceived; //!< Total number of RTP packets received for this SSRC.
     INT64 packetsLost; //!< TODO Total number of RTP packets lost for this SSRC. Calculated as defined in [RFC3550] section 6.4.1. Note that because
@@ -445,13 +490,6 @@ typedef struct {
     //!< packets can be calculated by adding packetsDuplicated to packetsLost; this will always result in a positive number,
     //!< but not the same number as RFC 3550 would calculate.
 
-    // TODO: perDscpPacketsReceived
-    /**
-     * Total number of packets received for this SSRC, per Differentiated Services code point (DSCP) [RFC2474]. DSCPs are identified as decimal
-     * integers in string form. Note that due to network remapping and bleaching, these numbers are not expected to match the numbers seen on sending.
-     * Not all OSes make this information available.
-     */
-    //    record<USVString, unsigned long long> perDscpPacketsReceived;
     UINT32 nackCount; //!< TODO Count the total number of Negative ACKnowledgement (NACK) packets sent by this receiver.
     UINT32 firCount;  //!< TODO Only valid for video. Count the total number of Full Intra Request (FIR) packets sent by this receiver.
     UINT32 pliCount;  //!< TODO Only valid for video. Count the total number of Picture Loss Indication (PLI) packets sent by this receiver.
@@ -493,10 +531,10 @@ typedef struct {
  * Reference: https://www.w3.org/TR/webrtc/#dom-rtcdatachannelstate
  */
 typedef enum {
-    RTC_DATA_CHANNEL_STATE_CONNECTING,
-    RTC_DATA_CHANNEL_STATE_OPEN,
-    RTC_DATA_CHANNEL_STATE_CLOSING,
-    RTC_DATA_CHANNEL_STATE_CLOSED
+    RTC_DATA_CHANNEL_STATE_CONNECTING, //!< Set while creating data channel
+    RTC_DATA_CHANNEL_STATE_OPEN,       //!< Set on opening data channel on embedded side or receiving onOpen event
+    RTC_DATA_CHANNEL_STATE_CLOSING,    //!< TODO: Set the state to closed after adding onClosing handler to data channel
+    RTC_DATA_CHANNEL_STATE_CLOSED      //!< TODO: Set the state to closed after adding onClose handler to data channel
 } RTC_DATA_CHANNEL_STATE;
 
 /**
@@ -506,13 +544,13 @@ typedef struct {
     DOMString label;              //!< The "label" value of the RTCDataChannel object.
     DOMString protocol;           //!< The "protocol" value of the RTCDataChannel object.
     INT32 dataChannelIdentifier;  //!< The "id" attribute of the RTCDataChannel object.
-    DOMString transportId;        //!< A stats object reference for the transport used to carry this datachannel.
+    DOMString transportId;        //!< TODO: A stats object reference for the transport used to carry this datachannel.
     RTC_DATA_CHANNEL_STATE state; //!< The "readyState" value of the RTCDataChannel object.
     UINT32 messagesSent;          //!< Represents the total number of API "message" events sent.
     UINT64 bytesSent;        //!< Represents the total number of payload bytes sent on this RTCDatachannel, i.e., not including headers or padding.
-    UINT32 messagesReceived; //<! Represents the total number of API "message" events received.
+    UINT32 messagesReceived; //!< Represents the total number of API "message" events received.
     UINT64 bytesReceived;    //!< Represents the total number of bytes received on this RTCDatachannel, i.e., not including headers or padding.
-} RTCDataChannelStats, *PRTCDataChannelStats;
+} RtcDataChannelStats, *PRtcDataChannelStats;
 
 /**
  * @brief SignalingClientMetrics Represent the stats related to the KVS WebRTC SDK signaling client
@@ -554,7 +592,9 @@ typedef struct {
     RtcOutboundRtpStreamStats outboundRtpStreamStats;           //!< Outbound RTP Stream stats object
     RtcRemoteInboundRtpStreamStats remoteInboundRtpStreamStats; //!< Remote Inbound RTP Stream stats object
     RtcInboundRtpStreamStats inboundRtpStreamStats;             //!< Inbound RTP Stream stats object
+    RtcDataChannelStats rtcDataChannelStats;
 } RtcStatsObject, *PRtcStatsObject;
+/*!@} */
 
 #ifdef __cplusplus
 }

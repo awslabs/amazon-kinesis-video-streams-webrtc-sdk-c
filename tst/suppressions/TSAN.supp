@@ -607,3 +607,56 @@ race:PeerConnectionFunctionalityTest_freeTurnDueToP2PFoundBeforeTurnEstablished_
 race:PeerConnectionFunctionalityTest_freeTurnDueToP2PFoundAfterTurnEstablished
 race:DataChannelFunctionalityTest_createDataChannel_Disconnected_Test
 race:SignalingApiFunctionalityTest_iceRefreshEmulationWithFaultInjectionErrorDisconnect_Test
+race:SignalingApiFunctionalityTest_iceRefreshEmulationWithFaultInjectionErrorDisconnectNoRecovery_Test
+
+race:getDataChannelStats
+# WARNING: ThreadSanitizer: data race (pid=51832)
+#  Read of size 8 at 0x7b6800020358 by main thread:
+#    #0 getDataChannelStats Metrics.c:151 (libkvsWebrtcClient.dylib:x86_64+0x36505)
+#    #1 rtcPeerConnectionGetMetrics Metrics.c:197 (libkvsWebrtcClient.dylib:x86_64+0x36d33)
+#    #2 com::amazonaws::kinesis::video::webrtcclient::DataChannelFunctionalityTest_createDataChannel_DataChannelMetricsTest_Test::TestBody() DataChannelFunctionalityTest.cpp:580 (webrtc_client_test:x86_64+0x10001ca19)
+#    #3 void testing::internal::HandleSehExceptionsInMethodIfSupported<testing::Test, void>(testing::Test*, void (testing::Test::*)(), char const*) <null> (webrtc_client_test:x86_64+0x10025b0bd)
+#    #4 main main.cpp:68 (webrtc_client_test:x86_64+0x10020be1d)
+
+#  Previous write of size 8 at 0x7b6800020358 by thread T8:
+#    #0 dataChannelSend DataChannel.c:69 (libkvsWebrtcClient.dylib:x86_64+0x375a3)
+#    #1 com::amazonaws::kinesis::video::webrtcclient::DataChannelFunctionalityTest_createDataChannel_DataChannelMetricsTest_Test::TestBody()::$_18::operator()(unsigned long long, __RtcDataChannel*) const DataChannelFunctionalityTest.cpp:542 (webrtc_client_test:x86_64+0x10002a90d)
+#    #2 com::amazonaws::kinesis::video::webrtcclient::DataChannelFunctionalityTest_createDataChannel_DataChannelMetricsTest_Test::TestBody()::$_18::__invoke(unsigned long long, __RtcDataChannel*) DataChannelFunctionalityTest.cpp:528 (webrtc_client_test:x86_64+0x10002a638)
+#    #3 onSctpSessionDataChannelOpen PeerConnection.c:490 (libkvsWebrtcClient.dylib:x86_64+0x3b504)
+#    #4 handleDcepPacket Sctp.c:317 (libkvsWebrtcClient.dylib:x86_64+0x5f34a)
+#    #5 onSctpInboundPacket Sctp.c:338 (libkvsWebrtcClient.dylib:x86_64+0x5e1ba)
+#    #6 sctp_invoke_recv_callback <null> (libusrsctp.1.dylib:x86_64+0xb501a)
+#    #7 onInboundPacket PeerConnection.c:126 (libkvsWebrtcClient.dylib:x86_64+0x3b703)
+#    #8 incomingDataHandler IceAgent.c:2156 (libkvsWebrtcClient.dylib:x86_64+0x10b15)
+#    #9 connectionListenerReceiveDataRoutine ConnectionListener.c:380 (libkvsWebrtcClient.dylib:x86_64+0xb0cb)
+
+#  As if synchronized via sleep:
+#    #0 usleep <null> (libclang_rt.tsan_osx_dynamic.dylib:x86_64h+0x2953e)
+#    #1 defaultThreadSleep <null> (libkvsWebrtcClient.dylib:x86_64+0x73566)
+#    #2 com::amazonaws::kinesis::video::webrtcclient::DataChannelFunctionalityTest_createDataChannel_DataChannelMetricsTest_Test::TestBody() DataChannelFunctionalityTest.cpp:574 (webrtc_client_test:x86_64+0x10001c65a)
+#    #3 void testing::internal::HandleSehExceptionsInMethodIfSupported<testing::Test, void>(testing::Test*, void (testing::Test::*)(), char const*) <null> (webrtc_client_test:x86_64+0x10025b0bd)
+#    #4 main main.cpp:68 (webrtc_client_test:x86_64+0x10020be1d)
+
+#  Location is heap block of size 1408 at 0x7b680001fe00 allocated by thread T8:
+#    #0 calloc <null> (libclang_rt.tsan_osx_dynamic.dylib:x86_64h+0x4e7e2)
+#    #1 defaultMemCalloc <null> (libkvsWebrtcClient.dylib:x86_64+0x6c40c)
+#    #2 handleDcepPacket Sctp.c:317 (libkvsWebrtcClient.dylib:x86_64+0x5f34a)
+#    #3 onSctpInboundPacket Sctp.c:338 (libkvsWebrtcClient.dylib:x86_64+0x5e1ba)
+#    #4 sctp_invoke_recv_callback <null> (libusrsctp.1.dylib:x86_64+0xb501a)
+#    #5 onInboundPacket PeerConnection.c:126 (libkvsWebrtcClient.dylib:x86_64+0x3b703)
+#    #6 incomingDataHandler IceAgent.c:2156 (libkvsWebrtcClient.dylib:x86_64+0x10b15)
+#    #7 connectionListenerReceiveDataRoutine ConnectionListener.c:380 (libkvsWebrtcClient.dylib:x86_64+0xb0cb)
+
+#  Thread T8 (tid=5082892, running) created by main thread at:
+#    #0 pthread_create <null> (libclang_rt.tsan_osx_dynamic.dylib:x86_64h+0x2a99d)
+#    #1 defaultCreateThread <null> (libkvsWebrtcClient.dylib:x86_64+0x73293)
+#    #2 iceAgentStartGathering IceAgent.c:537 (libkvsWebrtcClient.dylib:x86_64+0x116a9)
+#    #3 setLocalDescription PeerConnection.c:1050 (libkvsWebrtcClient.dylib:x86_64+0x423af)
+#    #4 com::amazonaws::kinesis::video::webrtcclient::WebRtcClientTestBase::connectTwoPeers(RtcPeerConnection*, RtcPeerConnection*, char*, char*) WebRTCClientTestFixture.cpp:211 (webrtc_client_test:x86_64+0x1002037b0)
+#    #5 com::amazonaws::kinesis::video::webrtcclient::DataChannelFunctionalityTest_createDataChannel_DataChannelMetricsTest_Test::TestBody() DataChannelFunctionalityTest.cpp:574 (webrtc_client_test:x86_64+0x10001c65a)
+#    #6 void testing::internal::HandleSehExceptionsInMethodIfSupported<testing::Test, void>(testing::Test*, void (testing::Test::*)(), char const*) <null> (webrtc_client_test:x86_64+0x10025b0bd)
+#    #7 main main.cpp:68 (webrtc_client_test:x86_64+0x10020be1d)
+
+#SUMMARY: ThreadSanitizer: data race Metrics.c:151 in getDataChannelStats
+
+

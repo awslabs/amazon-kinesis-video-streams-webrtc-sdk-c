@@ -226,8 +226,7 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
 
     MUTEX_LOCK(pKvsPeerConnection->pSrtpSessionLock);
     locked = TRUE;
-    CHK(pKvsPeerConnection->pSrtpSession != NULL, STATUS_SUCCESS); // Discard packets till SRTP is ready
-
+    CHK(pKvsPeerConnection->pSrtpSession != NULL, STATUS_SRTP_NOT_READY_YET); // Discard packets till SRTP is ready
     switch (pKvsRtpTransceiver->sender.track.codec) {
         case RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE:
             rtpPayloadFunc = createPayloadForH264;
@@ -305,7 +304,6 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
             continue;
         }
         CHK_STATUS(sendStatus);
-
         if (bufferAfterEncrypt) {
             pRtpPacket->pRawPacket = rawPacket;
             pRtpPacket->rawPacketLength = packetLen;
@@ -368,8 +366,9 @@ CleanUp:
 
     SAFE_MEMFREE(rawPacket);
     SAFE_MEMFREE(pPacketList);
-
-    CHK_LOG_ERR(retStatus);
+    if (retStatus != STATUS_SRTP_NOT_READY_YET) {
+        CHK_LOG_ERR(retStatus);
+    }
 
     return retStatus;
 }
@@ -415,13 +414,14 @@ STATUS findTransceiverBySsrc(PKvsPeerConnection pKvsPeerConnection, PKvsRtpTrans
     PKvsRtpTransceiver pTransceiver = NULL;
     CHK(pKvsPeerConnection != NULL && ppTransceiver != NULL, STATUS_NULL_ARG);
 
-    CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pTransceievers, &pCurNode));
+    CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pTransceivers, &pCurNode));
     while (pCurNode != NULL) {
         CHK_STATUS(doubleListGetNodeData(pCurNode, &item));
         pTransceiver = (PKvsRtpTransceiver) item;
         if (pTransceiver->sender.ssrc == ssrc || pTransceiver->sender.rtxSsrc == ssrc || pTransceiver->jitterBufferSsrc == ssrc) {
             break;
         }
+        pTransceiver = NULL;
         pCurNode = pCurNode->pNext;
     }
     CHK(pTransceiver != NULL, STATUS_NOT_FOUND);
