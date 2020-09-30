@@ -613,9 +613,9 @@ STATUS createCertificateAndKey(INT32 certificateBits, BOOL generateRSACertificat
     CHK(pCert != NULL && pKey != NULL, STATUS_NULL_ARG);
 
     CHK(NULL != (pCertBuf = (PCHAR) MEMALLOC(GENERATED_CERTIFICATE_MAX_SIZE)), STATUS_NOT_ENOUGH_MEMORY);
-    CHK(NULL != (pEntropy = (mbedtls_entropy_context*) MEMALLOC(sizeof(mbedtls_entropy_context))), STATUS_NOT_ENOUGH_MEMORY);
-    CHK(NULL != (pCtrDrbg = (mbedtls_ctr_drbg_context*) MEMALLOC(sizeof(mbedtls_ctr_drbg_context))), STATUS_NOT_ENOUGH_MEMORY);
-    CHK(NULL != (pWriteCert = (mbedtls_x509write_cert*) MEMALLOC(sizeof(mbedtls_x509write_cert))), STATUS_NOT_ENOUGH_MEMORY);
+    CHK(NULL != (pEntropy = (mbedtls_entropy_context*) MEMALLOC(SIZEOF(mbedtls_entropy_context))), STATUS_NOT_ENOUGH_MEMORY);
+    CHK(NULL != (pCtrDrbg = (mbedtls_ctr_drbg_context*) MEMALLOC(SIZEOF(mbedtls_ctr_drbg_context))), STATUS_NOT_ENOUGH_MEMORY);
+    CHK(NULL != (pWriteCert = (mbedtls_x509write_cert*) MEMALLOC(SIZEOF(mbedtls_x509write_cert))), STATUS_NOT_ENOUGH_MEMORY);
 
     // initialize to sane values
     mbedtls_entropy_init(pEntropy);
