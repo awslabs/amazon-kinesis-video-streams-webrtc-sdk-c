@@ -282,11 +282,11 @@ BOOL socketConnectionIsConnected(PSocketConnection pSocketConnection)
     }
 
     retVal = connect(pSocketConnection->localSocket, peerSockAddr, addrLen);
-    if (retVal == 0 || errno == EISCONN) {
+    if (retVal == 0 || getErrorCode() == EISCONN) {
         return TRUE;
     }
 
-    DLOGW("socket connection check failed with errno %s", strerror(errno));
+    DLOGW("socket connection check failed with errno %s", getErrorString(getErrorCode()));
     return FALSE;
 }
 
@@ -330,7 +330,7 @@ STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, U
     while (socketWriteAttempt < MAX_SOCKET_WRITE_RETRY && bytesWritten < bufLen) {
         result = sendto(pSocketConnection->localSocket, buf, bufLen, NO_SIGNAL, destAddr, addrLen);
         if (result < 0) {
-            errorNum = errno;
+            errorNum = getErrorCode();
             if (errorNum == EAGAIN || errorNum == EWOULDBLOCK) {
                 FD_ZERO(&wfds);
                 FD_SET(pSocketConnection->localSocket, &wfds);
@@ -342,14 +342,14 @@ STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, U
                     /* loop back and try again */
                     DLOGD("select() timed out");
                 } else if (result < 0) {
-                    DLOGD("select() failed with errno %s", strerror(errorNum));
+                    DLOGD("select() failed with errno %s", getErrorString(getErrorCode()));
                     break;
                 }
             } else if (errorNum == EINTR) {
                 /* nothing need to be done, just retry */
             } else {
                 /* fatal error from send() */
-                DLOGD("sendto() failed with errno %s", strerror(errorNum));
+                DLOGD("sendto() failed with errno %s", getErrorString(errorNum));
                 break;
             }
         } else {

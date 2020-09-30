@@ -97,6 +97,18 @@ STATUS getIpAddrStr(PKvsIpAddress, PCHAR, UINT32);
 
 BOOL isSameIpAddress(PKvsIpAddress, PKvsIpAddress, BOOL);
 
+/**
+ * @return - INT32 error code
+ */
+INT32 getErrorCode(VOID);
+
+/**
+ * @param - INT32 - IN - error code
+ *
+ * @return - PCHAR string associated with error code
+ */
+PCHAR getErrorString(INT32);
+
 #ifdef __cplusplus
 }
 #endif
