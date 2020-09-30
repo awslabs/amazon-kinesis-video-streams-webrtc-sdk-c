@@ -152,8 +152,9 @@ Public Attributes</h2></td></tr>
 <tr class="separator:aa2842165f2cf75b7b5efd29b3fd0ad00"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad71ad69e4a18ab0d5bda6fe07688baab"><td class="memItemLeft" align="right" valign="top">CHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct____IceAgent.html#ad71ad69e4a18ab0d5bda6fe07688baab">remotePassword</a> [<a class="el" href="group__NameLengths.html#ga1ec791416eaa9a8766236679710dde4f">MAX_ICE_CONFIG_CREDENTIAL_LEN</a>+1]</td></tr>
 <tr class="separator:ad71ad69e4a18ab0d5bda6fe07688baab"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a4e01e9f264d701a1ab6120325dc92ee4"><td class="memItemLeft" align="right" valign="top">CHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct____IceAgent.html#a4e01e9f264d701a1ab6120325dc92ee4">combinedUserName</a> [<a class="el" href="group__NameLengths.html#ga4c7a7503d9f24367262a592de310c1b1">MAX_ICE_CONFIG_USER_NAME_LEN</a>+1]</td></tr>
-<tr class="separator:a4e01e9f264d701a1ab6120325dc92ee4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a542a797037c4980c4e416f52c0f0f1d9"><td class="memItemLeft" align="right" valign="top">CHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct____IceAgent.html#a542a797037c4980c4e416f52c0f0f1d9">combinedUserName</a> [(<a class="el" href="group__NameLengths.html#ga4c7a7503d9f24367262a592de310c1b1">MAX_ICE_CONFIG_USER_NAME_LEN</a>+1)&lt;&lt; 1]</td></tr>
+<tr class="memdesc:a542a797037c4980c4e416f52c0f0f1d9"><td class="mdescLeft">&#160;</td><td class="mdescRight">the combination of remote user name and local user name.  <a href="struct____IceAgent.html#a542a797037c4980c4e416f52c0f0f1d9">More...</a><br /></td></tr>
+<tr class="separator:a542a797037c4980c4e416f52c0f0f1d9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a00c12c653fa5c71fc4b1fad50b3d9457"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structRtcIceServerDiagnostics.html">RtcIceServerDiagnostics</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct____IceAgent.html#a00c12c653fa5c71fc4b1fad50b3d9457">rtcIceServerDiagnostics</a> [<a class="el" href="group__Counts.html#gaf71fd75acb6989a1b298d55458dda375">MAX_ICE_SERVERS_COUNT</a>]</td></tr>
 <tr class="separator:a00c12c653fa5c71fc4b1fad50b3d9457"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4c54bebafd209785d69b669cf5ea1e7c"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structRtcIceCandidateDiagnostics.html">RtcIceCandidateDiagnostics</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct____IceAgent.html#a4c54bebafd209785d69b669cf5ea1e7c">rtcSelectedLocalIceCandidateDiagnostics</a></td></tr>
@@ -272,17 +273,19 @@ Public Attributes</h2></td></tr>
 
 </div>
 </div>
-<a id="a4e01e9f264d701a1ab6120325dc92ee4"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a4e01e9f264d701a1ab6120325dc92ee4">&#9670;&nbsp;</a></span>combinedUserName</h2>
+<a id="a542a797037c4980c4e416f52c0f0f1d9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a542a797037c4980c4e416f52c0f0f1d9">&#9670;&nbsp;</a></span>combinedUserName</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">CHAR __IceAgent::combinedUserName[<a class="el" href="group__NameLengths.html#ga4c7a7503d9f24367262a592de310c1b1">MAX_ICE_CONFIG_USER_NAME_LEN</a>+1]</td>
+          <td class="memname">CHAR __IceAgent::combinedUserName[(<a class="el" href="group__NameLengths.html#ga4c7a7503d9f24367262a592de310c1b1">MAX_ICE_CONFIG_USER_NAME_LEN</a>+1)&lt;&lt; 1]</td>
         </tr>
       </table>
 </div><div class="memdoc">
+
+<p>the combination of remote user name and local user name. </p>
 
 </div>
 </div>
@@ -911,7 +914,7 @@ Public Attributes</h2></td></tr>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="struct____IceAgent.html">__IceAgent</a></li>
-    <li class="footer">Generated on Wed Sep 30 2020 18:27:47 for Amazon Kinesis Webrtc C SDK by
+    <li class="footer">Generated on Wed Sep 30 2020 19:36:31 for Amazon Kinesis Webrtc C SDK by
     <a href="http://www.doxygen.org/index.html">
     <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.18 </li>
   </ul>

@@ -51,7 +51,7 @@ var searchData=
   ['codec_5fhash_5ftable_5fbucket_5fcount_123',['CODEC_HASH_TABLE_BUCKET_COUNT',['../PeerConnection_8h.html#a15a20e6b29d7a3ab5af1bee5ba8cc5e2',1,'PeerConnection.h']]],
   ['codec_5fhash_5ftable_5fbucket_5flength_124',['CODEC_HASH_TABLE_BUCKET_LENGTH',['../PeerConnection_8h.html#a2285baf450dcb102c456632b4c004598',1,'PeerConnection.h']]],
   ['codecid_125',['codecId',['../structRTCRtpStreamStats.html#a5105d3da5dec4cde28ba4aa8569c2478',1,'RTCRtpStreamStats']]],
-  ['combinedusername_126',['combinedUserName',['../struct____IceAgent.html#a4e01e9f264d701a1ab6120325dc92ee4',1,'__IceAgent']]],
+  ['combinedusername_126',['combinedUserName',['../struct____IceAgent.html#a542a797037c4980c4e416f52c0f0f1d9',1,'__IceAgent']]],
   ['completechanneldatabuffer_127',['completeChannelDataBuffer',['../struct____TurnConnection.html#a7d3932561fce2c8cedb96a93390ee63f',1,'__TurnConnection']]],
   ['computecandidatepairpriority_128',['computeCandidatePairPriority',['../IceAgent_8c.html#aea82ec5c31f92655c535153ae0c9ed85',1,'computeCandidatePairPriority(PIceCandidatePair pIceCandidatePair, BOOL isLocalControlling):&#160;IceAgent.c'],['../IceAgent_8h.html#a310353b6a6ec17871308316b8c67bd90',1,'computeCandidatePairPriority(PIceCandidatePair, BOOL):&#160;IceAgent.c']]],
   ['computecandidatepriority_129',['computeCandidatePriority',['../IceAgent_8c.html#a59fb161f9a724412e557db0531d15cb9',1,'computeCandidatePriority(PIceCandidate pIceCandidate):&#160;IceAgent.c'],['../IceAgent_8h.html#a699e942cc74cad6a53bbd6c100966088',1,'computeCandidatePriority(PIceCandidate):&#160;IceAgent.c']]],

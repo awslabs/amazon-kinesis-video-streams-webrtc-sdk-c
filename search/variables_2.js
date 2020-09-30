@@ -34,7 +34,7 @@ var searchData=
   ['clockrate_3202',['clockRate',['../structJitterBuffer.html#af5aa76278a40d179e2632ead5af499c3',1,'JitterBuffer']]],
   ['codec_3203',['codec',['../structRtcMediaStreamTrack.html#a5ecb0a5e7fa90e50d893437388568445',1,'RtcMediaStreamTrack']]],
   ['codecid_3204',['codecId',['../structRTCRtpStreamStats.html#a5105d3da5dec4cde28ba4aa8569c2478',1,'RTCRtpStreamStats']]],
-  ['combinedusername_3205',['combinedUserName',['../struct____IceAgent.html#a4e01e9f264d701a1ab6120325dc92ee4',1,'__IceAgent']]],
+  ['combinedusername_3205',['combinedUserName',['../struct____IceAgent.html#a542a797037c4980c4e416f52c0f0f1d9',1,'__IceAgent']]],
   ['completechanneldatabuffer_3206',['completeChannelDataBuffer',['../struct____TurnConnection.html#a7d3932561fce2c8cedb96a93390ee63f',1,'__TurnConnection']]],
   ['concealedsamples_3207',['concealedSamples',['../structRtcInboundRtpStreamStats.html#a2e11b22d3d6cb3f9be452ca4f4e6b717',1,'RtcInboundRtpStreamStats']]],
   ['concealmentevents_3208',['concealmentEvents',['../structRtcInboundRtpStreamStats.html#a5c6669b6dd3275e752bbd21a8f253ecd',1,'RtcInboundRtpStreamStats']]],
