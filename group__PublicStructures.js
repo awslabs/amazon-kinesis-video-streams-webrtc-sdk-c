@@ -17,9 +17,9 @@ var group__PublicStructures =
       [ "receiver", "structRtcRtpTransceiver.html#a9da0bde056ac3a5dc58eba5039c24a63", null ]
     ] ],
     [ "RtcIceServer", "structRtcIceServer.html", [
-      [ "credential", "structRtcIceServer.html#a6167cbc07d8bc72172b2f41f2c76927f", null ],
+      [ "credential", "structRtcIceServer.html#a9285f0e90d1949fd98822d234f59ed6a", null ],
       [ "urls", "structRtcIceServer.html#a61295588ec2ba33f881ad9fe409d3266", null ],
-      [ "username", "structRtcIceServer.html#acc02ab16ed6b946cf1b8e4621ab67bf7", null ]
+      [ "username", "structRtcIceServer.html#a78f671a5121e5ba99a253108fb3d16c7", null ]
     ] ],
     [ "RtcCertificate", "structRtcCertificate.html", [
       [ "certificateSize", "structRtcCertificate.html#a30fcf18f61f0d54993d670edeb9b3b47", null ],
@@ -95,11 +95,11 @@ var group__PublicStructures =
       [ "version", "structChannelInfo.html#a7aef1a2aa352519fb948d32416fc94f3", null ]
     ] ],
     [ "IceConfigInfo", "structIceConfigInfo.html", [
-      [ "password", "structIceConfigInfo.html#a7c04091fe613e840e490c44893f5997f", null ],
+      [ "password", "structIceConfigInfo.html#a1db8b969ab7e15d5f1221bc04310b33d", null ],
       [ "ttl", "structIceConfigInfo.html#aa2a1f0b6e706876479142eb0f47bc7fe", null ],
       [ "uriCount", "structIceConfigInfo.html#a0994081094894c3559834299e4ce85fb", null ],
       [ "uris", "structIceConfigInfo.html#a223f06386852e206da201cd92b5f4b04", null ],
-      [ "userName", "structIceConfigInfo.html#a7ee9fc8595a6f4e47d6716aae4d6945a", null ],
+      [ "userName", "structIceConfigInfo.html#a3b18eba2e7f0da146df438408a2c8a1b", null ],
       [ "version", "structIceConfigInfo.html#a804c9f31a8d542f6ffee45d353f24c4e", null ]
     ] ],
     [ "SignalingClientCallbacks", "structSignalingClientCallbacks.html", [

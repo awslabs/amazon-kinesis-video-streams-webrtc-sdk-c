@@ -126,26 +126,26 @@ Public Attributes</h2></td></tr>
 <tr class="memitem:a223f06386852e206da201cd92b5f4b04"><td class="memItemLeft" align="right" valign="top">CHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structIceConfigInfo.html#a223f06386852e206da201cd92b5f4b04">uris</a> [4][256+1]</td></tr>
 <tr class="memdesc:a223f06386852e206da201cd92b5f4b04"><td class="mdescLeft">&#160;</td><td class="mdescRight">List of Ice server URIs.  <a href="structIceConfigInfo.html#a223f06386852e206da201cd92b5f4b04">More...</a><br /></td></tr>
 <tr class="separator:a223f06386852e206da201cd92b5f4b04"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7ee9fc8595a6f4e47d6716aae4d6945a"><td class="memItemLeft" align="right" valign="top">CHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structIceConfigInfo.html#a7ee9fc8595a6f4e47d6716aae4d6945a">userName</a> [512+1]</td></tr>
-<tr class="memdesc:a7ee9fc8595a6f4e47d6716aae4d6945a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Username for the server.  <a href="structIceConfigInfo.html#a7ee9fc8595a6f4e47d6716aae4d6945a">More...</a><br /></td></tr>
-<tr class="separator:a7ee9fc8595a6f4e47d6716aae4d6945a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7c04091fe613e840e490c44893f5997f"><td class="memItemLeft" align="right" valign="top">CHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structIceConfigInfo.html#a7c04091fe613e840e490c44893f5997f">password</a> [512+1]</td></tr>
-<tr class="memdesc:a7c04091fe613e840e490c44893f5997f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Password for the server.  <a href="structIceConfigInfo.html#a7c04091fe613e840e490c44893f5997f">More...</a><br /></td></tr>
-<tr class="separator:a7c04091fe613e840e490c44893f5997f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3b18eba2e7f0da146df438408a2c8a1b"><td class="memItemLeft" align="right" valign="top">CHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structIceConfigInfo.html#a3b18eba2e7f0da146df438408a2c8a1b">userName</a> [256+1]</td></tr>
+<tr class="memdesc:a3b18eba2e7f0da146df438408a2c8a1b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Username for the server.  <a href="structIceConfigInfo.html#a3b18eba2e7f0da146df438408a2c8a1b">More...</a><br /></td></tr>
+<tr class="separator:a3b18eba2e7f0da146df438408a2c8a1b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1db8b969ab7e15d5f1221bc04310b33d"><td class="memItemLeft" align="right" valign="top">CHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structIceConfigInfo.html#a1db8b969ab7e15d5f1221bc04310b33d">password</a> [256+1]</td></tr>
+<tr class="memdesc:a1db8b969ab7e15d5f1221bc04310b33d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Password for the server.  <a href="structIceConfigInfo.html#a1db8b969ab7e15d5f1221bc04310b33d">More...</a><br /></td></tr>
+<tr class="separator:a1db8b969ab7e15d5f1221bc04310b33d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>ICE configuration information struct. </p>
 <p>NOTE: Each ICE configuration has an array of ICE URIs. The actual URI count is specified in uriCount member.</p>
 <p>NOTE:TTL is given in default which is 100ns duration </p>
 </div><h2 class="groupheader">Member Data Documentation</h2>
-<a id="a7c04091fe613e840e490c44893f5997f"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a7c04091fe613e840e490c44893f5997f">&#9670;&nbsp;</a></span>password</h2>
+<a id="a1db8b969ab7e15d5f1221bc04310b33d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1db8b969ab7e15d5f1221bc04310b33d">&#9670;&nbsp;</a></span>password</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">CHAR IceConfigInfo::password[512+1]</td>
+          <td class="memname">CHAR IceConfigInfo::password[256+1]</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -202,14 +202,14 @@ Public Attributes</h2></td></tr>
 
 </div>
 </div>
-<a id="a7ee9fc8595a6f4e47d6716aae4d6945a"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a7ee9fc8595a6f4e47d6716aae4d6945a">&#9670;&nbsp;</a></span>userName</h2>
+<a id="a3b18eba2e7f0da146df438408a2c8a1b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a3b18eba2e7f0da146df438408a2c8a1b">&#9670;&nbsp;</a></span>userName</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">CHAR IceConfigInfo::userName[512+1]</td>
+          <td class="memname">CHAR IceConfigInfo::userName[256+1]</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -243,7 +243,7 @@ Public Attributes</h2></td></tr>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="structIceConfigInfo.html">IceConfigInfo</a></li>
-    <li class="footer">Generated on Wed Sep 23 2020 19:13:58 for Amazon Kinesis Webrtc C SDK by
+    <li class="footer">Generated on Wed Sep 30 2020 18:27:48 for Amazon Kinesis Webrtc C SDK by
     <a href="http://www.doxygen.org/index.html">
     <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.18 </li>
   </ul>
