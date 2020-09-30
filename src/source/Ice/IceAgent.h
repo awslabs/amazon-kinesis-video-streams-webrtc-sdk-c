@@ -188,7 +188,7 @@ struct __IceAgent {
     CHAR localPassword[MAX_ICE_CONFIG_CREDENTIAL_LEN + 1];
     CHAR remoteUsername[MAX_ICE_CONFIG_USER_NAME_LEN + 1];
     CHAR remotePassword[MAX_ICE_CONFIG_CREDENTIAL_LEN + 1];
-    CHAR combinedUserName[MAX_ICE_CONFIG_USER_NAME_LEN + 1];
+    CHAR combinedUserName[(MAX_ICE_CONFIG_USER_NAME_LEN+1)<<1];//!< the combination of remote user name and local user name.
 
     RtcIceServerDiagnostics rtcIceServerDiagnostics[MAX_ICE_SERVERS_COUNT];
     RtcIceCandidateDiagnostics rtcSelectedLocalIceCandidateDiagnostics;
