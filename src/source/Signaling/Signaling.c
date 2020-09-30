@@ -45,10 +45,7 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     if (pSignalingClient->pChannelInfo->cachingPolicy == SIGNALING_API_CALL_CACHE_TYPE_FILE) {
         // Signaling channel name can be NULL in case of pre-created channels in which case we use ARN as the name
         if (STATUS_FAILED(signalingCacheLoadFromFile(pChannelInfo->pChannelName != NULL ? pChannelInfo->pChannelName : pChannelInfo->pChannelArn,
-                                                     pChannelInfo->pRegion,
-                                                     pChannelInfo->channelRoleType,
-                                                     pFileCacheEntry,
-                                                     &cacheFound))) {
+                                                     pChannelInfo->pRegion, pChannelInfo->channelRoleType, pFileCacheEntry, &cacheFound))) {
             DLOGW("Failed to load signaling cache from file");
         } else if (cacheFound) {
             STRCPY(pSignalingClient->channelDescription.channelArn, pFileCacheEntry->channelArn);
