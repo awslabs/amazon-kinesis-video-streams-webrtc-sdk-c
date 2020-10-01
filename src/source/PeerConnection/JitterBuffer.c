@@ -79,6 +79,7 @@ STATUS jitterBufferPush(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket, PBOO
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS, status = STATUS_SUCCESS;
+    UINT64 hashValue = 0;
     PRtpPacket pCurPacket = NULL;
 
     CHK(pJitterBuffer != NULL && pRtpPacket != NULL, STATUS_NULL_ARG);
@@ -97,8 +98,8 @@ STATUS jitterBufferPush(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket, PBOO
 
     if ((pRtpPacket->header.timestamp < pJitterBuffer->maxLatency && pJitterBuffer->lastPushTimestamp <= pJitterBuffer->maxLatency) ||
         pRtpPacket->header.timestamp >= pJitterBuffer->lastPushTimestamp - pJitterBuffer->maxLatency) {
-        pCurPacket = NULL;
-        status = hashTableGet(pJitterBuffer->pPkgBufferHashTable, pRtpPacket->header.sequenceNumber, (PUINT64) &pCurPacket);
+        status = hashTableGet(pJitterBuffer->pPkgBufferHashTable, pRtpPacket->header.sequenceNumber, &hashValue);
+        pCurPacket = (PRtpPacket) hashValue;
         if (STATUS_SUCCEEDED(status) && pCurPacket != NULL) {
             freeRtpPacket(&pCurPacket);
             CHK_STATUS(hashTableRemove(pJitterBuffer->pPkgBufferHashTable, pRtpPacket->header.sequenceNumber));
@@ -136,6 +137,7 @@ STATUS jitterBufferPop(PJitterBuffer pJitterBuffer, BOOL bufferClosed)
     UINT16 startDropIndex = 0;
     UINT32 curFrameSize = 0;
     UINT32 partialFrameSize = 0;
+    UINT64 hashValue = 0;
     BOOL isStart = FALSE, containStartForEarliestFrame = FALSE, hasEntry = FALSE;
     UINT16 lastNonNullIndex = 0;
     PRtpPacket pCurPacket = NULL;
@@ -157,8 +159,8 @@ STATUS jitterBufferPop(PJitterBuffer pJitterBuffer, BOOL bufferClosed)
             CHK(pJitterBuffer->lastPopTimestamp < earliestTimestamp || bufferClosed, retStatus);
         } else {
             lastNonNullIndex = index;
-            pCurPacket = NULL;
-            retStatus = hashTableGet(pJitterBuffer->pPkgBufferHashTable, index, (PUINT64) &pCurPacket);
+            retStatus = hashTableGet(pJitterBuffer->pPkgBufferHashTable, index, &hashValue);
+            pCurPacket = (PRtpPacket) hashValue;
             if (retStatus == STATUS_SUCCESS || retStatus == STATUS_HASH_KEY_NOT_PRESENT) {
                 retStatus = STATUS_SUCCESS;
             } else {
@@ -211,7 +213,8 @@ STATUS jitterBufferPop(PJitterBuffer pJitterBuffer, BOOL bufferClosed)
         for (index = startDropIndex; UINT16_DEC(index) != lastNonNullIndex && hasEntry; index++) {
             CHK_STATUS(hashTableContains(pJitterBuffer->pPkgBufferHashTable, index, &hasEntry));
             if (hasEntry) {
-                CHK_STATUS(hashTableGet(pJitterBuffer->pPkgBufferHashTable, index, (PUINT64) &pCurPacket));
+                CHK_STATUS(hashTableGet(pJitterBuffer->pPkgBufferHashTable, index, &hashValue));
+                pCurPacket = (PRtpPacket) hashValue;
                 CHK_STATUS(pJitterBuffer->depayPayloadFn(pCurPacket->payload, pCurPacket->payloadLength, NULL, &partialFrameSize, NULL));
                 curFrameSize += partialFrameSize;
             }
@@ -240,6 +243,7 @@ STATUS jitterBufferDropBufferData(PJitterBuffer pJitterBuffer, UINT16 startIndex
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT16 index = startIndex;
+    UINT64 hashValue;
     PRtpPacket pCurPacket = NULL;
     BOOL hasEntry = FALSE;
 
@@ -247,7 +251,8 @@ STATUS jitterBufferDropBufferData(PJitterBuffer pJitterBuffer, UINT16 startIndex
     for (; UINT16_DEC(index) != endIndex; index++) {
         CHK_STATUS(hashTableContains(pJitterBuffer->pPkgBufferHashTable, index, &hasEntry));
         if (hasEntry) {
-            CHK_STATUS(hashTableGet(pJitterBuffer->pPkgBufferHashTable, index, (PUINT64) &pCurPacket));
+            CHK_STATUS(hashTableGet(pJitterBuffer->pPkgBufferHashTable, index, &hashValue));
+            pCurPacket = (PRtpPacket) hashValue;
             freeRtpPacket(&pCurPacket);
             CHK_STATUS(hashTableRemove(pJitterBuffer->pPkgBufferHashTable, index));
         }
