@@ -30,6 +30,12 @@ get_filename_component(ROOT "${CMAKE_CURRENT_SOURCE_DIR}" ABSOLUTE)
 # static settings
 if(BUILD_STATIC_LIBS OR WIN32)
   set(LINKAGE STATIC)
+  # Force CMake to find static libs
+  if(WIN32)
+    SET(CMAKE_FIND_LIBRARY_SUFFIXES .lib .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
+  else()
+    SET(CMAKE_FIND_LIBRARY_SUFFIXES .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
+  endif()
 else()
   set(LINKAGE SHARED)
 endif()
@@ -69,13 +75,13 @@ if(BUILD_DEPENDENCIES)
   endif()
 
   if (USE_OPENSSL)
-    set(BUILD_ARGS -DBUILD_STATIC=${BUILD_STATIC}
+    set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
                    -DBUILD_OPENSSL_PLATFORM=${BUILD_OPENSSL_PLATFORM}
                    -DOPENSSL_EXTRA=${OPENSSL_EXTRA})
     build_dependency(openssl ${BUILD_ARGS})
     set(OPENSSL_ROOT_DIR ${OPEN_SRC_INSTALL_PREFIX})
   elseif(USE_MBEDTLS)
-    set(BUILD_ARGS -DBUILD_STATIC=${BUILD_STATIC})
+    set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS})
     build_dependency(mbedtls ${BUILD_ARGS})
   endif()
 
@@ -269,16 +275,16 @@ add_library(kvsWebrtcSignalingClient ${LINKAGE} ${WEBRTC_SIGNALING_CLIENT_SOURCE
 
 target_link_libraries(
   kvsWebrtcSignalingClient
+  PUBLIC
+        ${LIBWEBSOCKETS_LIBRARIES} 
+        kvsCommonLws
   PRIVATE kvspicUtils
          kvspicState
          ${CMAKE_THREAD_LIBS_INIT}
          ${EXTRA_DEPS}
          ${OPENSSL_SSL_LIBRARY}
          ${OPENSSL_CRYPTO_LIBRARY}
-         ${MBEDTLS_LIBRARIES}
-  PUBLIC
-        ${LIBWEBSOCKETS_LIBRARIES} 
-        kvsCommonLws)
+         ${MBEDTLS_LIBRARIES})
 
 if (WIN32)
   target_link_libraries(kvsWebrtcClient PRIVATE "Ws2_32" "iphlpapi")
