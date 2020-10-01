@@ -942,11 +942,14 @@ STATUS submitPendingIceCandidate(PStackQueue pPendingMessageQueue, PSampleStream
     STATUS retStatus = STATUS_SUCCESS;
     BOOL noPendingSignalingMessageForClient = FALSE;
     PReceivedSignalingMessage pReceivedSignalingMessage = NULL;
+    UINT64 hashValue;
 
     do {
         CHK_STATUS(stackQueueIsEmpty(pPendingMessageQueue, &noPendingSignalingMessageForClient));
         if (!noPendingSignalingMessageForClient) {
-            CHK_STATUS(stackQueueDequeue(pPendingMessageQueue, (PUINT64) &pReceivedSignalingMessage));
+            hashValue = 0;
+            CHK_STATUS(stackQueueDequeue(pPendingMessageQueue, &hashValue));
+            pReceivedSignalingMessage = (PReceivedSignalingMessage) hashValue;
             if (pReceivedSignalingMessage->signalingMessage.messageType == SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE) {
                 CHK_STATUS(handleRemoteCandidate(pSampleStreamingSession, &pReceivedSignalingMessage->signalingMessage));
             }
