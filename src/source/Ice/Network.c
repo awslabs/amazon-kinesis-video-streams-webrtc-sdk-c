@@ -436,8 +436,8 @@ PCHAR getErrorString(INT32 error)
             break;
     }
     if (FormatMessage((FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS), NULL, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), buffer,
-                      sizeof(buffer), NULL) == 0) {
-        sprintf_s(buffer, sizeof(buffer), "error code %d", error);
+                      SIZEOF(buffer), NULL) == 0) {
+        SNPRINTF(buffer, SIZEOF(buffer), "error code %d", error);
     }
 
     return buffer;
