@@ -272,6 +272,7 @@ STATUS jitterBufferFillFrameData(PJitterBuffer pJitterBuffer, PBYTE pFrame, UINT
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT16 index = startIndex;
+    UINT64 hashValue;
     PRtpPacket pCurPacket = NULL;
     PBYTE pCurPtrInFrame = pFrame;
     UINT32 remainingFrameSize = frameSize;
@@ -279,8 +280,9 @@ STATUS jitterBufferFillFrameData(PJitterBuffer pJitterBuffer, PBYTE pFrame, UINT
 
     CHK(pJitterBuffer != NULL && pFrame != NULL && pFilledSize != NULL, STATUS_NULL_ARG);
     for (; UINT16_DEC(index) != endIndex; index++) {
-        pCurPacket = NULL;
-        retStatus = hashTableGet(pJitterBuffer->pPkgBufferHashTable, index, (PUINT64) &pCurPacket);
+        hashValue = 0;
+        retStatus = hashTableGet(pJitterBuffer->pPkgBufferHashTable, index, &hashValue);
+        pCurPacket = (PRtpPacket) hashValue;
         if (retStatus == STATUS_SUCCESS || retStatus == STATUS_HASH_KEY_NOT_PRESENT) {
             retStatus = STATUS_SUCCESS;
         } else {

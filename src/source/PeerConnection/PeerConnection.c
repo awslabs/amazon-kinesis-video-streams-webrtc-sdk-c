@@ -473,10 +473,12 @@ VOID onSctpSessionDataChannelMessage(UINT64 customData, UINT32 channelId, BOOL i
     STATUS retStatus = STATUS_SUCCESS;
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) customData;
     PKvsDataChannel pKvsDataChannel = NULL;
+    UINT64 hashValue = 0;
 
     CHK(pKvsPeerConnection != NULL, STATUS_INTERNAL_ERROR);
 
-    retStatus = hashTableGet(pKvsPeerConnection->pDataChannels, channelId, (PUINT64) &pKvsDataChannel);
+    retStatus = hashTableGet(pKvsPeerConnection->pDataChannels, channelId, &hashValue);
+    pKvsDataChannel = (PKvsDataChannel) hashValue;
     if (retStatus == STATUS_SUCCESS || retStatus == STATUS_HASH_KEY_NOT_PRESENT) {
         retStatus = STATUS_SUCCESS;
     } else {
