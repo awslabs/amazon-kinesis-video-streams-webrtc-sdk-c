@@ -376,6 +376,9 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
         curr = next + 1;
     }
 
+    CHK(foundPort, STATUS_ICE_CANDIDATE_STRING_MISSING_PORT);
+    CHK(foundIp, STATUS_ICE_CANDIDATE_STRING_MISSING_IP);
+
     CHK_STATUS(findCandidateWithIp(&candidateIpAddr, pIceAgent->remoteCandidates, &pDuplicatedIceCandidate));
     CHK(pDuplicatedIceCandidate == NULL, retStatus);
 
