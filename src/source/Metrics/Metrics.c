@@ -180,9 +180,11 @@ STATUS getDataChannelStats(PRtcPeerConnection pRtcPeerConnection, PRtcDataChanne
 {
     STATUS retStatus = STATUS_SUCCESS;
     PKvsDataChannel pKvsDataChannel = NULL;
+    UINT64 hashValue = 0;
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pRtcPeerConnection;
     CHK(pRtcPeerConnection != NULL && pRtcDataChannelStats != NULL, STATUS_NULL_ARG);
-    CHK_STATUS(hashTableGet(pKvsPeerConnection->pDataChannels, pRtcDataChannelStats->dataChannelIdentifier, (PUINT64) &pKvsDataChannel));
+    CHK_STATUS(hashTableGet(pKvsPeerConnection->pDataChannels, pRtcDataChannelStats->dataChannelIdentifier, &hashValue));
+    pKvsDataChannel = (PKvsDataChannel) hashValue;
     pRtcDataChannelStats->bytesReceived = pKvsDataChannel->rtcDataChannelDiagnostics.bytesReceived;
     pRtcDataChannelStats->bytesSent = pKvsDataChannel->rtcDataChannelDiagnostics.bytesSent;
     STRCPY(pRtcDataChannelStats->label, pKvsDataChannel->rtcDataChannelDiagnostics.label);

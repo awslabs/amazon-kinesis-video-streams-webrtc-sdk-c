@@ -18,6 +18,7 @@ CleanUp:
 
 STATUS dtlsSessionOnStateChange(PDtlsSession pDtlsSession, UINT64 customData, DtlsSessionOnStateChange callbackFn)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
 
     CHK(pDtlsSession != NULL && callbackFn != NULL, STATUS_NULL_ARG);
@@ -28,6 +29,7 @@ STATUS dtlsSessionOnStateChange(PDtlsSession pDtlsSession, UINT64 customData, Dt
     MUTEX_UNLOCK(pDtlsSession->sslLock);
 
 CleanUp:
+    LEAVES();
     return retStatus;
 }
 

@@ -4,7 +4,7 @@ project(libwebsocket-download NONE)
 
 include(ExternalProject)
 
-if (BUILD_STATIC)
+if (BUILD_STATIC_LIBS)
   set(LWS_WITH_STATIC 1)
   set(LWS_WITH_SHARED 0)
 else()
