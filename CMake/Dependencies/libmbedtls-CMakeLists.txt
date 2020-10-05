@@ -4,7 +4,7 @@ project(libmbedtls-download NONE)
 
 include(ExternalProject)
 
-if (BUILD_STATIC)
+if (BUILD_STATIC_LIBS)
   set(BUILD_SHARED 0)
 else()
   set(BUILD_SHARED 1)
@@ -29,5 +29,6 @@ ExternalProject_Add(
     -DUSE_SHARED_MBEDTLS_LIBRARY=${BUILD_SHARED}
     -DCMAKE_BUILD_TYPE=Release
     -DCMAKE_MACOSX_RPATH=${CMAKE_MACOSX_RPATH}
+    -DENABLE_TESTING=OFF
   BUILD_ALWAYS    TRUE
   TEST_COMMAND    "")

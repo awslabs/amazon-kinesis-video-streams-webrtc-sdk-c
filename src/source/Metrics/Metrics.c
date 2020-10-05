@@ -116,12 +116,14 @@ STATUS getRtpRemoteInboundStats(PRtcPeerConnection pRtcPeerConnection, PRtcRtpTr
 {
     STATUS retStatus = STATUS_SUCCESS;
     PDoubleListNode node = NULL;
+    UINT64 hashValue = 0;
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pRtcPeerConnection;
     CHK(pRtcPeerConnection != NULL || pRtcRemoteInboundRtpStreamStats != NULL, STATUS_NULL_ARG);
     PKvsRtpTransceiver pKvsRtpTransceiver = (PKvsRtpTransceiver) pTransceiver;
     if (pKvsRtpTransceiver == NULL) {
         CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pTransceivers, &node));
-        CHK_STATUS(doubleListGetNodeData(node, (PUINT64) &pKvsRtpTransceiver));
+        CHK_STATUS(doubleListGetNodeData(node, &hashValue));
+        pKvsRtpTransceiver = (PKvsRtpTransceiver) hashValue;
         CHK(pKvsRtpTransceiver != NULL, STATUS_NOT_FOUND);
     }
     // check if specified transceiver belongs to this connection
@@ -138,12 +140,14 @@ STATUS getRtpOutboundStats(PRtcPeerConnection pRtcPeerConnection, PRtcRtpTransce
 {
     STATUS retStatus = STATUS_SUCCESS;
     PDoubleListNode node = NULL;
+    UINT64 hashValue = 0;
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pRtcPeerConnection;
     CHK(pRtcPeerConnection != NULL || pRtcOutboundRtpStreamStats != NULL, STATUS_NULL_ARG);
     PKvsRtpTransceiver pKvsRtpTransceiver = (PKvsRtpTransceiver) pTransceiver;
     if (pKvsRtpTransceiver == NULL) {
         CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pTransceivers, &node));
-        CHK_STATUS(doubleListGetNodeData(node, (PUINT64) &pKvsRtpTransceiver));
+        CHK_STATUS(doubleListGetNodeData(node, &hashValue));
+        pKvsRtpTransceiver = (PKvsRtpTransceiver) hashValue;
         CHK(pKvsRtpTransceiver != NULL, STATUS_NOT_FOUND);
     }
     // check if specified transceiver belongs to this connection
@@ -159,12 +163,14 @@ STATUS getRtpInboundStats(PRtcPeerConnection pRtcPeerConnection, PRtcRtpTranscei
 {
     STATUS retStatus = STATUS_SUCCESS;
     PDoubleListNode node = NULL;
+    UINT64 hashValue;
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pRtcPeerConnection;
     CHK(pRtcPeerConnection != NULL || pRtcInboundRtpStreamStats != NULL, STATUS_NULL_ARG);
     PKvsRtpTransceiver pKvsRtpTransceiver = (PKvsRtpTransceiver) pTransceiver;
     if (pKvsRtpTransceiver == NULL) {
         CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pTransceivers, &node));
-        CHK_STATUS(doubleListGetNodeData(node, (PUINT64) &pKvsRtpTransceiver));
+        CHK_STATUS(doubleListGetNodeData(node, &hashValue));
+        pKvsRtpTransceiver = (PKvsRtpTransceiver) hashValue;
         CHK(pKvsRtpTransceiver != NULL, STATUS_NOT_FOUND);
     }
     // check if specified transceiver belongs to this connection
@@ -180,9 +186,11 @@ STATUS getDataChannelStats(PRtcPeerConnection pRtcPeerConnection, PRtcDataChanne
 {
     STATUS retStatus = STATUS_SUCCESS;
     PKvsDataChannel pKvsDataChannel = NULL;
+    UINT64 hashValue = 0;
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pRtcPeerConnection;
     CHK(pRtcPeerConnection != NULL && pRtcDataChannelStats != NULL, STATUS_NULL_ARG);
-    CHK_STATUS(hashTableGet(pKvsPeerConnection->pDataChannels, pRtcDataChannelStats->dataChannelIdentifier, (PUINT64) &pKvsDataChannel));
+    CHK_STATUS(hashTableGet(pKvsPeerConnection->pDataChannels, pRtcDataChannelStats->dataChannelIdentifier, &hashValue));
+    pKvsDataChannel = (PKvsDataChannel) hashValue;
     pRtcDataChannelStats->bytesReceived = pKvsDataChannel->rtcDataChannelDiagnostics.bytesReceived;
     pRtcDataChannelStats->bytesSent = pKvsDataChannel->rtcDataChannelDiagnostics.bytesSent;
     STRCPY(pRtcDataChannelStats->label, pKvsDataChannel->rtcDataChannelDiagnostics.label);

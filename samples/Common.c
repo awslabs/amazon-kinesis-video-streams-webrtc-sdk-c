@@ -942,11 +942,14 @@ STATUS submitPendingIceCandidate(PStackQueue pPendingMessageQueue, PSampleStream
     STATUS retStatus = STATUS_SUCCESS;
     BOOL noPendingSignalingMessageForClient = FALSE;
     PReceivedSignalingMessage pReceivedSignalingMessage = NULL;
+    UINT64 hashValue;
 
     do {
         CHK_STATUS(stackQueueIsEmpty(pPendingMessageQueue, &noPendingSignalingMessageForClient));
         if (!noPendingSignalingMessageForClient) {
-            CHK_STATUS(stackQueueDequeue(pPendingMessageQueue, (PUINT64) &pReceivedSignalingMessage));
+            hashValue = 0;
+            CHK_STATUS(stackQueueDequeue(pPendingMessageQueue, &hashValue));
+            pReceivedSignalingMessage = (PReceivedSignalingMessage) hashValue;
             if (pReceivedSignalingMessage->signalingMessage.messageType == SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE) {
                 CHK_STATUS(handleRemoteCandidate(pSampleStreamingSession, &pReceivedSignalingMessage->signalingMessage));
             }
@@ -968,6 +971,7 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
     BOOL peerConnectionFound = FALSE;
     BOOL locked = TRUE;
     UINT32 clientIdHash;
+    UINT64 hashValue = 0;
     PStackQueue pPendingMessageQueue = NULL;
     PSampleStreamingSession pSampleStreamingSession = NULL;
     PReceivedSignalingMessage pReceivedSignalingMessageCopy = NULL;
@@ -981,7 +985,8 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
                                  (UINT32) STRLEN(pReceivedSignalingMessage->signalingMessage.peerClientId));
     CHK_STATUS(hashTableContains(pSampleConfiguration->pRtcPeerConnectionForRemoteClient, clientIdHash, &peerConnectionFound));
     if (peerConnectionFound) {
-        CHK_STATUS(hashTableGet(pSampleConfiguration->pRtcPeerConnectionForRemoteClient, clientIdHash, (PUINT64) &pSampleStreamingSession));
+        CHK_STATUS(hashTableGet(pSampleConfiguration->pRtcPeerConnectionForRemoteClient, clientIdHash, &hashValue));
+        pSampleStreamingSession = (PSampleStreamingSession) hashValue;
     }
 
     switch (pReceivedSignalingMessage->signalingMessage.messageType) {
@@ -1007,8 +1012,9 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
             CHK_STATUS(hashTablePut(pSampleConfiguration->pRtcPeerConnectionForRemoteClient, clientIdHash, (UINT64) pSampleStreamingSession));
 
             // If there are any ice candidate messages in the queue for this client id, submit them now.
-            if (STATUS_SUCCEEDED(
-                    hashTableGet(pSampleConfiguration->pPendingSignalingMessageForRemoteClient, clientIdHash, (PUINT64) &pPendingMessageQueue))) {
+            if (STATUS_SUCCEEDED(hashTableGet(pSampleConfiguration->pPendingSignalingMessageForRemoteClient, clientIdHash, &hashValue))) {
+                pPendingMessageQueue = (PStackQueue) hashValue;
+
                 CHK_STATUS(submitPendingIceCandidate(pPendingMessageQueue, pSampleStreamingSession));
                 CHK_STATUS(hashTableRemove(pSampleConfiguration->pPendingSignalingMessageForRemoteClient, clientIdHash));
             }
@@ -1025,9 +1031,10 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
             CHK_STATUS(handleAnswer(pSampleConfiguration, pSampleStreamingSession, &pReceivedSignalingMessage->signalingMessage));
             CHK_STATUS(hashTablePut(pSampleConfiguration->pRtcPeerConnectionForRemoteClient, clientIdHash, (UINT64) pSampleStreamingSession));
 
+            hashValue = 0;
             // If there are any ice candidate messages in the queue for this client id, submit them now.
-            if (STATUS_SUCCEEDED(
-                    hashTableGet(pSampleConfiguration->pPendingSignalingMessageForRemoteClient, clientIdHash, (PUINT64) &pPendingMessageQueue))) {
+            if (STATUS_SUCCEEDED(hashTableGet(pSampleConfiguration->pPendingSignalingMessageForRemoteClient, clientIdHash, &hashValue))) {
+                pPendingMessageQueue = (PStackQueue) hashValue;
                 CHK_STATUS(submitPendingIceCandidate(pPendingMessageQueue, pSampleStreamingSession));
                 CHK_STATUS(hashTableRemove(pSampleConfiguration->pPendingSignalingMessageForRemoteClient, clientIdHash));
             }
@@ -1039,8 +1046,10 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
              * submit the signaling message into the corresponding streaming session.
              */
             if (!peerConnectionFound) {
+                hashValue = 0;
                 if (STATUS_HASH_KEY_NOT_PRESENT ==
-                    hashTableGet(pSampleConfiguration->pPendingSignalingMessageForRemoteClient, clientIdHash, (PUINT64) &pPendingMessageQueue)) {
+                    hashTableGet(pSampleConfiguration->pPendingSignalingMessageForRemoteClient, clientIdHash, &hashValue)) {
+                    pPendingMessageQueue = (PStackQueue) hashValue;
                     CHK_STATUS(stackQueueCreate(&pPendingMessageQueue));
                     CHK_STATUS(
                         hashTablePut(pSampleConfiguration->pPendingSignalingMessageForRemoteClient, clientIdHash, (UINT64) pPendingMessageQueue));

@@ -319,7 +319,7 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
         retval = select(nfds, &rfds, NULL, NULL, &tv);
 
         if (retval == -1) {
-            DLOGE("select() failed with errno %s", strerror(errno));
+            DLOGE("select() failed with errno %s", getErrorString(getErrorCode()));
             continue;
         } else if (retval == 0) {
             continue;
@@ -336,13 +336,14 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
                     readLen = recvfrom(pSocketConnection->localSocket, pConnectionListener->pBuffer, pConnectionListener->bufferLen, 0,
                                        (struct sockaddr*) &srcAddrBuff, &srcAddrBuffLen);
                     if (readLen < 0) {
-                        switch (errno) {
+                        switch (getErrorCode()) {
                             case EWOULDBLOCK:
                                 break;
                             default:
                                 /* on any other error, close connection */
                                 CHK_STATUS(socketConnectionClosed(pSocketConnection));
-                                DLOGD("recvfrom() failed with errno %s for socket %d", strerror(errno), pSocketConnection->localSocket);
+                                DLOGD("recvfrom() failed with errno %s for socket %d", getErrorString(getErrorCode()),
+                                      pSocketConnection->localSocket);
                                 break;
                         }
 

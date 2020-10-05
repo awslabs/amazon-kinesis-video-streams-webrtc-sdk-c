@@ -58,6 +58,7 @@ STATUS allocateSctp(PKvsPeerConnection pKvsPeerConnection)
     SctpSessionCallbacks sctpSessionCallbacks;
     AllocateSctpSortDataChannelsData data;
     UINT32 currentDataChannelId = 0;
+    UINT64 hashValue = 0;
     PKvsDataChannel pKvsDataChannel = NULL;
 
     CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
@@ -83,7 +84,8 @@ STATUS allocateSctp(PKvsPeerConnection pKvsPeerConnection)
 
     for (; currentDataChannelId < data.currentDataChannelId; currentDataChannelId += 2) {
         pKvsDataChannel = NULL;
-        retStatus = hashTableGet(pKvsPeerConnection->pDataChannels, currentDataChannelId, (PUINT64) &pKvsDataChannel);
+        retStatus = hashTableGet(pKvsPeerConnection->pDataChannels, currentDataChannelId, &hashValue);
+        pKvsDataChannel = (PKvsDataChannel) hashValue;
         if (retStatus == STATUS_SUCCESS || retStatus == STATUS_HASH_KEY_NOT_PRESENT) {
             retStatus = STATUS_SUCCESS;
         } else {
@@ -284,12 +286,14 @@ STATUS onFrameReadyFunc(UINT64 customData, UINT16 startIndex, UINT16 endIndex, U
     PKvsRtpTransceiver pTransceiver = (PKvsRtpTransceiver) customData;
     PRtpPacket pPacket = NULL;
     Frame frame;
+    UINT64 hashValue;
     UINT32 filledSize = 0;
 
     CHK(pTransceiver != NULL, STATUS_NULL_ARG);
 
     // TODO: handle multi-packet frames
-    retStatus = hashTableGet(pTransceiver->pJitterBuffer->pPkgBufferHashTable, startIndex, (PUINT64) &pPacket);
+    retStatus = hashTableGet(pTransceiver->pJitterBuffer->pPkgBufferHashTable, startIndex, &hashValue);
+    pPacket = (PRtpPacket) hashValue;
     if (retStatus == STATUS_SUCCESS || retStatus == STATUS_HASH_KEY_NOT_PRESENT) {
         retStatus = STATUS_SUCCESS;
     } else {
@@ -335,11 +339,13 @@ STATUS onFrameDroppedFunc(UINT64 customData, UINT16 startIndex, UINT16 endIndex,
 {
     UNUSED_PARAM(endIndex);
     STATUS retStatus = STATUS_SUCCESS;
+    UINT64 hashValue = 0;
     PRtpPacket pPacket = NULL;
     PKvsRtpTransceiver pTransceiver = (PKvsRtpTransceiver) customData;
     DLOGW("Frame with timestamp %ld is dropped!", timestamp);
     CHK(pTransceiver != NULL, STATUS_NULL_ARG);
-    retStatus = hashTableGet(pTransceiver->pJitterBuffer->pPkgBufferHashTable, startIndex, (PUINT64) &pPacket);
+    retStatus = hashTableGet(pTransceiver->pJitterBuffer->pPkgBufferHashTable, startIndex, &hashValue);
+    pPacket = (PRtpPacket) hashValue;
     if (retStatus == STATUS_SUCCESS || retStatus == STATUS_HASH_KEY_NOT_PRESENT) {
         retStatus = STATUS_SUCCESS;
     } else {
@@ -467,10 +473,12 @@ VOID onSctpSessionDataChannelMessage(UINT64 customData, UINT32 channelId, BOOL i
     STATUS retStatus = STATUS_SUCCESS;
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) customData;
     PKvsDataChannel pKvsDataChannel = NULL;
+    UINT64 hashValue = 0;
 
     CHK(pKvsPeerConnection != NULL, STATUS_INTERNAL_ERROR);
 
-    retStatus = hashTableGet(pKvsPeerConnection->pDataChannels, channelId, (PUINT64) &pKvsDataChannel);
+    retStatus = hashTableGet(pKvsPeerConnection->pDataChannels, channelId, &hashValue);
+    pKvsDataChannel = (PKvsDataChannel) hashValue;
     if (retStatus == STATUS_SUCCESS || retStatus == STATUS_HASH_KEY_NOT_PRESENT) {
         retStatus = STATUS_SUCCESS;
     } else {
