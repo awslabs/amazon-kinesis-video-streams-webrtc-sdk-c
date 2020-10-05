@@ -14,9 +14,11 @@ extern "C" {
 ////////////////////////////////////////////////////
 // Public headers
 ////////////////////////////////////////////////////
+#if defined(__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
 #pragma clang diagnostic pop
+#endif
 
 /////////////////////////////////////////////////////
 /// Nullable Macros
