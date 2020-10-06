@@ -53,6 +53,7 @@ extern "C" {
 #define TURN_STATE_READY_STR                   (PCHAR) "TURN_STATE_READY"
 #define TURN_STATE_CLEAN_UP_STR                (PCHAR) "TURN_STATE_CLEAN_UP"
 #define TURN_STATE_FAILED_STR                  (PCHAR) "TURN_STATE_FAILED"
+#define TURN_STATE_UNKNOWN_STR                 (PCHAR) "TURN_STATE_UNKNOWN"
 
 typedef STATUS (*RelayAddressAvailableFunc)(UINT64, PKvsIpAddress, PSocketConnection);
 
