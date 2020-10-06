@@ -366,7 +366,6 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
                 CHK_STATUS(STRTOUI32(curr, curr + tokenLen, 10, &portValue));
                 candidateIpAddr.port = htons(portValue);
                 foundPort = TRUE;
-                CHK(foundPort, STATUS_ICE_CANDIDATE_STRING_MISSING_PORT);
                 break;
             default:
                 DLOGW("supposedly does not happen.");
