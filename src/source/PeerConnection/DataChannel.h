@@ -4,6 +4,7 @@ DataChannel internal include file
 #ifndef __KINESIS_VIDEO_WEBRTC_CLIENT_PEERCONNECTION_DATACHANNEL__
 #define __KINESIS_VIDEO_WEBRTC_CLIENT_PEERCONNECTION_DATACHANNEL__
 
+#ifdef ENABLE_DATA_CHANNEL
 #pragma once
 
 #ifdef __cplusplus
@@ -28,5 +29,6 @@ typedef struct {
 
 #ifdef __cplusplus
 }
+#endif
 #endif
 #endif /* __KINESIS_VIDEO_WEBRTC_CLIENT_PEERCONNECTION_DATACHANNEL__ */

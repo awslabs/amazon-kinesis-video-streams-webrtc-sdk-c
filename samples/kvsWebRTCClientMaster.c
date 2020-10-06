@@ -40,7 +40,9 @@ INT32 main(INT32 argc, CHAR* argv[])
     pSampleConfiguration->audioSource = sendAudioPackets;
     pSampleConfiguration->videoSource = sendVideoPackets;
     pSampleConfiguration->receiveAudioVideoSource = sampleReceiveVideoFrame;
+#ifdef ENABLE_DATA_CHANNEL
     pSampleConfiguration->onDataChannel = onDataChannel;
+#endif
     pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
     printf("[KVS Master] Finished setting audio and video handlers\n");
 

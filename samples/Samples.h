@@ -77,7 +77,9 @@ typedef struct {
     startRoutine audioSource;
     startRoutine videoSource;
     startRoutine receiveAudioVideoSource;
+#ifdef ENABLE_DATA_CHANNEL
     RtcOnDataChannel onDataChannel;
+#endif
 
     TID signalingProcessor;
     PHashTable pPendingSignalingMessageForRemoteClient;
@@ -149,7 +151,9 @@ STATUS respondWithAnswer(PSampleStreamingSession);
 STATUS resetSampleConfigurationState(PSampleConfiguration);
 VOID sampleFrameHandler(UINT64, PFrame);
 VOID sampleBandwidthEstimationHandler(UINT64, DOUBLE);
+#ifdef ENABLE_DATA_CHANNEL
 VOID onDataChannel(UINT64, PRtcDataChannel);
+#endif
 VOID onConnectionStateChange(UINT64, RTC_PEER_CONNECTION_STATE);
 STATUS sessionCleanupWait(PSampleConfiguration);
 STATUS awaitGetIceConfigInfoCount(SIGNALING_CLIENT_HANDLE, PUINT32);

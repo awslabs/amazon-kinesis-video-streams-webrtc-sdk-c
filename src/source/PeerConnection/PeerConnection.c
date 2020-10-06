@@ -35,6 +35,7 @@ CleanUp:
     return retStatus;
 }
 
+#ifdef ENABLE_DATA_CHANNEL
 STATUS allocateSctpSortDataChannelsDataCallback(UINT64 customData, PHashEntry pHashEntry)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -106,6 +107,7 @@ STATUS allocateSctp(PKvsPeerConnection pKvsPeerConnection)
 CleanUp:
     return retStatus;
 }
+#endif
 
 VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
 {
@@ -131,7 +133,9 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
         dtlsSessionProcessPacket(pKvsPeerConnection->pDtlsSession, buff, &signedBuffLen);
 
         if (signedBuffLen > 0) {
+#ifdef ENABLE_DATA_CHANNEL
             CHK_STATUS(putSctpPacket(pKvsPeerConnection->pSctpSession, buff, signedBuffLen));
+#endif
         }
 
         CHK_STATUS(dtlsSessionIsInitFinished(pKvsPeerConnection->pDtlsSession, &isDtlsConnected));
@@ -451,6 +455,7 @@ CleanUp:
     }
 }
 
+#ifdef ENABLE_DATA_CHANNEL
 VOID onSctpSessionOutboundPacket(UINT64 customData, PBYTE pPacket, UINT32 packetLen)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -523,6 +528,7 @@ CleanUp:
 
     CHK_LOG_ERR(retStatus);
 }
+#endif
 
 VOID onDtlsOutboundPacket(UINT64 customData, PBYTE pBuffer, UINT32 bufferLen)
 {
@@ -736,9 +742,11 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
         timerQueueShutdown(pKvsPeerConnection->timerQueueHandle);
     }
 
-    /* Free structs that have their own thread. SCTP has threads created by SCTP library. IceAgent has the
-     * connectionListener thread. Free SCTP first so it wont try to send anything through ICE. */
+/* Free structs that have their own thread. SCTP has threads created by SCTP library. IceAgent has the
+ * connectionListener thread. Free SCTP first so it wont try to send anything through ICE. */
+#ifdef ENABLE_DATA_CHANNEL
     CHK_LOG_ERR(freeSctpSession(&pKvsPeerConnection->pSctpSession));
+#endif
     CHK_LOG_ERR(freeIceAgent(&pKvsPeerConnection->pIceAgent));
 
     // free transceivers
@@ -750,9 +758,11 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
         pCurNode = pCurNode->pNext;
     }
 
+#ifdef ENABLE_DATA_CHANNEL
     // Free DataChannels
     CHK_LOG_ERR(hashTableIterateEntries(pKvsPeerConnection->pDataChannels, 0, freeHashEntry));
     CHK_LOG_ERR(hashTableFree(pKvsPeerConnection->pDataChannels));
+#endif
 
     // free rest of structs
     CHK_LOG_ERR(freeSrtpSession(&pKvsPeerConnection->pSrtpSession));
@@ -806,7 +816,7 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+#ifdef ENABLE_DATA_CHANNEL
 STATUS peerConnectionOnDataChannel(PRtcPeerConnection pRtcPeerConnection, UINT64 customData, RtcOnDataChannel rtcOnDataChannel)
 {
     ENTERS();
@@ -831,6 +841,7 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
+#endif
 
 STATUS peerConnectionOnConnectionStateChange(PRtcPeerConnection pRtcPeerConnection, UINT64 customData,
                                              RtcOnConnectionStateChange rtcOnConnectionStateChange)

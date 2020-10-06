@@ -23,12 +23,13 @@ VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL 
     }
 }
 
+#ifdef ENABLE_DATA_CHANNEL
 VOID onDataChannel(UINT64 customData, PRtcDataChannel pRtcDataChannel)
 {
     DLOGI("New DataChannel has been opened %s \n", pRtcDataChannel->name);
     dataChannelOnMessage(pRtcDataChannel, customData, onDataChannelMessage);
 }
-
+#endif
 VOID onConnectionStateChange(UINT64 customData, RTC_PEER_CONNECTION_STATE newState)
 {
     PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) customData;
@@ -383,10 +384,12 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     CHK_STATUS(peerConnectionOnIceCandidate(pSampleStreamingSession->pPeerConnection, (UINT64) pSampleStreamingSession, onIceCandidateHandler));
     CHK_STATUS(
         peerConnectionOnConnectionStateChange(pSampleStreamingSession->pPeerConnection, (UINT64) pSampleStreamingSession, onConnectionStateChange));
+#ifdef ENABLE_DATA_CHANNEL
     if (pSampleConfiguration->onDataChannel != NULL) {
         CHK_STATUS(peerConnectionOnDataChannel(pSampleStreamingSession->pPeerConnection, (UINT64) pSampleStreamingSession,
                                                pSampleConfiguration->onDataChannel));
     }
+#endif
 
     // Declare that we support H264,Profile=42E01F,level-asymmetry-allowed=1,packetization-mode=1 and Opus
     CHK_STATUS(addSupportedCodec(pSampleStreamingSession->pPeerConnection, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE));

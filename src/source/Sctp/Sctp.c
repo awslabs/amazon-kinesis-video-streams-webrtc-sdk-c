@@ -1,3 +1,5 @@
+#ifdef ENABLE_DATA_CHANNEL
+
 #define LOG_CLASS "SCTP"
 #include "../Include_i.h"
 
@@ -208,13 +210,13 @@ CleanUp:
 //     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 //     |         Label Length          |       Protocol Length         |
 //     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//     \                                                               /
+//     |                                                               |
 //     |                             Label                             |
-//     /                                                               \
+//     |                                                               |
 //     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//     \                                                               /
+//     |                                                               |
 //     |                            Protocol                           |
-//     /                                                               \
+//     |                                                               |
 //     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 STATUS sctpSessionWriteDcep(PSctpSession pSctpSession, UINT32 streamId, PCHAR pChannelName, UINT32 pChannelNameLen,
                             PRtcDataChannelInit pRtcDataChannelInit)
@@ -363,3 +365,4 @@ CleanUp:
 
     return 1;
 }
+#endif

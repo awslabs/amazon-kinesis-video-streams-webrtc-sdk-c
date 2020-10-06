@@ -176,6 +176,7 @@ CleanUp:
     return retStatus;
 }
 
+#ifdef ENABLE_DATA_CHANNEL
 STATUS getDataChannelStats(PRtcPeerConnection pRtcPeerConnection, PRtcDataChannelStats pRtcDataChannelStats)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -194,6 +195,7 @@ STATUS getDataChannelStats(PRtcPeerConnection pRtcPeerConnection, PRtcDataChanne
 CleanUp:
     return retStatus;
 }
+#endif
 
 STATUS rtcPeerConnectionGetMetrics(PRtcPeerConnection pRtcPeerConnection, PRtcRtpTransceiver pRtcRtpTransceiver, PRtcStats pRtcMetrics)
 {
@@ -230,7 +232,9 @@ STATUS rtcPeerConnectionGetMetrics(PRtcPeerConnection pRtcPeerConnection, PRtcRt
             break;
         case RTC_STATS_TYPE_DATA_CHANNEL:
             pRtcMetrics->timestamp = GETTIME();
+#ifdef ENABLE_DATA_CHANNEL
             CHK_STATUS(getDataChannelStats(pRtcPeerConnection, &pRtcMetrics->rtcStatsObject.rtcDataChannelStats));
+#endif
             DLOGD("RTC Data Channel Stats requested at %" PRIu64, pRtcMetrics->timestamp);
             break;
         case RTC_STATS_TYPE_CERTIFICATE:

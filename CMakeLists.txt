@@ -85,7 +85,6 @@ if(BUILD_DEPENDENCIES)
     build_dependency(mbedtls ${BUILD_ARGS})
   endif()
 
-
   set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
                  -DOPENSSL_DIR=${OPEN_SRC_INSTALL_PREFIX}
                  -DUSE_OPENSSL=${USE_OPENSSL}
@@ -102,9 +101,12 @@ if(BUILD_DEPENDENCIES)
   )
   build_dependency(srtp ${BUILD_ARGS})
 
-  build_dependency(usrsctp)
+  if(ENABLE_DATA_CHANNEL)
+    build_dependency(usrsctp)
+  endif()
+
   if(BUILD_TEST)
-   build_dependency(gtest)
+    build_dependency(gtest)
   endif()
 
   # building kvsCommonLws also builds kvspic
@@ -141,11 +143,14 @@ else()
   pkg_check_modules(LIBWEBSOCKETS REQUIRED libwebsockets)
 endif()
 
-# usrsctp dont support pkgconfig yet
-find_library(
-  Usrsctp
-  NAMES ${USRSCTP_LIBNAME} usrsctp REQUIRED
-  PATHS ${OPEN_SRC_INSTALL_PREFIX}/lib)
+
+if(ENABLE_DATA_CHANNEL)
+  # usrsctp dont support pkgconfig yet
+  find_library(
+    Usrsctp
+    NAMES ${USRSCTP_LIBNAME} usrsctp REQUIRED
+    PATHS ${OPEN_SRC_INSTALL_PREFIX}/lib)
+endif()
 
 set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${LIBSRTP_INCLUDE_DIRS}
                           ${CURL_INCLUDE_DIRS} ${LIBWEBSOCKETS_INCLUDE_DIRS})
@@ -267,9 +272,14 @@ target_link_libraries(
           ${OPENSSL_SSL_LIBRARY}
           ${OPENSSL_CRYPTO_LIBRARY}
           ${SRTP_LIBRARIES}
-          ${Usrsctp}
           ${MBEDTLS_LIBRARIES}
           ${EXTRA_DEPS})
+
+if(ENABLE_DATA_CHANNEL)
+  target_link_libraries(
+    kvsWebrtcClient
+    PRIVATE ${Usrsctp})
+endif()
 
 add_library(kvsWebrtcSignalingClient ${LINKAGE} ${WEBRTC_SIGNALING_CLIENT_SOURCE_FILES})
 
