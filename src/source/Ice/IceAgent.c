@@ -2664,7 +2664,7 @@ PCHAR iceAgentGetCandidateTypeStr(ICE_CANDIDATE_TYPE candidateType)
         case ICE_CANDIDATE_TYPE_RELAYED:
             return SDP_CANDIDATE_TYPE_RELAY;
     }
-    return NULL;
+    return SDP_CANDIDATE_TYPE_UNKNOWN;
 }
 
 UINT64 iceAgentGetCurrentTime(UINT64 customData)
