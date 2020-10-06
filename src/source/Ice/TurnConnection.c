@@ -1409,6 +1409,7 @@ PCHAR turnConnectionGetStateStr(TURN_CONNECTION_STATE state)
         case TURN_STATE_FAILED:
             return TURN_STATE_FAILED_STR;
     }
+    return TURN_STATE_UNKNOWN_STR;
 }
 
 PTurnPeer turnConnectionGetPeerWithChannelNumber(PTurnConnection pTurnConnection, UINT16 channelNumber)
