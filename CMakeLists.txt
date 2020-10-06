@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 2.8)
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake;${CMAKE_MODULE_PATH}")
 include(Utilities)
+include(CheckIncludeFiles)
+include(CheckFunctionExists)
+
 project(KinesisVideoWebRTCClient LANGUAGES C)
 
 # User Flags
@@ -23,6 +26,17 @@ option(ADDRESS_SANITIZER "Build with AddressSanitizer." OFF)
 option(MEMORY_SANITIZER "Build with MemorySanitizer." OFF)
 option(THREAD_SANITIZER "Build with ThreadSanitizer." OFF)
 option(UNDEFINED_BEHAVIOR_SANITIZER "Build with UndefinedBehaviorSanitizer." OFF)
+
+if(NOT WIN32)
+CHECK_INCLUDE_FILES(ifaddrs.h       KVSWEBRTC_HAVE_IFADDRS_H)
+if(NOT KVSWEBRTC_HAVE_IFADDRS_H)
+  message(FATAL_ERROR "Platform should support the ifaddrs interface.")
+endif()
+CHECK_FUNCTION_EXISTS(getifaddrs    KVSWEBRTC_HAVE_GETIFADDRS)
+if(NOT KVSWEBRTC_HAVE_GETIFADDRS)
+  message(FATAL_ERROR "Platform should support getifaddrs API.")
+endif()
+endif()
 
 set(CMAKE_MACOSX_RPATH TRUE)
 get_filename_component(ROOT "${CMAKE_CURRENT_SOURCE_DIR}" ABSOLUTE)
