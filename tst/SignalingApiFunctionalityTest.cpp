@@ -1243,7 +1243,7 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionAuthE
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
     // Wait for ICE refresh while connected
-    THREAD_SLEEP(7 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+    THREAD_SLEEP(10 * HUNDREDS_OF_NANOS_IN_A_SECOND);
 
     // This time the states will circle through connecting/connected again
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
@@ -1414,7 +1414,7 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionError
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
-    clientInfoInternal.iceRefreshPeriod = 5 * HUNDREDS_OF_NANOS_IN_A_SECOND;
+    clientInfoInternal.iceRefreshPeriod = 10 * HUNDREDS_OF_NANOS_IN_A_SECOND;
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
@@ -1446,7 +1446,7 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionError
     pSignalingClient->pAwsCredentials->secretKey[0] = 'A';
 
     // Wait for ICE refresh while connected
-    THREAD_SLEEP(6 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+    THREAD_SLEEP(15 * HUNDREDS_OF_NANOS_IN_A_SECOND);
 
     // While the background ICE refresh is happening, we will be blocked for the refresh thread to finish
     // In this case, the ICE refresh will eventually fail, however, we should still be able to send the
