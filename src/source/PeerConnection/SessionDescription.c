@@ -191,7 +191,7 @@ STATUS setPayloadTypesFromOffer(PHashTable codecTable, PHashTable rtxTable, PSes
             if (supportCodec && (end = STRSTR(attributeValue, H264_VALUE)) != NULL) {
                 CHK_STATUS(STRTOUI64(attributeValue, end - 1, 10, &parsedPayloadType));
                 CHK_STATUS(hashTableUpsert(codecTable, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, parsedPayloadType));
-]            }
+            }
 
             CHK_STATUS(hashTableContains(codecTable, RTC_CODEC_OPUS, &supportCodec));
             if (supportCodec && (end = STRSTR(attributeValue, OPUS_VALUE)) != NULL) {

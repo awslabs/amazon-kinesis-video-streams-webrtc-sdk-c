@@ -4,6 +4,19 @@
 #define LOG_CLASS "IceAgent"
 #include "../Include_i.h"
 
+// https://developer.mozilla.org/en-US/docs/Web/API/RTCIceCandidate/candidate
+// https://tools.ietf.org/html/rfc5245#section-15.1
+typedef enum {
+    SDP_ICE_CANDIDATE_PARSER_STATE_FOUNDATION = 0,
+    SDP_ICE_CANDIDATE_PARSER_STATE_COMPONENT,
+    SDP_ICE_CANDIDATE_PARSER_STATE_PROTOCOL,
+    SDP_ICE_CANDIDATE_PARSER_STATE_PORIORITY,
+    SDP_ICE_CANDIDATE_PARSER_STATE_IP,
+    SDP_ICE_CANDIDATE_PARSER_STATE_PORT,
+    SDP_ICE_CANDIDATE_PARSER_STATE_TYPE,
+    SDP_ICE_CANDIDATE_PARSER_STATE_OTHERS
+} SDP_ICE_CANDIDATE_PARSER_STATE;
+
 extern StateMachineState ICE_AGENT_STATE_MACHINE_STATES[];
 extern UINT32 ICE_AGENT_STATE_MACHINE_STATE_COUNT;
 
@@ -310,6 +323,7 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
     CHAR ipBuf[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
     KvsIpAddress candidateIpAddr;
     PDoubleListNode pCurNode = NULL;
+    SDP_ICE_CANDIDATE_PARSER_STATE state;
 
     CHK(pIceAgent != NULL && pIceCandidateString != NULL, STATUS_NULL_ARG);
     CHK(!IS_EMPTY_STRING(pIceCandidateString), STATUS_INVALID_ARG);
@@ -321,30 +335,43 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
 
     CHK_STATUS(doubleListGetNodeCount(pIceAgent->remoteCandidates, &remoteCandidateCount));
     CHK(remoteCandidateCount < KVS_ICE_MAX_REMOTE_CANDIDATE_COUNT, STATUS_ICE_MAX_REMOTE_CANDIDATE_COUNT_EXCEEDED);
-
+    // a=candidate:4234997325 1 udp 2043278322 192.168.0.56 44323 typ host
     curr = pIceCandidateString;
     tail = pIceCandidateString + STRLEN(pIceCandidateString);
+    state = SDP_ICE_CANDIDATE_PARSER_STATE_FOUNDATION;
+
     while ((next = STRNCHR(curr, tail - curr, ' ')) != NULL && !(foundIp && foundPort)) {
         tokenLen = (UINT32)(next - curr);
-        CHK(STRNCMPI("tcp", curr, tokenLen) != 0, STATUS_ICE_CANDIDATE_STRING_IS_TCP);
 
-        if (foundIp) {
-            CHK_STATUS(STRTOUI32(curr, curr + tokenLen, 10, &portValue));
-
-            candidateIpAddr.port = htons(portValue);
-            foundPort = TRUE;
-        } else {
-            len = MIN(next - curr, KVS_IP_ADDRESS_STRING_BUFFER_LEN - 1);
-            STRNCPY(ipBuf, curr, len);
-            ipBuf[len] = '\0';
-
-            if ((foundIp = inet_pton(AF_INET, ipBuf, candidateIpAddr.address) == 1 ? TRUE : FALSE)) {
-                candidateIpAddr.family = KVS_IP_FAMILY_TYPE_IPV4;
-            } else if ((foundIp = inet_pton(AF_INET6, ipBuf, candidateIpAddr.address) == 1 ? TRUE : FALSE)) {
-                candidateIpAddr.family = KVS_IP_FAMILY_TYPE_IPV6;
-            }
+        switch (state) {
+            case SDP_ICE_CANDIDATE_PARSER_STATE_FOUNDATION:
+            case SDP_ICE_CANDIDATE_PARSER_STATE_COMPONENT:
+            case SDP_ICE_CANDIDATE_PARSER_STATE_PORIORITY:
+                break;
+            case SDP_ICE_CANDIDATE_PARSER_STATE_PROTOCOL:
+                CHK(STRNCMPI("tcp", curr, tokenLen) != 0, STATUS_ICE_CANDIDATE_STRING_IS_TCP);
+                break;
+            case SDP_ICE_CANDIDATE_PARSER_STATE_IP:
+                len = MIN(next - curr, KVS_IP_ADDRESS_STRING_BUFFER_LEN - 1);
+                STRNCPY(ipBuf, curr, len);
+                ipBuf[len] = '\0';
+                if ((foundIp = inet_pton(AF_INET, ipBuf, candidateIpAddr.address) == 1 ? TRUE : FALSE)) {
+                    candidateIpAddr.family = KVS_IP_FAMILY_TYPE_IPV4;
+                } else if ((foundIp = inet_pton(AF_INET6, ipBuf, candidateIpAddr.address) == 1 ? TRUE : FALSE)) {
+                    candidateIpAddr.family = KVS_IP_FAMILY_TYPE_IPV6;
+                }
+                CHK(foundIp, STATUS_ICE_CANDIDATE_STRING_MISSING_IP);
+                break;
+            case SDP_ICE_CANDIDATE_PARSER_STATE_PORT:
+                CHK_STATUS(STRTOUI32(curr, curr + tokenLen, 10, &portValue));
+                candidateIpAddr.port = htons(portValue);
+                foundPort = TRUE;
+                break;
+            default:
+                DLOGW("supposedly does not happen.");
+                break;
         }
-
+        state++;
         curr = next + 1;
     }
 
@@ -2637,6 +2664,7 @@ PCHAR iceAgentGetCandidateTypeStr(ICE_CANDIDATE_TYPE candidateType)
         case ICE_CANDIDATE_TYPE_RELAYED:
             return SDP_CANDIDATE_TYPE_RELAY;
     }
+    return SDP_CANDIDATE_TYPE_UNKNOWN;
 }
 
 UINT64 iceAgentGetCurrentTime(UINT64 customData)

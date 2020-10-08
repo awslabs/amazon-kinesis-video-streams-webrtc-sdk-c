@@ -35,10 +35,11 @@ extern "C" {
 // Reference: https://tools.ietf.org/html/rfc4566#section-5
 #define SDP_LINE_SEPARATOR "\r\n"
 
-#define SDP_CANDIDATE_TYPE_HOST   "host"
-#define SDP_CANDIDATE_TYPE_SERFLX "srflx"
-#define SDP_CANDIDATE_TYPE_PRFLX  "prflx"
-#define SDP_CANDIDATE_TYPE_RELAY  "relay"
+#define SDP_CANDIDATE_TYPE_HOST    "host"
+#define SDP_CANDIDATE_TYPE_SERFLX  "srflx"
+#define SDP_CANDIDATE_TYPE_PRFLX   "prflx"
+#define SDP_CANDIDATE_TYPE_RELAY   "relay"
+#define SDP_CANDIDATE_TYPE_UNKNOWN "unknown"
 
 #define SDP_ATTRIBUTE_LENGTH 2
 
