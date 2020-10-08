@@ -155,14 +155,14 @@ STATUS setPayloadTypesFromOffer(PHashTable codecTable, PHashTable rtxTable, PSes
     PSdpMediaDescription pMediaDescription = NULL;
     UINT8 currentMedia, currentAttribute;
     PCHAR attributeValue, end;
-    UINT64 parsedPayloadType, rtxPayloadType, hashmapPayloadType;
+    UINT64 parsedPayloadType, rtxPayloadType, hashmapPayloadType, fmtpVal, aptVal, aptFmtVal;
+    PSingleList pListAptFmtpVals = NULL;
     BOOL supportCodec;
-    UINT32 tokenLen;
-
-    DLOGE("In this method(!)");
+    UINT32 tokenLen, nodeCount, i;
 
     for (currentMedia = 0; currentMedia < pSessionDescription->mediaCount; currentMedia++) {
         pMediaDescription = &(pSessionDescription->mediaDescriptions[currentMedia]);
+        singleListCreate(&pListAptFmtpVals);
 
         attributeValue = pMediaDescription->mediaName;
         do {
@@ -183,6 +183,7 @@ STATUS setPayloadTypesFromOffer(PHashTable codecTable, PHashTable rtxTable, PSes
             }
         } while (end != NULL);
 
+
         for (currentAttribute = 0; currentAttribute < pMediaDescription->mediaAttributesCount; currentAttribute++) {
             attributeValue = pMediaDescription->sdpAttributes[currentAttribute].attributeValue;
 
@@ -190,66 +191,68 @@ STATUS setPayloadTypesFromOffer(PHashTable codecTable, PHashTable rtxTable, PSes
             if (supportCodec && (end = STRSTR(attributeValue, H264_VALUE)) != NULL) {
                 CHK_STATUS(STRTOUI64(attributeValue, end - 1, 10, &parsedPayloadType));
                 CHK_STATUS(hashTableUpsert(codecTable, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, parsedPayloadType));
-                DLOGE("001 parsedPayloadType:  %u", parsedPayloadType);
-            }
+]            }
 
             CHK_STATUS(hashTableContains(codecTable, RTC_CODEC_OPUS, &supportCodec));
             if (supportCodec && (end = STRSTR(attributeValue, OPUS_VALUE)) != NULL) {
                 CHK_STATUS(STRTOUI64(attributeValue, end - 1, 10, &parsedPayloadType));
                 CHK_STATUS(hashTableUpsert(codecTable, RTC_CODEC_OPUS, parsedPayloadType));
-                DLOGE("002 parsedPayloadType:  %u", parsedPayloadType);
             }
 
             CHK_STATUS(hashTableContains(codecTable, RTC_CODEC_VP8, &supportCodec));
             if (supportCodec && (end = STRSTR(attributeValue, VP8_VALUE)) != NULL) {
                 CHK_STATUS(STRTOUI64(attributeValue, end - 1, 10, &parsedPayloadType));
                 CHK_STATUS(hashTableUpsert(codecTable, RTC_CODEC_VP8, parsedPayloadType));
-                DLOGE("003 parsedPayloadType:  %u", parsedPayloadType);
             }
 
             CHK_STATUS(hashTableContains(codecTable, RTC_CODEC_MULAW, &supportCodec));
             if (supportCodec && (end = STRSTR(attributeValue, MULAW_VALUE)) != NULL) {
                 CHK_STATUS(STRTOUI64(attributeValue, end - 1, 10, &parsedPayloadType));
                 CHK_STATUS(hashTableUpsert(codecTable, RTC_CODEC_MULAW, parsedPayloadType));
-                DLOGE("004 parsedPayloadType:  %u", parsedPayloadType);
             }
 
             CHK_STATUS(hashTableContains(codecTable, RTC_CODEC_ALAW, &supportCodec));
             if (supportCodec && (end = STRSTR(attributeValue, ALAW_VALUE)) != NULL) {
                 CHK_STATUS(STRTOUI64(attributeValue, end - 1, 10, &parsedPayloadType));
                 CHK_STATUS(hashTableUpsert(codecTable, RTC_CODEC_ALAW, parsedPayloadType));
-                DLOGE("005 parsedPayloadType:  %u", parsedPayloadType);
             }
 
-            if ((end = STRSTR(attributeValue, RTX_VALUE)) != NULL) {
-                CHK_STATUS(STRTOUI64(attributeValue, end - 1, 10, &rtxPayloadType));
-                attributeValue = pMediaDescription->sdpAttributes[++currentAttribute].attributeValue;
-                if ((end = STRSTR(attributeValue, RTX_CODEC_VALUE)) != NULL) {
-                    CHK_STATUS(STRTOUI64(end + STRLEN(RTX_CODEC_VALUE), NULL, 10, &parsedPayloadType));
-                    CHK_STATUS(
-                        hashTableContains(codecTable, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, &supportCodec));
-                    if (supportCodec) {
-                        CHK_STATUS(
-                            hashTableGet(codecTable, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, &hashmapPayloadType));
-                        if (parsedPayloadType == hashmapPayloadType) {
-                            CHK_STATUS(hashTableUpsert(rtxTable, RTC_RTX_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE,
-                                                       rtxPayloadType));
-                            DLOGE("005 parsedPayloadType:  %u", parsedPayloadType);
-
-                        }
-                    }
-
-                    CHK_STATUS(hashTableContains(codecTable, RTC_CODEC_VP8, &supportCodec));
-                    if (supportCodec) {
-                        CHK_STATUS(hashTableGet(codecTable, RTC_CODEC_VP8, &hashmapPayloadType));
-                        if (parsedPayloadType == hashmapPayloadType) {
-                            CHK_STATUS(hashTableUpsert(rtxTable, RTC_RTX_CODEC_VP8, rtxPayloadType));
-                            DLOGE("006 parsedPayloadType:  %u", parsedPayloadType);
-                        }
-                    }
+            if ((end = STRSTR(attributeValue, RTX_CODEC_VALUE)) != NULL) {
+                CHK_STATUS(STRTOUI64(end + STRLEN(RTX_CODEC_VALUE), NULL, 10, &parsedPayloadType));
+                if ((end = STRSTR(attributeValue, FMTP_VALUE)) != NULL) {
+                    CHK_STATUS(STRTOUI64(end + STRLEN(FMTP_VALUE), NULL, 10, &fmtpVal));
+                    singleListInsertItemHead(pListAptFmtpVals, (fmtpVal << 8u) & parsedPayloadType);
                 }
             }
         }
+
+        singleListGetNodeCount(pListAptFmtpVals, &nodeCount);
+
+        for (i = 0; i < nodeCount; i++) {
+            singleListGetNodeDataAt(pListAptFmtpVals, i, &aptFmtVal);
+            fmtpVal = aptFmtVal >> 8u;
+            aptVal = aptFmtVal & 0xFFu;
+
+            CHK_STATUS(hashTableContains(codecTable, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, &supportCodec));
+            if (supportCodec) {
+                CHK_STATUS(
+                        hashTableGet(codecTable, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, &hashmapPayloadType));
+                if (aptVal == hashmapPayloadType) {
+                    CHK_STATUS(hashTableUpsert(rtxTable, RTC_RTX_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE,
+                                               fmtpVal));
+                }
+            }
+
+            CHK_STATUS(hashTableContains(codecTable, RTC_CODEC_VP8, &supportCodec));
+            if (supportCodec) {
+                CHK_STATUS(hashTableGet(codecTable, RTC_CODEC_VP8, &hashmapPayloadType));
+                if (aptVal == hashmapPayloadType) {
+                    CHK_STATUS(hashTableUpsert(rtxTable, RTC_RTX_CODEC_VP8, fmtpVal));
+                }
+            }
+        }
+
+        singleListFree(pListAptFmtpVals);
     }
 
 CleanUp:
@@ -336,8 +339,6 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
     PCHAR currentFmtp = NULL;
 
     CHK_STATUS(hashTableGet(pKvsPeerConnection->pCodecTable, pRtcMediaStreamTrack->codec, &payloadType));
-    DLOGE("payloadType:  %u", payloadType);
-
     currentFmtp = fmtpForPayloadType(payloadType, &(pKvsPeerConnection->remoteSessionDescription));
 
     if (pRtcMediaStreamTrack->codec == RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE ||
