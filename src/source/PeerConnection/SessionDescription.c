@@ -155,15 +155,16 @@ STATUS setPayloadTypesFromOffer(PHashTable codecTable, PHashTable rtxTable, PSes
     PSdpMediaDescription pMediaDescription = NULL;
     UINT8 currentMedia, currentAttribute;
     PCHAR attributeValue, end;
-    UINT64 parsedPayloadType, rtxPayloadType, hashmapPayloadType, fmtpVal, aptVal, aptFmtVal;
-    PSingleList pListAptFmtpVals = NULL;
+    UINT64 parsedPayloadType, hashmapPayloadType, fmtpVal, aptVal;
+    UINT16 aptFmtpVals[MAX_SDP_FMTP_VALUES];
+    UINT16 aptFmtVal;
     BOOL supportCodec;
-    UINT32 tokenLen, nodeCount, i;
+    UINT32 tokenLen, i, aptFmtpValCount;
+
 
     for (currentMedia = 0; currentMedia < pSessionDescription->mediaCount; currentMedia++) {
         pMediaDescription = &(pSessionDescription->mediaDescriptions[currentMedia]);
-        singleListCreate(&pListAptFmtpVals);
-
+        aptFmtpValCount = 0;
         attributeValue = pMediaDescription->mediaName;
         do {
             if ((end = STRCHR(attributeValue, ' ')) != NULL) {
@@ -221,15 +222,13 @@ STATUS setPayloadTypesFromOffer(PHashTable codecTable, PHashTable rtxTable, PSes
                 CHK_STATUS(STRTOUI64(end + STRLEN(RTX_CODEC_VALUE), NULL, 10, &parsedPayloadType));
                 if ((end = STRSTR(attributeValue, FMTP_VALUE)) != NULL) {
                     CHK_STATUS(STRTOUI64(end + STRLEN(FMTP_VALUE), NULL, 10, &fmtpVal));
-                    singleListInsertItemHead(pListAptFmtpVals, (fmtpVal << 8u) & parsedPayloadType);
+                    aptFmtpVals[aptFmtpValCount++] = (UINT32) ((fmtpVal << 8u) & parsedPayloadType);
                 }
             }
         }
 
-        singleListGetNodeCount(pListAptFmtpVals, &nodeCount);
-
-        for (i = 0; i < nodeCount; i++) {
-            singleListGetNodeDataAt(pListAptFmtpVals, i, &aptFmtVal);
+        for (i = 0; i < aptFmtpValCount; i++) {
+            aptFmtVal = aptFmtpVals[i];
             fmtpVal = aptFmtVal >> 8u;
             aptVal = aptFmtVal & 0xFFu;
 
@@ -251,8 +250,6 @@ STATUS setPayloadTypesFromOffer(PHashTable codecTable, PHashTable rtxTable, PSes
                 }
             }
         }
-
-        singleListFree(pListAptFmtpVals);
     }
 
 CleanUp:
