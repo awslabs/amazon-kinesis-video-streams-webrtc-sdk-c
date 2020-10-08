@@ -182,22 +182,46 @@ CleanUp:
     return retStatus;
 }
 
+STATUS sendSignalingMessage(PSampleStreamingSession pSampleStreamingSession, PSignalingMessage pMessage)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    BOOL locked = FALSE;
+
+    // Validate the input params
+    CHK(pSampleStreamingSession != NULL && pSampleStreamingSession->pSampleConfiguration != NULL && pMessage != NULL, STATUS_NULL_ARG);
+    CHK(IS_VALID_MUTEX_VALUE(pSampleStreamingSession->pSampleConfiguration->signalingSendMessageLock) &&
+            IS_VALID_SIGNALING_CLIENT_HANDLE(pSampleStreamingSession->pSampleConfiguration->signalingClientHandle),
+        STATUS_INVALID_OPERATION);
+
+    MUTEX_LOCK(pSampleStreamingSession->pSampleConfiguration->signalingSendMessageLock);
+    locked = TRUE;
+    CHK_STATUS(signalingClientSendMessageSync(pSampleStreamingSession->pSampleConfiguration->signalingClientHandle, pMessage));
+
+CleanUp:
+
+    if (locked) {
+        MUTEX_UNLOCK(pSampleStreamingSession->pSampleConfiguration->signalingSendMessageLock);
+    }
+
+    CHK_LOG_ERR(retStatus);
+    return retStatus;
+}
+
 STATUS respondWithAnswer(PSampleStreamingSession pSampleStreamingSession)
 {
     STATUS retStatus = STATUS_SUCCESS;
     SignalingMessage message;
-    UINT32 buffLen = 0;
+    UINT32 buffLen = MAX_SIGNALING_MESSAGE_LEN;
 
-    CHK_STATUS(serializeSessionDescriptionInit(&pSampleStreamingSession->answerSessionDescriptionInit, NULL, &buffLen));
     CHK_STATUS(serializeSessionDescriptionInit(&pSampleStreamingSession->answerSessionDescriptionInit, message.payload, &buffLen));
 
     message.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     message.messageType = SIGNALING_MESSAGE_TYPE_ANSWER;
-    STRCPY(message.peerClientId, pSampleStreamingSession->peerId);
+    STRNCPY(message.peerClientId, pSampleStreamingSession->peerId, MAX_SIGNALING_CLIENT_ID_LEN);
     message.payloadLen = (UINT32) STRLEN(message.payload);
     message.correlationId[0] = '\0';
 
-    retStatus = signalingClientSendMessageSync(pSampleStreamingSession->pSampleConfiguration->signalingClientHandle, &message);
+    CHK_STATUS(sendSignalingMessage(pSampleStreamingSession, &message));
 
 CleanUp:
 
@@ -232,11 +256,11 @@ VOID onIceCandidateHandler(UINT64 customData, PCHAR candidateJson)
     } else if (pSampleStreamingSession->remoteCanTrickleIce && ATOMIC_LOAD_BOOL(&pSampleStreamingSession->peerIdReceived)) {
         message.version = SIGNALING_MESSAGE_CURRENT_VERSION;
         message.messageType = SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE;
-        STRCPY(message.peerClientId, pSampleStreamingSession->peerId);
-        message.payloadLen = (UINT32) STRLEN(candidateJson);
-        STRCPY(message.payload, candidateJson);
+        STRNCPY(message.peerClientId, pSampleStreamingSession->peerId, MAX_SIGNALING_CLIENT_ID_LEN);
+        message.payloadLen = (UINT32) STRNLEN(candidateJson, MAX_SIGNALING_MESSAGE_LEN);
+        STRNCPY(message.payload, candidateJson, message.payloadLen);
         message.correlationId[0] = '\0';
-        CHK_STATUS(signalingClientSendMessageSync(pSampleStreamingSession->pSampleConfiguration->signalingClientHandle, &message));
+        CHK_STATUS(sendSignalingMessage(pSampleStreamingSession, &message));
     }
 
 CleanUp:
@@ -606,6 +630,7 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     pSampleConfiguration->sampleConfigurationObjLock = MUTEX_CREATE(TRUE);
     pSampleConfiguration->cvar = CVAR_CREATE();
     pSampleConfiguration->streamingSessionListReadLock = MUTEX_CREATE(FALSE);
+    pSampleConfiguration->signalingSendMessageLock = MUTEX_CREATE(FALSE);
     /* This is ignored for master. Master can extract the info from offer. Viewer has to know if peer can trickle or
      * not ahead of time. */
     pSampleConfiguration->trickleIce = trickleIce;
@@ -834,6 +859,10 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
 
     if (IS_VALID_MUTEX_VALUE(pSampleConfiguration->streamingSessionListReadLock)) {
         MUTEX_FREE(pSampleConfiguration->streamingSessionListReadLock);
+    }
+
+    if (IS_VALID_MUTEX_VALUE(pSampleConfiguration->signalingSendMessageLock)) {
+        MUTEX_FREE(pSampleConfiguration->signalingSendMessageLock);
     }
 
     if (IS_VALID_CVAR_VALUE(pSampleConfiguration->cvar)) {

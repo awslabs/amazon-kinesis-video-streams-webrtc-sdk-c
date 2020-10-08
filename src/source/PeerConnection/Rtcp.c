@@ -27,7 +27,7 @@ CleanUp:
     return retStatus;
 }
 
-// TODO handle SLI packet https://tools.ietf.org/html/rfc2032#section-5.2.1
+// TODO handle SLI packet https://tools.ietf.org/html/rfc4585#section-6.3.2
 static STATUS onRtcpSLIPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConnection)
 {
     STATUS retStatus = STATUS_SUCCESS;
