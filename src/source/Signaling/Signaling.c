@@ -720,7 +720,7 @@ STATUS signalingGetOngoingMessage(PSignalingClient pSignalingClient, PCHAR corre
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE, checkPeerClientId = TRUE;
-    PSignalingMessage pExistingMessage;
+    PSignalingMessage pExistingMessage = NULL;
     StackQueueIterator iterator;
     UINT64 data;
 
@@ -751,10 +751,11 @@ STATUS signalingGetOngoingMessage(PSignalingClient pSignalingClient, PCHAR corre
         CHK_STATUS(stackQueueIteratorNext(&iterator));
     }
 
-    // Didn't find a match
-    *ppSignalingMessage = NULL;
-
 CleanUp:
+
+    if (ppSignalingMessage != NULL) {
+        *ppSignalingMessage = pExistingMessage;
+    }
 
     if (locked) {
         MUTEX_UNLOCK(pSignalingClient->messageQueueLock);

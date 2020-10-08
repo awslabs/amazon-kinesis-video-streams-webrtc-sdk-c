@@ -96,6 +96,8 @@ typedef struct {
     SignalingClientCallbacks signalingClientCallbacks;
     SignalingClientInfo clientInfo;
     RtcStats rtcIceCandidatePairMetrics;
+
+    MUTEX signalingSendMessageLock;
 } SampleConfiguration, *PSampleConfiguration;
 
 typedef VOID (*StreamSessionShutdownCallback)(UINT64, PSampleStreamingSession);
@@ -145,6 +147,7 @@ STATUS lookForSslCert(PSampleConfiguration*);
 STATUS createSampleStreamingSession(PSampleConfiguration, PCHAR, BOOL, PSampleStreamingSession*);
 STATUS freeSampleStreamingSession(PSampleStreamingSession*);
 STATUS streamingSessionOnShutdown(PSampleStreamingSession, UINT64, StreamSessionShutdownCallback);
+STATUS sendSignalingMessage(PSampleStreamingSession, PSignalingMessage);
 STATUS respondWithAnswer(PSampleStreamingSession);
 STATUS resetSampleConfigurationState(PSampleConfiguration);
 VOID sampleFrameHandler(UINT64, PFrame);
