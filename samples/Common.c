@@ -188,17 +188,14 @@ STATUS sendSignalingMessage(PSampleStreamingSession pSampleStreamingSession, PSi
     BOOL locked = FALSE;
 
     // Validate the input params
-    CHK(pSampleStreamingSession != NULL &&
-        pSampleStreamingSession->pSampleConfiguration != NULL &&
-        pMessage != NULL, STATUS_NULL_ARG);
+    CHK(pSampleStreamingSession != NULL && pSampleStreamingSession->pSampleConfiguration != NULL && pMessage != NULL, STATUS_NULL_ARG);
     CHK(IS_VALID_MUTEX_VALUE(pSampleStreamingSession->pSampleConfiguration->signalingSendMessageLock) &&
-        IS_VALID_SIGNALING_CLIENT_HANDLE(pSampleStreamingSession->pSampleConfiguration->signalingClientHandle),
+            IS_VALID_SIGNALING_CLIENT_HANDLE(pSampleStreamingSession->pSampleConfiguration->signalingClientHandle),
         STATUS_INVALID_OPERATION);
 
     MUTEX_LOCK(pSampleStreamingSession->pSampleConfiguration->signalingSendMessageLock);
     locked = TRUE;
-    CHK_STATUS(signalingClientSendMessageSync(pSampleStreamingSession->pSampleConfiguration->signalingClientHandle,
-                                              pMessage));
+    CHK_STATUS(signalingClientSendMessageSync(pSampleStreamingSession->pSampleConfiguration->signalingClientHandle, pMessage));
 
 CleanUp:
 

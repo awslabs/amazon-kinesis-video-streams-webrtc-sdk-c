@@ -369,7 +369,7 @@ INT32 lwsWssCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, P
             CHK(!lws_frame_is_binary(wsi), STATUS_SIGNALING_RECEIVE_BINARY_DATA_NOT_SUPPORTED);
 
             // Skip if it's the first and last fragment and the size is 0
-            CHK (!(lws_is_first_fragment(wsi) && lws_is_final_fragment(wsi) && dataSize == 0), retStatus);
+            CHK(!(lws_is_first_fragment(wsi) && lws_is_final_fragment(wsi) && dataSize == 0), retStatus);
 
             // Check what type of a message it is. We will set the size to 0 on first and flush on last
             if (lws_is_first_fragment(wsi)) {
