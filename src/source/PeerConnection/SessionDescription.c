@@ -161,7 +161,6 @@ STATUS setPayloadTypesFromOffer(PHashTable codecTable, PHashTable rtxTable, PSes
     BOOL supportCodec;
     UINT32 tokenLen, i, aptFmtpValCount;
 
-
     for (currentMedia = 0; currentMedia < pSessionDescription->mediaCount; currentMedia++) {
         pMediaDescription = &(pSessionDescription->mediaDescriptions[currentMedia]);
         aptFmtpValCount = 0;
@@ -183,7 +182,6 @@ STATUS setPayloadTypesFromOffer(PHashTable codecTable, PHashTable rtxTable, PSes
                 attributeValue = end + 1;
             }
         } while (end != NULL);
-
 
         for (currentAttribute = 0; currentAttribute < pMediaDescription->mediaAttributesCount; currentAttribute++) {
             attributeValue = pMediaDescription->sdpAttributes[currentAttribute].attributeValue;
@@ -222,7 +220,7 @@ STATUS setPayloadTypesFromOffer(PHashTable codecTable, PHashTable rtxTable, PSes
                 CHK_STATUS(STRTOUI64(end + STRLEN(RTX_CODEC_VALUE), NULL, 10, &parsedPayloadType));
                 if ((end = STRSTR(attributeValue, FMTP_VALUE)) != NULL) {
                     CHK_STATUS(STRTOUI64(end + STRLEN(FMTP_VALUE), NULL, 10, &fmtpVal));
-                    aptFmtpVals[aptFmtpValCount++] = (UINT32) ((fmtpVal << 8u) & parsedPayloadType);
+                    aptFmtpVals[aptFmtpValCount++] = (UINT32)((fmtpVal << 8u) & parsedPayloadType);
                 }
             }
         }
@@ -234,11 +232,9 @@ STATUS setPayloadTypesFromOffer(PHashTable codecTable, PHashTable rtxTable, PSes
 
             CHK_STATUS(hashTableContains(codecTable, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, &supportCodec));
             if (supportCodec) {
-                CHK_STATUS(
-                        hashTableGet(codecTable, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, &hashmapPayloadType));
+                CHK_STATUS(hashTableGet(codecTable, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, &hashmapPayloadType));
                 if (aptVal == hashmapPayloadType) {
-                    CHK_STATUS(hashTableUpsert(rtxTable, RTC_RTX_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE,
-                                               fmtpVal));
+                    CHK_STATUS(hashTableUpsert(rtxTable, RTC_RTX_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, fmtpVal));
                 }
             }
 
