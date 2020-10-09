@@ -288,8 +288,8 @@ add_library(kvsWebrtcSignalingClient ${LINKAGE} ${WEBRTC_SIGNALING_CLIENT_SOURCE
 target_link_libraries(
   kvsWebrtcSignalingClient
   PUBLIC
-        ${LIBWEBSOCKETS_LIBRARIES} 
         kvsCommonLws
+        ${LIBWEBSOCKETS_LIBRARIES} 
   PRIVATE kvspicUtils
          kvspicState
          ${CMAKE_THREAD_LIBS_INIT}
