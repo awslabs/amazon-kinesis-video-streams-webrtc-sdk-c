@@ -291,7 +291,7 @@ STATUS socketConnect(PKvsIpAddress pPeerAddress, INT32 sockfd)
     }
 
     retVal = connect(sockfd, peerSockAddr, addrLen);
-    CHK_ERR(retVal >= 0 || getErrorCode() == EINPROGRESS, STATUS_SOCKET_CONNECT_FAILED, "connect() failed with errno %s",
+    CHK_ERR(retVal >= 0 || getErrorCode() == KVS_SOCKET_IN_PROGRESS, STATUS_SOCKET_CONNECT_FAILED, "connect() failed with errno %s",
             getErrorString(getErrorCode()));
 
 CleanUp:
