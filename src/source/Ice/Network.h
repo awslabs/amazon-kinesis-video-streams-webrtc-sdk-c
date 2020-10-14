@@ -36,9 +36,9 @@ extern "C" {
 // Windows uses EWOULDBLOCK (WSAEWOULDBLOCK) to indicate connection attempt
 // cannot be completed immediately, whereas POSIX uses EINPROGRESS.
 #ifdef _WIN32
-    #define KVS_SOCKET_IN_PROGRESS EWOULDBLOCK
+#define KVS_SOCKET_IN_PROGRESS EWOULDBLOCK
 #else
-    #define KVS_SOCKET_IN_PROGRESS EINPROGRESS
+#define KVS_SOCKET_IN_PROGRESS EINPROGRESS
 #endif
 
 typedef enum {
