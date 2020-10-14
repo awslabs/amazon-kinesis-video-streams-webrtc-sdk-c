@@ -1,5 +1,5 @@
 var searchData=
 [
-  ['width_3840',['width',['../structRtcEncoderStats.html#a9750be60f7b4746198aaea8d07a19e16',1,'RtcEncoderStats']]],
-  ['wssendpoint_3841',['wssEndpoint',['../structSignalingFileCacheEntry.html#a72429007c86ef09723da34d279abfe9a',1,'SignalingFileCacheEntry']]]
+  ['width_3841',['width',['../structRtcEncoderStats.html#a9750be60f7b4746198aaea8d07a19e16',1,'RtcEncoderStats']]],
+  ['wssendpoint_3842',['wssEndpoint',['../structSignalingFileCacheEntry.html#a72429007c86ef09723da34d279abfe9a',1,'SignalingFileCacheEntry']]]
 ];
