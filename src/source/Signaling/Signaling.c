@@ -797,8 +797,6 @@ STATUS uninitializeThreadTracker(PThreadTracker pThreadTracker)
         CVAR_FREE(pThreadTracker->await);
     }
 
-    ATOMIC_STORE_BOOL(&pThreadTracker->terminated, FALSE);
-
 CleanUp:
     return retStatus;
 }
