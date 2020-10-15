@@ -1292,12 +1292,17 @@ PVOID reconnectHandler(PVOID args)
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
+    // Indicate that we started
+    ATOMIC_STORE_BOOL(&pSignalingClient->reconnecterTracker.terminated, FALSE);
+
     // Await for the listener to clear
     MUTEX_LOCK(pSignalingClient->listenerTracker.lock);
     MUTEX_UNLOCK(pSignalingClient->listenerTracker.lock);
 
-    // Indicate that we started
-    ATOMIC_STORE_BOOL(&pSignalingClient->reconnecterTracker.terminated, FALSE);
+    // Exit immediately if we are shutting down in case we are getting terminated while we were waiting for the
+    // listener thread to terminate. The shutdown flag would have been checked prior kicking off the reconnect
+    // thread but there is a slight chance of a race condition.
+    CHK(!ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown), retStatus);
 
     // Set the time out before execution
     pSignalingClient->stepUntil = GETTIME() + SIGNALING_CONNECT_STATE_TIMEOUT;
