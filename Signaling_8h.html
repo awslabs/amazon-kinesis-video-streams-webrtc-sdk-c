@@ -175,7 +175,7 @@ Macros</h2></td></tr>
 <tr class="separator:ac2706b5d21634baf8e129d5548d18043"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a462087c14573eb82e95ebe3b0b33db61"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Signaling_8h.html#a462087c14573eb82e95ebe3b0b33db61">ICE_CONFIGURATION_REFRESH_GRACE_PERIOD</a>&#160;&#160;&#160;(30 * HUNDREDS_OF_NANOS_IN_A_SECOND)</td></tr>
 <tr class="separator:a462087c14573eb82e95ebe3b0b33db61"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a333b6297b4e69b63d064781cd5987da3"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Signaling_8h.html#a333b6297b4e69b63d064781cd5987da3">SIGNALING_CLIENT_SHUTDOWN_TIMEOUT</a>&#160;&#160;&#160;(5 * HUNDREDS_OF_NANOS_IN_A_SECOND)</td></tr>
+<tr class="memitem:a333b6297b4e69b63d064781cd5987da3"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Signaling_8h.html#a333b6297b4e69b63d064781cd5987da3">SIGNALING_CLIENT_SHUTDOWN_TIMEOUT</a>&#160;&#160;&#160;((2 + <a class="el" href="LwsApiCalls_8h.html#a6bc90a0b4e176558bddc3eb3a873a19d">SIGNALING_SERVICE_API_CALL_TIMEOUT_IN_SECONDS</a>) * HUNDREDS_OF_NANOS_IN_A_SECOND)</td></tr>
 <tr class="separator:a333b6297b4e69b63d064781cd5987da3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a89d8e489a8daa885c016ea5b07412d68"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Signaling_8h.html#a89d8e489a8daa885c016ea5b07412d68">SIGNALING_CLIENT_STATE_UNKNOWN_STR</a>&#160;&#160;&#160;&quot;Unknown&quot;</td></tr>
 <tr class="separator:a89d8e489a8daa885c016ea5b07412d68"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -423,7 +423,7 @@ Functions</h2></td></tr>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">#define SIGNALING_CLIENT_SHUTDOWN_TIMEOUT&#160;&#160;&#160;(5 * HUNDREDS_OF_NANOS_IN_A_SECOND)</td>
+          <td class="memname">#define SIGNALING_CLIENT_SHUTDOWN_TIMEOUT&#160;&#160;&#160;((2 + <a class="el" href="LwsApiCalls_8h.html#a6bc90a0b4e176558bddc3eb3a873a19d">SIGNALING_SERVICE_API_CALL_TIMEOUT_IN_SECONDS</a>) * HUNDREDS_OF_NANOS_IN_A_SECOND)</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -2062,7 +2062,7 @@ Here is the caller graph for this function:</div>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_94e7a0fbe7f8eaf7f05ee7b02c647e9f.html">source</a></li><li class="navelem"><a class="el" href="dir_a2c552ed41e223deef2a46f0c92d8956.html">Signaling</a></li><li class="navelem"><a class="el" href="Signaling_8h.html">Signaling.h</a></li>
-    <li class="footer">Generated on Wed Oct 14 2020 16:44:16 for Amazon Kinesis Webrtc C SDK by
+    <li class="footer">Generated on Thu Oct 15 2020 22:06:38 for Amazon Kinesis Webrtc C SDK by
     <a href="http://www.doxygen.org/index.html">
     <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.18 </li>
   </ul>
