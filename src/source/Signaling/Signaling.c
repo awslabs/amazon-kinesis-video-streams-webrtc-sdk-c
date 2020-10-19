@@ -104,6 +104,7 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     ATOMIC_STORE_BOOL(&pSignalingClient->deleting, FALSE);
     ATOMIC_STORE_BOOL(&pSignalingClient->deleted, FALSE);
     ATOMIC_STORE_BOOL(&pSignalingClient->iceConfigRetrieved, FALSE);
+    ATOMIC_STORE_BOOL(&pSignalingClient->serviceLockContention, FALSE);
 
     // Add to the signal handler
     // signal(SIGINT, lwsSignalHandler);

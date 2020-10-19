@@ -174,6 +174,9 @@ typedef struct {
     // Indicate whether the ICE configuration has been retrieved at least once
     volatile ATOMIC_BOOL iceConfigRetrieved;
 
+    // Indicates that there is another thread attempting to grab the service lock
+    volatile ATOMIC_BOOL serviceLockContention;
+
     // Current version of the structure
     UINT32 version;
 
