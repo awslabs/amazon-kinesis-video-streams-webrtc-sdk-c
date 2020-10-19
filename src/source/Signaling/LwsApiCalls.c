@@ -1736,6 +1736,7 @@ STATUS terminateConnectionWithStatus(PSignalingClient pSignalingClient, SERVICE_
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
+    UINT32 i;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
@@ -1750,8 +1751,11 @@ STATUS terminateConnectionWithStatus(PSignalingClient pSignalingClient, SERVICE_
         ATOMIC_STORE_BOOL(&pSignalingClient->pOngoingCallInfo->cancelService, TRUE);
     }
 
-    // Wake up the service event loop
-    CHK_STATUS(wakeLwsServiceEventLoop(pSignalingClient, PROTOCOL_INDEX_WSS));
+    // Wake up the service event loop for all of the protocols
+    for (i = 0; i < LWS_PROTOCOL_COUNT; i++) {
+        CHK_STATUS(wakeLwsServiceEventLoop(pSignalingClient, i));
+    }
+
     CHK_STATUS(awaitForThreadTermination(&pSignalingClient->listenerTracker, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT));
 
 CleanUp:

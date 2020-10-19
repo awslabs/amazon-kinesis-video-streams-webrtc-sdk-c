@@ -201,10 +201,10 @@ STATUS freeSignaling(PSignalingClient* ppSignalingClient)
     terminateOngoingOperations(pSignalingClient, TRUE);
 
     if (pSignalingClient->pLwsContext != NULL) {
-        MUTEX_LOCK(pSignalingClient->lwsSerializerLock);
+        MUTEX_LOCK(pSignalingClient->lwsServiceLock);
         lws_context_destroy(pSignalingClient->pLwsContext);
         pSignalingClient->pLwsContext = NULL;
-        MUTEX_UNLOCK(pSignalingClient->lwsSerializerLock);
+        MUTEX_UNLOCK(pSignalingClient->lwsServiceLock);
     }
 
     freeStateMachine(pSignalingClient->pStateMachine);
