@@ -50,6 +50,9 @@ extern "C" {
 // Async ICE config refresh delay in case if the signaling is not yet in READY state
 #define SIGNALING_ASYNC_ICE_CONFIG_REFRESH_DELAY (50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
 
+// Max libWebSockets protocol count. IMPORTANT: Ensure it's 1 + PROTOCOL_INDEX_WSS
+#define LWS_PROTOCOL_COUNT 2
+
 // API call latency calculation
 #define SIGNALING_API_LATENCY_CALCULATION(pClient, time, isCpApi)                                                                                    \
     MUTEX_LOCK((pClient)->diagnosticsLock);                                                                                                          \
@@ -249,8 +252,11 @@ typedef struct {
     // LWS context to use for Restful API
     struct lws_context* pLwsContext;
 
-    // Signaling protocols
-    struct lws_protocols signalingProtocols[3];
+    // Signaling protocols - one more for the NULL terminator protocol
+    struct lws_protocols signalingProtocols[LWS_PROTOCOL_COUNT + 1];
+
+    // Stored wsi objects
+    struct lws* currentWsi[LWS_PROTOCOL_COUNT];
 
     // List of the ongoing messages
     PStackQueue pMessageQueue;

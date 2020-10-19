@@ -79,6 +79,9 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     pSignalingClient->signalingProtocols[PROTOCOL_INDEX_WSS].name = WSS_SCHEME_NAME;
     pSignalingClient->signalingProtocols[PROTOCOL_INDEX_WSS].callback = lwsWssCallbackRoutine;
 
+    pSignalingClient->currentWsi[PROTOCOL_INDEX_HTTPS] = NULL;
+    pSignalingClient->currentWsi[PROTOCOL_INDEX_WSS] = NULL;
+
     MEMSET(&creationInfo, 0x00, SIZEOF(struct lws_context_creation_info));
     creationInfo.options = LWS_SERVER_OPTION_DO_SSL_GLOBAL_INIT;
     creationInfo.port = CONTEXT_PORT_NO_LISTEN;
