@@ -2,17 +2,47 @@ cmake_minimum_required(VERSION 2.8)
 
 project(libsrtp-download NONE)
 
+
+SET(CONFIGURE_COMMAND "")
+
+# There is known bug in libsrtp where cross compiling using configure on ARM fails. Do not
+# enable this option if cross compilng on ARM
+# Check https://github.com/cisco/libsrtp/pull/496
+if(BUILD_LIBSRTP_DESTINATION_PLATFORM STREQUAL BUILD_LIBSRTP_HOST_PLATFORM)
+  if(UNIX OR APPLE)
+    if(USE_OPENSSL)
+      SET(CONFIGURE_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/build/src/project_libsrtp/configure "CFLAGS=${CMAKE_C_FLAGS}" --prefix=${OPEN_SRC_INSTALL_PREFIX}  --enable-openssl --with-openssl-dir=${OPENSSL_DIR})
+    else()
+      SET(CONFIGURE_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/build/src/project_libsrtp/configure "CFLAGS=${CMAKE_C_FLAGS}" --prefix=${OPEN_SRC_INSTALL_PREFIX})
+    endif()
+
+    if (DEFINED BUILD_LIBSRTP_DESTINATION_PLATFORM AND NOT BUILD_LIBSRTP_DESTINATION_PLATFORM STREQUAL OFF)
+      set(CONFIGURE_COMMAND ${CONFIGURE_COMMAND} --host=${BUILD_LIBSRTP_DESTINATION_PLATFORM})
+    endif()
+
+    if (DEFINED BUILD_LIBSRTP_HOST_PLATFORM AND NOT BUILD_LIBSRTP_HOST_PLATFORM STREQUAL OFF)
+      set(CONFIGURE_COMMAND ${CONFIGURE_COMMAND} --build=${BUILD_LIBSRTP_HOST_PLATFORM})
+    endif()
+
+    if (DEFINED CMAKE_OSX_SYSROOT AND NOT CMAKE_OSX_SYSROOT STREQUAL "")
+      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -isysroot${CMAKE_OSX_SYSROOT}")
+    endif()
+  endif()
+endif()
+
 if (BUILD_STATIC_LIBS OR WIN32)
   set(LIBSRTP_SHARED_LIBS OFF)
 else()
   set(LIBSRTP_SHARED_LIBS ON)
 endif()
 
+
 if (USE_OPENSSL)
   set(LIBSRTP_ENABLE_OPENSSL ON)
 else()
   set(LIBSRTP_ENABLE_OPENSSL OFF)
 endif()
+
 
 include(ExternalProject)
 ExternalProject_Add(project_libsrtp
@@ -24,4 +54,6 @@ ExternalProject_Add(project_libsrtp
                       -D ENABLE_OPENSSL=${LIBSRTP_ENABLE_OPENSSL}
                       -D BUILD_SHARED_LIBS=${LIBSRTP_SHARED_LIBS}
                       -D OPENSSL_ROOT_DIR=${OPEN_SRC_INSTALL_PREFIX}
+    CONFIGURE_COMMAND ${CONFIGURE_COMMAND}
+    TEST_COMMAND      ""
 )
