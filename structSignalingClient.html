@@ -142,6 +142,8 @@ Public Attributes</h2></td></tr>
 <tr class="separator:a6eba5657cd990a50a09df60df16b918e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9e2ffea59a4d46cd03359217968a7b4c"><td class="memItemLeft" align="right" valign="top">volatile ATOMIC_BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClient.html#a9e2ffea59a4d46cd03359217968a7b4c">iceConfigRetrieved</a></td></tr>
 <tr class="separator:a9e2ffea59a4d46cd03359217968a7b4c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa6740768f644516c67034833b09d635b"><td class="memItemLeft" align="right" valign="top">volatile ATOMIC_BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClient.html#aa6740768f644516c67034833b09d635b">serviceLockContention</a></td></tr>
+<tr class="separator:aa6740768f644516c67034833b09d635b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a65505d56a239c8d7ecd8bdf38629dff7"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClient.html#a65505d56a239c8d7ecd8bdf38629dff7">version</a></td></tr>
 <tr class="separator:a65505d56a239c8d7ecd8bdf38629dff7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0c7278c82322f97cdcfc8c101d98b573"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structSignalingClientInfoInternal.html">SignalingClientInfoInternal</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClient.html#a0c7278c82322f97cdcfc8c101d98b573">clientInfo</a></td></tr>
@@ -194,8 +196,10 @@ Public Attributes</h2></td></tr>
 <tr class="separator:abed97da7c349e1df83e94533dca98908"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad521344774d7b3c74f1e782c086b544d"><td class="memItemLeft" align="right" valign="top">struct lws_context *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClient.html#ad521344774d7b3c74f1e782c086b544d">pLwsContext</a></td></tr>
 <tr class="separator:ad521344774d7b3c74f1e782c086b544d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a13d9e917736eb95db20488ce20526ddd"><td class="memItemLeft" align="right" valign="top">struct lws_protocols&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClient.html#a13d9e917736eb95db20488ce20526ddd">signalingProtocols</a> [3]</td></tr>
-<tr class="separator:a13d9e917736eb95db20488ce20526ddd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa5d2ff27d2942ac3167613963249a66a"><td class="memItemLeft" align="right" valign="top">struct lws_protocols&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClient.html#aa5d2ff27d2942ac3167613963249a66a">signalingProtocols</a> [2+1]</td></tr>
+<tr class="separator:aa5d2ff27d2942ac3167613963249a66a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a67a9ca3f4a465d3e8d0a8f242f4b4c6e"><td class="memItemLeft" align="right" valign="top">struct lws *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClient.html#a67a9ca3f4a465d3e8d0a8f242f4b4c6e">currentWsi</a> [2]</td></tr>
+<tr class="separator:a67a9ca3f4a465d3e8d0a8f242f4b4c6e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae8a7065fd35cff4b801355fc38bdb91c"><td class="memItemLeft" align="right" valign="top">PStackQueue&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClient.html#ae8a7065fd35cff4b801355fc38bdb91c">pMessageQueue</a></td></tr>
 <tr class="separator:ae8a7065fd35cff4b801355fc38bdb91c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae054714aa90cee72635f8f53e685b8c1"><td class="memItemLeft" align="right" valign="top">MUTEX&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClient.html#ae054714aa90cee72635f8f53e685b8c1">messageQueueLock</a></td></tr>
@@ -388,6 +392,20 @@ Public Attributes</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname">UINT64 SignalingClient::createTime</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a67a9ca3f4a465d3e8d0a8f242f4b4c6e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a67a9ca3f4a465d3e8d0a8f242f4b4c6e">&#9670;&nbsp;</a></span>currentWsi</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">struct lws* SignalingClient::currentWsi[2]</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -828,6 +846,20 @@ Public Attributes</h2></td></tr>
 
 </div>
 </div>
+<a id="aa6740768f644516c67034833b09d635b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa6740768f644516c67034833b09d635b">&#9670;&nbsp;</a></span>serviceLockContention</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">volatile ATOMIC_BOOL SignalingClient::serviceLockContention</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a id="a82c6ac08d51ada20b3e9c1598e5dc81c"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a82c6ac08d51ada20b3e9c1598e5dc81c">&#9670;&nbsp;</a></span>shutdown</h2>
 
@@ -856,14 +888,14 @@ Public Attributes</h2></td></tr>
 
 </div>
 </div>
-<a id="a13d9e917736eb95db20488ce20526ddd"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a13d9e917736eb95db20488ce20526ddd">&#9670;&nbsp;</a></span>signalingProtocols</h2>
+<a id="aa5d2ff27d2942ac3167613963249a66a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa5d2ff27d2942ac3167613963249a66a">&#9670;&nbsp;</a></span>signalingProtocols</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">struct lws_protocols SignalingClient::signalingProtocols[3]</td>
+          <td class="memname">struct lws_protocols SignalingClient::signalingProtocols[2+1]</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -935,7 +967,7 @@ Public Attributes</h2></td></tr>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="structSignalingClient.html">SignalingClient</a></li>
-    <li class="footer">Generated on Wed Oct 21 2020 00:49:21 for Amazon Kinesis Webrtc C SDK by
+    <li class="footer">Generated on Wed Oct 21 2020 18:48:31 for Amazon Kinesis Webrtc C SDK by
     <a href="http://www.doxygen.org/index.html">
     <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.18 </li>
   </ul>
