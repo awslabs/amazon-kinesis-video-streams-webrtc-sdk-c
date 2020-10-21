@@ -736,7 +736,6 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
     // free timer queue first to remove liveness provided by timer
     if (IS_VALID_TIMER_QUEUE_HANDLE(pKvsPeerConnection->timerQueueHandle)) {
         timerQueueShutdown(pKvsPeerConnection->timerQueueHandle);
-        timerQueueFree(&pKvsPeerConnection->timerQueueHandle);
     }
 
     /* Free structs that have their own thread. SCTP has threads created by SCTP library. IceAgent has the
@@ -769,6 +768,10 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
 
     if (IS_VALID_MUTEX_VALUE(pKvsPeerConnection->peerConnectionObjLock)) {
         MUTEX_FREE(pKvsPeerConnection->peerConnectionObjLock);
+    }
+
+    if (IS_VALID_TIMER_QUEUE_HANDLE(pKvsPeerConnection->timerQueueHandle)) {
+        timerQueueFree(&pKvsPeerConnection->timerQueueHandle);
     }
 
     SAFE_MEMFREE(pKvsPeerConnection);
