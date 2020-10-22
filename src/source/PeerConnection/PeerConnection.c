@@ -945,13 +945,10 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
         if (STRCMP(pSessionDescription->sdpAttributes[i].attributeName, "fingerprint") == 0) {
             STRNCPY(pKvsPeerConnection->remoteCertificateFingerprint, pSessionDescription->sdpAttributes[i].attributeValue + 8,
                     CERTIFICATE_FINGERPRINT_LENGTH);
-        } else if (STRCMP(pSessionDescription->sdpAttributes[i].attributeName, "ice-options") == 0 &&
-                   STRCMP(pSessionDescription->sdpAttributes[i].attributeValue, "trickle") == 0) {
-            NULLABLE_SET_VALUE(pKvsPeerConnection->canTrickleIce, TRUE);
         } else if (pKvsPeerConnection->isOffer && STRCMP(pSessionDescription->sdpAttributes[i].attributeName, "setup") == 0) {
             pKvsPeerConnection->dtlsIsServer = STRCMP(pSessionDescription->sdpAttributes[i].attributeValue, "active") == 0;
         } else if (STRCMP(pSessionDescription->sdpAttributes[i].attributeName, "ice-options") == 0 &&
-                   STRCMP(pSessionDescription->sdpAttributes[i].attributeValue, "trickle") == 0) {
+                   STRSTR(pSessionDescription->sdpAttributes[i].attributeValue, "trickle") != NULL) {
             NULLABLE_SET_VALUE(pKvsPeerConnection->canTrickleIce, TRUE);
         }
     }
@@ -978,7 +975,7 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
                        STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeName, "setup") == 0) {
                 pKvsPeerConnection->dtlsIsServer = STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeValue, "active") == 0;
             } else if (STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeName, "ice-options") == 0 &&
-                       STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeValue, "trickle") == 0) {
+                       STRSTR(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeValue, "trickle") != NULL) {
                 NULLABLE_SET_VALUE(pKvsPeerConnection->canTrickleIce, TRUE);
                 // This code is only here because Chrome does NOT adhere to the standard and adds ice-options as a media level attribute
                 // The standard dictates clearly that it should be a session level attribute:  https://tools.ietf.org/html/rfc5245#page-76
