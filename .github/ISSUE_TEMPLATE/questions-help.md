@@ -9,6 +9,9 @@ assignees: ''
 
 A one liner description about the use case and what you are trying to achieve
 
+** Logging ** 
+Add relevent SDK logging. IMPORTANT NOTE: Please make sure to NOT share AWS access credentials under any circumstance! Please make sure they are not in the logs.
+
 ** Any design considerations/constraints **
 Explain in detail how you would like to integrate our SDK into your solution 
 
