@@ -7,6 +7,9 @@ assignees: ''
 
 ---
 
+**Logging**
+Add relevent SDK logging.  IMPORTANT NOTE:  Please make sure to NOT share AWS access credentials under any circumstance!  Please make sure they are not in the logs.
+
 **Describe the bug**
 A clear and concise description of what the bug is.
 
