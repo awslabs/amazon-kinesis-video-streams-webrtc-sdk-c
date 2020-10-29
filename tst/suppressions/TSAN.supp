@@ -155,6 +155,35 @@ race:generateSignatureDateTime
 #    #3 timerQueueExecutor /usr/src/amazon-kinesis-video-streams-webrtc-sdk-c/open-source/amazon-kinesis-video-streams-pic/src/utils/src/TimerQueue.c:561 (libkvsWebrtcClient.so+0x000000064c61)
 deadlock:dtlsSessionStart
 
+# ==================
+# WARNING: ThreadSanitizer: lock-order-inversion (potential deadlock) (pid=3774182)
+#   Cycle in lock order graph: M358 (0x7b0c00001088) => M346 (0x7b0c00000f98) => M358
+# 
+#   Mutex M346 acquired here while holding mutex M358 in main thread:
+#     #0 pthread_mutex_lock <null> (webrtc_client_test+0x52d866)
+#     #1 defaultLockMutex /home/ubuntu/Documents/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c-mbedtls-perf/open-source/libkvsCommonLws/build/src/libkvsCommonLws-download/dependency/libkvspic/kvspic-src/src/utils/src/Mutex.c:202:5 (libkvsWebrtcClient.so+0x845e4)
+#     #2 com::amazonaws::kinesis::video::webrtcclient::DtlsFunctionalityTest::createAndConnect(unsigned long, __DtlsSession**, __DtlsSession**) /home/ubuntu/Documents/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c-mbedtls-perf/tst/DtlsFunctionalityTest.cpp:72:9 (webrtc_client_test+0x5c4f7b)
+#     #3 com::amazonaws::kinesis::video::webrtcclient::DtlsFunctionalityTest_processPacketWithVariedSizes_Test::TestBody() /home/ubuntu/Documents/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c-mbedtls-perf/tst/DtlsFunctionalityTest.cpp:151:5 (webrtc_client_test+0x5c41a0)
+#     #4 void testing::internal::HandleSehExceptionsInMethodIfSupported<testing::Test, void>(testing::Test*, void (testing::Test::*)(), char const*) <null> (webrtc_client_test+0x785a93)
+#     #5 main /home/ubuntu/Documents/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c-mbedtls-perf/tst/main.cpp:68:14 (webrtc_client_test+0x744825)
+# 
+#     Hint: use TSAN_OPTIONS=second_deadlock_stack=1 to get more informative warning message
+# 
+#   Mutex M358 acquired here while holding mutex M346 in thread T10:
+#     #0 pthread_mutex_lock <null> (webrtc_client_test+0x52d866)
+#     #1 defaultLockMutex /home/ubuntu/Documents/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c-mbedtls-perf/open-source/libkvsCommonLws/build/src/libkvsCommonLws-download/dependency/libkvspic/kvspic-src/src/utils/src/Mutex.c:202:5 (libkvsWebrtcClient.so+0x845e4)
+#     #2 timerQueueExecutor /home/ubuntu/Documents/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c-mbedtls-perf/open-source/libkvsCommonLws/build/src/libkvsCommonLws-download/dependency/libkvspic/kvspic-src/src/utils/src/TimerQueue.c:562:37 (libkvsWebrtcClient.so+0x88388)
+# 
+#   Thread T10 (tid=3774194, running) created by main thread at:
+#     #0 pthread_create <null> (webrtc_client_test+0x51049b)
+#     #1 defaultCreateThread /home/ubuntu/Documents/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c-mbedtls-perf/open-source/libkvsCommonLws/build/src/libkvsCommonLws-download/dependency/libkvspic/kvspic-src/src/utils/src/Thread.c:171:14 (libkvsWebrtcClient.so+0x865a3)
+#     #2 void testing::internal::HandleSehExceptionsInMethodIfSupported<testing::Test, void>(testing::Test*, void (testing::Test::*)(), char const*) <null> (webrtc_client_test+0x785a93)
+#     #3 main /home/ubuntu/Documents/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c-mbedtls-perf/tst/main.cpp:68:14 (webrtc_client_test+0x744825)
+# 
+# SUMMARY: ThreadSanitizer: lock-order-inversion (potential deadlock) (/home/ubuntu/Documents/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c-mbedtls-perf/build/tst/webrtc_client_test+0x52d866) in pthread_mutex_lock
+# ==================
+deadlock:com::amazonaws::kinesis::video::webrtcclient::DtlsFunctionalityTest::createAndConnect
+
 # WARNING: ThreadSanitizer: data race (pid=16168)
 #   Read of size 8 at 0x7f843023d030 by main thread:
 #     #0 freeSctpSession /usr/src/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Sctp/Sctp.c:134 (libkvsWebrtcClient.so+0x00000005ebea)
