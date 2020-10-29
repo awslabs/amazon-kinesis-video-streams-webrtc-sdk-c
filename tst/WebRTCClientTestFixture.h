@@ -3,6 +3,8 @@
 #include <memory>
 #include <thread>
 #include <mutex>
+#include <queue>
+#include <atomic>
 
 #define TEST_DEFAULT_REGION                     ((PCHAR) "us-west-2")
 #define TEST_STREAMING_TOKEN_DURATION           (40 * HUNDREDS_OF_NANOS_IN_A_SECOND)
@@ -16,6 +18,7 @@
 #define TEST_ICE_CONFIG_INFO_POLL_PERIOD        (20 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
 #define TEST_ASYNC_ICE_CONFIG_INFO_WAIT_TIMEOUT (3 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define TEST_FILE_CREDENTIALS_FILE_PATH         (PCHAR) "credsFile"
+#define MAX_TEST_AWAIT_DURATION                 (2 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
 namespace com {
 namespace amazonaws {

@@ -325,7 +325,7 @@ STATUS dtlsSessionProcessPacket(PDtlsSession pDtlsSession, PBYTE pData, PINT32 p
     PIOBuffer pReadBuffer;
     BOOL iterate = TRUE;
 
-    CHK(pDtlsSession != NULL && pData != NULL && pData != NULL, STATUS_NULL_ARG);
+    CHK(pDtlsSession != NULL && pData != NULL && pDataLen != NULL, STATUS_NULL_ARG);
     CHK(ATOMIC_LOAD_BOOL(&pDtlsSession->isStarted), STATUS_SSL_PACKET_BEFORE_DTLS_READY);
     CHK(!ATOMIC_LOAD_BOOL(&pDtlsSession->shutdown), retStatus);
 
@@ -378,7 +378,7 @@ STATUS dtlsSessionPutApplicationData(PDtlsSession pDtlsSession, PBYTE pData, INT
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    INT32 writtenBytes = 0;
+    INT32 writtenBytes = 0, writeLen = 0;
     BOOL locked = FALSE;
     INT32 sslRet;
     BOOL iterate = TRUE;
@@ -390,7 +390,9 @@ STATUS dtlsSessionPutApplicationData(PDtlsSession pDtlsSession, PBYTE pData, INT
     locked = TRUE;
 
     while (iterate && writtenBytes < dataLen) {
-        sslRet = mbedtls_ssl_write(&pDtlsSession->sslCtx, pData + writtenBytes, dataLen - writtenBytes);
+        // In Dtls, we need to make sure that the packet is smaller than the mtu or MBEDTLS_SSL_OUT_CONTENT_LEN constant
+        writeLen = MIN(dataLen - writtenBytes, mbedtls_ssl_get_max_out_record_payload(&pDtlsSession->sslCtx));
+        sslRet = mbedtls_ssl_write(&pDtlsSession->sslCtx, pData + writtenBytes, writeLen);
         if (sslRet > 0) {
             writtenBytes += sslRet;
         } else if (sslRet == MBEDTLS_ERR_SSL_WANT_READ || sslRet == MBEDTLS_ERR_SSL_WANT_WRITE) {
@@ -409,7 +411,7 @@ CleanUp:
     }
 
     LEAVES();
-    return STATUS_SUCCESS;
+    return retStatus;
 }
 
 STATUS dtlsSessionGetLocalCertificateFingerprint(PDtlsSession pDtlsSession, PCHAR pBuff, UINT32 buffLen)
