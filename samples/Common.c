@@ -873,8 +873,11 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
     freeStaticCredentialProvider(&pSampleConfiguration->pCredentialProvider);
 
     if (pSampleConfiguration->iceCandidatePairStatsTimerId != MAX_UINT32) {
-        CHK_STATUS(timerQueueCancelTimer(pSampleConfiguration->timerQueueHandle, pSampleConfiguration->iceCandidatePairStatsTimerId,
-                                         (UINT64) pSampleConfiguration));
+        retStatus = timerQueueCancelTimer(pSampleConfiguration->timerQueueHandle, pSampleConfiguration->iceCandidatePairStatsTimerId,
+                                          (UINT64) pSampleConfiguration);
+        if (STATUS_FAILED(retStatus)) {
+            DLOGE("Failed to cancel time queue: 0x%08x", retStatus);
+        }
         pSampleConfiguration->iceCandidatePairStatsTimerId = MAX_UINT32;
     }
     if (IS_VALID_TIMER_QUEUE_HANDLE(pSampleConfiguration->timerQueueHandle)) {
