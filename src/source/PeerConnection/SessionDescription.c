@@ -190,7 +190,8 @@ STATUS setPayloadTypesFromOffer(PHashTable codecTable, PHashTable rtxTable, PSes
             if (supportCodec && (end = STRSTR(attributeValue, H264_VALUE)) != NULL) {
                 CHK_STATUS(STRTOUI64(attributeValue, end - 1, 10, &parsedPayloadType));
                 PCHAR fmtp = fmtpForPayloadType(parsedPayloadType, pSessionDescription);
-                if (STRSTR(fmtp, "profile-level-id=42e01f") != NULL &&
+                if (fmtp != NULL &&
+                    STRSTR(fmtp, "profile-level-id=42e01f") != NULL &&
                     (STRSTR(fmtp, "packetization-mode=0") != NULL || STRSTR(fmtp, "packetization-mode") == NULL) &&
                     STRSTR(fmtp, "level-asymmetry-allowed=1") != NULL) {
                    DLOGV("Payload type %" PRId64 " - found exact fmtp description match %s", parsedPayloadType, fmtp);
