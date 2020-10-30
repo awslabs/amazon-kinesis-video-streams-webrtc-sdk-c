@@ -194,10 +194,12 @@ STATUS setPayloadTypesFromOffer(PHashTable codecTable, PHashTable rtxTable, PSes
                     STRSTR(fmtp, "profile-level-id=42e01f") != NULL &&
                     (STRSTR(fmtp, "packetization-mode=0") != NULL || STRSTR(fmtp, "packetization-mode") == NULL) &&
                     STRSTR(fmtp, "level-asymmetry-allowed=1") != NULL) {
-                   DLOGV("Payload type %" PRId64 " - found exact fmtp description match %s", parsedPayloadType, fmtp);
-                   CHK_STATUS(hashTableUpsert(codecTable, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, parsedPayloadType));
+                    DLOGV("Payload type %" PRId64 " - found exact fmtp description match %s", parsedPayloadType, fmtp);
+                    CHK_STATUS(hashTableUpsert(codecTable, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, parsedPayloadType));
+                } else if (fmtp != NULL) {
+                    DLOGV("Payload type %" PRId64 " - no exact match for fmtp description %s", parsedPayloadType, fmtp);
                 } else {
-                   DLOGV("Payload type %" PRId64 " - no exact match for fmtp description %s", fmtp);
+                    DLOGV("Payload type %" PRId64 " lacks any fmtp description.", parsedPayloadType);
                 }
             }
 

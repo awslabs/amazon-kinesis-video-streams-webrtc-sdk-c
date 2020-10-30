@@ -1,6 +1,7 @@
 #include "gtest/gtest.h"
 #include "../src/source/Include_i.h"
 #include <memory>
+#include <string>
 #include <thread>
 #include <mutex>
 #include <queue>

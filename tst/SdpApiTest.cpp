@@ -1,3 +1,7 @@
+#include <fstream>
+#include <sstream>
+#include <tuple>
+
 #include "WebRTCClientTestFixture.h"
 
 namespace com {
@@ -7,6 +11,38 @@ namespace video {
 namespace webrtcclient {
 
 class SdpApiTest : public WebRtcClientTestBase {
+};
+
+/*
+ * Parameter expected in certain SDP API tests. First parameter is a filename.
+ * Second parameter is a string that is expected to match in the SDP answer.
+ */
+using SdpMatch=std::tuple<std::string,std::string>;
+
+/*
+ * Processes SDP API entries from file.
+ */
+class SdpApiTest_SdpMatch : public WebRtcClientTestBase,
+        public ::testing::WithParamInterface<SdpMatch> {
+ protected:
+    const std::string& filename() {
+        return std::get<0>(GetParam());
+    }
+    const std::string& match() {
+        return std::get<1>(GetParam());
+    }
+    const std::string sdpOffer() {
+        return fileToString(filename());
+    }
+
+ private:
+    static std::string fileToString(const std::string& filename) {
+        std::ifstream in_file;
+        std::ostringstream out;
+        in_file.open(filename);
+        out << in_file.rdbuf();
+        return out.str();
+    }
 };
 
 auto lfToCRLF = [](PCHAR sdp, INT32 sdpLen) -> std::string {
@@ -25,6 +61,7 @@ auto lfToCRLF = [](PCHAR sdp, INT32 sdpLen) -> std::string {
 
     return newSDP;
 };
+
 
 template <typename Func> void assertLFAndCRLF(PCHAR sdp, INT32 sdpLen, Func&& assertFn)
 {
@@ -570,8 +607,8 @@ a=group:BUNDLE 0
 
         track1.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
         track1.codec = RTC_CODEC_VP8;
-        STRNCPY(track1.streamId, "track1", MAX_MEDIA_STREAM_ID_LEN);
-        STRNCPY(track1.trackId, "track1", MAX_MEDIA_STREAM_ID_LEN);
+        STRNCPY(track1.streamId, "stream1", MAX_MEDIA_STREAM_ID_LEN);
+        STRNCPY(track1.trackId, "track1", MAX_MEDIA_STREAM_TRACK_ID_LEN);
 
         offerSdp.type = SDP_TYPE_OFFER;
         STRNCPY(offerSdp.sdp, (PCHAR) sdp, MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
@@ -625,13 +662,13 @@ a=group:BUNDLE 0
 
         track1.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
         track1.codec = RTC_CODEC_VP8;
-        STRNCPY(track1.streamId, "videoTrack1", MAX_MEDIA_STREAM_ID_LEN);
-        STRNCPY(track1.trackId, "videoTrack1", MAX_MEDIA_STREAM_ID_LEN);
+        STRNCPY(track1.streamId, "videoStream", MAX_MEDIA_STREAM_ID_LEN);
+        STRNCPY(track1.trackId, "videoTrack1", MAX_MEDIA_STREAM_TRACK_ID_LEN);
 
         track2.kind = MEDIA_STREAM_TRACK_KIND_AUDIO;
         track2.codec = RTC_CODEC_OPUS;
-        STRNCPY(track2.streamId, "audioTrack1", MAX_MEDIA_STREAM_ID_LEN);
-        STRNCPY(track2.trackId, "audioTrack1", MAX_MEDIA_STREAM_ID_LEN);
+        STRNCPY(track2.streamId, "audioStream1", MAX_MEDIA_STREAM_ID_LEN);
+        STRNCPY(track2.trackId, "audioTrack1", MAX_MEDIA_STREAM_TRACK_ID_LEN);
 
         offerSdp.type = SDP_TYPE_OFFER;
         STRNCPY(offerSdp.sdp, (PCHAR) sdp, MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
@@ -686,13 +723,13 @@ a=group:BUNDLE 0
 
         track1.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
         track1.codec = RTC_CODEC_VP8;
-        STRNCPY(track1.streamId, "videoTrack1", MAX_MEDIA_STREAM_ID_LEN);
-        STRNCPY(track1.trackId, "videoTrack1", MAX_MEDIA_STREAM_ID_LEN);
+        STRNCPY(track1.streamId, "videoStream1", MAX_MEDIA_STREAM_ID_LEN);
+        STRNCPY(track1.trackId, "videoTrack1", MAX_MEDIA_STREAM_TRACK_ID_LEN);
 
         track2.kind = MEDIA_STREAM_TRACK_KIND_AUDIO;
         track2.codec = RTC_CODEC_OPUS;
-        STRNCPY(track2.streamId, "audioTrack1", MAX_MEDIA_STREAM_ID_LEN);
-        STRNCPY(track2.trackId, "audioTrack1", MAX_MEDIA_STREAM_ID_LEN);
+        STRNCPY(track2.streamId, "audioStream1", MAX_MEDIA_STREAM_ID_LEN);
+        STRNCPY(track2.trackId, "audioTrack1", MAX_MEDIA_STREAM_TRACK_ID_LEN);
 
         offerSdp.type = SDP_TYPE_OFFER;
         STRNCPY(offerSdp.sdp, (PCHAR) sdp, MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
@@ -749,13 +786,13 @@ a=ice-options:trickle
 
         track1.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
         track1.codec = RTC_CODEC_VP8;
-        STRNCPY(track1.streamId, "track1", MAX_MEDIA_STREAM_ID_LEN);
-        STRNCPY(track1.trackId, "track1", MAX_MEDIA_STREAM_ID_LEN);
+        STRNCPY(track1.streamId, "stream1", MAX_MEDIA_STREAM_ID_LEN);
+        STRNCPY(track1.trackId, "track1", MAX_MEDIA_STREAM_TRACK_ID_LEN);
 
         track2.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
         track2.codec = RTC_CODEC_VP8;
-        STRNCPY(track2.streamId, "track2", MAX_MEDIA_STREAM_ID_LEN);
-        STRNCPY(track2.trackId, "track2", MAX_MEDIA_STREAM_ID_LEN);
+        STRNCPY(track2.streamId, "stream2", MAX_MEDIA_STREAM_ID_LEN);
+        STRNCPY(track2.trackId, "track2", MAX_MEDIA_STREAM_TRACK_ID_LEN);
 
         offerSdp.type = SDP_TYPE_OFFER;
         STRNCPY(offerSdp.sdp, (PCHAR) sdp, MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
@@ -797,7 +834,7 @@ s=-
 t=0 0
 a=group:BUNDLE 0
 a=msid-semantic: WMS
-m=video 16485 UDP/TLS/RTP/SAVPF 96 102
+m=video 16485 UDP/TLS/RTP/SAVPF 96 102 125
 c=IN IP4 205.251.233.176
 a=rtcp:9 IN IP4 0.0.0.0
 a=ice-ufrag:9YRc
@@ -811,7 +848,9 @@ a=rtcp-mux
 a=rtcp-rsize
 a=rtpmap:96 VP8/90000
 a=rtpmap:102 H264/90000
-a=fmtp:102 strange
+a=fmtp:102 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42e01f
+a=rtpmap:125 H264/90000
+a=fmtp:125 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f
 )";
 
     assertLFAndCRLF(remoteSessionDescription, ARRAY_SIZE(remoteSessionDescription) - 1, [](PCHAR sdp) {
@@ -840,8 +879,8 @@ a=fmtp:102 strange
         rtcSessionDescriptionInit.type = SDP_TYPE_OFFER;
         EXPECT_EQ(setRemoteDescription(pRtcPeerConnection, &rtcSessionDescriptionInit), STATUS_SUCCESS);
         EXPECT_EQ(createAnswer(pRtcPeerConnection, &rtcSessionDescriptionInit), STATUS_SUCCESS);
-        EXPECT_PRED_FORMAT2(testing::IsSubstring, "fmtp:102 strange", rtcSessionDescriptionInit.sdp);
-        EXPECT_PRED_FORMAT2(testing::IsNotSubstring, "fmtp:102 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f",
+        EXPECT_PRED_FORMAT2(testing::IsNotSubstring, "fmtp:102 strange", rtcSessionDescriptionInit.sdp);
+        EXPECT_PRED_FORMAT2(testing::IsSubstring, "fmtp:102 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42e01f",
                             rtcSessionDescriptionInit.sdp);
         closePeerConnection(pRtcPeerConnection);
         freePeerConnection(&pRtcPeerConnection);
@@ -895,6 +934,68 @@ a=rtpmap:102 H264/90000
     });
 }
 
+TEST_P(SdpApiTest_SdpMatch, populateSingleMediaSection_TestH264Fmtp)
+{
+    const std::string offer = sdpOffer();
+    PCHAR sdp = const_cast<PCHAR>(offer.c_str());
+
+    PRtcPeerConnection pRtcPeerConnection = NULL;
+    PRtcRtpTransceiver transceiver1 = NULL;
+    RtcConfiguration rtcConfiguration;
+    RtcMediaStreamTrack track1;
+    RtcRtpTransceiverInit rtcRtpTransceiverInit;
+    RtcSessionDescriptionInit rtcSessionDescriptionInit;
+
+    MEMSET(&rtcConfiguration, 0x00, SIZEOF(RtcConfiguration));
+    MEMSET(&track1, 0x00, SIZEOF(RtcMediaStreamTrack));
+    MEMSET(&rtcSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
+
+    EXPECT_EQ(createPeerConnection(&rtcConfiguration, &pRtcPeerConnection), STATUS_SUCCESS);
+    EXPECT_EQ(addSupportedCodec(pRtcPeerConnection, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE), STATUS_SUCCESS);
+
+    rtcRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY;
+    track1.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+    track1.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+    STRCPY(track1.streamId, "myKvsVideoStream");
+    STRCPY(track1.trackId, "myVideo");
+    EXPECT_EQ(addTransceiver(pRtcPeerConnection, &track1, &rtcRtpTransceiverInit, &transceiver1), STATUS_SUCCESS);
+
+    STRCPY(rtcSessionDescriptionInit.sdp, (PCHAR) sdp);
+    rtcSessionDescriptionInit.type = SDP_TYPE_OFFER;
+    EXPECT_EQ(setRemoteDescription(pRtcPeerConnection, &rtcSessionDescriptionInit), STATUS_SUCCESS);
+    EXPECT_EQ(createAnswer(pRtcPeerConnection, &rtcSessionDescriptionInit), STATUS_SUCCESS);
+
+    EXPECT_PRED_FORMAT2(testing::IsSubstring, match(),
+                        rtcSessionDescriptionInit.sdp) << "Offer:\n" << sdp << "\nAnswer:\n" << rtcSessionDescriptionInit.sdp;
+    closePeerConnection(pRtcPeerConnection);
+    freePeerConnection(&pRtcPeerConnection);
+}
+
+INSTANTIATE_TEST_CASE_P(SdpApiTest_SdpMatch_Chrome, SdpApiTest_SdpMatch,
+                        ::testing::Values(SdpMatch{
+                                              "../samples/SDP/offers/1v1a1d-chrome-linux.txt",
+                                              "level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42e01f",
+                                          },
+                                          SdpMatch{
+                                              "../samples/SDP/offers/1v1a1d-chrome-mac.txt",
+                                              "level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42e01f",
+                                          }));
+
+INSTANTIATE_TEST_CASE_P(SdpApiTest_SdpMatch_Firefox, SdpApiTest_SdpMatch,
+                        ::testing::Values(SdpMatch{
+                                              "../samples/SDP/offers/1v1a1d-firefox-linux.txt",
+                                              "profile-level-id=42e01f;level-asymmetry-allowed=1",
+                                          },
+                                          SdpMatch{
+                                              "../samples/SDP/offers/1v1a1d-firefox-mac.txt",
+                                              "profile-level-id=42e01f;level-asymmetry-allowed=1",
+                                          }));
+
+INSTANTIATE_TEST_CASE_P(SdpApiTest_SdpMatch_Chromium, SdpApiTest_SdpMatch,
+                        ::testing::Values(SdpMatch{
+                                              "../samples/SDP/offers/1v1a1d-chromium-linux.txt",
+                                              "level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42e01f",
+                                          }));
 
 } // namespace webrtcclient
 } // namespace video
