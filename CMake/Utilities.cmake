@@ -1,6 +1,7 @@
 # build library from source
 function(build_dependency lib_name)
   set(supported_libs
+      gperftools
       gtest
       benchmark
       jsmn
@@ -23,6 +24,8 @@ function(build_dependency lib_name)
     set(lib_file_name ssl)
   elseif(${lib_name} STREQUAL "srtp")
     set(lib_file_name srtp2)
+  elseif(${lib_name} STREQUAL "gperftools")
+    set(lib_file_name profiler)
   endif()
   set(library_found NOTFOUND)
   find_library(

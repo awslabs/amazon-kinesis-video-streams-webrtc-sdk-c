@@ -94,7 +94,8 @@ You can pass the following options to `cmake ..`.
 * `-DADDRESS_SANITIZER` -- Build with AddressSanitizer
 * `-DMEMORY_SANITIZER` --  Build with MemorySanitizer
 * `-DTHREAD_SANITIZER` -- Build with ThreadSanitizer
-* `-DUNDEFINED_BEHAVIOR_SANITIZER` Build with UndefinedBehaviorSanitizer`
+* `-DUNDEFINED_BEHAVIOR_SANITIZER` -- Build with UndefinedBehaviorSanitizer
+* `-DLINK_PROFILER` -- Link with gperftools (available profiler options are listed [here](https://github.com/gperftools/gperftools))
 
 ### Build
 To build the library and the provided samples run make in the build directory you executed CMake.
@@ -242,6 +243,28 @@ You can also change settings such as buffer size, number of log files for rotati
 ## Clang Checks
 This SDK has clang format checks enforced in builds. In order to avoid re-iterating and make sure your code
 complies, use the `check-clang.sh` to check for compliance and `clang-format.sh` to ensure compliance.
+
+## Tracing high memory and/or cpu usage
+If you would like to specifically find the code path that causes high memory and/or cpu usage, you need to recompile the SDK with this command:
+`cmake .. -DENABLE_PROFILE=ON`
+
+The flag will link the SDK with [gperftools](https://github.com/gperftools/gperftools) profiler.
+
+### Heap Profile
+
+You can run your program as you normally would. You only need to specify the following environment variable to get the heap profile:
+
+`HEAPPROFILE=/tmp/heap.prof /path/to/your/binary`
+
+More information about what environment variables you can configure can be found [here](https://gperftools.github.io/gperftools/heapprofile.html)
+
+### CPU Profile
+
+Similar to the heap profile, you only need to specify the following environment variable to get the CPU profile:
+
+`CPUPROFILE=/tmp/cpu.prof /path/to/your/binary`
+
+More information about what environment variables you can configure can be found [here](https://gperftools.github.io/gperftools/cpuprofile.html)
 
 ## Documentation
 All Public APIs are documented in our [Include.h](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/blob/master/src/include/com/amazonaws/kinesis/video/webrtcclient/Include.h), we also generate a [Doxygen](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-c/) each commit for easier navigation.

@@ -1,0 +1,13 @@
+cmake_minimum_required(VERSION 2.8)
+
+project(libgperftools-download NONE)
+
+set(CONFIGURE_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/build/src/project_libgperftools/configure --prefix=${OPEN_SRC_INSTALL_PREFIX})
+
+include(ExternalProject)
+ExternalProject_Add(project_libgperftools
+    URL               https://github.com/gperftools/gperftools/releases/download/gperftools-2.8/gperftools-2.8.zip
+    PREFIX            ${CMAKE_CURRENT_BINARY_DIR}/build
+    CONFIGURE_COMMAND ${CONFIGURE_COMMAND}
+    TEST_COMMAND      ""
+)

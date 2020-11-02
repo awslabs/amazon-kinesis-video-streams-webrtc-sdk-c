@@ -27,6 +27,7 @@ option(ADDRESS_SANITIZER "Build with AddressSanitizer." OFF)
 option(MEMORY_SANITIZER "Build with MemorySanitizer." OFF)
 option(THREAD_SANITIZER "Build with ThreadSanitizer." OFF)
 option(UNDEFINED_BEHAVIOR_SANITIZER "Build with UndefinedBehaviorSanitizer." OFF)
+option(LINK_PROFILER "Link gperftools profiler" OFF) 
 
 if(NOT WIN32)
 CHECK_INCLUDE_FILES(ifaddrs.h       KVSWEBRTC_HAVE_IFADDRS_H)
@@ -126,6 +127,10 @@ if(BUILD_DEPENDENCIES)
     build_dependency(benchmark)
   endif()
 
+  if (LINK_PROFILER)
+    build_dependency(gperftools)
+  endif()
+
   # building kvsCommonLws also builds kvspic
   set(BUILD_ARGS
       -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
@@ -150,8 +155,17 @@ endif()
 
 if (OPEN_SRC_INSTALL_PREFIX)
   find_library(SRTP_LIBRARIES srtp2 REQUIRED PATHS ${OPEN_SRC_INSTALL_PREFIX})
+
+  if (LINK_PROFILER)
+    find_library(GPERFTOOLS_MALLOC_LIBRARIES tcmalloc REQUIRED PATHS ${OPEN_SRC_INSTALL_PREFIX})
+    find_library(GPERFTOOLS_PROFILER_LIBRARIES profiler REQUIRED PATHS ${OPEN_SRC_INSTALL_PREFIX})
+  endif()
 else()
   find_library(SRTP_LIBRARIES srtp2 REQUIRED )
+  if (LINK_PROFILER)
+    find_library(GPERFTOOLS_MALLOC_LIBRARIES tcmalloc REQUIRED)
+    find_library(GPERFTOOLS_PROFILER_LIBRARIES profiler REQUIRED)
+  endif()
 endif()
 
 if (WIN32)
@@ -286,6 +300,8 @@ target_link_libraries(
           ${SRTP_LIBRARIES}
           ${Usrsctp}
           ${MBEDTLS_LIBRARIES}
+          ${GPERFTOOLS_MALLOC_LIBRARIES}
+          ${GPERFTOOLS_PROFILER_LIBRARIES}
           ${EXTRA_DEPS})
 
 add_library(kvsWebrtcSignalingClient ${LINKAGE} ${WEBRTC_SIGNALING_CLIENT_SOURCE_FILES})
@@ -301,6 +317,8 @@ target_link_libraries(
          ${EXTRA_DEPS}
          ${OPENSSL_SSL_LIBRARY}
          ${OPENSSL_CRYPTO_LIBRARY}
+         ${GPERFTOOLS_MALLOC_LIBRARIES}
+         ${GPERFTOOLS_PROFILER_LIBRARIES}
          ${MBEDTLS_LIBRARIES})
 
 if (WIN32)
