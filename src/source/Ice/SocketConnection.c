@@ -132,8 +132,13 @@ STATUS socketConnectionInitSecureConnection(PSocketConnection pSocketConnection,
     ENTERS();
     TlsSessionCallbacks callbacks;
     STATUS retStatus = STATUS_SUCCESS;
+    BOOL locked = FALSE;
 
     CHK(pSocketConnection != NULL, STATUS_NULL_ARG);
+
+    MUTEX_LOCK(pSocketConnection->lock);
+    locked = TRUE;
+
     CHK(pSocketConnection->pTlsSession == NULL, STATUS_INVALID_ARG);
 
     callbacks.outBoundPacketFnCustomData = callbacks.stateChangeFnCustomData = (UINT64) pSocketConnection;
@@ -147,6 +152,10 @@ STATUS socketConnectionInitSecureConnection(PSocketConnection pSocketConnection,
 CleanUp:
     if (STATUS_FAILED(retStatus) && pSocketConnection->pTlsSession != NULL) {
         freeTlsSession(&pSocketConnection->pTlsSession);
+    }
+
+    if (locked) {
+        MUTEX_UNLOCK(pSocketConnection->lock);
     }
 
     LEAVES();
