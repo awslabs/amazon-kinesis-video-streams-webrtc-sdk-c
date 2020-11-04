@@ -290,7 +290,10 @@ BOOL socketConnectionIsConnected(PSocketConnection pSocketConnection)
         peerSockAddr = (struct sockaddr*) &ipv6PeerAddr;
     }
 
+    MUTEX_LOCK(pSocketConnection->lock);
     retVal = connect(pSocketConnection->localSocket, peerSockAddr, addrLen);
+    MUTEX_UNLOCK(pSocketConnection->lock);
+
     if (retVal == 0 || getErrorCode() == EISCONN) {
         return TRUE;
     }
