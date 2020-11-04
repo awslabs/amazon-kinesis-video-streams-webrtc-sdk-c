@@ -284,6 +284,9 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     // Set this to custom callback to enable filtering of interfaces
     configuration.kvsRtcConfiguration.iceSetInterfaceFilterFunc = NULL;
 
+    // Set the ICE mode explicitly
+    configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_ALL;
+
     // Set the  STUN server
     SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, pSampleConfiguration->channelInfo.pRegion);
 
@@ -315,6 +318,7 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
             }
         }
     }
+
     pSampleConfiguration->iceUriCount = uriCount + 1;
     CHK_STATUS(createPeerConnection(&configuration, ppRtcPeerConnection));
 
@@ -724,11 +728,14 @@ STATUS getIceCandidatePairStatsCallback(UINT32 timerId, UINT64 currentTime, UINT
     DOUBLE averageNumberOfPacketsReceivedPerSecond = 0.0;
     DOUBLE outgoingBitrate = 0.0;
     DOUBLE incomingBitrate = 0.0;
+    BOOL locked = FALSE;
 
-    if (pSampleConfiguration == NULL) {
-        DLOGW("[KVS Master] getPeriodicStats(): operation returned status code: 0x%08x \n", STATUS_NULL_ARG);
-        goto CleanUp;
-    }
+    CHK_WARN(pSampleConfiguration != NULL, STATUS_NULL_ARG, "[KVS Master] getPeriodicStats(): Passed argument is NULL");
+
+    // We need to execute this under the object lock due to race conditions that it could pose
+    MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
+    locked = TRUE;
+
     for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
         if (STATUS_SUCCEEDED(rtcPeerConnectionGetMetrics(pSampleConfiguration->sampleStreamingSessionList[i]->pPeerConnection, NULL,
                                                          &pSampleConfiguration->rtcIceCandidatePairMetrics))) {
@@ -796,7 +803,13 @@ STATUS getIceCandidatePairStatsCallback(UINT32 timerId, UINT64 currentTime, UINT
             }
         }
     }
+
 CleanUp:
+
+    if (locked) {
+        MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
+    }
+
     return retStatus;
 }
 

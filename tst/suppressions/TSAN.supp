@@ -216,18 +216,6 @@ race:freeSctpSession
 #      #5 connectionListenerReceiveDataRoutine /usr/src/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Ice/ConnectionListener.c:328 (libkvsWebrtcClient.so+0x0000000226b7)
 race:usrsctp_close
 
-#  WARNING: ThreadSanitizer: data race (pid=16633)
-#    Read of size 4 at 0x7d1c00006e68 by thread T9 (mutexes: write M300, write M315):
-#      #0 socketConnectionReadData /usr/src/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Ice/SocketConnection.c:231 (libkvsWebrtcClient.so+0x000000013eb1)
-#      #1 connectionListenerReceiveDataRoutine /usr/src/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Ice/ConnectionListener.c:303 (libkvsWebrtcClient.so+0x00000002245d)
-#
-#    Previous write of size 4 at 0x7d1c00006e68 by thread T10 (mutexes: write M294, write M312):
-#      #0 socketConnectionInitSecureConnection /usr/src/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Ice/SocketConnection.c:129 (libkvsWebrtcClient.so+0x00000001359b)
-#      #1 turnConnectionStepState /usr/src/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Ice/TurnConnection.c:912 (libkvsWebrtcClient.so+0x0000000304df)
-#      #2 turnConnectionTimerCallback /usr/src/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Ice/TurnConnection.c:1274 (libkvsWebrtcClient.so+0x000000033d36)
-#      #3 timerQueueExecutor /usr/src/amazon-kinesis-video-streams-webrtc-sdk-c/open-source/amazon-kinesis-video-streams-pic/src/utils/src/TimerQueue.c:561 (libkvsWebrtcClient.so+0x000000064c61
-race:turnConnectionStepState
-
 #  WARNING: ThreadSanitizer: data race (pid=16798)
 #    Write of size 8 at 0x7d080001dc80 by thread T8 (mutexes: write M531, write M545):
 #      #0 free <null> (webrtc_client_test+0x0000004c7a16)
