@@ -1102,7 +1102,7 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
                 }
 
                 pReceivedSignalingMessageCopy = MEMCALLOC(1, SIZEOF(ReceivedSignalingMessage));
-                *pReceivedSignalingMessageCopy = *pReceivedSignalingMessage;
+                MEMCPY(pReceivedSignalingMessageCopy, pReceivedSignalingMessage, SIZEOF(ReceivedSignalingMessage));
 
                 CHK_STATUS(stackQueueEnqueue(pPendingMessageQueue, (UINT64) pReceivedSignalingMessageCopy));
             } else {
@@ -1116,7 +1116,7 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
     }
 
 CleanUp:
-
+	SAFE_MEMFREE(pReceivedSignalingMessageCopy);
     if (locked) {
         MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
     }
