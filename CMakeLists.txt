@@ -1,360 +1,371 @@
-cmake_minimum_required(VERSION 3.6.3)
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake;${CMAKE_MODULE_PATH}")
-include(Utilities)
-include(CheckIncludeFiles)
-include(CheckFunctionExists)
-
-project(KinesisVideoWebRTCClient LANGUAGES C)
-
-# User Flags
-option(ADD_MUCLIBC "Add -muclibc c flag" OFF)
-option(BUILD_DEPENDENCIES "Whether or not to build depending libraries from source" ON)
-option(USE_OPENSSL "Use openssl as crypto library" ON)
-option(USE_MBEDTLS "Use mbedtls as crypto library" OFF)
-option(BUILD_STATIC_LIBS "Build all libraries statically. (This includes third-party libraries.)" OFF)
-option(BUILD_OPENSSL_PLATFORM "If buildng OpenSSL what is the target platform" OFF)
-option(BUILD_LIBSRTP_HOST_PLATFORM "If buildng LibSRTP what is the current platform" OFF)
-option(BUILD_LIBSRTP_DESTINATION_PLATFORM "If buildng LibSRTP what is the destination platform" OFF)
-option(BUILD_SAMPLE "Build available samples" ON)
-option(ENABLE_DATA_CHANNEL "Enable support for data channel" ON)
-
-# Developer Flags
-option(BUILD_TEST "Build the testing tree." OFF)
-option(CODE_COVERAGE "Enable coverage reporting" OFF)
-option(COMPILER_WARNINGS "Enable all compiler warnings." OFF)
-option(ADDRESS_SANITIZER "Build with AddressSanitizer." OFF)
-option(MEMORY_SANITIZER "Build with MemorySanitizer." OFF)
-option(THREAD_SANITIZER "Build with ThreadSanitizer." OFF)
-option(UNDEFINED_BEHAVIOR_SANITIZER "Build with UndefinedBehaviorSanitizer." OFF)
-
-if(NOT WIN32)
-CHECK_INCLUDE_FILES(ifaddrs.h       KVSWEBRTC_HAVE_IFADDRS_H)
-if(NOT KVSWEBRTC_HAVE_IFADDRS_H)
-  message(FATAL_ERROR "Platform should support the ifaddrs interface.")
-endif()
-CHECK_FUNCTION_EXISTS(getifaddrs    KVSWEBRTC_HAVE_GETIFADDRS)
-if(NOT KVSWEBRTC_HAVE_GETIFADDRS)
-  message(FATAL_ERROR "Platform should support getifaddrs API.")
-endif()
-endif()
-
-set(CMAKE_MACOSX_RPATH TRUE)
-get_filename_component(ROOT "${CMAKE_CURRENT_SOURCE_DIR}" ABSOLUTE)
-
-# static settings
-if(BUILD_STATIC_LIBS OR WIN32)
-  set(LINKAGE STATIC)
-  # Force CMake to find static libs
-  if(WIN32)
-    SET(CMAKE_FIND_LIBRARY_SUFFIXES .lib .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
-  else()
-    SET(CMAKE_FIND_LIBRARY_SUFFIXES .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
-  endif()
-else()
-  set(LINKAGE SHARED)
-endif()
-
-set(KINESIS_VIDEO_WEBRTC_CLIENT_SRC "${CMAKE_CURRENT_SOURCE_DIR}")
-
-
-message(STATUS "Kinesis Video WebRTC Client path is ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}")
-message(STATUS "dependencies install path is ${OPEN_SRC_INSTALL_PREFIX}")
-
-# pass ca cert location to sdk
-add_definitions(-DKVS_CA_CERT_PATH="${CMAKE_SOURCE_DIR}/certs/cert.pem")
-add_definitions(-DCMAKE_DETECTED_CACERT_PATH)
-
-if(USE_OPENSSL)
-  add_definitions(-DKVS_USE_OPENSSL)
-elseif(USE_MBEDTLS)
-  add_definitions(-DKVS_USE_MBEDTLS)
-endif()
-
-if(BUILD_DEPENDENCIES)
-  set(OPEN_SRC_INSTALL_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/open-source)
-  if(NOT EXISTS ${OPEN_SRC_INSTALL_PREFIX})
-    file(MAKE_DIRECTORY ${OPEN_SRC_INSTALL_PREFIX})
-  endif()
-
-  set(ENV{PKG_CONFIG_PATH} "$ENV{PKG_CONFIG_PATH}:${OPEN_SRC_INSTALL_PREFIX}/lib/pkgconfig")
-  set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${OPEN_SRC_INSTALL_PREFIX})
-
-  message(STATUS "Begin building dependencies.")
-
-  set(SSL_OPTIONS USE_OPENSSL USE_MBEDTLS)
-  count_true(ENABLED_SSL_OPTION_COUNT ${SSL_OPTIONS})
-
-  if(ENABLED_SSL_OPTION_COUNT GREATER "1")
-    message(FATAL_ERROR "Only one of ${SSL_OPTIONS} can be enabled")
-  endif()
-
-  if (USE_OPENSSL)
-    set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
-                   -DBUILD_OPENSSL_PLATFORM=${BUILD_OPENSSL_PLATFORM}
-                   -DOPENSSL_EXTRA=${OPENSSL_EXTRA})
-    build_dependency(openssl ${BUILD_ARGS})
-    set(OPENSSL_ROOT_DIR ${OPEN_SRC_INSTALL_PREFIX})
-  elseif(USE_MBEDTLS)
-    set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS})
-    build_dependency(mbedtls ${BUILD_ARGS})
-  endif()
-
-
-  set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
-                 -DOPENSSL_DIR=${OPEN_SRC_INSTALL_PREFIX}
-                 -DUSE_OPENSSL=${USE_OPENSSL}
-                 -DUSE_MBEDTLS=${USE_MBEDTLS})
-  build_dependency(websockets ${BUILD_ARGS})
-
-  set(BUILD_ARGS
-      -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
-      -DOPENSSL_DIR=${OPEN_SRC_INSTALL_PREFIX}
-      -DBUILD_LIBSRTP_HOST_PLATFORM=${BUILD_LIBSRTP_HOST_PLATFORM}
-      -DBUILD_LIBSRTP_DESTINATION_PLATFORM=${BUILD_LIBSRTP_DESTINATION_PLATFORM}
-      -DUSE_OPENSSL=${USE_OPENSSL}
-      -DUSE_MBEDTLS=${USE_MBEDTLS}
-  )
-  build_dependency(srtp ${BUILD_ARGS})
-
-  build_dependency(usrsctp)
-  if(BUILD_TEST)
-   build_dependency(gtest)
-  endif()
-
-  # building kvsCommonLws also builds kvspic
-  set(BUILD_ARGS
-      -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-      -DUSE_OPENSSL=${USE_OPENSSL}
-      -DUSE_MBEDTLS=${USE_MBEDTLS})
-  build_dependency(kvsCommonLws ${BUILD_ARGS})
-
-  message(STATUS "Finished building dependencies.")
-endif()
-
-############# find dependent libraries ############
-
-find_package(Threads)
-find_package(PkgConfig REQUIRED)
-if (USE_OPENSSL)
-  find_package(OpenSSL REQUIRED)
-  set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR})
-else()
-  find_package(MbedTLS REQUIRED)
-  set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${MBEDTLS_INCLUDE_DIRS})
-endif()
-
-if (OPEN_SRC_INSTALL_PREFIX)
-  find_library(SRTP_LIBRARIES srtp2 REQUIRED PATHS ${OPEN_SRC_INSTALL_PREFIX})
-else()
-  find_library(SRTP_LIBRARIES srtp2 REQUIRED )
-endif()
-
-if (WIN32)
-  SET(LIBWEBSOCKETS_LIBRARIES "websockets.lib")
-else()
-  pkg_check_modules(LIBWEBSOCKETS REQUIRED libwebsockets)
-endif()
-
-# usrsctp dont support pkgconfig yet
-find_library(
-  Usrsctp
-  NAMES ${USRSCTP_LIBNAME} usrsctp REQUIRED
-  PATHS ${OPEN_SRC_INSTALL_PREFIX}/lib)
-
-set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${LIBSRTP_INCLUDE_DIRS}
-                          ${CURL_INCLUDE_DIRS} ${LIBWEBSOCKETS_INCLUDE_DIRS})
-
-link_directories(${LIBSRTP_LIBRARY_DIRS})
-link_directories(${LIBWEBSOCKETS_LIBRARY_DIRS})
-link_directories(${OPEN_SRC_INSTALL_PREFIX}/lib)
-
-pkg_check_modules(GST gstreamer-1.0)
-if(GST_FOUND)
-
-  if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    set(ENV{PKG_CONFIG_PATH} "$ENV{PKG_CONFIG_PATH}:/usr/local/opt/libffi/lib/pkgconfig")
-    find_library(Intl "intl" REQUIRED PATHS "/usr/local/opt/gettext/lib")
-    link_directories("/usr/local/opt/gettext/lib")
-  endif()
-
-  pkg_check_modules(GLIB2 REQUIRED glib-2.0)
-  pkg_check_modules(GST_APP REQUIRED gstreamer-app-1.0)
-  pkg_check_modules(GOBJ2 REQUIRED gobject-2.0)
-  message("gstreamer found. Will build gstreamer samples")
-
-  set(OPEN_SRC_INCLUDE_DIRS
-      ${OPEN_SRC_INCLUDE_DIRS} ${GLIB2_INCLUDE_DIRS} ${GST_INCLUDE_DIRS}
-      ${GST_APP_INCLUDE_DIRS} ${GOBJ2_INCLUDE_DIRS})
-
-  set(GST_SAMPLE_LIBRARIES ${GLIB2_LIBRARIES} ${GST_LIBRARIES}
-                           ${GST_APP_LIBRARIES} ${GOBJ2_LIBRARIES} ${Intl})
-
-  link_directories(${GLIB2_LIBRARY_DIRS})
-  link_directories(${GST_LIBRARY_DIRS})
-  link_directories(${GST_APP_LIBRARY_DIRS})
-  link_directories(${GOBJ2_LIBRARY_DIRS})
-else()
-  message("gstreamer not found. Will not build gstreamer samples")
-endif()
-
-############# find dependent libraries end ############
-
-if("${CMAKE_C_COMPILER_ID}" MATCHES "GNU|Clang")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
-
-  if(ADD_MUCLIBC)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -muclibc")
-  endif()
-
-  if(CODE_COVERAGE)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -g -fprofile-arcs -ftest-coverage")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage")
-  endif()
-
-  if(ADDRESS_SANITIZER)
-    enableSanitizer("address")
-  endif()
-  if(MEMORY_SANITIZER)
-    enableSanitizer("memory")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize-memory-track-origins")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize-memory-track-origins")
-  endif()
-  if(THREAD_SANITIZER)
-    enableSanitizer("thread")
-  endif()
-  if(UNDEFINED_BEHAVIOR_SANITIZER)
-    enableSanitizer("undefined")
-  endif()
-endif()
-
-# Uncomment below line for debug heap
-# add_definitions(-DHEAP_DEBUG)
-
-# Uncomment below to add thread id in log
-# add_definitions(-DENABLE_LOG_THREAD_ID)
-
-# Uncomment below line for very verbose logging
-# add_definitions(-DLOG_STREAMING)
-
-if (ENABLE_DATA_CHANNEL)
-  add_definitions(-DENABLE_DATA_CHANNEL)
-endif()
-
-file(
-  GLOB
-  WEBRTC_CLIENT_SOURCE_FILES
-  "src/source/Crypto/*.c"
-  "src/source/Ice/*.c"
-  "src/source/PeerConnection/*.c"
-  "src/source/Rtcp/*.c"
-  "src/source/Rtp/*.c"
-  "src/source/Rtp/Codecs/*.c"
-  "src/source/Sdp/*.c"
-  "src/source/Srtp/*.c"
-  "src/source/Stun/*.c"
-  "src/source/Sctp/*.c"
-  "src/source/Metrics/*.c")
-
-if (USE_OPENSSL)
-  list(FILTER WEBRTC_CLIENT_SOURCE_FILES EXCLUDE REGEX ".*_mbedtls\\.c")
-elseif (USE_MBEDTLS)
-  list(FILTER WEBRTC_CLIENT_SOURCE_FILES EXCLUDE REGEX ".*_openssl\\.c")
-endif()
-
-file(GLOB WEBRTC_SIGNALING_CLIENT_SOURCE_FILES "src/source/Signaling/*.c")
-
-
-include_directories(${OPEN_SRC_INCLUDE_DIRS})
-include_directories(${OPEN_SRC_INSTALL_PREFIX}/include)
-include_directories(${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/include)
-include_directories(${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/ice)
-
-add_library(kvsWebrtcClient ${LINKAGE} ${WEBRTC_CLIENT_SOURCE_FILES})
-
-target_link_libraries(
-  kvsWebrtcClient
-  PRIVATE kvspicUtils
-          kvspicState
-          ${CMAKE_THREAD_LIBS_INIT}
-          ${OPENSSL_SSL_LIBRARY}
-          ${OPENSSL_CRYPTO_LIBRARY}
-          ${SRTP_LIBRARIES}
-          ${Usrsctp}
-          ${MBEDTLS_LIBRARIES}
-          ${EXTRA_DEPS})
-
-add_library(kvsWebrtcSignalingClient ${LINKAGE} ${WEBRTC_SIGNALING_CLIENT_SOURCE_FILES})
-
-target_link_libraries(
-  kvsWebrtcSignalingClient
-  PUBLIC
-        kvsCommonLws
-        ${LIBWEBSOCKETS_LIBRARIES} 
-  PRIVATE kvspicUtils
-         kvspicState
-         ${CMAKE_THREAD_LIBS_INIT}
-         ${EXTRA_DEPS}
-         ${OPENSSL_SSL_LIBRARY}
-         ${OPENSSL_CRYPTO_LIBRARY}
-         ${MBEDTLS_LIBRARIES})
-
-if (WIN32)
-  target_link_libraries(kvsWebrtcClient PRIVATE "Ws2_32" "iphlpapi")
-endif()
-
-if(COMPILER_WARNINGS)
-  target_compile_options(kvsWebrtcClient PUBLIC -Wall -Werror -pedantic -Wextra -Wno-unknown-warning-option)
-  target_compile_options(kvsWebrtcSignalingClient PUBLIC -Wall -Werror -pedantic -Wextra -Wno-unknown-warning-option)
-endif()
-
-install(TARGETS kvsWebrtcClient kvsWebrtcSignalingClient
-  LIBRARY DESTINATION lib
-  ARCHIVE DESTINATION lib
-)
-
-install(DIRECTORY ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/include/
-  DESTINATION include
-)
-
-if (BUILD_SAMPLE)
-  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/samples/opusSampleFrames" DESTINATION .)
-  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/samples/h264SampleFrames" DESTINATION .)
-
-  add_executable(
-    kvsWebrtcClientMaster
-    ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/Common.c
-    ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/kvsWebRTCClientMaster.c)
-  target_link_libraries(kvsWebrtcClientMaster kvsWebrtcClient kvsWebrtcSignalingClient kvspicUtils)
-
-  add_executable(
-    kvsWebrtcClientViewer
-    ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/Common.c
-    ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/kvsWebRTCClientViewer.c)
-  target_link_libraries(kvsWebrtcClientViewer kvsWebrtcClient kvsWebrtcSignalingClient kvspicUtils)
-
-  add_executable(
-          discoverNatBehavior
-          ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/discoverNatBehavior.c)
-  target_link_libraries(discoverNatBehavior kvsWebrtcClient)
-
-  if(GST_FOUND)
-    add_executable(
-      kvsWebrtcClientMasterGstSample
-      ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/Common.c
-      ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/kvsWebRTCClientMasterGstreamerSample.c
-    )
-    target_link_libraries(kvsWebrtcClientMasterGstSample kvsWebrtcClient kvsWebrtcSignalingClient ${GST_SAMPLE_LIBRARIES} kvspicUtils)
-
-    install(TARGETS kvsWebrtcClientMasterGstSample
-      RUNTIME DESTINATION bin
-    )
-  endif()
-
-  install(TARGETS kvsWebrtcClientMaster kvsWebrtcClientViewer discoverNatBehavior
-    RUNTIME DESTINATION bin
-  )
-endif()
-
-if(BUILD_TEST)
-  add_subdirectory(tst)
-endif()
+cmake_minimum_required(VERSION 3.15)
+project(amazon_kinesis_video_streams_webrtc_sdk_c)
+
+set(CMAKE_CXX_STANDARD 14)
+
+include_directories(open-source)
+include_directories(open-source/include)
+include_directories(open-source/include/com)
+include_directories(open-source/include/com/amazonaws)
+include_directories(open-source/include/com/amazonaws/kinesis)
+include_directories(open-source/include/com/amazonaws/kinesis/video)
+include_directories(open-source/include/com/amazonaws/kinesis/video/client)
+include_directories(open-source/include/com/amazonaws/kinesis/video/common)
+include_directories(open-source/include/com/amazonaws/kinesis/video/cproducer)
+include_directories(open-source/include/com/amazonaws/kinesis/video/heap)
+include_directories(open-source/include/com/amazonaws/kinesis/video/mkvgen)
+include_directories(open-source/include/com/amazonaws/kinesis/video/state)
+include_directories(open-source/include/com/amazonaws/kinesis/video/trace)
+include_directories(open-source/include/com/amazonaws/kinesis/video/utils)
+include_directories(open-source/include/com/amazonaws/kinesis/video/view)
+include_directories(open-source/include/gtest)
+include_directories(open-source/include/gtest/internal)
+include_directories(open-source/include/gtest/internal/custom)
+include_directories(open-source/include/libwebsockets)
+include_directories(open-source/include/libwebsockets/abstract)
+include_directories(open-source/include/libwebsockets/abstract/protocols)
+include_directories(open-source/include/libwebsockets/abstract/transports)
+include_directories(open-source/include/openssl)
+include_directories(open-source/include/srtp2)
+include_directories(samples)
+include_directories(src/include)
+include_directories(src/include/com)
+include_directories(src/include/com/amazonaws)
+include_directories(src/include/com/amazonaws/kinesis)
+include_directories(src/include/com/amazonaws/kinesis/video)
+include_directories(src/include/com/amazonaws/kinesis/video/webrtcclient)
+include_directories(src/source)
+include_directories(src/source/Crypto)
+include_directories(src/source/Ice)
+include_directories(src/source/Metrics)
+include_directories(src/source/PeerConnection)
+include_directories(src/source/Rtcp)
+include_directories(src/source/Rtp)
+include_directories(src/source/Rtp/Codecs)
+include_directories(src/source/Sctp)
+include_directories(src/source/Sdp)
+include_directories(src/source/Signaling)
+include_directories(src/source/Srtp)
+include_directories(src/source/Stun)
+include_directories(tst)
+
+add_executable(amazon_kinesis_video_streams_webrtc_sdk_c
+        open-source/include/com/amazonaws/kinesis/video/client/Include.h
+        open-source/include/com/amazonaws/kinesis/video/common/CommonDefs.h
+        open-source/include/com/amazonaws/kinesis/video/common/dlfcn_win_stub.h
+        open-source/include/com/amazonaws/kinesis/video/common/Include.h
+        open-source/include/com/amazonaws/kinesis/video/common/jsmn.h
+        open-source/include/com/amazonaws/kinesis/video/common/PlatformUtils.h
+        open-source/include/com/amazonaws/kinesis/video/cproducer/Include.h
+        open-source/include/com/amazonaws/kinesis/video/heap/Include.h
+        open-source/include/com/amazonaws/kinesis/video/mkvgen/Include.h
+        open-source/include/com/amazonaws/kinesis/video/state/Include.h
+        open-source/include/com/amazonaws/kinesis/video/trace/Include.h
+        open-source/include/com/amazonaws/kinesis/video/utils/Include.h
+        open-source/include/com/amazonaws/kinesis/video/view/Include.h
+        open-source/include/gtest/internal/custom/gtest-port.h
+        open-source/include/gtest/internal/custom/gtest-printers.h
+        open-source/include/gtest/internal/custom/gtest.h
+        open-source/include/gtest/internal/gtest-death-test-internal.h
+        open-source/include/gtest/internal/gtest-filepath.h
+        open-source/include/gtest/internal/gtest-internal.h
+        open-source/include/gtest/internal/gtest-linked_ptr.h
+        open-source/include/gtest/internal/gtest-param-util-generated.h
+        open-source/include/gtest/internal/gtest-param-util.h
+        open-source/include/gtest/internal/gtest-port-arch.h
+        open-source/include/gtest/internal/gtest-port.h
+        open-source/include/gtest/internal/gtest-string.h
+        open-source/include/gtest/internal/gtest-tuple.h
+        open-source/include/gtest/internal/gtest-type-util.h
+        open-source/include/gtest/gtest-death-test.h
+        open-source/include/gtest/gtest-message.h
+        open-source/include/gtest/gtest-param-test.h
+        open-source/include/gtest/gtest-printers.h
+        open-source/include/gtest/gtest-spi.h
+        open-source/include/gtest/gtest-test-part.h
+        open-source/include/gtest/gtest-typed-test.h
+        open-source/include/gtest/gtest.h
+        open-source/include/gtest/gtest_pred_impl.h
+        open-source/include/gtest/gtest_prod.h
+        open-source/include/libwebsockets/abstract/protocols/smtp.h
+        open-source/include/libwebsockets/abstract/transports/raw-skt.h
+        open-source/include/libwebsockets/abstract/transports/unit-test.h
+        open-source/include/libwebsockets/abstract/abstract.h
+        open-source/include/libwebsockets/abstract/protocols.h
+        open-source/include/libwebsockets/abstract/transports.h
+        open-source/include/libwebsockets/lws-adopt.h
+        open-source/include/libwebsockets/lws-callbacks.h
+        open-source/include/libwebsockets/lws-cgi.h
+        open-source/include/libwebsockets/lws-client.h
+        open-source/include/libwebsockets/lws-context-vhost.h
+        open-source/include/libwebsockets/lws-dbus.h
+        open-source/include/libwebsockets/lws-diskcache.h
+        open-source/include/libwebsockets/lws-dsh.h
+        open-source/include/libwebsockets/lws-esp32.h
+        open-source/include/libwebsockets/lws-fts.h
+        open-source/include/libwebsockets/lws-genaes.h
+        open-source/include/libwebsockets/lws-gencrypto.h
+        open-source/include/libwebsockets/lws-genec.h
+        open-source/include/libwebsockets/lws-genhash.h
+        open-source/include/libwebsockets/lws-genrsa.h
+        open-source/include/libwebsockets/lws-http.h
+        open-source/include/libwebsockets/lws-jose.h
+        open-source/include/libwebsockets/lws-jwe.h
+        open-source/include/libwebsockets/lws-jwk.h
+        open-source/include/libwebsockets/lws-jws.h
+        open-source/include/libwebsockets/lws-lejp.h
+        open-source/include/libwebsockets/lws-logs.h
+        open-source/include/libwebsockets/lws-lwsac.h
+        open-source/include/libwebsockets/lws-misc.h
+        open-source/include/libwebsockets/lws-network-helper.h
+        open-source/include/libwebsockets/lws-optee.h
+        open-source/include/libwebsockets/lws-plugin-generic-sessions.h
+        open-source/include/libwebsockets/lws-protocols-plugins.h
+        open-source/include/libwebsockets/lws-purify.h
+        open-source/include/libwebsockets/lws-retry.h
+        open-source/include/libwebsockets/lws-ring.h
+        open-source/include/libwebsockets/lws-sequencer.h
+        open-source/include/libwebsockets/lws-service.h
+        open-source/include/libwebsockets/lws-sha1-base64.h
+        open-source/include/libwebsockets/lws-spa.h
+        open-source/include/libwebsockets/lws-stats.h
+        open-source/include/libwebsockets/lws-struct.h
+        open-source/include/libwebsockets/lws-system.h
+        open-source/include/libwebsockets/lws-test-sequencer.h
+        open-source/include/libwebsockets/lws-threadpool.h
+        open-source/include/libwebsockets/lws-timeout-timer.h
+        open-source/include/libwebsockets/lws-tokenize.h
+        open-source/include/libwebsockets/lws-vfs.h
+        open-source/include/libwebsockets/lws-write.h
+        open-source/include/libwebsockets/lws-writeable.h
+        open-source/include/libwebsockets/lws-ws-close.h
+        open-source/include/libwebsockets/lws-ws-ext.h
+        open-source/include/libwebsockets/lws-ws-state.h
+        open-source/include/libwebsockets/lws-x509.h
+        open-source/include/openssl/aes.h
+        open-source/include/openssl/asn1.h
+        open-source/include/openssl/asn1_mac.h
+        open-source/include/openssl/asn1err.h
+        open-source/include/openssl/asn1t.h
+        open-source/include/openssl/async.h
+        open-source/include/openssl/asyncerr.h
+        open-source/include/openssl/bio.h
+        open-source/include/openssl/bioerr.h
+        open-source/include/openssl/blowfish.h
+        open-source/include/openssl/bn.h
+        open-source/include/openssl/bnerr.h
+        open-source/include/openssl/buffer.h
+        open-source/include/openssl/buffererr.h
+        open-source/include/openssl/camellia.h
+        open-source/include/openssl/cast.h
+        open-source/include/openssl/cmac.h
+        open-source/include/openssl/cms.h
+        open-source/include/openssl/cmserr.h
+        open-source/include/openssl/comp.h
+        open-source/include/openssl/comperr.h
+        open-source/include/openssl/conf.h
+        open-source/include/openssl/conf_api.h
+        open-source/include/openssl/conferr.h
+        open-source/include/openssl/crypto.h
+        open-source/include/openssl/cryptoerr.h
+        open-source/include/openssl/ct.h
+        open-source/include/openssl/cterr.h
+        open-source/include/openssl/des.h
+        open-source/include/openssl/dh.h
+        open-source/include/openssl/dherr.h
+        open-source/include/openssl/dsa.h
+        open-source/include/openssl/dsaerr.h
+        open-source/include/openssl/dtls1.h
+        open-source/include/openssl/e_os2.h
+        open-source/include/openssl/ebcdic.h
+        open-source/include/openssl/ec.h
+        open-source/include/openssl/ecdh.h
+        open-source/include/openssl/ecdsa.h
+        open-source/include/openssl/ecerr.h
+        open-source/include/openssl/engine.h
+        open-source/include/openssl/engineerr.h
+        open-source/include/openssl/err.h
+        open-source/include/openssl/evp.h
+        open-source/include/openssl/evperr.h
+        open-source/include/openssl/hmac.h
+        open-source/include/openssl/idea.h
+        open-source/include/openssl/kdf.h
+        open-source/include/openssl/kdferr.h
+        open-source/include/openssl/lhash.h
+        open-source/include/openssl/md2.h
+        open-source/include/openssl/md4.h
+        open-source/include/openssl/md5.h
+        open-source/include/openssl/mdc2.h
+        open-source/include/openssl/modes.h
+        open-source/include/openssl/obj_mac.h
+        open-source/include/openssl/objects.h
+        open-source/include/openssl/objectserr.h
+        open-source/include/openssl/ocsp.h
+        open-source/include/openssl/ocsperr.h
+        open-source/include/openssl/opensslconf.h
+        open-source/include/openssl/opensslv.h
+        open-source/include/openssl/ossl_typ.h
+        open-source/include/openssl/pem.h
+        open-source/include/openssl/pem2.h
+        open-source/include/openssl/pemerr.h
+        open-source/include/openssl/pkcs12.h
+        open-source/include/openssl/pkcs12err.h
+        open-source/include/openssl/pkcs7.h
+        open-source/include/openssl/pkcs7err.h
+        open-source/include/openssl/rand.h
+        open-source/include/openssl/rand_drbg.h
+        open-source/include/openssl/randerr.h
+        open-source/include/openssl/rc2.h
+        open-source/include/openssl/rc4.h
+        open-source/include/openssl/rc5.h
+        open-source/include/openssl/ripemd.h
+        open-source/include/openssl/rsa.h
+        open-source/include/openssl/rsaerr.h
+        open-source/include/openssl/safestack.h
+        open-source/include/openssl/seed.h
+        open-source/include/openssl/sha.h
+        open-source/include/openssl/srp.h
+        open-source/include/openssl/srtp.h
+        open-source/include/openssl/ssl.h
+        open-source/include/openssl/ssl2.h
+        open-source/include/openssl/ssl3.h
+        open-source/include/openssl/sslerr.h
+        open-source/include/openssl/stack.h
+        open-source/include/openssl/store.h
+        open-source/include/openssl/storeerr.h
+        open-source/include/openssl/symhacks.h
+        open-source/include/openssl/tls1.h
+        open-source/include/openssl/ts.h
+        open-source/include/openssl/tserr.h
+        open-source/include/openssl/txt_db.h
+        open-source/include/openssl/ui.h
+        open-source/include/openssl/uierr.h
+        open-source/include/openssl/whrlpool.h
+        open-source/include/openssl/x509.h
+        open-source/include/openssl/x509_vfy.h
+        open-source/include/openssl/x509err.h
+        open-source/include/openssl/x509v3.h
+        open-source/include/openssl/x509v3err.h
+        open-source/include/srtp2/auth.h
+        open-source/include/srtp2/cipher.h
+        open-source/include/srtp2/crypto_types.h
+        open-source/include/srtp2/srtp.h
+        open-source/include/libwebsockets.h
+        open-source/include/lws-plugin-ssh.h
+        open-source/include/lws_config.h
+        open-source/include/usrsctp.h
+        samples/Common.c
+        samples/discoverNatBehavior.c
+        samples/kvsWebRTCClientMaster.c
+        samples/kvsWebRTCClientMasterGstreamerSample.c
+        samples/kvsWebRTCClientViewer.c
+        samples/Samples.h
+        src/include/com/amazonaws/kinesis/video/webrtcclient/Include.h
+        src/include/com/amazonaws/kinesis/video/webrtcclient/NullableDefs.h
+        src/include/com/amazonaws/kinesis/video/webrtcclient/Stats.h
+        src/source/Crypto/Crypto.h
+        src/source/Crypto/Dtls.c
+        src/source/Crypto/Dtls.h
+        src/source/Crypto/Dtls_mbedtls.c
+        src/source/Crypto/Dtls_openssl.c
+        src/source/Crypto/IOBuffer.c
+        src/source/Crypto/IOBuffer.h
+        src/source/Crypto/Tls.c
+        src/source/Crypto/Tls.h
+        src/source/Crypto/Tls_mbedtls.c
+        src/source/Crypto/Tls_openssl.c
+        src/source/Ice/ConnectionListener.c
+        src/source/Ice/ConnectionListener.h
+        src/source/Ice/IceAgent.c
+        src/source/Ice/IceAgent.h
+        src/source/Ice/IceAgentStateMachine.c
+        src/source/Ice/IceAgentStateMachine.h
+        src/source/Ice/IceUtils.c
+        src/source/Ice/IceUtils.h
+        src/source/Ice/NatBehaviorDiscovery.c
+        src/source/Ice/NatBehaviorDiscovery.h
+        src/source/Ice/Network.c
+        src/source/Ice/Network.h
+        src/source/Ice/SocketConnection.c
+        src/source/Ice/SocketConnection.h
+        src/source/Ice/TurnConnection.c
+        src/source/Ice/TurnConnection.h
+        src/source/Metrics/Metrics.c
+        src/source/Metrics/Metrics.h
+        src/source/PeerConnection/DataChannel.c
+        src/source/PeerConnection/DataChannel.h
+        src/source/PeerConnection/JitterBuffer.c
+        src/source/PeerConnection/JitterBuffer.h
+        src/source/PeerConnection/jsmn.c
+        src/source/PeerConnection/jsmn.h
+        src/source/PeerConnection/PeerConnection.c
+        src/source/PeerConnection/PeerConnection.h
+        src/source/PeerConnection/Retransimitter.c
+        src/source/PeerConnection/Retransmitter.h
+        src/source/PeerConnection/Rtcp.c
+        src/source/PeerConnection/Rtcp.h
+        src/source/PeerConnection/Rtp.c
+        src/source/PeerConnection/Rtp.h
+        src/source/PeerConnection/SessionDescription.c
+        src/source/PeerConnection/SessionDescription.h
+        src/source/Rtcp/RollingBuffer.c
+        src/source/Rtcp/RollingBuffer.h
+        src/source/Rtcp/RtcpPacket.c
+        src/source/Rtcp/RtcpPacket.h
+        src/source/Rtcp/RtpRollingBuffer.c
+        src/source/Rtcp/RtpRollingBuffer.h
+        src/source/Rtp/Codecs/RtpG711Payloader.c
+        src/source/Rtp/Codecs/RtpG711Payloader.h
+        src/source/Rtp/Codecs/RtpH264Payloader.c
+        src/source/Rtp/Codecs/RtpH264Payloader.h
+        src/source/Rtp/Codecs/RtpOpusPayloader.c
+        src/source/Rtp/Codecs/RtpOpusPayloader.h
+        src/source/Rtp/Codecs/RtpVP8Payloader.c
+        src/source/Rtp/Codecs/RtpVP8Payloader.h
+        src/source/Rtp/RtpPacket.c
+        src/source/Rtp/RtpPacket.h
+        src/source/Sctp/Sctp.c
+        src/source/Sctp/Sctp.h
+        src/source/Sdp/Deserialize.c
+        src/source/Sdp/Sdp.h
+        src/source/Sdp/Serialize.c
+        src/source/Signaling/ChannelInfo.c
+        src/source/Signaling/ChannelInfo.h
+        src/source/Signaling/Client.c
+        src/source/Signaling/FileCache.c
+        src/source/Signaling/FileCache.h
+        src/source/Signaling/LwsApiCalls.c
+        src/source/Signaling/LwsApiCalls.h
+        src/source/Signaling/Signaling.c
+        src/source/Signaling/Signaling.h
+        src/source/Signaling/StateMachine.c
+        src/source/Signaling/StateMachine.h
+        src/source/Srtp/SrtpSession.c
+        src/source/Srtp/SrtpSession.h
+        src/source/Stun/Stun.c
+        src/source/Stun/Stun.h
+        src/source/Include_i.h
+        tst/DataChannelApiTest.cpp
+        tst/DataChannelFunctionalityTest.cpp
+        tst/DtlsApiTest.cpp
+        tst/IceApiTest.cpp
+        tst/IceFunctionalityTest.cpp
+        tst/IOBufferFunctionalityTest.cpp
+        tst/JitterBufferFunctionalityTest.cpp
+        tst/main.cpp
+        tst/MetricsApiTest.cpp
+        tst/PeerConnectionApiTest.cpp
+        tst/PeerConnectionFunctionalityTest.cpp
+        tst/RollingBufferFunctionalityTest.cpp
+        tst/RtcpFunctionalityTest.cpp
+        tst/RtpFunctionalityTest.cpp
+        tst/RtpRollingBufferFunctionalityTest.cpp
+        tst/SdpApiTest.cpp
+        tst/SignalingApiFunctionalityTest.cpp
+        tst/SignalingApiTest.cpp
+        tst/SrtpApiTest.cpp
+        tst/StunApiTest.cpp
+        tst/StunFunctionalityTest.cpp
+        tst/TurnConnectionFunctionalityTest.cpp
+        tst/WebRTCClientTestFixture.cpp
+        tst/WebRTCClientTestFixture.h)
