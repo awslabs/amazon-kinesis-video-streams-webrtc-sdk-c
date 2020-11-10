@@ -1112,7 +1112,7 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
                     pPendingMessageQueue = (PStackQueue) hashValue;
                 }
 
-                pReceivedSignalingMessageCopy = (ReceivedSignalingMessage) MEMCALLOC(1, SIZEOF(ReceivedSignalingMessage));
+                pReceivedSignalingMessageCopy = (PReceivedSignalingMessage) MEMCALLOC(1, SIZEOF(ReceivedSignalingMessage));
 
                 *pReceivedSignalingMessageCopy = *pReceivedSignalingMessage;
 
