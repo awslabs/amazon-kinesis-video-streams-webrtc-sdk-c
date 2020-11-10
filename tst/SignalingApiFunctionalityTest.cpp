@@ -1445,8 +1445,8 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionError
     BYTE firstByte = pSignalingClient->pAwsCredentials->secretKey[0];
     pSignalingClient->pAwsCredentials->secretKey[0] = 'A';
 
-    // Wait for ICE refresh while connected
-    THREAD_SLEEP(15 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+    // Wait for ICE refresh while connected and terminate with an error that will be called via error callback
+    THREAD_SLEEP(30 * HUNDREDS_OF_NANOS_IN_A_SECOND);
 
     // While the background ICE refresh is happening, we will be blocked for the refresh thread to finish
     // In this case, the ICE refresh will eventually fail, however, we should still be able to send the
