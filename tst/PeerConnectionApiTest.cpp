@@ -160,6 +160,15 @@ TEST_F(PeerConnectionApiTest, CONVERT_TIMESTAMP_TO_RTP_BigTimestamp)
     EXPECT_EQ(144312782076270, rtpTimestamp);
 }
 
+TEST_F(PeerConnectionApiTest, CONVERT_TIMESTAMP_TO_RTP_MacroWithMathOperations)
+{
+    UINT64 rtpTimestamp = CONVERT_TIMESTAMP_TO_RTP(40000 + 50000, HUNDREDS_OF_NANOS_IN_A_SECOND);
+    EXPECT_EQ(90000, rtpTimestamp);
+
+    rtpTimestamp = CONVERT_TIMESTAMP_TO_RTP(90000, HUNDREDS_OF_NANOS_IN_A_SECOND + HUNDREDS_OF_NANOS_IN_A_SECOND);
+    EXPECT_EQ(180000, rtpTimestamp);
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis
