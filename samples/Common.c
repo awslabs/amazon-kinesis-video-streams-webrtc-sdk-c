@@ -833,14 +833,13 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
     CHK(ppSampleConfiguration != NULL, STATUS_NULL_ARG);
     pSampleConfiguration = *ppSampleConfiguration;
 
+    CHK(pSampleConfiguration != NULL, retStatus);
     hashTableIterateEntries(pSampleConfiguration->pPendingSignalingMessageForRemoteClient, (UINT64) NULL, freePendingSignalingMessageQueue);
     hashTableClear(pSampleConfiguration->pPendingSignalingMessageForRemoteClient);
     hashTableFree(pSampleConfiguration->pPendingSignalingMessageForRemoteClient);
 
     hashTableClear(pSampleConfiguration->pRtcPeerConnectionForRemoteClient);
     hashTableFree(pSampleConfiguration->pRtcPeerConnectionForRemoteClient);
-
-    CHK(pSampleConfiguration != NULL, retStatus);
 
     if (IS_VALID_MUTEX_VALUE(pSampleConfiguration->sampleConfigurationObjLock)) {
         MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
