@@ -179,7 +179,7 @@ Macros</h2></td></tr>
 <tr class="separator:aa6c849e71254274167ccdc73059814cb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aec69a3a06a63c045afc82fe8642a5346"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtp_8h.html#aec69a3a06a63c045afc82fe8642a5346">HUGE_FRAME_MULTIPLIER</a>&#160;&#160;&#160;2.5</td></tr>
 <tr class="separator:aec69a3a06a63c045afc82fe8642a5346"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a0d105a0689d40474f586dedbd85eaff0"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtp_8h.html#a0d105a0689d40474f586dedbd85eaff0">CONVERT_TIMESTAMP_TO_RTP</a>(clockRate,  pts)&#160;&#160;&#160;((UINT64)((DOUBLE) pts * ((DOUBLE) clockRate / HUNDREDS_OF_NANOS_IN_A_SECOND)))</td></tr>
+<tr class="memitem:a0d105a0689d40474f586dedbd85eaff0"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtp_8h.html#a0d105a0689d40474f586dedbd85eaff0">CONVERT_TIMESTAMP_TO_RTP</a>(clockRate,  pts)&#160;&#160;&#160;((UINT64)((DOUBLE)(pts) * ((DOUBLE)(clockRate) / HUNDREDS_OF_NANOS_IN_A_SECOND)))</td></tr>
 <tr class="separator:a0d105a0689d40474f586dedbd85eaff0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="typedef-members"></a>
@@ -226,7 +226,7 @@ Functions</h2></td></tr>
         <tr>
           <td></td>
           <td>)</td>
-          <td></td><td>&#160;&#160;&#160;((UINT64)((DOUBLE) pts * ((DOUBLE) clockRate / HUNDREDS_OF_NANOS_IN_A_SECOND)))</td>
+          <td></td><td>&#160;&#160;&#160;((UINT64)((DOUBLE)(pts) * ((DOUBLE)(clockRate) / HUNDREDS_OF_NANOS_IN_A_SECOND)))</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -709,7 +709,7 @@ Here is the caller graph for this function:</div>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_94e7a0fbe7f8eaf7f05ee7b02c647e9f.html">source</a></li><li class="navelem"><a class="el" href="dir_3f63ab91aeb49885abb85dedd791923c.html">PeerConnection</a></li><li class="navelem"><a class="el" href="Rtp_8h.html">Rtp.h</a></li>
-    <li class="footer">Generated on Wed Nov 11 2020 00:39:57 for Amazon Kinesis Webrtc C SDK by
+    <li class="footer">Generated on Wed Nov 11 2020 01:39:55 for Amazon Kinesis Webrtc C SDK by
     <a href="http://www.doxygen.org/index.html">
     <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.18 </li>
   </ul>
