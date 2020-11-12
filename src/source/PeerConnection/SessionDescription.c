@@ -146,6 +146,52 @@ CleanUp:
 }
 
 /*
+ * Extracts a (hex) value after the provided prefix string. Returns true if
+ * successful.
+ */
+static BOOL readHexValue(const PCHAR input, const PCHAR prefix, PINT32 value) {
+  const PCHAR substr = STRSTR(input, prefix);
+  if (substr != NULL) {
+    if (SSCANF(substr + STRLEN(prefix), "%x", value) == 1) {
+      return TRUE;
+    }
+  }
+  return FALSE;
+}
+
+static BOOL isH264FmtpMatch(PCHAR fmtp) {
+  INT32 profileId, packetizationMode, levelAsymmetry;
+
+  // All H264 matches must be profile level 0x42e01f
+  if (readHexValue(fmtp, "profile-level-id=", &profileId) != TRUE ||
+      profileId != 0x42e01f) {
+      DLOGV("Not a profile match");
+      return FALSE;
+  }
+
+  // Packetization mode must be 1, as this library only supports SENDING
+  // of FU-A and single NAL unit messages, which implies outbound support
+  // for only packetization-mode=1. Note that inbound this library may
+  // support packetization-mode=0, e.g. in rcvonly cases.
+  //
+  // https://tools.ietf.org/html/rfc7742#section-6.2
+  if (readHexValue(fmtp, "packetization-mode=", &packetizationMode) != TRUE ||
+      packetizationMode != 1) {
+      DLOGV("Not a packetization match");
+      return FALSE;
+  }
+
+  if (readHexValue(fmtp, "level-asymmetry-allowed=", &levelAsymmetry) != TRUE ||
+      levelAsymmetry != 1) {
+      DLOGV("Not a level asymmetry match");
+      return FALSE;
+  }
+
+  // All criteria are met.
+  return TRUE;
+}
+
+/*
  * Populate map with PayloadTypes for codecs a KvsPeerConnection has enabled.
  */
 STATUS setPayloadTypesFromOffer(PHashTable codecTable, PHashTable rtxTable, PSessionDescription pSessionDescription)
@@ -190,10 +236,7 @@ STATUS setPayloadTypesFromOffer(PHashTable codecTable, PHashTable rtxTable, PSes
             if (supportCodec && (end = STRSTR(attributeValue, H264_VALUE)) != NULL) {
                 CHK_STATUS(STRTOUI64(attributeValue, end - 1, 10, &parsedPayloadType));
                 PCHAR fmtp = fmtpForPayloadType(parsedPayloadType, pSessionDescription);
-                if (fmtp != NULL &&
-                    STRSTR(fmtp, "profile-level-id=42e01f") != NULL &&
-                    (STRSTR(fmtp, "packetization-mode=0") != NULL || STRSTR(fmtp, "packetization-mode") == NULL) &&
-                    STRSTR(fmtp, "level-asymmetry-allowed=1") != NULL) {
+                if (fmtp != NULL && isH264FmtpMatch(fmtp)) {
                     DLOGV("Payload type %" PRId64 " - found exact fmtp description match %s", parsedPayloadType, fmtp);
                     CHK_STATUS(hashTableUpsert(codecTable, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, parsedPayloadType));
                 } else if (fmtp != NULL) {
