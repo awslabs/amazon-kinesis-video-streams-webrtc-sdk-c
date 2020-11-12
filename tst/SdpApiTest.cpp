@@ -999,7 +999,7 @@ INSTANTIATE_TEST_CASE_P(SdpApiTest_SdpMatch_Chromium, SdpApiTest_SdpMatch,
 
 INSTANTIATE_TEST_CASE_P(SdpApiTest_SdpMatch_Safari, SdpApiTest_SdpMatch,
                         ::testing::Values(SdpMatch{
-                                              "../samples/SDP/offers/1v1a1d-chromium-linux.txt",
+                                              "../samples/SDP/offers/1v1a1d-safari-mac.txt",
                                               "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f",
                                           }));
 
