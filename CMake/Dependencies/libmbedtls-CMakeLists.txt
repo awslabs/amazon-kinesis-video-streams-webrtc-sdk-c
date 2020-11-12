@@ -30,6 +30,6 @@ ExternalProject_Add(
     -DENABLE_TESTING=OFF
     -DENABLE_PROGRAMS=OFF
     -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
-  BUILD_COMMAND   make -j4
+  BUILD_COMMAND   ${CMAKE_COMMAND} --build . --parallel
   BUILD_ALWAYS    TRUE
   TEST_COMMAND    "")
