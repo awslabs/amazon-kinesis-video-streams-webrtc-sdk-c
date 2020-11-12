@@ -44,6 +44,14 @@ function(build_dependency lib_name)
 
   file(REMOVE_RECURSE ${OPEN_SRC_INSTALL_PREFIX}/lib${lib_name})
 
+  # CMake 3.12 and higher support the --parallel build flag.
+  # https://cmake.org/cmake/help/latest/release/3.12.html
+  if(${CMAKE_VERSION} VERSION_LESS "3.12")
+    set(CUSTOM_BUILD_COMMAND ${CMAKE_COMMAND} --build .)
+  else()
+    set(CUSTOM_BUILD_COMMAND ${CMAKE_COMMAND} --build . --parallel)
+  endif()
+
   # build library
   configure_file(
     ./CMake/Dependencies/lib${lib_name}-CMakeLists.txt
@@ -58,7 +66,7 @@ function(build_dependency lib_name)
     message(FATAL_ERROR "CMake step for lib${lib_name} failed: ${result}")
   endif()
   execute_process(
-    COMMAND ${CMAKE_COMMAND} --build .
+    COMMAND ${CUSTOM_BUILD_COMMAND}
     RESULT_VARIABLE result
     WORKING_DIRECTORY ${OPEN_SRC_INSTALL_PREFIX}/lib${lib_name})
   if(result)
