@@ -848,9 +848,9 @@ a=rtcp-mux
 a=rtcp-rsize
 a=rtpmap:96 VP8/90000
 a=rtpmap:102 H264/90000
-a=fmtp:102 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42e01f
+a=fmtp:102 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f
 a=rtpmap:125 H264/90000
-a=fmtp:125 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f
+a=fmtp:125 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42e01f
 )";
 
     assertLFAndCRLF(remoteSessionDescription, ARRAY_SIZE(remoteSessionDescription) - 1, [](PCHAR sdp) {
@@ -880,7 +880,7 @@ a=fmtp:125 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01
         EXPECT_EQ(setRemoteDescription(pRtcPeerConnection, &rtcSessionDescriptionInit), STATUS_SUCCESS);
         EXPECT_EQ(createAnswer(pRtcPeerConnection, &rtcSessionDescriptionInit), STATUS_SUCCESS);
         EXPECT_PRED_FORMAT2(testing::IsNotSubstring, "fmtp:102 strange", rtcSessionDescriptionInit.sdp);
-        EXPECT_PRED_FORMAT2(testing::IsSubstring, "fmtp:102 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42e01f",
+        EXPECT_PRED_FORMAT2(testing::IsSubstring, "fmtp:102 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f",
                             rtcSessionDescriptionInit.sdp);
         closePeerConnection(pRtcPeerConnection);
         freePeerConnection(&pRtcPeerConnection);
@@ -974,27 +974,33 @@ TEST_P(SdpApiTest_SdpMatch, populateSingleMediaSection_TestH264Fmtp)
 INSTANTIATE_TEST_CASE_P(SdpApiTest_SdpMatch_Chrome, SdpApiTest_SdpMatch,
                         ::testing::Values(SdpMatch{
                                               "../samples/SDP/offers/1v1a1d-chrome-linux.txt",
-                                              "level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42e01f",
+                                              "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f",
                                           },
                                           SdpMatch{
                                               "../samples/SDP/offers/1v1a1d-chrome-mac.txt",
-                                              "level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42e01f",
+                                              "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f",
                                           }));
 
 INSTANTIATE_TEST_CASE_P(SdpApiTest_SdpMatch_Firefox, SdpApiTest_SdpMatch,
                         ::testing::Values(SdpMatch{
                                               "../samples/SDP/offers/1v1a1d-firefox-linux.txt",
-                                              "profile-level-id=42e01f;level-asymmetry-allowed=1",
+                                              "profile-level-id=42e01f;level-asymmetry-allowed=1;packetization-mode=1",
                                           },
                                           SdpMatch{
                                               "../samples/SDP/offers/1v1a1d-firefox-mac.txt",
-                                              "profile-level-id=42e01f;level-asymmetry-allowed=1",
+                                              "profile-level-id=42e01f;level-asymmetry-allowed=1;packetization-mode=1",
                                           }));
 
 INSTANTIATE_TEST_CASE_P(SdpApiTest_SdpMatch_Chromium, SdpApiTest_SdpMatch,
                         ::testing::Values(SdpMatch{
                                               "../samples/SDP/offers/1v1a1d-chromium-linux.txt",
-                                              "level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42e01f",
+                                              "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f",
+                                          }));
+
+INSTANTIATE_TEST_CASE_P(SdpApiTest_SdpMatch_Safari, SdpApiTest_SdpMatch,
+                        ::testing::Values(SdpMatch{
+                                              "../samples/SDP/offers/1v1a1d-chromium-linux.txt",
+                                              "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f",
                                           }));
 
 } // namespace webrtcclient
