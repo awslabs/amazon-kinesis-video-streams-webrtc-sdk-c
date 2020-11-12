@@ -7,6 +7,11 @@ if (WIN32)
   SET(CONFIGURE_COMMAND perl ${CMAKE_CURRENT_BINARY_DIR}/build/src/project_libopenssl/Configure VC-WIN64A no-asm --prefix=${OPEN_SRC_INSTALL_PREFIX} --openssldir=${OPEN_SRC_INSTALL_PREFIX})
 else()
   find_program(MAKE_EXE NAMES make)
+  # OpenSSL takes a while to compile, so allow some parallelism.
+  if (DEFINED ENV{CMAKE_BUILD_PARALLEL_LEVEL})
+    list(APPEND MAKE_EXE "-j$ENV{CMAKE_BUILD_PARALLEL_LEVEL}")
+  endif()
+
   if (BUILD_STATIC_LIBS)
     SET(OPENSSL_EXTRA ${OPENSSL_EXTRA} no-shared no-dso)
   endif()
