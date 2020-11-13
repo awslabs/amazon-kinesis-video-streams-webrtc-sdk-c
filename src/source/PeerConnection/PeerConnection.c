@@ -1007,7 +1007,7 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
     CHK_STATUS(setTransceiverPayloadTypes(pKvsPeerConnection->pCodecTable, pKvsPeerConnection->pRtxTable, pKvsPeerConnection->pTransceivers));
     CHK_STATUS(setReceiversSsrc(pSessionDescription, pKvsPeerConnection->pTransceivers));
 
-    if (NULL != getenv(DEBUG_LOG_SDP)) {
+    if (NULL != GETENV(DEBUG_LOG_SDP)) {
         DLOGD("REMOTE_SDP:%s\n", pSessionDescriptionInit->sdp);
     }
 
@@ -1044,6 +1044,10 @@ STATUS createOffer(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionIni
 
     CHK_STATUS(serializeSessionDescription(pSessionDescription, pSessionDescriptionInit->sdp, &serializeLen));
 
+    // If embedded SDK acts as the viewer
+    if (NULL != GETENV(DEBUG_LOG_SDP)) {
+        DLOGD("LOCAL_SDP:%s", pSessionDescriptionInit->sdp);
+    }
 CleanUp:
 
     SAFE_MEMFREE(pSessionDescription);
@@ -1066,6 +1070,10 @@ STATUS createAnswer(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionIn
 
     CHK_STATUS(peerConnectionGetCurrentLocalDescription(pPeerConnection, pSessionDescriptionInit));
 
+    // If embedded SDK acts as the master
+    if (NULL != GETENV(DEBUG_LOG_SDP)) {
+        DLOGD("LOCAL_SDP:%s", pSessionDescriptionInit->sdp);
+    }
 CleanUp:
 
     LEAVES();
@@ -1082,10 +1090,6 @@ STATUS setLocalDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescri
     CHK(pKvsPeerConnection != NULL && pSessionDescriptionInit != NULL, STATUS_NULL_ARG);
 
     CHK_STATUS(iceAgentStartGathering(pKvsPeerConnection->pIceAgent));
-
-    if (NULL != getenv(DEBUG_LOG_SDP)) {
-        DLOGD("LOCAL_SDP:%s", pSessionDescriptionInit->sdp);
-    }
 CleanUp:
 
     LEAVES();
