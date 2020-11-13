@@ -152,7 +152,7 @@ CleanUp:
 static BOOL readHexValue(const PCHAR input, const PCHAR prefix, PINT32 value) {
   const PCHAR substr = STRSTR(input, prefix);
   if (substr != NULL) {
-    if (SSCANF(substr + STRLEN(prefix), "%x", value) == 1) {
+    if (sscanf(substr + STRLEN(prefix), "%x", value) == 1) {
       return TRUE;
     }
   }
