@@ -65,9 +65,11 @@ STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen,
                     destIpList[ipCount].port = 0;
 
                     pIpv6Addr = (struct sockaddr_in6*) (ua->Address.lpSockaddr);
+                    // Ignore unspecified addres: the other peer can't use this address
                     // Ignore link local: not very useful and will add work unnecessarily
                     // Ignore site local: https://tools.ietf.org/html/rfc8445#section-5.1.1.1
-                    if (IN6_IS_ADDR_LINKLOCAL(&pIpv6Addr->sin6_addr) || IN6_IS_ADDR_SITELOCAL(&pIpv6Addr->sin6_addr)) {
+                    if (IN6_IS_ADDR_UNSPECIFIED(&pIpv6Addr->sin6_addr) || IN6_IS_ADDR_LINKLOCAL(&pIpv6Addr->sin6_addr) ||
+                        IN6_IS_ADDR_SITELOCAL(&pIpv6Addr->sin6_addr)) {
                         continue;
                     }
                     MEMCPY(destIpList[ipCount].address, &pIpv6Addr->sin6_addr, IPV6_ADDRESS_LENGTH);
@@ -108,9 +110,11 @@ STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen,
                     destIpList[ipCount].family = KVS_IP_FAMILY_TYPE_IPV6;
                     destIpList[ipCount].port = 0;
                     pIpv6Addr = (struct sockaddr_in6*) ifa->ifa_addr;
+                    // Ignore unspecified addres: the other peer can't use this address
                     // Ignore link local: not very useful and will add work unnecessarily
                     // Ignore site local: https://tools.ietf.org/html/rfc8445#section-5.1.1.1
-                    if (IN6_IS_ADDR_LINKLOCAL(&pIpv6Addr->sin6_addr) || IN6_IS_ADDR_SITELOCAL(&pIpv6Addr->sin6_addr)) {
+                    if (IN6_IS_ADDR_UNSPECIFIED(&pIpv6Addr->sin6_addr) || IN6_IS_ADDR_LINKLOCAL(&pIpv6Addr->sin6_addr) ||
+                        IN6_IS_ADDR_SITELOCAL(&pIpv6Addr->sin6_addr)) {
                         continue;
                     }
                     MEMCPY(destIpList[ipCount].address, &pIpv6Addr->sin6_addr, IPV6_ADDRESS_LENGTH);
