@@ -146,52 +146,6 @@ CleanUp:
 }
 
 /*
- * Extracts a (hex) value after the provided prefix string. Returns true if
- * successful.
- */
-static BOOL readHexValue(const PCHAR input, const PCHAR prefix, PINT32 value) {
-  const PCHAR substr = STRSTR(input, prefix);
-  if (substr != NULL) {
-    if (sscanf(substr + STRLEN(prefix), "%x", value) == 1) {
-      return TRUE;
-    }
-  }
-  return FALSE;
-}
-
-static BOOL isH264FmtpMatch(PCHAR fmtp) {
-  INT32 profileId, packetizationMode, levelAsymmetry;
-
-  // All H264 matches must be profile level 0x42e01f
-  if (readHexValue(fmtp, "profile-level-id=", &profileId) != TRUE ||
-      profileId != 0x42e01f) {
-      DLOGV("Not a profile match");
-      return FALSE;
-  }
-
-  // Packetization mode must be 1, as this library only supports SENDING
-  // of FU-A and single NAL unit messages, which implies outbound support
-  // for only packetization-mode=1. Note that inbound this library may
-  // support packetization-mode=0, e.g. in rcvonly cases.
-  //
-  // https://tools.ietf.org/html/rfc7742#section-6.2
-  if (readHexValue(fmtp, "packetization-mode=", &packetizationMode) != TRUE ||
-      packetizationMode != 1) {
-      DLOGV("Not a packetization match");
-      return FALSE;
-  }
-
-  if (readHexValue(fmtp, "level-asymmetry-allowed=", &levelAsymmetry) != TRUE ||
-      levelAsymmetry != 1) {
-      DLOGV("Not a level asymmetry match");
-      return FALSE;
-  }
-
-  // All criteria are met.
-  return TRUE;
-}
-
-/*
  * Populate map with PayloadTypes for codecs a KvsPeerConnection has enabled.
  */
 STATUS setPayloadTypesFromOffer(PHashTable codecTable, PHashTable rtxTable, PSessionDescription pSessionDescription)
@@ -206,10 +160,13 @@ STATUS setPayloadTypesFromOffer(PHashTable codecTable, PHashTable rtxTable, PSes
     UINT16 aptFmtVal;
     BOOL supportCodec;
     UINT32 tokenLen, i, aptFmtpValCount;
+    PCHAR fmtp;
+    INT32 fmtpScore, bestFmtpScore;
 
     for (currentMedia = 0; currentMedia < pSessionDescription->mediaCount; currentMedia++) {
         pMediaDescription = &(pSessionDescription->mediaDescriptions[currentMedia]);
         aptFmtpValCount = 0;
+        bestFmtpScore = 0;
         attributeValue = pMediaDescription->mediaName;
         do {
             if ((end = STRCHR(attributeValue, ' ')) != NULL) {
@@ -235,14 +192,13 @@ STATUS setPayloadTypesFromOffer(PHashTable codecTable, PHashTable rtxTable, PSes
             CHK_STATUS(hashTableContains(codecTable, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, &supportCodec));
             if (supportCodec && (end = STRSTR(attributeValue, H264_VALUE)) != NULL) {
                 CHK_STATUS(STRTOUI64(attributeValue, end - 1, 10, &parsedPayloadType));
-                PCHAR fmtp = fmtpForPayloadType(parsedPayloadType, pSessionDescription);
-                if (fmtp != NULL && isH264FmtpMatch(fmtp)) {
-                    DLOGV("Payload type %" PRId64 " - found exact fmtp description match %s", parsedPayloadType, fmtp);
+                fmtp = fmtpForPayloadType(parsedPayloadType, pSessionDescription);
+                fmtpScore = getH264FmtpScore(fmtp);
+                // TODO: At some point the level asymmetry between tx and rx should be fully embraced.
+                if (fmtpScore > bestFmtpScore) {
+                    DLOGV("Found H264 payload type %" PRId64 " with score %d: %s", parsedPayloadType, fmtpScore, fmtp);
                     CHK_STATUS(hashTableUpsert(codecTable, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, parsedPayloadType));
-                } else if (fmtp != NULL) {
-                    DLOGV("Payload type %" PRId64 " - no exact match for fmtp description %s", parsedPayloadType, fmtp);
-                } else {
-                    DLOGV("Payload type %" PRId64 " lacks any fmtp description.", parsedPayloadType);
+                    bestFmtpScore = fmtpScore;
                 }
             }
 
@@ -369,6 +325,64 @@ PCHAR fmtpForPayloadType(UINT64 payloadType, PSessionDescription pSessionDescrip
     }
 
     return NULL;
+}
+
+/*
+ * Extracts a (hex) value after the provided prefix string. Returns true if
+ * successful.
+ */
+static BOOL readHexValue(const PCHAR input, const PCHAR prefix, PINT32 value) {
+  const PCHAR substr = STRSTR(input, prefix);
+  if (substr != NULL) {
+    if (sscanf(substr + STRLEN(prefix), "%x", value) == 1) {
+      return TRUE;
+    }
+  }
+  return FALSE;
+}
+
+/*
+ * Scores the provided fmtp string based on this library's ability to
+ * process various types of H264 streams. A score of 0 indicates an
+ * incompatible fmtp line. Beyond this, a higher score indicates more
+ * compatibility with the desired characteristics, packetization-mode=1,
+ * level-asymmetry-allowed=1, and inbound match with our preferred
+ * encoding level.
+ */
+INT32 getH264FmtpScore(PCHAR fmtp) {
+  INT32 profileId = 0, packetizationMode = 0, levelAsymmetry = 0;
+  BOOL isAsymmetryAllowed = FALSE;
+  BOOL isProfileMatch = FALSE;
+  INT32 score = 0;
+
+  // No ftmp match found.
+  if (fmtp == NULL) {
+      return 0;
+  }
+
+  // Currently, the packetization mode must be 1, as the packetization logic
+  // is currently not configurable, and sends both NALU and FU-A packets.
+  // https://tools.ietf.org/html/rfc7742#section-6.2
+  if (readHexValue(fmtp, "packetization-mode=", &packetizationMode) == FALSE || packetizationMode != 1) {
+      return 0;
+  }
+
+  if (readHexValue(fmtp, "profile-level-id=", &profileId) == TRUE) {
+      isProfileMatch = profileId == 0x42e01f;
+  }
+
+  if (readHexValue(fmtp, "level-asymmetry-allowed=", &levelAsymmetry) == TRUE) {
+      isAsymmetryAllowed = (levelAsymmetry == 1);
+  }
+
+  if (isProfileMatch) {
+      // Prefer asymmetry if it's allowed, but it's not strictly necessary as
+      // our preferred profile-level-id matches.
+      return (isAsymmetryAllowed) ? 3 : 2;
+  } else {
+      // Level asymmetry must be allowed if there is not a perfect profile-level-id match.
+      return (isAsymmetryAllowed) ? 1 : 0;
+  }
 }
 
 // Populate a single media section from a PKvsRtpTransceiver
@@ -551,6 +565,7 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
         SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%" PRId64 " H264/90000", payloadType);
         attributeCount++;
 
+        // TODO: Since level asymmetry is allowed we should be able to send back DEFAULT_H264_FMTP instead of the received fmtp value.
         if (currentFmtp != NULL) {
             STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "fmtp");
             SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%" PRId64 " %s", payloadType, currentFmtp);

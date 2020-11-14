@@ -64,6 +64,7 @@ STATUS populateSessionDescription(PKvsPeerConnection, PSessionDescription, PSess
 STATUS reorderTransceiverByRemoteDescription(PKvsPeerConnection, PSessionDescription);
 STATUS setReceiversSsrc(PSessionDescription, PDoubleList);
 PCHAR fmtpForPayloadType(UINT64, PSessionDescription);
+INT32 getH264FmtpScore(PCHAR);
 
 #ifdef __cplusplus
 }

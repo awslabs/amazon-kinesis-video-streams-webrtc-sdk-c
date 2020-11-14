@@ -887,6 +887,32 @@ a=fmtp:125 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42e01
     });
 }
 
+TEST_F(SdpApiTest, getH264FmtpScore) {
+    // Lambda to work around non-const nature of the API.
+    auto getScore = [](const CHAR* fmtp) {
+        return getH264FmtpScore(const_cast<PCHAR>(fmtp));
+    };
+    // Test perfect matches.
+    EXPECT_EQ(3, getScore("level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f"));
+    EXPECT_EQ(3, getScore("profile-level-id=42e01f;packetization-mode=1;level-asymmetry-allowed=1"));
+    EXPECT_EQ(3, getScore("packetization-mode=1;profile-level-id=42e01f;level-asymmetry-allowed=1"));
+
+    // Asymmetry not allowed, but we found a profile match.
+    EXPECT_EQ(2, getScore("level-asymmetry-allowed=0;packetization-mode=1;profile-level-id=42e01f"));
+    EXPECT_EQ(2, getScore("packetization-mode=1;profile-level-id=42e01f"));
+
+    // Non-preferred profile-level-id, but asymmetry is allowed.
+    EXPECT_EQ(1, getScore("level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=640032"));
+
+    // Lacks required packetization mode.
+    EXPECT_EQ(0, getScore("level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42e01f"));
+    EXPECT_EQ(0, getScore("level-asymmetry-allowed=1;profile-level-id=42e01f"));
+
+    // Lacks required profile-level-id and asymmetry is not allowed.
+    EXPECT_EQ(0, getScore("level-asymmetry-allowed=0;packetization-mode=1;profile-level-id=640032"));
+    EXPECT_EQ(0, getScore("packetization-mode=1;profile-level-id=640032"));
+}
+
 TEST_F(SdpApiTest, populateSingleMediaSection_TestMultipleIceOptions)
 {
     CHAR remoteSessionDescription[] = R"(v=0
