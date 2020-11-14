@@ -898,6 +898,9 @@ TEST_F(SdpApiTest, getH264FmtpScore) {
     EXPECT_EQ(3, getScore("profile-level-id=42e01f;packetization-mode=1;level-asymmetry-allowed=1"));
     EXPECT_EQ(3, getScore("packetization-mode=1;profile-level-id=42e01f;level-asymmetry-allowed=1"));
 
+    // Case shouldn't matter in profile level parsing (42e01f->42E01F).
+    EXPECT_EQ(3, getScore("level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42E01F"));
+
     // Asymmetry not allowed, but we found a profile match.
     EXPECT_EQ(2, getScore("level-asymmetry-allowed=0;packetization-mode=1;profile-level-id=42e01f"));
     EXPECT_EQ(2, getScore("packetization-mode=1;profile-level-id=42e01f"));
