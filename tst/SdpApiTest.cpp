@@ -879,7 +879,8 @@ a=fmtp:125 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42e01
         rtcSessionDescriptionInit.type = SDP_TYPE_OFFER;
         EXPECT_EQ(setRemoteDescription(pRtcPeerConnection, &rtcSessionDescriptionInit), STATUS_SUCCESS);
         EXPECT_EQ(createAnswer(pRtcPeerConnection, &rtcSessionDescriptionInit), STATUS_SUCCESS);
-        EXPECT_PRED_FORMAT2(testing::IsNotSubstring, "fmtp:102 strange", rtcSessionDescriptionInit.sdp);
+        EXPECT_PRED_FORMAT2(testing::IsNotSubstring, "fmtp:125 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42e01f",
+                            rtcSessionDescriptionInit.sdp);
         EXPECT_PRED_FORMAT2(testing::IsSubstring, "fmtp:102 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f",
                             rtcSessionDescriptionInit.sdp);
         closePeerConnection(pRtcPeerConnection);

@@ -194,7 +194,6 @@ STATUS setPayloadTypesFromOffer(PHashTable codecTable, PHashTable rtxTable, PSes
                 CHK_STATUS(STRTOUI64(attributeValue, end - 1, 10, &parsedPayloadType));
                 fmtp = fmtpForPayloadType(parsedPayloadType, pSessionDescription);
                 fmtpScore = getH264FmtpScore(fmtp);
-                // TODO: At some point the level asymmetry between tx and rx should be fully embraced.
                 if (fmtpScore > bestFmtpScore) {
                     DLOGV("Found H264 payload type %" PRId64 " with score %d: %s", parsedPayloadType, fmtpScore, fmtp);
                     CHK_STATUS(hashTableUpsert(codecTable, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, parsedPayloadType));
@@ -347,7 +346,7 @@ static BOOL readHexValue(const PCHAR input, const PCHAR prefix, PINT32 value) {
  * incompatible fmtp line. Beyond this, a higher score indicates more
  * compatibility with the desired characteristics, packetization-mode=1,
  * level-asymmetry-allowed=1, and inbound match with our preferred
- * encoding level.
+ * profile-level-id.
  */
 INT32 getH264FmtpScore(PCHAR fmtp) {
   INT32 profileId = 0, packetizationMode = 0, levelAsymmetry = 0;
@@ -565,7 +564,7 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
         SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%" PRId64 " H264/90000", payloadType);
         attributeCount++;
 
-        // TODO: Since level asymmetry is allowed we should be able to send back DEFAULT_H264_FMTP instead of the received fmtp value.
+        // TODO: If level asymmetry is allowed, consider sending back DEFAULT_H264_FMTP instead of the received fmtp value.
         if (currentFmtp != NULL) {
             STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "fmtp");
             SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%" PRId64 " %s", payloadType, currentFmtp);
