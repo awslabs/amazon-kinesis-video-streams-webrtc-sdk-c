@@ -363,15 +363,15 @@ DOUBLE getH264FmtpScore(PCHAR fmtp) {
   // Currently, the packetization mode must be 1, as the packetization logic
   // is currently not configurable, and sends both NALU and FU-A packets.
   // https://tools.ietf.org/html/rfc7742#section-6.2
-  if (readHexValue(fmtp, "packetization-mode=", &packetizationMode) == FALSE || packetizationMode != 1) {
+  if (!readHexValue(fmtp, "packetization-mode=", &packetizationMode) || packetizationMode != 1) {
       return 0.;
   }
 
-  if (readHexValue(fmtp, "profile-level-id=", &profileId) == TRUE) {
+  if (readHexValue(fmtp, "profile-level-id=", &profileId)) {
       isProfileMatch = (profileId == H264_PROFILE_42E01F);
   }
 
-  if (readHexValue(fmtp, "level-asymmetry-allowed=", &levelAsymmetry) == TRUE) {
+  if (readHexValue(fmtp, "level-asymmetry-allowed=", &levelAsymmetry)) {
       isAsymmetryAllowed = (levelAsymmetry == 1);
   }
 
