@@ -161,12 +161,12 @@ STATUS setPayloadTypesFromOffer(PHashTable codecTable, PHashTable rtxTable, PSes
     BOOL supportCodec;
     UINT32 tokenLen, i, aptFmtpValCount;
     PCHAR fmtp;
-    INT32 fmtpScore, bestFmtpScore;
+    DOUBLE fmtpScore, bestFmtpScore;
 
     for (currentMedia = 0; currentMedia < pSessionDescription->mediaCount; currentMedia++) {
         pMediaDescription = &(pSessionDescription->mediaDescriptions[currentMedia]);
         aptFmtpValCount = 0;
-        bestFmtpScore = 0;
+        bestFmtpScore = 0.;
         attributeValue = pMediaDescription->mediaName;
         do {
             if ((end = STRCHR(attributeValue, ' ')) != NULL) {
@@ -195,7 +195,7 @@ STATUS setPayloadTypesFromOffer(PHashTable codecTable, PHashTable rtxTable, PSes
                 fmtp = fmtpForPayloadType(parsedPayloadType, pSessionDescription);
                 fmtpScore = getH264FmtpScore(fmtp);
                 if (fmtpScore > bestFmtpScore) {
-                    DLOGV("Found H264 payload type %" PRId64 " with score %d: %s", parsedPayloadType, fmtpScore, fmtp);
+                    DLOGV("Found H264 payload type %" PRId64 " with score %f.2: %s", parsedPayloadType, fmtpScore, fmtp);
                     CHK_STATUS(hashTableUpsert(codecTable, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, parsedPayloadType));
                     bestFmtpScore = fmtpScore;
                 }
@@ -330,8 +330,8 @@ PCHAR fmtpForPayloadType(UINT64 payloadType, PSessionDescription pSessionDescrip
  * Extracts a (hex) value after the provided prefix string. Returns true if
  * successful.
  */
-static BOOL readHexValue(const PCHAR input, const PCHAR prefix, PINT32 value) {
-  const PCHAR substr = STRSTR(input, prefix);
+static BOOL readHexValue(PCHAR input, PCHAR prefix, PINT32 value) {
+  PCHAR substr = STRSTR(input, prefix);
   if (substr != NULL) {
     if (sscanf(substr + STRLEN(prefix), "%x", value) == 1) {
       return TRUE;
@@ -346,28 +346,29 @@ static BOOL readHexValue(const PCHAR input, const PCHAR prefix, PINT32 value) {
  * incompatible fmtp line. Beyond this, a higher score indicates more
  * compatibility with the desired characteristics, packetization-mode=1,
  * level-asymmetry-allowed=1, and inbound match with our preferred
- * profile-level-id.
+ * profile-level-id. Scoring is on a scale from [0,1], expressed as the
+ * inverse of fitness distance (1 / fitness-distance) as defined here:
+ * https://www.w3.org/TR/mediacapture-streams/#dfn-fitness-distance
  */
-INT32 getH264FmtpScore(PCHAR fmtp) {
+DOUBLE getH264FmtpScore(PCHAR fmtp) {
   INT32 profileId = 0, packetizationMode = 0, levelAsymmetry = 0;
   BOOL isAsymmetryAllowed = FALSE;
   BOOL isProfileMatch = FALSE;
-  INT32 score = 0;
 
   // No ftmp match found.
   if (fmtp == NULL) {
-      return 0;
+      return 0.;
   }
 
   // Currently, the packetization mode must be 1, as the packetization logic
   // is currently not configurable, and sends both NALU and FU-A packets.
   // https://tools.ietf.org/html/rfc7742#section-6.2
   if (readHexValue(fmtp, "packetization-mode=", &packetizationMode) == FALSE || packetizationMode != 1) {
-      return 0;
+      return 0.;
   }
 
   if (readHexValue(fmtp, "profile-level-id=", &profileId) == TRUE) {
-      isProfileMatch = profileId == 0x42e01f;
+      isProfileMatch = (profileId == H264_PROFILE_42E01F);
   }
 
   if (readHexValue(fmtp, "level-asymmetry-allowed=", &levelAsymmetry) == TRUE) {
@@ -377,10 +378,10 @@ INT32 getH264FmtpScore(PCHAR fmtp) {
   if (isProfileMatch) {
       // Prefer asymmetry if it's allowed, but it's not strictly necessary as
       // our preferred profile-level-id matches.
-      return (isAsymmetryAllowed) ? 3 : 2;
+      return (isAsymmetryAllowed ? 3. : 2.) / 3.;
   } else {
       // Level asymmetry must be allowed if there is not a perfect profile-level-id match.
-      return (isAsymmetryAllowed) ? 1 : 0;
+      return (isAsymmetryAllowed ? 1. : 0.) / 3.;
   }
 }
 

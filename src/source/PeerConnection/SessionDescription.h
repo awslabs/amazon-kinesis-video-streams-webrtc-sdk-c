@@ -48,6 +48,7 @@ extern "C" {
 
 #define DEFAULT_H264_FMTP (PCHAR) "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f"
 #define DEFAULT_OPUS_FMTP (PCHAR) "minptime=10;useinbandfec=1"
+#define H264_PROFILE_42E01F 0x42e01f
 
 #define DTLS_ROLE_ACTPASS (PCHAR) "actpass"
 #define DTLS_ROLE_ACTIVE  (PCHAR) "active"
@@ -64,7 +65,7 @@ STATUS populateSessionDescription(PKvsPeerConnection, PSessionDescription, PSess
 STATUS reorderTransceiverByRemoteDescription(PKvsPeerConnection, PSessionDescription);
 STATUS setReceiversSsrc(PSessionDescription, PDoubleList);
 PCHAR fmtpForPayloadType(UINT64, PSessionDescription);
-INT32 getH264FmtpScore(PCHAR);
+DOUBLE getH264FmtpScore(PCHAR);
 
 #ifdef __cplusplus
 }
