@@ -46,8 +46,8 @@ extern "C" {
 #define DEFAULT_PAYLOAD_MULAW_STR (PCHAR) "0"
 #define DEFAULT_PAYLOAD_ALAW_STR  (PCHAR) "8"
 
-#define DEFAULT_H264_FMTP (PCHAR) "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f"
-#define DEFAULT_OPUS_FMTP (PCHAR) "minptime=10;useinbandfec=1"
+#define DEFAULT_H264_FMTP   (PCHAR) "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f"
+#define DEFAULT_OPUS_FMTP   (PCHAR) "minptime=10;useinbandfec=1"
 #define H264_PROFILE_42E01F 0x42e01f
 
 #define DTLS_ROLE_ACTPASS (PCHAR) "actpass"

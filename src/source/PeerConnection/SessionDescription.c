@@ -196,7 +196,8 @@ STATUS setPayloadTypesFromOffer(PHashTable codecTable, PHashTable rtxTable, PSes
                 fmtpScore = getH264FmtpScore(fmtp);
                 if (fmtpScore > bestFmtpScore) {
                     DLOGV("Found H264 payload type %" PRId64 " with score %f.2: %s", parsedPayloadType, fmtpScore, fmtp);
-                    CHK_STATUS(hashTableUpsert(codecTable, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, parsedPayloadType));
+                    CHK_STATUS(
+                        hashTableUpsert(codecTable, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, parsedPayloadType));
                     bestFmtpScore = fmtpScore;
                 }
             }
@@ -330,16 +331,17 @@ PCHAR fmtpForPayloadType(UINT64 payloadType, PSessionDescription pSessionDescrip
  * Extracts a (hex) value after the provided prefix string. Returns true if
  * successful.
  */
-static BOOL readHexValue(PCHAR input, PCHAR prefix, PINT32 value) {
-  PCHAR substr = STRSTR(input, prefix);
-  if (substr != NULL) {
-    // TODO: This should be changed to SSCANF once the PIC library macro
-    // change is propagated and available here.
-    if (sscanf(substr + STRLEN(prefix), "%x", value) == 1) {
-      return TRUE;
+BOOL readHexValue(PCHAR input, PCHAR prefix, PINT32 value)
+{
+    PCHAR substr = STRSTR(input, prefix);
+    if (substr != NULL) {
+        // TODO: This should be changed to SSCANF once the PIC library macro
+        // change is propagated and available here.
+        if (sscanf(substr + STRLEN(prefix), "%x", value) == 1) {
+            return TRUE;
+        }
     }
-  }
-  return FALSE;
+    return FALSE;
 }
 
 /*
@@ -356,39 +358,40 @@ static BOOL readHexValue(PCHAR input, PCHAR prefix, PINT32 value) {
  * values can get tricky:
  * https://www.w3.org/TR/mediacapture-streams/#dfn-fitness-distance
  */
-DOUBLE getH264FmtpScore(PCHAR fmtp) {
-  INT32 profileId = 0, packetizationMode = 0, levelAsymmetry = 0;
-  BOOL isAsymmetryAllowed = FALSE;
-  BOOL isProfileMatch = FALSE;
+DOUBLE getH264FmtpScore(PCHAR fmtp)
+{
+    INT32 profileId = 0, packetizationMode = 0, levelAsymmetry = 0;
+    BOOL isAsymmetryAllowed = FALSE;
+    BOOL isProfileMatch = FALSE;
 
-  // No ftmp match found.
-  if (fmtp == NULL) {
-      return 0.;
-  }
+    // No ftmp match found.
+    if (fmtp == NULL) {
+        return 0.;
+    }
 
-  // Currently, the packetization mode must be 1, as the packetization logic
-  // is currently not configurable, and sends both NALU and FU-A packets.
-  // https://tools.ietf.org/html/rfc7742#section-6.2
-  if (!readHexValue(fmtp, "packetization-mode=", &packetizationMode) || packetizationMode != 1) {
-      return 0.;
-  }
+    // Currently, the packetization mode must be 1, as the packetization logic
+    // is currently not configurable, and sends both NALU and FU-A packets.
+    // https://tools.ietf.org/html/rfc7742#section-6.2
+    if (!readHexValue(fmtp, "packetization-mode=", &packetizationMode) || packetizationMode != 1) {
+        return 0.;
+    }
 
-  if (readHexValue(fmtp, "profile-level-id=", &profileId)) {
-      isProfileMatch = (profileId == H264_PROFILE_42E01F);
-  }
+    if (readHexValue(fmtp, "profile-level-id=", &profileId)) {
+        isProfileMatch = (profileId == H264_PROFILE_42E01F);
+    }
 
-  if (readHexValue(fmtp, "level-asymmetry-allowed=", &levelAsymmetry)) {
-      isAsymmetryAllowed = (levelAsymmetry == 1);
-  }
+    if (readHexValue(fmtp, "level-asymmetry-allowed=", &levelAsymmetry)) {
+        isAsymmetryAllowed = (levelAsymmetry == 1);
+    }
 
-  if (isProfileMatch) {
-      // Prefer asymmetry if it's allowed, but it's not strictly necessary as
-      // our preferred profile-level-id matches.
-      return (isAsymmetryAllowed ? 3. : 2.) / 3.;
-  } else {
-      // Level asymmetry must be allowed if there is not a perfect profile-level-id match.
-      return (isAsymmetryAllowed ? 1. : 0.) / 3.;
-  }
+    if (isProfileMatch) {
+        // Prefer asymmetry if it's allowed, but it's not strictly necessary as
+        // our preferred profile-level-id matches.
+        return (isAsymmetryAllowed ? 3. : 2.) / 3.;
+    } else {
+        // Level asymmetry must be allowed if there is not a perfect profile-level-id match.
+        return (isAsymmetryAllowed ? 1. : 0.) / 3.;
+    }
 }
 
 // Populate a single media section from a PKvsRtpTransceiver
