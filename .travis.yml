@@ -157,7 +157,7 @@ matrix:
         - alpine cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE
         - alpine make
         # ldd will return non-zero when there's no dynamic link. So, the positive value for static builds is non-zero
-        - alpine ../check-static-build.sh || travis_terminate 1
+        - alpine ../scripts/check-static-build.sh || travis_terminate 1
         - alpine ./tst/webrtc_client_test
       after_failure: skip # no coredumps in container
 
@@ -222,7 +222,7 @@ matrix:
       script:
         - make
         - cd ..
-        - ./check-sample.sh
+        - ./scripts/check-sample.sh
 
     # Generate Doxygen
     - name: "Generate Doxygen"
