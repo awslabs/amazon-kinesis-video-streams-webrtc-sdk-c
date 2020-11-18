@@ -242,7 +242,7 @@ You can also change settings such as buffer size, number of log files for rotati
 
 ## Clang Checks
 This SDK has clang format checks enforced in builds. In order to avoid re-iterating and make sure your code
-complies, use the `check-clang.sh` to check for compliance and `clang-format.sh` to ensure compliance.
+complies, use the `scripts/check-clang.sh` to check for compliance and `scripts/clang-format.sh` to ensure compliance.
 
 ## Tracing high memory and/or cpu usage
 If you would like to specifically find the code path that causes high memory and/or cpu usage, you need to recompile the SDK with this command:
