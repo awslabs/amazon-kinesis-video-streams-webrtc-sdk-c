@@ -345,14 +345,16 @@ TEST_F(SignalingApiTest, signalingClientCreateWithClientInfoVariations)
 
     // Override the version of the client info struct
     mClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION + 1;
-    EXPECT_EQ(STATUS_SIGNALING_INVALID_CLIENT_INFO_VERSION, createSignalingClientSync(&mClientInfo, &mChannelInfo, &mSignalingClientCallbacks, mTestCredentialProvider, &mSignalingClientHandle));
+    EXPECT_EQ(STATUS_SIGNALING_INVALID_CLIENT_INFO_VERSION, createSignalingClientSync(&mClientInfo, &mChannelInfo,
+        &mSignalingClientCallbacks, mTestCredentialProvider, &mSignalingClientHandle));
     mClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
 
     //
     // Invalid max path
     //
     mClientInfo.cacheFilePath = testPath;
-    EXPECT_EQ(STATUS_SIGNALING_INVALID_CLIENT_INFO_CACHE_FILE_PATH_LEN, createSignalingClientSync(&mClientInfo, &mChannelInfo, &mSignalingClientCallbacks, mTestCredentialProvider, &mSignalingClientHandle));
+    EXPECT_EQ(STATUS_SIGNALING_INVALID_CLIENT_INFO_CACHE_FILE_PATH_LEN, createSignalingClientSync(&mClientInfo,
+        &mChannelInfo, &mSignalingClientCallbacks, mTestCredentialProvider, &mSignalingClientHandle));
     mClientInfo.cacheFilePath = NULL;
 
     //
@@ -362,7 +364,8 @@ TEST_F(SignalingApiTest, signalingClientCreateWithClientInfoVariations)
     // Set the version to 0 and the path to non-default
     mClientInfo.version = 0;
     mClientInfo.cacheFilePath = (PCHAR) "/some/test/path";
-    retStatus = createSignalingClientSync(&mClientInfo, &mChannelInfo, &mSignalingClientCallbacks, mTestCredentialProvider, &mSignalingClientHandle);
+    retStatus = createSignalingClientSync(&mClientInfo, &mChannelInfo, &mSignalingClientCallbacks,
+                                          mTestCredentialProvider, &mSignalingClientHandle);
     if (mAccessKeyIdSet) {
         EXPECT_EQ(STATUS_SUCCESS, retStatus);
 
@@ -385,7 +388,8 @@ TEST_F(SignalingApiTest, signalingClientCreateWithClientInfoVariations)
     // Set the version to 0 and the path to non-default
     mClientInfo.version = 0;
     mClientInfo.cacheFilePath = testPath;
-    retStatus = createSignalingClientSync(&mClientInfo, &mChannelInfo, &mSignalingClientCallbacks, mTestCredentialProvider, &mSignalingClientHandle);
+    retStatus = createSignalingClientSync(&mClientInfo, &mChannelInfo, &mSignalingClientCallbacks,
+                                          mTestCredentialProvider, &mSignalingClientHandle);
     if (mAccessKeyIdSet) {
         EXPECT_EQ(STATUS_SUCCESS, retStatus);
 
@@ -406,7 +410,8 @@ TEST_F(SignalingApiTest, signalingClientCreateWithClientInfoVariations)
     //
 
     mClientInfo.cacheFilePath = EMPTY_STRING;
-    retStatus = createSignalingClientSync(&mClientInfo, &mChannelInfo, &mSignalingClientCallbacks, mTestCredentialProvider, &mSignalingClientHandle);
+    retStatus = createSignalingClientSync(&mClientInfo, &mChannelInfo, &mSignalingClientCallbacks,
+                                          mTestCredentialProvider, &mSignalingClientHandle);
     if (mAccessKeyIdSet) {
         EXPECT_EQ(STATUS_SUCCESS, retStatus);
 
@@ -426,7 +431,8 @@ TEST_F(SignalingApiTest, signalingClientCreateWithClientInfoVariations)
     //
 
     mClientInfo.cacheFilePath = TEST_CACHE_FILE_PATH;
-    retStatus = createSignalingClientSync(&mClientInfo, &mChannelInfo, &mSignalingClientCallbacks, mTestCredentialProvider, &mSignalingClientHandle);
+    retStatus = createSignalingClientSync(&mClientInfo, &mChannelInfo, &mSignalingClientCallbacks,
+                                          mTestCredentialProvider, &mSignalingClientHandle);
     if (mAccessKeyIdSet) {
         EXPECT_EQ(STATUS_SUCCESS, retStatus);
 

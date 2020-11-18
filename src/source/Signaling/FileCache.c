@@ -24,7 +24,8 @@ CleanUp:
     return retStatus;
 }
 
-STATUS deserializeSignalingCacheEntries(PCHAR cachedFileContent, UINT64 fileSize, PSignalingFileCacheEntry pSignalingFileCacheEntryList, PUINT32 pEntryCount, PCHAR cacheFilePath)
+STATUS deserializeSignalingCacheEntries(PCHAR cachedFileContent, UINT64 fileSize, PSignalingFileCacheEntry pSignalingFileCacheEntryList,
+                                        PUINT32 pEntryCount, PCHAR cacheFilePath)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -113,7 +114,8 @@ CleanUp:
     return retStatus;
 }
 
-STATUS signalingCacheLoadFromFile(PCHAR channelName, PCHAR region, SIGNALING_CHANNEL_ROLE_TYPE role, PSignalingFileCacheEntry pSignalingFileCacheEntry, PBOOL pCacheFound, PCHAR cacheFilePath)
+STATUS signalingCacheLoadFromFile(PCHAR channelName, PCHAR region, SIGNALING_CHANNEL_ROLE_TYPE role,
+                                  PSignalingFileCacheEntry pSignalingFileCacheEntry, PBOOL pCacheFound, PCHAR cacheFilePath)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;

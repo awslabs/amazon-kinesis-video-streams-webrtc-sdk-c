@@ -44,7 +44,9 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
 
     if (pSignalingClient->pChannelInfo->cachingPolicy == SIGNALING_API_CALL_CACHE_TYPE_FILE) {
         // Signaling channel name can be NULL in case of pre-created channels in which case we use ARN as the name
-        if (STATUS_FAILED(signalingCacheLoadFromFile(pChannelInfo->pChannelName != NULL ? pChannelInfo->pChannelName : pChannelInfo->pChannelArn, pChannelInfo->pRegion, pChannelInfo->channelRoleType, pFileCacheEntry, &cacheFound, pSignalingClient->clientInfo.cacheFilePath))) {
+        if (STATUS_FAILED(signalingCacheLoadFromFile(pChannelInfo->pChannelName != NULL ? pChannelInfo->pChannelName : pChannelInfo->pChannelArn,
+                                                     pChannelInfo->pRegion, pChannelInfo->channelRoleType, pFileCacheEntry, &cacheFound,
+                                                     pSignalingClient->clientInfo.cacheFilePath))) {
             DLOGW("Failed to load signaling cache from file");
         } else if (cacheFound) {
             STRCPY(pSignalingClient->channelDescription.channelArn, pFileCacheEntry->channelArn);
@@ -536,8 +538,10 @@ STATUS validateSignalingClientInfo(PSignalingClient pSignalingClient, PSignaling
 
         case 1:
             // If the path is specified and not empty then we validate and copy/store
-            if (pSignalingClient->clientInfo.signalingClientInfo.cacheFilePath != NULL && pSignalingClient->clientInfo.signalingClientInfo.cacheFilePath[0] != '\0') {
-                CHK(STRNLEN(pSignalingClient->clientInfo.signalingClientInfo.cacheFilePath, MAX_PATH_LEN + 1) <= MAX_PATH_LEN, STATUS_SIGNALING_INVALID_CLIENT_INFO_CACHE_FILE_PATH_LEN);
+            if (pSignalingClient->clientInfo.signalingClientInfo.cacheFilePath != NULL &&
+                pSignalingClient->clientInfo.signalingClientInfo.cacheFilePath[0] != '\0') {
+                CHK(STRNLEN(pSignalingClient->clientInfo.signalingClientInfo.cacheFilePath, MAX_PATH_LEN + 1) <= MAX_PATH_LEN,
+                    STATUS_SIGNALING_INVALID_CLIENT_INFO_CACHE_FILE_PATH_LEN);
                 STRCPY(pSignalingClient->clientInfo.cacheFilePath, pSignalingClient->clientInfo.signalingClientInfo.cacheFilePath);
             } else {
                 // Set the default path
