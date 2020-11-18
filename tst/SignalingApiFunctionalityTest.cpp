@@ -2400,7 +2400,7 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateCache)
     STRCPY(testEntry.channelArn, "testChannelArn");
     STRCPY(testEntry.channelName, "testChannel");
     testEntry.creationTsEpochSeconds = GETTIME() / HUNDREDS_OF_NANOS_IN_A_SECOND;
-    EXPECT_EQ(STATUS_SUCCESS, signalingCacheSaveToFile(&testEntry));
+    EXPECT_EQ(STATUS_SUCCESS, signalingCacheSaveToFile(&testEntry, DEFAULT_CACHE_FILE_PATH));
 
     testEntry.role = SIGNALING_CHANNEL_ROLE_TYPE_VIEWER;
     STRCPY(testEntry2.wssEndpoint, "testWssEnpoint");
@@ -2409,11 +2409,11 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateCache)
     STRCPY(testEntry2.channelArn, "testChannelArn2");
     STRCPY(testEntry2.channelName, "testChannel2");
     testEntry2.creationTsEpochSeconds = GETTIME() / HUNDREDS_OF_NANOS_IN_A_SECOND;
-    EXPECT_EQ(STATUS_SUCCESS, signalingCacheSaveToFile(&testEntry2));
+    EXPECT_EQ(STATUS_SUCCESS, signalingCacheSaveToFile(&testEntry2, DEFAULT_CACHE_FILE_PATH));
 
     testEntry.creationTsEpochSeconds = GETTIME() / HUNDREDS_OF_NANOS_IN_A_SECOND;
     /* update first cache entry*/
-    EXPECT_EQ(STATUS_SUCCESS, signalingCacheSaveToFile(&testEntry));
+    EXPECT_EQ(STATUS_SUCCESS, signalingCacheSaveToFile(&testEntry, DEFAULT_CACHE_FILE_PATH));
 }
 
 TEST_F(SignalingApiFunctionalityTest, asyncIceConfigRefreshBeforeConnect)

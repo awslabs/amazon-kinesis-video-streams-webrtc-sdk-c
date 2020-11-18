@@ -81,6 +81,9 @@ typedef struct {
     // Public client info structure
     SignalingClientInfo signalingClientInfo;
 
+    // V1 features
+    CHAR cacheFilePath[MAX_PATH_LEN + 1];
+
     //
     // Below members will be used for direct injection for tests hooks
     //
