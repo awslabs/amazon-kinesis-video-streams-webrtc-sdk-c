@@ -333,6 +333,8 @@ PCHAR fmtpForPayloadType(UINT64 payloadType, PSessionDescription pSessionDescrip
 static BOOL readHexValue(PCHAR input, PCHAR prefix, PINT32 value) {
   PCHAR substr = STRSTR(input, prefix);
   if (substr != NULL) {
+    // TODO: This should be changed to SSCANF once the PIC library macro
+    // change is propagated and available here.
     if (sscanf(substr + STRLEN(prefix), "%x", value) == 1) {
       return TRUE;
     }
@@ -346,8 +348,12 @@ static BOOL readHexValue(PCHAR input, PCHAR prefix, PINT32 value) {
  * incompatible fmtp line. Beyond this, a higher score indicates more
  * compatibility with the desired characteristics, packetization-mode=1,
  * level-asymmetry-allowed=1, and inbound match with our preferred
- * profile-level-id. Scoring is on a scale from [0,1], expressed as the
- * inverse of fitness distance (1 / fitness-distance) as defined here:
+ * profile-level-id. Scoring is on a scale from [0,1], with 1 deemed as
+ * a "perfect fit".
+ *
+ * At some future time, it may be worth expressing this as a true distance
+ * function as defined here, although dealing with infinite floating point
+ * values can get tricky:
  * https://www.w3.org/TR/mediacapture-streams/#dfn-fitness-distance
  */
 DOUBLE getH264FmtpScore(PCHAR fmtp) {
