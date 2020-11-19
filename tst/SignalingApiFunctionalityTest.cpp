@@ -211,6 +211,7 @@ TEST_F(SignalingApiFunctionalityTest, basicCreateConnectFree)
 
     clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
+    clientInfo.cacheFilePath = NULL;
     STRCPY(clientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
@@ -267,6 +268,7 @@ TEST_F(SignalingApiFunctionalityTest, mockMaster)
 
     clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
+    clientInfo.cacheFilePath = NULL;
     STRCPY(clientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
@@ -401,6 +403,7 @@ TEST_F(SignalingApiFunctionalityTest, mockViewer)
 
     clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
+    clientInfo.cacheFilePath = NULL;
     STRCPY(clientInfo.clientId, TEST_SIGNALING_VIEWER_CLIENT_ID);
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
@@ -500,6 +503,7 @@ TEST_F(SignalingApiFunctionalityTest, invalidChannelInfoInput)
     clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     STRCPY(clientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
+    clientInfo.cacheFilePath = NULL;
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
@@ -773,6 +777,7 @@ TEST_F(SignalingApiFunctionalityTest, iceReconnectEmulation)
 
     clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
+    clientInfo.cacheFilePath = NULL;
     STRCPY(clientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
@@ -1493,6 +1498,7 @@ TEST_F(SignalingApiFunctionalityTest, goAwayEmulation)
 
     clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
+    clientInfo.cacheFilePath = NULL;
     STRCPY(clientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
@@ -1575,6 +1581,7 @@ TEST_F(SignalingApiFunctionalityTest, unknownMessageTypeEmulation)
 
     clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
+    clientInfo.cacheFilePath = NULL;
     STRCPY(clientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
@@ -2400,7 +2407,7 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateCache)
     STRCPY(testEntry.channelArn, "testChannelArn");
     STRCPY(testEntry.channelName, "testChannel");
     testEntry.creationTsEpochSeconds = GETTIME() / HUNDREDS_OF_NANOS_IN_A_SECOND;
-    EXPECT_EQ(STATUS_SUCCESS, signalingCacheSaveToFile(&testEntry));
+    EXPECT_EQ(STATUS_SUCCESS, signalingCacheSaveToFile(&testEntry, DEFAULT_CACHE_FILE_PATH));
 
     testEntry.role = SIGNALING_CHANNEL_ROLE_TYPE_VIEWER;
     STRCPY(testEntry2.wssEndpoint, "testWssEnpoint");
@@ -2409,11 +2416,11 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateCache)
     STRCPY(testEntry2.channelArn, "testChannelArn2");
     STRCPY(testEntry2.channelName, "testChannel2");
     testEntry2.creationTsEpochSeconds = GETTIME() / HUNDREDS_OF_NANOS_IN_A_SECOND;
-    EXPECT_EQ(STATUS_SUCCESS, signalingCacheSaveToFile(&testEntry2));
+    EXPECT_EQ(STATUS_SUCCESS, signalingCacheSaveToFile(&testEntry2, DEFAULT_CACHE_FILE_PATH));
 
     testEntry.creationTsEpochSeconds = GETTIME() / HUNDREDS_OF_NANOS_IN_A_SECOND;
     /* update first cache entry*/
-    EXPECT_EQ(STATUS_SUCCESS, signalingCacheSaveToFile(&testEntry));
+    EXPECT_EQ(STATUS_SUCCESS, signalingCacheSaveToFile(&testEntry, DEFAULT_CACHE_FILE_PATH));
 }
 
 TEST_F(SignalingApiFunctionalityTest, asyncIceConfigRefreshBeforeConnect)

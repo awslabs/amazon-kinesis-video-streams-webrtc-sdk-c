@@ -19,6 +19,7 @@
 #define TEST_ASYNC_ICE_CONFIG_INFO_WAIT_TIMEOUT (3 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define TEST_FILE_CREDENTIALS_FILE_PATH         (PCHAR) "credsFile"
 #define MAX_TEST_AWAIT_DURATION                 (2 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define TEST_CACHE_FILE_PATH                    (PCHAR) "./.TestSignalingCache_v0"
 
 namespace com {
 namespace amazonaws {
@@ -63,53 +64,55 @@ class WebRtcClientTestBase : public ::testing::Test {
         return mSessionToken;
     }
 
+    VOID initializeSignalingClientStructs()
+    {
+        mTags[0].version = TAG_CURRENT_VERSION;
+        mTags[0].name = (PCHAR) "Tag Name 0";
+        mTags[0].value = (PCHAR) "Tag Value 0";
+        mTags[1].version = TAG_CURRENT_VERSION;
+        mTags[1].name = (PCHAR) "Tag Name 1";
+        mTags[1].value = (PCHAR) "Tag Value 1";
+        mTags[2].version = TAG_CURRENT_VERSION;
+        mTags[2].name = (PCHAR) "Tag Name 2";
+        mTags[2].value = (PCHAR) "Tag Value 2";
+
+        mSignalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
+        mSignalingClientCallbacks.customData = (UINT64) this;
+        mSignalingClientCallbacks.messageReceivedFn = NULL;
+        mSignalingClientCallbacks.errorReportFn = NULL;
+        mSignalingClientCallbacks.stateChangeFn = NULL;
+
+        mClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
+        mClientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
+        mClientInfo.cacheFilePath = NULL; // Use the default path
+        STRCPY(mClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+
+        MEMSET(&mChannelInfo, 0x00, SIZEOF(mChannelInfo));
+        mChannelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
+        mChannelInfo.pChannelName = mChannelName;
+        mChannelInfo.pKmsKeyId = NULL;
+        mChannelInfo.tagCount = 3;
+        mChannelInfo.pTags = mTags;
+        mChannelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
+        mChannelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
+        mChannelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_NONE;
+        mChannelInfo.cachingPeriod = 0;
+        mChannelInfo.retry = TRUE;
+        mChannelInfo.reconnect = TRUE;
+        mChannelInfo.pCertPath = mCaCertPath;
+        mChannelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
+        if ((mChannelInfo.pRegion = getenv(DEFAULT_REGION_ENV_VAR)) == NULL) {
+            mChannelInfo.pRegion = (PCHAR) TEST_DEFAULT_REGION;
+        }
+    }
+
     STATUS initializeSignalingClient(PAwsCredentialProvider pCredentialProvider = NULL)
     {
-        ChannelInfo channelInfo;
-        SignalingClientCallbacks signalingClientCallbacks;
-        SignalingClientInfo clientInfo;
-        Tag tags[3];
         STATUS retStatus;
 
-        tags[0].version = TAG_CURRENT_VERSION;
-        tags[0].name = (PCHAR) "Tag Name 0";
-        tags[0].value = (PCHAR) "Tag Value 0";
-        tags[1].version = TAG_CURRENT_VERSION;
-        tags[1].name = (PCHAR) "Tag Name 1";
-        tags[1].value = (PCHAR) "Tag Value 1";
-        tags[2].version = TAG_CURRENT_VERSION;
-        tags[2].name = (PCHAR) "Tag Name 2";
-        tags[2].value = (PCHAR) "Tag Value 2";
+        initializeSignalingClientStructs();
 
-        signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
-        signalingClientCallbacks.customData = (UINT64) this;
-        signalingClientCallbacks.messageReceivedFn = NULL;
-        signalingClientCallbacks.errorReportFn = NULL;
-        signalingClientCallbacks.stateChangeFn = NULL;
-
-        clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
-        clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
-        STRCPY(clientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
-
-        MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
-        channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
-        channelInfo.pChannelName = mChannelName;
-        channelInfo.pKmsKeyId = NULL;
-        channelInfo.tagCount = 3;
-        channelInfo.pTags = tags;
-        channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
-        channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
-        channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_NONE;
-        channelInfo.cachingPeriod = 0;
-        channelInfo.retry = TRUE;
-        channelInfo.reconnect = TRUE;
-        channelInfo.pCertPath = mCaCertPath;
-        channelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
-        if ((channelInfo.pRegion = getenv(DEFAULT_REGION_ENV_VAR)) == NULL) {
-            channelInfo.pRegion = (PCHAR) TEST_DEFAULT_REGION;
-        }
-
-        retStatus = createSignalingClientSync(&clientInfo, &channelInfo, &signalingClientCallbacks,
+        retStatus = createSignalingClientSync(&mClientInfo, &mChannelInfo, &mSignalingClientCallbacks,
                                               pCredentialProvider != NULL ? pCredentialProvider : mTestCredentialProvider, &mSignalingClientHandle);
 
         if (mAccessKeyIdSet) {
@@ -254,6 +257,11 @@ class WebRtcClientTestBase : public ::testing::Test {
     PBYTE mFrame;
     UINT32 mReadyFrameIndex;
     UINT32 mDroppedFrameIndex;
+
+    ChannelInfo mChannelInfo;
+    SignalingClientCallbacks mSignalingClientCallbacks;
+    SignalingClientInfo mClientInfo;
+    Tag mTags[3];
 };
 
 } // namespace webrtcclient

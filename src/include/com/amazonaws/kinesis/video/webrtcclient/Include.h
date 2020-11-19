@@ -289,6 +289,7 @@ extern "C" {
 #define STATUS_SIGNALING_RECONNECT_FAILED                          STATUS_SIGNALING_BASE + 0x00000030
 #define STATUS_SIGNALING_DELETE_CALL_FAILED                        STATUS_SIGNALING_BASE + 0x00000031
 #define STATUS_SIGNALING_INVALID_METRICS_VERSION                   STATUS_SIGNALING_BASE + 0x00000032
+#define STATUS_SIGNALING_INVALID_CLIENT_INFO_CACHE_FILE_PATH_LEN   STATUS_SIGNALING_BASE + 0x00000033
 
 /*!@} */
 
@@ -475,7 +476,7 @@ extern "C" {
 /**
  * Version of SignalingClientInfo structure
  */
-#define SIGNALING_CLIENT_INFO_CURRENT_VERSION 0
+#define SIGNALING_CLIENT_INFO_CURRENT_VERSION 1
 
 /**
  * Version of SignalingClientCallbacks structure
@@ -1140,6 +1141,11 @@ typedef struct {
     UINT32 loggingLevel;                            //!< Verbosity level for the logging. One of LOG_LEVEL_XXX
                                                     //!< values or the default verbosity will be assumed. Currently,
                                                     //!< default value is LOG_LEVEL_WARNING
+    PCHAR cacheFilePath;                            //!< File cache path override. The default
+                                                    //!< path is "./.SignalingCache_vN" which might not work for
+                                                    //!< devices which have read only partition where the code is
+                                                    //!< located. For default value or when file caching is not
+                                                    //!< being used this value can be NULL or point to an EMPTY_STRING.
 } SignalingClientInfo, *PSignalingClientInfo;
 
 /**

@@ -229,7 +229,7 @@ TEST_F(SignalingApiTest, signalingClientGetStateString)
     for (UINT32 i = 0; i <= (UINT32) SIGNALING_CLIENT_STATE_MAX_VALUE + 1; i++) {
         PCHAR pStateStr;
         EXPECT_EQ(STATUS_SUCCESS, signalingClientGetStateString((SIGNALING_CLIENT_STATE) i, &pStateStr));
-        DLOGI("Iterating states \"%s\"", pStateStr);
+        DLOGV("Iterating states \"%s\"", pStateStr);
     }
 }
 
@@ -328,6 +328,139 @@ TEST_F(SignalingApiTest, signalingClientGetMetrics)
     EXPECT_NE(0, metrics.signalingClientStats.dpApiCallLatency);
 
     deinitializeSignalingClient();
+}
+
+TEST_F(SignalingApiTest, signalingClientCreateWithClientInfoVariations)
+{
+    STATUS retStatus;
+    CHAR testPath[MAX_PATH_LEN + 2];
+    MEMSET(testPath, 'a', MAX_PATH_LEN + 1);
+    testPath[MAX_PATH_LEN + 1] = '\0';
+
+    initializeSignalingClientStructs();
+
+    //
+    // Invalid version
+    //
+
+    // Override the version of the client info struct
+    mClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION + 1;
+    retStatus = createSignalingClientSync(&mClientInfo, &mChannelInfo, &mSignalingClientCallbacks, mTestCredentialProvider, &mSignalingClientHandle);
+    if (mAccessKeyIdSet) {
+        EXPECT_EQ(STATUS_SIGNALING_INVALID_CLIENT_INFO_VERSION, retStatus);
+    } else {
+        mSignalingClientHandle = INVALID_SIGNALING_CLIENT_HANDLE_VALUE;
+        EXPECT_NE(STATUS_SUCCESS, retStatus);
+    }
+
+    deinitializeSignalingClient();
+    mClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
+
+    //
+    // Invalid max path
+    //
+    mClientInfo.cacheFilePath = testPath;
+    retStatus = createSignalingClientSync(&mClientInfo, &mChannelInfo, &mSignalingClientCallbacks, mTestCredentialProvider, &mSignalingClientHandle);
+
+    if (mAccessKeyIdSet) {
+        EXPECT_EQ(STATUS_SIGNALING_INVALID_CLIENT_INFO_CACHE_FILE_PATH_LEN, retStatus);
+    } else {
+        mSignalingClientHandle = INVALID_SIGNALING_CLIENT_HANDLE_VALUE;
+        EXPECT_NE(STATUS_SUCCESS, retStatus);
+    }
+
+    deinitializeSignalingClient();
+    mClientInfo.cacheFilePath = NULL;
+
+    //
+    // Version 0 ignoring path
+    //
+
+    // Set the version to 0 and the path to non-default
+    mClientInfo.version = 0;
+    mClientInfo.cacheFilePath = (PCHAR) "/some/test/path";
+    retStatus = createSignalingClientSync(&mClientInfo, &mChannelInfo, &mSignalingClientCallbacks,
+                                          mTestCredentialProvider, &mSignalingClientHandle);
+    if (mAccessKeyIdSet) {
+        EXPECT_EQ(STATUS_SUCCESS, retStatus);
+
+        // Validate the cache file path
+        PSignalingClient pSignalingClient = FROM_SIGNALING_CLIENT_HANDLE(mSignalingClientHandle);
+        EXPECT_EQ(0, STRCMP(DEFAULT_CACHE_FILE_PATH, pSignalingClient->clientInfo.cacheFilePath));
+    } else {
+        mSignalingClientHandle = INVALID_SIGNALING_CLIENT_HANDLE_VALUE;
+        EXPECT_NE(STATUS_SUCCESS, retStatus);
+    }
+
+    deinitializeSignalingClient();
+    mClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
+    mClientInfo.cacheFilePath = NULL;
+
+    //
+    // Version 0 setting to large path doesn't error
+    //
+
+    // Set the version to 0 and the path to non-default
+    mClientInfo.version = 0;
+    mClientInfo.cacheFilePath = testPath;
+    retStatus = createSignalingClientSync(&mClientInfo, &mChannelInfo, &mSignalingClientCallbacks,
+                                          mTestCredentialProvider, &mSignalingClientHandle);
+    if (mAccessKeyIdSet) {
+        EXPECT_EQ(STATUS_SUCCESS, retStatus);
+
+        // Validate the cache file path
+        PSignalingClient pSignalingClient = FROM_SIGNALING_CLIENT_HANDLE(mSignalingClientHandle);
+        EXPECT_EQ(0, STRCMP(DEFAULT_CACHE_FILE_PATH, pSignalingClient->clientInfo.cacheFilePath));
+    } else {
+        mSignalingClientHandle = INVALID_SIGNALING_CLIENT_HANDLE_VALUE;
+        EXPECT_NE(STATUS_SUCCESS, retStatus);
+    }
+
+    deinitializeSignalingClient();
+    mClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
+    mClientInfo.cacheFilePath = NULL;
+
+    //
+    // Version 1 empty path
+    //
+
+    mClientInfo.cacheFilePath = EMPTY_STRING;
+    retStatus = createSignalingClientSync(&mClientInfo, &mChannelInfo, &mSignalingClientCallbacks,
+                                          mTestCredentialProvider, &mSignalingClientHandle);
+    if (mAccessKeyIdSet) {
+        EXPECT_EQ(STATUS_SUCCESS, retStatus);
+
+        // Validate the cache file path
+        PSignalingClient pSignalingClient = FROM_SIGNALING_CLIENT_HANDLE(mSignalingClientHandle);
+        EXPECT_EQ(0, STRCMP(DEFAULT_CACHE_FILE_PATH, pSignalingClient->clientInfo.cacheFilePath));
+    } else {
+        mSignalingClientHandle = INVALID_SIGNALING_CLIENT_HANDLE_VALUE;
+        EXPECT_NE(STATUS_SUCCESS, retStatus);
+    }
+
+    deinitializeSignalingClient();
+    mClientInfo.cacheFilePath = NULL;
+
+    //
+    // Version 1 non default path
+    //
+
+    mClientInfo.cacheFilePath = TEST_CACHE_FILE_PATH;
+    retStatus = createSignalingClientSync(&mClientInfo, &mChannelInfo, &mSignalingClientCallbacks,
+                                          mTestCredentialProvider, &mSignalingClientHandle);
+    if (mAccessKeyIdSet) {
+        EXPECT_EQ(STATUS_SUCCESS, retStatus);
+
+        // Validate the cache file path
+        PSignalingClient pSignalingClient = FROM_SIGNALING_CLIENT_HANDLE(mSignalingClientHandle);
+        EXPECT_EQ(0, STRCMP(TEST_CACHE_FILE_PATH, pSignalingClient->clientInfo.cacheFilePath));
+    } else {
+        mSignalingClientHandle = INVALID_SIGNALING_CLIENT_HANDLE_VALUE;
+        EXPECT_NE(STATUS_SUCCESS, retStatus);
+    }
+
+    deinitializeSignalingClient();
+    mClientInfo.cacheFilePath = NULL;
 }
 
 } // namespace webrtcclient
