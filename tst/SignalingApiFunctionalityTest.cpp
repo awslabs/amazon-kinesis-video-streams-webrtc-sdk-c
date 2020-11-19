@@ -211,6 +211,7 @@ TEST_F(SignalingApiFunctionalityTest, basicCreateConnectFree)
 
     clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
+    clientInfo.cacheFilePath = NULL;
     STRCPY(clientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
@@ -267,6 +268,7 @@ TEST_F(SignalingApiFunctionalityTest, mockMaster)
 
     clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
+    clientInfo.cacheFilePath = NULL;
     STRCPY(clientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
@@ -401,6 +403,7 @@ TEST_F(SignalingApiFunctionalityTest, mockViewer)
 
     clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
+    clientInfo.cacheFilePath = NULL;
     STRCPY(clientInfo.clientId, TEST_SIGNALING_VIEWER_CLIENT_ID);
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
@@ -500,6 +503,7 @@ TEST_F(SignalingApiFunctionalityTest, invalidChannelInfoInput)
     clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     STRCPY(clientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
+    clientInfo.cacheFilePath = NULL;
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
@@ -773,6 +777,7 @@ TEST_F(SignalingApiFunctionalityTest, iceReconnectEmulation)
 
     clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
+    clientInfo.cacheFilePath = NULL;
     STRCPY(clientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
@@ -1493,6 +1498,7 @@ TEST_F(SignalingApiFunctionalityTest, goAwayEmulation)
 
     clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
+    clientInfo.cacheFilePath = NULL;
     STRCPY(clientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
@@ -1575,6 +1581,7 @@ TEST_F(SignalingApiFunctionalityTest, unknownMessageTypeEmulation)
 
     clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
+    clientInfo.cacheFilePath = NULL;
     STRCPY(clientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));

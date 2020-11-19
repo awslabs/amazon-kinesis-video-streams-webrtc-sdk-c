@@ -663,6 +663,7 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
 
     pSampleConfiguration->clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     pSampleConfiguration->clientInfo.loggingLevel = logLevel;
+    pSampleConfiguration->clientInfo.cacheFilePath = NULL; // Use the default path
     pSampleConfiguration->iceCandidatePairStatsTimerId = MAX_UINT32;
 
     ATOMIC_STORE_BOOL(&pSampleConfiguration->interrupted, FALSE);
