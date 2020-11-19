@@ -112,8 +112,8 @@ struct __SampleStreamingSession {
     PRtcRtpTransceiver pAudioRtcRtpTransceiver;
     RtcSessionDescriptionInit answerSessionDescriptionInit;
     PSampleConfiguration pSampleConfiguration;
-    UINT32 audioTimestamp;
-    UINT32 videoTimestamp;
+    UINT64 audioTimestamp;
+    UINT64 videoTimestamp;
     CHAR peerId[MAX_SIGNALING_CLIENT_ID_LEN + 1];
     TID receiveAudioVideoSenderTid;
     UINT64 offerReceiveTime;
