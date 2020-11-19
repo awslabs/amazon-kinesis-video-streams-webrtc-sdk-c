@@ -386,6 +386,7 @@ endif()
 
 if(BUILD_TEST)
   add_subdirectory(tst)
+  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/tst/SDP" DESTINATION tst)
 endif()
 
 if(BUILD_BENCHMARK)

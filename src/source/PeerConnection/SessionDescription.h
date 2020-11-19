@@ -49,6 +49,19 @@ extern "C" {
 #define DEFAULT_H264_FMTP   (PCHAR) "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f"
 #define DEFAULT_OPUS_FMTP   (PCHAR) "minptime=10;useinbandfec=1"
 #define H264_PROFILE_42E01F 0x42e01f
+// profile-level-id:
+//   A base16 [7] (hexadecimal) representation of the following
+//   three bytes in the sequence parameter set NAL unit is specified
+//   in [1]: 1) profile_idc, 2) a byte herein referred to as
+//   profile-iop, composed of the values of constraint_set0_flag,
+//   constraint_set1_flag, constraint_set2_flag,
+//   constraint_set3_flag, constraint_set4_flag,
+//   constraint_set5_flag, and reserved_zero_2bits in bit-
+//   significance order, starting from the most-significant bit, and
+//   3) level_id.
+//
+// Reference: https://tools.ietf.org/html/rfc6184#section-8.1
+#define H264_FMTP_PROFILE_LEVEL_MASK 0x0000FF
 
 #define DTLS_ROLE_ACTPASS (PCHAR) "actpass"
 #define DTLS_ROLE_ACTIVE  (PCHAR) "active"
@@ -65,7 +78,7 @@ STATUS populateSessionDescription(PKvsPeerConnection, PSessionDescription, PSess
 STATUS reorderTransceiverByRemoteDescription(PKvsPeerConnection, PSessionDescription);
 STATUS setReceiversSsrc(PSessionDescription, PDoubleList);
 PCHAR fmtpForPayloadType(UINT64, PSessionDescription);
-DOUBLE getH264FmtpScore(PCHAR);
+UINT32 getH264FmtpScore(PCHAR);
 
 #ifdef __cplusplus
 }

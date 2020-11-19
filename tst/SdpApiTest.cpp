@@ -17,26 +17,29 @@ class SdpApiTest : public WebRtcClientTestBase {
  * Parameter expected in certain SDP API tests. First parameter is a filename.
  * Second parameter is a string that is expected to match in the SDP answer.
  */
-using SdpMatch=std::tuple<std::string,std::string>;
+using SdpMatch = std::tuple<std::string, std::string>;
 
 /*
  * Processes SDP API entries from file.
  */
-class SdpApiTest_SdpMatch : public WebRtcClientTestBase,
-        public ::testing::WithParamInterface<SdpMatch> {
- protected:
-    const std::string& filename() {
+class SdpApiTest_SdpMatch : public WebRtcClientTestBase, public ::testing::WithParamInterface<SdpMatch> {
+  protected:
+    const std::string& filename()
+    {
         return std::get<0>(GetParam());
     }
-    const std::string& match() {
+    const std::string& match()
+    {
         return std::get<1>(GetParam());
     }
-    const std::string sdpOffer() {
+    const std::string sdpOffer()
+    {
         return fileToString(filename());
     }
 
- private:
-    static std::string fileToString(const std::string& filename) {
+  private:
+    static std::string fileToString(const std::string& filename)
+    {
         std::ifstream in_file;
         std::ostringstream out;
         in_file.open(filename);
@@ -61,7 +64,6 @@ auto lfToCRLF = [](PCHAR sdp, INT32 sdpLen) -> std::string {
 
     return newSDP;
 };
-
 
 template <typename Func> void assertLFAndCRLF(PCHAR sdp, INT32 sdpLen, Func&& assertFn)
 {
@@ -629,8 +631,6 @@ a=group:BUNDLE 0
     });
 }
 
-
-
 // if offer (remote) contains video m-line only then answer (local) should contain video m-line only
 // even if local side has other transceivers, i.e. audio
 TEST_F(SdpApiTest, offerMediaMultipleDirections_validateAnswerCorrectMatchingDirections)
@@ -690,9 +690,6 @@ a=group:BUNDLE 0
         EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
     });
 }
-
-
-
 
 // if offer (remote) contains video m-line only then answer (local) should contain video m-line only
 // even if local side has other transceivers, i.e. audio
@@ -888,33 +885,32 @@ a=fmtp:125 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42e01
     });
 }
 
-TEST_F(SdpApiTest, getH264FmtpScore) {
+TEST_F(SdpApiTest, getH264FmtpScore)
+{
     // Lambda to work around non-const nature of the API.
-    auto getScore = [](const CHAR* fmtp) {
-        return getH264FmtpScore(const_cast<PCHAR>(fmtp));
-    };
+    auto getScore = [](const CHAR* fmtp) { return getH264FmtpScore(const_cast<PCHAR>(fmtp)); };
     // Test perfect matches.
-    EXPECT_DOUBLE_EQ(1., getScore("level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f"));
-    EXPECT_DOUBLE_EQ(1., getScore("profile-level-id=42e01f;packetization-mode=1;level-asymmetry-allowed=1"));
-    EXPECT_DOUBLE_EQ(1., getScore("packetization-mode=1;profile-level-id=42e01f;level-asymmetry-allowed=1"));
+    EXPECT_EQ(3, getScore("level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f"));
+    EXPECT_EQ(3, getScore("profile-level-id=42e01f;packetization-mode=1;level-asymmetry-allowed=1"));
+    EXPECT_EQ(3, getScore("packetization-mode=1;profile-level-id=42e01f;level-asymmetry-allowed=1"));
 
     // Case shouldn't matter in profile level parsing (42e01f->42E01F).
-    EXPECT_DOUBLE_EQ(1., getScore("level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42E01F"));
+    EXPECT_EQ(3, getScore("level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42E01F"));
 
     // Asymmetry not allowed, but we found a profile match.
-    EXPECT_DOUBLE_EQ(2./3, getScore("level-asymmetry-allowed=0;packetization-mode=1;profile-level-id=42e01f"));
-    EXPECT_DOUBLE_EQ(2./3, getScore("packetization-mode=1;profile-level-id=42e01f"));
+    EXPECT_EQ(2, getScore("level-asymmetry-allowed=0;packetization-mode=1;profile-level-id=42e01f"));
+    EXPECT_EQ(2, getScore("packetization-mode=1;profile-level-id=42e01f"));
 
     // Non-preferred profile-level-id, but asymmetry is allowed.
-    EXPECT_DOUBLE_EQ(1./3, getScore("level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=640032"));
+    EXPECT_EQ(1, getScore("level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=640032"));
 
     // Lacks required packetization mode.
-    EXPECT_DOUBLE_EQ(0., getScore("level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42e01f"));
-    EXPECT_DOUBLE_EQ(0., getScore("level-asymmetry-allowed=1;profile-level-id=42e01f"));
+    EXPECT_EQ(0, getScore("level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42e01f"));
+    EXPECT_EQ(0, getScore("level-asymmetry-allowed=1;profile-level-id=42e01f"));
 
     // Lacks required profile-level-id and asymmetry is not allowed.
-    EXPECT_DOUBLE_EQ(0., getScore("level-asymmetry-allowed=0;packetization-mode=1;profile-level-id=640032"));
-    EXPECT_DOUBLE_EQ(0., getScore("packetization-mode=1;profile-level-id=640032"));
+    EXPECT_EQ(0, getScore("level-asymmetry-allowed=0;packetization-mode=1;profile-level-id=640032"));
+    EXPECT_EQ(0, getScore("packetization-mode=1;profile-level-id=640032"));
 }
 
 TEST_F(SdpApiTest, populateSingleMediaSection_TestMultipleIceOptions)
@@ -995,43 +991,50 @@ TEST_P(SdpApiTest_SdpMatch, populateSingleMediaSection_TestH264Fmtp)
     EXPECT_EQ(setRemoteDescription(pRtcPeerConnection, &rtcSessionDescriptionInit), STATUS_SUCCESS);
     EXPECT_EQ(createAnswer(pRtcPeerConnection, &rtcSessionDescriptionInit), STATUS_SUCCESS);
 
-    EXPECT_PRED_FORMAT2(testing::IsSubstring, match(),
-                        rtcSessionDescriptionInit.sdp) << "Offer:\n" << sdp << "\nAnswer:\n" << rtcSessionDescriptionInit.sdp;
+    EXPECT_PRED_FORMAT2(testing::IsSubstring, match(), rtcSessionDescriptionInit.sdp) << "Offer:\n"
+                                                                                      << sdp << "\nAnswer:\n"
+                                                                                      << rtcSessionDescriptionInit.sdp;
     closePeerConnection(pRtcPeerConnection);
     freePeerConnection(&pRtcPeerConnection);
 }
 
 INSTANTIATE_TEST_CASE_P(SdpApiTest_SdpMatch_Chrome, SdpApiTest_SdpMatch,
-                        ::testing::Values(SdpMatch{
-                                              "../tst/SDP/offers/1v1a1d-chrome-linux.txt",
-                                              "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f",
-                                          },
-                                          SdpMatch{
-                                              "../tst/SDP/offers/1v1a1d-chrome-mac.txt",
-                                              "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f",
-                                          }));
+                        ::testing::Values(
+                            SdpMatch{
+                                "tst/SDP/offers/1v1a1d-chrome-linux.txt",
+                                "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f",
+                            },
+                            SdpMatch{
+                                "tst/SDP/offers/1v1a1d-chrome-mac.txt",
+                                "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f",
+                            },
+                            SdpMatch{
+                                "tst/SDP/offers/1v1a1d-chrome-android.txt",
+                                "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e015",
+                            }));
 
 INSTANTIATE_TEST_CASE_P(SdpApiTest_SdpMatch_Firefox, SdpApiTest_SdpMatch,
-                        ::testing::Values(SdpMatch{
-                                              "../tst/SDP/offers/1v1a1d-firefox-linux.txt",
-                                              "profile-level-id=42e01f;level-asymmetry-allowed=1;packetization-mode=1",
-                                          },
-                                          SdpMatch{
-                                              "../tst/SDP/offers/1v1a1d-firefox-mac.txt",
-                                              "profile-level-id=42e01f;level-asymmetry-allowed=1;packetization-mode=1",
-                                          }));
+                        ::testing::Values(
+                            SdpMatch{
+                                "tst/SDP/offers/1v1a1d-firefox-linux.txt",
+                                "profile-level-id=42e01f;level-asymmetry-allowed=1;packetization-mode=1",
+                            },
+                            SdpMatch{
+                                "tst/SDP/offers/1v1a1d-firefox-mac.txt",
+                                "profile-level-id=42e01f;level-asymmetry-allowed=1;packetization-mode=1",
+                            }));
 
 INSTANTIATE_TEST_CASE_P(SdpApiTest_SdpMatch_Chromium, SdpApiTest_SdpMatch,
                         ::testing::Values(SdpMatch{
-                                              "../tst/SDP/offers/1v1a1d-chromium-linux.txt",
-                                              "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f",
-                                          }));
+                            "tst/SDP/offers/1v1a1d-chromium-linux.txt",
+                            "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f",
+                        }));
 
 INSTANTIATE_TEST_CASE_P(SdpApiTest_SdpMatch_Safari, SdpApiTest_SdpMatch,
                         ::testing::Values(SdpMatch{
-                                              "../tst/SDP/offers/1v1a1d-safari-mac.txt",
-                                              "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f",
-                                          }));
+                            "tst/SDP/offers/1v1a1d-safari-mac.txt",
+                            "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f",
+                        }));
 
 } // namespace webrtcclient
 } // namespace video
