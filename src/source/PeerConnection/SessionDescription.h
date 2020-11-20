@@ -61,6 +61,7 @@ extern "C" {
 //   3) level_id.
 //
 // Reference: https://tools.ietf.org/html/rfc6184#section-8.1
+#define H264_FMTP_SUBPROFILE_MASK    0xFFFF00
 #define H264_FMTP_PROFILE_LEVEL_MASK 0x0000FF
 
 #define DTLS_ROLE_ACTPASS (PCHAR) "actpass"
@@ -78,7 +79,7 @@ STATUS populateSessionDescription(PKvsPeerConnection, PSessionDescription, PSess
 STATUS reorderTransceiverByRemoteDescription(PKvsPeerConnection, PSessionDescription);
 STATUS setReceiversSsrc(PSessionDescription, PDoubleList);
 PCHAR fmtpForPayloadType(UINT64, PSessionDescription);
-UINT32 getH264FmtpScore(PCHAR);
+UINT64 getH264FmtpScore(PCHAR);
 
 #ifdef __cplusplus
 }

@@ -161,7 +161,7 @@ STATUS setPayloadTypesFromOffer(PHashTable codecTable, PHashTable rtxTable, PSes
     BOOL supportCodec;
     UINT32 tokenLen, i, aptFmtpValCount;
     PCHAR fmtp;
-    UINT32 fmtpScore, bestFmtpScore;
+    UINT64 fmtpScore, bestFmtpScore;
 
     for (currentMedia = 0; currentMedia < pSessionDescription->mediaCount; currentMedia++) {
         pMediaDescription = &(pSessionDescription->mediaDescriptions[currentMedia]);
@@ -197,7 +197,7 @@ STATUS setPayloadTypesFromOffer(PHashTable codecTable, PHashTable rtxTable, PSes
                 // When there's no match, the last fmtp will be chosen. This will allow us to not break existing customers who might be using
                 // flexible decoders which can infer the video profile from the SPS header.
                 if (fmtpScore >= bestFmtpScore) {
-                    DLOGV("Found H264 payload type %" PRId64 " with score %u: %s", parsedPayloadType, fmtpScore, fmtp);
+                    DLOGV("Found H264 payload type %" PRId64 " with score %lu: %s", parsedPayloadType, fmtpScore, fmtp);
                     CHK_STATUS(
                         hashTableUpsert(codecTable, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, parsedPayloadType));
                     bestFmtpScore = fmtpScore;
@@ -355,12 +355,10 @@ BOOL readHexValue(PCHAR input, PCHAR prefix, PUINT32 value)
  * values can get tricky:
  * https://www.w3.org/TR/mediacapture-streams/#dfn-fitness-distance
  */
-UINT32 getH264FmtpScore(PCHAR fmtp)
+UINT64 getH264FmtpScore(PCHAR fmtp)
 {
     UINT32 profileId = 0, packetizationMode = 0, levelAsymmetry = 0;
-    BOOL isAsymmetryAllowed = FALSE;
-    BOOL isProfileMatch = FALSE;
-    UINT32 score = 0;
+    UINT64 score = 0;
 
     // No ftmp match found.
     if (fmtp == NULL) {
@@ -370,33 +368,17 @@ UINT32 getH264FmtpScore(PCHAR fmtp)
     // Currently, the packetization mode must be 1, as the packetization logic
     // is currently not configurable, and sends both NALU and FU-A packets.
     // https://tools.ietf.org/html/rfc7742#section-6.2
-    if (!readHexValue(fmtp, "packetization-mode=", &packetizationMode) || packetizationMode != 1) {
-        return 0;
-    }
-
-    if (readHexValue(fmtp, "profile-level-id=", &profileId)) {
-        isProfileMatch = (profileId == H264_PROFILE_42E01F);
-    }
-
-    if (readHexValue(fmtp, "level-asymmetry-allowed=", &levelAsymmetry)) {
-        isAsymmetryAllowed = (levelAsymmetry == 1);
-    }
-
-    if (!isProfileMatch && !isAsymmetryAllowed) {
-        return 0;
-    }
-
-    if (isAsymmetryAllowed) {
+    if (readHexValue(fmtp, "packetization-mode=", &packetizationMode) && packetizationMode == 1) {
         score++;
     }
 
-    if (isProfileMatch) {
+    if (readHexValue(fmtp, "profile-level-id=", &profileId) &&
+        (profileId & H264_FMTP_SUBPROFILE_MASK) == (H264_PROFILE_42E01F & H264_FMTP_SUBPROFILE_MASK) &&
+        (profileId & H264_FMTP_PROFILE_LEVEL_MASK) <= (H264_PROFILE_42E01F & H264_FMTP_PROFILE_LEVEL_MASK)) {
         score++;
     }
 
-    // Since the level is less or equal than the supported level, it's more likely to be compatible with the decoder.
-    // We need to increment the score so that it's more likely to get chosen.
-    if ((profileId & H264_FMTP_PROFILE_LEVEL_MASK) <= (H264_PROFILE_42E01F & H264_FMTP_PROFILE_LEVEL_MASK)) {
+    if (readHexValue(fmtp, "level-asymmetry-allowed=", &levelAsymmetry) && levelAsymmetry == 1) {
         score++;
     }
 

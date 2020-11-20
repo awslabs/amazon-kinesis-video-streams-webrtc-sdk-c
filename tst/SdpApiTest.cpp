@@ -902,15 +902,15 @@ TEST_F(SdpApiTest, getH264FmtpScore)
     EXPECT_EQ(2, getScore("packetization-mode=1;profile-level-id=42e01f"));
 
     // Non-preferred profile-level-id, but asymmetry is allowed.
-    EXPECT_EQ(1, getScore("level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=640032"));
+    EXPECT_EQ(2, getScore("level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=640032"));
 
-    // Lacks required packetization mode.
-    EXPECT_EQ(0, getScore("level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42e01f"));
-    EXPECT_EQ(0, getScore("level-asymmetry-allowed=1;profile-level-id=42e01f"));
+    // Packetization mode not allowed, but asymmetry and profile are matched.
+    EXPECT_EQ(2, getScore("level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42e01f"));
+    EXPECT_EQ(2, getScore("level-asymmetry-allowed=1;profile-level-id=42e01f"));
 
-    // Lacks required profile-level-id and asymmetry is not allowed.
-    EXPECT_EQ(0, getScore("level-asymmetry-allowed=0;packetization-mode=1;profile-level-id=640032"));
-    EXPECT_EQ(0, getScore("packetization-mode=1;profile-level-id=640032"));
+    // Profile is not matched and asymmetry is not allowed, but packetization mode is matched.
+    EXPECT_EQ(1, getScore("level-asymmetry-allowed=0;packetization-mode=1;profile-level-id=640032"));
+    EXPECT_EQ(1, getScore("packetization-mode=1;profile-level-id=640032"));
 }
 
 TEST_F(SdpApiTest, populateSingleMediaSection_TestMultipleIceOptions)
