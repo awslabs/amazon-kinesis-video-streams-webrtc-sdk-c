@@ -1,5 +1,6 @@
 var NAVTREEINDEX3 =
 {
+"structRtcRemoteInboundRtpStreamStats.html#a07fec5b68715a29e0456e70ed5b12037":[1,20,14,0],
 "structRtcRemoteInboundRtpStreamStats.html#a0c1860018838774cce5774ce9a7c6ea9":[1,20,14,5],
 "structRtcRemoteInboundRtpStreamStats.html#a1d6ab410390c8b98de1e38be4a55dc76":[1,20,14,3],
 "structRtcRemoteInboundRtpStreamStats.html#a4b59b92bbfa0e3e00d75c04be90e711d":[1,20,14,1],
@@ -66,9 +67,10 @@ var NAVTREEINDEX3 =
 "structSignalingClientCallbacks.html#ac1108b3f0f014f820025b0eaf345ffc4":[1,19,15,0],
 "structSignalingClientCallbacks.html#af62848d4a3bdf038a7a05ae5cc792610":[1,19,15,2],
 "structSignalingClientInfo.html":[1,19,12],
-"structSignalingClientInfo.html#a164f67d7c1bb29cfe65eeace765495cd":[1,19,12,0],
-"structSignalingClientInfo.html#a8df6838b31452ecf1bd1cf1a0fffa680":[1,19,12,1],
-"structSignalingClientInfo.html#aad776eab978b30bd3f21ecd3432c93a0":[1,19,12,2],
+"structSignalingClientInfo.html#a164f67d7c1bb29cfe65eeace765495cd":[1,19,12,1],
+"structSignalingClientInfo.html#a8df6838b31452ecf1bd1cf1a0fffa680":[1,19,12,2],
+"structSignalingClientInfo.html#aad776eab978b30bd3f21ecd3432c93a0":[1,19,12,3],
+"structSignalingClientInfo.html#ac9e805db054ce941d24b1b0ce5e72946":[1,19,12,0],
 "structSignalingClientMetrics.html":[1,20,2],
 "structSignalingClientMetrics.html#a19e455ef17680d69fc2de9f0c886ea80":[1,20,2,0],
 "structSignalingClientMetrics.html#a9ff5ba01b5b62d3996d2828763ec4a0d":[1,20,2,1],

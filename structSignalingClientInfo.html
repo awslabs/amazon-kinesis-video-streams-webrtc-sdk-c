@@ -108,7 +108,7 @@ Collaboration diagram for SignalingClientInfo:</div>
 <div class="dyncontent">
 <div class="center"><img src="structSignalingClientInfo__coll__graph.png" border="0" usemap="#SignalingClientInfo_coll__map" alt="Collaboration graph"/></div>
 <map name="SignalingClientInfo_coll__map" id="SignalingClientInfo_coll__map">
-<area shape="rect" title="Populate Signaling client with client ID and application log level." alt="" coords="5,5,136,112"/>
+<area shape="rect" title="Populate Signaling client with client ID and application log level." alt="" coords="5,5,136,127"/>
 </map>
 </div>
 <table class="memberdecls">
@@ -122,10 +122,27 @@ Public Attributes</h2></td></tr>
 <tr class="separator:a164f67d7c1bb29cfe65eeace765495cd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8df6838b31452ecf1bd1cf1a0fffa680"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClientInfo.html#a8df6838b31452ecf1bd1cf1a0fffa680">loggingLevel</a></td></tr>
 <tr class="separator:a8df6838b31452ecf1bd1cf1a0fffa680"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac9e805db054ce941d24b1b0ce5e72946"><td class="memItemLeft" align="right" valign="top">PCHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClientInfo.html#ac9e805db054ce941d24b1b0ce5e72946">cacheFilePath</a></td></tr>
+<tr class="separator:ac9e805db054ce941d24b1b0ce5e72946"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Populate Signaling client with client ID and application log level. </p>
 </div><h2 class="groupheader">Member Data Documentation</h2>
+<a id="ac9e805db054ce941d24b1b0ce5e72946"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac9e805db054ce941d24b1b0ce5e72946">&#9670;&nbsp;</a></span>cacheFilePath</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">PCHAR SignalingClientInfo::cacheFilePath</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>File cache path override. The default path is "./.SignalingCache_vN" which might not work for devices which have read only partition where the code is located. For default value or when file caching is not being used this value can be NULL or point to an EMPTY_STRING. </p>
+
+</div>
+</div>
 <a id="a164f67d7c1bb29cfe65eeace765495cd"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a164f67d7c1bb29cfe65eeace765495cd">&#9670;&nbsp;</a></span>clientId</h2>
 
@@ -182,7 +199,7 @@ Public Attributes</h2></td></tr>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="structSignalingClientInfo.html">SignalingClientInfo</a></li>
-    <li class="footer">Generated on Wed Nov 18 2020 19:16:53 for Amazon Kinesis Webrtc C SDK by
+    <li class="footer">Generated on Fri Nov 20 2020 01:23:11 for Amazon Kinesis Webrtc C SDK by
     <a href="http://www.doxygen.org/index.html">
     <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.18 </li>
   </ul>

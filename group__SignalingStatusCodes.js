@@ -20,6 +20,7 @@ var group__SignalingStatusCodes =
     [ "STATUS_SIGNALING_INVALID_CHANNEL_ARN_LENGTH", "group__SignalingStatusCodes.html#ga2dc203f7853c7ddd24391798a4c40cb5", null ],
     [ "STATUS_SIGNALING_INVALID_CHANNEL_INFO_VERSION", "group__SignalingStatusCodes.html#gab98fa8c44d7b15ea57e71d4c92db3ecd", null ],
     [ "STATUS_SIGNALING_INVALID_CHANNEL_NAME_LENGTH", "group__SignalingStatusCodes.html#gacbb6189b118b589e0cbf4f8cd7c3fbb9", null ],
+    [ "STATUS_SIGNALING_INVALID_CLIENT_INFO_CACHE_FILE_PATH_LEN", "group__SignalingStatusCodes.html#ga3f4b1a0340bfa6d7cc0c885b3e1501cd", null ],
     [ "STATUS_SIGNALING_INVALID_CLIENT_INFO_CLIENT_LENGTH", "group__SignalingStatusCodes.html#ga0352e1ea92e2e01cca516371a8aee35a", null ],
     [ "STATUS_SIGNALING_INVALID_CLIENT_INFO_VERSION", "group__SignalingStatusCodes.html#ga4eaf8a3766e513b11ef6b565b8ea2631", null ],
     [ "STATUS_SIGNALING_INVALID_CPL_LENGTH", "group__SignalingStatusCodes.html#gaacdbae062ce3c5bb8788c5e299e18747", null ],

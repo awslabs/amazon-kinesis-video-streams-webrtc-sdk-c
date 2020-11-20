@@ -67,6 +67,7 @@ var group__PublicStructures =
       [ "statusCode", "structReceivedSignalingMessage.html#a9cb75a0987f4fc93a64b7dc45962b52f", null ]
     ] ],
     [ "SignalingClientInfo", "structSignalingClientInfo.html", [
+      [ "cacheFilePath", "structSignalingClientInfo.html#ac9e805db054ce941d24b1b0ce5e72946", null ],
       [ "clientId", "structSignalingClientInfo.html#a164f67d7c1bb29cfe65eeace765495cd", null ],
       [ "loggingLevel", "structSignalingClientInfo.html#a8df6838b31452ecf1bd1cf1a0fffa680", null ],
       [ "version", "structSignalingClientInfo.html#aad776eab978b30bd3f21ecd3432c93a0", null ]

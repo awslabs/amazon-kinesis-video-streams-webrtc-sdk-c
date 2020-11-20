@@ -161,7 +161,7 @@ Classes</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="define-members"></a>
 Macros</h2></td></tr>
-<tr class="memitem:a18e45252c0f3d51fdd8bc07833f168c4"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="FileCache_8h.html#a18e45252c0f3d51fdd8bc07833f168c4">DEFAULT_CACHE_FILE_PATH</a>&#160;&#160;&#160;&quot;./.SignalingCache_v0&quot;</td></tr>
+<tr class="memitem:a18e45252c0f3d51fdd8bc07833f168c4"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="FileCache_8h.html#a18e45252c0f3d51fdd8bc07833f168c4">DEFAULT_CACHE_FILE_PATH</a>&#160;&#160;&#160;(PCHAR) &quot;./.SignalingCache_v0&quot;</td></tr>
 <tr class="separator:a18e45252c0f3d51fdd8bc07833f168c4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a56f4f7e5e6d800d7671f7cc9d38f6362"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="FileCache_8h.html#a56f4f7e5e6d800d7671f7cc9d38f6362">MAX_SIGNALING_CACHE_ENTRY_TIMESTAMP_STR_LEN</a>&#160;&#160;&#160;10</td></tr>
 <tr class="separator:a56f4f7e5e6d800d7671f7cc9d38f6362"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -181,10 +181,12 @@ Typedefs</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
-<tr class="memitem:a6a43560575e25dd6392608461aed6d23"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="FileCache_8h.html#a6a43560575e25dd6392608461aed6d23">signalingCacheLoadFromFile</a> (PCHAR, PCHAR, <a class="el" href="group__PublicEnums.html#ga67e678c57beb89ab9de7c9861f7d41cd">SIGNALING_CHANNEL_ROLE_TYPE</a>, <a class="el" href="FileCache_8h.html#a5fd683d0ee71fbe6dac53f328493e891">PSignalingFileCacheEntry</a>, PBOOL)</td></tr>
-<tr class="separator:a6a43560575e25dd6392608461aed6d23"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a237893f6a4f319f1443077bb5f2b42c4"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="FileCache_8h.html#a237893f6a4f319f1443077bb5f2b42c4">signalingCacheSaveToFile</a> (<a class="el" href="FileCache_8h.html#a5fd683d0ee71fbe6dac53f328493e891">PSignalingFileCacheEntry</a>)</td></tr>
-<tr class="separator:a237893f6a4f319f1443077bb5f2b42c4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1b6f50185cd8f1226b0d4a21aa22ac63"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="FileCache_8h.html#a1b6f50185cd8f1226b0d4a21aa22ac63">deserializeSignalingCacheEntries</a> (PCHAR, UINT64, <a class="el" href="FileCache_8h.html#a5fd683d0ee71fbe6dac53f328493e891">PSignalingFileCacheEntry</a>, PUINT32, PCHAR)</td></tr>
+<tr class="separator:a1b6f50185cd8f1226b0d4a21aa22ac63"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a21eeeb058eb37cc9fcfc8436e7eee6db"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="FileCache_8h.html#a21eeeb058eb37cc9fcfc8436e7eee6db">signalingCacheLoadFromFile</a> (PCHAR, PCHAR, <a class="el" href="group__PublicEnums.html#ga67e678c57beb89ab9de7c9861f7d41cd">SIGNALING_CHANNEL_ROLE_TYPE</a>, <a class="el" href="FileCache_8h.html#a5fd683d0ee71fbe6dac53f328493e891">PSignalingFileCacheEntry</a>, PBOOL, PCHAR)</td></tr>
+<tr class="separator:a21eeeb058eb37cc9fcfc8436e7eee6db"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a97c45b174f2a502330d9e885fdd69a45"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="FileCache_8h.html#a97c45b174f2a502330d9e885fdd69a45">signalingCacheSaveToFile</a> (<a class="el" href="FileCache_8h.html#a5fd683d0ee71fbe6dac53f328493e891">PSignalingFileCacheEntry</a>, PCHAR)</td></tr>
+<tr class="separator:a97c45b174f2a502330d9e885fdd69a45"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Macro Definition Documentation</h2>
 <a id="a18e45252c0f3d51fdd8bc07833f168c4"></a>
@@ -194,7 +196,7 @@ Functions</h2></td></tr>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">#define DEFAULT_CACHE_FILE_PATH&#160;&#160;&#160;&quot;./.SignalingCache_v0&quot;</td>
+          <td class="memname">#define DEFAULT_CACHE_FILE_PATH&#160;&#160;&#160;(PCHAR) &quot;./.SignalingCache_v0&quot;</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -287,8 +289,68 @@ Functions</h2></td></tr>
 </div>
 </div>
 <h2 class="groupheader">Function Documentation</h2>
-<a id="a6a43560575e25dd6392608461aed6d23"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a6a43560575e25dd6392608461aed6d23">&#9670;&nbsp;</a></span>signalingCacheLoadFromFile()</h2>
+<a id="a1b6f50185cd8f1226b0d4a21aa22ac63"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1b6f50185cd8f1226b0d4a21aa22ac63">&#9670;&nbsp;</a></span>deserializeSignalingCacheEntries()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">STATUS deserializeSignalingCacheEntries </td>
+          <td>(</td>
+          <td class="paramtype">PCHAR&#160;</td>
+          <td class="paramname">, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">UINT64&#160;</td>
+          <td class="paramname">, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="FileCache_8h.html#a5fd683d0ee71fbe6dac53f328493e891">PSignalingFileCacheEntry</a>&#160;</td>
+          <td class="paramname">, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">PUINT32&#160;</td>
+          <td class="paramname">, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">PCHAR&#160;</td>
+          <td class="paramname">&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="FileCache_8h_a1b6f50185cd8f1226b0d4a21aa22ac63_icgraph.png" border="0" usemap="#FileCache_8h_a1b6f50185cd8f1226b0d4a21aa22ac63_icgraph" alt=""/></div>
+<map name="FileCache_8h_a1b6f50185cd8f1226b0d4a21aa22ac63_icgraph" id="FileCache_8h_a1b6f50185cd8f1226b0d4a21aa22ac63_icgraph">
+<area shape="rect" title=" " alt="" coords="671,26,844,67"/>
+<area shape="rect" href="FileCache_8h.html#a21eeeb058eb37cc9fcfc8436e7eee6db" title=" " alt="" coords="432,7,623,33"/>
+<area shape="rect" href="FileCache_8h.html#a97c45b174f2a502330d9e885fdd69a45" title=" " alt="" coords="439,59,615,85"/>
+<area shape="rect" href="Signaling_8h.html#a26907340bcd88230be1b23ace9d19e68" title=" " alt="" coords="244,7,384,33"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga375ddffe8376298cdaafe63799b53b1e" title="Creates a Signaling client and returns a handle to it." alt="" coords="14,5,187,32"/>
+<area shape="rect" href="Signaling_8h.html#aeea4baac0cb6a69458d279ca14b7703f" title=" " alt="" coords="245,60,383,87"/>
+<area shape="rect" href="StateMachine_8h.html#a1596133c7ff3e462b7f813a775f4de0e" title=" " alt="" coords="5,57,196,98"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="a21eeeb058eb37cc9fcfc8436e7eee6db"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a21eeeb058eb37cc9fcfc8436e7eee6db">&#9670;&nbsp;</a></span>signalingCacheLoadFromFile()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -321,6 +383,12 @@ Functions</h2></td></tr>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">PBOOL&#160;</td>
+          <td class="paramname">, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">PCHAR&#160;</td>
           <td class="paramname">&#160;</td>
         </tr>
         <tr>
@@ -333,18 +401,18 @@ Functions</h2></td></tr>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
-<div class="center"><img src="FileCache_8h_a6a43560575e25dd6392608461aed6d23_cgraph.png" border="0" usemap="#FileCache_8h_a6a43560575e25dd6392608461aed6d23_cgraph" alt=""/></div>
-<map name="FileCache_8h_a6a43560575e25dd6392608461aed6d23_cgraph" id="FileCache_8h_a6a43560575e25dd6392608461aed6d23_cgraph">
+<div class="center"><img src="FileCache_8h_a21eeeb058eb37cc9fcfc8436e7eee6db_cgraph.png" border="0" usemap="#FileCache_8h_a21eeeb058eb37cc9fcfc8436e7eee6db_cgraph" alt=""/></div>
+<map name="FileCache_8h_a21eeeb058eb37cc9fcfc8436e7eee6db_cgraph" id="FileCache_8h_a21eeeb058eb37cc9fcfc8436e7eee6db_cgraph">
 <area shape="rect" title=" " alt="" coords="5,35,196,61"/>
 <area shape="rect" href="FileCache_8c.html#aedcb1b57ddc166aa7ba97663ee7846bd" title=" " alt="" coords="263,5,399,32"/>
-<area shape="rect" href="FileCache_8c.html#aecddeaf264981e17818a1440731d3910" title=" " alt="" coords="244,57,417,98"/>
+<area shape="rect" href="FileCache_8c.html#a74ff1a8c5b2b7e1533344215432eb3c5" title=" " alt="" coords="244,57,417,98"/>
 </map>
 </div>
 <div class="dynheader">
 Here is the caller graph for this function:</div>
 <div class="dyncontent">
-<div class="center"><img src="FileCache_8h_a6a43560575e25dd6392608461aed6d23_icgraph.png" border="0" usemap="#FileCache_8h_a6a43560575e25dd6392608461aed6d23_icgraph" alt=""/></div>
-<map name="FileCache_8h_a6a43560575e25dd6392608461aed6d23_icgraph" id="FileCache_8h_a6a43560575e25dd6392608461aed6d23_icgraph">
+<div class="center"><img src="FileCache_8h_a21eeeb058eb37cc9fcfc8436e7eee6db_icgraph.png" border="0" usemap="#FileCache_8h_a21eeeb058eb37cc9fcfc8436e7eee6db_icgraph" alt=""/></div>
+<map name="FileCache_8h_a21eeeb058eb37cc9fcfc8436e7eee6db_icgraph" id="FileCache_8h_a21eeeb058eb37cc9fcfc8436e7eee6db_icgraph">
 <area shape="rect" title=" " alt="" coords="415,5,605,32"/>
 <area shape="rect" href="Signaling_8h.html#a26907340bcd88230be1b23ace9d19e68" title=" " alt="" coords="227,5,367,32"/>
 <area shape="rect" href="group__PublicMemberFunctions.html#ga375ddffe8376298cdaafe63799b53b1e" title="Creates a Signaling client and returns a handle to it." alt="" coords="5,5,179,32"/>
@@ -353,8 +421,8 @@ Here is the caller graph for this function:</div>
 
 </div>
 </div>
-<a id="a237893f6a4f319f1443077bb5f2b42c4"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a237893f6a4f319f1443077bb5f2b42c4">&#9670;&nbsp;</a></span>signalingCacheSaveToFile()</h2>
+<a id="a97c45b174f2a502330d9e885fdd69a45"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a97c45b174f2a502330d9e885fdd69a45">&#9670;&nbsp;</a></span>signalingCacheSaveToFile()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -363,26 +431,36 @@ Here is the caller graph for this function:</div>
           <td class="memname">STATUS signalingCacheSaveToFile </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="FileCache_8h.html#a5fd683d0ee71fbe6dac53f328493e891">PSignalingFileCacheEntry</a>&#160;</td>
-          <td class="paramname"></td><td>)</td>
+          <td class="paramname">, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
           <td></td>
+          <td class="paramtype">PCHAR&#160;</td>
+          <td class="paramname">&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
         </tr>
       </table>
 </div><div class="memdoc">
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
-<div class="center"><img src="FileCache_8h_a237893f6a4f319f1443077bb5f2b42c4_cgraph.png" border="0" usemap="#FileCache_8h_a237893f6a4f319f1443077bb5f2b42c4_cgraph" alt=""/></div>
-<map name="FileCache_8h_a237893f6a4f319f1443077bb5f2b42c4_cgraph" id="FileCache_8h_a237893f6a4f319f1443077bb5f2b42c4_cgraph">
+<div class="center"><img src="FileCache_8h_a97c45b174f2a502330d9e885fdd69a45_cgraph.png" border="0" usemap="#FileCache_8h_a97c45b174f2a502330d9e885fdd69a45_cgraph" alt=""/></div>
+<map name="FileCache_8h_a97c45b174f2a502330d9e885fdd69a45_cgraph" id="FileCache_8h_a97c45b174f2a502330d9e885fdd69a45_cgraph">
 <area shape="rect" title=" " alt="" coords="5,35,181,61"/>
 <area shape="rect" href="FileCache_8c.html#aedcb1b57ddc166aa7ba97663ee7846bd" title=" " alt="" coords="248,5,384,32"/>
-<area shape="rect" href="FileCache_8c.html#aecddeaf264981e17818a1440731d3910" title=" " alt="" coords="229,57,403,98"/>
+<area shape="rect" href="FileCache_8c.html#a74ff1a8c5b2b7e1533344215432eb3c5" title=" " alt="" coords="229,57,403,98"/>
 </map>
 </div>
 <div class="dynheader">
 Here is the caller graph for this function:</div>
 <div class="dyncontent">
-<div class="center"><img src="FileCache_8h_a237893f6a4f319f1443077bb5f2b42c4_icgraph.png" border="0" usemap="#FileCache_8h_a237893f6a4f319f1443077bb5f2b42c4_icgraph" alt=""/></div>
-<map name="FileCache_8h_a237893f6a4f319f1443077bb5f2b42c4_icgraph" id="FileCache_8h_a237893f6a4f319f1443077bb5f2b42c4_icgraph">
+<div class="center"><img src="FileCache_8h_a97c45b174f2a502330d9e885fdd69a45_icgraph.png" border="0" usemap="#FileCache_8h_a97c45b174f2a502330d9e885fdd69a45_icgraph" alt=""/></div>
+<map name="FileCache_8h_a97c45b174f2a502330d9e885fdd69a45_icgraph" id="FileCache_8h_a97c45b174f2a502330d9e885fdd69a45_icgraph">
 <area shape="rect" title=" " alt="" coords="429,13,605,39"/>
 <area shape="rect" href="Signaling_8h.html#aeea4baac0cb6a69458d279ca14b7703f" title=" " alt="" coords="244,13,381,39"/>
 <area shape="rect" href="StateMachine_8h.html#a1596133c7ff3e462b7f813a775f4de0e" title=" " alt="" coords="5,5,196,47"/>
@@ -397,7 +475,7 @@ Here is the caller graph for this function:</div>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_94e7a0fbe7f8eaf7f05ee7b02c647e9f.html">source</a></li><li class="navelem"><a class="el" href="dir_a2c552ed41e223deef2a46f0c92d8956.html">Signaling</a></li><li class="navelem"><a class="el" href="FileCache_8h.html">FileCache.h</a></li>
-    <li class="footer">Generated on Wed Nov 18 2020 19:16:52 for Amazon Kinesis Webrtc C SDK by
+    <li class="footer">Generated on Fri Nov 20 2020 01:23:10 for Amazon Kinesis Webrtc C SDK by
     <a href="http://www.doxygen.org/index.html">
     <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.18 </li>
   </ul>
