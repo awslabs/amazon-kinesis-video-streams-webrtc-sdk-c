@@ -27,7 +27,7 @@ option(ADDRESS_SANITIZER "Build with AddressSanitizer." OFF)
 option(MEMORY_SANITIZER "Build with MemorySanitizer." OFF)
 option(THREAD_SANITIZER "Build with ThreadSanitizer." OFF)
 option(UNDEFINED_BEHAVIOR_SANITIZER "Build with UndefinedBehaviorSanitizer." OFF)
-option(LINK_PROFILER "Link gperftools profiler" OFF) 
+option(LINK_PROFILER "Link gperftools profiler" OFF)
 
 if(NOT WIN32)
 CHECK_INCLUDE_FILES(ifaddrs.h       KVSWEBRTC_HAVE_IFADDRS_H)
@@ -42,6 +42,11 @@ endif()
 
 set(CMAKE_MACOSX_RPATH TRUE)
 get_filename_component(ROOT "${CMAKE_CURRENT_SOURCE_DIR}" ABSOLUTE)
+
+if (LINK_PROFILER)
+  add_link_options("-Wl,--no-as-needed")
+endif()
+
 
 # static settings
 if(BUILD_STATIC_LIBS OR WIN32)
