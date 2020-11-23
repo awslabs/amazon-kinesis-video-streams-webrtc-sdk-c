@@ -160,10 +160,13 @@ STATUS setPayloadTypesFromOffer(PHashTable codecTable, PHashTable rtxTable, PSes
     UINT16 aptFmtVal;
     BOOL supportCodec;
     UINT32 tokenLen, i, aptFmtpValCount;
+    PCHAR fmtp;
+    UINT64 fmtpScore, bestFmtpScore;
 
     for (currentMedia = 0; currentMedia < pSessionDescription->mediaCount; currentMedia++) {
         pMediaDescription = &(pSessionDescription->mediaDescriptions[currentMedia]);
         aptFmtpValCount = 0;
+        bestFmtpScore = 0;
         attributeValue = pMediaDescription->mediaName;
         do {
             if ((end = STRCHR(attributeValue, ' ')) != NULL) {
@@ -189,7 +192,16 @@ STATUS setPayloadTypesFromOffer(PHashTable codecTable, PHashTable rtxTable, PSes
             CHK_STATUS(hashTableContains(codecTable, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, &supportCodec));
             if (supportCodec && (end = STRSTR(attributeValue, H264_VALUE)) != NULL) {
                 CHK_STATUS(STRTOUI64(attributeValue, end - 1, 10, &parsedPayloadType));
-                CHK_STATUS(hashTableUpsert(codecTable, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, parsedPayloadType));
+                fmtp = fmtpForPayloadType(parsedPayloadType, pSessionDescription);
+                fmtpScore = getH264FmtpScore(fmtp);
+                // When there's no match, the last fmtp will be chosen. This will allow us to not break existing customers who might be using
+                // flexible decoders which can infer the video profile from the SPS header.
+                if (fmtpScore >= bestFmtpScore) {
+                    DLOGV("Found H264 payload type %" PRId64 " with score %lu: %s", parsedPayloadType, fmtpScore, fmtp);
+                    CHK_STATUS(
+                        hashTableUpsert(codecTable, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, parsedPayloadType));
+                    bestFmtpScore = fmtpScore;
+                }
             }
 
             CHK_STATUS(hashTableContains(codecTable, RTC_CODEC_OPUS, &supportCodec));
@@ -235,6 +247,7 @@ STATUS setPayloadTypesFromOffer(PHashTable codecTable, PHashTable rtxTable, PSes
                 CHK_STATUS(hashTableGet(codecTable, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, &hashmapPayloadType));
                 if (aptVal == hashmapPayloadType) {
                     CHK_STATUS(hashTableUpsert(rtxTable, RTC_RTX_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, fmtpVal));
+                    DLOGV("found apt type %" PRId64 " for fmtp %" PRId64, aptVal, fmtpVal);
                 }
             }
 
@@ -314,6 +327,62 @@ PCHAR fmtpForPayloadType(UINT64 payloadType, PSessionDescription pSessionDescrip
     }
 
     return NULL;
+}
+
+/*
+ * Extracts a (hex) value after the provided prefix string. Returns true if
+ * successful.
+ */
+BOOL readHexValue(PCHAR input, PCHAR prefix, PUINT32 value)
+{
+    PCHAR substr = STRSTR(input, prefix);
+    if (substr != NULL && SSCANF(substr + STRLEN(prefix), "%x", value) == 1) {
+        return TRUE;
+    }
+    return FALSE;
+}
+
+/*
+ * Scores the provided fmtp string based on this library's ability to
+ * process various types of H264 streams. A score of 0 indicates an
+ * incompatible fmtp line. Beyond this, a higher score indicates more
+ * compatibility with the desired characteristics, packetization-mode=1,
+ * level-asymmetry-allowed=1, and inbound match with our preferred
+ * profile-level-id.
+ *
+ * At some future time, it may be worth expressing this as a true distance
+ * function as defined here, although dealing with infinite floating point
+ * values can get tricky:
+ * https://www.w3.org/TR/mediacapture-streams/#dfn-fitness-distance
+ */
+UINT64 getH264FmtpScore(PCHAR fmtp)
+{
+    UINT32 profileId = 0, packetizationMode = 0, levelAsymmetry = 0;
+    UINT64 score = 0;
+
+    // No ftmp match found.
+    if (fmtp == NULL) {
+        return 0;
+    }
+
+    // Currently, the packetization mode must be 1, as the packetization logic
+    // is currently not configurable, and sends both NALU and FU-A packets.
+    // https://tools.ietf.org/html/rfc7742#section-6.2
+    if (readHexValue(fmtp, "packetization-mode=", &packetizationMode) && packetizationMode == 1) {
+        score++;
+    }
+
+    if (readHexValue(fmtp, "profile-level-id=", &profileId) &&
+        (profileId & H264_FMTP_SUBPROFILE_MASK) == (H264_PROFILE_42E01F & H264_FMTP_SUBPROFILE_MASK) &&
+        (profileId & H264_FMTP_PROFILE_LEVEL_MASK) <= (H264_PROFILE_42E01F & H264_FMTP_PROFILE_LEVEL_MASK)) {
+        score++;
+    }
+
+    if (readHexValue(fmtp, "level-asymmetry-allowed=", &levelAsymmetry) && levelAsymmetry == 1) {
+        score++;
+    }
+
+    return score;
 }
 
 // Populate a single media section from a PKvsRtpTransceiver
@@ -496,6 +565,7 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
         SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%" PRId64 " H264/90000", payloadType);
         attributeCount++;
 
+        // TODO: If level asymmetry is allowed, consider sending back DEFAULT_H264_FMTP instead of the received fmtp value.
         if (currentFmtp != NULL) {
             STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "fmtp");
             SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%" PRId64 " %s", payloadType, currentFmtp);
