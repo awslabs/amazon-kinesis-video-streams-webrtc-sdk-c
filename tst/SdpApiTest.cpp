@@ -1891,6 +1891,7 @@ a=max-message-size:262144
     "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f",
 };
 
+// 1v1a1d represents 1 video + 1 audio + 1 data channel
 INSTANTIATE_TEST_CASE_P(SdpApiTest_SdpMatch_Chrome, SdpApiTest_SdpMatch,
                         ::testing::Values(offer_1v1a1d_Chrome_Android, offer_1v1a1d_Chrome_Linux,
                                           offer_1v1a1d_Chrome_Mac), ); // the last comma is used to silent a warning
