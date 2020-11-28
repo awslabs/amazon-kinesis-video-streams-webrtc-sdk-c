@@ -216,6 +216,137 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersForcedTURN)
     deinitializeSignalingClient();
 }
 
+TEST_F(PeerConnectionFunctionalityTest, sendDataWithClosedSocketConnectionWithHostAndStun)
+{
+    if (!mAccessKeyIdSet) {
+        return;
+    }
+
+    RtcMediaStreamTrack offerVideoTrack;
+    PRtcRtpTransceiver offerVideoTransceiver;
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    PKvsPeerConnection pOfferPcImpl;
+    PIceAgent pIceAgent;
+    PIceCandidate pLocalCandidate;
+    PSocketConnection pSocketConnection;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION);
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    // addTrackToPeerConnection is necessary because we need to add a transceiver which will trigger the RTCP callback. The RTCP callback
+    // will send application data. The expected behavior for the PeerConnection is to bail out when the socket connection that's being used
+    // is already closed.
+    //
+    // In summary, the scenario looks like the following:
+    //   1. Connect the two peers
+    //   2. Add a transceiver, which will send RTCP feedback in a regular interval + some randomness
+    //   3. Do fault injection to the ICE agent, simulate early closed connection
+    //   4. Wait for the RTCP callback to fire, which will change the ICE agent status to STATUS_SOCKET_CONNECTION_CLOSED_ALREADY
+    //   5. Wait for the ICE agent state regular polling to check the status and update the ICE agent state to FAILED
+    //   6. When ICE agent state changes to FAILED, the PeerConnection will be notified and change its state to FAILED as well
+    //   7. Verify that we the counter for RTC_PEER_CONNECTION_STATE_FAILED is not 0
+    addTrackToPeerConnection(offerPc, &offerVideoTrack, &offerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+
+    pOfferPcImpl = (PKvsPeerConnection) offerPc;
+    pIceAgent = pOfferPcImpl->pIceAgent;
+    MUTEX_LOCK(pIceAgent->lock);
+    pLocalCandidate = pIceAgent->pDataSendingIceCandidatePair->local;
+
+    if (pLocalCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED) {
+        pSocketConnection = pLocalCandidate->pTurnConnection->pControlChannel;
+    } else {
+        pSocketConnection = pLocalCandidate->pSocketConnection;
+    }
+    EXPECT_EQ(STATUS_SUCCESS, socketConnectionClosed(pSocketConnection));
+    MUTEX_UNLOCK(pIceAgent->lock);
+
+    // The next poll should check the current ICE agent status and drives the ICE agent state machine to failed,
+    // change the PeerConnection state to failed as well.
+    //
+    // We need to add 2 seconds because we need to first wait the RTCP callback to fire first after the fault injection.
+    THREAD_SLEEP(KVS_ICE_STATE_READY_TIMER_POLLING_INTERVAL + 2 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+    EXPECT_NE(0, ATOMIC_LOAD(&stateChangeCount[RTC_PEER_CONNECTION_STATE_FAILED]));
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+}
+
+TEST_F(PeerConnectionFunctionalityTest, sendDataWithClosedSocketConnectionWithForcedTurn)
+{
+    if (!mAccessKeyIdSet) {
+        return;
+    }
+
+    RtcMediaStreamTrack offerVideoTrack;
+    PRtcRtpTransceiver offerVideoTransceiver;
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    PKvsPeerConnection pOfferPcImpl;
+    PIceAgent pIceAgent;
+    PIceCandidate pLocalCandidate;
+    PSocketConnection pSocketConnection;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_RELAY;
+
+    initializeSignalingClient();
+    getIceServers(&configuration);
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    // addTrackToPeerConnection is necessary because we need to add a transceiver which will trigger the RTCP callback. The RTCP callback
+    // will send application data. The expected behavior for the PeerConnection is to bail out when the socket connection that's being used
+    // is already closed.
+    //
+    // In summary, the scenario looks like the following:
+    //   1. Connect the two peers
+    //   2. Add a transceiver, which will send RTCP feedback in a regular interval + some randomness
+    //   3. Do fault injection to the ICE agent, simulate early closed connection
+    //   4. Wait for the RTCP callback to fire, which will change the ICE agent status to STATUS_SOCKET_CONNECTION_CLOSED_ALREADY
+    //   5. Wait for the ICE agent state regular polling to check the status and update the ICE agent state to FAILED
+    //   6. When ICE agent state changes to FAILED, the PeerConnection will be notified and change its state to FAILED as well
+    //   7. Verify that we the counter for RTC_PEER_CONNECTION_STATE_FAILED is not 0
+    addTrackToPeerConnection(offerPc, &offerVideoTrack, &offerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+
+    pOfferPcImpl = (PKvsPeerConnection) offerPc;
+    pIceAgent = pOfferPcImpl->pIceAgent;
+    MUTEX_LOCK(pIceAgent->lock);
+    pLocalCandidate = pIceAgent->pDataSendingIceCandidatePair->local;
+
+    if (pLocalCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED) {
+        pSocketConnection = pLocalCandidate->pTurnConnection->pControlChannel;
+    } else {
+        pSocketConnection = pLocalCandidate->pSocketConnection;
+    }
+    EXPECT_EQ(STATUS_SUCCESS, socketConnectionClosed(pSocketConnection));
+    MUTEX_UNLOCK(pIceAgent->lock);
+
+    // The next poll should check the current ICE agent status and drives the ICE agent state machine to failed,
+    // change the PeerConnection state to failed as well.
+    //
+    // We need to add 2 seconds because we need to first wait the RTCP callback to fire first after the fault injection.
+    THREAD_SLEEP(KVS_ICE_STATE_READY_TIMER_POLLING_INTERVAL + 2 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+    EXPECT_NE(0, ATOMIC_LOAD(&stateChangeCount[RTC_PEER_CONNECTION_STATE_FAILED]));
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+
+    deinitializeSignalingClient();
+}
+
 TEST_F(PeerConnectionFunctionalityTest, shutdownTurnDueToP2PFoundBeforeTurnEstablished)
 {
     if (!mAccessKeyIdSet) {
