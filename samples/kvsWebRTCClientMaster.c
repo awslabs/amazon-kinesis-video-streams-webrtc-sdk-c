@@ -199,6 +199,12 @@ PVOID sendVideoPackets(PVOID args)
         goto CleanUp;
     }
 
+    MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
+    while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->connected)) {
+        CHK_STATUS(CVAR_WAIT(pSampleConfiguration->cvar, pSampleConfiguration->sampleConfigurationObjLock, INFINITE_TIME_VALUE));
+    }
+    MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
+
     frame.presentationTs = 0;
     startTime = GETTIME();
     lastFrameTime = startTime;
@@ -266,6 +272,8 @@ PVOID sendVideoPackets(PVOID args)
 
 CleanUp:
 
+    CHK_LOG_ERR(retStatus);
+
     return (PVOID)(ULONG_PTR) retStatus;
 }
 
@@ -283,6 +291,12 @@ PVOID sendAudioPackets(PVOID args)
         printf("[KVS Master] sendAudioPackets(): operation returned status code: 0x%08x \n", STATUS_NULL_ARG);
         goto CleanUp;
     }
+
+    MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
+    while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->connected)) {
+        CHK_STATUS(CVAR_WAIT(pSampleConfiguration->cvar, pSampleConfiguration->sampleConfigurationObjLock, INFINITE_TIME_VALUE));
+    }
+    MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
 
     frame.presentationTs = 0;
 

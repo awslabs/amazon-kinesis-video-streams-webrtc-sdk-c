@@ -60,6 +60,7 @@ typedef struct {
     volatile ATOMIC_BOOL interrupted;
     volatile ATOMIC_BOOL mediaThreadStarted;
     volatile ATOMIC_BOOL recreateSignalingClient;
+    volatile ATOMIC_BOOL connected;
     BOOL useTestSrc;
     ChannelInfo channelInfo;
     PCHAR pCaCertPath;

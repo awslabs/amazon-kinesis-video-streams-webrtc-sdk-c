@@ -32,14 +32,17 @@ VOID onDataChannel(UINT64 customData, PRtcDataChannel pRtcDataChannel)
 VOID onConnectionStateChange(UINT64 customData, RTC_PEER_CONNECTION_STATE newState)
 {
     PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) customData;
+    PSampleConfiguration pSampleConfiguration = pSampleStreamingSession->pSampleConfiguration;
     STATUS retStatus = STATUS_SUCCESS;
     DLOGI("New connection state %u", newState);
 
     if (newState == RTC_PEER_CONNECTION_STATE_FAILED || newState == RTC_PEER_CONNECTION_STATE_CLOSED ||
         newState == RTC_PEER_CONNECTION_STATE_DISCONNECTED) {
         ATOMIC_STORE_BOOL(&pSampleStreamingSession->terminateFlag, TRUE);
-        CVAR_BROADCAST(pSampleStreamingSession->pSampleConfiguration->cvar);
+        CVAR_BROADCAST(pSampleConfiguration->cvar);
     } else if (newState == RTC_PEER_CONNECTION_STATE_CONNECTED) {
+        ATOMIC_STORE_BOOL(&pSampleConfiguration->connected, TRUE);
+        CVAR_BROADCAST(pSampleConfiguration->cvar);
         if (STATUS_FAILED(retStatus = logSelectedIceCandidatesInformation(pSampleStreamingSession))) {
             DLOGW("Failed to get information about selected Ice candidates: 0x%08x", retStatus);
         }

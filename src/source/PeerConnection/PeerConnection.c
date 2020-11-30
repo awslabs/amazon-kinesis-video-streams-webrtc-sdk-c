@@ -370,7 +370,7 @@ VOID onIceConnectionStateChange(UINT64 customData, UINT64 connectionState)
     STATUS retStatus = STATUS_SUCCESS;
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) customData;
     RTC_PEER_CONNECTION_STATE newConnectionState = RTC_PEER_CONNECTION_STATE_NEW;
-    BOOL startDtlsSession = FALSE;
+    BOOL startDtlsSession = FALSE, dtlsConnected;
 
     CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
 
@@ -390,7 +390,6 @@ VOID onIceConnectionStateChange(UINT64 customData, UINT64 connectionState)
         case ICE_AGENT_STATE_READY:
             /* start dtlsSession as soon as ice is connected */
             startDtlsSession = TRUE;
-            newConnectionState = RTC_PEER_CONNECTION_STATE_CONNECTED;
             break;
 
         case ICE_AGENT_STATE_DISCONNECTED:
@@ -407,7 +406,19 @@ VOID onIceConnectionStateChange(UINT64 customData, UINT64 connectionState)
     }
 
     if (startDtlsSession) {
-        CHK_STATUS(dtlsSessionStart(pKvsPeerConnection->pDtlsSession, pKvsPeerConnection->dtlsIsServer));
+        CHK_STATUS(dtlsSessionIsInitFinished(pKvsPeerConnection->pDtlsSession, &dtlsConnected));
+
+        if (dtlsConnected) {
+            // In ICE restart scenario, DTLS handshake is not going to be reset. Therefore, we need to check
+            // if the DTLS state has been connected.
+            newConnectionState = RTC_PEER_CONNECTION_STATE_CONNECTED;
+        } else {
+            // PeerConnection's state changes to CONNECTED only when DTLS state is also connected. So, we need
+            // wait until DTLS state changes to CONNECTED.
+            //
+            // Reference: https://w3c.github.io/webrtc-pc/#rtcpeerconnectionstate-enum
+            CHK_STATUS(dtlsSessionStart(pKvsPeerConnection->pDtlsSession, pKvsPeerConnection->dtlsIsServer));
+        }
     }
 
     CHK_STATUS(changePeerConnectionState(pKvsPeerConnection, newConnectionState));
@@ -546,8 +557,16 @@ VOID onDtlsStateChange(UINT64 customData, RTC_DTLS_TRANSPORT_STATE newDtlsState)
 
     pKvsPeerConnection = (PKvsPeerConnection) customData;
 
-    if (newDtlsState == CLOSED) {
-        changePeerConnectionState(pKvsPeerConnection, RTC_PEER_CONNECTION_STATE_CLOSED);
+    switch (newDtlsState) {
+        case CONNECTED:
+            changePeerConnectionState(pKvsPeerConnection, RTC_PEER_CONNECTION_STATE_CONNECTED);
+            break;
+        case CLOSED:
+            changePeerConnectionState(pKvsPeerConnection, RTC_PEER_CONNECTION_STATE_CLOSED);
+            break;
+        default:
+            /* explicit ignore */
+            break;
     }
 }
 
