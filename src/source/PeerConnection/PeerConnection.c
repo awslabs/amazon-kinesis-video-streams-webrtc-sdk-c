@@ -558,10 +558,10 @@ VOID onDtlsStateChange(UINT64 customData, RTC_DTLS_TRANSPORT_STATE newDtlsState)
     pKvsPeerConnection = (PKvsPeerConnection) customData;
 
     switch (newDtlsState) {
-        case CONNECTED:
+        case RTC_DTLS_TRANSPORT_STATE_CONNECTED:
             changePeerConnectionState(pKvsPeerConnection, RTC_PEER_CONNECTION_STATE_CONNECTED);
             break;
-        case CLOSED:
+        case RTC_DTLS_TRANSPORT_STATE_CLOSED:
             changePeerConnectionState(pKvsPeerConnection, RTC_PEER_CONNECTION_STATE_CLOSED);
             break;
         default:

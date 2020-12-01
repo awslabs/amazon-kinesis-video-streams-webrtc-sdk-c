@@ -23,7 +23,7 @@ class DtlsFunctionalityTest : public WebRtcClientTestBase {
 
         MEMSET(&callbacks, 0, SIZEOF(callbacks));
         callbacks.stateChangeFn = [](UINT64 customData, RTC_DTLS_TRANSPORT_STATE state) {
-            if (state == CONNECTED) {
+            if (state == RTC_DTLS_TRANSPORT_STATE_CONNECTED) {
                 ATOMIC_INCREMENT((PSIZE_T) customData);
             }
         };
