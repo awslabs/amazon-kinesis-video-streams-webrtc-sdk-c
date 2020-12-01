@@ -31,22 +31,39 @@ VOID onDataChannel(UINT64 customData, PRtcDataChannel pRtcDataChannel)
 
 VOID onConnectionStateChange(UINT64 customData, RTC_PEER_CONNECTION_STATE newState)
 {
-    PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) customData;
-    PSampleConfiguration pSampleConfiguration = pSampleStreamingSession->pSampleConfiguration;
     STATUS retStatus = STATUS_SUCCESS;
+    PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) customData;
+
+    CHK(pSampleStreamingSession != NULL && pSampleStreamingSession->pSampleConfiguration != NULL, STATUS_INTERNAL_ERROR);
+
+    PSampleConfiguration pSampleConfiguration = pSampleStreamingSession->pSampleConfiguration;
     DLOGI("New connection state %u", newState);
 
-    if (newState == RTC_PEER_CONNECTION_STATE_FAILED || newState == RTC_PEER_CONNECTION_STATE_CLOSED ||
-        newState == RTC_PEER_CONNECTION_STATE_DISCONNECTED) {
-        ATOMIC_STORE_BOOL(&pSampleStreamingSession->terminateFlag, TRUE);
-        CVAR_BROADCAST(pSampleConfiguration->cvar);
-    } else if (newState == RTC_PEER_CONNECTION_STATE_CONNECTED) {
-        ATOMIC_STORE_BOOL(&pSampleConfiguration->connected, TRUE);
-        CVAR_BROADCAST(pSampleConfiguration->cvar);
-        if (STATUS_FAILED(retStatus = logSelectedIceCandidatesInformation(pSampleStreamingSession))) {
-            DLOGW("Failed to get information about selected Ice candidates: 0x%08x", retStatus);
-        }
+    switch (newState) {
+        case RTC_PEER_CONNECTION_STATE_CONNECTED:
+            ATOMIC_STORE_BOOL(&pSampleConfiguration->connected, TRUE);
+            CVAR_BROADCAST(pSampleConfiguration->cvar);
+            if (STATUS_FAILED(retStatus = logSelectedIceCandidatesInformation(pSampleStreamingSession))) {
+                DLOGW("Failed to get information about selected Ice candidates: 0x%08x", retStatus);
+            }
+            break;
+        case RTC_PEER_CONNECTION_STATE_FAILED:
+            // explicit fallthrough
+        case RTC_PEER_CONNECTION_STATE_CLOSED:
+            // explicit fallthrough
+        case RTC_PEER_CONNECTION_STATE_DISCONNECTED:
+            ATOMIC_STORE_BOOL(&pSampleStreamingSession->terminateFlag, TRUE);
+            CVAR_BROADCAST(pSampleConfiguration->cvar);
+            // explicit fallthrough
+        default:
+            ATOMIC_STORE_BOOL(&pSampleConfiguration->connected, FALSE);
+            CVAR_BROADCAST(pSampleConfiguration->cvar);
+            break;
     }
+
+CleanUp:
+
+    CHK_LOG_ERR(retStatus);
 }
 
 STATUS signalingClientStateChanged(UINT64 customData, SIGNALING_CLIENT_STATE state)
@@ -125,6 +142,36 @@ CleanUp:
     return retStatus;
 }
 
+PVOID mediaSenderRoutine(PVOID customData)
+{
+    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) customData;
+    TID videoSenderTid, audioSenderTid;
+
+    MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
+    while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->connected)) {
+        CVAR_WAIT(pSampleConfiguration->cvar, pSampleConfiguration->sampleConfigurationObjLock, INFINITE_TIME_VALUE);
+    }
+    MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
+
+    if (pSampleConfiguration->videoSource != NULL) {
+        THREAD_CREATE(&videoSenderTid, pSampleConfiguration->videoSource, (PVOID) pSampleConfiguration);
+    }
+
+    if (pSampleConfiguration->audioSource != NULL) {
+        THREAD_CREATE(&audioSenderTid, pSampleConfiguration->audioSource, (PVOID) pSampleConfiguration);
+    }
+
+    if (videoSenderTid != INVALID_TID_VALUE) {
+        THREAD_JOIN(videoSenderTid, NULL);
+    }
+
+    if (audioSenderTid != INVALID_TID_VALUE) {
+        THREAD_JOIN(videoSenderTid, NULL);
+    }
+
+    return NULL;
+}
+
 STATUS handleOffer(PSampleConfiguration pSampleConfiguration, PSampleStreamingSession pSampleStreamingSession, PSignalingMessage pSignalingMessage)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -156,13 +203,7 @@ STATUS handleOffer(PSampleConfiguration pSampleConfiguration, PSampleStreamingSe
 
     if (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->mediaThreadStarted)) {
         ATOMIC_STORE_BOOL(&pSampleConfiguration->mediaThreadStarted, TRUE);
-        if (pSampleConfiguration->videoSource != NULL) {
-            THREAD_CREATE(&pSampleConfiguration->videoSenderTid, pSampleConfiguration->videoSource, (PVOID) pSampleConfiguration);
-        }
-
-        if (pSampleConfiguration->audioSource != NULL) {
-            THREAD_CREATE(&pSampleConfiguration->audioSenderTid, pSampleConfiguration->audioSource, (PVOID) pSampleConfiguration);
-        }
+        THREAD_CREATE(&pSampleConfiguration->mediaSenderTid, mediaSenderRoutine, (PVOID) pSampleConfiguration);
 
         if ((retStatus = timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, SAMPLE_STATS_DURATION, SAMPLE_STATS_DURATION,
                                             getIceCandidatePairStatsCallback, (UINT64) pSampleConfiguration,
@@ -632,8 +673,7 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     CHK_STATUS(
         createStaticCredentialProvider(pAccessKey, 0, pSecretKey, 0, pSessionToken, 0, MAX_UINT64, &pSampleConfiguration->pCredentialProvider));
 
-    pSampleConfiguration->audioSenderTid = INVALID_TID_VALUE;
-    pSampleConfiguration->videoSenderTid = INVALID_TID_VALUE;
+    pSampleConfiguration->mediaSenderTid = INVALID_TID_VALUE;
     pSampleConfiguration->signalingClientHandle = INVALID_SIGNALING_CLIENT_HANDLE_VALUE;
     pSampleConfiguration->sampleConfigurationObjLock = MUTEX_CREATE(TRUE);
     pSampleConfiguration->cvar = CVAR_CREATE();
@@ -673,6 +713,7 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     ATOMIC_STORE_BOOL(&pSampleConfiguration->mediaThreadStarted, FALSE);
     ATOMIC_STORE_BOOL(&pSampleConfiguration->appTerminateFlag, FALSE);
     ATOMIC_STORE_BOOL(&pSampleConfiguration->recreateSignalingClient, FALSE);
+    ATOMIC_STORE_BOOL(&pSampleConfiguration->connected, FALSE);
 
     CHK_STATUS(timerQueueCreate(&pSampleConfiguration->timerQueueHandle));
 

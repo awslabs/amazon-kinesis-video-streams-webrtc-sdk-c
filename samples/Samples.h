@@ -70,8 +70,7 @@ typedef struct {
     UINT32 audioBufferSize;
     PBYTE pVideoFrameBuffer;
     UINT32 videoBufferSize;
-    TID videoSenderTid;
-    TID audioSenderTid;
+    TID mediaSenderTid;
     TIMER_QUEUE_HANDLE timerQueueHandle;
     UINT32 iceCandidatePairStatsTimerId;
     SampleStreamingMediaType mediaType;
