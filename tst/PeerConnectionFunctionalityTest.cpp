@@ -610,8 +610,8 @@ TEST_F(PeerConnectionFunctionalityTest, noLostFramesAfterConnected)
     RtcConfiguration configuration;
     Context context;
     PRtcPeerConnection offerPc = NULL, answerPc = NULL;
-    RtcMediaStreamTrack offerVideoTrack, answerVideoTrack, offerAudioTrack, answerAudioTrack;
-    PRtcRtpTransceiver offerVideoTransceiver, answerVideoTransceiver, offerAudioTransceiver, answerAudioTransceiver;
+    RtcMediaStreamTrack offerVideoTrack, answerVideoTrack;
+    PRtcRtpTransceiver offerVideoTransceiver, answerVideoTransceiver;
     RtcSessionDescriptionInit sdp;
     ATOMIC_BOOL seenFirstFrame = FALSE;
     Frame videoFrame;

@@ -145,6 +145,7 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
                 CHK_STATUS(allocateSctp(pKvsPeerConnection));
             }
 #endif
+            changePeerConnectionState(pKvsPeerConnection, RTC_PEER_CONNECTION_STATE_CONNECTED);
         }
 
     } else if ((buff[0] > 127 && buff[0] < 192) && (pKvsPeerConnection->pSrtpSession != NULL)) {
@@ -252,6 +253,8 @@ STATUS changePeerConnectionState(PKvsPeerConnection pKvsPeerConnection, RTC_PEER
 {
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
+    RtcOnConnectionStateChange onConnectionStateChange = NULL;
+    UINT64 customData = 0;
     CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
 
     MUTEX_LOCK(pKvsPeerConnection->peerConnectionObjLock);
@@ -263,11 +266,13 @@ STATUS changePeerConnectionState(PKvsPeerConnection pKvsPeerConnection, RTC_PEER
         retStatus);
 
     pKvsPeerConnection->connectionState = newState;
+    onConnectionStateChange = pKvsPeerConnection->onConnectionStateChange;
+    customData = pKvsPeerConnection->onConnectionStateChangeCustomData;
     MUTEX_UNLOCK(pKvsPeerConnection->peerConnectionObjLock);
     locked = FALSE;
 
-    if (pKvsPeerConnection->onConnectionStateChange != NULL) {
-        pKvsPeerConnection->onConnectionStateChange(pKvsPeerConnection->onConnectionStateChangeCustomData, newState);
+    if (onConnectionStateChange != NULL) {
+        onConnectionStateChange(customData, newState);
     }
 
 CleanUp:
@@ -558,9 +563,6 @@ VOID onDtlsStateChange(UINT64 customData, RTC_DTLS_TRANSPORT_STATE newDtlsState)
     pKvsPeerConnection = (PKvsPeerConnection) customData;
 
     switch (newDtlsState) {
-        case RTC_DTLS_TRANSPORT_STATE_CONNECTED:
-            changePeerConnectionState(pKvsPeerConnection, RTC_PEER_CONNECTION_STATE_CONNECTED);
-            break;
         case RTC_DTLS_TRANSPORT_STATE_CLOSED:
             changePeerConnectionState(pKvsPeerConnection, RTC_PEER_CONNECTION_STATE_CLOSED);
             break;

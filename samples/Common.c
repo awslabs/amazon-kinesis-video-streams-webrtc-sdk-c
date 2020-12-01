@@ -144,14 +144,17 @@ CleanUp:
 
 PVOID mediaSenderRoutine(PVOID customData)
 {
+    STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) customData;
-    TID videoSenderTid, audioSenderTid;
+    TID videoSenderTid = INVALID_TID_VALUE, audioSenderTid = INVALID_TID_VALUE;
 
     MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
-    while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->connected)) {
-        CVAR_WAIT(pSampleConfiguration->cvar, pSampleConfiguration->sampleConfigurationObjLock, INFINITE_TIME_VALUE);
+    while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->connected) && !ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
+        CVAR_WAIT(pSampleConfiguration->cvar, pSampleConfiguration->sampleConfigurationObjLock, 5 * HUNDREDS_OF_NANOS_IN_A_SECOND);
     }
     MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
+
+    CHK(!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag), retStatus);
 
     if (pSampleConfiguration->videoSource != NULL) {
         THREAD_CREATE(&videoSenderTid, pSampleConfiguration->videoSource, (PVOID) pSampleConfiguration);
@@ -169,6 +172,9 @@ PVOID mediaSenderRoutine(PVOID customData)
         THREAD_JOIN(videoSenderTid, NULL);
     }
 
+CleanUp:
+
+    CHK_LOG_ERR(retStatus);
     return NULL;
 }
 
