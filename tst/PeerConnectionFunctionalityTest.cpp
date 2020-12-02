@@ -599,6 +599,115 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersExpectFailureBecauseNoCan
     freePeerConnection(&answerPc);
 }
 
+TEST_F(PeerConnectionFunctionalityTest, noLostFramesAfterConnected)
+{
+    struct Context {
+        MUTEX mutex;
+        ATOMIC_BOOL done;
+        CVAR cvar;
+    };
+
+    RtcConfiguration configuration;
+    Context context;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    RtcMediaStreamTrack offerVideoTrack, answerVideoTrack;
+    PRtcRtpTransceiver offerVideoTransceiver, answerVideoTransceiver;
+    RtcSessionDescriptionInit sdp;
+    ATOMIC_BOOL seenFirstFrame = FALSE;
+    Frame videoFrame;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    MEMSET(&videoFrame, 0x00, SIZEOF(Frame));
+
+    videoFrame.frameData = (PBYTE) MEMALLOC(1);
+    videoFrame.size = 1;
+    videoFrame.presentationTs = 0;
+
+    context.mutex = MUTEX_CREATE(FALSE);
+    ASSERT_NE(context.mutex, INVALID_MUTEX_VALUE);
+    context.cvar = CVAR_CREATE();
+    ASSERT_NE(context.cvar, INVALID_CVAR_VALUE);
+    ATOMIC_STORE_BOOL(&context.done, FALSE);
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    addTrackToPeerConnection(offerPc, &offerVideoTrack, &offerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+    addTrackToPeerConnection(answerPc, &answerVideoTrack, &answerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+
+    auto onFrameHandler = [](UINT64 customData, PFrame pFrame) -> void {
+        UNUSED_PARAM(pFrame);
+        if (pFrame->frameData[0] == 1) {
+            ATOMIC_STORE_BOOL((PSIZE_T) customData, 1);
+        }
+    };
+    EXPECT_EQ(transceiverOnFrame(answerVideoTransceiver, (UINT64) &seenFirstFrame, onFrameHandler), STATUS_SUCCESS);
+
+    auto onICECandidateHdlr = [](UINT64 customData, PCHAR candidateStr) -> void {
+        if (candidateStr != NULL) {
+            std::thread(
+                [customData](std::string candidate) {
+                    RtcIceCandidateInit iceCandidate;
+                    EXPECT_EQ(STATUS_SUCCESS, deserializeRtcIceCandidateInit((PCHAR) candidate.c_str(), STRLEN(candidate.c_str()), &iceCandidate));
+                    EXPECT_EQ(STATUS_SUCCESS, addIceCandidate((PRtcPeerConnection) customData, iceCandidate.candidate));
+                },
+                std::string(candidateStr))
+                .detach();
+        }
+    };
+
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(offerPc, (UINT64) answerPc, onICECandidateHdlr));
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(answerPc, (UINT64) offerPc, onICECandidateHdlr));
+
+    auto onICEConnectionStateChangeHdlr = [](UINT64 customData, RTC_PEER_CONNECTION_STATE newState) -> void {
+        Context* pContext = (Context*) customData;
+
+        if (newState == RTC_PEER_CONNECTION_STATE_CONNECTED) {
+            ATOMIC_STORE_BOOL(&pContext->done, TRUE);
+            CVAR_SIGNAL(pContext->cvar);
+        }
+    };
+
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnConnectionStateChange(offerPc, (UINT64) &context, onICEConnectionStateChangeHdlr));
+
+    EXPECT_EQ(STATUS_SUCCESS, createOffer(offerPc, &sdp));
+    EXPECT_EQ(STATUS_SUCCESS, setLocalDescription(offerPc, &sdp));
+    EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(answerPc, &sdp));
+
+    EXPECT_EQ(STATUS_SUCCESS, createAnswer(answerPc, &sdp));
+    EXPECT_EQ(STATUS_SUCCESS, setLocalDescription(answerPc, &sdp));
+    EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(offerPc, &sdp));
+
+    MUTEX_LOCK(context.mutex);
+    while (!ATOMIC_LOAD_BOOL(&context.done)) {
+        CVAR_WAIT(context.cvar, context.mutex, INFINITE_TIME_VALUE);
+    }
+    MUTEX_UNLOCK(context.mutex);
+
+    for (BYTE i = 1; i <= 3; i++) {
+        videoFrame.frameData[0] = i;
+        EXPECT_EQ(writeFrame(offerVideoTransceiver, &videoFrame), STATUS_SUCCESS);
+        videoFrame.presentationTs += (HUNDREDS_OF_NANOS_IN_A_SECOND / 25);
+        THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND / 25);
+    }
+
+    for (auto i = 0; i <= 1000 && !ATOMIC_LOAD_BOOL(&seenFirstFrame); i++) {
+        THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+
+    MEMFREE(videoFrame.frameData);
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+
+    CVAR_FREE(context.cvar);
+    MUTEX_FREE(context.mutex);
+
+    EXPECT_EQ(ATOMIC_LOAD_BOOL(&seenFirstFrame), TRUE);
+}
+
 // Assert that two PeerConnections can connect and then send media until the receiver gets both audio/video
 TEST_F(PeerConnectionFunctionalityTest, exchangeMedia)
 {

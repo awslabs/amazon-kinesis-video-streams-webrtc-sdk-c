@@ -113,15 +113,8 @@ CleanUp:
         // Kick of the termination sequence
         ATOMIC_STORE_BOOL(&pSampleConfiguration->appTerminateFlag, TRUE);
 
-        // Join the threads
-        if (pSampleConfiguration->videoSenderTid != (UINT64) NULL) {
-            // Join the threads
-            THREAD_JOIN(pSampleConfiguration->videoSenderTid, NULL);
-        }
-
-        if (pSampleConfiguration->audioSenderTid != (UINT64) NULL) {
-            // Join the threads
-            THREAD_JOIN(pSampleConfiguration->audioSenderTid, NULL);
+        if (pSampleConfiguration->mediaSenderTid != INVALID_TID_VALUE) {
+            THREAD_JOIN(pSampleConfiguration->mediaSenderTid, NULL);
         }
 
         if (pSampleConfiguration->enableFileLogging) {
@@ -265,6 +258,8 @@ PVOID sendVideoPackets(PVOID args)
     }
 
 CleanUp:
+
+    CHK_LOG_ERR(retStatus);
 
     return (PVOID)(ULONG_PTR) retStatus;
 }

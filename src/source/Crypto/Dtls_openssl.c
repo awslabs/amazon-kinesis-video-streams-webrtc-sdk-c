@@ -52,7 +52,7 @@ STATUS dtlsTransmissionTimerCallback(UINT32 timerID, UINT64 currentTime, UINT64 
     CHK_STATUS(dtlsCheckOutgoingDataBuffer(pDtlsSession));
 
     if (SSL_is_init_finished(pDtlsSession->pSsl)) {
-        CHK_STATUS(dtlsSessionChangeState(pDtlsSession, CONNECTED));
+        CHK_STATUS(dtlsSessionChangeState(pDtlsSession, RTC_DTLS_TRANSPORT_STATE_CONNECTED));
         ATOMIC_STORE_BOOL(&pDtlsSession->sslInitFinished, TRUE);
         CHK(FALSE, STATUS_TIMER_QUEUE_STOP_SCHEDULING);
     }
@@ -282,7 +282,7 @@ STATUS createDtlsSession(PDtlsSessionCallbacks pDtlsSessionCallbacks, TIMER_QUEU
     pDtlsSession->timerQueueHandle = timerQueueHandle;
     pDtlsSession->timerId = MAX_UINT32;
     pDtlsSession->sslLock = MUTEX_CREATE(TRUE);
-    pDtlsSession->state = NEW;
+    pDtlsSession->state = RTC_DTLS_TRANSPORT_STATE_NEW;
     ATOMIC_STORE_BOOL(&pDtlsSession->isStarted, FALSE);
     ATOMIC_STORE_BOOL(&pDtlsSession->sslInitFinished, FALSE);
 
@@ -363,7 +363,7 @@ STATUS dtlsSessionStart(PDtlsSession pDtlsSession, BOOL isServer)
     MUTEX_LOCK(pDtlsSession->sslLock);
     locked = TRUE;
 
-    CHK_STATUS(dtlsSessionChangeState(pDtlsSession, CONNECTING));
+    CHK_STATUS(dtlsSessionChangeState(pDtlsSession, RTC_DTLS_TRANSPORT_STATE_CONNECTING));
 
     /* Need to set isStarted to TRUE after acquiring the lock to make sure dtlsSessionProcessPacket
      * dont proceed before dtlsSessionStart finish */
@@ -469,7 +469,7 @@ STATUS dtlsSessionProcessPacket(PDtlsSession pDtlsSession, PBYTE pData, PINT32 p
 
     if (isClosed) {
         ATOMIC_STORE_BOOL(&pDtlsSession->shutdown, TRUE);
-        CHK_STATUS(dtlsSessionChangeState(pDtlsSession, CLOSED));
+        CHK_STATUS(dtlsSessionChangeState(pDtlsSession, RTC_DTLS_TRANSPORT_STATE_CLOSED));
     }
 
 CleanUp:
@@ -535,7 +535,7 @@ STATUS dtlsSessionShutdown(PDtlsSession pDtlsSession)
     SSL_shutdown(pDtlsSession->pSsl);
     ATOMIC_STORE_BOOL(&pDtlsSession->shutdown, TRUE);
     CHK_STATUS(dtlsCheckOutgoingDataBuffer(pDtlsSession));
-    CHK_STATUS(dtlsSessionChangeState(pDtlsSession, CLOSED));
+    CHK_STATUS(dtlsSessionChangeState(pDtlsSession, RTC_DTLS_TRANSPORT_STATE_CLOSED));
 
 CleanUp:
 
@@ -692,7 +692,7 @@ CleanUp:
     }
 
     if (retStatus == STATUS_SSL_REMOTE_CERTIFICATE_VERIFICATION_FAILED) {
-        dtlsSessionChangeState(pDtlsSession, FAILED);
+        dtlsSessionChangeState(pDtlsSession, RTC_DTLS_TRANSPORT_STATE_FAILED);
     }
 
     if (locked) {

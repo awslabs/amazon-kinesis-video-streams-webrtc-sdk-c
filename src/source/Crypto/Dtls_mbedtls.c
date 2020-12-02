@@ -203,7 +203,7 @@ STATUS dtlsTransmissionTimerCallback(UINT32 timerID, UINT64 currentTime, UINT64 
     switch (handshakeStatus) {
         case 0:
             // success.
-            CHK_STATUS(dtlsSessionChangeState(pDtlsSession, CONNECTED));
+            CHK_STATUS(dtlsSessionChangeState(pDtlsSession, RTC_DTLS_TRANSPORT_STATE_CONNECTED));
             CHK(FALSE, STATUS_TIMER_QUEUE_STOP_SCHEDULING);
             break;
         case MBEDTLS_ERR_SSL_WANT_READ:
@@ -214,7 +214,7 @@ STATUS dtlsTransmissionTimerCallback(UINT32 timerID, UINT64 currentTime, UINT64 
             break;
         default:
             LOG_MBEDTLS_ERROR("mbedtls_ssl_handshake", handshakeStatus);
-            CHK_STATUS(dtlsSessionChangeState(pDtlsSession, FAILED));
+            CHK_STATUS(dtlsSessionChangeState(pDtlsSession, RTC_DTLS_TRANSPORT_STATE_FAILED));
             CHK(FALSE, STATUS_TIMER_QUEUE_STOP_SCHEDULING);
             break;
     }
@@ -264,7 +264,7 @@ STATUS dtlsSessionStart(PDtlsSession pDtlsSession, BOOL isServer)
     // Need to set isStarted to TRUE after acquiring the lock to make sure dtlsSessionProcessPacket
     // dont proceed before dtlsSessionStart finish
     ATOMIC_STORE_BOOL(&pDtlsSession->isStarted, TRUE);
-    CHK_STATUS(dtlsSessionChangeState(pDtlsSession, CONNECTING));
+    CHK_STATUS(dtlsSessionChangeState(pDtlsSession, RTC_DTLS_TRANSPORT_STATE_CONNECTING));
 
     // Initialize ssl config
     CHK(mbedtls_ssl_config_defaults(&pDtlsSession->sslCtxConfig, isServer ? MBEDTLS_SSL_IS_SERVER : MBEDTLS_SSL_IS_CLIENT,
@@ -307,7 +307,7 @@ STATUS dtlsSessionIsInitFinished(PDtlsSession pDtlsSession, PBOOL pIsFinished)
     STATUS retStatus = STATUS_SUCCESS;
     CHK(pDtlsSession != NULL && pIsFinished != NULL, STATUS_NULL_ARG);
     MUTEX_LOCK(pDtlsSession->sslLock);
-    *pIsFinished = pDtlsSession->state == CONNECTED;
+    *pIsFinished = pDtlsSession->state == RTC_DTLS_TRANSPORT_STATE_CONNECTED;
     MUTEX_UNLOCK(pDtlsSession->sslLock);
 
 CleanUp:
@@ -357,7 +357,7 @@ STATUS dtlsSessionProcessPacket(PDtlsSession pDtlsSession, PBYTE pData, PINT32 p
     }
 
     if (pDtlsSession->sslCtx.state == MBEDTLS_SSL_HANDSHAKE_OVER) {
-        CHK_STATUS(dtlsSessionChangeState(pDtlsSession, CONNECTED));
+        CHK_STATUS(dtlsSessionChangeState(pDtlsSession, RTC_DTLS_TRANSPORT_STATE_CONNECTED));
     }
 
 CleanUp:
@@ -536,7 +536,7 @@ STATUS dtlsSessionShutdown(PDtlsSession pDtlsSession)
     }
 
     ATOMIC_STORE_BOOL(&pDtlsSession->shutdown, TRUE);
-    CHK_STATUS(dtlsSessionChangeState(pDtlsSession, CLOSED));
+    CHK_STATUS(dtlsSessionChangeState(pDtlsSession, RTC_DTLS_TRANSPORT_STATE_CLOSED));
 
 CleanUp:
 

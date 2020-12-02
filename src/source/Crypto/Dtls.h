@@ -35,11 +35,11 @@ extern "C" {
 #define HUNDREDS_OF_NANOS_IN_A_DAY (HUNDREDS_OF_NANOS_IN_AN_HOUR * 24LL)
 
 typedef enum {
-    NEW,
-    CONNECTING, /* DTLS is in the process of negotiating a secure connection and verifying the remote fingerprint. */
-    CONNECTED,  /* DTLS has completed negotiation of a secure connection and verified the remote fingerprint. */
-    CLOSED,     /* The transport has been closed intentionally as the result of receipt of a close_notify alert */
-    FAILED,     /* The transport has failed as the result of an error */
+    RTC_DTLS_TRANSPORT_STATE_NEW,
+    RTC_DTLS_TRANSPORT_STATE_CONNECTING, /* DTLS is in the process of negotiating a secure connection and verifying the remote fingerprint. */
+    RTC_DTLS_TRANSPORT_STATE_CONNECTED,  /* DTLS has completed negotiation of a secure connection and verified the remote fingerprint. */
+    RTC_DTLS_TRANSPORT_STATE_CLOSED,     /* The transport has been closed intentionally as the result of receipt of a close_notify alert */
+    RTC_DTLS_TRANSPORT_STATE_FAILED,     /* The transport has failed as the result of an error */
 } RTC_DTLS_TRANSPORT_STATE;
 
 /* Callback that is fired when Dtls Server wishes to send packet */
