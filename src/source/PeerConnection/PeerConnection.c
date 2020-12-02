@@ -921,6 +921,22 @@ CleanUp:
     return retStatus;
 }
 
+/**
+ *  @brief parses string of form "$number $whatever" returns $number as uint32
+ *  @return 0 if value is not parsable or null
+ */
+UINT32 parseExtId(PCHAR extmapValue)
+{
+    UINT32 extid = 0;
+    if (extmapValue == NULL && STRCHR(extmapValue, ' ') == NULL) {
+        return 0;
+    }
+    if (STATUS_FAILED(STRTOUI32(extmapValue, STRCHR(extmapValue, ' '), 10, &extid))) {
+        return 0;
+    }
+    return extid;
+}
+
 STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionInit pSessionDescriptionInit)
 {
     ENTERS();
@@ -979,6 +995,9 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
                 NULLABLE_SET_VALUE(pKvsPeerConnection->canTrickleIce, TRUE);
                 // This code is only here because Chrome does NOT adhere to the standard and adds ice-options as a media level attribute
                 // The standard dictates clearly that it should be a session level attribute:  https://tools.ietf.org/html/rfc5245#page-76
+            } else if (STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeName, "extmap") == 0 &&
+                       STRSTR(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeValue, TWCC_EXT_URL) != NULL) {
+                pKvsPeerConnection->twccExtId = parseExtId(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeValue);
             }
         }
     }

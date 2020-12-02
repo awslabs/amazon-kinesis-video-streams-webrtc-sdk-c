@@ -486,6 +486,42 @@ TEST_F(RtpFunctionalityTest, trailingZerosWouldBeReturned)
     EXPECT_EQ(7, naluLength);
 }
 
+// https://tools.ietf.org/html/rfc3550#section-5.3.1
+TEST_F(RtpFunctionalityTest, createPacketWithExtension)
+{
+    BYTE payload[10] = {0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19};
+    BYTE extpayload[8] = {0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49};
+    BYTE rawbytes[1024] = {0};
+    PBYTE ptr = reinterpret_cast<PBYTE>(&rawbytes);
+    PRtpPacket pRtpPacket = NULL;
+    PRtpPacket pRtpPacket2 = NULL;
+
+    EXPECT_EQ(STATUS_SUCCESS,
+              createRtpPacket(2, FALSE, TRUE, 0, FALSE, 96, 42, 100, 0x1234ABCD, NULL, 0x4243, 8, extpayload, payload, 10, &pRtpPacket));
+    EXPECT_EQ(STATUS_SUCCESS, setBytesFromRtpPacket(pRtpPacket, ptr, 1024));
+
+    auto len = RTP_GET_RAW_PACKET_SIZE(pRtpPacket);
+    EXPECT_EQ(STATUS_SUCCESS, createRtpPacketFromBytes(ptr, len, &pRtpPacket2));
+    EXPECT_TRUE(pRtpPacket2->header.extension);
+    EXPECT_EQ(0x4243, pRtpPacket2->header.extensionProfile);
+    EXPECT_EQ(0x44, pRtpPacket2->header.extensionPayload[2]);
+    EXPECT_EQ(0x15, pRtpPacket2->payload[5]);
+    freeRtpPacket(&pRtpPacket);
+    pRtpPacket2->pRawPacket = NULL;
+    freeRtpPacket(&pRtpPacket2);
+}
+
+TEST_F(RtpFunctionalityTest, twccPayload)
+{
+    UINT32 extpayload = TWCC_PAYLOAD(4u, 420u);
+    auto ptr = reinterpret_cast<PBYTE>(&extpayload);
+    auto seqNum = getUnalignedInt16BigEndian(ptr + 1);
+    EXPECT_EQ(4, (ptr[0] >> 4));
+    EXPECT_EQ(1, (ptr[0] & 0xfu));
+    EXPECT_EQ(420, seqNum);
+    EXPECT_EQ(0, ptr[3]);
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis
