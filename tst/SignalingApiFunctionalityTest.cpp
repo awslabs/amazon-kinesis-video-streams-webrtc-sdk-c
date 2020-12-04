@@ -840,7 +840,7 @@ TEST_F(SignalingApiFunctionalityTest, iceReconnectEmulation)
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
 }
 
-TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulation)
+TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedVariations)
 {
     if (!mAccessKeyIdSet) {
         return;
@@ -851,6 +851,8 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulation)
     SignalingClientInfoInternal clientInfoInternal;
     PSignalingClient pSignalingClient;
     SIGNALING_CLIENT_HANDLE signalingHandle;
+    UINT32 i, iceCount;
+    PIceConfigInfo pIceConfigInfo;
 
     signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
     signalingClientCallbacks.customData = (UINT64) this;
@@ -863,7 +865,15 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulation)
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
-    clientInfoInternal.iceRefreshPeriod = 5 * HUNDREDS_OF_NANOS_IN_A_SECOND;
+
+    // Set the ICE hook
+    clientInfoInternal.hookCustomData = (UINT64) this;
+    clientInfoInternal.getIceConfigPreHookFn = getIceConfigPreHook;
+
+    // Make it fail after the first call and recover after two failures on the 3rd call
+    getIceConfigResult = STATUS_INVALID_OPERATION;
+    getIceConfigFail = 10000; // large enough to not cause any failures
+    getIceConfigRecover = 3000000;
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
@@ -879,13 +889,18 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulation)
     channelInfo.pCertPath = mCaCertPath;
     channelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
 
-    EXPECT_EQ(STATUS_SUCCESS,
-              createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider,
-                                  &pSignalingClient));
+    EXPECT_EQ(STATUS_SUCCESS,createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider, &pSignalingClient));
     signalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
     EXPECT_TRUE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
 
     pActiveClient = pSignalingClient;
+
+
+    //
+    // Normal case after the signaling client creation.
+    // Validate the count and retrieve the configs
+    // Ensure no API call is made
+    //
 
     // Check the states first
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
@@ -899,10 +914,57 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulation)
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
-    // Make sure we get ICE candidate refresh before connecting
-    THREAD_SLEEP(7 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+    // The ICE api should have been called
+    EXPECT_EQ(1, getIceConfigCount);
 
-    // Check the states
+    // Ensure we can get the ICE configurations
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
+    EXPECT_NE(0, iceCount);
+    for (i = 0; i < iceCount; i++) {
+        EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, i, &pIceConfigInfo));
+    }
+
+    // Make sure no APIs have been called
+    EXPECT_EQ(1, getIceConfigCount);
+
+    // Other state transacted
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
+
+
+    //
+    // Setting the count of the ice configs to 0 to trigger the refresh on get count
+    //
+
+    // Make the count 0 to trigger the ICE refresh
+    pSignalingClient->iceConfigCount = 0;
+
+    // Zero the ICE call count
+    getIceConfigCount = 0;
+
+    // Ensure we can get the ICE configurations
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
+    EXPECT_NE(0, iceCount);
+
+    // Make sure the API has been called
+    EXPECT_EQ(1, getIceConfigCount);
+
+    for (i = 0; i < iceCount; i++) {
+        EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, i, &pIceConfigInfo));
+    }
+
+    // Make sure no APIs have been called again
+    EXPECT_EQ(1, getIceConfigCount);
+
+    // Other state transacted
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
@@ -914,25 +976,31 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulation)
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
-    // Connect to the signaling client
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
 
-    // Check the states
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
-    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
+    //
+    // Setting the count of the ice configs to 0 to trigger the refresh on get ICE info
+    //
 
-    // Wait for ICE refresh while connected
-    THREAD_SLEEP(7 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+    // Make the count 0 to trigger the ICE refresh
+    pSignalingClient->iceConfigCount = 0;
 
-    // This time the states will circle through connecting/connected again
+    // Zero the ICE call count
+    getIceConfigCount = 0;
+
+    // Attempt to get the 0th element which would trigger the refresh
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, 0, &pIceConfigInfo));
+
+    // Make sure the API has been called
+    EXPECT_EQ(1, getIceConfigCount);
+
+    // Ensure we can get the ICE configurations
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
+    EXPECT_NE(0, iceCount);
+
+    // Make sure no APIs have been called
+    EXPECT_EQ(1, getIceConfigCount);
+
+    // Other state transacted
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
@@ -940,11 +1008,349 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulation)
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
     EXPECT_EQ(3, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(3, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
+
+
+    //
+    // Setting the expiration to trigger the refresh on get count
+    //
+
+    // Set the expired time to trigger the refresh
+    pSignalingClient->iceConfigExpiration = GETTIME() - 1;
+
+    // Zero the ICE call count
+    getIceConfigCount = 0;
+
+    // Ensure we can get the ICE configurations
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
+    EXPECT_NE(0, iceCount);
+
+    // Make sure the API has been called
+    EXPECT_EQ(1, getIceConfigCount);
+
+    for (i = 0; i < iceCount; i++) {
+        EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, i, &pIceConfigInfo));
+    }
+
+    // Make sure no APIs have been called again
+    EXPECT_EQ(1, getIceConfigCount);
+
+    // Other state transacted
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
+    EXPECT_EQ(4, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(4, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
+
+    //
+    // Setting the expiration to trigger the refresh on get ICE info
+    //
+
+    // Set the expired time to trigger the refresh
+    pSignalingClient->iceConfigExpiration = GETTIME() - 1;
+
+    // Zero the ICE call count
+    getIceConfigCount = 0;
+
+    // Attempt to get the 0th element which would trigger the refresh
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, 0, &pIceConfigInfo));
+
+    // Make sure the API has been called
+    EXPECT_EQ(1, getIceConfigCount);
+
+    // Ensure we can get the ICE configurations
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
+    EXPECT_NE(0, iceCount);
+
+    // Make sure no APIs have been called
+    EXPECT_EQ(1, getIceConfigCount);
+
+    // Other state transacted
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
+    EXPECT_EQ(5, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(5, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
+
+    //
+    // Attempt to send a message which should fail as we are not connected
+    //
+    SignalingMessage signalingMessage;
+    signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
+    signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
+    STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    MEMSET(signalingMessage.payload, 'A', 100);
+    signalingMessage.payload[100] = '\0';
+    signalingMessage.payloadLen = 0;
+    signalingMessage.correlationId[0] = '\0';
+
+    EXPECT_EQ(STATUS_INVALID_STREAM_STATE, signalingClientSendMessageSync(signalingHandle, &signalingMessage));
+
+    deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
+
+    EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+}
+
+TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedVariations)
+{
+    if (!mAccessKeyIdSet) {
+        return;
+    }
+
+    ChannelInfo channelInfo;
+    SignalingClientCallbacks signalingClientCallbacks;
+    SignalingClientInfoInternal clientInfoInternal;
+    PSignalingClient pSignalingClient;
+    SIGNALING_CLIENT_HANDLE signalingHandle;
+    UINT32 i, iceCount;
+    PIceConfigInfo pIceConfigInfo;
+
+    signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
+    signalingClientCallbacks.customData = (UINT64) this;
+    signalingClientCallbacks.messageReceivedFn = NULL;
+    signalingClientCallbacks.errorReportFn = signalingClientError;
+    signalingClientCallbacks.stateChangeFn = signalingClientStateChanged;
+
+    MEMSET(&clientInfoInternal, 0x00, SIZEOF(SignalingClientInfoInternal));
+
+    clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
+    clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
+    STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+
+    // Set the ICE hook
+    clientInfoInternal.hookCustomData = (UINT64) this;
+    clientInfoInternal.getIceConfigPreHookFn = getIceConfigPreHook;
+
+    // Make it fail after the first call and recover after two failures on the 3rd call
+    getIceConfigResult = STATUS_INVALID_OPERATION;
+    getIceConfigFail = 10000; // large enough to not cause any failures
+    getIceConfigRecover = 3000000;
+
+    MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
+    channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
+    channelInfo.pChannelName = mChannelName;
+    channelInfo.pKmsKeyId = NULL;
+    channelInfo.tagCount = 0;
+    channelInfo.pTags = NULL;
+    channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
+    channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
+    channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_NONE;
+    channelInfo.retry = TRUE;
+    channelInfo.reconnect = TRUE;
+    channelInfo.pCertPath = mCaCertPath;
+    channelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
+
+    EXPECT_EQ(STATUS_SUCCESS, createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider, &pSignalingClient));
+    signalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
+    EXPECT_TRUE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
+
+    pActiveClient = pSignalingClient;
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
+
+
+    //
+    // Normal case after the signaling client creation.
+    // Validate the count and retrieve the configs
+    // Ensure no API call is made
+    //
+
+    // Check the states first
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
+
+    // The ICE api should have been called
+    EXPECT_EQ(1, getIceConfigCount);
+
+    // Ensure we can get the ICE configurations
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
+    EXPECT_NE(0, iceCount);
+    for (i = 0; i < iceCount; i++) {
+        EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, i, &pIceConfigInfo));
+    }
+
+    // Make sure no APIs have been called
+    EXPECT_EQ(1, getIceConfigCount);
+
+    // Other state transacted
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
+
+
+    //
+    // Setting the count of the ice configs to 0 to trigger the refresh on get count
+    //
+
+    // Make the count 0 to trigger the ICE refresh
+    pSignalingClient->iceConfigCount = 0;
+
+    // Zero the ICE call count
+    getIceConfigCount = 0;
+
+    // Ensure we can get the ICE configurations
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
+    EXPECT_NE(0, iceCount);
+
+    // Make sure the API has been called
+    EXPECT_EQ(1, getIceConfigCount);
+
+    for (i = 0; i < iceCount; i++) {
+        EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, i, &pIceConfigInfo));
+    }
+
+    // Make sure no APIs have been called again
+    EXPECT_EQ(1, getIceConfigCount);
+
+    // Other state transacted
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
-    // Check that we are connected and can send a message
+
+    //
+    // Setting the count of the ice configs to 0 to trigger the refresh on get ICE info
+    //
+
+    // Make the count 0 to trigger the ICE refresh
+    pSignalingClient->iceConfigCount = 0;
+
+    // Zero the ICE call count
+    getIceConfigCount = 0;
+
+    // Attempt to get the 0th element which would trigger the refresh
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, 0, &pIceConfigInfo));
+
+    // Make sure the API has been called
+    EXPECT_EQ(1, getIceConfigCount);
+
+    // Ensure we can get the ICE configurations
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
+    EXPECT_NE(0, iceCount);
+
+    // Make sure no APIs have been called
+    EXPECT_EQ(1, getIceConfigCount);
+
+    // Other state transacted
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
+    EXPECT_EQ(3, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(3, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(3, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
+    EXPECT_EQ(3, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
+
+
+    //
+    // Setting the expiration to trigger the refresh on get count
+    //
+
+    // Set the expired time to trigger the refresh
+    pSignalingClient->iceConfigExpiration = GETTIME() - 1;
+
+    // Zero the ICE call count
+    getIceConfigCount = 0;
+
+    // Ensure we can get the ICE configurations
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
+    EXPECT_NE(0, iceCount);
+
+    // Make sure the API has been called
+    EXPECT_EQ(1, getIceConfigCount);
+
+    for (i = 0; i < iceCount; i++) {
+        EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, i, &pIceConfigInfo));
+    }
+
+    // Make sure no APIs have been called again
+    EXPECT_EQ(1, getIceConfigCount);
+
+    // Other state transacted
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
+    EXPECT_EQ(4, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(4, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(4, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
+    EXPECT_EQ(4, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
+
+    //
+    // Setting the expiration to trigger the refresh on get ICE info
+    //
+
+    // Set the expired time to trigger the refresh
+    pSignalingClient->iceConfigExpiration = GETTIME() - 1;
+
+    // Zero the ICE call count
+    getIceConfigCount = 0;
+
+    // Attempt to get the 0th element which would trigger the refresh
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, 0, &pIceConfigInfo));
+
+    // Make sure the API has been called
+    EXPECT_EQ(1, getIceConfigCount);
+
+    // Ensure we can get the ICE configurations
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
+    EXPECT_NE(0, iceCount);
+
+    // Make sure no APIs have been called
+    EXPECT_EQ(1, getIceConfigCount);
+
+    // Other state transacted
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
+    EXPECT_EQ(5, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(5, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(5, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
+    EXPECT_EQ(5, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
+
+    //
+    // Attempt to send a message which should succeed as we are connected
+    //
     SignalingMessage signalingMessage;
     signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
@@ -961,7 +1367,7 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulation)
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
 }
 
-TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationAuthExpiration)
+TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedAuthExpiration)
 {
     if (!mAccessKeyIdSet) {
         return;
@@ -972,6 +1378,8 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationAuthExpiration)
     SignalingClientInfoInternal clientInfoInternal;
     PSignalingClient pSignalingClient;
     SIGNALING_CLIENT_HANDLE signalingHandle;
+    UINT32 iceCount;
+    PIceConfigInfo pIceConfigInfo;
 
     signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
     signalingClientCallbacks.customData = (UINT64) this;
@@ -984,7 +1392,6 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationAuthExpiration)
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
-    clientInfoInternal.iceRefreshPeriod = 5 * HUNDREDS_OF_NANOS_IN_A_SECOND;
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
@@ -1003,9 +1410,7 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationAuthExpiration)
     // Force auth token refresh right after the main API calls
     ((PStaticCredentialProvider) mTestCredentialProvider)->pAwsCredentials->expiration = GETTIME() + 4 * HUNDREDS_OF_NANOS_IN_A_SECOND;
 
-    EXPECT_EQ(STATUS_SUCCESS,
-              createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider,
-                                  &pSignalingClient));
+    EXPECT_EQ(STATUS_SUCCESS, createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider, &pSignalingClient));
     signalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
     EXPECT_TRUE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
 
@@ -1023,26 +1428,55 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationAuthExpiration)
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
-    // Make sure we get ICE candidate refresh before connecting
+    // Make sure the credentials expire
     THREAD_SLEEP(7 * HUNDREDS_OF_NANOS_IN_A_SECOND);
 
-    // Reset it back right after the GetIce  is called already
+    // Initially, calling the API should succeed as the ICE configuration is already retrieved
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, 0, &pIceConfigInfo));
+    EXPECT_NE(0, iceCount);
+    EXPECT_NE((UINT64) NULL, (UINT64) pIceConfigInfo);
+
+    // Resetting to trigger the ice refresh
+    pSignalingClient->iceConfigCount = 0;
+
+    // Calling get ICE server count should trigger ICE refresh which should fail
+    EXPECT_NE(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
+    EXPECT_NE(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, 0, &pIceConfigInfo));
+
+    // Reset it back right after the GetIce is called already
     ((PStaticCredentialProvider) mTestCredentialProvider)->pAwsCredentials->expiration = MAX_UINT64;
 
     // Check the states - we should have failed on get credentials
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
-    EXPECT_EQ(12, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
+    EXPECT_EQ(23, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(3, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
-    // We should have reached the ready state before the ICE refresh started.
-    // We are re-setting to this state on an ice failure
+    // Attempt to retrieve the ice configuration should succeed
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, 0, &pIceConfigInfo));
+    EXPECT_NE(0, iceCount);
+    EXPECT_NE((UINT64) NULL, (UINT64) pIceConfigInfo);
+
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
+    EXPECT_EQ(23, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
+    EXPECT_EQ(4, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
+
+    // We should be in the ready state so connecting should be OK
     EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
 
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
@@ -1053,7 +1487,7 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationAuthExpiration)
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
 }
 
-TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionNoDisconnect)
+TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedAuthExpiration)
 {
     if (!mAccessKeyIdSet) {
         return;
@@ -1064,6 +1498,8 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionNoDis
     SignalingClientInfoInternal clientInfoInternal;
     PSignalingClient pSignalingClient;
     SIGNALING_CLIENT_HANDLE signalingHandle;
+    UINT32 iceCount;
+    PIceConfigInfo pIceConfigInfo;
 
     signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
     signalingClientCallbacks.customData = (UINT64) this;
@@ -1076,7 +1512,129 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionNoDis
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
-    clientInfoInternal.iceRefreshPeriod = 5 * HUNDREDS_OF_NANOS_IN_A_SECOND;
+
+    MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
+    channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
+    channelInfo.pChannelName = mChannelName;
+    channelInfo.pKmsKeyId = NULL;
+    channelInfo.tagCount = 0;
+    channelInfo.pTags = NULL;
+    channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
+    channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
+    channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_NONE;
+    channelInfo.retry = TRUE;
+    channelInfo.reconnect = TRUE;
+    channelInfo.pCertPath = mCaCertPath;
+    channelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
+
+    // Force auth token refresh right after the main API calls
+    ((PStaticCredentialProvider) mTestCredentialProvider)->pAwsCredentials->expiration = GETTIME() + 4 * HUNDREDS_OF_NANOS_IN_A_SECOND;
+
+    EXPECT_EQ(STATUS_SUCCESS, createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider, &pSignalingClient));
+    signalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
+    EXPECT_TRUE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
+
+    // Connect the client
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
+
+    pActiveClient = pSignalingClient;
+
+    // Check the states first
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
+
+    // Make sure the credentials expire
+    THREAD_SLEEP(7 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+
+    // Initially, calling the API should succeed as the ICE configuration is already retrieved
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, 0, &pIceConfigInfo));
+    EXPECT_NE(0, iceCount);
+    EXPECT_NE((UINT64) NULL, (UINT64) pIceConfigInfo);
+
+    // Resetting to trigger the ice refresh
+    pSignalingClient->iceConfigCount = 0;
+
+    // Calling get ICE server count should trigger ICE refresh which should fail
+    EXPECT_NE(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
+    EXPECT_NE(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, 0, &pIceConfigInfo));
+
+    // Reset it back right after the GetIce is called already
+    ((PStaticCredentialProvider) mTestCredentialProvider)->pAwsCredentials->expiration = MAX_UINT64;
+
+    // Check the states - we should have failed on get credentials
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
+    EXPECT_EQ(23, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
+    EXPECT_EQ(3, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
+
+    // Attempt to retrieve the ice configuration should succeed
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, 0, &pIceConfigInfo));
+    EXPECT_NE(0, iceCount);
+    EXPECT_NE((UINT64) NULL, (UINT64) pIceConfigInfo);
+
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
+    EXPECT_EQ(23, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
+    EXPECT_EQ(4, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
+
+    // We should have already been connected. This should be a No-op
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
+
+    deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
+
+    // Ensure we had failed the ICE config
+    EXPECT_EQ(STATUS_SIGNALING_ICE_CONFIG_REFRESH_FAILED, errStatus);
+
+    EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+}
+
+TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithFaultInjectionRevovered)
+{
+    if (!mAccessKeyIdSet) {
+        return;
+    }
+
+    ChannelInfo channelInfo;
+    SignalingClientCallbacks signalingClientCallbacks;
+    SignalingClientInfoInternal clientInfoInternal;
+    PSignalingClient pSignalingClient;
+    SIGNALING_CLIENT_HANDLE signalingHandle;
+    UINT32 iceCount;
+    PIceConfigInfo pIceConfigInfo;
+
+    signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
+    signalingClientCallbacks.customData = (UINT64) this;
+    signalingClientCallbacks.messageReceivedFn = NULL;
+    signalingClientCallbacks.errorReportFn = signalingClientError;
+    signalingClientCallbacks.stateChangeFn = signalingClientStateChanged;
+
+    MEMSET(&clientInfoInternal, 0x00, SIZEOF(SignalingClientInfoInternal));
+
+    clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
+    clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
+    STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfoInternal.hookCustomData = (UINT64) this;
     clientInfoInternal.getIceConfigPreHookFn = getIceConfigPreHook;
 
@@ -1099,9 +1657,7 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionNoDis
     channelInfo.pCertPath = mCaCertPath;
     channelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
 
-    EXPECT_EQ(STATUS_SUCCESS,
-              createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider,
-                                  &pSignalingClient));
+    EXPECT_EQ(STATUS_SUCCESS, createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider, &pSignalingClient));
     signalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
     EXPECT_TRUE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
 
@@ -1119,23 +1675,12 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionNoDis
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
-    // Connect to the signaling client
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
-
-    // Check the states
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
-    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
-
-    // Wait for ICE refresh while connected
-    THREAD_SLEEP(7 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+    // Trigger the ICE refresh on the next call
+    pSignalingClient->iceConfigCount = 0;
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, 0, &pIceConfigInfo));
+    EXPECT_NE(0, iceCount);
+    EXPECT_NE((UINT64) NULL, (UINT64) pIceConfigInfo);
 
     // This time the states will circle through connecting/connected again
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
@@ -1145,8 +1690,21 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionNoDis
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
     EXPECT_EQ(4, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
+
+    // Connect to the signaling client
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
+    EXPECT_EQ(4, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
     // Check that we are connected and can send a message
@@ -1166,7 +1724,7 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionNoDis
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
 }
 
-TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionAuthErrorNoDisconnect)
+TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithFaultInjectionRevovered)
 {
     if (!mAccessKeyIdSet) {
         return;
@@ -1177,6 +1735,8 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionAuthE
     SignalingClientInfoInternal clientInfoInternal;
     PSignalingClient pSignalingClient;
     SIGNALING_CLIENT_HANDLE signalingHandle;
+    UINT32 iceCount;
+    PIceConfigInfo pIceConfigInfo;
 
     signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
     signalingClientCallbacks.customData = (UINT64) this;
@@ -1189,12 +1749,11 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionAuthE
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
-    clientInfoInternal.iceRefreshPeriod = 5 * HUNDREDS_OF_NANOS_IN_A_SECOND;
     clientInfoInternal.hookCustomData = (UINT64) this;
     clientInfoInternal.getIceConfigPreHookFn = getIceConfigPreHook;
 
     // Make it fail after the first call and recover after two failures on the 3rd call
-    getIceConfigResult = STATUS_SERVICE_CALL_NOT_AUTHORIZED_ERROR;
+    getIceConfigResult = STATUS_INVALID_OPERATION;
     getIceConfigFail = 1;
     getIceConfigRecover = 3;
 
@@ -1212,9 +1771,7 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionAuthE
     channelInfo.pCertPath = mCaCertPath;
     channelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
 
-    EXPECT_EQ(STATUS_SUCCESS,
-              createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider,
-                                  &pSignalingClient));
+    EXPECT_EQ(STATUS_SUCCESS, createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider, &pSignalingClient));
     signalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
     EXPECT_TRUE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
 
@@ -1247,15 +1804,19 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionAuthE
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
-    // Wait for ICE refresh while connected
-    THREAD_SLEEP(10 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+    // Trigger the ICE refresh on the next call
+    pSignalingClient->iceConfigCount = 0;
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, 0, &pIceConfigInfo));
+    EXPECT_NE(0, iceCount);
+    EXPECT_NE((UINT64) NULL, (UINT64) pIceConfigInfo);
 
     // This time the states will circle through connecting/connected again
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
-    EXPECT_EQ(3, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
-    EXPECT_EQ(4, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
-    EXPECT_EQ(3, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
     EXPECT_EQ(4, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
@@ -1279,7 +1840,7 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionAuthE
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
 }
 
-TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionErrorDisconnect)
+TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithFaultInjectionNotRevovered)
 {
     if (!mAccessKeyIdSet) {
         return;
@@ -1290,6 +1851,8 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionError
     SignalingClientInfoInternal clientInfoInternal;
     PSignalingClient pSignalingClient;
     SIGNALING_CLIENT_HANDLE signalingHandle;
+    UINT32 iceCount;
+    PIceConfigInfo pIceConfigInfo;
 
     signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
     signalingClientCallbacks.customData = (UINT64) this;
@@ -1302,9 +1865,13 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionError
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
-    clientInfoInternal.iceRefreshPeriod = 5 * HUNDREDS_OF_NANOS_IN_A_SECOND;
     clientInfoInternal.hookCustomData = (UINT64) this;
     clientInfoInternal.getIceConfigPreHookFn = getIceConfigPreHook;
+
+    // Make it fail after the first call and recover after two failures on the 3rd call
+    getIceConfigResult = STATUS_INVALID_OPERATION;
+    getIceConfigFail = 1;
+    getIceConfigRecover = 1000000;
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
@@ -1320,9 +1887,7 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionError
     channelInfo.pCertPath = mCaCertPath;
     channelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
 
-    EXPECT_EQ(STATUS_SUCCESS,
-              createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider,
-                                  &pSignalingClient));
+    EXPECT_EQ(STATUS_SUCCESS, createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider, &pSignalingClient));
     signalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
     EXPECT_TRUE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
 
@@ -1340,43 +1905,34 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionError
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
-    // Connect to the signaling client
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
+    // Trigger the ICE refresh on the next call
+    pSignalingClient->iceConfigCount = 0;
+    EXPECT_NE(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
+    EXPECT_NE(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, 0, &pIceConfigInfo));
 
-    // Check the states
+    // This time the states will circle through connecting/connected again
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_LT(4, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
+
+    // Connect to the signaling client
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
+    EXPECT_LT(4, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
-    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
-
-    // Cause a bad auth
-    BYTE firstByte = pSignalingClient->pAwsCredentials->secretKey[0];
-    pSignalingClient->pAwsCredentials->secretKey[0] = 'A';
-
-    // Wait for ICE refresh while connected
-    THREAD_SLEEP(6 * HUNDREDS_OF_NANOS_IN_A_SECOND);
-
-    // Reset it back to cause normal execution
-    pSignalingClient->pAwsCredentials->secretKey[0] = firstByte;
-
-    THREAD_SLEEP(3 * HUNDREDS_OF_NANOS_IN_A_SECOND);
-
-    // This time the states will circle through connecting/connected again
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
-    EXPECT_LE(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
-    EXPECT_LE(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(3, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
     // Check that we are connected and can send a message
@@ -1396,7 +1952,7 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionError
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
 }
 
-TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionErrorDisconnectNoRecovery)
+TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithFaultInjectionNotRevovered)
 {
     if (!mAccessKeyIdSet) {
         return;
@@ -1407,6 +1963,8 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionError
     SignalingClientInfoInternal clientInfoInternal;
     PSignalingClient pSignalingClient;
     SIGNALING_CLIENT_HANDLE signalingHandle;
+    UINT32 iceCount;
+    PIceConfigInfo pIceConfigInfo;
 
     signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
     signalingClientCallbacks.customData = (UINT64) this;
@@ -1419,7 +1977,13 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionError
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
-    clientInfoInternal.iceRefreshPeriod = 10 * HUNDREDS_OF_NANOS_IN_A_SECOND;
+    clientInfoInternal.hookCustomData = (UINT64) this;
+    clientInfoInternal.getIceConfigPreHookFn = getIceConfigPreHook;
+
+    // Make it fail after the first call and recover after two failures on the 3rd call
+    getIceConfigResult = STATUS_INVALID_OPERATION;
+    getIceConfigFail = 1;
+    getIceConfigRecover = 1000000;
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
@@ -1429,33 +1993,64 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionError
     channelInfo.pTags = NULL;
     channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
     channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
-    channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_DESCRIBE_GETENDPOINT;
+    channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_NONE;
     channelInfo.retry = TRUE;
     channelInfo.reconnect = TRUE;
     channelInfo.pCertPath = mCaCertPath;
     channelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
 
-    EXPECT_EQ(STATUS_SUCCESS,
-              createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider,
-                                  &pSignalingClient));
+    EXPECT_EQ(STATUS_SUCCESS, createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider, &pSignalingClient));
     signalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
     EXPECT_TRUE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
 
     pActiveClient = pSignalingClient;
 
-    // Connect to the signaling client
+    // Connect first
     EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
 
-    // Cause a bad auth
-    BYTE firstByte = pSignalingClient->pAwsCredentials->secretKey[0];
-    pSignalingClient->pAwsCredentials->secretKey[0] = 'A';
+    // Check the states first
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
-    // Wait for ICE refresh while connected and terminate with an error that will be called via error callback
-    THREAD_SLEEP(30 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+    // Trigger the ICE refresh on the next call
+    pSignalingClient->iceConfigCount = 0;
+    EXPECT_NE(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
+    EXPECT_NE(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, 0, &pIceConfigInfo));
 
-    // While the background ICE refresh is happening, we will be blocked for the refresh thread to finish
-    // In this case, the ICE refresh will eventually fail, however, we should still be able to send the
-    // message as we are still connected.
+    // This time the states will circle through connecting/connected again
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
+    EXPECT_LT(4, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
+
+    // Connect to the signaling client - no-op
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
+    EXPECT_LT(4, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
+
+    // Check that we are connected and can send a message
     SignalingMessage signalingMessage;
     signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
@@ -1467,13 +2062,238 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionError
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(signalingHandle, &signalingMessage));
 
-    // Reset it back to cause normal execution
+    deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
+
+    EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+}
+
+TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithBadAuth)
+{
+    if (!mAccessKeyIdSet) {
+        return;
+    }
+
+    ChannelInfo channelInfo;
+    SignalingClientCallbacks signalingClientCallbacks;
+    SignalingClientInfoInternal clientInfoInternal;
+    PSignalingClient pSignalingClient;
+    SIGNALING_CLIENT_HANDLE signalingHandle;
+    UINT32 iceCount;
+    PIceConfigInfo pIceConfigInfo;
+
+    signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
+    signalingClientCallbacks.customData = (UINT64) this;
+    signalingClientCallbacks.messageReceivedFn = NULL;
+    signalingClientCallbacks.errorReportFn = signalingClientError;
+    signalingClientCallbacks.stateChangeFn = signalingClientStateChanged;
+
+    MEMSET(&clientInfoInternal, 0x00, SIZEOF(SignalingClientInfoInternal));
+
+    clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
+    clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
+    STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+
+    MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
+    channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
+    channelInfo.pChannelName = mChannelName;
+    channelInfo.pKmsKeyId = NULL;
+    channelInfo.tagCount = 0;
+    channelInfo.pTags = NULL;
+    channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
+    channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
+    channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_NONE;
+    channelInfo.retry = TRUE;
+    channelInfo.reconnect = TRUE;
+    channelInfo.pCertPath = mCaCertPath;
+    channelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
+
+    EXPECT_EQ(STATUS_SUCCESS, createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider, &pSignalingClient));
+    signalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
+    EXPECT_TRUE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
+
+    pActiveClient = pSignalingClient;
+
+    // Check the states first
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
+
+    // Set bad auth info
+    BYTE firstByte = pSignalingClient->pAwsCredentials->secretKey[0];
+    pSignalingClient->pAwsCredentials->secretKey[0] = 'A';
+
+    // Trigger the ICE refresh on the next call
+    pSignalingClient->iceConfigCount = 0;
+    EXPECT_NE(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
+    EXPECT_NE(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, 0, &pIceConfigInfo));
+
+    // This time the states will circle through connecting/connected again
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
+    EXPECT_LT(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
+    EXPECT_LT(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
+    EXPECT_LT(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
+
+    // Reset the auth and ensure we succeed this time
     pSignalingClient->pAwsCredentials->secretKey[0] = firstByte;
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, 0, &pIceConfigInfo));
+
+    // Connect to the signaling client
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
+    EXPECT_LT(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
+    EXPECT_LT(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
+    EXPECT_LT(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
+
+    // Check that we are connected and can send a message
+    SignalingMessage signalingMessage;
+    signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
+    signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
+    STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    MEMSET(signalingMessage.payload, 'A', 100);
+    signalingMessage.payload[100] = '\0';
+    signalingMessage.payloadLen = 0;
+    signalingMessage.correlationId[0] = '\0';
+
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(signalingHandle, &signalingMessage));
 
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
-    // Ensure we had failed the ICE config
-    EXPECT_EQ(STATUS_SIGNALING_ICE_CONFIG_REFRESH_FAILED, errStatus);
+    EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+}
+
+TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithBadAuth)
+{
+    if (!mAccessKeyIdSet) {
+        return;
+    }
+
+    ChannelInfo channelInfo;
+    SignalingClientCallbacks signalingClientCallbacks;
+    SignalingClientInfoInternal clientInfoInternal;
+    PSignalingClient pSignalingClient;
+    SIGNALING_CLIENT_HANDLE signalingHandle;
+    UINT32 iceCount;
+    PIceConfigInfo pIceConfigInfo;
+
+    signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
+    signalingClientCallbacks.customData = (UINT64) this;
+    signalingClientCallbacks.messageReceivedFn = NULL;
+    signalingClientCallbacks.errorReportFn = signalingClientError;
+    signalingClientCallbacks.stateChangeFn = signalingClientStateChanged;
+
+    MEMSET(&clientInfoInternal, 0x00, SIZEOF(SignalingClientInfoInternal));
+
+    clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
+    clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
+    STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+
+    MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
+    channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
+    channelInfo.pChannelName = mChannelName;
+    channelInfo.pKmsKeyId = NULL;
+    channelInfo.tagCount = 0;
+    channelInfo.pTags = NULL;
+    channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
+    channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
+    channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_NONE;
+    channelInfo.retry = TRUE;
+    channelInfo.reconnect = TRUE;
+    channelInfo.pCertPath = mCaCertPath;
+    channelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
+
+    EXPECT_EQ(STATUS_SUCCESS, createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider, &pSignalingClient));
+    signalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
+    EXPECT_TRUE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
+
+    // Connect to the channel
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
+
+    pActiveClient = pSignalingClient;
+
+    // Check the states first
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
+
+    // Set bad auth info
+    BYTE firstByte = pSignalingClient->pAwsCredentials->secretKey[0];
+    pSignalingClient->pAwsCredentials->secretKey[0] = 'A';
+
+    // Trigger the ICE refresh on the next call
+    pSignalingClient->iceConfigCount = 0;
+    EXPECT_NE(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
+    EXPECT_NE(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, 0, &pIceConfigInfo));
+
+    // This time the states will circle through connecting/connected again
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
+    EXPECT_LT(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
+    EXPECT_LT(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
+    EXPECT_LT(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
+
+    // Reset the auth and ensure we succeed this time
+    pSignalingClient->pAwsCredentials->secretKey[0] = firstByte;
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, 0, &pIceConfigInfo));
+
+    // Connect to the signaling client = no-op
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
+    EXPECT_LT(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
+    EXPECT_LT(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
+    EXPECT_LT(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
+
+    // Check that we are connected and can send a message
+    SignalingMessage signalingMessage;
+    signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
+    signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
+    STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    MEMSET(signalingMessage.payload, 'A', 100);
+    signalingMessage.payload[100] = '\0';
+    signalingMessage.payloadLen = 0;
+    signalingMessage.correlationId[0] = '\0';
+
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(signalingHandle, &signalingMessage));
+
+    deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
 }
@@ -1670,7 +2490,6 @@ TEST_F(SignalingApiFunctionalityTest, connectTimeoutEmulation)
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
-    clientInfoInternal.iceRefreshPeriod = 0;
     clientInfoInternal.connectTimeout = 100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
@@ -1769,7 +2588,6 @@ TEST_F(SignalingApiFunctionalityTest, channelInfoArnSkipDescribe)
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
-    clientInfoInternal.iceRefreshPeriod = 0;
     clientInfoInternal.connectTimeout = 0;
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
@@ -1900,7 +2718,6 @@ TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedWithArn)
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
-    clientInfoInternal.iceRefreshPeriod = 0;
     clientInfoInternal.connectTimeout = 0;
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
@@ -2030,7 +2847,6 @@ TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedAuthExpiration)
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
-    clientInfoInternal.iceRefreshPeriod = 0;
     clientInfoInternal.connectTimeout = 0;
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
@@ -2421,230 +3237,6 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateCache)
     testEntry.creationTsEpochSeconds = GETTIME() / HUNDREDS_OF_NANOS_IN_A_SECOND;
     /* update first cache entry*/
     EXPECT_EQ(STATUS_SUCCESS, signalingCacheSaveToFile(&testEntry, DEFAULT_CACHE_FILE_PATH));
-}
-
-TEST_F(SignalingApiFunctionalityTest, asyncIceConfigRefreshBeforeConnect)
-{
-    if (!mAccessKeyIdSet) {
-        return;
-    }
-
-    ChannelInfo channelInfo;
-    SignalingClientCallbacks signalingClientCallbacks;
-    SignalingClientInfoInternal clientInfoInternal;
-    PSignalingClient pSignalingClient;
-    SIGNALING_CLIENT_HANDLE signalingHandle;
-    UINT32 iceConfigCalls = 0, iceConfigCount;
-
-    auto getIceConfigHook = [](UINT64 customData) -> STATUS {
-        PUINT32 pCount = (PUINT32) customData;
-        (*pCount)++;
-        return STATUS_SUCCESS;
-    };
-
-    signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
-    signalingClientCallbacks.customData = (UINT64) this;
-    signalingClientCallbacks.messageReceivedFn = NULL;
-    signalingClientCallbacks.errorReportFn = signalingClientError;
-    signalingClientCallbacks.stateChangeFn = signalingClientStateChanged;
-
-    MEMSET(&clientInfoInternal, 0x00, SIZEOF(SignalingClientInfoInternal));
-
-    clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
-    clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
-    STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
-    clientInfoInternal.hookCustomData = (UINT64) &iceConfigCalls;
-    clientInfoInternal.getIceConfigPostHookFn = getIceConfigHook;
-
-    MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
-    channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
-    channelInfo.pChannelName = mChannelName;
-    channelInfo.pKmsKeyId = NULL;
-    channelInfo.tagCount = 0;
-    channelInfo.pTags = NULL;
-    channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
-    channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
-    channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_NONE;
-    channelInfo.retry = TRUE;
-    channelInfo.reconnect = TRUE;
-    channelInfo.pCertPath = mCaCertPath;
-    channelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
-
-    // should make the cached value to expire.
-    channelInfo.asyncIceServerConfig = TRUE;
-
-    EXPECT_EQ(STATUS_SUCCESS,
-              createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider,
-                                  &pSignalingClient));
-    signalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
-    EXPECT_TRUE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
-
-    pActiveClient = pSignalingClient;
-
-    EXPECT_EQ(0, iceConfigCalls);
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceConfigCount));
-    EXPECT_EQ(0, iceConfigCount);
-
-    // Check the states first
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
-    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
-    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
-    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
-
-    THREAD_SLEEP(5 * HUNDREDS_OF_NANOS_IN_A_SECOND);
-
-    // Validate the ice config was called
-    EXPECT_EQ(1, iceConfigCalls);
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceConfigCount));
-    EXPECT_LE(1, iceConfigCount);
-
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
-
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_LE(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
-    EXPECT_LE(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
-    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
-
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientDisconnectSync(signalingHandle));
-
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_LE(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
-    EXPECT_LE(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
-
-    deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
-
-    EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
-}
-
-TEST_F(SignalingApiFunctionalityTest, asyncIceConfigRefreshParallelToConnect)
-{
-    if (!mAccessKeyIdSet) {
-        return;
-    }
-
-    ChannelInfo channelInfo;
-    SignalingClientCallbacks signalingClientCallbacks;
-    SignalingClientInfoInternal clientInfoInternal;
-    PSignalingClient pSignalingClient;
-    SIGNALING_CLIENT_HANDLE signalingHandle;
-    UINT32 iceConfigCalls = 0, iceConfigCount;
-
-    auto getIceConfigHook = [](UINT64 customData) -> STATUS {
-        PUINT32 pCount = (PUINT32) customData;
-        (*pCount)++;
-        return STATUS_SUCCESS;
-    };
-
-    signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
-    signalingClientCallbacks.customData = (UINT64) this;
-    signalingClientCallbacks.messageReceivedFn = NULL;
-    signalingClientCallbacks.errorReportFn = signalingClientError;
-    signalingClientCallbacks.stateChangeFn = signalingClientStateChanged;
-
-    MEMSET(&clientInfoInternal, 0x00, SIZEOF(SignalingClientInfoInternal));
-
-    clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
-    clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
-    STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
-    clientInfoInternal.hookCustomData = (UINT64) &iceConfigCalls;
-    clientInfoInternal.getIceConfigPostHookFn = getIceConfigHook;
-
-    MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
-    channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
-    channelInfo.pChannelName = mChannelName;
-    channelInfo.pKmsKeyId = NULL;
-    channelInfo.tagCount = 0;
-    channelInfo.pTags = NULL;
-    channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
-    channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
-    channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_NONE;
-    channelInfo.retry = TRUE;
-    channelInfo.reconnect = TRUE;
-    channelInfo.pCertPath = mCaCertPath;
-    channelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
-
-    // should make the cached value to expire.
-    channelInfo.asyncIceServerConfig = TRUE;
-
-    EXPECT_EQ(STATUS_SUCCESS,
-              createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider,
-                                  &pSignalingClient));
-    signalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
-    EXPECT_TRUE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
-
-    pActiveClient = pSignalingClient;
-
-    EXPECT_EQ(0, iceConfigCalls);
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceConfigCount));
-    EXPECT_EQ(0, iceConfigCount);
-
-    // Check the states first
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
-    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
-    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
-    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
-
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
-
-    THREAD_SLEEP(5 * HUNDREDS_OF_NANOS_IN_A_SECOND);
-
-    // Validate the ice config was called
-    EXPECT_EQ(1, iceConfigCalls);
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceConfigCount));
-    EXPECT_LE(1, iceConfigCount);
-
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_LE(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
-    EXPECT_LE(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
-    EXPECT_LE(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
-    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
-
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientDisconnectSync(signalingHandle));
-
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_LE(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
-    EXPECT_LE(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
-    EXPECT_LE(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
-
-    deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
-
-    EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
 }
 
 } // namespace webrtcclient

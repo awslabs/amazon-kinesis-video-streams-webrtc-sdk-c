@@ -619,9 +619,6 @@ STATUS executeReadySignalingState(UINT64 customData, UINT64 time)
                                                                             SIGNALING_CLIENT_STATE_READY));
     }
 
-    // Ensure we won't async the GetIceConfig as we reach the ready state
-    ATOMIC_STORE_BOOL(&pSignalingClient->asyncGetIceConfig, FALSE);
-
     if (pSignalingClient->continueOnReady) {
         // Self-prime the connect
         CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
