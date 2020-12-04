@@ -199,6 +199,10 @@ Macros</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="typedef-members"></a>
 Typedefs</h2></td></tr>
+<tr class="memitem:acbf8bf2a02ce5454a7b4b441d4b29703"><td class="memItemLeft" align="right" valign="top">typedef VOID(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="PeerConnection_8h.html#acbf8bf2a02ce5454a7b4b441d4b29703">RtcpCCOnPacketNotReceived</a>) (UINT64 customData, UINT16 seqNum)</td></tr>
+<tr class="separator:acbf8bf2a02ce5454a7b4b441d4b29703"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a960aa97135894a83ab532f2bbc92f025"><td class="memItemLeft" align="right" valign="top">typedef VOID(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="PeerConnection_8h.html#a960aa97135894a83ab532f2bbc92f025">RtcpCCOnPacketReceived</a>) (UINT64 customData, UINT16 seqNum, INT32 receiveDeltaUsec)</td></tr>
+<tr class="separator:a960aa97135894a83ab532f2bbc92f025"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a545e0bebf606e9070020c98b3f9c2864"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structKvsPeerConnection.html">KvsPeerConnection</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="PeerConnection_8h.html#a545e0bebf606e9070020c98b3f9c2864">PKvsPeerConnection</a></td></tr>
 <tr class="separator:a545e0bebf606e9070020c98b3f9c2864"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9c3985e810f5bef45348b4b3d4066dc2"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structAllocateSctpSortDataChannelsData.html">AllocateSctpSortDataChannelsData</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="PeerConnection_8h.html#a9c3985e810f5bef45348b4b3d4066dc2">PAllocateSctpSortDataChannelsData</a></td></tr>
@@ -476,6 +480,34 @@ Functions</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname">typedef  struct <a class="el" href="structKvsPeerConnection.html">KvsPeerConnection</a> * <a class="el" href="PeerConnection_8h.html#a545e0bebf606e9070020c98b3f9c2864">PKvsPeerConnection</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="acbf8bf2a02ce5454a7b4b441d4b29703"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#acbf8bf2a02ce5454a7b4b441d4b29703">&#9670;&nbsp;</a></span>RtcpCCOnPacketNotReceived</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef VOID(* RtcpCCOnPacketNotReceived) (UINT64 customData, UINT16 seqNum)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a960aa97135894a83ab532f2bbc92f025"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a960aa97135894a83ab532f2bbc92f025">&#9670;&nbsp;</a></span>RtcpCCOnPacketReceived</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef VOID(* RtcpCCOnPacketReceived) (UINT64 customData, UINT16 seqNum, INT32 receiveDeltaUsec)</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -879,7 +911,7 @@ Here is the caller graph for this function:</div>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_94e7a0fbe7f8eaf7f05ee7b02c647e9f.html">source</a></li><li class="navelem"><a class="el" href="dir_3f63ab91aeb49885abb85dedd791923c.html">PeerConnection</a></li><li class="navelem"><a class="el" href="PeerConnection_8h.html">PeerConnection.h</a></li>
-    <li class="footer">Generated on Thu Dec 3 2020 03:43:11 for Amazon Kinesis Webrtc C SDK by
+    <li class="footer">Generated on Fri Dec 4 2020 17:32:12 for Amazon Kinesis Webrtc C SDK by
     <a href="http://www.doxygen.org/index.html">
     <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.18 </li>
   </ul>

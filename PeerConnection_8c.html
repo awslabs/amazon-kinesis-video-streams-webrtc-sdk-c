@@ -216,6 +216,9 @@ Functions</h2></td></tr>
 <tr class="separator:gaa1940a0ddabf41c445b55f1317476e96"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga19dfcbdcf4d136b56ce366fe2fb9bfb3"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicMemberFunctions.html#ga19dfcbdcf4d136b56ce366fe2fb9bfb3">peerConnectionGetCurrentLocalDescription</a> (<a class="el" href="group__PublicStructures.html#ga70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a> pRtcPeerConnection, <a class="el" href="group__PublicStructures.html#ga3dfb483be12d184408e3f58df5273be7">PRtcSessionDescriptionInit</a> pRtcSessionDescriptionInit)</td></tr>
 <tr class="separator:ga19dfcbdcf4d136b56ce366fe2fb9bfb3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5ba387d69e9ef99eeb84b8b1ce784081"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="PeerConnection_8c.html#a5ba387d69e9ef99eeb84b8b1ce784081">parseExtId</a> (PCHAR extmapValue)</td></tr>
+<tr class="memdesc:a5ba387d69e9ef99eeb84b8b1ce784081"><td class="mdescLeft">&#160;</td><td class="mdescRight">parses string of form "$number $whatever" returns $number as uint32  <a href="PeerConnection_8c.html#a5ba387d69e9ef99eeb84b8b1ce784081">More...</a><br /></td></tr>
+<tr class="separator:a5ba387d69e9ef99eeb84b8b1ce784081"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga4378f3c6aec4d69c647c46852bdfe6ed"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed">setRemoteDescription</a> (<a class="el" href="group__PublicStructures.html#ga70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a> pPeerConnection, <a class="el" href="group__PublicStructures.html#ga3dfb483be12d184408e3f58df5273be7">PRtcSessionDescriptionInit</a> pSessionDescriptionInit)</td></tr>
 <tr class="memdesc:ga4378f3c6aec4d69c647c46852bdfe6ed"><td class="mdescLeft">&#160;</td><td class="mdescRight">Instructs the <a class="el" href="structRtcPeerConnection.html">RtcPeerConnection</a> to apply the supplied <a class="el" href="structRtcSessionDescriptionInit.html" title="SessionDescription is used by RtcPeerConnection to expose local and remote session descriptions.">RtcSessionDescriptionInit</a> as the remote description.  <a href="group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed">More...</a><br /></td></tr>
 <tr class="separator:ga4378f3c6aec4d69c647c46852bdfe6ed"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -1091,6 +1094,36 @@ Here is the caller graph for this function:</div>
 
 </div>
 </div>
+<a id="a5ba387d69e9ef99eeb84b8b1ce784081"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5ba387d69e9ef99eeb84b8b1ce784081">&#9670;&nbsp;</a></span>parseExtId()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">UINT32 parseExtId </td>
+          <td>(</td>
+          <td class="paramtype">PCHAR&#160;</td>
+          <td class="paramname"><em>extmapValue</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>parses string of form "$number $whatever" returns $number as uint32 </p>
+<dl class="section return"><dt>Returns</dt><dd>0 if value is not parsable or null </dd></dl>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="PeerConnection_8c_a5ba387d69e9ef99eeb84b8b1ce784081_icgraph.png" border="0" usemap="#PeerConnection_8c_a5ba387d69e9ef99eeb84b8b1ce784081_icgraph" alt=""/></div>
+<map name="PeerConnection_8c_a5ba387d69e9ef99eeb84b8b1ce784081_icgraph" id="PeerConnection_8c_a5ba387d69e9ef99eeb84b8b1ce784081_icgraph">
+<area shape="rect" title="parses string of form &quot;$number $whatever&quot; returns $number as uint32" alt="" coords="204,5,287,32"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,5,156,32"/>
+</map>
+</div>
+
+</div>
+</div>
 <a id="a4afea8c5d470548d2889fb8d3218ba0f"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a4afea8c5d470548d2889fb8d3218ba0f">&#9670;&nbsp;</a></span>rtcpReportsCallback()</h2>
 
@@ -1222,7 +1255,7 @@ Here is the caller graph for this function:</div>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_94e7a0fbe7f8eaf7f05ee7b02c647e9f.html">source</a></li><li class="navelem"><a class="el" href="dir_3f63ab91aeb49885abb85dedd791923c.html">PeerConnection</a></li><li class="navelem"><a class="el" href="PeerConnection_8c.html">PeerConnection.c</a></li>
-    <li class="footer">Generated on Thu Dec 3 2020 03:43:11 for Amazon Kinesis Webrtc C SDK by
+    <li class="footer">Generated on Fri Dec 4 2020 17:32:12 for Amazon Kinesis Webrtc C SDK by
     <a href="http://www.doxygen.org/index.html">
     <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.18 </li>
   </ul>

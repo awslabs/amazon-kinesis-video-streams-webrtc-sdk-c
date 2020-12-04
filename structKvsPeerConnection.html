@@ -105,7 +105,7 @@ Collaboration diagram for KvsPeerConnection:</div>
 <div class="dyncontent">
 <div class="center"><img src="structKvsPeerConnection__coll__graph.png" border="0" usemap="#KvsPeerConnection_coll__map" alt="Collaboration graph"/></div>
 <map name="KvsPeerConnection_coll__map" id="KvsPeerConnection_coll__map">
-<area shape="rect" title=" " alt="" coords="1349,1035,1541,1259"/>
+<area shape="rect" title=" " alt="" coords="1336,1035,1553,1259"/>
 <area shape="rect" href="structSessionDescription.html" title=" " alt="" coords="618,748,786,972"/>
 <area shape="rect" href="structSdpBandwidth.html" title=" " alt="" coords="596,211,744,303"/>
 <area shape="rect" href="structSdpMediaDescription.html" title=" " alt="" coords="841,461,1003,583"/>
@@ -152,6 +152,10 @@ Collaboration diagram for KvsPeerConnection:</div>
 Public Attributes</h2></td></tr>
 <tr class="memitem:a600ae4c590f37723b4eeca20d82ea724"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structRtcPeerConnection.html">RtcPeerConnection</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structKvsPeerConnection.html#a600ae4c590f37723b4eeca20d82ea724">peerConnection</a></td></tr>
 <tr class="separator:a600ae4c590f37723b4eeca20d82ea724"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a45cd3eff0321bc1c9a03d11956785290"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structKvsPeerConnection.html#a45cd3eff0321bc1c9a03d11956785290">padding</a></td></tr>
+<tr class="separator:a45cd3eff0321bc1c9a03d11956785290"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a301c2256cba3807990c9cc7aa3971dd2"><td class="memItemLeft" align="right" valign="top">volatile SIZE_T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structKvsPeerConnection.html#a301c2256cba3807990c9cc7aa3971dd2">transportWideSequenceNumber</a></td></tr>
+<tr class="separator:a301c2256cba3807990c9cc7aa3971dd2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a847b165621a4cc968555cb6e89d2350e"><td class="memItemLeft" align="right" valign="top"><a class="el" href="IceAgent_8h.html#ab6d8079a3d3ad310ae08b7edc7a77862">PIceAgent</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structKvsPeerConnection.html#a847b165621a4cc968555cb6e89d2350e">pIceAgent</a></td></tr>
 <tr class="separator:a847b165621a4cc968555cb6e89d2350e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:accab159246acfa6b4c0c60229420a245"><td class="memItemLeft" align="right" valign="top"><a class="el" href="Dtls_8h.html#a26ca7dadcdec16a8584b8a97811cb2f6">PDtlsSession</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structKvsPeerConnection.html#accab159246acfa6b4c0c60229420a245">pDtlsSession</a></td></tr>
@@ -212,6 +216,16 @@ Public Attributes</h2></td></tr>
 <tr class="separator:a681ff294bb05bb255dfeb117e2fb16ff"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abf3b18d67924d047a1193facd12c1cfe"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structNullableBool.html">NullableBool</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structKvsPeerConnection.html#abf3b18d67924d047a1193facd12c1cfe">canTrickleIce</a></td></tr>
 <tr class="separator:abf3b18d67924d047a1193facd12c1cfe"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae67d5d26809c5cb022ac12c19523b1de"><td class="memItemLeft" align="right" valign="top">UINT16&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structKvsPeerConnection.html#ae67d5d26809c5cb022ac12c19523b1de">twccExtId</a></td></tr>
+<tr class="separator:ae67d5d26809c5cb022ac12c19523b1de"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a761752dd9ab68d153ad492def0a76833"><td class="memItemLeft" align="right" valign="top">UINT64&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structKvsPeerConnection.html#a761752dd9ab68d153ad492def0a76833">onPacketNotReceivedCustomData</a></td></tr>
+<tr class="separator:a761752dd9ab68d153ad492def0a76833"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abcbd17fa675358914fb102fdd47de0f0"><td class="memItemLeft" align="right" valign="top">UINT64&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structKvsPeerConnection.html#abcbd17fa675358914fb102fdd47de0f0">onPacketReceivedCustomData</a></td></tr>
+<tr class="separator:abcbd17fa675358914fb102fdd47de0f0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1c89d13bf7a3e7cf27004d0de7caa109"><td class="memItemLeft" align="right" valign="top"><a class="el" href="PeerConnection_8h.html#acbf8bf2a02ce5454a7b4b441d4b29703">RtcpCCOnPacketNotReceived</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structKvsPeerConnection.html#a1c89d13bf7a3e7cf27004d0de7caa109">onPacketNotReceived</a></td></tr>
+<tr class="separator:a1c89d13bf7a3e7cf27004d0de7caa109"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0789d44b2b7dda6ff8f9b813d741a78d"><td class="memItemLeft" align="right" valign="top"><a class="el" href="PeerConnection_8h.html#a960aa97135894a83ab532f2bbc92f025">RtcpCCOnPacketReceived</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structKvsPeerConnection.html#a0789d44b2b7dda6ff8f9b813d741a78d">onPacketReceived</a></td></tr>
+<tr class="separator:a0789d44b2b7dda6ff8f9b813d741a78d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Member Data Documentation</h2>
 <a id="abf3b18d67924d047a1193facd12c1cfe"></a>
@@ -404,6 +418,76 @@ Public Attributes</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname">UINT64 KvsPeerConnection::onIceCandidateCustomData</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a1c89d13bf7a3e7cf27004d0de7caa109"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1c89d13bf7a3e7cf27004d0de7caa109">&#9670;&nbsp;</a></span>onPacketNotReceived</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="PeerConnection_8h.html#acbf8bf2a02ce5454a7b4b441d4b29703">RtcpCCOnPacketNotReceived</a> KvsPeerConnection::onPacketNotReceived</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a761752dd9ab68d153ad492def0a76833"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a761752dd9ab68d153ad492def0a76833">&#9670;&nbsp;</a></span>onPacketNotReceivedCustomData</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">UINT64 KvsPeerConnection::onPacketNotReceivedCustomData</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a0789d44b2b7dda6ff8f9b813d741a78d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0789d44b2b7dda6ff8f9b813d741a78d">&#9670;&nbsp;</a></span>onPacketReceived</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="PeerConnection_8h.html#a960aa97135894a83ab532f2bbc92f025">RtcpCCOnPacketReceived</a> KvsPeerConnection::onPacketReceived</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="abcbd17fa675358914fb102fdd47de0f0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#abcbd17fa675358914fb102fdd47de0f0">&#9670;&nbsp;</a></span>onPacketReceivedCustomData</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">UINT64 KvsPeerConnection::onPacketReceivedCustomData</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a45cd3eff0321bc1c9a03d11956785290"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a45cd3eff0321bc1c9a03d11956785290">&#9670;&nbsp;</a></span>padding</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">UINT32 KvsPeerConnection::padding</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -648,6 +732,34 @@ Public Attributes</h2></td></tr>
 
 </div>
 </div>
+<a id="a301c2256cba3807990c9cc7aa3971dd2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a301c2256cba3807990c9cc7aa3971dd2">&#9670;&nbsp;</a></span>transportWideSequenceNumber</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">volatile SIZE_T KvsPeerConnection::transportWideSequenceNumber</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ae67d5d26809c5cb022ac12c19523b1de"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae67d5d26809c5cb022ac12c19523b1de">&#9670;&nbsp;</a></span>twccExtId</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">UINT16 KvsPeerConnection::twccExtId</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <hr/>The documentation for this struct was generated from the following file:<ul>
 <li>/src/src/source/PeerConnection/<a class="el" href="PeerConnection_8h_source.html">PeerConnection.h</a></li>
 </ul>
@@ -657,7 +769,7 @@ Public Attributes</h2></td></tr>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="structKvsPeerConnection.html">KvsPeerConnection</a></li>
-    <li class="footer">Generated on Thu Dec 3 2020 03:43:12 for Amazon Kinesis Webrtc C SDK by
+    <li class="footer">Generated on Fri Dec 4 2020 17:32:13 for Amazon Kinesis Webrtc C SDK by
     <a href="http://www.doxygen.org/index.html">
     <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.18 </li>
   </ul>

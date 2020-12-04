@@ -92,6 +92,8 @@ $(document).ready(function(){initNavTree('Rtcp_8h.html',''); initResizable(); })
 
 <div class="header">
   <div class="summary">
+<a href="#define-members">Macros</a> &#124;
+<a href="#enum-members">Enumerations</a> &#124;
 <a href="#func-members">Functions</a>  </div>
   <div class="headertitle">
 <div class="title">Rtcp.h File Reference</div>  </div>
@@ -151,6 +153,47 @@ This graph shows which files directly or indirectly include this file:</div>
 </div>
 <p><a href="Rtcp_8h_source.html">Go to the source code of this file.</a></p>
 <table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="define-members"></a>
+Macros</h2></td></tr>
+<tr class="memitem:a35a3766b346d4eedfe456afd64084ac1"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtcp_8h.html#a35a3766b346d4eedfe456afd64084ac1">TWCC_TICKS_PER_SECOND</a>&#160;&#160;&#160;(1000000LL / 250)</td></tr>
+<tr class="separator:a35a3766b346d4eedfe456afd64084ac1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8a708413d6171e7d86056793abe2cd1a"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtcp_8h.html#a8a708413d6171e7d86056793abe2cd1a">MICROSECONDS_PER_SECOND</a>&#160;&#160;&#160;1000000LL</td></tr>
+<tr class="separator:a8a708413d6171e7d86056793abe2cd1a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1478daa0c60fd6c50a5bd6faf96a8aaa"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtcp_8h.html#a1478daa0c60fd6c50a5bd6faf96a8aaa">TWCC_FB_PACKETCHUNK_SIZE</a>&#160;&#160;&#160;2</td></tr>
+<tr class="separator:a1478daa0c60fd6c50a5bd6faf96a8aaa"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a60db4d3b2bc7f22bcb0d0dbf3ac3684b"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtcp_8h.html#a60db4d3b2bc7f22bcb0d0dbf3ac3684b">IS_TWCC_RUNLEN</a>(packetChunk)&#160;&#160;&#160;((((packetChunk) &gt;&gt; 15u) &amp; 1u) == 0)</td></tr>
+<tr class="separator:a60db4d3b2bc7f22bcb0d0dbf3ac3684b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a63a3eb30be8485db860252b1bb2b36b4"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtcp_8h.html#a63a3eb30be8485db860252b1bb2b36b4">TWCC_RUNLEN_STATUS_SYMBOL</a>(packetChunk)&#160;&#160;&#160;(((packetChunk) &gt;&gt; 13u) &amp; 3u)</td></tr>
+<tr class="separator:a63a3eb30be8485db860252b1bb2b36b4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5f08ca1e5dd9cc6ca868f2374ba09547"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtcp_8h.html#a5f08ca1e5dd9cc6ca868f2374ba09547">TWCC_RUNLEN_GET</a>(packetChunk)&#160;&#160;&#160;((packetChunk) &amp;0x1fffu)</td></tr>
+<tr class="separator:a5f08ca1e5dd9cc6ca868f2374ba09547"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afad753ba70f1761f68495bec0aa95668"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtcp_8h.html#afad753ba70f1761f68495bec0aa95668">TWCC_IS_NOTRECEIVED</a>(statusSymbol)&#160;&#160;&#160;((statusSymbol) == <a class="el" href="Rtcp_8h.html#a21ec0b7d62f75b6f30fa0ea3491769d0a59ad34f86ce80c658570827be280534b">TWCC_STATUS_SYMBOL_NOTRECEIVED</a>)</td></tr>
+<tr class="separator:afad753ba70f1761f68495bec0aa95668"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad6cffa61185b517d4f09ad0900236d70"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtcp_8h.html#ad6cffa61185b517d4f09ad0900236d70">TWCC_ISRECEIVED</a>(statusSymbol)&#160;&#160;&#160;((statusSymbol) == <a class="el" href="Rtcp_8h.html#a21ec0b7d62f75b6f30fa0ea3491769d0a8686a526a95dae4f6695ead1bcbfa6c5">TWCC_STATUS_SYMBOL_SMALLDELTA</a> || (statusSymbol) == <a class="el" href="Rtcp_8h.html#a21ec0b7d62f75b6f30fa0ea3491769d0a13eb64d7b436849ed3e5010ce05225dd">TWCC_STATUS_SYMBOL_LARGEDELTA</a>)</td></tr>
+<tr class="separator:ad6cffa61185b517d4f09ad0900236d70"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a340e902790fed83d604760ef7fd47d69"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtcp_8h.html#a340e902790fed83d604760ef7fd47d69">TWCC_RUNLEN_ISRECEIVED</a>(packetChunk)&#160;&#160;&#160;<a class="el" href="Rtcp_8h.html#ad6cffa61185b517d4f09ad0900236d70">TWCC_ISRECEIVED</a>(<a class="el" href="Rtcp_8h.html#a63a3eb30be8485db860252b1bb2b36b4">TWCC_RUNLEN_STATUS_SYMBOL</a>(packetChunk))</td></tr>
+<tr class="separator:a340e902790fed83d604760ef7fd47d69"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a543e20e46d803e9c626fe6f2863bfc37"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtcp_8h.html#a543e20e46d803e9c626fe6f2863bfc37">TWCC_STATUSVECTOR_IS_2BIT</a>(packetChunk)&#160;&#160;&#160;(((packetChunk) &gt;&gt; 14u) &amp; 1u)</td></tr>
+<tr class="separator:a543e20e46d803e9c626fe6f2863bfc37"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a89b552478196a161443c9c9a199b7096"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtcp_8h.html#a89b552478196a161443c9c9a199b7096">TWCC_STATUSVECTOR_SSIZE</a>(packetChunk)&#160;&#160;&#160;(<a class="el" href="Rtcp_8h.html#a543e20e46d803e9c626fe6f2863bfc37">TWCC_STATUSVECTOR_IS_2BIT</a>(packetChunk) ? 2u : 1u)</td></tr>
+<tr class="separator:a89b552478196a161443c9c9a199b7096"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a52911adfa831297765397816d19a82b4"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtcp_8h.html#a52911adfa831297765397816d19a82b4">TWCC_STATUSVECTOR_SMASK</a>(packetChunk)&#160;&#160;&#160;(<a class="el" href="Rtcp_8h.html#a543e20e46d803e9c626fe6f2863bfc37">TWCC_STATUSVECTOR_IS_2BIT</a>(packetChunk) ? 2u : 1u)</td></tr>
+<tr class="separator:a52911adfa831297765397816d19a82b4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a005850c9fa3a6f716b8b8f4c636aee5c"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtcp_8h.html#a005850c9fa3a6f716b8b8f4c636aee5c">TWCC_STATUSVECTOR_STATUS</a>(packetChunk,  i)&#160;&#160;&#160;(((packetChunk) &gt;&gt; (14u - (i) *<a class="el" href="Rtcp_8h.html#a89b552478196a161443c9c9a199b7096">TWCC_STATUSVECTOR_SSIZE</a>(packetChunk))) &amp; <a class="el" href="Rtcp_8h.html#a52911adfa831297765397816d19a82b4">TWCC_STATUSVECTOR_SMASK</a>(packetChunk))</td></tr>
+<tr class="separator:a005850c9fa3a6f716b8b8f4c636aee5c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7610fd25403fe72b01f1f776452fa768"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtcp_8h.html#a7610fd25403fe72b01f1f776452fa768">TWCC_STATUSVECTOR_COUNT</a>(packetChunk)&#160;&#160;&#160;(<a class="el" href="Rtcp_8h.html#a543e20e46d803e9c626fe6f2863bfc37">TWCC_STATUSVECTOR_IS_2BIT</a>(packetChunk) ? 7 : 14)</td></tr>
+<tr class="separator:a7610fd25403fe72b01f1f776452fa768"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac470be7f95504fe4a2d8250dc00e054a"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtcp_8h.html#ac470be7f95504fe4a2d8250dc00e054a">TWCC_PACKET_STATUS_COUNT</a>(payload)&#160;&#160;&#160;(getUnalignedInt16BigEndian((payload) + 10))</td></tr>
+<tr class="separator:ac470be7f95504fe4a2d8250dc00e054a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="enum-members"></a>
+Enumerations</h2></td></tr>
+<tr class="memitem:a21ec0b7d62f75b6f30fa0ea3491769d0"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtcp_8h.html#a21ec0b7d62f75b6f30fa0ea3491769d0">TWCC_STATUS_SYMBOL</a> { <a class="el" href="Rtcp_8h.html#a21ec0b7d62f75b6f30fa0ea3491769d0a59ad34f86ce80c658570827be280534b">TWCC_STATUS_SYMBOL_NOTRECEIVED</a> = 0, 
+<a class="el" href="Rtcp_8h.html#a21ec0b7d62f75b6f30fa0ea3491769d0a8686a526a95dae4f6695ead1bcbfa6c5">TWCC_STATUS_SYMBOL_SMALLDELTA</a>, 
+<a class="el" href="Rtcp_8h.html#a21ec0b7d62f75b6f30fa0ea3491769d0a13eb64d7b436849ed3e5010ce05225dd">TWCC_STATUS_SYMBOL_LARGEDELTA</a>
+ }</td></tr>
+<tr class="separator:a21ec0b7d62f75b6f30fa0ea3491769d0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
 <tr class="memitem:abaa226cf4a09e46a8f24d52dec739cc9"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtcp_8h.html#abaa226cf4a09e46a8f24d52dec739cc9">onRtcpPacket</a> (<a class="el" href="PeerConnection_8h.html#a545e0bebf606e9070020c98b3f9c2864">PKvsPeerConnection</a>, PBYTE, UINT32)</td></tr>
@@ -159,7 +202,298 @@ Functions</h2></td></tr>
 <tr class="separator:a96b5d18e6850b948f4755d0cc1d936ed"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac82533856a12f259eeba9139a7af516f"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtcp_8h.html#ac82533856a12f259eeba9139a7af516f">onRtcpPLIPacket</a> (<a class="el" href="RtcpPacket_8h.html#ac99920bc23b7ab9cc673e0c25da794fa">PRtcpPacket</a>, <a class="el" href="PeerConnection_8h.html#a545e0bebf606e9070020c98b3f9c2864">PKvsPeerConnection</a>)</td></tr>
 <tr class="separator:ac82533856a12f259eeba9139a7af516f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7921c4eb97850531d20e1142cfc1d754"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtcp_8h.html#a7921c4eb97850531d20e1142cfc1d754">onRtcpTwccPacket</a> (<a class="el" href="RtcpPacket_8h.html#ac99920bc23b7ab9cc673e0c25da794fa">PRtcpPacket</a>, <a class="el" href="PeerConnection_8h.html#a545e0bebf606e9070020c98b3f9c2864">PKvsPeerConnection</a>)</td></tr>
+<tr class="separator:a7921c4eb97850531d20e1142cfc1d754"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
+<h2 class="groupheader">Macro Definition Documentation</h2>
+<a id="a60db4d3b2bc7f22bcb0d0dbf3ac3684b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a60db4d3b2bc7f22bcb0d0dbf3ac3684b">&#9670;&nbsp;</a></span>IS_TWCC_RUNLEN</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define IS_TWCC_RUNLEN</td>
+          <td>(</td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname">packetChunk</td><td>)</td>
+          <td>&#160;&#160;&#160;((((packetChunk) &gt;&gt; 15u) &amp; 1u) == 0)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a8a708413d6171e7d86056793abe2cd1a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8a708413d6171e7d86056793abe2cd1a">&#9670;&nbsp;</a></span>MICROSECONDS_PER_SECOND</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define MICROSECONDS_PER_SECOND&#160;&#160;&#160;1000000LL</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a1478daa0c60fd6c50a5bd6faf96a8aaa"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1478daa0c60fd6c50a5bd6faf96a8aaa">&#9670;&nbsp;</a></span>TWCC_FB_PACKETCHUNK_SIZE</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define TWCC_FB_PACKETCHUNK_SIZE&#160;&#160;&#160;2</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="afad753ba70f1761f68495bec0aa95668"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afad753ba70f1761f68495bec0aa95668">&#9670;&nbsp;</a></span>TWCC_IS_NOTRECEIVED</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define TWCC_IS_NOTRECEIVED</td>
+          <td>(</td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname">statusSymbol</td><td>)</td>
+          <td>&#160;&#160;&#160;((statusSymbol) == <a class="el" href="Rtcp_8h.html#a21ec0b7d62f75b6f30fa0ea3491769d0a59ad34f86ce80c658570827be280534b">TWCC_STATUS_SYMBOL_NOTRECEIVED</a>)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ad6cffa61185b517d4f09ad0900236d70"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad6cffa61185b517d4f09ad0900236d70">&#9670;&nbsp;</a></span>TWCC_ISRECEIVED</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define TWCC_ISRECEIVED</td>
+          <td>(</td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname">statusSymbol</td><td>)</td>
+          <td>&#160;&#160;&#160;((statusSymbol) == <a class="el" href="Rtcp_8h.html#a21ec0b7d62f75b6f30fa0ea3491769d0a8686a526a95dae4f6695ead1bcbfa6c5">TWCC_STATUS_SYMBOL_SMALLDELTA</a> || (statusSymbol) == <a class="el" href="Rtcp_8h.html#a21ec0b7d62f75b6f30fa0ea3491769d0a13eb64d7b436849ed3e5010ce05225dd">TWCC_STATUS_SYMBOL_LARGEDELTA</a>)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ac470be7f95504fe4a2d8250dc00e054a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac470be7f95504fe4a2d8250dc00e054a">&#9670;&nbsp;</a></span>TWCC_PACKET_STATUS_COUNT</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define TWCC_PACKET_STATUS_COUNT</td>
+          <td>(</td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname">payload</td><td>)</td>
+          <td>&#160;&#160;&#160;(getUnalignedInt16BigEndian((payload) + 10))</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a5f08ca1e5dd9cc6ca868f2374ba09547"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5f08ca1e5dd9cc6ca868f2374ba09547">&#9670;&nbsp;</a></span>TWCC_RUNLEN_GET</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define TWCC_RUNLEN_GET</td>
+          <td>(</td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname">packetChunk</td><td>)</td>
+          <td>&#160;&#160;&#160;((packetChunk) &amp;0x1fffu)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a340e902790fed83d604760ef7fd47d69"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a340e902790fed83d604760ef7fd47d69">&#9670;&nbsp;</a></span>TWCC_RUNLEN_ISRECEIVED</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define TWCC_RUNLEN_ISRECEIVED</td>
+          <td>(</td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname">packetChunk</td><td>)</td>
+          <td>&#160;&#160;&#160;<a class="el" href="Rtcp_8h.html#ad6cffa61185b517d4f09ad0900236d70">TWCC_ISRECEIVED</a>(<a class="el" href="Rtcp_8h.html#a63a3eb30be8485db860252b1bb2b36b4">TWCC_RUNLEN_STATUS_SYMBOL</a>(packetChunk))</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a63a3eb30be8485db860252b1bb2b36b4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a63a3eb30be8485db860252b1bb2b36b4">&#9670;&nbsp;</a></span>TWCC_RUNLEN_STATUS_SYMBOL</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define TWCC_RUNLEN_STATUS_SYMBOL</td>
+          <td>(</td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname">packetChunk</td><td>)</td>
+          <td>&#160;&#160;&#160;(((packetChunk) &gt;&gt; 13u) &amp; 3u)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a7610fd25403fe72b01f1f776452fa768"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7610fd25403fe72b01f1f776452fa768">&#9670;&nbsp;</a></span>TWCC_STATUSVECTOR_COUNT</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define TWCC_STATUSVECTOR_COUNT</td>
+          <td>(</td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname">packetChunk</td><td>)</td>
+          <td>&#160;&#160;&#160;(<a class="el" href="Rtcp_8h.html#a543e20e46d803e9c626fe6f2863bfc37">TWCC_STATUSVECTOR_IS_2BIT</a>(packetChunk) ? 7 : 14)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a543e20e46d803e9c626fe6f2863bfc37"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a543e20e46d803e9c626fe6f2863bfc37">&#9670;&nbsp;</a></span>TWCC_STATUSVECTOR_IS_2BIT</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define TWCC_STATUSVECTOR_IS_2BIT</td>
+          <td>(</td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname">packetChunk</td><td>)</td>
+          <td>&#160;&#160;&#160;(((packetChunk) &gt;&gt; 14u) &amp; 1u)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a52911adfa831297765397816d19a82b4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a52911adfa831297765397816d19a82b4">&#9670;&nbsp;</a></span>TWCC_STATUSVECTOR_SMASK</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define TWCC_STATUSVECTOR_SMASK</td>
+          <td>(</td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname">packetChunk</td><td>)</td>
+          <td>&#160;&#160;&#160;(<a class="el" href="Rtcp_8h.html#a543e20e46d803e9c626fe6f2863bfc37">TWCC_STATUSVECTOR_IS_2BIT</a>(packetChunk) ? 2u : 1u)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a89b552478196a161443c9c9a199b7096"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a89b552478196a161443c9c9a199b7096">&#9670;&nbsp;</a></span>TWCC_STATUSVECTOR_SSIZE</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define TWCC_STATUSVECTOR_SSIZE</td>
+          <td>(</td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname">packetChunk</td><td>)</td>
+          <td>&#160;&#160;&#160;(<a class="el" href="Rtcp_8h.html#a543e20e46d803e9c626fe6f2863bfc37">TWCC_STATUSVECTOR_IS_2BIT</a>(packetChunk) ? 2u : 1u)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a005850c9fa3a6f716b8b8f4c636aee5c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a005850c9fa3a6f716b8b8f4c636aee5c">&#9670;&nbsp;</a></span>TWCC_STATUSVECTOR_STATUS</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define TWCC_STATUSVECTOR_STATUS</td>
+          <td>(</td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname">packetChunk, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname">i&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td>&#160;&#160;&#160;(((packetChunk) &gt;&gt; (14u - (i) *<a class="el" href="Rtcp_8h.html#a89b552478196a161443c9c9a199b7096">TWCC_STATUSVECTOR_SSIZE</a>(packetChunk))) &amp; <a class="el" href="Rtcp_8h.html#a52911adfa831297765397816d19a82b4">TWCC_STATUSVECTOR_SMASK</a>(packetChunk))</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a35a3766b346d4eedfe456afd64084ac1"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a35a3766b346d4eedfe456afd64084ac1">&#9670;&nbsp;</a></span>TWCC_TICKS_PER_SECOND</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define TWCC_TICKS_PER_SECOND&#160;&#160;&#160;(1000000LL / 250)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<h2 class="groupheader">Enumeration Type Documentation</h2>
+<a id="a21ec0b7d62f75b6f30fa0ea3491769d0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a21ec0b7d62f75b6f30fa0ea3491769d0">&#9670;&nbsp;</a></span>TWCC_STATUS_SYMBOL</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">enum <a class="el" href="Rtcp_8h.html#a21ec0b7d62f75b6f30fa0ea3491769d0">TWCC_STATUS_SYMBOL</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<table class="fieldtable">
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="a21ec0b7d62f75b6f30fa0ea3491769d0a59ad34f86ce80c658570827be280534b"></a>TWCC_STATUS_SYMBOL_NOTRECEIVED&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a21ec0b7d62f75b6f30fa0ea3491769d0a8686a526a95dae4f6695ead1bcbfa6c5"></a>TWCC_STATUS_SYMBOL_SMALLDELTA&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a21ec0b7d62f75b6f30fa0ea3491769d0a13eb64d7b436849ed3e5010ce05225dd"></a>TWCC_STATUS_SYMBOL_LARGEDELTA&#160;</td><td class="fielddoc"></td></tr>
+</table>
+
+</div>
+</div>
 <h2 class="groupheader">Function Documentation</h2>
 <a id="abaa226cf4a09e46a8f24d52dec739cc9"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#abaa226cf4a09e46a8f24d52dec739cc9">&#9670;&nbsp;</a></span>onRtcpPacket()</h2>
@@ -289,13 +623,41 @@ Here is the call graph for this function:</div>
 
 </div>
 </div>
+<a id="a7921c4eb97850531d20e1142cfc1d754"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7921c4eb97850531d20e1142cfc1d754">&#9670;&nbsp;</a></span>onRtcpTwccPacket()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">STATUS onRtcpTwccPacket </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="RtcpPacket_8h.html#ac99920bc23b7ab9cc673e0c25da794fa">PRtcpPacket</a>&#160;</td>
+          <td class="paramname">, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="PeerConnection_8h.html#a545e0bebf606e9070020c98b3f9c2864">PKvsPeerConnection</a>&#160;</td>
+          <td class="paramname">&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 </div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_94e7a0fbe7f8eaf7f05ee7b02c647e9f.html">source</a></li><li class="navelem"><a class="el" href="dir_3f63ab91aeb49885abb85dedd791923c.html">PeerConnection</a></li><li class="navelem"><a class="el" href="Rtcp_8h.html">Rtcp.h</a></li>
-    <li class="footer">Generated on Thu Dec 3 2020 03:43:11 for Amazon Kinesis Webrtc C SDK by
+    <li class="footer">Generated on Fri Dec 4 2020 17:32:12 for Amazon Kinesis Webrtc C SDK by
     <a href="http://www.doxygen.org/index.html">
     <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.18 </li>
   </ul>
