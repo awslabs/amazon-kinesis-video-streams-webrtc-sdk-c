@@ -809,6 +809,52 @@ a=ice-options:trickle
     });
 }
 
+const auto sdpext = R"(v=0
+o=- 4936640868317839377 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=group:BUNDLE 0 1
+a=msid-semantic: WMS IorFnFnF3tBWrBDrWkOrWg3zowztGU0DXDCG
+m=video 9 UDP/TLS/RTP/SAVPF 96 97 98 99 100 101 102 121 127 120 125 107 108 109 124 119 123 118 114 115 116
+c=IN IP4 0.0.0.0
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:SNHT
+a=ice-pwd:aAU8vF42EO01/2WuVLJ+5kXU
+a=ice-options:trickle
+a=fingerprint:sha-256 07:A5:92:00:70:B3:51:ED:3E:F5:D4:D1:93:D4:3E:ED:69:5F:9E:81:03:6B:B2:AC:48:D7:35:E4:48:75:B5:91
+a=setup:actpass
+a=mid:0
+a=extmap:1 urn:ietf:params:rtp-hdrext:toffset
+a=extmap:2 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time
+a=extmap:3 urn:3gpp:video-orientation
+a=extmap:4 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01
+a=extmap:5 http://www.webrtc.org/experiments/rtp-hdrext/playout-delay
+a=extmap:6 http://www.webrtc.org/experiments/rtp-hdrext/video-content-type
+a=extmap:7 http://www.webrtc.org/experiments/rtp-hdrext/video-timing
+a=extmap:8 http://www.webrtc.org/experiments/rtp-hdrext/color-space
+a=extmap:9 urn:ietf:params:rtp-hdrext:sdes:mid
+a=extmap:10 urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id
+a=extmap:11 urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id
+)";
+
+TEST_F(SdpApiTest, twccExtension)
+{
+    SessionDescription sd{};
+    EXPECT_EQ(STATUS_SUCCESS, deserializeSessionDescription(&sd, const_cast<PCHAR>(sdpext)));
+    uint32_t extid = 0;
+    for (int i = 0; i < sd.mediaDescriptions[0].mediaAttributesCount; i++) {
+        if (!strncmp("extmap", sd.mediaDescriptions[0].sdpAttributes[i].attributeName, 6)) {
+            auto split = strchr(sd.mediaDescriptions[0].sdpAttributes[i].attributeValue, ' ');
+            if (split != nullptr) {
+                if (!strncmp(TWCC_EXT_URL, split + 1, strlen(TWCC_EXT_URL))) {
+                    EXPECT_EQ(STATUS_SUCCESS, strtoui32(sd.mediaDescriptions[0].sdpAttributes[i].attributeValue, split, 10, &extid));
+                }
+            }
+        }
+    }
+    EXPECT_EQ(4, extid);
+}
+
 TEST_F(SdpApiTest, populateSingleMediaSection_TestPayloadFmtp)
 {
     CHAR remoteSessionDescription[] = R"(v=0

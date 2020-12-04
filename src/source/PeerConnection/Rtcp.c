@@ -139,6 +139,146 @@ CleanUp:
     return retStatus;
 }
 
+// TODO handle TWCC packet https://tools.ietf.org/html/draft-holmer-rmcat-transport-wide-cc-extensions-01
+STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConnection)
+{
+    /*
+        0                   1                   2                   3
+        0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+       |V=2|P|  FMT=15 |    PT=205     |           length              |
+       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+       |                     SSRC of packet sender                     |
+       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+       |                      SSRC of media source                     |
+       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+       |      base sequence number     |      packet status count      |
+       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+       |                 reference time                | fb pkt. count |
+       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+       |          packet chunk         |         packet chunk          |
+       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+       .                                                               .
+       .                                                               .
+       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+       |         packet chunk          |  recv delta   |  recv delta   |
+       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+       .                                                               .
+       .                                                               .
+       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+       |           recv delta          |  recv delta   | zero padding  |
+       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     */
+    STATUS retStatus = STATUS_SUCCESS;
+    INT32 packetsRemaining;
+    UINT16 baseSeqNum, packetStatusCount, packetSeqNum;
+    UINT32 chunkOffset, recvOffset;
+    UINT8 statusSymbol;
+    UINT32 packetChunk;
+    INT16 recvDelta;
+    UINT32 statuses;
+    UINT32 i;
+    CHK(pKvsPeerConnection != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
+    // dont parse if neither callbacks are set
+    CHK(pKvsPeerConnection->onPacketNotReceived != NULL || pKvsPeerConnection->onPacketReceived != NULL, STATUS_SUCCESS);
+
+    baseSeqNum = getUnalignedInt16BigEndian(pRtcpPacket->payload + 8);
+    packetStatusCount = TWCC_PACKET_STATUS_COUNT(pRtcpPacket->payload);
+
+    packetsRemaining = packetStatusCount;
+    chunkOffset = 16;
+    while (packetsRemaining > 0 && chunkOffset < pRtcpPacket->payloadLength) {
+        packetChunk = getUnalignedInt16BigEndian(pRtcpPacket->payload + chunkOffset);
+        if (IS_TWCC_RUNLEN(packetChunk)) {
+            packetsRemaining -= TWCC_RUNLEN_GET(packetChunk);
+        } else {
+            packetsRemaining -= MIN(TWCC_STATUSVECTOR_COUNT(packetChunk), packetsRemaining);
+        }
+        chunkOffset += TWCC_FB_PACKETCHUNK_SIZE;
+    }
+
+    recvOffset = chunkOffset;
+    chunkOffset = 16;
+    packetSeqNum = baseSeqNum;
+    packetsRemaining = packetStatusCount;
+    while (packetsRemaining > 0) {
+        packetChunk = getUnalignedInt16BigEndian(pRtcpPacket->payload + chunkOffset);
+        statusSymbol = TWCC_RUNLEN_STATUS_SYMBOL(packetChunk);
+        if (IS_TWCC_RUNLEN(packetChunk)) {
+            for (i = 0; i < TWCC_RUNLEN_GET(packetChunk); i++) {
+                recvDelta = MIN_INT16;
+                switch (statusSymbol) {
+                    case TWCC_STATUS_SYMBOL_SMALLDELTA:
+                        recvDelta = (INT16) pRtcpPacket->payload[recvOffset];
+                        recvOffset++;
+                        break;
+                    case TWCC_STATUS_SYMBOL_LARGEDELTA:
+                        recvDelta = getUnalignedInt16BigEndian(pRtcpPacket->payload + recvOffset);
+                        recvOffset += 2;
+                        break;
+                    case TWCC_STATUS_SYMBOL_NOTRECEIVED:
+                        DLOGV("runLength packetSeqNum %u not received", packetSeqNum);
+                        if (pKvsPeerConnection->onPacketNotReceived != NULL) {
+                            pKvsPeerConnection->onPacketNotReceived(pKvsPeerConnection->onPacketNotReceivedCustomData, packetSeqNum);
+                        }
+                        break;
+                    default:
+                        DLOGD("runLength unhandled statusSymbol %u", statusSymbol);
+                }
+                if (recvDelta != MIN_INT16) {
+                    DLOGV("runLength packetSeqNum %u recvDelta %d usec", packetSeqNum,
+                          KVS_CONVERT_TIMESCALE(recvDelta, TWCC_TICKS_PER_SECOND, MICROSECONDS_PER_SECOND));
+                    if (pKvsPeerConnection->onPacketReceived != NULL) {
+                        pKvsPeerConnection->onPacketReceived(pKvsPeerConnection->onPacketReceivedCustomData, packetSeqNum,
+                                                             KVS_CONVERT_TIMESCALE(recvDelta, TWCC_TICKS_PER_SECOND, MICROSECONDS_PER_SECOND));
+                    }
+                }
+                packetSeqNum++;
+                packetsRemaining--;
+            }
+        } else {
+            statuses = MIN(TWCC_STATUSVECTOR_COUNT(packetChunk), packetsRemaining);
+
+            for (i = 0; i < statuses; i++) {
+                statusSymbol = TWCC_STATUSVECTOR_STATUS(packetChunk, i);
+                recvDelta = MIN_INT16;
+                switch (statusSymbol) {
+                    case TWCC_STATUS_SYMBOL_SMALLDELTA:
+                        recvDelta = (INT16) pRtcpPacket->payload[recvOffset];
+                        recvOffset++;
+                        break;
+                    case TWCC_STATUS_SYMBOL_LARGEDELTA:
+                        recvDelta = getUnalignedInt16BigEndian(pRtcpPacket->payload + recvOffset);
+                        recvOffset += 2;
+                        break;
+                    case TWCC_STATUS_SYMBOL_NOTRECEIVED:
+                        DLOGV("statusVector packetSeqNum %u not received", packetSeqNum);
+                        if (pKvsPeerConnection->onPacketNotReceived != NULL) {
+                            pKvsPeerConnection->onPacketNotReceived(pKvsPeerConnection->onPacketNotReceivedCustomData, packetSeqNum);
+                        }
+                        break;
+                    default:
+                        DLOGD("statusVector unhandled statusSymbol %u", statusSymbol);
+                }
+                if (recvDelta != MIN_INT16) {
+                    DLOGV("statusVector packetSeqNum %u recvDelta %d usec", packetSeqNum,
+                          KVS_CONVERT_TIMESCALE(recvDelta, TWCC_TICKS_PER_SECOND, MICROSECONDS_PER_SECOND));
+                    if (pKvsPeerConnection->onPacketReceived != NULL) {
+                        pKvsPeerConnection->onPacketReceived(pKvsPeerConnection->onPacketReceivedCustomData, packetSeqNum,
+                                                             KVS_CONVERT_TIMESCALE(recvDelta, TWCC_TICKS_PER_SECOND, MICROSECONDS_PER_SECOND));
+                    }
+                }
+                packetSeqNum++;
+                packetsRemaining--;
+            }
+        }
+        chunkOffset += TWCC_FB_PACKETCHUNK_SIZE;
+    }
+
+CleanUp:
+    return retStatus;
+}
+
 STATUS onRtcpPacket(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuff, UINT32 buffLen)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -157,6 +297,8 @@ STATUS onRtcpPacket(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuff, UINT32 b
             case RTCP_PACKET_TYPE_GENERIC_RTP_FEEDBACK:
                 if (rtcpPacket.header.receptionReportCount == RTCP_FEEDBACK_MESSAGE_TYPE_NACK) {
                     CHK_STATUS(resendPacketOnNack(&rtcpPacket, pKvsPeerConnection));
+                } else if (rtcpPacket.header.receptionReportCount == RTCP_FEEDBACK_MESSAGE_TYPE_APPLICATION_LAYER_FEEDBACK) {
+                    CHK_STATUS(onRtcpTwccPacket(&rtcpPacket, pKvsPeerConnection));
                 } else {
                     DLOGW("unhandled RTCP_PACKET_TYPE_GENERIC_RTP_FEEDBACK %d", rtcpPacket.header.receptionReportCount);
                 }

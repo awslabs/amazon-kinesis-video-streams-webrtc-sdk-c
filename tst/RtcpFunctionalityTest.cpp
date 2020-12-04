@@ -147,7 +147,6 @@ TEST_F(RtcpFunctionalityTest, rtcpNackListCompound)
     EXPECT_EQ(compoundBuffer[1], 3327);
 }
 
-
 TEST_F(RtcpFunctionalityTest, onRtcpPacketCompoundNack)
 {
     PRtpPacket pRtpPacket = nullptr;
@@ -162,7 +161,7 @@ TEST_F(RtcpFunctionalityTest, onRtcpPacketCompoundNack)
 
     ASSERT_EQ(STATUS_SUCCESS, rtpRollingBufferAddRtpPacket(pKvsRtpTransceiver->sender.packetBuffer, pRtpPacket));
     ASSERT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, validRtcpPacket, SIZEOF(validRtcpPacket)));
-    RtcOutboundRtpStreamStats  stats{};
+    RtcOutboundRtpStreamStats stats{};
     getRtpOutboundStats(pRtcPeerConnection, nullptr, &stats);
     ASSERT_EQ(1, stats.nackCount);
     ASSERT_EQ(1, stats.retransmittedPacketsSent);
@@ -190,8 +189,8 @@ TEST_F(RtcpFunctionalityTest, onRtcpPacketCompoundSenderReport)
     UINT32 rawpacketSize = 64;
     EXPECT_EQ(STATUS_SUCCESS, hexDecode(hexpacket, strlen(hexpacket), rawpacket, &rawpacketSize));
 
-    //added two transceivers to test correct transceiver stats in getRtpRemoteInboundStats
-    initTransceiver(4242); // fake transceiver
+    // added two transceivers to test correct transceiver stats in getRtpRemoteInboundStats
+    initTransceiver(4242);               // fake transceiver
     auto t = addTransceiver(1577872978); // real transceiver
 
     EXPECT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, rawpacket, rawpacketSize));
@@ -296,6 +295,75 @@ TEST_F(RtcpFunctionalityTest, onpli)
     freePeerConnection(&pRtcPeerConnection);
 }
 
+static void parseTwcc(const std::string& hex, const uint32_t expectedReceived, const uint32_t expectedNotReceived)
+{
+    BYTE payload[256] = {0};
+    UINT32 payloadLen = 256;
+    hexDecode(const_cast<PCHAR>(hex.data()), hex.size(), payload, &payloadLen);
+    RtcpPacket rtcpPacket{};
+    rtcpPacket.header.packetLength = payloadLen / 4;
+    rtcpPacket.payload = payload;
+    rtcpPacket.payloadLength = payloadLen;
+    KvsPeerConnection connection{};
+    std::pair<UINT32, UINT32> pair{};
+    connection.onPacketNotReceivedCustomData = reinterpret_cast<UINT64>(&pair);
+    connection.onPacketReceivedCustomData = reinterpret_cast<UINT64>(&pair);
+    connection.onPacketReceived = [](UINT64 pair64, UINT16 /*unused*/, INT32 /*unused*/) {
+        auto* pair = reinterpret_cast<std::pair<UINT32, UINT32>*>(pair64);
+        pair->first++;
+    };
+
+    connection.onPacketNotReceived = [](UINT64 pair64, UINT16 /*unused*/) {
+        auto* pair = reinterpret_cast<std::pair<UINT32, UINT32>*>(pair64);
+        pair->second++;
+    };
+    onRtcpTwccPacket(&rtcpPacket, &connection);
+    EXPECT_EQ(pair.first + pair.second, TWCC_PACKET_STATUS_COUNT(rtcpPacket.payload));
+    EXPECT_EQ(expectedReceived + expectedNotReceived, TWCC_PACKET_STATUS_COUNT(rtcpPacket.payload));
+    EXPECT_EQ(expectedReceived, pair.first);
+    EXPECT_EQ(expectedNotReceived, pair.second);
+}
+
+TEST_F(RtcpFunctionalityTest, twcc3)
+{
+    parseTwcc("", 0, 0);
+    parseTwcc("4487A9E754B3E6FD01810001147A75A62001C801", 1, 0);
+    parseTwcc("4487A9E754B3E6FD12740004148566AAC1402C00", 1, 3);
+    parseTwcc("4487A9E754B3E6FD04FA0006147CAF88C554B80400000001", 1, 5);
+    parseTwcc("4487A9E754B3E6FD00000002147972002002BC00", 2, 0);
+    parseTwcc("4487A9E754B3E6FD06D40004147DDE41D6403C00FFEC0001", 2, 2);
+    parseTwcc("4487A9E754B3E6FD04FA0006147CB089D95420FF9804000000000003", 2, 4);
+    parseTwcc("4487A9E754B3E6FD000C000314797A052003E40004000003", 3, 0);
+    parseTwcc("4487A9E754B3E6FD12740006148568ABD6648800FDA4000268000002", 3, 3);
+    parseTwcc("4487A9E754B3E6FD1431000C14868C5A803CEC0028000002", 3, 9);
+    parseTwcc("4487A9E754B3E6FD00020004147974012004140000000002", 4, 0);
+    parseTwcc("4487A9E754B3E6FD12670008148560A8D66520016C00FD780402902800040002", 4, 4);
+    parseTwcc("4487A9E754B3E6FD012E0005147A45872005900000000401", 5, 0);
+    parseTwcc("4487A9E754B3E6FD01F20006147AC6D22006600004000000", 6, 0);
+    parseTwcc("4487A9E754B3E6FD06690007147D9111200748000000040000000003", 7, 0);
+    parseTwcc("4487A9E754B3E6FD020C0008147AD3D8200898000000000008000002", 8, 0);
+    parseTwcc("4487A9E754B3E6FD07C20009147E7B8B200990000800000000000001", 9, 0);
+    parseTwcc("4487A9E754B3E6FD0177000A147A74A5200A70000000000000040000", 10, 0);
+    parseTwcc("4487A9E754B3E6FD1431000C14868E5B2008E540DC00000000000000FE10002800000003", 10, 2);
+    parseTwcc("4487A9E754B3E6FD03C6000B147BEB6F200B3000380400000400040000000003", 11, 0);
+    parseTwcc("4487A9E754B3E6FD02AB000D147B3013200D4800000004000000000000000401", 13, 0);
+    parseTwcc("4487A9E754B3E6FD01BA000E147AA4C3200EA400000000000000000000000400", 14, 0);
+    parseTwcc("4487A9E754B3E6FD0610000F147D62F3200FCC0000000000000400000000100000000003", 15, 0);
+    parseTwcc("4487A9E754B3E6FD08120010147EAAA92010F80000000000000004040000000000000002", 16, 0);
+    parseTwcc("4487A9E754B3E6FD05B80011147D33D52011F40014000000000000000000040000000001", 17, 0);
+    parseTwcc("4487A9E754B3E6FD04DA001E147CAC86D556D999D6652009D40000000000EF840001040001DC0004D4000400031400", 17, 13);
+    parseTwcc("4487A9E754B3E6FD11EA0012148514932012B40000000000000400000000000000000000", 18, 0);
+    parseTwcc("4487A9E754B3E6FD09BC0013147FC45D201348000400000000000000000000000000000000000003", 19, 0);
+    parseTwcc("4487A9E754B3E6FD05720014147D05B7201414000000000000100000000000040000000400000002", 20, 0);
+    parseTwcc("4487A9E754B3E6FD03820015147BBD5A201554000000000000000000000000000000000400009801", 21, 0);
+    parseTwcc("4487A9E754B3E6FD114B001B1484B87381FF200DE41000000000000000000000000000000000140000000002", 21, 6);
+    parseTwcc("4487A9E754B3E6FD0B6700161480DD11201678000000000000000000040000000000000000000000", 22, 0);
+    parseTwcc("4487A9E754B3E6FD07790017147E4E6F2017D400000000000400000000000000000004000400080000000003", 23, 0);
+    parseTwcc("4487A9E754B3E6FD114B001D1484BB74D5592014E4008400000000FD60100000000000000000000000000000000014", 24, 5);
+    parseTwcc("4487A9E754B3E6FD1230002914854FA22027E4002400000000000400000000000000040000000000040000001C0000", 41, 0);
+    parseTwcc("4487A9E754B3E6FD04B60036147CAA852024C002D999D6407800000000000000000000000000040000000000000000", 43, 11);
+    parseTwcc("4487A9E754B3E6FD040200E4147C9F81202700B7E6649000000000000000000004000000000008000018000000001", 43, 185);
+}
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis

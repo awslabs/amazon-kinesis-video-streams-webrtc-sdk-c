@@ -71,6 +71,10 @@ extern "C" {
 #define OPUS_CLOCKRATE  (UINT64) 48000
 #define PCM_CLOCKRATE   (UINT64) 8000
 
+// https://tools.ietf.org/html/draft-holmer-rmcat-transport-wide-cc-extensions-01
+#define TWCC_SDP_ATTR "transport-cc"
+#define TWCC_EXT_URL  "http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01"
+
 STATUS setPayloadTypesFromOffer(PHashTable, PHashTable, PSessionDescription);
 STATUS setPayloadTypesForOffer(PHashTable);
 
