@@ -528,8 +528,11 @@ race:getIceConfig
 race:PeerConnectionFunctionalityTest_freeTurnDueToP2PFoundBeforeTurnEstablished_Test
 race:PeerConnectionFunctionalityTest_freeTurnDueToP2PFoundAfterTurnEstablished
 race:DataChannelFunctionalityTest_createDataChannel_Disconnected_Test
-race:SignalingApiFunctionalityTest_iceRefreshEmulationWithFaultInjectionErrorDisconnect_Test
-race:SignalingApiFunctionalityTest_iceRefreshEmulationWithFaultInjectionErrorDisconnectNoRecovery_Test
+
+# in this case we are trying to mock a bad auth by directly modifying the internal buffer storing
+# the secret key which might in some cases be raced if the SDK detects a disconnect and the listener
+# thread is attempting to reconnect while we are emulating test.
+race:SignalingApiFunctionalityTest_iceServerConfigRefreshConnectedWithBadAuth_Test
 
 race:getDataChannelStats
 # WARNING: ThreadSanitizer: data race (pid=51832)
