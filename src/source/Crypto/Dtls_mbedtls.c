@@ -28,6 +28,7 @@ STATUS createDtlsSession(PDtlsSessionCallbacks pDtlsSessionCallbacks, TIMER_QUEU
     mbedtls_ctr_drbg_init(&pDtlsSession->ctrDrbg);
     mbedtls_ssl_config_init(&pDtlsSession->sslCtxConfig);
     mbedtls_ssl_init(&pDtlsSession->sslCtx);
+    mbedtls_ctr_drbg_set_prediction_resistance(&pDtlsSession->ctrDrbg, MBEDTLS_CTR_DRBG_PR_ON);
     CHK(mbedtls_ctr_drbg_seed(&pDtlsSession->ctrDrbg, mbedtls_entropy_func, &pDtlsSession->entropy, NULL, 0) == 0, STATUS_CREATE_SSL_FAILED);
 
     CHK_STATUS(createIOBuffer(DEFAULT_MTU_SIZE, &pDtlsSession->pReadBuffer));
