@@ -104,7 +104,6 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     ATOMIC_STORE_BOOL(&pSignalingClient->connected, FALSE);
     ATOMIC_STORE_BOOL(&pSignalingClient->deleting, FALSE);
     ATOMIC_STORE_BOOL(&pSignalingClient->deleted, FALSE);
-    ATOMIC_STORE_BOOL(&pSignalingClient->iceConfigRetrieved, FALSE);
     ATOMIC_STORE_BOOL(&pSignalingClient->serviceLockContention, FALSE);
 
     // Add to the signal handler
@@ -142,10 +141,6 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     // Create the ongoing message list
     CHK_STATUS(stackQueueCreate(&pSignalingClient->pMessageQueue));
 
-    // Create the timer queue for handling stale ICE configuration
-    pSignalingClient->timerQueueHandle = INVALID_TIMER_QUEUE_HANDLE_VALUE;
-    CHK_STATUS(timerQueueCreate(&pSignalingClient->timerQueueHandle));
-
     // Initializing the diagnostics mostly is taken care of by zero-mem in MEMCALLOC
     pSignalingClient->diagnostics.createTime = GETTIME();
 
@@ -161,9 +156,6 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
         CHK_STATUS(pSignalingClient->signalingClientCallbacks.stateChangeFn(pSignalingClient->signalingClientCallbacks.customData,
                                                                             getSignalingStateFromStateMachineState(pStateMachineState->state)));
     }
-
-    // Set the async processing based on the channel info
-    ATOMIC_STORE_BOOL(&pSignalingClient->asyncGetIceConfig, pChannelInfo->asyncIceServerConfig);
 
     // Do not force ice config state
     ATOMIC_STORE_BOOL(&pSignalingClient->refreshIceConfig, FALSE);
@@ -200,7 +192,7 @@ STATUS freeSignaling(PSignalingClient* ppSignalingClient)
 
     ATOMIC_STORE_BOOL(&pSignalingClient->shutdown, TRUE);
 
-    terminateOngoingOperations(pSignalingClient, TRUE);
+    terminateOngoingOperations(pSignalingClient);
 
     if (pSignalingClient->pLwsContext != NULL) {
         MUTEX_LOCK(pSignalingClient->lwsServiceLock);
@@ -272,16 +264,12 @@ CleanUp:
     return retStatus;
 }
 
-STATUS terminateOngoingOperations(PSignalingClient pSignalingClient, BOOL freeTimerQueue)
+STATUS terminateOngoingOperations(PSignalingClient pSignalingClient)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
-
-    if (freeTimerQueue) {
-        timerQueueFree(&pSignalingClient->timerQueueHandle);
-    }
 
     // Terminate the listener thread if alive
     terminateLwsListenerLoop(pSignalingClient);
@@ -354,17 +342,9 @@ STATUS signalingGetIceConfigInfoCout(PSignalingClient pSignalingClient, PUINT32 
 
     CHK(pSignalingClient != NULL && pIceConfigCount != NULL, STATUS_NULL_ARG);
 
-    // Validate the state in sync ICE config mode only
-    if (!pSignalingClient->pChannelInfo->asyncIceServerConfig) {
-        CHK_STATUS(
-            acceptStateMachineState(pSignalingClient->pStateMachine, SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED));
-    }
+    CHK_STATUS(refreshIceConfiguration(pSignalingClient));
 
-    if (ATOMIC_LOAD_BOOL(&pSignalingClient->iceConfigRetrieved)) {
-        *pIceConfigCount = pSignalingClient->iceConfigCount;
-    } else {
-        *pIceConfigCount = 0;
-    }
+    *pIceConfigCount = pSignalingClient->iceConfigCount;
 
 CleanUp:
 
@@ -380,13 +360,11 @@ STATUS signalingGetIceConfigInfo(PSignalingClient pSignalingClient, UINT32 index
     STATUS retStatus = STATUS_SUCCESS;
 
     CHK(pSignalingClient != NULL && ppIceConfigInfo != NULL, STATUS_NULL_ARG);
-    CHK(index < pSignalingClient->iceConfigCount, STATUS_INVALID_ARG);
 
-    // Validate the state in sync ICE config mode only
-    if (!pSignalingClient->pChannelInfo->asyncIceServerConfig) {
-        CHK_STATUS(
-            acceptStateMachineState(pSignalingClient->pStateMachine, SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED));
-    }
+    // Refresh the ICE configuration first
+    CHK_STATUS(refreshIceConfiguration(pSignalingClient));
+
+    CHK(index < pSignalingClient->iceConfigCount, STATUS_INVALID_ARG);
 
     *ppIceConfigInfo = &pSignalingClient->iceConfigs[index];
 
@@ -451,7 +429,7 @@ STATUS signalingDisconnectSync(PSignalingClient pSignalingClient)
     // Check if we are already not connected
     CHK(ATOMIC_LOAD_BOOL(&pSignalingClient->connected), retStatus);
 
-    CHK_STATUS(terminateOngoingOperations(pSignalingClient, FALSE));
+    CHK_STATUS(terminateOngoingOperations(pSignalingClient));
 
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_OK);
 
@@ -478,7 +456,7 @@ STATUS signalingDeleteSync(PSignalingClient pSignalingClient)
     // Mark as being deleted
     ATOMIC_STORE_BOOL(&pSignalingClient->deleting, TRUE);
 
-    CHK_STATUS(terminateOngoingOperations(pSignalingClient, TRUE));
+    CHK_STATUS(terminateOngoingOperations(pSignalingClient));
 
     // Set the state directly
     setStateMachineCurrentState(pSignalingClient->pStateMachine, SIGNALING_STATE_DELETE);
@@ -564,8 +542,8 @@ STATUS validateIceConfiguration(PSignalingClient pSignalingClient)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    UINT32 i, timer;
-    UINT64 minTtl = MAX_UINT64, refreshPeriod;
+    UINT32 i;
+    UINT64 minTtl = MAX_UINT64;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     CHK(pSignalingClient->iceConfigCount <= MAX_ICE_CONFIG_COUNT, STATUS_SIGNALING_MAX_ICE_CONFIG_COUNT);
@@ -581,63 +559,36 @@ STATUS validateIceConfiguration(PSignalingClient pSignalingClient)
 
     CHK(minTtl > ICE_CONFIGURATION_REFRESH_GRACE_PERIOD, STATUS_SIGNALING_ICE_TTL_LESS_THAN_GRACE_PERIOD);
 
-    // Indicate that we have successfully retrieved ICE configs
-    ATOMIC_STORE_BOOL(&pSignalingClient->iceConfigRetrieved, TRUE);
-
-    refreshPeriod = (pSignalingClient->clientInfo.iceRefreshPeriod != 0) ? pSignalingClient->clientInfo.iceRefreshPeriod
-                                                                         : minTtl - ICE_CONFIGURATION_REFRESH_GRACE_PERIOD;
-
-    // This might be running on the timer queue thread.
-    // There is no need to schedule more refresh calls if
-    // we already have in progress
-    CHK_STATUS(timerQueueGetTimersWithCustomData(pSignalingClient->timerQueueHandle, (UINT64) pSignalingClient, &timer, NULL));
-
-    // The timer queue executor thread will de-list the single fire timer only
-    // after the routine is returned.
-    // Here, we need to account for a timer being present as we might be
-    // running on the timer queue executor thread.
-    CHK(timer <= 1, retStatus);
-
-    // Schedule the refresh on the timer queue
-    CHK_STATUS(timerQueueAddTimer(pSignalingClient->timerQueueHandle, refreshPeriod, TIMER_QUEUE_SINGLE_INVOCATION_PERIOD,
-                                  refreshIceConfigurationCallback, (UINT64) pSignalingClient, &timer));
-
+    pSignalingClient->iceConfigExpiration = GETTIME() + (minTtl - ICE_CONFIGURATION_REFRESH_GRACE_PERIOD);
 CleanUp:
 
     LEAVES();
     return retStatus;
 }
 
-STATUS refreshIceConfigurationCallback(UINT32 timerId, UINT64 scheduledTime, UINT64 customData)
+STATUS refreshIceConfiguration(PSignalingClient pSignalingClient)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PStateMachineState pStateMachineState = NULL;
-    PSignalingClient pSignalingClient = (PSignalingClient) customData;
     CHAR iceRefreshErrMsg[SIGNALING_MAX_ERROR_MESSAGE_LEN + 1];
-    UINT32 iceRefreshErrLen, newTimerId;
-
-    UNUSED_PARAM(timerId);
-    UNUSED_PARAM(scheduledTime);
+    UINT32 iceRefreshErrLen;
+    UINT64 curTime;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
     DLOGD("Refreshing the ICE Server Configuration");
 
-    // If we are coming from async code we need to check if we have already landed in Ready state
-    if (ATOMIC_LOAD_BOOL(&pSignalingClient->asyncGetIceConfig)) {
-        // Re-schedule in a while
-        CHK_STATUS(timerQueueAddTimer(pSignalingClient->timerQueueHandle, SIGNALING_ASYNC_ICE_CONFIG_REFRESH_DELAY,
-                                      TIMER_QUEUE_SINGLE_INVOCATION_PERIOD, refreshIceConfigurationCallback, (UINT64) pSignalingClient, &newTimerId));
-        CHK(FALSE, retStatus);
-    }
+    // Check whether we have a valid not-yet-expired ICE configuration and if so early exit
+    curTime = GETTIME();
+    CHK(pSignalingClient->iceConfigCount == 0 || curTime > pSignalingClient->iceConfigExpiration, retStatus);
 
-    // Check if we are in a connect, connected, disconnected or ready states and if not bail.
-    // The ICE state will be called in any other states
+    // ICE config can be retrieved in specific states only
+    CHK_STATUS(acceptStateMachineState(pSignalingClient->pStateMachine,
+                                       SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_DISCONNECTED));
+
+    // Get and store the current state to re-set to if we fail
     CHK_STATUS(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pStateMachineState));
-    CHK(pStateMachineState->state == SIGNALING_STATE_CONNECT || pStateMachineState->state == SIGNALING_STATE_CONNECTED ||
-            pStateMachineState->state == SIGNALING_STATE_DISCONNECTED || pStateMachineState->state == SIGNALING_STATE_READY,
-        retStatus);
 
     // Force the state machine to revert back to get ICE configuration without re-connection
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_SIGNALING_RECONNECT_ICE);
@@ -646,7 +597,7 @@ STATUS refreshIceConfigurationCallback(UINT32 timerId, UINT64 scheduledTime, UIN
     // Iterate the state machinery in steady states only - ready or connected
     if (pStateMachineState->state == SIGNALING_STATE_READY || pStateMachineState->state == SIGNALING_STATE_CONNECTED) {
         // Set the time out before execution
-        pSignalingClient->stepUntil = GETTIME() + SIGNALING_REFRESH_ICE_CONFIG_STATE_TIMEOUT;
+        pSignalingClient->stepUntil = curTime + SIGNALING_REFRESH_ICE_CONFIG_STATE_TIMEOUT;
 
         CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
     }
@@ -1060,20 +1011,8 @@ STATUS getIceConfig(PSignalingClient pSignalingClient, UINT64 time)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    UINT32 timerId;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
-
-    // Check if we need to async the API and if so early return
-    if (ATOMIC_LOAD_BOOL(&pSignalingClient->asyncGetIceConfig)) {
-        // We will emulate the call and kick off the ice refresh routine
-        CHK_STATUS(timerQueueAddTimer(pSignalingClient->timerQueueHandle, SIGNALING_ASYNC_ICE_CONFIG_REFRESH_DELAY,
-                                      TIMER_QUEUE_SINGLE_INVOCATION_PERIOD, refreshIceConfigurationCallback, (UINT64) pSignalingClient, &timerId));
-
-        // Success early return to prime the state machine to the next state which is Ready
-        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_OK);
-        CHK(FALSE, retStatus);
-    }
 
     THREAD_SLEEP_UNTIL(time);
 

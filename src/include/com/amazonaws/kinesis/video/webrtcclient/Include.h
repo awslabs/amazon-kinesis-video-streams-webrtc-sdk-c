@@ -1202,8 +1202,10 @@ typedef struct {
 
     SIGNALING_API_CALL_CACHE_TYPE cachingPolicy; //!< Backend API call caching policy
 
-    BOOL asyncIceServerConfig; //!< When creating channel synchronously, do not await for the ICE
-                               //!< server configurations before returning from the call.
+    BOOL asyncIceServerConfig; //!< This parameter has no effect any longer. All ICE config retrieving
+                               //!< is done reactively when needed which will simplify the processing
+                               //!< and will help with issues on a small footprint platforms
+
 } ChannelInfo, *PChannelInfo;
 
 /**

@@ -96,10 +96,8 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
     // V1 handling
     if (pOrigChannelInfo->version > 0) {
         pChannelInfo->cachingPolicy = pOrigChannelInfo->cachingPolicy;
-        pChannelInfo->asyncIceServerConfig = pOrigChannelInfo->asyncIceServerConfig;
     } else {
         pChannelInfo->cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_NONE;
-        pChannelInfo->asyncIceServerConfig = FALSE;
     }
 
     // Set the current pointer to the end

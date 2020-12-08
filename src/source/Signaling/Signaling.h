@@ -88,9 +88,6 @@ typedef struct {
     // Below members will be used for direct injection for tests hooks
     //
 
-    // Injected ICE server refresh period
-    UINT64 iceRefreshPeriod;
-
     // Injected connect timeout
     UINT64 connectTimeout;
 
@@ -163,19 +160,12 @@ typedef struct {
     // The channel is deleted
     volatile ATOMIC_BOOL deleted;
 
-    // Based on the channel info we can async the ice config on create channel
-    // call only and not async on repeat state transition when refreshing for example.
-    volatile ATOMIC_BOOL asyncGetIceConfig;
-
     // Having state machine logic rely on call result of SERVICE_CALL_RESULT_SIGNALING_RECONNECT_ICE
     // to transition to ICE config state is not enough in Async update mode when
     // connect is in progress as the result of connect will override the result
     // of SERVICE_CALL_RESULT_SIGNALING_RECONNECT_ICE indicating state transition
     // if it comes first forcing the state machine to loop back to connected state.
     volatile ATOMIC_BOOL refreshIceConfig;
-
-    // Indicate whether the ICE configuration has been retrieved at least once
-    volatile ATOMIC_BOOL iceConfigRetrieved;
 
     // Indicates that there is another thread attempting to grab the service lock
     volatile ATOMIC_BOOL serviceLockContention;
@@ -246,6 +236,9 @@ typedef struct {
     // Execute the state machine until this time
     UINT64 stepUntil;
 
+    // Indicates when the ICE configuration is considered expired
+    UINT64 iceConfigExpiration;
+
     // Ongoing listener call info
     PLwsCallInfo pOngoingCallInfo;
 
@@ -278,9 +271,6 @@ typedef struct {
 
     // Re-entrant lock for diagnostics/stats
     MUTEX diagnosticsLock;
-
-    // Timer queue to handle stale ICE configuration
-    TIMER_QUEUE_HANDLE timerQueueHandle;
 
     // Internal diagnostics object
     SignalingDiagnostics diagnostics;
@@ -316,7 +306,7 @@ STATUS signalingStoreOngoingMessage(PSignalingClient, PSignalingMessage);
 STATUS signalingRemoveOngoingMessage(PSignalingClient, PCHAR);
 STATUS signalingGetOngoingMessage(PSignalingClient, PCHAR, PCHAR, PSignalingMessage*);
 
-STATUS refreshIceConfigurationCallback(UINT32, UINT64, UINT64);
+STATUS refreshIceConfiguration(PSignalingClient);
 
 UINT64 signalingGetCurrentTime(UINT64);
 
@@ -324,7 +314,7 @@ STATUS awaitForThreadTermination(PThreadTracker, UINT64);
 STATUS initializeThreadTracker(PThreadTracker);
 STATUS uninitializeThreadTracker(PThreadTracker);
 
-STATUS terminateOngoingOperations(PSignalingClient, BOOL);
+STATUS terminateOngoingOperations(PSignalingClient);
 
 STATUS describeChannel(PSignalingClient, UINT64);
 STATUS createChannel(PSignalingClient, UINT64);
