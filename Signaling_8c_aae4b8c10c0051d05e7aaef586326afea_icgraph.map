@@ -1,0 +1,7 @@
+<map id="refreshIceConfiguration" name="refreshIceConfiguration">
+<area shape="rect" id="node1" title=" " alt="" coords="501,35,656,61"/>
+<area shape="rect" id="node2" href="$Signaling_8h.html#a33f429725bd0ff509ce47a3d21ffb508" title=" " alt="" coords="269,8,440,35"/>
+<area shape="rect" id="node4" href="$Signaling_8h.html#aa5b2b8e2a9a4e4d5b1bf20d78d55cd77" title=" " alt="" coords="256,60,453,87"/>
+<area shape="rect" id="node3" href="$group__PublicMemberFunctions.html#ga94ed483b34bb395015b7d44fd98c8f5b" title="Gets the ICE configuration information object given its index." alt="" coords="5,5,208,32"/>
+<area shape="rect" id="node5" href="$group__PublicMemberFunctions.html#ga22f59c80e99e533e5e1d78d52145eb7c" title="Gets the retrieved ICE configuration information object count." alt="" coords="16,57,197,98"/>
+</map>
