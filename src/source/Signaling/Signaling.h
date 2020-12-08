@@ -236,6 +236,9 @@ typedef struct {
     // Execute the state machine until this time
     UINT64 stepUntil;
 
+    // Indicates when the ICE configuration has been retrieved
+    UINT64 iceConfigTime;
+
     // Indicates when the ICE configuration is considered expired
     UINT64 iceConfigExpiration;
 
