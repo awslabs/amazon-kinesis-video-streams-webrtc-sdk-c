@@ -169,7 +169,7 @@ PVOID mediaSenderRoutine(PVOID customData)
     }
 
     if (audioSenderTid != INVALID_TID_VALUE) {
-        THREAD_JOIN(videoSenderTid, NULL);
+        THREAD_JOIN(audioSenderTid, NULL);
     }
 
 CleanUp:
