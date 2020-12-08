@@ -236,13 +236,17 @@ STATUS socketConnectionClosed(PSocketConnection pSocketConnection)
 
     CHK(pSocketConnection != NULL, STATUS_NULL_ARG);
     CHK(!ATOMIC_LOAD_BOOL(&pSocketConnection->connectionClosed), retStatus);
-    MUTEX_LOCK(pSocketConnection->lock);
+    if (IS_VALID_MUTEX_VALUE(pSocketConnection->lock)) {
+        MUTEX_LOCK(pSocketConnection->lock);
+    }
     DLOGD("Close socket %d", pSocketConnection->localSocket);
     ATOMIC_STORE_BOOL(&pSocketConnection->connectionClosed, TRUE);
     if (pSocketConnection->pTlsSession != NULL) {
         tlsSessionShutdown(pSocketConnection->pTlsSession);
     }
-    MUTEX_UNLOCK(pSocketConnection->lock);
+    if (IS_VALID_MUTEX_VALUE(pSocketConnection->lock)) {
+        MUTEX_UNLOCK(pSocketConnection->lock);
+    }
 
 CleanUp:
 
