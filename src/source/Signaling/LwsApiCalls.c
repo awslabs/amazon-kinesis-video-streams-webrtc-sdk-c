@@ -1472,8 +1472,10 @@ STATUS sendLwsMessage(PSignalingClient pSignalingClient, SIGNALING_MESSAGE_TYPE 
     encodedIceConfig[0] = '\0';
 
     // In case of an Offer, package the ICE candidates only if we have a set of non-expired ICE configs
-    if (messageType == SIGNALING_MESSAGE_TYPE_OFFER && pSignalingClient->iceConfigCount != 0 && GETTIME() <= pSignalingClient->iceConfigExpiration) {
-        curTime = GETTIME();
+    if (messageType == SIGNALING_MESSAGE_TYPE_OFFER &&
+        pSignalingClient->iceConfigCount != 0 &&
+        (curTime = GETTIME()) <= pSignalingClient->iceConfigExpiration &&
+        STATUS_SUCCEEDED(validateIceConfiguration(pSignalingClient))) {
 
         // Start the ice infos by copying the preamble, then the main body and then the ending
         STRCPY(encodedIceConfig, SIGNALING_ICE_SERVER_LIST_TEMPLATE_START);
