@@ -7,18 +7,18 @@
 #include <queue>
 #include <atomic>
 
-#define TEST_DEFAULT_REGION                     ((PCHAR) "us-west-2")
-#define TEST_STREAMING_TOKEN_DURATION           (40 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define TEST_JITTER_BUFFER_CLOCK_RATE           (1000)
-#define TEST_SIGNALING_MASTER_CLIENT_ID         (PCHAR) "Test_Master_ClientId"
-#define TEST_SIGNALING_VIEWER_CLIENT_ID         (PCHAR) "Test_Viewer_ClientId"
-#define TEST_SIGNALING_CHANNEL_NAME             (PCHAR) "ScaryTestChannel_"
-#define SIGNAING_TEST_CORRELATION_ID            (PCHAR) "Test_correlation_id"
-#define TEST_SIGNALING_MESSAGE_TTL              (120 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define TEST_VIDEO_FRAME_SIZE                   (120 * 1024)
-#define TEST_FILE_CREDENTIALS_FILE_PATH         (PCHAR) "credsFile"
-#define MAX_TEST_AWAIT_DURATION                 (2 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define TEST_CACHE_FILE_PATH                    (PCHAR) "./.TestSignalingCache_v0"
+#define TEST_DEFAULT_REGION             ((PCHAR) "us-west-2")
+#define TEST_STREAMING_TOKEN_DURATION   (40 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define TEST_JITTER_BUFFER_CLOCK_RATE   (1000)
+#define TEST_SIGNALING_MASTER_CLIENT_ID (PCHAR) "Test_Master_ClientId"
+#define TEST_SIGNALING_VIEWER_CLIENT_ID (PCHAR) "Test_Viewer_ClientId"
+#define TEST_SIGNALING_CHANNEL_NAME     (PCHAR) "ScaryTestChannel_"
+#define SIGNAING_TEST_CORRELATION_ID    (PCHAR) "Test_correlation_id"
+#define TEST_SIGNALING_MESSAGE_TTL      (120 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define TEST_VIDEO_FRAME_SIZE           (120 * 1024)
+#define TEST_FILE_CREDENTIALS_FILE_PATH (PCHAR) "credsFile"
+#define MAX_TEST_AWAIT_DURATION         (2 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define TEST_CACHE_FILE_PATH            (PCHAR) "./.TestSignalingCache_v0"
 
 namespace com {
 namespace amazonaws {
