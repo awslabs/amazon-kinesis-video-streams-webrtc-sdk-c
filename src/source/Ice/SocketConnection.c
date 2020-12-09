@@ -74,7 +74,9 @@ STATUS freeSocketConnection(PSocketConnection* ppSocketConnection)
         freeTlsSession(&pSocketConnection->pTlsSession);
     }
 
-    CHK_STATUS(closeSocket(pSocketConnection->localSocket));
+    if (STATUS_FAILED(retStatus = closeSocket(pSocketConnection->localSocket))) {
+        DLOGW("Failed to close the local socket with 0x%08x", retStatus);
+    }
 
     MEMFREE(pSocketConnection);
 
