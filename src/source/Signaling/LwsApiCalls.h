@@ -95,36 +95,35 @@ extern "C" {
 #define MAX_SIGNALING_STATUS_MESSAGE_LEN 16
 
 // Send message JSON template
-#define SIGNALING_SEND_MESSAGE_TEMPLATE \
-    "{\n" \
-    "\t\"action\": \"%s\",\n" \
-    "\t\"RecipientClientId\": \"%.*s\",\n" \
-    "\t\"MessagePayload\": \"%s\"%s\n" \
+#define SIGNALING_SEND_MESSAGE_TEMPLATE                                                                                                              \
+    "{\n"                                                                                                                                            \
+    "\t\"action\": \"%s\",\n"                                                                                                                        \
+    "\t\"RecipientClientId\": \"%.*s\",\n"                                                                                                           \
+    "\t\"MessagePayload\": \"%s\"%s\n"                                                                                                               \
     "}"
 
 // Send message JSON template with correlation id
-#define SIGNALING_SEND_MESSAGE_TEMPLATE_WITH_CORRELATION_ID \
-    "{\n" \
-    "\t\"action\": \"%s\",\n" \
-    "\t\"RecipientClientId\": \"%.*s\",\n" \
-    "\t\"MessagePayload\": \"%s\",\n" \
-    "\t\"CorrelationId\": \"%.*s\"%s\n" \
+#define SIGNALING_SEND_MESSAGE_TEMPLATE_WITH_CORRELATION_ID                                                                                          \
+    "{\n"                                                                                                                                            \
+    "\t\"action\": \"%s\",\n"                                                                                                                        \
+    "\t\"RecipientClientId\": \"%.*s\",\n"                                                                                                           \
+    "\t\"MessagePayload\": \"%s\",\n"                                                                                                                \
+    "\t\"CorrelationId\": \"%.*s\"%s\n"                                                                                                              \
     "}"
 
-#define SIGNALING_ICE_SERVER_LIST_TEMPLATE_START \
-    ",\n" \
+#define SIGNALING_ICE_SERVER_LIST_TEMPLATE_START                                                                                                     \
+    ",\n"                                                                                                                                            \
     "\t\"IceServerList\": ["
 
-#define SIGNALING_ICE_SERVER_LIST_TEMPLATE_END \
-    "\n\t]"
+#define SIGNALING_ICE_SERVER_LIST_TEMPLATE_END "\n\t]"
 
-#define SIGNALING_ICE_SERVER_TEMPLATE \
-    "\n" \
-    "\t\t{\n" \
-    "\t\t\t\"Password\": \"%s\",\n" \
-    "\t\t\t\"Ttl\": %" PRIu64 ",\n" \
-    "\t\t\t\"Uris\": [%s],\n" \
-    "\t\t\t\"Username\": \"%s\"\n" \
+#define SIGNALING_ICE_SERVER_TEMPLATE                                                                                                                \
+    "\n"                                                                                                                                             \
+    "\t\t{\n"                                                                                                                                        \
+    "\t\t\t\"Password\": \"%s\",\n"                                                                                                                  \
+    "\t\t\t\"Ttl\": %" PRIu64 ",\n"                                                                                                                  \
+    "\t\t\t\"Uris\": [%s],\n"                                                                                                                        \
+    "\t\t\t\"Username\": \"%s\"\n"                                                                                                                   \
     "\t\t},"
 
 // Defining max bloat size per item in the JSON template
@@ -137,7 +136,8 @@ extern "C" {
 #define MAX_ICE_SERVER_URI_STR_LEN (MAX_ICE_CONFIG_URI_COUNT * (MAX_ICE_CONFIG_URI_LEN + ICE_SERVER_URI_BLOAT_SIZE))
 
 // Max string length for representing an ICE config
-#define MAX_ICE_SERVER_INFO_STR_LEN (MAX_ICE_SERVER_URI_STR_LEN + MAX_ICE_CONFIG_USER_NAME_LEN + MAX_ICE_CONFIG_CREDENTIAL_LEN + ICE_SERVER_INFO_TEMPLATE_BLOAT_SIZE)
+#define MAX_ICE_SERVER_INFO_STR_LEN                                                                                                                  \
+    (MAX_ICE_SERVER_URI_STR_LEN + MAX_ICE_CONFIG_USER_NAME_LEN + MAX_ICE_CONFIG_CREDENTIAL_LEN + ICE_SERVER_INFO_TEMPLATE_BLOAT_SIZE)
 
 // Max string length for the ice server info which includes the template length * max struct count * content
 #define MAX_ICE_SERVER_INFOS_STR_LEN (MAX_ICE_CONFIG_COUNT * MAX_ICE_SERVER_INFO_STR_LEN)
