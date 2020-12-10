@@ -99,7 +99,7 @@ extern "C" {
     "{\n"                                                                                                                                            \
     "\t\"action\": \"%s\",\n"                                                                                                                        \
     "\t\"RecipientClientId\": \"%.*s\",\n"                                                                                                           \
-    "\t\"MessagePayload\": \"%s\"\n"                                                                                                                 \
+    "\t\"MessagePayload\": \"%s\"%s\n"                                                                                                               \
     "}"
 
 // Send message JSON template with correlation id
@@ -108,8 +108,42 @@ extern "C" {
     "\t\"action\": \"%s\",\n"                                                                                                                        \
     "\t\"RecipientClientId\": \"%.*s\",\n"                                                                                                           \
     "\t\"MessagePayload\": \"%s\",\n"                                                                                                                \
-    "\t\"CorrelationId\": \"%.*s\"\n"                                                                                                                \
+    "\t\"CorrelationId\": \"%.*s\"%s\n"                                                                                                              \
     "}"
+
+#define SIGNALING_ICE_SERVER_LIST_TEMPLATE_START                                                                                                     \
+    ",\n"                                                                                                                                            \
+    "\t\"IceServerList\": ["
+
+#define SIGNALING_ICE_SERVER_LIST_TEMPLATE_END "\n\t]"
+
+#define SIGNALING_ICE_SERVER_TEMPLATE                                                                                                                \
+    "\n"                                                                                                                                             \
+    "\t\t{\n"                                                                                                                                        \
+    "\t\t\t\"Password\": \"%s\",\n"                                                                                                                  \
+    "\t\t\t\"Ttl\": %" PRIu64 ",\n"                                                                                                                  \
+    "\t\t\t\"Uris\": [%s],\n"                                                                                                                        \
+    "\t\t\t\"Username\": \"%s\"\n"                                                                                                                   \
+    "\t\t},"
+
+// Defining max bloat size per item in the JSON template
+#define ICE_SERVER_INFO_TEMPLATE_BLOAT_SIZE 128
+
+// Max bloat size for representing a single ICE URI in the JSON
+#define ICE_SERVER_URI_BLOAT_SIZE 10
+
+// Max string length for representing the URIs
+#define MAX_ICE_SERVER_URI_STR_LEN (MAX_ICE_CONFIG_URI_COUNT * (MAX_ICE_CONFIG_URI_LEN + ICE_SERVER_URI_BLOAT_SIZE))
+
+// Max string length for representing an ICE config
+#define MAX_ICE_SERVER_INFO_STR_LEN                                                                                                                  \
+    (MAX_ICE_SERVER_URI_STR_LEN + MAX_ICE_CONFIG_USER_NAME_LEN + MAX_ICE_CONFIG_CREDENTIAL_LEN + ICE_SERVER_INFO_TEMPLATE_BLOAT_SIZE)
+
+// Max string length for the ice server info which includes the template length * max struct count * content
+#define MAX_ICE_SERVER_INFOS_STR_LEN (MAX_ICE_CONFIG_COUNT * MAX_ICE_SERVER_INFO_STR_LEN)
+
+// Encoded max ice server infos string len
+#define MAX_ENCODED_ICE_SERVER_INFOS_STR_LEN (MAX_ICE_SERVER_INFOS_STR_LEN + ICE_SERVER_INFO_TEMPLATE_BLOAT_SIZE)
 
 // Scratch buffer size
 #define LWS_SCRATCH_BUFFER_SIZE (MAX_JSON_PARAMETER_STRING_LEN + LWS_PRE)
@@ -118,9 +152,6 @@ extern "C" {
 #define LWS_MESSAGE_BUFFER_SIZE (SIZEOF(CHAR) * (MAX_SIGNALING_MESSAGE_LEN + LWS_PRE))
 
 #define AWS_SIG_V4_HEADER_HOST (PCHAR) "host"
-
-#define BOOLEAN_LITERAL_TRUE  "true"
-#define BOOLEAN_LITERAL_FALSE "false"
 
 // Specifies whether to block on the correlation id
 #define BLOCK_ON_CORRELATION_ID FALSE
@@ -213,7 +244,7 @@ STATUS freeLwsCallInfo(PLwsCallInfo*);
 
 PVOID receiveLwsMessageWrapper(PVOID);
 
-STATUS sendLwsMessage(PSignalingClient, PCHAR, PCHAR, PCHAR, UINT32, PCHAR, UINT32);
+STATUS sendLwsMessage(PSignalingClient, SIGNALING_MESSAGE_TYPE, PCHAR, PCHAR, UINT32, PCHAR, UINT32);
 STATUS writeLwsData(PSignalingClient, BOOL);
 STATUS terminateLwsListenerLoop(PSignalingClient);
 STATUS receiveLwsMessage(PSignalingClient, PCHAR, UINT32);

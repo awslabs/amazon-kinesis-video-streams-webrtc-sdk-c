@@ -289,34 +289,18 @@ STATUS signalingSendMessageSync(PSignalingClient pSignalingClient, PSignalingMes
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    PCHAR pOfferType = NULL;
     BOOL removeFromList = FALSE;
 
     CHK(pSignalingClient != NULL && pSignalingMessage != NULL, STATUS_NULL_ARG);
     CHK(pSignalingMessage->peerClientId != NULL && pSignalingMessage->payload != NULL, STATUS_INVALID_ARG);
     CHK(pSignalingMessage->version <= SIGNALING_MESSAGE_CURRENT_VERSION, STATUS_SIGNALING_INVALID_SIGNALING_MESSAGE_VERSION);
 
-    // Prepare the buffer to send
-    switch (pSignalingMessage->messageType) {
-        case SIGNALING_MESSAGE_TYPE_OFFER:
-            pOfferType = (PCHAR) SIGNALING_SDP_TYPE_OFFER;
-            break;
-        case SIGNALING_MESSAGE_TYPE_ANSWER:
-            pOfferType = (PCHAR) SIGNALING_SDP_TYPE_ANSWER;
-            break;
-        case SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE:
-            pOfferType = (PCHAR) SIGNALING_ICE_CANDIDATE;
-            break;
-        default:
-            CHK(FALSE, STATUS_INVALID_ARG);
-    }
-
     // Store the signaling message
     CHK_STATUS(signalingStoreOngoingMessage(pSignalingClient, pSignalingMessage));
     removeFromList = TRUE;
 
     // Perform the call
-    CHK_STATUS(sendLwsMessage(pSignalingClient, pOfferType, pSignalingMessage->peerClientId, pSignalingMessage->payload,
+    CHK_STATUS(sendLwsMessage(pSignalingClient, pSignalingMessage->messageType, pSignalingMessage->peerClientId, pSignalingMessage->payload,
                               pSignalingMessage->payloadLen, pSignalingMessage->correlationId, 0));
 
     // Update the internal diagnostics only after successfully sending
@@ -534,6 +518,7 @@ STATUS validateSignalingClientInfo(PSignalingClient pSignalingClient, PSignaling
 
 CleanUp:
 
+    CHK_LOG_ERR(retStatus);
     LEAVES();
     return retStatus;
 }
@@ -559,8 +544,12 @@ STATUS validateIceConfiguration(PSignalingClient pSignalingClient)
 
     CHK(minTtl > ICE_CONFIGURATION_REFRESH_GRACE_PERIOD, STATUS_SIGNALING_ICE_TTL_LESS_THAN_GRACE_PERIOD);
 
-    pSignalingClient->iceConfigExpiration = GETTIME() + (minTtl - ICE_CONFIGURATION_REFRESH_GRACE_PERIOD);
+    pSignalingClient->iceConfigTime = GETTIME();
+    pSignalingClient->iceConfigExpiration = pSignalingClient->iceConfigTime + (minTtl - ICE_CONFIGURATION_REFRESH_GRACE_PERIOD);
+
 CleanUp:
+
+    CHK_LOG_ERR(retStatus);
 
     LEAVES();
     return retStatus;
