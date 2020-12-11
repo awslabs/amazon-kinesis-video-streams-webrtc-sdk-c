@@ -1,6 +1,13 @@
 <map id="validateIceConfiguration" name="validateIceConfiguration">
-<area shape="rect" id="node1" title=" " alt="" coords="557,13,717,39"/>
-<area shape="rect" id="node2" href="$LwsApiCalls_8h.html#a16c0379ca9a49b7c11c2a15fe5138b0d" title=" " alt="" coords="391,13,509,39"/>
-<area shape="rect" id="node3" href="$Signaling_8h.html#a25382756fb65415fa80250a38b377f21" title=" " alt="" coords="248,13,343,39"/>
-<area shape="rect" id="node4" href="$StateMachine_8h.html#a4912a88bfde8b1b02b9885937534b083" title=" " alt="" coords="5,5,200,47"/>
+<area shape="rect" id="node1" title=" " alt="" coords="917,71,1077,98"/>
+<area shape="rect" id="node2" href="$LwsApiCalls_8h.html#a16c0379ca9a49b7c11c2a15fe5138b0d" title=" " alt="" coords="739,19,857,46"/>
+<area shape="rect" id="node5" href="$LwsApiCalls_8h.html#a3be2b58965f27978a86f44a01a60fdd1" title=" " alt="" coords="727,71,869,98"/>
+<area shape="rect" id="node9" href="$LwsApiCalls_8h.html#a8d813720c777b8b942a15652a8f0a972" title=" " alt="" coords="734,122,862,149"/>
+<area shape="rect" id="node3" href="$Signaling_8h.html#a25382756fb65415fa80250a38b377f21" title=" " alt="" coords="539,15,633,42"/>
+<area shape="rect" id="node4" href="$StateMachine_8h.html#a4912a88bfde8b1b02b9885937534b083" title=" " alt="" coords="239,5,433,47"/>
+<area shape="rect" id="node6" href="$LwsApiCalls_8h.html#aa2eb874b1b028f1648df7736ae344a63" title=" " alt="" coords="505,71,667,98"/>
+<area shape="rect" id="node7" href="$Signaling_8h.html#a26907340bcd88230be1b23ace9d19e68" title=" " alt="" coords="266,71,406,98"/>
+<area shape="rect" id="node8" href="$group__PublicMemberFunctions.html#ga375ddffe8376298cdaafe63799b53b1e" title="Creates a Signaling client and returns a handle to it." alt="" coords="5,71,179,98"/>
+<area shape="rect" id="node10" href="$Signaling_8h.html#a0db26c48fd56f7e976c7db9d0b1a2cac" title=" " alt="" coords="493,122,679,149"/>
+<area shape="rect" id="node11" href="$group__PublicMemberFunctions.html#gae6d8d80d47699c5494de1dc3d455b1f4" title="Send a message through a Signaling client." alt="" coords="227,122,445,149"/>
 </map>

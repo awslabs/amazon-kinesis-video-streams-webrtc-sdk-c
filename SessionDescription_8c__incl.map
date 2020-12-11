@@ -1,7 +1,6 @@
 <map id="/src/src/source/PeerConnection/SessionDescription.c" name="/src/src/source/PeerConnection/SessionDescription.c">
-<area shape="rect" id="node1" title=" " alt="" coords="2827,5,3032,47"/>
-<area shape="rect" id="node2" href="$Include__i_8h.html" title=" " alt="" coords="2831,95,2926,121"/>
-<area shape="rect" id="node50" href="$jsmn_8h.html" title=" " alt="" coords="2950,95,3010,121"/>
+<area shape="rect" id="node1" title=" " alt="" coords="2851,5,3056,47"/>
+<area shape="rect" id="node2" href="$Include__i_8h.html" title=" " alt="" coords="2906,95,3001,121"/>
 <area shape="rect" id="node3" href="$Include_8h.html" title=" " alt="" coords="5,169,192,211"/>
 <area shape="rect" id="node4" title=" " alt="" coords="217,177,303,203"/>
 <area shape="rect" id="node5" title=" " alt="" coords="328,177,403,203"/>
@@ -49,4 +48,5 @@
 <area shape="rect" id="node47" href="$FileCache_8h.html" title=" " alt="" coords="6924,177,7071,203"/>
 <area shape="rect" id="node48" href="$Signaling_8h.html" title=" " alt="" coords="7095,177,7238,203"/>
 <area shape="rect" id="node49" href="$ChannelInfo_8h.html" title=" " alt="" coords="7262,177,7421,203"/>
+<area shape="rect" id="node50" href="$StateMachine_8h.html" title=" " alt="" coords="7445,177,7614,203"/>
 </map>

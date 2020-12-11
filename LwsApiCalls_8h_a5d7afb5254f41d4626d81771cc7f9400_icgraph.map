@@ -34,7 +34,7 @@
 <area shape="rect" id="node30" href="$group__PublicMemberFunctions.html#gafb4629e6a81552152c1b475a32e06e9c" title="Frees the Signaling client object." alt="" coords="261,157,392,184"/>
 <area shape="rect" id="node32" href="$group__PublicMemberFunctions.html#gad85555f757662d1585efd00d496e5c13" title="Deletes the signaling channel referenced by SIGNALING_CLIENT_HANDLE." alt="" coords="241,5,413,32"/>
 <area shape="rect" id="node34" href="$group__PublicMemberFunctions.html#ga6130116416557558b66728a8db2c6ee7" title="Disconnects the signaling client." alt="" coords="227,56,427,83"/>
-<area shape="rect" id="node36" href="$LwsApiCalls_8h.html#a73aa82c21d25505351c26ccc31b2f2dd" title=" " alt="" coords="1007,583,1135,609"/>
+<area shape="rect" id="node36" href="$LwsApiCalls_8h.html#a8d813720c777b8b942a15652a8f0a972" title=" " alt="" coords="1007,583,1135,609"/>
 <area shape="rect" id="node37" href="$Signaling_8h.html#a0db26c48fd56f7e976c7db9d0b1a2cac" title=" " alt="" coords="745,588,931,615"/>
 <area shape="rect" id="node38" href="$group__PublicMemberFunctions.html#gae6d8d80d47699c5494de1dc3d455b1f4" title="Send a message through a Signaling client." alt="" coords="475,596,693,623"/>
 </map>
