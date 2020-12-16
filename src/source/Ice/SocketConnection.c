@@ -342,7 +342,7 @@ STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, U
     }
 
     while (socketWriteAttempt < MAX_SOCKET_WRITE_RETRY && bytesWritten < bufLen) {
-        result = sendto(pSocketConnection->localSocket, buf, bufLen, NO_SIGNAL, destAddr, addrLen);
+        result = sendto(pSocketConnection->localSocket, buf + bytesWritten, bufLen - bytesWritten, NO_SIGNAL, destAddr, addrLen);
         if (result < 0) {
             errorNum = getErrorCode();
             if (errorNum == EAGAIN || errorNum == EWOULDBLOCK) {
@@ -366,10 +366,12 @@ STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, U
                 DLOGD("sendto() failed with errno %s", getErrorString(errorNum));
                 break;
             }
+
+            // Indicate an attempt only on error
+            socketWriteAttempt++;
         } else {
             bytesWritten += result;
         }
-        socketWriteAttempt++;
     }
 
     if (pBytesWritten != NULL) {
