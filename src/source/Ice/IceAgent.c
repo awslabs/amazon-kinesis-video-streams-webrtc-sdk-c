@@ -10,7 +10,7 @@ typedef enum {
     SDP_ICE_CANDIDATE_PARSER_STATE_FOUNDATION = 0,
     SDP_ICE_CANDIDATE_PARSER_STATE_COMPONENT,
     SDP_ICE_CANDIDATE_PARSER_STATE_PROTOCOL,
-    SDP_ICE_CANDIDATE_PARSER_STATE_PORIORITY,
+    SDP_ICE_CANDIDATE_PARSER_STATE_PRIORITY,
     SDP_ICE_CANDIDATE_PARSER_STATE_IP,
     SDP_ICE_CANDIDATE_PARSER_STATE_PORT,
     SDP_ICE_CANDIDATE_PARSER_STATE_TYPE,
@@ -317,10 +317,11 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
     BOOL locked = FALSE;
     PIceCandidate pIceCandidate = NULL, pDuplicatedIceCandidate = NULL, pLocalIceCandidate = NULL;
     PCHAR curr, tail, next;
-    UINT32 tokenLen, portValue, remoteCandidateCount, len;
+    UINT32 tokenLen = 0, portValue = 0, remoteCandidateCount = 0, len = 0, priority = 0;
     BOOL freeIceCandidateIfFail = TRUE;
     BOOL foundIp = FALSE, foundPort = FALSE;
     CHAR ipBuf[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
+    CHAR priorityBuf[ICE_CANDIDATE_PRIORITY_LEN];
     KvsIpAddress candidateIpAddr;
     PDoubleListNode pCurNode = NULL;
     SDP_ICE_CANDIDATE_PARSER_STATE state;
@@ -329,6 +330,7 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
     CHK(!IS_EMPTY_STRING(pIceCandidateString), STATUS_INVALID_ARG);
 
     MEMSET(&candidateIpAddr, 0x00, SIZEOF(KvsIpAddress));
+    MEMSET(priorityBuf, 0x00, SIZEOF(priorityBuf));
 
     MUTEX_LOCK(pIceAgent->lock);
     locked = TRUE;
@@ -346,7 +348,10 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
         switch (state) {
             case SDP_ICE_CANDIDATE_PARSER_STATE_FOUNDATION:
             case SDP_ICE_CANDIDATE_PARSER_STATE_COMPONENT:
-            case SDP_ICE_CANDIDATE_PARSER_STATE_PORIORITY:
+                break;
+            case SDP_ICE_CANDIDATE_PARSER_STATE_PRIORITY:
+                STRNCPY(priorityBuf, curr, tokenLen);
+                priority = atoi(priorityBuf);
                 break;
             case SDP_ICE_CANDIDATE_PARSER_STATE_PROTOCOL:
                 CHK(STRNCMPI("tcp", curr, tokenLen) != 0, STATUS_ICE_CANDIDATE_STRING_IS_TCP);
@@ -386,6 +391,7 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
     pIceCandidate->isRemote = TRUE;
     pIceCandidate->ipAddress = candidateIpAddr;
     pIceCandidate->state = ICE_CANDIDATE_STATE_VALID;
+    pIceCandidate->priority = priority;
     CHK_STATUS(doubleListInsertItemHead(pIceAgent->remoteCandidates, (UINT64) pIceCandidate));
     freeIceCandidateIfFail = FALSE;
 
