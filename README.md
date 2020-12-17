@@ -185,7 +185,7 @@ Choose Start viewer to start live video streaming of the sample H264/Opus frames
             "kinesisvideo:GetIceServerConfig",
             "kinesisvideo:ConnectAsMaster",
           ],
-          "Resource":"arn:aws:kinesisvideo:*:*:channel/\${credentials-iot:ThingName}/*"
+          "Resource":"arn:aws:kinesisvideo:*:*:channel/${credentials-iot:ThingName}/*"
       }
    ]
 }
