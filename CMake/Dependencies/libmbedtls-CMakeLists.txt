@@ -18,9 +18,8 @@ endif()
 
 ExternalProject_Add(
   project_libmbedtls
-  # TODO: needs to replace this with official mbedTLS release version
   GIT_REPOSITORY  https://github.com/ARMmbed/mbedtls.git
-  GIT_TAG         868906cd0658ce91ca841af6f09d76846ef86d1b
+  GIT_TAG         v2.25.0
   PREFIX          ${CMAKE_CURRENT_BINARY_DIR}/build
   CMAKE_ARGS
     -DCMAKE_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX}

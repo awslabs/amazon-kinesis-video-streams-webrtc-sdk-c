@@ -225,6 +225,14 @@ where, `configuration` is of type `RtcConfiguration` in the function that calls 
 Doing this will make sure that `createCertificateAndKey() would not execute since a certificate is already available.`
 ```
 
+## Provide Hardware Entropy Source
+
+In the mbedTLS version, the SDK uses /dev/urandom on Unix and CryptGenRandom API on Windows to get a strong entropy source. On some systems, these APIs might not be available. So, it's **strongly suggested** that you bring your own hardware entropy source. To do this, you need to follow these steps:
+
+1. Uncomment `MBEDTLS_ENTROPY_HARDWARE_ALT` in configs/config_mbedtls.h
+2. Write your own entropy source implementation by following this function signature: https://github.com/ARMmbed/mbedtls/blob/v2.25.0/include/mbedtls/entropy_poll.h#L81-L92
+3. Include your implementation source code in the linking process
+
 ## DEBUG
 ### Getting the SDPs
 If you would like to print out the SDPs, run this command:
