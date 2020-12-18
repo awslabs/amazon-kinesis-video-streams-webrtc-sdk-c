@@ -321,7 +321,6 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
     BOOL freeIceCandidateIfFail = TRUE;
     BOOL foundIp = FALSE, foundPort = FALSE;
     CHAR ipBuf[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
-    CHAR priorityBuf[ICE_CANDIDATE_PRIORITY_LEN];
     KvsIpAddress candidateIpAddr;
     PDoubleListNode pCurNode = NULL;
     SDP_ICE_CANDIDATE_PARSER_STATE state;
@@ -330,7 +329,6 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
     CHK(!IS_EMPTY_STRING(pIceCandidateString), STATUS_INVALID_ARG);
 
     MEMSET(&candidateIpAddr, 0x00, SIZEOF(KvsIpAddress));
-    MEMSET(priorityBuf, 0x00, SIZEOF(priorityBuf));
 
     MUTEX_LOCK(pIceAgent->lock);
     locked = TRUE;
@@ -350,8 +348,7 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
             case SDP_ICE_CANDIDATE_PARSER_STATE_COMPONENT:
                 break;
             case SDP_ICE_CANDIDATE_PARSER_STATE_PRIORITY:
-                STRNCPY(priorityBuf, curr, tokenLen);
-                priority = atoi(priorityBuf);
+                STRTOUI32(curr, next, 10, &priority);
                 break;
             case SDP_ICE_CANDIDATE_PARSER_STATE_PROTOCOL:
                 CHK(STRNCMPI("tcp", curr, tokenLen) != 0, STATUS_ICE_CANDIDATE_STRING_IS_TCP);
