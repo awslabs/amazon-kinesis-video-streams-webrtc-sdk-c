@@ -353,6 +353,11 @@ TEST_F(IceFunctionalityTest, IceAgentAddRemoteCandidateUnitTest)
     EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(iceAgent.remoteCandidates, &remoteCandidateCount));
     // duplicated candidates are not added
     EXPECT_EQ(1, remoteCandidateCount);
+
+    EXPECT_EQ(STATUS_SUCCESS, doubleListGetHeadNode(iceAgent.remoteCandidates, &pCurNode));
+    // parsing candidate priority correctly
+    EXPECT_EQ(2122260223, ((PIceCandidate)pCurNode->data)->priority);
+
     // candidate pair formed
     EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(iceAgent.iceCandidatePairs, &iceCandidateCount));
     EXPECT_EQ(1, iceCandidateCount);
@@ -368,6 +373,10 @@ TEST_F(IceFunctionalityTest, IceAgentAddRemoteCandidateUnitTest)
     EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(iceAgent.iceCandidatePairs, &iceCandidateCount));
     EXPECT_EQ(2, iceCandidateCount);
 
+    // parsing candidate priority correctly
+    EXPECT_EQ(STATUS_SUCCESS, doubleListGetHeadNode(iceAgent.remoteCandidates, &pCurNode));
+    EXPECT_EQ(2122262783, ((PIceCandidate)pCurNode->data)->priority);
+
     iceAgent.iceAgentState = ICE_AGENT_STATE_CHECK_CONNECTION;
     EXPECT_EQ(STATUS_SUCCESS, iceAgentAddRemoteCandidate(&iceAgent, relayCandidateStr));
     EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(iceAgent.remoteCandidates, &remoteCandidateCount));
@@ -375,6 +384,10 @@ TEST_F(IceFunctionalityTest, IceAgentAddRemoteCandidateUnitTest)
     // candidate pair formed
     EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(iceAgent.iceCandidatePairs, &iceCandidateCount));
     EXPECT_EQ(3, iceCandidateCount);
+
+    EXPECT_EQ(STATUS_SUCCESS, doubleListGetHeadNode(iceAgent.remoteCandidates, &pCurNode));
+    // parsing candidate priority correctly
+    EXPECT_EQ(41885439, ((PIceCandidate)pCurNode->data)->priority);
 
     MUTEX_FREE(iceAgent.lock);
     EXPECT_EQ(STATUS_SUCCESS, doubleListGetHeadNode(iceAgent.iceCandidatePairs, &pCurNode));

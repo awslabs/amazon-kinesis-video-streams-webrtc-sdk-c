@@ -10,7 +10,7 @@ typedef enum {
     SDP_ICE_CANDIDATE_PARSER_STATE_FOUNDATION = 0,
     SDP_ICE_CANDIDATE_PARSER_STATE_COMPONENT,
     SDP_ICE_CANDIDATE_PARSER_STATE_PROTOCOL,
-    SDP_ICE_CANDIDATE_PARSER_STATE_PORIORITY,
+    SDP_ICE_CANDIDATE_PARSER_STATE_PRIORITY,
     SDP_ICE_CANDIDATE_PARSER_STATE_IP,
     SDP_ICE_CANDIDATE_PARSER_STATE_PORT,
     SDP_ICE_CANDIDATE_PARSER_STATE_TYPE,
@@ -317,7 +317,7 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
     BOOL locked = FALSE;
     PIceCandidate pIceCandidate = NULL, pDuplicatedIceCandidate = NULL, pLocalIceCandidate = NULL;
     PCHAR curr, tail, next;
-    UINT32 tokenLen, portValue, remoteCandidateCount, len;
+    UINT32 tokenLen = 0, portValue = 0, remoteCandidateCount = 0, len = 0, priority = 0;
     BOOL freeIceCandidateIfFail = TRUE;
     BOOL foundIp = FALSE, foundPort = FALSE;
     CHAR ipBuf[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
@@ -346,7 +346,9 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
         switch (state) {
             case SDP_ICE_CANDIDATE_PARSER_STATE_FOUNDATION:
             case SDP_ICE_CANDIDATE_PARSER_STATE_COMPONENT:
-            case SDP_ICE_CANDIDATE_PARSER_STATE_PORIORITY:
+                break;
+            case SDP_ICE_CANDIDATE_PARSER_STATE_PRIORITY:
+                STRTOUI32(curr, next, 10, &priority);
                 break;
             case SDP_ICE_CANDIDATE_PARSER_STATE_PROTOCOL:
                 CHK(STRNCMPI("tcp", curr, tokenLen) != 0, STATUS_ICE_CANDIDATE_STRING_IS_TCP);
@@ -386,6 +388,7 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
     pIceCandidate->isRemote = TRUE;
     pIceCandidate->ipAddress = candidateIpAddr;
     pIceCandidate->state = ICE_CANDIDATE_STATE_VALID;
+    pIceCandidate->priority = priority;
     CHK_STATUS(doubleListInsertItemHead(pIceAgent->remoteCandidates, (UINT64) pIceCandidate));
     freeIceCandidateIfFail = FALSE;
 
