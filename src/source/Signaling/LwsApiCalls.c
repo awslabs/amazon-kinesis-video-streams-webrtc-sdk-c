@@ -795,7 +795,7 @@ STATUS createChannelLws(PSignalingClient pSignalingClient, UINT64 time)
         for (i = 0; i < pSignalingClient->pChannelInfo->tagCount; i++) {
             charsCopied = SNPRINTF(pCurPtr, MAX_JSON_PARAMETER_STRING_LEN - (pCurPtr - pTagsStart), TAG_PARAM_JSON_OBJ_TEMPLATE,
                                    pSignalingClient->pChannelInfo->pTags[i].name, pSignalingClient->pChannelInfo->pTags[i].value);
-            CHK(charsCopied > 0, STATUS_INTERNAL_ERROR);
+            CHK(charsCopied > 0 && charsCopied < MAX_JSON_PARAMETER_STRING_LEN - (pCurPtr - pTagsStart), STATUS_INTERNAL_ERROR);
             pCurPtr += charsCopied;
         }
 
