@@ -822,7 +822,6 @@ STATUS populateSessionDescription(PKvsPeerConnection pKvsPeerConnection, PSessio
         CHK(charsCopied > 0 && (UINT32) charsCopied < sizeRemaining, STATUS_BUFFER_TOO_SMALL);
 
         curr += charsCopied;
-
     }
     pLocalSessionDescription->sessionAttributesCount++;
 
