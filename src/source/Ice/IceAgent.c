@@ -321,7 +321,7 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
     UINT32 tokenLen = 0, portValue = 0, remoteCandidateCount = 0, len = 0, priority = 0;
     BOOL freeIceCandidateIfFail = TRUE;
     BOOL foundIp = FALSE;
-    BOOL breakLoop = FALSE;
+    BOOL foundType = FALSE;
     CHAR ipBuf[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
     KvsIpAddress candidateIpAddr;
     PDoubleListNode pCurNode = NULL;
@@ -343,7 +343,7 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
     tail = pIceCandidateString + STRLEN(pIceCandidateString);
     state = SDP_ICE_CANDIDATE_PARSER_STATE_FOUNDATION;
 
-    while ((next = STRNCHR(curr, tail - curr, ' ')) != NULL && !breakLoop) {
+    while ((next = STRNCHR(curr, tail - curr, ' ')) != NULL && !foundType) {
         tokenLen = (UINT32)(next - curr);
 
         switch (state) {
@@ -389,7 +389,7 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
                 } else {
                     DLOGW("unknown candidate type.");
                 }
-                breakLoop = TRUE;
+                foundType = TRUE;
                 break;
             default:
                 DLOGW("supposedly does not happen.");
