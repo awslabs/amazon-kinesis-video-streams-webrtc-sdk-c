@@ -1,5 +1,6 @@
 var NAVTREEINDEX3 =
 {
+"structRtcRemoteInboundRtpStreamStats.html":[1,20,14],
 "structRtcRemoteInboundRtpStreamStats.html#a07fec5b68715a29e0456e70ed5b12037":[1,20,14,0],
 "structRtcRemoteInboundRtpStreamStats.html#a0c1860018838774cce5774ce9a7c6ea9":[1,20,14,5],
 "structRtcRemoteInboundRtpStreamStats.html#a1d6ab410390c8b98de1e38be4a55dc76":[1,20,14,3],

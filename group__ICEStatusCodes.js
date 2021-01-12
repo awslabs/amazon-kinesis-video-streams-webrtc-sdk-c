@@ -11,6 +11,7 @@ var group__ICEStatusCodes =
     [ "STATUS_ICE_CANDIDATE_STRING_IS_TCP", "group__ICEStatusCodes.html#gaa3c47f9bd60991336a88baec443f61bf", null ],
     [ "STATUS_ICE_CANDIDATE_STRING_MISSING_IP", "group__ICEStatusCodes.html#ga28745f36ec7b1a2816b3ac695e13064a", null ],
     [ "STATUS_ICE_CANDIDATE_STRING_MISSING_PORT", "group__ICEStatusCodes.html#gae31d9c88ab4c4a44a2b243704c43b28e", null ],
+    [ "STATUS_ICE_CANDIDATE_STRING_MISSING_TYPE", "group__ICEStatusCodes.html#ga5260f1adcbd31d86974d30fb38ab12eb", null ],
     [ "STATUS_ICE_FAILED_TO_COMPUTE_MD5_FOR_LONG_TERM_CREDENTIAL", "group__ICEStatusCodes.html#gaaf51b6cb643d454a4094ed025cb16303", null ],
     [ "STATUS_ICE_FAILED_TO_NOMINATE_CANDIDATE_PAIR", "group__ICEStatusCodes.html#gabd71bb83ad4eae487088f93edd68dadc", null ],
     [ "STATUS_ICE_FAILED_TO_RECOVER_FROM_DISCONNECTION", "group__ICEStatusCodes.html#ga12703a6b2c3a18fdd5f9691f0431fe16", null ],
