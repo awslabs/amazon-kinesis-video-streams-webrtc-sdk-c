@@ -1063,13 +1063,16 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
 
     switch (pReceivedSignalingMessage->signalingMessage.messageType) {
         case SIGNALING_MESSAGE_TYPE_OFFER:
+            // Check if we already have an ongoing master session with the same peer
+            CHK_ERR(!peerConnectionFound, STATUS_INVALID_OPERATION, "Peer connection %s is in progress", pReceivedSignalingMessage->signalingMessage.peerClientId);
+
             /*
              * Create new streaming session for each offer, then insert the client id and streaming session into
              * pRtcPeerConnectionForRemoteClient for subsequent ice candidate messages. Lastly check if there is
              * any ice candidate messages queued in pPendingSignalingMessageForRemoteClient. If so then submit
              * all of them.
              */
-            if (pSampleConfiguration->streamingSessionCount == SIZEOF(pSampleConfiguration->sampleStreamingSessionList)) {
+            if (pSampleConfiguration->streamingSessionCount == ARRAY_SIZE(pSampleConfiguration->sampleStreamingSessionList)) {
                 DLOGW("Max simultaneous streaming session count reached.");
                 CHK(FALSE, retStatus);
             }
