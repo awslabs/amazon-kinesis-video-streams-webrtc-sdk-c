@@ -254,7 +254,7 @@ complies, use the `scripts/check-clang.sh` to check for compliance and `scripts/
 
 ## Tracing high memory and/or cpu usage
 If you would like to specifically find the code path that causes high memory and/or cpu usage, you need to recompile the SDK with this command:
-`cmake .. -DENABLE_PROFILE=ON`
+`cmake .. -DLINK_PROFILER=ON`
 
 The flag will link the SDK with [gperftools](https://github.com/gperftools/gperftools) profiler.
 
