@@ -201,7 +201,8 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
     PConnectionListener pConnectionListener = (PConnectionListener) arg;
     PSocketConnection pSocketConnection;
     BOOL locked = FALSE, iterate = TRUE;
-    UINT32 i;
+    PSocketConnection sockets[CONNECTION_LISTENER_DEFAULT_MAX_LISTENING_CONNECTION];
+    UINT32 i, socketCount;
 
     INT32 nfds = 0;
     fd_set rfds;
@@ -232,12 +233,16 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
         MUTEX_LOCK(pConnectionListener->lock);
         locked = TRUE;
 
-        for (i = 0; i < CONNECTION_LISTENER_DEFAULT_MAX_LISTENING_CONNECTION; i++) {
+        for (i = 0, socketCount = 0; i < CONNECTION_LISTENER_DEFAULT_MAX_LISTENING_CONNECTION; i++) {
             pSocketConnection = pConnectionListener->sockets[i];
             if (pSocketConnection != NULL) {
                 if (!socketConnectionIsClosed(pSocketConnection)) {
                     FD_SET(pSocketConnection->localSocket, &rfds);
                     nfds = MAX(nfds, pSocketConnection->localSocket);
+
+                    // Store the sockets locally while in use and mark it as in use
+                    sockets[socketCount++] = pSocketConnection;
+                    ATOMIC_STORE_BOOL(&pSocketConnection->inUse, TRUE);
                 } else {
                     // Remove the connection
                     pConnectionListener->sockets[i] = NULL;
@@ -248,6 +253,10 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
 
         // Should be one more than the sockets count per API documentation
         nfds++;
+
+        // Need to unlock the mutex to ensure other racing threads unblock
+        MUTEX_UNLOCK(pConnectionListener->lock);
+        locked = FALSE;
 
         // timeout select every SOCKET_WAIT_FOR_DATA_TIMEOUT_SECONDS seconds and check if terminate
         // on linux tv need to be reinitialized after select is done.
@@ -324,9 +333,10 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
             }
         }
 
-        // Need to unlock the mutex to ensure other racing threads unblock
-        MUTEX_UNLOCK(pConnectionListener->lock);
-        locked = FALSE;
+        // Mark as unused
+        for (i = 0; i < socketCount; i++) {
+            ATOMIC_STORE_BOOL(&sockets[i]->inUse, FALSE);
+        }
     }
 
 CleanUp:
