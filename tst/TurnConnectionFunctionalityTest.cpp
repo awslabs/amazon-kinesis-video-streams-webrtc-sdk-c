@@ -295,8 +295,8 @@ TEST_F(TurnConnectionFunctionalityTest, turnConnectionShutdownWithAllocationRemo
     UINT64 shutdownTimeout;
     UINT64 doneAllocateTimeout = GETTIME() + 10 * HUNDREDS_OF_NANOS_IN_A_SECOND;
     PSocketConnection pTurnSocketConnection = NULL, pCurrSocketConnection = NULL;
-    PDoubleListNode pCurNode = NULL;
     BOOL connectionRemovedFromListener = TRUE;
+    UINT32 i;
 
     initializeTestTurnConnection();
     pTurnSocketConnection = pTurnConnection->pControlChannel;
@@ -331,11 +331,11 @@ TEST_F(TurnConnectionFunctionalityTest, turnConnectionShutdownWithAllocationRemo
     THREAD_SLEEP(2 * HUNDREDS_OF_NANOS_IN_A_SECOND);
 
     MUTEX_LOCK(pConnectionListener->lock);
-    EXPECT_EQ(STATUS_SUCCESS, doubleListGetHeadNode(pConnectionListener->connectionList, &pCurNode));
-    while (pCurNode != NULL && connectionRemovedFromListener) {
-        pCurrSocketConnection = (PSocketConnection) pCurNode->data;
-        pCurNode = pCurNode->pNext;
-        connectionRemovedFromListener = pCurrSocketConnection != pTurnSocketConnection;
+    for (i = 0; connectionRemovedFromListener && i < CONNECTION_LISTENER_DEFAULT_MAX_LISTENING_CONNECTION; i++) {
+        if (pConnectionListener->sockets[i] != NULL) {
+            pCurrSocketConnection = pConnectionListener->sockets[i];
+            connectionRemovedFromListener = (pCurrSocketConnection != pTurnSocketConnection);
+        }
     }
     MUTEX_UNLOCK(pConnectionListener->lock);
 
@@ -355,8 +355,8 @@ TEST_F(TurnConnectionFunctionalityTest, turnConnectionShutdownWithoutAllocationR
     UINT64 shutdownTimeout;
     UINT64 atGetCredentialTimeout = GETTIME() + 10 * HUNDREDS_OF_NANOS_IN_A_SECOND;
     PSocketConnection pTurnSocketConnection = NULL, pCurrSocketConnection = NULL;
-    PDoubleListNode pCurNode = NULL;
     BOOL connectionRemovedFromListener = TRUE;
+    UINT32 i;
 
     initializeTestTurnConnection();
     pTurnSocketConnection = pTurnConnection->pControlChannel;
@@ -390,11 +390,11 @@ TEST_F(TurnConnectionFunctionalityTest, turnConnectionShutdownWithoutAllocationR
     THREAD_SLEEP(2 * HUNDREDS_OF_NANOS_IN_A_SECOND);
 
     MUTEX_LOCK(pConnectionListener->lock);
-    EXPECT_EQ(STATUS_SUCCESS, doubleListGetHeadNode(pConnectionListener->connectionList, &pCurNode));
-    while (pCurNode != NULL && connectionRemovedFromListener) {
-        pCurrSocketConnection = (PSocketConnection) pCurNode->data;
-        pCurNode = pCurNode->pNext;
-        connectionRemovedFromListener = pCurrSocketConnection != pTurnSocketConnection;
+    for (i = 0; connectionRemovedFromListener && i < CONNECTION_LISTENER_DEFAULT_MAX_LISTENING_CONNECTION; i++) {
+        if (pConnectionListener->sockets[i] != NULL) {
+            pCurrSocketConnection = pConnectionListener->sockets[i];
+            connectionRemovedFromListener = (pCurrSocketConnection != pTurnSocketConnection);
+        }
     }
     MUTEX_UNLOCK(pConnectionListener->lock);
 
@@ -414,7 +414,7 @@ TEST_F(TurnConnectionFunctionalityTest, turnConnectionShutdownAfterFailure)
     UINT64 shutdownTimeout;
     UINT64 atGetCredentialTimeout = GETTIME() + 10 * HUNDREDS_OF_NANOS_IN_A_SECOND;
     PSocketConnection pTurnSocketConnection = NULL, pCurrSocketConnection = NULL;
-    PDoubleListNode pCurNode = NULL;
+    UINT32 i;
     BOOL connectionRemovedFromListener = TRUE;
 
     initializeTestTurnConnection();
@@ -452,11 +452,11 @@ TEST_F(TurnConnectionFunctionalityTest, turnConnectionShutdownAfterFailure)
     THREAD_SLEEP(3 * HUNDREDS_OF_NANOS_IN_A_SECOND);
 
     MUTEX_LOCK(pConnectionListener->lock);
-    EXPECT_EQ(STATUS_SUCCESS, doubleListGetHeadNode(pConnectionListener->connectionList, &pCurNode));
-    while (pCurNode != NULL && connectionRemovedFromListener) {
-        pCurrSocketConnection = (PSocketConnection) pCurNode->data;
-        pCurNode = pCurNode->pNext;
-        connectionRemovedFromListener = pCurrSocketConnection != pTurnSocketConnection;
+    for (i = 0; connectionRemovedFromListener && i < CONNECTION_LISTENER_DEFAULT_MAX_LISTENING_CONNECTION; i++) {
+        if (pConnectionListener->sockets[i] != NULL) {
+            pCurrSocketConnection = pConnectionListener->sockets[i];
+            connectionRemovedFromListener = (pCurrSocketConnection != pTurnSocketConnection);
+        }
     }
     MUTEX_UNLOCK(pConnectionListener->lock);
 

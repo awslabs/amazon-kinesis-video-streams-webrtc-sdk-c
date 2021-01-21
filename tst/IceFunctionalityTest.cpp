@@ -184,26 +184,26 @@ TEST_F(IceFunctionalityTest, connectionListenerFunctionalityTest)
     THREAD_JOIN(routine1, NULL);
     THREAD_JOIN(routine2, NULL);
 
-    EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(pConnectionListener->connectionList, &connectionCount));
+    connectionCount = pConnectionListener->socketCount;
     EXPECT_EQ(connectionCount, routine1CustomData.connectionToAdd + routine2CustomData.connectionToAdd);
 
     CHECK(STATUS_SUCCEEDED(
         createSocketConnection((KVS_IP_FAMILY_TYPE) localhost.family, KVS_SOCKET_PROTOCOL_UDP, &localhost, NULL, 0, NULL, 0, &pSocketConnection)));
     EXPECT_EQ(STATUS_SUCCESS, connectionListenerAddConnection(pConnectionListener, pSocketConnection));
 
-    EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(pConnectionListener->connectionList, &newConnectionCount));
+    connectionCount = pConnectionListener->socketCount;
     EXPECT_EQ(connectionCount + 1, newConnectionCount);
 
     EXPECT_EQ(STATUS_SUCCESS, connectionListenerRemoveConnection(pConnectionListener, pSocketConnection));
-    EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(pConnectionListener->connectionList, &newConnectionCount));
+    connectionCount = pConnectionListener->socketCount;
     EXPECT_EQ(connectionCount, newConnectionCount);
 
     EXPECT_EQ(TRUE, IS_VALID_TID_VALUE(pConnectionListener->receiveDataRoutine));
     ATOMIC_STORE_BOOL(&pConnectionListener->terminate, TRUE);
 
-    THREAD_SLEEP((SOCKET_WAIT_FOR_DATA_TIMEOUT_SECONDS + 1) * HUNDREDS_OF_NANOS_IN_A_SECOND);
+    THREAD_SLEEP(SOCKET_WAIT_FOR_DATA_TIMEOUT + 1 * HUNDREDS_OF_NANOS_IN_A_SECOND);
 
-    EXPECT_EQ(FALSE, ATOMIC_LOAD_BOOL(&pConnectionListener->listenerRoutineStarted));
+    EXPECT_EQ(FALSE, IS_VALID_TID_VALUE(pConnectionListener->receiveDataRoutine));
 
     EXPECT_EQ(STATUS_SUCCESS, freeConnectionListener(&pConnectionListener));
 

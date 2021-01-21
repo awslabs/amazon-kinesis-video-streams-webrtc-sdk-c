@@ -264,7 +264,7 @@ STATUS depayH264FromRtpPayload(PBYTE pRawPacket, UINT32 packetLength, PBYTE pNal
         case STAP_A_INDICATOR:
             pCurPtr += STAP_A_HEADER_SIZE;
             do {
-                subNaluSize = getInt16(*((PUINT16) pCurPtr));
+                subNaluSize = getUnalignedInt16BigEndian(pCurPtr);
                 pCurPtr += SIZEOF(UINT16);
                 naluLength += subNaluSize + SIZEOF(start4ByteCode);
                 pCurPtr += subNaluSize;
@@ -274,7 +274,7 @@ STATUS depayH264FromRtpPayload(PBYTE pRawPacket, UINT32 packetLength, PBYTE pNal
         case STAP_B_INDICATOR:
             pCurPtr += STAP_B_HEADER_SIZE;
             do {
-                subNaluSize = getInt16(*((PUINT16) pCurPtr));
+                subNaluSize = getUnalignedInt16BigEndian(pCurPtr);
                 pCurPtr += SIZEOF(UINT16);
                 naluLength += subNaluSize + SIZEOF(start4ByteCode);
                 pCurPtr += subNaluSize;
@@ -323,7 +323,7 @@ STATUS depayH264FromRtpPayload(PBYTE pRawPacket, UINT32 packetLength, PBYTE pNal
             naluLength = 0;
             pCurPtr = pRawPacket + STAP_A_HEADER_SIZE;
             do {
-                subNaluSize = getInt16(*((PUINT16) pCurPtr));
+                subNaluSize = getUnalignedInt16BigEndian(pCurPtr);
                 pCurPtr += SIZEOF(UINT16);
                 MEMCPY(pNaluData, start4ByteCode, SIZEOF(start4ByteCode));
                 pNaluData += SIZEOF(start4ByteCode);
@@ -338,7 +338,7 @@ STATUS depayH264FromRtpPayload(PBYTE pRawPacket, UINT32 packetLength, PBYTE pNal
             naluLength = 0;
             pCurPtr = pRawPacket + STAP_A_HEADER_SIZE;
             do {
-                subNaluSize = getInt16(*((PUINT16) pCurPtr));
+                subNaluSize = getUnalignedInt16BigEndian(pCurPtr);
                 pCurPtr += SIZEOF(UINT16);
                 MEMCPY(pNaluData, start4ByteCode, SIZEOF(start4ByteCode));
                 pNaluData += SIZEOF(start4ByteCode);
