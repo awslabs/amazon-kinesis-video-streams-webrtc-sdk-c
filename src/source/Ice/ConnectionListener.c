@@ -75,7 +75,7 @@ CleanUp:
 STATUS connectionListenerAddConnection(PConnectionListener pConnectionListener, PSocketConnection pSocketConnection)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    BOOL locked = FALSE;
+    BOOL locked = FALSE, iterate = TRUE;
     UINT32 i;
 
     CHK(pConnectionListener != NULL && pSocketConnection != NULL, STATUS_NULL_ARG);
@@ -88,13 +88,13 @@ STATUS connectionListenerAddConnection(PConnectionListener pConnectionListener, 
     CHK(pConnectionListener->socketCount < CONNECTION_LISTENER_DEFAULT_MAX_LISTENING_CONNECTION, STATUS_NOT_ENOUGH_MEMORY);
 
     // Find an empty slot by checking whether connected
-    for (i = 0; i < CONNECTION_LISTENER_DEFAULT_MAX_LISTENING_CONNECTION; i++) {
+    for (i = 0; iterate && i < CONNECTION_LISTENER_DEFAULT_MAX_LISTENING_CONNECTION; i++) {
         if (pConnectionListener->sockets[i] == NULL) {
             pConnectionListener->sockets[i] = pSocketConnection;
+            pConnectionListener->socketCount++;
+            iterate = FALSE;
         }
     }
-
-    pConnectionListener->socketCount++;
 
     MUTEX_UNLOCK(pConnectionListener->lock);
     locked = FALSE;
@@ -330,6 +330,10 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
     }
 
 CleanUp:
+
+    if (pConnectionListener != NULL) {
+        pConnectionListener->receiveDataRoutine = INVALID_TID_VALUE;
+    }
 
     if (locked) {
         MUTEX_UNLOCK(pConnectionListener->lock);
