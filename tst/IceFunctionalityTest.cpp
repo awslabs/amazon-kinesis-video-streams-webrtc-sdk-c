@@ -151,7 +151,7 @@ TEST_F(IceFunctionalityTest, connectionListenerFunctionalityTest)
     PConnectionListener pConnectionListener;
     ConnectionListenerTestCustomData routine1CustomData, routine2CustomData;
     TID routine1, routine2;
-    UINT32 connectionCount = 0, newConnectionCount = 0, i;
+    UINT32 connectionCount , newConnectionCount, i;
     PSocketConnection pSocketConnection = NULL;
     KvsIpAddress localhost;
 
@@ -191,11 +191,11 @@ TEST_F(IceFunctionalityTest, connectionListenerFunctionalityTest)
         createSocketConnection((KVS_IP_FAMILY_TYPE) localhost.family, KVS_SOCKET_PROTOCOL_UDP, &localhost, NULL, 0, NULL, 0, &pSocketConnection)));
     EXPECT_EQ(STATUS_SUCCESS, connectionListenerAddConnection(pConnectionListener, pSocketConnection));
 
-    connectionCount = pConnectionListener->socketCount;
+    newConnectionCount = pConnectionListener->socketCount;
     EXPECT_EQ(connectionCount + 1, newConnectionCount);
 
     EXPECT_EQ(STATUS_SUCCESS, connectionListenerRemoveConnection(pConnectionListener, pSocketConnection));
-    connectionCount = pConnectionListener->socketCount;
+    newConnectionCount = pConnectionListener->socketCount;
     EXPECT_EQ(connectionCount, newConnectionCount);
 
     EXPECT_EQ(TRUE, IS_VALID_TID_VALUE(pConnectionListener->receiveDataRoutine));
