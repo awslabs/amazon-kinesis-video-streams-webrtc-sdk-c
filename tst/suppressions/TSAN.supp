@@ -175,4 +175,5 @@ deadlock:com::amazonaws::kinesis::video::webrtcclient::DtlsFunctionalityTest::cr
 # false positive with the deadlock. Trying to disable the LWS handling routine based pattern
 # instead of flagging each individual instance of the test.
 deadlock:lwsListenerHandler
+deadlock:connectSignalingChannelLws
 race:lwsListenerHandler
