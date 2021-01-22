@@ -228,7 +228,7 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
     INT32 nfds = 0;
     fd_set rfds;
     struct timeval tv;
-    INT32 retval;
+    INT32 retval, localSocket;
     INT64 readLen;
     // the source address is put here. sockaddr_storage can hold either sockaddr_in or sockaddr_in6
     struct sockaddr_storage srcAddrBuff;
@@ -259,8 +259,11 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
             pSocketConnection = pConnectionListener->sockets[i];
             if (pSocketConnection != NULL) {
                 if (!socketConnectionIsClosed(pSocketConnection)) {
-                    FD_SET(pSocketConnection->localSocket, &rfds);
-                    nfds = MAX(nfds, pSocketConnection->localSocket);
+                    MUTEX_LOCK(pSocketConnection->lock);
+                    localSocket = pSocketConnection->localSocket;
+                    MUTEX_UNLOCK(pSocketConnection->lock);
+                    FD_SET(localSocket, &rfds);
+                    nfds = MAX(nfds, localSocket);
 
                     // Store the sockets locally while in use and mark it as in use
                     sockets[socketCount++] = pSocketConnection;
@@ -294,61 +297,67 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
         } else if (retval > 0) {
             for (i = 0; i < socketCount; i++) {
                 pSocketConnection = sockets[i];
-                if (!socketConnectionIsClosed(pSocketConnection) &&
-                    FD_ISSET(pSocketConnection->localSocket, &rfds)) {
-                    iterate = TRUE;
-                    while (iterate) {
-                        readLen = recvfrom(pSocketConnection->localSocket, pConnectionListener->pBuffer, pConnectionListener->bufferLen, 0, (struct sockaddr*) &srcAddrBuff, &srcAddrBuffLen);
-                        if (readLen < 0) {
-                            switch (getErrorCode()) {
-                                case EWOULDBLOCK:
-                                    break;
-                                default:
-                                    /* on any other error, close connection */
-                                    CHK_STATUS(socketConnectionClosed(pSocketConnection));
-                                    DLOGD("recvfrom() failed with errno %s for socket %d", getErrorString(getErrorCode()),
-                                          pSocketConnection->localSocket);
-                                    break;
-                            }
+                if (!socketConnectionIsClosed(pSocketConnection)) {
+                    MUTEX_LOCK(pSocketConnection->lock);
+                    localSocket = pSocketConnection->localSocket;
+                    MUTEX_UNLOCK(pSocketConnection->lock);
 
-                            iterate = FALSE;
-                        } else if (readLen == 0) {
-                            CHK_STATUS(socketConnectionClosed(pSocketConnection));
-                            iterate = FALSE;
-                        } else if (/* readLen > 0 */
-                                ATOMIC_LOAD_BOOL(&pSocketConnection->receiveData) && pSocketConnection->dataAvailableCallbackFn != NULL &&
-                                /* data could be encrypted so they need to be decrypted through socketConnectionReadData
-                                 * and get the decrypted data length. */
-                                STATUS_SUCCEEDED(socketConnectionReadData(pSocketConnection, pConnectionListener->pBuffer, pConnectionListener->bufferLen, (PUINT32) &readLen))) {
-                            if (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_UDP) {
-                                if (srcAddrBuff.ss_family == AF_INET) {
-                                    srcAddr.family = KVS_IP_FAMILY_TYPE_IPV4;
-                                    pIpv4Addr = (struct sockaddr_in*) &srcAddrBuff;
-                                    MEMCPY(srcAddr.address, (PBYTE) &pIpv4Addr->sin_addr, IPV4_ADDRESS_LENGTH);
-                                    srcAddr.port = pIpv4Addr->sin_port;
-                                } else if (srcAddrBuff.ss_family == AF_INET6) {
-                                    srcAddr.family = KVS_IP_FAMILY_TYPE_IPV6;
-                                    pIpv6Addr = (struct sockaddr_in6*) &srcAddrBuff;
-                                    MEMCPY(srcAddr.address, (PBYTE) &pIpv6Addr->sin6_addr, IPV6_ADDRESS_LENGTH);
-                                    srcAddr.port = pIpv6Addr->sin6_port;
+                    if (FD_ISSET(localSocket, &rfds)) {
+                        iterate = TRUE;
+                        while (iterate) {
+                            readLen = recvfrom(localSocket, pConnectionListener->pBuffer, pConnectionListener->bufferLen, 0,
+                                               (struct sockaddr*) &srcAddrBuff, &srcAddrBuffLen);
+                            if (readLen < 0) {
+                                switch (getErrorCode()) {
+                                    case EWOULDBLOCK:
+                                        break;
+                                    default:
+                                        /* on any other error, close connection */
+                                        CHK_STATUS(socketConnectionClosed(pSocketConnection));
+                                        DLOGD("recvfrom() failed with errno %s for socket %d", getErrorString(getErrorCode()), localSocket);
+                                        break;
                                 }
-                                pSrcAddr = &srcAddr;
-                            } else {
-                                // srcAddr is ignored in TCP callback handlers
-                                pSrcAddr = NULL;
+
+                                iterate = FALSE;
+                            } else if (readLen == 0) {
+                                CHK_STATUS(socketConnectionClosed(pSocketConnection));
+                                iterate = FALSE;
+                            } else if (/* readLen > 0 */
+                                       ATOMIC_LOAD_BOOL(&pSocketConnection->receiveData) && pSocketConnection->dataAvailableCallbackFn != NULL &&
+                                       /* data could be encrypted so they need to be decrypted through socketConnectionReadData
+                                        * and get the decrypted data length. */
+                                       STATUS_SUCCEEDED(socketConnectionReadData(pSocketConnection, pConnectionListener->pBuffer,
+                                                                                 pConnectionListener->bufferLen, (PUINT32) &readLen))) {
+                                if (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_UDP) {
+                                    if (srcAddrBuff.ss_family == AF_INET) {
+                                        srcAddr.family = KVS_IP_FAMILY_TYPE_IPV4;
+                                        pIpv4Addr = (struct sockaddr_in*) &srcAddrBuff;
+                                        MEMCPY(srcAddr.address, (PBYTE) &pIpv4Addr->sin_addr, IPV4_ADDRESS_LENGTH);
+                                        srcAddr.port = pIpv4Addr->sin_port;
+                                    } else if (srcAddrBuff.ss_family == AF_INET6) {
+                                        srcAddr.family = KVS_IP_FAMILY_TYPE_IPV6;
+                                        pIpv6Addr = (struct sockaddr_in6*) &srcAddrBuff;
+                                        MEMCPY(srcAddr.address, (PBYTE) &pIpv6Addr->sin6_addr, IPV6_ADDRESS_LENGTH);
+                                        srcAddr.port = pIpv6Addr->sin6_port;
+                                    }
+                                    pSrcAddr = &srcAddr;
+                                } else {
+                                    // srcAddr is ignored in TCP callback handlers
+                                    pSrcAddr = NULL;
+                                }
+
+                                // readLen may be 0 if SSL does not emit any application data.
+                                // in that case, no need to call dataAvailable callback
+                                if (readLen > 0) {
+                                    pSocketConnection->dataAvailableCallbackFn(pSocketConnection->dataAvailableCallbackCustomData, pSocketConnection,
+                                                                               pConnectionListener->pBuffer, (UINT32) readLen, pSrcAddr,
+                                                                               NULL); // no dest information available right now.
+                                }
                             }
 
-                            // readLen may be 0 if SSL does not emit any application data.
-                            // in that case, no need to call dataAvailable callback
-                            if (readLen > 0) {
-                                pSocketConnection->dataAvailableCallbackFn(pSocketConnection->dataAvailableCallbackCustomData, pSocketConnection,
-                                                                           pConnectionListener->pBuffer, (UINT32) readLen, pSrcAddr,
-                                                                           NULL); // no dest information available right now.
-                            }
+                            // reset srcAddrBuffLen to actual size
+                            srcAddrBuffLen = SIZEOF(srcAddrBuff);
                         }
-
-                        // reset srcAddrBuffLen to actual size
-                        srcAddrBuffLen = SIZEOF(srcAddrBuff);
                     }
                 }
             }
