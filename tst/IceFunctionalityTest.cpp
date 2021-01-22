@@ -154,6 +154,7 @@ TEST_F(IceFunctionalityTest, connectionListenerFunctionalityTest)
     UINT32 connectionCount , newConnectionCount, i;
     PSocketConnection pSocketConnection = NULL;
     KvsIpAddress localhost;
+    TID threadId;
 
     MEMSET(&routine1CustomData, 0x0, SIZEOF(ConnectionListenerTestCustomData));
     MEMSET(&routine2CustomData, 0x0, SIZEOF(ConnectionListenerTestCustomData));
@@ -198,12 +199,19 @@ TEST_F(IceFunctionalityTest, connectionListenerFunctionalityTest)
     newConnectionCount = pConnectionListener->socketCount;
     EXPECT_EQ(connectionCount, newConnectionCount);
 
-    EXPECT_EQ(TRUE, IS_VALID_TID_VALUE(pConnectionListener->receiveDataRoutine));
+    // Keeping TSAN happy need to lock/unlock when retrieving the value of TID
+    MUTEX_LOCK(pConnectionListener->lock);
+    threadId = pConnectionListener->receiveDataRoutine;
+    MUTEX_UNLOCK(pConnectionListener->lock);
+    EXPECT_TRUE( IS_VALID_TID_VALUE(threadId));
     ATOMIC_STORE_BOOL(&pConnectionListener->terminate, TRUE);
 
-    THREAD_SLEEP(SOCKET_WAIT_FOR_DATA_TIMEOUT + 1 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+    THREAD_SLEEP(CONNECTION_LISTENER_SOCKET_WAIT_FOR_DATA_TIMEOUT + 1 * HUNDREDS_OF_NANOS_IN_A_SECOND);
 
-    EXPECT_EQ(FALSE, IS_VALID_TID_VALUE(pConnectionListener->receiveDataRoutine));
+    MUTEX_LOCK(pConnectionListener->lock);
+    threadId = pConnectionListener->receiveDataRoutine;
+    MUTEX_UNLOCK(pConnectionListener->lock);
+    EXPECT_FALSE( IS_VALID_TID_VALUE(threadId));
 
     EXPECT_EQ(STATUS_SUCCESS, freeConnectionListener(&pConnectionListener));
 

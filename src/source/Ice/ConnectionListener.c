@@ -44,6 +44,9 @@ STATUS freeConnectionListener(PConnectionListener* ppConnectionListener)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PConnectionListener pConnectionListener = NULL;
+    UINT64 timeToWait;
+    TID threadId;
+    BOOL threadTerminated = FALSE;
 
     CHK(ppConnectionListener != NULL, STATUS_NULL_ARG);
     CHK(*ppConnectionListener != NULL, retStatus);
@@ -52,12 +55,29 @@ STATUS freeConnectionListener(PConnectionListener* ppConnectionListener)
 
     ATOMIC_STORE_BOOL(&pConnectionListener->terminate, TRUE);
 
-    if (IS_VALID_TID_VALUE(pConnectionListener->receiveDataRoutine)) {
-        THREAD_JOIN(pConnectionListener->receiveDataRoutine, NULL);
-        pConnectionListener->receiveDataRoutine = INVALID_TID_VALUE;
-    }
+    if (IS_VALID_MUTEX_VALUE(pConnectionListener->lock)) {
+        // Try to await for the thread to finish up
+        // NOTE: As TID is not atomic we need to wrap the read in locks
+        timeToWait = GETTIME() + CONNECTION_LISTENER_SHUTDOWN_TIMEOUT;
 
-    if (pConnectionListener->lock != INVALID_MUTEX_VALUE) {
+        do {
+            MUTEX_LOCK(pConnectionListener->lock);
+            threadId = pConnectionListener->receiveDataRoutine;
+            MUTEX_UNLOCK(pConnectionListener->lock);
+            if (!IS_VALID_TID_VALUE(threadId)) {
+                threadTerminated = TRUE;
+            }
+
+            // Allow the thread to finish and exit
+            if (!threadTerminated) {
+                THREAD_SLEEP(KVS_ICE_SHORT_CHECK_DELAY);
+            }
+        } while (!threadTerminated && GETTIME() < timeToWait);
+
+        if (!threadTerminated) {
+            DLOGW("Connection listener handler thread shutdown timed out");
+        }
+
         MUTEX_FREE(pConnectionListener->lock);
     }
 
@@ -185,6 +205,7 @@ STATUS connectionListenerStart(PConnectionListener pConnectionListener)
 
     CHK(!IS_VALID_TID_VALUE(pConnectionListener->receiveDataRoutine), retStatus);
     CHK_STATUS(THREAD_CREATE(&pConnectionListener->receiveDataRoutine, connectionListenerReceiveDataRoutine, (PVOID) pConnectionListener));
+    CHK_STATUS(THREAD_DETACH(pConnectionListener->receiveDataRoutine));
 
 CleanUp:
 
@@ -200,7 +221,7 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
     STATUS retStatus = STATUS_SUCCESS;
     PConnectionListener pConnectionListener = (PConnectionListener) arg;
     PSocketConnection pSocketConnection;
-    BOOL locked = FALSE, iterate = TRUE;
+    BOOL iterate = TRUE;
     PSocketConnection sockets[CONNECTION_LISTENER_DEFAULT_MAX_LISTENING_CONNECTION];
     UINT32 i, socketCount;
 
@@ -230,9 +251,10 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
         FD_ZERO(&rfds);
         nfds = 0;
 
+        // Perform the socket connection gathering under the lock
+        // NOTE: There is no cleanup jump from the lock/unlock block
+        // so we don't need to use a boolean indicator whether locked
         MUTEX_LOCK(pConnectionListener->lock);
-        locked = TRUE;
-
         for (i = 0, socketCount = 0; i < CONNECTION_LISTENER_DEFAULT_MAX_LISTENING_CONNECTION; i++) {
             pSocketConnection = pConnectionListener->sockets[i];
             if (pSocketConnection != NULL) {
@@ -256,12 +278,11 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
 
         // Need to unlock the mutex to ensure other racing threads unblock
         MUTEX_UNLOCK(pConnectionListener->lock);
-        locked = FALSE;
 
         // timeout select every SOCKET_WAIT_FOR_DATA_TIMEOUT_SECONDS seconds and check if terminate
         // on linux tv need to be reinitialized after select is done.
         tv.tv_sec = 0;
-        tv.tv_usec = SOCKET_WAIT_FOR_DATA_TIMEOUT / HUNDREDS_OF_NANOS_IN_A_MICROSECOND;
+        tv.tv_usec = CONNECTION_LISTENER_SOCKET_WAIT_FOR_DATA_TIMEOUT / HUNDREDS_OF_NANOS_IN_A_MICROSECOND;
 
         // blocking call until resolves as a timeout, an error, a signal or data received
         retval = select(nfds, &rfds, NULL, NULL, &tv);
@@ -271,8 +292,8 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
         if (retval == -1) {
             DLOGW("select() failed with errno %s", getErrorString(getErrorCode()));
         } else if (retval > 0) {
-            for (i = 0; i < CONNECTION_LISTENER_DEFAULT_MAX_LISTENING_CONNECTION; i++) {
-                pSocketConnection = pConnectionListener->sockets[i];
+            for (i = 0; i < socketCount; i++) {
+                pSocketConnection = sockets[i];
                 if (!socketConnectionIsClosed(pSocketConnection) &&
                     FD_ISSET(pSocketConnection->localSocket, &rfds)) {
                     iterate = TRUE;
@@ -342,10 +363,9 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
 CleanUp:
 
     if (pConnectionListener != NULL) {
+        // As TID is 64 bit we can't atomically update it and need to do it under the lock
+        MUTEX_LOCK(pConnectionListener->lock);
         pConnectionListener->receiveDataRoutine = INVALID_TID_VALUE;
-    }
-
-    if (locked) {
         MUTEX_UNLOCK(pConnectionListener->lock);
     }
 
