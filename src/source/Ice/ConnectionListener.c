@@ -15,14 +15,12 @@ STATUS createConnectionListener(PConnectionListener* ppConnectionListener)
     pConnectionListener = (PConnectionListener) MEMCALLOC(1, allocationSize);
     CHK(pConnectionListener != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
-    CHK_STATUS(doubleListCreate(&pConnectionListener->connectionList));
     ATOMIC_STORE_BOOL(&pConnectionListener->terminate, FALSE);
-    ATOMIC_STORE_BOOL(&pConnectionListener->listenerRoutineStarted, FALSE);
-    /* always update list when receiveDataRoutine first start */
-    ATOMIC_STORE_BOOL(&pConnectionListener->connectionListChanged, TRUE);
     pConnectionListener->receiveDataRoutine = INVALID_TID_VALUE;
     pConnectionListener->lock = MUTEX_CREATE(FALSE);
-    pConnectionListener->removeConnectionComplete = CVAR_CREATE();
+
+    // No sockets are present
+    pConnectionListener->socketCount = 0;
 
     // pConnectionListener->pBuffer starts at the end of ConnectionListener struct
     pConnectionListener->pBuffer = (PBYTE)(pConnectionListener + 1);
@@ -46,6 +44,9 @@ STATUS freeConnectionListener(PConnectionListener* ppConnectionListener)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PConnectionListener pConnectionListener = NULL;
+    UINT64 timeToWait;
+    TID threadId;
+    BOOL threadTerminated = FALSE;
 
     CHK(ppConnectionListener != NULL, STATUS_NULL_ARG);
     CHK(*ppConnectionListener != NULL, retStatus);
@@ -54,26 +55,30 @@ STATUS freeConnectionListener(PConnectionListener* ppConnectionListener)
 
     ATOMIC_STORE_BOOL(&pConnectionListener->terminate, TRUE);
 
-    if (IS_VALID_CVAR_VALUE(pConnectionListener->removeConnectionComplete)) {
-        CVAR_SIGNAL(pConnectionListener->removeConnectionComplete);
-    }
+    if (IS_VALID_MUTEX_VALUE(pConnectionListener->lock)) {
+        // Try to await for the thread to finish up
+        // NOTE: As TID is not atomic we need to wrap the read in locks
+        timeToWait = GETTIME() + CONNECTION_LISTENER_SHUTDOWN_TIMEOUT;
 
-    if (IS_VALID_TID_VALUE(pConnectionListener->receiveDataRoutine)) {
-        THREAD_JOIN(pConnectionListener->receiveDataRoutine, NULL);
-        pConnectionListener->receiveDataRoutine = INVALID_TID_VALUE;
-    }
+        do {
+            MUTEX_LOCK(pConnectionListener->lock);
+            threadId = pConnectionListener->receiveDataRoutine;
+            MUTEX_UNLOCK(pConnectionListener->lock);
+            if (!IS_VALID_TID_VALUE(threadId)) {
+                threadTerminated = TRUE;
+            }
 
-    if (pConnectionListener->connectionList != NULL) {
-        CHK_LOG_ERR(doubleListClear(pConnectionListener->connectionList, FALSE));
-        CHK_LOG_ERR(doubleListFree(pConnectionListener->connectionList));
-    }
+            // Allow the thread to finish and exit
+            if (!threadTerminated) {
+                THREAD_SLEEP(KVS_ICE_SHORT_CHECK_DELAY);
+            }
+        } while (!threadTerminated && GETTIME() < timeToWait);
 
-    if (pConnectionListener->lock != INVALID_MUTEX_VALUE) {
+        if (!threadTerminated) {
+            DLOGW("Connection listener handler thread shutdown timed out");
+        }
+
         MUTEX_FREE(pConnectionListener->lock);
-    }
-
-    if (IS_VALID_CVAR_VALUE(pConnectionListener->removeConnectionComplete)) {
-        CVAR_FREE(pConnectionListener->removeConnectionComplete);
     }
 
     MEMFREE(pConnectionListener);
@@ -90,7 +95,8 @@ CleanUp:
 STATUS connectionListenerAddConnection(PConnectionListener pConnectionListener, PSocketConnection pSocketConnection)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    BOOL locked = FALSE;
+    BOOL locked = FALSE, iterate = TRUE;
+    UINT32 i;
 
     CHK(pConnectionListener != NULL && pSocketConnection != NULL, STATUS_NULL_ARG);
     CHK(!ATOMIC_LOAD_BOOL(&pConnectionListener->terminate), retStatus);
@@ -98,12 +104,20 @@ STATUS connectionListenerAddConnection(PConnectionListener pConnectionListener, 
     MUTEX_LOCK(pConnectionListener->lock);
     locked = TRUE;
 
-    CHK_STATUS(doubleListInsertItemHead(pConnectionListener->connectionList, (UINT64) pSocketConnection));
+    // Check for space
+    CHK(pConnectionListener->socketCount < CONNECTION_LISTENER_DEFAULT_MAX_LISTENING_CONNECTION, STATUS_NOT_ENOUGH_MEMORY);
+
+    // Find an empty slot by checking whether connected
+    for (i = 0; iterate && i < CONNECTION_LISTENER_DEFAULT_MAX_LISTENING_CONNECTION; i++) {
+        if (pConnectionListener->sockets[i] == NULL) {
+            pConnectionListener->sockets[i] = pSocketConnection;
+            pConnectionListener->socketCount++;
+            iterate = FALSE;
+        }
+    }
 
     MUTEX_UNLOCK(pConnectionListener->lock);
     locked = FALSE;
-
-    ATOMIC_STORE_BOOL(&pConnectionListener->connectionListChanged, TRUE);
 
 CleanUp:
 
@@ -116,41 +130,27 @@ CleanUp:
 
 STATUS connectionListenerRemoveConnection(PConnectionListener pConnectionListener, PSocketConnection pSocketConnection)
 {
-    STATUS retStatus = STATUS_SUCCESS, cvarWaitStatus = STATUS_SUCCESS;
-    BOOL locked = FALSE, hasConnection = FALSE;
-    PDoubleListNode pCurNode = NULL;
-    PSocketConnection pCurrSocketConnection = NULL;
+    STATUS retStatus = STATUS_SUCCESS;
+    BOOL locked = FALSE, iterate = TRUE;
+    UINT32 i;
 
     CHK(pConnectionListener != NULL && pSocketConnection != NULL, STATUS_NULL_ARG);
     CHK(!ATOMIC_LOAD_BOOL(&pConnectionListener->terminate), retStatus);
 
-    /* mark socket as closed. Will be cleaned up by connectionListenerReceiveDataRoutine */
-    CHK_STATUS(socketConnectionClosed(pSocketConnection));
-
-    ATOMIC_STORE_BOOL(&pConnectionListener->connectionListChanged, TRUE);
-
     MUTEX_LOCK(pConnectionListener->lock);
     locked = TRUE;
 
-    CHK_STATUS(doubleListGetHeadNode(pConnectionListener->connectionList, &pCurNode));
-    while (!hasConnection && pCurNode != NULL) {
-        pCurrSocketConnection = (PSocketConnection) pCurNode->data;
-        pCurNode = pCurNode->pNext;
-        hasConnection = pCurrSocketConnection == pSocketConnection;
-    }
+    // Mark socket as closed
+    CHK_STATUS(socketConnectionClosed(pSocketConnection));
 
-    /* If connection is not found then return early */
-    CHK(hasConnection, retStatus);
+    // Remove from the list of sockets
+    for (i = 0; iterate && i < CONNECTION_LISTENER_DEFAULT_MAX_LISTENING_CONNECTION; i++) {
+        if (pConnectionListener->sockets[i] == pSocketConnection) {
+            iterate = FALSE;
 
-    /* make sure connectionListenerRemoveConnection return after connectionListenerReceiveDataRoutine has picked up
-     * the change. */
-    while (ATOMIC_LOAD_BOOL(&pConnectionListener->listenerRoutineStarted) && !ATOMIC_LOAD_BOOL(&pConnectionListener->terminate) &&
-           ATOMIC_LOAD_BOOL(&pConnectionListener->connectionListChanged) && STATUS_SUCCEEDED(cvarWaitStatus)) {
-        cvarWaitStatus =
-            CVAR_WAIT(pConnectionListener->removeConnectionComplete, pConnectionListener->lock, CONNECTION_AWAIT_CONNECTION_REMOVAL_TIMEOUT);
-        /* CVAR_WAIT should never time out */
-        if (STATUS_FAILED(cvarWaitStatus)) {
-            DLOGW("CVAR_WAIT() failed with 0x%08x", cvarWaitStatus);
+            // Mark the slot as empty and decrement the count
+            pConnectionListener->sockets[i] = NULL;
+            pConnectionListener->socketCount--;
         }
     }
 
@@ -165,10 +165,9 @@ CleanUp:
 
 STATUS connectionListenerRemoveAllConnection(PConnectionListener pConnectionListener)
 {
-    STATUS retStatus = STATUS_SUCCESS, cvarWaitStatus = STATUS_SUCCESS;
+    STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
-    PDoubleListNode pCurNode = NULL;
-    PSocketConnection pSocketConnection = NULL;
+    UINT32 i;
 
     CHK(pConnectionListener != NULL, STATUS_NULL_ARG);
     CHK(!ATOMIC_LOAD_BOOL(&pConnectionListener->terminate), retStatus);
@@ -176,25 +175,11 @@ STATUS connectionListenerRemoveAllConnection(PConnectionListener pConnectionList
     MUTEX_LOCK(pConnectionListener->lock);
     locked = TRUE;
 
-    // mark all socket as closed. Will be cleaned up by connectionListenerReceiveDataRoutine
-    CHK_STATUS(doubleListGetHeadNode(pConnectionListener->connectionList, &pCurNode));
-    while (pCurNode != NULL) {
-        pSocketConnection = (PSocketConnection) pCurNode->data;
-        pCurNode = pCurNode->pNext;
-        CHK_STATUS(socketConnectionClosed(pSocketConnection));
-    }
-
-    ATOMIC_STORE_BOOL(&pConnectionListener->connectionListChanged, TRUE);
-
-    /* make sure connectionListenerRemoveAllConnection return after connectionListenerReceiveDataRoutine has picked up
-     * the change. */
-    while (ATOMIC_LOAD_BOOL(&pConnectionListener->listenerRoutineStarted) && !ATOMIC_LOAD_BOOL(&pConnectionListener->terminate) &&
-           ATOMIC_LOAD_BOOL(&pConnectionListener->connectionListChanged) && STATUS_SUCCEEDED(cvarWaitStatus)) {
-        cvarWaitStatus =
-            CVAR_WAIT(pConnectionListener->removeConnectionComplete, pConnectionListener->lock, CONNECTION_AWAIT_CONNECTION_REMOVAL_TIMEOUT);
-        /* CVAR_WAIT should never time out */
-        if (STATUS_FAILED(cvarWaitStatus)) {
-            DLOGW("CVAR_WAIT() failed with 0x%08x", cvarWaitStatus);
+    for (i = 0; i < CONNECTION_LISTENER_DEFAULT_MAX_LISTENING_CONNECTION; i++) {
+        if (pConnectionListener->sockets[i] != NULL) {
+            CHK_STATUS(socketConnectionClosed(pConnectionListener->sockets[i]));
+            pConnectionListener->sockets[i] = NULL;
+            pConnectionListener->socketCount--;
         }
     }
 
@@ -210,15 +195,23 @@ CleanUp:
 STATUS connectionListenerStart(PConnectionListener pConnectionListener)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    ATOMIC_BOOL listenerRoutineStarted = FALSE;
+    BOOL locked = FALSE;
 
     CHK(pConnectionListener != NULL, STATUS_NULL_ARG);
     CHK(!ATOMIC_LOAD_BOOL(&pConnectionListener->terminate), retStatus);
-    listenerRoutineStarted = ATOMIC_EXCHANGE_BOOL(&pConnectionListener->listenerRoutineStarted, TRUE);
-    CHK(!listenerRoutineStarted, retStatus);
+
+    MUTEX_LOCK(pConnectionListener->lock);
+    locked = TRUE;
+
+    CHK(!IS_VALID_TID_VALUE(pConnectionListener->receiveDataRoutine), retStatus);
     CHK_STATUS(THREAD_CREATE(&pConnectionListener->receiveDataRoutine, connectionListenerReceiveDataRoutine, (PVOID) pConnectionListener));
+    CHK_STATUS(THREAD_DETACH(pConnectionListener->receiveDataRoutine));
 
 CleanUp:
+
+    if (locked) {
+        MUTEX_UNLOCK(pConnectionListener->lock);
+    }
 
     return retStatus;
 }
@@ -227,16 +220,15 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PConnectionListener pConnectionListener = (PConnectionListener) arg;
-    PDoubleListNode pCurNode = NULL, pNodeToDelete = NULL;
     PSocketConnection pSocketConnection;
-    BOOL locked = FALSE, iterate = TRUE, updateSocketList = FALSE, connectionListChanged = FALSE;
-    PSocketConnection socketList[CONNECTION_LISTENER_DEFAULT_MAX_LISTENING_CONNECTION];
-    UINT32 socketCount = 0, i;
+    BOOL iterate = TRUE;
+    PSocketConnection sockets[CONNECTION_LISTENER_DEFAULT_MAX_LISTENING_CONNECTION];
+    UINT32 i, socketCount;
 
     INT32 nfds = 0;
     fd_set rfds;
     struct timeval tv;
-    INT32 retval;
+    INT32 retval, localSocket;
     INT64 readLen;
     // the source address is put here. sockaddr_storage can hold either sockaddr_in or sockaddr_in6
     struct sockaddr_storage srcAddrBuff;
@@ -259,149 +251,134 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
         FD_ZERO(&rfds);
         nfds = 0;
 
-        // update connection list.
-        connectionListChanged = ATOMIC_LOAD_BOOL(&pConnectionListener->connectionListChanged);
-        if (connectionListChanged || updateSocketList) {
-            MUTEX_LOCK(pConnectionListener->lock);
-            locked = TRUE;
+        // Perform the socket connection gathering under the lock
+        // NOTE: There is no cleanup jump from the lock/unlock block
+        // so we don't need to use a boolean indicator whether locked
+        MUTEX_LOCK(pConnectionListener->lock);
+        for (i = 0, socketCount = 0; i < CONNECTION_LISTENER_DEFAULT_MAX_LISTENING_CONNECTION; i++) {
+            pSocketConnection = pConnectionListener->sockets[i];
+            if (pSocketConnection != NULL) {
+                if (!socketConnectionIsClosed(pSocketConnection)) {
+                    MUTEX_LOCK(pSocketConnection->lock);
+                    localSocket = pSocketConnection->localSocket;
+                    MUTEX_UNLOCK(pSocketConnection->lock);
+                    FD_SET(localSocket, &rfds);
+                    nfds = MAX(nfds, localSocket);
 
-            socketCount = 0;
-            CHK_STATUS(doubleListGetHeadNode(pConnectionListener->connectionList, &pCurNode));
-            while (pCurNode != NULL) {
-                pSocketConnection = (PSocketConnection) pCurNode->data;
-                if (ATOMIC_LOAD_BOOL(&pSocketConnection->connectionClosed)) {
-                    pNodeToDelete = pCurNode;
-                    pCurNode = pCurNode->pNext;
-
-                    CHK_STATUS(doubleListDeleteNode(pConnectionListener->connectionList, pNodeToDelete));
+                    // Store the sockets locally while in use and mark it as in use
+                    sockets[socketCount++] = pSocketConnection;
+                    ATOMIC_STORE_BOOL(&pSocketConnection->inUse, TRUE);
                 } else {
-                    pCurNode = pCurNode->pNext;
-                    if (socketCount < ARRAY_SIZE(socketList)) {
-                        socketList[socketCount] = pSocketConnection;
-                        socketCount++;
-                    } else {
-                        DLOGW("Max socket list size of %u exceeded. Will not receive data from socket %d", ARRAY_SIZE(socketList),
-                              pSocketConnection->localSocket);
-                        break;
-                    }
+                    // Remove the connection
+                    pConnectionListener->sockets[i] = NULL;
+                    pConnectionListener->socketCount--;
                 }
             }
-
-            MUTEX_UNLOCK(pConnectionListener->lock);
-            locked = FALSE;
-
-            updateSocketList = FALSE;
-
-            if (connectionListChanged) {
-                ATOMIC_STORE_BOOL(&pConnectionListener->connectionListChanged, FALSE);
-                CVAR_BROADCAST(pConnectionListener->removeConnectionComplete);
-            }
         }
 
-        for (i = 0; i < socketCount; ++i) {
-            pSocketConnection = socketList[i];
-            if (socketConnectionIsClosed(pSocketConnection)) {
-                updateSocketList = TRUE;
-            } else {
-                FD_SET(pSocketConnection->localSocket, &rfds);
-                nfds = MAX(nfds, pSocketConnection->localSocket);
-            }
-        }
-
+        // Should be one more than the sockets count per API documentation
         nfds++;
+
+        // Need to unlock the mutex to ensure other racing threads unblock
+        MUTEX_UNLOCK(pConnectionListener->lock);
 
         // timeout select every SOCKET_WAIT_FOR_DATA_TIMEOUT_SECONDS seconds and check if terminate
         // on linux tv need to be reinitialized after select is done.
-        tv.tv_sec = SOCKET_WAIT_FOR_DATA_TIMEOUT_SECONDS;
-        tv.tv_usec = 0;
+        tv.tv_sec = 0;
+        tv.tv_usec = CONNECTION_LISTENER_SOCKET_WAIT_FOR_DATA_TIMEOUT / HUNDREDS_OF_NANOS_IN_A_MICROSECOND;
 
-        // blocking call
+        // blocking call until resolves as a timeout, an error, a signal or data received
         retval = select(nfds, &rfds, NULL, NULL, &tv);
 
+        // In case of 0 we have a timeout and should re-lock to allow for other
+        // interlocking operations to proceed. A positive return means we received data
         if (retval == -1) {
-            DLOGE("select() failed with errno %s", getErrorString(getErrorCode()));
-            continue;
-        } else if (retval == 0) {
-            continue;
-        }
-
-        for (i = 0; i < socketCount; ++i) {
-            pSocketConnection = socketList[i];
-            if (socketConnectionIsClosed(pSocketConnection)) {
-                /* update the connection list to remove the closed sockets */
-                updateSocketList = TRUE;
-            } else if (FD_ISSET(pSocketConnection->localSocket, &rfds)) {
-                iterate = TRUE;
-                while (iterate) {
+            DLOGW("select() failed with errno %s", getErrorString(getErrorCode()));
+        } else if (retval > 0) {
+            for (i = 0; i < socketCount; i++) {
+                pSocketConnection = sockets[i];
+                if (!socketConnectionIsClosed(pSocketConnection)) {
                     MUTEX_LOCK(pSocketConnection->lock);
-                    readLen = recvfrom(pSocketConnection->localSocket, pConnectionListener->pBuffer, pConnectionListener->bufferLen, 0,
-                                       (struct sockaddr*) &srcAddrBuff, &srcAddrBuffLen);
+                    localSocket = pSocketConnection->localSocket;
                     MUTEX_UNLOCK(pSocketConnection->lock);
-                    if (readLen < 0) {
-                        switch (getErrorCode()) {
-                            case EWOULDBLOCK:
-                                break;
-                            default:
-                                /* on any other error, close connection */
+
+                    if (FD_ISSET(localSocket, &rfds)) {
+                        iterate = TRUE;
+                        while (iterate) {
+                            readLen = recvfrom(localSocket, pConnectionListener->pBuffer, pConnectionListener->bufferLen, 0,
+                                               (struct sockaddr*) &srcAddrBuff, &srcAddrBuffLen);
+                            if (readLen < 0) {
+                                switch (getErrorCode()) {
+                                    case EWOULDBLOCK:
+                                        break;
+                                    default:
+                                        /* on any other error, close connection */
+                                        CHK_STATUS(socketConnectionClosed(pSocketConnection));
+                                        DLOGD("recvfrom() failed with errno %s for socket %d", getErrorString(getErrorCode()), localSocket);
+                                        break;
+                                }
+
+                                iterate = FALSE;
+                            } else if (readLen == 0) {
                                 CHK_STATUS(socketConnectionClosed(pSocketConnection));
-                                DLOGD("recvfrom() failed with errno %s for socket %d", getErrorString(getErrorCode()),
-                                      pSocketConnection->localSocket);
-                                break;
-                        }
+                                iterate = FALSE;
+                            } else if (/* readLen > 0 */
+                                       ATOMIC_LOAD_BOOL(&pSocketConnection->receiveData) && pSocketConnection->dataAvailableCallbackFn != NULL &&
+                                       /* data could be encrypted so they need to be decrypted through socketConnectionReadData
+                                        * and get the decrypted data length. */
+                                       STATUS_SUCCEEDED(socketConnectionReadData(pSocketConnection, pConnectionListener->pBuffer,
+                                                                                 pConnectionListener->bufferLen, (PUINT32) &readLen))) {
+                                if (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_UDP) {
+                                    if (srcAddrBuff.ss_family == AF_INET) {
+                                        srcAddr.family = KVS_IP_FAMILY_TYPE_IPV4;
+                                        pIpv4Addr = (struct sockaddr_in*) &srcAddrBuff;
+                                        MEMCPY(srcAddr.address, (PBYTE) &pIpv4Addr->sin_addr, IPV4_ADDRESS_LENGTH);
+                                        srcAddr.port = pIpv4Addr->sin_port;
+                                    } else if (srcAddrBuff.ss_family == AF_INET6) {
+                                        srcAddr.family = KVS_IP_FAMILY_TYPE_IPV6;
+                                        pIpv6Addr = (struct sockaddr_in6*) &srcAddrBuff;
+                                        MEMCPY(srcAddr.address, (PBYTE) &pIpv6Addr->sin6_addr, IPV6_ADDRESS_LENGTH);
+                                        srcAddr.port = pIpv6Addr->sin6_port;
+                                    }
+                                    pSrcAddr = &srcAddr;
+                                } else {
+                                    // srcAddr is ignored in TCP callback handlers
+                                    pSrcAddr = NULL;
+                                }
 
-                        iterate = FALSE;
-                    } else if (readLen == 0) {
-                        CHK_STATUS(socketConnectionClosed(pSocketConnection));
-                        iterate = FALSE;
-                    } else if (/* readLen > 0 */
-                               ATOMIC_LOAD_BOOL(&pSocketConnection->receiveData) && pSocketConnection->dataAvailableCallbackFn != NULL &&
-                               /* data could be encrypted so they need to be decrypted through socketConnectionReadData
-                                * and get the decrypted data length. */
-                               STATUS_SUCCEEDED(socketConnectionReadData(pSocketConnection, pConnectionListener->pBuffer,
-                                                                         pConnectionListener->bufferLen, (PUINT32) &readLen))) {
-                        if (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_UDP) {
-                            if (srcAddrBuff.ss_family == AF_INET) {
-                                srcAddr.family = KVS_IP_FAMILY_TYPE_IPV4;
-                                pIpv4Addr = (struct sockaddr_in*) &srcAddrBuff;
-                                MEMCPY(srcAddr.address, (PBYTE) &pIpv4Addr->sin_addr, IPV4_ADDRESS_LENGTH);
-                                srcAddr.port = pIpv4Addr->sin_port;
-                            } else if (srcAddrBuff.ss_family == AF_INET6) {
-                                srcAddr.family = KVS_IP_FAMILY_TYPE_IPV6;
-                                pIpv6Addr = (struct sockaddr_in6*) &srcAddrBuff;
-                                MEMCPY(srcAddr.address, (PBYTE) &pIpv6Addr->sin6_addr, IPV6_ADDRESS_LENGTH);
-                                srcAddr.port = pIpv6Addr->sin6_port;
+                                // readLen may be 0 if SSL does not emit any application data.
+                                // in that case, no need to call dataAvailable callback
+                                if (readLen > 0) {
+                                    pSocketConnection->dataAvailableCallbackFn(pSocketConnection->dataAvailableCallbackCustomData, pSocketConnection,
+                                                                               pConnectionListener->pBuffer, (UINT32) readLen, pSrcAddr,
+                                                                               NULL); // no dest information available right now.
+                                }
                             }
-                            pSrcAddr = &srcAddr;
-                        } else {
-                            // srcAddr is ignored in TCP callback handlers
-                            pSrcAddr = NULL;
-                        }
 
-                        // readLen may be 0 if SSL does not emit any application data.
-                        // in that case, no need to call dataAvailable callback
-                        if (readLen > 0) {
-                            pSocketConnection->dataAvailableCallbackFn(pSocketConnection->dataAvailableCallbackCustomData, pSocketConnection,
-                                                                       pConnectionListener->pBuffer, (UINT32) readLen, pSrcAddr,
-                                                                       NULL); // no dest information available right now.
+                            // reset srcAddrBuffLen to actual size
+                            srcAddrBuffLen = SIZEOF(srcAddrBuff);
                         }
                     }
-
-                    // reset srcAddrBuffLen to actual size
-                    srcAddrBuffLen = SIZEOF(srcAddrBuff);
                 }
             }
+        }
+
+        // Mark as unused
+        for (i = 0; i < socketCount; i++) {
+            ATOMIC_STORE_BOOL(&sockets[i]->inUse, FALSE);
         }
     }
 
 CleanUp:
 
-    if (locked) {
+    if (pConnectionListener != NULL) {
+        // As TID is 64 bit we can't atomically update it and need to do it under the lock
+        MUTEX_LOCK(pConnectionListener->lock);
+        pConnectionListener->receiveDataRoutine = INVALID_TID_VALUE;
         MUTEX_UNLOCK(pConnectionListener->lock);
     }
 
     CHK_LOG_ERR(retStatus);
-
-    ATOMIC_STORE_BOOL(&pConnectionListener->listenerRoutineStarted, FALSE);
 
     return (PVOID)(ULONG_PTR) retStatus;
 }

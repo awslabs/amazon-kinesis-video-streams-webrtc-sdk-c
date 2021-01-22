@@ -718,7 +718,6 @@ STATUS iceAgentShutdown(PIceAgent pIceAgent)
     PIceCandidate pLocalCandidate = NULL;
     UINT32 i;
     UINT64 turnShutdownTimeout;
-    const UINT64 shortSleep = 50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
     PTurnConnection turnConnections[KVS_ICE_MAX_RELAY_CANDIDATE_COUNT];
     UINT32 turnConnectionCount = 0;
 
@@ -762,14 +761,13 @@ STATUS iceAgentShutdown(PIceAgent pIceAgent)
 
     turnShutdownTimeout = GETTIME() + KVS_ICE_TURN_CONNECTION_SHUTDOWN_TIMEOUT;
     while (!turnShutdownCompleted && GETTIME() < turnShutdownTimeout) {
-        turnShutdownCompleted = TRUE;
-        for (i = 0; i < turnConnectionCount; ++i) {
+        for (i = 0, turnShutdownCompleted = TRUE; turnShutdownCompleted && i < turnConnectionCount; ++i) {
             if (!turnConnectionIsShutdownComplete(turnConnections[i])) {
                 turnShutdownCompleted = FALSE;
             }
         }
 
-        THREAD_SLEEP(shortSleep);
+        THREAD_SLEEP(KVS_ICE_SHORT_CHECK_DELAY);
     }
 
     if (!turnShutdownCompleted) {

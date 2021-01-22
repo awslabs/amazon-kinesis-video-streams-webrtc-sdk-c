@@ -10,21 +10,18 @@ Connection Listener internal include file
 extern "C" {
 #endif
 
-#define SOCKET_WAIT_FOR_DATA_TIMEOUT_SECONDS                 1
+#define CONNECTION_LISTENER_SOCKET_WAIT_FOR_DATA_TIMEOUT     (200 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
+#define CONNECTION_LISTENER_SHUTDOWN_TIMEOUT                 (1000 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
 #define CONNECTION_LISTENER_DEFAULT_MAX_LISTENING_CONNECTION 64
-
-#define CONNECTION_AWAIT_CONNECTION_REMOVAL_TIMEOUT 5 * HUNDREDS_OF_NANOS_IN_A_SECOND
 
 typedef struct {
     volatile ATOMIC_BOOL terminate;
-    volatile ATOMIC_BOOL listenerRoutineStarted;
-    volatile ATOMIC_BOOL connectionListChanged;
-    PDoubleList connectionList;
+    PSocketConnection sockets[CONNECTION_LISTENER_DEFAULT_MAX_LISTENING_CONNECTION];
+    UINT64 socketCount;
     MUTEX lock;
     TID receiveDataRoutine;
     PBYTE pBuffer;
     UINT64 bufferLen;
-    CVAR removeConnectionComplete;
 } ConnectionListener, *PConnectionListener;
 
 /**

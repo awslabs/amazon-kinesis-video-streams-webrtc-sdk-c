@@ -35,6 +35,7 @@ STATUS createSocketConnection(KVS_IP_FAMILY_TYPE familyType, KVS_SOCKET_PROTOCOL
     }
     ATOMIC_STORE_BOOL(&pSocketConnection->connectionClosed, FALSE);
     ATOMIC_STORE_BOOL(&pSocketConnection->receiveData, FALSE);
+    ATOMIC_STORE_BOOL(&pSocketConnection->inUse, FALSE);
     pSocketConnection->dataAvailableCallbackCustomData = customData;
     pSocketConnection->dataAvailableCallbackFn = dataAvailableFn;
 
@@ -60,11 +61,22 @@ STATUS freeSocketConnection(PSocketConnection* ppSocketConnection)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSocketConnection pSocketConnection = NULL;
+    UINT64 shutdownTimeout;
 
     CHK(ppSocketConnection != NULL, STATUS_NULL_ARG);
     pSocketConnection = *ppSocketConnection;
     CHK(pSocketConnection != NULL, retStatus);
     ATOMIC_STORE_BOOL(&pSocketConnection->connectionClosed, TRUE);
+
+    // Await for the socket connection to be released
+    shutdownTimeout = GETTIME() + KVS_ICE_TURN_CONNECTION_SHUTDOWN_TIMEOUT;
+    while (ATOMIC_LOAD_BOOL(&pSocketConnection->inUse) && GETTIME() < shutdownTimeout) {
+        THREAD_SLEEP(KVS_ICE_SHORT_CHECK_DELAY);
+    }
+
+    if (ATOMIC_LOAD_BOOL(&pSocketConnection->inUse)) {
+        DLOGW("Shutting down socket connection timedout after %u seconds", KVS_ICE_TURN_CONNECTION_SHUTDOWN_TIMEOUT / HUNDREDS_OF_NANOS_IN_A_SECOND);
+    }
 
     if (IS_VALID_MUTEX_VALUE(pSocketConnection->lock)) {
         MUTEX_FREE(pSocketConnection->lock);

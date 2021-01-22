@@ -483,7 +483,9 @@ STATUS fromReadyIceAgentState(UINT64 customData, PUINT64 pState)
         pCurNode = pCurNode->pNext;
 
         if (pIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED && turnConnectionIsShutdownComplete(pIceCandidate->pTurnConnection)) {
+            MUTEX_UNLOCK(pIceAgent->lock);
             CHK_LOG_ERR(freeTurnConnection(&pIceCandidate->pTurnConnection));
+            MUTEX_LOCK(pIceAgent->lock);
             MEMFREE(pIceCandidate);
             CHK_STATUS(doubleListDeleteNode(pIceAgent->localCandidates, pNodeToDelete));
         }

@@ -292,7 +292,7 @@ STATUS onFrameReadyFunc(UINT64 customData, UINT16 startIndex, UINT16 endIndex, U
     PRtpPacket pPacket = NULL;
     Frame frame;
     UINT64 hashValue;
-    UINT32 filledSize = 0;
+    UINT32 filledSize = 0, index;
 
     CHK(pTransceiver != NULL, STATUS_NULL_ARG);
 
@@ -308,6 +308,7 @@ STATUS onFrameReadyFunc(UINT64 customData, UINT16 startIndex, UINT16 endIndex, U
     MUTEX_LOCK(pTransceiver->statsLock);
     // https://www.w3.org/TR/webrtc-stats/#dom-rtcinboundrtpstreamstats-jitterbufferdelay
     pTransceiver->inboundStats.jitterBufferDelay += (DOUBLE)(GETTIME() - pPacket->receivedTime) / HUNDREDS_OF_NANOS_IN_A_SECOND;
+    index = pTransceiver->inboundStats.jitterBufferEmittedCount;
     pTransceiver->inboundStats.jitterBufferEmittedCount++;
     if (MEDIA_STREAM_TRACK_KIND_VIDEO == pTransceiver->transceiver.receiver.track.kind) {
         pTransceiver->inboundStats.framesReceived++;
@@ -330,6 +331,7 @@ STATUS onFrameReadyFunc(UINT64 customData, UINT16 startIndex, UINT16 endIndex, U
     frame.frameData = pTransceiver->peerFrameBuffer;
     frame.size = frameSize;
     frame.duration = 0;
+    frame.index = index;
     // TODO: Fill frame flag and track id and index if we need to, currently those are not used by RtcRtpTransceiver
     if (pTransceiver->onFrame != NULL) {
         pTransceiver->onFrame(pTransceiver->onFrameCustomData, &frame);
