@@ -206,7 +206,7 @@ TEST_F(IceFunctionalityTest, connectionListenerFunctionalityTest)
     EXPECT_TRUE( IS_VALID_TID_VALUE(threadId));
     ATOMIC_STORE_BOOL(&pConnectionListener->terminate, TRUE);
 
-    THREAD_SLEEP(CONNECTION_LISTENER_SOCKET_WAIT_FOR_DATA_TIMEOUT + 1 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+    THREAD_SLEEP(CONNECTION_LISTENER_SHUTDOWN_TIMEOUT + 1 * HUNDREDS_OF_NANOS_IN_A_SECOND);
 
     MUTEX_LOCK(pConnectionListener->lock);
     threadId = pConnectionListener->receiveDataRoutine;
