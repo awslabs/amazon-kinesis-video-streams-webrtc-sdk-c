@@ -110,7 +110,7 @@ race:freeSignalingClient
 #     #2 receiveLwsMessage /usr/src/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/LwsApiCalls.c:1740 (libkvsWebrtcSignalingClient.so+0x00000000d9b4)
 #     #3 com::amazonaws::kinesis::video::webrtcclient::SignalingApiFunctionalityTest_iceReconnectEmulation_Test::TestBody() /usr/src/amazon-kinesis-video-streams-webrtc-sdk-c/tst/SignalingApiFunctionalityTest.cpp:705 (webrtc_client_test+0x0000005b6be5)
 #     #4 void testing::internal::HandleSehExceptionsInMethodIfSupported<testing::Test, void>(testing::Test*, void (testing::Test::*)(), char const*) <null> (webrtc_client_test+0x000000672819)
-race:receiveLwsMe
+race:receiveLwsMessage
 
 # WARNING: ThreadSanitizer: data race (pid=18522)
 #   Write of size 8 at 0x7d0800028400 by thread T14 (mutexes: write M909, write M923):
