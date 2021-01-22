@@ -1,14 +1,14 @@
 <map id="jitterBufferDropBufferData" name="jitterBufferDropBufferData">
 <area shape="rect" id="node1" title=" " alt="" coords="957,118,1127,145"/>
-<area shape="rect" id="node2" href="$JitterBuffer_8h.html#ac17c759248be09bc61a5aebd3362b01f" title=" " alt="" coords="649,93,755,119"/>
-<area shape="rect" id="node9" href="$JitterBuffer_8h.html#acc3284bfbbbf676595d8bc86103fbf4a" title=" " alt="" coords="805,143,909,170"/>
+<area shape="rect" id="node2" href="$JitterBuffer_8c.html#ab3cc6b54249b9d82ce116edccc2d1cbf" title=" " alt="" coords="649,93,755,119"/>
+<area shape="rect" id="node9" href="$JitterBuffer_8c.html#acb4fec73c43d2ef0755b93d184ea2590" title=" " alt="" coords="805,143,909,170"/>
 <area shape="rect" id="node3" href="$group__PublicMemberFunctions.html#ga5b89dc2e301e35f30330c57bc1361dcb" title="Create a new RtcRtpTransceiver and add it to the set of transceivers." alt="" coords="25,55,136,82"/>
-<area shape="rect" id="node4" href="$JitterBuffer_8h.html#affdac48c54f072f9b4e26d6de088cfb2" title=" " alt="" coords="449,42,571,69"/>
-<area shape="rect" id="node5" href="$Rtp_8h.html#ae8c85797caf52813ba0b8ca9859b77c5" title=" " alt="" coords="433,118,587,145"/>
-<area shape="rect" id="node6" href="$Rtp_8h.html#afbd4b909747cdf574518ad6df03a2e76" title=" " alt="" coords="204,131,373,158"/>
+<area shape="rect" id="node4" href="$JitterBuffer_8c.html#a5675dd12bea8eaa59c74680a942d6cab" title=" " alt="" coords="449,42,571,69"/>
+<area shape="rect" id="node5" href="$Rtp_8c.html#ac43cec8875bbd05633d9a31bff472efc" title=" " alt="" coords="433,118,587,145"/>
+<area shape="rect" id="node6" href="$Rtp_8c.html#a546a0453948ee8060791e725b0194ca5" title=" " alt="" coords="204,131,373,158"/>
 <area shape="rect" id="node7" href="$group__PublicMemberFunctions.html#ga433b1bd125e7f221bcdad97a2a0e8949" title="Free a RtcPeerConnection." alt="" coords="221,182,357,209"/>
 <area shape="rect" id="node8" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title=" " alt="" coords="5,207,156,234"/>
-<area shape="rect" id="node10" href="$JitterBuffer_8h.html#a82caccca44d6ded864b9c4b2770800bd" title=" " alt="" coords="647,157,757,183"/>
-<area shape="rect" id="node11" href="$PeerConnection_8h.html#aa5448d76d0c513e03f33a1aca0375101" title=" " alt="" coords="421,207,599,234"/>
+<area shape="rect" id="node10" href="$JitterBuffer_8c.html#a3698c62de5f63baf09c350078af5301c" title=" " alt="" coords="647,157,757,183"/>
+<area shape="rect" id="node11" href="$PeerConnection_8c.html#ac7dfeca3237caae871b6cd2e0e50c73e" title=" " alt="" coords="421,207,599,234"/>
 <area shape="rect" id="node12" href="$PeerConnection_8c.html#a76ad72a51a47dae5e9f43873f36aa34a" title=" " alt="" coords="227,233,350,259"/>
 </map>

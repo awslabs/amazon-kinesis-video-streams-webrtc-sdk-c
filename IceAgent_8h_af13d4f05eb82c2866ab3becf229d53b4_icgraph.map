@@ -1,7 +1,7 @@
 <map id="iceAgentReportNewLocalCandidate" name="iceAgentReportNewLocalCandidate">
 <area shape="rect" id="node1" title=" " alt="" coords="660,31,888,57"/>
-<area shape="rect" id="node2" href="$IceAgent_8h.html#a0015e4e66712c771d2f16c933e1e768f" title=" " alt="" coords="409,23,612,65"/>
-<area shape="rect" id="node3" href="$IceAgent_8h.html#aaedcdc437dc6d6753a438f7c5ddf0c7c" title=" " alt="" coords="204,31,361,57"/>
+<area shape="rect" id="node2" href="$IceAgent_8c.html#a29472fae79b73dc335a310925493391c" title=" " alt="" coords="409,23,612,65"/>
+<area shape="rect" id="node3" href="$IceAgent_8c.html#a89dd4cb4f8c55e2d376df8c33f300e80" title=" " alt="" coords="204,31,361,57"/>
 <area shape="rect" id="node4" href="$group__PublicMemberFunctions.html#ga060e71a4e33e0b7a8087317d4839fa8a" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the local descript..." alt="" coords="12,5,149,32"/>
 <area shape="rect" id="node5" href="$group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,56,156,83"/>
 </map>

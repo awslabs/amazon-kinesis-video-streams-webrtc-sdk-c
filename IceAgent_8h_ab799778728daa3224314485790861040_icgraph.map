@@ -1,35 +1,35 @@
 <map id="iceAgentGetCandidateTypeStr" name="iceAgentGetCandidateTypeStr">
 <area shape="rect" id="node1" title=" " alt="" coords="2161,256,2359,283"/>
-<area shape="rect" id="node2" href="$IceAgent_8h.html#ac05b87e31e89363944974da428845ef3" title=" " alt="" coords="1445,61,1573,88"/>
-<area shape="rect" id="node12" href="$IceAgent_8h.html#a7678a0b5ea8975c120901f1f7750eda7" title=" " alt="" coords="1933,188,2113,215"/>
-<area shape="rect" id="node18" href="$IceAgent_8h.html#a59ea2b6bd6002f30314dcea762da0da5" title=" " alt="" coords="1936,311,2111,337"/>
-<area shape="rect" id="node20" href="$IceAgent_8h.html#a44f357ae794fea4d51a4d6b62187942b" title=" " alt="" coords="1950,256,2097,283"/>
+<area shape="rect" id="node2" href="$IceAgent_8c.html#a15dca4483895fee272df46d7e4a955d7" title=" " alt="" coords="1445,61,1573,88"/>
+<area shape="rect" id="node12" href="$IceAgent_8c.html#ad1a8fa09d399bfa78a7a76cb00c25c8c" title=" " alt="" coords="1933,188,2113,215"/>
+<area shape="rect" id="node18" href="$IceAgent_8c.html#a790f69225c321a1f2ccf0bdcc3a83630" title=" " alt="" coords="1936,311,2111,337"/>
+<area shape="rect" id="node20" href="$IceAgent_8c.html#a8c504c09cfea8efaf7869b8de9ec558c" title=" " alt="" coords="1950,256,2097,283"/>
 <area shape="rect" id="node30" href="$IceAgent_8c.html#aa20b09e5bc8f5038010a11c3a010f894" title=" " alt="" coords="1948,369,2099,396"/>
-<area shape="rect" id="node3" href="$IceAgent_8h.html#a4679168f8e324e0324a8c129fe6d606d" title=" " alt="" coords="1197,61,1343,88"/>
-<area shape="rect" id="node4" href="$IceAgent_8h.html#ab7fc78b0a2605c5291b7ec8d7ed40cdc" title=" " alt="" coords="422,112,599,139"/>
-<area shape="rect" id="node8" href="$IceAgent_8h.html#ab51095af13e7b515be425c2d7da80833" title=" " alt="" coords="947,11,1122,37"/>
-<area shape="rect" id="node9" href="$IceAgent_8h.html#ad3b73d0dc0335cf05e9ff5893d1819a4" title=" " alt="" coords="939,61,1131,88"/>
-<area shape="rect" id="node5" href="$IceAgent_8h.html#aaedcdc437dc6d6753a438f7c5ddf0c7c" title=" " alt="" coords="204,112,361,139"/>
+<area shape="rect" id="node3" href="$IceAgent_8c.html#a97079f5f6e61ff478f94f9934af5eec0" title=" " alt="" coords="1197,61,1343,88"/>
+<area shape="rect" id="node4" href="$IceAgent_8c.html#a404897a5797a45ca76444ee244c5b760" title=" " alt="" coords="422,112,599,139"/>
+<area shape="rect" id="node8" href="$IceAgent_8c.html#a0a39b316e5aff662b257648e97e53146" title=" " alt="" coords="947,11,1122,37"/>
+<area shape="rect" id="node9" href="$IceAgent_8c.html#ac6d7992fc8ddf1009332e5f72ec42cff" title=" " alt="" coords="939,61,1131,88"/>
+<area shape="rect" id="node5" href="$IceAgent_8c.html#a89dd4cb4f8c55e2d376df8c33f300e80" title=" " alt="" coords="204,112,361,139"/>
 <area shape="rect" id="node6" href="$group__PublicMemberFunctions.html#ga060e71a4e33e0b7a8087317d4839fa8a" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the local descript..." alt="" coords="12,112,149,139"/>
 <area shape="rect" id="node7" href="$group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,163,156,189"/>
-<area shape="rect" id="node10" href="$IceAgent_8h.html#a16f8a3535bbc9b23cd08b98bd79e49b4" title=" " alt="" coords="685,61,866,88"/>
-<area shape="rect" id="node11" href="$IceAgent_8h.html#a90515bdf78b9dec41ee9c9d579da0045" title=" " alt="" coords="417,61,605,88"/>
-<area shape="rect" id="node13" href="$IceAgent_8h.html#ac168aed43c3242d89b798e7e01b7339b" title=" " alt="" coords="1672,163,1871,189"/>
-<area shape="rect" id="node15" href="$IceAgent_8h.html#ae42ff38fce2216ebc0d98dc2806bc6e8" title=" " alt="" coords="1677,97,1866,138"/>
-<area shape="rect" id="node16" href="$IceAgent_8h.html#af13d4f05eb82c2866ab3becf229d53b4" title=" " alt="" coords="1657,213,1885,240"/>
+<area shape="rect" id="node10" href="$IceAgent_8c.html#aa82059f636933c877ef87e25f4a62669" title=" " alt="" coords="685,61,866,88"/>
+<area shape="rect" id="node11" href="$IceAgent_8c.html#a888fc1a2a5c2fe190f30db87c85c6759" title=" " alt="" coords="417,61,605,88"/>
+<area shape="rect" id="node13" href="$IceAgent_8c.html#a171a9136edc2fce61acff9476e6046a9" title=" " alt="" coords="1672,163,1871,189"/>
+<area shape="rect" id="node15" href="$IceAgent_8c.html#ab24d8045a6f9c765883d38003cb624b8" title=" " alt="" coords="1677,97,1866,138"/>
+<area shape="rect" id="node16" href="$IceAgent_8c.html#a8d260bf39b4cc9f87830fd024a333b17" title=" " alt="" coords="1657,213,1885,240"/>
 <area shape="rect" id="node14" href="$group__PublicMemberFunctions.html#ga1722e3794e91a87ba8d73d36b62d8727" title="Provides a remote candidate to the ICE Agent." alt="" coords="1450,112,1569,139"/>
-<area shape="rect" id="node17" href="$IceAgent_8h.html#a0015e4e66712c771d2f16c933e1e768f" title=" " alt="" coords="409,214,612,255"/>
-<area shape="rect" id="node19" href="$IceAgentStateMachine_8h.html#a0be6c08b81e5550b1f779f9689b5b112" title=" " alt="" coords="1678,331,1865,357"/>
-<area shape="rect" id="node21" href="$IceAgent_8h.html#a4b22ed1dd4fa41930285284c67018560" title=" " alt="" coords="1680,265,1863,306"/>
+<area shape="rect" id="node17" href="$IceAgent_8c.html#a29472fae79b73dc335a310925493391c" title=" " alt="" coords="409,214,612,255"/>
+<area shape="rect" id="node19" href="$IceAgentStateMachine_8c.html#ad8c9d148bf0b67e6ccce35a9f2c745e8" title=" " alt="" coords="1678,331,1865,357"/>
+<area shape="rect" id="node21" href="$IceAgent_8c.html#a6288421972b3666ba5a64fd91441dadb" title=" " alt="" coords="1680,265,1863,306"/>
 <area shape="rect" id="node22" href="$SessionDescription_8c.html#a6d4a7bcbc9ce3f26093010f4b249d2f0" title=" " alt="" coords="1418,265,1601,306"/>
 <area shape="rect" id="node29" href="$SessionDescription_8c.html#a9c998f5f03d61975f44eee8599cf6ab6" title=" " alt="" coords="1416,331,1603,357"/>
 <area shape="rect" id="node23" href="$SessionDescription_8c.html#a1f9d1d11409965815589bc2fdccb5168" title=" " alt="" coords="1179,311,1361,353"/>
-<area shape="rect" id="node24" href="$SessionDescription_8h.html#afc4bf9d5e40edf9aefa98efe7271979d" title=" " alt="" coords="943,319,1126,345"/>
+<area shape="rect" id="node24" href="$SessionDescription_8c.html#a61cd534b376d8c202cc37711aebd3640" title=" " alt="" coords="943,319,1126,345"/>
 <area shape="rect" id="node25" href="$group__PublicMemberFunctions.html#ga1779d268b0993835d80f0948281e2274" title="Populate the provided answer that contains an RFC 3264 offer with the supported configurations for th..." alt="" coords="732,319,819,345"/>
 <area shape="rect" id="node26" href="$group__PublicMemberFunctions.html#ga19dfcbdcf4d136b56ce366fe2fb9bfb3" title=" " alt="" coords="688,370,863,411"/>
 <area shape="rect" id="node28" href="$group__PublicMemberFunctions.html#gaa1940a0ddabf41c445b55f1317476e96" title=" " alt="" coords="660,268,891,295"/>
 <area shape="rect" id="node27" href="$group__PublicMemberFunctions.html#ga7dc5ad4eb5cc7e000396547279108d9b" title="Populate the provided answer that contains an RFC 3264 answer with the supported configurations for t..." alt="" coords="459,377,562,404"/>
-<area shape="rect" id="node31" href="$IceAgent_8h.html#a905fb10c353e04b2b60c68b539f63a96" title=" " alt="" coords="1677,382,1866,423"/>
-<area shape="rect" id="node32" href="$IceAgent_8h.html#a1e97803ab232afca8aecc4e2f77b87ac" title=" " alt="" coords="1409,389,1609,416"/>
-<area shape="rect" id="node33" href="$IceAgentStateMachine_8h.html#a4fddd35b881d4a51ceaad3633a0bced0" title=" " alt="" coords="1179,382,1361,423"/>
+<area shape="rect" id="node31" href="$IceAgent_8c.html#a0b35a1504b63ce72f12cd784b01e9cb2" title=" " alt="" coords="1677,382,1866,423"/>
+<area shape="rect" id="node32" href="$IceAgent_8c.html#aad8b693b79de0b9b57770fb4efe64ee4" title=" " alt="" coords="1409,389,1609,416"/>
+<area shape="rect" id="node33" href="$IceAgentStateMachine_8c.html#ae73bb89e7e9f087dd2ccfa8cf1f1833a" title=" " alt="" coords="1179,382,1361,423"/>
 </map>

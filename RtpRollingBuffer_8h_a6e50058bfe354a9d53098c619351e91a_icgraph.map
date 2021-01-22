@@ -1,8 +1,8 @@
 <map id="freeRtpRollingBuffer" name="freeRtpRollingBuffer">
 <area shape="rect" id="node1" title=" " alt="" coords="624,31,761,57"/>
-<area shape="rect" id="node2" href="$Rtp_8h.html#ae8c85797caf52813ba0b8ca9859b77c5" title=" " alt="" coords="421,31,576,57"/>
+<area shape="rect" id="node2" href="$Rtp_8c.html#ac43cec8875bbd05633d9a31bff472efc" title=" " alt="" coords="421,31,576,57"/>
 <area shape="rect" id="node3" href="$group__PublicMemberFunctions.html#ga5b89dc2e301e35f30330c57bc1361dcb" title="Create a new RtcRtpTransceiver and add it to the set of transceivers." alt="" coords="25,5,136,32"/>
-<area shape="rect" id="node4" href="$Rtp_8h.html#afbd4b909747cdf574518ad6df03a2e76" title=" " alt="" coords="204,31,373,57"/>
+<area shape="rect" id="node4" href="$Rtp_8c.html#a546a0453948ee8060791e725b0194ca5" title=" " alt="" coords="204,31,373,57"/>
 <area shape="rect" id="node5" href="$group__PublicMemberFunctions.html#ga433b1bd125e7f221bcdad97a2a0e8949" title="Free a RtcPeerConnection." alt="" coords="221,81,357,108"/>
 <area shape="rect" id="node6" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title=" " alt="" coords="5,81,156,108"/>
 </map>

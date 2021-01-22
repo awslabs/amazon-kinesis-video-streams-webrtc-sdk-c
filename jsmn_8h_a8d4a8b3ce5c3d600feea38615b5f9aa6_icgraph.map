@@ -1,21 +1,21 @@
 <map id="jsmn_init" name="jsmn_init">
 <area shape="rect" id="node1" title=" " alt="" coords="941,164,1016,191"/>
-<area shape="rect" id="node2" href="$LwsApiCalls_8h.html#a54893a1b3159194b87bffce1dc81f667" title=" " alt="" coords="721,8,852,35"/>
-<area shape="rect" id="node5" href="$LwsApiCalls_8h.html#a43ec97f014828e5f79d1cae0587f69f6" title=" " alt="" coords="715,63,858,89"/>
+<area shape="rect" id="node2" href="$LwsApiCalls_8c.html#aaa11ed305dd9f71bc0a1b0fdd5ee46fd" title=" " alt="" coords="721,8,852,35"/>
+<area shape="rect" id="node5" href="$LwsApiCalls_8c.html#a5a8154ad7ebbd85474143c31b52e51b3" title=" " alt="" coords="715,63,858,89"/>
 <area shape="rect" id="node8" href="$group__PublicMemberFunctions.html#gaf67aa768ffd4819fc03e7b05d07fe855" title="Parses a JSON string and populates a PRtcIceCandidateInit." alt="" coords="688,113,885,140"/>
 <area shape="rect" id="node9" href="$group__PublicMemberFunctions.html#gab806cf4a463d95b0a49419c868ead0ff" title="Parses a JSON string and returns an allocated PSessionDescriptionInit." alt="" coords="680,164,893,191"/>
-<area shape="rect" id="node10" href="$LwsApiCalls_8h.html#ad635a63676045871ee8a4c465322177b" title=" " alt="" coords="705,215,868,241"/>
-<area shape="rect" id="node13" href="$LwsApiCalls_8h.html#a16c0379ca9a49b7c11c2a15fe5138b0d" title=" " alt="" coords="727,265,846,292"/>
-<area shape="rect" id="node16" href="$LwsApiCalls_8h.html#a3be2b58965f27978a86f44a01a60fdd1" title=" " alt="" coords="715,317,858,344"/>
-<area shape="rect" id="node3" href="$Signaling_8h.html#a6015410f4f76b055dd29dea57197f98d" title=" " alt="" coords="498,7,603,33"/>
-<area shape="rect" id="node4" href="$StateMachine_8h.html#a875746ad5aa6b08d513e515d408c6714" title=" " alt="" coords="229,5,419,32"/>
-<area shape="rect" id="node6" href="$Signaling_8h.html#a5c9505459dce404c6fd56594ed4955af" title=" " alt="" coords="491,64,610,91"/>
-<area shape="rect" id="node7" href="$StateMachine_8h.html#aa3955d8438eb40773c390af393d62804" title=" " alt="" coords="239,57,409,98"/>
-<area shape="rect" id="node11" href="$Signaling_8h.html#aeea4baac0cb6a69458d279ca14b7703f" title=" " alt="" coords="482,207,619,233"/>
-<area shape="rect" id="node12" href="$StateMachine_8h.html#a1596133c7ff3e462b7f813a775f4de0e" title=" " alt="" coords="229,193,419,234"/>
-<area shape="rect" id="node14" href="$Signaling_8h.html#a25382756fb65415fa80250a38b377f21" title=" " alt="" coords="503,265,598,292"/>
-<area shape="rect" id="node15" href="$StateMachine_8h.html#a4912a88bfde8b1b02b9885937534b083" title=" " alt="" coords="227,258,421,299"/>
-<area shape="rect" id="node17" href="$LwsApiCalls_8h.html#aa2eb874b1b028f1648df7736ae344a63" title=" " alt="" coords="469,321,632,348"/>
-<area shape="rect" id="node18" href="$Signaling_8h.html#a26907340bcd88230be1b23ace9d19e68" title=" " alt="" coords="254,324,394,351"/>
+<area shape="rect" id="node10" href="$LwsApiCalls_8c.html#aed94eba7db5094d99ad97899634e82e8" title=" " alt="" coords="705,215,868,241"/>
+<area shape="rect" id="node13" href="$LwsApiCalls_8c.html#a43eb41d369f6ab2469d738d1c1be5ce8" title=" " alt="" coords="727,265,846,292"/>
+<area shape="rect" id="node16" href="$LwsApiCalls_8c.html#a4c9dcb58ab89a46831b232ea6f1b9903" title=" " alt="" coords="715,317,858,344"/>
+<area shape="rect" id="node3" href="$Signaling_8c.html#ae2a4c41f6590bfdeb451ba05d3b2fa4c" title=" " alt="" coords="498,7,603,33"/>
+<area shape="rect" id="node4" href="$StateMachine_8c.html#a62dee9d71ff5f5714ae89d5b62d083a3" title=" " alt="" coords="229,5,419,32"/>
+<area shape="rect" id="node6" href="$Signaling_8c.html#a7721cf7d3a8e27791693c1d7d0b06486" title=" " alt="" coords="491,64,610,91"/>
+<area shape="rect" id="node7" href="$StateMachine_8c.html#a902e2e5da192dd55d60faf9ee1df0e6e" title=" " alt="" coords="239,57,409,98"/>
+<area shape="rect" id="node11" href="$Signaling_8c.html#a8847cdf7e665d8557e8009d73ce26f64" title=" " alt="" coords="482,207,619,233"/>
+<area shape="rect" id="node12" href="$StateMachine_8c.html#a4e5852a863f3c402a5e9f72496136a11" title=" " alt="" coords="229,193,419,234"/>
+<area shape="rect" id="node14" href="$Signaling_8c.html#a9b714b42ff43192104ca0cc946f4b346" title=" " alt="" coords="503,265,598,292"/>
+<area shape="rect" id="node15" href="$StateMachine_8c.html#a7dea9acac2fcb8038597198c50c42976" title=" " alt="" coords="227,258,421,299"/>
+<area shape="rect" id="node17" href="$LwsApiCalls_8c.html#ada0698d028687c46481e076ce1be4359" title=" " alt="" coords="469,321,632,348"/>
+<area shape="rect" id="node18" href="$Signaling_8c.html#ab095306d46a8e5ae01e2b28a8de0487a" title=" " alt="" coords="254,324,394,351"/>
 <area shape="rect" id="node19" href="$group__PublicMemberFunctions.html#ga375ddffe8376298cdaafe63799b53b1e" title="Creates a Signaling client and returns a handle to it." alt="" coords="5,324,179,351"/>
 </map>

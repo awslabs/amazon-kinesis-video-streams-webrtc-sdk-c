@@ -1,10 +1,10 @@
 <map id="turnConnectionAddPeer" name="turnConnectionAddPeer">
 <area shape="rect" id="node1" title=" " alt="" coords="892,81,1051,108"/>
-<area shape="rect" id="node2" href="$IceAgent_8h.html#ac168aed43c3242d89b798e7e01b7339b" title=" " alt="" coords="645,56,844,83"/>
-<area shape="rect" id="node5" href="$IceAgent_8h.html#a16f8a3535bbc9b23cd08b98bd79e49b4" title=" " alt="" coords="654,107,835,133"/>
+<area shape="rect" id="node2" href="$IceAgent_8c.html#a171a9136edc2fce61acff9476e6046a9" title=" " alt="" coords="645,56,844,83"/>
+<area shape="rect" id="node5" href="$IceAgent_8c.html#aa82059f636933c877ef87e25f4a62669" title=" " alt="" coords="654,107,835,133"/>
 <area shape="rect" id="node3" href="$group__PublicMemberFunctions.html#ga1722e3794e91a87ba8d73d36b62d8727" title="Provides a remote candidate to the ICE Agent." alt="" coords="444,5,563,32"/>
 <area shape="rect" id="node4" href="$group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,56,156,83"/>
-<area shape="rect" id="node6" href="$IceAgent_8h.html#a90515bdf78b9dec41ee9c9d579da0045" title=" " alt="" coords="409,107,597,133"/>
-<area shape="rect" id="node7" href="$IceAgent_8h.html#aaedcdc437dc6d6753a438f7c5ddf0c7c" title=" " alt="" coords="204,107,361,133"/>
+<area shape="rect" id="node6" href="$IceAgent_8c.html#a888fc1a2a5c2fe190f30db87c85c6759" title=" " alt="" coords="409,107,597,133"/>
+<area shape="rect" id="node7" href="$IceAgent_8c.html#a89dd4cb4f8c55e2d376df8c33f300e80" title=" " alt="" coords="204,107,361,133"/>
 <area shape="rect" id="node8" href="$group__PublicMemberFunctions.html#ga060e71a4e33e0b7a8087317d4839fa8a" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the local descript..." alt="" coords="12,107,149,133"/>
 </map>

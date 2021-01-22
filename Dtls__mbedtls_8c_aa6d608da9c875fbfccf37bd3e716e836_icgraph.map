@@ -1,6 +1,8 @@
 <map id="freeCertificateAndKey" name="freeCertificateAndKey">
-<area shape="rect" id="node1" title=" " alt="" coords="391,31,537,57"/>
-<area shape="rect" id="node2" href="$Dtls__mbedtls_8c.html#aeb739e880d3edc3d95e7135805114f13" title=" " alt="" coords="181,5,343,32"/>
-<area shape="rect" id="node4" href="$Dtls__mbedtls_8c.html#aa1b6a668704b0b7ddf99be1f7977b8ba" title=" " alt="" coords="205,56,319,83"/>
-<area shape="rect" id="node3" href="$Dtls__mbedtls_8c.html#ac40bba1019de3e73a9006b12c9dc4eaa" title=" " alt="" coords="5,31,133,57"/>
+<area shape="rect" id="node1" title=" " alt="" coords="597,31,744,57"/>
+<area shape="rect" id="node2" href="$Dtls__mbedtls_8c.html#aeb739e880d3edc3d95e7135805114f13" title=" " alt="" coords="388,5,549,32"/>
+<area shape="rect" id="node5" href="$Dtls_8h.html#afbcfcdeff7856229166e04c0f6408003" title=" " alt="" coords="411,56,526,83"/>
+<area shape="rect" id="node3" href="$Dtls_8h.html#ac281e5a858d8c8ef0df8b26768d0663b" title=" " alt="" coords="208,5,336,32"/>
+<area shape="rect" id="node4" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title=" " alt="" coords="5,31,156,57"/>
+<area shape="rect" id="node6" href="$group__PublicMemberFunctions.html#ga433b1bd125e7f221bcdad97a2a0e8949" title="Free a RtcPeerConnection." alt="" coords="204,56,340,83"/>
 </map>

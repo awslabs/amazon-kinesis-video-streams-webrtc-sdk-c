@@ -1,6 +1,6 @@
 <map id="encryptRtpPacket" name="encryptRtpPacket">
 <area shape="rect" id="node1" title=" " alt="" coords="363,31,488,57"/>
 <area shape="rect" id="node2" href="$group__PublicMemberFunctions.html#ga40c7caf6325f426d82030beec50cc86e" title="Packetizes and sends media via the configuration specified by the RtcRtpTransceiver." alt="" coords="216,5,303,32"/>
-<area shape="rect" id="node3" href="$Rtp_8h.html#a6f38cb81e122dec46ea50feb5edb652a" title=" " alt="" coords="204,56,315,83"/>
-<area shape="rect" id="node4" href="$Retransmitter_8h.html#a55e0c0bf127bb71130d3187b05e7ed87" title=" " alt="" coords="5,56,156,83"/>
+<area shape="rect" id="node3" href="$Rtp_8c.html#a6f38cb81e122dec46ea50feb5edb652a" title=" " alt="" coords="204,56,315,83"/>
+<area shape="rect" id="node4" href="$Retransimitter_8c.html#a117dafbb1f1b86ced15a1fcfc49713fa" title=" " alt="" coords="5,56,156,83"/>
 </map>
