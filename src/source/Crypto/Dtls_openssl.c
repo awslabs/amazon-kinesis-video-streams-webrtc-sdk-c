@@ -94,9 +94,11 @@ STATUS createCertificateAndKey(INT32 certificateBits, BOOL generateRSACertificat
     X509_NAME* pX509Name = NULL;
     UINT32 eccGroup = 0;
     EC_KEY* eccKey = NULL;
+    UINT64 certSn;
 
     CHK(ppCert != NULL && ppPkey != NULL, STATUS_NULL_ARG);
     CHK((*ppPkey = EVP_PKEY_new()) != NULL, STATUS_CERTIFICATE_GENERATION_FAILED);
+    CHK_STATUS(dtlsFillPseudoRandomBits((PBYTE) &certSn, SIZEOF(UINT64)));
 
     if (generateRSACertificate) {
         CHK((pBne = BN_new()) != NULL, STATUS_CERTIFICATE_GENERATION_FAILED);
@@ -119,7 +121,7 @@ STATUS createCertificateAndKey(INT32 certificateBits, BOOL generateRSACertificat
 
     CHK((*ppCert = X509_new()) != NULL, STATUS_CERTIFICATE_GENERATION_FAILED);
     X509_set_version(*ppCert, 2);
-    ASN1_INTEGER_set(X509_get_serialNumber(*ppCert), GENERATED_CERTIFICATE_SERIAL);
+    ASN1_INTEGER_set_uint64(X509_get_serialNumber(*ppCert), certSn);
     X509_gmtime_adj(X509_get_notBefore(*ppCert), -1 * GENERATED_CERTIFICATE_DAYS * SECONDS_IN_A_DAY);
     X509_gmtime_adj(X509_get_notAfter(*ppCert), GENERATED_CERTIFICATE_DAYS * SECONDS_IN_A_DAY);
     CHK(X509_set_pubkey(*ppCert, *ppPkey) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);

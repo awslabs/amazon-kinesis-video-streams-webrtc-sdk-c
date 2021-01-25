@@ -18,7 +18,8 @@ extern "C" {
 
 #define GENERATED_CERTIFICATE_MAX_SIZE 4096
 #define GENERATED_CERTIFICATE_BITS     2048
-#define GENERATED_CERTIFICATE_SERIAL   1
+#define DTLS_CERT_MIN_SERIAL_NUM_SIZE  8
+#define DTLS_CERT_MAX_SERIAL_NUM_SIZE  20
 #define GENERATED_CERTIFICATE_DAYS     365
 #define GENERATED_CERTIFICATE_NAME     "KVS-WebRTC-Client"
 #define KEYING_EXTRACTOR_LABEL         "EXTRACTOR-dtls_srtp"
@@ -170,6 +171,8 @@ STATUS dtlsSessionOnStateChange(PDtlsSession, UINT64, DtlsSessionOnStateChange);
 /******** Internal Functions **********/
 STATUS dtlsValidateRtcCertificates(PRtcCertificate, PUINT32);
 STATUS dtlsSessionChangeState(PDtlsSession, RTC_DTLS_TRANSPORT_STATE);
+
+STATUS dtlsFillPseudoRandomBits(PBYTE, UINT32);
 
 #ifdef KVS_USE_OPENSSL
 STATUS dtlsCheckOutgoingDataBuffer(PDtlsSession);

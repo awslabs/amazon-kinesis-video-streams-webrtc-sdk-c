@@ -78,3 +78,22 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
+
+STATUS dtlsFillPseudoRandomBits(PBYTE pBuf, UINT32 bufSize)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    UINT32 i;
+
+    CHK(pBuf != NULL, STATUS_NULL_ARG);
+    CHK(bufSize >= DTLS_CERT_MIN_SERIAL_NUM_SIZE && bufSize <= DTLS_CERT_MAX_SERIAL_NUM_SIZE, retStatus);
+
+    for (i = 0; i < bufSize; i++) {
+        *pBuf++ = (BYTE)(RAND() & 0xFF);
+    }
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
+}

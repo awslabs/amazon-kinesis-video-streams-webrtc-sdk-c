@@ -611,6 +611,7 @@ STATUS createCertificateAndKey(INT32 certificateBits, BOOL generateRSACertificat
     mbedtls_ctr_drbg_context* pCtrDrbg = NULL;
     mbedtls_mpi serial;
     mbedtls_x509write_cert* pWriteCert = NULL;
+    BYTE certSn[DTLS_CERT_MAX_SERIAL_NUM_SIZE];
 
     CHK(pCert != NULL && pKey != NULL, STATUS_NULL_ARG);
 
@@ -618,6 +619,7 @@ STATUS createCertificateAndKey(INT32 certificateBits, BOOL generateRSACertificat
     CHK(NULL != (pEntropy = (mbedtls_entropy_context*) MEMALLOC(SIZEOF(mbedtls_entropy_context))), STATUS_NOT_ENOUGH_MEMORY);
     CHK(NULL != (pCtrDrbg = (mbedtls_ctr_drbg_context*) MEMALLOC(SIZEOF(mbedtls_ctr_drbg_context))), STATUS_NOT_ENOUGH_MEMORY);
     CHK(NULL != (pWriteCert = (mbedtls_x509write_cert*) MEMALLOC(SIZEOF(mbedtls_x509write_cert))), STATUS_NOT_ENOUGH_MEMORY);
+    CHK_STATUS(dtlsFillPseudoRandomBits(certSn, SIZEOF(certSn)));
 
     // initialize to sane values
     mbedtls_entropy_init(pEntropy);
@@ -641,7 +643,7 @@ STATUS createCertificateAndKey(INT32 certificateBits, BOOL generateRSACertificat
     }
 
     // generate a new certificate
-    CHK(mbedtls_mpi_read_string(&serial, 10, STR(GENERATED_CERTIFICATE_SERIAL)) == 0, STATUS_CERTIFICATE_GENERATION_FAILED);
+    CHK(mbedtls_mpi_read_binary(&serial, certSn, SIZEOF(certSn)) == 0, STATUS_CERTIFICATE_GENERATION_FAILED);
 
     now = GETTIME();
     CHK(generateTimestampStr(now, "%Y%m%d%H%M%S", notBeforeBuf, SIZEOF(notBeforeBuf), &written) == STATUS_SUCCESS,
