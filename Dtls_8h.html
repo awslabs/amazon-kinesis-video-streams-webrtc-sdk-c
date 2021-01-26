@@ -178,8 +178,10 @@ Macros</h2></td></tr>
 <tr class="separator:a12e352e3439645a2956fe486ec36743e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa7ef1d7eb61d26fe1e820c26321c2722"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Dtls_8h.html#aa7ef1d7eb61d26fe1e820c26321c2722">GENERATED_CERTIFICATE_BITS</a>&#160;&#160;&#160;2048</td></tr>
 <tr class="separator:aa7ef1d7eb61d26fe1e820c26321c2722"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a13a84b7ff4f9d411bc00803b1313e905"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Dtls_8h.html#a13a84b7ff4f9d411bc00803b1313e905">GENERATED_CERTIFICATE_SERIAL</a>&#160;&#160;&#160;1</td></tr>
-<tr class="separator:a13a84b7ff4f9d411bc00803b1313e905"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a06102d6440b68ccea5df747ad3fd6f1e"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Dtls_8h.html#a06102d6440b68ccea5df747ad3fd6f1e">DTLS_CERT_MIN_SERIAL_NUM_SIZE</a>&#160;&#160;&#160;8</td></tr>
+<tr class="separator:a06102d6440b68ccea5df747ad3fd6f1e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a696300174f8fa011bc709f541989fc2b"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Dtls_8h.html#a696300174f8fa011bc709f541989fc2b">DTLS_CERT_MAX_SERIAL_NUM_SIZE</a>&#160;&#160;&#160;20</td></tr>
+<tr class="separator:a696300174f8fa011bc709f541989fc2b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a32c585200a2c8fc8c45de1bcbc63ff0f"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Dtls_8h.html#a32c585200a2c8fc8c45de1bcbc63ff0f">GENERATED_CERTIFICATE_DAYS</a>&#160;&#160;&#160;365</td></tr>
 <tr class="separator:a32c585200a2c8fc8c45de1bcbc63ff0f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a537a4ab2713160b0ddfc5ed078c68aac"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Dtls_8h.html#a537a4ab2713160b0ddfc5ed078c68aac">GENERATED_CERTIFICATE_NAME</a>&#160;&#160;&#160;&quot;KVS-WebRTC-Client&quot;</td></tr>
@@ -253,8 +255,38 @@ Functions</h2></td></tr>
 <tr class="separator:ac1d4a9d34b47c3cc4a848ea2e1012816"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a836f1f4561fc2126486f46e3858cd0f2"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Dtls_8h.html#a836f1f4561fc2126486f46e3858cd0f2">dtlsSessionChangeState</a> (<a class="el" href="Dtls_8h.html#a26ca7dadcdec16a8584b8a97811cb2f6">PDtlsSession</a>, <a class="el" href="Dtls_8h.html#aa3c340420ea2933671b7564d7bb9ac2e">RTC_DTLS_TRANSPORT_STATE</a>)</td></tr>
 <tr class="separator:a836f1f4561fc2126486f46e3858cd0f2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1bf8b97ae0076266a976d0a46a9bd2aa"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Dtls_8h.html#a1bf8b97ae0076266a976d0a46a9bd2aa">dtlsFillPseudoRandomBits</a> (PBYTE, UINT32)</td></tr>
+<tr class="separator:a1bf8b97ae0076266a976d0a46a9bd2aa"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Macro Definition Documentation</h2>
+<a id="a696300174f8fa011bc709f541989fc2b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a696300174f8fa011bc709f541989fc2b">&#9670;&nbsp;</a></span>DTLS_CERT_MAX_SERIAL_NUM_SIZE</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define DTLS_CERT_MAX_SERIAL_NUM_SIZE&#160;&#160;&#160;20</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a06102d6440b68ccea5df747ad3fd6f1e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a06102d6440b68ccea5df747ad3fd6f1e">&#9670;&nbsp;</a></span>DTLS_CERT_MIN_SERIAL_NUM_SIZE</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define DTLS_CERT_MIN_SERIAL_NUM_SIZE&#160;&#160;&#160;8</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a id="a47dcf553b8ea91cf54d17063b966c731"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a47dcf553b8ea91cf54d17063b966c731">&#9670;&nbsp;</a></span>DTLS_SESSION_TIMER_START_DELAY</h2>
 
@@ -333,20 +365,6 @@ Functions</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname">#define GENERATED_CERTIFICATE_NAME&#160;&#160;&#160;&quot;KVS-WebRTC-Client&quot;</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="a13a84b7ff4f9d411bc00803b1313e905"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a13a84b7ff4f9d411bc00803b1313e905">&#9670;&nbsp;</a></span>GENERATED_CERTIFICATE_SERIAL</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define GENERATED_CERTIFICATE_SERIAL&#160;&#160;&#160;1</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -636,6 +654,7 @@ Here is the call graph for this function:</div>
 <area shape="rect" href="Dtls_8c.html#abdb647933c7ddcbdcc5470e66fdc0353" title=" " alt="" coords="205,360,380,387"/>
 <area shape="rect" href="Dtls__openssl_8c.html#ac06177551160b2bf5e5e8b764a6bd253" title=" " alt="" coords="219,411,366,437"/>
 <area shape="rect" href="Dtls__mbedtls_8c.html#aa1b6a668704b0b7ddf99be1f7977b8ba" title=" " alt="" coords="235,461,350,488"/>
+<area shape="rect" href="Dtls_8c.html#a8a3ff1abce99340169948c609dc4259a" title=" " alt="" coords="457,5,631,32"/>
 <area shape="rect" href="Dtls__mbedtls_8c.html#aa6d608da9c875fbfccf37bd3e716e836" title=" " alt="" coords="471,56,617,83"/>
 <area shape="rect" href="IOBuffer_8c.html#a716982d27f4e9cf43d6737555e684289" title=" " alt="" coords="498,107,590,133"/>
 <area shape="rect" href="Dtls__openssl_8c.html#ab9cf721020ef308c3908c38dccbaf407" title=" " alt="" coords="452,208,636,235"/>
@@ -648,6 +667,45 @@ Here is the caller graph for this function:</div>
 <div class="center"><img src="Dtls_8h_ac281e5a858d8c8ef0df8b26768d0663b_icgraph.png" border="0" usemap="#aDtls_8h_ac281e5a858d8c8ef0df8b26768d0663b_icgraph" alt=""/></div>
 <map name="aDtls_8h_ac281e5a858d8c8ef0df8b26768d0663b_icgraph" id="aDtls_8h_ac281e5a858d8c8ef0df8b26768d0663b_icgraph">
 <area shape="rect" title=" " alt="" coords="204,5,332,32"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title=" " alt="" coords="5,5,156,32"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="a1bf8b97ae0076266a976d0a46a9bd2aa"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1bf8b97ae0076266a976d0a46a9bd2aa">&#9670;&nbsp;</a></span>dtlsFillPseudoRandomBits()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">STATUS dtlsFillPseudoRandomBits </td>
+          <td>(</td>
+          <td class="paramtype">PBYTE&#160;</td>
+          <td class="paramname"><em>pBuf</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">UINT32&#160;</td>
+          <td class="paramname"><em>bufSize</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="Dtls_8h_a1bf8b97ae0076266a976d0a46a9bd2aa_icgraph.png" border="0" usemap="#aDtls_8h_a1bf8b97ae0076266a976d0a46a9bd2aa_icgraph" alt=""/></div>
+<map name="aDtls_8h_a1bf8b97ae0076266a976d0a46a9bd2aa_icgraph" id="aDtls_8h_a1bf8b97ae0076266a976d0a46a9bd2aa_icgraph">
+<area shape="rect" title=" " alt="" coords="589,5,764,32"/>
+<area shape="rect" href="Dtls__mbedtls_8c.html#aeb739e880d3edc3d95e7135805114f13" title=" " alt="" coords="380,5,541,32"/>
+<area shape="rect" href="Dtls_8h.html#ac281e5a858d8c8ef0df8b26768d0663b" title=" " alt="" coords="204,5,332,32"/>
 <area shape="rect" href="group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title=" " alt="" coords="5,5,156,32"/>
 </map>
 </div>
@@ -1256,7 +1314,7 @@ Here is the caller graph for this function:</div>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_94e7a0fbe7f8eaf7f05ee7b02c647e9f.html">source</a></li><li class="navelem"><a class="el" href="dir_bb0babb9660851e963dd030d37ce8ee6.html">Crypto</a></li><li class="navelem"><a class="el" href="Dtls_8h.html">Dtls.h</a></li>
-    <li class="footer">Generated on Fri Jan 22 2021 21:59:05 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Tue Jan 26 2021 05:46:47 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>
