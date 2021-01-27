@@ -91,6 +91,22 @@ BOOL transactionIdStoreHasId(PTransactionIdStore pTransactionIdStore, PBYTE tran
     return idFound;
 }
 
+VOID transactionIdStoreRemove(PTransactionIdStore pTransactionIdStore, PBYTE transactionId)
+{
+    UINT32 i, j;
+
+    CHECK(pTransactionIdStore != NULL);
+
+    for (i = pTransactionIdStore->earliestTransactionIdIndex, j = 0; j < pTransactionIdStore->maxTransactionIdsCount; ++j) {
+        if (MEMCMP(transactionId, pTransactionIdStore->transactionIds + i * STUN_TRANSACTION_ID_LEN, STUN_TRANSACTION_ID_LEN) == 0) {
+            MEMSET(pTransactionIdStore->transactionIds + i * STUN_TRANSACTION_ID_LEN, STUN_TRANSACTION_ID_LEN, 0x00);
+            return;
+        }
+
+        i = (i + 1) % pTransactionIdStore->maxTransactionIdsCount;
+    }
+}
+
 VOID transactionIdStoreClear(PTransactionIdStore pTransactionIdStore)
 {
     CHECK(pTransactionIdStore != NULL);
