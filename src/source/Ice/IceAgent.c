@@ -2531,7 +2531,7 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
             CHK(hexStr != NULL, STATUS_NOT_ENOUGH_MEMORY);
             CHK_STATUS(hexEncode(pBuffer, bufferLen, hexStr, &hexStrLen));
             DLOGW("Dropping unrecognized STUN packet. Packet type: 0x%02x. Packet content: \n\t%s", stunPacketType, hexStr);
-            MEMFREE(hexStr);
+            SAFE_MEMFREE(hexStr);
             break;
     }
 
