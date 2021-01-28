@@ -35,6 +35,7 @@ typedef struct {
 STATUS createTransactionIdStore(UINT32, PTransactionIdStore*);
 STATUS freeTransactionIdStore(PTransactionIdStore*);
 VOID transactionIdStoreInsert(PTransactionIdStore, PBYTE);
+VOID transactionIdStoreRemove(PTransactionIdStore, PBYTE);
 BOOL transactionIdStoreHasId(PTransactionIdStore, PBYTE);
 VOID transactionIdStoreClear(PTransactionIdStore);
 

@@ -460,7 +460,11 @@ STATUS iceAgentInitHostCandidate(PIceAgent pIceAgent)
         pIpAddress = &pIceAgent->localNetworkInterfaces[i];
 
         // make sure pIceAgent->localCandidates has no duplicates
+        MUTEX_LOCK(pIceAgent->lock);
+        locked = TRUE;
         CHK_STATUS(findCandidateWithIp(pIpAddress, pIceAgent->localCandidates, &pDuplicatedIceCandidate));
+        MUTEX_UNLOCK(pIceAgent->lock);
+        locked = FALSE;
 
         if (pDuplicatedIceCandidate == NULL &&
             STATUS_SUCCEEDED(createSocketConnection(pIpAddress->family, KVS_SOCKET_PROTOCOL_UDP, pIpAddress, NULL, (UINT64) pIceAgent,
@@ -1541,6 +1545,10 @@ STATUS iceAgentGatherCandidateTimerCallback(UINT32 timerId, UINT64 currentTime, 
         if (pIceCandidate->state == ICE_CANDIDATE_STATE_VALID && !pIceCandidate->reported) {
             newLocalCandidates[newLocalCandidateCount++] = *pIceCandidate;
             pIceCandidate->reported = TRUE;
+
+            if (pIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_SERVER_REFLEXIVE) {
+                CHK_STATUS(createIceCandidatePairs(pIceAgent, pIceCandidate, FALSE));
+            }
         }
     }
 
@@ -1626,12 +1634,19 @@ STATUS iceAgentInitSrflxCandidate(PIceAgent pIceAgent)
     UINT64 data;
     PIceServer pIceServer = NULL;
     PIceCandidate pCandidate = NULL, pNewCandidate = NULL;
-    UINT32 j;
+    UINT32 j, srflxCount = 0;
     BOOL locked = FALSE;
+    PIceCandidate srflsCandidates[KVS_ICE_MAX_LOCAL_CANDIDATE_COUNT];
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
 
-    /* There should be no other thread mutating localCandidates at this time, so safe to read without lock. */
+    // Interlock the loop as there could be accessors with the connection
+    // listener which is active with just prior adding local candidates.
+    // We will create the reflexive candidates and add them to the list
+    // in an interlocked fashion but will also store the pointers locally
+    // which we will run outside of the locks.
+    MUTEX_LOCK(pIceAgent->lock);
+    locked = TRUE;
     CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
     while (pCurNode != NULL) {
         CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
@@ -1648,36 +1663,38 @@ STATUS iceAgentInitSrflxCandidate(PIceAgent pIceAgent)
 
                     // copy over host candidate's address to open up a new socket at that address.
                     pNewCandidate->ipAddress = pCandidate->ipAddress;
-                    // open up a new socket at host candidate's ip address for server reflex candidate.
-                    // the new port will be stored in pNewCandidate->ipAddress.port. And the Ip address will later be updated
-                    // with the correct ip address once the STUN response is received.
-                    CHK_STATUS(createSocketConnection(pCandidate->ipAddress.family, KVS_SOCKET_PROTOCOL_UDP, &pNewCandidate->ipAddress, NULL,
-                                                      (UINT64) pIceAgent, incomingDataHandler, pIceAgent->kvsRtcConfiguration.sendBufSize,
-                                                      &pNewCandidate->pSocketConnection));
-                    ATOMIC_STORE_BOOL(&pNewCandidate->pSocketConnection->receiveData, TRUE);
-                    // connectionListener will free the pSocketConnection at the end.
-                    CHK_STATUS(connectionListenerAddConnection(pIceAgent->pConnectionListener, pNewCandidate->pSocketConnection));
                     pNewCandidate->iceCandidateType = ICE_CANDIDATE_TYPE_SERVER_REFLEXIVE;
                     pNewCandidate->state = ICE_CANDIDATE_STATE_NEW;
                     pNewCandidate->iceServerIndex = j;
                     pNewCandidate->foundation = pIceAgent->foundationCounter++; // we dont generate candidates that have the same foundation.
                     pNewCandidate->priority = computeCandidatePriority(pNewCandidate);
 
-                    /* There could be another thread calling iceAgentAddRemoteCandidate which triggers createIceCandidatePairs.
-                     * createIceCandidatePairs will read through localCandidates, since we are mutating localCandidates here,
-                     * need to acquire lock. */
-                    MUTEX_LOCK(pIceAgent->lock);
-                    locked = TRUE;
-
                     CHK_STATUS(doubleListInsertItemHead(pIceAgent->localCandidates, (UINT64) pNewCandidate));
 
-                    MUTEX_UNLOCK(pIceAgent->lock);
-                    locked = FALSE;
+                    // Store the pointer so we can start the connection listener outside the locks
+                    srflsCandidates[srflxCount++] = pNewCandidate;
 
                     pNewCandidate = NULL;
                 }
             }
         }
+    }
+
+    MUTEX_UNLOCK(pIceAgent->lock);
+    locked = FALSE;
+
+    // Create and start the connection listener outside of the locks
+    for (j = 0; j < srflxCount; j++) {
+        pCandidate = srflsCandidates[j];
+        // open up a new socket at host candidate's ip address for server reflex candidate.
+        // the new port will be stored in pNewCandidate->ipAddress.port. And the Ip address will later be updated
+        // with the correct ip address once the STUN response is received.
+        CHK_STATUS(createSocketConnection(pCandidate->ipAddress.family, KVS_SOCKET_PROTOCOL_UDP, &pCandidate->ipAddress, NULL,
+                                          (UINT64) pIceAgent, incomingDataHandler, pIceAgent->kvsRtcConfiguration.sendBufSize,
+                                          &pCandidate->pSocketConnection));
+        ATOMIC_STORE_BOOL(&pCandidate->pSocketConnection->receiveData, TRUE);
+        // connectionListener will free the pSocketConnection at the end.
+        CHK_STATUS(connectionListenerAddConnection(pIceAgent->pConnectionListener, pCandidate->pSocketConnection));
     }
 
 CleanUp:
@@ -2071,10 +2088,12 @@ STATUS iceAgentReadyStateSetup(PIceAgent pIceAgent)
 
     pIceAgent->pDataSendingIceCandidatePair = pNominatedAndValidCandidatePair;
     CHK_STATUS(getIpAddrStr(&pIceAgent->pDataSendingIceCandidatePair->local->ipAddress, ipAddrStr, ARRAY_SIZE(ipAddrStr)));
-    DLOGD("Selected pair %s_%s, local candidate type: %s. Round trip time %u ms", pIceAgent->pDataSendingIceCandidatePair->local->id,
+    DLOGD("Selected pair %s_%s, local candidate type: %s. Round trip time %u ms. Local candidate priority: %u, ice candidate pair priority: %" PRIu64, pIceAgent->pDataSendingIceCandidatePair->local->id,
           pIceAgent->pDataSendingIceCandidatePair->remote->id,
           iceAgentGetCandidateTypeStr(pIceAgent->pDataSendingIceCandidatePair->local->iceCandidateType),
-          pIceAgent->pDataSendingIceCandidatePair->roundTripTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+          pIceAgent->pDataSendingIceCandidatePair->roundTripTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
+          pIceAgent->pDataSendingIceCandidatePair->local->priority,
+          pIceAgent->pDataSendingIceCandidatePair->priority);
 
     /* no state timeout for ready state */
     pIceAgent->stateEndTime = INVALID_TIMESTAMP_VALUE;
@@ -2422,7 +2441,12 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
                 CHK_WARN(pStunAttr != NULL, retStatus, "No mapped address attribute found in STUN binding response. Dropping Packet");
 
                 pStunAttributeAddress = (PStunAttributeAddress) pStunAttr;
+
+                // Update the server reflexive address which later will be picked up by the timer callback
                 CHK_STATUS(updateCandidateAddress(pIceCandidate, &pStunAttributeAddress->address));
+
+                // Remove from the transaction id store as we no longer are awaiting for the bind response
+                transactionIdStoreRemove(pIceAgent->pStunBindingRequestTransactionIdStore, pBuffer + STUN_PACKET_TRANSACTION_ID_OFFSET);
                 CHK(FALSE, retStatus);
             }
 
@@ -2507,13 +2531,15 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
             CHK(hexStr != NULL, STATUS_NOT_ENOUGH_MEMORY);
             CHK_STATUS(hexEncode(pBuffer, bufferLen, hexStr, &hexStrLen));
             DLOGW("Dropping unrecognized STUN packet. Packet type: 0x%02x. Packet content: \n\t%s", stunPacketType, hexStr);
-            MEMFREE(hexStr);
+            SAFE_MEMFREE(hexStr);
             break;
     }
 
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
+
+    SAFE_MEMFREE(hexStr);
 
     if (pStunPacket != NULL) {
         freeStunPacket(&pStunPacket);
