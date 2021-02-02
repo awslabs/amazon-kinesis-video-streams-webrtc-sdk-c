@@ -1075,6 +1075,12 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
              */
             if (pSampleConfiguration->streamingSessionCount == ARRAY_SIZE(pSampleConfiguration->sampleStreamingSessionList)) {
                 DLOGW("Max simultaneous streaming session count reached.");
+
+                // Need to remove the pending queue if any
+                if (STATUS_SUCCEEDED(hashTableGet(pSampleConfiguration->pPendingSignalingMessageForRemoteClient, clientIdHash, &hashValue))) {
+                    pPendingMessageQueue = (PStackQueue) hashValue;
+                }
+
                 CHK(FALSE, retStatus);
             }
             CHK_STATUS(createSampleStreamingSession(pSampleConfiguration, pReceivedSignalingMessage->signalingMessage.peerClientId, TRUE,
