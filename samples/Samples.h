@@ -27,6 +27,8 @@ extern "C" {
 
 #define SAMPLE_SESSION_CLEANUP_WAIT_PERIOD (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
+#define SAMPLE_PENDING_MESSAGE_CLEANUP_DURATION (20 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+
 #define CA_CERT_PEM_FILE_EXTENSION ".pem"
 
 #define FILE_LOGGING_BUFFER_SIZE (100 * 1024)
@@ -77,7 +79,7 @@ typedef struct {
     RtcOnDataChannel onDataChannel;
 
     TID signalingProcessor;
-    PHashTable pPendingSignalingMessageForRemoteClient;
+    PStackQueue pPendingSignalingMessageForRemoteClient;
     PHashTable pRtcPeerConnectionForRemoteClient;
 
     MUTEX sampleConfigurationObjLock;
@@ -96,6 +98,12 @@ typedef struct {
 
     MUTEX signalingSendMessageLock;
 } SampleConfiguration, *PSampleConfiguration;
+
+typedef struct {
+    UINT64 hashValue;
+    UINT64 createTime;
+    PStackQueue messageQueue;
+} PendingMessageQueue, *PPendingMessageQueue;
 
 typedef VOID (*StreamSessionShutdownCallback)(UINT64, PSampleStreamingSession);
 
@@ -155,6 +163,11 @@ STATUS sessionCleanupWait(PSampleConfiguration);
 STATUS logSignalingClientStats(PSignalingClientMetrics);
 STATUS logSelectedIceCandidatesInformation(PSampleStreamingSession);
 STATUS logStartUpLatency(PSampleConfiguration);
+STATUS createMessageQueue(UINT64, PPendingMessageQueue*);
+STATUS freeMessageQueue(PPendingMessageQueue);
+STATUS submitPendingIceCandidate(PPendingMessageQueue, PSampleStreamingSession);
+STATUS removeExpiredMessageQueues(PStackQueue);
+STATUS getPendingMessageQueueForHash(PStackQueue, UINT64, BOOL, PPendingMessageQueue*);
 
 #ifdef __cplusplus
 }
