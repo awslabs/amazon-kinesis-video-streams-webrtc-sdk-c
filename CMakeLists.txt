@@ -9,6 +9,7 @@ project(KinesisVideoWebRTCClient LANGUAGES C)
 # User Flags
 option(ADD_MUCLIBC "Add -muclibc c flag" OFF)
 option(BUILD_DEPENDENCIES "Whether or not to build depending libraries from source" ON)
+option(BUILD_AWS_DEPENDENCIES "Whether or not to build depending AWS libraries from source" ON)
 option(USE_OPENSSL "Use openssl as crypto library" ON)
 option(USE_MBEDTLS "Use mbedtls as crypto library" OFF)
 option(BUILD_STATIC_LIBS "Build all libraries statically. (This includes third-party libraries.)" OFF)
@@ -142,18 +143,27 @@ if(BUILD_DEPENDENCIES)
   if (LINK_PROFILER)
     build_dependency(gperftools)
   endif()
+endif()
+
+if(BUILD_AWS_DEPENDENCIES OR BUILD_DEPENDENCIES)
+  set(OPEN_SRC_INSTALL_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/open-source)
+  if(NOT EXISTS ${OPEN_SRC_INSTALL_PREFIX})
+    file(MAKE_DIRECTORY ${OPEN_SRC_INSTALL_PREFIX})
+  endif()
+
+  set(ENV{PKG_CONFIG_PATH} "$ENV{PKG_CONFIG_PATH}:${OPEN_SRC_INSTALL_PREFIX}/lib/pkgconfig")
+  set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${OPEN_SRC_INSTALL_PREFIX})
 
   # building kvsCommonLws also builds kvspic
   set(BUILD_ARGS
-      -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-      -DUSE_OPENSSL=${USE_OPENSSL}
-      -DUSE_MBEDTLS=${USE_MBEDTLS}
-      -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
+  -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+  -DUSE_OPENSSL=${USE_OPENSSL}
+  -DUSE_MBEDTLS=${USE_MBEDTLS}
+  -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
   build_dependency(kvsCommonLws ${BUILD_ARGS})
 
   message(STATUS "Finished building dependencies.")
 endif()
-
 ############# find dependent libraries ############
 
 find_package(Threads)
