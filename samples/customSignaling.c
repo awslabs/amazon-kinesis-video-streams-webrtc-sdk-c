@@ -75,7 +75,7 @@ VOID onConnectionStateChange_(UINT64 session64, RTC_PEER_CONNECTION_STATE state)
 void onRemoteMessage(UINT64 session64, PRtcDataChannel pRtcDataChannel, BOOL binary, PBYTE data, UINT32 len)
 {
     char text[128] = {0};
-    snprintf(text, MIN(len, 128), "%s", data);
+    snprintf(text, MIN(len, 127) + 1, "%s", data);
     printf("onRemoteMessage %s %s %s\n", pRtcDataChannel->name, binary ? "bin" : "text", text);
     dataChannelSend(pRtcDataChannel, FALSE, "pong", 4);
 }
