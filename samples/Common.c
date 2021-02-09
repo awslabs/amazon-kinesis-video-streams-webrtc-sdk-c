@@ -1292,3 +1292,121 @@ CleanUp:
 
     return retStatus;
 }
+
+STATUS readFrameFromDisk(PBYTE pFrame, PUINT32 pSize, PCHAR frameFilePath)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    UINT64 size = 0;
+
+    if (pSize == NULL) {
+        printf("[KVS Master] readFrameFromDisk(): operation returned status code: 0x%08x \n", STATUS_NULL_ARG);
+        goto CleanUp;
+    }
+
+    size = *pSize;
+
+    // Get the size and read into frame
+    retStatus = readFile(frameFilePath, TRUE, pFrame, &size);
+    if (retStatus != STATUS_SUCCESS) {
+        printf("[KVS Master] readFile(): operation returned status code: 0x%08x \n", retStatus);
+        goto CleanUp;
+    }
+
+    CleanUp:
+
+    if (pSize != NULL) {
+        *pSize = (UINT32) size;
+    }
+
+    return retStatus;
+}
+
+PVOID sendVideoPackets(PVOID args)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
+    RtcEncoderStats encoderStats;
+    Frame frame;
+    UINT32 fileIndex = 0, frameSize;
+    CHAR filePath[MAX_PATH_LEN + 1];
+    STATUS status;
+    UINT32 i;
+    UINT64 startTime, lastFrameTime, elapsed;
+    MEMSET(&encoderStats, 0x00, SIZEOF(RtcEncoderStats));
+
+    if (pSampleConfiguration == NULL) {
+        printf("[KVS Master] sendVideoPackets(): operation returned status code: 0x%08x \n", STATUS_NULL_ARG);
+        goto CleanUp;
+    }
+
+    frame.presentationTs = 0;
+    startTime = GETTIME();
+    lastFrameTime = startTime;
+
+    while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
+        fileIndex = fileIndex % NUMBER_OF_H264_FRAME_FILES + 1;
+        snprintf(filePath, MAX_PATH_LEN, "./h264SampleFrames/frame-%04d.h264", fileIndex);
+
+        retStatus = readFrameFromDisk(NULL, &frameSize, filePath);
+        if (retStatus != STATUS_SUCCESS) {
+            printf("[KVS Master] readFrameFromDisk(): operation returned status code: 0x%08x \n", retStatus);
+            goto CleanUp;
+        }
+
+        // Re-alloc if needed
+        if (frameSize > pSampleConfiguration->videoBufferSize) {
+            pSampleConfiguration->pVideoFrameBuffer = (PBYTE) MEMREALLOC(pSampleConfiguration->pVideoFrameBuffer, frameSize);
+            if (pSampleConfiguration->pVideoFrameBuffer == NULL) {
+                printf("[KVS Master] Video frame Buffer reallocation failed...%s (code %d)\n", strerror(errno), errno);
+                printf("[KVS Master] MEMREALLOC(): operation returned status code: 0x%08x \n", STATUS_NOT_ENOUGH_MEMORY);
+                goto CleanUp;
+            }
+
+            pSampleConfiguration->videoBufferSize = frameSize;
+        }
+
+        frame.frameData = pSampleConfiguration->pVideoFrameBuffer;
+        frame.size = frameSize;
+
+        retStatus = readFrameFromDisk(frame.frameData, &frameSize, filePath);
+        if (retStatus != STATUS_SUCCESS) {
+            printf("[KVS Master] readFrameFromDisk(): operation returned status code: 0x%08x \n", retStatus);
+            goto CleanUp;
+        }
+
+        // based on bitrate of samples/h264SampleFrames/frame-*
+        encoderStats.width = 640;
+        encoderStats.height = 480;
+        encoderStats.targetBitrate = 262000;
+        frame.presentationTs += SAMPLE_VIDEO_FRAME_DURATION;
+
+        MUTEX_LOCK(pSampleConfiguration->streamingSessionListReadLock);
+        for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
+            status = writeFrame(pSampleConfiguration->sampleStreamingSessionList[i]->pVideoRtcRtpTransceiver, &frame);
+            encoderStats.encodeTimeMsec = 4; // update encode time to an arbitrary number to demonstrate stats update
+            updateEncoderStats(pSampleConfiguration->sampleStreamingSessionList[i]->pVideoRtcRtpTransceiver, &encoderStats);
+            if (status != STATUS_SRTP_NOT_READY_YET) {
+                if (status != STATUS_SUCCESS) {
+#ifdef VERBOSE
+                    printf("writeFrame() failed with 0x%08x\n", status);
+#endif
+                }
+            }
+        }
+        MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
+
+        // Adjust sleep in the case the sleep itself and writeFrame take longer than expected. Since sleep makes sure that the thread
+        // will be paused at least until the given amount, we can assume that there's no too early frame scenario.
+        // Also, it's very unlikely to have a delay greater than SAMPLE_VIDEO_FRAME_DURATION, so the logic assumes that this is always
+        // true for simplicity.
+        elapsed = lastFrameTime - startTime;
+        THREAD_SLEEP(SAMPLE_VIDEO_FRAME_DURATION - elapsed % SAMPLE_VIDEO_FRAME_DURATION);
+        lastFrameTime = GETTIME();
+    }
+
+    CleanUp:
+
+    CHK_LOG_ERR(retStatus);
+
+    return (PVOID)(ULONG_PTR) retStatus;
+}

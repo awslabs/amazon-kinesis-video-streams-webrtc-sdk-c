@@ -1,28 +1,17 @@
-#include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
 #include <termios.h>
 #include <unistd.h>
 #include <dirent.h>
-#include <stdio.h>
-
-#define DEFAULT_FPS_VALUE           25
-#define NUMBER_OF_H264_FRAME_FILES  1500
-#define SAMPLE_VIDEO_FRAME_DURATION (HUNDREDS_OF_NANOS_IN_A_SECOND / DEFAULT_FPS_VALUE)
+#include "Samples.h"
 
 struct MySession {
-    volatile ATOMIC_BOOL appTerminateFlag;
     RtcConfiguration rtcConfig;
     PRtcPeerConnection pPeerConnection;
-    UINT64 u64_node;
 
     RtcMediaStreamTrack videoTrack;
     PRtcRtpTransceiver transceiver;
     RTC_PEER_CONNECTION_STATE connectionState;
 
     BOOL iceGatheringDone;
-    PBYTE pVideoFrameBuffer;
-    UINT32 videoBufferSize;
-    MUTEX streamingSessionListReadLock;
-    UINT32 streamingSessionCount;
 };
 
 static const char* ConnectionStateNames[] = {
@@ -77,7 +66,7 @@ CleanUp:
         printf("onIceCandidate failed 0x%x\n", retStatus);
 }
 
-VOID onConnectionStateChange(UINT64 session64, RTC_PEER_CONNECTION_STATE state)
+VOID onConnectionStateChange_(UINT64 session64, RTC_PEER_CONNECTION_STATE state)
 {
     printf("onConnectionStateChange: %s\n", connection_state_to_string(state));
     session.connectionState = state;
@@ -95,111 +84,6 @@ void onRemoteDataChannel(UINT64 session64, PRtcDataChannel pRtcDataChannel)
 {
     printf("remote data channel '%s'\n", pRtcDataChannel->name);
     dataChannelOnMessage(pRtcDataChannel, session64, onRemoteMessage);
-}
-
-STATUS readFrameFromDisk(PBYTE pFrame, PUINT32 pSize, PCHAR frameFilePath)
-{
-    STATUS retStatus = STATUS_SUCCESS;
-    UINT64 size = 0;
-
-    if (pSize == NULL) {
-        printf("[KVS Master] readFrameFromDisk(): operation returned status code: 0x%08x \n", STATUS_NULL_ARG);
-        goto CleanUp;
-    }
-
-    size = *pSize;
-
-    // Get the size and read into frame
-    retStatus = readFile(frameFilePath, TRUE, pFrame, &size);
-    if (retStatus != STATUS_SUCCESS) {
-        printf("[KVS Master] readFile(): operation returned status code: 0x%08x \n", retStatus);
-        goto CleanUp;
-    }
-
-CleanUp:
-
-    if (pSize != NULL) {
-        *pSize = (UINT32) size;
-    }
-
-    return retStatus;
-}
-
-PVOID sendVideoPackets()
-{
-    printf("sendVideoPackets\n");
-    STATUS retStatus = STATUS_SUCCESS;
-    RtcEncoderStats encoderStats;
-    Frame frame;
-    UINT32 fileIndex = 0, frameSize;
-    CHAR filePath[MAX_PATH_LEN + 1];
-    STATUS status;
-    UINT64 startTime, lastFrameTime, elapsed;
-    MEMSET(&encoderStats, 0x00, SIZEOF(RtcEncoderStats));
-
-    frame.presentationTs = 0;
-    startTime = GETTIME();
-    lastFrameTime = startTime;
-
-    while (!ATOMIC_LOAD_BOOL(&session.appTerminateFlag)) {
-        fileIndex = fileIndex % NUMBER_OF_H264_FRAME_FILES + 1;
-        snprintf(filePath, MAX_PATH_LEN, "./h264SampleFrames/frame-%04d.h264", fileIndex);
-
-        retStatus = readFrameFromDisk(NULL, &frameSize, filePath);
-        if (retStatus != STATUS_SUCCESS) {
-            printf("[KVS Master] readFrameFromDisk(): operation returned status code: 0x%08x \n", retStatus);
-            goto CleanUp;
-        }
-
-        // Re-alloc if needed
-        if (frameSize > session.videoBufferSize) {
-            session.pVideoFrameBuffer = (PBYTE) MEMREALLOC(session.pVideoFrameBuffer, frameSize);
-            if (session.pVideoFrameBuffer == NULL) {
-                printf("[KVS Master] Video frame Buffer reallocation failed...%s (code %d)\n", strerror(errno), errno);
-                printf("[KVS Master] MEMREALLOC(): operation returned status code: 0x%08x \n", STATUS_NOT_ENOUGH_MEMORY);
-                goto CleanUp;
-            }
-
-            session.videoBufferSize = frameSize;
-        }
-
-        frame.frameData = session.pVideoFrameBuffer;
-        frame.size = frameSize;
-
-        retStatus = readFrameFromDisk(frame.frameData, &frameSize, filePath);
-        if (retStatus != STATUS_SUCCESS) {
-            printf("[KVS Master] readFrameFromDisk(): operation returned status code: 0x%08x \n", retStatus);
-            goto CleanUp;
-        }
-
-        // based on bitrate of samples/h264SampleFrames/frame-*
-        encoderStats.width = 640;
-        encoderStats.height = 480;
-        encoderStats.targetBitrate = 262000;
-        frame.presentationTs += SAMPLE_VIDEO_FRAME_DURATION;
-
-        status = writeFrame(session.transceiver, &frame);
-        encoderStats.encodeTimeMsec = 4; // update encode time to an arbitrary number to demonstrate stats update
-        updateEncoderStats(session.transceiver, &encoderStats);
-
-        if (status != STATUS_SRTP_NOT_READY_YET && status != STATUS_SUCCESS) {
-            DLOGD("writeFrame() failed with 0x%08x\n", status);
-        }
-
-        // Adjust sleep in the case the sleep itself and writeFrame take longer than expected. Since sleep makes sure that the thread
-        // will be paused at least until the given amount, we can assume that there's no too early frame scenario.
-        // Also, it's very unlikely to have a delay greater than SAMPLE_VIDEO_FRAME_DURATION, so the logic assumes that this is always
-        // true for simplicity.
-        elapsed = lastFrameTime - startTime;
-        THREAD_SLEEP(SAMPLE_VIDEO_FRAME_DURATION - elapsed % SAMPLE_VIDEO_FRAME_DURATION);
-        lastFrameTime = GETTIME();
-    }
-
-CleanUp:
-
-    CHK_LOG_ERR(retStatus);
-
-    return (PVOID)(ULONG_PTR) retStatus;
 }
 
 INT32 main(INT32 argc, CHAR* argv[])
@@ -221,13 +105,13 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     session.rtcConfig.kvsRtcConfiguration.iceLocalCandidateGatheringTimeout = (5 * HUNDREDS_OF_NANOS_IN_A_SECOND);
     session.rtcConfig.kvsRtcConfiguration.iceCandidateNominationTimeout = (120 * HUNDREDS_OF_NANOS_IN_A_SECOND);
-    session.u64_node = (UINT64) &session;
+    UINT64 session64 = (UINT64) &session;
     STRNCPY(session.rtcConfig.iceServers[0].urls, "stun:stun.l.google.com:19302", MAX_ICE_CONFIG_URI_LEN);
 
     CHK_STATUS(createPeerConnection(&session.rtcConfig, &session.pPeerConnection));
-    CHK_STATUS(peerConnectionOnIceCandidate(session.pPeerConnection, session.u64_node, onIceCandidate));
-    CHK_STATUS(peerConnectionOnConnectionStateChange(session.pPeerConnection, session.u64_node, onConnectionStateChange));
-    CHK_STATUS(peerConnectionOnDataChannel(session.pPeerConnection, session.u64_node, onRemoteDataChannel));
+    CHK_STATUS(peerConnectionOnIceCandidate(session.pPeerConnection, session64, onIceCandidate));
+    CHK_STATUS(peerConnectionOnConnectionStateChange(session.pPeerConnection, session64, onConnectionStateChange_));
+    CHK_STATUS(peerConnectionOnDataChannel(session.pPeerConnection, session64, onRemoteDataChannel));
     CHK_STATUS(addSupportedCodec(session.pPeerConnection, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE));
     CHK_STATUS(addSupportedCodec(session.pPeerConnection, RTC_CODEC_OPUS));
     RtcRtpTransceiverInit trackinit = {RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY};
@@ -241,9 +125,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     RtcSessionDescriptionInit answerSdp = {0};
 
     CHK_STATUS(setRemoteDescription(session.pPeerConnection, &offerSdp));
-    //    CHK_STATUS(createAnswer(session.pPeerConnection, &answerSdp));
     CHK_STATUS(setLocalDescription(session.pPeerConnection, &answerSdp));
-    //    printf("answer: '%s'\n", answerSdp.sdp);
 
     while (1) {
         if (!session.iceGatheringDone) {
@@ -256,7 +138,13 @@ INT32 main(INT32 argc, CHAR* argv[])
     }
     if (session.connectionState == RTC_PEER_CONNECTION_STATE_CONNECTED) {
         // send frames
-        sendVideoPackets();
+        SampleConfiguration config = {0};
+        config.streamingSessionListReadLock = MUTEX_CREATE(FALSE);
+        SampleStreamingSession sampleStreamingSession = {0};
+        sampleStreamingSession.pVideoRtcRtpTransceiver = session.transceiver;
+        config.streamingSessionCount = 1;
+        config.sampleStreamingSessionList[0] = &sampleStreamingSession;
+        sendVideoPackets(&config);
     }
 
     return 0;
