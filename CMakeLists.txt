@@ -362,8 +362,9 @@ if (BUILD_SAMPLE)
 
   add_executable(
           customSignaling
+          ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/Common.c
           ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/customSignaling.c)
-  target_link_libraries(customSignaling kvsWebrtcClient kvspicUtils)
+  target_link_libraries(customSignaling kvsWebrtcClient kvsWebrtcSignalingClient kvspicUtils)
 
   add_executable(
     kvsWebrtcClientViewer
