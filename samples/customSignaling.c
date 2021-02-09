@@ -105,6 +105,7 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     session.rtcConfig.kvsRtcConfiguration.iceLocalCandidateGatheringTimeout = (5 * HUNDREDS_OF_NANOS_IN_A_SECOND);
     session.rtcConfig.kvsRtcConfiguration.iceCandidateNominationTimeout = (120 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+    session.rtcConfig.kvsRtcConfiguration.iceConnectionCheckTimeout = (60 * HUNDREDS_OF_NANOS_IN_A_SECOND);
     UINT64 session64 = (UINT64) &session;
     STRNCPY(session.rtcConfig.iceServers[0].urls, "stun:stun.l.google.com:19302", MAX_ICE_CONFIG_URI_LEN);
 
