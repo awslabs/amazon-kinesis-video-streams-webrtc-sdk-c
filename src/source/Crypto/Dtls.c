@@ -13,7 +13,7 @@ STATUS dtlsSessionOnOutBoundData(PDtlsSession pDtlsSession, UINT64 customData, D
     MUTEX_UNLOCK(pDtlsSession->sslLock);
 
 CleanUp:
-    return STATUS_SUCCESS;
+    return retStatus;
 }
 
 STATUS dtlsSessionOnStateChange(PDtlsSession pDtlsSession, UINT64 customData, DtlsSessionOnStateChange callbackFn)
@@ -39,7 +39,10 @@ STATUS dtlsValidateRtcCertificates(PRtcCertificate pRtcCertificates, PUINT32 pCo
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 i = 0;
 
-    CHK(pRtcCertificates != NULL && pCount != NULL, retStatus);
+    CHK(pCount != NULL, STATUS_NULL_ARG);
+
+    // No certs have been specified
+    CHK(pRtcCertificates != NULL, retStatus);
 
     for (i = 0, *pCount = 0; pRtcCertificates[i].pCertificate != NULL && i < MAX_RTCCONFIGURATION_CERTIFICATES; i++) {
         CHK(pRtcCertificates[i].privateKeySize == 0 || pRtcCertificates[i].pPrivateKey != NULL, STATUS_SSL_INVALID_CERTIFICATE_BITS);

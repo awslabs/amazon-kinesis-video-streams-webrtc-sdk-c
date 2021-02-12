@@ -25,6 +25,9 @@ extern "C" {
 #define SAMPLE_STATS_DURATION       (60 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define SAMPLE_VIDEO_FRAME_DURATION (HUNDREDS_OF_NANOS_IN_A_SECOND / DEFAULT_FPS_VALUE)
 
+#define SAMPLE_PRE_GENERATE_CERT        TRUE
+#define SAMPLE_PRE_GENERATE_CERT_PERIOD (1000 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
+
 #define SAMPLE_SESSION_CLEANUP_WAIT_PERIOD (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
 #define SAMPLE_PENDING_MESSAGE_CLEANUP_DURATION (20 * HUNDREDS_OF_NANOS_IN_A_SECOND)
@@ -97,6 +100,9 @@ typedef struct {
     RtcStats rtcIceCandidatePairMetrics;
 
     MUTEX signalingSendMessageLock;
+
+    UINT32 pregenerateCertTimerId;
+    PStackQueue pregeneratedCertificates; // Max MAX_RTCCONFIGURATION_CERTIFICATES certificates
 } SampleConfiguration, *PSampleConfiguration;
 
 typedef struct {
@@ -140,6 +146,7 @@ PVOID sendGstreamerAudioVideo(PVOID);
 PVOID sampleReceiveVideoFrame(PVOID args);
 PVOID getPeriodicIceCandidatePairStats(PVOID);
 STATUS getIceCandidatePairStatsCallback(UINT32, UINT64, UINT64);
+STATUS pregenerateCertTimerCallback(UINT32, UINT64, UINT64);
 STATUS createSampleConfiguration(PCHAR, SIGNALING_CHANNEL_ROLE_TYPE, BOOL, BOOL, PSampleConfiguration*);
 STATUS freeSampleConfiguration(PSampleConfiguration*);
 STATUS signalingClientStateChanged(UINT64, SIGNALING_CLIENT_STATE);

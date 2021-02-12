@@ -573,7 +573,7 @@ STATUS copyCertificateAndKey(mbedtls_x509_crt* pCert, mbedtls_pk_context* pKey, 
         case MBEDTLS_PK_ECDSA:
             pSrcECP = mbedtls_pk_ec(*pKey);
             pDstECP = mbedtls_pk_ec(pDst->privateKey);
-            CHK(mbedtls_ecp_group_copy(&pDstECP->grp, &pSrcECP->grp) && mbedtls_ecp_copy(&pDstECP->Q, &pSrcECP->Q) == 0 &&
+            CHK(mbedtls_ecp_group_copy(&pDstECP->grp, &pSrcECP->grp) == 0 && mbedtls_ecp_copy(&pDstECP->Q, &pSrcECP->Q) == 0 &&
                     mbedtls_mpi_copy(&pDstECP->d, &pSrcECP->d) == 0,
                 STATUS_CERTIFICATE_GENERATION_FAILED);
             break;

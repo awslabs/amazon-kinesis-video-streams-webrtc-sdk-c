@@ -99,7 +99,7 @@ VOID transactionIdStoreRemove(PTransactionIdStore pTransactionIdStore, PBYTE tra
 
     for (i = pTransactionIdStore->earliestTransactionIdIndex, j = 0; j < pTransactionIdStore->maxTransactionIdsCount; ++j) {
         if (MEMCMP(transactionId, pTransactionIdStore->transactionIds + i * STUN_TRANSACTION_ID_LEN, STUN_TRANSACTION_ID_LEN) == 0) {
-            MEMSET(pTransactionIdStore->transactionIds + i * STUN_TRANSACTION_ID_LEN, STUN_TRANSACTION_ID_LEN, 0x00);
+            MEMSET(pTransactionIdStore->transactionIds + i * STUN_TRANSACTION_ID_LEN, 0x00, STUN_TRANSACTION_ID_LEN);
             return;
         }
 
