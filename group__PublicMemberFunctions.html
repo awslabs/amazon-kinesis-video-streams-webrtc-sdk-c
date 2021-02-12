@@ -235,6 +235,12 @@ Functions</h2></td></tr>
 <tr class="memitem:ga469e0f69e03630ad5b03d8921afd62be"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicMemberFunctions.html#ga469e0f69e03630ad5b03d8921afd62be">rtcPeerConnectionGetMetrics</a> (<a class="el" href="group__PublicStructures.html#ga70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>, <a class="el" href="group__PublicStructures.html#ga575b38a26ceae3044dd16d8d72667ebf">PRtcRtpTransceiver</a>, <a class="el" href="group__StatsStructures.html#gabdd6279872601de0a012f1f3f50c8c82">PRtcStats</a>)</td></tr>
 <tr class="memdesc:ga469e0f69e03630ad5b03d8921afd62be"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the relevant/all metrics based on the RTCStatsType field. This does not include any signaling related metrics. The caller of the API is expected to populate requestedTypeOfStats member of PRtcStats object with one of the values in RTC_STATS_TYPE.  <a href="group__PublicMemberFunctions.html#ga469e0f69e03630ad5b03d8921afd62be">More...</a><br /></td></tr>
 <tr class="separator:ga469e0f69e03630ad5b03d8921afd62be"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga626872eca33a639a1af1903798e9be15"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicMemberFunctions.html#ga626872eca33a639a1af1903798e9be15">createRtcCertificate</a> (<a class="el" href="group__PublicStructures.html#ga7f1a9ea27f23f9d24beb8f271c0482b8">PRtcCertificate</a> *)</td></tr>
+<tr class="memdesc:ga626872eca33a639a1af1903798e9be15"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates an <a class="el" href="structRtcCertificate.html" title="Specifies the certificate and the private key used by the certificate. The Certificates are in the fo...">RtcCertificate</a> object.  <a href="group__PublicMemberFunctions.html#ga626872eca33a639a1af1903798e9be15">More...</a><br /></td></tr>
+<tr class="separator:ga626872eca33a639a1af1903798e9be15"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gac847bd3f95ca79c90788f0948c4ee093"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicMemberFunctions.html#gac847bd3f95ca79c90788f0948c4ee093">freeRtcCertificate</a> (<a class="el" href="group__PublicStructures.html#ga7f1a9ea27f23f9d24beb8f271c0482b8">PRtcCertificate</a>)</td></tr>
+<tr class="memdesc:gac847bd3f95ca79c90788f0948c4ee093"><td class="mdescLeft">&#160;</td><td class="mdescRight">Frees previously generated <a class="el" href="structRtcCertificate.html" title="Specifies the certificate and the private key used by the certificate. The Certificates are in the fo...">RtcCertificate</a> object.  <a href="group__PublicMemberFunctions.html#gac847bd3f95ca79c90788f0948c4ee093">More...</a><br /></td></tr>
+<tr class="separator:gac847bd3f95ca79c90788f0948c4ee093"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <p>Public functions. </p>
@@ -790,6 +796,45 @@ Here is the call graph for this function:</div>
 <area shape="rect" href="Rtcp_8c.html#aaaf444db910596fed5abe9a8518b68f1" title=" " alt="" coords="506,1402,610,1429"/>
 <area shape="rect" href="Sctp_8c.html#a9d53411b7863f771c3f8cff564423440" title=" " alt="" coords="504,1453,612,1480"/>
 <area shape="rect" href="PeerConnection_8c.html#ac7dfeca3237caae871b6cd2e0e50c73e" title=" " alt="" coords="469,1504,647,1530"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="ga626872eca33a639a1af1903798e9be15"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga626872eca33a639a1af1903798e9be15">&#9670;&nbsp;</a></span>createRtcCertificate()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">PUBLIC_API STATUS createRtcCertificate </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__PublicStructures.html#ga7f1a9ea27f23f9d24beb8f271c0482b8">PRtcCertificate</a> *&#160;</td>
+          <td class="paramname"><em>ppRtcCertificate</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Creates an <a class="el" href="structRtcCertificate.html" title="Specifies the certificate and the private key used by the certificate. The Certificates are in the fo...">RtcCertificate</a> object. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in,out]</td><td class="paramname"><a class="el" href="structRtcCertificate.html" title="Specifies the certificate and the private key used by the certificate. The Certificates are in the fo...">RtcCertificate</a></td><td>object that will be generated and returned.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>STATUS code of the execution. STATUS_SUCCESS on success </dd></dl>
+<div class="dynheader">
+Here is the call graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__PublicMemberFunctions_ga626872eca33a639a1af1903798e9be15_cgraph.png" border="0" usemap="#agroup__PublicMemberFunctions_ga626872eca33a639a1af1903798e9be15_cgraph" alt=""/></div>
+<map name="agroup__PublicMemberFunctions_ga626872eca33a639a1af1903798e9be15_cgraph" id="agroup__PublicMemberFunctions_ga626872eca33a639a1af1903798e9be15_cgraph">
+<area shape="rect" title="Creates an RtcCertificate object." alt="" coords="5,56,141,83"/>
+<area shape="rect" href="Dtls__mbedtls_8c.html#aeb739e880d3edc3d95e7135805114f13" title=" " alt="" coords="189,31,351,57"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#gac847bd3f95ca79c90788f0948c4ee093" title="Frees previously generated RtcCertificate object." alt="" coords="209,81,331,108"/>
+<area shape="rect" href="Dtls_8c.html#a8a3ff1abce99340169948c609dc4259a" title=" " alt="" coords="399,5,573,32"/>
+<area shape="rect" href="Dtls__mbedtls_8c.html#aa6d608da9c875fbfccf37bd3e716e836" title=" " alt="" coords="413,56,559,83"/>
 </map>
 </div>
 
@@ -1365,6 +1410,42 @@ Here is the caller graph for this function:</div>
 <map name="agroup__PublicMemberFunctions_ga433b1bd125e7f221bcdad97a2a0e8949_icgraph" id="agroup__PublicMemberFunctions_ga433b1bd125e7f221bcdad97a2a0e8949_icgraph">
 <area shape="rect" title="Free a RtcPeerConnection." alt="" coords="204,5,340,32"/>
 <area shape="rect" href="group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title=" " alt="" coords="5,5,156,32"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="gac847bd3f95ca79c90788f0948c4ee093"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gac847bd3f95ca79c90788f0948c4ee093">&#9670;&nbsp;</a></span>freeRtcCertificate()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">PUBLIC_API STATUS freeRtcCertificate </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__PublicStructures.html#ga7f1a9ea27f23f9d24beb8f271c0482b8">PRtcCertificate</a>&#160;</td>
+          <td class="paramname"><em>pRtcCertificate</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Frees previously generated <a class="el" href="structRtcCertificate.html" title="Specifies the certificate and the private key used by the certificate. The Certificates are in the fo...">RtcCertificate</a> object. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in,out]</td><td class="paramname"><a class="el" href="structRtcCertificate.html" title="Specifies the certificate and the private key used by the certificate. The Certificates are in the fo...">RtcCertificate</a></td><td>object that will be freed if not NULL.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>STATUS code of the execution. STATUS_SUCCESS on success </dd></dl>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__PublicMemberFunctions_gac847bd3f95ca79c90788f0948c4ee093_icgraph.png" border="0" usemap="#agroup__PublicMemberFunctions_gac847bd3f95ca79c90788f0948c4ee093_icgraph" alt=""/></div>
+<map name="agroup__PublicMemberFunctions_gac847bd3f95ca79c90788f0948c4ee093_icgraph" id="agroup__PublicMemberFunctions_gac847bd3f95ca79c90788f0948c4ee093_icgraph">
+<area shape="rect" title="Frees previously generated RtcCertificate object." alt="" coords="189,5,312,32"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga626872eca33a639a1af1903798e9be15" title="Creates an RtcCertificate object." alt="" coords="5,5,141,32"/>
 </map>
 </div>
 
@@ -2787,7 +2868,7 @@ Here is the call graph for this function:</div>
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="footer">Generated on Tue Feb 2 2021 16:45:23 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Fri Feb 12 2021 21:30:12 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>

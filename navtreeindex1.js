@@ -1,5 +1,7 @@
 var NAVTREEINDEX1 =
 {
+"group__PublicStructures.html#gab457c08a409bf69c9b820ca390f83689":[1,19,37],
+"group__PublicStructures.html#gab970e0095d779c18c106620eac5fbbc6":[1,19,25],
 "group__PublicStructures.html#gac00fdb7844950b5ae47a60ba2a5481db":[1,19,26],
 "group__PublicStructures.html#gad5b87b382de979a22ec7096376b5f9bb":[1,19,30],
 "group__PublicStructures.html#gae012798e59bf247342e5d433604d415a":[1,19,34],
@@ -247,7 +249,5 @@ var NAVTREEINDEX1 =
 "structKvsRtcConfiguration.html#ad84c0128149bfec8df224f29c0a3e06a":[1,19,6,4],
 "structKvsRtcConfiguration.html#af2df4757883088eda1d2947e740dfa3c":[1,19,6,7],
 "structKvsRtcConfiguration.html#af59d56212baf93ef3aaf7d724a5b07a4":[1,19,6,1],
-"structKvsRtcConfiguration.html#af5a0642e5b4a1b35bb8de850e22c70c5":[1,19,6,8],
-"structNullableBool.html":[1,23,0],
-"structNullableBool.html#a070fc3e029985c945b22b15514a6ad2e":[1,23,0,0]
+"structKvsRtcConfiguration.html#af5a0642e5b4a1b35bb8de850e22c70c5":[1,19,6,8]
 };

@@ -1,5 +1,7 @@
 var NAVTREEINDEX2 =
 {
+"structNullableBool.html":[1,23,0],
+"structNullableBool.html#a070fc3e029985c945b22b15514a6ad2e":[1,23,0,0],
 "structNullableBool.html#ab83b6ae4816b67c05f5c78dfeffb27ce":[1,23,0,1],
 "structNullableDouble.html":[1,23,10],
 "structNullableDouble.html#a1cfef4823f1135bdb3acb05084205e9f":[1,23,10,0],
@@ -247,7 +249,5 @@ var NAVTREEINDEX2 =
 "structRtcReceivedRtpStreamStats.html#ad66bd5380faefc8ae7b543ad1c8575ff":[1,20,15,12],
 "structRtcReceivedRtpStreamStats.html#ad8233f305f63fd7d5ec28cf1d52f9775":[1,20,15,6],
 "structRtcReceivedRtpStreamStats.html#ae4174d302f83cff159443f736db3a032":[1,20,15,5],
-"structRtcReceivedRtpStreamStats.html#af006cf5681f7d6271c6c2c7e60794ab1":[1,20,15,14],
-"structRtcReceivedRtpStreamStats.html#af08b16ca6ebf74cb7e9efdcb896b7b95":[1,20,15,9],
-"structRtcReceivedRtpStreamStats.html#afdd919e3fd84bca61ba92e894633abb0":[1,20,15,15]
+"structRtcReceivedRtpStreamStats.html#af006cf5681f7d6271c6c2c7e60794ab1":[1,20,15,14]
 };
