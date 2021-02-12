@@ -211,9 +211,12 @@ STATUS handleOffer(PSampleConfiguration pSampleConfiguration, PSampleStreamingSe
         ATOMIC_STORE_BOOL(&pSampleConfiguration->mediaThreadStarted, TRUE);
         THREAD_CREATE(&pSampleConfiguration->mediaSenderTid, mediaSenderRoutine, (PVOID) pSampleConfiguration);
 
-        if ((retStatus = timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, SAMPLE_STATS_DURATION, SAMPLE_STATS_DURATION,
-                                            getIceCandidatePairStatsCallback, (UINT64) pSampleConfiguration,
-                                            &pSampleConfiguration->iceCandidatePairStatsTimerId)) != STATUS_SUCCESS) {
+        // We need the metrics timer only when there isn't one already in progress
+        // IMPORTANT: This is called under the lock
+        if (pSampleConfiguration->iceCandidatePairStatsTimerId == MAX_UINT32 &&
+            STATUS_FAILED(retStatus = timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, SAMPLE_STATS_DURATION, SAMPLE_STATS_DURATION,
+                                                         getIceCandidatePairStatsCallback, (UINT64) pSampleConfiguration,
+                                                         &pSampleConfiguration->iceCandidatePairStatsTimerId))) {
             DLOGW("Failed to add getIceCandidatePairStatsCallback to add to timer queue (code 0x%08x). Cannot pull ice candidate pair metrics "
                   "periodically",
                   retStatus);
@@ -320,12 +323,13 @@ CleanUp:
 
 STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcPeerConnection* ppRtcPeerConnection)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     RtcConfiguration configuration;
-    UINT32 i, j, iceConfigCount, uriCount;
+    UINT32 i, j, iceConfigCount, uriCount = 0, maxTurnServer = 1;
     PIceConfigInfo pIceConfigInfo;
-    const UINT32 maxTurnServer = 1;
-    uriCount = 0;
+    UINT64 data, curTime;
+    PRtcCertificate pRtcCertificate = NULL;
 
     CHK(pSampleConfiguration != NULL && ppRtcPeerConnection != NULL, STATUS_NULL_ARG);
 
@@ -370,10 +374,32 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     }
 
     pSampleConfiguration->iceUriCount = uriCount + 1;
+
+    // Check if we have any pregenerated certs and use them
+    // NOTE: We are running under the config lock
+    retStatus = stackQueueDequeue(pSampleConfiguration->pregeneratedCertificates, &data);
+    CHK(retStatus == STATUS_SUCCESS || retStatus == STATUS_NOT_FOUND, retStatus);
+
+    if (retStatus == STATUS_NOT_FOUND) {
+        retStatus = STATUS_SUCCESS;
+    } else {
+        // Use the pre-generated cert and get rid of it to not reuse again
+        pRtcCertificate = (PRtcCertificate) data;
+        configuration.certificates[0] = *pRtcCertificate;
+    }
+
+    curTime = GETTIME();
     CHK_STATUS(createPeerConnection(&configuration, ppRtcPeerConnection));
+    DLOGD("time taken to create peer connection %" PRIu64 " ms", (GETTIME() - curTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 
 CleanUp:
 
+    CHK_LOG_ERR(retStatus);
+
+    // Free the certificate which can be NULL as we no longer need it and won't reuse
+    freeRtcCertificate(pRtcCertificate);
+
+    LEAVES();
     return retStatus;
 }
 
@@ -484,10 +510,12 @@ STATUS freeSampleStreamingSession(PSampleStreamingSession* ppSampleStreamingSess
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSampleStreamingSession pSampleStreamingSession = NULL;
+    PSampleConfiguration pSampleConfiguration;
 
     CHK(ppSampleStreamingSession != NULL, STATUS_NULL_ARG);
     pSampleStreamingSession = *ppSampleStreamingSession;
-    CHK(pSampleStreamingSession != NULL, retStatus);
+    CHK(pSampleStreamingSession != NULL && pSampleStreamingSession->pSampleConfiguration != NULL, retStatus);
+    pSampleConfiguration = pSampleStreamingSession->pSampleConfiguration;
 
     DLOGD("Freeing streaming session with peer id: %s ", pSampleStreamingSession->peerId);
 
@@ -500,6 +528,18 @@ STATUS freeSampleStreamingSession(PSampleStreamingSession* ppSampleStreamingSess
     if (IS_VALID_TID_VALUE(pSampleStreamingSession->receiveAudioVideoSenderTid)) {
         THREAD_JOIN(pSampleStreamingSession->receiveAudioVideoSenderTid, NULL);
     }
+
+    // De-initialize the session stats timer if there are no active sessions
+    // NOTE: we need to perform this under the lock which might be acquired by
+    // the running thread but it's OK as it's re-entrant
+    MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
+    if (pSampleConfiguration->iceCandidatePairStatsTimerId != MAX_UINT32 && pSampleConfiguration->streamingSessionCount == 0 &&
+        pSampleConfiguration->iceCandidatePairStatsTimerId != MAX_UINT32) {
+        CHK_LOG_ERR(timerQueueCancelTimer(pSampleConfiguration->timerQueueHandle, pSampleConfiguration->iceCandidatePairStatsTimerId,
+                                          (UINT64) pSampleConfiguration));
+        pSampleConfiguration->iceCandidatePairStatsTimerId = MAX_UINT32;
+    }
+    MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
 
     CHK_LOG_ERR(closePeerConnection(pSampleStreamingSession->pPeerConnection));
     CHK_LOG_ERR(freePeerConnection(&pSampleStreamingSession->pPeerConnection));
@@ -688,6 +728,7 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     pSampleConfiguration->clientInfo.loggingLevel = logLevel;
     pSampleConfiguration->clientInfo.cacheFilePath = NULL; // Use the default path
     pSampleConfiguration->iceCandidatePairStatsTimerId = MAX_UINT32;
+    pSampleConfiguration->pregenerateCertTimerId = MAX_UINT32;
 
     ATOMIC_STORE_BOOL(&pSampleConfiguration->interrupted, FALSE);
     ATOMIC_STORE_BOOL(&pSampleConfiguration->mediaThreadStarted, FALSE);
@@ -696,6 +737,15 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     ATOMIC_STORE_BOOL(&pSampleConfiguration->connected, FALSE);
 
     CHK_STATUS(timerQueueCreate(&pSampleConfiguration->timerQueueHandle));
+
+    CHK_STATUS(stackQueueCreate(&pSampleConfiguration->pregeneratedCertificates));
+
+    // Start the cert pre-gen timer callback
+    if (SAMPLE_PRE_GENERATE_CERT) {
+        CHK_LOG_ERR(retStatus =
+                        timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, 0, SAMPLE_PRE_GENERATE_CERT_PERIOD, pregenerateCertTimerCallback,
+                                           (UINT64) pSampleConfiguration, &pSampleConfiguration->pregenerateCertTimerId));
+    }
 
     pSampleConfiguration->iceUriCount = 0;
 
@@ -745,7 +795,6 @@ STATUS getIceCandidatePairStatsCallback(UINT32 timerId, UINT64 currentTime, UINT
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) customData;
     UINT32 i;
-    pSampleConfiguration->rtcIceCandidatePairMetrics.requestedTypeOfStats = RTC_STATS_TYPE_CANDIDATE_PAIR;
     UINT64 currentMeasureDuration = 0;
     DOUBLE averagePacketsDiscardedOnSend = 0.0;
     DOUBLE averageNumberOfPacketsSentPerSecond = 0.0;
@@ -755,6 +804,8 @@ STATUS getIceCandidatePairStatsCallback(UINT32 timerId, UINT64 currentTime, UINT
     BOOL locked = FALSE;
 
     CHK_WARN(pSampleConfiguration != NULL, STATUS_NULL_ARG, "[KVS Master] getPeriodicStats(): Passed argument is NULL");
+
+    pSampleConfiguration->rtcIceCandidatePairMetrics.requestedTypeOfStats = RTC_STATS_TYPE_CANDIDATE_PAIR;
 
     // We need to execute this under the object lock due to race conditions that it could pose
     MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
@@ -829,6 +880,52 @@ STATUS getIceCandidatePairStatsCallback(UINT32 timerId, UINT64 currentTime, UINT
     }
 
 CleanUp:
+
+    if (locked) {
+        MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
+    }
+
+    return retStatus;
+}
+
+STATUS pregenerateCertTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
+{
+    UNUSED_PARAM(timerId);
+    UNUSED_PARAM(currentTime);
+    STATUS retStatus = STATUS_SUCCESS;
+    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) customData;
+    BOOL locked = FALSE;
+    UINT32 certCount;
+    PRtcCertificate pRtcCertificate = NULL;
+
+    CHK_WARN(pSampleConfiguration != NULL, STATUS_NULL_ARG, "[KVS Master] pregenerateCertTimerCallback(): Passed argument is NULL");
+
+    MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
+    locked = TRUE;
+
+    // Quick check if there is anything that needs to be done.
+    CHK_STATUS(stackQueueGetCount(pSampleConfiguration->pregeneratedCertificates, &certCount));
+    CHK(certCount != MAX_RTCCONFIGURATION_CERTIFICATES, retStatus);
+
+    // Generate the certificate with the keypair
+    CHK_STATUS(createRtcCertificate(&pRtcCertificate));
+
+    // Add to the stack queue
+    CHK_STATUS(stackQueueEnqueue(pSampleConfiguration->pregeneratedCertificates, (UINT64) pRtcCertificate));
+
+    DLOGV("New certificate has been pre-generated and added to the queue");
+
+    // Reset it so it won't be freed on exit
+    pRtcCertificate = NULL;
+
+    MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
+    locked = FALSE;
+
+CleanUp:
+
+    if (pRtcCertificate != NULL) {
+        freeRtcCertificate(pRtcCertificate);
+    }
 
     if (locked) {
         MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
@@ -912,16 +1009,39 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
 
     freeStaticCredentialProvider(&pSampleConfiguration->pCredentialProvider);
 
-    if (pSampleConfiguration->iceCandidatePairStatsTimerId != MAX_UINT32) {
-        retStatus = timerQueueCancelTimer(pSampleConfiguration->timerQueueHandle, pSampleConfiguration->iceCandidatePairStatsTimerId,
-                                          (UINT64) pSampleConfiguration);
-        if (STATUS_FAILED(retStatus)) {
-            DLOGE("Failed to cancel time queue: 0x%08x", retStatus);
-        }
-        pSampleConfiguration->iceCandidatePairStatsTimerId = MAX_UINT32;
-    }
     if (IS_VALID_TIMER_QUEUE_HANDLE(pSampleConfiguration->timerQueueHandle)) {
+        if (pSampleConfiguration->iceCandidatePairStatsTimerId != MAX_UINT32) {
+            retStatus = timerQueueCancelTimer(pSampleConfiguration->timerQueueHandle, pSampleConfiguration->iceCandidatePairStatsTimerId,
+                                              (UINT64) pSampleConfiguration);
+            if (STATUS_FAILED(retStatus)) {
+                DLOGE("Failed to cancel stats timer with: 0x%08x", retStatus);
+            }
+            pSampleConfiguration->iceCandidatePairStatsTimerId = MAX_UINT32;
+        }
+
+        if (pSampleConfiguration->pregenerateCertTimerId != MAX_UINT32) {
+            retStatus = timerQueueCancelTimer(pSampleConfiguration->timerQueueHandle, pSampleConfiguration->pregenerateCertTimerId,
+                                              (UINT64) pSampleConfiguration);
+            if (STATUS_FAILED(retStatus)) {
+                DLOGE("Failed to cancel certificate pre-generation timer with: 0x%08x", retStatus);
+            }
+            pSampleConfiguration->pregenerateCertTimerId = MAX_UINT32;
+        }
+
         timerQueueFree(&pSampleConfiguration->timerQueueHandle);
+    }
+
+    if (pSampleConfiguration->pregeneratedCertificates != NULL) {
+        stackQueueGetIterator(pSampleConfiguration->pregeneratedCertificates, &iterator);
+        while (IS_VALID_ITERATOR(iterator)) {
+            stackQueueIteratorGetItem(iterator, &data);
+            stackQueueIteratorNext(&iterator);
+            freeRtcCertificate((PRtcCertificate) data);
+        }
+
+        CHK_LOG_ERR(stackQueueClear(pSampleConfiguration->pregeneratedCertificates, FALSE));
+        CHK_LOG_ERR(stackQueueFree(pSampleConfiguration->pregeneratedCertificates));
+        pSampleConfiguration->pregeneratedCertificates = NULL;
     }
 
     MEMFREE(*ppSampleConfiguration);

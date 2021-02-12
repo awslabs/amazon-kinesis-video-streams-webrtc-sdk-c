@@ -17,6 +17,7 @@ option(BUILD_LIBSRTP_HOST_PLATFORM "If buildng LibSRTP what is the current platf
 option(BUILD_LIBSRTP_DESTINATION_PLATFORM "If buildng LibSRTP what is the destination platform" OFF)
 option(BUILD_SAMPLE "Build available samples" ON)
 option(ENABLE_DATA_CHANNEL "Enable support for data channel" ON)
+option(INSTRUMENTED_ALLOCATORS "Enable memory instrumentation" OFF)
 
 # Developer Flags
 option(BUILD_TEST "Build the testing tree." OFF)
@@ -268,6 +269,10 @@ endif()
 
 if (ENABLE_DATA_CHANNEL)
   add_definitions(-DENABLE_DATA_CHANNEL)
+endif()
+
+if (INSTRUMENTED_ALLOCATORS)
+  add_definitions(-DINSTRUMENTED_ALLOCATORS)
 endif()
 
 file(

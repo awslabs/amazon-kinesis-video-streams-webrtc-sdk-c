@@ -993,11 +993,11 @@ typedef struct {
 typedef struct {
     // The certificate bits and the size
     PBYTE pCertificate;     //!< Certificate bits
-    UINT32 certificateSize; //!< Size of certificate
+    UINT32 certificateSize; //!< Size of certificate in bytes (optional)
 
     // The private key bits and the size in bytes
     PBYTE pPrivateKey;     //!< Private key bit
-    UINT32 privateKeySize; //!< Size of private key in bytes
+    UINT32 privateKeySize; //!< Size of private key in bytes (optional)
 } RtcCertificate, *PRtcCertificate;
 
 /**
@@ -1033,7 +1033,7 @@ typedef struct {
 
     //!< GeneratedCertificateBits controls the amount of bits the locally generated self-signed certificate uses
     //!< A smaller amount of bits may result in less CPU usage on startup, but will cause a weaker certificate to be generated
-    //!< If unset GENERATED_CERTIFICATE_BITS will be used
+    //!< If set to 0 the default GENERATED_CERTIFICATE_BITS will be used
     INT32 generatedCertificateBits;
 
     //!< GenerateRSACertificate controls if an ECDSA or RSA certificate is generated.
@@ -1945,6 +1945,25 @@ PUBLIC_API STATUS signalingClientGetMetrics(SIGNALING_CLIENT_HANDLE, PSignalingC
  * Reference: https://www.w3.org/TR/webrtc/#rtcpeerconnection-interface-extensions-1
  */
 PUBLIC_API STATUS rtcPeerConnectionGetMetrics(PRtcPeerConnection, PRtcRtpTransceiver, PRtcStats);
+
+/**
+ * @brief Creates an RtcCertificate object
+
+ * @param [in, out] RtcCertificate object that will be generated and returned.
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
+PUBLIC_API STATUS createRtcCertificate(PRtcCertificate*);
+
+/**
+ * @brief Frees previously generated RtcCertificate object
+
+ * @param [in, out] RtcCertificate object that will be freed if not NULL.
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
+PUBLIC_API STATUS freeRtcCertificate(PRtcCertificate);
+
 /*!@} */
 #ifdef __cplusplus
 }

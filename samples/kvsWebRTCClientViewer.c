@@ -12,6 +12,8 @@ INT32 main(INT32 argc, CHAR* argv[])
     PSampleStreamingSession pSampleStreamingSession = NULL;
     BOOL locked = FALSE;
 
+    SET_INSTRUMENTED_ALLOCATORS();
+
 #ifndef _WIN32
     signal(SIGINT, sigintHandler);
 #endif
@@ -189,6 +191,8 @@ CleanUp:
         }
     }
     printf("[KVS Viewer] Cleanup done\n");
+
+    RESET_INSTRUMENTED_ALLOCATORS();
 
     // https://www.gnu.org/software/libc/manual/html_node/Exit-Status.html
     // We can only return with 0 - 127. Some platforms treat exit code >= 128
