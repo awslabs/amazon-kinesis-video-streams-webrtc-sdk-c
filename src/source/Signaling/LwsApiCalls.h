@@ -87,6 +87,7 @@ extern "C" {
 #define SIGNALING_GO_AWAY              "GO_AWAY"
 #define SIGNALING_RECONNECT_ICE_SERVER "RECONNECT_ICE_SERVER"
 #define SIGNALING_STATUS_RESPONSE      "STATUS_RESPONSE"
+#define SIGNALING_MESSAGE_UNKNOWN      "UNKNOWN"
 
 // Max length of the signaling message type string length
 #define MAX_SIGNALING_MESSAGE_TYPE_LEN ARRAY_SIZE(SIGNALING_RECONNECT_ICE_SERVER)
@@ -249,6 +250,7 @@ STATUS writeLwsData(PSignalingClient, BOOL);
 STATUS terminateLwsListenerLoop(PSignalingClient);
 STATUS receiveLwsMessage(PSignalingClient, PCHAR, UINT32);
 STATUS getMessageTypeFromString(PCHAR, UINT32, SIGNALING_MESSAGE_TYPE*);
+PCHAR getMessageTypeInString(SIGNALING_MESSAGE_TYPE);
 STATUS wakeLwsServiceEventLoop(PSignalingClient, UINT32);
 STATUS terminateConnectionWithStatus(PSignalingClient, SERVICE_CALL_RESULT);
 

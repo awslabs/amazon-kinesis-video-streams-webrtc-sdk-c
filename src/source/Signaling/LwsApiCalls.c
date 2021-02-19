@@ -108,10 +108,7 @@ INT32 lwsHttpCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, 
 
         case LWS_CALLBACK_RECEIVE_CLIENT_HTTP_READ:
             DLOGD("Received client http read: %d bytes", (INT32) dataSize);
-
-            if (logLevel > LOG_LEVEL_INFO && logLevel < LOG_LEVEL_SILENT) {
-                lwsl_hexdump_notice(pDataIn, dataSize);
-            }
+            lwsl_hexdump_debug(pDataIn, dataSize);
 
             if (dataSize != 0) {
                 CHK(NULL != (pLwsCallInfo->callInfo.responseData = (PCHAR) MEMALLOC(dataSize)), STATUS_NOT_ENOUGH_MEMORY);
@@ -376,7 +373,6 @@ INT32 lwsWssCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, P
             break;
 
         case LWS_CALLBACK_CLIENT_RECEIVE:
-            DLOGD("Client receive %.*s", dataSize, (PCHAR) pDataIn);
 
             // Check if it's a binary data
             CHK(!lws_frame_is_binary(wsi), STATUS_SIGNALING_RECEIVE_BINARY_DATA_NOT_SUPPORTED);
@@ -1530,6 +1526,9 @@ STATUS sendLwsMessage(PSignalingClient pSignalingClient, SIGNALING_MESSAGE_TYPE 
 
     // Send the data to the web socket
     awaitForResponse = (correlationLen != 0) && BLOCK_ON_CORRELATION_ID;
+
+    DLOGD("Sending data over web socket: Message type: %s, RecepientId: %s", pMessageType, peerClientId);
+
     CHK_STATUS(writeLwsData(pSignalingClient, awaitForResponse));
 
     // Re-setting the buffer size and offset
@@ -1554,8 +1553,6 @@ STATUS writeLwsData(PSignalingClient pSignalingClient, BOOL awaitForResponse)
 
     // See if anything needs to be done
     CHK(pSignalingClient->pOngoingCallInfo->sendBufferSize != pSignalingClient->pOngoingCallInfo->sendOffset, retStatus);
-
-    DLOGD("Sending data over web socket: %s", pSignalingClient->pOngoingCallInfo->sendBuffer + LWS_PRE);
 
     // Initialize the send result to none
     ATOMIC_STORE(&pSignalingClient->messageResult, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
@@ -1631,7 +1628,6 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
     PSignalingMessageWrapper pSignalingMessageWrapper = NULL;
     TID receivedTid = INVALID_TID_VALUE;
     BOOL parsedMessageType = FALSE, parsedStatusResponse = FALSE, jsonInIceServerList = FALSE;
-    ;
     PSignalingMessage pOngoingMessage;
     UINT64 ttl;
 
@@ -1842,6 +1838,9 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
             break;
     }
 
+    DLOGD("Client received message of type: %s",
+          getMessageTypeInString(pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.messageType));
+
     // Validate and process the ice config
     if (jsonInIceServerList && STATUS_FAILED(validateIceConfiguration(pSignalingClient))) {
         DLOGW("Failed to validate the ICE server configuration received with an Offer");
@@ -1941,6 +1940,27 @@ CleanUp:
 
     LEAVES();
     return retStatus;
+}
+
+PCHAR getMessageTypeInString(SIGNALING_MESSAGE_TYPE messageType)
+{
+    switch (messageType) {
+        case SIGNALING_MESSAGE_TYPE_OFFER:
+            return SIGNALING_SDP_TYPE_OFFER;
+        case SIGNALING_MESSAGE_TYPE_ANSWER:
+            return SIGNALING_SDP_TYPE_ANSWER;
+        case SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE:
+            return SIGNALING_ICE_CANDIDATE;
+        case SIGNALING_MESSAGE_TYPE_GO_AWAY:
+            return SIGNALING_GO_AWAY;
+        case SIGNALING_MESSAGE_TYPE_RECONNECT_ICE_SERVER:
+            return SIGNALING_RECONNECT_ICE_SERVER;
+        case SIGNALING_MESSAGE_TYPE_STATUS_RESPONSE:
+            return SIGNALING_STATUS_RESPONSE;
+        case SIGNALING_MESSAGE_TYPE_UNKNOWN:
+            return SIGNALING_MESSAGE_UNKNOWN;
+    }
+    return SIGNALING_MESSAGE_UNKNOWN;
 }
 
 STATUS terminateLwsListenerLoop(PSignalingClient pSignalingClient)
