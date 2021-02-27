@@ -30,6 +30,8 @@ option(THREAD_SANITIZER "Build with ThreadSanitizer." OFF)
 option(UNDEFINED_BEHAVIOR_SANITIZER "Build with UndefinedBehaviorSanitizer." OFF)
 option(LINK_PROFILER "Link gperftools profiler" OFF)
 
+set(OPEN_SRC_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/open-source" CACHE PATH "Libraries will be downloaded and build in this directory.")
+
 if(NOT WIN32)
 CHECK_INCLUDE_FILES(ifaddrs.h       KVSWEBRTC_HAVE_IFADDRS_H)
 if(NOT KVSWEBRTC_HAVE_IFADDRS_H)
@@ -82,7 +84,6 @@ elseif(USE_MBEDTLS)
 endif()
 
 if(BUILD_DEPENDENCIES)
-  set(OPEN_SRC_INSTALL_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/open-source)
   if(NOT EXISTS ${OPEN_SRC_INSTALL_PREFIX})
     file(MAKE_DIRECTORY ${OPEN_SRC_INSTALL_PREFIX})
   endif()
