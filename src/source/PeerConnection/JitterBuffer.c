@@ -85,7 +85,7 @@ STATUS jitterBufferPush(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket, PBOO
     CHK(pJitterBuffer != NULL && pRtpPacket != NULL, STATUS_NULL_ARG);
 
     if (!pJitterBuffer->started ||
-        (pJitterBuffer->lastPopTimestamp == pRtpPacket->header.sequenceNumber &&
+        (pJitterBuffer->lastPopTimestamp == pRtpPacket->header.timestamp &&
          pJitterBuffer->lastRemovedSequenceNumber >= pRtpPacket->header.sequenceNumber)) {
         // Set to started and initialize the sequence number
         pJitterBuffer->started = TRUE;
