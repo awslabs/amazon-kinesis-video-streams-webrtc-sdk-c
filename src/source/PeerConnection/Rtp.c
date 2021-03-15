@@ -204,8 +204,10 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
 
     // temp vars :(
     UINT64 tmpFrames, tmpTime;
+#ifdef ENABLE_TWCC
     UINT16 twsn;
     UINT32 extpayload;
+#endif
     STATUS sendStatus;
 
     CHK(pKvsRtpTransceiver != NULL && pFrame != NULL, STATUS_NULL_ARG);
