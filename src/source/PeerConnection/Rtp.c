@@ -204,8 +204,10 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
 
     // temp vars :(
     UINT64 tmpFrames, tmpTime;
+#ifdef ENABLE_TWCC
     UINT16 twsn;
     UINT32 extpayload;
+#endif
     STATUS sendStatus;
 
     CHK(pKvsRtpTransceiver != NULL && pFrame != NULL, STATUS_NULL_ARG);
@@ -280,6 +282,7 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
     bufferAfterEncrypt = (pKvsRtpTransceiver->sender.payloadType == pKvsRtpTransceiver->sender.rtxPayloadType);
     for (i = 0; i < pPayloadArray->payloadSubLenSize; i++) {
         pRtpPacket = pPacketList + i;
+#ifdef ENABLE_TWCC
         if (pKvsRtpTransceiver->pKvsPeerConnection->twccExtId != 0) {
             pRtpPacket->header.extension = TRUE;
             pRtpPacket->header.extensionProfile = TWCC_EXT_PROFILE;
@@ -288,6 +291,7 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
             extpayload = TWCC_PAYLOAD(pKvsRtpTransceiver->pKvsPeerConnection->twccExtId, twsn);
             pRtpPacket->header.extensionPayload = (PBYTE) &extpayload;
         }
+#endif
         // Get the required size first
         CHK_STATUS(createBytesFromRtpPacket(pRtpPacket, NULL, &packetLen));
 
