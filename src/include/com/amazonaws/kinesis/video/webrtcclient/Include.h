@@ -1721,7 +1721,7 @@ PUBLIC_API STATUS addIceCandidate(PRtcPeerConnection, PCHAR);
  *
  * NOTE: The RtcDataChannelInit dictionary can be used to configure properties of the underlying
  * channel such as data reliability.
- * NOTE: Data channel can be created only before signaling for now
+ * NOTE: Data channel can be created only after signaling for now
  *
  * Reference: https://www.w3.org/TR/webrtc/#methods-11
  *
