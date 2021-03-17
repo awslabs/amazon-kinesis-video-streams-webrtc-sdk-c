@@ -60,7 +60,6 @@ static STATUS onRtcpSenderReport(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKv
 
     if (pRtcpPacket->payloadLength != RTCP_PACKET_SENDER_REPORT_MINLEN) {
         // TODO: handle sender report containing receiver report blocks
-        DLOGW("unhandled packet type RTCP_PACKET_SENDER_REPORT size %d", pRtcpPacket->payloadLength);
         return STATUS_SUCCESS;
     }
 
@@ -92,7 +91,6 @@ static STATUS onRtcpReceiverReport(PRtcpPacket pRtcpPacket, PKvsPeerConnection p
     // https://tools.ietf.org/html/rfc3550#section-6.4.2
     if (pRtcpPacket->payloadLength != RTCP_PACKET_RECEIVER_REPORT_MINLEN) {
         // TODO: handle multiple receiver report blocks
-        DLOGS("unhandled packet type RTCP_PACKET_TYPE_RECEIVER_REPORT size %d", pRtcpPacket->payloadLength);
         return STATUS_SUCCESS;
     }
 
