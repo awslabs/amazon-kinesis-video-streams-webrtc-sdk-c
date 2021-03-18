@@ -183,6 +183,7 @@ STATUS handleOffer(PSampleConfiguration pSampleConfiguration, PSampleStreamingSe
     STATUS retStatus = STATUS_SUCCESS;
     RtcSessionDescriptionInit offerSessionDescriptionInit;
     NullableBool canTrickle;
+    BOOL mediaThreadStarted;
 
     CHK(pSampleConfiguration != NULL && pSignalingMessage != NULL, STATUS_NULL_ARG);
 
@@ -207,20 +208,9 @@ STATUS handleOffer(PSampleConfiguration pSampleConfiguration, PSampleStreamingSe
               (GETTIME() - pSampleStreamingSession->offerReceiveTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
     }
 
-    if (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->mediaThreadStarted)) {
-        ATOMIC_STORE_BOOL(&pSampleConfiguration->mediaThreadStarted, TRUE);
+    mediaThreadStarted = ATOMIC_EXCHANGE_BOOL(&pSampleConfiguration->mediaThreadStarted, TRUE);
+    if (!mediaThreadStarted) {
         THREAD_CREATE(&pSampleConfiguration->mediaSenderTid, mediaSenderRoutine, (PVOID) pSampleConfiguration);
-
-        // We need the metrics timer only when there isn't one already in progress
-        // IMPORTANT: This is called under the lock
-        if (pSampleConfiguration->iceCandidatePairStatsTimerId == MAX_UINT32 &&
-            STATUS_FAILED(retStatus = timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, SAMPLE_STATS_DURATION, SAMPLE_STATS_DURATION,
-                                                         getIceCandidatePairStatsCallback, (UINT64) pSampleConfiguration,
-                                                         &pSampleConfiguration->iceCandidatePairStatsTimerId))) {
-            DLOGW("Failed to add getIceCandidatePairStatsCallback to add to timer queue (code 0x%08x). Cannot pull ice candidate pair metrics "
-                  "periodically",
-                  retStatus);
-        }
     }
 
     // The audio video receive routine should be per streaming session
@@ -1173,8 +1163,7 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) customData;
-    BOOL peerConnectionFound = FALSE;
-    BOOL locked = TRUE;
+    BOOL peerConnectionFound = FALSE, locked = TRUE, startStats = FALSE;
     UINT32 clientIdHash;
     UINT64 hashValue = 0;
     PPendingMessageQueue pPendingMessageQueue = NULL;
@@ -1236,6 +1225,8 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
                 // NULL the pointer to avoid it being freed in the cleanup
                 pPendingMessageQueue = NULL;
             }
+
+            startStats = pSampleConfiguration->iceCandidatePairStatsTimerId == MAX_UINT32;
             break;
 
         case SIGNALING_MESSAGE_TYPE_ANSWER:
@@ -1290,6 +1281,21 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
         default:
             DLOGD("Unhandled signaling message type %u", pReceivedSignalingMessage->signalingMessage.messageType);
             break;
+    }
+
+    MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
+    locked = FALSE;
+
+    if (startStats &&
+        STATUS_FAILED(retStatus = timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, SAMPLE_STATS_DURATION, SAMPLE_STATS_DURATION,
+                                                     getIceCandidatePairStatsCallback, (UINT64) pSampleConfiguration,
+                                                     &pSampleConfiguration->iceCandidatePairStatsTimerId))) {
+        DLOGW("Failed to add getIceCandidatePairStatsCallback to add to timer queue (code 0x%08x). "
+              "Cannot pull ice candidate pair metrics periodically",
+              retStatus);
+
+        // Reset the returned status
+        retStatus = STATUS_SUCCESS;
     }
 
 CleanUp:
