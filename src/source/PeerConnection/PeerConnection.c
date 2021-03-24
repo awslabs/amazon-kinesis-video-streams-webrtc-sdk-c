@@ -714,6 +714,8 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
 
     NULLABLE_SET_EMPTY(pKvsPeerConnection->canTrickleIce);
 
+    pKvsPeerConnection->twccLock = MUTEX_CREATE(TRUE);
+
     *ppPeerConnection = (PRtcPeerConnection) pKvsPeerConnection;
 
 CleanUp:
@@ -872,6 +874,32 @@ STATUS peerConnectionOnConnectionStateChange(PRtcPeerConnection pRtcPeerConnecti
 
     pKvsPeerConnection->onConnectionStateChange = rtcOnConnectionStateChange;
     pKvsPeerConnection->onConnectionStateChangeCustomData = customData;
+
+CleanUp:
+
+    if (locked) {
+        MUTEX_UNLOCK(pKvsPeerConnection->peerConnectionObjLock);
+    }
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS peerConnectionOnSenderBandwidthEstimation(PRtcPeerConnection pRtcPeerConnection, UINT64 customData,
+                                                 RtcOnSenderBandwidthEstimation rtcOnSenderBandwidthEstimation)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pRtcPeerConnection;
+    BOOL locked = FALSE;
+
+    CHK(pKvsPeerConnection != NULL && rtcOnSenderBandwidthEstimation != NULL, STATUS_NULL_ARG);
+
+    MUTEX_LOCK(pKvsPeerConnection->peerConnectionObjLock);
+    locked = TRUE;
+
+    pKvsPeerConnection->onBandwidth = rtcOnSenderBandwidthEstimation;
+    pKvsPeerConnection->onBandwidthCustomData = customData;
 
 CleanUp:
 
@@ -1347,6 +1375,54 @@ STATUS deinitKvsWebRtc(VOID)
     ATOMIC_STORE_BOOL(&gKvsWebRtcInitialized, FALSE);
 
 CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS twccManagerOnPacketSent(PKvsPeerConnection pc, PRtpPacket pRtpPacket)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    BOOL locked = FALSE;
+    UINT32 packetLen = 0;
+    UINT64 sn = 0;
+    UINT16 seqNum;
+    BOOL isEmpty = FALSE;
+    INT64 firstTimeKvs, lastLocalTimeKvs, ageOfOldest;
+    CHK(pc != NULL && pRtpPacket != NULL, STATUS_NULL_ARG);
+    CHK(TWCC_EXT_PROFILE == pRtpPacket->header.extensionProfile, STATUS_SUCCESS);
+
+    MUTEX_LOCK(pc->twccLock);
+    locked = TRUE;
+
+    seqNum = TWCC_SEQNUM(pRtpPacket->header.extensionPayload);
+    CHK_STATUS(stackQueueEnqueue(&pc->twccManager.twccPackets, seqNum));
+    pc->twccManager.twccPacketBySeqNum[seqNum].seqNum = seqNum;
+    pc->twccManager.twccPacketBySeqNum[seqNum].packetSize = pRtpPacket->payloadLength;
+    pc->twccManager.twccPacketBySeqNum[seqNum].localTimeKvs = pRtpPacket->sentTime;
+    pc->twccManager.twccPacketBySeqNum[seqNum].remoteTimeKvs = TWCC_PACKET_LOST_TIME;
+    pc->twccManager.lastLocalTimeKvs = pRtpPacket->sentTime;
+
+    // cleanup queue until it contains up to 2 seconds of sent packets
+    do {
+        CHK_STATUS(stackQueuePeek(&pc->twccManager.twccPackets, &sn));
+        firstTimeKvs = pc->twccManager.twccPacketBySeqNum[(UINT16) sn].localTimeKvs;
+        lastLocalTimeKvs = pRtpPacket->sentTime;
+        ageOfOldest = lastLocalTimeKvs - firstTimeKvs;
+        if (ageOfOldest > TWO_SECONDS_KVS) {
+            CHK_STATUS(stackQueueDequeue(&pc->twccManager.twccPackets, &sn));
+            CHK_STATUS(stackQueueIsEmpty(&pc->twccManager.twccPackets, &isEmpty));
+        } else {
+            break;
+        }
+    } while (!isEmpty);
+
+CleanUp:
+    if (locked) {
+        MUTEX_UNLOCK(pc->twccLock);
+    }
+    CHK_LOG_ERR(retStatus);
 
     LEAVES();
     return retStatus;
