@@ -175,15 +175,15 @@ STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager twcc)
     INT16 recvDelta;
     UINT32 statuses;
     UINT32 i;
+    UINT64 referenceTime;
     CHK(twcc != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
 
     baseSeqNum = getUnalignedInt16BigEndian(pRtcpPacket->payload + 8);
     packetStatusCount = TWCC_PACKET_STATUS_COUNT(pRtcpPacket->payload);
 
-    PBYTE string = pRtcpPacket->payload + 12;
-    UINT64 referenceTime = (string[0] << 16) | (string[1] << 8) | (string[2] & 0xff);
-    // TODO: handle lost twcc report packets
+    referenceTime = (pRtcpPacket->payload[12] << 16) | (pRtcpPacket->payload[13] << 8) | (pRtcpPacket->payload[14] & 0xff);
     referenceTime = KVS_CONVERT_TIMESCALE(referenceTime * 64, MILLISECONDS_PER_SECOND, HUNDREDS_OF_NANOS_IN_A_SECOND);
+    // TODO: handle lost twcc report packets
 
     packetsRemaining = packetStatusCount;
     chunkOffset = 16;
