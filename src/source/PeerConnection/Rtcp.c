@@ -300,13 +300,13 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
     CHK(!empty, STATUS_SUCCESS);
     CHK_STATUS(stackQueuePeek(&twcc->twccPackets, &sn));
     ageOfOldestPacket = twcc->lastLocalTimeKvs - twcc->twccPacketBySeqNum[(UINT16) sn].localTimeKvs;
-    CHK(ageOfOldestPacket > TWO_SECONDS_KVS / 2, STATUS_SUCCESS);
+    CHK(ageOfOldestPacket > TWCC_ESTIMATOR_TIME_WINDOW / 2, STATUS_SUCCESS);
     localStartTimeKvs = twcc->twccPacketBySeqNum[(UINT16)(sn - 1)].localTimeKvs;
     if (localStartTimeKvs == TWCC_PACKET_UNITIALIZED_TIME) {
         // time not yet set (only happens for first rtp packet)
         localStartTimeKvs = twcc->twccPacketBySeqNum[(UINT16) sn].localTimeKvs;
     }
-    for (seqNum = sn; duration < TWO_SECONDS_KVS && seqNum != twcc->lastReportedSeqNum; seqNum++) {
+    for (seqNum = sn; duration < TWCC_ESTIMATOR_TIME_WINDOW && seqNum != twcc->lastReportedSeqNum; seqNum++) {
         twccPacket = &twcc->twccPacketBySeqNum[seqNum];
         localEndTimeKvs = twccPacket->localTimeKvs;
         duration = localEndTimeKvs - localStartTimeKvs;

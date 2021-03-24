@@ -1410,7 +1410,7 @@ STATUS twccManagerOnPacketSent(PKvsPeerConnection pc, PRtpPacket pRtpPacket)
         firstTimeKvs = pc->twccManager.twccPacketBySeqNum[(UINT16) sn].localTimeKvs;
         lastLocalTimeKvs = pRtpPacket->sentTime;
         ageOfOldest = lastLocalTimeKvs - firstTimeKvs;
-        if (ageOfOldest > TWO_SECONDS_KVS) {
+        if (ageOfOldest > TWCC_ESTIMATOR_TIME_WINDOW) {
             CHK_STATUS(stackQueueDequeue(&pc->twccManager.twccPackets, &sn));
             CHK_STATUS(stackQueueIsEmpty(&pc->twccManager.twccPackets, &isEmpty));
         } else {
