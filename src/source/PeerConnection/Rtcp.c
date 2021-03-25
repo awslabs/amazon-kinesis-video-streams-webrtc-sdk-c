@@ -222,7 +222,7 @@ STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager twcc)
                         twcc->lastReportedSeqNum = packetSeqNum;
                         break;
                     default:
-                        DLOGD("runLength unhandled statusSymbol %lu", statusSymbol);
+                        DLOGD("runLength unhandled statusSymbol %u", statusSymbol);
                 }
                 if (recvDelta != MIN_INT16) {
                     referenceTime += KVS_CONVERT_TIMESCALE(recvDelta, TWCC_TICKS_PER_SECOND, HUNDREDS_OF_NANOS_IN_A_SECOND);
