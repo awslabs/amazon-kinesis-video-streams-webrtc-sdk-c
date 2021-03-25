@@ -795,6 +795,10 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
         MUTEX_FREE(pKvsPeerConnection->peerConnectionObjLock);
     }
 
+    if (IS_VALID_MUTEX_VALUE(pKvsPeerConnection->twccLock)) {
+        MUTEX_FREE(pKvsPeerConnection->twccLock);
+    }
+
     if (IS_VALID_TIMER_QUEUE_HANDLE(pKvsPeerConnection->timerQueueHandle)) {
         timerQueueFree(&pKvsPeerConnection->timerQueueHandle);
     }
@@ -1385,7 +1389,6 @@ STATUS twccManagerOnPacketSent(PKvsPeerConnection pc, PRtpPacket pRtpPacket)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
-    UINT32 packetLen = 0;
     UINT64 sn = 0;
     UINT16 seqNum;
     BOOL isEmpty = FALSE;
