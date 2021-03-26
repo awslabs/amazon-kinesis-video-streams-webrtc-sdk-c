@@ -137,7 +137,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager twcc)
+STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager pTwccManager)
 {
     /*
         0                   1                   2                   3
@@ -176,7 +176,7 @@ STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager twcc)
     UINT32 statuses;
     UINT32 i;
     UINT64 referenceTime;
-    CHK(twcc != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
+    CHK(pTwccManager != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
 
     baseSeqNum = getUnalignedInt16BigEndian(pRtcpPacket->payload + 8);
     packetStatusCount = TWCC_PACKET_STATUS_COUNT(pRtcpPacket->payload);
@@ -217,18 +217,18 @@ STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager twcc)
                         recvOffset += 2;
                         break;
                     case TWCC_STATUS_SYMBOL_NOTRECEIVED:
-                        DLOGV("runLength packetSeqNum %u not received %lu", packetSeqNum, referenceTime);
-                        twcc->twccPacketBySeqNum[packetSeqNum].remoteTimeKvs = TWCC_PACKET_LOST_TIME;
-                        twcc->lastReportedSeqNum = packetSeqNum;
+                        DLOGS("runLength packetSeqNum %u not received %lu", packetSeqNum, referenceTime);
+                        pTwccManager->twccPacketBySeqNum[packetSeqNum].remoteTimeKvs = TWCC_PACKET_LOST_TIME;
+                        pTwccManager->lastReportedSeqNum = packetSeqNum;
                         break;
                     default:
                         DLOGD("runLength unhandled statusSymbol %u", statusSymbol);
                 }
                 if (recvDelta != MIN_INT16) {
                     referenceTime += KVS_CONVERT_TIMESCALE(recvDelta, TWCC_TICKS_PER_SECOND, HUNDREDS_OF_NANOS_IN_A_SECOND);
-                    DLOGV("runLength packetSeqNum %u received %lu", packetSeqNum, referenceTime);
-                    twcc->twccPacketBySeqNum[packetSeqNum].remoteTimeKvs = referenceTime;
-                    twcc->lastReportedSeqNum = packetSeqNum;
+                    DLOGS("runLength packetSeqNum %u received %lu", packetSeqNum, referenceTime);
+                    pTwccManager->twccPacketBySeqNum[packetSeqNum].remoteTimeKvs = referenceTime;
+                    pTwccManager->lastReportedSeqNum = packetSeqNum;
                 }
                 packetSeqNum++;
                 packetsRemaining--;
@@ -249,18 +249,18 @@ STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager twcc)
                         recvOffset += 2;
                         break;
                     case TWCC_STATUS_SYMBOL_NOTRECEIVED:
-                        DLOGV("statusVector packetSeqNum %u not received %lu", packetSeqNum, referenceTime);
-                        twcc->twccPacketBySeqNum[packetSeqNum].remoteTimeKvs = TWCC_PACKET_LOST_TIME;
-                        twcc->lastReportedSeqNum = packetSeqNum;
+                        DLOGS("statusVector packetSeqNum %u not received %lu", packetSeqNum, referenceTime);
+                        pTwccManager->twccPacketBySeqNum[packetSeqNum].remoteTimeKvs = TWCC_PACKET_LOST_TIME;
+                        pTwccManager->lastReportedSeqNum = packetSeqNum;
                         break;
                     default:
                         DLOGD("statusVector unhandled statusSymbol %u", statusSymbol);
                 }
                 if (recvDelta != MIN_INT16) {
                     referenceTime += KVS_CONVERT_TIMESCALE(recvDelta, TWCC_TICKS_PER_SECOND, HUNDREDS_OF_NANOS_IN_A_SECOND);
-                    DLOGV("statusVector packetSeqNum %u received %lu", packetSeqNum, referenceTime);
-                    twcc->twccPacketBySeqNum[packetSeqNum].remoteTimeKvs = referenceTime;
-                    twcc->lastReportedSeqNum = packetSeqNum;
+                    DLOGS("statusVector packetSeqNum %u received %lu", packetSeqNum, referenceTime);
+                    pTwccManager->twccPacketBySeqNum[packetSeqNum].remoteTimeKvs = referenceTime;
+                    pTwccManager->lastReportedSeqNum = packetSeqNum;
                 }
                 packetSeqNum++;
                 packetsRemaining--;
@@ -290,7 +290,7 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
     PTwccPacket twccPacket;
 
     CHK(pKvsPeerConnection != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
-    CHK(pKvsPeerConnection->onBandwidth != NULL, STATUS_SUCCESS);
+    CHK(pKvsPeerConnection->onSenderBandwidthEstimation != NULL, STATUS_SUCCESS);
 
     MUTEX_LOCK(pKvsPeerConnection->twccLock);
     locked = TRUE;
@@ -319,7 +319,8 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
     }
 
     if (duration > 0) {
-        pKvsPeerConnection->onBandwidth(pKvsPeerConnection->onBandwidthCustomData, sentBytes, receivedBytes, sentPackets, receivedPackets, duration);
+        pKvsPeerConnection->onSenderBandwidthEstimation(pKvsPeerConnection->onSenderBandwidthEstimationCustomData, sentBytes, receivedBytes,
+                                                        sentPackets, receivedPackets, duration);
     }
 
 CleanUp:

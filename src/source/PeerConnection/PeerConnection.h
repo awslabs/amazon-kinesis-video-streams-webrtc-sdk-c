@@ -126,8 +126,8 @@ typedef struct {
     UINT16 twccExtId;
     MUTEX twccLock;
     TwccManager twccManager;
-    RtcOnSenderBandwidthEstimation onBandwidth;
-    UINT64 onBandwidthCustomData;
+    RtcOnSenderBandwidthEstimation onSenderBandwidthEstimation;
+    UINT64 onSenderBandwidthEstimationCustomData;
 } KvsPeerConnection, *PKvsPeerConnection;
 
 typedef struct {
@@ -144,7 +144,7 @@ VOID onSctpSessionDataChannelOpen(UINT64, UINT32, PBYTE, UINT32);
 
 STATUS sendPacketToRtpReceiver(PKvsPeerConnection, PBYTE, UINT32);
 STATUS changePeerConnectionState(PKvsPeerConnection, RTC_PEER_CONNECTION_STATE);
-STATUS twccManagerOnPacketSent(PKvsPeerConnection pc, PRtpPacket pRtpPacket);
+STATUS twccManagerOnPacketSent(PKvsPeerConnection, PRtpPacket);
 
 #ifdef __cplusplus
 }

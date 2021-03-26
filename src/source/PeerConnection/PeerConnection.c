@@ -803,6 +803,10 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
         timerQueueFree(&pKvsPeerConnection->timerQueueHandle);
     }
 
+    // twccManager.twccPackets contains sequence numbers of packets (as opposed to pointers to actual packets)
+    // we should not deallocate items but we do need to clear the queue
+    CHK_LOG_ERR(stackQueueClear(&pKvsPeerConnection->twccManager.twccPackets, FALSE));
+
     SAFE_MEMFREE(pKvsPeerConnection);
 
     *ppPeerConnection = NULL;
@@ -902,8 +906,8 @@ STATUS peerConnectionOnSenderBandwidthEstimation(PRtcPeerConnection pRtcPeerConn
     MUTEX_LOCK(pKvsPeerConnection->peerConnectionObjLock);
     locked = TRUE;
 
-    pKvsPeerConnection->onBandwidth = rtcOnSenderBandwidthEstimation;
-    pKvsPeerConnection->onBandwidthCustomData = customData;
+    pKvsPeerConnection->onSenderBandwidthEstimation = rtcOnSenderBandwidthEstimation;
+    pKvsPeerConnection->onSenderBandwidthEstimationCustomData = customData;
 
 CleanUp:
 

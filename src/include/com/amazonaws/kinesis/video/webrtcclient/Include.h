@@ -870,7 +870,7 @@ typedef VOID (*RtcOnBandwidthEstimation)(UINT64, DOUBLE);
  * @param[in] UINT64 duration - time window for txBytes, rxBytes, txPackets, rxPackets
  *
  */
-typedef VOID (*RtcOnSenderBandwidthEstimation)(UINT64, UINT32 txBytes, UINT32 rxBytes, UINT32 txPackets, UINT32 rxPackets, UINT64 duration);
+typedef VOID (*RtcOnSenderBandwidthEstimation)(UINT64, UINT32, UINT32, UINT32, UINT32, UINT64);
 
 /**
  * @brief RtcOnPictureLoss is fired everytime a Picture Loss Indication (PLI)

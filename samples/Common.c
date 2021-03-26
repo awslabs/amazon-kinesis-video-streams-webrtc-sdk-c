@@ -584,11 +584,12 @@ VOID sampleBandwidthEstimationHandler(UINT64 customData, DOUBLE maxiumBitrate)
     DLOGV("received bitrate suggestion: %f", maxiumBitrate);
 }
 
-VOID sampleSenderBandwidthEstimationHandler(UINT64 customData, UINT32 txBytes, UINT32 rxBytes, UINT32 txPackets, UINT32 rxPackets, UINT64 duration)
+VOID sampleSenderBandwidthEstimationHandler(UINT64 customData, UINT32 txBytes, UINT32 rxBytes, UINT32 txPacketsCnt, UINT32 rxPacketsCnt,
+                                            UINT64 duration)
 {
     UNUSED_PARAM(customData);
-    UINT32 lostPackets = txPackets - rxPackets;
-    UINT32 percentLost = lostPackets * 100 / txPackets;
+    UINT32 lostPacketsCnt = txPacketsCnt - rxPacketsCnt;
+    UINT32 percentLost = lostPacketsCnt * 100 / txPacketsCnt;
     UINT32 bitrate = 1024;
     if (percentLost < 2) {
         // increase encoder bitrate by 2 percent
@@ -601,7 +602,7 @@ VOID sampleSenderBandwidthEstimationHandler(UINT64 customData, UINT32 txBytes, U
     }
 
     DLOGV("received sender bitrate estimation: suggested bitrate %u sent: %u bytes %u packets received: %u bytes %u packets in %lu msec, ", bitrate,
-          txBytes, txPackets, rxBytes, rxPackets, duration / 10000ULL);
+          txBytes, txPacketsCnt, rxBytes, rxPacketsCnt, duration / 10000ULL);
 }
 
 STATUS handleRemoteCandidate(PSampleStreamingSession pSampleStreamingSession, PSignalingMessage pSignalingMessage)
