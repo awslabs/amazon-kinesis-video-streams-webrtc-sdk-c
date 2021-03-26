@@ -290,11 +290,11 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
     PTwccPacket twccPacket;
 
     CHK(pKvsPeerConnection != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
-    CHK(pKvsPeerConnection->onSenderBandwidthEstimation != NULL, STATUS_SUCCESS);
+    CHK(pKvsPeerConnection->onSenderBandwidthEstimation != NULL && pKvsPeerConnection->pTwccManager != NULL, STATUS_SUCCESS);
 
     MUTEX_LOCK(pKvsPeerConnection->twccLock);
     locked = TRUE;
-    twcc = &pKvsPeerConnection->twccManager;
+    twcc = pKvsPeerConnection->pTwccManager;
     CHK_STATUS(parseRtcpTwccPacket(pRtcpPacket, twcc));
     CHK_STATUS(stackQueueIsEmpty(&twcc->twccPackets, &empty));
     CHK(!empty, STATUS_SUCCESS);

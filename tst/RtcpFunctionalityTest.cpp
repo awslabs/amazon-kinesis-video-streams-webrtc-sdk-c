@@ -307,6 +307,7 @@ static void parseTwcc(const std::string& hex, const uint32_t expectedReceived, c
     TwccManager twcc{};
 
     ASSERT_EQ(STATUS_SUCCESS, parseRtcpTwccPacket(&rtcpPacket, &twcc));
+    ASSERT_EQ(STATUS_SUCCESS, stackQueueClear(&twcc.twccPackets, FALSE));
 
     uint32_t received = 0;
     uint32_t lost = 0;

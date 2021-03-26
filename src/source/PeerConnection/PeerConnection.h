@@ -125,7 +125,7 @@ typedef struct {
     // https://tools.ietf.org/html/draft-holmer-rmcat-transport-wide-cc-extensions-01
     UINT16 twccExtId;
     MUTEX twccLock;
-    TwccManager twccManager;
+    PTwccManager pTwccManager;
     RtcOnSenderBandwidthEstimation onSenderBandwidthEstimation;
     UINT64 onSenderBandwidthEstimationCustomData;
 } KvsPeerConnection, *PKvsPeerConnection;

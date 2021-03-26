@@ -714,7 +714,10 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
 
     NULLABLE_SET_EMPTY(pKvsPeerConnection->canTrickleIce);
 
-    pKvsPeerConnection->twccLock = MUTEX_CREATE(TRUE);
+    if (!pConfiguration->kvsRtcConfiguration.disableSenderSideBandwidthEstimation) {
+        pKvsPeerConnection->twccLock = MUTEX_CREATE(TRUE);
+        pKvsPeerConnection->pTwccManager = (PTwccManager) MEMCALLOC(1, SIZEOF(TwccManager));
+    }
 
     *ppPeerConnection = (PRtcPeerConnection) pKvsPeerConnection;
 
@@ -795,17 +798,19 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
         MUTEX_FREE(pKvsPeerConnection->peerConnectionObjLock);
     }
 
-    if (IS_VALID_MUTEX_VALUE(pKvsPeerConnection->twccLock)) {
-        MUTEX_FREE(pKvsPeerConnection->twccLock);
-    }
-
     if (IS_VALID_TIMER_QUEUE_HANDLE(pKvsPeerConnection->timerQueueHandle)) {
         timerQueueFree(&pKvsPeerConnection->timerQueueHandle);
     }
 
-    // twccManager.twccPackets contains sequence numbers of packets (as opposed to pointers to actual packets)
-    // we should not deallocate items but we do need to clear the queue
-    CHK_LOG_ERR(stackQueueClear(&pKvsPeerConnection->twccManager.twccPackets, FALSE));
+    if (pKvsPeerConnection->pTwccManager != NULL) {
+        if (IS_VALID_MUTEX_VALUE(pKvsPeerConnection->twccLock)) {
+            MUTEX_FREE(pKvsPeerConnection->twccLock);
+        }
+        // twccManager.twccPackets contains sequence numbers of packets (as opposed to pointers to actual packets)
+        // we should not deallocate items but we do need to clear the queue
+        CHK_LOG_ERR(stackQueueClear(&pKvsPeerConnection->pTwccManager->twccPackets, FALSE));
+        SAFE_MEMFREE(pKvsPeerConnection->pTwccManager);
+    }
 
     SAFE_MEMFREE(pKvsPeerConnection);
 
@@ -1404,22 +1409,22 @@ STATUS twccManagerOnPacketSent(PKvsPeerConnection pc, PRtpPacket pRtpPacket)
     locked = TRUE;
 
     seqNum = TWCC_SEQNUM(pRtpPacket->header.extensionPayload);
-    CHK_STATUS(stackQueueEnqueue(&pc->twccManager.twccPackets, seqNum));
-    pc->twccManager.twccPacketBySeqNum[seqNum].seqNum = seqNum;
-    pc->twccManager.twccPacketBySeqNum[seqNum].packetSize = pRtpPacket->payloadLength;
-    pc->twccManager.twccPacketBySeqNum[seqNum].localTimeKvs = pRtpPacket->sentTime;
-    pc->twccManager.twccPacketBySeqNum[seqNum].remoteTimeKvs = TWCC_PACKET_LOST_TIME;
-    pc->twccManager.lastLocalTimeKvs = pRtpPacket->sentTime;
+    CHK_STATUS(stackQueueEnqueue(&pc->pTwccManager->twccPackets, seqNum));
+    pc->pTwccManager->twccPacketBySeqNum[seqNum].seqNum = seqNum;
+    pc->pTwccManager->twccPacketBySeqNum[seqNum].packetSize = pRtpPacket->payloadLength;
+    pc->pTwccManager->twccPacketBySeqNum[seqNum].localTimeKvs = pRtpPacket->sentTime;
+    pc->pTwccManager->twccPacketBySeqNum[seqNum].remoteTimeKvs = TWCC_PACKET_LOST_TIME;
+    pc->pTwccManager->lastLocalTimeKvs = pRtpPacket->sentTime;
 
     // cleanup queue until it contains up to 2 seconds of sent packets
     do {
-        CHK_STATUS(stackQueuePeek(&pc->twccManager.twccPackets, &sn));
-        firstTimeKvs = pc->twccManager.twccPacketBySeqNum[(UINT16) sn].localTimeKvs;
+        CHK_STATUS(stackQueuePeek(&pc->pTwccManager->twccPackets, &sn));
+        firstTimeKvs = pc->pTwccManager->twccPacketBySeqNum[(UINT16) sn].localTimeKvs;
         lastLocalTimeKvs = pRtpPacket->sentTime;
         ageOfOldest = lastLocalTimeKvs - firstTimeKvs;
         if (ageOfOldest > TWCC_ESTIMATOR_TIME_WINDOW) {
-            CHK_STATUS(stackQueueDequeue(&pc->twccManager.twccPackets, &sn));
-            CHK_STATUS(stackQueueIsEmpty(&pc->twccManager.twccPackets, &isEmpty));
+            CHK_STATUS(stackQueueDequeue(&pc->pTwccManager->twccPackets, &sn));
+            CHK_STATUS(stackQueueIsEmpty(&pc->pTwccManager->twccPackets, &isEmpty));
         } else {
             break;
         }

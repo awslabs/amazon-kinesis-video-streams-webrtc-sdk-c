@@ -1063,6 +1063,10 @@ typedef struct {
 
     IceSetInterfaceFilterFunc iceSetInterfaceFilterFunc; //!< Filter function callback to be set when the developer
                                                          //!< would like to whitelist/blacklist specific network interfaces
+
+    BOOL disableSenderSideBandwidthEstimation; //!< Disable TWCC feedback based sender bandwidth estimation, enabled by default.
+                                               //!< You want to set this to TRUE if you are on a very stable connection and want to save 1.2MB of
+                                               //!< memory
 } KvsRtcConfiguration, *PKvsRtcConfiguration;
 
 /**
