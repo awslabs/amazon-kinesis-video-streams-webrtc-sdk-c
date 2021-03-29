@@ -597,11 +597,10 @@ VOID sampleSenderBandwidthEstimationHandler(UINT64 customData, UINT32 txBytes, U
     } else if (percentLost > 5) {
         // decrease encoder bitrate by packet loss percent
         bitrate *= (1.0f - percentLost / 100.0f);
-    } else {
-        // keep bitrate the same
     }
+    // otherwise keep bitrate the same
 
-    DLOGV("received sender bitrate estimation: suggested bitrate %u sent: %u bytes %u packets received: %u bytes %u packets in %lu msec, ", bitrate,
+    DLOGS("received sender bitrate estimation: suggested bitrate %u sent: %u bytes %u packets received: %u bytes %u packets in %lu msec, ", bitrate,
           txBytes, txPacketsCnt, rxBytes, rxPacketsCnt, duration / 10000ULL);
 }
 
