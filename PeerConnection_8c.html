@@ -212,6 +212,9 @@ Functions</h2></td></tr>
 <tr class="separator:ga41afed748235c04e38fa7481e421055d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gae937526652e3287c3e2dd9bee74ea799"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicMemberFunctions.html#gae937526652e3287c3e2dd9bee74ea799">peerConnectionOnConnectionStateChange</a> (<a class="el" href="group__PublicStructures.html#ga70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a> pRtcPeerConnection, UINT64 customData, <a class="el" href="group__Callbacks.html#gad3f715dac4dd4d756e1728a37fb46eb9">RtcOnConnectionStateChange</a> rtcOnConnectionStateChange)</td></tr>
 <tr class="separator:gae937526652e3287c3e2dd9bee74ea799"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga3ce2483c1d6b864dd0dab6b3bb749915"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicMemberFunctions.html#ga3ce2483c1d6b864dd0dab6b3bb749915">peerConnectionOnSenderBandwidthEstimation</a> (<a class="el" href="group__PublicStructures.html#ga70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a> pRtcPeerConnection, UINT64 customData, <a class="el" href="group__Callbacks.html#ga31935aba346c035df91b7771e62ad3bc">RtcOnSenderBandwidthEstimation</a> rtcOnSenderBandwidthEstimation)</td></tr>
+<tr class="memdesc:ga3ce2483c1d6b864dd0dab6b3bb749915"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set a callback for transport-wide sender bandwidth estimation results.  <a href="group__PublicMemberFunctions.html#ga3ce2483c1d6b864dd0dab6b3bb749915">More...</a><br /></td></tr>
+<tr class="separator:ga3ce2483c1d6b864dd0dab6b3bb749915"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gaa1940a0ddabf41c445b55f1317476e96"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicMemberFunctions.html#gaa1940a0ddabf41c445b55f1317476e96">peerConnectionGetLocalDescription</a> (<a class="el" href="group__PublicStructures.html#ga70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a> pRtcPeerConnection, <a class="el" href="group__PublicStructures.html#ga3dfb483be12d184408e3f58df5273be7">PRtcSessionDescriptionInit</a> pRtcSessionDescriptionInit)</td></tr>
 <tr class="separator:gaa1940a0ddabf41c445b55f1317476e96"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga19dfcbdcf4d136b56ce366fe2fb9bfb3"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicMemberFunctions.html#ga19dfcbdcf4d136b56ce366fe2fb9bfb3">peerConnectionGetCurrentLocalDescription</a> (<a class="el" href="group__PublicStructures.html#ga70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a> pRtcPeerConnection, <a class="el" href="group__PublicStructures.html#ga3dfb483be12d184408e3f58df5273be7">PRtcSessionDescriptionInit</a> pRtcSessionDescriptionInit)</td></tr>
@@ -255,6 +258,8 @@ Functions</h2></td></tr>
 <tr class="memitem:gae49b9a202c97ad861b0b68014535f625"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicMemberFunctions.html#gae49b9a202c97ad861b0b68014535f625">deinitKvsWebRtc</a> (VOID)</td></tr>
 <tr class="memdesc:gae49b9a202c97ad861b0b68014535f625"><td class="mdescLeft">&#160;</td><td class="mdescRight">Deinitializes global state needed for all RtcPeerConnections. It must only be called once.  <a href="group__PublicMemberFunctions.html#gae49b9a202c97ad861b0b68014535f625">More...</a><br /></td></tr>
 <tr class="separator:gae49b9a202c97ad861b0b68014535f625"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7019d40c53b38733acb5d9ce7d0404ce"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="PeerConnection_8c.html#a7019d40c53b38733acb5d9ce7d0404ce">twccManagerOnPacketSent</a> (<a class="el" href="PeerConnection_8h.html#a545e0bebf606e9070020c98b3f9c2864">PKvsPeerConnection</a> pc, <a class="el" href="RtpPacket_8h.html#a5ccfed90db2c55b24f209f218c92ec39">PRtpPacket</a> pRtpPacket)</td></tr>
+<tr class="separator:a7019d40c53b38733acb5d9ce7d0404ce"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Macro Definition Documentation</h2>
 <a id="a7207e343606b6631ce2556bf7411b833"></a>
@@ -1249,13 +1254,50 @@ Here is the caller graph for this function:</div>
 
 </div>
 </div>
+<a id="a7019d40c53b38733acb5d9ce7d0404ce"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7019d40c53b38733acb5d9ce7d0404ce">&#9670;&nbsp;</a></span>twccManagerOnPacketSent()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">STATUS twccManagerOnPacketSent </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="PeerConnection_8h.html#a545e0bebf606e9070020c98b3f9c2864">PKvsPeerConnection</a>&#160;</td>
+          <td class="paramname"><em>pc</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="RtpPacket_8h.html#a5ccfed90db2c55b24f209f218c92ec39">PRtpPacket</a>&#160;</td>
+          <td class="paramname"><em>pRtpPacket</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="PeerConnection_8c_a7019d40c53b38733acb5d9ce7d0404ce_icgraph.png" border="0" usemap="#aPeerConnection_8c_a7019d40c53b38733acb5d9ce7d0404ce_icgraph" alt=""/></div>
+<map name="aPeerConnection_8c_a7019d40c53b38733acb5d9ce7d0404ce_icgraph" id="aPeerConnection_8c_a7019d40c53b38733acb5d9ce7d0404ce_icgraph">
+<area shape="rect" title=" " alt="" coords="140,5,325,32"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga40c7caf6325f426d82030beec50cc86e" title="Packetizes and sends media via the configuration specified by the RtcRtpTransceiver." alt="" coords="5,5,92,32"/>
+</map>
+</div>
+
+</div>
+</div>
 </div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_94e7a0fbe7f8eaf7f05ee7b02c647e9f.html">source</a></li><li class="navelem"><a class="el" href="dir_3f63ab91aeb49885abb85dedd791923c.html">PeerConnection</a></li><li class="navelem"><a class="el" href="PeerConnection_8c.html">PeerConnection.c</a></li>
-    <li class="footer">Generated on Thu Mar 18 2021 20:06:25 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Mon Mar 29 2021 21:48:48 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>

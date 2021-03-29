@@ -105,7 +105,7 @@ Collaboration diagram for KvsRtcConfiguration:</div>
 <div class="dyncontent">
 <div class="center"><img src="structKvsRtcConfiguration__coll__graph.png" border="0" usemap="#aKvsRtcConfiguration_coll__map" alt="Collaboration graph"/></div>
 <map name="aKvsRtcConfiguration_coll__map" id="aKvsRtcConfiguration_coll__map">
-<area shape="rect" title=" " alt="" coords="5,5,227,244"/>
+<area shape="rect" title=" " alt="" coords="5,5,227,273"/>
 </map>
 </div>
 <table class="memberdecls">
@@ -133,11 +133,28 @@ Public Attributes</h2></td></tr>
 <tr class="separator:a02a5e6d0b5cdd1916c3b6c7a295849d3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af2df4757883088eda1d2947e740dfa3c"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__Callbacks.html#gac5ca9698d23bb785c59e148b1f438244">IceSetInterfaceFilterFunc</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structKvsRtcConfiguration.html#af2df4757883088eda1d2947e740dfa3c">iceSetInterfaceFilterFunc</a></td></tr>
 <tr class="separator:af2df4757883088eda1d2947e740dfa3c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac4007f0d6df9197aa8d44a3ff6200db1"><td class="memItemLeft" align="right" valign="top">BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structKvsRtcConfiguration.html#ac4007f0d6df9197aa8d44a3ff6200db1">disableSenderSideBandwidthEstimation</a></td></tr>
+<tr class="separator:ac4007f0d6df9197aa8d44a3ff6200db1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p><a class="el" href="structKvsRtcConfiguration.html">KvsRtcConfiguration</a> is a collection of non-standard extensions to RTCConfiguration these exist to serve use cases that currently aren't being served by the W3C standard</p>
 <p>NOTE: These options will be removed/modified as the WebRTC standard changes, and exist to unblock issues that we have today. </p>
 </div><h2 class="groupheader">Member Data Documentation</h2>
+<a id="ac4007f0d6df9197aa8d44a3ff6200db1"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac4007f0d6df9197aa8d44a3ff6200db1">&#9670;&nbsp;</a></span>disableSenderSideBandwidthEstimation</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">BOOL KvsRtcConfiguration::disableSenderSideBandwidthEstimation</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Disable TWCC feedback based sender bandwidth estimation, enabled by default. You want to set this to TRUE if you are on a very stable connection and want to save 1.2MB of memory </p>
+
+</div>
+</div>
 <a id="a02a5e6d0b5cdd1916c3b6c7a295849d3"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a02a5e6d0b5cdd1916c3b6c7a295849d3">&#9670;&nbsp;</a></span>filterCustomData</h2>
 
@@ -298,7 +315,7 @@ Public Attributes</h2></td></tr>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="structKvsRtcConfiguration.html">KvsRtcConfiguration</a></li>
-    <li class="footer">Generated on Thu Mar 18 2021 20:06:26 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Mon Mar 29 2021 21:48:49 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>

@@ -15,6 +15,7 @@ var group__Callbacks =
     [ "RtcOnMessage", "group__Callbacks.html#ga19016a711a2550a8544e6c86c7f45d0f", null ],
     [ "RtcOnOpen", "group__Callbacks.html#ga0c9cbf4449a44e9a3847be0ef53b22a8", null ],
     [ "RtcOnPictureLoss", "group__Callbacks.html#gac7f4225ac2545664aabdc88d0b58e329", null ],
+    [ "RtcOnSenderBandwidthEstimation", "group__Callbacks.html#ga31935aba346c035df91b7771e62ad3bc", null ],
     [ "SignalingClientErrorReportFunc", "group__Callbacks.html#ga0d69d0e35a1bddfa483f288ec208546c", null ],
     [ "SignalingClientMessageReceivedFunc", "group__Callbacks.html#ga1fc095ba30b81713c3fed9a275355b2c", null ],
     [ "SignalingClientStateChangedFunc", "group__Callbacks.html#gaa5fb7b1ff5dcfe5208a314eef9f3045a", null ]

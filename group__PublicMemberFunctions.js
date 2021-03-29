@@ -29,6 +29,7 @@ var group__PublicMemberFunctions =
     [ "peerConnectionOnConnectionStateChange", "group__PublicMemberFunctions.html#gae937526652e3287c3e2dd9bee74ea799", null ],
     [ "peerConnectionOnDataChannel", "group__PublicMemberFunctions.html#ga41afed748235c04e38fa7481e421055d", null ],
     [ "peerConnectionOnIceCandidate", "group__PublicMemberFunctions.html#ga5a45606d264d6005c559b10fa42338bf", null ],
+    [ "peerConnectionOnSenderBandwidthEstimation", "group__PublicMemberFunctions.html#ga3ce2483c1d6b864dd0dab6b3bb749915", null ],
     [ "restartIce", "group__PublicMemberFunctions.html#gade9fcbb056cb321f33890c1cf1222e64", null ],
     [ "rtcPeerConnectionGetMetrics", "group__PublicMemberFunctions.html#ga469e0f69e03630ad5b03d8921afd62be", null ],
     [ "serializeSessionDescriptionInit", "group__PublicMemberFunctions.html#ga66d6bc8b6d11743303900831b52c76f2", null ],

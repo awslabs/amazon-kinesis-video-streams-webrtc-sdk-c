@@ -160,6 +160,14 @@ Macros</h2></td></tr>
 <tr class="separator:a35a3766b346d4eedfe456afd64084ac1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8a708413d6171e7d86056793abe2cd1a"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtcp_8h.html#a8a708413d6171e7d86056793abe2cd1a">MICROSECONDS_PER_SECOND</a>&#160;&#160;&#160;1000000LL</td></tr>
 <tr class="separator:a8a708413d6171e7d86056793abe2cd1a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afc22ab01ad31ee9dfebcfcb61faaa63a"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtcp_8h.html#afc22ab01ad31ee9dfebcfcb61faaa63a">MILLISECONDS_PER_SECOND</a>&#160;&#160;&#160;1000LL</td></tr>
+<tr class="separator:afc22ab01ad31ee9dfebcfcb61faaa63a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab1729e584ce4d466025011206cc2bec7"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtcp_8h.html#ab1729e584ce4d466025011206cc2bec7">TWCC_PACKET_LOST_TIME</a>&#160;&#160;&#160;((UINT64)(-1LL))</td></tr>
+<tr class="separator:ab1729e584ce4d466025011206cc2bec7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a710b2712aba039201f23e2b01dc127ca"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtcp_8h.html#a710b2712aba039201f23e2b01dc127ca">TWCC_PACKET_UNITIALIZED_TIME</a>&#160;&#160;&#160;0</td></tr>
+<tr class="separator:a710b2712aba039201f23e2b01dc127ca"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a58025589dc534ff7d9b4ddc678afc801"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtcp_8h.html#a58025589dc534ff7d9b4ddc678afc801">TWCC_ESTIMATOR_TIME_WINDOW</a>&#160;&#160;&#160;(1 * HUNDREDS_OF_NANOS_IN_A_SECOND)</td></tr>
+<tr class="separator:a58025589dc534ff7d9b4ddc678afc801"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1478daa0c60fd6c50a5bd6faf96a8aaa"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtcp_8h.html#a1478daa0c60fd6c50a5bd6faf96a8aaa">TWCC_FB_PACKETCHUNK_SIZE</a>&#160;&#160;&#160;2</td></tr>
 <tr class="separator:a1478daa0c60fd6c50a5bd6faf96a8aaa"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a60db4d3b2bc7f22bcb0d0dbf3ac3684b"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtcp_8h.html#a60db4d3b2bc7f22bcb0d0dbf3ac3684b">IS_TWCC_RUNLEN</a>(packetChunk)&#160;&#160;&#160;((((packetChunk) &gt;&gt; 15u) &amp; 1u) == 0)</td></tr>
@@ -203,6 +211,8 @@ Functions</h2></td></tr>
 <tr class="separator:a96b5d18e6850b948f4755d0cc1d936ed"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac82533856a12f259eeba9139a7af516f"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtcp_8h.html#ac82533856a12f259eeba9139a7af516f">onRtcpPLIPacket</a> (<a class="el" href="RtcpPacket_8h.html#ac99920bc23b7ab9cc673e0c25da794fa">PRtcpPacket</a>, <a class="el" href="PeerConnection_8h.html#a545e0bebf606e9070020c98b3f9c2864">PKvsPeerConnection</a>)</td></tr>
 <tr class="separator:ac82533856a12f259eeba9139a7af516f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afd8f957057a8040f0d9384feebb6a558"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtcp_8h.html#afd8f957057a8040f0d9384feebb6a558">parseRtcpTwccPacket</a> (<a class="el" href="RtcpPacket_8h.html#ac99920bc23b7ab9cc673e0c25da794fa">PRtcpPacket</a>, <a class="el" href="PeerConnection_8h.html#abca4158d793225a7c54cacf383d9567e">PTwccManager</a>)</td></tr>
+<tr class="separator:afd8f957057a8040f0d9384feebb6a558"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7921c4eb97850531d20e1142cfc1d754"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtcp_8h.html#a7921c4eb97850531d20e1142cfc1d754">onRtcpTwccPacket</a> (<a class="el" href="RtcpPacket_8h.html#ac99920bc23b7ab9cc673e0c25da794fa">PRtcpPacket</a>, <a class="el" href="PeerConnection_8h.html#a545e0bebf606e9070020c98b3f9c2864">PKvsPeerConnection</a>)</td></tr>
 <tr class="separator:a7921c4eb97850531d20e1142cfc1d754"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
@@ -233,6 +243,34 @@ Functions</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname">#define MICROSECONDS_PER_SECOND&#160;&#160;&#160;1000000LL</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="afc22ab01ad31ee9dfebcfcb61faaa63a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afc22ab01ad31ee9dfebcfcb61faaa63a">&#9670;&nbsp;</a></span>MILLISECONDS_PER_SECOND</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define MILLISECONDS_PER_SECOND&#160;&#160;&#160;1000LL</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a58025589dc534ff7d9b4ddc678afc801"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a58025589dc534ff7d9b4ddc678afc801">&#9670;&nbsp;</a></span>TWCC_ESTIMATOR_TIME_WINDOW</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define TWCC_ESTIMATOR_TIME_WINDOW&#160;&#160;&#160;(1 * HUNDREDS_OF_NANOS_IN_A_SECOND)</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -289,6 +327,20 @@ Functions</h2></td></tr>
 
 </div>
 </div>
+<a id="ab1729e584ce4d466025011206cc2bec7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab1729e584ce4d466025011206cc2bec7">&#9670;&nbsp;</a></span>TWCC_PACKET_LOST_TIME</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define TWCC_PACKET_LOST_TIME&#160;&#160;&#160;((UINT64)(-1LL))</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a id="ac470be7f95504fe4a2d8250dc00e054a"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ac470be7f95504fe4a2d8250dc00e054a">&#9670;&nbsp;</a></span>TWCC_PACKET_STATUS_COUNT</h2>
 
@@ -301,6 +353,20 @@ Functions</h2></td></tr>
           <td class="paramtype">&#160;</td>
           <td class="paramname">payload</td><td>)</td>
           <td>&#160;&#160;&#160;(getUnalignedInt16BigEndian((payload) + 10))</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a710b2712aba039201f23e2b01dc127ca"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a710b2712aba039201f23e2b01dc127ca">&#9670;&nbsp;</a></span>TWCC_PACKET_UNITIALIZED_TIME</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define TWCC_PACKET_UNITIALIZED_TIME&#160;&#160;&#160;0</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -649,6 +715,52 @@ Here is the call graph for this function:</div>
         </tr>
       </table>
 </div><div class="memdoc">
+<div class="dynheader">
+Here is the call graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="Rtcp_8h_a7921c4eb97850531d20e1142cfc1d754_cgraph.png" border="0" usemap="#aRtcp_8h_a7921c4eb97850531d20e1142cfc1d754_cgraph" alt=""/></div>
+<map name="aRtcp_8h_a7921c4eb97850531d20e1142cfc1d754_cgraph" id="aRtcp_8h_a7921c4eb97850531d20e1142cfc1d754_cgraph">
+<area shape="rect" title=" " alt="" coords="5,5,141,32"/>
+<area shape="rect" href="Rtcp_8c.html#ac98ea92ed8b55757be82d8718389a35f" title=" " alt="" coords="189,5,344,32"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="afd8f957057a8040f0d9384feebb6a558"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afd8f957057a8040f0d9384feebb6a558">&#9670;&nbsp;</a></span>parseRtcpTwccPacket()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">STATUS parseRtcpTwccPacket </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="RtcpPacket_8h.html#ac99920bc23b7ab9cc673e0c25da794fa">PRtcpPacket</a>&#160;</td>
+          <td class="paramname"><em>pRtcpPacket</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="PeerConnection_8h.html#abca4158d793225a7c54cacf383d9567e">PTwccManager</a>&#160;</td>
+          <td class="paramname"><em>pTwccManager</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="Rtcp_8h_afd8f957057a8040f0d9384feebb6a558_icgraph.png" border="0" usemap="#aRtcp_8h_afd8f957057a8040f0d9384feebb6a558_icgraph" alt=""/></div>
+<map name="aRtcp_8h_afd8f957057a8040f0d9384feebb6a558_icgraph" id="aRtcp_8h_afd8f957057a8040f0d9384feebb6a558_icgraph">
+<area shape="rect" title=" " alt="" coords="189,5,344,32"/>
+<area shape="rect" href="Rtcp_8c.html#a9959ef3335177533d5c240ffa699595b" title=" " alt="" coords="5,5,141,32"/>
+</map>
+</div>
 
 </div>
 </div>
@@ -658,7 +770,7 @@ Here is the call graph for this function:</div>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_94e7a0fbe7f8eaf7f05ee7b02c647e9f.html">source</a></li><li class="navelem"><a class="el" href="dir_3f63ab91aeb49885abb85dedd791923c.html">PeerConnection</a></li><li class="navelem"><a class="el" href="Rtcp_8h.html">Rtcp.h</a></li>
-    <li class="footer">Generated on Thu Mar 18 2021 20:06:25 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Mon Mar 29 2021 21:48:48 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>

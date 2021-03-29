@@ -1,5 +1,7 @@
 var NAVTREEINDEX1 =
 {
+"group__PublicStructures.html#gab085c3d89945657593ef4c32a48928c1":[1,19,24],
+"group__PublicStructures.html#gab1a88feab2cf5a556a90170eb434910a":[1,19,19],
 "group__PublicStructures.html#gab457c08a409bf69c9b820ca390f83689":[1,19,37],
 "group__PublicStructures.html#gab970e0095d779c18c106620eac5fbbc6":[1,19,25],
 "group__PublicStructures.html#gac00fdb7844950b5ae47a60ba2a5481db":[1,19,26],
@@ -240,14 +242,12 @@ var NAVTREEINDEX1 =
 "structIceConfigInfo.html#a804c9f31a8d542f6ffee45d353f24c4e":[1,19,14,5],
 "structIceConfigInfo.html#aa2a1f0b6e706876479142eb0f47bc7fe":[1,19,14,1],
 "structKvsRtcConfiguration.html":[1,19,6],
-"structKvsRtcConfiguration.html#a02a5e6d0b5cdd1916c3b6c7a295849d3":[1,19,6,0],
-"structKvsRtcConfiguration.html#a208adbb095ca7a9b4bf55c1ec15ee038":[1,19,6,9],
-"structKvsRtcConfiguration.html#a3d8f81c01b537e49a7152aa4bbaa728d":[1,19,6,6],
-"structKvsRtcConfiguration.html#aaea167f4ad4ddef8286daf6d51d4452a":[1,19,6,2],
-"structKvsRtcConfiguration.html#acf25b325df8767b3fba43757df453763":[1,19,6,5],
-"structKvsRtcConfiguration.html#ad347ab88ff79f98c0d5e68c7047e3097":[1,19,6,3],
-"structKvsRtcConfiguration.html#ad84c0128149bfec8df224f29c0a3e06a":[1,19,6,4],
-"structKvsRtcConfiguration.html#af2df4757883088eda1d2947e740dfa3c":[1,19,6,7],
-"structKvsRtcConfiguration.html#af59d56212baf93ef3aaf7d724a5b07a4":[1,19,6,1],
-"structKvsRtcConfiguration.html#af5a0642e5b4a1b35bb8de850e22c70c5":[1,19,6,8]
+"structKvsRtcConfiguration.html#a02a5e6d0b5cdd1916c3b6c7a295849d3":[1,19,6,1],
+"structKvsRtcConfiguration.html#a208adbb095ca7a9b4bf55c1ec15ee038":[1,19,6,10],
+"structKvsRtcConfiguration.html#a3d8f81c01b537e49a7152aa4bbaa728d":[1,19,6,7],
+"structKvsRtcConfiguration.html#aaea167f4ad4ddef8286daf6d51d4452a":[1,19,6,3],
+"structKvsRtcConfiguration.html#ac4007f0d6df9197aa8d44a3ff6200db1":[1,19,6,0],
+"structKvsRtcConfiguration.html#acf25b325df8767b3fba43757df453763":[1,19,6,6],
+"structKvsRtcConfiguration.html#ad347ab88ff79f98c0d5e68c7047e3097":[1,19,6,4],
+"structKvsRtcConfiguration.html#ad84c0128149bfec8df224f29c0a3e06a":[1,19,6,5]
 };

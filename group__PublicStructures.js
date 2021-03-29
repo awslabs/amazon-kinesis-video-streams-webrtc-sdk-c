@@ -28,6 +28,7 @@ var group__PublicStructures =
       [ "privateKeySize", "structRtcCertificate.html#ab10962af2a62249c831fc8bda813371b", null ]
     ] ],
     [ "KvsRtcConfiguration", "structKvsRtcConfiguration.html", [
+      [ "disableSenderSideBandwidthEstimation", "structKvsRtcConfiguration.html#ac4007f0d6df9197aa8d44a3ff6200db1", null ],
       [ "filterCustomData", "structKvsRtcConfiguration.html#a02a5e6d0b5cdd1916c3b6c7a295849d3", null ],
       [ "generatedCertificateBits", "structKvsRtcConfiguration.html#af59d56212baf93ef3aaf7d724a5b07a4", null ],
       [ "generateRSACertificate", "structKvsRtcConfiguration.html#aaea167f4ad4ddef8286daf6d51d4452a", null ],
