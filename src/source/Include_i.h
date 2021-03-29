@@ -166,9 +166,6 @@ STATUS generateJSONSafeString(PCHAR, UINT32);
 
 #define KVS_CONVERT_TIMESCALE(pts, from_timescale, to_timescale) (pts * to_timescale / from_timescale)
 
-//TODO: this should be reenabled as soon as there is a TWCC-based bandwidth estimator
-#undef ENABLE_TWCC
-
 #ifdef __cplusplus
 }
 #endif

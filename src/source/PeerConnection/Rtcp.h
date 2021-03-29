@@ -10,12 +10,18 @@ extern "C" {
 STATUS onRtcpPacket(PKvsPeerConnection, PBYTE, UINT32);
 STATUS onRtcpRembPacket(PRtcpPacket, PKvsPeerConnection);
 STATUS onRtcpPLIPacket(PRtcpPacket, PKvsPeerConnection);
+STATUS parseRtcpTwccPacket(PRtcpPacket, PTwccManager);
 STATUS onRtcpTwccPacket(PRtcpPacket, PKvsPeerConnection);
 
 // https://tools.ietf.org/html/draft-holmer-rmcat-transport-wide-cc-extensions-01
 // Deltas are represented as multiples of 250us:
-#define TWCC_TICKS_PER_SECOND   (1000000LL / 250)
-#define MICROSECONDS_PER_SECOND 1000000LL
+#define TWCC_TICKS_PER_SECOND        (1000000LL / 250)
+#define MICROSECONDS_PER_SECOND      1000000LL
+#define MILLISECONDS_PER_SECOND      1000LL
+#define TWCC_PACKET_LOST_TIME        ((UINT64)(-1LL))
+#define TWCC_PACKET_UNITIALIZED_TIME 0
+#define TWCC_ESTIMATOR_TIME_WINDOW   (1 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+
 typedef enum {
     TWCC_STATUS_SYMBOL_NOTRECEIVED = 0,
     TWCC_STATUS_SYMBOL_SMALLDELTA,

@@ -625,13 +625,11 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
     SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%" PRId64 " goog-remb", payloadType);
     attributeCount++;
 
-#ifdef ENABLE_TWCC
     if (pKvsPeerConnection->twccExtId != 0) {
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtcp-fb");
         SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%" PRId64 " " TWCC_SDP_ATTR, payloadType);
         attributeCount++;
     }
-#endif
 
     pSdpMediaDescription->mediaAttributesCount = attributeCount;
 

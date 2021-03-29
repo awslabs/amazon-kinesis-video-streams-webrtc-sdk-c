@@ -714,6 +714,11 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
 
     NULLABLE_SET_EMPTY(pKvsPeerConnection->canTrickleIce);
 
+    if (!pConfiguration->kvsRtcConfiguration.disableSenderSideBandwidthEstimation) {
+        pKvsPeerConnection->twccLock = MUTEX_CREATE(TRUE);
+        pKvsPeerConnection->pTwccManager = (PTwccManager) MEMCALLOC(1, SIZEOF(TwccManager));
+    }
+
     *ppPeerConnection = (PRtcPeerConnection) pKvsPeerConnection;
 
 CleanUp:
@@ -797,6 +802,16 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
         timerQueueFree(&pKvsPeerConnection->timerQueueHandle);
     }
 
+    if (pKvsPeerConnection->pTwccManager != NULL) {
+        if (IS_VALID_MUTEX_VALUE(pKvsPeerConnection->twccLock)) {
+            MUTEX_FREE(pKvsPeerConnection->twccLock);
+        }
+        // twccManager.twccPackets contains sequence numbers of packets (as opposed to pointers to actual packets)
+        // we should not deallocate items but we do need to clear the queue
+        CHK_LOG_ERR(stackQueueClear(&pKvsPeerConnection->pTwccManager->twccPackets, FALSE));
+        SAFE_MEMFREE(pKvsPeerConnection->pTwccManager);
+    }
+
     SAFE_MEMFREE(pKvsPeerConnection);
 
     *ppPeerConnection = NULL;
@@ -872,6 +887,32 @@ STATUS peerConnectionOnConnectionStateChange(PRtcPeerConnection pRtcPeerConnecti
 
     pKvsPeerConnection->onConnectionStateChange = rtcOnConnectionStateChange;
     pKvsPeerConnection->onConnectionStateChangeCustomData = customData;
+
+CleanUp:
+
+    if (locked) {
+        MUTEX_UNLOCK(pKvsPeerConnection->peerConnectionObjLock);
+    }
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS peerConnectionOnSenderBandwidthEstimation(PRtcPeerConnection pRtcPeerConnection, UINT64 customData,
+                                                 RtcOnSenderBandwidthEstimation rtcOnSenderBandwidthEstimation)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pRtcPeerConnection;
+    BOOL locked = FALSE;
+
+    CHK(pKvsPeerConnection != NULL && rtcOnSenderBandwidthEstimation != NULL, STATUS_NULL_ARG);
+
+    MUTEX_LOCK(pKvsPeerConnection->peerConnectionObjLock);
+    locked = TRUE;
+
+    pKvsPeerConnection->onSenderBandwidthEstimation = rtcOnSenderBandwidthEstimation;
+    pKvsPeerConnection->onSenderBandwidthEstimationCustomData = customData;
 
 CleanUp:
 
@@ -1347,6 +1388,53 @@ STATUS deinitKvsWebRtc(VOID)
     ATOMIC_STORE_BOOL(&gKvsWebRtcInitialized, FALSE);
 
 CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS twccManagerOnPacketSent(PKvsPeerConnection pc, PRtpPacket pRtpPacket)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    BOOL locked = FALSE;
+    UINT64 sn = 0;
+    UINT16 seqNum;
+    BOOL isEmpty = FALSE;
+    INT64 firstTimeKvs, lastLocalTimeKvs, ageOfOldest;
+    CHK(pc != NULL && pRtpPacket != NULL, STATUS_NULL_ARG);
+    CHK(TWCC_EXT_PROFILE == pRtpPacket->header.extensionProfile, STATUS_SUCCESS);
+
+    MUTEX_LOCK(pc->twccLock);
+    locked = TRUE;
+
+    seqNum = TWCC_SEQNUM(pRtpPacket->header.extensionPayload);
+    CHK_STATUS(stackQueueEnqueue(&pc->pTwccManager->twccPackets, seqNum));
+    pc->pTwccManager->twccPacketBySeqNum[seqNum].seqNum = seqNum;
+    pc->pTwccManager->twccPacketBySeqNum[seqNum].packetSize = pRtpPacket->payloadLength;
+    pc->pTwccManager->twccPacketBySeqNum[seqNum].localTimeKvs = pRtpPacket->sentTime;
+    pc->pTwccManager->twccPacketBySeqNum[seqNum].remoteTimeKvs = TWCC_PACKET_LOST_TIME;
+    pc->pTwccManager->lastLocalTimeKvs = pRtpPacket->sentTime;
+
+    // cleanup queue until it contains up to 2 seconds of sent packets
+    do {
+        CHK_STATUS(stackQueuePeek(&pc->pTwccManager->twccPackets, &sn));
+        firstTimeKvs = pc->pTwccManager->twccPacketBySeqNum[(UINT16) sn].localTimeKvs;
+        lastLocalTimeKvs = pRtpPacket->sentTime;
+        ageOfOldest = lastLocalTimeKvs - firstTimeKvs;
+        if (ageOfOldest > TWCC_ESTIMATOR_TIME_WINDOW) {
+            CHK_STATUS(stackQueueDequeue(&pc->pTwccManager->twccPackets, &sn));
+            CHK_STATUS(stackQueueIsEmpty(&pc->pTwccManager->twccPackets, &isEmpty));
+        } else {
+            break;
+        }
+    } while (!isEmpty);
+
+CleanUp:
+    if (locked) {
+        MUTEX_UNLOCK(pc->twccLock);
+    }
+    CHK_LOG_ERR(retStatus);
 
     LEAVES();
     return retStatus;

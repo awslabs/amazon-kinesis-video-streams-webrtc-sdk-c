@@ -848,12 +848,29 @@ typedef VOID (*RtcOnFrame)(UINT64, PFrame);
 
 /**
  * @brief RtcOnBandwidthEstimation is fired everytime a bandwidth estimation value
- * is computed. This will be fired for sender or receiver side estimation
+ * is computed. This will be fired for receiver side estimation
  *
  * NOTE: RtcOnBandwidthEstimation is a KVS specific method
  *
  */
 typedef VOID (*RtcOnBandwidthEstimation)(UINT64, DOUBLE);
+
+/**
+ * @brief RtcOnSenderBandwidthEstimation is fired everytime a bandwidth estimation value
+ * is computed by sender. This is an estimate of ALL packets sent across all transceivers.
+ * See https://tools.ietf.org/html/draft-holmer-rmcat-transport-wide-cc-extensions-01 for more details.
+ *
+ * NOTE: RtcOnSenderBandwidthEstimation is a KVS specific method
+ *
+ * @param[in] UINT64 User customData that will be passed along when RtcOnSenderBandwidthEstimation is called
+ * @param[in] UINT32 txBytes - bytes sent over the transport
+ * @param[in] UINT32 rxBytes - bytes reported as received
+ * @param[in] UINT32 txPackets - number of packets sent over the transport
+ * @param[in] UINT32 rxPackets - number of packets reported as received
+ * @param[in] UINT64 duration - time window for txBytes, rxBytes, txPackets, rxPackets
+ *
+ */
+typedef VOID (*RtcOnSenderBandwidthEstimation)(UINT64, UINT32, UINT32, UINT32, UINT32, UINT64);
 
 /**
  * @brief RtcOnPictureLoss is fired everytime a Picture Loss Indication (PLI)
@@ -1046,6 +1063,10 @@ typedef struct {
 
     IceSetInterfaceFilterFunc iceSetInterfaceFilterFunc; //!< Filter function callback to be set when the developer
                                                          //!< would like to whitelist/blacklist specific network interfaces
+
+    BOOL disableSenderSideBandwidthEstimation; //!< Disable TWCC feedback based sender bandwidth estimation, enabled by default.
+                                               //!< You want to set this to TRUE if you are on a very stable connection and want to save 1.2MB of
+                                               //!< memory
 } KvsRtcConfiguration, *PKvsRtcConfiguration;
 
 /**
@@ -1435,6 +1456,17 @@ PUBLIC_API STATUS freePeerConnection(PRtcPeerConnection*);
  * @return STATUS code of the execution. STATUS_SUCCESS on success
  */
 PUBLIC_API STATUS peerConnectionOnIceCandidate(PRtcPeerConnection, UINT64, RtcOnIceCandidate);
+
+/**
+ * @brief Set a callback for transport-wide sender bandwidth estimation results
+ *
+ * @param[in] PRtcPeerConnection Initialized RtcPeerConnection
+ * @param[in] UINT64 User customData that will be passed along when RtcOnSenderBandwidthEstimation is called
+ * @param[in] RtcOnSenderBandwidthEstimation User RtcOnSenderBandwidthEstimation callback
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
+PUBLIC_API STATUS peerConnectionOnSenderBandwidthEstimation(PRtcPeerConnection, UINT64, RtcOnSenderBandwidthEstimation);
 
 /**
  * Set a callback for data channel

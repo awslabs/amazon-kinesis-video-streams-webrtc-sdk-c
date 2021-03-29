@@ -515,7 +515,7 @@ TEST_F(RtpFunctionalityTest, twccPayload)
 {
     UINT32 extpayload = TWCC_PAYLOAD(4u, 420u);
     auto ptr = reinterpret_cast<PBYTE>(&extpayload);
-    auto seqNum = getUnalignedInt16BigEndian(ptr + 1);
+    auto seqNum = TWCC_SEQNUM(ptr);
     EXPECT_EQ(4, (ptr[0] >> 4));
     EXPECT_EQ(1, (ptr[0] & 0xfu));
     EXPECT_EQ(420, seqNum);

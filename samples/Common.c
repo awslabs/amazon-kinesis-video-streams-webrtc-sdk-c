@@ -469,7 +469,8 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     videoRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
     STRCPY(videoTrack.streamId, "myKvsVideoStream");
     STRCPY(videoTrack.trackId, "myVideoTrack");
-    CHK_STATUS(addTransceiver(pSampleStreamingSession->pPeerConnection, &videoTrack, &videoRtpTransceiverInit, &pSampleStreamingSession->pVideoRtcRtpTransceiver));
+    CHK_STATUS(addTransceiver(pSampleStreamingSession->pPeerConnection, &videoTrack, &videoRtpTransceiverInit,
+                              &pSampleStreamingSession->pVideoRtcRtpTransceiver));
 
     CHK_STATUS(transceiverOnBandwidthEstimation(pSampleStreamingSession->pVideoRtcRtpTransceiver, (UINT64) pSampleStreamingSession,
                                                 sampleBandwidthEstimationHandler));
@@ -480,10 +481,14 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     audioRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
     STRCPY(audioTrack.streamId, "myKvsVideoStream");
     STRCPY(audioTrack.trackId, "myAudioTrack");
-    CHK_STATUS(addTransceiver(pSampleStreamingSession->pPeerConnection, &audioTrack, &audioRtpTransceiverInit, &pSampleStreamingSession->pAudioRtcRtpTransceiver));
+    CHK_STATUS(addTransceiver(pSampleStreamingSession->pPeerConnection, &audioTrack, &audioRtpTransceiverInit,
+                              &pSampleStreamingSession->pAudioRtcRtpTransceiver));
 
     CHK_STATUS(transceiverOnBandwidthEstimation(pSampleStreamingSession->pAudioRtcRtpTransceiver, (UINT64) pSampleStreamingSession,
                                                 sampleBandwidthEstimationHandler));
+    // twcc bandwidth estimation
+    CHK_STATUS(peerConnectionOnSenderBandwidthEstimation(pSampleStreamingSession->pPeerConnection, (UINT64) pSampleStreamingSession,
+                                                         sampleSenderBandwidthEstimationHandler));
     pSampleStreamingSession->firstFrame = TRUE;
     pSampleStreamingSession->startUpLatency = 0;
 CleanUp:
@@ -577,6 +582,29 @@ VOID sampleBandwidthEstimationHandler(UINT64 customData, DOUBLE maxiumBitrate)
 {
     UNUSED_PARAM(customData);
     DLOGV("received bitrate suggestion: %f", maxiumBitrate);
+}
+
+VOID sampleSenderBandwidthEstimationHandler(UINT64 customData, UINT32 txBytes, UINT32 rxBytes, UINT32 txPacketsCnt, UINT32 rxPacketsCnt,
+                                            UINT64 duration)
+{
+    UNUSED_PARAM(customData);
+    UNUSED_PARAM(duration);
+    UNUSED_PARAM(rxBytes);
+    UNUSED_PARAM(txBytes);
+    UINT32 lostPacketsCnt = txPacketsCnt - rxPacketsCnt;
+    UINT32 percentLost = lostPacketsCnt * 100 / txPacketsCnt;
+    UINT32 bitrate = 1024;
+    if (percentLost < 2) {
+        // increase encoder bitrate by 2 percent
+        bitrate *= 1.02f;
+    } else if (percentLost > 5) {
+        // decrease encoder bitrate by packet loss percent
+        bitrate *= (1.0f - percentLost / 100.0f);
+    }
+    // otherwise keep bitrate the same
+
+    DLOGS("received sender bitrate estimation: suggested bitrate %u sent: %u bytes %u packets received: %u bytes %u packets in %lu msec, ", bitrate,
+          txBytes, txPacketsCnt, rxBytes, rxPacketsCnt, duration / 10000ULL);
 }
 
 STATUS handleRemoteCandidate(PSampleStreamingSession pSampleStreamingSession, PSignalingMessage pSignalingMessage)

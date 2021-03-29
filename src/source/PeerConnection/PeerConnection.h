@@ -43,9 +43,19 @@ typedef enum {
     RTC_RTX_CODEC_VP8 = 2,
 } RTX_CODEC;
 
-// congestion control callbacks
-typedef VOID (*RtcpCCOnPacketNotReceived)(UINT64 customData, UINT16 seqNum);
-typedef VOID (*RtcpCCOnPacketReceived)(UINT64 customData, UINT16 seqNum, INT32 receiveDeltaUsec);
+typedef struct {
+    UINT16 seqNum;
+    UINT16 packetSize;
+    UINT64 localTimeKvs;
+    UINT64 remoteTimeKvs;
+} TwccPacket, *PTwccPacket;
+
+typedef struct {
+    StackQueue twccPackets;
+    TwccPacket twccPacketBySeqNum[65536]; // twccPacketBySeqNum takes about 1.2MB of RAM but provides great cache locality
+    UINT64 lastLocalTimeKvs;
+    UINT16 lastReportedSeqNum;
+} TwccManager, *PTwccManager;
 
 typedef struct {
     RtcPeerConnection peerConnection;
@@ -114,10 +124,10 @@ typedef struct {
     // congestion control
     // https://tools.ietf.org/html/draft-holmer-rmcat-transport-wide-cc-extensions-01
     UINT16 twccExtId;
-    UINT64 onPacketNotReceivedCustomData;
-    UINT64 onPacketReceivedCustomData;
-    RtcpCCOnPacketNotReceived onPacketNotReceived;
-    RtcpCCOnPacketReceived onPacketReceived;
+    MUTEX twccLock;
+    PTwccManager pTwccManager;
+    RtcOnSenderBandwidthEstimation onSenderBandwidthEstimation;
+    UINT64 onSenderBandwidthEstimationCustomData;
 } KvsPeerConnection, *PKvsPeerConnection;
 
 typedef struct {
@@ -134,6 +144,7 @@ VOID onSctpSessionDataChannelOpen(UINT64, UINT32, PBYTE, UINT32);
 
 STATUS sendPacketToRtpReceiver(PKvsPeerConnection, PBYTE, UINT32);
 STATUS changePeerConnectionState(PKvsPeerConnection, RTC_PEER_CONNECTION_STATE);
+STATUS twccManagerOnPacketSent(PKvsPeerConnection, PRtpPacket);
 
 #ifdef __cplusplus
 }
