@@ -588,6 +588,7 @@ VOID sampleSenderBandwidthEstimationHandler(UINT64 customData, UINT32 txBytes, U
                                             UINT64 duration)
 {
     UNUSED_PARAM(customData);
+    UNUSED_PARAM(duration);
     UINT32 lostPacketsCnt = txPacketsCnt - rxPacketsCnt;
     UINT32 percentLost = lostPacketsCnt * 100 / txPacketsCnt;
     UINT32 bitrate = 1024;
