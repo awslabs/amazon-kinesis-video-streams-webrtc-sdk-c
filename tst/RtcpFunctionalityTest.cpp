@@ -304,24 +304,25 @@ static void parseTwcc(const std::string& hex, const uint32_t expectedReceived, c
     rtcpPacket.header.packetLength = payloadLen / 4;
     rtcpPacket.payload = payload;
     rtcpPacket.payloadLength = payloadLen;
-    KvsPeerConnection connection{};
-    std::pair<UINT32, UINT32> pair{};
-    connection.onPacketNotReceivedCustomData = reinterpret_cast<UINT64>(&pair);
-    connection.onPacketReceivedCustomData = reinterpret_cast<UINT64>(&pair);
-    connection.onPacketReceived = [](UINT64 pair64, UINT16 /*unused*/, INT32 /*unused*/) {
-        auto* pair = reinterpret_cast<std::pair<UINT32, UINT32>*>(pair64);
-        pair->first++;
-    };
+    TwccManager twcc{};
 
-    connection.onPacketNotReceived = [](UINT64 pair64, UINT16 /*unused*/) {
-        auto* pair = reinterpret_cast<std::pair<UINT32, UINT32>*>(pair64);
-        pair->second++;
-    };
-    onRtcpTwccPacket(&rtcpPacket, &connection);
-    EXPECT_EQ(pair.first + pair.second, TWCC_PACKET_STATUS_COUNT(rtcpPacket.payload));
+    ASSERT_EQ(STATUS_SUCCESS, parseRtcpTwccPacket(&rtcpPacket, &twcc));
+    ASSERT_EQ(STATUS_SUCCESS, stackQueueClear(&twcc.twccPackets, FALSE));
+
+    uint32_t received = 0;
+    uint32_t lost = 0;
+    for (const auto& packet : twcc.twccPacketBySeqNum) {
+        if (packet.remoteTimeKvs == TWCC_PACKET_LOST_TIME) {
+            lost++;
+        } else if (packet.remoteTimeKvs != TWCC_PACKET_UNITIALIZED_TIME) {
+            received++;
+        }
+    }
+
+    EXPECT_EQ(received + lost, TWCC_PACKET_STATUS_COUNT(rtcpPacket.payload));
     EXPECT_EQ(expectedReceived + expectedNotReceived, TWCC_PACKET_STATUS_COUNT(rtcpPacket.payload));
-    EXPECT_EQ(expectedReceived, pair.first);
-    EXPECT_EQ(expectedNotReceived, pair.second);
+    EXPECT_EQ(expectedReceived, received);
+    EXPECT_EQ(expectedNotReceived, lost);
 }
 
 TEST_F(RtcpFunctionalityTest, twcc3)

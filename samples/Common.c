@@ -183,6 +183,7 @@ STATUS handleOffer(PSampleConfiguration pSampleConfiguration, PSampleStreamingSe
     STATUS retStatus = STATUS_SUCCESS;
     RtcSessionDescriptionInit offerSessionDescriptionInit;
     NullableBool canTrickle;
+    BOOL mediaThreadStarted;
 
     CHK(pSampleConfiguration != NULL && pSignalingMessage != NULL, STATUS_NULL_ARG);
 
@@ -207,20 +208,9 @@ STATUS handleOffer(PSampleConfiguration pSampleConfiguration, PSampleStreamingSe
               (GETTIME() - pSampleStreamingSession->offerReceiveTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
     }
 
-    if (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->mediaThreadStarted)) {
-        ATOMIC_STORE_BOOL(&pSampleConfiguration->mediaThreadStarted, TRUE);
+    mediaThreadStarted = ATOMIC_EXCHANGE_BOOL(&pSampleConfiguration->mediaThreadStarted, TRUE);
+    if (!mediaThreadStarted) {
         THREAD_CREATE(&pSampleConfiguration->mediaSenderTid, mediaSenderRoutine, (PVOID) pSampleConfiguration);
-
-        // We need the metrics timer only when there isn't one already in progress
-        // IMPORTANT: This is called under the lock
-        if (pSampleConfiguration->iceCandidatePairStatsTimerId == MAX_UINT32 &&
-            STATUS_FAILED(retStatus = timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, SAMPLE_STATS_DURATION, SAMPLE_STATS_DURATION,
-                                                         getIceCandidatePairStatsCallback, (UINT64) pSampleConfiguration,
-                                                         &pSampleConfiguration->iceCandidatePairStatsTimerId))) {
-            DLOGW("Failed to add getIceCandidatePairStatsCallback to add to timer queue (code 0x%08x). Cannot pull ice candidate pair metrics "
-                  "periodically",
-                  retStatus);
-        }
     }
 
     // The audio video receive routine should be per streaming session
@@ -433,6 +423,8 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     STATUS retStatus = STATUS_SUCCESS;
     RtcMediaStreamTrack videoTrack, audioTrack;
     PSampleStreamingSession pSampleStreamingSession = NULL;
+    RtcRtpTransceiverInit audioRtpTransceiverInit;
+    RtcRtpTransceiverInit videoRtpTransceiverInit;
 
     MEMSET(&videoTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
     MEMSET(&audioTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
@@ -474,9 +466,11 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     // Add a SendRecv Transceiver of type video
     videoTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
     videoTrack.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+    videoRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
     STRCPY(videoTrack.streamId, "myKvsVideoStream");
     STRCPY(videoTrack.trackId, "myVideoTrack");
-    CHK_STATUS(addTransceiver(pSampleStreamingSession->pPeerConnection, &videoTrack, NULL, &pSampleStreamingSession->pVideoRtcRtpTransceiver));
+    CHK_STATUS(addTransceiver(pSampleStreamingSession->pPeerConnection, &videoTrack, &videoRtpTransceiverInit,
+                              &pSampleStreamingSession->pVideoRtcRtpTransceiver));
 
     CHK_STATUS(transceiverOnBandwidthEstimation(pSampleStreamingSession->pVideoRtcRtpTransceiver, (UINT64) pSampleStreamingSession,
                                                 sampleBandwidthEstimationHandler));
@@ -484,12 +478,17 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     // Add a SendRecv Transceiver of type video
     audioTrack.kind = MEDIA_STREAM_TRACK_KIND_AUDIO;
     audioTrack.codec = RTC_CODEC_OPUS;
+    audioRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
     STRCPY(audioTrack.streamId, "myKvsVideoStream");
     STRCPY(audioTrack.trackId, "myAudioTrack");
-    CHK_STATUS(addTransceiver(pSampleStreamingSession->pPeerConnection, &audioTrack, NULL, &pSampleStreamingSession->pAudioRtcRtpTransceiver));
+    CHK_STATUS(addTransceiver(pSampleStreamingSession->pPeerConnection, &audioTrack, &audioRtpTransceiverInit,
+                              &pSampleStreamingSession->pAudioRtcRtpTransceiver));
 
     CHK_STATUS(transceiverOnBandwidthEstimation(pSampleStreamingSession->pAudioRtcRtpTransceiver, (UINT64) pSampleStreamingSession,
                                                 sampleBandwidthEstimationHandler));
+    // twcc bandwidth estimation
+    CHK_STATUS(peerConnectionOnSenderBandwidthEstimation(pSampleStreamingSession->pPeerConnection, (UINT64) pSampleStreamingSession,
+                                                         sampleSenderBandwidthEstimationHandler));
     pSampleStreamingSession->firstFrame = TRUE;
     pSampleStreamingSession->startUpLatency = 0;
 CleanUp:
@@ -583,6 +582,29 @@ VOID sampleBandwidthEstimationHandler(UINT64 customData, DOUBLE maxiumBitrate)
 {
     UNUSED_PARAM(customData);
     DLOGV("received bitrate suggestion: %f", maxiumBitrate);
+}
+
+VOID sampleSenderBandwidthEstimationHandler(UINT64 customData, UINT32 txBytes, UINT32 rxBytes, UINT32 txPacketsCnt, UINT32 rxPacketsCnt,
+                                            UINT64 duration)
+{
+    UNUSED_PARAM(customData);
+    UNUSED_PARAM(duration);
+    UNUSED_PARAM(rxBytes);
+    UNUSED_PARAM(txBytes);
+    UINT32 lostPacketsCnt = txPacketsCnt - rxPacketsCnt;
+    UINT32 percentLost = lostPacketsCnt * 100 / txPacketsCnt;
+    UINT32 bitrate = 1024;
+    if (percentLost < 2) {
+        // increase encoder bitrate by 2 percent
+        bitrate *= 1.02f;
+    } else if (percentLost > 5) {
+        // decrease encoder bitrate by packet loss percent
+        bitrate *= (1.0f - percentLost / 100.0f);
+    }
+    // otherwise keep bitrate the same
+
+    DLOGS("received sender bitrate estimation: suggested bitrate %u sent: %u bytes %u packets received: %u bytes %u packets in %lu msec, ", bitrate,
+          txBytes, txPacketsCnt, rxBytes, rxPacketsCnt, duration / 10000ULL);
 }
 
 STATUS handleRemoteCandidate(PSampleStreamingSession pSampleStreamingSession, PSignalingMessage pSignalingMessage)
@@ -1169,8 +1191,7 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) customData;
-    BOOL peerConnectionFound = FALSE;
-    BOOL locked = TRUE;
+    BOOL peerConnectionFound = FALSE, locked = TRUE, startStats = FALSE;
     UINT32 clientIdHash;
     UINT64 hashValue = 0;
     PPendingMessageQueue pPendingMessageQueue = NULL;
@@ -1232,6 +1253,8 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
                 // NULL the pointer to avoid it being freed in the cleanup
                 pPendingMessageQueue = NULL;
             }
+
+            startStats = pSampleConfiguration->iceCandidatePairStatsTimerId == MAX_UINT32;
             break;
 
         case SIGNALING_MESSAGE_TYPE_ANSWER:
@@ -1286,6 +1309,21 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
         default:
             DLOGD("Unhandled signaling message type %u", pReceivedSignalingMessage->signalingMessage.messageType);
             break;
+    }
+
+    MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
+    locked = FALSE;
+
+    if (startStats &&
+        STATUS_FAILED(retStatus = timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, SAMPLE_STATS_DURATION, SAMPLE_STATS_DURATION,
+                                                     getIceCandidatePairStatsCallback, (UINT64) pSampleConfiguration,
+                                                     &pSampleConfiguration->iceCandidatePairStatsTimerId))) {
+        DLOGW("Failed to add getIceCandidatePairStatsCallback to add to timer queue (code 0x%08x). "
+              "Cannot pull ice candidate pair metrics periodically",
+              retStatus);
+
+        // Reset the returned status
+        retStatus = STATUS_SUCCESS;
     }
 
 CleanUp:

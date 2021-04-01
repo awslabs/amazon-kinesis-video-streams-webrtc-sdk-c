@@ -311,6 +311,9 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
             framesDiscardedOnSend = 1;
             SAFE_MEMFREE(rawPacket);
             continue;
+        } else if (sendStatus == STATUS_SUCCESS && pKvsRtpTransceiver->pKvsPeerConnection->twccExtId != 0) {
+            pRtpPacket->sentTime = GETTIME();
+            twccManagerOnPacketSent(pKvsPeerConnection, pRtpPacket);
         }
         CHK_STATUS(sendStatus);
         if (bufferAfterEncrypt) {
