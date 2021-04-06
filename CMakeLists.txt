@@ -30,6 +30,8 @@ option(THREAD_SANITIZER "Build with ThreadSanitizer." OFF)
 option(UNDEFINED_BEHAVIOR_SANITIZER "Build with UndefinedBehaviorSanitizer." OFF)
 option(LINK_PROFILER "Link gperftools profiler" OFF)
 
+set(OPEN_SRC_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/open-source" CACHE PATH "Libraries will be downloaded and built in this directory.")
+
 if(NOT WIN32)
 CHECK_INCLUDE_FILES(ifaddrs.h       KVSWEBRTC_HAVE_IFADDRS_H)
 if(NOT KVSWEBRTC_HAVE_IFADDRS_H)
@@ -82,7 +84,6 @@ elseif(USE_MBEDTLS)
 endif()
 
 if(BUILD_DEPENDENCIES)
-  set(OPEN_SRC_INSTALL_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/open-source)
   if(NOT EXISTS ${OPEN_SRC_INSTALL_PREFIX})
     file(MAKE_DIRECTORY ${OPEN_SRC_INSTALL_PREFIX})
   endif()
@@ -198,35 +199,6 @@ set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${LIBSRTP_INCLUDE_DIRS}
 link_directories(${LIBSRTP_LIBRARY_DIRS})
 link_directories(${LIBWEBSOCKETS_LIBRARY_DIRS})
 link_directories(${OPEN_SRC_INSTALL_PREFIX}/lib)
-
-pkg_check_modules(GST gstreamer-1.0)
-if(GST_FOUND)
-
-  if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    set(ENV{PKG_CONFIG_PATH} "$ENV{PKG_CONFIG_PATH}:/usr/local/opt/libffi/lib/pkgconfig")
-    find_library(Intl "intl" REQUIRED PATHS "/usr/local/opt/gettext/lib")
-    link_directories("/usr/local/opt/gettext/lib")
-  endif()
-
-  pkg_check_modules(GLIB2 REQUIRED glib-2.0)
-  pkg_check_modules(GST_APP REQUIRED gstreamer-app-1.0)
-  pkg_check_modules(GOBJ2 REQUIRED gobject-2.0)
-  message("gstreamer found. Will build gstreamer samples")
-
-  set(OPEN_SRC_INCLUDE_DIRS
-      ${OPEN_SRC_INCLUDE_DIRS} ${GLIB2_INCLUDE_DIRS} ${GST_INCLUDE_DIRS}
-      ${GST_APP_INCLUDE_DIRS} ${GOBJ2_INCLUDE_DIRS})
-
-  set(GST_SAMPLE_LIBRARIES ${GLIB2_LIBRARIES} ${GST_LIBRARIES}
-                           ${GST_APP_LIBRARIES} ${GOBJ2_LIBRARIES} ${Intl})
-
-  link_directories(${GLIB2_LIBRARY_DIRS})
-  link_directories(${GST_LIBRARY_DIRS})
-  link_directories(${GST_APP_LIBRARY_DIRS})
-  link_directories(${GOBJ2_LIBRARY_DIRS})
-else()
-  message("gstreamer not found. Will not build gstreamer samples")
-endif()
 
 ############# find dependent libraries end ############
 
@@ -356,42 +328,11 @@ install(DIRECTORY ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/include/
 )
 
 if (BUILD_SAMPLE)
+  # copy sample frames to build folder, in case developer runs sample program with command `samples/kvsWebrtcClientMaster` from `build` dir.
   file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/samples/opusSampleFrames" DESTINATION .)
   file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/samples/h264SampleFrames" DESTINATION .)
 
-  add_executable(
-    kvsWebrtcClientMaster
-    ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/Common.c
-    ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/kvsWebRTCClientMaster.c)
-  target_link_libraries(kvsWebrtcClientMaster kvsWebrtcClient kvsWebrtcSignalingClient kvspicUtils)
-
-  add_executable(
-    kvsWebrtcClientViewer
-    ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/Common.c
-    ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/kvsWebRTCClientViewer.c)
-  target_link_libraries(kvsWebrtcClientViewer kvsWebrtcClient kvsWebrtcSignalingClient kvspicUtils)
-
-  add_executable(
-          discoverNatBehavior
-          ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/discoverNatBehavior.c)
-  target_link_libraries(discoverNatBehavior kvsWebrtcClient)
-
-  if(GST_FOUND)
-    add_executable(
-      kvsWebrtcClientMasterGstSample
-      ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/Common.c
-      ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/kvsWebRTCClientMasterGstreamerSample.c
-    )
-    target_link_libraries(kvsWebrtcClientMasterGstSample kvsWebrtcClient kvsWebrtcSignalingClient ${GST_SAMPLE_LIBRARIES} kvspicUtils)
-
-    install(TARGETS kvsWebrtcClientMasterGstSample
-      RUNTIME DESTINATION bin
-    )
-  endif()
-
-  install(TARGETS kvsWebrtcClientMaster kvsWebrtcClientViewer discoverNatBehavior
-    RUNTIME DESTINATION bin
-  )
+  add_subdirectory(samples)
 endif()
 
 if(BUILD_TEST)
