@@ -14,7 +14,7 @@ pwd
 ls -l
 
 pids=""
-cd build
+cd build/samples
 ./kvsWebrtcClientMaster SampleChannel &
 pids+=" $!"
 
