@@ -319,6 +319,8 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
     }
 
     if (duration > 0) {
+        MUTEX_UNLOCK(pKvsPeerConnection->twccLock);
+        locked = FALSE;
         pKvsPeerConnection->onSenderBandwidthEstimation(pKvsPeerConnection->onSenderBandwidthEstimationCustomData, sentBytes, receivedBytes,
                                                         sentPackets, receivedPackets, duration);
     }
