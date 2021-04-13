@@ -1403,6 +1403,7 @@ STATUS twccManagerOnPacketSent(PKvsPeerConnection pc, PRtpPacket pRtpPacket)
     BOOL isEmpty = FALSE;
     INT64 firstTimeKvs, lastLocalTimeKvs, ageOfOldest;
     CHK(pc != NULL && pRtpPacket != NULL, STATUS_NULL_ARG);
+    CHK(pc->onSenderBandwidthEstimation != NULL && pc->pTwccManager != NULL, STATUS_SUCCESS);
     CHK(TWCC_EXT_PROFILE == pRtpPacket->header.extensionProfile, STATUS_SUCCESS);
 
     MUTEX_LOCK(pc->twccLock);
