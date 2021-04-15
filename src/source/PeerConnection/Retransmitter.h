@@ -1,8 +1,8 @@
 /*******************************************
 Retransmitter internal include file
 *******************************************/
-#ifndef __KINESIS_VIDEO_WEBRTC_CLIENT_PEERCONNECTION_RETRANSIMITTER__
-#define __KINESIS_VIDEO_WEBRTC_CLIENT_PEERCONNECTION_RETRANSIMITTER__
+#ifndef __KINESIS_VIDEO_WEBRTC_CLIENT_PEERCONNECTION_RETRANSMITTER__
+#define __KINESIS_VIDEO_WEBRTC_CLIENT_PEERCONNECTION_RETRANSMITTER__
 
 #pragma once
 
@@ -24,4 +24,4 @@ STATUS resendPacketOnNack(PRtcpPacket, PKvsPeerConnection);
 #ifdef __cplusplus
 }
 #endif
-#endif /* __KINESIS_VIDEO_WEBRTC_CLIENT_PEERCONNECTION_RETRANSIMITTER__ */
+#endif /* __KINESIS_VIDEO_WEBRTC_CLIENT_PEERCONNECTION_RETRANSMITTER__ */
