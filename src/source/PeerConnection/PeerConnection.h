@@ -146,6 +146,9 @@ STATUS sendPacketToRtpReceiver(PKvsPeerConnection, PBYTE, UINT32);
 STATUS changePeerConnectionState(PKvsPeerConnection, RTC_PEER_CONNECTION_STATE);
 STATUS twccManagerOnPacketSent(PKvsPeerConnection, PRtpPacket);
 
+// visible for testing only
+VOID onIceConnectionStateChange(UINT64, UINT64);
+
 #ifdef __cplusplus
 }
 #endif

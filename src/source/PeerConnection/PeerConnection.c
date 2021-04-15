@@ -396,6 +396,7 @@ VOID onIceConnectionStateChange(UINT64 customData, UINT64 connectionState)
             /* explicit fall-through */
         case ICE_AGENT_STATE_READY:
             /* start dtlsSession as soon as ice is connected */
+            newConnectionState = RTC_PEER_CONNECTION_STATE_CONNECTING;
             startDtlsSession = TRUE;
             break;
 

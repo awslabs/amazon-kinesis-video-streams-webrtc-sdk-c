@@ -169,6 +169,34 @@ TEST_F(PeerConnectionApiTest, CONVERT_TIMESTAMP_TO_RTP_MacroWithMathOperations)
     EXPECT_EQ(180000, rtpTimestamp);
 }
 
+RTC_PEER_CONNECTION_STATE fromIceAgentState(PRtcPeerConnection pRtcPeerConnection, UINT64 iceConnectionState)
+{
+    ((PKvsPeerConnection) pRtcPeerConnection)->connectionState = RTC_PEER_CONNECTION_STATE_NONE;
+    RTC_PEER_CONNECTION_STATE state = RTC_PEER_CONNECTION_STATE_NONE;
+    peerConnectionOnConnectionStateChange(pRtcPeerConnection, (UINT64) &state, [](UINT64 state64, RTC_PEER_CONNECTION_STATE newState) {
+        *(RTC_PEER_CONNECTION_STATE*) state64 = newState;
+    });
+    onIceConnectionStateChange((UINT64) pRtcPeerConnection, iceConnectionState);
+    return state;
+}
+
+TEST_F(PeerConnectionApiTest, connectionState)
+{
+    PRtcPeerConnection pc = nullptr;
+    RtcConfiguration config{};
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pc));
+    EXPECT_EQ(RTC_PEER_CONNECTION_STATE_NEW, fromIceAgentState(pc, ICE_AGENT_STATE_NEW));
+    EXPECT_EQ(RTC_PEER_CONNECTION_STATE_CONNECTING, fromIceAgentState(pc, ICE_AGENT_STATE_CHECK_CONNECTION));
+    // RTC_PEER_CONNECTION_STATE is set to CONNECTED only when dtls is connected therefore ICE_AGENT_STATE_CONNECTED is still considered CONNECTING
+    EXPECT_EQ(RTC_PEER_CONNECTION_STATE_CONNECTING, fromIceAgentState(pc, ICE_AGENT_STATE_CONNECTED));
+    EXPECT_EQ(RTC_PEER_CONNECTION_STATE_CONNECTING, fromIceAgentState(pc, ICE_AGENT_STATE_NOMINATING));
+    EXPECT_EQ(RTC_PEER_CONNECTION_STATE_CONNECTING, fromIceAgentState(pc, ICE_AGENT_STATE_READY));
+    EXPECT_EQ(RTC_PEER_CONNECTION_STATE_DISCONNECTED, fromIceAgentState(pc, ICE_AGENT_STATE_DISCONNECTED));
+    EXPECT_EQ(RTC_PEER_CONNECTION_STATE_FAILED, fromIceAgentState(pc, ICE_AGENT_STATE_FAILED));
+
+    freePeerConnection(&pc);
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis
