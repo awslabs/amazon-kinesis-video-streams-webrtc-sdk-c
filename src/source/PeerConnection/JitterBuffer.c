@@ -2,7 +2,11 @@
 
 #include "../Include_i.h"
 
-//forward declaration of internal functions
+//Applies only to the case where the very first frame has its first packets out of order
+#define MAX_OUT_OF_ORDER_PACKET_DIFFERENCE      512
+
+//forward declaration
+STATUS jitterBufferInternalParse(PJitterBuffer pJitterBuffer, BOOL bufferClosed);
 
 STATUS createJitterBuffer(FrameReadyFunc onFrameReadyFunc, FrameDroppedFunc onFrameDroppedFunc, DepayRtpPayloadFunc depayRtpPayloadFunc,
                           UINT32 maxLatency, UINT32 clockRate, UINT64 customData, PJitterBuffer* ppJitterBuffer)
@@ -32,6 +36,7 @@ STATUS createJitterBuffer(FrameReadyFunc onFrameReadyFunc, FrameDroppedFunc onFr
     pJitterBuffer->headTimestamp = MAX_UINT32;
     pJitterBuffer->headSequenceNumber = MAX_SEQUENCE_NUM;
     pJitterBuffer->started = FALSE;
+    pJitterBuffer->firstFrameProcessed = FALSE;
 
     pJitterBuffer->customData = customData;
     CHK_STATUS(hashTableCreateWithParams(JITTER_BUFFER_HASH_TABLE_BUCKET_COUNT, JITTER_BUFFER_HASH_TABLE_BUCKET_LENGTH,
@@ -46,6 +51,121 @@ CleanUp:
     if (ppJitterBuffer != NULL) {
         *ppJitterBuffer = pJitterBuffer;
     }
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS freeJitterBuffer(PJitterBuffer* ppJitterBuffer)
+{
+    ENTERS();
+
+    STATUS retStatus = STATUS_SUCCESS;
+    PJitterBuffer pJitterBuffer = NULL;
+
+    CHK(ppJitterBuffer != NULL, STATUS_NULL_ARG);
+    // freeJitterBuffer is idempotent
+    CHK(*ppJitterBuffer != NULL, retStatus);
+
+    pJitterBuffer = *ppJitterBuffer;
+
+    jitterBufferInternalParse(pJitterBuffer, TRUE);
+    jitterBufferDropBufferData(pJitterBuffer, 0, MAX_SEQUENCE_NUM, 0);
+    hashTableFree(pJitterBuffer->pPkgBufferHashTable);
+
+    MEMFREE(*ppJitterBuffer);
+
+CleanUp:
+    CHK_LOG_ERR(retStatus);
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS jitterBufferPush(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket, PBOOL pPacketDiscarded)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS, status = STATUS_SUCCESS;
+    UINT64 hashValue = 0;
+    PRtpPacket pCurPacket = NULL;
+
+    CHK(pJitterBuffer != NULL && pRtpPacket != NULL, STATUS_NULL_ARG);
+
+    if (!pJitterBuffer->started) {
+        // Set to started and initialize the sequence number
+        pJitterBuffer->started = TRUE;
+        pJitterBuffer->headSequenceNumber = pRtpPacket->header.sequenceNumber;
+        pJitterBuffer->headTimestamp = pRtpPacket->header.timestamp;
+    }
+
+    if (pJitterBuffer->lastPushTimestamp < pRtpPacket->header.timestamp) {
+        pJitterBuffer->lastPushTimestamp = pRtpPacket->header.timestamp;
+    }
+
+    //is the packet within the accepted latency range, if so, add it to the hashtable
+    if ((pRtpPacket->header.timestamp < pJitterBuffer->maxLatency && pJitterBuffer->lastPushTimestamp <= pJitterBuffer->maxLatency) ||
+        pRtpPacket->header.timestamp >= pJitterBuffer->lastPushTimestamp - pJitterBuffer->maxLatency) {
+
+        status = hashTableGet(pJitterBuffer->pPkgBufferHashTable, pRtpPacket->header.sequenceNumber, &hashValue);
+        pCurPacket = (PRtpPacket) hashValue;
+        if (STATUS_SUCCEEDED(status) && pCurPacket != NULL) {
+            freeRtpPacket(&pCurPacket);
+            CHK_STATUS(hashTableRemove(pJitterBuffer->pPkgBufferHashTable, pRtpPacket->header.sequenceNumber));
+        }
+
+        CHK_STATUS(hashTablePut(pJitterBuffer->pPkgBufferHashTable, pRtpPacket->header.sequenceNumber, (UINT64) pRtpPacket));
+
+        /*If we haven't yet processed a frame yet, then we don't have a definitive way of knowing if
+         *the first packet we receive is actually the earliest packet we'll ever receive. Since sequence numbers
+         *can start anywhere from 0 - 65535, we need to incorporate some checks to determine if a newly received packet
+         *should be considered the new head. Part of how we determine this is by setting a limit to how many packets off we allow
+         *this out of order case to be. Without setting a limit, then we could run into an odd scenario.
+         * Example:
+         * Push->Packet->SeqNumber == 0. //FIRST PACKET! new head of buffer!
+         * Push->Packet->SeqNumber == 3. //... new head of 65532 packet sized frame? maybe? was 0 the tail?
+         *
+         * To resolve that insanity we set a MAX, and will use that MAX for the range.
+         *
+         *After the first frame has been processed we don't need or want to make this consideration, since if our parser has
+         *dropped a frame for a good reason then we want to ignore any packets from that dropped frame that may come later.
+         */
+        if (!(pJitterBuffer->firstFrameProcessed)) {
+            //if the timestamp is less, we'll accept it as a new head, since it must be an earlier frame.
+            if (pRtpPacket->header.timestamp < pJitterBuffer->headTimestamp) {
+                pJitterBuffer->headSequenceNumber = pRtpPacket->header.sequenceNumber;
+                pJitterBuffer->headTimestamp = pRtpPacket->header.timestamp;
+            }
+            //timestamp is equal, we're in the same frame.
+            else if (pRtpPacket->header.timestamp == pJitterBuffer->headTimestamp) {
+                if(pJitterBuffer->headSequenceNumber < MAX_OUT_OF_ORDER_PACKET_DIFFERENCE) {
+                    if((pRtpPacket->header.sequenceNumber >= (MAX_UINT16 - (MAX_OUT_OF_ORDER_PACKET_DIFFERENCE - pJitterBuffer->headSequenceNumber))) ||
+                       (pJitterBuffer->headSequenceNumber > pRtpPacket->header.sequenceNumber))
+                    {
+                        pJitterBuffer->headSequenceNumber = pRtpPacket->header.sequenceNumber;
+                    }
+                }
+                else if((pJitterBuffer->headSequenceNumber - MAX_OUT_OF_ORDER_PACKET_DIFFERENCE) <= pRtpPacket->header.sequenceNumber)
+                {
+                    pJitterBuffer->headSequenceNumber = pRtpPacket->header.sequenceNumber;
+                }
+            }
+        }
+        //DONE with considering the head.
+
+        DLOGS("jitterBufferPush get packet timestamp %lu seqNum %lu", pRtpPacket->header.timestamp, pRtpPacket->header.sequenceNumber);
+    } else {
+        // Free the packet if it is out of range, jitter buffer need to own the packet and do free
+        freeRtpPacket(&pRtpPacket);
+        if (pPacketDiscarded != NULL) {
+            *pPacketDiscarded = TRUE;
+        }
+    }
+
+    CHK_STATUS(jitterBufferInternalParse(pJitterBuffer, FALSE));
+
+CleanUp:
+
+    CHK_LOG_ERR(retStatus);
 
     LEAVES();
     return retStatus;
@@ -119,6 +239,7 @@ STATUS jitterBufferInternalParse(PJitterBuffer pJitterBuffer, BOOL bufferClosed)
                     //Decrement the index because this is an inclusive end parser, and we don't want to include the current index in the processed frame.
                     CHK_STATUS(pJitterBuffer->onFrameReadyFn(pJitterBuffer->customData, startDropIndex, UINT16_DEC(index), curFrameSize));
                     CHK_STATUS(jitterBufferDropBufferData(pJitterBuffer, startDropIndex, UINT16_DEC(index), curTimestamp));
+                    pJitterBuffer->firstFrameProcessed = TRUE;
                     startDropIndex = index;
                     containStartForEarliestFrame = FALSE;
                 }
@@ -127,6 +248,7 @@ STATUS jitterBufferInternalParse(PJitterBuffer pJitterBuffer, BOOL bufferClosed)
                     CHK_STATUS(pJitterBuffer->onFrameDroppedFn(pJitterBuffer->customData, startDropIndex, UINT16_DEC(index),
                                                                pJitterBuffer->headTimestamp));
                     CHK_STATUS(jitterBufferDropBufferData(pJitterBuffer, startDropIndex, UINT16_DEC(index), curTimestamp));
+                    pJitterBuffer->firstFrameProcessed = TRUE;
                     isFrameDataContinuous = TRUE;
                     startDropIndex = index;
                 }
@@ -175,84 +297,6 @@ STATUS jitterBufferInternalParse(PJitterBuffer pJitterBuffer, BOOL bufferClosed)
     }
 
 CleanUp:
-    CHK_LOG_ERR(retStatus);
-
-    LEAVES();
-    return retStatus;
-}
-
-
-STATUS freeJitterBuffer(PJitterBuffer* ppJitterBuffer)
-{
-    ENTERS();
-
-    STATUS retStatus = STATUS_SUCCESS;
-    PJitterBuffer pJitterBuffer = NULL;
-
-    CHK(ppJitterBuffer != NULL, STATUS_NULL_ARG);
-    // freeJitterBuffer is idempotent
-    CHK(*ppJitterBuffer != NULL, retStatus);
-
-    pJitterBuffer = *ppJitterBuffer;
-
-    jitterBufferInternalParse(pJitterBuffer, TRUE);
-    jitterBufferDropBufferData(pJitterBuffer, 0, MAX_SEQUENCE_NUM, 0);
-    hashTableFree(pJitterBuffer->pPkgBufferHashTable);
-
-    MEMFREE(*ppJitterBuffer);
-
-CleanUp:
-    CHK_LOG_ERR(retStatus);
-
-    LEAVES();
-    return retStatus;
-}
-
-STATUS jitterBufferPush(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket, PBOOL pPacketDiscarded)
-{
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS, status = STATUS_SUCCESS;
-    UINT64 hashValue = 0;
-    PRtpPacket pCurPacket = NULL;
-
-    CHK(pJitterBuffer != NULL && pRtpPacket != NULL, STATUS_NULL_ARG);
-
-    if (!pJitterBuffer->started) {
-        // Set to started and initialize the sequence number
-        pJitterBuffer->started = TRUE;
-        pJitterBuffer->headSequenceNumber = pRtpPacket->header.sequenceNumber;
-    }
-
-    if (pJitterBuffer->lastPushTimestamp < pRtpPacket->header.timestamp) {
-        pJitterBuffer->lastPushTimestamp = pRtpPacket->header.timestamp;
-    }
-
-    //is the packet within the accepted latency range, if so, add it to the hashtable
-    if ((pRtpPacket->header.timestamp < pJitterBuffer->maxLatency && pJitterBuffer->lastPushTimestamp <= pJitterBuffer->maxLatency) ||
-        pRtpPacket->header.timestamp >= pJitterBuffer->lastPushTimestamp - pJitterBuffer->maxLatency) {
-
-        status = hashTableGet(pJitterBuffer->pPkgBufferHashTable, pRtpPacket->header.sequenceNumber, &hashValue);
-        pCurPacket = (PRtpPacket) hashValue;
-        if (STATUS_SUCCEEDED(status) && pCurPacket != NULL) {
-            freeRtpPacket(&pCurPacket);
-            CHK_STATUS(hashTableRemove(pJitterBuffer->pPkgBufferHashTable, pRtpPacket->header.sequenceNumber));
-        }
-
-        CHK_STATUS(hashTablePut(pJitterBuffer->pPkgBufferHashTable, pRtpPacket->header.sequenceNumber, (UINT64) pRtpPacket));
-        pJitterBuffer->headTimestamp = MIN(pJitterBuffer->headTimestamp, pRtpPacket->header.timestamp);
-        DLOGS("jitterBufferPush get packet timestamp %lu seqNum %lu", pRtpPacket->header.timestamp, pRtpPacket->header.sequenceNumber);
-    } else {
-        // Free the packet if it is out of range, jitter buffer need to own the packet and do free
-        freeRtpPacket(&pRtpPacket);
-        if (pPacketDiscarded != NULL) {
-            *pPacketDiscarded = TRUE;
-        }
-    }
-
-    CHK_STATUS(jitterBufferInternalParse(pJitterBuffer, FALSE));
-
-CleanUp:
-
     CHK_LOG_ERR(retStatus);
 
     LEAVES();

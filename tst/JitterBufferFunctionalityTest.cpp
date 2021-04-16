@@ -771,6 +771,7 @@ TEST_F(JitterBufferFunctionalityTest, pushFrameArrivingLate)
 
     clearJitterBufferForTest();
 }
+
 TEST_F(JitterBufferFunctionalityTest, missingSecondPacketInSecondFrame)
 {
     UINT32 i;
@@ -786,21 +787,21 @@ TEST_F(JitterBufferFunctionalityTest, missingSecondPacketInSecondFrame)
     mPRtpPackets[0]->header.sequenceNumber = 0;
 
     mPRtpPackets[1]->payloadLength = 1;
-    mPRtpPackets[1]->payload = (PBYTE) MEMALLOC(mPRtpPackets[0]->payloadLength + 1);
+    mPRtpPackets[1]->payload = (PBYTE) MEMALLOC(mPRtpPackets[1]->payloadLength + 1);
     mPRtpPackets[1]->payload[0] = 2;
     mPRtpPackets[1]->payload[1] = 0; // following packet
     mPRtpPackets[1]->header.timestamp = 100;
     mPRtpPackets[1]->header.sequenceNumber = 1;
 
     mPRtpPackets[2]->payloadLength = 1;
-    mPRtpPackets[2]->payload = (PBYTE) MEMALLOC(mPRtpPackets[0]->payloadLength + 1);
+    mPRtpPackets[2]->payload = (PBYTE) MEMALLOC(mPRtpPackets[2]->payloadLength + 1);
     mPRtpPackets[2]->payload[0] = 7;
     mPRtpPackets[2]->payload[1] = 0; // following packet
     mPRtpPackets[2]->header.timestamp = 100;
     mPRtpPackets[2]->header.sequenceNumber = 2;
 
     mPRtpPackets[3]->payloadLength = 1;
-    mPRtpPackets[3]->payload = (PBYTE) MEMALLOC(mPRtpPackets[1]->payloadLength + 1);
+    mPRtpPackets[3]->payload = (PBYTE) MEMALLOC(mPRtpPackets[3]->payloadLength + 1);
     mPRtpPackets[3]->payload[0] = 3;
     mPRtpPackets[3]->payload[1] = 0; // Following packet of a frame
     mPRtpPackets[3]->header.timestamp = 100;
@@ -816,14 +817,14 @@ TEST_F(JitterBufferFunctionalityTest, missingSecondPacketInSecondFrame)
 
     // Second frame "4?3" at timestamp 200 - missing contents of packet #5
     mPRtpPackets[4]->payloadLength = 1;
-    mPRtpPackets[4]->payload = (PBYTE) MEMALLOC(mPRtpPackets[2]->payloadLength + 1);
+    mPRtpPackets[4]->payload = (PBYTE) MEMALLOC(mPRtpPackets[4]->payloadLength + 1);
     mPRtpPackets[4]->payload[0] = 4;
     mPRtpPackets[4]->payload[1] = 1; // First packet of a frame
     mPRtpPackets[4]->header.timestamp = 200;
     mPRtpPackets[4]->header.sequenceNumber = 4;
 
     mPRtpPackets[5]->payloadLength = 1;
-    mPRtpPackets[5]->payload = (PBYTE) MEMALLOC(mPRtpPackets[1]->payloadLength + 1);
+    mPRtpPackets[5]->payload = (PBYTE) MEMALLOC(mPRtpPackets[5]->payloadLength + 1);
     mPRtpPackets[5]->payload[0] = 3;
     mPRtpPackets[5]->payload[1] = 0; // Following packet of a frame
     mPRtpPackets[5]->header.timestamp = 200;
@@ -832,7 +833,7 @@ TEST_F(JitterBufferFunctionalityTest, missingSecondPacketInSecondFrame)
 
     // Third frame "6" at timestamp 400 - rtp packet #7
     mPRtpPackets[6]->payloadLength = 1;
-    mPRtpPackets[6]->payload = (PBYTE) MEMALLOC(mPRtpPackets[3]->payloadLength + 1);
+    mPRtpPackets[6]->payload = (PBYTE) MEMALLOC(mPRtpPackets[6]->payloadLength + 1);
     mPRtpPackets[6]->payload[0] = 6;
     mPRtpPackets[6]->payload[1] = 1; // First packet of a frame
     mPRtpPackets[6]->header.timestamp = 400;
@@ -935,9 +936,184 @@ TEST_F(JitterBufferFunctionalityTest, incompleteFirstFrame)
     }
 
     clearJitterBufferForTest();
-
 }
 
+TEST_F(JitterBufferFunctionalityTest, outOfOrderFirstFrame)
+{
+    UINT32 i;
+    UINT32 pktCount = 7;
+    initializeJitterBuffer(3, 0, pktCount);
+
+    // First frame "1" at timestamp 100, has no start - rtp packet #0
+    mPRtpPackets[0]->payloadLength = 1;
+    mPRtpPackets[0]->payload = (PBYTE) MEMALLOC(mPRtpPackets[0]->payloadLength + 1);
+    mPRtpPackets[0]->payload[0] = 1;
+    mPRtpPackets[0]->payload[1] = 0; // following packet of a frame
+    mPRtpPackets[0]->header.timestamp = 100;
+    mPRtpPackets[0]->header.sequenceNumber = 1;
+
+    // Second frame "2" "34" at timestamp 200 - rtp packet #1 #2
+    mPRtpPackets[1]->payloadLength = 1;
+    mPRtpPackets[1]->payload = (PBYTE) MEMALLOC(mPRtpPackets[1]->payloadLength + 1);
+    mPRtpPackets[1]->payload[0] = 2;
+    mPRtpPackets[1]->payload[1] = 1; // First packet of a frame
+    mPRtpPackets[1]->header.timestamp = 200;
+    mPRtpPackets[1]->header.sequenceNumber = 3;
+    mPRtpPackets[2]->payloadLength = 2;
+    mPRtpPackets[2]->payload = (PBYTE) MEMALLOC(mPRtpPackets[2]->payloadLength + 1);
+    mPRtpPackets[2]->payload[0] = 3;
+    mPRtpPackets[2]->payload[1] = 4;
+    mPRtpPackets[2]->payload[2] = 0; // following packet of a frame
+    mPRtpPackets[2]->header.timestamp = 200;
+    mPRtpPackets[2]->header.sequenceNumber = 4;
+
+    mPRtpPackets[3]->payloadLength = 1;
+    mPRtpPackets[3]->payload = (PBYTE) MEMALLOC(mPRtpPackets[3]->payloadLength + 1);
+    mPRtpPackets[3]->payload[0] = 9;
+    mPRtpPackets[3]->payload[1] = 0; // following packet of a frame
+    mPRtpPackets[3]->header.timestamp = 100;
+    mPRtpPackets[3]->header.sequenceNumber = 2;
+    mPRtpPackets[4]->payloadLength = 1;
+    mPRtpPackets[4]->payload = (PBYTE) MEMALLOC(mPRtpPackets[4]->payloadLength + 1);
+    mPRtpPackets[4]->payload[0] = 8;
+    mPRtpPackets[4]->payload[1] = 1; // First packet of a frame
+    mPRtpPackets[4]->header.timestamp = 100;
+    mPRtpPackets[4]->header.sequenceNumber = 0;
+
+    // Expected to get frames "819" "234"
+    mPExpectedFrameArr[0] = (PBYTE) MEMALLOC(3);
+    mPExpectedFrameArr[0][0] = 8;
+    mPExpectedFrameArr[0][1] = 1;
+    mPExpectedFrameArr[0][2] = 9;
+    mExpectedFrameSizeArr[0] = 3;
+
+    mPExpectedFrameArr[1] = (PBYTE) MEMALLOC(3);
+    mPExpectedFrameArr[1][0] = 2;
+    mPExpectedFrameArr[1][1] = 3;
+    mPExpectedFrameArr[1][2] = 4;
+    mExpectedFrameSizeArr[1] = 3;
+
+    // Third frame "56" "7" at timestamp 300 - rtp packet #3 #4
+    mPRtpPackets[5]->payloadLength = 2;
+    mPRtpPackets[5]->payload = (PBYTE) MEMALLOC(mPRtpPackets[5]->payloadLength + 1);
+    mPRtpPackets[5]->payload[0] = 5;
+    mPRtpPackets[5]->payload[1] = 6;
+    mPRtpPackets[5]->payload[2] = 1; // First packet of a frame
+    mPRtpPackets[5]->header.timestamp = 300;
+    mPRtpPackets[5]->header.sequenceNumber = 5;
+    mPRtpPackets[6]->payloadLength = 1;
+    mPRtpPackets[6]->payload = (PBYTE) MEMALLOC(mPRtpPackets[6]->payloadLength + 1);
+    mPRtpPackets[6]->payload[0] = 7;
+    mPRtpPackets[6]->payload[1] = 0; // Following packet of a frame
+    mPRtpPackets[6]->header.timestamp = 300;
+    mPRtpPackets[6]->header.sequenceNumber = 6;
+
+    // Expected to get frame "567" at close
+    mPExpectedFrameArr[2] = (PBYTE) MEMALLOC(3);
+    mPExpectedFrameArr[2][0] = 5;
+    mPExpectedFrameArr[2][1] = 6;
+    mPExpectedFrameArr[2][2] = 7;
+    mExpectedFrameSizeArr[2] = 3;
+
+    setPayloadToFree();
+
+    for (i = 0; i < pktCount; i++) {
+        EXPECT_EQ(STATUS_SUCCESS, jitterBufferPush(mJitterBuffer, mPRtpPackets[i], nullptr));
+        switch (i) {
+            case 0:
+            case 1:
+            case 2:
+            case 3:
+                EXPECT_EQ(0, mReadyFrameIndex);
+                break;
+            case 4:
+                EXPECT_EQ(1, mReadyFrameIndex);
+                break;
+            case 5:
+                EXPECT_EQ(2, mReadyFrameIndex);
+                break;
+            case 6:
+                break;
+            default:
+                ASSERT_TRUE(FALSE);
+        }
+        EXPECT_EQ(0, mDroppedFrameIndex);
+    }
+
+    clearJitterBufferForTest();
+}
+
+TEST_F(JitterBufferFunctionalityTest, latePacketsOfAlreadyDroppedFrame)
+{
+    UINT32 i = 0;
+    UINT32 pktCount = 4;
+    initializeJitterBuffer(1, 1, pktCount);
+
+    mPRtpPackets[0]->payloadLength = 1;
+    mPRtpPackets[0]->payload = (PBYTE) MEMALLOC(mPRtpPackets[0]->payloadLength + 1);
+    mPRtpPackets[0]->payload[0] = 0;
+    mPRtpPackets[0]->payload[1] = 1; // First packet of a frame
+    mPRtpPackets[0]->header.timestamp = 100;
+    mPRtpPackets[0]->header.sequenceNumber = 0;
+
+    mPRtpPackets[1]->payloadLength = 4;
+    mPRtpPackets[1]->payload = (PBYTE) MEMALLOC(mPRtpPackets[1]->payloadLength + 1);
+    mPRtpPackets[1]->payload[0] = 1;
+    mPRtpPackets[1]->payload[1] = 1;
+    mPRtpPackets[1]->payload[2] = 1;
+    mPRtpPackets[1]->payload[3] = 1;
+    mPRtpPackets[1]->payload[4] = 0; // following packet of a frame
+    mPRtpPackets[1]->header.timestamp = 100;
+    mPRtpPackets[1]->header.sequenceNumber = 1;
+
+    // Second frame "1" at timestamp 3000 - forces drop of earlier incomplete frame due to maxLatency being exceeded
+    mPRtpPackets[2]->payloadLength = 1;
+    mPRtpPackets[2]->payload = (PBYTE) MEMALLOC(mPRtpPackets[2]->payloadLength + 1);
+    mPRtpPackets[2]->payload[0] = 1;
+    mPRtpPackets[2]->payload[1] = 1; // First packet of a frame
+    mPRtpPackets[2]->header.timestamp = 3000;
+    mPRtpPackets[2]->header.sequenceNumber = 3;
+
+    // Expected to get frame "1" at timestamp 3000
+    mPExpectedFrameArr[0] = (PBYTE) MEMALLOC(1);
+    mPExpectedFrameArr[0][0] = 1;
+    mExpectedFrameSizeArr[0] = 1;
+
+    mPRtpPackets[3]->payloadLength = 1;
+    mPRtpPackets[3]->payload = (PBYTE) MEMALLOC(mPRtpPackets[3]->payloadLength + 1);
+    mPRtpPackets[3]->payload[0] = 2;
+    mPRtpPackets[3]->payload[1] = 0; // following packet of a frame
+    mPRtpPackets[3]->header.timestamp = 100;
+    mPRtpPackets[3]->header.sequenceNumber = 2;
+
+    // Expected to drop first frame
+    mExpectedDroppedFrameTimestampArr[0] = 100;
+
+    setPayloadToFree();
+
+    for (i = 0; i < pktCount; i++) {
+        EXPECT_EQ(STATUS_SUCCESS, jitterBufferPush(mJitterBuffer, mPRtpPackets[i], nullptr));
+        switch (i) {
+            case 0:
+            case 1:
+                EXPECT_EQ(0, mReadyFrameIndex);
+                EXPECT_EQ(0, mDroppedFrameIndex);
+                break;
+            case 2:
+                EXPECT_EQ(0, mReadyFrameIndex);
+                EXPECT_EQ(1, mDroppedFrameIndex);
+                break;
+            case 3:
+                EXPECT_EQ(0, mReadyFrameIndex);
+                EXPECT_EQ(1, mDroppedFrameIndex);
+                break;
+            default:
+                ASSERT_TRUE(FALSE);
+        }
+    }
+
+    clearJitterBufferForTest();
+}
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis

@@ -35,6 +35,7 @@ typedef struct {
     UINT64 customData;
     UINT32 clockRate;
     BOOL started;
+    BOOL firstFrameProcessed;
     PHashTable pPkgBufferHashTable;
 } JitterBuffer, *PJitterBuffer;
 
