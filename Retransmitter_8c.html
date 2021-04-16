@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.9.1"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Amazon Kinesis Webrtc C SDK: /src/src/source/PeerConnection/Retransimitter.c File Reference</title>
+<title>Amazon Kinesis Webrtc C SDK: /src/src/source/PeerConnection/Retransmitter.c File Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -72,7 +72,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
 </div>
 <script type="text/javascript">
 /* @license magnet:?xt=urn:btih:cf05388f2679ee054f2beb29a391d25f4e673ac3&amp;dn=gpl-2.0.txt GPL-v2 */
-$(document).ready(function(){initNavTree('Retransimitter_8c.html',''); initResizable(); });
+$(document).ready(function(){initNavTree('Retransmitter_8c.html',''); initResizable(); });
 /* @license-end */
 </script>
 <div id="doc-content">
@@ -95,15 +95,15 @@ $(document).ready(function(){initNavTree('Retransimitter_8c.html',''); initResiz
 <a href="#define-members">Macros</a> &#124;
 <a href="#func-members">Functions</a>  </div>
   <div class="headertitle">
-<div class="title">Retransimitter.c File Reference</div>  </div>
+<div class="title">Retransmitter.c File Reference</div>  </div>
 </div><!--header-->
 <div class="contents">
 <div class="textblock"><code>#include &quot;<a class="el" href="Include__i_8h_source.html">../Include_i.h</a>&quot;</code><br />
 </div><div class="textblock"><div class="dynheader">
-Include dependency graph for Retransimitter.c:</div>
+Include dependency graph for Retransmitter.c:</div>
 <div class="dyncontent">
-<div class="center"><img src="Retransimitter_8c__incl.png" border="0" usemap="#a_2src_2src_2source_2PeerConnection_2Retransimitter_8c" alt=""/></div>
-<map name="a_2src_2src_2source_2PeerConnection_2Retransimitter_8c" id="a_2src_2src_2source_2PeerConnection_2Retransimitter_8c">
+<div class="center"><img src="Retransmitter_8c__incl.png" border="0" usemap="#a_2src_2src_2source_2PeerConnection_2Retransmitter_8c" alt=""/></div>
+<map name="a_2src_2src_2source_2PeerConnection_2Retransmitter_8c" id="a_2src_2src_2source_2PeerConnection_2Retransmitter_8c">
 <area shape="rect" title=" " alt="" coords="2851,5,3056,47"/>
 <area shape="rect" href="Include__i_8h.html" title=" " alt="" coords="2906,95,3001,121"/>
 <area shape="rect" href="Include_8h.html" title=" " alt="" coords="5,169,192,211"/>
@@ -159,16 +159,16 @@ Include dependency graph for Retransimitter.c:</div>
 </div><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="define-members"></a>
 Macros</h2></td></tr>
-<tr class="memitem:a7207e343606b6631ce2556bf7411b833"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Retransimitter_8c.html#a7207e343606b6631ce2556bf7411b833">LOG_CLASS</a>&#160;&#160;&#160;&quot;Retransmitter&quot;</td></tr>
+<tr class="memitem:a7207e343606b6631ce2556bf7411b833"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Retransmitter_8c.html#a7207e343606b6631ce2556bf7411b833">LOG_CLASS</a>&#160;&#160;&#160;&quot;Retransmitter&quot;</td></tr>
 <tr class="separator:a7207e343606b6631ce2556bf7411b833"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
-<tr class="memitem:aaad5339168322ac5d7c1cc017fbe982d"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Retransimitter_8c.html#aaad5339168322ac5d7c1cc017fbe982d">createRetransmitter</a> (UINT32 seqNumListLen, UINT32 validIndexListLen, <a class="el" href="Retransmitter_8h.html#ac5ee37df28a9a36fd71a9a9b55d6b020">PRetransmitter</a> *ppRetransmitter)</td></tr>
+<tr class="memitem:aaad5339168322ac5d7c1cc017fbe982d"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Retransmitter_8c.html#aaad5339168322ac5d7c1cc017fbe982d">createRetransmitter</a> (UINT32 seqNumListLen, UINT32 validIndexListLen, <a class="el" href="Retransmitter_8h.html#ac5ee37df28a9a36fd71a9a9b55d6b020">PRetransmitter</a> *ppRetransmitter)</td></tr>
 <tr class="separator:aaad5339168322ac5d7c1cc017fbe982d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:abc4d6da97d6a3171960d7cb4d803d198"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Retransimitter_8c.html#abc4d6da97d6a3171960d7cb4d803d198">freeRetransmitter</a> (<a class="el" href="Retransmitter_8h.html#ac5ee37df28a9a36fd71a9a9b55d6b020">PRetransmitter</a> *ppRetransmitter)</td></tr>
+<tr class="memitem:abc4d6da97d6a3171960d7cb4d803d198"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Retransmitter_8c.html#abc4d6da97d6a3171960d7cb4d803d198">freeRetransmitter</a> (<a class="el" href="Retransmitter_8h.html#ac5ee37df28a9a36fd71a9a9b55d6b020">PRetransmitter</a> *ppRetransmitter)</td></tr>
 <tr class="separator:abc4d6da97d6a3171960d7cb4d803d198"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a117dafbb1f1b86ced15a1fcfc49713fa"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Retransimitter_8c.html#a117dafbb1f1b86ced15a1fcfc49713fa">resendPacketOnNack</a> (<a class="el" href="RtcpPacket_8h.html#ac99920bc23b7ab9cc673e0c25da794fa">PRtcpPacket</a> pRtcpPacket, <a class="el" href="PeerConnection_8h.html#a545e0bebf606e9070020c98b3f9c2864">PKvsPeerConnection</a> pKvsPeerConnection)</td></tr>
+<tr class="memitem:a117dafbb1f1b86ced15a1fcfc49713fa"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Retransmitter_8c.html#a117dafbb1f1b86ced15a1fcfc49713fa">resendPacketOnNack</a> (<a class="el" href="RtcpPacket_8h.html#ac99920bc23b7ab9cc673e0c25da794fa">PRtcpPacket</a> pRtcpPacket, <a class="el" href="PeerConnection_8h.html#a545e0bebf606e9070020c98b3f9c2864">PKvsPeerConnection</a> pKvsPeerConnection)</td></tr>
 <tr class="separator:a117dafbb1f1b86ced15a1fcfc49713fa"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Macro Definition Documentation</h2>
@@ -221,17 +221,17 @@ Functions</h2></td></tr>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
-<div class="center"><img src="Retransimitter_8c_aaad5339168322ac5d7c1cc017fbe982d_cgraph.png" border="0" usemap="#aRetransimitter_8c_aaad5339168322ac5d7c1cc017fbe982d_cgraph" alt=""/></div>
-<map name="aRetransimitter_8c_aaad5339168322ac5d7c1cc017fbe982d_cgraph" id="aRetransimitter_8c_aaad5339168322ac5d7c1cc017fbe982d_cgraph">
+<div class="center"><img src="Retransmitter_8c_aaad5339168322ac5d7c1cc017fbe982d_cgraph.png" border="0" usemap="#aRetransmitter_8c_aaad5339168322ac5d7c1cc017fbe982d_cgraph" alt=""/></div>
+<map name="aRetransmitter_8c_aaad5339168322ac5d7c1cc017fbe982d_cgraph" id="aRetransmitter_8c_aaad5339168322ac5d7c1cc017fbe982d_cgraph">
 <area shape="rect" title=" " alt="" coords="5,5,141,32"/>
-<area shape="rect" href="Retransimitter_8c.html#abc4d6da97d6a3171960d7cb4d803d198" title=" " alt="" coords="189,5,312,32"/>
+<area shape="rect" href="Retransmitter_8c.html#abc4d6da97d6a3171960d7cb4d803d198" title=" " alt="" coords="189,5,312,32"/>
 </map>
 </div>
 <div class="dynheader">
 Here is the caller graph for this function:</div>
 <div class="dyncontent">
-<div class="center"><img src="Retransimitter_8c_aaad5339168322ac5d7c1cc017fbe982d_icgraph.png" border="0" usemap="#aRetransimitter_8c_aaad5339168322ac5d7c1cc017fbe982d_icgraph" alt=""/></div>
-<map name="aRetransimitter_8c_aaad5339168322ac5d7c1cc017fbe982d_icgraph" id="aRetransimitter_8c_aaad5339168322ac5d7c1cc017fbe982d_icgraph">
+<div class="center"><img src="Retransmitter_8c_aaad5339168322ac5d7c1cc017fbe982d_icgraph.png" border="0" usemap="#aRetransmitter_8c_aaad5339168322ac5d7c1cc017fbe982d_icgraph" alt=""/></div>
+<map name="aRetransmitter_8c_aaad5339168322ac5d7c1cc017fbe982d_icgraph" id="aRetransmitter_8c_aaad5339168322ac5d7c1cc017fbe982d_icgraph">
 <area shape="rect" title=" " alt="" coords="441,5,577,32"/>
 <area shape="rect" href="SessionDescription_8c.html#ade806b0787e4279fa50c746632aeb57b" title=" " alt="" coords="204,5,393,32"/>
 <area shape="rect" href="group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,5,156,32"/>
@@ -258,10 +258,10 @@ Here is the caller graph for this function:</div>
 <div class="dynheader">
 Here is the caller graph for this function:</div>
 <div class="dyncontent">
-<div class="center"><img src="Retransimitter_8c_abc4d6da97d6a3171960d7cb4d803d198_icgraph.png" border="0" usemap="#aRetransimitter_8c_abc4d6da97d6a3171960d7cb4d803d198_icgraph" alt=""/></div>
-<map name="aRetransimitter_8c_abc4d6da97d6a3171960d7cb4d803d198_icgraph" id="aRetransimitter_8c_abc4d6da97d6a3171960d7cb4d803d198_icgraph">
+<div class="center"><img src="Retransmitter_8c_abc4d6da97d6a3171960d7cb4d803d198_icgraph.png" border="0" usemap="#aRetransmitter_8c_abc4d6da97d6a3171960d7cb4d803d198_icgraph" alt=""/></div>
+<map name="aRetransmitter_8c_abc4d6da97d6a3171960d7cb4d803d198_icgraph" id="aRetransmitter_8c_abc4d6da97d6a3171960d7cb4d803d198_icgraph">
 <area shape="rect" title=" " alt="" coords="644,56,767,83"/>
-<area shape="rect" href="Retransimitter_8c.html#aaad5339168322ac5d7c1cc017fbe982d" title=" " alt="" coords="451,19,587,45"/>
+<area shape="rect" href="Retransmitter_8c.html#aaad5339168322ac5d7c1cc017fbe982d" title=" " alt="" coords="451,19,587,45"/>
 <area shape="rect" href="Rtp_8c.html#ac43cec8875bbd05633d9a31bff472efc" title=" " alt="" coords="441,81,596,108"/>
 <area shape="rect" href="SessionDescription_8c.html#ade806b0787e4279fa50c746632aeb57b" title=" " alt="" coords="204,5,393,32"/>
 <area shape="rect" href="group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,5,156,32"/>
@@ -302,8 +302,8 @@ Here is the caller graph for this function:</div>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
-<div class="center"><img src="Retransimitter_8c_a117dafbb1f1b86ced15a1fcfc49713fa_cgraph.png" border="0" usemap="#aRetransimitter_8c_a117dafbb1f1b86ced15a1fcfc49713fa_cgraph" alt=""/></div>
-<map name="aRetransimitter_8c_a117dafbb1f1b86ced15a1fcfc49713fa_cgraph" id="aRetransimitter_8c_a117dafbb1f1b86ced15a1fcfc49713fa_cgraph">
+<div class="center"><img src="Retransmitter_8c_a117dafbb1f1b86ced15a1fcfc49713fa_cgraph.png" border="0" usemap="#aRetransmitter_8c_a117dafbb1f1b86ced15a1fcfc49713fa_cgraph" alt=""/></div>
+<map name="aRetransmitter_8c_a117dafbb1f1b86ced15a1fcfc49713fa_cgraph" id="aRetransmitter_8c_a117dafbb1f1b86ced15a1fcfc49713fa_cgraph">
 <area shape="rect" title=" " alt="" coords="5,264,156,291"/>
 <area shape="rect" href="RtpPacket_8c.html#aa8208bbcf8f9f22873708986d8dcda55" title=" " alt="" coords="204,46,404,87"/>
 <area shape="rect" href="RtpPacket_8c.html#af5c0526f452ce354c0f92497668f5ad9" title=" " alt="" coords="491,111,596,137"/>
@@ -341,8 +341,8 @@ Here is the call graph for this function:</div>
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_94e7a0fbe7f8eaf7f05ee7b02c647e9f.html">source</a></li><li class="navelem"><a class="el" href="dir_3f63ab91aeb49885abb85dedd791923c.html">PeerConnection</a></li><li class="navelem"><a class="el" href="Retransimitter_8c.html">Retransimitter.c</a></li>
-    <li class="footer">Generated on Tue Apr 13 2021 08:52:59 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_94e7a0fbe7f8eaf7f05ee7b02c647e9f.html">source</a></li><li class="navelem"><a class="el" href="dir_3f63ab91aeb49885abb85dedd791923c.html">PeerConnection</a></li><li class="navelem"><a class="el" href="Retransmitter_8c.html">Retransmitter.c</a></li>
+    <li class="footer">Generated on Fri Apr 16 2021 20:47:02 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>

@@ -1,7 +1,7 @@
 <map id="freeKvsRtpTransceiver" name="freeKvsRtpTransceiver">
 <area shape="rect" id="node1" title=" " alt="" coords="5,56,160,83"/>
 <area shape="rect" id="node2" href="$JitterBuffer_8c.html#ab3cc6b54249b9d82ce116edccc2d1cbf" title=" " alt="" coords="223,5,330,32"/>
-<area shape="rect" id="node6" href="$Retransimitter_8c.html#abc4d6da97d6a3171960d7cb4d803d198" title=" " alt="" coords="215,56,338,83"/>
+<area shape="rect" id="node6" href="$Retransmitter_8c.html#abc4d6da97d6a3171960d7cb4d803d198" title=" " alt="" coords="215,56,338,83"/>
 <area shape="rect" id="node7" href="$RtpRollingBuffer_8c.html#a46569ac6a39e657658840b1054175116" title=" " alt="" coords="208,107,345,133"/>
 <area shape="rect" id="node3" href="$JitterBuffer_8c.html#a825c3656f8f6466c66eccb89f9745814" title=" " alt="" coords="559,5,728,32"/>
 <area shape="rect" id="node5" href="$JitterBuffer_8c.html#acb4fec73c43d2ef0755b93d184ea2590" title=" " alt="" coords="400,31,504,57"/>

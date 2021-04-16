@@ -21,7 +21,7 @@
 <area shape="rect" id="node20" href="$DataChannel_8c.html" title=" " alt="" coords="2921,184,3126,225"/>
 <area shape="rect" id="node21" href="$JitterBuffer_8c.html" title=" " alt="" coords="3150,184,3355,225"/>
 <area shape="rect" id="node22" href="$PeerConnection_8c.html" title=" " alt="" coords="3379,184,3585,225"/>
-<area shape="rect" id="node23" href="$Retransimitter_8c.html" title=" " alt="" coords="3609,184,3814,225"/>
+<area shape="rect" id="node23" href="$Retransmitter_8c.html" title=" " alt="" coords="3609,184,3814,225"/>
 <area shape="rect" id="node24" href="$Rtcp_8c.html" title=" " alt="" coords="3838,184,4043,225"/>
 <area shape="rect" id="node25" href="$Rtp_8c.html" title=" " alt="" coords="4067,184,4273,225"/>
 <area shape="rect" id="node26" href="$SessionDescription_8c.html" title=" " alt="" coords="4297,184,4502,225"/>
