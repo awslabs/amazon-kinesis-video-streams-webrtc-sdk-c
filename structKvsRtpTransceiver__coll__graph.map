@@ -1,15 +1,15 @@
 <map id="KvsRtpTransceiver" name="KvsRtpTransceiver">
-<area shape="rect" id="node1" title=" " alt="" coords="4198,1225,4439,1449"/>
-<area shape="rect" id="node2" href="$structRtcInboundRtpStreamStats.html" title="The RTCInboundRtpStreamStats dictionary represents the measurement metrics for the incoming RTP media..." alt="" coords="4938,902,5120,1126"/>
-<area shape="rect" id="node3" href="$structRtcReceivedRtpStreamStats.html" title=" " alt="" coords="5026,593,5216,817"/>
-<area shape="rect" id="node4" href="$structRTCRtpStreamStats.html" title="RTCRtpStreamStats captures stream stats that will be used as part of RTCSentRtpStreamStats report Ref..." alt="" coords="4974,292,5116,413"/>
-<area shape="rect" id="node44" href="$structRTCSentRtpStreamStats.html" title="RTCSentRtpStreamStats will be used as part of outbound Rtp stats Reference: https://www...." alt="" coords="4834,659,5002,751"/>
+<area shape="rect" id="node1" title=" " alt="" coords="4182,1225,4423,1449"/>
+<area shape="rect" id="node2" href="$structRtcInboundRtpStreamStats.html" title="The RTCInboundRtpStreamStats dictionary represents the measurement metrics for the incoming RTP media..." alt="" coords="4912,902,5093,1126"/>
+<area shape="rect" id="node3" href="$structRtcReceivedRtpStreamStats.html" title=" " alt="" coords="5016,593,5205,817"/>
+<area shape="rect" id="node4" href="$structRTCRtpStreamStats.html" title="RTCRtpStreamStats captures stream stats that will be used as part of RTCSentRtpStreamStats report Ref..." alt="" coords="4912,292,5053,413"/>
+<area shape="rect" id="node44" href="$structRTCSentRtpStreamStats.html" title="RTCSentRtpStreamStats will be used as part of outbound Rtp stats Reference: https://www...." alt="" coords="4824,659,4992,751"/>
 <area shape="rect" id="node5" href="$structKvsPeerConnection.html" title=" " alt="" coords="2712,902,2930,1126"/>
 <area shape="rect" id="node6" href="$structSessionDescription.html" title=" " alt="" coords="2642,593,2810,817"/>
-<area shape="rect" id="node7" href="$structSdpBandwidth.html" title=" " alt="" coords="2903,35,3051,127"/>
+<area shape="rect" id="node7" href="$structSdpBandwidth.html" title=" " alt="" coords="2871,35,3019,127"/>
 <area shape="rect" id="node14" href="$structSdpMediaDescription.html" title=" " alt="" coords="3006,292,3169,413"/>
-<area shape="rect" id="node8" href="$structSdpEncryptionKey.html" title=" " alt="" coords="2682,35,2818,127"/>
-<area shape="rect" id="node9" href="$structSdpAttributes.html" title=" " alt="" coords="3121,35,3236,127"/>
+<area shape="rect" id="node8" href="$structSdpEncryptionKey.html" title=" " alt="" coords="2673,35,2809,127"/>
+<area shape="rect" id="node9" href="$structSdpAttributes.html" title=" " alt="" coords="3105,35,3220,127"/>
 <area shape="rect" id="node10" href="$structSdpTimeZone.html" title=" " alt="" coords="2178,307,2304,399"/>
 <area shape="rect" id="node11" href="$structSdpOrigin.html" title=" " alt="" coords="2030,299,2153,406"/>
 <area shape="rect" id="node12" href="$structSdpConnectionInformation.html" title=" " alt="" coords="2428,27,2603,134"/>
@@ -36,17 +36,17 @@
 <area shape="rect" id="node34" href="$structConnectionListener.html" title=" " alt="" coords="78,277,225,428"/>
 <area shape="rect" id="node35" href="$structRtcIceCandidateDiagnostics.html" title=" " alt="" coords="249,263,436,443"/>
 <area shape="rect" id="node36" href="$structRtcPeerConnection.html" title=" " alt="" coords="2483,667,2618,744"/>
-<area shape="rect" id="node37" href="$structRtcRtpSender.html" title=" " alt="" coords="3885,601,4080,810"/>
+<area shape="rect" id="node37" href="$structRtcRtpSender.html" title=" " alt="" coords="3893,601,4088,810"/>
 <area shape="rect" id="node38" href="$structRetransmitter.html" title=" " alt="" coords="4028,292,4185,413"/>
 <area shape="rect" id="node39" href="$struct____Payloads.html" title=" " alt="" coords="3692,277,3865,428"/>
 <area shape="rect" id="node40" href="$structRtpRollingBuffer.html" title=" " alt="" coords="3889,314,4004,391"/>
 <area shape="rect" id="node41" href="$structRollingBuffer.html" title=" " alt="" coords="3898,5,3995,156"/>
 <area shape="rect" id="node42" href="$structRtcMediaStreamTrack.html" title="Represents a single track in a MediaStream." alt="" coords="4209,292,4361,413"/>
-<area shape="rect" id="node50" href="$structRtcRtpReceiver.html" title="RTCRtpReceiver allows an application to inspect the receipt of a MediaStreamTrack." alt="" coords="4216,667,4330,744"/>
-<area shape="rect" id="node43" href="$structRtcOutboundRtpStreamStats.html" title="RtcOutboundRtpStreamStats Gathers stats for media stream from the embedded device Note: RTCOutboundRt..." alt="" coords="4676,902,4867,1126"/>
-<area shape="rect" id="node45" href="$structDscpPacketsSentRecord.html" title="Record of total number of packets sent per DSCP. Used by RTCOutboundRtpStreamStats object." alt="" coords="4616,659,4810,751"/>
-<area shape="rect" id="node46" href="$structQualityLimitationDurationsRecord.html" title=" " alt="" coords="4418,652,4592,759"/>
-<area shape="rect" id="node47" href="$structJitterBuffer.html" title=" " alt="" coords="4212,880,4425,1148"/>
-<area shape="rect" id="node48" href="$structRtcRemoteInboundRtpStreamStats.html" title="RTCRemoteInboundRtpStreamStats Represents the remote endpoint&#39;s measurement metrics for a particular ..." alt="" coords="4449,931,4652,1097"/>
-<area shape="rect" id="node49" href="$structRtcRtpTransceiver.html" title="The RTCRtpTransceiver represents a combination of an RTCRtpSender and an RTCRtpReceiver that share a ..." alt="" coords="4057,975,4188,1053"/>
+<area shape="rect" id="node50" href="$structRtcRtpReceiver.html" title="RTCRtpReceiver allows an application to inspect the receipt of a MediaStreamTrack." alt="" coords="4148,667,4262,744"/>
+<area shape="rect" id="node43" href="$structRtcOutboundRtpStreamStats.html" title="RtcOutboundRtpStreamStats Gathers stats for media stream from the embedded device Note: RTCOutboundRt..." alt="" coords="4636,902,4827,1126"/>
+<area shape="rect" id="node45" href="$structDscpPacketsSentRecord.html" title="Record of total number of packets sent per DSCP. Used by RTCOutboundRtpStreamStats object." alt="" coords="4606,659,4799,751"/>
+<area shape="rect" id="node46" href="$structQualityLimitationDurationsRecord.html" title=" " alt="" coords="4407,652,4582,759"/>
+<area shape="rect" id="node47" href="$structJitterBuffer.html" title=" " alt="" coords="4220,880,4385,1148"/>
+<area shape="rect" id="node48" href="$structRtcRemoteInboundRtpStreamStats.html" title="RTCRemoteInboundRtpStreamStats Represents the remote endpoint&#39;s measurement metrics for a particular ..." alt="" coords="4409,931,4612,1097"/>
+<area shape="rect" id="node49" href="$structRtcRtpTransceiver.html" title="The RTCRtpTransceiver represents a combination of an RTCRtpSender and an RTCRtpReceiver that share a ..." alt="" coords="4065,975,4196,1053"/>
 </map>

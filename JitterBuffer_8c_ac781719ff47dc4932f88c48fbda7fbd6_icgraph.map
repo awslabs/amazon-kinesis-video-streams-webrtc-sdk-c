@@ -1,5 +1,5 @@
-<map id="jitterBufferPop" name="jitterBufferPop">
-<area shape="rect" id="node1" title=" " alt="" coords="805,160,909,187"/>
+<map id="jitterBufferInternalParse" name="jitterBufferInternalParse">
+<area shape="rect" id="node1" title=" " alt="" coords="805,160,964,187"/>
 <area shape="rect" id="node2" href="$JitterBuffer_8c.html#ab3cc6b54249b9d82ce116edccc2d1cbf" title=" " alt="" coords="649,84,755,111"/>
 <area shape="rect" id="node9" href="$JitterBuffer_8c.html#a3698c62de5f63baf09c350078af5301c" title=" " alt="" coords="647,185,757,212"/>
 <area shape="rect" id="node3" href="$group__PublicMemberFunctions.html#ga5b89dc2e301e35f30330c57bc1361dcb" title="Create a new RtcRtpTransceiver and add it to the set of transceivers." alt="" coords="25,56,136,83"/>
