@@ -24,6 +24,15 @@ extern "C" {
 #if defined(__clang__)
 #pragma clang diagnostic pop
 #endif
+
+/*! \addtogroup StatusCodes
+* WEBRTC related status codes. Each value is an positive integer formed by adding
+* a base integer inticating the category to an index. Users may run scripts/parse_status.py
+* to print a list of all status codes and their hex value.
+*  @{
+*/
+#define STATUS_WEBRTC_BASE                                         0x55000000
+
 /////////////////////////////////////////////////////
 /// Session description init related status codes
 /////////////////////////////////////////////////////
@@ -33,7 +42,6 @@ extern "C" {
  * from STATUS_WEBRTC_BASE (0x55000000)
  *  @{
  */
-#define STATUS_WEBRTC_BASE                                         0x55000000
 #define STATUS_SESSION_DESCRIPTION_INIT_NOT_OBJECT                 STATUS_WEBRTC_BASE + 0x00000001
 #define STATUS_SESSION_DESCRIPTION_INIT_MISSING_SDP_OR_TYPE_MEMBER STATUS_WEBRTC_BASE + 0x00000002
 #define STATUS_SESSION_DESCRIPTION_INIT_INVALID_TYPE               STATUS_WEBRTC_BASE + 0x00000003
