@@ -1,8 +1,8 @@
 var group__Callbacks =
 [
     [ "__RtcDataChannel", "struct____RtcDataChannel.html", [
-      [ "id", "struct____RtcDataChannel.html#a50c0078699a2a62cc69cd30ce726b0ed", null ],
-      [ "name", "struct____RtcDataChannel.html#add53434650fa42653e4002365f2382c9", null ]
+      [ "id", "group__StatusCodes.html#ga50c0078699a2a62cc69cd30ce726b0ed", null ],
+      [ "name", "group__StatusCodes.html#gadd53434650fa42653e4002365f2382c9", null ]
     ] ],
     [ "IceSetInterfaceFilterFunc", "group__Callbacks.html#gac5ca9698d23bb785c59e148b1f438244", null ],
     [ "PRtcDataChannel", "group__Callbacks.html#ga2be6b5f6da1b3a0471ad7b4443b90779", null ],

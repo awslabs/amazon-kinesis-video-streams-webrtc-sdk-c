@@ -14,7 +14,7 @@ var searchData=
   ['headindex_587',['headIndex',['../structRollingBuffer.html#ac260494f27344c5727bc85834ac5f2f1',1,'RollingBuffer']]],
   ['headsequencenumber_588',['headSequenceNumber',['../structJitterBuffer.html#ab9f965ddc55d02075f466557805bc000',1,'JitterBuffer']]],
   ['headtimestamp_589',['headTimestamp',['../structJitterBuffer.html#ae4197279667ae047754ea57494528a9a',1,'JitterBuffer']]],
-  ['height_590',['height',['../structRtcEncoderStats.html#aef97890f2c53b6681a8f535f1003d7e3',1,'RtcEncoderStats']]],
+  ['height_590',['height',['../group__StatusCodes.html#gaef97890f2c53b6681a8f535f1003d7e3',1,'RtcEncoderStats']]],
   ['highest_5fexpected_5fbit_5frate_591',['HIGHEST_EXPECTED_BIT_RATE',['../Rtp_8h.html#a7c325f1f1cf6db1ec59d74cbf65508bb',1,'Rtp.h']]],
   ['hookcustomdata_592',['hookCustomData',['../structSignalingClientInfoInternal.html#a8de9b224d80fc6a215c56ff4f183f0b3',1,'SignalingClientInfoInternal']]],
   ['hostaddress_593',['hostAddress',['../struct____TurnConnection.html#ac24464e66d196b0caaa6be72847af617',1,'__TurnConnection']]],

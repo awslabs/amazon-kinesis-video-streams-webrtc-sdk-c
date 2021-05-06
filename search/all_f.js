@@ -40,7 +40,7 @@ var searchData=
   ['onsenderbandwidthestimationcustomdata_1130',['onSenderBandwidthEstimationCustomData',['../structKvsPeerConnection.html#ab621eb2b3442366ba2dff74270fe994b',1,'KvsPeerConnection']]],
   ['opus_5fclockrate_1131',['OPUS_CLOCKRATE',['../SessionDescription_8h.html#a6cbc9239064061f437b5cf52592014f4',1,'SessionDescription.h']]],
   ['opus_5fvalue_1132',['OPUS_VALUE',['../SessionDescription_8h.html#a52e1715fec4f595df6e0907f40fe5128',1,'SessionDescription.h']]],
-  ['ordered_1133',['ordered',['../structRtcDataChannelInit.html#ad83e032fdce8d6ff6d75aea373f6e085',1,'RtcDataChannelInit']]],
+  ['ordered_1133',['ordered',['../group__StatusCodes.html#gad83e032fdce8d6ff6d75aea373f6e085',1,'RtcDataChannelInit']]],
   ['outboundpacketfn_1134',['outboundPacketFn',['../structDtlsSessionCallbacks.html#a0c4a19dd28c96de513c236f9a94fa66c',1,'DtlsSessionCallbacks::outboundPacketFn()'],['../structTlsSessionCallbacks.html#afe9709e2b97c1ca56fa7c316cffde9ee',1,'TlsSessionCallbacks::outboundPacketFn()']]],
   ['outboundpacketfncustomdata_1135',['outBoundPacketFnCustomData',['../structDtlsSessionCallbacks.html#abc23bd28a8bb393fa396e88915829619',1,'DtlsSessionCallbacks::outBoundPacketFnCustomData()'],['../structTlsSessionCallbacks.html#a4b671a50680a7643e391c39dc91cf5c3',1,'TlsSessionCallbacks::outBoundPacketFnCustomData()']]],
   ['outboundpacketfunc_1136',['outboundPacketFunc',['../structSctpSessionCallbacks.html#a6337fee004b60e8d70ef8db7c476a21b',1,'SctpSessionCallbacks']]],

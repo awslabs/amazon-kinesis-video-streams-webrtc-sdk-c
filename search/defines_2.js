@@ -1,9 +1,8 @@
 var searchData=
 [
-  ['candidate_5fkey_4448',['CANDIDATE_KEY',['../SessionDescription_8h.html#ac0a6ac9110ada11955341781996efbee',1,'SessionDescription.h']]],
-  ['certificate_5ffingerprint_5flength_4449',['CERTIFICATE_FINGERPRINT_LENGTH',['../Include__i_8h.html#afd1468c910374bc2b23067953658076f',1,'Include_i.h']]],
-  ['check_5fsignaling_5fcredentials_5fexpiration_4450',['CHECK_SIGNALING_CREDENTIALS_EXPIRATION',['../LwsApiCalls_8h.html#ae32d56827d73c6193793b31a072924d7',1,'LwsApiCalls.h']]],
-  ['chk_5flog_5ferr_5fnv_4451',['CHK_LOG_ERR_NV',['../Include_8h.html#a39137beaf587d297125406df4bd48b55',1,'Include.h']]],
+  ['candidate_5fkey_4449',['CANDIDATE_KEY',['../SessionDescription_8h.html#ac0a6ac9110ada11955341781996efbee',1,'SessionDescription.h']]],
+  ['certificate_5ffingerprint_5flength_4450',['CERTIFICATE_FINGERPRINT_LENGTH',['../Include__i_8h.html#afd1468c910374bc2b23067953658076f',1,'Include_i.h']]],
+  ['check_5fsignaling_5fcredentials_5fexpiration_4451',['CHECK_SIGNALING_CREDENTIALS_EXPIRATION',['../LwsApiCalls_8h.html#ae32d56827d73c6193793b31a072924d7',1,'LwsApiCalls.h']]],
   ['close_5fsocket_5fif_5fcant_5fretry_4452',['CLOSE_SOCKET_IF_CANT_RETRY',['../SocketConnection_8h.html#a440d3ff5cb61162ff247abcf617c5ee1',1,'SocketConnection.h']]],
   ['codec_5fhash_5ftable_5fbucket_5fcount_4453',['CODEC_HASH_TABLE_BUCKET_COUNT',['../PeerConnection_8h.html#a15a20e6b29d7a3ab5af1bee5ba8cc5e2',1,'PeerConnection.h']]],
   ['codec_5fhash_5ftable_5fbucket_5flength_4454',['CODEC_HASH_TABLE_BUCKET_LENGTH',['../PeerConnection_8h.html#a2285baf450dcb102c456632b4c004598',1,'PeerConnection.h']]],

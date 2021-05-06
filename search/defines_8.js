@@ -39,12 +39,10 @@ var searchData=
   ['inet_4579',['INET',['../Include__i_8h.html#afbd765b0efdf3b5e0f5ea12fdd021e61',1,'Include_i.h']]],
   ['inet6_4580',['INET6',['../Include__i_8h.html#a1ff8450564172348a0045dfee094ea80',1,'Include_i.h']]],
   ['infinite_5fretry_5fcount_5fsentinel_4581',['INFINITE_RETRY_COUNT_SENTINEL',['../StateMachine_8h.html#a04856ecb0596c8806b099c5c149e88f9',1,'StateMachine.h']]],
-  ['invalid_5fsignaling_5fclient_5fhandle_5fvalue_4582',['INVALID_SIGNALING_CLIENT_HANDLE_VALUE',['../Include_8h.html#a2b482ee4231032c03a94091b7ee61990',1,'Include.h']]],
-  ['ipv4_5faddress_5flength_4583',['IPV4_ADDRESS_LENGTH',['../Include__i_8h.html#a5b4d96bc437598cbbee2359efe652769',1,'Include_i.h']]],
-  ['ipv6_5faddress_5flength_4584',['IPV6_ADDRESS_LENGTH',['../Include__i_8h.html#a933c5bc924a8334c6f8596aa137a3890',1,'Include_i.h']]],
-  ['is_5fcann_5fpair_5fsending_5ffrom_5frelayed_4585',['IS_CANN_PAIR_SENDING_FROM_RELAYED',['../IceAgent_8h.html#a1c18a7eb14332ab0c9540676f191b86e',1,'IceAgent.h']]],
-  ['is_5fipv4_5faddr_4586',['IS_IPV4_ADDR',['../Include__i_8h.html#a0ad3c81d511351975e3f640bcf4d833a',1,'Include_i.h']]],
-  ['is_5fstun_5fpacket_4587',['IS_STUN_PACKET',['../IceAgent_8h.html#a498a56dcc14a2efff117f68d7c4aef46',1,'IceAgent.h']]],
-  ['is_5ftwcc_5frunlen_4588',['IS_TWCC_RUNLEN',['../Rtcp_8h.html#a60db4d3b2bc7f22bcb0d0dbf3ac3684b',1,'Rtcp.h']]],
-  ['is_5fvalid_5fsignaling_5fclient_5fhandle_4589',['IS_VALID_SIGNALING_CLIENT_HANDLE',['../Include_8h.html#a880ad6a773c90b7ddbb1b9fbb1442599',1,'Include.h']]]
+  ['ipv4_5faddress_5flength_4582',['IPV4_ADDRESS_LENGTH',['../Include__i_8h.html#a5b4d96bc437598cbbee2359efe652769',1,'Include_i.h']]],
+  ['ipv6_5faddress_5flength_4583',['IPV6_ADDRESS_LENGTH',['../Include__i_8h.html#a933c5bc924a8334c6f8596aa137a3890',1,'Include_i.h']]],
+  ['is_5fcann_5fpair_5fsending_5ffrom_5frelayed_4584',['IS_CANN_PAIR_SENDING_FROM_RELAYED',['../IceAgent_8h.html#a1c18a7eb14332ab0c9540676f191b86e',1,'IceAgent.h']]],
+  ['is_5fipv4_5faddr_4585',['IS_IPV4_ADDR',['../Include__i_8h.html#a0ad3c81d511351975e3f640bcf4d833a',1,'Include_i.h']]],
+  ['is_5fstun_5fpacket_4586',['IS_STUN_PACKET',['../IceAgent_8h.html#a498a56dcc14a2efff117f68d7c4aef46',1,'IceAgent.h']]],
+  ['is_5ftwcc_5frunlen_4587',['IS_TWCC_RUNLEN',['../Rtcp_8h.html#a60db4d3b2bc7f22bcb0d0dbf3ac3684b',1,'Rtcp.h']]]
 ];

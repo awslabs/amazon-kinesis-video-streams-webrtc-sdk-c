@@ -2,7 +2,7 @@ var searchData=
 [
   ['nackcount_1034',['nackCount',['../structRtcInboundRtpStreamStats.html#aca31b11d0e4d07b448b62e37e125544f',1,'RtcInboundRtpStreamStats::nackCount()'],['../structRtcOutboundRtpStreamStats.html#aa98c742d0a6a969e1e6aed60f3a49825',1,'RtcOutboundRtpStreamStats::nackCount()']]],
   ['nal_5ftype_5fmask_1035',['NAL_TYPE_MASK',['../RtpH264Payloader_8h.html#a25fdd9596e628f1a6a86569e289f8a65',1,'RtpH264Payloader.h']]],
-  ['name_1036',['name',['../struct____RtcDataChannel.html#add53434650fa42653e4002365f2382c9',1,'__RtcDataChannel']]],
+  ['name_1036',['name',['../group__StatusCodes.html#gadd53434650fa42653e4002365f2382c9',1,'__RtcDataChannel']]],
   ['namelengths_1037',['NameLengths',['../group__NameLengths.html',1,'']]],
   ['nat_5fbehavior_1038',['NAT_BEHAVIOR',['../group__PublicEnums.html#gad42c829d5095ba5e3ab0b6fff6ff8678',1,'Include.h']]],
   ['nat_5fbehavior_5faddress_5fdependent_1039',['NAT_BEHAVIOR_ADDRESS_DEPENDENT',['../group__PublicEnums.html#ggad42c829d5095ba5e3ab0b6fff6ff8678afb72759d662497abc396c07ae5dea519',1,'Include.h']]],
@@ -22,7 +22,7 @@ var searchData=
   ['natbehaviordiscovery_2eh_1053',['NatBehaviorDiscovery.h',['../NatBehaviorDiscovery_8h.html',1,'']]],
   ['nattestdata_1054',['NatTestData',['../structNatTestData.html',1,'']]],
   ['nattestincomingdatahandler_1055',['natTestIncomingDataHandler',['../NatBehaviorDiscovery_8c.html#a27e9d412b24d7305d29427342f7e8485',1,'natTestIncomingDataHandler(UINT64 customData, PSocketConnection pSocketConnection, PBYTE pBuffer, UINT32 bufferLen, PKvsIpAddress pSrc, PKvsIpAddress pDest):&#160;NatBehaviorDiscovery.c'],['../NatBehaviorDiscovery_8h.html#a20d7f6685b7bdeb583dace1bfcd9685c',1,'natTestIncomingDataHandler(UINT64, PSocketConnection, PBYTE, UINT32, PKvsIpAddress, PKvsIpAddress):&#160;NatBehaviorDiscovery.c']]],
-  ['negotiated_1056',['negotiated',['../structRtcDataChannelInit.html#a8c67966c06b4163b51f21392ca5dc654',1,'RtcDataChannelInit']]],
+  ['negotiated_1056',['negotiated',['../group__StatusCodes.html#ga8c67966c06b4163b51f21392ca5dc654',1,'RtcDataChannelInit']]],
   ['network_2ec_1057',['Network.c',['../Network_8c.html',1,'']]],
   ['network_2eh_1058',['Network.h',['../Network_8h.html',1,'']]],
   ['networkingstatuscodes_1059',['NetworkingStatusCodes',['../group__NetworkingStatusCodes.html',1,'']]],

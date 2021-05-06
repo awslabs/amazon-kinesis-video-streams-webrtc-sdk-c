@@ -95,7 +95,7 @@ $(document).ready(function(){initNavTree('structChannelInfo.html',''); initResiz
 <a href="#pub-attribs">Public Attributes</a> &#124;
 <a href="structChannelInfo-members.html">List of all members</a>  </div>
   <div class="headertitle">
-<div class="title">ChannelInfo Struct Reference<div class="ingroups"><a class="el" href="group__PublicStructures.html">PublicStructures</a></div></div>  </div>
+<div class="title">ChannelInfo Struct Reference<div class="ingroups"><a class="el" href="group__StatusCodes.html">StatusCodes</a> &raquo; <a class="el" href="group__PublicStructures.html">PublicStructures</a></div></div>  </div>
 </div><!--header-->
 <div class="contents">
 
@@ -114,396 +114,66 @@ Collaboration diagram for ChannelInfo:</div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
-<tr class="memitem:a7aef1a2aa352519fb948d32416fc94f3"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structChannelInfo.html#a7aef1a2aa352519fb948d32416fc94f3">version</a></td></tr>
-<tr class="memdesc:a7aef1a2aa352519fb948d32416fc94f3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Version of the structure.  <a href="structChannelInfo.html#a7aef1a2aa352519fb948d32416fc94f3">More...</a><br /></td></tr>
-<tr class="separator:a7aef1a2aa352519fb948d32416fc94f3"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:adef595cb33bd19debe39ead386ea39b0"><td class="memItemLeft" align="right" valign="top">PCHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structChannelInfo.html#adef595cb33bd19debe39ead386ea39b0">pChannelName</a></td></tr>
-<tr class="memdesc:adef595cb33bd19debe39ead386ea39b0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Name of the signaling channel name. Maximum length is defined by MAX_CHANNEL_NAME_LEN + 1.  <a href="structChannelInfo.html#adef595cb33bd19debe39ead386ea39b0">More...</a><br /></td></tr>
-<tr class="separator:adef595cb33bd19debe39ead386ea39b0"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a48e8eda47fef8691b5e1f0f98af09492"><td class="memItemLeft" align="right" valign="top">PCHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structChannelInfo.html#a48e8eda47fef8691b5e1f0f98af09492">pChannelArn</a></td></tr>
-<tr class="separator:a48e8eda47fef8691b5e1f0f98af09492"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a03b591edffe71fb5572ca7b6b218ece7"><td class="memItemLeft" align="right" valign="top">PCHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structChannelInfo.html#a03b591edffe71fb5572ca7b6b218ece7">pRegion</a></td></tr>
-<tr class="separator:a03b591edffe71fb5572ca7b6b218ece7"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:acab882bab3270fb6f87325195f17fd13"><td class="memItemLeft" align="right" valign="top">PCHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structChannelInfo.html#acab882bab3270fb6f87325195f17fd13">pControlPlaneUrl</a></td></tr>
-<tr class="separator:acab882bab3270fb6f87325195f17fd13"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a18ee8dc9965a0bc9744012b3c57e82ba"><td class="memItemLeft" align="right" valign="top">PCHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structChannelInfo.html#a18ee8dc9965a0bc9744012b3c57e82ba">pCertPath</a></td></tr>
-<tr class="memdesc:a18ee8dc9965a0bc9744012b3c57e82ba"><td class="mdescLeft">&#160;</td><td class="mdescRight">Optional certificate path. Maximum length is defined by MAX_PATH_LEN+1.  <a href="structChannelInfo.html#a18ee8dc9965a0bc9744012b3c57e82ba">More...</a><br /></td></tr>
-<tr class="separator:a18ee8dc9965a0bc9744012b3c57e82ba"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af9844307e1563b060be0be199bcdf0f8"><td class="memItemLeft" align="right" valign="top">PCHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structChannelInfo.html#af9844307e1563b060be0be199bcdf0f8">pUserAgentPostfix</a></td></tr>
-<tr class="separator:af9844307e1563b060be0be199bcdf0f8"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae3dd11cf23eca8ffbf822a8f92fb570b"><td class="memItemLeft" align="right" valign="top">PCHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structChannelInfo.html#ae3dd11cf23eca8ffbf822a8f92fb570b">pCustomUserAgent</a></td></tr>
-<tr class="memdesc:ae3dd11cf23eca8ffbf822a8f92fb570b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Optional custom user agent name. Maximum length is defined by MAX_USER_AGENT_LEN+1.  <a href="structChannelInfo.html#ae3dd11cf23eca8ffbf822a8f92fb570b">More...</a><br /></td></tr>
-<tr class="separator:ae3dd11cf23eca8ffbf822a8f92fb570b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a96bd36b833500aa9cdeb911090b81b54"><td class="memItemLeft" align="right" valign="top">PCHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structChannelInfo.html#a96bd36b833500aa9cdeb911090b81b54">pUserAgent</a></td></tr>
-<tr class="memdesc:a96bd36b833500aa9cdeb911090b81b54"><td class="mdescLeft">&#160;</td><td class="mdescRight">Combined user agent. Maximum length is defined by MAX_USER_AGENT_LEN+1.  <a href="structChannelInfo.html#a96bd36b833500aa9cdeb911090b81b54">More...</a><br /></td></tr>
-<tr class="separator:a96bd36b833500aa9cdeb911090b81b54"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a08bab1b25f23e34515fd6c17a07b2c91"><td class="memItemLeft" align="right" valign="top">PCHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structChannelInfo.html#a08bab1b25f23e34515fd6c17a07b2c91">pKmsKeyId</a></td></tr>
-<tr class="memdesc:a08bab1b25f23e34515fd6c17a07b2c91"><td class="mdescLeft">&#160;</td><td class="mdescRight">Optional KMS key id ARN. Maximum length is defined by MAX_ARN_LEN+1.  <a href="structChannelInfo.html#a08bab1b25f23e34515fd6c17a07b2c91">More...</a><br /></td></tr>
-<tr class="separator:a08bab1b25f23e34515fd6c17a07b2c91"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a520316c48a0898343e670e427cbdcbbf"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#ga7e87a577f75f43eddf4b1bef203db8a4">SIGNALING_CHANNEL_TYPE</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structChannelInfo.html#a520316c48a0898343e670e427cbdcbbf">channelType</a></td></tr>
-<tr class="memdesc:a520316c48a0898343e670e427cbdcbbf"><td class="mdescLeft">&#160;</td><td class="mdescRight">Channel type when creating.  <a href="structChannelInfo.html#a520316c48a0898343e670e427cbdcbbf">More...</a><br /></td></tr>
-<tr class="separator:a520316c48a0898343e670e427cbdcbbf"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:acc498395a65985dca82ce2e49a2c6e73"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#ga67e678c57beb89ab9de7c9861f7d41cd">SIGNALING_CHANNEL_ROLE_TYPE</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structChannelInfo.html#acc498395a65985dca82ce2e49a2c6e73">channelRoleType</a></td></tr>
-<tr class="memdesc:acc498395a65985dca82ce2e49a2c6e73"><td class="mdescLeft">&#160;</td><td class="mdescRight">Channel role type for the endpoint - master/viewer.  <a href="structChannelInfo.html#acc498395a65985dca82ce2e49a2c6e73">More...</a><br /></td></tr>
-<tr class="separator:acc498395a65985dca82ce2e49a2c6e73"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a3e223c7cb71dcce2963818551782c052"><td class="memItemLeft" align="right" valign="top">BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structChannelInfo.html#a3e223c7cb71dcce2963818551782c052">reserved</a></td></tr>
-<tr class="memdesc:a3e223c7cb71dcce2963818551782c052"><td class="mdescLeft">&#160;</td><td class="mdescRight">Reserved field for compatibility.  <a href="structChannelInfo.html#a3e223c7cb71dcce2963818551782c052">More...</a><br /></td></tr>
-<tr class="separator:a3e223c7cb71dcce2963818551782c052"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a75623de5dcaea5c8a4db3c28947f79cb"><td class="memItemLeft" align="right" valign="top">UINT64&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structChannelInfo.html#a75623de5dcaea5c8a4db3c28947f79cb">cachingPeriod</a></td></tr>
-<tr class="separator:a75623de5dcaea5c8a4db3c28947f79cb"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a0c0868239cfea2dddc22abe841c66f2a"><td class="memItemLeft" align="right" valign="top">BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structChannelInfo.html#a0c0868239cfea2dddc22abe841c66f2a">retry</a></td></tr>
-<tr class="memdesc:a0c0868239cfea2dddc22abe841c66f2a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Flag determines if a retry of the network calls is to be done on errors up to max retry times.  <a href="structChannelInfo.html#a0c0868239cfea2dddc22abe841c66f2a">More...</a><br /></td></tr>
-<tr class="separator:a0c0868239cfea2dddc22abe841c66f2a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af6aedc152cf044872d63fbe4619971ce"><td class="memItemLeft" align="right" valign="top">BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structChannelInfo.html#af6aedc152cf044872d63fbe4619971ce">reconnect</a></td></tr>
-<tr class="memdesc:af6aedc152cf044872d63fbe4619971ce"><td class="mdescLeft">&#160;</td><td class="mdescRight">Flag determines if reconnection should be attempted on connection drop.  <a href="structChannelInfo.html#af6aedc152cf044872d63fbe4619971ce">More...</a><br /></td></tr>
-<tr class="separator:af6aedc152cf044872d63fbe4619971ce"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa3fa299e94073522ed7ffe62efe39233"><td class="memItemLeft" align="right" valign="top">UINT64&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structChannelInfo.html#aa3fa299e94073522ed7ffe62efe39233">messageTtl</a></td></tr>
-<tr class="separator:aa3fa299e94073522ed7ffe62efe39233"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a068126ee9a6ec0eec32278185d0bb4fe"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structChannelInfo.html#a068126ee9a6ec0eec32278185d0bb4fe">tagCount</a></td></tr>
-<tr class="memdesc:a068126ee9a6ec0eec32278185d0bb4fe"><td class="mdescLeft">&#160;</td><td class="mdescRight">Number of tags associated with the stream.  <a href="structChannelInfo.html#a068126ee9a6ec0eec32278185d0bb4fe">More...</a><br /></td></tr>
-<tr class="separator:a068126ee9a6ec0eec32278185d0bb4fe"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a3aa4cefce4b890d78079217c5c7025fb"><td class="memItemLeft" align="right" valign="top">PTag&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structChannelInfo.html#a3aa4cefce4b890d78079217c5c7025fb">pTags</a></td></tr>
-<tr class="memdesc:a3aa4cefce4b890d78079217c5c7025fb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Stream tags array.  <a href="structChannelInfo.html#a3aa4cefce4b890d78079217c5c7025fb">More...</a><br /></td></tr>
-<tr class="separator:a3aa4cefce4b890d78079217c5c7025fb"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:acd86cb8e6c4f92d93635c2c58a8073d2"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gac3fea669f2ac4c7db6d7e9528955a4c1">SIGNALING_API_CALL_CACHE_TYPE</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structChannelInfo.html#acd86cb8e6c4f92d93635c2c58a8073d2">cachingPolicy</a></td></tr>
-<tr class="memdesc:acd86cb8e6c4f92d93635c2c58a8073d2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Backend API call caching policy.  <a href="structChannelInfo.html#acd86cb8e6c4f92d93635c2c58a8073d2">More...</a><br /></td></tr>
-<tr class="separator:acd86cb8e6c4f92d93635c2c58a8073d2"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa9746b411ce24f571591c2402fc2eaf9"><td class="memItemLeft" align="right" valign="top">BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structChannelInfo.html#aa9746b411ce24f571591c2402fc2eaf9">asyncIceServerConfig</a></td></tr>
-<tr class="separator:aa9746b411ce24f571591c2402fc2eaf9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga7aef1a2aa352519fb948d32416fc94f3"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga7aef1a2aa352519fb948d32416fc94f3">version</a></td></tr>
+<tr class="memdesc:ga7aef1a2aa352519fb948d32416fc94f3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Version of the structure.  <a href="group__StatusCodes.html#ga7aef1a2aa352519fb948d32416fc94f3">More...</a><br /></td></tr>
+<tr class="separator:ga7aef1a2aa352519fb948d32416fc94f3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gadef595cb33bd19debe39ead386ea39b0"><td class="memItemLeft" align="right" valign="top">PCHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#gadef595cb33bd19debe39ead386ea39b0">pChannelName</a></td></tr>
+<tr class="memdesc:gadef595cb33bd19debe39ead386ea39b0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Name of the signaling channel name. Maximum length is defined by MAX_CHANNEL_NAME_LEN + 1.  <a href="group__StatusCodes.html#gadef595cb33bd19debe39ead386ea39b0">More...</a><br /></td></tr>
+<tr class="separator:gadef595cb33bd19debe39ead386ea39b0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga48e8eda47fef8691b5e1f0f98af09492"><td class="memItemLeft" align="right" valign="top">PCHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga48e8eda47fef8691b5e1f0f98af09492">pChannelArn</a></td></tr>
+<tr class="separator:ga48e8eda47fef8691b5e1f0f98af09492"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga03b591edffe71fb5572ca7b6b218ece7"><td class="memItemLeft" align="right" valign="top">PCHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga03b591edffe71fb5572ca7b6b218ece7">pRegion</a></td></tr>
+<tr class="separator:ga03b591edffe71fb5572ca7b6b218ece7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gacab882bab3270fb6f87325195f17fd13"><td class="memItemLeft" align="right" valign="top">PCHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#gacab882bab3270fb6f87325195f17fd13">pControlPlaneUrl</a></td></tr>
+<tr class="separator:gacab882bab3270fb6f87325195f17fd13"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga18ee8dc9965a0bc9744012b3c57e82ba"><td class="memItemLeft" align="right" valign="top">PCHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga18ee8dc9965a0bc9744012b3c57e82ba">pCertPath</a></td></tr>
+<tr class="memdesc:ga18ee8dc9965a0bc9744012b3c57e82ba"><td class="mdescLeft">&#160;</td><td class="mdescRight">Optional certificate path. Maximum length is defined by MAX_PATH_LEN+1.  <a href="group__StatusCodes.html#ga18ee8dc9965a0bc9744012b3c57e82ba">More...</a><br /></td></tr>
+<tr class="separator:ga18ee8dc9965a0bc9744012b3c57e82ba"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaf9844307e1563b060be0be199bcdf0f8"><td class="memItemLeft" align="right" valign="top">PCHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#gaf9844307e1563b060be0be199bcdf0f8">pUserAgentPostfix</a></td></tr>
+<tr class="separator:gaf9844307e1563b060be0be199bcdf0f8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gae3dd11cf23eca8ffbf822a8f92fb570b"><td class="memItemLeft" align="right" valign="top">PCHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#gae3dd11cf23eca8ffbf822a8f92fb570b">pCustomUserAgent</a></td></tr>
+<tr class="memdesc:gae3dd11cf23eca8ffbf822a8f92fb570b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Optional custom user agent name. Maximum length is defined by MAX_USER_AGENT_LEN+1.  <a href="group__StatusCodes.html#gae3dd11cf23eca8ffbf822a8f92fb570b">More...</a><br /></td></tr>
+<tr class="separator:gae3dd11cf23eca8ffbf822a8f92fb570b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga96bd36b833500aa9cdeb911090b81b54"><td class="memItemLeft" align="right" valign="top">PCHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga96bd36b833500aa9cdeb911090b81b54">pUserAgent</a></td></tr>
+<tr class="memdesc:ga96bd36b833500aa9cdeb911090b81b54"><td class="mdescLeft">&#160;</td><td class="mdescRight">Combined user agent. Maximum length is defined by MAX_USER_AGENT_LEN+1.  <a href="group__StatusCodes.html#ga96bd36b833500aa9cdeb911090b81b54">More...</a><br /></td></tr>
+<tr class="separator:ga96bd36b833500aa9cdeb911090b81b54"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga08bab1b25f23e34515fd6c17a07b2c91"><td class="memItemLeft" align="right" valign="top">PCHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga08bab1b25f23e34515fd6c17a07b2c91">pKmsKeyId</a></td></tr>
+<tr class="memdesc:ga08bab1b25f23e34515fd6c17a07b2c91"><td class="mdescLeft">&#160;</td><td class="mdescRight">Optional KMS key id ARN. Maximum length is defined by MAX_ARN_LEN+1.  <a href="group__StatusCodes.html#ga08bab1b25f23e34515fd6c17a07b2c91">More...</a><br /></td></tr>
+<tr class="separator:ga08bab1b25f23e34515fd6c17a07b2c91"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga520316c48a0898343e670e427cbdcbbf"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#ga7e87a577f75f43eddf4b1bef203db8a4">SIGNALING_CHANNEL_TYPE</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga520316c48a0898343e670e427cbdcbbf">channelType</a></td></tr>
+<tr class="memdesc:ga520316c48a0898343e670e427cbdcbbf"><td class="mdescLeft">&#160;</td><td class="mdescRight">Channel type when creating.  <a href="group__StatusCodes.html#ga520316c48a0898343e670e427cbdcbbf">More...</a><br /></td></tr>
+<tr class="separator:ga520316c48a0898343e670e427cbdcbbf"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gacc498395a65985dca82ce2e49a2c6e73"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#ga67e678c57beb89ab9de7c9861f7d41cd">SIGNALING_CHANNEL_ROLE_TYPE</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#gacc498395a65985dca82ce2e49a2c6e73">channelRoleType</a></td></tr>
+<tr class="memdesc:gacc498395a65985dca82ce2e49a2c6e73"><td class="mdescLeft">&#160;</td><td class="mdescRight">Channel role type for the endpoint - master/viewer.  <a href="group__StatusCodes.html#gacc498395a65985dca82ce2e49a2c6e73">More...</a><br /></td></tr>
+<tr class="separator:gacc498395a65985dca82ce2e49a2c6e73"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga3e223c7cb71dcce2963818551782c052"><td class="memItemLeft" align="right" valign="top">BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga3e223c7cb71dcce2963818551782c052">reserved</a></td></tr>
+<tr class="memdesc:ga3e223c7cb71dcce2963818551782c052"><td class="mdescLeft">&#160;</td><td class="mdescRight">Reserved field for compatibility.  <a href="group__StatusCodes.html#ga3e223c7cb71dcce2963818551782c052">More...</a><br /></td></tr>
+<tr class="separator:ga3e223c7cb71dcce2963818551782c052"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga75623de5dcaea5c8a4db3c28947f79cb"><td class="memItemLeft" align="right" valign="top">UINT64&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga75623de5dcaea5c8a4db3c28947f79cb">cachingPeriod</a></td></tr>
+<tr class="separator:ga75623de5dcaea5c8a4db3c28947f79cb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga0c0868239cfea2dddc22abe841c66f2a"><td class="memItemLeft" align="right" valign="top">BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga0c0868239cfea2dddc22abe841c66f2a">retry</a></td></tr>
+<tr class="memdesc:ga0c0868239cfea2dddc22abe841c66f2a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Flag determines if a retry of the network calls is to be done on errors up to max retry times.  <a href="group__StatusCodes.html#ga0c0868239cfea2dddc22abe841c66f2a">More...</a><br /></td></tr>
+<tr class="separator:ga0c0868239cfea2dddc22abe841c66f2a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaf6aedc152cf044872d63fbe4619971ce"><td class="memItemLeft" align="right" valign="top">BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#gaf6aedc152cf044872d63fbe4619971ce">reconnect</a></td></tr>
+<tr class="memdesc:gaf6aedc152cf044872d63fbe4619971ce"><td class="mdescLeft">&#160;</td><td class="mdescRight">Flag determines if reconnection should be attempted on connection drop.  <a href="group__StatusCodes.html#gaf6aedc152cf044872d63fbe4619971ce">More...</a><br /></td></tr>
+<tr class="separator:gaf6aedc152cf044872d63fbe4619971ce"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaa3fa299e94073522ed7ffe62efe39233"><td class="memItemLeft" align="right" valign="top">UINT64&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#gaa3fa299e94073522ed7ffe62efe39233">messageTtl</a></td></tr>
+<tr class="separator:gaa3fa299e94073522ed7ffe62efe39233"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga068126ee9a6ec0eec32278185d0bb4fe"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga068126ee9a6ec0eec32278185d0bb4fe">tagCount</a></td></tr>
+<tr class="memdesc:ga068126ee9a6ec0eec32278185d0bb4fe"><td class="mdescLeft">&#160;</td><td class="mdescRight">Number of tags associated with the stream.  <a href="group__StatusCodes.html#ga068126ee9a6ec0eec32278185d0bb4fe">More...</a><br /></td></tr>
+<tr class="separator:ga068126ee9a6ec0eec32278185d0bb4fe"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga3aa4cefce4b890d78079217c5c7025fb"><td class="memItemLeft" align="right" valign="top">PTag&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga3aa4cefce4b890d78079217c5c7025fb">pTags</a></td></tr>
+<tr class="memdesc:ga3aa4cefce4b890d78079217c5c7025fb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Stream tags array.  <a href="group__StatusCodes.html#ga3aa4cefce4b890d78079217c5c7025fb">More...</a><br /></td></tr>
+<tr class="separator:ga3aa4cefce4b890d78079217c5c7025fb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gacd86cb8e6c4f92d93635c2c58a8073d2"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gac3fea669f2ac4c7db6d7e9528955a4c1">SIGNALING_API_CALL_CACHE_TYPE</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#gacd86cb8e6c4f92d93635c2c58a8073d2">cachingPolicy</a></td></tr>
+<tr class="memdesc:gacd86cb8e6c4f92d93635c2c58a8073d2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Backend API call caching policy.  <a href="group__StatusCodes.html#gacd86cb8e6c4f92d93635c2c58a8073d2">More...</a><br /></td></tr>
+<tr class="separator:gacd86cb8e6c4f92d93635c2c58a8073d2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaa9746b411ce24f571591c2402fc2eaf9"><td class="memItemLeft" align="right" valign="top">BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#gaa9746b411ce24f571591c2402fc2eaf9">asyncIceServerConfig</a></td></tr>
+<tr class="separator:gaa9746b411ce24f571591c2402fc2eaf9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Contains all signaling channel related information. </p>
-</div><h2 class="groupheader">Member Data Documentation</h2>
-<a id="aa9746b411ce24f571591c2402fc2eaf9"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aa9746b411ce24f571591c2402fc2eaf9">&#9670;&nbsp;</a></span>asyncIceServerConfig</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">BOOL ChannelInfo::asyncIceServerConfig</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>This parameter has no effect any longer. All ICE config retrieving is done reactively when needed which will simplify the processing and will help with issues on a small footprint platforms </p>
-
-</div>
-</div>
-<a id="a75623de5dcaea5c8a4db3c28947f79cb"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a75623de5dcaea5c8a4db3c28947f79cb">&#9670;&nbsp;</a></span>cachingPeriod</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">UINT64 ChannelInfo::cachingPeriod</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>Endpoint caching TTL. For no caching policy this param will be ignored. For caching policies the default value will be used if this parameter is 0 (SIGNALING_API_CALL_CACHE_TTL_SENTINEL_VALUE). </p>
-
-</div>
-</div>
-<a id="acd86cb8e6c4f92d93635c2c58a8073d2"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#acd86cb8e6c4f92d93635c2c58a8073d2">&#9670;&nbsp;</a></span>cachingPolicy</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname"><a class="el" href="group__PublicEnums.html#gac3fea669f2ac4c7db6d7e9528955a4c1">SIGNALING_API_CALL_CACHE_TYPE</a> ChannelInfo::cachingPolicy</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Backend API call caching policy. </p>
-
-</div>
-</div>
-<a id="acc498395a65985dca82ce2e49a2c6e73"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#acc498395a65985dca82ce2e49a2c6e73">&#9670;&nbsp;</a></span>channelRoleType</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname"><a class="el" href="group__PublicEnums.html#ga67e678c57beb89ab9de7c9861f7d41cd">SIGNALING_CHANNEL_ROLE_TYPE</a> ChannelInfo::channelRoleType</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Channel role type for the endpoint - master/viewer. </p>
-
-</div>
-</div>
-<a id="a520316c48a0898343e670e427cbdcbbf"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a520316c48a0898343e670e427cbdcbbf">&#9670;&nbsp;</a></span>channelType</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname"><a class="el" href="group__PublicEnums.html#ga7e87a577f75f43eddf4b1bef203db8a4">SIGNALING_CHANNEL_TYPE</a> ChannelInfo::channelType</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Channel type when creating. </p>
-
-</div>
-</div>
-<a id="aa3fa299e94073522ed7ffe62efe39233"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aa3fa299e94073522ed7ffe62efe39233">&#9670;&nbsp;</a></span>messageTtl</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">UINT64 ChannelInfo::messageTtl</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>The message TTL. Must be in the range of 5ns and 120ns. Specifying zero will default to 60ns </p>
-
-</div>
-</div>
-<a id="a18ee8dc9965a0bc9744012b3c57e82ba"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a18ee8dc9965a0bc9744012b3c57e82ba">&#9670;&nbsp;</a></span>pCertPath</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">PCHAR ChannelInfo::pCertPath</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Optional certificate path. Maximum length is defined by MAX_PATH_LEN+1. </p>
-
-</div>
-</div>
-<a id="a48e8eda47fef8691b5e1f0f98af09492"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a48e8eda47fef8691b5e1f0f98af09492">&#9670;&nbsp;</a></span>pChannelArn</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">PCHAR ChannelInfo::pChannelArn</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>Channel Amazon Resource Name (ARN). This is an optional parameter Maximum length is defined by MAX_ARN_LEN+1 </p>
-
-</div>
-</div>
-<a id="adef595cb33bd19debe39ead386ea39b0"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#adef595cb33bd19debe39ead386ea39b0">&#9670;&nbsp;</a></span>pChannelName</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">PCHAR ChannelInfo::pChannelName</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Name of the signaling channel name. Maximum length is defined by MAX_CHANNEL_NAME_LEN + 1. </p>
-
-</div>
-</div>
-<a id="acab882bab3270fb6f87325195f17fd13"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#acab882bab3270fb6f87325195f17fd13">&#9670;&nbsp;</a></span>pControlPlaneUrl</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">PCHAR ChannelInfo::pControlPlaneUrl</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>Optional fully qualified control plane URL Maximum length is defined by MAX_ARN_LEN+1 </p>
-
-</div>
-</div>
-<a id="ae3dd11cf23eca8ffbf822a8f92fb570b"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ae3dd11cf23eca8ffbf822a8f92fb570b">&#9670;&nbsp;</a></span>pCustomUserAgent</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">PCHAR ChannelInfo::pCustomUserAgent</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Optional custom user agent name. Maximum length is defined by MAX_USER_AGENT_LEN+1. </p>
-
-</div>
-</div>
-<a id="a08bab1b25f23e34515fd6c17a07b2c91"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a08bab1b25f23e34515fd6c17a07b2c91">&#9670;&nbsp;</a></span>pKmsKeyId</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">PCHAR ChannelInfo::pKmsKeyId</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Optional KMS key id ARN. Maximum length is defined by MAX_ARN_LEN+1. </p>
-
-</div>
-</div>
-<a id="a03b591edffe71fb5572ca7b6b218ece7"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a03b591edffe71fb5572ca7b6b218ece7">&#9670;&nbsp;</a></span>pRegion</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">PCHAR ChannelInfo::pRegion</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>AWS Region in which the channel is to be opened. Can be empty for default Maximum length is defined by MAX_REGION_NAME_LEN+1 </p>
-
-</div>
-</div>
-<a id="a3aa4cefce4b890d78079217c5c7025fb"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a3aa4cefce4b890d78079217c5c7025fb">&#9670;&nbsp;</a></span>pTags</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">PTag ChannelInfo::pTags</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Stream tags array. </p>
-
-</div>
-</div>
-<a id="a96bd36b833500aa9cdeb911090b81b54"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a96bd36b833500aa9cdeb911090b81b54">&#9670;&nbsp;</a></span>pUserAgent</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">PCHAR ChannelInfo::pUserAgent</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Combined user agent. Maximum length is defined by MAX_USER_AGENT_LEN+1. </p>
-
-</div>
-</div>
-<a id="af9844307e1563b060be0be199bcdf0f8"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#af9844307e1563b060be0be199bcdf0f8">&#9670;&nbsp;</a></span>pUserAgentPostfix</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">PCHAR ChannelInfo::pUserAgentPostfix</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>Optional user agent post-fix. Maximum length is defined by MAX_CUSTOM_USER_AGENT_NAME_POSTFIX_LEN+1 </p>
-
-</div>
-</div>
-<a id="af6aedc152cf044872d63fbe4619971ce"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#af6aedc152cf044872d63fbe4619971ce">&#9670;&nbsp;</a></span>reconnect</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">BOOL ChannelInfo::reconnect</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Flag determines if reconnection should be attempted on connection drop. </p>
-
-</div>
-</div>
-<a id="a3e223c7cb71dcce2963818551782c052"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a3e223c7cb71dcce2963818551782c052">&#9670;&nbsp;</a></span>reserved</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">BOOL ChannelInfo::reserved</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Reserved field for compatibility. </p>
-
-</div>
-</div>
-<a id="a0c0868239cfea2dddc22abe841c66f2a"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a0c0868239cfea2dddc22abe841c66f2a">&#9670;&nbsp;</a></span>retry</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">BOOL ChannelInfo::retry</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Flag determines if a retry of the network calls is to be done on errors up to max retry times. </p>
-
-</div>
-</div>
-<a id="a068126ee9a6ec0eec32278185d0bb4fe"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a068126ee9a6ec0eec32278185d0bb4fe">&#9670;&nbsp;</a></span>tagCount</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">UINT32 ChannelInfo::tagCount</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Number of tags associated with the stream. </p>
-
-</div>
-</div>
-<a id="a7aef1a2aa352519fb948d32416fc94f3"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a7aef1a2aa352519fb948d32416fc94f3">&#9670;&nbsp;</a></span>version</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">UINT32 ChannelInfo::version</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Version of the structure. </p>
-
-</div>
-</div>
-<hr/>The documentation for this struct was generated from the following file:<ul>
+</div><hr/>The documentation for this struct was generated from the following file:<ul>
 <li>/src/src/include/com/amazonaws/kinesis/video/webrtcclient/<a class="el" href="Include_8h_source.html">Include.h</a></li>
 </ul>
 </div><!-- contents -->
@@ -512,7 +182,7 @@ Public Attributes</h2></td></tr>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="structChannelInfo.html">ChannelInfo</a></li>
-    <li class="footer">Generated on Thu Apr 22 2021 04:38:45 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Thu May 6 2021 18:02:28 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>
