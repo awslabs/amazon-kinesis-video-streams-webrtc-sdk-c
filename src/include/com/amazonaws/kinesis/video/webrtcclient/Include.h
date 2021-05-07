@@ -672,9 +672,13 @@ typedef SIGNALING_CLIENT_HANDLE* PSIGNALING_CLIENT_HANDLE;
 ////////////////////////////////////////////////
 
 /*! \addtogroup PublicEnums
- * @brief RTC_PEER_CONNECTION_STATE Stats of RTC peer connection
- * Reference: https://www.w3.org/TR/webrtc/#rtcpeerconnectionstate-enum
  * @{
+ */
+
+/**
+ * @brief RTC_PEER_CONNECTION_STATE Stats of RTC peer connection
+ *
+ * Reference: https://www.w3.org/TR/webrtc/#rtcpeerconnectionstate-enum
  */
 typedef enum {
     RTC_PEER_CONNECTION_STATE_NONE = 0,         //!< Starting state of peer connection
@@ -846,11 +850,14 @@ typedef enum {
 ////////////////////////////////////////////////////
 
 /*! \addtogroup Callbacks
+ * @{
+ */
+
+/**
  * @brief RtcOnFrame is fired everytime a frame is received from
  * the remote peer. It is available via the RtpRec
  *
  * NOTE: RtcOnFrame is a KVS specific method
- * @{
  */
 typedef VOID (*RtcOnFrame)(UINT64, PFrame);
 
@@ -898,7 +905,7 @@ typedef VOID (*RtcOnPictureLoss)(UINT64);
  */
 typedef struct __RtcDataChannel {
     CHAR name[MAX_DATA_CHANNEL_NAME_LEN + 1]; //!< Define name of data channel. Max length is 256 characters
-    UINT32 id;                                //!< Read only field. Setting this in the application has no effect. This field is populated with the id
+    UINT32 id; //!< Read only field. Setting this in the application has no effect. This field is populated with the id
                //!< set by the peer connection's createDataChannel() call or the channel id is set in createDataChannel()
                //!< on embedded end.
 } RtcDataChannel, *PRtcDataChannel;
@@ -951,13 +958,15 @@ typedef VOID (*RtcOnConnectionStateChange)(UINT64, RTC_PEER_CONNECTION_STATE);
 /////////////////////////////////////////////////////
 
 /*! \addtogroup PublicStructures
- *
+ * @{
+ */
+
+/**
  * @brief An RtcPeerConnection instance allows an application to establish peer-to-peer
  * communications with another RtcPeerConnection, or to another endpoint implementing
  * the required protocols
  *
  * Reference: https://www.w3.org/TR/webrtc/#introduction
- * @{
  */
 typedef struct {
     UINT32 version; //!< Version of peer connection structure
@@ -1033,37 +1042,30 @@ typedef struct {
  *  issues that we have today.
  */
 typedef struct {
-    //!< Controls the size of the largest packet the WebRTC SDK will send
-    //!< Some networks may drop packets if they exceed a certain size, and is useful in those conditions.
-    //!< A smaller MTU will incur higher bandwidth usage however since more packets will be generated with
-    //!< smaller payloads. If unset DEFAULT_MTU_SIZE will be used
-    UINT16 maximumTransmissionUnit;
+    UINT16 maximumTransmissionUnit; //!< Controls the size of the largest packet the WebRTC SDK will send
+                                    //!< Some networks may drop packets if they exceed a certain size, and is useful in those conditions.
+                                    //!< A smaller MTU will incur higher bandwidth usage however since more packets will be generated with
+                                    //!< smaller payloads. If unset DEFAULT_MTU_SIZE will be used
 
-    //!< Maximum time ice will wait for gathering STUN and RELAY candidates. Once
-    //!< it's reached, ice will proceed with whatever candidate it current has. Use default value if 0.
-    UINT32 iceLocalCandidateGatheringTimeout;
+    UINT32 iceLocalCandidateGatheringTimeout; //!< Maximum time ice will wait for gathering STUN and RELAY candidates. Once
+                                              //!< it's reached, ice will proceed with whatever candidate it current has. Use default value if 0.
 
-    //!< Maximum time allowed waiting for at least one ice candidate pair to receive
-    //!< binding response from the peer. Use default value if 0.
-    UINT32 iceConnectionCheckTimeout;
+    UINT32 iceConnectionCheckTimeout; //!< Maximum time allowed waiting for at least one ice candidate pair to receive
+                                      //!< binding response from the peer. Use default value if 0.
 
-    //!< If client is ice controlling, this is the timeout for receiving bind response of requests that has USE_CANDIDATE
-    //!< attribute. If client is ice controlled, this is the timeout for receiving binding request that has USE_CANDIDATE
-    //!< attribute after connection check is done. Use default value if 0.
-    UINT32 iceCandidateNominationTimeout;
+    UINT32 iceCandidateNominationTimeout; //!< If client is ice controlling, this is the timeout for receiving bind response of requests that has USE_CANDIDATE
+                                          //!< attribute. If client is ice controlled, this is the timeout for receiving binding request that has USE_CANDIDATE
+                                          //!< attribute after connection check is done. Use default value if 0.
 
-    //!< Ta in https://tools.ietf.org/html/rfc8445
-    //!< rate at which binding request packets are sent during connection check. Use default interval if 0.
-    UINT32 iceConnectionCheckPollingInterval;
+    UINT32 iceConnectionCheckPollingInterval; //!< Ta in https://tools.ietf.org/html/rfc8445
+                                              //!< rate at which binding request packets are sent during connection check. Use default interval if 0.
 
-    //!< GeneratedCertificateBits controls the amount of bits the locally generated self-signed certificate uses
-    //!< A smaller amount of bits may result in less CPU usage on startup, but will cause a weaker certificate to be generated
-    //!< If set to 0 the default GENERATED_CERTIFICATE_BITS will be used
-    INT32 generatedCertificateBits;
+    INT32 generatedCertificateBits; //!< GeneratedCertificateBits controls the amount of bits the locally generated self-signed certificate uses
+                                    //!< A smaller amount of bits may result in less CPU usage on startup, but will cause a weaker certificate to be generated
+                                    //!< If set to 0 the default GENERATED_CERTIFICATE_BITS will be used
 
-    //!< GenerateRSACertificate controls if an ECDSA or RSA certificate is generated.
-    //!< By default we generate an ECDSA certificate but some platforms may not support them.
-    BOOL generateRSACertificate;
+    BOOL generateRSACertificate; //!< GenerateRSACertificate controls if an ECDSA or RSA certificate is generated.
+                                 //!< By default we generate an ECDSA certificate but some platforms may not support them.
 
     UINT32 sendBufSize; //!< Socket send buffer length. Item larger then this size will get dropped. Use system default if 0.
 
@@ -1088,25 +1090,24 @@ typedef struct {
     RtcIceServer iceServers[MAX_ICE_SERVERS_COUNT]; //!< Servers available to be used by ICE, such as STUN and TURN servers.
     KvsRtcConfiguration kvsRtcConfiguration;        //!< Non-standard configuration options
 
-    //!< Set of certificates that the RtcPeerConnection uses to authenticate.
-    //!< Although any given DTLS connection will use only one certificate, this
-    //!< attribute allows the caller to provide multiple certificates that support
-    //!< different algorithms.
-    //!<
-    //!< If this value is absent, then a default set of certificates is generated
-    //!< for each RtcPeerConnection.
-    //!<
-    //!< An absent value is determined by the certificate pointing to NULL
-    //!<
-    //!< Doc: https://www.w3.org/TR/webrtc/#dom-rtcconfiguration-certificates
-    //!<
-    //!< !!!!!!!!!! IMPORTANT !!!!!!!!!!
-    //!< It is recommended to rotate the certificates often - preferably for every peer connection
-    //!< to avoid a compromised client weakening the security of the new connections.
-    //!<
-    //!< NOTE: The certificates, if specified, can be freed after the peer connection create call
-    //!<
-    RtcCertificate certificates[MAX_RTCCONFIGURATION_CERTIFICATES];
+    RtcCertificate certificates[MAX_RTCCONFIGURATION_CERTIFICATES]; //!< Set of certificates that the RtcPeerConnection uses to authenticate.
+                                                                    //!< Although any given DTLS connection will use only one certificate, this
+                                                                    //!< attribute allows the caller to provide multiple certificates that support
+                                                                    //!< different algorithms.
+                                                                    //!<
+                                                                    //!< If this value is absent, then a default set of certificates is generated
+                                                                    //!< for each RtcPeerConnection.
+                                                                    //!<
+                                                                    //!< An absent value is determined by the certificate pointing to NULL
+                                                                    //!<
+                                                                    //!< Doc: https://www.w3.org/TR/webrtc/#dom-rtcconfiguration-certificates
+                                                                    //!<
+                                                                    //!< !!!!!!!!!! IMPORTANT !!!!!!!!!!
+                                                                    //!< It is recommended to rotate the certificates often - preferably for every peer connection
+                                                                    //!< to avoid a compromised client weakening the security of the new connections.
+                                                                    //!<
+                                                                    //!< NOTE: The certificates, if specified, can be freed after the peer connection create call
+                                                                    //!<
 } RtcConfiguration, *PRtcConfiguration;
 
 /**
@@ -1119,6 +1120,7 @@ typedef struct {
     SDP_TYPE type;                                      //!< Indicates an offer/answer SDP type
     CHAR sdp[MAX_SESSION_DESCRIPTION_INIT_SDP_LEN + 1]; //!< SDP Data containing media capabilities, transport addresses
                                                         //!< and related metadata in a transport agnostic manner
+                                                        //!<
 } RtcSessionDescriptionInit, *PRtcSessionDescriptionInit;
 
 /**
@@ -1129,6 +1131,7 @@ typedef struct {
 typedef struct {
     CHAR candidate[MAX_ICE_CANDIDATE_INIT_CANDIDATE_LEN + 1]; //!< Candidate information containing details such as protocol
                                                               //!< (udp/tcp), IP Address, priority and port
+                                                              //!<
 } RtcIceCandidateInit, *PRtcIceCandidateInit;
 
 /**
@@ -1215,7 +1218,7 @@ typedef struct {
     UINT64 cachingPeriod; //!< Endpoint caching TTL.
                           //!< For no caching policy this param will be ignored.
                           //!< For caching policies the default value will be used
-                          //!< if this parameter is 0 (SIGNALING_API_CALL_CACHE_TTL_SENTINEL_VALUE).
+                          //!< if this parameter is 0 (::SIGNALING_API_CALL_CACHE_TTL_SENTINEL_VALUE).
 
     BOOL retry; //!< Flag determines if a retry of the network calls is to be done on errors up to max retry times
 
@@ -1257,6 +1260,10 @@ typedef struct {
 /*!@} */
 
 /*! \addtogroup Callbacks
+ * @{
+ */
+
+/**
  * Callback that is fired when Signalling client receives an Offer
  *
  * NOTE: Returning non-success status will terminate the internal event loop and will force
@@ -1266,7 +1273,6 @@ typedef struct {
  * @param - PReceivedSignalingMessage - Pointer to the received message
  *
  * @return - STATUS code of the operation
- * @{
  */
 typedef STATUS (*SignalingClientMessageReceivedFunc)(UINT64, PReceivedSignalingMessage);
 
@@ -1304,8 +1310,11 @@ typedef STATUS (*SignalingClientStateChangedFunc)(UINT64, SIGNALING_CLIENT_STATE
 /*!@} */
 
 /*! \addtogroup PublicStructures
- * @brief Register Signaling client callbacks
  * @{
+ */
+
+/**
+ * @brief Register Signaling client callbacks
  */
 typedef struct {
     UINT32 version;                                       //!< Current version of the structure
@@ -1369,6 +1378,10 @@ typedef struct {
  * Reference: https://www.w3.org/TR/webrtc-stats/#candidatepair-dict*
  * @{
  */
+
+/**
+ * @brief Statistics relted to ICE candidates
+ */
 typedef struct {
     UINT32 version;                                    //!< Structure version
     RtcIceServerStats rtcIceServerStats;               //!< Server related stats. Reference in Stats.h
@@ -1430,6 +1443,10 @@ typedef struct {
 ////////////////////////////////////////////////////
 
 /*! \addtogroup PublicMemberFunctions
+* @{
+*/
+
+/**
  * @brief Initialize a RtcPeerConnection with the provided Configuration
  *
  * Reference: https://www.w3.org/TR/webrtc/#constructor
@@ -1438,7 +1455,6 @@ typedef struct {
  * @param[in,out] PRtcPeerConnection Uninitialized RtcPeerConnection
  *
  * @return STATUS code of the execution. STATUS_SUCCESS on success
- * @{
  */
 PUBLIC_API STATUS createPeerConnection(PRtcConfiguration, PRtcPeerConnection*);
 
