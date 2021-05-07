@@ -7,5 +7,5 @@
 <area shape="rect" id="node7" href="$PeerConnection_8c.html#ac7dfeca3237caae871b6cd2e0e50c73e" title=" " alt="" coords="383,118,561,145"/>
 <area shape="rect" id="node6" href="$group__PublicMemberFunctions.html#ga40c7caf6325f426d82030beec50cc86e" title="Packetizes and sends media via the configuration specified by the RtcRtpTransceiver." alt="" coords="222,67,309,94"/>
 <area shape="rect" id="node8" href="$PeerConnection_8c.html#a76ad72a51a47dae5e9f43873f36aa34a" title=" " alt="" coords="204,118,327,145"/>
-<area shape="rect" id="node9" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title=" " alt="" coords="5,118,156,145"/>
+<area shape="rect" id="node9" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,118,156,145"/>
 </map>

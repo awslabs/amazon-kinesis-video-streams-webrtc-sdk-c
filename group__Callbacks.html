@@ -120,6 +120,7 @@ Classes</h2></td></tr>
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="typedef-members"></a>
 Typedefs</h2></td></tr>
 <tr class="memitem:ga6269176a5be7e2e91fec6b067f7b9c5b"><td class="memItemLeft" align="right" valign="top">typedef VOID(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#ga6269176a5be7e2e91fec6b067f7b9c5b">RtcOnFrame</a>) (UINT64, PFrame)</td></tr>
+<tr class="memdesc:ga6269176a5be7e2e91fec6b067f7b9c5b"><td class="mdescLeft">&#160;</td><td class="mdescRight">RtcOnFrame is fired everytime a frame is received from the remote peer. It is available via the RtpRec.  <a href="group__Callbacks.html#ga6269176a5be7e2e91fec6b067f7b9c5b">More...</a><br /></td></tr>
 <tr class="separator:ga6269176a5be7e2e91fec6b067f7b9c5b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gaf77d88f0ced976d3628f86b79ba0b868"><td class="memItemLeft" align="right" valign="top">typedef VOID(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#gaf77d88f0ced976d3628f86b79ba0b868">RtcOnBandwidthEstimation</a>) (UINT64, DOUBLE)</td></tr>
 <tr class="memdesc:gaf77d88f0ced976d3628f86b79ba0b868"><td class="mdescLeft">&#160;</td><td class="mdescRight">RtcOnBandwidthEstimation is fired everytime a bandwidth estimation value is computed. This will be fired for receiver side estimation.  <a href="group__Callbacks.html#gaf77d88f0ced976d3628f86b79ba0b868">More...</a><br /></td></tr>
@@ -161,18 +162,6 @@ Typedefs</h2></td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <p>Extra callbacks definitions. </p>
-<p>RtcOnFrame is fired everytime a frame is received from the remote peer. It is available via the RtpRec</p>
-<p>NOTE: RtcOnFrame is a KVS specific method</p>
-<p>Callback that is fired when Signalling client receives an Offer</p>
-<p>NOTE: Returning non-success status will terminate the internal event loop and will force the state machinery to roll back to the state corresponding to the type of status returned.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">-</td><td>UINT64 - Custom data passed in to the signaling client </td></tr>
-    <tr><td class="paramname">-</td><td>PReceivedSignalingMessage - Pointer to the received message</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>- STATUS code of the operation </dd></dl>
 <h2 class="groupheader">Typedef Documentation</h2>
 <a id="gac5ca9698d23bb785c59e148b1f438244"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#gac5ca9698d23bb785c59e148b1f438244">&#9670;&nbsp;</a></span>IceSetInterfaceFilterFunc</h2>
@@ -283,6 +272,9 @@ Typedefs</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+
+<p>RtcOnFrame is fired everytime a frame is received from the remote peer. It is available via the RtpRec. </p>
+<p>NOTE: RtcOnFrame is a KVS specific method </p>
 
 </div>
 </div>
@@ -419,6 +411,16 @@ Typedefs</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+<p>Callback that is fired when Signalling client receives an Offer</p>
+<p>NOTE: Returning non-success status will terminate the internal event loop and will force the state machinery to roll back to the state corresponding to the type of status returned.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">-</td><td>UINT64 - Custom data passed in to the signaling client </td></tr>
+    <tr><td class="paramname">-</td><td>PReceivedSignalingMessage - Pointer to the received message</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>- STATUS code of the operation </dd></dl>
 
 </div>
 </div>
@@ -452,7 +454,7 @@ Typedefs</h2></td></tr>
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="footer">Generated on Thu May 6 2021 18:02:28 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Fri May 7 2021 18:42:42 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>

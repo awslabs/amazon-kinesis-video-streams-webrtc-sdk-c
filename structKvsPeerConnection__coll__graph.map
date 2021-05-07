@@ -40,5 +40,5 @@
 <area shape="rect" id="node39" href="$structRtcIceCandidatePairDiagnostics.html" title=" " alt="" coords="4245,1369,4454,1593"/>
 <area shape="rect" id="node40" href="$structNullableUint32.html" title="Custom data type to allow setting UINT32 data type to NULL since C does not support setting basic dat..." alt="" coords="4328,1149,4435,1241"/>
 <area shape="rect" id="node41" href="$structRtcIceCandidateDiagnostics.html" title=" " alt="" coords="2109,752,2296,932"/>
-<area shape="rect" id="node42" href="$structRtcPeerConnection.html" title=" " alt="" coords="729,1156,863,1233"/>
+<area shape="rect" id="node42" href="$structRtcPeerConnection.html" title="An RtcPeerConnection instance allows an application to establish peer&#45;to&#45;peer communications with ano..." alt="" coords="729,1156,863,1233"/>
 </map>

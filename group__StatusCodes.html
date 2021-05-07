@@ -329,10 +329,8 @@ Variables</h2></td></tr>
 <tr class="memdesc:ga66e8134ccd2c83b700bbf4e8e6649a6f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Indicates an offer/answer SDP type.  <a href="group__StatusCodes.html#ga66e8134ccd2c83b700bbf4e8e6649a6f">More...</a><br /></td></tr>
 <tr class="separator:ga66e8134ccd2c83b700bbf4e8e6649a6f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga62c6f63074c9ca7e465cb1bf39854db9"><td class="memItemLeft" align="right" valign="top">CHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga62c6f63074c9ca7e465cb1bf39854db9">RtcSessionDescriptionInit::sdp</a> [25000+1]</td></tr>
-<tr class="memdesc:ga62c6f63074c9ca7e465cb1bf39854db9"><td class="mdescLeft">&#160;</td><td class="mdescRight">and related metadata in a transport agnostic manner  <a href="group__StatusCodes.html#ga62c6f63074c9ca7e465cb1bf39854db9">More...</a><br /></td></tr>
 <tr class="separator:ga62c6f63074c9ca7e465cb1bf39854db9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gadeaea422887b09718e78abb70d0bd476"><td class="memItemLeft" align="right" valign="top">CHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#gadeaea422887b09718e78abb70d0bd476">RtcIceCandidateInit::candidate</a> [255+1]</td></tr>
-<tr class="memdesc:gadeaea422887b09718e78abb70d0bd476"><td class="mdescLeft">&#160;</td><td class="mdescRight">(udp/tcp), IP Address, priority and port  <a href="group__StatusCodes.html#gadeaea422887b09718e78abb70d0bd476">More...</a><br /></td></tr>
 <tr class="separator:gadeaea422887b09718e78abb70d0bd476"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga278d902dd02371c74db3f9aa2a90960b"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga278d902dd02371c74db3f9aa2a90960b">SignalingMessage::version</a></td></tr>
 <tr class="memdesc:ga278d902dd02371c74db3f9aa2a90960b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Current version of the structure.  <a href="group__StatusCodes.html#ga278d902dd02371c74db3f9aa2a90960b">More...</a><br /></td></tr>
@@ -843,7 +841,7 @@ Variables</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Endpoint caching TTL. For no caching policy this param will be ignored. For caching policies the default value will be used if this parameter is 0 (SIGNALING_API_CALL_CACHE_TTL_SENTINEL_VALUE). </p>
+<p>Endpoint caching TTL. For no caching policy this param will be ignored. For caching policies the default value will be used if this parameter is 0 (<a class="el" href="group__StatusCodes.html#gafffcbc366bf0d963121a10259b988d31">SIGNALING_API_CALL_CACHE_TTL_SENTINEL_VALUE</a>). </p>
 
 </div>
 </div>
@@ -874,9 +872,7 @@ Variables</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-
-<p>(udp/tcp), IP Address, priority and port </p>
-<p>Candidate information containing details such as protocol </p>
+<p>Candidate information containing details such as protocol (udp/tcp), IP Address, priority and port </p>
 
 </div>
 </div>
@@ -891,6 +887,12 @@ Variables</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+<p>Set of certificates that the <a class="el" href="structRtcPeerConnection.html" title="An RtcPeerConnection instance allows an application to establish peer-to-peer communications with ano...">RtcPeerConnection</a> uses to authenticate. Although any given DTLS connection will use only one certificate, this attribute allows the caller to provide multiple certificates that support different algorithms.</p>
+<p>If this value is absent, then a default set of certificates is generated for each <a class="el" href="structRtcPeerConnection.html" title="An RtcPeerConnection instance allows an application to establish peer-to-peer communications with ano...">RtcPeerConnection</a>.</p>
+<p>An absent value is determined by the certificate pointing to NULL</p>
+<p>Doc: <a href="https://www.w3.org/TR/webrtc/#dom-rtcconfiguration-certificates">https://www.w3.org/TR/webrtc/#dom-rtcconfiguration-certificates</a></p>
+<p>!!!!!!!!!! IMPORTANT !!!!!!!!!! It is recommended to rotate the certificates often - preferably for every peer connection to avoid a compromised client weakening the security of the new connections.</p>
+<p>NOTE: The certificates, if specified, can be freed after the peer connection create call </p>
 
 </div>
 </div>
@@ -1256,7 +1258,7 @@ Variables</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>GenerateRSACertificate controls if an ECDSA or RSA certificate is generated. By default we generate an ECDSA certificate but some platforms may not support them. </p>
+<p>GeneratedCertificateBits controls the amount of bits the locally generated self-signed certificate uses A smaller amount of bits may result in less CPU usage on startup, but will cause a weaker certificate to be generated If set to 0 the default GENERATED_CERTIFICATE_BITS will be used </p>
 
 </div>
 </div>
@@ -1271,6 +1273,7 @@ Variables</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+<p>GenerateRSACertificate controls if an ECDSA or RSA certificate is generated. By default we generate an ECDSA certificate but some platforms may not support them. </p>
 
 </div>
 </div>
@@ -1301,7 +1304,7 @@ Variables</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Ta in <a href="https://tools.ietf.org/html/rfc8445">https://tools.ietf.org/html/rfc8445</a> rate at which binding request packets are sent during connection check. Use default interval if 0. </p>
+<p>If client is ice controlling, this is the timeout for receiving bind response of requests that has USE_CANDIDATE attribute. If client is ice controlled, this is the timeout for receiving binding request that has USE_CANDIDATE attribute after connection check is done. Use default value if 0. </p>
 
 </div>
 </div>
@@ -1316,7 +1319,7 @@ Variables</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>GeneratedCertificateBits controls the amount of bits the locally generated self-signed certificate uses A smaller amount of bits may result in less CPU usage on startup, but will cause a weaker certificate to be generated If set to 0 the default GENERATED_CERTIFICATE_BITS will be used </p>
+<p>Ta in <a href="https://tools.ietf.org/html/rfc8445">https://tools.ietf.org/html/rfc8445</a> rate at which binding request packets are sent during connection check. Use default interval if 0. </p>
 
 </div>
 </div>
@@ -1331,7 +1334,7 @@ Variables</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>If client is ice controlling, this is the timeout for receiving bind response of requests that has USE_CANDIDATE attribute. If client is ice controlled, this is the timeout for receiving binding request that has USE_CANDIDATE attribute after connection check is done. Use default value if 0. </p>
+<p>Maximum time allowed waiting for at least one ice candidate pair to receive binding response from the peer. Use default value if 0. </p>
 
 </div>
 </div>
@@ -1346,7 +1349,7 @@ Variables</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Maximum time allowed waiting for at least one ice candidate pair to receive binding response from the peer. Use default value if 0. </p>
+<p>Maximum time ice will wait for gathering STUN and RELAY candidates. Once it's reached, ice will proceed with whatever candidate it current has. Use default value if 0. </p>
 
 </div>
 </div>
@@ -1441,12 +1444,6 @@ Variables</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Non-standard configuration options. </p>
-<p>Set of certificates that the <a class="el" href="structRtcPeerConnection.html">RtcPeerConnection</a> uses to authenticate. Although any given DTLS connection will use only one certificate, this attribute allows the caller to provide multiple certificates that support different algorithms.</p>
-<p>If this value is absent, then a default set of certificates is generated for each <a class="el" href="structRtcPeerConnection.html">RtcPeerConnection</a>.</p>
-<p>An absent value is determined by the certificate pointing to NULL</p>
-<p>Doc: <a href="https://www.w3.org/TR/webrtc/#dom-rtcconfiguration-certificates">https://www.w3.org/TR/webrtc/#dom-rtcconfiguration-certificates</a></p>
-<p>!!!!!!!!!! IMPORTANT !!!!!!!!!! It is recommended to rotate the certificates often - preferably for every peer connection to avoid a compromised client weakening the security of the new connections.</p>
-<p>NOTE: The certificates, if specified, can be freed after the peer connection create call </p>
 
 </div>
 </div>
@@ -1492,7 +1489,7 @@ Variables</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>&lt; Controls the size of the largest packet the WebRTC SDK will send Some networks may drop packets if they exceed a certain size, and is useful in those conditions. A smaller MTU will incur higher bandwidth usage however since more packets will be generated with smaller payloads. If unset DEFAULT_MTU_SIZE will be used Maximum time ice will wait for gathering STUN and RELAY candidates. Once it's reached, ice will proceed with whatever candidate it current has. Use default value if 0. </p>
+<p>Controls the size of the largest packet the WebRTC SDK will send Some networks may drop packets if they exceed a certain size, and is useful in those conditions. A smaller MTU will incur higher bandwidth usage however since more packets will be generated with smaller payloads. If unset DEFAULT_MTU_SIZE will be used </p>
 
 </div>
 </div>
@@ -2123,9 +2120,7 @@ Variables</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-
-<p>and related metadata in a transport agnostic manner </p>
-<p>SDP Data containing media capabilities, transport addresses </p>
+<p>SDP Data containing media capabilities, transport addresses and related metadata in a transport agnostic manner </p>
 
 </div>
 </div>
@@ -2627,7 +2622,7 @@ Variables</h2></td></tr>
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="footer">Generated on Thu May 6 2021 18:02:28 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Fri May 7 2021 18:42:42 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>

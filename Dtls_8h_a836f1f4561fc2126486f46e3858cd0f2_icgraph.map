@@ -6,7 +6,7 @@
 <area shape="rect" id="node9" href="$Dtls__openssl_8c.html#aa63ea9551d8026a385756fc13e769571" title=" " alt="" coords="673,103,900,145"/>
 <area shape="rect" id="node11" href="$Dtls__mbedtls_8c.html#af9a81361c6870b54ba2accc75c8fc2ff" title=" " alt="" coords="685,220,889,247"/>
 <area shape="rect" id="node3" href="$PeerConnection_8c.html#a76ad72a51a47dae5e9f43873f36aa34a" title=" " alt="" coords="240,111,363,137"/>
-<area shape="rect" id="node4" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title=" " alt="" coords="5,140,156,167"/>
+<area shape="rect" id="node4" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,140,156,167"/>
 <area shape="rect" id="node6" href="$group__PublicMemberFunctions.html#ga9babad6ea2bc9bb97279c7034697375a" title="Close the underlying DTLS session and IceAgent connection. Trigger RtcOnConnectionStateChange to RTC_..." alt="" coords="463,56,609,83"/>
 <area shape="rect" id="node8" href="$PeerConnection_8c.html#a0a0385b5afef472a439ff5d8d8d7c1a0" title=" " alt="" coords="204,165,399,192"/>
 <area shape="rect" id="node10" href="$PeerConnection_8c.html#a8550d4c65dc37cbff20ac6179ba1a59b" title=" " alt="" coords="491,111,581,137"/>

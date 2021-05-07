@@ -11,7 +11,7 @@
 <area shape="rect" id="node6" href="$RtpRollingBuffer_8c.html#abf2b32f9fe0ec57657ba0f916dc8406f" title=" " alt="" coords="884,122,1079,149"/>
 <area shape="rect" id="node7" href="$group__PublicMemberFunctions.html#ga40c7caf6325f426d82030beec50cc86e" title="Packetizes and sends media via the configuration specified by the RtcRtpTransceiver." alt="" coords="698,122,785,149"/>
 <area shape="rect" id="node9" href="$PeerConnection_8c.html#a76ad72a51a47dae5e9f43873f36aa34a" title=" " alt="" coords="227,147,350,174"/>
-<area shape="rect" id="node10" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title=" " alt="" coords="5,173,156,199"/>
+<area shape="rect" id="node10" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,173,156,199"/>
 <area shape="rect" id="node12" href="$RtpRollingBuffer_8c.html#ab547d56aacb2300e966ecf2257455aa8" title=" " alt="" coords="906,426,1057,453"/>
 <area shape="rect" id="node13" href="$SessionDescription_8c.html#ade806b0787e4279fa50c746632aeb57b" title=" " alt="" coords="647,426,836,453"/>
 <area shape="rect" id="node14" href="$group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="435,451,585,478"/>

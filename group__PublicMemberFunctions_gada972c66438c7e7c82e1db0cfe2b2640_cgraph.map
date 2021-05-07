@@ -1,5 +1,5 @@
 <map id="createPeerConnection" name="createPeerConnection">
-<area shape="rect" id="node1" title=" " alt="" coords="5,1022,156,1049"/>
+<area shape="rect" id="node1" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,1022,156,1049"/>
 <area shape="rect" id="node2" href="$ConnectionListener_8c.html#a24660cc58fb5a9b154011e3a4092819b" title=" " alt="" coords="216,110,387,137"/>
 <area shape="rect" id="node4" href="$Dtls_8h.html#ac281e5a858d8c8ef0df8b26768d0663b" title=" " alt="" coords="237,288,365,314"/>
 <area shape="rect" id="node18" href="$IceAgent_8c.html#af2fe29241b2d4ab4997fe04c41534578" title=" " alt="" coords="246,693,357,720"/>
