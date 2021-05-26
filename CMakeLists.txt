@@ -130,7 +130,9 @@ if(BUILD_DEPENDENCIES)
   )
   build_dependency(srtp ${BUILD_ARGS})
 
-  build_dependency(usrsctp)
+  set(BUILD_ARGS
+      -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE})
+  build_dependency(usrsctp ${BUILD_ARGS})
   if(BUILD_TEST)
     build_dependency(gtest)
   endif()
