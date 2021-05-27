@@ -64,11 +64,14 @@ STATUS rtpRollingBufferAddRtpPacket(PRtpRollingBuffer pRollingBuffer, PRtpPacket
     CHK(pRawPacketCopy != NULL, STATUS_NOT_ENOUGH_MEMORY);
     MEMCPY(pRawPacketCopy, pRtpPacket->pRawPacket, pRtpPacket->rawPacketLength);
     CHK_STATUS(createRtpPacketFromBytes(pRawPacketCopy, pRtpPacket->rawPacketLength, &pRtpPacketCopy));
+    // pRtpPacketCopy took ownership of pRawPacketCopy
+    pRawPacketCopy = NULL;
 
     CHK_STATUS(rollingBufferAppendData(pRollingBuffer->pRollingBuffer, (UINT64) pRtpPacketCopy, &index));
     pRollingBuffer->lastIndex = index;
 
 CleanUp:
+    SAFE_MEMFREE(pRawPacketCopy);
     CHK_LOG_ERR(retStatus);
 
     LEAVES();
