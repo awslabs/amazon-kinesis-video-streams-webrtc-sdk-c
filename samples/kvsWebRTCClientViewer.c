@@ -11,6 +11,8 @@ INT32 main(INT32 argc, CHAR* argv[])
     PSampleConfiguration pSampleConfiguration = NULL;
     PSampleStreamingSession pSampleStreamingSession = NULL;
     BOOL locked = FALSE;
+    BOOL useIot = FALSE;
+    PCHAR pChannelName;
 
     SET_INSTRUMENTED_ALLOCATORS();
 
@@ -20,16 +22,19 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     // do trickle-ice by default
     printf("[KVS Master] Using trickleICE by default\n");
-
-    retStatus =
-        createSampleConfiguration(argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME, SIGNALING_CHANNEL_ROLE_TYPE_VIEWER, TRUE, TRUE, &pSampleConfiguration);
+    if (useIot == FALSE) {
+        pChannelName = argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME;
+    } else {
+        CHK_ERR((pChannelName = getenv(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_THING_NAME must be set");
+    }
+    retStatus = createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_VIEWER, TRUE, TRUE, useIot, &pSampleConfiguration);
     if (retStatus != STATUS_SUCCESS) {
         printf("[KVS Viewer] createSampleConfiguration(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;
     }
     gSampleConfiguration = pSampleConfiguration;
 
-    printf("[KVS Viewer] Created signaling channel %s\n", (argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME));
+    printf("[KVS Viewer] Created signaling channel %s\n", pChannelName);
 
     if (pSampleConfiguration->enableFileLogging) {
         retStatus =
