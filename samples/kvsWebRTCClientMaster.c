@@ -10,7 +10,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     UINT32 frameSize;
     PSampleConfiguration pSampleConfiguration = NULL;
     SignalingClientMetrics signalingClientMetrics;
-    BOOL useIot = TRUE;
+    BOOL useIot = FALSE;
     PCHAR pChannelName;
     signalingClientMetrics.version = 0;
 
@@ -271,7 +271,7 @@ CleanUp:
 
     CHK_LOG_ERR(retStatus);
 
-    return (PVOID)(ULONG_PTR) retStatus;
+    return (PVOID) (ULONG_PTR) retStatus;
 }
 
 PVOID sendAudioPackets(PVOID args)
@@ -339,7 +339,7 @@ PVOID sendAudioPackets(PVOID args)
 
 CleanUp:
 
-    return (PVOID)(ULONG_PTR) retStatus;
+    return (PVOID) (ULONG_PTR) retStatus;
 }
 
 PVOID sampleReceiveVideoFrame(PVOID args)
@@ -359,5 +359,5 @@ PVOID sampleReceiveVideoFrame(PVOID args)
 
 CleanUp:
 
-    return (PVOID)(ULONG_PTR) retStatus;
+    return (PVOID) (ULONG_PTR) retStatus;
 }
