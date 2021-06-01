@@ -45,6 +45,7 @@ extern "C" {
 #define IOT_CORE_PRIVATE_KEY         ((PCHAR) "AWS_IOT_CORE_PRIVATE_KEY")
 #define IOT_CORE_ROLE_ALIAS          ((PCHAR) "AWS_IOT_CORE_ROLE_ALIAS")
 #define IOT_CORE_THING_NAME          ((PCHAR) "AWS_IOT_CORE_THING_NAME")
+//#define IOT_CORE_ENABLE_CREDENTIALS  1
 
 typedef enum {
     SAMPLE_STREAMING_VIDEO_ONLY,
@@ -109,7 +110,6 @@ typedef struct {
 
     UINT32 pregenerateCertTimerId;
     PStackQueue pregeneratedCertificates; // Max MAX_RTCCONFIGURATION_CERTIFICATES certificates
-    BOOL useIot;
 } SampleConfiguration, *PSampleConfiguration;
 
 typedef struct {

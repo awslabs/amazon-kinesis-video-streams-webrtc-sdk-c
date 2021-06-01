@@ -337,7 +337,6 @@ INT32 main(INT32 argc, CHAR* argv[])
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = NULL;
-    BOOL useIot = FALSE;
     PCHAR pChannelName;
 
     SET_INSTRUMENTED_ALLOCATORS();
@@ -346,13 +345,14 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     // do trickle-ice by default
     printf("[KVS GStreamer Master] Using trickleICE by default\n");
-    if (useIot == FALSE) {
-        pChannelName = argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME;
-    } else {
-        CHK_ERR((pChannelName = getenv(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_THING_NAME must be set");
-    }
 
-    retStatus = createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, useIot, &pSampleConfiguration);
+#ifdef IOT_CORE_ENABLE_CREDENTIALS
+    CHK_ERR((pChannelName = getenv(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_THING_NAME must be set");
+#else
+    pChannelName = argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME;
+#endif
+
+    retStatus = createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, &pSampleConfiguration);
     if (retStatus != STATUS_SUCCESS) {
         printf("[KVS GStreamer Master] createSampleConfiguration(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;

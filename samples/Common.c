@@ -679,12 +679,11 @@ CleanUp:
     return retStatus;
 }
 
-STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE roleType, BOOL trickleIce, BOOL useTurn, BOOL useIot,
+STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE roleType, BOOL trickleIce, BOOL useTurn,
                                  PSampleConfiguration* ppSampleConfiguration)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PCHAR pAccessKey, pSecretKey, pSessionToken, pLogLevel;
-    PCHAR pIotCoreCredentialEndPoint, pIotCoreCert, pIotCorePrivateKey, pIotCoreRoleAlias, pIotCoreThingName;
     PSampleConfiguration pSampleConfiguration = NULL;
     UINT32 logLevel = LOG_LEVEL_DEBUG;
 
@@ -692,18 +691,17 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
 
     CHK(NULL != (pSampleConfiguration = (PSampleConfiguration) MEMCALLOC(1, SIZEOF(SampleConfiguration))), STATUS_NOT_ENOUGH_MEMORY);
 
-    if (useIot == TRUE) {
-        CHK_ERR((pIotCoreCredentialEndPoint = getenv(IOT_CORE_CREDENTIAL_ENDPOINT)) != NULL, STATUS_INVALID_OPERATION,
-                "AWS_IOT_CORE_CREDENTIAL_ENDPOINT must be set");
-        CHK_ERR((pIotCoreCert = getenv(IOT_CORE_CERT)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_CERT must be set");
-        CHK_ERR((pIotCorePrivateKey = getenv(IOT_CORE_PRIVATE_KEY)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_PRIVATE_KEY must be set");
-        CHK_ERR((pIotCoreRoleAlias = getenv(IOT_CORE_ROLE_ALIAS)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_ROLE_ALIAS must be set");
-        pSampleConfiguration->useIot = TRUE;
-    } else {
-        CHK_ERR((pAccessKey = getenv(ACCESS_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_ACCESS_KEY_ID must be set");
-        CHK_ERR((pSecretKey = getenv(SECRET_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_SECRET_ACCESS_KEY must be set");
-        pSampleConfiguration->useIot = FALSE;
-    }
+#ifdef IOT_CORE_ENABLE_CREDENTIALS
+    PCHAR pIotCoreCredentialEndPoint, pIotCoreCert, pIotCorePrivateKey, pIotCoreRoleAlias, pIotCoreThingName;
+    CHK_ERR((pIotCoreCredentialEndPoint = getenv(IOT_CORE_CREDENTIAL_ENDPOINT)) != NULL, STATUS_INVALID_OPERATION,
+            "AWS_IOT_CORE_CREDENTIAL_ENDPOINT must be set");
+    CHK_ERR((pIotCoreCert = getenv(IOT_CORE_CERT)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_CERT must be set");
+    CHK_ERR((pIotCorePrivateKey = getenv(IOT_CORE_PRIVATE_KEY)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_PRIVATE_KEY must be set");
+    CHK_ERR((pIotCoreRoleAlias = getenv(IOT_CORE_ROLE_ALIAS)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_ROLE_ALIAS must be set");
+#else
+    CHK_ERR((pAccessKey = getenv(ACCESS_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_ACCESS_KEY_ID must be set");
+    CHK_ERR((pSecretKey = getenv(SECRET_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_SECRET_ACCESS_KEY must be set");
+#endif
 
     pSessionToken = getenv(SESSION_TOKEN_ENV_VAR);
     pSampleConfiguration->enableFileLogging = FALSE;
@@ -724,18 +722,18 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
 
     SET_LOGGER_LOG_LEVEL(logLevel);
 
-    if (useIot == TRUE) {
-        CHK_STATUS(createLwsIotCredentialProvider(pIotCoreCredentialEndPoint,
-                                                  pIotCoreCert,
-                                                  pIotCorePrivateKey,
-                                                  pSampleConfiguration->pCaCertPath,
-                                                  pIotCoreRoleAlias,
-                                                  channelName,
-                                                  &pSampleConfiguration->pCredentialProvider));
-    } else {
-        CHK_STATUS(
-            createStaticCredentialProvider(pAccessKey, 0, pSecretKey, 0, pSessionToken, 0, MAX_UINT64, &pSampleConfiguration->pCredentialProvider));
-    }
+#ifdef IOT_CORE_ENABLE_CREDENTIALS
+    CHK_STATUS(createLwsIotCredentialProvider(pIotCoreCredentialEndPoint,
+                                              pIotCoreCert,
+                                              pIotCorePrivateKey,
+                                              pSampleConfiguration->pCaCertPath,
+                                              pIotCoreRoleAlias,
+                                              channelName,
+                                              &pSampleConfiguration->pCredentialProvider));
+#else
+    CHK_STATUS(
+        createStaticCredentialProvider(pAccessKey, 0, pSecretKey, 0, pSessionToken, 0, MAX_UINT64, &pSampleConfiguration->pCredentialProvider));
+#endif
 
     pSampleConfiguration->mediaSenderTid = INVALID_TID_VALUE;
     pSampleConfiguration->signalingClientHandle = INVALID_SIGNALING_CLIENT_HANDLE_VALUE;
@@ -1051,11 +1049,12 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
         CVAR_FREE(pSampleConfiguration->cvar);
     }
 
-    if (pSampleConfiguration->useIot == FALSE) {
-        freeStaticCredentialProvider(&pSampleConfiguration->pCredentialProvider);
-    } else {
-        freeIotCredentialProvider(&pSampleConfiguration->pCredentialProvider);
-    }
+#ifdef IOT_CORE_ENABLE_CREDENTIALS
+    freeIotCredentialProvider(&pSampleConfiguration->pCredentialProvider);
+#else
+    freeStaticCredentialProvider(&pSampleConfiguration->pCredentialProvider);
+#endif
+
 
     if (IS_VALID_TIMER_QUEUE_HANDLE(pSampleConfiguration->timerQueueHandle)) {
         if (pSampleConfiguration->iceCandidatePairStatsTimerId != MAX_UINT32) {
