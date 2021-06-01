@@ -46,6 +46,9 @@ extern "C" {
 #define IOT_CORE_ROLE_ALIAS          ((PCHAR) "AWS_IOT_CORE_ROLE_ALIAS")
 #define IOT_CORE_THING_NAME          ((PCHAR) "AWS_IOT_CORE_THING_NAME")
 
+/* Uncomment the following line in order to enable IoT credentials checks in the provided samples */
+//#define IOT_CORE_ENABLE_CREDENTIALS  1
+
 typedef enum {
     SAMPLE_STREAMING_VIDEO_ONLY,
     SAMPLE_STREAMING_AUDIO_VIDEO,
@@ -109,7 +112,6 @@ typedef struct {
 
     UINT32 pregenerateCertTimerId;
     PStackQueue pregeneratedCertificates; // Max MAX_RTCCONFIGURATION_CERTIFICATES certificates
-    BOOL useIot;
 } SampleConfiguration, *PSampleConfiguration;
 
 typedef struct {
@@ -154,7 +156,7 @@ PVOID sampleReceiveVideoFrame(PVOID args);
 PVOID getPeriodicIceCandidatePairStats(PVOID);
 STATUS getIceCandidatePairStatsCallback(UINT32, UINT64, UINT64);
 STATUS pregenerateCertTimerCallback(UINT32, UINT64, UINT64);
-STATUS createSampleConfiguration(PCHAR, SIGNALING_CHANNEL_ROLE_TYPE, BOOL, BOOL, BOOL, PSampleConfiguration*);
+STATUS createSampleConfiguration(PCHAR, SIGNALING_CHANNEL_ROLE_TYPE, BOOL, BOOL, PSampleConfiguration*);
 STATUS freeSampleConfiguration(PSampleConfiguration*);
 STATUS signalingClientStateChanged(UINT64, SIGNALING_CLIENT_STATE);
 STATUS signalingMessageReceived(UINT64, PReceivedSignalingMessage);
