@@ -121,7 +121,7 @@ TEST_F(TurnConnectionFunctionalityTest, turnConnectionRefreshPermissionTest)
         return;
     }
 
-    BOOL turnReady = FALSE;
+    BOOL turnReady = FALSE, turnPeerReady = FALSE;
     KvsIpAddress turnPeerAddr;
     UINT64 turnReadyTimeout = GETTIME() + 10 * HUNDREDS_OF_NANOS_IN_A_SECOND;
 
@@ -161,23 +161,23 @@ TEST_F(TurnConnectionFunctionalityTest, turnConnectionRefreshPermissionTest)
 
     // verify we are no longer in ready state.
     MUTEX_LOCK(pTurnConnection->lock);
-    EXPECT_TRUE(pTurnConnection->state != TURN_STATE_READY);
+    pTurnConnection->turnPeerList[0].connectionState = TURN_PEER_CONN_STATE_CREATE_PERMISSION;
     MUTEX_UNLOCK(pTurnConnection->lock);
 
-    turnReady = FALSE;
+    turnPeerReady = FALSE;
     turnReadyTimeout = GETTIME() + 10 * HUNDREDS_OF_NANOS_IN_A_SECOND;
 
     while (!turnReady && GETTIME() < turnReadyTimeout) {
         THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
         MUTEX_LOCK(pTurnConnection->lock);
-        if (pTurnConnection->state == TURN_STATE_READY) {
-            turnReady = TRUE;
+        if (pTurnConnection->turnPeerList[0].connectionState == TURN_PEER_CONN_STATE_READY) {
+            turnPeerReady = TRUE;
         }
         MUTEX_UNLOCK(pTurnConnection->lock);
     }
 
     // should be back to ready after refresh is done
-    EXPECT_TRUE(turnReady == TRUE);
+    EXPECT_TRUE(turnPeerReady == TRUE);
 
     // modify allocation expiration time to trigger refresh allocation
     MUTEX_LOCK(pTurnConnection->lock);
