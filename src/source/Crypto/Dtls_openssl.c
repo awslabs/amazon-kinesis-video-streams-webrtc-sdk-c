@@ -498,8 +498,11 @@ STATUS dtlsSessionPutApplicationData(PDtlsSession pDtlsSession, PBYTE pData, INT
     BYTE buf[MAX_UDP_PACKET_SIZE];
     BIO* wbio;
     SIZE_T pending;
+    BOOL locked = FALSE;
 
+    CHK(pDtlsSession != NULL && pData != NULL, STATUS_NULL_ARG);
     MUTEX_LOCK(pDtlsSession->sslLock);
+    locked = TRUE;
     CHK(!ATOMIC_LOAD_BOOL(&pDtlsSession->shutdown), retStatus);
 
     if ((amountWritten = SSL_write(pDtlsSession->pSsl, pData, dataLen)) != dataLen &&
@@ -515,7 +518,9 @@ STATUS dtlsSessionPutApplicationData(PDtlsSession pDtlsSession, PBYTE pData, INT
     }
 
 CleanUp:
-    MUTEX_UNLOCK(pDtlsSession->sslLock);
+    if (locked) {
+        MUTEX_UNLOCK(pDtlsSession->sslLock);
+    }
 
     LEAVES();
     return retStatus;
