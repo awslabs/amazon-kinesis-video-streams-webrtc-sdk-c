@@ -345,12 +345,7 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     // do trickle-ice by default
     printf("[KVS GStreamer Master] Using trickleICE by default\n");
-
-#ifdef IOT_CORE_ENABLE_CREDENTIALS
-    CHK_ERR((pChannelName = getenv(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_THING_NAME must be set");
-#else
     pChannelName = argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME;
-#endif
 
     retStatus = createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, &pSampleConfiguration);
     if (retStatus != STATUS_SUCCESS) {
