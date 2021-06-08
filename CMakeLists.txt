@@ -34,8 +34,8 @@ set(OPEN_SRC_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/open-source" CACHE PATH
 
 # Release build type as default
 if (NOT CMAKE_BUILD_TYPE)
-	message(STATUS "No build type selected, using RELEASE")
-	set(CMAKE_BUILD_TYPE "RELEASE")
+  message(STATUS "No build type selected, using RELEASE")
+  set(CMAKE_BUILD_TYPE "RELEASE")
 endif ()
 
 if(NOT WIN32)
