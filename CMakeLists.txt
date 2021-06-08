@@ -45,6 +45,12 @@ else()
   set(OPEN_SRC_INSTALL_PREFIX ${OPEN_SRC_INSTALL_PREFIX} CACHE PATH "Libraries will be downloaded and built in this directory.")
 endif()
 
+# Release build type as default
+if (NOT CMAKE_BUILD_TYPE)
+	message(STATUS "No build type selected, using RELEASE")
+	set(CMAKE_BUILD_TYPE "RELEASE")
+endif ()
+
 if(NOT WIN32)
 CHECK_INCLUDE_FILES(ifaddrs.h       KVSWEBRTC_HAVE_IFADDRS_H)
 if(NOT KVSWEBRTC_HAVE_IFADDRS_H)
