@@ -311,6 +311,21 @@ CleanUp:
     CHK_LOG_ERR(retStatus);
 }
 
+// Note: iceSetInterfaceFilterFunc needs to be set to this function to allow/disallow
+// specific network interfaces
+BOOL sampleFilterNetworkInterfaces(UINT64 customData, PCHAR interface)
+{
+    ENTERS();
+    UNUSED_PARAM(customData);
+    BOOL useInterface = FALSE;
+    if (STRNCMP(interface, (PCHAR) "eth0", ARRAY_SIZE("eth0")) == 0) {
+        useInterface = TRUE;
+    }
+    DLOGD("%s %s", interface, (useInterface) ? ("allowed. Candidates to be gathered") : ("blocked. Candidates will not be gathered"));
+    LEAVES();
+    return useInterface;
+}
+
 STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcPeerConnection* ppRtcPeerConnection)
 {
     ENTERS();
