@@ -35,11 +35,10 @@ matrix:
   include:
     #clang check
     - name: "clang-format Check"
-      os: linux
+      os: osx
       compiler: clang
       before_script:
-        - sudo apt-get -q update
-        - sudo apt-get -y install clang-format
+        - brew install clang-format
         - mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TEST=TRUE
       script:
         - cd ..
