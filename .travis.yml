@@ -12,6 +12,9 @@ cache:
 services:
   - docker
 
+services:
+  - docker
+
 addons:
   apt:
     packages:
