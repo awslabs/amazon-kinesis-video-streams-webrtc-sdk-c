@@ -216,6 +216,17 @@ CleanUp:
     return retStatus;
 }
 
+BOOL canReadFd(INT32 fd, struct pollfd* fds, INT32 nfds)
+{
+    INT32 i;
+    for (i = 0; i < nfds; i++) {
+        if (fds[i].fd == fd && (fds[i].revents & POLLIN) != 0) {
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
 PVOID connectionListenerReceiveDataRoutine(PVOID arg)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -226,8 +237,7 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
     UINT32 i, socketCount;
 
     INT32 nfds = 0;
-    fd_set rfds;
-    struct timeval tv;
+    struct pollfd rfds[CONNECTION_LISTENER_DEFAULT_MAX_LISTENING_CONNECTION];
     INT32 retval, localSocket;
     INT64 readLen;
     // the source address is put here. sockaddr_storage can hold either sockaddr_in or sockaddr_in6
@@ -243,12 +253,11 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
     /* Ensure that memory sanitizers consider
      * rfds initialized even if FD_ZERO is
      * implemented in assembly. */
-    MEMSET(&rfds, 0x00, SIZEOF(fd_set));
+    MEMSET(&rfds, 0x00, SIZEOF(rfds));
 
     srcAddr.isPointToPoint = FALSE;
 
     while (!ATOMIC_LOAD_BOOL(&pConnectionListener->terminate)) {
-        FD_ZERO(&rfds);
         nfds = 0;
 
         // Perform the socket connection gathering under the lock
@@ -262,8 +271,10 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
                     MUTEX_LOCK(pSocketConnection->lock);
                     localSocket = pSocketConnection->localSocket;
                     MUTEX_UNLOCK(pSocketConnection->lock);
-                    FD_SET(localSocket, &rfds);
-                    nfds = MAX(nfds, localSocket);
+                    rfds[nfds].fd = localSocket;
+                    rfds[nfds].events = POLLIN | POLLPRI;
+                    rfds[nfds].revents = 0;
+                    nfds++;
 
                     // Store the sockets locally while in use and mark it as in use
                     sockets[socketCount++] = pSocketConnection;
@@ -276,24 +287,16 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
             }
         }
 
-        // Should be one more than the sockets count per API documentation
-        nfds++;
-
         // Need to unlock the mutex to ensure other racing threads unblock
         MUTEX_UNLOCK(pConnectionListener->lock);
 
-        // timeout select every SOCKET_WAIT_FOR_DATA_TIMEOUT_SECONDS seconds and check if terminate
-        // on linux tv need to be reinitialized after select is done.
-        tv.tv_sec = 0;
-        tv.tv_usec = CONNECTION_LISTENER_SOCKET_WAIT_FOR_DATA_TIMEOUT / HUNDREDS_OF_NANOS_IN_A_MICROSECOND;
-
         // blocking call until resolves as a timeout, an error, a signal or data received
-        retval = select(nfds, &rfds, NULL, NULL, &tv);
+        retval = POLL(rfds, nfds, CONNECTION_LISTENER_SOCKET_WAIT_FOR_DATA_TIMEOUT / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 
         // In case of 0 we have a timeout and should re-lock to allow for other
         // interlocking operations to proceed. A positive return means we received data
         if (retval == -1) {
-            DLOGW("select() failed with errno %s", getErrorString(getErrorCode()));
+            DLOGW("poll() failed with errno %s", getErrorString(getErrorCode()));
         } else if (retval > 0) {
             for (i = 0; i < socketCount; i++) {
                 pSocketConnection = sockets[i];
@@ -302,7 +305,7 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
                     localSocket = pSocketConnection->localSocket;
                     MUTEX_UNLOCK(pSocketConnection->lock);
 
-                    if (FD_ISSET(localSocket, &rfds)) {
+                    if (canReadFd(localSocket, rfds, nfds)) {
                         iterate = TRUE;
                         while (iterate) {
                             readLen = recvfrom(localSocket, pConnectionListener->pBuffer, pConnectionListener->bufferLen, 0,
