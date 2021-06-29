@@ -306,7 +306,7 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
         // time not yet set (only happens for first rtp packet)
         localStartTimeKvs = twcc->twccPacketBySeqNum[(UINT16) sn].localTimeKvs;
     }
-    for (seqNum = sn; duration < TWCC_ESTIMATOR_TIME_WINDOW && seqNum != twcc->lastReportedSeqNum; seqNum++) {
+    for (seqNum = sn; seqNum != twcc->lastReportedSeqNum; seqNum++) {
         twccPacket = &twcc->twccPacketBySeqNum[seqNum];
         localEndTimeKvs = twccPacket->localTimeKvs;
         duration = localEndTimeKvs - localStartTimeKvs;
