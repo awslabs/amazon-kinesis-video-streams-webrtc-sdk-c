@@ -1,4 +1,5 @@
 <map id="twccManagerOnPacketSent" name="twccManagerOnPacketSent">
-<area shape="rect" id="node1" title=" " alt="" coords="140,5,325,32"/>
-<area shape="rect" id="node2" href="$group__PublicMemberFunctions.html#ga40c7caf6325f426d82030beec50cc86e" title="Packetizes and sends media via the configuration specified by the RtcRtpTransceiver." alt="" coords="5,5,92,32"/>
+<area shape="rect" id="node1" title=" " alt="" coords="204,31,389,57"/>
+<area shape="rect" id="node2" href="$Retransmitter_8c.html#a117dafbb1f1b86ced15a1fcfc49713fa" title=" " alt="" coords="5,5,156,32"/>
+<area shape="rect" id="node3" href="$group__PublicMemberFunctions.html#ga40c7caf6325f426d82030beec50cc86e" title="Packetizes and sends media via the configuration specified by the RtcRtpTransceiver." alt="" coords="37,56,124,83"/>
 </map>
