@@ -117,6 +117,12 @@ INT32 getErrorCode(VOID);
  */
 PCHAR getErrorString(INT32);
 
+#ifdef _WIN32
+#define POLL WSAPoll
+#else
+#define POLL poll
+#endif
+
 #ifdef __cplusplus
 }
 #endif

@@ -10,7 +10,7 @@ Socket Connection internal include file
 extern "C" {
 #endif
 
-#define SOCKET_SEND_RETRY_TIMEOUT_MICRO_SECOND 500000
+#define SOCKET_SEND_RETRY_TIMEOUT_MILLI_SECOND 500
 #define MAX_SOCKET_WRITE_RETRY                 3
 
 #define CLOSE_SOCKET_IF_CANT_RETRY(e, ps)                                                                                                            \
