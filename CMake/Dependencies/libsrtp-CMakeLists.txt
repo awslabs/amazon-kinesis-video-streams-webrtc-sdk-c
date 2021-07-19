@@ -2,9 +2,7 @@ cmake_minimum_required(VERSION 2.8)
 
 project(libsrtp-download NONE)
 
-
 SET(CONFIGURE_COMMAND "")
-SET(PATCH_COMMAND "")
 
 # There is known bug in libsrtp where cross compiling using configure on ARM fails. Do not
 # enable this option if cross compilng on ARM
@@ -37,10 +35,6 @@ else()
   set(LIBSRTP_SHARED_LIBS ON)
 endif()
 
-if (NOT WIN32)
-    set(PATCH_COMMAND ${PATCH_COMMAND} git apply --ignore-whitespace ${CMAKE_CURRENT_LIST_DIR}/libsrtp-gcc-10_bit_string.patch)
-endif()
-
 if (USE_OPENSSL)
   set(LIBSRTP_ENABLE_OPENSSL ON)
 else()
@@ -51,8 +45,7 @@ endif()
 include(ExternalProject)
 ExternalProject_Add(project_libsrtp
     GIT_REPOSITORY    https://github.com/cisco/libsrtp.git
-    GIT_TAG           v2.3.0
-    PATCH_COMMAND     ${PATCH_COMMAND}
+    GIT_TAG           bd0f27ec0e299ad101a396dde3f7c90d48efc8fc
     PREFIX            ${CMAKE_CURRENT_BINARY_DIR}/build
     CMAKE_ARGS        -D CMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
                       -D CMAKE_INSTALL_PREFIX:STRING=${OPEN_SRC_INSTALL_PREFIX}
