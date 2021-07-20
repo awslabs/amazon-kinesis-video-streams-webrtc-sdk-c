@@ -22,8 +22,12 @@ endif()
 
 ExternalProject_Add(project_libwebsockets
     GIT_REPOSITORY    https://github.com/warmcat/libwebsockets.git
+<<<<<<< HEAD
     GIT_TAG           v4.2.1
     PATCH_COMMAND     ${PATCH_COMMAND}
+=======
+    GIT_TAG           v3.2.3
+>>>>>>> 5028e6be1 (Test travis ci)
     PREFIX            ${CMAKE_CURRENT_BINARY_DIR}/build
     CMAKE_ARGS
         -DCMAKE_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX}

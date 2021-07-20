@@ -12,14 +12,10 @@ cache:
 services:
   - docker
 
-services:
-  - docker
-
 addons:
   apt:
     packages:
       - gdb
-      - docker-ce
 
 script:
   - export AWS_KVS_LOG_LEVEL=3
