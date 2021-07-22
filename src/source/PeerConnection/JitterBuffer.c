@@ -139,14 +139,12 @@ STATUS jitterBufferPush(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket, PBOO
             else if (pRtpPacket->header.timestamp == pJitterBuffer->headTimestamp) {
                 if(pJitterBuffer->headSequenceNumber < MAX_OUT_OF_ORDER_PACKET_DIFFERENCE) {
                     if((pRtpPacket->header.sequenceNumber >= (MAX_UINT16 - (MAX_OUT_OF_ORDER_PACKET_DIFFERENCE - pJitterBuffer->headSequenceNumber))) ||
-                       (pJitterBuffer->headSequenceNumber > pRtpPacket->header.sequenceNumber))
-                    {
+                       (pJitterBuffer->headSequenceNumber > pRtpPacket->header.sequenceNumber)) {
                         pJitterBuffer->headSequenceNumber = pRtpPacket->header.sequenceNumber;
                     }
                 }
                 else if((pJitterBuffer->headSequenceNumber - MAX_OUT_OF_ORDER_PACKET_DIFFERENCE) <= pRtpPacket->header.sequenceNumber && 
-                        (pRtpPacket->header.sequenceNumber < pJitterBuffer->headSequenceNumber)
-                {
+                        (pRtpPacket->header.sequenceNumber < pJitterBuffer->headSequenceNumber) {
                     pJitterBuffer->headSequenceNumber = pRtpPacket->header.sequenceNumber;
                 }
             }
