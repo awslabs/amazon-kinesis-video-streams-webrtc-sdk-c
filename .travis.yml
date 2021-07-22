@@ -16,7 +16,7 @@ addons:
   apt:
     packages:
       - gdb
-      - docker-cd
+      - docker-ce
 
 script:
   - export AWS_KVS_LOG_LEVEL=3
