@@ -1,4 +1,5 @@
 #define LOG_CLASS "WebRtcSamples"
+#include <sys/stat.h>
 #include "Samples.h"
 
 PSampleConfiguration gSampleConfiguration = NULL;
@@ -272,7 +273,7 @@ CleanUp:
     return retStatus;
 }
 
-BOOL sampleFilterNetworkInterfaces(UINT64 customData)
+BOOL sampleFilterNetworkInterfaces(UINT64 customData, PCHAR interface)
 {
 //    UNUSED_PARAM(customData);
 //    BOOL useInterface = FALSE;
@@ -654,7 +655,7 @@ STATUS traverseDirectoryPEMFileScan(UINT64 customData, DIR_ENTRY_TYPES entryType
 STATUS lookForSslCert(PSampleConfiguration* ppSampleConfiguration)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    struct stat pathStat;
+    Stat pathStat;
     CHAR certName[MAX_PATH_LEN];
     PSampleConfiguration pSampleConfiguration = *ppSampleConfiguration;
 
