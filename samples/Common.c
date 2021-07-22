@@ -1,5 +1,4 @@
 #define LOG_CLASS "WebRtcSamples"
-#include <sys/stat.h>
 #include "Samples.h"
 
 PSampleConfiguration gSampleConfiguration = NULL;
@@ -655,7 +654,7 @@ STATUS traverseDirectoryPEMFileScan(UINT64 customData, DIR_ENTRY_TYPES entryType
 STATUS lookForSslCert(PSampleConfiguration* ppSampleConfiguration)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    Stat pathStat;
+    struct stat pathStat;
     CHAR certName[MAX_PATH_LEN];
     PSampleConfiguration pSampleConfiguration = *ppSampleConfiguration;
 
