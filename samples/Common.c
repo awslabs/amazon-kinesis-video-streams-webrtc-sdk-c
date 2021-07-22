@@ -272,9 +272,7 @@ CleanUp:
     return retStatus;
 }
 
-// Note: iceSetInterfaceFilterFunc needs to be set to this function to allow/disallow
-// specific network interfaces
-BOOL sampleFilterNetworkInterfaces()
+BOOL sampleFilterNetworkInterfaces(UINT64 customData)
 {
 //    UNUSED_PARAM(customData);
 //    BOOL useInterface = FALSE;
@@ -282,7 +280,7 @@ BOOL sampleFilterNetworkInterfaces()
 //        useInterface = TRUE;
 //    }
 //    DLOGD("%s %s", interface, (useInterface) ? ("allowed. Candidates to be gathered") : ("blocked. Candidates will not be gathered"));
-//    return useInterface;
+    return TRUE;
 }
 
 VOID onIceCandidateHandler(UINT64 customData, PCHAR candidateJson)
