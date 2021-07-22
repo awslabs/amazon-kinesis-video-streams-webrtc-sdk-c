@@ -33,118 +33,118 @@ matrix:
     - env: allowTestFail=true
 
   include:
-#    #clang check
-#    - name: "clang-format Check"
-#      os: linux
-#      compiler: clang
-#      before_script:
-#        - sudo apt-get -q update
-#        - sudo apt-get -y install clang-format
-#        - mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TEST=TRUE
-#      script:
-#        - cd ..
-#        - bash scripts/check-clang.sh
-#
-#    # MacOS Builds
-#    - name: "OSX GCC"
-#      os: osx
-#      compiler: gcc
-#      before_script:
-#        - mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
-#      script:
-#        - make
-#        - export DYLD_LIBRARY_PATH="$DYLD_LIBRARY_PATH:`pwd`/../open-source/lib"
-#        - ./tst/webrtc_client_test
-#      after_failure: skip # timeout not available on MacOS
-#
-#    - name: "OSX Clang"
-#      os: osx
-#      compiler: clang
-#      before_script:
-#        - mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
-#      script:
-#        - make
-#        - export DYLD_LIBRARY_PATH="$DYLD_LIBRARY_PATH:`pwd`/../open-source/lib"
-#        - ./tst/webrtc_client_test || travis_terminate 1;
-#        # Execute selected tests without auth integration
-#        - unset AWS_ACCESS_KEY_ID
-#        - unset AWS_SECRET_ACCESS_KEY
-#        - ./tst/webrtc_client_test --gtest_break_on_failure --gtest_filter="SignalingApiFunctionalityTest.*:SignalingApiTest.*:TurnConnectionFunctionalityTest.*"
-#      after_failure: skip # timeout not available on MacOS
-#
-#    # Code Coverage
-#    - name: "Linux GCC Code Coverage"
-#      os: linux
-#      compiler: gcc
-#      before_install:
-#        # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
-#        - sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-#      before_script:
-#        - mkdir build && cd build && cmake .. -DCODE_COVERAGE=TRUE -DBUILD_TEST=TRUE
-#      after_success:
-#        - for test_file in $(find CMakeFiles/kvsWebrtcClient.dir CMakeFiles/kvsWebrtcSignalingClient.dir -name '*.gcno'); do gcov $test_file; done
-#        - bash <(curl -s https://codecov.io/bash)
-#
-#    # AddressSanitizer
-#    - name: "Linux Clang AddressSanitizer"
-#      os: linux
-#      compiler: clang
-#      env:
-#        - ASAN_OPTIONS=detect_odr_violation=0:detect_leaks=1
-#        - LSAN_OPTIONS=suppressions=../tst/suppressions/LSAN.supp
-#      before_install:
-#        # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
-#        - sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-#      before_script: mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TEST=TRUE -DADDRESS_SANITIZER=TRUE
-#
-#    # UndefinedBehaviorSanitizer
-#    - name: "Linux Clang UndefinedBehaviorSanitizer"
-#      os: linux
-#      compiler: clang
-#      env: UBSAN_OPTIONS=halt_on_error=1
-#      before_install:
-#        # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
-#        - sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-#      before_script: mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TEST=TRUE -DUNDEFINED_BEHAVIOR_SANITIZER=TRUE
-#
-#    # MemorySanitizer
-#    - name: "Linux Clang MemorySanitizer"
-#      env: allowTestFail=true
-#      before_install:
-#        # TODO: Remove the following 2 lines. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
-#        - echo '{"ipv6":true,"fixed-cidr-v6":"2001:db8:1::/64"}' | sudo tee /etc/docker/daemon.json
-#        - sudo service docker restart
-#        - mkdir build
-#        - docker run -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -w /src/build -dit --name msan-tester -v $(pwd):/src seaduboi/kvs-msan-tester
-#        - msan-tester() { docker exec -it msan-tester "$@"; }
-#      script:
-#        - msan-tester cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_DEPENDENCIES=FALSE -DBUILD_TEST=TRUE -DMEMORY_SANITIZER=TRUE -DCMAKE_CXX_FLAGS="-stdlib=libc++ -L/usr/src/libcxx_msan/lib -lc++abi -I/usr/src/libcxx_msan/include -I/usr/src/libcxx_msan/include/c++/v1 -fsanitize=memory -fno-omit-frame-pointer -fno-optimize-sibling-calls -fsanitize-memory-track-origins"
-#        - msan-tester make
-#        - msan-tester ./tst/webrtc_client_test
-#      after_failure: skip # no coredumps in container
-#
-#    # ThreadSanitizer
-#    - name: "Linux Clang ThreadSanitizer"
-#      os: linux
-#      compiler: clang
-#      env: TSAN_OPTIONS=halt_on_error=1:suppressions=../tst/suppressions/TSAN.supp
-#      before_install:
-#        # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
-#        - sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-#      before_script: mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TEST=TRUE -DTHREAD_SANITIZER=TRUE
-#
-#    # Old Version GCC 4.4
-#    - name: "Linux GCC 4.4 Build"
-#      os: linux
-#      before_install:
-#        # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
-#        - sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-#        - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-#        - sudo apt-get -q update
-#        - sudo apt-get -y install gcc-4.4
-#        - sudo apt-get -y install gdb
-#      compiler: gcc
-#      before_script: export CC=gcc-4.4 && mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE
+    #clang check
+    - name: "clang-format Check"
+      os: linux
+      compiler: clang
+      before_script:
+        - sudo apt-get -q update
+        - sudo apt-get -y install clang-format
+        - mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TEST=TRUE
+      script:
+        - cd ..
+        - bash scripts/check-clang.sh
+
+    # MacOS Builds
+    - name: "OSX GCC"
+      os: osx
+      compiler: gcc
+      before_script:
+        - mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
+      script:
+        - make
+        - export DYLD_LIBRARY_PATH="$DYLD_LIBRARY_PATH:`pwd`/../open-source/lib"
+        - ./tst/webrtc_client_test
+      after_failure: skip # timeout not available on MacOS
+
+    - name: "OSX Clang"
+      os: osx
+      compiler: clang
+      before_script:
+        - mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
+      script:
+        - make
+        - export DYLD_LIBRARY_PATH="$DYLD_LIBRARY_PATH:`pwd`/../open-source/lib"
+        - ./tst/webrtc_client_test || travis_terminate 1;
+        # Execute selected tests without auth integration
+        - unset AWS_ACCESS_KEY_ID
+        - unset AWS_SECRET_ACCESS_KEY
+        - ./tst/webrtc_client_test --gtest_break_on_failure --gtest_filter="SignalingApiFunctionalityTest.*:SignalingApiTest.*:TurnConnectionFunctionalityTest.*"
+      after_failure: skip # timeout not available on MacOS
+
+    # Code Coverage
+    - name: "Linux GCC Code Coverage"
+      os: linux
+      compiler: gcc
+      before_install:
+        # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
+        - sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+      before_script:
+        - mkdir build && cd build && cmake .. -DCODE_COVERAGE=TRUE -DBUILD_TEST=TRUE
+      after_success:
+        - for test_file in $(find CMakeFiles/kvsWebrtcClient.dir CMakeFiles/kvsWebrtcSignalingClient.dir -name '*.gcno'); do gcov $test_file; done
+        - bash <(curl -s https://codecov.io/bash)
+
+    # AddressSanitizer
+    - name: "Linux Clang AddressSanitizer"
+      os: linux
+      compiler: clang
+      env:
+        - ASAN_OPTIONS=detect_odr_violation=0:detect_leaks=1
+        - LSAN_OPTIONS=suppressions=../tst/suppressions/LSAN.supp
+      before_install:
+        # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
+        - sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+      before_script: mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TEST=TRUE -DADDRESS_SANITIZER=TRUE
+
+    # UndefinedBehaviorSanitizer
+    - name: "Linux Clang UndefinedBehaviorSanitizer"
+      os: linux
+      compiler: clang
+      env: UBSAN_OPTIONS=halt_on_error=1
+      before_install:
+        # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
+        - sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+      before_script: mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TEST=TRUE -DUNDEFINED_BEHAVIOR_SANITIZER=TRUE
+
+    # MemorySanitizer
+    - name: "Linux Clang MemorySanitizer"
+      env: allowTestFail=true
+      before_install:
+        # TODO: Remove the following 2 lines. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
+        - echo '{"ipv6":true,"fixed-cidr-v6":"2001:db8:1::/64"}' | sudo tee /etc/docker/daemon.json
+        - sudo service docker restart
+        - mkdir build
+        - docker run -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -w /src/build -dit --name msan-tester -v $(pwd):/src seaduboi/kvs-msan-tester
+        - msan-tester() { docker exec -it msan-tester "$@"; }
+      script:
+        - msan-tester cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_DEPENDENCIES=FALSE -DBUILD_TEST=TRUE -DMEMORY_SANITIZER=TRUE -DCMAKE_CXX_FLAGS="-stdlib=libc++ -L/usr/src/libcxx_msan/lib -lc++abi -I/usr/src/libcxx_msan/include -I/usr/src/libcxx_msan/include/c++/v1 -fsanitize=memory -fno-omit-frame-pointer -fno-optimize-sibling-calls -fsanitize-memory-track-origins"
+        - msan-tester make
+        - msan-tester ./tst/webrtc_client_test
+      after_failure: skip # no coredumps in container
+
+    # ThreadSanitizer
+    - name: "Linux Clang ThreadSanitizer"
+      os: linux
+      compiler: clang
+      env: TSAN_OPTIONS=halt_on_error=1:suppressions=../tst/suppressions/TSAN.supp
+      before_install:
+        # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
+        - sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+      before_script: mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TEST=TRUE -DTHREAD_SANITIZER=TRUE
+
+    # Old Version GCC 4.4
+    - name: "Linux GCC 4.4 Build"
+      os: linux
+      before_install:
+        # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
+        - sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+        - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+        - sudo apt-get -q update
+        - sudo apt-get -y install gcc-4.4
+        - sudo apt-get -y install gdb
+      compiler: gcc
+      before_script: export CC=gcc-4.4 && mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE
 
     # Static Build
     - name: "Static Build"
@@ -153,10 +153,6 @@ matrix:
         - echo '{"ipv6":true,"fixed-cidr-v6":"2001:db8:1::/64"}' | sudo tee /etc/docker/daemon.json
         - sudo service docker restart
         - mkdir build
-#        - wget https://raw.githubusercontent.com/docker/labs/master/security/seccomp/seccomp-profiles/default.json
-#        - ls
-#        - mv default.json build/
-#        - ls build
         - docker run -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -w /src/build -dit --security-opt=seccomp=.github/default.json --name alpine -v $(pwd):/src alpine:latest
         - alpine() { docker exec -it alpine "$@"; }
       install:
@@ -171,68 +167,68 @@ matrix:
         - alpine ./tst/webrtc_client_test
       after_failure: skip # no coredumps in container
 
-#    # Cross-compilation to ARM, no tests are run
-#    - name: "ARM Cross-compilation"
-#      os: linux
-#      addons:
-#        apt:
-#          packages:
-#            - gcc-arm-linux-gnueabi
-#            - g++-arm-linux-gnueabi
-#            - binutils-arm-linux-gnueabi
-#      compiler: gcc
-#      before_install:
-#        # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
-#        - sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-#      before_script:
-#        - export CC=arm-linux-gnueabi-gcc CXX=arm-linux-gnueabi-g++
-#        - mkdir build && cd build
-#        - cmake .. -DBUILD_OPENSSL=TRUE -DBUILD_OPENSSL_PLATFORM=linux-generic32 -DBUILD_LIBSRTP_HOST_PLATFORM=x86_64-unknown-linux-gnu -DBUILD_LIBSRTP_DESTINATION_PLATFORM=arm-unknown-linux-uclibcgnueabi
-#      script: make
-#
-#    - name: "mbedTLS - Linux GCC 4.4 Build"
-#      os: linux
-#      compiler: gcc
-#      before_install:
-#        # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
-#        - sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-#        - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-#        - sudo apt-get -q update
-#        - sudo apt-get -y install gcc-4.4
-#        - sudo apt-get -y install gdb
-#      before_script: mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
-#
-#    - name: "mbedTLS - Linux Clang"
-#      os: linux
-#      compiler: clang
-#      before_install:
-#        # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
-#        - sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-#      before_script: mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
-#
-#    - name: "Windows MSVC"
-#      os: windows
-#      script:
-#        - choco install nasm strawberryperl
-#        - unset CC CC_FOR_BUILD CXX CXX_FOR_BUILD # We want to use MSVC
-#        - export "PATH=/c/Strawberry/perl/site/bin:/c/Strawberry/perl/bin:/c/Strawberry/c/bin:/c/Program Files/NASM:`pwd`/open-source/lib:`pwd`/open-source/bin:$PATH"
-#        - .github/build_windows.bat
-#        - cd build/tst && ./webrtc_client_test.exe --gtest_filter="-DataChannelFunctionalityTest.*:IceApiTest.*:IceFunctionalityTest.*:PeerConnectionFunctionalityTest.*:SignalingApiFunctionalityTest.*:TurnConnectionFunctionalityTest.*:RtpFunctionalityTest.marshallUnmarshallH264Data:RtpFunctionalityTest.packingUnpackingVerifySameH264Frame:RtcpFunctionalityTest.onRtcpPacketCompound:RtcpFunctionalityTest.twcc3"
-#
-#    - name: "Sample check"
-#      os: linux
-#      compiler: gcc
-#      before_install:
-#        # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
-#        - sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-#        - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-#        - sudo apt-get -q update
-#        - sudo apt-get -y install gcc-4.4
-#      before_script: mkdir build && cd build && cmake ..
-#      script:
-#        - make
-#        - cd ..
-#        - ./scripts/check-sample.sh
+    # Cross-compilation to ARM, no tests are run
+    - name: "ARM Cross-compilation"
+      os: linux
+      addons:
+        apt:
+          packages:
+            - gcc-arm-linux-gnueabi
+            - g++-arm-linux-gnueabi
+            - binutils-arm-linux-gnueabi
+      compiler: gcc
+      before_install:
+        # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
+        - sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+      before_script:
+        - export CC=arm-linux-gnueabi-gcc CXX=arm-linux-gnueabi-g++
+        - mkdir build && cd build
+        - cmake .. -DBUILD_OPENSSL=TRUE -DBUILD_OPENSSL_PLATFORM=linux-generic32 -DBUILD_LIBSRTP_HOST_PLATFORM=x86_64-unknown-linux-gnu -DBUILD_LIBSRTP_DESTINATION_PLATFORM=arm-unknown-linux-uclibcgnueabi
+      script: make
+
+    - name: "mbedTLS - Linux GCC 4.4 Build"
+      os: linux
+      compiler: gcc
+      before_install:
+        # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
+        - sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+        - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+        - sudo apt-get -q update
+        - sudo apt-get -y install gcc-4.4
+        - sudo apt-get -y install gdb
+      before_script: mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
+
+    - name: "mbedTLS - Linux Clang"
+      os: linux
+      compiler: clang
+      before_install:
+        # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
+        - sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+      before_script: mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
+
+    - name: "Windows MSVC"
+      os: windows
+      script:
+        - choco install nasm strawberryperl
+        - unset CC CC_FOR_BUILD CXX CXX_FOR_BUILD # We want to use MSVC
+        - export "PATH=/c/Strawberry/perl/site/bin:/c/Strawberry/perl/bin:/c/Strawberry/c/bin:/c/Program Files/NASM:`pwd`/open-source/lib:`pwd`/open-source/bin:$PATH"
+        - .github/build_windows.bat
+        - cd build/tst && ./webrtc_client_test.exe --gtest_filter="-DataChannelFunctionalityTest.*:IceApiTest.*:IceFunctionalityTest.*:PeerConnectionFunctionalityTest.*:SignalingApiFunctionalityTest.*:TurnConnectionFunctionalityTest.*:RtpFunctionalityTest.marshallUnmarshallH264Data:RtpFunctionalityTest.packingUnpackingVerifySameH264Frame:RtcpFunctionalityTest.onRtcpPacketCompound:RtcpFunctionalityTest.twcc3"
+
+    - name: "Sample check"
+      os: linux
+      compiler: gcc
+      before_install:
+        # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
+        - sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+        - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+        - sudo apt-get -q update
+        - sudo apt-get -y install gcc-4.4
+      before_script: mkdir build && cd build && cmake ..
+      script:
+        - make
+        - cd ..
+        - ./scripts/check-sample.sh
 
     # Generate Doxygen
     - name: "Generate Doxygen"
