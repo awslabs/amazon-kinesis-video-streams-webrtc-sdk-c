@@ -8,11 +8,15 @@ branches:
 cache:
 - directories:
   - $HOME/.cache
+  -
+services:
+  - docker
 
 addons:
   apt:
     packages:
       - gdb
+      - docker-ce
 
 script:
   - export AWS_KVS_LOG_LEVEL=3
@@ -149,10 +153,11 @@ matrix:
         - echo '{"ipv6":true,"fixed-cidr-v6":"2001:db8:1::/64"}' | sudo tee /etc/docker/daemon.json
         - sudo service docker restart
         - mkdir build
-        - docker run -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -w /src/build -dit --name alpine -v $(pwd):/src alpine
+        - docker run -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -w /src/build -dit --security-opt=seccomp=unconfined --name alpine -v $(pwd):/src alpine:latest
         - alpine() { docker exec -it alpine "$@"; }
       install:
         - alpine apk update
+        - alpine apk upgrade
         - alpine apk add alpine-sdk cmake clang linux-headers perl bash
       script:
         - alpine cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE

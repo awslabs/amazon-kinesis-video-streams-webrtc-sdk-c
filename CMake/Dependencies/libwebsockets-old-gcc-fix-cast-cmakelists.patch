@@ -1,0 +1,31 @@
+diff --git a/lib/misc/base64-decode.c b/lib/misc/base64-decode.c
+index f8e8e49a..9d18b33f 100644
+--- a/lib/misc/base64-decode.c
++++ b/lib/misc/base64-decode.c
+@@ -72,9 +72,9 @@ _lws_b64_encode_string(const char *encode, const char *in, int in_len,
+ 		*out++ = encode[triple[0] >> 2];
+ 		*out++ = encode[(((triple[0] & 0x03) << 4) & 0x30) |
+ 					     (((triple[1] & 0xf0) >> 4) & 0x0f)];
+-		*out++ = (len > 1 ? encode[(((triple[1] & 0x0f) << 2) & 0x3c) |
++		*out++ = (char)(len > 1 ? encode[(((triple[1] & 0x0f) << 2) & 0x3c) |
+ 					(((triple[2] & 0xc0) >> 6) & 3)] : '=');
+-		*out++ = (len > 2 ? encode[triple[2] & 0x3f] : '=');
++		*out++ = (char)(len > 2 ? encode[triple[2] & 0x3f] : '=');
+ 
+ 		done += 4;
+ 	}
+diff --git a/lib/roles/h2/hpack.c b/lib/roles/h2/hpack.c
+index 68629e6f..6ef628b8 100644
+--- a/lib/roles/h2/hpack.c
++++ b/lib/roles/h2/hpack.c
+@@ -1110,7 +1110,7 @@ pre_data:
+ 
+ 		for (n = 0; n < 8; n++) {
+ 			if (h2n->huff) {
+-				char b = (c >> 7) & 1;
++			        char b = (char)((c >> 7) & 1);
+ 				prev = h2n->hpack_pos;
+ 				h2n->hpack_pos = (uint16_t)huftable_decode(
+ 						(int)h2n->hpack_pos, b);
+
+
