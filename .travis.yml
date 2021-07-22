@@ -153,11 +153,11 @@ matrix:
         - echo '{"ipv6":true,"fixed-cidr-v6":"2001:db8:1::/64"}' | sudo tee /etc/docker/daemon.json
         - sudo service docker restart
         - mkdir build
-        - wget https://raw.githubusercontent.com/docker/labs/master/security/seccomp/seccomp-profiles/default.json
-        - ls
-        - mv default.json build/
-        - ls build
-        - docker run -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -w /src/build -dit --security-opt=seccomp=build/default.json --name alpine -v $(pwd):/src alpine:latest
+#        - wget https://raw.githubusercontent.com/docker/labs/master/security/seccomp/seccomp-profiles/default.json
+#        - ls
+#        - mv default.json build/
+#        - ls build
+        - docker run -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -w /src/build -dit --security-opt=seccomp=.github/default.json --name alpine -v $(pwd):/src alpine:latest
         - alpine() { docker exec -it alpine "$@"; }
       install:
         - alpine apk update
