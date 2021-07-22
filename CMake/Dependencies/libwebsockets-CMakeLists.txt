@@ -35,7 +35,6 @@ ExternalProject_Add(project_libwebsockets
         -DLWS_WITHOUT_SERVER=1
         -DLWS_WITHOUT_TESTAPPS=1
         -DLWS_WITH_THREADPOOL=1
-        -DLWS_WITH_NETWORK=1
         -DLWS_WITHOUT_TEST_SERVER_EXTPOLL=1
         -DLWS_WITHOUT_TEST_PING=1
         -DLWS_WITHOUT_TEST_CLIENT=1
