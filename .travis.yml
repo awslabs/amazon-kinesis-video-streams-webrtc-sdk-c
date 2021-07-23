@@ -158,7 +158,7 @@ matrix:
       install:
         - alpine apk update
         - alpine apk upgrade
-        - alpine apk add alpine-sdk cmake clang linux-headers perl bash openssl-dev
+        - alpine apk add alpine-sdk cmake clang linux-headers perl bash openssl-dev libssl-dev
       script:
         - alpine cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE
         - alpine make
