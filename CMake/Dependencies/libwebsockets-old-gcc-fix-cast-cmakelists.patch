@@ -27,5 +27,29 @@ index 68629e6f..6ef628b8 100644
  				prev = h2n->hpack_pos;
  				h2n->hpack_pos = (uint16_t)huftable_decode(
  						(int)h2n->hpack_pos, b);
+diff --git a/lib/tls/CMakeLists.txt b/lib/tls/CMakeLists.txt
+index b214df75..03d0e227 100644
+--- a/lib/tls/CMakeLists.txt
++++ b/lib/tls/CMakeLists.txt
+@@ -32,6 +32,7 @@
+ # Everything else is handled privately here.
 
+ include_directories(.)
++message("[Hassan TOP] - ${LWS_OPENSSL_LIBRARIES}")
 
+ # Allow the user to use the old CyaSSL options/library in stead of wolfSSL
+ if (LWS_WITH_CYASSL AND LWS_WITH_WOLFSSL)
+@@ -57,10 +58,11 @@ if (LWS_WITH_BORINGSSL)
+ endif()
+
+ if (LWS_WITH_SSL AND NOT LWS_WITH_WOLFSSL AND NOT LWS_WITH_MBEDTLS)
+-	if ("${LWS_OPENSSL_LIBRARIES}" STREQUAL "" OR "${LWS_OPENSSL_INCLUDE_DIRS}" STREQUAL "")
++	if (("${LWS_OPENSSL_LIBRARIES}" STREQUAL "" AND ("${LWS_OPENSSL_SSL_LIBRARY}" STREQUAL "" OR "${LWS_OPENSSL_CRYPTO_LIBRARY}" STREQUAL "")) OR "${LWS_OPENSSL_INCLUDE_DIRS}" STREQUAL "")
+ 	else()
+ 		if (NOT LWS_PLAT_FREERTOS)
+-			set(OPENSSL_LIBRARIES ${LWS_OPENSSL_LIBRARIES})
++			list(APPEND OPENSSL_LIBRARIES ${LWS_OPENSSL_LIBRARIES} ${LWS_OPENSSL_SSL_LIBRARY} ${LWS_OPENSSL_CRYPTO_LIBRARY})
++			message("[HASSAN] - ${OPENSSL_LIBRARIES}")
+ 		endif()
+ 		set(OPENSSL_INCLUDE_DIRS ${LWS_OPENSSL_INCLUDE_DIRS})
+ 		set(OPENSSL_FOUND 1)
