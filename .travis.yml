@@ -17,6 +17,7 @@ addons:
     packages:
       - gdb
       - docker-ce
+      - clang-format-11.0
 
 script:
   - export AWS_KVS_LOG_LEVEL=3
@@ -39,7 +40,6 @@ matrix:
       compiler: clang
       before_script:
         - sudo apt-get -q update
-        - sudo apt-get -y install clang-format-11
       script:
         - clang-format --version
         - bash scripts/check-clang.sh
