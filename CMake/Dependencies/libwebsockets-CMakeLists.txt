@@ -16,6 +16,7 @@ endif()
 
 if (USE_OPENSSL)
   set(LWS_WITH_MBEDTLS OFF)
+  find_package(OpenSSL REQUIRED)
 else()
   set(LWS_WITH_MBEDTLS ON)
 endif()
@@ -45,7 +46,8 @@ ExternalProject_Add(project_libwebsockets
         -DLWS_HAVE_EVENTFD=0
         -DLWS_WITH_MBEDTLS=${LWS_WITH_MBEDTLS}
 # enable for debug output        -DCMAKE_BUILD_TYPE=DEBUG
-        -DOPENSSL_ROOT_DIR=${OPENSSL_DIR}
+        -DLWS_OPENSSL_INCLUDE_DIRS=${OPENSSL_INCLUDE_DIR}
+        -DLWS_OPENSSL_LIBRARIES=${OPENSSL_LIBRARIES}
         -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
         BUILD_ALWAYS      TRUE
     TEST_COMMAND      ""
