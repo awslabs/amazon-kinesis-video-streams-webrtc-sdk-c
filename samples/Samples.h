@@ -185,6 +185,7 @@ STATUS freeMessageQueue(PPendingMessageQueue);
 STATUS submitPendingIceCandidate(PPendingMessageQueue, PSampleStreamingSession);
 STATUS removeExpiredMessageQueues(PStackQueue);
 STATUS getPendingMessageQueueForHash(PStackQueue, UINT64, BOOL, PPendingMessageQueue*);
+BOOL sampleFilterNetworkInterfaces(UINT64, PCHAR);
 
 #ifdef __cplusplus
 }

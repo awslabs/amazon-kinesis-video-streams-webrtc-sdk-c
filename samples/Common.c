@@ -272,6 +272,17 @@ CleanUp:
     return retStatus;
 }
 
+BOOL sampleFilterNetworkInterfaces(UINT64 customData, PCHAR networkInt)
+{
+    UNUSED_PARAM(customData);
+    BOOL useInterface = FALSE;
+    if (STRNCMP(networkInt, (PCHAR) "eth0", ARRAY_SIZE("eth0")) == 0) {
+        useInterface = TRUE;
+    }
+    DLOGD("%s %s", networkInt, (useInterface) ? ("allowed. Candidates to be gathered") : ("blocked. Candidates will not be gathered"));
+    return useInterface;
+}
+
 VOID onIceCandidateHandler(UINT64 customData, PCHAR candidateJson)
 {
     STATUS retStatus = STATUS_SUCCESS;
