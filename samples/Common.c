@@ -734,13 +734,8 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     SET_LOGGER_LOG_LEVEL(logLevel);
 
 #ifdef IOT_CORE_ENABLE_CREDENTIALS
-    CHK_STATUS(createLwsIotCredentialProvider(pIotCoreCredentialEndPoint,
-                                              pIotCoreCert,
-                                              pIotCorePrivateKey,
-                                              pSampleConfiguration->pCaCertPath,
-                                              pIotCoreRoleAlias,
-                                              channelName,
-                                              &pSampleConfiguration->pCredentialProvider));
+    CHK_STATUS(createLwsIotCredentialProvider(pIotCoreCredentialEndPoint, pIotCoreCert, pIotCorePrivateKey, pSampleConfiguration->pCaCertPath,
+                                              pIotCoreRoleAlias, channelName, &pSampleConfiguration->pCredentialProvider));
 #else
     CHK_STATUS(
         createStaticCredentialProvider(pAccessKey, 0, pSecretKey, 0, pSessionToken, 0, MAX_UINT64, &pSampleConfiguration->pCredentialProvider));
@@ -1065,7 +1060,6 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
 #else
     freeStaticCredentialProvider(&pSampleConfiguration->pCredentialProvider);
 #endif
-
 
     if (IS_VALID_TIMER_QUEUE_HANDLE(pSampleConfiguration->timerQueueHandle)) {
         if (pSampleConfiguration->iceCandidatePairStatsTimerId != MAX_UINT32) {

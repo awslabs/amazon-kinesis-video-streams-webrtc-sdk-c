@@ -2,10 +2,10 @@
 
 #include "../Include_i.h"
 
-//Applies only to the case where the very first frame has its first packets out of order
-#define MAX_OUT_OF_ORDER_PACKET_DIFFERENCE      512
+// Applies only to the case where the very first frame has its first packets out of order
+#define MAX_OUT_OF_ORDER_PACKET_DIFFERENCE 512
 
-//forward declaration
+// forward declaration
 STATUS jitterBufferInternalParse(PJitterBuffer pJitterBuffer, BOOL bufferClosed);
 
 STATUS createJitterBuffer(FrameReadyFunc onFrameReadyFunc, FrameDroppedFunc onFrameDroppedFunc, DepayRtpPayloadFunc depayRtpPayloadFunc,
@@ -102,10 +102,9 @@ STATUS jitterBufferPush(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket, PBOO
         pJitterBuffer->lastPushTimestamp = pRtpPacket->header.timestamp;
     }
 
-    //is the packet within the accepted latency range, if so, add it to the hashtable
+    // is the packet within the accepted latency range, if so, add it to the hashtable
     if ((pRtpPacket->header.timestamp < pJitterBuffer->maxLatency && pJitterBuffer->lastPushTimestamp <= pJitterBuffer->maxLatency) ||
         pRtpPacket->header.timestamp >= pJitterBuffer->lastPushTimestamp - pJitterBuffer->maxLatency) {
-
         status = hashTableGet(pJitterBuffer->pPkgBufferHashTable, pRtpPacket->header.sequenceNumber, &hashValue);
         pCurPacket = (PRtpPacket) hashValue;
         if (STATUS_SUCCEEDED(status) && pCurPacket != NULL) {
@@ -130,27 +129,25 @@ STATUS jitterBufferPush(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket, PBOO
          *dropped a frame for a good reason then we want to ignore any packets from that dropped frame that may come later.
          */
         if (!(pJitterBuffer->firstFrameProcessed)) {
-            //if the timestamp is less, we'll accept it as a new head, since it must be an earlier frame.
+            // if the timestamp is less, we'll accept it as a new head, since it must be an earlier frame.
             if (pRtpPacket->header.timestamp < pJitterBuffer->headTimestamp) {
                 pJitterBuffer->headSequenceNumber = pRtpPacket->header.sequenceNumber;
                 pJitterBuffer->headTimestamp = pRtpPacket->header.timestamp;
             }
-            //timestamp is equal, we're in the same frame.
+            // timestamp is equal, we're in the same frame.
             else if (pRtpPacket->header.timestamp == pJitterBuffer->headTimestamp) {
-                if(pJitterBuffer->headSequenceNumber < MAX_OUT_OF_ORDER_PACKET_DIFFERENCE) {
-                    if((pRtpPacket->header.sequenceNumber >= (MAX_UINT16 - (MAX_OUT_OF_ORDER_PACKET_DIFFERENCE - pJitterBuffer->headSequenceNumber))) ||
-                       (pJitterBuffer->headSequenceNumber > pRtpPacket->header.sequenceNumber))
-                    {
+                if (pJitterBuffer->headSequenceNumber < MAX_OUT_OF_ORDER_PACKET_DIFFERENCE) {
+                    if ((pRtpPacket->header.sequenceNumber >=
+                         (MAX_UINT16 - (MAX_OUT_OF_ORDER_PACKET_DIFFERENCE - pJitterBuffer->headSequenceNumber))) ||
+                        (pJitterBuffer->headSequenceNumber > pRtpPacket->header.sequenceNumber)) {
                         pJitterBuffer->headSequenceNumber = pRtpPacket->header.sequenceNumber;
                     }
-                }
-                else if((pJitterBuffer->headSequenceNumber - MAX_OUT_OF_ORDER_PACKET_DIFFERENCE) <= pRtpPacket->header.sequenceNumber)
-                {
+                } else if ((pJitterBuffer->headSequenceNumber - MAX_OUT_OF_ORDER_PACKET_DIFFERENCE) <= pRtpPacket->header.sequenceNumber) {
                     pJitterBuffer->headSequenceNumber = pRtpPacket->header.sequenceNumber;
                 }
             }
         }
-        //DONE with considering the head.
+        // DONE with considering the head.
 
         DLOGS("jitterBufferPush get packet timestamp %lu seqNum %lu", pRtpPacket->header.timestamp, pRtpPacket->header.sequenceNumber);
     } else {
@@ -198,9 +195,9 @@ STATUS jitterBufferInternalParse(PJitterBuffer pJitterBuffer, BOOL bufferClosed)
     lastIndex = pJitterBuffer->headSequenceNumber - 1;
     index = pJitterBuffer->headSequenceNumber;
     startDropIndex = index;
-    //Loop through entire buffer to find complete frames.
+    // Loop through entire buffer to find complete frames.
     /*A Frame is ready when these conditions are met:
-     * 1. We have a starting packet 
+     * 1. We have a starting packet
      * 2. There were no missing sequence numbers up to this point
      * 3. A different timestamp in a sequential packet was found
      * 4. There are no earlier frames still in the buffer
@@ -213,15 +210,14 @@ STATUS jitterBufferInternalParse(PJitterBuffer pJitterBuffer, BOOL bufferClosed)
      *The buffer is parsed in order of sequence numbers. It is important to note that if the Frame ready
      *conditions have been met from dropping an earlier frame, then it will be processed.
      *
-    */
+     */
     for (; index != lastIndex; index++) {
         CHK_STATUS(hashTableContains(pJitterBuffer->pPkgBufferHashTable, index, &hasEntry));
         if (!hasEntry) {
             isFrameDataContinuous = FALSE;
-            //if the max latency has not been reached, or the buffer is not being closed, exit parse when a missing entry is found
+            // if the max latency has not been reached, or the buffer is not being closed, exit parse when a missing entry is found
             CHK(pJitterBuffer->headTimestamp < earliestAllowedTimestamp || bufferClosed, retStatus);
         } else {
-
             lastNonNullIndex = index;
             retStatus = hashTableGet(pJitterBuffer->pPkgBufferHashTable, index, &hashValue);
             pCurPacket = (PRtpPacket) hashValue;
@@ -231,38 +227,37 @@ STATUS jitterBufferInternalParse(PJitterBuffer pJitterBuffer, BOOL bufferClosed)
                 CHK(FALSE, retStatus);
             }
             curTimestamp = pCurPacket->header.timestamp;
-            //new timestamp on an RTP packet means new frame
+            // new timestamp on an RTP packet means new frame
             if (curTimestamp != pJitterBuffer->headTimestamp) {
-                //was previous frame complete? Deliver it
-                if (containStartForEarliestFrame && isFrameDataContinuous)
-                {
-                    //Decrement the index because this is an inclusive end parser, and we don't want to include the current index in the processed frame.
+                // was previous frame complete? Deliver it
+                if (containStartForEarliestFrame && isFrameDataContinuous) {
+                    // Decrement the index because this is an inclusive end parser, and we don't want to include the current index in the processed
+                    // frame.
                     CHK_STATUS(pJitterBuffer->onFrameReadyFn(pJitterBuffer->customData, startDropIndex, UINT16_DEC(index), curFrameSize));
                     CHK_STATUS(jitterBufferDropBufferData(pJitterBuffer, startDropIndex, UINT16_DEC(index), curTimestamp));
                     pJitterBuffer->firstFrameProcessed = TRUE;
                     startDropIndex = index;
                     containStartForEarliestFrame = FALSE;
                 }
-                //are we force clearing out the buffer? if so drop the contents of incomplete frame
+                // are we force clearing out the buffer? if so drop the contents of incomplete frame
                 else if (pJitterBuffer->headTimestamp < earliestAllowedTimestamp || bufferClosed) {
-                    CHK_STATUS(pJitterBuffer->onFrameDroppedFn(pJitterBuffer->customData, startDropIndex, UINT16_DEC(index),
-                                                               pJitterBuffer->headTimestamp));
+                    CHK_STATUS(
+                        pJitterBuffer->onFrameDroppedFn(pJitterBuffer->customData, startDropIndex, UINT16_DEC(index), pJitterBuffer->headTimestamp));
                     CHK_STATUS(jitterBufferDropBufferData(pJitterBuffer, startDropIndex, UINT16_DEC(index), curTimestamp));
                     pJitterBuffer->firstFrameProcessed = TRUE;
                     isFrameDataContinuous = TRUE;
                     startDropIndex = index;
-                }
-                else
-                {
-                    //if you're here, it means we're not force clearing the buffer, and the previous frame must be missing its starting packet.
-                    //The starting packet isn't going to be found at an incremental sequence number, so we can save some time and break here.
+                } else {
+                    // if you're here, it means we're not force clearing the buffer, and the previous frame must be missing its starting packet.
+                    // The starting packet isn't going to be found at an incremental sequence number, so we can save some time and break here.
                     break;
                 }
-                //new timestamp means new frame, drop tracking for previous frame size
+                // new timestamp means new frame, drop tracking for previous frame size
                 curFrameSize = 0;
             }
 
-            //With the missing output buffer parameter, this will only return the size of the packet, and identify if it is a starting packet of a frame
+            // With the missing output buffer parameter, this will only return the size of the packet, and identify if it is a starting packet of a
+            // frame
             CHK_STATUS(pJitterBuffer->depayPayloadFn(pCurPacket->payload, pCurPacket->payloadLength, NULL, &partialFrameSize, &isStart));
             curFrameSize += partialFrameSize;
             if (isStart && pJitterBuffer->headTimestamp == curTimestamp) {
@@ -290,8 +285,7 @@ STATUS jitterBufferInternalParse(PJitterBuffer pJitterBuffer, BOOL bufferClosed)
             CHK_STATUS(pJitterBuffer->onFrameReadyFn(pJitterBuffer->customData, startDropIndex, lastNonNullIndex, curFrameSize));
             CHK_STATUS(jitterBufferDropBufferData(pJitterBuffer, startDropIndex, lastNonNullIndex, pJitterBuffer->headTimestamp));
         } else {
-            CHK_STATUS(
-                pJitterBuffer->onFrameDroppedFn(pJitterBuffer->customData, startDropIndex, UINT16_DEC(index), pJitterBuffer->headTimestamp));
+            CHK_STATUS(pJitterBuffer->onFrameDroppedFn(pJitterBuffer->customData, startDropIndex, UINT16_DEC(index), pJitterBuffer->headTimestamp));
             CHK_STATUS(jitterBufferDropBufferData(pJitterBuffer, startDropIndex, lastNonNullIndex, pJitterBuffer->headTimestamp));
         }
     }
@@ -303,9 +297,8 @@ CleanUp:
     return retStatus;
 }
 
-
-//Remove all packets containing sequence numbers between and including the startIndex and endIndex for the JitterBuffer.
-//The nextTimestamp is assumed to be the timestamp of the next earliest Frame
+// Remove all packets containing sequence numbers between and including the startIndex and endIndex for the JitterBuffer.
+// The nextTimestamp is assumed to be the timestamp of the next earliest Frame
 STATUS jitterBufferDropBufferData(PJitterBuffer pJitterBuffer, UINT16 startIndex, UINT16 endIndex, UINT32 nextTimestamp)
 {
     ENTERS();
@@ -335,7 +328,7 @@ CleanUp:
     return retStatus;
 }
 
-//Depay all packets containing sequence numbers between and including the startIndex and endIndex for the JitterBuffer.
+// Depay all packets containing sequence numbers between and including the startIndex and endIndex for the JitterBuffer.
 STATUS jitterBufferFillFrameData(PJitterBuffer pJitterBuffer, PBYTE pFrame, UINT32 frameSize, PUINT32 pFilledSize, UINT16 startIndex, UINT16 endIndex)
 {
     ENTERS();
