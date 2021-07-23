@@ -280,7 +280,7 @@ BOOL sampleFilterNetworkInterfaces(UINT64 customData, PCHAR networkInt)
         useInterface = TRUE;
     }
     DLOGD("%s %s", networkInt, (useInterface) ? ("allowed. Candidates to be gathered") : ("blocked. Candidates will not be gathered"));
-    return TRUE;
+    return useInterface;
 }
 
 VOID onIceCandidateHandler(UINT64 customData, PCHAR candidateJson)
