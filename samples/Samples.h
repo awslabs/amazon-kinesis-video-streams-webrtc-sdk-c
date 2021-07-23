@@ -40,6 +40,15 @@ extern "C" {
 #define SAMPLE_HASH_TABLE_BUCKET_COUNT  50
 #define SAMPLE_HASH_TABLE_BUCKET_LENGTH 2
 
+#define IOT_CORE_CREDENTIAL_ENDPOINT ((PCHAR) "AWS_IOT_CORE_CREDENTIAL_ENDPOINT")
+#define IOT_CORE_CERT                ((PCHAR) "AWS_IOT_CORE_CERT")
+#define IOT_CORE_PRIVATE_KEY         ((PCHAR) "AWS_IOT_CORE_PRIVATE_KEY")
+#define IOT_CORE_ROLE_ALIAS          ((PCHAR) "AWS_IOT_CORE_ROLE_ALIAS")
+#define IOT_CORE_THING_NAME          ((PCHAR) "AWS_IOT_CORE_THING_NAME")
+
+/* Uncomment the following line in order to enable IoT credentials checks in the provided samples */
+//#define IOT_CORE_ENABLE_CREDENTIALS  1
+
 typedef enum {
     SAMPLE_STREAMING_VIDEO_ONLY,
     SAMPLE_STREAMING_AUDIO_VIDEO,
@@ -176,6 +185,7 @@ STATUS freeMessageQueue(PPendingMessageQueue);
 STATUS submitPendingIceCandidate(PPendingMessageQueue, PSampleStreamingSession);
 STATUS removeExpiredMessageQueues(PStackQueue);
 STATUS getPendingMessageQueueForHash(PStackQueue, UINT64, BOOL, PPendingMessageQueue*);
+BOOL sampleFilterNetworkInterfaces(UINT64, PCHAR);
 
 #ifdef __cplusplus
 }

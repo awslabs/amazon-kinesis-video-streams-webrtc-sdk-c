@@ -324,8 +324,7 @@ STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, U
     UINT32 bytesWritten = 0;
     INT32 errorNum = 0;
 
-    fd_set wfds;
-    struct timeval tv;
+    struct pollfd wfds;
     socklen_t addrLen = 0;
     struct sockaddr* destAddr = NULL;
     struct sockaddr_in ipv4Addr;
@@ -358,17 +357,17 @@ STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, U
         if (result < 0) {
             errorNum = getErrorCode();
             if (errorNum == EAGAIN || errorNum == EWOULDBLOCK) {
-                FD_ZERO(&wfds);
-                FD_SET(pSocketConnection->localSocket, &wfds);
-                tv.tv_sec = 0;
-                tv.tv_usec = SOCKET_SEND_RETRY_TIMEOUT_MICRO_SECOND;
-                result = select(pSocketConnection->localSocket + 1, NULL, &wfds, NULL, &tv);
+                MEMSET(&wfds, 0x00, SIZEOF(struct pollfd));
+                wfds.fd = pSocketConnection->localSocket;
+                wfds.events = POLLOUT;
+                wfds.revents = 0;
+                result = POLL(&wfds, 1, SOCKET_SEND_RETRY_TIMEOUT_MILLI_SECOND);
 
                 if (result == 0) {
                     /* loop back and try again */
-                    DLOGD("select() timed out");
+                    DLOGD("poll() timed out");
                 } else if (result < 0) {
-                    DLOGD("select() failed with errno %s", getErrorString(getErrorCode()));
+                    DLOGD("poll() failed with errno %s", getErrorString(getErrorCode()));
                     break;
                 }
             } else if (errorNum == EINTR) {

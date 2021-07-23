@@ -337,6 +337,7 @@ INT32 main(INT32 argc, CHAR* argv[])
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = NULL;
+    PCHAR pChannelName;
 
     SET_INSTRUMENTED_ALLOCATORS();
 
@@ -345,14 +346,19 @@ INT32 main(INT32 argc, CHAR* argv[])
     // do trickle-ice by default
     printf("[KVS GStreamer Master] Using trickleICE by default\n");
 
-    retStatus =
-        createSampleConfiguration(argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, &pSampleConfiguration);
+#ifdef IOT_CORE_ENABLE_CREDENTIALS
+    CHK_ERR((pChannelName = getenv(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_THING_NAME must be set");
+#else
+    pChannelName = argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME;
+#endif
+
+    retStatus = createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, &pSampleConfiguration);
     if (retStatus != STATUS_SUCCESS) {
         printf("[KVS GStreamer Master] createSampleConfiguration(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;
     }
 
-    printf("[KVS GStreamer Master] Created signaling channel %s\n", (argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME));
+    printf("[KVS GStreamer Master] Created signaling channel %s\n", pChannelName);
 
     if (pSampleConfiguration->enableFileLogging) {
         retStatus =
@@ -431,7 +437,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     }
     printf("[KVS GStreamer Master] Signaling client connection to socket established\n");
 
-    printf("[KVS Gstreamer Master] Beginning streaming...check the stream over channel %s\n", (argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME));
+    printf("[KVS Gstreamer Master] Beginning streaming...check the stream over channel %s\n", pChannelName);
 
     gSampleConfiguration = pSampleConfiguration;
 

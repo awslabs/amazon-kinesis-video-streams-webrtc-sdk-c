@@ -6,9 +6,9 @@ include(ExternalProject)
 
 ExternalProject_Add(project_libusrsctp
     GIT_REPOSITORY    https://github.com/sctplab/usrsctp.git
-    GIT_TAG           939d48f9632d69bf170c7a84514b312b6b42257d
+    GIT_TAG           1ade45cbadfd19298d2c47dc538962d4425ad2dd
     PREFIX            ${CMAKE_CURRENT_BINARY_DIR}/build
-    CMAKE_ARGS        -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX} -Dsctp_werror=0
+    CMAKE_ARGS        -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX} -DCMAKE_C_FLAGS=-fPIC -Dsctp_werror=0
     BUILD_ALWAYS      TRUE
     TEST_COMMAND      ""
 )
