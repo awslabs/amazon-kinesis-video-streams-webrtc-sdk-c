@@ -277,6 +277,7 @@ include_directories(${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/include)
 include_directories(${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/ice)
 
 add_library(kvsWebrtcClient ${LINKAGE} ${WEBRTC_CLIENT_SOURCE_FILES})
+target_include_directories(kvsWebrtcClient PUBLIC ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/include)
 
 target_link_libraries(
   kvsWebrtcClient
@@ -293,6 +294,7 @@ target_link_libraries(
           ${EXTRA_DEPS})
 
 add_library(kvsWebrtcSignalingClient ${LINKAGE} ${WEBRTC_SIGNALING_CLIENT_SOURCE_FILES})
+target_include_directories(kvsWebrtcSignalingClient PUBLIC ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/include)
 
 target_link_libraries(
   kvsWebrtcSignalingClient
