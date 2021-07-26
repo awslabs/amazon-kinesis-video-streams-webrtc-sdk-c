@@ -160,7 +160,7 @@ matrix:
         - alpine apk upgrade
         - alpine apk add alpine-sdk cmake clang linux-headers perl bash openssl-dev
       script:
-        - alpine cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE -DCMAKE_INCLUDE_PATH=/usr/local/ssl/include -DCMAKE_LIBRARY_PATH=/usr/local/ssl/lib
+        - alpine cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE
         - alpine make
         # ldd will return non-zero when there's no dynamic link. So, the positive value for static builds is non-zero
         - alpine ../scripts/check-static-build.sh || travis_terminate 1
