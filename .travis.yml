@@ -14,13 +14,9 @@ services:
 
 addons:
   apt:
-    sources:
-      - sourceline: "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-11 main"
-        key_url: "https://apt.llvm.org/llvm-snapshot.gpg.key"
     packages:
       - gdb
       - docker-ce
-      - clang-11
 
 script:
   - export AWS_KVS_LOG_LEVEL=3
@@ -43,9 +39,10 @@ matrix:
       compiler: clang
       before_script:
         - sudo apt-get -q update
+        - sudo apt-get install clang-format
       script:
         - clang-format --version
-        - bash scripts/check-clang.sh
+        - bash scripts/check-clang.sh .travis-clang-format
 
 #    # MacOS Builds
 #    - name: "OSX GCC"

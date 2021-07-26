@@ -14,7 +14,7 @@ SOURCE_FILES=`find src samples tst -type f \( -name '*.h' -o -name '*.c' \) -not
 echo "Performing clang format compliance check...."
 for i in $SOURCE_FILES
 do
-    $CLANG_FORMAT -output-replacements-xml $i | grep -c "<replacement " > /dev/null
+    $CLANG_FORMAT -assume-filename=$1 -output-replacements-xml $i | grep -c "<replacement " > /dev/null
     if [ $? -ne 1 ]
     then
         echo "$i failed clang-format check."
