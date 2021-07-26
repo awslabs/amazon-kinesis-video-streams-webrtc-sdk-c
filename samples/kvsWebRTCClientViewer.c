@@ -1,6 +1,38 @@
 #include "Samples.h"
+#define VIEWER_DATA_CHANNEL_MESSAGE "This message is from the KVS Viewer"
 
 extern PSampleConfiguration gSampleConfiguration;
+
+// onMessage callback for a message received by the viewer on a data channel
+VOID dataChannelOnMessageCallback(UINT64 customData, PRtcDataChannel pDataChannel, BOOL isBinary, PBYTE pMessage, UINT32 pMessageLen)
+{
+    UNUSED_PARAM(customData);
+    STATUS retStatus = STATUS_SUCCESS;
+    if (isBinary) {
+        DLOGI("DataChannel Binary Message");
+    } else {
+        DLOGI("DataChannel String Message: %.*s\n", pMessageLen, pMessage);
+    }
+    // Send a response to the message sent by the master
+    retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) VIEWER_DATA_CHANNEL_MESSAGE, STRLEN(VIEWER_DATA_CHANNEL_MESSAGE));
+    if(retStatus != STATUS_SUCCESS){
+        DLOGI("[KVS Viewer] dataChannelSend(): operation returned status code: 0x%08x \n", retStatus);
+    }
+    DLOGI("[KVS Viewer] successfully sent the message on the data channel\n");
+}
+
+// onOpen callback for the onOpen event of a viewer created data channel
+VOID dataChannelOnOpenCallback(UINT64 customData, PRtcDataChannel pDataChannel) {
+    DLOGI("New DataChannel has been opened %s \n", pDataChannel->name);
+    dataChannelOnMessage(pDataChannel, customData, dataChannelOnMessageCallback);
+    ATOMIC_INCREMENT((PSIZE_T) customData);
+    STATUS retStatus = STATUS_SUCCESS;
+    // Sending first message to the master over the data channel
+    retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) VIEWER_DATA_CHANNEL_MESSAGE, STRLEN(VIEWER_DATA_CHANNEL_MESSAGE));
+    if(retStatus != STATUS_SUCCESS){
+        DLOGI("[KVS Viewer] dataChannelSend(): operation returned status code: 0x%08x \n", retStatus);
+    }
+}
 
 INT32 main(INT32 argc, CHAR* argv[])
 {
@@ -81,13 +113,11 @@ INT32 main(INT32 argc, CHAR* argv[])
     // Initialize streaming session
     MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
     locked = TRUE;
-
     retStatus = createSampleStreamingSession(pSampleConfiguration, NULL, FALSE, &pSampleStreamingSession);
     if (retStatus != STATUS_SUCCESS) {
         printf("[KVS Viewer] createSampleStreamingSession(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;
     }
-
     printf("[KVS Viewer] Creating streaming session...completed\n");
     pSampleConfiguration->sampleStreamingSessionList[pSampleConfiguration->streamingSessionCount++] = pSampleStreamingSession;
 
@@ -164,6 +194,26 @@ INT32 main(INT32 argc, CHAR* argv[])
         printf("[KVS Viewer] signalingClientSendMessageSync(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;
     }
+
+    PRtcDataChannel pDataChannel = NULL;
+    PRtcPeerConnection pPeerConnection = pSampleStreamingSession->pPeerConnection;
+    SIZE_T datachannelLocalOpenCount = 0;
+
+    // Creating a new datachannel on the peer connection of the existing sample streaming session
+    retStatus = createDataChannel(pPeerConnection, pChannelName, NULL, &pDataChannel);
+    if(retStatus != STATUS_SUCCESS) {
+        printf("[KVS Viewer] createDataChannel(): operation returned status code: 0x%08x \n", retStatus);
+        goto CleanUp;
+    }
+    printf("[KVS Viewer] Creating data channel...completed\n");
+
+    // Setting a callback for when the data channel is open
+    retStatus = dataChannelOnOpen(pDataChannel, (UINT64) &datachannelLocalOpenCount, dataChannelOnOpenCallback);
+    if(retStatus != STATUS_SUCCESS) {
+        printf("[KVS Viewer] dataChannelOnOpen(): operation returned status code: 0x%08x \n", retStatus);
+        goto CleanUp;
+    }
+    printf("[KVS Viewer] Data Channel open now...\n");
 
     // Block until interrupted
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->interrupted) && !ATOMIC_LOAD_BOOL(&pSampleStreamingSession->terminateFlag)) {
