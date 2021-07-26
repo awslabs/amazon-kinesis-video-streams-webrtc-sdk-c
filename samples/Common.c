@@ -1,5 +1,6 @@
 #define LOG_CLASS "WebRtcSamples"
 #include "Samples.h"
+// #define MASTER_DATA_CHANNEL_MESSAGE "This message is from the KVS Master"
 
 PSampleConfiguration gSampleConfiguration = NULL;
 

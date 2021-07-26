@@ -1,4 +1,5 @@
 #include "Samples.h"
+#define VIEWER_DATA_CHANNEL_MESSAGE "This message is from the KVS Viewer"
 
 extern PSampleConfiguration gSampleConfiguration;
 
