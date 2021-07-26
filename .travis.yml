@@ -35,14 +35,15 @@ matrix:
   include:
     #clang check
     - name: "clang-format Check"
-      os: linux
+      os: osx
       compiler: clang
       before_script:
-        - sudo apt-get -q update
-        - sudo apt-get install clang-format
+#        - sudo apt-get -q update
+#        - sudo apt-get install clang-format
+        - brew install clang-format
       script:
         - clang-format --version
-        - bash scripts/check-clang.sh .travis-clang-format
+        - bash scripts/check-clang.sh
 
 #    # MacOS Builds
 #    - name: "OSX GCC"
