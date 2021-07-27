@@ -28,7 +28,7 @@ index 68629e6f..6ef628b8 100644
  				h2n->hpack_pos = (uint16_t)huftable_decode(
  						(int)h2n->hpack_pos, b);
 diff --git a/lib/tls/CMakeLists.txt b/lib/tls/CMakeLists.txt
-index b214df75..687c7370 100644
+index b214df75..06eaf255 100644
 --- a/lib/tls/CMakeLists.txt
 +++ b/lib/tls/CMakeLists.txt
 @@ -57,10 +57,10 @@ if (LWS_WITH_BORINGSSL)
@@ -44,3 +44,14 @@ index b214df75..687c7370 100644
  		endif()
  		set(OPENSSL_INCLUDE_DIRS ${LWS_OPENSSL_INCLUDE_DIRS})
  		set(OPENSSL_FOUND 1)
+@@ -248,7 +248,9 @@ if (LWS_WITH_SSL)
+ 				find_package(PkgConfig QUIET)
+ 				pkg_check_modules(PC_OPENSSL openssl QUIET)
+ 				find_package(OpenSSL REQUIRED)
+-				list(APPEND OPENSSL_LIBRARIES ${PC_OPENSSL_LIBRARIES})
++				if (NOT LWS_WITH_STATIC)
++					list(APPEND OPENSSL_LIBRARIES ${PC_OPENSSL_LIBRARIES})
++				endif()
+ 				set(OPENSSL_LIBRARIES ${OPENSSL_LIBRARIES} PARENT_SCOPE)
+ 			endif()
+ 			set(OPENSSL_INCLUDE_DIRS "${OPENSSL_INCLUDE_DIR}")
