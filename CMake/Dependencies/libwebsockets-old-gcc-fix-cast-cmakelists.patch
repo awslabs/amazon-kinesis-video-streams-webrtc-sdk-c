@@ -27,5 +27,20 @@ index 68629e6f..6ef628b8 100644
  				prev = h2n->hpack_pos;
  				h2n->hpack_pos = (uint16_t)huftable_decode(
  						(int)h2n->hpack_pos, b);
-
-
+diff --git a/lib/tls/CMakeLists.txt b/lib/tls/CMakeLists.txt
+index b214df75..687c7370 100644
+--- a/lib/tls/CMakeLists.txt
++++ b/lib/tls/CMakeLists.txt
+@@ -57,10 +57,10 @@ if (LWS_WITH_BORINGSSL)
+ endif()
+ 
+ if (LWS_WITH_SSL AND NOT LWS_WITH_WOLFSSL AND NOT LWS_WITH_MBEDTLS)
+-	if ("${LWS_OPENSSL_LIBRARIES}" STREQUAL "" OR "${LWS_OPENSSL_INCLUDE_DIRS}" STREQUAL "")
++	if (("${LWS_OPENSSL_LIBRARIES}" STREQUAL "" AND ("${LWS_OPENSSL_SSL_LIBRARY}" STREQUAL "" OR "${LWS_OPENSSL_CRYPTO_LIBRARY}" STREQUAL "")) OR "${LWS_OPENSSL_INCLUDE_DIRS}" STREQUAL "")
+ 	else()
+ 		if (NOT LWS_PLAT_FREERTOS)
+-			set(OPENSSL_LIBRARIES ${LWS_OPENSSL_LIBRARIES})
++			list(APPEND OPENSSL_LIBRARIES ${LWS_OPENSSL_LIBRARIES} ${LWS_OPENSSL_SSL_LIBRARY} ${LWS_OPENSSL_CRYPTO_LIBRARY})
+ 		endif()
+ 		set(OPENSSL_INCLUDE_DIRS ${LWS_OPENSSL_INCLUDE_DIRS})
+ 		set(OPENSSL_FOUND 1)

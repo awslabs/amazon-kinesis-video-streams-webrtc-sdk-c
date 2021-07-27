@@ -9,6 +9,9 @@ include(ExternalProject)
 if (BUILD_STATIC_LIBS)
   set(LWS_WITH_STATIC 1)
   set(LWS_WITH_SHARED 0)
+  if (USE_OPENSSL)
+      set(OPENSSL_USE_STATIC_LIBS TRUE)
+  endif()
 else()
   set(LWS_WITH_STATIC 0)
   set(LWS_WITH_SHARED 1)
@@ -47,7 +50,8 @@ ExternalProject_Add(project_libwebsockets
         -DLWS_WITH_MBEDTLS=${LWS_WITH_MBEDTLS}
 # enable for debug output        -DCMAKE_BUILD_TYPE=DEBUG
         -DLWS_OPENSSL_INCLUDE_DIRS=${OPENSSL_INCLUDE_DIR}
-        -DLWS_OPENSSL_LIBRARIES=${OPENSSL_LIBRARIES}
+        -DLWS_OPENSSL_CRYPTO_LIBRARY=${OPENSSL_CRYPTO_LIBRARY}
+        -DLWS_OPENSSL_SSL_LIBRARY=${OPENSSL_SSL_LIBRARY}
         -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
         BUILD_ALWAYS      TRUE
     TEST_COMMAND      ""
