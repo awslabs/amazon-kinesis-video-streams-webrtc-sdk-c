@@ -92,7 +92,7 @@ STATUS dtlsFillPseudoRandomBits(PBYTE pBuf, UINT32 bufSize)
     CHK(bufSize >= DTLS_CERT_MIN_SERIAL_NUM_SIZE && bufSize <= DTLS_CERT_MAX_SERIAL_NUM_SIZE, retStatus);
 
     for (i = 0; i < bufSize; i++) {
-        *pBuf++ = (BYTE)(RAND() & 0xFF);
+        *pBuf++ = (BYTE) (RAND() & 0xFF);
     }
 
 CleanUp:
