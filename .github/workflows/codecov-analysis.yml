@@ -1,0 +1,39 @@
+name: "Codecov"
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    # The branches below must be a subset of the branches above
+    branches: [ master ]
+
+jobs:
+  codecov:
+    name: CodeCov
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+    - name: Build repository
+      id: build
+      run: |
+        sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+        mkdir build && cd build && cmake .. -DCODE_COVERAGE=TRUE -DBUILD_TEST=TRUE
+        export AWS_KVS_LOG_LEVEL=3
+        make
+        ulimit -c unlimited -S
+        timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+        for test_file in $(find CMakeFiles/kvsWebrtcClient.dir CMakeFiles/kvsWebrtcSignalingClient.dir -name '*.gcno'); do gcov $test_file; done
+        echo "::set-output name=gcov_path::$(pwd)/"
+    # https://github.com/codecov/codecov-action
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v2
+      with:
+        name: codecov-umbrella # optional
+        directory: ${{ steps.build.outputs.gcov_path }}
+        fail_ci_if_error: true # optional (default = false)
+        verbose: true # optional (default = false)
