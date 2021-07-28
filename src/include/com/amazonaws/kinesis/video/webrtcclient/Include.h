@@ -935,7 +935,7 @@ typedef VOID (*RtcOnDataChannel)(UINT64, PRtcDataChannel);
 /**
  * @brief RtcOnIceCandidate is fired when new iceCandidate is found. if PCHAR is NULL then candidate gathering is done.
  *
- * Reference: https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-ondatachannel
+ * Reference: https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-onicecandidate
  */
 typedef VOID (*RtcOnIceCandidate)(UINT64, PCHAR);
 
