@@ -26,12 +26,12 @@ extern "C" {
 #endif
 
 /*! \addtogroup StatusCodes
-* WEBRTC related status codes. Each value is an positive integer formed by adding
-* a base integer inticating the category to an index. Users may run scripts/parse_status.py
-* to print a list of all status codes and their hex value.
-*  @{
-*/
-#define STATUS_WEBRTC_BASE                                         0x55000000
+ * WEBRTC related status codes. Each value is an positive integer formed by adding
+ * a base integer inticating the category to an index. Users may run scripts/parse_status.py
+ * to print a list of all status codes and their hex value.
+ *  @{
+ */
+#define STATUS_WEBRTC_BASE 0x55000000
 
 /////////////////////////////////////////////////////
 /// Session description init related status codes
@@ -905,7 +905,7 @@ typedef VOID (*RtcOnPictureLoss)(UINT64);
  */
 typedef struct __RtcDataChannel {
     CHAR name[MAX_DATA_CHANNEL_NAME_LEN + 1]; //!< Define name of data channel. Max length is 256 characters
-    UINT32 id; //!< Read only field. Setting this in the application has no effect. This field is populated with the id
+    UINT32 id;                                //!< Read only field. Setting this in the application has no effect. This field is populated with the id
                //!< set by the peer connection's createDataChannel() call or the channel id is set in createDataChannel()
                //!< on embedded end.
 } RtcDataChannel, *PRtcDataChannel;
@@ -1053,16 +1053,16 @@ typedef struct {
     UINT32 iceConnectionCheckTimeout; //!< Maximum time allowed waiting for at least one ice candidate pair to receive
                                       //!< binding response from the peer. Use default value if 0.
 
-    UINT32 iceCandidateNominationTimeout; //!< If client is ice controlling, this is the timeout for receiving bind response of requests that has USE_CANDIDATE
-                                          //!< attribute. If client is ice controlled, this is the timeout for receiving binding request that has USE_CANDIDATE
-                                          //!< attribute after connection check is done. Use default value if 0.
+    UINT32 iceCandidateNominationTimeout; //!< If client is ice controlling, this is the timeout for receiving bind response of requests that has
+                                          //!< USE_CANDIDATE attribute. If client is ice controlled, this is the timeout for receiving binding request
+                                          //!< that has USE_CANDIDATE attribute after connection check is done. Use default value if 0.
 
     UINT32 iceConnectionCheckPollingInterval; //!< Ta in https://tools.ietf.org/html/rfc8445
                                               //!< rate at which binding request packets are sent during connection check. Use default interval if 0.
 
     INT32 generatedCertificateBits; //!< GeneratedCertificateBits controls the amount of bits the locally generated self-signed certificate uses
-                                    //!< A smaller amount of bits may result in less CPU usage on startup, but will cause a weaker certificate to be generated
-                                    //!< If set to 0 the default GENERATED_CERTIFICATE_BITS will be used
+                                    //!< A smaller amount of bits may result in less CPU usage on startup, but will cause a weaker certificate to be
+                                    //!< generated If set to 0 the default GENERATED_CERTIFICATE_BITS will be used
 
     BOOL generateRSACertificate; //!< GenerateRSACertificate controls if an ECDSA or RSA certificate is generated.
                                  //!< By default we generate an ECDSA certificate but some platforms may not support them.
@@ -1090,24 +1090,25 @@ typedef struct {
     RtcIceServer iceServers[MAX_ICE_SERVERS_COUNT]; //!< Servers available to be used by ICE, such as STUN and TURN servers.
     KvsRtcConfiguration kvsRtcConfiguration;        //!< Non-standard configuration options
 
-    RtcCertificate certificates[MAX_RTCCONFIGURATION_CERTIFICATES]; //!< Set of certificates that the RtcPeerConnection uses to authenticate.
-                                                                    //!< Although any given DTLS connection will use only one certificate, this
-                                                                    //!< attribute allows the caller to provide multiple certificates that support
-                                                                    //!< different algorithms.
-                                                                    //!<
-                                                                    //!< If this value is absent, then a default set of certificates is generated
-                                                                    //!< for each RtcPeerConnection.
-                                                                    //!<
-                                                                    //!< An absent value is determined by the certificate pointing to NULL
-                                                                    //!<
-                                                                    //!< Doc: https://www.w3.org/TR/webrtc/#dom-rtcconfiguration-certificates
-                                                                    //!<
-                                                                    //!< !!!!!!!!!! IMPORTANT !!!!!!!!!!
-                                                                    //!< It is recommended to rotate the certificates often - preferably for every peer connection
-                                                                    //!< to avoid a compromised client weakening the security of the new connections.
-                                                                    //!<
-                                                                    //!< NOTE: The certificates, if specified, can be freed after the peer connection create call
-                                                                    //!<
+    RtcCertificate
+        certificates[MAX_RTCCONFIGURATION_CERTIFICATES]; //!< Set of certificates that the RtcPeerConnection uses to authenticate.
+                                                         //!< Although any given DTLS connection will use only one certificate, this
+                                                         //!< attribute allows the caller to provide multiple certificates that support
+                                                         //!< different algorithms.
+                                                         //!<
+                                                         //!< If this value is absent, then a default set of certificates is generated
+                                                         //!< for each RtcPeerConnection.
+                                                         //!<
+                                                         //!< An absent value is determined by the certificate pointing to NULL
+                                                         //!<
+                                                         //!< Doc: https://www.w3.org/TR/webrtc/#dom-rtcconfiguration-certificates
+                                                         //!<
+                                                         //!< !!!!!!!!!! IMPORTANT !!!!!!!!!!
+                                                         //!< It is recommended to rotate the certificates often - preferably for every peer
+                                                         //!< connection to avoid a compromised client weakening the security of the new connections.
+                                                         //!<
+                                                         //!< NOTE: The certificates, if specified, can be freed after the peer connection create call
+                                                         //!<
 } RtcConfiguration, *PRtcConfiguration;
 
 /**
@@ -1443,8 +1444,8 @@ typedef struct {
 ////////////////////////////////////////////////////
 
 /*! \addtogroup PublicMemberFunctions
-* @{
-*/
+ * @{
+ */
 
 /**
  * @brief Initialize a RtcPeerConnection with the provided Configuration
