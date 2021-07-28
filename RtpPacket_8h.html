@@ -202,11 +202,11 @@ Macros</h2></td></tr>
 <tr class="separator:add0175e973ef30b95642010e857e2548"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab490f103a317c0d756074fde9e48f452"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="RtpPacket_8h.html#ab490f103a317c0d756074fde9e48f452">RTP_GET_RAW_PACKET_SIZE</a>(pRtpPacket)&#160;&#160;&#160;(<a class="el" href="RtpPacket_8h.html#add0175e973ef30b95642010e857e2548">RTP_HEADER_LEN</a>(pRtpPacket) + ((pRtpPacket)-&gt;payloadLength))</td></tr>
 <tr class="separator:ab490f103a317c0d756074fde9e48f452"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa9078138caa69861c76ab411dd399233"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="RtpPacket_8h.html#aa9078138caa69861c76ab411dd399233">GET_UINT16_SEQ_NUM</a>(seqIndex)&#160;&#160;&#160;((UINT16)((seqIndex) % (MAX_UINT16 + 1)))</td></tr>
+<tr class="memitem:aa9078138caa69861c76ab411dd399233"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="RtpPacket_8h.html#aa9078138caa69861c76ab411dd399233">GET_UINT16_SEQ_NUM</a>(seqIndex)&#160;&#160;&#160;((UINT16) ((seqIndex) % (MAX_UINT16 + 1)))</td></tr>
 <tr class="separator:aa9078138caa69861c76ab411dd399233"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0d516945a999adb6de5c8df4da1ad5b1"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="RtpPacket_8h.html#a0d516945a999adb6de5c8df4da1ad5b1">TWCC_EXT_PROFILE</a>&#160;&#160;&#160;0xBEDE</td></tr>
 <tr class="separator:a0d516945a999adb6de5c8df4da1ad5b1"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad500e7d0473883a141e279f8a97908bc"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="RtpPacket_8h.html#ad500e7d0473883a141e279f8a97908bc">TWCC_PAYLOAD</a>(extId,  sequenceNum)&#160;&#160;&#160;htonl((((extId) &amp;0xfu) &lt;&lt; 28u) | (1u &lt;&lt; 24u) | ((UINT32)(sequenceNum) &lt;&lt; 8u))</td></tr>
+<tr class="memitem:ad500e7d0473883a141e279f8a97908bc"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="RtpPacket_8h.html#ad500e7d0473883a141e279f8a97908bc">TWCC_PAYLOAD</a>(extId,  sequenceNum)&#160;&#160;&#160;htonl((((extId) &amp;0xfu) &lt;&lt; 28u) | (1u &lt;&lt; 24u) | ((UINT32) (sequenceNum) &lt;&lt; 8u))</td></tr>
 <tr class="separator:ad500e7d0473883a141e279f8a97908bc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9df78c4c30e07f0d2831735e69a10877"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="RtpPacket_8h.html#a9df78c4c30e07f0d2831735e69a10877">TWCC_SEQNUM</a>(extPayload)&#160;&#160;&#160;((UINT16) getUnalignedInt16BigEndian(extPayload + 1))</td></tr>
 <tr class="separator:a9df78c4c30e07f0d2831735e69a10877"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -331,7 +331,7 @@ Functions</h2></td></tr>
           <td>(</td>
           <td class="paramtype">&#160;</td>
           <td class="paramname">seqIndex</td><td>)</td>
-          <td>&#160;&#160;&#160;((UINT16)((seqIndex) % (MAX_UINT16 + 1)))</td>
+          <td>&#160;&#160;&#160;((UINT16) ((seqIndex) % (MAX_UINT16 + 1)))</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -535,7 +535,7 @@ Functions</h2></td></tr>
         <tr>
           <td></td>
           <td>)</td>
-          <td></td><td>&#160;&#160;&#160;htonl((((extId) &amp;0xfu) &lt;&lt; 28u) | (1u &lt;&lt; 24u) | ((UINT32)(sequenceNum) &lt;&lt; 8u))</td>
+          <td></td><td>&#160;&#160;&#160;htonl((((extId) &amp;0xfu) &lt;&lt; 28u) | (1u &lt;&lt; 24u) | ((UINT32) (sequenceNum) &lt;&lt; 8u))</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -1362,7 +1362,7 @@ Here is the caller graph for this function:</div>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_94e7a0fbe7f8eaf7f05ee7b02c647e9f.html">source</a></li><li class="navelem"><a class="el" href="dir_0b17a3b3ab1f965fe1acafe7d60c10e8.html">Rtp</a></li><li class="navelem"><a class="el" href="RtpPacket_8h.html">RtpPacket.h</a></li>
-    <li class="footer">Generated on Tue Jul 27 2021 19:15:33 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Wed Jul 28 2021 02:08:41 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>
