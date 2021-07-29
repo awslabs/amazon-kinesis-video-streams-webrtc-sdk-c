@@ -6,7 +6,7 @@ extern PSampleConfiguration gSampleConfiguration;
 VOID dataChannelOnMessageCallback(UINT64 customData, PRtcDataChannel pDataChannel, BOOL isBinary, PBYTE pMessage, UINT32 pMessageLen)
 {
     UNUSED_PARAM(customData);
-    STATUS retStatus = STATUS_SUCCESS;
+    UNUSED_PARAM(pDataChannel);
     if (isBinary) {
         DLOGI("DataChannel Binary Message");
     } else {
@@ -16,10 +16,10 @@ VOID dataChannelOnMessageCallback(UINT64 customData, PRtcDataChannel pDataChanne
 
 // onOpen callback for the onOpen event of a viewer created data channel
 VOID dataChannelOnOpenCallback(UINT64 customData, PRtcDataChannel pDataChannel) {
+    STATUS retStatus = STATUS_SUCCESS;
     DLOGI("New DataChannel has been opened %s \n", pDataChannel->name);
     dataChannelOnMessage(pDataChannel, customData, dataChannelOnMessageCallback);
     ATOMIC_INCREMENT((PSIZE_T) customData);
-    STATUS retStatus = STATUS_SUCCESS;
     // Sending first message to the master over the data channel
     retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) VIEWER_DATA_CHANNEL_MESSAGE, STRLEN(VIEWER_DATA_CHANNEL_MESSAGE));
     if(retStatus != STATUS_SUCCESS){
