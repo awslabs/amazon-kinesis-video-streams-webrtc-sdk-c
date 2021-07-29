@@ -1,6 +1,5 @@
 #define LOG_CLASS "WebRtcSamples"
 #include "Samples.h"
-// #define MASTER_DATA_CHANNEL_MESSAGE "This message is from the KVS Master"
 
 PSampleConfiguration gSampleConfiguration = NULL;
 
@@ -23,11 +22,11 @@ VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL 
         DLOGI("DataChannel String Message: %.*s\n", pMessageLen, pMessage);
     }
     // Send a response to the message sent by the viewer
-    /*STATUS retStatus = STATUS_SUCCESS;
+    STATUS retStatus = STATUS_SUCCESS;
     retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) MASTER_DATA_CHANNEL_MESSAGE, STRLEN(MASTER_DATA_CHANNEL_MESSAGE));
     if(retStatus != STATUS_SUCCESS) {
         DLOGI("[KVS Master] dataChannelSend(): operation returned status code: 0x%08x \n", retStatus);
-    }*/
+    }
 }
 
 VOID onDataChannel(UINT64 customData, PRtcDataChannel pRtcDataChannel)
