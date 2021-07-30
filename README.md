@@ -97,6 +97,14 @@ You can pass the following options to `cmake ..`.
 * `-DUNDEFINED_BEHAVIOR_SANITIZER` -- Build with UndefinedBehaviorSanitizer
 * `-DLINK_PROFILER` -- Link with gperftools (available profiler options are listed [here](https://github.com/gperftools/gperftools))
 
+For windows builds, you will have to include additional flags for libwebsockets CMake. Add the following flags to your cmake command, or edit the CMake file in ./CMake/Dependencies/libwebsockets-CMakeLists.txt with the following:
+
+```
+cmake .. -DLWS_HAVE_PTHREAD_H=1 -DLWS_EXT_PTHREAD_INCLUDE_DIR="C:\Program Files (x86)\pthreads\include" -DLWS_EXT_PTHREAD_LIBRARIES="C:\Program Files (x86)\pthreads\lib\x64\libpthreadGC2.a" -DLWS_WITH_MINIMAL_EXAMPLES=1
+```
+
+Be sure to edit the path to whatever pthread library you are using, and the proper path for your environment.
+
 ### Build
 To build the library and the provided samples run make in the build directory you executed CMake.
 
