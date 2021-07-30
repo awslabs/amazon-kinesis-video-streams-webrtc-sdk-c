@@ -67,6 +67,12 @@ On Ubuntu and Raspberry Pi OS you can get the libraries by running
 $ sudo apt-get install libssl-dev libcurl4-openssl-dev liblog4cplus-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev gstreamer1.0-plugins-base-apps gstreamer1.0-plugins-bad gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly gstreamer1.0-tools
 ```
 
+For windows builds, you will have to include additional flags for libwebsockets CMake. Add the following flags to your cmake command, or edit the CMake file in ./CMake/Dependencies/libwebsockets-CMakeLists.txt with the followig:
+
+```
+cmake .. -DLWS_HAVE_PTHREAD_H=1 -DLWS_EXT_PTHREAD_INCLUDE_DIR="C:\Program Files (x86)\pthreads\include" -DLWS_EXT_PTHREAD_LIBRARIES="C:\Program Files (x86)\pthreads\lib\x64\libpthreadGC2.a" -DLWS_WITH_MINIMAL_EXAMPLES=1
+```
+
 By default we download all the libraries from GitHub and build them locally, so should require nothing to be installed ahead of time.
 If you do wish to link to existing libraries you can use the following flags to customize your build.
 
