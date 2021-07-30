@@ -23,7 +23,7 @@ STATUS createConnectionListener(PConnectionListener* ppConnectionListener)
     pConnectionListener->socketCount = 0;
 
     // pConnectionListener->pBuffer starts at the end of ConnectionListener struct
-    pConnectionListener->pBuffer = (PBYTE)(pConnectionListener + 1);
+    pConnectionListener->pBuffer = (PBYTE) (pConnectionListener + 1);
     pConnectionListener->bufferLen = MAX_UDP_PACKET_SIZE;
 
 CleanUp:
@@ -383,5 +383,5 @@ CleanUp:
 
     CHK_LOG_ERR(retStatus);
 
-    return (PVOID)(ULONG_PTR) retStatus;
+    return (PVOID) (ULONG_PTR) retStatus;
 }

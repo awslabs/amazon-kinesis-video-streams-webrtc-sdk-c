@@ -101,7 +101,7 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
     }
 
     // Set the current pointer to the end
-    pCurPtr = (PCHAR)(pChannelInfo + 1);
+    pCurPtr = (PCHAR) (pChannelInfo + 1);
 
     // Set the pointers to the end and copy the data.
     // NOTE: the structure is calloc-ed so the strings will be NULL terminated
