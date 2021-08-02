@@ -207,6 +207,7 @@ matrix:
       before_script: mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
 
     - name: "Windows MSVC"
+      env: allowTestFail=true
       os: windows
       script:
         - choco install nasm strawberryperl
