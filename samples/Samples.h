@@ -90,7 +90,6 @@ typedef struct {
     startRoutine receiveAudioVideoSource;
     RtcOnDataChannel onDataChannel;
 
-    TID signalingProcessor;
     PStackQueue pPendingSignalingMessageForRemoteClient;
     PHashTable pRtcPeerConnectionForRemoteClient;
 
