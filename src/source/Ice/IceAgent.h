@@ -160,6 +160,7 @@ typedef struct {
      * has been reported through IceNewLocalCandidateFunc */
     BOOL reported;
     CHAR id[ICE_CANDIDATE_ID_LEN + 1];
+    CHAR remoteProtocol[MAX_PROTOCOL_LENGTH];
 } IceCandidate, *PIceCandidate;
 
 typedef struct {
