@@ -327,7 +327,7 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
     PDoubleListNode pCurNode = NULL;
     SDP_ICE_CANDIDATE_PARSER_STATE state;
     ICE_CANDIDATE_TYPE iceCandidateType = ICE_CANDIDATE_TYPE_HOST;
-    CHAR remoteProtocol[MAX_PROTOCOL_LENGTH];
+    CHAR remoteProtocol[MAX_PROTOCOL_LENGTH] = {'\0'};
 
     CHK(pIceAgent != NULL && pIceCandidateString != NULL, STATUS_NULL_ARG);
     CHK(!IS_EMPTY_STRING(pIceCandidateString), STATUS_INVALID_ARG);
@@ -355,7 +355,9 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
                 STRTOUI32(curr, next, 10, &priority);
                 break;
             case SDP_ICE_CANDIDATE_PARSER_STATE_PROTOCOL:
-                STRNCPY(remoteProtocol, curr, tokenLen);
+                if(tokenLen < MAX_PROTOCOL_LENGTH) {
+                    STRNCPY(remoteProtocol, curr, tokenLen);
+                }
                 CHK(STRNCMPI("tcp", curr, tokenLen) != 0, STATUS_ICE_CANDIDATE_STRING_IS_TCP);
                 break;
             case SDP_ICE_CANDIDATE_PARSER_STATE_IP:
