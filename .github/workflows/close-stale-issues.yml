@@ -3,7 +3,7 @@ name: Close Stale Issues
 # Controls when the action will be run
 on:
   schedule:
-    - cron: "0 0 * * *"
+    - cron: "* * * * *"
 
 jobs:
   cleanup:
@@ -17,9 +17,7 @@ jobs:
 
           # labels to be added
           stale-issue-label: closing-soon
-          only-issue-labels: 
-              - question
-              - bug
+          any-of-labels: [question, bug]
 
           # SLAs
           days-before-issue-stale: 7
