@@ -3,7 +3,7 @@ name: Close Stale Issues
 # Controls when the action will be run
 on:
   schedule:
-    - cron: "* * * * *"
+    - cron: "0 0 * * *"
 
 jobs:
   cleanup:
