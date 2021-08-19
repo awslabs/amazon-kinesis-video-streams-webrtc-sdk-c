@@ -17,9 +17,7 @@ jobs:
 
           # labels to be added
           stale-issue-label: closing-soon
-          only-issue-labels: 
-              - question
-              - bug
+          any-of-labels: question
 
           # SLAs
           days-before-issue-stale: 7
