@@ -617,6 +617,67 @@ a=group:BUNDLE 0
     });
 }
 
+// uses words "audio video data" instead of "0 1 2" for session attributes. Sends an offer, expects the answer sdp 
+// to contain "audio video data" as sent in the offer
+TEST_F(SdpApiTest, offerWithMediaNameInBundle)
+{
+    auto offer = std::string(R"(v=0
+o=- 481034601 1588366671 IN IP4 0.0.0.0
+s=-
+t=0 0
+a=fingerprint:sha-256 87:E6:EC:59:93:76:9F:42:7D:15:17:F6:8F:C4:29:AB:EA:3F:28:B6:DF:F8:14:2F:96:62:2F:16:98:F5:76:E5
+a=group:BUNDLE audio video data
+)");
+
+    offer += sdpaudio_sendrecv_mid0;
+    offer += "\n";
+    offer += sdpvideo;
+    offer += "\n";
+
+    assertLFAndCRLF((PCHAR) offer.c_str(), offer.size(), [](PCHAR sdp) {
+        RtcConfiguration configuration{};
+        PRtcPeerConnection pRtcPeerConnection = nullptr;
+        RtcMediaStreamTrack track1{};
+        RtcMediaStreamTrack track2{};
+        PRtcRtpTransceiver transceiver1 = nullptr;
+        PRtcRtpTransceiver transceiver2 = nullptr;
+        RtcSessionDescriptionInit offerSdp{};
+        RtcSessionDescriptionInit answerSdp{};
+
+        SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION);
+
+        track1.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+        track1.codec = RTC_CODEC_VP8;
+        STRNCPY(track1.streamId, "videoStream", MAX_MEDIA_STREAM_ID_LEN);
+        STRNCPY(track1.trackId, "videoTrack1", MAX_MEDIA_STREAM_TRACK_ID_LEN);
+
+        track2.kind = MEDIA_STREAM_TRACK_KIND_AUDIO;
+        track2.codec = RTC_CODEC_OPUS;
+        STRNCPY(track2.streamId, "audioStream1", MAX_MEDIA_STREAM_ID_LEN);
+        STRNCPY(track2.trackId, "audioTrack1", MAX_MEDIA_STREAM_TRACK_ID_LEN);
+
+        offerSdp.type = SDP_TYPE_OFFER;
+        STRNCPY(offerSdp.sdp, (PCHAR) sdp, MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+
+        EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+        EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(pRtcPeerConnection, RTC_CODEC_VP8));
+        EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(pRtcPeerConnection, RTC_CODEC_OPUS));
+
+        EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, &track1, nullptr, &transceiver1));
+        EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, &track2, nullptr, &transceiver2));
+
+        EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(pRtcPeerConnection, &offerSdp));
+        EXPECT_EQ(STATUS_SUCCESS, createAnswer(pRtcPeerConnection, &answerSdp));
+
+        EXPECT_PRED_FORMAT2(testing::IsSubstring, "sendonly", answerSdp.sdp);
+        EXPECT_PRED_FORMAT2(testing::IsSubstring, "sendrecv", answerSdp.sdp);
+        EXPECT_PRED_FORMAT2(testing::IsSubstring, "group:BUNDLE audio video dtmf", answerSdp.sdp);
+
+        closePeerConnection(pRtcPeerConnection);
+        EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+    });
+}
+
 // if offer (remote) contains video m-line only then answer (local) should contain video m-line only
 // even if local side has other transceivers, i.e. audio
 TEST_F(SdpApiTest, offerMediaMultipleDirections_validateAnswerCorrectMatchingDirections)
@@ -1025,6 +1086,41 @@ TEST_P(SdpApiTest_SdpMatch, populateSingleMediaSection_TestH264Fmtp)
                                                                                       << rtcSessionDescriptionInit.sdp;
     closePeerConnection(pRtcPeerConnection);
     freePeerConnection(&pRtcPeerConnection);
+}
+
+TEST_F(SdpApiTest, populateSessionDescriptionBundle_TestTxSendRecv)
+{
+    PRtcPeerConnection offerPc = NULL;
+    RtcConfiguration configuration;
+    RtcSessionDescriptionInit sessionDescriptionInit;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+
+    // Create peer connection
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+
+    RtcMediaStreamTrack track;
+    PRtcRtpTransceiver pTransceiver;
+    RtcRtpTransceiverInit rtcRtpTransceiverInit;
+    rtcRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+
+    MEMSET(&track, 0x00, SIZEOF(RtcMediaStreamTrack));
+
+    track.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+    track.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+    STRCPY(track.streamId, "myKvsVideoStream");
+    STRCPY(track.trackId, "myTrack");
+
+    // PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) offerPc;
+    printf("\n\nFROM REMOTE DESC:%s\n\n", (&(((PKvsPeerConnection) offerPc)->remoteSessionDescription))->sdpAttributes[0].attributeValue);
+    STRCPY((&(((PKvsPeerConnection) offerPc)->remoteSessionDescription))->sdpAttributes[0].attributeValue, "BUNDLE audio video data dtmf");
+
+    EXPECT_EQ(STATUS_SUCCESS, addTransceiver(offerPc, &track, &rtcRtpTransceiverInit, &pTransceiver));
+    EXPECT_EQ(STATUS_SUCCESS, createOffer(offerPc, &sessionDescriptionInit));
+    EXPECT_PRED_FORMAT2(testing::IsSubstring, "sendrecv", sessionDescriptionInit.sdp);
+
+    closePeerConnection(offerPc);
+    freePeerConnection(&offerPc);
 }
 
 SdpMatch offer_1v1a1d_Chrome_Android = SdpMatch{
