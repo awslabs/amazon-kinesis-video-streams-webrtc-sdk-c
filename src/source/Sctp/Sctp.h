@@ -19,11 +19,6 @@ extern "C" {
 #define SCTP_DCEP_LABEL_OFFSET           12
 #define SCTP_MAX_ALLOWABLE_PACKET_LENGTH (SCTP_DCEP_HEADER_LENGTH + MAX_DATA_CHANNEL_NAME_LEN + MAX_DATA_CHANNEL_PROTOCOL_LEN + 2)
 
-#define SCTP_SESSION_ACTIVE             0
-#define SCTP_SESSION_SHUTDOWN_INITIATED 1
-#define SCTP_SESSION_SHUTDOWN_COMPLETED 2
-
-#define DEFAULT_SCTP_SHUTDOWN_TIMEOUT 2 * HUNDREDS_OF_NANOS_IN_A_SECOND
 
 #define DEFAULT_USRSCTP_TEARDOWN_POLLING_INTERVAL (10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
 
@@ -59,7 +54,6 @@ typedef struct {
 } SctpSessionCallbacks, *PSctpSessionCallbacks;
 
 typedef struct {
-    volatile SIZE_T shutdownStatus;
     struct socket* socket;
     struct sctp_sendv_spa spa;
     BYTE packet[SCTP_MAX_ALLOWABLE_PACKET_LENGTH];

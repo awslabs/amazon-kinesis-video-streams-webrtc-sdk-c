@@ -296,12 +296,20 @@ INT32 onSctpOutboundPacket(PVOID addr, PVOID data, ULONG length, UINT8 tos, UINT
     BOOL containKey;
     PSctpSession pSctpSession = (PSctpSession) addr;
 
-    if (pSctpSession == NULL || ATOMIC_LOAD(&pSctpSession->shutdownStatus) == SCTP_SESSION_SHUTDOWN_INITIATED ||
-        pSctpSession->sctpSessionCallbacks.outboundPacketFunc == NULL) {
-        if (pSctpSession != NULL) {
-            ATOMIC_STORE(&pSctpSession->shutdownStatus, SCTP_SESSION_SHUTDOWN_COMPLETED);
-        }
+    if (pSctpSession == NULL || pSctpSession->sctpSessionCallbacks.outboundPacketFunc == NULL) {
         return -1;
+    }
+
+
+    MUTEX_LOCK(pSctpSessionControl->lock);
+    hashTableContains(pSctpSessionControl->activeSctpSessions, pSctpSession->key, &containKey);
+    MUTEX_UNLOCK(pSctpSessionControl->lock);
+
+    /* If the key is not in activeSctpSessions, then the session must have been freed. Thus do not call callback.
+     * Fixes issue stated here: https://github.com/sctplab/usrsctp/issues/147.
+     * (return -1 otherwise usrsctp_finish() won't finish) */
+    if (!containKey) {
+        return 0;
     }
 
     pSctpSession->sctpSessionCallbacks.outboundPacketFunc(pSctpSession->sctpSessionCallbacks.customData, data, length);
