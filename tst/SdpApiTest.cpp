@@ -671,7 +671,7 @@ a=group:BUNDLE audio video data
 
         EXPECT_PRED_FORMAT2(testing::IsSubstring, "sendonly", answerSdp.sdp);
         EXPECT_PRED_FORMAT2(testing::IsSubstring, "sendrecv", answerSdp.sdp);
-        EXPECT_PRED_FORMAT2(testing::IsSubstring, "group:BUNDLE audio video dtmf", answerSdp.sdp);
+        EXPECT_PRED_FORMAT2(testing::IsSubstring, "group:BUNDLE audio video data", answerSdp.sdp);
 
         closePeerConnection(pRtcPeerConnection);
         EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
