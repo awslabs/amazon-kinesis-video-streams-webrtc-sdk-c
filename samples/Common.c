@@ -24,7 +24,7 @@ VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL 
     // Send a response to the message sent by the viewer
     STATUS retStatus = STATUS_SUCCESS;
     retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) MASTER_DATA_CHANNEL_MESSAGE, STRLEN(MASTER_DATA_CHANNEL_MESSAGE));
-    if(retStatus != STATUS_SUCCESS) {
+    if (retStatus != STATUS_SUCCESS) {
         DLOGI("[KVS Master] dataChannelSend(): operation returned status code: 0x%08x \n", retStatus);
     }
 }
@@ -1026,11 +1026,11 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
         locked = TRUE;
     }
     // Cancel the media thread
-    if(!(pSampleConfiguration->mediaThreadStarted)) {
+    if (!(pSampleConfiguration->mediaThreadStarted)) {
         DLOGD("Canceling media thread");
         THREAD_CANCEL(pSampleConfiguration->mediaSenderTid);
     }
-    
+
     for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
         retStatus = gatherIceServerStats(pSampleConfiguration->sampleStreamingSessionList[i]);
         if (STATUS_FAILED(retStatus)) {
@@ -1307,7 +1307,11 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
              * Lastly check if there is any ice candidate messages queued in pPendingSignalingMessageForRemoteClient.
              * If so then submit all of them.
              */
-            pSampleStreamingSession = pSampleConfiguration->sampleStreamingSessionList[0];
+            if (!peerConnectionFound) {
+                pSampleStreamingSession = pSampleConfiguration->sampleStreamingSessionList[0];
+            }
+            CHK(pSampleStreamingSession != NULL, STATUS_NULL_ARG);
+
             CHK_STATUS(handleAnswer(pSampleConfiguration, pSampleStreamingSession, &pReceivedSignalingMessage->signalingMessage));
             CHK_STATUS(hashTablePut(pSampleConfiguration->pRtcPeerConnectionForRemoteClient, clientIdHash, (UINT64) pSampleStreamingSession));
 
