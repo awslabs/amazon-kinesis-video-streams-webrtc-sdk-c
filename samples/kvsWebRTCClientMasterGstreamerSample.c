@@ -338,6 +338,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = NULL;
     PCHAR pChannelName;
+    PExponentialBackoffState pExponentialBackoffState = NULL;
 
     SET_INSTRUMENTED_ALLOCATORS();
 
@@ -420,6 +421,18 @@ INT32 main(INT32 argc, CHAR* argv[])
     pSampleConfiguration->signalingClientCallbacks.messageReceivedFn = signalingMessageReceived;
 
     strcpy(pSampleConfiguration->clientInfo.clientId, SAMPLE_MASTER_CLIENT_ID);
+
+    retStatus = initializeExponentialBackoffStateWithDefaultConfig(&pExponentialBackoffState);
+    if (retStatus != STATUS_SUCCESS) {
+        printf("[KVS Master] initKvsWebRtc(): Unable to initialize exponential backoff state: \n", retStatus);
+        goto CleanUp;
+    }
+
+    retStatus = exponentialBackoffBlockingWait(pExponentialBackoffState);
+    if (retStatus != STATUS_SUCCESS) {
+        printf("[KVS Master] initKvsWebRtc(): Unexpected error while adding a wait time: \n", retStatus);
+        goto CleanUp;
+    }
 
     retStatus = createSignalingClientSync(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
                                           &pSampleConfiguration->signalingClientCallbacks, pSampleConfiguration->pCredentialProvider,

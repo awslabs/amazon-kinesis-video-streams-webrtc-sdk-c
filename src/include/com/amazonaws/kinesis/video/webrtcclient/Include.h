@@ -21,6 +21,7 @@ extern "C" {
 #include <com/amazonaws/kinesis/video/common/Include.h>
 #include <com/amazonaws/kinesis/video/webrtcclient/NullableDefs.h>
 #include <com/amazonaws/kinesis/video/webrtcclient/Stats.h>
+#include "../source/Utils/ExponentialBackoffUtils.h"
 #if defined(__clang__)
 #pragma clang diagnostic pop
 #endif
@@ -360,6 +361,19 @@ extern "C" {
  */
 #define STATUS_ROLLING_BUFFER_BASE         STATUS_RTCP_BASE + 0x01000000
 #define STATUS_ROLLING_BUFFER_NOT_IN_RANGE STATUS_ROLLING_BUFFER_BASE + 0x00000001
+/*!@} */
+
+/////////////////////////////////////////////////////
+/// Exponential Backoff related status codes
+/////////////////////////////////////////////////////
+
+/*! \addtogroup Exponential back off retries status codes
+ * Values are derived from STATUS_EXPONENTIAL_BACKOFF_BASE
+ *  @{
+ */
+#define STATUS_EXPONENTIAL_BACKOFF_BASE                STATUS_ROLLING_BUFFER_BASE + 0x01000000
+#define STATUS_EXPONENTIAL_BACKOFF_RETRIES_EXHAUSTED   STATUS_EXPONENTIAL_BACKOFF_BASE + 0x00000001
+#define STATUS_EXPONENTIAL_INVALID_STATE               STATUS_EXPONENTIAL_BACKOFF_BASE + 0x00000002
 /*!@} */
 
 /////////////////////////////////////////////////////

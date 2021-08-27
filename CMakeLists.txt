@@ -260,7 +260,8 @@ file(
   "src/source/Srtp/*.c"
   "src/source/Stun/*.c"
   "src/source/Sctp/*.c"
-  "src/source/Metrics/*.c")
+  "src/source/Metrics/*.c"
+  "src/source/Utils/*.c")
 
 if (USE_OPENSSL)
   list(FILTER WEBRTC_CLIENT_SOURCE_FILES EXCLUDE REGEX ".*_mbedtls\\.c")

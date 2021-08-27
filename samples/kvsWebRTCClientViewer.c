@@ -12,6 +12,7 @@ VOID dataChannelOnMessageCallback(UINT64 customData, PRtcDataChannel pDataChanne
     } else {
         DLOGI("DataChannel String Message: %.*s\n", pMessageLen, pMessage);
     }
+    //exponentialBackoffBlockingWait(NULL);
 }
 
 // onOpen callback for the onOpen event of a viewer created data channel

@@ -155,6 +155,7 @@ STATUS generateJSONSafeString(PCHAR, UINT32);
 #include "Signaling/StateMachine.h"
 #include "Signaling/LwsApiCalls.h"
 #include "Metrics/Metrics.h"
+#include "Utils/ExponentialBackoffHelper.h"
 
 ////////////////////////////////////////////////////
 // Project internal defines
