@@ -1493,3 +1493,20 @@ CleanUp:
 
     return retStatus;
 }
+
+STATUS createSignalingClientSyncWithWait(PSignalingClientInfo pClientInfo, PChannelInfo pChannelInfo, PSignalingClientCallbacks pCallbacks,
+                                         PAwsCredentialProvider pCredentialProvider, PSIGNALING_CLIENT_HANDLE pSignalingHandle,
+                                         PExponentialBackoffState pExponentialBackoffState) {
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+
+    if (pExponentialBackoffState != NULL) {
+        CHK_STATUS(exponentialBackoffBlockingWait(pExponentialBackoffState));
+    }
+
+    CHK_STATUS(createSignalingClientSync(pClientInfo, pChannelInfo, pCallbacks, pCredentialProvider, pSignalingHandle));
+
+    CleanUp:
+    LEAVES();
+    return retStatus;
+}

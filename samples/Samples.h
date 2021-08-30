@@ -188,6 +188,9 @@ STATUS submitPendingIceCandidate(PPendingMessageQueue, PSampleStreamingSession);
 STATUS removeExpiredMessageQueues(PStackQueue);
 STATUS getPendingMessageQueueForHash(PStackQueue, UINT64, BOOL, PPendingMessageQueue*);
 BOOL sampleFilterNetworkInterfaces(UINT64, PCHAR);
+STATUS createSignalingClientSyncWithWait(PSignalingClientInfo pClientInfo, PChannelInfo pChannelInfo,
+                                         PSignalingClientCallbacks pCallbacks, PAwsCredentialProvider pCredentialProvider,
+                                         PSIGNALING_CLIENT_HANDLE pSignalingHandle, PExponentialBackoffState pExponentialBackoffState);
 
 #ifdef __cplusplus
 }

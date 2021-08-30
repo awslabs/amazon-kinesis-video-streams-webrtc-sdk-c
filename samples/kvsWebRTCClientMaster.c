@@ -82,21 +82,11 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     strcpy(pSampleConfiguration->clientInfo.clientId, SAMPLE_MASTER_CLIENT_ID);
 
-    retStatus = initializeExponentialBackoffStateWithDefaultConfig(&pExponentialBackoffState);
-    if (retStatus != STATUS_SUCCESS) {
-        printf("[KVS Master] initKvsWebRtc(): Unable to initialize exponential backoff state: \n", retStatus);
-        goto CleanUp;
-    }
 
-    retStatus = exponentialBackoffBlockingWait(pExponentialBackoffState);
-    if (retStatus != STATUS_SUCCESS) {
-        printf("[KVS Master] initKvsWebRtc(): Unexpected error while adding a wait time: \n", retStatus);
-        goto CleanUp;
-    }
-
-    retStatus = createSignalingClientSync(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
+    CHK_STATUS(initializeExponentialBackoffStateWithDefaultConfig(&pExponentialBackoffState));
+    retStatus = createSignalingClientSyncWithWait(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
                                           &pSampleConfiguration->signalingClientCallbacks, pSampleConfiguration->pCredentialProvider,
-                                          &pSampleConfiguration->signalingClientHandle);
+                                          &pSampleConfiguration->signalingClientHandle, pExponentialBackoffState);
     if (retStatus != STATUS_SUCCESS) {
         printf("[KVS Master] createSignalingClientSync(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;
@@ -158,6 +148,9 @@ CleanUp:
             printf("[KVS Master] freeSampleConfiguration(): operation returned status code: 0x%08x", retStatus);
         }
     }
+
+    freeExponentialBackoffState(&pExponentialBackoffState);
+
     printf("[KVS Master] Cleanup done\n");
 
     RESET_INSTRUMENTED_ALLOCATORS();
