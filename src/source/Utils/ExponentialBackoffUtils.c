@@ -1,4 +1,3 @@
-#include <math.h>
 #include "ExponentialBackoffUtils.h"
 #include "../Include_i.h"
 
@@ -106,8 +105,16 @@ UINT64 getRandomJitter(UINT32 jitterFactor) {
     return (RAND() % jitterFactor) * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
 }
 
+UINT64 power(UINT32 base, UINT32 exponent) {
+    UINT64 result = 1;
+    while (exponent-- > 0) {
+        result *= base;
+    }
+    return result;
+}
+
 UINT64 calculateWaitTime(PExponentialBackoffState pRetryState, PExponentialBackoffConfig pRetryConfig) {
-    return pow(DEFAULT_EXPONENTIAL_FACTOR, pRetryState->currentRetryCount) * pRetryConfig->retryFactorTime;
+    return power(DEFAULT_EXPONENTIAL_FACTOR, pRetryState->currentRetryCount) * pRetryConfig->retryFactorTime;
 }
 
 STATUS validateAndUpdateExponentialBackoffStatus(PExponentialBackoffState pExponentialBackoffState) {
