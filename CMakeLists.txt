@@ -342,3 +342,8 @@ endif()
 if(BUILD_BENCHMARK)
   add_subdirectory(bench)
 endif()
+
+get_directory_property(clean_files ADDITIONAL_CLEAN_FILES)
+list(APPEND clean_files "${OPEN_SRC_INSTALL_PREFIX}")
+list(APPEND clean_files "${CMAKE_CURRENT_SOURCE_DIR}/build")
+set_directory_properties(PROPERTIES ADDITIONAL_CLEAN_FILES "${clean_files}")
