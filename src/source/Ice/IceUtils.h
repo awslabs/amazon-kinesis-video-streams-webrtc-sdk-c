@@ -21,6 +21,10 @@ extern "C" {
 #define ICE_URL_TRANSPORT_UDP      "transport=udp"
 #define ICE_URL_TRANSPORT_TCP      "transport=tcp"
 
+#define ICE_TRANSPORT_TYPE_UDP "UDP"
+#define ICE_TRANSPORT_TYPE_TCP "TCP"
+#define ICE_TRANSPORT_TYPE_TLS "TLS"
+
 /**
  * Ring buffer storing transactionIds
  */

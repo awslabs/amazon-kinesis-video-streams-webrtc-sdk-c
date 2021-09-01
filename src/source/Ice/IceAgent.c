@@ -99,10 +99,10 @@ STATUS createIceAgent(PCHAR username, PCHAR password, PIceAgentCallbacks pIceAge
             pIceAgent->rtcIceServerDiagnostics[i].port = (INT32) getInt16(pIceAgent->iceServers[i].ipAddress.port);
             switch (pIceAgent->iceServers[pIceAgent->iceServersCount].transport) {
                 case KVS_SOCKET_PROTOCOL_UDP:
-                    STRCPY(pIceAgent->rtcIceServerDiagnostics[i].protocol, ICE_URL_TRANSPORT_UDP);
+                    STRCPY(pIceAgent->rtcIceServerDiagnostics[i].protocol, ICE_TRANSPORT_TYPE_UDP);
                     break;
                 case KVS_SOCKET_PROTOCOL_TCP:
-                    STRCPY(pIceAgent->rtcIceServerDiagnostics[i].protocol, ICE_URL_TRANSPORT_TCP);
+                    STRCPY(pIceAgent->rtcIceServerDiagnostics[i].protocol, ICE_TRANSPORT_TYPE_TCP);
                     break;
                 default:
                     MEMSET(pIceAgent->rtcIceServerDiagnostics[i].protocol, 0, SIZEOF(pIceAgent->rtcIceServerDiagnostics[i].protocol));
@@ -1905,11 +1905,11 @@ STATUS updateCandidateStats(PIceAgent pIceAgent, BOOL isRemote)
         if (pIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED && pIceCandidate->pTurnConnection != NULL) {
             switch (pIceCandidate->pTurnConnection->protocol) {
                 case KVS_SOCKET_PROTOCOL_UDP:
-                    STRNCPY(pRtcIceCandidateDiagnostics->relayProtocol, ICE_URL_TRANSPORT_UDP,
+                    STRNCPY(pRtcIceCandidateDiagnostics->relayProtocol, ICE_TRANSPORT_TYPE_UDP,
                             ARRAY_SIZE(pRtcIceCandidateDiagnostics->relayProtocol));
                     break;
                 case KVS_SOCKET_PROTOCOL_TCP:
-                    STRNCPY(pRtcIceCandidateDiagnostics->relayProtocol, ICE_URL_TRANSPORT_TCP,
+                    STRNCPY(pRtcIceCandidateDiagnostics->relayProtocol, ICE_TRANSPORT_TYPE_TCP,
                             ARRAY_SIZE(pIceAgent->rtcSelectedLocalIceCandidateDiagnostics.relayProtocol));
                     break;
                 default:
@@ -1923,7 +1923,7 @@ STATUS updateCandidateStats(PIceAgent pIceAgent, BOOL isRemote)
     STRNCPY(pRtcIceCandidateDiagnostics->candidateType, iceAgentGetCandidateTypeStr(pIceCandidate->iceCandidateType),
             ARRAY_SIZE(pRtcIceCandidateDiagnostics->candidateType));
 
-    STRNCPY(pRtcIceCandidateDiagnostics->protocol, ICE_URL_TRANSPORT_UDP, ARRAY_SIZE(pRtcIceCandidateDiagnostics->protocol));
+    STRNCPY(pRtcIceCandidateDiagnostics->protocol, ICE_TRANSPORT_TYPE_UDP, ARRAY_SIZE(pRtcIceCandidateDiagnostics->protocol));
     if (pIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED) {
         STRNCPY(pRtcIceCandidateDiagnostics->protocol, pIceAgent->rtcIceServerDiagnostics[pIceCandidate->iceServerIndex].protocol,
                 ARRAY_SIZE(pRtcIceCandidateDiagnostics->protocol));
