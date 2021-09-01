@@ -1,0 +1,32 @@
+name: Close Stale Issues
+
+# Controls when the action will be run
+on:
+  schedule:
+    - cron: "0 0 * * *"
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    name: Close stale issues
+    steps:
+      - uses: actions/stale@v4.0.0
+        with:
+          stale-issue-message: It looks like this issue has not been active for a long time. If the issue is not resolved, please add an update to the ticket, else it will be automatically resolved in a few days. 
+          close-issue-message: The issue has been stale for a while and hence it has been auto-closed. If the issue persists, feel free to open a new issue with details.
+
+          # labels to be added
+          stale-issue-label: closing-soon
+          any-of-labels: question,bug
+
+          # SLAs
+          days-before-issue-stale: 7
+          days-before-issue-close: 3
+
+
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          loglevel: DEBUG
+          # Set dry-run to true to not perform label or close actions.
+          dry-run: false
+
+
