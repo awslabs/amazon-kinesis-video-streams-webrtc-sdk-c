@@ -693,6 +693,7 @@ STATUS iceAgentPopulateSdpMediaDescriptionCandidates(PIceAgent pIceAgent, PSdpMe
     PDoubleListNode pCurNode = NULL;
     BOOL locked = FALSE;
     UINT32 attrIndex;
+    PIceCandidate pCandidate = NULL;
 
     CHK(pIceAgent != NULL && pSdpMediaDescription != NULL && pIndex != NULL, STATUS_NULL_ARG);
 
@@ -705,10 +706,12 @@ STATUS iceAgentPopulateSdpMediaDescriptionCandidates(PIceAgent pIceAgent, PSdpMe
     while (pCurNode != NULL) {
         CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
         pCurNode = pCurNode->pNext;
-
-        STRCPY(pSdpMediaDescription->sdpAttributes[attrIndex].attributeName, "candidate");
-        CHK_STATUS(iceCandidateSerialize((PIceCandidate) data, pSdpMediaDescription->sdpAttributes[attrIndex].attributeValue, &attrBufferLen));
-        attrIndex++;
+        pCandidate = (PIceCandidate) data;
+        if (pCandidate->state == ICE_CANDIDATE_STATE_VALID) {
+            STRCPY(pSdpMediaDescription->sdpAttributes[attrIndex].attributeName, "candidate");
+            CHK_STATUS(iceCandidateSerialize((PIceCandidate) data, pSdpMediaDescription->sdpAttributes[attrIndex].attributeValue, &attrBufferLen));
+            attrIndex++;
+        }
     }
 
     *pIndex = attrIndex;
