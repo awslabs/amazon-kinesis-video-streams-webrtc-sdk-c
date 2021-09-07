@@ -425,7 +425,11 @@ INT32 main(INT32 argc, CHAR* argv[])
     // Note:
     // If creating signaling client in a direct or some sort of indirect loop, then create exponentialBackoffState just once
     // and pass the same object to all the createSignalingClientSyncWithBackoff calls.
-    CHK_STATUS(exponentialBackoffStateWithDefaultConfigCreate(&pExponentialBackoffState));
+    retStatus = exponentialBackoffStateWithDefaultConfigCreate(&pExponentialBackoffState);
+    if (retStatus != STATUS_SUCCESS) {
+        printf("[KVS Viewer] exponentialBackoffStateWithDefaultConfigCreate(): operation returned status code: 0x%08x \n", retStatus);
+        goto CleanUp;
+    }
 
     retStatus = createSignalingClientSyncWithBackoff(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
                                           &pSampleConfiguration->signalingClientCallbacks, pSampleConfiguration->pCredentialProvider,

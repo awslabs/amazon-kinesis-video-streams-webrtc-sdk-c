@@ -1,6 +1,5 @@
 #define LOG_CLASS "SignalingClient"
 #include "../Include_i.h"
-#include "com/amazonaws/kinesis/video/utils/Include.h"
 
 STATUS createSignalingClientSyncWithBackoff(
         PSignalingClientInfo pClientInfo, PChannelInfo pChannelInfo, PSignalingClientCallbacks pCallbacks,
