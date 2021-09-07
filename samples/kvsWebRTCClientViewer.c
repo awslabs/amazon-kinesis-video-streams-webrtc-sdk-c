@@ -37,6 +37,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     PSampleStreamingSession pSampleStreamingSession = NULL;
     BOOL locked = FALSE;
     PCHAR pChannelName;
+    PExponentialBackoffState pExponentialBackoffState = NULL;
 
     SET_INSTRUMENTED_ALLOCATORS();
 
@@ -84,9 +85,14 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     sprintf(pSampleConfiguration->clientInfo.clientId, "%s_%u", SAMPLE_VIEWER_CLIENT_ID, RAND() % MAX_UINT32);
 
-    retStatus = createSignalingClientSync(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
+    // Note:
+    // If creating signaling client in a direct or some sort of indirect loop, then create exponentialBackoffState just once
+    // and pass the same object to all the createSignalingClientSyncWithBackoff calls.
+    CHK_STATUS(exponentialBackoffStateWithDefaultConfigCreate(&pExponentialBackoffState));
+
+    retStatus = createSignalingClientSyncWithBackoff(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
                                           &pSampleConfiguration->signalingClientCallbacks, pSampleConfiguration->pCredentialProvider,
-                                          &pSampleConfiguration->signalingClientHandle);
+                                          &pSampleConfiguration->signalingClientHandle, pExponentialBackoffState);
     if (retStatus != STATUS_SUCCESS) {
         printf("[KVS Viewer] createSignalingClientSync(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;
@@ -241,6 +247,8 @@ CleanUp:
             printf("[KVS Master] freeSampleConfiguration(): operation returned status code: 0x%08x \n", retStatus);
         }
     }
+
+    exponentialBackoffStateFree(&pExponentialBackoffState);
     printf("[KVS Viewer] Cleanup done\n");
 
     RESET_INSTRUMENTED_ALLOCATORS();

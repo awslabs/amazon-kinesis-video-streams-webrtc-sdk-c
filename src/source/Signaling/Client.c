@@ -1,8 +1,10 @@
 #define LOG_CLASS "SignalingClient"
 #include "../Include_i.h"
+#include "com/amazonaws/kinesis/video/utils/Include.h"
 
-STATUS createSignalingClientSync(PSignalingClientInfo pClientInfo, PChannelInfo pChannelInfo, PSignalingClientCallbacks pCallbacks,
-                                 PAwsCredentialProvider pCredentialProvider, PSIGNALING_CLIENT_HANDLE pSignalingHandle)
+STATUS createSignalingClientSyncWithBackoff(
+        PSignalingClientInfo pClientInfo, PChannelInfo pChannelInfo, PSignalingClientCallbacks pCallbacks,
+        PAwsCredentialProvider pCredentialProvider, PSIGNALING_CLIENT_HANDLE pSignalingHandle, PExponentialBackoffState pExponentialBackoffState)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -16,18 +18,29 @@ STATUS createSignalingClientSync(PSignalingClientInfo pClientInfo, PChannelInfo 
     MEMSET(&signalingClientInfoInternal, 0x00, SIZEOF(signalingClientInfoInternal));
     signalingClientInfoInternal.signalingClientInfo = *pClientInfo;
 
+    if (pExponentialBackoffState != NULL) {
+        DLOGI("Exponential backoff state is not NULL. Attempting to back off before creating signaling client.");
+        CHK_STATUS(exponentialBackoffBlockingWait(pExponentialBackoffState));
+    }
+
     CHK_STATUS(createSignalingSync(&signalingClientInfoInternal, pChannelInfo, pCallbacks, pCredentialProvider, &pSignalingClient));
 
     *pSignalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
 
 CleanUp:
 
-    if (STATUS_FAILED(retStatus)) {
-        freeSignaling(&pSignalingClient);
-    }
+     if (STATUS_FAILED(retStatus)) {
+         freeSignaling(&pSignalingClient);
+     }
 
-    LEAVES();
-    return retStatus;
+     LEAVES();
+     return retStatus;
+}
+
+STATUS createSignalingClientSync(PSignalingClientInfo pClientInfo, PChannelInfo pChannelInfo, PSignalingClientCallbacks pCallbacks,
+                                 PAwsCredentialProvider pCredentialProvider, PSIGNALING_CLIENT_HANDLE pSignalingHandle)
+{
+    return createSignalingClientSyncWithBackoff(pClientInfo, pChannelInfo, pCallbacks, pCredentialProvider, pSignalingHandle, NULL);
 }
 
 STATUS freeSignalingClient(PSIGNALING_CLIENT_HANDLE pSignalingHandle)

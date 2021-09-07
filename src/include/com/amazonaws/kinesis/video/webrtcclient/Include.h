@@ -1868,6 +1868,23 @@ PUBLIC_API STATUS createSignalingClientSync(PSignalingClientInfo, PChannelInfo, 
                                             PSIGNALING_CLIENT_HANDLE);
 
 /**
+ * @brief Creates a Signaling client and returns a handle to it.
+ * Calls to this API in quick succession could result in blocking the thread
+ * for the wait time computed within PExponentialBackoffState.
+ *
+ * @param[in] PSignalingClientInfo Signaling client info
+ * @param[in] PChannelInfo Signaling channel info to use/create a channel
+ * @param[in] PSignalingClientCallbacks Signaling callbacks for event notifications
+ * @param[in] PAwsCredentialProvider Credential provider for auth integration
+ * @param[in] PExponentialBackoffState Exponential backoff state
+ * @param[out] PSIGNALING_CLIENT_HANDLE Returned signaling client handle
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
+PUBLIC_API STATUS createSignalingClientSyncWithBackoff(PSignalingClientInfo, PChannelInfo, PSignalingClientCallbacks, PAwsCredentialProvider,
+                                                       PSIGNALING_CLIENT_HANDLE, PExponentialBackoffState);
+
+/**
  * @brief Frees the Signaling client object
  *
  * NOTE: The call is idempotent.
