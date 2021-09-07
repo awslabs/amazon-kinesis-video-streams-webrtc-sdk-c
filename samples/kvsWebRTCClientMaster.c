@@ -87,7 +87,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     // and pass the same object to all the createSignalingClientSyncWithBackoff calls.
     retStatus = exponentialBackoffStateWithDefaultConfigCreate(&pExponentialBackoffState);
     if (retStatus != STATUS_SUCCESS) {
-        printf("[KVS Viewer] exponentialBackoffStateWithDefaultConfigCreate(): operation returned status code: 0x%08x \n", retStatus);
+        printf("[KVS Master] exponentialBackoffStateWithDefaultConfigCreate(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;
     }
 
