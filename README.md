@@ -301,7 +301,7 @@ Refer to [related](#related) for more about WebRTC and KVS.
 
 ## Development
 
-If you would like to contribute to the development of this project, please base your pull requests off of the develop branch, and to the develop branch. Commits from develop will be merged into master periodically as a part of each release cycle.
+If you would like to contribute to the development of this project, please base your pull requests off of the `origin/develop` branch, and to the `origin/develop` branch. Commits from `develop` will be merged into master periodically as a part of each release cycle.
 
 ## Outbound hostname and port requirements
 * KVS endpoint : TCP 443 (ex: kinesisvideo.us-west-2.amazonaws.com)
