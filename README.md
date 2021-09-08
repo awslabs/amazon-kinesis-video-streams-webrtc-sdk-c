@@ -97,7 +97,7 @@ You can pass the following options to `cmake ..`.
 * `-DUNDEFINED_BEHAVIOR_SANITIZER` -- Build with UndefinedBehaviorSanitizer
 * `-DLINK_PROFILER` -- Link with gperftools (available profiler options are listed [here](https://github.com/gperftools/gperftools))
 
-To clean up the `open-source` and `build` folders from previous build, use `cmake --build . --target clean` from the _build_ folder
+To clean up the `open-source` and `build` folders from previous build, use `cmake --build . --target clean` from the `build` folder
 
 For windows builds, you will have to include additional flags for libwebsockets CMake. Add the following flags to your cmake command, or edit the CMake file in ./CMake/Dependencies/libwebsockets-CMakeLists.txt with the following:
 
