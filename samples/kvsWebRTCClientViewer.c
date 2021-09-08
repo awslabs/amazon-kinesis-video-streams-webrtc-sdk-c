@@ -11,6 +11,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     PSampleConfiguration pSampleConfiguration = NULL;
     PSampleStreamingSession pSampleStreamingSession = NULL;
     BOOL locked = FALSE;
+    PExponentialBackoffState pExponentialBackoffState = NULL;
 
 #ifndef _WIN32
     signal(SIGINT, sigintHandler);
@@ -47,13 +48,23 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     printf("[KVS Viewer] KVS WebRTC initialization completed successfully\n");
 
+    // Note:
+    // If creating signaling client in a direct or some sort of indirect loop, then create exponentialBackoffState just once
+    // and pass the same object to all the createSignalingClientSyncWithBackoff calls.
+    retStatus = exponentialBackoffStateWithDefaultConfigCreate(&pExponentialBackoffState);
+    if (retStatus != STATUS_SUCCESS) {
+        printf("[KVS Viewer] exponentialBackoffStateWithDefaultConfigCreate(): operation returned status code: 0x%08x \n", retStatus);
+        goto CleanUp;
+    }
+    printf("[KVS Viewer] Created and initialized exponential backoff state successfully");
+
     pSampleConfiguration->signalingClientCallbacks.messageReceivedFn = signalingMessageReceived;
 
     sprintf(pSampleConfiguration->clientInfo.clientId, "%s_%u", SAMPLE_VIEWER_CLIENT_ID, RAND() % MAX_UINT32);
 
-    retStatus = createSignalingClientSync(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
+    retStatus = createSignalingClientSyncWithBackoff(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
                                           &pSampleConfiguration->signalingClientCallbacks, pSampleConfiguration->pCredentialProvider,
-                                          &pSampleConfiguration->signalingClientHandle);
+                                          &pSampleConfiguration->signalingClientHandle, pExponentialBackoffState);
     if (retStatus != STATUS_SUCCESS) {
         printf("[KVS Viewer] createSignalingClientSync(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;
@@ -188,6 +199,7 @@ CleanUp:
             printf("[KVS Master] freeSampleConfiguration(): operation returned status code: 0x%08x \n", retStatus);
         }
     }
+    exponentialBackoffStateFree(&pExponentialBackoffState);
     printf("[KVS Viewer] Cleanup done\n");
 
     // https://www.gnu.org/software/libc/manual/html_node/Exit-Status.html

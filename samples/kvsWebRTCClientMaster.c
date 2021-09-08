@@ -11,6 +11,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     PSampleConfiguration pSampleConfiguration = NULL;
     SignalingClientMetrics signalingClientMetrics;
     signalingClientMetrics.version = 0;
+    PExponentialBackoffState pExponentialBackoffState = NULL;
 
 #ifndef _WIN32
     signal(SIGINT, sigintHandler);
@@ -68,13 +69,23 @@ INT32 main(INT32 argc, CHAR* argv[])
     }
     printf("[KVS Master] KVS WebRTC initialization completed successfully\n");
 
+    // Note:
+    // If creating signaling client in a direct or some sort of indirect loop, then create exponentialBackoffState just once
+    // and pass the same object to all the createSignalingClientSyncWithBackoff calls.
+    retStatus = exponentialBackoffStateWithDefaultConfigCreate(&pExponentialBackoffState);
+    if (retStatus != STATUS_SUCCESS) {
+        printf("[KVS Master] exponentialBackoffStateWithDefaultConfigCreate(): operation returned status code: 0x%08x \n", retStatus);
+        goto CleanUp;
+    }
+    printf("[KVS Master] Created and initialized exponential backoff state successfully\n");
+
     pSampleConfiguration->signalingClientCallbacks.messageReceivedFn = signalingMessageReceived;
 
     strcpy(pSampleConfiguration->clientInfo.clientId, SAMPLE_MASTER_CLIENT_ID);
 
-    retStatus = createSignalingClientSync(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
+    retStatus = createSignalingClientSyncWithBackoff(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
                                           &pSampleConfiguration->signalingClientCallbacks, pSampleConfiguration->pCredentialProvider,
-                                          &pSampleConfiguration->signalingClientHandle);
+                                          &pSampleConfiguration->signalingClientHandle, pExponentialBackoffState);
     if (retStatus != STATUS_SUCCESS) {
         printf("[KVS Master] createSignalingClientSync(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;
@@ -94,7 +105,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     printf("[KVS Master] Channel %s set up done \n", (argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME));
 
     // Checking for termination
-    retStatus = sessionCleanupWait(pSampleConfiguration);
+    retStatus = sessionCleanupWait(pSampleConfiguration, pExponentialBackoffState);
     if (retStatus != STATUS_SUCCESS) {
         printf("[KVS Master] sessionCleanupWait(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;
@@ -136,6 +147,7 @@ CleanUp:
             printf("[KVS Master] freeSampleConfiguration(): operation returned status code: 0x%08x", retStatus);
         }
     }
+    exponentialBackoffStateFree(&pExponentialBackoffState);
     printf("[KVS Master] Cleanup done\n");
 
     // https://www.gnu.org/software/libc/manual/html_node/Exit-Status.html
