@@ -482,9 +482,11 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
     CHK_STATUS(requestRequiresSecureConnection(pCallInfo->callInfo.pRequestInfo->url, &secureConnection));
     DLOGV("Perform %s synchronous call for URL: %s", secureConnection ? "secure" : EMPTY_STRING, pCallInfo->callInfo.pRequestInfo->url);
 
+#ifdef VSTREAMRTC_AUTH
+    pVerb = NULL;
+#else
     if (pCallInfo->protocolIndex == PROTOCOL_INDEX_WSS) {
         pVerb = NULL;
-
         // Remove the header as it will be added back by LWS
         CHK_STATUS(removeRequestHeader(pCallInfo->callInfo.pRequestInfo, (PCHAR) "user-agent"));
 
@@ -502,6 +504,7 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
         // Remove the header as it will be added back by LWS
         CHK_STATUS(removeRequestHeader(pCallInfo->callInfo.pRequestInfo, AWS_SIG_V4_HEADER_HOST));
     }
+#endif
 
     pContext = pCallInfo->pSignalingClient->pLwsContext;
 
@@ -512,8 +515,8 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
     connectInfo.port = SIGNALING_DEFAULT_SSL_PORT;
 
     CHK_STATUS(getRequestHost(pCallInfo->callInfo.pRequestInfo->url, &pHostStart, &pHostEnd));
-    CHK(pHostEnd == NULL || *pHostEnd == '/' || *pHostEnd == '?', STATUS_INTERNAL_ERROR);
 
+    CHK(pHostEnd == NULL || *pHostEnd == '/' || *pHostEnd == '?', STATUS_INTERNAL_ERROR);
     // Store the path
     path[MAX_URI_CHAR_LEN] = '\0';
     if (pHostEnd != NULL) {
@@ -999,8 +1002,15 @@ STATUS getIceConfigLws(PSignalingClient pSignalingClient, UINT64 time)
     BOOL jsonInIceServerList = FALSE;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
-    CHK(pSignalingClient->channelEndpointHttps[0] != '\0', STATUS_INTERNAL_ERROR);
 
+#ifdef VSTREAMRTC_AUTH
+    retStatus = vStreamrtcGetIceConfig(pSignalingClient);
+    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T)SERVICE_CALL_RESULT_OK);
+    CHK_STATUS(validateIceConfiguration(pSignalingClient));
+    goto CleanUp;
+#else
+    CHK(pSignalingClient->channelEndpointHttps[0] != '\0', STATUS_INTERNAL_ERROR);
+#endif
     // Update the diagnostics info on the number of ICE refresh calls
     ATOMIC_INCREMENT(&pSignalingClient->diagnostics.iceRefreshCount);
 
@@ -1172,6 +1182,14 @@ STATUS createLwsCallInfo(PSignalingClient pSignalingClient, PRequestInfo pReques
     pLwsCallInfo->pSignalingClient = pSignalingClient;
     pLwsCallInfo->protocolIndex = protocolIndex;
 
+#ifdef VSTREAMRTC_AUTH
+    if (STRLEN(pSignalingClient->channelEndpointPresignedWss) > 0) {
+        STRCPY(pLwsCallInfo->channelEndpointPresignedWss, pSignalingClient->channelEndpointPresignedWss);
+    }
+#else
+    pLwsCallInfo->channelEndpointPresignedWss[0] = '\0';
+#endif
+
     *ppLwsCallInfo = pLwsCallInfo;
 
 CleanUp:
@@ -1226,7 +1244,12 @@ STATUS connectSignalingChannelLws(PSignalingClient pSignalingClient, UINT64 time
     UINT64 timeout;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+
+#ifdef VSTREAMRTC_AUTH
+    CHK(pSignalingClient->channelEndpointPresignedWss[0] != '\0', STATUS_INTERNAL_ERROR);
+#else
     CHK(pSignalingClient->channelEndpointWss[0] != '\0', STATUS_INTERNAL_ERROR);
+#endif
 
     // Prepare the json params for the call
     if (pSignalingClient->pChannelInfo->channelRoleType == SIGNALING_CHANNEL_ROLE_TYPE_VIEWER) {
@@ -1234,8 +1257,12 @@ STATUS connectSignalingChannelLws(PSignalingClient pSignalingClient, UINT64 time
                  SIGNALING_CHANNEL_ARN_PARAM_NAME, pSignalingClient->channelDescription.channelArn, SIGNALING_CLIENT_ID_PARAM_NAME,
                  pSignalingClient->clientInfo.signalingClientInfo.clientId);
     } else {
+#ifdef VSTREAMRTC_AUTH
+        STRCPY(url, pSignalingClient->channelEndpointPresignedWss);
+#else
         SNPRINTF(url, ARRAY_SIZE(url), SIGNALING_ENDPOINT_MASTER_URL_WSS_TEMPLATE, pSignalingClient->channelEndpointWss,
                  SIGNALING_CHANNEL_ARN_PARAM_NAME, pSignalingClient->channelDescription.channelArn);
+#endif
     }
 
     // Create the request info with the body

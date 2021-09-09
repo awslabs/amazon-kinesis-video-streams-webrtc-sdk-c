@@ -275,6 +275,10 @@ STATUS executeGetTokenSignalingState(UINT64 customData, UINT64 time)
                                                                             SIGNALING_CLIENT_STATE_GET_CREDENTIALS));
     }
 
+#ifdef VSTREAMRTC_AUTH
+    retStatus = STATUS_SUCCESS;
+    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T)SERVICE_CALL_RESULT_OK);
+#else
     // Use the credential provider to get the token
     retStatus = pSignalingClient->pCredentialProvider->getCredentialsFn(pSignalingClient->pCredentialProvider, &pSignalingClient->pAwsCredentials);
 
@@ -286,6 +290,7 @@ STATUS executeGetTokenSignalingState(UINT64 customData, UINT64 time)
     }
 
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) serviceCallResult);
+#endif
 
     // Self-prime the next state
     CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
@@ -358,8 +363,13 @@ STATUS executeDescribeSignalingState(UINT64 customData, UINT64 time)
                                                                             SIGNALING_CLIENT_STATE_DESCRIBE));
     }
 
+#ifdef VSTREAMRTC_AUTH
+    retStatus = STATUS_SUCCESS;
+    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T)SERVICE_CALL_RESULT_OK);
+#else
     // Call the aggregate function
     retStatus = describeChannel(pSignalingClient, time);
+#endif
 
     CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
 
@@ -421,8 +431,14 @@ STATUS executeCreateSignalingState(UINT64 customData, UINT64 time)
                                                                             SIGNALING_CLIENT_STATE_CREATE));
     }
 
+#ifdef VSTREAMRTC_AUTH
+    // Not creating channel when using vstreamrtc
+    retStatus = STATUS_SUCCESS;
+    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T)SERVICE_CALL_RESULT_OK);
+#else
     // Call the aggregate function
     retStatus = createChannel(pSignalingClient, time);
+#endif
 
     CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
 
@@ -485,7 +501,13 @@ STATUS executeGetEndpointSignalingState(UINT64 customData, UINT64 time)
     }
 
     // Call the aggregate function
+#ifdef VSTREAMRTC_AUTH
+    retStatus = vStreamrtcGetPresignedChannelURI(pSignalingClient->channelEndpointPresignedWss);
+    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T)SERVICE_CALL_RESULT_OK);
+#else
+    pSignalingClient->channelEndpointPresignedWss[0] = '\0';
     retStatus = getChannelEndpoint(pSignalingClient, time);
+#endif
 
     CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
 
@@ -547,7 +569,6 @@ STATUS executeGetIceConfigSignalingState(UINT64 customData, UINT64 time)
                                                                             SIGNALING_CLIENT_STATE_GET_ICE_CONFIG));
     }
 
-    // Call the aggregate function
     retStatus = getIceConfig(pSignalingClient, time);
 
     CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));

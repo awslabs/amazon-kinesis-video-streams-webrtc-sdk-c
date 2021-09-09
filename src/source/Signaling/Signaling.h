@@ -68,6 +68,9 @@ extern "C" {
         ATOMIC_INCREMENT(&(pClient)->diagnostics.numberOfErrors);                                                                                    \
     }
 
+/* Uncomment following to use vstreamrtc auth */
+#define VSTREAMRTC_AUTH 1
+
 // Forward declaration
 typedef struct __LwsCallInfo* PLwsCallInfo;
 
@@ -193,6 +196,9 @@ typedef struct {
 
     // Signaling endpoint
     CHAR channelEndpointHttps[MAX_SIGNALING_ENDPOINT_URI_LEN + 1];
+
+    // Presigned signaling endpoint
+    CHAR channelEndpointPresignedWss[MAX_URI_CHAR_LEN + 1];
 
     // Number of Ice Server objects
     UINT32 iceConfigCount;
@@ -326,6 +332,9 @@ STATUS getIceConfig(PSignalingClient, UINT64);
 STATUS connectSignalingChannel(PSignalingClient, UINT64);
 STATUS deleteChannel(PSignalingClient, UINT64);
 STATUS signalingGetMetrics(PSignalingClient, PSignalingClientMetrics);
+
+STATUS vStreamrtcGetIceConfig(PSignalingClient pSignalingClient);
+STATUS vStreamrtcGetPresignedChannelURI(PCHAR pPresignedChannelURI);
 
 #ifdef __cplusplus
 }

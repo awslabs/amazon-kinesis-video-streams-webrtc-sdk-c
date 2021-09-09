@@ -1030,7 +1030,7 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
         DLOGD("Canceling media thread");
         THREAD_CANCEL(pSampleConfiguration->mediaSenderTid);
     }
-    
+
     for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
         retStatus = gatherIceServerStats(pSampleConfiguration->sampleStreamingSessionList[i]);
         if (STATUS_FAILED(retStatus)) {

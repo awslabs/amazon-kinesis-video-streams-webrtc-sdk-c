@@ -207,6 +207,10 @@ struct __LwsCallInfo {
 
     // Size of the data in the receive buffer
     UINT32 receiveBufferSize;
+
+    // Presigned URL to signaling channel endpoint
+    // passed down from signaling client
+    CHAR channelEndpointPresignedWss[MAX_URI_CHAR_LEN + 1];
 };
 
 typedef struct {

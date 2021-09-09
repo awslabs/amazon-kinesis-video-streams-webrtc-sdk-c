@@ -542,7 +542,6 @@ STATUS validateIceConfiguration(PSignalingClient pSignalingClient)
         CHK(pSignalingClient->iceConfigs[i].version <= SIGNALING_ICE_CONFIG_INFO_CURRENT_VERSION, STATUS_SIGNALING_INVALID_ICE_CONFIG_INFO_VERSION);
         CHK(pSignalingClient->iceConfigs[i].uriCount > 0, STATUS_SIGNALING_NO_CONFIG_URI_SPECIFIED);
         CHK(pSignalingClient->iceConfigs[i].uriCount <= MAX_ICE_CONFIG_URI_COUNT, STATUS_SIGNALING_MAX_ICE_URI_COUNT);
-
         minTtl = MIN(minTtl, pSignalingClient->iceConfigs[i].ttl);
     }
 
@@ -1009,9 +1008,10 @@ STATUS getIceConfig(PSignalingClient pSignalingClient, UINT64 time)
 
     THREAD_SLEEP_UNTIL(time);
 
+#ifndef VSTREAMRTC_AUTH
     // Check for the stale credentials
     CHECK_SIGNALING_CREDENTIALS_EXPIRATION(pSignalingClient);
-
+#endif
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
 
     // We are not caching ICE server config calls
@@ -1100,8 +1100,10 @@ STATUS connectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time)
 
     THREAD_SLEEP_UNTIL(time);
 
+#ifndef VSTREAMRTC_AUTH
     // Check for the stale credentials
     CHECK_SIGNALING_CREDENTIALS_EXPIRATION(pSignalingClient);
+#endif
 
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
 
@@ -1174,4 +1176,25 @@ CleanUp:
 
     LEAVES();
     return retStatus;
+}
+
+STATUS vStreamrtcGetIceConfig(PSignalingClient pSignalingClient) {
+    // Statically assigned ice configs until vstreamrtc is available
+    pSignalingClient->iceConfigCount = 1;
+    pSignalingClient->iceConfigs[0].version = 0;
+    pSignalingClient->iceConfigs[0].uriCount = 3;
+    pSignalingClient->iceConfigs[0].ttl = 300 * HUNDREDS_OF_NANOS_IN_A_SECOND;
+
+    STRCPY(pSignalingClient->iceConfigs[0].uris[0], "turn:35-85-58-186.t-64dcfb3f.kinesisvideo.us-west-2.amazonaws.com:443?transport=udp");
+    STRCPY(pSignalingClient->iceConfigs[0].uris[1], "turns:35-85-58-186.t-64dcfb3f.kinesisvideo.us-west-2.amazonaws.com:443?transport=udp");
+    STRCPY(pSignalingClient->iceConfigs[0].uris[2], "turns:35-85-58-186.t-64dcfb3f.kinesisvideo.us-west-2.amazonaws.com:443?transport=tcp");
+
+    STRCPY(pSignalingClient->iceConfigs[0].userName, "1631168979:djE6YXJuOmF3czpraW5lc2lzdmlkZW86dXMtd2VzdC0yOjU4NDkxODE0NTE5MzpjaGFubmVsL2Rld2VpLXRlc3QtY2hhbm5lbC8xNjMwMzkwNzgzMzkx");
+    STRCPY(pSignalingClient->iceConfigs[0].password, "QWL58JsMKRYeCR+ySrgejame7Ma6WGK2VFaq0J7IJ5E=");
+
+    return STATUS_SUCCESS;
+}
+
+STATUS vStreamrtcGetPresignedChannelURI(PCHAR pPresignedChannelURI) {
+    STRCPY(pPresignedChannelURI, "wss://m-555f26aa.kinesisvideo.us-west-2.amazonaws.com?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-ChannelARN=arn%3Aaws%3Akinesisvideo%3Aus-west-2%3A584918145193%3Achannel%2Fdewei-test-channel%2F1630390783391&X-Amz-Credential=ASIAYQL6WTCU2WDV4BIQ%2F20210910%2Fus-west-2%2Fkinesisvideo%2Faws4_request&X-Amz-Date=20210910T043301Z&X-Amz-Expires=604800&X-Amz-Security-Token=IQoJb3JpZ2luX2VjEIT%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FwEaCXVzLXdlc3QtMiJIMEYCIQChciiGhaqGScmK0PMwVh5c1wo2hpDrC%2FFEESoZhphCOAIhAIjqhTpc9kue1xuwgG%2B2X%2Bn%2BBYTEu%2FLcWIgh%2F8OWmPKhKp8DCM3%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FwEQABoMNTg0OTE4MTQ1MTkzIgwtblWXt5b%2FmCF2OyEq8wKjSu%2BJK5CiQ36N56cgonneYf0525U2hgEApah5t5OdC5ReGkFmGP0%2FGkTBrTw1u9DZA4AmhCcDRr82uR8ox4Czz0WeKfQ2SmTQSeX0tYYVrix5LvwOtA%2FAwJOvrBJfrzQeyENn2K1fS%2FuHc3qinUco9B5FlmlQrE4xUmIQmQRdTgTH%2Bgr2tE%2B4BmkWrPYfwXL6E4JJ%2Fl1Bd5WQziFb26%2F%2FAhsdWlUzvpIOo2Kkg9mg3a%2BNIpqMIsNyRmuQpMKg1YLYEvb%2FM55X%2FsH0clctYNYhu3JyPP%2B8NDSPuIwkEcXcnVH1WIaQ9mtMO35hP9pE4l%2BRshMkknZZaW9M%2BGW6WSGsJdYwBBzqHz83M2f2NvJem88sOMlufurJTl6P%2F08wojdXbelAYD5wQ%2Fp45ry%2F%2F%2BR5oRi2ym3UHguqPZ9gQhm3muxvtRLtXIFuz0cMRfUGYdW1oMJHk8wbKKnM%2Fj78SVQynWLuvFDn8sWeQ4WQua6TO%2FMx3DDxseuJBjqlAdw3sOWBVEYrhpBTwtd5ZsVHzkMuyFHlRxIJakyS7YVjQb9pxJqcOPq9iy8wk8GOQ4AcgpqZBF5YW%2B0JSozVXTMtH9ZIeXbmt7w2YZsrxDcl88NppZ7c%2FSBwrhx6ojrCc974ZPfUM5IflcTrOCPD%2B3RznGL8Oju9lPE6YNnZx%2F%2BOy307XH6ma%2F%2Fc0ojczHDJYZJpTHOh2EPq1IXG41%2FGIi15hox%2Bnw%3D%3D&X-Amz-SignedHeaders=host&X-Amz-Signature=09a4e9b00a41592faf505779d72e38a4e78311dc5133279564be8c105c85be61");
 }
