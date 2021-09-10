@@ -2,6 +2,7 @@
 
 extern PSampleConfiguration gSampleConfiguration;
 
+#ifdef ENABLE_DATA_CHANNEL
 // onMessage callback for a message received by the viewer on a data channel
 VOID dataChannelOnMessageCallback(UINT64 customData, PRtcDataChannel pDataChannel, BOOL isBinary, PBYTE pMessage, UINT32 pMessageLen)
 {
@@ -26,6 +27,7 @@ VOID dataChannelOnOpenCallback(UINT64 customData, PRtcDataChannel pDataChannel) 
         DLOGI("[KVS Viewer] dataChannelSend(): operation returned status code: 0x%08x \n", retStatus);
     }
 }
+#endif
 
 INT32 main(INT32 argc, CHAR* argv[])
 {
