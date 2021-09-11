@@ -502,7 +502,7 @@ STATUS executeGetEndpointSignalingState(UINT64 customData, UINT64 time)
 
     // Call the aggregate function
 #ifdef VSTREAMRTC_AUTH
-    retStatus = vStreamrtcGetPresignedChannelURI(pSignalingClient->channelEndpointPresignedWss);
+    retStatus = vStreamrtcGetPresignedChannelURI(pSignalingClient);
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T)SERVICE_CALL_RESULT_OK);
 #else
     pSignalingClient->channelEndpointPresignedWss[0] = '\0';

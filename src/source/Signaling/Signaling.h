@@ -334,7 +334,7 @@ STATUS deleteChannel(PSignalingClient, UINT64);
 STATUS signalingGetMetrics(PSignalingClient, PSignalingClientMetrics);
 
 STATUS vStreamrtcGetIceConfig(PSignalingClient pSignalingClient);
-STATUS vStreamrtcGetPresignedChannelURI(PCHAR pPresignedChannelURI);
+STATUS vStreamrtcGetPresignedChannelURI(PSignalingClient pSignalingClient);
 
 #ifdef __cplusplus
 }

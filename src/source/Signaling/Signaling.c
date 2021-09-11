@@ -1179,6 +1179,13 @@ CleanUp:
 }
 
 STATUS vStreamrtcGetIceConfig(PSignalingClient pSignalingClient) {
+    // Generate dummy AWS credentials
+    if (pSignalingClient->pAwsCredentials == NULL) {
+        pSignalingClient->pAwsCredentials = (PAwsCredentials)MEMCALLOC(1, SIZEOF(AwsCredentials) + SIZEOF(CHAR) * (MAX_ACCESS_KEY_LEN + 1 + MAX_SECRET_KEY_LEN + 1));
+    }
+    // Set expiration 1 hour in the future (TODO: return expiration from vstreamrtc)
+    pSignalingClient->pAwsCredentials->expiration = (GETTIME() + 3600) * HUNDREDS_OF_NANOS_IN_A_SECOND;
+
     // Statically assigned ice configs until vstreamrtc is available
     pSignalingClient->iceConfigCount = 1;
     pSignalingClient->iceConfigs[0].version = 0;
@@ -1195,6 +1202,14 @@ STATUS vStreamrtcGetIceConfig(PSignalingClient pSignalingClient) {
     return STATUS_SUCCESS;
 }
 
-STATUS vStreamrtcGetPresignedChannelURI(PCHAR pPresignedChannelURI) {
-    STRCPY(pPresignedChannelURI, "wss://m-555f26aa.kinesisvideo.us-west-2.amazonaws.com?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-ChannelARN=arn%3Aaws%3Akinesisvideo%3Aus-west-2%3A584918145193%3Achannel%2Fdewei-test-channel%2F1630390783391&X-Amz-Credential=ASIAYQL6WTCU2WDV4BIQ%2F20210910%2Fus-west-2%2Fkinesisvideo%2Faws4_request&X-Amz-Date=20210910T043301Z&X-Amz-Expires=604800&X-Amz-Security-Token=IQoJb3JpZ2luX2VjEIT%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FwEaCXVzLXdlc3QtMiJIMEYCIQChciiGhaqGScmK0PMwVh5c1wo2hpDrC%2FFEESoZhphCOAIhAIjqhTpc9kue1xuwgG%2B2X%2Bn%2BBYTEu%2FLcWIgh%2F8OWmPKhKp8DCM3%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FwEQABoMNTg0OTE4MTQ1MTkzIgwtblWXt5b%2FmCF2OyEq8wKjSu%2BJK5CiQ36N56cgonneYf0525U2hgEApah5t5OdC5ReGkFmGP0%2FGkTBrTw1u9DZA4AmhCcDRr82uR8ox4Czz0WeKfQ2SmTQSeX0tYYVrix5LvwOtA%2FAwJOvrBJfrzQeyENn2K1fS%2FuHc3qinUco9B5FlmlQrE4xUmIQmQRdTgTH%2Bgr2tE%2B4BmkWrPYfwXL6E4JJ%2Fl1Bd5WQziFb26%2F%2FAhsdWlUzvpIOo2Kkg9mg3a%2BNIpqMIsNyRmuQpMKg1YLYEvb%2FM55X%2FsH0clctYNYhu3JyPP%2B8NDSPuIwkEcXcnVH1WIaQ9mtMO35hP9pE4l%2BRshMkknZZaW9M%2BGW6WSGsJdYwBBzqHz83M2f2NvJem88sOMlufurJTl6P%2F08wojdXbelAYD5wQ%2Fp45ry%2F%2F%2BR5oRi2ym3UHguqPZ9gQhm3muxvtRLtXIFuz0cMRfUGYdW1oMJHk8wbKKnM%2Fj78SVQynWLuvFDn8sWeQ4WQua6TO%2FMx3DDxseuJBjqlAdw3sOWBVEYrhpBTwtd5ZsVHzkMuyFHlRxIJakyS7YVjQb9pxJqcOPq9iy8wk8GOQ4AcgpqZBF5YW%2B0JSozVXTMtH9ZIeXbmt7w2YZsrxDcl88NppZ7c%2FSBwrhx6ojrCc974ZPfUM5IflcTrOCPD%2B3RznGL8Oju9lPE6YNnZx%2F%2BOy307XH6ma%2F%2Fc0ojczHDJYZJpTHOh2EPq1IXG41%2FGIi15hox%2Bnw%3D%3D&X-Amz-SignedHeaders=host&X-Amz-Signature=09a4e9b00a41592faf505779d72e38a4e78311dc5133279564be8c105c85be61");
+STATUS vStreamrtcGetPresignedChannelURI(PSignalingClient pSignalingClient) {
+    // Generate dummy AWS credentials
+    if (pSignalingClient->pAwsCredentials == NULL) {
+        pSignalingClient->pAwsCredentials = (PAwsCredentials)MEMCALLOC(1, SIZEOF(AwsCredentials) + SIZEOF(CHAR) * (MAX_ACCESS_KEY_LEN + 1 + MAX_SECRET_KEY_LEN + 1));
+    }
+    // Set expiration 1 hour in the future (TODO: return expiration from vstreamrtc)
+    pSignalingClient->pAwsCredentials->expiration = (GETTIME() + 3600) * HUNDREDS_OF_NANOS_IN_A_SECOND;
+
+    STRCPY(pSignalingClient->channelEndpointPresignedWss,
+           "wss://m-555f26aa.kinesisvideo.us-west-2.amazonaws.com?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-ChannelARN=arn%3Aaws%3Akinesisvideo%3Aus-west-2%3A584918145193%3Achannel%2Fdewei-test-channel%2F1630390783391&X-Amz-Credential=ASIAYQL6WTCUVJMVXWMN%2F20210911%2Fus-west-2%2Fkinesisvideo%2Faws4_request&X-Amz-Date=20210911T051828Z&X-Amz-Expires=604800&X-Amz-Security-Token=IQoJb3JpZ2luX2VjEJ7%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FwEaCXVzLXdlc3QtMiJIMEYCIQDc6ApfBEgndm%2Bn7k7Kqd9drO%2BRcKDCssdqqJUx%2BlIDNgIhAIsZX87UPByHW5X9sTZ9nTn%2BOJgaKT%2B5rvfHaw%2FZFfdAKp8DCOb%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FwEQABoMNTg0OTE4MTQ1MTkzIgzwm%2FeYy8WaWR97Ikcq8wJQQYsdyghuzoV0ad3VGN5ukhgVHr%2F%2BsGKHbopc2yDuj20NnzkJLX7e5O8AJtCsp9GHWdfVCLrg6%2Btd6gm6Ep5k2p%2FZxeHAaj%2Bl%2FArlLJw1fhj9zGbOHPjYRqgrgrHhIuOJtq8EPrTx%2BwcvEakG8EBtU1PXMKlAKDK1LC4FVFJhxJqkAHTy3ixuXUS9BDBRV5CnxkiusapZC8p1XT%2FBizuo4h6lUWbyIdLbC0%2FwluPZ%2BxFRnFVr9H%2FbtbQ5WpfA%2FIQsdhTdlob0hjTy098Y2bshvfUFlksPfn2BnJrYWqalBSp%2BZ2rnICExT0po9UMnuRbxpbHTY4zvG8t%2B9Th%2FfnY2MskD9SPKAiGQvvf9UNEWo4YXDN9un0u1O%2FWLWcaIXBRbDQNIy9fkukgvhKopyTjNUobf%2BGczXV0uAa3%2FY1SAezbUl8EAHcy32UcMYgtasrdUWpZA035hNwrkDqF8N4WmyZFRmDnqVnDf5hTcrbLi%2FEWHXjCd%2BPCJBjqlAY3hr9IDgHNPORsVATh1CKwkO1IHmQbgw4IuIatqI1NjpTL14mg2XzqrgHyrNmMDHsWq2hSQOndqKOYQZUDi%2F0nQUSm8EMX2Ukd3XcnyZmWHCQdM1JdkpCye%2FePJO54lUWsknRUaBDQMTljuQK0bbi7zpS3VXYdORIPJMufPqbHD5JTGlJd%2FfJMf%2FS4s7MiDfPnhEOchJ9pRNPu2GARdcnTC6HcINg%3D%3D&X-Amz-SignedHeaders=host&X-Amz-Signature=25561a70dc3e16b163ea9bccdc1dd8e06c5c8cde854c4c071fb937fe36594b55");
 }
