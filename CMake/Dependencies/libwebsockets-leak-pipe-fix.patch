@@ -1,0 +1,36 @@
+Author: Andy Green <andy@warmcat.com>
+Date: Wed Sep 08 12:25:47 2021 +0200
+
+cancel pipe: make sure we closed it on destroy with no EVENTFD case
+
+
+diff --git a/lib/core/context.c b/lib/core/context.c
+index 6194801..4f3bb45 100644
+--- a/lib/core/context.c
++++ b/lib/core/context.c
+@@ -1625,11 +1625,25 @@ lws_pt_destroy(struct lws_context_per_thread *pt)
+ 	vpt->foreign_pfd_list = NULL;
+ 
+ 	lws_pt_lock(pt, __func__);
++
+ 	if (pt->pipe_wsi) {
+ 		lws_destroy_event_pipe(pt->pipe_wsi);
+ 		pt->pipe_wsi = NULL;
+ 	}
+ 
++	if (pt->dummy_pipe_fds[0]
++#if !defined(WIN32)
++	    && (int)pt->dummy_pipe_fds[0] != -1
++#endif
++	) {
++		struct lws wsi;
++
++		memset(&wsi, 0, sizeof(wsi));
++		wsi.a.context = pt->context;
++		wsi.tsi = (char)pt->tid;
++		lws_plat_pipe_close(&wsi);
++	}
++
+ #if defined(LWS_WITH_SECURE_STREAMS)
+ 	lws_dll2_foreach_safe(&pt->ss_owner, NULL, lws_ss_destroy_dll);
+ 
