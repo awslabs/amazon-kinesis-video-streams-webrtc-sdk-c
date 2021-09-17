@@ -2574,7 +2574,9 @@ STATUS iceAgentCheckPeerReflexiveCandidate(PIceAgent pIceAgent, PKvsIpAddress pI
         CHK(pIceCandidate == NULL, retStatus); // return early if duplicated
 
         findCandidateWithSocketConnection(pSocketConnection, pIceAgent->localCandidates, &pLocalIceCandidate);
-        pLocalIceCandidate->iceCandidateType = ICE_CANDIDATE_TYPE_PEER_REFLEXIVE;
+		if (pLocalIceCandidate->iceCandidateType != ICE_CANDIDATE_TYPE_RELAYED) {
+			pLocalIceCandidate->iceCandidateType = ICE_CANDIDATE_TYPE_PEER_REFLEXIVE;	
+		}
         pLocalIceCandidate->ipAddress = *pIpAddress;
         iceAgentLogNewCandidate(pLocalIceCandidate);
         CHK(FALSE, retStatus);
