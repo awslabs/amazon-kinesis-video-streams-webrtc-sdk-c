@@ -374,10 +374,7 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
 
 CleanUp:
 
-    // The check for valid mutex is necessary because when we're in freeConnectionListener
-    // we may free the mutex in another thread so by the time we get here accessing the lock
-    // will result in accessing a resource after it has been freed
-    if (pConnectionListener != NULL && IS_VALID_MUTEX_VALUE(pConnectionListener->lock)) {
+    if (pConnectionListener != NULL) {
         // As TID is 64 bit we can't atomically update it and need to do it under the lock
         MUTEX_LOCK(pConnectionListener->lock);
         pConnectionListener->receiveDataRoutine = INVALID_TID_VALUE;
