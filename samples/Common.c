@@ -1025,11 +1025,6 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
         MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
         locked = TRUE;
     }
-    // Cancel the media thread
-    if(!(pSampleConfiguration->mediaThreadStarted)) {
-        DLOGD("Canceling media thread");
-        THREAD_CANCEL(pSampleConfiguration->mediaSenderTid);
-    }
     
     for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
         retStatus = gatherIceServerStats(pSampleConfiguration->sampleStreamingSessionList[i]);
