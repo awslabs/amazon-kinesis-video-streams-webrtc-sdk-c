@@ -818,9 +818,7 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
         SAFE_MEMFREE(pKvsPeerConnection->pTwccManager);
     }
 
-    SAFE_MEMFREE(pKvsPeerConnection);
-
-    *ppPeerConnection = NULL;
+    SAFE_MEMFREE(*ppPeerConnection);
 
 CleanUp:
 
