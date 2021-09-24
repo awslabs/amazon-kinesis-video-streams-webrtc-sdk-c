@@ -551,7 +551,7 @@ STATUS freeSampleStreamingSession(PSampleStreamingSession* ppSampleStreamingSess
     // the running thread but it's OK as it's re-entrant
     MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
     if (pSampleConfiguration->iceCandidatePairStatsTimerId != MAX_UINT32 && pSampleConfiguration->streamingSessionCount == 0 &&
-        pSampleConfiguration->iceCandidatePairStatsTimerId != MAX_UINT32) {
+        pSampleConfiguration->iceCandidatePairStatsTimerId != MAX_UINT32 && IS_VALID_TIMER_QUEUE_HANDLE(pSampleConfiguration->timerQueueHandle)) {
         CHK_LOG_ERR(timerQueueCancelTimer(pSampleConfiguration->timerQueueHandle, pSampleConfiguration->iceCandidatePairStatsTimerId,
                                           (UINT64) pSampleConfiguration));
         pSampleConfiguration->iceCandidatePairStatsTimerId = MAX_UINT32;
@@ -1004,6 +1004,28 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
 
     CHK(pSampleConfiguration != NULL, retStatus);
 
+    if (IS_VALID_TIMER_QUEUE_HANDLE(pSampleConfiguration->timerQueueHandle)) {
+        if (pSampleConfiguration->iceCandidatePairStatsTimerId != MAX_UINT32) {
+            retStatus = timerQueueCancelTimer(pSampleConfiguration->timerQueueHandle, pSampleConfiguration->iceCandidatePairStatsTimerId,
+                                              (UINT64) pSampleConfiguration);
+            if (STATUS_FAILED(retStatus)) {
+                DLOGE("Failed to cancel stats timer with: 0x%08x", retStatus);
+            }
+            pSampleConfiguration->iceCandidatePairStatsTimerId = MAX_UINT32;
+        }
+
+        if (pSampleConfiguration->pregenerateCertTimerId != MAX_UINT32) {
+            retStatus = timerQueueCancelTimer(pSampleConfiguration->timerQueueHandle, pSampleConfiguration->pregenerateCertTimerId,
+                                              (UINT64) pSampleConfiguration);
+            if (STATUS_FAILED(retStatus)) {
+                DLOGE("Failed to cancel certificate pre-generation timer with: 0x%08x", retStatus);
+            }
+            pSampleConfiguration->pregenerateCertTimerId = MAX_UINT32;
+        }
+
+        timerQueueFree(&pSampleConfiguration->timerQueueHandle);
+    }
+
     if (pSampleConfiguration->pPendingSignalingMessageForRemoteClient != NULL) {
         // Iterate and free all the pending queues
         stackQueueGetIterator(pSampleConfiguration->pPendingSignalingMessageForRemoteClient, &iterator);
@@ -1069,28 +1091,6 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
     freeStaticCredentialProvider(&pSampleConfiguration->pCredentialProvider);
 #endif
 
-    if (IS_VALID_TIMER_QUEUE_HANDLE(pSampleConfiguration->timerQueueHandle)) {
-        if (pSampleConfiguration->iceCandidatePairStatsTimerId != MAX_UINT32) {
-            retStatus = timerQueueCancelTimer(pSampleConfiguration->timerQueueHandle, pSampleConfiguration->iceCandidatePairStatsTimerId,
-                                              (UINT64) pSampleConfiguration);
-            if (STATUS_FAILED(retStatus)) {
-                DLOGE("Failed to cancel stats timer with: 0x%08x", retStatus);
-            }
-            pSampleConfiguration->iceCandidatePairStatsTimerId = MAX_UINT32;
-        }
-
-        if (pSampleConfiguration->pregenerateCertTimerId != MAX_UINT32) {
-            retStatus = timerQueueCancelTimer(pSampleConfiguration->timerQueueHandle, pSampleConfiguration->pregenerateCertTimerId,
-                                              (UINT64) pSampleConfiguration);
-            if (STATUS_FAILED(retStatus)) {
-                DLOGE("Failed to cancel certificate pre-generation timer with: 0x%08x", retStatus);
-            }
-            pSampleConfiguration->pregenerateCertTimerId = MAX_UINT32;
-        }
-
-        timerQueueFree(&pSampleConfiguration->timerQueueHandle);
-    }
-
     if (pSampleConfiguration->pregeneratedCertificates != NULL) {
         stackQueueGetIterator(pSampleConfiguration->pregeneratedCertificates, &iterator);
         while (IS_VALID_ITERATOR(iterator)) {
@@ -1104,8 +1104,7 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
         pSampleConfiguration->pregeneratedCertificates = NULL;
     }
 
-    MEMFREE(*ppSampleConfiguration);
-    *ppSampleConfiguration = NULL;
+    SAFE_MEMFREE(*ppSampleConfiguration);
 
 CleanUp:
 
