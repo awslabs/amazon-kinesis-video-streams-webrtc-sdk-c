@@ -52,7 +52,9 @@ extern "C" {
 #define INET6 1
 #include <usrsctp.h>
 
+#ifndef NO_BUILD_SIGNALING
 #include <libwebsockets.h>
+#endif
 
 #if !defined __WINDOWS_BUILD__
 #include <signal.h>
@@ -149,11 +151,16 @@ STATUS generateJSONSafeString(PCHAR, UINT32);
 #include "Rtp/Codecs/RtpH264Payloader.h"
 #include "Rtp/Codecs/RtpOpusPayloader.h"
 #include "Rtp/Codecs/RtpG711Payloader.h"
+#include <poll.h>
+
+#ifndef NO_BUILD_SIGNALING
 #include "Signaling/FileCache.h"
 #include "Signaling/Signaling.h"
 #include "Signaling/ChannelInfo.h"
 #include "Signaling/StateMachine.h"
 #include "Signaling/LwsApiCalls.h"
+#endif
+
 #include "Metrics/Metrics.h"
 
 ////////////////////////////////////////////////////
