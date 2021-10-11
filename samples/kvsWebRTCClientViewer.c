@@ -73,6 +73,8 @@ INT32 main(INT32 argc, CHAR* argv[])
         }
     }
 
+    pSampleConfiguration->onDataChannel = onDataChannel;
+
     // Initialize KVS WebRTC. This must be done before anything else, and must only be done once.
     retStatus = initKvsWebRtc();
     if (retStatus != STATUS_SUCCESS) {
