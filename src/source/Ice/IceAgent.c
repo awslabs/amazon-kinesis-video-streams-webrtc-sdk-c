@@ -355,13 +355,12 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
                 STRTOUI32(curr, next, 10, &priority);
                 break;
             case SDP_ICE_CANDIDATE_PARSER_STATE_PROTOCOL:
-                if(STRNCMPI("tcp", curr, tokenLen) == 0) {
+                if (STRNCMPI(ICE_TRANSPORT_TYPE_TCP, curr, tokenLen) == 0) {
                     remoteProtocol = KVS_SOCKET_PROTOCOL_TCP;
-                }
-                else if(STRNCMPI("udp", curr, tokenLen) == 0) {
+                } else if (STRNCMPI(ICE_TRANSPORT_TYPE_UDP, curr, tokenLen) == 0) {
                     remoteProtocol = KVS_SOCKET_PROTOCOL_UDP;
                 }
-                CHK(STRNCMPI("tcp", curr, tokenLen) != 0, STATUS_ICE_CANDIDATE_STRING_IS_TCP);
+                CHK(STRNCMPI(ICE_TRANSPORT_TYPE_TCP, curr, tokenLen) != 0, STATUS_ICE_CANDIDATE_STRING_IS_TCP);
                 break;
             case SDP_ICE_CANDIDATE_PARSER_STATE_IP:
                 len = MIN(next - curr, KVS_IP_ADDRESS_STRING_BUFFER_LEN - 1);
@@ -2644,27 +2643,26 @@ VOID iceAgentLogNewCandidate(PIceCandidate pIceCandidate)
     KVS_SOCKET_PROTOCOL candidateProtocol = KVS_SOCKET_PROTOCOL_NONE;
     if (pIceCandidate != NULL) {
         getIpAddrStr(&pIceCandidate->ipAddress, ipAddr, ARRAY_SIZE(ipAddr));
-        if(!pIceCandidate->isRemote && pIceCandidate->pSocketConnection != NULL) {
+        if (!pIceCandidate->isRemote && pIceCandidate->pSocketConnection != NULL) {
             candidateProtocol = pIceCandidate->pSocketConnection->protocol;
-        }
-        else {
+        } else {
             candidateProtocol = pIceCandidate->remoteProtocol;
         }
         switch (candidateProtocol) {
-                case KVS_SOCKET_PROTOCOL_TCP:
-                    protocol = "tcp";
-                    break;
-                case KVS_SOCKET_PROTOCOL_UDP:
-                    protocol = "udp";
-                    break;
-                default:
-                    break;
+            case KVS_SOCKET_PROTOCOL_TCP:
+                protocol = ICE_TRANSPORT_TYPE_TCP;
+                break;
+            case KVS_SOCKET_PROTOCOL_UDP:
+                protocol = ICE_TRANSPORT_TYPE_UDP;
+                break;
+            default:
+                break;
         }
     }
 
     DLOGD("New %s ice candidate discovered. Id: %s. Ip: %s:%u. Type: %s. Protocol: %s.", pIceCandidate->isRemote ? "remote" : "local",
-          pIceCandidate->id, ipAddr, (UINT16) getInt16(pIceCandidate->ipAddress.port),
-          iceAgentGetCandidateTypeStr(pIceCandidate->iceCandidateType), protocol);
+          pIceCandidate->id, ipAddr, (UINT16) getInt16(pIceCandidate->ipAddress.port), iceAgentGetCandidateTypeStr(pIceCandidate->iceCandidateType),
+          protocol);
 }
 
 STATUS updateCandidateAddress(PIceCandidate pIceCandidate, PKvsIpAddress pIpAddr)
