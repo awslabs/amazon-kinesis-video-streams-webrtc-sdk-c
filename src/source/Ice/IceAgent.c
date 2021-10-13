@@ -852,7 +852,6 @@ STATUS iceAgentRestart(PIceAgent pIceAgent, PCHAR localIceUfrag, PCHAR localIceP
     ATOMIC_STORE_BOOL(&pIceAgent->processStun, FALSE);
     pIceAgent->iceAgentStatus = STATUS_SUCCESS;
     pIceAgent->lastDataReceivedTime = INVALID_TIMESTAMP_VALUE;
-
     pIceAgent->relayCandidateCount = 0;
 
     CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
