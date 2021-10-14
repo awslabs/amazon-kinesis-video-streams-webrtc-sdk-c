@@ -680,6 +680,7 @@ CleanUp:
         pIceAgent->pDataSendingIceCandidatePair->rtcIceCandidatePairDiagnostics.bytesSent += bytesSent;
         pIceAgent->pDataSendingIceCandidatePair->rtcIceCandidatePairDiagnostics.packetsSent += packetsSent;
     }
+    
     if (locked) {
         MUTEX_UNLOCK(pIceAgent->lock);
     }
