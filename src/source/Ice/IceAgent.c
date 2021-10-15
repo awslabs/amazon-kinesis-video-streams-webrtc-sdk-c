@@ -759,7 +759,7 @@ STATUS iceAgentShutdown(PIceAgent pIceAgent)
             /* close socket so ice doesnt receive any more data */
             CHK_STATUS(socketConnectionClosed(pLocalCandidate->pSocketConnection));
         } else {
-            CHK_STATUS(turnConnectionShutdown(pLocalCandidate->pTurnConnection, 0));
+            CHK_STATUS(turnConnectionShutdown(pLocalCandidate->pTurnConnection, 5 * HUNDREDS_OF_NANOS_IN_A_SECOND));
             turnConnections[turnConnectionCount++] = pLocalCandidate->pTurnConnection;
         }
     }
