@@ -84,8 +84,7 @@ STATUS stepSignalingStateMachine(PSignalingClient pSignalingClient, STATUS statu
     // NOTE: Api Gateway might not return an error that can be interpreted as unauthorized to
     // make the correct transition to auth integration state.
     if (status == STATUS_SERVICE_CALL_NOT_AUTHORIZED_ERROR ||
-        (SERVICE_CALL_UNKNOWN == (SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) &&
-         pSignalingClient->pAwsCredentials->expiration < currentTime)) {
+         pSignalingClient->pAwsCredentials->expiration < currentTime) {
         // Set the call status as auth error
         ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_NOT_AUTHORIZED);
     }
