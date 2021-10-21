@@ -328,6 +328,10 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
     SDP_ICE_CANDIDATE_PARSER_STATE state;
     ICE_CANDIDATE_TYPE iceCandidateType = ICE_CANDIDATE_TYPE_HOST;
     CHAR remoteProtocol[MAX_PROTOCOL_LENGTH] = {'\0'};
+    struct addrinfo hints;
+    struct addrinfo *ai, *pai;
+    struct sockaddr_in *addr_in;
+    struct sockaddr_in6 *addr_in6;
 
     CHK(pIceAgent != NULL && pIceCandidateString != NULL, STATUS_NULL_ARG);
     CHK(!IS_EMPTY_STRING(pIceCandidateString), STATUS_INVALID_ARG);
@@ -343,6 +347,12 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
     curr = pIceCandidateString;
     tail = pIceCandidateString + STRLEN(pIceCandidateString);
     state = SDP_ICE_CANDIDATE_PARSER_STATE_FOUNDATION;
+
+    MEMSET(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_DGRAM;
+    hints.ai_flags = AI_V4MAPPED | AI_ADDRCONFIG;
+    hints.ai_protocol = 0;
 
     while ((next = STRNCHR(curr, tail - curr, ' ')) != NULL && !foundType) {
         tokenLen = (UINT32) (next - curr);
@@ -364,11 +374,25 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
                 len = MIN(next - curr, KVS_IP_ADDRESS_STRING_BUFFER_LEN - 1);
                 STRNCPY(ipBuf, curr, len);
                 ipBuf[len] = '\0';
-                if ((foundIp = inet_pton(AF_INET, ipBuf, candidateIpAddr.address) == 1 ? TRUE : FALSE)) {
-                    candidateIpAddr.family = KVS_IP_FAMILY_TYPE_IPV4;
-                } else if ((foundIp = inet_pton(AF_INET6, ipBuf, candidateIpAddr.address) == 1 ? TRUE : FALSE)) {
-                    candidateIpAddr.family = KVS_IP_FAMILY_TYPE_IPV6;
+                if (0 != getaddrinfo(ipBuf, NULL, &hints, &ai)) {
+                    break;
                 }
+                for (pai = ai; pai != NULL; pai = pai->ai_next) {
+                    if (pai->ai_family == AF_INET) {
+                        addr_in = (struct sockaddr_in *)pai->ai_addr;
+                        MEMCPY(candidateIpAddr.address, &addr_in->sin_addr, pai->ai_addrlen);
+                        candidateIpAddr.family = KVS_IP_FAMILY_TYPE_IPV4;
+                        foundIp = TRUE;
+                        break;
+                    } else if (pai->ai_family == AF_INET6) {
+                        addr_in6 = (struct sockaddr_in6 *)pai->ai_addr;
+                        MEMCPY(candidateIpAddr.address, &addr_in6->sin6_addr, pai->ai_addrlen);
+                        candidateIpAddr.family = KVS_IP_FAMILY_TYPE_IPV6;
+                        foundIp = TRUE;
+                        break;
+                    }
+                }
+                freeaddrinfo(ai);
                 CHK(foundIp, STATUS_ICE_CANDIDATE_STRING_MISSING_IP);
                 break;
             case SDP_ICE_CANDIDATE_PARSER_STATE_PORT:
