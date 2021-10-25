@@ -9,7 +9,7 @@ STATUS createSignalingClientSync(PSignalingClientInfo pClientInfo, PChannelInfo 
     PSignalingClient pSignalingClient = NULL;
     SignalingClientInfoInternal signalingClientInfoInternal;
 
-    DLOGI("Creating Signaling Client Sync");
+    DLOGV("Creating Signaling Client Sync");
     CHK(pSignalingHandle != NULL && pClientInfo != NULL, STATUS_NULL_ARG);
 
     // Convert the client info to the internal structure with empty values
@@ -36,7 +36,7 @@ STATUS freeSignalingClient(PSIGNALING_CLIENT_HANDLE pSignalingHandle)
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient;
 
-    DLOGI("Freeing Signaling Client");
+    DLOGV("Freeing Signaling Client");
     CHK(pSignalingHandle != NULL, STATUS_NULL_ARG);
 
     // Get the client handle
@@ -59,7 +59,7 @@ STATUS signalingClientSendMessageSync(SIGNALING_CLIENT_HANDLE signalingClientHan
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = FROM_SIGNALING_CLIENT_HANDLE(signalingClientHandle);
 
-    DLOGI("Signaling Client Sending Message Sync");
+    DLOGV("Signaling Client Sending Message Sync");
 
     CHK_STATUS(signalingSendMessageSync(pSignalingClient, pSignalingMessage));
 
@@ -76,7 +76,7 @@ STATUS signalingClientConnectSync(SIGNALING_CLIENT_HANDLE signalingClientHandle)
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = FROM_SIGNALING_CLIENT_HANDLE(signalingClientHandle);
 
-    DLOGI("Signaling Client Connect Sync");
+    DLOGV("Signaling Client Connect Sync");
 
     CHK_STATUS(signalingConnectSync(pSignalingClient));
 
@@ -93,7 +93,7 @@ STATUS signalingClientDisconnectSync(SIGNALING_CLIENT_HANDLE signalingClientHand
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = FROM_SIGNALING_CLIENT_HANDLE(signalingClientHandle);
 
-    DLOGI("Signaling Client Disconnect Sync");
+    DLOGV("Signaling Client Disconnect Sync");
 
     CHK_STATUS(signalingDisconnectSync(pSignalingClient));
 
@@ -110,7 +110,7 @@ STATUS signalingClientDeleteSync(SIGNALING_CLIENT_HANDLE signalingClientHandle)
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = FROM_SIGNALING_CLIENT_HANDLE(signalingClientHandle);
 
-    DLOGI("Signaling Client Delete Sync");
+    DLOGV("Signaling Client Delete Sync");
 
     CHK_STATUS(signalingDeleteSync(pSignalingClient));
 
@@ -127,7 +127,7 @@ STATUS signalingClientGetIceConfigInfoCount(SIGNALING_CLIENT_HANDLE signalingCli
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = FROM_SIGNALING_CLIENT_HANDLE(signalingClientHandle);
 
-    DLOGI("Signaling Client Get ICE Config Info Count");
+    DLOGV("Signaling Client Get ICE Config Info Count");
 
     CHK_STATUS(signalingGetIceConfigInfoCout(pSignalingClient, pIceConfigCount));
 
@@ -144,7 +144,7 @@ STATUS signalingClientGetIceConfigInfo(SIGNALING_CLIENT_HANDLE signalingClientHa
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = FROM_SIGNALING_CLIENT_HANDLE(signalingClientHandle);
 
-    DLOGI("Signaling Client Get ICE Config Info");
+    DLOGV("Signaling Client Get ICE Config Info");
 
     CHK_STATUS(signalingGetIceConfigInfo(pSignalingClient, index, ppIceConfigInfo));
 
