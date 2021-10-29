@@ -111,7 +111,7 @@ INT32 lwsHttpCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, 
             lwsl_hexdump_debug(pDataIn, dataSize);
 
             if (dataSize != 0) {
-                CHK(NULL != (pLwsCallInfo->callInfo.responseData = (PCHAR) MEMALLOC(dataSize)), STATUS_NOT_ENOUGH_MEMORY);
+                CHK(NULL != (pLwsCallInfo->callInfo.responseData = (PCHAR) MEMALLOC(dataSize+1)), STATUS_NOT_ENOUGH_MEMORY);
                 MEMCPY(pLwsCallInfo->callInfo.responseData, pDataIn, dataSize);
                 pLwsCallInfo->callInfo.responseDataLen = (UINT32) dataSize;
                 pLwsCallInfo->callInfo.responseData[dataSize] = '\0';
