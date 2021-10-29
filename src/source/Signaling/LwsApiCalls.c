@@ -685,7 +685,7 @@ STATUS describeChannelLws(PSignalingClient pSignalingClient, UINT64 time)
     resultLen = pLwsCallInfo->callInfo.responseDataLen;
 
     // Early return if we have a non-success result
-    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, retStatus);
+    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, STATUS_SIGNALING_LWS_CLIENT_CONNECT_FAILED);
 
     // Parse the response
     jsmn_init(&parser);
@@ -758,6 +758,9 @@ STATUS describeChannelLws(PSignalingClient pSignalingClient, UINT64 time)
     CHK(pSignalingClient->channelDescription.channelStatus != SIGNALING_CHANNEL_STATUS_DELETING, STATUS_SIGNALING_CHANNEL_BEING_DELETED);
 
 CleanUp:
+    if (STATUS_FAILED(retStatus)) {
+        DLOGE("API Call Failed with Status:  0x%08x", retStatus);
+    }
 
     freeLwsCallInfo(&pLwsCallInfo);
 
@@ -830,7 +833,7 @@ STATUS createChannelLws(PSignalingClient pSignalingClient, UINT64 time)
     resultLen = pLwsCallInfo->callInfo.responseDataLen;
 
     // Early return if we have a non-success result
-    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, retStatus);
+    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, STATUS_SIGNALING_LWS_CLIENT_CONNECT_FAILED);
 
     // Parse out the ARN
     jsmn_init(&parser);
@@ -853,7 +856,9 @@ STATUS createChannelLws(PSignalingClient pSignalingClient, UINT64 time)
     CHK(pSignalingClient->channelDescription.channelArn[0] != '\0', STATUS_SIGNALING_NO_ARN_RETURNED_ON_CREATE);
 
 CleanUp:
-
+    if (STATUS_FAILED(retStatus)) {
+        DLOGE("API Call Failed with Status:  0x%08x", retStatus);
+    }
     freeLwsCallInfo(&pLwsCallInfo);
 
     LEAVES();
@@ -893,6 +898,8 @@ STATUS getChannelEndpointLws(PSignalingClient pSignalingClient, UINT64 time)
                                  SIGNALING_SERVICE_API_CALL_CONNECTION_TIMEOUT, SIGNALING_SERVICE_API_CALL_COMPLETION_TIMEOUT,
                                  DEFAULT_LOW_SPEED_LIMIT, DEFAULT_LOW_SPEED_TIME_LIMIT, pSignalingClient->pAwsCredentials, &pRequestInfo));
 
+    pRequestInfo->currentTime -= (10 * HUNDREDS_OF_NANOS_IN_A_MINUTE);
+
     CHK_STATUS(createLwsCallInfo(pSignalingClient, pRequestInfo, PROTOCOL_INDEX_HTTPS, &pLwsCallInfo));
 
     // Make a blocking call
@@ -904,7 +911,7 @@ STATUS getChannelEndpointLws(PSignalingClient pSignalingClient, UINT64 time)
     resultLen = pLwsCallInfo->callInfo.responseDataLen;
 
     // Early return if we have a non-success result
-    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, retStatus);
+    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, STATUS_SIGNALING_LWS_CLIENT_CONNECT_FAILED);
 
     // Parse and extract the endpoints
     jsmn_init(&parser);
@@ -978,6 +985,9 @@ STATUS getChannelEndpointLws(PSignalingClient pSignalingClient, UINT64 time)
         STATUS_SIGNALING_MISSING_ENDPOINTS_IN_GET_ENDPOINT);
 
 CleanUp:
+    if (STATUS_FAILED(retStatus)) {
+        DLOGE("API Call Failed with Status:  0x%08x", retStatus);
+    }
 
     freeLwsCallInfo(&pLwsCallInfo);
 
@@ -1035,7 +1045,7 @@ STATUS getIceConfigLws(PSignalingClient pSignalingClient, UINT64 time)
     resultLen = pLwsCallInfo->callInfo.responseDataLen;
 
     // Early return if we have a non-success result
-    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, retStatus);
+    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, STATUS_SIGNALING_LWS_CLIENT_CONNECT_FAILED);
 
     // Parse the response
     jsmn_init(&parser);
@@ -1099,6 +1109,9 @@ STATUS getIceConfigLws(PSignalingClient pSignalingClient, UINT64 time)
     CHK_STATUS(validateIceConfiguration(pSignalingClient));
 
 CleanUp:
+    if (STATUS_FAILED(retStatus)) {
+        DLOGE("API Call Failed with Status:  0x%08x", retStatus);
+    }
 
     freeLwsCallInfo(&pLwsCallInfo);
 
@@ -1151,13 +1164,16 @@ STATUS deleteChannelLws(PSignalingClient pSignalingClient, UINT64 time)
 
     // Early return if we have a non-success result and it's not a resource not found
     result = ATOMIC_LOAD(&pSignalingClient->result);
-    CHK((SERVICE_CALL_RESULT) result == SERVICE_CALL_RESULT_OK || (SERVICE_CALL_RESULT) result == SERVICE_CALL_RESOURCE_NOT_FOUND, retStatus);
+    CHK((SERVICE_CALL_RESULT) result == SERVICE_CALL_RESULT_OK || (SERVICE_CALL_RESULT) result == SERVICE_CALL_RESOURCE_NOT_FOUND, STATUS_SIGNALING_LWS_CLIENT_CONNECT_FAILED);
 
     // Mark the channel as deleted
     ATOMIC_STORE_BOOL(&pSignalingClient->deleted, TRUE);
 
 CleanUp:
-
+    if (STATUS_FAILED(retStatus)) {
+        DLOGE("API Call Failed with Status:  0x%08x", retStatus);
+    }
+    
     freeLwsCallInfo(&pLwsCallInfo);
 
     LEAVES();
