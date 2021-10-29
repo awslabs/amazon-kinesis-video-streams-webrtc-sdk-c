@@ -114,7 +114,11 @@ INT32 lwsHttpCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, 
                 CHK(NULL != (pLwsCallInfo->callInfo.responseData = (PCHAR) MEMALLOC(dataSize)), STATUS_NOT_ENOUGH_MEMORY);
                 MEMCPY(pLwsCallInfo->callInfo.responseData, pDataIn, dataSize);
                 pLwsCallInfo->callInfo.responseDataLen = (UINT32) dataSize;
-                DLOGV("Received client http read response:  %s", pLwsCallInfo->callInfo.responseData);
+                if (pLwsCallInfo->callInfo.callResult != SERVICE_CALL_RESULT_OK) {
+                    DLOGW("Received client http read response:  %s", pLwsCallInfo->callInfo.responseData);
+                } else {
+                    DLOGV("Received client http read response:  %s", pLwsCallInfo->callInfo.responseData);
+                }
             }
 
             break;
@@ -887,7 +891,7 @@ STATUS getChannelEndpointLws(PSignalingClient pSignalingClient, UINT64 time)
                                  SSL_CERTIFICATE_TYPE_NOT_SPECIFIED, pSignalingClient->pChannelInfo->pUserAgent,
                                  SIGNALING_SERVICE_API_CALL_CONNECTION_TIMEOUT, SIGNALING_SERVICE_API_CALL_COMPLETION_TIMEOUT,
                                  DEFAULT_LOW_SPEED_LIMIT, DEFAULT_LOW_SPEED_TIME_LIMIT, pSignalingClient->pAwsCredentials, &pRequestInfo));
-
+    
     CHK_STATUS(createLwsCallInfo(pSignalingClient, pRequestInfo, PROTOCOL_INDEX_HTTPS, &pLwsCallInfo));
 
     // Make a blocking call
