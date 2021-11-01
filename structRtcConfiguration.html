@@ -95,11 +95,11 @@ $(document).ready(function(){initNavTree('structRtcConfiguration.html',''); init
 <a href="#pub-attribs">Public Attributes</a> &#124;
 <a href="structRtcConfiguration-members.html">List of all members</a>  </div>
   <div class="headertitle">
-<div class="title">RtcConfiguration Struct Reference<div class="ingroups"><a class="el" href="group__StatusCodes.html">StatusCodes</a> &raquo; <a class="el" href="group__PublicStructures.html">PublicStructures</a></div></div>  </div>
+<div class="title">RtcConfiguration Struct Reference<div class="ingroups"><a class="el" href="group__PublicStructures.html">PublicStructures</a></div></div>  </div>
 </div><!--header-->
 <div class="contents">
 
-<p>The Configuration defines a set of parameters to configure how the peer-to-peer communication established via <a class="el" href="structRtcPeerConnection.html" title="An RtcPeerConnection instance allows an application to establish peer-to-peer communications with ano...">RtcPeerConnection</a> is established or re-established.  
+<p>The Configuration defines a set of parameters to configure how the peer-to-peer communication established via <a class="el" href="structRtcPeerConnection.html">RtcPeerConnection</a> is established or re-established.  
  <a href="structRtcConfiguration.html#details">More...</a></p>
 
 <p><code>#include &lt;<a class="el" href="Include_8h_source.html">Include.h</a>&gt;</code></p>
@@ -108,31 +108,100 @@ Collaboration diagram for RtcConfiguration:</div>
 <div class="dyncontent">
 <div class="center"><img src="structRtcConfiguration__coll__graph.png" border="0" usemap="#aRtcConfiguration_coll__map" alt="Collaboration graph"/></div>
 <map name="aRtcConfiguration_coll__map" id="aRtcConfiguration_coll__map">
-<area shape="rect" title="The Configuration defines a set of parameters to configure how the peer&#45;to&#45;peer communication establi..." alt="" coords="230,336,370,413"/>
-<area shape="rect" href="structKvsRtcConfiguration.html" title=" " alt="" coords="5,5,227,273"/>
-<area shape="rect" href="structRtcIceServer.html" title="RtcIceServer is used to describe the STUN and TURN servers that can be used by the ICE Agent to estab..." alt="" coords="251,86,349,193"/>
-<area shape="rect" href="structRtcCertificate.html" title="Specifies the certificate and the private key used by the certificate. The Certificates are in the fo..." alt="" coords="374,79,493,200"/>
+<area shape="rect" title="The Configuration defines a set of parameters to configure how the peer&#45;to&#45;peer communication establi..." alt="" coords="230,307,370,384"/>
+<area shape="rect" href="structKvsRtcConfiguration.html" title=" " alt="" coords="5,5,227,244"/>
+<area shape="rect" href="structRtcIceServer.html" title="RtcIceServer is used to describe the STUN and TURN servers that can be used by the ICE Agent to estab..." alt="" coords="251,71,349,178"/>
+<area shape="rect" href="structRtcCertificate.html" title="Specifies the certificate and the private key used by the certificate. The Certificates are in the fo..." alt="" coords="374,64,493,185"/>
 </map>
 </div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
-<tr class="memitem:ga5088878594e4eab3d1b5010960fc15a5"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#ga9447d6f4c97788d32853140452659f70">ICE_TRANSPORT_POLICY</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga5088878594e4eab3d1b5010960fc15a5">iceTransportPolicy</a></td></tr>
-<tr class="memdesc:ga5088878594e4eab3d1b5010960fc15a5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Indicates which candidates the ICE Agent is allowed to use.  <a href="group__StatusCodes.html#ga5088878594e4eab3d1b5010960fc15a5">More...</a><br /></td></tr>
-<tr class="separator:ga5088878594e4eab3d1b5010960fc15a5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gacf931e2c868176a5f155efca05d517b0"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structRtcIceServer.html">RtcIceServer</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#gacf931e2c868176a5f155efca05d517b0">iceServers</a> [(5 *4+1)]</td></tr>
-<tr class="memdesc:gacf931e2c868176a5f155efca05d517b0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Servers available to be used by ICE, such as STUN and TURN servers.  <a href="group__StatusCodes.html#gacf931e2c868176a5f155efca05d517b0">More...</a><br /></td></tr>
-<tr class="separator:gacf931e2c868176a5f155efca05d517b0"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga69bb47ece52e306b555cf69a153db483"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structKvsRtcConfiguration.html">KvsRtcConfiguration</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga69bb47ece52e306b555cf69a153db483">kvsRtcConfiguration</a></td></tr>
-<tr class="memdesc:ga69bb47ece52e306b555cf69a153db483"><td class="mdescLeft">&#160;</td><td class="mdescRight">Non-standard configuration options.  <a href="group__StatusCodes.html#ga69bb47ece52e306b555cf69a153db483">More...</a><br /></td></tr>
-<tr class="separator:ga69bb47ece52e306b555cf69a153db483"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga73ae9949af12346cc594538b711280e7"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structRtcCertificate.html">RtcCertificate</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga73ae9949af12346cc594538b711280e7">certificates</a> [3]</td></tr>
-<tr class="separator:ga73ae9949af12346cc594538b711280e7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5088878594e4eab3d1b5010960fc15a5"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#ga9447d6f4c97788d32853140452659f70">ICE_TRANSPORT_POLICY</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRtcConfiguration.html#a5088878594e4eab3d1b5010960fc15a5">iceTransportPolicy</a></td></tr>
+<tr class="memdesc:a5088878594e4eab3d1b5010960fc15a5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Indicates which candidates the ICE Agent is allowed to use.  <a href="structRtcConfiguration.html#a5088878594e4eab3d1b5010960fc15a5">More...</a><br /></td></tr>
+<tr class="separator:a5088878594e4eab3d1b5010960fc15a5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:acf931e2c868176a5f155efca05d517b0"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structRtcIceServer.html">RtcIceServer</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRtcConfiguration.html#acf931e2c868176a5f155efca05d517b0">iceServers</a> [(5 *4+1)]</td></tr>
+<tr class="memdesc:acf931e2c868176a5f155efca05d517b0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Servers available to be used by ICE, such as STUN and TURN servers.  <a href="structRtcConfiguration.html#acf931e2c868176a5f155efca05d517b0">More...</a><br /></td></tr>
+<tr class="separator:acf931e2c868176a5f155efca05d517b0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a69bb47ece52e306b555cf69a153db483"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structKvsRtcConfiguration.html">KvsRtcConfiguration</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRtcConfiguration.html#a69bb47ece52e306b555cf69a153db483">kvsRtcConfiguration</a></td></tr>
+<tr class="memdesc:a69bb47ece52e306b555cf69a153db483"><td class="mdescLeft">&#160;</td><td class="mdescRight">Non-standard configuration options.  <a href="structRtcConfiguration.html#a69bb47ece52e306b555cf69a153db483">More...</a><br /></td></tr>
+<tr class="separator:a69bb47ece52e306b555cf69a153db483"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a73ae9949af12346cc594538b711280e7"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structRtcCertificate.html">RtcCertificate</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRtcConfiguration.html#a73ae9949af12346cc594538b711280e7">certificates</a> [3]</td></tr>
+<tr class="separator:a73ae9949af12346cc594538b711280e7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>The Configuration defines a set of parameters to configure how the peer-to-peer communication established via <a class="el" href="structRtcPeerConnection.html" title="An RtcPeerConnection instance allows an application to establish peer-to-peer communications with ano...">RtcPeerConnection</a> is established or re-established. </p>
+<div class="textblock"><p>The Configuration defines a set of parameters to configure how the peer-to-peer communication established via <a class="el" href="structRtcPeerConnection.html">RtcPeerConnection</a> is established or re-established. </p>
 <p>Reference: <a href="https://www.w3.org/TR/webrtc/#rtcconfiguration-dictionary">https://www.w3.org/TR/webrtc/#rtcconfiguration-dictionary</a> </p>
-</div><hr/>The documentation for this struct was generated from the following file:<ul>
+</div><h2 class="groupheader">Member Data Documentation</h2>
+<a id="a73ae9949af12346cc594538b711280e7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a73ae9949af12346cc594538b711280e7">&#9670;&nbsp;</a></span>certificates</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="structRtcCertificate.html">RtcCertificate</a> RtcConfiguration::certificates[3]</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="acf931e2c868176a5f155efca05d517b0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#acf931e2c868176a5f155efca05d517b0">&#9670;&nbsp;</a></span>iceServers</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="structRtcIceServer.html">RtcIceServer</a> RtcConfiguration::iceServers[(5 * 4+1)]</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Servers available to be used by ICE, such as STUN and TURN servers. </p>
+
+</div>
+</div>
+<a id="a5088878594e4eab3d1b5010960fc15a5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5088878594e4eab3d1b5010960fc15a5">&#9670;&nbsp;</a></span>iceTransportPolicy</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="group__PublicEnums.html#ga9447d6f4c97788d32853140452659f70">ICE_TRANSPORT_POLICY</a> RtcConfiguration::iceTransportPolicy</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Indicates which candidates the ICE Agent is allowed to use. </p>
+
+</div>
+</div>
+<a id="a69bb47ece52e306b555cf69a153db483"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a69bb47ece52e306b555cf69a153db483">&#9670;&nbsp;</a></span>kvsRtcConfiguration</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="structKvsRtcConfiguration.html">KvsRtcConfiguration</a> RtcConfiguration::kvsRtcConfiguration</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Non-standard configuration options. </p>
+<p>Set of certificates that the <a class="el" href="structRtcPeerConnection.html">RtcPeerConnection</a> uses to authenticate. Although any given DTLS connection will use only one certificate, this attribute allows the caller to provide multiple certificates that support different algorithms.</p>
+<p>If this value is absent, then a default set of certificates is generated for each <a class="el" href="structRtcPeerConnection.html">RtcPeerConnection</a>.</p>
+<p>An absent value is determined by the certificate pointing to NULL</p>
+<p>Doc: <a href="https://www.w3.org/TR/webrtc/#dom-rtcconfiguration-certificates">https://www.w3.org/TR/webrtc/#dom-rtcconfiguration-certificates</a></p>
+<p>!!!!!!!!!! IMPORTANT !!!!!!!!!! It is recommended to rotate the certificates often - preferably for every peer connection to avoid a compromised client weakening the security of the new connections.</p>
+<p>NOTE: The certificates, if specified, can be freed after the peer connection create call </p>
+
+</div>
+</div>
+<hr/>The documentation for this struct was generated from the following file:<ul>
 <li>/src/src/include/com/amazonaws/kinesis/video/webrtcclient/<a class="el" href="Include_8h_source.html">Include.h</a></li>
 </ul>
 </div><!-- contents -->
@@ -141,7 +210,7 @@ Public Attributes</h2></td></tr>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="structRtcConfiguration.html">RtcConfiguration</a></li>
-    <li class="footer">Generated on Fri Oct 29 2021 21:54:41 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Mon Nov 1 2021 17:46:25 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>

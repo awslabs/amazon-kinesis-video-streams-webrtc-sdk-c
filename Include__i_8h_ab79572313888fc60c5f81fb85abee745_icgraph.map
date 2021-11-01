@@ -1,6 +1,6 @@
 <map id="generateJSONSafeString" name="generateJSONSafeString">
 <area shape="rect" id="node1" title=" " alt="" coords="1732,183,1901,209"/>
-<area shape="rect" id="node2" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="1509,5,1660,32"/>
+<area shape="rect" id="node2" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title=" " alt="" coords="1509,5,1660,32"/>
 <area shape="rect" id="node3" href="$IceAgent_8c.html#a171a9136edc2fce61acff9476e6046a9" title=" " alt="" coords="1485,56,1684,83"/>
 <area shape="rect" id="node5" href="$group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,107,156,133"/>
 <area shape="rect" id="node6" href="$IceAgent_8c.html#ab24d8045a6f9c765883d38003cb624b8" title=" " alt="" coords="1490,259,1679,301"/>

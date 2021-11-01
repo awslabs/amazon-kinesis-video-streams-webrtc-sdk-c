@@ -33,10 +33,9 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "group__Callbacks.html",
-"group__PublicMemberFunctions.html",
-"group__StatusCodes.html#ga03b591edffe71fb5572ca7b6b218ece7",
-"group__StructureVersions.html#gad43eff9ad752a5282f3d7e11623034eb",
-"structRtcStatsObject.html#a0dee9a39573da6cb111d992e800dd61e"
+"group__PublicStructures.html#gac00fdb7844950b5ae47a60ba2a5481db",
+"structNullableBool.html#ab83b6ae4816b67c05f5c78dfeffb27ce",
+"structRtcRemoteInboundRtpStreamStats.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

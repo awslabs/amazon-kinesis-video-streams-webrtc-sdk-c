@@ -4,5 +4,5 @@
 <area shape="rect" id="node3" href="$structNullableUint16.html" title="Custom data type to allow setting UINT16 data type to NULL since C does not support setting basic dat..." alt="" coords="19,5,126,97"/>
 <area shape="rect" id="node4" href="$struct____RtcDataChannel.html" title="RtcDataChannel represents a bi&#45;directional data channel between two peers." alt="" coords="165,226,295,318"/>
 <area shape="rect" id="node5" href="$structRtcDataChannelStats.html" title=" " alt="" coords="319,175,474,369"/>
-<area shape="rect" id="node6" href="$structRtcPeerConnection.html" title="An RtcPeerConnection instance allows an application to establish peer&#45;to&#45;peer communications with ano..." alt="" coords="513,233,648,311"/>
+<area shape="rect" id="node6" href="$structRtcPeerConnection.html" title=" " alt="" coords="513,233,648,311"/>
 </map>

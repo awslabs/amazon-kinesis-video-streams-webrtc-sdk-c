@@ -95,12 +95,9 @@ $(document).ready(function(){initNavTree('structSignalingClientCallbacks.html','
 <a href="#pub-attribs">Public Attributes</a> &#124;
 <a href="structSignalingClientCallbacks-members.html">List of all members</a>  </div>
   <div class="headertitle">
-<div class="title">SignalingClientCallbacks Struct Reference<div class="ingroups"><a class="el" href="group__StatusCodes.html">StatusCodes</a> &raquo; <a class="el" href="group__PublicStructures.html">PublicStructures</a></div></div>  </div>
+<div class="title">SignalingClientCallbacks Struct Reference<div class="ingroups"><a class="el" href="group__PublicStructures.html">PublicStructures</a></div></div>  </div>
 </div><!--header-->
 <div class="contents">
-
-<p>Register Signaling client callbacks.  
- <a href="structSignalingClientCallbacks.html#details">More...</a></p>
 
 <p><code>#include &lt;<a class="el" href="Include_8h_source.html">Include.h</a>&gt;</code></p>
 <div class="dynheader">
@@ -108,7 +105,7 @@ Collaboration diagram for SignalingClientCallbacks:</div>
 <div class="dyncontent">
 <div class="center"><img src="structSignalingClientCallbacks__coll__graph.png" border="0" usemap="#aSignalingClientCallbacks_coll__map" alt="Collaboration graph"/></div>
 <map name="aSignalingClientCallbacks_coll__map" id="aSignalingClientCallbacks_coll__map">
-<area shape="rect" title="Register Signaling client callbacks." alt="" coords="14,388,179,509"/>
+<area shape="rect" title=" " alt="" coords="14,388,179,509"/>
 <area shape="rect" href="structReceivedSignalingMessage.html" title="Structure defining the signaling message to be received." alt="" coords="5,219,188,325"/>
 <area shape="rect" href="structSignalingMessage.html" title="Structure defining the basic signaling message." alt="" coords="33,5,161,156"/>
 </map>
@@ -116,25 +113,104 @@ Collaboration diagram for SignalingClientCallbacks:</div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
-<tr class="memitem:ga28e1f7ffcd30600fbeecd7f682e6afed"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga28e1f7ffcd30600fbeecd7f682e6afed">version</a></td></tr>
-<tr class="memdesc:ga28e1f7ffcd30600fbeecd7f682e6afed"><td class="mdescLeft">&#160;</td><td class="mdescRight">Current version of the structure.  <a href="group__StatusCodes.html#ga28e1f7ffcd30600fbeecd7f682e6afed">More...</a><br /></td></tr>
-<tr class="separator:ga28e1f7ffcd30600fbeecd7f682e6afed"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gac1108b3f0f014f820025b0eaf345ffc4"><td class="memItemLeft" align="right" valign="top">UINT64&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#gac1108b3f0f014f820025b0eaf345ffc4">customData</a></td></tr>
-<tr class="memdesc:gac1108b3f0f014f820025b0eaf345ffc4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Custom data passed by the caller.  <a href="group__StatusCodes.html#gac1108b3f0f014f820025b0eaf345ffc4">More...</a><br /></td></tr>
-<tr class="separator:gac1108b3f0f014f820025b0eaf345ffc4"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gaf62848d4a3bdf038a7a05ae5cc792610"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__Callbacks.html#ga1fc095ba30b81713c3fed9a275355b2c">SignalingClientMessageReceivedFunc</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#gaf62848d4a3bdf038a7a05ae5cc792610">messageReceivedFn</a></td></tr>
-<tr class="memdesc:gaf62848d4a3bdf038a7a05ae5cc792610"><td class="mdescLeft">&#160;</td><td class="mdescRight">Callback registration for received SDP.  <a href="group__StatusCodes.html#gaf62848d4a3bdf038a7a05ae5cc792610">More...</a><br /></td></tr>
-<tr class="separator:gaf62848d4a3bdf038a7a05ae5cc792610"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga541b18458a4b4ec54117a6130fd48d6a"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__Callbacks.html#ga0d69d0e35a1bddfa483f288ec208546c">SignalingClientErrorReportFunc</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga541b18458a4b4ec54117a6130fd48d6a">errorReportFn</a></td></tr>
-<tr class="memdesc:ga541b18458a4b4ec54117a6130fd48d6a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Error reporting function. This is an optional member.  <a href="group__StatusCodes.html#ga541b18458a4b4ec54117a6130fd48d6a">More...</a><br /></td></tr>
-<tr class="separator:ga541b18458a4b4ec54117a6130fd48d6a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga8a72e56bbf4b4dae2b19306acda39523"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__Callbacks.html#gaa5fb7b1ff5dcfe5208a314eef9f3045a">SignalingClientStateChangedFunc</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga8a72e56bbf4b4dae2b19306acda39523">stateChangeFn</a></td></tr>
-<tr class="memdesc:ga8a72e56bbf4b4dae2b19306acda39523"><td class="mdescLeft">&#160;</td><td class="mdescRight">Signaling client state change callback.  <a href="group__StatusCodes.html#ga8a72e56bbf4b4dae2b19306acda39523">More...</a><br /></td></tr>
-<tr class="separator:ga8a72e56bbf4b4dae2b19306acda39523"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a28e1f7ffcd30600fbeecd7f682e6afed"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClientCallbacks.html#a28e1f7ffcd30600fbeecd7f682e6afed">version</a></td></tr>
+<tr class="memdesc:a28e1f7ffcd30600fbeecd7f682e6afed"><td class="mdescLeft">&#160;</td><td class="mdescRight">Current version of the structure.  <a href="structSignalingClientCallbacks.html#a28e1f7ffcd30600fbeecd7f682e6afed">More...</a><br /></td></tr>
+<tr class="separator:a28e1f7ffcd30600fbeecd7f682e6afed"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac1108b3f0f014f820025b0eaf345ffc4"><td class="memItemLeft" align="right" valign="top">UINT64&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClientCallbacks.html#ac1108b3f0f014f820025b0eaf345ffc4">customData</a></td></tr>
+<tr class="memdesc:ac1108b3f0f014f820025b0eaf345ffc4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Custom data passed by the caller.  <a href="structSignalingClientCallbacks.html#ac1108b3f0f014f820025b0eaf345ffc4">More...</a><br /></td></tr>
+<tr class="separator:ac1108b3f0f014f820025b0eaf345ffc4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af62848d4a3bdf038a7a05ae5cc792610"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__Callbacks.html#ga1fc095ba30b81713c3fed9a275355b2c">SignalingClientMessageReceivedFunc</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClientCallbacks.html#af62848d4a3bdf038a7a05ae5cc792610">messageReceivedFn</a></td></tr>
+<tr class="memdesc:af62848d4a3bdf038a7a05ae5cc792610"><td class="mdescLeft">&#160;</td><td class="mdescRight">Callback registration for received SDP.  <a href="structSignalingClientCallbacks.html#af62848d4a3bdf038a7a05ae5cc792610">More...</a><br /></td></tr>
+<tr class="separator:af62848d4a3bdf038a7a05ae5cc792610"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a541b18458a4b4ec54117a6130fd48d6a"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__Callbacks.html#ga0d69d0e35a1bddfa483f288ec208546c">SignalingClientErrorReportFunc</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClientCallbacks.html#a541b18458a4b4ec54117a6130fd48d6a">errorReportFn</a></td></tr>
+<tr class="memdesc:a541b18458a4b4ec54117a6130fd48d6a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Error reporting function. This is an optional member.  <a href="structSignalingClientCallbacks.html#a541b18458a4b4ec54117a6130fd48d6a">More...</a><br /></td></tr>
+<tr class="separator:a541b18458a4b4ec54117a6130fd48d6a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8a72e56bbf4b4dae2b19306acda39523"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__Callbacks.html#gaa5fb7b1ff5dcfe5208a314eef9f3045a">SignalingClientStateChangedFunc</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClientCallbacks.html#a8a72e56bbf4b4dae2b19306acda39523">stateChangeFn</a></td></tr>
+<tr class="memdesc:a8a72e56bbf4b4dae2b19306acda39523"><td class="mdescLeft">&#160;</td><td class="mdescRight">Signaling client state change callback.  <a href="structSignalingClientCallbacks.html#a8a72e56bbf4b4dae2b19306acda39523">More...</a><br /></td></tr>
+<tr class="separator:a8a72e56bbf4b4dae2b19306acda39523"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
-<a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>Register Signaling client callbacks. </p>
-</div><hr/>The documentation for this struct was generated from the following file:<ul>
+<h2 class="groupheader">Member Data Documentation</h2>
+<a id="ac1108b3f0f014f820025b0eaf345ffc4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac1108b3f0f014f820025b0eaf345ffc4">&#9670;&nbsp;</a></span>customData</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">UINT64 SignalingClientCallbacks::customData</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Custom data passed by the caller. </p>
+
+</div>
+</div>
+<a id="a541b18458a4b4ec54117a6130fd48d6a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a541b18458a4b4ec54117a6130fd48d6a">&#9670;&nbsp;</a></span>errorReportFn</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="group__Callbacks.html#ga0d69d0e35a1bddfa483f288ec208546c">SignalingClientErrorReportFunc</a> SignalingClientCallbacks::errorReportFn</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Error reporting function. This is an optional member. </p>
+
+</div>
+</div>
+<a id="af62848d4a3bdf038a7a05ae5cc792610"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af62848d4a3bdf038a7a05ae5cc792610">&#9670;&nbsp;</a></span>messageReceivedFn</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="group__Callbacks.html#ga1fc095ba30b81713c3fed9a275355b2c">SignalingClientMessageReceivedFunc</a> SignalingClientCallbacks::messageReceivedFn</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Callback registration for received SDP. </p>
+
+</div>
+</div>
+<a id="a8a72e56bbf4b4dae2b19306acda39523"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8a72e56bbf4b4dae2b19306acda39523">&#9670;&nbsp;</a></span>stateChangeFn</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="group__Callbacks.html#gaa5fb7b1ff5dcfe5208a314eef9f3045a">SignalingClientStateChangedFunc</a> SignalingClientCallbacks::stateChangeFn</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Signaling client state change callback. </p>
+
+</div>
+</div>
+<a id="a28e1f7ffcd30600fbeecd7f682e6afed"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a28e1f7ffcd30600fbeecd7f682e6afed">&#9670;&nbsp;</a></span>version</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">UINT32 SignalingClientCallbacks::version</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Current version of the structure. </p>
+
+</div>
+</div>
+<hr/>The documentation for this struct was generated from the following file:<ul>
 <li>/src/src/include/com/amazonaws/kinesis/video/webrtcclient/<a class="el" href="Include_8h_source.html">Include.h</a></li>
 </ul>
 </div><!-- contents -->
@@ -143,7 +219,7 @@ Public Attributes</h2></td></tr>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="structSignalingClientCallbacks.html">SignalingClientCallbacks</a></li>
-    <li class="footer">Generated on Fri Oct 29 2021 21:54:41 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Mon Nov 1 2021 17:46:25 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>

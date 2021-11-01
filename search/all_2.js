@@ -3,7 +3,7 @@ var searchData=
   ['bandwidthcount_55',['bandwidthCount',['../structSessionDescription.html#a2815a38e424d948124aa08511c205cf7',1,'SessionDescription']]],
   ['bindingresponsecount_56',['bindingResponseCount',['../structNatTestData.html#ad4ceebcc86a429672ccf33fceab72624',1,'NatTestData']]],
   ['bindingresponselist_57',['bindingResponseList',['../structNatTestData.html#a849e22486171da2be1da2382dcec2e6f',1,'NatTestData']]],
-  ['bitdepth_58',['bitDepth',['../group__StatusCodes.html#ga859b192a816c50a947d41d300965a748',1,'RtcEncoderStats']]],
+  ['bitdepth_58',['bitDepth',['../structRtcEncoderStats.html#a859b192a816c50a947d41d300965a748',1,'RtcEncoderStats']]],
   ['block_5fon_5fcorrelation_5fid_59',['BLOCK_ON_CORRELATION_ID',['../LwsApiCalls_8h.html#afc77872a6ed95c9c6e3e9305f5938933',1,'LwsApiCalls.h']]],
   ['buffer_60',['buffer',['../struct____LwsCallInfo.html#a9fcc937e01d73ab22ee62344d7b394dc',1,'__LwsCallInfo']]],
   ['bufferlen_61',['bufferLen',['../structConnectionListener.html#acc771ccc564dcbdd0fcd410dce77d68a',1,'ConnectionListener']]],

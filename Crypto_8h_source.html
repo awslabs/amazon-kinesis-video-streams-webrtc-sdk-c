@@ -110,7 +110,7 @@ $(document).ready(function(){initNavTree('Crypto_8h_source.html',''); initResiza
 <div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;<span class="preprocessor">#define KVS_SHA1_DIGEST_LENGTH      SHA_DIGEST_LENGTH</span></div>
 <div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160;<span class="preprocessor">#define KVS_MD5_DIGEST(m, mlen, ob) MD5((m), (mlen), (ob));</span></div>
 <div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160;<span class="preprocessor">#define KVS_SHA1_HMAC(k, klen, m, mlen, ob, plen)                                                                                                    \</span></div>
-<div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160;<span class="preprocessor">    CHK(NULL != HMAC(EVP_sha1(), (k), (INT32) (klen), (m), (mlen), (ob), (plen)), STATUS_HMAC_GENERATION_ERROR);</span></div>
+<div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160;<span class="preprocessor">    CHK(NULL != HMAC(EVP_sha1(), (k), (INT32)(klen), (m), (mlen), (ob), (plen)), STATUS_HMAC_GENERATION_ERROR);</span></div>
 <div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160;<span class="preprocessor">#define KVS_CRYPTO_INIT()                                                                                                                            \</span></div>
 <div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160;<span class="preprocessor">    do {                                                                                                                                             \</span></div>
 <div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160;<span class="preprocessor">        OpenSSL_add_ssl_algorithms();                                                                                                                \</span></div>
@@ -166,7 +166,7 @@ $(document).ready(function(){initNavTree('Crypto_8h_source.html',''); initResiza
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_94e7a0fbe7f8eaf7f05ee7b02c647e9f.html">source</a></li><li class="navelem"><a class="el" href="dir_bb0babb9660851e963dd030d37ce8ee6.html">Crypto</a></li><li class="navelem"><a class="el" href="Crypto_8h.html">Crypto.h</a></li>
-    <li class="footer">Generated on Fri Oct 29 2021 21:54:38 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Mon Nov 1 2021 17:46:22 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>

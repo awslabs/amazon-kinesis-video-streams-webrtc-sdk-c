@@ -176,8 +176,6 @@ Functions</h2></td></tr>
 <tr class="separator:a0f848846ecef82f2b18aba63304cb9b1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac6b964c533b9932afd35358f2b49f5a8"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ConnectionListener_8c.html#ac6b964c533b9932afd35358f2b49f5a8">connectionListenerStart</a> (<a class="el" href="ConnectionListener_8h.html#a0d299b301c660a1c1b31e3bd2111b01d">PConnectionListener</a> pConnectionListener)</td></tr>
 <tr class="separator:ac6b964c533b9932afd35358f2b49f5a8"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a0391139c6ce0f63d1c80850a6a5ff691"><td class="memItemLeft" align="right" valign="top">BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ConnectionListener_8c.html#a0391139c6ce0f63d1c80850a6a5ff691">canReadFd</a> (INT32 fd, struct pollfd *fds, INT32 nfds)</td></tr>
-<tr class="separator:a0391139c6ce0f63d1c80850a6a5ff691"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad4b0c7229cc56aa8bc3eaef7d75c2ab7"><td class="memItemLeft" align="right" valign="top">PVOID&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ConnectionListener_8c.html#ad4b0c7229cc56aa8bc3eaef7d75c2ab7">connectionListenerReceiveDataRoutine</a> (PVOID arg)</td></tr>
 <tr class="separator:ad4b0c7229cc56aa8bc3eaef7d75c2ab7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
@@ -198,54 +196,6 @@ Functions</h2></td></tr>
 </div>
 </div>
 <h2 class="groupheader">Function Documentation</h2>
-<a id="a0391139c6ce0f63d1c80850a6a5ff691"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a0391139c6ce0f63d1c80850a6a5ff691">&#9670;&nbsp;</a></span>canReadFd()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">BOOL canReadFd </td>
-          <td>(</td>
-          <td class="paramtype">INT32&#160;</td>
-          <td class="paramname"><em>fd</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">struct pollfd *&#160;</td>
-          <td class="paramname"><em>fds</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">INT32&#160;</td>
-          <td class="paramname"><em>nfds</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<div class="dynheader">
-Here is the caller graph for this function:</div>
-<div class="dyncontent">
-<div class="center"><img src="ConnectionListener_8c_a0391139c6ce0f63d1c80850a6a5ff691_icgraph.png" border="0" usemap="#aConnectionListener_8c_a0391139c6ce0f63d1c80850a6a5ff691_icgraph" alt=""/></div>
-<map name="aConnectionListener_8c_a0391139c6ce0f63d1c80850a6a5ff691_icgraph" id="aConnectionListener_8c_a0391139c6ce0f63d1c80850a6a5ff691_icgraph">
-<area shape="rect" title=" " alt="" coords="844,31,932,57"/>
-<area shape="rect" href="ConnectionListener_8c.html#ad4b0c7229cc56aa8bc3eaef7d75c2ab7" title=" " alt="" coords="617,23,796,65"/>
-<area shape="rect" href="ConnectionListener_8c.html#ac6b964c533b9932afd35358f2b49f5a8" title=" " alt="" coords="409,31,569,57"/>
-<area shape="rect" href="group__PublicMemberFunctions.html#ga6c4139787f87c307c2033b51d65284ce" title="Use the process described in https://tools.ietf.org/html/rfc5780#section&#45;4.3 to discover NAT behavior..." alt="" coords="211,5,354,32"/>
-<area shape="rect" href="IceAgent_8c.html#a89dd4cb4f8c55e2d376df8c33f300e80" title=" " alt="" coords="204,56,361,83"/>
-<area shape="rect" href="group__PublicMemberFunctions.html#ga060e71a4e33e0b7a8087317d4839fa8a" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the local descript..." alt="" coords="12,31,149,57"/>
-<area shape="rect" href="group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,81,156,108"/>
-</map>
-</div>
-
-</div>
-</div>
 <a id="ac634ad15c50810bf36f61e6d3eb6f00d"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ac634ad15c50810bf36f61e6d3eb6f00d">&#9670;&nbsp;</a></span>connectionListenerAddConnection()</h2>
 
@@ -319,18 +269,17 @@ Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="ConnectionListener_8c_ad4b0c7229cc56aa8bc3eaef7d75c2ab7_cgraph.png" border="0" usemap="#aConnectionListener_8c_ad4b0c7229cc56aa8bc3eaef7d75c2ab7_cgraph" alt=""/></div>
 <map name="aConnectionListener_8c_ad4b0c7229cc56aa8bc3eaef7d75c2ab7_cgraph" id="aConnectionListener_8c_ad4b0c7229cc56aa8bc3eaef7d75c2ab7_cgraph">
-<area shape="rect" title=" " alt="" coords="5,125,184,166"/>
-<area shape="rect" href="ConnectionListener_8c.html#a0391139c6ce0f63d1c80850a6a5ff691" title=" " alt="" coords="279,5,367,32"/>
-<area shape="rect" href="Network_8c.html#a4946ffd5e8761a38b4fc7bb253c1491a" title=" " alt="" coords="275,56,372,83"/>
-<area shape="rect" href="Network_8c.html#a3179b58589909af6767082bb0a81aa62" title=" " alt="" coords="273,107,374,133"/>
-<area shape="rect" href="SocketConnection_8c.html#ae1067d81a0037b1cb7e2275d55b554a4" title=" " alt="" coords="240,157,407,184"/>
-<area shape="rect" href="SocketConnection_8c.html#a019b8d1916f47014aa641bec419cc68f" title=" " alt="" coords="235,208,412,235"/>
-<area shape="rect" href="SocketConnection_8c.html#a701ec77930f1201ad5ab5aa3e293ee7f" title=" " alt="" coords="232,259,415,285"/>
-<area shape="rect" href="Tls_8h.html#a8958186faf233249645017a55c80e1fc" title=" " alt="" coords="478,161,619,188"/>
-<area shape="rect" href="Tls_8c.html#a7dbb041b5b15c6784e9f57a09a08d467" title=" " alt="" coords="683,164,841,191"/>
-<area shape="rect" href="Tls_8h.html#aa4fe15fc18b9910c16b5c63cc38376d6" title=" " alt="" coords="463,233,635,260"/>
-<area shape="rect" href="IOBuffer_8c.html#a1fd767c00239c83072309f23641b22f6" title=" " alt="" coords="714,221,810,248"/>
-<area shape="rect" href="Tls__mbedtls_8c.html#aca41778af81f4d5b5a71dcaf5e686bb9" title=" " alt="" coords="691,272,833,299"/>
+<area shape="rect" title=" " alt="" coords="5,99,184,141"/>
+<area shape="rect" href="Network_8c.html#a4946ffd5e8761a38b4fc7bb253c1491a" title=" " alt="" coords="275,5,372,32"/>
+<area shape="rect" href="Network_8c.html#a3179b58589909af6767082bb0a81aa62" title=" " alt="" coords="273,56,374,83"/>
+<area shape="rect" href="SocketConnection_8c.html#ae1067d81a0037b1cb7e2275d55b554a4" title=" " alt="" coords="240,107,407,133"/>
+<area shape="rect" href="SocketConnection_8c.html#a019b8d1916f47014aa641bec419cc68f" title=" " alt="" coords="235,157,412,184"/>
+<area shape="rect" href="SocketConnection_8c.html#a701ec77930f1201ad5ab5aa3e293ee7f" title=" " alt="" coords="232,208,415,235"/>
+<area shape="rect" href="Tls_8h.html#a8958186faf233249645017a55c80e1fc" title=" " alt="" coords="478,111,619,137"/>
+<area shape="rect" href="Tls_8c.html#a7dbb041b5b15c6784e9f57a09a08d467" title=" " alt="" coords="683,113,841,140"/>
+<area shape="rect" href="Tls_8h.html#aa4fe15fc18b9910c16b5c63cc38376d6" title=" " alt="" coords="463,183,635,209"/>
+<area shape="rect" href="IOBuffer_8c.html#a1fd767c00239c83072309f23641b22f6" title=" " alt="" coords="714,171,810,197"/>
+<area shape="rect" href="Tls__mbedtls_8c.html#aca41778af81f4d5b5a71dcaf5e686bb9" title=" " alt="" coords="691,221,833,248"/>
 </map>
 </div>
 <div class="dynheader">
@@ -393,7 +342,7 @@ Here is the caller graph for this function:</div>
 <area shape="rect" href="IceAgent_8c.html#a0240b9dcf5654427458c2fdda5a2da29" title=" " alt="" coords="403,56,534,83"/>
 <area shape="rect" href="group__PublicMemberFunctions.html#ga9babad6ea2bc9bb97279c7034697375a" title="Close the underlying DTLS session and IceAgent connection. Trigger RtcOnConnectionStateChange to RTC_..." alt="" coords="204,31,349,57"/>
 <area shape="rect" href="group__PublicMemberFunctions.html#ga433b1bd125e7f221bcdad97a2a0e8949" title="Free a RtcPeerConnection." alt="" coords="209,81,345,108"/>
-<area shape="rect" href="group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,81,156,108"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title=" " alt="" coords="5,81,156,108"/>
 </map>
 </div>
 
@@ -463,7 +412,7 @@ Here is the caller graph for this function:</div>
 <area shape="rect" href="group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,14,156,40"/>
 <area shape="rect" href="IceAgent_8c.html#af2fe29241b2d4ab4997fe04c41534578" title=" " alt="" coords="681,80,791,107"/>
 <area shape="rect" href="group__PublicMemberFunctions.html#ga433b1bd125e7f221bcdad97a2a0e8949" title="Free a RtcPeerConnection." alt="" coords="668,131,804,158"/>
-<area shape="rect" href="group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="428,106,579,132"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title=" " alt="" coords="428,106,579,132"/>
 <area shape="rect" href="IceAgentStateMachine_8c.html#ae73bb89e7e9f087dd2ccfa8cf1f1833a" title=" " alt="" coords="645,233,827,274"/>
 <area shape="rect" href="group__PublicMemberFunctions.html#gade9fcbb056cb321f33890c1cf1222e64" title="Instructs the RtcPeerConnection that ICE should be restarted. Subsequent calls to createOffer will cr..." alt="" coords="697,30,775,56"/>
 </map>
@@ -499,19 +448,18 @@ Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="ConnectionListener_8c_ac6b964c533b9932afd35358f2b49f5a8_cgraph.png" border="0" usemap="#aConnectionListener_8c_ac6b964c533b9932afd35358f2b49f5a8_cgraph" alt=""/></div>
 <map name="aConnectionListener_8c_ac6b964c533b9932afd35358f2b49f5a8_cgraph" id="aConnectionListener_8c_ac6b964c533b9932afd35358f2b49f5a8_cgraph">
-<area shape="rect" title=" " alt="" coords="5,132,165,159"/>
-<area shape="rect" href="ConnectionListener_8c.html#ad4b0c7229cc56aa8bc3eaef7d75c2ab7" title=" " alt="" coords="213,125,392,166"/>
-<area shape="rect" href="ConnectionListener_8c.html#a0391139c6ce0f63d1c80850a6a5ff691" title=" " alt="" coords="487,5,575,32"/>
-<area shape="rect" href="Network_8c.html#a4946ffd5e8761a38b4fc7bb253c1491a" title=" " alt="" coords="483,56,580,83"/>
-<area shape="rect" href="Network_8c.html#a3179b58589909af6767082bb0a81aa62" title=" " alt="" coords="481,107,582,133"/>
-<area shape="rect" href="SocketConnection_8c.html#ae1067d81a0037b1cb7e2275d55b554a4" title=" " alt="" coords="448,157,615,184"/>
-<area shape="rect" href="SocketConnection_8c.html#a019b8d1916f47014aa641bec419cc68f" title=" " alt="" coords="443,208,620,235"/>
-<area shape="rect" href="SocketConnection_8c.html#a701ec77930f1201ad5ab5aa3e293ee7f" title=" " alt="" coords="440,259,623,285"/>
-<area shape="rect" href="Tls_8h.html#a8958186faf233249645017a55c80e1fc" title=" " alt="" coords="686,161,827,188"/>
-<area shape="rect" href="Tls_8c.html#a7dbb041b5b15c6784e9f57a09a08d467" title=" " alt="" coords="891,164,1049,191"/>
-<area shape="rect" href="Tls_8h.html#aa4fe15fc18b9910c16b5c63cc38376d6" title=" " alt="" coords="671,233,843,260"/>
-<area shape="rect" href="IOBuffer_8c.html#a1fd767c00239c83072309f23641b22f6" title=" " alt="" coords="922,221,1018,248"/>
-<area shape="rect" href="Tls__mbedtls_8c.html#aca41778af81f4d5b5a71dcaf5e686bb9" title=" " alt="" coords="899,272,1041,299"/>
+<area shape="rect" title=" " alt="" coords="5,107,165,133"/>
+<area shape="rect" href="ConnectionListener_8c.html#ad4b0c7229cc56aa8bc3eaef7d75c2ab7" title=" " alt="" coords="213,99,392,141"/>
+<area shape="rect" href="Network_8c.html#a4946ffd5e8761a38b4fc7bb253c1491a" title=" " alt="" coords="483,5,580,32"/>
+<area shape="rect" href="Network_8c.html#a3179b58589909af6767082bb0a81aa62" title=" " alt="" coords="481,56,582,83"/>
+<area shape="rect" href="SocketConnection_8c.html#ae1067d81a0037b1cb7e2275d55b554a4" title=" " alt="" coords="448,107,615,133"/>
+<area shape="rect" href="SocketConnection_8c.html#a019b8d1916f47014aa641bec419cc68f" title=" " alt="" coords="443,157,620,184"/>
+<area shape="rect" href="SocketConnection_8c.html#a701ec77930f1201ad5ab5aa3e293ee7f" title=" " alt="" coords="440,208,623,235"/>
+<area shape="rect" href="Tls_8h.html#a8958186faf233249645017a55c80e1fc" title=" " alt="" coords="686,111,827,137"/>
+<area shape="rect" href="Tls_8c.html#a7dbb041b5b15c6784e9f57a09a08d467" title=" " alt="" coords="891,113,1049,140"/>
+<area shape="rect" href="Tls_8h.html#aa4fe15fc18b9910c16b5c63cc38376d6" title=" " alt="" coords="671,183,843,209"/>
+<area shape="rect" href="IOBuffer_8c.html#a1fd767c00239c83072309f23641b22f6" title=" " alt="" coords="922,171,1018,197"/>
+<area shape="rect" href="Tls__mbedtls_8c.html#aca41778af81f4d5b5a71dcaf5e686bb9" title=" " alt="" coords="899,221,1041,248"/>
 </map>
 </div>
 <div class="dynheader">
@@ -567,7 +515,7 @@ Here is the caller graph for this function:</div>
 <div class="center"><img src="ConnectionListener_8c_a24660cc58fb5a9b154011e3a4092819b_icgraph.png" border="0" usemap="#aConnectionListener_8c_a24660cc58fb5a9b154011e3a4092819b_icgraph" alt=""/></div>
 <map name="aConnectionListener_8c_a24660cc58fb5a9b154011e3a4092819b_icgraph" id="aConnectionListener_8c_a24660cc58fb5a9b154011e3a4092819b_icgraph">
 <area shape="rect" title=" " alt="" coords="204,31,375,57"/>
-<area shape="rect" href="group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,5,156,32"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title=" " alt="" coords="5,5,156,32"/>
 <area shape="rect" href="group__PublicMemberFunctions.html#ga6c4139787f87c307c2033b51d65284ce" title="Use the process described in https://tools.ietf.org/html/rfc5780#section&#45;4.3 to discover NAT behavior..." alt="" coords="9,56,152,83"/>
 </map>
 </div>
@@ -606,7 +554,7 @@ Here is the caller graph for this function:</div>
 <area shape="rect" href="ConnectionListener_8c.html#a24660cc58fb5a9b154011e3a4092819b" title=" " alt="" coords="395,5,565,32"/>
 <area shape="rect" href="group__PublicMemberFunctions.html#ga6c4139787f87c307c2033b51d65284ce" title="Use the process described in https://tools.ietf.org/html/rfc5780#section&#45;4.3 to discover NAT behavior..." alt="" coords="204,56,347,83"/>
 <area shape="rect" href="IceAgent_8c.html#a767c2a29e3bfba0aa45872d26b41a6f4" title=" " alt="" coords="432,107,528,133"/>
-<area shape="rect" href="group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,107,156,133"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title=" " alt="" coords="5,107,156,133"/>
 <area shape="rect" href="IceAgent_8c.html#af2fe29241b2d4ab4997fe04c41534578" title=" " alt="" coords="220,107,331,133"/>
 <area shape="rect" href="group__PublicMemberFunctions.html#ga433b1bd125e7f221bcdad97a2a0e8949" title="Free a RtcPeerConnection." alt="" coords="207,157,343,184"/>
 </map>
@@ -620,7 +568,7 @@ Here is the caller graph for this function:</div>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_94e7a0fbe7f8eaf7f05ee7b02c647e9f.html">source</a></li><li class="navelem"><a class="el" href="dir_32510f36cb14405623866513ac2ca2a4.html">Ice</a></li><li class="navelem"><a class="el" href="ConnectionListener_8c.html">ConnectionListener.c</a></li>
-    <li class="footer">Generated on Fri Oct 29 2021 21:54:39 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Mon Nov 1 2021 17:46:23 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>

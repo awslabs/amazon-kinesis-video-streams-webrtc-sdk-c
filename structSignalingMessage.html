@@ -95,7 +95,7 @@ $(document).ready(function(){initNavTree('structSignalingMessage.html',''); init
 <a href="#pub-attribs">Public Attributes</a> &#124;
 <a href="structSignalingMessage-members.html">List of all members</a>  </div>
   <div class="headertitle">
-<div class="title">SignalingMessage Struct Reference<div class="ingroups"><a class="el" href="group__StatusCodes.html">StatusCodes</a> &raquo; <a class="el" href="group__PublicStructures.html">PublicStructures</a></div></div>  </div>
+<div class="title">SignalingMessage Struct Reference<div class="ingroups"><a class="el" href="group__PublicStructures.html">PublicStructures</a></div></div>  </div>
 </div><!--header-->
 <div class="contents">
 
@@ -114,28 +114,125 @@ Collaboration diagram for SignalingMessage:</div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
-<tr class="memitem:ga278d902dd02371c74db3f9aa2a90960b"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga278d902dd02371c74db3f9aa2a90960b">version</a></td></tr>
-<tr class="memdesc:ga278d902dd02371c74db3f9aa2a90960b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Current version of the structure.  <a href="group__StatusCodes.html#ga278d902dd02371c74db3f9aa2a90960b">More...</a><br /></td></tr>
-<tr class="separator:ga278d902dd02371c74db3f9aa2a90960b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gaad3b5f6fd6deea9795143db5d095f6ca"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#ga863b17793bf973897892564e7afbe65f">SIGNALING_MESSAGE_TYPE</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#gaad3b5f6fd6deea9795143db5d095f6ca">messageType</a></td></tr>
-<tr class="memdesc:gaad3b5f6fd6deea9795143db5d095f6ca"><td class="mdescLeft">&#160;</td><td class="mdescRight">Type of signaling message.  <a href="group__StatusCodes.html#gaad3b5f6fd6deea9795143db5d095f6ca">More...</a><br /></td></tr>
-<tr class="separator:gaad3b5f6fd6deea9795143db5d095f6ca"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gadbcf31bfb32938effe656b38fad3c5d2"><td class="memItemLeft" align="right" valign="top">CHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#gadbcf31bfb32938effe656b38fad3c5d2">correlationId</a> [256+1]</td></tr>
-<tr class="memdesc:gadbcf31bfb32938effe656b38fad3c5d2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Correlation Id string.  <a href="group__StatusCodes.html#gadbcf31bfb32938effe656b38fad3c5d2">More...</a><br /></td></tr>
-<tr class="separator:gadbcf31bfb32938effe656b38fad3c5d2"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga02c3030e0e011ae7a1ef1a77003fa048"><td class="memItemLeft" align="right" valign="top">CHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga02c3030e0e011ae7a1ef1a77003fa048">peerClientId</a> [256+1]</td></tr>
-<tr class="memdesc:ga02c3030e0e011ae7a1ef1a77003fa048"><td class="mdescLeft">&#160;</td><td class="mdescRight">Sender client id.  <a href="group__StatusCodes.html#ga02c3030e0e011ae7a1ef1a77003fa048">More...</a><br /></td></tr>
-<tr class="separator:ga02c3030e0e011ae7a1ef1a77003fa048"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gad6dc3a93b3b063087a0e5130dea67b05"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#gad6dc3a93b3b063087a0e5130dea67b05">payloadLen</a></td></tr>
-<tr class="memdesc:gad6dc3a93b3b063087a0e5130dea67b05"><td class="mdescLeft">&#160;</td><td class="mdescRight">Optional payload length. If 0, the length will be calculated.  <a href="group__StatusCodes.html#gad6dc3a93b3b063087a0e5130dea67b05">More...</a><br /></td></tr>
-<tr class="separator:gad6dc3a93b3b063087a0e5130dea67b05"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gaa430214235a4b5a1d586cd64d3ad3d16"><td class="memItemLeft" align="right" valign="top">CHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#gaa430214235a4b5a1d586cd64d3ad3d16">payload</a> [(10 *1024)+1]</td></tr>
-<tr class="memdesc:gaa430214235a4b5a1d586cd64d3ad3d16"><td class="mdescLeft">&#160;</td><td class="mdescRight">Actual signaling message payload.  <a href="group__StatusCodes.html#gaa430214235a4b5a1d586cd64d3ad3d16">More...</a><br /></td></tr>
-<tr class="separator:gaa430214235a4b5a1d586cd64d3ad3d16"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a278d902dd02371c74db3f9aa2a90960b"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingMessage.html#a278d902dd02371c74db3f9aa2a90960b">version</a></td></tr>
+<tr class="memdesc:a278d902dd02371c74db3f9aa2a90960b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Current version of the structure.  <a href="structSignalingMessage.html#a278d902dd02371c74db3f9aa2a90960b">More...</a><br /></td></tr>
+<tr class="separator:a278d902dd02371c74db3f9aa2a90960b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aad3b5f6fd6deea9795143db5d095f6ca"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#ga863b17793bf973897892564e7afbe65f">SIGNALING_MESSAGE_TYPE</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingMessage.html#aad3b5f6fd6deea9795143db5d095f6ca">messageType</a></td></tr>
+<tr class="memdesc:aad3b5f6fd6deea9795143db5d095f6ca"><td class="mdescLeft">&#160;</td><td class="mdescRight">Type of signaling message.  <a href="structSignalingMessage.html#aad3b5f6fd6deea9795143db5d095f6ca">More...</a><br /></td></tr>
+<tr class="separator:aad3b5f6fd6deea9795143db5d095f6ca"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:adbcf31bfb32938effe656b38fad3c5d2"><td class="memItemLeft" align="right" valign="top">CHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingMessage.html#adbcf31bfb32938effe656b38fad3c5d2">correlationId</a> [256+1]</td></tr>
+<tr class="memdesc:adbcf31bfb32938effe656b38fad3c5d2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Correlation Id string.  <a href="structSignalingMessage.html#adbcf31bfb32938effe656b38fad3c5d2">More...</a><br /></td></tr>
+<tr class="separator:adbcf31bfb32938effe656b38fad3c5d2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a02c3030e0e011ae7a1ef1a77003fa048"><td class="memItemLeft" align="right" valign="top">CHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingMessage.html#a02c3030e0e011ae7a1ef1a77003fa048">peerClientId</a> [256+1]</td></tr>
+<tr class="memdesc:a02c3030e0e011ae7a1ef1a77003fa048"><td class="mdescLeft">&#160;</td><td class="mdescRight">Sender client id.  <a href="structSignalingMessage.html#a02c3030e0e011ae7a1ef1a77003fa048">More...</a><br /></td></tr>
+<tr class="separator:a02c3030e0e011ae7a1ef1a77003fa048"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad6dc3a93b3b063087a0e5130dea67b05"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingMessage.html#ad6dc3a93b3b063087a0e5130dea67b05">payloadLen</a></td></tr>
+<tr class="memdesc:ad6dc3a93b3b063087a0e5130dea67b05"><td class="mdescLeft">&#160;</td><td class="mdescRight">Optional payload length. If 0, the length will be calculated.  <a href="structSignalingMessage.html#ad6dc3a93b3b063087a0e5130dea67b05">More...</a><br /></td></tr>
+<tr class="separator:ad6dc3a93b3b063087a0e5130dea67b05"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa430214235a4b5a1d586cd64d3ad3d16"><td class="memItemLeft" align="right" valign="top">CHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingMessage.html#aa430214235a4b5a1d586cd64d3ad3d16">payload</a> [(10 *1024)+1]</td></tr>
+<tr class="memdesc:aa430214235a4b5a1d586cd64d3ad3d16"><td class="mdescLeft">&#160;</td><td class="mdescRight">Actual signaling message payload.  <a href="structSignalingMessage.html#aa430214235a4b5a1d586cd64d3ad3d16">More...</a><br /></td></tr>
+<tr class="separator:aa430214235a4b5a1d586cd64d3ad3d16"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Structure defining the basic signaling message. </p>
-</div><hr/>The documentation for this struct was generated from the following file:<ul>
+</div><h2 class="groupheader">Member Data Documentation</h2>
+<a id="adbcf31bfb32938effe656b38fad3c5d2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#adbcf31bfb32938effe656b38fad3c5d2">&#9670;&nbsp;</a></span>correlationId</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">CHAR SignalingMessage::correlationId[256+1]</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Correlation Id string. </p>
+
+</div>
+</div>
+<a id="aad3b5f6fd6deea9795143db5d095f6ca"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aad3b5f6fd6deea9795143db5d095f6ca">&#9670;&nbsp;</a></span>messageType</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="group__PublicEnums.html#ga863b17793bf973897892564e7afbe65f">SIGNALING_MESSAGE_TYPE</a> SignalingMessage::messageType</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Type of signaling message. </p>
+
+</div>
+</div>
+<a id="aa430214235a4b5a1d586cd64d3ad3d16"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa430214235a4b5a1d586cd64d3ad3d16">&#9670;&nbsp;</a></span>payload</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">CHAR SignalingMessage::payload[(10 *1024)+1]</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Actual signaling message payload. </p>
+
+</div>
+</div>
+<a id="ad6dc3a93b3b063087a0e5130dea67b05"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad6dc3a93b3b063087a0e5130dea67b05">&#9670;&nbsp;</a></span>payloadLen</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">UINT32 SignalingMessage::payloadLen</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Optional payload length. If 0, the length will be calculated. </p>
+
+</div>
+</div>
+<a id="a02c3030e0e011ae7a1ef1a77003fa048"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a02c3030e0e011ae7a1ef1a77003fa048">&#9670;&nbsp;</a></span>peerClientId</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">CHAR SignalingMessage::peerClientId[256+1]</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Sender client id. </p>
+
+</div>
+</div>
+<a id="a278d902dd02371c74db3f9aa2a90960b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a278d902dd02371c74db3f9aa2a90960b">&#9670;&nbsp;</a></span>version</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">UINT32 SignalingMessage::version</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Current version of the structure. </p>
+
+</div>
+</div>
+<hr/>The documentation for this struct was generated from the following file:<ul>
 <li>/src/src/include/com/amazonaws/kinesis/video/webrtcclient/<a class="el" href="Include_8h_source.html">Include.h</a></li>
 </ul>
 </div><!-- contents -->
@@ -144,7 +241,7 @@ Public Attributes</h2></td></tr>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="structSignalingMessage.html">SignalingMessage</a></li>
-    <li class="footer">Generated on Fri Oct 29 2021 21:54:41 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Mon Nov 1 2021 17:46:25 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>
