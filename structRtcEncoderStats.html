@@ -95,7 +95,7 @@ $(document).ready(function(){initNavTree('structRtcEncoderStats.html',''); initR
 <a href="#pub-attribs">Public Attributes</a> &#124;
 <a href="structRtcEncoderStats-members.html">List of all members</a>  </div>
   <div class="headertitle">
-<div class="title">RtcEncoderStats Struct Reference<div class="ingroups"><a class="el" href="group__StatsStructures.html">StatsStructures</a></div></div>  </div>
+<div class="title">RtcEncoderStats Struct Reference<div class="ingroups"><a class="el" href="group__StatusCodes.html">StatusCodes</a> &raquo; <a class="el" href="group__StatsStructures.html">StatsStructures</a></div></div>  </div>
 </div><!--header-->
 <div class="contents">
 
@@ -114,142 +114,30 @@ Collaboration diagram for RtcEncoderStats:</div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
-<tr class="memitem:ad11ecd66ec37019b36d16ba5af614a78"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRtcEncoderStats.html#ad11ecd66ec37019b36d16ba5af614a78">targetBitrate</a></td></tr>
-<tr class="separator:ad11ecd66ec37019b36d16ba5af614a78"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a9750be60f7b4746198aaea8d07a19e16"><td class="memItemLeft" align="right" valign="top">UINT16&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRtcEncoderStats.html#a9750be60f7b4746198aaea8d07a19e16">width</a></td></tr>
-<tr class="memdesc:a9750be60f7b4746198aaea8d07a19e16"><td class="mdescLeft">&#160;</td><td class="mdescRight">Only valid for video.  <a href="structRtcEncoderStats.html#a9750be60f7b4746198aaea8d07a19e16">More...</a><br /></td></tr>
-<tr class="separator:a9750be60f7b4746198aaea8d07a19e16"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aef97890f2c53b6681a8f535f1003d7e3"><td class="memItemLeft" align="right" valign="top">UINT16&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRtcEncoderStats.html#aef97890f2c53b6681a8f535f1003d7e3">height</a></td></tr>
-<tr class="memdesc:aef97890f2c53b6681a8f535f1003d7e3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Only valid for video.  <a href="structRtcEncoderStats.html#aef97890f2c53b6681a8f535f1003d7e3">More...</a><br /></td></tr>
-<tr class="separator:aef97890f2c53b6681a8f535f1003d7e3"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a859b192a816c50a947d41d300965a748"><td class="memItemLeft" align="right" valign="top">UINT16&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRtcEncoderStats.html#a859b192a816c50a947d41d300965a748">bitDepth</a></td></tr>
-<tr class="memdesc:a859b192a816c50a947d41d300965a748"><td class="mdescLeft">&#160;</td><td class="mdescRight">Only valid for video. bits per pixel (24, 30, 36), note it's not per channel but per pixel.  <a href="structRtcEncoderStats.html#a859b192a816c50a947d41d300965a748">More...</a><br /></td></tr>
-<tr class="separator:a859b192a816c50a947d41d300965a748"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aaeaf0d1f1645efb1610c23a20418880e"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRtcEncoderStats.html#aaeaf0d1f1645efb1610c23a20418880e">encodeTimeMsec</a></td></tr>
-<tr class="memdesc:aaeaf0d1f1645efb1610c23a20418880e"><td class="mdescLeft">&#160;</td><td class="mdescRight">milliseconds spent encoding frames since last encoder update  <a href="structRtcEncoderStats.html#aaeaf0d1f1645efb1610c23a20418880e">More...</a><br /></td></tr>
-<tr class="separator:aaeaf0d1f1645efb1610c23a20418880e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aad2b456926b4ca8616953ecfd80e6cf3"><td class="memItemLeft" align="right" valign="top">BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRtcEncoderStats.html#aad2b456926b4ca8616953ecfd80e6cf3">voiceActivity</a></td></tr>
-<tr class="memdesc:aad2b456926b4ca8616953ecfd80e6cf3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Only valid for audio. TRUE if last audio packet contained voice.  <a href="structRtcEncoderStats.html#aad2b456926b4ca8616953ecfd80e6cf3">More...</a><br /></td></tr>
-<tr class="separator:aad2b456926b4ca8616953ecfd80e6cf3"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:afe331e59fcd4b4d5b4135608f33241b7"><td class="memItemLeft" align="right" valign="top"><a class="el" href="Stats_8h.html#a2839bbe57b61cee62093b734df9db744">DOMString</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRtcEncoderStats.html#afe331e59fcd4b4d5b4135608f33241b7">encoderImplementation</a></td></tr>
-<tr class="memdesc:afe331e59fcd4b4d5b4135608f33241b7"><td class="mdescLeft">&#160;</td><td class="mdescRight">encoder name eg "libvpx" or "x264"  <a href="structRtcEncoderStats.html#afe331e59fcd4b4d5b4135608f33241b7">More...</a><br /></td></tr>
-<tr class="separator:afe331e59fcd4b4d5b4135608f33241b7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gad11ecd66ec37019b36d16ba5af614a78"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#gad11ecd66ec37019b36d16ba5af614a78">targetBitrate</a></td></tr>
+<tr class="separator:gad11ecd66ec37019b36d16ba5af614a78"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga9750be60f7b4746198aaea8d07a19e16"><td class="memItemLeft" align="right" valign="top">UINT16&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga9750be60f7b4746198aaea8d07a19e16">width</a></td></tr>
+<tr class="memdesc:ga9750be60f7b4746198aaea8d07a19e16"><td class="mdescLeft">&#160;</td><td class="mdescRight">Only valid for video.  <a href="group__StatusCodes.html#ga9750be60f7b4746198aaea8d07a19e16">More...</a><br /></td></tr>
+<tr class="separator:ga9750be60f7b4746198aaea8d07a19e16"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaef97890f2c53b6681a8f535f1003d7e3"><td class="memItemLeft" align="right" valign="top">UINT16&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#gaef97890f2c53b6681a8f535f1003d7e3">height</a></td></tr>
+<tr class="memdesc:gaef97890f2c53b6681a8f535f1003d7e3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Only valid for video.  <a href="group__StatusCodes.html#gaef97890f2c53b6681a8f535f1003d7e3">More...</a><br /></td></tr>
+<tr class="separator:gaef97890f2c53b6681a8f535f1003d7e3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga859b192a816c50a947d41d300965a748"><td class="memItemLeft" align="right" valign="top">UINT16&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga859b192a816c50a947d41d300965a748">bitDepth</a></td></tr>
+<tr class="memdesc:ga859b192a816c50a947d41d300965a748"><td class="mdescLeft">&#160;</td><td class="mdescRight">Only valid for video. bits per pixel (24, 30, 36), note it's not per channel but per pixel.  <a href="group__StatusCodes.html#ga859b192a816c50a947d41d300965a748">More...</a><br /></td></tr>
+<tr class="separator:ga859b192a816c50a947d41d300965a748"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaaeaf0d1f1645efb1610c23a20418880e"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#gaaeaf0d1f1645efb1610c23a20418880e">encodeTimeMsec</a></td></tr>
+<tr class="memdesc:gaaeaf0d1f1645efb1610c23a20418880e"><td class="mdescLeft">&#160;</td><td class="mdescRight">milliseconds spent encoding frames since last encoder update  <a href="group__StatusCodes.html#gaaeaf0d1f1645efb1610c23a20418880e">More...</a><br /></td></tr>
+<tr class="separator:gaaeaf0d1f1645efb1610c23a20418880e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaad2b456926b4ca8616953ecfd80e6cf3"><td class="memItemLeft" align="right" valign="top">BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#gaad2b456926b4ca8616953ecfd80e6cf3">voiceActivity</a></td></tr>
+<tr class="memdesc:gaad2b456926b4ca8616953ecfd80e6cf3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Only valid for audio. TRUE if last audio packet contained voice.  <a href="group__StatusCodes.html#gaad2b456926b4ca8616953ecfd80e6cf3">More...</a><br /></td></tr>
+<tr class="separator:gaad2b456926b4ca8616953ecfd80e6cf3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gafe331e59fcd4b4d5b4135608f33241b7"><td class="memItemLeft" align="right" valign="top"><a class="el" href="Stats_8h.html#a2839bbe57b61cee62093b734df9db744">DOMString</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#gafe331e59fcd4b4d5b4135608f33241b7">encoderImplementation</a></td></tr>
+<tr class="memdesc:gafe331e59fcd4b4d5b4135608f33241b7"><td class="mdescLeft">&#160;</td><td class="mdescRight">encoder name eg "libvpx" or "x264"  <a href="group__StatusCodes.html#gafe331e59fcd4b4d5b4135608f33241b7">More...</a><br /></td></tr>
+<tr class="separator:gafe331e59fcd4b4d5b4135608f33241b7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>The stats object is populated by the application to include details about the encoder. </p>
-</div><h2 class="groupheader">Member Data Documentation</h2>
-<a id="a859b192a816c50a947d41d300965a748"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a859b192a816c50a947d41d300965a748">&#9670;&nbsp;</a></span>bitDepth</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">UINT16 RtcEncoderStats::bitDepth</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Only valid for video. bits per pixel (24, 30, 36), note it's not per channel but per pixel. </p>
-
-</div>
-</div>
-<a id="afe331e59fcd4b4d5b4135608f33241b7"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#afe331e59fcd4b4d5b4135608f33241b7">&#9670;&nbsp;</a></span>encoderImplementation</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname"><a class="el" href="Stats_8h.html#a2839bbe57b61cee62093b734df9db744">DOMString</a> RtcEncoderStats::encoderImplementation</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>encoder name eg "libvpx" or "x264" </p>
-
-</div>
-</div>
-<a id="aaeaf0d1f1645efb1610c23a20418880e"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aaeaf0d1f1645efb1610c23a20418880e">&#9670;&nbsp;</a></span>encodeTimeMsec</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">UINT32 RtcEncoderStats::encodeTimeMsec</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>milliseconds spent encoding frames since last encoder update </p>
-
-</div>
-</div>
-<a id="aef97890f2c53b6681a8f535f1003d7e3"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aef97890f2c53b6681a8f535f1003d7e3">&#9670;&nbsp;</a></span>height</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">UINT16 RtcEncoderStats::height</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Only valid for video. </p>
-
-</div>
-</div>
-<a id="ad11ecd66ec37019b36d16ba5af614a78"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ad11ecd66ec37019b36d16ba5af614a78">&#9670;&nbsp;</a></span>targetBitrate</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">UINT32 RtcEncoderStats::targetBitrate</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>It is the current target bitrate configured for this particular SSRC and is the Transport Independent Application Specific (TIAS) bitrate [RFC3890]. Typically, the target bitrate is a configuration parameter provided to the codec's encoder and does not count the size of the IP or other transport layers like TCP or UDP. It is measured in bits per second and the bitrate is calculated over a 1 second window. </p>
-
-</div>
-</div>
-<a id="aad2b456926b4ca8616953ecfd80e6cf3"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aad2b456926b4ca8616953ecfd80e6cf3">&#9670;&nbsp;</a></span>voiceActivity</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">BOOL RtcEncoderStats::voiceActivity</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Only valid for audio. TRUE if last audio packet contained voice. </p>
-
-</div>
-</div>
-<a id="a9750be60f7b4746198aaea8d07a19e16"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a9750be60f7b4746198aaea8d07a19e16">&#9670;&nbsp;</a></span>width</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">UINT16 RtcEncoderStats::width</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Only valid for video. </p>
-
-</div>
-</div>
-<hr/>The documentation for this struct was generated from the following file:<ul>
+</div><hr/>The documentation for this struct was generated from the following file:<ul>
 <li>/src/src/include/com/amazonaws/kinesis/video/webrtcclient/<a class="el" href="Include_8h_source.html">Include.h</a></li>
 </ul>
 </div><!-- contents -->
@@ -258,7 +146,7 @@ Public Attributes</h2></td></tr>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="structRtcEncoderStats.html">RtcEncoderStats</a></li>
-    <li class="footer">Generated on Mon Nov 1 2021 17:46:25 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Tue Nov 2 2021 13:17:05 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>

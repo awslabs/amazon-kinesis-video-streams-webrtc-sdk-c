@@ -30,11 +30,11 @@
 <area shape="rect" id="node27" href="$IceAgent_8c.html#a23515725a875e5a1b44e90f2b36f2dd2" title=" " alt="" coords="1930,659,2074,685"/>
 <area shape="rect" id="node35" href="$IceUtils_8c.html#a163008ed55dd5e46e25737a89d5beabb" title=" " alt="" coords="1920,364,2084,391"/>
 <area shape="rect" id="node28" href="$PeerConnection_8c.html#a8623356d515aabe66d493018cc61c1f3" title=" " alt="" coords="1672,785,1828,812"/>
-<area shape="rect" id="node30" href="$Retransimitter_8c.html#a117dafbb1f1b86ced15a1fcfc49713fa" title=" " alt="" coords="1401,633,1552,660"/>
+<area shape="rect" id="node30" href="$Retransmitter_8c.html#a117dafbb1f1b86ced15a1fcfc49713fa" title=" " alt="" coords="1401,633,1552,660"/>
 <area shape="rect" id="node31" href="$PeerConnection_8c.html#a4afea8c5d470548d2889fb8d3218ba0f" title=" " alt="" coords="1681,735,1819,761"/>
 <area shape="rect" id="node33" href="$group__PublicMemberFunctions.html#ga40c7caf6325f426d82030beec50cc86e" title="Packetizes and sends media via the configuration specified by the RtcRtpTransceiver." alt="" coords="1707,516,1793,543"/>
 <area shape="rect" id="node34" href="$Rtp_8c.html#a6f38cb81e122dec46ea50feb5edb652a" title=" " alt="" coords="1695,684,1805,711"/>
-<area shape="rect" id="node29" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title=" " alt="" coords="1401,735,1552,761"/>
+<area shape="rect" id="node29" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="1401,735,1552,761"/>
 <area shape="rect" id="node32" href="$group__PublicMemberFunctions.html#ga5b89dc2e301e35f30330c57bc1361dcb" title="Create a new RtcRtpTransceiver and add it to the set of transceivers." alt="" coords="1421,684,1532,711"/>
 <area shape="rect" id="node36" href="$NatBehaviorDiscovery_8c.html#a89054697a9e46dac0a358733b9da16d6" title=" " alt="" coords="1419,56,1534,83"/>
 <area shape="rect" id="node39" href="$IceAgent_8c.html#aff64bc1649d0c5e3390f6ad14eb9aa1e" title=" " alt="" coords="1665,415,1835,441"/>

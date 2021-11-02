@@ -22,7 +22,7 @@
 <area shape="rect" id="node15" href="$IceAgent_8c.html#a888fc1a2a5c2fe190f30db87c85c6759" title=" " alt="" coords="409,173,597,199"/>
 <area shape="rect" id="node18" href="$IceAgent_8c.html#af2fe29241b2d4ab4997fe04c41534578" title=" " alt="" coords="1608,375,1719,402"/>
 <area shape="rect" id="node20" href="$group__PublicMemberFunctions.html#ga433b1bd125e7f221bcdad97a2a0e8949" title="Free a RtcPeerConnection." alt="" coords="1595,426,1731,453"/>
-<area shape="rect" id="node19" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title=" " alt="" coords="1365,401,1516,427"/>
+<area shape="rect" id="node19" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="1365,401,1516,427"/>
 <area shape="rect" id="node22" href="$IceAgentStateMachine_8c.html#ae73bb89e7e9f087dd2ccfa8cf1f1833a" title=" " alt="" coords="1573,477,1754,519"/>
 <area shape="rect" id="node24" href="$IceAgentStateMachine_8c.html#ad8c9d148bf0b67e6ccce35a9f2c745e8" title=" " alt="" coords="1570,543,1757,570"/>
 <area shape="rect" id="node26" href="$group__PublicMemberFunctions.html#gade9fcbb056cb321f33890c1cf1222e64" title="Instructs the RtcPeerConnection that ICE should be restarted. Subsequent calls to createOffer will cr..." alt="" coords="1625,325,1702,351"/>
