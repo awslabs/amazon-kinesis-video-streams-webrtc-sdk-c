@@ -64,21 +64,21 @@ STATUS stepSignalingStateMachine(PSignalingClient pSignalingClient, STATUS statu
     MUTEX_LOCK(pSignalingClient->stateLock);
     locked = TRUE;
 
-    // Check if an error and the retry is OK
-    if (!pSignalingClient->pChannelInfo->retry && STATUS_FAILED(status)) {
-        CHK(FALSE, status);
-    }
-
+//    // Check if an error and the retry is OK
+//    if (!pSignalingClient->pChannelInfo->retry && STATUS_FAILED(status)) {
+//        CHK(FALSE, status);
+//    }
+//
     currentTime = GETTIME();
-
-    CHK(pSignalingClient->stepUntil == 0 || currentTime <= pSignalingClient->stepUntil, STATUS_OPERATION_TIMED_OUT);
-
-    // Check if the status is any of the retry/failed statuses
-    if (STATUS_FAILED(status)) {
-        for (i = 0; i < SIGNALING_STATE_MACHINE_STATE_COUNT; i++) {
-            CHK(status != SIGNALING_STATE_MACHINE_STATES[i].status, SIGNALING_STATE_MACHINE_STATES[i].status);
-        }
-    }
+//
+//    CHK(pSignalingClient->stepUntil == 0 || currentTime <= pSignalingClient->stepUntil, STATUS_OPERATION_TIMED_OUT);
+//
+//    // Check if the status is any of the retry/failed statuses
+//    if (STATUS_FAILED(status)) {
+//        for (i = 0; i < SIGNALING_STATE_MACHINE_STATE_COUNT; i++) {
+//            CHK(status != SIGNALING_STATE_MACHINE_STATES[i].status, SIGNALING_STATE_MACHINE_STATES[i].status);
+//        }
+//    }
 
     // Fix-up the expired credentials transition
     // NOTE: Api Gateway might not return an error that can be interpreted as unauthorized to
@@ -287,11 +287,11 @@ STATUS executeGetTokenSignalingState(UINT64 customData, UINT64 time)
 
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) serviceCallResult);
 
-    // Self-prime the next state
-    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
-
-    // Reset the ret status
-    retStatus = STATUS_SUCCESS;
+//    // Self-prime the next state
+//    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
+//
+//    // Reset the ret status
+//    retStatus = STATUS_SUCCESS;
 
 CleanUp:
 
@@ -361,10 +361,10 @@ STATUS executeDescribeSignalingState(UINT64 customData, UINT64 time)
     // Call the aggregate function
     retStatus = describeChannel(pSignalingClient, time);
 
-    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
-
-    // Reset the ret status
-    retStatus = STATUS_SUCCESS;
+//    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
+//
+//    // Reset the ret status
+//    retStatus = STATUS_SUCCESS;
 
 CleanUp:
 
@@ -424,10 +424,10 @@ STATUS executeCreateSignalingState(UINT64 customData, UINT64 time)
     // Call the aggregate function
     retStatus = createChannel(pSignalingClient, time);
 
-    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
-
-    // Reset the ret status
-    retStatus = STATUS_SUCCESS;
+//    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
+//
+//    // Reset the ret status
+//    retStatus = STATUS_SUCCESS;
 
 CleanUp:
 
@@ -487,10 +487,10 @@ STATUS executeGetEndpointSignalingState(UINT64 customData, UINT64 time)
     // Call the aggregate function
     retStatus = getChannelEndpoint(pSignalingClient, time);
 
-    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
-
-    // Reset the ret status
-    retStatus = STATUS_SUCCESS;
+//    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
+//
+//    // Reset the ret status
+//    retStatus = STATUS_SUCCESS;
 
 CleanUp:
 
@@ -550,10 +550,10 @@ STATUS executeGetIceConfigSignalingState(UINT64 customData, UINT64 time)
     // Call the aggregate function
     retStatus = getIceConfig(pSignalingClient, time);
 
-    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
-
-    // Reset the ret status
-    retStatus = STATUS_SUCCESS;
+//    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
+//
+//    // Reset the ret status
+//    retStatus = STATUS_SUCCESS;
 
 CleanUp:
 
@@ -619,16 +619,16 @@ STATUS executeReadySignalingState(UINT64 customData, UINT64 time)
                                                                             SIGNALING_CLIENT_STATE_READY));
     }
 
-    if (pSignalingClient->continueOnReady) {
-        // Self-prime the connect
-        CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
-    } else {
-        // Reset the timeout for the state machine
-        pSignalingClient->stepUntil = 0;
-    }
-
-    // Reset the ret status
-    retStatus = STATUS_SUCCESS;
+//    if (pSignalingClient->continueOnReady) {
+//        // Self-prime the connect
+//        CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
+//    } else {
+//        // Reset the timeout for the state machine
+//        pSignalingClient->stepUntil = 0;
+//    }
+//
+//    // Reset the ret status
+//    retStatus = STATUS_SUCCESS;
 CleanUp:
 
     LEAVES();
@@ -719,10 +719,10 @@ STATUS executeConnectSignalingState(UINT64 customData, UINT64 time)
 
     retStatus = connectSignalingChannel(pSignalingClient, time);
 
-    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
-
-    // Reset the ret status
-    retStatus = STATUS_SUCCESS;
+//    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
+//
+//    // Reset the ret status
+//    retStatus = STATUS_SUCCESS;
 
 CleanUp:
 
@@ -871,7 +871,7 @@ STATUS executeDisconnectedSignalingState(UINT64 customData, UINT64 time)
     }
 
     // Self-prime the next state
-    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
+//    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
 
 CleanUp:
 
@@ -940,10 +940,10 @@ STATUS executeDeleteSignalingState(UINT64 customData, UINT64 time)
     // Call the aggregate function
     retStatus = deleteChannel(pSignalingClient, time);
 
-    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
-
-    // Reset the ret status
-    retStatus = STATUS_SUCCESS;
+//    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
+//
+//    // Reset the ret status
+//    retStatus = STATUS_SUCCESS;
 
 CleanUp:
 
