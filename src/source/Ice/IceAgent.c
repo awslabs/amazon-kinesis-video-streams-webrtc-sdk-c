@@ -1034,7 +1034,7 @@ STATUS createIceCandidatePairs(PIceAgent pIceAgent, PIceCandidate pIceCandidate,
     CHK(pIceAgent != NULL && pIceCandidate != NULL, STATUS_NULL_ARG);
     CHK_WARN(pIceCandidate->state == ICE_CANDIDATE_STATE_VALID, retStatus, "New ice candidate need to be valid to form pairs");
 
-    // if pIceCandidate is a remote candidate, then form pairs with every single valid local candidate. Otherwize,
+    // if pIceCandidate is a remote candidate, then form pairs with every single valid local candidate. Otherwise,
     // form pairs with every single valid remote candidate
     pDoubleList = isRemoteCandidate ? pIceAgent->localCandidates : pIceAgent->remoteCandidates;
 
