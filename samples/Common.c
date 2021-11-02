@@ -493,7 +493,7 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     CHK_STATUS(transceiverOnBandwidthEstimation(pSampleStreamingSession->pVideoRtcRtpTransceiver, (UINT64) pSampleStreamingSession,
                                                 sampleBandwidthEstimationHandler));
 
-    // Add a SendRecv Transceiver of type video
+    // Add a SendRecv Transceiver of type audio
     audioTrack.kind = MEDIA_STREAM_TRACK_KIND_AUDIO;
     audioTrack.codec = RTC_CODEC_OPUS;
     audioRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
@@ -596,10 +596,10 @@ VOID sampleFrameHandler(UINT64 customData, PFrame pFrame)
     }
 }
 
-VOID sampleBandwidthEstimationHandler(UINT64 customData, DOUBLE maxiumBitrate)
+VOID sampleBandwidthEstimationHandler(UINT64 customData, DOUBLE maximumBitrate)
 {
     UNUSED_PARAM(customData);
-    DLOGV("received bitrate suggestion: %f", maxiumBitrate);
+    DLOGV("received bitrate suggestion: %f", maximumBitrate);
 }
 
 VOID sampleSenderBandwidthEstimationHandler(UINT64 customData, UINT32 txBytes, UINT32 rxBytes, UINT32 txPacketsCnt, UINT32 rxPacketsCnt,
