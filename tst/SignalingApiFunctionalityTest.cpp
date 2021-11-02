@@ -2903,7 +2903,7 @@ TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedAuthExpiration)
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_DELETE]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DELETE]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DELETED]);
 
     // Reset it back right after the GetIce  is called already
@@ -2923,7 +2923,7 @@ TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedAuthExpiration)
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DELETE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_DELETE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_DELETED]);
 
     // Shouldn't be able to connect as it's not in ready state

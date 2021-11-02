@@ -27,7 +27,7 @@ StateMachineState SIGNALING_STATE_MACHINE_STATES[] = {
      STATUS_SIGNALING_GET_ENDPOINT_CALL_FAILED},
     {SIGNALING_STATE_GET_ICE_CONFIG,
      SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_GET_ENDPOINT | SIGNALING_STATE_READY |
-         SIGNALING_STATE_GET_ICE_CONFIG,
+         SIGNALING_STATE_GET_ICE_CONFIG | SIGNALING_STATE_DISCONNECTED,
      fromGetIceConfigSignalingState, executeGetIceConfigSignalingState, SIGNALING_STATES_DEFAULT_RETRY_COUNT,
      STATUS_SIGNALING_GET_ICE_CONFIG_CALL_FAILED},
     {SIGNALING_STATE_READY, SIGNALING_STATE_GET_ICE_CONFIG | SIGNALING_STATE_DISCONNECTED | SIGNALING_STATE_READY, fromReadySignalingState,
@@ -86,6 +86,7 @@ STATUS stepSignalingStateMachine(PSignalingClient pSignalingClient, STATUS statu
     if (status == STATUS_SERVICE_CALL_NOT_AUTHORIZED_ERROR ||
         (pSignalingClient->pAwsCredentials != NULL && pSignalingClient->pAwsCredentials->expiration < currentTime)) {
         // Set the call status as auth error
+        DLOGD("Expiration: %llu %llu", pSignalingClient->pAwsCredentials->expiration, currentTime);
         ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_NOT_AUTHORIZED);
     }
 
