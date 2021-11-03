@@ -82,7 +82,7 @@ STATUS stepSignalingStateMachine(PSignalingClient pSignalingClient, STATUS statu
 
     // Fix-up the expired credentials transition
     // NOTE: Api Gateway might not return an error that can be interpreted as unauthorized to
-    // make the correct transition to auth integration state.
+    // Make the correct transition to auth integration state.
     if (status == STATUS_SERVICE_CALL_NOT_AUTHORIZED_ERROR ||
         (pSignalingClient->pAwsCredentials != NULL && pSignalingClient->pAwsCredentials->expiration < currentTime)) {
         // Set the call status as auth error
