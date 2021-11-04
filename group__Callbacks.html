@@ -95,21 +95,12 @@ $(document).ready(function(){initNavTree('group__Callbacks.html',''); initResiza
 <a href="#nested-classes">Classes</a> &#124;
 <a href="#typedef-members">Typedefs</a>  </div>
   <div class="headertitle">
-<div class="title">Callbacks<div class="ingroups"><a class="el" href="group__StatusCodes.html">StatusCodes</a></div></div>  </div>
+<div class="title">Callbacks</div>  </div>
 </div><!--header-->
 <div class="contents">
 
 <p>Extra callbacks definitions.  
 <a href="#details">More...</a></p>
-<div class="dynheader">
-Collaboration diagram for Callbacks:</div>
-<div class="dyncontent">
-<div class="center"><img src="group__Callbacks.png" border="0" usemap="#agroup____Callbacks" alt=""/></div>
-<map name="agroup____Callbacks" id="agroup____Callbacks">
-<area shape="rect" title="Extra callbacks definitions." alt="" coords="151,5,229,31"/>
-<area shape="rect" href="group__StatusCodes.html" title=" " alt="" coords="5,5,103,31"/>
-</map>
-</div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="nested-classes"></a>
 Classes</h2></td></tr>
@@ -120,14 +111,10 @@ Classes</h2></td></tr>
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="typedef-members"></a>
 Typedefs</h2></td></tr>
 <tr class="memitem:ga6269176a5be7e2e91fec6b067f7b9c5b"><td class="memItemLeft" align="right" valign="top">typedef VOID(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#ga6269176a5be7e2e91fec6b067f7b9c5b">RtcOnFrame</a>) (UINT64, PFrame)</td></tr>
-<tr class="memdesc:ga6269176a5be7e2e91fec6b067f7b9c5b"><td class="mdescLeft">&#160;</td><td class="mdescRight">RtcOnFrame is fired everytime a frame is received from the remote peer. It is available via the RtpRec.  <a href="group__Callbacks.html#ga6269176a5be7e2e91fec6b067f7b9c5b">More...</a><br /></td></tr>
 <tr class="separator:ga6269176a5be7e2e91fec6b067f7b9c5b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gaf77d88f0ced976d3628f86b79ba0b868"><td class="memItemLeft" align="right" valign="top">typedef VOID(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#gaf77d88f0ced976d3628f86b79ba0b868">RtcOnBandwidthEstimation</a>) (UINT64, DOUBLE)</td></tr>
-<tr class="memdesc:gaf77d88f0ced976d3628f86b79ba0b868"><td class="mdescLeft">&#160;</td><td class="mdescRight">RtcOnBandwidthEstimation is fired everytime a bandwidth estimation value is computed. This will be fired for receiver side estimation.  <a href="group__Callbacks.html#gaf77d88f0ced976d3628f86b79ba0b868">More...</a><br /></td></tr>
+<tr class="memdesc:gaf77d88f0ced976d3628f86b79ba0b868"><td class="mdescLeft">&#160;</td><td class="mdescRight">RtcOnBandwidthEstimation is fired everytime a bandwidth estimation value is computed. This will be fired for sender or receiver side estimation.  <a href="group__Callbacks.html#gaf77d88f0ced976d3628f86b79ba0b868">More...</a><br /></td></tr>
 <tr class="separator:gaf77d88f0ced976d3628f86b79ba0b868"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga31935aba346c035df91b7771e62ad3bc"><td class="memItemLeft" align="right" valign="top">typedef VOID(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#ga31935aba346c035df91b7771e62ad3bc">RtcOnSenderBandwidthEstimation</a>) (UINT64, UINT32, UINT32, UINT32, UINT32, UINT64)</td></tr>
-<tr class="memdesc:ga31935aba346c035df91b7771e62ad3bc"><td class="mdescLeft">&#160;</td><td class="mdescRight">RtcOnSenderBandwidthEstimation is fired everytime a bandwidth estimation value is computed by sender. This is an estimate of ALL packets sent across all transceivers. See <a href="https://tools.ietf.org/html/draft-holmer-rmcat-transport-wide-cc-extensions-01">https://tools.ietf.org/html/draft-holmer-rmcat-transport-wide-cc-extensions-01</a> for more details.  <a href="group__Callbacks.html#ga31935aba346c035df91b7771e62ad3bc">More...</a><br /></td></tr>
-<tr class="separator:ga31935aba346c035df91b7771e62ad3bc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gac7f4225ac2545664aabdc88d0b58e329"><td class="memItemLeft" align="right" valign="top">typedef VOID(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#gac7f4225ac2545664aabdc88d0b58e329">RtcOnPictureLoss</a>) (UINT64)</td></tr>
 <tr class="memdesc:gac7f4225ac2545664aabdc88d0b58e329"><td class="mdescLeft">&#160;</td><td class="mdescRight">RtcOnPictureLoss is fired everytime a Picture Loss Indication (PLI) feedback message is received. Receiving such message normally indicates that you sent a video frame which receiver could not decode. It may happen either because of packet loss or for any other reason. Generating an intra frame (aka keyframe, aka I-frame) in response to such message is considered a good strategy.  <a href="group__Callbacks.html#gac7f4225ac2545664aabdc88d0b58e329">More...</a><br /></td></tr>
 <tr class="separator:gac7f4225ac2545664aabdc88d0b58e329"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -162,6 +149,18 @@ Typedefs</h2></td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <p>Extra callbacks definitions. </p>
+<p>RtcOnFrame is fired everytime a frame is received from the remote peer. It is available via the RtpRec</p>
+<p>NOTE: RtcOnFrame is a KVS specific method</p>
+<p>Callback that is fired when Signalling client receives an Offer</p>
+<p>NOTE: Returning non-success status will terminate the internal event loop and will force the state machinery to roll back to the state corresponding to the type of status returned.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">-</td><td>UINT64 - Custom data passed in to the signaling client </td></tr>
+    <tr><td class="paramname">-</td><td>PReceivedSignalingMessage - Pointer to the received message</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>- STATUS code of the operation </dd></dl>
 <h2 class="groupheader">Typedef Documentation</h2>
 <a id="gac5ca9698d23bb785c59e148b1f438244"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#gac5ca9698d23bb785c59e148b1f438244">&#9670;&nbsp;</a></span>IceSetInterfaceFilterFunc</h2>
@@ -222,7 +221,7 @@ Typedefs</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>RtcOnBandwidthEstimation is fired everytime a bandwidth estimation value is computed. This will be fired for receiver side estimation. </p>
+<p>RtcOnBandwidthEstimation is fired everytime a bandwidth estimation value is computed. This will be fired for sender or receiver side estimation. </p>
 <p>NOTE: RtcOnBandwidthEstimation is a KVS specific method </p>
 
 </div>
@@ -273,9 +272,6 @@ Typedefs</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>RtcOnFrame is fired everytime a frame is received from the remote peer. It is available via the RtpRec. </p>
-<p>NOTE: RtcOnFrame is a KVS specific method </p>
-
 </div>
 </div>
 <a id="gabad4874074cecf3de44c82498437355a"></a>
@@ -291,7 +287,7 @@ Typedefs</h2></td></tr>
 </div><div class="memdoc">
 
 <p>RtcOnIceCandidate is fired when new iceCandidate is found. if PCHAR is NULL then candidate gathering is done. </p>
-<p>Reference: <a href="https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-onicecandidate">https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-onicecandidate</a> </p>
+<p>Reference: <a href="https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-ondatachannel">https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-ondatachannel</a> </p>
 
 </div>
 </div>
@@ -345,34 +341,6 @@ Typedefs</h2></td></tr>
 
 </div>
 </div>
-<a id="ga31935aba346c035df91b7771e62ad3bc"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga31935aba346c035df91b7771e62ad3bc">&#9670;&nbsp;</a></span>RtcOnSenderBandwidthEstimation</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">typedef VOID(* RtcOnSenderBandwidthEstimation) (UINT64, UINT32, UINT32, UINT32, UINT32, UINT64)</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>RtcOnSenderBandwidthEstimation is fired everytime a bandwidth estimation value is computed by sender. This is an estimate of ALL packets sent across all transceivers. See <a href="https://tools.ietf.org/html/draft-holmer-rmcat-transport-wide-cc-extensions-01">https://tools.ietf.org/html/draft-holmer-rmcat-transport-wide-cc-extensions-01</a> for more details. </p>
-<p>NOTE: RtcOnSenderBandwidthEstimation is a KVS specific method</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">UINT64</td><td>User customData that will be passed along when RtcOnSenderBandwidthEstimation is called </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">UINT32</td><td>txBytes - bytes sent over the transport </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">UINT32</td><td>rxBytes - bytes reported as received </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">UINT32</td><td>txPackets - number of packets sent over the transport </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">UINT32</td><td>rxPackets - number of packets reported as received </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">UINT64</td><td>duration - time window for txBytes, rxBytes, txPackets, rxPackets </td></tr>
-  </table>
-  </dd>
-</dl>
-
-</div>
-</div>
 <a id="ga0d69d0e35a1bddfa483f288ec208546c"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ga0d69d0e35a1bddfa483f288ec208546c">&#9670;&nbsp;</a></span>SignalingClientErrorReportFunc</h2>
 
@@ -411,16 +379,6 @@ Typedefs</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Callback that is fired when Signalling client receives an Offer</p>
-<p>NOTE: Returning non-success status will terminate the internal event loop and will force the state machinery to roll back to the state corresponding to the type of status returned.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">-</td><td>UINT64 - Custom data passed in to the signaling client </td></tr>
-    <tr><td class="paramname">-</td><td>PReceivedSignalingMessage - Pointer to the received message</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>- STATUS code of the operation </dd></dl>
 
 </div>
 </div>
@@ -454,7 +412,7 @@ Typedefs</h2></td></tr>
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="footer">Generated on Tue Nov 2 2021 13:17:05 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Thu Nov 4 2021 03:29:41 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>

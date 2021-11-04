@@ -23,7 +23,7 @@
 <area shape="rect" id="node11" href="$IceAgent_8c.html#a888fc1a2a5c2fe190f30db87c85c6759" title=" " alt="" coords="409,426,597,453"/>
 <area shape="rect" id="node14" href="$IceAgent_8c.html#af2fe29241b2d4ab4997fe04c41534578" title=" " alt="" coords="681,223,791,250"/>
 <area shape="rect" id="node16" href="$group__PublicMemberFunctions.html#ga433b1bd125e7f221bcdad97a2a0e8949" title="Free a RtcPeerConnection." alt="" coords="668,173,804,199"/>
-<area shape="rect" id="node15" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="428,223,579,250"/>
+<area shape="rect" id="node15" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title=" " alt="" coords="428,223,579,250"/>
 <area shape="rect" id="node18" href="$TurnConnection_8c.html#a45124af8be2273f83db9e6278ae3d0d6" title=" " alt="" coords="900,325,1049,351"/>
 <area shape="rect" id="node19" href="$IceAgentStateMachine_8c.html#a7f3932d8047a60dd57fda36e1a8d0ac2" title=" " alt="" coords="891,173,1058,199"/>
 <area shape="rect" id="node21" href="$IceAgentStateMachine_8c.html#ae73bb89e7e9f087dd2ccfa8cf1f1833a" title=" " alt="" coords="645,5,827,47"/>
@@ -39,7 +39,7 @@
 <area shape="rect" id="node43" href="$IceUtils_8c.html#a163008ed55dd5e46e25737a89d5beabb" title=" " alt="" coords="1623,806,1787,833"/>
 <area shape="rect" id="node48" href="$TurnConnection_8c.html#a0d996d98abef81b2f6c54be480ef7ea1" title=" " alt="" coords="1621,857,1788,883"/>
 <area shape="rect" id="node37" href="$PeerConnection_8c.html#a8623356d515aabe66d493018cc61c1f3" title=" " alt="" coords="658,274,814,301"/>
-<area shape="rect" id="node38" href="$Retransmitter_8c.html#a117dafbb1f1b86ced15a1fcfc49713fa" title=" " alt="" coords="1143,654,1294,681"/>
+<area shape="rect" id="node38" href="$Retransimitter_8c.html#a117dafbb1f1b86ced15a1fcfc49713fa" title=" " alt="" coords="1143,654,1294,681"/>
 <area shape="rect" id="node39" href="$PeerConnection_8c.html#a4afea8c5d470548d2889fb8d3218ba0f" title=" " alt="" coords="1399,578,1537,605"/>
 <area shape="rect" id="node41" href="$group__PublicMemberFunctions.html#ga40c7caf6325f426d82030beec50cc86e" title="Packetizes and sends media via the configuration specified by the RtcRtpTransceiver." alt="" coords="1425,730,1511,757"/>
 <area shape="rect" id="node42" href="$Rtp_8c.html#a6f38cb81e122dec46ea50feb5edb652a" title=" " alt="" coords="1413,679,1523,706"/>

@@ -4,5 +4,5 @@
 <area shape="rect" id="node3" href="$IceAgent_8c.html#a0240b9dcf5654427458c2fdda5a2da29" title=" " alt="" coords="403,56,534,83"/>
 <area shape="rect" id="node4" href="$group__PublicMemberFunctions.html#ga9babad6ea2bc9bb97279c7034697375a" title="Close the underlying DTLS session and IceAgent connection. Trigger RtcOnConnectionStateChange to RTC_..." alt="" coords="204,31,349,57"/>
 <area shape="rect" id="node5" href="$group__PublicMemberFunctions.html#ga433b1bd125e7f221bcdad97a2a0e8949" title="Free a RtcPeerConnection." alt="" coords="209,81,345,108"/>
-<area shape="rect" id="node6" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,81,156,108"/>
+<area shape="rect" id="node6" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title=" " alt="" coords="5,81,156,108"/>
 </map>

@@ -12,7 +12,7 @@
 <area shape="rect" id="node7" href="$group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,165,156,192"/>
 <area shape="rect" id="node9" href="$IceAgent_8c.html#af2fe29241b2d4ab4997fe04c41534578" title=" " alt="" coords="681,56,791,83"/>
 <area shape="rect" id="node11" href="$group__PublicMemberFunctions.html#ga433b1bd125e7f221bcdad97a2a0e8949" title="Free a RtcPeerConnection." alt="" coords="668,107,804,133"/>
-<area shape="rect" id="node10" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="428,95,579,121"/>
+<area shape="rect" id="node10" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title=" " alt="" coords="428,95,579,121"/>
 <area shape="rect" id="node14" href="$IceAgentStateMachine_8c.html#ae73bb89e7e9f087dd2ccfa8cf1f1833a" title=" " alt="" coords="645,158,827,199"/>
 <area shape="rect" id="node16" href="$group__PublicMemberFunctions.html#gade9fcbb056cb321f33890c1cf1222e64" title="Instructs the RtcPeerConnection that ICE should be restarted. Subsequent calls to createOffer will cr..." alt="" coords="697,275,775,301"/>
 </map>
