@@ -114,9 +114,16 @@ INT32 lwsHttpCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, 
             }
 
             if (dataSize != 0) {
-                CHK(NULL != (pLwsCallInfo->callInfo.responseData = (PCHAR) MEMALLOC(dataSize)), STATUS_NOT_ENOUGH_MEMORY);
+                CHK(NULL != (pLwsCallInfo->callInfo.responseData = (PCHAR) MEMALLOC(dataSize+1)), STATUS_NOT_ENOUGH_MEMORY);
                 MEMCPY(pLwsCallInfo->callInfo.responseData, pDataIn, dataSize);
+                pLwsCallInfo->callInfo.responseData[dataSize] = '\0';
                 pLwsCallInfo->callInfo.responseDataLen = (UINT32) dataSize;
+
+                if (pLwsCallInfo->callInfo.callResult != SERVICE_CALL_RESULT_OK) {
+                    DLOGW("Received client http read response:  %s", pLwsCallInfo->callInfo.responseData);
+                } else {
+                    DLOGV("Received client http read response:  %s", pLwsCallInfo->callInfo.responseData);
+                }
             }
 
             break;
@@ -683,7 +690,7 @@ STATUS describeChannelLws(PSignalingClient pSignalingClient, UINT64 time)
     resultLen = pLwsCallInfo->callInfo.responseDataLen;
 
     // Early return if we have a non-success result
-    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, retStatus);
+    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, STATUS_SIGNALING_LWS_CALL_FAILED);
 
     // Parse the response
     jsmn_init(&parser);
@@ -757,6 +764,10 @@ STATUS describeChannelLws(PSignalingClient pSignalingClient, UINT64 time)
 
 CleanUp:
 
+    if (STATUS_FAILED(retStatus)) {
+        DLOGE("Call Failed with Status:  0x%08x", retStatus);
+    }
+
     freeLwsCallInfo(&pLwsCallInfo);
 
     LEAVES();
@@ -828,7 +839,7 @@ STATUS createChannelLws(PSignalingClient pSignalingClient, UINT64 time)
     resultLen = pLwsCallInfo->callInfo.responseDataLen;
 
     // Early return if we have a non-success result
-    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, retStatus);
+    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, STATUS_SIGNALING_LWS_CALL_FAILED);
 
     // Parse out the ARN
     jsmn_init(&parser);
@@ -851,6 +862,10 @@ STATUS createChannelLws(PSignalingClient pSignalingClient, UINT64 time)
     CHK(pSignalingClient->channelDescription.channelArn[0] != '\0', STATUS_SIGNALING_NO_ARN_RETURNED_ON_CREATE);
 
 CleanUp:
+
+    if (STATUS_FAILED(retStatus)) {
+        DLOGE("Call Failed with Status:  0x%08x", retStatus);
+    }
 
     freeLwsCallInfo(&pLwsCallInfo);
 
@@ -902,7 +917,7 @@ STATUS getChannelEndpointLws(PSignalingClient pSignalingClient, UINT64 time)
     resultLen = pLwsCallInfo->callInfo.responseDataLen;
 
     // Early return if we have a non-success result
-    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, retStatus);
+    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, STATUS_SIGNALING_LWS_CALL_FAILED);
 
     // Parse and extract the endpoints
     jsmn_init(&parser);
@@ -977,6 +992,10 @@ STATUS getChannelEndpointLws(PSignalingClient pSignalingClient, UINT64 time)
 
 CleanUp:
 
+    if (STATUS_FAILED(retStatus)) {
+        DLOGE("Call Failed with Status:  0x%08x", retStatus);
+    }
+
     freeLwsCallInfo(&pLwsCallInfo);
 
     LEAVES();
@@ -1033,7 +1052,7 @@ STATUS getIceConfigLws(PSignalingClient pSignalingClient, UINT64 time)
     resultLen = pLwsCallInfo->callInfo.responseDataLen;
 
     // Early return if we have a non-success result
-    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, retStatus);
+    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, STATUS_SIGNALING_LWS_CALL_FAILED);
 
     // Parse the response
     jsmn_init(&parser);
@@ -1098,6 +1117,10 @@ STATUS getIceConfigLws(PSignalingClient pSignalingClient, UINT64 time)
 
 CleanUp:
 
+    if (STATUS_FAILED(retStatus)) {
+        DLOGE("Call Failed with Status:  0x%08x", retStatus);
+    }
+
     freeLwsCallInfo(&pLwsCallInfo);
 
     LEAVES();
@@ -1149,12 +1172,16 @@ STATUS deleteChannelLws(PSignalingClient pSignalingClient, UINT64 time)
 
     // Early return if we have a non-success result and it's not a resource not found
     result = ATOMIC_LOAD(&pSignalingClient->result);
-    CHK((SERVICE_CALL_RESULT) result == SERVICE_CALL_RESULT_OK || (SERVICE_CALL_RESULT) result == SERVICE_CALL_RESOURCE_NOT_FOUND, retStatus);
+    CHK((SERVICE_CALL_RESULT) result == SERVICE_CALL_RESULT_OK || (SERVICE_CALL_RESULT) result == SERVICE_CALL_RESOURCE_NOT_FOUND, STATUS_SIGNALING_LWS_CALL_FAILED);
 
     // Mark the channel as deleted
     ATOMIC_STORE_BOOL(&pSignalingClient->deleted, TRUE);
 
 CleanUp:
+
+    if (STATUS_FAILED(retStatus)) {
+        DLOGE("Call Failed with Status:  0x%08x", retStatus);
+    }
 
     freeLwsCallInfo(&pLwsCallInfo);
 

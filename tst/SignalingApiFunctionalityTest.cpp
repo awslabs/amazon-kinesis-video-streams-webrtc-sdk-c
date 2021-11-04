@@ -3059,7 +3059,7 @@ TEST_F(SignalingApiFunctionalityTest, cachingWithFaultInjection)
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
     // Validate the hook count
-    EXPECT_EQ(2, describeCount);
+    EXPECT_EQ(3, describeCount);
     EXPECT_EQ(2, getEndpointCount);
 
     // Connect to the signaling client and make it fail
@@ -3081,7 +3081,7 @@ TEST_F(SignalingApiFunctionalityTest, cachingWithFaultInjection)
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
     // Validate the hook count
-    EXPECT_EQ(2, describeCount);
+    EXPECT_EQ(3, describeCount);
     EXPECT_EQ(2, getEndpointCount);
 
     // Wait for the cache TTL to expire and retry
@@ -3103,7 +3103,7 @@ TEST_F(SignalingApiFunctionalityTest, cachingWithFaultInjection)
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
     // Validate the hook count is incremented due to cache miss
-    EXPECT_EQ(3, describeCount);
+    EXPECT_EQ(4, describeCount);
     EXPECT_EQ(3, getEndpointCount);
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientDisconnectSync(signalingHandle));
