@@ -8,12 +8,10 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
                            PAwsCredentialProvider pCredentialProvider, PSignalingClient* ppSignalingClient)
 {
     ENTERS();
-    int i;
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = NULL;
     PCHAR userLogLevelStr = NULL;
     UINT32 userLogLevel;
-    UINT64 currentTime;
     struct lws_context_creation_info creationInfo;
     const lws_retry_bo_t retryPolicy = {
         .secs_since_valid_ping = SIGNALING_SERVICE_WSS_PING_PONG_INTERVAL_IN_SECONDS,
@@ -167,36 +165,8 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     ATOMIC_STORE_BOOL(&pSignalingClient->refreshIceConfig, FALSE);
 
     // Prime the state machine
-    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, STATUS_SUCCESS));
-
-    while(TRUE) {
-        if (STATUS_FAILED(retStatus)) {
-            DLOGI("Failed!, retry allowed? %d", pSignalingClient->pChannelInfo->retry);
-            if (!pSignalingClient->pChannelInfo->retry) {
-                CHK(FALSE, retStatus);
-            } else {
-                DLOGI("Retrying!");
-                for (i = 0; i < SIGNALING_STATE_MACHINE_STATE_COUNT; i++) {
-                    CHK(retStatus != SIGNALING_STATE_MACHINE_STATES[i].status, SIGNALING_STATE_MACHINE_STATES[i].status);
-                }
-            }
-        }
-
-        currentTime = GETTIME();
-        CHK(pSignalingClient->stepUntil == 0 || currentTime <= pSignalingClient->stepUntil, STATUS_OPERATION_TIMED_OUT);
-
-        CHK_STATUS(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pStateMachineState));
-        if (pStateMachineState->state == SIGNALING_STATE_READY) {
-            DLOGI("Current state is ready: %d", pStateMachineState->state);
-
-            // Reset the timeout for the state machine
-            pSignalingClient->stepUntil = 0;
-
-            retStatus = STATUS_SUCCESS;
-            break;
-        }
-        CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
-    }
+    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, pSignalingClient->stepUntil,
+                                             SIGNALING_STATE_READY, STATUS_SUCCESS));
 
 CleanUp:
 
@@ -398,8 +368,6 @@ CleanUp:
 STATUS signalingConnectSync(PSignalingClient pSignalingClient)
 {
     ENTERS();
-    int i;
-    UINT64 currentTime;
     STATUS retStatus = STATUS_SUCCESS;
     PStateMachineState pState = NULL;
 
@@ -421,33 +389,8 @@ STATUS signalingConnectSync(PSignalingClient pSignalingClient)
     // Set the time out before execution
     pSignalingClient->stepUntil = GETTIME() + SIGNALING_CONNECT_STATE_TIMEOUT;
 
-    while(TRUE) {
-        if (STATUS_FAILED(retStatus)) {
-            DLOGI("Failed!, retry allowed? %d", pSignalingClient->pChannelInfo->retry);
-            if (!pSignalingClient->pChannelInfo->retry) {
-                CHK(FALSE, retStatus);
-            } else {
-                DLOGI("Retrying!");
-                for (i = 0; i < SIGNALING_STATE_MACHINE_STATE_COUNT; i++) {
-                    CHK(retStatus != SIGNALING_STATE_MACHINE_STATES[i].status, SIGNALING_STATE_MACHINE_STATES[i].status);
-                }
-            }
-        }
-
-        currentTime = GETTIME();
-        CHK(pSignalingClient->stepUntil == 0 || currentTime <= pSignalingClient->stepUntil, STATUS_OPERATION_TIMED_OUT);
-
-        CHK_STATUS(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pState));
-        if (pState->state == SIGNALING_STATE_READY && !pSignalingClient->continueOnReady) {
-            pSignalingClient->stepUntil = 0;
-            break;
-        } else if (pState->state == SIGNALING_STATE_CONNECTED) {
-            DLOGI("Current state is connected: %d", pState->state);
-            retStatus = STATUS_SUCCESS;
-            break;
-        }
-        CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
-    }
+    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, pSignalingClient->stepUntil,
+                                             SIGNALING_STATE_CONNECTED, retStatus));
 
 CleanUp:
 
@@ -466,10 +409,8 @@ CleanUp:
 STATUS signalingDisconnectSync(PSignalingClient pSignalingClient)
 {
     ENTERS();
-    int i;
-    UINT64 currentTime;
     STATUS retStatus = STATUS_SUCCESS;
-    PStateMachineState pState = NULL;
+    UINT64 disconnectExpiration = GETTIME() + SIGNALING_CONNECT_STATE_TIMEOUT;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
@@ -483,35 +424,7 @@ STATUS signalingDisconnectSync(PSignalingClient pSignalingClient)
 
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_OK);
 
-    CHK_STATUS(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pState));
-
-    while(TRUE) {
-        if (STATUS_FAILED(retStatus)) {
-            DLOGI("Failed!, retry allowed? %d", pSignalingClient->pChannelInfo->retry);
-            if (!pSignalingClient->pChannelInfo->retry) {
-                CHK(FALSE, retStatus);
-            } else {
-                DLOGI("Retrying!");
-                for (i = 0; i < SIGNALING_STATE_MACHINE_STATE_COUNT; i++) {
-                    CHK(retStatus != SIGNALING_STATE_MACHINE_STATES[i].status, SIGNALING_STATE_MACHINE_STATES[i].status);
-                }
-            }
-        }
-
-        currentTime = GETTIME();
-        CHK(pSignalingClient->stepUntil == 0 || currentTime <= pSignalingClient->stepUntil, STATUS_OPERATION_TIMED_OUT);
-
-        CHK_STATUS(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pState));
-        if (pState->state == SIGNALING_STATE_READY && !pSignalingClient->continueOnReady) {
-            pSignalingClient->stepUntil = 0;
-            break;
-        } else if (pState->state == SIGNALING_STATE_DISCONNECTED) {
-            DLOGI("Current state is connected: %d", pState->state);
-            retStatus = STATUS_SUCCESS;
-            break;
-        }
-        CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
-    }
+    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, disconnectExpiration, SIGNALING_STATE_DISCONNECTED, retStatus));
 
 CleanUp:
 
@@ -524,10 +437,8 @@ CleanUp:
 STATUS signalingDeleteSync(PSignalingClient pSignalingClient)
 {
     ENTERS();
-    int i;
-    UINT64 currentTime;
     STATUS retStatus = STATUS_SUCCESS;
-    PStateMachineState pState = NULL;
+    UINT64 deleteExpiration = GETTIME() + SIGNALING_DELETE_TIMEOUT;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
@@ -545,33 +456,7 @@ STATUS signalingDeleteSync(PSignalingClient pSignalingClient)
     // Set the time out before execution
     pSignalingClient->stepUntil = GETTIME() + SIGNALING_DELETE_TIMEOUT;
 
-    while(TRUE) {
-        if (STATUS_FAILED(retStatus)) {
-            DLOGI("Failed!, retry allowed? %d", pSignalingClient->pChannelInfo->retry);
-            if (!pSignalingClient->pChannelInfo->retry) {
-                CHK(FALSE, retStatus);
-            } else {
-                DLOGI("Retrying!");
-                for (i = 0; i < SIGNALING_STATE_MACHINE_STATE_COUNT; i++) {
-                    CHK(retStatus != SIGNALING_STATE_MACHINE_STATES[i].status, SIGNALING_STATE_MACHINE_STATES[i].status);
-                }
-            }
-        }
-
-        currentTime = GETTIME();
-        CHK(pSignalingClient->stepUntil == 0 || currentTime <= pSignalingClient->stepUntil, STATUS_OPERATION_TIMED_OUT);
-
-        CHK_STATUS(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pState));
-        if (pState->state == SIGNALING_STATE_READY && !pSignalingClient->continueOnReady) {
-            pSignalingClient->stepUntil = 0;
-            break;
-        } else if (pState->state == SIGNALING_STATE_DELETED) {
-            DLOGI("Current state is connected: %d", pState->state);
-            retStatus = STATUS_SUCCESS;
-            break;
-        }
-        CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
-    }
+    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, deleteExpiration, SIGNALING_STATE_DELETED, retStatus));
 
 CleanUp:
 
@@ -681,8 +566,6 @@ CleanUp:
 STATUS refreshIceConfiguration(PSignalingClient pSignalingClient)
 {
     ENTERS();
-    int i;
-    UINT64 currentTime;
     STATUS retStatus = STATUS_SUCCESS;
     PStateMachineState pStateMachineState = NULL;
     CHAR iceRefreshErrMsg[SIGNALING_MAX_ERROR_MESSAGE_LEN + 1];
@@ -713,33 +596,8 @@ STATUS refreshIceConfiguration(PSignalingClient pSignalingClient)
         // Set the time out before execution
         pSignalingClient->stepUntil = curTime + SIGNALING_REFRESH_ICE_CONFIG_STATE_TIMEOUT;
 
-        while(TRUE) {
-            if (STATUS_FAILED(retStatus)) {
-                DLOGI("Failed!, retry allowed? %d", pSignalingClient->pChannelInfo->retry);
-                if (!pSignalingClient->pChannelInfo->retry) {
-                    CHK(FALSE, retStatus);
-                } else {
-                    DLOGI("Retrying!");
-                    for (i = 0; i < SIGNALING_STATE_MACHINE_STATE_COUNT; i++) {
-                        CHK(retStatus != SIGNALING_STATE_MACHINE_STATES[i].status, SIGNALING_STATE_MACHINE_STATES[i].status);
-                    }
-                }
-            }
-
-            currentTime = GETTIME();
-            CHK(pSignalingClient->stepUntil == 0 || currentTime <= pSignalingClient->stepUntil, STATUS_OPERATION_TIMED_OUT);
-
-            CHK_STATUS(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pStateMachineState));
-            if (pStateMachineState->state == SIGNALING_STATE_READY && !pSignalingClient->continueOnReady) {
-                pSignalingClient->stepUntil = 0;
-                break;
-            } else if (pStateMachineState->state == SIGNALING_STATE_CONNECTED) {
-                DLOGI("Current state is connected: %d", pStateMachineState->state);
-                retStatus = STATUS_SUCCESS;
-                break;
-            }
-            CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
-        }
+        CHK_STATUS(signalingStateMachineIterator(pSignalingClient, pSignalingClient->stepUntil,
+                                                 pStateMachineState->state, retStatus));
     }
 
 CleanUp:
@@ -779,6 +637,7 @@ STATUS signalingStoreOngoingMessage(PSignalingClient pSignalingClient, PSignalin
     CHK(pSignalingClient != NULL && pSignalingMessage != NULL, STATUS_NULL_ARG);
     MUTEX_LOCK(pSignalingClient->messageQueueLock);
     locked = TRUE;
+    // pOngoingCallInfo already null here
     CHK_STATUS(signalingGetOngoingMessage(pSignalingClient, pSignalingMessage->correlationId, pSignalingMessage->peerClientId, &pExistingMessage));
     CHK(pExistingMessage == NULL, STATUS_SIGNALING_DUPLICATE_MESSAGE_BEING_SENT);
     CHK_STATUS(stackQueueEnqueue(pSignalingClient->pMessageQueue, (UINT64) pSignalingMessage));

@@ -31,7 +31,7 @@ extern "C" {
 #define INFINITE_RETRY_COUNT_SENTINEL 0
 
 // Whether to step the state machine
-STATUS stepSignalingStateMachine(PSignalingClient, STATUS);
+STATUS signalingStateMachineIterator(PSignalingClient, UINT64, UINT64, STATUS);
 
 STATUS acceptSignalingStateMachineState(PSignalingClient, UINT64);
 SIGNALING_CLIENT_STATE getSignalingStateFromStateMachineState(UINT64);

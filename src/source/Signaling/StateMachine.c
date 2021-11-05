@@ -48,36 +48,53 @@ StateMachineState SIGNALING_STATE_MACHINE_STATES[] = {
 
 UINT32 SIGNALING_STATE_MACHINE_STATE_COUNT = ARRAY_SIZE(SIGNALING_STATE_MACHINE_STATES);
 
-STATUS stepSignalingStateMachine(PSignalingClient pSignalingClient, STATUS status)
+STATUS signalingStateMachineIterator(PSignalingClient pSignalingClient, UINT64 expiration, UINT64 finalState, STATUS status)
 {
     ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-    UINT32 i;
-    BOOL locked = FALSE;
     UINT64 currentTime;
-
-    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
-
-    // Check for a shutdown
-    CHK(!ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown), retStatus);
+    int i;
+    STATUS retStatus = STATUS_SUCCESS;
+    PStateMachineState pState = NULL;
+    BOOL locked = FALSE;
 
     MUTEX_LOCK(pSignalingClient->stateLock);
     locked = TRUE;
 
-    currentTime = GETTIME();
+    while(TRUE) {
+        CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
-    // Fix-up the expired credentials transition
-    // NOTE: Api Gateway might not return an error that can be interpreted as unauthorized to
-    // make the correct transition to auth integration state.
-    if (status == STATUS_SERVICE_CALL_NOT_AUTHORIZED_ERROR ||
-        (SERVICE_CALL_UNKNOWN == (SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) &&
-         pSignalingClient->pAwsCredentials->expiration < currentTime)) {
-        // Set the call status as auth error
-        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_NOT_AUTHORIZED);
+        CHK(!ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown), status);
+
+        if (STATUS_FAILED(status)) {
+            if (!pSignalingClient->pChannelInfo->retry) {
+                CHK(FALSE, status);
+            } else {
+                for (i = 0; i < SIGNALING_STATE_MACHINE_STATE_COUNT; i++) {
+                    CHK(status != SIGNALING_STATE_MACHINE_STATES[i].status, SIGNALING_STATE_MACHINE_STATES[i].status);
+                }
+            }
+        }
+
+        currentTime = GETTIME();
+        CHK(expiration == 0 || currentTime <= expiration, STATUS_OPERATION_TIMED_OUT);
+
+        // Fix-up the expired credentials transition
+        // NOTE: Api Gateway might not return an error that can be interpreted as unauthorized to
+        // make the correct transition to auth integration state.
+        if (status == STATUS_SERVICE_CALL_NOT_AUTHORIZED_ERROR ||
+            (SERVICE_CALL_UNKNOWN == (SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) &&
+             pSignalingClient->pAwsCredentials->expiration < currentTime)) {
+            // Set the call status as auth error
+            ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_NOT_AUTHORIZED);
+        }
+
+        status = stepStateMachine(pSignalingClient->pStateMachine);
+
+        CHK_STATUS(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pState));
+        if (pState->state == finalState) {
+            CHK(FALSE, STATUS_SUCCESS);
+        }
     }
-
-    // Step the state machine
-    CHK_STATUS(stepStateMachine(pSignalingClient->pStateMachine));
 
 CleanUp:
 
@@ -749,11 +766,6 @@ STATUS executeConnectedSignalingState(UINT64 customData, UINT64 time)
         CHK_STATUS(pSignalingClient->signalingClientCallbacks.stateChangeFn(pSignalingClient->signalingClientCallbacks.customData,
                                                                             SIGNALING_CLIENT_STATE_CONNECTED));
     }
-
-    // Reset the timeout for the state machine
-    MUTEX_LOCK(pSignalingClient->stateLock);
-    pSignalingClient->stepUntil = 0;
-    MUTEX_UNLOCK(pSignalingClient->stateLock);
 
 CleanUp:
 

@@ -1383,7 +1383,8 @@ PVOID reconnectHandler(PVOID args)
     ATOMIC_INCREMENT(&pSignalingClient->diagnostics.numberOfReconnects);
 
     // Attempt to reconnect by driving the state machine to connected state
-    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
+    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, pSignalingClient->stepUntil,
+                                             SIGNALING_STATE_CONNECTED, retStatus));
 
 CleanUp:
 
@@ -1804,7 +1805,8 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
             SAFE_MEMFREE(pSignalingMessageWrapper);
 
             // Iterate the state machinery
-            CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
+            pSignalingClient->stepUntil = GETTIME() + SIGNALING_CONNECT_STATE_TIMEOUT;
+            CHK_STATUS(signalingStateMachineIterator(pSignalingClient, pSignalingClient->stepUntil, SIGNALING_STATE_CONNECTED, retStatus));
 
             CHK(FALSE, retStatus);
             break;
@@ -1817,7 +1819,8 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
             SAFE_MEMFREE(pSignalingMessageWrapper);
 
             // Iterate the state machinery
-            CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
+            pSignalingClient->stepUntil = GETTIME() + SIGNALING_CONNECT_STATE_TIMEOUT;
+            CHK_STATUS(signalingStateMachineIterator(pSignalingClient, pSignalingClient->stepUntil, SIGNALING_STATE_CONNECTED, retStatus));
 
             CHK(FALSE, retStatus);
             break;
@@ -1897,6 +1900,7 @@ STATUS terminateConnectionWithStatus(PSignalingClient pSignalingClient, SERVICE_
         CHK_STATUS(wakeLwsServiceEventLoop(pSignalingClient, i));
     }
 
+    // ongoingcallinfo becomes null after this call!!!
     CHK_STATUS(awaitForThreadTermination(&pSignalingClient->listenerTracker, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT));
 
 CleanUp:
