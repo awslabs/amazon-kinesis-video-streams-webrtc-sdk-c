@@ -4,6 +4,7 @@ sudo: true
 branches:
   only:
   - master
+  - new_release_1_5_1
 
 cache:
 - directories:
