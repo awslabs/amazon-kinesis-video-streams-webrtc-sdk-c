@@ -20,3 +20,21 @@ jobs:
       - name: Run clang format check
         run: |
           bash scripts/check-clang.sh
+
+  mac-os-catalina-build:
+    runs-on: macos-11
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v2
+      - name: Build repository
+        run: |
+          mkdir build
+          cd build
+          export LDFLAGS="-L/usr/local/opt/openssl/lib"
+          export CPPFLAGS="-I/usr/local/opt/openssl/include"
+          cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
+          make
+      - name: Run unit test
+        run: |
+          export DYLD_LIBRARY_PATH="$DYLD_LIBRARY_PATH:`pwd`/../open-source/lib"
+          ./tst/webrtc_client_test
