@@ -643,6 +643,10 @@ CleanUp:
     return retStatus;
 }
 
+BOOL isCallResultFailureRetryable(PCallInfo pCallInfo) {
+    return (STRNSTR(pCallInfo->responseData, "Signature expired", pCallInfo->responseDataLen) == NULL);
+}
+
 //////////////////////////////////////////////////////////////////////////
 // API calls
 //////////////////////////////////////////////////////////////////////////
@@ -688,6 +692,9 @@ STATUS describeChannelLws(PSignalingClient pSignalingClient, UINT64 time)
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) pLwsCallInfo->callInfo.callResult);
     pResponseStr = pLwsCallInfo->callInfo.responseData;
     resultLen = pLwsCallInfo->callInfo.responseDataLen;
+
+    CHK_ERR(isCallResultFailureRetryable(&pLwsCallInfo->callInfo), STATUS_SIGNALING_DESCRIBE_CALL_FAILED,
+            "DescribeChannel API call failed with: %s and will not be retried.", pResponseStr);
 
     // Early return if we have a non-success result
     CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, STATUS_SIGNALING_LWS_CALL_FAILED);
@@ -838,6 +845,9 @@ STATUS createChannelLws(PSignalingClient pSignalingClient, UINT64 time)
     pResponseStr = pLwsCallInfo->callInfo.responseData;
     resultLen = pLwsCallInfo->callInfo.responseDataLen;
 
+    CHK_ERR(isCallResultFailureRetryable(&pLwsCallInfo->callInfo), STATUS_SIGNALING_CREATE_CALL_FAILED,
+            "CreateChannel API call failed with: %s and will not be retried.", pResponseStr);
+
     // Early return if we have a non-success result
     CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, STATUS_SIGNALING_LWS_CALL_FAILED);
 
@@ -915,6 +925,9 @@ STATUS getChannelEndpointLws(PSignalingClient pSignalingClient, UINT64 time)
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) pLwsCallInfo->callInfo.callResult);
     pResponseStr = pLwsCallInfo->callInfo.responseData;
     resultLen = pLwsCallInfo->callInfo.responseDataLen;
+
+    CHK_ERR(isCallResultFailureRetryable(&pLwsCallInfo->callInfo), STATUS_SIGNALING_GET_ENDPOINT_CALL_FAILED,
+            "GetChannelEndpoint API call failed with: %s and will not be retried.", pResponseStr);
 
     // Early return if we have a non-success result
     CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, STATUS_SIGNALING_LWS_CALL_FAILED);
@@ -1050,6 +1063,9 @@ STATUS getIceConfigLws(PSignalingClient pSignalingClient, UINT64 time)
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) pLwsCallInfo->callInfo.callResult);
     pResponseStr = pLwsCallInfo->callInfo.responseData;
     resultLen = pLwsCallInfo->callInfo.responseDataLen;
+
+    CHK_ERR(isCallResultFailureRetryable(&pLwsCallInfo->callInfo), STATUS_SIGNALING_GET_ICE_CONFIG_CALL_FAILED,
+            "GetIceConfig API call failed with: %s and will not be retried.", pResponseStr);
 
     // Early return if we have a non-success result
     CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, STATUS_SIGNALING_LWS_CALL_FAILED);

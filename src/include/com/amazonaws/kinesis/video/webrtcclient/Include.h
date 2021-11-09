@@ -629,7 +629,7 @@ extern "C" {
 /**
  * Signaling states default retry count. This will evaluate to the last call being made 20 seconds in which will hit a timeout first.
  */
-#define SIGNALING_STATES_DEFAULT_RETRY_COUNT 10
+#define SIGNALING_STATES_DEFAULT_RETRY_COUNT 1
 
 /**
  * Signaling caching policy default TTL period
