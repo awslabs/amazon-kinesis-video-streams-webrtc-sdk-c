@@ -17,14 +17,15 @@ VOID dataChannelOnMessageCallback(UINT64 customData, PRtcDataChannel pDataChanne
 }
 
 // onOpen callback for the onOpen event of a viewer created data channel
-VOID dataChannelOnOpenCallback(UINT64 customData, PRtcDataChannel pDataChannel) {
+VOID dataChannelOnOpenCallback(UINT64 customData, PRtcDataChannel pDataChannel)
+{
     STATUS retStatus = STATUS_SUCCESS;
     DLOGI("New DataChannel has been opened %s \n", pDataChannel->name);
     dataChannelOnMessage(pDataChannel, customData, dataChannelOnMessageCallback);
     ATOMIC_INCREMENT((PSIZE_T) customData);
     // Sending first message to the master over the data channel
     retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) VIEWER_DATA_CHANNEL_MESSAGE, STRLEN(VIEWER_DATA_CHANNEL_MESSAGE));
-    if(retStatus != STATUS_SUCCESS){
+    if (retStatus != STATUS_SUCCESS) {
         DLOGI("[KVS Viewer] dataChannelSend(): operation returned status code: 0x%08x \n", retStatus);
     }
 }
@@ -198,7 +199,7 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     // Creating a new datachannel on the peer connection of the existing sample streaming session
     retStatus = createDataChannel(pPeerConnection, pChannelName, NULL, &pDataChannel);
-    if(retStatus != STATUS_SUCCESS) {
+    if (retStatus != STATUS_SUCCESS) {
         printf("[KVS Viewer] createDataChannel(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;
     }
@@ -206,7 +207,7 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     // Setting a callback for when the data channel is open
     retStatus = dataChannelOnOpen(pDataChannel, (UINT64) &datachannelLocalOpenCount, dataChannelOnOpenCallback);
-    if(retStatus != STATUS_SUCCESS) {
+    if (retStatus != STATUS_SUCCESS) {
         printf("[KVS Viewer] dataChannelOnOpen(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;
     }
