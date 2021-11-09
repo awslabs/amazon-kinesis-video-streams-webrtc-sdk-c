@@ -4,6 +4,7 @@ include(Utilities)
 include(CheckIncludeFiles)
 include(CheckFunctionExists)
 
+set(CMAKE_OSX_DEPLOYMENT_TARGET "10.11" CACHE STRING "Minimum OS X deployment version" FORCE)
 project(KinesisVideoWebRTCClient LANGUAGES C)
 
 # User Flags
