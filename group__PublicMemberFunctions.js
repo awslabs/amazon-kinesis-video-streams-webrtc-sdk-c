@@ -10,7 +10,6 @@ var group__PublicMemberFunctions =
     [ "createOffer", "group__PublicMemberFunctions.html#ga1779d268b0993835d80f0948281e2274", null ],
     [ "createPeerConnection", "group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640", null ],
     [ "createSignalingClientSync", "group__PublicMemberFunctions.html#ga375ddffe8376298cdaafe63799b53b1e", null ],
-    [ "createSignalingClientSyncWithBackoff", "group__PublicMemberFunctions.html#ga69f1a988bf37b8afa33ba20485d21e15", null ],
     [ "dataChannelOnMessage", "group__PublicMemberFunctions.html#ga92ed55e9b079e7b9a12812d7530b2595", null ],
     [ "dataChannelOnOpen", "group__PublicMemberFunctions.html#ga324f46d98cbdeaf9385590a4be190551", null ],
     [ "dataChannelSend", "group__PublicMemberFunctions.html#ga12ab55171a0f53ec8e248e2d193d6bd0", null ],

@@ -1,10 +1,9 @@
 <map id="deserializeSignalingCacheEntries" name="deserializeSignalingCacheEntries">
-<area shape="rect" id="node1" title=" " alt="" coords="892,35,1065,76"/>
-<area shape="rect" id="node2" href="$FileCache_8c.html#a4683fe4e416322bac46042ffcbb4d35f" title=" " alt="" coords="653,15,844,42"/>
-<area shape="rect" id="node6" href="$FileCache_8c.html#ae8defbcf57e6b13ca92f179f022c6167" title=" " alt="" coords="661,67,837,94"/>
-<area shape="rect" id="node3" href="$Signaling_8c.html#ab095306d46a8e5ae01e2b28a8de0487a" title=" " alt="" coords="465,14,605,41"/>
-<area shape="rect" id="node4" href="$group__PublicMemberFunctions.html#ga69f1a988bf37b8afa33ba20485d21e15" title="Creates a Signaling client and returns a handle to it. Calls to this API in quick succession could re..." alt="" coords="235,5,409,47"/>
-<area shape="rect" id="node5" href="$group__PublicMemberFunctions.html#ga375ddffe8376298cdaafe63799b53b1e" title="Creates a Signaling client and returns a handle to it." alt="" coords="5,13,179,39"/>
-<area shape="rect" id="node7" href="$Signaling_8c.html#a8847cdf7e665d8557e8009d73ce26f64" title=" " alt="" coords="467,71,604,98"/>
-<area shape="rect" id="node8" href="$StateMachine_8c.html#a4e5852a863f3c402a5e9f72496136a11" title=" " alt="" coords="227,71,417,112"/>
+<area shape="rect" id="node1" title=" " alt="" coords="671,26,844,67"/>
+<area shape="rect" id="node2" href="$FileCache_8c.html#a4683fe4e416322bac46042ffcbb4d35f" title=" " alt="" coords="432,7,623,33"/>
+<area shape="rect" id="node5" href="$FileCache_8c.html#ae8defbcf57e6b13ca92f179f022c6167" title=" " alt="" coords="439,59,615,85"/>
+<area shape="rect" id="node3" href="$Signaling_8c.html#ab095306d46a8e5ae01e2b28a8de0487a" title=" " alt="" coords="244,7,384,33"/>
+<area shape="rect" id="node4" href="$group__PublicMemberFunctions.html#ga375ddffe8376298cdaafe63799b53b1e" title="Creates a Signaling client and returns a handle to it." alt="" coords="14,5,187,32"/>
+<area shape="rect" id="node6" href="$Signaling_8c.html#a8847cdf7e665d8557e8009d73ce26f64" title=" " alt="" coords="245,60,383,87"/>
+<area shape="rect" id="node7" href="$StateMachine_8c.html#a4e5852a863f3c402a5e9f72496136a11" title=" " alt="" coords="5,57,196,98"/>
 </map>
