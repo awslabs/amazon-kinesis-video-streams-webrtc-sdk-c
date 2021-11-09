@@ -139,6 +139,9 @@ typedef struct {
  * Internal representation of the Signaling client.
  */
 typedef struct {
+    // Current version of the structure
+    UINT32 version;
+
     // Current service call result
     volatile SIZE_T result;
 
@@ -169,9 +172,6 @@ typedef struct {
 
     // Indicates that there is another thread attempting to grab the service lock
     volatile ATOMIC_BOOL serviceLockContention;
-
-    // Current version of the structure
-    UINT32 version;
 
     // Stored Client info
     SignalingClientInfoInternal clientInfo;
@@ -209,9 +209,6 @@ typedef struct {
     // Service call context
     ServiceCallContext serviceCallContext;
 
-    // Indicates whether to self-prime on Ready or not
-    BOOL continueOnReady;
-
     // Interlocking the state transitions
     MUTEX stateLock;
 
@@ -232,9 +229,6 @@ typedef struct {
 
     // Conditional variable for receiving response to the sent message
     CVAR receiveCvar;
-
-    // Execute the state machine until this time
-    UINT64 stepUntil;
 
     // Indicates when the ICE configuration has been retrieved
     UINT64 iceConfigTime;

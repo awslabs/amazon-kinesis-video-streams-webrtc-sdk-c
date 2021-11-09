@@ -48,7 +48,7 @@ StateMachineState SIGNALING_STATE_MACHINE_STATES[] = {
 
 UINT32 SIGNALING_STATE_MACHINE_STATE_COUNT = ARRAY_SIZE(SIGNALING_STATE_MACHINE_STATES);
 
-STATUS signalingStateMachineIterator(PSignalingClient pSignalingClient, UINT64 expiration, UINT64 finalState, STATUS status)
+STATUS signalingStateMachineIterator(PSignalingClient pSignalingClient, UINT64 expiration, UINT64 finalState)
 {
     ENTERS();
     UINT64 currentTime;
@@ -63,15 +63,12 @@ STATUS signalingStateMachineIterator(PSignalingClient pSignalingClient, UINT64 e
     while(TRUE) {
         CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
-        CHK(!ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown), status);
+        CHK(!ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown), retStatus);
 
-        if (STATUS_FAILED(status)) {
-            if (!pSignalingClient->pChannelInfo->retry) {
-                CHK(FALSE, status);
-            } else {
-                for (i = 0; i < SIGNALING_STATE_MACHINE_STATE_COUNT; i++) {
-                    CHK(status != SIGNALING_STATE_MACHINE_STATES[i].status, SIGNALING_STATE_MACHINE_STATES[i].status);
-                }
+        if (STATUS_FAILED(retStatus)) {
+            CHK(pSignalingClient->pChannelInfo->retry, retStatus);
+            for (i = 0; i < SIGNALING_STATE_MACHINE_STATE_COUNT; i++) {
+                CHK(retStatus != SIGNALING_STATE_MACHINE_STATES[i].status, SIGNALING_STATE_MACHINE_STATES[i].status);
             }
         }
 
@@ -81,19 +78,17 @@ STATUS signalingStateMachineIterator(PSignalingClient pSignalingClient, UINT64 e
         // Fix-up the expired credentials transition
         // NOTE: Api Gateway might not return an error that can be interpreted as unauthorized to
         // make the correct transition to auth integration state.
-        if (status == STATUS_SERVICE_CALL_NOT_AUTHORIZED_ERROR ||
+        if (retStatus == STATUS_SERVICE_CALL_NOT_AUTHORIZED_ERROR ||
             (SERVICE_CALL_UNKNOWN == (SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) &&
              pSignalingClient->pAwsCredentials->expiration < currentTime)) {
             // Set the call status as auth error
             ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_NOT_AUTHORIZED);
         }
 
-        status = stepStateMachine(pSignalingClient->pStateMachine);
+        retStatus = stepStateMachine(pSignalingClient->pStateMachine);
 
         CHK_STATUS(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pState));
-        if (pState->state == finalState) {
-            CHK(FALSE, STATUS_SUCCESS);
-        }
+        CHK(!(pState->state == finalState), STATUS_SUCCESS);
     }
 
 CleanUp:

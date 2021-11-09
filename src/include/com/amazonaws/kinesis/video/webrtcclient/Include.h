@@ -574,6 +574,11 @@ extern "C" {
 #define SIGNALING_CONNECT_STATE_TIMEOUT (15 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
 /**
+ * Default disconnect sync API timeout
+ */
+#define SIGNALING_DISCONNECT_STATE_TIMEOUT (15 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+
+/**
  * Default refresh ICE server config API timeout
  */
 #define SIGNALING_REFRESH_ICE_CONFIG_STATE_TIMEOUT (15 * HUNDREDS_OF_NANOS_IN_A_SECOND)

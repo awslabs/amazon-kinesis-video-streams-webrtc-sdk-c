@@ -37,6 +37,8 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     CHK_STATUS(validateSignalingCallbacks(pSignalingClient, pCallbacks));
     CHK_STATUS(validateSignalingClientInfo(pSignalingClient, pClientInfo));
 
+    pSignalingClient->version = 1;
+
     // Set invalid call times
     pSignalingClient->describeTime = INVALID_TIMESTAMP_VALUE;
     pSignalingClient->createTime = INVALID_TIMESTAMP_VALUE;
@@ -151,9 +153,6 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     // At this point we have constructed the main object and we can assign to the returned pointer
     *ppSignalingClient = pSignalingClient;
 
-    // Set the time out before execution
-    pSignalingClient->stepUntil = pSignalingClient->diagnostics.createTime + SIGNALING_CREATE_TIMEOUT;
-
     // Notify of the state change initially as the state machinery is already in the NEW state
     if (pSignalingClient->signalingClientCallbacks.stateChangeFn != NULL) {
         CHK_STATUS(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pStateMachineState));
@@ -165,8 +164,8 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     ATOMIC_STORE_BOOL(&pSignalingClient->refreshIceConfig, FALSE);
 
     // Prime the state machine
-    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, pSignalingClient->stepUntil,
-                                             SIGNALING_STATE_READY, STATUS_SUCCESS));
+    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, pSignalingClient->diagnostics.createTime + SIGNALING_CREATE_TIMEOUT,
+                                             SIGNALING_STATE_READY));
 
 CleanUp:
 
@@ -380,17 +379,11 @@ STATUS signalingConnectSync(PSignalingClient pSignalingClient)
     // Check if we are already connected
     CHK(!ATOMIC_LOAD_BOOL(&pSignalingClient->connected), retStatus);
 
-    // Self-prime through the ready state
-    pSignalingClient->continueOnReady = TRUE;
-
     // Store the signaling state in case we error/timeout so we can re-set it on exit
     CHK_STATUS(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pState));
 
-    // Set the time out before execution
-    pSignalingClient->stepUntil = GETTIME() + SIGNALING_CONNECT_STATE_TIMEOUT;
-
-    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, pSignalingClient->stepUntil,
-                                             SIGNALING_STATE_CONNECTED, retStatus));
+    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, GETTIME() + SIGNALING_CONNECT_STATE_TIMEOUT,
+                                             SIGNALING_STATE_CONNECTED));
 
 CleanUp:
 
@@ -410,12 +403,8 @@ STATUS signalingDisconnectSync(PSignalingClient pSignalingClient)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    UINT64 disconnectExpiration = GETTIME() + SIGNALING_CONNECT_STATE_TIMEOUT;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
-
-    // Do not self-prime through the ready state
-    pSignalingClient->continueOnReady = FALSE;
 
     // Check if we are already not connected
     CHK(ATOMIC_LOAD_BOOL(&pSignalingClient->connected), retStatus);
@@ -424,7 +413,7 @@ STATUS signalingDisconnectSync(PSignalingClient pSignalingClient)
 
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_OK);
 
-    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, disconnectExpiration, SIGNALING_STATE_DISCONNECTED, retStatus));
+    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, GETTIME() + SIGNALING_DISCONNECT_STATE_TIMEOUT, SIGNALING_STATE_READY));
 
 CleanUp:
 
@@ -438,7 +427,6 @@ STATUS signalingDeleteSync(PSignalingClient pSignalingClient)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    UINT64 deleteExpiration = GETTIME() + SIGNALING_DELETE_TIMEOUT;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
@@ -453,10 +441,7 @@ STATUS signalingDeleteSync(PSignalingClient pSignalingClient)
     // Set the state directly
     setStateMachineCurrentState(pSignalingClient->pStateMachine, SIGNALING_STATE_DELETE);
 
-    // Set the time out before execution
-    pSignalingClient->stepUntil = GETTIME() + SIGNALING_DELETE_TIMEOUT;
-
-    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, deleteExpiration, SIGNALING_STATE_DELETED, retStatus));
+    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, GETTIME() + SIGNALING_DELETE_TIMEOUT, SIGNALING_STATE_DELETED));
 
 CleanUp:
 
@@ -571,6 +556,7 @@ STATUS refreshIceConfiguration(PSignalingClient pSignalingClient)
     CHAR iceRefreshErrMsg[SIGNALING_MAX_ERROR_MESSAGE_LEN + 1];
     UINT32 iceRefreshErrLen;
     UINT64 curTime;
+    BOOL locked = FALSE;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
@@ -584,6 +570,8 @@ STATUS refreshIceConfiguration(PSignalingClient pSignalingClient)
     CHK_STATUS(acceptStateMachineState(pSignalingClient->pStateMachine,
                                        SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_DISCONNECTED));
 
+    MUTEX_LOCK(pSignalingClient->stateLock);
+    locked = TRUE;
     // Get and store the current state to re-set to if we fail
     CHK_STATUS(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pStateMachineState));
 
@@ -593,14 +581,15 @@ STATUS refreshIceConfiguration(PSignalingClient pSignalingClient)
 
     // Iterate the state machinery in steady states only - ready or connected
     if (pStateMachineState->state == SIGNALING_STATE_READY || pStateMachineState->state == SIGNALING_STATE_CONNECTED) {
-        // Set the time out before execution
-        pSignalingClient->stepUntil = curTime + SIGNALING_REFRESH_ICE_CONFIG_STATE_TIMEOUT;
-
-        CHK_STATUS(signalingStateMachineIterator(pSignalingClient, pSignalingClient->stepUntil,
-                                                 pStateMachineState->state, retStatus));
+        CHK_STATUS(signalingStateMachineIterator(pSignalingClient, curTime + SIGNALING_REFRESH_ICE_CONFIG_STATE_TIMEOUT,
+                                                 pStateMachineState->state));
     }
 
 CleanUp:
+
+    if (locked) {
+        MUTEX_UNLOCK(pSignalingClient->stateLock);
+    }
 
     CHK_LOG_ERR(retStatus);
 
