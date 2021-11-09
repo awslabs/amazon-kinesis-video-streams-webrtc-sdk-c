@@ -9,13 +9,14 @@ on:
       - master
 jobs:
   clang-format-check:
-    runs-on: ubuntu-latest
+    runs-on: macos-11
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
       - name: Install clang-format
         run: |
-          sudo apt-get -y install clang-format
+          brew install clang-format
+          clang-format --version
       - name: Run clang format check
         run: |
           bash scripts/check-clang.sh
