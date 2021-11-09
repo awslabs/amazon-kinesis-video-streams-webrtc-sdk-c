@@ -52,7 +52,7 @@ STATUS signalingStateMachineIterator(PSignalingClient pSignalingClient, UINT64 e
 {
     ENTERS();
     UINT64 currentTime;
-    int i;
+    UINT32 i;
     STATUS retStatus = STATUS_SUCCESS;
     PStateMachineState pState = NULL;
     BOOL locked = FALSE;
