@@ -1063,7 +1063,7 @@ STATUS getIceConfigLws(PSignalingClient pSignalingClient, UINT64 time)
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) pLwsCallInfo->callInfo.callResult);
     pResponseStr = pLwsCallInfo->callInfo.responseData;
     resultLen = pLwsCallInfo->callInfo.responseDataLen;
-    
+
     CHK_ERR(isCallResultFailureRetryable(&pLwsCallInfo->callInfo), STATUS_SIGNALING_GET_ICE_CONFIG_CALL_FAILED,
             "GetIceConfig API call failed with: %s and will not be retried.", pResponseStr);
 
