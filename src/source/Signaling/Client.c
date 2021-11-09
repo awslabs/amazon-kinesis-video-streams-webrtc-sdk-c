@@ -141,7 +141,7 @@ STATUS signalingClientGetIceConfigInfoCount(SIGNALING_CLIENT_HANDLE signalingCli
 
     DLOGI("Signaling Client Get ICE Config Info Count");
 
-    CHK_STATUS(signalingGetIceConfigInfoCout(pSignalingClient, pIceConfigCount));
+    CHK_STATUS(signalingGetIceConfigInfoCount(pSignalingClient, pIceConfigCount));
 
 CleanUp:
 

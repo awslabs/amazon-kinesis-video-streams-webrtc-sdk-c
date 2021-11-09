@@ -1449,7 +1449,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedAuthExpi
 
     // Check the states - we should have failed on get credentials
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
-    EXPECT_EQ(23, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
+    EXPECT_EQ(5, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
@@ -1466,7 +1466,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedAuthExpi
     EXPECT_NE((UINT64) NULL, (UINT64) pIceConfigInfo);
 
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
-    EXPECT_EQ(23, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
+    EXPECT_EQ(5, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
@@ -1572,7 +1572,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedAuthExpirat
 
     // Check the states - we should have failed on get credentials
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
-    EXPECT_EQ(23, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
+    EXPECT_EQ(5, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
@@ -1589,7 +1589,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedAuthExpirat
     EXPECT_NE((UINT64) NULL, (UINT64) pIceConfigInfo);
 
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
-    EXPECT_EQ(23, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
+    EXPECT_EQ(5, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
@@ -1641,7 +1641,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithFaul
     // Make it fail after the first call and recover after two failures on the 3rd call
     getIceConfigResult = STATUS_INVALID_OPERATION;
     getIceConfigFail = 1;
-    getIceConfigRecover = 3;
+    getIceConfigRecover = 1;
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
@@ -1688,7 +1688,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithFaul
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(4, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
@@ -1701,7 +1701,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithFaul
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(4, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
@@ -1755,7 +1755,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithFaultIn
     // Make it fail after the first call and recover after two failures on the 3rd call
     getIceConfigResult = STATUS_INVALID_OPERATION;
     getIceConfigFail = 1;
-    getIceConfigRecover = 3;
+    getIceConfigRecover = 1;
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
@@ -1817,7 +1817,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithFaultIn
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(4, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
