@@ -847,6 +847,7 @@ STATUS fromDeleteSignalingState(UINT64 customData, PUINT64 pState)
             break;
 
         case SERVICE_CALL_RESULT_OK:
+            break;
         case SERVICE_CALL_RESOURCE_DELETED:
         case SERVICE_CALL_RESOURCE_NOT_FOUND:
             state = SIGNALING_STATE_DELETED;
@@ -875,8 +876,12 @@ STATUS executeDeleteSignalingState(UINT64 customData, UINT64 time)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
+    SIZE_T result;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+
+    result = ATOMIC_LOAD(&pSignalingClient->result);
+
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
     ATOMIC_STORE_BOOL(&pSignalingClient->clientReady, FALSE);
 
@@ -887,7 +892,17 @@ STATUS executeDeleteSignalingState(UINT64 customData, UINT64 time)
     }
 
     // Call the aggregate function
-    retStatus = deleteChannel(pSignalingClient, time);
+    CHK_STATUS(deleteChannel(pSignalingClient, time));
+
+    if (result == SERVICE_CALL_RESULT_OK) {
+        CHK_STATUS(setStateMachineCurrentState(pSignalingClient->pStateMachine, SIGNALING_STATE_DELETED));
+
+        // Notify of the state change
+        if (pSignalingClient->signalingClientCallbacks.stateChangeFn != NULL) {
+            CHK_STATUS(pSignalingClient->signalingClientCallbacks.stateChangeFn(pSignalingClient->signalingClientCallbacks.customData,
+                                                                                    SIGNALING_CLIENT_STATE_DELETED));
+        }
+    }
 
 CleanUp:
 
