@@ -427,6 +427,7 @@ STATUS signalingDeleteSync(PSignalingClient pSignalingClient)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
+    PStateMachineState pState = NULL;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
@@ -438,14 +439,20 @@ STATUS signalingDeleteSync(PSignalingClient pSignalingClient)
 
     CHK_STATUS(terminateOngoingOperations(pSignalingClient));
 
-    // Set the state directly
-    setStateMachineCurrentState(pSignalingClient->pStateMachine, SIGNALING_STATE_DELETE);
+    // Store the signaling state in case we error/timeout so we can re-set it on exit
+    CHK_STATUS(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pState));
 
     CHK_STATUS(signalingStateMachineIterator(pSignalingClient, GETTIME() + SIGNALING_DELETE_TIMEOUT, SIGNALING_STATE_DELETED));
 
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
+
+    // Re-set the state if we failed
+    if (STATUS_FAILED(retStatus) && (pState != NULL)) {
+        resetStateMachineRetryCount(pSignalingClient->pStateMachine);
+        setStateMachineCurrentState(pSignalingClient->pStateMachine, pState->state);
+    }
 
     LEAVES();
     return retStatus;
