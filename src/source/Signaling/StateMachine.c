@@ -856,9 +856,7 @@ STATUS fromDeleteSignalingState(UINT64 customData, PUINT64 pState)
             break;
 
         case SERVICE_CALL_UNKNOWN:
-            if (ATOMIC_LOAD_BOOL(&pSignalingClient->deleted)) {
-                state = SIGNALING_STATE_DELETED;
-            }
+            state = SIGNALING_STATE_DELETED;
             break;
 
         case SERVICE_CALL_BAD_REQUEST:
