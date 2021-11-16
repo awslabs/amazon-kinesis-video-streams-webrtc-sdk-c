@@ -37,7 +37,7 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     CHK_STATUS(validateSignalingCallbacks(pSignalingClient, pCallbacks));
     CHK_STATUS(validateSignalingClientInfo(pSignalingClient, pClientInfo));
 
-    pSignalingClient->version = 1;
+    pSignalingClient->version = SIGNALING_CLIENT_CURRENT_VERSION;
 
     // Set invalid call times
     pSignalingClient->describeTime = INVALID_TIMESTAMP_VALUE;
@@ -626,7 +626,7 @@ STATUS signalingStoreOngoingMessage(PSignalingClient pSignalingClient, PSignalin
     CHK(pSignalingClient != NULL && pSignalingMessage != NULL, STATUS_NULL_ARG);
     MUTEX_LOCK(pSignalingClient->messageQueueLock);
     locked = TRUE;
-    // pOngoingCallInfo already null here
+
     CHK_STATUS(signalingGetOngoingMessage(pSignalingClient, pSignalingMessage->correlationId, pSignalingMessage->peerClientId, &pExistingMessage));
     CHK(pExistingMessage == NULL, STATUS_SIGNALING_DUPLICATE_MESSAGE_BEING_SENT);
     CHK_STATUS(stackQueueEnqueue(pSignalingClient->pMessageQueue, (UINT64) pSignalingMessage));

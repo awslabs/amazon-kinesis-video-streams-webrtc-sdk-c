@@ -44,6 +44,9 @@ extern "C" {
 // Error reconnecting to the signaling service
 #define SIGNALING_RECONNECT_ERROR_MSG "Failed to reconnect with status code 0x%08x."
 
+// Signaling client structure version
+#define SIGNALING_CLIENT_CURRENT_VERSION 1
+
 // Max error string length
 #define SIGNALING_MAX_ERROR_MESSAGE_LEN 512
 
