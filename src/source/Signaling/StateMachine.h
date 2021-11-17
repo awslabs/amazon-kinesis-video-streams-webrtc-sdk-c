@@ -64,6 +64,8 @@ STATUS executeDeleteSignalingState(UINT64, UINT64);
 STATUS fromDeletedSignalingState(UINT64, PUINT64);
 STATUS executeDeletedSignalingState(UINT64, UINT64);
 
+STATUS defaultSignalingStateTransitionHook(UINT64, PUINT64);
+
 #ifdef __cplusplus
 }
 #endif

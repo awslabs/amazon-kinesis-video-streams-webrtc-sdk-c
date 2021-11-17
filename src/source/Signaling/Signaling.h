@@ -107,6 +107,9 @@ typedef struct {
     SignalingApiCallHookFunc connectPostHookFn;
     SignalingApiCallHookFunc deletePreHookFn;
     SignalingApiCallHookFunc deletePostHookFn;
+
+    // Retry strategy for the client and all the streams under it
+    KvsRetryStrategy kvsRetryStrategy;
 } SignalingClientInfoInternal, *PSignalingClientInfoInternal;
 
 /**
@@ -304,6 +307,10 @@ STATUS signalingDeleteSync(PSignalingClient);
 STATUS validateSignalingCallbacks(PSignalingClient, PSignalingClientCallbacks);
 STATUS validateSignalingClientInfo(PSignalingClient, PSignalingClientInfoInternal);
 STATUS validateIceConfiguration(PSignalingClient);
+
+STATUS configureClientWithRetryStrategy(PSignalingClient);
+STATUS setupDefaultKvsRetryStrategy(PSignalingClient);
+STATUS freeClientRetryStrategy(PSignalingClient);
 
 STATUS signalingStoreOngoingMessage(PSignalingClient, PSignalingMessage);
 STATUS signalingRemoveOngoingMessage(PSignalingClient, PCHAR);
