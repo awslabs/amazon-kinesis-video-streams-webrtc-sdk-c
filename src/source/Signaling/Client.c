@@ -4,6 +4,14 @@
 STATUS createSignalingClientSync(PSignalingClientInfo pClientInfo, PChannelInfo pChannelInfo, PSignalingClientCallbacks pCallbacks,
                                  PAwsCredentialProvider pCredentialProvider, PSIGNALING_CLIENT_HANDLE pSignalingHandle)
 {
+    return createSignalingClientSyncWithRetryStrategy(pClientInfo, pChannelInfo, pCallbacks,
+                                                      pCredentialProvider, NULL, pSignalingHandle);
+}
+
+STATUS createSignalingClientSyncWithRetryStrategy(PSignalingClientInfo pClientInfo, PChannelInfo pChannelInfo,
+                                 PSignalingClientCallbacks pCallbacks, PAwsCredentialProvider pCredentialProvider,
+                                 PSignalingClientRetryStrategy pSignalingClientRetryStrategy, PSIGNALING_CLIENT_HANDLE pSignalingHandle)
+{
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = NULL;
@@ -15,6 +23,10 @@ STATUS createSignalingClientSync(PSignalingClientInfo pClientInfo, PChannelInfo 
     // Convert the client info to the internal structure with empty values
     MEMSET(&signalingClientInfoInternal, 0x00, SIZEOF(signalingClientInfoInternal));
     signalingClientInfoInternal.signalingClientInfo = *pClientInfo;
+
+    if (pSignalingClientRetryStrategy != NULL) {
+        signalingClientInfoInternal.kvsRetryStrategy = *(pSignalingClientRetryStrategy);
+    }
 
     CHK_STATUS(createSignalingSync(&signalingClientInfoInternal, pChannelInfo, pCallbacks, pCredentialProvider, &pSignalingClient));
 
