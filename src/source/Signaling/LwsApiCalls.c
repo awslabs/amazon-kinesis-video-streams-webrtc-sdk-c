@@ -693,7 +693,8 @@ STATUS describeChannelLws(PSignalingClient pSignalingClient, UINT64 time)
             "DescribeChannel API call failed with: %s and will not be retried.", pResponseStr);
 
     // Early return if we have a non-success result
-    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, STATUS_SIGNALING_LWS_CALL_FAILED);
+    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, 
+        STATUS_SIGNALING_LWS_CALL_FAILED);
 
     // Parse the response
     jsmn_init(&parser);
@@ -845,7 +846,8 @@ STATUS createChannelLws(PSignalingClient pSignalingClient, UINT64 time)
             "CreateChannel API call failed with: %s and will not be retried.", pResponseStr);
 
     // Early return if we have a non-success result
-    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, STATUS_SIGNALING_LWS_CALL_FAILED);
+    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, 
+        STATUS_SIGNALING_LWS_CALL_FAILED);
 
     // Parse out the ARN
     jsmn_init(&parser);
@@ -926,7 +928,8 @@ STATUS getChannelEndpointLws(PSignalingClient pSignalingClient, UINT64 time)
             "GetChannelEndpoint API call failed with: %s and will not be retried.", pResponseStr);
 
     // Early return if we have a non-success result
-    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, STATUS_SIGNALING_LWS_CALL_FAILED);
+    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, 
+        STATUS_SIGNALING_LWS_CALL_FAILED);
 
     // Parse and extract the endpoints
     jsmn_init(&parser);
@@ -1064,7 +1067,8 @@ STATUS getIceConfigLws(PSignalingClient pSignalingClient, UINT64 time)
             "GetIceConfig API call failed with: %s and will not be retried.", pResponseStr);
 
     // Early return if we have a non-success result
-    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, STATUS_SIGNALING_LWS_CALL_FAILED);
+    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, 
+        STATUS_SIGNALING_LWS_CALL_FAILED);
 
     // Parse the response
     jsmn_init(&parser);
@@ -1184,7 +1188,8 @@ STATUS deleteChannelLws(PSignalingClient pSignalingClient, UINT64 time)
 
     // Early return if we have a non-success result and it's not a resource not found
     result = ATOMIC_LOAD(&pSignalingClient->result);
-    CHK((SERVICE_CALL_RESULT) result == SERVICE_CALL_RESULT_OK || (SERVICE_CALL_RESULT) result == SERVICE_CALL_RESOURCE_NOT_FOUND, STATUS_SIGNALING_LWS_CALL_FAILED);
+    CHK((SERVICE_CALL_RESULT) result == SERVICE_CALL_RESULT_OK || (SERVICE_CALL_RESULT) result == SERVICE_CALL_RESOURCE_NOT_FOUND, 
+        STATUS_SIGNALING_LWS_CALL_FAILED);
 
     // Mark the channel as deleted
     ATOMIC_STORE_BOOL(&pSignalingClient->deleted, TRUE);
