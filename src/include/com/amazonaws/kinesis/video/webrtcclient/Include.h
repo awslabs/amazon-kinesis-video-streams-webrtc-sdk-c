@@ -495,7 +495,7 @@ extern "C" {
 /**
  * Version of signaling client
  */
-#define SIGNALING_CLIENT_CURRENT_VERSION 0
+#define SIGNALING_CLIENT_CURRENT_VERSION 1
 
 /**
  * Version of SignalingChannelDescription structure
@@ -572,6 +572,11 @@ extern "C" {
  * Default connect sync API timeout
  */
 #define SIGNALING_CONNECT_STATE_TIMEOUT (15 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+
+/**
+ * Default disconnect sync API timeout
+ */
+#define SIGNALING_DISCONNECT_STATE_TIMEOUT (15 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
 /**
  * Default refresh ICE server config API timeout

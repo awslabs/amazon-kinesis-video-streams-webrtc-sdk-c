@@ -48,50 +48,48 @@ StateMachineState SIGNALING_STATE_MACHINE_STATES[] = {
 
 UINT32 SIGNALING_STATE_MACHINE_STATE_COUNT = ARRAY_SIZE(SIGNALING_STATE_MACHINE_STATES);
 
-STATUS stepSignalingStateMachine(PSignalingClient pSignalingClient, STATUS status)
+STATUS signalingStateMachineIterator(PSignalingClient pSignalingClient, UINT64 expiration, UINT64 finalState)
 {
     ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-    UINT32 i;
-    BOOL locked = FALSE;
     UINT64 currentTime;
-
-    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
-
-    // Check for a shutdown
-    CHK(!ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown), retStatus);
+    UINT32 i;
+    STATUS retStatus = STATUS_SUCCESS;
+    PStateMachineState pState = NULL;
+    BOOL locked = FALSE;
 
     MUTEX_LOCK(pSignalingClient->stateLock);
     locked = TRUE;
 
-    // Check if an error and the retry is OK
-    if (!pSignalingClient->pChannelInfo->retry && STATUS_FAILED(status)) {
-        CHK(FALSE, status);
-    }
+    while(TRUE) {
+        CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
-    currentTime = GETTIME();
+        CHK(!ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown), retStatus);
 
-    CHK(pSignalingClient->stepUntil == 0 || currentTime <= pSignalingClient->stepUntil, STATUS_OPERATION_TIMED_OUT);
-
-    // Check if the status is any of the retry/failed statuses
-    if (STATUS_FAILED(status)) {
-        for (i = 0; i < SIGNALING_STATE_MACHINE_STATE_COUNT; i++) {
-            CHK(status != SIGNALING_STATE_MACHINE_STATES[i].status, SIGNALING_STATE_MACHINE_STATES[i].status);
+        if (STATUS_FAILED(retStatus)) {
+            CHK(pSignalingClient->pChannelInfo->retry, retStatus);
+            for (i = 0; i < SIGNALING_STATE_MACHINE_STATE_COUNT; i++) {
+                CHK(retStatus != SIGNALING_STATE_MACHINE_STATES[i].status, SIGNALING_STATE_MACHINE_STATES[i].status);
+            }
         }
-    }
 
-    // Fix-up the expired credentials transition
-    // NOTE: Api Gateway might not return an error that can be interpreted as unauthorized to
-    // make the correct transition to auth integration state.
-    if (status == STATUS_SERVICE_CALL_NOT_AUTHORIZED_ERROR ||
-        (SERVICE_CALL_UNKNOWN == (SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) &&
-         pSignalingClient->pAwsCredentials->expiration < currentTime)) {
-        // Set the call status as auth error
-        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_NOT_AUTHORIZED);
-    }
+        currentTime = GETTIME();
+        CHK(expiration == 0 || currentTime <= expiration, STATUS_OPERATION_TIMED_OUT);
 
-    // Step the state machine
-    CHK_STATUS(stepStateMachine(pSignalingClient->pStateMachine));
+        // Fix-up the expired credentials transition
+        // NOTE: Api Gateway might not return an error that can be interpreted as unauthorized to
+        // make the correct transition to auth integration state.
+        if (retStatus == STATUS_SERVICE_CALL_NOT_AUTHORIZED_ERROR ||
+            (SERVICE_CALL_UNKNOWN == (SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) &&
+             pSignalingClient->pAwsCredentials->expiration < currentTime)) {
+            // Set the call status as auth error
+            ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_NOT_AUTHORIZED);
+        }
+
+        retStatus = stepStateMachine(pSignalingClient->pStateMachine);
+
+        CHK_STATUS(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pState));
+        CHK(!(pState->state == finalState), STATUS_SUCCESS);
+    }
 
 CleanUp:
 
@@ -287,12 +285,6 @@ STATUS executeGetTokenSignalingState(UINT64 customData, UINT64 time)
 
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) serviceCallResult);
 
-    // Self-prime the next state
-    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
-
-    // Reset the ret status
-    retStatus = STATUS_SUCCESS;
-
 CleanUp:
 
     LEAVES();
@@ -361,11 +353,6 @@ STATUS executeDescribeSignalingState(UINT64 customData, UINT64 time)
     // Call the aggregate function
     retStatus = describeChannel(pSignalingClient, time);
 
-    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
-
-    // Reset the ret status
-    retStatus = STATUS_SUCCESS;
-
 CleanUp:
 
     LEAVES();
@@ -423,11 +410,6 @@ STATUS executeCreateSignalingState(UINT64 customData, UINT64 time)
 
     // Call the aggregate function
     retStatus = createChannel(pSignalingClient, time);
-
-    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
-
-    // Reset the ret status
-    retStatus = STATUS_SUCCESS;
 
 CleanUp:
 
@@ -487,11 +469,6 @@ STATUS executeGetEndpointSignalingState(UINT64 customData, UINT64 time)
     // Call the aggregate function
     retStatus = getChannelEndpoint(pSignalingClient, time);
 
-    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
-
-    // Reset the ret status
-    retStatus = STATUS_SUCCESS;
-
 CleanUp:
 
     LEAVES();
@@ -549,11 +526,6 @@ STATUS executeGetIceConfigSignalingState(UINT64 customData, UINT64 time)
 
     // Call the aggregate function
     retStatus = getIceConfig(pSignalingClient, time);
-
-    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
-
-    // Reset the ret status
-    retStatus = STATUS_SUCCESS;
 
 CleanUp:
 
@@ -619,16 +591,6 @@ STATUS executeReadySignalingState(UINT64 customData, UINT64 time)
                                                                             SIGNALING_CLIENT_STATE_READY));
     }
 
-    if (pSignalingClient->continueOnReady) {
-        // Self-prime the connect
-        CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
-    } else {
-        // Reset the timeout for the state machine
-        pSignalingClient->stepUntil = 0;
-    }
-
-    // Reset the ret status
-    retStatus = STATUS_SUCCESS;
 CleanUp:
 
     LEAVES();
@@ -719,11 +681,6 @@ STATUS executeConnectSignalingState(UINT64 customData, UINT64 time)
 
     retStatus = connectSignalingChannel(pSignalingClient, time);
 
-    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
-
-    // Reset the ret status
-    retStatus = STATUS_SUCCESS;
-
 CleanUp:
 
     LEAVES();
@@ -805,11 +762,6 @@ STATUS executeConnectedSignalingState(UINT64 customData, UINT64 time)
                                                                             SIGNALING_CLIENT_STATE_CONNECTED));
     }
 
-    // Reset the timeout for the state machine
-    MUTEX_LOCK(pSignalingClient->stateLock);
-    pSignalingClient->stepUntil = 0;
-    MUTEX_UNLOCK(pSignalingClient->stateLock);
-
 CleanUp:
 
     LEAVES();
@@ -869,9 +821,6 @@ STATUS executeDisconnectedSignalingState(UINT64 customData, UINT64 time)
         CHK_STATUS(pSignalingClient->signalingClientCallbacks.stateChangeFn(pSignalingClient->signalingClientCallbacks.customData,
                                                                             SIGNALING_CLIENT_STATE_DISCONNECTED));
     }
-
-    // Self-prime the next state
-    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
 
 CleanUp:
 
@@ -939,11 +888,6 @@ STATUS executeDeleteSignalingState(UINT64 customData, UINT64 time)
 
     // Call the aggregate function
     retStatus = deleteChannel(pSignalingClient, time);
-
-    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
-
-    // Reset the ret status
-    retStatus = STATUS_SUCCESS;
 
 CleanUp:
 
