@@ -105,7 +105,7 @@ Collaboration diagram for JitterBuffer:</div>
 <div class="dyncontent">
 <div class="center"><img src="structJitterBuffer__coll__graph.png" border="0" usemap="#aJitterBuffer_coll__map" alt="Collaboration graph"/></div>
 <map name="aJitterBuffer_coll__map" id="aJitterBuffer_coll__map">
-<area shape="rect" title=" " alt="" coords="5,5,219,273"/>
+<area shape="rect" title=" " alt="" coords="5,5,171,273"/>
 </map>
 </div>
 <table class="memberdecls">
@@ -123,12 +123,10 @@ Public Attributes</h2></td></tr>
 <tr class="separator:a8b100a62e9352e0215b7029cbc7f4165"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab38f8c9f64ba4b1a6e78d6bbe3d06abe"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structJitterBuffer.html#ab38f8c9f64ba4b1a6e78d6bbe3d06abe">lastPushTimestamp</a></td></tr>
 <tr class="separator:ab38f8c9f64ba4b1a6e78d6bbe3d06abe"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a3bb2edc60aea43320d4fdce95be7326e"><td class="memItemLeft" align="right" valign="top">UINT16&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structJitterBuffer.html#a3bb2edc60aea43320d4fdce95be7326e">lastRemovedSequenceNumber</a></td></tr>
-<tr class="separator:a3bb2edc60aea43320d4fdce95be7326e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a831d18adee93eba063d62ca348e1fdee"><td class="memItemLeft" align="right" valign="top">UINT16&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structJitterBuffer.html#a831d18adee93eba063d62ca348e1fdee">lastPopSequenceNumber</a></td></tr>
-<tr class="separator:a831d18adee93eba063d62ca348e1fdee"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a469bd8996fc5c52fb3231b68c56b4d48"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structJitterBuffer.html#a469bd8996fc5c52fb3231b68c56b4d48">lastPopTimestamp</a></td></tr>
-<tr class="separator:a469bd8996fc5c52fb3231b68c56b4d48"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab9f965ddc55d02075f466557805bc000"><td class="memItemLeft" align="right" valign="top">UINT16&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structJitterBuffer.html#ab9f965ddc55d02075f466557805bc000">headSequenceNumber</a></td></tr>
+<tr class="separator:ab9f965ddc55d02075f466557805bc000"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae4197279667ae047754ea57494528a9a"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structJitterBuffer.html#ae4197279667ae047754ea57494528a9a">headTimestamp</a></td></tr>
+<tr class="separator:ae4197279667ae047754ea57494528a9a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1aa6554558ed238dd63b425a7db628f8"><td class="memItemLeft" align="right" valign="top">UINT64&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structJitterBuffer.html#a1aa6554558ed238dd63b425a7db628f8">maxLatency</a></td></tr>
 <tr class="separator:a1aa6554558ed238dd63b425a7db628f8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5f4a91a739eb31bd679d13a12addd82f"><td class="memItemLeft" align="right" valign="top">UINT64&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structJitterBuffer.html#a5f4a91a739eb31bd679d13a12addd82f">customData</a></td></tr>
@@ -137,6 +135,8 @@ Public Attributes</h2></td></tr>
 <tr class="separator:af5aa76278a40d179e2632ead5af499c3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a20af44532beffc7d68b91ce1475c0bdc"><td class="memItemLeft" align="right" valign="top">BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structJitterBuffer.html#a20af44532beffc7d68b91ce1475c0bdc">started</a></td></tr>
 <tr class="separator:a20af44532beffc7d68b91ce1475c0bdc"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aef695c8d435ca79acc746f9625579527"><td class="memItemLeft" align="right" valign="top">BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structJitterBuffer.html#aef695c8d435ca79acc746f9625579527">firstFrameProcessed</a></td></tr>
+<tr class="separator:aef695c8d435ca79acc746f9625579527"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a971ab649a5dcb24faa5f00a0a2aedb40"><td class="memItemLeft" align="right" valign="top">PHashTable&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structJitterBuffer.html#a971ab649a5dcb24faa5f00a0a2aedb40">pPkgBufferHashTable</a></td></tr>
 <tr class="separator:a971ab649a5dcb24faa5f00a0a2aedb40"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
@@ -183,6 +183,48 @@ Public Attributes</h2></td></tr>
 
 </div>
 </div>
+<a id="aef695c8d435ca79acc746f9625579527"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aef695c8d435ca79acc746f9625579527">&#9670;&nbsp;</a></span>firstFrameProcessed</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">BOOL JitterBuffer::firstFrameProcessed</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ab9f965ddc55d02075f466557805bc000"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab9f965ddc55d02075f466557805bc000">&#9670;&nbsp;</a></span>headSequenceNumber</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">UINT16 JitterBuffer::headSequenceNumber</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ae4197279667ae047754ea57494528a9a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae4197279667ae047754ea57494528a9a">&#9670;&nbsp;</a></span>headTimestamp</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">UINT32 JitterBuffer::headTimestamp</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a id="a8b100a62e9352e0215b7029cbc7f4165"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a8b100a62e9352e0215b7029cbc7f4165">&#9670;&nbsp;</a></span>jitter</h2>
 
@@ -197,34 +239,6 @@ Public Attributes</h2></td></tr>
 
 </div>
 </div>
-<a id="a831d18adee93eba063d62ca348e1fdee"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a831d18adee93eba063d62ca348e1fdee">&#9670;&nbsp;</a></span>lastPopSequenceNumber</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">UINT16 JitterBuffer::lastPopSequenceNumber</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="a469bd8996fc5c52fb3231b68c56b4d48"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a469bd8996fc5c52fb3231b68c56b4d48">&#9670;&nbsp;</a></span>lastPopTimestamp</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">UINT32 JitterBuffer::lastPopTimestamp</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
 <a id="ab38f8c9f64ba4b1a6e78d6bbe3d06abe"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ab38f8c9f64ba4b1a6e78d6bbe3d06abe">&#9670;&nbsp;</a></span>lastPushTimestamp</h2>
 
@@ -233,20 +247,6 @@ Public Attributes</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname">UINT32 JitterBuffer::lastPushTimestamp</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="a3bb2edc60aea43320d4fdce95be7326e"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a3bb2edc60aea43320d4fdce95be7326e">&#9670;&nbsp;</a></span>lastRemovedSequenceNumber</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">UINT16 JitterBuffer::lastRemovedSequenceNumber</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -346,7 +346,7 @@ Public Attributes</h2></td></tr>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="structJitterBuffer.html">JitterBuffer</a></li>
-    <li class="footer">Generated on Tue Nov 9 2021 21:45:31 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Thu Nov 18 2021 20:43:42 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>

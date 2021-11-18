@@ -113,7 +113,7 @@ Collaboration diagram for SignalingClient:</div>
 <area shape="rect" href="structChannelInfo.html" title="Contains all signaling channel related information." alt="" coords="437,432,583,656"/>
 <area shape="rect" href="structThreadTracker.html" title=" " alt="" coords="607,483,714,605"/>
 <area shape="rect" href="structIceConfigInfo.html" title="ICE configuration information struct." alt="" coords="738,469,837,619"/>
-<area shape="rect" href="structSignalingClientCallbacks.html" title=" " alt="" coords="861,483,1026,605"/>
+<area shape="rect" href="structSignalingClientCallbacks.html" title="Register Signaling client callbacks." alt="" coords="861,483,1026,605"/>
 <area shape="rect" href="structReceivedSignalingMessage.html" title="Structure defining the signaling message to be received." alt="" coords="852,226,1035,333"/>
 <area shape="rect" href="structSignalingMessage.html" title="Structure defining the basic signaling message." alt="" coords="879,5,1007,156"/>
 <area shape="rect" href="structSignalingChannelDescription.html" title="Signaling channel description returned from the service." alt="" coords="1050,454,1237,634"/>
@@ -122,6 +122,8 @@ Collaboration diagram for SignalingClient:</div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
+<tr class="memitem:a65505d56a239c8d7ecd8bdf38629dff7"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClient.html#a65505d56a239c8d7ecd8bdf38629dff7">version</a></td></tr>
+<tr class="separator:a65505d56a239c8d7ecd8bdf38629dff7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af2cd2f718cd673078cc403b05712d614"><td class="memItemLeft" align="right" valign="top">volatile SIZE_T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClient.html#af2cd2f718cd673078cc403b05712d614">result</a></td></tr>
 <tr class="separator:af2cd2f718cd673078cc403b05712d614"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae8e25f2cd202c9111eaa939028230cbe"><td class="memItemLeft" align="right" valign="top">volatile SIZE_T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClient.html#ae8e25f2cd202c9111eaa939028230cbe">messageResult</a></td></tr>
@@ -140,8 +142,6 @@ Public Attributes</h2></td></tr>
 <tr class="separator:a6eba5657cd990a50a09df60df16b918e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa6740768f644516c67034833b09d635b"><td class="memItemLeft" align="right" valign="top">volatile ATOMIC_BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClient.html#aa6740768f644516c67034833b09d635b">serviceLockContention</a></td></tr>
 <tr class="separator:aa6740768f644516c67034833b09d635b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a65505d56a239c8d7ecd8bdf38629dff7"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClient.html#a65505d56a239c8d7ecd8bdf38629dff7">version</a></td></tr>
-<tr class="separator:a65505d56a239c8d7ecd8bdf38629dff7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0c7278c82322f97cdcfc8c101d98b573"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structSignalingClientInfoInternal.html">SignalingClientInfoInternal</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClient.html#a0c7278c82322f97cdcfc8c101d98b573">clientInfo</a></td></tr>
 <tr class="separator:a0c7278c82322f97cdcfc8c101d98b573"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aea69206ef06614d5f790f341d18b9188"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structSignalingClientCallbacks.html">SignalingClientCallbacks</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClient.html#aea69206ef06614d5f790f341d18b9188">signalingClientCallbacks</a></td></tr>
@@ -166,8 +166,6 @@ Public Attributes</h2></td></tr>
 <tr class="separator:a098d8d864c946459f1287dda84e9f57f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a250f8aef664d0bf4e319a5ba4ac999c4"><td class="memItemLeft" align="right" valign="top">ServiceCallContext&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClient.html#a250f8aef664d0bf4e319a5ba4ac999c4">serviceCallContext</a></td></tr>
 <tr class="separator:a250f8aef664d0bf4e319a5ba4ac999c4"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa3003ebfdd34e5736e6781ce109d1f71"><td class="memItemLeft" align="right" valign="top">BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClient.html#aa3003ebfdd34e5736e6781ce109d1f71">continueOnReady</a></td></tr>
-<tr class="separator:aa3003ebfdd34e5736e6781ce109d1f71"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abec50e34fd2e5197950cb01279d022f7"><td class="memItemLeft" align="right" valign="top">MUTEX&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClient.html#abec50e34fd2e5197950cb01279d022f7">stateLock</a></td></tr>
 <tr class="separator:abec50e34fd2e5197950cb01279d022f7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4acc49c1fc751af81d5df4dba010aacc"><td class="memItemLeft" align="right" valign="top">MUTEX&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClient.html#a4acc49c1fc751af81d5df4dba010aacc">connectedLock</a></td></tr>
@@ -182,8 +180,6 @@ Public Attributes</h2></td></tr>
 <tr class="separator:a8918477b972c6a3ebaf461034f4be63e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab1a34caba9b3a70418429323c9b6274f"><td class="memItemLeft" align="right" valign="top">CVAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClient.html#ab1a34caba9b3a70418429323c9b6274f">receiveCvar</a></td></tr>
 <tr class="separator:ab1a34caba9b3a70418429323c9b6274f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aff5968bbca2e60b79773b99c05ba86ff"><td class="memItemLeft" align="right" valign="top">UINT64&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClient.html#aff5968bbca2e60b79773b99c05ba86ff">stepUntil</a></td></tr>
-<tr class="separator:aff5968bbca2e60b79773b99c05ba86ff"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aab1683e96a765ee996d33f1357031374"><td class="memItemLeft" align="right" valign="top">UINT64&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClient.html#aab1683e96a765ee996d33f1357031374">iceConfigTime</a></td></tr>
 <tr class="separator:aab1683e96a765ee996d33f1357031374"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aac4d179e38f916ca89b2894d000705dc"><td class="memItemLeft" align="right" valign="top">UINT64&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClient.html#aac4d179e38f916ca89b2894d000705dc">iceConfigExpiration</a></td></tr>
@@ -348,20 +344,6 @@ Public Attributes</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname">UINT64 SignalingClient::connectTime</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="aa3003ebfdd34e5736e6781ce109d1f71"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aa3003ebfdd34e5736e6781ce109d1f71">&#9670;&nbsp;</a></span>continueOnReady</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">BOOL SignalingClient::continueOnReady</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -914,20 +896,6 @@ Public Attributes</h2></td></tr>
 
 </div>
 </div>
-<a id="aff5968bbca2e60b79773b99c05ba86ff"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aff5968bbca2e60b79773b99c05ba86ff">&#9670;&nbsp;</a></span>stepUntil</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">UINT64 SignalingClient::stepUntil</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
 <a id="a65505d56a239c8d7ecd8bdf38629dff7"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a65505d56a239c8d7ecd8bdf38629dff7">&#9670;&nbsp;</a></span>version</h2>
 
@@ -951,7 +919,7 @@ Public Attributes</h2></td></tr>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="structSignalingClient.html">SignalingClient</a></li>
-    <li class="footer">Generated on Tue Nov 9 2021 21:45:32 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Thu Nov 18 2021 20:43:43 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>

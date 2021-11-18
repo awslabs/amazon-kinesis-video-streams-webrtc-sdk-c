@@ -34,7 +34,6 @@ var group__SignalingStatusCodes =
     [ "STATUS_SIGNALING_INVALID_REGION_LENGTH", "group__SignalingStatusCodes.html#ga434d1a99d37ff342fd3b2e50a18b6c88", null ],
     [ "STATUS_SIGNALING_INVALID_SIGNALING_CALLBACKS_VERSION", "group__SignalingStatusCodes.html#ga916975b02b4b3c261717f22c5b6b336a", null ],
     [ "STATUS_SIGNALING_INVALID_SIGNALING_MESSAGE_VERSION", "group__SignalingStatusCodes.html#gae69c8b47072ce1beb9c229df150bfd97", null ],
-    [ "STATUS_SIGNALING_LWS_CALL_FAILED", "group__SignalingStatusCodes.html#ga382554dbb1fbc016648c5acea0637730", null ],
     [ "STATUS_SIGNALING_LWS_CLIENT_CONNECT_FAILED", "group__SignalingStatusCodes.html#gaa891b62857cc6c4d22f2c9aed97a599b", null ],
     [ "STATUS_SIGNALING_LWS_CREATE_CONTEXT_FAILED", "group__SignalingStatusCodes.html#ga037212d0a7e31ae9a7bdc014d9f8e93d", null ],
     [ "STATUS_SIGNALING_MAX_ICE_CONFIG_COUNT", "group__SignalingStatusCodes.html#gae21ee15042ed01be787364462f14e61f", null ],

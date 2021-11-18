@@ -1,0 +1,19 @@
+<map id="signalingStateMachineIterator" name="signalingStateMachineIterator">
+<area shape="rect" id="node1" title=" " alt="" coords="940,160,1135,186"/>
+<area shape="rect" id="node2" href="$Signaling_8c.html#ab095306d46a8e5ae01e2b28a8de0487a" title=" " alt="" coords="258,29,398,56"/>
+<area shape="rect" id="node4" href="$LwsApiCalls_8c.html#a4c9dcb58ab89a46831b232ea6f1b9903" title=" " alt="" coords="737,58,880,85"/>
+<area shape="rect" id="node6" href="$LwsApiCalls_8c.html#afc9e7ad7111b3cdf94c7739d3695cb6c" title=" " alt="" coords="747,109,871,136"/>
+<area shape="rect" id="node7" href="$Signaling_8c.html#aae4b8c10c0051d05e7aaef586326afea" title=" " alt="" coords="731,160,886,186"/>
+<area shape="rect" id="node12" href="$Signaling_8c.html#a3c2197526080fd2995dddcdb883068de" title=" " alt="" coords="733,210,884,237"/>
+<area shape="rect" id="node14" href="$Signaling_8c.html#a220ed8ee8114be8bfd0ae9c3ccfabc24" title=" " alt="" coords="739,261,878,288"/>
+<area shape="rect" id="node16" href="$Signaling_8c.html#adc40a64fec23ce36f66ce679dfe4e35a" title=" " alt="" coords="725,312,892,338"/>
+<area shape="rect" id="node3" href="$group__PublicMemberFunctions.html#ga375ddffe8376298cdaafe63799b53b1e" title="Creates a Signaling client and returns a handle to it." alt="" coords="5,29,179,56"/>
+<area shape="rect" id="node5" href="$LwsApiCalls_8c.html#ada0698d028687c46481e076ce1be4359" title=" " alt="" coords="496,58,659,85"/>
+<area shape="rect" id="node8" href="$Signaling_8c.html#ab9b7621274b4242cf08805da561654be" title=" " alt="" coords="492,109,663,136"/>
+<area shape="rect" id="node10" href="$Signaling_8c.html#abfcf7ed9ac28611238c1fb82f9dbda6e" title=" " alt="" coords="479,160,676,186"/>
+<area shape="rect" id="node9" href="$group__PublicMemberFunctions.html#ga94ed483b34bb395015b7d44fd98c8f5b" title="Gets the ICE configuration information object given its index." alt="" coords="227,105,429,132"/>
+<area shape="rect" id="node11" href="$group__PublicMemberFunctions.html#ga22f59c80e99e533e5e1d78d52145eb7c" title="Gets the retrieved ICE configuration information object count." alt="" coords="237,156,419,198"/>
+<area shape="rect" id="node13" href="$group__PublicMemberFunctions.html#gacb53537d7d1c72a9e304ed095fe1252f" title="Connects the signaling client to the web socket in order to send/receive messages." alt="" coords="486,210,669,237"/>
+<area shape="rect" id="node15" href="$group__PublicMemberFunctions.html#gad85555f757662d1585efd00d496e5c13" title="Deletes the signaling channel referenced by SIGNALING_CLIENT_HANDLE." alt="" coords="491,261,663,288"/>
+<area shape="rect" id="node17" href="$group__PublicMemberFunctions.html#ga6130116416557558b66728a8db2c6ee7" title="Disconnects the signaling client." alt="" coords="477,312,677,338"/>
+</map>
