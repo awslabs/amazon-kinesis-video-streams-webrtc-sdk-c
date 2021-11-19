@@ -1,5 +1,6 @@
 var NAVTREEINDEX4 =
 {
+"structRtcStats.html":[1,0,20,3],
 "structRtcStatsObject.html":[1,0,20,19],
 "structRtcStatsObject.html#a0dee9a39573da6cb111d992e800dd61e":[1,0,20,19,3],
 "structRtcStatsObject.html#a4593b66b951d6cdb12d059548a2af36c":[1,0,20,19,0],

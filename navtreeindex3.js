@@ -1,5 +1,6 @@
 var NAVTREEINDEX3 =
 {
+"group__StructureVersions.html#gaaa3ff5ce9fd22e235c8b175e3878737d":[1,0,14,7],
 "group__StructureVersions.html#gad43eff9ad752a5282f3d7e11623034eb":[1,0,14,4],
 "group__StructureVersions.html#gae7a5b2883ec07248e6c913777cabfbab":[1,0,14,0],
 "group__StructureVersions.html#gaeb27b6f96e2e014bf6f4ced98dc20572":[1,0,14,5],
@@ -248,6 +249,5 @@ var NAVTREEINDEX3 =
 "structRtcRtpReceiver.html":[1,0,19,2],
 "structRtcRtpTransceiver.html":[1,0,19,3],
 "structRtcRtpTransceiverInit.html":[1,0,19,17],
-"structRtcSessionDescriptionInit.html":[1,0,19,8],
-"structRtcStats.html":[1,0,20,3]
+"structRtcSessionDescriptionInit.html":[1,0,19,8]
 };
