@@ -136,7 +136,7 @@ STATUS defaultSignalingStateTransitionHook(
     pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
     CHK(pSignalingClient != NULL && stateTransitionWaitTime != NULL, STATUS_NULL_ARG);
 
-    pKvsRetryStrategy = &(pSignalingClient->clientInfo.kvsRetryStrategy);
+    pKvsRetryStrategy = &(pSignalingClient->clientInfo.signalingStateMachineRetryStrategy);
 
     // result > SERVICE_CALL_RESULT_OK covers case for -
     // result != SERVICE_CALL_RESULT_NOT_SET and != SERVICE_CALL_RESULT_OK

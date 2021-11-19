@@ -213,6 +213,7 @@ TEST_F(SignalingApiFunctionalityTest, basicCreateConnectFree)
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
     clientInfo.cacheFilePath = NULL;
     STRCPY(clientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    EXPECT_EQ(STATUS_SUCCESS, setupTestSignalingClientRetryStrategy(clientInfo));
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
@@ -237,6 +238,7 @@ TEST_F(SignalingApiFunctionalityTest, basicCreateConnectFree)
 
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
+    EXPECT_EQ(STATUS_SUCCESS, freeTestSignalingClientRetryStrategy(clientInfo));
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
 }
 
