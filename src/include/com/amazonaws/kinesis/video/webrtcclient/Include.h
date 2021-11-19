@@ -299,6 +299,8 @@ extern "C" {
 #define STATUS_SIGNALING_DELETE_CALL_FAILED                        STATUS_SIGNALING_BASE + 0x00000031
 #define STATUS_SIGNALING_INVALID_METRICS_VERSION                   STATUS_SIGNALING_BASE + 0x00000032
 #define STATUS_SIGNALING_INVALID_CLIENT_INFO_CACHE_FILE_PATH_LEN   STATUS_SIGNALING_BASE + 0x00000033
+#define STATUS_SIGNALING_LWS_CALL_FAILED                           STATUS_SIGNALING_BASE + 0x00000034
+
 
 /*!@} */
 
@@ -640,7 +642,7 @@ extern "C" {
 /**
  * Signaling states default retry count. This will evaluate to the last call being made 20 seconds in which will hit a timeout first.
  */
-#define SIGNALING_STATES_DEFAULT_RETRY_COUNT 10
+#define SIGNALING_STATES_DEFAULT_RETRY_COUNT 1
 
 /**
  * Signaling caching policy default TTL period
