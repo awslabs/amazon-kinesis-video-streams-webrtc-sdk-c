@@ -1,21 +1,37 @@
 #define LOG_CLASS "SignalingClient"
 #include "../Include_i.h"
 
-STATUS createSignalingClientSync(PSignalingClientInfo pClientInfo, PChannelInfo pChannelInfo, PSignalingClientCallbacks pCallbacks,
-                                 PAwsCredentialProvider pCredentialProvider, PSIGNALING_CLIENT_HANDLE pSignalingHandle)
-{
-    return createSignalingClientSyncWithRetryStrategy(pClientInfo, pChannelInfo, pCallbacks,
-                                                      pCredentialProvider, NULL, pSignalingHandle);
+STATUS validateSignalingClientRetryStrategy(PSignalingClientInfo pClientInfo) {
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PSignalingClientRetryStrategy pSignalingClientRetryStrategy;
+
+    CHK(pClientInfo != NULL, STATUS_NULL_ARG);
+
+    pSignalingClientRetryStrategy = &(pClientInfo->signalingClientRetryStrategy);
+
+    CHK(pSignalingClientRetryStrategy->retryStrategyType > KVS_RETRY_STRATEGY_DISABLED &&
+    pSignalingClientRetryStrategy->pRetryStrategy != NULL &&
+    pSignalingClientRetryStrategy->executeRetryStrategyFn != NULL, STATUS_NULL_ARG);
+
+    CHK(pClientInfo->signalingClientCreationMaxRetryCount > 0, STATUS_INVALID_ARG);
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
 }
 
-STATUS createSignalingClientSyncWithRetryStrategy(PSignalingClientInfo pClientInfo, PChannelInfo pChannelInfo,
-                                 PSignalingClientCallbacks pCallbacks, PAwsCredentialProvider pCredentialProvider,
-                                 PSignalingClientRetryStrategy pSignalingClientRetryStrategy, PSIGNALING_CLIENT_HANDLE pSignalingHandle)
+STATUS createSignalingClientSync(PSignalingClientInfo pClientInfo, PChannelInfo pChannelInfo, PSignalingClientCallbacks pCallbacks,
+                                 PAwsCredentialProvider pCredentialProvider, PSIGNALING_CLIENT_HANDLE pSignalingHandle)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = NULL;
+    PSignalingClientRetryStrategy pSignalingClientRetryStrategy = NULL;
     SignalingClientInfoInternal signalingClientInfoInternal;
+    UINT32 signalingClientCreationMaxRetryCount;
+    UINT64 signalingClientCreationWaitTime;
 
     DLOGV("Creating Signaling Client Sync");
     CHK(pSignalingHandle != NULL && pClientInfo != NULL, STATUS_NULL_ARG);
@@ -24,11 +40,28 @@ STATUS createSignalingClientSyncWithRetryStrategy(PSignalingClientInfo pClientIn
     MEMSET(&signalingClientInfoInternal, 0x00, SIZEOF(signalingClientInfoInternal));
     signalingClientInfoInternal.signalingClientInfo = *pClientInfo;
 
-    if (pSignalingClientRetryStrategy != NULL) {
-        signalingClientInfoInternal.kvsRetryStrategy = *(pSignalingClientRetryStrategy);
+    CHK_STATUS(validateSignalingClientRetryStrategy(pClientInfo));
+
+    signalingClientCreationMaxRetryCount = pClientInfo->signalingClientCreationMaxRetryCount;
+    pSignalingClientRetryStrategy = &(pClientInfo->signalingClientRetryStrategy);
+
+    while (signalingClientCreationMaxRetryCount > 0) {
+        // Wait before cresting signaling client to ensure the first call from a large
+        // client fleet will be spread across the wait time window.
+        CHK_STATUS(pSignalingClientRetryStrategy->executeRetryStrategyFn(pSignalingClientRetryStrategy->pRetryStrategy, &signalingClientCreationWaitTime));
+        DLOGV("Attempting to back off for [%lf] milliseconds before creating signaling client. Signaling client creation retry count [%d]",
+              signalingClientCreationWaitTime/1000.0, signalingClientCreationMaxRetryCount);
+        THREAD_SLEEP(signalingClientCreationWaitTime);
+
+        retStatus = createSignalingSync(&signalingClientInfoInternal, pChannelInfo, pCallbacks, pCredentialProvider, &pSignalingClient);
+        if (retStatus == STATUS_SUCCESS) {
+            break;
+        }
+        signalingClientCreationMaxRetryCount--;
     }
 
-    CHK_STATUS(createSignalingSync(&signalingClientInfoInternal, pChannelInfo, pCallbacks, pCredentialProvider, &pSignalingClient));
+    DLOGV("Create signaling client returned [%" PRId64 "].", retStatus);
+    CHK_STATUS(retStatus);
 
     *pSignalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
 

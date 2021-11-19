@@ -108,8 +108,8 @@ typedef struct {
     SignalingApiCallHookFunc deletePreHookFn;
     SignalingApiCallHookFunc deletePostHookFn;
 
-    // Retry strategy for the client and all the streams under it
-    KvsRetryStrategy kvsRetryStrategy;
+    // Retry strategy for signaling state machine
+    KvsRetryStrategy signalingStateMachineRetryStrategy;
 } SignalingClientInfoInternal, *PSignalingClientInfoInternal;
 
 /**
@@ -290,6 +290,14 @@ typedef struct {
     UINT64 connectTime;
 } SignalingClient, *PSignalingClient;
 
+static const ExponentialBackoffRetryStrategyConfig DEFAULT_SIGNALING_STATE_MACHINE_EXPONENTIAL_RETRY_CONFIG = {
+        KVS_INFINITE_EXPONENTIAL_RETRIES, /* max retry count */
+        10000, /* max retry wait time milliseconds */
+        300, /* retry factor (base retry wait time milliseconds) */
+        25000, /* minimum time in milliseconds to reset retry state */
+        300 /* jitter factor milliseconds (jitter will be unused for FULL_JITTER variant of exponential backoff algorithm) */
+};
+
 // Public handle to and from object converters
 #define TO_SIGNALING_CLIENT_HANDLE(p)   ((SIGNALING_CLIENT_HANDLE) (p))
 #define FROM_SIGNALING_CLIENT_HANDLE(h) (IS_VALID_SIGNALING_CLIENT_HANDLE(h) ? (PSignalingClient) (h) : NULL)
@@ -308,7 +316,7 @@ STATUS validateSignalingCallbacks(PSignalingClient, PSignalingClientCallbacks);
 STATUS validateSignalingClientInfo(PSignalingClient, PSignalingClientInfoInternal);
 STATUS validateIceConfiguration(PSignalingClient);
 
-STATUS configureClientWithRetryStrategy(PSignalingClient);
+STATUS configureRetryStrategyForSignalingStateMachine(PSignalingClient);
 STATUS setupDefaultKvsRetryStrategy(PSignalingClient);
 STATUS freeClientRetryStrategy(PSignalingClient);
 

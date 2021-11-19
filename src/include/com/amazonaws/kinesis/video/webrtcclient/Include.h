@@ -653,6 +653,7 @@ extern "C" {
 typedef UINT64 SIGNALING_CLIENT_HANDLE;
 typedef SIGNALING_CLIENT_HANDLE* PSIGNALING_CLIENT_HANDLE;
 
+typedef KvsRetryStrategy SignalingClientRetryStrategy;
 typedef PKvsRetryStrategy PSignalingClientRetryStrategy;
 
 /**
@@ -1172,16 +1173,18 @@ typedef struct {
  * @brief Populate Signaling client with client ID and application log level
  */
 typedef struct {
-    UINT32 version;                                 //!< Version of the structure
-    CHAR clientId[MAX_SIGNALING_CLIENT_ID_LEN + 1]; //!< Client id to use. Defines if the client is a producer/consumer
-    UINT32 loggingLevel;                            //!< Verbosity level for the logging. One of LOG_LEVEL_XXX
-                                                    //!< values or the default verbosity will be assumed. Currently,
-                                                    //!< default value is LOG_LEVEL_WARNING
-    PCHAR cacheFilePath;                            //!< File cache path override. The default
-                                                    //!< path is "./.SignalingCache_vN" which might not work for
-                                                    //!< devices which have read only partition where the code is
-                                                    //!< located. For default value or when file caching is not
-                                                    //!< being used this value can be NULL or point to an EMPTY_STRING.
+    UINT32 version;                                                 //!< Version of the structure
+    CHAR clientId[MAX_SIGNALING_CLIENT_ID_LEN + 1];                 //!< Client id to use. Defines if the client is a producer/consumer
+    UINT32 loggingLevel;                                            //!< Verbosity level for the logging. One of LOG_LEVEL_XXX
+                                                                    //!< values or the default verbosity will be assumed. Currently,
+                                                                    //!< default value is LOG_LEVEL_WARNING
+    PCHAR cacheFilePath;                                            //!< File cache path override. The default
+                                                                    //!< path is "./.SignalingCache_vN" which might not work for
+                                                                    //!< devices which have read only partition where the code is
+                                                                    //!< located. For default value or when file caching is not
+                                                                    //!< being used this value can be NULL or point to an EMPTY_STRING.
+    SignalingClientRetryStrategy signalingClientRetryStrategy;      //!< Retry strategy used while creating signaling client
+    UINT32 signalingClientCreationMaxRetryCount;                    //!< Maximum attempts which createSignalingClientSync API will make on failures to create signaling client
 } SignalingClientInfo, *PSignalingClientInfo;
 
 /**
@@ -1868,21 +1871,6 @@ PUBLIC_API PCHAR getNatBehaviorStr(NAT_BEHAVIOR natBehavior);
  */
 PUBLIC_API STATUS createSignalingClientSync(PSignalingClientInfo, PChannelInfo, PSignalingClientCallbacks, PAwsCredentialProvider,
                                             PSIGNALING_CLIENT_HANDLE);
-
-/**
- * @brief Creates a Signaling client and returns a handle to it
- *
- * @param[in] PSignalingClientInfo Signaling client info
- * @param[in] PChannelInfo Signaling channel info to use/create a channel
- * @param[in] PSignalingClientCallbacks Signaling callbacks for event notifications
- * @param[in] PAwsCredentialProvider Credential provider for auth integration
- * @param[in] PSignalingClientRetryStrategy Optional parameter indicating retry strategy. If not provided, SDK will use default retry strategy
- * @param[out] PSIGNALING_CLIENT_HANDLE Returned signaling client handle
- *
- * @return STATUS code of the execution. STATUS_SUCCESS on success
- */
-PUBLIC_API STATUS createSignalingClientSyncWithRetryStrategy(PSignalingClientInfo, PChannelInfo, PSignalingClientCallbacks, PAwsCredentialProvider,
-                                                             PSignalingClientRetryStrategy, PSIGNALING_CLIENT_HANDLE);
 
 /**
  * @brief Frees the Signaling client object
