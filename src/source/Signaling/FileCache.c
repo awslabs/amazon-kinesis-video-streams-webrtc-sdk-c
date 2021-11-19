@@ -3,8 +3,8 @@
 
 /****************************************************************************************************
  * Content of the caching file will look as follows:
- * channelName,role,region,channelARN,httpEndpoint,wssEndpoint,cacheCreationTimestamp\n
- * channelName,role,region,channelARN,httpEndpoint,wssEndpoint,cacheCreationTimestamp\n
+ * channelName,role,region,channelARN,httpEndpoint,wssEndpoint,version,size,accessKeyId,accessKeyIdLen,secretKey,secretKeyLen,sessionToken,sessionTokenLen,expiration,cacheCreationTimestamp\n
+ * channelName,role,region,channelARN,httpEndpoint,wssEndpoint,version,size,accessKeyId,accessKeyIdLen,secretKey,secretKeyLen,sessionToken,sessionTokenLen,expiration,cacheCreationTimestamp\n
  ****************************************************************************************************/
 
 STATUS createFileIfNotExist(PCHAR fileName)
@@ -31,6 +31,7 @@ STATUS deserializeSignalingCacheEntries(PCHAR cachedFileContent, UINT64 fileSize
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 listSize = 0, entryCount = 0, tokenCount = 0, remainingSize, tokenSize = 0;
     PCHAR pCurrent = NULL, nextToken = NULL, nextLine = NULL;
+    CHAR strTemp[22];
 
     CHK(cachedFileContent != NULL && pSignalingFileCacheEntryList != NULL && pEntryCount != NULL && cacheFilePath != NULL, STATUS_NULL_ARG);
     listSize = *pEntryCount;
@@ -66,6 +67,39 @@ STATUS deserializeSignalingCacheEntries(PCHAR cachedFileContent, UINT64 fileSize
                     break;
                 case 5:
                     STRNCPY(pSignalingFileCacheEntryList[entryCount].wssEndpoint, pCurrent, nextToken - pCurrent);
+                    break;
+                case 6:
+                    STRNCPY(strTemp, pCurrent, nextToken - pCurrent);
+                    STRTOUI32(strTemp, NULL, 10, &pSignalingFileCacheEntryList[entryCount].pAwsCredentials->version);
+                    break;
+                case 7:
+                    STRNCPY(strTemp, pCurrent, nextToken - pCurrent);
+                    STRTOUI32(strTemp, NULL, 10, &pSignalingFileCacheEntryList[entryCount].pAwsCredentials->size);
+                    break;
+                case 8:
+                    STRNCPY(pSignalingFileCacheEntryList[entryCount].pAwsCredentials->accessKeyId, pCurrent, nextToken - pCurrent);
+                    break;
+                case 9:
+                    STRNCPY(strTemp, pCurrent, nextToken - pCurrent);
+                    STRTOUI32(strTemp, NULL, 10, &pSignalingFileCacheEntryList[entryCount].pAwsCredentials->accessKeyIdLen);
+                    break;
+                case 10:
+                    STRNCPY(pSignalingFileCacheEntryList[entryCount].pAwsCredentials->secretKey, pCurrent, nextToken - pCurrent);
+                    break;
+                case 11:
+                    STRNCPY(strTemp, pCurrent, nextToken - pCurrent);
+                    STRTOUI32(strTemp, NULL, 10, &pSignalingFileCacheEntryList[entryCount].pAwsCredentials->secretKeyLen);
+                    break;
+                case 12:
+                    STRNCPY(pSignalingFileCacheEntryList[entryCount].pAwsCredentials->sessionToken, pCurrent, nextToken - pCurrent);
+                    break;
+                case 13:
+                    STRNCPY(strTemp, pCurrent, nextToken - pCurrent);
+                    STRTOUI32(strTemp, NULL, 10, &pSignalingFileCacheEntryList[entryCount].pAwsCredentials->sessionTokenLen);
+                    break;
+                case 14:
+                    STRNCPY(strTemp, pCurrent, nextToken - pCurrent);
+                    STRTOUI64(strTemp, NULL, 10, &pSignalingFileCacheEntryList[entryCount].pAwsCredentials->expiration);
                     break;
                 default:
                     break;
@@ -178,7 +212,7 @@ STATUS signalingCacheSaveToFile(PSignalingFileCacheEntry pSignalingFileCacheEntr
     CHK(cacheFilePath != NULL && pSignalingFileCacheEntry != NULL, STATUS_NULL_ARG);
     CHK(!IS_EMPTY_STRING(pSignalingFileCacheEntry->channelArn) && !IS_EMPTY_STRING(pSignalingFileCacheEntry->channelName) &&
             !IS_EMPTY_STRING(pSignalingFileCacheEntry->region) && !IS_EMPTY_STRING(pSignalingFileCacheEntry->httpsEndpoint) &&
-            !IS_EMPTY_STRING(pSignalingFileCacheEntry->wssEndpoint),
+            !IS_EMPTY_STRING(pSignalingFileCacheEntry->wssEndpoint) && (pSignalingFileCacheEntry->pAwsCredentials != NULL),
         STATUS_INVALID_ARG);
 
     MEMSET(entries, 0x00, SIZEOF(entries));
@@ -216,10 +250,13 @@ STATUS signalingCacheSaveToFile(PSignalingFileCacheEntry pSignalingFileCacheEntr
 
     for (i = 0; i < entryCount; ++i) {
         serializedCacheEntryLen =
-            SNPRINTF(serializedCacheEntry, ARRAY_SIZE(serializedCacheEntry), "%s,%s,%s,%s,%s,%s,%.10" PRIu64 "\n", entries[i].channelName,
+            SNPRINTF(serializedCacheEntry, ARRAY_SIZE(serializedCacheEntry), "%s,%s,%s,%s,%s,%s,%d,%d,%s,%d,%s,%d,%s,%d,%llu,%.10" PRIu64 "\n",
+                     entries[i].channelName,
                      entries[i].role == SIGNALING_CHANNEL_ROLE_TYPE_MASTER ? SIGNALING_FILE_CACHE_ROLE_TYPE_MASTER_STR
                                                                            : SIGNALING_FILE_CACHE_ROLE_TYPE_VIEWER_STR,
-                     entries[i].region, entries[i].channelArn, entries[i].httpsEndpoint, entries[i].wssEndpoint, entries[i].creationTsEpochSeconds);
+                     entries[i].region, entries[i].channelArn, entries[i].httpsEndpoint, entries[i].wssEndpoint, entries[i].pAwsCredentials->version, entries[i].pAwsCredentials->size,
+                     entries[i].pAwsCredentials->accessKeyId, entries[i].pAwsCredentials->accessKeyIdLen, entries[i].pAwsCredentials->secretKey, entries[i].pAwsCredentials->secretKeyLen, entries[i].pAwsCredentials->sessionToken,
+                     entries[i].pAwsCredentials->sessionTokenLen, entries[i].pAwsCredentials->expiration, entries[i].creationTsEpochSeconds);
         CHK_STATUS(writeFile(cacheFilePath, FALSE, i == 0 ? FALSE : TRUE, (PBYTE) serializedCacheEntry, serializedCacheEntryLen));
     }
 

@@ -59,6 +59,7 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
             STRCPY(pSignalingClient->channelEndpointWss, pFileCacheEntry->wssEndpoint);
             pSignalingClient->describeTime = pFileCacheEntry->creationTsEpochSeconds * HUNDREDS_OF_NANOS_IN_A_SECOND;
             pSignalingClient->getEndpointTime = pFileCacheEntry->creationTsEpochSeconds * HUNDREDS_OF_NANOS_IN_A_SECOND;
+            pSignalingClient->pAwsCredentials = pFileCacheEntry->pAwsCredentials;
         }
     }
 
@@ -967,6 +968,7 @@ STATUS getChannelEndpoint(PSignalingClient pSignalingClient, UINT64 time)
                         STRCPY(signalingFileCacheEntry.channelArn, pSignalingClient->channelDescription.channelArn);
                         STRCPY(signalingFileCacheEntry.httpsEndpoint, pSignalingClient->channelEndpointHttps);
                         STRCPY(signalingFileCacheEntry.wssEndpoint, pSignalingClient->channelEndpointWss);
+                        signalingFileCacheEntry.pAwsCredentials = pSignalingClient->pAwsCredentials;
                         if (STATUS_FAILED(signalingCacheSaveToFile(&signalingFileCacheEntry, pSignalingClient->clientInfo.cacheFilePath))) {
                             DLOGW("Failed to save signaling cache to file");
                         }
