@@ -76,7 +76,7 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     pSignalingClient->pCredentialProvider = pCredentialProvider;
 
     // Configure retry strategy for retries on error within signaling state machine
-    configureRetryStrategyForSignalingStateMachine(pSignalingClient);
+    CHK_STATUS(configureRetryStrategyForSignalingStateMachine(pSignalingClient));
 
     // Create the state machine
     CHK_STATUS(createStateMachine(SIGNALING_STATE_MACHINE_STATES, SIGNALING_STATE_MACHINE_STATE_COUNT,
@@ -529,14 +529,19 @@ STATUS configureRetryStrategyForSignalingStateMachine(PSignalingClient pSignalin
     KVS_RETRY_STRATEGY_TYPE defaultKvsRetryStrategyType = KVS_RETRY_STRATEGY_EXPONENTIAL_BACKOFF_WAIT;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
-
     pSignalingClient->clientInfo.signalingStateMachineRetryStrategy.retryStrategyType = KVS_RETRY_STRATEGY_EXPONENTIAL_BACKOFF_WAIT;
     pSignalingClient->clientInfo.signalingStateMachineRetryStrategy.createRetryStrategyFn = exponentialBackoffRetryStrategyCreate;
     pSignalingClient->clientInfo.signalingStateMachineRetryStrategy.freeRetryStrategyFn = exponentialBackoffRetryStrategyFree;
     pSignalingClient->clientInfo.signalingStateMachineRetryStrategy.executeRetryStrategyFn = getExponentialBackoffRetryStrategyWaitTime;
 
     CHK_STATUS(pSignalingClient->clientInfo.signalingStateMachineRetryStrategy.createRetryStrategyFn(
-            (PRetryStrategyConfig)&DEFAULT_SIGNALING_STATE_MACHINE_EXPONENTIAL_RETRY_CONFIG, &pRetryStrategy));
+            NULL, &pRetryStrategy));
+
+    if (pRetryStrategy == NULL) {
+        DLOGD("Unable to create exponential backoff retry strategy. This should not happen.");
+    }
+
+    CHK(pRetryStrategy != NULL, STATUS_INTERNAL_ERROR);
     pSignalingClient->clientInfo.signalingStateMachineRetryStrategy.pRetryStrategy = pRetryStrategy;
 
     CleanUp:
