@@ -37,8 +37,6 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     CHK_STATUS(validateSignalingCallbacks(pSignalingClient, pCallbacks));
     CHK_STATUS(validateSignalingClientInfo(pSignalingClient, pClientInfo));
 
-    configureClientWithRetryStrategy(pSignalingClient);
-
     // Set invalid call times
     pSignalingClient->version = SIGNALING_CLIENT_CURRENT_VERSION;
     pSignalingClient->describeTime = INVALID_TIMESTAMP_VALUE;
