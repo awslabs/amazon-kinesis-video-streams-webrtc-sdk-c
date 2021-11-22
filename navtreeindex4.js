@@ -1,5 +1,11 @@
 var NAVTREEINDEX4 =
 {
+"structRtcRemoteInboundRtpStreamStats.html#a56de74ac280d0bb4e31e5cccc3b2231b":[1,0,20,14,4],
+"structRtcRemoteInboundRtpStreamStats.html#abe4fa73b504faaebe18b25fb3210a62a":[1,0,20,14,2],
+"structRtcRtpReceiver.html":[1,0,19,2],
+"structRtcRtpTransceiver.html":[1,0,19,3],
+"structRtcRtpTransceiverInit.html":[1,0,19,17],
+"structRtcSessionDescriptionInit.html":[1,0,19,8],
 "structRtcStats.html":[1,0,20,3],
 "structRtcStatsObject.html":[1,0,20,19],
 "structRtcStatsObject.html#a0dee9a39573da6cb111d992e800dd61e":[1,0,20,19,3],

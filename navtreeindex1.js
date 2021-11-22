@@ -248,6 +248,6 @@ var NAVTREEINDEX1 =
 "group__StatsStructures.html#gga760e5b16b6a0731e5839f9c37dfcb0a4af56f1041a8e65f98fc7c9751ebf50086":[1,0,20,40,2],
 "group__StatusCodes.html":[1,0],
 "group__StatusCodes.html#ga02a5e6d0b5cdd1916c3b6c7a295849d3":[1,0,19,6,1],
-"group__StatusCodes.html#ga02a5e6d0b5cdd1916c3b6c7a295849d3":[1,0,126],
-"group__StatusCodes.html#ga02c3030e0e011ae7a1ef1a77003fa048":[1,0,19,10,4]
+"group__StatusCodes.html#ga02a5e6d0b5cdd1916c3b6c7a295849d3":[1,0,128],
+"group__StatusCodes.html#ga02b46423f33622e22cd95a651675f4f3":[1,0,35]
 };

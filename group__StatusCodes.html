@@ -237,6 +237,10 @@ Typedefs</h2></td></tr>
 <tr class="separator:ga1a31b45408a80e1064d39d578bd3b751"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gae65f311050fbaa62d447a4cb7f1f884a"><td class="memItemLeft" align="right" valign="top">typedef <a class="el" href="group__StatusCodes.html#ga1a31b45408a80e1064d39d578bd3b751">SIGNALING_CLIENT_HANDLE</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#gae65f311050fbaa62d447a4cb7f1f884a">PSIGNALING_CLIENT_HANDLE</a></td></tr>
 <tr class="separator:gae65f311050fbaa62d447a4cb7f1f884a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaf773a6a8fa33d10d15b4866af8554324"><td class="memItemLeft" align="right" valign="top">typedef KvsRetryStrategy&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#gaf773a6a8fa33d10d15b4866af8554324">SignalingClientRetryStrategy</a></td></tr>
+<tr class="separator:gaf773a6a8fa33d10d15b4866af8554324"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga02b46423f33622e22cd95a651675f4f3"><td class="memItemLeft" align="right" valign="top">typedef PKvsRetryStrategy&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga02b46423f33622e22cd95a651675f4f3">PSignalingClientRetryStrategy</a></td></tr>
+<tr class="separator:ga02b46423f33622e22cd95a651675f4f3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="var-members"></a>
 Variables</h2></td></tr>
@@ -371,6 +375,12 @@ Variables</h2></td></tr>
 <tr class="separator:ga8df6838b31452ecf1bd1cf1a0fffa680"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gac9e805db054ce941d24b1b0ce5e72946"><td class="memItemLeft" align="right" valign="top">PCHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#gac9e805db054ce941d24b1b0ce5e72946">SignalingClientInfo::cacheFilePath</a></td></tr>
 <tr class="separator:gac9e805db054ce941d24b1b0ce5e72946"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga9c1f4c0bff81086e47889b14635735e7"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__StatusCodes.html#gaf773a6a8fa33d10d15b4866af8554324">SignalingClientRetryStrategy</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga9c1f4c0bff81086e47889b14635735e7">SignalingClientInfo::signalingClientRetryStrategy</a></td></tr>
+<tr class="memdesc:ga9c1f4c0bff81086e47889b14635735e7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retry strategy used while creating signaling client.  <a href="group__StatusCodes.html#ga9c1f4c0bff81086e47889b14635735e7">More...</a><br /></td></tr>
+<tr class="separator:ga9c1f4c0bff81086e47889b14635735e7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga52050cb8a9b613f5d3899b4a5761be98"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga52050cb8a9b613f5d3899b4a5761be98">SignalingClientInfo::signalingClientCreationMaxRetryCount</a></td></tr>
+<tr class="memdesc:ga52050cb8a9b613f5d3899b4a5761be98"><td class="mdescLeft">&#160;</td><td class="mdescRight">Maximum attempts which createSignalingClientSync API will make on failures to create signaling client.  <a href="group__StatusCodes.html#ga52050cb8a9b613f5d3899b4a5761be98">More...</a><br /></td></tr>
+<tr class="separator:ga52050cb8a9b613f5d3899b4a5761be98"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga7aef1a2aa352519fb948d32416fc94f3"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga7aef1a2aa352519fb948d32416fc94f3">ChannelInfo::version</a></td></tr>
 <tr class="memdesc:ga7aef1a2aa352519fb948d32416fc94f3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Version of the structure.  <a href="group__StatusCodes.html#ga7aef1a2aa352519fb948d32416fc94f3">More...</a><br /></td></tr>
 <tr class="separator:ga7aef1a2aa352519fb948d32416fc94f3"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -767,6 +777,20 @@ Variables</h2></td></tr>
 
 </div>
 </div>
+<a id="ga02b46423f33622e22cd95a651675f4f3"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga02b46423f33622e22cd95a651675f4f3">&#9670;&nbsp;</a></span>PSignalingClientRetryStrategy</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef PKvsRetryStrategy <a class="el" href="group__StatusCodes.html#ga02b46423f33622e22cd95a651675f4f3">PSignalingClientRetryStrategy</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a id="ga1a31b45408a80e1064d39d578bd3b751"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ga1a31b45408a80e1064d39d578bd3b751">&#9670;&nbsp;</a></span>SIGNALING_CLIENT_HANDLE</h2>
 
@@ -780,6 +804,20 @@ Variables</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Definition of the signaling client handle. </p>
+
+</div>
+</div>
+<a id="gaf773a6a8fa33d10d15b4866af8554324"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaf773a6a8fa33d10d15b4866af8554324">&#9670;&nbsp;</a></span>SignalingClientRetryStrategy</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef KvsRetryStrategy <a class="el" href="group__StatusCodes.html#gaf773a6a8fa33d10d15b4866af8554324">SignalingClientRetryStrategy</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
 
 </div>
 </div>
@@ -2140,6 +2178,38 @@ Variables</h2></td></tr>
 
 </div>
 </div>
+<a id="ga52050cb8a9b613f5d3899b4a5761be98"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga52050cb8a9b613f5d3899b4a5761be98">&#9670;&nbsp;</a></span>signalingClientCreationMaxRetryCount</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">UINT32 SignalingClientInfo::signalingClientCreationMaxRetryCount</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Maximum attempts which createSignalingClientSync API will make on failures to create signaling client. </p>
+
+</div>
+</div>
+<a id="ga9c1f4c0bff81086e47889b14635735e7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga9c1f4c0bff81086e47889b14635735e7">&#9670;&nbsp;</a></span>signalingClientRetryStrategy</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="group__StatusCodes.html#gaf773a6a8fa33d10d15b4866af8554324">SignalingClientRetryStrategy</a> SignalingClientInfo::signalingClientRetryStrategy</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Retry strategy used while creating signaling client. </p>
+
+</div>
+</div>
 <a id="ga19e455ef17680d69fc2de9f0c886ea80"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ga19e455ef17680d69fc2de9f0c886ea80">&#9670;&nbsp;</a></span>signalingClientStats</h2>
 
@@ -2622,7 +2692,7 @@ Variables</h2></td></tr>
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="footer">Generated on Fri Nov 19 2021 18:44:57 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Mon Nov 22 2021 19:30:54 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>

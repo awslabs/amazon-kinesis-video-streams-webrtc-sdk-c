@@ -1,5 +1,11 @@
 var NAVTREEINDEX3 =
 {
+"group__StructureVersions.html#ga49b3de2b6188a87f337eece2d9d02456":[1,0,14,10],
+"group__StructureVersions.html#ga65c38a586218952b181af6f5054e7398":[1,0,14,6],
+"group__StructureVersions.html#ga86b84654a2df2822d338f6d83dcc1351":[1,0,14,9],
+"group__StructureVersions.html#ga9a000afcb54122521c547851528af0eb":[1,0,14,8],
+"group__StructureVersions.html#gaa0f2c940f478034f48566420b85f6a8b":[1,0,14,1],
+"group__StructureVersions.html#gaa80794687556eb5f0c2b180a1c6a24c9":[1,0,14,2],
 "group__StructureVersions.html#gaaa3ff5ce9fd22e235c8b175e3878737d":[1,0,14,7],
 "group__StructureVersions.html#gad43eff9ad752a5282f3d7e11623034eb":[1,0,14,4],
 "group__StructureVersions.html#gae7a5b2883ec07248e6c913777cabfbab":[1,0,14,0],
@@ -243,11 +249,5 @@ var NAVTREEINDEX3 =
 "structRtcRemoteInboundRtpStreamStats.html#a07fec5b68715a29e0456e70ed5b12037":[1,0,20,14,0],
 "structRtcRemoteInboundRtpStreamStats.html#a0c1860018838774cce5774ce9a7c6ea9":[1,0,20,14,5],
 "structRtcRemoteInboundRtpStreamStats.html#a1d6ab410390c8b98de1e38be4a55dc76":[1,0,20,14,3],
-"structRtcRemoteInboundRtpStreamStats.html#a4b59b92bbfa0e3e00d75c04be90e711d":[1,0,20,14,1],
-"structRtcRemoteInboundRtpStreamStats.html#a56de74ac280d0bb4e31e5cccc3b2231b":[1,0,20,14,4],
-"structRtcRemoteInboundRtpStreamStats.html#abe4fa73b504faaebe18b25fb3210a62a":[1,0,20,14,2],
-"structRtcRtpReceiver.html":[1,0,19,2],
-"structRtcRtpTransceiver.html":[1,0,19,3],
-"structRtcRtpTransceiverInit.html":[1,0,19,17],
-"structRtcSessionDescriptionInit.html":[1,0,19,8]
+"structRtcRemoteInboundRtpStreamStats.html#a4b59b92bbfa0e3e00d75c04be90e711d":[1,0,20,14,1]
 };

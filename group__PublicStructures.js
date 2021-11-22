@@ -71,6 +71,8 @@ var group__PublicStructures =
       [ "cacheFilePath", "group__StatusCodes.html#gac9e805db054ce941d24b1b0ce5e72946", null ],
       [ "clientId", "group__StatusCodes.html#ga164f67d7c1bb29cfe65eeace765495cd", null ],
       [ "loggingLevel", "group__StatusCodes.html#ga8df6838b31452ecf1bd1cf1a0fffa680", null ],
+      [ "signalingClientCreationMaxRetryCount", "group__StatusCodes.html#ga52050cb8a9b613f5d3899b4a5761be98", null ],
+      [ "signalingClientRetryStrategy", "group__StatusCodes.html#ga9c1f4c0bff81086e47889b14635735e7", null ],
       [ "version", "group__StatusCodes.html#gaad776eab978b30bd3f21ecd3432c93a0", null ]
     ] ],
     [ "ChannelInfo", "structChannelInfo.html", [
