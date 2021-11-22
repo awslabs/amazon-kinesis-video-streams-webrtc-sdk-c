@@ -697,6 +697,29 @@ CleanUp:
     return retStatus;
 }
 
+STATUS setupDefaultSignalingClientRetryStrategy(PSignalingClientInfo pSignalingClientInfo)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PRetryStrategy pRetryStrategy = NULL;
+
+    CHK(pSignalingClientInfo != NULL, STATUS_NULL_ARG);
+
+    pSignalingClientInfo->signalingClientRetryStrategy.retryStrategyType = KVS_RETRY_STRATEGY_EXPONENTIAL_BACKOFF_WAIT;
+    pSignalingClientInfo->signalingClientRetryStrategy.createRetryStrategyFn = exponentialBackoffRetryStrategyCreate;
+    pSignalingClientInfo->signalingClientRetryStrategy.freeRetryStrategyFn = exponentialBackoffRetryStrategyFree;
+    pSignalingClientInfo->signalingClientRetryStrategy.executeRetryStrategyFn = getExponentialBackoffRetryStrategyWaitTime;
+
+    CHK_STATUS(pSignalingClientInfo->signalingClientRetryStrategy.createRetryStrategyFn(NULL /* use default config */, &pRetryStrategy));
+    pSignalingClientInfo->signalingClientRetryStrategy.pRetryStrategy = pRetryStrategy;
+
+    pSignalingClientInfo->signalingClientCreationMaxRetryCount = MAX_CREATE_SIGNALING_CLIENT_RETRIES;
+
+CleanUp:
+    LEAVES();
+    return retStatus;
+}
+
 STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE roleType, BOOL trickleIce, BOOL useTurn,
                                  PSampleConfiguration* ppSampleConfiguration)
 {
@@ -782,6 +805,8 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     pSampleConfiguration->clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     pSampleConfiguration->clientInfo.loggingLevel = logLevel;
     pSampleConfiguration->clientInfo.cacheFilePath = NULL; // Use the default path
+    CHK_STATUS(setupDefaultSignalingClientRetryStrategy(&pSampleConfiguration->clientInfo));
+
     pSampleConfiguration->iceCandidatePairStatsTimerId = MAX_UINT32;
     pSampleConfiguration->pregenerateCertTimerId = MAX_UINT32;
 
@@ -1062,6 +1087,11 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
 
     SAFE_MEMFREE(pSampleConfiguration->pVideoFrameBuffer);
     SAFE_MEMFREE(pSampleConfiguration->pAudioFrameBuffer);
+
+    if (pSampleConfiguration->clientInfo.signalingClientRetryStrategy.freeRetryStrategyFn != NULL) {
+        CHK_STATUS(pSampleConfiguration->clientInfo.signalingClientRetryStrategy.freeRetryStrategyFn(
+                &(pSampleConfiguration->clientInfo.signalingClientRetryStrategy.pRetryStrategy)));
+    }
 
     if (IS_VALID_CVAR_VALUE(pSampleConfiguration->cvar) && IS_VALID_MUTEX_VALUE(pSampleConfiguration->sampleConfigurationObjLock)) {
         CVAR_BROADCAST(pSampleConfiguration->cvar);

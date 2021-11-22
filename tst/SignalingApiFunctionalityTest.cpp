@@ -213,6 +213,7 @@ TEST_F(SignalingApiFunctionalityTest, basicCreateConnectFree)
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
     clientInfo.cacheFilePath = NULL;
     STRCPY(clientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    EXPECT_EQ(STATUS_SUCCESS, setupTestSignalingClientRetryStrategy(clientInfo));
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
@@ -237,6 +238,7 @@ TEST_F(SignalingApiFunctionalityTest, basicCreateConnectFree)
 
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
+    EXPECT_EQ(STATUS_SUCCESS, freeTestSignalingClientRetryStrategy(clientInfo));
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
 }
 
@@ -270,6 +272,7 @@ TEST_F(SignalingApiFunctionalityTest, mockMaster)
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
     clientInfo.cacheFilePath = NULL;
     STRCPY(clientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    EXPECT_EQ(STATUS_SUCCESS, setupTestSignalingClientRetryStrategy(clientInfo));
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
@@ -405,6 +408,7 @@ TEST_F(SignalingApiFunctionalityTest, mockViewer)
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
     clientInfo.cacheFilePath = NULL;
     STRCPY(clientInfo.clientId, TEST_SIGNALING_VIEWER_CLIENT_ID);
+    EXPECT_EQ(STATUS_SUCCESS, setupTestSignalingClientRetryStrategy(clientInfo));
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
@@ -504,6 +508,7 @@ TEST_F(SignalingApiFunctionalityTest, invalidChannelInfoInput)
     STRCPY(clientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
     clientInfo.cacheFilePath = NULL;
+    EXPECT_EQ(STATUS_SUCCESS, setupTestSignalingClientRetryStrategy(clientInfo));
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
@@ -709,6 +714,7 @@ TEST_F(SignalingApiFunctionalityTest, invalidChannelInfoInput)
     clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
     STRCPY(clientInfo.clientId, TEST_SIGNALING_VIEWER_CLIENT_ID);
+    EXPECT_EQ(STATUS_SUCCESS, setupTestSignalingClientRetryStrategy(clientInfo));
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
@@ -2320,6 +2326,7 @@ TEST_F(SignalingApiFunctionalityTest, goAwayEmulation)
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
     clientInfo.cacheFilePath = NULL;
     STRCPY(clientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    EXPECT_EQ(STATUS_SUCCESS, setupTestSignalingClientRetryStrategy(clientInfo));
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
@@ -2403,6 +2410,7 @@ TEST_F(SignalingApiFunctionalityTest, unknownMessageTypeEmulation)
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
     clientInfo.cacheFilePath = NULL;
     STRCPY(clientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    EXPECT_EQ(STATUS_SUCCESS, setupTestSignalingClientRetryStrategy(clientInfo));
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
@@ -2991,6 +2999,8 @@ TEST_F(SignalingApiFunctionalityTest, cachingWithFaultInjection)
     SignalingClientInfoInternal clientInfoInternal;
     PSignalingClient pSignalingClient;
     SIGNALING_CLIENT_HANDLE signalingHandle;
+    PKvsRetryStrategy pKvsRetryStrategy;
+    PExponentialBackoffRetryStrategyState pExponentialBackoffRetryStrategyState;
 
     signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
     signalingClientCallbacks.customData = (UINT64) this;
@@ -3041,6 +3051,10 @@ TEST_F(SignalingApiFunctionalityTest, cachingWithFaultInjection)
     EXPECT_TRUE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
 
     pActiveClient = pSignalingClient;
+
+    pKvsRetryStrategy = (PKvsRetryStrategy)&(pSignalingClient->clientInfo.signalingStateMachineRetryStrategy);
+    CHECK(pKvsRetryStrategy != NULL);
+    EXPECT_EQ(KVS_RETRY_STRATEGY_EXPONENTIAL_BACKOFF_WAIT, pKvsRetryStrategy->retryStrategyType);
 
     // Check the states first
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
@@ -3105,6 +3119,9 @@ TEST_F(SignalingApiFunctionalityTest, cachingWithFaultInjection)
     // Validate the hook count is incremented due to cache miss
     EXPECT_EQ(4, describeCount);
     EXPECT_EQ(3, getEndpointCount);
+
+    pExponentialBackoffRetryStrategyState = TO_EXPONENTIAL_BACKOFF_STATE(pKvsRetryStrategy->pRetryStrategy);
+    EXPECT_EQ(79, pExponentialBackoffRetryStrategyState->currentRetryCount);
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientDisconnectSync(signalingHandle));
 

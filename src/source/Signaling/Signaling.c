@@ -37,9 +37,8 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     CHK_STATUS(validateSignalingCallbacks(pSignalingClient, pCallbacks));
     CHK_STATUS(validateSignalingClientInfo(pSignalingClient, pClientInfo));
 
-    pSignalingClient->version = SIGNALING_CLIENT_CURRENT_VERSION;
-
     // Set invalid call times
+    pSignalingClient->version = SIGNALING_CLIENT_CURRENT_VERSION;
     pSignalingClient->describeTime = INVALID_TIMESTAMP_VALUE;
     pSignalingClient->createTime = INVALID_TIMESTAMP_VALUE;
     pSignalingClient->getEndpointTime = INVALID_TIMESTAMP_VALUE;
@@ -73,6 +72,9 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
 
     // Store the credential provider
     pSignalingClient->pCredentialProvider = pCredentialProvider;
+
+    // Configure retry strategy for retries on error within signaling state machine
+    CHK_STATUS(configureRetryStrategyForSignalingStateMachine(pSignalingClient));
 
     // Create the state machine
     CHK_STATUS(createStateMachine(SIGNALING_STATE_MACHINE_STATES, SIGNALING_STATE_MACHINE_STATE_COUNT,
@@ -204,6 +206,8 @@ STATUS freeSignaling(PSignalingClient* ppSignalingClient)
         pSignalingClient->pLwsContext = NULL;
         MUTEX_UNLOCK(pSignalingClient->lwsServiceLock);
     }
+
+    freeClientRetryStrategy(pSignalingClient);
 
     freeStateMachine(pSignalingClient->pStateMachine);
 
@@ -512,6 +516,52 @@ STATUS validateSignalingClientInfo(PSignalingClient pSignalingClient, PSignaling
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
+    LEAVES();
+    return retStatus;
+}
+
+STATUS configureRetryStrategyForSignalingStateMachine(PSignalingClient pSignalingClient) {
+    ENTERS();
+    PRetryStrategy pRetryStrategy = NULL;
+    STATUS retStatus = STATUS_SUCCESS;
+    KVS_RETRY_STRATEGY_TYPE defaultKvsRetryStrategyType = KVS_RETRY_STRATEGY_EXPONENTIAL_BACKOFF_WAIT;
+
+    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+    pSignalingClient->clientInfo.signalingStateMachineRetryStrategy.retryStrategyType = KVS_RETRY_STRATEGY_EXPONENTIAL_BACKOFF_WAIT;
+    pSignalingClient->clientInfo.signalingStateMachineRetryStrategy.createRetryStrategyFn = exponentialBackoffRetryStrategyCreate;
+    pSignalingClient->clientInfo.signalingStateMachineRetryStrategy.freeRetryStrategyFn = exponentialBackoffRetryStrategyFree;
+    pSignalingClient->clientInfo.signalingStateMachineRetryStrategy.executeRetryStrategyFn = getExponentialBackoffRetryStrategyWaitTime;
+
+    CHK_STATUS(pSignalingClient->clientInfo.signalingStateMachineRetryStrategy.createRetryStrategyFn(
+            NULL, &pRetryStrategy));
+
+    if (pRetryStrategy == NULL) {
+        DLOGD("Unable to create exponential backoff retry strategy. This should not happen.");
+    }
+
+    CHK(pRetryStrategy != NULL, STATUS_INTERNAL_ERROR);
+    pSignalingClient->clientInfo.signalingStateMachineRetryStrategy.pRetryStrategy = pRetryStrategy;
+
+    CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS freeClientRetryStrategy(PSignalingClient pSignalingClient) {
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(pSignalingClient != NULL &&
+        pSignalingClient->clientInfo.signalingStateMachineRetryStrategy.freeRetryStrategyFn != NULL, STATUS_SUCCESS);
+
+    CHK_STATUS(pSignalingClient->clientInfo.signalingStateMachineRetryStrategy.freeRetryStrategyFn(
+            &(pSignalingClient->clientInfo.signalingStateMachineRetryStrategy.pRetryStrategy)));
+
+    pSignalingClient->clientInfo.signalingStateMachineRetryStrategy.pRetryStrategy = NULL;
+
+    CleanUp:
+
     LEAVES();
     return retStatus;
 }
