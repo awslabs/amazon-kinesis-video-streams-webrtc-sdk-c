@@ -713,6 +713,8 @@ STATUS setupDefaultSignalingClientRetryStrategy(PSignalingClientInfo pSignalingC
     CHK_STATUS(pSignalingClientInfo->signalingClientRetryStrategy.createRetryStrategyFn(NULL /* use default config */, &pRetryStrategy));
     pSignalingClientInfo->signalingClientRetryStrategy.pRetryStrategy = pRetryStrategy;
 
+    pSignalingClientInfo->signalingClientCreationMaxRetryCount = MAX_CREATE_SIGNALING_CLIENT_RETRIES;
+
 CleanUp:
     LEAVES();
     return retStatus;

@@ -14,7 +14,7 @@ STATUS validateSignalingClientRetryStrategy(PSignalingClientInfo pClientInfo) {
     pSignalingClientRetryStrategy->pRetryStrategy != NULL &&
     pSignalingClientRetryStrategy->executeRetryStrategyFn != NULL, STATUS_NULL_ARG);
 
-    CHK(pClientInfo->signalingClientCreationMaxRetryCount > 0, STATUS_INVALID_ARG);
+    CHK(pClientInfo->signalingClientCreationMaxRetryCount > 0, STATUS_NOT_IMPLEMENTED);
 
 CleanUp:
 
