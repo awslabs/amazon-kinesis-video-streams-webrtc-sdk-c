@@ -863,6 +863,7 @@ STATUS logSignalingClientStats(PSignalingClientMetrics pSignalingClientMetrics)
     // This gives the EMA of the getIceConfig() call.
     DLOGD("Data Plane API call latency: %" PRIu64 " ms",
           (pSignalingClientMetrics->signalingClientStats.dpApiCallLatency / HUNDREDS_OF_NANOS_IN_A_MILLISECOND));
+    DLOGD("API call retry count: %d", pSignalingClientMetrics->signalingClientStats.apiCallRetryCount);
 CleanUp:
     LEAVES();
     return retStatus;

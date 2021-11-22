@@ -128,9 +128,11 @@ STATUS defaultSignalingStateTransitionHook(
         UINT64 customData /* customData should be PSignalingClient */,
         PUINT64 stateTransitionWaitTime) {
     ENTERS();
+    BOOL locked = FALSE;
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = NULL;
     PKvsRetryStrategy pKvsRetryStrategy = NULL;
+    PExponentialBackoffRetryStrategyState pRetryState = NULL;
     UINT64 retryWaitTime = 0;
 
     pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
@@ -150,10 +152,19 @@ STATUS defaultSignalingStateTransitionHook(
     DLOGD("Signaling Client base result is [%u]. Executing KVS retry handler of retry strategy type [%u]",
           pSignalingClient->result, pKvsRetryStrategy->retryStrategyType);
     pKvsRetryStrategy->executeRetryStrategyFn(pKvsRetryStrategy->pRetryStrategy, &retryWaitTime);
+
     *stateTransitionWaitTime = retryWaitTime;
+    pSignalingClient->diagnostics.stateMachineRetryCount = getExponentialBackoffRetryCount(pKvsRetryStrategy->pRetryStrategy);
+    // Incremented everytime exponential retry logic is invoked
+//    pRetryState = TO_EXPONENTIAL_BACKOFF_STATE(pRetryStrategy);
+//    MUTEX_LOCK(pRetryState->retryStrategyLock);
+//    locked = TRUE;
+//    pSignalingClient->diagnostics.stateMachineRetryCount = pRetryState->currentRetryCount;
 
-    CleanUp:
-
+CleanUp:
+//    if(locked) {
+//        MUTEX_UNLOCK(pRetryState->retryStrategyLock);
+//    }
     LEAVES();
     return retStatus;
 }
