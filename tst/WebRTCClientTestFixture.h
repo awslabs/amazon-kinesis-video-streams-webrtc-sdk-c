@@ -85,6 +85,7 @@ class WebRtcClientTestBase : public ::testing::Test {
         mClientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
         mClientInfo.cacheFilePath = NULL; // Use the default path
         STRCPY(mClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+        setupTestSignalingClientRetryStrategy(mClientInfo);
 
         MEMSET(&mChannelInfo, 0x00, SIZEOF(mChannelInfo));
         setupTestSignalingClientRetryStrategy(mClientInfo);
