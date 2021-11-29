@@ -170,7 +170,7 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
                                              SIGNALING_STATE_READY));
 
 CleanUp:
-
+    pClientInfo->signalingClientInfo.stateMachineRetryCount = pSignalingClient->diagnostics.stateMachineRetryCount;
     CHK_LOG_ERR(retStatus);
 
     if (STATUS_FAILED(retStatus)) {
@@ -529,6 +529,7 @@ STATUS configureRetryStrategyForSignalingStateMachine(PSignalingClient pSignalin
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     pSignalingClient->clientInfo.signalingStateMachineRetryStrategy.retryStrategyType = KVS_RETRY_STRATEGY_EXPONENTIAL_BACKOFF_WAIT;
     pSignalingClient->clientInfo.signalingStateMachineRetryStrategy.createRetryStrategyFn = exponentialBackoffRetryStrategyCreate;
+    pSignalingClient->clientInfo.signalingStateMachineRetryStrategy.getCurrentRetryAttemptNumberFn = getExponentialBackoffRetryCount;
     pSignalingClient->clientInfo.signalingStateMachineRetryStrategy.freeRetryStrategyFn = exponentialBackoffRetryStrategyFree;
     pSignalingClient->clientInfo.signalingStateMachineRetryStrategy.executeRetryStrategyFn = getExponentialBackoffRetryStrategyWaitTime;
 
@@ -543,7 +544,7 @@ STATUS configureRetryStrategyForSignalingStateMachine(PSignalingClient pSignalin
     pSignalingClient->clientInfo.signalingStateMachineRetryStrategy.pRetryStrategy = pRetryStrategy;
 
     CleanUp:
-
+    DLOGD("Configuration done");
     LEAVES();
     return retStatus;
 }

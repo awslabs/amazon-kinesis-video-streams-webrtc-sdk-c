@@ -172,8 +172,7 @@ typedef enum {
 typedef struct {
     UINT64 durationInSeconds;                              //!< Time (seconds) spent in each state
     RTC_QUALITY_LIMITATION_REASON qualityLimitationReason; //!< Quality limitation reason
-} QualityLimitationDurationsRecord;
-typedef QualityLimitationDurationsRecord* PQualityLimitationDurationsRecord;
+} QualityLimitationDurationsRecord, *PQualityLimitationDurationsRecord;
 
 /**
  * @brief Record of total number of packets sent per DSCP. Used by RTCOutboundRtpStreamStats
@@ -182,8 +181,7 @@ typedef QualityLimitationDurationsRecord* PQualityLimitationDurationsRecord;
 typedef struct {
     DOMString dscp;                  //!< DSCP String
     UINT64 totalNumberOfPacketsSent; //!< Number of packets sent
-} DscpPacketsSentRecord;
-typedef DscpPacketsSentRecord* PDscpPacketsSentRecord;
+} DscpPacketsSentRecord, *PDscpPacketsSentRecord;
 
 /**
  * @brief RtcIceCandidatePairStats Stats related to the local-remote ICE candidate pair
@@ -227,8 +225,7 @@ typedef struct {
     UINT64 responsesReceived;        //!< The total number of connectivity check responses received.
     UINT64 responsesSent;            //!< The total number of connectivity check responses sent.
     UINT64 bytesDiscardedOnSend;     //!< Total number of bytes for this candidate pair discarded due to socket errors
-} RtcIceCandidatePairStats;
-typedef RtcIceCandidatePairStats* PRtcIceCandidatePairStats;
+} RtcIceCandidatePairStats, *PRtcIceCandidatePairStats;
 
 /**
  * @brief: RtcIceServerStats Stats related to the ICE Server
@@ -244,8 +241,7 @@ typedef struct {
     UINT64 totalRequestsSent;      //!< Total amount of requests that have been sent to the server
     UINT64 totalResponsesReceived; //!< Total number of responses received from the server
     UINT64 totalRoundTripTime;     //!< Sum of RTTs of all the requests for which response has been received
-} RtcIceServerStats;
-typedef RtcIceServerStats* PRtcIceServerStats;
+} RtcIceServerStats, *PRtcIceServerStats;
 
 /**
  * @brief: RtcIceCandidateStats Stats related to a specific candidate in a pair
@@ -263,8 +259,7 @@ typedef struct {
     INT32 priority;                       //!< Computed using the formula in https://tools.ietf.org/html/rfc5245#section-15.1
     INT32 port;                           //!< Port number of the candidate
     DOMString candidateType;              //!< Type of local/remote ICE candidate
-} RtcIceCandidateStats;
-typedef RtcIceCandidateStats* PRtcIceCandidateStats;
+} RtcIceCandidateStats, *PRtcIceCandidateStats;
 
 /**
  * @brief RtcTransportStats Represents the stats corresponding to an RTCDtlsTransport and
@@ -293,8 +288,7 @@ typedef struct {
     UINT64 bytesSent;                         //!< The total number of payload bytes sent on this PeerConnection (excluding header and padding)
     UINT64 bytesReceived;                     //!< The total number of payload bytes received on this PeerConnection (excluding header and padding)
     UINT32 selectedCandidatePairChanges;      //!< The number of times that the selected candidate pair of this transport has changed
-} RtcTransportStats;
-typedef RtcTransportStats* PRtcTransportStats;
+} RtcTransportStats, *PRtcTransportStats;
 
 /**
  * @brief RTCRtpStreamStats captures stream stats that will be used as part of RTCSentRtpStreamStats report
@@ -312,8 +306,7 @@ typedef struct {
     // TODO: codecId not yet populated
     DOMString codecId; //!< It is a unique identifier that is associated to the object that was inspected to produce the RTCCodecStats associated with
                        //!< this RTP stream.
-} RTCRtpStreamStats;
-typedef RTCRtpStreamStats* PRTCRtpStreamStats;
+} RTCRtpStreamStats, *PRTCRtpStreamStats;
 
 /**
  * @brief RTCSentRtpStreamStats will be used as part of outbound Rtp stats
@@ -326,8 +319,7 @@ typedef struct {
                       //!< section 6.4.1.
                       //!< The total number of payload octets (i.e., not including header or padding)
                       //!< transmitted in RTP data packets by the sender since starting transmission
-} RTCSentRtpStreamStats;
-typedef RTCSentRtpStreamStats* PRTCSentRtpStreamStats;
+} RTCSentRtpStreamStats, *PRTCSentRtpStreamStats;
 
 /**
  * @brief RtcOutboundRtpStreamStats Gathers stats for media stream from the embedded device
@@ -380,8 +372,7 @@ typedef struct {
     QualityLimitationDurationsRecord qualityLimitationDurations; //!< Total time (seconds) spent in each reason state
     DscpPacketsSentRecord perDscpPacketsSent;                    //!< Total number of packets sent for this SSRC, per DSCP
     RTC_QUALITY_LIMITATION_REASON qualityLimitationReason;       //!< Only valid for video.
-} RtcOutboundRtpStreamStats;
-typedef RtcOutboundRtpStreamStats* PRtcOutboundRtpStreamStats;
+} RtcOutboundRtpStreamStats, *PRtcOutboundRtpStreamStats;
 
 /**
  * @brief RTCRemoteInboundRtpStreamStats Represents the remote endpoint's measurement metrics for a particular incoming RTP stream
@@ -395,8 +386,7 @@ typedef struct {
     DOUBLE fractionLost;              //!< The fraction packet loss reported for this SSRC
     UINT64 reportsReceived;           //!< Total number of RTCP RR blocks received for this SSRC
     UINT64 roundTripTimeMeasurements; //!< Total number of RTCP RR blocks received for this SSRC that contain a valid round trip time
-} RtcRemoteInboundRtpStreamStats;
-typedef RtcRemoteInboundRtpStreamStats* PRtcRemoteInboundRtpStreamStats;
+} RtcRemoteInboundRtpStreamStats, *PRtcRemoteInboundRtpStreamStats;
 
 typedef struct {
     RTCRtpStreamStats rtpStream;
@@ -430,8 +420,7 @@ typedef struct {
                               //!< decoding, the framesReceived counter is incremented.
     UINT32 fullFramesLost; //!< Only valid for video. The cumulative number of full frames lost. The measurement begins when the receiver is created
                            //!< and is a cumulative metric as defined in Appendix A (i) of [RFC7004].
-} RtcReceivedRtpStreamStats;
-typedef RtcReceivedRtpStreamStats* PRtcReceivedRtpStreamStats;
+} RtcReceivedRtpStreamStats, *PRtcReceivedRtpStreamStats;
 
 /**
  * @brief The RTCInboundRtpStreamStats dictionary represents the measurement metrics for the incoming RTP media stream. The timestamp reported in the
@@ -536,8 +525,7 @@ typedef struct {
     UINT32 framesReceived;       //!< Only valid for video. Represents the total number of complete frames received on this RTP stream. This metric is
                                  //!< incremented when the complete frame is received.
     DOMString decoderImplementation; //!<  TODO Identifies the decoder implementation used. This is useful for diagnosing interoperability issues.
-} RtcInboundRtpStreamStats;
-typedef RtcInboundRtpStreamStats* PRtcInboundRtpStreamStats;
+} RtcInboundRtpStreamStats, *PRtcInboundRtpStreamStats;
 
 /**
  * Reference: https://www.w3.org/TR/webrtc/#dom-rtcdatachannelstate
@@ -562,8 +550,7 @@ typedef struct {
     UINT64 bytesSent;        //!< Represents the total number of payload bytes sent on this RTCDatachannel, i.e., not including headers or padding.
     UINT32 messagesReceived; //!< Represents the total number of API "message" events received.
     UINT64 bytesReceived;    //!< Represents the total number of bytes received on this RTCDatachannel, i.e., not including headers or padding.
-} RtcDataChannelStats;
-typedef RtcDataChannelStats* PRtcDataChannelStats;
+} RtcDataChannelStats, *PRtcDataChannelStats;
 
 /**
  * @brief SignalingClientMetrics Represent the stats related to the KVS WebRTC SDK signaling client
@@ -591,8 +578,7 @@ typedef struct {
                                      //!< In all of these cases the error callback (if specified) will be called.
     UINT32 numberOfReconnects;       //!< Number of reconnects in the session
     UINT32 apiCallRetryCount;        //!< Number of retries due to API call failures in the state machine
-} SignalingClientStats;
-typedef SignalingClientStats* PSignalingClientStats;
+} SignalingClientStats, *PSignalingClientStats;
 
 /**
  * @brief RTCStatsObject Represents an object passed in by the application developer which will
@@ -608,8 +594,7 @@ typedef struct {
     RtcRemoteInboundRtpStreamStats remoteInboundRtpStreamStats; //!< Remote Inbound RTP Stream stats object
     RtcInboundRtpStreamStats inboundRtpStreamStats;             //!< Inbound RTP Stream stats object
     RtcDataChannelStats rtcDataChannelStats;
-} RtcStatsObject;
-typedef RtcStatsObject* PRtcStatsObject;
+} RtcStatsObject, *PRtcStatsObject;
 /*!@} */
 
 #ifdef __cplusplus

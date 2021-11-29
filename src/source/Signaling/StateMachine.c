@@ -7,7 +7,6 @@
 /**
  * Static definitions of the states
  */
-// /Users/akatey/kvs_git_workspace/amazon-kinesis-video-streams-webrtc-sdk-c/open-source/include/com/amazonaws/kinesis/video/state/Include.h
 StateMachineState SIGNALING_STATE_MACHINE_STATES[] = {
     {
         SIGNALING_STATE_NEW, SIGNALING_STATE_NONE | SIGNALING_STATE_NEW,
@@ -128,11 +127,10 @@ STATUS defaultSignalingStateTransitionHook(
         UINT64 customData /* customData should be PSignalingClient */,
         PUINT64 stateTransitionWaitTime) {
     ENTERS();
-    BOOL locked = FALSE;
     STATUS retStatus = STATUS_SUCCESS;
+    STATUS countStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = NULL;
     PKvsRetryStrategy pKvsRetryStrategy = NULL;
-    PExponentialBackoffRetryStrategyState pRetryState = NULL;
     UINT64 retryWaitTime = 0;
 
     pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
@@ -146,25 +144,35 @@ STATUS defaultSignalingStateTransitionHook(
     // should change to (pSignalingClient->result > 299 && ...)
     CHK(pSignalingClient->result > SERVICE_CALL_RESULT_OK &&
     pKvsRetryStrategy != NULL &&
-    pKvsRetryStrategy->pRetryStrategy != NULL &&
-    pKvsRetryStrategy->executeRetryStrategyFn != NULL, STATUS_SUCCESS);
+    pKvsRetryStrategy->pRetryStrategy != NULL, STATUS_SUCCESS);
 
-    DLOGD("Signaling Client base result is [%u]. Executing KVS retry handler of retry strategy type [%u]",
-          pSignalingClient->result, pKvsRetryStrategy->retryStrategyType);
-    pKvsRetryStrategy->executeRetryStrategyFn(pKvsRetryStrategy->pRetryStrategy, &retryWaitTime);
+    // This needs to be invoked before execute since a retry attempt is counted only after the retry is done. For example,
+    // When 1 retry is allowed, the describe call will be invoked only once. In other words, the retry count should be incremented
+    // only after a retry is done. Also, say, executeRetryStrategyFn() fails, it should not be considered as a retry.
+    if(pKvsRetryStrategy->getCurrentRetryAttemptNumberFn != NULL) {
+        if((countStatus = pKvsRetryStrategy->getCurrentRetryAttemptNumberFn(pKvsRetryStrategy->pRetryStrategy, &pSignalingClient->diagnostics.stateMachineRetryCount)) != STATUS_SUCCESS) {
+            DLOGW("Failed to get retry count. Error code: %08x", countStatus);
+        }
+        else {
+            DLOGD("Retry count in state: %d", pSignalingClient->diagnostics.stateMachineRetryCount);
+        }
+    }
+    else {
+        DLOGD("Null function");
+    }
+
+    if(pKvsRetryStrategy->executeRetryStrategyFn != NULL) {
+        DLOGD("Signaling Client base result is [%u]. Executing KVS retry handler of retry strategy type [%u]",
+              pSignalingClient->result, pKvsRetryStrategy->retryStrategyType);
+        pKvsRetryStrategy->executeRetryStrategyFn(pKvsRetryStrategy->pRetryStrategy, &retryWaitTime);
+    }
+    else {
+        DLOGD("Execute function not set");
+    }
 
     *stateTransitionWaitTime = retryWaitTime;
-    pSignalingClient->diagnostics.stateMachineRetryCount = getExponentialBackoffRetryCount(pKvsRetryStrategy->pRetryStrategy);
-    // Incremented everytime exponential retry logic is invoked
-//    pRetryState = TO_EXPONENTIAL_BACKOFF_STATE(pRetryStrategy);
-//    MUTEX_LOCK(pRetryState->retryStrategyLock);
-//    locked = TRUE;
-//    pSignalingClient->diagnostics.stateMachineRetryCount = pRetryState->currentRetryCount;
 
 CleanUp:
-//    if(locked) {
-//        MUTEX_UNLOCK(pRetryState->retryStrategyLock);
-//    }
     LEAVES();
     return retStatus;
 }

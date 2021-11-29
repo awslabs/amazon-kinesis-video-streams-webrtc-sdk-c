@@ -707,6 +707,7 @@ STATUS setupDefaultSignalingClientRetryStrategy(PSignalingClientInfo pSignalingC
 
     pSignalingClientInfo->signalingClientRetryStrategy.retryStrategyType = KVS_RETRY_STRATEGY_EXPONENTIAL_BACKOFF_WAIT;
     pSignalingClientInfo->signalingClientRetryStrategy.createRetryStrategyFn = exponentialBackoffRetryStrategyCreate;
+    pSignalingClientInfo->signalingClientRetryStrategy.getCurrentRetryAttemptNumberFn = getExponentialBackoffRetryCount;
     pSignalingClientInfo->signalingClientRetryStrategy.freeRetryStrategyFn = exponentialBackoffRetryStrategyFree;
     pSignalingClientInfo->signalingClientRetryStrategy.executeRetryStrategyFn = getExponentialBackoffRetryStrategyWaitTime;
 

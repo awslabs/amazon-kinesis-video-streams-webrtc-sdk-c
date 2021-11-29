@@ -137,7 +137,7 @@ typedef struct {
     UINT64 cpApiLatency;
     UINT64 dpApiLatency;
     UINT32 stateMachineRetryCount;
-} SignalingDiagnostics, PSignalingDiagnostics;
+} SignalingDiagnostics, *PSignalingDiagnostics;
 
 /**
  * Internal representation of the Signaling client.

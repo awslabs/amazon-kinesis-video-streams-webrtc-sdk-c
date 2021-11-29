@@ -1192,6 +1192,7 @@ typedef struct {
                                                                     //!< being used this value can be NULL or point to an EMPTY_STRING.
     SignalingClientRetryStrategy signalingClientRetryStrategy;      //!< Retry strategy used while creating signaling client
     UINT32 signalingClientCreationMaxRetryCount;                    //!< Maximum attempts which createSignalingClientSync API will make on failures to create signaling client
+    UINT32 stateMachineRetryCount;                                  //!< Retry count of state machine. Note that this **MUST NOT** be modified by the user. It is a read only field
 } SignalingClientInfo, *PSignalingClientInfo;
 
 /**

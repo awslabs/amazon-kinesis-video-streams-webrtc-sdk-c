@@ -54,13 +54,14 @@ STATUS createSignalingClientSync(PSignalingClientInfo pClientInfo, PChannelInfo 
         THREAD_SLEEP(signalingClientCreationWaitTime);
 
         retStatus = createSignalingSync(&signalingClientInfoInternal, pChannelInfo, pCallbacks, pCredentialProvider, &pSignalingClient);
+        pClientInfo->stateMachineRetryCount = signalingClientInfoInternal.signalingClientInfo.stateMachineRetryCount;
         if (retStatus == STATUS_SUCCESS) {
             break;
         }
         signalingClientCreationMaxRetryCount--;
     }
 
-    DLOGV("Create signaling client returned [%" PRId64 "].", retStatus);
+    DLOGV("Create signaling client returned 0x%08x.", retStatus);
     CHK_STATUS(retStatus);
 
     *pSignalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
@@ -301,6 +302,7 @@ STATUS signalingClientGetMetrics(SIGNALING_CLIENT_HANDLE signalingClientHandle, 
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = FROM_SIGNALING_CLIENT_HANDLE(signalingClientHandle);
 
+    pSignalingClientMetrics->version = SIGNALING_CLIENT_METRICS_CURRENT_VERSION;
     DLOGV("Signaling Client Get Metrics");
 
     CHK_STATUS(signalingGetMetrics(pSignalingClient, pSignalingClientMetrics));
