@@ -146,28 +146,19 @@ STATUS defaultSignalingStateTransitionHook(
     pKvsRetryStrategy != NULL &&
     pKvsRetryStrategy->pRetryStrategy != NULL, STATUS_SUCCESS);
 
-    // This needs to be invoked before execute since a retry attempt is counted only after the retry is done. For example,
-    // When 1 retry is allowed, the describe call will be invoked only once. In other words, the retry count should be incremented
-    // only after a retry is done. Also, say, executeRetryStrategyFn() fails, it should not be considered as a retry.
     if(pKvsRetryStrategy->getCurrentRetryAttemptNumberFn != NULL) {
         if((countStatus = pKvsRetryStrategy->getCurrentRetryAttemptNumberFn(pKvsRetryStrategy->pRetryStrategy, &pSignalingClient->diagnostics.stateMachineRetryCount)) != STATUS_SUCCESS) {
             DLOGW("Failed to get retry count. Error code: %08x", countStatus);
         }
         else {
-            DLOGD("Retry count in state: %d", pSignalingClient->diagnostics.stateMachineRetryCount);
+            DLOGD("Retry count: %d", pSignalingClient->diagnostics.stateMachineRetryCount);
         }
-    }
-    else {
-        DLOGD("Null function");
     }
 
     if(pKvsRetryStrategy->executeRetryStrategyFn != NULL) {
         DLOGD("Signaling Client base result is [%u]. Executing KVS retry handler of retry strategy type [%u]",
               pSignalingClient->result, pKvsRetryStrategy->retryStrategyType);
         pKvsRetryStrategy->executeRetryStrategyFn(pKvsRetryStrategy->pRetryStrategy, &retryWaitTime);
-    }
-    else {
-        DLOGD("Execute function not set");
     }
 
     *stateTransitionWaitTime = retryWaitTime;
@@ -203,7 +194,6 @@ STATUS signalingStateMachineIterator(PSignalingClient pSignalingClient, UINT64 e
 
         currentTime = GETTIME();
         CHK(expiration == 0 || currentTime <= expiration, STATUS_OPERATION_TIMED_OUT);
-
         // Fix-up the expired credentials transition
         // NOTE: Api Gateway might not return an error that can be interpreted as unauthorized to
         // make the correct transition to auth integration state.
@@ -213,7 +203,6 @@ STATUS signalingStateMachineIterator(PSignalingClient pSignalingClient, UINT64 e
             // Set the call status as auth error
             ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_NOT_AUTHORIZED);
         }
-
         retStatus = stepStateMachine(pSignalingClient->pStateMachine);
 
         CHK_STATUS(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pState));
@@ -411,11 +400,9 @@ STATUS executeGetTokenSignalingState(UINT64 customData, UINT64 time)
     } else {
         serviceCallResult = SERVICE_CALL_RESULT_OK;
     }
-
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) serviceCallResult);
 
 CleanUp:
-
     LEAVES();
     return retStatus;
 }

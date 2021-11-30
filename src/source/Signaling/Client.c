@@ -55,6 +55,7 @@ STATUS createSignalingClientSync(PSignalingClientInfo pClientInfo, PChannelInfo 
 
         retStatus = createSignalingSync(&signalingClientInfoInternal, pChannelInfo, pCallbacks, pCredentialProvider, &pSignalingClient);
         pClientInfo->stateMachineRetryCount = signalingClientInfoInternal.signalingClientInfo.stateMachineRetryCount;
+        
         if (retStatus == STATUS_SUCCESS) {
             break;
         }
