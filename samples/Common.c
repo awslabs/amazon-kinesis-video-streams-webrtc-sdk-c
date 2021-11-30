@@ -697,6 +697,33 @@ CleanUp:
     return retStatus;
 }
 
+<<<<<<< HEAD
+=======
+STATUS setupDefaultSignalingClientRetryStrategy(PSignalingClientInfo pSignalingClientInfo)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PRetryStrategy pRetryStrategy = NULL;
+
+    CHK(pSignalingClientInfo != NULL, STATUS_NULL_ARG);
+
+    pSignalingClientInfo->signalingClientRetryStrategy.retryStrategyType = KVS_RETRY_STRATEGY_EXPONENTIAL_BACKOFF_WAIT;
+    pSignalingClientInfo->signalingClientRetryStrategy.createRetryStrategyFn = exponentialBackoffRetryStrategyCreate;
+    pSignalingClientInfo->signalingClientRetryStrategy.getCurrentRetryAttemptNumberFn = getExponentialBackoffRetryCount;
+    pSignalingClientInfo->signalingClientRetryStrategy.freeRetryStrategyFn = exponentialBackoffRetryStrategyFree;
+    pSignalingClientInfo->signalingClientRetryStrategy.executeRetryStrategyFn = getExponentialBackoffRetryStrategyWaitTime;
+
+    CHK_STATUS(pSignalingClientInfo->signalingClientRetryStrategy.createRetryStrategyFn(NULL /* use default config */, &pRetryStrategy));
+    pSignalingClientInfo->signalingClientRetryStrategy.pRetryStrategy = pRetryStrategy;
+
+    pSignalingClientInfo->signalingClientCreationMaxRetryCount = MAX_CREATE_SIGNALING_CLIENT_RETRIES;
+
+CleanUp:
+    LEAVES();
+    return retStatus;
+}
+
+>>>>>>> a40b09297 (Add Retry count retrieval in hook)
 STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE roleType, BOOL trickleIce, BOOL useTurn,
                                  PSampleConfiguration* ppSampleConfiguration)
 {
@@ -773,7 +800,7 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     pSampleConfiguration->channelInfo.reconnect = TRUE;
     pSampleConfiguration->channelInfo.pCertPath = pSampleConfiguration->pCaCertPath;
     pSampleConfiguration->channelInfo.messageTtl = 0; // Default is 60 seconds
-
+    
     pSampleConfiguration->signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
     pSampleConfiguration->signalingClientCallbacks.errorReportFn = signalingClientError;
     pSampleConfiguration->signalingClientCallbacks.stateChangeFn = signalingClientStateChanged;
@@ -839,6 +866,7 @@ STATUS logSignalingClientStats(PSignalingClientMetrics pSignalingClientMetrics)
     // This gives the EMA of the getIceConfig() call.
     DLOGD("Data Plane API call latency: %" PRIu64 " ms",
           (pSignalingClientMetrics->signalingClientStats.dpApiCallLatency / HUNDREDS_OF_NANOS_IN_A_MILLISECOND));
+    DLOGD("API call retry count: %d", pSignalingClientMetrics->signalingClientStats.apiCallRetryCount);
 CleanUp:
     LEAVES();
     return retStatus;

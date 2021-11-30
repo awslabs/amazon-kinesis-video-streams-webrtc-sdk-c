@@ -163,6 +163,7 @@ typedef struct {
     UINT64 connectTime;
     UINT64 cpApiLatency;
     UINT64 dpApiLatency;
+    UINT32 stateMachineRetryCount;
 } SignalingDiagnostics, PSignalingDiagnostics;
 
 /**

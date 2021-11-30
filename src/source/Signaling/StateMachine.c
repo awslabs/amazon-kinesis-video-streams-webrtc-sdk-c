@@ -128,6 +128,7 @@ STATUS defaultSignalingStateTransitionHook(
         PUINT64 stateTransitionWaitTime) {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
+    STATUS countStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = NULL;
     PKvsRetryStrategy pSignalingStateMachineRetryStrategy = NULL;
     PKvsRetryStrategyCallbacks pSignalingStateMachineRetryStrategyCallbacks = NULL;
@@ -149,7 +150,6 @@ STATUS defaultSignalingStateTransitionHook(
     DLOGV("Signaling Client base result is [%u]. Executing KVS retry handler of retry strategy type [%u]",
           pSignalingClient->result, pSignalingStateMachineRetryStrategy->retryStrategyType);
     pSignalingStateMachineRetryStrategyCallbacks->executeRetryStrategyFn(pSignalingStateMachineRetryStrategy, &retryWaitTime);
-
     *stateTransitionWaitTime = retryWaitTime;
 
 CleanUp:

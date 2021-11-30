@@ -339,7 +339,7 @@ STATUS signalingClientGetMetrics(SIGNALING_CLIENT_HANDLE signalingClientHandle, 
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = FROM_SIGNALING_CLIENT_HANDLE(signalingClientHandle);
-
+    pSignalingClientMetrics->version = SIGNALING_CLIENT_METRICS_CURRENT_VERSION;
     DLOGV("Signaling Client Get Metrics");
 
     CHK_STATUS(signalingGetMetrics(pSignalingClient, pSignalingClientMetrics));

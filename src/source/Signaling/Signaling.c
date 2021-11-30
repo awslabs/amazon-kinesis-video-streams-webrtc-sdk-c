@@ -170,7 +170,9 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
                                              SIGNALING_STATE_READY));
 
 CleanUp:
-
+    if(pClientInfo != NULL && pSignalingClient != NULL) {
+        pClientInfo->signalingClientInfo.stateMachineRetryCount = pSignalingClient->diagnostics.stateMachineRetryCount;
+    }
     CHK_LOG_ERR(retStatus);
 
     if (STATUS_FAILED(retStatus)) {
@@ -1210,6 +1212,7 @@ STATUS signalingGetMetrics(PSignalingClient pSignalingClient, PSignalingClientMe
 
     pSignalingClientMetrics->signalingClientStats.connectionDuration =
         ATOMIC_LOAD_BOOL(&pSignalingClient->connected) ? curTime - pSignalingClient->diagnostics.connectTime : 0;
+    pSignalingClientMetrics->signalingClientStats.apiCallRetryCount = pSignalingClient->diagnostics.stateMachineRetryCount;
 
     MUTEX_UNLOCK(pSignalingClient->diagnosticsLock);
 
