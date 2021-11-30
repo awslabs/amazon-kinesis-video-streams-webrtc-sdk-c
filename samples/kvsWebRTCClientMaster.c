@@ -11,7 +11,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     PSampleConfiguration pSampleConfiguration = NULL;
     SignalingClientMetrics signalingClientMetrics;
     PCHAR pChannelName;
-    signalingClientMetrics.version = 0;
+    signalingClientMetrics.version = SIGNALING_CLIENT_METRICS_CURRENT_VERSION;
 
     SET_INSTRUMENTED_ALLOCATORS();
 

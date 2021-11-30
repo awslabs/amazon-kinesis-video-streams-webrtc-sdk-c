@@ -339,14 +339,13 @@ STATUS signalingClientGetMetrics(SIGNALING_CLIENT_HANDLE signalingClientHandle, 
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = FROM_SIGNALING_CLIENT_HANDLE(signalingClientHandle);
-    pSignalingClientMetrics->version = SIGNALING_CLIENT_METRICS_CURRENT_VERSION;
     DLOGV("Signaling Client Get Metrics");
-
     CHK_STATUS(signalingGetMetrics(pSignalingClient, pSignalingClientMetrics));
 
 CleanUp:
-
-    SIGNALING_UPDATE_ERROR_COUNT(pSignalingClient, retStatus);
+    if(pSignalingClient != NULL) {
+        SIGNALING_UPDATE_ERROR_COUNT(pSignalingClient, retStatus);
+    }
     LEAVES();
     return retStatus;
 }
