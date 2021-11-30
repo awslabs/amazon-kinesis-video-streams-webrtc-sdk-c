@@ -428,6 +428,29 @@ TEST_F(SdpApiTest, populateSingleMediaSection_TestTxRecvOnly)
     freePeerConnection(&offerPc);
 }
 
+TEST_F(SdpApiTest, populateSingleMediaSection_TestTxRecvOnlyStreamNull)
+{
+    PRtcPeerConnection offerPc = NULL;
+    RtcConfiguration configuration;
+    RtcSessionDescriptionInit sessionDescriptionInit;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+
+    // Create peer connection
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+
+    PRtcRtpTransceiver pTransceiver;
+    RtcRtpTransceiverInit rtcRtpTransceiverInit;
+    rtcRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY;
+
+    EXPECT_EQ(STATUS_SUCCESS, addTransceiver(offerPc, NULL, &rtcRtpTransceiverInit, &pTransceiver));
+    EXPECT_EQ(STATUS_SUCCESS, createOffer(offerPc, &sessionDescriptionInit));
+    EXPECT_PRED_FORMAT2(testing::IsSubstring, "recvonly", sessionDescriptionInit.sdp);
+
+    closePeerConnection(offerPc);
+    freePeerConnection(&offerPc);
+}
+
 TEST_F(SdpApiTest, populateSingleMediaSection_TestPayloadNoFmtp)
 {
     CHAR remoteSessionDescription[] = R"(v=0
