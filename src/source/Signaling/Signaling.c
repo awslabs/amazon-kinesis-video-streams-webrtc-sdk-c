@@ -591,25 +591,16 @@ CleanUp:
 =======
 STATUS configureRetryStrategyForSignalingStateMachine(PSignalingClient pSignalingClient) {
     ENTERS();
-    PRetryStrategy pRetryStrategy = NULL;
     STATUS retStatus = STATUS_SUCCESS;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
-    pSignalingClient->clientInfo.signalingStateMachineRetryStrategy.retryStrategyType = KVS_RETRY_STRATEGY_EXPONENTIAL_BACKOFF_WAIT;
-    pSignalingClient->clientInfo.signalingStateMachineRetryStrategy.createRetryStrategyFn = exponentialBackoffRetryStrategyCreate;
-    pSignalingClient->clientInfo.signalingStateMachineRetryStrategy.getCurrentRetryAttemptNumberFn = getExponentialBackoffRetryCount;
-    pSignalingClient->clientInfo.signalingStateMachineRetryStrategy.freeRetryStrategyFn = exponentialBackoffRetryStrategyFree;
-    pSignalingClient->clientInfo.signalingStateMachineRetryStrategy.executeRetryStrategyFn = getExponentialBackoffRetryStrategyWaitTime;
+    pSignalingClient->clientInfo.signalingClientRetryStrategyCallbacks.createRetryStrategyFn = exponentialBackoffRetryStrategyCreate;
+    pSignalingClient->clientInfo.signalingClientRetryStrategyCallbacks.getCurrentRetryAttemptNumberFn = getExponentialBackoffRetryCount;
+    pSignalingClient->clientInfo.signalingClientRetryStrategyCallbacks.freeRetryStrategyFn = exponentialBackoffRetryStrategyFree;
+    pSignalingClient->clientInfo.signalingClientRetryStrategyCallbacks.executeRetryStrategyFn = getExponentialBackoffRetryStrategyWaitTime;
 
-    CHK_STATUS(pSignalingClient->clientInfo.signalingStateMachineRetryStrategy.createRetryStrategyFn(
-            NULL, &pRetryStrategy));
-
-    if (pRetryStrategy == NULL) {
-        DLOGD("Unable to create exponential backoff retry strategy. This should not happen.");
-    }
-
-    CHK(pRetryStrategy != NULL, STATUS_INTERNAL_ERROR);
-    pSignalingClient->clientInfo.signalingStateMachineRetryStrategy.pRetryStrategy = pRetryStrategy;
+    CHK_STATUS(pSignalingClient->clientInfo.signalingClientRetryStrategyCallbacks.createRetryStrategyFn(
+            &pSignalingClient->clientInfo.signalingStateMachineRetryStrategy));
 
     CleanUp:
 
@@ -622,10 +613,10 @@ STATUS freeClientRetryStrategy(PSignalingClient pSignalingClient) {
     STATUS retStatus = STATUS_SUCCESS;
 
     CHK(pSignalingClient != NULL &&
-        pSignalingClient->clientInfo.signalingStateMachineRetryStrategy.freeRetryStrategyFn != NULL, STATUS_SUCCESS);
+        pSignalingClient->clientInfo.signalingClientRetryStrategyCallbacks.freeRetryStrategyFn != NULL, STATUS_SUCCESS);
 
-    CHK_STATUS(pSignalingClient->clientInfo.signalingStateMachineRetryStrategy.freeRetryStrategyFn(
-            &(pSignalingClient->clientInfo.signalingStateMachineRetryStrategy.pRetryStrategy)));
+    CHK_STATUS(pSignalingClient->clientInfo.signalingClientRetryStrategyCallbacks.freeRetryStrategyFn(
+            &(pSignalingClient->clientInfo.signalingStateMachineRetryStrategy)));
 
     pSignalingClient->clientInfo.signalingStateMachineRetryStrategy.pRetryStrategy = NULL;
 

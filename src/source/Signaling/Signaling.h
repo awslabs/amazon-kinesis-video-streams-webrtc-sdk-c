@@ -134,9 +134,15 @@ typedef struct {
     SignalingApiCallHookFunc deletePreHookFn;
     SignalingApiCallHookFunc deletePostHookFn;
 
+<<<<<<< HEAD
     // Retry strategy used for signaling state machine
     KvsRetryStrategy signalingStateMachineRetryStrategy;
     KvsRetryStrategyCallbacks signalingStateMachineRetryStrategyCallbacks;
+=======
+    // Retry strategy for signaling state machine
+    SignalingClientRetryStrategy signalingStateMachineRetryStrategy;
+    SignalingClientRetryStrategyCallbacks signalingClientRetryStrategyCallbacks;
+>>>>>>> 00f722460 (Pull in latest changes in retry structures)
 } SignalingClientInfoInternal, *PSignalingClientInfoInternal;
 
 /**

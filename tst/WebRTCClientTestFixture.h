@@ -111,6 +111,39 @@ class WebRtcClientTestBase : public ::testing::Test {
         }
     }
 
+<<<<<<< HEAD
+=======
+    STATUS setupTestSignalingClientRetryStrategy(SignalingClientInfo& mClientInfo) {
+        STATUS retStatus;
+
+        mClientInfo.signalingClientCreationMaxRetryCount = 1;
+        mClientInfo.signalingClientRetryStrategyCallbacks.createRetryStrategyFn = exponentialBackoffRetryStrategyCreate;
+        mClientInfo.signalingClientRetryStrategyCallbacks.freeRetryStrategyFn = exponentialBackoffRetryStrategyFree;
+        mClientInfo.signalingClientRetryStrategyCallbacks.executeRetryStrategyFn = getExponentialBackoffRetryStrategyWaitTime;
+
+        PRetryStrategy pRetryStrategy = NULL;
+        retStatus = mClientInfo.signalingClientRetryStrategyCallbacks.createRetryStrategyFn(NULL);
+        if (retStatus != STATUS_SUCCESS) {
+            return retStatus;
+        }
+
+        mClientInfo.signalingClientRetryStrategy.pRetryStrategy = pRetryStrategy;
+        PExponentialBackoffRetryStrategyState pExponentialBackoffRetryStrategyState = TO_EXPONENTIAL_BACKOFF_STATE(pRetryStrategy);
+        // Change retry wait time factor time from default to 20ms
+        pExponentialBackoffRetryStrategyState->exponentialBackoffRetryStrategyConfig.retryFactorTime = HUNDREDS_OF_NANOS_IN_A_MILLISECOND * 20;
+        // Change max retry wait time from default to 100ms
+        pExponentialBackoffRetryStrategyState->exponentialBackoffRetryStrategyConfig.maxRetryWaitTime = HUNDREDS_OF_NANOS_IN_A_MILLISECOND * 100;
+        // Change default jitter from default to 2
+        pExponentialBackoffRetryStrategyState->exponentialBackoffRetryStrategyConfig.jitterFactor = 2;
+
+        return STATUS_SUCCESS;
+    }
+
+    STATUS freeTestSignalingClientRetryStrategy(SignalingClientInfo& mClientInfo) {
+        return mClientInfo.signalingClientRetryStrategyCallbacks.freeRetryStrategyFn(&(mClientInfo.signalingClientRetryStrategy));
+    }
+
+>>>>>>> 00f722460 (Pull in latest changes in retry structures)
     STATUS initializeSignalingClient(PAwsCredentialProvider pCredentialProvider = NULL)
     {
         STATUS retStatus;
