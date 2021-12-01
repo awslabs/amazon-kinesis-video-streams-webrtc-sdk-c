@@ -524,7 +524,6 @@ STATUS configureRetryStrategyForSignalingStateMachine(PSignalingClient pSignalin
     ENTERS();
     PRetryStrategy pRetryStrategy = NULL;
     STATUS retStatus = STATUS_SUCCESS;
-    KVS_RETRY_STRATEGY_TYPE defaultKvsRetryStrategyType = KVS_RETRY_STRATEGY_EXPONENTIAL_BACKOFF_WAIT;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     pSignalingClient->clientInfo.signalingStateMachineRetryStrategy.retryStrategyType = KVS_RETRY_STRATEGY_EXPONENTIAL_BACKOFF_WAIT;
