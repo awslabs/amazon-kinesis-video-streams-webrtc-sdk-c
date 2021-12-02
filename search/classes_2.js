@@ -1,5 +1,5 @@
 var searchData=
 [
-  ['channelinfo_2641',['ChannelInfo',['../structChannelInfo.html',1,'']]],
-  ['connectionlistener_2642',['ConnectionListener',['../structConnectionListener.html',1,'']]]
+  ['channelinfo_0',['ChannelInfo',['../structChannelInfo.html',1,'']]],
+  ['connectionlistener_1',['ConnectionListener',['../structConnectionListener.html',1,'']]]
 ];

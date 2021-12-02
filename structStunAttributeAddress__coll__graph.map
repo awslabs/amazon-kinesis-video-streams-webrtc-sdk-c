@@ -1,5 +1,5 @@
 <map id="StunAttributeAddress" name="StunAttributeAddress">
-<area shape="rect" id="node1" title=" " alt="" coords="67,189,214,267"/>
-<area shape="rect" id="node2" href="$structKvsIpAddress.html" title=" " alt="" coords="5,5,124,127"/>
-<area shape="rect" id="node3" href="$structStunAttributeHeader.html" title=" " alt="" coords="148,20,288,112"/>
+<area shape="rect" id="node1" title=" " alt="" coords="78,189,225,267"/>
+<area shape="rect" id="node2" href="$structStunAttributeHeader.html" title=" " alt="" coords="5,20,145,112"/>
+<area shape="rect" id="node3" href="$structKvsIpAddress.html" title=" " alt="" coords="169,5,288,127"/>
 </map>

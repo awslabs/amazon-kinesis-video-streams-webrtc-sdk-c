@@ -1,10 +1,10 @@
 <map id="socketConnectionInitSecureConnection" name="socketConnectionInitSecureConnection">
 <area shape="rect" id="node1" title=" " alt="" coords="5,158,191,199"/>
-<area shape="rect" id="node2" href="$Tls_8h.html#a2adef1296769de182eb886ea34a968c4" title=" " alt="" coords="273,56,395,83"/>
-<area shape="rect" id="node6" href="$Tls_8h.html#a5913d6c2f44307241d2402af463f9fec" title=" " alt="" coords="279,107,389,133"/>
+<area shape="rect" id="node2" href="$Tls__openssl_8c.html#a0f345e7d94587cd9aa82d7f91fbe263c" title=" " alt="" coords="273,56,395,83"/>
+<area shape="rect" id="node6" href="$Tls__openssl_8c.html#aa94c64c8b1c8378f85d7081459ec9425" title=" " alt="" coords="279,107,389,133"/>
 <area shape="rect" id="node8" href="$SocketConnection_8c.html#aa405e61d0a88b32967019eead41f0ef4" title=" " alt="" coords="239,158,429,199"/>
 <area shape="rect" id="node9" href="$SocketConnection_8c.html#a51db4f494654a352dc80cb5094cd5061" title=" " alt="" coords="239,223,429,265"/>
-<area shape="rect" id="node13" href="$Tls_8h.html#a2158f2643cad7b1d8c01bc772746f20e" title=" " alt="" coords="279,361,389,388"/>
+<area shape="rect" id="node13" href="$Tls__openssl_8c.html#af3ffd0234e13d548e6e11230d4bd57b9" title=" " alt="" coords="279,361,389,388"/>
 <area shape="rect" id="node3" href="$IOBuffer_8c.html#ab546267bacecbe0c2c65a2286df9dfc4" title=" " alt="" coords="521,5,628,32"/>
 <area shape="rect" id="node5" href="$Tls__mbedtls_8c.html#aa94c64c8b1c8378f85d7081459ec9425" title=" " alt="" coords="520,56,629,83"/>
 <area shape="rect" id="node4" href="$IOBuffer_8c.html#a716982d27f4e9cf43d6737555e684289" title=" " alt="" coords="753,56,845,83"/>
