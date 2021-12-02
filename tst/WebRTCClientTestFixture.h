@@ -85,10 +85,8 @@ class WebRtcClientTestBase : public ::testing::Test {
         mClientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
         mClientInfo.cacheFilePath = NULL; // Use the default path
         STRCPY(mClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
-        setupTestSignalingClientRetryStrategy(mClientInfo);
 
         MEMSET(&mChannelInfo, 0x00, SIZEOF(mChannelInfo));
-        setupTestSignalingClientRetryStrategy(mClientInfo);
         mChannelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
         mChannelInfo.pChannelName = mChannelName;
         mChannelInfo.pKmsKeyId = NULL;
@@ -105,37 +103,6 @@ class WebRtcClientTestBase : public ::testing::Test {
         if ((mChannelInfo.pRegion = getenv(DEFAULT_REGION_ENV_VAR)) == NULL) {
             mChannelInfo.pRegion = (PCHAR) TEST_DEFAULT_REGION;
         }
-    }
-
-    STATUS setupTestSignalingClientRetryStrategy(SignalingClientInfo& mClientInfo) {
-        STATUS retStatus;
-
-        mClientInfo.signalingClientCreationMaxRetryCount = 1;
-        mClientInfo.signalingClientRetryStrategy.retryStrategyType = KVS_RETRY_STRATEGY_EXPONENTIAL_BACKOFF_WAIT;
-        mClientInfo.signalingClientRetryStrategy.createRetryStrategyFn = exponentialBackoffRetryStrategyCreate;
-        mClientInfo.signalingClientRetryStrategy.freeRetryStrategyFn = exponentialBackoffRetryStrategyFree;
-        mClientInfo.signalingClientRetryStrategy.executeRetryStrategyFn = getExponentialBackoffRetryStrategyWaitTime;
-
-        PRetryStrategy pRetryStrategy = NULL;
-        retStatus = mClientInfo.signalingClientRetryStrategy.createRetryStrategyFn(NULL, &pRetryStrategy);
-        if (retStatus != STATUS_SUCCESS) {
-            return retStatus;
-        }
-
-        mClientInfo.signalingClientRetryStrategy.pRetryStrategy = pRetryStrategy;
-        PExponentialBackoffRetryStrategyState pExponentialBackoffRetryStrategyState = TO_EXPONENTIAL_BACKOFF_STATE(pRetryStrategy);
-        // Change retry wait time factor time from default to 20ms
-        pExponentialBackoffRetryStrategyState->exponentialBackoffRetryStrategyConfig.retryFactorTime = HUNDREDS_OF_NANOS_IN_A_MILLISECOND * 20;
-        // Change max retry wait time from default to 100ms
-        pExponentialBackoffRetryStrategyState->exponentialBackoffRetryStrategyConfig.maxRetryWaitTime = HUNDREDS_OF_NANOS_IN_A_MILLISECOND * 100;
-        // Change default jitter from default to 2
-        pExponentialBackoffRetryStrategyState->exponentialBackoffRetryStrategyConfig.jitterFactor = 2;
-
-        return STATUS_SUCCESS;
-    }
-
-    STATUS freeTestSignalingClientRetryStrategy(SignalingClientInfo& mClientInfo) {
-        return mClientInfo.signalingClientRetryStrategy.freeRetryStrategyFn(&(mClientInfo.signalingClientRetryStrategy.pRetryStrategy));
     }
 
     STATUS initializeSignalingClient(PAwsCredentialProvider pCredentialProvider = NULL)
@@ -163,7 +130,7 @@ class WebRtcClientTestBase : public ::testing::Test {
         if (mAccessKeyIdSet) {
             deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(mSignalingClientHandle), 0);
         }
-        EXPECT_EQ(STATUS_SUCCESS, freeTestSignalingClientRetryStrategy(mClientInfo));
+
         EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&mSignalingClientHandle));
 
         return STATUS_SUCCESS;
