@@ -1155,10 +1155,7 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
 
         // Check if we need to re-create the signaling client on-the-fly
         if (ATOMIC_LOAD_BOOL(&pSampleConfiguration->recreateSignalingClient) &&
-            STATUS_SUCCEEDED(freeSignalingClient(&pSampleConfiguration->signalingClientHandle)) &&
-            STATUS_SUCCEEDED(createSignalingClientSync(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
-                                                       &pSampleConfiguration->signalingClientCallbacks, pSampleConfiguration->pCredentialProvider,
-                                                       &pSampleConfiguration->signalingClientHandle))) {
+            STATUS_SUCCEEDED(signalingClientFetchSync(pSampleConfiguration->signalingClientHandle))) {
             // Re-set the variable again
             ATOMIC_STORE_BOOL(&pSampleConfiguration->recreateSignalingClient, FALSE);
         }

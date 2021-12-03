@@ -16,7 +16,7 @@ StateMachineState SIGNALING_STATE_MACHINE_STATES[] = {
      fromGetTokenSignalingState, executeGetTokenSignalingState, SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_GET_TOKEN_CALL_FAILED},
     {SIGNALING_STATE_DESCRIBE,
      SIGNALING_STATE_GET_TOKEN | SIGNALING_STATE_CREATE | SIGNALING_STATE_GET_ENDPOINT | SIGNALING_STATE_GET_ICE_CONFIG | SIGNALING_STATE_CONNECT |
-         SIGNALING_STATE_CONNECTED | SIGNALING_STATE_DELETE | SIGNALING_STATE_DESCRIBE,
+         SIGNALING_STATE_CONNECTED | SIGNALING_STATE_DELETE | SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_READY | SIGNALING_STATE_DISCONNECTED,
      fromDescribeSignalingState, executeDescribeSignalingState, SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_DESCRIBE_CALL_FAILED},
     {SIGNALING_STATE_CREATE, SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_CREATE, fromCreateSignalingState, executeCreateSignalingState,
      SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_CREATE_CALL_FAILED},
@@ -79,8 +79,7 @@ STATUS signalingStateMachineIterator(PSignalingClient pSignalingClient, UINT64 e
         // NOTE: Api Gateway might not return an error that can be interpreted as unauthorized to
         // make the correct transition to auth integration state.
         if (retStatus == STATUS_SERVICE_CALL_NOT_AUTHORIZED_ERROR ||
-            (SERVICE_CALL_UNKNOWN == (SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) &&
-             pSignalingClient->pAwsCredentials->expiration < currentTime)) {
+             (pSignalingClient->pAwsCredentials != NULL && pSignalingClient->pAwsCredentials->expiration < currentTime)) {
             // Set the call status as auth error
             ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_NOT_AUTHORIZED);
         }
@@ -273,6 +272,11 @@ STATUS executeGetTokenSignalingState(UINT64 customData, UINT64 time)
                                                                             SIGNALING_CLIENT_STATE_GET_CREDENTIALS));
     }
 
+    //reset credentials expiration if we already have one.
+    if (NULL == pSignalingClient->pAwsCredentials) {
+        pSignalingClient->pAwsCredentials = 0;
+    }
+
     // Use the credential provider to get the token
     retStatus = pSignalingClient->pCredentialProvider->getCredentialsFn(pSignalingClient->pCredentialProvider, &pSignalingClient->pAwsCredentials);
 
@@ -441,7 +445,6 @@ STATUS fromGetEndpointSignalingState(UINT64 customData, PUINT64 pState)
         default:
             break;
     }
-
     *pState = state;
 
 CleanUp:
@@ -716,10 +719,11 @@ STATUS fromConnectedSignalingState(UINT64 customData, PUINT64 pState)
             break;
 
         case SERVICE_CALL_INTERNAL_ERROR:
-            state = SIGNALING_STATE_GET_ENDPOINT;
-            break;
-
         case SERVICE_CALL_BAD_REQUEST:
+        case SERVICE_CALL_NETWORK_CONNECTION_TIMEOUT:
+        case SERVICE_CALL_NETWORK_READ_TIMEOUT:
+        case SERVICE_CALL_REQUEST_TIMEOUT:
+        case SERVICE_CALL_GATEWAY_TIMEOUT:
             state = SIGNALING_STATE_GET_ENDPOINT;
             break;
 
@@ -777,9 +781,6 @@ STATUS fromDisconnectedSignalingState(UINT64 customData, PUINT64 pState)
     SIZE_T result;
 
     CHK(pSignalingClient != NULL && pState != NULL, STATUS_NULL_ARG);
-
-    // See if we need to retry first of all
-    CHK(pSignalingClient->pChannelInfo->reconnect, STATUS_SUCCESS);
 
     result = ATOMIC_LOAD(&pSignalingClient->result);
     switch (result) {

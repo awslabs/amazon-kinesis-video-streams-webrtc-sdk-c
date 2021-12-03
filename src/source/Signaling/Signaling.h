@@ -289,8 +289,9 @@ STATUS createSignalingSync(PSignalingClientInfoInternal, PChannelInfo, PSignalin
 STATUS freeSignaling(PSignalingClient*);
 
 STATUS signalingSendMessageSync(PSignalingClient, PSignalingMessage);
-STATUS signalingGetIceConfigInfoCout(PSignalingClient, PUINT32);
+STATUS signalingGetIceConfigInfoCount(PSignalingClient, PUINT32);
 STATUS signalingGetIceConfigInfo(PSignalingClient, UINT32, PIceConfigInfo*);
+STATUS signalingFetchSync(PSignalingClient);
 STATUS signalingConnectSync(PSignalingClient);
 STATUS signalingDisconnectSync(PSignalingClient);
 STATUS signalingDeleteSync(PSignalingClient);

@@ -121,6 +121,9 @@ class WebRtcClientTestBase : public ::testing::Test {
             EXPECT_NE(STATUS_SUCCESS, retStatus);
         }
 
+        retStatus = signalingClientFetchSync(mSignalingClientHandle);
+
+
         return retStatus;
     }
 

@@ -163,9 +163,9 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     // Do not force ice config state
     ATOMIC_STORE_BOOL(&pSignalingClient->refreshIceConfig, FALSE);
 
-    // Prime the state machine
-    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, pSignalingClient->diagnostics.createTime + SIGNALING_CREATE_TIMEOUT,
-                                             SIGNALING_STATE_READY));
+    //We do not cache token in file system, so we will always have to retrieve one after creating the client.
+    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, GETTIME() + SIGNALING_CONNECT_STATE_TIMEOUT,
+                                             SIGNALING_STATE_GET_TOKEN));
 
 CleanUp:
 
@@ -323,7 +323,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS signalingGetIceConfigInfoCout(PSignalingClient pSignalingClient, PUINT32 pIceConfigCount)
+STATUS signalingGetIceConfigInfoCount(PSignalingClient pSignalingClient, PUINT32 pIceConfigCount)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -364,6 +364,31 @@ CleanUp:
     return retStatus;
 }
 
+STATUS signalingFetchSync(PSignalingClient pSignalingClient)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+
+    // Check if we are already not connected
+    if(ATOMIC_LOAD_BOOL(&pSignalingClient->connected)) {
+        CHK_STATUS(terminateOngoingOperations(pSignalingClient));
+    }
+
+    //move to the fromGetToken() so we can move to the necessary step
+    setStateMachineCurrentState(pSignalingClient->pStateMachine, SIGNALING_STATE_GET_TOKEN);
+    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, GETTIME() + SIGNALING_CONNECT_STATE_TIMEOUT,
+                                             SIGNALING_STATE_READY));
+
+CleanUp:
+
+    CHK_LOG_ERR(retStatus);
+    LEAVES();
+    return retStatus;
+
+}
+
 STATUS signalingConnectSync(PSignalingClient pSignalingClient)
 {
     ENTERS();
@@ -373,7 +398,7 @@ STATUS signalingConnectSync(PSignalingClient pSignalingClient)
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
     // Validate the state
-    CHK_STATUS(acceptStateMachineState(pSignalingClient->pStateMachine,
+    CHK_STATUS(acceptSignalingStateMachineState(pSignalingClient,
                                        SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_DISCONNECTED | SIGNALING_STATE_CONNECTED));
 
     // Check if we are already connected
@@ -567,7 +592,7 @@ STATUS refreshIceConfiguration(PSignalingClient pSignalingClient)
     CHK(pSignalingClient->iceConfigCount == 0 || curTime > pSignalingClient->iceConfigExpiration, retStatus);
 
     // ICE config can be retrieved in specific states only
-    CHK_STATUS(acceptStateMachineState(pSignalingClient->pStateMachine,
+    CHK_STATUS(acceptSignalingStateMachineState(pSignalingClient,
                                        SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_DISCONNECTED));
 
     MUTEX_LOCK(pSignalingClient->stateLock);

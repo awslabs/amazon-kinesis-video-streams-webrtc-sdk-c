@@ -186,6 +186,7 @@ STATUS signalingCacheSaveToFile(PSignalingFileCacheEntry pSignalingFileCacheEntr
     CHK_STATUS(createFileIfNotExist(cacheFilePath));
 
     /* read entire file into buffer */
+
     CHK_STATUS(readFile(cacheFilePath, FALSE, NULL, &fileSize));
     /* deserialize if file is not empty */
     if (fileSize > 0) {

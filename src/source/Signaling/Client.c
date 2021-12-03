@@ -87,6 +87,23 @@ CleanUp:
     return retStatus;
 }
 
+STATUS signalingClientFetchSync(SIGNALING_CLIENT_HANDLE signalingClientHandle)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PSignalingClient pSignalingClient = FROM_SIGNALING_CLIENT_HANDLE(signalingClientHandle);
+
+    DLOGV("Signaling Client Fetch Sync");
+
+    CHK_STATUS(signalingFetchSync(pSignalingClient));
+
+CleanUp:
+
+    SIGNALING_UPDATE_ERROR_COUNT(pSignalingClient, retStatus);
+    LEAVES();
+    return retStatus;
+}
+
 STATUS signalingClientDisconnectSync(SIGNALING_CLIENT_HANDLE signalingClientHandle)
 {
     ENTERS();
@@ -129,7 +146,7 @@ STATUS signalingClientGetIceConfigInfoCount(SIGNALING_CLIENT_HANDLE signalingCli
 
     DLOGV("Signaling Client Get ICE Config Info Count");
 
-    CHK_STATUS(signalingGetIceConfigInfoCout(pSignalingClient, pIceConfigCount));
+    CHK_STATUS(signalingGetIceConfigInfoCount(pSignalingClient, pIceConfigCount));
 
 CleanUp:
 

@@ -1923,6 +1923,8 @@ PUBLIC_API STATUS signalingClientGetIceConfigInfoCount(SIGNALING_CLIENT_HANDLE, 
  */
 PUBLIC_API STATUS signalingClientGetIceConfigInfo(SIGNALING_CLIENT_HANDLE, UINT32, PIceConfigInfo*);
 
+
+PUBLIC_API STATUS signalingClientFetchSync(SIGNALING_CLIENT_HANDLE);
 /**
  * @brief Connects the signaling client to the web socket in order to send/receive messages.
  *
