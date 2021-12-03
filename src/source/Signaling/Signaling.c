@@ -328,6 +328,7 @@ STATUS freeClientRetryStrategy(PSignalingClient pSignalingClient) {
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
     pKvsRetryStrategyCallbacks = &(pSignalingClient->clientInfo.signalingStateMachineRetryStrategyCallbacks);
+    CHK(pKvsRetryStrategyCallbacks->freeRetryStrategyFn != NULL, STATUS_SUCCESS);
 
     CHK_STATUS(pKvsRetryStrategyCallbacks->freeRetryStrategyFn(
             &(pSignalingClient->clientInfo.signalingStateMachineRetryStrategy)));
