@@ -286,9 +286,7 @@ STATUS setupDefaultRetryStrategyForSignalingStateMachine(PSignalingClient pSigna
     // Use a default exponential backoff config for state machine level retries
     pSignalingClient->clientInfo.signalingStateMachineRetryStrategy.pRetryStrategyConfig =
             (PRetryStrategyConfig)&DEFAULT_SIGNALING_STATE_MACHINE_EXPONENTIAL_BACKOFF_RETRY_CONFIGURATION;
-
-CleanUp:
-
+    
     LEAVES();
     return retStatus;
 }
