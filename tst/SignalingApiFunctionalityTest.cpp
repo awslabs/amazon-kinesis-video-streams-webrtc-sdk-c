@@ -310,8 +310,8 @@ TEST_F(SignalingApiFunctionalityTest, mockMaster)
     if (mAccessKeyIdSet) {
         EXPECT_TRUE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
     }
-    EXPECT_EQ(STATUS_SUCCESS,signalingClientFetchSync(signalingHandle));
 
+    EXPECT_EQ(expectedStatus,signalingClientFetchSync(signalingHandle));
     pSignalingClient = FROM_SIGNALING_CLIENT_HANDLE(signalingHandle);
     pActiveClient = pSignalingClient;
 
@@ -445,7 +445,7 @@ TEST_F(SignalingApiFunctionalityTest, mockViewer)
         EXPECT_TRUE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
     }
 
-    EXPECT_EQ(STATUS_SUCCESS,signalingClientFetchSync(signalingHandle));
+    EXPECT_EQ(expectedStatus,signalingClientFetchSync(signalingHandle));
     pSignalingClient = FROM_SIGNALING_CLIENT_HANDLE(signalingHandle);
     pActiveClient = pSignalingClient;
 
