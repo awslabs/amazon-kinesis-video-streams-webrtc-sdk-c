@@ -23,6 +23,7 @@ STATUS createSignalingClientSync(PSignalingClientInfo pClientInfo, PChannelInfo 
 CleanUp:
 
     if (STATUS_FAILED(retStatus)) {
+        DLOGE("Create signaling client API failed with return code ["PRIu64"]", retStatus);
         freeSignaling(&pSignalingClient);
     }
 
