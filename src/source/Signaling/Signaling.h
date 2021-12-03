@@ -14,8 +14,8 @@ extern "C" {
 #define SIGNALING_REQUEST_ID_HEADER_NAME KVS_REQUEST_ID_HEADER_NAME ":"
 
 // Signaling client from custom data conversion
-#define SIGNALING_CLIENT_FROM_CUSTOM_DATA(h) ((PSignalingClient) (h))
-#define CUSTOM_DATA_FROM_SIGNALING_CLIENT(p) ((UINT64) (p))
+#define SIGNALING_CLIENT_FROM_CUSTOM_DATA(h) ((PSignalingClient)(h))
+#define CUSTOM_DATA_FROM_SIGNALING_CLIENT(p) ((UINT64)(p))
 
 // Grace period for refreshing the ICE configuration
 #define ICE_CONFIGURATION_REFRESH_GRACE_PERIOD (30 * HUNDREDS_OF_NANOS_IN_A_SECOND)
@@ -282,8 +282,8 @@ typedef struct {
 } SignalingClient, *PSignalingClient;
 
 // Public handle to and from object converters
-#define TO_SIGNALING_CLIENT_HANDLE(p)   ((SIGNALING_CLIENT_HANDLE) (p))
-#define FROM_SIGNALING_CLIENT_HANDLE(h) (IS_VALID_SIGNALING_CLIENT_HANDLE(h) ? (PSignalingClient) (h) : NULL)
+#define TO_SIGNALING_CLIENT_HANDLE(p)   ((SIGNALING_CLIENT_HANDLE)(p))
+#define FROM_SIGNALING_CLIENT_HANDLE(h) (IS_VALID_SIGNALING_CLIENT_HANDLE(h) ? (PSignalingClient)(h) : NULL)
 
 STATUS createSignalingSync(PSignalingClientInfoInternal, PChannelInfo, PSignalingClientCallbacks, PAwsCredentialProvider, PSignalingClient*);
 STATUS freeSignaling(PSignalingClient*);

@@ -163,9 +163,8 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     // Do not force ice config state
     ATOMIC_STORE_BOOL(&pSignalingClient->refreshIceConfig, FALSE);
 
-    //We do not cache token in file system, so we will always have to retrieve one after creating the client.
-    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, GETTIME() + SIGNALING_CONNECT_STATE_TIMEOUT,
-                                             SIGNALING_STATE_GET_TOKEN));
+    // We do not cache token in file system, so we will always have to retrieve one after creating the client.
+    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, GETTIME() + SIGNALING_CONNECT_STATE_TIMEOUT, SIGNALING_STATE_GET_TOKEN));
 
 CleanUp:
 
@@ -372,21 +371,19 @@ STATUS signalingFetchSync(PSignalingClient pSignalingClient)
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
     // Check if we are already not connected
-    if(ATOMIC_LOAD_BOOL(&pSignalingClient->connected)) {
+    if (ATOMIC_LOAD_BOOL(&pSignalingClient->connected)) {
         CHK_STATUS(terminateOngoingOperations(pSignalingClient));
     }
 
-    //move to the fromGetToken() so we can move to the necessary step
+    // move to the fromGetToken() so we can move to the necessary step
     setStateMachineCurrentState(pSignalingClient->pStateMachine, SIGNALING_STATE_GET_TOKEN);
-    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, GETTIME() + SIGNALING_CONNECT_STATE_TIMEOUT,
-                                             SIGNALING_STATE_READY));
+    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, GETTIME() + SIGNALING_CONNECT_STATE_TIMEOUT, SIGNALING_STATE_READY));
 
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
     LEAVES();
     return retStatus;
-
 }
 
 STATUS signalingConnectSync(PSignalingClient pSignalingClient)
@@ -398,8 +395,8 @@ STATUS signalingConnectSync(PSignalingClient pSignalingClient)
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
     // Validate the state
-    CHK_STATUS(acceptSignalingStateMachineState(pSignalingClient,
-                                       SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_DISCONNECTED | SIGNALING_STATE_CONNECTED));
+    CHK_STATUS(acceptSignalingStateMachineState(
+        pSignalingClient, SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_DISCONNECTED | SIGNALING_STATE_CONNECTED));
 
     // Check if we are already connected
     CHK(!ATOMIC_LOAD_BOOL(&pSignalingClient->connected), retStatus);
@@ -407,8 +404,7 @@ STATUS signalingConnectSync(PSignalingClient pSignalingClient)
     // Store the signaling state in case we error/timeout so we can re-set it on exit
     CHK_STATUS(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pState));
 
-    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, GETTIME() + SIGNALING_CONNECT_STATE_TIMEOUT,
-                                             SIGNALING_STATE_CONNECTED));
+    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, GETTIME() + SIGNALING_CONNECT_STATE_TIMEOUT, SIGNALING_STATE_CONNECTED));
 
 CleanUp:
 
@@ -592,8 +588,8 @@ STATUS refreshIceConfiguration(PSignalingClient pSignalingClient)
     CHK(pSignalingClient->iceConfigCount == 0 || curTime > pSignalingClient->iceConfigExpiration, retStatus);
 
     // ICE config can be retrieved in specific states only
-    CHK_STATUS(acceptSignalingStateMachineState(pSignalingClient,
-                                       SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_DISCONNECTED));
+    CHK_STATUS(acceptSignalingStateMachineState(
+        pSignalingClient, SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_DISCONNECTED));
 
     MUTEX_LOCK(pSignalingClient->stateLock);
     locked = TRUE;
@@ -606,8 +602,7 @@ STATUS refreshIceConfiguration(PSignalingClient pSignalingClient)
 
     // Iterate the state machinery in steady states only - ready or connected
     if (pStateMachineState->state == SIGNALING_STATE_READY || pStateMachineState->state == SIGNALING_STATE_CONNECTED) {
-        CHK_STATUS(signalingStateMachineIterator(pSignalingClient, curTime + SIGNALING_REFRESH_ICE_CONFIG_STATE_TIMEOUT,
-                                                 pStateMachineState->state));
+        CHK_STATUS(signalingStateMachineIterator(pSignalingClient, curTime + SIGNALING_REFRESH_ICE_CONFIG_STATE_TIMEOUT, pStateMachineState->state));
     }
 
 CleanUp:

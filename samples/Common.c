@@ -24,7 +24,7 @@ VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL 
     // Send a response to the message sent by the viewer
     STATUS retStatus = STATUS_SUCCESS;
     retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) MASTER_DATA_CHANNEL_MESSAGE, STRLEN(MASTER_DATA_CHANNEL_MESSAGE));
-    if(retStatus != STATUS_SUCCESS) {
+    if (retStatus != STATUS_SUCCESS) {
         DLOGI("[KVS Master] dataChannelSend(): operation returned status code: 0x%08x \n", retStatus);
     }
 }
@@ -1047,7 +1047,7 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
         MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
         locked = TRUE;
     }
-    
+
     for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
         retStatus = gatherIceServerStats(pSampleConfiguration->sampleStreamingSessionList[i]);
         if (STATUS_FAILED(retStatus)) {

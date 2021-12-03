@@ -60,7 +60,7 @@ STATUS signalingStateMachineIterator(PSignalingClient pSignalingClient, UINT64 e
     MUTEX_LOCK(pSignalingClient->stateLock);
     locked = TRUE;
 
-    while(TRUE) {
+    while (TRUE) {
         CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
         CHK(!ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown), retStatus);
@@ -79,7 +79,7 @@ STATUS signalingStateMachineIterator(PSignalingClient pSignalingClient, UINT64 e
         // NOTE: Api Gateway might not return an error that can be interpreted as unauthorized to
         // make the correct transition to auth integration state.
         if (retStatus == STATUS_SERVICE_CALL_NOT_AUTHORIZED_ERROR ||
-             (pSignalingClient->pAwsCredentials != NULL && pSignalingClient->pAwsCredentials->expiration < currentTime)) {
+            (pSignalingClient->pAwsCredentials != NULL && pSignalingClient->pAwsCredentials->expiration < currentTime)) {
             // Set the call status as auth error
             ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_NOT_AUTHORIZED);
         }
@@ -272,7 +272,7 @@ STATUS executeGetTokenSignalingState(UINT64 customData, UINT64 time)
                                                                             SIGNALING_CLIENT_STATE_GET_CREDENTIALS));
     }
 
-    //reset credentials expiration if we already have one.
+    // reset credentials expiration if we already have one.
     if (NULL == pSignalingClient->pAwsCredentials) {
         pSignalingClient->pAwsCredentials = 0;
     }
