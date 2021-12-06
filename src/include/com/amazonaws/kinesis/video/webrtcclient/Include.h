@@ -1188,6 +1188,7 @@ typedef struct {
                                                                     //!< located. For default value or when file caching is not
                                                                     //!< being used this value can be NULL or point to an EMPTY_STRING.
     KvsRetryStrategyCallbacks signalingRetryStrategyCallbacks;      //!< Retry strategy callbacks used while creating signaling client
+    UINT32 signalingClientCreationMaxRetryAttempts;                 //!< Max attempts to create signaling client before returning error to the caller
 } SignalingClientInfo, *PSignalingClientInfo;
 
 /**
