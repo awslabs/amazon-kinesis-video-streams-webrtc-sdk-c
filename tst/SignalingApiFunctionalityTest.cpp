@@ -2512,6 +2512,9 @@ TEST_F(SignalingApiFunctionalityTest, connectTimeoutEmulation)
     SignalingClientInfoInternal clientInfoInternal;
     PSignalingClient pSignalingClient;
     SIGNALING_CLIENT_HANDLE signalingHandle;
+    PKvsRetryStrategy pKvsRetryStrategy = NULL;
+    PKvsRetryStrategyCallbacks pKvsRetryStrategyCallbacks = NULL;
+    UINT32 retryCount = 0, previousRetryCount = 0;
 
     signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
     signalingClientCallbacks.customData = (UINT64) this;
@@ -2526,6 +2529,7 @@ TEST_F(SignalingApiFunctionalityTest, connectTimeoutEmulation)
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfoInternal.connectTimeout = 100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
     setupSignalingStateMachineRetryStrategyCallbacks(&clientInfoInternal);
+    pKvsRetryStrategyCallbacks = &(clientInfoInternal.signalingStateMachineRetryStrategyCallbacks);
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
@@ -2561,6 +2565,13 @@ TEST_F(SignalingApiFunctionalityTest, connectTimeoutEmulation)
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
+    pKvsRetryStrategy = &(pSignalingClient->clientInfo.signalingStateMachineRetryStrategy);
+
+    retryCount = 0;
+    pKvsRetryStrategyCallbacks->getCurrentRetryAttemptNumberFn(pKvsRetryStrategy, &retryCount);
+    // retry count is 1 because we moved from describe to create state since describe failed
+    EXPECT_EQ(1, retryCount);
+
     // Connect to the signaling client - should time out
     EXPECT_EQ(STATUS_OPERATION_TIMED_OUT, signalingClientConnectSync(signalingHandle));
 
@@ -2576,11 +2587,21 @@ TEST_F(SignalingApiFunctionalityTest, connectTimeoutEmulation)
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
+    retryCount = 0;
+    pKvsRetryStrategyCallbacks->getCurrentRetryAttemptNumberFn(pKvsRetryStrategy, &retryCount);
+    EXPECT_LE(2, retryCount);
+
     // Connect to the signaling client - should connect OK
     pSignalingClient->clientInfo.connectTimeout = 0;
     EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
 
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+
+    previousRetryCount = retryCount;
+    retryCount = 0;
+    pKvsRetryStrategyCallbacks->getCurrentRetryAttemptNumberFn(pKvsRetryStrategy, &retryCount);
+    // retry count should not increase since there were no timeouts
+    EXPECT_EQ(previousRetryCount, retryCount);
 
     // Check that we are connected and can send a message
     SignalingMessage signalingMessage;

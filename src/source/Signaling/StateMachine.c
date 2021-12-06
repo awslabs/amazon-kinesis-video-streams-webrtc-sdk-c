@@ -383,6 +383,8 @@ STATUS executeGetTokenSignalingState(UINT64 customData, UINT64 time)
                                                                             SIGNALING_CLIENT_STATE_GET_CREDENTIALS));
     }
 
+    THREAD_SLEEP_UNTIL(time);
+
     // Use the credential provider to get the token
     retStatus = pSignalingClient->pCredentialProvider->getCredentialsFn(pSignalingClient->pCredentialProvider, &pSignalingClient->pAwsCredentials);
 
