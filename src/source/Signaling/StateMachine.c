@@ -130,55 +130,36 @@ STATUS defaultSignalingStateTransitionHook(
     STATUS retStatus = STATUS_SUCCESS;
     STATUS countStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = NULL;
-<<<<<<< HEAD
     PKvsRetryStrategy pSignalingStateMachineRetryStrategy = NULL;
     PKvsRetryStrategyCallbacks pSignalingStateMachineRetryStrategyCallbacks = NULL;
-=======
-    PKvsRetryStrategy pKvsRetryStrategy = NULL;
-    PKvsRetryStrategyCallbacks pKvsRetryStrategyCallbacks = NULL;
->>>>>>> 00f722460 (Pull in latest changes in retry structures)
     UINT64 retryWaitTime = 0;
 
     pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
     CHK(pSignalingClient != NULL && stateTransitionWaitTime != NULL, STATUS_NULL_ARG);
 
-<<<<<<< HEAD
     pSignalingStateMachineRetryStrategy = &(pSignalingClient->clientInfo.signalingStateMachineRetryStrategy);
     pSignalingStateMachineRetryStrategyCallbacks = &(pSignalingClient->clientInfo.signalingStateMachineRetryStrategyCallbacks);
-=======
-    pKvsRetryStrategy = &(pSignalingClient->clientInfo.signalingStateMachineRetryStrategy);
-    pKvsRetryStrategyCallbacks = &(pSignalingClient->clientInfo.signalingClientRetryStrategyCallbacks);
->>>>>>> 00f722460 (Pull in latest changes in retry structures)
 
     // result > SERVICE_CALL_RESULT_OK covers case for -
     // result != SERVICE_CALL_RESULT_NOT_SET and != SERVICE_CALL_RESULT_OK
     // If we support any other 2xx service call results, the condition
     // should change to (pSignalingClient->result > 299 && ...)
     CHK(pSignalingClient->result > SERVICE_CALL_RESULT_OK &&
-<<<<<<< HEAD
         pSignalingStateMachineRetryStrategyCallbacks->executeRetryStrategyFn != NULL, STATUS_SUCCESS);
 
     DLOGV("Signaling Client base result is [%u]. Executing KVS retry handler of retry strategy type [%u]",
           pSignalingClient->result, pSignalingStateMachineRetryStrategy->retryStrategyType);
     pSignalingStateMachineRetryStrategyCallbacks->executeRetryStrategyFn(pSignalingStateMachineRetryStrategy, &retryWaitTime);
-=======
-    pKvsRetryStrategy != NULL &&
-    pKvsRetryStrategyCallbacks->executeRetryStrategyFn != NULL, STATUS_SUCCESS);
+    *stateTransitionWaitTime = retryWaitTime;
 
-    if(pKvsRetryStrategyCallbacks->getCurrentRetryAttemptNumberFn != NULL) {
-        if((countStatus = pKvsRetryStrategyCallbacks->getCurrentRetryAttemptNumberFn(pKvsRetryStrategy, &pSignalingClient->diagnostics.stateMachineRetryCount)) != STATUS_SUCCESS) {
+    if(pSignalingStateMachineRetryStrategyCallbacks->getCurrentRetryAttemptNumberFn != NULL) {
+        if((countStatus = pSignalingStateMachineRetryStrategyCallbacks->getCurrentRetryAttemptNumberFn(pSignalingStateMachineRetryStrategy, &pSignalingClient->diagnostics.stateMachineRetryCount)) != STATUS_SUCCESS) {
             DLOGW("Failed to get retry count. Error code: %08x", countStatus);
         }
         else {
-            DLOGD("Retry count: %d", pSignalingClient->diagnostics.stateMachineRetryCount);
+            DLOGD("Retry count: %llu", pSignalingClient->diagnostics.stateMachineRetryCount);
         }
     }
-
-    DLOGD("Signaling Client base result is [%u]. Executing KVS retry handler of retry strategy type [%u]",
-          pSignalingClient->result, pKvsRetryStrategy->retryStrategyType);
-    pKvsRetryStrategyCallbacks->executeRetryStrategyFn(pKvsRetryStrategy, &retryWaitTime);
->>>>>>> 00f722460 (Pull in latest changes in retry structures)
-    *stateTransitionWaitTime = retryWaitTime;
 
 CleanUp:
 

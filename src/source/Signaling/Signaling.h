@@ -134,15 +134,9 @@ typedef struct {
     SignalingApiCallHookFunc deletePreHookFn;
     SignalingApiCallHookFunc deletePostHookFn;
 
-<<<<<<< HEAD
     // Retry strategy used for signaling state machine
     KvsRetryStrategy signalingStateMachineRetryStrategy;
     KvsRetryStrategyCallbacks signalingStateMachineRetryStrategyCallbacks;
-=======
-    // Retry strategy for signaling state machine
-    SignalingClientRetryStrategy signalingStateMachineRetryStrategy;
-    SignalingClientRetryStrategyCallbacks signalingClientRetryStrategyCallbacks;
->>>>>>> 00f722460 (Pull in latest changes in retry structures)
 } SignalingClientInfoInternal, *PSignalingClientInfoInternal;
 
 /**
@@ -318,19 +312,6 @@ typedef struct {
     UINT64 connectTime;
 } SignalingClient, *PSignalingClient;
 
-<<<<<<< HEAD
-=======
-static const ExponentialBackoffRetryStrategyConfig DEFAULT_SIGNALING_STATE_MACHINE_EXPONENTIAL_RETRY_CONFIG = {
-        KVS_INFINITE_EXPONENTIAL_RETRIES, /* max retry count */
-        10000, /* max retry wait time milliseconds */
-        300, /* retry factor (base retry wait time milliseconds) */
-        25000, /* minimum time in milliseconds to reset retry state */
-        FULL_JITTER, /* use FULL_JITTER variant */
-        0 /* jitter factor milliseconds (jitter will be unused for FULL_JITTER variant of exponential backoff algorithm) */
-
-};
-
->>>>>>> 2615adaad (Fix compile issue on travis)
 // Public handle to and from object converters
 #define TO_SIGNALING_CLIENT_HANDLE(p)   ((SIGNALING_CLIENT_HANDLE) (p))
 #define FROM_SIGNALING_CLIENT_HANDLE(h) (IS_VALID_SIGNALING_CLIENT_HANDLE(h) ? (PSignalingClient) (h) : NULL)

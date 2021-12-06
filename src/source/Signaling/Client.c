@@ -5,11 +5,6 @@ STATUS createRetryStrategyForCreatingSignalingClient(PSignalingClientInfo pClien
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-<<<<<<< HEAD
-=======
-    PSignalingClientRetryStrategy pSignalingClientRetryStrategy;
-    PSignalingClientRetryStrategyCallbacks pSignalingClientRetryStrategyCallbacks;
->>>>>>> 00f722460 (Pull in latest changes in retry structures)
 
     CHK(pKvsRetryStrategy != NULL, STATUS_NULL_ARG);
 
@@ -41,7 +36,6 @@ CleanUp:
     return retStatus;
 }
 
-<<<<<<< HEAD
 STATUS freeRetryStrategyForCreatingSignalingClient(PSignalingClientInfo pClientInfo, PKvsRetryStrategy pKvsRetryStrategy)
 {
     ENTERS();
@@ -52,13 +46,6 @@ STATUS freeRetryStrategyForCreatingSignalingClient(PSignalingClientInfo pClientI
     if (pKvsRetryStrategy->pRetryStrategy != NULL) {
         pClientInfo->signalingRetryStrategyCallbacks.freeRetryStrategyFn(pKvsRetryStrategy);
     }
-=======
-    pSignalingClientRetryStrategy = &(pClientInfo->signalingClientRetryStrategy);
-    pSignalingClientRetryStrategyCallbacks = &(pClientInfo->signalingClientRetryStrategyCallbacks);
-
-    CHK(pSignalingClientRetryStrategyCallbacks->executeRetryStrategyFn != NULL, STATUS_NULL_ARG);
-    CHK(pClientInfo->signalingClientCreationMaxRetryCount > 0, STATUS_INVALID_ARG);
->>>>>>> 00f722460 (Pull in latest changes in retry structures)
 
 CleanUp:
 
@@ -72,11 +59,6 @@ STATUS createSignalingClientSync(PSignalingClientInfo pClientInfo, PChannelInfo 
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = NULL;
-<<<<<<< HEAD
-=======
-    PSignalingClientRetryStrategy pSignalingClientRetryStrategy = NULL;
-    PSignalingClientRetryStrategyCallbacks pSignalingClientRetryStrategyCallbacks = NULL;
->>>>>>> 00f722460 (Pull in latest changes in retry structures)
     SignalingClientInfoInternal signalingClientInfoInternal;
     KvsRetryStrategy createSignalingClientRetryStrategy = {NULL, NULL, KVS_RETRY_STRATEGY_DISABLED};
     UINT32 signalingClientCreationMaxRetryCount;
@@ -89,22 +71,7 @@ STATUS createSignalingClientSync(PSignalingClientInfo pClientInfo, PChannelInfo 
     MEMSET(&signalingClientInfoInternal, 0x00, SIZEOF(signalingClientInfoInternal));
     signalingClientInfoInternal.signalingClientInfo = *pClientInfo;
 
-<<<<<<< HEAD
     CHK_STATUS(createRetryStrategyForCreatingSignalingClient(pClientInfo, &createSignalingClientRetryStrategy));
-=======
-    CHK_STATUS(validateSignalingClientRetryStrategy(pClientInfo));
-
-    signalingClientCreationMaxRetryCount = pClientInfo->signalingClientCreationMaxRetryCount;
-    pSignalingClientRetryStrategy = &(pClientInfo->signalingClientRetryStrategy);
-    pSignalingClientRetryStrategyCallbacks = &(pClientInfo->signalingClientRetryStrategyCallbacks);
-    while (signalingClientCreationMaxRetryCount > 0) {
-        // Wait before cresting signaling client to ensure the first call from a large
-        // client fleet will be spread across the wait time window.
-        CHK_STATUS(pSignalingClientRetryStrategyCallbacks->executeRetryStrategyFn(pSignalingClientRetryStrategy, &signalingClientCreationWaitTime));
-        DLOGV("Attempting to back off for [%lf] milliseconds before creating signaling client. Signaling client creation retry count [%d]",
-              signalingClientCreationWaitTime/1000.0, signalingClientCreationMaxRetryCount);
-        THREAD_SLEEP(signalingClientCreationWaitTime);
->>>>>>> 00f722460 (Pull in latest changes in retry structures)
 
     signalingClientCreationMaxRetryCount = pClientInfo->signalingClientCreationMaxRetryAttempts;
     while (TRUE) {
@@ -121,11 +88,13 @@ STATUS createSignalingClientSync(PSignalingClientInfo pClientInfo, PChannelInfo 
             break;
         }
 
+        pClientInfo->stateMachineRetryCountReadOnly = signalingClientInfoInternal.signalingClientInfo.stateMachineRetryCountReadOnly;
+
         // Wait before attempting to create signaling client
         CHK_STATUS(pClientInfo->signalingRetryStrategyCallbacks.executeRetryStrategyFn(
                 &createSignalingClientRetryStrategy, &signalingClientCreationWaitTime));
 
-        DLOGE("Attempting to back off for [%lf] milliseconds before creating signaling client again. "
+        DLOGV("Attempting to back off for [%lf] milliseconds before creating signaling client again. "
               "Signaling client creation retry count [%d]",
               retStatus, signalingClientCreationWaitTime/1000.0, signalingClientCreationMaxRetryCount);
         THREAD_SLEEP(signalingClientCreationWaitTime);
@@ -372,13 +341,13 @@ STATUS signalingClientGetMetrics(SIGNALING_CLIENT_HANDLE signalingClientHandle, 
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = FROM_SIGNALING_CLIENT_HANDLE(signalingClientHandle);
+
     DLOGV("Signaling Client Get Metrics");
+
     CHK_STATUS(signalingGetMetrics(pSignalingClient, pSignalingClientMetrics));
 
 CleanUp:
-    if(pSignalingClient != NULL) {
-        SIGNALING_UPDATE_ERROR_COUNT(pSignalingClient, retStatus);
-    }
+    SIGNALING_UPDATE_ERROR_COUNT(pSignalingClient, retStatus);
     LEAVES();
     return retStatus;
 }

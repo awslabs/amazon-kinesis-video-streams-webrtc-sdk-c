@@ -258,7 +258,7 @@ TEST_F(SignalingApiFunctionalityTest, basicCreateConnectFree)
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
 }
 
-TEST_F(SignalingApiFunctionalityTest, basicCreateCreateWithRetries)
+TEST_F(SignalingApiFunctionalityTest, basicCreateWithRetries)
 {
     if (!mAccessKeyIdSet) {
         return;

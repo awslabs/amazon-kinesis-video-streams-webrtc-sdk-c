@@ -171,7 +171,7 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
 
 CleanUp:
     if(pClientInfo != NULL && pSignalingClient != NULL) {
-        pClientInfo->signalingClientInfo.stateMachineRetryCount = pSignalingClient->diagnostics.stateMachineRetryCount;
+        pClientInfo->signalingClientInfo.stateMachineRetryCountReadOnly = pSignalingClient->diagnostics.stateMachineRetryCount;
     }
     CHK_LOG_ERR(retStatus);
 
@@ -587,46 +587,6 @@ CleanUp:
     return retStatus;
 }
 
-<<<<<<< HEAD
-=======
-STATUS configureRetryStrategyForSignalingStateMachine(PSignalingClient pSignalingClient) {
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-
-    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
-    pSignalingClient->clientInfo.signalingClientRetryStrategyCallbacks.createRetryStrategyFn = exponentialBackoffRetryStrategyCreate;
-    pSignalingClient->clientInfo.signalingClientRetryStrategyCallbacks.getCurrentRetryAttemptNumberFn = getExponentialBackoffRetryCount;
-    pSignalingClient->clientInfo.signalingClientRetryStrategyCallbacks.freeRetryStrategyFn = exponentialBackoffRetryStrategyFree;
-    pSignalingClient->clientInfo.signalingClientRetryStrategyCallbacks.executeRetryStrategyFn = getExponentialBackoffRetryStrategyWaitTime;
-
-    CHK_STATUS(pSignalingClient->clientInfo.signalingClientRetryStrategyCallbacks.createRetryStrategyFn(
-            &pSignalingClient->clientInfo.signalingStateMachineRetryStrategy));
-
-    CleanUp:
-
-    LEAVES();
-    return retStatus;
-}
-
-STATUS freeClientRetryStrategy(PSignalingClient pSignalingClient) {
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-
-    CHK(pSignalingClient != NULL &&
-        pSignalingClient->clientInfo.signalingClientRetryStrategyCallbacks.freeRetryStrategyFn != NULL, STATUS_SUCCESS);
-
-    CHK_STATUS(pSignalingClient->clientInfo.signalingClientRetryStrategyCallbacks.freeRetryStrategyFn(
-            &(pSignalingClient->clientInfo.signalingStateMachineRetryStrategy)));
-
-    pSignalingClient->clientInfo.signalingStateMachineRetryStrategy.pRetryStrategy = NULL;
-
-    CleanUp:
-
-    LEAVES();
-    return retStatus;
-}
-
->>>>>>> 2615adaad (Fix compile issue on travis)
 STATUS validateIceConfiguration(PSignalingClient pSignalingClient)
 {
     ENTERS();
@@ -1232,6 +1192,7 @@ STATUS signalingGetMetrics(PSignalingClient pSignalingClient, PSignalingClientMe
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT64 curTime = GETTIME();
+
     CHK(pSignalingClient != NULL && pSignalingClientMetrics != NULL, STATUS_NULL_ARG);
     CHK(pSignalingClientMetrics->version <= SIGNALING_CLIENT_METRICS_CURRENT_VERSION, STATUS_SIGNALING_INVALID_METRICS_VERSION);
 
@@ -1256,6 +1217,7 @@ STATUS signalingGetMetrics(PSignalingClient pSignalingClient, PSignalingClientMe
     MUTEX_UNLOCK(pSignalingClient->diagnosticsLock);
 
 CleanUp:
+
     LEAVES();
     return retStatus;
 }

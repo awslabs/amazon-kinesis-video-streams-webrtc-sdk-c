@@ -660,15 +660,6 @@ extern "C" {
 typedef UINT64 SIGNALING_CLIENT_HANDLE;
 typedef SIGNALING_CLIENT_HANDLE* PSIGNALING_CLIENT_HANDLE;
 
-<<<<<<< HEAD
-=======
-typedef KvsRetryStrategy SignalingClientRetryStrategy;
-typedef PKvsRetryStrategy PSignalingClientRetryStrategy;
-
-typedef KvsRetryStrategyCallbacks SignalingClientRetryStrategyCallbacks;
-typedef PKvsRetryStrategyCallbacks PSignalingClientRetryStrategyCallbacks;
-
->>>>>>> 00f722460 (Pull in latest changes in retry structures)
 /**
  * @brief This is a sentinel indicating an invalid handle value
  */
@@ -1196,15 +1187,9 @@ typedef struct {
                                                                     //!< devices which have read only partition where the code is
                                                                     //!< located. For default value or when file caching is not
                                                                     //!< being used this value can be NULL or point to an EMPTY_STRING.
-<<<<<<< HEAD
     KvsRetryStrategyCallbacks signalingRetryStrategyCallbacks;      //!< Retry strategy callbacks used while creating signaling client
     UINT32 signalingClientCreationMaxRetryAttempts;                 //!< Max attempts to create signaling client before returning error to the caller
-=======
-    SignalingClientRetryStrategy signalingClientRetryStrategy;      //!< Retry strategy used while creating signaling client
-    SignalingClientRetryStrategyCallbacks signalingClientRetryStrategyCallbacks;
-    UINT32 signalingClientCreationMaxRetryCount;                    //!< Maximum attempts which createSignalingClientSync API will make on failures to create signaling client
-    UINT32 stateMachineRetryCount;                                  //!< Retry count of state machine. Note that this **MUST NOT** be modified by the user. It is a read only field
->>>>>>> 00f722460 (Pull in latest changes in retry structures)
+    UINT32 stateMachineRetryCountReadOnly;                          //!< Retry count of state machine. Note that this **MUST NOT** be modified by the user. It is a read only field
 } SignalingClientInfo, *PSignalingClientInfo;
 
 /**

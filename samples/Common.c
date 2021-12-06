@@ -697,29 +697,6 @@ CleanUp:
     return retStatus;
 }
 
-<<<<<<< HEAD
-=======
-STATUS setupDefaultSignalingClientRetryStrategy(PSignalingClientInfo pSignalingClientInfo)
-{
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-
-    CHK(pSignalingClientInfo != NULL, STATUS_NULL_ARG);
-    pSignalingClientInfo->signalingClientRetryStrategyCallbacks.createRetryStrategyFn = exponentialBackoffRetryStrategyCreate;
-    pSignalingClientInfo->signalingClientRetryStrategyCallbacks.getCurrentRetryAttemptNumberFn = getExponentialBackoffRetryCount;
-    pSignalingClientInfo->signalingClientRetryStrategyCallbacks.freeRetryStrategyFn = exponentialBackoffRetryStrategyFree;
-    pSignalingClientInfo->signalingClientRetryStrategyCallbacks.executeRetryStrategyFn = getExponentialBackoffRetryStrategyWaitTime;
-
-    CHK_STATUS(pSignalingClientInfo->signalingClientRetryStrategyCallbacks.createRetryStrategyFn(&pSignalingClientInfo->signalingClientRetryStrategy));
-    printf("Null\n");
-    pSignalingClientInfo->signalingClientCreationMaxRetryCount = MAX_CREATE_SIGNALING_CLIENT_RETRIES;
-
-CleanUp:
-    LEAVES();
-    return retStatus;
-}
-
->>>>>>> a40b09297 (Add Retry count retrieval in hook)
 STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE roleType, BOOL trickleIce, BOOL useTurn,
                                  PSampleConfiguration* ppSampleConfiguration)
 {
@@ -729,6 +706,7 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     UINT32 logLevel = LOG_LEVEL_DEBUG;
 
     CHK(ppSampleConfiguration != NULL, STATUS_NULL_ARG);
+
     CHK(NULL != (pSampleConfiguration = (PSampleConfiguration) MEMCALLOC(1, SIZEOF(SampleConfiguration))), STATUS_NOT_ENOUGH_MEMORY);
 
 #ifdef IOT_CORE_ENABLE_CREDENTIALS
@@ -795,7 +773,7 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     pSampleConfiguration->channelInfo.reconnect = TRUE;
     pSampleConfiguration->channelInfo.pCertPath = pSampleConfiguration->pCaCertPath;
     pSampleConfiguration->channelInfo.messageTtl = 0; // Default is 60 seconds
-    
+
     pSampleConfiguration->signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
     pSampleConfiguration->signalingClientCallbacks.errorReportFn = signalingClientError;
     pSampleConfiguration->signalingClientCallbacks.stateChangeFn = signalingClientStateChanged;
@@ -830,7 +808,7 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     CHK_STATUS(stackQueueCreate(&pSampleConfiguration->pPendingSignalingMessageForRemoteClient));
     CHK_STATUS(hashTableCreateWithParams(SAMPLE_HASH_TABLE_BUCKET_COUNT, SAMPLE_HASH_TABLE_BUCKET_LENGTH,
                                          &pSampleConfiguration->pRtcPeerConnectionForRemoteClient));
-    printf("End\n");
+
 CleanUp:
 
     if (STATUS_FAILED(retStatus)) {
@@ -1087,14 +1065,6 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
     SAFE_MEMFREE(pSampleConfiguration->pVideoFrameBuffer);
     SAFE_MEMFREE(pSampleConfiguration->pAudioFrameBuffer);
 
-<<<<<<< HEAD
-=======
-    if (pSampleConfiguration->clientInfo.signalingClientRetryStrategyCallbacks.freeRetryStrategyFn != NULL) {
-        CHK_STATUS(pSampleConfiguration->clientInfo.signalingClientRetryStrategyCallbacks.freeRetryStrategyFn(
-                &(pSampleConfiguration->clientInfo.signalingClientRetryStrategy)));
-    }
-
->>>>>>> 00f722460 (Pull in latest changes in retry structures)
     if (IS_VALID_CVAR_VALUE(pSampleConfiguration->cvar) && IS_VALID_MUTEX_VALUE(pSampleConfiguration->sampleConfigurationObjLock)) {
         CVAR_BROADCAST(pSampleConfiguration->cvar);
         MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
