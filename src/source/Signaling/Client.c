@@ -1,6 +1,58 @@
 #define LOG_CLASS "SignalingClient"
 #include "../Include_i.h"
 
+STATUS createRetryStrategyForCreatingSignalingClient(PSignalingClientInfo pClientInfo, PKvsRetryStrategy pKvsRetryStrategy)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(pKvsRetryStrategy != NULL, STATUS_NULL_ARG);
+
+    if (pClientInfo->signalingRetryStrategyCallbacks.createRetryStrategyFn == NULL ||
+        pClientInfo->signalingRetryStrategyCallbacks.freeRetryStrategyFn == NULL ||
+        pClientInfo->signalingRetryStrategyCallbacks.executeRetryStrategyFn == NULL) {
+
+        DLOGV("Using exponential backoff retry strategy for creating signaling client");
+        pClientInfo->signalingRetryStrategyCallbacks.createRetryStrategyFn = exponentialBackoffRetryStrategyCreate;
+        pClientInfo->signalingRetryStrategyCallbacks.freeRetryStrategyFn = exponentialBackoffRetryStrategyFree;
+        pClientInfo->signalingRetryStrategyCallbacks.executeRetryStrategyFn = getExponentialBackoffRetryStrategyWaitTime;
+    }
+
+    // Create retry strategy will use default config 'DEFAULT_EXPONENTIAL_BACKOFF_CONFIGURATION' defined in -
+    // https://github.com/awslabs/amazon-kinesis-video-streams-pic/blob/develop/src/utils/include/com/amazonaws/kinesis/video/utils/Include.h
+    CHK_STATUS(pClientInfo->signalingRetryStrategyCallbacks.createRetryStrategyFn(pKvsRetryStrategy));
+
+    CHK(pKvsRetryStrategy->retryStrategyType == KVS_RETRY_STRATEGY_EXPONENTIAL_BACKOFF_WAIT, STATUS_INTERNAL_ERROR);
+    CHK(pKvsRetryStrategy->pRetryStrategy != NULL, STATUS_INTERNAL_ERROR);
+
+CleanUp:
+
+    if (STATUS_FAILED(retStatus)) {
+        DLOGE("Some internal error occurred while setting up retry strategy for creating signaling client [0x%08x]", retStatus);
+        pClientInfo->signalingRetryStrategyCallbacks.freeRetryStrategyFn(pKvsRetryStrategy);
+    }
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS freeRetryStrategyForCreatingSignalingClient(PSignalingClientInfo pClientInfo, PKvsRetryStrategy pKvsRetryStrategy)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(pClientInfo != NULL && pKvsRetryStrategy != NULL, STATUS_NULL_ARG);
+
+    if (pKvsRetryStrategy->pRetryStrategy != NULL) {
+        pClientInfo->signalingRetryStrategyCallbacks.freeRetryStrategyFn(pKvsRetryStrategy);
+    }
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
+
 STATUS createSignalingClientSync(PSignalingClientInfo pClientInfo, PChannelInfo pChannelInfo, PSignalingClientCallbacks pCallbacks,
                                  PAwsCredentialProvider pCredentialProvider, PSIGNALING_CLIENT_HANDLE pSignalingHandle)
 {
@@ -8,6 +60,9 @@ STATUS createSignalingClientSync(PSignalingClientInfo pClientInfo, PChannelInfo 
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = NULL;
     SignalingClientInfoInternal signalingClientInfoInternal;
+    KvsRetryStrategy createSignalingClientRetryStrategy = {NULL, NULL, KVS_RETRY_STRATEGY_DISABLED};
+    UINT32 signalingClientCreationMaxRetryCount;
+    UINT64 signalingClientCreationWaitTime;
 
     DLOGV("Creating Signaling Client Sync");
     CHK(pSignalingHandle != NULL && pClientInfo != NULL, STATUS_NULL_ARG);
@@ -16,15 +71,44 @@ STATUS createSignalingClientSync(PSignalingClientInfo pClientInfo, PChannelInfo 
     MEMSET(&signalingClientInfoInternal, 0x00, SIZEOF(signalingClientInfoInternal));
     signalingClientInfoInternal.signalingClientInfo = *pClientInfo;
 
-    CHK_STATUS(createSignalingSync(&signalingClientInfoInternal, pChannelInfo, pCallbacks, pCredentialProvider, &pSignalingClient));
+    CHK_STATUS(createRetryStrategyForCreatingSignalingClient(pClientInfo, &createSignalingClientRetryStrategy));
 
-    *pSignalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
+    signalingClientCreationMaxRetryCount = pClientInfo->signalingClientCreationMaxRetryAttempts;
+    while (TRUE) {
+        retStatus = createSignalingSync(&signalingClientInfoInternal, pChannelInfo, pCallbacks, pCredentialProvider, &pSignalingClient);
+        // NOTE: This will retry on all status codes except SUCCESS.
+        // This includes status codes for bad arguments, internal non-recoverable errors etc.
+        // Retrying on non-recoverable errors is useless, but it is quite complex to segregate recoverable
+        // and non-recoverable errors at this layer. So to simplify, we would retry on all non-success status codes.
+        // It is the application's responsibility to fix any validation/null-arg/bad configuration type errors.
+        CHK(retStatus != STATUS_SUCCESS, retStatus);
+
+        DLOGE("Create Signaling Sync API returned [0x%08x]  %d\n", retStatus, signalingClientCreationMaxRetryCount);
+        if (signalingClientCreationMaxRetryCount <= 0) {
+            break;
+        }
+
+        // Wait before attempting to create signaling client
+        CHK_STATUS(pClientInfo->signalingRetryStrategyCallbacks.executeRetryStrategyFn(
+                &createSignalingClientRetryStrategy, &signalingClientCreationWaitTime));
+
+        DLOGE("Attempting to back off for [%lf] milliseconds before creating signaling client again. "
+              "Signaling client creation retry count [%d]",
+              retStatus, signalingClientCreationWaitTime/1000.0, signalingClientCreationMaxRetryCount);
+        THREAD_SLEEP(signalingClientCreationWaitTime);
+        signalingClientCreationMaxRetryCount--;
+    }
 
 CleanUp:
 
     if (STATUS_FAILED(retStatus)) {
+        DLOGE("Create signaling client API failed with return code [0x%08x]", retStatus);
         freeSignaling(&pSignalingClient);
+    } else {
+        *pSignalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
     }
+
+    freeRetryStrategyForCreatingSignalingClient(pClientInfo, &createSignalingClientRetryStrategy);
 
     LEAVES();
     return retStatus;
