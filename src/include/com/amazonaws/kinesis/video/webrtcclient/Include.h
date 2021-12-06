@@ -1328,8 +1328,9 @@ typedef struct {
     UINT32 version;                                       //!< Current version of the structure
     UINT64 customData;                                    //!< Custom data passed by the caller
     SignalingClientMessageReceivedFunc messageReceivedFn; //!< Callback registration for received SDP
-    SignalingClientErrorReportFunc errorReportFn;         //!<  Error reporting function. This is an optional member
+    SignalingClientErrorReportFunc errorReportFn;         //!< Error reporting function. This is an optional member
     SignalingClientStateChangedFunc stateChangeFn;        //!< Signaling client state change callback
+    GetCurrentTimeFunc getCurrentTimeFn;                  //!< callback to override system time, used for testing clock skew
 } SignalingClientCallbacks, *PSignalingClientCallbacks;
 
 /**

@@ -16,19 +16,25 @@ INT32 lwsHttpCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, 
     UNUSED_PARAM(user);
     STATUS retStatus = STATUS_SUCCESS;
     PVOID customData;
-    INT32 status, retValue = 0, size;
+    INT32 status, retValue = 0, size, dateHdrBufferLen;
     PCHAR pCurPtr, pBuffer;
+    CHAR dateHdrBuffer[MAX_DATE_HEADER_BUFFER_LENGTH+1];
     PBYTE pEndPtr;
     PBYTE* ppStartPtr;
     PLwsCallInfo pLwsCallInfo;
     PRequestInfo pRequestInfo = NULL;
     PSingleListNode pCurNode;
-    UINT64 item;
+    UINT64 item, serverTime;
     UINT32 headerCount;
     UINT32 logLevel;
     PRequestHeader pRequestHeader;
     PSignalingClient pSignalingClient = NULL;
     BOOL locked = FALSE;
+    time_t td;
+    size_t len;
+    UINT64 nowTime, clockSkew = 0;
+    PStateMachineState pStateMachineState;
+    BOOL skewMapContains = FALSE;
 
     DLOGV("HTTPS callback with reason %d", reason);
 
@@ -64,6 +70,8 @@ INT32 lwsHttpCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, 
     }
 
     pSignalingClient = pLwsCallInfo->pSignalingClient;
+    nowTime = SIGNALING_GET_CURRENT_TIME(pSignalingClient);
+
     pRequestInfo = pLwsCallInfo->callInfo.pRequestInfo;
     pBuffer = pLwsCallInfo->buffer + LWS_PRE;
 
@@ -93,9 +101,43 @@ INT32 lwsHttpCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, 
 
         case LWS_CALLBACK_ESTABLISHED_CLIENT_HTTP:
             status = lws_http_client_http_response(wsi);
-            DLOGD("Connected with server response: %d", status);
+            getStateMachineCurrentState(pSignalingClient->pStateMachine, &pStateMachineState);
 
+            DLOGD("Connected with server response: %d", status);
             pLwsCallInfo->callInfo.callResult = getServiceCallResultFromHttpStatus((UINT32) status);
+
+            lws_hdr_copy(wsi, &dateHdrBuffer[0], MAX_DATE_HEADER_BUFFER_LENGTH, WSI_TOKEN_HTTP_DATE);
+
+            time(&td);
+
+            len = (unsigned int)lws_hdr_total_length(wsi, WSI_TOKEN_HTTP_DATE);
+            if (len) {
+                /* if this fails, it leaves td as client time */
+                lws_http_date_parse_unix(&dateHdrBuffer[0], len, &td);
+                DLOGV("Date Header Returned By Server:  %s", dateHdrBuffer);
+
+                serverTime = ((UINT64)td) * HUNDREDS_OF_NANOS_IN_A_SECOND;
+
+                if (serverTime > nowTime + MIN_CLOCK_SKEW_TIME_TO_CORRECT) {
+                    // Server time is ahead
+                    clockSkew = (serverTime - nowTime);
+                    DLOGD("Detected Clock Skew!  Server time is AHEAD of Device time: Server time: %" PRIu64 ", now time: %" PRIu64, serverTime, nowTime);
+                } else if (nowTime > serverTime + MIN_CLOCK_SKEW_TIME_TO_CORRECT) {
+                    clockSkew = (nowTime - serverTime);
+                    clockSkew |= ((UINT64)(1ULL << 63));
+                    DLOGD("Detected Clock Skew!  Device time is AHEAD of Server time: Server time: %" PRIu64 ", now time: %" PRIu64, serverTime, nowTime);
+                    // PIC hashTable implementation only stores UINT64 so I will flip the sign of the msb
+                    // This limits the range of the max clock skew we can represent to just under 2925 years.
+                }
+
+                if (clockSkew > 0) {
+                    hashTablePut(pSignalingClient->diagnostics.pEndpointToClockSkewHashMap, pStateMachineState->state, clockSkew);
+                } else if (clockSkew == 0 && skewMapContains) {
+                    // This means the item is in the map so at one point there was a clock skew offset but it has been corrected
+                    // So we should no longer be correcting for a clock skew, remove this item from the map
+                    hashTableRemove(pSignalingClient->diagnostics.pEndpointToClockSkewHashMap, pStateMachineState->state);
+                }
+            }
 
             // Store the Request ID header
             if ((size = lws_hdr_custom_copy(wsi, pBuffer, LWS_SCRATCH_BUFFER_SIZE, SIGNALING_REQUEST_ID_HEADER_NAME,
@@ -118,6 +160,16 @@ INT32 lwsHttpCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, 
 
                 if (pLwsCallInfo->callInfo.callResult != SERVICE_CALL_RESULT_OK) {
                     DLOGW("Received client http read response:  %s", pLwsCallInfo->callInfo.responseData);
+                    if (pLwsCallInfo->callInfo.callResult == SERVICE_CALL_FORBIDDEN) {
+                        if (isCallResultSignatureExpired(&pLwsCallInfo->callInfo)) {
+                            // Set more specific result, this is so in the state machine
+                            // We don't call GetToken again rather RETRY the existing API (now with clock skew correction)
+                            pLwsCallInfo->callInfo.callResult = SERVICE_CALL_SIGNATURE_EXPIRED;
+                        } else if (isCallResultSignatureNotYetCurrent(&pLwsCallInfo->callInfo)) {
+                            // server time is ahead
+                            pLwsCallInfo->callInfo.callResult = SERVICE_CALL_SIGNATURE_NOT_YET_CURRENT;
+                        }
+                    }
                 } else {
                     DLOGV("Received client http read response:  %s", pLwsCallInfo->callInfo.responseData);
                 }
@@ -321,7 +373,7 @@ INT32 lwsWssCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, P
 
             // Store the time when we connect for diagnostics
             MUTEX_LOCK(pSignalingClient->diagnosticsLock);
-            pSignalingClient->diagnostics.connectTime = GETTIME();
+            pSignalingClient->diagnostics.connectTime = SIGNALING_GET_CURRENT_TIME(pSignalingClient);
             MUTEX_UNLOCK(pSignalingClient->diagnosticsLock);
 
             // Notify the listener thread
@@ -639,8 +691,44 @@ CleanUp:
     return retStatus;
 }
 
-BOOL isCallResultFailureRetryable(PCallInfo pCallInfo) {
-    return (STRNSTR(pCallInfo->responseData, "Signature expired", pCallInfo->responseDataLen) == NULL);
+BOOL isCallResultSignatureExpired(PCallInfo pCallInfo) {
+    return (STRNSTR(pCallInfo->responseData, "Signature expired", pCallInfo->responseDataLen) != NULL);
+}
+
+BOOL isCallResultSignatureNotYetCurrent(PCallInfo pCallInfo) {
+    return (STRNSTR(pCallInfo->responseData, "Signature not yet current", pCallInfo->responseDataLen) != NULL);
+}
+
+STATUS checkAndCorrectForClockSkew(PSignalingClient pSignalingClient, PRequestInfo pRequestInfo) {
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+
+    PStateMachineState pStateMachineState;
+    PHashTable pClockSkewMap;
+    UINT64 clockSkewOffset;
+    CHK_STATUS(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pStateMachineState));
+
+    pClockSkewMap = pSignalingClient->diagnostics.pEndpointToClockSkewHashMap;
+
+    CHK_STATUS(hashTableGet(pClockSkewMap, pStateMachineState->state, &clockSkewOffset));
+
+    // if we made it here that means there is clock skew
+    if (clockSkewOffset & ((UINT64)(1ULL << 63))) {
+        clockSkewOffset ^= ((UINT64)(1ULL << 63));
+        DLOGV("Detected device time is AHEAD of server time!");
+        pRequestInfo->currentTime -= clockSkewOffset;
+    } else {
+        DLOGV("Detected server time is AHEAD of device time!");
+        pRequestInfo->currentTime += clockSkewOffset;
+    }
+
+    DLOGW("Clockskew corrected!");
+
+CleanUp:
+
+
+    LEAVES();
+    return retStatus;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -672,12 +760,18 @@ STATUS describeChannelLws(PSignalingClient pSignalingClient, UINT64 time)
 
     // Prepare the json params for the call
     SNPRINTF(paramsJson, ARRAY_SIZE(paramsJson), DESCRIBE_CHANNEL_PARAM_JSON_TEMPLATE, pSignalingClient->pChannelInfo->pChannelName);
-
     // Create the request info with the body
     CHK_STATUS(createRequestInfo(url, paramsJson, pSignalingClient->pChannelInfo->pRegion, pSignalingClient->pChannelInfo->pCertPath, NULL, NULL,
                                  SSL_CERTIFICATE_TYPE_NOT_SPECIFIED, pSignalingClient->pChannelInfo->pUserAgent,
                                  SIGNALING_SERVICE_API_CALL_CONNECTION_TIMEOUT, SIGNALING_SERVICE_API_CALL_COMPLETION_TIMEOUT,
                                  DEFAULT_LOW_SPEED_LIMIT, DEFAULT_LOW_SPEED_TIME_LIMIT, pSignalingClient->pAwsCredentials, &pRequestInfo));
+
+    // createRequestInfo does not have access to the getCurrentTime callback, this hook is used for tests.
+    if (pSignalingClient->signalingClientCallbacks.getCurrentTimeFn != NULL) {
+        pRequestInfo->currentTime = pSignalingClient->signalingClientCallbacks.getCurrentTimeFn(pSignalingClient->signalingClientCallbacks.customData);
+    }
+
+    checkAndCorrectForClockSkew(pSignalingClient, pRequestInfo);
 
     CHK_STATUS(createLwsCallInfo(pSignalingClient, pRequestInfo, PROTOCOL_INDEX_HTTPS, &pLwsCallInfo));
 
@@ -688,9 +782,6 @@ STATUS describeChannelLws(PSignalingClient pSignalingClient, UINT64 time)
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) pLwsCallInfo->callInfo.callResult);
     pResponseStr = pLwsCallInfo->callInfo.responseData;
     resultLen = pLwsCallInfo->callInfo.responseDataLen;
-
-    CHK_ERR(isCallResultFailureRetryable(&pLwsCallInfo->callInfo), STATUS_SIGNALING_DESCRIBE_CALL_FAILED,
-            "DescribeChannel API call failed with: %s and will not be retried.", pResponseStr);
 
     // Early return if we have a non-success result
     CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, 
@@ -832,6 +923,12 @@ STATUS createChannelLws(PSignalingClient pSignalingClient, UINT64 time)
                                  SIGNALING_SERVICE_API_CALL_CONNECTION_TIMEOUT, SIGNALING_SERVICE_API_CALL_COMPLETION_TIMEOUT,
                                  DEFAULT_LOW_SPEED_LIMIT, DEFAULT_LOW_SPEED_TIME_LIMIT, pSignalingClient->pAwsCredentials, &pRequestInfo));
 
+    if (pSignalingClient->signalingClientCallbacks.getCurrentTimeFn != NULL) {
+        pRequestInfo->currentTime = pSignalingClient->signalingClientCallbacks.getCurrentTimeFn(pSignalingClient->signalingClientCallbacks.customData);
+    }
+
+    checkAndCorrectForClockSkew(pSignalingClient, pRequestInfo);
+
     CHK_STATUS(createLwsCallInfo(pSignalingClient, pRequestInfo, PROTOCOL_INDEX_HTTPS, &pLwsCallInfo));
 
     // Make a blocking call
@@ -841,9 +938,6 @@ STATUS createChannelLws(PSignalingClient pSignalingClient, UINT64 time)
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) pLwsCallInfo->callInfo.callResult);
     pResponseStr = pLwsCallInfo->callInfo.responseData;
     resultLen = pLwsCallInfo->callInfo.responseDataLen;
-
-    CHK_ERR(isCallResultFailureRetryable(&pLwsCallInfo->callInfo), STATUS_SIGNALING_CREATE_CALL_FAILED,
-            "CreateChannel API call failed with: %s and will not be retried.", pResponseStr);
 
     // Early return if we have a non-success result
     CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, 
@@ -914,6 +1008,12 @@ STATUS getChannelEndpointLws(PSignalingClient pSignalingClient, UINT64 time)
                                  SIGNALING_SERVICE_API_CALL_CONNECTION_TIMEOUT, SIGNALING_SERVICE_API_CALL_COMPLETION_TIMEOUT,
                                  DEFAULT_LOW_SPEED_LIMIT, DEFAULT_LOW_SPEED_TIME_LIMIT, pSignalingClient->pAwsCredentials, &pRequestInfo));
 
+    if (pSignalingClient->signalingClientCallbacks.getCurrentTimeFn != NULL) {
+        pRequestInfo->currentTime = pSignalingClient->signalingClientCallbacks.getCurrentTimeFn(pSignalingClient->signalingClientCallbacks.customData);
+    }
+
+    checkAndCorrectForClockSkew(pSignalingClient, pRequestInfo);
+
     CHK_STATUS(createLwsCallInfo(pSignalingClient, pRequestInfo, PROTOCOL_INDEX_HTTPS, &pLwsCallInfo));
 
     // Make a blocking call
@@ -923,9 +1023,6 @@ STATUS getChannelEndpointLws(PSignalingClient pSignalingClient, UINT64 time)
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) pLwsCallInfo->callInfo.callResult);
     pResponseStr = pLwsCallInfo->callInfo.responseData;
     resultLen = pLwsCallInfo->callInfo.responseDataLen;
-
-    CHK_ERR(isCallResultFailureRetryable(&pLwsCallInfo->callInfo), STATUS_SIGNALING_GET_ENDPOINT_CALL_FAILED,
-            "GetChannelEndpoint API call failed with: %s and will not be retried.", pResponseStr);
 
     // Early return if we have a non-success result
     CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, 
@@ -1053,6 +1150,12 @@ STATUS getIceConfigLws(PSignalingClient pSignalingClient, UINT64 time)
                                  SIGNALING_SERVICE_API_CALL_CONNECTION_TIMEOUT, SIGNALING_SERVICE_API_CALL_COMPLETION_TIMEOUT,
                                  DEFAULT_LOW_SPEED_LIMIT, DEFAULT_LOW_SPEED_TIME_LIMIT, pSignalingClient->pAwsCredentials, &pRequestInfo));
 
+    if (pSignalingClient->signalingClientCallbacks.getCurrentTimeFn != NULL) {
+        pRequestInfo->currentTime = pSignalingClient->signalingClientCallbacks.getCurrentTimeFn(pSignalingClient->signalingClientCallbacks.customData);
+    }
+
+    checkAndCorrectForClockSkew(pSignalingClient, pRequestInfo);
+
     CHK_STATUS(createLwsCallInfo(pSignalingClient, pRequestInfo, PROTOCOL_INDEX_HTTPS, &pLwsCallInfo));
 
     // Make a blocking call
@@ -1062,9 +1165,6 @@ STATUS getIceConfigLws(PSignalingClient pSignalingClient, UINT64 time)
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) pLwsCallInfo->callInfo.callResult);
     pResponseStr = pLwsCallInfo->callInfo.responseData;
     resultLen = pLwsCallInfo->callInfo.responseDataLen;
-
-    CHK_ERR(isCallResultFailureRetryable(&pLwsCallInfo->callInfo), STATUS_SIGNALING_GET_ICE_CONFIG_CALL_FAILED,
-            "GetIceConfig API call failed with: %s and will not be retried.", pResponseStr);
 
     // Early return if we have a non-success result
     CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, 
@@ -1177,6 +1277,12 @@ STATUS deleteChannelLws(PSignalingClient pSignalingClient, UINT64 time)
                                  SSL_CERTIFICATE_TYPE_NOT_SPECIFIED, pSignalingClient->pChannelInfo->pUserAgent,
                                  SIGNALING_SERVICE_API_CALL_CONNECTION_TIMEOUT, SIGNALING_SERVICE_API_CALL_COMPLETION_TIMEOUT,
                                  DEFAULT_LOW_SPEED_LIMIT, DEFAULT_LOW_SPEED_TIME_LIMIT, pSignalingClient->pAwsCredentials, &pRequestInfo));
+
+    if (pSignalingClient->signalingClientCallbacks.getCurrentTimeFn != NULL) {
+        pRequestInfo->currentTime = pSignalingClient->signalingClientCallbacks.getCurrentTimeFn(pSignalingClient->signalingClientCallbacks.customData);
+    }
+
+    checkAndCorrectForClockSkew(pSignalingClient, pRequestInfo);
 
     CHK_STATUS(createLwsCallInfo(pSignalingClient, pRequestInfo, PROTOCOL_INDEX_HTTPS, &pLwsCallInfo));
 
@@ -1428,7 +1534,7 @@ PVOID reconnectHandler(PVOID args)
     ATOMIC_INCREMENT(&pSignalingClient->diagnostics.numberOfReconnects);
 
     // Attempt to reconnect by driving the state machine to connected state
-    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, GETTIME() + SIGNALING_CONNECT_STATE_TIMEOUT,
+    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, SIGNALING_GET_CURRENT_TIME(pSignalingClient) + SIGNALING_CONNECT_STATE_TIMEOUT,
                                              SIGNALING_STATE_CONNECTED));
 
 CleanUp:
@@ -1515,7 +1621,7 @@ STATUS sendLwsMessage(PSignalingClient pSignalingClient, SIGNALING_MESSAGE_TYPE 
 
     // In case of an Offer, package the ICE candidates only if we have a set of non-expired ICE configs
     if (messageType == SIGNALING_MESSAGE_TYPE_OFFER && pSignalingClient->iceConfigCount != 0 &&
-        (curTime = GETTIME()) <= pSignalingClient->iceConfigExpiration && STATUS_SUCCEEDED(validateIceConfiguration(pSignalingClient))) {
+        (curTime = SIGNALING_GET_CURRENT_TIME(pSignalingClient)) <= pSignalingClient->iceConfigExpiration && STATUS_SUCCEEDED(validateIceConfiguration(pSignalingClient))) {
         // Start the ice infos by copying the preamble, then the main body and then the ending
         STRCPY(encodedIceConfig, SIGNALING_ICE_SERVER_LIST_TEMPLATE_START);
         iceConfigLen = ARRAY_SIZE(SIGNALING_ICE_SERVER_LIST_TEMPLATE_START) - 1; // remove the null terminator
@@ -1850,7 +1956,7 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
             SAFE_MEMFREE(pSignalingMessageWrapper);
 
             // Iterate the state machinery
-            CHK_STATUS(signalingStateMachineIterator(pSignalingClient, GETTIME() + SIGNALING_CONNECT_STATE_TIMEOUT, SIGNALING_STATE_CONNECTED));
+            CHK_STATUS(signalingStateMachineIterator(pSignalingClient, SIGNALING_GET_CURRENT_TIME(pSignalingClient) + SIGNALING_CONNECT_STATE_TIMEOUT, SIGNALING_STATE_CONNECTED));
 
             CHK(FALSE, retStatus);
             break;
@@ -1863,7 +1969,7 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
             SAFE_MEMFREE(pSignalingMessageWrapper);
 
             // Iterate the state machinery
-            CHK_STATUS(signalingStateMachineIterator(pSignalingClient, GETTIME() + SIGNALING_CONNECT_STATE_TIMEOUT, SIGNALING_STATE_CONNECTED));
+            CHK_STATUS(signalingStateMachineIterator(pSignalingClient, SIGNALING_GET_CURRENT_TIME(pSignalingClient) + SIGNALING_CONNECT_STATE_TIMEOUT, SIGNALING_STATE_CONNECTED));
 
             CHK(FALSE, retStatus);
             break;

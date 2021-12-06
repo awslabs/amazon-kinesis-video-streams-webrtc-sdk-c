@@ -80,6 +80,7 @@ class WebRtcClientTestBase : public ::testing::Test {
         mSignalingClientCallbacks.messageReceivedFn = NULL;
         mSignalingClientCallbacks.errorReportFn = NULL;
         mSignalingClientCallbacks.stateChangeFn = NULL;
+        mSignalingClientCallbacks.getCurrentTimeFn = NULL;
 
         mClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
         mClientInfo.loggingLevel = LOG_LEVEL_VERBOSE;

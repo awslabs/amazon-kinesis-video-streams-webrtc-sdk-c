@@ -72,7 +72,8 @@ STATUS signalingStateMachineIterator(PSignalingClient pSignalingClient, UINT64 e
             }
         }
 
-        currentTime = GETTIME();
+        currentTime = SIGNALING_GET_CURRENT_TIME(pSignalingClient);
+
         CHK(expiration == 0 || currentTime <= expiration, STATUS_OPERATION_TIMED_OUT);
 
         // Fix-up the expired credentials transition
@@ -277,7 +278,7 @@ STATUS executeGetTokenSignalingState(UINT64 customData, UINT64 time)
     retStatus = pSignalingClient->pCredentialProvider->getCredentialsFn(pSignalingClient->pCredentialProvider, &pSignalingClient->pAwsCredentials);
 
     // Check the expiration
-    if (NULL == pSignalingClient->pAwsCredentials || GETTIME() >= pSignalingClient->pAwsCredentials->expiration) {
+    if (NULL == pSignalingClient->pAwsCredentials || SIGNALING_GET_CURRENT_TIME(pSignalingClient) >= pSignalingClient->pAwsCredentials->expiration) {
         serviceCallResult = SERVICE_CALL_NOT_AUTHORIZED;
     } else {
         serviceCallResult = SERVICE_CALL_RESULT_OK;
@@ -349,6 +350,8 @@ STATUS executeDescribeSignalingState(UINT64 customData, UINT64 time)
         CHK_STATUS(pSignalingClient->signalingClientCallbacks.stateChangeFn(pSignalingClient->signalingClientCallbacks.customData,
                                                                             SIGNALING_CLIENT_STATE_DESCRIBE));
     }
+
+    DLOGD("About to call this function...");
 
     // Call the aggregate function
     retStatus = describeChannel(pSignalingClient, time);
