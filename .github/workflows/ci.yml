@@ -2,9 +2,9 @@ name: WebRTC C SDK CI
 
 on:
   push:
-    branches: ["**"]
-#      - develop
-#      - master
+    branches:
+      - develop
+      - master
   pull_request:
     branches:
       - develop
@@ -75,9 +75,6 @@ jobs:
           cd build
           cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TEST=TRUE -DADDRESS_SANITIZER=TRUE
           make
-      - name: Run unit test
-        run: |
-          cd build
           export AWS_KVS_LOG_LEVEL=3
           ulimit -c unlimited -S
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
@@ -118,9 +115,6 @@ jobs:
           cd build
           cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TEST=TRUE -DTHREAD_SANITIZER=TRUE
           make
-      - name: Run unit test
-        run: |
-          cd build
           export AWS_KVS_LOG_LEVEL=3
           ulimit -c unlimited -S
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
