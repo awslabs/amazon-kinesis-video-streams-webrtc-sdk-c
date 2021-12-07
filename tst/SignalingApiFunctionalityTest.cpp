@@ -3942,11 +3942,7 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_FastClockSkew)
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
 }
 
-<<<<<<< HEAD
-TEST_F(SignalingApiFunctionalityTest, DISABLED_receivingIceConfigOffer_FastClockSkew_VerifyOffsetRemovedWhenClockFixed)
-=======
 TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_FastClockSkew_VerifyOffsetRemovedWhenClockFixed)
->>>>>>> 40ec502ba... auto fix clock skew and add tests
 {
     if (!mAccessKeyIdSet) {
         return;
