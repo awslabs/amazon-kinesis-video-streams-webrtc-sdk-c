@@ -3,13 +3,13 @@ sudo: true
 
 branches:
   only:
-  - master
-  - develop
+    - master
+    - develop
 
 cache:
-- directories:
-  - $HOME/.cache
-  -
+  - directories:
+      - $HOME/.cache
+      -
 services:
   - docker
 
@@ -32,6 +32,8 @@ matrix:
   # MemorySanitizer and UndefinedBehaviorSanitizer are still WIP
   allow_failures:
     - env: allowTestFail=true
+
+  include:
 
     # MacOS Builds
     - name: "OSX GCC"
@@ -152,6 +154,26 @@ matrix:
         - cmake .. -DBUILD_OPENSSL=TRUE -DBUILD_OPENSSL_PLATFORM=linux-generic32 -DBUILD_LIBSRTP_HOST_PLATFORM=x86_64-unknown-linux-gnu -DBUILD_LIBSRTP_DESTINATION_PLATFORM=arm-unknown-linux-uclibcgnueabi
       script: make
 
+    - name: "mbedTLS - Linux GCC 4.4 Build"
+      os: linux
+      compiler: gcc
+      before_install:
+        # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
+        - sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+        - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+        - sudo apt-get -q update
+        - sudo apt-get -y install gcc-4.4
+        - sudo apt-get -y install gdb
+      before_script: mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
+
+    - name: "mbedTLS - Linux Clang"
+      os: linux
+      compiler: clang
+      before_install:
+        # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
+        - sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+      before_script: mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
+
     - name: "Windows MSVC"
       env: allowTestFail=true
       os: windows
@@ -189,27 +211,27 @@ matrix:
       script:
         # Add SSH key to agent
         - |
-            eval "$(ssh-agent -s)"
-            openssl aes-256-cbc -K $encrypted_d627db542948_key -iv $encrypted_d627db542948_iv -in .github/github_deploy_key.enc -out .github/github_deploy_key -d
-            chmod 600 .github/github_deploy_key
-            ssh-add .github/github_deploy_key
-            rm .github/github_deploy_key
+          eval "$(ssh-agent -s)"
+          openssl aes-256-cbc -K $encrypted_d627db542948_key -iv $encrypted_d627db542948_iv -in .github/github_deploy_key.enc -out .github/github_deploy_key -d
+          chmod 600 .github/github_deploy_key
+          ssh-add .github/github_deploy_key
+          rm .github/github_deploy_key
         # Generate doxygen in container, need latest version
         - alpine doxygen Doxyfile
         - alpine chmod -R 777 doc
         - mv .github/doc/html /tmp
         # Unshallow repo
         - |
-            git remote rm origin
-            git remote add origin git@github.com:awslabs/amazon-kinesis-video-streams-webrtc-sdk-c.git
-            git fetch
+          git remote rm origin
+          git remote add origin git@github.com:awslabs/amazon-kinesis-video-streams-webrtc-sdk-c.git
+          git fetch
         # Move to gh-pages and create new commit
         - |
-            git checkout gh-pages
-            rm -rf * .github
-            mv /tmp/html/* .
+          git checkout gh-pages
+          rm -rf * .github
+          mv /tmp/html/* .
         # Commit and push
         - |
-            git add .
-            git commit -m "Auto-generated from travis"
-            git push
+          git add .
+          git commit -m "Auto-generated from travis"
+          git push
