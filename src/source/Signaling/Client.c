@@ -88,11 +88,13 @@ STATUS createSignalingClientSync(PSignalingClientInfo pClientInfo, PChannelInfo 
             break;
         }
 
+        pClientInfo->stateMachineRetryCountReadOnly = signalingClientInfoInternal.signalingClientInfo.stateMachineRetryCountReadOnly;
+
         // Wait before attempting to create signaling client
         CHK_STATUS(pClientInfo->signalingRetryStrategyCallbacks.executeRetryStrategyFn(
                 &createSignalingClientRetryStrategy, &signalingClientCreationWaitTime));
 
-        DLOGE("Attempting to back off for [%lf] milliseconds before creating signaling client again. "
+        DLOGV("Attempting to back off for [%lf] milliseconds before creating signaling client again. "
               "Signaling client creation retry count [%d]",
               retStatus, signalingClientCreationWaitTime/1000.0, signalingClientCreationMaxRetryCount);
         THREAD_SLEEP(signalingClientCreationWaitTime);
@@ -345,7 +347,6 @@ STATUS signalingClientGetMetrics(SIGNALING_CLIENT_HANDLE signalingClientHandle, 
     CHK_STATUS(signalingGetMetrics(pSignalingClient, pSignalingClientMetrics));
 
 CleanUp:
-
     SIGNALING_UPDATE_ERROR_COUNT(pSignalingClient, retStatus);
     LEAVES();
     return retStatus;

@@ -128,6 +128,7 @@ STATUS defaultSignalingStateTransitionHook(
         PUINT64 stateTransitionWaitTime) {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
+    STATUS countStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = NULL;
     PKvsRetryStrategy pSignalingStateMachineRetryStrategy = NULL;
     PKvsRetryStrategyCallbacks pSignalingStateMachineRetryStrategyCallbacks = NULL;
@@ -149,8 +150,16 @@ STATUS defaultSignalingStateTransitionHook(
     DLOGV("Signaling Client base result is [%u]. Executing KVS retry handler of retry strategy type [%u]",
           pSignalingClient->result, pSignalingStateMachineRetryStrategy->retryStrategyType);
     pSignalingStateMachineRetryStrategyCallbacks->executeRetryStrategyFn(pSignalingStateMachineRetryStrategy, &retryWaitTime);
-
     *stateTransitionWaitTime = retryWaitTime;
+
+    if(pSignalingStateMachineRetryStrategyCallbacks->getCurrentRetryAttemptNumberFn != NULL) {
+        if((countStatus = pSignalingStateMachineRetryStrategyCallbacks->getCurrentRetryAttemptNumberFn(pSignalingStateMachineRetryStrategy, &pSignalingClient->diagnostics.stateMachineRetryCount)) != STATUS_SUCCESS) {
+            DLOGW("Failed to get retry count. Error code: %08x", countStatus);
+        }
+        else {
+            DLOGD("Retry count: %llu", pSignalingClient->diagnostics.stateMachineRetryCount);
+        }
+    }
 
 CleanUp:
 

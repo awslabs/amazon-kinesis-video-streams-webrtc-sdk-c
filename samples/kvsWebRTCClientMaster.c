@@ -11,7 +11,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     PSampleConfiguration pSampleConfiguration = NULL;
     SignalingClientMetrics signalingClientMetrics;
     PCHAR pChannelName;
-    signalingClientMetrics.version = 0;
+    signalingClientMetrics.version = SIGNALING_CLIENT_METRICS_CURRENT_VERSION;
 
     SET_INSTRUMENTED_ALLOCATORS();
 
@@ -114,7 +114,7 @@ INT32 main(INT32 argc, CHAR* argv[])
 CleanUp:
 
     if (retStatus != STATUS_SUCCESS) {
-        printf("[KVS Master] Terminated with status code 0x%08x", retStatus);
+        printf("[KVS Master] Terminated with status code 0x%08x\n", retStatus);
     }
 
     printf("[KVS Master] Cleaning up....\n");
@@ -147,7 +147,7 @@ CleanUp:
         if (retStatus == STATUS_SUCCESS) {
             logSignalingClientStats(&signalingClientMetrics);
         } else {
-            printf("[KVS Master] signalingClientGetMetrics() operation returned status code: 0x%08x", retStatus);
+            printf("[KVS Master] signalingClientGetMetrics() operation returned status code: 0x%08x\n", retStatus);
         }
         retStatus = freeSignalingClient(&pSampleConfiguration->signalingClientHandle);
         if (retStatus != STATUS_SUCCESS) {
