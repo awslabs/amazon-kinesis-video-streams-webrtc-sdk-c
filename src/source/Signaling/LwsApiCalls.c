@@ -156,7 +156,7 @@ INT32 lwsHttpCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, 
             lwsl_hexdump_debug(pDataIn, dataSize);
 
             if (dataSize != 0) {
-                CHK(NULL != (pLwsCallInfo->callInfo.responseData = (PCHAR) MEMALLOC(dataSize+1)), STATUS_NOT_ENOUGH_MEMORY);
+                CHK(NULL != (pLwsCallInfo->callInfo.responseData = (PCHAR) MEMALLOC(dataSize + 1)), STATUS_NOT_ENOUGH_MEMORY);
                 MEMCPY(pLwsCallInfo->callInfo.responseData, pDataIn, dataSize);
                 pLwsCallInfo->callInfo.responseData[dataSize] = '\0';
                 pLwsCallInfo->callInfo.responseDataLen = (UINT32) dataSize;
@@ -788,7 +788,7 @@ STATUS describeChannelLws(PSignalingClient pSignalingClient, UINT64 time)
     resultLen = pLwsCallInfo->callInfo.responseDataLen;
 
     // Early return if we have a non-success result
-    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, 
+    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL,
         STATUS_SIGNALING_LWS_CALL_FAILED);
 
     // Parse the response
@@ -944,7 +944,7 @@ STATUS createChannelLws(PSignalingClient pSignalingClient, UINT64 time)
     resultLen = pLwsCallInfo->callInfo.responseDataLen;
 
     // Early return if we have a non-success result
-    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, 
+    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL,
         STATUS_SIGNALING_LWS_CALL_FAILED);
 
     // Parse out the ARN
@@ -1029,7 +1029,7 @@ STATUS getChannelEndpointLws(PSignalingClient pSignalingClient, UINT64 time)
     resultLen = pLwsCallInfo->callInfo.responseDataLen;
 
     // Early return if we have a non-success result
-    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, 
+    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL,
         STATUS_SIGNALING_LWS_CALL_FAILED);
 
     // Parse and extract the endpoints
@@ -1171,7 +1171,7 @@ STATUS getIceConfigLws(PSignalingClient pSignalingClient, UINT64 time)
     resultLen = pLwsCallInfo->callInfo.responseDataLen;
 
     // Early return if we have a non-success result
-    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, 
+    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL,
         STATUS_SIGNALING_LWS_CALL_FAILED);
 
     // Parse the response
@@ -1298,7 +1298,7 @@ STATUS deleteChannelLws(PSignalingClient pSignalingClient, UINT64 time)
 
     // Early return if we have a non-success result and it's not a resource not found
     result = ATOMIC_LOAD(&pSignalingClient->result);
-    CHK((SERVICE_CALL_RESULT) result == SERVICE_CALL_RESULT_OK || (SERVICE_CALL_RESULT) result == SERVICE_CALL_RESOURCE_NOT_FOUND, 
+    CHK((SERVICE_CALL_RESULT) result == SERVICE_CALL_RESULT_OK || (SERVICE_CALL_RESULT) result == SERVICE_CALL_RESOURCE_NOT_FOUND,
         STATUS_SIGNALING_LWS_CALL_FAILED);
 
     // Mark the channel as deleted
@@ -1538,8 +1538,12 @@ PVOID reconnectHandler(PVOID args)
     ATOMIC_INCREMENT(&pSignalingClient->diagnostics.numberOfReconnects);
 
     // Attempt to reconnect by driving the state machine to connected state
+<<<<<<< HEAD
     CHK_STATUS(signalingStateMachineIterator(pSignalingClient, SIGNALING_GET_CURRENT_TIME(pSignalingClient) + SIGNALING_CONNECT_STATE_TIMEOUT,
                                              SIGNALING_STATE_CONNECTED));
+=======
+    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, GETTIME() + SIGNALING_CONNECT_STATE_TIMEOUT, SIGNALING_STATE_CONNECTED));
+>>>>>>> 2e099eb32 (Fixing clang format)
 
 CleanUp:
 
