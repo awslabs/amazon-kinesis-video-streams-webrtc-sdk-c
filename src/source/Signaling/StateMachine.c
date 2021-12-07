@@ -17,7 +17,7 @@ StateMachineState SIGNALING_STATE_MACHINE_STATES[] = {
      STATUS_SIGNALING_GET_TOKEN_CALL_FAILED},
     {SIGNALING_STATE_DESCRIBE,
      SIGNALING_STATE_GET_TOKEN | SIGNALING_STATE_CREATE | SIGNALING_STATE_GET_ENDPOINT | SIGNALING_STATE_GET_ICE_CONFIG | SIGNALING_STATE_CONNECT |
-         SIGNALING_STATE_CONNECTED | SIGNALING_STATE_DELETE | SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_READY | SIGNALING_STATE_DISCONNECTED,
+         SIGNALING_STATE_CONNECTED | SIGNALING_STATE_DELETE | SIGNALING_STATE_DESCRIBE,
      fromDescribeSignalingState, executeDescribeSignalingState, defaultSignalingStateTransitionHook, SIGNALING_STATES_DEFAULT_RETRY_COUNT,
      STATUS_SIGNALING_DESCRIBE_CALL_FAILED},
     {SIGNALING_STATE_CREATE, SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_CREATE, fromCreateSignalingState, executeCreateSignalingState,
@@ -72,10 +72,10 @@ STATUS defaultSignalingStateTransitionHook(UINT64 customData /* customData shoul
     // result > SERVICE_CALL_RESULT_OK covers case for -
     // result != SERVICE_CALL_RESULT_NOT_SET and != SERVICE_CALL_RESULT_OK
     // If we support any other 2xx service call results, the condition
-    // should change to (pSignalingClient->result > 299 && ..)
+    // should change to (pSignalingClient->result > 299 && ...)
     CHK(pSignalingClient->result > SERVICE_CALL_RESULT_OK && pSignalingStateMachineRetryStrategyCallbacks->executeRetryStrategyFn != NULL,
         STATUS_SUCCESS);
-
+    
     // A retry is considered only after executeRetry is executed. This will avoid publishing count + 1
     if (pSignalingStateMachineRetryStrategyCallbacks->getCurrentRetryAttemptNumberFn != NULL) {
         if ((countStatus = pSignalingStateMachineRetryStrategyCallbacks->getCurrentRetryAttemptNumberFn(
