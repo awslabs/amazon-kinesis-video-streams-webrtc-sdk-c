@@ -301,7 +301,6 @@ extern "C" {
 #define STATUS_SIGNALING_INVALID_CLIENT_INFO_CACHE_FILE_PATH_LEN   STATUS_SIGNALING_BASE + 0x00000033
 #define STATUS_SIGNALING_LWS_CALL_FAILED                           STATUS_SIGNALING_BASE + 0x00000034
 
-
 /*!@} */
 
 /////////////////////////////////////////////////////
