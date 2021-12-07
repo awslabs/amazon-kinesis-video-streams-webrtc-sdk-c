@@ -144,7 +144,7 @@ STATUS defaultSignalingStateTransitionHook(
     // result > SERVICE_CALL_RESULT_OK covers case for -
     // result != SERVICE_CALL_RESULT_NOT_SET and != SERVICE_CALL_RESULT_OK
     // If we support any other 2xx service call results, the condition
-    // should change to (pSignalingClient->result > 299 && ...)
+    // should change to (pSignalingClient->result > 299 && ..)
     CHK(pSignalingClient->result > SERVICE_CALL_RESULT_OK &&
         pSignalingStateMachineRetryStrategyCallbacks->executeRetryStrategyFn != NULL, STATUS_SUCCESS);
 
