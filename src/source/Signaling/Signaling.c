@@ -172,7 +172,7 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
         signalingStateMachineIterator(pSignalingClient, pSignalingClient->diagnostics.createTime + SIGNALING_CREATE_TIMEOUT, SIGNALING_STATE_READY));
 
 CleanUp:
-    if(pClientInfo != NULL && pSignalingClient != NULL) {
+    if (pClientInfo != NULL && pSignalingClient != NULL) {
         pClientInfo->signalingClientInfo.stateMachineRetryCountReadOnly = pSignalingClient->diagnostics.stateMachineRetryCount;
     }
     CHK_LOG_ERR(retStatus);

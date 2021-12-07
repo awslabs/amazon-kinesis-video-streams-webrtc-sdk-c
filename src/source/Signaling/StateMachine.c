@@ -80,8 +80,7 @@ STATUS defaultSignalingStateTransitionHook(UINT64 customData /* customData shoul
     if(pSignalingStateMachineRetryStrategyCallbacks->getCurrentRetryAttemptNumberFn != NULL) {
         if((countStatus = pSignalingStateMachineRetryStrategyCallbacks->getCurrentRetryAttemptNumberFn(pSignalingStateMachineRetryStrategy, &pSignalingClient->diagnostics.stateMachineRetryCount)) != STATUS_SUCCESS) {
             DLOGW("Failed to get retry count. Error code: %08x", countStatus);
-        }
-        else {
+        } else {
             DLOGD("Retry count: %llu", pSignalingClient->diagnostics.stateMachineRetryCount);
         }
     }
