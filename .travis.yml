@@ -33,18 +33,18 @@ matrix:
   allow_failures:
     - env: allowTestFail=true
 
-  include:
-    #clang check
-    - name: "clang-format Check"
-      os: linux
-      compiler: clang
-      before_script:
-        - sudo apt-get -q update
-        - sudo apt-get -y install clang-format
-        - mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TEST=TRUE
-      script:
-        - cd ..
-        - bash scripts/check-clang.sh
+#  include:
+#    #clang check
+#    - name: "clang-format Check"
+#      os: linux
+#      compiler: clang
+#      before_script:
+#        - sudo apt-get -q update
+#        - sudo apt-get -y install clang-format
+#        - mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TEST=TRUE
+#      script:
+#        - cd ..
+#        - bash scripts/check-clang.sh
 
     # MacOS Builds
     - name: "OSX GCC"
@@ -86,17 +86,17 @@ matrix:
         - for test_file in $(find CMakeFiles/kvsWebrtcClient.dir CMakeFiles/kvsWebrtcSignalingClient.dir -name '*.gcno'); do gcov $test_file; done
         - bash <(curl -s https://codecov.io/bash)
 
-    # AddressSanitizer
-    - name: "Linux Clang AddressSanitizer"
-      os: linux
-      compiler: clang
-      env:
-        - ASAN_OPTIONS=detect_odr_violation=0:detect_leaks=1
-        - LSAN_OPTIONS=suppressions=../tst/suppressions/LSAN.supp
-      before_install:
-        # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
-        - sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-      before_script: mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TEST=TRUE -DADDRESS_SANITIZER=TRUE
+#    # AddressSanitizer
+#    - name: "Linux Clang AddressSanitizer"
+#      os: linux
+#      compiler: clang
+#      env:
+#        - ASAN_OPTIONS=detect_odr_violation=0:detect_leaks=1
+#        - LSAN_OPTIONS=suppressions=../tst/suppressions/LSAN.supp
+#      before_install:
+#        # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
+#        - sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+#      before_script: mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TEST=TRUE -DADDRESS_SANITIZER=TRUE
 
     # UndefinedBehaviorSanitizer
     - name: "Linux Clang UndefinedBehaviorSanitizer"
@@ -124,15 +124,15 @@ matrix:
         - msan-tester ./tst/webrtc_client_test
       after_failure: skip # no coredumps in container
 
-    # ThreadSanitizer
-    - name: "Linux Clang ThreadSanitizer"
-      os: linux
-      compiler: clang
-      env: TSAN_OPTIONS=halt_on_error=1:suppressions=../tst/suppressions/TSAN.supp
-      before_install:
-        # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
-        - sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-      before_script: mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TEST=TRUE -DTHREAD_SANITIZER=TRUE
+#    # ThreadSanitizer
+#    - name: "Linux Clang ThreadSanitizer"
+#      os: linux
+#      compiler: clang
+#      env: TSAN_OPTIONS=halt_on_error=1:suppressions=../tst/suppressions/TSAN.supp
+#      before_install:
+#        # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
+#        - sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+#      before_script: mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TEST=TRUE -DTHREAD_SANITIZER=TRUE
 
     # Old Version GCC 4.4
     - name: "Linux GCC 4.4 Build"
@@ -187,25 +187,25 @@ matrix:
         - cmake .. -DBUILD_OPENSSL=TRUE -DBUILD_OPENSSL_PLATFORM=linux-generic32 -DBUILD_LIBSRTP_HOST_PLATFORM=x86_64-unknown-linux-gnu -DBUILD_LIBSRTP_DESTINATION_PLATFORM=arm-unknown-linux-uclibcgnueabi
       script: make
 
-    - name: "mbedTLS - Linux GCC 4.4 Build"
-      os: linux
-      compiler: gcc
-      before_install:
-        # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
-        - sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-        - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-        - sudo apt-get -q update
-        - sudo apt-get -y install gcc-4.4
-        - sudo apt-get -y install gdb
-      before_script: mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
-
-    - name: "mbedTLS - Linux Clang"
-      os: linux
-      compiler: clang
-      before_install:
-        # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
-        - sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-      before_script: mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
+#    - name: "mbedTLS - Linux GCC 4.4 Build"
+#      os: linux
+#      compiler: gcc
+#      before_install:
+#        # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
+#        - sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+#        - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+#        - sudo apt-get -q update
+#        - sudo apt-get -y install gcc-4.4
+#        - sudo apt-get -y install gdb
+#      before_script: mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
+#
+#    - name: "mbedTLS - Linux Clang"
+#      os: linux
+#      compiler: clang
+#      before_install:
+#        # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
+#        - sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+#      before_script: mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
 
     - name: "Windows MSVC"
       env: allowTestFail=true
