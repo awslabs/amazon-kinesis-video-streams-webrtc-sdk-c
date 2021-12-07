@@ -208,7 +208,8 @@ class WebRtcClientTestBase : public ::testing::Test {
         return retStatus;
     }
 
-    static STATUS createRetryStrategyFn(PKvsRetryStrategy pKvsRetryStrategy) {
+    static STATUS createRetryStrategyFn(PKvsRetryStrategy pKvsRetryStrategy)
+    {
         STATUS retStatus = STATUS_SUCCESS;
         PExponentialBackoffRetryStrategyState pExponentialBackoffRetryStrategyState = NULL;
 
@@ -225,15 +226,18 @@ class WebRtcClientTestBase : public ::testing::Test {
         return retStatus;
     }
 
-    static STATUS getCurrentRetryAttemptNumberFn(PKvsRetryStrategy pKvsRetryStrategy, PUINT32 pRetryCount) {
+    static STATUS getCurrentRetryAttemptNumberFn(PKvsRetryStrategy pKvsRetryStrategy, PUINT32 pRetryCount)
+    {
         return getExponentialBackoffRetryCount(pKvsRetryStrategy, pRetryCount);
     }
 
-    static STATUS freeRetryStrategyFn(PKvsRetryStrategy pKvsRetryStrategy) {
+    static STATUS freeRetryStrategyFn(PKvsRetryStrategy pKvsRetryStrategy)
+    {
         return exponentialBackoffRetryStrategyFree(pKvsRetryStrategy);
     }
 
-    static STATUS executeRetryStrategyFn(PKvsRetryStrategy pKvsRetryStrategy, PUINT64 retryWaitTime) {
+    static STATUS executeRetryStrategyFn(PKvsRetryStrategy pKvsRetryStrategy, PUINT64 retryWaitTime)
+    {
         return getExponentialBackoffRetryStrategyWaitTime(pKvsRetryStrategy, retryWaitTime);
     }
 

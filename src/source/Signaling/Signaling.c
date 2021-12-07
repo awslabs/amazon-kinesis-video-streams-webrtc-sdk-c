@@ -168,8 +168,8 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     ATOMIC_STORE_BOOL(&pSignalingClient->refreshIceConfig, FALSE);
 
     // Prime the state machine
-    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, pSignalingClient->diagnostics.createTime + SIGNALING_CREATE_TIMEOUT,
-                                             SIGNALING_STATE_READY));
+    CHK_STATUS(
+        signalingStateMachineIterator(pSignalingClient, pSignalingClient->diagnostics.createTime + SIGNALING_CREATE_TIMEOUT, SIGNALING_STATE_READY));
 
 CleanUp:
     if(pClientInfo != NULL && pSignalingClient != NULL) {
@@ -278,7 +278,8 @@ CleanUp:
     return retStatus;
 }
 
-STATUS setupDefaultRetryStrategyForSignalingStateMachine(PSignalingClient pSignalingClient) {
+STATUS setupDefaultRetryStrategyForSignalingStateMachine(PSignalingClient pSignalingClient)
+{
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PKvsRetryStrategyCallbacks pKvsRetryStrategyCallbacks = &(pSignalingClient->clientInfo.signalingStateMachineRetryStrategyCallbacks);
@@ -291,13 +292,14 @@ STATUS setupDefaultRetryStrategyForSignalingStateMachine(PSignalingClient pSigna
 
     // Use a default exponential backoff config for state machine level retries
     pSignalingClient->clientInfo.signalingStateMachineRetryStrategy.pRetryStrategyConfig =
-            (PRetryStrategyConfig)&DEFAULT_SIGNALING_STATE_MACHINE_EXPONENTIAL_BACKOFF_RETRY_CONFIGURATION;
-    
+        (PRetryStrategyConfig) &DEFAULT_SIGNALING_STATE_MACHINE_EXPONENTIAL_BACKOFF_RETRY_CONFIGURATION;
+
     LEAVES();
     return retStatus;
 }
 
-STATUS configureRetryStrategyForSignalingStateMachine(PSignalingClient pSignalingClient) {
+STATUS configureRetryStrategyForSignalingStateMachine(PSignalingClient pSignalingClient)
+{
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PKvsRetryStrategyCallbacks pKvsRetryStrategyCallbacks = NULL;
@@ -307,16 +309,12 @@ STATUS configureRetryStrategyForSignalingStateMachine(PSignalingClient pSignalin
 
     // If the callbacks for retry strategy are already set, then use that otherwise
     // build the client with a default retry strategy.
-    if (pKvsRetryStrategyCallbacks->createRetryStrategyFn == NULL ||
-    pKvsRetryStrategyCallbacks->freeRetryStrategyFn == NULL ||
-    pKvsRetryStrategyCallbacks->executeRetryStrategyFn == NULL ||
-    pKvsRetryStrategyCallbacks->getCurrentRetryAttemptNumberFn == NULL) {
-
+    if (pKvsRetryStrategyCallbacks->createRetryStrategyFn == NULL || pKvsRetryStrategyCallbacks->freeRetryStrategyFn == NULL ||
+        pKvsRetryStrategyCallbacks->executeRetryStrategyFn == NULL || pKvsRetryStrategyCallbacks->getCurrentRetryAttemptNumberFn == NULL) {
         CHK_STATUS(setupDefaultRetryStrategyForSignalingStateMachine(pSignalingClient));
     }
 
-    CHK_STATUS(pKvsRetryStrategyCallbacks->createRetryStrategyFn(
-            &(pSignalingClient->clientInfo.signalingStateMachineRetryStrategy)));
+    CHK_STATUS(pKvsRetryStrategyCallbacks->createRetryStrategyFn(&(pSignalingClient->clientInfo.signalingStateMachineRetryStrategy)));
 
 CleanUp:
 
@@ -324,7 +322,8 @@ CleanUp:
     return retStatus;
 }
 
-STATUS freeClientRetryStrategy(PSignalingClient pSignalingClient) {
+STATUS freeClientRetryStrategy(PSignalingClient pSignalingClient)
+{
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PKvsRetryStrategyCallbacks pKvsRetryStrategyCallbacks = NULL;
@@ -334,8 +333,7 @@ STATUS freeClientRetryStrategy(PSignalingClient pSignalingClient) {
     pKvsRetryStrategyCallbacks = &(pSignalingClient->clientInfo.signalingStateMachineRetryStrategyCallbacks);
     CHK(pKvsRetryStrategyCallbacks->freeRetryStrategyFn != NULL, STATUS_SUCCESS);
 
-    CHK_STATUS(pKvsRetryStrategyCallbacks->freeRetryStrategyFn(
-            &(pSignalingClient->clientInfo.signalingStateMachineRetryStrategy)));
+    CHK_STATUS(pKvsRetryStrategyCallbacks->freeRetryStrategyFn(&(pSignalingClient->clientInfo.signalingStateMachineRetryStrategy)));
 
 CleanUp:
 
@@ -656,8 +654,7 @@ STATUS refreshIceConfiguration(PSignalingClient pSignalingClient)
 
     // Iterate the state machinery in steady states only - ready or connected
     if (pStateMachineState->state == SIGNALING_STATE_READY || pStateMachineState->state == SIGNALING_STATE_CONNECTED) {
-        CHK_STATUS(signalingStateMachineIterator(pSignalingClient, curTime + SIGNALING_REFRESH_ICE_CONFIG_STATE_TIMEOUT,
-                                                 pStateMachineState->state));
+        CHK_STATUS(signalingStateMachineIterator(pSignalingClient, curTime + SIGNALING_REFRESH_ICE_CONFIG_STATE_TIMEOUT, pStateMachineState->state));
     }
 
 CleanUp:

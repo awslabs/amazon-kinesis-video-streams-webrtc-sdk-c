@@ -100,12 +100,12 @@ static const ExponentialBackoffRetryStrategyConfig DEFAULT_SIGNALING_STATE_MACHI
         ************************************
         jitter = random number between [0, wait time)
     */
-    KVS_INFINITE_EXPONENTIAL_RETRIES, /* max retry count */
-    10000, /* max retry wait time in milliseconds */
-    100, /* factor determining exponential curve in milliseconds */
+    KVS_INFINITE_EXPONENTIAL_RETRIES,                       /* max retry count */
+    10000,                                                  /* max retry wait time in milliseconds */
+    100,                                                    /* factor determining exponential curve in milliseconds */
     DEFAULT_KVS_MIN_TIME_TO_RESET_RETRY_STATE_MILLISECONDS, /* minimum time in milliseconds to reset retry state */
-    FULL_JITTER, /* use full jitter variant */
-    0 /* jitter value unused for full jitter variant */
+    FULL_JITTER,                                            /* use full jitter variant */
+    0                                                       /* jitter value unused for full jitter variant */
 };
 
 // Forward declaration
