@@ -26,14 +26,12 @@ jobs:
   mac-os-catalina-build:
     runs-on: macos-latest
     env:
-      MACOSX_DEPLOYMENT_TARGET: 10.13
-      LDFLAGS: "-L/usr/local/opt/openssl/lib"
-      CPPFLAGS: "-I/usr/local/opt/openssl/include"
+      CPATH: "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include"
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
       - name: Build repository
-        continue-on-error: true
+#        continue-on-error: true
         run: |
           mkdir build
           cd build
@@ -134,3 +132,23 @@ jobs:
           export AWS_KVS_LOG_LEVEL=3
           ulimit -c unlimited -S
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+
+  sample-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v2
+      - name: Install deps
+        run: |
+          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+          sudo apt-get -q update
+          sudo apt-get -y install gcc-4.4
+      - name: Build repository
+        run: |
+          mkdir build
+          cd build
+          cmake ..
+          make
+          cd ..
+          ./scripts/check-sample.sh
