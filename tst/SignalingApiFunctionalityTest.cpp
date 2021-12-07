@@ -199,6 +199,22 @@ STATUS getEndpointPreHook(UINT64 hookCustomData)
     return retStatus;
 };
 
+VOID setupSignalingStateMachineRetryStrategyCallbacks(PSignalingClientInfoInternal pSignalingClientInfoInternal)
+{
+    pSignalingClientInfoInternal->signalingStateMachineRetryStrategyCallbacks.createRetryStrategyFn = SignalingApiFunctionalityTest::createRetryStrategyFn;
+    pSignalingClientInfoInternal->signalingStateMachineRetryStrategyCallbacks.getCurrentRetryAttemptNumberFn = SignalingApiFunctionalityTest::getCurrentRetryAttemptNumberFn;
+    pSignalingClientInfoInternal->signalingStateMachineRetryStrategyCallbacks.freeRetryStrategyFn = SignalingApiFunctionalityTest::freeRetryStrategyFn;
+    pSignalingClientInfoInternal->signalingStateMachineRetryStrategyCallbacks.executeRetryStrategyFn = SignalingApiFunctionalityTest::executeRetryStrategyFn;
+}
+
+VOID setupSignalingStateMachineRetryStrategyCallbacks(PSignalingClientInfo pSignalingClientInfo)
+{
+    pSignalingClientInfo->signalingRetryStrategyCallbacks.createRetryStrategyFn = SignalingApiFunctionalityTest::createRetryStrategyFn;
+    pSignalingClientInfo->signalingRetryStrategyCallbacks.getCurrentRetryAttemptNumberFn = SignalingApiFunctionalityTest::getCurrentRetryAttemptNumberFn;
+    pSignalingClientInfo->signalingRetryStrategyCallbacks.freeRetryStrategyFn = SignalingApiFunctionalityTest::freeRetryStrategyFn;
+    pSignalingClientInfo->signalingRetryStrategyCallbacks.executeRetryStrategyFn = SignalingApiFunctionalityTest::executeRetryStrategyFn;
+}
+
 ////////////////////////////////////////////////////////////////////
 // Functionality Tests
 ////////////////////////////////////////////////////////////////////
@@ -223,7 +239,9 @@ TEST_F(SignalingApiFunctionalityTest, basicCreateConnectFree)
     clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
     clientInfo.cacheFilePath = NULL;
+    clientInfo.signalingClientCreationMaxRetryAttempts = 0;
     STRCPY(clientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    setupSignalingStateMachineRetryStrategyCallbacks(&clientInfo);
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
@@ -249,6 +267,35 @@ TEST_F(SignalingApiFunctionalityTest, basicCreateConnectFree)
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+}
+
+TEST_F(SignalingApiFunctionalityTest, basicCreateWithRetries)
+{
+    if (!mAccessKeyIdSet) {
+        return;
+    }
+
+    SignalingClientInfo clientInfo;
+    SignalingClientCallbacks signalingClientCallbacks;
+    SIGNALING_CLIENT_HANDLE signalingHandle = INVALID_SIGNALING_CLIENT_HANDLE_VALUE;
+
+    signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
+    signalingClientCallbacks.customData = (UINT64) this;
+    signalingClientCallbacks.messageReceivedFn = NULL;
+    signalingClientCallbacks.errorReportFn = signalingClientError;
+    signalingClientCallbacks.stateChangeFn = signalingClientStateChanged;
+
+    clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
+    clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
+    clientInfo.cacheFilePath = NULL;
+    clientInfo.signalingClientCreationMaxRetryAttempts = 3;
+    STRCPY(clientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    setupSignalingStateMachineRetryStrategyCallbacks(&clientInfo);
+
+    // We would retry 'signalingClientCreationMaxRetryAttempts' times and fail all three times
+    EXPECT_EQ(STATUS_NULL_ARG,
+              createSignalingClientSync(&clientInfo, NULL, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider,
+                                        &signalingHandle));
 }
 
 TEST_F(SignalingApiFunctionalityTest, mockMaster)
@@ -281,7 +328,9 @@ TEST_F(SignalingApiFunctionalityTest, mockMaster)
     clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
     clientInfo.cacheFilePath = NULL;
+    clientInfo.signalingClientCreationMaxRetryAttempts = 0;
     STRCPY(clientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    setupSignalingStateMachineRetryStrategyCallbacks(&clientInfo);
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
@@ -418,7 +467,9 @@ TEST_F(SignalingApiFunctionalityTest, mockViewer)
     clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
     clientInfo.cacheFilePath = NULL;
+    clientInfo.signalingClientCreationMaxRetryAttempts = 0;
     STRCPY(clientInfo.clientId, TEST_SIGNALING_VIEWER_CLIENT_ID);
+    setupSignalingStateMachineRetryStrategyCallbacks(&clientInfo);
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
@@ -520,6 +571,8 @@ TEST_F(SignalingApiFunctionalityTest, invalidChannelInfoInput)
     STRCPY(clientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
     clientInfo.cacheFilePath = NULL;
+    clientInfo.signalingClientCreationMaxRetryAttempts = 0;
+    setupSignalingStateMachineRetryStrategyCallbacks(&clientInfo);
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
@@ -725,7 +778,9 @@ TEST_F(SignalingApiFunctionalityTest, invalidChannelInfoInput)
 
     clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
+    clientInfo.signalingClientCreationMaxRetryAttempts = 0;
     STRCPY(clientInfo.clientId, TEST_SIGNALING_VIEWER_CLIENT_ID);
+    setupSignalingStateMachineRetryStrategyCallbacks(&clientInfo);
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
@@ -796,7 +851,9 @@ TEST_F(SignalingApiFunctionalityTest, iceReconnectEmulation)
     clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
     clientInfo.cacheFilePath = NULL;
+    clientInfo.signalingClientCreationMaxRetryAttempts = 0;
     STRCPY(clientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    setupSignalingStateMachineRetryStrategyCallbacks(&clientInfo);
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
@@ -884,6 +941,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedVariatio
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    setupSignalingStateMachineRetryStrategyCallbacks(&clientInfoInternal);
 
     // Set the ICE hook
     clientInfoInternal.hookCustomData = (UINT64) this;
@@ -1149,6 +1207,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedVariations)
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    setupSignalingStateMachineRetryStrategyCallbacks(&clientInfoInternal);
 
     // Set the ICE hook
     clientInfoInternal.hookCustomData = (UINT64) this;
@@ -1414,6 +1473,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedAuthExpi
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    setupSignalingStateMachineRetryStrategyCallbacks(&clientInfoInternal);
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
@@ -1535,6 +1595,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedAuthExpirat
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    setupSignalingStateMachineRetryStrategyCallbacks(&clientInfoInternal);
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
@@ -1661,6 +1722,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithFaul
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfoInternal.hookCustomData = (UINT64) this;
     clientInfoInternal.getIceConfigPreHookFn = getIceConfigPreHook;
+    setupSignalingStateMachineRetryStrategyCallbacks(&clientInfoInternal);
 
     // Make it fail after the first call and recover after two failures on the 3rd call
     getIceConfigResult = STATUS_INVALID_OPERATION;
@@ -1776,6 +1838,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithFaultIn
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfoInternal.hookCustomData = (UINT64) this;
     clientInfoInternal.getIceConfigPreHookFn = getIceConfigPreHook;
+    setupSignalingStateMachineRetryStrategyCallbacks(&clientInfoInternal);
 
     // Make it fail after the first call and recover after two failures on the 3rd call
     getIceConfigResult = STATUS_INVALID_OPERATION;
@@ -1893,6 +1956,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithFaul
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfoInternal.hookCustomData = (UINT64) this;
     clientInfoInternal.getIceConfigPreHookFn = getIceConfigPreHook;
+    setupSignalingStateMachineRetryStrategyCallbacks(&clientInfoInternal);
 
     // Make it fail after the first call and recover after two failures on the 3rd call
     getIceConfigResult = STATUS_INVALID_OPERATION;
@@ -2006,6 +2070,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithFaultIn
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfoInternal.hookCustomData = (UINT64) this;
     clientInfoInternal.getIceConfigPreHookFn = getIceConfigPreHook;
+    setupSignalingStateMachineRetryStrategyCallbacks(&clientInfoInternal);
 
     // Make it fail after the first call and recover after two failures on the 3rd call
     getIceConfigResult = STATUS_INVALID_OPERATION;
@@ -2120,6 +2185,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithBadA
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    setupSignalingStateMachineRetryStrategyCallbacks(&clientInfoInternal);
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
@@ -2236,6 +2302,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithBadAuth
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    setupSignalingStateMachineRetryStrategyCallbacks(&clientInfoInternal);
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
@@ -2351,6 +2418,7 @@ TEST_F(SignalingApiFunctionalityTest, goAwayEmulation)
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
     clientInfo.cacheFilePath = NULL;
     STRCPY(clientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    setupSignalingStateMachineRetryStrategyCallbacks(&clientInfo);
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
@@ -2434,7 +2502,9 @@ TEST_F(SignalingApiFunctionalityTest, unknownMessageTypeEmulation)
     clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
     clientInfo.cacheFilePath = NULL;
+    clientInfo.signalingClientCreationMaxRetryAttempts = 0;
     STRCPY(clientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    setupSignalingStateMachineRetryStrategyCallbacks(&clientInfo);
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
@@ -2510,6 +2580,9 @@ TEST_F(SignalingApiFunctionalityTest, connectTimeoutEmulation)
     SignalingClientInfoInternal clientInfoInternal;
     PSignalingClient pSignalingClient;
     SIGNALING_CLIENT_HANDLE signalingHandle;
+    PKvsRetryStrategy pKvsRetryStrategy = NULL;
+    PKvsRetryStrategyCallbacks pKvsRetryStrategyCallbacks = NULL;
+    UINT32 retryCount = 0, previousRetryCount = 0;
 
     signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
     signalingClientCallbacks.customData = (UINT64) this;
@@ -2524,6 +2597,8 @@ TEST_F(SignalingApiFunctionalityTest, connectTimeoutEmulation)
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfoInternal.connectTimeout = 100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+    setupSignalingStateMachineRetryStrategyCallbacks(&clientInfoInternal);
+    pKvsRetryStrategyCallbacks = &(clientInfoInternal.signalingStateMachineRetryStrategyCallbacks);
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
@@ -2559,6 +2634,13 @@ TEST_F(SignalingApiFunctionalityTest, connectTimeoutEmulation)
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
+    pKvsRetryStrategy = &(pSignalingClient->clientInfo.signalingStateMachineRetryStrategy);
+
+    retryCount = 0;
+    pKvsRetryStrategyCallbacks->getCurrentRetryAttemptNumberFn(pKvsRetryStrategy, &retryCount);
+    // retry count is 1 because we moved from describe to create state since describe failed
+    EXPECT_EQ(1, retryCount);
+
     // Connect to the signaling client - should time out
     EXPECT_EQ(STATUS_OPERATION_TIMED_OUT, signalingClientConnectSync(signalingHandle));
 
@@ -2574,11 +2656,21 @@ TEST_F(SignalingApiFunctionalityTest, connectTimeoutEmulation)
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
+    retryCount = 0;
+    pKvsRetryStrategyCallbacks->getCurrentRetryAttemptNumberFn(pKvsRetryStrategy, &retryCount);
+    EXPECT_LE(2, retryCount);
+
     // Connect to the signaling client - should connect OK
     pSignalingClient->clientInfo.connectTimeout = 0;
     EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
 
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+
+    previousRetryCount = retryCount;
+    retryCount = 0;
+    pKvsRetryStrategyCallbacks->getCurrentRetryAttemptNumberFn(pKvsRetryStrategy, &retryCount);
+    // retry count should not increase since there were no timeouts
+    EXPECT_EQ(previousRetryCount, retryCount);
 
     // Check that we are connected and can send a message
     SignalingMessage signalingMessage;
@@ -2623,6 +2715,7 @@ TEST_F(SignalingApiFunctionalityTest, channelInfoArnSkipDescribe)
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfoInternal.connectTimeout = 0;
+    setupSignalingStateMachineRetryStrategyCallbacks(&clientInfoInternal);
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
@@ -2754,6 +2847,7 @@ TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedWithArn)
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfoInternal.connectTimeout = 0;
+    setupSignalingStateMachineRetryStrategyCallbacks(&clientInfoInternal);
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
@@ -2884,6 +2978,7 @@ TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedAuthExpiration)
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfoInternal.connectTimeout = 0;
+    setupSignalingStateMachineRetryStrategyCallbacks(&clientInfoInternal);
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
@@ -3044,6 +3139,7 @@ TEST_F(SignalingApiFunctionalityTest, cachingWithFaultInjection)
     clientInfoInternal.connectPreHookFn = connectPreHook;
     clientInfoInternal.describePreHookFn = describePreHook;
     clientInfoInternal.getEndpointPreHookFn = getEndpointPreHook;
+    setupSignalingStateMachineRetryStrategyCallbacks(&clientInfoInternal);
 
     // Make describe and getendpoint fail once so we can check the no-caching behavior
     // in case when there is a failure.
@@ -3182,6 +3278,7 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingTest)
     clientInfoInternal.connectPreHookFn = connectPreHook;
     clientInfoInternal.describePreHookFn = describePreHook;
     clientInfoInternal.getEndpointPreHookFn = getEndpointPreHook;
+    setupSignalingStateMachineRetryStrategyCallbacks(&clientInfoInternal);
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
@@ -3303,6 +3400,7 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer)
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    setupSignalingStateMachineRetryStrategyCallbacks(&clientInfoInternal);
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;

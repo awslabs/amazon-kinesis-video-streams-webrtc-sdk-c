@@ -782,6 +782,7 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     pSampleConfiguration->clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     pSampleConfiguration->clientInfo.loggingLevel = logLevel;
     pSampleConfiguration->clientInfo.cacheFilePath = NULL; // Use the default path
+    pSampleConfiguration->clientInfo.signalingClientCreationMaxRetryAttempts = DEFAULT_CREATE_SIGNALING_CLIENT_RETRY_ATTEMPTS;
     pSampleConfiguration->iceCandidatePairStatsTimerId = MAX_UINT32;
     pSampleConfiguration->pregenerateCertTimerId = MAX_UINT32;
 
@@ -838,6 +839,7 @@ STATUS logSignalingClientStats(PSignalingClientMetrics pSignalingClientMetrics)
     // This gives the EMA of the getIceConfig() call.
     DLOGD("Data Plane API call latency: %" PRIu64 " ms",
           (pSignalingClientMetrics->signalingClientStats.dpApiCallLatency / HUNDREDS_OF_NANOS_IN_A_MILLISECOND));
+    DLOGD("API call retry count: %d", pSignalingClientMetrics->signalingClientStats.apiCallRetryCount);
 CleanUp:
     LEAVES();
     return retStatus;
