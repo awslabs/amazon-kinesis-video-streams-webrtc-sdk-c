@@ -3756,8 +3756,6 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_FastClockSkew)
         return;
     }
 
-    mLogLevel = LOG_LEVEL_VERBOSE;
-
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
     SignalingClientInfoInternal clientInfoInternal;
@@ -3947,8 +3945,6 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_FastClockSkew_Veri
     if (!mAccessKeyIdSet) {
         return;
     }
-
-    mLogLevel = LOG_LEVEL_VERBOSE;
 
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
