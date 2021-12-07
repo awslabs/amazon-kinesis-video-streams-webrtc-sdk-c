@@ -735,7 +735,7 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     // Set the logger log level
     if (NULL == (pLogLevel = getenv(DEBUG_LOG_LEVEL_ENV_VAR)) || STATUS_SUCCESS != STRTOUI32(pLogLevel, NULL, 10, &logLevel) ||
         logLevel < LOG_LEVEL_VERBOSE || logLevel > LOG_LEVEL_SILENT) {
-        logLevel = LOG_LEVEL_VERBOSE;
+        logLevel = LOG_LEVEL_WARN;
     }
 
     SET_LOGGER_LOG_LEVEL(logLevel);

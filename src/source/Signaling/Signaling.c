@@ -149,10 +149,6 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     pSignalingClient->pLwsContext = lws_create_context(&creationInfo);
     CHK(pSignalingClient->pLwsContext != NULL, STATUS_SIGNALING_LWS_CREATE_CONTEXT_FAILED);
 
-    if (pSignalingClient->signalingClientCallbacks.getCurrentTimeFn == NULL) {
-        DLOGV("callback is NULL");
-    }
-
     // Initializing the diagnostics mostly is taken care of by zero-mem in MEMCALLOC
     pSignalingClient->diagnostics.createTime = SIGNALING_GET_CURRENT_TIME(pSignalingClient);
     CHK_STATUS(hashTableCreateWithParams(SIGNALING_CLOCKSKEW_HASH_TABLE_BUCKET_COUNT,SIGNALING_CLOCKSKEW_HASH_TABLE_BUCKET_LENGTH,
@@ -1202,14 +1198,6 @@ STATUS signalingGetMetrics(PSignalingClient pSignalingClient, PSignalingClientMe
     UINT64 curTime;
 
     curTime = SIGNALING_GET_CURRENT_TIME(pSignalingClient);
-
-    if (pSignalingClient == NULL) {
-        DLOGW("pSignalingClient is NULL");
-    }
-
-    if (pSignalingClientMetrics == NULL) {
-        DLOGW("pSignalingClientMetrics is NULL");
-    }
 
     CHK(pSignalingClient != NULL && pSignalingClientMetrics != NULL, STATUS_NULL_ARG);
     CHK(pSignalingClientMetrics->version <= SIGNALING_CLIENT_METRICS_CURRENT_VERSION, STATUS_SIGNALING_INVALID_METRICS_VERSION);
