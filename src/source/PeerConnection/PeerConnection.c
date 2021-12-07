@@ -1364,6 +1364,7 @@ STATUS initKvsWebRtc(VOID)
     initializeEndianness();
 
     KVS_CRYPTO_INIT();
+    LOG_GIT_HASH();
 
 #ifdef ENABLE_DATA_CHANNEL
     CHK_STATUS(initSctpSession());
