@@ -118,3 +118,19 @@ jobs:
           export AWS_KVS_LOG_LEVEL=3
           ulimit -c unlimited -S
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+
+  mbedtls-ubuntu:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v2
+      - name: Build repository
+        run: |
+          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+          mkdir build
+          cd build
+          cmake .. -DBUILD_TEST=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
+          make
+          export AWS_KVS_LOG_LEVEL=3
+          ulimit -c unlimited -S
+          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
