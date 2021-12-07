@@ -5,7 +5,7 @@
 #include "../Include_i.h"
 
 /**
- * Static definitions of the states
+ * Static definitions of the states 
  */
 StateMachineState SIGNALING_STATE_MACHINE_STATES[] = {
     {
