@@ -471,7 +471,7 @@ STATUS executeDescribeSignalingState(UINT64 customData, UINT64 time)
         CHK_STATUS(pSignalingClient->signalingClientCallbacks.stateChangeFn(pSignalingClient->signalingClientCallbacks.customData,
                                                                             SIGNALING_CLIENT_STATE_DESCRIBE));
     }
-    
+
     // Call the aggregate function
     retStatus = describeChannel(pSignalingClient, time);
 
