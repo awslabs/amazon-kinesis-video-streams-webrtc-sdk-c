@@ -21,26 +21,28 @@ jobs:
         run: |
           bash scripts/check-clang.sh
 
-#  mac-os-catalina-build:
-#    runs-on: macos-latest
-#    env:
-#      MACOSX_DEPLOYMENT_TARGET: 10.13
-#      LDFLAGS: "-L/usr/local/opt/openssl/lib"
-#      CPPFLAGS: "-I/usr/local/opt/openssl/include"
-#    steps:
-#      - name: Clone repository
-#        uses: actions/checkout@v2
-#      - name: Build repository
-#        run: |
-#          sudo gcc
-#          mkdir build
-#          cd build
-#          cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE -DBUILD_OPENSSL_PLATFORM=darwin64-x86_64-cc
-#          make
-#      - name: Run unit test
-#        run: |
-#          export DYLD_LIBRARY_PATH="$DYLD_LIBRARY_PATH:`pwd`/../open-source/lib"
-#          ./tst/webrtc_client_test
+  mac-os-catalina-build:
+    runs-on: macos-latest
+    continue-on-error: true
+    env:
+      MACOSX_DEPLOYMENT_TARGET: 10.13
+      LDFLAGS: "-L/usr/local/opt/openssl/lib"
+      CPPFLAGS: "-I/usr/local/opt/openssl/include"
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v2
+      - name: Build repository
+        run: |
+          sudo gcc
+          mkdir build
+          cd build
+          cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE -DBUILD_OPENSSL_PLATFORM=darwin64-x86_64-cc
+          make
+      - name: Run unit test
+        run: |
+          export DYLD_LIBRARY_PATH="$DYLD_LIBRARY_PATH:`pwd`/../open-source/lib"
+          ./tst/webrtc_client_test
+
 
   ubuntu-os-build:
     runs-on: ubuntu-latest
@@ -86,6 +88,7 @@ jobs:
 
   undefined-behavior-sanitizer:
     runs-on: ubuntu-18.04
+    continue-on-error: true
     env:
       UBSAN_OPTIONS: halt_on_error=1
     steps:
