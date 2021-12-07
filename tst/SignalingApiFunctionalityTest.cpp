@@ -3942,7 +3942,11 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_FastClockSkew)
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
 }
 
+<<<<<<< HEAD
 TEST_F(SignalingApiFunctionalityTest, DISABLED_receivingIceConfigOffer_FastClockSkew_VerifyOffsetRemovedWhenClockFixed)
+=======
+TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_FastClockSkew_VerifyOffsetRemovedWhenClockFixed)
+>>>>>>> 40ec502ba... auto fix clock skew and add tests
 {
     if (!mAccessKeyIdSet) {
         return;
@@ -4021,9 +4025,10 @@ TEST_F(SignalingApiFunctionalityTest, DISABLED_receivingIceConfigOffer_FastClock
     EXPECT_NE(0, iceCount);
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
 
-    // fix clock, now first call should fail with auth issue and we should remove item from cache
-    // then succeed on next try
+    // reset the current time callback to "fix" the clock
+    MUTEX_LOCK(pSignalingClient->diagnosticsLock);
     pSignalingClient->signalingClientCallbacks.getCurrentTimeFn = NULL;
+    MUTEX_UNLOCK(pSignalingClient->diagnosticsLock);
 
     // Trigger the ICE refresh immediately on any of the ICE accessor calls
     pSignalingClient->iceConfigCount = 0;

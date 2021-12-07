@@ -130,6 +130,7 @@ INT32 lwsHttpCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, 
                     // This limits the range of the max clock skew we can represent to just under 2925 years.
                 }
 
+                hashTableContains(pSignalingClient->diagnostics.pEndpointToClockSkewHashMap, pStateMachineState->state, &skewMapContains);
                 if (clockSkew > 0) {
                     hashTablePut(pSignalingClient->diagnostics.pEndpointToClockSkewHashMap, pStateMachineState->state, clockSkew);
                 } else if (clockSkew == 0 && skewMapContains) {
