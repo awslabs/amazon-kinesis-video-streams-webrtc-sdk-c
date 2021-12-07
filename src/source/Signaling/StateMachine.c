@@ -273,12 +273,6 @@ STATUS executeGetTokenSignalingState(UINT64 customData, UINT64 time)
                                                                             SIGNALING_CLIENT_STATE_GET_CREDENTIALS));
     }
 
-    // reset credentials expiration if we already have one.
-    if (NULL != pSignalingClient->pAwsCredentials) {
-        pSignalingClient->pAwsCredentials = NULL;
-        //pSignalingClient->pAwsCredentials->expiration = 0;
-    }
-
     // Use the credential provider to get the token
     retStatus = pSignalingClient->pCredentialProvider->getCredentialsFn(pSignalingClient->pCredentialProvider, &pSignalingClient->pAwsCredentials);
 
