@@ -86,6 +86,12 @@ class WebRtcClientTestBase : public ::testing::Test {
         mClientInfo.cacheFilePath = NULL; // Use the default path
         STRCPY(mClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
 
+        mClientInfo.signalingRetryStrategyCallbacks.createRetryStrategyFn = createRetryStrategyFn;
+        mClientInfo.signalingRetryStrategyCallbacks.getCurrentRetryAttemptNumberFn = getCurrentRetryAttemptNumberFn;
+        mClientInfo.signalingRetryStrategyCallbacks.freeRetryStrategyFn = freeRetryStrategyFn;
+        mClientInfo.signalingRetryStrategyCallbacks.executeRetryStrategyFn = executeRetryStrategyFn;
+        mClientInfo.signalingClientCreationMaxRetryAttempts = 0;
+
         MEMSET(&mChannelInfo, 0x00, SIZEOF(mChannelInfo));
         mChannelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
         mChannelInfo.pChannelName = mChannelName;
@@ -202,6 +208,35 @@ class WebRtcClientTestBase : public ::testing::Test {
 
         LEAVES();
         return retStatus;
+    }
+
+    static STATUS createRetryStrategyFn(PKvsRetryStrategy pKvsRetryStrategy) {
+        STATUS retStatus = STATUS_SUCCESS;
+        PExponentialBackoffRetryStrategyState pExponentialBackoffRetryStrategyState = NULL;
+
+        CHK_STATUS(exponentialBackoffRetryStrategyCreate(pKvsRetryStrategy));
+        CHK(pKvsRetryStrategy->retryStrategyType == KVS_RETRY_STRATEGY_EXPONENTIAL_BACKOFF_WAIT, STATUS_INTERNAL_ERROR);
+
+        pExponentialBackoffRetryStrategyState = TO_EXPONENTIAL_BACKOFF_STATE(pKvsRetryStrategy->pRetryStrategy);
+
+        // Overwrite retry config to avoid slow long running tests
+        pExponentialBackoffRetryStrategyState->exponentialBackoffRetryStrategyConfig.retryFactorTime = HUNDREDS_OF_NANOS_IN_A_MILLISECOND * 5;
+        pExponentialBackoffRetryStrategyState->exponentialBackoffRetryStrategyConfig.maxRetryWaitTime = HUNDREDS_OF_NANOS_IN_A_MILLISECOND * 75;
+
+    CleanUp:
+        return retStatus;
+    }
+
+    static STATUS getCurrentRetryAttemptNumberFn(PKvsRetryStrategy pKvsRetryStrategy, PUINT32 pRetryCount) {
+        return getExponentialBackoffRetryCount(pKvsRetryStrategy, pRetryCount);
+    }
+
+    static STATUS freeRetryStrategyFn(PKvsRetryStrategy pKvsRetryStrategy) {
+        return exponentialBackoffRetryStrategyFree(pKvsRetryStrategy);
+    }
+
+    static STATUS executeRetryStrategyFn(PKvsRetryStrategy pKvsRetryStrategy, PUINT64 retryWaitTime) {
+        return getExponentialBackoffRetryStrategyWaitTime(pKvsRetryStrategy, retryWaitTime);
     }
 
     STATUS readFrameData(PBYTE pFrame, PUINT32 pSize, UINT32 index, PCHAR frameFilePath)

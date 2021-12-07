@@ -74,6 +74,8 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     // Store the credential provider
     pSignalingClient->pCredentialProvider = pCredentialProvider;
 
+    CHK_STATUS(configureRetryStrategyForSignalingStateMachine(pSignalingClient));
+
     // Create the state machine
     CHK_STATUS(createStateMachine(SIGNALING_STATE_MACHINE_STATES, SIGNALING_STATE_MACHINE_STATE_COUNT,
                                   CUSTOM_DATA_FROM_SIGNALING_CLIENT(pSignalingClient), signalingGetCurrentTime,
@@ -167,7 +169,9 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     CHK_STATUS(signalingStateMachineIterator(pSignalingClient, GETTIME() + SIGNALING_CONNECT_STATE_TIMEOUT, SIGNALING_STATE_GET_TOKEN));
 
 CleanUp:
-
+    if(pClientInfo != NULL && pSignalingClient != NULL) {
+        pClientInfo->signalingClientInfo.stateMachineRetryCountReadOnly = pSignalingClient->diagnostics.stateMachineRetryCount;
+    }
     CHK_LOG_ERR(retStatus);
 
     if (STATUS_FAILED(retStatus)) {
@@ -205,6 +209,8 @@ STATUS freeSignaling(PSignalingClient* ppSignalingClient)
     }
 
     freeStateMachine(pSignalingClient->pStateMachine);
+
+    freeClientRetryStrategy(pSignalingClient);
 
     freeChannelInfo(&pSignalingClient->pChannelInfo);
 
@@ -260,6 +266,71 @@ STATUS freeSignaling(PSignalingClient* ppSignalingClient)
     MEMFREE(pSignalingClient);
 
     *ppSignalingClient = NULL;
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS setupDefaultRetryStrategyForSignalingStateMachine(PSignalingClient pSignalingClient) {
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PKvsRetryStrategyCallbacks pKvsRetryStrategyCallbacks = &(pSignalingClient->clientInfo.signalingStateMachineRetryStrategyCallbacks);
+
+    // Use default as exponential backoff wait
+    pKvsRetryStrategyCallbacks->createRetryStrategyFn = exponentialBackoffRetryStrategyCreate;
+    pKvsRetryStrategyCallbacks->freeRetryStrategyFn = exponentialBackoffRetryStrategyFree;
+    pKvsRetryStrategyCallbacks->executeRetryStrategyFn = getExponentialBackoffRetryStrategyWaitTime;
+    pKvsRetryStrategyCallbacks->getCurrentRetryAttemptNumberFn = getExponentialBackoffRetryCount;
+
+    // Use a default exponential backoff config for state machine level retries
+    pSignalingClient->clientInfo.signalingStateMachineRetryStrategy.pRetryStrategyConfig =
+            (PRetryStrategyConfig)&DEFAULT_SIGNALING_STATE_MACHINE_EXPONENTIAL_BACKOFF_RETRY_CONFIGURATION;
+    
+    LEAVES();
+    return retStatus;
+}
+
+STATUS configureRetryStrategyForSignalingStateMachine(PSignalingClient pSignalingClient) {
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PKvsRetryStrategyCallbacks pKvsRetryStrategyCallbacks = NULL;
+
+    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+    pKvsRetryStrategyCallbacks = &(pSignalingClient->clientInfo.signalingStateMachineRetryStrategyCallbacks);
+
+    // If the callbacks for retry strategy are already set, then use that otherwise
+    // build the client with a default retry strategy.
+    if (pKvsRetryStrategyCallbacks->createRetryStrategyFn == NULL ||
+    pKvsRetryStrategyCallbacks->freeRetryStrategyFn == NULL ||
+    pKvsRetryStrategyCallbacks->executeRetryStrategyFn == NULL ||
+    pKvsRetryStrategyCallbacks->getCurrentRetryAttemptNumberFn == NULL) {
+
+        CHK_STATUS(setupDefaultRetryStrategyForSignalingStateMachine(pSignalingClient));
+    }
+
+    CHK_STATUS(pKvsRetryStrategyCallbacks->createRetryStrategyFn(
+            &(pSignalingClient->clientInfo.signalingStateMachineRetryStrategy)));
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS freeClientRetryStrategy(PSignalingClient pSignalingClient) {
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PKvsRetryStrategyCallbacks pKvsRetryStrategyCallbacks = NULL;
+
+    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+
+    pKvsRetryStrategyCallbacks = &(pSignalingClient->clientInfo.signalingStateMachineRetryStrategyCallbacks);
+    CHK(pKvsRetryStrategyCallbacks->freeRetryStrategyFn != NULL, STATUS_SUCCESS);
+
+    CHK_STATUS(pKvsRetryStrategyCallbacks->freeRetryStrategyFn(
+            &(pSignalingClient->clientInfo.signalingStateMachineRetryStrategy)));
 
 CleanUp:
 
@@ -857,7 +928,6 @@ STATUS describeChannel(PSignalingClient pSignalingClient, UINT64 time)
 
             if (STATUS_SUCCEEDED(retStatus)) {
                 retStatus = describeChannelLws(pSignalingClient, time);
-
                 // Store the last call time on success
                 if (STATUS_SUCCEEDED(retStatus)) {
                     pSignalingClient->describeTime = time;
@@ -877,10 +947,6 @@ STATUS describeChannel(PSignalingClient pSignalingClient, UINT64 time)
     }
 
 CleanUp:
-
-    if (STATUS_FAILED(retStatus) && pSignalingClient != NULL) {
-        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
-    }
 
     LEAVES();
     return retStatus;
@@ -923,10 +989,6 @@ STATUS createChannel(PSignalingClient pSignalingClient, UINT64 time)
     }
 
 CleanUp:
-
-    if (STATUS_FAILED(retStatus) && pSignalingClient != NULL) {
-        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
-    }
 
     LEAVES();
     return retStatus;
@@ -1007,10 +1069,6 @@ STATUS getChannelEndpoint(PSignalingClient pSignalingClient, UINT64 time)
 
 CleanUp:
 
-    if (STATUS_FAILED(retStatus) && pSignalingClient != NULL) {
-        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
-    }
-
     LEAVES();
     return retStatus;
 }
@@ -1051,10 +1109,6 @@ STATUS getIceConfig(PSignalingClient pSignalingClient, UINT64 time)
     }
 
 CleanUp:
-
-    if (STATUS_FAILED(retStatus) && pSignalingClient != NULL) {
-        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
-    }
 
     LEAVES();
     return retStatus;
@@ -1097,10 +1151,6 @@ STATUS deleteChannel(PSignalingClient pSignalingClient, UINT64 time)
     }
 
 CleanUp:
-
-    if (STATUS_FAILED(retStatus) && pSignalingClient != NULL) {
-        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
-    }
 
     LEAVES();
     return retStatus;
@@ -1182,6 +1232,7 @@ STATUS signalingGetMetrics(PSignalingClient pSignalingClient, PSignalingClientMe
 
     pSignalingClientMetrics->signalingClientStats.connectionDuration =
         ATOMIC_LOAD_BOOL(&pSignalingClient->connected) ? curTime - pSignalingClient->diagnostics.connectTime : 0;
+    pSignalingClientMetrics->signalingClientStats.apiCallRetryCount = pSignalingClient->diagnostics.stateMachineRetryCount;
 
     MUTEX_UNLOCK(pSignalingClient->diagnosticsLock);
 

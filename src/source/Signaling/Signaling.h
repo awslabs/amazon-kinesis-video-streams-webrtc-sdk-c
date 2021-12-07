@@ -68,6 +68,32 @@ extern "C" {
         ATOMIC_INCREMENT(&(pClient)->diagnostics.numberOfErrors);                                                                                    \
     }
 
+static const ExponentialBackoffRetryStrategyConfig DEFAULT_SIGNALING_STATE_MACHINE_EXPONENTIAL_BACKOFF_RETRY_CONFIGURATION = {
+    /* Exponential wait times with this config will look like following -
+        ************************************
+        * Retry Count *      Wait time     *
+        * **********************************
+        *     1       *    100ms + jitter  *
+        *     2       *    200ms + jitter  *
+        *     3       *    400ms + jitter  *
+        *     4       *    800ms + jitter  *
+        *     5       *   1600ms + jitter  *
+        *     6       *   3200ms + jitter  *
+        *     7       *   6400ms + jitter  *
+        *     8       *  10000ms + jitter  *
+        *     9       *  10000ms + jitter  *
+        *    10       *  10000ms + jitter  *
+        ************************************
+        jitter = random number between [0, wait time)
+    */
+    KVS_INFINITE_EXPONENTIAL_RETRIES, /* max retry count */
+    10000, /* max retry wait time in milliseconds */
+    100, /* factor determining exponential curve in milliseconds */
+    DEFAULT_KVS_MIN_TIME_TO_RESET_RETRY_STATE_MILLISECONDS, /* minimum time in milliseconds to reset retry state */
+    FULL_JITTER, /* use full jitter variant */
+    0 /* jitter value unused for full jitter variant */
+};
+
 // Forward declaration
 typedef struct __LwsCallInfo* PLwsCallInfo;
 
@@ -107,6 +133,10 @@ typedef struct {
     SignalingApiCallHookFunc connectPostHookFn;
     SignalingApiCallHookFunc deletePreHookFn;
     SignalingApiCallHookFunc deletePostHookFn;
+
+    // Retry strategy used for signaling state machine
+    KvsRetryStrategy signalingStateMachineRetryStrategy;
+    KvsRetryStrategyCallbacks signalingStateMachineRetryStrategyCallbacks;
 } SignalingClientInfoInternal, *PSignalingClientInfoInternal;
 
 /**
@@ -133,6 +163,7 @@ typedef struct {
     UINT64 connectTime;
     UINT64 cpApiLatency;
     UINT64 dpApiLatency;
+    UINT32 stateMachineRetryCount;
 } SignalingDiagnostics, PSignalingDiagnostics;
 
 /**
@@ -321,6 +352,10 @@ STATUS getIceConfig(PSignalingClient, UINT64);
 STATUS connectSignalingChannel(PSignalingClient, UINT64);
 STATUS deleteChannel(PSignalingClient, UINT64);
 STATUS signalingGetMetrics(PSignalingClient, PSignalingClientMetrics);
+
+STATUS configureRetryStrategyForSignalingStateMachine(PSignalingClient);
+STATUS setupDefaultRetryStrategyForSignalingStateMachine(PSignalingClient);
+STATUS freeClientRetryStrategy(PSignalingClient);
 
 #ifdef __cplusplus
 }
