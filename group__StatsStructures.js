@@ -239,6 +239,7 @@ var group__StatsStructures =
       [ "transportId", "structRtcDataChannelStats.html#a8def150a423033b6d77697d0a6b32d48", null ]
     ] ],
     [ "SignalingClientStats", "structSignalingClientStats.html", [
+      [ "apiCallRetryCount", "structSignalingClientStats.html#a95a513a223371b29c540983fd3ecaf04", null ],
       [ "connectionDuration", "structSignalingClientStats.html#a11d655b6febcfa1b84596b769248d086", null ],
       [ "cpApiCallLatency", "structSignalingClientStats.html#a6dc71a2165fa2c15cd1ab1391337d932", null ],
       [ "dpApiCallLatency", "structSignalingClientStats.html#a00f3d2b3ea61ddc1353a4a7d5ed6084a", null ],
@@ -262,7 +263,7 @@ var group__StatsStructures =
       [ "transportStats", "structRtcStatsObject.html#aeda2b94e27f89786810339e7342e0827", null ]
     ] ],
     [ "PDscpPacketsSentRecord", "group__StatsStructures.html#ga7540403bae7393d7da52dcc72e3cc847", null ],
-    [ "PQualityLimitationDurationsRecord", "group__StatsStructures.html#ga5272c41dca467a46b89b9aec4d004122", null ],
+    [ "PQualityLimitationDurationsRecord", "group__StatsStructures.html#ga5a5117e57ea0a264eac97ed99d875139", null ],
     [ "PRtcDataChannelStats", "group__StatsStructures.html#gad50fadcf7938259a9cdf1e03c73e87d8", null ],
     [ "PRtcEncoderStats", "group__StatsStructures.html#ga8927731e3a97833866d3a5ecb00a3460", null ],
     [ "PRtcIceCandidatePairStats", "group__StatsStructures.html#gad5c2bddb835a03760d18a36fc0909a9d", null ],

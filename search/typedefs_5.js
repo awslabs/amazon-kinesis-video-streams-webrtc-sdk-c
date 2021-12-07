@@ -24,7 +24,7 @@ var searchData=
   ['plwscallinfo_21',['PLwsCallInfo',['../Signaling_8h.html#a20847e0bdb6871b86a3d83658d20a9eb',1,'Signaling.h']]],
   ['pnattestdata_22',['PNatTestData',['../NatBehaviorDiscovery_8h.html#ae5c91329ed0db2cf9ca7628df5a7ccf6',1,'NatBehaviorDiscovery.h']]],
   ['ppayloadarray_23',['PPayloadArray',['../RtpPacket_8h.html#a538b21102f63d40fb75e87526b8fc662',1,'RtpPacket.h']]],
-  ['pqualitylimitationdurationsrecord_24',['PQualityLimitationDurationsRecord',['../group__StatsStructures.html#ga5272c41dca467a46b89b9aec4d004122',1,'Stats.h']]],
+  ['pqualitylimitationdurationsrecord_24',['PQualityLimitationDurationsRecord',['../group__StatsStructures.html#ga5a5117e57ea0a264eac97ed99d875139',1,'Stats.h']]],
   ['preceivedsignalingmessage_25',['PReceivedSignalingMessage',['../group__PublicStructures.html#gaac73733daa2b6ccb68ce4fefa48e60fa',1,'Include.h']]],
   ['pretransmitter_26',['PRetransmitter',['../Retransmitter_8h.html#ac5ee37df28a9a36fd71a9a9b55d6b020',1,'Retransmitter.h']]],
   ['prollingbuffer_27',['PRollingBuffer',['../RollingBuffer_8h.html#a28dbd0932e60a11ebd623de60935019f',1,'RollingBuffer.h']]],

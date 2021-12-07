@@ -116,7 +116,7 @@ var searchData=
   ['ppayloadarray_113',['PPayloadArray',['../RtpPacket_8h.html#a538b21102f63d40fb75e87526b8fc662',1,'RtpPacket.h']]],
   ['ppkgbufferhashtable_114',['pPkgBufferHashTable',['../structJitterBuffer.html#a971ab649a5dcb24faa5f00a0a2aedb40',1,'JitterBuffer']]],
   ['pprivatekey_115',['pPrivateKey',['../group__StatusCodes.html#gacf9edbaf8bcf6068a19ddeadea9aa9ba',1,'RtcCertificate']]],
-  ['pqualitylimitationdurationsrecord_116',['PQualityLimitationDurationsRecord',['../group__StatsStructures.html#ga5272c41dca467a46b89b9aec4d004122',1,'Stats.h']]],
+  ['pqualitylimitationdurationsrecord_116',['PQualityLimitationDurationsRecord',['../group__StatsStructures.html#ga5a5117e57ea0a264eac97ed99d875139',1,'Stats.h']]],
   ['prawpacket_117',['pRawPacket',['../struct____RtpPacket.html#a3cf1b74e9edd1de7ce1c30dda5ed8f97',1,'__RtpPacket']]],
   ['preceivedsignalingmessage_118',['PReceivedSignalingMessage',['../group__PublicStructures.html#gaac73733daa2b6ccb68ce4fefa48e60fa',1,'Include.h']]],
   ['pregion_119',['pRegion',['../group__StatusCodes.html#ga03b591edffe71fb5572ca7b6b218ece7',1,'ChannelInfo']]],

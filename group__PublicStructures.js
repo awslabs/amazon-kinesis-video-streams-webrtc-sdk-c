@@ -73,6 +73,7 @@ var group__PublicStructures =
       [ "loggingLevel", "group__StatusCodes.html#ga8df6838b31452ecf1bd1cf1a0fffa680", null ],
       [ "signalingClientCreationMaxRetryAttempts", "group__StatusCodes.html#gae9409ee138680ef12ac46c937dc6d0c9", null ],
       [ "signalingRetryStrategyCallbacks", "group__StatusCodes.html#ga87eb795fbdbf266819688941c80770eb", null ],
+      [ "stateMachineRetryCountReadOnly", "group__StatusCodes.html#ga9121e19802bb740a1b695f2be5250e47", null ],
       [ "version", "group__StatusCodes.html#gaad776eab978b30bd3f21ecd3432c93a0", null ]
     ] ],
     [ "ChannelInfo", "structChannelInfo.html", [

@@ -224,7 +224,7 @@ var NAVTREEINDEX1 =
 "group__StatsStructures.html#ga104a0974d7813be415eded50af91bdd7":[1,0,20,31],
 "group__StatsStructures.html#ga34caaa42981c35cc76e1cf6a04aa0ef0":[1,0,20,33],
 "group__StatsStructures.html#ga4dbcedb5303986f1f9f88b41c411f24f":[1,0,20,36],
-"group__StatsStructures.html#ga5272c41dca467a46b89b9aec4d004122":[1,0,20,21],
+"group__StatsStructures.html#ga5a5117e57ea0a264eac97ed99d875139":[1,0,20,21],
 "group__StatsStructures.html#ga63f1d5fb544d7b2252b14044bc474486":[1,0,20,29],
 "group__StatsStructures.html#ga7540403bae7393d7da52dcc72e3cc847":[1,0,20,20],
 "group__StatsStructures.html#ga760e5b16b6a0731e5839f9c37dfcb0a4":[1,0,20,40],

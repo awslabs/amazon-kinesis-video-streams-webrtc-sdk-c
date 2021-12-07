@@ -189,6 +189,7 @@ var group__StatusCodes =
     [ "ReceivedSignalingMessage::signalingMessage", "group__StatusCodes.html#gadffadd7d879a948434b9fa7904eb5358", null ],
     [ "SignalingClientInfo::signalingRetryStrategyCallbacks", "group__StatusCodes.html#ga87eb795fbdbf266819688941c80770eb", null ],
     [ "SignalingClientCallbacks::stateChangeFn", "group__StatusCodes.html#ga8a72e56bbf4b4dae2b19306acda39523", null ],
+    [ "SignalingClientInfo::stateMachineRetryCountReadOnly", "group__StatusCodes.html#ga9121e19802bb740a1b695f2be5250e47", null ],
     [ "ReceivedSignalingMessage::statusCode", "group__StatusCodes.html#ga9cb75a0987f4fc93a64b7dc45962b52f", null ],
     [ "RtcMediaStreamTrack::streamId", "group__StatusCodes.html#ga531a05b7b40a5ff298f6f238e0fe4613", null ],
     [ "ChannelInfo::tagCount", "group__StatusCodes.html#ga068126ee9a6ec0eec32278185d0bb4fe", null ],

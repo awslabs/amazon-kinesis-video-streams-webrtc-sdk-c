@@ -79,11 +79,13 @@ var searchData=
   ['statechangefncustomdata_76',['stateChangeFnCustomData',['../structTlsSessionCallbacks.html#a47abc93367875a5e871e1ce057e61cf5',1,'TlsSessionCallbacks::stateChangeFnCustomData()'],['../structDtlsSessionCallbacks.html#ace24fb1ab623ce9b0735fed946683e20',1,'DtlsSessionCallbacks::stateChangeFnCustomData()']]],
   ['stateendtime_77',['stateEndTime',['../struct____IceAgent.html#abf91bc4bf7d5b11b2046b84c3abd4be1',1,'__IceAgent']]],
   ['statelock_78',['stateLock',['../structSignalingClient.html#abec50e34fd2e5197950cb01279d022f7',1,'SignalingClient']]],
-  ['statetimeouttime_79',['stateTimeoutTime',['../struct____TurnConnection.html#a1b3234c41b2ad5f3c580b52ce97f2b81',1,'__TurnConnection']]],
-  ['statslock_80',['statsLock',['../structKvsRtpTransceiver.html#aeb12550aaa586a998f68507ba3613c1c',1,'KvsRtpTransceiver']]],
-  ['statuscode_81',['statusCode',['../group__StatusCodes.html#ga9cb75a0987f4fc93a64b7dc45962b52f',1,'ReceivedSignalingMessage']]],
-  ['stoptime_82',['stopTime',['../structSdpTimeDescription.html#a4d891cf01385aec9ac7c633fa440872a',1,'SdpTimeDescription']]],
-  ['stopturnconnection_83',['stopTurnConnection',['../struct____TurnConnection.html#adcf78da47318b97d4c11a05142b73fda',1,'__TurnConnection']]],
-  ['streamid_84',['streamId',['../group__StatusCodes.html#ga531a05b7b40a5ff298f6f238e0fe4613',1,'RtcMediaStreamTrack']]],
-  ['stunmessagetype_85',['stunMessageType',['../structStunHeader.html#a9fc0756adb0be57a686c4d6928492024',1,'StunHeader']]]
+  ['statemachineretrycount_79',['stateMachineRetryCount',['../structSignalingDiagnostics.html#a0c0ce65996d718cac7a2a298fdab4f3e',1,'SignalingDiagnostics']]],
+  ['statemachineretrycountreadonly_80',['stateMachineRetryCountReadOnly',['../group__StatusCodes.html#ga9121e19802bb740a1b695f2be5250e47',1,'SignalingClientInfo']]],
+  ['statetimeouttime_81',['stateTimeoutTime',['../struct____TurnConnection.html#a1b3234c41b2ad5f3c580b52ce97f2b81',1,'__TurnConnection']]],
+  ['statslock_82',['statsLock',['../structKvsRtpTransceiver.html#aeb12550aaa586a998f68507ba3613c1c',1,'KvsRtpTransceiver']]],
+  ['statuscode_83',['statusCode',['../group__StatusCodes.html#ga9cb75a0987f4fc93a64b7dc45962b52f',1,'ReceivedSignalingMessage']]],
+  ['stoptime_84',['stopTime',['../structSdpTimeDescription.html#a4d891cf01385aec9ac7c633fa440872a',1,'SdpTimeDescription']]],
+  ['stopturnconnection_85',['stopTurnConnection',['../struct____TurnConnection.html#adcf78da47318b97d4c11a05142b73fda',1,'__TurnConnection']]],
+  ['streamid_86',['streamId',['../group__StatusCodes.html#ga531a05b7b40a5ff298f6f238e0fe4613',1,'RtcMediaStreamTrack']]],
+  ['stunmessagetype_87',['stunMessageType',['../structStunHeader.html#a9fc0756adb0be57a686c4d6928492024',1,'StunHeader']]]
 ];
