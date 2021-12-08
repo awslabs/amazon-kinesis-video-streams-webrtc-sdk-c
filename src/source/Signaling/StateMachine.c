@@ -147,11 +147,7 @@ STATUS defaultSignalingStateTransitionHook(
     CHK(pSignalingClient->result > SERVICE_CALL_RESULT_OK &&
         pSignalingStateMachineRetryStrategyCallbacks->executeRetryStrategyFn != NULL, STATUS_SUCCESS);
 
-    DLOGV("Signaling Client base result is [%u]. Executing KVS retry handler of retry strategy type [%u]",
-          pSignalingClient->result, pSignalingStateMachineRetryStrategy->retryStrategyType);
-    pSignalingStateMachineRetryStrategyCallbacks->executeRetryStrategyFn(pSignalingStateMachineRetryStrategy, &retryWaitTime);
-    *stateTransitionWaitTime = retryWaitTime;
-
+    // A retry is considered only after executeRetry is executed. This will avoid publishing count + 1
     if(pSignalingStateMachineRetryStrategyCallbacks->getCurrentRetryAttemptNumberFn != NULL) {
         if((countStatus = pSignalingStateMachineRetryStrategyCallbacks->getCurrentRetryAttemptNumberFn(pSignalingStateMachineRetryStrategy, &pSignalingClient->diagnostics.stateMachineRetryCount)) != STATUS_SUCCESS) {
             DLOGW("Failed to get retry count. Error code: %08x", countStatus);
@@ -160,6 +156,10 @@ STATUS defaultSignalingStateTransitionHook(
             DLOGD("Retry count: %llu", pSignalingClient->diagnostics.stateMachineRetryCount);
         }
     }
+    DLOGV("Signaling Client base result is [%u]. Executing KVS retry handler of retry strategy type [%u]",
+          pSignalingClient->result, pSignalingStateMachineRetryStrategy->retryStrategyType);
+    pSignalingStateMachineRetryStrategyCallbacks->executeRetryStrategyFn(pSignalingStateMachineRetryStrategy, &retryWaitTime);
+    *stateTransitionWaitTime = retryWaitTime;
 
 CleanUp:
 
