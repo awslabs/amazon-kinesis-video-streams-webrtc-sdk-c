@@ -31,7 +31,7 @@ INT32 lwsHttpCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, 
     PSignalingClient pSignalingClient = NULL;
     BOOL locked = FALSE;
     time_t td;
-    size_t len;
+    SIZE_T len;
     UINT64 nowTime, clockSkew = 0;
     PStateMachineState pStateMachineState;
     BOOL skewMapContains = FALSE;
@@ -106,37 +106,39 @@ INT32 lwsHttpCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, 
             DLOGD("Connected with server response: %d", status);
             pLwsCallInfo->callInfo.callResult = getServiceCallResultFromHttpStatus((UINT32) status);
 
-            lws_hdr_copy(wsi, &dateHdrBuffer[0], MAX_DATE_HEADER_BUFFER_LENGTH, WSI_TOKEN_HTTP_DATE);
+            len = (SIZE_T)lws_hdr_copy(wsi, &dateHdrBuffer[0], MAX_DATE_HEADER_BUFFER_LENGTH, WSI_TOKEN_HTTP_DATE);
 
             time(&td);
 
-            len = (unsigned int)lws_hdr_total_length(wsi, WSI_TOKEN_HTTP_DATE);
             if (len) {
-                /* if this fails, it leaves td as client time */
-                lws_http_date_parse_unix(&dateHdrBuffer[0], len, &td);
-                DLOGV("Date Header Returned By Server:  %s", dateHdrBuffer);
+                // on failure to parse lws_http_date_unix returns non zero value
+                if (0 == lws_http_date_parse_unix(&dateHdrBuffer[0], len, &td)) {
+                    DLOGV("Date Header Returned By Server:  %s", dateHdrBuffer);
 
-                serverTime = ((UINT64)td) * HUNDREDS_OF_NANOS_IN_A_SECOND;
+                    serverTime = ((UINT64) td) * HUNDREDS_OF_NANOS_IN_A_SECOND;
 
-                if (serverTime > nowTime + MIN_CLOCK_SKEW_TIME_TO_CORRECT) {
-                    // Server time is ahead
-                    clockSkew = (serverTime - nowTime);
-                    DLOGD("Detected Clock Skew!  Server time is AHEAD of Device time: Server time: %" PRIu64 ", now time: %" PRIu64, serverTime, nowTime);
-                } else if (nowTime > serverTime + MIN_CLOCK_SKEW_TIME_TO_CORRECT) {
-                    clockSkew = (nowTime - serverTime);
-                    clockSkew |= ((UINT64)(1ULL << 63));
-                    DLOGD("Detected Clock Skew!  Device time is AHEAD of Server time: Server time: %" PRIu64 ", now time: %" PRIu64, serverTime, nowTime);
-                    // PIC hashTable implementation only stores UINT64 so I will flip the sign of the msb
-                    // This limits the range of the max clock skew we can represent to just under 2925 years.
-                }
+                    if (serverTime > nowTime + MIN_CLOCK_SKEW_TIME_TO_CORRECT) {
+                        // Server time is ahead
+                        clockSkew = (serverTime - nowTime);
+                        DLOGD("Detected Clock Skew!  Server time is AHEAD of Device time: Server time: %" PRIu64 ", now time: %" PRIu64, serverTime,
+                              nowTime);
+                    } else if (nowTime > serverTime + MIN_CLOCK_SKEW_TIME_TO_CORRECT) {
+                        clockSkew = (nowTime - serverTime);
+                        clockSkew |= ((UINT64)(1ULL << 63));
+                        DLOGD("Detected Clock Skew!  Device time is AHEAD of Server time: Server time: %" PRIu64 ", now time: %" PRIu64, serverTime,
+                              nowTime);
+                        // PIC hashTable implementation only stores UINT64 so I will flip the sign of the msb
+                        // This limits the range of the max clock skew we can represent to just under 2925 years.
+                    }
 
-                hashTableContains(pSignalingClient->diagnostics.pEndpointToClockSkewHashMap, pStateMachineState->state, &skewMapContains);
-                if (clockSkew > 0) {
-                    hashTablePut(pSignalingClient->diagnostics.pEndpointToClockSkewHashMap, pStateMachineState->state, clockSkew);
-                } else if (clockSkew == 0 && skewMapContains) {
-                    // This means the item is in the map so at one point there was a clock skew offset but it has been corrected
-                    // So we should no longer be correcting for a clock skew, remove this item from the map
-                    hashTableRemove(pSignalingClient->diagnostics.pEndpointToClockSkewHashMap, pStateMachineState->state);
+                    hashTableContains(pSignalingClient->diagnostics.pEndpointToClockSkewHashMap, pStateMachineState->state, &skewMapContains);
+                    if (clockSkew > 0) {
+                        hashTablePut(pSignalingClient->diagnostics.pEndpointToClockSkewHashMap, pStateMachineState->state, clockSkew);
+                    } else if (clockSkew == 0 && skewMapContains) {
+                        // This means the item is in the map so at one point there was a clock skew offset but it has been corrected
+                        // So we should no longer be correcting for a clock skew, remove this item from the map
+                        hashTableRemove(pSignalingClient->diagnostics.pEndpointToClockSkewHashMap, pStateMachineState->state);
+                    }
                 }
             }
 
