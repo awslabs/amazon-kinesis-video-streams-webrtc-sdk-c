@@ -28,7 +28,7 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     // Allocate enough storage
     CHK(NULL != (pSignalingClient = (PSignalingClient) MEMCALLOC(1, SIZEOF(SignalingClient))), STATUS_NOT_ENOUGH_MEMORY);
 
-    // Initialize the listener and restarter thread trackers
+    // Initialize the listener and restart thread trackers
     CHK_STATUS(initializeThreadTracker(&pSignalingClient->listenerTracker));
     CHK_STATUS(initializeThreadTracker(&pSignalingClient->reconnecterTracker));
 
@@ -150,7 +150,9 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     CHK(pSignalingClient->pLwsContext != NULL, STATUS_SIGNALING_LWS_CREATE_CONTEXT_FAILED);
 
     // Initializing the diagnostics mostly is taken care of by zero-mem in MEMCALLOC
-    pSignalingClient->diagnostics.createTime = GETTIME();
+    pSignalingClient->diagnostics.createTime = SIGNALING_GET_CURRENT_TIME(pSignalingClient);
+    CHK_STATUS(hashTableCreateWithParams(SIGNALING_CLOCKSKEW_HASH_TABLE_BUCKET_COUNT,SIGNALING_CLOCKSKEW_HASH_TABLE_BUCKET_LENGTH,
+                                         &pSignalingClient->diagnostics.pEndpointToClockSkewHashMap));
 
     // At this point we have constructed the main object and we can assign to the returned pointer
     *ppSignalingClient = pSignalingClient;
@@ -215,6 +217,8 @@ STATUS freeSignaling(PSignalingClient* ppSignalingClient)
     freeChannelInfo(&pSignalingClient->pChannelInfo);
 
     stackQueueFree(pSignalingClient->pMessageQueue);
+
+    hashTableFree(pSignalingClient->diagnostics.pEndpointToClockSkewHashMap);
 
     if (IS_VALID_MUTEX_VALUE(pSignalingClient->connectedLock)) {
         MUTEX_FREE(pSignalingClient->connectedLock);
@@ -473,7 +477,8 @@ STATUS signalingConnectSync(PSignalingClient pSignalingClient)
     // Store the signaling state in case we error/timeout so we can re-set it on exit
     CHK_STATUS(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pState));
 
-    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, GETTIME() + SIGNALING_CONNECT_STATE_TIMEOUT, SIGNALING_STATE_CONNECTED));
+    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, SIGNALING_GET_CURRENT_TIME(pSignalingClient) + SIGNALING_CONNECT_STATE_TIMEOUT,
+                                             SIGNALING_STATE_CONNECTED));
 
 CleanUp:
 
@@ -503,7 +508,7 @@ STATUS signalingDisconnectSync(PSignalingClient pSignalingClient)
 
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_OK);
 
-    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, GETTIME() + SIGNALING_DISCONNECT_STATE_TIMEOUT, SIGNALING_STATE_READY));
+    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, SIGNALING_GET_CURRENT_TIME(pSignalingClient) + SIGNALING_DISCONNECT_STATE_TIMEOUT, SIGNALING_STATE_READY));
 
 CleanUp:
 
@@ -531,7 +536,7 @@ STATUS signalingDeleteSync(PSignalingClient pSignalingClient)
     // Set the state directly
     setStateMachineCurrentState(pSignalingClient->pStateMachine, SIGNALING_STATE_DELETE);
 
-    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, GETTIME() + SIGNALING_DELETE_TIMEOUT, SIGNALING_STATE_DELETED));
+    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, SIGNALING_GET_CURRENT_TIME(pSignalingClient) + SIGNALING_DELETE_TIMEOUT, SIGNALING_STATE_DELETED));
 
 CleanUp:
 
@@ -627,7 +632,7 @@ STATUS validateIceConfiguration(PSignalingClient pSignalingClient)
 
     CHK(minTtl > ICE_CONFIGURATION_REFRESH_GRACE_PERIOD, STATUS_SIGNALING_ICE_TTL_LESS_THAN_GRACE_PERIOD);
 
-    pSignalingClient->iceConfigTime = GETTIME();
+    pSignalingClient->iceConfigTime = SIGNALING_GET_CURRENT_TIME(pSignalingClient);
     pSignalingClient->iceConfigExpiration = pSignalingClient->iceConfigTime + (minTtl - ICE_CONFIGURATION_REFRESH_GRACE_PERIOD);
 
 CleanUp:
@@ -653,7 +658,7 @@ STATUS refreshIceConfiguration(PSignalingClient pSignalingClient)
     DLOGD("Refreshing the ICE Server Configuration");
 
     // Check whether we have a valid not-yet-expired ICE configuration and if so early exit
-    curTime = GETTIME();
+    curTime = SIGNALING_GET_CURRENT_TIME(pSignalingClient);
     CHK(pSignalingClient->iceConfigCount == 0 || curTime > pSignalingClient->iceConfigExpiration, retStatus);
 
     // ICE config can be retrieved in specific states only
@@ -895,7 +900,6 @@ STATUS describeChannel(PSignalingClient pSignalingClient, UINT64 time)
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
     THREAD_SLEEP_UNTIL(time);
-
     // Check for the stale credentials
     CHECK_SIGNALING_CREDENTIALS_EXPIRATION(pSignalingClient);
 
@@ -925,6 +929,7 @@ STATUS describeChannel(PSignalingClient pSignalingClient, UINT64 time)
             }
 
             if (STATUS_SUCCEEDED(retStatus)) {
+
                 retStatus = describeChannelLws(pSignalingClient, time);
                 // Store the last call time on success
                 if (STATUS_SUCCEEDED(retStatus)) {
@@ -1209,7 +1214,9 @@ STATUS signalingGetMetrics(PSignalingClient pSignalingClient, PSignalingClientMe
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    UINT64 curTime = GETTIME();
+    UINT64 curTime;
+
+    curTime = SIGNALING_GET_CURRENT_TIME(pSignalingClient);
 
     CHK(pSignalingClient != NULL && pSignalingClientMetrics != NULL, STATUS_NULL_ARG);
     CHK(pSignalingClientMetrics->version <= SIGNALING_CLIENT_METRICS_CURRENT_VERSION, STATUS_SIGNALING_INVALID_METRICS_VERSION);
