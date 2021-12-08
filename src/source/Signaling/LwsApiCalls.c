@@ -1545,12 +1545,8 @@ PVOID reconnectHandler(PVOID args)
     ATOMIC_INCREMENT(&pSignalingClient->diagnostics.numberOfReconnects);
 
     // Attempt to reconnect by driving the state machine to connected state
-<<<<<<< HEAD
     CHK_STATUS(signalingStateMachineIterator(pSignalingClient, SIGNALING_GET_CURRENT_TIME(pSignalingClient) + SIGNALING_CONNECT_STATE_TIMEOUT,
                                              SIGNALING_STATE_CONNECTED));
-=======
-    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, GETTIME() + SIGNALING_CONNECT_STATE_TIMEOUT, SIGNALING_STATE_CONNECTED));
->>>>>>> 2e099eb32 (Fixing clang format)
 
 CleanUp:
 

@@ -75,7 +75,7 @@ STATUS defaultSignalingStateTransitionHook(UINT64 customData /* customData shoul
     // should change to (pSignalingClient->result > 299 && ...)
     CHK(pSignalingClient->result > SERVICE_CALL_RESULT_OK && pSignalingStateMachineRetryStrategyCallbacks->executeRetryStrategyFn != NULL,
         STATUS_SUCCESS);
-    
+
     // A retry is considered only after executeRetry is executed. This will avoid publishing count + 1
     if (pSignalingStateMachineRetryStrategyCallbacks->getCurrentRetryAttemptNumberFn != NULL) {
         if ((countStatus = pSignalingStateMachineRetryStrategyCallbacks->getCurrentRetryAttemptNumberFn(
