@@ -129,6 +129,7 @@ var group__StatusCodes =
     [ "KvsRtcConfiguration::filterCustomData", "group__StatusCodes.html#ga02a5e6d0b5cdd1916c3b6c7a295849d3", null ],
     [ "KvsRtcConfiguration::generatedCertificateBits", "group__StatusCodes.html#gaf59d56212baf93ef3aaf7d724a5b07a4", null ],
     [ "KvsRtcConfiguration::generateRSACertificate", "group__StatusCodes.html#gaaea167f4ad4ddef8286daf6d51d4452a", null ],
+    [ "SignalingClientCallbacks::getCurrentTimeFn", "group__StatusCodes.html#gad0daf0b032e00296053d23ce8038a2c1", null ],
     [ "RtcEncoderStats::height", "group__StatusCodes.html#gaef97890f2c53b6681a8f535f1003d7e3", null ],
     [ "KvsRtcConfiguration::iceCandidateNominationTimeout", "group__StatusCodes.html#gad347ab88ff79f98c0d5e68c7047e3097", null ],
     [ "KvsRtcConfiguration::iceConnectionCheckPollingInterval", "group__StatusCodes.html#gad84c0128149bfec8df224f29c0a3e06a", null ],

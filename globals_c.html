@@ -101,14 +101,15 @@ $(document).ready(function(){initNavTree('globals_c.html',''); initResizable(); 
 <li>changePeerConnectionState()&#160;:&#160;<a class="el" href="PeerConnection_8c.html#ab091080eb78ee92ae0529bdd743468a0">PeerConnection.c</a>, <a class="el" href="PeerConnection_8h.html#a9fa2bc034a32d19488f1b433a2348756">PeerConnection.h</a></li>
 <li>CHANNEL_INFO_CURRENT_VERSION&#160;:&#160;<a class="el" href="group__StructureVersions.html#gae7a5b2883ec07248e6c913777cabfbab">Include.h</a></li>
 <li>CHECK_SIGNALING_CREDENTIALS_EXPIRATION&#160;:&#160;<a class="el" href="LwsApiCalls_8h.html#ae32d56827d73c6193793b31a072924d7">LwsApiCalls.h</a></li>
+<li>checkAndCorrectForClockSkew()&#160;:&#160;<a class="el" href="LwsApiCalls_8c.html#a2c096b44f492ff215fe5e9e23abf0e0d">LwsApiCalls.c</a></li>
 <li>CHK_LOG_ERR_NV&#160;:&#160;<a class="el" href="group__StatusCodes.html#ga39137beaf587d297125406df4bd48b55">Include.h</a></li>
 <li>CLOSE_SOCKET_IF_CANT_RETRY&#160;:&#160;<a class="el" href="SocketConnection_8h.html#a440d3ff5cb61162ff247abcf617c5ee1">SocketConnection.h</a></li>
 <li>closePeerConnection()&#160;:&#160;<a class="el" href="group__PublicMemberFunctions.html#ga9babad6ea2bc9bb97279c7034697375a">Include.h</a>, <a class="el" href="group__PublicMemberFunctions.html#ga9babad6ea2bc9bb97279c7034697375a">PeerConnection.c</a></li>
 <li>closeSocket()&#160;:&#160;<a class="el" href="Network_8c.html#a8c64aed52ea980830d0f9db66fc93e1b">Network.c</a>, <a class="el" href="Network_8h.html#a4fcb6e0d52c9fefd28a444ea428c8475">Network.h</a></li>
 <li>CODEC_HASH_TABLE_BUCKET_COUNT&#160;:&#160;<a class="el" href="PeerConnection_8h.html#a15a20e6b29d7a3ab5af1bee5ba8cc5e2">PeerConnection.h</a></li>
 <li>CODEC_HASH_TABLE_BUCKET_LENGTH&#160;:&#160;<a class="el" href="PeerConnection_8h.html#a2285baf450dcb102c456632b4c004598">PeerConnection.h</a></li>
-<li>computeCandidatePairPriority()&#160;:&#160;<a class="el" href="IceAgent_8c.html#aea82ec5c31f92655c535153ae0c9ed85">IceAgent.c</a>, <a class="el" href="IceAgent_8h.html#a310353b6a6ec17871308316b8c67bd90">IceAgent.h</a></li>
-<li>computeCandidatePriority()&#160;:&#160;<a class="el" href="IceAgent_8h.html#a699e942cc74cad6a53bbd6c100966088">IceAgent.h</a>, <a class="el" href="IceAgent_8c.html#a59fb161f9a724412e557db0531d15cb9">IceAgent.c</a></li>
+<li>computeCandidatePairPriority()&#160;:&#160;<a class="el" href="IceAgent_8h.html#a310353b6a6ec17871308316b8c67bd90">IceAgent.h</a>, <a class="el" href="IceAgent_8c.html#aea82ec5c31f92655c535153ae0c9ed85">IceAgent.c</a></li>
+<li>computeCandidatePriority()&#160;:&#160;<a class="el" href="IceAgent_8c.html#a59fb161f9a724412e557db0531d15cb9">IceAgent.c</a>, <a class="el" href="IceAgent_8h.html#a699e942cc74cad6a53bbd6c100966088">IceAgent.h</a></li>
 <li>configureRetryStrategyForSignalingStateMachine()&#160;:&#160;<a class="el" href="Signaling_8c.html#a1807a5760e822b687c60dec226885839">Signaling.c</a>, <a class="el" href="Signaling_8h.html#a2dc8e38118e0eaea04454dd3dfb7d51d">Signaling.h</a></li>
 <li>configureSctpSocket()&#160;:&#160;<a class="el" href="Sctp_8c.html#a55eca852bfcd8b72d9a2429a23d39886">Sctp.c</a></li>
 <li>CONNECTION_LISTENER_DEFAULT_MAX_LISTENING_CONNECTION&#160;:&#160;<a class="el" href="ConnectionListener_8h.html#ab3b552e6573c384bcd8e0da39992f964">ConnectionListener.h</a></li>
@@ -134,11 +135,11 @@ $(document).ready(function(){initNavTree('globals_c.html',''); initResizable(); 
 <li>createAnswer()&#160;:&#160;<a class="el" href="group__PublicMemberFunctions.html#ga7dc5ad4eb5cc7e000396547279108d9b">Include.h</a>, <a class="el" href="group__PublicMemberFunctions.html#ga7dc5ad4eb5cc7e000396547279108d9b">PeerConnection.c</a></li>
 <li>createBytesFromRtpPacket()&#160;:&#160;<a class="el" href="RtpPacket_8c.html#a7eedc4b79bda85bf810d70bb84cd920e">RtpPacket.c</a>, <a class="el" href="RtpPacket_8h.html#a990324326132567a1c5f8c7436f3bff0">RtpPacket.h</a></li>
 <li>createCertificateAndKey()&#160;:&#160;<a class="el" href="Dtls__mbedtls_8c.html#aeb739e880d3edc3d95e7135805114f13">Dtls_mbedtls.c</a>, <a class="el" href="Dtls__openssl_8c.html#a451c48525b0c0a8919a880d6834c1f7f">Dtls_openssl.c</a></li>
-<li>createChannel()&#160;:&#160;<a class="el" href="Signaling_8c.html#ae2a4c41f6590bfdeb451ba05d3b2fa4c">Signaling.c</a>, <a class="el" href="Signaling_8h.html#a6015410f4f76b055dd29dea57197f98d">Signaling.h</a></li>
+<li>createChannel()&#160;:&#160;<a class="el" href="Signaling_8h.html#a6015410f4f76b055dd29dea57197f98d">Signaling.h</a>, <a class="el" href="Signaling_8c.html#ae2a4c41f6590bfdeb451ba05d3b2fa4c">Signaling.c</a></li>
 <li>createChannelLws()&#160;:&#160;<a class="el" href="LwsApiCalls_8c.html#aaa11ed305dd9f71bc0a1b0fdd5ee46fd">LwsApiCalls.c</a>, <a class="el" href="LwsApiCalls_8h.html#a54893a1b3159194b87bffce1dc81f667">LwsApiCalls.h</a></li>
 <li>createConnectionListener()&#160;:&#160;<a class="el" href="ConnectionListener_8c.html#a24660cc58fb5a9b154011e3a4092819b">ConnectionListener.c</a>, <a class="el" href="ConnectionListener_8h.html#a2530e40fd2ed5f3560e51f78501d066a">ConnectionListener.h</a></li>
 <li>createDataChannel()&#160;:&#160;<a class="el" href="group__PublicMemberFunctions.html#ga70b9d70f77fae56f1a2f223cb3054416">Include.h</a>, <a class="el" href="group__PublicMemberFunctions.html#ga70b9d70f77fae56f1a2f223cb3054416">DataChannel.c</a></li>
-<li>createDtlsSession()&#160;:&#160;<a class="el" href="Dtls__openssl_8c.html#ac40bba1019de3e73a9006b12c9dc4eaa">Dtls_openssl.c</a>, <a class="el" href="Dtls__mbedtls_8c.html#ac40bba1019de3e73a9006b12c9dc4eaa">Dtls_mbedtls.c</a>, <a class="el" href="Dtls_8h.html#ac281e5a858d8c8ef0df8b26768d0663b">Dtls.h</a></li>
+<li>createDtlsSession()&#160;:&#160;<a class="el" href="Dtls_8h.html#ac281e5a858d8c8ef0df8b26768d0663b">Dtls.h</a>, <a class="el" href="Dtls__openssl_8c.html#ac40bba1019de3e73a9006b12c9dc4eaa">Dtls_openssl.c</a>, <a class="el" href="Dtls__mbedtls_8c.html#ac40bba1019de3e73a9006b12c9dc4eaa">Dtls_mbedtls.c</a></li>
 <li>createFileIfNotExist()&#160;:&#160;<a class="el" href="FileCache_8c.html#aedcb1b57ddc166aa7ba97663ee7846bd">FileCache.c</a></li>
 <li>createIceAgent()&#160;:&#160;<a class="el" href="IceAgent_8h.html#a8b4871fcabcb392bb37f78a0a1b129eb">IceAgent.h</a>, <a class="el" href="IceAgent_8c.html#af2fe29241b2d4ab4997fe04c41534578">IceAgent.c</a></li>
 <li>createIceCandidatePairs()&#160;:&#160;<a class="el" href="IceAgent_8c.html#ab4a5a8ab78cd23b15d19ef7a25da80ca">IceAgent.c</a>, <a class="el" href="IceAgent_8h.html#ab8082cc21804a13eee3f623b533e1fc3">IceAgent.h</a></li>
@@ -182,7 +183,7 @@ $(document).ready(function(){initNavTree('globals_c.html',''); initResizable(); 
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="footer">Generated on Wed Dec 8 2021 05:27:49 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.2 </li>
+    <li class="footer">Generated on Wed Dec 8 2021 19:01:35 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.2 </li>
   </ul>
 </div>
 </body>

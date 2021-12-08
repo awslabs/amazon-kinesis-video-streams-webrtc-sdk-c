@@ -171,8 +171,12 @@ Functions</h2></td></tr>
 <tr class="separator:ada0698d028687c46481e076ce1be4359"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3c3cdd7608d37131d839bc47bd5de90b"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="LwsApiCalls_8c.html#a3c3cdd7608d37131d839bc47bd5de90b">lwsCompleteSync</a> (<a class="el" href="Signaling_8h.html#a20847e0bdb6871b86a3d83658d20a9eb">PLwsCallInfo</a> pCallInfo)</td></tr>
 <tr class="separator:a3c3cdd7608d37131d839bc47bd5de90b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a0e9ffdc8f0db87b2aabe69061bf65127"><td class="memItemLeft" align="right" valign="top">BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="LwsApiCalls_8c.html#a0e9ffdc8f0db87b2aabe69061bf65127">isCallResultFailureRetryable</a> (PCallInfo pCallInfo)</td></tr>
-<tr class="separator:a0e9ffdc8f0db87b2aabe69061bf65127"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa4e2b7b61f2ea1709b54af9f6bbd89f2"><td class="memItemLeft" align="right" valign="top">BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="LwsApiCalls_8c.html#aa4e2b7b61f2ea1709b54af9f6bbd89f2">isCallResultSignatureExpired</a> (PCallInfo pCallInfo)</td></tr>
+<tr class="separator:aa4e2b7b61f2ea1709b54af9f6bbd89f2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac364c28ddcf2941aef1a71bb05f00429"><td class="memItemLeft" align="right" valign="top">BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="LwsApiCalls_8c.html#ac364c28ddcf2941aef1a71bb05f00429">isCallResultSignatureNotYetCurrent</a> (PCallInfo pCallInfo)</td></tr>
+<tr class="separator:ac364c28ddcf2941aef1a71bb05f00429"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2c096b44f492ff215fe5e9e23abf0e0d"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="LwsApiCalls_8c.html#a2c096b44f492ff215fe5e9e23abf0e0d">checkAndCorrectForClockSkew</a> (<a class="el" href="Signaling_8h.html#afbbe4a33a7b0f60088c02e1ac2629f83">PSignalingClient</a> pSignalingClient, PRequestInfo pRequestInfo)</td></tr>
+<tr class="separator:a2c096b44f492ff215fe5e9e23abf0e0d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5a8154ad7ebbd85474143c31b52e51b3"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="LwsApiCalls_8c.html#a5a8154ad7ebbd85474143c31b52e51b3">describeChannelLws</a> (<a class="el" href="Signaling_8h.html#afbbe4a33a7b0f60088c02e1ac2629f83">PSignalingClient</a> pSignalingClient, UINT64 time)</td></tr>
 <tr class="separator:a5a8154ad7ebbd85474143c31b52e51b3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aaa11ed305dd9f71bc0a1b0fdd5ee46fd"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="LwsApiCalls_8c.html#aaa11ed305dd9f71bc0a1b0fdd5ee46fd">createChannelLws</a> (<a class="el" href="Signaling_8h.html#afbbe4a33a7b0f60088c02e1ac2629f83">PSignalingClient</a> pSignalingClient, UINT64 time)</td></tr>
@@ -229,6 +233,57 @@ Functions</h2></td></tr>
 </div>
 </div>
 <h2 class="groupheader">Function Documentation</h2>
+<a id="a2c096b44f492ff215fe5e9e23abf0e0d" name="a2c096b44f492ff215fe5e9e23abf0e0d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2c096b44f492ff215fe5e9e23abf0e0d">&#9670;&nbsp;</a></span>checkAndCorrectForClockSkew()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">STATUS checkAndCorrectForClockSkew </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="Signaling_8h.html#afbbe4a33a7b0f60088c02e1ac2629f83">PSignalingClient</a>&#160;</td>
+          <td class="paramname"><em>pSignalingClient</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">PRequestInfo&#160;</td>
+          <td class="paramname"><em>pRequestInfo</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="LwsApiCalls_8c_a2c096b44f492ff215fe5e9e23abf0e0d_icgraph.png" border="0" usemap="#aLwsApiCalls_8c_a2c096b44f492ff215fe5e9e23abf0e0d_icgraph" alt=""/></div>
+<map name="aLwsApiCalls_8c_a2c096b44f492ff215fe5e9e23abf0e0d_icgraph" id="aLwsApiCalls_8c_a2c096b44f492ff215fe5e9e23abf0e0d_icgraph">
+<area shape="rect" title=" " alt="" coords="644,115,851,141"/>
+<area shape="rect" href="LwsApiCalls_8c.html#aaa11ed305dd9f71bc0a1b0fdd5ee46fd" title=" " alt="" coords="449,11,580,37"/>
+<area shape="rect" href="LwsApiCalls_8c.html#ab04dee8f22e1f5084406e5afd2371be1" title=" " alt="" coords="450,63,579,89"/>
+<area shape="rect" href="LwsApiCalls_8c.html#a5a8154ad7ebbd85474143c31b52e51b3" title=" " alt="" coords="443,115,586,141"/>
+<area shape="rect" href="LwsApiCalls_8c.html#aed94eba7db5094d99ad97899634e82e8" title=" " alt="" coords="433,169,596,196"/>
+<area shape="rect" href="LwsApiCalls_8c.html#a43eb41d369f6ab2469d738d1c1be5ce8" title=" " alt="" coords="455,227,574,253"/>
+<area shape="rect" href="Signaling_8c.html#ae2a4c41f6590bfdeb451ba05d3b2fa4c" title=" " alt="" coords="264,7,369,33"/>
+<area shape="rect" href="StateMachine_8c.html#a62dee9d71ff5f5714ae89d5b62d083a3" title=" " alt="" coords="8,5,197,32"/>
+<area shape="rect" href="Signaling_8c.html#a885de8ca00d580f413591422d35c52a5" title=" " alt="" coords="265,60,369,87"/>
+<area shape="rect" href="StateMachine_8c.html#a2a8494e9d0c9f5b4602b3df01c365ac9" title=" " alt="" coords="9,56,197,83"/>
+<area shape="rect" href="Signaling_8c.html#a7721cf7d3a8e27791693c1d7d0b06486" title=" " alt="" coords="257,115,376,141"/>
+<area shape="rect" href="StateMachine_8c.html#a902e2e5da192dd55d60faf9ee1df0e6e" title=" " alt="" coords="17,107,188,149"/>
+<area shape="rect" href="Signaling_8c.html#a8847cdf7e665d8557e8009d73ce26f64" title=" " alt="" coords="248,175,385,201"/>
+<area shape="rect" href="StateMachine_8c.html#a4e5852a863f3c402a5e9f72496136a11" title=" " alt="" coords="7,173,198,214"/>
+<area shape="rect" href="Signaling_8c.html#a9b714b42ff43192104ca0cc946f4b346" title=" " alt="" coords="269,232,364,259"/>
+<area shape="rect" href="StateMachine_8c.html#a7dea9acac2fcb8038597198c50c42976" title=" " alt="" coords="5,238,200,279"/>
+</map>
+</div>
+
+</div>
+</div>
 <a id="ae1cea6c90bbf08edbab8a6e71231d41f" name="ae1cea6c90bbf08edbab8a6e71231d41f"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ae1cea6c90bbf08edbab8a6e71231d41f">&#9670;&nbsp;</a></span>connectSignalingChannelLws()</h2>
 
@@ -313,14 +368,14 @@ Here is the call graph for this function:</div>
 <div class="center"><img src="LwsApiCalls_8c_aaa11ed305dd9f71bc0a1b0fdd5ee46fd_cgraph.png" border="0" usemap="#aLwsApiCalls_8c_aaa11ed305dd9f71bc0a1b0fdd5ee46fd_cgraph" alt=""/></div>
 <map name="aLwsApiCalls_8c_aaa11ed305dd9f71bc0a1b0fdd5ee46fd_cgraph" id="aLwsApiCalls_8c_aaa11ed305dd9f71bc0a1b0fdd5ee46fd_cgraph">
 <area shape="rect" title=" " alt="" coords="5,157,136,184"/>
-<area shape="rect" href="LwsApiCalls_8c.html#a988b3c6e00aa3e79fce24a41faeb772c" title=" " alt="" coords="213,5,339,32"/>
-<area shape="rect" href="LwsApiCalls_8c.html#a22be1d34eb8fe76e2872b23ea9f981d1" title=" " alt="" coords="451,31,565,57"/>
-<area shape="rect" href="ChannelInfo_8c.html#ae17a90f8acd89056991245315f8cf725" title=" " alt="" coords="187,107,365,133"/>
-<area shape="rect" href="LwsApiCalls_8c.html#a0e9ffdc8f0db87b2aabe69061bf65127" title=" " alt="" coords="184,157,368,184"/>
-<area shape="rect" href="jsmn_8h.html#a8d4a8b3ce5c3d600feea38615b5f9aa6" title=" " alt="" coords="239,208,313,235"/>
-<area shape="rect" href="jsmn_8h.html#acf28c8ae404fb0ad2823270d2a4c322a" title=" " alt="" coords="231,259,321,285"/>
-<area shape="rect" href="LwsApiCalls_8c.html#a3c3cdd7608d37131d839bc47bd5de90b" title=" " alt="" coords="213,309,339,336"/>
-<area shape="rect" href="LwsApiCalls_8c.html#a799bfe087bea205476d1359524b17656" title=" " alt="" coords="416,309,600,336"/>
+<area shape="rect" href="LwsApiCalls_8c.html#a2c096b44f492ff215fe5e9e23abf0e0d" title=" " alt="" coords="184,5,391,32"/>
+<area shape="rect" href="LwsApiCalls_8c.html#a988b3c6e00aa3e79fce24a41faeb772c" title=" " alt="" coords="224,56,351,83"/>
+<area shape="rect" href="LwsApiCalls_8c.html#a22be1d34eb8fe76e2872b23ea9f981d1" title=" " alt="" coords="474,81,587,108"/>
+<area shape="rect" href="ChannelInfo_8c.html#ae17a90f8acd89056991245315f8cf725" title=" " alt="" coords="198,157,377,184"/>
+<area shape="rect" href="jsmn_8h.html#a8d4a8b3ce5c3d600feea38615b5f9aa6" title=" " alt="" coords="250,208,325,235"/>
+<area shape="rect" href="jsmn_8h.html#acf28c8ae404fb0ad2823270d2a4c322a" title=" " alt="" coords="243,259,332,285"/>
+<area shape="rect" href="LwsApiCalls_8c.html#a3c3cdd7608d37131d839bc47bd5de90b" title=" " alt="" coords="224,309,351,336"/>
+<area shape="rect" href="LwsApiCalls_8c.html#a799bfe087bea205476d1359524b17656" title=" " alt="" coords="439,309,623,336"/>
 </map>
 </div>
 <div class="dynheader">
@@ -441,13 +496,14 @@ Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="LwsApiCalls_8c_ab04dee8f22e1f5084406e5afd2371be1_cgraph.png" border="0" usemap="#aLwsApiCalls_8c_ab04dee8f22e1f5084406e5afd2371be1_cgraph" alt=""/></div>
 <map name="aLwsApiCalls_8c_ab04dee8f22e1f5084406e5afd2371be1_cgraph" id="aLwsApiCalls_8c_ab04dee8f22e1f5084406e5afd2371be1_cgraph">
-<area shape="rect" title=" " alt="" coords="5,81,135,108"/>
-<area shape="rect" href="LwsApiCalls_8c.html#a988b3c6e00aa3e79fce24a41faeb772c" title=" " alt="" coords="222,5,349,32"/>
-<area shape="rect" href="LwsApiCalls_8c.html#a22be1d34eb8fe76e2872b23ea9f981d1" title=" " alt="" coords="471,31,585,57"/>
-<area shape="rect" href="LwsApiCalls_8c.html#a3c3cdd7608d37131d839bc47bd5de90b" title=" " alt="" coords="222,107,349,133"/>
-<area shape="rect" href="LwsApiCalls_8c.html#ae7928b7a5bf47cbdf2ccf753f1c1e8df" title=" " alt="" coords="183,157,388,184"/>
-<area shape="rect" href="LwsApiCalls_8c.html#a799bfe087bea205476d1359524b17656" title=" " alt="" coords="436,107,620,133"/>
-<area shape="rect" href="Signaling_8c.html#a653edfffd5d129d08f5971d91f16fc5e" title=" " alt="" coords="438,157,618,184"/>
+<area shape="rect" title=" " alt="" coords="5,107,135,133"/>
+<area shape="rect" href="LwsApiCalls_8c.html#a2c096b44f492ff215fe5e9e23abf0e0d" title=" " alt="" coords="183,5,389,32"/>
+<area shape="rect" href="LwsApiCalls_8c.html#a988b3c6e00aa3e79fce24a41faeb772c" title=" " alt="" coords="223,56,349,83"/>
+<area shape="rect" href="LwsApiCalls_8c.html#a22be1d34eb8fe76e2872b23ea9f981d1" title=" " alt="" coords="473,81,586,108"/>
+<area shape="rect" href="LwsApiCalls_8c.html#a3c3cdd7608d37131d839bc47bd5de90b" title=" " alt="" coords="223,157,349,184"/>
+<area shape="rect" href="LwsApiCalls_8c.html#ae7928b7a5bf47cbdf2ccf753f1c1e8df" title=" " alt="" coords="183,208,389,235"/>
+<area shape="rect" href="LwsApiCalls_8c.html#a799bfe087bea205476d1359524b17656" title=" " alt="" coords="437,157,621,184"/>
+<area shape="rect" href="Signaling_8c.html#a653edfffd5d129d08f5971d91f16fc5e" title=" " alt="" coords="439,208,619,235"/>
 </map>
 </div>
 <div class="dynheader">
@@ -494,15 +550,15 @@ Here is the call graph for this function:</div>
 <div class="center"><img src="LwsApiCalls_8c_a5a8154ad7ebbd85474143c31b52e51b3_cgraph.png" border="0" usemap="#aLwsApiCalls_8c_a5a8154ad7ebbd85474143c31b52e51b3_cgraph" alt=""/></div>
 <map name="aLwsApiCalls_8c_a5a8154ad7ebbd85474143c31b52e51b3_cgraph" id="aLwsApiCalls_8c_a5a8154ad7ebbd85474143c31b52e51b3_cgraph">
 <area shape="rect" title=" " alt="" coords="5,183,148,209"/>
-<area shape="rect" href="LwsApiCalls_8c.html#a988b3c6e00aa3e79fce24a41faeb772c" title=" " alt="" coords="227,5,354,32"/>
-<area shape="rect" href="LwsApiCalls_8c.html#a22be1d34eb8fe76e2872b23ea9f981d1" title=" " alt="" coords="469,31,582,57"/>
-<area shape="rect" href="ChannelInfo_8c.html#a464cf1c86d1808abf8f4c1b6583f4890" title=" " alt="" coords="196,107,385,133"/>
-<area shape="rect" href="ChannelInfo_8c.html#a3e238d942faed37a679b58371551aecb" title=" " alt="" coords="201,157,380,184"/>
-<area shape="rect" href="LwsApiCalls_8c.html#a0e9ffdc8f0db87b2aabe69061bf65127" title=" " alt="" coords="199,208,383,235"/>
-<area shape="rect" href="jsmn_8h.html#a8d4a8b3ce5c3d600feea38615b5f9aa6" title=" " alt="" coords="253,259,328,285"/>
-<area shape="rect" href="jsmn_8h.html#acf28c8ae404fb0ad2823270d2a4c322a" title=" " alt="" coords="246,309,335,336"/>
-<area shape="rect" href="LwsApiCalls_8c.html#a3c3cdd7608d37131d839bc47bd5de90b" title=" " alt="" coords="227,360,354,387"/>
-<area shape="rect" href="LwsApiCalls_8c.html#a799bfe087bea205476d1359524b17656" title=" " alt="" coords="433,360,617,387"/>
+<area shape="rect" href="LwsApiCalls_8c.html#a2c096b44f492ff215fe5e9e23abf0e0d" title=" " alt="" coords="196,5,403,32"/>
+<area shape="rect" href="LwsApiCalls_8c.html#a988b3c6e00aa3e79fce24a41faeb772c" title=" " alt="" coords="236,56,363,83"/>
+<area shape="rect" href="LwsApiCalls_8c.html#a22be1d34eb8fe76e2872b23ea9f981d1" title=" " alt="" coords="486,81,599,108"/>
+<area shape="rect" href="ChannelInfo_8c.html#a464cf1c86d1808abf8f4c1b6583f4890" title=" " alt="" coords="205,157,394,184"/>
+<area shape="rect" href="ChannelInfo_8c.html#a3e238d942faed37a679b58371551aecb" title=" " alt="" coords="210,208,389,235"/>
+<area shape="rect" href="jsmn_8h.html#a8d4a8b3ce5c3d600feea38615b5f9aa6" title=" " alt="" coords="262,259,337,285"/>
+<area shape="rect" href="jsmn_8h.html#acf28c8ae404fb0ad2823270d2a4c322a" title=" " alt="" coords="255,309,344,336"/>
+<area shape="rect" href="LwsApiCalls_8c.html#a3c3cdd7608d37131d839bc47bd5de90b" title=" " alt="" coords="236,360,363,387"/>
+<area shape="rect" href="LwsApiCalls_8c.html#a799bfe087bea205476d1359524b17656" title=" " alt="" coords="451,360,635,387"/>
 </map>
 </div>
 <div class="dynheader">
@@ -595,14 +651,14 @@ Here is the call graph for this function:</div>
 <div class="center"><img src="LwsApiCalls_8c_aed94eba7db5094d99ad97899634e82e8_cgraph.png" border="0" usemap="#aLwsApiCalls_8c_aed94eba7db5094d99ad97899634e82e8_cgraph" alt=""/></div>
 <map name="aLwsApiCalls_8c_aed94eba7db5094d99ad97899634e82e8_cgraph" id="aLwsApiCalls_8c_aed94eba7db5094d99ad97899634e82e8_cgraph">
 <area shape="rect" title=" " alt="" coords="5,157,168,184"/>
-<area shape="rect" href="LwsApiCalls_8c.html#a988b3c6e00aa3e79fce24a41faeb772c" title=" " alt="" coords="255,5,382,32"/>
-<area shape="rect" href="LwsApiCalls_8c.html#a22be1d34eb8fe76e2872b23ea9f981d1" title=" " alt="" coords="505,31,618,57"/>
-<area shape="rect" href="ChannelInfo_8c.html#a8a9f270957f5b1d641521615089742bf" title=" " alt="" coords="216,107,421,133"/>
-<area shape="rect" href="LwsApiCalls_8c.html#a0e9ffdc8f0db87b2aabe69061bf65127" title=" " alt="" coords="227,157,411,184"/>
-<area shape="rect" href="jsmn_8h.html#a8d4a8b3ce5c3d600feea38615b5f9aa6" title=" " alt="" coords="281,208,356,235"/>
-<area shape="rect" href="jsmn_8h.html#acf28c8ae404fb0ad2823270d2a4c322a" title=" " alt="" coords="274,259,363,285"/>
-<area shape="rect" href="LwsApiCalls_8c.html#a3c3cdd7608d37131d839bc47bd5de90b" title=" " alt="" coords="255,309,382,336"/>
-<area shape="rect" href="LwsApiCalls_8c.html#a799bfe087bea205476d1359524b17656" title=" " alt="" coords="469,309,653,336"/>
+<area shape="rect" href="LwsApiCalls_8c.html#a2c096b44f492ff215fe5e9e23abf0e0d" title=" " alt="" coords="216,5,423,32"/>
+<area shape="rect" href="LwsApiCalls_8c.html#a988b3c6e00aa3e79fce24a41faeb772c" title=" " alt="" coords="256,56,383,83"/>
+<area shape="rect" href="LwsApiCalls_8c.html#a22be1d34eb8fe76e2872b23ea9f981d1" title=" " alt="" coords="506,81,619,108"/>
+<area shape="rect" href="ChannelInfo_8c.html#a8a9f270957f5b1d641521615089742bf" title=" " alt="" coords="217,157,422,184"/>
+<area shape="rect" href="jsmn_8h.html#a8d4a8b3ce5c3d600feea38615b5f9aa6" title=" " alt="" coords="282,208,357,235"/>
+<area shape="rect" href="jsmn_8h.html#acf28c8ae404fb0ad2823270d2a4c322a" title=" " alt="" coords="275,259,364,285"/>
+<area shape="rect" href="LwsApiCalls_8c.html#a3c3cdd7608d37131d839bc47bd5de90b" title=" " alt="" coords="256,309,383,336"/>
+<area shape="rect" href="LwsApiCalls_8c.html#a799bfe087bea205476d1359524b17656" title=" " alt="" coords="471,309,655,336"/>
 </map>
 </div>
 <div class="dynheader">
@@ -649,14 +705,14 @@ Here is the call graph for this function:</div>
 <div class="center"><img src="LwsApiCalls_8c_a43eb41d369f6ab2469d738d1c1be5ce8_cgraph.png" border="0" usemap="#aLwsApiCalls_8c_a43eb41d369f6ab2469d738d1c1be5ce8_cgraph" alt=""/></div>
 <map name="aLwsApiCalls_8c_a43eb41d369f6ab2469d738d1c1be5ce8_cgraph" id="aLwsApiCalls_8c_a43eb41d369f6ab2469d738d1c1be5ce8_cgraph">
 <area shape="rect" title=" " alt="" coords="5,157,124,184"/>
-<area shape="rect" href="LwsApiCalls_8c.html#a988b3c6e00aa3e79fce24a41faeb772c" title=" " alt="" coords="201,5,327,32"/>
-<area shape="rect" href="LwsApiCalls_8c.html#a22be1d34eb8fe76e2872b23ea9f981d1" title=" " alt="" coords="439,31,553,57"/>
-<area shape="rect" href="LwsApiCalls_8c.html#a0e9ffdc8f0db87b2aabe69061bf65127" title=" " alt="" coords="172,107,356,133"/>
-<area shape="rect" href="jsmn_8h.html#a8d4a8b3ce5c3d600feea38615b5f9aa6" title=" " alt="" coords="227,157,301,184"/>
-<area shape="rect" href="jsmn_8h.html#acf28c8ae404fb0ad2823270d2a4c322a" title=" " alt="" coords="219,208,309,235"/>
-<area shape="rect" href="LwsApiCalls_8c.html#a3c3cdd7608d37131d839bc47bd5de90b" title=" " alt="" coords="201,259,327,285"/>
-<area shape="rect" href="Signaling_8c.html#af5819e8bf1d10e24153c35f91b50a735" title=" " alt="" coords="184,309,344,336"/>
-<area shape="rect" href="LwsApiCalls_8c.html#a799bfe087bea205476d1359524b17656" title=" " alt="" coords="404,259,588,285"/>
+<area shape="rect" href="LwsApiCalls_8c.html#a2c096b44f492ff215fe5e9e23abf0e0d" title=" " alt="" coords="172,5,379,32"/>
+<area shape="rect" href="LwsApiCalls_8c.html#a988b3c6e00aa3e79fce24a41faeb772c" title=" " alt="" coords="212,56,339,83"/>
+<area shape="rect" href="LwsApiCalls_8c.html#a22be1d34eb8fe76e2872b23ea9f981d1" title=" " alt="" coords="462,81,575,108"/>
+<area shape="rect" href="jsmn_8h.html#a8d4a8b3ce5c3d600feea38615b5f9aa6" title=" " alt="" coords="238,157,313,184"/>
+<area shape="rect" href="jsmn_8h.html#acf28c8ae404fb0ad2823270d2a4c322a" title=" " alt="" coords="231,208,320,235"/>
+<area shape="rect" href="LwsApiCalls_8c.html#a3c3cdd7608d37131d839bc47bd5de90b" title=" " alt="" coords="212,259,339,285"/>
+<area shape="rect" href="Signaling_8c.html#af5819e8bf1d10e24153c35f91b50a735" title=" " alt="" coords="195,309,355,336"/>
+<area shape="rect" href="LwsApiCalls_8c.html#a799bfe087bea205476d1359524b17656" title=" " alt="" coords="427,259,611,285"/>
 </map>
 </div>
 <div class="dynheader">
@@ -748,14 +804,14 @@ Here is the caller graph for this function:</div>
 
 </div>
 </div>
-<a id="a0e9ffdc8f0db87b2aabe69061bf65127" name="a0e9ffdc8f0db87b2aabe69061bf65127"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a0e9ffdc8f0db87b2aabe69061bf65127">&#9670;&nbsp;</a></span>isCallResultFailureRetryable()</h2>
+<a id="aa4e2b7b61f2ea1709b54af9f6bbd89f2" name="aa4e2b7b61f2ea1709b54af9f6bbd89f2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa4e2b7b61f2ea1709b54af9f6bbd89f2">&#9670;&nbsp;</a></span>isCallResultSignatureExpired()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">BOOL isCallResultFailureRetryable </td>
+          <td class="memname">BOOL isCallResultSignatureExpired </td>
           <td>(</td>
           <td class="paramtype">PCallInfo&#160;</td>
           <td class="paramname"><em>pCallInfo</em></td><td>)</td>
@@ -766,21 +822,41 @@ Here is the caller graph for this function:</div>
 <div class="dynheader">
 Here is the caller graph for this function:</div>
 <div class="dyncontent">
-<div class="center"><img src="LwsApiCalls_8c_a0e9ffdc8f0db87b2aabe69061bf65127_icgraph.png" border="0" usemap="#aLwsApiCalls_8c_a0e9ffdc8f0db87b2aabe69061bf65127_icgraph" alt=""/></div>
-<map name="aLwsApiCalls_8c_a0e9ffdc8f0db87b2aabe69061bf65127_icgraph" id="aLwsApiCalls_8c_a0e9ffdc8f0db87b2aabe69061bf65127_icgraph">
-<area shape="rect" title=" " alt="" coords="644,100,828,127"/>
-<area shape="rect" href="LwsApiCalls_8c.html#aaa11ed305dd9f71bc0a1b0fdd5ee46fd" title=" " alt="" coords="449,24,580,51"/>
-<area shape="rect" href="LwsApiCalls_8c.html#a5a8154ad7ebbd85474143c31b52e51b3" title=" " alt="" coords="443,75,586,101"/>
-<area shape="rect" href="LwsApiCalls_8c.html#aed94eba7db5094d99ad97899634e82e8" title=" " alt="" coords="433,125,596,152"/>
-<area shape="rect" href="LwsApiCalls_8c.html#a43eb41d369f6ab2469d738d1c1be5ce8" title=" " alt="" coords="455,176,574,203"/>
-<area shape="rect" href="Signaling_8c.html#ae2a4c41f6590bfdeb451ba05d3b2fa4c" title=" " alt="" coords="264,9,369,36"/>
-<area shape="rect" href="StateMachine_8c.html#a62dee9d71ff5f5714ae89d5b62d083a3" title=" " alt="" coords="8,5,197,32"/>
-<area shape="rect" href="Signaling_8c.html#a7721cf7d3a8e27791693c1d7d0b06486" title=" " alt="" coords="257,68,376,95"/>
-<area shape="rect" href="StateMachine_8c.html#a902e2e5da192dd55d60faf9ee1df0e6e" title=" " alt="" coords="17,57,188,98"/>
-<area shape="rect" href="Signaling_8c.html#a8847cdf7e665d8557e8009d73ce26f64" title=" " alt="" coords="248,125,385,152"/>
-<area shape="rect" href="StateMachine_8c.html#a4e5852a863f3c402a5e9f72496136a11" title=" " alt="" coords="7,122,198,163"/>
-<area shape="rect" href="Signaling_8c.html#a9b714b42ff43192104ca0cc946f4b346" title=" " alt="" coords="269,176,364,203"/>
-<area shape="rect" href="StateMachine_8c.html#a7dea9acac2fcb8038597198c50c42976" title=" " alt="" coords="5,187,200,229"/>
+<div class="center"><img src="LwsApiCalls_8c_aa4e2b7b61f2ea1709b54af9f6bbd89f2_icgraph.png" border="0" usemap="#aLwsApiCalls_8c_aa4e2b7b61f2ea1709b54af9f6bbd89f2_icgraph" alt=""/></div>
+<map name="aLwsApiCalls_8c_aa4e2b7b61f2ea1709b54af9f6bbd89f2_icgraph" id="aLwsApiCalls_8c_aa4e2b7b61f2ea1709b54af9f6bbd89f2_icgraph">
+<area shape="rect" title=" " alt="" coords="624,5,812,32"/>
+<area shape="rect" href="LwsApiCalls_8c.html#ae090b20fed100f7efdf3c5dac4837372" title=" " alt="" coords="415,5,576,32"/>
+<area shape="rect" href="Signaling_8c.html#ab095306d46a8e5ae01e2b28a8de0487a" title=" " alt="" coords="227,5,367,32"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga375ddffe8376298cdaafe63799b53b1e" title="Creates a Signaling client and returns a handle to it." alt="" coords="5,5,179,32"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="ac364c28ddcf2941aef1a71bb05f00429" name="ac364c28ddcf2941aef1a71bb05f00429"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac364c28ddcf2941aef1a71bb05f00429">&#9670;&nbsp;</a></span>isCallResultSignatureNotYetCurrent()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">BOOL isCallResultSignatureNotYetCurrent </td>
+          <td>(</td>
+          <td class="paramtype">PCallInfo&#160;</td>
+          <td class="paramname"><em>pCallInfo</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="LwsApiCalls_8c_ac364c28ddcf2941aef1a71bb05f00429_icgraph.png" border="0" usemap="#aLwsApiCalls_8c_ac364c28ddcf2941aef1a71bb05f00429_icgraph" alt=""/></div>
+<map name="aLwsApiCalls_8c_ac364c28ddcf2941aef1a71bb05f00429_icgraph" id="aLwsApiCalls_8c_ac364c28ddcf2941aef1a71bb05f00429_icgraph">
+<area shape="rect" title=" " alt="" coords="624,5,791,47"/>
+<area shape="rect" href="LwsApiCalls_8c.html#ae090b20fed100f7efdf3c5dac4837372" title=" " alt="" coords="415,13,576,39"/>
+<area shape="rect" href="Signaling_8c.html#ab095306d46a8e5ae01e2b28a8de0487a" title=" " alt="" coords="227,13,367,39"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga375ddffe8376298cdaafe63799b53b1e" title="Creates a Signaling client and returns a handle to it." alt="" coords="5,13,179,39"/>
 </map>
 </div>
 
@@ -883,6 +959,16 @@ Here is the caller graph for this function:</div>
         </tr>
       </table>
 </div><div class="memdoc">
+<div class="dynheader">
+Here is the call graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="LwsApiCalls_8c_ae090b20fed100f7efdf3c5dac4837372_cgraph.png" border="0" usemap="#aLwsApiCalls_8c_ae090b20fed100f7efdf3c5dac4837372_cgraph" alt=""/></div>
+<map name="aLwsApiCalls_8c_ae090b20fed100f7efdf3c5dac4837372_cgraph" id="aLwsApiCalls_8c_ae090b20fed100f7efdf3c5dac4837372_cgraph">
+<area shape="rect" title=" " alt="" coords="5,35,167,61"/>
+<area shape="rect" href="LwsApiCalls_8c.html#aa4e2b7b61f2ea1709b54af9f6bbd89f2" title=" " alt="" coords="215,5,403,32"/>
+<area shape="rect" href="LwsApiCalls_8c.html#ac364c28ddcf2941aef1a71bb05f00429" title=" " alt="" coords="225,57,392,98"/>
+</map>
+</div>
 <div class="dynheader">
 Here is the caller graph for this function:</div>
 <div class="dyncontent">
@@ -1482,7 +1568,7 @@ Here is the caller graph for this function:</div>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_94e7a0fbe7f8eaf7f05ee7b02c647e9f.html">source</a></li><li class="navelem"><a class="el" href="dir_a2c552ed41e223deef2a46f0c92d8956.html">Signaling</a></li><li class="navelem"><a class="el" href="LwsApiCalls_8c.html">LwsApiCalls.c</a></li>
-    <li class="footer">Generated on Wed Dec 8 2021 05:27:48 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.2 </li>
+    <li class="footer">Generated on Wed Dec 8 2021 19:01:34 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.2 </li>
   </ul>
 </div>
 </body>

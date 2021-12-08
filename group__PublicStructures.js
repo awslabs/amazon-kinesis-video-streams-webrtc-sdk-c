@@ -110,6 +110,7 @@ var group__PublicStructures =
     [ "SignalingClientCallbacks", "structSignalingClientCallbacks.html", [
       [ "customData", "group__StatusCodes.html#gac1108b3f0f014f820025b0eaf345ffc4", null ],
       [ "errorReportFn", "group__StatusCodes.html#ga541b18458a4b4ec54117a6130fd48d6a", null ],
+      [ "getCurrentTimeFn", "group__StatusCodes.html#gad0daf0b032e00296053d23ce8038a2c1", null ],
       [ "messageReceivedFn", "group__StatusCodes.html#gaf62848d4a3bdf038a7a05ae5cc792610", null ],
       [ "stateChangeFn", "group__StatusCodes.html#ga8a72e56bbf4b4dae2b19306acda39523", null ],
       [ "version", "group__StatusCodes.html#ga28e1f7ffcd30600fbeecd7f682e6afed", null ]

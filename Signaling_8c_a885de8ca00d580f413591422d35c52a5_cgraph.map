@@ -1,10 +1,11 @@
 <map id="deleteChannel" name="deleteChannel">
-<area shape="rect" id="node1" title=" " alt="" coords="5,81,109,108"/>
-<area shape="rect" id="node2" href="$LwsApiCalls_8c.html#ab04dee8f22e1f5084406e5afd2371be1" title=" " alt="" coords="157,81,287,108"/>
-<area shape="rect" id="node3" href="$LwsApiCalls_8c.html#a988b3c6e00aa3e79fce24a41faeb772c" title=" " alt="" coords="374,5,501,32"/>
-<area shape="rect" id="node4" href="$LwsApiCalls_8c.html#a22be1d34eb8fe76e2872b23ea9f981d1" title=" " alt="" coords="623,31,737,57"/>
-<area shape="rect" id="node5" href="$LwsApiCalls_8c.html#a3c3cdd7608d37131d839bc47bd5de90b" title=" " alt="" coords="374,107,501,133"/>
-<area shape="rect" id="node7" href="$LwsApiCalls_8c.html#ae7928b7a5bf47cbdf2ccf753f1c1e8df" title=" " alt="" coords="335,157,540,184"/>
-<area shape="rect" id="node6" href="$LwsApiCalls_8c.html#a799bfe087bea205476d1359524b17656" title=" " alt="" coords="588,107,772,133"/>
-<area shape="rect" id="node8" href="$Signaling_8c.html#a653edfffd5d129d08f5971d91f16fc5e" title=" " alt="" coords="590,157,770,184"/>
+<area shape="rect" id="node1" title=" " alt="" coords="5,107,109,133"/>
+<area shape="rect" id="node2" href="$LwsApiCalls_8c.html#ab04dee8f22e1f5084406e5afd2371be1" title=" " alt="" coords="157,107,287,133"/>
+<area shape="rect" id="node3" href="$LwsApiCalls_8c.html#a2c096b44f492ff215fe5e9e23abf0e0d" title=" " alt="" coords="335,5,541,32"/>
+<area shape="rect" id="node4" href="$LwsApiCalls_8c.html#a988b3c6e00aa3e79fce24a41faeb772c" title=" " alt="" coords="375,56,501,83"/>
+<area shape="rect" id="node5" href="$LwsApiCalls_8c.html#a22be1d34eb8fe76e2872b23ea9f981d1" title=" " alt="" coords="625,81,738,108"/>
+<area shape="rect" id="node6" href="$LwsApiCalls_8c.html#a3c3cdd7608d37131d839bc47bd5de90b" title=" " alt="" coords="375,157,501,184"/>
+<area shape="rect" id="node8" href="$LwsApiCalls_8c.html#ae7928b7a5bf47cbdf2ccf753f1c1e8df" title=" " alt="" coords="335,208,541,235"/>
+<area shape="rect" id="node7" href="$LwsApiCalls_8c.html#a799bfe087bea205476d1359524b17656" title=" " alt="" coords="589,157,773,184"/>
+<area shape="rect" id="node9" href="$Signaling_8c.html#a653edfffd5d129d08f5971d91f16fc5e" title=" " alt="" coords="591,208,771,235"/>
 </map>

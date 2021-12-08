@@ -468,6 +468,9 @@ Variables</h2></td></tr>
 <tr class="memitem:ga8a72e56bbf4b4dae2b19306acda39523"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__Callbacks.html#gaa5fb7b1ff5dcfe5208a314eef9f3045a">SignalingClientStateChangedFunc</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga8a72e56bbf4b4dae2b19306acda39523">SignalingClientCallbacks::stateChangeFn</a></td></tr>
 <tr class="memdesc:ga8a72e56bbf4b4dae2b19306acda39523"><td class="mdescLeft">&#160;</td><td class="mdescRight">Signaling client state change callback.  <a href="group__StatusCodes.html#ga8a72e56bbf4b4dae2b19306acda39523">More...</a><br /></td></tr>
 <tr class="separator:ga8a72e56bbf4b4dae2b19306acda39523"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gad0daf0b032e00296053d23ce8038a2c1"><td class="memItemLeft" align="right" valign="top">GetCurrentTimeFunc&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#gad0daf0b032e00296053d23ce8038a2c1">SignalingClientCallbacks::getCurrentTimeFn</a></td></tr>
+<tr class="memdesc:gad0daf0b032e00296053d23ce8038a2c1"><td class="mdescLeft">&#160;</td><td class="mdescRight">callback to override system time, used for testing clock skew  <a href="group__StatusCodes.html#gad0daf0b032e00296053d23ce8038a2c1">More...</a><br /></td></tr>
+<tr class="separator:gad0daf0b032e00296053d23ce8038a2c1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga2654c67d8cf48a3c4eb29e2454109b4d"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga2654c67d8cf48a3c4eb29e2454109b4d">SignalingChannelDescription::version</a></td></tr>
 <tr class="memdesc:ga2654c67d8cf48a3c4eb29e2454109b4d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Version of the <a class="el" href="structSignalingChannelDescription.html" title="Signaling channel description returned from the service.">SignalingChannelDescription</a> struct.  <a href="group__StatusCodes.html#ga2654c67d8cf48a3c4eb29e2454109b4d">More...</a><br /></td></tr>
 <tr class="separator:ga2654c67d8cf48a3c4eb29e2454109b4d"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -1282,6 +1285,22 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 <p >GenerateRSACertificate controls if an ECDSA or RSA certificate is generated. By default we generate an ECDSA certificate but some platforms may not support them. </p>
+
+</div>
+</div>
+<a id="gad0daf0b032e00296053d23ce8038a2c1" name="gad0daf0b032e00296053d23ce8038a2c1"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gad0daf0b032e00296053d23ce8038a2c1">&#9670;&nbsp;</a></span>getCurrentTimeFn</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">GetCurrentTimeFunc SignalingClientCallbacks::getCurrentTimeFn</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>callback to override system time, used for testing clock skew </p>
 
 </div>
 </div>
@@ -2678,7 +2697,7 @@ Variables</h2></td></tr>
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="footer">Generated on Wed Dec 8 2021 05:27:48 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.2 </li>
+    <li class="footer">Generated on Wed Dec 8 2021 19:01:34 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.2 </li>
   </ul>
 </div>
 </body>
