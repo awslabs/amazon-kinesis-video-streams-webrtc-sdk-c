@@ -1196,11 +1196,21 @@ STATUS addTransceiver(PRtcPeerConnection pPeerConnection, PRtcMediaStreamTrack p
     UINT32 clockRate = 0;
     UINT32 ssrc = (UINT32) RAND(), rtxSsrc = (UINT32) RAND();
     RTC_RTP_TRANSCEIVER_DIRECTION direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+    RtcMediaStreamTrack videoTrack;
     if (pRtcRtpTransceiverInit != NULL) {
         direction = pRtcRtpTransceiverInit->direction;
     }
 
     CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
+ 
+    if (direction == RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY && pRtcMediaStreamTrack == NULL) {
+        MEMSET(&videoTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
+        videoTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+        videoTrack.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+        STRCPY(videoTrack.streamId, "myKvsVideoStream");
+        STRCPY(videoTrack.trackId, "myVideoTrack");
+        pRtcMediaStreamTrack = &videoTrack;
+    }
 
     switch (pRtcMediaStreamTrack->codec) {
         case RTC_CODEC_OPUS:
