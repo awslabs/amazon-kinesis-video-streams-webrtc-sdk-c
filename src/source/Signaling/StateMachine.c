@@ -5,128 +5,56 @@
 #include "../Include_i.h"
 
 /**
- * Static definitions of the states 
+ * Static definitions of the states
  */
 StateMachineState SIGNALING_STATE_MACHINE_STATES[] = {
-    {
-        SIGNALING_STATE_NEW, 
-        SIGNALING_STATE_NONE | SIGNALING_STATE_NEW,
-        fromNewSignalingState,
-        executeNewSignalingState,
-        defaultSignalingStateTransitionHook,
-        INFINITE_RETRY_COUNT_SENTINEL,
-        STATUS_SIGNALING_INVALID_READY_STATE
-    },
-    {
-        SIGNALING_STATE_GET_TOKEN,
-        SIGNALING_STATE_NEW | SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_CREATE | SIGNALING_STATE_GET_ENDPOINT | SIGNALING_STATE_GET_ICE_CONFIG |
-        SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_DELETE | SIGNALING_STATE_GET_TOKEN,
-        fromGetTokenSignalingState,
-        executeGetTokenSignalingState,
-        defaultSignalingStateTransitionHook,
-        SIGNALING_STATES_DEFAULT_RETRY_COUNT,
-        STATUS_SIGNALING_GET_TOKEN_CALL_FAILED
-    },
-    {
-        SIGNALING_STATE_DESCRIBE,
-        SIGNALING_STATE_GET_TOKEN | SIGNALING_STATE_CREATE | SIGNALING_STATE_GET_ENDPOINT | SIGNALING_STATE_GET_ICE_CONFIG | SIGNALING_STATE_CONNECT |
-        SIGNALING_STATE_CONNECTED | SIGNALING_STATE_DELETE | SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_READY | SIGNALING_STATE_DISCONNECTED,
-        fromDescribeSignalingState,
-        executeDescribeSignalingState,
-        defaultSignalingStateTransitionHook,
-        SIGNALING_STATES_DEFAULT_RETRY_COUNT,
-        STATUS_SIGNALING_DESCRIBE_CALL_FAILED
-    },
-    {
-        SIGNALING_STATE_CREATE,
-        SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_CREATE,
-        fromCreateSignalingState,
-        executeCreateSignalingState,
-        defaultSignalingStateTransitionHook,
-        SIGNALING_STATES_DEFAULT_RETRY_COUNT,
-        STATUS_SIGNALING_CREATE_CALL_FAILED
-    },
-    {
-        SIGNALING_STATE_GET_ENDPOINT,
-        SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_CREATE | SIGNALING_STATE_GET_TOKEN | SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT |
-        SIGNALING_STATE_CONNECTED | SIGNALING_STATE_GET_ENDPOINT,
-        fromGetEndpointSignalingState,
-        executeGetEndpointSignalingState,
-        defaultSignalingStateTransitionHook,
-        SIGNALING_STATES_DEFAULT_RETRY_COUNT,
-        STATUS_SIGNALING_GET_ENDPOINT_CALL_FAILED
-    },
-    {
-        SIGNALING_STATE_GET_ICE_CONFIG,
-        SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_GET_ENDPOINT | SIGNALING_STATE_READY |
-        SIGNALING_STATE_GET_ICE_CONFIG,
-        fromGetIceConfigSignalingState,
-        executeGetIceConfigSignalingState,
-        defaultSignalingStateTransitionHook,
-        SIGNALING_STATES_DEFAULT_RETRY_COUNT,
-        STATUS_SIGNALING_GET_ICE_CONFIG_CALL_FAILED
-    },
-    {
-        SIGNALING_STATE_READY,
-        SIGNALING_STATE_GET_ICE_CONFIG | SIGNALING_STATE_DISCONNECTED | SIGNALING_STATE_READY,
-        fromReadySignalingState,
-        executeReadySignalingState,
-        defaultSignalingStateTransitionHook,
-        INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_READY_CALLBACK_FAILED
-    },
-    {
-        SIGNALING_STATE_CONNECT,
-        SIGNALING_STATE_READY | SIGNALING_STATE_DISCONNECTED | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_CONNECT,
-        fromConnectSignalingState,
-        executeConnectSignalingState,
-        defaultSignalingStateTransitionHook,
-        INFINITE_RETRY_COUNT_SENTINEL,
-        STATUS_SIGNALING_CONNECT_CALL_FAILED
-    },
-    {
-        SIGNALING_STATE_CONNECTED,
-        SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED,
-        fromConnectedSignalingState,
-        executeConnectedSignalingState,
-        defaultSignalingStateTransitionHook,
-        INFINITE_RETRY_COUNT_SENTINEL,
-        STATUS_SIGNALING_CONNECTED_CALLBACK_FAILED
-    },
-    {
-        SIGNALING_STATE_DISCONNECTED,
-        SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED,
-        fromDisconnectedSignalingState,
-        executeDisconnectedSignalingState,
-        defaultSignalingStateTransitionHook,
-        SIGNALING_STATES_DEFAULT_RETRY_COUNT,
-        STATUS_SIGNALING_DISCONNECTED_CALLBACK_FAILED
-    },
-    {
-        SIGNALING_STATE_DELETE,
-        SIGNALING_STATE_GET_TOKEN | SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_CREATE | SIGNALING_STATE_GET_ENDPOINT | SIGNALING_STATE_GET_ICE_CONFIG |
-        SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_DISCONNECTED | SIGNALING_STATE_DELETE,
-        fromDeleteSignalingState,
-        executeDeleteSignalingState,
-        defaultSignalingStateTransitionHook,
-        SIGNALING_STATES_DEFAULT_RETRY_COUNT,
-        STATUS_SIGNALING_DELETE_CALL_FAILED
-    },
-    {
-        SIGNALING_STATE_DELETED,
-        SIGNALING_STATE_DELETE | SIGNALING_STATE_DELETED,
-        fromDeletedSignalingState,
-        executeDeletedSignalingState,
-        defaultSignalingStateTransitionHook,
-        INFINITE_RETRY_COUNT_SENTINEL,
-        STATUS_SIGNALING_DELETE_CALL_FAILED
-    },
+    {SIGNALING_STATE_NEW, SIGNALING_STATE_NONE | SIGNALING_STATE_NEW, fromNewSignalingState, executeNewSignalingState,
+     defaultSignalingStateTransitionHook, INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_INVALID_READY_STATE},
+    {SIGNALING_STATE_GET_TOKEN,
+     SIGNALING_STATE_NEW | SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_CREATE | SIGNALING_STATE_GET_ENDPOINT | SIGNALING_STATE_GET_ICE_CONFIG |
+         SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_DELETE | SIGNALING_STATE_GET_TOKEN,
+     fromGetTokenSignalingState, executeGetTokenSignalingState, defaultSignalingStateTransitionHook, SIGNALING_STATES_DEFAULT_RETRY_COUNT,
+     STATUS_SIGNALING_GET_TOKEN_CALL_FAILED},
+    {SIGNALING_STATE_DESCRIBE,
+     SIGNALING_STATE_GET_TOKEN | SIGNALING_STATE_CREATE | SIGNALING_STATE_GET_ENDPOINT | SIGNALING_STATE_GET_ICE_CONFIG | SIGNALING_STATE_CONNECT |
+         SIGNALING_STATE_CONNECTED | SIGNALING_STATE_DELETE | SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_READY | SIGNALING_STATE_DISCONNECTED,
+     fromDescribeSignalingState, executeDescribeSignalingState, defaultSignalingStateTransitionHook, SIGNALING_STATES_DEFAULT_RETRY_COUNT,
+     STATUS_SIGNALING_DESCRIBE_CALL_FAILED},
+    {SIGNALING_STATE_CREATE, SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_CREATE, fromCreateSignalingState, executeCreateSignalingState,
+     defaultSignalingStateTransitionHook, SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_CREATE_CALL_FAILED},
+    {SIGNALING_STATE_GET_ENDPOINT,
+     SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_CREATE | SIGNALING_STATE_GET_TOKEN | SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT |
+         SIGNALING_STATE_CONNECTED | SIGNALING_STATE_GET_ENDPOINT,
+     fromGetEndpointSignalingState, executeGetEndpointSignalingState, defaultSignalingStateTransitionHook, SIGNALING_STATES_DEFAULT_RETRY_COUNT,
+     STATUS_SIGNALING_GET_ENDPOINT_CALL_FAILED},
+    {SIGNALING_STATE_GET_ICE_CONFIG,
+     SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_GET_ENDPOINT | SIGNALING_STATE_READY |
+         SIGNALING_STATE_GET_ICE_CONFIG,
+     fromGetIceConfigSignalingState, executeGetIceConfigSignalingState, defaultSignalingStateTransitionHook, SIGNALING_STATES_DEFAULT_RETRY_COUNT,
+     STATUS_SIGNALING_GET_ICE_CONFIG_CALL_FAILED},
+    {SIGNALING_STATE_READY, SIGNALING_STATE_GET_ICE_CONFIG | SIGNALING_STATE_DISCONNECTED | SIGNALING_STATE_READY, fromReadySignalingState,
+     executeReadySignalingState, defaultSignalingStateTransitionHook, INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_READY_CALLBACK_FAILED},
+    {SIGNALING_STATE_CONNECT, SIGNALING_STATE_READY | SIGNALING_STATE_DISCONNECTED | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_CONNECT,
+     fromConnectSignalingState, executeConnectSignalingState, defaultSignalingStateTransitionHook, INFINITE_RETRY_COUNT_SENTINEL,
+     STATUS_SIGNALING_CONNECT_CALL_FAILED},
+    {SIGNALING_STATE_CONNECTED, SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED, fromConnectedSignalingState, executeConnectedSignalingState,
+     defaultSignalingStateTransitionHook, INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_CONNECTED_CALLBACK_FAILED},
+    {SIGNALING_STATE_DISCONNECTED, SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED, fromDisconnectedSignalingState,
+     executeDisconnectedSignalingState, defaultSignalingStateTransitionHook, SIGNALING_STATES_DEFAULT_RETRY_COUNT,
+     STATUS_SIGNALING_DISCONNECTED_CALLBACK_FAILED},
+    {SIGNALING_STATE_DELETE,
+     SIGNALING_STATE_GET_TOKEN | SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_CREATE | SIGNALING_STATE_GET_ENDPOINT | SIGNALING_STATE_GET_ICE_CONFIG |
+         SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_DISCONNECTED | SIGNALING_STATE_DELETE,
+     fromDeleteSignalingState, executeDeleteSignalingState, defaultSignalingStateTransitionHook, SIGNALING_STATES_DEFAULT_RETRY_COUNT,
+     STATUS_SIGNALING_DELETE_CALL_FAILED},
+    {SIGNALING_STATE_DELETED, SIGNALING_STATE_DELETE | SIGNALING_STATE_DELETED, fromDeletedSignalingState, executeDeletedSignalingState,
+     defaultSignalingStateTransitionHook, INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_DELETE_CALL_FAILED},
 };
 
 UINT32 SIGNALING_STATE_MACHINE_STATE_COUNT = ARRAY_SIZE(SIGNALING_STATE_MACHINE_STATES);
 
-STATUS defaultSignalingStateTransitionHook(
-        UINT64 customData /* customData should be PSignalingClient */,
-        PUINT64 stateTransitionWaitTime) {
+STATUS defaultSignalingStateTransitionHook(UINT64 customData /* customData should be PSignalingClient */, PUINT64 stateTransitionWaitTime)
+{
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     STATUS countStatus = STATUS_SUCCESS;
@@ -145,19 +73,19 @@ STATUS defaultSignalingStateTransitionHook(
     // result != SERVICE_CALL_RESULT_NOT_SET and != SERVICE_CALL_RESULT_OK
     // If we support any other 2xx service call results, the condition
     // should change to (pSignalingClient->result > 299 && ..)
-    CHK(pSignalingClient->result > SERVICE_CALL_RESULT_OK &&
-        pSignalingStateMachineRetryStrategyCallbacks->executeRetryStrategyFn != NULL, STATUS_SUCCESS);
+    CHK(pSignalingClient->result > SERVICE_CALL_RESULT_OK && pSignalingStateMachineRetryStrategyCallbacks->executeRetryStrategyFn != NULL,
+        STATUS_SUCCESS);
 
-    DLOGV("Signaling Client base result is [%u]. Executing KVS retry handler of retry strategy type [%u]",
-          pSignalingClient->result, pSignalingStateMachineRetryStrategy->retryStrategyType);
+    DLOGV("Signaling Client base result is [%u]. Executing KVS retry handler of retry strategy type [%u]", pSignalingClient->result,
+          pSignalingStateMachineRetryStrategy->retryStrategyType);
     pSignalingStateMachineRetryStrategyCallbacks->executeRetryStrategyFn(pSignalingStateMachineRetryStrategy, &retryWaitTime);
     *stateTransitionWaitTime = retryWaitTime;
 
-    if(pSignalingStateMachineRetryStrategyCallbacks->getCurrentRetryAttemptNumberFn != NULL) {
-        if((countStatus = pSignalingStateMachineRetryStrategyCallbacks->getCurrentRetryAttemptNumberFn(pSignalingStateMachineRetryStrategy, &pSignalingClient->diagnostics.stateMachineRetryCount)) != STATUS_SUCCESS) {
+    if (pSignalingStateMachineRetryStrategyCallbacks->getCurrentRetryAttemptNumberFn != NULL) {
+        if ((countStatus = pSignalingStateMachineRetryStrategyCallbacks->getCurrentRetryAttemptNumberFn(
+                 pSignalingStateMachineRetryStrategy, &pSignalingClient->diagnostics.stateMachineRetryCount)) != STATUS_SUCCESS) {
             DLOGW("Failed to get retry count. Error code: %08x", countStatus);
-        }
-        else {
+        } else {
             DLOGD("Retry count: %llu", pSignalingClient->diagnostics.stateMachineRetryCount);
         }
     }

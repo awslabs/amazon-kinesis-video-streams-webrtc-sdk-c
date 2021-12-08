@@ -11,7 +11,6 @@ STATUS createRetryStrategyForCreatingSignalingClient(PSignalingClientInfo pClien
     if (pClientInfo->signalingRetryStrategyCallbacks.createRetryStrategyFn == NULL ||
         pClientInfo->signalingRetryStrategyCallbacks.freeRetryStrategyFn == NULL ||
         pClientInfo->signalingRetryStrategyCallbacks.executeRetryStrategyFn == NULL) {
-
         DLOGV("Using exponential backoff retry strategy for creating signaling client");
         pClientInfo->signalingRetryStrategyCallbacks.createRetryStrategyFn = exponentialBackoffRetryStrategyCreate;
         pClientInfo->signalingRetryStrategyCallbacks.freeRetryStrategyFn = exponentialBackoffRetryStrategyFree;
@@ -91,12 +90,12 @@ STATUS createSignalingClientSync(PSignalingClientInfo pClientInfo, PChannelInfo 
         pClientInfo->stateMachineRetryCountReadOnly = signalingClientInfoInternal.signalingClientInfo.stateMachineRetryCountReadOnly;
 
         // Wait before attempting to create signaling client
-        CHK_STATUS(pClientInfo->signalingRetryStrategyCallbacks.executeRetryStrategyFn(
-                &createSignalingClientRetryStrategy, &signalingClientCreationWaitTime));
+        CHK_STATUS(pClientInfo->signalingRetryStrategyCallbacks.executeRetryStrategyFn(&createSignalingClientRetryStrategy,
+                                                                                       &signalingClientCreationWaitTime));
 
         DLOGV("Attempting to back off for [%lf] milliseconds before creating signaling client again. "
               "Signaling client creation retry count [%d]",
-              retStatus, signalingClientCreationWaitTime/1000.0, signalingClientCreationMaxRetryCount);
+              retStatus, signalingClientCreationWaitTime / 1000.0, signalingClientCreationMaxRetryCount);
         THREAD_SLEEP(signalingClientCreationWaitTime);
         signalingClientCreationMaxRetryCount--;
     }
