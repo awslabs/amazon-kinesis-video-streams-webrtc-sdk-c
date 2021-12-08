@@ -310,7 +310,6 @@ STATUS executeGetTokenSignalingState(UINT64 customData, UINT64 time)
     SERVICE_CALL_RESULT serviceCallResult;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
-    THREAD_SLEEP_UNTIL(time);
 
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
     ATOMIC_STORE_BOOL(&pSignalingClient->clientReady, FALSE);

@@ -6,7 +6,7 @@ STATUS createRetryStrategyForCreatingSignalingClient(PSignalingClientInfo pClien
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
 
-    CHK(pKvsRetryStrategy != NULL, STATUS_NULL_ARG);
+    CHK(pKvsRetryStrategy != NULL || pClientInfo != NULL, STATUS_NULL_ARG);
 
     if (pClientInfo->signalingRetryStrategyCallbacks.createRetryStrategyFn == NULL ||
         pClientInfo->signalingRetryStrategyCallbacks.freeRetryStrategyFn == NULL ||
@@ -177,14 +177,51 @@ STATUS signalingClientFetchSync(SIGNALING_CLIENT_HANDLE signalingClientHandle)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = FROM_SIGNALING_CLIENT_HANDLE(signalingClientHandle);
+    SignalingClientInfoInternal signalingClientInfoInternal;
+    KvsRetryStrategy createSignalingClientRetryStrategy = {NULL, NULL, KVS_RETRY_STRATEGY_DISABLED};
+    UINT32 signalingClientCreationMaxRetryCount;
+    UINT64 signalingClientCreationWaitTime;
 
     DLOGV("Signaling Client Fetch Sync");
 
-    CHK_STATUS(signalingFetchSync(pSignalingClient));
+    // Convert the client info to the internal structure with empty values
+    MEMSET(&signalingClientInfoInternal, 0x00, SIZEOF(signalingClientInfoInternal));
+    signalingClientInfoInternal.signalingClientInfo = pSignalingClient->clientInfo.signalingClientInfo;
+
+    CHK_STATUS(createRetryStrategyForCreatingSignalingClient(&pSignalingClient->clientInfo.signalingClientInfo, &createSignalingClientRetryStrategy));
+    signalingClientCreationMaxRetryCount = pSignalingClient->clientInfo.signalingClientInfo.signalingClientCreationMaxRetryAttempts;
+
+    while (TRUE) {
+        retStatus = signalingFetchSync(pSignalingClient);
+        // NOTE: This will retry on all status codes except SUCCESS.
+        // This includes status codes for bad arguments, internal non-recoverable errors etc.
+        // Retrying on non-recoverable errors is useless, but it is quite complex to segregate recoverable
+        // and non-recoverable errors at this layer. So to simplify, we would retry on all non-success status codes.
+        // It is the application's responsibility to fix any validation/null-arg/bad configuration type errors.
+        CHK(retStatus != STATUS_SUCCESS, retStatus);
+
+        DLOGE("Create Signaling Sync API returned [0x%08x]  %d\n", retStatus, signalingClientCreationMaxRetryCount);
+        if (signalingClientCreationMaxRetryCount <= 0) {
+            break;
+        }
+
+        pSignalingClient->clientInfo.signalingClientInfo.stateMachineRetryCountReadOnly = signalingClientInfoInternal.signalingClientInfo.stateMachineRetryCountReadOnly;
+
+        // Wait before attempting to create signaling client
+        CHK_STATUS(pSignalingClient->clientInfo.signalingStateMachineRetryStrategyCallbacks.executeRetryStrategyFn(&createSignalingClientRetryStrategy,
+                                                                                       &signalingClientCreationWaitTime));
+
+        DLOGV("Attempting to back off for [%lf] milliseconds before creating signaling client again. "
+              "Signaling client creation retry count [%d]",
+              retStatus, signalingClientCreationWaitTime / 1000.0, signalingClientCreationMaxRetryCount);
+        THREAD_SLEEP(signalingClientCreationWaitTime);
+        signalingClientCreationMaxRetryCount--;
+    }
 
 CleanUp:
 
     SIGNALING_UPDATE_ERROR_COUNT(pSignalingClient, retStatus);
+    freeRetryStrategyForCreatingSignalingClient(&pSignalingClient->clientInfo.signalingClientInfo, &createSignalingClientRetryStrategy);
     LEAVES();
     return retStatus;
 }

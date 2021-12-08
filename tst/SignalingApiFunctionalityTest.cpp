@@ -3643,6 +3643,7 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_SlowClockSkew)
     EXPECT_EQ(STATUS_SUCCESS, createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider, &pSignalingClient));
     signalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
     EXPECT_TRUE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
+    EXPECT_EQ(STATUS_SUCCESS,signalingClientFetchSync(signalingHandle));
 
     // Connect to the channel
     EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
@@ -3834,6 +3835,7 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_FastClockSkew)
     EXPECT_EQ(STATUS_SUCCESS, createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider, &pSignalingClient));
     signalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
     EXPECT_TRUE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
+    EXPECT_EQ(STATUS_SUCCESS,signalingClientFetchSync(signalingHandle));
 
     // Connect to the channel
     EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
@@ -4024,6 +4026,7 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_FastClockSkew_Veri
     EXPECT_EQ(STATUS_SUCCESS, createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider, &pSignalingClient));
     signalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
     EXPECT_TRUE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
+    EXPECT_EQ(STATUS_SUCCESS,signalingClientFetchSync(signalingHandle));
 
     // Connect to the channel
     EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
