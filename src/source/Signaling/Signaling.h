@@ -53,13 +53,21 @@ extern "C" {
 // Max libWebSockets protocol count. IMPORTANT: Ensure it's 1 + PROTOCOL_INDEX_WSS
 #define LWS_PROTOCOL_COUNT 2
 
+/**
+ * Default signaling clockskew (endpoint --> clockskew) hash table bucket count/length
+ */
+#define SIGNALING_CLOCKSKEW_HASH_TABLE_BUCKET_LENGTH 2
+#define SIGNALING_CLOCKSKEW_HASH_TABLE_BUCKET_COUNT  MIN_HASH_BUCKET_COUNT // 16
+
 // API call latency calculation
 #define SIGNALING_API_LATENCY_CALCULATION(pClient, time, isCpApi)                                                                                    \
     MUTEX_LOCK((pClient)->diagnosticsLock);                                                                                                          \
     if (isCpApi) {                                                                                                                                   \
-        (pClient)->diagnostics.cpApiLatency = EMA_ACCUMULATOR_GET_NEXT((pClient)->diagnostics.cpApiLatency, GETTIME() - (time));                     \
+        (pClient)->diagnostics.cpApiLatency = EMA_ACCUMULATOR_GET_NEXT((pClient)->diagnostics.cpApiLatency,                                          \
+                                                                       SIGNALING_GET_CURRENT_TIME((pClient)) - (time));                              \
     } else {                                                                                                                                         \
-        (pClient)->diagnostics.dpApiLatency = EMA_ACCUMULATOR_GET_NEXT((pClient)->diagnostics.dpApiLatency, GETTIME() - (time));                     \
+        (pClient)->diagnostics.dpApiLatency = EMA_ACCUMULATOR_GET_NEXT((pClient)->diagnostics.dpApiLatency,                                          \
+                                                                       SIGNALING_GET_CURRENT_TIME((pClient)) - (time));                              \
     }                                                                                                                                                \
     MUTEX_UNLOCK((pClient)->diagnosticsLock);
 
@@ -67,6 +75,12 @@ extern "C" {
     if ((pClient) != NULL && STATUS_FAILED(status)) {                                                                                                \
         ATOMIC_INCREMENT(&(pClient)->diagnostics.numberOfErrors);                                                                                    \
     }
+
+#define IS_CURRENT_TIME_CALLBACK_SET(pClient) ((pClient) != NULL && ((pClient)->signalingClientCallbacks.getCurrentTimeFn != NULL))
+
+#define SIGNALING_GET_CURRENT_TIME(pClient) (IS_CURRENT_TIME_CALLBACK_SET((pClient)) ? \
+                                            ((pClient)->signalingClientCallbacks.getCurrentTimeFn((pClient)->signalingClientCallbacks.customData)) : \
+                                            GETTIME())
 
 static const ExponentialBackoffRetryStrategyConfig DEFAULT_SIGNALING_STATE_MACHINE_EXPONENTIAL_BACKOFF_RETRY_CONFIGURATION = {
     /* Exponential wait times with this config will look like following -
@@ -163,6 +177,7 @@ typedef struct {
     UINT64 connectTime;
     UINT64 cpApiLatency;
     UINT64 dpApiLatency;
+    PHashTable pEndpointToClockSkewHashMap;
     UINT32 stateMachineRetryCount;
 } SignalingDiagnostics, PSignalingDiagnostics;
 
