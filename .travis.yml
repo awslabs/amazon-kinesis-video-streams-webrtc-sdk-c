@@ -85,22 +85,6 @@ matrix:
         - sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
       before_script: mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TEST=TRUE -DUNDEFINED_BEHAVIOR_SANITIZER=TRUE
 
-    # MemorySanitizer
-    - name: "Linux Clang MemorySanitizer"
-      env: allowTestFail=true
-      before_install:
-        # TODO: Remove the following 2 lines. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
-        - echo '{"ipv6":true,"fixed-cidr-v6":"2001:db8:1::/64"}' | sudo tee /etc/docker/daemon.json
-        - sudo service docker restart
-        - mkdir build
-        - docker run -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -w /src/build -dit --name msan-tester -v $(pwd):/src seaduboi/kvs-msan-tester
-        - msan-tester() { docker exec -it msan-tester "$@"; }
-      script:
-        - msan-tester cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_DEPENDENCIES=FALSE -DBUILD_TEST=TRUE -DMEMORY_SANITIZER=TRUE -DCMAKE_CXX_FLAGS="-stdlib=libc++ -L/usr/src/libcxx_msan/lib -lc++abi -I/usr/src/libcxx_msan/include -I/usr/src/libcxx_msan/include/c++/v1 -fsanitize=memory -fno-omit-frame-pointer -fno-optimize-sibling-calls -fsanitize-memory-track-origins"
-        - msan-tester make
-        - msan-tester ./tst/webrtc_client_test
-      after_failure: skip # no coredumps in container
-
     # Old Version GCC 4.4
     - name: "Linux GCC 4.4 Build"
       os: linux
@@ -153,26 +137,6 @@ matrix:
         - mkdir build && cd build
         - cmake .. -DBUILD_OPENSSL=TRUE -DBUILD_OPENSSL_PLATFORM=linux-generic32 -DBUILD_LIBSRTP_HOST_PLATFORM=x86_64-unknown-linux-gnu -DBUILD_LIBSRTP_DESTINATION_PLATFORM=arm-unknown-linux-uclibcgnueabi
       script: make
-
-    - name: "mbedTLS - Linux GCC 4.4 Build"
-      os: linux
-      compiler: gcc
-      before_install:
-        # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
-        - sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-        - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-        - sudo apt-get -q update
-        - sudo apt-get -y install gcc-4.4
-        - sudo apt-get -y install gdb
-      before_script: mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
-
-    - name: "mbedTLS - Linux Clang"
-      os: linux
-      compiler: clang
-      before_install:
-        # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
-        - sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-      before_script: mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
 
     - name: "Windows MSVC"
       env: allowTestFail=true

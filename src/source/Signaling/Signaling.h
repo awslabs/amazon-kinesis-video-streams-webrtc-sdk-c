@@ -63,11 +63,11 @@ extern "C" {
 #define SIGNALING_API_LATENCY_CALCULATION(pClient, time, isCpApi)                                                                                    \
     MUTEX_LOCK((pClient)->diagnosticsLock);                                                                                                          \
     if (isCpApi) {                                                                                                                                   \
-        (pClient)->diagnostics.cpApiLatency = EMA_ACCUMULATOR_GET_NEXT((pClient)->diagnostics.cpApiLatency,                                          \
-                                                                       SIGNALING_GET_CURRENT_TIME((pClient)) - (time));                              \
+        (pClient)->diagnostics.cpApiLatency =                                                                                                        \
+            EMA_ACCUMULATOR_GET_NEXT((pClient)->diagnostics.cpApiLatency, SIGNALING_GET_CURRENT_TIME((pClient)) - (time));                           \
     } else {                                                                                                                                         \
-        (pClient)->diagnostics.dpApiLatency = EMA_ACCUMULATOR_GET_NEXT((pClient)->diagnostics.dpApiLatency,                                          \
-                                                                       SIGNALING_GET_CURRENT_TIME((pClient)) - (time));                              \
+        (pClient)->diagnostics.dpApiLatency =                                                                                                        \
+            EMA_ACCUMULATOR_GET_NEXT((pClient)->diagnostics.dpApiLatency, SIGNALING_GET_CURRENT_TIME((pClient)) - (time));                           \
     }                                                                                                                                                \
     MUTEX_UNLOCK((pClient)->diagnosticsLock);
 
@@ -78,9 +78,10 @@ extern "C" {
 
 #define IS_CURRENT_TIME_CALLBACK_SET(pClient) ((pClient) != NULL && ((pClient)->signalingClientCallbacks.getCurrentTimeFn != NULL))
 
-#define SIGNALING_GET_CURRENT_TIME(pClient) (IS_CURRENT_TIME_CALLBACK_SET((pClient)) ? \
-                                            ((pClient)->signalingClientCallbacks.getCurrentTimeFn((pClient)->signalingClientCallbacks.customData)) : \
-                                            GETTIME())
+#define SIGNALING_GET_CURRENT_TIME(pClient)                                                                                                          \
+    (IS_CURRENT_TIME_CALLBACK_SET((pClient))                                                                                                         \
+         ? ((pClient)->signalingClientCallbacks.getCurrentTimeFn((pClient)->signalingClientCallbacks.customData))                                    \
+         : GETTIME())
 
 static const ExponentialBackoffRetryStrategyConfig DEFAULT_SIGNALING_STATE_MACHINE_EXPONENTIAL_BACKOFF_RETRY_CONFIGURATION = {
     /* Exponential wait times with this config will look like following -
