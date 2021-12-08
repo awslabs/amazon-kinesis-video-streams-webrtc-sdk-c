@@ -130,7 +130,6 @@ class WebRtcClientTestBase : public ::testing::Test {
 
         retStatus = signalingClientFetchSync(mSignalingClientHandle);
 
-
         return retStatus;
     }
 

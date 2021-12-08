@@ -18,7 +18,7 @@ INT32 lwsHttpCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, 
     PVOID customData;
     INT32 status, retValue = 0, size;
     PCHAR pCurPtr, pBuffer;
-    CHAR dateHdrBuffer[MAX_DATE_HEADER_BUFFER_LENGTH+1];
+    CHAR dateHdrBuffer[MAX_DATE_HEADER_BUFFER_LENGTH + 1];
     PBYTE pEndPtr;
     PBYTE* ppStartPtr;
     PLwsCallInfo pLwsCallInfo;
@@ -106,7 +106,7 @@ INT32 lwsHttpCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, 
             DLOGD("Connected with server response: %d", status);
             pLwsCallInfo->callInfo.callResult = getServiceCallResultFromHttpStatus((UINT32) status);
 
-            len = (SIZE_T)lws_hdr_copy(wsi, &dateHdrBuffer[0], MAX_DATE_HEADER_BUFFER_LENGTH, WSI_TOKEN_HTTP_DATE);
+            len = (SIZE_T) lws_hdr_copy(wsi, &dateHdrBuffer[0], MAX_DATE_HEADER_BUFFER_LENGTH, WSI_TOKEN_HTTP_DATE);
 
             time(&td);
 
@@ -124,7 +124,7 @@ INT32 lwsHttpCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, 
                               nowTime);
                     } else if (nowTime > serverTime + MIN_CLOCK_SKEW_TIME_TO_CORRECT) {
                         clockSkew = (nowTime - serverTime);
-                        clockSkew |= ((UINT64)(1ULL << 63));
+                        clockSkew |= ((UINT64) (1ULL << 63));
                         DLOGD("Detected Clock Skew!  Device time is AHEAD of Server time: Server time: %" PRIu64 ", now time: %" PRIu64, serverTime,
                               nowTime);
                         // PIC hashTable implementation only stores UINT64 so I will flip the sign of the msb
@@ -695,15 +695,18 @@ CleanUp:
     return retStatus;
 }
 
-BOOL isCallResultSignatureExpired(PCallInfo pCallInfo) {
+BOOL isCallResultSignatureExpired(PCallInfo pCallInfo)
+{
     return (STRNSTR(pCallInfo->responseData, "Signature expired", pCallInfo->responseDataLen) != NULL);
 }
 
-BOOL isCallResultSignatureNotYetCurrent(PCallInfo pCallInfo) {
+BOOL isCallResultSignatureNotYetCurrent(PCallInfo pCallInfo)
+{
     return (STRNSTR(pCallInfo->responseData, "Signature not yet current", pCallInfo->responseDataLen) != NULL);
 }
 
-STATUS checkAndCorrectForClockSkew(PSignalingClient pSignalingClient, PRequestInfo pRequestInfo) {
+STATUS checkAndCorrectForClockSkew(PSignalingClient pSignalingClient, PRequestInfo pRequestInfo)
+{
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
 
@@ -717,8 +720,8 @@ STATUS checkAndCorrectForClockSkew(PSignalingClient pSignalingClient, PRequestIn
     CHK_STATUS(hashTableGet(pClockSkewMap, pStateMachineState->state, &clockSkewOffset));
 
     // if we made it here that means there is clock skew
-    if (clockSkewOffset & ((UINT64)(1ULL << 63))) {
-        clockSkewOffset ^= ((UINT64)(1ULL << 63));
+    if (clockSkewOffset & ((UINT64) (1ULL << 63))) {
+        clockSkewOffset ^= ((UINT64) (1ULL << 63));
         DLOGV("Detected device time is AHEAD of server time!");
         pRequestInfo->currentTime -= clockSkewOffset;
     } else {
@@ -729,7 +732,6 @@ STATUS checkAndCorrectForClockSkew(PSignalingClient pSignalingClient, PRequestIn
     DLOGW("Clockskew corrected!");
 
 CleanUp:
-
 
     LEAVES();
     return retStatus;
@@ -772,7 +774,8 @@ STATUS describeChannelLws(PSignalingClient pSignalingClient, UINT64 time)
 
     // createRequestInfo does not have access to the getCurrentTime callback, this hook is used for tests.
     if (pSignalingClient->signalingClientCallbacks.getCurrentTimeFn != NULL) {
-        pRequestInfo->currentTime = pSignalingClient->signalingClientCallbacks.getCurrentTimeFn(pSignalingClient->signalingClientCallbacks.customData);
+        pRequestInfo->currentTime =
+            pSignalingClient->signalingClientCallbacks.getCurrentTimeFn(pSignalingClient->signalingClientCallbacks.customData);
     }
 
     checkAndCorrectForClockSkew(pSignalingClient, pRequestInfo);
@@ -928,7 +931,8 @@ STATUS createChannelLws(PSignalingClient pSignalingClient, UINT64 time)
                                  DEFAULT_LOW_SPEED_LIMIT, DEFAULT_LOW_SPEED_TIME_LIMIT, pSignalingClient->pAwsCredentials, &pRequestInfo));
 
     if (pSignalingClient->signalingClientCallbacks.getCurrentTimeFn != NULL) {
-        pRequestInfo->currentTime = pSignalingClient->signalingClientCallbacks.getCurrentTimeFn(pSignalingClient->signalingClientCallbacks.customData);
+        pRequestInfo->currentTime =
+            pSignalingClient->signalingClientCallbacks.getCurrentTimeFn(pSignalingClient->signalingClientCallbacks.customData);
     }
 
     checkAndCorrectForClockSkew(pSignalingClient, pRequestInfo);
@@ -1013,7 +1017,8 @@ STATUS getChannelEndpointLws(PSignalingClient pSignalingClient, UINT64 time)
                                  DEFAULT_LOW_SPEED_LIMIT, DEFAULT_LOW_SPEED_TIME_LIMIT, pSignalingClient->pAwsCredentials, &pRequestInfo));
 
     if (pSignalingClient->signalingClientCallbacks.getCurrentTimeFn != NULL) {
-        pRequestInfo->currentTime = pSignalingClient->signalingClientCallbacks.getCurrentTimeFn(pSignalingClient->signalingClientCallbacks.customData);
+        pRequestInfo->currentTime =
+            pSignalingClient->signalingClientCallbacks.getCurrentTimeFn(pSignalingClient->signalingClientCallbacks.customData);
     }
 
     checkAndCorrectForClockSkew(pSignalingClient, pRequestInfo);
@@ -1155,7 +1160,8 @@ STATUS getIceConfigLws(PSignalingClient pSignalingClient, UINT64 time)
                                  DEFAULT_LOW_SPEED_LIMIT, DEFAULT_LOW_SPEED_TIME_LIMIT, pSignalingClient->pAwsCredentials, &pRequestInfo));
 
     if (pSignalingClient->signalingClientCallbacks.getCurrentTimeFn != NULL) {
-        pRequestInfo->currentTime = pSignalingClient->signalingClientCallbacks.getCurrentTimeFn(pSignalingClient->signalingClientCallbacks.customData);
+        pRequestInfo->currentTime =
+            pSignalingClient->signalingClientCallbacks.getCurrentTimeFn(pSignalingClient->signalingClientCallbacks.customData);
     }
 
     checkAndCorrectForClockSkew(pSignalingClient, pRequestInfo);
@@ -1283,7 +1289,8 @@ STATUS deleteChannelLws(PSignalingClient pSignalingClient, UINT64 time)
                                  DEFAULT_LOW_SPEED_LIMIT, DEFAULT_LOW_SPEED_TIME_LIMIT, pSignalingClient->pAwsCredentials, &pRequestInfo));
 
     if (pSignalingClient->signalingClientCallbacks.getCurrentTimeFn != NULL) {
-        pRequestInfo->currentTime = pSignalingClient->signalingClientCallbacks.getCurrentTimeFn(pSignalingClient->signalingClientCallbacks.customData);
+        pRequestInfo->currentTime =
+            pSignalingClient->signalingClientCallbacks.getCurrentTimeFn(pSignalingClient->signalingClientCallbacks.customData);
     }
 
     checkAndCorrectForClockSkew(pSignalingClient, pRequestInfo);
@@ -1538,12 +1545,8 @@ PVOID reconnectHandler(PVOID args)
     ATOMIC_INCREMENT(&pSignalingClient->diagnostics.numberOfReconnects);
 
     // Attempt to reconnect by driving the state machine to connected state
-<<<<<<< HEAD
     CHK_STATUS(signalingStateMachineIterator(pSignalingClient, SIGNALING_GET_CURRENT_TIME(pSignalingClient) + SIGNALING_CONNECT_STATE_TIMEOUT,
                                              SIGNALING_STATE_CONNECTED));
-=======
-    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, GETTIME() + SIGNALING_CONNECT_STATE_TIMEOUT, SIGNALING_STATE_CONNECTED));
->>>>>>> 2e099eb32 (Fixing clang format)
 
 CleanUp:
 
@@ -1629,7 +1632,8 @@ STATUS sendLwsMessage(PSignalingClient pSignalingClient, SIGNALING_MESSAGE_TYPE 
 
     // In case of an Offer, package the ICE candidates only if we have a set of non-expired ICE configs
     if (messageType == SIGNALING_MESSAGE_TYPE_OFFER && pSignalingClient->iceConfigCount != 0 &&
-        (curTime = SIGNALING_GET_CURRENT_TIME(pSignalingClient)) <= pSignalingClient->iceConfigExpiration && STATUS_SUCCEEDED(validateIceConfiguration(pSignalingClient))) {
+        (curTime = SIGNALING_GET_CURRENT_TIME(pSignalingClient)) <= pSignalingClient->iceConfigExpiration &&
+        STATUS_SUCCEEDED(validateIceConfiguration(pSignalingClient))) {
         // Start the ice infos by copying the preamble, then the main body and then the ending
         STRCPY(encodedIceConfig, SIGNALING_ICE_SERVER_LIST_TEMPLATE_START);
         iceConfigLen = ARRAY_SIZE(SIGNALING_ICE_SERVER_LIST_TEMPLATE_START) - 1; // remove the null terminator
@@ -1964,7 +1968,8 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
             SAFE_MEMFREE(pSignalingMessageWrapper);
 
             // Iterate the state machinery
-            CHK_STATUS(signalingStateMachineIterator(pSignalingClient, SIGNALING_GET_CURRENT_TIME(pSignalingClient) + SIGNALING_CONNECT_STATE_TIMEOUT, SIGNALING_STATE_CONNECTED));
+            CHK_STATUS(signalingStateMachineIterator(pSignalingClient, SIGNALING_GET_CURRENT_TIME(pSignalingClient) + SIGNALING_CONNECT_STATE_TIMEOUT,
+                                                     SIGNALING_STATE_CONNECTED));
 
             CHK(FALSE, retStatus);
             break;
@@ -1977,7 +1982,8 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
             SAFE_MEMFREE(pSignalingMessageWrapper);
 
             // Iterate the state machinery
-            CHK_STATUS(signalingStateMachineIterator(pSignalingClient, SIGNALING_GET_CURRENT_TIME(pSignalingClient) + SIGNALING_CONNECT_STATE_TIMEOUT, SIGNALING_STATE_CONNECTED));
+            CHK_STATUS(signalingStateMachineIterator(pSignalingClient, SIGNALING_GET_CURRENT_TIME(pSignalingClient) + SIGNALING_CONNECT_STATE_TIMEOUT,
+                                                     SIGNALING_STATE_CONNECTED));
 
             CHK(FALSE, retStatus);
             break;

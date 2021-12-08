@@ -1181,19 +1181,20 @@ typedef struct {
  * @brief Populate Signaling client with client ID and application log level
  */
 typedef struct {
-    UINT32 version;                                                 //!< Version of the structure
-    CHAR clientId[MAX_SIGNALING_CLIENT_ID_LEN + 1];                 //!< Client id to use. Defines if the client is a producer/consumer
-    UINT32 loggingLevel;                                            //!< Verbosity level for the logging. One of LOG_LEVEL_XXX
-                                                                    //!< values or the default verbosity will be assumed. Currently,
-                                                                    //!< default value is LOG_LEVEL_WARNING
-    PCHAR cacheFilePath;                                            //!< File cache path override. The default
-                                                                    //!< path is "./.SignalingCache_vN" which might not work for
-                                                                    //!< devices which have read only partition where the code is
-                                                                    //!< located. For default value or when file caching is not
-                                                                    //!< being used this value can be NULL or point to an EMPTY_STRING.
-    KvsRetryStrategyCallbacks signalingRetryStrategyCallbacks;      //!< Retry strategy callbacks used while creating signaling client
-    INT32 signalingClientCreationMaxRetryAttempts;                 //!< Max attempts to create signaling client before returning error to the caller
-    UINT32 stateMachineRetryCountReadOnly;                          //!< Retry count of state machine. Note that this **MUST NOT** be modified by the user. It is a read only field
+    UINT32 version;                                            //!< Version of the structure
+    CHAR clientId[MAX_SIGNALING_CLIENT_ID_LEN + 1];            //!< Client id to use. Defines if the client is a producer/consumer
+    UINT32 loggingLevel;                                       //!< Verbosity level for the logging. One of LOG_LEVEL_XXX
+                                                               //!< values or the default verbosity will be assumed. Currently,
+                                                               //!< default value is LOG_LEVEL_WARNING
+    PCHAR cacheFilePath;                                       //!< File cache path override. The default
+                                                               //!< path is "./.SignalingCache_vN" which might not work for
+                                                               //!< devices which have read only partition where the code is
+                                                               //!< located. For default value or when file caching is not
+                                                               //!< being used this value can be NULL or point to an EMPTY_STRING.
+    KvsRetryStrategyCallbacks signalingRetryStrategyCallbacks; //!< Retry strategy callbacks used while creating signaling client
+    INT32 signalingClientCreationMaxRetryAttempts;             //!< Max attempts to create signaling client before returning error to the caller
+    UINT32 stateMachineRetryCountReadOnly; //!< Retry count of state machine. Note that this **MUST NOT** be modified by the user. It is a read only
+                                           //!< field
 } SignalingClientInfo, *PSignalingClientInfo;
 
 /**
