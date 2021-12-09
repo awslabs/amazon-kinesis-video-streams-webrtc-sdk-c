@@ -2592,7 +2592,7 @@ TEST_F(SignalingApiFunctionalityTest, connectTimeoutEmulation)
     SIGNALING_CLIENT_HANDLE signalingHandle;
     PKvsRetryStrategy pKvsRetryStrategy = NULL;
     PKvsRetryStrategyCallbacks pKvsRetryStrategyCallbacks = NULL;
-    UINT32 retryCount = 0, previousRetryCount = 0;
+    UINT32 retryCount = 0, previousRetryCount = 0, readyCount = 0, retryCountDiff = 0;
 
     signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
     signalingClientCallbacks.customData = (UINT64) this;
@@ -2671,16 +2671,15 @@ TEST_F(SignalingApiFunctionalityTest, connectTimeoutEmulation)
     pKvsRetryStrategyCallbacks->getCurrentRetryAttemptNumberFn(pKvsRetryStrategy, &retryCount);
     EXPECT_LE(2, retryCount);
 
+    readyCount = signalingStatesCounts[SIGNALING_CLIENT_STATE_READY];
     // Connect to the signaling client - should connect OK
     pSignalingClient->clientInfo.connectTimeout = 0;
     EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
 
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    retryCountDiff = (signalingStatesCounts[SIGNALING_CLIENT_STATE_READY] - readyCount) ? 0 : 1;
 
-    //I'm putting this sleep here, because there is something asynchronously increasing
-    //this count. @TODO, please properly set this value so that it is immune to race conditions.
-    THREAD_SLEEP(10 * HUNDREDS_OF_NANOS_IN_A_SECOND);
-    previousRetryCount = retryCount;
+    previousRetryCount = retryCount + retryCountDiff;
     retryCount = 0;
     pKvsRetryStrategyCallbacks->getCurrentRetryAttemptNumberFn(pKvsRetryStrategy, &retryCount);
     // retry count should not increase since there were no timeouts
