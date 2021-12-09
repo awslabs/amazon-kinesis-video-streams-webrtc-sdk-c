@@ -87,7 +87,7 @@ STATUS createSignalingClientSync(PSignalingClientInfo pClientInfo, PChannelInfo 
         // It is the application's responsibility to fix any validation/null-arg/bad configuration type errors.
         CHK(retStatus != STATUS_SUCCESS, retStatus);
 
-        DLOGE("Create Signaling Sync API returned [0x%08x]  %d\n", retStatus, signalingClientCreationMaxRetryCount);
+        DLOGE("Create Signaling Sync API returned [0x%08x]  %u\n", retStatus, signalingClientCreationMaxRetryCount);
         if (signalingClientCreationMaxRetryCount <= 0) {
             break;
         }
@@ -99,8 +99,8 @@ STATUS createSignalingClientSync(PSignalingClientInfo pClientInfo, PChannelInfo 
                                                                                        &signalingClientCreationWaitTime));
 
         DLOGV("Attempting to back off for [%lf] milliseconds before creating signaling client again. "
-              "Signaling client creation retry count [%d]",
-              retStatus, signalingClientCreationWaitTime / 1000.0, signalingClientCreationMaxRetryCount);
+              "Signaling client creation retry count [%u]",
+              retStatus, signalingClientCreationWaitTime / 1000.0f, signalingClientCreationMaxRetryCount);
         THREAD_SLEEP(signalingClientCreationWaitTime);
         signalingClientCreationMaxRetryCount--;
     }
@@ -209,7 +209,7 @@ STATUS signalingClientFetchSync(SIGNALING_CLIENT_HANDLE signalingClientHandle)
         // It is the application's responsibility to fix any validation/null-arg/bad configuration type errors.
         CHK(retStatus != STATUS_SUCCESS, retStatus);
 
-        DLOGE("Create Signaling Sync API returned [0x%08x]  %d\n", retStatus, signalingClientCreationMaxRetryCount);
+        DLOGE("Create Signaling Sync API returned [0x%08x]  %u\n", retStatus, signalingClientCreationMaxRetryCount);
         if (signalingClientCreationMaxRetryCount <= 0) {
             break;
         }
@@ -221,8 +221,8 @@ STATUS signalingClientFetchSync(SIGNALING_CLIENT_HANDLE signalingClientHandle)
                                                                                        &signalingClientCreationWaitTime));
 
         DLOGV("Attempting to back off for [%lf] milliseconds before creating signaling client again. "
-              "Signaling client creation retry count [%d]",
-              retStatus, signalingClientCreationWaitTime / 1000.0, signalingClientCreationMaxRetryCount);
+              "Signaling client creation retry count [%u]",
+              retStatus, signalingClientCreationWaitTime / 1000.0f, signalingClientCreationMaxRetryCount);
         THREAD_SLEEP(signalingClientCreationWaitTime);
         signalingClientCreationMaxRetryCount--;
     }
