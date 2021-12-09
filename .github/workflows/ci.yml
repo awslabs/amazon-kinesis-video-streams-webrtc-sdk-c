@@ -31,6 +31,8 @@ jobs:
           mkdir build
           cd build
           sudo sh -c 'cmake ..;cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE -DBUILD_OPENSSL_PLATFORM=darwin64-x86_64-cc'
+      - name: Make this
+        run: |
           make
           export DYLD_LIBRARY_PATH="$DYLD_LIBRARY_PATH:`pwd`/../open-source/lib"
           ./tst/webrtc_client_test
