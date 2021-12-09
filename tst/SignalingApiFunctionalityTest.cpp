@@ -786,7 +786,7 @@ TEST_F(SignalingApiFunctionalityTest, invalidChannelInfoInput)
 
     // channel name validation error - name with spaces
     channelInfo.pChannelName = (PCHAR) "Name With Spaces";
-    retStatus = createSignalingClientSync(&clientInfo, &channelInfo, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider,
+    createSignalingClientSync(&clientInfo, &channelInfo, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider,
                                           &signalingHandle);
     retStatus = signalingClientFetchSync(signalingHandle);
     if (mAccessKeyIdSet) {
@@ -3979,6 +3979,7 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_FastClockSkew_Veri
     SIGNALING_CLIENT_HANDLE signalingHandle;
     UINT32 i, iceCount;
     PIceConfigInfo pIceConfigInfo;
+    STATUS retStatus = STATUS_SUCCESS;
 
     signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
     signalingClientCallbacks.customData = (UINT64) this;
@@ -4038,8 +4039,17 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_FastClockSkew_Veri
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
-    // Ensure the ICE is not refreshed as we already have a current non-expired set
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
+    // allow for timeouts, as the forced 403 from clock skew can result in a 1 time timeout.
+    // however it must succeed after that 1 failure.
+    for(int i = 0; i < 2; i++)
+    {
+        retStatus = signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount);
+        if(retStatus == STATUS_SUCCESS)
+        {
+            break;
+        }
+    }
+    EXPECT_EQ(STATUS_SUCCESS, retStatus);
     EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, 0, &pIceConfigInfo));
     EXPECT_NE(0, iceCount);
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
@@ -4052,7 +4062,15 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_FastClockSkew_Veri
     // Trigger the ICE refresh immediately on any of the ICE accessor calls
     pSignalingClient->iceConfigCount = 0;
 
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
+    for(int i = 0; i < 2; i++)
+    {
+        retStatus = signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount);
+        if(retStatus == STATUS_SUCCESS)
+        {
+            break;
+        }
+    }
+    EXPECT_EQ(STATUS_SUCCESS, retStatus);
     EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, 0, &pIceConfigInfo));
     EXPECT_NE(0, iceCount);
     // Called an extra time because first time will fail with 403
@@ -4139,7 +4157,7 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_FastClockSkew_Veri
                       "        \"description\": \"Test attempt to send an unknown message\"\n"
                       "    }\n"
                       "}";
-
+ 
     EXPECT_EQ(STATUS_SUCCESS, receiveLwsMessage(pSignalingClient, message2, ARRAY_SIZE(message2)));
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
