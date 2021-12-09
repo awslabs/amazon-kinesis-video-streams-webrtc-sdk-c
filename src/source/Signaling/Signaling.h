@@ -82,6 +82,8 @@ extern "C" {
                                             ((pClient)->signalingClientCallbacks.getCurrentTimeFn((pClient)->signalingClientCallbacks.customData)) : \
                                             GETTIME())
 
+#define DEFAULT_CREATE_SIGNALING_CLIENT_RETRY_ATTEMPTS 7
+
 static const ExponentialBackoffRetryStrategyConfig DEFAULT_SIGNALING_STATE_MACHINE_EXPONENTIAL_BACKOFF_RETRY_CONFIGURATION = {
     /* Exponential wait times with this config will look like following -
         ************************************

@@ -72,7 +72,12 @@ STATUS createSignalingClientSync(PSignalingClientInfo pClientInfo, PChannelInfo 
 
     CHK_STATUS(createRetryStrategyForCreatingSignalingClient(pClientInfo, &createSignalingClientRetryStrategy));
 
-    signalingClientCreationMaxRetryCount = pClientInfo->signalingClientCreationMaxRetryAttempts;
+
+    if(pClientInfo->signalingClientCreationMaxRetryAttempts == CREATE_SIGNALING_CLIENT_RETRY_ATTEMPTS_SENTINEL_VALUE) {
+        signalingClientCreationMaxRetryCount = DEFAULT_CREATE_SIGNALING_CLIENT_RETRY_ATTEMPTS;
+    } else {
+        signalingClientCreationMaxRetryCount = pClientInfo->signalingClientCreationMaxRetryAttempts;
+    }
     while (TRUE) {
         retStatus = createSignalingSync(&signalingClientInfoInternal, pChannelInfo, pCallbacks, pCredentialProvider, &pSignalingClient);
         // NOTE: This will retry on all status codes except SUCCESS.
@@ -189,7 +194,11 @@ STATUS signalingClientFetchSync(SIGNALING_CLIENT_HANDLE signalingClientHandle)
     signalingClientInfoInternal.signalingClientInfo = pSignalingClient->clientInfo.signalingClientInfo;
 
     CHK_STATUS(createRetryStrategyForCreatingSignalingClient(&pSignalingClient->clientInfo.signalingClientInfo, &createSignalingClientRetryStrategy));
+
     signalingClientCreationMaxRetryCount = pSignalingClient->clientInfo.signalingClientInfo.signalingClientCreationMaxRetryAttempts;
+    if(signalingClientCreationMaxRetryCount == CREATE_SIGNALING_CLIENT_RETRY_ATTEMPTS_SENTINEL_VALUE) {
+        signalingClientCreationMaxRetryCount = DEFAULT_CREATE_SIGNALING_CLIENT_RETRY_ATTEMPTS;
+    }
 
     while (TRUE) {
         retStatus = signalingFetchSync(pSignalingClient);

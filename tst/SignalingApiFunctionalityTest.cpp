@@ -4043,15 +4043,7 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_FastClockSkew_Veri
 
     // allow for timeouts, as the forced 403 from clock skew can result in a 1 time timeout.
     // however it must succeed after that 1 failure.
-    for(int i = 0; i < 2; i++)
-    {
-        retStatus = signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount);
-        if(retStatus == STATUS_SUCCESS)
-        {
-            break;
-        }
-    }
-    EXPECT_EQ(STATUS_SUCCESS, retStatus);
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
     EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, 0, &pIceConfigInfo));
     EXPECT_NE(0, iceCount);
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
@@ -4111,7 +4103,15 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_FastClockSkew_Veri
 
     EXPECT_EQ(STATUS_SUCCESS, receiveLwsMessage(pSignalingClient, message, ARRAY_SIZE(message)));
 
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
+    for(int i = 0; i < 2; i++)
+    {
+        retStatus = signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount);
+        if(retStatus == STATUS_SUCCESS)
+        {
+            break;
+        }
+    }
+    EXPECT_EQ(STATUS_SUCCESS, retStatus);
     EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, 0, &pIceConfigInfo));
 
     // ICE should not have been called again as we updated it via a message

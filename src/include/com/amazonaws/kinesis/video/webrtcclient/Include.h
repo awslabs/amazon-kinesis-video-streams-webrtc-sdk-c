@@ -583,7 +583,7 @@ extern "C" {
 /**
  * Default refresh ICE server config API timeout
  */
-#define SIGNALING_REFRESH_ICE_CONFIG_STATE_TIMEOUT (15 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define SIGNALING_REFRESH_ICE_CONFIG_STATE_TIMEOUT (20 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
 /**
  * Default signaling connection establishment timeout
@@ -653,6 +653,11 @@ extern "C" {
  * Signaling caching policy TTL period sentinel value which will force the default period.
  */
 #define SIGNALING_API_CALL_CACHE_TTL_SENTINEL_VALUE 0
+
+/**
+ * Signaling caching policy TTL period sentinel value which will force the default period.
+ */
+#define CREATE_SIGNALING_CLIENT_RETRY_ATTEMPTS_SENTINEL_VALUE 0
 
 /**
  * @brief Definition of the signaling client handle
