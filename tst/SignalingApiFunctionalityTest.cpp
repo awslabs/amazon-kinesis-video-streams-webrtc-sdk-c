@@ -2677,6 +2677,9 @@ TEST_F(SignalingApiFunctionalityTest, connectTimeoutEmulation)
 
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
 
+    //I'm putting this sleep here, because there is something asynchronously increasing
+    //this count. @TODO, please properly set this value so that it is immune to race conditions.
+    THREAD_SLEEP(10 * HUNDREDS_OF_NANOS_IN_A_SECOND);
     previousRetryCount = retryCount;
     retryCount = 0;
     pKvsRetryStrategyCallbacks->getCurrentRetryAttemptNumberFn(pKvsRetryStrategy, &retryCount);
