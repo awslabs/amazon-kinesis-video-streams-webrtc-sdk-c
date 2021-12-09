@@ -609,22 +609,6 @@ TEST_F(SignalingApiFunctionalityTest, invalidChannelInfoInput)
     MEMSET(tempBuf, 'X', SIZEOF(tempBuf));
     tempBuf[ARRAY_SIZE(tempBuf) - 1] = '\0';
 
-    EXPECT_EQ(STATUS_SUCCESS,
-              createSignalingClientSync(&clientInfo, &channelInfo, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider,
-                                        &signalingHandle));
-    EXPECT_NE(STATUS_SUCCESS,signalingClientFetchSync(signalingHandle));
-    EXPECT_TRUE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
-
-    pSignalingClient = FROM_SIGNALING_CLIENT_HANDLE(signalingHandle);
-    pActiveClient = pSignalingClient;
-
-    EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
-    EXPECT_FALSE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
-
-    // Free again
-    EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
-    EXPECT_FALSE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
-
     // Invalid version
     channelInfo.version++;
     retStatus = createSignalingClientSync(&clientInfo, &channelInfo, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider,
