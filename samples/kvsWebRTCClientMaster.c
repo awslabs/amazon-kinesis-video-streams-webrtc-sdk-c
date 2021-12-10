@@ -91,6 +91,12 @@ INT32 main(INT32 argc, CHAR* argv[])
     printf("[KVS Master] Signaling client created successfully\n");
 
     // Enable the processing of the messages
+    retStatus = signalingClientFetchSync(pSampleConfiguration->signalingClientHandle);
+    if (retStatus != STATUS_SUCCESS) {
+        printf("[KVS Master] signalingClientFetchSync(): operation returned status code: 0x%08x \n", retStatus);
+        goto CleanUp;
+    }
+
     retStatus = signalingClientConnectSync(pSampleConfiguration->signalingClientHandle);
     if (retStatus != STATUS_SUCCESS) {
         printf("[KVS Master] signalingClientConnectSync(): operation returned status code: 0x%08x \n", retStatus);
@@ -286,7 +292,7 @@ CleanUp:
 
     CHK_LOG_ERR(retStatus);
 
-    return (PVOID) (ULONG_PTR) retStatus;
+    return (PVOID)(ULONG_PTR) retStatus;
 }
 
 PVOID sendAudioPackets(PVOID args)
@@ -354,7 +360,7 @@ PVOID sendAudioPackets(PVOID args)
 
 CleanUp:
 
-    return (PVOID) (ULONG_PTR) retStatus;
+    return (PVOID)(ULONG_PTR) retStatus;
 }
 
 PVOID sampleReceiveVideoFrame(PVOID args)
@@ -374,5 +380,5 @@ PVOID sampleReceiveVideoFrame(PVOID args)
 
 CleanUp:
 
-    return (PVOID) (ULONG_PTR) retStatus;
+    return (PVOID)(ULONG_PTR) retStatus;
 }

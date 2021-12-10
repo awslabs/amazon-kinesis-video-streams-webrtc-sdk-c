@@ -583,7 +583,7 @@ extern "C" {
 /**
  * Default refresh ICE server config API timeout
  */
-#define SIGNALING_REFRESH_ICE_CONFIG_STATE_TIMEOUT (15 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define SIGNALING_REFRESH_ICE_CONFIG_STATE_TIMEOUT (20 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
 /**
  * Default signaling connection establishment timeout
@@ -653,6 +653,11 @@ extern "C" {
  * Signaling caching policy TTL period sentinel value which will force the default period.
  */
 #define SIGNALING_API_CALL_CACHE_TTL_SENTINEL_VALUE 0
+
+/**
+ * Signaling caching policy TTL period sentinel value which will force the default period.
+ */
+#define CREATE_SIGNALING_CLIENT_RETRY_ATTEMPTS_SENTINEL_VALUE -1
 
 /**
  * @brief Definition of the signaling client handle
@@ -1188,7 +1193,7 @@ typedef struct {
                                                                     //!< located. For default value or when file caching is not
                                                                     //!< being used this value can be NULL or point to an EMPTY_STRING.
     KvsRetryStrategyCallbacks signalingRetryStrategyCallbacks;      //!< Retry strategy callbacks used while creating signaling client
-    UINT32 signalingClientCreationMaxRetryAttempts;                 //!< Max attempts to create signaling client before returning error to the caller
+    INT32 signalingClientCreationMaxRetryAttempts;                 //!< Max attempts to create signaling client before returning error to the caller
     UINT32 stateMachineRetryCountReadOnly;                          //!< Retry count of state machine. Note that this **MUST NOT** be modified by the user. It is a read only field
 } SignalingClientInfo, *PSignalingClientInfo;
 
@@ -1928,6 +1933,16 @@ PUBLIC_API STATUS signalingClientGetIceConfigInfoCount(SIGNALING_CLIENT_HANDLE, 
  * @return STATUS code of execution. STATUS_SUCCESS on success
  */
 PUBLIC_API STATUS signalingClientGetIceConfigInfo(SIGNALING_CLIENT_HANDLE, UINT32, PIceConfigInfo*);
+
+/**
+ * @brief Fetches all assets needed to ready the state machine before attempting to connect.
+ *        Can also be used to reallocate missing / expired assets before reconnecting.
+ *
+ * @param[in] SIGNALING_CLIENT_HANDLE Signaling client handle
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
+PUBLIC_API STATUS signalingClientFetchSync(SIGNALING_CLIENT_HANDLE);
 
 /**
  * @brief Connects the signaling client to the web socket in order to send/receive messages.

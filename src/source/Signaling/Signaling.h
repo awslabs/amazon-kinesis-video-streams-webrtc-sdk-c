@@ -14,8 +14,8 @@ extern "C" {
 #define SIGNALING_REQUEST_ID_HEADER_NAME KVS_REQUEST_ID_HEADER_NAME ":"
 
 // Signaling client from custom data conversion
-#define SIGNALING_CLIENT_FROM_CUSTOM_DATA(h) ((PSignalingClient) (h))
-#define CUSTOM_DATA_FROM_SIGNALING_CLIENT(p) ((UINT64) (p))
+#define SIGNALING_CLIENT_FROM_CUSTOM_DATA(h) ((PSignalingClient)(h))
+#define CUSTOM_DATA_FROM_SIGNALING_CLIENT(p) ((UINT64)(p))
 
 // Grace period for refreshing the ICE configuration
 #define ICE_CONFIGURATION_REFRESH_GRACE_PERIOD (30 * HUNDREDS_OF_NANOS_IN_A_SECOND)
@@ -81,6 +81,8 @@ extern "C" {
 #define SIGNALING_GET_CURRENT_TIME(pClient) (IS_CURRENT_TIME_CALLBACK_SET((pClient)) ? \
                                             ((pClient)->signalingClientCallbacks.getCurrentTimeFn((pClient)->signalingClientCallbacks.customData)) : \
                                             GETTIME())
+
+#define DEFAULT_CREATE_SIGNALING_CLIENT_RETRY_ATTEMPTS 7
 
 static const ExponentialBackoffRetryStrategyConfig DEFAULT_SIGNALING_STATE_MACHINE_EXPONENTIAL_BACKOFF_RETRY_CONFIGURATION = {
     /* Exponential wait times with this config will look like following -
@@ -328,15 +330,16 @@ typedef struct {
 } SignalingClient, *PSignalingClient;
 
 // Public handle to and from object converters
-#define TO_SIGNALING_CLIENT_HANDLE(p)   ((SIGNALING_CLIENT_HANDLE) (p))
-#define FROM_SIGNALING_CLIENT_HANDLE(h) (IS_VALID_SIGNALING_CLIENT_HANDLE(h) ? (PSignalingClient) (h) : NULL)
+#define TO_SIGNALING_CLIENT_HANDLE(p)   ((SIGNALING_CLIENT_HANDLE)(p))
+#define FROM_SIGNALING_CLIENT_HANDLE(h) (IS_VALID_SIGNALING_CLIENT_HANDLE(h) ? (PSignalingClient)(h) : NULL)
 
 STATUS createSignalingSync(PSignalingClientInfoInternal, PChannelInfo, PSignalingClientCallbacks, PAwsCredentialProvider, PSignalingClient*);
 STATUS freeSignaling(PSignalingClient*);
 
 STATUS signalingSendMessageSync(PSignalingClient, PSignalingMessage);
-STATUS signalingGetIceConfigInfoCout(PSignalingClient, PUINT32);
+STATUS signalingGetIceConfigInfoCount(PSignalingClient, PUINT32);
 STATUS signalingGetIceConfigInfo(PSignalingClient, UINT32, PIceConfigInfo*);
+STATUS signalingFetchSync(PSignalingClient);
 STATUS signalingConnectSync(PSignalingClient);
 STATUS signalingDisconnectSync(PSignalingClient);
 STATUS signalingDeleteSync(PSignalingClient);
