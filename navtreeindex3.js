@@ -1,5 +1,7 @@
 var NAVTREEINDEX3 =
 {
+"structRtcIceCandidatePairStats.html#ade069eeed216733900ec7535cf1d1ed1":[1,0,20,7,9],
+"structRtcIceCandidatePairStats.html#aeae2acf2970f73ebf4fa11cebed1edc8":[1,0,20,7,18],
 "structRtcIceCandidatePairStats.html#aeae7374e6537fe6c578a08b803fe4475":[1,0,20,7,1],
 "structRtcIceCandidatePairStats.html#afe78dc8769bb441016e095608a687dd1":[1,0,20,7,15],
 "structRtcIceCandidateStats.html":[1,0,20,9],

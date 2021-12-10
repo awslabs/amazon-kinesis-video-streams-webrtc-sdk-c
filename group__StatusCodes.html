@@ -222,6 +222,8 @@ Macros</h2></td></tr>
 <tr class="separator:gac8463c011b7295366ecfcefa4caa22aa"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gafffcbc366bf0d963121a10259b988d31"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#gafffcbc366bf0d963121a10259b988d31">SIGNALING_API_CALL_CACHE_TTL_SENTINEL_VALUE</a>&#160;&#160;&#160;0</td></tr>
 <tr class="separator:gafffcbc366bf0d963121a10259b988d31"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga5c1700bda0d38178e91a93385bb1c317"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga5c1700bda0d38178e91a93385bb1c317">CREATE_SIGNALING_CLIENT_RETRY_ATTEMPTS_SENTINEL_VALUE</a>&#160;&#160;&#160;-1</td></tr>
+<tr class="separator:ga5c1700bda0d38178e91a93385bb1c317"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga2b482ee4231032c03a94091b7ee61990"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga2b482ee4231032c03a94091b7ee61990">INVALID_SIGNALING_CLIENT_HANDLE_VALUE</a>&#160;&#160;&#160;((<a class="el" href="group__StatusCodes.html#ga1a31b45408a80e1064d39d578bd3b751">SIGNALING_CLIENT_HANDLE</a>) INVALID_PIC_HANDLE_VALUE)</td></tr>
 <tr class="memdesc:ga2b482ee4231032c03a94091b7ee61990"><td class="mdescLeft">&#160;</td><td class="mdescRight">This is a sentinel indicating an invalid handle value.  <a href="group__StatusCodes.html#ga2b482ee4231032c03a94091b7ee61990">More...</a><br /></td></tr>
 <tr class="separator:ga2b482ee4231032c03a94091b7ee61990"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -373,9 +375,9 @@ Variables</h2></td></tr>
 <tr class="memitem:ga87eb795fbdbf266819688941c80770eb"><td class="memItemLeft" align="right" valign="top">KvsRetryStrategyCallbacks&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga87eb795fbdbf266819688941c80770eb">SignalingClientInfo::signalingRetryStrategyCallbacks</a></td></tr>
 <tr class="memdesc:ga87eb795fbdbf266819688941c80770eb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retry strategy callbacks used while creating signaling client.  <a href="group__StatusCodes.html#ga87eb795fbdbf266819688941c80770eb">More...</a><br /></td></tr>
 <tr class="separator:ga87eb795fbdbf266819688941c80770eb"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gae9409ee138680ef12ac46c937dc6d0c9"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#gae9409ee138680ef12ac46c937dc6d0c9">SignalingClientInfo::signalingClientCreationMaxRetryAttempts</a></td></tr>
-<tr class="memdesc:gae9409ee138680ef12ac46c937dc6d0c9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Max attempts to create signaling client before returning error to the caller.  <a href="group__StatusCodes.html#gae9409ee138680ef12ac46c937dc6d0c9">More...</a><br /></td></tr>
-<tr class="separator:gae9409ee138680ef12ac46c937dc6d0c9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gafaf099a0c85ede248da1ef35bea2bf5c"><td class="memItemLeft" align="right" valign="top">INT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#gafaf099a0c85ede248da1ef35bea2bf5c">SignalingClientInfo::signalingClientCreationMaxRetryAttempts</a></td></tr>
+<tr class="memdesc:gafaf099a0c85ede248da1ef35bea2bf5c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Max attempts to create signaling client before returning error to the caller.  <a href="group__StatusCodes.html#gafaf099a0c85ede248da1ef35bea2bf5c">More...</a><br /></td></tr>
+<tr class="separator:gafaf099a0c85ede248da1ef35bea2bf5c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga9121e19802bb740a1b695f2be5250e47"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga9121e19802bb740a1b695f2be5250e47">SignalingClientInfo::stateMachineRetryCountReadOnly</a></td></tr>
 <tr class="memdesc:ga9121e19802bb740a1b695f2be5250e47"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retry count of state machine. Note that this <b>MUST NOT</b> be modified by the user. It is a read only field.  <a href="group__StatusCodes.html#ga9121e19802bb740a1b695f2be5250e47">More...</a><br /></td></tr>
 <tr class="separator:ga9121e19802bb740a1b695f2be5250e47"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -590,6 +592,21 @@ Variables</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+
+</div>
+</div>
+<a id="ga5c1700bda0d38178e91a93385bb1c317" name="ga5c1700bda0d38178e91a93385bb1c317"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga5c1700bda0d38178e91a93385bb1c317">&#9670;&nbsp;</a></span>CREATE_SIGNALING_CLIENT_RETRY_ATTEMPTS_SENTINEL_VALUE</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define CREATE_SIGNALING_CLIENT_RETRY_ATTEMPTS_SENTINEL_VALUE&#160;&#160;&#160;-1</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p >Signaling caching policy TTL period sentinel value which will force the default period. </p>
 
 </div>
 </div>
@@ -2167,14 +2184,14 @@ Variables</h2></td></tr>
 
 </div>
 </div>
-<a id="gae9409ee138680ef12ac46c937dc6d0c9" name="gae9409ee138680ef12ac46c937dc6d0c9"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#gae9409ee138680ef12ac46c937dc6d0c9">&#9670;&nbsp;</a></span>signalingClientCreationMaxRetryAttempts</h2>
+<a id="gafaf099a0c85ede248da1ef35bea2bf5c" name="gafaf099a0c85ede248da1ef35bea2bf5c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gafaf099a0c85ede248da1ef35bea2bf5c">&#9670;&nbsp;</a></span>signalingClientCreationMaxRetryAttempts</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">UINT32 SignalingClientInfo::signalingClientCreationMaxRetryAttempts</td>
+          <td class="memname">INT32 SignalingClientInfo::signalingClientCreationMaxRetryAttempts</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -2697,7 +2714,7 @@ Variables</h2></td></tr>
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="footer">Generated on Wed Dec 8 2021 20:37:23 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.2 </li>
+    <li class="footer">Generated on Fri Dec 10 2021 14:22:54 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.2 </li>
   </ul>
 </div>
 </body>

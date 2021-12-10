@@ -71,7 +71,7 @@ var group__PublicStructures =
       [ "cacheFilePath", "group__StatusCodes.html#gac9e805db054ce941d24b1b0ce5e72946", null ],
       [ "clientId", "group__StatusCodes.html#ga164f67d7c1bb29cfe65eeace765495cd", null ],
       [ "loggingLevel", "group__StatusCodes.html#ga8df6838b31452ecf1bd1cf1a0fffa680", null ],
-      [ "signalingClientCreationMaxRetryAttempts", "group__StatusCodes.html#gae9409ee138680ef12ac46c937dc6d0c9", null ],
+      [ "signalingClientCreationMaxRetryAttempts", "group__StatusCodes.html#gafaf099a0c85ede248da1ef35bea2bf5c", null ],
       [ "signalingRetryStrategyCallbacks", "group__StatusCodes.html#ga87eb795fbdbf266819688941c80770eb", null ],
       [ "stateMachineRetryCountReadOnly", "group__StatusCodes.html#ga9121e19802bb740a1b695f2be5250e47", null ],
       [ "version", "group__StatusCodes.html#gaad776eab978b30bd3f21ecd3432c93a0", null ]

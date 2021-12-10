@@ -38,6 +38,7 @@ var group__PublicMemberFunctions =
     [ "signalingClientConnectSync", "group__PublicMemberFunctions.html#gacb53537d7d1c72a9e304ed095fe1252f", null ],
     [ "signalingClientDeleteSync", "group__PublicMemberFunctions.html#gad85555f757662d1585efd00d496e5c13", null ],
     [ "signalingClientDisconnectSync", "group__PublicMemberFunctions.html#ga6130116416557558b66728a8db2c6ee7", null ],
+    [ "signalingClientFetchSync", "group__PublicMemberFunctions.html#ga9c3b58fbb47fb50baaf24b10240ee809", null ],
     [ "signalingClientGetCurrentState", "group__PublicMemberFunctions.html#gab9b925bdc5aba1999e9192308f9cc6a9", null ],
     [ "signalingClientGetIceConfigInfo", "group__PublicMemberFunctions.html#ga94ed483b34bb395015b7d44fd98c8f5b", null ],
     [ "signalingClientGetIceConfigInfoCount", "group__PublicMemberFunctions.html#ga22f59c80e99e533e5e1d78d52145eb7c", null ],

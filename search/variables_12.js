@@ -49,7 +49,7 @@ var searchData=
   ['signaling_5fstate_5fmachine_5fstate_5fcount_46',['SIGNALING_STATE_MACHINE_STATE_COUNT',['../StateMachine_8c.html#ab8412adbb89874ca02ab588b2b9c7da9',1,'SIGNALING_STATE_MACHINE_STATE_COUNT():&#160;StateMachine.c'],['../Signaling_8c.html#ab8412adbb89874ca02ab588b2b9c7da9',1,'SIGNALING_STATE_MACHINE_STATE_COUNT():&#160;StateMachine.c']]],
   ['signaling_5fstate_5fmachine_5fstates_47',['SIGNALING_STATE_MACHINE_STATES',['../StateMachine_8c.html#a6ad9b92e558d340203a1fef00b4495dc',1,'SIGNALING_STATE_MACHINE_STATES():&#160;StateMachine.c'],['../Signaling_8c.html#a6ad9b92e558d340203a1fef00b4495dc',1,'SIGNALING_STATE_MACHINE_STATES():&#160;StateMachine.c']]],
   ['signalingclientcallbacks_48',['signalingClientCallbacks',['../structSignalingClient.html#aea69206ef06614d5f790f341d18b9188',1,'SignalingClient']]],
-  ['signalingclientcreationmaxretryattempts_49',['signalingClientCreationMaxRetryAttempts',['../group__StatusCodes.html#gae9409ee138680ef12ac46c937dc6d0c9',1,'SignalingClientInfo']]],
+  ['signalingclientcreationmaxretryattempts_49',['signalingClientCreationMaxRetryAttempts',['../group__StatusCodes.html#gafaf099a0c85ede248da1ef35bea2bf5c',1,'SignalingClientInfo']]],
   ['signalingclientinfo_50',['signalingClientInfo',['../structSignalingClientInfoInternal.html#a34106e46463120fbf13d42f73fb1f193',1,'SignalingClientInfoInternal']]],
   ['signalingclientstats_51',['signalingClientStats',['../group__StatusCodes.html#ga19e455ef17680d69fc2de9f0c886ea80',1,'SignalingClientMetrics']]],
   ['signalingclientuptime_52',['signalingClientUptime',['../structSignalingClientStats.html#ac581ceebed9a391235a48dba8e4cff34',1,'SignalingClientStats']]],

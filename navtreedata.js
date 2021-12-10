@@ -34,8 +34,8 @@ var NAVTREEINDEX =
 [
 "group__Callbacks.html",
 "group__PublicMemberFunctions.html",
-"group__StatusCodes.html#ga068126ee9a6ec0eec32278185d0bb4fe",
-"structRtcIceCandidatePairStats.html#aeae7374e6537fe6c578a08b803fe4475"
+"group__StatusCodes.html#ga03b591edffe71fb5572ca7b6b218ece7",
+"structRtcIceCandidatePairStats.html#ade069eeed216733900ec7535cf1d1ed1"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';
