@@ -30,7 +30,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          sudo sh -c 'cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE -DBUILD_OPENSSL_PLATFORM=darwin64-x86_64-cc;cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE -DBUILD_OPENSSL_PLATFORM=darwin64-x86_64-cc'
+          sh -c 'cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE -DBUILD_OPENSSL_PLATFORM=darwin64-x86_64-cc;cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE -DBUILD_OPENSSL_PLATFORM=darwin64-x86_64-cc'
           make
           ./tst/webrtc_client_test
 
