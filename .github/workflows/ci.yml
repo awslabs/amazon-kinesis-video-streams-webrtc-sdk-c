@@ -30,11 +30,8 @@ jobs:
         run: |
           mkdir build
           cd build
-          sudo sh -c 'cmake ..;cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE -DBUILD_OPENSSL_PLATFORM=darwin64-x86_64-cc'
-      - name: Make this
-        run: |
+          sudo sh -c 'cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE -DBUILD_OPENSSL_PLATFORM=darwin64-x86_64-cc;cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE -DBUILD_OPENSSL_PLATFORM=darwin64-x86_64-cc'
           make
-          export DYLD_LIBRARY_PATH="$DYLD_LIBRARY_PATH:`pwd`/../open-source/lib"
           ./tst/webrtc_client_test
 
 
@@ -45,6 +42,8 @@ jobs:
         uses: actions/checkout@v2
       - name: Build repository
         run: |
+          # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
+          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
           mkdir build
           cd build
           cmake .. -DBUILD_TEST=TRUE
