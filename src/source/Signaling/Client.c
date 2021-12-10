@@ -188,6 +188,7 @@ STATUS signalingClientFetchSync(SIGNALING_CLIENT_HANDLE signalingClientHandle)
     UINT64 signalingClientCreationWaitTime;
 
     DLOGV("Signaling Client Fetch Sync");
+    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
     // Convert the client info to the internal structure with empty values
     MEMSET(&signalingClientInfoInternal, 0x00, SIZEOF(signalingClientInfoInternal));
