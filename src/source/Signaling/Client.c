@@ -60,7 +60,7 @@ STATUS createSignalingClientSync(PSignalingClientInfo pClientInfo, PChannelInfo 
     PSignalingClient pSignalingClient = NULL;
     SignalingClientInfoInternal signalingClientInfoInternal;
     KvsRetryStrategy createSignalingClientRetryStrategy = {NULL, NULL, KVS_RETRY_STRATEGY_DISABLED};
-    UINT32 signalingClientCreationMaxRetryCount;
+    INT32 signalingClientCreationMaxRetryCount;
     UINT64 signalingClientCreationWaitTime;
 
     DLOGV("Creating Signaling Client Sync");
@@ -184,7 +184,7 @@ STATUS signalingClientFetchSync(SIGNALING_CLIENT_HANDLE signalingClientHandle)
     PSignalingClient pSignalingClient = FROM_SIGNALING_CLIENT_HANDLE(signalingClientHandle);
     SignalingClientInfoInternal signalingClientInfoInternal;
     KvsRetryStrategy createSignalingClientRetryStrategy = {NULL, NULL, KVS_RETRY_STRATEGY_DISABLED};
-    UINT32 signalingClientCreationMaxRetryCount;
+    INT32 signalingClientCreationMaxRetryCount;
     UINT64 signalingClientCreationWaitTime;
 
     DLOGV("Signaling Client Fetch Sync");
