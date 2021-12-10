@@ -21,7 +21,7 @@ jobs:
         run: |
           bash scripts/check-clang.sh
 
-  mac-os-catalina-build:
+  mac-os-catalina-build-clang:
     runs-on: macos-latest
     steps:
       - name: Clone repository
@@ -31,6 +31,19 @@ jobs:
           mkdir build
           cd build
           sh -c 'cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE -DBUILD_OPENSSL_PLATFORM=darwin64-x86_64-cc;cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE -DBUILD_OPENSSL_PLATFORM=darwin64-x86_64-cc'
+          make
+          ./tst/webrtc_client_test
+
+  mac-os-catalina-build-gcc:
+    runs-on: macos-latest
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v2
+      - name: Build repository
+        run: |
+          mkdir build
+          cd build
+          sh -c 'cmake .. -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++ -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE -DBUILD_OPENSSL_PLATFORM=darwin64-x86_64-cc;cmake .. -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++ -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE -DBUILD_OPENSSL_PLATFORM=darwin64-x86_64-cc'
           make
           ./tst/webrtc_client_test
 
