@@ -3,6 +3,7 @@
 extern PSampleConfiguration gSampleConfiguration;
 
 #ifdef ENABLE_DATA_CHANNEL
+
 // onMessage callback for a message received by the viewer on a data channel
 VOID dataChannelOnMessageCallback(UINT64 customData, PRtcDataChannel pDataChannel, BOOL isBinary, PBYTE pMessage, UINT32 pMessageLen)
 {

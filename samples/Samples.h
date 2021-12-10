@@ -49,7 +49,6 @@ extern "C" {
 #define MASTER_DATA_CHANNEL_MESSAGE "This message is from the KVS Master"
 #define VIEWER_DATA_CHANNEL_MESSAGE "This message is from the KVS Viewer"
 
-
 /* Uncomment the following line in order to enable IoT credentials checks in the provided samples */
 //#define IOT_CORE_ENABLE_CREDENTIALS  1
 
