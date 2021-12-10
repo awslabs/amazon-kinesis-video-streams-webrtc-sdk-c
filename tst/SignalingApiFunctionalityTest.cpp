@@ -790,7 +790,7 @@ TEST_F(SignalingApiFunctionalityTest, invalidChannelInfoInput)
                                           &signalingHandle);
     retStatus = signalingClientFetchSync(signalingHandle);
     if (mAccessKeyIdSet) {
-        EXPECT_TRUE(retStatus == STATUS_OPERATION_TIMED_OUT || retStatus == STATUS_SIGNALING_DESCRIBE_CALL_FAILED);
+        EXPECT_TRUE(retStatus == STATUS_OPERATION_TIMED_OUT || retStatus == STATUS_SIGNALING_DESCRIBE_CALL_FAILED || retStatus == STATUS_SIGNALING_GET_TOKEN_CALL_FAILED);
     } else {
         EXPECT_EQ(STATUS_NULL_ARG, retStatus);
     }
