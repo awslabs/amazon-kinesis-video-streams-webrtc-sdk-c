@@ -6,7 +6,7 @@ STATUS createRetryStrategyForCreatingSignalingClient(PSignalingClientInfo pClien
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
 
-    CHK(pKvsRetryStrategy != NULL || pClientInfo != NULL, STATUS_NULL_ARG);
+    CHK(pKvsRetryStrategy != NULL && pClientInfo != NULL, STATUS_NULL_ARG);
 
     if (pClientInfo->signalingRetryStrategyCallbacks.createRetryStrategyFn == NULL ||
         pClientInfo->signalingRetryStrategyCallbacks.freeRetryStrategyFn == NULL ||
