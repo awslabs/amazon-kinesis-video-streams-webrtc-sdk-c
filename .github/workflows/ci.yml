@@ -194,7 +194,7 @@ jobs:
           export AWS_KVS_LOG_LEVEL=3
           ulimit -c unlimited -S
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-      -name: After build
+      - name: After build
           if: ${{ success() }}
           run: |
             for test_file in $(find CMakeFiles/kvsWebrtcClient.dir CMakeFiles/kvsWebrtcSignalingClient.dir -name '*.gcno'); do gcov $test_file; done
