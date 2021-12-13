@@ -86,8 +86,8 @@ jobs:
 
   undefined-behavior-sanitizer:
     runs-on: ubuntu-18.04
-    compiler: clang
     env:
+      CC: clang
       UBSAN_OPTIONS: halt_on_error=1
     steps:
       - name: Clone repository
