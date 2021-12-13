@@ -140,9 +140,9 @@ jobs:
           ulimit -c unlimited -S
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
       - name: Code coverage
-          run: |
-            for test_file in $(find CMakeFiles/kvsWebrtcClient.dir CMakeFiles/kvsWebrtcSignalingClient.dir -name '*.gcno'); do gcov $test_file; done
-            bash <(curl -s https://codecov.io/bash)
+        run: |
+          for test_file in $(find CMakeFiles/kvsWebrtcClient.dir CMakeFiles/kvsWebrtcSignalingClient.dir -name '*.gcno'); do gcov $test_file; done
+          bash <(curl -s https://codecov.io/bash)
 
   sample-check:
     runs-on: ubuntu-latest
