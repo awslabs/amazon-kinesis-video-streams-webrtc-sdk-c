@@ -85,14 +85,14 @@ jobs:
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
 
   undefined-behavior-sanitizer:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
+    env:
+      CC: clang
+      UBSAN_OPTIONS: halt_on_error=1
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
       - name: Build repository
-        env:
-          CC: clang
-          UBSAN_OPTIONS: halt_on_error=1
         run: |
           # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
           sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
