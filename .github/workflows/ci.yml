@@ -149,6 +149,7 @@ jobs:
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
+      - name: Setup MSVC 
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x86
