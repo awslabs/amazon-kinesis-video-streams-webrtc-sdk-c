@@ -23,24 +23,6 @@ jobs:
         run: |
           bash scripts/check-clang.sh
 
-  mac-os-catalina-build:
-    runs-on: macos-latest
-    env:
-      CPATH: "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include"
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v2
-      - name: Build repository
-        continue-on-error: true
-        run: |
-          mkdir build
-          cd build
-          cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE -DBUILD_OPENSSL_PLATFORM=darwin64-x86_64-cc
-          make
-          export DYLD_LIBRARY_PATH="$DYLD_LIBRARY_PATH:`pwd`/../open-source/lib"
-          ./tst/webrtc_client_test
-
-
   ubuntu-os-build:
     runs-on: ubuntu-latest
     steps:
@@ -62,6 +44,8 @@ jobs:
     env:
       ASAN_OPTIONS: detect_odr_violation=0:detect_leaks=1
       LSAN_OPTIONS: suppressions=../tst/suppressions/LSAN.supp
+      CC: /usr/bin/clang
+      CXX: /usr/bin/clang++
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
@@ -77,30 +61,12 @@ jobs:
           ulimit -c unlimited -S
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
 
-  undefined-behavior-sanitizer:
-    runs-on: ubuntu-18.04
-    env:
-      UBSAN_OPTIONS: halt_on_error=1
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v2
-      - name: Build repository
-        continue-on-error: true
-        run: |
-          # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
-          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-          mkdir build
-          cd build
-          cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TEST=TRUE -DUNDEFINED_BEHAVIOR_SANITIZER=TRUE
-          make
-          export AWS_KVS_LOG_LEVEL=3
-          ulimit -c unlimited -S
-          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-
   thread-sanitizer:
     runs-on: ubuntu-18.04
     env:
       TSAN_OPTIONS: halt_on_error=1:suppressions=../tst/suppressions/TSAN.supp
+      CC: /usr/bin/clang
+      CXX: /usr/bin/clang++
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
@@ -115,42 +81,7 @@ jobs:
           ulimit -c unlimited -S
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
 
-  memory-sanitizer:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v2
-      - name: Build repository
-        continue-on-error: true
-        run: |
-          mkdir build
-          cd build
-          cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TEST=TRUE -DMEMORY_SANITIZER=TRUE
-          make
-          export AWS_KVS_LOG_LEVEL=3
-          ulimit -c unlimited -S
-          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-
   mbedtls-ubuntu-clang:
-    runs-on: ubuntu-latest
-    env:
-      CC: /usr/bin/clang
-      CXX: /usr/bin/clang++
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v2
-      - name: Build repository
-        run: |
-          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-          mkdir build
-          cd build
-          cmake .. -DBUILD_TEST=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
-          make
-          export AWS_KVS_LOG_LEVEL=3
-          ulimit -c unlimited -S
-          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-
-  mbedtls-ubuntu-gcc:
     runs-on: ubuntu-latest
     env:
       CC: /usr/bin/clang
