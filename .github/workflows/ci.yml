@@ -241,6 +241,8 @@ jobs:
 
   windows-msvc:
     runs-on: windows-2016
+    env:
+      PATH: "/c/Strawberry/perl/site/bin:/c/Strawberry/perl/bin:/c/Strawberry/c/bin:/c/Program Files/NASM:`pwd`/open-source/lib:`pwd`/open-source/bin:$PATH"
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
@@ -251,7 +253,6 @@ jobs:
       - name: Build and run
         run: |
           choco install nasm strawberryperl
-          echo "{PATH}={/c/Strawberry/perl/site/bin:/c/Strawberry/perl/bin:/c/Strawberry/c/bin:/c/Program Files/NASM:`pwd`/open-source/lib:`pwd`/open-source/bin:$PATH}" >> $GITHUB_ENV
           .github/build_windows.bat
           cd build/tst && ./webrtc_client_test.exe --gtest_filter="-DataChannelFunctionalityTest.*:IceApiTest.*:IceFunctionalityTest.*:PeerConnectionFunctionalityTest.*:SignalingApiFunctionalityTest.*:TurnConnectionFunctionalityTest.*:RtpFunctionalityTest.marshallUnmarshallH264Data:RtpFunctionalityTest.packingUnpackingVerifySameH264Frame:RtcpFunctionalityTest.onRtcpPacketCompound:RtcpFunctionalityTest.twcc3"
 
