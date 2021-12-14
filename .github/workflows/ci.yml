@@ -280,7 +280,7 @@ jobs:
           cd ..
           ./scripts/check-sample.sh
 
-      ubuntu-os-build:
+  ubuntu-os-build:
     runs-on: ubuntu-latest
     steps:
       - name: Clone repository
