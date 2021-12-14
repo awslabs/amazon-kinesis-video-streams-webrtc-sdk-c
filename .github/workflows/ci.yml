@@ -116,7 +116,7 @@ jobs:
           ulimit -c unlimited -S
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
 
-    memory-sanitizer:
+  memory-sanitizer:
     runs-on: ubuntu-latest
     steps:
       - name: Clone repository
@@ -201,7 +201,7 @@ jobs:
   #         alpine ../scripts/check-static-build.sh || travis_terminate 1
   #         alpine ./tst/webrtc_client_test
 
-    mbedtls-ubuntu-gcc:
+  mbedtls-ubuntu-gcc:
     runs-on: ubuntu-latest
     steps:
       - name: Clone repository
