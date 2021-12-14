@@ -229,7 +229,6 @@ jobs:
       - name: Clone repository
         uses: actions/checkout@v2
         uses: ilammy/msvc-dev-cmd@v1
-      - name: Build and run tests
       run: |
         choco install nasm strawberryperl
         export "PATH=/c/Strawberry/perl/site/bin:/c/Strawberry/perl/bin:/c/Strawberry/c/bin:/c/Program Files/NASM:`pwd`/open-source/lib:`pwd`/open-source/bin:$PATH"
