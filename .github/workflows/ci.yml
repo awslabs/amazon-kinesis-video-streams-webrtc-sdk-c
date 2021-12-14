@@ -50,8 +50,6 @@ jobs:
           sh -c 'cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE;cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE'
           make
           ./tst/webrtc_client_test || travis_terminate 1;
-      - name: Run some tests without auth
-        run: |
           unset AWS_ACCESS_KEY_ID
           unset AWS_SECRET_ACCESS_KEY
           ./tst/webrtc_client_test --gtest_break_on_failure --gtest_filter="SignalingApiFunctionalityTest.*:SignalingApiTest.*:TurnConnectionFunctionalityTest.*"  
