@@ -147,12 +147,9 @@ jobs:
   windows-msvc:
     runs-on: windows-2016
     steps:
-      - name: Use MSVC
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: x86
-      - name: Clone repository and prepare
+      - name: Clone repository
         uses: actions/checkout@v2
+        uses: ilammy/msvc-dev-cmd@v1
       - name: Build and run tests
       run: |
         choco install nasm strawberryperl
