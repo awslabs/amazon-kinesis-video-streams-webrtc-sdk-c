@@ -145,7 +145,7 @@ jobs:
           bash <(curl -s https://codecov.io/bash)
 
   windows-msvc:
-    runs-on: windows-latest
+    runs-on: windows-2016
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
