@@ -139,7 +139,7 @@ jobs:
           msan-tester make
           msan-tester ./tst/webrtc_client_test
 
-  linux-gcc-4.4:
+  linux-gcc-4_4:
     runs-on: ubuntu-latest
     steps:
       - name: Clone repository
