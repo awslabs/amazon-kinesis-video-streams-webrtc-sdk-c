@@ -115,7 +115,6 @@ jobs:
           cd ..
           ./scripts/check-sample.sh
 
-
 # Todo: Fix these builds
 
   # mac-os-catalina-build:
@@ -171,3 +170,21 @@ jobs:
   #         export AWS_KVS_LOG_LEVEL=3
   #         ulimit -c unlimited -S
   #         timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+
+  # windows-build:
+  #   runs-on: windows-latest
+  #   env:
+  #     PATH: "/c/Strawberry/perl/site/bin:/c/Strawberry/perl/bin:/c/Strawberry/c/bin:/c/Program Files/NASM:`pwd`/open-source/lib:`pwd`/open-source/bin:$PATH"
+  #   steps:
+  #     - name: Clone repository
+  #       uses: actions/checkout@v2
+  #     - name: Install deps
+  #       run: |
+  #         choco install nasm strawberryperl
+  #     - name: Build repository
+  #       run: |
+  #         unset CC CC_FOR_BUILD CXX CXX_FOR_BUILD # We want to use MSVC
+  #         .github/build_windows.bat
+  #         cd build/tst
+  #         ./webrtc_client_test.exe --gtest_filter="-DataChannelFunctionalityTest.*:IceApiTest.*:IceFunctionalityTest.*:PeerConnectionFunctionalityTest.*:SignalingApiFunctionalityTest.*:TurnConnectionFunctionalityTest.*:RtpFunctionalityTest.marshallUnmarshallH264Data:RtpFunctionalityTest.packingUnpackingVerifySameH264Frame:RtcpFunctionalityTest.onRtcpPacketCompound:RtcpFunctionalityTest.twcc3"
+
