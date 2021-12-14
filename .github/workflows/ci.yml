@@ -123,16 +123,38 @@ jobs:
       - name: Build repository
         continue-on-error: true
         run: |
-          echo '{"ipv6":true,"fixed-cidr-v6":"2001:db8:1::/64"}' | sudo tee /etc/docker/daemon.json
           mkdir build
+          cd build
           cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TEST=TRUE -DMEMORY_SANITIZER=TRUE
           make
           export AWS_KVS_LOG_LEVEL=3
           ulimit -c unlimited -S
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
 
-  mbedtls-ubuntu:
+  mbedtls-ubuntu-clang:
     runs-on: ubuntu-latest
+    env:
+      CC: /usr/bin/clang
+      CXX: /usr/bin/clang++
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v2
+      - name: Build repository
+        run: |
+          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+          mkdir build
+          cd build
+          cmake .. -DBUILD_TEST=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
+          make
+          export AWS_KVS_LOG_LEVEL=3
+          ulimit -c unlimited -S
+          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+
+  mbedtls-ubuntu-gcc:
+    runs-on: ubuntu-latest
+    env:
+      CC: /usr/bin/clang
+      CXX: /usr/bin/clang++
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
