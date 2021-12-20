@@ -450,6 +450,8 @@ STATUS signalingFetchSync(PSignalingClient pSignalingClient)
     }
 
     // move to the fromGetToken() so we can move to the necessary step
+    // We start from get token to keep the design consistent with how it was when the constructor (create)
+    // would bring you to the READY state, but this is a two-way door and can be redone later.
     setStateMachineCurrentState(pSignalingClient->pStateMachine, SIGNALING_STATE_GET_TOKEN);
 
     //if we're not failing from a bad token, set the result to OK to that fromGetToken will move
