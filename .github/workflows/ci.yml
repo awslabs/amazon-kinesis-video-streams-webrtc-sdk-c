@@ -129,9 +129,7 @@ jobs:
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
 
   windows-msvc:
-    runs-on: windows-2016
-    env:
-      PATH: "/c/Strawberry/perl/site/bin:/c/Strawberry/perl/bin:/c/Strawberry/c/bin:/c/Program Files/NASM:`pwd`/open-source/lib:`pwd`/open-source/bin:$PATH"
+    runs-on: windows-2019
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
