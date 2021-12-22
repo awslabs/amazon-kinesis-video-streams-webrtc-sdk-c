@@ -164,7 +164,7 @@ STATUS createSslCtx(PDtlsSessionCertificateInfo pCertificates, UINT32 certCount,
     EC_KEY* ecdh = NULL;
 #endif
 
-#if (OPENSSL_VERSION_NUMBER >= 0x10100000L)
+#if (OPENSSL_VERSION_NUMBER >= 0x10002000L)
     pSslCtx = SSL_CTX_new(DTLS_method());
 #elif (OPENSSL_VERSION_NUMBER >= 0x10001000L)
     pSslCtx = SSL_CTX_new(DTLSv1_method());
