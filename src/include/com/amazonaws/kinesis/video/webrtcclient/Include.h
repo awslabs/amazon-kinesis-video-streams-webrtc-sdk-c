@@ -299,6 +299,8 @@ extern "C" {
 #define STATUS_SIGNALING_DELETE_CALL_FAILED                        STATUS_SIGNALING_BASE + 0x00000031
 #define STATUS_SIGNALING_INVALID_METRICS_VERSION                   STATUS_SIGNALING_BASE + 0x00000032
 #define STATUS_SIGNALING_INVALID_CLIENT_INFO_CACHE_FILE_PATH_LEN   STATUS_SIGNALING_BASE + 0x00000033
+#define STATUS_SIGNALING_LWS_CALL_FAILED                           STATUS_SIGNALING_BASE + 0x00000034
+
 
 /*!@} */
 
@@ -495,7 +497,7 @@ extern "C" {
 /**
  * Version of signaling client
  */
-#define SIGNALING_CLIENT_CURRENT_VERSION 0
+#define SIGNALING_CLIENT_CURRENT_VERSION 1
 
 /**
  * Version of SignalingChannelDescription structure
@@ -574,9 +576,14 @@ extern "C" {
 #define SIGNALING_CONNECT_STATE_TIMEOUT (15 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
 /**
+ * Default disconnect sync API timeout
+ */
+#define SIGNALING_DISCONNECT_STATE_TIMEOUT (15 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+
+/**
  * Default refresh ICE server config API timeout
  */
-#define SIGNALING_REFRESH_ICE_CONFIG_STATE_TIMEOUT (15 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define SIGNALING_REFRESH_ICE_CONFIG_STATE_TIMEOUT (20 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
 /**
  * Default signaling connection establishment timeout
@@ -635,7 +642,7 @@ extern "C" {
 /**
  * Signaling states default retry count. This will evaluate to the last call being made 20 seconds in which will hit a timeout first.
  */
-#define SIGNALING_STATES_DEFAULT_RETRY_COUNT 10
+#define SIGNALING_STATES_DEFAULT_RETRY_COUNT 1
 
 /**
  * Signaling caching policy default TTL period
@@ -646,6 +653,11 @@ extern "C" {
  * Signaling caching policy TTL period sentinel value which will force the default period.
  */
 #define SIGNALING_API_CALL_CACHE_TTL_SENTINEL_VALUE 0
+
+/**
+ * Signaling caching policy TTL period sentinel value which will force the default period.
+ */
+#define CREATE_SIGNALING_CLIENT_RETRY_ATTEMPTS_SENTINEL_VALUE -1
 
 /**
  * @brief Definition of the signaling client handle
@@ -1170,16 +1182,19 @@ typedef struct {
  * @brief Populate Signaling client with client ID and application log level
  */
 typedef struct {
-    UINT32 version;                                 //!< Version of the structure
-    CHAR clientId[MAX_SIGNALING_CLIENT_ID_LEN + 1]; //!< Client id to use. Defines if the client is a producer/consumer
-    UINT32 loggingLevel;                            //!< Verbosity level for the logging. One of LOG_LEVEL_XXX
-                                                    //!< values or the default verbosity will be assumed. Currently,
-                                                    //!< default value is LOG_LEVEL_WARNING
-    PCHAR cacheFilePath;                            //!< File cache path override. The default
-                                                    //!< path is "./.SignalingCache_vN" which might not work for
-                                                    //!< devices which have read only partition where the code is
-                                                    //!< located. For default value or when file caching is not
-                                                    //!< being used this value can be NULL or point to an EMPTY_STRING.
+    UINT32 version;                                                 //!< Version of the structure
+    CHAR clientId[MAX_SIGNALING_CLIENT_ID_LEN + 1];                 //!< Client id to use. Defines if the client is a producer/consumer
+    UINT32 loggingLevel;                                            //!< Verbosity level for the logging. One of LOG_LEVEL_XXX
+                                                                    //!< values or the default verbosity will be assumed. Currently,
+                                                                    //!< default value is LOG_LEVEL_WARNING
+    PCHAR cacheFilePath;                                            //!< File cache path override. The default
+                                                                    //!< path is "./.SignalingCache_vN" which might not work for
+                                                                    //!< devices which have read only partition where the code is
+                                                                    //!< located. For default value or when file caching is not
+                                                                    //!< being used this value can be NULL or point to an EMPTY_STRING.
+    KvsRetryStrategyCallbacks signalingRetryStrategyCallbacks;      //!< Retry strategy callbacks used while creating signaling client
+    INT32 signalingClientCreationMaxRetryAttempts;                 //!< Max attempts to create signaling client before returning error to the caller
+    UINT32 stateMachineRetryCountReadOnly;                          //!< Retry count of state machine. Note that this **MUST NOT** be modified by the user. It is a read only field
 } SignalingClientInfo, *PSignalingClientInfo;
 
 /**
@@ -1321,8 +1336,9 @@ typedef struct {
     UINT32 version;                                       //!< Current version of the structure
     UINT64 customData;                                    //!< Custom data passed by the caller
     SignalingClientMessageReceivedFunc messageReceivedFn; //!< Callback registration for received SDP
-    SignalingClientErrorReportFunc errorReportFn;         //!<  Error reporting function. This is an optional member
+    SignalingClientErrorReportFunc errorReportFn;         //!< Error reporting function. This is an optional member
     SignalingClientStateChangedFunc stateChangeFn;        //!< Signaling client state change callback
+    GetCurrentTimeFunc getCurrentTimeFn;                  //!< callback to override system time, used for testing clock skew
 } SignalingClientCallbacks, *PSignalingClientCallbacks;
 
 /**
@@ -1917,6 +1933,16 @@ PUBLIC_API STATUS signalingClientGetIceConfigInfoCount(SIGNALING_CLIENT_HANDLE, 
  * @return STATUS code of execution. STATUS_SUCCESS on success
  */
 PUBLIC_API STATUS signalingClientGetIceConfigInfo(SIGNALING_CLIENT_HANDLE, UINT32, PIceConfigInfo*);
+
+/**
+ * @brief Fetches all assets needed to ready the state machine before attempting to connect.
+ *        Can also be used to reallocate missing / expired assets before reconnecting.
+ *
+ * @param[in] SIGNALING_CLIENT_HANDLE Signaling client handle
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
+PUBLIC_API STATUS signalingClientFetchSync(SIGNALING_CLIENT_HANDLE);
 
 /**
  * @brief Connects the signaling client to the web socket in order to send/receive messages.

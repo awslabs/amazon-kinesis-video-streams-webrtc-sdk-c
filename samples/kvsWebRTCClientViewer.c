@@ -2,6 +2,8 @@
 
 extern PSampleConfiguration gSampleConfiguration;
 
+#ifdef ENABLE_DATA_CHANNEL
+
 // onMessage callback for a message received by the viewer on a data channel
 VOID dataChannelOnMessageCallback(UINT64 customData, PRtcDataChannel pDataChannel, BOOL isBinary, PBYTE pMessage, UINT32 pMessageLen)
 {
@@ -26,6 +28,7 @@ VOID dataChannelOnOpenCallback(UINT64 customData, PRtcDataChannel pDataChannel) 
         DLOGI("[KVS Viewer] dataChannelSend(): operation returned status code: 0x%08x \n", retStatus);
     }
 }
+#endif
 
 INT32 main(INT32 argc, CHAR* argv[])
 {
@@ -95,6 +98,12 @@ INT32 main(INT32 argc, CHAR* argv[])
     printf("[KVS Viewer] Signaling client created successfully\n");
 
     // Enable the processing of the messages
+    retStatus = signalingClientFetchSync(pSampleConfiguration->signalingClientHandle);
+    if (retStatus != STATUS_SUCCESS) {
+        printf("[KVS Master] signalingClientFetchSync(): operation returned status code: 0x%08x \n", retStatus);
+        goto CleanUp;
+    }
+
     retStatus = signalingClientConnectSync(pSampleConfiguration->signalingClientHandle);
     if (retStatus != STATUS_SUCCESS) {
         printf("[KVS Viewer] signalingClientConnectSync(): operation returned status code: 0x%08x \n", retStatus);

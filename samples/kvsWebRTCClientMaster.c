@@ -11,7 +11,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     PSampleConfiguration pSampleConfiguration = NULL;
     SignalingClientMetrics signalingClientMetrics;
     PCHAR pChannelName;
-    signalingClientMetrics.version = 0;
+    signalingClientMetrics.version = SIGNALING_CLIENT_METRICS_CURRENT_VERSION;
 
     SET_INSTRUMENTED_ALLOCATORS();
 
@@ -91,6 +91,12 @@ INT32 main(INT32 argc, CHAR* argv[])
     printf("[KVS Master] Signaling client created successfully\n");
 
     // Enable the processing of the messages
+    retStatus = signalingClientFetchSync(pSampleConfiguration->signalingClientHandle);
+    if (retStatus != STATUS_SUCCESS) {
+        printf("[KVS Master] signalingClientFetchSync(): operation returned status code: 0x%08x \n", retStatus);
+        goto CleanUp;
+    }
+
     retStatus = signalingClientConnectSync(pSampleConfiguration->signalingClientHandle);
     if (retStatus != STATUS_SUCCESS) {
         printf("[KVS Master] signalingClientConnectSync(): operation returned status code: 0x%08x \n", retStatus);
@@ -114,13 +120,27 @@ INT32 main(INT32 argc, CHAR* argv[])
 CleanUp:
 
     if (retStatus != STATUS_SUCCESS) {
-        printf("[KVS Master] Terminated with status code 0x%08x", retStatus);
+        printf("[KVS Master] Terminated with status code 0x%08x\n", retStatus);
     }
 
     printf("[KVS Master] Cleaning up....\n");
     if (pSampleConfiguration != NULL) {
         // Kick of the termination sequence
         ATOMIC_STORE_BOOL(&pSampleConfiguration->appTerminateFlag, TRUE);
+
+        if (IS_VALID_MUTEX_VALUE(pSampleConfiguration->sampleConfigurationObjLock)) {
+            MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
+        }
+
+        // Cancel the media thread
+        if (pSampleConfiguration->mediaThreadStarted) {
+            DLOGD("Canceling media thread");
+            THREAD_CANCEL(pSampleConfiguration->mediaSenderTid);
+        }
+
+        if (IS_VALID_MUTEX_VALUE(pSampleConfiguration->sampleConfigurationObjLock)) {
+            MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
+        }
 
         if (pSampleConfiguration->mediaSenderTid != INVALID_TID_VALUE) {
             THREAD_JOIN(pSampleConfiguration->mediaSenderTid, NULL);
@@ -133,7 +153,7 @@ CleanUp:
         if (retStatus == STATUS_SUCCESS) {
             logSignalingClientStats(&signalingClientMetrics);
         } else {
-            printf("[KVS Master] signalingClientGetMetrics() operation returned status code: 0x%08x", retStatus);
+            printf("[KVS Master] signalingClientGetMetrics() operation returned status code: 0x%08x\n", retStatus);
         }
         retStatus = freeSignalingClient(&pSampleConfiguration->signalingClientHandle);
         if (retStatus != STATUS_SUCCESS) {
@@ -272,7 +292,7 @@ CleanUp:
 
     CHK_LOG_ERR(retStatus);
 
-    return (PVOID) (ULONG_PTR) retStatus;
+    return (PVOID)(ULONG_PTR) retStatus;
 }
 
 PVOID sendAudioPackets(PVOID args)
@@ -340,7 +360,7 @@ PVOID sendAudioPackets(PVOID args)
 
 CleanUp:
 
-    return (PVOID) (ULONG_PTR) retStatus;
+    return (PVOID)(ULONG_PTR) retStatus;
 }
 
 PVOID sampleReceiveVideoFrame(PVOID args)
@@ -360,5 +380,5 @@ PVOID sampleReceiveVideoFrame(PVOID args)
 
 CleanUp:
 
-    return (PVOID) (ULONG_PTR) retStatus;
+    return (PVOID)(ULONG_PTR) retStatus;
 }

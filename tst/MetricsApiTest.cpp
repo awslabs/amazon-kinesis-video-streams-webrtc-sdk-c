@@ -72,7 +72,7 @@ TEST_F(MetricsApiTest, webRtcIceServerGetMetrics)
     EXPECT_EQ(STATUS_SUCCESS, rtcPeerConnectionGetMetrics(pRtcPeerConnection, NULL, &rtcIceMetrics));
     EXPECT_EQ(443, rtcIceMetrics.rtcStatsObject.iceServerStats.port);
     EXPECT_PRED_FORMAT2(testing::IsSubstring, configuration.iceServers[1].urls, rtcIceMetrics.rtcStatsObject.iceServerStats.url);
-    EXPECT_PRED_FORMAT2(testing::IsSubstring, "transport=tcp", rtcIceMetrics.rtcStatsObject.iceServerStats.protocol);
+    EXPECT_PRED_FORMAT2(testing::IsSubstring, "tcp", rtcIceMetrics.rtcStatsObject.iceServerStats.protocol);
 
     EXPECT_EQ(STATUS_SUCCESS, closePeerConnection(pRtcPeerConnection));
     EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
