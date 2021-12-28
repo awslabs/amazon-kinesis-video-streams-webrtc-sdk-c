@@ -2,9 +2,7 @@ name: WebRTC C SDK CI
 
 on:
   push:
-    branches:
-      - develop
-      - master
+    branches: ["**"]
   pull_request:
     branches:
       - develop
@@ -22,7 +20,251 @@ jobs:
       - name: Run clang format check
         run: |
           bash scripts/check-clang.sh
+  mac-os-catalina-build-clang:
+    runs-on: macos-latest
+    env:
+      CC: clang
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v2
+      - name: Build repository
+        run: |
+          mkdir build
+          cd build
+          sh -c 'cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE;cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE'
+          make
+          ./tst/webrtc_client_test
+  mac-os-catalina-build-gcc:
+    runs-on: macos-latest
+    env:
+      CC: gcc
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v2
+      - name: Build repository and run all tests with auth
+        run: |
+          mkdir build
+          cd build
+          sh -c 'cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE;cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE'
+          make
+          ./tst/webrtc_client_test || travis_terminate 1;
+          unset AWS_ACCESS_KEY_ID
+          unset AWS_SECRET_ACCESS_KEY
+          ./tst/webrtc_client_test --gtest_break_on_failure --gtest_filter="SignalingApiFunctionalityTest.*:SignalingApiTest.*:TurnConnectionFunctionalityTest.*"  
+  linux-gcc-code-coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v2
+      - name: Build repository
+        run: |
+          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+          mkdir build
+          cd build
+          cmake .. -DCODE_COVERAGE=TRUE -DBUILD_TEST=TRUE
+          make
+          export AWS_KVS_LOG_LEVEL=3
+          ulimit -c unlimited -S
+          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+      - name: Code coverage
+        run: |
+          for test_file in $(find CMakeFiles/kvsWebrtcClient.dir CMakeFiles/kvsWebrtcSignalingClient.dir -name '*.gcno'); do gcov $test_file; done
+          bash <(curl -s https://codecov.io/bash)
+  address-sanitizer:
+    runs-on: ubuntu-18.04
+    env:
+      ASAN_OPTIONS: detect_odr_violation=0:detect_leaks=1
+      LSAN_OPTIONS: suppressions=../tst/suppressions/LSAN.supp
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v2
+      - name: Build repository
+        run: |
+          # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
+          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+          mkdir build
+          cd build
+          cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TEST=TRUE -DADDRESS_SANITIZER=TRUE
+          make
+          export AWS_KVS_LOG_LEVEL=3
+          ulimit -c unlimited -S
+          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+  undefined-behavior-sanitizer:
+    runs-on: ubuntu-latest
+    env:
+      CC: clang
+      UBSAN_OPTIONS: halt_on_error=1
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v2
+      - name: Build repository
+        run: |
+          # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
+          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+          mkdir build
+          cd build
+          cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TEST=TRUE -DUNDEFINED_BEHAVIOR_SANITIZER=TRUE
+          make
+          export AWS_KVS_LOG_LEVEL=3
+          ulimit -c unlimited -S
+          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+  memory-sanitizer:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v2
+      - name: Build repository
+        continue-on-error: true
+        run: |
+          echo '{"ipv6":true,"fixed-cidr-v6":"2001:db8:1::/64"}' | sudo tee /etc/docker/daemon.json
+          sudo service docker restart
+          mkdir build
+          docker run -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -w /src/build -dit --name msan-tester -v $(pwd):/src seaduboi/kvs-msan-tester
+          msan-tester() { docker exec -it msan-tester "$@"; }
+          msan-tester cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_DEPENDENCIES=FALSE -DBUILD_TEST=TRUE -DMEMORY_SANITIZER=TRUE -DCMAKE_CXX_FLAGS="-stdlib=libc++ -L/usr/src/libcxx_msan/lib -lc++abi -I/usr/src/libcxx_msan/include -I/usr/src/libcxx_msan/include/c++/v1 -fsanitize=memory -fno-omit-frame-pointer -fno-optimize-sibling-calls -fsanitize-memory-track-origins"
+          msan-tester make
+          msan-tester ./tst/webrtc_client_test
+  thread-sanitizer:
+    runs-on: ubuntu-18.04
+    env:
+      TSAN_OPTIONS: halt_on_error=1:suppressions=../tst/suppressions/TSAN.supp
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v2
+      - name: Build repository
+        run: |
+          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+          mkdir build
+          cd build
+          cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TEST=TRUE -DTHREAD_SANITIZER=TRUE
+          make
+          export AWS_KVS_LOG_LEVEL=3
+          ulimit -c unlimited -S
+          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+  linux-gcc-4_4:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v2
+      - name: Install deps
+        run: |
+          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+          sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ trusty main'
+          sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ trusty universe'
+          sudo apt-get -q update
+          sudo apt-get -y install gcc-4.4
+          sudo apt-get -y install gdb
+      - name: Build repository
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DBUILD_TEST=TRUE
+          make
+          export AWS_KVS_LOG_LEVEL=3
+          ulimit -c unlimited -S
+          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+  # static-build:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Clone repository
+  #       uses: actions/checkout@v2
+  #     - name: Before
+  #       run: |
+  #         # TODO: Remove the following 2 lines. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
+  #         echo '{"ipv6":true,"fixed-cidr-v6":"2001:db8:1::/64"}' | sudo tee /etc/docker/daemon.json
+  #         sudo service docker restart
+  #         mkdir build
+  #         docker run -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -w /src/build -dit --security-opt=seccomp=.github/default.json --name alpine -v $(pwd):/src alpine:latest
+  #         alpine() { docker exec -it alpine "$@"; }
+  #     - name: Install deps
+  #       run: |
+  #         alpine apk update
+  #         alpine apk upgrade
+  #         alpine apk add alpine-sdk cmake clang linux-headers perl bash openssl-dev
+  #     - name: Build and run
+  #       run: |
+  #         alpine cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE
+  #         alpine make
+  #       # ldd will return non-zero when there's no dynamic link. So, the positive value for static builds is non-zero
+  #         alpine ../scripts/check-static-build.sh || travis_terminate 1
+  #         alpine ./tst/webrtc_client_test
 
+  mbedtls-ubuntu-gcc:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v2
+      - name: Install deps
+        run: |
+          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+          sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ trusty main'
+          sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ trusty universe'
+          sudo apt-get -q update
+          sudo apt-get -y install gcc-4.4
+          sudo apt-get -y install gdb
+      - name: Build repository
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DBUILD_TEST=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
+          make
+          export AWS_KVS_LOG_LEVEL=3
+          ulimit -c unlimited -S
+          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+  mbedtls-ubuntu-clang:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v2
+      - name: Build repository
+        run: |
+          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+          mkdir build
+          cd build
+          cmake .. -DBUILD_TEST=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
+          make
+          export AWS_KVS_LOG_LEVEL=3
+          ulimit -c unlimited -S
+          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+  windows-msvc:
+    runs-on: windows-2016
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v2
+      - name: Setup MSVC 
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x86
+      - name: Build and run
+        run: |
+          choco install nasm strawberryperl
+          echo "{PATH}={/c/Strawberry/perl/site/bin:/c/Strawberry/perl/bin:/c/Strawberry/c/bin:/c/Program Files/NASM:`pwd`/open-source/lib:`pwd`/open-source/bin:$PATH}" >> $GITHUB_ENV
+          .github/build_windows.bat
+          cd build/tst && ./webrtc_client_test.exe --gtest_filter="-DataChannelFunctionalityTest.*:IceApiTest.*:IceFunctionalityTest.*:PeerConnectionFunctionalityTest.*:SignalingApiFunctionalityTest.*:TurnConnectionFunctionalityTest.*:RtpFunctionalityTest.marshallUnmarshallH264Data:RtpFunctionalityTest.packingUnpackingVerifySameH264Frame:RtcpFunctionalityTest.onRtcpPacketCompound:RtcpFunctionalityTest.twcc3"
+  sample-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v2
+      - name: Install deps
+        run: |
+          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+          sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ trusty main'
+          sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ trusty universe'
+          sudo apt-get -q update
+          sudo apt-get -y install gcc-4.4
+          sudo apt-get -y install gdb
+      - name: Build repository
+        run: |
+          mkdir build
+          cd build
+          cmake ..
+          make
+          cd ..
+          ./scripts/check-sample.sh
   ubuntu-os-build:
     runs-on: ubuntu-latest
     steps:
@@ -38,153 +280,3 @@ jobs:
           make
           export AWS_KVS_LOG_LEVEL=3
           ./tst/webrtc_client_test
-
-  address-sanitizer:
-    runs-on: ubuntu-18.04
-    env:
-      ASAN_OPTIONS: detect_odr_violation=0:detect_leaks=1
-      LSAN_OPTIONS: suppressions=../tst/suppressions/LSAN.supp
-      CC: /usr/bin/clang
-      CXX: /usr/bin/clang++
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v2
-      - name: Build repository
-        run: |
-          # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
-          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-          mkdir build
-          cd build
-          cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TEST=TRUE -DADDRESS_SANITIZER=TRUE
-          make
-          export AWS_KVS_LOG_LEVEL=3
-          ulimit -c unlimited -S
-          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-
-  thread-sanitizer:
-    runs-on: ubuntu-18.04
-    env:
-      TSAN_OPTIONS: halt_on_error=1:suppressions=../tst/suppressions/TSAN.supp
-      CC: /usr/bin/clang
-      CXX: /usr/bin/clang++
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v2
-      - name: Build repository
-        run: |
-          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-          mkdir build
-          cd build
-          cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TEST=TRUE -DTHREAD_SANITIZER=TRUE
-          make
-          export AWS_KVS_LOG_LEVEL=3
-          ulimit -c unlimited -S
-          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-
-  mbedtls-ubuntu-clang:
-    runs-on: ubuntu-latest
-    env:
-      CC: /usr/bin/clang
-      CXX: /usr/bin/clang++
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v2
-      - name: Build repository
-        run: |
-          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-          mkdir build
-          cd build
-          cmake .. -DBUILD_TEST=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
-          make
-          export AWS_KVS_LOG_LEVEL=3
-          ulimit -c unlimited -S
-          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-
-  sample-check:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v2
-      - name: Build repository
-        run: |
-          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-          mkdir build
-          cd build
-          cmake ..
-          make
-          cd ..
-          ./scripts/check-sample.sh
-
-# Todo: Fix these builds
-
-  # mac-os-catalina-build:
-  #   runs-on: macos-latest
-  #   env:
-  #     CPATH: "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include"
-  #   steps:
-  #     - name: Clone repository
-  #       uses: actions/checkout@v2
-  #     - name: Build repository
-  #       run: |
-  #         mkdir build
-  #         cd build
-  #         cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE -DBUILD_OPENSSL_PLATFORM=darwin64-x86_64-cc
-  #         make
-  #         export DYLD_LIBRARY_PATH="$DYLD_LIBRARY_PATH:`pwd`/../open-source/lib"
-  #         ./tst/webrtc_client_test
-
-  # memory-sanitizer:
-  #   runs-on: ubuntu-latest
-  #   env:
-  #     CC: /usr/bin/clang
-  #     CXX: /usr/bin/clang++
-  #   steps:
-  #     - name: Clone repository
-  #       uses: actions/checkout@v2
-  #     - name: Build repository
-  #       run: |
-  #         mkdir build
-  #         cd build
-  #         cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TEST=TRUE -DMEMORY_SANITIZER=TRUE
-  #         make
-  #         export AWS_KVS_LOG_LEVEL=3
-  #         ulimit -c unlimited -S
-  #         timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-
-
-  # undefined-behavior-sanitizer:
-  #   runs-on: ubuntu-18.04
-  #   env:
-  #     UBSAN_OPTIONS: halt_on_error=1
-  #   steps:
-  #     - name: Clone repository
-  #       uses: actions/checkout@v2
-  #     - name: Build repository
-  #       run: |
-  #         # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
-  #         sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-  #         mkdir build
-  #         cd build
-  #         cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TEST=TRUE -DUNDEFINED_BEHAVIOR_SANITIZER=TRUE
-  #         make
-  #         export AWS_KVS_LOG_LEVEL=3
-  #         ulimit -c unlimited -S
-  #         timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-
-  # windows-build:
-  #   runs-on: windows-latest
-  #   env:
-  #     PATH: "/c/Strawberry/perl/site/bin:/c/Strawberry/perl/bin:/c/Strawberry/c/bin:/c/Program Files/NASM:`pwd`/open-source/lib:`pwd`/open-source/bin:$PATH"
-  #   steps:
-  #     - name: Clone repository
-  #       uses: actions/checkout@v2
-  #     - name: Install deps
-  #       run: |
-  #         choco install nasm strawberryperl
-  #     - name: Build repository
-  #       run: |
-  #         unset CC CC_FOR_BUILD CXX CXX_FOR_BUILD # We want to use MSVC
-  #         .github/build_windows.bat
-  #         cd build/tst
-  #         ./webrtc_client_test.exe --gtest_filter="-DataChannelFunctionalityTest.*:IceApiTest.*:IceFunctionalityTest.*:PeerConnectionFunctionalityTest.*:SignalingApiFunctionalityTest.*:TurnConnectionFunctionalityTest.*:RtpFunctionalityTest.marshallUnmarshallH264Data:RtpFunctionalityTest.packingUnpackingVerifySameH264Frame:RtcpFunctionalityTest.onRtcpPacketCompound:RtcpFunctionalityTest.twcc3"
-
