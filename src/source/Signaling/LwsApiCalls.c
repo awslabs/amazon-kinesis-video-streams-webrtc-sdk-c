@@ -1058,6 +1058,7 @@ STATUS getChannelEndpointLws(PSignalingClient pSignalingClient, UINT64 time)
                         if (0 == STRNCMPI(pProtocol, WSS_SCHEME_NAME, protocolLen)) {
                             STRNCPY(pSignalingClient->channelEndpointWss, pEndpoint, MIN(endpointLen, MAX_SIGNALING_ENDPOINT_URI_LEN));
                             pSignalingClient->channelEndpointWss[MIN(endpointLen, MAX_SIGNALING_ENDPOINT_URI_LEN)] = '\0';
+
                         } else if (0 == STRNCMPI(pProtocol, HTTPS_SCHEME_NAME, protocolLen)) {
                             STRNCPY(pSignalingClient->channelEndpointHttps, pEndpoint, MIN(endpointLen, MAX_SIGNALING_ENDPOINT_URI_LEN));
                             pSignalingClient->channelEndpointHttps[MIN(endpointLen, MAX_SIGNALING_ENDPOINT_URI_LEN)] = '\0';
