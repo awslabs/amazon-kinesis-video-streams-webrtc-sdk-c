@@ -2,8 +2,11 @@ name: Close Stale Issues
 
 # Controls when the action will be run
 on:
-  schedule:
-    - cron: "0 0 * * *"
+  push:
+    branches:
+      - update-stale-action-workflow
+#  schedule:
+#    - cron: "0 0 * * *"
 
 jobs:
   cleanup:
