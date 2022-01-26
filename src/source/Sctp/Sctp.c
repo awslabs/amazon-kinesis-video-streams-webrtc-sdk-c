@@ -310,12 +310,12 @@ STATUS handleDcepPacket(PSctpSession pSctpSession, UINT32 streamId, PBYTE data, 
     // Assert that is DCEP of type DataChannelOpen
     CHK(length > SCTP_DCEP_HEADER_LENGTH && data[0] == DCEP_DATA_CHANNEL_OPEN, STATUS_SUCCESS);
 
-	MEMCPY(&labelLength, data + 8, SIZEOF(UINT16));
-	MEMCPY(&protocolLength, data + 10, SIZEOF(UINT16));
-	putInt16((PINT16) &labelLength, labelLength);
-	putInt16((PINT16) &protocolLength, protocolLength);
+    MEMCPY(&labelLength, data + 8, SIZEOF(UINT16));
+    MEMCPY(&protocolLength, data + 10, SIZEOF(UINT16));
+    putInt16((PINT16) &labelLength, labelLength);
+    putInt16((PINT16) &protocolLength, protocolLength);
 
-	CHK((labelLength + protocolLength + SCTP_DCEP_HEADER_LENGTH) >= length, STATUS_SCTP_INVALID_DCEP_PACKET);
+    CHK((labelLength + protocolLength + SCTP_DCEP_HEADER_LENGTH) >= length, STATUS_SCTP_INVALID_DCEP_PACKET);
 
     pSctpSession->sctpSessionCallbacks.dataChannelOpenFunc(pSctpSession->sctpSessionCallbacks.customData, streamId, data + SCTP_DCEP_HEADER_LENGTH,
                                                            labelLength);
