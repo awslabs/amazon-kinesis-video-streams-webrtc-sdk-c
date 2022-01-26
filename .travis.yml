@@ -4,7 +4,7 @@ sudo: true
 branches:
   only:
     - master
-#    - develop
+    - develop
 
 cache:
   - directories:
@@ -136,16 +136,6 @@ matrix:
         - sudo apt-get -y install gcc-4.4
         - sudo apt-get -y install gdb
       before_script: mkdir build && cd build && cmake .. -DBUILD_TEST=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
-
-    # - name: "Windows MSVC"
-    #   env: allowTestFail=true
-    #   os: windows
-    #   script:
-    #     - choco install nasm strawberryperl
-    #     - unset CC CC_FOR_BUILD CXX CXX_FOR_BUILD # We want to use MSVC
-    #     - export "PATH=/c/Strawberry/perl/site/bin:/c/Strawberry/perl/bin:/c/Strawberry/c/bin:/c/Program Files/NASM:`pwd`/open-source/lib:`pwd`/open-source/bin:$PATH"
-    #     - .github/build_windows.bat
-    #     - cd build/tst && ./webrtc_client_test.exe --gtest_filter="-DataChannelFunctionalityTest.*:IceApiTest.*:IceFunctionalityTest.*:PeerConnectionFunctionalityTest.*:SignalingApiFunctionalityTest.*:TurnConnectionFunctionalityTest.*:RtpFunctionalityTest.marshallUnmarshallH264Data:RtpFunctionalityTest.packingUnpackingVerifySameH264Frame:RtcpFunctionalityTest.onRtcpPacketCompound:RtcpFunctionalityTest.twcc3"
 
     # Generate Doxygen
     - name: "Generate Doxygen"

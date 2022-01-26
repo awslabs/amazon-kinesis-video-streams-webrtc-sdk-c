@@ -455,13 +455,14 @@ STATUS signalingFetchSync(PSignalingClient pSignalingClient)
     // would bring you to the READY state, but this is a two-way door and can be redone later.
     setStateMachineCurrentState(pSignalingClient->pStateMachine, SIGNALING_STATE_GET_TOKEN);
 
-    //if we're not failing from a bad token, set the result to OK to that fromGetToken will move
-    //to getEndpoint, describe, or create. If it is bad, keep reiterating on token.
+    // if we're not failing from a bad token, set the result to OK to that fromGetToken will move
+    // to getEndpoint, describe, or create. If it is bad, keep reiterating on token.
     result = ATOMIC_LOAD(&pSignalingClient->result);
     if (result != SERVICE_CALL_NOT_AUTHORIZED) {
         ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_OK);
     }
-    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, SIGNALING_GET_CURRENT_TIME(pSignalingClient) + SIGNALING_CONNECT_STATE_TIMEOUT, SIGNALING_STATE_READY));
+    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, SIGNALING_GET_CURRENT_TIME(pSignalingClient) + SIGNALING_CONNECT_STATE_TIMEOUT,
+                                             SIGNALING_STATE_READY));
 
 CleanUp:
 
