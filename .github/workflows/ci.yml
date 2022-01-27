@@ -282,57 +282,19 @@ jobs:
           export AWS_KVS_LOG_LEVEL=3
           ./tst/webrtc_client_test
 
-  # windows-msvc:
-  #   runs-on: windows-2016
-  #   steps:
-  #     - name: Clone repository
-  #       uses: actions/checkout@v2
-  #     - name: Setup MSVC 
-  #       uses: ilammy/msvc-dev-cmd@v1
-  #       with:
-  #         arch: x86
-  #     - name: Build and run
-  #       run: |
-  #         choco install nasm strawberryperl
-  #         echo "{PATH}={/c/Strawberry/perl/site/bin:/c/Strawberry/perl/bin:/c/Strawberry/c/bin:/c/Program Files/NASM:`pwd`/open-source/lib:`pwd`/open-source/bin:$PATH}" >> $GITHUB_ENV
-  #         .github/build_windows.bat
-  #         cd build/tst && ./webrtc_client_test.exe --gtest_filter="-DataChannelFunctionalityTest.*:IceApiTest.*:IceFunctionalityTest.*:PeerConnectionFunctionalityTest.*:SignalingApiFunctionalityTest.*:TurnConnectionFunctionalityTest.*:RtpFunctionalityTest.marshallUnmarshallH264Data:RtpFunctionalityTest.packingUnpackingVerifySameH264Frame:RtcpFunctionalityTest.onRtcpPacketCompound:RtcpFunctionalityTest.twcc3"
-  
-  sample-check:
-    runs-on: ubuntu-latest
+  windows-msvc:
+    runs-on: windows-2016
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
-      - name: Install deps
+      - name: Setup MSVC 
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x86
+      - name: Build and run
         run: |
-          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-          sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ trusty main'
-          sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ trusty universe'
-          sudo apt-get -q update
-          sudo apt-get -y install gcc-4.4
-          sudo apt-get -y install gdb
-      - name: Build repository
-        run: |
-          mkdir build
-          cd build
-          cmake ..
-          make
-          cd ..
-          ./scripts/check-sample.sh
-  ubuntu-os-build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v2
-      - name: Build repository
-        run: |
-          # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
-          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-          mkdir build
-          cd build
-          cmake .. -DBUILD_TEST=TRUE
-          make
-          export AWS_KVS_LOG_LEVEL=3
-          ./tst/webrtc_client_test
+          choco install nasm strawberryperl
+          echo "{PATH}={/c/Strawberry/perl/site/bin:/c/Strawberry/perl/bin:/c/Strawberry/c/bin:/c/Program Files/NASM:`pwd`/open-source/lib:`pwd`/open-source/bin:$PATH}" >> $GITHUB_ENV
+          .github/build_windows.bat
+          cd build/tst && ./webrtc_client
 
