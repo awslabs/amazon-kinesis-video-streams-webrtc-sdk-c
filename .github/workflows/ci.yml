@@ -282,7 +282,7 @@ jobs:
           export AWS_KVS_LOG_LEVEL=3
           ./tst/webrtc_client_test
 
-windows-msvc:
+  windows-msvc:
     runs-on: windows-2016
     steps:
       - name: Clone repository
