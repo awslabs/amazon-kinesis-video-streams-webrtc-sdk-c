@@ -124,10 +124,10 @@ jobs:
 
   memory-sanitizer:
     runs-on: ubuntu-latest
-    steps:
     env:
-      CC: /usr/bin/clang
-      CXX: /usr/bin/clang++
+        CC: /usr/bin/clang
+        CXX: /usr/bin/clang++
+    steps:
       - name: Clone repository
         uses: actions/checkout@v2
       - name: Build repository
