@@ -41,18 +41,16 @@ jobs:
           ./tst/webrtc_client_test
   
   mac-os-catalina-build-gcc:
-    runs-on: macos-latest
+    runs-on: macos-10.15
     env:
-      CC: gcc-4.9
-      CXX: g++-4.9
+      CC: gcc
+      CXX: g++
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
-      - name: Install dependencies
+      - name: Build repository and run all tests without auth
         run: |
-          brew install gcc@4.9
-      - name: Build repository and run all tests with auth
-        run: |
+          gcc --version
           mkdir build
           cd build
           sh -c 'cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE;cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE'
