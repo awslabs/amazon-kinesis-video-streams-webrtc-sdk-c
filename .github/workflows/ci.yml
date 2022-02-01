@@ -43,14 +43,14 @@ jobs:
   mac-os-catalina-build-gcc:
     runs-on: macos-latest
     env:
-      CC: gcc-4.2
-      CXX: g++-4.2
+      CC: gcc-4.9
+      CXX: g++-4.9
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
       - name: Install dependencies
         run: |
-          brew install gcc42
+          brew install gcc@4.9
       - name: Build repository and run all tests with auth
         run: |
           mkdir build
