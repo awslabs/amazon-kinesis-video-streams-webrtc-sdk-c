@@ -43,8 +43,8 @@ jobs:
   mac-os-catalina-build-gcc:
     runs-on: macos-latest
     env:
-      CC: gcc-11
-      CXX: g++-11
+      CC: gcc-9
+      CXX: g++-9
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
