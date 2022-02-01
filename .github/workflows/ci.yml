@@ -134,7 +134,7 @@ jobs:
         run: |
           sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
           mkdir build && cd build
-          cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_DEPENDENCIES=FALSE -DBUILD_TEST=TRUE -DMEMORY_SANITIZER=TRUE
+          cmake .. -DMEMORY_SANITIZER=TRUE -DBUILD_TEST=TRUE
           make
           export AWS_KVS_LOG_LEVEL=3
           ulimit -c unlimited -S
