@@ -22,7 +22,7 @@ endif()
 
 include_directories(${KINESIS_VIDEO_WebRTCClient_SRC})
 
-file(GLOB WEBRTC_CLIENT_TEST_SOURCE_FILES "*.cpp" )
+file(GLOB WEBRTC_CLIENT_TEST_SOURCE_FILES "*.c*" )
 
 add_executable(webrtc_client_test ${WEBRTC_CLIENT_TEST_SOURCE_FILES})
 target_link_libraries(webrtc_client_test

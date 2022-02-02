@@ -543,7 +543,15 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
     CHK(pCallInfo != NULL && pCallInfo->callInfo.pRequestInfo != NULL && pCallInfo->pSignalingClient != NULL, STATUS_NULL_ARG);
 
     CHK_STATUS(requestRequiresSecureConnection(pCallInfo->callInfo.pRequestInfo->url, &secureConnection));
-    DLOGV("Perform %s synchronous call for URL: %s", secureConnection ? "secure" : EMPTY_STRING, pCallInfo->callInfo.pRequestInfo->url);
+    DLOGE("Perform %s synchronous call for URL: %s", secureConnection ? "secure" : EMPTY_STRING, pCallInfo->callInfo.pRequestInfo->url);
+
+    pContext = pCallInfo->pSignalingClient->pLwsContext;
+
+    // Execute the LWS REST call
+    MEMSET(&connectInfo, 0x00, SIZEOF(struct lws_client_connect_info));
+    connectInfo.context = pContext;
+    connectInfo.ssl_connection = 0;
+    connectInfo.port = SIGNALING_DEFAULT_SSL_PORT;
 
     if (pCallInfo->protocolIndex == PROTOCOL_INDEX_WSS) {
         pVerb = NULL;
@@ -552,11 +560,13 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
         CHK_STATUS(removeRequestHeader(pCallInfo->callInfo.pRequestInfo, (PCHAR) "user-agent"));
 
         // Sign the request
-        CHK_STATUS(signAwsRequestInfoQueryParam(pCallInfo->callInfo.pRequestInfo));
-
+        // CHK_STATUS(signAwsRequestInfoQueryParam(pCallInfo->callInfo.pRequestInfo));
+        connectInfo.ssl_connection = 0;
+        connectInfo.port = 9001;
         // Remove the headers
         CHK_STATUS(removeRequestHeaders(pCallInfo->callInfo.pRequestInfo));
     } else {
+        connectInfo.port = 5443;
         pVerb = HTTP_REQUEST_VERB_POST_STRING;
 
         // Sign the request
@@ -565,14 +575,6 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
         // Remove the header as it will be added back by LWS
         CHK_STATUS(removeRequestHeader(pCallInfo->callInfo.pRequestInfo, AWS_SIG_V4_HEADER_HOST));
     }
-
-    pContext = pCallInfo->pSignalingClient->pLwsContext;
-
-    // Execute the LWS REST call
-    MEMSET(&connectInfo, 0x00, SIZEOF(struct lws_client_connect_info));
-    connectInfo.context = pContext;
-    connectInfo.ssl_connection = LCCSCF_USE_SSL;
-    connectInfo.port = SIGNALING_DEFAULT_SSL_PORT;
 
     CHK_STATUS(getRequestHost(pCallInfo->callInfo.pRequestInfo->url, &pHostStart, &pHostEnd));
     CHK(pHostEnd == NULL || *pHostEnd == '/' || *pHostEnd == '?', STATUS_INTERNAL_ERROR);
@@ -761,8 +763,14 @@ STATUS describeChannelLws(PSignalingClient pSignalingClient, UINT64 time)
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
     // Create the API url
-    STRCPY(url, pSignalingClient->pChannelInfo->pControlPlaneUrl);
+
+    const char* testCPUrl = "http://127.0.0.1";
+    //STRCPY(url, pSignalingClient->pChannelInfo->pControlPlaneUrl);
+    STRCPY(url, testCPUrl);
+    DLOGE("\n ********* DESCRIBE CP URL [%s]", url);
     STRCAT(url, DESCRIBE_SIGNALING_CHANNEL_API_POSTFIX);
+
+
 
     // Prepare the json params for the call
     SNPRINTF(paramsJson, ARRAY_SIZE(paramsJson), DESCRIBE_CHANNEL_PARAM_JSON_TEMPLATE, pSignalingClient->pChannelInfo->pChannelName);
@@ -897,7 +905,11 @@ STATUS createChannelLws(PSignalingClient pSignalingClient, UINT64 time)
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
     // Create the API url
-    STRCPY(url, pSignalingClient->pChannelInfo->pControlPlaneUrl);
+    const char* testCPUrl = "http://127.0.0.1";
+    //STRCPY(url, pSignalingClient->pChannelInfo->pControlPlaneUrl);
+    STRCPY(url, testCPUrl);
+    DLOGE("\n ********* CREATE CP URL [%s]", url);
+
     STRCAT(url, CREATE_SIGNALING_CHANNEL_API_POSTFIX);
 
     tagsJson[0] = '\0';
@@ -1003,7 +1015,10 @@ STATUS getChannelEndpointLws(PSignalingClient pSignalingClient, UINT64 time)
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
     // Create the API url
-    STRCPY(url, pSignalingClient->pChannelInfo->pControlPlaneUrl);
+    const char* testCPUrl = "http://127.0.0.1";
+    //STRCPY(url, pSignalingClient->pChannelInfo->pControlPlaneUrl);
+    STRCPY(url, testCPUrl);
+    DLOGE("\n ********* GET ENDPOINT CP URL [%s]", url);
     STRCAT(url, GET_SIGNALING_CHANNEL_ENDPOINT_API_POSTFIX);
 
     // Prepare the json params for the call
@@ -1138,6 +1153,7 @@ STATUS getIceConfigLws(PSignalingClient pSignalingClient, UINT64 time)
     INT32 j;
     UINT64 ttl;
     BOOL jsonInIceServerList = FALSE;
+    SERVICE_CALL_RESULT dummyResult;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     CHK(pSignalingClient->channelEndpointHttps[0] != '\0', STATUS_INTERNAL_ERROR);
@@ -1146,7 +1162,10 @@ STATUS getIceConfigLws(PSignalingClient pSignalingClient, UINT64 time)
     ATOMIC_INCREMENT(&pSignalingClient->diagnostics.iceRefreshCount);
 
     // Create the API url
-    STRCPY(url, pSignalingClient->channelEndpointHttps);
+    const char* testCPUrl = "http://127.0.0.1";
+    //STRCPY(url, pSignalingClient->pChannelInfo->pControlPlaneUrl);
+    STRCPY(url, testCPUrl);
+    DLOGE("\n ********* GET ICE CONFIG CP URL [%s]", url);
     STRCAT(url, GET_ICE_CONFIG_API_POSTFIX);
 
     // Prepare the json params for the call
@@ -1175,6 +1194,9 @@ STATUS getIceConfigLws(PSignalingClient pSignalingClient, UINT64 time)
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) pLwsCallInfo->callInfo.callResult);
     pResponseStr = pLwsCallInfo->callInfo.responseData;
     resultLen = pLwsCallInfo->callInfo.responseDataLen;
+
+    dummyResult = (SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result);
+    DLOGE("\n ********* GET ICE CONFIG RESULT!!!! [%d]", dummyResult);
 
     // Early return if we have a non-success result
     CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL,
@@ -1391,7 +1413,7 @@ STATUS connectSignalingChannelLws(PSignalingClient pSignalingClient, UINT64 time
     UINT64 timeout;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
-    CHK(pSignalingClient->channelEndpointWss[0] != '\0', STATUS_INTERNAL_ERROR);
+   // CHK(pSignalingClient->channelEndpointWss[0] != '\0', STATUS_INTERNAL_ERROR);
 
     // Prepare the json params for the call
     if (pSignalingClient->pChannelInfo->channelRoleType == SIGNALING_CHANNEL_ROLE_TYPE_VIEWER) {
@@ -1426,6 +1448,11 @@ STATUS connectSignalingChannelLws(PSignalingClient pSignalingClient, UINT64 time
 
     // The actual connection will be handled in a separate thread
     // Start the request/response thread
+    char* signalingChannelEndpointLocalHost = "ws://localhost/";
+    MEMCPY(pLwsCallInfo->callInfo.pRequestInfo->url, signalingChannelEndpointLocalHost, 20);
+    pLwsCallInfo->callInfo.pRequestInfo->url[20] = '\0';
+    DLOGE("Starting thread to connect to signaling channel [%s]", pLwsCallInfo->callInfo.pRequestInfo->url);
+
     CHK_STATUS(THREAD_CREATE(&pSignalingClient->listenerTracker.threadId, lwsListenerHandler, (PVOID) pLwsCallInfo));
     CHK_STATUS(THREAD_DETACH(pSignalingClient->listenerTracker.threadId));
 

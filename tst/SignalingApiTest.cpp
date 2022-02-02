@@ -1,4 +1,5 @@
 #include "WebRTCClientTestFixture.h"
+#include "Samples.h"
 
 namespace com {
 namespace amazonaws {
@@ -360,6 +361,7 @@ TEST_F(SignalingApiTest, signalingClientCreateWithClientInfoVariations)
 {
     STATUS retStatus;
     CHAR testPath[MAX_PATH_LEN + 2];
+    LwsCallInfo lwsCallInfo;
     MEMSET(testPath, 'a', MAX_PATH_LEN + 1);
     testPath[MAX_PATH_LEN + 1] = '\0';
 
