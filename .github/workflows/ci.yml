@@ -305,7 +305,7 @@ jobs:
           platforms: arm64
       - name: Install dependencies
         run: 
-          sudo apt-get install libc6-armel-cross libc6-dev-armel-cross binutils-arm-linux-gnueabi libncurses5-dev build-essential bison flex libssl-dev bc
+          sudo apt-get -y install gcc-arm-linux-gnueabi g++-arm-linux-gnueabi binutils-arm-linux-gnueabi
       - name: Clone repository
         uses: actions/checkout@v2
       - name: Build Repository
