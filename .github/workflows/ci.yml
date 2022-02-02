@@ -35,7 +35,6 @@ jobs:
       - name: Build repository
         run: |
           mkdir build && cd build
-          cd build
           sh -c 'cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE;cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE'
           make
           ./tst/webrtc_client_test
@@ -51,7 +50,6 @@ jobs:
       - name: Build repository and run all tests without auth
         run: |
           mkdir build && cd build
-          cd build
           sh -c 'cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE;cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE'
           make
           ./tst/webrtc_client_test || travis_terminate 1;
@@ -289,20 +287,22 @@ jobs:
           ./tst/webrtc_client_test
 
   windows-msvc:
-    runs-on: windows-2016
+    runs-on: windows-2019
+    permissions:
+      id-token: write
+      contents: read
     steps:
-      - name: Clone repository
-        uses: actions/checkout@v2
       - name: Setup MSVC 
         uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: x86
+      - name: Clone repository
+        uses: actions/checkout@v2
       - name: Build and run
         run: |
           choco install nasm strawberryperl
-          echo "{PATH}={/c/Strawberry/perl/site/bin:/c/Strawberry/perl/bin:/c/Strawberry/c/bin:/c/Program Files/NASM:`pwd`/open-source/lib:`pwd`/open-source/bin:$PATH}" >> $GITHUB_ENV
+          $env:Path += ';C:\Strawberry\perl\site\bin;C:\Strawberry\perl\bin;C:\Strawberry\c\bin;C:\Program Files\NASM;D:\a\amazon-kinesis-video-streams-producer-c\amazon-kinesis-video-streams-producer-c\open-source\lib;D:\a\amazon-kinesis-video-streams-producer-c\amazon-kinesis-video-streams-producer-c\open-source\bin'
+          git config --system core.longpaths true
           .github/build_windows.bat
-          cd build/tst && ./webrtc_client
+          cd tst && ./webrtc_client_test.exe --gtest_filter="-DataChannelFunctionalityTest.*:IceApiTest.*:IceFunctionalityTest.*:PeerConnectionFunctionalityTest.*:SignalingApiFunctionalityTest.*:TurnConnectionFunctionalityTest.*:RtpFunctionalityTest.marshallUnmarshallH264Data:RtpFunctionalityTest.packingUnpackingVerifySameH264Frame:RtcpFunctionalityTest.onRtcpPacketCompound:RtcpFunctionalityTest.twcc3"
   
   arm-cross-compilation:
     runs-on: ubuntu-18.04
