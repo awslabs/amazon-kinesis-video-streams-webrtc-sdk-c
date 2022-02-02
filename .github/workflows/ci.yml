@@ -309,6 +309,8 @@ jobs:
       - name: Install dependencies
         run: 
           sudo apt-get install libc6-armel-cross libc6-dev-armel-cross binutils-arm-linux-gnueabi libncurses5-dev build-essential bison flex libssl-dev bc
+      - name: Clone repository
+        uses: actions/checkout@v2
       - name: Build Repository
         run: |
           sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
