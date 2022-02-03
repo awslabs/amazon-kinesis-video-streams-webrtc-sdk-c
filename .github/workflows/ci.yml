@@ -198,8 +198,17 @@ jobs:
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
-      - name: What OS is running
-        run: uname -a
+      - name: Install dependencies
+        run: |
+          alpine apk update
+          alpine apk upgrade
+          alpine apk add alpine-sdk cmake clang linux-headers perl bash openssl-dev
+      - name: Build Repository
+        run: | 
+          mkdir build && cd build
+          alpine cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE
+          alpine make
+          alpine ./tst/webrtc_client_test
       # - name: Build repository
       #   run: |
       #     sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
