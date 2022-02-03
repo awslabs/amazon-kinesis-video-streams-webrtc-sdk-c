@@ -194,7 +194,8 @@ jobs:
   #         timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   static-build:
     runs-on: ubuntu-18.04
-    container: alpine:3.14
+    container: 
+      image: alpine:latest
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
