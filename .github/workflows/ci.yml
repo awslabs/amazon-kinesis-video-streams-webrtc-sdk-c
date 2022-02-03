@@ -196,6 +196,9 @@ jobs:
     runs-on: ubuntu-18.04
     container: 
       image: alpine:latest
+    env:
+      CC: gcc
+      CXX: g++
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
@@ -206,7 +209,6 @@ jobs:
           apk add alpine-sdk cmake clang linux-headers perl bash openssl-dev
       - name: Build Repository
         run: | 
-          su-exec sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
           mkdir build && cd build
           cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE
           make
