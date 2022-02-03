@@ -207,9 +207,11 @@ jobs:
       - name: Build Repository
         run: | 
           mkdir build && cd build
-          alpine cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE
-          alpine make
-          alpine ./tst/webrtc_client_test
+          cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE
+          make
+          export AWS_KVS_LOG_LEVEL=3
+          ulimit -c unlimited -S
+          ./tst/webrtc_client_test
       # - name: Build repository
       #   run: |
       #     sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
