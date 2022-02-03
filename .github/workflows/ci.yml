@@ -206,11 +206,13 @@ jobs:
           apk add alpine-sdk cmake clang linux-headers perl bash openssl-dev
       - name: Build Repository
         run: | 
+          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
           mkdir build && cd build
           cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE
           make
           export AWS_KVS_LOG_LEVEL=3
           ulimit -c unlimited -S
+          ../scripts/check-static-build.sh
           ./tst/webrtc_client_test
       # - name: Build repository
       #   run: |
