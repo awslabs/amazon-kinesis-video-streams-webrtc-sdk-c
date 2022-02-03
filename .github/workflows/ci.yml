@@ -197,10 +197,6 @@ jobs:
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get -y install clang-7
       - name: Build repository
         run: |
           sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
