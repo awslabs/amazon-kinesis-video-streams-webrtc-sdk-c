@@ -194,25 +194,22 @@ jobs:
   #         timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   static-build:
     runs-on: ubuntu-18.04
-    env:
-      CC: clang-7
-      CXX: clang++-7
+    container: alpine:3.14
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
-      - name: Install dependencies
-        run: |
-          sudo apt-get -y install clang-7 perl bash openssl libssl-dev
-      - name: Build repository
-        run: |
-          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-          mkdir build && cd build
-          cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE
-          make
-          export AWS_KVS_LOG_LEVEL=3
-          ulimit -c unlimited -S
-          ../scripts/check-static-build.sh
-          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+      - name: What OS is running
+        run: uname -a
+      # - name: Build repository
+      #   run: |
+      #     sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+      #     mkdir build && cd build
+      #     cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE
+      #     make
+      #     export AWS_KVS_LOG_LEVEL=3
+      #     ulimit -c unlimited -S
+      #     ../scripts/check-static-build.sh
+      #     timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   # mbedtls-ubuntu-gcc:
   #   runs-on: ubuntu-18.04
   #   steps:
