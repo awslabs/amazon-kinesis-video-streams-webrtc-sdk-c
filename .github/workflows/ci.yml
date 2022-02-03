@@ -194,9 +194,15 @@ jobs:
   #         timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   static-build:
     runs-on: ubuntu-18.04
+    env:
+      CC: clang-7
+      CXX: clang++-7
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
+      - name: Install dependencies
+        run: |
+          sudo apt-get -y install clang-7 linux-headers perl bash openssl-dev
       - name: Build repository
         run: |
           sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
