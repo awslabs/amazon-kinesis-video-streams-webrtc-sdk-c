@@ -202,7 +202,7 @@ jobs:
         uses: actions/checkout@v2
       - name: Install dependencies
         run: |
-          sudo apt-get -y install clang-7 linux-headers perl bash openssl-dev
+          sudo apt-get -y install clang-7 perl bash openssl libssl-dev
       - name: Build repository
         run: |
           sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
