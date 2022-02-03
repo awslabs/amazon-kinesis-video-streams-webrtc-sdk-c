@@ -201,9 +201,9 @@ jobs:
         uses: actions/checkout@v2
       - name: Install dependencies
         run: |
-          alpine apk update
-          alpine apk upgrade
-          alpine apk add alpine-sdk cmake clang linux-headers perl bash openssl-dev
+          apk update
+          apk upgrade
+          apk add alpine-sdk cmake clang linux-headers perl bash openssl-dev
       - name: Build Repository
         run: | 
           mkdir build && cd build
