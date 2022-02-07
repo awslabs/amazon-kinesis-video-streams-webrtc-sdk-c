@@ -57,30 +57,30 @@ matrix:
       after_failure: skip # no coredumps in container
     
     # MemorySanitizer
-    - name: "Linux Clang MemorySanitizer"
-      env: allowTestFail=true
-      before_install:
-        # TODO: Remove the following 2 lines. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
-        - echo '{"ipv6":true,"fixed-cidr-v6":"2001:db8:1::/64"}' | sudo tee /etc/docker/daemon.json
-        - sudo service docker restart
-        - mkdir build
-        - docker run -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -w /src/build -dit --name msan-tester -v $(pwd):/src seaduboi/kvs-msan-tester
-        - msan-tester() { docker exec -it msan-tester "$@"; }
-      script:
-        - msan-tester cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_DEPENDENCIES=FALSE -DBUILD_TEST=TRUE -DMEMORY_SANITIZER=TRUE -DCMAKE_CXX_FLAGS="-stdlib=libc++ -L/usr/src/libcxx_msan/lib -lc++abi -I/usr/src/libcxx_msan/include -I/usr/src/libcxx_msan/include/c++/v1 -fsanitize=memory -fno-omit-frame-pointer -fno-optimize-sibling-calls -fsanitize-memory-track-origins"
-        - msan-tester make
-        - msan-tester ./tst/webrtc_client_test
-      after_failure: skip # no coredumps in container
+    # - name: "Linux Clang MemorySanitizer"
+    #   env: allowTestFail=true
+    #   before_install:
+    #     # TODO: Remove the following 2 lines. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
+    #     - echo '{"ipv6":true,"fixed-cidr-v6":"2001:db8:1::/64"}' | sudo tee /etc/docker/daemon.json
+    #     - sudo service docker restart
+    #     - mkdir build
+    #     - docker run -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -w /src/build -dit --name msan-tester -v $(pwd):/src seaduboi/kvs-msan-tester
+    #     - msan-tester() { docker exec -it msan-tester "$@"; }
+    #   script:
+    #     - msan-tester cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_DEPENDENCIES=FALSE -DBUILD_TEST=TRUE -DMEMORY_SANITIZER=TRUE -DCMAKE_CXX_FLAGS="-stdlib=libc++ -L/usr/src/libcxx_msan/lib -lc++abi -I/usr/src/libcxx_msan/include -I/usr/src/libcxx_msan/include/c++/v1 -fsanitize=memory -fno-omit-frame-pointer -fno-optimize-sibling-calls -fsanitize-memory-track-origins"
+    #     - msan-tester make
+    #     - msan-tester ./tst/webrtc_client_test
+    #   after_failure: skip # no coredumps in container
 
-    - name: "Windows MSVC"
-      env: allowTestFail=true
-      os: windows
-      script:
-        - choco install nasm strawberryperl
-        - unset CC CC_FOR_BUILD CXX CXX_FOR_BUILD # We want to use MSVC
-        - export "PATH=/c/Strawberry/perl/site/bin:/c/Strawberry/perl/bin:/c/Strawberry/c/bin:/c/Program Files/NASM:`pwd`/open-source/lib:`pwd`/open-source/bin:$PATH"
-        - .github/build_windows.bat
-        - cd build/tst && ./webrtc_client_test.exe --gtest_filter="-DataChannelFunctionalityTest.*:IceApiTest.*:IceFunctionalityTest.*:PeerConnectionFunctionalityTest.*:SignalingApiFunctionalityTest.*:TurnConnectionFunctionalityTest.*:RtpFunctionalityTest.marshallUnmarshallH264Data:RtpFunctionalityTest.packingUnpackingVerifySameH264Frame:RtcpFunctionalityTest.onRtcpPacketCompound:RtcpFunctionalityTest.twcc3"
+    # - name: "Windows MSVC"
+    #   env: allowTestFail=true
+    #   os: windows
+    #   script:
+    #     - choco install nasm strawberryperl
+    #     - unset CC CC_FOR_BUILD CXX CXX_FOR_BUILD # We want to use MSVC
+    #     - export "PATH=/c/Strawberry/perl/site/bin:/c/Strawberry/perl/bin:/c/Strawberry/c/bin:/c/Program Files/NASM:`pwd`/open-source/lib:`pwd`/open-source/bin:$PATH"
+    #     - .github/build_windows.bat
+    #     - cd build/tst && ./webrtc_client_test.exe --gtest_filter="-DataChannelFunctionalityTest.*:IceApiTest.*:IceFunctionalityTest.*:PeerConnectionFunctionalityTest.*:SignalingApiFunctionalityTest.*:TurnConnectionFunctionalityTest.*:RtpFunctionalityTest.marshallUnmarshallH264Data:RtpFunctionalityTest.packingUnpackingVerifySameH264Frame:RtcpFunctionalityTest.onRtcpPacketCompound:RtcpFunctionalityTest.twcc3"
 
     # Generate Doxygen
     - name: "Generate Doxygen"
