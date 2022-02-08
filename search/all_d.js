@@ -100,7 +100,7 @@ var searchData=
   ['media_5fstream_5ftrack_5fkind_5fvideo_97',['MEDIA_STREAM_TRACK_KIND_VIDEO',['../group__PublicEnums.html#gga95e09412d389145d792d2f61ef558537a41a2db29d4b86fd4eccfccf14821238f',1,'Include.h']]],
   ['mediaattributescount_98',['mediaAttributesCount',['../structSdpMediaDescription.html#a05e9f83d2e6239bc80547b7b3375e88c',1,'SdpMediaDescription']]],
   ['mediabandwidthcount_99',['mediaBandwidthCount',['../structSdpMediaDescription.html#a1149270c3e33333224673c7b2ef21e29',1,'SdpMediaDescription']]],
-  ['mediacount_100',['mediaCount',['../structSessionDescription.html#aafb9e08babf41c93bdc3b371ff4dd3b0',1,'SessionDescription']]],
+  ['mediacount_100',['mediaCount',['../structSessionDescription.html#a03e50673ccf4076d1ea1f2fdc7378e01',1,'SessionDescription']]],
   ['mediadescriptions_101',['mediaDescriptions',['../structSessionDescription.html#a5306fa6906062cfd96c4e935e3f0bf59',1,'SessionDescription']]],
   ['medianame_102',['mediaName',['../structSdpMediaDescription.html#a9152aacc8efd3c492d6ae97c20b4674f',1,'SdpMediaDescription']]],
   ['mediasourceid_103',['mediaSourceId',['../structRtcOutboundRtpStreamStats.html#a42a7fd9ea8f12b7883f601a876466384',1,'RtcOutboundRtpStreamStats']]],

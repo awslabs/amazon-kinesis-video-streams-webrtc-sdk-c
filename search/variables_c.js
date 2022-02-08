@@ -11,7 +11,7 @@ var searchData=
   ['maxtransactionidscount_8',['maxTransactionIdsCount',['../structTransactionIdStore.html#a7b3545bf57fa39623c848d3f3e4e084d',1,'TransactionIdStore']]],
   ['mediaattributescount_9',['mediaAttributesCount',['../structSdpMediaDescription.html#a05e9f83d2e6239bc80547b7b3375e88c',1,'SdpMediaDescription']]],
   ['mediabandwidthcount_10',['mediaBandwidthCount',['../structSdpMediaDescription.html#a1149270c3e33333224673c7b2ef21e29',1,'SdpMediaDescription']]],
-  ['mediacount_11',['mediaCount',['../structSessionDescription.html#aafb9e08babf41c93bdc3b371ff4dd3b0',1,'SessionDescription']]],
+  ['mediacount_11',['mediaCount',['../structSessionDescription.html#a03e50673ccf4076d1ea1f2fdc7378e01',1,'SessionDescription']]],
   ['mediadescriptions_12',['mediaDescriptions',['../structSessionDescription.html#a5306fa6906062cfd96c4e935e3f0bf59',1,'SessionDescription']]],
   ['medianame_13',['mediaName',['../structSdpMediaDescription.html#a9152aacc8efd3c492d6ae97c20b4674f',1,'SdpMediaDescription']]],
   ['mediasourceid_14',['mediaSourceId',['../structRtcOutboundRtpStreamStats.html#a42a7fd9ea8f12b7883f601a876466384',1,'RtcOutboundRtpStreamStats']]],
