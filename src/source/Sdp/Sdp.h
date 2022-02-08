@@ -198,9 +198,9 @@ typedef struct {
 
     SdpMediaDescription mediaDescriptions[MAX_SDP_SESSION_MEDIA_COUNT];
 
-    UINT8 sessionAttributesCount;
+    UINT16 sessionAttributesCount;
 
-    UINT8 mediaCount;
+    UINT16 mediaCount;
 
     UINT8 timezoneCount;
 
