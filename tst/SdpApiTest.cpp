@@ -232,7 +232,7 @@ s=-
 t=0 0
 )";
 
-    for (auto i = 0; i < 250; i++) {
+    for (auto i = 0; i <= MAX_SDP_ATTRIBUTES_COUNT + 1; i++) {
         sessionDescriptionNoMedia += "a=b\n";
     }
 
