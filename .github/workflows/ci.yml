@@ -51,7 +51,7 @@ jobs:
           mkdir build && cd build
           sh -c 'cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE;cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE'
           make
-          ./tst/webrtc_client_test || travis_terminate 1;
+          ./tst/webrtc_client_test
           unset AWS_ACCESS_KEY_ID
           unset AWS_SECRET_ACCESS_KEY
           ./tst/webrtc_client_test --gtest_break_on_failure --gtest_filter="SignalingApiFunctionalityTest.*:SignalingApiTest.*:TurnConnectionFunctionalityTest.*"  
