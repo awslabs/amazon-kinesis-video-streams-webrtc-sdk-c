@@ -231,7 +231,9 @@ STATUS signalingClientFetchSync(SIGNALING_CLIENT_HANDLE signalingClientHandle)
 CleanUp:
 
     SIGNALING_UPDATE_ERROR_COUNT(pSignalingClient, retStatus);
-    freeRetryStrategyForCreatingSignalingClient(&pSignalingClient->clientInfo.signalingClientInfo, &createSignalingClientRetryStrategy);
+    if (pSignalingClient != NULL) {
+        freeRetryStrategyForCreatingSignalingClient(&pSignalingClient->clientInfo.signalingClientInfo, &createSignalingClientRetryStrategy);
+    }
     LEAVES();
     return retStatus;
 }
