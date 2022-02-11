@@ -48,8 +48,6 @@ jobs:
         uses: actions/checkout@v2
       - name: Build repository and run all tests without auth
         run: |
-          echo $CC
-          echo $CXX
           mkdir build && cd build
           sh -c 'cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE;cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE'
           make
