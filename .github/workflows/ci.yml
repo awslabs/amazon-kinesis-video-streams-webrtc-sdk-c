@@ -40,8 +40,8 @@ jobs:
   mac-os-build-gcc:
     runs-on: macos-10.15
     env:
-      CC: gcc-9
-      CXX: g++-9
+      CC: gcc
+      CXX: g++
       AWS_KVS_LOG_LEVEL: 2
     steps:
       - name: Clone repository
