@@ -140,6 +140,15 @@ PVOID sendGstreamerAudioVideo(PVOID args)
      * videotestsrc is-live=TRUE ! video/x-raw,width=1280,height=720,framerate=30/1 !
      * vp8enc error-resilient=partitions keyframe-max-dist=10 auto-alt-ref=true cpu-used=5 deadline=1 !
      * appsink sync=TRUE emit-signals=TRUE name=appsink-video
+     *
+     * Raspberry Pi Hardware Encode Example
+     * "v4l2src do-timestamp=TRUE device=\"/dev/video0\" ! queue ! videoconvert ! "
+     * "video/x-raw,format=I420,width=640,height=480,framerate=30/1 ! "
+     * "omxh264enc control-rate=1 target-bitrate=500000 periodicty-idr=30 inline-header=FALSE ! "
+     * "h264parse config-interval=-1 ! "
+     * "video/x-h264,stream-format=byte-stream,alignment=au,width=640,height=480,framerate=30/1,profile=baseline ! "
+     * "appsink sync=TRUE emit-signals=TRUE name=appsink-video"
+     *
      */
 
     switch (pSampleConfiguration->mediaType) {
