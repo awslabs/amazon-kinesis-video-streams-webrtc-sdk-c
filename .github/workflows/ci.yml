@@ -195,6 +195,8 @@ jobs:
       CC: gcc
       CXX: g++
       AWS_KVS_LOG_LEVEL: 2
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
