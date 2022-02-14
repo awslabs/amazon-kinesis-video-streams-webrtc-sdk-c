@@ -210,7 +210,7 @@ jobs:
           make
           ulimit -c unlimited -S
           ../scripts/check-static-build.sh
-          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+          ./tst/webrtc_client_test
   # mbedtls-ubuntu-gcc:
   #   runs-on: ubuntu-latest
   #   env:
