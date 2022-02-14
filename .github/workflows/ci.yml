@@ -3,8 +3,7 @@ name: WebRTC C SDK CI
 on:
   push:
     branches:
-      - develop
-      - master
+    - github_actions_static_setup
   pull_request:
     branches:
       - develop
