@@ -1239,7 +1239,7 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
     PReceivedSignalingMessage pReceivedSignalingMessageCopy = NULL;
 
     CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
-
+    DLOGE("\n ****** signalingMessageReceived ");
     MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
     locked = TRUE;
 

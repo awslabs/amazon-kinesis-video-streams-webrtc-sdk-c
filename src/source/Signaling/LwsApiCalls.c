@@ -436,7 +436,7 @@ INT32 lwsWssCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, P
             break;
 
         case LWS_CALLBACK_CLIENT_RECEIVE:
-
+            DLOGE("*** LWS_CALLBACK_CLIENT_RECEIVE ");
             // Check if it's a binary data
             CHK(!lws_frame_is_binary(wsi), STATUS_SIGNALING_RECEIVE_BINARY_DATA_NOT_SUPPORTED);
 
@@ -456,6 +456,7 @@ INT32 lwsWssCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, P
 
             // Flush on last
             if (lws_is_final_fragment(wsi)) {
+                DLOGE("*** Calling receiveLwsMessage for message - %s ", pDataIn);
                 CHK_STATUS(receiveLwsMessage(pLwsCallInfo->pSignalingClient, (PCHAR) &pLwsCallInfo->receiveBuffer[LWS_PRE],
                                              pLwsCallInfo->receiveBufferSize / SIZEOF(CHAR)));
             }
@@ -1821,6 +1822,13 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
     BOOL parsedMessageType = FALSE, parsedStatusResponse = FALSE, jsonInIceServerList = FALSE;
     PSignalingMessage pOngoingMessage;
     UINT64 ttl;
+    FILE *fptr;
+    char dummyBuffer[messageLen];
+
+    memcpy(&dummyBuffer, pMessage, messageLen);
+    fptr = fopen("/tmp/signaling-msg", "w");
+    fprintf(fptr, "%s", dummyBuffer);
+    fclose(fptr);
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
@@ -1840,7 +1848,7 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
         // Check if anything needs to be done
         CHK_WARN(pMessage != NULL && messageLen != 0, retStatus, "Signaling received an empty message");
     }
-
+   // DLOGE("\n **** Parsed Signaling Response %s", &dummyBuffer);
     // Parse the response
     jsmn_init(&parser);
     tokenCount = jsmn_parse(&parser, pMessage, messageLen, tokens, SIZEOF(tokens) / SIZEOF(jsmntok_t));
@@ -1964,6 +1972,8 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
     CHK(parsedMessageType, STATUS_SIGNALING_INVALID_MESSAGE_TYPE);
     pSignalingMessageWrapper->pSignalingClient = pSignalingClient;
 
+    DLOGE("\n **** Parsed Signaling Message %d", pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.messageType);
+
     switch (pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.messageType) {
         case SIGNALING_MESSAGE_TYPE_STATUS_RESPONSE:
             if (pSignalingMessageWrapper->receivedSignalingMessage.statusCode != SERVICE_CALL_RESULT_OK) {
@@ -2016,6 +2026,7 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
             break;
 
         case SIGNALING_MESSAGE_TYPE_OFFER:
+            DLOGE("\n **** Parsed Signaling Message type is OFFER");
             CHK(pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.peerClientId[0] != '\0',
                 STATUS_SIGNALING_NO_PEER_CLIENT_ID_IN_MESSAGE);
             // Explicit fall-through !!!
