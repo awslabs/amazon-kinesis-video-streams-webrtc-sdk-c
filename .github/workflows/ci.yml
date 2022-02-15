@@ -78,139 +78,151 @@ jobs:
           make
           ./tst/webrtc_client_test 
 
-  # linux-gcc-code-coverage:
-  #   runs-on: ubuntu-18.04
-  #   env:
-  #     AWS_KVS_LOG_LEVEL: 2
-  #   steps:
-  #     - name: Clone repository
-  #       uses: actions/checkout@v2
-  #     - name: Build repository
-  #       run: |
-  #         sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-  #         mkdir build && cd build
-  #         cmake .. -DCODE_COVERAGE=TRUE -DBUILD_TEST=TRUE
-  #         make
-  #         ulimit -c unlimited -S
-  #         timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-  #     - name: Code coverage
-  #       run: |
-  #         for test_file in $(find CMakeFiles/kvsWebrtcClient.dir CMakeFiles/kvsWebrtcSignalingClient.dir -name '*.gcno'); do gcov $test_file; done
-  #         bash <(curl -s https://codecov.io/bash)
-  # address-sanitizer:
-  #   runs-on: ubuntu-18.04
-  #   env:
-  #     ASAN_OPTIONS: detect_odr_violation=0:detect_leaks=1
-  #     LSAN_OPTIONS: suppressions=../tst/suppressions/LSAN.supp
-  #     CC: clang-7
-  #     CXX: clang++-7
-  #     AWS_KVS_LOG_LEVEL: 2
-  #   steps:
-  #     - name: Clone repository
-  #       uses: actions/checkout@v2
-  #     - name: Install dependencies
-  #       run: |
-  #         sudo apt-get update
-  #         sudo apt-get -y install clang-7
-  #     - name: Build repository
-  #       run: |
-  #         # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
-  #         sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-  #         mkdir build && cd build
-  #         cmake .. -DBUILD_TEST=TRUE -DADDRESS_SANITIZER=TRUE
-  #         make
-  #         ulimit -c unlimited -S
-  #         timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-  # undefined-behavior-sanitizer:
-  #   runs-on: ubuntu-18.04
-  #   env:
-  #     UBSAN_OPTIONS: halt_on_error=1
-  #     CC: clang-7
-  #     CXX: clang++-7
-  #     AWS_KVS_LOG_LEVEL: 2
-  #   steps:
-  #     - name: Clone repository
-  #       uses: actions/checkout@v2
-  #     - name: Install dependencies
-  #       run: |
-  #         sudo apt-get update
-  #         sudo apt-get -y install clang-7
-  #     - name: Build repository
-  #       run: |
-  #         # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
-  #         sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-  #         mkdir build && cd build
-  #         cmake .. -DBUILD_TEST=TRUE -DUNDEFINED_BEHAVIOR_SANITIZER=TRUE
-  #         make
-  #         ulimit -c unlimited -S
-  #         timeout --signal=SIGABRT 60m ./tst/webrtc_client_test 
-  # memory-sanitizer:
-  #   runs-on: ubuntu-18.04
-  #   env:
-  #     CC: clang-7
-  #     CXX: clang++-7
-  #     AWS_KVS_LOG_LEVEL: 2
-  #   steps:
-  #     - name: Clone repository
-  #       uses: actions/checkout@v2
-  #     - name: Install dependencies
-  #       run: |
-  #         sudo apt-get update
-  #         sudo apt-get -y install clang-7
-  #     - name: Build repository
-  #       run: |
-  #         sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-  #         mkdir build && cd build
-  #         cmake .. -DMEMORY_SANITIZER=TRUE -DBUILD_TEST=TRUE
-  #         make
-  #         ulimit -c unlimited -S
-  #         timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-  # thread-sanitizer:
-  #   runs-on: ubuntu-latest
-  #   env:
-  #     TSAN_OPTIONS: halt_on_error=1:suppressions=../tst/suppressions/TSAN.supp
-  #     CC: clang-7
-  #     CXX: clang++-7
-  #     AWS_KVS_LOG_LEVEL: 2
-  #   steps:
-  #     - name: Clone repository
-  #       uses: actions/checkout@v2
-  #     - name: Install dependencies
-  #       run: |
-  #         sudo apt-get update
-  #         sudo apt-get -y install clang-7
-  #     - name: Build repository
-  #       run: |
-  #         sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-  #         mkdir build && cd build
-  #         cmake .. -DBUILD_TEST=TRUE -DTHREAD_SANITIZER=TRUE
-  #         make
-  #         ulimit -c unlimited -S
-  #         timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-  # linux-gcc-4_4:
-  #   runs-on: ubuntu-18.04
-  #   env:
-  #     AWS_KVS_LOG_LEVEL: 2
-  #     CC: gcc-4.4
-  #   steps:
-  #     - name: Clone repository
-  #       uses: actions/checkout@v2
-  #     - name: Install deps
-  #       run: |
-  #         sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-  #         sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-  #         sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ trusty main'
-  #         sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ trusty universe'
-  #         sudo apt-get -q update
-  #         sudo apt-get -y install gcc-4.4
-  #         sudo apt-get -y install gdb
-  #     - name: Build repository
-  #       run: |
-  #         mkdir build && cd build
-  #         cmake .. -DBUILD_TEST=TRUE
-  #         make
-  #         ulimit -c unlimited -S
-  #         timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+  linux-gcc-code-coverage:
+    runs-on: ubuntu-18.04
+    env:
+      AWS_KVS_LOG_LEVEL: 2
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v2
+      - name: Build repository
+        run: |
+          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+          mkdir build && cd build
+          cmake .. -DCODE_COVERAGE=TRUE -DBUILD_TEST=TRUE
+          make
+          ulimit -c unlimited -S
+          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+      - name: Code coverage
+        run: |
+          for test_file in $(find CMakeFiles/kvsWebrtcClient.dir CMakeFiles/kvsWebrtcSignalingClient.dir -name '*.gcno'); do gcov $test_file; done
+          bash <(curl -s https://codecov.io/bash)
+  address-sanitizer:
+    runs-on: ubuntu-18.04
+    env:
+      ASAN_OPTIONS: detect_odr_violation=0:detect_leaks=1
+      LSAN_OPTIONS: suppressions=../tst/suppressions/LSAN.supp
+      CC: clang-7
+      CXX: clang++-7
+      AWS_KVS_LOG_LEVEL: 2
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v2
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install clang-7
+      - name: Build repository
+        run: |
+          # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
+          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+          mkdir build && cd build
+          cmake .. -DBUILD_TEST=TRUE -DADDRESS_SANITIZER=TRUE
+          make
+          ulimit -c unlimited -S
+          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+  undefined-behavior-sanitizer:
+    runs-on: ubuntu-18.04
+    env:
+      UBSAN_OPTIONS: halt_on_error=1
+      CC: clang-7
+      CXX: clang++-7
+      AWS_KVS_LOG_LEVEL: 2
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v2
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install clang-7
+      - name: Build repository
+        run: |
+          # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
+          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+          mkdir build && cd build
+          cmake .. -DBUILD_TEST=TRUE -DUNDEFINED_BEHAVIOR_SANITIZER=TRUE
+          make
+          ulimit -c unlimited -S
+          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test 
+  memory-sanitizer:
+    runs-on: ubuntu-18.04
+    env:
+      CC: clang-7
+      CXX: clang++-7
+      AWS_KVS_LOG_LEVEL: 2
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v2
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install clang-7
+      - name: Build repository
+        run: |
+          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+          mkdir build && cd build
+          cmake .. -DMEMORY_SANITIZER=TRUE -DBUILD_TEST=TRUE
+          make
+          ulimit -c unlimited -S
+          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+  thread-sanitizer:
+    runs-on: ubuntu-latest
+    env:
+      TSAN_OPTIONS: halt_on_error=1:suppressions=../tst/suppressions/TSAN.supp
+      CC: clang-7
+      CXX: clang++-7
+      AWS_KVS_LOG_LEVEL: 2
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v2
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install clang-7
+      - name: Build repository
+        run: |
+          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+          mkdir build && cd build
+          cmake .. -DBUILD_TEST=TRUE -DTHREAD_SANITIZER=TRUE
+          make
+          ulimit -c unlimited -S
+          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+  linux-gcc-4_4:
+    runs-on: ubuntu-18.04
+    env:
+      AWS_KVS_LOG_LEVEL: 2
+      CC: gcc-4.4
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v2
+      - name: Install deps
+        run: |
+          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+          sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ trusty main'
+          sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ trusty universe'
+          sudo apt-get -q update
+          sudo apt-get -y install gcc-4.4
+          sudo apt-get -y install gdb
+      - name: Build repository
+        run: |
+          mkdir build && cd build
+          cmake .. -DBUILD_TEST=TRUE
+          make
+          ulimit -c unlimited -S
+          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   static-build-linux:
     runs-on: ubuntu-18.04
     container: 
@@ -234,80 +246,88 @@ jobs:
           mkdir build && cd build
           cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE
           make
-  # mbedtls-ubuntu-gcc:
-  #   runs-on: ubuntu-latest
-  #   env:
-  #     AWS_KVS_LOG_LEVEL: 2
-  #   steps:
-  #     - name: Clone repository
-  #       uses: actions/checkout@v2
-  #     - name: Install deps
-  #       run: |
-  #         sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-  #         sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-  #         sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ trusty main'
-  #         sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ trusty universe'
-  #         sudo apt-get -q update
-  #         sudo apt-get -y install gcc-4.4
-  #         sudo apt-get -y install gdb
-  #     - name: Build repository
-  #       run: |
-  #         mkdir build && cd build
-  #         cmake .. -DBUILD_TEST=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
-  #         make
-  #         ulimit -c unlimited -S
-  #         timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-  # mbedtls-ubuntu-clang:
-  #   runs-on: ubuntu-18.04
-  #   env:
-  #     CC: clang-7
-  #     CXX: clang++-7
-  #     AWS_KVS_LOG_LEVEL: 2
-  #   steps:
-  #     - name: Clone repository
-  #       uses: actions/checkout@v2
-  #     - name: Install dependencies
-  #       run: |
-  #         sudo apt-get update
-  #         sudo apt-get -y install clang-7
-  #     - name: Build repository
-  #       run: |
-  #         sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-  #         mkdir build && cd build
-  #         cmake .. -DBUILD_TEST=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
-  #         make
-  #         ulimit -c unlimited -S
-  #         timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-  # sample-check:
-  #   runs-on: ubuntu-latest
-  #   env:
-  #     AWS_KVS_LOG_LEVEL: 2
-  #   steps:
-  #     - name: Clone repository
-  #       uses: actions/checkout@v2
-  #     - name: Build repository
-  #       run: |
-  #         sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-  #         mkdir build && cd build
-  #         cmake ..
-  #         make
-  #         cd ..
-  #         ./scripts/check-sample.sh
-  # ubuntu-os-build:
-  #   runs-on: ubuntu-18.04
-  #   env:
-  #     AWS_KVS_LOG_LEVEL: 2
-  #   steps:
-  #     - name: Clone repository
-  #       uses: actions/checkout@v2
-  #     - name: Build repository
-  #       run: |
-  #         # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
-  #         sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-  #         mkdir build && cd build
-  #         cmake .. -DBUILD_TEST=TRUE
-  #         make
-  #         ./tst/webrtc_client_test
+  mbedtls-ubuntu-gcc:
+    runs-on: ubuntu-latest
+    env:
+      AWS_KVS_LOG_LEVEL: 2
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v2
+      - name: Install deps
+        run: |
+          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+          sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ trusty main'
+          sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ trusty universe'
+          sudo apt-get -q update
+          sudo apt-get -y install gcc-4.4
+          sudo apt-get -y install gdb
+      - name: Build repository
+        run: |
+          mkdir build && cd build
+          cmake .. -DBUILD_TEST=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
+          make
+          ulimit -c unlimited -S
+          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+  mbedtls-ubuntu-clang:
+    runs-on: ubuntu-18.04
+    env:
+      CC: clang-7
+      CXX: clang++-7
+      AWS_KVS_LOG_LEVEL: 2
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v2
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install clang-7
+      - name: Build repository
+        run: |
+          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+          mkdir build && cd build
+          cmake .. -DBUILD_TEST=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
+          make
+          ulimit -c unlimited -S
+          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+  sample-check:
+    runs-on: ubuntu-latest
+    env:
+      AWS_KVS_LOG_LEVEL: 2
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v2
+      - name: Build repository
+        run: |
+          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+          mkdir build && cd build
+          cmake ..
+          make
+          cd ..
+          ./scripts/check-sample.sh
+  ubuntu-os-build:
+    runs-on: ubuntu-18.04
+    env:
+      AWS_KVS_LOG_LEVEL: 2
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v2
+      - name: Build repository
+        run: |
+          # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
+          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+          mkdir build && cd build
+          cmake .. -DBUILD_TEST=TRUE
+          make
+          ./tst/webrtc_client_test
   # windows-msvc:
   #   runs-on: windows-2019
   #   permissions:
