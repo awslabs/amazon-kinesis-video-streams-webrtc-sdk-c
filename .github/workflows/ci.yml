@@ -28,13 +28,15 @@ jobs:
       CC: /usr/bin/clang
       CXX: /usr/bin/clang++
       AWS_KVS_LOG_LEVEL: 2
+      LDFLAGS: -L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib
+      CPATH: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
       - name: Build repository
         run: |
           mkdir build && cd build
-          sh -c 'cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE;cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE'
+          cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
           make
           ./tst/webrtc_client_test
   mac-os-build-gcc:
@@ -46,15 +48,27 @@ jobs:
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
-      - name: Build repository and run all tests without auth
+      - name: Build repository and run tests
         run: |
           mkdir build && cd build
-          sh -c 'cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE;cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE'
+          cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
           make
           ./tst/webrtc_client_test
-          unset AWS_ACCESS_KEY_ID
-          unset AWS_SECRET_ACCESS_KEY
-          ./tst/webrtc_client_test --gtest_break_on_failure --gtest_filter="SignalingApiFunctionalityTest.*:SignalingApiTest.*:TurnConnectionFunctionalityTest.*"  
+  static-build-mac:
+    runs-on: macos-latest
+    env:
+      AWS_KVS_LOG_LEVEL: 2
+      LDFLAGS: -L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib
+      CPATH: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v2
+      - name: Build repository and run tests
+        run: |
+          mkdir build && cd build
+          cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE
+          make
+          ./tst/webrtc_client_test 
   linux-gcc-code-coverage:
     runs-on: ubuntu-18.04
     env:
@@ -188,39 +202,27 @@ jobs:
           make
           ulimit -c unlimited -S
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-  # static-build:
-  #   runs-on: ubuntu-18.04
-  #   container: 
-  #     image: alpine:latest
-  #   env:
-  #     CC: gcc
-  #     CXX: g++
-  #     AWS_KVS_LOG_LEVEL: 2
-  #   steps:
-  #     - name: Clone repository
-  #       uses: actions/checkout@v2
-  #     - name: Install dependencies
-  #       run: |
-  #         apk update
-  #         apk upgrade
-  #         apk add alpine-sdk cmake clang linux-headers perl bash openssl-dev
-  #     - name: Build Repository
-  #       run: | 
-  #         mkdir build && cd build
-  #         cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE
-  #         make
-  #         ulimit -c unlimited -S
-  #         ../scripts/check-static-build.sh
-  #         ./tst/webrtc_client_test
-  #     - name: Build repository
-  #       run: |
-  #         sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-  #         mkdir build && cd build
-  #         cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE
-  #         make
-  #         ulimit -c unlimited -S
-  #         ../scripts/check-static-build.sh
-  #         timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+  static-build-linux:
+    runs-on: ubuntu-18.04
+    container: 
+      image: alpine:latest
+    env:
+      CC: gcc
+      CXX: g++
+      AWS_KVS_LOG_LEVEL: 2
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v2
+      - name: Install dependencies
+        run: |
+          apk update
+          apk upgrade
+          apk add alpine-sdk cmake clang linux-headers perl bash openssl-dev
+      - name: Build Repository
+        run: | 
+          mkdir build && cd build
+          cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE
+          make
   mbedtls-ubuntu-gcc:
     runs-on: ubuntu-latest
     env:
@@ -269,9 +271,18 @@ jobs:
     runs-on: ubuntu-latest
     env:
       AWS_KVS_LOG_LEVEL: 2
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          role-session-name: ${{ secrets.AWS_ROLE_SESSION_NAME }}
+          aws-region: ${{ secrets.AWS_REGION }}
       - name: Build repository
         run: |
           sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
@@ -336,4 +347,3 @@ jobs:
           mkdir build && cd build
           cmake .. -DBUILD_OPENSSL=TRUE -DBUILD_OPENSSL_PLATFORM=linux-generic32 -DBUILD_LIBSRTP_HOST_PLATFORM=x86_64-unknown-linux-gnu -DBUILD_LIBSRTP_DESTINATION_PLATFORM=arm-unknown-linux-uclibcgnueabi
           make
-
