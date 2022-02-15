@@ -9,18 +9,18 @@ on:
       - develop
       - master
 jobs:
-  # clang-format-check:
-  #   runs-on: macos-latest
-  #   steps:
-  #     - name: Clone repository
-  #       uses: actions/checkout@v2
-  #     - name: Install clang-format
-  #       run: |
-  #         brew install clang-format
-  #         clang-format --version
-  #     - name: Run clang format check
-  #       run: |
-  #         bash scripts/check-clang.sh
+  clang-format-check:
+    runs-on: macos-latest
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v2
+      - name: Install clang-format
+        run: |
+          brew install clang-format
+          clang-format --version
+      - name: Run clang format check
+        run: |
+          bash scripts/check-clang.sh
   mac-os-build-clang:
     runs-on: macos-latest
     env:
@@ -29,8 +29,6 @@ jobs:
       AWS_KVS_LOG_LEVEL: 2
       LDFLAGS: -L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib
       CPATH: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
@@ -46,44 +44,34 @@ jobs:
       CC: gcc
       CXX: g++
       AWS_KVS_LOG_LEVEL: 2
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
-      - name: Build repository and run all tests without auth
+      - name: Build repository and run tests
         run: |
           mkdir build && cd build
           cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
           make
           ./tst/webrtc_client_test
-          unset AWS_ACCESS_KEY_ID
-          unset AWS_SECRET_ACCESS_KEY
-          ./tst/webrtc_client_test --gtest_break_on_failure --gtest_filter="SignalingApiFunctionalityTest.*:SignalingApiTest.*:TurnConnectionFunctionalityTest.*"  
   static-build-mac:
     runs-on: macos-latest
     env:
       AWS_KVS_LOG_LEVEL: 2
       LDFLAGS: -L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib
       CPATH: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
-      - name: Build repository and run all tests without auth
+      - name: Build repository and run tests
         run: |
           mkdir build && cd build
           cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE
           make
           ./tst/webrtc_client_test 
-
   linux-gcc-code-coverage:
     runs-on: ubuntu-18.04
     env:
       AWS_KVS_LOG_LEVEL: 2
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
@@ -107,8 +95,6 @@ jobs:
       CC: clang-7
       CXX: clang++-7
       AWS_KVS_LOG_LEVEL: 2
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
@@ -132,8 +118,6 @@ jobs:
       CC: clang-7
       CXX: clang++-7
       AWS_KVS_LOG_LEVEL: 2
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
@@ -156,8 +140,6 @@ jobs:
       CC: clang-7
       CXX: clang++-7
       AWS_KVS_LOG_LEVEL: 2
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
@@ -180,8 +162,6 @@ jobs:
       CC: clang-7
       CXX: clang++-7
       AWS_KVS_LOG_LEVEL: 2
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
@@ -202,8 +182,6 @@ jobs:
     env:
       AWS_KVS_LOG_LEVEL: 2
       CC: gcc-4.4
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
@@ -231,8 +209,6 @@ jobs:
       CC: gcc
       CXX: g++
       AWS_KVS_LOG_LEVEL: 2
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
@@ -250,8 +226,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       AWS_KVS_LOG_LEVEL: 2
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
@@ -277,8 +251,6 @@ jobs:
       CC: clang-7
       CXX: clang++-7
       AWS_KVS_LOG_LEVEL: 2
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
@@ -298,8 +270,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       AWS_KVS_LOG_LEVEL: 2
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
@@ -315,8 +285,6 @@ jobs:
     runs-on: ubuntu-18.04
     env:
       AWS_KVS_LOG_LEVEL: 2
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
@@ -345,28 +313,28 @@ jobs:
   #         git config --system core.longpaths true
   #         .github/build_windows.bat
   #         cd tst && .\webrtc_client_test.exe --gtest_filter="-DataChannelFunctionalityTest.*:IceApiTest.*:IceFunctionalityTest.*:PeerConnectionFunctionalityTest.*:SignalingApiFunctionalityTest.*:TurnConnectionFunctionalityTest.*:RtpFunctionalityTest.marshallUnmarshallH264Data:RtpFunctionalityTest.packingUnpackingVerifySameH264Frame:RtcpFunctionalityTest.onRtcpPacketCompound:RtcpFunctionalityTest.twcc3"
-  # arm-cross-compilation:
-  #   runs-on: ubuntu-18.04
-  #   env:
-  #     CC: arm-linux-gnueabi-gcc
-  #     CXX: arm-linux-gnueabi-g++
-  #     AWS_KVS_LOG_LEVEL: 2
-  #   steps:
-  #     - name: Set up QEMU
-  #       id: qemu
-  #       uses: docker/setup-qemu-action@v1
-  #       with:
-  #         image: tonistiigi/binfmt:latest
-  #         platforms: arm64
-  #     - name: Install dependencies
-  #       run: 
-  #         sudo apt-get -y install gcc-arm-linux-gnueabi g++-arm-linux-gnueabi binutils-arm-linux-gnueabi
-  #     - name: Clone repository
-  #       uses: actions/checkout@v2
-  #     - name: Build Repository
-  #       run: |
-  #         sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-  #         mkdir build && cd build
-  #         cmake .. -DBUILD_OPENSSL=TRUE -DBUILD_OPENSSL_PLATFORM=linux-generic32 -DBUILD_LIBSRTP_HOST_PLATFORM=x86_64-unknown-linux-gnu -DBUILD_LIBSRTP_DESTINATION_PLATFORM=arm-unknown-linux-uclibcgnueabi
-  #         make
+  arm-cross-compilation:
+    runs-on: ubuntu-18.04
+    env:
+      CC: arm-linux-gnueabi-gcc
+      CXX: arm-linux-gnueabi-g++
+      AWS_KVS_LOG_LEVEL: 2
+    steps:
+      - name: Set up QEMU
+        id: qemu
+        uses: docker/setup-qemu-action@v1
+        with:
+          image: tonistiigi/binfmt:latest
+          platforms: arm64
+      - name: Install dependencies
+        run: 
+          sudo apt-get -y install gcc-arm-linux-gnueabi g++-arm-linux-gnueabi binutils-arm-linux-gnueabi
+      - name: Clone repository
+        uses: actions/checkout@v2
+      - name: Build Repository
+        run: |
+          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+          mkdir build && cd build
+          cmake .. -DBUILD_OPENSSL=TRUE -DBUILD_OPENSSL_PLATFORM=linux-generic32 -DBUILD_LIBSRTP_HOST_PLATFORM=x86_64-unknown-linux-gnu -DBUILD_LIBSRTP_DESTINATION_PLATFORM=arm-unknown-linux-uclibcgnueabi
+          make
 
