@@ -211,32 +211,29 @@ jobs:
   #         make
   #         ulimit -c unlimited -S
   #         timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-  # static-build:
-  #   runs-on: ubuntu-18.04
-  #   container: 
-  #     image: alpine:latest
-  #   env:
-  #     CC: gcc
-  #     CXX: g++
-  #     AWS_KVS_LOG_LEVEL: 2
-  #     AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-  #     AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  #   steps:
-  #     - name: Clone repository
-  #       uses: actions/checkout@v2
-  #     - name: Install dependencies
-  #       run: |
-  #         apk update
-  #         apk upgrade
-  #         apk add alpine-sdk cmake clang linux-headers perl bash openssl-dev
-  #     - name: Build Repository
-  #       run: | 
-  #         mkdir build && cd build
-  #         cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE
-  #         make
-  #         ulimit -c unlimited -S
-  #         ../scripts/check-static-build.sh
-  #         ./tst/webrtc_client_test
+  static-build-linux:
+    runs-on: ubuntu-18.04
+    container: 
+      image: alpine:latest
+    env:
+      CC: gcc
+      CXX: g++
+      AWS_KVS_LOG_LEVEL: 2
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v2
+      - name: Install dependencies
+        run: |
+          apk update
+          apk upgrade
+          apk add alpine-sdk cmake clang linux-headers perl bash openssl-dev
+      - name: Build Repository
+        run: | 
+          mkdir build && cd build
+          cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE
+          make
   # mbedtls-ubuntu-gcc:
   #   runs-on: ubuntu-latest
   #   env:
