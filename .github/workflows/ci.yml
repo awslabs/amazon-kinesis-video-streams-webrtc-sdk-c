@@ -21,39 +21,65 @@ jobs:
   #     - name: Run clang format check
   #       run: |
   #         bash scripts/check-clang.sh
-  # mac-os-build-clang:
-  #   runs-on: macos-latest
-  #   env:
-  #     CC: /usr/bin/clang
-  #     CXX: /usr/bin/clang++
-  #     AWS_KVS_LOG_LEVEL: 2
-  #   steps:
-  #     - name: Clone repository
-  #       uses: actions/checkout@v2
-  #     - name: Build repository
-  #       run: |
-  #         mkdir build && cd build
-  #         sh -c 'cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE;cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE'
-  #         make
-  #         ./tst/webrtc_client_test
-  # mac-os-build-gcc:
-  #   runs-on: macos-10.15
-  #   env:
-  #     CC: gcc
-  #     CXX: g++
-  #     AWS_KVS_LOG_LEVEL: 2
-  #   steps:
-  #     - name: Clone repository
-  #       uses: actions/checkout@v2
-  #     - name: Build repository and run all tests without auth
-  #       run: |
-  #         mkdir build && cd build
-  #         sh -c 'cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE;cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE'
-  #         make
-  #         ./tst/webrtc_client_test || travis_terminate 1;
-  #         unset AWS_ACCESS_KEY_ID
-  #         unset AWS_SECRET_ACCESS_KEY
-  #         ./tst/webrtc_client_test --gtest_break_on_failure --gtest_filter="SignalingApiFunctionalityTest.*:SignalingApiTest.*:TurnConnectionFunctionalityTest.*"  
+  mac-os-build-clang:
+    runs-on: macos-latest
+    env:
+      CC: /usr/bin/clang
+      CXX: /usr/bin/clang++
+      AWS_KVS_LOG_LEVEL: 2
+      LDFLAGS: -L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib
+      CPATH: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v2
+      - name: Build repository
+        run: |
+          mkdir build && cd build
+          cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
+          make
+          ./tst/webrtc_client_test
+  mac-os-build-gcc:
+    runs-on: macos-10.15
+    env:
+      CC: gcc
+      CXX: g++
+      AWS_KVS_LOG_LEVEL: 2
+      LDFLAGS: -L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib
+      CPATH: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v2
+      - name: Build repository and run all tests without auth
+        run: |
+          mkdir build && cd build
+          cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
+          make
+          ./tst/webrtc_client_test || travis_terminate 1;
+          unset AWS_ACCESS_KEY_ID
+          unset AWS_SECRET_ACCESS_KEY
+          ./tst/webrtc_client_test --gtest_break_on_failure --gtest_filter="SignalingApiFunctionalityTest.*:SignalingApiTest.*:TurnConnectionFunctionalityTest.*"  
+  static-build-mac:
+    runs-on: macos-latest
+    env:
+      AWS_KVS_LOG_LEVEL: 2
+      LDFLAGS: -L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib
+      CPATH: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v2
+      - name: Build repository and run all tests without auth
+        run: |
+          mkdir build && cd build
+          cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE
+          make
+          ./tst/webrtc_client_test 
+
   # linux-gcc-code-coverage:
   #   runs-on: ubuntu-18.04
   #   env:
@@ -187,32 +213,32 @@ jobs:
   #         make
   #         ulimit -c unlimited -S
   #         timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-  static-build:
-    runs-on: ubuntu-18.04
-    container: 
-      image: alpine:latest
-    env:
-      CC: gcc
-      CXX: g++
-      AWS_KVS_LOG_LEVEL: 2
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v2
-      - name: Install dependencies
-        run: |
-          apk update
-          apk upgrade
-          apk add alpine-sdk cmake clang linux-headers perl bash openssl-dev
-      - name: Build Repository
-        run: | 
-          mkdir build && cd build
-          cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE
-          make
-          ulimit -c unlimited -S
-          ../scripts/check-static-build.sh
-          ./tst/webrtc_client_test
+  # static-build:
+  #   runs-on: ubuntu-18.04
+  #   container: 
+  #     image: alpine:latest
+  #   env:
+  #     CC: gcc
+  #     CXX: g++
+  #     AWS_KVS_LOG_LEVEL: 2
+  #     AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  #     AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  #   steps:
+  #     - name: Clone repository
+  #       uses: actions/checkout@v2
+  #     - name: Install dependencies
+  #       run: |
+  #         apk update
+  #         apk upgrade
+  #         apk add alpine-sdk cmake clang linux-headers perl bash openssl-dev
+  #     - name: Build Repository
+  #       run: | 
+  #         mkdir build && cd build
+  #         cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE
+  #         make
+  #         ulimit -c unlimited -S
+  #         ../scripts/check-static-build.sh
+  #         ./tst/webrtc_client_test
   # mbedtls-ubuntu-gcc:
   #   runs-on: ubuntu-latest
   #   env:
