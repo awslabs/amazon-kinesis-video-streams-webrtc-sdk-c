@@ -414,10 +414,10 @@ STATUS freeDtlsSession(PDtlsSession* ppDtlsSession)
     }
 
     if (pDtlsSession->pSsl != NULL) {
-        SSL_CTX_free(pDtlsSession->pSslCtx);
+        SSL_free(pDtlsSession->pSsl);
     }
     if (pDtlsSession->pSslCtx != NULL) {
-        SSL_free(pDtlsSession->pSsl);
+        SSL_CTX_free(pDtlsSession->pSslCtx);
     }
     if (IS_VALID_MUTEX_VALUE(pDtlsSession->sslLock)) {
         MUTEX_FREE(pDtlsSession->sslLock);

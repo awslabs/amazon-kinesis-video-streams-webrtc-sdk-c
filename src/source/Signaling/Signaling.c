@@ -15,6 +15,7 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     struct lws_context_creation_info creationInfo;
     const lws_retry_bo_t retryPolicy = {
         .secs_since_valid_ping = SIGNALING_SERVICE_WSS_PING_PONG_INTERVAL_IN_SECONDS,
+        .secs_since_valid_hangup = SIGNALING_SERVICE_WSS_HANGUP_IN_SECONDS,
     };
     PStateMachineState pStateMachineState;
     BOOL cacheFound = FALSE;
@@ -151,7 +152,7 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
 
     // Initializing the diagnostics mostly is taken care of by zero-mem in MEMCALLOC
     pSignalingClient->diagnostics.createTime = SIGNALING_GET_CURRENT_TIME(pSignalingClient);
-    CHK_STATUS(hashTableCreateWithParams(SIGNALING_CLOCKSKEW_HASH_TABLE_BUCKET_COUNT,SIGNALING_CLOCKSKEW_HASH_TABLE_BUCKET_LENGTH,
+    CHK_STATUS(hashTableCreateWithParams(SIGNALING_CLOCKSKEW_HASH_TABLE_BUCKET_COUNT, SIGNALING_CLOCKSKEW_HASH_TABLE_BUCKET_LENGTH,
                                          &pSignalingClient->diagnostics.pEndpointToClockSkewHashMap));
 
     // At this point we have constructed the main object and we can assign to the returned pointer
@@ -168,7 +169,8 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     ATOMIC_STORE_BOOL(&pSignalingClient->refreshIceConfig, FALSE);
 
     // We do not cache token in file system, so we will always have to retrieve one after creating the client.
-    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, pSignalingClient->diagnostics.createTime + SIGNALING_CONNECT_STATE_TIMEOUT, SIGNALING_STATE_GET_TOKEN));
+    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, pSignalingClient->diagnostics.createTime + SIGNALING_CONNECT_STATE_TIMEOUT,
+                                             SIGNALING_STATE_GET_TOKEN));
 
 CleanUp:
     if (pClientInfo != NULL && pSignalingClient != NULL) {
@@ -454,14 +456,14 @@ STATUS signalingFetchSync(PSignalingClient pSignalingClient)
     // would bring you to the READY state, but this is a two-way door and can be redone later.
     setStateMachineCurrentState(pSignalingClient->pStateMachine, SIGNALING_STATE_GET_TOKEN);
 
-    //if we're not failing from a bad token, set the result to OK to that fromGetToken will move
-    //to getEndpoint, describe, or create. If it is bad, keep reiterating on token.
+    // if we're not failing from a bad token, set the result to OK to that fromGetToken will move
+    // to getEndpoint, describe, or create. If it is bad, keep reiterating on token.
     result = ATOMIC_LOAD(&pSignalingClient->result);
     if (result != SERVICE_CALL_NOT_AUTHORIZED) {
         ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_OK);
     }
-    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, SIGNALING_GET_CURRENT_TIME(pSignalingClient) + SIGNALING_CONNECT_STATE_TIMEOUT, SIGNALING_STATE_READY));
-
+    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, SIGNALING_GET_CURRENT_TIME(pSignalingClient) + SIGNALING_CONNECT_STATE_TIMEOUT,
+                                             SIGNALING_STATE_READY));
 CleanUp:
 
     if (STATUS_FAILED(retStatus)) {
@@ -521,8 +523,8 @@ STATUS signalingDisconnectSync(PSignalingClient pSignalingClient)
 
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_OK);
 
-    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, SIGNALING_GET_CURRENT_TIME(pSignalingClient) + SIGNALING_DISCONNECT_STATE_TIMEOUT, SIGNALING_STATE_READY));
-
+    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, SIGNALING_GET_CURRENT_TIME(pSignalingClient) + SIGNALING_DISCONNECT_STATE_TIMEOUT,
+                                             SIGNALING_STATE_READY));
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
@@ -549,7 +551,8 @@ STATUS signalingDeleteSync(PSignalingClient pSignalingClient)
     // Set the state directly
     setStateMachineCurrentState(pSignalingClient->pStateMachine, SIGNALING_STATE_DELETE);
 
-    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, SIGNALING_GET_CURRENT_TIME(pSignalingClient) + SIGNALING_DELETE_TIMEOUT, SIGNALING_STATE_DELETED));
+    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, SIGNALING_GET_CURRENT_TIME(pSignalingClient) + SIGNALING_DELETE_TIMEOUT,
+                                             SIGNALING_STATE_DELETED));
 
 CleanUp:
 
@@ -942,7 +945,6 @@ STATUS describeChannel(PSignalingClient pSignalingClient, UINT64 time)
             }
 
             if (STATUS_SUCCEEDED(retStatus)) {
-
                 retStatus = describeChannelLws(pSignalingClient, time);
                 // Store the last call time on success
                 if (STATUS_SUCCEEDED(retStatus)) {

@@ -17,9 +17,9 @@ else()
   endif()
 
   if (DEFINED BUILD_OPENSSL_PLATFORM AND NOT BUILD_OPENSSL_PLATFORM STREQUAL OFF)
-    SET(CONFIGURE_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/build/src/project_libopenssl/Configure ${OPENSSL_EXTRA} no-async --prefix=${OPEN_SRC_INSTALL_PREFIX} --openssldir=${OPEN_SRC_INSTALL_PREFIX} ${BUILD_OPENSSL_PLATFORM})
+    SET(CONFIGURE_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/build/src/project_libopenssl/Configure ${OPENSSL_EXTRA} no-async --prefix=${OPEN_SRC_INSTALL_PREFIX} --openssldir=${OPEN_SRC_INSTALL_PREFIX} ${BUILD_OPENSSL_PLATFORM} -Wno-nullability-completeness -Wno-expansion-to-defined)
   else()
-    SET(CONFIGURE_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/build/src/project_libopenssl/config ${OPENSSL_EXTRA} --prefix=${OPEN_SRC_INSTALL_PREFIX} --openssldir=${OPEN_SRC_INSTALL_PREFIX})
+    SET(CONFIGURE_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/build/src/project_libopenssl/config ${OPENSSL_EXTRA} --prefix=${OPEN_SRC_INSTALL_PREFIX} --openssldir=${OPEN_SRC_INSTALL_PREFIX} -Wno-nullability-completeness -Wno-expansion-to-defined)
   endif()
 endif()
 

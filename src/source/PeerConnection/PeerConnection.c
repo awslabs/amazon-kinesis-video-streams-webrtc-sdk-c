@@ -1212,6 +1212,15 @@ STATUS addTransceiver(PRtcPeerConnection pPeerConnection, PRtcMediaStreamTrack p
         pRtcMediaStreamTrack = &videoTrack;
     }
 
+    if (direction == RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY && pRtcMediaStreamTrack == NULL) {
+        MEMSET(&videoTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
+        videoTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+        videoTrack.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+        STRCPY(videoTrack.streamId, "myKvsVideoStream");
+        STRCPY(videoTrack.trackId, "myVideoTrack");
+        pRtcMediaStreamTrack = &videoTrack;
+    }
+
     switch (pRtcMediaStreamTrack->codec) {
         case RTC_CODEC_OPUS:
             depayFunc = depayOpusFromRtpPayload;
