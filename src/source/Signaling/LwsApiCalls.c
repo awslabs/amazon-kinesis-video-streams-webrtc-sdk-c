@@ -563,7 +563,7 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
         // Sign the request
         // CHK_STATUS(signAwsRequestInfoQueryParam(pCallInfo->callInfo.pRequestInfo));
         connectInfo.ssl_connection = 0;
-        connectInfo.port = 9001;
+        connectInfo.port = 8765;
         // Remove the headers
         CHK_STATUS(removeRequestHeaders(pCallInfo->callInfo.pRequestInfo));
     } else {
@@ -1450,8 +1450,13 @@ STATUS connectSignalingChannelLws(PSignalingClient pSignalingClient, UINT64 time
     // The actual connection will be handled in a separate thread
     // Start the request/response thread
     char* signalingChannelEndpointLocalHost = "ws://localhost/";
-    MEMCPY(pLwsCallInfo->callInfo.pRequestInfo->url, signalingChannelEndpointLocalHost, 20);
-    pLwsCallInfo->callInfo.pRequestInfo->url[20] = '\0';
+
+    if (pSignalingClient->pChannelInfo->channelRoleType == SIGNALING_CHANNEL_ROLE_TYPE_VIEWER) {
+        signalingChannelEndpointLocalHost = "ws://localhost/X-Amz-ClientId";
+    }
+
+    MEMCPY(pLwsCallInfo->callInfo.pRequestInfo->url, signalingChannelEndpointLocalHost, 29);
+    pLwsCallInfo->callInfo.pRequestInfo->url[30] = '\0';
     DLOGE("Starting thread to connect to signaling channel [%s]", pLwsCallInfo->callInfo.pRequestInfo->url);
 
     CHK_STATUS(THREAD_CREATE(&pSignalingClient->listenerTracker.threadId, lwsListenerHandler, (PVOID) pLwsCallInfo));
