@@ -24,7 +24,7 @@ jobs:
           platforms: mips64
       - name: Install dependencies
         run: 
-          sudo apt-get update -y
+          sudo apt-get update
           sudo apt-get -y install gcc-mips-linux-gnu g++-mips-linux-gnu binutils-mips-linux-gnu
       - name: Clone repository
         uses: actions/checkout@v2
