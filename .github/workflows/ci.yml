@@ -12,8 +12,8 @@ jobs:
   mips-cross-compilation:
     runs-on: ubuntu-18.04
     env:
-      CC: gcc-mips-linux-gnu
-      CXX: g++-mips-linux-gnu
+      CC: mips-linux-gnu-gcc
+      CXX: mips-linux-gnu-g++
       AWS_KVS_LOG_LEVEL: 2
     steps:
       - name: Set up QEMU
