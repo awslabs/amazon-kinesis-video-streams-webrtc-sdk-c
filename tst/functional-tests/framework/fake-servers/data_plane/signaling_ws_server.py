@@ -11,11 +11,6 @@ from websockets import serve
 from websockets import WebSocketServerProtocol
 from threading import Lock
 
-# Flags to indicate wether master and viewer has connected to the websockets server
-# Note that booleans are by default atomic in python
-master_socket_available = False
-viewer_socket_available = False
-
 socket_map = {}
 
 pending_messages_for_master = []
@@ -29,41 +24,33 @@ viewer_message_lock = Lock()
 #@asyncio.coroutine
 async def periodic_message_dispatcher():
     while True:
-        send_pending_messages_to_master()
-        send_pending_messages_to_viewer()
-        await asyncio.sleep(1)
+        await send_pending_messages_to_master()
+        await send_pending_messages_to_viewer()
+        await asyncio.sleep(2)
 
 # Send all pending messages received from viewer to master
-def send_pending_messages_to_master():
-    if not master_socket_available:
+async def send_pending_messages_to_master():
+    if "master" not in socket_map:
         return
 
-    master_socket = socket_map['master_socket']
-
     master_message_lock.acquire()
-    temp_pending_messages_for_master = pending_messages_for_master
+    for msg in pending_messages_for_master:
+        await socket_map['master'].send(msg)
     pending_messages_for_master.clear()
     master_message_lock.release()
 
-    for msg in temp_pending_messages_for_master:
-        master_socket.send(msg)
-
 # Send all pending messages received from master to viewer
-def send_pending_messages_to_viewer():
-    if not viewer_socket_available:
+async def send_pending_messages_to_viewer():
+    if "viewer" not in socket_map:
         return
 
-    viewer_socket = socket_map['viewer_socket']
-
-    master_message_lock.acquire()
-    temp_pending_messages_for_viewer = pending_messages_for_viewer
+    viewer_message_lock.acquire()
+    for msg in pending_messages_for_viewer:
+        await socket_map['viewer'].send(msg)
     pending_messages_for_viewer.clear()
-    master_message_lock.release()
+    viewer_message_lock.release()
 
-    for msg in temp_pending_messages_for_viewer:
-        viewer_socket.send(msg)
-
-async def handle_message_from_master(websocket, message):
+async def handle_message_from_master(message):
     viewer_message_lock.acquire()
     pending_messages_for_viewer.append(message)
     viewer_message_lock.release()
@@ -79,46 +66,23 @@ def isViewerSocket(path):
     # master and viewer socket
     return 'X-Amz-ClientId' in path
 
-async def register_socket_if_not_already_registered(websocket, path):
-
-    # Both the master and viewer has been connected
-    if len(socket_map) == 2:
-        return
-
-    isViewerSock = 'X-Amz-ClientId' in path
-    # This logic is problematic if there are multiple viewers and one master
-    # But for webrtc tests, we would be running one master and one viewer
-    if isViewerSock:
-        socket_map['viewer_socket'] = websocket
-        viewer_socket_available = True
-    else:
-        socket_map['master_socket'] = websocket
-        master_socket_available = True
-
-# handle messages sent by the viewer
-async def viewer_message_handler(message):
-    await handle_message_from_viewer(message)
-
-# handle messages sent by the master
-async def master_message_handler(message):
-    await handle_message_from_master(message)
-
-async def get_message_handler(path):
-    if (isViewerSocket(path)):
-        return viewer_message_handler
-    else:
-        return master_message_handler
-
 async def messageHandler(websocket, path):
-    await register_socket_if_not_already_registered(websocket, path)
-    message_handler = await get_message_handler(path)
+    # await register_socket_if_not_already_registered(websocket, path)
+    # message_handler = await get_message_handler(path)
 
-    isMessageFromViewer = isViewerSocket(path)
+    isViewer = isViewerSocket(path)
+    if isViewer:
+        print("Viewer connected")
+        socket_map['viewer'] = websocket
+    else:
+        print("Master connected")
+        socket_map['master'] = websocket
+
     async for message in websocket:
-        if isMessageFromViewer:
-            await viewer_message_handler(message)
+        if isViewer:
+            await handle_message_from_viewer(message)
         else:
-            await master_message_handler(message)
+            await handle_message_from_master(message)
 
 async def main():
     # Setup a message dispatcher to flush pending messages to master and viewer
