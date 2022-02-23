@@ -23,7 +23,7 @@ jobs:
 
       - name: Generate doxygen
         run: |
-          doxygen .github/Doxyfile
+          doxygen
         shell: bash
       - name: test
         run: |
