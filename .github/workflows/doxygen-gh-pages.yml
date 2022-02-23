@@ -15,7 +15,7 @@ jobs:
           submodules: "true"
 
       - name: Install requirements
-        run: sudo apt-get install doxygen graphviz ttf-freefont -y
+        run: sudo apt-get install doxygen graphviz -y
         shell: bash
 
       - name: Generate Doxygen Documentation
