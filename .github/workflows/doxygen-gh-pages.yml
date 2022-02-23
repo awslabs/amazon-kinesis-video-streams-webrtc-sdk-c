@@ -14,12 +14,12 @@ jobs:
         with:
           submodules: "true"
 
-      - name: Install Doxygen
-        run: sudo apt-get install doxygen graphviz -y
+      - name: Install requirements
+        run: sudo apt-get install doxygen graphviz ttf-freefont -y
         shell: bash
 
       - name: Generate Doxygen Documentation
-        run: doxygen
+        run: doxygen Doxyfile
         shell: bash
       
       - name: Deploy
