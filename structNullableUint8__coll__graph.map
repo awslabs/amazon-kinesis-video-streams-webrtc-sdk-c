@@ -1,3 +1,0 @@
-<map id="NullableUint8" name="NullableUint8">
-<area shape="rect" id="node1" title="Custom data type to allow setting UINT8 data type to NULL since C does not support setting basic data..." alt="" coords="5,5,105,97"/>
-</map>

@@ -1,4 +1,0 @@
-<map id="ReceivedSignalingMessage" name="ReceivedSignalingMessage">
-<area shape="rect" id="node1" title="Structure defining the signaling message to be received." alt="" coords="5,219,188,325"/>
-<area shape="rect" id="node2" href="$structSignalingMessage.html" title="Structure defining the basic signaling message." alt="" coords="33,5,161,156"/>
-</map>

@@ -1,5 +1,0 @@
-<map id="RtcRtpTransceiver" name="RtcRtpTransceiver">
-<area shape="rect" id="node1" title="The RTCRtpTransceiver represents a combination of an RTCRtpSender and an RTCRtpReceiver that share a ..." alt="" coords="16,329,147,407"/>
-<area shape="rect" id="node2" href="$structRtcRtpReceiver.html" title="RTCRtpReceiver allows an application to inspect the receipt of a MediaStreamTrack." alt="" coords="25,189,138,267"/>
-<area shape="rect" id="node3" href="$structRtcMediaStreamTrack.html" title="Represents a single track in a MediaStream." alt="" coords="5,5,157,127"/>
-</map>

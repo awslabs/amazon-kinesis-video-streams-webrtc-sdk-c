@@ -1,7 +1,0 @@
-<map id="RtcIceMetrics" name="RtcIceMetrics">
-<area shape="rect" id="node1" title="Statistics relted to ICE candidates." alt="" coords="231,461,333,539"/>
-<area shape="rect" id="node2" href="$structRtcIceServerStats.html" title=": RtcIceServerStats Stats related to the ICE Server" alt="" coords="5,189,183,355"/>
-<area shape="rect" id="node3" href="$structRtcIceCandidateStats.html" title=": RtcIceCandidateStats Stats related to a specific candidate in a pair" alt="" coords="207,182,357,362"/>
-<area shape="rect" id="node4" href="$structRtcIceCandidatePairStats.html" title="RtcIceCandidatePairStats Stats related to the local&#45;remote ICE candidate pair." alt="" coords="395,160,582,384"/>
-<area shape="rect" id="node5" href="$structNullableUint32.html" title="Custom data type to allow setting UINT32 data type to NULL since C does not support setting basic dat..." alt="" coords="435,5,542,97"/>
-</map>

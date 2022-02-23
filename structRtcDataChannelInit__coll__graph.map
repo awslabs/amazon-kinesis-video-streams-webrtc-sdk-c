@@ -1,4 +1,0 @@
-<map id="RtcDataChannelInit" name="RtcDataChannelInit">
-<area shape="rect" id="node1" title="RtcDataChannelInit dictionary used to configure properties of the underlying channel such as data rel..." alt="" coords="5,175,140,281"/>
-<area shape="rect" id="node2" href="$structNullableUint16.html" title="Custom data type to allow setting UINT16 data type to NULL since C does not support setting basic dat..." alt="" coords="19,5,126,97"/>
-</map>

@@ -1,7 +1,0 @@
-<map id="socketConnectionReadData" name="socketConnectionReadData">
-<area shape="rect" id="node1" title=" " alt="" coords="5,56,188,83"/>
-<area shape="rect" id="node2" href="$Tls__openssl_8c.html#a0e12aa367800be684668c31b7af5d01b" title=" " alt="" coords="236,56,408,83"/>
-<area shape="rect" id="node3" href="$IOBuffer_8c.html#a1fd767c00239c83072309f23641b22f6" title=" " alt="" coords="487,5,583,32"/>
-<area shape="rect" id="node4" href="$Tls_8c.html#a7dbb041b5b15c6784e9f57a09a08d467" title=" " alt="" coords="456,56,615,83"/>
-<area shape="rect" id="node5" href="$Tls__mbedtls_8c.html#aca41778af81f4d5b5a71dcaf5e686bb9" title=" " alt="" coords="465,107,606,133"/>
-</map>

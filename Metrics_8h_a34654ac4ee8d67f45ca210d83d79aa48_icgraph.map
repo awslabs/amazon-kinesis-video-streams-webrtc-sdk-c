@@ -1,4 +1,0 @@
-<map id="getIceCandidatePairStats" name="getIceCandidatePairStats">
-<area shape="rect" id="node1" title="Get specific ICE candidate pair stats." alt="" coords="247,5,417,32"/>
-<area shape="rect" id="node2" href="$group__PublicMemberFunctions.html#ga469e0f69e03630ad5b03d8921afd62be" title="Get the relevant/all metrics based on the RTCStatsType field. This does not include any signaling rel..." alt="" coords="5,5,199,32"/>
-</map>

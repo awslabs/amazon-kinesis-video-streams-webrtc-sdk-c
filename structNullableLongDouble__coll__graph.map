@@ -1,3 +1,0 @@
-<map id="NullableLongDouble" name="NullableLongDouble">
-<area shape="rect" id="node1" title="Custom data type to allow setting LONG DOUBLE data type to NULL since C does not support setting basi..." alt="" coords="5,5,144,97"/>
-</map>

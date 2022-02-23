@@ -1,9 +1,0 @@
-<map id="freeSocketConnection" name="freeSocketConnection">
-<area shape="rect" id="node1" title=" " alt="" coords="5,81,156,108"/>
-<area shape="rect" id="node2" href="$Network_8c.html#a8c64aed52ea980830d0f9db66fc93e1b" title=" " alt="" coords="211,56,306,83"/>
-<area shape="rect" id="node5" href="$Tls__openssl_8c.html#aa94c64c8b1c8378f85d7081459ec9425" title=" " alt="" coords="204,107,313,133"/>
-<area shape="rect" id="node3" href="$Network_8c.html#a4946ffd5e8761a38b4fc7bb253c1491a" title=" " alt="" coords="383,5,481,32"/>
-<area shape="rect" id="node4" href="$Network_8c.html#a3179b58589909af6767082bb0a81aa62" title=" " alt="" coords="381,56,483,83"/>
-<area shape="rect" id="node6" href="$IOBuffer_8c.html#a716982d27f4e9cf43d6737555e684289" title=" " alt="" coords="386,107,478,133"/>
-<area shape="rect" id="node7" href="$Tls__mbedtls_8c.html#aca41778af81f4d5b5a71dcaf5e686bb9" title=" " alt="" coords="361,157,503,184"/>
-</map>

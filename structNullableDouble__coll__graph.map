@@ -1,3 +1,0 @@
-<map id="NullableDouble" name="NullableDouble">
-<area shape="rect" id="node1" title="Custom data type to allow setting DOUBLE data type to NULL since C does not support setting basic dat..." alt="" coords="5,5,115,97"/>
-</map>

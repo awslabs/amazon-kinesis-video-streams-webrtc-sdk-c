@@ -1,7 +1,0 @@
-<map id="SdpMediaDescription" name="SdpMediaDescription">
-<area shape="rect" id="node1" title=" " alt="" coords="283,175,446,296"/>
-<area shape="rect" id="node2" href="$structSdpConnectionInformation.html" title=" " alt="" coords="5,5,180,112"/>
-<area shape="rect" id="node3" href="$structSdpBandwidth.html" title=" " alt="" coords="208,13,356,105"/>
-<area shape="rect" id="node4" href="$structSdpEncryptionKey.html" title=" " alt="" coords="379,13,515,105"/>
-<area shape="rect" id="node5" href="$structSdpAttributes.html" title=" " alt="" coords="539,13,654,105"/>
-</map>

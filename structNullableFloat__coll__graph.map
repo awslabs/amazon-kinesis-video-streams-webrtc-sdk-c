@@ -1,3 +1,0 @@
-<map id="NullableFloat" name="NullableFloat">
-<area shape="rect" id="node1" title="Custom data type to allow setting FLOAT data type to NULL since C does not support setting basic data..." alt="" coords="5,5,104,97"/>
-</map>

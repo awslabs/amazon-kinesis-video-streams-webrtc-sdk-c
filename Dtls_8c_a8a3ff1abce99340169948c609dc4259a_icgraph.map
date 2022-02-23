@@ -1,7 +1,0 @@
-<map id="dtlsFillPseudoRandomBits" name="dtlsFillPseudoRandomBits">
-<area shape="rect" id="node1" title=" " alt="" coords="597,31,772,57"/>
-<area shape="rect" id="node2" href="$Dtls__mbedtls_8c.html#aeb739e880d3edc3d95e7135805114f13" title=" " alt="" coords="388,31,549,57"/>
-<area shape="rect" id="node3" href="$Dtls__openssl_8c.html#ac40bba1019de3e73a9006b12c9dc4eaa" title=" " alt="" coords="208,5,336,32"/>
-<area shape="rect" id="node5" href="$group__PublicMemberFunctions.html#ga626872eca33a639a1af1903798e9be15" title="Creates an RtcCertificate object." alt="" coords="204,56,340,83"/>
-<area shape="rect" id="node4" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,5,156,32"/>
-</map>
