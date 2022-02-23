@@ -21,10 +21,10 @@ jobs:
           apk add alpine-sdk doxygen graphviz
           apk add --no-cache ttf-freefont
 
-      - name: Generate doxygen
-        run: |
-          doxygen
-        shell: bash
+      - name: Generate Doxygen Documentation
+      run: doxygen
+      shell: bash
+      
       - name: test
         run: |
           pwd
