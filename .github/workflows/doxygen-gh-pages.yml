@@ -24,7 +24,9 @@ jobs:
       - name: Generate doxygen
         run: |
           doxygen .github/Doxyfile
-      
+      - name: test
+        run: ls -a
+        
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@v4.2.5
         with:
