@@ -15,7 +15,7 @@ jobs:
           submodules: "true"
 
       - name: Install Doxygen
-        run: sudo apt-get install doxygen -y
+        run: sudo apt-get install doxygen graphviz -y
         shell: bash
 
       - name: Generate Doxygen Documentation
