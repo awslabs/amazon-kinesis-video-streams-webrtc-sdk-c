@@ -24,11 +24,9 @@ jobs:
       - name: Generate doxygen
         run: |
           doxygen .github/Doxyfile
-          chmod -R 777 doc
-          mv .github/doc/html /tmp
       
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@v4.2.5
         with:
-          folder: tmp
+          folder: doc
       
