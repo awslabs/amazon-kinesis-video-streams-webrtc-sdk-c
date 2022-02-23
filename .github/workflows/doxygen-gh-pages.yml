@@ -21,33 +21,14 @@ jobs:
           apk add alpine-sdk doxygen graphviz
           apk add --no-cache ttf-freefont
 
-      - name: Add SSH key to agent
-        run: |
-          openssl aes-256-cbc -K $encrypted_d627db542948_key -iv $encrypted_d627db542948_iv -in .github/github_deploy_key.enc -out .github/github_deploy_key -d
-          chmod 600 .github/github_deploy_key
-          ssh-add .github/github_deploy_key
-          rm .github/github_deploy_key
-          
       - name: Generate doxygen
         run: |
           doxygen .github/Doxyfile
           chmod -R 777 doc
           mv .github/doc/html /tmp
       
-      - name: Unshallow repo
-        run: |
-          git remote rm origin
-          git remote add origin git@github.com:awslabs/amazon-kinesis-video-streams-webrtc-sdk-c.git
-          git fetch
-
-      - name: Move to gh-pages and create new commit
-        run: |
-          git checkout gh-pages
-          rm -rf * .github
-          mv /tmp/html/* .
-        
-      - name: Commit and push
-        run: |  
-          git add .
-          git commit -m "Auto-generated from travis"
-          git push
+      - name: Deploy
+        uses: JamesIves/github-pages-deploy-action@v4.2.5
+        with:
+          folder: tmp
+      
