@@ -1,0 +1,29 @@
+name: Doxygen GitHub Pages Deploy Action WebRTC C SDK
+
+on:
+  push:
+    branches:
+      - doxygen-ga-develop
+
+jobs:
+  generate-and-deploy-doxygen:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          submodules: "true"
+
+      - name: Install Doxygen
+        run: sudo apt-get install doxygen -y
+        shell: bash
+
+      - name: Generate Doxygen Documentation
+        run: doxygen
+        shell: bash
+      
+      - name: Deploy
+        uses: JamesIves/github-pages-deploy-action@v4.2.5
+        with:
+          folder: doc
+          branch: gh-pages
