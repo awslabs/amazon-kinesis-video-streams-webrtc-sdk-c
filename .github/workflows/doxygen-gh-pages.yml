@@ -22,8 +22,8 @@ jobs:
           apk add --no-cache ttf-freefont
 
       - name: Generate Doxygen Documentation
-      run: doxygen
-      shell: bash
+        run: doxygen
+        shell: bash
       
       - name: test
         run: |
