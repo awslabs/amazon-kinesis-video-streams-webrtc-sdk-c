@@ -17,7 +17,7 @@ jobs:
         shell: bash
 
       - name: Generate Doxygen Documentation
-        run: doxygen ./github/Doxyfile
+        run: doxygen Doxyfile
         shell: bash
       
       - name: Deploy
