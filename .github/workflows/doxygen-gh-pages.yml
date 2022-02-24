@@ -6,30 +6,21 @@ on:
       - doxygen-ga-develop
 
 jobs:
-  generate-and-commit-doxygen:
-    runs-on: ubuntu-18.04
-    container: 
-      image: alpine:latest
+  jobs:
+  generate-and-deploy-doxygen:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
-
+      
       - name: Install requirements
-        run: |
-          apk update
-          apk upgrade
-          apk add alpine-sdk doxygen graphviz
-          apk add --no-cache ttf-freefont
+        run: sudo apt-get install doxygen graphviz -y
+        shell: bash
 
       - name: Generate Doxygen Documentation
-        run: doxygen
+        run: doxygen ./github/Doxyfile
+        shell: bash
       
-      - name: test
-        run: |
-          pwd
-          cd doc
-          ls -a
-
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@v4.2.5
         with:
