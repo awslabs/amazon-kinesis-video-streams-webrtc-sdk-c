@@ -3,7 +3,7 @@ name: Doxygen GitHub Pages Deploy Action WebRTC C SDK
 on:
   push:
     branches:
-      - doxygen-ga-develop
+      - master
 
 jobs:
   generate-and-deploy-doxygen:
