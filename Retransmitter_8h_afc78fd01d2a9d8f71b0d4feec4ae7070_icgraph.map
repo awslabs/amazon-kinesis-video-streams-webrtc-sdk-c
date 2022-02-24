@@ -1,0 +1,11 @@
+<map id="freeRetransmitter" name="freeRetransmitter">
+<area shape="rect" id="node1" title=" " alt="" coords="688,56,827,83"/>
+<area shape="rect" id="node2" href="$Retransmitter_8h.html#a914b34c96ccaeb9dc71e07ddec0fc446" title=" " alt="" coords="479,19,633,45"/>
+<area shape="rect" id="node5" href="$Rtp_8h.html#ae8c85797caf52813ba0b8ca9859b77c5" title=" " alt="" coords="472,81,640,108"/>
+<area shape="rect" id="node3" href="$SessionDescription_8h.html#aab043cb26011e36e6cdd1c335826730a" title=" " alt="" coords="220,5,424,32"/>
+<area shape="rect" id="node4" href="$group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,5,172,32"/>
+<area shape="rect" id="node6" href="$group__PublicMemberFunctions.html#ga5b89dc2e301e35f30330c57bc1361dcb" title="Create a new RtcRtpTransceiver and add it to the set of transceivers." alt="" coords="29,81,149,108"/>
+<area shape="rect" id="node7" href="$Rtp_8h.html#afbd4b909747cdf574518ad6df03a2e76" title=" " alt="" coords="231,107,413,133"/>
+<area shape="rect" id="node8" href="$group__PublicMemberFunctions.html#ga433b1bd125e7f221bcdad97a2a0e8949" title="Free a RtcPeerConnection." alt="" coords="247,157,397,184"/>
+<area shape="rect" id="node9" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="6,157,171,184"/>
+</map>

@@ -1,0 +1,6 @@
+<map id="RtcConfiguration" name="RtcConfiguration">
+<area shape="rect" id="node1" title="The Configuration defines a set of parameters to configure how the peer&#45;to&#45;peer communication establi..." alt="" coords="257,336,411,413"/>
+<area shape="rect" id="node2" href="$structKvsRtcConfiguration.html" title=" " alt="" coords="5,5,257,273"/>
+<area shape="rect" id="node3" href="$structRtcIceServer.html" title="RtcIceServer is used to describe the STUN and TURN servers that can be used by the ICE Agent to estab..." alt="" coords="282,86,386,193"/>
+<area shape="rect" id="node4" href="$structRtcCertificate.html" title="Specifies the certificate and the private key used by the certificate. The Certificates are in the fo..." alt="" coords="411,79,545,200"/>
+</map>

@@ -1,0 +1,4 @@
+<map id="constructRtpPackets" name="constructRtpPackets">
+<area shape="rect" id="node1" title=" " alt="" coords="149,5,303,32"/>
+<area shape="rect" id="node2" href="$group__PublicMemberFunctions.html#ga40c7caf6325f426d82030beec50cc86e" title="Packetizes and sends media via the configuration specified by the RtcRtpTransceiver." alt="" coords="5,5,101,32"/>
+</map>

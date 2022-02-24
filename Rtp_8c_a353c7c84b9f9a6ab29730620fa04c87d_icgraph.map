@@ -1,0 +1,11 @@
+<map id="findTransceiverBySsrc" name="findTransceiverBySsrc">
+<area shape="rect" id="node1" title=" " alt="" coords="739,132,903,159"/>
+<area shape="rect" id="node2" href="$Rtp_8h.html#a3f98236c016e0072d6ef135477ffa895" title=" " alt="" coords="515,56,691,83"/>
+<area shape="rect" id="node7" href="$Rtcp_8h.html#ac82533856a12f259eeba9139a7af516f" title=" " alt="" coords="539,107,667,133"/>
+<area shape="rect" id="node8" href="$Rtcp_8h.html#a96b5d18e6850b948f4755d0cc1d936ed" title=" " alt="" coords="529,157,676,184"/>
+<area shape="rect" id="node9" href="$Retransmitter_8h.html#a55e0c0bf127bb71130d3187b05e7ed87" title=" " alt="" coords="523,208,682,235"/>
+<area shape="rect" id="node3" href="$Metrics_8h.html#a261ca3c06b9302b43cc67486d14ce5bd" title="Get RTP inbound stats." alt="" coords="291,5,441,32"/>
+<area shape="rect" id="node5" href="$Metrics_8h.html#accdb48eadf8cbbd3a50e6812c5faa356" title="Get RTP outbound stats." alt="" coords="285,56,447,83"/>
+<area shape="rect" id="node6" href="$Metrics_8h.html#a88dfd032b3f06afc5748c8e93f59ab48" title="Get remote RTP inbound stats." alt="" coords="265,107,467,133"/>
+<area shape="rect" id="node4" href="$group__PublicMemberFunctions.html#ga469e0f69e03630ad5b03d8921afd62be" title="Get the relevant/all metrics based on the RTCStatsType field. This does not include any signaling rel..." alt="" coords="5,56,217,83"/>
+</map>

@@ -1,0 +1,4 @@
+<map id="RtcIceCandidatePairDiagnostics" name="RtcIceCandidatePairDiagnostics">
+<area shape="rect" id="node1" title=" " alt="" coords="5,160,233,384"/>
+<area shape="rect" id="node2" href="$structNullableUint32.html" title="Custom data type to allow setting UINT32 data type to NULL since C does not support setting basic dat..." alt="" coords="60,5,179,97"/>
+</map>
