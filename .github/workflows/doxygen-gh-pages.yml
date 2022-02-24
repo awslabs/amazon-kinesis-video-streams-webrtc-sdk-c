@@ -6,7 +6,6 @@ on:
       - doxygen-ga-develop
 
 jobs:
-  jobs:
   generate-and-deploy-doxygen:
     runs-on: ubuntu-latest
     steps:
