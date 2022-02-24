@@ -27,6 +27,7 @@ jobs:
       - name: test
         run: |
           pwd
+          cd doc
           ls -a
 
       - name: Deploy
