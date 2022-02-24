@@ -23,7 +23,6 @@ jobs:
 
       - name: Generate Doxygen Documentation
         run: doxygen
-        shell: bash
       
       - name: test
         run: |
