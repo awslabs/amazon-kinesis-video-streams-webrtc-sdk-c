@@ -319,7 +319,7 @@ STATUS jitterBufferDropBufferData(PJitterBuffer pJitterBuffer, UINT16 startIndex
         if (hasEntry) {
             CHK_STATUS(hashTableGet(pJitterBuffer->pPkgBufferHashTable, index, &hashValue));
             pCurPacket = (PRtpPacket) hashValue;
-            if(pCurPacket) {
+            if (pCurPacket) {
                 freeRtpPacket(&pCurPacket);
             }
             CHK_STATUS(hashTableRemove(pJitterBuffer->pPkgBufferHashTable, index));
