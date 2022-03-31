@@ -221,13 +221,11 @@ STATUS jitterBufferInternalParse(PJitterBuffer pJitterBuffer, BOOL bufferClosed)
         } else {
             lastNonNullIndex = index;
             retStatus = hashTableGet(pJitterBuffer->pPkgBufferHashTable, index, &hashValue);
-            if (retStatus == STATUS_SUCCESS) {
-                retStatus = STATUS_SUCCESS;
-            } else if (retStatus == STATUS_HASH_KEY_NOT_PRESENT) {
+            if (retStatus == STATUS_HASH_KEY_NOT_PRESENT) {
                 // should be unreachable, this means hashTablContains() said we had it but hashTableGet() couldn't find it.
                 continue;
             } else {
-                CHK(FALSE, retStatus);
+                CHK_STATUS(retStatus);
             }
             pCurPacket = (PRtpPacket) hashValue;
             CHK(pCurPacket != NULL, STATUS_NULL_ARG);

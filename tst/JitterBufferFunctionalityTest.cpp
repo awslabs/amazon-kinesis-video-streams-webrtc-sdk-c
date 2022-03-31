@@ -448,7 +448,7 @@ TEST_F(JitterBufferFunctionalityTest, fillDataReturnErrorWithImcompleteFrame)
         EXPECT_EQ(STATUS_SUCCESS, jitterBufferPush(mJitterBuffer, mPRtpPackets[i], nullptr));
     }
 
-    EXPECT_EQ(STATUS_NULL_ARG, jitterBufferFillFrameData(mJitterBuffer, buffer, 2, &filledSize, 0, 1));
+    EXPECT_EQ(STATUS_HASH_KEY_NOT_PRESENT, jitterBufferFillFrameData(mJitterBuffer, buffer, 2, &filledSize, 0, 1));
 
     clearJitterBufferForTest();
     MEMFREE(buffer);
