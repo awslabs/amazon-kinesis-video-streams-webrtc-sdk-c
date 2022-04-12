@@ -551,7 +551,7 @@ STATUS freeSampleStreamingSession(PSampleStreamingSession* ppSampleStreamingSess
     // the running thread but it's OK as it's re-entrant
     MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
     if (pSampleConfiguration->iceCandidatePairStatsTimerId != MAX_UINT32 && pSampleConfiguration->streamingSessionCount == 0 &&
-        pSampleConfiguration->iceCandidatePairStatsTimerId != MAX_UINT32 && IS_VALID_TIMER_QUEUE_HANDLE(pSampleConfiguration->timerQueueHandle)) {
+        IS_VALID_TIMER_QUEUE_HANDLE(pSampleConfiguration->timerQueueHandle)) {
         CHK_LOG_ERR(timerQueueCancelTimer(pSampleConfiguration->timerQueueHandle, pSampleConfiguration->iceCandidatePairStatsTimerId,
                                           (UINT64) pSampleConfiguration));
         pSampleConfiguration->iceCandidatePairStatsTimerId = MAX_UINT32;
@@ -957,8 +957,12 @@ STATUS pregenerateCertTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 c
 
     CHK_WARN(pSampleConfiguration != NULL, STATUS_NULL_ARG, "[KVS Master] pregenerateCertTimerCallback(): Passed argument is NULL");
 
-    MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
-    locked = TRUE;
+    // Use MUTEX_TRYLOCK to avoid possible dead lock when canceling timerQueue
+    if (!MUTEX_TRYLOCK(pSampleConfiguration->sampleConfigurationObjLock)) {
+        return retStatus;
+    } else {
+        locked = TRUE;
+    }
 
     // Quick check if there is anything that needs to be done.
     CHK_STATUS(stackQueueGetCount(pSampleConfiguration->pregeneratedCertificates, &certCount));
