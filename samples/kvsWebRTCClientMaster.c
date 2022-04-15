@@ -128,20 +128,6 @@ CleanUp:
         // Kick of the termination sequence
         ATOMIC_STORE_BOOL(&pSampleConfiguration->appTerminateFlag, TRUE);
 
-        if (IS_VALID_MUTEX_VALUE(pSampleConfiguration->sampleConfigurationObjLock)) {
-            MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
-        }
-
-        // Cancel the media thread
-        if (pSampleConfiguration->mediaThreadStarted) {
-            DLOGD("Canceling media thread");
-            THREAD_CANCEL(pSampleConfiguration->mediaSenderTid);
-        }
-
-        if (IS_VALID_MUTEX_VALUE(pSampleConfiguration->sampleConfigurationObjLock)) {
-            MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
-        }
-
         if (pSampleConfiguration->mediaSenderTid != INVALID_TID_VALUE) {
             THREAD_JOIN(pSampleConfiguration->mediaSenderTid, NULL);
         }
@@ -166,6 +152,7 @@ CleanUp:
         }
     }
     printf("[KVS Master] Cleanup done\n");
+    CHK_LOG_ERR(retStatus);
 
     RESET_INSTRUMENTED_ALLOCATORS();
 
@@ -289,7 +276,7 @@ PVOID sendVideoPackets(PVOID args)
     }
 
 CleanUp:
-
+    printf("[KVS Master] closing video thread");
     CHK_LOG_ERR(retStatus);
 
     return (PVOID) (ULONG_PTR) retStatus;
@@ -330,6 +317,7 @@ PVOID sendAudioPackets(PVOID args)
                 printf("[KVS Master] MEMREALLOC(): operation returned status code: 0x%08x \n", STATUS_NOT_ENOUGH_MEMORY);
                 goto CleanUp;
             }
+            pSampleConfiguration->audioBufferSize = frameSize;
         }
 
         frame.frameData = pSampleConfiguration->pAudioFrameBuffer;
@@ -359,7 +347,7 @@ PVOID sendAudioPackets(PVOID args)
     }
 
 CleanUp:
-
+    printf("[KVS Master] closing audio thread");
     return (PVOID) (ULONG_PTR) retStatus;
 }
 

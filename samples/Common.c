@@ -159,7 +159,9 @@ PVOID mediaSenderRoutine(PVOID customData)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) customData;
-    TID videoSenderTid = INVALID_TID_VALUE, audioSenderTid = INVALID_TID_VALUE;
+    CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
+    pSampleConfiguration->videoSenderTid = INVALID_TID_VALUE;
+    pSampleConfiguration->audioSenderTid = INVALID_TID_VALUE;
 
     MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->connected) && !ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
@@ -170,19 +172,19 @@ PVOID mediaSenderRoutine(PVOID customData)
     CHK(!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag), retStatus);
 
     if (pSampleConfiguration->videoSource != NULL) {
-        THREAD_CREATE(&videoSenderTid, pSampleConfiguration->videoSource, (PVOID) pSampleConfiguration);
+        THREAD_CREATE(&pSampleConfiguration->videoSenderTid, pSampleConfiguration->videoSource, (PVOID) pSampleConfiguration);
     }
 
     if (pSampleConfiguration->audioSource != NULL) {
-        THREAD_CREATE(&audioSenderTid, pSampleConfiguration->audioSource, (PVOID) pSampleConfiguration);
+        THREAD_CREATE(&pSampleConfiguration->audioSenderTid, pSampleConfiguration->audioSource, (PVOID) pSampleConfiguration);
     }
 
-    if (videoSenderTid != INVALID_TID_VALUE) {
-        THREAD_JOIN(videoSenderTid, NULL);
+    if (pSampleConfiguration->videoSenderTid != INVALID_TID_VALUE) {
+        THREAD_JOIN(pSampleConfiguration->videoSenderTid, NULL);
     }
 
-    if (audioSenderTid != INVALID_TID_VALUE) {
-        THREAD_JOIN(audioSenderTid, NULL);
+    if (pSampleConfiguration->audioSenderTid != INVALID_TID_VALUE) {
+        THREAD_JOIN(pSampleConfiguration->audioSenderTid, NULL);
     }
 
 CleanUp:
@@ -759,6 +761,8 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
 #endif
 
     pSampleConfiguration->mediaSenderTid = INVALID_TID_VALUE;
+    pSampleConfiguration->audioSenderTid = INVALID_TID_VALUE;
+    pSampleConfiguration->videoSenderTid = INVALID_TID_VALUE;
     pSampleConfiguration->signalingClientHandle = INVALID_SIGNALING_CLIENT_HANDLE_VALUE;
     pSampleConfiguration->sampleConfigurationObjLock = MUTEX_CREATE(TRUE);
     pSampleConfiguration->cvar = CVAR_CREATE();
