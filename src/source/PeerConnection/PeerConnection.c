@@ -786,6 +786,15 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
         pCurNode = pCurNode->pNext;
     }
 
+    CHK_LOG_ERR(doubleListGetHeadNode(pKvsPeerConnection->pFakeTransceivers, &pCurNode));
+    while (pCurNode != NULL) {
+        CHK_LOG_ERR(doubleListGetNodeData(pCurNode, &item));
+        CHK_LOG_ERR(freeKvsRtpTransceiver((PKvsRtpTransceiver*) &item));
+
+        pCurNode = pCurNode->pNext;
+    }
+
+
     // Free DataChannels
     CHK_LOG_ERR(hashTableIterateEntries(pKvsPeerConnection->pDataChannels, 0, freeHashEntry));
     CHK_LOG_ERR(hashTableFree(pKvsPeerConnection->pDataChannels));
@@ -794,6 +803,8 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
     CHK_LOG_ERR(freeSrtpSession(&pKvsPeerConnection->pSrtpSession));
     CHK_LOG_ERR(freeDtlsSession(&pKvsPeerConnection->pDtlsSession));
     CHK_LOG_ERR(doubleListFree(pKvsPeerConnection->pTransceivers));
+    CHK_LOG_ERR(doubleListFree(pKvsPeerConnection->pFakeTransceivers));
+    CHK_LOG_ERR(doubleListFree(pKvsPeerConnection->pAnswerTransceivers));
     CHK_LOG_ERR(hashTableFree(pKvsPeerConnection->pCodecTable));
     CHK_LOG_ERR(hashTableFree(pKvsPeerConnection->pRtxTable));
     if (IS_VALID_MUTEX_VALUE(pKvsPeerConnection->pSrtpSessionLock)) {

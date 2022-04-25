@@ -77,6 +77,9 @@ typedef struct {
 
     SessionDescription remoteSessionDescription;
     PDoubleList pTransceivers;
+    PDoubleList pFakeTransceivers;
+    PDoubleList pAnswerTransceivers;
+
     BOOL sctpIsEnabled;
 
     CHAR localIceUfrag[LOCAL_ICE_UFRAG_LEN + 1];

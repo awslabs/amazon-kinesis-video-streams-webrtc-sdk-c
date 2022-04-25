@@ -398,16 +398,16 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
     PRtcMediaStreamTrack pRtcMediaStreamTrack = &(pKvsRtpTransceiver->sender.track);
     PSdpMediaDescription pSdpMediaDescriptionRemote;
     PCHAR currentFmtp = NULL;
+    RTC_RTP_TRANSCEIVER_DIRECTION currentDirection;
 
     CHK_STATUS(hashTableGet(pKvsPeerConnection->pCodecTable, pRtcMediaStreamTrack->codec, &payloadType));
     currentFmtp = fmtpForPayloadType(payloadType, &(pKvsPeerConnection->remoteSessionDescription));
 
-    if (pRtcMediaStreamTrack->codec == RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE ||
-        pRtcMediaStreamTrack->codec == RTC_CODEC_VP8) {
+    if (pRtcMediaStreamTrack->kind == MEDIA_STREAM_TRACK_KIND_VIDEO) {
         if (pRtcMediaStreamTrack->codec == RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE) {
             retStatus = hashTableGet(pKvsPeerConnection->pRtxTable, RTC_RTX_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE,
                                      &rtxPayloadType);
-        } else {
+        } else if (pRtcMediaStreamTrack->codec == RTC_CODEC_VP8){
             retStatus = hashTableGet(pKvsPeerConnection->pRtxTable, RTC_RTX_CODEC_VP8, &rtxPayloadType);
         }
         CHK(retStatus == STATUS_SUCCESS || retStatus == STATUS_HASH_KEY_NOT_PRESENT, retStatus);
@@ -418,8 +418,7 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
         } else {
             SPRINTF(pSdpMediaDescription->mediaName, "video 9 UDP/TLS/RTP/SAVPF %" PRId64, payloadType);
         }
-    } else if (pRtcMediaStreamTrack->codec == RTC_CODEC_OPUS || pRtcMediaStreamTrack->codec == RTC_CODEC_MULAW ||
-               pRtcMediaStreamTrack->codec == RTC_CODEC_ALAW) {
+    } else if (pRtcMediaStreamTrack->kind == MEDIA_STREAM_TRACK_KIND_AUDIO) {
         SPRINTF(pSdpMediaDescription->mediaName, "audio 9 UDP/TLS/RTP/SAVPF %" PRId64, payloadType);
     }
 
@@ -534,6 +533,10 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
         pSdpMediaDescriptionRemote = &pRemoteSessionDescription->mediaDescriptions[mediaSectionId];
         remoteAttributeCount = pSdpMediaDescriptionRemote->mediaAttributesCount;
 
+        if (pKvsRtpTransceiver->transceiver.direction == RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE) {
+            STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "inactive");
+            directionFound = TRUE;
+        }
         for (i = 0; i < remoteAttributeCount && directionFound == FALSE; i++) {
             if (STRCMP(pSdpMediaDescriptionRemote->sdpAttributes[i].attributeName, "sendrecv") == 0) {
                 STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "sendrecv");
@@ -744,29 +747,45 @@ STATUS populateSessionDescriptionMedia(PKvsPeerConnection pKvsPeerConnection, PS
 
     if (pKvsPeerConnection->isOffer) {
         pDtlsRole = DTLS_ROLE_ACTPASS;
-    } else {
-        pDtlsRole = DTLS_ROLE_ACTIVE;
-        CHK_STATUS(reorderTransceiverByRemoteDescription(pKvsPeerConnection, pRemoteSessionDescription));
-    }
 
-    CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pTransceivers, &pCurNode));
-    while (pCurNode != NULL) {
-        CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
-        pCurNode = pCurNode->pNext;
-        pKvsRtpTransceiver = (PKvsRtpTransceiver) data;
-        if (pKvsRtpTransceiver != NULL) {
-            CHK(pLocalSessionDescription->mediaCount < MAX_SDP_SESSION_MEDIA_COUNT, STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT);
+        CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pTransceivers, &pCurNode));
+        while (pCurNode != NULL) {
+            CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
+            pCurNode = pCurNode->pNext;
+            pKvsRtpTransceiver = (PKvsRtpTransceiver) data;
+            if (pKvsRtpTransceiver != NULL) {
+                CHK(pLocalSessionDescription->mediaCount < MAX_SDP_SESSION_MEDIA_COUNT, STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT);
 
-            // If generating answer, need to check if Local Description is present in remote -- if not, we don't need to create a local description
-            // for it or else our Answer will have an extra m-line, for offer the local is the offer itself, don't care about remote
-            if (pKvsPeerConnection->isOffer || isPresentInRemote(pKvsRtpTransceiver, pRemoteSessionDescription)) {
+                // If generating answer, need to check if Local Description is present in remote -- if not, we don't need to create a local description
+                // for it or else our Answer will have an extra m-line, for offer the local is the offer itself, don't care about remote
                 CHK_STATUS(populateSingleMediaSection(
                     pKvsPeerConnection, pKvsRtpTransceiver, &(pLocalSessionDescription->mediaDescriptions[pLocalSessionDescription->mediaCount]),
                     pRemoteSessionDescription, certificateFingerprint, pLocalSessionDescription->mediaCount, pDtlsRole));
                 pLocalSessionDescription->mediaCount++;
+
+            }
+        }
+    } else {
+        pDtlsRole = DTLS_ROLE_ACTIVE;
+        CHK_STATUS(findTransceiversByRemoteDescription(pKvsPeerConnection, pRemoteSessionDescription));
+
+        CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pAnswerTransceivers, &pCurNode));
+        while (pCurNode != NULL) {
+            CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
+            pCurNode = pCurNode->pNext;
+            pKvsRtpTransceiver = (PKvsRtpTransceiver) data;
+            if (pKvsRtpTransceiver != NULL) {
+                CHK(pLocalSessionDescription->mediaCount < MAX_SDP_SESSION_MEDIA_COUNT, STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT);
+                if (isPresentInRemote(pKvsRtpTransceiver, pRemoteSessionDescription)) {
+                    CHK_STATUS(populateSingleMediaSection(
+                        pKvsPeerConnection, pKvsRtpTransceiver, &(pLocalSessionDescription->mediaDescriptions[pLocalSessionDescription->mediaCount]),
+                        pRemoteSessionDescription, certificateFingerprint, pLocalSessionDescription->mediaCount, pDtlsRole));
+                    pLocalSessionDescription->mediaCount++;
+                }
             }
         }
     }
+
 
     if (pKvsPeerConnection->sctpIsEnabled) {
         CHK(pLocalSessionDescription->mediaCount < MAX_SDP_SESSION_MEDIA_COUNT, STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT);
@@ -860,34 +879,23 @@ CleanUp:
     return retStatus;
 }
 
-// primarily meant to be used by reorderTransceiverByRemoteDescription
-// Find a Transceiver with n codec, and then copy it to the end of the transceivers
-// this allows us to re-order by the order the remote dictates
-STATUS copyTransceiverWithCodec(PKvsPeerConnection pKvsPeerConnection, RTC_CODEC rtcCodec, PBOOL pDidFindCodec)
+STATUS findCodecInTransceivers(PKvsPeerConnection pKvsPeerConnection, RTC_CODEC rtcCodec, PBOOL pDidFindCodec)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PDoubleListNode pCurNode = NULL;
-    PKvsRtpTransceiver pTargetKvsRtpTransceiver = NULL, pKvsRtpTransceiver;
+    PKvsRtpTransceiver pKvsRtpTransceiver;
     UINT64 data;
-
-    CHK(pKvsPeerConnection != NULL && pDidFindCodec != NULL, STATUS_NULL_ARG);
-
-    *pDidFindCodec = FALSE;
 
     CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pTransceivers, &pCurNode));
     while (pCurNode != NULL) {
         CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
         pKvsRtpTransceiver = (PKvsRtpTransceiver) data;
         if (pKvsRtpTransceiver != NULL && pKvsRtpTransceiver->sender.track.codec == rtcCodec) {
-            pTargetKvsRtpTransceiver = pKvsRtpTransceiver;
-            doubleListDeleteNode(pKvsPeerConnection->pTransceivers, pCurNode);
+            CHK_STATUS(doubleListInsertItemTail(pKvsPeerConnection->pAnswerTransceivers, (UINT64) pKvsRtpTransceiver));
+            *pDidFindCodec = TRUE;
             break;
         }
         pCurNode = pCurNode->pNext;
-    }
-    if (pTargetKvsRtpTransceiver != NULL) {
-        CHK_STATUS(doubleListInsertItemTail(pKvsPeerConnection->pTransceivers, (UINT64) pTargetKvsRtpTransceiver));
-        *pDidFindCodec = TRUE;
     }
 
 CleanUp:
@@ -895,15 +903,25 @@ CleanUp:
     return retStatus;
 }
 
-STATUS reorderTransceiverByRemoteDescription(PKvsPeerConnection pKvsPeerConnection, PSessionDescription pRemoteSessionDescription)
+STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection, PSessionDescription pRemoteSessionDescription)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 currentMedia, currentAttribute, transceiverCount = 0, tokenLen;
     PSdpMediaDescription pMediaDescription = NULL;
-    PCHAR attributeValue, end;
-    BOOL supportCodec, foundMediaSectionWithCodec;
+    PCHAR attributeValue, end, codecs = NULL;
+    BOOL supportCodec, foundMediaSectionWithCodec, contains = FALSE;
+
     RTC_CODEC rtcCodec;
+    UINT32 codec, count;
+    MEDIA_STREAM_TRACK_KIND streamKind;
+    PKvsRtpTransceiver pKvsRtpFakeTransceiver = NULL;
+    PRtcMediaStreamTrack pRtcMediaStreamTrack;
+    RtcMediaStreamTrack track;
+    UINT32 ssrc = (UINT32) RAND(), rtxSsrc = (UINT32) RAND();
+
+    CHK_STATUS(doubleListCreate(&(pKvsPeerConnection->pFakeTransceivers)));
+    CHK_STATUS(doubleListCreate(&(pKvsPeerConnection->pAnswerTransceivers)));
 
     // change the order of pKvsPeerConnection->pTransceivers to have the same codec order in pRemoteSessionDescription
     CHK_STATUS(doubleListGetNodeCount(pKvsPeerConnection->pTransceivers, &transceiverCount));
@@ -911,37 +929,55 @@ STATUS reorderTransceiverByRemoteDescription(PKvsPeerConnection pKvsPeerConnecti
     for (currentMedia = 0; currentMedia < pRemoteSessionDescription->mediaCount; currentMedia++) {
         pMediaDescription = &(pRemoteSessionDescription->mediaDescriptions[currentMedia]);
         foundMediaSectionWithCodec = FALSE;
+        count = 0;
 
         // Scan the media section name for any codecs we support
         attributeValue = pMediaDescription->mediaName;
 
+        if ((end = STRCHR(attributeValue, ' ')) != NULL) {
+            tokenLen = (end - attributeValue);
+        } else {
+            tokenLen = STRLEN(attributeValue);
+        }
+
+        if (STRNCMP(MEDIA_SECTION_AUDIO_VALUE, attributeValue, tokenLen) == 0) {
+            streamKind = MEDIA_STREAM_TRACK_KIND_AUDIO;
+        } else if (STRNCMP(MEDIA_SECTION_VIDEO_VALUE, attributeValue, tokenLen) == 0) {
+            streamKind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+        } else {
+            continue;
+        }
+
         do {
+            count++;
             if ((end = STRCHR(attributeValue, ' ')) != NULL) {
                 tokenLen = (end - attributeValue);
             } else {
                 tokenLen = STRLEN(attributeValue);
             }
-
-            if (STRNCMP(DEFAULT_PAYLOAD_MULAW_STR, attributeValue, tokenLen) == 0) {
-                supportCodec = TRUE;
-                rtcCodec = RTC_CODEC_MULAW;
-            } else if (STRNCMP(DEFAULT_PAYLOAD_ALAW_STR, attributeValue, tokenLen) == 0) {
-                supportCodec = TRUE;
-                rtcCodec = RTC_CODEC_ALAW;
-            } else {
-                supportCodec = FALSE;
+            if (count == 4) {
+                codecs = attributeValue;
             }
+            if (count > 3) {
+                if (STRNCMP(DEFAULT_PAYLOAD_MULAW_STR, attributeValue, tokenLen) == 0) {
+                    supportCodec = TRUE;
+                    rtcCodec = RTC_CODEC_MULAW;
+                } else if (STRNCMP(DEFAULT_PAYLOAD_ALAW_STR, attributeValue, tokenLen) == 0) {
+                    supportCodec = TRUE;
+                    rtcCodec = RTC_CODEC_ALAW;
+                } else {
+                    supportCodec = FALSE;
+                }
 
-            // find transceiver with rtcCodec and duplicate it at tail
-            if (supportCodec) {
-                CHK_STATUS(copyTransceiverWithCodec(pKvsPeerConnection, rtcCodec, &foundMediaSectionWithCodec));
+                if (supportCodec) {
+                    CHK_STATUS(findCodecInTransceivers(pKvsPeerConnection, rtcCodec, &foundMediaSectionWithCodec));
+                }
             }
             if (end != NULL) {
                 attributeValue = end + 1;
             }
         } while (end != NULL && !foundMediaSectionWithCodec);
 
-        // Scan the media section attributes for codecs we support
         for (currentAttribute = 0; currentAttribute < pMediaDescription->mediaAttributesCount && !foundMediaSectionWithCodec; currentAttribute++) {
             attributeValue = pMediaDescription->sdpAttributes[currentAttribute].attributeValue;
 
@@ -964,9 +1000,32 @@ STATUS reorderTransceiverByRemoteDescription(PKvsPeerConnection pKvsPeerConnecti
                 supportCodec = FALSE;
             }
 
-            // find transceiver with rtcCodec and duplicate it at tail
             if (supportCodec) {
-                CHK_STATUS(copyTransceiverWithCodec(pKvsPeerConnection, rtcCodec, &foundMediaSectionWithCodec));
+                CHK_STATUS(findCodecInTransceivers(pKvsPeerConnection, rtcCodec, &foundMediaSectionWithCodec));
+            }
+        }
+        if (!foundMediaSectionWithCodec && (streamKind == MEDIA_STREAM_TRACK_KIND_AUDIO || streamKind == MEDIA_STREAM_TRACK_KIND_VIDEO)) {
+            MEMSET(&track, 0x00, SIZEOF(RtcMediaStreamTrack));
+            track.kind = streamKind;
+            track.codec = RTC_CODEC_UNKNOWN;
+            STRCPY(track.streamId, "fakeStream");
+            STRCPY(track.trackId, "fakeTrack");
+            pRtcMediaStreamTrack = &track;
+            CHK_STATUS(createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE, pKvsPeerConnection, ssrc, rtxSsrc, pRtcMediaStreamTrack,
+                                               NULL, RTC_CODEC_UNKNOWN, &pKvsRtpFakeTransceiver));
+
+            CHK_STATUS(doubleListInsertItemTail(pKvsPeerConnection->pFakeTransceivers, (UINT64) pKvsRtpFakeTransceiver));
+            CHK_STATUS(doubleListInsertItemTail(pKvsPeerConnection->pAnswerTransceivers, (UINT64) pKvsRtpFakeTransceiver));
+
+            if ((end = STRCHR(codecs, ' ')) != NULL) {
+                tokenLen = (end - codecs);
+            }
+            CHK_STATUS(STRTOUI32(codecs, codecs + tokenLen, 10, &codec));
+            CHK_STATUS(hashTableContains(pKvsPeerConnection->pCodecTable, RTC_CODEC_UNKNOWN, &contains));
+            if (contains == FALSE) {
+                CHK_STATUS(hashTablePut(pKvsPeerConnection->pCodecTable, RTC_CODEC_UNKNOWN, codec));
+            } else {
+                CHK_STATUS(hashTableUpsert(pKvsPeerConnection->pCodecTable, RTC_CODEC_UNKNOWN, codec));
             }
         }
     }

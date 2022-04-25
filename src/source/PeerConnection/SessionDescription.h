@@ -80,7 +80,7 @@ STATUS setPayloadTypesForOffer(PHashTable);
 
 STATUS setTransceiverPayloadTypes(PHashTable, PHashTable, PDoubleList);
 STATUS populateSessionDescription(PKvsPeerConnection, PSessionDescription, PSessionDescription);
-STATUS reorderTransceiverByRemoteDescription(PKvsPeerConnection, PSessionDescription);
+STATUS findTransceiversByRemoteDescription(PKvsPeerConnection, PSessionDescription);
 STATUS setReceiversSsrc(PSessionDescription, PDoubleList);
 PCHAR fmtpForPayloadType(UINT64, PSessionDescription);
 UINT64 getH264FmtpScore(PCHAR);
