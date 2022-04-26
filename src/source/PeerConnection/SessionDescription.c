@@ -879,19 +879,22 @@ CleanUp:
     return retStatus;
 }
 
-STATUS findCodecInTransceivers(PKvsPeerConnection pKvsPeerConnection, RTC_CODEC rtcCodec, PBOOL pDidFindCodec)
+STATUS findCodecInTransceivers(PKvsPeerConnection pKvsPeerConnection, RTC_CODEC rtcCodec, PBOOL pDidFindCodec, PHashTable pSeenTransceivers)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PDoubleListNode pCurNode = NULL;
     PKvsRtpTransceiver pKvsRtpTransceiver;
     UINT64 data;
+    BOOL contains = FALSE;
 
     CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pTransceivers, &pCurNode));
     while (pCurNode != NULL) {
         CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
         pKvsRtpTransceiver = (PKvsRtpTransceiver) data;
-        if (pKvsRtpTransceiver != NULL && pKvsRtpTransceiver->sender.track.codec == rtcCodec) {
+        CHK_STATUS(hashTableContains(pSeenTransceivers, (UINT64) pKvsRtpTransceiver, &contains));
+        if (pKvsRtpTransceiver != NULL && pKvsRtpTransceiver->sender.track.codec == rtcCodec && contains == FALSE) {
             CHK_STATUS(doubleListInsertItemTail(pKvsPeerConnection->pAnswerTransceivers, (UINT64) pKvsRtpTransceiver));
+            CHK_STATUS(hashTablePut(pSeenTransceivers, (UINT64) pKvsRtpTransceiver, 1));
             *pDidFindCodec = TRUE;
             break;
         }
@@ -911,6 +914,9 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
     PSdpMediaDescription pMediaDescription = NULL;
     PCHAR attributeValue, end, codecs = NULL;
     BOOL supportCodec, foundMediaSectionWithCodec, contains = FALSE;
+    PHashTable pSeenTransceivers;
+
+    CHK_STATUS(hashTableCreate(&pSeenTransceivers));
 
     RTC_CODEC rtcCodec;
     UINT32 codec, count;
@@ -970,7 +976,7 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
                 }
 
                 if (supportCodec) {
-                    CHK_STATUS(findCodecInTransceivers(pKvsPeerConnection, rtcCodec, &foundMediaSectionWithCodec));
+                    CHK_STATUS(findCodecInTransceivers(pKvsPeerConnection, rtcCodec, &foundMediaSectionWithCodec, pSeenTransceivers));
                 }
             }
             if (end != NULL) {
@@ -1001,7 +1007,7 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
             }
 
             if (supportCodec) {
-                CHK_STATUS(findCodecInTransceivers(pKvsPeerConnection, rtcCodec, &foundMediaSectionWithCodec));
+                CHK_STATUS(findCodecInTransceivers(pKvsPeerConnection, rtcCodec, &foundMediaSectionWithCodec, pSeenTransceivers));
             }
         }
         if (!foundMediaSectionWithCodec && (streamKind == MEDIA_STREAM_TRACK_KIND_AUDIO || streamKind == MEDIA_STREAM_TRACK_KIND_VIDEO)) {
@@ -1032,6 +1038,7 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
 
 CleanUp:
 
+    CHK_STATUS(hashTableFree(pSeenTransceivers));
     CHK_LOG_ERR(retStatus);
 
     LEAVES();
