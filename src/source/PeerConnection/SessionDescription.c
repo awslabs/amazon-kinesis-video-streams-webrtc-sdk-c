@@ -398,7 +398,6 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
     PRtcMediaStreamTrack pRtcMediaStreamTrack = &(pKvsRtpTransceiver->sender.track);
     PSdpMediaDescription pSdpMediaDescriptionRemote;
     PCHAR currentFmtp = NULL;
-    RTC_RTP_TRANSCEIVER_DIRECTION currentDirection;
 
     CHK_STATUS(hashTableGet(pKvsPeerConnection->pCodecTable, pRtcMediaStreamTrack->codec, &payloadType));
     currentFmtp = fmtpForPayloadType(payloadType, &(pKvsPeerConnection->remoteSessionDescription));
@@ -786,7 +785,6 @@ STATUS populateSessionDescriptionMedia(PKvsPeerConnection pKvsPeerConnection, PS
         }
     }
 
-
     if (pKvsPeerConnection->sctpIsEnabled) {
         CHK(pLocalSessionDescription->mediaCount < MAX_SDP_SESSION_MEDIA_COUNT, STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT);
         CHK_STATUS(populateSessionDescriptionDataChannel(pKvsPeerConnection,
@@ -894,7 +892,7 @@ STATUS findCodecInTransceivers(PKvsPeerConnection pKvsPeerConnection, RTC_CODEC 
         CHK_STATUS(hashTableContains(pSeenTransceivers, (UINT64) pKvsRtpTransceiver, &contains));
         if (pKvsRtpTransceiver != NULL && pKvsRtpTransceiver->sender.track.codec == rtcCodec && contains == FALSE) {
             CHK_STATUS(doubleListInsertItemTail(pKvsPeerConnection->pAnswerTransceivers, (UINT64) pKvsRtpTransceiver));
-            CHK_STATUS(hashTablePut(pSeenTransceivers, (UINT64) pKvsRtpTransceiver, 1));
+            CHK_STATUS(hashTablePut(pSeenTransceivers, (UINT64) pKvsRtpTransceiver, 0));
             *pDidFindCodec = TRUE;
             break;
         }
@@ -925,9 +923,6 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
     PRtcMediaStreamTrack pRtcMediaStreamTrack;
     RtcMediaStreamTrack track;
     UINT32 ssrc = (UINT32) RAND(), rtxSsrc = (UINT32) RAND();
-
-    CHK_STATUS(doubleListCreate(&(pKvsPeerConnection->pFakeTransceivers)));
-    CHK_STATUS(doubleListCreate(&(pKvsPeerConnection->pAnswerTransceivers)));
 
     // change the order of pKvsPeerConnection->pTransceivers to have the same codec order in pRemoteSessionDescription
     CHK_STATUS(doubleListGetNodeCount(pKvsPeerConnection->pTransceivers, &transceiverCount));
