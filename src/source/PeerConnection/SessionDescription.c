@@ -1022,10 +1022,10 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
 
         if ((end = STRCHR(codecs, ' ')) != NULL) {
             tokenLen = (end - codecs);
-            if (tokenLen > 0){
-                STRNCPY(firstCodec, codecs, tokenLen);
-            }
+        } else {
+            tokenLen = STRLEN(codecs);
         }
+        STRNCPY(firstCodec, codecs, tokenLen);
 
         for (currentAttribute = 0; currentAttribute < pMediaDescription->mediaAttributesCount && !foundMediaSectionWithCodec; currentAttribute++) {
             attributeValue = pMediaDescription->sdpAttributes[currentAttribute].attributeValue;
