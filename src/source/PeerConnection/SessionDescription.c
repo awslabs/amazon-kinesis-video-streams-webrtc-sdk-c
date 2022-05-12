@@ -388,7 +388,7 @@ UINT64 getH264FmtpScore(PCHAR fmtp)
 STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtpTransceiver pKvsRtpTransceiver,
                                   PSdpMediaDescription pSdpMediaDescription, PSessionDescription pRemoteSessionDescription,
                                   PCHAR pCertificateFingerprint, UINT32 mediaSectionId, PCHAR pDtlsRole,
-                                  PHashTable pUnknownCodecPayloadTypesTable, PHashTable pUnknownCodecRtpmapTable, UINT32 unknownHashTableKey)
+                                  PHashTable pUnknownCodecPayloadTypesTable, PHashTable pUnknownCodecRtpmapTable, UINT32 unknownCodecHashTableKey)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -402,7 +402,7 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
     PCHAR currentFmtp = NULL, rtpMapValue = NULL;
 
     if (pRtcMediaStreamTrack->codec == RTC_CODEC_UNKNOWN && pUnknownCodecPayloadTypesTable != NULL && pUnknownCodecRtpmapTable != NULL) {
-        CHK_STATUS(hashTableGet(pUnknownCodecPayloadTypesTable, unknownHashTableKey, &payloadType));
+        CHK_STATUS(hashTableGet(pUnknownCodecPayloadTypesTable, unknownCodecHashTableKey, &payloadType));
     } else {
         CHK_STATUS(hashTableGet(pKvsPeerConnection->pCodecTable, pRtcMediaStreamTrack->codec, &payloadType));
         currentFmtp = fmtpForPayloadType(payloadType, &(pKvsPeerConnection->remoteSessionDescription));
@@ -627,9 +627,9 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
         SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%" PRId64 " " ALAW_VALUE, payloadType);
         attributeCount++;
     } else if (pRtcMediaStreamTrack->codec == RTC_CODEC_UNKNOWN) {
-        CHK_STATUS(hashTableContains(pUnknownCodecRtpmapTable, unknownHashTableKey, &contains));
+        CHK_STATUS(hashTableContains(pUnknownCodecRtpmapTable, unknownCodecHashTableKey, &contains));
         if (contains) {
-            CHK_STATUS(hashTableGet(pUnknownCodecRtpmapTable, unknownHashTableKey, (PUINT64) &rtpMapValue));
+            CHK_STATUS(hashTableGet(pUnknownCodecRtpmapTable, unknownCodecHashTableKey, (PUINT64) &rtpMapValue));
             STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtpmap");
             SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%" PRId64 " %s", payloadType, rtpMapValue);
         }
@@ -758,7 +758,7 @@ STATUS populateSessionDescriptionMedia(PKvsPeerConnection pKvsPeerConnection, PS
     PKvsRtpTransceiver pKvsRtpTransceiver;
     PCHAR pDtlsRole = NULL;
     PHashTable pUnknownCodecPayloadTypesTable = NULL, pUnknownCodecRtpmapTable = NULL;
-    UINT32 unknownHashTableKey = 0;
+    UINT32 unknownCodecHashTableKey = 0;
 
     CHK_STATUS(dtlsSessionGetLocalCertificateFingerprint(pKvsPeerConnection->pDtlsSession, certificateFingerprint, CERTIFICATE_FINGERPRINT_LENGTH));
 
@@ -803,8 +803,9 @@ STATUS populateSessionDescriptionMedia(PKvsPeerConnection pKvsPeerConnection, PS
                         CHK_STATUS(populateSingleMediaSection(
                             pKvsPeerConnection, pKvsRtpTransceiver, &(pLocalSessionDescription->mediaDescriptions[pLocalSessionDescription->mediaCount]),
                             pRemoteSessionDescription, certificateFingerprint, pLocalSessionDescription->mediaCount, pDtlsRole,
-                            pUnknownCodecPayloadTypesTable, pUnknownCodecRtpmapTable, unknownHashTableKey));
-                        unknownHashTableKey++;
+                            pUnknownCodecPayloadTypesTable, pUnknownCodecRtpmapTable,
+                                                              unknownCodecHashTableKey));
+                        unknownCodecHashTableKey++;
 
                     } else {
                     CHK_STATUS(populateSingleMediaSection(
@@ -952,8 +953,9 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
     UINT32 currentMedia, currentAttribute, transceiverCount = 0, tokenLen = 0, codec = 0,
                                            count = 0, unknownCodecCounter = 0;
     PSdpMediaDescription pMediaDescription = NULL;
-    PCHAR attributeValue, end, codecs = NULL, rtpMapValue = NULL;
-    CHAR firstCodec[10];
+    PCHAR attributeValue, end, codecs = NULL;
+    PCHAR rtpMapValue = NULL;
+    CHAR firstCodec[MAX_PAYLOAD_TYPE_LENGTH];
     BOOL supportCodec, foundMediaSectionWithCodec, containsPayloadType = FALSE, containsRtpMap = FALSE;
     PHashTable pSeenTransceivers;
     RTC_CODEC rtcCodec;
@@ -964,14 +966,11 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
 
     CHK_STATUS(hashTableCreate(&pSeenTransceivers));
 
-    // change the order of pKvsPeerConnection->pTransceivers to have the same codec order in pRemoteSessionDescription
-    CHK_STATUS(doubleListGetNodeCount(pKvsPeerConnection->pTransceivers, &transceiverCount));
-
     for (currentMedia = 0; currentMedia < pRemoteSessionDescription->mediaCount; currentMedia++) {
         pMediaDescription = &(pRemoteSessionDescription->mediaDescriptions[currentMedia]);
         foundMediaSectionWithCodec = FALSE;
         count = 0;
-        MEMSET(firstCodec, 0x00, 10);
+        MEMSET(firstCodec, 0x00, MAX_PAYLOAD_TYPE_LENGTH);
 
         // Scan the media section name for any codecs we support
         attributeValue = pMediaDescription->mediaName;
@@ -1031,7 +1030,7 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
             attributeValue = pMediaDescription->sdpAttributes[currentAttribute].attributeValue;
             rtcCodec = RTC_CODEC_UNKNOWN;
 
-            if (STRNCMP("rtpmap", pMediaDescription->sdpAttributes[currentAttribute].attributeName, 6) == 0) {
+            if (STRNCMP(RTPMAP_VALUE, pMediaDescription->sdpAttributes[currentAttribute].attributeName, 7) == 0) {
                 if (STRSTR(attributeValue, H264_VALUE) != NULL) {
                     supportCodec = TRUE;
                     rtcCodec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;

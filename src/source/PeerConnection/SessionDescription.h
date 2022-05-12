@@ -36,6 +36,9 @@ extern "C" {
 #define RTX_VALUE       "rtx/90000"
 #define RTX_CODEC_VALUE "apt="
 #define FMTP_VALUE      "fmtp:"
+#define RTPMAP_VALUE    "rtpmap:"
+
+#define MAX_PAYLOAD_TYPE_LENGTH (UINT64)10
 
 #define DEFAULT_PAYLOAD_MULAW (UINT64) 0
 #define DEFAULT_PAYLOAD_ALAW  (UINT64) 8
