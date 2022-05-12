@@ -12,6 +12,15 @@ VOID sigintHandler(INT32 sigNum)
     }
 }
 
+STATUS signalingCallFailed(STATUS status) {
+   return  (STATUS_SIGNALING_GET_TOKEN_CALL_FAILED == status      ||
+            STATUS_SIGNALING_DESCRIBE_CALL_FAILED == status       ||
+            STATUS_SIGNALING_CREATE_CALL_FAILED == status         ||
+            STATUS_SIGNALING_GET_ENDPOINT_CALL_FAILED == status   ||
+            STATUS_SIGNALING_GET_ICE_CONFIG_CALL_FAILED == status ||
+            STATUS_SIGNALING_CONNECT_CALL_FAILED == status);
+}
+
 VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL isBinary, PBYTE pMessage, UINT32 pMessageLen)
 {
     UNUSED_PARAM(customData);
@@ -1160,10 +1169,19 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
         }
 
         // Check if we need to re-create the signaling client on-the-fly
-        if (ATOMIC_LOAD_BOOL(&pSampleConfiguration->recreateSignalingClient) &&
-            STATUS_SUCCEEDED(signalingClientFetchSync(pSampleConfiguration->signalingClientHandle))) {
-            // Re-set the variable again
-            ATOMIC_STORE_BOOL(&pSampleConfiguration->recreateSignalingClient, FALSE);
+        if (ATOMIC_LOAD_BOOL(&pSampleConfiguration->recreateSignalingClient)) {
+            retStatus = signalingClientFetchSync(pSampleConfiguration->signalingClientHandle);
+            if(STATUS_SUCCEEDED(retStatus)) {
+                // Re-set the variable again
+                ATOMIC_STORE_BOOL(&pSampleConfiguration->recreateSignalingClient, FALSE);
+            }
+            else if(signalingCallFailed(retStatus)) {
+                printf("[KVS Common] recreating Signaling Client\n");
+                freeSignalingClient(&pSampleConfiguration->signalingClientHandle);
+                createSignalingClientSync(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
+                                          &pSampleConfiguration->signalingClientCallbacks, pSampleConfiguration->pCredentialProvider,
+                                          &pSampleConfiguration->signalingClientHandle);
+            }
         }
 
         // Check the signaling client state and connect if needed
