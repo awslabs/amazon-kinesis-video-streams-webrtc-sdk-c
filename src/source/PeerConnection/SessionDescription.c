@@ -387,8 +387,8 @@ UINT64 getH264FmtpScore(PCHAR fmtp)
 // Populate a single media section from a PKvsRtpTransceiver
 STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtpTransceiver pKvsRtpTransceiver,
                                   PSdpMediaDescription pSdpMediaDescription, PSessionDescription pRemoteSessionDescription,
-                                  PCHAR pCertificateFingerprint, UINT32 mediaSectionId, PCHAR pDtlsRole,
-                                  PHashTable pUnknownCodecPayloadTypesTable, PHashTable pUnknownCodecRtpmapTable, UINT32 unknownCodecHashTableKey)
+                                  PCHAR pCertificateFingerprint, UINT32 mediaSectionId, PCHAR pDtlsRole, PHashTable pUnknownCodecPayloadTypesTable,
+                                  PHashTable pUnknownCodecRtpmapTable, UINT32 unknownCodecHashTableKey)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -412,7 +412,7 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
         if (pRtcMediaStreamTrack->codec == RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE) {
             retStatus = hashTableGet(pKvsPeerConnection->pRtxTable, RTC_RTX_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE,
                                      &rtxPayloadType);
-        } else if (pRtcMediaStreamTrack->codec == RTC_CODEC_VP8){
+        } else if (pRtcMediaStreamTrack->codec == RTC_CODEC_VP8) {
             retStatus = hashTableGet(pKvsPeerConnection->pRtxTable, RTC_RTX_CODEC_VP8, &rtxPayloadType);
         } else {
             retStatus = STATUS_HASH_KEY_NOT_PRESENT;
@@ -773,14 +773,12 @@ STATUS populateSessionDescriptionMedia(PKvsPeerConnection pKvsPeerConnection, PS
             if (pKvsRtpTransceiver != NULL) {
                 CHK(pLocalSessionDescription->mediaCount < MAX_SDP_SESSION_MEDIA_COUNT, STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT);
 
-                // If generating answer, need to check if Local Description is present in remote -- if not, we don't need to create a local description
-                // for it or else our Answer will have an extra m-line, for offer the local is the offer itself, don't care about remote
+                // If generating answer, need to check if Local Description is present in remote -- if not, we don't need to create a local
+                // description for it or else our Answer will have an extra m-line, for offer the local is the offer itself, don't care about remote
                 CHK_STATUS(populateSingleMediaSection(
                     pKvsPeerConnection, pKvsRtpTransceiver, &(pLocalSessionDescription->mediaDescriptions[pLocalSessionDescription->mediaCount]),
-                    pRemoteSessionDescription, certificateFingerprint, pLocalSessionDescription->mediaCount, pDtlsRole,
-                    NULL, NULL, 0));
+                    pRemoteSessionDescription, certificateFingerprint, pLocalSessionDescription->mediaCount, pDtlsRole, NULL, NULL, 0));
                 pLocalSessionDescription->mediaCount++;
-
             }
         }
     } else {
@@ -788,8 +786,8 @@ STATUS populateSessionDescriptionMedia(PKvsPeerConnection pKvsPeerConnection, PS
         CHK_STATUS(hashTableCreate(&pUnknownCodecPayloadTypesTable));
         CHK_STATUS(hashTableCreate(&pUnknownCodecRtpmapTable));
 
-        CHK_STATUS(findTransceiversByRemoteDescription(pKvsPeerConnection, pRemoteSessionDescription,
-                                                       pUnknownCodecPayloadTypesTable, pUnknownCodecRtpmapTable));
+        CHK_STATUS(findTransceiversByRemoteDescription(pKvsPeerConnection, pRemoteSessionDescription, pUnknownCodecPayloadTypesTable,
+                                                       pUnknownCodecRtpmapTable));
 
         CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pAnswerTransceivers, &pCurNode));
         while (pCurNode != NULL) {
@@ -800,18 +798,18 @@ STATUS populateSessionDescriptionMedia(PKvsPeerConnection pKvsPeerConnection, PS
                 CHK(pLocalSessionDescription->mediaCount < MAX_SDP_SESSION_MEDIA_COUNT, STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT);
                 if (isPresentInRemote(pKvsRtpTransceiver, pRemoteSessionDescription)) {
                     if (pKvsRtpTransceiver->sender.track.codec == RTC_CODEC_UNKNOWN) {
-                        CHK_STATUS(populateSingleMediaSection(
-                            pKvsPeerConnection, pKvsRtpTransceiver, &(pLocalSessionDescription->mediaDescriptions[pLocalSessionDescription->mediaCount]),
-                            pRemoteSessionDescription, certificateFingerprint, pLocalSessionDescription->mediaCount, pDtlsRole,
-                            pUnknownCodecPayloadTypesTable, pUnknownCodecRtpmapTable,
+                        CHK_STATUS(populateSingleMediaSection(pKvsPeerConnection, pKvsRtpTransceiver,
+                                                              &(pLocalSessionDescription->mediaDescriptions[pLocalSessionDescription->mediaCount]),
+                                                              pRemoteSessionDescription, certificateFingerprint, pLocalSessionDescription->mediaCount,
+                                                              pDtlsRole, pUnknownCodecPayloadTypesTable, pUnknownCodecRtpmapTable,
                                                               unknownCodecHashTableKey));
                         unknownCodecHashTableKey++;
 
                     } else {
-                    CHK_STATUS(populateSingleMediaSection(
-                        pKvsPeerConnection, pKvsRtpTransceiver, &(pLocalSessionDescription->mediaDescriptions[pLocalSessionDescription->mediaCount]),
-                        pRemoteSessionDescription, certificateFingerprint, pLocalSessionDescription->mediaCount, pDtlsRole,
-                        NULL, NULL, 0));
+                        CHK_STATUS(populateSingleMediaSection(pKvsPeerConnection, pKvsRtpTransceiver,
+                                                              &(pLocalSessionDescription->mediaDescriptions[pLocalSessionDescription->mediaCount]),
+                                                              pRemoteSessionDescription, certificateFingerprint, pLocalSessionDescription->mediaCount,
+                                                              pDtlsRole, NULL, NULL, 0));
                     }
                     pLocalSessionDescription->mediaCount++;
                 }
@@ -945,13 +943,12 @@ CleanUp:
     return retStatus;
 }
 
-STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection, PSessionDescription pRemoteSessionDescription,PHashTable pUnknownCodecPayloadTypesTable,
-                                           PHashTable pUnknownCodecRtpmapTable)
+STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection, PSessionDescription pRemoteSessionDescription,
+                                           PHashTable pUnknownCodecPayloadTypesTable, PHashTable pUnknownCodecRtpmapTable)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    UINT32 currentMedia, currentAttribute, transceiverCount = 0, tokenLen = 0, codec = 0,
-                                           count = 0, unknownCodecCounter = 0;
+    UINT32 currentMedia, currentAttribute, transceiverCount = 0, tokenLen = 0, codec = 0, count = 0, unknownCodecCounter = 0;
     PSdpMediaDescription pMediaDescription = NULL;
     PCHAR attributeValue, end, codecs = NULL;
     PCHAR rtpMapValue = NULL;
@@ -1030,7 +1027,7 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
             attributeValue = pMediaDescription->sdpAttributes[currentAttribute].attributeValue;
             rtcCodec = RTC_CODEC_UNKNOWN;
 
-            if (STRNCMP(RTPMAP_VALUE, pMediaDescription->sdpAttributes[currentAttribute].attributeName, 7) == 0) {
+            if (STRNCMP(RTPMAP_VALUE, pMediaDescription->sdpAttributes[currentAttribute].attributeName, 6) == 0) {
                 if (STRSTR(attributeValue, H264_VALUE) != NULL) {
                     supportCodec = TRUE;
                     rtcCodec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
@@ -1054,11 +1051,11 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
                     CHK_STATUS(findCodecInTransceivers(pKvsPeerConnection, rtcCodec, &foundMediaSectionWithCodec, pSeenTransceivers));
                 }
 
-                if(foundMediaSectionWithCodec == FALSE) {
+                if (foundMediaSectionWithCodec == FALSE) {
                     if ((end = STRCHR(attributeValue, ' ')) != NULL)
-                        if(STRNCMP(attributeValue, firstCodec, tokenLen) == 0) {
+                        if (STRNCMP(attributeValue, firstCodec, tokenLen) == 0) {
                             rtpMapValue = end + 1;
-                    }
+                        }
                 }
             }
         }

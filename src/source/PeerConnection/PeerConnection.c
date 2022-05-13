@@ -796,7 +796,6 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
         pCurNode = pCurNode->pNext;
     }
 
-
     // Free DataChannels
     CHK_LOG_ERR(hashTableIterateEntries(pKvsPeerConnection->pDataChannels, 0, freeHashEntry));
     CHK_LOG_ERR(hashTableFree(pKvsPeerConnection->pDataChannels));
