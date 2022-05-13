@@ -948,7 +948,7 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    UINT32 currentMedia, currentAttribute, transceiverCount = 0, tokenLen = 0, codec = 0, count = 0, unknownCodecCounter = 0;
+    UINT32 currentMedia, currentAttribute, tokenLen = 0, codec = 0, count = 0, unknownCodecCounter = 0;
     PSdpMediaDescription pMediaDescription = NULL;
     PCHAR attributeValue, end, codecs = NULL;
     PCHAR rtpMapValue = NULL;
