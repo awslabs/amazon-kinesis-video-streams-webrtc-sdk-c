@@ -12,13 +12,11 @@ VOID sigintHandler(INT32 sigNum)
     }
 }
 
-STATUS signalingCallFailed(STATUS status) {
-   return  (STATUS_SIGNALING_GET_TOKEN_CALL_FAILED == status      ||
-            STATUS_SIGNALING_DESCRIBE_CALL_FAILED == status       ||
-            STATUS_SIGNALING_CREATE_CALL_FAILED == status         ||
-            STATUS_SIGNALING_GET_ENDPOINT_CALL_FAILED == status   ||
-            STATUS_SIGNALING_GET_ICE_CONFIG_CALL_FAILED == status ||
-            STATUS_SIGNALING_CONNECT_CALL_FAILED == status);
+STATUS signalingCallFailed(STATUS status)
+{
+    return (STATUS_SIGNALING_GET_TOKEN_CALL_FAILED == status || STATUS_SIGNALING_DESCRIBE_CALL_FAILED == status ||
+            STATUS_SIGNALING_CREATE_CALL_FAILED == status || STATUS_SIGNALING_GET_ENDPOINT_CALL_FAILED == status ||
+            STATUS_SIGNALING_GET_ICE_CONFIG_CALL_FAILED == status || STATUS_SIGNALING_CONNECT_CALL_FAILED == status);
 }
 
 VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL isBinary, PBYTE pMessage, UINT32 pMessageLen)
@@ -895,32 +893,32 @@ STATUS getIceCandidatePairStatsCallback(UINT32 timerId, UINT64 currentTime, UINT
                       pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.nominated ? "nominated"
                                                                                                                       : "not nominated");
                 averageNumberOfPacketsSentPerSecond =
-                    (DOUBLE) (pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.packetsSent -
-                              pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfPacketsSent) /
+                    (DOUBLE)(pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.packetsSent -
+                             pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfPacketsSent) /
                     (DOUBLE) currentMeasureDuration;
                 DLOGD("Packet send rate: %lf pkts/sec", averageNumberOfPacketsSentPerSecond);
 
                 averageNumberOfPacketsReceivedPerSecond =
-                    (DOUBLE) (pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.packetsReceived -
-                              pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfPacketsReceived) /
+                    (DOUBLE)(pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.packetsReceived -
+                             pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfPacketsReceived) /
                     (DOUBLE) currentMeasureDuration;
                 DLOGD("Packet receive rate: %lf pkts/sec", averageNumberOfPacketsReceivedPerSecond);
 
-                outgoingBitrate = (DOUBLE) ((pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.bytesSent -
-                                             pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfBytesSent) *
-                                            8.0) /
+                outgoingBitrate = (DOUBLE)((pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.bytesSent -
+                                            pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfBytesSent) *
+                                           8.0) /
                     currentMeasureDuration;
                 DLOGD("Outgoing bit rate: %lf bps", outgoingBitrate);
 
-                incomingBitrate = (DOUBLE) ((pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.bytesReceived -
-                                             pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfBytesReceived) *
-                                            8.0) /
+                incomingBitrate = (DOUBLE)((pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.bytesReceived -
+                                            pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfBytesReceived) *
+                                           8.0) /
                     currentMeasureDuration;
                 DLOGD("Incoming bit rate: %lf bps", incomingBitrate);
 
                 averagePacketsDiscardedOnSend =
-                    (DOUBLE) (pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.packetsDiscardedOnSend -
-                              pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevPacketsDiscardedOnSend) /
+                    (DOUBLE)(pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.packetsDiscardedOnSend -
+                             pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevPacketsDiscardedOnSend) /
                     (DOUBLE) currentMeasureDuration;
                 DLOGD("Packet discard rate: %lf pkts/sec", averagePacketsDiscardedOnSend);
 
@@ -1171,11 +1169,10 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
         // Check if we need to re-create the signaling client on-the-fly
         if (ATOMIC_LOAD_BOOL(&pSampleConfiguration->recreateSignalingClient)) {
             retStatus = signalingClientFetchSync(pSampleConfiguration->signalingClientHandle);
-            if(STATUS_SUCCEEDED(retStatus)) {
+            if (STATUS_SUCCEEDED(retStatus)) {
                 // Re-set the variable again
                 ATOMIC_STORE_BOOL(&pSampleConfiguration->recreateSignalingClient, FALSE);
-            }
-            else if(signalingCallFailed(retStatus)) {
+            } else if (signalingCallFailed(retStatus)) {
                 printf("[KVS Common] recreating Signaling Client\n");
                 freeSignalingClient(&pSampleConfiguration->signalingClientHandle);
                 createSignalingClientSync(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
