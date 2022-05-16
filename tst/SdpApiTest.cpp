@@ -1076,6 +1076,63 @@ a=rtpmap:102 H264/90000
     });
 }
 
+TEST_F(SdpApiTest, audioTransceiverMissingInactiveDirection)
+{
+    auto offer = std::string(R"(v=0
+o=- 481034601 1588366671 IN IP4 0.0.0.0
+s=-
+t=0 0
+a=fingerprint:sha-256 87:E6:EC:59:93:76:9F:42:7D:15:17:F6:8F:C4:29:AB:EA:3F:28:B6:DF:F8:14:2F:96:62:2F:16:98:F5:76:E5
+a=group:BUNDLE 0 1 2
+a=ice-options:trickle
+)");
+
+    offer += sdpvideo;
+    offer += "\n";
+    offer += sdpaudio_sendrecv_mid0;
+    offer += "\n";
+    offer += sdpdata;
+    offer += "\n";
+
+    assertLFAndCRLF((PCHAR) offer.c_str(), offer.size(), [](PCHAR sdp) {
+        RtcConfiguration configuration{};
+        PRtcPeerConnection pRtcPeerConnection = nullptr;
+        RtcMediaStreamTrack track1{};
+        PRtcRtpTransceiver transceiver1 = nullptr;
+        RtcSessionDescriptionInit offerSdp{};
+        RtcSessionDescriptionInit answerSdp{};
+
+        SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION);
+
+        track1.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+        track1.codec = RTC_CODEC_VP8;
+        STRNCPY(track1.streamId, "stream1", MAX_MEDIA_STREAM_ID_LEN);
+        STRNCPY(track1.trackId, "track1", MAX_MEDIA_STREAM_TRACK_ID_LEN);
+
+        offerSdp.type = SDP_TYPE_OFFER;
+        STRNCPY(offerSdp.sdp, (PCHAR) sdp, MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+
+        EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+        EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(pRtcPeerConnection, RTC_CODEC_VP8));
+        EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, &track1, nullptr, &transceiver1));
+
+        EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(pRtcPeerConnection, &offerSdp));
+        EXPECT_EQ(TRUE, canTrickleIceCandidates(pRtcPeerConnection).value);
+        EXPECT_EQ(STATUS_SUCCESS, createAnswer(pRtcPeerConnection, &answerSdp));
+
+        std::string answer = answerSdp.sdp;
+        std::string::size_type videoPos = answer.find("m=video 9 UDP/TLS/RTP/SAVPF 96");
+        std::string::size_type audioPos = answer.find("m=audio 9 UDP/TLS/RTP/SAVPF 111");
+
+        // check directions
+        EXPECT_NE(std::string::npos, answer.substr(videoPos, audioPos - videoPos).find("a=sendonly"));
+        EXPECT_NE(std::string::npos, answer.substr(audioPos).find("a=inactive"));
+
+        closePeerConnection(pRtcPeerConnection);
+        EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+    });
+}
+
 TEST_F(SdpApiTest, answerMlinesOrderSameAsOfferMLinesOrder)
 {
     auto offer = std::string(R"(v=0
