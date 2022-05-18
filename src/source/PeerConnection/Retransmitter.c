@@ -8,9 +8,9 @@ STATUS createRetransmitter(UINT32 seqNumListLen, UINT32 validIndexListLen, PRetr
     STATUS retStatus = STATUS_SUCCESS;
     PRetransmitter pRetransmitter = MEMALLOC(SIZEOF(Retransmitter) + SIZEOF(UINT16) * seqNumListLen + SIZEOF(UINT64) * validIndexListLen);
     CHK(pRetransmitter != NULL, STATUS_NOT_ENOUGH_MEMORY);
-    pRetransmitter->sequenceNumberList = (PUINT16) (pRetransmitter + 1);
+    pRetransmitter->sequenceNumberList = (PUINT16)(pRetransmitter + 1);
     pRetransmitter->seqNumListLen = seqNumListLen;
-    pRetransmitter->validIndexList = (PUINT64) (pRetransmitter->sequenceNumberList + seqNumListLen);
+    pRetransmitter->validIndexList = (PUINT64)(pRetransmitter->sequenceNumberList + seqNumListLen);
     pRetransmitter->validIndexListLen = validIndexListLen;
 
 CleanUp:

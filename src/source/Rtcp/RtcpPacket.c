@@ -14,7 +14,7 @@ STATUS setRtcpPacketFromBytes(PBYTE pRawPacket, UINT32 pRawPacketsLen, PRtcpPack
     // RTCP packet len is length of packet in 32 bit words - 1
     // We don't assert exact length since this may be a compound packet, it
     // is the callers responsibility to parse subsequent entries
-    packetLen = getInt16(*(PUINT16) (pRawPacket + RTCP_PACKET_LEN_OFFSET));
+    packetLen = getInt16(*(PUINT16)(pRawPacket + RTCP_PACKET_LEN_OFFSET));
     CHK((packetLen + 1) * RTCP_PACKET_LEN_WORD_SIZE <= pRawPacketsLen, STATUS_RTCP_INPUT_PARTIAL_PACKET);
 
     pRtcpPacket->header.version = (pRawPacket[0] >> VERSION_SHIFT) & VERSION_MASK;
@@ -48,11 +48,11 @@ STATUS rtcpNackListGet(PBYTE pPayload, UINT32 payloadLen, PUINT32 pSenderSsrc, P
     CHK(payloadLen >= RTCP_NACK_LIST_LEN && (payloadLen % 4 == 0), STATUS_RTCP_INPUT_NACK_LIST_INVALID);
 
     *pSenderSsrc = getInt32(*(PUINT32) pPayload);
-    *pReceiverSsrc = getInt32(*(PUINT32) (pPayload + 4));
+    *pReceiverSsrc = getInt32(*(PUINT32)(pPayload + 4));
 
     for (; i < payloadLen; i += 4) {
-        currentSequenceNumber = getInt16(*(PUINT16) (pPayload + i));
-        BLP = getInt16(*(PUINT16) (pPayload + i + 2));
+        currentSequenceNumber = getInt16(*(PUINT16)(pPayload + i));
+        BLP = getInt16(*(PUINT16)(pPayload + i + 2));
 
         // If pSsrcList is not NULL and we have space push and increment
         if (pSequenceNumberList != NULL && sequenceNumberCount <= *pSequenceNumberListLen) {
@@ -129,7 +129,7 @@ STATUS rembValueGet(PBYTE pPayload, UINT32 payloadLen, PDOUBLE pMaximumBitRate, 
     CHK(payloadLen >= RTCP_PACKET_REMB_MIN_SIZE + (ssrcListLen * SIZEOF(UINT32)), STATUS_RTCP_INPUT_REMB_INVALID);
 
     for (i = 0; i < ssrcListLen; i++) {
-        pSsrcList[i] = getInt32(*(PUINT32) (pPayload + RTCP_PACKET_REMB_IDENTIFIER_OFFSET + 8 + (i * SIZEOF(UINT32))));
+        pSsrcList[i] = getInt32(*(PUINT32)(pPayload + RTCP_PACKET_REMB_IDENTIFIER_OFFSET + 8 + (i * SIZEOF(UINT32))));
     }
 
 CleanUp:

@@ -13,7 +13,7 @@ extern "C" {
 #define KVS_SHA1_DIGEST_LENGTH      SHA_DIGEST_LENGTH
 #define KVS_MD5_DIGEST(m, mlen, ob) MD5((m), (mlen), (ob));
 #define KVS_SHA1_HMAC(k, klen, m, mlen, ob, plen)                                                                                                    \
-    CHK(NULL != HMAC(EVP_sha1(), (k), (INT32) (klen), (m), (mlen), (ob), (plen)), STATUS_HMAC_GENERATION_ERROR);
+    CHK(NULL != HMAC(EVP_sha1(), (k), (INT32)(klen), (m), (mlen), (ob), (plen)), STATUS_HMAC_GENERATION_ERROR);
 #define KVS_CRYPTO_INIT()                                                                                                                            \
     do {                                                                                                                                             \
         OpenSSL_add_ssl_algorithms();                                                                                                                \

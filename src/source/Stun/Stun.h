@@ -124,14 +124,14 @@ extern "C" {
  * Taking a PBYTE pointing to stun error packet's error code attribute's error class location and another PBYTE
  * pointing to the error code location, return stun error code as UINT16
  */
-#define GET_STUN_ERROR_CODE(pClass, pCode) ((UINT16) ((*(PUINT8) (pClass)) * 100 + *(PUINT8) (pCode)))
+#define GET_STUN_ERROR_CODE(pClass, pCode) ((UINT16)((*(PUINT8)(pClass)) * 100 + *(PUINT8)(pCode)))
 
 /**
  * Packages the attribute header into a specified buffer
  */
 #define PACKAGE_STUN_ATTR_HEADER(pBuf, type, dataLen)                                                                                                \
-    putInt16((PINT16) (pBuf), (UINT16) (type));                                                                                                      \
-    putInt16((PINT16) ((pBuf) + STUN_ATTRIBUTE_HEADER_TYPE_LEN), (UINT16) (dataLen));
+    putInt16((PINT16)(pBuf), (UINT16)(type));                                                                                                        \
+    putInt16((PINT16)((pBuf) + STUN_ATTRIBUTE_HEADER_TYPE_LEN), (UINT16)(dataLen));
 
 /**
  * STUN packet types
