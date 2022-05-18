@@ -345,7 +345,7 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
     state = SDP_ICE_CANDIDATE_PARSER_STATE_FOUNDATION;
 
     while ((next = STRNCHR(curr, tail - curr, ' ')) != NULL && !foundType) {
-        tokenLen = (UINT32) (next - curr);
+        tokenLen = (UINT32)(next - curr);
 
         switch (state) {
             case SDP_ICE_CANDIDATE_PARSER_STATE_FOUNDATION:
@@ -1233,18 +1233,13 @@ STATUS iceCandidatePairCheckConnection(PStunPacket pStunBindingRequest, PIceAgen
 
     CHK(pStunAttributePriority != NULL, STATUS_INVALID_ARG);
 
-    if(pIceCandidatePair->local->ipAddress.family == KVS_IP_FAMILY_TYPE_IPV4) {
+    if (pIceCandidatePair->local->ipAddress.family == KVS_IP_FAMILY_TYPE_IPV4) {
         DLOGD("remote ip:%u.%u.%u.%u, port:%u, local ip:%u.%u.%u.%u, port:%u", pIceCandidatePair->remote->ipAddress.address[0],
-                pIceCandidatePair->remote->ipAddress.address[1],
-                pIceCandidatePair->remote->ipAddress.address[2],
-                pIceCandidatePair->remote->ipAddress.address[3],
-                pIceCandidatePair->remote->ipAddress.address[0],
-                pIceCandidatePair->remote->ipAddress.port,
-                pIceCandidatePair->local->ipAddress.address[1],
-                pIceCandidatePair->local->ipAddress.address[2],
-                pIceCandidatePair->local->ipAddress.address[3],
-                pIceCandidatePair->local->ipAddress.address[0],
-                pIceCandidatePair->local->ipAddress.port);
+              pIceCandidatePair->remote->ipAddress.address[1], pIceCandidatePair->remote->ipAddress.address[2],
+              pIceCandidatePair->remote->ipAddress.address[3], pIceCandidatePair->remote->ipAddress.address[0],
+              pIceCandidatePair->remote->ipAddress.port, pIceCandidatePair->local->ipAddress.address[1],
+              pIceCandidatePair->local->ipAddress.address[2], pIceCandidatePair->local->ipAddress.address[3],
+              pIceCandidatePair->local->ipAddress.address[0], pIceCandidatePair->local->ipAddress.port);
     }
 
     // update priority and transaction id
@@ -1383,7 +1378,6 @@ STATUS iceAgentSendSrflxCandidateRequest(PIceAgent pIceAgent)
                 case ICE_CANDIDATE_TYPE_SERVER_REFLEXIVE:
                     pIceServer = &(pIceAgent->iceServers[pCandidate->iceServerIndex]);
                     if (pIceServer->ipAddress.family == pCandidate->ipAddress.family) {
-
                         transactionIdStoreInsert(pIceAgent->pStunBindingRequestTransactionIdStore, pBindingRequest->header.transactionId);
                         checkSum = COMPUTE_CRC32(pBindingRequest->header.transactionId, ARRAY_SIZE(pBindingRequest->header.transactionId));
                         CHK_STATUS(iceAgentSendStunPacket(pBindingRequest, NULL, 0, pIceAgent, pCandidate, &pIceServer->ipAddress));
@@ -2267,7 +2261,6 @@ STATUS incomingRelayedDataHandler(UINT64 customData, PSocketConnection pSocketCo
 
     CHK(pRelayedCandidate != NULL && pSocketConnection != NULL, STATUS_NULL_ARG);
 
-
     DLOGV("Candidate id: %s", pRelayedCandidate->id);
     CHK_STATUS(turnConnectionIncomingDataHandler(pRelayedCandidate->pTurnConnection, pBuffer, bufferLen, pSrc, pDest, turnChannelData,
                                                  &turnChannelDataCount));
@@ -2459,7 +2452,9 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
                 pIceAgent->rtcIceServerDiagnostics[pIceCandidate->iceServerIndex].totalResponsesReceived++;
                 retStatus = hashTableGet(pIceAgent->requestTimestampDiagnostics, checkSum, &requestSentTime);
                 if (retStatus != STATUS_SUCCESS) {
-                    DLOGW("Unable to fetch request Timestamp from the hash table. No update to totalRoundTripTime (error code: 0x%08x), stunBindingRequest", retStatus);
+                    DLOGW("Unable to fetch request Timestamp from the hash table. No update to totalRoundTripTime (error code: 0x%08x), "
+                          "stunBindingRequest",
+                          retStatus);
                 } else {
                     pIceAgent->rtcIceServerDiagnostics[pIceCandidate->iceServerIndex].totalRoundTripTime += GETTIME() - requestSentTime;
                     CHK_STATUS(hashTableRemove(pIceAgent->requestTimestampDiagnostics, checkSum));
@@ -2494,7 +2489,7 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
             } else {
                 pIceCandidatePair->roundTripTime = GETTIME() - requestSentTime;
                 pIceCandidatePair->rtcIceCandidatePairDiagnostics.currentRoundTripTime =
-                    (DOUBLE) (pIceCandidatePair->roundTripTime) / HUNDREDS_OF_NANOS_IN_A_SECOND;
+                    (DOUBLE)(pIceCandidatePair->roundTripTime) / HUNDREDS_OF_NANOS_IN_A_SECOND;
             }
             CHK_WARN(transactionIdStoreHasId(pIceCandidatePair->pTransactionIdStore, pBuffer + STUN_PACKET_TRANSACTION_ID_OFFSET), retStatus,
                      "Dropping response packet because transaction id does not match");
@@ -2504,7 +2499,8 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
                 pIceAgent->rtcIceServerDiagnostics[pIceCandidatePair->local->iceServerIndex].totalResponsesReceived++;
                 retStatus = hashTableGet(pIceAgent->requestTimestampDiagnostics, checkSum, &requestSentTime);
                 if (retStatus != STATUS_SUCCESS) {
-                    DLOGW("Unable to fetch request Timestamp from the hash table. No update to totalRoundTripTime (error code: 0x%08x), typeRelayed", retStatus);
+                    DLOGW("Unable to fetch request Timestamp from the hash table. No update to totalRoundTripTime (error code: 0x%08x), typeRelayed",
+                          retStatus);
                 } else {
                     pIceAgent->rtcIceServerDiagnostics[pIceCandidatePair->local->iceServerIndex].totalRoundTripTime += GETTIME() - requestSentTime;
                     CHK_STATUS(hashTableRemove(pIceAgent->requestTimestampDiagnostics, checkSum));
@@ -2536,13 +2532,15 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
                 pIceCandidatePair->state = ICE_CANDIDATE_PAIR_STATE_SUCCEEDED;
                 retStatus = hashTableGet(pIceCandidatePair->requestSentTime, checkSum, &requestSentTime);
                 if (retStatus != STATUS_SUCCESS) {
-                    DLOGW("Unable to fetch request Timestamp from the hash table. No update to totalRoundTripTime (error code: 0x%08x), stateSucceeded", retStatus);
+                    DLOGW(
+                        "Unable to fetch request Timestamp from the hash table. No update to totalRoundTripTime (error code: 0x%08x), stateSucceeded",
+                        retStatus);
                 } else {
                     pIceCandidatePair->roundTripTime = GETTIME() - requestSentTime;
                     DLOGD("Ice candidate pair %s_%s is connected. Round trip time: %" PRIu64 "ms", pIceCandidatePair->local->id,
                           pIceCandidatePair->remote->id, pIceCandidatePair->roundTripTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
                     pIceCandidatePair->rtcIceCandidatePairDiagnostics.totalRoundTripTime +=
-                        (DOUBLE) (pIceCandidatePair->roundTripTime) / HUNDREDS_OF_NANOS_IN_A_SECOND;
+                        (DOUBLE)(pIceCandidatePair->roundTripTime) / HUNDREDS_OF_NANOS_IN_A_SECOND;
 
                     CHK_STATUS(hashTableRemove(pIceCandidatePair->requestSentTime, checkSum));
                 }
@@ -2557,15 +2555,14 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
             break;
 
         default:
-            if(!IS_STUN_PACKET(pBuffer)) {
+            if (!IS_STUN_PACKET(pBuffer)) {
                 CHK_STATUS(hexEncode(pBuffer, bufferLen, NULL, &hexStrLen));
                 hexStr = MEMCALLOC(1, hexStrLen * SIZEOF(CHAR));
                 CHK(hexStr != NULL, STATUS_NOT_ENOUGH_MEMORY);
                 CHK_STATUS(hexEncode(pBuffer, bufferLen, hexStr, &hexStrLen));
                 DLOGW("Dropping unrecognized STUN packet. Packet type: 0x%02x. Packet content: \n\t%s", stunPacketType, hexStr);
                 SAFE_MEMFREE(hexStr);
-            }
-            else if(STUN_PACKET_IS_TYPE_ERROR(pBuffer)) {
+            } else if (STUN_PACKET_IS_TYPE_ERROR(pBuffer)) {
                 CHK_STATUS(hexEncode(pBuffer, bufferLen, NULL, &hexStrLen));
                 hexStr = MEMCALLOC(1, hexStrLen * SIZEOF(CHAR));
                 CHK(hexStr != NULL, STATUS_NOT_ENOUGH_MEMORY);
