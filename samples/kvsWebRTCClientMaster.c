@@ -292,7 +292,7 @@ CleanUp:
 
     CHK_LOG_ERR(retStatus);
 
-    return (PVOID)(ULONG_PTR) retStatus;
+    return (PVOID) (ULONG_PTR) retStatus;
 }
 
 PVOID sendAudioPackets(PVOID args)
@@ -360,7 +360,7 @@ PVOID sendAudioPackets(PVOID args)
 
 CleanUp:
 
-    return (PVOID)(ULONG_PTR) retStatus;
+    return (PVOID) (ULONG_PTR) retStatus;
 }
 
 PVOID sampleReceiveVideoFrame(PVOID args)
@@ -380,5 +380,5 @@ PVOID sampleReceiveVideoFrame(PVOID args)
 
 CleanUp:
 
-    return (PVOID)(ULONG_PTR) retStatus;
+    return (PVOID) (ULONG_PTR) retStatus;
 }

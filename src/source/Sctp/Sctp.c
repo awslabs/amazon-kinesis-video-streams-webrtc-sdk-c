@@ -39,7 +39,7 @@ STATUS configureSctpSocket(struct socket* socket)
     MEMSET(&event, 0, SIZEOF(event));
     event.se_assoc_id = SCTP_FUTURE_ASSOC;
     event.se_on = 1;
-    for (i = 0; i < (UINT32)(SIZEOF(event_types) / SIZEOF(UINT16)); i++) {
+    for (i = 0; i < (UINT32) (SIZEOF(event_types) / SIZEOF(UINT16)); i++) {
         event.se_type = event_types[i];
         CHK(usrsctp_setsockopt(socket, IPPROTO_SCTP, SCTP_EVENT, &event, SIZEOF(struct sctp_event)) == 0, STATUS_SCTP_SESSION_SETUP_FAILED);
     }
@@ -182,11 +182,11 @@ STATUS sctpSessionWriteMessage(PSctpSession pSctpSession, UINT32 streamId, BOOL 
     }
     if ((pSctpSession->packet[1] & DCEP_DATA_CHANNEL_REXMIT) != 0) {
         pSctpSession->spa.sendv_prinfo.pr_policy = SCTP_PR_SCTP_RTX;
-        pSctpSession->spa.sendv_prinfo.pr_value = getUnalignedInt32BigEndian((PINT32)(pSctpSession->packet + SIZEOF(UINT32)));
+        pSctpSession->spa.sendv_prinfo.pr_value = getUnalignedInt32BigEndian((PINT32) (pSctpSession->packet + SIZEOF(UINT32)));
     }
     if ((pSctpSession->packet[1] & DCEP_DATA_CHANNEL_TIMED) != 0) {
         pSctpSession->spa.sendv_prinfo.pr_policy = SCTP_PR_SCTP_TTL;
-        pSctpSession->spa.sendv_prinfo.pr_value = getUnalignedInt32BigEndian((PINT32)(pSctpSession->packet + SIZEOF(UINT32)));
+        pSctpSession->spa.sendv_prinfo.pr_value = getUnalignedInt32BigEndian((PINT32) (pSctpSession->packet + SIZEOF(UINT32)));
     }
 
     putInt32((PINT32) &pSctpSession->spa.sendv_sndinfo.snd_ppid, isBinary ? SCTP_PPID_BINARY : SCTP_PPID_STRING);

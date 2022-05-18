@@ -23,13 +23,13 @@ extern "C" {
  * ICE_AGENT_STATE_FAILED:                      Terminal state with an error stored in iceAgentStatus
  */
 #define ICE_AGENT_STATE_NONE             ((UINT64) 0)
-#define ICE_AGENT_STATE_NEW              ((UINT64)(1 << 0))
-#define ICE_AGENT_STATE_CHECK_CONNECTION ((UINT64)(1 << 1))
-#define ICE_AGENT_STATE_CONNECTED        ((UINT64)(1 << 2))
-#define ICE_AGENT_STATE_NOMINATING       ((UINT64)(1 << 3))
-#define ICE_AGENT_STATE_READY            ((UINT64)(1 << 4))
-#define ICE_AGENT_STATE_DISCONNECTED     ((UINT64)(1 << 5))
-#define ICE_AGENT_STATE_FAILED           ((UINT64)(1 << 6))
+#define ICE_AGENT_STATE_NEW              ((UINT64) (1 << 0))
+#define ICE_AGENT_STATE_CHECK_CONNECTION ((UINT64) (1 << 1))
+#define ICE_AGENT_STATE_CONNECTED        ((UINT64) (1 << 2))
+#define ICE_AGENT_STATE_NOMINATING       ((UINT64) (1 << 3))
+#define ICE_AGENT_STATE_READY            ((UINT64) (1 << 4))
+#define ICE_AGENT_STATE_DISCONNECTED     ((UINT64) (1 << 5))
+#define ICE_AGENT_STATE_FAILED           ((UINT64) (1 << 6))
 
 #define ICE_AGENT_STATE_NONE_STR             (PCHAR) "ICE_AGENT_STATE_NONE"
 #define ICE_AGENT_STATE_NEW_STR              (PCHAR) "ICE_AGENT_STATE_NEW"
