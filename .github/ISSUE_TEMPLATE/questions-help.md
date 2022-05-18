@@ -2,7 +2,7 @@
 name: Questions/Help
 about: Describe this issue template's purpose here.
 title: "[QUESTION]"
-labels: question
+labels: question,needs-triage
 assignees: ''
 
 ---
