@@ -401,7 +401,7 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
     PSdpMediaDescription pSdpMediaDescriptionRemote;
     PCHAR currentFmtp = NULL, rtpMapValue = NULL;
 
-    if (pRtcMediaStreamTrack->codec == RTC_CODEC_UNKNOWN && pUnknownCodecPayloadTypesTable != NULL && pUnknownCodecRtpmapTable != NULL) {
+    if (pRtcMediaStreamTrack->codec == RTC_CODEC_UNKNOWN && pUnknownCodecPayloadTypesTable != NULL) {
         CHK_STATUS(hashTableGet(pUnknownCodecPayloadTypesTable, unknownCodecHashTableKey, &payloadType));
     } else {
         CHK_STATUS(hashTableGet(pKvsPeerConnection->pCodecTable, pRtcMediaStreamTrack->codec, &payloadType));
@@ -540,6 +540,7 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
         pSdpMediaDescriptionRemote = &pRemoteSessionDescription->mediaDescriptions[mediaSectionId];
         remoteAttributeCount = pSdpMediaDescriptionRemote->mediaAttributesCount;
 
+        // in case of a missing m-line, we respond with the same m-line but direction set to inactive
         if (pKvsRtpTransceiver->transceiver.direction == RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE) {
             STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "inactive");
             directionFound = TRUE;
@@ -627,12 +628,9 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
         SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%" PRId64 " " ALAW_VALUE, payloadType);
         attributeCount++;
     } else if (pRtcMediaStreamTrack->codec == RTC_CODEC_UNKNOWN) {
-        CHK_STATUS(hashTableContains(pUnknownCodecRtpmapTable, unknownCodecHashTableKey, &contains));
-        if (contains) {
-            CHK_STATUS(hashTableGet(pUnknownCodecRtpmapTable, unknownCodecHashTableKey, (PUINT64) &rtpMapValue));
-            STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtpmap");
-            SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%" PRId64 " %s", payloadType, rtpMapValue);
-        }
+        CHK_STATUS(hashTableGet(pUnknownCodecRtpmapTable, unknownCodecHashTableKey, (PUINT64) &rtpMapValue));
+        STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtpmap");
+        SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%" PRId64 " %s", payloadType, rtpMapValue);
         attributeCount++;
     }
 
@@ -786,9 +784,12 @@ STATUS populateSessionDescriptionMedia(PKvsPeerConnection pKvsPeerConnection, PS
         CHK_STATUS(hashTableCreate(&pUnknownCodecPayloadTypesTable));
         CHK_STATUS(hashTableCreate(&pUnknownCodecRtpmapTable));
 
+        // this function creates a list of transceivers corresponding to each m-line and adds it answerTransceivers
+        // if an m-line does not have a corresponding transceiver created by the user, we create a fake transceiver
         CHK_STATUS(findTransceiversByRemoteDescription(pKvsPeerConnection, pRemoteSessionDescription, pUnknownCodecPayloadTypesTable,
                                                        pUnknownCodecRtpmapTable));
 
+        // pAnswerTransceivers contains transceivers created by the user as well as fake transceivers
         CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pAnswerTransceivers, &pCurNode));
         while (pCurNode != NULL) {
             CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
@@ -804,8 +805,12 @@ STATUS populateSessionDescriptionMedia(PKvsPeerConnection pKvsPeerConnection, PS
                                                               pDtlsRole, pUnknownCodecPayloadTypesTable, pUnknownCodecRtpmapTable,
                                                               unknownCodecHashTableKey));
                         unknownCodecHashTableKey++;
+                        // unknownCodecHashTableKey is the key for pUnknownCodecRtpmapTable and pUnknownCodecPayloadTypesTable
+                        // a value for the same key in both hashtables corresponds to rtpmap and payloadtype for the same m-line / unknown codec
 
                     } else {
+                        // in case of a user-added transceiver, the pUnknownCodecPayloadTypesTable, pUnknownCodecRtpmapTable are not populated by
+                        // the function findTransceiversByRemoteDescription and are NULL
                         CHK_STATUS(populateSingleMediaSection(pKvsPeerConnection, pKvsRtpTransceiver,
                                                               &(pLocalSessionDescription->mediaDescriptions[pLocalSessionDescription->mediaCount]),
                                                               pRemoteSessionDescription, certificateFingerprint, pLocalSessionDescription->mediaCount,
@@ -916,6 +921,7 @@ CleanUp:
     return retStatus;
 }
 
+// primarily meant to be used by findTransceiversByRemoteDescription. This function checks if a codec is present in the user-created transceivers
 STATUS findCodecInTransceivers(PKvsPeerConnection pKvsPeerConnection, RTC_CODEC rtcCodec, PBOOL pDidFindCodec, PHashTable pSeenTransceivers)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -928,6 +934,8 @@ STATUS findCodecInTransceivers(PKvsPeerConnection pKvsPeerConnection, RTC_CODEC 
     while (pCurNode != NULL) {
         CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
         pKvsRtpTransceiver = (PKvsRtpTransceiver) data;
+        // if we have already seen / added the transceiver to the answerTransceivers list, we do not want to add it again. This is to ensure that
+        // we have one transceiver per m-line. In case of two video m-lines with the same codec, we need two different transceivers
         CHK_STATUS(hashTableContains(pSeenTransceivers, (UINT64) pKvsRtpTransceiver, &contains));
         if (pKvsRtpTransceiver != NULL && pKvsRtpTransceiver->sender.track.codec == rtcCodec && contains == FALSE) {
             CHK_STATUS(doubleListInsertItemTail(pKvsPeerConnection->pAnswerTransceivers, (UINT64) pKvsRtpTransceiver));
@@ -943,6 +951,16 @@ CleanUp:
     return retStatus;
 }
 
+// primarily used for creating a list of transceivers corresponding to each media m-line to respond to an offer with an answer
+// This function generates the pAnswerTransceivers list which contains transceivers corresponding to each m-line in correct order
+// To generate this list, it traverses over each m-line, first checks if it has a user-created transceiver present using findCodecInTransceivers
+// if found, it adds that transceiver to pAnswerTransceivers
+// if not, it creates a fake transceiver and adds it to pAnswerTransceivers
+// In case a fake transceiver is created, the codec corresponding to that is RTC_CODEC_UNKNOWN.
+// This function also obtains the payload type and rtpmap value for each unknown codec and adds it
+// to pUnknownCodecPayloadTypesTable and pUnknownCodecRtpmapTable respectively. The keys for both hashtables are integers;
+// a key in both hashtables corresponds to the payloadtype and rtpmap value for the same unknown codec,
+// meaning, the same key can be used to retrieve a value for an unknown codec from both hashtables
 STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection, PSessionDescription pRemoteSessionDescription,
                                            PHashTable pUnknownCodecPayloadTypesTable, PHashTable pUnknownCodecRtpmapTable)
 {
@@ -961,8 +979,12 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
     PRtcMediaStreamTrack pRtcMediaStreamTrack;
     RtcMediaStreamTrack track;
 
-    CHK_STATUS(hashTableCreate(&pSeenTransceivers));
+    CHK_STATUS(hashTableCreate(&pSeenTransceivers)); // to be used by findCodecInTransceivers
 
+    // sample m-lines
+    // m=audio 9 UDP/TLS/RTP/SAVPF 111 63 103 104 9 0 8 106 105 13 110 112 113 126
+    // m=video 9 UDP/TLS/RTP/SAVPF 96 97 98 99 100 101 102 121 127 120 125 107 108 109 124 119 123 117 35 36 114 115 116 62 118
+    // this loop iterates over all the m-lines
     for (currentMedia = 0; currentMedia < pRemoteSessionDescription->mediaCount; currentMedia++) {
         pMediaDescription = &(pRemoteSessionDescription->mediaDescriptions[currentMedia]);
         foundMediaSectionWithCodec = FALSE;
@@ -970,6 +992,7 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
         MEMSET(firstCodec, 0x00, MAX_PAYLOAD_TYPE_LENGTH);
 
         // Scan the media section name for any codecs we support
+        // sample attributeValue=audio 9 UDP/TLS/RTP/SAVPF 111 63 103 104 9 0 8 106 105 13 110 112 113 126
         attributeValue = pMediaDescription->mediaName;
 
         if ((end = STRCHR(attributeValue, ' ')) != NULL) {
@@ -983,7 +1006,7 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
         } else if (STRNCMP(MEDIA_SECTION_VIDEO_VALUE, attributeValue, tokenLen) == 0) {
             streamKind = MEDIA_STREAM_TRACK_KIND_VIDEO;
         } else {
-            continue;
+            continue; // ignore non-media m-lines
         }
 
         do {
@@ -994,9 +1017,9 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
                 tokenLen = STRLEN(attributeValue);
             }
             if (count == 4) {
-                codecs = attributeValue;
+                codecs = attributeValue; // codecs = 111 63 103 104 9 0 8 106 105 13 110 112 113 126
             }
-            if (count > 3) {
+            if (count > 3) { // look to codec values from payload types(111 63 103 104 9 0 8 106 105 13 110 112 113 126)
                 if (STRNCMP(DEFAULT_PAYLOAD_MULAW_STR, attributeValue, tokenLen) == 0) {
                     supportCodec = TRUE;
                     rtcCodec = RTC_CODEC_MULAW;
@@ -1007,6 +1030,7 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
                     supportCodec = FALSE;
                 }
 
+                // if a supported codec is found, check if a user has created a transceiver for that
                 if (supportCodec) {
                     CHK_STATUS(findCodecInTransceivers(pKvsPeerConnection, rtcCodec, &foundMediaSectionWithCodec, pSeenTransceivers));
                 }
@@ -1016,6 +1040,10 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
             }
         } while (end != NULL && !foundMediaSectionWithCodec);
 
+        // get the first payload type from codecs in case we need to use it to generate a fake transceiver
+        // if we don't have a user-created one corresponding to an m-line
+        // e.g: codecs = 111 63 103 104 9 0 8 106 105 13 110 112 113 126
+        // firstCodec = 111
         if ((end = STRCHR(codecs, ' ')) != NULL) {
             tokenLen = (end - codecs);
         } else {
@@ -1023,10 +1051,12 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
         }
         STRNCPY(firstCodec, codecs, tokenLen);
 
+        // in case a supported codec was not found from the payload types, check the rtpmaps in the a-lines for that particular m-line
         for (currentAttribute = 0; currentAttribute < pMediaDescription->mediaAttributesCount && !foundMediaSectionWithCodec; currentAttribute++) {
             attributeValue = pMediaDescription->sdpAttributes[currentAttribute].attributeValue;
             rtcCodec = RTC_CODEC_UNKNOWN;
 
+            // check for rtpmap values only if an a-line contains the keyword "rtpmap" to save string comparisons
             if (STRNCMP(RTPMAP_VALUE, pMediaDescription->sdpAttributes[currentAttribute].attributeName, 6) == 0) {
                 if (STRSTR(attributeValue, H264_VALUE) != NULL) {
                     supportCodec = TRUE;
@@ -1047,10 +1077,17 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
                     supportCodec = FALSE;
                 }
 
+                // if a supported codec is found, check if a user has created a transceiver for that
                 if (supportCodec) {
                     CHK_STATUS(findCodecInTransceivers(pKvsPeerConnection, rtcCodec, &foundMediaSectionWithCodec, pSeenTransceivers));
                 }
 
+                // if the m-line / codec is not supported or the user has not created a transceiver corresponding to it
+                // find the rtpmap value for the firstcodec that we saved previously
+                // e.g a-line: a=rtpmap:96 VP8/90000
+                // attributeValue = rtpmap:96 VP8/90000
+                // firstCodec = 96
+                // rtpMapValue = VP8/90000
                 if (foundMediaSectionWithCodec == FALSE) {
                     if ((end = STRCHR(attributeValue, ' ')) != NULL)
                         if (STRNCMP(attributeValue, firstCodec, tokenLen) == 0) {
@@ -1059,6 +1096,8 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
                 }
             }
         }
+
+        // if we have not found a transceiver for an m-line or if the codec is unsupported, got to this section to generate a fake transceiver
         if (!foundMediaSectionWithCodec && (streamKind == MEDIA_STREAM_TRACK_KIND_AUDIO || streamKind == MEDIA_STREAM_TRACK_KIND_VIDEO)) {
             MEMSET(&track, 0x00, SIZEOF(RtcMediaStreamTrack));
             track.kind = streamKind;
@@ -1069,11 +1108,14 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
             CHK_STATUS(createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE, pKvsPeerConnection, (UINT32) RAND(), (UINT32) RAND(),
                                                pRtcMediaStreamTrack, NULL, RTC_CODEC_UNKNOWN, &pKvsRtpFakeTransceiver));
 
+            // add the new transceiver to a list of fake transceivers to keep a track of them
+            // add the same to the pAnswerTransceivers since it will be needed later to serialize
             CHK_STATUS(doubleListInsertItemTail(pKvsPeerConnection->pFakeTransceivers, (UINT64) pKvsRtpFakeTransceiver));
             CHK_STATUS(doubleListInsertItemTail(pKvsPeerConnection->pAnswerTransceivers, (UINT64) pKvsRtpFakeTransceiver));
 
             CHK_STATUS(STRTOUI32(firstCodec, firstCodec + tokenLen, 10, &codec));
 
+            // Insert (int)(firstCodec) and rtpMapValue into the hashtables with the same key so they can be retrieved later during serialization
             CHK_STATUS(hashTableContains(pUnknownCodecPayloadTypesTable, (UINT64) codec, &containsPayloadType));
             CHK_STATUS(hashTableContains(pUnknownCodecRtpmapTable, (UINT64) rtpMapValue, &containsRtpMap));
             if (containsPayloadType == FALSE && containsRtpMap == FALSE) {
