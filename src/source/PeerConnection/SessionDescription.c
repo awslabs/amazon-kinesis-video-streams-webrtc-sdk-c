@@ -1019,7 +1019,7 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
             if (count == 4) {
                 codecs = attributeValue; // codecs = 111 63 103 104 9 0 8 106 105 13 110 112 113 126
             }
-            if (count > 3) { // look to codec values from payload types(111 63 103 104 9 0 8 106 105 13 110 112 113 126)
+            if (count > 3) { // look for codec values from payload types (111 63 103 104 9 0 8 106 105 13 110 112 113 126)
                 if (STRNCMP(DEFAULT_PAYLOAD_MULAW_STR, attributeValue, tokenLen) == 0) {
                     supportCodec = TRUE;
                     rtcCodec = RTC_CODEC_MULAW;
@@ -1040,10 +1040,11 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
             }
         } while (end != NULL && !foundMediaSectionWithCodec);
 
-        // get the first payload type from codecs in case we need to use it to generate a fake transceiver
+        // get the first payload type from codecs in case we need to use it to generate a fake transceiver to respond to an m-line
         // if we don't have a user-created one corresponding to an m-line
+        // we can respond to an m-line by including any one codec the offer had
         // e.g: codecs = 111 63 103 104 9 0 8 106 105 13 110 112 113 126
-        // firstCodec = 111
+        //      firstCodec = 111
         if ((end = STRCHR(codecs, ' ')) != NULL) {
             tokenLen = (end - codecs);
         } else {
@@ -1056,7 +1057,7 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
             attributeValue = pMediaDescription->sdpAttributes[currentAttribute].attributeValue;
             rtcCodec = RTC_CODEC_UNKNOWN;
 
-            // check for rtpmap values only if an a-line contains the keyword "rtpmap" to save string comparisons
+            // check for supported codec in rtpmap values only if an a-line contains the keyword "rtpmap" to save string comparisons
             if (STRNCMP(RTPMAP_VALUE, pMediaDescription->sdpAttributes[currentAttribute].attributeName, 6) == 0) {
                 if (STRSTR(attributeValue, H264_VALUE) != NULL) {
                     supportCodec = TRUE;
@@ -1084,10 +1085,11 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
 
                 // if the m-line / codec is not supported or the user has not created a transceiver corresponding to it
                 // find the rtpmap value for the firstcodec that we saved previously
-                // e.g a-line: a=rtpmap:96 VP8/90000
-                // attributeValue = rtpmap:96 VP8/90000
-                // firstCodec = 96
-                // rtpMapValue = VP8/90000
+                // e.g a-line: a=rtpmap:111 opus/48000/2
+                //     attributeValue = 111 opus/48000/2
+                //     firstCodec = 111
+                //     rtpMapValue = opus/48000/2
+                //     tokenLen = 3 (still contains length of the firstCodec)
                 if (foundMediaSectionWithCodec == FALSE) {
                     if ((end = STRCHR(attributeValue, ' ')) != NULL)
                         if (STRNCMP(attributeValue, firstCodec, tokenLen) == 0) {
