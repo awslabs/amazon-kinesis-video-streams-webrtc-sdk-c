@@ -14,8 +14,8 @@ extern "C" {
 #define SIGNALING_REQUEST_ID_HEADER_NAME KVS_REQUEST_ID_HEADER_NAME ":"
 
 // Signaling client from custom data conversion
-#define SIGNALING_CLIENT_FROM_CUSTOM_DATA(h) ((PSignalingClient)(h))
-#define CUSTOM_DATA_FROM_SIGNALING_CLIENT(p) ((UINT64)(p))
+#define SIGNALING_CLIENT_FROM_CUSTOM_DATA(h) ((PSignalingClient) (h))
+#define CUSTOM_DATA_FROM_SIGNALING_CLIENT(p) ((UINT64) (p))
 
 // Grace period for refreshing the ICE configuration
 #define ICE_CONFIGURATION_REFRESH_GRACE_PERIOD (30 * HUNDREDS_OF_NANOS_IN_A_SECOND)
@@ -63,11 +63,11 @@ extern "C" {
 #define SIGNALING_API_LATENCY_CALCULATION(pClient, time, isCpApi)                                                                                    \
     MUTEX_LOCK((pClient)->diagnosticsLock);                                                                                                          \
     if (isCpApi) {                                                                                                                                   \
-        (pClient)->diagnostics.cpApiLatency = EMA_ACCUMULATOR_GET_NEXT((pClient)->diagnostics.cpApiLatency,                                          \
-                                                                       SIGNALING_GET_CURRENT_TIME((pClient)) - (time));                              \
+        (pClient)->diagnostics.cpApiLatency =                                                                                                        \
+            EMA_ACCUMULATOR_GET_NEXT((pClient)->diagnostics.cpApiLatency, SIGNALING_GET_CURRENT_TIME((pClient)) - (time));                           \
     } else {                                                                                                                                         \
-        (pClient)->diagnostics.dpApiLatency = EMA_ACCUMULATOR_GET_NEXT((pClient)->diagnostics.dpApiLatency,                                          \
-                                                                       SIGNALING_GET_CURRENT_TIME((pClient)) - (time));                              \
+        (pClient)->diagnostics.dpApiLatency =                                                                                                        \
+            EMA_ACCUMULATOR_GET_NEXT((pClient)->diagnostics.dpApiLatency, SIGNALING_GET_CURRENT_TIME((pClient)) - (time));                           \
     }                                                                                                                                                \
     MUTEX_UNLOCK((pClient)->diagnosticsLock);
 
@@ -78,9 +78,10 @@ extern "C" {
 
 #define IS_CURRENT_TIME_CALLBACK_SET(pClient) ((pClient) != NULL && ((pClient)->signalingClientCallbacks.getCurrentTimeFn != NULL))
 
-#define SIGNALING_GET_CURRENT_TIME(pClient) (IS_CURRENT_TIME_CALLBACK_SET((pClient)) ? \
-                                            ((pClient)->signalingClientCallbacks.getCurrentTimeFn((pClient)->signalingClientCallbacks.customData)) : \
-                                            GETTIME())
+#define SIGNALING_GET_CURRENT_TIME(pClient)                                                                                                          \
+    (IS_CURRENT_TIME_CALLBACK_SET((pClient))                                                                                                         \
+         ? ((pClient)->signalingClientCallbacks.getCurrentTimeFn((pClient)->signalingClientCallbacks.customData))                                    \
+         : GETTIME())
 
 #define DEFAULT_CREATE_SIGNALING_CLIENT_RETRY_ATTEMPTS 7
 
@@ -102,12 +103,12 @@ static const ExponentialBackoffRetryStrategyConfig DEFAULT_SIGNALING_STATE_MACHI
         ************************************
         jitter = random number between [0, wait time)
     */
-    KVS_INFINITE_EXPONENTIAL_RETRIES, /* max retry count */
-    10000, /* max retry wait time in milliseconds */
-    100, /* factor determining exponential curve in milliseconds */
+    KVS_INFINITE_EXPONENTIAL_RETRIES,                       /* max retry count */
+    10000,                                                  /* max retry wait time in milliseconds */
+    100,                                                    /* factor determining exponential curve in milliseconds */
     DEFAULT_KVS_MIN_TIME_TO_RESET_RETRY_STATE_MILLISECONDS, /* minimum time in milliseconds to reset retry state */
-    FULL_JITTER, /* use full jitter variant */
-    0 /* jitter value unused for full jitter variant */
+    FULL_JITTER,                                            /* use full jitter variant */
+    0                                                       /* jitter value unused for full jitter variant */
 };
 
 // Forward declaration
@@ -330,8 +331,8 @@ typedef struct {
 } SignalingClient, *PSignalingClient;
 
 // Public handle to and from object converters
-#define TO_SIGNALING_CLIENT_HANDLE(p)   ((SIGNALING_CLIENT_HANDLE)(p))
-#define FROM_SIGNALING_CLIENT_HANDLE(h) (IS_VALID_SIGNALING_CLIENT_HANDLE(h) ? (PSignalingClient)(h) : NULL)
+#define TO_SIGNALING_CLIENT_HANDLE(p)   ((SIGNALING_CLIENT_HANDLE) (p))
+#define FROM_SIGNALING_CLIENT_HANDLE(h) (IS_VALID_SIGNALING_CLIENT_HANDLE(h) ? (PSignalingClient) (h) : NULL)
 
 STATUS createSignalingSync(PSignalingClientInfoInternal, PChannelInfo, PSignalingClientCallbacks, PAwsCredentialProvider, PSignalingClient*);
 STATUS freeSignaling(PSignalingClient*);
