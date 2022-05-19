@@ -1,8 +1,0 @@
-<map id="freeRtpRollingBuffer" name="freeRtpRollingBuffer">
-<area shape="rect" id="node1" title=" " alt="" coords="665,31,820,57"/>
-<area shape="rect" id="node2" href="$Rtp_8h.html#ae8c85797caf52813ba0b8ca9859b77c5" title=" " alt="" coords="449,31,617,57"/>
-<area shape="rect" id="node3" href="$group__PublicMemberFunctions.html#ga5b89dc2e301e35f30330c57bc1361dcb" title="Create a new RtcRtpTransceiver and add it to the set of transceivers." alt="" coords="28,5,148,32"/>
-<area shape="rect" id="node4" href="$Rtp_8h.html#afbd4b909747cdf574518ad6df03a2e76" title=" " alt="" coords="219,31,401,57"/>
-<area shape="rect" id="node5" href="$group__PublicMemberFunctions.html#ga433b1bd125e7f221bcdad97a2a0e8949" title="Free a RtcPeerConnection." alt="" coords="235,81,385,108"/>
-<area shape="rect" id="node6" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,81,171,108"/>
-</map>

@@ -1,7 +1,0 @@
-<map id="setBytesFromRtpPacket" name="setBytesFromRtpPacket">
-<area shape="rect" id="node1" title=" " alt="" coords="724,42,900,69"/>
-<area shape="rect" id="node2" href="$RtpPacket_8h.html#a990324326132567a1c5f8c7436f3bff0" title=" " alt="" coords="479,42,676,69"/>
-<area shape="rect" id="node3" href="$RtpPacket_8h.html#aed0aaf168ee5fff2577454d4332c54f6" title=" " alt="" coords="212,5,431,47"/>
-<area shape="rect" id="node5" href="$group__PublicMemberFunctions.html#ga40c7caf6325f426d82030beec50cc86e" title="Packetizes and sends media via the configuration specified by the RtcRtpTransceiver." alt="" coords="273,71,369,98"/>
-<area shape="rect" id="node4" href="$Retransmitter_8h.html#a55e0c0bf127bb71130d3187b05e7ed87" title=" " alt="" coords="5,13,164,39"/>
-</map>
