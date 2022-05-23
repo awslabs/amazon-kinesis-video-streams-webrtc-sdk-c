@@ -1,0 +1,10 @@
+<map id="RtcStreamMetrics" name="RtcStreamMetrics">
+<area shape="rect" id="node1" title="Collection of RTP stream related stats Reference: https://www.w3.org/TR/webrtc&#45;stats/#remoteinboundrt..." alt="" coords="491,704,630,781"/>
+<area shape="rect" id="node2" href="$structRtcOutboundRtpStreamStats.html" title="RtcOutboundRtpStreamStats Gathers stats for media stream from the embedded device Note: RTCOutboundRt..." alt="" coords="209,388,417,612"/>
+<area shape="rect" id="node3" href="$structRTCSentRtpStreamStats.html" title="RTCSentRtpStreamStats will be used as part of outbound Rtp stats Reference: https://www...." alt="" coords="5,197,183,289"/>
+<area shape="rect" id="node4" href="$structRTCRtpStreamStats.html" title="RTCRtpStreamStats captures stream stats that will be used as part of RTCSentRtpStreamStats report Ref..." alt="" coords="20,5,168,127"/>
+<area shape="rect" id="node5" href="$structDscpPacketsSentRecord.html" title="Record of total number of packets sent per DSCP. Used by RTCOutboundRtpStreamStats object." alt="" coords="207,197,419,289"/>
+<area shape="rect" id="node6" href="$structQualityLimitationDurationsRecord.html" title=" " alt="" coords="443,189,641,296"/>
+<area shape="rect" id="node7" href="$structRtcTransportStats.html" title="RtcTransportStats Represents the stats corresponding to an RTCDtlsTransport and its underlying RTCIce..." alt="" coords="441,359,680,641"/>
+<area shape="rect" id="node8" href="$structRtcRemoteInboundRtpStreamStats.html" title="RTCRemoteInboundRtpStreamStats Represents the remote endpoint&#39;s measurement metrics for a particular ..." alt="" coords="705,417,931,583"/>
+</map>

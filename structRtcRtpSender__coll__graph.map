@@ -1,0 +1,8 @@
+<map id="RtcRtpSender" name="RtcRtpSender">
+<area shape="rect" id="node1" title=" " alt="" coords="269,432,487,641"/>
+<area shape="rect" id="node2" href="$structRetransmitter.html" title=" " alt="" coords="5,233,180,355"/>
+<area shape="rect" id="node3" href="$struct____Payloads.html" title=" " alt="" coords="204,219,395,369"/>
+<area shape="rect" id="node4" href="$structRtpRollingBuffer.html" title=" " alt="" coords="419,255,547,333"/>
+<area shape="rect" id="node5" href="$structRollingBuffer.html" title=" " alt="" coords="428,5,539,156"/>
+<area shape="rect" id="node6" href="$structRtcMediaStreamTrack.html" title="Represents a single track in a MediaStream." alt="" coords="572,233,736,355"/>
+</map>

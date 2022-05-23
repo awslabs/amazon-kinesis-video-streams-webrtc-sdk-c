@@ -1,0 +1,7 @@
+<map id="createRtcCertificate" name="createRtcCertificate">
+<area shape="rect" id="node1" title="Creates an RtcCertificate object." alt="" coords="5,56,156,83"/>
+<area shape="rect" id="node2" href="$Dtls__mbedtls_8c.html#aeb739e880d3edc3d95e7135805114f13" title=" " alt="" coords="204,31,383,57"/>
+<area shape="rect" id="node5" href="$group__PublicMemberFunctions.html#gac847bd3f95ca79c90788f0948c4ee093" title="Frees previously generated RtcCertificate object." alt="" coords="225,81,361,108"/>
+<area shape="rect" id="node3" href="$Dtls_8c.html#a8a3ff1abce99340169948c609dc4259a" title=" " alt="" coords="431,5,621,32"/>
+<area shape="rect" id="node4" href="$Dtls__mbedtls_8c.html#aa6d608da9c875fbfccf37bd3e716e836" title=" " alt="" coords="444,56,608,83"/>
+</map>

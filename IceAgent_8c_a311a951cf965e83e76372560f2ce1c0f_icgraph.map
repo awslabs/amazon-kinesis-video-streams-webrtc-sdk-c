@@ -1,0 +1,5 @@
+<map id="iceAgentRestart" name="iceAgentRestart">
+<area shape="rect" id="node1" title=" " alt="" coords="220,31,347,57"/>
+<area shape="rect" id="node2" href="$group__PublicMemberFunctions.html#gade9fcbb056cb321f33890c1cf1222e64" title="Instructs the RtcPeerConnection that ICE should be restarted. Subsequent calls to createOffer will cr..." alt="" coords="47,5,131,32"/>
+<area shape="rect" id="node3" href="$group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,56,172,83"/>
+</map>

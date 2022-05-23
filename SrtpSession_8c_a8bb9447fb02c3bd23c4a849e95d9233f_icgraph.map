@@ -1,0 +1,6 @@
+<map id="initSrtpSession" name="initSrtpSession">
+<area shape="rect" id="node1" title=" " alt="" coords="547,5,665,32"/>
+<area shape="rect" id="node2" href="$PeerConnection_8c.html#a8550d4c65dc37cbff20ac6179ba1a59b" title=" " alt="" coords="399,5,499,32"/>
+<area shape="rect" id="node3" href="$PeerConnection_8c.html#a76ad72a51a47dae5e9f43873f36aa34a" title=" " alt="" coords="219,5,351,32"/>
+<area shape="rect" id="node4" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,5,171,32"/>
+</map>

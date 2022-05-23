@@ -1,0 +1,11 @@
+<map id="SessionDescription" name="SessionDescription">
+<area shape="rect" id="node1" title=" " alt="" coords="631,359,819,583"/>
+<area shape="rect" id="node2" href="$structSdpBandwidth.html" title=" " alt="" coords="189,13,354,105"/>
+<area shape="rect" id="node9" href="$structSdpMediaDescription.html" title=" " alt="" coords="385,175,571,296"/>
+<area shape="rect" id="node3" href="$structSdpEncryptionKey.html" title=" " alt="" coords="5,13,159,105"/>
+<area shape="rect" id="node4" href="$structSdpAttributes.html" title=" " alt="" coords="607,13,739,105"/>
+<area shape="rect" id="node5" href="$structSdpTimeZone.html" title=" " alt="" coords="595,189,739,281"/>
+<area shape="rect" id="node6" href="$structSdpOrigin.html" title=" " alt="" coords="915,182,1049,289"/>
+<area shape="rect" id="node7" href="$structSdpConnectionInformation.html" title=" " alt="" coords="953,5,1147,112"/>
+<area shape="rect" id="node8" href="$structSdpTimeDescription.html" title=" " alt="" coords="1073,189,1227,281"/>
+</map>

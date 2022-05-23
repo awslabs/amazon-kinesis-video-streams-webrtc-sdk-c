@@ -1,0 +1,7 @@
+<map id="sendLwsMessage" name="sendLwsMessage">
+<area shape="rect" id="node1" title=" " alt="" coords="5,71,141,98"/>
+<area shape="rect" id="node2" href="$StateMachine_8c.html#a0e4075886bfd0e7be0b6173ee41adace" title=" " alt="" coords="189,5,404,47"/>
+<area shape="rect" id="node3" href="$Signaling_8c.html#af5819e8bf1d10e24153c35f91b50a735" title=" " alt="" coords="206,71,387,98"/>
+<area shape="rect" id="node4" href="$LwsApiCalls_8c.html#a79f1b7bc677d4cb0c2eb0c6ab854e8e5" title=" " alt="" coords="241,122,352,149"/>
+<area shape="rect" id="node5" href="$LwsApiCalls_8c.html#a799bfe087bea205476d1359524b17656" title=" " alt="" coords="452,122,649,149"/>
+</map>
