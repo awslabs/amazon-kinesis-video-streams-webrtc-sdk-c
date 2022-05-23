@@ -217,6 +217,8 @@ PVOID sendGstreamerAudioVideo(PVOID args)
     gst_object_unref(bus);
     gst_element_set_state(pipeline, GST_STATE_NULL);
     gst_object_unref(pipeline);
+    gst_object_unref(appsinkAudio);
+    gst_object_unref(appsinkVideo);
 
 CleanUp:
 
@@ -323,6 +325,7 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
     gst_object_unref(bus);
     gst_element_set_state(pipeline, GST_STATE_NULL);
     gst_object_unref(pipeline);
+    gst_object_unref(appsrcAudio);
 
 CleanUp:
     if (error != NULL) {
