@@ -205,7 +205,7 @@ jobs:
   static-build-linux:
     runs-on: ubuntu-18.04
     container: 
-      image: alpine:latest
+      image: alpine:3.15.4
     env:
       CC: gcc
       CXX: g++
