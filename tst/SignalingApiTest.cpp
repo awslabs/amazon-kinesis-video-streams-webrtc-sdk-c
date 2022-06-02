@@ -32,8 +32,7 @@ TEST_F(SignalingApiTest, createValidateChannelInfo)
     EXPECT_EQ(0, STRCMP(rChannelInfo->pCertPath, mCaCertPath));
     EXPECT_EQ(rChannelInfo->messageTtl, TEST_SIGNALING_MESSAGE_TTL);
     EXPECT_EQ(0, STRCMP(rChannelInfo->pRegion, TEST_DEFAULT_REGION));
-
-    SAFE_MEMFREE(rChannelInfo);
+    freeChannelInfo(&rChannelInfo);
 }
 
 TEST_F(SignalingApiTest, signalingSendMessageSync)
