@@ -12,7 +12,7 @@ class SignalingApiTest : public WebRtcClientTestBase {
 TEST_F(SignalingApiTest, createValidateChannelInfo)
 {
     initializeSignalingClientStructs();
-    PChannelInfo rChannelInfo = NULL;
+    PChannelInfo rChannelInfo;
     STRCPY(mChannelArn, TEST_CHANNEL_ARN);
     STRCPY(mKmsKeyId, TEST_KMS_KEY_ID_ARN);
     mChannelInfo.pChannelArn = mChannelArn;

@@ -219,7 +219,7 @@ jobs:
           apk upgrade
           apk add alpine-sdk cmake clang linux-headers perl bash openssl-dev
       - name: Build Repository
-        run: | 
+        run: |
           mkdir build && cd build
           cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE
           make
