@@ -18,6 +18,7 @@ option(BUILD_LIBSRTP_DESTINATION_PLATFORM "If buildng LibSRTP what is the destin
 option(BUILD_SAMPLE "Build available samples" ON)
 option(ENABLE_DATA_CHANNEL "Enable support for data channel" ON)
 option(INSTRUMENTED_ALLOCATORS "Enable memory instrumentation" OFF)
+option(LOCAL_OPENSSL_BUILD "Whether or not to use local OpenSSL build" OFF)
 
 # Developer Flags
 option(BUILD_TEST "Build the testing tree." OFF)
@@ -113,16 +114,18 @@ if(BUILD_DEPENDENCIES)
     message(FATAL_ERROR "Only one of ${SSL_OPTIONS} can be enabled")
   endif()
 
-  if (USE_OPENSSL)
-    set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
-                   -DBUILD_OPENSSL_PLATFORM=${BUILD_OPENSSL_PLATFORM}
-                   -DOPENSSL_EXTRA=${OPENSSL_EXTRA})
-    build_dependency(openssl ${BUILD_ARGS})
-    set(OPENSSL_ROOT_DIR ${OPEN_SRC_INSTALL_PREFIX})
-  elseif(USE_MBEDTLS)
-    set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
-                   -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
-    build_dependency(mbedtls ${BUILD_ARGS})
+  if(LOCAL_OPENSSL_BUILD)
+    if (USE_OPENSSL)
+      set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
+                    -DBUILD_OPENSSL_PLATFORM=${BUILD_OPENSSL_PLATFORM}
+                    -DOPENSSL_EXTRA=${OPENSSL_EXTRA})
+      build_dependency(openssl ${BUILD_ARGS})
+      set(OPENSSL_ROOT_DIR ${OPEN_SRC_INSTALL_PREFIX})
+    elseif(USE_MBEDTLS)
+      set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
+                    -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
+      build_dependency(mbedtls ${BUILD_ARGS})
+    endif()
   endif()
 
 
