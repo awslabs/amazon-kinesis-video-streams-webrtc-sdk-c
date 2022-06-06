@@ -119,7 +119,7 @@ STATUS rtpRollingBufferGetValidSeqIndexList(PRtpRollingBuffer pRollingBuffer, PU
             pCurSeqIndexListPtr++;
             // Return if filled up given valid sequence number array
             CHK(++returnPacketCount < *pValidIndexListLen, retStatus);
-            *pCurSeqIndexListPtr = (UINT32) NULL;
+            *pCurSeqIndexListPtr = (UINT64) NULL;
         }
     }
 

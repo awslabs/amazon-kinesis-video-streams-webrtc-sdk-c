@@ -14,24 +14,24 @@ extern "C" {
  * Signaling states definitions
  */
 #define SIGNALING_STATE_NONE           ((UINT64) 0)
-#define SIGNALING_STATE_NEW            ((UINT64)(1 << 0))
-#define SIGNALING_STATE_GET_TOKEN      ((UINT64)(1 << 1))
-#define SIGNALING_STATE_DESCRIBE       ((UINT64)(1 << 2))
-#define SIGNALING_STATE_CREATE         ((UINT64)(1 << 3))
-#define SIGNALING_STATE_GET_ENDPOINT   ((UINT64)(1 << 4))
-#define SIGNALING_STATE_GET_ICE_CONFIG ((UINT64)(1 << 5))
-#define SIGNALING_STATE_READY          ((UINT64)(1 << 6))
-#define SIGNALING_STATE_CONNECT        ((UINT64)(1 << 7))
-#define SIGNALING_STATE_CONNECTED      ((UINT64)(1 << 8))
-#define SIGNALING_STATE_DISCONNECTED   ((UINT64)(1 << 9))
-#define SIGNALING_STATE_DELETE         ((UINT64)(1 << 10))
-#define SIGNALING_STATE_DELETED        ((UINT64)(1 << 11))
+#define SIGNALING_STATE_NEW            ((UINT64) (1 << 0))
+#define SIGNALING_STATE_GET_TOKEN      ((UINT64) (1 << 1))
+#define SIGNALING_STATE_DESCRIBE       ((UINT64) (1 << 2))
+#define SIGNALING_STATE_CREATE         ((UINT64) (1 << 3))
+#define SIGNALING_STATE_GET_ENDPOINT   ((UINT64) (1 << 4))
+#define SIGNALING_STATE_GET_ICE_CONFIG ((UINT64) (1 << 5))
+#define SIGNALING_STATE_READY          ((UINT64) (1 << 6))
+#define SIGNALING_STATE_CONNECT        ((UINT64) (1 << 7))
+#define SIGNALING_STATE_CONNECTED      ((UINT64) (1 << 8))
+#define SIGNALING_STATE_DISCONNECTED   ((UINT64) (1 << 9))
+#define SIGNALING_STATE_DELETE         ((UINT64) (1 << 10))
+#define SIGNALING_STATE_DELETED        ((UINT64) (1 << 11))
 
 // Indicates infinite retries
 #define INFINITE_RETRY_COUNT_SENTINEL 0
 
 // Whether to step the state machine
-STATUS stepSignalingStateMachine(PSignalingClient, STATUS);
+STATUS signalingStateMachineIterator(PSignalingClient, UINT64, UINT64);
 
 STATUS acceptSignalingStateMachineState(PSignalingClient, UINT64);
 SIGNALING_CLIENT_STATE getSignalingStateFromStateMachineState(UINT64);
@@ -63,6 +63,8 @@ STATUS fromDeleteSignalingState(UINT64, PUINT64);
 STATUS executeDeleteSignalingState(UINT64, UINT64);
 STATUS fromDeletedSignalingState(UINT64, PUINT64);
 STATUS executeDeletedSignalingState(UINT64, UINT64);
+
+STATUS defaultSignalingStateTransitionHook(UINT64, PUINT64);
 
 #ifdef __cplusplus
 }

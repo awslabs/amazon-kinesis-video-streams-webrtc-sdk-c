@@ -172,7 +172,7 @@ typedef enum {
 typedef struct {
     UINT64 durationInSeconds;                              //!< Time (seconds) spent in each state
     RTC_QUALITY_LIMITATION_REASON qualityLimitationReason; //!< Quality limitation reason
-} QualityLimitationDurationsRecord, PQualityLimitationDurationsRecord;
+} QualityLimitationDurationsRecord, *PQualityLimitationDurationsRecord;
 
 /**
  * @brief Record of total number of packets sent per DSCP. Used by RTCOutboundRtpStreamStats
@@ -577,6 +577,7 @@ typedef struct {
                                      //!< * When refreshing ICE server configuration fails after pre-configured retries
                                      //!< In all of these cases the error callback (if specified) will be called.
     UINT32 numberOfReconnects;       //!< Number of reconnects in the session
+    UINT32 apiCallRetryCount;        //!< Number of retries due to API call failures in the state machine
 } SignalingClientStats, PSignalingClientStats;
 
 /**

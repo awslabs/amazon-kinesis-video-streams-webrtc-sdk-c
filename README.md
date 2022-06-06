@@ -6,7 +6,6 @@
 <h4 align="center">Pure C WebRTC Client for Amazon Kinesis Video Streams </h4>
 
 <p align="center">
-  <a href="https://travis-ci.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c"> <img src="https://travis-ci.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c.svg?branch=master" alt="Build Status"> </a>
   <a href="https://codecov.io/gh/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c"> <img src="https://codecov.io/gh/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/branch/master/graph/badge.svg" alt="Coverage Status"> </a>
 </p>
 
@@ -73,7 +72,7 @@ If you do wish to link to existing libraries you can use the following flags to 
 
 #### Cross-Compilation
 
-If you wish to cross-compile `CC` and `CXX` are respected when building the library and all its dependencies. You will also need to set `BUILD_OPENSSL_PLATFORM`, `BUILD_LIBSRTP_HOST_PLATFORM` and `BUILD_LIBSRTP_DESTINATION_PLATFORM`. See our [.travis.yml](.travis.yml) for an example of this. Every commit is cross compiled to ensure that it continues to work.
+If you wish to cross-compile `CC` and `CXX` are respected when building the library and all its dependencies. You will also need to set `BUILD_OPENSSL_PLATFORM`, `BUILD_LIBSRTP_HOST_PLATFORM` and `BUILD_LIBSRTP_DESTINATION_PLATFORM`. See our codecov.io for an example of this. Every commit is cross compiled to ensure that it continues to work.
 
 #### Static Builds
 
@@ -96,6 +95,16 @@ You can pass the following options to `cmake ..`.
 * `-DTHREAD_SANITIZER` -- Build with ThreadSanitizer
 * `-DUNDEFINED_BEHAVIOR_SANITIZER` -- Build with UndefinedBehaviorSanitizer
 * `-DLINK_PROFILER` -- Link with gperftools (available profiler options are listed [here](https://github.com/gperftools/gperftools))
+
+To clean up the `open-source` and `build` folders from previous build, use `cmake --build . --target clean` from the `build` folder
+
+For windows builds, you will have to include additional flags for libwebsockets CMake. Add the following flags to your cmake command, or edit the CMake file in ./CMake/Dependencies/libwebsockets-CMakeLists.txt with the following:
+
+```
+cmake .. -DLWS_HAVE_PTHREAD_H=1 -DLWS_EXT_PTHREAD_INCLUDE_DIR="C:\Program Files (x86)\pthreads\include" -DLWS_EXT_PTHREAD_LIBRARIES="C:\Program Files (x86)\pthreads\lib\x64\libpthreadGC2.a" -DLWS_WITH_MINIMAL_EXAMPLES=1
+```
+
+Be sure to edit the path to whatever pthread library you are using, and the proper path for your environment.
 
 ### Build
 To build the library and the provided samples run make in the build directory you executed CMake.
@@ -290,6 +299,10 @@ This is useful to reduce candidate gathering time when it is known for certain n
 All Public APIs are documented in our [Include.h](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/blob/master/src/include/com/amazonaws/kinesis/video/webrtcclient/Include.h), we also generate a [Doxygen](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-c/) each commit for easier navigation.
 
 Refer to [related](#related) for more about WebRTC and KVS.
+
+## Development
+
+If you would like to contribute to the development of this project, please base your pull requests off of the `origin/develop` branch, and to the `origin/develop` branch. Commits from `develop` will be merged into master periodically as a part of each release cycle.
 
 ## Outbound hostname and port requirements
 * KVS endpoint : TCP 443 (ex: kinesisvideo.us-west-2.amazonaws.com)

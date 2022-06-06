@@ -39,7 +39,7 @@ STATUS configureSctpSocket(struct socket* socket)
     MEMSET(&event, 0, SIZEOF(event));
     event.se_assoc_id = SCTP_FUTURE_ASSOC;
     event.se_on = 1;
-    for (i = 0; i < (UINT32)(SIZEOF(event_types) / SIZEOF(UINT16)); i++) {
+    for (i = 0; i < (UINT32) (SIZEOF(event_types) / SIZEOF(UINT16)); i++) {
         event.se_type = event_types[i];
         CHK(usrsctp_setsockopt(socket, IPPROTO_SCTP, SCTP_EVENT, &event, SIZEOF(struct sctp_event)) == 0, STATUS_SCTP_SESSION_SETUP_FAILED);
     }
@@ -182,11 +182,11 @@ STATUS sctpSessionWriteMessage(PSctpSession pSctpSession, UINT32 streamId, BOOL 
     }
     if ((pSctpSession->packet[1] & DCEP_DATA_CHANNEL_REXMIT) != 0) {
         pSctpSession->spa.sendv_prinfo.pr_policy = SCTP_PR_SCTP_RTX;
-        pSctpSession->spa.sendv_prinfo.pr_value = getUnalignedInt32BigEndian((PINT32)(pSctpSession->packet + SIZEOF(UINT32)));
+        pSctpSession->spa.sendv_prinfo.pr_value = getUnalignedInt32BigEndian((PINT32) (pSctpSession->packet + SIZEOF(UINT32)));
     }
     if ((pSctpSession->packet[1] & DCEP_DATA_CHANNEL_TIMED) != 0) {
         pSctpSession->spa.sendv_prinfo.pr_policy = SCTP_PR_SCTP_TTL;
-        pSctpSession->spa.sendv_prinfo.pr_value = getUnalignedInt32BigEndian((PINT32)(pSctpSession->packet + SIZEOF(UINT32)));
+        pSctpSession->spa.sendv_prinfo.pr_value = getUnalignedInt32BigEndian((PINT32) (pSctpSession->packet + SIZEOF(UINT32)));
     }
 
     putInt32((PINT32) &pSctpSession->spa.sendv_sndinfo.snd_ppid, isBinary ? SCTP_PPID_BINARY : SCTP_PPID_STRING);
@@ -305,14 +305,17 @@ STATUS handleDcepPacket(PSctpSession pSctpSession, UINT32 streamId, PBYTE data, 
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT16 labelLength = 0;
+    UINT16 protocolLength = 0;
 
     // Assert that is DCEP of type DataChannelOpen
     CHK(length > SCTP_DCEP_HEADER_LENGTH && data[0] == DCEP_DATA_CHANNEL_OPEN, STATUS_SUCCESS);
 
     MEMCPY(&labelLength, data + 8, SIZEOF(UINT16));
+    MEMCPY(&protocolLength, data + 10, SIZEOF(UINT16));
     putInt16((PINT16) &labelLength, labelLength);
+    putInt16((PINT16) &protocolLength, protocolLength);
 
-    CHK((labelLength + SCTP_DCEP_HEADER_LENGTH) >= length, STATUS_SCTP_INVALID_DCEP_PACKET);
+    CHK((labelLength + protocolLength + SCTP_DCEP_HEADER_LENGTH) >= length, STATUS_SCTP_INVALID_DCEP_PACKET);
 
     pSctpSession->sctpSessionCallbacks.dataChannelOpenFunc(pSctpSession->sctpSessionCallbacks.customData, streamId, data + SCTP_DCEP_HEADER_LENGTH,
                                                            labelLength);

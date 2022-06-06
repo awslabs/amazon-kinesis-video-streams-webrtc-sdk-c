@@ -232,7 +232,7 @@ s=-
 t=0 0
 )";
 
-    for (auto i = 0; i < 250; i++) {
+    for (auto i = 0; i <= MAX_SDP_ATTRIBUTES_COUNT + 1; i++) {
         sessionDescriptionNoMedia += "a=b\n";
     }
 
@@ -421,6 +421,29 @@ TEST_F(SdpApiTest, populateSingleMediaSection_TestTxRecvOnly)
     STRCPY(track.trackId, "myTrack");
 
     EXPECT_EQ(STATUS_SUCCESS, addTransceiver(offerPc, &track, &rtcRtpTransceiverInit, &pTransceiver));
+    EXPECT_EQ(STATUS_SUCCESS, createOffer(offerPc, &sessionDescriptionInit));
+    EXPECT_PRED_FORMAT2(testing::IsSubstring, "recvonly", sessionDescriptionInit.sdp);
+
+    closePeerConnection(offerPc);
+    freePeerConnection(&offerPc);
+}
+
+TEST_F(SdpApiTest, populateSingleMediaSection_TestTxRecvOnlyStreamNull)
+{
+    PRtcPeerConnection offerPc = NULL;
+    RtcConfiguration configuration;
+    RtcSessionDescriptionInit sessionDescriptionInit;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+
+    // Create peer connection
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+
+    PRtcRtpTransceiver pTransceiver;
+    RtcRtpTransceiverInit rtcRtpTransceiverInit;
+    rtcRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY;
+
+    EXPECT_EQ(STATUS_SUCCESS, addTransceiver(offerPc, NULL, &rtcRtpTransceiverInit, &pTransceiver));
     EXPECT_EQ(STATUS_SUCCESS, createOffer(offerPc, &sessionDescriptionInit));
     EXPECT_PRED_FORMAT2(testing::IsSubstring, "recvonly", sessionDescriptionInit.sdp);
 

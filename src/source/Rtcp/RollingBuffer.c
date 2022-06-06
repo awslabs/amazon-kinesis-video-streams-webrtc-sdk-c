@@ -17,7 +17,7 @@ STATUS createRollingBuffer(UINT32 capacity, FreeDataFunc freeDataFunc, PRollingB
     pRollingBuffer->tailIndex = 0;
     pRollingBuffer->freeDataFn = freeDataFunc;
     pRollingBuffer->lock = MUTEX_CREATE(FALSE);
-    pRollingBuffer->dataBuffer = (PUINT64)(pRollingBuffer + 1);
+    pRollingBuffer->dataBuffer = (PUINT64) (pRollingBuffer + 1);
     MEMSET(pRollingBuffer->dataBuffer, 0, SIZEOF(UINT64) * pRollingBuffer->capacity);
 
 CleanUp:

@@ -19,6 +19,7 @@ extern "C" {
 #define SIGNALING_SERVICE_TCP_KEEPALIVE_PROBE_COUNT               3
 #define SIGNALING_SERVICE_TCP_KEEPALIVE_PROBE_INTERVAL_IN_SECONDS 1
 #define SIGNALING_SERVICE_WSS_PING_PONG_INTERVAL_IN_SECONDS       10
+#define SIGNALING_SERVICE_WSS_HANGUP_IN_SECONDS                   7200
 
 // Protocol indexes
 #define PROTOCOL_INDEX_HTTPS 0
@@ -127,6 +128,11 @@ extern "C" {
     "\t\t\t\"Username\": \"%s\"\n"                                                                                                                   \
     "\t\t},"
 
+// max length for http date header, must follow RFC 7231, should be less than 32 characters
+#define MAX_DATE_HEADER_BUFFER_LENGTH 64
+
+#define MIN_CLOCK_SKEW_TIME_TO_CORRECT (5 * HUNDREDS_OF_NANOS_IN_A_MINUTE)
+
 // Defining max bloat size per item in the JSON template
 #define ICE_SERVER_INFO_TEMPLATE_BLOAT_SIZE 128
 
@@ -163,7 +169,7 @@ extern "C" {
 // Check for the stale credentials
 #define CHECK_SIGNALING_CREDENTIALS_EXPIRATION(p)                                                                                                    \
     do {                                                                                                                                             \
-        if (GETTIME() >= (p)->pAwsCredentials->expiration) {                                                                                         \
+        if (SIGNALING_GET_CURRENT_TIME((p)) >= (p)->pAwsCredentials->expiration) {                                                                   \
             ATOMIC_STORE(&(p)->result, (SIZE_T) SERVICE_CALL_NOT_AUTHORIZED);                                                                        \
             CHK(FALSE, retStatus);                                                                                                                   \
         }                                                                                                                                            \
@@ -232,6 +238,9 @@ PVOID reconnectHandler(PVOID);
 // LWS callback routine
 INT32 lwsHttpCallbackRoutine(struct lws*, enum lws_callback_reasons, PVOID, PVOID, size_t);
 INT32 lwsWssCallbackRoutine(struct lws*, enum lws_callback_reasons, PVOID, PVOID, size_t);
+
+BOOL isCallResultSignatureExpired(PCallInfo);
+BOOL isCallResultSignatureNotYetCurrent(PCallInfo);
 
 STATUS describeChannelLws(PSignalingClient, UINT64);
 STATUS createChannelLws(PSignalingClient, UINT64);

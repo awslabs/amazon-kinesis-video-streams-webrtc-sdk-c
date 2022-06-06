@@ -75,7 +75,7 @@ extern "C" {
 #define MAX_SDP_SESSION_MEDIA_COUNT   5
 #define MAX_SDP_MEDIA_BANDWIDTH_COUNT 2
 
-#define MAX_SDP_ATTRIBUTES_COUNT 128
+#define MAX_SDP_ATTRIBUTES_COUNT 256
 
 /*
  * c=<nettype> <addrtype> <connection-address>
@@ -198,9 +198,9 @@ typedef struct {
 
     SdpMediaDescription mediaDescriptions[MAX_SDP_SESSION_MEDIA_COUNT];
 
-    UINT8 sessionAttributesCount;
+    UINT16 sessionAttributesCount;
 
-    UINT8 mediaCount;
+    UINT16 mediaCount;
 
     UINT8 timezoneCount;
 

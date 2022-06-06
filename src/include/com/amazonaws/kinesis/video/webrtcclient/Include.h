@@ -26,12 +26,12 @@ extern "C" {
 #endif
 
 /*! \addtogroup StatusCodes
-* WEBRTC related status codes. Each value is an positive integer formed by adding
-* a base integer inticating the category to an index. Users may run scripts/parse_status.py
-* to print a list of all status codes and their hex value.
-*  @{
-*/
-#define STATUS_WEBRTC_BASE                                         0x55000000
+ * WEBRTC related status codes. Each value is an positive integer formed by adding
+ * a base integer inticating the category to an index. Users may run scripts/parse_status.py
+ * to print a list of all status codes and their hex value.
+ *  @{
+ */
+#define STATUS_WEBRTC_BASE 0x55000000
 
 /////////////////////////////////////////////////////
 /// Session description init related status codes
@@ -299,6 +299,7 @@ extern "C" {
 #define STATUS_SIGNALING_DELETE_CALL_FAILED                        STATUS_SIGNALING_BASE + 0x00000031
 #define STATUS_SIGNALING_INVALID_METRICS_VERSION                   STATUS_SIGNALING_BASE + 0x00000032
 #define STATUS_SIGNALING_INVALID_CLIENT_INFO_CACHE_FILE_PATH_LEN   STATUS_SIGNALING_BASE + 0x00000033
+#define STATUS_SIGNALING_LWS_CALL_FAILED                           STATUS_SIGNALING_BASE + 0x00000034
 
 /*!@} */
 
@@ -495,7 +496,7 @@ extern "C" {
 /**
  * Version of signaling client
  */
-#define SIGNALING_CLIENT_CURRENT_VERSION 0
+#define SIGNALING_CLIENT_CURRENT_VERSION 1
 
 /**
  * Version of SignalingChannelDescription structure
@@ -574,9 +575,14 @@ extern "C" {
 #define SIGNALING_CONNECT_STATE_TIMEOUT (15 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
 /**
+ * Default disconnect sync API timeout
+ */
+#define SIGNALING_DISCONNECT_STATE_TIMEOUT (15 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+
+/**
  * Default refresh ICE server config API timeout
  */
-#define SIGNALING_REFRESH_ICE_CONFIG_STATE_TIMEOUT (15 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define SIGNALING_REFRESH_ICE_CONFIG_STATE_TIMEOUT (20 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
 /**
  * Default signaling connection establishment timeout
@@ -635,7 +641,7 @@ extern "C" {
 /**
  * Signaling states default retry count. This will evaluate to the last call being made 20 seconds in which will hit a timeout first.
  */
-#define SIGNALING_STATES_DEFAULT_RETRY_COUNT 10
+#define SIGNALING_STATES_DEFAULT_RETRY_COUNT 1
 
 /**
  * Signaling caching policy default TTL period
@@ -646,6 +652,11 @@ extern "C" {
  * Signaling caching policy TTL period sentinel value which will force the default period.
  */
 #define SIGNALING_API_CALL_CACHE_TTL_SENTINEL_VALUE 0
+
+/**
+ * Signaling caching policy TTL period sentinel value which will force the default period.
+ */
+#define CREATE_SIGNALING_CLIENT_RETRY_ATTEMPTS_SENTINEL_VALUE -1
 
 /**
  * @brief Definition of the signaling client handle
@@ -905,7 +916,7 @@ typedef VOID (*RtcOnPictureLoss)(UINT64);
  */
 typedef struct __RtcDataChannel {
     CHAR name[MAX_DATA_CHANNEL_NAME_LEN + 1]; //!< Define name of data channel. Max length is 256 characters
-    UINT32 id; //!< Read only field. Setting this in the application has no effect. This field is populated with the id
+    UINT32 id;                                //!< Read only field. Setting this in the application has no effect. This field is populated with the id
                //!< set by the peer connection's createDataChannel() call or the channel id is set in createDataChannel()
                //!< on embedded end.
 } RtcDataChannel, *PRtcDataChannel;
@@ -935,7 +946,7 @@ typedef VOID (*RtcOnDataChannel)(UINT64, PRtcDataChannel);
 /**
  * @brief RtcOnIceCandidate is fired when new iceCandidate is found. if PCHAR is NULL then candidate gathering is done.
  *
- * Reference: https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-ondatachannel
+ * Reference: https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-onicecandidate
  */
 typedef VOID (*RtcOnIceCandidate)(UINT64, PCHAR);
 
@@ -1053,16 +1064,16 @@ typedef struct {
     UINT32 iceConnectionCheckTimeout; //!< Maximum time allowed waiting for at least one ice candidate pair to receive
                                       //!< binding response from the peer. Use default value if 0.
 
-    UINT32 iceCandidateNominationTimeout; //!< If client is ice controlling, this is the timeout for receiving bind response of requests that has USE_CANDIDATE
-                                          //!< attribute. If client is ice controlled, this is the timeout for receiving binding request that has USE_CANDIDATE
-                                          //!< attribute after connection check is done. Use default value if 0.
+    UINT32 iceCandidateNominationTimeout; //!< If client is ice controlling, this is the timeout for receiving bind response of requests that has
+                                          //!< USE_CANDIDATE attribute. If client is ice controlled, this is the timeout for receiving binding request
+                                          //!< that has USE_CANDIDATE attribute after connection check is done. Use default value if 0.
 
     UINT32 iceConnectionCheckPollingInterval; //!< Ta in https://tools.ietf.org/html/rfc8445
                                               //!< rate at which binding request packets are sent during connection check. Use default interval if 0.
 
     INT32 generatedCertificateBits; //!< GeneratedCertificateBits controls the amount of bits the locally generated self-signed certificate uses
-                                    //!< A smaller amount of bits may result in less CPU usage on startup, but will cause a weaker certificate to be generated
-                                    //!< If set to 0 the default GENERATED_CERTIFICATE_BITS will be used
+                                    //!< A smaller amount of bits may result in less CPU usage on startup, but will cause a weaker certificate to be
+                                    //!< generated If set to 0 the default GENERATED_CERTIFICATE_BITS will be used
 
     BOOL generateRSACertificate; //!< GenerateRSACertificate controls if an ECDSA or RSA certificate is generated.
                                  //!< By default we generate an ECDSA certificate but some platforms may not support them.
@@ -1090,24 +1101,25 @@ typedef struct {
     RtcIceServer iceServers[MAX_ICE_SERVERS_COUNT]; //!< Servers available to be used by ICE, such as STUN and TURN servers.
     KvsRtcConfiguration kvsRtcConfiguration;        //!< Non-standard configuration options
 
-    RtcCertificate certificates[MAX_RTCCONFIGURATION_CERTIFICATES]; //!< Set of certificates that the RtcPeerConnection uses to authenticate.
-                                                                    //!< Although any given DTLS connection will use only one certificate, this
-                                                                    //!< attribute allows the caller to provide multiple certificates that support
-                                                                    //!< different algorithms.
-                                                                    //!<
-                                                                    //!< If this value is absent, then a default set of certificates is generated
-                                                                    //!< for each RtcPeerConnection.
-                                                                    //!<
-                                                                    //!< An absent value is determined by the certificate pointing to NULL
-                                                                    //!<
-                                                                    //!< Doc: https://www.w3.org/TR/webrtc/#dom-rtcconfiguration-certificates
-                                                                    //!<
-                                                                    //!< !!!!!!!!!! IMPORTANT !!!!!!!!!!
-                                                                    //!< It is recommended to rotate the certificates often - preferably for every peer connection
-                                                                    //!< to avoid a compromised client weakening the security of the new connections.
-                                                                    //!<
-                                                                    //!< NOTE: The certificates, if specified, can be freed after the peer connection create call
-                                                                    //!<
+    RtcCertificate
+        certificates[MAX_RTCCONFIGURATION_CERTIFICATES]; //!< Set of certificates that the RtcPeerConnection uses to authenticate.
+                                                         //!< Although any given DTLS connection will use only one certificate, this
+                                                         //!< attribute allows the caller to provide multiple certificates that support
+                                                         //!< different algorithms.
+                                                         //!<
+                                                         //!< If this value is absent, then a default set of certificates is generated
+                                                         //!< for each RtcPeerConnection.
+                                                         //!<
+                                                         //!< An absent value is determined by the certificate pointing to NULL
+                                                         //!<
+                                                         //!< Doc: https://www.w3.org/TR/webrtc/#dom-rtcconfiguration-certificates
+                                                         //!<
+                                                         //!< !!!!!!!!!! IMPORTANT !!!!!!!!!!
+                                                         //!< It is recommended to rotate the certificates often - preferably for every peer
+                                                         //!< connection to avoid a compromised client weakening the security of the new connections.
+                                                         //!<
+                                                         //!< NOTE: The certificates, if specified, can be freed after the peer connection create call
+                                                         //!<
 } RtcConfiguration, *PRtcConfiguration;
 
 /**
@@ -1169,16 +1181,20 @@ typedef struct {
  * @brief Populate Signaling client with client ID and application log level
  */
 typedef struct {
-    UINT32 version;                                 //!< Version of the structure
-    CHAR clientId[MAX_SIGNALING_CLIENT_ID_LEN + 1]; //!< Client id to use. Defines if the client is a producer/consumer
-    UINT32 loggingLevel;                            //!< Verbosity level for the logging. One of LOG_LEVEL_XXX
-                                                    //!< values or the default verbosity will be assumed. Currently,
-                                                    //!< default value is LOG_LEVEL_WARNING
-    PCHAR cacheFilePath;                            //!< File cache path override. The default
-                                                    //!< path is "./.SignalingCache_vN" which might not work for
-                                                    //!< devices which have read only partition where the code is
-                                                    //!< located. For default value or when file caching is not
-                                                    //!< being used this value can be NULL or point to an EMPTY_STRING.
+    UINT32 version;                                            //!< Version of the structure
+    CHAR clientId[MAX_SIGNALING_CLIENT_ID_LEN + 1];            //!< Client id to use. Defines if the client is a producer/consumer
+    UINT32 loggingLevel;                                       //!< Verbosity level for the logging. One of LOG_LEVEL_XXX
+                                                               //!< values or the default verbosity will be assumed. Currently,
+                                                               //!< default value is LOG_LEVEL_WARNING
+    PCHAR cacheFilePath;                                       //!< File cache path override. The default
+                                                               //!< path is "./.SignalingCache_vN" which might not work for
+                                                               //!< devices which have read only partition where the code is
+                                                               //!< located. For default value or when file caching is not
+                                                               //!< being used this value can be NULL or point to an EMPTY_STRING.
+    KvsRetryStrategyCallbacks signalingRetryStrategyCallbacks; //!< Retry strategy callbacks used while creating signaling client
+    INT32 signalingClientCreationMaxRetryAttempts;             //!< Max attempts to create signaling client before returning error to the caller
+    UINT32 stateMachineRetryCountReadOnly; //!< Retry count of state machine. Note that this **MUST NOT** be modified by the user. It is a read only
+                                           //!< field
 } SignalingClientInfo, *PSignalingClientInfo;
 
 /**
@@ -1320,8 +1336,9 @@ typedef struct {
     UINT32 version;                                       //!< Current version of the structure
     UINT64 customData;                                    //!< Custom data passed by the caller
     SignalingClientMessageReceivedFunc messageReceivedFn; //!< Callback registration for received SDP
-    SignalingClientErrorReportFunc errorReportFn;         //!<  Error reporting function. This is an optional member
+    SignalingClientErrorReportFunc errorReportFn;         //!< Error reporting function. This is an optional member
     SignalingClientStateChangedFunc stateChangeFn;        //!< Signaling client state change callback
+    GetCurrentTimeFunc getCurrentTimeFn;                  //!< callback to override system time, used for testing clock skew
 } SignalingClientCallbacks, *PSignalingClientCallbacks;
 
 /**
@@ -1443,8 +1460,8 @@ typedef struct {
 ////////////////////////////////////////////////////
 
 /*! \addtogroup PublicMemberFunctions
-* @{
-*/
+ * @{
+ */
 
 /**
  * @brief Initialize a RtcPeerConnection with the provided Configuration
@@ -1916,6 +1933,16 @@ PUBLIC_API STATUS signalingClientGetIceConfigInfoCount(SIGNALING_CLIENT_HANDLE, 
  * @return STATUS code of execution. STATUS_SUCCESS on success
  */
 PUBLIC_API STATUS signalingClientGetIceConfigInfo(SIGNALING_CLIENT_HANDLE, UINT32, PIceConfigInfo*);
+
+/**
+ * @brief Fetches all assets needed to ready the state machine before attempting to connect.
+ *        Can also be used to reallocate missing / expired assets before reconnecting.
+ *
+ * @param[in] SIGNALING_CLIENT_HANDLE Signaling client handle
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
+PUBLIC_API STATUS signalingClientFetchSync(SIGNALING_CLIENT_HANDLE);
 
 /**
  * @brief Connects the signaling client to the web socket in order to send/receive messages.

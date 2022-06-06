@@ -50,7 +50,7 @@ STATUS createTurnConnection(PIceServer pTurnServer, TIMER_QUEUE_HANDLE timerQueu
     }
     pTurnConnection->recvDataBufferSize = DEFAULT_TURN_MESSAGE_RECV_CHANNEL_DATA_BUFFER_LEN;
     pTurnConnection->dataBufferSize = DEFAULT_TURN_MESSAGE_SEND_CHANNEL_DATA_BUFFER_LEN;
-    pTurnConnection->sendDataBuffer = (PBYTE)(pTurnConnection + 1);
+    pTurnConnection->sendDataBuffer = (PBYTE) (pTurnConnection + 1);
     pTurnConnection->recvDataBuffer = pTurnConnection->sendDataBuffer + pTurnConnection->dataBufferSize;
     pTurnConnection->completeChannelDataBuffer =
         pTurnConnection->sendDataBuffer + pTurnConnection->dataBufferSize + pTurnConnection->recvDataBufferSize;
@@ -352,6 +352,7 @@ STATUS turnConnectionHandleStunError(PTurnConnection pTurnConnection, PBYTE pBuf
     MUTEX_LOCK(pTurnConnection->lock);
     locked = TRUE;
 
+    stunPacketType = (UINT16) getInt16(*((PUINT16) pBuffer));
     /* we could get errors like expired nonce after sending the deallocation packet. The allocate would have been
      * deallocated even if the response is error response, and if we try to deallocate again we would get invalid
      * allocation error. Therefore if we get an error after we've sent the deallocation packet, consider the
@@ -450,9 +451,10 @@ STATUS turnConnectionHandleChannelData(PTurnConnection pTurnConnection, PBYTE pB
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
 
-    UINT32 turnChannelDataCount = 0;
+    UINT32 turnChannelDataCount = 0, hexStrLen = 0;
     UINT16 channelNumber = 0;
     PTurnPeer pTurnPeer = NULL;
+    PCHAR hexStr = NULL;
 
     CHK(pTurnConnection != NULL && pChannelData != NULL && pChannelDataCount != NULL && pProcessedDataLen != NULL, STATUS_NULL_ARG);
     CHK(pBuffer != NULL && bufferLen > 0, STATUS_INVALID_ARG);
@@ -478,7 +480,14 @@ STATUS turnConnectionHandleChannelData(PTurnConnection pTurnConnection, PBYTE pB
             }
 
         } else {
+            CHK_STATUS(hexEncode(pBuffer, bufferLen, NULL, &hexStrLen));
+            hexStr = MEMCALLOC(1, hexStrLen * SIZEOF(CHAR));
+            CHK(hexStr != NULL, STATUS_NOT_ENOUGH_MEMORY);
+            CHK_STATUS(hexEncode(pBuffer, bufferLen, hexStr, &hexStrLen));
+            DLOGE("Turn connection does not have channel number, dumping payload: %s", hexStr);
             turnChannelDataCount = 0;
+
+            SAFE_MEMFREE(hexStr);
         }
         *pProcessedDataLen = bufferLen;
 
@@ -493,6 +502,9 @@ CleanUp:
 
     CHK_LOG_ERR(retStatus);
 
+    if (hexStr != NULL) {
+        SAFE_MEMFREE(hexStr);
+    }
     if (locked) {
         MUTEX_UNLOCK(pTurnConnection->lock);
     }
@@ -524,10 +536,11 @@ STATUS turnConnectionHandleChannelDataTcpMode(PTurnConnection pTurnConnection, P
     /* process only one channel data and return. Because channel data can be intermixed with STUN packet.
      * need to check remainingBufLen too because channel data could be incomplete. */
     while (remainingBufLen != 0 && channelDataCount == 0) {
+        DLOGV("currRecvDataLen: %d", pTurnConnection->currRecvDataLen);
         if (pTurnConnection->currRecvDataLen != 0) {
             if (pTurnConnection->currRecvDataLen >= TURN_DATA_CHANNEL_SEND_OVERHEAD) {
                 /* pTurnConnection->recvDataBuffer always has channel data start */
-                paddedChannelDataLen = ROUND_UP((UINT32) getInt16(*(PINT16)(pTurnConnection->recvDataBuffer + SIZEOF(channelNumber))), 4);
+                paddedChannelDataLen = ROUND_UP((UINT32) getInt16(*(PINT16) (pTurnConnection->recvDataBuffer + SIZEOF(channelNumber))), 4);
                 remainingMsgSize = paddedChannelDataLen - (pTurnConnection->currRecvDataLen - TURN_DATA_CHANNEL_SEND_OVERHEAD);
                 bytesToCopy = MIN(remainingMsgSize, remainingBufLen);
                 remainingBufLen -= bytesToCopy;
@@ -572,7 +585,7 @@ STATUS turnConnectionHandleChannelDataTcpMode(PTurnConnection pTurnConnection, P
             /* new channel message start */
             CHK(*pCurPos == TURN_DATA_CHANNEL_MSG_FIRST_BYTE, STATUS_TURN_MISSING_CHANNEL_DATA_HEADER);
 
-            paddedChannelDataLen = ROUND_UP((UINT32) getInt16(*(PINT16)(pCurPos + SIZEOF(UINT16))), 4);
+            paddedChannelDataLen = ROUND_UP((UINT32) getInt16(*(PINT16) (pCurPos + SIZEOF(UINT16))), 4);
             if (remainingBufLen >= (paddedChannelDataLen + TURN_DATA_CHANNEL_SEND_OVERHEAD)) {
                 channelNumber = (UINT16) getInt16(*(PINT16) pCurPos);
                 if ((pTurnPeer = turnConnectionGetPeerWithChannelNumber(pTurnConnection, channelNumber)) != NULL) {
@@ -704,8 +717,8 @@ STATUS turnConnectionSendData(PTurnConnection pTurnConnection, PBYTE pBuf, UINT3
     paddedDataLen = (UINT32) ROUND_UP(TURN_DATA_CHANNEL_SEND_OVERHEAD + bufLen, 4);
 
     /* generate data channel TURN message */
-    putInt16((PINT16)(pTurnConnection->sendDataBuffer), pSendPeer->channelNumber);
-    putInt16((PINT16)(pTurnConnection->sendDataBuffer + 2), (UINT16) bufLen);
+    putInt16((PINT16) (pTurnConnection->sendDataBuffer), pSendPeer->channelNumber);
+    putInt16((PINT16) (pTurnConnection->sendDataBuffer + 2), (UINT16) bufLen);
     MEMCPY(pTurnConnection->sendDataBuffer + TURN_DATA_CHANNEL_SEND_OVERHEAD, pBuf, bufLen);
 
     retStatus = iceUtilsSendData(pTurnConnection->sendDataBuffer, paddedDataLen, &pTurnConnection->turnServer.ipAddress,

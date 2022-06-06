@@ -5,7 +5,6 @@ STATUS parseMediaName(PSessionDescription pSessionDescription, PCHAR pch, UINT32
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-
     CHK(pSessionDescription->mediaCount < MAX_SDP_SESSION_MEDIA_COUNT, STATUS_BUFFER_TOO_SMALL);
 
     STRNCPY(pSessionDescription->mediaDescriptions[pSessionDescription->mediaCount].mediaName, (pch + SDP_ATTRIBUTE_LENGTH),
@@ -48,7 +47,7 @@ STATUS parseMediaAttributes(PSessionDescription pSessionDescription, PCHAR pch, 
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PCHAR search;
-    UINT8 currentMediaAttributesCount;
+    UINT16 currentMediaAttributesCount;
 
     currentMediaAttributesCount = pSessionDescription->mediaDescriptions[pSessionDescription->mediaCount - 1].mediaAttributesCount;
 
@@ -83,7 +82,7 @@ STATUS deserializeSessionDescription(PSessionDescription pSessionDescription, PC
     tail = sdpBytes + STRLEN(sdpBytes);
 
     while ((next = STRNCHR(curr, tail - curr, '\n')) != NULL) {
-        lineLen = (UINT32)(next - curr);
+        lineLen = (UINT32) (next - curr);
 
         if (lineLen > 0 && curr[lineLen - 1] == '\r') {
             lineLen--;

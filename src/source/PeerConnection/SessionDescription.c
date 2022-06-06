@@ -23,8 +23,8 @@ STATUS serializeSessionDescriptionInit(PRtcSessionDescriptionInit pSessionDescri
     curr = pSessionDescriptionInit->sdp;
     tail = pSessionDescriptionInit->sdp + STRLEN(pSessionDescriptionInit->sdp);
 
-    while ((next = STRNCHR(curr, (UINT32)(tail - curr), '\n')) != NULL) {
-        lineLen = (UINT32)(next - curr);
+    while ((next = STRNCHR(curr, (UINT32) (tail - curr), '\n')) != NULL) {
+        lineLen = (UINT32) (next - curr);
 
         if (lineLen > 0 && curr[lineLen - 1] == '\r') {
             lineLen--;
@@ -95,7 +95,7 @@ STATUS deserializeSessionDescriptionInit(PCHAR sessionDescriptionJSON, UINT32 se
             //     \r becomes '\' and 'r'
             //     \n becomes '\' and 'n'
             while ((next = STRNSTR(curr, SESSION_DESCRIPTION_INIT_LINE_ENDING_WITHOUT_CR, tail - curr)) != NULL) {
-                lineLen = (INT32)(next - curr);
+                lineLen = (INT32) (next - curr);
 
                 // Check if the SDP format is using \r\n or \n separator.
                 // There are escape characters before \n and \r, so we need to move back 1 more character
@@ -151,7 +151,8 @@ STATUS setPayloadTypesFromOffer(PHashTable codecTable, PHashTable rtxTable, PSes
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSdpMediaDescription pMediaDescription = NULL;
-    UINT8 currentMedia, currentAttribute;
+    UINT8 currentAttribute;
+    UINT16 currentMedia;
     PCHAR attributeValue, end;
     UINT64 parsedPayloadType, hashmapPayloadType, fmtpVal, aptVal;
     UINT16 aptFmtpVals[MAX_SDP_FMTP_VALUES];
@@ -230,7 +231,7 @@ STATUS setPayloadTypesFromOffer(PHashTable codecTable, PHashTable rtxTable, PSes
                 CHK_STATUS(STRTOUI64(end + STRLEN(RTX_CODEC_VALUE), NULL, 10, &parsedPayloadType));
                 if ((end = STRSTR(attributeValue, FMTP_VALUE)) != NULL) {
                     CHK_STATUS(STRTOUI64(end + STRLEN(FMTP_VALUE), NULL, 10, &fmtpVal));
-                    aptFmtpVals[aptFmtpValCount++] = (UINT32)((fmtpVal << 8u) & parsedPayloadType);
+                    aptFmtpVals[aptFmtpValCount++] = (UINT32) ((fmtpVal << 8u) & parsedPayloadType);
                 }
             }
         }

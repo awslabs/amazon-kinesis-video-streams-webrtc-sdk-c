@@ -41,7 +41,7 @@ static STATUS onRtcpSLIPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPe
         pTransceiver->outboundStats.sliCount++;
         MUTEX_UNLOCK(pTransceiver->statsLock);
     } else {
-        DLOGW("Received FIR for non existing ssrc: %u", mediaSSRC);
+        DLOGW("Received SLI for non existing ssrc: %u", mediaSSRC);
     }
 
 CleanUp:
@@ -301,7 +301,7 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
     CHK_STATUS(stackQueuePeek(&twcc->twccPackets, &sn));
     ageOfOldestPacket = twcc->lastLocalTimeKvs - twcc->twccPacketBySeqNum[(UINT16) sn].localTimeKvs;
     CHK(ageOfOldestPacket > TWCC_ESTIMATOR_TIME_WINDOW / 2, STATUS_SUCCESS);
-    localStartTimeKvs = twcc->twccPacketBySeqNum[(UINT16)(sn - 1)].localTimeKvs;
+    localStartTimeKvs = twcc->twccPacketBySeqNum[(UINT16) (sn - 1)].localTimeKvs;
     if (localStartTimeKvs == TWCC_PACKET_UNITIALIZED_TIME) {
         // time not yet set (only happens for first rtp packet)
         localStartTimeKvs = twcc->twccPacketBySeqNum[(UINT16) sn].localTimeKvs;

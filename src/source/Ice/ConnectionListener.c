@@ -23,7 +23,7 @@ STATUS createConnectionListener(PConnectionListener* ppConnectionListener)
     pConnectionListener->socketCount = 0;
 
     // pConnectionListener->pBuffer starts at the end of ConnectionListener struct
-    pConnectionListener->pBuffer = (PBYTE)(pConnectionListener + 1);
+    pConnectionListener->pBuffer = (PBYTE) (pConnectionListener + 1);
     pConnectionListener->bufferLen = MAX_UDP_PACKET_SIZE;
 
 CleanUp:
@@ -374,7 +374,10 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
 
 CleanUp:
 
-    if (pConnectionListener != NULL) {
+    // The check for valid mutex is necessary because when we're in freeConnectionListener
+    // we may free the mutex in another thread so by the time we get here accessing the lock
+    // will result in accessing a resource after it has been freed
+    if (pConnectionListener != NULL && IS_VALID_MUTEX_VALUE(pConnectionListener->lock)) {
         // As TID is 64 bit we can't atomically update it and need to do it under the lock
         MUTEX_LOCK(pConnectionListener->lock);
         pConnectionListener->receiveDataRoutine = INVALID_TID_VALUE;
@@ -383,5 +386,5 @@ CleanUp:
 
     CHK_LOG_ERR(retStatus);
 
-    return (PVOID)(ULONG_PTR) retStatus;
+    return (PVOID) (ULONG_PTR) retStatus;
 }

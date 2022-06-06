@@ -1,0 +1,36 @@
+name: Close Stale Issues
+
+# Controls when the action will be run
+on:
+  schedule:
+    - cron: "0 0 * * *"
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    name: Close stale issues
+    steps:
+      - uses: aws-actions/stale-issue-cleanup@v3
+        with:
+          ancient-issue-message: This is a very old issue. We encourage you to check if this is still an issue in the latest release and if you find that this is still a problem, please feel free to open a new one.
+          stale-issue-message: It looks like this issue has not been active for 10 days. If the issue is not resolved, please add an update to the ticket, else it will be automatically resolved in a few days.
+
+          # labels to be added
+          stale-issue-label: closing-soon
+          exempt-issue-labels: enhancement,pending-research,pending-action,needs-triage
+          response-requested-label: pending-response
+
+          closed-for-staleness-label: closed-for-staleness
+
+          # SLAs
+          days-before-stale: 7
+          days-before-close: 3
+          days-before-ancient: 180
+
+
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          loglevel: DEBUG
+          # Set dry-run to true to not perform label or close actions.
+          dry-run: false
+
+

@@ -225,7 +225,7 @@ CleanUp:
         g_clear_error(&error);
     }
 
-    return (PVOID)(ULONG_PTR) retStatus;
+    return (PVOID) (ULONG_PTR) retStatus;
 }
 
 VOID onGstAudioFrameReady(UINT64 customData, PFrame pFrame)
@@ -330,7 +330,7 @@ CleanUp:
         g_clear_error(&error);
     }
 
-    return (PVOID)(ULONG_PTR) retStatus;
+    return (PVOID) (ULONG_PTR) retStatus;
 }
 
 INT32 main(INT32 argc, CHAR* argv[])
@@ -430,6 +430,12 @@ INT32 main(INT32 argc, CHAR* argv[])
     printf("[KVS GStreamer Master] Signaling client created successfully\n");
 
     // Enable the processing of the messages
+    retStatus = signalingClientFetchSync(pSampleConfiguration->signalingClientHandle);
+    if (retStatus != STATUS_SUCCESS) {
+        printf("[KVS Master] signalingClientFetchSync(): operation returned status code: 0x%08x \n", retStatus);
+        goto CleanUp;
+    }
+
     retStatus = signalingClientConnectSync(pSampleConfiguration->signalingClientHandle);
     if (retStatus != STATUS_SUCCESS) {
         printf("[KVS GStreamer Master] signalingClientConnectSync(): operation returned status code: 0x%08x \n", retStatus);
