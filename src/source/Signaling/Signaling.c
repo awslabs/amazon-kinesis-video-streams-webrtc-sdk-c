@@ -15,6 +15,7 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     struct lws_context_creation_info creationInfo;
     const lws_retry_bo_t retryPolicy = {
         .secs_since_valid_ping = SIGNALING_SERVICE_WSS_PING_PONG_INTERVAL_IN_SECONDS,
+        .secs_since_valid_hangup = SIGNALING_SERVICE_WSS_HANGUP_IN_SECONDS,
     };
     PStateMachineState pStateMachineState;
     BOOL cacheFound = FALSE;
@@ -28,7 +29,7 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     // Allocate enough storage
     CHK(NULL != (pSignalingClient = (PSignalingClient) MEMCALLOC(1, SIZEOF(SignalingClient))), STATUS_NOT_ENOUGH_MEMORY);
 
-    // Initialize the listener and restarter thread trackers
+    // Initialize the listener and restart thread trackers
     CHK_STATUS(initializeThreadTracker(&pSignalingClient->listenerTracker));
     CHK_STATUS(initializeThreadTracker(&pSignalingClient->reconnecterTracker));
 
@@ -36,6 +37,8 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     CHK_STATUS(createValidateChannelInfo(pChannelInfo, &pSignalingClient->pChannelInfo));
     CHK_STATUS(validateSignalingCallbacks(pSignalingClient, pCallbacks));
     CHK_STATUS(validateSignalingClientInfo(pSignalingClient, pClientInfo));
+
+    pSignalingClient->version = SIGNALING_CLIENT_CURRENT_VERSION;
 
     // Set invalid call times
     pSignalingClient->describeTime = INVALID_TIMESTAMP_VALUE;
@@ -71,6 +74,8 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
 
     // Store the credential provider
     pSignalingClient->pCredentialProvider = pCredentialProvider;
+
+    CHK_STATUS(configureRetryStrategyForSignalingStateMachine(pSignalingClient));
 
     // Create the state machine
     CHK_STATUS(createStateMachine(SIGNALING_STATE_MACHINE_STATES, SIGNALING_STATE_MACHINE_STATE_COUNT,
@@ -146,13 +151,12 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     CHK(pSignalingClient->pLwsContext != NULL, STATUS_SIGNALING_LWS_CREATE_CONTEXT_FAILED);
 
     // Initializing the diagnostics mostly is taken care of by zero-mem in MEMCALLOC
-    pSignalingClient->diagnostics.createTime = GETTIME();
+    pSignalingClient->diagnostics.createTime = SIGNALING_GET_CURRENT_TIME(pSignalingClient);
+    CHK_STATUS(hashTableCreateWithParams(SIGNALING_CLOCKSKEW_HASH_TABLE_BUCKET_COUNT, SIGNALING_CLOCKSKEW_HASH_TABLE_BUCKET_LENGTH,
+                                         &pSignalingClient->diagnostics.pEndpointToClockSkewHashMap));
 
     // At this point we have constructed the main object and we can assign to the returned pointer
     *ppSignalingClient = pSignalingClient;
-
-    // Set the time out before execution
-    pSignalingClient->stepUntil = pSignalingClient->diagnostics.createTime + SIGNALING_CREATE_TIMEOUT;
 
     // Notify of the state change initially as the state machinery is already in the NEW state
     if (pSignalingClient->signalingClientCallbacks.stateChangeFn != NULL) {
@@ -164,11 +168,14 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     // Do not force ice config state
     ATOMIC_STORE_BOOL(&pSignalingClient->refreshIceConfig, FALSE);
 
-    // Prime the state machine
-    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, STATUS_SUCCESS));
+    // We do not cache token in file system, so we will always have to retrieve one after creating the client.
+    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, pSignalingClient->diagnostics.createTime + SIGNALING_CONNECT_STATE_TIMEOUT,
+                                             SIGNALING_STATE_GET_TOKEN));
 
 CleanUp:
-
+    if (pClientInfo != NULL && pSignalingClient != NULL) {
+        pClientInfo->signalingClientInfo.stateMachineRetryCountReadOnly = pSignalingClient->diagnostics.stateMachineRetryCount;
+    }
     CHK_LOG_ERR(retStatus);
 
     if (STATUS_FAILED(retStatus)) {
@@ -207,9 +214,13 @@ STATUS freeSignaling(PSignalingClient* ppSignalingClient)
 
     freeStateMachine(pSignalingClient->pStateMachine);
 
+    freeClientRetryStrategy(pSignalingClient);
+
     freeChannelInfo(&pSignalingClient->pChannelInfo);
 
     stackQueueFree(pSignalingClient->pMessageQueue);
+
+    hashTableFree(pSignalingClient->diagnostics.pEndpointToClockSkewHashMap);
 
     if (IS_VALID_MUTEX_VALUE(pSignalingClient->connectedLock)) {
         MUTEX_FREE(pSignalingClient->connectedLock);
@@ -261,6 +272,69 @@ STATUS freeSignaling(PSignalingClient* ppSignalingClient)
     MEMFREE(pSignalingClient);
 
     *ppSignalingClient = NULL;
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS setupDefaultRetryStrategyForSignalingStateMachine(PSignalingClient pSignalingClient)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PKvsRetryStrategyCallbacks pKvsRetryStrategyCallbacks = &(pSignalingClient->clientInfo.signalingStateMachineRetryStrategyCallbacks);
+
+    // Use default as exponential backoff wait
+    pKvsRetryStrategyCallbacks->createRetryStrategyFn = exponentialBackoffRetryStrategyCreate;
+    pKvsRetryStrategyCallbacks->freeRetryStrategyFn = exponentialBackoffRetryStrategyFree;
+    pKvsRetryStrategyCallbacks->executeRetryStrategyFn = getExponentialBackoffRetryStrategyWaitTime;
+    pKvsRetryStrategyCallbacks->getCurrentRetryAttemptNumberFn = getExponentialBackoffRetryCount;
+
+    // Use a default exponential backoff config for state machine level retries
+    pSignalingClient->clientInfo.signalingStateMachineRetryStrategy.pRetryStrategyConfig =
+        (PRetryStrategyConfig) &DEFAULT_SIGNALING_STATE_MACHINE_EXPONENTIAL_BACKOFF_RETRY_CONFIGURATION;
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS configureRetryStrategyForSignalingStateMachine(PSignalingClient pSignalingClient)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PKvsRetryStrategyCallbacks pKvsRetryStrategyCallbacks = NULL;
+
+    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+    pKvsRetryStrategyCallbacks = &(pSignalingClient->clientInfo.signalingStateMachineRetryStrategyCallbacks);
+
+    // If the callbacks for retry strategy are already set, then use that otherwise
+    // build the client with a default retry strategy.
+    if (pKvsRetryStrategyCallbacks->createRetryStrategyFn == NULL || pKvsRetryStrategyCallbacks->freeRetryStrategyFn == NULL ||
+        pKvsRetryStrategyCallbacks->executeRetryStrategyFn == NULL || pKvsRetryStrategyCallbacks->getCurrentRetryAttemptNumberFn == NULL) {
+        CHK_STATUS(setupDefaultRetryStrategyForSignalingStateMachine(pSignalingClient));
+    }
+
+    CHK_STATUS(pKvsRetryStrategyCallbacks->createRetryStrategyFn(&(pSignalingClient->clientInfo.signalingStateMachineRetryStrategy)));
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS freeClientRetryStrategy(PSignalingClient pSignalingClient)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PKvsRetryStrategyCallbacks pKvsRetryStrategyCallbacks = NULL;
+
+    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+
+    pKvsRetryStrategyCallbacks = &(pSignalingClient->clientInfo.signalingStateMachineRetryStrategyCallbacks);
+    CHK(pKvsRetryStrategyCallbacks->freeRetryStrategyFn != NULL, STATUS_SUCCESS);
+
+    CHK_STATUS(pKvsRetryStrategyCallbacks->freeRetryStrategyFn(&(pSignalingClient->clientInfo.signalingStateMachineRetryStrategy)));
 
 CleanUp:
 
@@ -323,7 +397,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS signalingGetIceConfigInfoCout(PSignalingClient pSignalingClient, PUINT32 pIceConfigCount)
+STATUS signalingGetIceConfigInfoCount(PSignalingClient pSignalingClient, PUINT32 pIceConfigCount)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -364,6 +438,43 @@ CleanUp:
     return retStatus;
 }
 
+STATUS signalingFetchSync(PSignalingClient pSignalingClient)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    SIZE_T result;
+
+    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+
+    // Check if we are already not connected
+    if (ATOMIC_LOAD_BOOL(&pSignalingClient->connected)) {
+        CHK_STATUS(terminateOngoingOperations(pSignalingClient));
+    }
+
+    // move to the fromGetToken() so we can move to the necessary step
+    // We start from get token to keep the design consistent with how it was when the constructor (create)
+    // would bring you to the READY state, but this is a two-way door and can be redone later.
+    setStateMachineCurrentState(pSignalingClient->pStateMachine, SIGNALING_STATE_GET_TOKEN);
+
+    // if we're not failing from a bad token, set the result to OK to that fromGetToken will move
+    // to getEndpoint, describe, or create. If it is bad, keep reiterating on token.
+    result = ATOMIC_LOAD(&pSignalingClient->result);
+    if (result != SERVICE_CALL_NOT_AUTHORIZED) {
+        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_OK);
+    }
+    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, SIGNALING_GET_CURRENT_TIME(pSignalingClient) + SIGNALING_CONNECT_STATE_TIMEOUT,
+                                             SIGNALING_STATE_READY));
+
+CleanUp:
+
+    if (STATUS_FAILED(retStatus)) {
+        resetStateMachineRetryCount(pSignalingClient->pStateMachine);
+    }
+    CHK_LOG_ERR(retStatus);
+    LEAVES();
+    return retStatus;
+}
+
 STATUS signalingConnectSync(PSignalingClient pSignalingClient)
 {
     ENTERS();
@@ -373,22 +484,17 @@ STATUS signalingConnectSync(PSignalingClient pSignalingClient)
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
     // Validate the state
-    CHK_STATUS(acceptStateMachineState(pSignalingClient->pStateMachine,
-                                       SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_DISCONNECTED | SIGNALING_STATE_CONNECTED));
+    CHK_STATUS(acceptSignalingStateMachineState(
+        pSignalingClient, SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_DISCONNECTED | SIGNALING_STATE_CONNECTED));
 
     // Check if we are already connected
     CHK(!ATOMIC_LOAD_BOOL(&pSignalingClient->connected), retStatus);
 
-    // Self-prime through the ready state
-    pSignalingClient->continueOnReady = TRUE;
-
     // Store the signaling state in case we error/timeout so we can re-set it on exit
     CHK_STATUS(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pState));
 
-    // Set the time out before execution
-    pSignalingClient->stepUntil = GETTIME() + SIGNALING_CONNECT_STATE_TIMEOUT;
-
-    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
+    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, SIGNALING_GET_CURRENT_TIME(pSignalingClient) + SIGNALING_CONNECT_STATE_TIMEOUT,
+                                             SIGNALING_STATE_CONNECTED));
 
 CleanUp:
 
@@ -411,9 +517,6 @@ STATUS signalingDisconnectSync(PSignalingClient pSignalingClient)
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
-    // Do not self-prime through the ready state
-    pSignalingClient->continueOnReady = FALSE;
-
     // Check if we are already not connected
     CHK(ATOMIC_LOAD_BOOL(&pSignalingClient->connected), retStatus);
 
@@ -421,7 +524,8 @@ STATUS signalingDisconnectSync(PSignalingClient pSignalingClient)
 
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_OK);
 
-    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
+    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, SIGNALING_GET_CURRENT_TIME(pSignalingClient) + SIGNALING_DISCONNECT_STATE_TIMEOUT,
+                                             SIGNALING_STATE_READY));
 
 CleanUp:
 
@@ -449,10 +553,8 @@ STATUS signalingDeleteSync(PSignalingClient pSignalingClient)
     // Set the state directly
     setStateMachineCurrentState(pSignalingClient->pStateMachine, SIGNALING_STATE_DELETE);
 
-    // Set the time out before execution
-    pSignalingClient->stepUntil = GETTIME() + SIGNALING_DELETE_TIMEOUT;
-
-    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
+    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, SIGNALING_GET_CURRENT_TIME(pSignalingClient) + SIGNALING_DELETE_TIMEOUT,
+                                             SIGNALING_STATE_DELETED));
 
 CleanUp:
 
@@ -548,7 +650,7 @@ STATUS validateIceConfiguration(PSignalingClient pSignalingClient)
 
     CHK(minTtl > ICE_CONFIGURATION_REFRESH_GRACE_PERIOD, STATUS_SIGNALING_ICE_TTL_LESS_THAN_GRACE_PERIOD);
 
-    pSignalingClient->iceConfigTime = GETTIME();
+    pSignalingClient->iceConfigTime = SIGNALING_GET_CURRENT_TIME(pSignalingClient);
     pSignalingClient->iceConfigExpiration = pSignalingClient->iceConfigTime + (minTtl - ICE_CONFIGURATION_REFRESH_GRACE_PERIOD);
 
 CleanUp:
@@ -567,19 +669,22 @@ STATUS refreshIceConfiguration(PSignalingClient pSignalingClient)
     CHAR iceRefreshErrMsg[SIGNALING_MAX_ERROR_MESSAGE_LEN + 1];
     UINT32 iceRefreshErrLen;
     UINT64 curTime;
+    BOOL locked = FALSE;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
     DLOGD("Refreshing the ICE Server Configuration");
 
     // Check whether we have a valid not-yet-expired ICE configuration and if so early exit
-    curTime = GETTIME();
+    curTime = SIGNALING_GET_CURRENT_TIME(pSignalingClient);
     CHK(pSignalingClient->iceConfigCount == 0 || curTime > pSignalingClient->iceConfigExpiration, retStatus);
 
     // ICE config can be retrieved in specific states only
-    CHK_STATUS(acceptStateMachineState(pSignalingClient->pStateMachine,
-                                       SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_DISCONNECTED));
+    CHK_STATUS(acceptSignalingStateMachineState(
+        pSignalingClient, SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_DISCONNECTED));
 
+    MUTEX_LOCK(pSignalingClient->stateLock);
+    locked = TRUE;
     // Get and store the current state to re-set to if we fail
     CHK_STATUS(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pStateMachineState));
 
@@ -589,13 +694,14 @@ STATUS refreshIceConfiguration(PSignalingClient pSignalingClient)
 
     // Iterate the state machinery in steady states only - ready or connected
     if (pStateMachineState->state == SIGNALING_STATE_READY || pStateMachineState->state == SIGNALING_STATE_CONNECTED) {
-        // Set the time out before execution
-        pSignalingClient->stepUntil = curTime + SIGNALING_REFRESH_ICE_CONFIG_STATE_TIMEOUT;
-
-        CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
+        CHK_STATUS(signalingStateMachineIterator(pSignalingClient, curTime + SIGNALING_REFRESH_ICE_CONFIG_STATE_TIMEOUT, pStateMachineState->state));
     }
 
 CleanUp:
+
+    if (locked) {
+        MUTEX_UNLOCK(pSignalingClient->stateLock);
+    }
 
     CHK_LOG_ERR(retStatus);
 
@@ -632,6 +738,7 @@ STATUS signalingStoreOngoingMessage(PSignalingClient pSignalingClient, PSignalin
     CHK(pSignalingClient != NULL && pSignalingMessage != NULL, STATUS_NULL_ARG);
     MUTEX_LOCK(pSignalingClient->messageQueueLock);
     locked = TRUE;
+
     CHK_STATUS(signalingGetOngoingMessage(pSignalingClient, pSignalingMessage->correlationId, pSignalingMessage->peerClientId, &pExistingMessage));
     CHK(pExistingMessage == NULL, STATUS_SIGNALING_DUPLICATE_MESSAGE_BEING_SENT);
     CHK_STATUS(stackQueueEnqueue(pSignalingClient->pMessageQueue, (UINT64) pSignalingMessage));
@@ -811,7 +918,6 @@ STATUS describeChannel(PSignalingClient pSignalingClient, UINT64 time)
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
     THREAD_SLEEP_UNTIL(time);
-
     // Check for the stale credentials
     CHECK_SIGNALING_CREDENTIALS_EXPIRATION(pSignalingClient);
 
@@ -842,7 +948,6 @@ STATUS describeChannel(PSignalingClient pSignalingClient, UINT64 time)
 
             if (STATUS_SUCCEEDED(retStatus)) {
                 retStatus = describeChannelLws(pSignalingClient, time);
-
                 // Store the last call time on success
                 if (STATUS_SUCCEEDED(retStatus)) {
                     pSignalingClient->describeTime = time;
@@ -862,10 +967,6 @@ STATUS describeChannel(PSignalingClient pSignalingClient, UINT64 time)
     }
 
 CleanUp:
-
-    if (STATUS_FAILED(retStatus) && pSignalingClient != NULL) {
-        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
-    }
 
     LEAVES();
     return retStatus;
@@ -908,10 +1009,6 @@ STATUS createChannel(PSignalingClient pSignalingClient, UINT64 time)
     }
 
 CleanUp:
-
-    if (STATUS_FAILED(retStatus) && pSignalingClient != NULL) {
-        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
-    }
 
     LEAVES();
     return retStatus;
@@ -992,10 +1089,6 @@ STATUS getChannelEndpoint(PSignalingClient pSignalingClient, UINT64 time)
 
 CleanUp:
 
-    if (STATUS_FAILED(retStatus) && pSignalingClient != NULL) {
-        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
-    }
-
     LEAVES();
     return retStatus;
 }
@@ -1036,10 +1129,6 @@ STATUS getIceConfig(PSignalingClient pSignalingClient, UINT64 time)
     }
 
 CleanUp:
-
-    if (STATUS_FAILED(retStatus) && pSignalingClient != NULL) {
-        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
-    }
 
     LEAVES();
     return retStatus;
@@ -1082,10 +1171,6 @@ STATUS deleteChannel(PSignalingClient pSignalingClient, UINT64 time)
     }
 
 CleanUp:
-
-    if (STATUS_FAILED(retStatus) && pSignalingClient != NULL) {
-        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
-    }
 
     LEAVES();
     return retStatus;
@@ -1146,7 +1231,9 @@ STATUS signalingGetMetrics(PSignalingClient pSignalingClient, PSignalingClientMe
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    UINT64 curTime = GETTIME();
+    UINT64 curTime;
+
+    curTime = SIGNALING_GET_CURRENT_TIME(pSignalingClient);
 
     CHK(pSignalingClient != NULL && pSignalingClientMetrics != NULL, STATUS_NULL_ARG);
     CHK(pSignalingClientMetrics->version <= SIGNALING_CLIENT_METRICS_CURRENT_VERSION, STATUS_SIGNALING_INVALID_METRICS_VERSION);
@@ -1167,6 +1254,7 @@ STATUS signalingGetMetrics(PSignalingClient pSignalingClient, PSignalingClientMe
 
     pSignalingClientMetrics->signalingClientStats.connectionDuration =
         ATOMIC_LOAD_BOOL(&pSignalingClient->connected) ? curTime - pSignalingClient->diagnostics.connectTime : 0;
+    pSignalingClientMetrics->signalingClientStats.apiCallRetryCount = pSignalingClient->diagnostics.stateMachineRetryCount;
 
     MUTEX_UNLOCK(pSignalingClient->diagnosticsLock);
 

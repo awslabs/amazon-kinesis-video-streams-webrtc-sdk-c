@@ -8,90 +8,136 @@
  * Static definitions of the states
  */
 StateMachineState SIGNALING_STATE_MACHINE_STATES[] = {
-    {SIGNALING_STATE_NEW, SIGNALING_STATE_NONE | SIGNALING_STATE_NEW, fromNewSignalingState, executeNewSignalingState, INFINITE_RETRY_COUNT_SENTINEL,
-     STATUS_SIGNALING_INVALID_READY_STATE},
+    {SIGNALING_STATE_NEW, SIGNALING_STATE_NONE | SIGNALING_STATE_NEW, fromNewSignalingState, executeNewSignalingState,
+     defaultSignalingStateTransitionHook, INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_INVALID_READY_STATE},
     {SIGNALING_STATE_GET_TOKEN,
      SIGNALING_STATE_NEW | SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_CREATE | SIGNALING_STATE_GET_ENDPOINT | SIGNALING_STATE_GET_ICE_CONFIG |
          SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_DELETE | SIGNALING_STATE_GET_TOKEN,
-     fromGetTokenSignalingState, executeGetTokenSignalingState, SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_GET_TOKEN_CALL_FAILED},
+     fromGetTokenSignalingState, executeGetTokenSignalingState, defaultSignalingStateTransitionHook, SIGNALING_STATES_DEFAULT_RETRY_COUNT,
+     STATUS_SIGNALING_GET_TOKEN_CALL_FAILED},
     {SIGNALING_STATE_DESCRIBE,
      SIGNALING_STATE_GET_TOKEN | SIGNALING_STATE_CREATE | SIGNALING_STATE_GET_ENDPOINT | SIGNALING_STATE_GET_ICE_CONFIG | SIGNALING_STATE_CONNECT |
-         SIGNALING_STATE_CONNECTED | SIGNALING_STATE_DELETE | SIGNALING_STATE_DESCRIBE,
-     fromDescribeSignalingState, executeDescribeSignalingState, SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_DESCRIBE_CALL_FAILED},
+         SIGNALING_STATE_CONNECTED | SIGNALING_STATE_DELETE | SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_READY | SIGNALING_STATE_DISCONNECTED,
+     fromDescribeSignalingState, executeDescribeSignalingState, defaultSignalingStateTransitionHook, SIGNALING_STATES_DEFAULT_RETRY_COUNT,
+     STATUS_SIGNALING_DESCRIBE_CALL_FAILED},
     {SIGNALING_STATE_CREATE, SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_CREATE, fromCreateSignalingState, executeCreateSignalingState,
-     SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_CREATE_CALL_FAILED},
+     defaultSignalingStateTransitionHook, SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_CREATE_CALL_FAILED},
     {SIGNALING_STATE_GET_ENDPOINT,
      SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_CREATE | SIGNALING_STATE_GET_TOKEN | SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT |
          SIGNALING_STATE_CONNECTED | SIGNALING_STATE_GET_ENDPOINT,
-     fromGetEndpointSignalingState, executeGetEndpointSignalingState, SIGNALING_STATES_DEFAULT_RETRY_COUNT,
+     fromGetEndpointSignalingState, executeGetEndpointSignalingState, defaultSignalingStateTransitionHook, SIGNALING_STATES_DEFAULT_RETRY_COUNT,
      STATUS_SIGNALING_GET_ENDPOINT_CALL_FAILED},
     {SIGNALING_STATE_GET_ICE_CONFIG,
      SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_GET_ENDPOINT | SIGNALING_STATE_READY |
          SIGNALING_STATE_GET_ICE_CONFIG,
-     fromGetIceConfigSignalingState, executeGetIceConfigSignalingState, SIGNALING_STATES_DEFAULT_RETRY_COUNT,
+     fromGetIceConfigSignalingState, executeGetIceConfigSignalingState, defaultSignalingStateTransitionHook, SIGNALING_STATES_DEFAULT_RETRY_COUNT,
      STATUS_SIGNALING_GET_ICE_CONFIG_CALL_FAILED},
     {SIGNALING_STATE_READY, SIGNALING_STATE_GET_ICE_CONFIG | SIGNALING_STATE_DISCONNECTED | SIGNALING_STATE_READY, fromReadySignalingState,
-     executeReadySignalingState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_READY_CALLBACK_FAILED},
+     executeReadySignalingState, defaultSignalingStateTransitionHook, INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_READY_CALLBACK_FAILED},
     {SIGNALING_STATE_CONNECT, SIGNALING_STATE_READY | SIGNALING_STATE_DISCONNECTED | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_CONNECT,
-     fromConnectSignalingState, executeConnectSignalingState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_CONNECT_CALL_FAILED},
+     fromConnectSignalingState, executeConnectSignalingState, defaultSignalingStateTransitionHook, INFINITE_RETRY_COUNT_SENTINEL,
+     STATUS_SIGNALING_CONNECT_CALL_FAILED},
     {SIGNALING_STATE_CONNECTED, SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED, fromConnectedSignalingState, executeConnectedSignalingState,
-     INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_CONNECTED_CALLBACK_FAILED},
+     defaultSignalingStateTransitionHook, INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_CONNECTED_CALLBACK_FAILED},
     {SIGNALING_STATE_DISCONNECTED, SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED, fromDisconnectedSignalingState,
-     executeDisconnectedSignalingState, SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_DISCONNECTED_CALLBACK_FAILED},
+     executeDisconnectedSignalingState, defaultSignalingStateTransitionHook, SIGNALING_STATES_DEFAULT_RETRY_COUNT,
+     STATUS_SIGNALING_DISCONNECTED_CALLBACK_FAILED},
     {SIGNALING_STATE_DELETE,
      SIGNALING_STATE_GET_TOKEN | SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_CREATE | SIGNALING_STATE_GET_ENDPOINT | SIGNALING_STATE_GET_ICE_CONFIG |
          SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_DISCONNECTED | SIGNALING_STATE_DELETE,
-     fromDeleteSignalingState, executeDeleteSignalingState, SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_DELETE_CALL_FAILED},
+     fromDeleteSignalingState, executeDeleteSignalingState, defaultSignalingStateTransitionHook, SIGNALING_STATES_DEFAULT_RETRY_COUNT,
+     STATUS_SIGNALING_DELETE_CALL_FAILED},
     {SIGNALING_STATE_DELETED, SIGNALING_STATE_DELETE | SIGNALING_STATE_DELETED, fromDeletedSignalingState, executeDeletedSignalingState,
-     INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_DELETE_CALL_FAILED},
+     defaultSignalingStateTransitionHook, INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_DELETE_CALL_FAILED},
 };
 
 UINT32 SIGNALING_STATE_MACHINE_STATE_COUNT = ARRAY_SIZE(SIGNALING_STATE_MACHINE_STATES);
 
-STATUS stepSignalingStateMachine(PSignalingClient pSignalingClient, STATUS status)
+STATUS defaultSignalingStateTransitionHook(UINT64 customData /* customData should be PSignalingClient */, PUINT64 stateTransitionWaitTime)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    UINT32 i;
-    BOOL locked = FALSE;
+    STATUS countStatus = STATUS_SUCCESS;
+    PSignalingClient pSignalingClient = NULL;
+    PKvsRetryStrategy pSignalingStateMachineRetryStrategy = NULL;
+    PKvsRetryStrategyCallbacks pSignalingStateMachineRetryStrategyCallbacks = NULL;
+    UINT64 retryWaitTime = 0;
+
+    pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
+    CHK(pSignalingClient != NULL && stateTransitionWaitTime != NULL, STATUS_NULL_ARG);
+
+    pSignalingStateMachineRetryStrategy = &(pSignalingClient->clientInfo.signalingStateMachineRetryStrategy);
+    pSignalingStateMachineRetryStrategyCallbacks = &(pSignalingClient->clientInfo.signalingStateMachineRetryStrategyCallbacks);
+
+    // result > SERVICE_CALL_RESULT_OK covers case for -
+    // result != SERVICE_CALL_RESULT_NOT_SET and != SERVICE_CALL_RESULT_OK
+    // If we support any other 2xx service call results, the condition
+    // should change to (pSignalingClient->result > 299 && ..)
+    CHK(pSignalingClient->result > SERVICE_CALL_RESULT_OK && pSignalingStateMachineRetryStrategyCallbacks->executeRetryStrategyFn != NULL,
+        STATUS_SUCCESS);
+
+    // A retry is considered only after executeRetry is executed. This will avoid publishing count + 1
+    if (pSignalingStateMachineRetryStrategyCallbacks->getCurrentRetryAttemptNumberFn != NULL) {
+        if ((countStatus = pSignalingStateMachineRetryStrategyCallbacks->getCurrentRetryAttemptNumberFn(
+                 pSignalingStateMachineRetryStrategy, &pSignalingClient->diagnostics.stateMachineRetryCount)) != STATUS_SUCCESS) {
+            DLOGW("Failed to get retry count. Error code: %08x", countStatus);
+        } else {
+            DLOGD("Retry count: %llu", pSignalingClient->diagnostics.stateMachineRetryCount);
+        }
+    }
+    DLOGV("Signaling Client base result is [%u]. Executing KVS retry handler of retry strategy type [%u]", pSignalingClient->result,
+          pSignalingStateMachineRetryStrategy->retryStrategyType);
+    pSignalingStateMachineRetryStrategyCallbacks->executeRetryStrategyFn(pSignalingStateMachineRetryStrategy, &retryWaitTime);
+    *stateTransitionWaitTime = retryWaitTime;
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS signalingStateMachineIterator(PSignalingClient pSignalingClient, UINT64 expiration, UINT64 finalState)
+{
+    ENTERS();
     UINT64 currentTime;
-
-    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
-
-    // Check for a shutdown
-    CHK(!ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown), retStatus);
+    UINT32 i;
+    STATUS retStatus = STATUS_SUCCESS;
+    PStateMachineState pState = NULL;
+    BOOL locked = FALSE;
 
     MUTEX_LOCK(pSignalingClient->stateLock);
     locked = TRUE;
 
-    // Check if an error and the retry is OK
-    if (!pSignalingClient->pChannelInfo->retry && STATUS_FAILED(status)) {
-        CHK(FALSE, status);
-    }
+    while (TRUE) {
+        CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
-    currentTime = GETTIME();
+        CHK(!ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown), retStatus);
 
-    CHK(pSignalingClient->stepUntil == 0 || currentTime <= pSignalingClient->stepUntil, STATUS_OPERATION_TIMED_OUT);
-
-    // Check if the status is any of the retry/failed statuses
-    if (STATUS_FAILED(status)) {
-        for (i = 0; i < SIGNALING_STATE_MACHINE_STATE_COUNT; i++) {
-            CHK(status != SIGNALING_STATE_MACHINE_STATES[i].status, SIGNALING_STATE_MACHINE_STATES[i].status);
+        if (STATUS_FAILED(retStatus)) {
+            CHK(pSignalingClient->pChannelInfo->retry, retStatus);
+            for (i = 0; i < SIGNALING_STATE_MACHINE_STATE_COUNT; i++) {
+                CHK(retStatus != SIGNALING_STATE_MACHINE_STATES[i].status, SIGNALING_STATE_MACHINE_STATES[i].status);
+            }
         }
-    }
 
-    // Fix-up the expired credentials transition
-    // NOTE: Api Gateway might not return an error that can be interpreted as unauthorized to
-    // make the correct transition to auth integration state.
-    if (status == STATUS_SERVICE_CALL_NOT_AUTHORIZED_ERROR ||
-        (SERVICE_CALL_UNKNOWN == (SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) &&
-         pSignalingClient->pAwsCredentials->expiration < currentTime)) {
-        // Set the call status as auth error
-        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_NOT_AUTHORIZED);
-    }
+        currentTime = SIGNALING_GET_CURRENT_TIME(pSignalingClient);
 
-    // Step the state machine
-    CHK_STATUS(stepStateMachine(pSignalingClient->pStateMachine));
+        CHK(expiration == 0 || currentTime <= expiration, STATUS_OPERATION_TIMED_OUT);
+
+        // Fix-up the expired credentials transition
+        // NOTE: Api Gateway might not return an error that can be interpreted as unauthorized to
+        // make the correct transition to auth integration state.
+        if (retStatus == STATUS_SERVICE_CALL_NOT_AUTHORIZED_ERROR ||
+            (pSignalingClient->pAwsCredentials != NULL && pSignalingClient->pAwsCredentials->expiration < currentTime)) {
+            // Set the call status as auth error
+            ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_NOT_AUTHORIZED);
+        }
+
+        retStatus = stepStateMachine(pSignalingClient->pStateMachine);
+
+        CHK_STATUS(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pState));
+        CHK(!(pState->state == finalState), STATUS_SUCCESS);
+    }
 
 CleanUp:
 
@@ -275,23 +321,19 @@ STATUS executeGetTokenSignalingState(UINT64 customData, UINT64 time)
                                                                             SIGNALING_CLIENT_STATE_GET_CREDENTIALS));
     }
 
+    THREAD_SLEEP_UNTIL(time);
+
     // Use the credential provider to get the token
     retStatus = pSignalingClient->pCredentialProvider->getCredentialsFn(pSignalingClient->pCredentialProvider, &pSignalingClient->pAwsCredentials);
 
     // Check the expiration
-    if (NULL == pSignalingClient->pAwsCredentials || GETTIME() >= pSignalingClient->pAwsCredentials->expiration) {
+    if (NULL == pSignalingClient->pAwsCredentials || SIGNALING_GET_CURRENT_TIME(pSignalingClient) >= pSignalingClient->pAwsCredentials->expiration) {
         serviceCallResult = SERVICE_CALL_NOT_AUTHORIZED;
     } else {
         serviceCallResult = SERVICE_CALL_RESULT_OK;
     }
 
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) serviceCallResult);
-
-    // Self-prime the next state
-    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
-
-    // Reset the ret status
-    retStatus = STATUS_SUCCESS;
 
 CleanUp:
 
@@ -361,11 +403,6 @@ STATUS executeDescribeSignalingState(UINT64 customData, UINT64 time)
     // Call the aggregate function
     retStatus = describeChannel(pSignalingClient, time);
 
-    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
-
-    // Reset the ret status
-    retStatus = STATUS_SUCCESS;
-
 CleanUp:
 
     LEAVES();
@@ -424,11 +461,6 @@ STATUS executeCreateSignalingState(UINT64 customData, UINT64 time)
     // Call the aggregate function
     retStatus = createChannel(pSignalingClient, time);
 
-    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
-
-    // Reset the ret status
-    retStatus = STATUS_SUCCESS;
-
 CleanUp:
 
     LEAVES();
@@ -459,7 +491,6 @@ STATUS fromGetEndpointSignalingState(UINT64 customData, PUINT64 pState)
         default:
             break;
     }
-
     *pState = state;
 
 CleanUp:
@@ -486,11 +517,6 @@ STATUS executeGetEndpointSignalingState(UINT64 customData, UINT64 time)
 
     // Call the aggregate function
     retStatus = getChannelEndpoint(pSignalingClient, time);
-
-    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
-
-    // Reset the ret status
-    retStatus = STATUS_SUCCESS;
 
 CleanUp:
 
@@ -549,11 +575,6 @@ STATUS executeGetIceConfigSignalingState(UINT64 customData, UINT64 time)
 
     // Call the aggregate function
     retStatus = getIceConfig(pSignalingClient, time);
-
-    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
-
-    // Reset the ret status
-    retStatus = STATUS_SUCCESS;
 
 CleanUp:
 
@@ -619,16 +640,6 @@ STATUS executeReadySignalingState(UINT64 customData, UINT64 time)
                                                                             SIGNALING_CLIENT_STATE_READY));
     }
 
-    if (pSignalingClient->continueOnReady) {
-        // Self-prime the connect
-        CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
-    } else {
-        // Reset the timeout for the state machine
-        pSignalingClient->stepUntil = 0;
-    }
-
-    // Reset the ret status
-    retStatus = STATUS_SUCCESS;
 CleanUp:
 
     LEAVES();
@@ -719,11 +730,6 @@ STATUS executeConnectSignalingState(UINT64 customData, UINT64 time)
 
     retStatus = connectSignalingChannel(pSignalingClient, time);
 
-    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
-
-    // Reset the ret status
-    retStatus = STATUS_SUCCESS;
-
 CleanUp:
 
     LEAVES();
@@ -759,10 +765,11 @@ STATUS fromConnectedSignalingState(UINT64 customData, PUINT64 pState)
             break;
 
         case SERVICE_CALL_INTERNAL_ERROR:
-            state = SIGNALING_STATE_GET_ENDPOINT;
-            break;
-
         case SERVICE_CALL_BAD_REQUEST:
+        case SERVICE_CALL_NETWORK_CONNECTION_TIMEOUT:
+        case SERVICE_CALL_NETWORK_READ_TIMEOUT:
+        case SERVICE_CALL_REQUEST_TIMEOUT:
+        case SERVICE_CALL_GATEWAY_TIMEOUT:
             state = SIGNALING_STATE_GET_ENDPOINT;
             break;
 
@@ -805,11 +812,6 @@ STATUS executeConnectedSignalingState(UINT64 customData, UINT64 time)
                                                                             SIGNALING_CLIENT_STATE_CONNECTED));
     }
 
-    // Reset the timeout for the state machine
-    MUTEX_LOCK(pSignalingClient->stateLock);
-    pSignalingClient->stepUntil = 0;
-    MUTEX_UNLOCK(pSignalingClient->stateLock);
-
 CleanUp:
 
     LEAVES();
@@ -825,9 +827,6 @@ STATUS fromDisconnectedSignalingState(UINT64 customData, PUINT64 pState)
     SIZE_T result;
 
     CHK(pSignalingClient != NULL && pState != NULL, STATUS_NULL_ARG);
-
-    // See if we need to retry first of all
-    CHK(pSignalingClient->pChannelInfo->reconnect, STATUS_SUCCESS);
 
     result = ATOMIC_LOAD(&pSignalingClient->result);
     switch (result) {
@@ -869,9 +868,6 @@ STATUS executeDisconnectedSignalingState(UINT64 customData, UINT64 time)
         CHK_STATUS(pSignalingClient->signalingClientCallbacks.stateChangeFn(pSignalingClient->signalingClientCallbacks.customData,
                                                                             SIGNALING_CLIENT_STATE_DISCONNECTED));
     }
-
-    // Self-prime the next state
-    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
 
 CleanUp:
 
@@ -939,11 +935,6 @@ STATUS executeDeleteSignalingState(UINT64 customData, UINT64 time)
 
     // Call the aggregate function
     retStatus = deleteChannel(pSignalingClient, time);
-
-    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
-
-    // Reset the ret status
-    retStatus = STATUS_SUCCESS;
 
 CleanUp:
 

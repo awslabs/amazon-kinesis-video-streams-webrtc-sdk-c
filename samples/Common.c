@@ -12,6 +12,13 @@ VOID sigintHandler(INT32 sigNum)
     }
 }
 
+STATUS signalingCallFailed(STATUS status)
+{
+    return (STATUS_SIGNALING_GET_TOKEN_CALL_FAILED == status || STATUS_SIGNALING_DESCRIBE_CALL_FAILED == status ||
+            STATUS_SIGNALING_CREATE_CALL_FAILED == status || STATUS_SIGNALING_GET_ENDPOINT_CALL_FAILED == status ||
+            STATUS_SIGNALING_GET_ICE_CONFIG_CALL_FAILED == status || STATUS_SIGNALING_CONNECT_CALL_FAILED == status);
+}
+
 VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL isBinary, PBYTE pMessage, UINT32 pMessageLen)
 {
     UNUSED_PARAM(customData);
@@ -24,7 +31,7 @@ VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL 
     // Send a response to the message sent by the viewer
     STATUS retStatus = STATUS_SUCCESS;
     retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) MASTER_DATA_CHANNEL_MESSAGE, STRLEN(MASTER_DATA_CHANNEL_MESSAGE));
-    if(retStatus != STATUS_SUCCESS) {
+    if (retStatus != STATUS_SUCCESS) {
         DLOGI("[KVS Master] dataChannelSend(): operation returned status code: 0x%08x \n", retStatus);
     }
 }
@@ -493,7 +500,7 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     CHK_STATUS(transceiverOnBandwidthEstimation(pSampleStreamingSession->pVideoRtcRtpTransceiver, (UINT64) pSampleStreamingSession,
                                                 sampleBandwidthEstimationHandler));
 
-    // Add a SendRecv Transceiver of type video
+    // Add a SendRecv Transceiver of type audio
     audioTrack.kind = MEDIA_STREAM_TRACK_KIND_AUDIO;
     audioTrack.codec = RTC_CODEC_OPUS;
     audioRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
@@ -551,7 +558,7 @@ STATUS freeSampleStreamingSession(PSampleStreamingSession* ppSampleStreamingSess
     // the running thread but it's OK as it's re-entrant
     MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
     if (pSampleConfiguration->iceCandidatePairStatsTimerId != MAX_UINT32 && pSampleConfiguration->streamingSessionCount == 0 &&
-        pSampleConfiguration->iceCandidatePairStatsTimerId != MAX_UINT32) {
+        pSampleConfiguration->iceCandidatePairStatsTimerId != MAX_UINT32 && IS_VALID_TIMER_QUEUE_HANDLE(pSampleConfiguration->timerQueueHandle)) {
         CHK_LOG_ERR(timerQueueCancelTimer(pSampleConfiguration->timerQueueHandle, pSampleConfiguration->iceCandidatePairStatsTimerId,
                                           (UINT64) pSampleConfiguration));
         pSampleConfiguration->iceCandidatePairStatsTimerId = MAX_UINT32;
@@ -596,10 +603,10 @@ VOID sampleFrameHandler(UINT64 customData, PFrame pFrame)
     }
 }
 
-VOID sampleBandwidthEstimationHandler(UINT64 customData, DOUBLE maxiumBitrate)
+VOID sampleBandwidthEstimationHandler(UINT64 customData, DOUBLE maximumBitrate)
 {
     UNUSED_PARAM(customData);
-    DLOGV("received bitrate suggestion: %f", maxiumBitrate);
+    DLOGV("received bitrate suggestion: %f", maximumBitrate);
 }
 
 VOID sampleSenderBandwidthEstimationHandler(UINT64 customData, UINT32 txBytes, UINT32 rxBytes, UINT32 txPacketsCnt, UINT32 rxPacketsCnt,
@@ -782,6 +789,7 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     pSampleConfiguration->clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     pSampleConfiguration->clientInfo.loggingLevel = logLevel;
     pSampleConfiguration->clientInfo.cacheFilePath = NULL; // Use the default path
+    pSampleConfiguration->clientInfo.signalingClientCreationMaxRetryAttempts = CREATE_SIGNALING_CLIENT_RETRY_ATTEMPTS_SENTINEL_VALUE;
     pSampleConfiguration->iceCandidatePairStatsTimerId = MAX_UINT32;
     pSampleConfiguration->pregenerateCertTimerId = MAX_UINT32;
 
@@ -838,6 +846,7 @@ STATUS logSignalingClientStats(PSignalingClientMetrics pSignalingClientMetrics)
     // This gives the EMA of the getIceConfig() call.
     DLOGD("Data Plane API call latency: %" PRIu64 " ms",
           (pSignalingClientMetrics->signalingClientStats.dpApiCallLatency / HUNDREDS_OF_NANOS_IN_A_MILLISECOND));
+    DLOGD("API call retry count: %d", pSignalingClientMetrics->signalingClientStats.apiCallRetryCount);
 CleanUp:
     LEAVES();
     return retStatus;
@@ -884,32 +893,32 @@ STATUS getIceCandidatePairStatsCallback(UINT32 timerId, UINT64 currentTime, UINT
                       pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.nominated ? "nominated"
                                                                                                                       : "not nominated");
                 averageNumberOfPacketsSentPerSecond =
-                    (DOUBLE)(pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.packetsSent -
-                             pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfPacketsSent) /
+                    (DOUBLE) (pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.packetsSent -
+                              pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfPacketsSent) /
                     (DOUBLE) currentMeasureDuration;
                 DLOGD("Packet send rate: %lf pkts/sec", averageNumberOfPacketsSentPerSecond);
 
                 averageNumberOfPacketsReceivedPerSecond =
-                    (DOUBLE)(pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.packetsReceived -
-                             pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfPacketsReceived) /
+                    (DOUBLE) (pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.packetsReceived -
+                              pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfPacketsReceived) /
                     (DOUBLE) currentMeasureDuration;
                 DLOGD("Packet receive rate: %lf pkts/sec", averageNumberOfPacketsReceivedPerSecond);
 
-                outgoingBitrate = (DOUBLE)((pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.bytesSent -
-                                            pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfBytesSent) *
-                                           8.0) /
+                outgoingBitrate = (DOUBLE) ((pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.bytesSent -
+                                             pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfBytesSent) *
+                                            8.0) /
                     currentMeasureDuration;
                 DLOGD("Outgoing bit rate: %lf bps", outgoingBitrate);
 
-                incomingBitrate = (DOUBLE)((pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.bytesReceived -
-                                            pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfBytesReceived) *
-                                           8.0) /
+                incomingBitrate = (DOUBLE) ((pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.bytesReceived -
+                                             pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfBytesReceived) *
+                                            8.0) /
                     currentMeasureDuration;
                 DLOGD("Incoming bit rate: %lf bps", incomingBitrate);
 
                 averagePacketsDiscardedOnSend =
-                    (DOUBLE)(pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.packetsDiscardedOnSend -
-                             pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevPacketsDiscardedOnSend) /
+                    (DOUBLE) (pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.packetsDiscardedOnSend -
+                              pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevPacketsDiscardedOnSend) /
                     (DOUBLE) currentMeasureDuration;
                 DLOGD("Packet discard rate: %lf pkts/sec", averagePacketsDiscardedOnSend);
 
@@ -1004,6 +1013,28 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
 
     CHK(pSampleConfiguration != NULL, retStatus);
 
+    if (IS_VALID_TIMER_QUEUE_HANDLE(pSampleConfiguration->timerQueueHandle)) {
+        if (pSampleConfiguration->iceCandidatePairStatsTimerId != MAX_UINT32) {
+            retStatus = timerQueueCancelTimer(pSampleConfiguration->timerQueueHandle, pSampleConfiguration->iceCandidatePairStatsTimerId,
+                                              (UINT64) pSampleConfiguration);
+            if (STATUS_FAILED(retStatus)) {
+                DLOGE("Failed to cancel stats timer with: 0x%08x", retStatus);
+            }
+            pSampleConfiguration->iceCandidatePairStatsTimerId = MAX_UINT32;
+        }
+
+        if (pSampleConfiguration->pregenerateCertTimerId != MAX_UINT32) {
+            retStatus = timerQueueCancelTimer(pSampleConfiguration->timerQueueHandle, pSampleConfiguration->pregenerateCertTimerId,
+                                              (UINT64) pSampleConfiguration);
+            if (STATUS_FAILED(retStatus)) {
+                DLOGE("Failed to cancel certificate pre-generation timer with: 0x%08x", retStatus);
+            }
+            pSampleConfiguration->pregenerateCertTimerId = MAX_UINT32;
+        }
+
+        timerQueueFree(&pSampleConfiguration->timerQueueHandle);
+    }
+
     if (pSampleConfiguration->pPendingSignalingMessageForRemoteClient != NULL) {
         // Iterate and free all the pending queues
         stackQueueGetIterator(pSampleConfiguration->pPendingSignalingMessageForRemoteClient, &iterator);
@@ -1025,12 +1056,7 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
         MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
         locked = TRUE;
     }
-    // Cancel the media thread
-    if(!(pSampleConfiguration->mediaThreadStarted)) {
-        DLOGD("Canceling media thread");
-        THREAD_CANCEL(pSampleConfiguration->mediaSenderTid);
-    }
-    
+
     for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
         retStatus = gatherIceServerStats(pSampleConfiguration->sampleStreamingSessionList[i]);
         if (STATUS_FAILED(retStatus)) {
@@ -1074,28 +1100,6 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
     freeStaticCredentialProvider(&pSampleConfiguration->pCredentialProvider);
 #endif
 
-    if (IS_VALID_TIMER_QUEUE_HANDLE(pSampleConfiguration->timerQueueHandle)) {
-        if (pSampleConfiguration->iceCandidatePairStatsTimerId != MAX_UINT32) {
-            retStatus = timerQueueCancelTimer(pSampleConfiguration->timerQueueHandle, pSampleConfiguration->iceCandidatePairStatsTimerId,
-                                              (UINT64) pSampleConfiguration);
-            if (STATUS_FAILED(retStatus)) {
-                DLOGE("Failed to cancel stats timer with: 0x%08x", retStatus);
-            }
-            pSampleConfiguration->iceCandidatePairStatsTimerId = MAX_UINT32;
-        }
-
-        if (pSampleConfiguration->pregenerateCertTimerId != MAX_UINT32) {
-            retStatus = timerQueueCancelTimer(pSampleConfiguration->timerQueueHandle, pSampleConfiguration->pregenerateCertTimerId,
-                                              (UINT64) pSampleConfiguration);
-            if (STATUS_FAILED(retStatus)) {
-                DLOGE("Failed to cancel certificate pre-generation timer with: 0x%08x", retStatus);
-            }
-            pSampleConfiguration->pregenerateCertTimerId = MAX_UINT32;
-        }
-
-        timerQueueFree(&pSampleConfiguration->timerQueueHandle);
-    }
-
     if (pSampleConfiguration->pregeneratedCertificates != NULL) {
         stackQueueGetIterator(pSampleConfiguration->pregeneratedCertificates, &iterator);
         while (IS_VALID_ITERATOR(iterator)) {
@@ -1109,8 +1113,7 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
         pSampleConfiguration->pregeneratedCertificates = NULL;
     }
 
-    MEMFREE(*ppSampleConfiguration);
-    *ppSampleConfiguration = NULL;
+    SAFE_MEMFREE(*ppSampleConfiguration);
 
 CleanUp:
 
@@ -1160,13 +1163,18 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
         }
 
         // Check if we need to re-create the signaling client on-the-fly
-        if (ATOMIC_LOAD_BOOL(&pSampleConfiguration->recreateSignalingClient) &&
-            STATUS_SUCCEEDED(freeSignalingClient(&pSampleConfiguration->signalingClientHandle)) &&
-            STATUS_SUCCEEDED(createSignalingClientSync(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
-                                                       &pSampleConfiguration->signalingClientCallbacks, pSampleConfiguration->pCredentialProvider,
-                                                       &pSampleConfiguration->signalingClientHandle))) {
-            // Re-set the variable again
-            ATOMIC_STORE_BOOL(&pSampleConfiguration->recreateSignalingClient, FALSE);
+        if (ATOMIC_LOAD_BOOL(&pSampleConfiguration->recreateSignalingClient)) {
+            retStatus = signalingClientFetchSync(pSampleConfiguration->signalingClientHandle);
+            if (STATUS_SUCCEEDED(retStatus)) {
+                // Re-set the variable again
+                ATOMIC_STORE_BOOL(&pSampleConfiguration->recreateSignalingClient, FALSE);
+            } else if (signalingCallFailed(retStatus)) {
+                printf("[KVS Common] recreating Signaling Client\n");
+                freeSignalingClient(&pSampleConfiguration->signalingClientHandle);
+                createSignalingClientSync(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
+                                          &pSampleConfiguration->signalingClientCallbacks, pSampleConfiguration->pCredentialProvider,
+                                          &pSampleConfiguration->signalingClientHandle);
+            }
         }
 
         // Check the signaling client state and connect if needed
@@ -1234,7 +1242,7 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) customData;
-    BOOL peerConnectionFound = FALSE, locked = TRUE, startStats = FALSE;
+    BOOL peerConnectionFound = FALSE, locked = FALSE, startStats = FALSE;
     UINT32 clientIdHash;
     UINT64 hashValue = 0;
     PPendingMessageQueue pPendingMessageQueue = NULL;

@@ -151,7 +151,8 @@ STATUS setPayloadTypesFromOffer(PHashTable codecTable, PHashTable rtxTable, PSes
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSdpMediaDescription pMediaDescription = NULL;
-    UINT8 currentMedia, currentAttribute;
+    UINT8 currentAttribute;
+    UINT16 currentMedia;
     PCHAR attributeValue, end;
     UINT64 parsedPayloadType, hashmapPayloadType, fmtpVal, aptVal;
     UINT16 aptFmtpVals[MAX_SDP_FMTP_VALUES];

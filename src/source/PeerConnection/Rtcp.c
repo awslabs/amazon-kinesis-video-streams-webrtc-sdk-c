@@ -41,7 +41,7 @@ static STATUS onRtcpSLIPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPe
         pTransceiver->outboundStats.sliCount++;
         MUTEX_UNLOCK(pTransceiver->statsLock);
     } else {
-        DLOGW("Received FIR for non existing ssrc: %u", mediaSSRC);
+        DLOGW("Received SLI for non existing ssrc: %u", mediaSSRC);
     }
 
 CleanUp:

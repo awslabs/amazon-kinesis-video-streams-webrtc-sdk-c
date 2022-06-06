@@ -30,7 +30,20 @@ option(THREAD_SANITIZER "Build with ThreadSanitizer." OFF)
 option(UNDEFINED_BEHAVIOR_SANITIZER "Build with UndefinedBehaviorSanitizer." OFF)
 option(LINK_PROFILER "Link gperftools profiler" OFF)
 
-set(OPEN_SRC_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/open-source" CACHE PATH "Libraries will be downloaded and built in this directory.")
+execute_process(
+        COMMAND git rev-parse HEAD
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE GIT_COMMIT_HASH
+        OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+add_definitions(-DSDK_VERSION=\"${GIT_COMMIT_HASH}\")
+add_definitions(-DDETECTED_GIT_HASH)
+
+if(NOT OPEN_SRC_INSTALL_PREFIX OR OPEN_SRC_INSTALL_PREFIX STREQUAL "")
+  set(OPEN_SRC_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/open-source" CACHE PATH "Libraries will be downloaded and built in this directory.")
+else()
+  set(OPEN_SRC_INSTALL_PREFIX ${OPEN_SRC_INSTALL_PREFIX} CACHE PATH "Libraries will be downloaded and built in this directory.")
+endif()
 
 if(NOT WIN32)
 CHECK_INCLUDE_FILES(ifaddrs.h       KVSWEBRTC_HAVE_IFADDRS_H)
@@ -342,3 +355,9 @@ endif()
 if(BUILD_BENCHMARK)
   add_subdirectory(bench)
 endif()
+
+get_directory_property(clean_files ADDITIONAL_CLEAN_FILES)
+list(APPEND clean_files "${OPEN_SRC_INSTALL_PREFIX}")
+list(APPEND clean_files "${CMAKE_CURRENT_SOURCE_DIR}/build")
+set_directory_properties(PROPERTIES ADDITIONAL_CLEAN_FILES "${clean_files}")
+
