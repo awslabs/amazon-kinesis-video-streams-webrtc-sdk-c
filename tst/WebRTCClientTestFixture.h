@@ -1,5 +1,6 @@
 #include "gtest/gtest.h"
 #include "../src/source/Include_i.h"
+#include "../src/source/SignalingInclude.h"
 #include <memory>
 #include <string>
 #include <thread>

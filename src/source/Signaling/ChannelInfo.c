@@ -1,5 +1,5 @@
 #define LOG_CLASS "ChannelInfo"
-#include "../Include_i.h"
+#include "../SignalingInclude.h"
 
 STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* ppChannelInfo)
 {

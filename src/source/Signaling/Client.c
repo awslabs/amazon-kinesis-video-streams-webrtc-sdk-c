@@ -1,5 +1,5 @@
 #define LOG_CLASS "SignalingClient"
-#include "../Include_i.h"
+#include "../SignalingInclude.h"
 
 STATUS createRetryStrategyForCreatingSignalingClient(PSignalingClientInfo pClientInfo, PKvsRetryStrategy pKvsRetryStrategy)
 {

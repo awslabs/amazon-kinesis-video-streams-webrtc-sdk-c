@@ -2,7 +2,7 @@
  * Implementation of a API calls based on LibWebSocket
  */
 #define LOG_CLASS "LwsApiCalls"
-#include "../Include_i.h"
+#include "../SignalingInclude.h"
 
 static BOOL gInterruptedFlagBySignalHandler;
 VOID lwsSignalHandler(INT32 signal)
