@@ -95,6 +95,7 @@ You can pass the following options to `cmake ..`.
 * `-DTHREAD_SANITIZER` -- Build with ThreadSanitizer
 * `-DUNDEFINED_BEHAVIOR_SANITIZER` -- Build with UndefinedBehaviorSanitizer
 * `-DLINK_PROFILER` -- Link with gperftools (available profiler options are listed [here](https://github.com/gperftools/gperftools))
+* `-DLOCAL_OPENSSL_BUILD` -- Whether or not to use local OpenSSL build. Default is OFF.
 
 To clean up the `open-source` and `build` folders from previous build, use `cmake --build . --target clean` from the `build` folder
 
@@ -262,6 +263,15 @@ You can also change settings such as buffer size, number of log files for rotati
 If ICE connection can be established successfully but media can not be transferred, make sure the actual MTU is higher than the MTU setting here: https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/blob/master/src/source/PeerConnection/Rtp.h#L12.
 
 You can also change settings such as buffer size, number of log files for rotation and log file path in the samples
+
+### Building with a local OpenSSL
+When building OpenSSL during `cmake ..`, if you encounter an architecture error such as `ld: symbol(s) not found for architecture i386`, building with a local OpenSSL build may help. First install OpenSSL 1.1 (for Mac: `brew install openssl@1.1`). Next set `export PKG_CONFIG_PATH="<YOUR-PATH>/openssl@1.1/lib/pkgconfig"` (your path can be printed to terminal using `which openssl` on Linux/Mac). Now set the following flag to ON when building: `cmake .. -DLOCAL_OPENSSL_BUILD=ON`. If there are still errors regarding locating the local OpenSSL library:
+* The following environment variables may need to be set to export:
+        `export LDFLAGS="-L<YOUR-PATH>/openssl@1.1/lib"` and `export CPPFLAGS="-I<YOUR-PATH>/openssl@1.1/include"`
+* The path to OpenSSL’s root directory may need to be specified when running `cmake`:
+        `-DOPENSSL_ROOT_DIR="<YOUR-PATH>/openssl@1.1/include/openssl"`
+* If you need to have openssl@1.1 first in your PATH, run:
+        `echo 'export PATH="<YOUR-PATH>/openssl@1.1/bin:$PATH"' >> ~/.zshrc`
 
 ## Clang Checks
 This SDK has clang format checks enforced in builds. In order to avoid re-iterating and make sure your code
