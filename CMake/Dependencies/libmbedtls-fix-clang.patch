@@ -1,0 +1,14 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index ac24bf41b..1bebb37d1 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -219,6 +219,9 @@ if(MBEDTLS_FATAL_WARNINGS)
+
+     if(CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_GNU)
+         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror")
++        if(CMAKE_COMPILER_IS_CLANG)
++            set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error=unused-but-set-parameter")
++        endif(CMAKE_COMPILER_IS_CLANG)
+         if(UNSAFE_BUILD)
+             set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error=cpp")
+             set(CMAKE_C_FLAGS_ASAN "${CMAKE_C_FLAGS_ASAN} -Wno-error=cpp")
