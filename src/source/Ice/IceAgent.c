@@ -1234,12 +1234,13 @@ STATUS iceCandidatePairCheckConnection(PStunPacket pStunBindingRequest, PIceAgen
     CHK(pStunAttributePriority != NULL, STATUS_INVALID_ARG);
 
     if (pIceCandidatePair->local->ipAddress.family == KVS_IP_FAMILY_TYPE_IPV4) {
-        DLOGD("remote ip:%u.%u.%u.%u, port:%u, local ip:%u.%u.%u.%u, port:%u", pIceCandidatePair->remote->ipAddress.address[0],
-              pIceCandidatePair->remote->ipAddress.address[1], pIceCandidatePair->remote->ipAddress.address[2],
-              pIceCandidatePair->remote->ipAddress.address[3], pIceCandidatePair->remote->ipAddress.address[0],
-              pIceCandidatePair->remote->ipAddress.port, pIceCandidatePair->local->ipAddress.address[1],
-              pIceCandidatePair->local->ipAddress.address[2], pIceCandidatePair->local->ipAddress.address[3],
-              pIceCandidatePair->local->ipAddress.address[0], pIceCandidatePair->local->ipAddress.port);
+        DLOGD("remote ip:%u.%u.%u.%u, port:%u, local ip:%u.%u.%u.%u, port:%u",
+                pIceCandidatePair->remote->ipAddress.address[0],pIceCandidatePair->remote->ipAddress.address[1],
+                pIceCandidatePair->remote->ipAddress.address[2],pIceCandidatePair->remote->ipAddress.address[3],
+                pIceCandidatePair->remote->ipAddress.port,
+                pIceCandidatePair->local->ipAddress.address[0],pIceCandidatePair->local->ipAddress.address[1],
+                pIceCandidatePair->local->ipAddress.address[2], pIceCandidatePair->local->ipAddress.address[3],
+                pIceCandidatePair->local->ipAddress.port);
     }
 
     // update priority and transaction id
