@@ -2380,8 +2380,11 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
     // need to determine stunPacketType before deserializing because different password should be used depending on the packet type
     stunPacketType = (UINT16) getInt16(*((PUINT16) pBuffer));
 
+    DLOGE("\n Handle STUN PACKET called!!");
+
     switch (stunPacketType) {
         case STUN_PACKET_TYPE_BINDING_REQUEST:
+            DLOGE("\n ********* STUN_PACKET_TYPE_BINDING_REQUEST");
             connectivityCheckRequestsReceived++;
             CHK_STATUS(deserializeStunPacket(pBuffer, bufferLen, (PBYTE) pIceAgent->localPassword,
                                              (UINT32) STRLEN(pIceAgent->localPassword) * SIZEOF(CHAR), &pStunPacket));
@@ -2429,6 +2432,7 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
             break;
 
         case STUN_PACKET_TYPE_BINDING_RESPONSE_SUCCESS:
+            DLOGE("\n ********* STUN_PACKET_TYPE_BINDING_RESPONSE_SUCCESS");
             connectivityCheckResponsesReceived++;
             checkSum = COMPUTE_CRC32(pBuffer + STUN_PACKET_TRANSACTION_ID_OFFSET, STUN_TRANSACTION_ID_LEN);
             // check if Binding Response is for finding srflx candidate
@@ -2533,10 +2537,12 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
             break;
 
         case STUN_PACKET_TYPE_BINDING_INDICATION:
+            DLOGE("\n ********* STUN_PACKET_TYPE_BINDING_INDICATION");
             DLOGD("Received STUN binding indication");
             break;
 
         default:
+            DLOGE("\n ********* UNKNOWN STUN PACKET");
             CHK_STATUS(hexEncode(pBuffer, bufferLen, NULL, &hexStrLen));
             hexStr = MEMCALLOC(1, hexStrLen * SIZEOF(CHAR));
             CHK(hexStr != NULL, STATUS_NOT_ENOUGH_MEMORY);
@@ -2561,7 +2567,7 @@ CleanUp:
     }
 
     // TODO send error packet
-
+    DLOGE("\n **** RETURNING FROM Handle STUN PACKET [%x]", retStatus);
     return retStatus;
 }
 

@@ -1,6 +1,15 @@
 #include "Samples.h"
+#include "../configuration/PeerConfiguration.h"
+#include <unordered_map>
+#include <vector>
+#include <utility>
+#include <string>
+
+using namespace std;
 
 extern PSampleConfiguration gSampleConfiguration;
+extern unordered_map<string, double> webRtcTestMetrics;
+extern unordered_map<string, vector<pair<string, double>>> iceServerStats;
 
 #ifdef ENABLE_DATA_CHANNEL
 
@@ -31,7 +40,7 @@ VOID dataChannelOnOpenCallback(UINT64 customData, PRtcDataChannel pDataChannel)
 }
 #endif
 
-PVOID startViewer(PVOID arg)
+STATUS startViewer(PeerConfiguration& peerTestConfiguration)
 {
     STATUS retStatus = STATUS_SUCCESS;
     RtcSessionDescriptionInit offerSessionDescriptionInit;
@@ -40,7 +49,7 @@ PVOID startViewer(PVOID arg)
     PSampleConfiguration pSampleConfiguration = NULL;
     PSampleStreamingSession pSampleStreamingSession = NULL;
     BOOL locked = FALSE;
-    PCHAR pChannelName = (PCHAR)(arg);
+    PCHAR pChannelName = (PCHAR) peerTestConfiguration.getChannelName();
 
     SET_INSTRUMENTED_ALLOCATORS();
 
@@ -51,13 +60,8 @@ PVOID startViewer(PVOID arg)
     // do trickle-ice by default
     printf("[KVS Master] Using trickleICE by default\n");
 
-//#ifdef IOT_CORE_ENABLE_CREDENTIALS
-//    CHK_ERR((pChannelName = getenv(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_THING_NAME must be set");
-//#else
-//    pChannelName = argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME;
-//#endif
-
-    retStatus = createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_VIEWER, TRUE, FALSE, &pSampleConfiguration);
+    retStatus = createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_VIEWER,
+                                          peerTestConfiguration.useTrickleIce(), peerTestConfiguration.useTurn(), &pSampleConfiguration);
     if (retStatus != STATUS_SUCCESS) {
         printf("[KVS Viewer] createSampleConfiguration(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;
@@ -66,13 +70,10 @@ PVOID startViewer(PVOID arg)
 
     printf("[KVS Viewer] Created signaling channel %s\n", pChannelName);
 
-    if (pSampleConfiguration->enableFileLogging) {
-        retStatus =
-            createFileLogger(FILE_LOGGING_BUFFER_SIZE, MAX_NUMBER_OF_LOG_FILES, (PCHAR) FILE_LOGGER_LOG_FILE_DIRECTORY_PATH, TRUE, TRUE, NULL);
-        if (retStatus != STATUS_SUCCESS) {
-            printf("[KVS Master] createFileLogger(): operation returned status code: 0x%08x \n", retStatus);
-            pSampleConfiguration->enableFileLogging = FALSE;
-        }
+    retStatus = createFileLogger(FILE_LOGGING_BUFFER_SIZE, MAX_NUMBER_OF_LOG_FILES, (PCHAR) peerTestConfiguration.getLogDirectoryPath(), TRUE, TRUE, NULL);
+    if (retStatus != STATUS_SUCCESS) {
+        printf("[KVS Viewer] createFileLogger(): operation returned status code: 0x%08x \n", retStatus);
+        pSampleConfiguration->enableFileLogging = FALSE;
     }
 
     // Initialize KVS WebRTC. This must be done before anything else, and must only be done once.
@@ -198,27 +199,27 @@ PVOID startViewer(PVOID arg)
         goto CleanUp;
     }
 
-#ifdef ENABLE_DATA_CHANNEL
-    PRtcDataChannel pDataChannel = NULL;
-    PRtcPeerConnection pPeerConnection = pSampleStreamingSession->pPeerConnection;
-    SIZE_T datachannelLocalOpenCount = 0;
-
-    // Creating a new datachannel on the peer connection of the existing sample streaming session
-    retStatus = createDataChannel(pPeerConnection, pChannelName, NULL, &pDataChannel);
-    if (retStatus != STATUS_SUCCESS) {
-        printf("[KVS Viewer] createDataChannel(): operation returned status code: 0x%08x \n", retStatus);
-        goto CleanUp;
-    }
-    printf("[KVS Viewer] Creating data channel...completed\n");
-
-    // Setting a callback for when the data channel is open
-    retStatus = dataChannelOnOpen(pDataChannel, (UINT64) &datachannelLocalOpenCount, dataChannelOnOpenCallback);
-    if (retStatus != STATUS_SUCCESS) {
-        printf("[KVS Viewer] dataChannelOnOpen(): operation returned status code: 0x%08x \n", retStatus);
-        goto CleanUp;
-    }
-    printf("[KVS Viewer] Data Channel open now...\n");
-#endif
+//#ifdef ENABLE_DATA_CHANNEL
+//    PRtcDataChannel pDataChannel = NULL;
+//    PRtcPeerConnection pPeerConnection = pSampleStreamingSession->pPeerConnection;
+//    SIZE_T datachannelLocalOpenCount = 0;
+//
+//    // Creating a new datachannel on the peer connection of the existing sample streaming session
+//    retStatus = createDataChannel(pPeerConnection, pChannelName, NULL, &pDataChannel);
+//    if (retStatus != STATUS_SUCCESS) {
+//        printf("[KVS Viewer] createDataChannel(): operation returned status code: 0x%08x \n", retStatus);
+//        goto CleanUp;
+//    }
+//    printf("[KVS Viewer] Creating data channel...completed\n");
+//
+//    // Setting a callback for when the data channel is open
+//    retStatus = dataChannelOnOpen(pDataChannel, (UINT64) &datachannelLocalOpenCount, dataChannelOnOpenCallback);
+//    if (retStatus != STATUS_SUCCESS) {
+//        printf("[KVS Viewer] dataChannelOnOpen(): operation returned status code: 0x%08x \n", retStatus);
+//        goto CleanUp;
+//    }
+//    printf("[KVS Viewer] Data Channel open now...\n");
+//#endif
 
     // Block until interrupted
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->interrupted) && !ATOMIC_LOAD_BOOL(&pSampleStreamingSession->terminateFlag)) {
@@ -232,6 +233,7 @@ CleanUp:
     }
 
     printf("[KVS Viewer] Cleaning up....\n");
+    dumpTestMetricsToFile(peerTestConfiguration.getViewerMetricsFilePath());
 
     if (locked) {
         MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);

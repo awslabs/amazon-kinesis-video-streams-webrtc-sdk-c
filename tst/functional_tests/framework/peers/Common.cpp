@@ -1,7 +1,18 @@
 #define LOG_CLASS "WebRtcSamples"
 #include "Samples.h"
+#include <unordered_map>
+#include <vector>
+#include <utility>
+#include <string>
+#include <iostream>
+#include <fstream>
+#include <string.h>
+
+using namespace std;
 
 PSampleConfiguration gSampleConfiguration = NULL;
+unordered_map<string, double> webRtcTestMetrics;
+unordered_map<string, vector<pair<string, double>>> iceServerStats;
 
 VOID sigintHandler(INT32 sigNum)
 {
@@ -39,10 +50,11 @@ VOID onConnectionStateChange(UINT64 customData, RTC_PEER_CONNECTION_STATE newSta
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) customData;
+    PSampleConfiguration pSampleConfiguration = NULL;
 
     CHK(pSampleStreamingSession != NULL && pSampleStreamingSession->pSampleConfiguration != NULL, STATUS_INTERNAL_ERROR);
 
-    PSampleConfiguration pSampleConfiguration = pSampleStreamingSession->pSampleConfiguration;
+    pSampleConfiguration = pSampleStreamingSession->pSampleConfiguration;
     DLOGI("New connection state %u", newState);
 
     switch (newState) {
@@ -153,7 +165,7 @@ PVOID mediaSenderRoutine(PVOID customData)
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) customData;
     TID videoSenderTid = INVALID_TID_VALUE, audioSenderTid = INVALID_TID_VALUE;
-
+    DLOGE("\n ******* STARTING MEDIA THREAD");
     MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->connected) && !ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
         CVAR_WAIT(pSampleConfiguration->cvar, pSampleConfiguration->sampleConfigurationObjLock, 5 * HUNDREDS_OF_NANOS_IN_A_SECOND);
@@ -177,6 +189,9 @@ PVOID mediaSenderRoutine(PVOID customData)
     if (audioSenderTid != INVALID_TID_VALUE) {
         THREAD_JOIN(audioSenderTid, NULL);
     }
+
+    DLOGE("\n ******* STARTING MEDIA THREAD");
+
 
 CleanUp:
     // clean the flag of the media thread.
@@ -213,6 +228,7 @@ STATUS handleOffer(PSampleConfiguration pSampleConfiguration, PSampleStreamingSe
         CHK_STATUS(respondWithAnswer(pSampleStreamingSession));
         DLOGD("time taken to send answer %" PRIu64 " ms",
               (GETTIME() - pSampleStreamingSession->offerReceiveTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+        webRtcTestMetrics["TIME_TAKEN_TO_SEND_SDP_ANSWER_TICKLE_ICE"] = (GETTIME() - pSampleStreamingSession->offerReceiveTime);
     }
 
     mediaThreadStarted = ATOMIC_EXCHANGE_BOOL(&pSampleConfiguration->mediaThreadStarted, TRUE);
@@ -309,6 +325,7 @@ VOID onIceCandidateHandler(UINT64 customData, PCHAR candidateJson)
             CHK_STATUS(respondWithAnswer(pSampleStreamingSession));
             DLOGD("time taken to send answer %" PRIu64 " ms",
                   (GETTIME() - pSampleStreamingSession->offerReceiveTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+            webRtcTestMetrics["TIME_TAKEN_TO_SEND_SDP_ANSWER"] = (GETTIME() - pSampleStreamingSession->offerReceiveTime);
         } else if (pSampleStreamingSession->pSampleConfiguration->channelInfo.channelRoleType == SIGNALING_CHANNEL_ROLE_TYPE_VIEWER &&
                    !pSampleStreamingSession->pSampleConfiguration->trickleIce) {
             CVAR_BROADCAST(pSampleStreamingSession->pSampleConfiguration->cvar);
@@ -399,8 +416,8 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     curTime = GETTIME();
     CHK_STATUS(createPeerConnection(&configuration, ppRtcPeerConnection));
     DLOGD("time taken to create peer connection %" PRIu64 " ms", (GETTIME() - curTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
-
-CleanUp:
+    webRtcTestMetrics["TIME_TAKEN_TO_CREATE_PEER_CONNECTION"] = (GETTIME() - curTime);
+ CleanUp:
 
     CHK_LOG_ERR(retStatus);
 
@@ -419,6 +436,9 @@ STATUS gatherIceServerStats(PSampleStreamingSession pSampleStreamingSession)
     RtcStats rtcmetrics;
     UINT32 j = 0;
     rtcmetrics.requestedTypeOfStats = RTC_STATS_TYPE_ICE_SERVER;
+
+    webRtcTestMetrics["ICE_URI_COUNT"] = pSampleStreamingSession->pSampleConfiguration->iceUriCount;
+
     for (; j < pSampleStreamingSession->pSampleConfiguration->iceUriCount; j++) {
         rtcmetrics.rtcStatsObject.iceServerStats.iceServerIndex = j;
         CHK_STATUS(rtcPeerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, NULL, &rtcmetrics));
@@ -429,6 +449,13 @@ STATUS gatherIceServerStats(PSampleStreamingSession pSampleStreamingSession)
         DLOGD("Total responses received: %" PRIu64, rtcmetrics.rtcStatsObject.iceServerStats.totalResponsesReceived);
         DLOGD("Total round trip time: %" PRIu64 "ms",
               rtcmetrics.rtcStatsObject.iceServerStats.totalRoundTripTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+
+        string identifier = string(rtcmetrics.rtcStatsObject.iceServerStats.url) + "#" +
+                to_string(rtcmetrics.rtcStatsObject.iceServerStats.port) + "#" +
+                rtcmetrics.rtcStatsObject.iceServerStats.protocol;
+        iceServerStats[identifier].emplace_back(make_pair("TOTAL_REQUESTS", rtcmetrics.rtcStatsObject.iceServerStats.totalRequestsSent));
+        iceServerStats[identifier].emplace_back(make_pair("TOTAL_RESPONSES", rtcmetrics.rtcStatsObject.iceServerStats.totalResponsesReceived));
+        iceServerStats[identifier].emplace_back(make_pair("ROUND_TRIP_TIME", rtcmetrics.rtcStatsObject.iceServerStats.totalRoundTripTime));
     }
 CleanUp:
     LEAVES();
@@ -593,7 +620,10 @@ VOID sampleFrameHandler(UINT64 customData, PFrame pFrame)
         pSampleStreamingSession->firstFrame = FALSE;
         pSampleStreamingSession->startUpLatency = (GETTIME() - pSampleStreamingSession->offerReceiveTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
         printf("Start up latency from offer to first frame: %" PRIu64 "ms\n", pSampleStreamingSession->startUpLatency);
+        webRtcTestMetrics["STARTUP_LATENCY"] = GETTIME() - pSampleStreamingSession->offerReceiveTime;
     }
+
+    webRtcTestMetrics["TOTAL_FRAMES_RECEIVED"]++;
 }
 
 VOID sampleBandwidthEstimationHandler(UINT64 customData, DOUBLE maximumBitrate)
@@ -831,17 +861,31 @@ STATUS logSignalingClientStats(PSignalingClientMetrics pSignalingClientMetrics)
     CHK(pSignalingClientMetrics != NULL, STATUS_NULL_ARG);
     DLOGD("Signaling client connection duration: %" PRIu64 " ms",
           (pSignalingClientMetrics->signalingClientStats.connectionDuration / HUNDREDS_OF_NANOS_IN_A_MILLISECOND));
+    webRtcTestMetrics["SIGNALING_CLIENT_CONNECTION_DURATION"] = pSignalingClientMetrics->signalingClientStats.connectionDuration;
+
     DLOGD("Number of signaling client API errors: %d", pSignalingClientMetrics->signalingClientStats.numberOfErrors);
+    webRtcTestMetrics["SIGNALING_CLIENT_API_ERRORS"] = pSignalingClientMetrics->signalingClientStats.numberOfErrors;
+
     DLOGD("Number of runtime errors in the session: %d", pSignalingClientMetrics->signalingClientStats.numberOfRuntimeErrors);
+    webRtcTestMetrics["SIGNALING_CLIENT_RUNTIME_ERRORS"] = pSignalingClientMetrics->signalingClientStats.numberOfRuntimeErrors;
+
     DLOGD("Signaling client uptime: %" PRIu64 " ms",
           (pSignalingClientMetrics->signalingClientStats.connectionDuration / HUNDREDS_OF_NANOS_IN_A_MILLISECOND));
+    webRtcTestMetrics["SIGNALING_CLIENT_CONNECTION_UP_TIME"] = pSignalingClientMetrics->signalingClientStats.connectionDuration;
+
     // This gives the EMA of the createChannel, describeChannel, getChannelEndpoint and deleteChannel calls
     DLOGD("Control Plane API call latency: %" PRIu64 " ms",
           (pSignalingClientMetrics->signalingClientStats.cpApiCallLatency / HUNDREDS_OF_NANOS_IN_A_MILLISECOND));
+    webRtcTestMetrics["SIGNALING_CLIENT_CP_API_LATENCY"] = pSignalingClientMetrics->signalingClientStats.cpApiCallLatency;
+
     // This gives the EMA of the getIceConfig() call.
     DLOGD("Data Plane API call latency: %" PRIu64 " ms",
           (pSignalingClientMetrics->signalingClientStats.dpApiCallLatency / HUNDREDS_OF_NANOS_IN_A_MILLISECOND));
+    webRtcTestMetrics["SIGNALING_CLIENT_DP_API_LATENCY"] = pSignalingClientMetrics->signalingClientStats.dpApiCallLatency;
+
     DLOGD("API call retry count: %d", pSignalingClientMetrics->signalingClientStats.apiCallRetryCount);
+    webRtcTestMetrics["SIGNALING_CLIENT_CP_API_RETRY_COUNT"] = pSignalingClientMetrics->signalingClientStats.apiCallRetryCount;
+
 CleanUp:
     LEAVES();
     return retStatus;
@@ -1483,6 +1527,45 @@ STATUS removeExpiredMessageQueues(PStackQueue pPendingQueue)
             CHK_STATUS(stackQueueEnqueue(pPendingQueue, data));
         }
     }
+
+CleanUp:
+
+    return retStatus;
+}
+
+extern unordered_map<string, double> webRtcTestMetrics;
+extern unordered_map<string, vector<pair<string, double>>> iceServerStats;
+
+STATUS dumpTestMetricsToFile(PCHAR filePath) {
+    STATUS retStatus = STATUS_SUCCESS;
+    ofstream metricsFile;
+
+    CHK(filePath != NULL, STATUS_NULL_ARG);
+
+    remove(filePath);
+    metricsFile.open(filePath, std::ios_base::app); // append instead of overwrite
+
+    for (auto iter = webRtcTestMetrics.begin(); iter != webRtcTestMetrics.end(); iter++) {
+        auto& metricName = iter->first;
+        auto& metricValue = iter->second;
+        string metricEntry = metricName + "=" + to_string(metricValue);
+        metricsFile << metricEntry;
+        metricsFile << "\n";
+    }
+
+    for (auto iter = iceServerStats.begin(); iter != iceServerStats.end(); iter++) {
+        auto& identifier = iter->first;
+        auto& metricList = iter->second;
+        for (auto& entry : metricList) {
+            auto& metricName = entry.first;
+            auto& metricValue = entry.second;
+            string metricEntry = identifier + ":" + metricName + "=" + to_string(metricValue);
+            metricsFile << metricEntry;
+            metricsFile << "\n";
+        }
+    }
+
+    return 0;
 
 CleanUp:
 

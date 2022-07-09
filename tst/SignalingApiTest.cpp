@@ -1,5 +1,4 @@
 #include "WebRTCClientTestFixture.h"
-#include "Samples.h"
 
 namespace com {
 namespace amazonaws {

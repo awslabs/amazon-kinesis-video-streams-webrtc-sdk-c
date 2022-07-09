@@ -1,18 +1,26 @@
 #include "Samples.h"
+#include "../configuration/PeerConfiguration.h"
+#include <unordered_map>
+#include <vector>
+#include <utility>
+#include <string>
+
+using namespace std;
 
 extern PSampleConfiguration gSampleConfiguration;
+extern unordered_map<string, double> webRtcTestMetrics;
+extern unordered_map<string, vector<pair<string, double>>> iceServerStats;
 
 // #define VERBOSE
 
-PVOID startMaster(PVOID arg)
+STATUS startMaster(PeerConfiguration& peerTestConfiguration)
 {
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 frameSize;
     PSampleConfiguration pSampleConfiguration = NULL;
     SignalingClientMetrics signalingClientMetrics;
-    PCHAR pChannelName = (PCHAR)(arg);
+    PCHAR pChannelName = (PCHAR) peerTestConfiguration.getChannelName();
     signalingClientMetrics.version = SIGNALING_CLIENT_METRICS_CURRENT_VERSION;
-
 
     SET_INSTRUMENTED_ALLOCATORS();
 
@@ -23,27 +31,18 @@ PVOID startMaster(PVOID arg)
     // do trickleIce by default
     printf("[KVS Master] Using trickleICE by default\n");
 
-//#ifdef IOT_CORE_ENABLE_CREDENTIALS
-//    CHK_ERR((pChannelName = getenv(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_THING_NAME must be set");
-//#else
-//    pChannelName = argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME;
-//#endif
-
-    retStatus = createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, FALSE, &pSampleConfiguration);
+    retStatus = createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER,
+                                          peerTestConfiguration.useTrickleIce(), peerTestConfiguration.useTurn(), &pSampleConfiguration);
     if (retStatus != STATUS_SUCCESS) {
         printf("[KVS Master] createSampleConfiguration(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;
     }
 
     printf("[KVS Master] Created signaling channel %s\n", pChannelName);
-
-    if (pSampleConfiguration->enableFileLogging) {
-        retStatus =
-            createFileLogger(FILE_LOGGING_BUFFER_SIZE, MAX_NUMBER_OF_LOG_FILES, (PCHAR) FILE_LOGGER_LOG_FILE_DIRECTORY_PATH, TRUE, TRUE, NULL);
-        if (retStatus != STATUS_SUCCESS) {
-            printf("[KVS Master] createFileLogger(): operation returned status code: 0x%08x \n", retStatus);
-            pSampleConfiguration->enableFileLogging = FALSE;
-        }
+    retStatus = createFileLogger(FILE_LOGGING_BUFFER_SIZE, MAX_NUMBER_OF_LOG_FILES, (PCHAR) peerTestConfiguration.getLogDirectoryPath(), TRUE, TRUE, NULL);
+    if (retStatus != STATUS_SUCCESS) {
+        printf("[KVS Master] createFileLogger(): operation returned status code: 0x%08x \n", retStatus);
+        pSampleConfiguration->enableFileLogging = FALSE;
     }
 
     // Set the audio and video handlers
@@ -125,6 +124,8 @@ CleanUp:
     }
 
     printf("[KVS Master] Cleaning up....\n");
+    dumpTestMetricsToFile(peerTestConfiguration.getMasterMetricsFilePath());
+
     if (pSampleConfiguration != NULL) {
         // Kick of the termination sequence
         ATOMIC_STORE_BOOL(&pSampleConfiguration->appTerminateFlag, TRUE);
@@ -287,6 +288,8 @@ PVOID sendVideoPackets(PVOID args)
         elapsed = lastFrameTime - startTime;
         THREAD_SLEEP(SAMPLE_VIDEO_FRAME_DURATION - elapsed % SAMPLE_VIDEO_FRAME_DURATION);
         lastFrameTime = GETTIME();
+
+        webRtcTestMetrics["TOTAL_VIDEO_FRAMES_SENT"]++;
     }
 
 CleanUp:
@@ -355,6 +358,8 @@ PVOID sendAudioPackets(PVOID args)
                 }
             }
         }
+
+        webRtcTestMetrics["TOTAL_AUDIO_FRAMES_SENT"]++;
         MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
         THREAD_SLEEP(SAMPLE_AUDIO_FRAME_DURATION);
     }
@@ -378,6 +383,8 @@ PVOID sampleReceiveVideoFrame(PVOID args)
         printf("[KVS Master] transceiverOnFrame(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;
     }
+
+    webRtcTestMetrics["TOTAL_MEDIA_FRAMES_RECEIVED"]++;
 
 CleanUp:
 

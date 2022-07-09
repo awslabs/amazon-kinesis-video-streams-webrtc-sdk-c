@@ -765,7 +765,7 @@ STATUS describeChannelLws(PSignalingClient pSignalingClient, UINT64 time)
 
     // Create the API url
 
-    const char* testCPUrl = "http://127.0.0.1";
+    const char* testCPUrl = "http://172.22.0.12";
     //STRCPY(url, pSignalingClient->pChannelInfo->pControlPlaneUrl);
     STRCPY(url, testCPUrl);
     DLOGE("\n ********* DESCRIBE CP URL [%s]", url);
@@ -906,7 +906,7 @@ STATUS createChannelLws(PSignalingClient pSignalingClient, UINT64 time)
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
     // Create the API url
-    const char* testCPUrl = "http://127.0.0.1";
+    const char* testCPUrl = "http://172.22.0.12";
     //STRCPY(url, pSignalingClient->pChannelInfo->pControlPlaneUrl);
     STRCPY(url, testCPUrl);
     DLOGE("\n ********* CREATE CP URL [%s]", url);
@@ -1016,7 +1016,7 @@ STATUS getChannelEndpointLws(PSignalingClient pSignalingClient, UINT64 time)
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
     // Create the API url
-    const char* testCPUrl = "http://127.0.0.1";
+    const char* testCPUrl = "http://172.22.0.12";
     //STRCPY(url, pSignalingClient->pChannelInfo->pControlPlaneUrl);
     STRCPY(url, testCPUrl);
     DLOGE("\n ********* GET ENDPOINT CP URL [%s]", url);
@@ -1163,7 +1163,7 @@ STATUS getIceConfigLws(PSignalingClient pSignalingClient, UINT64 time)
     ATOMIC_INCREMENT(&pSignalingClient->diagnostics.iceRefreshCount);
 
     // Create the API url
-    const char* testCPUrl = "http://127.0.0.1";
+    const char* testCPUrl = "http://172.22.0.12";
     //STRCPY(url, pSignalingClient->pChannelInfo->pControlPlaneUrl);
     STRCPY(url, testCPUrl);
     DLOGE("\n ********* GET ICE CONFIG CP URL [%s]", url);
@@ -1449,10 +1449,10 @@ STATUS connectSignalingChannelLws(PSignalingClient pSignalingClient, UINT64 time
 
     // The actual connection will be handled in a separate thread
     // Start the request/response thread
-    char* signalingChannelEndpointLocalHost = "ws://localhost/";
+    char* signalingChannelEndpointLocalHost = "ws://172.22.0.13/";
 
     if (pSignalingClient->pChannelInfo->channelRoleType == SIGNALING_CHANNEL_ROLE_TYPE_VIEWER) {
-        signalingChannelEndpointLocalHost = "ws://localhost/X-Amz-ClientId";
+        signalingChannelEndpointLocalHost = "ws://172.22.0.13/X-Amz-ClientId";
     }
 
     MEMCPY(pLwsCallInfo->callInfo.pRequestInfo->url, signalingChannelEndpointLocalHost, 29);

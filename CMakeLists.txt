@@ -350,6 +350,7 @@ endif()
 
 if(BUILD_TEST)
   add_subdirectory(tst)
+  add_subdirectory(tst/functional_tests)
 endif()
 
 if(BUILD_BENCHMARK)

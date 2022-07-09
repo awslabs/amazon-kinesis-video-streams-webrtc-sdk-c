@@ -6,11 +6,8 @@ Shared include file for the samples
 
 #pragma once
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
+#include "../configuration/PeerConfiguration.h"
 
 #define NUMBER_OF_H264_FRAME_FILES               1500
 #define NUMBER_OF_OPUS_FRAME_FILES               618
@@ -188,11 +185,9 @@ STATUS submitPendingIceCandidate(PPendingMessageQueue, PSampleStreamingSession);
 STATUS removeExpiredMessageQueues(PStackQueue);
 STATUS getPendingMessageQueueForHash(PStackQueue, UINT64, BOOL, PPendingMessageQueue*);
 BOOL sampleFilterNetworkInterfaces(UINT64, PCHAR);
+STATUS dumpTestMetricsToFile(PCHAR);
 
-PVOID startMaster(PVOID);
-PVOID startViewer(PVOID);
+STATUS startMaster(PeerConfiguration&);
+STATUS startViewer(PeerConfiguration&);
 
-#ifdef __cplusplus
-}
-#endif
 #endif /* __KINESIS_VIDEO_SAMPLE_INCLUDE__ */
