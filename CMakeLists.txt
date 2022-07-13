@@ -92,7 +92,7 @@ if(USE_OPENSSL)
 elseif(USE_MBEDTLS)
   add_definitions(-DKVS_USE_MBEDTLS)
   # FIXME: there's probably a better way to inject MBEDTLS_USER_CONFIG_FILE flag without mutating the global CMAKE_C_FLAGS and CMAKE_CXX_FLAGS
-  set(CMAKE_C_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/configs -DMBEDTLS_USER_CONFIG_FILE='<config_mbedtls.h>' ${CMAKE_C_FLAGS}")
+  set(CMAKE_C_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/configs -DMBEDTLS_USER_CONFIG_FILE='<config_mbedtls.h>' -std=c99 ${CMAKE_C_FLAGS}")
   set(CMAKE_CXX_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/configs -DMBEDTLS_USER_CONFIG_FILE='<config_mbedtls.h>' ${CMAKE_CXX_FLAGS}")
 endif()
 
@@ -130,7 +130,7 @@ if(BUILD_DEPENDENCIES)
                  -DOPENSSL_DIR=${OPEN_SRC_INSTALL_PREFIX}
                  -DUSE_OPENSSL=${USE_OPENSSL}
                  -DUSE_MBEDTLS=${USE_MBEDTLS}
-                 -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
+                 -DCMAKE_C_FLAGS="${CMAKE_C_FLAGS} -Werror=implicit-function-declaration")
   build_dependency(websockets ${BUILD_ARGS})
 
   set(BUILD_ARGS
@@ -161,7 +161,7 @@ if(BUILD_DEPENDENCIES)
       -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
       -DUSE_OPENSSL=${USE_OPENSSL}
       -DUSE_MBEDTLS=${USE_MBEDTLS}
-      -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
+      -DCMAKE_C_FLAGS="${CMAKE_C_FLAGS} -D_XOPEN_SOURCE=700")
   build_dependency(kvsCommonLws ${BUILD_ARGS})
 
   message(STATUS "Finished building dependencies.")
@@ -217,6 +217,8 @@ link_directories(${OPEN_SRC_INSTALL_PREFIX}/lib)
 
 if("${CMAKE_C_COMPILER_ID}" MATCHES "GNU|Clang")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
+
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_GNU_SOURCE")
 
   if(ADD_MUCLIBC)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -muclibc")
