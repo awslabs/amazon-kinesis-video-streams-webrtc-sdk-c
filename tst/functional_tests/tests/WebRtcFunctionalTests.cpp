@@ -26,10 +26,9 @@ TEST_F(WebRtcFunctionalTests, start_peer)
 TEST_F(WebRtcFunctionalTests, test_basic_peer_to_peer_communication)
 {
     string testIdentifier = to_string(time(nullptr));
-    testIdentifier = "1649744247";
     FunctionalTestOrchestratorConfiguration functionalTestOrchestratorConfiguration(testIdentifier);
 
-    functionalTestOrchestratorConfiguration.testIdentifier = "sample";
+    functionalTestOrchestratorConfiguration.testIdentifier = testIdentifier;
     functionalTestOrchestratorConfiguration.webRTCControlPlaneServerConfigPath = "/tmp/webrtc_test_config/test_1/control_plane_server_config";
     functionalTestOrchestratorConfiguration.webRTCDataPlaneServerConfigPath = "/tmp/webrtc_test_config/test_1/data_plane_server_config";
     functionalTestOrchestratorConfiguration.webRTCMockServersScripts = "/tmp/scripts/setup_mock_servers.sh";
@@ -50,35 +49,26 @@ TEST_F(WebRtcFunctionalTests, test_basic_peer_to_peer_communication)
     EXPECT_EQ(SUCCESS, functionalTestOrchestrator.launchSignalingControlPlaneServer());
     EXPECT_EQ(SUCCESS, functionalTestOrchestrator.launchSignalingDataPlaneServer());
 
+    EXPECT_EQ(SUCCESS, functionalTestOrchestrator.shutDownSignalingControlPlaneServer());
+    EXPECT_EQ(SUCCESS, functionalTestOrchestrator.shutDownSignalingDataPlaneServer());
 
+   int counter = 5;
+   while (counter-- > 0) {
+       this_thread::sleep_for(std::chrono::seconds(1));
+       functionalTestOrchestrator.checkAllResourcesRunning();
+   }
+    
+   EXPECT_EQ(SUCCESS, functionalTestOrchestrator.setupTestResources());
+   EXPECT_EQ(SUCCESS, functionalTestOrchestrator.checkAllResourcesRunning());
+   EXPECT_EQ(SUCCESS, functionalTestOrchestrator.startMaster());
+   EXPECT_EQ(SUCCESS, functionalTestOrchestrator.isolateMasterAndViewerNetwork());
+   EXPECT_EQ(SUCCESS, functionalTestOrchestrator.startViewer());
+   EXPECT_EQ(SUCCESS, functionalTestOrchestrator.setupResourceMonitoringThread());
+   EXPECT_EQ(SUCCESS, functionalTestOrchestrator.waitForTestToTerminate());
+   EXPECT_EQ(SUCCESS, functionalTestOrchestrator.validateMetrics());
+   EXPECT_EQ(SUCCESS, functionalTestOrchestrator.uploadTestArtifacts());
 
-    //EXPECT_EQ(SUCCESS, functionalTestOrchestrator.shutDownSignalingControlPlaneServer());
-    //EXPECT_EQ(SUCCESS, functionalTestOrchestrator.shutDownSignalingDataPlaneServer());
-
-
-
-//    int counter = 5;
-//    while (counter-- > 0) {
-//        this_thread::sleep_for(std::chrono::seconds(1));
-//        functionalTestOrchestrator.checkAllResourcesRunning();
-//    }
-    //functionalTestOrchestrator.cleanTestResources();
-//    EXPECT_EQ(SUCCESS, functionalTestOrchestrator.setupTestResources());
-//    EXPECT_EQ(SUCCESS, functionalTestOrchestrator.checkAllResourcesRunning());
-//    EXPECT_EQ(SUCCESS, functionalTestOrchestrator.startMaster());
-//    EXPECT_EQ(SUCCESS, functionalTestOrchestrator.isolateMasterAndViewerNetwork());
-//    EXPECT_EQ(SUCCESS, functionalTestOrchestrator.startViewer());
-//    EXPECT_EQ(SUCCESS, functionalTestOrchestrator.setupResourceMonitoringThread());
-//    EXPECT_EQ(SUCCESS, functionalTestOrchestrator.waitForTestToTerminate());
-//    EXPECT_EQ(SUCCESS, functionalTestOrchestrator.validateMetrics());
-//    EXPECT_EQ(SUCCESS, functionalTestOrchestrator.uploadTestArtifacts());
-
-
-    /*
-        Disconnect peer to peer connectivity and verify turn
-     */
-
-
+   functionalTestOrchestrator.cleanTestResources();
 }
 
 } // namespace webrtcclient
