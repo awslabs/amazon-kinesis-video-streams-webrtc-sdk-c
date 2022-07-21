@@ -65,14 +65,14 @@ function(build_dependency lib_name)
     message(FATAL_ERROR "CMake step for lib${lib_name} failed: ${result}")
   endif()
   execute_process(
-    COMMAND ${CMAKE_COMMAND} --build .
+    COMMAND ${CMAKE_COMMAND} --build . -v
     RESULT_VARIABLE result
     WORKING_DIRECTORY ${OPEN_SRC_INSTALL_PREFIX}/lib${lib_name})
   if(result)
     message(FATAL_ERROR "CMake step for lib${lib_name} failed: ${result}")
   endif()
 
-  file(REMOVE_RECURSE ${OPEN_SRC_INSTALL_PREFIX}/lib${lib_name})
+  #  file(REMOVE_RECURSE ${OPEN_SRC_INSTALL_PREFIX}/lib${lib_name})
 endfunction()
 
 function(enableSanitizer SANITIZER)
