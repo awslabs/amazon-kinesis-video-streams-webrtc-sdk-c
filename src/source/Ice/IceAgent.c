@@ -1229,6 +1229,7 @@ STATUS iceCandidatePairCheckConnection(PStunPacket pStunBindingRequest, PIceAgen
     UINT32 checkSum = 0;
 
     CHK(pStunBindingRequest != NULL && pIceAgent != NULL && pIceCandidatePair != NULL, STATUS_NULL_ARG);
+    CHK(pIceCandidatePair->local != NULL && pIceCandidatePair->remote != NULL, STATUS_NULL_ARG);
     CHK_STATUS(getStunAttribute(pStunBindingRequest, STUN_ATTRIBUTE_TYPE_PRIORITY, (PStunAttributeHeader*) &pStunAttributePriority));
 
     CHK(pStunAttributePriority != NULL, STATUS_INVALID_ARG);
