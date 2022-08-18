@@ -205,7 +205,7 @@ extern "C" {
 #define STATUS_TURN_CONNECTION_PEER_NOT_USABLE                             STATUS_ICE_BASE + 0x00000027
 #define STATUS_ICE_SERVER_INDEX_INVALID                                    STATUS_ICE_BASE + 0x00000028
 #define STATUS_ICE_CANDIDATE_STRING_MISSING_TYPE                           STATUS_ICE_BASE + 0x00000029
-#define STATUS_TURN_CONNECTION_FAILED_TO_ALLOCATION                        STATUS_ICE_BASE + 0x0000002a
+#define STATUS_TURN_CONNECTION_ALLOCAITON_FAILED                           STATUS_ICE_BASE + 0x0000002a
 /*!@} */
 
 /////////////////////////////////////////////////////

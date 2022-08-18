@@ -1768,12 +1768,20 @@ CleanUp:
 }
 
 
-STATUS trunStateFailedFn(UINT64 data, PSocketConnection pSocketConnection) {
+STATUS trunStateFailedFn(PSocketConnection pSocketConnection, UINT64 data) {
+    UNUSED_PARAM(pSocketConnection);
+
+    STATUS retStatus = STATUS_SUCCESS;
+
     PIceCandidate pNewCandidate = (PIceCandidate)data;
-    if (pNewCandidate != NULL && pNewCandidate->state == ICE_CANDIDATE_STATE_NEW) {
+    CHK(pNewCandidate != NULL, STATUS_NULL_ARG);
+
+    if (pNewCandidate->state == ICE_CANDIDATE_STATE_NEW) {
         pNewCandidate->state = ICE_CANDIDATE_STATE_INVALID;
     }
-    return 0;
+
+CleanUp:
+    return retStatus;
 }
 
 STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent, UINT32 iceServerIndex, KVS_SOCKET_PROTOCOL protocol)
