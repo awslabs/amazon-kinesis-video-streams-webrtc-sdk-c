@@ -1103,7 +1103,7 @@ CleanUp:
         pTurnConnection->state = TURN_STATE_FAILED;
 
         if (pTurnConnection->turnConnectionCallbacks.turnStateFailedFn != NULL) {
-            pTurnConnection->turnConnectionCallbacks.turnStateFailedFn(pTurnConnection, pTurnConnection->turnConnectionCallbacks.customData);
+            pTurnConnection->turnConnectionCallbacks.turnStateFailedFn(pTurnConnection->pControlChannel, pTurnConnection->turnConnectionCallbacks.customData);
         }
 
         /* fix up state to trigger transition into TURN_STATE_FAILED  */

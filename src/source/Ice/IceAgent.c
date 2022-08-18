@@ -1810,7 +1810,7 @@ STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent, UINT32 iceServerIndex, KV
     pNewCandidate->priority = computeCandidatePriority(pNewCandidate);
 
     TurnConnectionCallbacks callback = {0};
-    callback.customData = pNewCandidate;
+    callback.customData = (UINT64)pNewCandidate;
     callback.relayAddressAvailableFn = NULL;
     callback.turnStateFailedFn= trunStateFailedFn;
 
