@@ -58,7 +58,7 @@ extern "C" {
 #define TURN_STATE_UNKNOWN_STR                 (PCHAR) "TURN_STATE_UNKNOWN"
 
 typedef STATUS (*RelayAddressAvailableFunc)(UINT64, PKvsIpAddress, PSocketConnection);
-typedef STATUS (*TurnStateFailedFunc)(UINT64, PSocketConnection);
+typedef STATUS (*TurnStateFailedFunc)(PSocketConnection, UINT64);
 
 typedef enum {
     TURN_STATE_NEW,

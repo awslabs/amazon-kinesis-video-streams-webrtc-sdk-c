@@ -982,7 +982,7 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
 
             } else {
                 pTurnConnection->stateTryCount++;
-                CHK(pTurnConnection->stateTryCount < pTurnConnection->stateTryCountMax, STATUS_TURN_CONNECTION_FAILED_TO_ALLOCATION);
+                CHK(pTurnConnection->stateTryCount < pTurnConnection->stateTryCountMax, STATUS_TURN_CONNECTION_ALLOCAITON_FAILED);
                 CHK(currentTime < pTurnConnection->stateTimeoutTime, STATUS_TURN_CONNECTION_STATE_TRANSITION_TIMEOUT);
             }
             break;
@@ -1103,7 +1103,7 @@ CleanUp:
         pTurnConnection->state = TURN_STATE_FAILED;
 
         if (pTurnConnection->turnConnectionCallbacks.turnStateFailedFn != NULL) {
-            pTurnConnection->turnConnectionCallbacks.turnStateFailedFn(pTurnConnection->turnConnectionCallbacks.customData, NULL);
+            pTurnConnection->turnConnectionCallbacks.turnStateFailedFn(pTurnConnection, pTurnConnection->turnConnectionCallbacks.customData);
         }
 
         /* fix up state to trigger transition into TURN_STATE_FAILED  */
