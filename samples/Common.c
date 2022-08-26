@@ -1288,9 +1288,6 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
             CHK_STATUS(createSampleStreamingSession(pSampleConfiguration, pReceivedSignalingMessage->signalingMessage.peerClientId, TRUE,
                                                     &pSampleStreamingSession));
             pSampleStreamingSession->offerReceiveTime = GETTIME();
-            MUTEX_LOCK(pSampleConfiguration->streamingSessionListReadLock);
-            pSampleConfiguration->sampleStreamingSessionList[pSampleConfiguration->streamingSessionCount++] = pSampleStreamingSession;
-            MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
 
             CHK_STATUS(handleOffer(pSampleConfiguration, pSampleStreamingSession, &pReceivedSignalingMessage->signalingMessage));
             CHK_STATUS(hashTablePut(pSampleConfiguration->pRtcPeerConnectionForRemoteClient, clientIdHash, (UINT64) pSampleStreamingSession));
@@ -1304,7 +1301,11 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
                 // NULL the pointer to avoid it being freed in the cleanup
                 pPendingMessageQueue = NULL;
             }
-
+            
+            MUTEX_LOCK(pSampleConfiguration->streamingSessionListReadLock);
+            pSampleConfiguration->sampleStreamingSessionList[pSampleConfiguration->streamingSessionCount++] = pSampleStreamingSession;
+            MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
+            
             startStats = pSampleConfiguration->iceCandidatePairStatsTimerId == MAX_UINT32;
             break;
 
