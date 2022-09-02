@@ -19,6 +19,7 @@ extern "C" {
 #define SIGNALING_SERVICE_TCP_KEEPALIVE_PROBE_COUNT               3
 #define SIGNALING_SERVICE_TCP_KEEPALIVE_PROBE_INTERVAL_IN_SECONDS 1
 #define SIGNALING_SERVICE_WSS_PING_PONG_INTERVAL_IN_SECONDS       10
+#define SIGNALING_SERVICE_WSS_HANGUP_IN_SECONDS                   7200
 
 // Protocol indexes
 #define PROTOCOL_INDEX_HTTPS 0
@@ -168,7 +169,7 @@ extern "C" {
 // Check for the stale credentials
 #define CHECK_SIGNALING_CREDENTIALS_EXPIRATION(p)                                                                                                    \
     do {                                                                                                                                             \
-        if (SIGNALING_GET_CURRENT_TIME((p)) >= (p)->pAwsCredentials->expiration) {                                                                                         \
+        if (SIGNALING_GET_CURRENT_TIME((p)) >= (p)->pAwsCredentials->expiration) {                                                                   \
             ATOMIC_STORE(&(p)->result, (SIZE_T) SERVICE_CALL_NOT_AUTHORIZED);                                                                        \
             CHK(FALSE, retStatus);                                                                                                                   \
         }                                                                                                                                            \
