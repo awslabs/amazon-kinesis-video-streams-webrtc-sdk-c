@@ -75,7 +75,7 @@ GstFlowReturn on_new_sample(GstElement* sink, gpointer data, UINT64 trackid)
                 pRtcRtpTransceiver = pSampleStreamingSession->pVideoRtcRtpTransceiver;
                 frame.presentationTs = pSampleStreamingSession->videoTimestamp;
                 frame.decodingTs = frame.presentationTs;
-                pSampleStreamingSession->videoTimestamp += SAMPLE_VIDEO_FRAME_DURATION; // assume video fps is 30
+                pSampleStreamingSession->videoTimestamp += SAMPLE_VIDEO_FRAME_DURATION; // assume video fps is 25
             }
             status = writeFrame(pRtcRtpTransceiver, &frame);
             if (status != STATUS_SRTP_NOT_READY_YET && status != STATUS_SUCCESS) {
@@ -146,13 +146,13 @@ PVOID sendGstreamerAudioVideo(PVOID args)
         case SAMPLE_STREAMING_VIDEO_ONLY:
             if (pSampleConfiguration->useTestSrc) {
                 pipeline = gst_parse_launch(
-                    "videotestsrc is-live=TRUE ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=30/1 ! "
+                    "videotestsrc is-live=TRUE ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
                     "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
                     "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE emit-signals=TRUE name=appsink-video",
                     &error);
             } else {
                 pipeline = gst_parse_launch(
-                    "autovideosrc ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=[30/1,10000000/333333] ! "
+                    "autovideosrc ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
                     "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
                     "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE emit-signals=TRUE name=appsink-video",
                     &error);
@@ -161,7 +161,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
 
         case SAMPLE_STREAMING_AUDIO_VIDEO:
             if (pSampleConfiguration->useTestSrc) {
-                pipeline = gst_parse_launch("videotestsrc is-live=TRUE ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=30/1 ! "
+                pipeline = gst_parse_launch("videotestsrc is-live=TRUE ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
                                             "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
                                             "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE "
                                             "emit-signals=TRUE name=appsink-video audiotestsrc is-live=TRUE ! "
@@ -170,7 +170,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                                             &error);
             } else {
                 pipeline =
-                    gst_parse_launch("autovideosrc ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=[30/1,10000000/333333] ! "
+                    gst_parse_launch("autovideosrc ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
                                      "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
                                      "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE emit-signals=TRUE "
                                      "name=appsink-video autoaudiosrc ! "
@@ -217,6 +217,8 @@ PVOID sendGstreamerAudioVideo(PVOID args)
     gst_object_unref(bus);
     gst_element_set_state(pipeline, GST_STATE_NULL);
     gst_object_unref(pipeline);
+    gst_object_unref(appsinkAudio);
+    gst_object_unref(appsinkVideo);
 
 CleanUp:
 
@@ -323,6 +325,7 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
     gst_object_unref(bus);
     gst_element_set_state(pipeline, GST_STATE_NULL);
     gst_object_unref(pipeline);
+    gst_object_unref(appsrcAudio);
 
 CleanUp:
     if (error != NULL) {

@@ -1082,7 +1082,7 @@ STATUS getChannelEndpointLws(PSignalingClient pSignalingClient, UINT64 time)
                     i++;
                 } else if (compareJsonString(pResponseStr, &tokens[i], JSMN_STRING, (PCHAR) "ResourceEndpoint")) {
                     strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
-                    CHK(strLen <= MAX_CHANNEL_NAME_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
+                    CHK(strLen <= MAX_SIGNALING_ENDPOINT_URI_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
                     pEndpoint = pResponseStr + tokens[i + 1].start;
                     endpointLen = strLen;
                     endpoint = TRUE;

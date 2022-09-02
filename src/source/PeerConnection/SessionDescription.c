@@ -788,7 +788,8 @@ STATUS populateSessionDescription(PKvsPeerConnection pKvsPeerConnection, PSessio
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    CHAR bundleValue[MAX_SDP_ATTRIBUTE_VALUE_LENGTH], wmsValue[MAX_SDP_ATTRIBUTE_VALUE_LENGTH], remoteSdpAttributeValue[MAX_SDP_ATTRIBUTE_VALUE_LENGTH];
+    CHAR bundleValue[MAX_SDP_ATTRIBUTE_VALUE_LENGTH], wmsValue[MAX_SDP_ATTRIBUTE_VALUE_LENGTH],
+        remoteSdpAttributeValue[MAX_SDP_ATTRIBUTE_VALUE_LENGTH];
     PCHAR curr = NULL;
     UINT32 i, sizeRemaining;
     INT32 charsCopied;
@@ -817,22 +818,22 @@ STATUS populateSessionDescription(PKvsPeerConnection pKvsPeerConnection, PSessio
     STRCPY(pLocalSessionDescription->sdpAttributes[0].attributeName, "group");
     STRCPY(pLocalSessionDescription->sdpAttributes[0].attributeValue, BUNDLE_KEY);
 
-// check all session attribute lines to see if a line with BUNDLE is present. If it is present, copy its content and break
+    // check all session attribute lines to see if a line with BUNDLE is present. If it is present, copy its content and break
     for (i = 0; i < pRemoteSessionDescription->sessionAttributesCount; i++) {
-        if(STRSTR(pRemoteSessionDescription->sdpAttributes[i].attributeValue, BUNDLE_KEY) != NULL) {
+        if (STRSTR(pRemoteSessionDescription->sdpAttributes[i].attributeValue, BUNDLE_KEY) != NULL) {
             STRCPY(remoteSdpAttributeValue, pRemoteSessionDescription->sdpAttributes[i].attributeValue + ARRAY_SIZE(BUNDLE_KEY) - 1);
             break;
         }
     }
 
-// check if we already have a value for the "group" session attribute from remote description. If we have it, we use it. 
-// If we don't have it, we loop over, create and add them
+    // check if we already have a value for the "group" session attribute from remote description. If we have it, we use it.
+    // If we don't have it, we loop over, create and add them
     if (STRLEN(remoteSdpAttributeValue) > 0) {
         CHK(STRLEN(remoteSdpAttributeValue) < MAX_SDP_ATTRIBUTE_VALUE_LENGTH, STATUS_BUFFER_TOO_SMALL);
         STRCAT(pLocalSessionDescription->sdpAttributes[0].attributeValue, remoteSdpAttributeValue);
     } else {
         for (curr = (pLocalSessionDescription->sdpAttributes[0].attributeValue + ARRAY_SIZE(BUNDLE_KEY) - 1), i = 0;
-          i < pLocalSessionDescription->mediaCount; i++) {
+             i < pLocalSessionDescription->mediaCount; i++) {
             sizeRemaining = MAX_SDP_ATTRIBUTE_VALUE_LENGTH - (curr - pLocalSessionDescription->sdpAttributes[0].attributeValue);
             charsCopied = SNPRINTF(curr, sizeRemaining, " %d", i);
 
@@ -841,7 +842,7 @@ STATUS populateSessionDescription(PKvsPeerConnection pKvsPeerConnection, PSessio
             curr += charsCopied;
         }
     }
-            
+
     for (i = 0; i < pLocalSessionDescription->mediaCount; i++) {
         STRCPY(pLocalSessionDescription->mediaDescriptions[i].sdpConnectionInformation.networkType, "IN");
         STRCPY(pLocalSessionDescription->mediaDescriptions[i].sdpConnectionInformation.addressType, "IP4");

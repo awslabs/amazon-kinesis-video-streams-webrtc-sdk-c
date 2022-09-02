@@ -156,7 +156,7 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
     pCurPtr += ALIGN_UP_TO_MACHINE_WORD(userAgentLen + 1);
 
     if (kmsLen != 0) {
-        STRCPY(pCurPtr, pOrigChannelInfo->pCustomUserAgent);
+        STRCPY(pCurPtr, pOrigChannelInfo->pKmsKeyId);
         pChannelInfo->pKmsKeyId = pCurPtr;
         pCurPtr += ALIGN_UP_TO_MACHINE_WORD(kmsLen + 1);
     }
