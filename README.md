@@ -38,6 +38,8 @@
 * Signaling Client Included
   - KVS Provides STUN/TURN and Signaling Backend
   - Connect with [Android](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-android)/[iOS](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-ios)/[Web](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-js) using pre-made samples
+* Storage for WebRTC
+  * Ingest media into a Kinesis Video Stream.
 * Portable
   - Tested on Linux/MacOS
   - Tested on x64, ARMv5
@@ -167,6 +169,7 @@ After executing `make` you will have the following sample applications in your `
 * `kvsWebrtcClientMaster` - This application sends sample H264/Opus frames (path: `/samples/h264SampleFrames` and `/samples/opusSampleFrames`) via WebRTC. It also accepts incoming audio, if enabled in the browser. When checked in the browser, it prints the metadata of the received audio packets in your terminal.
 * `kvsWebrtcClientViewer` - This application accepts sample H264/Opus frames and prints them out.
 * `kvsWebrtcClientMasterGstSample` - This application sends sample H264/Opus frames from a GStreamer pipeline. It also will playback incoming audio via an `autoaudiosink`.
+* `kvsWebrtcClientStorageSession` - This application uses `kvsWebrtcClientMasterGstSample` as a base and demotrates the functionality of storage for WebRTC.
 
 Run any of the sample applications by passing to it the name that you want to give to your signaling channel. The application creates the signaling channel using the name you provide. For example, to create a signaling channel called myChannel and to start sending sample H264/Opus frames via this channel, run the following command from `build/` directory:
 
