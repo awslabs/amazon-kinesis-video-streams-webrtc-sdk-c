@@ -28,7 +28,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     pChannelName = argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME;
 #endif
 
-    retStatus = createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, &pSampleConfiguration);
+    retStatus = createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, FALSE, &pSampleConfiguration);
     if (retStatus != STATUS_SUCCESS) {
         printf("[KVS Master] createSampleConfiguration(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;
@@ -292,7 +292,7 @@ CleanUp:
 
     CHK_LOG_ERR(retStatus);
 
-    return (PVOID) (ULONG_PTR) retStatus;
+    return (PVOID)(ULONG_PTR) retStatus;
 }
 
 PVOID sendAudioPackets(PVOID args)
@@ -360,7 +360,7 @@ PVOID sendAudioPackets(PVOID args)
 
 CleanUp:
 
-    return (PVOID) (ULONG_PTR) retStatus;
+    return (PVOID)(ULONG_PTR) retStatus;
 }
 
 PVOID sampleReceiveVideoFrame(PVOID args)
@@ -380,5 +380,5 @@ PVOID sampleReceiveVideoFrame(PVOID args)
 
 CleanUp:
 
-    return (PVOID) (ULONG_PTR) retStatus;
+    return (PVOID)(ULONG_PTR) retStatus;
 }

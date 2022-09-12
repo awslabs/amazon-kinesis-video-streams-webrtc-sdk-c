@@ -70,7 +70,13 @@ if(GST_FOUND)
   )
   target_link_libraries(kvsWebrtcClientMasterGstSample kvsWebrtcClient kvsWebrtcSignalingClient ${GST_SAMPLE_LIBRARIES} kvsCommonLws kvspicUtils websockets)
 
-  install(TARGETS kvsWebrtcClientMasterGstSample
+  add_executable(
+    kvsWebrtcClientStorageSession
+    Common.c
+    kvsWebRTCClientStorageSession.c)
+  target_link_libraries(  kvsWebrtcClientStorageSession kvsWebrtcClient kvsWebrtcSignalingClient ${GST_SAMPLE_LIBRARIES} kvsCommonLws kvspicUtils websockets)
+
+  install(TARGETS kvsWebrtcClientMasterGstSample kvsWebrtcClientStorageSession
     RUNTIME DESTINATION bin
   )
 endif()

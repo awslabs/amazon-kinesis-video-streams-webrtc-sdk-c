@@ -47,6 +47,8 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     pSignalingClient->getIceConfigTime = INVALID_TIMESTAMP_VALUE;
     pSignalingClient->deleteTime = INVALID_TIMESTAMP_VALUE;
     pSignalingClient->connectTime = INVALID_TIMESTAMP_VALUE;
+    pSignalingClient->describeMediaTime = INVALID_TIMESTAMP_VALUE;
+    pSignalingClient->joinSessionTime = INVALID_TIMESTAMP_VALUE;
 
     if (pSignalingClient->pChannelInfo->cachingPolicy == SIGNALING_API_CALL_CACHE_TYPE_FILE) {
         // Signaling channel name can be NULL in case of pre-created channels in which case we use ARN as the name
@@ -56,9 +58,12 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
             DLOGW("Failed to load signaling cache from file");
         } else if (cacheFound) {
             STRCPY(pSignalingClient->channelDescription.channelArn, pFileCacheEntry->channelArn);
+            STRCPY(pSignalingClient->mediaStorageConfig.storageStreamArn, pFileCacheEntry->storageStreamArn);
             STRCPY(pSignalingClient->channelEndpointHttps, pFileCacheEntry->httpsEndpoint);
             STRCPY(pSignalingClient->channelEndpointWss, pFileCacheEntry->wssEndpoint);
+            STRCPY(pSignalingClient->channelEndpointWebrtc, pFileCacheEntry->webrtcEndpoint);
             pSignalingClient->describeTime = pFileCacheEntry->creationTsEpochSeconds * HUNDREDS_OF_NANOS_IN_A_SECOND;
+            pSignalingClient->describeMediaTime = pFileCacheEntry->creationTsEpochSeconds * HUNDREDS_OF_NANOS_IN_A_SECOND;
             pSignalingClient->getEndpointTime = pFileCacheEntry->creationTsEpochSeconds * HUNDREDS_OF_NANOS_IN_A_SECOND;
         }
     }
@@ -111,6 +116,12 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     ATOMIC_STORE_BOOL(&pSignalingClient->deleting, FALSE);
     ATOMIC_STORE_BOOL(&pSignalingClient->deleted, FALSE);
     ATOMIC_STORE_BOOL(&pSignalingClient->serviceLockContention, FALSE);
+    if (pSignalingClient->pChannelInfo->useMediaStorage == TRUE) {
+        ATOMIC_STORE_BOOL(&pSignalingClient->describeMediaStorageConf, TRUE);
+    } else {
+        ATOMIC_STORE_BOOL(&pSignalingClient->describeMediaStorageConf, FALSE);
+    }
+    ATOMIC_STORE_BOOL(&pSignalingClient->joinSession, FALSE);
 
     // Add to the signal handler
     // signal(SIGINT, lwsSignalHandler);
@@ -493,6 +504,46 @@ STATUS signalingConnectSync(PSignalingClient pSignalingClient)
     // Store the signaling state in case we error/timeout so we can re-set it on exit
     CHK_STATUS(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pState));
 
+    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, SIGNALING_GET_CURRENT_TIME(pSignalingClient) + SIGNALING_CONNECT_STATE_TIMEOUT,
+                                             SIGNALING_STATE_CONNECTED));
+
+CleanUp:
+
+    CHK_LOG_ERR(retStatus);
+
+    // Re-set the state if we failed
+    if (STATUS_FAILED(retStatus) && (pState != NULL)) {
+        resetStateMachineRetryCount(pSignalingClient->pStateMachine);
+        setStateMachineCurrentState(pSignalingClient->pStateMachine, pState->state);
+    }
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS signalingJoinSessionSync(PSignalingClient pSignalingClient)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PStateMachineState pState = NULL;
+
+    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+
+    // Validate the state
+    CHK_STATUS(acceptSignalingStateMachineState(pSignalingClient, SIGNALING_STATE_CONNECTED));
+
+    // Check if we are connected and join the storage session
+    CHK(ATOMIC_LOAD_BOOL(&pSignalingClient->connected), retStatus);
+    CHK(!ATOMIC_LOAD_BOOL(&pSignalingClient->joinSession), retStatus);
+    ATOMIC_STORE_BOOL(&pSignalingClient->joinSession, TRUE);
+
+    // Store the signaling state in case we error/timeout so we can re-set it on exit
+    CHK_STATUS(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pState));
+
+    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, SIGNALING_GET_CURRENT_TIME(pSignalingClient) + SIGNALING_JOIN_SESSION_STATE_TIMEOUT,
+                                             SIGNALING_STATE_JOIN_SESSION));
+
+    ATOMIC_STORE_BOOL(&pSignalingClient->joinSession, FALSE);
     CHK_STATUS(signalingStateMachineIterator(pSignalingClient, SIGNALING_GET_CURRENT_TIME(pSignalingClient) + SIGNALING_CONNECT_STATE_TIMEOUT,
                                              SIGNALING_STATE_CONNECTED));
 
@@ -1067,8 +1118,10 @@ STATUS getChannelEndpoint(PSignalingClient pSignalingClient, UINT64 time)
                                                                                     : pSignalingClient->pChannelInfo->pChannelArn);
                         STRCPY(signalingFileCacheEntry.region, pSignalingClient->pChannelInfo->pRegion);
                         STRCPY(signalingFileCacheEntry.channelArn, pSignalingClient->channelDescription.channelArn);
+                        STRCPY(signalingFileCacheEntry.storageStreamArn, pSignalingClient->mediaStorageConfig.storageStreamArn);
                         STRCPY(signalingFileCacheEntry.httpsEndpoint, pSignalingClient->channelEndpointHttps);
                         STRCPY(signalingFileCacheEntry.wssEndpoint, pSignalingClient->channelEndpointWss);
+                        STRCPY(signalingFileCacheEntry.webrtcEndpoint, pSignalingClient->channelEndpointWebrtc);
                         if (STATUS_FAILED(signalingCacheSaveToFile(&signalingFileCacheEntry, pSignalingClient->clientInfo.cacheFilePath))) {
                             DLOGW("Failed to save signaling cache to file");
                         }
@@ -1213,6 +1266,113 @@ STATUS connectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time)
 
     if (pSignalingClient->clientInfo.connectPostHookFn != NULL) {
         retStatus = pSignalingClient->clientInfo.connectPostHookFn(pSignalingClient->clientInfo.hookCustomData);
+    }
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS joinStorageSession(PSignalingClient pSignalingClient, UINT64 time)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+
+    THREAD_SLEEP_UNTIL(time);
+
+    CHK(pSignalingClient->mediaStorageConfig.storageStatus == FALSE, STATUS_SIGNALING_MEDIA_STORAGE_DISABLED);
+    // Check for the stale credentials
+    CHECK_SIGNALING_CREDENTIALS_EXPIRATION(pSignalingClient);
+
+    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
+
+    // We are not caching connect calls
+    if (pSignalingClient->clientInfo.joinSessionPreHookFn != NULL) {
+        retStatus = pSignalingClient->clientInfo.joinSessionPreHookFn(pSignalingClient->clientInfo.hookCustomData);
+    }
+
+    if (STATUS_SUCCEEDED(retStatus)) {
+        if (ATOMIC_LOAD_BOOL(&pSignalingClient->connected)) {
+            retStatus = joinStorageSessionLws(pSignalingClient, time);
+
+            // Store the time of the call on success
+            if (STATUS_SUCCEEDED(retStatus)) {
+                pSignalingClient->joinSessionTime = time;
+            }
+            // Calculate the latency whether the call succeeded or not
+            SIGNALING_API_LATENCY_CALCULATION(pSignalingClient, time, TRUE);
+        } else {
+            ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_INVALID_ARG); //!< TBD
+        }
+    }
+
+    if (pSignalingClient->clientInfo.joinSessionPostHookFn != NULL) {
+        retStatus = pSignalingClient->clientInfo.joinSessionPostHookFn(pSignalingClient->clientInfo.hookCustomData);
+    }
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS describeMediaStorageConf(PSignalingClient pSignalingClient, UINT64 time)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    BOOL apiCall = TRUE;
+
+    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+
+    THREAD_SLEEP_UNTIL(time);
+    // Check for the stale credentials
+    CHECK_SIGNALING_CREDENTIALS_EXPIRATION(pSignalingClient);
+
+    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
+
+    switch (pSignalingClient->pChannelInfo->cachingPolicy) {
+        case SIGNALING_API_CALL_CACHE_TYPE_NONE:
+            break;
+
+        case SIGNALING_API_CALL_CACHE_TYPE_DESCRIBE_GETENDPOINT:
+            /* explicit fall-through */
+        case SIGNALING_API_CALL_CACHE_TYPE_FILE:
+            if (IS_VALID_TIMESTAMP(pSignalingClient->describeMediaTime) &&
+                time <= pSignalingClient->describeMediaTime + pSignalingClient->pChannelInfo->cachingPeriod) {
+                apiCall = FALSE;
+            }
+
+            break;
+    }
+
+    // Call API
+    if (STATUS_SUCCEEDED(retStatus)) {
+        if (apiCall) {
+            // Call pre hook func
+            if (pSignalingClient->clientInfo.descirbeMediaStorageConfPreHookFn != NULL) {
+                retStatus = pSignalingClient->clientInfo.descirbeMediaStorageConfPreHookFn(pSignalingClient->clientInfo.hookCustomData);
+            }
+
+            if (STATUS_SUCCEEDED(retStatus)) {
+                retStatus = describeMediaStorageConfLws(pSignalingClient, time);
+                // Store the last call time on success
+                if (STATUS_SUCCEEDED(retStatus)) {
+                    pSignalingClient->describeMediaTime = time;
+                }
+                // Calculate the latency whether the call succeeded or not
+                SIGNALING_API_LATENCY_CALCULATION(pSignalingClient, time, TRUE);
+            }
+
+            // Call post hook func
+            if (pSignalingClient->clientInfo.descirbeMediaStorageConfPostHookFn != NULL) {
+                retStatus = pSignalingClient->clientInfo.descirbeMediaStorageConfPostHookFn(pSignalingClient->clientInfo.hookCustomData);
+            }
+        } else {
+            ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_OK);
+        }
     }
 
 CleanUp:

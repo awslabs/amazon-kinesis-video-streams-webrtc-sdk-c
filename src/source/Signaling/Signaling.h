@@ -14,8 +14,8 @@ extern "C" {
 #define SIGNALING_REQUEST_ID_HEADER_NAME KVS_REQUEST_ID_HEADER_NAME ":"
 
 // Signaling client from custom data conversion
-#define SIGNALING_CLIENT_FROM_CUSTOM_DATA(h) ((PSignalingClient) (h))
-#define CUSTOM_DATA_FROM_SIGNALING_CLIENT(p) ((UINT64) (p))
+#define SIGNALING_CLIENT_FROM_CUSTOM_DATA(h) ((PSignalingClient)(h))
+#define CUSTOM_DATA_FROM_SIGNALING_CLIENT(p) ((UINT64)(p))
 
 // Grace period for refreshing the ICE configuration
 #define ICE_CONFIGURATION_REFRESH_GRACE_PERIOD (30 * HUNDREDS_OF_NANOS_IN_A_SECOND)
@@ -37,6 +37,8 @@ extern "C" {
 #define SIGNALING_CLIENT_STATE_DISCONNECTED_STR    "Disconnected"
 #define SIGNALING_CLIENT_STATE_DELETE_STR          "Delete"
 #define SIGNALING_CLIENT_STATE_DELETED_STR         "Deleted"
+#define SIGNALING_CLIENT_STATE_DESCRIBE_MEDIA_STR  "Describe media storage"
+#define SIGNALING_CLIENT_STATE_JOIN_SESSION_STR    "Join Session"
 
 // Error refreshing ICE server configuration string
 #define SIGNALING_ICE_CONFIG_REFRESH_ERROR_MSG "Failed refreshing ICE server configuration with status code 0x%08x."
@@ -148,6 +150,10 @@ typedef struct {
     SignalingApiCallHookFunc getIceConfigPostHookFn;
     SignalingApiCallHookFunc connectPreHookFn;
     SignalingApiCallHookFunc connectPostHookFn;
+    SignalingApiCallHookFunc joinSessionPreHookFn;
+    SignalingApiCallHookFunc joinSessionPostHookFn;
+    SignalingApiCallHookFunc descirbeMediaStorageConfPreHookFn;
+    SignalingApiCallHookFunc descirbeMediaStorageConfPostHookFn;
     SignalingApiCallHookFunc deletePreHookFn;
     SignalingApiCallHookFunc deletePostHookFn;
 
@@ -212,6 +218,12 @@ typedef struct {
     // The channel is deleted
     volatile ATOMIC_BOOL deleted;
 
+    // Retrieve the information of media storage configuration
+    volatile ATOMIC_BOOL describeMediaStorageConf;
+
+    // Join the media storage.
+    volatile ATOMIC_BOOL joinSession;
+
     // Having state machine logic rely on call result of SERVICE_CALL_RESULT_SIGNALING_RECONNECT_ICE
     // to transition to ICE config state is not enough in Async update mode when
     // connect is in progress as the result of connect will override the result
@@ -237,11 +249,17 @@ typedef struct {
     // Returned signaling channel description
     SignalingChannelDescription channelDescription;
 
+    // Returned media storage session
+    MediaStorageConfig mediaStorageConfig;
+
     // Signaling endpoint
     CHAR channelEndpointWss[MAX_SIGNALING_ENDPOINT_URI_LEN + 1];
 
     // Signaling endpoint
     CHAR channelEndpointHttps[MAX_SIGNALING_ENDPOINT_URI_LEN + 1];
+
+    // Media storage endpoint
+    CHAR channelEndpointWebrtc[MAX_SIGNALING_ENDPOINT_URI_LEN + 1];
 
     // Number of Ice Server objects
     UINT32 iceConfigCount;
@@ -328,11 +346,14 @@ typedef struct {
     UINT64 getIceConfigTime;
     UINT64 deleteTime;
     UINT64 connectTime;
+    UINT64 describeMediaTime;
+    UINT64 joinSessionTime;
+
 } SignalingClient, *PSignalingClient;
 
 // Public handle to and from object converters
-#define TO_SIGNALING_CLIENT_HANDLE(p)   ((SIGNALING_CLIENT_HANDLE) (p))
-#define FROM_SIGNALING_CLIENT_HANDLE(h) (IS_VALID_SIGNALING_CLIENT_HANDLE(h) ? (PSignalingClient) (h) : NULL)
+#define TO_SIGNALING_CLIENT_HANDLE(p)   ((SIGNALING_CLIENT_HANDLE)(p))
+#define FROM_SIGNALING_CLIENT_HANDLE(h) (IS_VALID_SIGNALING_CLIENT_HANDLE(h) ? (PSignalingClient)(h) : NULL)
 
 STATUS createSignalingSync(PSignalingClientInfoInternal, PChannelInfo, PSignalingClientCallbacks, PAwsCredentialProvider, PSignalingClient*);
 STATUS freeSignaling(PSignalingClient*);
@@ -368,6 +389,8 @@ STATUS createChannel(PSignalingClient, UINT64);
 STATUS getChannelEndpoint(PSignalingClient, UINT64);
 STATUS getIceConfig(PSignalingClient, UINT64);
 STATUS connectSignalingChannel(PSignalingClient, UINT64);
+STATUS joinStorageSession(PSignalingClient, UINT64);
+STATUS describeMediaStorageConf(PSignalingClient, UINT64);
 STATUS deleteChannel(PSignalingClient, UINT64);
 STATUS signalingGetMetrics(PSignalingClient, PSignalingClientMetrics);
 
