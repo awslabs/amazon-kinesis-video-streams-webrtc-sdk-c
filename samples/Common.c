@@ -964,26 +964,28 @@ STATUS pregenerateCertTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 c
 
     CHK_WARN(pSampleConfiguration != NULL, STATUS_NULL_ARG, "[KVS Master] pregenerateCertTimerCallback(): Passed argument is NULL");
 
-    MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
-    locked = TRUE;
+    if (MUTEX_TRYLOCK(pSampleConfiguration->sampleConfigurationObjLock))
+    {
+        locked = TRUE;
 
-    // Quick check if there is anything that needs to be done.
-    CHK_STATUS(stackQueueGetCount(pSampleConfiguration->pregeneratedCertificates, &certCount));
-    CHK(certCount != MAX_RTCCONFIGURATION_CERTIFICATES, retStatus);
+        // Quick check if there is anything that needs to be done.
+        CHK_STATUS(stackQueueGetCount(pSampleConfiguration->pregeneratedCertificates, &certCount));
+        CHK(certCount != MAX_RTCCONFIGURATION_CERTIFICATES, retStatus);
 
-    // Generate the certificate with the keypair
-    CHK_STATUS(createRtcCertificate(&pRtcCertificate));
+        // Generate the certificate with the keypair
+        CHK_STATUS(createRtcCertificate(&pRtcCertificate));
 
-    // Add to the stack queue
-    CHK_STATUS(stackQueueEnqueue(pSampleConfiguration->pregeneratedCertificates, (UINT64) pRtcCertificate));
+        // Add to the stack queue
+        CHK_STATUS(stackQueueEnqueue(pSampleConfiguration->pregeneratedCertificates, (UINT64) pRtcCertificate));
 
-    DLOGV("New certificate has been pre-generated and added to the queue");
+        DLOGV("New certificate has been pre-generated and added to the queue");
 
-    // Reset it so it won't be freed on exit
-    pRtcCertificate = NULL;
+        // Reset it so it won't be freed on exit
+        pRtcCertificate = NULL;
 
-    MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
-    locked = FALSE;
+        MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
+        locked = FALSE;
+    }
 
 CleanUp:
 
