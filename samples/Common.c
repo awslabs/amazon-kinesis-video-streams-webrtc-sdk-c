@@ -864,10 +864,13 @@ STATUS getIceCandidatePairStatsCallback(UINT32 timerId, UINT64 currentTime, UINT
 
     pSampleConfiguration->rtcIceCandidatePairMetrics.requestedTypeOfStats = RTC_STATS_TYPE_CANDIDATE_PAIR;
 
-    // We need to execute this under the object lock due to race conditions that it could pose
-    MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
-    locked = TRUE;
-
+    // Use MUTEX_TRYLOCK to avoid possible dead lock when canceling timerQueue
+    if (!MUTEX_TRYLOCK(pSampleConfiguration->sampleConfigurationObjLock)) {
+        return retStatus;
+    } else {
+        locked = TRUE;
+    }
+    
     for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
         if (STATUS_SUCCEEDED(rtcPeerConnectionGetMetrics(pSampleConfiguration->sampleStreamingSessionList[i]->pPeerConnection, NULL,
                                                          &pSampleConfiguration->rtcIceCandidatePairMetrics))) {
