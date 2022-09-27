@@ -870,7 +870,7 @@ STATUS getIceCandidatePairStatsCallback(UINT32 timerId, UINT64 currentTime, UINT
     } else {
         locked = TRUE;
     }
-    
+
     for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
         if (STATUS_SUCCEEDED(rtcPeerConnectionGetMetrics(pSampleConfiguration->sampleStreamingSessionList[i]->pPeerConnection, NULL,
                                                          &pSampleConfiguration->rtcIceCandidatePairMetrics))) {
