@@ -273,6 +273,9 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
                     MUTEX_UNLOCK(pSocketConnection->lock);
                     rfds[nfds].fd = localSocket;
                     rfds[nfds].events = POLLIN | POLLPRI;
+#ifdef _WIN32
+                    rfds[nfds].events &= ~POLLPRI;
+#endif
                     rfds[nfds].revents = 0;
                     nfds++;
 
