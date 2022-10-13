@@ -727,6 +727,7 @@ typedef enum {
     RTC_CODEC_VP8 = 3,                                                            //!< VP8 video codec.
     RTC_CODEC_MULAW = 4,                                                          //!< MULAW audio codec
     RTC_CODEC_ALAW = 5,                                                           //!< ALAW audio codec
+    RTC_CODEC_H265_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE = 6, //!< H265 video codec
 } RTC_CODEC;
 
 /**

@@ -19,7 +19,7 @@ extern "C" {
 
 #define SAMPLE_MASTER_CLIENT_ID "ProducerMaster"
 #define SAMPLE_VIEWER_CLIENT_ID "ConsumerViewer"
-#define SAMPLE_CHANNEL_NAME     (PCHAR) "ScaryTestChannel"
+#define SAMPLE_CHANNEL_NAME     (PCHAR) "myChannel"
 
 #define SAMPLE_AUDIO_FRAME_DURATION (20 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
 #define SAMPLE_STATS_DURATION       (60 * HUNDREDS_OF_NANOS_IN_A_SECOND)

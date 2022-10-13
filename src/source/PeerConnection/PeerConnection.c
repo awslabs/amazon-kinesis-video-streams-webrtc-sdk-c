@@ -1203,10 +1203,19 @@ STATUS addTransceiver(PRtcPeerConnection pPeerConnection, PRtcMediaStreamTrack p
 
     CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
 
+//    if (direction == RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY && pRtcMediaStreamTrack == NULL) {
+//        MEMSET(&videoTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
+//        videoTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+//        videoTrack.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+//        STRCPY(videoTrack.streamId, "myKvsVideoStream");
+//        STRCPY(videoTrack.trackId, "myVideoTrack");
+//        pRtcMediaStreamTrack = &videoTrack;
+//    }
+
     if (direction == RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY && pRtcMediaStreamTrack == NULL) {
         MEMSET(&videoTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
         videoTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
-        videoTrack.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+        videoTrack.codec = RTC_CODEC_H265_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
         STRCPY(videoTrack.streamId, "myKvsVideoStream");
         STRCPY(videoTrack.trackId, "myVideoTrack");
         pRtcMediaStreamTrack = &videoTrack;
@@ -1231,6 +1240,11 @@ STATUS addTransceiver(PRtcPeerConnection pPeerConnection, PRtcMediaStreamTrack p
 
         case RTC_CODEC_VP8:
             depayFunc = depayVP8FromRtpPayload;
+            clockRate = VIDEO_CLOCKRATE;
+            break;
+
+        case RTC_CODEC_H265_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE:
+            depayFunc = depayH265FromRtpPayload;
             clockRate = VIDEO_CLOCKRATE;
             break;
 
