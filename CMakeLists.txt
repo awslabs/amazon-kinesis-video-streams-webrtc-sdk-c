@@ -79,6 +79,10 @@ endif()
 
 set(KINESIS_VIDEO_WEBRTC_CLIENT_SRC "${CMAKE_CURRENT_SOURCE_DIR}")
 
+if(ADD_MUCLIBC)
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -muclibc")
+endif()
+
 
 message(STATUS "Kinesis Video WebRTC Client path is ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}")
 message(STATUS "dependencies install path is ${OPEN_SRC_INSTALL_PREFIX}")
@@ -121,7 +125,7 @@ if(BUILD_DEPENDENCIES)
     set(OPENSSL_ROOT_DIR ${OPEN_SRC_INSTALL_PREFIX})
   elseif(USE_MBEDTLS)
     set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
-                   -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
+                   "-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -std=c99")
     build_dependency(mbedtls ${BUILD_ARGS})
   endif()
 
@@ -140,10 +144,14 @@ if(BUILD_DEPENDENCIES)
       -DBUILD_LIBSRTP_DESTINATION_PLATFORM=${BUILD_LIBSRTP_DESTINATION_PLATFORM}
       -DUSE_OPENSSL=${USE_OPENSSL}
       -DUSE_MBEDTLS=${USE_MBEDTLS}
-  )
+      -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
+  
   build_dependency(srtp ${BUILD_ARGS})
 
-  build_dependency(usrsctp)
+  set(BUILD_ARGS
+      -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
+
+  build_dependency(usrsctp ${BUILD_ARGS})
   if(BUILD_TEST)
     build_dependency(gtest)
   endif()
@@ -218,9 +226,6 @@ link_directories(${OPEN_SRC_INSTALL_PREFIX}/lib)
 if("${CMAKE_C_COMPILER_ID}" MATCHES "GNU|Clang")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
 
-  if(ADD_MUCLIBC)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -muclibc")
-  endif()
 
   if(CODE_COVERAGE)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -g -fprofile-arcs -ftest-coverage")
