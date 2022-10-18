@@ -1768,7 +1768,7 @@ CleanUp:
 }
 
 
-STATUS trunStateFailedFn(PSocketConnection pSocketConnection, UINT64 data) {
+STATUS turnStateFailedFn(PSocketConnection pSocketConnection, UINT64 data) {
     UNUSED_PARAM(pSocketConnection);
 
     STATUS retStatus = STATUS_SUCCESS;
@@ -1822,7 +1822,7 @@ STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent, UINT32 iceServerIndex, KV
     TurnConnectionCallbacks callback = {0};
     callback.customData = (UINT64)pNewCandidate;
     callback.relayAddressAvailableFn = NULL;
-    callback.turnStateFailedFn= trunStateFailedFn;
+    callback.turnStateFailedFn= turnStateFailedFn;
 
     CHK_STATUS(createTurnConnection(&pIceAgent->iceServers[iceServerIndex], pIceAgent->timerQueueHandle,
                                     TURN_CONNECTION_DATA_TRANSFER_MODE_SEND_INDIDATION, protocol, &callback, pNewCandidate->pSocketConnection,
