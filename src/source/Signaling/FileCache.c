@@ -146,7 +146,7 @@ STATUS signalingCacheLoadFromFile(PCHAR channelName, PCHAR region, SIGNALING_CHA
             /* Assume channel name and region has been validated */
             if (STRCMP(entries[i].channelName, channelName) == 0 && STRCMP(entries[i].region, region) == 0 && entries[i].role == role) {
                 cacheFound = TRUE;
-                *pSignalingFileCacheEntry = entries[i];
+                MEMCPY(pSignalingFileCacheEntry, &entries[i], sizeof(SignalingFileCacheEntry));
             }
         }
     }
@@ -172,7 +172,7 @@ STATUS signalingCacheSaveToFile(PSignalingFileCacheEntry pSignalingFileCacheEntr
     UINT32 entryCount = ARRAY_SIZE(entries), i, serializedCacheEntryLen;
     UINT64 fileSize = 0;
     PCHAR fileBuffer = NULL;
-    PSignalingFileCacheEntry pExistingCacheEntry = NULL;
+    BOOL newEntry = TRUE;
     CHAR serializedCacheEntry[MAX_SERIALIZED_SIGNALING_CACHE_ENTRY_LEN];
 
     CHK(cacheFilePath != NULL && pSignalingFileCacheEntry != NULL, STATUS_NULL_ARG);
@@ -199,20 +199,26 @@ STATUS signalingCacheSaveToFile(PSignalingFileCacheEntry pSignalingFileCacheEntr
         entryCount = 0;
     }
 
-    for (i = 0; pExistingCacheEntry == NULL && i < entryCount; ++i) {
+    for (i = 0; i < entryCount; ++i) {
         /* Assume channel name and region has been validated */
         if (STRCMP(entries[i].channelName, pSignalingFileCacheEntry->channelName) == 0 &&
             STRCMP(entries[i].region, pSignalingFileCacheEntry->region) == 0 && entries[i].role == pSignalingFileCacheEntry->role) {
-            pExistingCacheEntry = &entries[i];
+            newEntry = FALSE;
+            break;
         }
     }
 
     /* at this point i is at most entryCount */
-    CHK_WARN(entryCount < MAX_SIGNALING_CACHE_ENTRY_COUNT, STATUS_INVALID_OPERATION,
-             "Failed to store signaling cache because max entry count of %u reached", MAX_SIGNALING_CACHE_ENTRY_COUNT);
+    if (entryCount >= MAX_SIGNALING_CACHE_ENTRY_COUNT) {
+        DLOGW("Overwrote 32nd entry to store signaling cache because max entry count of %u reached", MAX_SIGNALING_CACHE_ENTRY_COUNT);
+        i = MAX_SIGNALING_CACHE_ENTRY_COUNT - 1;
+        newEntry = FALSE;
+    }
 
     entries[i] = *pSignalingFileCacheEntry;
-    entryCount++;
+    if (newEntry) {
+        entryCount++;
+    }
 
     for (i = 0; i < entryCount; ++i) {
         serializedCacheEntryLen =
