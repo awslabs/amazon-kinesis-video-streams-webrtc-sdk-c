@@ -3397,6 +3397,130 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateCache)
     EXPECT_EQ(STATUS_SUCCESS, signalingCacheSaveToFile(&testEntry, DEFAULT_CACHE_FILE_PATH));
 }
 
+TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateMultiChannelCache)
+{
+    FREMOVE(DEFAULT_CACHE_FILE_PATH);
+    srand(GETTIME());
+
+    SignalingFileCacheEntry testEntry;
+    BOOL cacheFound = FALSE;
+    int additionalEntries = rand()%15 + 2;
+    char testWssEndpoint[MAX_SIGNALING_ENDPOINT_URI_LEN + 1] = {0};
+    char testHttpsEndpoint[MAX_SIGNALING_ENDPOINT_URI_LEN + 1] = {0};
+    char testRegion[MAX_REGION_NAME_LEN + 1] = {0};
+    char testChannelArn[MAX_ARN_LEN + 1] = {0};
+    char testChannel[MAX_CHANNEL_NAME_LEN + 1] = {0};
+    int time = GETTIME() / HUNDREDS_OF_NANOS_IN_A_SECOND;
+    int append = 0;
+    int i = 0;
+    char * fileBuffer;
+    UINT64 fileSize;
+    UINT32 entryCount;
+    SignalingFileCacheEntry entries[MAX_SIGNALING_CACHE_ENTRY_COUNT];
+    const int TEST_CHANNEL_COUNT = 5;
+
+    for(i = 0; i < MAX_SIGNALING_CACHE_ENTRY_COUNT + additionalEntries; i++) {
+        testEntry.role = SIGNALING_CHANNEL_ROLE_TYPE_VIEWER;
+        MEMSET(testWssEndpoint, 0, MAX_SIGNALING_ENDPOINT_URI_LEN+1);
+        MEMSET(testHttpsEndpoint, 0, MAX_SIGNALING_ENDPOINT_URI_LEN+1);
+        MEMSET(testRegion, 0, MAX_REGION_NAME_LEN + 1);
+        MEMSET(testChannelArn, 0, MAX_ARN_LEN+1);
+        MEMSET(testChannel, 0, MAX_CHANNEL_NAME_LEN+1);
+
+        append = rand()%TEST_CHANNEL_COUNT;
+        SPRINTF(testWssEndpoint, "%s%d", "testWssEndpoint", append);
+        SPRINTF(testHttpsEndpoint, "%s%d", "testHttpsEndpoint", append);
+        SPRINTF(testRegion, "%s%d", "testRegion", append);
+        SPRINTF(testChannelArn, "%s%d", "testChannelArn", append);
+        SPRINTF(testChannel, "%s%d", "testChannel", append);
+
+        STRCPY(testEntry.wssEndpoint, testWssEndpoint);
+        STRCPY(testEntry.httpsEndpoint, testHttpsEndpoint);
+        STRCPY(testEntry.region, testRegion);
+        STRCPY(testEntry.channelArn, testChannelArn);
+        STRCPY(testEntry.channelName, testChannel);
+        testEntry.creationTsEpochSeconds = time + i;
+        EXPECT_EQ(STATUS_SUCCESS, signalingCacheSaveToFile(&testEntry, DEFAULT_CACHE_FILE_PATH));
+    }
+    testEntry.creationTsEpochSeconds = 0;
+    EXPECT_EQ(STATUS_SUCCESS, signalingCacheLoadFromFile(testChannel, testRegion, SIGNALING_CHANNEL_ROLE_TYPE_VIEWER, &testEntry, &cacheFound, DEFAULT_CACHE_FILE_PATH));
+    EXPECT_EQ(TRUE, cacheFound);
+    EXPECT_EQ(time + i - 1, testEntry.creationTsEpochSeconds);
+    EXPECT_EQ(0, STRCMP(testEntry.wssEndpoint, testWssEndpoint));
+    EXPECT_EQ(0, STRCMP(testEntry.httpsEndpoint, testHttpsEndpoint));
+    EXPECT_EQ(0, STRCMP(testEntry.region, testRegion));
+    EXPECT_EQ(0, STRCMP(testEntry.channelArn, testChannelArn));
+    EXPECT_EQ(0, STRCMP(testEntry.channelName, testChannel));
+
+    //Check size to ensure entries are properly overwriting each other
+    EXPECT_EQ(STATUS_SUCCESS, readFile(DEFAULT_CACHE_FILE_PATH, FALSE, NULL, &fileSize));
+
+    EXPECT_LT(0, fileSize);
+    /* +1 for null terminator */
+    fileBuffer = (char*)MEMCALLOC(1, (fileSize + 1) * SIZEOF(CHAR));
+    EXPECT_TRUE((fileBuffer != NULL));
+    EXPECT_EQ(STATUS_SUCCESS, readFile(DEFAULT_CACHE_FILE_PATH, FALSE, (PBYTE) fileBuffer, &fileSize));
+    EXPECT_EQ(STATUS_SUCCESS, deserializeSignalingCacheEntries(fileBuffer, fileSize, entries, &entryCount, DEFAULT_CACHE_FILE_PATH));
+    EXPECT_LT(entryCount, TEST_CHANNEL_COUNT+1);
+
+    MEMFREE(fileBuffer);
+
+    FREMOVE(DEFAULT_CACHE_FILE_PATH);
+}
+
+TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateFullMultiChannelCache)
+{
+    FREMOVE(DEFAULT_CACHE_FILE_PATH);
+    srand(GETTIME());
+
+    SignalingFileCacheEntry testEntry;
+    BOOL cacheFound = FALSE;
+    int additionalEntries = rand()%15 + 2;
+    char testWssEndpoint[MAX_SIGNALING_ENDPOINT_URI_LEN + 1] = {0};
+    char testHttpsEndpoint[MAX_SIGNALING_ENDPOINT_URI_LEN + 1] = {0};
+    char testRegion[MAX_REGION_NAME_LEN + 1] = {0};
+    char testChannelArn[MAX_ARN_LEN + 1] = {0};
+    char testChannel[MAX_CHANNEL_NAME_LEN + 1] = {0};
+    int time = GETTIME() / HUNDREDS_OF_NANOS_IN_A_SECOND;
+    int append = 0;
+    int i = 0;
+
+    for(i = 0; i < MAX_SIGNALING_CACHE_ENTRY_COUNT + additionalEntries; i++) {
+        testEntry.role = SIGNALING_CHANNEL_ROLE_TYPE_VIEWER;
+        MEMSET(testWssEndpoint, 0, MAX_SIGNALING_ENDPOINT_URI_LEN+1);
+        MEMSET(testHttpsEndpoint, 0, MAX_SIGNALING_ENDPOINT_URI_LEN+1);
+        MEMSET(testRegion, 0, MAX_REGION_NAME_LEN + 1);
+        MEMSET(testChannelArn, 0, MAX_ARN_LEN+1);
+        MEMSET(testChannel, 0, MAX_CHANNEL_NAME_LEN+1);
+
+        append = i;
+        SPRINTF(testWssEndpoint, "%s%d", "testWssEndpoint", append);
+        SPRINTF(testHttpsEndpoint, "%s%d", "testHttpsEndpoint", append);
+        SPRINTF(testRegion, "%s%d", "testRegion", append);
+        SPRINTF(testChannelArn, "%s%d", "testChannelArn", append);
+        SPRINTF(testChannel, "%s%d", "testChannel", append);
+
+        STRCPY(testEntry.wssEndpoint, testWssEndpoint);
+        STRCPY(testEntry.httpsEndpoint, testHttpsEndpoint);
+        STRCPY(testEntry.region, testRegion);
+        STRCPY(testEntry.channelArn, testChannelArn);
+        STRCPY(testEntry.channelName, testChannel);
+        testEntry.creationTsEpochSeconds = time + i;
+        EXPECT_EQ(STATUS_SUCCESS, signalingCacheSaveToFile(&testEntry, DEFAULT_CACHE_FILE_PATH));
+    }
+    testEntry.creationTsEpochSeconds = 0;
+    EXPECT_EQ(STATUS_SUCCESS, signalingCacheLoadFromFile(testChannel, testRegion, SIGNALING_CHANNEL_ROLE_TYPE_VIEWER, &testEntry, &cacheFound, DEFAULT_CACHE_FILE_PATH));
+    EXPECT_EQ(TRUE, cacheFound);
+    EXPECT_EQ(time + i - 1, testEntry.creationTsEpochSeconds);
+    EXPECT_EQ(0, STRCMP(testEntry.wssEndpoint, testWssEndpoint));
+    EXPECT_EQ(0, STRCMP(testEntry.httpsEndpoint, testHttpsEndpoint));
+    EXPECT_EQ(0, STRCMP(testEntry.region, testRegion));
+    EXPECT_EQ(0, STRCMP(testEntry.channelArn, testChannelArn));
+    EXPECT_EQ(0, STRCMP(testEntry.channelName, testChannel));
+
+    FREMOVE(DEFAULT_CACHE_FILE_PATH);
+}
+
 TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer)
 {
     if (!mAccessKeyIdSet) {
