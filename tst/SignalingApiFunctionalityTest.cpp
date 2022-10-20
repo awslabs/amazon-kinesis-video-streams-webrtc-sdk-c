@@ -3413,6 +3413,11 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateMultiChannelCache)
     int time = GETTIME() / HUNDREDS_OF_NANOS_IN_A_SECOND;
     int append = 0;
     int i = 0;
+    char * fileBuffer;
+    UINT64 fileSize;
+    UINT32 entryCount;
+    SignalingFileCacheEntry entries[MAX_SIGNALING_CACHE_ENTRY_COUNT];
+    const int TEST_CHANNEL_COUNT = 5;
 
     for(i = 0; i < MAX_SIGNALING_CACHE_ENTRY_COUNT + additionalEntries; i++) {
         testEntry.role = SIGNALING_CHANNEL_ROLE_TYPE_VIEWER;
@@ -3422,7 +3427,7 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateMultiChannelCache)
         MEMSET(testChannelArn, 0, MAX_ARN_LEN+1);
         MEMSET(testChannel, 0, MAX_CHANNEL_NAME_LEN+1);
 
-        append = rand()%5;
+        append = rand()%TEST_CHANNEL_COUNT;
         SPRINTF(testWssEndpoint, "%s%d", "testWssEndpoint", append);
         SPRINTF(testHttpsEndpoint, "%s%d", "testHttpsEndpoint", append);
         SPRINTF(testRegion, "%s%d", "testRegion", append);
@@ -3446,6 +3451,18 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateMultiChannelCache)
     EXPECT_EQ(0, STRCMP(testEntry.region, testRegion));
     EXPECT_EQ(0, STRCMP(testEntry.channelArn, testChannelArn));
     EXPECT_EQ(0, STRCMP(testEntry.channelName, testChannel));
+
+    //Check size to ensure entries are properly overwriting each other
+    EXPECT_EQ(STATUS_SUCCESS, readFile(DEFAULT_CACHE_FILE_PATH, FALSE, NULL, &fileSize));
+
+    EXPECT_LT(0, fileSize);
+    /* +1 for null terminator */
+    fileBuffer = (char*)MEMCALLOC(1, (fileSize + 1) * SIZEOF(CHAR));
+    EXPECT_EQ(STATUS_SUCCESS, readFile(DEFAULT_CACHE_FILE_PATH, FALSE, (PBYTE) fileBuffer, &fileSize));
+    EXPECT_EQ(STATUS_SUCCESS, deserializeSignalingCacheEntries(fileBuffer, fileSize, entries, &entryCount, DEFAULT_CACHE_FILE_PATH));
+    EXPECT_LT(entryCount, TEST_CHANNEL_COUNT+1);
+
+    free(fileBuffer);
 
     FREMOVE(DEFAULT_CACHE_FILE_PATH);
 }
@@ -3500,7 +3517,7 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateFullMultiChannelCache)
     EXPECT_EQ(0, STRCMP(testEntry.channelArn, testChannelArn));
     EXPECT_EQ(0, STRCMP(testEntry.channelName, testChannel));
 
-    //FREMOVE(DEFAULT_CACHE_FILE_PATH);
+    FREMOVE(DEFAULT_CACHE_FILE_PATH);
 }
 
 TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer)

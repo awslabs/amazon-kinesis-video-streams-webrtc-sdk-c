@@ -146,7 +146,7 @@ STATUS signalingCacheLoadFromFile(PCHAR channelName, PCHAR region, SIGNALING_CHA
             /* Assume channel name and region has been validated */
             if (STRCMP(entries[i].channelName, channelName) == 0 && STRCMP(entries[i].region, region) == 0 && entries[i].role == role) {
                 cacheFound = TRUE;
-                MEMCPY(pSignalingFileCacheEntry, &entries[i], sizeof(SignalingFileCacheEntry));
+                *pSignalingFileCacheEntry = entries[i];
             }
         }
     }
