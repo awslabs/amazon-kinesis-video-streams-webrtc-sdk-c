@@ -3458,11 +3458,12 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateMultiChannelCache)
     EXPECT_LT(0, fileSize);
     /* +1 for null terminator */
     fileBuffer = (char*)MEMCALLOC(1, (fileSize + 1) * SIZEOF(CHAR));
+    EXPECT_TRUE((fileBuffer != NULL));
     EXPECT_EQ(STATUS_SUCCESS, readFile(DEFAULT_CACHE_FILE_PATH, FALSE, (PBYTE) fileBuffer, &fileSize));
     EXPECT_EQ(STATUS_SUCCESS, deserializeSignalingCacheEntries(fileBuffer, fileSize, entries, &entryCount, DEFAULT_CACHE_FILE_PATH));
     EXPECT_LT(entryCount, TEST_CHANNEL_COUNT+1);
 
-    free(fileBuffer);
+    MEMFREE(fileBuffer);
 
     FREMOVE(DEFAULT_CACHE_FILE_PATH);
 }
