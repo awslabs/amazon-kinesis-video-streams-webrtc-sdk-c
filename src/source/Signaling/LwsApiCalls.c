@@ -799,7 +799,6 @@ STATUS describeChannelLws(PSignalingClient pSignalingClient, UINT64 time)
     tokenCount = jsmn_parse(&parser, pResponseStr, resultLen, tokens, SIZEOF(tokens) / SIZEOF(jsmntok_t));
     CHK(tokenCount > 1, STATUS_INVALID_API_CALL_RETURN_JSON);
     CHK(tokens[0].type == JSMN_OBJECT, STATUS_INVALID_API_CALL_RETURN_JSON);
-
     MEMSET(&pSignalingClient->channelDescription, 0x00, SIZEOF(SignalingChannelDescription));
     // Loop through the tokens and extract the stream description
     for (i = 1; i < tokenCount; i++) {
@@ -1538,28 +1537,7 @@ STATUS joinStorageSessionLws(PSignalingClient pSignalingClient, UINT64 time)
     resultLen = pLwsCallInfo->callInfo.responseDataLen;
 
     // Early return if we have a non-success result
-    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL,
-        STATUS_SIGNALING_LWS_CALL_FAILED);
-
-    // Parse the response
-    jsmn_init(&parser);
-    tokenCount = jsmn_parse(&parser, pResponseStr, resultLen, tokens, SIZEOF(tokens) / SIZEOF(jsmntok_t));
-    CHK(tokenCount > 1, STATUS_INVALID_API_CALL_RETURN_JSON);
-    CHK(tokens[0].type == JSMN_OBJECT, STATUS_INVALID_API_CALL_RETURN_JSON);
-
-    MEMSET(&pSignalingClient->channelDescription, 0x00, SIZEOF(SignalingChannelDescription));
-
-    // Loop through the tokens and extract the stream description
-    for (i = 1; i < tokenCount; i++) {
-        // TBD
-        if (compareJsonString(pResponseStr, &tokens[i], JSMN_STRING, (PCHAR) "StorageSessionId")) {
-            strLen = (UINT32)(tokens[i + 1].end - tokens[i + 1].start);
-            CHK(strLen <= MAX_ARN_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
-            STRNCPY(pSignalingClient->channelDescription.channelArn, pResponseStr + tokens[i + 1].start,
-                    strLen); //!< TBD. need to find one place to store the sessionid
-            i++;
-        }
-    }
+    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK, STATUS_SIGNALING_LWS_CALL_FAILED);
 
     // Perform some validation on the channel description
     CHK(pSignalingClient->channelDescription.channelStatus != SIGNALING_CHANNEL_STATUS_DELETING, STATUS_SIGNALING_CHANNEL_BEING_DELETED);
@@ -1636,7 +1614,6 @@ STATUS describeMediaStorageConfLws(PSignalingClient pSignalingClient, UINT64 tim
     CHK(tokenCount > 1, STATUS_INVALID_API_CALL_RETURN_JSON);
     CHK(tokens[0].type == JSMN_OBJECT, STATUS_INVALID_API_CALL_RETURN_JSON);
 
-    MEMSET(&pSignalingClient->channelDescription, 0x00, SIZEOF(SignalingChannelDescription));
     // Loop through the tokens and extract the stream description
     for (i = 1; i < tokenCount; i++) {
         if (!jsonInMediaStorageConfig) {
