@@ -488,7 +488,7 @@ STATUS executeDescribeMediaStorageConfState(UINT64 customData, UINT64 time)
     // Notify of the state change
     if (pSignalingClient->signalingClientCallbacks.stateChangeFn != NULL) {
         CHK_STATUS(pSignalingClient->signalingClientCallbacks.stateChangeFn(pSignalingClient->signalingClientCallbacks.customData,
-                                                                            SIGNALING_CLIENT_STATE_DESCRIBE));
+                                                                            SIGNALING_CLIENT_STATE_DESCRIBE_MEDIA));
     }
 
     // Call the aggregate function
