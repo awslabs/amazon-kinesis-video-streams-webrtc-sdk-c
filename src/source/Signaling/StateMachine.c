@@ -992,6 +992,7 @@ STATUS executeJoinStorageSessionState(UINT64 customData, UINT64 time)
         CHK_STATUS(pSignalingClient->signalingClientCallbacks.stateChangeFn(pSignalingClient->signalingClientCallbacks.customData,
                                                                             SIGNALING_CLIENT_STATE_JOIN_SESSION));
     }
+
     retStatus = joinStorageSession(pSignalingClient, time);
 
 CleanUp:
