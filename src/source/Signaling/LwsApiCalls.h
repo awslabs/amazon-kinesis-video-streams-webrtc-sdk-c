@@ -31,9 +31,9 @@ extern "C" {
 #define GET_SIGNALING_CHANNEL_ENDPOINT_API_POSTFIX "/getSignalingChannelEndpoint"
 #define DELETE_SIGNALING_CHANNEL_API_POSTFIX       "/deleteSignalingChannel"
 #define GET_ICE_CONFIG_API_POSTFIX                 "/v1/get-ice-server-config"
-#define JOIN_STORAGE_SESSION_API_POSTFIX           "/JoinStorageSession"
-#define DESCRIBE_MEDIA_STORAGE_CONF_API_POSTFIX    "/DescribeMediaStorageConfiguration"
-#define UPDATE_MEDIA_STORAGE_CONF_API_POSTFIX      "/UpdateMediaStorageConfiguration"
+#define JOIN_STORAGE_SESSION_API_POSTFIX           "/joinStorageSession"
+#define DESCRIBE_MEDIA_STORAGE_CONF_API_POSTFIX    "/describeMediaStorageConfiguration"
+#define UPDATE_MEDIA_STORAGE_CONF_API_POSTFIX      "/updateMediaStorageConfiguration"
 
 // Signaling protocol name
 #define SIGNALING_CHANNEL_PROTOCOL                 "\"WSS\", \"HTTPS\""
@@ -77,10 +77,10 @@ extern "C" {
     "\n\t\"Service\": \"TURN\""                                                                                                                      \
     "\n}"
 
-#define SIGNALING_JOIN_STORAGE_SESSION_MASTER_PARAM_JSON_TEMPLATE "{\n\t\"ChannelARN\": \"%s\"\n}"
+#define SIGNALING_JOIN_STORAGE_SESSION_MASTER_PARAM_JSON_TEMPLATE "{\n\t\"channelArn\": \"%s\"\n}"
 #define SIGNALING_JOIN_STORAGE_SESSION_VIEWER_PARAM_JSON_TEMPLATE                                                                                    \
-    "{\n\t\"ChannelARN\": \"%s\","                                                                                                                   \
-    "\n\t\"ClientId\": \"%s\"\n}"
+    "{\n\t\"channelArn\": \"%s\","                                                                                                                   \
+    "\n\t\"clientId\": \"%s\"\n}"
 #define SIGNALING_UPDATE_STORAGE_CONFIG_PARAM_JSON_TEMPLATE                                                                                          \
     "{\n\t\"StreamARN\": \"%s\","                                                                                                                    \
     "\n\t\"ChannelARN\": \"%s\","                                                                                                                    \

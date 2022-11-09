@@ -539,7 +539,6 @@ STATUS signalingJoinSessionSync(PSignalingClient pSignalingClient)
 
     // Store the signaling state in case we error/timeout so we can re-set it on exit
     CHK_STATUS(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pState));
-
     CHK_STATUS(signalingStateMachineIterator(pSignalingClient, SIGNALING_GET_CURRENT_TIME(pSignalingClient) + SIGNALING_JOIN_SESSION_STATE_TIMEOUT,
                                              SIGNALING_STATE_JOIN_SESSION));
 
@@ -1283,7 +1282,7 @@ STATUS joinStorageSession(PSignalingClient pSignalingClient, UINT64 time)
 
     THREAD_SLEEP_UNTIL(time);
 
-    CHK(pSignalingClient->mediaStorageConfig.storageStatus == FALSE, STATUS_SIGNALING_MEDIA_STORAGE_DISABLED);
+    CHK(pSignalingClient->mediaStorageConfig.storageStatus == TRUE, STATUS_SIGNALING_MEDIA_STORAGE_DISABLED);
     // Check for the stale credentials
     CHECK_SIGNALING_CREDENTIALS_EXPIRATION(pSignalingClient);
 
