@@ -347,7 +347,8 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     configuration.kvsRtcConfiguration.iceSetInterfaceFilterFunc = NULL;
 
     // Set the ICE mode explicitly
-    configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_ALL;
+    //configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_ALL;
+    configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_RELAY;
 
     // Set the  STUN server
     SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, pSampleConfiguration->channelInfo.pRegion);
