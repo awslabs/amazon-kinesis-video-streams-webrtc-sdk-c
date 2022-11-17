@@ -1796,7 +1796,8 @@ STATUS sendLwsMessage(PSignalingClient pSignalingClient, SIGNALING_MESSAGE_TYPE 
         default:
             CHK(FALSE, STATUS_INVALID_ARG);
     }
-
+    DLOGD("%s", pMessageType);
+    DLOGD("%s", pMessage);
     // Calculate the lengths if not specified
     if (messageLen == 0) {
         size = (UINT32) STRLEN(pMessage);
