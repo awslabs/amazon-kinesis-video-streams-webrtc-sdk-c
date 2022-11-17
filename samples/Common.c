@@ -58,6 +58,7 @@ VOID onConnectionStateChange(UINT64 customData, RTC_PEER_CONNECTION_STATE newSta
         case RTC_PEER_CONNECTION_STATE_CLOSED:
             // explicit fallthrough
         case RTC_PEER_CONNECTION_STATE_DISCONNECTED:
+            DLOGD("p2p connection disconnected");
             ATOMIC_STORE_BOOL(&pSampleStreamingSession->terminateFlag, TRUE);
             CVAR_BROADCAST(pSampleConfiguration->cvar);
             // explicit fallthrough
@@ -196,7 +197,7 @@ STATUS handleOffer(PSampleConfiguration pSampleConfiguration, PSampleStreamingSe
 
     MEMSET(&offerSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
     MEMSET(&pSampleStreamingSession->answerSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
-
+    DLOGD("**offer:%s", pSignalingMessage->payload);
     CHK_STATUS(deserializeSessionDescriptionInit(pSignalingMessage->payload, pSignalingMessage->payloadLen, &offerSessionDescriptionInit));
     CHK_STATUS(setRemoteDescription(pSampleStreamingSession->pPeerConnection, &offerSessionDescriptionInit));
     canTrickle = canTrickleIceCandidates(pSampleStreamingSession->pPeerConnection);
@@ -347,8 +348,8 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     configuration.kvsRtcConfiguration.iceSetInterfaceFilterFunc = NULL;
 
     // Set the ICE mode explicitly
-    //configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_ALL;
-    configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_RELAY;
+    configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_ALL;
+    // configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_RELAY;
 
     // Set the  STUN server
     SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, pSampleConfiguration->channelInfo.pRegion);

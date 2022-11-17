@@ -71,17 +71,23 @@ GstFlowReturn on_new_sample(GstElement* sink, gpointer data, UINT64 trackid)
 
             if (trackid == DEFAULT_AUDIO_TRACK_ID) {
                 pRtcRtpTransceiver = pSampleStreamingSession->pAudioRtcRtpTransceiver;
-                frame.presentationTs = pSampleStreamingSession->audioTimestamp;
+                // YC_TBD,
+                // frame.presentationTs = pSampleStreamingSession->audioTimestamp;
+                frame.presentationTs = buf_pts * DEFAULT_TIME_UNIT_IN_NANOS;
                 frame.decodingTs = frame.presentationTs;
                 pSampleStreamingSession->audioTimestamp +=
                     SAMPLE_AUDIO_FRAME_DURATION; // assume audio frame size is 20ms, which is default in opusenc
             } else {
                 pRtcRtpTransceiver = pSampleStreamingSession->pVideoRtcRtpTransceiver;
-                frame.presentationTs = pSampleStreamingSession->videoTimestamp;
+                // YC_TBD.
+                // frame.presentationTs = pSampleStreamingSession->videoTimestamp;
+                frame.presentationTs = buf_pts * DEFAULT_TIME_UNIT_IN_NANOS;
                 frame.decodingTs = frame.presentationTs;
                 pSampleStreamingSession->videoTimestamp += SAMPLE_VIDEO_FRAME_DURATION; // assume video fps is 25
             }
+
             status = writeFrame(pRtcRtpTransceiver, &frame);
+
             if (status != STATUS_SRTP_NOT_READY_YET && status != STATUS_SUCCESS) {
 #ifdef VERBOSE
                 DLOGE("failed with 0x%08x", status);
@@ -137,7 +143,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
     switch (pSampleConfiguration->mediaType) {
         case SAMPLE_STREAMING_VIDEO_ONLY:
             pipeline = gst_parse_launch(
-                "videotestsrc is-live=TRUE ! clockoverlay ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
+                "videotestsrc is-live=TRUE ! clockoverlay ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=30/1 ! "
                 "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
                 "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE emit-signals=TRUE name=appsink-video",
                 &error);
@@ -145,7 +151,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
 
         case SAMPLE_STREAMING_AUDIO_VIDEO:
             pipeline = gst_parse_launch(
-                "videotestsrc is-live=TRUE ! clockoverlay ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
+                "videotestsrc is-live=TRUE ! clockoverlay ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=30/1 ! "
                 "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
                 "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE "
                 "emit-signals=TRUE name=appsink-video audiotestsrc is-live=TRUE ! "
@@ -180,12 +186,13 @@ PVOID sendGstreamerAudioVideo(PVOID args)
 
     /* block until error or EOS */
     bus = gst_element_get_bus(pipeline);
-    msg = gst_bus_timed_pop_filtered(bus, pSampleConfiguration->mediaStorageClipLength, GST_MESSAGE_ERROR | GST_MESSAGE_EOS);
+    msg = gst_bus_timed_pop_filtered(bus, GST_CLOCK_TIME_NONE, GST_MESSAGE_ERROR | GST_MESSAGE_EOS);
     /* issue the termination signals to the app */
     MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
     locked = TRUE;
 
     // scan and cleanup terminated streaming session
+    DLOGD("gstreamer terminated");
     for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
         ATOMIC_STORE_BOOL(&pSampleConfiguration->sampleStreamingSessionList[i]->terminateFlag, TRUE);
     }
@@ -438,6 +445,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     DLOGI("Beginning streaming...check the stream over channel %s", pChannelName);
 
     if (pSampleConfiguration->channelInfo.useMediaStorage == TRUE) {
+        DLOGD("invoke join storage session");
         retStatus = signalingClientJoinSessionSync(pSampleConfiguration->signalingClientHandle);
         if (retStatus != STATUS_SUCCESS) {
             printf("[KVS Master] signalingClientConnectSync(): operation returned status code: 0x%08x", retStatus);
