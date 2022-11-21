@@ -1294,7 +1294,7 @@ STATUS addIceCandidate(PRtcPeerConnection pPeerConnection, PCHAR pIceCandidate)
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pPeerConnection;
 
     CHK(pKvsPeerConnection != NULL && pIceCandidate != NULL, STATUS_NULL_ARG);
-
+    DLOGD("%s", pIceCandidate);
     iceAgentAddRemoteCandidate(pKvsPeerConnection->pIceAgent, pIceCandidate);
 
 CleanUp:
