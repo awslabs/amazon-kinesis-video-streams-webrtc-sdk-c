@@ -2092,12 +2092,14 @@ STATUS iceAgentReadyStateSetup(PIceAgent pIceAgent)
 
         if (pIceCandidatePair->nominated && pIceCandidatePair->state == ICE_CANDIDATE_PAIR_STATE_SUCCEEDED) {
             pNominatedAndValidCandidatePair = pIceCandidatePair;
+            // YC_TBD, bug-fix.
+            pNominatedAndValidCandidatePair->rtcIceCandidatePairDiagnostics.nominated = pIceCandidatePair->nominated;
             break;
         }
     }
 
     CHK(pNominatedAndValidCandidatePair != NULL, STATUS_ICE_NO_NOMINATED_VALID_CANDIDATE_PAIR_AVAILABLE);
-
+    // change the data sending ice candidate pair as the nomination ice candidate pair.
     pIceAgent->pDataSendingIceCandidatePair = pNominatedAndValidCandidatePair;
     CHK_STATUS(getIpAddrStr(&pIceAgent->pDataSendingIceCandidatePair->local->ipAddress, ipAddrStr, ARRAY_SIZE(ipAddrStr)));
     DLOGD("Selected pair %s_%s, local candidate type: %s. Round trip time %u ms. Local candidate priority: %u, ice candidate pair priority: %" PRIu64,
@@ -2409,8 +2411,9 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
             if (!pIceCandidatePair->nominated) {
                 CHK_STATUS(getStunAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_USE_CANDIDATE, &pStunAttr));
                 if (pStunAttr != NULL) {
-                    DLOGD("received candidate with USE_CANDIDATE flag, local candidate type %s.",
-                          iceAgentGetCandidateTypeStr(pIceCandidatePair->local->iceCandidateType));
+                    DLOGD("received candidate with USE_CANDIDATE flag, local candidate type %s(%s:%s).",
+                          iceAgentGetCandidateTypeStr(pIceCandidatePair->local->iceCandidateType), pIceCandidatePair->local->id,
+                          pIceCandidatePair->remote->id);
                     pIceCandidatePair->nominated = TRUE;
                 }
             }
@@ -2425,6 +2428,8 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
                 pIceAgent->pDataSendingIceCandidatePair->rtcIceCandidatePairDiagnostics.requestsReceived += connectivityCheckRequestsReceived;
                 pIceAgent->pDataSendingIceCandidatePair->rtcIceCandidatePairDiagnostics.responsesSent += connectivityCheckResponsesSent;
                 pIceAgent->pDataSendingIceCandidatePair->rtcIceCandidatePairDiagnostics.nominated = pIceCandidatePair->nominated;
+            } else {
+                DLOGD("going to change the data sending ice candidate pair.");
             }
             break;
 
