@@ -50,7 +50,7 @@ STATUS createTurnConnection(PIceServer pTurnServer, TIMER_QUEUE_HANDLE timerQueu
     }
     pTurnConnection->recvDataBufferSize = DEFAULT_TURN_MESSAGE_RECV_CHANNEL_DATA_BUFFER_LEN;
     pTurnConnection->dataBufferSize = DEFAULT_TURN_MESSAGE_SEND_CHANNEL_DATA_BUFFER_LEN;
-    pTurnConnection->sendDataBuffer = (PBYTE) (pTurnConnection + 1);
+    pTurnConnection->sendDataBuffer = (PBYTE)(pTurnConnection + 1);
     pTurnConnection->recvDataBuffer = pTurnConnection->sendDataBuffer + pTurnConnection->dataBufferSize;
     pTurnConnection->completeChannelDataBuffer =
         pTurnConnection->sendDataBuffer + pTurnConnection->dataBufferSize + pTurnConnection->recvDataBufferSize;
@@ -415,14 +415,22 @@ STATUS turnConnectionHandleStunError(PTurnConnection pTurnConnection, PBYTE pBuf
             /* Remove peer for any other error */
             DLOGW("Received STUN error response. Error type: 0x%02x, Error Code: %u. attribute len %u, Error detail: %s.", stunPacketType,
                   pStunAttributeErrorCode->errorCode, pStunAttributeErrorCode->attribute.length, pStunAttributeErrorCode->errorPhrase);
-
+            BOOL found = FALSE;
             /* Find TurnPeer using transaction Id, then mark it as failed */
             for (i = 0; iterate && i < pTurnConnection->turnPeerCount; ++i) {
                 pTurnPeer = &pTurnConnection->turnPeerList[i];
                 if (transactionIdStoreHasId(pTurnPeer->pTransactionIdStore, pBuffer + STUN_PACKET_TRANSACTION_ID_OFFSET)) {
+                    CHAR ipAddr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
                     pTurnPeer->connectionState = TURN_PEER_CONN_STATE_FAILED;
                     iterate = FALSE;
+                    found = TRUE;
+                    getIpAddrStr(&pTurnPeer->address, ipAddr, ARRAY_SIZE(ipAddr));
+                    DLOGD("remove turn peer with ip: %s:%u. family:%d", ipAddr, (UINT16) getInt16(pTurnPeer->address.port),
+                          pTurnPeer->address.family);
                 }
+            }
+            if (found == FALSE) {
+                DLOGD("can not find any corresponding turn peer");
             }
             break;
     }
@@ -527,7 +535,7 @@ STATUS turnConnectionHandleChannelDataTcpMode(PTurnConnection pTurnConnection, P
         if (pTurnConnection->currRecvDataLen != 0) {
             if (pTurnConnection->currRecvDataLen >= TURN_DATA_CHANNEL_SEND_OVERHEAD) {
                 /* pTurnConnection->recvDataBuffer always has channel data start */
-                paddedChannelDataLen = ROUND_UP((UINT32) getInt16(*(PINT16) (pTurnConnection->recvDataBuffer + SIZEOF(channelNumber))), 4);
+                paddedChannelDataLen = ROUND_UP((UINT32) getInt16(*(PINT16)(pTurnConnection->recvDataBuffer + SIZEOF(channelNumber))), 4);
                 remainingMsgSize = paddedChannelDataLen - (pTurnConnection->currRecvDataLen - TURN_DATA_CHANNEL_SEND_OVERHEAD);
                 bytesToCopy = MIN(remainingMsgSize, remainingBufLen);
                 remainingBufLen -= bytesToCopy;
@@ -572,7 +580,7 @@ STATUS turnConnectionHandleChannelDataTcpMode(PTurnConnection pTurnConnection, P
             /* new channel message start */
             CHK(*pCurPos == TURN_DATA_CHANNEL_MSG_FIRST_BYTE, STATUS_TURN_MISSING_CHANNEL_DATA_HEADER);
 
-            paddedChannelDataLen = ROUND_UP((UINT32) getInt16(*(PINT16) (pCurPos + SIZEOF(UINT16))), 4);
+            paddedChannelDataLen = ROUND_UP((UINT32) getInt16(*(PINT16)(pCurPos + SIZEOF(UINT16))), 4);
             if (remainingBufLen >= (paddedChannelDataLen + TURN_DATA_CHANNEL_SEND_OVERHEAD)) {
                 channelNumber = (UINT16) getInt16(*(PINT16) pCurPos);
                 if ((pTurnPeer = turnConnectionGetPeerWithChannelNumber(pTurnConnection, channelNumber)) != NULL) {
@@ -704,8 +712,8 @@ STATUS turnConnectionSendData(PTurnConnection pTurnConnection, PBYTE pBuf, UINT3
     paddedDataLen = (UINT32) ROUND_UP(TURN_DATA_CHANNEL_SEND_OVERHEAD + bufLen, 4);
 
     /* generate data channel TURN message */
-    putInt16((PINT16) (pTurnConnection->sendDataBuffer), pSendPeer->channelNumber);
-    putInt16((PINT16) (pTurnConnection->sendDataBuffer + 2), (UINT16) bufLen);
+    putInt16((PINT16)(pTurnConnection->sendDataBuffer), pSendPeer->channelNumber);
+    putInt16((PINT16)(pTurnConnection->sendDataBuffer + 2), (UINT16) bufLen);
     MEMCPY(pTurnConnection->sendDataBuffer + TURN_DATA_CHANNEL_SEND_OVERHEAD, pBuf, bufLen);
 
     retStatus = iceUtilsSendData(pTurnConnection->sendDataBuffer, paddedDataLen, &pTurnConnection->turnServer.ipAddress,
