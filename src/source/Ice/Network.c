@@ -164,12 +164,14 @@ STATUS createSocket(KVS_IP_FAMILY_TYPE familyType, KVS_SOCKET_PROTOCOL protocol,
         DLOGW("socket() failed to create socket with errno %s", getErrorString(getErrorCode()));
         CHK(FALSE, STATUS_CREATE_UDP_SOCKET_FAILED);
     }
-
+#ifdef NO_SIGNAL_SOCK_OPT
+    // YC_TBD, fixed NO_SIGNAL failed with errno Protocol not available
     optionValue = 1;
-    if (setsockopt(sockfd, SOL_SOCKET, NO_SIGNAL, &optionValue, SIZEOF(optionValue)) < 0) {
-        DLOGD("setsockopt() NO_SIGNAL failed with errno %s", getErrorString(getErrorCode()));
+    if (setsockopt(sockfd, SOL_SOCKET, NO_SIGNAL_SOCK_OPT, &optionValue, SIZEOF(optionValue)) < 0) {
+        DLOGD("setsockopt() NO_SIGNAL_SOCK_OPT failed with errno %s", getErrorString(getErrorCode()));
     }
-
+#endif /* NO_SIGNAL_SOCK_OPT */
+    // YC_TBD, need to check the gain of the sendbufsize is 0.
     if (sendBufSize > 0 && setsockopt(sockfd, SOL_SOCKET, SO_SNDBUF, &sendBufSize, SIZEOF(sendBufSize)) < 0) {
         DLOGW("setsockopt() SO_SNDBUF failed with errno %s", getErrorString(getErrorCode()));
         CHK(FALSE, STATUS_SOCKET_SET_SEND_BUFFER_SIZE_FAILED);
