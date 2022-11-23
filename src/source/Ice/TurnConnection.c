@@ -274,7 +274,7 @@ STATUS turnConnectionHandleStun(PTurnConnection pTurnConnection, PBYTE pBuffer, 
                     if (pTurnPeer->connectionState == TURN_PEER_CONN_STATE_CREATE_PERMISSION) {
                         pTurnPeer->connectionState = TURN_PEER_CONN_STATE_BIND_CHANNEL;
                         CHK_STATUS(getIpAddrStr(&pTurnPeer->address, ipAddrStr, ARRAY_SIZE(ipAddrStr)));
-                        DLOGD("create permission succeeded for peer %s", ipAddrStr);
+                        DLOGD("create permission succeeded for peer %s:%u", ipAddrStr, (UINT16) getInt16(pTurnPeer->address.port));
                     }
 
                     pTurnPeer->permissionExpirationTime = TURN_PERMISSION_LIFETIME + currentTime;
@@ -296,7 +296,7 @@ STATUS turnConnectionHandleStun(PTurnConnection pTurnConnection, PBYTE pBuffer, 
                     pTurnPeer->connectionState = TURN_PEER_CONN_STATE_READY;
 
                     CHK_STATUS(getIpAddrStr(&pTurnPeer->address, ipAddrStr, ARRAY_SIZE(ipAddrStr)));
-                    DLOGD("Channel bind succeeded with peer %s, port: %u, channel number %u", ipAddrStr, (UINT16) getInt16(pTurnPeer->address.port),
+                    DLOGD("Channel bind succeeded with peer %s:%u, channel number %u", ipAddrStr, (UINT16) getInt16(pTurnPeer->address.port),
                           pTurnPeer->channelNumber);
 
                     break;
@@ -425,8 +425,8 @@ STATUS turnConnectionHandleStunError(PTurnConnection pTurnConnection, PBYTE pBuf
                     iterate = FALSE;
                     found = TRUE;
                     getIpAddrStr(&pTurnPeer->address, ipAddr, ARRAY_SIZE(ipAddr));
-                    DLOGD("remove turn peer with ip: %s:%u. family:%d", ipAddr, (UINT16) getInt16(pTurnPeer->address.port),
-                          pTurnPeer->address.family);
+                    DLOGD("TurnConnection %" PRIu64 " remove turn peer with ip: %s:%u. family:%d", (UINT64) pTurnConnection->pControlChannel, ipAddr,
+                          (UINT16) getInt16(pTurnPeer->address.port), pTurnPeer->address.family);
                 }
             }
             if (found == FALSE) {
@@ -680,7 +680,8 @@ STATUS turnConnectionSendData(PTurnConnection pTurnConnection, PBYTE pBuf, UINT3
 
     if (!(pTurnConnection->state == TURN_STATE_CREATE_PERMISSION || pTurnConnection->state == TURN_STATE_BIND_CHANNEL ||
           pTurnConnection->state == TURN_STATE_READY)) {
-        DLOGV("TurnConnection not ready to send data");
+        DLOGV("TurnConnection %" PRIu64 " not ready to send data to peer with address %s:%u is not ready", (UINT64) pTurnConnection->pControlChannel,
+              ipAddrStr, KVS_GET_IP_ADDRESS_PORT(pDestIp));
 
         // If turn is not ready yet. Drop the send since ice will retry.
         CHK(FALSE, retStatus);
@@ -690,13 +691,16 @@ STATUS turnConnectionSendData(PTurnConnection pTurnConnection, PBYTE pBuf, UINT3
 
     CHK_STATUS(getIpAddrStr(pDestIp, ipAddrStr, ARRAY_SIZE(ipAddrStr)));
     if (pSendPeer == NULL) {
-        DLOGV("Unable to send data through turn because peer with address %s:%u is not found", ipAddrStr, KVS_GET_IP_ADDRESS_PORT(pDestIp));
+        DLOGV("TurnConnection %" PRIu64 " is unable to send data through turn because peer with address %s:%u is not found",
+              (UINT64) pTurnConnection->pControlChannel, ipAddrStr, KVS_GET_IP_ADDRESS_PORT(pDestIp));
         CHK(FALSE, retStatus);
     } else if (pSendPeer->connectionState == TURN_PEER_CONN_STATE_FAILED) {
+        DLOGV("TurnConnection %" PRIu64 " is unable to send data because the status of peer with address %s:%u is failed",
+              (UINT64) pTurnConnection->pControlChannel, ipAddrStr, KVS_GET_IP_ADDRESS_PORT(pDestIp));
         CHK(FALSE, STATUS_TURN_CONNECTION_PEER_NOT_USABLE);
     } else if (!pSendPeer->ready) {
-        DLOGV("Unable to send data through turn because turn channel is not established with peer with address %s:%u", ipAddrStr,
-              KVS_GET_IP_ADDRESS_PORT(pDestIp));
+        DLOGV("TurnConnection %" PRIu64 " is unable to send data through turn because peer with address %s:%u is not ready",
+              (UINT64) pTurnConnection->pControlChannel, ipAddrStr, KVS_GET_IP_ADDRESS_PORT(pDestIp));
         CHK(FALSE, retStatus);
     }
 
@@ -944,7 +948,7 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
 
             if (ATOMIC_LOAD_BOOL(&pTurnConnection->hasAllocation)) {
                 CHK_STATUS(getIpAddrStr(&pTurnConnection->relayAddress, ipAddrStr, ARRAY_SIZE(ipAddrStr)));
-                DLOGD("Relay address received: %s, port: %u", ipAddrStr, (UINT16) getInt16(pTurnConnection->relayAddress.port));
+                DLOGD("Relay address received: %s:%u", ipAddrStr, (UINT16) getInt16(pTurnConnection->relayAddress.port));
 
                 if (pTurnConnection->pTurnCreatePermissionPacket != NULL) {
                     CHK_STATUS(freeStunPacket(&pTurnConnection->pTurnCreatePermissionPacket));
