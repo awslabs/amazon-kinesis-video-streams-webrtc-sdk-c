@@ -485,6 +485,7 @@ STATUS iceAgentInitHostCandidate(PIceAgent pIceAgent)
             pTmpIceCandidate->foundation = pIceAgent->foundationCounter++;
             pTmpIceCandidate->pSocketConnection = pSocketConnection;
             pTmpIceCandidate->priority = computeCandidatePriority(pTmpIceCandidate);
+            pTmpIceCandidate->pIceAgent = pIceAgent;
 
             /* Another thread could be calling iceAgentAddRemoteCandidate which triggers createIceCandidatePairs.
              * createIceCandidatePairs will read through localCandidates, since we are mutating localCandidates here,
@@ -1681,6 +1682,7 @@ STATUS iceAgentInitSrflxCandidate(PIceAgent pIceAgent)
                     pNewCandidate->iceServerIndex = j;
                     pNewCandidate->foundation = pIceAgent->foundationCounter++; // we dont generate candidates that have the same foundation.
                     pNewCandidate->priority = computeCandidatePriority(pNewCandidate);
+                    pNewCandidate->pIceAgent = pIceAgent;
 
                     CHK_STATUS(doubleListInsertItemHead(pIceAgent->localCandidates, (UINT64) pNewCandidate));
 
@@ -2346,11 +2348,12 @@ STATUS iceCandidateSerialize(PIceCandidate pIceCandidate, PCHAR pOutputData, PUI
         }
         */
         if (pIceCandidate->iceCandidateType != ICE_CANDIDATE_TYPE_RELAYED) {
-            amountWritten = SNPRINTF(
-                pOutputData, pOutputData == NULL ? 0 : *pOutputLength, "%u 1 udp %u %d.%d.%d.%d %d typ %s generation 0 ufrag:%s network-cost 999",
-                pIceCandidate->foundation, pIceCandidate->priority, pIceCandidate->ipAddress.address[0], pIceCandidate->ipAddress.address[1],
-                pIceCandidate->ipAddress.address[2], pIceCandidate->ipAddress.address[3], (UINT16) getInt16(pIceCandidate->ipAddress.port),
-                iceAgentGetCandidateTypeStr(pIceCandidate->iceCandidateType), pIceCandidate->pIceAgent->localUsername);
+            amountWritten =
+                SNPRINTF(pOutputData, pOutputData == NULL ? 0 : *pOutputLength,
+                         "%u 1 udp %u %d.%d.%d.%d %d typ %s generation 0 ufrag:%s network-id 1 network-cost 10", pIceCandidate->foundation,
+                         pIceCandidate->priority, pIceCandidate->ipAddress.address[0], pIceCandidate->ipAddress.address[1],
+                         pIceCandidate->ipAddress.address[2], pIceCandidate->ipAddress.address[3], (UINT16) getInt16(pIceCandidate->ipAddress.port),
+                         iceAgentGetCandidateTypeStr(pIceCandidate->iceCandidateType), pIceCandidate->pIceAgent->localUsername);
         } else {
             /*
             {
@@ -2368,7 +2371,7 @@ STATUS iceCandidateSerialize(PIceCandidate pIceCandidate, PCHAR pOutputData, PUI
                 CHK_STATUS(getIpAddrStr(&pTurnConnection->relayAddress, ipAddrStr, ARRAY_SIZE(ipAddrStr)));
                 DLOGD("Relay address: %s, port: %u", ipAddrStr, (UINT16) getInt16(pTurnConnection->relayAddress.port));
                 amountWritten = SNPRINTF(pOutputData, pOutputData == NULL ? 0 : *pOutputLength,
-                                         "%u 1 udp %u %d.%d.%d.%d %d typ %s raddr 0.0.0.0 rport 0 generation 0 ufrag:%s network-cost 999",
+                                         "%u 1 udp %u %d.%d.%d.%d %d typ %s raddr 0.0.0.0 rport 0 generation 0 ufrag:%s network-id 1 network-cost 50",
                                          pIceCandidate->foundation, pIceCandidate->priority, pIceCandidate->ipAddress.address[0],
                                          pIceCandidate->ipAddress.address[1], pIceCandidate->ipAddress.address[2],
                                          pIceCandidate->ipAddress.address[3], (UINT16) getInt16(pIceCandidate->ipAddress.port),
@@ -2661,6 +2664,7 @@ STATUS iceAgentCheckPeerReflexiveCandidate(PIceAgent pIceAgent, PKvsIpAddress pI
     pIceCandidate->priority = priority;
     pIceCandidate->state = ICE_CANDIDATE_STATE_VALID;
     pIceCandidate->pSocketConnection = NULL; // remote candidate dont have PSocketConnection
+    pIceCandidate->pIceAgent = pIceAgent;
 
     CHK_STATUS(doubleListInsertItemHead(pIceAgent->remoteCandidates, (UINT64) pIceCandidate));
     freeIceCandidateOnError = FALSE;
