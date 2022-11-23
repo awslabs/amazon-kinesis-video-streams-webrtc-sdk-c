@@ -48,7 +48,9 @@ extern "C" {
 #define IOT_CORE_PRIVATE_KEY         ((PCHAR) "AWS_IOT_CORE_PRIVATE_KEY")
 #define IOT_CORE_ROLE_ALIAS          ((PCHAR) "AWS_IOT_CORE_ROLE_ALIAS")
 #define IOT_CORE_THING_NAME          ((PCHAR) "AWS_IOT_CORE_THING_NAME")
+#define STORAGE_STREAM_NAME          ((PCHAR) "AWS_STORAGE_STREAM_NAME")
 #define STORAGE_STREAM_ARN           ((PCHAR) "AWS_STORAGE_STREAM_ARN")
+#define CONRTOL_PLANE_URL            ((PCHAR) "AWS_CONRTOL_PLANE_URL")
 
 #define MASTER_DATA_CHANNEL_MESSAGE "This message is from the KVS Master"
 #define VIEWER_DATA_CHANNEL_MESSAGE "This message is from the KVS Viewer"

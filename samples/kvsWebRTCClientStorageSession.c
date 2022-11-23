@@ -442,7 +442,8 @@ INT32 main(INT32 argc, CHAR* argv[])
     }
     DLOGI("Signaling client connection to socket established");
 
-    DLOGI("Beginning streaming...check the stream over channel %s", pChannelName);
+    DLOGI("Beginning streaming...check the stream over channel %s mapped with %s", pChannelName,
+          pSampleConfiguration->channelInfo.pStorageStreamName);
 
     if (pSampleConfiguration->channelInfo.useMediaStorage == TRUE) {
         DLOGD("invoke join storage session");

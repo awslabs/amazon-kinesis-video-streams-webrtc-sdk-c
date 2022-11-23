@@ -39,6 +39,8 @@ extern "C" {
 #define SIGNALING_CLIENT_STATE_DELETED_STR         "Deleted"
 #define SIGNALING_CLIENT_STATE_DESCRIBE_MEDIA_STR  "Describe media storage"
 #define SIGNALING_CLIENT_STATE_JOIN_SESSION_STR    "Join Session"
+#define SIGNALING_CLIENT_STATE_CREATE_STREAM_STR   "Create Stream"
+#define SIGNALING_CLIENT_STATE_UPDATE_MEDIA_STR    "Update media storage"
 
 // Error refreshing ICE server configuration string
 #define SIGNALING_ICE_CONFIG_REFRESH_ERROR_MSG "Failed refreshing ICE server configuration with status code 0x%08x."
@@ -154,6 +156,12 @@ typedef struct {
     SignalingApiCallHookFunc joinSessionPostHookFn;
     SignalingApiCallHookFunc descirbeMediaStorageConfPreHookFn;
     SignalingApiCallHookFunc descirbeMediaStorageConfPostHookFn;
+    SignalingApiCallHookFunc updateMediaStorageConfPreHookFn;
+    SignalingApiCallHookFunc updateMediaStorageConfPostHookFn;
+    SignalingApiCallHookFunc createStreamPreHookFn;
+    SignalingApiCallHookFunc createStreamPostHookFn;
+    SignalingApiCallHookFunc describeStreamPreHookFn;
+    SignalingApiCallHookFunc describeStreamPostHookFn;
     SignalingApiCallHookFunc deletePreHookFn;
     SignalingApiCallHookFunc deletePostHookFn;
 
@@ -347,6 +355,9 @@ typedef struct {
     UINT64 deleteTime;
     UINT64 connectTime;
     UINT64 describeMediaTime;
+    UINT64 updateMediaTime;
+    UINT64 createStreamTime;
+    UINT64 describeStreamTime;
     UINT64 joinSessionTime;
 
 } SignalingClient, *PSignalingClient;
@@ -391,6 +402,9 @@ STATUS getIceConfig(PSignalingClient, UINT64);
 STATUS connectSignalingChannel(PSignalingClient, UINT64);
 STATUS joinStorageSession(PSignalingClient, UINT64);
 STATUS describeMediaStorageConf(PSignalingClient, UINT64);
+STATUS updateMediaStorageConf(PSignalingClient, UINT64);
+STATUS createStream(PSignalingClient, UINT64);
+STATUS describeStream(PSignalingClient, UINT64);
 STATUS deleteChannel(PSignalingClient, UINT64);
 STATUS signalingGetMetrics(PSignalingClient, PSignalingClientMetrics);
 

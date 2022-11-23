@@ -1380,6 +1380,135 @@ CleanUp:
     return retStatus;
 }
 
+STATUS updateMediaStorageConf(PSignalingClient pSignalingClient, UINT64 time)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    BOOL apiCall = TRUE;
+
+    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+
+    THREAD_SLEEP_UNTIL(time);
+    // Check for the stale credentials
+    CHECK_SIGNALING_CREDENTIALS_EXPIRATION(pSignalingClient);
+
+    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
+
+    // Call API
+    if (STATUS_SUCCEEDED(retStatus)) {
+        // Call pre hook func
+        if (pSignalingClient->clientInfo.updateMediaStorageConfPreHookFn != NULL) {
+            retStatus = pSignalingClient->clientInfo.updateMediaStorageConfPreHookFn(pSignalingClient->clientInfo.hookCustomData);
+        }
+
+        if (STATUS_SUCCEEDED(retStatus)) {
+            retStatus = updateMediaStorageConfLws(pSignalingClient, time);
+            // Store the last call time on success
+            if (STATUS_SUCCEEDED(retStatus)) {
+                pSignalingClient->updateMediaTime = time;
+            }
+            // Calculate the latency whether the call succeeded or not
+            SIGNALING_API_LATENCY_CALCULATION(pSignalingClient, time, TRUE);
+        }
+
+        // Call post hook func
+        if (pSignalingClient->clientInfo.updateMediaStorageConfPostHookFn != NULL) {
+            retStatus = pSignalingClient->clientInfo.updateMediaStorageConfPostHookFn(pSignalingClient->clientInfo.hookCustomData);
+        }
+    }
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS createStream(PSignalingClient pSignalingClient, UINT64 time)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    BOOL apiCall = TRUE;
+
+    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+
+    THREAD_SLEEP_UNTIL(time);
+    // Check for the stale credentials
+    CHECK_SIGNALING_CREDENTIALS_EXPIRATION(pSignalingClient);
+
+    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
+
+    // Call API
+    if (STATUS_SUCCEEDED(retStatus)) {
+        // Call pre hook func
+        if (pSignalingClient->clientInfo.createStreamPreHookFn != NULL) {
+            retStatus = pSignalingClient->clientInfo.createStreamPreHookFn(pSignalingClient->clientInfo.hookCustomData);
+        }
+
+        if (STATUS_SUCCEEDED(retStatus)) {
+            retStatus = createStreamLws(pSignalingClient, time);
+            // Store the last call time on success
+            if (STATUS_SUCCEEDED(retStatus)) {
+                pSignalingClient->createStreamTime = time;
+            }
+            // Calculate the latency whether the call succeeded or not
+            SIGNALING_API_LATENCY_CALCULATION(pSignalingClient, time, TRUE);
+        }
+
+        // Call post hook func
+        if (pSignalingClient->clientInfo.createStreamPostHookFn != NULL) {
+            retStatus = pSignalingClient->clientInfo.createStreamPostHookFn(pSignalingClient->clientInfo.hookCustomData);
+        }
+    }
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS describeStream(PSignalingClient pSignalingClient, UINT64 time)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    BOOL apiCall = TRUE;
+
+    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+
+    THREAD_SLEEP_UNTIL(time);
+    // Check for the stale credentials
+    CHECK_SIGNALING_CREDENTIALS_EXPIRATION(pSignalingClient);
+
+    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
+
+    // Call API
+    if (STATUS_SUCCEEDED(retStatus)) {
+        // Call pre hook func
+        if (pSignalingClient->clientInfo.describeStreamPreHookFn != NULL) {
+            retStatus = pSignalingClient->clientInfo.describeStreamPreHookFn(pSignalingClient->clientInfo.hookCustomData);
+        }
+
+        if (STATUS_SUCCEEDED(retStatus)) {
+            retStatus = describeStreamLws(pSignalingClient, time);
+            // Store the last call time on success
+            if (STATUS_SUCCEEDED(retStatus)) {
+                pSignalingClient->describeStreamTime = time;
+            }
+            // Calculate the latency whether the call succeeded or not
+            SIGNALING_API_LATENCY_CALCULATION(pSignalingClient, time, TRUE);
+        }
+
+        // Call post hook func
+        if (pSignalingClient->clientInfo.describeStreamPostHookFn != NULL) {
+            retStatus = pSignalingClient->clientInfo.describeStreamPostHookFn(pSignalingClient->clientInfo.hookCustomData);
+        }
+    }
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
+
 UINT64 signalingGetCurrentTime(UINT64 customData)
 {
     UNUSED_PARAM(customData);

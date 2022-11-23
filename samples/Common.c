@@ -348,8 +348,8 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     configuration.kvsRtcConfiguration.iceSetInterfaceFilterFunc = NULL;
 
     // Set the ICE mode explicitly
-    configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_ALL;
-    // configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_RELAY;
+    // configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_ALL;
+    configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_RELAY;
 
     // Set the  STUN server
     SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, pSampleConfiguration->channelInfo.pRegion);
@@ -637,7 +637,9 @@ STATUS handleRemoteCandidate(PSampleStreamingSession pSampleStreamingSession, PS
     CHK_STATUS(addIceCandidate(pSampleStreamingSession->pPeerConnection, iceCandidate.candidate));
 
 CleanUp:
-
+    if (retStatus == STATUS_INVALID_API_CALL_RETURN_JSON) {
+        DLOGD("invalid json(%d):%s", pSignalingMessage->payloadLen, pSignalingMessage->payload);
+    }
     CHK_LOG_ERR(retStatus);
     return retStatus;
 }
@@ -731,6 +733,22 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     if ((pSampleConfiguration->channelInfo.pRegion = GETENV(DEFAULT_REGION_ENV_VAR)) == NULL) {
         pSampleConfiguration->channelInfo.pRegion = DEFAULT_AWS_REGION;
     }
+
+    if (NULL != GETENV(CONRTOL_PLANE_URL)) {
+        pSampleConfiguration->channelInfo.pControlPlaneUrl = GETENV(CONRTOL_PLANE_URL);
+    }
+
+    if (NULL != GETENV(STORAGE_STREAM_NAME)) {
+        pSampleConfiguration->channelInfo.pStorageStreamName = GETENV(STORAGE_STREAM_NAME);
+    } else {
+        CHAR tempStreamName[MAX_CHANNEL_NAME_LEN + 1];
+        MEMSET(tempStreamName, 0x00, MAX_CHANNEL_NAME_LEN + 1);
+        STRCPY(tempStreamName, channelName);
+        STRCPY(tempStreamName + STRLEN(channelName), "stream");
+        DLOGD("stream name:%s", tempStreamName);
+        setenv(STORAGE_STREAM_NAME, tempStreamName, 1);
+        pSampleConfiguration->channelInfo.pStorageStreamName = GETENV(STORAGE_STREAM_NAME);
+    }
     if (NULL != GETENV(STORAGE_STREAM_ARN)) {
         pSampleConfiguration->channelInfo.pStorageStreamArn = GETENV(STORAGE_STREAM_ARN);
     }
@@ -771,7 +789,9 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     pSampleConfiguration->channelInfo.pTags = NULL;
     pSampleConfiguration->channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
     pSampleConfiguration->channelInfo.channelRoleType = roleType;
-    pSampleConfiguration->channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_FILE;
+    // pSampleConfiguration->channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_FILE;
+    pSampleConfiguration->channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_NONE;
+
     pSampleConfiguration->channelInfo.cachingPeriod = SIGNALING_API_CALL_CACHE_TTL_SENTINEL_VALUE;
     pSampleConfiguration->channelInfo.asyncIceServerConfig = TRUE; // has no effect
     pSampleConfiguration->channelInfo.retry = TRUE;

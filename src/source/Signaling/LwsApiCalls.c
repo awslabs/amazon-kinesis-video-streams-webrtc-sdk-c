@@ -1615,6 +1615,9 @@ STATUS describeMediaStorageConfLws(PSignalingClient pSignalingClient, UINT64 tim
     CHK(tokenCount > 1, STATUS_INVALID_API_CALL_RETURN_JSON);
     CHK(tokens[0].type == JSMN_OBJECT, STATUS_INVALID_API_CALL_RETURN_JSON);
 
+    pSignalingClient->mediaStorageConfig.storageStatus = FALSE;
+    MEMSET(pSignalingClient->mediaStorageConfig.storageStreamArn, 0x00, MAX_ARN_LEN + 1);
+
     // Loop through the tokens and extract the stream description
     for (i = 1; i < tokenCount; i++) {
         if (!jsonInMediaStorageConfig) {
@@ -1647,6 +1650,338 @@ STATUS describeMediaStorageConfLws(PSignalingClient pSignalingClient, UINT64 tim
 
     // Perform some validation on the channel description
     CHK(pSignalingClient->channelDescription.channelStatus != SIGNALING_CHANNEL_STATUS_DELETING, STATUS_SIGNALING_CHANNEL_BEING_DELETED);
+
+CleanUp:
+
+    if (STATUS_FAILED(retStatus)) {
+        DLOGE("Call Failed with Status:  0x%08x", retStatus);
+    }
+
+    freeLwsCallInfo(&pLwsCallInfo);
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS updateMediaStorageConfLws(PSignalingClient pSignalingClient, UINT64 time)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    UNUSED_PARAM(time);
+
+    PRequestInfo pRequestInfo = NULL;
+    CHAR url[MAX_URI_CHAR_LEN + 1];
+    CHAR paramsJson[MAX_JSON_PARAMETER_STRING_LEN];
+    PLwsCallInfo pLwsCallInfo = NULL;
+    PCHAR pResponseStr;
+    jsmn_parser parser;
+    jsmntok_t tokens[MAX_JSON_TOKEN_COUNT];
+    UINT32 i, strLen, resultLen;
+    UINT32 tokenCount;
+    BOOL jsonInMediaStorageConfig = FALSE;
+
+    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+
+    // Create the API url
+    STRCPY(url, pSignalingClient->pChannelInfo->pControlPlaneUrl);
+    STRCAT(url, UPDATE_MEDIA_STORAGE_CONF_API_POSTFIX);
+
+    // Prepare the json params for the call
+    CHK(pSignalingClient->channelDescription.channelArn[0] != '\0', STATUS_NULL_ARG);
+    pSignalingClient->mediaStorageConfig.storageStatus = FALSE;
+    SNPRINTF(paramsJson, ARRAY_SIZE(paramsJson), UPDATE_MEDIA_STORAGE_CONF_PARAM_JSON_TEMPLATE, pSignalingClient->channelDescription.channelArn,
+             pSignalingClient->mediaStorageConfig.storageStreamArn, pSignalingClient->pChannelInfo->useMediaStorage == TRUE ? "ENABLED" : "DISABLED");
+    // Create the request info with the body
+    CHK_STATUS(createRequestInfo(url, paramsJson, pSignalingClient->pChannelInfo->pRegion, pSignalingClient->pChannelInfo->pCertPath, NULL, NULL,
+                                 SSL_CERTIFICATE_TYPE_NOT_SPECIFIED, pSignalingClient->pChannelInfo->pUserAgent,
+                                 SIGNALING_SERVICE_API_CALL_CONNECTION_TIMEOUT, SIGNALING_SERVICE_API_CALL_COMPLETION_TIMEOUT,
+                                 DEFAULT_LOW_SPEED_LIMIT, DEFAULT_LOW_SPEED_TIME_LIMIT, pSignalingClient->pAwsCredentials, &pRequestInfo));
+
+    // createRequestInfo does not have access to the getCurrentTime callback, this hook is used for tests.
+    if (pSignalingClient->signalingClientCallbacks.getCurrentTimeFn != NULL) {
+        pRequestInfo->currentTime =
+            pSignalingClient->signalingClientCallbacks.getCurrentTimeFn(pSignalingClient->signalingClientCallbacks.customData);
+    }
+
+    checkAndCorrectForClockSkew(pSignalingClient, pRequestInfo);
+
+    CHK_STATUS(createLwsCallInfo(pSignalingClient, pRequestInfo, PROTOCOL_INDEX_HTTPS, &pLwsCallInfo));
+
+    // Make a blocking call
+    CHK_STATUS(lwsCompleteSync(pLwsCallInfo));
+
+    // Set the service call result
+    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) pLwsCallInfo->callInfo.callResult);
+
+    // Early return if we have a non-success result
+    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK, STATUS_SIGNALING_LWS_CALL_FAILED);
+    pSignalingClient->mediaStorageConfig.storageStatus = TRUE;
+
+CleanUp:
+
+    if (STATUS_FAILED(retStatus)) {
+        DLOGE("Call Failed with Status:  0x%08x", retStatus);
+    }
+
+    freeLwsCallInfo(&pLwsCallInfo);
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS createStreamLws(PSignalingClient pSignalingClient, UINT64 time)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    UNUSED_PARAM(time);
+
+    PRequestInfo pRequestInfo = NULL;
+    CHAR url[MAX_URI_CHAR_LEN + 1];
+    CHAR paramsJson[MAX_JSON_PARAMETER_STRING_LEN];
+    PLwsCallInfo pLwsCallInfo = NULL;
+    PCHAR pResponseStr;
+    jsmn_parser parser;
+    jsmntok_t tokens[MAX_JSON_TOKEN_COUNT];
+    UINT32 i, strLen, resultLen;
+    UINT32 tokenCount;
+
+    BOOL stopLoop;
+
+    StreamDescription streamDescription;
+    BOOL jsonInStreamDescription = FALSE;
+
+    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+
+    // Create the API url
+    STRCPY(url, pSignalingClient->pChannelInfo->pControlPlaneUrl);
+    STRCAT(url, CREATE_STRAM_API_POSTFIX);
+    DLOGD("stream:%s", pSignalingClient->pChannelInfo->pStorageStreamName);
+    // Prepare the json params for the call
+    SNPRINTF(paramsJson, ARRAY_SIZE(paramsJson), CREATE_STREAM_PARAM_JSON_TEMPLATE, 24, "foo", pSignalingClient->pChannelInfo->pStorageStreamName);
+    DLOGD("paramsJson:%s", paramsJson);
+    // Create the request info with the body
+    CHK_STATUS(createRequestInfo(url, paramsJson, pSignalingClient->pChannelInfo->pRegion, pSignalingClient->pChannelInfo->pCertPath, NULL, NULL,
+                                 SSL_CERTIFICATE_TYPE_NOT_SPECIFIED, pSignalingClient->pChannelInfo->pUserAgent,
+                                 SIGNALING_SERVICE_API_CALL_CONNECTION_TIMEOUT, SIGNALING_SERVICE_API_CALL_COMPLETION_TIMEOUT,
+                                 DEFAULT_LOW_SPEED_LIMIT, DEFAULT_LOW_SPEED_TIME_LIMIT, pSignalingClient->pAwsCredentials, &pRequestInfo));
+
+    // createRequestInfo does not have access to the getCurrentTime callback, this hook is used for tests.
+    if (pSignalingClient->signalingClientCallbacks.getCurrentTimeFn != NULL) {
+        pRequestInfo->currentTime =
+            pSignalingClient->signalingClientCallbacks.getCurrentTimeFn(pSignalingClient->signalingClientCallbacks.customData);
+    }
+
+    checkAndCorrectForClockSkew(pSignalingClient, pRequestInfo);
+
+    CHK_STATUS(createLwsCallInfo(pSignalingClient, pRequestInfo, PROTOCOL_INDEX_HTTPS, &pLwsCallInfo));
+
+    // Make a blocking call
+    CHK_STATUS(lwsCompleteSync(pLwsCallInfo));
+
+    // Set the service call result
+    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) pLwsCallInfo->callInfo.callResult);
+    pResponseStr = pLwsCallInfo->callInfo.responseData;
+    resultLen = pLwsCallInfo->callInfo.responseDataLen;
+
+    // Early return if we have a non-success result
+    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL,
+        STATUS_SIGNALING_LWS_CALL_FAILED);
+
+    // Parse the response
+    jsmn_init(&parser);
+    tokenCount = jsmn_parse(&parser, pResponseStr, resultLen, tokens, SIZEOF(tokens) / SIZEOF(jsmntok_t));
+    CHK(tokenCount > 1, STATUS_INVALID_API_CALL_RETURN_JSON);
+    CHK(tokens[0].type == JSMN_OBJECT, STATUS_INVALID_API_CALL_RETURN_JSON);
+    for (i = 1, stopLoop = FALSE; i < (UINT32) tokenCount && !stopLoop; i++) {
+        if (compareJsonString(pResponseStr, &tokens[i], JSMN_STRING, (PCHAR) "StreamARN")) {
+            strLen = (UINT32)(tokens[i + 1].end - tokens[i + 1].start);
+            CHK(strLen <= MAX_ARN_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
+            STRNCPY(pSignalingClient->mediaStorageConfig.storageStreamArn, pResponseStr + tokens[i + 1].start, strLen);
+            pSignalingClient->mediaStorageConfig.storageStreamArn[strLen] = '\0';
+            i++;
+
+            // No need to iterate further
+            stopLoop = TRUE;
+        }
+    }
+
+CleanUp:
+
+    if (STATUS_FAILED(retStatus)) {
+        DLOGE("Call Failed with Status:  0x%08x", retStatus);
+    }
+
+    freeLwsCallInfo(&pLwsCallInfo);
+
+    LEAVES();
+    return retStatus;
+}
+
+/*
+HTTP/1.1 200
+Content-type: application/json
+
+{
+   "StreamInfo": {
+      "CreationTime": number,
+      "DataRetentionInHours": number,
+      "DeviceName": "string",
+      "KmsKeyId": "string",
+      "MediaType": "string",
+      "Status": "string",
+      "StreamARN": "string",
+      "StreamName": "string",
+      "Version": "string"
+   }
+}
+
+*/
+STREAM_STATUS getStreamStatusFromString(PCHAR status, UINT32 length)
+{
+    // Assume the stream Deleting status first
+    STREAM_STATUS streamStatus = STREAM_STATUS_DELETING;
+
+    if (0 == STRNCMP((PCHAR) "ACTIVE", status, length)) {
+        streamStatus = STREAM_STATUS_ACTIVE;
+    } else if (0 == STRNCMP((PCHAR) "CREATING", status, length)) {
+        streamStatus = STREAM_STATUS_CREATING;
+    } else if (0 == STRNCMP((PCHAR) "UPDATING", status, length)) {
+        streamStatus = STREAM_STATUS_UPDATING;
+    } else if (0 == STRNCMP((PCHAR) "DELETING", status, length)) {
+        streamStatus = STREAM_STATUS_DELETING;
+    }
+
+    return streamStatus;
+}
+
+STATUS describeStreamLws(PSignalingClient pSignalingClient, UINT64 time)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    UNUSED_PARAM(time);
+
+    PRequestInfo pRequestInfo = NULL;
+    CHAR url[MAX_URI_CHAR_LEN + 1];
+    CHAR paramsJson[MAX_JSON_PARAMETER_STRING_LEN];
+    PLwsCallInfo pLwsCallInfo = NULL;
+    PCHAR pResponseStr;
+    jsmn_parser parser;
+    jsmntok_t tokens[MAX_JSON_TOKEN_COUNT];
+    UINT32 i, strLen, resultLen;
+    UINT32 tokenCount;
+
+    StreamDescription streamDescription;
+    BOOL jsonInStreamDescription = FALSE;
+    UINT64 retention;
+    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+
+    // Create the API url
+    STRCPY(url, pSignalingClient->pChannelInfo->pControlPlaneUrl);
+    STRCAT(url, DESCRIBE_STRAM_API_POSTFIX);
+
+    // Prepare the json params for the call
+    SNPRINTF(paramsJson, ARRAY_SIZE(paramsJson), DESCRIBE_STREAM_PARAM_JSON_TEMPLATE, pSignalingClient->pChannelInfo->pStorageStreamName);
+    // Create the request info with the body
+    CHK_STATUS(createRequestInfo(url, paramsJson, pSignalingClient->pChannelInfo->pRegion, pSignalingClient->pChannelInfo->pCertPath, NULL, NULL,
+                                 SSL_CERTIFICATE_TYPE_NOT_SPECIFIED, pSignalingClient->pChannelInfo->pUserAgent,
+                                 SIGNALING_SERVICE_API_CALL_CONNECTION_TIMEOUT, SIGNALING_SERVICE_API_CALL_COMPLETION_TIMEOUT,
+                                 DEFAULT_LOW_SPEED_LIMIT, DEFAULT_LOW_SPEED_TIME_LIMIT, pSignalingClient->pAwsCredentials, &pRequestInfo));
+
+    // createRequestInfo does not have access to the getCurrentTime callback, this hook is used for tests.
+    if (pSignalingClient->signalingClientCallbacks.getCurrentTimeFn != NULL) {
+        pRequestInfo->currentTime =
+            pSignalingClient->signalingClientCallbacks.getCurrentTimeFn(pSignalingClient->signalingClientCallbacks.customData);
+    }
+
+    checkAndCorrectForClockSkew(pSignalingClient, pRequestInfo);
+
+    CHK_STATUS(createLwsCallInfo(pSignalingClient, pRequestInfo, PROTOCOL_INDEX_HTTPS, &pLwsCallInfo));
+
+    // Make a blocking call
+    CHK_STATUS(lwsCompleteSync(pLwsCallInfo));
+
+    // Set the service call result
+    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) pLwsCallInfo->callInfo.callResult);
+    pResponseStr = pLwsCallInfo->callInfo.responseData;
+    resultLen = pLwsCallInfo->callInfo.responseDataLen;
+
+    // Early return if we have a non-success result
+    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL,
+        STATUS_SIGNALING_LWS_CALL_FAILED);
+
+    // Parse the response
+    jsmn_init(&parser);
+    tokenCount = jsmn_parse(&parser, pResponseStr, resultLen, tokens, SIZEOF(tokens) / SIZEOF(jsmntok_t));
+    CHK(tokenCount > 1, STATUS_INVALID_API_CALL_RETURN_JSON);
+    CHK(tokens[0].type == JSMN_OBJECT, STATUS_INVALID_API_CALL_RETURN_JSON);
+
+    // Null out the fields before processing
+    MEMSET(&streamDescription, 0x00, SIZEOF(StreamDescription));
+
+    // Loop through the tokens and extract the stream description
+    for (i = 1; i < (UINT32) tokenCount; i++) {
+        if (!jsonInStreamDescription) {
+            if (compareJsonString(pResponseStr, &tokens[i], JSMN_STRING, (PCHAR) "StreamInfo")) {
+                streamDescription.version = STREAM_DESCRIPTION_CURRENT_VERSION;
+                jsonInStreamDescription = TRUE;
+                i++;
+            }
+        } else {
+            if (compareJsonString(pResponseStr, &tokens[i], JSMN_STRING, (PCHAR) "DeviceName")) {
+                strLen = (UINT32)(tokens[i + 1].end - tokens[i + 1].start);
+                CHK(strLen <= MAX_DEVICE_NAME_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
+                STRNCPY(streamDescription.deviceName, pResponseStr + tokens[i + 1].start, strLen);
+                streamDescription.deviceName[MAX_DEVICE_NAME_LEN] = '\0';
+                i++;
+            } else if (compareJsonString(pResponseStr, &tokens[i], JSMN_STRING, (PCHAR) "MediaType")) {
+                strLen = (UINT32)(tokens[i + 1].end - tokens[i + 1].start);
+                CHK(strLen <= MAX_CONTENT_TYPE_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
+                STRNCPY(streamDescription.contentType, pResponseStr + tokens[i + 1].start, strLen);
+                streamDescription.contentType[MAX_CONTENT_TYPE_LEN] = '\0';
+                i++;
+            } else if (compareJsonString(pResponseStr, &tokens[i], JSMN_STRING, (PCHAR) "KmsKeyId")) {
+                strLen = (UINT32)(tokens[i + 1].end - tokens[i + 1].start);
+                CHK(strLen <= MAX_ARN_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
+                STRNCPY(streamDescription.kmsKeyId, pResponseStr + tokens[i + 1].start, strLen);
+                streamDescription.kmsKeyId[MAX_ARN_LEN] = '\0';
+                i++;
+            } else if (compareJsonString(pResponseStr, &tokens[i], JSMN_STRING, (PCHAR) "StreamARN")) {
+                strLen = (UINT32)(tokens[i + 1].end - tokens[i + 1].start);
+                CHK(strLen <= MAX_ARN_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
+                STRNCPY(streamDescription.streamArn, pResponseStr + tokens[i + 1].start, strLen);
+                streamDescription.streamArn[MAX_ARN_LEN] = '\0';
+                i++;
+            } else if (compareJsonString(pResponseStr, &tokens[i], JSMN_STRING, (PCHAR) "StreamName")) {
+                strLen = (UINT32)(tokens[i + 1].end - tokens[i + 1].start);
+                CHK(strLen <= MAX_STREAM_NAME_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
+                STRNCPY(streamDescription.streamName, pResponseStr + tokens[i + 1].start, strLen);
+                streamDescription.streamName[MAX_STREAM_NAME_LEN] = '\0';
+                i++;
+            } else if (compareJsonString(pResponseStr, &tokens[i], JSMN_STRING, (PCHAR) "Version")) {
+                strLen = (UINT32)(tokens[i + 1].end - tokens[i + 1].start);
+                CHK(strLen <= MAX_UPDATE_VERSION_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
+                STRNCPY(streamDescription.updateVersion, pResponseStr + tokens[i + 1].start, strLen);
+                streamDescription.updateVersion[MAX_UPDATE_VERSION_LEN] = '\0';
+                i++;
+            } else if (compareJsonString(pResponseStr, &tokens[i], JSMN_STRING, (PCHAR) "Status")) {
+// Max stream status string length in describe API call in chars
+#define MAX_DESCRIBE_STREAM_STATUS_LEN 32 //!< YC_TBD.
+                strLen = (UINT32)(tokens[i + 1].end - tokens[i + 1].start);
+                CHK(strLen <= MAX_DESCRIBE_STREAM_STATUS_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
+                streamDescription.streamStatus = getStreamStatusFromString(pResponseStr + tokens[i + 1].start, strLen);
+                i++;
+            } else if (compareJsonString(pResponseStr, &tokens[i], JSMN_STRING, (PCHAR) "DataRetentionInHours")) {
+                CHK_STATUS(STRTOUI64(pResponseStr + tokens[i + 1].start, pResponseStr + tokens[i + 1].end, 10, &retention));
+
+                // NOTE: Retention value is in hours
+                streamDescription.retention = retention * HUNDREDS_OF_NANOS_IN_AN_HOUR;
+                i++;
+            } else if (compareJsonString(pResponseStr, &tokens[i], JSMN_STRING, (PCHAR) "CreationTime")) {
+                // TODO: In the future parse out the creation time but currently we don't need it
+                i++;
+            }
+        }
+    }
 
 CleanUp:
 

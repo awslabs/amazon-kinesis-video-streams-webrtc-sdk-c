@@ -14,7 +14,7 @@ extern "C" {
 #define SIGNALING_SERVICE_API_CALL_CONNECTION_TIMEOUT (20 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define SIGNALING_SERVICE_API_CALL_COMPLETION_TIMEOUT (50 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define SIGNALING_SERVICE_API_CALL_TIMEOUT_IN_SECONDS                                                                                                \
-    ((SIGNALING_SERVICE_API_CALL_CONNECTION_TIMEOUT + SIGNALING_SERVICE_API_CALL_COMPLETION_TIMEOUT ) / HUNDREDS_OF_NANOS_IN_A_SECOND)
+    ((SIGNALING_SERVICE_API_CALL_CONNECTION_TIMEOUT + SIGNALING_SERVICE_API_CALL_COMPLETION_TIMEOUT) / HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define SIGNALING_SERVICE_TCP_KEEPALIVE_IN_SECONDS                3
 #define SIGNALING_SERVICE_TCP_KEEPALIVE_PROBE_COUNT               3
 #define SIGNALING_SERVICE_TCP_KEEPALIVE_PROBE_INTERVAL_IN_SECONDS 1
@@ -34,6 +34,8 @@ extern "C" {
 #define JOIN_STORAGE_SESSION_API_POSTFIX           "/joinStorageSession"
 #define DESCRIBE_MEDIA_STORAGE_CONF_API_POSTFIX    "/describeMediaStorageConfiguration"
 #define UPDATE_MEDIA_STORAGE_CONF_API_POSTFIX      "/updateMediaStorageConfiguration"
+#define CREATE_STRAM_API_POSTFIX                   "/createStream"   //!< YC_TBD, temp postfix for kvs stream
+#define DESCRIBE_STRAM_API_POSTFIX                 "/describeStream" //!< YC_TBD, temp postfix for kvs stream
 
 // Signaling protocol name
 #define SIGNALING_CHANNEL_PROTOCOL                 "\"WSS\", \"HTTPS\""
@@ -42,6 +44,19 @@ extern "C" {
 // Parameterized string for Describe Channel API
 #define DESCRIBE_CHANNEL_PARAM_JSON_TEMPLATE            "{\n\t\"ChannelName\": \"%s\"\n}"
 #define DESCRIBE_MEDIA_STORAGE_CONF_PARAM_JSON_TEMPLATE "{\n\t\"ChannelARN\": \"%s\"\n}"
+/*
+{"ChannelARN": "foo",
+ "MediaStorageConfiguration":
+  {"StreamARN": "foo",
+   "Status": "ENABLED"}
+}
+*/
+#define UPDATE_MEDIA_STORAGE_CONF_PARAM_JSON_TEMPLATE                                                                                                \
+    "{\n\t\"ChannelARN\": \"%s\","                                                                                                                   \
+    "\n\t\"MediaStorageConfiguration\": {"                                                                                                           \
+    "\n\t\t\"StreamARN\": \"%s\","                                                                                                                   \
+    "\n\t\t\"Status\": \"%s\""                                                                                                                       \
+    "\n\t}\n}"
 
 // Parameterized string for Delete Channel API
 #define DELETE_CHANNEL_PARAM_JSON_TEMPLATE                                                                                                           \
@@ -85,6 +100,40 @@ extern "C" {
     "{\n\t\"StreamARN\": \"%s\","                                                                                                                    \
     "\n\t\"ChannelARN\": \"%s\","                                                                                                                    \
     "\n\t\"StorageStatus\": \"%s\""                                                                                                                  \
+    "\n}"
+
+// Parameterized string for Create Stream API
+/*
+POST /createStream HTTP/1.1
+Content-type: application/json
+
+{
+   "DataRetentionInHours": number,
+   "DeviceName": "string",
+   "KmsKeyId": "string",
+   "MediaType": "string",
+   "StreamName": "string",
+   "Tags": {
+      "string" : "string"
+   }
+}
+*/
+#define CREATE_STREAM_PARAM_JSON_TEMPLATE                                                                                                            \
+    "{\n\t\"DataRetentionInHours\": %d,"                                                                                                             \
+    "\n\t\"DeviceName\": \"%s\","                                                                                                                    \
+    "\n\t\"StreamName\": \"%s\""                                                                                                                     \
+    "\n}"
+/*
+POST /describeStream HTTP/1.1
+Content-type: application/json
+
+{
+   "StreamARN": "string",
+   "StreamName": "string"
+}
+*/
+#define DESCRIBE_STREAM_PARAM_JSON_TEMPLATE                                                                                                          \
+    "{\n\t\"StreamName\": \"%s\""                                                                                                                    \
     "\n}"
 
 // Parameter names for Signaling connect URL
@@ -264,6 +313,9 @@ STATUS getIceConfigLws(PSignalingClient, UINT64);
 STATUS connectSignalingChannelLws(PSignalingClient, UINT64);
 STATUS joinStorageSessionLws(PSignalingClient, UINT64);
 STATUS describeMediaStorageConfLws(PSignalingClient, UINT64);
+STATUS updateMediaStorageConfLws(PSignalingClient, UINT64);
+STATUS createStreamLws(PSignalingClient, UINT64);
+STATUS describeStreamLws(PSignalingClient, UINT64);
 STATUS deleteChannelLws(PSignalingClient, UINT64);
 
 STATUS createLwsCallInfo(PSignalingClient, PRequestInfo, UINT32, PLwsCallInfo*);

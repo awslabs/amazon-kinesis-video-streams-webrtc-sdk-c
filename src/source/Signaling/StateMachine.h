@@ -28,6 +28,8 @@ extern "C" {
 #define SIGNALING_STATE_DELETED        ((UINT64)(1 << 11))
 #define SIGNALING_STATE_DESCRIBE_MEDIA ((UINT64)(1 << 12))
 #define SIGNALING_STATE_JOIN_SESSION   ((UINT64)(1 << 13))
+#define SIGNALING_STATE_CREATE_STREAM  ((UINT64)(1 << 14))
+#define SIGNALING_STATE_UPDATE_MEDIA   ((UINT64)(1 << 15))
 // Indicates infinite retries
 #define INFINITE_RETRY_COUNT_SENTINEL 0
 
@@ -68,6 +70,10 @@ STATUS fromDeleteSignalingState(UINT64, PUINT64);
 STATUS executeDeleteSignalingState(UINT64, UINT64);
 STATUS fromDeletedSignalingState(UINT64, PUINT64);
 STATUS executeDeletedSignalingState(UINT64, UINT64);
+STATUS fromCreateStreamState(UINT64, PUINT64);
+STATUS executeCreateStreamState(UINT64, UINT64);
+STATUS fromUpdateMediaStorageConfState(UINT64, PUINT64);
+STATUS executeUpdateMediaStorageConfState(UINT64, UINT64);
 
 STATUS defaultSignalingStateTransitionHook(UINT64, PUINT64);
 

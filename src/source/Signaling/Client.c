@@ -409,6 +409,12 @@ STATUS signalingClientGetStateString(SIGNALING_CLIENT_STATE state, PCHAR* ppStat
         case SIGNALING_CLIENT_STATE_JOIN_SESSION:
             *ppStateStr = SIGNALING_CLIENT_STATE_JOIN_SESSION_STR;
             break;
+        case SIGNALING_CLIENT_STATE_CREATE_STREAM:
+            *ppStateStr = SIGNALING_CLIENT_STATE_CREATE_STREAM_STR;
+            break;
+        case SIGNALING_CLIENT_STATE_UPDATE_MEDIA:
+            *ppStateStr = SIGNALING_CLIENT_STATE_UPDATE_MEDIA_STR;
+            break;
         case SIGNALING_CLIENT_STATE_MAX_VALUE:
         case SIGNALING_CLIENT_STATE_UNKNOWN:
             // Explicit fall-through

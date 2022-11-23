@@ -6,8 +6,8 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
 
-    UINT32 allocSize, channelNameLen = 0, channelArnLen = 0, storageStreamArnLen = 0, regionLen = 0, cpUrlLen = 0, certPathLen = 0,
-                      userAgentPostfixLen = 0, customUserAgentLen = 0, userAgentLen = 0, kmsLen = 0, tagsSize;
+    UINT32 allocSize, channelNameLen = 0, channelArnLen = 0, storageStreamNameLen = 0, storageStreamArnLen = 0, regionLen = 0, cpUrlLen = 0,
+                      certPathLen = 0, userAgentPostfixLen = 0, customUserAgentLen = 0, userAgentLen = 0, kmsLen = 0, tagsSize;
     PCHAR pCurPtr, pRegionPtr;
     PChannelInfo pChannelInfo = NULL;
 
@@ -26,9 +26,14 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
             STATUS_SIGNALING_INVALID_CHANNEL_ARN_LENGTH);
     }
 
+    if (pOrigChannelInfo->pStorageStreamName != NULL) {
+        CHK((storageStreamNameLen = (UINT32) STRNLEN(pOrigChannelInfo->pStorageStreamName, MAX_CHANNEL_NAME_LEN + 1)) <= MAX_CHANNEL_NAME_LEN,
+            STATUS_SIGNALING_INVALID_STREAM_NAME_LENGTH);
+    }
+
     if (pOrigChannelInfo->pStorageStreamArn != NULL) {
         CHK((storageStreamArnLen = (UINT32) STRNLEN(pOrigChannelInfo->pStorageStreamArn, MAX_ARN_LEN + 1)) <= MAX_ARN_LEN,
-            STATUS_SIGNALING_INVALID_CHANNEL_ARN_LENGTH);
+            STATUS_SIGNALING_INVALID_STREAM_ARN_LENGTH);
     }
 
     // Fix-up the region
@@ -86,10 +91,11 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
     // Allocate enough storage to hold the data with aligned strings size and set the pointers and NULL terminators
     // concatenate the data space with channel info.
     allocSize = SIZEOF(ChannelInfo) + ALIGN_UP_TO_MACHINE_WORD(1 + channelNameLen) + ALIGN_UP_TO_MACHINE_WORD(1 + channelArnLen) +
-        ALIGN_UP_TO_MACHINE_WORD(1 + storageStreamArnLen) + ALIGN_UP_TO_MACHINE_WORD(1 + regionLen) + ALIGN_UP_TO_MACHINE_WORD(1 + cpUrlLen) +
-        ALIGN_UP_TO_MACHINE_WORD(1 + certPathLen) + ALIGN_UP_TO_MACHINE_WORD(1 + userAgentPostfixLen) +
-        ALIGN_UP_TO_MACHINE_WORD(1 + customUserAgentLen) + ALIGN_UP_TO_MACHINE_WORD(1 + userAgentLen) + ALIGN_UP_TO_MACHINE_WORD(1 + kmsLen) +
-        tagsSize;
+
+        ALIGN_UP_TO_MACHINE_WORD(1 + storageStreamNameLen) + ALIGN_UP_TO_MACHINE_WORD(1 + storageStreamArnLen) +
+        ALIGN_UP_TO_MACHINE_WORD(1 + regionLen) + ALIGN_UP_TO_MACHINE_WORD(1 + cpUrlLen) + ALIGN_UP_TO_MACHINE_WORD(1 + certPathLen) +
+        ALIGN_UP_TO_MACHINE_WORD(1 + userAgentPostfixLen) + ALIGN_UP_TO_MACHINE_WORD(1 + customUserAgentLen) +
+        ALIGN_UP_TO_MACHINE_WORD(1 + userAgentLen) + ALIGN_UP_TO_MACHINE_WORD(1 + kmsLen) + tagsSize;
     CHK(NULL != (pChannelInfo = (PChannelInfo) MEMCALLOC(1, allocSize)), STATUS_NOT_ENOUGH_MEMORY);
 
     pChannelInfo->version = CHANNEL_INFO_CURRENT_VERSION;
@@ -126,6 +132,12 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
         pCurPtr += ALIGN_UP_TO_MACHINE_WORD(channelArnLen + 1);
     }
 
+    if (storageStreamNameLen != 0) {
+        STRCPY(pCurPtr, pOrigChannelInfo->pStorageStreamName);
+        pChannelInfo->pStorageStreamName = pCurPtr;
+        pCurPtr += ALIGN_UP_TO_MACHINE_WORD(storageStreamNameLen + 1);
+    }
+
     if (storageStreamArnLen != 0) {
         STRCPY(pCurPtr, pOrigChannelInfo->pStorageStreamArn);
         pChannelInfo->pStorageStreamArn = pCurPtr;
@@ -139,14 +151,12 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
     if (pOrigChannelInfo->pControlPlaneUrl != NULL && *pOrigChannelInfo->pControlPlaneUrl != '\0') {
         STRCPY(pCurPtr, pOrigChannelInfo->pControlPlaneUrl);
     } else {
-// Create a fully qualified URI
-//#YC_TBD.
-#if 0
+        // Create a fully qualified URI
+        //#YC_TBD.
         SNPRINTF(pCurPtr, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s%s.%s%s", CONTROL_PLANE_URI_PREFIX, KINESIS_VIDEO_SERVICE_NAME, pChannelInfo->pRegion,
                  CONTROL_PLANE_URI_POSTFIX);
-#else
-        SNPRINTF(pCurPtr, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s", "https://beta.us-west-2.acuity.amazonaws.com");
-#endif
+        // SNPRINTF(pCurPtr, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s", "https://beta.us-west-2.acuity.amazonaws.com");
+        // SNPRINTF(pCurPtr, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s", "https://gamma.us-east-1.acuity.amazonaws.com");
     }
 
     pChannelInfo->pControlPlaneUrl = pCurPtr;
