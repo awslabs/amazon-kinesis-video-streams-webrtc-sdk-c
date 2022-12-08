@@ -40,11 +40,15 @@ extern "C" {
 #define SAMPLE_HASH_TABLE_BUCKET_COUNT  50
 #define SAMPLE_HASH_TABLE_BUCKET_LENGTH 2
 
+#define SAMPLE_PERIODIC_JOIN_SESSION        FALSE
+#define SAMPLE_PERIODIC_JOIN_SESSION_PERIOD (300 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+
 #define IOT_CORE_CREDENTIAL_ENDPOINT ((PCHAR) "AWS_IOT_CORE_CREDENTIAL_ENDPOINT")
 #define IOT_CORE_CERT                ((PCHAR) "AWS_IOT_CORE_CERT")
 #define IOT_CORE_PRIVATE_KEY         ((PCHAR) "AWS_IOT_CORE_PRIVATE_KEY")
 #define IOT_CORE_ROLE_ALIAS          ((PCHAR) "AWS_IOT_CORE_ROLE_ALIAS")
 #define IOT_CORE_THING_NAME          ((PCHAR) "AWS_IOT_CORE_THING_NAME")
+#define STORAGE_STREAM_ARN           ((PCHAR) "AWS_STORAGE_STREAM_ARN")
 
 #define MASTER_DATA_CHANNEL_MESSAGE "This message is from the KVS Master"
 #define VIEWER_DATA_CHANNEL_MESSAGE "This message is from the KVS Viewer"
@@ -108,12 +112,16 @@ typedef struct {
     UINT32 iceUriCount;
     SignalingClientCallbacks signalingClientCallbacks;
     SignalingClientInfo clientInfo;
+
+    UINT32 mediaStorageClipLength;
     RtcStats rtcIceCandidatePairMetrics;
 
     MUTEX signalingSendMessageLock;
 
     UINT32 pregenerateCertTimerId;
     PStackQueue pregeneratedCertificates; // Max MAX_RTCCONFIGURATION_CERTIFICATES certificates
+
+    UINT32 joinSessionTimerId;
 } SampleConfiguration, *PSampleConfiguration;
 
 typedef struct {
@@ -158,7 +166,8 @@ PVOID sampleReceiveVideoFrame(PVOID args);
 PVOID getPeriodicIceCandidatePairStats(PVOID);
 STATUS getIceCandidatePairStatsCallback(UINT32, UINT64, UINT64);
 STATUS pregenerateCertTimerCallback(UINT32, UINT64, UINT64);
-STATUS createSampleConfiguration(PCHAR, SIGNALING_CHANNEL_ROLE_TYPE, BOOL, BOOL, PSampleConfiguration*);
+STATUS joinSessionTimerCallback(UINT32, UINT64, UINT64);
+STATUS createSampleConfiguration(PCHAR, SIGNALING_CHANNEL_ROLE_TYPE, BOOL, BOOL, BOOL, PSampleConfiguration*);
 STATUS freeSampleConfiguration(PSampleConfiguration*);
 STATUS signalingClientStateChanged(UINT64, SIGNALING_CLIENT_STATE);
 STATUS signalingMessageReceived(UINT64, PReceivedSignalingMessage);

@@ -30,6 +30,8 @@ typedef struct {
     CHAR region[MAX_REGION_NAME_LEN + 1];
     CHAR httpsEndpoint[MAX_SIGNALING_ENDPOINT_URI_LEN + 1];
     CHAR wssEndpoint[MAX_SIGNALING_ENDPOINT_URI_LEN + 1];
+    CHAR storageStreamArn[MAX_ARN_LEN + 1];
+    CHAR webrtcEndpoint[MAX_SIGNALING_ENDPOINT_URI_LEN + 1];
 } SignalingFileCacheEntry, *PSignalingFileCacheEntry;
 
 STATUS deserializeSignalingCacheEntries(PCHAR, UINT64, PSignalingFileCacheEntry, PUINT32, PCHAR);

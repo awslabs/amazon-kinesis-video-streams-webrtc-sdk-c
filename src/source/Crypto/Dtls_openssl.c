@@ -180,8 +180,8 @@ STATUS createSslCtx(PDtlsSessionCertificateInfo pCertificates, UINT32 certCount,
     CHK((ecdh = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1)) != NULL, STATUS_SSL_CTX_CREATION_FAILED);
     CHK(SSL_CTX_set_tmp_ecdh(pSslCtx, ecdh) == 1, STATUS_SSL_CTX_CREATION_FAILED);
 #endif
-
-    SSL_CTX_set_verify(pSslCtx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, dtlsCertificateVerifyCallback);
+    //#YC_TBD.
+    SSL_CTX_set_verify(pSslCtx, SSL_VERIFY_NONE, dtlsCertificateVerifyCallback);
     CHK(SSL_CTX_set_tlsext_use_srtp(pSslCtx, "SRTP_AES128_CM_SHA1_32:SRTP_AES128_CM_SHA1_80") == 0, STATUS_SSL_CTX_CREATION_FAILED);
 
     for (i = 0; i < certCount; i++) {

@@ -103,6 +103,7 @@ STATUS iceAgentStateMachineCheckDisconnection(PIceAgent pIceAgent, PUINT64 pNext
     currentTime = GETTIME();
     if (!pIceAgent->detectedDisconnection && IS_VALID_TIMESTAMP(pIceAgent->lastDataReceivedTime) &&
         pIceAgent->lastDataReceivedTime + KVS_ICE_ENTER_STATE_DISCONNECTION_GRACE_PERIOD <= currentTime) {
+        DLOGD("detect disconnection");
         *pNextState = ICE_AGENT_STATE_DISCONNECTED;
     } else if (pIceAgent->detectedDisconnection) {
         if (IS_VALID_TIMESTAMP(pIceAgent->lastDataReceivedTime) &&
@@ -226,6 +227,7 @@ STATUS fromCheckConnectionIceAgentState(UINT64 customData, PUINT64 pState)
     CHK_STATUS(doubleListGetHeadNode(pIceAgent->iceCandidatePairs, &pCurNode));
     while (pCurNode != NULL && !connectedCandidatePairFound) {
         pIceCandidatePair = (PIceCandidatePair) pCurNode->data;
+        DLOGD("Checking pair: %s %s, state: %d", pIceCandidatePair->local->id, pIceCandidatePair->remote->id, pIceCandidatePair->state);
         pCurNode = pCurNode->pNext;
 
         if (pIceCandidatePair->state == ICE_CANDIDATE_PAIR_STATE_SUCCEEDED) {

@@ -11,10 +11,10 @@ extern "C" {
 #endif
 
 // Timeout values
-#define SIGNALING_SERVICE_API_CALL_CONNECTION_TIMEOUT (2 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define SIGNALING_SERVICE_API_CALL_COMPLETION_TIMEOUT (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define SIGNALING_SERVICE_API_CALL_CONNECTION_TIMEOUT (20 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define SIGNALING_SERVICE_API_CALL_COMPLETION_TIMEOUT (50 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define SIGNALING_SERVICE_API_CALL_TIMEOUT_IN_SECONDS                                                                                                \
-    ((SIGNALING_SERVICE_API_CALL_CONNECTION_TIMEOUT + SIGNALING_SERVICE_API_CALL_COMPLETION_TIMEOUT) / HUNDREDS_OF_NANOS_IN_A_SECOND)
+    ((SIGNALING_SERVICE_API_CALL_CONNECTION_TIMEOUT + SIGNALING_SERVICE_API_CALL_COMPLETION_TIMEOUT ) / HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define SIGNALING_SERVICE_TCP_KEEPALIVE_IN_SECONDS                3
 #define SIGNALING_SERVICE_TCP_KEEPALIVE_PROBE_COUNT               3
 #define SIGNALING_SERVICE_TCP_KEEPALIVE_PROBE_INTERVAL_IN_SECONDS 1
@@ -31,12 +31,17 @@ extern "C" {
 #define GET_SIGNALING_CHANNEL_ENDPOINT_API_POSTFIX "/getSignalingChannelEndpoint"
 #define DELETE_SIGNALING_CHANNEL_API_POSTFIX       "/deleteSignalingChannel"
 #define GET_ICE_CONFIG_API_POSTFIX                 "/v1/get-ice-server-config"
+#define JOIN_STORAGE_SESSION_API_POSTFIX           "/joinStorageSession"
+#define DESCRIBE_MEDIA_STORAGE_CONF_API_POSTFIX    "/describeMediaStorageConfiguration"
+#define UPDATE_MEDIA_STORAGE_CONF_API_POSTFIX      "/updateMediaStorageConfiguration"
 
 // Signaling protocol name
-#define SIGNALING_CHANNEL_PROTOCOL "\"WSS\", \"HTTPS\""
+#define SIGNALING_CHANNEL_PROTOCOL                 "\"WSS\", \"HTTPS\""
+#define SIGNALING_CHANNEL_PROTOCOL_W_MEDIA_STORAGE "\"WSS\", \"HTTPS\", \"WEBRTC\""
 
 // Parameterized string for Describe Channel API
-#define DESCRIBE_CHANNEL_PARAM_JSON_TEMPLATE "{\n\t\"ChannelName\": \"%s\"\n}"
+#define DESCRIBE_CHANNEL_PARAM_JSON_TEMPLATE            "{\n\t\"ChannelName\": \"%s\"\n}"
+#define DESCRIBE_MEDIA_STORAGE_CONF_PARAM_JSON_TEMPLATE "{\n\t\"ChannelARN\": \"%s\"\n}"
 
 // Parameterized string for Delete Channel API
 #define DELETE_CHANNEL_PARAM_JSON_TEMPLATE                                                                                                           \
@@ -70,6 +75,16 @@ extern "C" {
     "{\n\t\"ChannelARN\": \"%s\","                                                                                                                   \
     "\n\t\"ClientId\": \"%s\","                                                                                                                      \
     "\n\t\"Service\": \"TURN\""                                                                                                                      \
+    "\n}"
+
+#define SIGNALING_JOIN_STORAGE_SESSION_MASTER_PARAM_JSON_TEMPLATE "{\n\t\"channelArn\": \"%s\"\n}"
+#define SIGNALING_JOIN_STORAGE_SESSION_VIEWER_PARAM_JSON_TEMPLATE                                                                                    \
+    "{\n\t\"channelArn\": \"%s\","                                                                                                                   \
+    "\n\t\"clientId\": \"%s\"\n}"
+#define SIGNALING_UPDATE_STORAGE_CONFIG_PARAM_JSON_TEMPLATE                                                                                          \
+    "{\n\t\"StreamARN\": \"%s\","                                                                                                                    \
+    "\n\t\"ChannelARN\": \"%s\","                                                                                                                    \
+    "\n\t\"StorageStatus\": \"%s\""                                                                                                                  \
     "\n}"
 
 // Parameter names for Signaling connect URL
@@ -247,6 +262,8 @@ STATUS createChannelLws(PSignalingClient, UINT64);
 STATUS getChannelEndpointLws(PSignalingClient, UINT64);
 STATUS getIceConfigLws(PSignalingClient, UINT64);
 STATUS connectSignalingChannelLws(PSignalingClient, UINT64);
+STATUS joinStorageSessionLws(PSignalingClient, UINT64);
+STATUS describeMediaStorageConfLws(PSignalingClient, UINT64);
 STATUS deleteChannelLws(PSignalingClient, UINT64);
 
 STATUS createLwsCallInfo(PSignalingClient, PRequestInfo, UINT32, PLwsCallInfo*);

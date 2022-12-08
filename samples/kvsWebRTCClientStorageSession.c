@@ -4,6 +4,11 @@
 
 extern PSampleConfiguration gSampleConfiguration;
 
+typedef enum {
+    CLIP_TYPE_PERSISTENT,
+    CLIP_TYPE_EVENT,
+} CLIP_TYPE;
+
 // #define VERBOSE
 
 GstFlowReturn on_new_sample(GstElement* sink, gpointer data, UINT64 trackid)
@@ -23,7 +28,7 @@ GstFlowReturn on_new_sample(GstElement* sink, gpointer data, UINT64 trackid)
     UINT32 i;
 
     if (pSampleConfiguration == NULL) {
-        printf("[KVS GStreamer Master] on_new_sample(): operation returned status code: 0x%08x \n", STATUS_NULL_ARG);
+        DLOGE("operation returned status code: 0x%08x", STATUS_NULL_ARG);
         goto CleanUp;
     }
 
@@ -41,16 +46,15 @@ GstFlowReturn on_new_sample(GstElement* sink, gpointer data, UINT64 trackid)
         delta = GST_BUFFER_FLAG_IS_SET(buffer, GST_BUFFER_FLAG_DELTA_UNIT);
 
         frame.flags = delta ? FRAME_FLAG_NONE : FRAME_FLAG_KEY_FRAME;
-
         // convert from segment timestamp to running time in live mode.
         segment = gst_sample_get_segment(sample);
         buf_pts = gst_segment_to_running_time(segment, GST_FORMAT_TIME, buffer->pts);
         if (!GST_CLOCK_TIME_IS_VALID(buf_pts)) {
-            printf("[KVS GStreamer Master] Frame contains invalid PTS dropping the frame. \n");
+            DLOGE("Frame contains invalid PTS dropping the frame.");
         }
 
         if (!(gst_buffer_map(buffer, &info, GST_MAP_READ))) {
-            printf("[KVS GStreamer Master] on_new_sample(): Gst buffer mapping failed\n");
+            DLOGE("Gst buffer mapping failed");
             goto CleanUp;
         }
 
@@ -67,20 +71,26 @@ GstFlowReturn on_new_sample(GstElement* sink, gpointer data, UINT64 trackid)
 
             if (trackid == DEFAULT_AUDIO_TRACK_ID) {
                 pRtcRtpTransceiver = pSampleStreamingSession->pAudioRtcRtpTransceiver;
-                frame.presentationTs = pSampleStreamingSession->audioTimestamp;
+                // YC_TBD,
+                // frame.presentationTs = pSampleStreamingSession->audioTimestamp;
+                frame.presentationTs = buf_pts * DEFAULT_TIME_UNIT_IN_NANOS;
                 frame.decodingTs = frame.presentationTs;
                 pSampleStreamingSession->audioTimestamp +=
                     SAMPLE_AUDIO_FRAME_DURATION; // assume audio frame size is 20ms, which is default in opusenc
             } else {
                 pRtcRtpTransceiver = pSampleStreamingSession->pVideoRtcRtpTransceiver;
-                frame.presentationTs = pSampleStreamingSession->videoTimestamp;
+                // YC_TBD.
+                // frame.presentationTs = pSampleStreamingSession->videoTimestamp;
+                frame.presentationTs = buf_pts * DEFAULT_TIME_UNIT_IN_NANOS;
                 frame.decodingTs = frame.presentationTs;
                 pSampleStreamingSession->videoTimestamp += SAMPLE_VIDEO_FRAME_DURATION; // assume video fps is 25
             }
+
             status = writeFrame(pRtcRtpTransceiver, &frame);
+
             if (status != STATUS_SRTP_NOT_READY_YET && status != STATUS_SUCCESS) {
 #ifdef VERBOSE
-                printf("writeFrame() failed with 0x%08x", status);
+                DLOGE("failed with 0x%08x", status);
 #endif
             }
         }
@@ -122,68 +132,37 @@ PVOID sendGstreamerAudioVideo(PVOID args)
     GstMessage* msg;
     GError* error = NULL;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
+    BOOL locked = FALSE;
+    UINT32 i;
 
     if (pSampleConfiguration == NULL) {
-        printf("[KVS GStreamer Master] sendGstreamerAudioVideo(): operation returned status code: 0x%08x \n", STATUS_NULL_ARG);
+        DLOGE("operation returned status code: 0x%08x", STATUS_NULL_ARG);
         goto CleanUp;
     }
 
-    /**
-     * Use x264enc as its available on mac, pi, ubuntu and windows
-     * mac pipeline fails if resolution is not 720p
-     *
-     * For alaw
-     * audiotestsrc is-live=TRUE ! queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample !
-     * audio/x-raw, rate=8000, channels=1, format=S16LE, layout=interleaved ! alawenc ! appsink sync=TRUE emit-signals=TRUE name=appsink-audio
-     *
-     * For VP8
-     * videotestsrc is-live=TRUE ! video/x-raw,width=1280,height=720,framerate=30/1 !
-     * vp8enc error-resilient=partitions keyframe-max-dist=10 auto-alt-ref=true cpu-used=5 deadline=1 !
-     * appsink sync=TRUE emit-signals=TRUE name=appsink-video
-     */
-
     switch (pSampleConfiguration->mediaType) {
         case SAMPLE_STREAMING_VIDEO_ONLY:
-            /*if (pSampleConfiguration->useTestSrc) {
-                pipeline = gst_parse_launch(
-                    "videotestsrc is-live=TRUE ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
-                    "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
-                    "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE emit-signals=TRUE name=appsink-video",
-                    &error);
-            } else {*/
-            pipeline = gst_parse_launch("autovideosrc ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=30/1 ! "
-                                        "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
-                                        "video/x-h264,stream-format=byte-stream,alignment=au,profile=constrained-baseline ! appsink sync=TRUE "
-                                        "emit-signals=TRUE name=appsink-video",
-                                        &error);
-            //}
+            pipeline = gst_parse_launch(
+                "videotestsrc is-live=TRUE ! clockoverlay ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=30/1 ! "
+                "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
+                "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE emit-signals=TRUE name=appsink-video",
+                &error);
             break;
 
         case SAMPLE_STREAMING_AUDIO_VIDEO:
-            if (pSampleConfiguration->useTestSrc) {
-                pipeline = gst_parse_launch("videotestsrc is-live=TRUE ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
-                                            "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
-                                            "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE "
-                                            "emit-signals=TRUE name=appsink-video audiotestsrc is-live=TRUE ! "
-                                            "queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample ! opusenc ! "
-                                            "audio/x-opus,rate=48000,channels=2 ! appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
-                                            &error);
-            } else {
-                pipeline =
-                    gst_parse_launch("autovideosrc ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
-                                     "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
-                                     "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE emit-signals=TRUE "
-                                     "name=appsink-video autoaudiosrc ! "
-                                     "queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample ! opusenc ! "
-                                     "audio/x-opus,rate=48000,channels=2 ! appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
-                                     &error);
-            }
+            pipeline = gst_parse_launch(
+                "videotestsrc is-live=TRUE ! clockoverlay ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=30/1 ! "
+                "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
+                "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE "
+                "emit-signals=TRUE name=appsink-video audiotestsrc is-live=TRUE ! "
+                "queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample ! opusenc ! "
+                "audio/x-opus,rate=48000,channels=2 ! appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
+                &error);
             break;
     }
 
     if (pipeline == NULL) {
-        printf("[KVS GStreamer Master] sendGstreamerAudioVideo(): Failed to launch gstreamer, operation returned status code: 0x%08x \n",
-               STATUS_INTERNAL_ERROR);
+        DLOGE("Failed to launch gstreamer, operation returned status code: 0x%08x", STATUS_INTERNAL_ERROR);
         goto CleanUp;
     }
 
@@ -191,8 +170,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
     appsinkAudio = gst_bin_get_by_name(GST_BIN(pipeline), "appsink-audio");
 
     if (!(appsinkVideo != NULL || appsinkAudio != NULL)) {
-        printf("[KVS GStreamer Master] sendGstreamerAudioVideo(): cant find appsink, operation returned status code: 0x%08x \n",
-               STATUS_INTERNAL_ERROR);
+        DLOGE("cant find appsink, operation returned status code: 0x%08x", STATUS_INTERNAL_ERROR);
         goto CleanUp;
     }
 
@@ -209,6 +187,18 @@ PVOID sendGstreamerAudioVideo(PVOID args)
     /* block until error or EOS */
     bus = gst_element_get_bus(pipeline);
     msg = gst_bus_timed_pop_filtered(bus, GST_CLOCK_TIME_NONE, GST_MESSAGE_ERROR | GST_MESSAGE_EOS);
+    /* issue the termination signals to the app */
+    MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
+    locked = TRUE;
+
+    // scan and cleanup terminated streaming session
+    DLOGD("gstreamer terminated");
+    for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
+        ATOMIC_STORE_BOOL(&pSampleConfiguration->sampleStreamingSessionList[i]->terminateFlag, TRUE);
+    }
+    CVAR_BROADCAST(pSampleConfiguration->cvar);
+    MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
+    locked = FALSE;
 
     /* Free resources */
     if (msg != NULL) {
@@ -221,13 +211,16 @@ PVOID sendGstreamerAudioVideo(PVOID args)
     gst_object_unref(appsinkVideo);
 
 CleanUp:
+    if (locked) {
+        MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
+    }
 
     if (error != NULL) {
-        printf("%s", error->message);
+        DLOGE("%s", error->message);
         g_clear_error(&error);
     }
 
-    return (PVOID) (ULONG_PTR) retStatus;
+    return (PVOID)(ULONG_PTR) retStatus;
 }
 
 VOID onGstAudioFrameReady(UINT64 customData, PFrame pFrame)
@@ -267,7 +260,7 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
     gchar *videoDescription = "", *audioDescription = "", *audioVideoDescription;
 
     if (pSampleStreamingSession == NULL) {
-        printf("[KVS GStreamer Master] receiveGstreamerAudioVideo(): operation returned status code: 0x%08x \n", STATUS_NULL_ARG);
+        DLOGE("operation returned status code: 0x%08x", STATUS_NULL_ARG);
         goto CleanUp;
     }
 
@@ -292,7 +285,7 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
 
     appsrcAudio = gst_bin_get_by_name(GST_BIN(pipeline), "appsrc-audio");
     if (appsrcAudio == NULL) {
-        printf("[KVS GStreamer Master] gst_bin_get_by_name(): cant find appsrc, operation returned status code: 0x%08x \n", STATUS_INTERNAL_ERROR);
+        DLOGE("gst_bin_get_by_name(): cant find appsrc, operation returned status code: 0x%08x", STATUS_INTERNAL_ERROR);
         goto CleanUp;
     }
 
@@ -300,15 +293,14 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
 
     retStatus = streamingSessionOnShutdown(pSampleStreamingSession, (UINT64) appsrcAudio, onSampleStreamingSessionShutdown);
     if (retStatus != STATUS_SUCCESS) {
-        printf("[KVS GStreamer Master] streamingSessionOnShutdown(): operation returned status code: 0x%08x \n", STATUS_INTERNAL_ERROR);
+        DLOGE("streamingSessionOnShutdown(): operation returned status code: 0x%08x", STATUS_INTERNAL_ERROR);
         goto CleanUp;
     }
 
     g_free(audioVideoDescription);
 
     if (pipeline == NULL) {
-        printf("[KVS GStreamer Master] receiveGstreamerAudioVideo(): Failed to launch gstreamer, operation returned status code: 0x%08x \n",
-               STATUS_INTERNAL_ERROR);
+        DLOGE("Failed to launch gstreamer, operation returned status code: 0x%08x", STATUS_INTERNAL_ERROR);
         goto CleanUp;
     }
 
@@ -329,11 +321,11 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
 
 CleanUp:
     if (error != NULL) {
-        printf("%s", error->message);
+        DLOGE("%s", error->message);
         g_clear_error(&error);
     }
 
-    return (PVOID) (ULONG_PTR) retStatus;
+    return (PVOID)(ULONG_PTR) retStatus;
 }
 
 INT32 main(INT32 argc, CHAR* argv[])
@@ -347,7 +339,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     signal(SIGINT, sigintHandler);
 
     // do trickle-ice by default
-    printf("[KVS GStreamer Master] Using trickleICE by default\n");
+    DLOGI("Using trickleICE by default");
 
 #ifdef IOT_CORE_ENABLE_CREDENTIALS
     CHK_ERR((pChannelName = getenv(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_THING_NAME must be set");
@@ -355,19 +347,19 @@ INT32 main(INT32 argc, CHAR* argv[])
     pChannelName = argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME;
 #endif
 
-    retStatus = createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, FALSE, &pSampleConfiguration);
+    retStatus = createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, TRUE, &pSampleConfiguration);
     if (retStatus != STATUS_SUCCESS) {
-        printf("[KVS GStreamer Master] createSampleConfiguration(): operation returned status code: 0x%08x \n", retStatus);
+        DLOGE("createSampleConfiguration(): operation returned status code: 0x%08x", retStatus);
         goto CleanUp;
     }
 
-    printf("[KVS GStreamer Master] Created signaling channel %s\n", pChannelName);
+    DLOGI("Created signaling channel %s", pChannelName);
 
     if (pSampleConfiguration->enableFileLogging) {
         retStatus =
             createFileLogger(FILE_LOGGING_BUFFER_SIZE, MAX_NUMBER_OF_LOG_FILES, (PCHAR) FILE_LOGGER_LOG_FILE_DIRECTORY_PATH, TRUE, TRUE, NULL);
         if (retStatus != STATUS_SUCCESS) {
-            printf("[KVS Master] createFileLogger(): operation returned status code: 0x%08x \n", retStatus);
+            DLOGE("[KVS Master] createFileLogger(): operation returned status code: 0x%08x", retStatus);
             pSampleConfiguration->enableFileLogging = FALSE;
         }
     }
@@ -380,45 +372,48 @@ INT32 main(INT32 argc, CHAR* argv[])
     pSampleConfiguration->useTestSrc = FALSE;
     /* Initialize GStreamer */
     gst_init(&argc, &argv);
-    printf("[KVS Gstreamer Master] Finished initializing GStreamer\n");
+    DLOGI("Finished initializing GStreamer");
 
     if (argc > 2) {
         if (STRCMP(argv[2], "video-only") == 0) {
             pSampleConfiguration->mediaType = SAMPLE_STREAMING_VIDEO_ONLY;
-            printf("[KVS Gstreamer Master] Streaming video only\n");
+            DLOGI("Streaming video only");
         } else if (STRCMP(argv[2], "audio-video") == 0) {
             pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
-            printf("[KVS Gstreamer Master] Streaming audio and video\n");
+            DLOGI("Streaming audio and video");
         } else {
-            printf("[KVS Gstreamer Master] Unrecognized streaming type. Default to video-only\n");
+            DLOGI("Unrecognized streaming type. Default to video-only");
         }
     } else {
-        printf("[KVS Gstreamer Master] Streaming video only\n");
+        DLOGI("Streaming video only");
     }
 
     if (argc > 3) {
-        if (STRCMP(argv[3], "testsrc") == 0) {
-            printf("[KVS GStreamer Master] Using test source in GStreamer\n");
-            pSampleConfiguration->useTestSrc = TRUE;
+        pSampleConfiguration->mediaStorageClipLength = STRTOUL(argv[3], NULL, 10) * GST_SECOND;
+        if (pSampleConfiguration->mediaStorageClipLength == 0) {
+            pSampleConfiguration->mediaStorageClipLength = GST_CLOCK_TIME_NONE;
+            DLOGI("persistent streaming");
+        } else {
+            DLOGI("periodic event-driven streaming");
         }
     }
 
     switch (pSampleConfiguration->mediaType) {
         case SAMPLE_STREAMING_VIDEO_ONLY:
-            printf("[KVS GStreamer Master] streaming type video-only");
+            DLOGI("streaming type video-only");
             break;
         case SAMPLE_STREAMING_AUDIO_VIDEO:
-            printf("[KVS GStreamer Master] streaming type audio-video");
+            DLOGI("streaming type audio-video");
             break;
     }
 
     // Initalize KVS WebRTC. This must be done before anything else, and must only be done once.
     retStatus = initKvsWebRtc();
     if (retStatus != STATUS_SUCCESS) {
-        printf("[KVS GStreamer Master] initKvsWebRtc(): operation returned status code: 0x%08x \n", retStatus);
+        DLOGE("initKvsWebRtc(): operation returned status code: 0x%08x", retStatus);
         goto CleanUp;
     }
-    printf("[KVS GStreamer Master] KVS WebRTC initialization completed successfully\n");
+    DLOGI("KVS WebRTC initialization completed successfully");
 
     pSampleConfiguration->signalingClientCallbacks.messageReceivedFn = signalingMessageReceived;
 
@@ -427,45 +422,61 @@ INT32 main(INT32 argc, CHAR* argv[])
     retStatus = createSignalingClientSync(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
                                           &pSampleConfiguration->signalingClientCallbacks, pSampleConfiguration->pCredentialProvider,
                                           &pSampleConfiguration->signalingClientHandle);
+
     if (retStatus != STATUS_SUCCESS) {
-        printf("[KVS GStreamer Master] createSignalingClientSync(): operation returned status code: 0x%08x \n", retStatus);
+        DLOGE("createSignalingClientSync(): operation returned status code: 0x%08x", retStatus);
     }
-    printf("[KVS GStreamer Master] Signaling client created successfully\n");
+    DLOGI("Signaling client created successfully");
 
     // Enable the processing of the messages
     retStatus = signalingClientFetchSync(pSampleConfiguration->signalingClientHandle);
     if (retStatus != STATUS_SUCCESS) {
-        printf("[KVS Master] signalingClientFetchSync(): operation returned status code: 0x%08x \n", retStatus);
+        DLOGE("[KVS Master] signalingClientFetchSync(): operation returned status code: 0x%08x", retStatus);
         goto CleanUp;
     }
 
     retStatus = signalingClientConnectSync(pSampleConfiguration->signalingClientHandle);
     if (retStatus != STATUS_SUCCESS) {
-        printf("[KVS GStreamer Master] signalingClientConnectSync(): operation returned status code: 0x%08x \n", retStatus);
+        DLOGE("signalingClientConnectSync(): operation returned status code: 0x%08x", retStatus);
         goto CleanUp;
     }
-    printf("[KVS GStreamer Master] Signaling client connection to socket established\n");
+    DLOGI("Signaling client connection to socket established");
 
-    printf("[KVS Gstreamer Master] Beginning streaming...check the stream over channel %s\n", pChannelName);
+    DLOGI("Beginning streaming...check the stream over channel %s", pChannelName);
+
+    if (pSampleConfiguration->channelInfo.useMediaStorage == TRUE) {
+        DLOGD("invoke join storage session");
+        retStatus = signalingClientJoinSessionSync(pSampleConfiguration->signalingClientHandle);
+        if (retStatus != STATUS_SUCCESS) {
+            printf("[KVS Master] signalingClientConnectSync(): operation returned status code: 0x%08x", retStatus);
+            goto CleanUp;
+        }
+        printf("[KVS Master] Signaling client connection to socket established");
+        if (SAMPLE_PERIODIC_JOIN_SESSION) {
+            CHK_LOG_ERR(retStatus = timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, SAMPLE_PERIODIC_JOIN_SESSION_PERIOD,
+                                                       SAMPLE_PERIODIC_JOIN_SESSION_PERIOD, joinSessionTimerCallback, (UINT64) pSampleConfiguration,
+                                                       &pSampleConfiguration->joinSessionTimerId));
+        }
+    }
 
     gSampleConfiguration = pSampleConfiguration;
 
     // Checking for termination
     retStatus = sessionCleanupWait(pSampleConfiguration);
     if (retStatus != STATUS_SUCCESS) {
-        printf("[KVS GStreamer Master] sessionCleanupWait(): operation returned status code: 0x%08x \n", retStatus);
+        DLOGI("sessionCleanupWait(): operation returned status code: 0x%08x", retStatus);
         goto CleanUp;
     }
 
-    printf("[KVS GStreamer Master] Streaming session terminated\n");
+    DLOGI("Streaming session terminated");
 
 CleanUp:
 
     if (retStatus != STATUS_SUCCESS) {
-        printf("[KVS GStreamer Master] Terminated with status code 0x%08x", retStatus);
+        DLOGE("Terminated with status code 0x%08x", retStatus);
     }
 
-    printf("[KVS GStreamer Master] Cleaning up....\n");
+    DLOGI("Cleaning up....");
 
     if (pSampleConfiguration != NULL) {
         // Kick of the termination sequence
@@ -480,15 +491,15 @@ CleanUp:
         }
         retStatus = freeSignalingClient(&pSampleConfiguration->signalingClientHandle);
         if (retStatus != STATUS_SUCCESS) {
-            printf("[KVS GStreamer Master] freeSignalingClient(): operation returned status code: 0x%08x \n", retStatus);
+            DLOGE("freeSignalingClient(): operation returned status code: 0x%08x", retStatus);
         }
 
         retStatus = freeSampleConfiguration(&pSampleConfiguration);
         if (retStatus != STATUS_SUCCESS) {
-            printf("[KVS GStreamer Master] freeSampleConfiguration(): operation returned status code: 0x%08x \n", retStatus);
+            DLOGE("freeSampleConfiguration(): operation returned status code: 0x%08x", retStatus);
         }
     }
-    printf("[KVS Gstreamer Master] Cleanup done\n");
+    DLOGI("Cleanup done");
 
     RESET_INSTRUMENTED_ALLOCATORS();
 

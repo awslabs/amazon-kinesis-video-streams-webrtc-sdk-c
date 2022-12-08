@@ -10,3 +10,4 @@ open-source/
 outputs
 tags
 CMakeLists.txt.user
+*.vscode
