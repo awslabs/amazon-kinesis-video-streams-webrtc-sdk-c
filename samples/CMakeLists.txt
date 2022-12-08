@@ -58,6 +58,12 @@ add_executable(
 target_link_libraries(kvsWebrtcClientViewer kvsWebrtcClient kvsWebrtcSignalingClient kvsCommonLws kvspicUtils websockets)
 
 add_executable(
+  kvsWebRTCClientBasicStorageSession
+  Common.c
+  kvsWebRTCClientBasicStorageSession.c)
+target_link_libraries(kvsWebRTCClientBasicStorageSession kvsWebrtcClient kvsWebrtcSignalingClient kvsCommonLws kvspicUtils websockets)
+
+add_executable(
         discoverNatBehavior
         discoverNatBehavior.c)
 target_link_libraries(discoverNatBehavior kvsWebrtcClient)
