@@ -390,6 +390,7 @@ STATUS getChannelEndpoint(PSignalingClient, UINT64);
 STATUS getIceConfig(PSignalingClient, UINT64);
 STATUS connectSignalingChannel(PSignalingClient, UINT64);
 STATUS joinStorageSession(PSignalingClient, UINT64);
+STATUS signalingJoinSessionSync(PSignalingClient);
 STATUS describeMediaStorageConf(PSignalingClient, UINT64);
 STATUS deleteChannel(PSignalingClient, UINT64);
 STATUS signalingGetMetrics(PSignalingClient, PSignalingClientMetrics);

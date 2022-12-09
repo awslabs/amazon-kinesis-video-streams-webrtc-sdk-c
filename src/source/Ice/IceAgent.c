@@ -2325,6 +2325,12 @@ STATUS iceCandidateSerialize(PIceCandidate pIceCandidate, PCHAR pOutputData, PUI
 
     // TODO FIXME real source of randomness
     if (IS_IPV4_ADDR(&(pIceCandidate->ipAddress))) {
+        amountWritten = SNPRINTF(pOutputData, pOutputData == NULL ? 0 : *pOutputLength,
+                "%u 1 udp %u %d.%d.%d.%d %d typ %s raddr 0.0.0.0 rport 0 generation 0 network-cost 999", pIceCandidate->foundation,
+                pIceCandidate->priority, pIceCandidate->ipAddress.address[0], pIceCandidate->ipAddress.address[1],
+                pIceCandidate->ipAddress.address[2], pIceCandidate->ipAddress.address[3],
+                (UINT16) getInt16(pIceCandidate->ipAddress.port), iceAgentGetCandidateTypeStr(pIceCandidate->iceCandidateType));
+#if 0
         /*
         {
         "candidate": "candidate:3378846520 1 udp 2122194687 192.168.1.120 60971 typ host generation 0 ufrag 7Idt network-id 1 network-cost 10",
@@ -2382,7 +2388,7 @@ STATUS iceCandidateSerialize(PIceCandidate pIceCandidate, PCHAR pOutputData, PUI
                 DLOGD("turn connection is not ready.");
             }
         }
-
+#endif
     } else {
         amountWritten = SNPRINTF(pOutputData, pOutputData == NULL ? 0 : *pOutputLength,
                                  "%u 1 udp %u %02X%02X:%02X%02X:%02X%02X:%02X%02X:%02X%02X:%02X%02X:%02X%02X:%02X%02X "

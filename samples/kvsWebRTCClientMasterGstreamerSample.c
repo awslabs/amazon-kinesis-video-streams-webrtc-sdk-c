@@ -144,23 +144,23 @@ PVOID sendGstreamerAudioVideo(PVOID args)
 
     switch (pSampleConfiguration->mediaType) {
         case SAMPLE_STREAMING_VIDEO_ONLY:
-            if (pSampleConfiguration->useTestSrc) {
+            /*if (pSampleConfiguration->useTestSrc) {
                 pipeline = gst_parse_launch(
                     "videotestsrc is-live=TRUE ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
                     "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
                     "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE emit-signals=TRUE name=appsink-video",
                     &error);
-            } else {
+            } else {*/
                 pipeline = gst_parse_launch(
-                    "autovideosrc ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
+                    "autovideosrc ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=30/1 ! "
                     "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
-                    "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE emit-signals=TRUE name=appsink-video",
+                    "video/x-h264,stream-format=byte-stream,alignment=au,profile=constrained-baseline ! appsink sync=TRUE emit-signals=TRUE name=appsink-video",
                     &error);
-            }
+            //}
             break;
 
         case SAMPLE_STREAMING_AUDIO_VIDEO:
-            if (pSampleConfiguration->useTestSrc) {
+           /* if (pSampleConfiguration->useTestSrc) {
                 pipeline = gst_parse_launch("videotestsrc is-live=TRUE ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
                                             "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
                                             "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE "
@@ -168,16 +168,17 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                                             "queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample ! opusenc ! "
                                             "audio/x-opus,rate=48000,channels=2 ! appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
                                             &error);
-            } else {
+            } else { */
                 pipeline =
-                    gst_parse_launch("autovideosrc ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
+                    gst_parse_launch("filesrc location=/Users/bdhandap/Data/workplace/Acuity/amazon-kinesis-video-streams-webrtc-sdk-c/build/samplevideo.mp4 ! decodebin ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=30/1 ! "
                                      "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
-                                     "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE emit-signals=TRUE "
+                                     "video/x-h264,stream-format=byte-stream,alignment=au,profile=constrained-baseline ! appsink sync=TRUE emit-signals=TRUE "
                                      "name=appsink-video autoaudiosrc ! "
                                      "queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample ! opusenc ! "
                                      "audio/x-opus,rate=48000,channels=2 ! appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
-                                     &error);
-            }
+	       			     &error);
+	    printf("Running audio-video sample......................... BABU.................");	
+            //}
             break;
     }
 
@@ -399,7 +400,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     if (argc > 3) {
         if (STRCMP(argv[3], "testsrc") == 0) {
             printf("[KVS GStreamer Master] Using test source in GStreamer\n");
-            pSampleConfiguration->useTestSrc = TRUE;
+            pSampleConfiguration->useTestSrc = FALSE;
         }
     }
 

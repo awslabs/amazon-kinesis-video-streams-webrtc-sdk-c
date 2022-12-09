@@ -485,7 +485,7 @@ VOID onSctpSessionOutboundPacket(UINT64 customData, PBYTE pPacket, UINT32 packet
     }
 
     pKvsPeerConnection = (PKvsPeerConnection) customData;
-    CHK_STATUS(dtlsSessionPutApplicationData(pKvsPeerConnection->pDtlsSession, pPacket, packetLen));
+   // CHK_STATUS(dtlsSessionPutApplicationData(pKvsPeerConnection->pDtlsSession, pPacket, packetLen));
 
 CleanUp:
     if (STATUS_FAILED(retStatus)) {
