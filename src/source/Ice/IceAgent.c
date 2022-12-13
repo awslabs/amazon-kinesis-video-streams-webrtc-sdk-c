@@ -2330,65 +2330,6 @@ STATUS iceCandidateSerialize(PIceCandidate pIceCandidate, PCHAR pOutputData, PUI
                 pIceCandidate->priority, pIceCandidate->ipAddress.address[0], pIceCandidate->ipAddress.address[1],
                 pIceCandidate->ipAddress.address[2], pIceCandidate->ipAddress.address[3],
                 (UINT16) getInt16(pIceCandidate->ipAddress.port), iceAgentGetCandidateTypeStr(pIceCandidate->iceCandidateType));
-#if 0
-        /*
-        {
-        "candidate": "candidate:3378846520 1 udp 2122194687 192.168.1.120 60971 typ host generation 0 ufrag 7Idt network-id 1 network-cost 10",
-        "sdpMid": "audio0",
-        "sdpMLineIndex": 0
-        }
-        {
-        "candidate": "candidate:1518639432 1 udp 2122129151 11.160.4.138 51153 typ host generation 0 ufrag 7Idt network-id 3 network-cost 50",
-        "sdpMid": "audio0",
-        "sdpMLineIndex": 0
-        }
-        {
-        "candidate": "candidate:2280056776 1 tcp 1518214911 192.168.1.120 9 typ host tcptype active generation 0 ufrag 7Idt network-id 1 network-cost
-        10", "sdpMid": "audio0", "sdpMLineIndex": 0
-        }
-        {
-        "candidate": "candidate:336029112 1 tcp 1518149375 11.160.4.138 9 typ host tcptype active generation 0 ufrag 7Idt network-id 3 network-cost
-        50", "sdpMid": "audio0", "sdpMLineIndex": 0
-        }
-        */
-        if (pIceCandidate->iceCandidateType != ICE_CANDIDATE_TYPE_RELAYED) {
-            amountWritten = SNPRINTF(
-                pOutputData, pOutputData == NULL ? 0 : *pOutputLength, "%u 1 udp %u %d.%d.%d.%d %d typ %s generation 0 ufrag:%s network-cost 999",
-                pIceCandidate->foundation, pIceCandidate->priority, pIceCandidate->ipAddress.address[0], pIceCandidate->ipAddress.address[1],
-                pIceCandidate->ipAddress.address[2], pIceCandidate->ipAddress.address[3], (UINT16) getInt16(pIceCandidate->ipAddress.port),
-                iceAgentGetCandidateTypeStr(pIceCandidate->iceCandidateType), pIceCandidate->pIceAgent->localUsername);
-        } else {
-            /*
-            {
-            "candidate": "candidate:1210916236 1 udp 1685987071 111.248.121.52 60971 typ srflx raddr 192.168.1.120 rport 60971 generation 0 ufrag 7Idt
-            network-id 1 network-cost 10", "sdpMid": "audio0", "sdpMLineIndex": 0
-            }
-            {
-            "candidate": "candidate:3355128692 1 udp 41820415 34.210.237.28 61007 typ relay raddr 111.248.121.52 rport 60971 generation 0 ufrag 7Idt
-            network-id 1 network-cost 10", "sdpMid": "audio0", "sdpMLineIndex": 0
-            }
-            */
-            struct __TurnConnection* pTurnConnection = pIceCandidate->pTurnConnection;
-            CHAR ipAddrStr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
-            if (pTurnConnection != NULL && ATOMIC_LOAD_BOOL(&pTurnConnection->hasAllocation)) {
-                CHK_STATUS(getIpAddrStr(&pTurnConnection->relayAddress, ipAddrStr, ARRAY_SIZE(ipAddrStr)));
-                DLOGD("Relay address: %s, port: %u", ipAddrStr, (UINT16) getInt16(pTurnConnection->relayAddress.port));
-                amountWritten = SNPRINTF(pOutputData, pOutputData == NULL ? 0 : *pOutputLength,
-                                         "%u 1 udp %u %d.%d.%d.%d %d typ %s raddr 0.0.0.0 rport 0 generation 0 ufrag:%s network-cost 999",
-                                         pIceCandidate->foundation, pIceCandidate->priority, pIceCandidate->ipAddress.address[0],
-                                         pIceCandidate->ipAddress.address[1], pIceCandidate->ipAddress.address[2],
-                                         pIceCandidate->ipAddress.address[3], (UINT16) getInt16(pIceCandidate->ipAddress.port),
-                                         iceAgentGetCandidateTypeStr(pIceCandidate->iceCandidateType), pIceCandidate->pIceAgent->localUsername);
-
-                //, pTurnConnection->relayAddress.address[0],
-                // pTurnConnection->relayAddress.address[1], pTurnConnection->relayAddress.address[2],
-                // pTurnConnection->relayAddress.address[3], (UINT16) getInt16(pTurnConnection->relayAddress.port),
-                // pIceCandidate->pIceAgent->localUsername);
-            } else {
-                DLOGD("turn connection is not ready.");
-            }
-        }
-#endif
     } else {
         amountWritten = SNPRINTF(pOutputData, pOutputData == NULL ? 0 : *pOutputLength,
                                  "%u 1 udp %u %02X%02X:%02X%02X:%02X%02X:%02X%02X:%02X%02X:%02X%02X:%02X%02X:%02X%02X "

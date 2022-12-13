@@ -80,8 +80,7 @@ STATUS tlsSessionStart(PTlsSession pTlsSession, BOOL isServer)
     CHK(pTlsSession->pSslCtx != NULL, STATUS_SSL_CTX_CREATION_FAILED);
 
     SSL_CTX_set_read_ahead(pTlsSession->pSslCtx, 1);
-    //#YC_TBD.
-    SSL_CTX_set_verify(pTlsSession->pSslCtx, SSL_VERIFY_NONE, tlsSessionCertificateVerifyCallback);
+    SSL_CTX_set_verify(pTlsSession->pSslCtx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, tlsSessionCertificateVerifyCallback);
     CHK(SSL_CTX_set_cipher_list(pTlsSession->pSslCtx, "HIGH:!aNULL:!MD5:!RC4"), STATUS_SSL_CTX_CREATION_FAILED);
 
     pTlsSession->pSsl = SSL_new(pTlsSession->pSslCtx);

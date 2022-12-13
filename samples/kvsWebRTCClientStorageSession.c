@@ -389,8 +389,8 @@ INT32 main(INT32 argc, CHAR* argv[])
     }
 
     if (argc > 3) {
-        pSampleConfiguration->mediaStorageClipLength = STRTOUL(argv[3], NULL, 10) * GST_SECOND;
-        if (pSampleConfiguration->mediaStorageClipLength == 0) {
+        pSampleConfiguration->mediaStorageClipLength = STRTOULL(argv[3], NULL, 10) * GST_SECOND;
+        if (pSampleConfiguration->mediaStorageClipLength == 0ULL) {
             pSampleConfiguration->mediaStorageClipLength = GST_CLOCK_TIME_NONE;
             DLOGI("persistent streaming");
         } else {
@@ -407,7 +407,7 @@ INT32 main(INT32 argc, CHAR* argv[])
             break;
     }
 
-    // Initalize KVS WebRTC. This must be done before anything else, and must only be done once.
+    // Initialize KVS WebRTC. This must be done before anything else, and must only be done once.
     retStatus = initKvsWebRtc();
     if (retStatus != STATUS_SUCCESS) {
         DLOGE("initKvsWebRtc(): operation returned status code: 0x%08x", retStatus);
