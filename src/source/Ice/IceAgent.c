@@ -345,7 +345,7 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
     state = SDP_ICE_CANDIDATE_PARSER_STATE_FOUNDATION;
 
     while ((next = STRNCHR(curr, tail - curr, ' ')) != NULL && !foundType) {
-        tokenLen = (UINT32)(next - curr);
+        tokenLen = (UINT32) (next - curr);
 
         switch (state) {
             case SDP_ICE_CANDIDATE_PARSER_STATE_FOUNDATION:
@@ -2326,10 +2326,10 @@ STATUS iceCandidateSerialize(PIceCandidate pIceCandidate, PCHAR pOutputData, PUI
     // TODO FIXME real source of randomness
     if (IS_IPV4_ADDR(&(pIceCandidate->ipAddress))) {
         amountWritten = SNPRINTF(pOutputData, pOutputData == NULL ? 0 : *pOutputLength,
-                "%u 1 udp %u %d.%d.%d.%d %d typ %s raddr 0.0.0.0 rport 0 generation 0 network-cost 999", pIceCandidate->foundation,
-                pIceCandidate->priority, pIceCandidate->ipAddress.address[0], pIceCandidate->ipAddress.address[1],
-                pIceCandidate->ipAddress.address[2], pIceCandidate->ipAddress.address[3],
-                (UINT16) getInt16(pIceCandidate->ipAddress.port), iceAgentGetCandidateTypeStr(pIceCandidate->iceCandidateType));
+                                 "%u 1 udp %u %d.%d.%d.%d %d typ %s raddr 0.0.0.0 rport 0 generation 0 network-cost 999", pIceCandidate->foundation,
+                                 pIceCandidate->priority, pIceCandidate->ipAddress.address[0], pIceCandidate->ipAddress.address[1],
+                                 pIceCandidate->ipAddress.address[2], pIceCandidate->ipAddress.address[3],
+                                 (UINT16) getInt16(pIceCandidate->ipAddress.port), iceAgentGetCandidateTypeStr(pIceCandidate->iceCandidateType));
     } else {
         amountWritten = SNPRINTF(pOutputData, pOutputData == NULL ? 0 : *pOutputLength,
                                  "%u 1 udp %u %02X%02X:%02X%02X:%02X%02X:%02X%02X:%02X%02X:%02X%02X:%02X%02X:%02X%02X "
@@ -2480,7 +2480,7 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
             } else {
                 pIceCandidatePair->roundTripTime = GETTIME() - requestSentTime;
                 pIceCandidatePair->rtcIceCandidatePairDiagnostics.currentRoundTripTime =
-                    (DOUBLE)(pIceCandidatePair->roundTripTime) / HUNDREDS_OF_NANOS_IN_A_SECOND;
+                    (DOUBLE) (pIceCandidatePair->roundTripTime) / HUNDREDS_OF_NANOS_IN_A_SECOND;
             }
             CHK_WARN(transactionIdStoreHasId(pIceCandidatePair->pTransactionIdStore, pBuffer + STUN_PACKET_TRANSACTION_ID_OFFSET), retStatus,
                      "Dropping response packet because transaction id does not match");
@@ -2527,7 +2527,7 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
                     DLOGD("Ice candidate pair %s_%s is connected. Round trip time: %" PRIu64 "ms", pIceCandidatePair->local->id,
                           pIceCandidatePair->remote->id, pIceCandidatePair->roundTripTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
                     pIceCandidatePair->rtcIceCandidatePairDiagnostics.totalRoundTripTime +=
-                        (DOUBLE)(pIceCandidatePair->roundTripTime) / HUNDREDS_OF_NANOS_IN_A_SECOND;
+                        (DOUBLE) (pIceCandidatePair->roundTripTime) / HUNDREDS_OF_NANOS_IN_A_SECOND;
 
                     CHK_STATUS(hashTableRemove(pIceCandidatePair->requestSentTime, checkSum));
                 }

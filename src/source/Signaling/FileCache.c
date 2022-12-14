@@ -77,7 +77,7 @@ STATUS deserializeSignalingCacheEntries(PCHAR cachedFileContent, UINT64 fileSize
                     break;
             }
             tokenCount++;
-            tokenSize = (UINT32)(nextToken - pCurrent);
+            tokenSize = (UINT32) (nextToken - pCurrent);
             pCurrent += tokenSize + 1;
             remainingSize -= tokenSize + 1;
         }

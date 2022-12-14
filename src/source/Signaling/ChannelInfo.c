@@ -110,7 +110,7 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
     }
 
     // Set the current pointer to the end
-    pCurPtr = (PCHAR)(pChannelInfo + 1);
+    pCurPtr = (PCHAR) (pChannelInfo + 1);
 
     // Set the pointers to the end and copy the data.
     // NOTE: the structure is calloc-ed so the strings will be NULL terminated
@@ -140,7 +140,7 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
         STRCPY(pCurPtr, pOrigChannelInfo->pControlPlaneUrl);
     } else {
 // Create a fully qualified URI
-//#YC_TBD.
+// #YC_TBD.
 #if 0
         SNPRINTF(pCurPtr, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s%s.%s%s", CONTROL_PLANE_URI_PREFIX, KINESIS_VIDEO_SERVICE_NAME, pChannelInfo->pRegion,
                  CONTROL_PLANE_URI_POSTFIX);

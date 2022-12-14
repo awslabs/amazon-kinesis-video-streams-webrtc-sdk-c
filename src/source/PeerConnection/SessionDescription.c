@@ -23,8 +23,8 @@ STATUS serializeSessionDescriptionInit(PRtcSessionDescriptionInit pSessionDescri
     curr = pSessionDescriptionInit->sdp;
     tail = pSessionDescriptionInit->sdp + STRLEN(pSessionDescriptionInit->sdp);
 
-    while ((next = STRNCHR(curr, (UINT32)(tail - curr), '\n')) != NULL) {
-        lineLen = (UINT32)(next - curr);
+    while ((next = STRNCHR(curr, (UINT32) (tail - curr), '\n')) != NULL) {
+        lineLen = (UINT32) (next - curr);
 
         if (lineLen > 0 && curr[lineLen - 1] == '\r') {
             lineLen--;
@@ -95,7 +95,7 @@ STATUS deserializeSessionDescriptionInit(PCHAR sessionDescriptionJSON, UINT32 se
             //     \r becomes '\' and 'r'
             //     \n becomes '\' and 'n'
             while ((next = STRNSTR(curr, SESSION_DESCRIPTION_INIT_LINE_ENDING_WITHOUT_CR, tail - curr)) != NULL) {
-                lineLen = (INT32)(next - curr);
+                lineLen = (INT32) (next - curr);
 
                 // Check if the SDP format is using \r\n or \n separator.
                 // There are escape characters before \n and \r, so we need to move back 1 more character
@@ -231,7 +231,7 @@ STATUS setPayloadTypesFromOffer(PHashTable codecTable, PHashTable rtxTable, PSes
                 CHK_STATUS(STRTOUI64(end + STRLEN(RTX_CODEC_VALUE), NULL, 10, &parsedPayloadType));
                 if ((end = STRSTR(attributeValue, FMTP_VALUE)) != NULL) {
                     CHK_STATUS(STRTOUI64(end + STRLEN(FMTP_VALUE), NULL, 10, &fmtpVal));
-                    aptFmtpVals[aptFmtpValCount++] = (UINT32)((fmtpVal << 8u) & parsedPayloadType);
+                    aptFmtpVals[aptFmtpValCount++] = (UINT32) ((fmtpVal << 8u) & parsedPayloadType);
                 }
             }
         }
@@ -430,7 +430,6 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
                                                              &attributeCount));
 
     if (containRtx) {
-
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "msid");
         SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%s %sRTX", pRtcMediaStreamTrack->streamId,
                 pRtcMediaStreamTrack->trackId);
@@ -441,7 +440,6 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
                 pKvsRtpTransceiver->sender.rtxSsrc);
         attributeCount++;
     } else {
-
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "msid");
         SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%s %s", pRtcMediaStreamTrack->streamId,
                 pRtcMediaStreamTrack->trackId);
@@ -516,61 +514,15 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
     attributeCount++;
 
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "mid");
-// YC_TBD, hardcoded. the offer. we do not handle a=mid.
-/**
-chrome:
-
-{"type":"offer","sdp":"v=0\r\n
-o=- 8288383487505339219 0 IN IP4 0.0.0.0\r\n
-s=-\r\n
-t=0 0\r\n
-a=ice-options:trickle\r\n
-a=group:BUNDLE audio0 video1\r\n
-
-m=audio 9 UDP/TLS/RTP/SAVPF 111\r\n
-c=IN IP4 0.0.0.0\r\n
-a=setup:actpass\r\n
-a=ice-ufrag:yCYOk/M/WxUEx6qlagneTh9pRZkXkhSA\r\n
-a=ice-pwd:6TnohDt13it/FYXoUK6kU8fHA/CBcfjc\r\n
-a=rtcp-mux\r\n
-a=rtcp-rsize\r\n
-a=recvonly\r\n
-a=rtpmap:111 opus/48000/2\r\n
-a=rtcp-fb:111 nack pli\r\n
-a=ssrc:3977696387 msid:user2040899159@host-288479cf webrtctransceiver0\r\n
-a=ssrc:3977696387 cname:user2040899159@host-288479cf\r\n
-a=mid:audio0\r\n
-a=fingerprint:sha-256 B9:7D:94:AD:66:C7:15:12:64:56:84:57:68:EB:74:95:31:57:35:FB:6B:95:89:64:44:B8:7C:7A:A0:90:0C:B9\r\n
-
-m=video 0 UDP/TLS/RTP/SAVPF 126\r\n
-c=IN IP4 0.0.0.0\r\n
-a=setup:actpass\r\n
-a=ice-ufrag:yCYOk/M/WxUEx6qlagneTh9pRZkXkhSA\r\n
-a=ice-pwd:6TnohDt13it/FYXoUK6kU8fHA/CBcfjc\r\n
-a=bundle-only\r\n
-a=rtcp-mux\r\n
-a=rtcp-rsize\r\n
-a=recvonly\r\n
-a=rtpmap:126 H264/90000\r\n
-a=rtcp-fb:126 nack pli\r\n
-a=framerate:30\r\n
-a=fmtp:126 packetization-mode=1\r\n
-a=ssrc:2039446214 msid:user2040899159@host-288479cf webrtctransceiver1\r\n
-a=ssrc:2039446214 cname:user2040899159@host-288479cf\r\n
-a=mid:video1\r\n
-a=fingerprint:sha-256 B9:7D:94:AD:66:C7:15:12:64:56:84:57:68:EB:74:95:31:57:35:FB:6B:95:89:64:44:B8:7C:7A:A0:90:0C:B9\r\n"}
-
-
- */
-    // check all session attribute lines to see if a line with BUNDLE is present. If it is present, copy its content and break
+    // check all session attribute lines to see if a line with mid is present. If it is present, copy its content and break
     for (i = 0; i < pRemoteSessionDescription->mediaDescriptions[mediaSectionId].mediaAttributesCount; i++) {
-        if (STRCMP(pRemoteSessionDescription->mediaDescriptions[mediaSectionId].sdpAttributes[i].attributeName, "mid") == 0) {
+        if (STRCMP(pRemoteSessionDescription->mediaDescriptions[mediaSectionId].sdpAttributes[i].attributeName, MID_KEY) == 0) {
             STRCPY(remoteSdpAttributeValue, pRemoteSessionDescription->mediaDescriptions[mediaSectionId].sdpAttributes[i].attributeValue);
             break;
         }
     }
 
-    // check if we already have a value for the "group" session attribute from remote description. If we have it, we use it.
+    // check if we already have a value for the "mid" session attribute from remote description. If we have it, we use it.
     // If we don't have it, we loop over, create and add them
     if (STRLEN(remoteSdpAttributeValue) > 0) {
         CHK(STRLEN(remoteSdpAttributeValue) < MAX_SDP_ATTRIBUTE_VALUE_LENGTH, STATUS_BUFFER_TOO_SMALL);
@@ -578,7 +530,6 @@ a=fingerprint:sha-256 B9:7D:94:AD:66:C7:15:12:64:56:84:57:68:EB:74:95:31:57:35:F
     } else {
         SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%d", mediaSectionId);
     }
-
     attributeCount++;
 
     if (pKvsPeerConnection->isOffer) {
@@ -621,24 +572,23 @@ a=fingerprint:sha-256 B9:7D:94:AD:66:C7:15:12:64:56:84:57:68:EB:74:95:31:57:35:F
     attributeCount++;
 
     if (mediaSectionId != 0) {
-      STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtcp-rsize");
-      attributeCount++;
+        STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtcp-rsize");
+        attributeCount++;
     }
 
     if (pRtcMediaStreamTrack->codec == RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE) {
-        //if (pKvsPeerConnection->isOffer) {
-            currentFmtp = DEFAULT_H264_FMTP;
+        // if (pKvsPeerConnection->isOffer) {
+        currentFmtp = DEFAULT_H264_FMTP;
         //}
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtpmap");
         SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%" PRId64 " H264/90000", payloadType);
         attributeCount++;
 
- 
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtcp-fb");
-        //SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%" PRId64 " nack", payloadType);
+        // SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%" PRId64 " nack", payloadType);
         SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%" PRId64 " nack pli", payloadType);
         attributeCount++;
-      
+
         // TODO: If level asymmetry is allowed, consider sending back DEFAULT_H264_FMTP instead of the received fmtp value.
         if (currentFmtp != NULL) {
             STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "fmtp");
@@ -658,9 +608,9 @@ a=fingerprint:sha-256 B9:7D:94:AD:66:C7:15:12:64:56:84:57:68:EB:74:95:31:57:35:F
             attributeCount++;
         }
     } else if (pRtcMediaStreamTrack->codec == RTC_CODEC_OPUS) {
-//        if (pKvsPeerConnection->isOffer) {
-            currentFmtp = DEFAULT_OPUS_FMTP;
-//        }
+        //        if (pKvsPeerConnection->isOffer) {
+        currentFmtp = DEFAULT_OPUS_FMTP;
+        //        }
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtpmap");
         SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%" PRId64 " opus/48000/2", payloadType);
         attributeCount++;
