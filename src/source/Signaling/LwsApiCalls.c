@@ -572,8 +572,7 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
     // Execute the LWS REST call
     MEMSET(&connectInfo, 0x00, SIZEOF(struct lws_client_connect_info));
     connectInfo.context = pContext;
-    // #YC_TBD.
-    connectInfo.ssl_connection = LCCSCF_USE_SSL | LCCSCF_ALLOW_SELFSIGNED;
+    connectInfo.ssl_connection = LCCSCF_USE_SSL;
     connectInfo.port = SIGNALING_DEFAULT_SSL_PORT;
 
     CHK_STATUS(getRequestHost(pCallInfo->callInfo.pRequestInfo->url, &pHostStart, &pHostEnd));
