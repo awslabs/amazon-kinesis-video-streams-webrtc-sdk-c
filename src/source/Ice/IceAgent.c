@@ -430,7 +430,7 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
     while (pCurNode != NULL) {
         pLocalIceCandidate = (PIceCandidate) pCurNode->data;
         pCurNode = pCurNode->pNext;
-        //  YC_TBD, confirm the service works with ipv6 or not.
+
         if (pLocalIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED) {
             CHK_STATUS(turnConnectionAddPeer(pLocalIceCandidate->pTurnConnection, &pIceCandidate->ipAddress));
         }
@@ -2092,7 +2092,6 @@ STATUS iceAgentReadyStateSetup(PIceAgent pIceAgent)
 
         if (pIceCandidatePair->nominated && pIceCandidatePair->state == ICE_CANDIDATE_PAIR_STATE_SUCCEEDED) {
             pNominatedAndValidCandidatePair = pIceCandidatePair;
-            // YC_TBD, bug-fix.
             pNominatedAndValidCandidatePair->rtcIceCandidatePairDiagnostics.nominated = pIceCandidatePair->nominated;
             break;
         }
@@ -2348,7 +2347,7 @@ STATUS iceCandidateSerialize(PIceCandidate pIceCandidate, PCHAR pOutputData, PUI
     if (pOutputData == NULL) {
         *pOutputLength = ((UINT32) amountWritten) + 1; // +1 for null terminator
     } else {
-        // amountWritten doesnt account for null char
+        // amountWritten doesn't account for null char
         CHK(amountWritten < (INT32) *pOutputLength, STATUS_BUFFER_TOO_SMALL);
     }
 
