@@ -406,6 +406,7 @@ VOID onIceConnectionStateChange(UINT64 customData, UINT64 connectionState)
             break;
 
         case ICE_AGENT_STATE_DISCONNECTED:
+            DLOGD("ice agent disconnected");
             newConnectionState = RTC_PEER_CONNECTION_STATE_DISCONNECTED;
             break;
 
@@ -1293,7 +1294,7 @@ STATUS addIceCandidate(PRtcPeerConnection pPeerConnection, PCHAR pIceCandidate)
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pPeerConnection;
 
     CHK(pKvsPeerConnection != NULL && pIceCandidate != NULL, STATUS_NULL_ARG);
-
+    DLOGD("%s", pIceCandidate);
     iceAgentAddRemoteCandidate(pKvsPeerConnection->pIceAgent, pIceCandidate);
 
 CleanUp:

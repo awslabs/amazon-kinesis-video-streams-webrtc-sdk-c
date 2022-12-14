@@ -28,7 +28,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     pChannelName = argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME;
 #endif
 
-    retStatus = createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, FALSE, &pSampleConfiguration);
+    retStatus = createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, TRUE, &pSampleConfiguration);
     if (retStatus != STATUS_SUCCESS) {
         printf("[KVS Master] createSampleConfiguration(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;
@@ -103,6 +103,25 @@ INT32 main(INT32 argc, CHAR* argv[])
         goto CleanUp;
     }
     printf("[KVS Master] Signaling client connection to socket established\n");
+
+    printf("Beginning streaming...check the stream over channel %s", pChannelName);
+
+    if (pSampleConfiguration->channelInfo.useMediaStorage == TRUE) {
+        printf("invoke join storage session");
+        retStatus = signalingClientJoinSessionSync(pSampleConfiguration->signalingClientHandle);
+        if (retStatus != STATUS_SUCCESS) {
+            printf("[KVS Master] signalingClientConnectSync(): operation returned status code: 0x%08x", retStatus);
+            goto CleanUp;
+        }
+        printf("[KVS Master] Signaling client connection to socket established");
+#if 0
+        if (SAMPLE_PERIODIC_JOIN_SESSION) {
+            CHK_LOG_ERR(retStatus = timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, SAMPLE_PERIODIC_JOIN_SESSION_PERIOD,
+                        SAMPLE_PERIODIC_JOIN_SESSION_PERIOD, joinSessionTimerCallback, (UINT64) pSampleConfiguration,
+                        &pSampleConfiguration->joinSessionTimerId));
+        }
+#endif
+    }
 
     gSampleConfiguration = pSampleConfiguration;
 
