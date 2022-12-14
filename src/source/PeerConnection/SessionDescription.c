@@ -592,9 +592,7 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
         // TODO: If level asymmetry is allowed, consider sending back DEFAULT_H264_FMTP instead of the received fmtp value.
         if (currentFmtp != NULL) {
             STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "fmtp");
-            // YC_TBD.
             SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%" PRId64 " %s", payloadType, currentFmtp);
-            SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%" PRId64 " %s", payloadType, DEFAULT_H264_FMTP);
             attributeCount++;
         }
 
@@ -655,13 +653,9 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
             pRtcMediaStreamTrack->streamId, pRtcMediaStreamTrack->trackId);
     attributeCount++;
 
-// YC_TBD.
-#if 1
-
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtcp-fb");
     SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%" PRId64 " goog-remb", payloadType);
     attributeCount++;
-#endif
 
     if (pKvsPeerConnection->twccExtId != 0) {
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtcp-fb");
