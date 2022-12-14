@@ -11,3 +11,4 @@ outputs
 tags
 CMakeLists.txt.user
 *.vscode
+*.swp

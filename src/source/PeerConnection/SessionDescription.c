@@ -398,6 +398,9 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
     PRtcMediaStreamTrack pRtcMediaStreamTrack = &(pKvsRtpTransceiver->sender.track);
     PSdpMediaDescription pSdpMediaDescriptionRemote;
     PCHAR currentFmtp = NULL;
+    CHAR remoteSdpAttributeValue[MAX_SDP_ATTRIBUTE_VALUE_LENGTH];
+
+    MEMSET(remoteSdpAttributeValue, 0, MAX_SDP_ATTRIBUTE_VALUE_LENGTH);
 
     CHK_STATUS(hashTableGet(pKvsPeerConnection->pCodecTable, pRtcMediaStreamTrack->codec, &payloadType));
     currentFmtp = fmtpForPayloadType(payloadType, &(pKvsPeerConnection->remoteSessionDescription));
@@ -559,15 +562,22 @@ a=fingerprint:sha-256 B9:7D:94:AD:66:C7:15:12:64:56:84:57:68:EB:74:95:31:57:35:F
 
 
  */
-#if 0
-    SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%d", mediaSectionId);
-#else
-    if (mediaSectionId == 0) {
-        SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "audio%d", mediaSectionId);
-    } else {
-        SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "video%d", mediaSectionId);
+    // check all session attribute lines to see if a line with BUNDLE is present. If it is present, copy its content and break
+    for (i = 0; i < pRemoteSessionDescription->mediaDescriptions[mediaSectionId].mediaAttributesCount; i++) {
+        if (STRCMP(pRemoteSessionDescription->mediaDescriptions[mediaSectionId].sdpAttributes[i].attributeName, "mid") == 0) {
+            STRCPY(remoteSdpAttributeValue, pRemoteSessionDescription->mediaDescriptions[mediaSectionId].sdpAttributes[i].attributeValue);
+            break;
+        }
     }
-#endif
+
+    // check if we already have a value for the "group" session attribute from remote description. If we have it, we use it.
+    // If we don't have it, we loop over, create and add them
+    if (STRLEN(remoteSdpAttributeValue) > 0) {
+        CHK(STRLEN(remoteSdpAttributeValue) < MAX_SDP_ATTRIBUTE_VALUE_LENGTH, STATUS_BUFFER_TOO_SMALL);
+        SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%s", remoteSdpAttributeValue);
+    } else {
+        SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%d", mediaSectionId);
+    }
 
     attributeCount++;
 

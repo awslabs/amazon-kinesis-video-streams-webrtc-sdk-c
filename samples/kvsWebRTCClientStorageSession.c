@@ -389,7 +389,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     }
 
     if (argc > 3) {
-        pSampleConfiguration->mediaStorageClipLength = STRTOULL(argv[3], NULL, 10) * GST_SECOND;
+        pSampleConfiguration->mediaStorageClipLength = strtoull(argv[3], NULL, 10) * GST_SECOND;
         if (pSampleConfiguration->mediaStorageClipLength == 0ULL) {
             pSampleConfiguration->mediaStorageClipLength = GST_CLOCK_TIME_NONE;
             DLOGI("persistent streaming");
