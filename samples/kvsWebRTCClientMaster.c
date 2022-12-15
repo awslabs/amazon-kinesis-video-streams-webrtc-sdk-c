@@ -48,7 +48,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     // Set the audio and video handlers
     pSampleConfiguration->audioSource = sendAudioPackets;
     pSampleConfiguration->videoSource = sendVideoPackets;
-    pSampleConfiguration->receiveAudioVideoSource = sampleReceiveVideoFrame;
+    pSampleConfiguration->receiveAudioVideoSource = sampleReceiveAudioVideoFrame;
     pSampleConfiguration->onDataChannel = onDataChannel;
     pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
     printf("[KVS Master] Finished setting audio and video handlers\n");
@@ -363,16 +363,22 @@ CleanUp:
     return (PVOID) (ULONG_PTR) retStatus;
 }
 
-PVOID sampleReceiveVideoFrame(PVOID args)
+PVOID sampleReceiveAudioVideoFrame(PVOID args)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) args;
     if (pSampleStreamingSession == NULL) {
-        printf("[KVS Master] sampleReceiveVideoFrame(): operation returned status code: 0x%08x \n", STATUS_NULL_ARG);
+        printf("[KVS Master] sampleReceiveAudioVideoFrame(): operation returned status code: 0x%08x \n", STATUS_NULL_ARG);
         goto CleanUp;
     }
 
-    retStatus = transceiverOnFrame(pSampleStreamingSession->pVideoRtcRtpTransceiver, (UINT64) pSampleStreamingSession, sampleFrameHandler);
+    retStatus = transceiverOnFrame(pSampleStreamingSession->pVideoRtcRtpTransceiver, (UINT64) pSampleStreamingSession, sampleVideoFrameHandler);
+    if (retStatus != STATUS_SUCCESS) {
+        printf("[KVS Master] transceiverOnFrame(): operation returned status code: 0x%08x \n", retStatus);
+        goto CleanUp;
+    }
+
+    retStatus = transceiverOnFrame(pSampleStreamingSession->pAudioRtcRtpTransceiver, (UINT64) pSampleStreamingSession, sampleAudioFrameHandler);
     if (retStatus != STATUS_SUCCESS) {
         printf("[KVS Master] transceiverOnFrame(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;

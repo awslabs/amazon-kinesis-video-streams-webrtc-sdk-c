@@ -154,7 +154,7 @@ STATUS readFrameFromDisk(PBYTE, PUINT32, PCHAR);
 PVOID sendVideoPackets(PVOID);
 PVOID sendAudioPackets(PVOID);
 PVOID sendGstreamerAudioVideo(PVOID);
-PVOID sampleReceiveVideoFrame(PVOID args);
+PVOID sampleReceiveAudioVideoFrame(PVOID);
 PVOID getPeriodicIceCandidatePairStats(PVOID);
 STATUS getIceCandidatePairStatsCallback(UINT32, UINT64, UINT64);
 STATUS pregenerateCertTimerCallback(UINT32, UINT64, UINT64);
@@ -173,7 +173,8 @@ STATUS streamingSessionOnShutdown(PSampleStreamingSession, UINT64, StreamSession
 STATUS sendSignalingMessage(PSampleStreamingSession, PSignalingMessage);
 STATUS respondWithAnswer(PSampleStreamingSession);
 STATUS resetSampleConfigurationState(PSampleConfiguration);
-VOID sampleFrameHandler(UINT64, PFrame);
+VOID sampleVideoFrameHandler(UINT64, PFrame);
+VOID sampleAudioFrameHandler(UINT64, PFrame);
 VOID sampleBandwidthEstimationHandler(UINT64, DOUBLE);
 VOID sampleSenderBandwidthEstimationHandler(UINT64, UINT32, UINT32, UINT32, UINT32, UINT64);
 VOID onDataChannel(UINT64, PRtcDataChannel);
