@@ -68,6 +68,7 @@ VOID transactionIdStoreInsert(PTransactionIdStore pTransactionIdStore, PBYTE tra
     if (pTransactionIdStore->nextTransactionIdIndex == pTransactionIdStore->earliestTransactionIdIndex) {
         pTransactionIdStore->earliestTransactionIdIndex =
             (pTransactionIdStore->earliestTransactionIdIndex + 1) % pTransactionIdStore->maxTransactionIdsCount;
+        return;
     }
 
     pTransactionIdStore->transactionIdCount = MIN(pTransactionIdStore->transactionIdCount + 1, pTransactionIdStore->maxTransactionIdsCount);
