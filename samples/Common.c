@@ -460,6 +460,9 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     }
     ATOMIC_STORE_BOOL(&pSampleStreamingSession->peerIdReceived, TRUE);
 
+    pSampleStreamingSession->pAudioRtcRtpTransceiver = NULL;
+    pSampleStreamingSession->pVideoRtcRtpTransceiver = NULL;
+
     pSampleStreamingSession->pSampleConfiguration = pSampleConfiguration;
     pSampleStreamingSession->rtcMetricsHistory.prevTs = GETTIME();
     // if we're the viewer, we control the trickle ice mode
