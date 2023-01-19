@@ -1,6 +1,6 @@
 <map id="onSctpInboundPacket" name="onSctpInboundPacket">
 <area shape="rect" id="node1" title=" " alt="" coords="739,5,899,32"/>
-<area shape="rect" id="node2" href="$Sctp_8h.html#a28c451f4393777e23235a56d002484e2" title=" " alt="" coords="549,5,691,32"/>
+<area shape="rect" id="node2" href="$Sctp_8c.html#aa85f15d7ff49da06d2cb9bf6287338bd" title=" " alt="" coords="549,5,691,32"/>
 <area shape="rect" id="node3" href="$PeerConnection_8c.html#ab33703d5bce65e69254b4ee999bfec2e" title=" " alt="" coords="399,5,501,32"/>
 <area shape="rect" id="node4" href="$PeerConnection_8c.html#a76ad72a51a47dae5e9f43873f36aa34a" title=" " alt="" coords="219,5,351,32"/>
 <area shape="rect" id="node5" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,5,171,32"/>

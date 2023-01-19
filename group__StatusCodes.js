@@ -51,6 +51,7 @@ var group__StatusCodes =
     [ "RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE", "group__PublicEnums.html#gga93240fd6a0e599dfb0c69ca76e406665aeedf0ec291348430d2cd519105e0f6ca", null ],
     [ "RTC_CODEC_MULAW", "group__PublicEnums.html#gga93240fd6a0e599dfb0c69ca76e406665a610046a4f77ed6434ca35c5d5d70a9c3", null ],
     [ "RTC_CODEC_OPUS", "group__PublicEnums.html#gga93240fd6a0e599dfb0c69ca76e406665adf9dfdd0eada90839c288b9577693e71", null ],
+    [ "RTC_CODEC_UNKNOWN", "group__PublicEnums.html#gga93240fd6a0e599dfb0c69ca76e406665a65041cc492cd9bbabb73a3ad9b649208", null ],
     [ "RTC_CODEC_VP8", "group__PublicEnums.html#gga93240fd6a0e599dfb0c69ca76e406665a3cd45ac7f2b35e902ba212a42f2d354d", null ],
     [ "RTC_PEER_CONNECTION_STATE_CLOSED", "group__PublicEnums.html#gga1a8485527953d22957465fb016c44becabe42bbd5dbfcbb8c2adb8d8d1f663436", null ],
     [ "RTC_PEER_CONNECTION_STATE_CONNECTED", "group__PublicEnums.html#gga1a8485527953d22957465fb016c44becaf96b81102efe006b5f57cba368767690", null ],

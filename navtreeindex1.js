@@ -1,5 +1,7 @@
 var NAVTREEINDEX1 =
 {
+"group__PublicEnums.html#ggad42c829d5095ba5e3ab0b6fff6ff8678afb72759d662497abc396c07ae5dea519":[1,0,17,3,4],
+"group__PublicEnums.html#ggad42c829d5095ba5e3ab0b6fff6ff8678afb72759d662497abc396c07ae5dea519":[1,0,41],
 "group__PublicMemberFunctions.html":[1,0,21],
 "group__PublicMemberFunctions.html#ga0091e2920ba137e0e80d40402a675abb":[1,0,21,23],
 "group__PublicMemberFunctions.html#ga060e71a4e33e0b7a8087317d4839fa8a":[1,0,21,33],
@@ -247,7 +249,5 @@ var NAVTREEINDEX1 =
 "group__StatsStructures.html#gga760e5b16b6a0731e5839f9c37dfcb0a4a3458300a4d519b9dcd111e101bd6f9da":[1,0,20,40,0],
 "group__StatsStructures.html#gga760e5b16b6a0731e5839f9c37dfcb0a4aedc74b392d8f1083000d1b7031994b6c":[1,0,20,40,3],
 "group__StatsStructures.html#gga760e5b16b6a0731e5839f9c37dfcb0a4af56f1041a8e65f98fc7c9751ebf50086":[1,0,20,40,2],
-"group__StatusCodes.html":[1,0],
-"group__StatusCodes.html#ga02a5e6d0b5cdd1916c3b6c7a295849d3":[1,0,19,6,1],
-"group__StatusCodes.html#ga02a5e6d0b5cdd1916c3b6c7a295849d3":[1,0,127]
+"group__StatusCodes.html":[1,0]
 };
