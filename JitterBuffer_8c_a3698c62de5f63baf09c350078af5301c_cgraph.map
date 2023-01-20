@@ -1,6 +1,0 @@
-<map id="jitterBufferPush" name="jitterBufferPush">
-<area shape="rect" id="node1" title=" " alt="" coords="5,5,128,32"/>
-<area shape="rect" id="node2" href="$RtpPacket_8c.html#af5c0526f452ce354c0f92497668f5ad9" title=" " alt="" coords="643,5,755,32"/>
-<area shape="rect" id="node3" href="$JitterBuffer_8c.html#ac781719ff47dc4932f88c48fbda7fbd6" title=" " alt="" coords="176,31,353,57"/>
-<area shape="rect" id="node4" href="$JitterBuffer_8c.html#a825c3656f8f6466c66eccb89f9745814" title=" " alt="" coords="401,31,595,57"/>
-</map>
