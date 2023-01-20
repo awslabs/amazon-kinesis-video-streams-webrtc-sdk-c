@@ -174,7 +174,7 @@ a=msid-semantic: WMS f327e13b-3518-47fc-8b53-9cf74d22d03e
     EXPECT_EQ(serializeSessionDescription(&sessionDescription, buff.get(), &invalid_buffer_len), STATUS_BUFFER_TOO_SMALL);
 
     EXPECT_EQ(serializeSessionDescription(&sessionDescription, buff.get(), &buff_len), STATUS_SUCCESS);
-    EXPECT_STREQ(buff.get(), (PCHAR)(lfToCRLF(sessionDescriptionNoMedia, ARRAY_SIZE(sessionDescriptionNoMedia) - 1).c_str()));
+    EXPECT_STREQ(buff.get(), (PCHAR) (lfToCRLF(sessionDescriptionNoMedia, ARRAY_SIZE(sessionDescriptionNoMedia) - 1).c_str()));
 }
 
 TEST_F(SdpApiTest, serializeSessionDescription_Media)
@@ -256,7 +256,7 @@ TEST_F(SdpApiTest, setTransceiverPayloadTypes_NoRtxType)
     EXPECT_EQ(STATUS_SUCCESS, hashTablePut(pCodecTable, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, 1));
     EXPECT_EQ(STATUS_SUCCESS, hashTableCreate(&pRtxTable));
     EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&pTransceivers));
-    EXPECT_EQ(STATUS_SUCCESS, doubleListInsertItemHead(pTransceivers, (UINT64)(&transceiver)));
+    EXPECT_EQ(STATUS_SUCCESS, doubleListInsertItemHead(pTransceivers, (UINT64) (&transceiver)));
     EXPECT_EQ(STATUS_SUCCESS, setTransceiverPayloadTypes(pCodecTable, pRtxTable, pTransceivers));
     EXPECT_EQ(1, transceiver.sender.payloadType);
     EXPECT_NE((PRtpRollingBuffer) NULL, transceiver.sender.packetBuffer);
@@ -283,7 +283,7 @@ TEST_F(SdpApiTest, setTransceiverPayloadTypes_HasRtxType)
     EXPECT_EQ(STATUS_SUCCESS, hashTableCreate(&pRtxTable));
     EXPECT_EQ(STATUS_SUCCESS, hashTablePut(pRtxTable, RTC_RTX_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, 2));
     EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&pTransceivers));
-    EXPECT_EQ(STATUS_SUCCESS, doubleListInsertItemHead(pTransceivers, (UINT64)(&transceiver)));
+    EXPECT_EQ(STATUS_SUCCESS, doubleListInsertItemHead(pTransceivers, (UINT64) (&transceiver)));
     EXPECT_EQ(STATUS_SUCCESS, setTransceiverPayloadTypes(pCodecTable, pRtxTable, pTransceivers));
     EXPECT_EQ(1, transceiver.sender.payloadType);
     EXPECT_EQ(2, transceiver.sender.rtxPayloadType);
@@ -640,7 +640,7 @@ a=group:BUNDLE 0
     });
 }
 
-// uses words "audio video data" instead of "0 1 2" for session attributes. Sends an offer, expects the answer sdp 
+// uses words "audio video data" instead of "0 1 2" for session attributes. Sends an offer, expects the answer sdp
 // to contain "audio video data" as sent in the offer
 TEST_F(SdpApiTest, offerWithMediaNameInBundle)
 {
@@ -2326,7 +2326,9 @@ a=max-message-size:262144
 };
 
 // 1v1a1d represents 1 video + 1 audio + 1 data channel
-INSTANTIATE_TEST_SUITE_P(SdpApiTest_SdpMatch_Chrome, SdpApiTest_SdpMatch, ::testing::Values(offer_1v1a1d_Chrome_Android, offer_1v1a1d_Chrome_Linux, offer_1v1a1d_Chrome_Mac)); // the last comma is used to silent a warning
+INSTANTIATE_TEST_SUITE_P(SdpApiTest_SdpMatch_Chrome, SdpApiTest_SdpMatch,
+                         ::testing::Values(offer_1v1a1d_Chrome_Android, offer_1v1a1d_Chrome_Linux,
+                                           offer_1v1a1d_Chrome_Mac)); // the last comma is used to silent a warning
 
 INSTANTIATE_TEST_SUITE_P(SdpApiTest_SdpMatch_Firefox, SdpApiTest_SdpMatch, ::testing::Values(offer_1v1a1d_Firefox_Linux, offer_1v1a1d_Firefox_Mac));
 
