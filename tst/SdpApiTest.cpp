@@ -2326,15 +2326,13 @@ a=max-message-size:262144
 };
 
 // 1v1a1d represents 1 video + 1 audio + 1 data channel
-INSTANTIATE_TEST_CASE_P(SdpApiTest_SdpMatch_Chrome, SdpApiTest_SdpMatch,
-                        ::testing::Values(offer_1v1a1d_Chrome_Android, offer_1v1a1d_Chrome_Linux,
-                                          offer_1v1a1d_Chrome_Mac), ); // the last comma is used to silent a warning
+INSTANTIATE_TEST_SUITE_P(SdpApiTest_SdpMatch_Chrome, SdpApiTest_SdpMatch, ::testing::Values(offer_1v1a1d_Chrome_Android, offer_1v1a1d_Chrome_Linux, offer_1v1a1d_Chrome_Mac)); // the last comma is used to silent a warning
 
-INSTANTIATE_TEST_CASE_P(SdpApiTest_SdpMatch_Firefox, SdpApiTest_SdpMatch, ::testing::Values(offer_1v1a1d_Firefox_Linux, offer_1v1a1d_Firefox_Mac), );
+INSTANTIATE_TEST_SUITE_P(SdpApiTest_SdpMatch_Firefox, SdpApiTest_SdpMatch, ::testing::Values(offer_1v1a1d_Firefox_Linux, offer_1v1a1d_Firefox_Mac));
 
-INSTANTIATE_TEST_CASE_P(SdpApiTest_SdpMatch_Chromium, SdpApiTest_SdpMatch, ::testing::Values(offer_1v1a1d_Chromium_Linux), );
+INSTANTIATE_TEST_SUITE_P(SdpApiTest_SdpMatch_Chromium, SdpApiTest_SdpMatch, ::testing::Values(offer_1v1a1d_Chromium_Linux));
 
-INSTANTIATE_TEST_CASE_P(SdpApiTest_SdpMatch_Safari, SdpApiTest_SdpMatch, ::testing::Values(offer_1v1a1d_Safari_Mac), );
+INSTANTIATE_TEST_SUITE_P(SdpApiTest_SdpMatch_Safari, SdpApiTest_SdpMatch, ::testing::Values(offer_1v1a1d_Safari_Mac));
 
 } // namespace webrtcclient
 } // namespace video
