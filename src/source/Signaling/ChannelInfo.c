@@ -127,6 +127,10 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
         // Create a fully qualified URI
         SNPRINTF(pCurPtr, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s%s.%s%s", CONTROL_PLANE_URI_PREFIX, KINESIS_VIDEO_SERVICE_NAME, pChannelInfo->pRegion,
                  CONTROL_PLANE_URI_POSTFIX);
+        // If region is in CN, add CN region uri postfix
+        if (STRSTR(pChannelInfo->pRegion, "cn-")) {
+            STRCAT(pCurPtr, ".cn");
+        }
     }
 
     pChannelInfo->pControlPlaneUrl = pCurPtr;
