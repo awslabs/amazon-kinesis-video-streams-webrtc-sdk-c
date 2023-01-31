@@ -614,7 +614,7 @@ a=group:BUNDLE 0
         RtcSessionDescriptionInit offerSdp{};
         RtcSessionDescriptionInit answerSdp{};
 
-        SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION);
+        SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION, TEST_DEFAULT_STUN_URL_POSTFIX);
 
         track1.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
         track1.codec = RTC_CODEC_VP8;
@@ -667,7 +667,7 @@ a=group:BUNDLE 0
         RtcSessionDescriptionInit offerSdp{};
         RtcSessionDescriptionInit answerSdp{};
 
-        SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION);
+        SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION, TEST_DEFAULT_STUN_URL_POSTFIX);
 
         track1.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
         track1.codec = RTC_CODEC_VP8;
@@ -725,7 +725,7 @@ a=group:BUNDLE 0
         RtcSessionDescriptionInit offerSdp{};
         RtcSessionDescriptionInit answerSdp{};
 
-        SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION);
+        SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION, TEST_DEFAULT_STUN_URL_POSTFIX);
 
         track1.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
         track1.codec = RTC_CODEC_VP8;
@@ -788,7 +788,7 @@ a=ice-options:trickle
         RtcSessionDescriptionInit offerSdp{};
         RtcSessionDescriptionInit answerSdp{};
 
-        SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION);
+        SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION, TEST_DEFAULT_STUN_URL_POSTFIX);
 
         track1.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
         track1.codec = RTC_CODEC_VP8;
