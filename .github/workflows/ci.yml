@@ -40,7 +40,8 @@ jobs:
           mkdir build && cd build
           cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
           make
-          ./tst/webrtc_client_test
+      - name: Run tests
+        run:  ./tst/webrtc_client_test
   mac-os-build-gcc:
     runs-on: macos-11
     env:
@@ -55,7 +56,8 @@ jobs:
           mkdir build && cd build
           cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
           make
-          ./tst/webrtc_client_test
+      - name: Run tests
+        run: ./tst/webrtc_client_test
   static-build-mac:
     runs-on: macos-11
     env:
@@ -70,7 +72,8 @@ jobs:
           mkdir build && cd build
           cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE
           make
-          ./tst/webrtc_client_test 
+      - name: Run tests
+        run:  ./tst/webrtc_client_test
   linux-gcc-code-coverage:
     runs-on: ubuntu-20.04
     env:
@@ -85,6 +88,7 @@ jobs:
           cmake .. -DCODE_COVERAGE=TRUE -DBUILD_TEST=TRUE
           make
           ulimit -c unlimited -S
+      - name: Run tests
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
       - name: Code coverage
         run: |
@@ -113,7 +117,8 @@ jobs:
           cmake .. -DBUILD_TEST=TRUE -DADDRESS_SANITIZER=TRUE
           make
           ulimit -c unlimited -S
-          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+      - name: Run tests
+        run: timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   undefined-behavior-sanitizer:
     runs-on: ubuntu-20.04
     env:
@@ -136,7 +141,8 @@ jobs:
           cmake .. -DBUILD_TEST=TRUE -DUNDEFINED_BEHAVIOR_SANITIZER=TRUE
           make
           ulimit -c unlimited -S
-          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test 
+      - name: Run tests
+        run: timeout --signal=SIGABRT 60m ./tst/webrtc_client_test 
   # memory-sanitizer:
   #   runs-on: ubuntu-18.04
   #   env:
@@ -179,7 +185,8 @@ jobs:
           cmake .. -DBUILD_TEST=TRUE -DTHREAD_SANITIZER=TRUE
           make
           ulimit -c unlimited -S
-          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+      - name: Run tests
+        run: timeout --signal=SIGABRT 60m ./tst/webrtc_client_test 
   linux-gcc-4_4:
     runs-on: ubuntu-20.04
     env:
@@ -203,7 +210,8 @@ jobs:
           cmake .. -DBUILD_TEST=TRUE
           make
           ulimit -c unlimited -S
-          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+      - name: Run tests
+        run: timeout --signal=SIGABRT 60m ./tst/webrtc_client_test 
   static-build-linux:
     runs-on: ubuntu-20.04
     container: 
@@ -247,7 +255,8 @@ jobs:
           cmake .. -DBUILD_TEST=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
           make
           ulimit -c unlimited -S
-          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+      - name: Run tests
+        run: timeout --signal=SIGABRT 60m ./tst/webrtc_client_test 
   mbedtls-ubuntu-clang:
     runs-on: ubuntu-20.04
     env:
@@ -268,7 +277,8 @@ jobs:
           cmake .. -DBUILD_TEST=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
           make
           ulimit -c unlimited -S
-          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+      - name: Run tests
+        run: timeout --signal=SIGABRT 60m ./tst/webrtc_client_test 
   sample-check:
     if: github.repository == 'awslabs/amazon-kinesis-video-streams-webrtc-sdk-c'
     runs-on: ubuntu-20.04
@@ -308,7 +318,8 @@ jobs:
           mkdir build && cd build
           cmake .. -DBUILD_TEST=TRUE
           make
-          ./tst/webrtc_client_test
+      - name: Run tests
+        run: timeout --signal=SIGABRT 60m ./tst/webrtc_client_test 
   # windows-msvc:
   #   runs-on: windows-2019
   #   permissions:
