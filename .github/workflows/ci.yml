@@ -5,10 +5,12 @@ on:
     branches:
       - develop
       - master
+      - Release-WebRTC-Streams-Ingestion-Public-Preview
   pull_request:
     branches:
       - develop
       - master
+      - Release-WebRTC-Streams-Ingestion-Public-Preview
 jobs:
   clang-format-check:
     runs-on: macos-latest
