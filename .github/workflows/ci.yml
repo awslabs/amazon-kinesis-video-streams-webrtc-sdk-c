@@ -5,13 +5,15 @@ on:
     branches:
       - develop
       - master
+      - Release-WebRTC-Streams-Ingestion-Public-Preview
   pull_request:
     branches:
       - develop
       - master
+      - Release-WebRTC-Streams-Ingestion-Public-Preview
 jobs:
   clang-format-check:
-    runs-on: macos-latest
+    runs-on: macos-11
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
@@ -23,7 +25,7 @@ jobs:
         run: |
           bash scripts/check-clang.sh
   mac-os-build-clang:
-    runs-on: macos-latest
+    runs-on: macos-11
     env:
       CC: /usr/bin/clang
       CXX: /usr/bin/clang++
@@ -38,9 +40,10 @@ jobs:
           mkdir build && cd build
           cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
           make
-          ./tst/webrtc_client_test
+      - name: Run tests
+        run:  build/tst/webrtc_client_test
   mac-os-build-gcc:
-    runs-on: macos-10.15
+    runs-on: macos-11
     env:
       CC: gcc
       CXX: g++
@@ -48,14 +51,15 @@ jobs:
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
-      - name: Build repository and run tests
+      - name: Build repository
         run: |
           mkdir build && cd build
           cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
           make
-          ./tst/webrtc_client_test
+      - name: Run tests
+        run: build/tst/webrtc_client_test
   static-build-mac:
-    runs-on: macos-latest
+    runs-on: macos-11
     env:
       AWS_KVS_LOG_LEVEL: 2
       LDFLAGS: -L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib
@@ -63,14 +67,15 @@ jobs:
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
-      - name: Build repository and run tests
+      - name: Build repository
         run: |
           mkdir build && cd build
           cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE
           make
-          ./tst/webrtc_client_test 
+      - name: Run tests
+        run:  build/tst/webrtc_client_test
   linux-gcc-code-coverage:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     env:
       AWS_KVS_LOG_LEVEL: 2
     steps:
@@ -83,18 +88,19 @@ jobs:
           cmake .. -DCODE_COVERAGE=TRUE -DBUILD_TEST=TRUE
           make
           ulimit -c unlimited -S
-          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+      - name: Run tests
+        run: timeout --signal=SIGABRT 60m build/tst/webrtc_client_test
       - name: Code coverage
         run: |
           for test_file in $(find CMakeFiles/kvsWebrtcClient.dir CMakeFiles/kvsWebrtcSignalingClient.dir -name '*.gcno'); do gcov $test_file; done
           bash <(curl -s https://codecov.io/bash)
   address-sanitizer:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     env:
       ASAN_OPTIONS: detect_odr_violation=0:detect_leaks=1
-      LSAN_OPTIONS: suppressions=../tst/suppressions/LSAN.supp
-      CC: clang-7
-      CXX: clang++-7
+      LSAN_OPTIONS: suppressions=tst/suppressions/LSAN.supp
+      CC: clang
+      CXX: clang++
       AWS_KVS_LOG_LEVEL: 2
     steps:
       - name: Clone repository
@@ -102,7 +108,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get -y install clang-7
+          sudo apt-get -y install clang
       - name: Build repository
         run: |
           # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
@@ -111,13 +117,14 @@ jobs:
           cmake .. -DBUILD_TEST=TRUE -DADDRESS_SANITIZER=TRUE
           make
           ulimit -c unlimited -S
-          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+      - name: Run tests
+        run: timeout --signal=SIGABRT 60m build/tst/webrtc_client_test
   undefined-behavior-sanitizer:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     env:
       UBSAN_OPTIONS: halt_on_error=1
-      CC: clang-7
-      CXX: clang++-7
+      CC: clang
+      CXX: clang++
       AWS_KVS_LOG_LEVEL: 2
     steps:
       - name: Clone repository
@@ -125,7 +132,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get -y install clang-7
+          sudo apt-get -y install clang
       - name: Build repository
         run: |
           # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
@@ -134,7 +141,8 @@ jobs:
           cmake .. -DBUILD_TEST=TRUE -DUNDEFINED_BEHAVIOR_SANITIZER=TRUE
           make
           ulimit -c unlimited -S
-          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test 
+      - name: Run tests
+        run: timeout --signal=SIGABRT 60m build/tst/webrtc_client_test 
   # memory-sanitizer:
   #   runs-on: ubuntu-18.04
   #   env:
@@ -155,13 +163,13 @@ jobs:
   #         cmake .. -DMEMORY_SANITIZER=TRUE -DBUILD_TEST=TRUE
   #         make
   #         ulimit -c unlimited -S
-  #         timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+  #         timeout --signal=SIGABRT 60m build/tst/webrtc_client_test
   thread-sanitizer:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     env:
-      TSAN_OPTIONS: halt_on_error=1:suppressions=../tst/suppressions/TSAN.supp
-      CC: clang-7
-      CXX: clang++-7
+      TSAN_OPTIONS: halt_on_error=1:suppressions=tst/suppressions/TSAN.supp
+      CC: clang
+      CXX: clang++
       AWS_KVS_LOG_LEVEL: 2
     steps:
       - name: Clone repository
@@ -169,7 +177,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get -y install clang-7
+          sudo apt-get -y install clang
       - name: Build repository
         run: |
           sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
@@ -177,9 +185,10 @@ jobs:
           cmake .. -DBUILD_TEST=TRUE -DTHREAD_SANITIZER=TRUE
           make
           ulimit -c unlimited -S
-          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+      - name: Run tests
+        run: timeout --signal=SIGABRT 60m build/tst/webrtc_client_test 
   linux-gcc-4_4:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     env:
       AWS_KVS_LOG_LEVEL: 2
       CC: gcc-4.4
@@ -201,9 +210,10 @@ jobs:
           cmake .. -DBUILD_TEST=TRUE
           make
           ulimit -c unlimited -S
-          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+      - name: Run tests
+        run: timeout --signal=SIGABRT 60m build/tst/webrtc_client_test 
   static-build-linux:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     container: 
       image: alpine:3.15.4
     env:
@@ -224,7 +234,7 @@ jobs:
           cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE
           make
   mbedtls-ubuntu-gcc:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     env:
       AWS_KVS_LOG_LEVEL: 2
     steps:
@@ -245,12 +255,13 @@ jobs:
           cmake .. -DBUILD_TEST=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
           make
           ulimit -c unlimited -S
-          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+      - name: Run tests
+        run: timeout --signal=SIGABRT 60m build/tst/webrtc_client_test 
   mbedtls-ubuntu-clang:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     env:
-      CC: clang-7
-      CXX: clang++-7
+      CC: clang
+      CXX: clang++
       AWS_KVS_LOG_LEVEL: 2
     steps:
       - name: Clone repository
@@ -258,7 +269,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get -y install clang-7
+          sudo apt-get -y install clang
       - name: Build repository
         run: |
           sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
@@ -266,10 +277,11 @@ jobs:
           cmake .. -DBUILD_TEST=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
           make
           ulimit -c unlimited -S
-          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+      - name: Run tests
+        run: timeout --signal=SIGABRT 60m build/tst/webrtc_client_test 
   sample-check:
     if: github.repository == 'awslabs/amazon-kinesis-video-streams-webrtc-sdk-c'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     env:
       AWS_KVS_LOG_LEVEL: 2
     permissions:
@@ -293,7 +305,7 @@ jobs:
           cd ..
           ./scripts/check-sample.sh
   ubuntu-os-build:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     env:
       AWS_KVS_LOG_LEVEL: 2
     steps:
@@ -306,7 +318,8 @@ jobs:
           mkdir build && cd build
           cmake .. -DBUILD_TEST=TRUE
           make
-          ./tst/webrtc_client_test
+      - name: Run tests
+        run: timeout --signal=SIGABRT 60m build/tst/webrtc_client_test 
   # windows-msvc:
   #   runs-on: windows-2019
   #   permissions:
@@ -325,7 +338,7 @@ jobs:
   #         .github/build_windows.bat
   #         cd tst && .\webrtc_client_test.exe --gtest_filter="-DataChannelFunctionalityTest.*:IceApiTest.*:IceFunctionalityTest.*:PeerConnectionFunctionalityTest.*:SignalingApiFunctionalityTest.*:TurnConnectionFunctionalityTest.*:RtpFunctionalityTest.marshallUnmarshallH264Data:RtpFunctionalityTest.packingUnpackingVerifySameH264Frame:RtcpFunctionalityTest.onRtcpPacketCompound:RtcpFunctionalityTest.twcc3"
   arm64-cross-compilation:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     env:
       CC: aarch64-linux-gnu-gcc
       CXX: aarch64-linux-gnu-g++
@@ -343,7 +356,7 @@ jobs:
           cmake .. -DBUILD_OPENSSL=TRUE -DBUILD_OPENSSL_PLATFORM=linux-generic64 -DBUILD_LIBSRTP_HOST_PLATFORM=x86_64-unknown-linux-gnu -DBUILD_LIBSRTP_DESTINATION_PLATFORM=arm-unknown-linux-uclibcgnueabi
           make
   linux-aarch64-cross-compilation:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     env:
       CC: aarch64-linux-gnu-gcc
       CXX: aarch64-linux-gnu-g++
@@ -361,7 +374,7 @@ jobs:
           cmake .. -DBUILD_OPENSSL=TRUE -DBUILD_OPENSSL_PLATFORM=linux-aarch64 -DBUILD_LIBSRTP_HOST_PLATFORM=x86_64-unknown-linux-gnu -DBUILD_LIBSRTP_DESTINATION_PLATFORM=arm-unknown-linux-uclibcgnueabi
           make
   arm32-cross-compilation:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     env:
       CC: arm-linux-gnueabi-gcc
       CXX: arm-linux-gnueabi-g++
