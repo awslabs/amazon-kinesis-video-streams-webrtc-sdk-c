@@ -98,7 +98,7 @@ jobs:
     runs-on: ubuntu-20.04
     env:
       ASAN_OPTIONS: detect_odr_violation=0:detect_leaks=1
-      LSAN_OPTIONS: suppressions=../tst/suppressions/LSAN.supp
+      LSAN_OPTIONS: suppressions=tst/suppressions/LSAN.supp
       CC: clang
       CXX: clang++
       AWS_KVS_LOG_LEVEL: 2
@@ -167,7 +167,7 @@ jobs:
   thread-sanitizer:
     runs-on: ubuntu-20.04
     env:
-      TSAN_OPTIONS: halt_on_error=1:suppressions=../tst/suppressions/TSAN.supp
+      TSAN_OPTIONS: halt_on_error=1:suppressions=tst/suppressions/TSAN.supp
       CC: clang
       CXX: clang++
       AWS_KVS_LOG_LEVEL: 2
