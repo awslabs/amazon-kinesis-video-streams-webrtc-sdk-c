@@ -41,7 +41,7 @@ jobs:
           cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
           make
       - name: Run tests
-        run:  ./tst/webrtc_client_test
+        run:  build/tst/webrtc_client_test
   mac-os-build-gcc:
     runs-on: macos-11
     env:
@@ -51,13 +51,13 @@ jobs:
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
-      - name: Build repository and run tests
+      - name: Build repository
         run: |
           mkdir build && cd build
           cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
           make
       - name: Run tests
-        run: ./tst/webrtc_client_test
+        run: build/tst/webrtc_client_test
   static-build-mac:
     runs-on: macos-11
     env:
@@ -67,13 +67,13 @@ jobs:
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
-      - name: Build repository and run tests
+      - name: Build repository
         run: |
           mkdir build && cd build
           cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE
           make
       - name: Run tests
-        run:  ./tst/webrtc_client_test
+        run:  build/tst/webrtc_client_test
   linux-gcc-code-coverage:
     runs-on: ubuntu-20.04
     env:
@@ -89,7 +89,7 @@ jobs:
           make
           ulimit -c unlimited -S
       - name: Run tests
-        run: timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+        run: timeout --signal=SIGABRT 60m build/tst/webrtc_client_test
       - name: Code coverage
         run: |
           for test_file in $(find CMakeFiles/kvsWebrtcClient.dir CMakeFiles/kvsWebrtcSignalingClient.dir -name '*.gcno'); do gcov $test_file; done
@@ -118,7 +118,7 @@ jobs:
           make
           ulimit -c unlimited -S
       - name: Run tests
-        run: timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+        run: timeout --signal=SIGABRT 60m build/tst/webrtc_client_test
   undefined-behavior-sanitizer:
     runs-on: ubuntu-20.04
     env:
@@ -142,7 +142,7 @@ jobs:
           make
           ulimit -c unlimited -S
       - name: Run tests
-        run: timeout --signal=SIGABRT 60m ./tst/webrtc_client_test 
+        run: timeout --signal=SIGABRT 60m build/tst/webrtc_client_test 
   # memory-sanitizer:
   #   runs-on: ubuntu-18.04
   #   env:
@@ -163,7 +163,7 @@ jobs:
   #         cmake .. -DMEMORY_SANITIZER=TRUE -DBUILD_TEST=TRUE
   #         make
   #         ulimit -c unlimited -S
-  #         timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+  #         timeout --signal=SIGABRT 60m build/tst/webrtc_client_test
   thread-sanitizer:
     runs-on: ubuntu-20.04
     env:
@@ -186,7 +186,7 @@ jobs:
           make
           ulimit -c unlimited -S
       - name: Run tests
-        run: timeout --signal=SIGABRT 60m ./tst/webrtc_client_test 
+        run: timeout --signal=SIGABRT 60m build/tst/webrtc_client_test 
   linux-gcc-4_4:
     runs-on: ubuntu-20.04
     env:
@@ -211,7 +211,7 @@ jobs:
           make
           ulimit -c unlimited -S
       - name: Run tests
-        run: timeout --signal=SIGABRT 60m ./tst/webrtc_client_test 
+        run: timeout --signal=SIGABRT 60m build/tst/webrtc_client_test 
   static-build-linux:
     runs-on: ubuntu-20.04
     container: 
@@ -256,7 +256,7 @@ jobs:
           make
           ulimit -c unlimited -S
       - name: Run tests
-        run: timeout --signal=SIGABRT 60m ./tst/webrtc_client_test 
+        run: timeout --signal=SIGABRT 60m build/tst/webrtc_client_test 
   mbedtls-ubuntu-clang:
     runs-on: ubuntu-20.04
     env:
@@ -278,7 +278,7 @@ jobs:
           make
           ulimit -c unlimited -S
       - name: Run tests
-        run: timeout --signal=SIGABRT 60m ./tst/webrtc_client_test 
+        run: timeout --signal=SIGABRT 60m build/tst/webrtc_client_test 
   sample-check:
     if: github.repository == 'awslabs/amazon-kinesis-video-streams-webrtc-sdk-c'
     runs-on: ubuntu-20.04
@@ -319,7 +319,7 @@ jobs:
           cmake .. -DBUILD_TEST=TRUE
           make
       - name: Run tests
-        run: timeout --signal=SIGABRT 60m ./tst/webrtc_client_test 
+        run: timeout --signal=SIGABRT 60m build/tst/webrtc_client_test 
   # windows-msvc:
   #   runs-on: windows-2019
   #   permissions:
