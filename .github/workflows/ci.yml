@@ -360,6 +360,10 @@ jobs:
           choco install nasm strawberryperl
           choco install gstreamer --version=1.16.2
           choco install gstreamer-devel --version=1.16.2 
+      - name: Setup GCC
+        run: |
+          $env:Path += ';C:/MinGW-w64/mingw64/bin'
+          where gcc
       - name: Build repository
         run: |
           $env:Path += ';C:\Strawberry\perl\site\bin;C:\Strawberry\perl\bin;C:\Strawberry\c\bin;C:\Program Files\NASM;D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\open-source\local\lib;D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\open-source\local\bin;D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\open-source\libopenssl'
