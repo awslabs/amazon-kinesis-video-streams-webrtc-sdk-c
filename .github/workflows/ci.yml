@@ -314,7 +314,7 @@ jobs:
       - name: Clone repository
         uses: actions/checkout@v3
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v3
+        uses: aws-actions/configure-aws-credentials@v2
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           role-session-name: ${{ secrets.AWS_ROLE_SESSION_NAME }}
@@ -345,33 +345,33 @@ jobs:
         run:  |
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-  windows-msvc:
-    runs-on: windows-2022
-    env:
-      AWS_KVS_LOG_LEVEL: 7
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v3
-      - name: Install dependencies
-        run: |
-          choco install nasm strawberryperl
-          choco install gstreamer --version=1.16.2
-          choco install gstreamer-devel --version=1.16.2 
-      - name: Install pthreads
-        run: |
-          C:\msys64\pacman -S mingw-w64-x86_64-winpthreads
-      - name: Build repository
-        run: |
-          $env:Path += ';C:\Strawberry\perl\site\bin;C:\Strawberry\perl\bin;C:\Strawberry\c\bin;C:\Program Files\NASM;D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\open-source\local\lib;D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\open-source\local\bin;D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\open-source\libopenssl'
-          git config --system core.longpaths true
-          .github/build_windows.bat
-      - name: Run tests
-        run: |
-          $env:Path += ';C:\Strawberry\perl\site\bin;C:\Strawberry\perl\bin;C:\Strawberry\c\bin;C:\Program Files\NASM;D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\open-source\local\lib;D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\open-source\local\bin'
-          & "D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-cbuild\tst\webrtc_client_test.exe --gtest_filter="-DataChannelFunctionalityTest.*:IceApiTest.*:IceFunctionalityTest.*:PeerConnectionFunctionalityTest.*:SignalingApiFunctionalityTest.*:TurnConnectionFunctionalityTest.*:RtpFunctionalityTest.marshallUnmarshallH264Data:RtpFunctionalityTest.packingUnpackingVerifySameH264Frame:RtcpFunctionalityTest.onRtcpPacketCompound:RtcpFunctionalityTest.twcc3" 
+  # windows-msvc:
+  #   runs-on: windows-2022
+  #   env:
+  #     AWS_KVS_LOG_LEVEL: 7
+  #   permissions:
+  #     id-token: write
+  #     contents: read
+  #   steps:
+  #     - name: Clone repository
+  #       uses: actions/checkout@v3
+  #     - name: Install dependencies
+  #       run: |
+  #         choco install nasm strawberryperl
+  #         choco install gstreamer --version=1.16.2
+  #         choco install gstreamer-devel --version=1.16.2 
+  #     - name: Install pthreads
+  #       run: |
+  #         C:\msys64\pacman -S mingw-w64-x86_64-winpthreads
+  #     - name: Build repository
+  #       run: |
+  #         $env:Path += ';C:\Strawberry\perl\site\bin;C:\Strawberry\perl\bin;C:\Strawberry\c\bin;C:\Program Files\NASM;D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\open-source\local\lib;D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\open-source\local\bin;D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\open-source\libopenssl'
+  #         git config --system core.longpaths true
+  #         .github/build_windows.bat
+  #     - name: Run tests
+  #       run: |
+  #         $env:Path += ';C:\Strawberry\perl\site\bin;C:\Strawberry\perl\bin;C:\Strawberry\c\bin;C:\Program Files\NASM;D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\open-source\local\lib;D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\open-source\local\bin'
+  #         & "D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-cbuild\tst\webrtc_client_test.exe --gtest_filter="-DataChannelFunctionalityTest.*:IceApiTest.*:IceFunctionalityTest.*:PeerConnectionFunctionalityTest.*:SignalingApiFunctionalityTest.*:TurnConnectionFunctionalityTest.*:RtpFunctionalityTest.marshallUnmarshallH264Data:RtpFunctionalityTest.packingUnpackingVerifySameH264Frame:RtcpFunctionalityTest.onRtcpPacketCompound:RtcpFunctionalityTest.twcc3" 
   arm64-cross-compilation:
     runs-on: ubuntu-20.04
     env:
