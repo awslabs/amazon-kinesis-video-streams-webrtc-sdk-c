@@ -1,0 +1,13 @@
+<map id="acceptSignalingStateMachineState" name="acceptSignalingStateMachineState">
+<area shape="rect" id="node1" title=" " alt="" coords="767,115,981,157"/>
+<area shape="rect" id="node2" href="$Signaling_8c.html#aae4b8c10c0051d05e7aaef586326afea" title=" " alt="" coords="544,64,719,91"/>
+<area shape="rect" id="node7" href="$LwsApiCalls_8c.html#acb3be4e7def869ccd5a7b34e1d951fa5" title=" " alt="" coords="563,123,699,149"/>
+<area shape="rect" id="node10" href="$Signaling_8c.html#a3c2197526080fd2995dddcdb883068de" title=" " alt="" coords="549,173,714,200"/>
+<area shape="rect" id="node3" href="$Signaling_8c.html#ab9b7621274b4242cf08805da561654be" title=" " alt="" coords="300,5,489,32"/>
+<area shape="rect" id="node5" href="$Signaling_8c.html#a055e7d13e21333ee0930508d2206420f" title=" " alt="" coords="300,57,489,98"/>
+<area shape="rect" id="node4" href="$group__PublicMemberFunctions.html#ga94ed483b34bb395015b7d44fd98c8f5b" title="Gets the ICE configuration information object given its index." alt="" coords="12,5,239,32"/>
+<area shape="rect" id="node6" href="$group__PublicMemberFunctions.html#ga22f59c80e99e533e5e1d78d52145eb7c" title="Gets the retrieved ICE configuration information object count." alt="" coords="24,57,227,98"/>
+<area shape="rect" id="node8" href="$Signaling_8c.html#a85fbc5fc8623d113581b2bce92642c93" title=" " alt="" coords="293,123,496,149"/>
+<area shape="rect" id="node9" href="$group__PublicMemberFunctions.html#gae6d8d80d47699c5494de1dc3d455b1f4" title="Send a message through a Signaling client." alt="" coords="5,123,245,149"/>
+<area shape="rect" id="node11" href="$group__PublicMemberFunctions.html#gacb53537d7d1c72a9e304ed095fe1252f" title="Connects the signaling client to the web socket in order to send/receive messages." alt="" coords="293,173,496,200"/>
+</map>

@@ -1,0 +1,4 @@
+<map id="RtcRtpReceiver" name="RtcRtpReceiver">
+<area shape="rect" id="node1" title="RTCRtpReceiver allows an application to inspect the receipt of a MediaStreamTrack." alt="" coords="26,189,149,267"/>
+<area shape="rect" id="node2" href="$structRtcMediaStreamTrack.html" title="Represents a single track in a MediaStream." alt="" coords="5,5,169,127"/>
+</map>

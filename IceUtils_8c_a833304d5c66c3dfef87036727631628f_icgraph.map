@@ -1,0 +1,6 @@
+<map id="parseIceServer" name="parseIceServer">
+<area shape="rect" id="node1" title=" " alt="" coords="425,31,544,57"/>
+<area shape="rect" id="node2" href="$IceAgent_8c.html#af2fe29241b2d4ab4997fe04c41534578" title=" " alt="" coords="238,5,358,32"/>
+<area shape="rect" id="node4" href="$group__PublicMemberFunctions.html#ga6c4139787f87c307c2033b51d65284ce" title="Use the process described in https://tools.ietf.org/html/rfc5780#section&#45;4.3 to discover NAT behavior..." alt="" coords="219,56,377,83"/>
+<area shape="rect" id="node3" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,5,171,32"/>
+</map>

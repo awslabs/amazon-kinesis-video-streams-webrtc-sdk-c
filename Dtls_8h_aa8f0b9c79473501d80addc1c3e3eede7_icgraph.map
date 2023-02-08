@@ -1,0 +1,7 @@
+<map id="dtlsSessionShutdown" name="dtlsSessionShutdown">
+<area shape="rect" id="node1" title=" " alt="" coords="635,31,795,57"/>
+<area shape="rect" id="node2" href="$group__PublicMemberFunctions.html#ga9babad6ea2bc9bb97279c7034697375a" title="Close the underlying DTLS session and IceAgent connection. Trigger RtcOnConnectionStateChange to RTC_..." alt="" coords="413,5,572,32"/>
+<area shape="rect" id="node3" href="$Dtls_8h.html#a9644465349276ea0504368f46931772a" title=" " alt="" coords="399,56,587,83"/>
+<area shape="rect" id="node4" href="$PeerConnection_8c.html#a76ad72a51a47dae5e9f43873f36aa34a" title=" " alt="" coords="219,56,351,83"/>
+<area shape="rect" id="node5" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,56,171,83"/>
+</map>

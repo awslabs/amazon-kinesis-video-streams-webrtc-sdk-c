@@ -1,0 +1,6 @@
+<map id="iceAgentGatherCandidateTimerCallback" name="iceAgentGatherCandidateTimerCallback">
+<area shape="rect" id="node1" title=" " alt="" coords="443,23,669,65"/>
+<area shape="rect" id="node2" href="$IceAgent_8c.html#a89dd4cb4f8c55e2d376df8c33f300e80" title=" " alt="" coords="220,31,395,57"/>
+<area shape="rect" id="node3" href="$group__PublicMemberFunctions.html#ga060e71a4e33e0b7a8087317d4839fa8a" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the local descript..." alt="" coords="13,5,164,32"/>
+<area shape="rect" id="node4" href="$group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,56,172,83"/>
+</map>

@@ -25,13 +25,18 @@
 var NAVTREE =
 [
   [ "Amazon Kinesis Webrtc C SDK", "index.html", [
-    [ "Introduction", "md_Introduction.html", null ]
+    [ "Introduction", "md_Introduction.html", null ],
+    [ "Modules", "modules.html", "modules" ]
   ] ]
 ];
 
 var NAVTREEINDEX =
 [
-"index.html"
+"group__Callbacks.html",
+"group__PublicEnums.html#ggad42c829d5095ba5e3ab0b6fff6ff8678afb72759d662497abc396c07ae5dea519",
+"group__StatusCodes.html#ga02a5e6d0b5cdd1916c3b6c7a295849d3",
+"group__StatusCodes.html#gafcb5243008cc0bf27f18df01e0a6ae6c",
+"structRtcReceivedRtpStreamStats.html#afdd919e3fd84bca61ba92e894633abb0"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

@@ -1,0 +1,4 @@
+<map id="RtcReceivedRtpStreamStats" name="RtcReceivedRtpStreamStats">
+<area shape="rect" id="node1" title=" " alt="" coords="5,189,211,413"/>
+<area shape="rect" id="node2" href="$structRTCRtpStreamStats.html" title="RTCRtpStreamStats captures stream stats that will be used as part of RTCSentRtpStreamStats report Ref..." alt="" coords="34,5,182,127"/>
+</map>

@@ -1,0 +1,16 @@
+<map id="transactionIdStoreClear" name="transactionIdStoreClear">
+<area shape="rect" id="node1" title=" " alt="" coords="1763,77,1937,103"/>
+<area shape="rect" id="node2" href="$IceAgent_8c.html#aa7d29b9e7deadd910819b68c115219d1" title=" " alt="" coords="1481,19,1715,46"/>
+<area shape="rect" id="node5" href="$IceAgent_8c.html#a311a951cf965e83e76372560f2ce1c0f" title=" " alt="" coords="1535,77,1661,103"/>
+<area shape="rect" id="node8" href="$TurnConnection_8c.html#ae091e90d262a8b35996555dbc4f0d7d9" title=" " alt="" coords="1506,139,1690,166"/>
+<area shape="rect" id="node3" href="$IceAgent_8c.html#a8d811662404803fa38a7d691516c9de8" title=" " alt="" coords="1207,13,1433,39"/>
+<area shape="rect" id="node4" href="$IceAgentStateMachine_8c.html#a5431027d18e1397eb1dfc8953099dbf6" title=" " alt="" coords="952,5,1159,47"/>
+<area shape="rect" id="node6" href="$group__PublicMemberFunctions.html#gade9fcbb056cb321f33890c1cf1222e64" title="Instructs the RtcPeerConnection that ICE should be restarted. Subsequent calls to createOffer will cr..." alt="" coords="1278,63,1362,90"/>
+<area shape="rect" id="node7" href="$group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,114,172,141"/>
+<area shape="rect" id="node9" href="$TurnConnection_8c.html#af01ecc35132ec796882b5cfca6c25e0c" title=" " alt="" coords="1213,165,1427,191"/>
+<area shape="rect" id="node10" href="$TurnConnection_8c.html#a5b98aaf2a1b05b95f8cb088cf29aac54" title=" " alt="" coords="979,165,1131,191"/>
+<area shape="rect" id="node11" href="$IceAgent_8c.html#aa82059f636933c877ef87e25f4a62669" title=" " alt="" coords="701,165,904,191"/>
+<area shape="rect" id="node12" href="$IceAgent_8c.html#a888fc1a2a5c2fe190f30db87c85c6759" title=" " alt="" coords="443,165,653,191"/>
+<area shape="rect" id="node13" href="$IceAgent_8c.html#a89dd4cb4f8c55e2d376df8c33f300e80" title=" " alt="" coords="220,165,395,191"/>
+<area shape="rect" id="node14" href="$group__PublicMemberFunctions.html#ga060e71a4e33e0b7a8087317d4839fa8a" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the local descript..." alt="" coords="13,165,164,191"/>
+</map>

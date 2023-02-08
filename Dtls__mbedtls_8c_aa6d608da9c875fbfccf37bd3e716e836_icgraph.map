@@ -1,0 +1,9 @@
+<map id="freeCertificateAndKey" name="freeCertificateAndKey">
+<area shape="rect" id="node1" title=" " alt="" coords="644,56,808,83"/>
+<area shape="rect" id="node2" href="$Dtls__mbedtls_8c.html#aeb739e880d3edc3d95e7135805114f13" title=" " alt="" coords="417,31,596,57"/>
+<area shape="rect" id="node6" href="$Dtls_8h.html#afbcfcdeff7856229166e04c0f6408003" title=" " alt="" coords="445,81,569,108"/>
+<area shape="rect" id="node3" href="$Dtls_8h.html#ac281e5a858d8c8ef0df8b26768d0663b" title=" " alt="" coords="225,56,363,83"/>
+<area shape="rect" id="node5" href="$group__PublicMemberFunctions.html#ga626872eca33a639a1af1903798e9be15" title="Creates an RtcCertificate object." alt="" coords="219,5,369,32"/>
+<area shape="rect" id="node4" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,81,171,108"/>
+<area shape="rect" id="node7" href="$group__PublicMemberFunctions.html#ga433b1bd125e7f221bcdad97a2a0e8949" title="Free a RtcPeerConnection." alt="" coords="219,107,369,133"/>
+</map>

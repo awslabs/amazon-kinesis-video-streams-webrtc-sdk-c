@@ -1,0 +1,4 @@
+<map id="signalingConnectSync" name="signalingConnectSync">
+<area shape="rect" id="node1" title=" " alt="" coords="256,5,421,32"/>
+<area shape="rect" id="node2" href="$group__PublicMemberFunctions.html#gacb53537d7d1c72a9e304ed095fe1252f" title="Connects the signaling client to the web socket in order to send/receive messages." alt="" coords="5,5,208,32"/>
+</map>

@@ -1,0 +1,4 @@
+<map id="getTransportStats" name="getTransportStats">
+<area shape="rect" id="node1" title="Get specific transport stats." alt="" coords="265,5,401,32"/>
+<area shape="rect" id="node2" href="$group__PublicMemberFunctions.html#ga469e0f69e03630ad5b03d8921afd62be" title="Get the relevant/all metrics based on the RTCStatsType field. This does not include any signaling rel..." alt="" coords="5,5,217,32"/>
+</map>

@@ -1,0 +1,11 @@
+<map id="dtlsCheckOutgoingDataBuffer" name="dtlsCheckOutgoingDataBuffer">
+<area shape="rect" id="node1" title=" " alt="" coords="960,56,1175,83"/>
+<area shape="rect" id="node2" href="$Dtls__openssl_8c.html#a929cb0f439a6b6353f741b841d095da3" title=" " alt="" coords="705,5,893,32"/>
+<area shape="rect" id="node5" href="$Dtls__openssl_8c.html#a1fc56b3d164da5001e7fdd9463e0a281" title=" " alt="" coords="719,56,879,83"/>
+<area shape="rect" id="node7" href="$Dtls__openssl_8c.html#af9a81361c6870b54ba2accc75c8fc2ff" title=" " alt="" coords="687,107,912,133"/>
+<area shape="rect" id="node3" href="$PeerConnection_8c.html#a76ad72a51a47dae5e9f43873f36aa34a" title=" " alt="" coords="259,19,391,45"/>
+<area shape="rect" id="node4" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,56,171,83"/>
+<area shape="rect" id="node6" href="$group__PublicMemberFunctions.html#ga9babad6ea2bc9bb97279c7034697375a" title="Close the underlying DTLS session and IceAgent connection. Trigger RtcOnConnectionStateChange to RTC_..." alt="" coords="480,56,639,83"/>
+<area shape="rect" id="node8" href="$Dtls__openssl_8c.html#a0872f720df900a4176081befd72bedf4" title=" " alt="" coords="496,107,623,133"/>
+<area shape="rect" id="node9" href="$PeerConnection_8c.html#a0a0385b5afef472a439ff5d8d8d7c1a0" title=" " alt="" coords="219,81,432,108"/>
+</map>

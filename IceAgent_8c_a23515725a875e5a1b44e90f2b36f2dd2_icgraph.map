@@ -1,0 +1,10 @@
+<map id="iceAgentSendPacket" name="iceAgentSendPacket">
+<area shape="rect" id="node1" title=" " alt="" coords="436,107,589,133"/>
+<area shape="rect" id="node2" href="$PeerConnection_8c.html#a8623356d515aabe66d493018cc61c1f3" title=" " alt="" coords="219,5,388,32"/>
+<area shape="rect" id="node4" href="$Retransmitter_8c.html#a117dafbb1f1b86ced15a1fcfc49713fa" title=" " alt="" coords="9,157,167,184"/>
+<area shape="rect" id="node5" href="$PeerConnection_8c.html#a4afea8c5d470548d2889fb8d3218ba0f" title=" " alt="" coords="227,56,380,83"/>
+<area shape="rect" id="node7" href="$group__PublicMemberFunctions.html#ga40c7caf6325f426d82030beec50cc86e" title="Packetizes and sends media via the configuration specified by the RtcRtpTransceiver." alt="" coords="255,157,351,184"/>
+<area shape="rect" id="node8" href="$Rtp_8c.html#a6f38cb81e122dec46ea50feb5edb652a" title=" " alt="" coords="244,208,363,235"/>
+<area shape="rect" id="node3" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,5,171,32"/>
+<area shape="rect" id="node6" href="$group__PublicMemberFunctions.html#ga5b89dc2e301e35f30330c57bc1361dcb" title="Create a new RtcRtpTransceiver and add it to the set of transceivers." alt="" coords="28,56,148,83"/>
+</map>

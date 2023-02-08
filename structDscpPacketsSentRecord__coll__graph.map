@@ -1,0 +1,3 @@
+<map id="DscpPacketsSentRecord" name="DscpPacketsSentRecord">
+<area shape="rect" id="node1" title="Record of total number of packets sent per DSCP. Used by RTCOutboundRtpStreamStats object." alt="" coords="5,5,217,97"/>
+</map>

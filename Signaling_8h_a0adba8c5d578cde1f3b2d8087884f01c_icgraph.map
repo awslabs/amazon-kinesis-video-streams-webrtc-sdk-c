@@ -1,0 +1,9 @@
+<map id="signalingRemoveOngoingMessage" name="signalingRemoveOngoingMessage">
+<area shape="rect" id="node1" title=" " alt="" coords="987,31,1233,57"/>
+<area shape="rect" id="node2" href="$LwsApiCalls_8c.html#a4c9dcb58ab89a46831b232ea6f1b9903" title=" " alt="" coords="761,5,914,32"/>
+<area shape="rect" id="node6" href="$Signaling_8c.html#a85fbc5fc8623d113581b2bce92642c93" title=" " alt="" coords="736,56,939,83"/>
+<area shape="rect" id="node3" href="$LwsApiCalls_8c.html#ada0698d028687c46481e076ce1be4359" title=" " alt="" coords="479,5,657,32"/>
+<area shape="rect" id="node4" href="$Signaling_8c.html#ab095306d46a8e5ae01e2b28a8de0487a" title=" " alt="" coords="245,5,400,32"/>
+<area shape="rect" id="node5" href="$group__PublicMemberFunctions.html#ga375ddffe8376298cdaafe63799b53b1e" title="Creates a Signaling client and returns a handle to it." alt="" coords="5,5,197,32"/>
+<area shape="rect" id="node7" href="$group__PublicMemberFunctions.html#gae6d8d80d47699c5494de1dc3d455b1f4" title="Send a message through a Signaling client." alt="" coords="448,56,688,83"/>
+</map>

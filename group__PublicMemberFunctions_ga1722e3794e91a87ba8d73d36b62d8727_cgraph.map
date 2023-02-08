@@ -1,0 +1,19 @@
+<map id="addIceCandidate" name="addIceCandidate">
+<area shape="rect" id="node1" title="Provides a remote candidate to the ICE Agent." alt="" coords="5,259,136,285"/>
+<area shape="rect" id="node2" href="$IceAgent_8c.html#a171a9136edc2fce61acff9476e6046a9" title=" " alt="" coords="184,259,405,285"/>
+<area shape="rect" id="node3" href="$IceAgent_8c.html#ab4a5a8ab78cd23b15d19ef7a25da80ca" title=" " alt="" coords="463,107,641,133"/>
+<area shape="rect" id="node9" href="$IceAgent_8c.html#ae97f6da7fb4eb6477b7e398ff51ee91d" title=" " alt="" coords="475,259,629,285"/>
+<area shape="rect" id="node10" href="$Include__i_8h.html#ab79572313888fc60c5f81fb85abee745" title=" " alt="" coords="463,309,641,336"/>
+<area shape="rect" id="node11" href="$IceAgent_8c.html#ad1a8fa09d399bfa78a7a76cb00c25c8c" title=" " alt="" coords="453,360,651,387"/>
+<area shape="rect" id="node14" href="$TurnConnection_8c.html#a4f67b773202384cba95d1390981aa127" title=" " alt="" coords="465,208,639,235"/>
+<area shape="rect" id="node4" href="$IceAgent_8c.html#aea82ec5c31f92655c535153ae0c9ed85" title=" " alt="" coords="699,5,915,32"/>
+<area shape="rect" id="node5" href="$IceUtils_8c.html#a253397f5ac2ab54ecf549f88096ed942" title=" " alt="" coords="715,157,898,184"/>
+<area shape="rect" id="node6" href="$IceAgent_8c.html#a76f0508cf719814537ce707e3f524407" title=" " alt="" coords="728,56,885,83"/>
+<area shape="rect" id="node8" href="$IceAgent_8c.html#a6ca5e01bae7b2cd4b4cd6b949350ec65" title=" " alt="" coords="723,107,891,133"/>
+<area shape="rect" id="node7" href="$IceUtils_8c.html#aed9b171e0c60584515c04c5dd47dd112" title=" " alt="" coords="963,132,1131,159"/>
+<area shape="rect" id="node12" href="$Network_8c.html#afaa547109e09c5a34437553b7258e818" title=" " alt="" coords="755,360,858,387"/>
+<area shape="rect" id="node13" href="$IceAgent_8c.html#a58c93902e850d579024bde109e85ab8b" title=" " alt="" coords="699,411,915,437"/>
+<area shape="rect" id="node15" href="$TurnConnection_8c.html#a9554f30fbafbccca935277837ee1b2dc" title=" " alt="" coords="699,259,914,285"/>
+<area shape="rect" id="node17" href="$Stun_8c.html#a086d658c6275e5a5161934025b070c24" title=" " alt="" coords="753,309,860,336"/>
+<area shape="rect" id="node16" href="$Network_8c.html#a05d12502235a4a9313ba49cdfc4487a4" title=" " alt="" coords="979,259,1114,285"/>
+</map>

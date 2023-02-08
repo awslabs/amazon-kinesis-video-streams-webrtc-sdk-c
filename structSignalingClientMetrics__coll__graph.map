@@ -1,0 +1,4 @@
+<map id="SignalingClientMetrics" name="SignalingClientMetrics">
+<area shape="rect" id="node1" title="SignalingStats Collection of signaling related stats. Can be expanded in the future." alt="" coords="35,292,203,369"/>
+<area shape="rect" id="node2" href="$structSignalingClientStats.html" title="SignalingClientMetrics Represent the stats related to the KVS WebRTC SDK signaling client." alt="" coords="5,5,232,229"/>
+</map>

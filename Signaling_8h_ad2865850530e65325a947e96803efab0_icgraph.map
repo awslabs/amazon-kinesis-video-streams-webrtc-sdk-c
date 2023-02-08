@@ -1,0 +1,13 @@
+<map id="terminateOngoingOperations" name="terminateOngoingOperations">
+<area shape="rect" id="node1" title=" " alt="" coords="748,157,959,184"/>
+<area shape="rect" id="node2" href="$Signaling_8c.html#a82f76649f6bf874ffc0913857c588837" title=" " alt="" coords="554,56,662,83"/>
+<area shape="rect" id="node6" href="$Signaling_8c.html#a220ed8ee8114be8bfd0ae9c3ccfabc24" title=" " alt="" coords="531,132,685,159"/>
+<area shape="rect" id="node8" href="$Signaling_8c.html#adc40a64fec23ce36f66ce679dfe4e35a" title=" " alt="" coords="516,183,700,209"/>
+<area shape="rect" id="node10" href="$Signaling_8c.html#aad8de9f4dd459e3a07e5e08c7683ed06" title=" " alt="" coords="535,233,681,260"/>
+<area shape="rect" id="node3" href="$group__PublicMemberFunctions.html#ga375ddffe8376298cdaafe63799b53b1e" title="Creates a Signaling client and returns a handle to it." alt="" coords="5,5,197,32"/>
+<area shape="rect" id="node4" href="$Signaling_8c.html#ab095306d46a8e5ae01e2b28a8de0487a" title=" " alt="" coords="279,31,434,57"/>
+<area shape="rect" id="node5" href="$group__PublicMemberFunctions.html#gafb4629e6a81552152c1b475a32e06e9c" title="Frees the Signaling client object." alt="" coords="283,81,430,108"/>
+<area shape="rect" id="node7" href="$group__PublicMemberFunctions.html#gad85555f757662d1585efd00d496e5c13" title="Deletes the signaling channel referenced by SIGNALING_CLIENT_HANDLE." alt="" coords="260,132,453,159"/>
+<area shape="rect" id="node9" href="$group__PublicMemberFunctions.html#ga6130116416557558b66728a8db2c6ee7" title="Disconnects the signaling client." alt="" coords="245,183,468,209"/>
+<area shape="rect" id="node11" href="$group__PublicMemberFunctions.html#ga9c3b58fbb47fb50baaf24b10240ee809" title="Fetches all assets needed to ready the state machine before attempting to connect...." alt="" coords="264,233,449,260"/>
+</map>

@@ -1,0 +1,12 @@
+<map id="signalingClientFetchSync" name="signalingClientFetchSync">
+<area shape="rect" id="node1" title="Fetches all assets needed to ready the state machine before attempting to connect...." alt="" coords="5,78,191,105"/>
+<area shape="rect" id="node2" href="$Client_8c.html#a55d8c9bc065aa63039bec826644f59fb" title=" " alt="" coords="239,5,467,47"/>
+<area shape="rect" id="node3" href="$Client_8c.html#adcfa400e7964640abe4a2f792da839c0" title=" " alt="" coords="246,71,459,112"/>
+<area shape="rect" id="node4" href="$Signaling_8c.html#aad8de9f4dd459e3a07e5e08c7683ed06" title=" " alt="" coords="279,137,426,163"/>
+<area shape="rect" id="node5" href="$StateMachine_8c.html#aadc0cffe12b55f3d81cd3b74244bdc3c" title=" " alt="" coords="515,111,733,138"/>
+<area shape="rect" id="node6" href="$Signaling_8c.html#af63aa814d51002790ba8da3bf07a2285" title=" " alt="" coords="519,162,729,189"/>
+<area shape="rect" id="node7" href="$Signaling_8c.html#a653edfffd5d129d08f5971d91f16fc5e" title=" " alt="" coords="1303,137,1503,163"/>
+<area shape="rect" id="node8" href="$LwsApiCalls_8c.html#ac8ef143a573f3b4ae83bd3ad0eb9fd6f" title=" " alt="" coords="781,187,976,214"/>
+<area shape="rect" id="node9" href="$LwsApiCalls_8c.html#ae7928b7a5bf47cbdf2ccf753f1c1e8df" title=" " alt="" coords="1024,187,1255,214"/>
+<area shape="rect" id="node10" href="$LwsApiCalls_8c.html#a799bfe087bea205476d1359524b17656" title=" " alt="" coords="1304,187,1501,214"/>
+</map>

@@ -1,0 +1,14 @@
+<map id="turnConnectionShutdown" name="turnConnectionShutdown">
+<area shape="rect" id="node1" title=" " alt="" coords="739,97,924,123"/>
+<area shape="rect" id="node2" href="$IceAgent_8c.html#aad8b693b79de0b9b57770fb4efe64ee4" title=" " alt="" coords="472,17,691,43"/>
+<area shape="rect" id="node4" href="$IceAgent_8c.html#a790f69225c321a1f2ccf0bdcc3a83630" title=" " alt="" coords="486,71,677,98"/>
+<area shape="rect" id="node6" href="$IceAgent_8c.html#a311a951cf965e83e76372560f2ce1c0f" title=" " alt="" coords="518,122,645,149"/>
+<area shape="rect" id="node9" href="$IceAgent_8c.html#a0240b9dcf5654427458c2fdda5a2da29" title=" " alt="" coords="510,223,653,250"/>
+<area shape="rect" id="node3" href="$IceAgentStateMachine_8c.html#ae73bb89e7e9f087dd2ccfa8cf1f1833a" title=" " alt="" coords="222,5,421,47"/>
+<area shape="rect" id="node5" href="$IceAgentStateMachine_8c.html#ad8c9d148bf0b67e6ccce35a9f2c745e8" title=" " alt="" coords="219,71,424,98"/>
+<area shape="rect" id="node7" href="$group__PublicMemberFunctions.html#gade9fcbb056cb321f33890c1cf1222e64" title="Instructs the RtcPeerConnection that ICE should be restarted. Subsequent calls to createOffer will cr..." alt="" coords="279,122,363,149"/>
+<area shape="rect" id="node8" href="$group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="238,173,405,199"/>
+<area shape="rect" id="node10" href="$group__PublicMemberFunctions.html#ga9babad6ea2bc9bb97279c7034697375a" title="Close the underlying DTLS session and IceAgent connection. Trigger RtcOnConnectionStateChange to RTC_..." alt="" coords="242,223,401,250"/>
+<area shape="rect" id="node11" href="$group__PublicMemberFunctions.html#ga433b1bd125e7f221bcdad97a2a0e8949" title="Free a RtcPeerConnection." alt="" coords="246,274,397,301"/>
+<area shape="rect" id="node12" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,274,171,301"/>
+</map>

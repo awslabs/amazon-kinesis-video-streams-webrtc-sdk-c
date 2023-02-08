@@ -1,0 +1,3 @@
+<map id="NullableInt16" name="NullableInt16">
+<area shape="rect" id="node1" title="Custom data type to allow setting INT16 data type to NULL since C does not support setting basic data..." alt="" coords="5,5,115,97"/>
+</map>
