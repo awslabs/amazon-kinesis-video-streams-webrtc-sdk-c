@@ -5,15 +5,15 @@ on:
     branches:
       - develop
       - master
-      - Release-WebRTC-Streams-Ingestion-Public-Preview
   pull_request:
     branches:
       - develop
       - master
-      - Release-WebRTC-Streams-Ingestion-Public-Preview
   pull_request_target:
-    types:
-      - opened
+    types: [assigned, opened, synchronize, reopened]
+    branches:
+      - develop
+      - master
 jobs:
   clang-format-check:
     runs-on: macos-11
