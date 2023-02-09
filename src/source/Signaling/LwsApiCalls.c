@@ -1491,10 +1491,7 @@ STATUS joinStorageSessionLws(PSignalingClient pSignalingClient, UINT64 time)
     CHAR paramsJson[MAX_JSON_PARAMETER_STRING_LEN];
     PLwsCallInfo pLwsCallInfo = NULL;
     PCHAR pResponseStr;
-    jsmn_parser parser;
-    jsmntok_t tokens[MAX_JSON_TOKEN_COUNT];
-    UINT32 i, strLen, resultLen;
-    UINT32 tokenCount;
+    UINT32 resultLen;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     CHK(pSignalingClient->channelEndpointWebrtc[0] != '\0', STATUS_INTERNAL_ERROR);
