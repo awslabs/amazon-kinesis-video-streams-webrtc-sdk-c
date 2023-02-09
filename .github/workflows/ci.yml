@@ -5,12 +5,10 @@ on:
     branches:
       - develop
       - master
-      - fix-ci-fork
   pull_request_target:
     branches:
       - develop
       - master
-      - fix-ci-fork
 jobs:
   clang-format-check:
     runs-on: macos-11
