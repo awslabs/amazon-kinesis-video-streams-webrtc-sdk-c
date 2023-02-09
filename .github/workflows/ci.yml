@@ -5,18 +5,21 @@ on:
     branches:
       - develop
       - master
-      - Release-WebRTC-Streams-Ingestion-Public-Preview
   pull_request:
     branches:
       - develop
       - master
-      - Release-WebRTC-Streams-Ingestion-Public-Preview
+  pull_request_target:
+    types: [assigned, opened, synchronize, reopened]
+    branches:
+      - develop
+      - master
 jobs:
   clang-format-check:
     runs-on: macos-11
     steps:
       - name: Clone repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Install clang-format
         run: |
           brew install clang-format
@@ -34,14 +37,16 @@ jobs:
       CPATH: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/
     steps:
       - name: Clone repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Build repository
         run: |
           mkdir build && cd build
           cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
           make
       - name: Run tests
-        run:  build/tst/webrtc_client_test
+        run:  |
+          cd build
+          ./tst/webrtc_client_test
   mac-os-build-gcc:
     runs-on: macos-11
     env:
@@ -50,14 +55,16 @@ jobs:
       AWS_KVS_LOG_LEVEL: 2
     steps:
       - name: Clone repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Build repository
         run: |
           mkdir build && cd build
           cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
           make
       - name: Run tests
-        run: build/tst/webrtc_client_test
+        run:  |
+          cd build
+          ./tst/webrtc_client_test
   static-build-mac:
     runs-on: macos-11
     env:
@@ -66,21 +73,23 @@ jobs:
       CPATH: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/
     steps:
       - name: Clone repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Build repository
         run: |
           mkdir build && cd build
           cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE
           make
       - name: Run tests
-        run:  build/tst/webrtc_client_test
+        run:  |
+          cd build
+          ./tst/webrtc_client_test
   linux-gcc-code-coverage:
     runs-on: ubuntu-20.04
     env:
       AWS_KVS_LOG_LEVEL: 2
     steps:
       - name: Clone repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Build repository
         run: |
           sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
@@ -89,7 +98,9 @@ jobs:
           make
           ulimit -c unlimited -S
       - name: Run tests
-        run: timeout --signal=SIGABRT 60m build/tst/webrtc_client_test
+        run:  |
+          cd build
+          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
       - name: Code coverage
         run: |
           for test_file in $(find CMakeFiles/kvsWebrtcClient.dir CMakeFiles/kvsWebrtcSignalingClient.dir -name '*.gcno'); do gcov $test_file; done
@@ -98,16 +109,16 @@ jobs:
     runs-on: ubuntu-20.04
     env:
       ASAN_OPTIONS: detect_odr_violation=0:detect_leaks=1
-      LSAN_OPTIONS: suppressions=tst/suppressions/LSAN.supp
+      LSAN_OPTIONS: suppressions=../tst/suppressions/LSAN.supp
       CC: clang
       CXX: clang++
       AWS_KVS_LOG_LEVEL: 2
     steps:
       - name: Clone repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Install dependencies
         run: |
-          sudo apt-get update
+          sudo apt clean && sudo apt update
           sudo apt-get -y install clang
       - name: Build repository
         run: |
@@ -118,7 +129,9 @@ jobs:
           make
           ulimit -c unlimited -S
       - name: Run tests
-        run: timeout --signal=SIGABRT 60m build/tst/webrtc_client_test
+        run:  |
+          cd build
+          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   undefined-behavior-sanitizer:
     runs-on: ubuntu-20.04
     env:
@@ -128,10 +141,10 @@ jobs:
       AWS_KVS_LOG_LEVEL: 2
     steps:
       - name: Clone repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Install dependencies
         run: |
-          sudo apt-get update
+          sudo apt clean && sudo apt update
           sudo apt-get -y install clang
       - name: Build repository
         run: |
@@ -142,7 +155,9 @@ jobs:
           make
           ulimit -c unlimited -S
       - name: Run tests
-        run: timeout --signal=SIGABRT 60m build/tst/webrtc_client_test 
+        run:  |
+          cd build
+          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   # memory-sanitizer:
   #   runs-on: ubuntu-18.04
   #   env:
@@ -151,10 +166,10 @@ jobs:
   #     AWS_KVS_LOG_LEVEL: 2
   #   steps:
   #     - name: Clone repository
-  #       uses: actions/checkout@v2
+  #       uses: actions/checkout@v3
   #     - name: Install dependencies
   #       run: |
-  #         sudo apt-get update
+  #         sudo apt clean && sudo apt update
   #         sudo apt-get -y install clang-7
   #     - name: Build repository
   #       run: |
@@ -167,16 +182,16 @@ jobs:
   thread-sanitizer:
     runs-on: ubuntu-20.04
     env:
-      TSAN_OPTIONS: halt_on_error=1:suppressions=tst/suppressions/TSAN.supp
+      TSAN_OPTIONS: halt_on_error=1:suppressions=../tst/suppressions/TSAN.supp
       CC: clang
       CXX: clang++
       AWS_KVS_LOG_LEVEL: 2
     steps:
       - name: Clone repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Install dependencies
         run: |
-          sudo apt-get update
+          sudo apt clean && sudo apt update
           sudo apt-get -y install clang
       - name: Build repository
         run: |
@@ -186,7 +201,9 @@ jobs:
           make
           ulimit -c unlimited -S
       - name: Run tests
-        run: timeout --signal=SIGABRT 60m build/tst/webrtc_client_test 
+        run:  |
+          cd build
+          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   linux-gcc-4_4:
     runs-on: ubuntu-20.04
     env:
@@ -194,9 +211,10 @@ jobs:
       CC: gcc-4.4
     steps:
       - name: Clone repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Install deps
         run: |
+          sudo apt clean && sudo apt update
           sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
           sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
           sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ trusty main'
@@ -211,7 +229,9 @@ jobs:
           make
           ulimit -c unlimited -S
       - name: Run tests
-        run: timeout --signal=SIGABRT 60m build/tst/webrtc_client_test 
+        run:  |
+          cd build
+          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   static-build-linux:
     runs-on: ubuntu-20.04
     container: 
@@ -222,7 +242,7 @@ jobs:
       AWS_KVS_LOG_LEVEL: 2
     steps:
       - name: Clone repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Install dependencies
         run: |
           apk update
@@ -239,9 +259,10 @@ jobs:
       AWS_KVS_LOG_LEVEL: 2
     steps:
       - name: Clone repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Install deps
         run: |
+          sudo apt clean && sudo apt update
           sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
           sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
           sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ trusty main'
@@ -256,7 +277,9 @@ jobs:
           make
           ulimit -c unlimited -S
       - name: Run tests
-        run: timeout --signal=SIGABRT 60m build/tst/webrtc_client_test 
+        run:  |
+          cd build
+          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   mbedtls-ubuntu-clang:
     runs-on: ubuntu-20.04
     env:
@@ -265,10 +288,10 @@ jobs:
       AWS_KVS_LOG_LEVEL: 2
     steps:
       - name: Clone repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Install dependencies
         run: |
-          sudo apt-get update
+          sudo apt clean && sudo apt update
           sudo apt-get -y install clang
       - name: Build repository
         run: |
@@ -278,7 +301,9 @@ jobs:
           make
           ulimit -c unlimited -S
       - name: Run tests
-        run: timeout --signal=SIGABRT 60m build/tst/webrtc_client_test 
+        run:  |
+          cd build
+          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   sample-check:
     if: github.repository == 'awslabs/amazon-kinesis-video-streams-webrtc-sdk-c'
     runs-on: ubuntu-20.04
@@ -289,9 +314,9 @@ jobs:
       contents: read
     steps:
       - name: Clone repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v1-node16
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           role-session-name: ${{ secrets.AWS_ROLE_SESSION_NAME }}
@@ -310,7 +335,7 @@ jobs:
       AWS_KVS_LOG_LEVEL: 2
     steps:
       - name: Clone repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Build repository
         run: |
           # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
@@ -319,24 +344,36 @@ jobs:
           cmake .. -DBUILD_TEST=TRUE
           make
       - name: Run tests
-        run: timeout --signal=SIGABRT 60m build/tst/webrtc_client_test 
+        run:  |
+          cd build
+          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   # windows-msvc:
-  #   runs-on: windows-2019
+  #   runs-on: windows-2022
+  #   env:
+  #     AWS_KVS_LOG_LEVEL: 7
   #   permissions:
   #     id-token: write
   #     contents: read
   #   steps:
-  #     - name: Setup MSVC 
-  #       uses: ilammy/msvc-dev-cmd@v1
   #     - name: Clone repository
-  #       uses: actions/checkout@v2
-  #     - name: Build and run
+  #       uses: actions/checkout@v3
+  #     - name: Install dependencies
   #       run: |
   #         choco install nasm strawberryperl
-  #         $env:Path += ';C:\Strawberry\perl\site\bin;C:\Strawberry\perl\bin;C:\Strawberry\c\bin;C:\Program Files\NASM;D:\a\amazon-kinesis-video-streams-producer-c\amazon-kinesis-video-streams-producer-c\open-source\lib;D:\a\amazon-kinesis-video-streams-producer-c\amazon-kinesis-video-streams-producer-c\open-source\bin'
+  #         choco install gstreamer --version=1.16.2
+  #         choco install gstreamer-devel --version=1.16.2 
+  #     - name: Install pthreads
+  #       run: |
+  #         C:\msys64\pacman -S mingw-w64-x86_64-winpthreads
+  #     - name: Build repository
+  #       run: |
+  #         $env:Path += ';C:\Strawberry\perl\site\bin;C:\Strawberry\perl\bin;C:\Strawberry\c\bin;C:\Program Files\NASM;D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\open-source\local\lib;D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\open-source\local\bin;D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\open-source\libopenssl'
   #         git config --system core.longpaths true
   #         .github/build_windows.bat
-  #         cd tst && .\webrtc_client_test.exe --gtest_filter="-DataChannelFunctionalityTest.*:IceApiTest.*:IceFunctionalityTest.*:PeerConnectionFunctionalityTest.*:SignalingApiFunctionalityTest.*:TurnConnectionFunctionalityTest.*:RtpFunctionalityTest.marshallUnmarshallH264Data:RtpFunctionalityTest.packingUnpackingVerifySameH264Frame:RtcpFunctionalityTest.onRtcpPacketCompound:RtcpFunctionalityTest.twcc3"
+  #     - name: Run tests
+  #       run: |
+  #         $env:Path += ';C:\Strawberry\perl\site\bin;C:\Strawberry\perl\bin;C:\Strawberry\c\bin;C:\Program Files\NASM;D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\open-source\local\lib;D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\open-source\local\bin'
+  #         & "D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-cbuild\tst\webrtc_client_test.exe --gtest_filter="-DataChannelFunctionalityTest.*:IceApiTest.*:IceFunctionalityTest.*:PeerConnectionFunctionalityTest.*:SignalingApiFunctionalityTest.*:TurnConnectionFunctionalityTest.*:RtpFunctionalityTest.marshallUnmarshallH264Data:RtpFunctionalityTest.packingUnpackingVerifySameH264Frame:RtcpFunctionalityTest.onRtcpPacketCompound:RtcpFunctionalityTest.twcc3" 
   arm64-cross-compilation:
     runs-on: ubuntu-20.04
     env:
@@ -345,10 +382,10 @@ jobs:
     steps:
       - name: Install dependencies
         run: |
-          sudo apt update
+          sudo apt clean && sudo apt update
           sudo apt-get -y install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu binutils-aarch64-linux-gnu
       - name: Clone repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Build Repository
         run: |
           sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
@@ -363,10 +400,10 @@ jobs:
     steps:
       - name: Install dependencies
         run: |
-          sudo apt update
+          sudo apt clean && sudo apt update
           sudo apt-get -y install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu binutils-aarch64-linux-gnu
       - name: Clone repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Build Repository
         run: |
           sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
@@ -381,10 +418,10 @@ jobs:
     steps:
       - name: Install dependencies
         run: |
-          sudo apt update
+          sudo apt clean && sudo apt update
           sudo apt-get -y install gcc-arm-linux-gnueabi g++-arm-linux-gnueabi binutils-arm-linux-gnueabi
       - name: Clone repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Build Repository
         run: |
           sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
