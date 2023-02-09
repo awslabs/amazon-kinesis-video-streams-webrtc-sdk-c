@@ -5,12 +5,7 @@ on:
     branches:
       - develop
       - master
-  pull_request:
-    branches:
-      - develop
-      - master
   pull_request_target:
-    types: [assigned, opened, synchronize, reopened]
     branches:
       - develop
       - master
