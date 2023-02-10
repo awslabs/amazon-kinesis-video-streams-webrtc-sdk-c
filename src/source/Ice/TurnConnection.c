@@ -910,7 +910,8 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
             } else {
                 CHK(currentTime < pTurnConnection->stateTimeoutTime, STATUS_TURN_CONNECTION_STATE_TRANSITION_TIMEOUT);
             }
-
+        
+        // fallthrough here, missing break intended
         case TURN_STATE_GET_CREDENTIALS:
 
             if (pTurnConnection->credentialObtained) {
