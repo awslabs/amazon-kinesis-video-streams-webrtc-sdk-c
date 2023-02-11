@@ -12,13 +12,11 @@ VOID sigintHandler(INT32 sigNum)
     }
 }
 
-STATUS signalingCallFailed(STATUS status) {
-   return  (STATUS_SIGNALING_GET_TOKEN_CALL_FAILED == status      ||
-            STATUS_SIGNALING_DESCRIBE_CALL_FAILED == status       ||
-            STATUS_SIGNALING_CREATE_CALL_FAILED == status         ||
-            STATUS_SIGNALING_GET_ENDPOINT_CALL_FAILED == status   ||
-            STATUS_SIGNALING_GET_ICE_CONFIG_CALL_FAILED == status ||
-            STATUS_SIGNALING_CONNECT_CALL_FAILED == status);
+STATUS signalingCallFailed(STATUS status)
+{
+    return (STATUS_SIGNALING_GET_TOKEN_CALL_FAILED == status || STATUS_SIGNALING_DESCRIBE_CALL_FAILED == status ||
+            STATUS_SIGNALING_CREATE_CALL_FAILED == status || STATUS_SIGNALING_GET_ENDPOINT_CALL_FAILED == status ||
+            STATUS_SIGNALING_GET_ICE_CONFIG_CALL_FAILED == status || STATUS_SIGNALING_CONNECT_CALL_FAILED == status);
 }
 
 VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL isBinary, PBYTE pMessage, UINT32 pMessageLen)
@@ -1177,11 +1175,10 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
         // Check if we need to re-create the signaling client on-the-fly
         if (ATOMIC_LOAD_BOOL(&pSampleConfiguration->recreateSignalingClient)) {
             retStatus = signalingClientFetchSync(pSampleConfiguration->signalingClientHandle);
-            if(STATUS_SUCCEEDED(retStatus)) {
+            if (STATUS_SUCCEEDED(retStatus)) {
                 // Re-set the variable again
                 ATOMIC_STORE_BOOL(&pSampleConfiguration->recreateSignalingClient, FALSE);
-            }
-            else if(signalingCallFailed(retStatus)) {
+            } else if (signalingCallFailed(retStatus)) {
                 printf("[KVS Common] recreating Signaling Client\n");
                 freeSignalingClient(&pSampleConfiguration->signalingClientHandle);
                 createSignalingClientSync(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
