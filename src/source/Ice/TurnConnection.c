@@ -352,6 +352,7 @@ STATUS turnConnectionHandleStunError(PTurnConnection pTurnConnection, PBYTE pBuf
     MUTEX_LOCK(pTurnConnection->lock);
     locked = TRUE;
 
+    stunPacketType = (UINT16) getInt16(*((PUINT16) pBuffer));
     /* we could get errors like expired nonce after sending the deallocation packet. The allocate would have been
      * deallocated even if the response is error response, and if we try to deallocate again we would get invalid
      * allocation error. Therefore if we get an error after we've sent the deallocation packet, consider the
@@ -450,9 +451,10 @@ STATUS turnConnectionHandleChannelData(PTurnConnection pTurnConnection, PBYTE pB
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
 
-    UINT32 turnChannelDataCount = 0;
+    UINT32 turnChannelDataCount = 0, hexStrLen = 0;
     UINT16 channelNumber = 0;
     PTurnPeer pTurnPeer = NULL;
+    PCHAR hexStr = NULL;
 
     CHK(pTurnConnection != NULL && pChannelData != NULL && pChannelDataCount != NULL && pProcessedDataLen != NULL, STATUS_NULL_ARG);
     CHK(pBuffer != NULL && bufferLen > 0, STATUS_INVALID_ARG);
@@ -478,7 +480,14 @@ STATUS turnConnectionHandleChannelData(PTurnConnection pTurnConnection, PBYTE pB
             }
 
         } else {
+            CHK_STATUS(hexEncode(pBuffer, bufferLen, NULL, &hexStrLen));
+            hexStr = MEMCALLOC(1, hexStrLen * SIZEOF(CHAR));
+            CHK(hexStr != NULL, STATUS_NOT_ENOUGH_MEMORY);
+            CHK_STATUS(hexEncode(pBuffer, bufferLen, hexStr, &hexStrLen));
+            DLOGE("Turn connection does not have channel number, dumping payload: %s", hexStr);
             turnChannelDataCount = 0;
+
+            SAFE_MEMFREE(hexStr);
         }
         *pProcessedDataLen = bufferLen;
 
@@ -493,6 +502,9 @@ CleanUp:
 
     CHK_LOG_ERR(retStatus);
 
+    if (hexStr != NULL) {
+        SAFE_MEMFREE(hexStr);
+    }
     if (locked) {
         MUTEX_UNLOCK(pTurnConnection->lock);
     }
@@ -524,6 +536,7 @@ STATUS turnConnectionHandleChannelDataTcpMode(PTurnConnection pTurnConnection, P
     /* process only one channel data and return. Because channel data can be intermixed with STUN packet.
      * need to check remainingBufLen too because channel data could be incomplete. */
     while (remainingBufLen != 0 && channelDataCount == 0) {
+        DLOGV("currRecvDataLen: %d", pTurnConnection->currRecvDataLen);
         if (pTurnConnection->currRecvDataLen != 0) {
             if (pTurnConnection->currRecvDataLen >= TURN_DATA_CHANNEL_SEND_OVERHEAD) {
                 /* pTurnConnection->recvDataBuffer always has channel data start */

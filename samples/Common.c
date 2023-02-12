@@ -12,6 +12,13 @@ VOID sigintHandler(INT32 sigNum)
     }
 }
 
+STATUS signalingCallFailed(STATUS status)
+{
+    return (STATUS_SIGNALING_GET_TOKEN_CALL_FAILED == status || STATUS_SIGNALING_DESCRIBE_CALL_FAILED == status ||
+            STATUS_SIGNALING_CREATE_CALL_FAILED == status || STATUS_SIGNALING_GET_ENDPOINT_CALL_FAILED == status ||
+            STATUS_SIGNALING_GET_ICE_CONFIG_CALL_FAILED == status || STATUS_SIGNALING_CONNECT_CALL_FAILED == status);
+}
+
 VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL isBinary, PBYTE pMessage, UINT32 pMessageLen)
 {
     UNUSED_PARAM(customData);
@@ -152,7 +159,9 @@ PVOID mediaSenderRoutine(PVOID customData)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) customData;
-    TID videoSenderTid = INVALID_TID_VALUE, audioSenderTid = INVALID_TID_VALUE;
+    CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
+    pSampleConfiguration->videoSenderTid = INVALID_TID_VALUE;
+    pSampleConfiguration->audioSenderTid = INVALID_TID_VALUE;
 
     MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->connected) && !ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
@@ -163,19 +172,19 @@ PVOID mediaSenderRoutine(PVOID customData)
     CHK(!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag), retStatus);
 
     if (pSampleConfiguration->videoSource != NULL) {
-        THREAD_CREATE(&videoSenderTid, pSampleConfiguration->videoSource, (PVOID) pSampleConfiguration);
+        THREAD_CREATE(&pSampleConfiguration->videoSenderTid, pSampleConfiguration->videoSource, (PVOID) pSampleConfiguration);
     }
 
     if (pSampleConfiguration->audioSource != NULL) {
-        THREAD_CREATE(&audioSenderTid, pSampleConfiguration->audioSource, (PVOID) pSampleConfiguration);
+        THREAD_CREATE(&pSampleConfiguration->audioSenderTid, pSampleConfiguration->audioSource, (PVOID) pSampleConfiguration);
     }
 
-    if (videoSenderTid != INVALID_TID_VALUE) {
-        THREAD_JOIN(videoSenderTid, NULL);
+    if (pSampleConfiguration->videoSenderTid != INVALID_TID_VALUE) {
+        THREAD_JOIN(pSampleConfiguration->videoSenderTid, NULL);
     }
 
-    if (audioSenderTid != INVALID_TID_VALUE) {
-        THREAD_JOIN(audioSenderTid, NULL);
+    if (pSampleConfiguration->audioSenderTid != INVALID_TID_VALUE) {
+        THREAD_JOIN(pSampleConfiguration->audioSenderTid, NULL);
     }
 
 CleanUp:
@@ -752,6 +761,8 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
 #endif
 
     pSampleConfiguration->mediaSenderTid = INVALID_TID_VALUE;
+    pSampleConfiguration->audioSenderTid = INVALID_TID_VALUE;
+    pSampleConfiguration->videoSenderTid = INVALID_TID_VALUE;
     pSampleConfiguration->signalingClientHandle = INVALID_SIGNALING_CLIENT_HANDLE_VALUE;
     pSampleConfiguration->sampleConfigurationObjLock = MUTEX_CREATE(TRUE);
     pSampleConfiguration->cvar = CVAR_CREATE();
@@ -1166,10 +1177,18 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
         }
 
         // Check if we need to re-create the signaling client on-the-fly
-        if (ATOMIC_LOAD_BOOL(&pSampleConfiguration->recreateSignalingClient) &&
-            STATUS_SUCCEEDED(signalingClientFetchSync(pSampleConfiguration->signalingClientHandle))) {
-            // Re-set the variable again
-            ATOMIC_STORE_BOOL(&pSampleConfiguration->recreateSignalingClient, FALSE);
+        if (ATOMIC_LOAD_BOOL(&pSampleConfiguration->recreateSignalingClient)) {
+            retStatus = signalingClientFetchSync(pSampleConfiguration->signalingClientHandle);
+            if (STATUS_SUCCEEDED(retStatus)) {
+                // Re-set the variable again
+                ATOMIC_STORE_BOOL(&pSampleConfiguration->recreateSignalingClient, FALSE);
+            } else if (signalingCallFailed(retStatus)) {
+                printf("[KVS Common] recreating Signaling Client\n");
+                freeSignalingClient(&pSampleConfiguration->signalingClientHandle);
+                createSignalingClientSync(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
+                                          &pSampleConfiguration->signalingClientCallbacks, pSampleConfiguration->pCredentialProvider,
+                                          &pSampleConfiguration->signalingClientHandle);
+            }
         }
 
         // Check the signaling client state and connect if needed
