@@ -342,7 +342,7 @@ jobs:
   #       run:  |
   #         cd build
   #         timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-windows-msvc:
+  windows-msvc:
     runs-on: windows-2022
     env:
       AWS_KVS_LOG_LEVEL: 7
