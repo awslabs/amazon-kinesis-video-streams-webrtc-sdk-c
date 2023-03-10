@@ -357,10 +357,12 @@ jobs:
           choco install nasm strawberryperl
           choco install gstreamer --version=1.16.2
           choco install gstreamer-devel --version=1.16.2 
-          curl -O ftp://sourceware.org/pub/pthreads-win32/pthreads-w32-2-9-1-release.zip
+          curl -O pthreads-w32-2-9-1-release.zip ftp://sourceware.org/pub/pthreads-win32/pthreads-w32-2-9-1-release.zip
           expand pthreads-w32-2-9-1-release.zip -f:*
+          pwd
           dir
           cd pthreads-w32-2-9-1-release
+          dir
       - name: Setup GCC
         run: |
           $env:Path += ';C:/MinGW-w64/mingw64/bin'
