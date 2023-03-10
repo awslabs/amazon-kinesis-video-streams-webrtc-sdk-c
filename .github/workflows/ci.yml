@@ -350,7 +350,7 @@ jobs:
       - name: Clone repository
         uses: actions/checkout@v2
       - name: Install dependencies
-        shell: powershell.exe
+        shell: powershell
         run: |
           curl -L https://sourceforge.net/projects/mingw-w64/files/External%20binary%20packages%20%28Win64%20hosted%29/pthreads-w64-2-10-0-release.zip/download -o C:\tools\pthreads-w64-2-10-0-release.zip
           Expand-Archive -Path C:\tools\pthreads-w64-2-10-0-release.zip -DestinationPath C:\tools\
