@@ -370,7 +370,7 @@ jobs:
       - name: Run tests
         run: |
           & "D:/a/amazon-kinesis-video-streams-webrtc-sdk-c/amazon-kinesis-video-streams-webrtc-sdk-cbuild/tst/webrtc_client_test.exe" --gtest_filter="-DataChannelFunctionalityTest.:IceApiTest.:IceFunctionalityTest.:PeerConnectionFunctionalityTest.:SignalingApiFunctionalityTest.:TurnConnectionFunctionalityTest.:RtpFunctionalityTest.marshallUnmarshallH264Data:RtpFunctionalityTest.packingUnpackingVerifySameH264Frame:RtcpFunctionalityTest.onRtcpPacketCompound:RtcpFunctionalityTest.twcc3"
-  arm64-cross-compilation:
+  # arm64-cross-compilation:
   #   runs-on: ubuntu-20.04
   #   env:
   #     CC: aarch64-linux-gnu-gcc
