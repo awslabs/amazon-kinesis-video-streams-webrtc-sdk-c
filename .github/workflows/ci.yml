@@ -352,7 +352,10 @@ jobs:
       - name: Install dependencies
         run: |
           pwd
-          curl -LOk https://github.com/downloads/schweikert/pthreads-win32/pthreads-w32-2-9-1-release.zip -o D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\pthreads-w32-2-9-1-release.zip
+          mkdir test
+          cd test
+          pwd
+          curl -LOk https://github.com/downloads/schweikert/pthreads-win32/pthreads-w32-2-9-1-release.zip -o D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\test\pthreads-w32-2-9-1-release.zip
           expand pthreads-w32-2-9-1-release.zip -f:*
           pwd
           dir
