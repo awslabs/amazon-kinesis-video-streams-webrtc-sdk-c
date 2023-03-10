@@ -352,7 +352,7 @@ jobs:
       - name: Install dependencies
         shell: powershell
         run: |
-          curl -L https://sourceforge.net/projects/mingw-w64/files/External%20binary%20packages%20%28Win64%20hosted%29/pthreads-w64-2-10-0-release.zip/download -o C:\tools\pthreads-w64-2-10-0-release.zip
+          curl.exe -o C:\tools\pthreads-w64-2-10-0-release.zip https://sourceforge.net/projects/mingw-w64/files/External%20binary%20packages%20%28Win64%20hosted%29/pthreads-w64-2-10-0-release.zip/download
           Expand-Archive -Path C:\tools\pthreads-w64-2-10-0-release.zip -DestinationPath C:\tools\
           choco install nasm strawberryperl
           choco install gstreamer --version=1.16.2
