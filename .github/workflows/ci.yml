@@ -357,7 +357,8 @@ jobs:
           choco install nasm strawberryperl
           choco install gstreamer --version=1.16.2
           choco install gstreamer-devel --version=1.16.2 
-          curl -O pthreads-w32-2-9-1-release.zip ftp://sourceware.org/pub/pthreads-win32/pthreads-w32-2-9-1-release.zip
+          cd ..
+          curl -O D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\pthreads-w32-2-9-1-release.zip ftp://sourceware.org/pub/pthreads-win32/pthreads-w32-2-9-1-release.zip
           expand pthreads-w32-2-9-1-release.zip -f:*
           pwd
           dir
