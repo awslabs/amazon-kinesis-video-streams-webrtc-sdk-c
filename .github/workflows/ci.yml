@@ -352,7 +352,7 @@ jobs:
       - name: Install dependencies
         run: |
           pwd
-          curl -L ftp://sourceware.org/pub/pthreads-win32/pthreads-w32-2-9-1-release.zip -o pthreads-w32-2-9-1-release.zip > D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\pthreads-w32-2-9-1-release.zip
+          curl -L ftp://sourceware.org/pub/pthreads-win32/pthreads-w32-2-9-1-release.zip -O pthreads-w32-2-9-1-release.zip > D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\pthreads-w32-2-9-1-release.zip
           expand pthreads-w32-2-9-1-release.zip -f:*
           pwd
           dir
