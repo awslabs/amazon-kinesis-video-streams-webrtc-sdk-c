@@ -353,7 +353,8 @@ jobs:
         run: |
           pwd
           curl -L https://sourceforge.net/projects/mingw-w64/files/External%20binary%20packages%20%28Win64%20hosted%29/pthreads-w64-2-10-0-release.zip/download -o C:\tools\pthreads-w64-2-10-0-release.zip
-          expand pthreads-w32-2-9-1-release.zip -f:*
+          expand C:\tools\pthreads-w32-2-9-1-release.zip -f:*
+          cd C:\tools\
           pwd
           dir
           cd pthreads-w32-2-9-1-release
