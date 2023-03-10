@@ -353,8 +353,7 @@ jobs:
         run: |
           pwd
           curl -L https://sourceforge.net/projects/mingw-w64/files/External%20binary%20packages%20%28Win64%20hosted%29/pthreads-w64-2-10-0-release.zip/download -o C:\tools\pthreads-w64-2-10-0-release.zip
-          cd C:\tools\
-          expand pthreads-w32-2-9-1-release.zip -f:*
+          Expand-Archive -Path C:\tools\pthreads-w64-2-10-0-release.zip -DestinationPath C:\tools\
           cd pthreads-w32-2-9-1-release
           dir
       - name: Setup GCC
