@@ -347,6 +347,10 @@ jobs:
     env:
       AWS_KVS_LOG_LEVEL: 7
     steps:
+      - name: Use PowerShell 5
+        uses: microsoft/setup-powershell@v1
+        with:
+          powershell-version: '5.1'
       - name: Clone repository
         uses: actions/checkout@v2
       - name: Install dependencies
