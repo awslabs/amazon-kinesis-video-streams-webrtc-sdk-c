@@ -308,37 +308,62 @@ STATUS getIpWithHostName(PCHAR hostname, PKvsIpAddress destIp)
     INT32 errCode;
     PCHAR errStr;
     struct addrinfo *res, *rp;
+    struct addrinfo hint = {
+            .ai_flags = (AI_V4MAPPED | AI_ADDRCONFIG),
+            .ai_family = AF_INET,
+            .ai_socktype = 0,
+            .ai_protocol = 0};
     BOOL resolved = FALSE;
+    struct in_addr inaddr;
     struct sockaddr_in* ipv4Addr;
     struct sockaddr_in6* ipv6Addr;
 
+    // Using INET6_ADDRSTRLEN to factor in IPv4 tunneling
+    CHAR addr[INET6_ADDRSTRLEN] = {'\0'};
+    int i = 0,j = 0;
+
     CHK(hostname != NULL, STATUS_NULL_ARG);
 
-    errCode = getaddrinfo(hostname, NULL, NULL, &res);
-    if (errCode != 0) {
-        errStr = errCode == EAI_SYSTEM ? strerror(errno) : (PCHAR) gai_strerror(errCode);
-        CHK_ERR(FALSE, STATUS_RESOLVE_HOSTNAME_FAILED, "getaddrinfo() with errno %s", errStr);
-    }
+    DLOGI("[ICE SERVER] Hostname received: %s", hostname);
 
-    for (rp = res; rp != NULL && !resolved; rp = rp->ai_next) {
-        if (rp->ai_family == AF_INET) {
-            ipv4Addr = (struct sockaddr_in*) rp->ai_addr;
-            destIp->family = KVS_IP_FAMILY_TYPE_IPV4;
-            MEMCPY(destIp->address, &ipv4Addr->sin_addr, IPV4_ADDRESS_LENGTH);
-            resolved = TRUE;
-        } else if (rp->ai_family == AF_INET6) {
-            ipv6Addr = (struct sockaddr_in6*) rp->ai_addr;
-            destIp->family = KVS_IP_FAMILY_TYPE_IPV6;
-            MEMCPY(destIp->address, &ipv6Addr->sin6_addr, IPV6_ADDRESS_LENGTH);
-            resolved = TRUE;
+    while(hostname[i] != '.') {
+        if(hostname[i] >= '0' && hostname[i] <= '9') {
+            addr[j] = hostname[i];
         }
+        else if(hostname[i] == '-') {
+            addr[j] = '.';
+        }
+        j++;
+        i++;
     }
 
-    freeaddrinfo(res);
-    CHK_ERR(resolved, STATUS_HOSTNAME_NOT_FOUND, "could not find network address of %s", hostname);
+    if(addr[0] == '\0') {
+        DLOGW("[ICE SERVER] Parsing for address failed, fallback to getaddrinfo");
+        errCode = getaddrinfo(hostname, NULL, &hint, &res);
+        if (errCode != 0) {
+            errStr = errCode == EAI_SYSTEM ? strerror(errno) : (PCHAR) gai_strerror(errCode);
+            CHK_ERR(FALSE, STATUS_RESOLVE_HOSTNAME_FAILED, "getaddrinfo() with errno %s", errStr);
+        }
+
+        for (rp = res; rp != NULL && !resolved; rp = rp->ai_next) {
+            if (rp->ai_family == AF_INET) {
+                ipv4Addr = (struct sockaddr_in *) rp->ai_addr;
+                destIp->family = KVS_IP_FAMILY_TYPE_IPV4;
+                MEMCPY(destIp->address, &ipv4Addr->sin_addr, IPV4_ADDRESS_LENGTH);
+                resolved = TRUE;
+            }
+        }
+        freeaddrinfo(res);
+        CHK_ERR(resolved, STATUS_HOSTNAME_NOT_FOUND, "could not find network address of %s", hostname);
+    }
+    else {
+        DLOGW("[ICE SERVER] Address: %s", addr);
+        inet_pton(AF_INET, addr, &inaddr);
+        destIp->family = KVS_IP_FAMILY_TYPE_IPV4;
+        MEMCPY(destIp->address, &inaddr, IPV4_ADDRESS_LENGTH);
+    }
 
 CleanUp:
-
     CHK_LOG_ERR(retStatus);
 
     return retStatus;

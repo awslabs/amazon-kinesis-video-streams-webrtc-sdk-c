@@ -599,7 +599,7 @@ VOID sampleFrameHandler(UINT64 customData, PFrame pFrame)
     if (pSampleStreamingSession->firstFrame) {
         pSampleStreamingSession->firstFrame = FALSE;
         pSampleStreamingSession->startUpLatency = (GETTIME() - pSampleStreamingSession->offerReceiveTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
-        printf("Start up latency from offer to first frame: %" PRIu64 "ms\n", pSampleStreamingSession->startUpLatency);
+        printf("[LATENCY] Start up latency from offer to first frame: %" PRIu64 "ms\n", pSampleStreamingSession->startUpLatency);
     }
 }
 
