@@ -4,7 +4,7 @@ project(libopenssl-download NONE)
 
 if (WIN32)
   find_program(MAKE_EXE NAMES nmake)
-  SET(CONFIGURE_COMMAND perl ${CMAKE_CURRENT_BINARY_DIR}/build/src/project_libopenssl/Configure VC-WIN64A no-asm --prefix=${OPEN_SRC_INSTALL_PREFIX} --openssldir=${OPEN_SRC_INSTALL_PREFIX})
+  SET(CONFIGURE_COMMAND perl ${CMAKE_CURRENT_BINARY_DIR}/build/src/project_libopenssl/Configure VC-WIN32 no-asm --prefix=${OPEN_SRC_INSTALL_PREFIX} --openssldir=${OPEN_SRC_INSTALL_PREFIX})
 else()
   find_program(MAKE_EXE NAMES make)
   # OpenSSL takes a while to compile, so allow some parallelism.
