@@ -35,9 +35,8 @@ jobs:
         uses: actions/checkout@v3
       - name: Build repository
         run: |
-          brew install openssl
           mkdir build && cd build
-          cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -DOPENSSL_LIBRARIES=/usr/local/opt/openssl/lib
+          cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
           make
       - name: Run tests
         run:  |
@@ -54,9 +53,8 @@ jobs:
         uses: actions/checkout@v3
       - name: Build repository
         run: |
-          brew install openssl
           mkdir build && cd build
-          cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -DOPENSSL_LIBRARIES=/usr/local/opt/openssl/lib
+          cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
           make
       - name: Run tests
         run:  |
@@ -73,9 +71,8 @@ jobs:
         uses: actions/checkout@v3
       - name: Build repository
         run: |
-          brew install openssl
           mkdir build && cd build
-          cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -DOPENSSL_LIBRARIES=/usr/local/opt/openssl/lib
+          cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE
           make
       - name: Run tests
         run:  |
