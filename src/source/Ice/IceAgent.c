@@ -1767,6 +1767,23 @@ CleanUp:
     return retStatus;
 }
 
+STATUS turnStateFailedFn(PSocketConnection pSocketConnection, UINT64 data)
+{
+    UNUSED_PARAM(pSocketConnection);
+
+    STATUS retStatus = STATUS_SUCCESS;
+
+    PIceCandidate pNewCandidate = (PIceCandidate) data;
+    CHK(pNewCandidate != NULL, STATUS_NULL_ARG);
+
+    if (pNewCandidate->state == ICE_CANDIDATE_STATE_NEW) {
+        pNewCandidate->state = ICE_CANDIDATE_STATE_INVALID;
+    }
+
+CleanUp:
+    return retStatus;
+}
+
 STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent, UINT32 iceServerIndex, KVS_SOCKET_PROTOCOL protocol)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -1802,8 +1819,13 @@ STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent, UINT32 iceServerIndex, KV
     pNewCandidate->foundation = pIceAgent->foundationCounter++; // we dont generate candidates that have the same foundation.
     pNewCandidate->priority = computeCandidatePriority(pNewCandidate);
 
+    TurnConnectionCallbacks callback = {0};
+    callback.customData = (UINT64) pNewCandidate;
+    callback.relayAddressAvailableFn = NULL;
+    callback.turnStateFailedFn = turnStateFailedFn;
+
     CHK_STATUS(createTurnConnection(&pIceAgent->iceServers[iceServerIndex], pIceAgent->timerQueueHandle,
-                                    TURN_CONNECTION_DATA_TRANSFER_MODE_SEND_INDIDATION, protocol, NULL, pNewCandidate->pSocketConnection,
+                                    TURN_CONNECTION_DATA_TRANSFER_MODE_SEND_INDIDATION, protocol, &callback, pNewCandidate->pSocketConnection,
                                     pIceAgent->pConnectionListener, &pTurnConnection));
     pNewCandidate->pIceAgent = pIceAgent;
     pNewCandidate->pTurnConnection = pTurnConnection;
@@ -2514,7 +2536,9 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
 
             pStunAttributeAddress = (PStunAttributeAddress) pStunAttr;
 
-            if (!isSameIpAddress(&pStunAttributeAddress->address, &pIceCandidatePair->local->ipAddress, FALSE)) {
+            if (pIceCandidatePair->local->iceCandidateType == ICE_CANDIDATE_TYPE_SERVER_REFLEXIVE &&
+                pIceCandidatePair->remote->iceCandidateType == ICE_CANDIDATE_TYPE_SERVER_REFLEXIVE &&
+                !isSameIpAddress(&pStunAttributeAddress->address, &pIceCandidatePair->local->ipAddress, FALSE)) {
                 // this can happen for host and server reflexive candidates. If the peer
                 // is in the same subnet, server reflexive candidate's binding response's xor mapped ip address will be
                 // the host candidate ip address. In this case we will ignore the packet since the host candidate will
@@ -2524,8 +2548,6 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
                 // we have a peer reflexive local candidate
                 CHK_STATUS(iceAgentCheckPeerReflexiveCandidate(pIceAgent, &pStunAttributeAddress->address, pIceCandidatePair->local->priority, FALSE,
                                                                pSocketConnection));
-
-                CHK(FALSE, retStatus);
             }
 
             if (pIceCandidatePair->state != ICE_CANDIDATE_PAIR_STATE_SUCCEEDED) {
