@@ -1,7 +1,7 @@
-diff --git a/CMakeLists.txt b/CMakeLists.txt
+diff --git a/CMakeLists.txt c/CMakeLists.txt
 index ac24bf41b..1bebb37d1 100644
 --- a/CMakeLists.txt
-+++ b/CMakeLists.txt
++++ c/CMakeLists.txt
 @@ -219,6 +219,9 @@ if(MBEDTLS_FATAL_WARNINGS)
 
      if(CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_GNU)
