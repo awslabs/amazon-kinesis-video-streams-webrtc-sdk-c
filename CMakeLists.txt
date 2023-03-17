@@ -260,6 +260,10 @@ endif()
 
 if (ENABLE_DATA_CHANNEL)
   add_definitions(-DENABLE_DATA_CHANNEL)
+  set (DATACHANNEL_SRC
+      src/source/PeerConnection/DataChannel.c
+      src/source/Sctp/Sctp.c
+      )
 endif()
 
 if (INSTRUMENTED_ALLOCATORS)
@@ -271,14 +275,19 @@ file(
   WEBRTC_CLIENT_SOURCE_FILES
   "src/source/Crypto/*.c"
   "src/source/Ice/*.c"
-  "src/source/PeerConnection/*.c"
+  "src/source/PeerConnection/JitterBuffer.c"
+  "src/source/PeerConnection/jsmn.c"
+  "src/source/PeerConnection/PeerConnection.c"
+  "src/source/PeerConnection/Retransmitter.c"
+  "src/source/PeerConnection/Rtcp.c"
+  "src/source/PeerConnection/Rtp.c"
+  "src/source/PeerConnection/SessionDescription.c"
   "src/source/Rtcp/*.c"
   "src/source/Rtp/*.c"
   "src/source/Rtp/Codecs/*.c"
   "src/source/Sdp/*.c"
   "src/source/Srtp/*.c"
   "src/source/Stun/*.c"
-  "src/source/Sctp/*.c"
   "src/source/Metrics/*.c")
 
 if (USE_OPENSSL)
@@ -295,7 +304,7 @@ include_directories(${OPEN_SRC_INSTALL_PREFIX}/include)
 include_directories(${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/include)
 include_directories(${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/ice)
 
-add_library(kvsWebrtcClient ${LINKAGE} ${WEBRTC_CLIENT_SOURCE_FILES})
+add_library(kvsWebrtcClient ${LINKAGE} ${WEBRTC_CLIENT_SOURCE_FILES} ${DATACHANNEL_SRC})
 
 target_link_libraries(
   kvsWebrtcClient
