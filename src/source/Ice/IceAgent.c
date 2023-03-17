@@ -1767,13 +1767,13 @@ CleanUp:
     return retStatus;
 }
 
-
-STATUS turnStateFailedFn(PSocketConnection pSocketConnection, UINT64 data) {
+STATUS turnStateFailedFn(PSocketConnection pSocketConnection, UINT64 data)
+{
     UNUSED_PARAM(pSocketConnection);
 
     STATUS retStatus = STATUS_SUCCESS;
 
-    PIceCandidate pNewCandidate = (PIceCandidate)data;
+    PIceCandidate pNewCandidate = (PIceCandidate) data;
     CHK(pNewCandidate != NULL, STATUS_NULL_ARG);
 
     if (pNewCandidate->state == ICE_CANDIDATE_STATE_NEW) {
@@ -1820,9 +1820,9 @@ STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent, UINT32 iceServerIndex, KV
     pNewCandidate->priority = computeCandidatePriority(pNewCandidate);
 
     TurnConnectionCallbacks callback = {0};
-    callback.customData = (UINT64)pNewCandidate;
+    callback.customData = (UINT64) pNewCandidate;
     callback.relayAddressAvailableFn = NULL;
-    callback.turnStateFailedFn= turnStateFailedFn;
+    callback.turnStateFailedFn = turnStateFailedFn;
 
     CHK_STATUS(createTurnConnection(&pIceAgent->iceServers[iceServerIndex], pIceAgent->timerQueueHandle,
                                     TURN_CONNECTION_DATA_TRANSFER_MODE_SEND_INDIDATION, protocol, &callback, pNewCandidate->pSocketConnection,
