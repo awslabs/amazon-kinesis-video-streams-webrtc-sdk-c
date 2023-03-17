@@ -1415,7 +1415,7 @@ CleanUp:
     }
 
     if (freeStreamingSession && pSampleStreamingSession != NULL) {
-        freeSampleStreamingSession(pSampleStreamingSession);
+        freeSampleStreamingSession(&pSampleStreamingSession);
     }
 
     if (locked) {
