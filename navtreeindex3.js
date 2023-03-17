@@ -1,5 +1,6 @@
 var NAVTREEINDEX3 =
 {
+"group__StatusCodes.html#gafc691e43b541bf7ac94abda8fdcd5892":[1,0,20,3,1],
 "group__StatusCodes.html#gafcb5243008cc0bf27f18df01e0a6ae6c":[1,0,175],
 "group__StatusCodes.html#gafcb5243008cc0bf27f18df01e0a6ae6c":[1,0,20,0,1],
 "group__StatusCodes.html#gafe331e59fcd4b4d5b4135608f33241b7":[1,0,20,4,1],
@@ -248,6 +249,5 @@ var NAVTREEINDEX3 =
 "structRtcReceivedRtpStreamStats.html#ad66bd5380faefc8ae7b543ad1c8575ff":[1,0,20,15,12],
 "structRtcReceivedRtpStreamStats.html#ad8233f305f63fd7d5ec28cf1d52f9775":[1,0,20,15,6],
 "structRtcReceivedRtpStreamStats.html#ae4174d302f83cff159443f736db3a032":[1,0,20,15,5],
-"structRtcReceivedRtpStreamStats.html#af006cf5681f7d6271c6c2c7e60794ab1":[1,0,20,15,14],
-"structRtcReceivedRtpStreamStats.html#af08b16ca6ebf74cb7e9efdcb896b7b95":[1,0,20,15,9]
+"structRtcReceivedRtpStreamStats.html#af006cf5681f7d6271c6c2c7e60794ab1":[1,0,20,15,14]
 };

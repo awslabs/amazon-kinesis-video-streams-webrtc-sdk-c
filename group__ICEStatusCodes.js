@@ -27,6 +27,7 @@ var group__ICEStatusCodes =
     [ "STATUS_ICE_URL_INVALID_PREFIX", "group__ICEStatusCodes.html#ga59e85d2c53978d67680cdc4830bf2787", null ],
     [ "STATUS_ICE_URL_TURN_MISSING_CREDENTIAL", "group__ICEStatusCodes.html#ga7b428d05e0aa2c8b1aa3a2567ef3cc68", null ],
     [ "STATUS_ICE_URL_TURN_MISSING_USERNAME", "group__ICEStatusCodes.html#ga8f4186696ccb87be6d412311b9a2dd44", null ],
+    [ "STATUS_TURN_CONNECTION_ALLOCAITON_FAILED", "group__ICEStatusCodes.html#ga50e3f5dcab3781d9548a2bdcd408e811", null ],
     [ "STATUS_TURN_CONNECTION_FAILED_TO_BIND_CHANNEL", "group__ICEStatusCodes.html#gacc938bee658deb6c85703526e19dbe10", null ],
     [ "STATUS_TURN_CONNECTION_FAILED_TO_CREATE_PERMISSION", "group__ICEStatusCodes.html#ga34dfa9cfb52aa5eea97dce2502d3f975", null ],
     [ "STATUS_TURN_CONNECTION_NO_HOST_INTERFACE_FOUND", "group__ICEStatusCodes.html#ga2689bc8b71216444cbcefec30b20a2e8", null ],
