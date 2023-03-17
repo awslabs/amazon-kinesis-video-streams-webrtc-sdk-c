@@ -1267,7 +1267,7 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) customData;
-    BOOL peerConnectionFound = FALSE, locked = FALSE, startStats = FALSE;
+    BOOL peerConnectionFound = FALSE, locked = FALSE, startStats = FALSE, freeStreamingSession = FALSE;
     UINT32 clientIdHash;
     UINT64 hashValue = 0;
     PPendingMessageQueue pPendingMessageQueue = NULL;
@@ -1328,8 +1328,10 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
             }
 
             MUTEX_LOCK(pSampleConfiguration->streamingSessionListReadLock);
+            freeStreamingSession = TRUE;
             pSampleConfiguration->sampleStreamingSessionList[pSampleConfiguration->streamingSessionCount++] = pSampleStreamingSession;
             MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
+            freeStreamingSession = FALSE;
 
             startStats = pSampleConfiguration->iceCandidatePairStatsTimerId == MAX_UINT32;
             break;
@@ -1410,6 +1412,10 @@ CleanUp:
     SAFE_MEMFREE(pReceivedSignalingMessageCopy);
     if (pPendingMessageQueue != NULL) {
         freeMessageQueue(pPendingMessageQueue);
+    }
+
+    if (freeStreamingSession && pSampleStreamingSession != NULL) {
+        freeSampleStreamingSession(pSampleStreamingSession);
     }
 
     if (locked) {
