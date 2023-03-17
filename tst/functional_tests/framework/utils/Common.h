@@ -40,4 +40,4 @@ const string DELETE_DOCKER_NETWORK_COMMAND = "docker network rm webrtc_peer_netw
 
 #define SUCCESS 0
 
-#endif //KINESISVIDEOWEBRTCCLIENT_CONSTANTS_H
+#endif // KINESISVIDEOWEBRTCCLIENT_CONSTANTS_H

@@ -11,16 +11,15 @@
 using namespace std;
 
 static const vector<string> VALID_TEST_CONFIG_KEYS = {
-        "CONTAINER_IMAGE",
-        "TEST_EXECUTION_TIME_SECONDS",
-        "CLEAN_ARTIFACTS_ON_EXIT",
-        "UPLOAD_ARTIFACTS_TO_S3_ON_FAILURE",
+    "CONTAINER_IMAGE",
+    "TEST_EXECUTION_TIME_SECONDS",
+    "CLEAN_ARTIFACTS_ON_EXIT",
+    "UPLOAD_ARTIFACTS_TO_S3_ON_FAILURE",
 
 };
 
 class FunctionalTestConfiguration : public FunctionalTestConfiguration {
-public:
-
+  public:
     string testIdentifier;
     string testArtifactsDirectory;
     string testArtifactsLoggingDirectory;
@@ -41,9 +40,12 @@ public:
     string masterContainerName, viewerContainerName;
     string signalingCPServerContainerName, signalingDPServerContainerName;
 
-    explicit FunctionalTestConfiguration() {}
+    explicit FunctionalTestConfiguration()
+    {
+    }
 
-    explicit FunctionalTestConfiguration(string testIdentifier) {
+    explicit FunctionalTestConfiguration(string testIdentifier)
+    {
         this->testIdentifier = testIdentifier;
 
         testArtifactsDirectory.append(TEST_ARTIFACTS_ROOT);
@@ -75,4 +77,4 @@ public:
     }
 };
 
-#endif //KINESISVIDEOWEBRTCCLIENT_FUNCTIONALTESTCONFIG_H
+#endif // KINESISVIDEOWEBRTCCLIENT_FUNCTIONALTESTCONFIG_H

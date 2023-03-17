@@ -9,4 +9,4 @@
 STATUS startMaster(PeerConfiguration& functionalTestConfiguration);
 STATUS startViewer(PeerConfiguration& functionalTestConfiguration);
 
-#endif //KINESISVIDEOWEBRTCCLIENT_WEBRTCMASTER_H
+#endif // KINESISVIDEOWEBRTCCLIENT_WEBRTCMASTER_H

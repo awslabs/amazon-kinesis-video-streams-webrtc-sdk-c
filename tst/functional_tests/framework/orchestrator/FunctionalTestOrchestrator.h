@@ -13,7 +13,7 @@
 using namespace std;
 
 class FunctionalTestOrchestrator {
-private:
+  private:
     FunctionalTestConfiguration functionalTestConfig;
     ProcessManager processManager;
 
@@ -26,16 +26,12 @@ private:
     int startMasterApplication();
     int startViewerApplication();
 
-    int launchContainer(const string& containerName,
-                        const string& containerIp,
-                        const string& network,
-                        const string& portForwardingMapping);
+    int launchContainer(const string& containerName, const string& containerIp, const string& network, const string& portForwardingMapping);
 
     string getSignalingControlPlaneServerPid();
     string getSignalingDataPlaneServerPid();
 
-public:
-
+  public:
     explicit FunctionalTestOrchestrator(FunctionalTestConfiguration& functionalTestConfig);
 
     int setupTestResources();
@@ -55,4 +51,4 @@ public:
     int cleanUpTestArtifacts();
 };
 
-#endif //KINESISVIDEOWEBRTCCLIENT_FUNCTIONALTESTORCHESTRATOR_H
+#endif // KINESISVIDEOWEBRTCCLIENT_FUNCTIONALTESTORCHESTRATOR_H

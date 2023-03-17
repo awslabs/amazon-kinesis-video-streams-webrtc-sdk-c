@@ -12,24 +12,19 @@
 
 using namespace std;
 
-enum PeerType {
-    MASTER,
-    VIEWER
-};
+enum PeerType { MASTER, VIEWER };
 
-static const vector<string> VALID_PEER_CONFIG_KEYS = {
-        "PEER_TYPE",
-        "USE_TURN",
-        "USE_TRICKLE_ICE",
-        "LOG_DIRECTORY",
-        "WEBRTC_SIGNALING_CONTROL_PLANE_IP",
-        "WEBRTC_SIGNALING_CONTROL_PLANE_PORT",
-        "WEBRTC_SIGNALING_DATA_PLANE_IP",
-        "WEBRTC_SIGNALING_DATA_PLANE_PORT"
-};
+static const vector<string> VALID_PEER_CONFIG_KEYS = {"PEER_TYPE",
+                                                      "USE_TURN",
+                                                      "USE_TRICKLE_ICE",
+                                                      "LOG_DIRECTORY",
+                                                      "WEBRTC_SIGNALING_CONTROL_PLANE_IP",
+                                                      "WEBRTC_SIGNALING_CONTROL_PLANE_PORT",
+                                                      "WEBRTC_SIGNALING_DATA_PLANE_IP",
+                                                      "WEBRTC_SIGNALING_DATA_PLANE_PORT"};
 
 class PeerConfiguration : public FunctionalTestConfiguration {
-public:
+  public:
     PeerType getPeerType();
     char* getChannelName();
     bool useTrickleIce();
@@ -37,5 +32,4 @@ public:
     char* getLogDirectoryPath();
 };
 
-
-#endif //KINESISVIDEOWEBRTCCLIENT_FUNCTIONALTESTCONFIGURATION_H
+#endif // KINESISVIDEOWEBRTCCLIENT_FUNCTIONALTESTCONFIGURATION_H

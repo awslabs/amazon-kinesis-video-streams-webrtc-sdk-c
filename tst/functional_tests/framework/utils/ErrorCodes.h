@@ -7,14 +7,14 @@
 
 #include "../logger/FunctionalTestLogger.h"
 
-#define SUCCESS                                                     0x000000
-#define GENERIC_FAILURE                                             0xffffff
+#define SUCCESS         0x000000
+#define GENERIC_FAILURE 0xffffff
 
-#define CONFIG_PARSING_ERROR_INVALID_CONFIG_LINE                    0x000001
-#define CONFIG_PARSING_ERROR_INVALID_CONFIG_KEY                     0x000002
-#define CONFIG_PARSING_ERROR_MISSING_REQUIRED_CONFIG                0x000003
+#define CONFIG_PARSING_ERROR_INVALID_CONFIG_LINE     0x000001
+#define CONFIG_PARSING_ERROR_INVALID_CONFIG_KEY      0x000002
+#define CONFIG_PARSING_ERROR_MISSING_REQUIRED_CONFIG 0x000003
 
-#define PEER_CONFIGURATION_FILE_MISSING                             0x000006
-#define PEER_CONFIGURATION_FILE_INVALID_PATH                        0x000007
+#define PEER_CONFIGURATION_FILE_MISSING      0x000006
+#define PEER_CONFIGURATION_FILE_INVALID_PATH 0x000007
 
-#endif //KINESISVIDEOWEBRTCCLIENT_UTILS_H
+#endif // KINESISVIDEOWEBRTCCLIENT_UTILS_H

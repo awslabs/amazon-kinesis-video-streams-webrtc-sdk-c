@@ -30,7 +30,7 @@ extern "C" {
  *
  * Uncomment to use your own hardware entropy collector.
  */
-//#define MBEDTLS_ENTROPY_HARDWARE_ALT
+// #define MBEDTLS_ENTROPY_HARDWARE_ALT
 
 #ifdef __cplusplus
 }

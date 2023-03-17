@@ -11,12 +11,13 @@ using namespace std;
 class FunctionalTestLogger {
     const int MAX_LOG_LINE_LENGTH = 1024;
     string formatLogLine(const char* msg, ...);
-public:
 
+  public:
     explicit FunctionalTestLogger();
     explicit FunctionalTestLogger(const string& logFile);
 
-    static shared_ptr<FunctionalTestLogger> getInstance() {
+    static shared_ptr<FunctionalTestLogger> getInstance()
+    {
         static auto singletonInstance = make_shared<FunctionalTestLogger>();
         return singletonInstance;
     }
@@ -26,5 +27,4 @@ public:
     void info(const char* msg, ...);
 };
 
-
-#endif //KINESISVIDEOWEBRTCCLIENT_FUNCTIONALTESTLOGGER_H
+#endif // KINESISVIDEOWEBRTCCLIENT_FUNCTIONALTESTLOGGER_H

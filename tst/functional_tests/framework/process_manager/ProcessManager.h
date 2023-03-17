@@ -7,9 +7,9 @@ using namespace std;
 
 class ProcessManager {
     const string GET_CONTAINER_ID_COMMAND_PREFIX = "docker ps -q -f name=";
-public:
+
+  public:
     string getContainerPid(const string& containerName);
 };
 
-
-#endif //KINESISVIDEOWEBRTCCLIENT_CONTAINERSDKPROCESSMANAGER_H
+#endif // KINESISVIDEOWEBRTCCLIENT_CONTAINERSDKPROCESSMANAGER_H
