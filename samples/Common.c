@@ -1326,11 +1326,11 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
                 // NULL the pointer to avoid it being freed in the cleanup
                 pPendingMessageQueue = NULL;
             }
-            
+
             MUTEX_LOCK(pSampleConfiguration->streamingSessionListReadLock);
             pSampleConfiguration->sampleStreamingSessionList[pSampleConfiguration->streamingSessionCount++] = pSampleStreamingSession;
             MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
-            
+
             startStats = pSampleConfiguration->iceCandidatePairStatsTimerId == MAX_UINT32;
             break;
 
