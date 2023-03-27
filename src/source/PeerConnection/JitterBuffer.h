@@ -28,14 +28,17 @@ typedef struct {
     UINT64 transit;
     // holds estimated jitter, in clockRate units
     DOUBLE jitter;
-    UINT32 lastPushTimestamp;
     UINT16 headSequenceNumber;
+    UINT16 tailSequenceNumber;
     UINT32 headTimestamp;
-    UINT64 maxLatency;
+    UINT32 tailTimestamp;
+    UINT32 maxLatency;
     UINT64 customData;
     UINT32 clockRate;
     BOOL started;
     BOOL firstFrameProcessed;
+    BOOL sequenceNumberOverflowState;
+    BOOL timestampOverFlowState;
     PHashTable pPkgBufferHashTable;
 } JitterBuffer, *PJitterBuffer;
 

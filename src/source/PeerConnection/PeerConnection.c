@@ -367,7 +367,6 @@ STATUS onFrameDroppedFunc(UINT64 customData, UINT16 startIndex, UINT16 endIndex,
     } else {
         CHK(FALSE, retStatus);
     }
-    // TODO: handle multi-packet frames
     CHK(pPacket != NULL, STATUS_NULL_ARG);
     MUTEX_LOCK(pTransceiver->statsLock);
     // https://www.w3.org/TR/webrtc-stats/#dom-rtcinboundrtpstreamstats-jitterbufferdelay

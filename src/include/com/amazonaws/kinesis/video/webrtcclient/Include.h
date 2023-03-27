@@ -622,6 +622,11 @@ extern "C" {
 #define MAX_SEQUENCE_NUM ((UINT32) MAX_UINT16)
 
 /**
+ * Maximum timestamp in rtp packet/jitter buffer
+ */
+#define MAX_TIMESTAMP ((UINT32) MAX_UINT32)
+
+/**
  * Parameterized string for KVS STUN Server
  */
 #define KINESIS_VIDEO_STUN_URL "stun:stun.kinesisvideo.%s.amazonaws.com:443"
