@@ -37,8 +37,6 @@ extern "C" {
 #define DEFAULT_TURN_CHANNEL_DATA_BUFFER_SIZE             512
 #define DEFAULT_TURN_MAX_PEER_COUNT                       32
 
-#define DEFAULT_TURN_ALLOCATION_MAX_TRY_COUNT 3
-
 // all turn channel numbers must be greater than 0x4000 and less than 0x7FFF
 #define TURN_CHANNEL_BIND_CHANNEL_NUMBER_BASE (UINT16) 0x4000
 
@@ -58,7 +56,6 @@ extern "C" {
 #define TURN_STATE_UNKNOWN_STR                 (PCHAR) "TURN_STATE_UNKNOWN"
 
 typedef STATUS (*RelayAddressAvailableFunc)(UINT64, PKvsIpAddress, PSocketConnection);
-typedef STATUS (*TurnStateFailedFunc)(PSocketConnection, UINT64);
 
 typedef enum {
     TURN_PEER_CONN_STATE_CREATE_PERMISSION,
@@ -81,7 +78,6 @@ typedef struct {
 typedef struct {
     UINT64 customData;
     RelayAddressAvailableFunc relayAddressAvailableFn;
-    TurnStateFailedFunc turnStateFailedFn;
 } TurnConnectionCallbacks, *PTurnConnectionCallbacks;
 
 typedef struct {
@@ -132,8 +128,6 @@ struct __TurnConnection {
     UINT64 state;
 
     UINT64 stateTimeoutTime;
-    UINT32 stateTryCount;
-    UINT32 stateTryCountMax;
 
     STATUS errorStatus;
 
