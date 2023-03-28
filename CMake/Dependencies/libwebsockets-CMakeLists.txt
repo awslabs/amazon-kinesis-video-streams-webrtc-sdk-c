@@ -3,23 +3,6 @@ cmake_minimum_required(VERSION 3.6.3)
 project(libwebsocket-download NONE)
 
 include(ExternalProject)
-   
-if (WIN32)
-  SET(OPENSSL_SSL_LIBRARY $ENV{OPENSSL_SSL_LIBRARY})
-  SET(OPENSSL_CRYPTO_LIBRARY $ENV{OPENSSL_CRYPTO_LIBRARY})
-  SET(OPENSSL_INCLUDE_DIR $ENV(OPENSSL_INCLUDE_DIR))
-  execute_process(
-    COMMAND cmd /c mklink "ssl.lib" $ENV{OPENSSL_SSL_LIBRARY}
-    RESULT_VARIABLE LINK_RESULT
-  )
-
-  if(LINK_RESULT EQUAL 0)
-    message("Created symlink")
-  else()
-    message("Could not create symlink")
-  endif()
-  
-endif()
 
 if (BUILD_STATIC_LIBS)
   set(LWS_WITH_STATIC 1)
@@ -28,7 +11,22 @@ else()
   set(LWS_WITH_STATIC 0)
   set(LWS_WITH_SHARED 1)
   if (USE_OPENSSL)
-    find_package(OpenSSL REQUIRED)
+    if (WIN32)
+      SET(OPENSSL_SSL_LIBRARY $ENV{OPENSSL_SSL_LIBRARY})
+      SET(OPENSSL_CRYPTO_LIBRARY $ENV{OPENSSL_CRYPTO_LIBRARY})
+      SET(OPENSSL_INCLUDE_DIR $ENV(OPENSSL_INCLUDE_DIR))
+      execute_process(
+        COMMAND cmd /c mklink "ssl.lib" $ENV{OPENSSL_SSL_LIBRARY}
+        RESULT_VARIABLE LINK_RESULT
+      )
+      if(LINK_RESULT EQUAL 0)
+        message("Created symlink")
+      else()
+        message("Could not create symlink")
+      endif()
+    else()
+      find_package(OpenSSL REQUIRED)
+    endif()
   endif()
 endif()
 
