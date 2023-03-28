@@ -45,9 +45,9 @@ ExternalProject_Add(project_libwebsockets
         -DLWS_HAVE_EVENTFD=0
         -DLWS_WITH_MBEDTLS=${LWS_WITH_MBEDTLS}
 # enable for debug output        -DCMAKE_BUILD_TYPE=DEBUG
-        -DLWS_OPENSSL_INCLUDE_DIRS=${OPENSSL_INCLUDE_DIR}
-        -DLWS_OPENSSL_CRYPTO_LIBRARY=${OPENSSL_CRYPTO_LIBRARY}
-        -DLWS_OPENSSL_SSL_LIBRARY=${OPENSSL_SSL_LIBRARY}
+        -DOPENSSL_ROOT_DIR="D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\open-source\bin\openssl" 
+        -DLWS_OPENSSL_LIBRARIES="D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\open-source\lib\libssl.lib;D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\open-source\lib\libcrypto.lib" 
+        -DLWS_OPENSSL_INCLUDE_DIRS="D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\open-source\include\"
         -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
         BUILD_ALWAYS      TRUE
     TEST_COMMAND      ""
