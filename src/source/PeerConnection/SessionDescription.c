@@ -1018,7 +1018,7 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
             if (count == 4) {
                 codecs = attributeValue; // codecs = 111 63 103 104 9 0 8 106 105 13 110 112 113 126
             }
-            if (count > 3) { // look for codec values from payload types (111 63 103 104 9 0 8 106 105 13 110 112 113 126)
+            if (count > 3) {             // look for codec values from payload types (111 63 103 104 9 0 8 106 105 13 110 112 113 126)
                 if (STRNCMP(DEFAULT_PAYLOAD_MULAW_STR, attributeValue, tokenLen) == 0) {
                     supportCodec = TRUE;
                     rtcCodec = RTC_CODEC_MULAW;
