@@ -8,6 +8,17 @@ if (WIN32)
   SET(OPENSSL_SSL_LIBRARY $ENV{OPENSSL_SSL_LIBRARY})
   SET(OPENSSL_CRYPTO_LIBRARY $ENV{OPENSSL_CRYPTO_LIBRARY})
   SET(OPENSSL_INCLUDE_DIR $ENV(OPENSSL_INCLUDE_DIR))
+  execute_process(
+    COMMAND cmd /c mklink "ssl.lib" $ENV{OPENSSL_SSL_LIBRARY}
+    RESULT_VARIABLE LINK_RESULT
+  )
+
+  if(LINK_RESULT EQUAL 0)
+    message("Created symlink")
+  else()
+    message("Could not create symlink")
+  endif()
+  
 endif()
 
 if (BUILD_STATIC_LIBS)
