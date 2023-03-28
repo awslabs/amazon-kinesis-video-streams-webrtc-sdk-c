@@ -1544,7 +1544,7 @@ STATUS iceAgentGatherCandidateTimerCallback(UINT32 timerId, UINT64 currentTime, 
                 CHK_STATUS(updateCandidateAddress(pIceCandidate, &relayAddress));
                 CHK_STATUS(createIceCandidatePairs(pIceAgent, pIceCandidate, FALSE));
             } else if (pIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED && pIceCandidate->pTurnConnection != NULL &&
-                    pIceCandidate->pTurnConnection->state == TURN_STATE_FAILED) {
+                       pIceCandidate->pTurnConnection->state == TURN_STATE_FAILED) {
                 pIceCandidate->state = ICE_CANDIDATE_STATE_INVALID;
             }
         }
@@ -2623,7 +2623,7 @@ STATUS iceAgentCheckPeerReflexiveCandidate(PIceAgent pIceAgent, PKvsIpAddress pI
     CHK_STATUS(doubleListGetNodeCount(pIceAgent->remoteCandidates, &candidateCount));
     CHK_WARN(candidateCount < KVS_ICE_MAX_REMOTE_CANDIDATE_COUNT, retStatus, "max remote candidate count exceeded"); // return early if limit exceeded
     CHK_STATUS(findCandidateWithIp(pIpAddress, pIceAgent->remoteCandidates, &pIceCandidate));
-    CHK(pIceCandidate == NULL, retStatus); // return early if duplicated
+    CHK(pIceCandidate == NULL, retStatus);                                                                           // return early if duplicated
     DLOGD("New remote peer reflexive candidate found");
 
     CHK((pIceCandidate = MEMCALLOC(1, SIZEOF(IceCandidate))) != NULL, STATUS_NOT_ENOUGH_MEMORY);
