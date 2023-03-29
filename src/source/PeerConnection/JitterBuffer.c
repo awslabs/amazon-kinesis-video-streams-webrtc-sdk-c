@@ -32,6 +32,8 @@ STATUS createJitterBuffer(FrameReadyFunc onFrameReadyFunc, FrameDroppedFunc onFr
     }
     pJitterBuffer->maxLatency = pJitterBuffer->maxLatency * pJitterBuffer->clockRate / HUNDREDS_OF_NANOS_IN_A_SECOND;
 
+    CHK(pJitterBuffer->maxLatency < MAX_TIMESTAMP, STATUS_INVALID_ARG);
+
     pJitterBuffer->tailTimestamp = 0;
     pJitterBuffer->headTimestamp = MAX_UINT32;
     pJitterBuffer->headSequenceNumber = MAX_SEQUENCE_NUM;
@@ -85,6 +87,34 @@ CleanUp:
     return retStatus;
 }
 
+BOOL underflowPossible(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket) {
+    BOOL retVal = FALSE;
+    UINT16 seqNoDifference = 0;
+    UINT64 timestampDifference = 0;
+    UINT64 maxTimePassed = 0;
+    if(pJitterBuffer->headTimestamp == pRtpPacket->header.timestamp) {
+        retVal = TRUE;
+    }
+    else {
+        seqNoDifference = (MAX_SEQUENCE_NUM - pRtpPacket->header.sequenceNumber) + pJitterBuffer->headSequenceNumber;
+        if(pJitterBuffer->headTimestamp > pRtpPacket->header.timestamp) {
+            timestampDifference = pJitterBuffer->headTimestamp - pRtpPacket->header.timestamp;
+        }
+        else {
+            timestampDifference = (MAX_TIMESTAMP - pRtpPacket->header.timestamp) + pJitterBuffer->headTimestamp;
+        }
+
+        //1 frame per second, and 1 packet per frame, the most charitable case we can consider
+        //TODO track most recent FPS to improve this metric
+        maxTimePassed = pJitterBuffer->clockRate * seqNoDifference;
+
+        if(maxTimePassed >= timestampDifference) {
+            retVal = TRUE;
+        }
+    }
+    return retVal;
+}
+
 //return true if sequence numbers are now overflowing
 BOOL enterSequenceNumberOverflowCheck(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket) {
     BOOL overflow = FALSE;
@@ -106,11 +136,13 @@ BOOL enterSequenceNumberOverflowCheck(PJitterBuffer pJitterBuffer, PRtpPacket pR
         //underflow case
         else if(headCheckingAllowed(pJitterBuffer, pRtpPacket)) { 
             if (pJitterBuffer->headSequenceNumber < MAX_OUT_OF_ORDER_PACKET_DIFFERENCE) {
-                if ((pRtpPacket->header.sequenceNumber >=
-                            (MAX_UINT16 - (MAX_OUT_OF_ORDER_PACKET_DIFFERENCE - pJitterBuffer->headSequenceNumber))) ||
-                        (pJitterBuffer->headSequenceNumber > pRtpPacket->header.sequenceNumber)) {
-                    //Sequence number underflow detected
-                    underflow = TRUE;
+                if (pRtpPacket->header.sequenceNumber >=
+                            (MAX_UINT16 - (MAX_OUT_OF_ORDER_PACKET_DIFFERENCE - pJitterBuffer->headSequenceNumber))) {
+                    //Possible sequence number underflow detected, now lets check the timestamps to be certain
+                    //this is an earlier value, and not a much later.
+                    if(underflowPossible(pJitterBuffer, pRtpPacket)) {
+                        underflow = TRUE;
+                    }
                 }
             }
         }
@@ -176,6 +208,7 @@ BOOL exitSequenceNumberOverflowCheck(PJitterBuffer pJitterBuffer) {
     //can't exit if you're not in it
     if(pJitterBuffer->sequenceNumberOverflowState) {
         if(pJitterBuffer->headSequenceNumber <= pJitterBuffer->tailSequenceNumber) {
+            pJitterBuffer->sequenceNumberOverflowState = FALSE;
             retVal = TRUE;
         }
     }
@@ -189,6 +222,7 @@ BOOL exitTimestampOverflowCheck(PJitterBuffer pJitterBuffer) {
     //can't exit if you're not in it
     if(pJitterBuffer->timestampOverFlowState) {
         if(pJitterBuffer->headTimestamp <= pJitterBuffer->tailTimestamp) {
+            pJitterBuffer->timestampOverFlowState = FALSE;
             retVal = TRUE;
         }
     }
@@ -458,7 +492,7 @@ STATUS jitterBufferInternalParse(PJitterBuffer pJitterBuffer, BOOL bufferClosed)
         earliestAllowedTimestamp = pJitterBuffer->tailTimestamp - pJitterBuffer->maxLatency;
     }
 
-    lastIndex = pJitterBuffer->tailSequenceNumber;
+    lastIndex = pJitterBuffer->tailSequenceNumber + 1;
     index = pJitterBuffer->headSequenceNumber;
     startDropIndex = index;
     // Loop through entire buffer to find complete frames.
