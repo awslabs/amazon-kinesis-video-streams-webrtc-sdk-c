@@ -32,12 +32,12 @@ STATUS createJitterBuffer(FrameReadyFunc onFrameReadyFunc, FrameDroppedFunc onFr
     }
     pJitterBuffer->maxLatency = pJitterBuffer->maxLatency * pJitterBuffer->clockRate / HUNDREDS_OF_NANOS_IN_A_SECOND;
 
-    CHK(pJitterBuffer->maxLatency < MAX_TIMESTAMP, STATUS_INVALID_ARG);
+    CHK(pJitterBuffer->maxLatency < MAX_RTP_TIMESTAMP, STATUS_INVALID_ARG);
 
     pJitterBuffer->tailTimestamp = 0;
     pJitterBuffer->headTimestamp = MAX_UINT32;
-    pJitterBuffer->headSequenceNumber = MAX_SEQUENCE_NUM;
-    pJitterBuffer->tailSequenceNumber = MAX_SEQUENCE_NUM;
+    pJitterBuffer->headSequenceNumber = MAX_RTP_SEQUENCE_NUM;
+    pJitterBuffer->tailSequenceNumber = MAX_RTP_SEQUENCE_NUM;
     pJitterBuffer->started = FALSE;
     pJitterBuffer->firstFrameProcessed = FALSE;
     pJitterBuffer->timestampOverFlowState = FALSE;
@@ -75,7 +75,7 @@ STATUS freeJitterBuffer(PJitterBuffer* ppJitterBuffer)
     pJitterBuffer = *ppJitterBuffer;
 
     jitterBufferInternalParse(pJitterBuffer, TRUE);
-    jitterBufferDropBufferData(pJitterBuffer, 0, MAX_SEQUENCE_NUM, 0);
+    jitterBufferDropBufferData(pJitterBuffer, 0, MAX_RTP_SEQUENCE_NUM, 0);
     hashTableFree(pJitterBuffer->pPkgBufferHashTable);
 
     SAFE_MEMFREE(*ppJitterBuffer);
@@ -96,12 +96,12 @@ BOOL underflowPossible(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket) {
         retVal = TRUE;
     }
     else {
-        seqNoDifference = (MAX_SEQUENCE_NUM - pRtpPacket->header.sequenceNumber) + pJitterBuffer->headSequenceNumber;
+        seqNoDifference = (MAX_RTP_SEQUENCE_NUM - pRtpPacket->header.sequenceNumber) + pJitterBuffer->headSequenceNumber;
         if(pJitterBuffer->headTimestamp > pRtpPacket->header.timestamp) {
             timestampDifference = pJitterBuffer->headTimestamp - pRtpPacket->header.timestamp;
         }
         else {
-            timestampDifference = (MAX_TIMESTAMP - pRtpPacket->header.timestamp) + pJitterBuffer->headTimestamp;
+            timestampDifference = (MAX_RTP_TIMESTAMP - pRtpPacket->header.timestamp) + pJitterBuffer->headTimestamp;
         }
 
         //1 frame per second, and 1 packet per frame, the most charitable case we can consider
@@ -119,7 +119,7 @@ BOOL underflowPossible(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket) {
 BOOL enterSequenceNumberOverflowCheck(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket) {
     BOOL overflow = FALSE;
     BOOL underflow = FALSE;
-    UINT16 packetsUntilOverflow = MAX_SEQUENCE_NUM - pJitterBuffer->tailSequenceNumber;
+    UINT16 packetsUntilOverflow = MAX_RTP_SEQUENCE_NUM - pJitterBuffer->tailSequenceNumber;
     UINT16 underflowFromMaxRange = 0;
 
     if(!pJitterBuffer->sequenceNumberOverflowState) {
@@ -154,10 +154,12 @@ BOOL enterSequenceNumberOverflowCheck(PJitterBuffer pJitterBuffer, PRtpPacket pR
     if(overflow) {
         pJitterBuffer->sequenceNumberOverflowState = TRUE;
         pJitterBuffer->tailSequenceNumber = pRtpPacket->header.sequenceNumber;
+        pJitterBuffer->tailTimestamp = pRtpPacket->header.timestamp;
     }
     if(underflow) {
         pJitterBuffer->sequenceNumberOverflowState = TRUE;
         pJitterBuffer->headSequenceNumber = pRtpPacket->header.sequenceNumber;
+        pJitterBuffer->headTimestamp = pRtpPacket->header.timestamp;
     }
     return (overflow || underflow);
 }
@@ -173,7 +175,7 @@ BOOL enterTimestampOverflowCheck(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPac
             //We always check sequence number first, so the 'or equal to' checks if we just set the tail.
             //That would be a corner case of sequence number and timestamp both overflowing
             //in this one packet.
-            if(pRtpPacket->header.sequenceNumber >= pJitterBuffer->tailSequenceNumber) {
+            if(tailSequenceNumberCheck(pJitterBuffer, pRtpPacket)) {
                 //RTP timestamp overflow detected!
                 overflow = TRUE;
             }
@@ -374,7 +376,7 @@ BOOL withinLatencyTolerance(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket) 
         if(pJitterBuffer->timestampOverFlowState) {
             //calculate max-latency across the overflow boundry without triggering underflow
             if(pJitterBuffer->tailTimestamp < pJitterBuffer->maxLatency) {
-                minimumTimestamp = MAX_TIMESTAMP - (pJitterBuffer->maxLatency - pJitterBuffer->tailTimestamp);
+                minimumTimestamp = MAX_RTP_TIMESTAMP - (pJitterBuffer->maxLatency - pJitterBuffer->tailTimestamp);
             }
             //Is the packet within the current range or is it a new head/tail
             if(pRtpPacket->header.timestamp < pJitterBuffer->tailTimestamp ||
