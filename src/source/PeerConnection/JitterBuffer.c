@@ -89,7 +89,7 @@ CleanUp:
 
 BOOL underflowPossible(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket) {
     BOOL retVal = FALSE;
-    UINT16 seqNoDifference = 0;
+    UINT32 seqNoDifference = 0;
     UINT64 timestampDifference = 0;
     UINT64 maxTimePassed = 0;
     if(pJitterBuffer->headTimestamp == pRtpPacket->header.timestamp) {
@@ -106,7 +106,12 @@ BOOL underflowPossible(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket) {
 
         //1 frame per second, and 1 packet per frame, the most charitable case we can consider
         //TODO track most recent FPS to improve this metric
-        maxTimePassed = pJitterBuffer->clockRate * seqNoDifference;
+        if((MAX_RTP_TIMESTAMP / pJitterBuffer->clockRate) <= seqNoDifference) {
+            maxTimePassed = MAX_RTP_TIMESTAMP;
+        }
+        else {
+            maxTimePassed = pJitterBuffer->clockRate * seqNoDifference;
+        }
 
         if(maxTimePassed >= timestampDifference) {
             retVal = TRUE;
