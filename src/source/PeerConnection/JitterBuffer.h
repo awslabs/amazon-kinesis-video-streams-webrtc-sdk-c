@@ -32,8 +32,8 @@ typedef struct {
     UINT16 tailSequenceNumber;
     UINT32 headTimestamp;
     UINT32 tailTimestamp;
-    //this is set to U64 even though rtp timestamps are U32
-    //in order to allow calculations to not cause overflow
+    // this is set to U64 even though rtp timestamps are U32
+    // in order to allow calculations to not cause overflow
     UINT64 maxLatency;
     UINT64 customData;
     UINT32 clockRate;

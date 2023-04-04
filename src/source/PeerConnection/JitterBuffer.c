@@ -87,40 +87,39 @@ CleanUp:
     return retStatus;
 }
 
-BOOL underflowPossible(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket) {
+BOOL underflowPossible(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket)
+{
     BOOL retVal = FALSE;
     UINT32 seqNoDifference = 0;
     UINT64 timestampDifference = 0;
     UINT64 maxTimePassed = 0;
-    if(pJitterBuffer->headTimestamp == pRtpPacket->header.timestamp) {
+    if (pJitterBuffer->headTimestamp == pRtpPacket->header.timestamp) {
         retVal = TRUE;
-    }
-    else {
+    } else {
         seqNoDifference = (MAX_RTP_SEQUENCE_NUM - pRtpPacket->header.sequenceNumber) + pJitterBuffer->headSequenceNumber;
-        if(pJitterBuffer->headTimestamp > pRtpPacket->header.timestamp) {
+        if (pJitterBuffer->headTimestamp > pRtpPacket->header.timestamp) {
             timestampDifference = pJitterBuffer->headTimestamp - pRtpPacket->header.timestamp;
-        }
-        else {
+        } else {
             timestampDifference = (MAX_RTP_TIMESTAMP - pRtpPacket->header.timestamp) + pJitterBuffer->headTimestamp;
         }
 
-        //1 frame per second, and 1 packet per frame, the most charitable case we can consider
-        //TODO track most recent FPS to improve this metric
-        if((MAX_RTP_TIMESTAMP / pJitterBuffer->clockRate) <= seqNoDifference) {
+        // 1 frame per second, and 1 packet per frame, the most charitable case we can consider
+        // TODO track most recent FPS to improve this metric
+        if ((MAX_RTP_TIMESTAMP / pJitterBuffer->clockRate) <= seqNoDifference) {
             maxTimePassed = MAX_RTP_TIMESTAMP;
-        }
-        else {
+        } else {
             maxTimePassed = pJitterBuffer->clockRate * seqNoDifference;
         }
 
-        if(maxTimePassed >= timestampDifference) {
+        if (maxTimePassed >= timestampDifference) {
             retVal = TRUE;
         }
     }
     return retVal;
 }
 
-BOOL headCheckingAllowed(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket) {
+BOOL headCheckingAllowed(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket)
+{
     BOOL retVal = FALSE;
     /*If we haven't yet processed a frame yet, then we don't have a definitive way of knowing if
      *the first packet we receive is actually the earliest packet we'll ever receive. Since sequence numbers
@@ -140,108 +139,102 @@ BOOL headCheckingAllowed(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket) {
      *However if the packet's timestamp is the same as the head timestamp, then it's possible this is simply an earlier
      *sequence number of the same packet.
      */
-    if(!(pJitterBuffer->firstFrameProcessed) || 
-         pJitterBuffer->headTimestamp == pRtpPacket->header.timestamp) {
+    if (!(pJitterBuffer->firstFrameProcessed) || pJitterBuffer->headTimestamp == pRtpPacket->header.timestamp) {
         retVal = TRUE;
     }
     return retVal;
 }
 
-//return true if pRtpPacket contains the head sequence number
-BOOL headSequenceNumberCheck(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket) {
+// return true if pRtpPacket contains the head sequence number
+BOOL headSequenceNumberCheck(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket)
+{
     BOOL retVal = FALSE;
     UINT16 minimumHead = 0;
-    if(pJitterBuffer->headSequenceNumber >= MAX_OUT_OF_ORDER_PACKET_DIFFERENCE) {
+    if (pJitterBuffer->headSequenceNumber >= MAX_OUT_OF_ORDER_PACKET_DIFFERENCE) {
         minimumHead = pJitterBuffer->headSequenceNumber - MAX_OUT_OF_ORDER_PACKET_DIFFERENCE;
     }
 
-    //If we've already done this check and it was true
-    if(pJitterBuffer->headSequenceNumber == pRtpPacket->header.sequenceNumber) {
+    // If we've already done this check and it was true
+    if (pJitterBuffer->headSequenceNumber == pRtpPacket->header.sequenceNumber) {
         retVal = TRUE;
-    }
-    else if(headCheckingAllowed(pJitterBuffer, pRtpPacket)){
-        if(pJitterBuffer->sequenceNumberOverflowState) {
-            if(pJitterBuffer->tailSequenceNumber < pRtpPacket->header.sequenceNumber &&
-               pJitterBuffer->headSequenceNumber > pRtpPacket->header.sequenceNumber &&
-               pRtpPacket->header.sequenceNumber >= minimumHead) {
-                //This purposefully misses the usecase where the buffer has >65000 entries.
-                //Our buffer is not designed for that use case, and it becomes far too ambiguous
-                //as to which packets are new tails or new heads without adding epoch checks.
+    } else if (headCheckingAllowed(pJitterBuffer, pRtpPacket)) {
+        if (pJitterBuffer->sequenceNumberOverflowState) {
+            if (pJitterBuffer->tailSequenceNumber < pRtpPacket->header.sequenceNumber &&
+                pJitterBuffer->headSequenceNumber > pRtpPacket->header.sequenceNumber && pRtpPacket->header.sequenceNumber >= minimumHead) {
+                // This purposefully misses the usecase where the buffer has >65000 entries.
+                // Our buffer is not designed for that use case, and it becomes far too ambiguous
+                // as to which packets are new tails or new heads without adding epoch checks.
                 pJitterBuffer->headSequenceNumber = pRtpPacket->header.sequenceNumber;
                 retVal = TRUE;
             }
-        }
-        else {
-            if(pRtpPacket->header.sequenceNumber < pJitterBuffer->headSequenceNumber) {
-                if(pRtpPacket->header.sequenceNumber >= minimumHead) {
+        } else {
+            if (pRtpPacket->header.sequenceNumber < pJitterBuffer->headSequenceNumber) {
+                if (pRtpPacket->header.sequenceNumber >= minimumHead) {
                     pJitterBuffer->headSequenceNumber = pRtpPacket->header.sequenceNumber;
                     retVal = TRUE;
                 }
             }
         }
-
     }
     return retVal;
 }
 
-//return true if pRtpPacket contains a new tail sequence number
-BOOL tailSequenceNumberCheck(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket) {
+// return true if pRtpPacket contains a new tail sequence number
+BOOL tailSequenceNumberCheck(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket)
+{
     BOOL retVal = FALSE;
-    //If we've already done this check and it was true
-    if(pJitterBuffer->tailSequenceNumber == pRtpPacket->header.sequenceNumber) {
+    // If we've already done this check and it was true
+    if (pJitterBuffer->tailSequenceNumber == pRtpPacket->header.sequenceNumber) {
         retVal = TRUE;
-    }
-    else if(pRtpPacket->header.sequenceNumber > pJitterBuffer->tailSequenceNumber &&
-            (!pJitterBuffer->sequenceNumberOverflowState ||
-            pJitterBuffer->headSequenceNumber > pRtpPacket->header.sequenceNumber)) {
+    } else if (pRtpPacket->header.sequenceNumber > pJitterBuffer->tailSequenceNumber &&
+               (!pJitterBuffer->sequenceNumberOverflowState || pJitterBuffer->headSequenceNumber > pRtpPacket->header.sequenceNumber)) {
         retVal = TRUE;
-        pJitterBuffer->tailSequenceNumber = pRtpPacket->header.sequenceNumber;            
+        pJitterBuffer->tailSequenceNumber = pRtpPacket->header.sequenceNumber;
     }
     return retVal;
 }
 
-//return true if sequence numbers are now overflowing
-BOOL enterSequenceNumberOverflowCheck(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket) {
+// return true if sequence numbers are now overflowing
+BOOL enterSequenceNumberOverflowCheck(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket)
+{
     BOOL overflow = FALSE;
     BOOL underflow = FALSE;
     UINT16 packetsUntilOverflow = MAX_RTP_SEQUENCE_NUM - pJitterBuffer->tailSequenceNumber;
     UINT16 underflowFromMaxRange = 0;
 
-    if(!pJitterBuffer->sequenceNumberOverflowState) {
-
-        //overflow case
-        if(MAX_OUT_OF_ORDER_PACKET_DIFFERENCE >= packetsUntilOverflow) {
-            //It's possible sequence numbers and timestamps are both overflowing.
-            if(pRtpPacket->header.sequenceNumber < pJitterBuffer->tailSequenceNumber &&
-               pRtpPacket->header.sequenceNumber <= MAX_OUT_OF_ORDER_PACKET_DIFFERENCE - packetsUntilOverflow) {
-                //Sequence number overflow detected
+    if (!pJitterBuffer->sequenceNumberOverflowState) {
+        // overflow case
+        if (MAX_OUT_OF_ORDER_PACKET_DIFFERENCE >= packetsUntilOverflow) {
+            // It's possible sequence numbers and timestamps are both overflowing.
+            if (pRtpPacket->header.sequenceNumber < pJitterBuffer->tailSequenceNumber &&
+                pRtpPacket->header.sequenceNumber <= MAX_OUT_OF_ORDER_PACKET_DIFFERENCE - packetsUntilOverflow) {
+                // Sequence number overflow detected
                 overflow = TRUE;
             }
         }
-        //underflow case
-        else if(headCheckingAllowed(pJitterBuffer, pRtpPacket)) { 
+        // underflow case
+        else if (headCheckingAllowed(pJitterBuffer, pRtpPacket)) {
             if (pJitterBuffer->headSequenceNumber < MAX_OUT_OF_ORDER_PACKET_DIFFERENCE) {
-                if (pRtpPacket->header.sequenceNumber >=
-                            (MAX_UINT16 - (MAX_OUT_OF_ORDER_PACKET_DIFFERENCE - pJitterBuffer->headSequenceNumber))) {
-                    //Possible sequence number underflow detected, now lets check the timestamps to be certain
-                    //this is an earlier value, and not a much later.
-                    if(underflowPossible(pJitterBuffer, pRtpPacket)) {
+                if (pRtpPacket->header.sequenceNumber >= (MAX_UINT16 - (MAX_OUT_OF_ORDER_PACKET_DIFFERENCE - pJitterBuffer->headSequenceNumber))) {
+                    // Possible sequence number underflow detected, now lets check the timestamps to be certain
+                    // this is an earlier value, and not a much later.
+                    if (underflowPossible(pJitterBuffer, pRtpPacket)) {
                         underflow = TRUE;
                     }
                 }
             }
         }
     }
-    if(overflow && underflow) {
-        //This shouldn't be possible. 
+    if (overflow && underflow) {
+        // This shouldn't be possible.
         DLOGE("Critical underflow/overflow error in jitterbuffer");
     }
-    if(overflow) {
+    if (overflow) {
         pJitterBuffer->sequenceNumberOverflowState = TRUE;
         pJitterBuffer->tailSequenceNumber = pRtpPacket->header.sequenceNumber;
         pJitterBuffer->tailTimestamp = pRtpPacket->header.timestamp;
     }
-    if(underflow) {
+    if (underflow) {
         pJitterBuffer->sequenceNumberOverflowState = TRUE;
         pJitterBuffer->headSequenceNumber = pRtpPacket->header.sequenceNumber;
         pJitterBuffer->headTimestamp = pRtpPacket->header.timestamp;
@@ -249,52 +242,50 @@ BOOL enterSequenceNumberOverflowCheck(PJitterBuffer pJitterBuffer, PRtpPacket pR
     return (overflow || underflow);
 }
 
-BOOL enterTimestampOverflowCheck(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket) {
+BOOL enterTimestampOverflowCheck(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket)
+{
     BOOL underflow = FALSE;
     BOOL overflow = FALSE;
-    if(!pJitterBuffer->timestampOverFlowState) {
-        //overflow check
-        if(pJitterBuffer->headTimestamp > pRtpPacket->header.timestamp &&
-           pJitterBuffer->tailTimestamp > pRtpPacket->header.timestamp) {
-            //Check to see if this could be a timestamp overflow case
-            //We always check sequence number first, so the 'or equal to' checks if we just set the tail.
-            //That would be a corner case of sequence number and timestamp both overflowing
-            //in this one packet.
-            if(tailSequenceNumberCheck(pJitterBuffer, pRtpPacket)) {
-                //RTP timestamp overflow detected!
+    if (!pJitterBuffer->timestampOverFlowState) {
+        // overflow check
+        if (pJitterBuffer->headTimestamp > pRtpPacket->header.timestamp && pJitterBuffer->tailTimestamp > pRtpPacket->header.timestamp) {
+            // Check to see if this could be a timestamp overflow case
+            // We always check sequence number first, so the 'or equal to' checks if we just set the tail.
+            // That would be a corner case of sequence number and timestamp both overflowing
+            // in this one packet.
+            if (tailSequenceNumberCheck(pJitterBuffer, pRtpPacket)) {
+                // RTP timestamp overflow detected!
                 overflow = TRUE;
             }
         }
-        //underflow check
-        else if (pJitterBuffer->headTimestamp < pRtpPacket->header.timestamp &&
-                pJitterBuffer->tailTimestamp < pRtpPacket->header.timestamp) {
-            if(headSequenceNumberCheck(pJitterBuffer, pRtpPacket)) {
+        // underflow check
+        else if (pJitterBuffer->headTimestamp < pRtpPacket->header.timestamp && pJitterBuffer->tailTimestamp < pRtpPacket->header.timestamp) {
+            if (headSequenceNumberCheck(pJitterBuffer, pRtpPacket)) {
                 underflow = TRUE;
             }
         }
-
     }
-    if(overflow && underflow) {
-        //This shouldn't be possible. 
+    if (overflow && underflow) {
+        // This shouldn't be possible.
         DLOGE("Critical underflow/overflow error in jitterbuffer");
     }
-    if(overflow) {
+    if (overflow) {
         pJitterBuffer->timestampOverFlowState = TRUE;
         pJitterBuffer->tailTimestamp = pRtpPacket->header.timestamp;
-    }
-    else if(underflow) {
+    } else if (underflow) {
         pJitterBuffer->timestampOverFlowState = TRUE;
         pJitterBuffer->headTimestamp = pRtpPacket->header.timestamp;
     }
     return (underflow || overflow);
 }
 
-BOOL exitSequenceNumberOverflowCheck(PJitterBuffer pJitterBuffer) {
+BOOL exitSequenceNumberOverflowCheck(PJitterBuffer pJitterBuffer)
+{
     BOOL retVal = FALSE;
 
-    //can't exit if you're not in it
-    if(pJitterBuffer->sequenceNumberOverflowState) {
-        if(pJitterBuffer->headSequenceNumber <= pJitterBuffer->tailSequenceNumber) {
+    // can't exit if you're not in it
+    if (pJitterBuffer->sequenceNumberOverflowState) {
+        if (pJitterBuffer->headSequenceNumber <= pJitterBuffer->tailSequenceNumber) {
             pJitterBuffer->sequenceNumberOverflowState = FALSE;
             retVal = TRUE;
         }
@@ -303,12 +294,13 @@ BOOL exitSequenceNumberOverflowCheck(PJitterBuffer pJitterBuffer) {
     return retVal;
 }
 
-BOOL exitTimestampOverflowCheck(PJitterBuffer pJitterBuffer) {
+BOOL exitTimestampOverflowCheck(PJitterBuffer pJitterBuffer)
+{
     BOOL retVal = FALSE;
 
-    //can't exit if you're not in it
-    if(pJitterBuffer->timestampOverFlowState) {
-        if(pJitterBuffer->headTimestamp <= pJitterBuffer->tailTimestamp) {
+    // can't exit if you're not in it
+    if (pJitterBuffer->timestampOverFlowState) {
+        if (pJitterBuffer->headTimestamp <= pJitterBuffer->tailTimestamp) {
             pJitterBuffer->timestampOverFlowState = FALSE;
             retVal = TRUE;
         }
@@ -317,28 +309,26 @@ BOOL exitTimestampOverflowCheck(PJitterBuffer pJitterBuffer) {
     return retVal;
 }
 
-//return true if pRtpPacket contains a new head timestamp
-BOOL headTimestampCheck(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket) {
+// return true if pRtpPacket contains a new head timestamp
+BOOL headTimestampCheck(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket)
+{
     BOOL retVal = FALSE;
 
-    if(headCheckingAllowed(pJitterBuffer, pRtpPacket)) {
-        if(pJitterBuffer->timestampOverFlowState) {
-            if(pJitterBuffer->headTimestamp > pRtpPacket->header.timestamp &&
-               pJitterBuffer->tailTimestamp < pRtpPacket->header.timestamp) {
-                //in the correct range to be a new head or new tail.
-                //if it's also the head sequence number then it's the new headtimestamp
-                if(headSequenceNumberCheck(pJitterBuffer, pRtpPacket)) {
+    if (headCheckingAllowed(pJitterBuffer, pRtpPacket)) {
+        if (pJitterBuffer->timestampOverFlowState) {
+            if (pJitterBuffer->headTimestamp > pRtpPacket->header.timestamp && pJitterBuffer->tailTimestamp < pRtpPacket->header.timestamp) {
+                // in the correct range to be a new head or new tail.
+                // if it's also the head sequence number then it's the new headtimestamp
+                if (headSequenceNumberCheck(pJitterBuffer, pRtpPacket)) {
                     pJitterBuffer->headTimestamp = pRtpPacket->header.timestamp;
                     retVal = TRUE;
                 }
             }
-        }
-        else {
-            if(pJitterBuffer->headTimestamp > pRtpPacket->header.timestamp ||
-               pJitterBuffer->tailTimestamp < pRtpPacket->header.timestamp) {
-                //in the correct range to be a new head or new tail.
-                //if it's also the head sequence number then it's the new headtimestamp
-                if(headSequenceNumberCheck(pJitterBuffer, pRtpPacket)) {
+        } else {
+            if (pJitterBuffer->headTimestamp > pRtpPacket->header.timestamp || pJitterBuffer->tailTimestamp < pRtpPacket->header.timestamp) {
+                // in the correct range to be a new head or new tail.
+                // if it's also the head sequence number then it's the new headtimestamp
+                if (headSequenceNumberCheck(pJitterBuffer, pRtpPacket)) {
                     pJitterBuffer->headTimestamp = pRtpPacket->header.timestamp;
                     retVal = TRUE;
                 }
@@ -348,16 +338,16 @@ BOOL headTimestampCheck(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket) {
     return retVal;
 }
 
-//return true if pRtpPacket contains a new tail timestamp
-BOOL tailTimestampCheck(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket) {
+// return true if pRtpPacket contains a new tail timestamp
+BOOL tailTimestampCheck(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket)
+{
     BOOL retVal = FALSE;
 
-    if(pJitterBuffer->tailTimestamp < pRtpPacket->header.timestamp) {
-        if(!pJitterBuffer->timestampOverFlowState ||
-            pJitterBuffer->headTimestamp > pRtpPacket->header.timestamp) {
-            //in the correct range to be a new head or new tail.
-            //if it's also the tail sequence number then it's the new tail timestamp
-            if(tailSequenceNumberCheck(pJitterBuffer, pRtpPacket)) {
+    if (pJitterBuffer->tailTimestamp < pRtpPacket->header.timestamp) {
+        if (!pJitterBuffer->timestampOverFlowState || pJitterBuffer->headTimestamp > pRtpPacket->header.timestamp) {
+            // in the correct range to be a new head or new tail.
+            // if it's also the tail sequence number then it's the new tail timestamp
+            if (tailSequenceNumberCheck(pJitterBuffer, pRtpPacket)) {
                 pJitterBuffer->tailTimestamp = pRtpPacket->header.timestamp;
                 retVal = TRUE;
             }
@@ -366,35 +356,33 @@ BOOL tailTimestampCheck(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket) {
     return retVal;
 }
 
-//return true if pRtpPacket is within the latency tolerance (not much earlier than current head)
-BOOL withinLatencyTolerance(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket) {
+// return true if pRtpPacket is within the latency tolerance (not much earlier than current head)
+BOOL withinLatencyTolerance(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket)
+{
     BOOL retVal = FALSE;
     UINT32 minimumTimestamp = 0;
 
-    //Simple check, if we're at or past the tail timestamp then we're always within latency tolerance.
-    //overflow is checked earlier
-    if(tailTimestampCheck(pJitterBuffer, pRtpPacket) || pJitterBuffer->tailTimestamp == pRtpPacket->header.timestamp) {
+    // Simple check, if we're at or past the tail timestamp then we're always within latency tolerance.
+    // overflow is checked earlier
+    if (tailTimestampCheck(pJitterBuffer, pRtpPacket) || pJitterBuffer->tailTimestamp == pRtpPacket->header.timestamp) {
         retVal = TRUE;
-    }
-    else {
-        //Is our tail current less than our head due to timestamp overflow?
-        if(pJitterBuffer->timestampOverFlowState) {
-            //calculate max-latency across the overflow boundry without triggering underflow
-            if(pJitterBuffer->tailTimestamp < pJitterBuffer->maxLatency) {
+    } else {
+        // Is our tail current less than our head due to timestamp overflow?
+        if (pJitterBuffer->timestampOverFlowState) {
+            // calculate max-latency across the overflow boundry without triggering underflow
+            if (pJitterBuffer->tailTimestamp < pJitterBuffer->maxLatency) {
                 minimumTimestamp = MAX_RTP_TIMESTAMP - (pJitterBuffer->maxLatency - pJitterBuffer->tailTimestamp);
             }
-            //Is the packet within the current range or is it a new head/tail
-            if(pRtpPacket->header.timestamp < pJitterBuffer->tailTimestamp ||
-               pRtpPacket->header.timestamp > pJitterBuffer->headTimestamp) {
-                //The packet is within the current range
+            // Is the packet within the current range or is it a new head/tail
+            if (pRtpPacket->header.timestamp < pJitterBuffer->tailTimestamp || pRtpPacket->header.timestamp > pJitterBuffer->headTimestamp) {
+                // The packet is within the current range
                 retVal = TRUE;
             }
-            //The only remaining option is that timestamp must be before headTimestamp
-            else if(pRtpPacket->header.timestamp >= minimumTimestamp) {
-                retVal = TRUE;                
+            // The only remaining option is that timestamp must be before headTimestamp
+            else if (pRtpPacket->header.timestamp >= minimumTimestamp) {
+                retVal = TRUE;
             }
-        }
-        else {
+        } else {
             if ((pRtpPacket->header.timestamp < pJitterBuffer->maxLatency && pJitterBuffer->tailTimestamp <= pJitterBuffer->maxLatency) ||
                 pRtpPacket->header.timestamp >= pJitterBuffer->tailTimestamp - pJitterBuffer->maxLatency) {
                 retVal = TRUE;
@@ -422,20 +410,18 @@ STATUS jitterBufferPush(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket, PBOO
         pJitterBuffer->headTimestamp = pRtpPacket->header.timestamp;
     }
 
-    //We'll check sequence numbers first, with our MAX Out of Order packet count to avoid
-    //defining a timestamp window for overflow
-    //Returning true means this packet is a new tail AND we've entered overflow state.
-    if(!enterSequenceNumberOverflowCheck(pJitterBuffer, pRtpPacket)) {
+    // We'll check sequence numbers first, with our MAX Out of Order packet count to avoid
+    // defining a timestamp window for overflow
+    // Returning true means this packet is a new tail AND we've entered overflow state.
+    if (!enterSequenceNumberOverflowCheck(pJitterBuffer, pRtpPacket)) {
         tailSequenceNumberCheck(pJitterBuffer, pRtpPacket);
-    }
-    else {
+    } else {
         DLOGS("Entered sequenceNumber overflow state");
     }
 
-    if(!enterTimestampOverflowCheck(pJitterBuffer, pRtpPacket)) {
+    if (!enterTimestampOverflowCheck(pJitterBuffer, pRtpPacket)) {
         tailTimestampCheck(pJitterBuffer, pRtpPacket);
-    }
-    else {
+    } else {
         DLOGS("Entered timestamp overflow state");
     }
 
@@ -452,10 +438,10 @@ STATUS jitterBufferPush(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket, PBOO
 
         if (headCheckingAllowed(pJitterBuffer, pRtpPacket)) {
             // if the timestamp is less, we'll accept it as a new head, since it must be an earlier frame.
-            if(headTimestampCheck(pJitterBuffer, pRtpPacket)) {
+            if (headTimestampCheck(pJitterBuffer, pRtpPacket)) {
                 DLOGS("New jitterbuffer head timestamp");
             }
-            if(headSequenceNumberCheck(pJitterBuffer, pRtpPacket)) {
+            if (headSequenceNumberCheck(pJitterBuffer, pRtpPacket)) {
                 DLOGS("New jitterbuffer head sequenceNumber");
             }
         }
@@ -554,7 +540,7 @@ STATUS jitterBufferInternalParse(PJitterBuffer pJitterBuffer, BOOL bufferClosed)
                 }
                 // are we forcibly clearing out the buffer? if so drop the contents of incomplete frame
                 else if (pJitterBuffer->headTimestamp < earliestAllowedTimestamp || bufferClosed) {
-                    //do not CHK_STATUS of onFrameDropped because we need to clear the jitter buffer no matter what else happens.
+                    // do not CHK_STATUS of onFrameDropped because we need to clear the jitter buffer no matter what else happens.
                     pJitterBuffer->onFrameDroppedFn(pJitterBuffer->customData, startDropIndex, UINT16_DEC(index), pJitterBuffer->headTimestamp);
                     CHK_STATUS(jitterBufferDropBufferData(pJitterBuffer, startDropIndex, UINT16_DEC(index), curTimestamp));
                     pJitterBuffer->firstFrameProcessed = TRUE;
@@ -635,10 +621,10 @@ STATUS jitterBufferDropBufferData(PJitterBuffer pJitterBuffer, UINT16 startIndex
     }
     pJitterBuffer->headTimestamp = nextTimestamp;
     pJitterBuffer->headSequenceNumber = endIndex + 1;
-    if(exitTimestampOverflowCheck(pJitterBuffer)) {
+    if (exitTimestampOverflowCheck(pJitterBuffer)) {
         DLOGS("Exited timestamp overflow state");
     }
-    if(exitSequenceNumberOverflowCheck(pJitterBuffer)) {
+    if (exitSequenceNumberOverflowCheck(pJitterBuffer)) {
         DLOGS("Exited sequenceNumber overflow state");
     }
 
