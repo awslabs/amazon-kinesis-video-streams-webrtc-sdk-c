@@ -120,6 +120,86 @@ BOOL underflowPossible(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket) {
     return retVal;
 }
 
+BOOL headCheckingAllowed(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket) {
+    BOOL retVal = FALSE;
+    /*If we haven't yet processed a frame yet, then we don't have a definitive way of knowing if
+     *the first packet we receive is actually the earliest packet we'll ever receive. Since sequence numbers
+     *can start anywhere from 0 - 65535, we need to incorporate some checks to determine if a newly received packet
+     *should be considered the new head. Part of how we determine this is by setting a limit to how many packets off we allow
+     *this out of order case to be. Without setting a limit, then we could run into an odd scenario.
+     * Example:
+     * Push->Packet->SeqNumber == 0. //FIRST PACKET! new head of buffer!
+     * Push->Packet->SeqNumber == 3. //... new head of 65532 packet sized frame? maybe? was 0 the tail?
+     *
+     * To resolve that insanity we set a MAX, and will use that MAX for the range.
+     * This logic is present in headSequenceNumberCheck()
+     *
+     *After the first frame has been processed we don't need or want to make this consideration, since if our parser has
+     *dropped a frame for a good reason then we want to ignore any packets from that dropped frame that may come later.
+     *
+     *However if the packet's timestamp is the same as the head timestamp, then it's possible this is simply an earlier
+     *sequence number of the same packet.
+     */
+    if(!(pJitterBuffer->firstFrameProcessed) || 
+         pJitterBuffer->headTimestamp == pRtpPacket->header.timestamp) {
+        retVal = TRUE;
+    }
+    return retVal;
+}
+
+//return true if pRtpPacket contains the head sequence number
+BOOL headSequenceNumberCheck(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket) {
+    BOOL retVal = FALSE;
+    UINT16 minimumHead = 0;
+    if(pJitterBuffer->headSequenceNumber >= MAX_OUT_OF_ORDER_PACKET_DIFFERENCE) {
+        minimumHead = pJitterBuffer->headSequenceNumber - MAX_OUT_OF_ORDER_PACKET_DIFFERENCE;
+    }
+
+    //If we've already done this check and it was true
+    if(pJitterBuffer->headSequenceNumber == pRtpPacket->header.sequenceNumber) {
+        retVal = TRUE;
+    }
+    else if(headCheckingAllowed(pJitterBuffer, pRtpPacket)){
+        if(pJitterBuffer->sequenceNumberOverflowState) {
+            if(pJitterBuffer->tailSequenceNumber < pRtpPacket->header.sequenceNumber &&
+               pJitterBuffer->headSequenceNumber > pRtpPacket->header.sequenceNumber &&
+               pRtpPacket->header.sequenceNumber >= minimumHead) {
+                //This purposefully misses the usecase where the buffer has >65000 entries.
+                //Our buffer is not designed for that use case, and it becomes far too ambiguous
+                //as to which packets are new tails or new heads without adding epoch checks.
+                pJitterBuffer->headSequenceNumber = pRtpPacket->header.sequenceNumber;
+                retVal = TRUE;
+            }
+        }
+        else {
+            if(pRtpPacket->header.sequenceNumber < pJitterBuffer->headSequenceNumber) {
+                if(pRtpPacket->header.sequenceNumber >= minimumHead) {
+                    pJitterBuffer->headSequenceNumber = pRtpPacket->header.sequenceNumber;
+                    retVal = TRUE;
+                }
+            }
+        }
+
+    }
+    return retVal;
+}
+
+//return true if pRtpPacket contains a new tail sequence number
+BOOL tailSequenceNumberCheck(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket) {
+    BOOL retVal = FALSE;
+    //If we've already done this check and it was true
+    if(pJitterBuffer->tailSequenceNumber == pRtpPacket->header.sequenceNumber) {
+        retVal = TRUE;
+    }
+    else if(pRtpPacket->header.sequenceNumber > pJitterBuffer->tailSequenceNumber &&
+            (!pJitterBuffer->sequenceNumberOverflowState ||
+            pJitterBuffer->headSequenceNumber > pRtpPacket->header.sequenceNumber)) {
+        retVal = TRUE;
+        pJitterBuffer->tailSequenceNumber = pRtpPacket->header.sequenceNumber;            
+    }
+    return retVal;
+}
+
 //return true if sequence numbers are now overflowing
 BOOL enterSequenceNumberOverflowCheck(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket) {
     BOOL overflow = FALSE;
@@ -237,33 +317,6 @@ BOOL exitTimestampOverflowCheck(PJitterBuffer pJitterBuffer) {
     return retVal;
 }
 
-BOOL headCheckingAllowed(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket) {
-    BOOL retVal = FALSE;
-    /*If we haven't yet processed a frame yet, then we don't have a definitive way of knowing if
-     *the first packet we receive is actually the earliest packet we'll ever receive. Since sequence numbers
-     *can start anywhere from 0 - 65535, we need to incorporate some checks to determine if a newly received packet
-     *should be considered the new head. Part of how we determine this is by setting a limit to how many packets off we allow
-     *this out of order case to be. Without setting a limit, then we could run into an odd scenario.
-     * Example:
-     * Push->Packet->SeqNumber == 0. //FIRST PACKET! new head of buffer!
-     * Push->Packet->SeqNumber == 3. //... new head of 65532 packet sized frame? maybe? was 0 the tail?
-     *
-     * To resolve that insanity we set a MAX, and will use that MAX for the range.
-     * This logic is present in headSequenceNumberCheck()
-     *
-     *After the first frame has been processed we don't need or want to make this consideration, since if our parser has
-     *dropped a frame for a good reason then we want to ignore any packets from that dropped frame that may come later.
-     *
-     *However if the packet's timestamp is the same as the head timestamp, then it's possible this is simply an earlier
-     *sequence number of the same packet.
-     */
-    if(!(pJitterBuffer->firstFrameProcessed) || 
-         pJitterBuffer->headTimestamp == pRtpPacket->header.timestamp) {
-        retVal = TRUE;
-    }
-    return retVal;
-}
-
 //return true if pRtpPacket contains a new head timestamp
 BOOL headTimestampCheck(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket) {
     BOOL retVal = FALSE;
@@ -309,59 +362,6 @@ BOOL tailTimestampCheck(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket) {
                 retVal = TRUE;
             }
         }
-    }
-    return retVal;
-}
-
-//return true if pRtpPacket contains the head sequence number
-BOOL headSequenceNumberCheck(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket) {
-    BOOL retVal = FALSE;
-    UINT16 minimumHead = 0;
-    if(pJitterBuffer->headSequenceNumber >= MAX_OUT_OF_ORDER_PACKET_DIFFERENCE) {
-        minimumHead = pJitterBuffer->headSequenceNumber - MAX_OUT_OF_ORDER_PACKET_DIFFERENCE;
-    }
-
-    //If we've already done this check and it was true
-    if(pJitterBuffer->headSequenceNumber == pRtpPacket->header.sequenceNumber) {
-        retVal = TRUE;
-    }
-    else if(headCheckingAllowed(pJitterBuffer, pRtpPacket)){
-        if(pJitterBuffer->sequenceNumberOverflowState) {
-            if(pJitterBuffer->tailSequenceNumber < pRtpPacket->header.sequenceNumber &&
-               pJitterBuffer->headSequenceNumber > pRtpPacket->header.sequenceNumber &&
-               pRtpPacket->header.sequenceNumber >= minimumHead) {
-                //This purposefully misses the usecase where the buffer has >65000 entries.
-                //Our buffer is not designed for that use case, and it becomes far too ambiguous
-                //as to which packets are new tails or new heads without adding epoch checks.
-                pJitterBuffer->headSequenceNumber = pRtpPacket->header.sequenceNumber;
-                retVal = TRUE;
-            }
-        }
-        else {
-            if(pRtpPacket->header.sequenceNumber < pJitterBuffer->headSequenceNumber) {
-                if(pRtpPacket->header.sequenceNumber >= minimumHead) {
-                    pJitterBuffer->headSequenceNumber = pRtpPacket->header.sequenceNumber;
-                    retVal = TRUE;
-                }
-            }
-        }
-
-    }
-    return retVal;
-}
-
-//return true if pRtpPacket contains a new tail sequence number
-BOOL tailSequenceNumberCheck(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket) {
-    BOOL retVal = FALSE;
-    //If we've already done this check and it was true
-    if(pJitterBuffer->tailSequenceNumber == pRtpPacket->header.sequenceNumber) {
-        retVal = TRUE;
-    }
-    else if(pRtpPacket->header.sequenceNumber > pJitterBuffer->tailSequenceNumber &&
-            (!pJitterBuffer->sequenceNumberOverflowState ||
-            pJitterBuffer->headSequenceNumber > pRtpPacket->header.sequenceNumber)) {
-        retVal = TRUE;
-        pJitterBuffer->tailSequenceNumber = pRtpPacket->header.sequenceNumber;            
     }
     return retVal;
 }
@@ -426,12 +426,17 @@ STATUS jitterBufferPush(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket, PBOO
     //defining a timestamp window for overflow
     //Returning true means this packet is a new tail AND we've entered overflow state.
     if(!enterSequenceNumberOverflowCheck(pJitterBuffer, pRtpPacket)) {
-        DLOGS("Entered sequenceNumber overflow state");
         tailSequenceNumberCheck(pJitterBuffer, pRtpPacket);
     }
+    else {
+        DLOGS("Entered sequenceNumber overflow state");
+    }
+
     if(!enterTimestampOverflowCheck(pJitterBuffer, pRtpPacket)) {
-        DLOGS("Entered timestamp overflow state");
         tailTimestampCheck(pJitterBuffer, pRtpPacket);
+    }
+    else {
+        DLOGS("Entered timestamp overflow state");
     }
 
     // is the packet within the accepted latency range, if so, add it to the hashtable
