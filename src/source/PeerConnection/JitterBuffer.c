@@ -200,7 +200,6 @@ BOOL enterSequenceNumberOverflowCheck(PJitterBuffer pJitterBuffer, PRtpPacket pR
     BOOL overflow = FALSE;
     BOOL underflow = FALSE;
     UINT16 packetsUntilOverflow = MAX_RTP_SEQUENCE_NUM - pJitterBuffer->tailSequenceNumber;
-    UINT16 underflowFromMaxRange = 0;
 
     if (!pJitterBuffer->sequenceNumberOverflowState) {
         // overflow case
@@ -398,7 +397,6 @@ STATUS jitterBufferPush(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket, PBOO
     STATUS retStatus = STATUS_SUCCESS, status = STATUS_SUCCESS;
     UINT64 hashValue = 0;
     PRtpPacket pCurPacket = NULL;
-    UINT16 packetsUntilOverflow = 0;
 
     CHK(pJitterBuffer != NULL && pRtpPacket != NULL, STATUS_NULL_ARG);
 
