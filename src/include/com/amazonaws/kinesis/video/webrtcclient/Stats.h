@@ -274,14 +274,14 @@ typedef struct {
     DOMString remoteCertificateId;               //!< For components where DTLS is negotiated, give remote certificate
     CHAR tlsVersion[MAX_TLS_VERSION_LENGTH + 1]; //!< For components where DTLS is negotiated, the TLS version agreed
     CHAR dtlsCipher[MAX_DTLS_CIPHER_LENGTH +
-                    1]; //!< Descriptive name of the cipher suite used for the DTLS transport.
+                    1];                          //!< Descriptive name of the cipher suite used for the DTLS transport.
                         //!< Acceptable values: https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-4
     CHAR srtpCipher[MAX_SRTP_CIPHER_LENGTH + 1]; //!< Descriptive name of the protection profile used for the SRTP transport
                                                  //!< Acceptable values: https://www.iana.org/assignments/srtp-protection/srtp-protection.xhtml
     CHAR tlsGroup[MAX_TLS_GROUP_LENGHTH +
-                  1];     //!< Descriptive name of the group used for the encryption
-                          //!< Acceptable values: https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-8
-    RTC_ICE_ROLE iceRole; //!< Set to the current value of the "role" attribute of the underlying RTCDtlsTransport's "transport"
+                  1];                            //!< Descriptive name of the group used for the encryption
+                      //!< Acceptable values: https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-8
+    RTC_ICE_ROLE iceRole;                     //!< Set to the current value of the "role" attribute of the underlying RTCDtlsTransport's "transport"
     RTC_DTLS_TRANSPORT_STATE_STATS dtlsState; //!< Set to the current value of the "state" attribute of the underlying RTCDtlsTransport
     UINT64 packetsSent;                       //!< Total number of packets sent over the transport
     UINT64 packetsReceived;                   //!< Total number of packets received over the transport
@@ -461,7 +461,7 @@ typedef struct {
                                         //!< after a frame has been decoded. See totalInterFrameDelay for details on how to calculate the interframe
                                         //!< delay variance.
 
-    BOOL voiceActivityFlag; //!< TODO Only valid for audio. Whether the last RTP packet whose frame was delivered to the RTCRtpReceiver's
+    BOOL voiceActivityFlag;             //!< TODO Only valid for audio. Whether the last RTP packet whose frame was delivered to the RTCRtpReceiver's
                             //!< MediaStreamTrack for playout contained voice activity or not based on the presence of the V bit in the extension
                             //!< header, as defined in [RFC6464]. This is the stats-equivalent of RTCRtpSynchronizationSource.voiceActivityFlag in
                             //!< [[WEBRTC].
