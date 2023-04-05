@@ -619,7 +619,12 @@ extern "C" {
 /**
  * Maximum sequence number in rtp packet/jitter buffer
  */
-#define MAX_SEQUENCE_NUM ((UINT32) MAX_UINT16)
+#define MAX_RTP_SEQUENCE_NUM ((UINT32) MAX_UINT16)
+
+/**
+ * Maximum timestamp in rtp packet/jitter buffer
+ */
+#define MAX_RTP_TIMESTAMP ((UINT32) MAX_UINT32)
 
 /**
  * Parameterized string for KVS STUN Server
