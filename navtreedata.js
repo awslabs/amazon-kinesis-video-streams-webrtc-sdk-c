@@ -36,7 +36,7 @@ var NAVTREEINDEX =
 "group__PublicEnums.html#ggad42c829d5095ba5e3ab0b6fff6ff8678abffe8707aa6a01e4f949c22d4c189e57",
 "group__StatusCodes.html",
 "group__StatusCodes.html#gafc691e43b541bf7ac94abda8fdcd5892",
-"structRtcReceivedRtpStreamStats.html#af08b16ca6ebf74cb7e9efdcb896b7b95"
+"structRtcReceivedRtpStreamStats.html#af006cf5681f7d6271c6c2c7e60794ab1"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

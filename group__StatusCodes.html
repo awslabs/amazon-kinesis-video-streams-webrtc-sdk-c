@@ -207,8 +207,10 @@ Macros</h2></td></tr>
 <tr class="separator:ga9b55ffc88e2786cc34f6ef948d563420"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga5bfed0cf073cb1b1d572e6c5fe6ca401"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga5bfed0cf073cb1b1d572e6c5fe6ca401">SIGNALING_VALID_NAME_CHARS</a>&#160;&#160;&#160;&quot;0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_.-&quot;</td></tr>
 <tr class="separator:ga5bfed0cf073cb1b1d572e6c5fe6ca401"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga60cb3b56c412d97f646dfde1b2c45962"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga60cb3b56c412d97f646dfde1b2c45962">MAX_SEQUENCE_NUM</a>&#160;&#160;&#160;((UINT32) MAX_UINT16)</td></tr>
-<tr class="separator:ga60cb3b56c412d97f646dfde1b2c45962"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gadd9a4e15ee04829735c1c7d64480e6b4"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#gadd9a4e15ee04829735c1c7d64480e6b4">MAX_RTP_SEQUENCE_NUM</a>&#160;&#160;&#160;((UINT32) MAX_UINT16)</td></tr>
+<tr class="separator:gadd9a4e15ee04829735c1c7d64480e6b4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaea8ae00fe5223b227c8dd67918600f5c"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#gaea8ae00fe5223b227c8dd67918600f5c">MAX_RTP_TIMESTAMP</a>&#160;&#160;&#160;((UINT32) MAX_UINT32)</td></tr>
+<tr class="separator:gaea8ae00fe5223b227c8dd67918600f5c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gab921a27e047a959153fde4d7466ec5aa"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#gab921a27e047a959153fde4d7466ec5aa">KINESIS_VIDEO_STUN_URL</a>&#160;&#160;&#160;&quot;stun:stun.kinesisvideo.%s.amazonaws.com:443&quot;</td></tr>
 <tr class="separator:gab921a27e047a959153fde4d7466ec5aa"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga88c324018b021dba73e56d93ddab2427"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga88c324018b021dba73e56d93ddab2427">SIGNALING_DEFAULT_SSL_PORT</a>&#160;&#160;&#160;DEFAULT_SSL_PORT_NUMBER</td></tr>
@@ -661,18 +663,33 @@ Variables</h2></td></tr>
 
 </div>
 </div>
-<a id="ga60cb3b56c412d97f646dfde1b2c45962"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga60cb3b56c412d97f646dfde1b2c45962">&#9670;&nbsp;</a></span>MAX_SEQUENCE_NUM</h2>
+<a id="gadd9a4e15ee04829735c1c7d64480e6b4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gadd9a4e15ee04829735c1c7d64480e6b4">&#9670;&nbsp;</a></span>MAX_RTP_SEQUENCE_NUM</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">#define MAX_SEQUENCE_NUM&#160;&#160;&#160;((UINT32) MAX_UINT16)</td>
+          <td class="memname">#define MAX_RTP_SEQUENCE_NUM&#160;&#160;&#160;((UINT32) MAX_UINT16)</td>
         </tr>
       </table>
 </div><div class="memdoc">
 <p>Maximum sequence number in rtp packet/jitter buffer </p>
+
+</div>
+</div>
+<a id="gaea8ae00fe5223b227c8dd67918600f5c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaea8ae00fe5223b227c8dd67918600f5c">&#9670;&nbsp;</a></span>MAX_RTP_TIMESTAMP</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define MAX_RTP_TIMESTAMP&#160;&#160;&#160;((UINT32) MAX_UINT32)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Maximum timestamp in rtp packet/jitter buffer </p>
 
 </div>
 </div>
@@ -2713,7 +2730,7 @@ Variables</h2></td></tr>
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="footer">Generated on Wed Apr 5 2023 18:23:43 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Wed Apr 5 2023 18:24:11 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>
