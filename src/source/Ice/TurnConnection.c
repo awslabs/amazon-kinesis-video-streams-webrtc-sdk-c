@@ -1018,7 +1018,7 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
                 CHK(FALSE, retStatus);
             }
 
-            if (currentTime >= pTurnConnection->stateTimeoutTime) {
+            if (currentTime >= pTurnConnection->stateTimeoutTime || channelWithPermissionCount == pTurnConnection->turnPeerCount) {
                 CHK(channelWithPermissionCount > 0, STATUS_TURN_CONNECTION_FAILED_TO_CREATE_PERMISSION);
 
                 // go to next state if we have at least one ready peer
