@@ -1566,14 +1566,14 @@ STATUS iceAgentGatherCandidateTimerCallback(UINT32 timerId, UINT64 currentTime, 
             pendingCandidateCount++;
             if (pIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_SERVER_REFLEXIVE) {
                 pendingSrflxCandidateCount++;
-            } else if (pIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED && pIceCandidate->pTurnConnection != NULL &&
-                       turnConnectionGetRelayAddress(pIceCandidate->pTurnConnection, &relayAddress)) {
-                /* Check if any relay address has been obtained. */
-                CHK_STATUS(updateCandidateAddress(pIceCandidate, &relayAddress));
-                CHK_STATUS(createIceCandidatePairs(pIceAgent, pIceCandidate, FALSE));
-            } else if (pIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED && pIceCandidate->pTurnConnection != NULL &&
-                       pIceCandidate->pTurnConnection->state == TURN_STATE_FAILED) {
-                pIceCandidate->state = ICE_CANDIDATE_STATE_INVALID;
+            } else if (pIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED && pIceCandidate->pTurnConnection != NULL) {
+                if (pIceCandidate->pTurnConnection->state == TURN_STATE_FAILED) {
+                    pIceCandidate->state = ICE_CANDIDATE_STATE_INVALID;
+                } else if (turnConnectionGetRelayAddress(pIceCandidate->pTurnConnection, &relayAddress)) {
+                    /* Check if any relay address has been obtained. */
+                    CHK_STATUS(updateCandidateAddress(pIceCandidate, &relayAddress));
+                    CHK_STATUS(createIceCandidatePairs(pIceAgent, pIceCandidate, FALSE));
+                }
             }
         }
 
