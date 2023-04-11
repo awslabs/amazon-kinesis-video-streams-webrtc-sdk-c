@@ -64,12 +64,20 @@ GStreamer is installed on your system.
 
 On Ubuntu and Raspberry Pi OS you can get the libraries by running
 ```
-$ sudo apt-get install libssl-dev libcurl4-openssl-dev liblog4cplus-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev gstreamer1.0-plugins-base-apps gstreamer1.0-plugins-bad gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly gstreamer1.0-tools
+$ sudo apt-get install libssl-dev libcurl4-openssl-dev liblog4cplus-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev gstreamer1.0-plugins-base-apps gstreamer1.0-plugins-bad gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly gstreamer1.0-tools 
 ```
 
 By default we download all the libraries from GitHub and build them locally, so should require nothing to be installed ahead of time.
 If you do wish to link to existing libraries you can use the following flags to customize your build.
 
+### Dependency requirements
+
+These would be applicable if the SDK is being linked with system dependencies instead of building from source by the SDK.
+`libmbedtls`: `>= 2.25.0 & < 3.x.x`
+`libopenssl`: `= 1.1.1x`
+`libsrtp2` : `<= 2.5.0`
+`libusrsctp` : `<= 0.9.5.0`
+`libwebsockets` : `>= 4.2.0`
 
 #### Cross-Compilation
 
@@ -111,6 +119,29 @@ Be sure to edit the path to whatever pthread library you are using, and the prop
 To build the library and the provided samples run make in the build directory you executed CMake.
 
 `make`
+
+### Building with dependencies off
+
+In addition to the dependencies already installed, install the dependencies using the appropriate package manager. 
+
+On Ubuntu:
+`sudo apt-get install libsrtp2-dev libusrsctp-dev libwebsockets-dev`
+
+On MacOS:
+`brew install srtp libusrsctp libwebsockets `
+
+To use OpenSSL:
+```
+cmake .. -DBUILD_DEPENDENCIES=OFF -DUSE_OPENSSL=ON
+```
+
+To use MBedTLS:
+```
+cmake .. -DBUILD_DEPENDENCIES=OFF -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
+```
+
+Note: Please follow the dependency requirements to confirm the version requirements are satisfied to use the SDK with system installed dependencies.
+If the versions are not satisfied, this option would not work and enabling the SDK to build dependencies for you would be the best option to go ahead with.
 
 ## Run
 ### Setup your environment with your AWS account credentials and AWS region:

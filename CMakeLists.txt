@@ -163,17 +163,16 @@ if(BUILD_DEPENDENCIES)
   if (LINK_PROFILER)
     build_dependency(gperftools)
   endif()
-
-  # building kvsCommonLws also builds kvspic
-  set(BUILD_ARGS
-      -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-      -DUSE_OPENSSL=${USE_OPENSSL}
-      -DUSE_MBEDTLS=${USE_MBEDTLS}
-      -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
-  build_dependency(kvsCommonLws ${BUILD_ARGS})
-
   message(STATUS "Finished building dependencies.")
 endif()
+
+# building kvsCommonLws also builds kvspic
+set(BUILD_ARGS
+        -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+        -DUSE_OPENSSL=${USE_OPENSSL}
+        -DUSE_MBEDTLS=${USE_MBEDTLS}
+        -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
+build_dependency(kvsCommonLws ${BUILD_ARGS})
 
 ############# find dependent libraries ############
 
@@ -306,6 +305,10 @@ include_directories(${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/ice)
 
 add_library(kvsWebrtcClient ${LINKAGE} ${WEBRTC_CLIENT_SOURCE_FILES} ${DATACHANNEL_SRC})
 
+if(USE_MBEDTLS)
+  target_compile_definitions(kvsWebrtcClient PRIVATE LWS_WITH_MBEDTLS)
+endif()
+
 target_link_libraries(
   kvsWebrtcClient
   PRIVATE kvspicUtils
@@ -321,6 +324,10 @@ target_link_libraries(
           ${EXTRA_DEPS})
 
 add_library(kvsWebrtcSignalingClient ${LINKAGE} ${WEBRTC_SIGNALING_CLIENT_SOURCE_FILES})
+
+if(USE_MBEDTLS)
+  target_compile_definitions(kvsWebrtcSignalingClient PRIVATE LWS_WITH_MBEDTLS)
+endif()
 
 target_link_libraries(
   kvsWebrtcSignalingClient
