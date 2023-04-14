@@ -63,7 +63,7 @@ STATUS createSignalingClientSync(PSignalingClientInfo pClientInfo, PChannelInfo 
     INT32 signalingClientCreationMaxRetryCount;
     UINT64 signalingClientCreationWaitTime;
 
-    DLOGV("Creating Signaling Client Sync");
+    DLOGI("Creating Signaling Client Sync");
     CHK(pSignalingHandle != NULL && pClientInfo != NULL, STATUS_NULL_ARG);
 
     // Convert the client info to the internal structure with empty values
@@ -78,7 +78,8 @@ STATUS createSignalingClientSync(PSignalingClientInfo pClientInfo, PChannelInfo 
         signalingClientCreationMaxRetryCount = pClientInfo->signalingClientCreationMaxRetryAttempts;
     }
     while (TRUE) {
-        retStatus = createSignalingSync(&signalingClientInfoInternal, pChannelInfo, pCallbacks, pCredentialProvider, &pSignalingClient);
+        PROFILE_CALL(retStatus = createSignalingSync(&signalingClientInfoInternal, pChannelInfo, pCallbacks, pCredentialProvider, &pSignalingClient),
+                     "Create signaling client");
         // NOTE: This will retry on all status codes except SUCCESS.
         // This includes status codes for bad arguments, internal non-recoverable errors etc.
         // Retrying on non-recoverable errors is useless, but it is quite complex to segregate recoverable
@@ -167,7 +168,7 @@ STATUS signalingClientConnectSync(SIGNALING_CLIENT_HANDLE signalingClientHandle)
 
     DLOGV("Signaling Client Connect Sync");
 
-    CHK_STATUS(signalingConnectSync(pSignalingClient));
+    PROFILE_CALL(CHK_STATUS(signalingConnectSync(pSignalingClient)), "Connect signaling client");
 
 CleanUp:
 
@@ -186,7 +187,7 @@ STATUS signalingClientFetchSync(SIGNALING_CLIENT_HANDLE signalingClientHandle)
     INT32 signalingClientCreationMaxRetryCount;
     UINT64 signalingClientCreationWaitTime;
 
-    DLOGV("Signaling Client Fetch Sync");
+    DLOGI("Signaling Client Fetch Sync");
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
     // Convert the client info to the internal structure with empty values
@@ -201,7 +202,7 @@ STATUS signalingClientFetchSync(SIGNALING_CLIENT_HANDLE signalingClientHandle)
     }
 
     while (TRUE) {
-        retStatus = signalingFetchSync(pSignalingClient);
+        PROFILE_CALL(retStatus = signalingFetchSync(pSignalingClient), "Fetch signaling client");
         // NOTE: This will retry on all status codes except SUCCESS.
         // This includes status codes for bad arguments, internal non-recoverable errors etc.
         // Retrying on non-recoverable errors is useless, but it is quite complex to segregate recoverable

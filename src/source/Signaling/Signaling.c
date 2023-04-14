@@ -388,7 +388,12 @@ STATUS signalingSendMessageSync(PSignalingClient pSignalingClient, PSignalingMes
     // Perform the call
     CHK_STATUS(sendLwsMessage(pSignalingClient, pSignalingMessage->messageType, pSignalingMessage->peerClientId, pSignalingMessage->payload,
                               pSignalingMessage->payloadLen, pSignalingMessage->correlationId, 0));
-
+    if (pSignalingMessage->messageType == SIGNALING_MESSAGE_TYPE_ANSWER) {
+        PROFILE_WITH_START_TIME(pSignalingClient->offerTime, "Offer to answer time");
+    }
+    if (pSignalingMessage->messageType == SIGNALING_MESSAGE_TYPE_OFFER) {
+        pSignalingClient->offerTime = GETTIME();
+    }
     // Update the internal diagnostics only after successfully sending
     ATOMIC_INCREMENT(&pSignalingClient->diagnostics.numberOfMessagesSent);
 
@@ -701,7 +706,7 @@ STATUS refreshIceConfiguration(PSignalingClient pSignalingClient)
     // Force the state machine to revert back to get ICE configuration without re-connection
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_SIGNALING_RECONNECT_ICE);
     ATOMIC_STORE(&pSignalingClient->refreshIceConfig, TRUE);
-
+    DLOGI("Retrieving ICE config through getIceServerConfig call again");
     // Iterate the state machinery in steady states only - ready or connected
     if (pStateMachineState->state == SIGNALING_STATE_READY || pStateMachineState->state == SIGNALING_STATE_CONNECTED) {
         CHK_STATUS(signalingStateMachineIterator(pSignalingClient, curTime + SIGNALING_REFRESH_ICE_CONFIG_STATE_TIMEOUT, pStateMachineState->state));
@@ -951,6 +956,7 @@ STATUS describeChannel(PSignalingClient pSignalingClient, UINT64 time)
     // Call DescribeChannel API
     if (STATUS_SUCCEEDED(retStatus)) {
         if (apiCall) {
+            DLOGI("Calling because call is uncached");
             // Call pre hook func
             if (pSignalingClient->clientInfo.describePreHookFn != NULL) {
                 retStatus = pSignalingClient->clientInfo.describePreHookFn(pSignalingClient->clientInfo.hookCustomData);
@@ -1137,6 +1143,7 @@ STATUS getIceConfig(PSignalingClient pSignalingClient, UINT64 time)
     if (pSignalingClient->clientInfo.getIceConfigPostHookFn != NULL) {
         retStatus = pSignalingClient->clientInfo.getIceConfigPostHookFn(pSignalingClient->clientInfo.hookCustomData);
     }
+
 
 CleanUp:
 

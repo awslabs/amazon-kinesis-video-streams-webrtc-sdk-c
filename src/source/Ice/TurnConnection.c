@@ -1064,7 +1064,6 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
                                                        (UINT32) ATOMIC_LOAD(&pTurnConnection->timerCallbackId),
                                                        pTurnConnection->currentTimerCallingPeriod));
             }
-
             break;
 
         case TURN_STATE_CLEAN_UP:

@@ -68,8 +68,7 @@ STATUS dtlsSessionChangeState(PDtlsSession pDtlsSession, RTC_DTLS_TRANSPORT_STAT
     CHK(pDtlsSession->state != newState, retStatus);
 
     if (pDtlsSession->state == RTC_DTLS_TRANSPORT_STATE_CONNECTING && newState == RTC_DTLS_TRANSPORT_STATE_CONNECTED) {
-        DLOGD("DTLS init completed. Time taken %" PRIu64 " ms",
-              (GETTIME() - pDtlsSession->dtlsSessionStartTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+        PROFILE_WITH_START_TIME(pDtlsSession->dtlsSessionStartTime, "DTLS initialization completion");
     }
     pDtlsSession->state = newState;
     if (pDtlsSession->dtlsSessionCallbacks.stateChangeFn != NULL) {

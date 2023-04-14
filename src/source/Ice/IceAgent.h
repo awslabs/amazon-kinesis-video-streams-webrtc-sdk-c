@@ -250,6 +250,8 @@ struct __IceAgent {
 
     // store transaction ids for stun binding request.
     PTransactionIdStore pStunBindingRequestTransactionIdStore;
+
+    UINT64 candidateGatheringStartTime;
 };
 
 //////////////////////////////////////////////

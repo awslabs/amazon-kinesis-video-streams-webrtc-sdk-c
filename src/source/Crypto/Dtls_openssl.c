@@ -48,14 +48,14 @@ STATUS dtlsTransmissionTimerCallback(UINT32 timerID, UINT64 currentTime, UINT64 
     MUTEX_LOCK(pDtlsSession->sslLock);
     locked = TRUE;
 
-    /* In case we need to initiate the handshake */
-    CHK_STATUS(dtlsCheckOutgoingDataBuffer(pDtlsSession));
-
     if (SSL_is_init_finished(pDtlsSession->pSsl)) {
         CHK_STATUS(dtlsSessionChangeState(pDtlsSession, RTC_DTLS_TRANSPORT_STATE_CONNECTED));
         ATOMIC_STORE_BOOL(&pDtlsSession->sslInitFinished, TRUE);
         CHK(FALSE, STATUS_TIMER_QUEUE_STOP_SCHEDULING);
     }
+
+    /* In case we need to initiate the handshake */
+    CHK_STATUS(dtlsCheckOutgoingDataBuffer(pDtlsSession));
 
     /* https://commondatastorage.googleapis.com/chromium-boringssl-docs/ssl.h.html#DTLSv1_get_timeout */
     dtlsTimeoutRet = DTLSv1_get_timeout(pDtlsSession->pSsl, &timeout);
@@ -70,7 +70,7 @@ STATUS dtlsTransmissionTimerCallback(UINT32 timerID, UINT64 currentTime, UINT64 
         (UINT64) timeout.tv_sec * HUNDREDS_OF_NANOS_IN_A_SECOND + (UINT64) timeout.tv_usec * HUNDREDS_OF_NANOS_IN_A_MICROSECOND;
 
     if (timeoutValDefaultTimeUnit == 0) {
-        DLOGD("DTLS handshake timeout event");
+        DLOGD("DTLS handshake timeout event, retransmit");
         /* Retransmit the packet */
         DTLSv1_handle_timeout(pDtlsSession->pSsl);
         CHK_STATUS(dtlsCheckOutgoingDataBuffer(pDtlsSession));
@@ -81,7 +81,6 @@ CleanUp:
     if (locked) {
         MUTEX_UNLOCK(pDtlsSession->sslLock);
     }
-
     return retStatus;
 }
 
@@ -160,12 +159,16 @@ STATUS createSslCtx(PDtlsSessionCertificateInfo pCertificates, UINT32 certCount,
     CHK(pCertificates != NULL && ppSslCtx != NULL, STATUS_NULL_ARG);
     CHK(certCount > 0, STATUS_INTERNAL_ERROR);
 
+    // Version less than 1.0.2
 #if (OPENSSL_VERSION_NUMBER < 0x10002000L)
     EC_KEY* ecdh = NULL;
 #endif
 
+    // Version greater than or equal to 1.1.0
 #if (OPENSSL_VERSION_NUMBER >= 0x10100000L)
     pSslCtx = SSL_CTX_new(DTLS_method());
+
+    // Version greater than or equal to 1.0.1
 #elif (OPENSSL_VERSION_NUMBER >= 0x10001000L)
     pSslCtx = SSL_CTX_new(DTLSv1_method());
 #else
@@ -174,6 +177,7 @@ STATUS createSslCtx(PDtlsSessionCertificateInfo pCertificates, UINT32 certCount,
 
     CHK(pSslCtx != NULL, STATUS_SSL_CTX_CREATION_FAILED);
 
+    // Version greater than or equal to 1.0.2
 #if (OPENSSL_VERSION_NUMBER >= 0x10002000L)
     SSL_CTX_set_ecdh_auto(pSslCtx, TRUE);
 #else
@@ -190,7 +194,6 @@ STATUS createSslCtx(PDtlsSessionCertificateInfo pCertificates, UINT32 certCount,
     }
 
     CHK(SSL_CTX_set_cipher_list(pSslCtx, "HIGH:!aNULL:!MD5:!RC4") == 1, STATUS_SSL_CTX_CREATION_FAILED);
-
     *ppSslCtx = pSslCtx;
 
 CleanUp:
@@ -295,7 +298,8 @@ STATUS createDtlsSession(PDtlsSessionCallbacks pDtlsSessionCallbacks, TIMER_QUEU
     }
 
     if (certCount == 0) {
-        CHK_STATUS(createCertificateAndKey(certificateBits, generateRSACertificate, &certInfos[0].pCert, &certInfos[0].pKey));
+        PROFILE_CALL(CHK_STATUS(createCertificateAndKey(certificateBits, generateRSACertificate, &certInfos[0].pCert, &certInfos[0].pKey)),
+                     "Certificate creation time");
         certInfos[0].created = TRUE;
         pDtlsSession->certificateCount = 1;
     } else {
@@ -456,7 +460,7 @@ STATUS dtlsSessionProcessPacket(PDtlsSession pDtlsSession, PBYTE pData, PINT32 p
     sslRet = SSL_read(pDtlsSession->pSsl, pData, *pDataLen);
 
     if (sslRet == 0 && SSL_get_error(pDtlsSession->pSsl, sslRet) == SSL_ERROR_ZERO_RETURN) {
-        DLOGD("Detected DTLS close_notify alert");
+        DLOGI("Detected DTLS close_notify alert");
         isClosed = TRUE;
     } else if (sslRet <= 0) {
         LOG_OPENSSL_ERROR("SSL_read");
@@ -575,7 +579,6 @@ STATUS dtlsCheckOutgoingDataBuffer(PDtlsSession pDtlsSession)
     }
 
 CleanUp:
-
     LEAVES();
     return retStatus;
 }
@@ -590,7 +593,6 @@ STATUS dtlsSessionIsInitFinished(PDtlsSession pDtlsSession, PBOOL pIsConnected)
 
     MUTEX_LOCK(pDtlsSession->sslLock);
     locked = TRUE;
-
     *pIsConnected = SSL_is_init_finished(pDtlsSession->pSsl);
 
 CleanUp:

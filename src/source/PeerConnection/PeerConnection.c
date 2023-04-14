@@ -268,6 +268,19 @@ STATUS changePeerConnectionState(PKvsPeerConnection pKvsPeerConnection, RTC_PEER
 
     MUTEX_LOCK(pKvsPeerConnection->peerConnectionObjLock);
     locked = TRUE;
+    switch (newState) {
+        case RTC_PEER_CONNECTION_STATE_CONNECTING:
+            pKvsPeerConnection->iceConnectingStartTime = GETTIME();
+            break;
+        case RTC_PEER_CONNECTION_STATE_CONNECTED:
+            if (pKvsPeerConnection->iceConnectingStartTime != 0) {
+                PROFILE_WITH_START_TIME(pKvsPeerConnection->iceConnectingStartTime, "ICE Hole Punching Time");
+                pKvsPeerConnection->iceConnectingStartTime = 0;
+            }
+            break;
+        default:
+            break;
+    }
 
     /* new and closed state are terminal*/
     CHK(pKvsPeerConnection->connectionState != newState && pKvsPeerConnection->connectionState != RTC_PEER_CONNECTION_STATE_FAILED &&
@@ -423,7 +436,6 @@ VOID onIceConnectionStateChange(UINT64 customData, UINT64 connectionState)
 
     if (startDtlsSession) {
         CHK_STATUS(dtlsSessionIsInitFinished(pKvsPeerConnection->pDtlsSession, &dtlsConnected));
-
         if (dtlsConnected) {
             // In ICE restart scenario, DTLS handshake is not going to be reset. Therefore, we need to check
             // if the DTLS state has been connected.
@@ -761,6 +773,7 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
     PKvsPeerConnection pKvsPeerConnection;
     PDoubleListNode pCurNode = NULL;
     UINT64 item = 0;
+    UINT64 startTime;
 
     CHK(ppPeerConnection != NULL, STATUS_NULL_ARG);
 
@@ -768,6 +781,7 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
 
     CHK(pKvsPeerConnection != NULL, retStatus);
 
+    startTime = GETTIME();
     /* Shutdown IceAgent first so there is no more incoming packets which can cause
      * SCTP to be allocated again after SCTP is freed. */
     CHK_LOG_ERR(iceAgentShutdown(pKvsPeerConnection->pIceAgent));
@@ -836,7 +850,7 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
     }
 
     SAFE_MEMFREE(*ppPeerConnection);
-
+    PROFILE_WITH_START_TIME(startTime, "Free peer connection");
 CleanUp:
 
     LEAVES();
@@ -1047,6 +1061,9 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
             STRNCPY(pKvsPeerConnection->remoteCertificateFingerprint, pSessionDescription->sdpAttributes[i].attributeValue + 8,
                     CERTIFICATE_FINGERPRINT_LENGTH);
         } else if (pKvsPeerConnection->isOffer && STRCMP(pSessionDescription->sdpAttributes[i].attributeName, "setup") == 0) {
+            // possible values are actpass, passive and active. If the incoming SDP has active, it indicates it is taking up a client role
+            // In case of actpass and passive, the other peer is taking up a server role and is waiting for incoming connection
+            // Reference: https://www.rfc-editor.org/rfc/rfc4572#section-6.2
             pKvsPeerConnection->dtlsIsServer = STRCMP(pSessionDescription->sdpAttributes[i].attributeValue, "active") == 0;
         } else if (STRCMP(pSessionDescription->sdpAttributes[i].attributeName, "ice-options") == 0 &&
                    STRSTR(pSessionDescription->sdpAttributes[i].attributeValue, "trickle") != NULL) {
@@ -1096,12 +1113,14 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
         CHK_STATUS(generateJSONSafeString(pKvsPeerConnection->localIceUfrag, LOCAL_ICE_UFRAG_LEN));
         CHK_STATUS(generateJSONSafeString(pKvsPeerConnection->localIcePwd, LOCAL_ICE_PWD_LEN));
         CHK_STATUS(iceAgentRestart(pKvsPeerConnection->pIceAgent, pKvsPeerConnection->localIceUfrag, pKvsPeerConnection->localIcePwd));
+        // This starts the gathering process timer callback that periodically checks for local candidate list
         CHK_STATUS(iceAgentStartGathering(pKvsPeerConnection->pIceAgent));
     }
 
     STRNCPY(pKvsPeerConnection->remoteIceUfrag, remoteIceUfrag, MAX_ICE_UFRAG_LEN);
     STRNCPY(pKvsPeerConnection->remoteIcePwd, remoteIcePwd, MAX_ICE_PWD_LEN);
 
+    // This starts the state machine timer callback that transitions states periodically
     CHK_STATUS(iceAgentStartAgent(pKvsPeerConnection->pIceAgent, pKvsPeerConnection->remoteIceUfrag, pKvsPeerConnection->remoteIcePwd,
                                   pKvsPeerConnection->isOffer));
 
@@ -1219,6 +1238,7 @@ STATUS addTransceiver(PRtcPeerConnection pPeerConnection, PRtcMediaStreamTrack p
     }
 
     CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
+    pKvsPeerConnection->firstFrame = TRUE;
 
     if (direction == RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY && pRtcMediaStreamTrack == NULL) {
         MEMSET(&videoTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
@@ -1347,10 +1367,11 @@ STATUS closePeerConnection(PRtcPeerConnection pPeerConnection)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pPeerConnection;
-
+    UINT64 startTime = GETTIME();
     CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
     CHK_LOG_ERR(dtlsSessionShutdown(pKvsPeerConnection->pDtlsSession));
     CHK_LOG_ERR(iceAgentShutdown(pKvsPeerConnection->pIceAgent));
+    PROFILE_WITH_START_TIME(startTime, "Close peer connection");
 
 CleanUp:
 

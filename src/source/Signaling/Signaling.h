@@ -332,6 +332,7 @@ typedef struct {
 #ifdef KVS_USE_SIGNALING_CHANNEL_THREADPOOL
     PThreadpool pThreadpool;
 #endif
+    UINT64 offerTime;
 } SignalingClient, *PSignalingClient;
 
 // Public handle to and from object converters

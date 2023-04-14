@@ -10,6 +10,9 @@ TurnConnection internal include file
 extern "C" {
 #endif
 
+#define CHECK_TRANSPORT(transport)                                                                                                                   \
+    (transport != KVS_SOCKET_PROTOCOL_NONE ? (transport == KVS_SOCKET_PROTOCOL_TCP ? ICE_TRANSPORT_TYPE_TCP : ICE_TRANSPORT_TYPE_UDP) : "none")
+
 // https://en.wikipedia.org/wiki/List_of_IP_protocol_numbers
 #define TURN_REQUEST_TRANSPORT_UDP               17
 #define TURN_REQUEST_TRANSPORT_TCP               6

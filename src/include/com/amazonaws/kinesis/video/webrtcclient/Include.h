@@ -25,6 +25,18 @@ extern "C" {
 #pragma clang diagnostic pop
 #endif
 
+#define PROFILE_CALL(f, msg)                                                                                                                         \
+    do {                                                                                                                                             \
+        UINT64 startTime = GETTIME();                                                                                                                \
+        f;                                                                                                                                           \
+        DLOGP("[%s] Time taken: %" PRIu64 " ms", msg, (GETTIME() - startTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);                                 \
+    } while (FALSE)
+
+#define PROFILE_WITH_START_TIME(t, msg)                                                                                                              \
+    do {                                                                                                                                             \
+        DLOGP("[%s] Time taken: %" PRIu64 " ms", msg, (GETTIME() - t) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);                                         \
+    } while (FALSE)
+
 /*! \addtogroup StatusCodes
  * WEBRTC related status codes. Each value is an positive integer formed by adding
  * a base integer inticating the category to an index. Users may run scripts/parse_status.py

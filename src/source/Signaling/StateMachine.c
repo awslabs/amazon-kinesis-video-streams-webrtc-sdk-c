@@ -324,7 +324,9 @@ STATUS executeGetTokenSignalingState(UINT64 customData, UINT64 time)
     THREAD_SLEEP_UNTIL(time);
 
     // Use the credential provider to get the token
-    retStatus = pSignalingClient->pCredentialProvider->getCredentialsFn(pSignalingClient->pCredentialProvider, &pSignalingClient->pAwsCredentials);
+    PROFILE_CALL(retStatus = pSignalingClient->pCredentialProvider->getCredentialsFn(pSignalingClient->pCredentialProvider,
+                                                                                     &pSignalingClient->pAwsCredentials),
+                 "Get token call");
 
     // Check the expiration
     if (NULL == pSignalingClient->pAwsCredentials || SIGNALING_GET_CURRENT_TIME(pSignalingClient) >= pSignalingClient->pAwsCredentials->expiration) {
@@ -401,7 +403,7 @@ STATUS executeDescribeSignalingState(UINT64 customData, UINT64 time)
     }
 
     // Call the aggregate function
-    retStatus = describeChannel(pSignalingClient, time);
+    PROFILE_CALL(retStatus = describeChannel(pSignalingClient, time), "Describe call");
 
 CleanUp:
 
@@ -459,7 +461,7 @@ STATUS executeCreateSignalingState(UINT64 customData, UINT64 time)
     }
 
     // Call the aggregate function
-    retStatus = createChannel(pSignalingClient, time);
+    PROFILE_CALL(retStatus = createChannel(pSignalingClient, time), "Create call");
 
 CleanUp:
 
@@ -516,7 +518,7 @@ STATUS executeGetEndpointSignalingState(UINT64 customData, UINT64 time)
     }
 
     // Call the aggregate function
-    retStatus = getChannelEndpoint(pSignalingClient, time);
+    PROFILE_CALL(retStatus = getChannelEndpoint(pSignalingClient, time), "Get endpoint call");
 
 CleanUp:
 
@@ -574,7 +576,7 @@ STATUS executeGetIceConfigSignalingState(UINT64 customData, UINT64 time)
     }
 
     // Call the aggregate function
-    retStatus = getIceConfig(pSignalingClient, time);
+    PROFILE_CALL(retStatus = getIceConfig(pSignalingClient, time), "Get ICE config call");
 
 CleanUp:
 
@@ -728,7 +730,7 @@ STATUS executeConnectSignalingState(UINT64 customData, UINT64 time)
                                                                             SIGNALING_CLIENT_STATE_CONNECTING));
     }
 
-    retStatus = connectSignalingChannel(pSignalingClient, time);
+    PROFILE_CALL(retStatus = connectSignalingChannel(pSignalingClient, time), "Connect call");
 
 CleanUp:
 

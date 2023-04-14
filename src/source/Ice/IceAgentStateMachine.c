@@ -436,7 +436,7 @@ STATUS executeNominatingIceAgentState(UINT64 customData, UINT64 time)
     }
 
     if (pIceAgent->isControlling) {
-        CHK_STATUS(iceAgentSendCandidateNomination(pIceAgent));
+        PROFILE_CALL(CHK_STATUS(iceAgentSendCandidateNomination(pIceAgent)), "ICE candidate pair nomination");
     } else {
         // if not controlling, keep sending connection checks and wait for peer
         // to nominate a pair.
