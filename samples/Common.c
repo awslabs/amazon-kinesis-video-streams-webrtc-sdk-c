@@ -1183,7 +1183,7 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
                 }
 
                 MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
-                streamingSessionListReadLock = FALSE;
+                streamingSessionListReadLockLocked = FALSE;
 
                 CHK_STATUS(freeSampleStreamingSession(&pSampleStreamingSession));
             }
