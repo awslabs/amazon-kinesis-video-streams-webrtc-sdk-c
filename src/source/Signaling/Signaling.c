@@ -1275,22 +1275,33 @@ CleanUp:
 
 STATUS joinStorageSession(PSignalingClient pSignalingClient, UINT64 time)
 {
+    DLOGV("here at join storage session: %s", pSignalingClient);
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
 
+    DLOGV("here at join storage session after ENTER: %s", pSignalingClient);
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
     THREAD_SLEEP_UNTIL(time);
 
+    DLOGV("here at join storage session after sleep thread time: %d", time);
+
+    DLOGV("pSignalingClient->mediaStorageConfig.storageStatus == TRUE: %d", (pSignalingClient->mediaStorageConfig.storageStatus == TRUE));
+    DLOGV("pSignalingClient->clientInfo.joinSessionPreHookFn == NULL: %d", (pSignalingClient->clientInfo.joinSessionPreHookFn == NULL));
+
     CHK(pSignalingClient->mediaStorageConfig.storageStatus == TRUE, STATUS_SIGNALING_MEDIA_STORAGE_DISABLED);
     // Check for the stale credentials
     CHECK_SIGNALING_CREDENTIALS_EXPIRATION(pSignalingClient);
+    DLOGV("here at join storage session credentials check : %s", pSignalingClient);
 
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
 
+    DLOGV("here at join storage session before if for pre hook: %s", pSignalingClient);
     // We are not caching connect calls
     if (pSignalingClient->clientInfo.joinSessionPreHookFn != NULL) {
+        DLOGV("here at join storage session inside if for pre hook: %s", pSignalingClient);
         retStatus = pSignalingClient->clientInfo.joinSessionPreHookFn(pSignalingClient->clientInfo.hookCustomData);
+        DLOGV("here at join storage session after pre hook: %d", retStatus);
     }
 
     if (STATUS_SUCCEEDED(retStatus)) {
@@ -1320,17 +1331,21 @@ CleanUp:
 
 STATUS describeMediaStorageConf(PSignalingClient pSignalingClient, UINT64 time)
 {
+    DLOGV("here at describeMediaStorageConf: ");
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     BOOL apiCall = TRUE;
 
+    DLOGV("here at describeMediaStorageConf: ");
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
     THREAD_SLEEP_UNTIL(time);
     // Check for the stale credentials
     CHECK_SIGNALING_CREDENTIALS_EXPIRATION(pSignalingClient);
+    DLOGV("here at describeMediaStorageConf: ");
 
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
+    DLOGV("here at describeMediaStorageConf: ");
 
     switch (pSignalingClient->pChannelInfo->cachingPolicy) {
         case SIGNALING_API_CALL_CACHE_TYPE_NONE:
@@ -1341,6 +1356,7 @@ STATUS describeMediaStorageConf(PSignalingClient pSignalingClient, UINT64 time)
         case SIGNALING_API_CALL_CACHE_TYPE_FILE:
             if (IS_VALID_TIMESTAMP(pSignalingClient->describeMediaTime) &&
                 time <= pSignalingClient->describeMediaTime + pSignalingClient->pChannelInfo->cachingPeriod) {
+                DLOGV("here at describeMediaStorageConf: api call to be false");
                 apiCall = FALSE;
             }
 
@@ -1349,13 +1365,18 @@ STATUS describeMediaStorageConf(PSignalingClient pSignalingClient, UINT64 time)
 
     // Call API
     if (STATUS_SUCCEEDED(retStatus)) {
+        DLOGV("here at describeMediaStorageConf: ");
         if (apiCall) {
+            DLOGV("here at describeMediaStorageConf: ");
             // Call pre hook func
             if (pSignalingClient->clientInfo.descirbeMediaStorageConfPreHookFn != NULL) {
+                DLOGV("here at describeMediaStorageConf: ");
                 retStatus = pSignalingClient->clientInfo.descirbeMediaStorageConfPreHookFn(pSignalingClient->clientInfo.hookCustomData);
+                DLOGV("here at describeMediaStorageConf: ");
             }
 
             if (STATUS_SUCCEEDED(retStatus)) {
+                DLOGV("here at describeMediaStorageConf: ");
                 retStatus = describeMediaStorageConfLws(pSignalingClient, time);
                 // Store the last call time on success
                 if (STATUS_SUCCEEDED(retStatus)) {
