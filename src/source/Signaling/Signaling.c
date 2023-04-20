@@ -1354,10 +1354,14 @@ STATUS describeMediaStorageConf(PSignalingClient pSignalingClient, UINT64 time)
         case SIGNALING_API_CALL_CACHE_TYPE_DESCRIBE_GETENDPOINT:
             /* explicit fall-through */
         case SIGNALING_API_CALL_CACHE_TYPE_FILE:
+            DLOGV("IS_VALID_TIMESTAMP(pSignalingClient->describeMediaTime: %d", (IS_VALID_TIMESTAMP(pSignalingClient->describeMediaTime)));
+            DLOGV("time <= pSignalingClient->describeMediaTime + pSignalingClient->pChannelInfo->cachingPeriod: %d",
+                  (time <= pSignalingClient->describeMediaTime + pSignalingClient->pChannelInfo->cachingPeriod));
             if (IS_VALID_TIMESTAMP(pSignalingClient->describeMediaTime) &&
                 time <= pSignalingClient->describeMediaTime + pSignalingClient->pChannelInfo->cachingPeriod) {
                 DLOGV("here at describeMediaStorageConf: api call to be false");
-                apiCall = FALSE;
+                DLOGV("Here at api call being false");
+//                apiCall = FALSE;
             }
 
             break;
