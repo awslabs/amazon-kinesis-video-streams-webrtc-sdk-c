@@ -1152,7 +1152,7 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
     STATUS retStatus = STATUS_SUCCESS;
     PSampleStreamingSession pSampleStreamingSession = NULL;
     UINT32 i, clientIdHash;
-    BOOL locked = FALSE, peerConnectionFound = FALSE;
+    BOOL sampleConfigurationObjLockLocked = FALSE, streamingSessionListReadLockLocked = FALSE, peerConnectionFound = FALSE;
     SIGNALING_CLIENT_STATE signalingClientState;
 
     CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
@@ -1160,7 +1160,7 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->interrupted)) {
         // Keep the main set of operations interlocked until cvar wait which would atomically unlock
         MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
-        locked = TRUE;
+        sampleConfigurationObjLockLocked = TRUE;
 
         // scan and cleanup terminated streaming session
         for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
@@ -1168,6 +1168,7 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
                 pSampleStreamingSession = pSampleConfiguration->sampleStreamingSessionList[i];
 
                 MUTEX_LOCK(pSampleConfiguration->streamingSessionListReadLock);
+                streamingSessionListReadLockLocked = TRUE;
 
                 // swap with last element and decrement count
                 pSampleConfiguration->streamingSessionCount--;
@@ -1182,6 +1183,7 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
                 }
 
                 MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
+                streamingSessionListReadLockLocked = FALSE;
 
                 CHK_STATUS(freeSampleStreamingSession(&pSampleStreamingSession));
             }
@@ -1216,15 +1218,19 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
         // periodically wake up and clean up terminated streaming session
         CVAR_WAIT(pSampleConfiguration->cvar, pSampleConfiguration->sampleConfigurationObjLock, SAMPLE_SESSION_CLEANUP_WAIT_PERIOD);
         MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
-        locked = FALSE;
+        sampleConfigurationObjLockLocked = FALSE;
     }
 
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
 
-    if (locked) {
+    if (sampleConfigurationObjLockLocked) {
         MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
+    }
+
+    if (streamingSessionListReadLockLocked) {
+        MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
     }
 
     LEAVES();
