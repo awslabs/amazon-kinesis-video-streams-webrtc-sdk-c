@@ -16,6 +16,22 @@ else()
     SET(OPENSSL_EXTRA ${OPENSSL_EXTRA} no-shared no-dso)
   endif()
 
+  # Raspberry pi 4 has a 64-bit ARM cpu, but the camera module is not
+  # currently supported with a 64-bit userland. So the default
+  # raspbian configuration is a 64-bit kernel with a 32-bit userland.
+  # This is not correctly identified by OpenSSL version 1.1.1t as used
+  # in the Amazon Kinesis Video Streams with WebRTC SDK. So in this
+  # case if the BUILD_OPENSSL_PLATFORM is not set, set it to
+  # linux-armv4, which will cause OpenSSL to select the correct
+  # assembly module for the 32-bit Raspberry Pi userland.
+
+  if (BUILD_OPENSSL_PLATFORM STREQUAL OFF)
+    execute_process(COMMAND bash -c "if [ $(uname -m) = aarch64 ] ; then file $(which file) | grep -q 32-bit; fi" RESULTS_VARIABLE USER32)
+    if (USER32 STREQUAL 0)
+      SET(BUILD_OPENSSL_PLATFORM "linux-armv4")
+    endif()
+  endif()
+
   if (DEFINED BUILD_OPENSSL_PLATFORM AND NOT BUILD_OPENSSL_PLATFORM STREQUAL OFF)
     SET(CONFIGURE_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/build/src/project_libopenssl/Configure ${OPENSSL_EXTRA} no-async --prefix=${OPEN_SRC_INSTALL_PREFIX} --openssldir=${OPEN_SRC_INSTALL_PREFIX} ${BUILD_OPENSSL_PLATFORM} -Wno-nullability-completeness -Wno-expansion-to-defined)
   else()
