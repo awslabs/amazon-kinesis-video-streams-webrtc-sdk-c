@@ -52,7 +52,7 @@ To download run the following command:
 
 `git clone --recursive https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c.git`
 
-You will also need to install `pkg-config` and `CMake` and a build enviroment
+You will also need to install `pkg-config` and `CMake` and a build environment
 
 ### Configure
 Create a build directory in the newly checked out repository, and execute CMake from it.
@@ -93,9 +93,9 @@ You can pass the following options to `cmake ..`.
 * `-DBUILD_STATIC_LIBS` -- Build all KVS WebRTC and third-party libraries as static libraries.
 * `-DADD_MUCLIBC`  -- Add -muclibc c flag
 * `-DBUILD_DEPENDENCIES` -- Whether or not to build depending libraries from source
-* `-DBUILD_OPENSSL_PLATFORM` -- If buildng OpenSSL what is the target platform
-* `-DBUILD_LIBSRTP_HOST_PLATFORM` -- If buildng LibSRTP what is the current platform
-* `-DBUILD_LIBSRTP_DESTINATION_PLATFORM` -- If buildng LibSRTP what is the destination platform
+* `-DBUILD_OPENSSL_PLATFORM` -- If building OpenSSL what is the target platform
+* `-DBUILD_LIBSRTP_HOST_PLATFORM` -- If building LibSRTP what is the current platform
+* `-DBUILD_LIBSRTP_DESTINATION_PLATFORM` -- If building LibSRTP what is the destination platform
 * `-DBUILD_TEST=TRUE` -- Build unit/integration tests, may be useful for confirm support for your device. `./tst/webrtc_client_test`
 * `-DCODE_COVERAGE` --  Enable coverage reporting
 * `-DCOMPILER_WARNINGS` -- Enable all compiler warnings
