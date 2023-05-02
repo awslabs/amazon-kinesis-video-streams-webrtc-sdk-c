@@ -182,7 +182,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                     gst_parse_launch("autovideosrc ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
                                      "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
                                      "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE emit-signals=TRUE "
-                                     "name=appsink-video autoaudiosrc ! "
+                                     "name=appsink-video alsasrc device=hw:3,0 ! "
                                      "queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample ! opusenc ! "
                                      "audio/x-opus,rate=48000,channels=2 ! appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
                                      &error);
