@@ -345,7 +345,7 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
     state = SDP_ICE_CANDIDATE_PARSER_STATE_FOUNDATION;
 
     while ((next = STRNCHR(curr, tail - curr, ' ')) != NULL && !foundType) {
-        tokenLen = (UINT32) (next - curr);
+        tokenLen = (UINT32)(next - curr);
 
         switch (state) {
             case SDP_ICE_CANDIDATE_PARSER_STATE_FOUNDATION:
@@ -2513,7 +2513,7 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
             } else {
                 pIceCandidatePair->roundTripTime = GETTIME() - requestSentTime;
                 pIceCandidatePair->rtcIceCandidatePairDiagnostics.currentRoundTripTime =
-                    (DOUBLE) (pIceCandidatePair->roundTripTime) / HUNDREDS_OF_NANOS_IN_A_SECOND;
+                    (DOUBLE)(pIceCandidatePair->roundTripTime) / HUNDREDS_OF_NANOS_IN_A_SECOND;
             }
             CHK_WARN(transactionIdStoreHasId(pIceCandidatePair->pTransactionIdStore, pBuffer + STUN_PACKET_TRANSACTION_ID_OFFSET), retStatus,
                      "Dropping response packet because transaction id does not match");
@@ -2564,7 +2564,7 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
                     DLOGD("Ice candidate pair %s_%s is connected. Round trip time: %" PRIu64 "ms", pIceCandidatePair->local->id,
                           pIceCandidatePair->remote->id, pIceCandidatePair->roundTripTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
                     pIceCandidatePair->rtcIceCandidatePairDiagnostics.totalRoundTripTime +=
-                        (DOUBLE) (pIceCandidatePair->roundTripTime) / HUNDREDS_OF_NANOS_IN_A_SECOND;
+                        (DOUBLE)(pIceCandidatePair->roundTripTime) / HUNDREDS_OF_NANOS_IN_A_SECOND;
 
                     CHK_STATUS(hashTableRemove(pIceCandidatePair->requestSentTime, checkSum));
                 }
@@ -2643,7 +2643,7 @@ STATUS iceAgentCheckPeerReflexiveCandidate(PIceAgent pIceAgent, PKvsIpAddress pI
     CHK_STATUS(doubleListGetNodeCount(pIceAgent->remoteCandidates, &candidateCount));
     CHK_WARN(candidateCount < KVS_ICE_MAX_REMOTE_CANDIDATE_COUNT, retStatus, "max remote candidate count exceeded"); // return early if limit exceeded
     CHK_STATUS(findCandidateWithIp(pIpAddress, pIceAgent->remoteCandidates, &pIceCandidate));
-    CHK(pIceCandidate == NULL, retStatus);                                                                           // return early if duplicated
+    CHK(pIceCandidate == NULL, retStatus); // return early if duplicated
     DLOGD("New remote peer reflexive candidate found");
 
     CHK((pIceCandidate = MEMCALLOC(1, SIZEOF(IceCandidate))) != NULL, STATUS_NOT_ENOUGH_MEMORY);
