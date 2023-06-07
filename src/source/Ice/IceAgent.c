@@ -1379,6 +1379,10 @@ STATUS iceAgentSendSrflxCandidateRequest(PIceAgent pIceAgent)
                 case ICE_CANDIDATE_TYPE_SERVER_REFLEXIVE:
                     pIceServer = &(pIceAgent->iceServers[pCandidate->iceServerIndex]);
                     if (pIceServer->ipAddress.family == pCandidate->ipAddress.family) {
+                        // update transactionId
+                        CHK_STATUS(
+                            iceUtilsGenerateTransactionId(pBindingRequest->header.transactionId, ARRAY_SIZE(pBindingRequest->header.transactionId)));
+
                         transactionIdStoreInsert(pIceAgent->pStunBindingRequestTransactionIdStore, pBindingRequest->header.transactionId);
                         checkSum = COMPUTE_CRC32(pBindingRequest->header.transactionId, ARRAY_SIZE(pBindingRequest->header.transactionId));
                         CHK_STATUS(iceAgentSendStunPacket(pBindingRequest, NULL, 0, pIceAgent, pCandidate, &pIceServer->ipAddress));
