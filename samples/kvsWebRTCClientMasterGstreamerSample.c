@@ -399,7 +399,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     if (argc > 3) {
         if (STRCMP(argv[3], "testsrc") == 0) {
             printf("[KVS GStreamer Master] Using test source in GStreamer\n");
-            pSampleConfiguration->useTestSrc = FALSE;
+            pSampleConfiguration->useTestSrc = TRUE;
         }
     }
 
