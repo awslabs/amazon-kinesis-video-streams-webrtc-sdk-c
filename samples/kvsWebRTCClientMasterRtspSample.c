@@ -178,7 +178,9 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                 UINT16 pipeLineBufferSize = 1000;
                 CHAR pipeLineBuffer[pipeLineBufferSize];
 
-                snprintf(pipeLineBuffer, pipeLineBufferSize,
+                // TODO: size check before (snprintf will already corrupt memory before current check)
+
+                UINT16 stringOutcome = snprintf(pipeLineBuffer, pipeLineBufferSize,
                     "rtspsrc location=%s" 
                     " ! decodebin ! queue ! videoconvert ! "
                     "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
@@ -189,6 +191,9 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                     "audioresample ! opusenc ! audio/x-opus,rate=48000,channels=2 ! "
                     "appsink sync=TRUE emit-signals=TRUE name=appsink-audio"
                     , pSampleConfiguration->rtspUrl);
+
+                if(stringOutcome > 1000) {}//throw error: rtsp source string is too long
+                // ask: if I go straight to clean up, is this secure?
 
                 pipeline = gst_parse_launch(pipeLineBuffer, &error);
             }
@@ -285,6 +290,7 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
         goto CleanUp;
     }
 
+    // TODO: Is the below existing comment still relevant? -SK
     // TODO: Wire video up with gstreamer pipeline
 
     switch (pSampleStreamingSession->pAudioRtcRtpTransceiver->receiver.track.codec) {
@@ -392,6 +398,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     pSampleConfiguration->onDataChannel = onDataChannel;
     pSampleConfiguration->customData = (UINT64) pSampleConfiguration;
     pSampleConfiguration->useTestSrc = FALSE;
+
     /* Initialize GStreamer */
     gst_init(&argc, &argv);
     printf("[KVS RTSP Master] Finished initializing GStreamer\n");
@@ -421,7 +428,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     }
   
 
-    // Initalize KVS WebRTC. This must be done before anything else, and must only be done once.
+    // Initialize KVS WebRTC. This must be done before anything else, and must only be done once.
     retStatus = initKvsWebRtc();
     if (retStatus != STATUS_SUCCESS) {
         printf("[KVS RTSP Master] initKvsWebRtc(): operation returned status code: 0x%08x \n", retStatus);
@@ -458,8 +465,7 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     printf("[KVS RTSP Master] Beginning streaming...check the stream over channel %s\n", pChannelName);
 
-
-
+    // Join storage session for media ingestion
     if (pSampleConfiguration->channelInfo.useMediaStorage == TRUE) {
     printf("invoke join storage session");
     retStatus = signalingClientJoinSessionSync(pSampleConfiguration->signalingClientHandle);
@@ -469,8 +475,6 @@ INT32 main(INT32 argc, CHAR* argv[])
     }
     printf("[KVS Master] Signaling client connection to socket established");
     }
-
-
 
     gSampleConfiguration = pSampleConfiguration;
 
