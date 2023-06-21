@@ -173,10 +173,10 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                                             "audio/x-opus,rate=48000,channels=2 ! appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
                                             &error);
             } else {
-                printf("Streaming from rtsp source\n");
+                printf("Streaming from RTSP source\n");
 
                 UINT16 pipeLineBufferSize = 1000;
-                CHAR pipeLineBuffer[1000];
+                CHAR pipeLineBuffer[pipeLineBufferSize];
 
                 snprintf(pipeLineBuffer, pipeLineBufferSize,
                     "rtspsrc location=%s" 
