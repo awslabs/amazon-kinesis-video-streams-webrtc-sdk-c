@@ -175,8 +175,8 @@ PVOID sendGstreamerAudioVideo(PVOID args)
             } else {
                 printf("Streaming from rtsp source\n");
 
-                int pipeLineBufferSize = 1000;
-                char pipeLineBuffer[1000];
+                UINT16 pipeLineBufferSize = 1000;
+                CHAR pipeLineBuffer[1000];
 
                 snprintf(pipeLineBuffer, pipeLineBufferSize,
                     "rtspsrc location=%s" 
@@ -190,9 +190,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                     "appsink sync=TRUE emit-signals=TRUE name=appsink-audio"
                     , pSampleConfiguration->rtspUrl);
 
-                pipeline = gst_parse_launch(
-                    pipeLineBuffer,
-                    &error);
+                pipeline = gst_parse_launch(pipeLineBuffer, &error);
             }
             break;
     }
