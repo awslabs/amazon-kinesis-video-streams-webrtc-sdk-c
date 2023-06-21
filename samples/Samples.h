@@ -122,6 +122,8 @@ typedef struct {
     PStackQueue pregeneratedCertificates; // Max MAX_RTCCONFIGURATION_CERTIFICATES certificates
 
     UINT32 joinSessionTimerId;
+
+    PCHAR rtspUrl;
 } SampleConfiguration, *PSampleConfiguration;
 
 typedef struct {
