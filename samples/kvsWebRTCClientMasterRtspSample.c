@@ -128,67 +128,27 @@ PVOID sendGstreamerAudioVideo(PVOID args)
         goto CleanUp;
     }
 
-    /**
-     * Use x264enc as its available on mac, pi, ubuntu and windows
-     * mac pipeline fails if resolution is not 720p
-     *
-     * For alaw
-     * audiotestsrc is-live=TRUE ! queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample !
-     * audio/x-raw, rate=8000, channels=1, format=S16LE, layout=interleaved ! alawenc ! appsink sync=TRUE emit-signals=TRUE name=appsink-audio
-     *
-     * For VP8
-     * videotestsrc is-live=TRUE ! video/x-raw,width=1280,height=720,framerate=30/1 !
-     * vp8enc error-resilient=partitions keyframe-max-dist=10 auto-alt-ref=true cpu-used=5 deadline=1 !
-     * appsink sync=TRUE emit-signals=TRUE name=appsink-video
-     */
-
     switch (pSampleConfiguration->mediaType) {
         case SAMPLE_STREAMING_VIDEO_ONLY:
-            if (pSampleConfiguration->useTestSrc) {
-                pipeline = gst_parse_launch(
-                    "videotestsrc is-live=TRUE ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
-                    "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
-                    "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE emit-signals=TRUE name=appsink-video",
-                    &error);
-            } else {
-                pipeline = gst_parse_launch(
-                    "autovideosrc ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
-                    "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
-                    "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE emit-signals=TRUE name=appsink-video",
-                    &error);
-            }
-            break;
-
-
-        // TODO: THIS IS THE ONLY CASE WORKING AS OF NOW AND IT IS ACTUALLY IN VIDEO ONLY MODE
-        case SAMPLE_STREAMING_AUDIO_VIDEO:
-            if (pSampleConfiguration->useTestSrc) {
-                // TODO: no need for a test source (that's already a sample)
-                printf("Streaming from test source\n");
-                pipeline = gst_parse_launch("videotestsrc is-live=TRUE ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
-                                            "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
-                                            "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE "
-                                            "emit-signals=TRUE name=appsink-video audiotestsrc is-live=TRUE ! "
-                                            "queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample ! opusenc ! "
-                                            "audio/x-opus,rate=48000,channels=2 ! appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
-                                            &error);
-            } else {
-                printf("Streaming from RTSP source\n");
+        {
+            printf("Streaming from RTSP source with video only\n"); //TODO: remove this ( no need for a test source )
 
                 UINT16 pipeLineBufferSize = 1000;
                 CHAR pipeLineBuffer[pipeLineBufferSize];
 
-                // TODO: size check before (snprintf will already corrupt memory before current check)
+                // TODO: size check before ? (snprintf can already corrupt memory before current check)
 
+                // NOTE: This pipeline will work for both RAW and H264 cases as "uridecodebin" can handle both cases.
+                // NOTE: This works fine even if the rtsp steam does have audio coming in with it - that audio will be ignored.
                 UINT16 stringOutcome = snprintf(pipeLineBuffer, pipeLineBufferSize,
-                    "rtspsrc location=%s" 
-                    " ! decodebin ! queue ! videoconvert ! "
+                    "uridecodebin uri=%s ! "
+                    "videoconvert ! "
                     "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
-                    "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! "
+                    "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! queue ! "
                     "appsink sync=TRUE emit-signals=TRUE name=appsink-video "
-                    "audiotestsrc is-live=TRUE ! queue ! audioconvert ! "
-    // For silence: "audiotestsrc is-live=TRUE wave=silence ! queue ! audioconvert ! " (TODO: should be released as silent)
-                    "audioresample ! opusenc ! audio/x-opus,rate=48000,channels=2 ! "
+                    "audiotestsrc is-live=TRUE ! audioconvert ! "
+    // For silence: "audiotestsrc is-live=TRUE wave=silence ! audioconvert ! " ---------------- (TODO: should be released as silent)
+                    "audioresample ! opusenc ! audio/x-opus,rate=48000,channels=2 ! queue ! "
                     "appsink sync=TRUE emit-signals=TRUE name=appsink-audio"
                     , pSampleConfiguration->rtspUrl);
 
@@ -196,8 +156,40 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                 // ask: if I go straight to clean up, is this secure?
 
                 pipeline = gst_parse_launch(pipeLineBuffer, &error);
-            }
+                
             break;
+        }
+
+        // TODO: THIS IS THE ONLY CASE WORKING AS OF NOW AND THE PIPELINE IS ACTUALLY FOR VIDEO ONLY MODE
+        case SAMPLE_STREAMING_AUDIO_VIDEO:
+        {
+                printf("Streaming from RTSP source with audio and video\n"); //TODO: remove this ( no need for a test source )
+
+                UINT16 pipeLineBufferSize = 1000;
+                CHAR pipeLineBuffer[pipeLineBufferSize];
+
+                // TODO: size check before ? (snprintf can already corrupt memory before current check)
+
+                // NOTE: This pipeline will work for both RAW and H264 cases as "uridecodebin" can handle both cases.
+                // NOTE: This works fine even if the rtsp steam does have audio coming in with it - that audio will be ignored.
+                UINT16 stringOutcome = snprintf(pipeLineBuffer, pipeLineBufferSize,
+                    "uridecodebin uri=%s name=src ! videoconvert ! "
+                    "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
+                    "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! queue ! "
+                    "appsink sync=TRUE emit-signals=TRUE name=appsink-video "
+                    "src. ! audioconvert ! "
+                    "audioresample ! opusenc ! audio/x-opus,rate=48000,channels=2 ! queue ! "
+                    "appsink sync=TRUE emit-signals=TRUE name=appsink-audio"
+                    , pSampleConfiguration->rtspUrl);
+
+
+                if(stringOutcome > 1000) {} //throw error: rtsp source string is too long
+                // ask: if I go straight to clean up, is this secure?
+
+                pipeline = gst_parse_launch(pipeLineBuffer, &error);
+            
+            break;
+        }
     }
 
     if (pipeline == NULL) {
@@ -407,7 +399,8 @@ INT32 main(INT32 argc, CHAR* argv[])
     //        to eliminate the need for that argument.
 
     if (argc < 4) {
-        printf("[KVS RTSP Master] Usage: ./kvsWebrtcClientMasterRtspSample <channel name> <rtsp://<rtsp url> audio-video\n"
+        printf("[KVS RTSP Master] ERROR Not enough argument parameters.\n");
+        printf("[KVS RTSP Master] ERROR Usage: ./kvsWebrtcClientMasterRtspSample <channel name> <rtsp://<rtsp url> audio-video\n"
         "or ./kvsWebrtcClientMasterRtspSample <channel name> <rtsp://<rtsp url> video-only\n");
         goto CleanUp;
     }
@@ -421,7 +414,7 @@ INT32 main(INT32 argc, CHAR* argv[])
         pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
         printf("[KVS RTSP Master] Streaming audio and video\n");
     } else {
-        printf("[KVS RTSP Master] Unrecognized streaming type.\n");
+        printf("[KVS RTSP Master] ERROR Unrecognized streaming type.\n");
         printf("[KVS RTSP Master] Usage: ./kvsWebrtcClientMasterRtspSample <channel name> <rtsp://<rtsp url> audio-video\n"
         "or ./kvsWebrtcClientMasterRtspSample <channel name> <rtsp://<rtsp url> video-only\n");
         goto CleanUp;
