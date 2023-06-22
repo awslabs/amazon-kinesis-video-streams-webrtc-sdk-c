@@ -131,12 +131,13 @@ PVOID sendGstreamerAudioVideo(PVOID args)
     switch (pSampleConfiguration->mediaType) {
         case SAMPLE_STREAMING_VIDEO_ONLY:
         {
-            printf("Streaming from RTSP source with video only\n"); //TODO: remove this ( no need for a test source )
+            // NOTE: For video-only, audio is added to the stream to be compatible with media-server ingestion.
+            printf("Streaming from RTSP source with video only\n");
 
                 UINT16 pipeLineBufferSize = 1000;
                 CHAR pipeLineBuffer[pipeLineBufferSize];
 
-                // TODO: size check before ? (snprintf can already corrupt memory before current check)
+                // TODO: Size check before ? (snprintf can already corrupt memory before current check)
 
                 // NOTE: This pipeline will work for both RAW and H264 cases as "uridecodebin" can handle both cases.
                 // NOTE: This works fine even if the rtsp steam does have audio coming in with it - that audio will be ignored.
@@ -153,7 +154,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                     , pSampleConfiguration->rtspUrl);
 
                 if(stringOutcome > 1000) {}//throw error: rtsp source string is too long
-                // ask: if I go straight to clean up, is this secure?
+                // TODO: ask: if I go straight to clean up, is this secure?
 
                 pipeline = gst_parse_launch(pipeLineBuffer, &error);
                 
@@ -163,7 +164,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
         // TODO: THIS IS THE ONLY CASE WORKING AS OF NOW AND THE PIPELINE IS ACTUALLY FOR VIDEO ONLY MODE
         case SAMPLE_STREAMING_AUDIO_VIDEO:
         {
-                printf("Streaming from RTSP source with audio and video\n"); //TODO: remove this ( no need for a test source )
+                printf("Streaming from RTSP source with audio and video\n");
 
                 UINT16 pipeLineBufferSize = 1000;
                 CHAR pipeLineBuffer[pipeLineBufferSize];
@@ -396,7 +397,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     printf("[KVS RTSP Master] Finished initializing GStreamer\n");
 
     // TODO: make a check for audio-video vs video-only incoming RTSP stream
-    //        to eliminate the need for that argument.
+    //        to eliminate the need for that argument ?
 
     if (argc < 4) {
         printf("[KVS RTSP Master] ERROR Not enough argument parameters.\n");
