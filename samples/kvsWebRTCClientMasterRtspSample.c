@@ -400,7 +400,7 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     if (argc < 4) {
         printf("[KVS RTSP Master] ERROR Not enough argument parameters.\n");
-        printf("[KVS RTSP Master] ERROR Usage: ./kvsWebrtcClientMasterRtspSample <channel name> <rtsp://<rtsp url> audio-video\n"
+        printf("[KVS RTSP Master] ERROR Usage: ./kvsWebrtcClientMasterRtspSample <channel name> rtsp://<rtsp url> audio-video\n"
                "or ./kvsWebrtcClientMasterRtspSample <channel name> <rtsp://<rtsp url> video-only\n");
         goto CleanUp;
     }
@@ -415,7 +415,7 @@ INT32 main(INT32 argc, CHAR* argv[])
         printf("[KVS RTSP Master] Streaming audio and video\n");
     } else {
         printf("[KVS RTSP Master] ERROR Unrecognized streaming type.\n");
-        printf("[KVS RTSP Master] Usage: ./kvsWebrtcClientMasterRtspSample <channel name> <rtsp://<rtsp url> audio-video\n"
+        printf("[KVS RTSP Master] Usage: ./kvsWebrtcClientMasterRtspSample <channel name> rtsp://<rtsp url> audio-video\n"
                "or ./kvsWebrtcClientMasterRtspSample <channel name> <rtsp://<rtsp url> video-only\n");
         goto CleanUp;
     }
