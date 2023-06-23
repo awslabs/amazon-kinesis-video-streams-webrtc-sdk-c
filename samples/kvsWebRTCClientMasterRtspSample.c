@@ -123,13 +123,13 @@ PVOID sendGstreamerAudioVideo(PVOID args)
     GError* error = NULL;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
 
+    UINT16 pipeLineBufferSize = 1000;
+    CHAR pipeLineBuffer[pipeLineBufferSize];
+
     if (pSampleConfiguration == NULL) {
         printf("[KVS RTSP Master] sendGstreamerAudioVideo(): operation returned status code: 0x%08x \n", STATUS_NULL_ARG);
         goto CleanUp;
     }
-
-    UINT16 pipeLineBufferSize = 1000;
-    CHAR pipeLineBuffer[pipeLineBufferSize];
 
     switch (pSampleConfiguration->mediaType) {
         case SAMPLE_STREAMING_VIDEO_ONLY: {
@@ -137,7 +137,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
 
             // NOTE: For video-only, audio is added to the stream to be compatible with media-server ingestion.
             // This pipeline will work for both RAW and H264 cases as "uridecodebin" can handle both cases and
-            // works fine even if the rtsp steam does have audio coming in with it - that audio will be ignored.
+            // works fine even if the rtsp steam does have audio coming in with it - the audio will be ignored.
             UINT16 stringOutcome = snprintf(pipeLineBuffer, pipeLineBufferSize,
                                             "uridecodebin uri=%s ! "
                                             "videoconvert ! "
@@ -150,19 +150,14 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                                             pSampleConfiguration->rtspUrl);
 
             if (stringOutcome > pipeLineBufferSize) {
-                printf("[KVS RTSP Master] ERROR: rtsp url entered exceeds maximum allowed length set by pipeLineBufferSize\n")
+                printf("[KVS RTSP Master] ERROR: rtsp url entered exceeds maximum allowed length set by pipeLineBufferSize\n");
                 goto CleanUp;
             }
-
-            pipeline = gst_parse_launch(pipeLineBuffer, &error);
 
             break;
         }
         case SAMPLE_STREAMING_AUDIO_VIDEO: {
             printf("[KVS RTSP Master] Streaming from RTSP source with audio and video\n");
-
-            UINT16 pipeLineBufferSize = 1000;
-            CHAR pipeLineBuffer[pipeLineBufferSize];
 
             // NOTE: This pipeline will work for both RAW and H264 cases as "uridecodebin" can handle both cases.
             UINT16 stringOutcome = snprintf(pipeLineBuffer, pipeLineBufferSize,
@@ -176,15 +171,15 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                                             pSampleConfiguration->rtspUrl);
 
             if (stringOutcome > pipeLineBufferSize) {
-                printf("[KVS RTSP Master] ERROR: rtsp url entered exceeds maximum allowed length set by pipeLineBufferSize\n")
+                printf("[KVS RTSP Master] ERROR: rtsp url entered exceeds maximum allowed length set by pipeLineBufferSize\n");
                 goto CleanUp;
             }
-
-            pipeline = gst_parse_launch(pipeLineBuffer, &error);
 
             break;
         }
     }
+
+    pipeline = gst_parse_launch(pipeLineBuffer, &error);
 
     appsinkVideo = gst_bin_get_by_name(GST_BIN(pipeline), "appsink-video");
     appsinkAudio = gst_bin_get_by_name(GST_BIN(pipeline), "appsink-audio");
