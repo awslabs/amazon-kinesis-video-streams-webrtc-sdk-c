@@ -128,51 +128,43 @@ PVOID sendGstreamerAudioVideo(PVOID args)
         goto CleanUp;
     }
 
+    UINT16 pipeLineBufferSize = 1000;
+    CHAR pipeLineBuffer[pipeLineBufferSize];
+
     switch (pSampleConfiguration->mediaType) {
         case SAMPLE_STREAMING_VIDEO_ONLY: {
+            printf("[KVS RTSP Master] Streaming from RTSP source with video only\n");
+
             // NOTE: For video-only, audio is added to the stream to be compatible with media-server ingestion.
-            printf("Streaming from RTSP source with video only\n");
+            // This pipeline will work for both RAW and H264 cases as "uridecodebin" can handle both cases and
+            // works fine even if the rtsp steam does have audio coming in with it - that audio will be ignored.
+            UINT16 stringOutcome = snprintf(pipeLineBuffer, pipeLineBufferSize,
+                                            "uridecodebin uri=%s ! "
+                                            "videoconvert ! "
+                                            "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
+                                            "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! queue ! "
+                                            "appsink sync=TRUE emit-signals=TRUE name=appsink-video "
+                                            "audiotestsrc is-live=TRUE wave=silence ! audioconvert ! "
+                                            "audioresample ! opusenc ! audio/x-opus,rate=48000,channels=2 ! queue ! "
+                                            "appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
+                                            pSampleConfiguration->rtspUrl);
 
-            UINT16 pipeLineBufferSize = 1000;
-            CHAR pipeLineBuffer[pipeLineBufferSize];
-
-            // TODO: Size check before ? (snprintf can already corrupt memory before current check)
-
-            // NOTE: This pipeline will work for both RAW and H264 cases as "uridecodebin" can handle both cases.
-            // NOTE: This works fine even if the rtsp steam does have audio coming in with it - that audio will be ignored.
-            UINT16 stringOutcome = snprintf(
-                pipeLineBuffer, pipeLineBufferSize,
-                "uridecodebin uri=%s ! "
-                "videoconvert ! "
-                "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
-                "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! queue ! "
-                "appsink sync=TRUE emit-signals=TRUE name=appsink-video "
-                "audiotestsrc is-live=TRUE ! audioconvert ! "
-                // For silence: "audiotestsrc is-live=TRUE wave=silence ! audioconvert ! " ---------------- (TODO: should be released as silent)
-                "audioresample ! opusenc ! audio/x-opus,rate=48000,channels=2 ! queue ! "
-                "appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
-                pSampleConfiguration->rtspUrl);
-
-            if (stringOutcome > 1000) {
-            } // throw error: rtsp source string is too long
-            // TODO: ask: if I go straight to clean up, is this secure?
+            if (stringOutcome > pipeLineBufferSize) {
+                printf("[KVS RTSP Master] ERROR: rtsp url entered exceeds maximum allowed length set by pipeLineBufferSize\n")
+                goto CleanUp;
+            }
 
             pipeline = gst_parse_launch(pipeLineBuffer, &error);
 
             break;
         }
-
-        // TODO: THIS IS THE ONLY CASE WORKING AS OF NOW AND THE PIPELINE IS ACTUALLY FOR VIDEO ONLY MODE
         case SAMPLE_STREAMING_AUDIO_VIDEO: {
-            printf("Streaming from RTSP source with audio and video\n");
+            printf("[KVS RTSP Master] Streaming from RTSP source with audio and video\n");
 
             UINT16 pipeLineBufferSize = 1000;
             CHAR pipeLineBuffer[pipeLineBufferSize];
 
-            // TODO: size check before ? (snprintf can already corrupt memory before current check)
-
             // NOTE: This pipeline will work for both RAW and H264 cases as "uridecodebin" can handle both cases.
-            // NOTE: This works fine even if the rtsp steam does have audio coming in with it - that audio will be ignored.
             UINT16 stringOutcome = snprintf(pipeLineBuffer, pipeLineBufferSize,
                                             "uridecodebin uri=%s name=src ! videoconvert ! "
                                             "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
@@ -183,20 +175,15 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                                             "appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
                                             pSampleConfiguration->rtspUrl);
 
-            if (stringOutcome > 1000) {
-            } // throw error: rtsp source string is too long
-            // ask: if I go straight to clean up, is this secure?
+            if (stringOutcome > pipeLineBufferSize) {
+                printf("[KVS RTSP Master] ERROR: rtsp url entered exceeds maximum allowed length set by pipeLineBufferSize\n")
+                goto CleanUp;
+            }
 
             pipeline = gst_parse_launch(pipeLineBuffer, &error);
 
             break;
         }
-    }
-
-    if (pipeline == NULL) {
-        printf("[KVS RTSP Master] sendGstreamerAudioVideo(): Failed to launch gstreamer, operation returned status code: 0x%08x \n",
-               STATUS_INTERNAL_ERROR);
-        goto CleanUp;
     }
 
     appsinkVideo = gst_bin_get_by_name(GST_BIN(pipeline), "appsink-video");
@@ -395,12 +382,11 @@ INT32 main(INT32 argc, CHAR* argv[])
     gst_init(&argc, &argv);
     printf("[KVS RTSP Master] Finished initializing GStreamer\n");
 
-    // TODO: make a check for audio-video vs video-only incoming RTSP stream
-    //        to eliminate the need for that argument ?
+    // TODO: Might make a check for audio-video vs video-only of incoming RTSP stream to eliminate the need for 3rd argument.
 
     if (argc < 4) {
-        printf("[KVS RTSP Master] ERROR Not enough argument parameters.\n");
-        printf("[KVS RTSP Master] ERROR Usage: ./kvsWebrtcClientMasterRtspSample <channel name> rtsp://<rtsp url> audio-video\n"
+        printf("[KVS RTSP Master] ERROR: Not enough argument parameters.\n");
+        printf("[KVS RTSP Master] Usage: ./kvsWebrtcClientMasterRtspSample <channel name> rtsp://<rtsp url> audio-video\n"
                "or ./kvsWebrtcClientMasterRtspSample <channel name> <rtsp://<rtsp url> video-only\n");
         goto CleanUp;
     }
