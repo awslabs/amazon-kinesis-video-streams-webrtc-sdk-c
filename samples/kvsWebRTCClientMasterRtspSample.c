@@ -137,7 +137,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
 
             // NOTE: For video-only, audio is added to the stream to be compatible with media-server ingestion.
             // This pipeline will work for both RAW and H264 cases as "uridecodebin" can handle both cases and
-            // works fine even if the rtsp steam does have audio coming in with it - the audio will be ignored.
+            // works fine even if the rtsp stream does have audio coming in with it - the audio will be ignored.
             UINT16 stringOutcome = snprintf(pipeLineBuffer, pipeLineBufferSize,
                                             "uridecodebin uri=%s ! "
                                             "videoconvert ! "
