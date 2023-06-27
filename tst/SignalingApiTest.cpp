@@ -13,6 +13,9 @@ TEST_F(SignalingApiTest, createValidateChannelInfo)
 {
     initializeSignalingClientStructs();
     PChannelInfo rChannelInfo;
+    CHAR agentString[MAX_CUSTOM_USER_AGENT_NAME_POSTFIX_LEN + 1];
+    UINT32 postfixLen = STRLEN(SIGNALING_USER_AGENT_POSTFIX_NAME) + STRLEN(SIGNALING_USER_AGENT_POSTFIX_VERSION) + 1;
+    SNPRINTF(agentString, postfixLen + 1, (PCHAR) "%s/%s", SIGNALING_USER_AGENT_POSTFIX_NAME, SIGNALING_USER_AGENT_POSTFIX_VERSION);
     STRCPY(mChannelArn, TEST_CHANNEL_ARN);
     STRCPY(mKmsKeyId, TEST_KMS_KEY_ID_ARN);
     mChannelInfo.pChannelArn = mChannelArn;
@@ -32,6 +35,8 @@ TEST_F(SignalingApiTest, createValidateChannelInfo)
     EXPECT_EQ(0, STRCMP(rChannelInfo->pCertPath, mCaCertPath));
     EXPECT_EQ(rChannelInfo->messageTtl, TEST_SIGNALING_MESSAGE_TTL);
     EXPECT_EQ(0, STRCMP(rChannelInfo->pRegion, TEST_DEFAULT_REGION));
+    // Test default agent postfix
+    EXPECT_PRED_FORMAT2(testing::IsSubstring, agentString, rChannelInfo->pUserAgent);
     freeChannelInfo(&rChannelInfo);
 }
 
