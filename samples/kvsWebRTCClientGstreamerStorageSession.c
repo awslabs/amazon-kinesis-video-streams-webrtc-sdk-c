@@ -147,7 +147,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                                             "audiotestsrc is-live=TRUE wave=silence ! audioconvert ! "
                                             "audioresample ! opusenc ! audio/x-opus,rate=48000,channels=2 ! queue ! "
                                             "appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
-                                            pSampleConfiguration->rtspUrl);
+                                            pSampleConfiguration->rtspUri);
 
             if (stringOutcome > pipeLineBufferSize) {
                 printf("[KVS RTSP Master] ERROR: rtsp url entered exceeds maximum allowed length set by pipeLineBufferSize\n");
@@ -168,7 +168,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                                             "src. ! audioconvert ! "
                                             "audioresample ! opusenc ! audio/x-opus,rate=48000,channels=2 ! queue ! "
                                             "appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
-                                            pSampleConfiguration->rtspUrl);
+                                            pSampleConfiguration->rtspUri);
 
             if (stringOutcome > pipeLineBufferSize) {
                 printf("[KVS RTSP Master] ERROR: rtsp url entered exceeds maximum allowed length set by pipeLineBufferSize\n");
@@ -386,7 +386,7 @@ INT32 main(INT32 argc, CHAR* argv[])
         goto CleanUp;
     }
 
-    pSampleConfiguration->rtspUrl = argv[2];
+    pSampleConfiguration->rtspUri = argv[2];
 
     if (STRCMP(argv[3], "video-only") == 0) {
         pSampleConfiguration->mediaType = SAMPLE_STREAMING_VIDEO_ONLY;

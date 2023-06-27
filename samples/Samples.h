@@ -123,7 +123,7 @@ typedef struct {
 
     UINT32 joinSessionTimerId;
 
-    PCHAR rtspUrl;
+    PCHAR rtspUri;
 } SampleConfiguration, *PSampleConfiguration;
 
 typedef struct {
