@@ -150,7 +150,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                                             pSampleConfiguration->rtspUri);
 
             if (stringOutcome > pipeLineBufferSize) {
-                printf("[KVS RTSP Master] ERROR: rtsp url entered exceeds maximum allowed length set by pipeLineBufferSize\n");
+                printf("[KVS RTSP Master] ERROR: rtsp uri entered exceeds maximum allowed length set by pipeLineBufferSize\n");
                 goto CleanUp;
             }
 
@@ -171,7 +171,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                                             pSampleConfiguration->rtspUri);
 
             if (stringOutcome > pipeLineBufferSize) {
-                printf("[KVS RTSP Master] ERROR: rtsp url entered exceeds maximum allowed length set by pipeLineBufferSize\n");
+                printf("[KVS RTSP Master] ERROR: rtsp uri entered exceeds maximum allowed length set by pipeLineBufferSize\n");
                 goto CleanUp;
             }
 
@@ -381,8 +381,8 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     if (argc < 4) {
         printf("[KVS RTSP Master] ERROR: Not enough argument parameters.\n");
-        printf("[KVS RTSP Master] Usage: ./kvsWebrtcClientMasterRtspSample <channel name> rtsp://<rtsp url> audio-video\n"
-               "or ./kvsWebrtcClientMasterRtspSample <channel name> <rtsp://<rtsp url> video-only\n");
+        printf("[KVS RTSP Master] Usage: ./kvsWebrtcClientMasterRtspSample <channel name> rtsp://<rtsp uri> audio-video\n"
+               "or ./kvsWebrtcClientMasterRtspSample <channel name> <rtsp://<rtsp uri> video-only\n");
         goto CleanUp;
     }
 
@@ -396,8 +396,8 @@ INT32 main(INT32 argc, CHAR* argv[])
         printf("[KVS RTSP Master] Streaming audio and video\n");
     } else {
         printf("[KVS RTSP Master] ERROR Unrecognized streaming type.\n");
-        printf("[KVS RTSP Master] Usage: ./kvsWebrtcClientMasterRtspSample <channel name> rtsp://<rtsp url> audio-video\n"
-               "or ./kvsWebrtcClientMasterRtspSample <channel name> <rtsp://<rtsp url> video-only\n");
+        printf("[KVS RTSP Master] Usage: ./kvsWebrtcClientMasterRtspSample <channel name> rtsp://<rtsp uri> audio-video\n"
+               "or ./kvsWebrtcClientMasterRtspSample <channel name> <rtsp://<rtsp uri> video-only\n");
         goto CleanUp;
     }
 
