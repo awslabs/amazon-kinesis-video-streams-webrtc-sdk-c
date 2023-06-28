@@ -256,7 +256,6 @@ PVOID sendGstreamerAudioVideo(PVOID args)
     if (appsinkVideo != NULL) {
         g_signal_connect(appsinkVideo, "new-sample", G_CALLBACK(on_new_sample_video), (gpointer) pSampleConfiguration);
     }
-
     if (appsinkAudio != NULL) {
         g_signal_connect(appsinkAudio, "new-sample", G_CALLBACK(on_new_sample_audio), (gpointer) pSampleConfiguration);
     }
