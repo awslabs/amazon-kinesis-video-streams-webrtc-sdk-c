@@ -397,7 +397,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     } else {
         printf("[KVS RTSP Master] ERROR Unrecognized streaming type.\n");
         printf("[KVS RTSP Master] Usage: ./kvsWebRTCClientGstreamerStorageSession <channel name> rtsp://<rtsp uri> audio-video\n"
-               "or ./kvsWebRTCClientGstreamerStorageSession <channel name> <rtsp://<rtsp uri> video-only\n");
+               "or ./kvsWebRTCClientGstreamerStorageSession <channel name> <rtsp://<rtsp uri> video-only \n");
         goto CleanUp;
     }
 
