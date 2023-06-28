@@ -469,6 +469,7 @@ INT32 main(INT32 argc, CHAR* argv[])
                 pSampleConfiguration->srcType = DEVICE_SOURCE;
             } else {
                 pSampleConfiguration->srcType = RTSP_SOURCE;
+                pSampleConfiguration->rtspUri =  argv[4];
             }
         } else {
             printf("[KVS Gstreamer Master] Unrecognized source type. Defaulting to device source in GStreamer\n");
