@@ -193,19 +193,33 @@ export AWS_KVS_CACERT_PATH=../certs/cert.pem
 ```
 
 ### Running the Samples
-After executing `make` you will have the following sample applications in your `build/samples` directory:
+After executing `make` you will have sample applications in your `build/samples` directory. From the `build/` directory, run any of the sample applications by passing to it the name of your signaling channel. If a signaling channel does not exist with the name you provide, the application creates one.
 
-* `kvsWebrtcClientMaster` - This application sends sample H264/Opus frames (path: `/samples/h264SampleFrames` and `/samples/opusSampleFrames`) via WebRTC. It also accepts incoming audio, if enabled in the browser. When checked in the browser, it prints the metadata of the received audio packets in your terminal.
-* `kvsWebrtcClientViewer` - This application accepts sample H264/Opus frames and prints them out.
-* `kvsWebrtcClientMasterGstSample` - This application sends sample H264/Opus frames from a GStreamer pipeline. It also will playback incoming audio via an `autoaudiosink`.
-
-Run any of the sample applications by passing to it the name that you want to give to your signaling channel. The application creates the signaling channel using the name you provide. For example, to create a signaling channel called myChannel and to start sending sample H264/Opus frames via this channel, run the following command from `build/` directory:
-
+#### Sample: kvsWebrtcClientMaster
+This sample application sends sample H264/Opus frames (path: `/samples/h264SampleFrames` and `/samples/opusSampleFrames`) via WebRTC. It also accepts incoming audio, if enabled in the browser. When checked in the browser, it prints the metadata of the received audio packets in your terminal. To run:
 ```
-./samples/kvsWebrtcClientMaster myChannel
+./samples/kvsWebrtcClientMaster <channelName>
 ```
 
-When the command line application prints "Signaling client connection to socket established", you can proceed to the next step.
+#### Sample: kvsWebrtcClientMasterGstSample
+This sample application can send media from a GStreamer pipeline from test H264/Opus frames, device `autovideosrc`/`autoaudiosrc` input, or a received RTSP stream. It also will playback incoming audio via an `autoaudiosink`. To run:
+```
+./samples/kvsWebRTCClientMasterGstreamerSample <channelName> <mediaType> <sourceType>
+
+./samples/kvsWebRTCClientMasterGstreamerSample <channelName> <mediaType> rtspsrc rtsp://<rtspUri>
+```
+Pass the desired media and source type when running the sample. The mediaType can be `audio-video` or `video-only`. The source type can be `testsrc`, `devicesrc`, or `rtspsrc`. Specify the RTSP uri if using `rtspsrc`.
+
+When the command line application prints "Signaling client connection to socket established", you can view the stream on the KVS Channels console or proceed with the [WebRTC SDK Test Page](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-js/examples/index.html) steps described in the above `kvsWebrtcClientMaster` sample run instructions.
+
+#### Sample: kvsWebrtcClientViewer
+This sample application accepts sample H264/Opus frames and prints them out. To run:
+```
+./samples/kvsWebrtcClientMaster <channelName>
+```
+### Viewing Master Samples
+
+After running one of the master samples, when the command line application prints "Signaling client connection to socket established", you can proceed to the next step.
 
 Now that your signaling channel is created and the connected master is streaming media to it, you can view this stream. To do so, open the [WebRTC SDK Test Page](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-js/examples/index.html) using the steps in Using the Kinesis Video Streams with WebRTC Test Page and set the following values using the same AWS credentials and the same signaling channel that you specified for the master above:
 * Access key ID
