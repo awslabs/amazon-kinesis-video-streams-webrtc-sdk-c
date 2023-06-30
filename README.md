@@ -202,7 +202,7 @@ This application sends sample H264/Opus frames (path: `/samples/h264SampleFrames
 ```
 
 #### Sample: kvsWebrtcClientMasterGstSample
-This application can send media from a GStreamer pipeline from test H264/Opus frames, device `autovideosrc` and `autoaudiosrc` input, or a received RTSP stream. It also will playback incoming audio via an `autoaudiosink`. To run:
+This application can send media from a GStreamer pipeline using test H264/Opus frames, device `autovideosrc` and `autoaudiosrc` input, or a received RTSP stream. It also will playback incoming audio via an `autoaudiosink`. To run:
 ```
 ./samples/kvsWebRTCClientMasterGstreamerSample <channelName> <mediaType> <sourceType>
 ```
