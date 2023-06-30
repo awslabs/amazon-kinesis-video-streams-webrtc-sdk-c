@@ -196,38 +196,37 @@ export AWS_KVS_CACERT_PATH=../certs/cert.pem
 After executing `make` you will have sample applications in your `build/samples` directory. From the `build/` directory, run any of the sample applications by passing to it the name of your signaling channel. If a signaling channel does not exist with the name you provide, the application creates one.
 
 #### Sample: kvsWebrtcClientMaster
-This sample application sends sample H264/Opus frames (path: `/samples/h264SampleFrames` and `/samples/opusSampleFrames`) via WebRTC. It also accepts incoming audio, if enabled in the browser. When checked in the browser, it prints the metadata of the received audio packets in your terminal. To run:
+This application sends sample H264/Opus frames (path: `/samples/h264SampleFrames` and `/samples/opusSampleFrames`) via WebRTC. It also accepts incoming audio, if enabled in the browser. When checked in the browser, it prints the metadata of the received audio packets in your terminal. To run:
 ```
 ./samples/kvsWebrtcClientMaster <channelName>
 ```
 
 #### Sample: kvsWebrtcClientMasterGstSample
-This sample application can send media from a GStreamer pipeline from test H264/Opus frames, device `autovideosrc`/`autoaudiosrc` input, or a received RTSP stream. It also will playback incoming audio via an `autoaudiosink`. To run:
+This application can send media from a GStreamer pipeline from test H264/Opus frames, device `autovideosrc` and `autoaudiosrc` input, or a received RTSP stream. It also will playback incoming audio via an `autoaudiosink`. To run:
 ```
 ./samples/kvsWebRTCClientMasterGstreamerSample <channelName> <mediaType> <sourceType>
-
+```
+Pass the desired media and source type when running the sample. The mediaType can be `audio-video` or `video-only`. The source type can be `testsrc`, `devicesrc`, or `rtspsrc`. Specify the RTSP URI if using `rtspsrc`:
+```
 ./samples/kvsWebRTCClientMasterGstreamerSample <channelName> <mediaType> rtspsrc rtsp://<rtspUri>
 ```
-Pass the desired media and source type when running the sample. The mediaType can be `audio-video` or `video-only`. The source type can be `testsrc`, `devicesrc`, or `rtspsrc`. Specify the RTSP uri if using `rtspsrc`.
-
-When the command line application prints "Signaling client connection to socket established", you can view the stream on the KVS Channels console or proceed with the [WebRTC SDK Test Page](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-js/examples/index.html) steps described in the above `kvsWebrtcClientMaster` sample run instructions.
 
 #### Sample: kvsWebrtcClientViewer
-This sample application accepts sample H264/Opus frames and prints them out. To run:
+This application accepts sample H264/Opus frames and prints them out. To run:
 ```
 ./samples/kvsWebrtcClientMaster <channelName>
 ```
 ### Viewing Master Samples
 
-After running one of the master samples, when the command line application prints "Signaling client connection to socket established", you can proceed to the next step.
+After running one of the master samples, when the command line application prints "Signaling client connection to socket established", indicating that your signaling channel is created and the connected master is streaming media to it, you can view the stream. To do so, check the media playback viewer on the KVS Signaling Channels console or open the [WebRTC SDK Test Page](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-js/examples/index.html).
 
-Now that your signaling channel is created and the connected master is streaming media to it, you can view this stream. To do so, open the [WebRTC SDK Test Page](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-js/examples/index.html) using the steps in Using the Kinesis Video Streams with WebRTC Test Page and set the following values using the same AWS credentials and the same signaling channel that you specified for the master above:
+If using the WebRTC SDK Test Page, set the following values using the same AWS credentials and the same signaling channel that you specified for the master above:
 * Access key ID
 * Secret access key
 * Signaling channel name
 * Client ID (optional)
-
-Choose Start viewer to start live video streaming of the sample H264/Opus frames.
+  
+Then choose Start Viewer to start live video streaming of the sample H264/Opus frames.
 
 ## Setup IoT
 * To use IoT certificate to authenticate with KVS signaling, please refer to [Controlling Access to Kinesis Video Streams Resources Using AWS IoT](https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/how-iot.html) for provisioning details.
