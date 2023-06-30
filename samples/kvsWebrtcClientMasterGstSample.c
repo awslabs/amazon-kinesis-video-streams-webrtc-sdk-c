@@ -465,8 +465,8 @@ INT32 main(INT32 argc, CHAR* argv[])
             printf("[KVS GStreamer Master] Using RTSP source in GStreamer\n");
             if (argc < 5) {
                 printf("[KVS GStreamer Master] No RTSP source URI included. Defaulting to device source\n");
-                printf("[KVS GStreamer Master] Usage: ./kvsWebRTCClientMasterGstreamerSample <channel name> audio-video rtspsrc rtsp://<rtsp uri>\n"
-                       "or ./kvsWebRTCClientMasterGstreamerSample <channel name> video-only rtspsrc <rtsp://<rtsp uri>\n");
+                printf("[KVS GStreamer Master] Usage: ./kvsWebrtcClientMasterGstSample <channel name> audio-video rtspsrc rtsp://<rtsp uri>\n"
+                       "or ./kvsWebrtcClientMasterGstSample <channel name> video-only rtspsrc <rtsp://<rtsp uri>\n");
                 pSampleConfiguration->srcType = DEVICE_SOURCE;
             } else {
                 pSampleConfiguration->srcType = RTSP_SOURCE;
