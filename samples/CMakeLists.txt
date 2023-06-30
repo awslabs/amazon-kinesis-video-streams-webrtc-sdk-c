@@ -66,7 +66,7 @@ if(GST_FOUND)
   add_executable(
     kvsWebrtcClientMasterGstSample
     Common.c
-    kvsWebRTCClientMasterGstreamerSample.c
+    kvsWebrtcClientMasterGstSample.c
   )
   target_link_libraries(kvsWebrtcClientMasterGstSample kvsWebrtcClient kvsWebrtcSignalingClient ${GST_SAMPLE_LIBRARIES} kvsCommonLws kvspicUtils websockets)
 

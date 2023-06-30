@@ -186,7 +186,6 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                         printf("[KVS GStreamer Master] ERROR: rtsp uri entered exceeds maximum allowed length set by RTSP_PIPELINE_MAX_CHAR_COUNT\n");
                         goto CleanUp;
                     }
-
                     pipeline = gst_parse_launch(rtspPipeLineBuffer, &error);
 
                     break;
@@ -233,7 +232,6 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                         printf("[KVS GStreamer Master] ERROR: rtsp uri entered exceeds maximum allowed length set by RTSP_PIPELINE_MAX_CHAR_COUNT\n");
                         goto CleanUp;
                     }
-
                     pipeline = gst_parse_launch(rtspPipeLineBuffer, &error);
 
                     break;
