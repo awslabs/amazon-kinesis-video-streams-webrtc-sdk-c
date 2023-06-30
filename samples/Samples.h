@@ -40,6 +40,8 @@ extern "C" {
 #define SAMPLE_HASH_TABLE_BUCKET_COUNT  50
 #define SAMPLE_HASH_TABLE_BUCKET_LENGTH 2
 
+#define RTSP_PIPELINE_MAX_CHAR_COUNT 1000
+
 #define IOT_CORE_CREDENTIAL_ENDPOINT ((PCHAR) "AWS_IOT_CORE_CREDENTIAL_ENDPOINT")
 #define IOT_CORE_CERT                ((PCHAR) "AWS_IOT_CORE_CERT")
 #define IOT_CORE_PRIVATE_KEY         ((PCHAR) "AWS_IOT_CORE_PRIVATE_KEY")
@@ -57,6 +59,12 @@ typedef enum {
     SAMPLE_STREAMING_VIDEO_ONLY,
     SAMPLE_STREAMING_AUDIO_VIDEO,
 } SampleStreamingMediaType;
+
+typedef enum {
+    TEST_SOURCE,
+    DEVICE_SOURCE,
+    RTSP_SOURCE,
+} SampleSourceType;
 
 typedef struct __SampleStreamingSession SampleStreamingSession;
 typedef struct __SampleStreamingSession* PSampleStreamingSession;
@@ -76,7 +84,7 @@ typedef struct {
     volatile ATOMIC_BOOL mediaThreadStarted;
     volatile ATOMIC_BOOL recreateSignalingClient;
     volatile ATOMIC_BOOL connected;
-    BOOL useTestSrc;
+    SampleSourceType srcType;
     ChannelInfo channelInfo;
     PCHAR pCaCertPath;
     PAwsCredentialProvider pCredentialProvider;
@@ -117,6 +125,8 @@ typedef struct {
 
     UINT32 pregenerateCertTimerId;
     PStackQueue pregeneratedCertificates; // Max MAX_RTCCONFIGURATION_CERTIFICATES certificates
+
+    PCHAR rtspUri;
 } SampleConfiguration, *PSampleConfiguration;
 
 typedef struct {
