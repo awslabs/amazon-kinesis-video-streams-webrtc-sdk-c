@@ -23,7 +23,7 @@ GstFlowReturn on_new_sample(GstElement* sink, gpointer data, UINT64 trackid)
     UINT32 i;
 
     if (pSampleConfiguration == NULL) {
-        printf("[KVS RTSP Master] on_new_sample(): operation returned status code: 0x%08x \n", STATUS_NULL_ARG);
+        printf("[KVS Gst Storage Master] on_new_sample(): operation returned status code: 0x%08x \n", STATUS_NULL_ARG);
         goto CleanUp;
     }
 
@@ -46,11 +46,11 @@ GstFlowReturn on_new_sample(GstElement* sink, gpointer data, UINT64 trackid)
         segment = gst_sample_get_segment(sample);
         buf_pts = gst_segment_to_running_time(segment, GST_FORMAT_TIME, buffer->pts);
         if (!GST_CLOCK_TIME_IS_VALID(buf_pts)) {
-            printf("[KVS RTSP Master] Frame contains invalid PTS dropping the frame. \n");
+            printf("[KVS Gst Storage Master] Frame contains invalid PTS dropping the frame. \n");
         }
 
         if (!(gst_buffer_map(buffer, &info, GST_MAP_READ))) {
-            printf("[KVS RTSP Master] on_new_sample(): Gst buffer mapping failed\n");
+            printf("[KVS Gst Storage Master] on_new_sample(): Gst buffer mapping failed\n");
             goto CleanUp;
         }
 
@@ -123,22 +123,62 @@ PVOID sendGstreamerAudioVideo(PVOID args)
     GError* error = NULL;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
 
-    UINT16 pipeLineBufferSize = 1000;
-    CHAR pipeLineBuffer[pipeLineBufferSize];
+    CHAR rtspPipeLineBuffer[RTSP_PIPELINE_MAX_CHAR_COUNT];
 
     if (pSampleConfiguration == NULL) {
-        printf("[KVS RTSP Master] sendGstreamerAudioVideo(): operation returned status code: 0x%08x \n", STATUS_NULL_ARG);
+        printf("[KVS Gst Storage Master] sendGstreamerAudioVideo(): operation returned status code: 0x%08x \n", STATUS_NULL_ARG);
         goto CleanUp;
     }
 
-    switch (pSampleConfiguration->mediaType) {
-        case SAMPLE_STREAMING_VIDEO_ONLY: {
-            printf("[KVS RTSP Master] Streaming from RTSP source with video only\n");
+     /**
+     * Use x264enc as its available on mac, pi, ubuntu and windows
+     * mac pipeline fails if resolution is not 720p
+     *
+     * For alaw
+     * audiotestsrc is-live=TRUE ! queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample !
+     * audio/x-raw, rate=8000, channels=1, format=S16LE, layout=interleaved ! alawenc ! appsink sync=TRUE emit-signals=TRUE name=appsink-audio
+     *
+     * For VP8
+     * videotestsrc is-live=TRUE ! video/x-raw,width=1280,height=720,framerate=30/1 !
+     * vp8enc error-resilient=partitions keyframe-max-dist=10 auto-alt-ref=true cpu-used=5 deadline=1 !
+     * appsink sync=TRUE emit-signals=TRUE name=appsink-video
+     *
+     * Raspberry Pi Hardware Encode Example
+     * "v4l2src do-timestamp=TRUE device=\"/dev/video0\" ! queue ! videoconvert ! "
+     * "video/x-raw,format=I420,width=640,height=480,framerate=30/1 ! "
+     * "omxh264enc control-rate=1 target-bitrate=500000 periodicty-idr=30 inline-header=FALSE ! "
+     * "h264parse config-interval=-1 ! "
+     * "video/x-h264,stream-format=byte-stream,alignment=au,width=640,height=480,framerate=30/1,profile=baseline ! "
+     * "appsink sync=TRUE emit-signals=TRUE name=appsink-video"
+     *
+     */
 
-            // NOTE: For video-only, audio is added to the stream to be compatible with media-server ingestion.
-            // This pipeline will work for both RAW and H264 cases as "uridecodebin" can handle both cases and
-            // works fine even if the rtsp stream does have audio coming in with it - the audio will be ignored.
-            UINT16 stringOutcome = snprintf(pipeLineBuffer, pipeLineBufferSize,
+    switch (pSampleConfiguration->mediaType) {
+        // NOTE: For video-only, audio is added to the stream to be compatible with media-server ingestion and
+        // will work even if the rtsp stream does have audio coming in with it - the audio will be ignored.
+        case SAMPLE_STREAMING_VIDEO_ONLY: {
+            switch (pSampleConfiguration->srcType) {
+                // TODO: ADD AUDIO TO THESE VID_ONLY SOURCES
+                case TEST_SOURCE: {
+                    pipeline =
+                        gst_parse_launch("videotestsrc is-live=TRUE ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
+                                         "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
+                                         "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE emit-signals=TRUE "
+                                         "name=appsink-video",
+                                         &error);
+                    break;
+                }
+                case DEVICE_SOURCE: {
+                    pipeline = gst_parse_launch("autovideosrc ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
+                                                "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
+                                                "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE "
+                                                "emit-signals=TRUE name=appsink-video",
+                                                &error);
+                    break;
+                }
+                case RTSP_SOURCE: {
+                    // This pipeline will work for both RAW and H264 cases as "uridecodebin" can handle both cases.
+                    UINT16 stringOutcome = snprintf(rtspPipeLineBuffer, RTSP_PIPELINE_MAX_CHAR_COUNT,
                                             "uridecodebin uri=%s ! "
                                             "videoconvert ! "
                                             "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
@@ -149,18 +189,43 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                                             "appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
                                             pSampleConfiguration->rtspUri);
 
-            if (stringOutcome > pipeLineBufferSize) {
-                printf("[KVS RTSP Master] ERROR: rtsp uri entered exceeds maximum allowed length set by pipeLineBufferSize\n");
-                goto CleanUp;
+                    if (stringOutcome > RTSP_PIPELINE_MAX_CHAR_COUNT) {
+                        printf("[KVS Gst Storage Master] ERROR: rtsp uri entered exceeds maximum allowed length set by RTSP_PIPELINE_MAX_CHAR_COUNT\n");
+                        goto CleanUp;
+                    }
+                    pipeline = gst_parse_launch(rtspPipeLineBuffer, &error);
+                    break;
+                }
             }
-
             break;
         }
         case SAMPLE_STREAMING_AUDIO_VIDEO: {
-            printf("[KVS RTSP Master] Streaming from RTSP source with audio and video\n");
-
-            // NOTE: This pipeline will work for both RAW and H264 cases as "uridecodebin" can handle both cases.
-            UINT16 stringOutcome = snprintf(pipeLineBuffer, pipeLineBufferSize,
+            switch (pSampleConfiguration->srcType) {
+                case TEST_SOURCE: {
+                    pipeline =
+                        gst_parse_launch("videotestsrc is-live=TRUE ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
+                                         "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
+                                         "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE "
+                                         "emit-signals=TRUE name=appsink-video audiotestsrc is-live=TRUE ! "
+                                         "queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample ! opusenc ! "
+                                         "audio/x-opus,rate=48000,channels=2 ! appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
+                                         &error);
+                    break;
+                }
+                case DEVICE_SOURCE: {
+                    pipeline =
+                        gst_parse_launch("autovideosrc ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
+                                         "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
+                                         "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE emit-signals=TRUE "
+                                         "name=appsink-video autoaudiosrc ! "
+                                         "queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample ! opusenc ! "
+                                         "audio/x-opus,rate=48000,channels=2 ! appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
+                                         &error);
+                    break;
+                }
+                case RTSP_SOURCE: {
+                    // NOTE: This pipeline will work for both RAW and H264 cases as "uridecodebin" can handle both cases.
+                    UINT16 stringOutcome = snprintf(rtspPipeLineBuffer, RTSP_PIPELINE_MAX_CHAR_COUNT,
                                             "uridecodebin uri=%s name=src ! videoconvert ! "
                                             "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
                                             "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! queue ! "
@@ -170,22 +235,25 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                                             "appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
                                             pSampleConfiguration->rtspUri);
 
-            if (stringOutcome > pipeLineBufferSize) {
-                printf("[KVS RTSP Master] ERROR: rtsp uri entered exceeds maximum allowed length set by pipeLineBufferSize\n");
-                goto CleanUp;
+                    if (stringOutcome > RTSP_PIPELINE_MAX_CHAR_COUNT) {
+                        printf("[KVS Gst Storage Master] ERROR: rtsp uri entered exceeds maximum allowed length set by RTSP_PIPELINE_MAX_CHAR_COUNT\n");
+                        goto CleanUp;
+                    }
+                    pipeline = gst_parse_launch(rtspPipeLineBuffer, &error);
+                    break;
+                }
             }
-
             break;
         }
     }
 
-    pipeline = gst_parse_launch(pipeLineBuffer, &error);
+    pipeline = gst_parse_launch(rtspPipeLineBuffer, &error);
 
     appsinkVideo = gst_bin_get_by_name(GST_BIN(pipeline), "appsink-video");
     appsinkAudio = gst_bin_get_by_name(GST_BIN(pipeline), "appsink-audio");
 
     if (!(appsinkVideo != NULL || appsinkAudio != NULL)) {
-        printf("[KVS RTSP Master] sendGstreamerAudioVideo(): cant find appsink, operation returned status code: 0x%08x \n", STATUS_INTERNAL_ERROR);
+        printf("[KVS Gst Storage Master] sendGstreamerAudioVideo(): cant find appsink, operation returned status code: 0x%08x \n", STATUS_INTERNAL_ERROR);
         goto CleanUp;
     }
 
@@ -260,7 +328,7 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
     gchar *videoDescription = "", *audioDescription = "", *audioVideoDescription;
 
     if (pSampleStreamingSession == NULL) {
-        printf("[KVS RTSP Master] receiveGstreamerAudioVideo(): operation returned status code: 0x%08x \n", STATUS_NULL_ARG);
+        printf("[KVS Gst Storage Master] receiveGstreamerAudioVideo(): operation returned status code: 0x%08x \n", STATUS_NULL_ARG);
         goto CleanUp;
     }
 
@@ -286,7 +354,7 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
 
     appsrcAudio = gst_bin_get_by_name(GST_BIN(pipeline), "appsrc-audio");
     if (appsrcAudio == NULL) {
-        printf("[KVS RTSP Master] gst_bin_get_by_name(): cant find appsrc, operation returned status code: 0x%08x \n", STATUS_INTERNAL_ERROR);
+        printf("[KVS Gst Storage Master] gst_bin_get_by_name(): cant find appsrc, operation returned status code: 0x%08x \n", STATUS_INTERNAL_ERROR);
         goto CleanUp;
     }
 
@@ -294,14 +362,14 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
 
     retStatus = streamingSessionOnShutdown(pSampleStreamingSession, (UINT64) appsrcAudio, onSampleStreamingSessionShutdown);
     if (retStatus != STATUS_SUCCESS) {
-        printf("[KVS RTSP Master] streamingSessionOnShutdown(): operation returned status code: 0x%08x \n", STATUS_INTERNAL_ERROR);
+        printf("[KVS Gst Storage Master] streamingSessionOnShutdown(): operation returned status code: 0x%08x \n", STATUS_INTERNAL_ERROR);
         goto CleanUp;
     }
 
     g_free(audioVideoDescription);
 
     if (pipeline == NULL) {
-        printf("[KVS RTSP Master] receiveGstreamerAudioVideo(): Failed to launch gstreamer, operation returned status code: 0x%08x \n",
+        printf("[KVS Gst Storage Master] receiveGstreamerAudioVideo(): Failed to launch gstreamer, operation returned status code: 0x%08x \n",
                STATUS_INTERNAL_ERROR);
         goto CleanUp;
     }
@@ -341,7 +409,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     signal(SIGINT, sigintHandler);
 
     // do trickle-ice by default
-    printf("[KVS RTSP Master] Using trickleICE by default\n");
+    printf("[KVS Gst Storage Master] Using trickleICE by default\n");
 
 #ifdef IOT_CORE_ENABLE_CREDENTIALS
     CHK_ERR((pChannelName = getenv(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_THING_NAME must be set");
@@ -351,11 +419,11 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     retStatus = createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, TRUE, &pSampleConfiguration);
     if (retStatus != STATUS_SUCCESS) {
-        printf("[KVS RTSP Master] createSampleConfiguration(): operation returned status code: 0x%08x \n", retStatus);
+        printf("[KVS Gst Storage Master] createSampleConfiguration(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;
     }
 
-    printf("[KVS RTSP Master] Created signaling channel %s\n", pChannelName);
+    printf("[KVS Gst Storage Master] Created signaling channel %s\n", pChannelName);
 
     if (pSampleConfiguration->enableFileLogging) {
         retStatus =
@@ -371,43 +439,60 @@ INT32 main(INT32 argc, CHAR* argv[])
     pSampleConfiguration->receiveAudioVideoSource = receiveGstreamerAudioVideo;
     pSampleConfiguration->onDataChannel = onDataChannel;
     pSampleConfiguration->customData = (UINT64) pSampleConfiguration;
-    pSampleConfiguration->useTestSrc = FALSE;
+    pSampleConfiguration->srcType = DEVICE_SOURCE; // Default to device source
 
     /* Initialize GStreamer */
     gst_init(&argc, &argv);
-    printf("[KVS RTSP Master] Finished initializing GStreamer\n");
+    printf("[KVS Gst Storage Master] Finished initializing GStreamer\n");
 
-    // TODO: Might make a check for audio-video vs video-only of incoming RTSP stream to eliminate the need for 3rd argument.
 
-    if (argc < 4) {
-        printf("[KVS RTSP Master] ERROR: Not enough argument parameters.\n");
-        printf("[KVS RTSP Master] Usage: ./kvsWebRTCClientGstreamerStorageSession <channel name> rtsp://<rtsp uri> audio-video\n"
-               "or ./kvsWebRTCClientGstreamerStorageSession <channel name> <rtsp://<rtsp uri> video-only\n");
-        goto CleanUp;
-    }
-
-    pSampleConfiguration->rtspUri = argv[2];
-
-    if (STRCMP(argv[3], "video-only") == 0) {
-        pSampleConfiguration->mediaType = SAMPLE_STREAMING_VIDEO_ONLY;
-        printf("[KVS RTSP Master] Streaming video only\n");
-    } else if (STRCMP(argv[3], "audio-video") == 0) {
-        pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
-        printf("[KVS RTSP Master] Streaming audio and video\n");
+    if (argc > 2) {
+        if (STRCMP(argv[2], "video-only") == 0) {
+            pSampleConfiguration->mediaType = SAMPLE_STREAMING_VIDEO_ONLY;
+            printf("[KVS Gst Storage Master] Streaming video only\n");
+        } else if (STRCMP(argv[2], "audio-video") == 0) {
+            pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
+            printf("[KVS Gst Storage Master] Streaming audio and video\n");
+        } else {
+            printf("[KVS Gst Storage Master] Unrecognized streaming type. Defaulting to video-only\n");
+        }
     } else {
-        printf("[KVS RTSP Master] ERROR Unrecognized streaming type.\n");
-        printf("[KVS RTSP Master] Usage: ./kvsWebRTCClientGstreamerStorageSession <channel name> rtsp://<rtsp uri> audio-video\n"
-               "or ./kvsWebRTCClientGstreamerStorageSession <channel name> <rtsp://<rtsp uri> video-only \n");
-        goto CleanUp;
+        printf("[KVS Gst Storage Master] Streaming video only\n");
     }
+
+    if (argc > 3) {
+        if (STRCMP(argv[3], "testsrc") == 0) {
+            printf("[KVS Gst Storage Master] Using test source in GStreamer\n");
+            pSampleConfiguration->srcType = TEST_SOURCE;
+        } else if (STRCMP(argv[3], "devicesrc") == 0) {
+            printf("[KVS Gst Storage Master] Using device source in GStreamer\n");
+            pSampleConfiguration->srcType = DEVICE_SOURCE;
+        } else if (STRCMP(argv[3], "rtspsrc") == 0) {
+            printf("[KVS Gst Storage Master] Using RTSP source in GStreamer\n");
+            if (argc < 5) {
+                printf("[KVS Gst Storage Master] No RTSP source URI included. Defaulting to device source\n");
+                printf("[KVS Gst Storage Master] Usage: ./kvsWebrtcClientMasterGstSample <channel name> audio-video rtspsrc rtsp://<rtsp uri>\n"
+                       "or ./kvsWebrtcClientMasterGstSample <channel name> video-only rtspsrc <rtsp://<rtsp uri>\n");
+                pSampleConfiguration->srcType = DEVICE_SOURCE;
+            } else {
+                pSampleConfiguration->srcType = RTSP_SOURCE;
+                pSampleConfiguration->rtspUri = argv[4];
+            }
+        } else {
+            printf("[KVS Gst Storage Master] Unrecognized source type. Defaulting to device source in GStreamer\n");
+        }
+    } else {
+        printf("[KVS Gst Storage Master] Using device source in GStreamer\n");
+    }
+
 
     // Initialize KVS WebRTC. This must be done before anything else, and must only be done once.
     retStatus = initKvsWebRtc();
     if (retStatus != STATUS_SUCCESS) {
-        printf("[KVS RTSP Master] initKvsWebRtc(): operation returned status code: 0x%08x \n", retStatus);
+        printf("[KVS Gst Storage Master] initKvsWebRtc(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;
     }
-    printf("[KVS RTSP Master] KVS WebRTC initialization completed successfully\n");
+    printf("[KVS Gst Storage Master] KVS WebRTC initialization completed successfully\n");
 
     pSampleConfiguration->signalingClientCallbacks.messageReceivedFn = signalingMessageReceived;
 
@@ -417,9 +502,9 @@ INT32 main(INT32 argc, CHAR* argv[])
                                           &pSampleConfiguration->signalingClientCallbacks, pSampleConfiguration->pCredentialProvider,
                                           &pSampleConfiguration->signalingClientHandle);
     if (retStatus != STATUS_SUCCESS) {
-        printf("[KVS RTSP Master] createSignalingClientSync(): operation returned status code: 0x%08x \n", retStatus);
+        printf("[KVS Gst Storage Master] createSignalingClientSync(): operation returned status code: 0x%08x \n", retStatus);
     }
-    printf("[KVS RTSP Master] Signaling client created successfully\n");
+    printf("[KVS Gst Storage Master] Signaling client created successfully\n");
 
     // Enable the processing of the messages
     retStatus = signalingClientFetchSync(pSampleConfiguration->signalingClientHandle);
@@ -430,13 +515,13 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     retStatus = signalingClientConnectSync(pSampleConfiguration->signalingClientHandle);
     if (retStatus != STATUS_SUCCESS) {
-        printf("[KVS RTSP Master] signalingClientConnectSync(): operation returned status code: 0x%08x \n", retStatus);
+        printf("[KVS Gst Storage Master] signalingClientConnectSync(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;
     }
 
-    printf("[KVS RTSP Master] Signaling client connection to socket established\n");
+    printf("[KVS Gst Storage Master] Signaling client connection to socket established\n");
 
-    printf("[KVS RTSP Master] Beginning streaming...check the stream over channel %s\n", pChannelName);
+    printf("[KVS Gst Storage Master] Beginning streaming...check the stream over channel %s\n", pChannelName);
 
     // Join storage session for media ingestion
     if (pSampleConfiguration->channelInfo.useMediaStorage == TRUE) {
@@ -454,19 +539,19 @@ INT32 main(INT32 argc, CHAR* argv[])
     // Checking for termination
     retStatus = sessionCleanupWait(pSampleConfiguration);
     if (retStatus != STATUS_SUCCESS) {
-        printf("[KVS RTSP Master] sessionCleanupWait(): operation returned status code: 0x%08x \n", retStatus);
+        printf("[KVS Gst Storage Master] sessionCleanupWait(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;
     }
 
-    printf("[KVS RTSP Master] Streaming session terminated\n");
+    printf("[KVS Gst Storage Master] Streaming session terminated\n");
 
 CleanUp:
 
     if (retStatus != STATUS_SUCCESS) {
-        printf("[KVS RTSP Master] Terminated with status code 0x%08x", retStatus);
+        printf("[KVS Gst Storage Master] Terminated with status code 0x%08x", retStatus);
     }
 
-    printf("[KVS RTSP Master] Cleaning up....\n");
+    printf("[KVS Gst Storage Master] Cleaning up....\n");
 
     if (pSampleConfiguration != NULL) {
         // Kick of the termination sequence
@@ -481,15 +566,15 @@ CleanUp:
         }
         retStatus = freeSignalingClient(&pSampleConfiguration->signalingClientHandle);
         if (retStatus != STATUS_SUCCESS) {
-            printf("[KVS RTSP Master] freeSignalingClient(): operation returned status code: 0x%08x \n", retStatus);
+            printf("[KVS Gst Storage Master] freeSignalingClient(): operation returned status code: 0x%08x \n", retStatus);
         }
 
         retStatus = freeSampleConfiguration(&pSampleConfiguration);
         if (retStatus != STATUS_SUCCESS) {
-            printf("[KVS RTSP Master] freeSampleConfiguration(): operation returned status code: 0x%08x \n", retStatus);
+            printf("[KVS Gst Storage Master] freeSampleConfiguration(): operation returned status code: 0x%08x \n", retStatus);
         }
     }
-    printf("[KVS RTSP Master] Cleanup done\n");
+    printf("[KVS Gst Storage Master] Cleanup done\n");
 
     RESET_INSTRUMENTED_ALLOCATORS();
 

@@ -40,6 +40,8 @@ extern "C" {
 #define SAMPLE_HASH_TABLE_BUCKET_COUNT  50
 #define SAMPLE_HASH_TABLE_BUCKET_LENGTH 2
 
+#define RTSP_PIPELINE_MAX_CHAR_COUNT 1000
+
 #define SAMPLE_PERIODIC_JOIN_SESSION        FALSE
 #define SAMPLE_PERIODIC_JOIN_SESSION_PERIOD (300 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
@@ -61,6 +63,12 @@ typedef enum {
     SAMPLE_STREAMING_AUDIO_VIDEO,
 } SampleStreamingMediaType;
 
+typedef enum {
+    TEST_SOURCE,
+    DEVICE_SOURCE,
+    RTSP_SOURCE,
+} SampleSourceType;
+
 typedef struct __SampleStreamingSession SampleStreamingSession;
 typedef struct __SampleStreamingSession* PSampleStreamingSession;
 
@@ -79,7 +87,7 @@ typedef struct {
     volatile ATOMIC_BOOL mediaThreadStarted;
     volatile ATOMIC_BOOL recreateSignalingClient;
     volatile ATOMIC_BOOL connected;
-    BOOL useTestSrc;
+    SampleSourceType srcType;
     ChannelInfo channelInfo;
     PCHAR pCaCertPath;
     PAwsCredentialProvider pCredentialProvider;
