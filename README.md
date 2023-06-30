@@ -208,7 +208,7 @@ This application can send media from a GStreamer pipeline using test H264/Opus f
 ```
 Pass the desired media and source type when running the sample. The mediaType can be `audio-video` or `video-only`. The source type can be `testsrc`, `devicesrc`, or `rtspsrc`. Specify the RTSP URI if using `rtspsrc`:
 ```
-./samples/kvsWebRTCClientMasterGstreamerSample <channelName> <mediaType> rtspsrc rtsp://<rtspUri>
+./samples/kvsWebrtcClientMasterGstSample <channelName> <mediaType> rtspsrc rtsp://<rtspUri>
 ```
 
 #### Sample: kvsWebrtcClientViewer
