@@ -56,26 +56,14 @@ STATUS freeConnectionListener(PConnectionListener* ppConnectionListener)
     ATOMIC_STORE_BOOL(&pConnectionListener->terminate, TRUE);
 
     if (IS_VALID_MUTEX_VALUE(pConnectionListener->lock)) {
-        // Try to await for the thread to finish up
-        // NOTE: As TID is not atomic we need to wrap the read in locks
-        timeToWait = GETTIME() + CONNECTION_LISTENER_SHUTDOWN_TIMEOUT;
 
-        do {
-            MUTEX_LOCK(pConnectionListener->lock);
-            threadId = pConnectionListener->receiveDataRoutine;
-            MUTEX_UNLOCK(pConnectionListener->lock);
-            if (!IS_VALID_TID_VALUE(threadId)) {
-                threadTerminated = TRUE;
-            }
+        MUTEX_LOCK(pConnectionListener->lock);
+        threadId = pConnectionListener->receiveDataRoutine;
+        MUTEX_UNLOCK(pConnectionListener->lock);
 
-            // Allow the thread to finish and exit
-            if (!threadTerminated) {
-                THREAD_SLEEP(KVS_ICE_SHORT_CHECK_DELAY);
-            }
-        } while (!threadTerminated && GETTIME() < timeToWait);
-
-        if (!threadTerminated) {
-            DLOGW("Connection listener handler thread shutdown timed out");
+        //wait for thread to finish.
+        if (IS_VALID_TID_VALUE(threadId)) {
+            THREAD_JOIN(pConnectionListener->receiveDataRoutine);
         }
 
         MUTEX_FREE(pConnectionListener->lock);
@@ -205,7 +193,6 @@ STATUS connectionListenerStart(PConnectionListener pConnectionListener)
 
     CHK(!IS_VALID_TID_VALUE(pConnectionListener->receiveDataRoutine), retStatus);
     CHK_STATUS(THREAD_CREATE(&pConnectionListener->receiveDataRoutine, connectionListenerReceiveDataRoutine, (PVOID) pConnectionListener));
-    CHK_STATUS(THREAD_DETACH(pConnectionListener->receiveDataRoutine));
 
 CleanUp:
 
@@ -376,16 +363,6 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
     }
 
 CleanUp:
-
-    // The check for valid mutex is necessary because when we're in freeConnectionListener
-    // we may free the mutex in another thread so by the time we get here accessing the lock
-    // will result in accessing a resource after it has been freed
-    if (pConnectionListener != NULL && IS_VALID_MUTEX_VALUE(pConnectionListener->lock)) {
-        // As TID is 64 bit we can't atomically update it and need to do it under the lock
-        MUTEX_LOCK(pConnectionListener->lock);
-        pConnectionListener->receiveDataRoutine = INVALID_TID_VALUE;
-        MUTEX_UNLOCK(pConnectionListener->lock);
-    }
 
     CHK_LOG_ERR(retStatus);
 
