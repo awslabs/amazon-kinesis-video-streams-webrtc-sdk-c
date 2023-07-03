@@ -130,7 +130,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
         goto CleanUp;
     }
 
-     /**
+    /**
      * Use x264enc as its available on mac, pi, ubuntu and windows
      * mac pipeline fails if resolution is not 720p
      *
@@ -183,18 +183,19 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                 case RTSP_SOURCE: {
                     // This pipeline will work for both RAW and H264 cases as "uridecodebin" can handle both cases.
                     UINT16 stringOutcome = snprintf(rtspPipeLineBuffer, RTSP_PIPELINE_MAX_CHAR_COUNT,
-                                            "uridecodebin uri=%s ! "
-                                            "videoconvert ! "
-                                            "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
-                                            "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! queue ! "
-                                            "appsink sync=TRUE emit-signals=TRUE name=appsink-video "
-                                            "audiotestsrc is-live=TRUE wave=silence ! audioconvert ! "
-                                            "audioresample ! opusenc ! audio/x-opus,rate=48000,channels=2 ! queue ! "
-                                            "appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
-                                            pSampleConfiguration->rtspUri);
+                                                    "uridecodebin uri=%s ! "
+                                                    "videoconvert ! "
+                                                    "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
+                                                    "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! queue ! "
+                                                    "appsink sync=TRUE emit-signals=TRUE name=appsink-video "
+                                                    "audiotestsrc is-live=TRUE wave=silence ! audioconvert ! "
+                                                    "audioresample ! opusenc ! audio/x-opus,rate=48000,channels=2 ! queue ! "
+                                                    "appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
+                                                    pSampleConfiguration->rtspUri);
 
                     if (stringOutcome > RTSP_PIPELINE_MAX_CHAR_COUNT) {
-                        printf("[KVS Gst Storage Master] ERROR: rtsp uri entered exceeds maximum allowed length set by RTSP_PIPELINE_MAX_CHAR_COUNT\n");
+                        printf(
+                            "[KVS Gst Storage Master] ERROR: rtsp uri entered exceeds maximum allowed length set by RTSP_PIPELINE_MAX_CHAR_COUNT\n");
                         goto CleanUp;
                     }
                     pipeline = gst_parse_launch(rtspPipeLineBuffer, &error);
@@ -230,17 +231,18 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                 case RTSP_SOURCE: {
                     // NOTE: This pipeline will work for both RAW and H264 cases as "uridecodebin" can handle both cases.
                     UINT16 stringOutcome = snprintf(rtspPipeLineBuffer, RTSP_PIPELINE_MAX_CHAR_COUNT,
-                                            "uridecodebin uri=%s name=src ! videoconvert ! "
-                                            "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
-                                            "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! queue ! "
-                                            "appsink sync=TRUE emit-signals=TRUE name=appsink-video "
-                                            "src. ! audioconvert ! "
-                                            "audioresample ! opusenc ! audio/x-opus,rate=48000,channels=2 ! queue ! "
-                                            "appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
-                                            pSampleConfiguration->rtspUri);
+                                                    "uridecodebin uri=%s name=src ! videoconvert ! "
+                                                    "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
+                                                    "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! queue ! "
+                                                    "appsink sync=TRUE emit-signals=TRUE name=appsink-video "
+                                                    "src. ! audioconvert ! "
+                                                    "audioresample ! opusenc ! audio/x-opus,rate=48000,channels=2 ! queue ! "
+                                                    "appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
+                                                    pSampleConfiguration->rtspUri);
 
                     if (stringOutcome > RTSP_PIPELINE_MAX_CHAR_COUNT) {
-                        printf("[KVS Gst Storage Master] ERROR: rtsp uri entered exceeds maximum allowed length set by RTSP_PIPELINE_MAX_CHAR_COUNT\n");
+                        printf(
+                            "[KVS Gst Storage Master] ERROR: rtsp uri entered exceeds maximum allowed length set by RTSP_PIPELINE_MAX_CHAR_COUNT\n");
                         goto CleanUp;
                     }
                     pipeline = gst_parse_launch(rtspPipeLineBuffer, &error);
@@ -255,7 +257,8 @@ PVOID sendGstreamerAudioVideo(PVOID args)
     appsinkAudio = gst_bin_get_by_name(GST_BIN(pipeline), "appsink-audio");
 
     if (!(appsinkVideo != NULL || appsinkAudio != NULL)) {
-        printf("[KVS Gst Storage Master] sendGstreamerAudioVideo(): cant find appsink, operation returned status code: 0x%08x \n", STATUS_INTERNAL_ERROR);
+        printf("[KVS Gst Storage Master] sendGstreamerAudioVideo(): cant find appsink, operation returned status code: 0x%08x \n",
+               STATUS_INTERNAL_ERROR);
         goto CleanUp;
     }
 
@@ -447,7 +450,6 @@ INT32 main(INT32 argc, CHAR* argv[])
     gst_init(&argc, &argv);
     printf("[KVS Gst Storage Master] Finished initializing GStreamer\n");
 
-
     if (argc > 2) {
         if (STRCMP(argv[2], "video-only") == 0) {
             pSampleConfiguration->mediaType = SAMPLE_STREAMING_VIDEO_ONLY;
@@ -486,7 +488,6 @@ INT32 main(INT32 argc, CHAR* argv[])
     } else {
         printf("[KVS Gst Storage Master] Using device source in GStreamer\n");
     }
-
 
     // Initialize KVS WebRTC. This must be done before anything else, and must only be done once.
     retStatus = initKvsWebRtc();
