@@ -164,7 +164,9 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                         gst_parse_launch("videotestsrc is-live=TRUE ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
                                          "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
                                          "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE emit-signals=TRUE "
-                                         "name=appsink-video",
+                                         "name=appsink-video audiotestsrc is-live=TRUE wave=silence ! audioconvert ! "
+                                         "audioresample ! opusenc ! audio/x-opus,rate=48000,channels=2 ! queue ! "
+                                         "appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
                                          &error);
                     break;
                 }
@@ -172,7 +174,9 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                     pipeline = gst_parse_launch("autovideosrc ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
                                                 "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
                                                 "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE "
-                                                "emit-signals=TRUE name=appsink-video",
+                                                "emit-signals=TRUE name=appsink-video audiotestsrc is-live=TRUE wave=silence ! audioconvert ! "
+                                                "audioresample ! opusenc ! audio/x-opus,rate=48000,channels=2 ! queue ! "
+                                                "appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
                                                 &error);
                     break;
                 }
@@ -246,8 +250,6 @@ PVOID sendGstreamerAudioVideo(PVOID args)
             break;
         }
     }
-
-    pipeline = gst_parse_launch(rtspPipeLineBuffer, &error);
 
     appsinkVideo = gst_bin_get_by_name(GST_BIN(pipeline), "appsink-video");
     appsinkAudio = gst_bin_get_by_name(GST_BIN(pipeline), "appsink-audio");
