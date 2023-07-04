@@ -23,8 +23,15 @@ STATUS createConnectionListener(PConnectionListener* ppConnectionListener)
     pConnectionListener->socketCount = 0;
 
     // pConnectionListener->pBuffer starts at the end of ConnectionListener struct
-    pConnectionListener->pBuffer = (PBYTE) (pConnectionListener + 1);
+    pConnectionListener->pBuffer = (PBYTE)(pConnectionListener + 1);
     pConnectionListener->bufferLen = MAX_UDP_PACKET_SIZE;
+
+    // TODO add support for windows socketpair
+#ifndef _WIN32
+    pConnectionListener->kickSocket[CONNECTION_LISTENER_KICK_SOCKET_LISTEN] = -1;
+    pConnectionListener->kickSocket[CONNECTION_LISTENER_KICK_SOCKET_WRITE] = -1;
+    CHK_STATUS(createSocketPair(&(pConnectionListener->kickSocket)));
+#endif
 
 CleanUp:
 
@@ -47,6 +54,7 @@ STATUS freeConnectionListener(PConnectionListener* ppConnectionListener)
     UINT64 timeToWait;
     TID threadId;
     BOOL threadTerminated = FALSE;
+    const char* msg = "1";
 
     CHK(ppConnectionListener != NULL, STATUS_NULL_ARG);
     CHK(*ppConnectionListener != NULL, retStatus);
@@ -56,18 +64,34 @@ STATUS freeConnectionListener(PConnectionListener* ppConnectionListener)
     ATOMIC_STORE_BOOL(&pConnectionListener->terminate, TRUE);
 
     if (IS_VALID_MUTEX_VALUE(pConnectionListener->lock)) {
-
         MUTEX_LOCK(pConnectionListener->lock);
         threadId = pConnectionListener->receiveDataRoutine;
         MUTEX_UNLOCK(pConnectionListener->lock);
 
-        //wait for thread to finish.
+        // TODO add support for windows socketpair
+        // This writes to the socketpair, kicking the POLL() out early,
+        // otherwise wait for the POLL to timeout
+#ifndef _WIN32
+        socketWrite(pConnectionListener->kickSocket[CONNECTION_LISTENER_KICK_SOCKET_WRITE], msg, strlen(msg));
+#endif
+
+        // wait for thread to finish.
         if (IS_VALID_TID_VALUE(threadId)) {
-            THREAD_JOIN(pConnectionListener->receiveDataRoutine);
+            THREAD_JOIN(pConnectionListener->receiveDataRoutine, NULL);
         }
 
         MUTEX_FREE(pConnectionListener->lock);
     }
+
+    // TODO add support for windows socketpair
+#ifndef _WIN32
+    if (pConnectionListener->kickSocket[CONNECTION_LISTENER_KICK_SOCKET_LISTEN] != -1) {
+        closeSocket(pConnectionListener->kickSocket[CONNECTION_LISTENER_KICK_SOCKET_LISTEN]);
+    }
+    if (pConnectionListener->kickSocket[CONNECTION_LISTENER_KICK_SOCKET_WRITE] != -1) {
+        closeSocket(pConnectionListener->kickSocket[CONNECTION_LISTENER_KICK_SOCKET_WRITE]);
+    }
+#endif
 
     MEMFREE(pConnectionListener);
 
@@ -279,9 +303,20 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
 
         // Need to unlock the mutex to ensure other racing threads unblock
         MUTEX_UNLOCK(pConnectionListener->lock);
-
-        // blocking call until resolves as a timeout, an error, a signal or data received
-        retval = POLL(rfds, nfds, CONNECTION_LISTENER_SOCKET_WAIT_FOR_DATA_TIMEOUT / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+        retval = 0;
+        if (nfds != 0) {
+            // TODO add support for socketpair() in windows
+            // This end of the socketpair has been added to the list of sockets polled
+            // in order to have a way to end the poll early from the destructor
+#ifndef _WIN32
+            rfds[nfds].fd = pConnectionListener->kickSocket[CONNECTION_LISTENER_KICK_SOCKET_LISTEN];
+            rfds[nfds].events = POLLIN;
+            rfds[nfds].revents = 0;
+            nfds++;
+#endif
+            // blocking call until resolves as a timeout, an error, a signal or data received
+            retval = POLL(rfds, nfds, CONNECTION_LISTENER_SOCKET_WAIT_FOR_DATA_TIMEOUT / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+        }
 
         // In case of 0 we have a timeout and should re-lock to allow for other
         // interlocking operations to proceed. A positive return means we received data
@@ -366,5 +401,5 @@ CleanUp:
 
     CHK_LOG_ERR(retStatus);
 
-    return (PVOID) (ULONG_PTR) retStatus;
+    return (PVOID)(ULONG_PTR) retStatus;
 }
