@@ -324,7 +324,7 @@ extern "C" {
 /////////////////////////////////////////////////////
 
 /*! \addtogroup SCTPStatusCodes
- * WEBRTC SCTP related codes. Values are derived from STATUS_STUN_BASE (0x5f000000)
+ * WEBRTC SCTP related codes. Values are derived from STATUS_SCTP_BASE (0x5f000000)
  *  @{
  */
 #define STATUS_SCTP_BASE                 STATUS_PEERCONNECTION_BASE + 0x01000000
