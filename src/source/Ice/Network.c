@@ -320,7 +320,7 @@ CleanUp:
 STATUS socketWrite(INT32 sockfd, const void* pBuffer, SIZE_T length)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    ssize_t ret = (ssize_t)length;
+    ssize_t ret = (ssize_t) length;
 #ifndef _WIN32
     if (ret != write(sockfd, pBuffer, length)) {
         DLOGW("write() failed to write over socket with errno %s", getErrorString(getErrorCode()));
