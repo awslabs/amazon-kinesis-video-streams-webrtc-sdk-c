@@ -51,9 +51,7 @@ STATUS freeConnectionListener(PConnectionListener* ppConnectionListener)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PConnectionListener pConnectionListener = NULL;
-    UINT64 timeToWait;
     TID threadId;
-    BOOL threadTerminated = FALSE;
     const char* msg = "1";
 
     CHK(ppConnectionListener != NULL, STATUS_NULL_ARG);
