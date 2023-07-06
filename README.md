@@ -343,6 +343,11 @@ This is useful to reduce candidate gathering time when it is known for certain n
 When building on MacOS M1, if the build fails while trying to build OpenSSL or Websockets, run the following command:
 `cmake .. -DBUILD_OPENSSL_PLATFORM=darwin64-arm64-cc`
 
+### Building on 32 bit Raspbian GNU/Linux 11
+
+To build on a 32-bit Raspbian GNU/Linux 11 on 64-bit hardware, the OpenSSL library must be manually configured. This is due to the OpenSSL autoconfiguration script detecting 64-bit hardware and emitting 64-bit ARM assembly instructions which are not allowed in 32-bit executables. A 32-bit ARM version of OpenSSL can be configured by setting 32-bit ARM platform:
+`cmake .. -DBUILD_OPENSSL_PLATFORM=linux-armv4`
+
 ## Documentation
 All Public APIs are documented in our [Include.h](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/blob/master/src/include/com/amazonaws/kinesis/video/webrtcclient/Include.h), we also generate a [Doxygen](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-c/) each commit for easier navigation.
 
