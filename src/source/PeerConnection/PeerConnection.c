@@ -92,8 +92,8 @@ STATUS allocateSctp(PKvsPeerConnection pKvsPeerConnection)
             CHK(FALSE, retStatus);
         }
         CHK(pKvsDataChannel != NULL, STATUS_INTERNAL_ERROR);
-        sctpSessionWriteDcep(pKvsPeerConnection->pSctpSession, currentDataChannelId, pKvsDataChannel->dataChannel.name,
-                             STRLEN(pKvsDataChannel->dataChannel.name), &pKvsDataChannel->rtcDataChannelInit);
+        CHK_STATUS(sctpSessionWriteDcep(pKvsPeerConnection->pSctpSession, currentDataChannelId, pKvsDataChannel->dataChannel.name,
+                                        STRLEN(pKvsDataChannel->dataChannel.name), &pKvsDataChannel->rtcDataChannelInit));
         pKvsDataChannel->rtcDataChannelDiagnostics.state = RTC_DATA_CHANNEL_STATE_OPEN;
         if (STATUS_FAILED(hashTableUpsert(pKvsPeerConnection->pDataChannels, currentDataChannelId, (UINT64) pKvsDataChannel))) {
             DLOGW("Failed to update entry in hash table with recent changes to data channel");
@@ -130,10 +130,6 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
     if (buff[0] > 19 && buff[0] < 64) {
         dtlsSessionProcessPacket(pKvsPeerConnection->pDtlsSession, buff, &signedBuffLen);
 
-        if (signedBuffLen > 0) {
-            CHK_STATUS(putSctpPacket(pKvsPeerConnection->pSctpSession, buff, signedBuffLen));
-        }
-
         CHK_STATUS(dtlsSessionIsInitFinished(pKvsPeerConnection->pDtlsSession, &isDtlsConnected));
         if (isDtlsConnected) {
             if (pKvsPeerConnection->pSrtpSession == NULL) {
@@ -143,6 +139,10 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
 #ifdef ENABLE_DATA_CHANNEL
             if (pKvsPeerConnection->pSctpSession == NULL) {
                 CHK_STATUS(allocateSctp(pKvsPeerConnection));
+            }
+
+            if (signedBuffLen > 0) {
+                CHK_STATUS(putSctpPacket(pKvsPeerConnection->pSctpSession, buff, signedBuffLen));
             }
 #endif
             changePeerConnectionState(pKvsPeerConnection, RTC_PEER_CONNECTION_STATE_CONNECTED);
