@@ -4,7 +4,8 @@ include(Utilities)
 include(CheckIncludeFiles)
 include(CheckFunctionExists)
 
-project(KinesisVideoWebRTCClient LANGUAGES C)
+# The version MUST be updated before every release
+project(KinesisVideoWebRTCClient VERSION 1.7.3 LANGUAGES C)
 
 # User Flags
 option(ADD_MUCLIBC "Add -muclibc c flag" OFF)
@@ -37,6 +38,7 @@ execute_process(
         OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 add_definitions(-DSDK_VERSION=\"${GIT_COMMIT_HASH}\")
+add_definitions(-DVERSION_STRING=\"${PROJECT_VERSION}\")
 add_definitions(-DDETECTED_GIT_HASH)
 
 if(NOT OPEN_SRC_INSTALL_PREFIX OR OPEN_SRC_INSTALL_PREFIX STREQUAL "")
