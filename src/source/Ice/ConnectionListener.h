@@ -13,6 +13,8 @@ extern "C" {
 #define CONNECTION_LISTENER_SOCKET_WAIT_FOR_DATA_TIMEOUT     (200 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
 #define CONNECTION_LISTENER_SHUTDOWN_TIMEOUT                 (1000 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
 #define CONNECTION_LISTENER_DEFAULT_MAX_LISTENING_CONNECTION 64
+#define CONNECTION_LISTENER_KICK_SOCKET_LISTEN               0
+#define CONNECTION_LISTENER_KICK_SOCKET_WRITE                1
 
 typedef struct {
     volatile ATOMIC_BOOL terminate;
@@ -22,6 +24,9 @@ typedef struct {
     TID receiveDataRoutine;
     PBYTE pBuffer;
     UINT64 bufferLen;
+#ifndef _WIN32
+    INT32 kickSocket[2];
+#endif
 } ConnectionListener, *PConnectionListener;
 
 /**

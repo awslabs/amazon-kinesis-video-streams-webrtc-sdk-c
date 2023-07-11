@@ -147,6 +147,21 @@ CleanUp:
     return retStatus;
 }
 
+// TODO add support for windows socketpair
+#ifndef _WIN32
+STATUS createSocketPair(INT32 (*pSocketPair)[2])
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    CHK(pSocketPair != NULL, STATUS_NULL_ARG);
+    if (socketpair(AF_UNIX, SOCK_STREAM, 0, *pSocketPair) == -1) {
+        DLOGE("socketpair() failed to create a pair of sockets with errno %s", getErrorString(getErrorCode()));
+        CHK(FALSE, STATUS_CREATE_SOCKET_PAIR_FAILED);
+    }
+CleanUp:
+    return retStatus;
+}
+#endif
+
 STATUS createSocket(KVS_IP_FAMILY_TYPE familyType, KVS_SOCKET_PROTOCOL protocol, UINT32 sendBufSize, PINT32 pOutSockFd)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -298,6 +313,20 @@ STATUS socketConnect(PKvsIpAddress pPeerAddress, INT32 sockfd)
     CHK_ERR(retVal >= 0 || getErrorCode() == KVS_SOCKET_IN_PROGRESS, STATUS_SOCKET_CONNECT_FAILED, "connect() failed with errno %s",
             getErrorString(getErrorCode()));
 
+CleanUp:
+    return retStatus;
+}
+
+STATUS socketWrite(INT32 sockfd, const void* pBuffer, SIZE_T length)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    ssize_t ret = (ssize_t) length;
+#ifndef _WIN32
+    if (ret != write(sockfd, pBuffer, length)) {
+        DLOGW("write() failed to write over socket with errno %s", getErrorString(getErrorCode()));
+        CHK(FALSE, STATUS_SOCKET_WRITE_FAILED);
+    }
+#endif
 CleanUp:
     return retStatus;
 }
