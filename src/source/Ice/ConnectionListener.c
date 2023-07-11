@@ -70,7 +70,7 @@ STATUS freeConnectionListener(PConnectionListener* ppConnectionListener)
         // This writes to the socketpair, kicking the POLL() out early,
         // otherwise wait for the POLL to timeout
 #ifndef _WIN32
-        socketWrite(pConnectionListener->kickSocket[CONNECTION_LISTENER_KICK_SOCKET_WRITE], msg, strlen(msg));
+        socketWrite(pConnectionListener->kickSocket[CONNECTION_LISTENER_KICK_SOCKET_WRITE], msg, STRLEN(msg));
 #endif
 
         // wait for thread to finish.
