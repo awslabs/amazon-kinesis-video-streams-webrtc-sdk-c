@@ -59,6 +59,16 @@ typedef enum {
  */
 STATUS getLocalhostIpAddresses(PKvsIpAddress, PUINT32, IceSetInterfaceFilterFunc, UINT64);
 
+// TODO add support for windows socketpair
+#ifndef _WIN32
+/**
+ * @param - INT32 (*)[2] - OUT - Array for the socket pair fds
+ *
+ * @return - STATUS status of execution
+ */
+STATUS createSocketPair(INT32 (*)[2]);
+#endif
+
 /**
  * @param - KVS_IP_FAMILY_TYPE - IN - Family for the socket. Must be one of KVS_IP_FAMILY_TYPE
  * @param - KVS_SOCKET_PROTOCOL - IN - either tcp or udp
@@ -91,6 +101,15 @@ STATUS socketBind(PKvsIpAddress, INT32);
  * @return - STATUS status of execution
  */
 STATUS socketConnect(PKvsIpAddress, INT32);
+
+/**
+ * @param - INT32 - Socket to write to
+ * @param - const void * - buffer of data to write
+ * @param - SIZE_T - length of buffer
+ *
+ * @return - STATUS status of execution
+ */
+STATUS socketWrite(INT32, const void*, SIZE_T);
 
 /**
  * @param - PCHAR - IN - hostname to resolve
