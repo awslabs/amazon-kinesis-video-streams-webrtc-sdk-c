@@ -331,6 +331,7 @@ CleanUp:
     return retStatus;
 }
 
+<<<<<<< HEAD
 BOOL isIpAddr(PCHAR hostname, UINT16 length)
 {
     BOOL status = TRUE;
