@@ -247,7 +247,7 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
 
     INT32 nfds = 0;
     //+1 added for the pipe() to kickout poll()
-    struct pollfd rfds[CONNECTION_LISTENER_DEFAULT_MAX_LISTENING_CONNECTION+1];
+    struct pollfd rfds[CONNECTION_LISTENER_DEFAULT_MAX_LISTENING_CONNECTION + 1];
     INT32 retval, localSocket;
     INT64 readLen;
     // the source address is put here. sockaddr_storage can hold either sockaddr_in or sockaddr_in6
