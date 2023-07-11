@@ -1,5 +1,7 @@
 var NAVTREEINDEX1 =
 {
+"group__PublicEnums.html#ggad42c829d5095ba5e3ab0b6fff6ff8678a9255d14292683ad9f73b58b91e373a25":[1,0,47],
+"group__PublicEnums.html#ggad42c829d5095ba5e3ab0b6fff6ff8678abffe8707aa6a01e4f949c22d4c189e57":[1,0,17,3,0],
 "group__PublicEnums.html#ggad42c829d5095ba5e3ab0b6fff6ff8678abffe8707aa6a01e4f949c22d4c189e57":[1,0,45],
 "group__PublicEnums.html#ggad42c829d5095ba5e3ab0b6fff6ff8678afb72759d662497abc396c07ae5dea519":[1,0,17,3,4],
 "group__PublicEnums.html#ggad42c829d5095ba5e3ab0b6fff6ff8678afb72759d662497abc396c07ae5dea519":[1,0,42],
@@ -247,7 +249,5 @@ var NAVTREEINDEX1 =
 "group__StatsStructures.html#gaed2abeea73109d8decf11ef16a5b1a88":[1,0,20,39],
 "group__StatsStructures.html#gaf75ec0fba0bdf1da6dd91ca1fa13ae73":[1,0,20,26],
 "group__StatsStructures.html#gga760e5b16b6a0731e5839f9c37dfcb0a4a17473b170a5066e366408f9f4097d7d0":[1,0,20,40,1],
-"group__StatsStructures.html#gga760e5b16b6a0731e5839f9c37dfcb0a4a3458300a4d519b9dcd111e101bd6f9da":[1,0,20,40,0],
-"group__StatsStructures.html#gga760e5b16b6a0731e5839f9c37dfcb0a4aedc74b392d8f1083000d1b7031994b6c":[1,0,20,40,3],
-"group__StatsStructures.html#gga760e5b16b6a0731e5839f9c37dfcb0a4af56f1041a8e65f98fc7c9751ebf50086":[1,0,20,40,2]
+"group__StatsStructures.html#gga760e5b16b6a0731e5839f9c37dfcb0a4a3458300a4d519b9dcd111e101bd6f9da":[1,0,20,40,0]
 };

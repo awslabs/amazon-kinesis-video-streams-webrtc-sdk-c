@@ -168,6 +168,10 @@ Macros</h2></td></tr>
 <tr class="separator:a5dd03244bebe143ff20363fd75799a9c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab3b552e6573c384bcd8e0da39992f964"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ConnectionListener_8h.html#ab3b552e6573c384bcd8e0da39992f964">CONNECTION_LISTENER_DEFAULT_MAX_LISTENING_CONNECTION</a>&#160;&#160;&#160;64</td></tr>
 <tr class="separator:ab3b552e6573c384bcd8e0da39992f964"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a619dad295dbe71e23273c2f372baf795"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ConnectionListener_8h.html#a619dad295dbe71e23273c2f372baf795">CONNECTION_LISTENER_KICK_SOCKET_LISTEN</a>&#160;&#160;&#160;0</td></tr>
+<tr class="separator:a619dad295dbe71e23273c2f372baf795"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a383df893eaeda67eb466665a1ac0ba06"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ConnectionListener_8h.html#a383df893eaeda67eb466665a1ac0ba06">CONNECTION_LISTENER_KICK_SOCKET_WRITE</a>&#160;&#160;&#160;1</td></tr>
+<tr class="separator:a383df893eaeda67eb466665a1ac0ba06"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="typedef-members"></a>
 Typedefs</h2></td></tr>
@@ -200,6 +204,34 @@ Functions</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname">#define CONNECTION_LISTENER_DEFAULT_MAX_LISTENING_CONNECTION&#160;&#160;&#160;64</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a619dad295dbe71e23273c2f372baf795"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a619dad295dbe71e23273c2f372baf795">&#9670;&nbsp;</a></span>CONNECTION_LISTENER_KICK_SOCKET_LISTEN</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define CONNECTION_LISTENER_KICK_SOCKET_LISTEN&#160;&#160;&#160;0</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a383df893eaeda67eb466665a1ac0ba06"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a383df893eaeda67eb466665a1ac0ba06">&#9670;&nbsp;</a></span>CONNECTION_LISTENER_KICK_SOCKET_WRITE</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define CONNECTION_LISTENER_KICK_SOCKET_WRITE&#160;&#160;&#160;1</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -561,8 +593,13 @@ Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="ConnectionListener_8h_a2530e40fd2ed5f3560e51f78501d066a_cgraph.png" border="0" usemap="#aConnectionListener_8h_a2530e40fd2ed5f3560e51f78501d066a_cgraph" alt=""/></div>
 <map name="aConnectionListener_8h_a2530e40fd2ed5f3560e51f78501d066a_cgraph" id="aConnectionListener_8h_a2530e40fd2ed5f3560e51f78501d066a_cgraph">
-<area shape="rect" title=" " alt="" coords="5,5,193,32"/>
-<area shape="rect" href="ConnectionListener_8c.html#a49f4d889996cb555ffe78ecf4584ec1a" title=" " alt="" coords="241,5,415,32"/>
+<area shape="rect" title=" " alt="" coords="5,31,193,57"/>
+<area shape="rect" href="Network_8c.html#a2a57d5baa1a3299547ac03b34f2dc84a" title=" " alt="" coords="463,5,593,32"/>
+<area shape="rect" href="ConnectionListener_8c.html#a49f4d889996cb555ffe78ecf4584ec1a" title=" " alt="" coords="241,56,415,83"/>
+<area shape="rect" href="Network_8c.html#a4946ffd5e8761a38b4fc7bb253c1491a" title=" " alt="" coords="644,31,751,57"/>
+<area shape="rect" href="Network_8c.html#a3179b58589909af6767082bb0a81aa62" title=" " alt="" coords="641,81,753,108"/>
+<area shape="rect" href="Network_8c.html#a8c64aed52ea980830d0f9db66fc93e1b" title=" " alt="" coords="479,107,577,133"/>
+<area shape="rect" href="Network_8c.html#ac1e27be5d1de7a987f26d081e5d98234" title=" " alt="" coords="479,56,577,83"/>
 </map>
 </div>
 <div class="dynheader">
@@ -602,6 +639,18 @@ Here is the caller graph for this function:</div>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>- STATUS status of execution </dd></dl>
 <div class="dynheader">
+Here is the call graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="ConnectionListener_8h_ad82847fb41b495ea92c67a73f96f3c2e_cgraph.png" border="0" usemap="#aConnectionListener_8h_ad82847fb41b495ea92c67a73f96f3c2e_cgraph" alt=""/></div>
+<map name="aConnectionListener_8h_ad82847fb41b495ea92c67a73f96f3c2e_cgraph" id="aConnectionListener_8h_ad82847fb41b495ea92c67a73f96f3c2e_cgraph">
+<area shape="rect" title=" " alt="" coords="5,31,179,57"/>
+<area shape="rect" href="Network_8c.html#a8c64aed52ea980830d0f9db66fc93e1b" title=" " alt="" coords="227,5,325,32"/>
+<area shape="rect" href="Network_8c.html#ac1e27be5d1de7a987f26d081e5d98234" title=" " alt="" coords="227,56,325,83"/>
+<area shape="rect" href="Network_8c.html#a4946ffd5e8761a38b4fc7bb253c1491a" title=" " alt="" coords="376,5,483,32"/>
+<area shape="rect" href="Network_8c.html#a3179b58589909af6767082bb0a81aa62" title=" " alt="" coords="373,56,485,83"/>
+</map>
+</div>
+<div class="dynheader">
 Here is the caller graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="ConnectionListener_8h_ad82847fb41b495ea92c67a73f96f3c2e_icgraph.png" border="0" usemap="#aConnectionListener_8h_ad82847fb41b495ea92c67a73f96f3c2e_icgraph" alt=""/></div>
@@ -624,7 +673,7 @@ Here is the caller graph for this function:</div>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_94e7a0fbe7f8eaf7f05ee7b02c647e9f.html">source</a></li><li class="navelem"><a class="el" href="dir_32510f36cb14405623866513ac2ca2a4.html">Ice</a></li><li class="navelem"><a class="el" href="ConnectionListener_8h.html">ConnectionListener.h</a></li>
-    <li class="footer">Generated on Tue Jul 11 2023 20:06:34 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Tue Jul 11 2023 20:17:34 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>

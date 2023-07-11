@@ -2,6 +2,7 @@ var group__NetworkingStatusCodes =
 [
     [ "STATUS_BINDING_SOCKET_FAILED", "group__NetworkingStatusCodes.html#gae461b5a9d0eb049c8b7a6c7abfeee95b", null ],
     [ "STATUS_CLOSE_SOCKET_FAILED", "group__NetworkingStatusCodes.html#ga931b4f49537d4d3651d15998021493c2", null ],
+    [ "STATUS_CREATE_SOCKET_PAIR_FAILED", "group__NetworkingStatusCodes.html#ga5f35314262758de25ef7340249706414", null ],
     [ "STATUS_CREATE_SSL_FAILED", "group__NetworkingStatusCodes.html#ga5e6b8a8e97408a79eb7dcc0174524051", null ],
     [ "STATUS_CREATE_UDP_SOCKET_FAILED", "group__NetworkingStatusCodes.html#ga44a2446875af0507a862b0c5dc28a453", null ],
     [ "STATUS_GET_LOCAL_IP_ADDRESSES_FAILED", "group__NetworkingStatusCodes.html#ga31f0ece3e32eb36c9e138d4a7effd547", null ],
@@ -17,5 +18,6 @@ var group__NetworkingStatusCodes =
     [ "STATUS_SOCKET_CONNECTION_CLOSED_ALREADY", "group__NetworkingStatusCodes.html#ga1f86816972badf7d94f8554824b53ed4", null ],
     [ "STATUS_SOCKET_CONNECTION_NOT_READY_TO_SEND", "group__NetworkingStatusCodes.html#ga7fb6c205716d9aba8c08fe769c653862", null ],
     [ "STATUS_SOCKET_SET_SEND_BUFFER_SIZE_FAILED", "group__NetworkingStatusCodes.html#ga1e17abfb923ca9230ac755efa9538ac3", null ],
+    [ "STATUS_SOCKET_WRITE_FAILED", "group__NetworkingStatusCodes.html#ga4223c977ec8510c82c9e8ffdbb184600", null ],
     [ "STATUS_SSL_CONNECTION_FAILED", "group__NetworkingStatusCodes.html#ga081fc8bcdc4cb7bc58202e434016307a", null ]
 ];

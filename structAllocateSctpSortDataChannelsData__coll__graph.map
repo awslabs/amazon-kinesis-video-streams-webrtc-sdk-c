@@ -32,7 +32,7 @@
 <area shape="rect" id="node28" href="$structIceCandidatePair.html" title=" " alt="" coords="3221,1623,3383,1803"/>
 <area shape="rect" id="node26" href="$structKvsRtcConfiguration.html" title=" " alt="" coords="3032,660,3284,928"/>
 <area shape="rect" id="node27" href="$structRtcIceServerDiagnostics.html" title=" " alt="" coords="3309,719,3506,869"/>
-<area shape="rect" id="node31" href="$structConnectionListener.html" title=" " alt="" coords="4461,719,4628,869"/>
+<area shape="rect" id="node31" href="$structConnectionListener.html" title=" " alt="" coords="4461,711,4628,877"/>
 <area shape="rect" id="node33" href="$struct____TlsSession.html" title=" " alt="" coords="4821,211,4927,289"/>
 <area shape="rect" id="node34" href="$structTlsSessionCallbacks.html" title=" " alt="" coords="4755,5,4993,127"/>
 <area shape="rect" id="node35" href="$structStunPacket.html" title=" " alt="" coords="4018,748,4157,840"/>
