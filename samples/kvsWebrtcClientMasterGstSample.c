@@ -434,7 +434,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     pSampleConfiguration->receiveAudioVideoSource = receiveGstreamerAudioVideo;
     pSampleConfiguration->onDataChannel = onDataChannel;
     pSampleConfiguration->customData = (UINT64) pSampleConfiguration;
-    pSampleConfiguration->srcType = DEVICE_SOURCE; // Default to GStreamer test source
+    pSampleConfiguration->srcType = DEVICE_SOURCE; // Default to device source (autovideosrc and autoaudiosrc)
     /* Initialize GStreamer */
     gst_init(&argc, &argv);
     printf("[KVS Gstreamer Master] Finished initializing GStreamer\n");
