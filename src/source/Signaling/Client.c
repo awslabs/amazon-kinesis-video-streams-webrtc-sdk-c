@@ -78,8 +78,7 @@ STATUS createSignalingClientSync(PSignalingClientInfo pClientInfo, PChannelInfo 
         signalingClientCreationMaxRetryCount = pClientInfo->signalingClientCreationMaxRetryAttempts;
     }
     while (TRUE) {
-        PROFILE_CALL(retStatus = createSignalingSync(&signalingClientInfoInternal, pChannelInfo, pCallbacks, pCredentialProvider, &pSignalingClient),
-                     "Create signaling client");
+        retStatus = createSignalingSync(&signalingClientInfoInternal, pChannelInfo, pCallbacks, pCredentialProvider, &pSignalingClient);
         // NOTE: This will retry on all status codes except SUCCESS.
         // This includes status codes for bad arguments, internal non-recoverable errors etc.
         // Retrying on non-recoverable errors is useless, but it is quite complex to segregate recoverable
@@ -168,7 +167,7 @@ STATUS signalingClientConnectSync(SIGNALING_CLIENT_HANDLE signalingClientHandle)
 
     DLOGV("Signaling Client Connect Sync");
 
-    PROFILE_CALL(CHK_STATUS(signalingConnectSync(pSignalingClient)), "Connect signaling client");
+    PROFILE_CALL_WITH_T_OBJ(CHK_STATUS(signalingConnectSync(pSignalingClient)), pSignalingClient->diagnostics.connectClientTime, "Connect signaling client");
 
 CleanUp:
 
@@ -202,7 +201,7 @@ STATUS signalingClientFetchSync(SIGNALING_CLIENT_HANDLE signalingClientHandle)
     }
 
     while (TRUE) {
-        PROFILE_CALL(retStatus = signalingFetchSync(pSignalingClient), "Fetch signaling client");
+        PROFILE_CALL_WITH_T_OBJ(retStatus = signalingFetchSync(pSignalingClient), pSignalingClient->diagnostics.fetchClientTime, "Fetch signaling client");
         // NOTE: This will retry on all status codes except SUCCESS.
         // This includes status codes for bad arguments, internal non-recoverable errors etc.
         // Retrying on non-recoverable errors is useless, but it is quite complex to segregate recoverable
@@ -407,13 +406,15 @@ STATUS signalingClientGetMetrics(SIGNALING_CLIENT_HANDLE signalingClientHandle, 
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = FROM_SIGNALING_CLIENT_HANDLE(signalingClientHandle);
-
+    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     DLOGV("Signaling Client Get Metrics");
 
     CHK_STATUS(signalingGetMetrics(pSignalingClient, pSignalingClientMetrics));
 
 CleanUp:
-    SIGNALING_UPDATE_ERROR_COUNT(pSignalingClient, retStatus);
+    if(pSignalingClient != NULL) {
+        SIGNALING_UPDATE_ERROR_COUNT(pSignalingClient, retStatus);
+    }
     LEAVES();
     return retStatus;
 }

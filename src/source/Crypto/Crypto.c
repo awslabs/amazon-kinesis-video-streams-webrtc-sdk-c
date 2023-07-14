@@ -12,6 +12,7 @@ STATUS createRtcCertificate(PRtcCertificate* ppRtcCertificate)
     CHK(NULL != (pRtcCertificate = (PRtcCertificate) MEMCALLOC(1, SIZEOF(RtcCertificate))), STATUS_NOT_ENOUGH_MEMORY);
 
 #ifdef KVS_USE_OPENSSL
+
     PROFILE_CALL(CHK_STATUS(createCertificateAndKey(GENERATED_CERTIFICATE_BITS, FALSE, (X509**) &pRtcCertificate->pCertificate,
                                                     (EVP_PKEY**) &pRtcCertificate->pPrivateKey)),
                  "Certificate creation time");

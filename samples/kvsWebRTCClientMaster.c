@@ -7,8 +7,8 @@ INT32 main(INT32 argc, CHAR* argv[])
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 frameSize;
     PSampleConfiguration pSampleConfiguration = NULL;
-    SignalingClientMetrics signalingClientMetrics;
     PCHAR pChannelName;
+    SignalingClientMetrics signalingClientMetrics;
     signalingClientMetrics.version = SIGNALING_CLIENT_METRICS_CURRENT_VERSION;
 
     SET_INSTRUMENTED_ALLOCATORS();

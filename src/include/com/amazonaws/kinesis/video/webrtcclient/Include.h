@@ -32,10 +32,25 @@ extern "C" {
         DLOGP("[%s] Time taken: %" PRIu64 " ms", msg, (GETTIME() - startTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);                                 \
     } while (FALSE)
 
+#define PROFILE_CALL_WITH_T_OBJ(f, t, msg)                                                                                                                         \
+    do {                                                                                                                                             \
+        UINT64 startTime = GETTIME();                                                                                                                \
+        f;                                                                                                                                           \
+        t = (GETTIME() - startTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;                                                                                                                                          \
+        DLOGP("[%s] Time taken: %" PRIu64 " ms", msg, t);                                 \
+    } while (FALSE)
+
 #define PROFILE_WITH_START_TIME(t, msg)                                                                                                              \
     do {                                                                                                                                             \
         DLOGP("[%s] Time taken: %" PRIu64 " ms", msg, (GETTIME() - t) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);                                         \
     } while (FALSE)
+
+#define PROFILE_WITH_START_TIME_OBJ(t1, t2, msg)                                                                                                              \
+    do {                                                                                                                                             \
+        t2 = (GETTIME() - t1) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;                                                                                                                                           \
+        DLOGP("[%s] Time taken: %" PRIu64 " ms", msg, t2);                                         \
+    } while (FALSE)
+
 
 /*! \addtogroup StatusCodes
  * WEBRTC related status codes. Each value is an positive integer formed by adding
@@ -543,7 +558,7 @@ extern "C" {
 /**
  * Version of SignalingClientMetrics structure
  */
-#define SIGNALING_CLIENT_METRICS_CURRENT_VERSION 0
+#define SIGNALING_CLIENT_METRICS_CURRENT_VERSION 1
 
 /*!@} */
 

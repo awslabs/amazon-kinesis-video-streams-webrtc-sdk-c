@@ -180,6 +180,15 @@ typedef struct {
     UINT64 connectTime;
     UINT64 cpApiLatency;
     UINT64 dpApiLatency;
+    UINT64 getTokenCallTime;
+    UINT64 describeCallTime;
+    UINT64 createCallTime;
+    UINT64 getEndpointCallTime;
+    UINT64 getIceConfigCallTime;
+    UINT64 connectCallTime;
+    UINT64 createClientTime;
+    UINT64 fetchClientTime;
+    UINT64 connectClientTime;
     PHashTable pEndpointToClockSkewHashMap;
     UINT32 stateMachineRetryCount;
 } SignalingDiagnostics, PSignalingDiagnostics;
