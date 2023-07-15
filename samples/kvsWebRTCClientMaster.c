@@ -126,7 +126,6 @@ PVOID sendVideoPackets(PVOID args)
     UINT32 i;
     UINT64 startTime, lastFrameTime, elapsed;
     MEMSET(&encoderStats, 0x00, SIZEOF(RtcEncoderStats));
-
     CHK_ERR(pSampleConfiguration != NULL, STATUS_NULL_ARG, "[KVS Master] Streaming session is NULL");
 
     frame.presentationTs = 0;
@@ -156,7 +155,6 @@ PVOID sendVideoPackets(PVOID args)
         encoderStats.height = 480;
         encoderStats.targetBitrate = 262000;
         frame.presentationTs += SAMPLE_VIDEO_FRAME_DURATION;
-
         MUTEX_LOCK(pSampleConfiguration->streamingSessionListReadLock);
         for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
             status = writeFrame(pSampleConfiguration->sampleStreamingSessionList[i]->pVideoRtcRtpTransceiver, &frame);

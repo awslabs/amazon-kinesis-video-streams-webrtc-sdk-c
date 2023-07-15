@@ -274,7 +274,7 @@ STATUS changePeerConnectionState(PKvsPeerConnection pKvsPeerConnection, RTC_PEER
             break;
         case RTC_PEER_CONNECTION_STATE_CONNECTED:
             if (pKvsPeerConnection->iceConnectingStartTime != 0) {
-                PROFILE_WITH_START_TIME(pKvsPeerConnection->iceConnectingStartTime, "ICE Hole Punching Time");
+                PROFILE_WITH_START_TIME_OBJ(pKvsPeerConnection->iceConnectingStartTime, pKvsPeerConnection->peerConnectionDiagnostics.iceHolePunchingTime, "ICE Hole Punching Time");
                 pKvsPeerConnection->iceConnectingStartTime = 0;
             }
             break;
@@ -586,6 +586,9 @@ VOID onDtlsStateChange(UINT64 customData, RTC_DTLS_TRANSPORT_STATE newDtlsState)
     pKvsPeerConnection = (PKvsPeerConnection) customData;
 
     switch (newDtlsState) {
+        case RTC_DTLS_TRANSPORT_STATE_CONNECTED:
+            pKvsPeerConnection->peerConnectionDiagnostics.dtlsSessionSetupTime = pKvsPeerConnection->pDtlsSession->dtlsSessionSetupTime;
+            break;
         case RTC_DTLS_TRANSPORT_STATE_CLOSED:
             changePeerConnectionState(pKvsPeerConnection, RTC_PEER_CONNECTION_STATE_CLOSED);
             break;
@@ -1381,7 +1384,7 @@ CleanUp:
     return retStatus;
 }
 
-PUBLIC_API NullableBool canTrickleIceCandidates(PRtcPeerConnection pPeerConnection)
+NullableBool canTrickleIceCandidates(PRtcPeerConnection pPeerConnection)
 {
     NullableBool canTrickle = {FALSE, FALSE};
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pPeerConnection;
@@ -1491,5 +1494,20 @@ CleanUp:
     CHK_LOG_ERR(retStatus);
 
     LEAVES();
+    return retStatus;
+}
+
+STATUS getPeerConnectionMetrics(PRtcPeerConnection pPeerConnection, PPeerConnectionMetrics pPeerConnectionMetrics)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pPeerConnection;
+    CHK(pKvsPeerConnection != NULL && pPeerConnectionMetrics != NULL, STATUS_NULL_ARG);
+    if(pPeerConnectionMetrics->version > PEER_CONNECTION_METRICS_CURRENT_VERSION) {
+        DLOGW("Peer connection metrics object version invalid..setting to highest default version %d", PEER_CONNECTION_METRICS_CURRENT_VERSION);
+        pPeerConnectionMetrics->version = PEER_CONNECTION_METRICS_CURRENT_VERSION;
+    }
+    pPeerConnectionMetrics->peerConnectionStats.dtlsSessionSetupTime = pKvsPeerConnection->peerConnectionDiagnostics.dtlsSessionSetupTime;
+    pPeerConnectionMetrics->peerConnectionStats.iceHolePunchingTime = pKvsPeerConnection->peerConnectionDiagnostics.iceHolePunchingTime;
+CleanUp:
     return retStatus;
 }

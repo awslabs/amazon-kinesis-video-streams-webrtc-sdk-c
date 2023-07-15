@@ -1257,7 +1257,7 @@ STATUS signalingGetMetrics(PSignalingClient pSignalingClient, PSignalingClientMe
     CHK(pSignalingClient != NULL && pSignalingClientMetrics != NULL, STATUS_NULL_ARG);
 
     if(pSignalingClientMetrics->version > SIGNALING_CLIENT_METRICS_CURRENT_VERSION) {
-        DLOGW("Invalid signaling client metrics version...setting to highest supported by default");
+        DLOGW("Invalid signaling client metrics version...setting to highest supported by default version %d", SIGNALING_CLIENT_METRICS_CURRENT_VERSION);
         pSignalingClientMetrics->version = SIGNALING_CLIENT_METRICS_CURRENT_VERSION;
     }
 

@@ -560,6 +560,11 @@ extern "C" {
  */
 #define SIGNALING_CLIENT_METRICS_CURRENT_VERSION 1
 
+/**
+ * Version of PeerConnectionMetrics structure
+ */
+#define PEER_CONNECTION_METRICS_CURRENT_VERSION  0
+
 /*!@} */
 
 /////////////////////////////////////////////////////
@@ -1469,6 +1474,14 @@ typedef struct {
 } SignalingClientMetrics, *PSignalingClientMetrics;
 
 /**
+ * @brief SignalingStats Collection of signaling related stats. Can be expanded in the future
+ */
+typedef struct {
+    UINT32 version;                            //!< Structure version
+    PeerConnectionStats peerConnectionStats;   //!< Peer connection metrics stats. Reference in Stats.h
+} PeerConnectionMetrics, *PPeerConnectionMetrics;
+
+/**
  * @brief The stats object is populated based on RTCStatsType request
  *
  */
@@ -2049,6 +2062,14 @@ PUBLIC_API STATUS signalingClientDeleteSync(SIGNALING_CLIENT_HANDLE);
  * @param[in,out] PSignalingClientMetrics Signaling stats
  */
 PUBLIC_API STATUS signalingClientGetMetrics(SIGNALING_CLIENT_HANDLE, PSignalingClientMetrics);
+
+/**
+ * @brief Get peer connection related metrics
+ *
+ * @param[in] PRtcPeerConnection Peer connection object
+ * @param[in,out] PPeerConnectionMetrics Peer connection stats object
+ */
+PUBLIC_API STATUS getPeerConnectionMetrics(PRtcPeerConnection, PPeerConnectionMetrics);
 
 /**
  * @brief Get the relevant/all metrics based on the RTCStatsType field. This does not include

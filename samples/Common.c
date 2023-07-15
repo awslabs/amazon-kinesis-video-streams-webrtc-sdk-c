@@ -57,7 +57,6 @@ VOID onConnectionStateChange(UINT64 customData, RTC_PEER_CONNECTION_STATE newSta
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) customData;
-
     CHK(pSampleStreamingSession != NULL && pSampleStreamingSession->pSampleConfiguration != NULL, STATUS_INTERNAL_ERROR);
 
     PSampleConfiguration pSampleConfiguration = pSampleStreamingSession->pSampleConfiguration;
@@ -67,14 +66,13 @@ VOID onConnectionStateChange(UINT64 customData, RTC_PEER_CONNECTION_STATE newSta
         case RTC_PEER_CONNECTION_STATE_CONNECTED:
             ATOMIC_STORE_BOOL(&pSampleConfiguration->connected, TRUE);
             CVAR_BROADCAST(pSampleConfiguration->cvar);
+            PeerConnectionMetrics metrics;
+            getPeerConnectionMetrics(pSampleStreamingSession->pPeerConnection, &metrics);
             if (STATUS_FAILED(retStatus = logSelectedIceCandidatesInformation(pSampleStreamingSession))) {
                 DLOGW("Failed to get information about selected Ice candidates: 0x%08x", retStatus);
             }
             break;
         case RTC_PEER_CONNECTION_STATE_FAILED:
-            // TODO: evaluate invoking restart ICE agent in case the SDK acts as the viewer
-            // DLOGI("Restarting ICE since disconnection has been detected");
-            // CHK_STATUS(restartIce(pSampleStreamingSession->pPeerConnection));
             // explicit fallthrough
         case RTC_PEER_CONNECTION_STATE_CLOSED:
             // explicit fallthrough
@@ -900,24 +898,6 @@ STATUS logSignalingClientStats(PSignalingClientMetrics pSignalingClientMetrics)
     DLOGD("Data Plane API call latency: %" PRIu64 " ms",
           (pSignalingClientMetrics->signalingClientStats.dpApiCallLatency / HUNDREDS_OF_NANOS_IN_A_MILLISECOND));
     DLOGD("API call retry count: %d", pSignalingClientMetrics->signalingClientStats.apiCallRetryCount);
-    UINT64 getTokenCallTime;
-    UINT64 describeCallTime;
-    UINT64 createCallTime;
-    UINT64 getEndpointCallTime;
-    UINT64 getIceConfigCallTime;
-    UINT64 connectCallTime;
-    UINT64 createClientTime;
-    UINT64 fetchClientTime;
-    UINT64 connectClientTime;
-    DLOGP("getTokenCallTime:%" PRIu64, pSignalingClientMetrics->signalingClientStats.getTokenCallTime);
-    DLOGP("describeCallTime:%" PRIu64, pSignalingClientMetrics->signalingClientStats.describeCallTime);
-    DLOGP("createCallTime:%" PRIu64, pSignalingClientMetrics->signalingClientStats.createCallTime);
-    DLOGP("getEndpointCallTime:%" PRIu64, pSignalingClientMetrics->signalingClientStats.getEndpointCallTime);
-    DLOGP("getIceConfigCallTime:%" PRIu64, pSignalingClientMetrics->signalingClientStats.getIceConfigCallTime);
-    DLOGP("connectCallTime:%" PRIu64, pSignalingClientMetrics->signalingClientStats.connectCallTime);
-    DLOGP("createClientTime:%" PRIu64, pSignalingClientMetrics->signalingClientStats.createClientTime);
-    DLOGP("fetchClientTime:%" PRIu64, pSignalingClientMetrics->signalingClientStats.fetchClientTime);
-    DLOGP("connectClientTime:%" PRIu64, pSignalingClientMetrics->signalingClientStats.connectClientTime);
 CleanUp:
     LEAVES();
     return retStatus;

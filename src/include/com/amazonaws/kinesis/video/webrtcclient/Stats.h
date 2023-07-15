@@ -587,7 +587,12 @@ typedef struct {
     UINT64 createClientTime;         //!< Total time (ms) taken to create signaling client which includes getting credentials
     UINT64 fetchClientTime;          //!< Total time (ms) taken to fetch signaling client which includes describe, create, get endpoint and get ICE server config
     UINT64 connectClientTime;        //!< Total time (ms) taken to  connect the signaling client which includes connecting to the signaling channel
-} SignalingClientStats, PSignalingClientStats;
+} SignalingClientStats, *PSignalingClientStats;
+
+typedef struct {
+    UINT64 dtlsSessionSetupTime;    //!< Time taken (ms) for DTLS handshake to complete
+    UINT64 iceHolePunchingTime;     //!< Time taken (ms) for ICE agent set up to complete
+} PeerConnectionStats, *PPeerConnectionStats;
 
 /**
  * @brief RTCStatsObject Represents an object passed in by the application developer which will

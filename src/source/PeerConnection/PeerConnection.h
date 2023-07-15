@@ -57,6 +57,12 @@ typedef struct {
     UINT16 lastReportedSeqNum;
 } TwccManager, *PTwccManager;
 
+
+typedef struct {
+    UINT64 dtlsSessionSetupTime;
+    UINT64 iceHolePunchingTime;
+} KvsPeerConnectionDiagnostics, *PKvsPeerConnectionDiagnostics;
+
 typedef struct {
     RtcPeerConnection peerConnection;
     // UINT32 padding padding makes transportWideSequenceNumber 64bit aligned
@@ -134,6 +140,7 @@ typedef struct {
 
     UINT64 iceConnectingStartTime;
     UINT64 firstFrame;
+    KvsPeerConnectionDiagnostics peerConnectionDiagnostics;
 } KvsPeerConnection, *PKvsPeerConnection;
 
 typedef struct {
