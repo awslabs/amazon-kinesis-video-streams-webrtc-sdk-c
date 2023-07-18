@@ -244,6 +244,18 @@ typedef struct {
 } RtcIceServerStats, *PRtcIceServerStats;
 
 /**
+ * @brief: IceAgent profiling Stats related to the KVS ICE Agent
+ *
+ */
+typedef struct {
+    UINT64 localCandidateGatheringTime;
+    UINT64 iceServerParsingTime;
+    UINT64 iceCandidatePairNominationTime;
+    UINT64 candidateGatheringTime;
+    UINT64 iceAgentSetUpTime;
+} KvsIceAgentStats, *PKvsIceAgentStats;
+
+/**
  * @brief: RtcIceCandidateStats Stats related to a specific candidate in a pair
  *
  * Reference: https://www.w3.org/TR/webrtc-stats/#icecandidate-dict*
@@ -585,13 +597,17 @@ typedef struct {
     UINT64 getIceConfigCallTime;     //!< Time (ms) taken to execute getIceServerConfig call
     UINT64 connectCallTime;          //!< Time (ms) taken to execute connectChannel call
     UINT64 createClientTime;         //!< Total time (ms) taken to create signaling client which includes getting credentials
-    UINT64 fetchClientTime;          //!< Total time (ms) taken to fetch signaling client which includes describe, create, get endpoint and get ICE server config
-    UINT64 connectClientTime;        //!< Total time (ms) taken to  connect the signaling client which includes connecting to the signaling channel
+    UINT64
+    fetchClientTime; //!< Total time (ms) taken to fetch signaling client which includes describe, create, get endpoint and get ICE server config
+    UINT64 connectClientTime; //!< Total time (ms) taken to  connect the signaling client which includes connecting to the signaling channel
+    UINT64 offerToAnswerTime;
 } SignalingClientStats, *PSignalingClientStats;
 
 typedef struct {
     UINT64 dtlsSessionSetupTime;    //!< Time taken (ms) for DTLS handshake to complete
     UINT64 iceHolePunchingTime;     //!< Time taken (ms) for ICE agent set up to complete
+    UINT64 closePeerConnectionTime; //!< Time taken (ms) to close the peer connection
+    UINT64 freePeerConnectionTime;  //!< Time taken (ms) to free the peer connection object
 } PeerConnectionStats, *PPeerConnectionStats;
 
 /**

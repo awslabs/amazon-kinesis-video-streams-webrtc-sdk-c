@@ -110,6 +110,7 @@ typedef struct {
     startRoutine videoSource;
     startRoutine receiveAudioVideoSource;
     RtcOnDataChannel onDataChannel;
+    SignalingClientMetrics signalingClientMetrics;
 
     PStackQueue pPendingSignalingMessageForRemoteClient;
     PHashTable pRtcPeerConnectionForRemoteClient;
@@ -168,6 +169,8 @@ struct __SampleStreamingSession {
     StreamSessionShutdownCallback shutdownCallback;
     UINT64 shutdownCallbackCustomData;
     UINT64 offerReceiveTime;
+    PeerConnectionMetrics peerConnectionMetrics;
+    KvsIceAgentMetrics iceMetrics;
 };
 
 VOID sigintHandler(INT32);

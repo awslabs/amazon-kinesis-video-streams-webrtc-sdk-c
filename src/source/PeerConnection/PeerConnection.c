@@ -270,11 +270,14 @@ STATUS changePeerConnectionState(PKvsPeerConnection pKvsPeerConnection, RTC_PEER
     locked = TRUE;
     switch (newState) {
         case RTC_PEER_CONNECTION_STATE_CONNECTING:
-            pKvsPeerConnection->iceConnectingStartTime = GETTIME();
+            if (pKvsPeerConnection->iceConnectingStartTime == 0) {
+                pKvsPeerConnection->iceConnectingStartTime = GETTIME();
+            }
             break;
         case RTC_PEER_CONNECTION_STATE_CONNECTED:
             if (pKvsPeerConnection->iceConnectingStartTime != 0) {
-                PROFILE_WITH_START_TIME_OBJ(pKvsPeerConnection->iceConnectingStartTime, pKvsPeerConnection->peerConnectionDiagnostics.iceHolePunchingTime, "ICE Hole Punching Time");
+                PROFILE_WITH_START_TIME_OBJ(pKvsPeerConnection->iceConnectingStartTime,
+                                            pKvsPeerConnection->peerConnectionDiagnostics.iceHolePunchingTime, "ICE Hole Punching Time");
                 pKvsPeerConnection->iceConnectingStartTime = 0;
             }
             break;
@@ -852,8 +855,8 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
         SAFE_MEMFREE(pKvsPeerConnection->pTwccManager);
     }
 
+    PROFILE_WITH_START_TIME_OBJ(startTime, pKvsPeerConnection->peerConnectionDiagnostics.freePeerConnectionTime, "Free peer connection");
     SAFE_MEMFREE(*ppPeerConnection);
-    PROFILE_WITH_START_TIME(startTime, "Free peer connection");
 CleanUp:
 
     LEAVES();
@@ -1241,7 +1244,6 @@ STATUS addTransceiver(PRtcPeerConnection pPeerConnection, PRtcMediaStreamTrack p
     }
 
     CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
-    pKvsPeerConnection->firstFrame = TRUE;
 
     if (direction == RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY && pRtcMediaStreamTrack == NULL) {
         MEMSET(&videoTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
@@ -1374,7 +1376,7 @@ STATUS closePeerConnection(PRtcPeerConnection pPeerConnection)
     CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
     CHK_LOG_ERR(dtlsSessionShutdown(pKvsPeerConnection->pDtlsSession));
     CHK_LOG_ERR(iceAgentShutdown(pKvsPeerConnection->pIceAgent));
-    PROFILE_WITH_START_TIME(startTime, "Close peer connection");
+    PROFILE_WITH_START_TIME_OBJ(startTime, pKvsPeerConnection->peerConnectionDiagnostics.closePeerConnectionTime, "Close peer connection");
 
 CleanUp:
 
@@ -1497,17 +1499,35 @@ CleanUp:
     return retStatus;
 }
 
-STATUS getPeerConnectionMetrics(PRtcPeerConnection pPeerConnection, PPeerConnectionMetrics pPeerConnectionMetrics)
+STATUS peerConnectionGetMetrics(PRtcPeerConnection pPeerConnection, PPeerConnectionMetrics pPeerConnectionMetrics)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pPeerConnection;
     CHK(pKvsPeerConnection != NULL && pPeerConnectionMetrics != NULL, STATUS_NULL_ARG);
-    if(pPeerConnectionMetrics->version > PEER_CONNECTION_METRICS_CURRENT_VERSION) {
+    if (pPeerConnectionMetrics->version > PEER_CONNECTION_METRICS_CURRENT_VERSION) {
         DLOGW("Peer connection metrics object version invalid..setting to highest default version %d", PEER_CONNECTION_METRICS_CURRENT_VERSION);
         pPeerConnectionMetrics->version = PEER_CONNECTION_METRICS_CURRENT_VERSION;
     }
     pPeerConnectionMetrics->peerConnectionStats.dtlsSessionSetupTime = pKvsPeerConnection->peerConnectionDiagnostics.dtlsSessionSetupTime;
     pPeerConnectionMetrics->peerConnectionStats.iceHolePunchingTime = pKvsPeerConnection->peerConnectionDiagnostics.iceHolePunchingTime;
+    // Cannot record these 2 in here because peer connection object would become NULL after clearing. Need another strategy
+    pPeerConnectionMetrics->peerConnectionStats.closePeerConnectionTime = pKvsPeerConnection->peerConnectionDiagnostics.closePeerConnectionTime;
+    pPeerConnectionMetrics->peerConnectionStats.freePeerConnectionTime = pKvsPeerConnection->peerConnectionDiagnostics.freePeerConnectionTime;
+CleanUp:
+    return retStatus;
+}
+
+STATUS iceAgentGetMetrics(PRtcPeerConnection pPeerConnection, PKvsIceAgentMetrics pKvsIceAgentMetrics)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pPeerConnection;
+    CHK(pKvsPeerConnection != NULL && pKvsIceAgentMetrics != NULL, STATUS_NULL_ARG);
+
+    if (pKvsIceAgentMetrics->version > ICE_AGENT_METRICS_CURRENT_VERSION) {
+        DLOGW("ICE agent metrics object version invalid..setting to highest default version %d", PEER_CONNECTION_METRICS_CURRENT_VERSION);
+        pKvsIceAgentMetrics->version = ICE_AGENT_METRICS_CURRENT_VERSION;
+    }
+    CHK_STATUS(getIceAgentStats(pKvsPeerConnection->pIceAgent, pKvsIceAgentMetrics));
 CleanUp:
     return retStatus;
 }

@@ -57,10 +57,11 @@ typedef struct {
     UINT16 lastReportedSeqNum;
 } TwccManager, *PTwccManager;
 
-
 typedef struct {
     UINT64 dtlsSessionSetupTime;
     UINT64 iceHolePunchingTime;
+    UINT64 closePeerConnectionTime;
+    UINT64 freePeerConnectionTime;
 } KvsPeerConnectionDiagnostics, *PKvsPeerConnectionDiagnostics;
 
 typedef struct {
@@ -139,7 +140,6 @@ typedef struct {
     UINT64 onSenderBandwidthEstimationCustomData;
 
     UINT64 iceConnectingStartTime;
-    UINT64 firstFrame;
     KvsPeerConnectionDiagnostics peerConnectionDiagnostics;
 } KvsPeerConnection, *PKvsPeerConnection;
 

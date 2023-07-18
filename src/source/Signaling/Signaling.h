@@ -189,6 +189,7 @@ typedef struct {
     UINT64 createClientTime;
     UINT64 fetchClientTime;
     UINT64 connectClientTime;
+    UINT64 offerToAnswerTime;
     PHashTable pEndpointToClockSkewHashMap;
     UINT32 stateMachineRetryCount;
 } SignalingDiagnostics, PSignalingDiagnostics;

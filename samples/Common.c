@@ -66,8 +66,10 @@ VOID onConnectionStateChange(UINT64 customData, RTC_PEER_CONNECTION_STATE newSta
         case RTC_PEER_CONNECTION_STATE_CONNECTED:
             ATOMIC_STORE_BOOL(&pSampleConfiguration->connected, TRUE);
             CVAR_BROADCAST(pSampleConfiguration->cvar);
-            PeerConnectionMetrics metrics;
-            getPeerConnectionMetrics(pSampleStreamingSession->pPeerConnection, &metrics);
+
+            CHK_STATUS(peerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->peerConnectionMetrics));
+            CHK_STATUS(iceAgentGetMetrics(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->iceMetrics));
+
             if (STATUS_FAILED(retStatus = logSelectedIceCandidatesInformation(pSampleStreamingSession))) {
                 DLOGW("Failed to get information about selected Ice candidates: 0x%08x", retStatus);
             }
@@ -256,16 +258,23 @@ STATUS sendSignalingMessage(PSampleStreamingSession pSampleStreamingSession, PSi
 {
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
-
+    PSampleConfiguration pSampleConfiguration;
     // Validate the input params
     CHK(pSampleStreamingSession != NULL && pSampleStreamingSession->pSampleConfiguration != NULL && pMessage != NULL, STATUS_NULL_ARG);
-    CHK(IS_VALID_MUTEX_VALUE(pSampleStreamingSession->pSampleConfiguration->signalingSendMessageLock) &&
-            IS_VALID_SIGNALING_CLIENT_HANDLE(pSampleStreamingSession->pSampleConfiguration->signalingClientHandle),
+
+    pSampleConfiguration = pSampleStreamingSession->pSampleConfiguration;
+
+    CHK(IS_VALID_MUTEX_VALUE(pSampleConfiguration->signalingSendMessageLock) &&
+            IS_VALID_SIGNALING_CLIENT_HANDLE(pSampleConfiguration->signalingClientHandle),
         STATUS_INVALID_OPERATION);
 
-    MUTEX_LOCK(pSampleStreamingSession->pSampleConfiguration->signalingSendMessageLock);
+    MUTEX_LOCK(pSampleConfiguration->signalingSendMessageLock);
     locked = TRUE;
-    CHK_STATUS(signalingClientSendMessageSync(pSampleStreamingSession->pSampleConfiguration->signalingClientHandle, pMessage));
+    CHK_STATUS(signalingClientSendMessageSync(pSampleConfiguration->signalingClientHandle, pMessage));
+    if (pMessage->messageType == SIGNALING_MESSAGE_TYPE_ANSWER) {
+        CHK_STATUS(signalingClientGetMetrics(pSampleConfiguration->signalingClientHandle, &pSampleConfiguration->signalingClientMetrics));
+        DLOGP("[Signaling offer to answer] %" PRIu64 " ms", pSampleConfiguration->signalingClientMetrics.signalingClientStats.offerToAnswerTime);
+    }
 
 CleanUp:
 
@@ -482,6 +491,10 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
 
     pSampleStreamingSession->pSampleConfiguration = pSampleConfiguration;
     pSampleStreamingSession->rtcMetricsHistory.prevTs = GETTIME();
+
+    pSampleStreamingSession->peerConnectionMetrics.version = PEER_CONNECTION_METRICS_CURRENT_VERSION;
+    pSampleStreamingSession->iceMetrics.version = ICE_AGENT_METRICS_CURRENT_VERSION;
+
     // if we're the viewer, we control the trickle ice mode
     pSampleStreamingSession->remoteCanTrickleIce = !isMaster && pSampleConfiguration->trickleIce;
 
@@ -607,14 +620,12 @@ VOID sampleVideoFrameHandler(UINT64 customData, PFrame pFrame)
 {
     UNUSED_PARAM(customData);
     DLOGV("Video Frame received. TrackId: %" PRIu64 ", Size: %u, Flags %u", pFrame->trackId, pFrame->size, pFrame->flags);
-    PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) customData;
 }
 
 VOID sampleAudioFrameHandler(UINT64 customData, PFrame pFrame)
 {
     UNUSED_PARAM(customData);
     DLOGV("Audio Frame received. TrackId: %" PRIu64 ", Size: %u, Flags %u", pFrame->trackId, pFrame->size, pFrame->flags);
-    PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) customData;
 }
 
 VOID sampleBandwidthEstimationHandler(UINT64 customData, DOUBLE maximumBitrate)
@@ -746,8 +757,8 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     // If the env is set, we generate normal log files apart from filtered profile log files
     // If not set, we generate only the filtered profile log files
     if (NULL != getenv(ENABLE_FILE_LOGGING)) {
-        retStatus =
-                createFileLoggerWithLevelFiltering(FILE_LOGGING_BUFFER_SIZE, MAX_NUMBER_OF_LOG_FILES, (PCHAR) FILE_LOGGER_LOG_FILE_DIRECTORY_PATH, TRUE, TRUE, TRUE, LOG_LEVEL_PROFILE, NULL);
+        retStatus = createFileLoggerWithLevelFiltering(FILE_LOGGING_BUFFER_SIZE, MAX_NUMBER_OF_LOG_FILES, (PCHAR) FILE_LOGGER_LOG_FILE_DIRECTORY_PATH,
+                                                       TRUE, TRUE, TRUE, LOG_LEVEL_PROFILE, NULL);
 
         if (retStatus != STATUS_SUCCESS) {
             DLOGW("[KVS Master] createFileLogger(): operation returned status code: 0x%08x", retStatus);
@@ -755,8 +766,8 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
             pSampleConfiguration->enableFileLogging = TRUE;
         }
     } else {
-        retStatus =
-                createFileLoggerWithLevelFiltering(FILE_LOGGING_BUFFER_SIZE, MAX_NUMBER_OF_LOG_FILES, (PCHAR) FILE_LOGGER_LOG_FILE_DIRECTORY_PATH, TRUE, TRUE, FALSE, LOG_LEVEL_PROFILE, NULL);
+        retStatus = createFileLoggerWithLevelFiltering(FILE_LOGGING_BUFFER_SIZE, MAX_NUMBER_OF_LOG_FILES, (PCHAR) FILE_LOGGER_LOG_FILE_DIRECTORY_PATH,
+                                                       TRUE, TRUE, FALSE, LOG_LEVEL_PROFILE, NULL);
 
         if (retStatus != STATUS_SUCCESS) {
             DLOGW("[KVS Master] createFileLogger(): operation returned status code: 0x%08x", retStatus);
@@ -825,6 +836,7 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     pSampleConfiguration->clientInfo.signalingMessagesMaximumThreads = KVS_SIGNALING_THREADPOOL_MAX;
     pSampleConfiguration->iceCandidatePairStatsTimerId = MAX_UINT32;
     pSampleConfiguration->pregenerateCertTimerId = MAX_UINT32;
+    pSampleConfiguration->signalingClientMetrics.version = SIGNALING_CLIENT_METRICS_CURRENT_VERSION;
 
     ATOMIC_STORE_BOOL(&pSampleConfiguration->interrupted, FALSE);
     ATOMIC_STORE_BOOL(&pSampleConfiguration->mediaThreadStarted, FALSE);
@@ -865,6 +877,7 @@ CleanUp:
 STATUS initSignaling(PSampleConfiguration pSampleConfiguration, PCHAR clientId)
 {
     STATUS retStatus = STATUS_SUCCESS;
+    SignalingClientMetrics signalingClientMetrics = pSampleConfiguration->signalingClientMetrics;
     pSampleConfiguration->signalingClientCallbacks.messageReceivedFn = signalingMessageReceived;
     STRCPY(pSampleConfiguration->clientInfo.clientId, clientId);
     CHK_STATUS(createSignalingClientSync(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
@@ -874,8 +887,21 @@ STATUS initSignaling(PSampleConfiguration pSampleConfiguration, PCHAR clientId)
     // Enable the processing of the messages
     CHK_STATUS(signalingClientFetchSync(pSampleConfiguration->signalingClientHandle));
     CHK_STATUS(signalingClientConnectSync(pSampleConfiguration->signalingClientHandle));
-    gSampleConfiguration = pSampleConfiguration;
 
+    signalingClientGetMetrics(pSampleConfiguration->signalingClientHandle, &signalingClientMetrics);
+
+    // Logging this here since the logs in signaling library do not get routed to file
+    DLOGP("[Signaling Get token] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.getTokenCallTime);
+    DLOGP("[Signaling Describe] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.describeCallTime);
+    DLOGP("[Signaling Create Channel] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.createCallTime);
+    DLOGP("[Signaling Get endpoint] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.getEndpointCallTime);
+    DLOGP("[Signaling Get ICE config] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.getIceConfigCallTime);
+    DLOGP("[Signaling Connect] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.connectCallTime);
+    DLOGP("[Signaling create client] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.createClientTime);
+    DLOGP("[Signaling fetch client] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.fetchClientTime);
+    DLOGP("[Signaling connect client] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.connectClientTime);
+    pSampleConfiguration->signalingClientMetrics = signalingClientMetrics;
+    gSampleConfiguration = pSampleConfiguration;
 CleanUp:
     return retStatus;
 }
@@ -1395,6 +1421,8 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
             }
 
             startStats = pSampleConfiguration->iceCandidatePairStatsTimerId == MAX_UINT32;
+            CHK_STATUS(signalingClientGetMetrics(pSampleConfiguration->signalingClientHandle, &pSampleConfiguration->signalingClientMetrics));
+            DLOGP("[Signaling offer to answer] %" PRIu64 " ms", pSampleConfiguration->signalingClientMetrics.signalingClientStats.offerToAnswerTime);
             break;
 
         case SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE:

@@ -21,7 +21,6 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     BOOL cacheFound = FALSE;
     PSignalingFileCacheEntry pFileCacheEntry = NULL;
 
-    UINT64 startTime = GETTIME();
     CHK(pClientInfo != NULL && pChannelInfo != NULL && pCallbacks != NULL && pCredentialProvider != NULL && ppSignalingClient != NULL,
         STATUS_NULL_ARG);
     CHK(pChannelInfo->version <= CHANNEL_INFO_CURRENT_VERSION, STATUS_SIGNALING_INVALID_CHANNEL_INFO_VERSION);
@@ -180,7 +179,6 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
 CleanUp:
     if (pClientInfo != NULL && pSignalingClient != NULL) {
         pClientInfo->signalingClientInfo.stateMachineRetryCountReadOnly = pSignalingClient->diagnostics.stateMachineRetryCount;
-        PROFILE_WITH_START_TIME_OBJ(startTime, pSignalingClient->diagnostics.createClientTime, "Create signaling client");
     }
     CHK_LOG_ERR(retStatus);
 
@@ -391,7 +389,7 @@ STATUS signalingSendMessageSync(PSignalingClient pSignalingClient, PSignalingMes
     CHK_STATUS(sendLwsMessage(pSignalingClient, pSignalingMessage->messageType, pSignalingMessage->peerClientId, pSignalingMessage->payload,
                               pSignalingMessage->payloadLen, pSignalingMessage->correlationId, 0));
     if (pSignalingMessage->messageType == SIGNALING_MESSAGE_TYPE_ANSWER) {
-        PROFILE_WITH_START_TIME(pSignalingClient->offerTime, "Offer to answer time");
+        PROFILE_WITH_START_TIME_OBJ(pSignalingClient->offerTime, pSignalingClient->diagnostics.offerToAnswerTime, "Offer to answer time");
     }
     if (pSignalingMessage->messageType == SIGNALING_MESSAGE_TYPE_OFFER) {
         pSignalingClient->offerTime = GETTIME();
@@ -1146,7 +1144,6 @@ STATUS getIceConfig(PSignalingClient pSignalingClient, UINT64 time)
         retStatus = pSignalingClient->clientInfo.getIceConfigPostHookFn(pSignalingClient->clientInfo.hookCustomData);
     }
 
-
 CleanUp:
 
     LEAVES();
@@ -1256,8 +1253,9 @@ STATUS signalingGetMetrics(PSignalingClient pSignalingClient, PSignalingClientMe
 
     CHK(pSignalingClient != NULL && pSignalingClientMetrics != NULL, STATUS_NULL_ARG);
 
-    if(pSignalingClientMetrics->version > SIGNALING_CLIENT_METRICS_CURRENT_VERSION) {
-        DLOGW("Invalid signaling client metrics version...setting to highest supported by default version %d", SIGNALING_CLIENT_METRICS_CURRENT_VERSION);
+    if (pSignalingClientMetrics->version > SIGNALING_CLIENT_METRICS_CURRENT_VERSION) {
+        DLOGW("Invalid signaling client metrics version...setting to highest supported by default version %d",
+              SIGNALING_CLIENT_METRICS_CURRENT_VERSION);
         pSignalingClientMetrics->version = SIGNALING_CLIENT_METRICS_CURRENT_VERSION;
     }
 
@@ -1277,6 +1275,7 @@ STATUS signalingGetMetrics(PSignalingClient pSignalingClient, PSignalingClientMe
             pSignalingClientMetrics->signalingClientStats.createClientTime = pSignalingClient->diagnostics.createClientTime;
             pSignalingClientMetrics->signalingClientStats.fetchClientTime = pSignalingClient->diagnostics.fetchClientTime;
             pSignalingClientMetrics->signalingClientStats.connectClientTime = pSignalingClient->diagnostics.connectClientTime;
+            pSignalingClientMetrics->signalingClientStats.offerToAnswerTime = pSignalingClient->diagnostics.offerToAnswerTime;
         case 0:
             // Fill in the data structures according to the version of the requested structure
             pSignalingClientMetrics->signalingClientStats.signalingClientUptime = curTime - pSignalingClient->diagnostics.createTime;
@@ -1290,11 +1289,10 @@ STATUS signalingGetMetrics(PSignalingClient pSignalingClient, PSignalingClientMe
             pSignalingClientMetrics->signalingClientStats.dpApiCallLatency = pSignalingClient->diagnostics.dpApiLatency;
 
             pSignalingClientMetrics->signalingClientStats.connectionDuration =
-                    ATOMIC_LOAD_BOOL(&pSignalingClient->connected) ? curTime - pSignalingClient->diagnostics.connectTime : 0;
+                ATOMIC_LOAD_BOOL(&pSignalingClient->connected) ? curTime - pSignalingClient->diagnostics.connectTime : 0;
             pSignalingClientMetrics->signalingClientStats.apiCallRetryCount = pSignalingClient->diagnostics.stateMachineRetryCount;
         default:
             break;
-
     }
     MUTEX_UNLOCK(pSignalingClient->diagnosticsLock);
 

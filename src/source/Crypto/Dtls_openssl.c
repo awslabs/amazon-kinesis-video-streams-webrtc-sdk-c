@@ -598,7 +598,7 @@ STATUS dtlsSessionIsInitFinished(PDtlsSession pDtlsSession, PBOOL pIsConnected)
     // The state change happens in the timer callback anyways. But the callback is invoked every
     // 200 ms, hence by the time the state change occurs, it could be 200ms later worst case.
     // This does not reduce any start up timing, but it helps in getting the accurate DTLS setup time
-    if(*pIsConnected) {
+    if (*pIsConnected) {
         dtlsSessionChangeState(pDtlsSession, RTC_DTLS_TRANSPORT_STATE_CONNECTED);
     }
 

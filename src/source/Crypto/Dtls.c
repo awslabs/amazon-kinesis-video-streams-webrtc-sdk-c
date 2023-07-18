@@ -69,7 +69,7 @@ STATUS dtlsSessionChangeState(PDtlsSession pDtlsSession, RTC_DTLS_TRANSPORT_STAT
 
     if (pDtlsSession->state == RTC_DTLS_TRANSPORT_STATE_CONNECTING && newState == RTC_DTLS_TRANSPORT_STATE_CONNECTED) {
         // Need to set this so that we do not calculate the time taken again. We set the new state in 2 different places
-        if(pDtlsSession->dtlsSessionStartTime != 0) {
+        if (pDtlsSession->dtlsSessionStartTime != 0) {
             PROFILE_WITH_START_TIME_OBJ(pDtlsSession->dtlsSessionStartTime, pDtlsSession->dtlsSessionSetupTime, "DTLS initialization completion");
             pDtlsSession->dtlsSessionStartTime = 0;
         }

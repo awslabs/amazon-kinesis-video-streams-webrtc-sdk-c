@@ -2178,7 +2178,7 @@ PVOID receiveLwsMessageWrapper(PVOID args)
             pSignalingClient->offerTime = GETTIME();
         }
         if (messageType == SIGNALING_MESSAGE_TYPE_ANSWER) {
-            PROFILE_WITH_START_TIME(pSignalingClient->offerTime, "Offer to answer time");
+            PROFILE_WITH_START_TIME_OBJ(pSignalingClient->offerTime, pSignalingClient->diagnostics.offerToAnswerTime, "Offer to answer time");
         }
         CHK_STATUS(pSignalingClient->signalingClientCallbacks.messageReceivedFn(pSignalingClient->signalingClientCallbacks.customData,
                                                                                 &pSignalingMessageWrapper->receivedSignalingMessage));

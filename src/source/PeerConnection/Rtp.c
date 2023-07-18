@@ -343,9 +343,6 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
     }
 
 CleanUp:
-    if (pKvsPeerConnection->firstFrame) {
-        pKvsPeerConnection->firstFrame = FALSE;
-    }
     if (locked) {
         MUTEX_UNLOCK(pKvsPeerConnection->pSrtpSessionLock);
     }
