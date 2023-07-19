@@ -30,6 +30,11 @@ option(THREAD_SANITIZER "Build with ThreadSanitizer." OFF)
 option(UNDEFINED_BEHAVIOR_SANITIZER "Build with UndefinedBehaviorSanitizer." OFF)
 option(LINK_PROFILER "Link gperftools profiler" OFF)
 
+if(WIN32)
+  set(EXT_PTHREAD_INCLUDE_DIR "C:\\tools\\pthreads-w32-2-9-1-release\\Pre-built.2\\include")
+  set(EXT_PTHREAD_LIBRARIES "C:\\tools\\pthreads-w32-2-9-1-release\\Pre-built.2\\lib\\x64\\libpthreadGC2.a")
+endif()
+
 execute_process(
         COMMAND git rev-parse HEAD
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
