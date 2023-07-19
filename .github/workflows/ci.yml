@@ -354,6 +354,8 @@ jobs:
         run: |
           curl.exe -o C:\tools\pthreads-w32-2-9-1-release.zip ftp://sourceware.org/pub/pthreads-win32/pthreads-w32-2-9-1-release.zip
           Expand-Archive -Path C:\tools\pthreads-w32-2-9-1-release.zip -DestinationPath C:\tools\
+          cd C:\tools\pthreads-w32-2-9-1-release\Pre-built.2\include
+          dir 
           choco install nasm strawberryperl
       - name: Build repository
         shell: powershell

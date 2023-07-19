@@ -22,9 +22,9 @@ if (USE_OPENSSL)
 else()
   set(LWS_WITH_MBEDTLS ON)
 endif()
-if (WIN32)
-  find_program(MAKE_EXE NAMES nmake)
-endif()
+
+message("PTHREAD.h !!!!!: ${EXT_PTHREAD_INCLUDE_DIR}")
+
 ExternalProject_Add(project_libwebsockets
     GIT_REPOSITORY    https://github.com/warmcat/libwebsockets.git
     GIT_TAG           v4.2.2
@@ -53,7 +53,10 @@ ExternalProject_Add(project_libwebsockets
         -DLWS_HAVE_PTHREAD_H=1 
         -DLWS_EXT_PTHREAD_INCLUDE_DIR=${EXT_PTHREAD_INCLUDE_DIR}
         -DLWS_EXT_PTHREAD_LIBRARIES=${EXT_PTHREAD_LIBRARIES}
+        -DLWS_WITH_MINIMAL_EXAMPLES=1
+        -DLWS_OPENSSL_INCLUDE_DIRS={OPENSSL_INCLUDE_DIRS}
+        -DLWS_OPENSSL_SSL_LIBRARY=${OPENSSL_SSL_LIBRARY}
+        -DLWS_OPENSSL_CRYPTO_LIBRARY=${OPENSSL_CRYPTO_LIBRARY}
     BUILD_ALWAYS      TRUE
-    BUILD_COMMAND     ${MAKE_EXE}
     TEST_COMMAND      ""
 )
