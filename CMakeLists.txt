@@ -30,13 +30,6 @@ option(THREAD_SANITIZER "Build with ThreadSanitizer." OFF)
 option(UNDEFINED_BEHAVIOR_SANITIZER "Build with UndefinedBehaviorSanitizer." OFF)
 option(LINK_PROFILER "Link gperftools profiler" OFF)
 
-if(WIN32) 
-  set(EXT_PTHREAD_INCLUDE_DIR "C:/tools/pthreads-w32-2-9-1-release/Pre-built.2/include" CACHE PATH "EXT_PTHREAD_INCLUDE_DIR for libwebsockets")
-  set(EXT_PTHREAD_LIBRARIES "C:/tools/pthreads-w32-2-9-1-release/Pre-built.2/lib/x64/libpthreadGC2.a" CACHE PATH "EXT_PTHREAD_LIBRARIES for libwebsockets")
-  set(OPENSSL_INCLUDE_DIRS "C:/Program Files/OpenSSL/include" CACHE PATH "OPENSSL_INCLUDE_DIRS for libwebsockets")
-  set(OPENSSL_LIBRARIES "C:/Program Files/OpenSSL/lib/libssl.lib;C:/Program Files/OpenSSL/lib/libcrypto.lib" CACHE PATH "OPENSSL_LIBRARIES for libwebsockets")
-endif()
-
 execute_process(
         COMMAND git rev-parse HEAD
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
@@ -137,11 +130,29 @@ if(BUILD_DEPENDENCIES)
   endif()
 
 
-  set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
-                 -DOPENSSL_DIR=${OPEN_SRC_INSTALL_PREFIX}
-                 -DUSE_OPENSSL=${USE_OPENSSL}
-                 -DUSE_MBEDTLS=${USE_MBEDTLS}
-                 -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
+  if(WIN32)
+    set(EXT_PTHREAD_INCLUDE_DIR "C:/tools/pthreads-w32-2-9-1-release/Pre-built.2/include" CACHE PATH "EXT_PTHREAD_INCLUDE_DIR for libwebsockets")
+    set(EXT_PTHREAD_LIBRARIES "C:/tools/pthreads-w32-2-9-1-release/Pre-built.2/lib/x64/libpthreadGC2.a" CACHE PATH "EXT_PTHREAD_LIBRARIES for libwebsockets")
+    set(OPENSSL_INCLUDE_DIRS "C:/Program Files/OpenSSL/include" CACHE PATH "OPENSSL_INCLUDE_DIRS for libwebsockets")
+    set(OPENSSL_LIBRARIES "C:/Program Files/OpenSSL/lib/libssl.lib;C:/Program Files/OpenSSL/lib/libcrypto.lib" CACHE PATH "OPENSSL_LIBRARIES for libwebsockets")
+    set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
+                  -DOPENSSL_DIR=${OPEN_SRC_INSTALL_PREFIX}
+                  -DUSE_OPENSSL=${USE_OPENSSL}
+                  -DUSE_MBEDTLS=${USE_MBEDTLS}
+                  -DLWS_HAVE_PTHREAD_H=1 
+                  -DLWS_EXT_PTHREAD_INCLUDE_DIR=${EXT_PTHREAD_INCLUDE_DIR}
+                  -DLWS_EXT_PTHREAD_LIBRARIES=${EXT_PTHREAD_LIBRARIES}
+                  -DLWS_OPENSSL_INCLUDE_DIRS=${OPEN_SRC_INCLUDE_DIRS}
+                  -DLWS_OPENSSL_LIBRARIES=${OPENSSL_LIBRARIES}
+                  -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
+  message("PPPPPPPPPPPPPPPPP")
+  else()
+    set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
+                  -DOPENSSL_DIR=${OPEN_SRC_INSTALL_PREFIX}
+                  -DUSE_OPENSSL=${USE_OPENSSL}
+                  -DUSE_MBEDTLS=${USE_MBEDTLS}
+                  -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
+  endif()
   build_dependency(websockets ${BUILD_ARGS})
 
   set(BUILD_ARGS
