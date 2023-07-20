@@ -356,7 +356,7 @@ jobs:
           cd C:\tools\
           dir
           Expand-Archive -Path C:\tools\pthreads-w32-2-9-1-release.zip -DestinationPath C:\tools\
-          cd C:\tools\pthreads-w32-2-9-1-release\
+          cd C:\tools\
           dir 
           choco install nasm strawberryperl
       - name: Build repository
