@@ -25,17 +25,16 @@ else()
   set(LWS_WITH_MBEDTLS ON)
 endif()
 
-set(EXT_PTHREAD_INCLUDE_DIR CACHE PATH "C:/tools/pthreads-w32-2-9-1-release/Pre-built.2/include")
-set(EXT_PTHREAD_LIBRARIES CACHE PATH "C:/tools/pthreads-w32-2-9-1-release/Pre-built.2/lib/x64/libpthreadGC2.a")
-set(OPENSSL_INCLUDE_DIRS CACHE PATH "C:/Program Files/OpenSSL/include")
-set(OPENSSL_LIBRARIES CACHE PATH "C:/Program Files/OpenSSL/lib/libssl.lib C:/Program Files/OpenSSL/lib/libcrypto.lib")
+set(EXT_PTHREAD_INCLUDE_DIR "C:/tools/pthreads-w32-2-9-1-release/Pre-built.2/include" CACHE PATH "EXT_PTHREAD_INCLUDE_DIR")
+set(EXT_PTHREAD_LIBRARIES "C:/tools/pthreads-w32-2-9-1-release/Pre-built.2/lib/x64/libpthreadGC2.a" CACHE PATH "EXT_PTHREAD_LIBRARIES")
+set(OPENSSL_INCLUDE_DIRS "C:/Program Files/OpenSSL/include" CACHE PATH "OPENSSL_INCLUDE_DIRS")
+set(OPENSSL_LIBRARIES "C:/Program Files/OpenSSL/lib/libssl.lib C:/Program Files/OpenSSL/lib/libcrypto.lib" CACHE PATH "OPENSSL_LIBRARIES")
 
 message("USEOPENSSL KKKKKK: ${USE_OPENSSL}")
 message("PTHREAD.h !!!!!: ${EXT_PTHREAD_INCLUDE_DIR}")
 message("PTHREAD.h !!!!!**********: ${EXT_PTHREAD_LIBRARIES}")
 message("OPENSSL ^^^^^^: ${OPENSSL_INCLUDE_DIRS}")
-message("OPENSSL SSL @@@@@@@: ${OPENSSL_SSL_LIBRARY}")
-message("OPENSSL CRYPTO @@@@@@@: ${OPENSSL_CRYPTO_LIBRARY}")
+message("OPENSSL *********: ${OPENSSL_LIBRARIES}")
 
 ExternalProject_Add(project_libwebsockets
     GIT_REPOSITORY    https://github.com/warmcat/libwebsockets.git
@@ -63,11 +62,11 @@ ExternalProject_Add(project_libwebsockets
         -DCMAKE_BUILD_TYPE=DEBUG
         -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
         -DLWS_HAVE_PTHREAD_H=1 
-        -DLWS_EXT_PTHREAD_INCLUDE_DIR="C:\\tools\\pthreads-w32-2-9-1-release\\Pre-built.2\\include"
-        -DLWS_EXT_PTHREAD_LIBRARIES="C:\\tools\\pthreads-w32-2-9-1-release\\Pre-built.2\\lib\\x64\\libpthreadGC2.a"
+        -DLWS_EXT_PTHREAD_INCLUDE_DIR=${EXT_PTHREAD_INCLUDE_DIR}
+        -DLWS_EXT_PTHREAD_LIBRARIES=${EXT_PTHREAD_LIBRARIES}
         -DLWS_WITH_MINIMAL_EXAMPLES=1
-        -DLWS_OPENSSL_INCLUDE_DIRS="C:\\Program Files\\OpenSSL\\include"
-        -DLWS_OPENSSL_LIBRARIES="C:\\Program Files\\OpenSSL\\lib\\libssl.lib C:\\Program Files\\OpenSSL\\lib\\libcrypto.lib"
+        -DLWS_OPENSSL_INCLUDE_DIRS=${OPEN_SRC_INCLUDE_DIRS}
+        -DLWS_OPENSSL_LIBRARIES=${OPENSSL_LIBRARIES}
     BUILD_ALWAYS      TRUE
     TEST_COMMAND      ""
 )
