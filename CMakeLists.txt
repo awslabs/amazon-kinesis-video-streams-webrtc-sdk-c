@@ -30,23 +30,11 @@ option(THREAD_SANITIZER "Build with ThreadSanitizer." OFF)
 option(UNDEFINED_BEHAVIOR_SANITIZER "Build with UndefinedBehaviorSanitizer." OFF)
 option(LINK_PROFILER "Link gperftools profiler" OFF)
 
-if(WIN32)
-  message("YYYYYYYYYYY")
-  set(CMAKE_OBJECT_PATH_MAX 300)
-
-  set(EXT_PTHREAD_INCLUDE_DIR CACHE PATH "C:\\tools\\pthreads-w32-2-9-1-release\\Pre-built.2\\include\\")
-  set(EXT_PTHREAD_LIBRARIES CACHE PATH "C:\\tools\\pthreads-w32-2-9-1-release\\Pre-built.2\\lib\\x64\\libpthreadGC2.a")
-  set(OPENSSL_INCLUDE_DIRS CACHE PATH "C:\\Program Files\\OpenSSL\\include\\")
-  set(OPENSSL_SSL_LIBRARY CACHE PATH "C:\\Program Files\\OpenSSL\\lib\\libssl.lib;")
-  set(OPENSSL_CRYPTO_LIBRARY CACHE PATH "C:\\Program Files\\OpenSSL\\lib\\libcrypto.lib;")
-
-  message("@@@@@@@@@@@@@@@@@@@@@@@ USEOPENSSL KKKKKK: ${USE_OPENSSL}")
-  message("@@@@@@@@@@@@@@@@@@@@@@@ PTHREAD.h !!!!!: ${EXT_PTHREAD_INCLUDE_DIR}")
-  message("@@@@@@@@@@@@@@@@@@@@@@@ PTHREAD.h !!!!!**********: ${EXT_PTHREAD_LIBRARIES}")
-  message("@@@@@@@@@@@@@@@@@@@@@@@ OPENSSL ^^^^^^: ${OPENSSL_INCLUDE_DIRS}")
-  message("@@@@@@@@@@@@@@@@@@@@@@@ OPENSSL SSL @@@@@@@: ${OPENSSL_SSL_LIBRARY}")
-  message("@@@@@@@@@@@@@@@@@@@@@@@ OPENSSL CRYPTO @@@@@@@: ${OPENSSL_CRYPTO_LIBRARY}")
-endif()
+set(EXT_PTHREAD_INCLUDE_DIR CACHE PATH "C:\\tools\\pthreads-w32-2-9-1-release\\Pre-built.2\\include")
+set(EXT_PTHREAD_LIBRARIES CACHE PATH "C:\\tools\\pthreads-w32-2-9-1-release\\Pre-built.2\\lib\\x64\\libpthreadGC2.a")
+set(OPENSSL_INCLUDE_DIRS CACHE PATH "C:\\Program Files\\OpenSSL\\include")
+set(OPENSSL_SSL_LIBRARY CACHE PATH "C:\\Program Files\\OpenSSL\\lib\\libssl.lib")
+set(OPENSSL_CRYPTO_LIBRARY CACHE PATH "C:\\Program Files\\OpenSSL\\lib\\libcrypto.lib")
 
 execute_process(
         COMMAND git rev-parse HEAD
