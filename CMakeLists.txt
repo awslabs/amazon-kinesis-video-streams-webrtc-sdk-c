@@ -32,11 +32,11 @@ option(LINK_PROFILER "Link gperftools profiler" OFF)
 
 if(WIN32)
   message("YYYYYYYYYYY")
-  option(EXT_PTHREAD_INCLUDE_DIR "C:\\tools\\pthreads-w32-2-9-1-release\\Pre-built.2\\include\\" CACHE PATH "Pthread.h path")
-  option(EXT_PTHREAD_LIBRARIES "C:\\tools\\pthreads-w32-2-9-1-release\\Pre-built.2\\lib\\x64\\libpthreadGC2.a" CACHE PATH "libpthreadGC2.a path")
-  option(OPENSSL_INCLUDE_DIRS "C:\\Program Files\\OpenSSL\\include\\" CACHE PATH "OpenSSL include dir")
-  option(OPENSSL_SSL_LIBRARY "C:\\Program Files\\OpenSSL\\lib\\libssl.lib;" CACHE PATH "OpenSSL ssl")
-  option(OPENSSL_CRYPTO_LIBRARY "C:\\Program Files\\OpenSSL\\lib\\libcrypto.lib;" CACHE PATH "OpenSSL crypto")
+  option(EXT_PTHREAD_INCLUDE_DIR "C:\\tools\\pthreads-w32-2-9-1-release\\Pre-built.2\\include\\")
+  option(EXT_PTHREAD_LIBRARIES "C:\\tools\\pthreads-w32-2-9-1-release\\Pre-built.2\\lib\\x64\\libpthreadGC2.a")
+  option(OPENSSL_INCLUDE_DIRS "C:\\Program Files\\OpenSSL\\include\\")
+  option(OPENSSL_SSL_LIBRARY "C:\\Program Files\\OpenSSL\\lib\\libssl.lib;")
+  option(OPENSSL_CRYPTO_LIBRARY "C:\\Program Files\\OpenSSL\\lib\\libcrypto.lib;")
 endif()
 
 execute_process(
