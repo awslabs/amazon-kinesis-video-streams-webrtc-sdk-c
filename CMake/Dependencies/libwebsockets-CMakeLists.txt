@@ -8,7 +8,7 @@ SET(PATCH_COMMAND git apply --ignore-whitespace ${CMAKE_CURRENT_LIST_DIR}/libweb
 
 include(ExternalProject)
 
-if (BUILD_STATIC_LIBS or WIN32)
+if (BUILD_STATIC_LIBS OR WIN32)
   set(LWS_WITH_STATIC 1)
   set(LWS_WITH_SHARED 0)
 else()

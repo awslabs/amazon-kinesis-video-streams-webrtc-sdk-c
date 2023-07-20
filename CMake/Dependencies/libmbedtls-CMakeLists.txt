@@ -4,7 +4,7 @@ project(libmbedtls-download NONE)
 
 include(ExternalProject)
 
-if (BUILD_STATIC_LIBS)
+if (BUILD_STATIC_LIBS OR WIN32)
   set(BUILD_SHARED 0)
 else()
   set(BUILD_SHARED 1)

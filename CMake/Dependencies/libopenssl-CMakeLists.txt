@@ -12,7 +12,7 @@ else()
     list(APPEND MAKE_EXE "-j$ENV{CMAKE_BUILD_PARALLEL_LEVEL}")
   endif()
 
-  if (BUILD_STATIC_LIBS)
+  if (BUILD_STATIC_LIBS OR WIN32)
     SET(OPENSSL_EXTRA ${OPENSSL_EXTRA} no-shared no-dso)
   endif()
 

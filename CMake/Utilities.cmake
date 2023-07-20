@@ -41,6 +41,7 @@ function(build_dependency lib_name)
   # anything after lib_name(${ARGN}) are assumed to be arguments passed over to
   # library building cmake.
   set(build_args ${ARGN})
+  message("UUUUUUUUUUUUUUUUUU: ${ARGN} BBBBBBBBBBBBBB ${build_args}")
 
   file(REMOVE_RECURSE ${OPEN_SRC_INSTALL_PREFIX}/lib${lib_name})
 
@@ -54,6 +55,8 @@ function(build_dependency lib_name)
   file(GLOB LIB_PATCHES "./CMake/Dependencies/lib${lib_name}-*.patch")
   message(STATUS "Copying patches for dependency ${lib_name}: ${LIB_PATCHES}")
   file(COPY ${LIB_PATCHES} DESTINATION ${OPEN_SRC_INSTALL_PREFIX}/lib${lib_name}/)
+
+  message("TTTTTTTTTTTTTTTT: ${CMAKE_COMMAND} ${build_args} -DOPEN_SRC_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX} -G ${CMAKE_GENERATOR} . ${OPEN_SRC_INSTALL_PREFIX}/lib${lib_name}")
 
   execute_process(
     COMMAND ${CMAKE_COMMAND} ${build_args}
