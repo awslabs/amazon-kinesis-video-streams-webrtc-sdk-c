@@ -370,7 +370,7 @@ jobs:
       - name: Build repository
         shell: powershell
         run: |
-          $env:Path += ';C:\Strawberry\perl\site\bin;C:\Strawberry\perl\bin;C:\Strawberry\c\bin;C:\Program Files\NASM;D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\open-source\bin;C:\tools\pthreads-w32-2-9-1-release\Pre-built.2\lib\x64;C:\tools\pthreads-w32-2-9-1-release\Pre-built.2\include'
+          $env:Path += ';C:\Strawberry\perl\site\bin;C:\Strawberry\perl\bin;C:\Strawberry\c\bin;C:\Program Files\NASM;D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\open-source\bin;'
           git config --system core.longpaths true
           .github/build_windows.bat
       - name: Run tests

@@ -30,6 +30,13 @@ option(THREAD_SANITIZER "Build with ThreadSanitizer." OFF)
 option(UNDEFINED_BEHAVIOR_SANITIZER "Build with UndefinedBehaviorSanitizer." OFF)
 option(LINK_PROFILER "Link gperftools profiler" OFF)
 
+if(WIN32) 
+  set(EXT_PTHREAD_INCLUDE_DIR "C:/tools/pthreads-w32-2-9-1-release/Pre-built.2/include" CACHE PATH "EXT_PTHREAD_INCLUDE_DIR for libwebsockets")
+  set(EXT_PTHREAD_LIBRARIES "C:/tools/pthreads-w32-2-9-1-release/Pre-built.2/lib/x64/libpthreadGC2.a" CACHE PATH "EXT_PTHREAD_LIBRARIES for libwebsockets")
+  set(OPENSSL_INCLUDE_DIRS "C:/Program Files/OpenSSL/include" CACHE PATH "OPENSSL_INCLUDE_DIRS for libwebsockets")
+  set(OPENSSL_LIBRARIES "C:/Program Files/OpenSSL/lib/libssl.lib;C:/Program Files/OpenSSL/lib/libcrypto.lib" CACHE PATH "OPENSSL_LIBRARIES for libwebsockets")
+endif()
+
 execute_process(
         COMMAND git rev-parse HEAD
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
