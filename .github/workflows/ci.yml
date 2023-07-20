@@ -353,6 +353,8 @@ jobs:
         shell: powershell
         run: |
           curl.exe -o C:\tools\pthreads-w32-2-9-1-release.zip ftp://sourceware.org/pub/pthreads-win32/pthreads-w32-2-9-1-release.zip
+          cd C:\tools\
+          dir
           Expand-Archive -Path C:\tools\pthreads-w32-2-9-1-release.zip -DestinationPath C:\tools\
           cd C:\tools\pthreads-w32-2-9-1-release\
           dir 
