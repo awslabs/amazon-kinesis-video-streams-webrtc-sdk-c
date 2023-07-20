@@ -28,7 +28,7 @@ endif()
 set(EXT_PTHREAD_INCLUDE_DIR CACHE PATH "C:/tools/pthreads-w32-2-9-1-release/Pre-built.2/include")
 set(EXT_PTHREAD_LIBRARIES CACHE PATH "C:/tools/pthreads-w32-2-9-1-release/Pre-built.2/lib/x64/libpthreadGC2.a")
 set(OPENSSL_INCLUDE_DIRS CACHE PATH "C:/Program Files/OpenSSL/include")
-set(OPENSSL_LIBRARIES CACHE PATH "C:/Program Files/OpenSSL/lib/libssl.lib;C:/Program Files/OpenSSL/lib/libcrypto.lib")
+set(OPENSSL_LIBRARIES CACHE PATH "C:/Program Files/OpenSSL/lib/libssl.lib C:/Program Files/OpenSSL/lib/libcrypto.lib")
 
 message("USEOPENSSL KKKKKK: ${USE_OPENSSL}")
 message("PTHREAD.h !!!!!: ${EXT_PTHREAD_INCLUDE_DIR}")
@@ -67,7 +67,7 @@ ExternalProject_Add(project_libwebsockets
         -DLWS_EXT_PTHREAD_LIBRARIES="C:\\tools\\pthreads-w32-2-9-1-release\\Pre-built.2\\lib\\x64\\libpthreadGC2.a"
         -DLWS_WITH_MINIMAL_EXAMPLES=1
         -DLWS_OPENSSL_INCLUDE_DIRS="C:\\Program Files\\OpenSSL\\include"
-        -DLWS_OPENSSL_LIBRARIES="C:\\Program Files\\OpenSSL\\lib\\libssl.lib;C:\\Program Files\\OpenSSL\\lib\\libcrypto.lib"
+        -DLWS_OPENSSL_LIBRARIES="C:\\Program Files\\OpenSSL\\lib\\libssl.lib C:\\Program Files\\OpenSSL\\lib\\libcrypto.lib"
     BUILD_ALWAYS      TRUE
     TEST_COMMAND      ""
 )
