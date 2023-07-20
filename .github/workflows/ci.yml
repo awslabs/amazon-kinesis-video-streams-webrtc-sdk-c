@@ -356,17 +356,17 @@ jobs:
           mkdir C:\tools\pthreads-w32-2-9-1-release\
           Expand-Archive -Path C:\tools\pthreads-w32-2-9-1-release.zip -DestinationPath C:\tools\ 
           choco install nasm strawberryperl
-      - name: Build libwebsockets from source
-        shell: powershell
-        run: |
-          $env:Path += ';C:\Strawberry\perl\site\bin;C:\Strawberry\perl\bin;C:\Strawberry\c\bin;C:\Program Files\NASM;D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\open-source\bin;C:\tools\pthreads-w32-2-9-1-release\Pre-built.2\lib\x64;C:\tools\pthreads-w32-2-9-1-release\Pre-built.2\include'
-          git config --system core.longpaths true
-          git clone https://github.com/warmcat/libwebsockets.git
-          cd libwebsockets
-          mkdir build 
-          cd build
-          cmake .. -DLWS_HAVE_PTHREAD_H=1 -DLWS_EXT_PTHREAD_INCLUDE_DIR="C:/tools/pthreads-w32-2-9-1-release/Pre-built.2/include" -DLWS_EXT_PTHREAD_LIBRARIES="C:/tools/pthreads-w32-2-9-1-release/Pre-built.2/lib/x64/libpthreadGC2.a" -DLWS_WITH_MINIMAL_EXAMPLES=1 -DLWS_OPENSSL_INCLUDE_DIRS="C:/Program Files/OpenSSL/include" -DLWS_OPENSSL_SSL_LIBRARY="C:/Program Files/OpenSSL/lib/libssl.lib" -DLWS_OPENSSL_CRYPTO_LIBRARY="C:/Program Files/OpenSSL/lib/libcrypto.lib"
-          cmake --build . --config DEBUG
+      # - name: Build libwebsockets from source
+      #   shell: powershell
+      #   run: |
+      #     $env:Path += ';C:\Strawberry\perl\site\bin;C:\Strawberry\perl\bin;C:\Strawberry\c\bin;C:\Program Files\NASM;D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\open-source\bin;C:\tools\pthreads-w32-2-9-1-release\Pre-built.2\lib\x64;C:\tools\pthreads-w32-2-9-1-release\Pre-built.2\include'
+      #     git config --system core.longpaths true
+      #     git clone https://github.com/warmcat/libwebsockets.git
+      #     cd libwebsockets
+      #     mkdir build 
+      #     cd build
+      #     cmake .. -DLWS_HAVE_PTHREAD_H=1 -DLWS_EXT_PTHREAD_INCLUDE_DIR="C:/tools/pthreads-w32-2-9-1-release/Pre-built.2/include" -DLWS_EXT_PTHREAD_LIBRARIES="C:/tools/pthreads-w32-2-9-1-release/Pre-built.2/lib/x64/libpthreadGC2.a" -DLWS_WITH_MINIMAL_EXAMPLES=1 -DLWS_OPENSSL_INCLUDE_DIRS="C:/Program Files/OpenSSL/include" -DLWS_OPENSSL_SSL_LIBRARY="C:/Program Files/OpenSSL/lib/libssl.lib" -DLWS_OPENSSL_CRYPTO_LIBRARY="C:/Program Files/OpenSSL/lib/libcrypto.lib"
+      #     cmake --build . --config DEBUG
       - name: Build repository
         shell: powershell
         run: |
