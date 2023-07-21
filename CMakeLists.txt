@@ -132,9 +132,9 @@ if(BUILD_DEPENDENCIES)
 
   if(WIN32)
     set(EXT_PTHREAD_INCLUDE_DIR "C:/tools/pthreads-w32-2-9-1-release/Pre-built.2/include" CACHE PATH "EXT_PTHREAD_INCLUDE_DIR for libwebsockets")
-    set(EXT_PTHREAD_LIBRARIES "C:/tools/pthreads-w32-2-9-1-release/Pre-built.2/lib/x64/libpthreadGC2.a" CACHE PATH "EXT_PTHREAD_LIBRARIES for libwebsockets")
+    set(EXT_PTHREAD_LIBRARIES "C:/tools/pthreads-w32-2-9-1-release/Pre-built.2/lib/x64/libpthreadGC2.a" CACHE FILEPATH "EXT_PTHREAD_LIBRARIES for libwebsockets")
     set(OPENSSL_INCLUDE_DIRS "C:/Program Files/OpenSSL/include" CACHE PATH "OPENSSL_INCLUDE_DIRS for libwebsockets")
-    set(OPENSSL_LIBRARIES "C:/Program Files/OpenSSL/lib/libssl.lib C:/Program Files/OpenSSL/lib/libcrypto.lib" CACHE PATH "OPENSSL_LIBRARIES for libwebsockets")
+    set(OPENSSL_LIBRARIES "C:/Program Files/OpenSSL/lib/libssl.lib;C:/Program Files/OpenSSL/lib/libcrypto.lib" CACHE FILEPATH "OPENSSL_LIBRARIES for libwebsockets")
     set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
                   -DUSE_OPENSSL=${USE_OPENSSL}
                   -DUSE_MBEDTLS=${USE_MBEDTLS} 
