@@ -32,9 +32,6 @@ else()
   set(LWS_WITH_MBEDTLS ON)
 endif()
 
-if (HAVE_PTHREAD_H)
-  set()
-
 message("USEOPENSSL KKKKKK: ${USE_OPENSSL}")
 message("PTHREAD.h !!!!!: ${EXT_PTHREAD_INCLUDE_DIR}")
 message("PTHREAD.h !!!!!**********: ${EXT_PTHREAD_LIBRARIES}")
