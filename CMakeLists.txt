@@ -117,17 +117,17 @@ if(BUILD_DEPENDENCIES)
     message(FATAL_ERROR "Only one of ${SSL_OPTIONS} can be enabled")
   endif()
 
-  if (USE_OPENSSL)
-    set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
-                   -DBUILD_OPENSSL_PLATFORM=${BUILD_OPENSSL_PLATFORM}
-                   -DOPENSSL_EXTRA=${OPENSSL_EXTRA})
-    build_dependency(openssl ${BUILD_ARGS})
-    set(OPENSSL_ROOT_DIR ${OPEN_SRC_INSTALL_PREFIX})
-  elseif(USE_MBEDTLS)
-    set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
-                   "-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -std=c99")
-    build_dependency(mbedtls ${BUILD_ARGS})
-  endif()
+  # if (USE_OPENSSL)
+  #   set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
+  #                  -DBUILD_OPENSSL_PLATFORM=${BUILD_OPENSSL_PLATFORM}
+  #                  -DOPENSSL_EXTRA=${OPENSSL_EXTRA})
+  #   build_dependency(openssl ${BUILD_ARGS})
+  #   set(OPENSSL_ROOT_DIR ${OPEN_SRC_INSTALL_PREFIX})
+  # elseif(USE_MBEDTLS)
+  #   set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
+  #                  "-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -std=c99")
+  #   build_dependency(mbedtls ${BUILD_ARGS})
+  # endif()
 
 
   if(WIN32)
