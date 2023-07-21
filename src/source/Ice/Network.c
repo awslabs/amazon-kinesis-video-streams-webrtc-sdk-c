@@ -331,6 +331,38 @@ CleanUp:
     return retStatus;
 }
 
+BOOL isIpAddr(PCHAR hostname)
+{
+    UINT32 ip_1, ip_2, ip_3, ip_4, ip_5, ip_6, ip_7, ip_8;
+    return ((SSCANF(hostname, IPV4_TEMPLATE, &ip_1, &ip_2, &ip_3, &ip_4) == 4 && ip_1 >= 0 && ip_1 <= 255 && ip_2 >= 0 && ip_2 <= 255 && ip_3 >= 0 &&
+             ip_3 <= 255 && ip_4 >= 0 && ip_4 <= 255) ||
+            (SSCANF(hostname, IPV6_TEMPLATE, &ip_1, &ip_2, &ip_3, &ip_4, &ip_5, &ip_6, &ip_7, &ip_8) == 8));
+}
+
+STATUS getIpAddrFromDnsHostname(PCHAR hostname, PCHAR address)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    UINT8 i = 0, j = 0;
+    CHK(hostname != NULL && address != NULL, STATUS_NULL_ARG);
+    // TURN server URLs conform with the public IPv4 DNS hostname format defined here:
+    // https://docs.aws.amazon.com/vpc/latest/userguide/vpc-dns.html#vpc-dns-hostnames
+    // So, we first try to parse the IP from the hostname if it conforms to this format
+    // For example: 35-90-63-38.t-ae7dd61a.kinesisvideo.us-west-2.amazonaws.com
+    // Note: public IPv6 DNS hostnames are not available
+    while (hostname[i] != '.') {
+        if (hostname[i] >= '0' && hostname[i] <= '9') {
+            address[j] = hostname[i];
+        } else if (hostname[i] == '-') {
+            address[j] = '.';
+        }
+        j++;
+        i++;
+    }
+
+CleanUp:
+    return retStatus;
+}
+
 STATUS getIpWithHostName(PCHAR hostname, PKvsIpAddress destIp)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -340,36 +372,58 @@ STATUS getIpWithHostName(PCHAR hostname, PKvsIpAddress destIp)
     BOOL resolved = FALSE;
     struct sockaddr_in* ipv4Addr;
     struct sockaddr_in6* ipv6Addr;
+    struct in_addr inaddr;
+
+    CHAR addr[KVS_IP_ADDRESS_STRING_BUFFER_LEN + 1] = {'\0'};
 
     CHK(hostname != NULL, STATUS_NULL_ARG);
 
-    errCode = getaddrinfo(hostname, NULL, NULL, &res);
-    if (errCode != 0) {
-        errStr = errCode == EAI_SYSTEM ? strerror(errno) : (PCHAR) gai_strerror(errCode);
-        CHK_ERR(FALSE, STATUS_RESOLVE_HOSTNAME_FAILED, "getaddrinfo() with errno %s", errStr);
+    // Adding this check in case we directly get an IP address. With the current usage pattern,
+    // there is no way this function would receive an address directly, but having this check
+    // in place anyways
+    if (isIpAddr(hostname)) {
+        MEMCPY(addr, hostname, STRLEN(hostname));
+    } else {
+        retStatus = getIpAddrFromDnsHostname(hostname, addr);
     }
 
-    for (rp = res; rp != NULL && !resolved; rp = rp->ai_next) {
-        if (rp->ai_family == AF_INET) {
-            ipv4Addr = (struct sockaddr_in*) rp->ai_addr;
-            destIp->family = KVS_IP_FAMILY_TYPE_IPV4;
-            MEMCPY(destIp->address, &ipv4Addr->sin_addr, IPV4_ADDRESS_LENGTH);
-            resolved = TRUE;
-        } else if (rp->ai_family == AF_INET6) {
-            ipv6Addr = (struct sockaddr_in6*) rp->ai_addr;
-            destIp->family = KVS_IP_FAMILY_TYPE_IPV6;
-            MEMCPY(destIp->address, &ipv6Addr->sin6_addr, IPV6_ADDRESS_LENGTH);
-            resolved = TRUE;
+    // Verify the generated address has the format x.x.x.x
+    if (!isIpAddr(addr) || retStatus != STATUS_SUCCESS) {
+        CHAR address[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
+        DLOGW("Parsing for address failed for %s, fallback to getaddrinfo", hostname);
+        errCode = getaddrinfo(hostname, NULL, NULL, &res);
+        if (errCode != 0) {
+            errStr = errCode == EAI_SYSTEM ? strerror(errno) : (PCHAR) gai_strerror(errCode);
+            CHK_ERR(FALSE, STATUS_RESOLVE_HOSTNAME_FAILED, "getaddrinfo() with errno %s", errStr);
         }
+        for (rp = res; rp != NULL && !resolved; rp = rp->ai_next) {
+            if (rp->ai_family == AF_INET) {
+                ipv4Addr = (struct sockaddr_in*) rp->ai_addr;
+                destIp->family = KVS_IP_FAMILY_TYPE_IPV4;
+                MEMCPY(destIp->address, &ipv4Addr->sin_addr, IPV4_ADDRESS_LENGTH);
+                resolved = TRUE;
+            } else if (rp->ai_family == AF_INET6) {
+                ipv6Addr = (struct sockaddr_in6*) rp->ai_addr;
+                destIp->family = KVS_IP_FAMILY_TYPE_IPV6;
+                MEMCPY(destIp->address, &ipv6Addr->sin6_addr, IPV6_ADDRESS_LENGTH);
+                resolved = TRUE;
+            }
+        }
+        freeaddrinfo(res);
+        CHK_ERR(resolved, STATUS_HOSTNAME_NOT_FOUND, "Could not find network address of %s", hostname);
+        getIpAddrStr(destIp, address, ARRAY_SIZE(address));
+        DLOGI("ICE Server address for %s with getaddrinfo: %s", hostname, address);
     }
 
-    freeaddrinfo(res);
-    CHK_ERR(resolved, STATUS_HOSTNAME_NOT_FOUND, "could not find network address of %s", hostname);
+    else {
+        DLOGI("ICE Server address for %s: %s", hostname, addr);
+        inet_pton(AF_INET, addr, &inaddr);
+        destIp->family = KVS_IP_FAMILY_TYPE_IPV4;
+        MEMCPY(destIp->address, &inaddr, IPV4_ADDRESS_LENGTH);
+    }
 
 CleanUp:
-
     CHK_LOG_ERR(retStatus);
-
     return retStatus;
 }
 
