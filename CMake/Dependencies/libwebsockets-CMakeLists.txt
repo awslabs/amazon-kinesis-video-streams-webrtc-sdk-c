@@ -56,6 +56,7 @@ ExternalProject_Add(project_libwebsockets
         -DLWS_EXT_PTHREAD_LIBRARIES=${EXT_PTHREAD_LIBRARIES}
         -DLWS_OPENSSL_INCLUDE_DIRS=${OPENSSL_INCLUDE_DIRS}
         -DLWS_OPENSSL_LIBRARIES=${OPENSSL_LIBRARIES}
+        -Wno-error
     BUILD_ALWAYS      TRUE
     TEST_COMMAND      ""
 )
