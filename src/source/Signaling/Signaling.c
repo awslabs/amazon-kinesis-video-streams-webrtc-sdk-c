@@ -37,6 +37,9 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     CHK_STATUS(createValidateChannelInfo(pChannelInfo, &pSignalingClient->pChannelInfo));
     CHK_STATUS(validateSignalingCallbacks(pSignalingClient, pCallbacks));
     CHK_STATUS(validateSignalingClientInfo(pSignalingClient, pClientInfo));
+#ifdef KVS_USE_SIGNALING_CHANNEL_THREADPOOL
+    CHK_STATUS(threadpoolCreate(pSignalingClient->pThreadpool, KVS_SIGNALING_THREADPOOL_MIN, KVS_SIGNALING_THREADPOOL_MAX));
+#endif
 
     pSignalingClient->version = SIGNALING_CLIENT_CURRENT_VERSION;
 
@@ -221,6 +224,10 @@ STATUS freeSignaling(PSignalingClient* ppSignalingClient)
     stackQueueFree(pSignalingClient->pMessageQueue);
 
     hashTableFree(pSignalingClient->diagnostics.pEndpointToClockSkewHashMap);
+
+#ifdef KVS_USE_SIGNALING_CHANNEL_THREADPOOL
+    threadpoolFree(pSignalingClient->pThreadpool);
+#endif
 
     if (IS_VALID_MUTEX_VALUE(pSignalingClient->connectedLock)) {
         MUTEX_FREE(pSignalingClient->connectedLock);

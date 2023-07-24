@@ -497,7 +497,7 @@ extern "C" {
 /**
  * Version of signaling client
  */
-#define SIGNALING_CLIENT_CURRENT_VERSION 1
+#define SIGNALING_CLIENT_CURRENT_VERSION 2
 
 /**
  * Version of SignalingChannelDescription structure
