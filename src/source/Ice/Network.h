@@ -123,6 +123,17 @@ STATUS socketWrite(INT32, const void*, SIZE_T);
  */
 STATUS getIpWithHostName(PCHAR, PKvsIpAddress);
 
+/**
+ * @param - PCHAR - IN - IP address string to verify if it is IPv4 or IPv6 format
+ *
+ * @param - UINT16 - IN - Length of string
+ *
+ * @param - BOOL - OUT - Evaluates to TRUE if the provided string is IPv4/IPv6. False otherwise
+ *
+ * @return - STATUS status of execution
+ */
+BOOL isIpAddr(PCHAR, UINT16);
+
 STATUS getIpAddrStr(PKvsIpAddress, PCHAR, UINT32);
 
 BOOL isSameIpAddress(PKvsIpAddress, PKvsIpAddress, BOOL);

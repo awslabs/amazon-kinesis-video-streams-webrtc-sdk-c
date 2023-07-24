@@ -18,6 +18,16 @@ TEST_F(NetworkApiTest, GetIpWithHostNameTest)
     EXPECT_EQ(STATUS_SUCCESS, getIpWithHostName((PCHAR) "12.34.45.40", &ipAddress));
     EXPECT_EQ(STATUS_SUCCESS, getIpWithHostName((PCHAR) "2001:0db8:85a3:0000:0000:8a2e:0370:7334", &ipAddress));
     EXPECT_EQ(STATUS_RESOLVE_HOSTNAME_FAILED, getIpWithHostName((PCHAR) ".12.34.45.40", &ipAddress));
+    EXPECT_EQ(STATUS_RESOLVE_HOSTNAME_FAILED, getIpWithHostName((PCHAR) "...........", &ipAddress));
+}
+
+TEST_F(NetworkApiTest, ipIpAddrTest)
+{
+    EXPECT_EQ(FALSE, isIpAddr((PCHAR) "stun:stun.test.net:3478", STRLEN("stun:stun.test.net:3478")));
+    EXPECT_EQ(TRUE, isIpAddr((PCHAR) "12.34.45.40", STRLEN("12.34.45.40")));
+    EXPECT_EQ(FALSE, isIpAddr((PCHAR) "567.123.345.000", STRLEN("567.123.345.000")));
+    EXPECT_EQ(TRUE, isIpAddr((PCHAR) "2001:0db8:85a3:0000:0000:8a2e:0370:7334", STRLEN("2001:0db8:85a3:0000:0000:8a2e:0370:7334")));
+    EXPECT_EQ(FALSE, isIpAddr((PCHAR) "2001:85a3:0000:0000:8a2e:0370:7334", STRLEN("2001:85a3:0000:0000:8a2e:0370:7334")));
 }
 
 

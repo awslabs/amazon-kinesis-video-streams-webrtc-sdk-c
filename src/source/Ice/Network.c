@@ -331,33 +331,59 @@ CleanUp:
     return retStatus;
 }
 
-BOOL isIpAddr(PCHAR hostname)
+BOOL isIpAddr(PCHAR hostname, UINT16 length)
 {
+    BOOL status = TRUE;
     UINT32 ip_1, ip_2, ip_3, ip_4, ip_5, ip_6, ip_7, ip_8;
-    return ((SSCANF(hostname, IPV4_TEMPLATE, &ip_1, &ip_2, &ip_3, &ip_4) == 4 && ip_1 >= 0 && ip_1 <= 255 && ip_2 >= 0 && ip_2 <= 255 && ip_3 >= 0 &&
-             ip_3 <= 255 && ip_4 >= 0 && ip_4 <= 255) ||
-            (SSCANF(hostname, IPV6_TEMPLATE, &ip_1, &ip_2, &ip_3, &ip_4, &ip_5, &ip_6, &ip_7, &ip_8) == 8));
+    if (hostname == NULL || length > MAX_ICE_CONFIG_URI_LEN) {
+        DLOGW("Provided NULL hostname");
+        status = FALSE;
+    } else {
+        status = (SSCANF(hostname, IPV4_TEMPLATE, &ip_1, &ip_2, &ip_3, &ip_4) == 4 && ip_1 >= 0 && ip_1 <= 255 && ip_2 >= 0 && ip_2 <= 255 &&
+                  ip_3 >= 0 && ip_3 <= 255 && ip_4 >= 0 && ip_4 <= 255) ||
+            (SSCANF(hostname, IPV6_TEMPLATE, &ip_1, &ip_2, &ip_3, &ip_4, &ip_5, &ip_6, &ip_7, &ip_8) == 8);
+    }
+    return status;
 }
 
-STATUS getIpAddrFromDnsHostname(PCHAR hostname, PCHAR address)
+STATUS getIpAddrFromDnsHostname(PCHAR hostname, PCHAR address, UINT16 lengthSrc, UINT16 maxLenDst)
 {
     STATUS retStatus = STATUS_SUCCESS;
     UINT8 i = 0, j = 0;
+    UINT16 hostNameLen = lengthSrc;
     CHK(hostname != NULL && address != NULL, STATUS_NULL_ARG);
+    CHK(hostNameLen > 0 && hostNameLen < MAX_ICE_CONFIG_URI_LEN, STATUS_INVALID_ARG);
+
     // TURN server URLs conform with the public IPv4 DNS hostname format defined here:
     // https://docs.aws.amazon.com/vpc/latest/userguide/vpc-dns.html#vpc-dns-hostnames
     // So, we first try to parse the IP from the hostname if it conforms to this format
     // For example: 35-90-63-38.t-ae7dd61a.kinesisvideo.us-west-2.amazonaws.com
     // Note: public IPv6 DNS hostnames are not available
-    while (hostname[i] != '.') {
+    while (hostNameLen > 0 && hostname[i] != '.') {
         if (hostname[i] >= '0' && hostname[i] <= '9') {
+            if (j > maxLenDst) {
+                DLOGW("Generated address is past allowed size");
+                retStatus = STATUS_INVALID_ADDRESS_LENGTH;
+                break;
+            }
             address[j] = hostname[i];
         } else if (hostname[i] == '-') {
+            if (j > maxLenDst) {
+                DLOGW("Generated address is past allowed size");
+                retStatus = STATUS_INVALID_ADDRESS_LENGTH;
+                break;
+            }
             address[j] = '.';
+        } else {
+            DLOGW("Received unexpected hostname format: %s", hostname);
+            break;
         }
         j++;
         i++;
+        hostNameLen--;
     }
+
+    address[j] = '\0';
 
 CleanUp:
     return retStatus;
@@ -367,6 +393,7 @@ STATUS getIpWithHostName(PCHAR hostname, PKvsIpAddress destIp)
 {
     STATUS retStatus = STATUS_SUCCESS;
     INT32 errCode;
+    UINT16 hostnameLen, addrLen;
     PCHAR errStr;
     struct addrinfo *res, *rp;
     BOOL resolved = FALSE;
@@ -375,25 +402,28 @@ STATUS getIpWithHostName(PCHAR hostname, PKvsIpAddress destIp)
     struct in_addr inaddr;
 
     CHAR addr[KVS_IP_ADDRESS_STRING_BUFFER_LEN + 1] = {'\0'};
+    CHAR addressResolved[KVS_IP_ADDRESS_STRING_BUFFER_LEN + 1] = {'\0'};
 
     CHK(hostname != NULL, STATUS_NULL_ARG);
+
+    hostnameLen = STRLEN(hostname);
+    addrLen = SIZEOF(addr);
 
     // Adding this check in case we directly get an IP address. With the current usage pattern,
     // there is no way this function would receive an address directly, but having this check
     // in place anyways
-    if (isIpAddr(hostname)) {
-        MEMCPY(addr, hostname, STRLEN(hostname));
+    if (isIpAddr(hostname, hostnameLen)) {
+        MEMCPY(addr, hostname, hostnameLen);
     } else {
-        retStatus = getIpAddrFromDnsHostname(hostname, addr);
+        retStatus = getIpAddrFromDnsHostname(hostname, addr, hostnameLen, addrLen);
     }
 
     // Verify the generated address has the format x.x.x.x
-    if (!isIpAddr(addr) || retStatus != STATUS_SUCCESS) {
-        CHAR address[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
+    if (!isIpAddr(addr, hostnameLen) || retStatus != STATUS_SUCCESS) {
         DLOGW("Parsing for address failed for %s, fallback to getaddrinfo", hostname);
         errCode = getaddrinfo(hostname, NULL, NULL, &res);
         if (errCode != 0) {
-            errStr = errCode == EAI_SYSTEM ? strerror(errno) : (PCHAR) gai_strerror(errCode);
+            errStr = errCode == EAI_SYSTEM ? (strerror(errno)) : ((PCHAR) gai_strerror(errCode));
             CHK_ERR(FALSE, STATUS_RESOLVE_HOSTNAME_FAILED, "getaddrinfo() with errno %s", errStr);
         }
         for (rp = res; rp != NULL && !resolved; rp = rp->ai_next) {
@@ -411,8 +441,8 @@ STATUS getIpWithHostName(PCHAR hostname, PKvsIpAddress destIp)
         }
         freeaddrinfo(res);
         CHK_ERR(resolved, STATUS_HOSTNAME_NOT_FOUND, "Could not find network address of %s", hostname);
-        getIpAddrStr(destIp, address, ARRAY_SIZE(address));
-        DLOGI("ICE Server address for %s with getaddrinfo: %s", hostname, address);
+        getIpAddrStr(destIp, addressResolved, ARRAY_SIZE(addressResolved));
+        DLOGI("ICE Server address for %s with getaddrinfo: %s", hostname, addressResolved);
     }
 
     else {
