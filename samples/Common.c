@@ -336,6 +336,48 @@ CleanUp:
     CHK_LOG_ERR(retStatus);
 }
 
+STATUS resolveIceServerUrl(PCHAR originalIceServerUrl, PCHAR resolvedIceServerUrl)
+{
+    STATUS retStatus = STATUS_RESOLVE_HOSTNAME_FAILED;
+
+    SIZE_T resolvedIndex = 0;
+    BOOL inUrlRange = FALSE;
+    BOOL isIpResolved = FALSE;
+    CHAR replacement = '\0';
+
+    for (int i = 0; i < MAX_ICE_CONFIG_URI_LEN - 1; i++) {
+        replacement = originalIceServerUrl[i];
+
+        if (originalIceServerUrl[i] == ':') {
+            inUrlRange = !inUrlRange;
+        }
+
+        if (!isIpResolved && originalIceServerUrl[i] == '.') {
+            isIpResolved = TRUE;
+        }
+
+        if (!isIpResolved) {
+            if (inUrlRange && originalIceServerUrl[i] == '-') {
+                replacement = '.';
+            }
+        }
+
+        if (isIpResolved && inUrlRange) {
+            continue;
+        }
+
+        resolvedIceServerUrl[resolvedIndex] = replacement;
+        resolvedIndex++;
+    }
+
+    if (isIpResolved && !inUrlRange) {
+        resolvedIceServerUrl[resolvedIndex + 1] = '\0';
+        retStatus = STATUS_SUCCESS;
+    }
+
+    return retStatus;
+}
+
 STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcPeerConnection* ppRtcPeerConnection)
 {
     ENTERS();
@@ -385,7 +427,16 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
                  * It's recommended to not pass too many TURN iceServers to configuration because it will slow down ice gathering in non-trickle mode.
                  */
 
+#ifdef BYPASS_DNS_RESOLVE_TURN
+                CHAR resolvedIceServerUrl[MAX_ICE_CONFIG_URI_LEN];
+                if (resolveIceServerUrl(pIceConfigInfo->uris[j], resolvedIceServerUrl) == STATUS_SUCCESS) {
+                    STRNCPY(configuration.iceServers[uriCount + 1].urls, resolvedIceServerUrl, MAX_ICE_CONFIG_URI_LEN);
+                } else {
+                    STRNCPY(configuration.iceServers[uriCount + 1].urls, pIceConfigInfo->uris[j], MAX_ICE_CONFIG_URI_LEN);
+                }
+#else
                 STRNCPY(configuration.iceServers[uriCount + 1].urls, pIceConfigInfo->uris[j], MAX_ICE_CONFIG_URI_LEN);
+#endif
                 STRNCPY(configuration.iceServers[uriCount + 1].credential, pIceConfigInfo->password, MAX_ICE_CONFIG_CREDENTIAL_LEN);
                 STRNCPY(configuration.iceServers[uriCount + 1].username, pIceConfigInfo->userName, MAX_ICE_CONFIG_USER_NAME_LEN);
 

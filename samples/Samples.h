@@ -46,6 +46,9 @@ extern "C" {
 #define IOT_CORE_ROLE_ALIAS          ((PCHAR) "AWS_IOT_CORE_ROLE_ALIAS")
 #define IOT_CORE_THING_NAME          ((PCHAR) "AWS_IOT_CORE_THING_NAME")
 
+// Enable this macro to bypass turn server DNS resolve to improve the speed of connection establishment
+#define BYPASS_DNS_RESOLVE_TURN
+
 #define MASTER_DATA_CHANNEL_MESSAGE "This message is from the KVS Master"
 #define VIEWER_DATA_CHANNEL_MESSAGE "This message is from the KVS Viewer"
 
