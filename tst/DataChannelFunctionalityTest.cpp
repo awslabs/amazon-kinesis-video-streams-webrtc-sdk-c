@@ -107,7 +107,7 @@ TEST_F(DataChannelFunctionalityTest, dataChannelSendRecvMessageAfterDtlsComplete
 
     MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
 
-    auto onDataChannel = [](UINT64 customData, PRtcDataChannel pRtcDataChannel) { ATOMIC_STORE((PSIZE_T) customData, (SIZE_T) pRtcDataChannel); };
+    auto onDataChannel = [](UINT64 customData, PRtcDataChannel pRtcDataChannel) { ATOMIC_STORE((PSIZE_T)customData, reinterpret_cast<UINT64>(pRtcDataChannel)); };
 
     auto dataChannelOnOpenCallback = [](UINT64 customData, PRtcDataChannel pDataChannel) {
         UNUSED_PARAM(pDataChannel);

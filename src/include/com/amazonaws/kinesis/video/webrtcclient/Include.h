@@ -145,6 +145,8 @@ extern "C" {
 #define STATUS_CLOSE_SOCKET_FAILED                 STATUS_NETWORKING_BASE + 0x00000026
 #define STATUS_CREATE_SOCKET_PAIR_FAILED           STATUS_NETWORKING_BASE + 0x00000027
 #define STATUS_SOCKET_WRITE_FAILED                 STATUS_NETWORKING_BASE + 0X00000028
+#define STATUS_INVALID_ADDRESS_LENGTH              STATUS_NETWORKING_BASE + 0X00000029
+
 /*!@} */
 
 /////////////////////////////////////////////////////
