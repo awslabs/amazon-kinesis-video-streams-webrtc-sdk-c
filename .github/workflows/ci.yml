@@ -349,13 +349,13 @@ jobs:
     steps:
       - name: Clone repository
         uses: actions/checkout@v3
-      - name: Move cloned repo
-        shell: powershell
-        run: |
-          mkdir D:\a\webrtc
-          Move-Item -Path "D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\*" -Destination "D:\a\webrtc"
-          cd D:\a\webrtc
-          dir
+      # - name: Move cloned repo
+      #   shell: powershell
+      #   run: |
+      #     mkdir D:\a\webrtc
+      #     Move-Item -Path "D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\*" -Destination "D:\a\webrtc"
+      #     cd D:\a\webrtc
+      #     dir
       - name: Install dependencies
         shell: powershell
         run: |
