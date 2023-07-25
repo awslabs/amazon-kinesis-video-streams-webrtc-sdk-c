@@ -9,6 +9,7 @@ var group__NetworkingStatusCodes =
     [ "STATUS_GET_PORT_NUMBER_FAILED", "group__NetworkingStatusCodes.html#ga2bc59395c3c446e184bb876777f3205d", null ],
     [ "STATUS_GET_SOCKET_FLAG_FAILED", "group__NetworkingStatusCodes.html#ga6e1b04bd6be99e610925367a303bb770", null ],
     [ "STATUS_HOSTNAME_NOT_FOUND", "group__NetworkingStatusCodes.html#gad6650090d4ff2aca53eff7be8c52ad23", null ],
+    [ "STATUS_INVALID_ADDRESS_LENGTH", "group__NetworkingStatusCodes.html#ga60abd2cdcff41f7c32a95d6384dfefdc", null ],
     [ "STATUS_NETWORKING_BASE", "group__NetworkingStatusCodes.html#ga570d11f47891af68b4d9682318ddd0ee", null ],
     [ "STATUS_RESOLVE_HOSTNAME_FAILED", "group__NetworkingStatusCodes.html#gaedbdc23fa607cfb415a5608c0df01e57", null ],
     [ "STATUS_SECURE_SOCKET_READ_FAILED", "group__NetworkingStatusCodes.html#gaba8f0ce0461a218c95e6f2250abf6d58", null ],
