@@ -379,7 +379,6 @@ jobs:
       - name: Build repository
         shell: powershell
         run: |
-        #   cd D:\a\webrtc
           $env:Path += ';C:\Strawberry\perl\site\bin;C:\Strawberry\perl\bin;C:\Strawberry\c\bin;C:\Program Files\NASM;D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\open-source\bin;'
           git config --system core.longpaths true
           .github/build_windows.bat
