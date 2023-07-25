@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.6.3)
+cmake_minimum_required(VERSION 3.13)
 
 # Enabling the instrumented allocators to track memory
 add_definitions(-DINSTRUMENTED_ALLOCATORS)
