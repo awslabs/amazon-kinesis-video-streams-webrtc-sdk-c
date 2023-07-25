@@ -118,25 +118,25 @@ if(BUILD_DEPENDENCIES)
     message(FATAL_ERROR "Only one of ${SSL_OPTIONS} can be enabled")
   endif()
 
-  # if (USE_OPENSSL)
-  #   set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
-  #                  -DBUILD_OPENSSL_PLATFORM=${BUILD_OPENSSL_PLATFORM}
-  #                  -DOPENSSL_EXTRA=${OPENSSL_EXTRA})
-  #   build_dependency(openssl ${BUILD_ARGS})
-  #   set(OPENSSL_ROOT_DIR ${OPEN_SRC_INSTALL_PREFIX})
-  # elseif(USE_MBEDTLS)
-  #   set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
-  #                  "-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -std=c99")
-  #   build_dependency(mbedtls ${BUILD_ARGS})
-  # endif()
+  if (USE_OPENSSL)
+    set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
+                   -DBUILD_OPENSSL_PLATFORM=${BUILD_OPENSSL_PLATFORM}
+                   -DOPENSSL_EXTRA=${OPENSSL_EXTRA})
+    build_dependency(openssl ${BUILD_ARGS})
+    set(OPENSSL_ROOT_DIR ${OPEN_SRC_INSTALL_PREFIX})
+  elseif(USE_MBEDTLS)
+    set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
+                   "-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -std=c99")
+    build_dependency(mbedtls ${BUILD_ARGS})
+  endif()
 
 
   if(WIN32)
-    set(EXT_PTHREAD_INCLUDE_DIR "C:\\tools\\pthreads-w32-2-9-1-release\\Pre-built.2\\include\\")
-    set(EXT_PTHREAD_LIBRARIES "C:\\tools\\pthreads-w32-2-9-1-release\\Pre-built.2\\lib\\x64\\libpthreadGC2.a")
-    set(OPENSSL_INCLUDE_DIRS "C:\\Program Files\\OpenSSL\\include\\")
-    set(OPENSSL_CRYPTO_LIBRARY "C:\\Program Files\\OpenSSL\\lib\\libcrypto.lib")
-    set(OPENSSL_SSL_LIBRARY "C:\\Program Files\\OpenSSL\\lib\\libssl.lib")
+    set(EXT_PTHREAD_INCLUDE_DIR "C:/tools/pthreads-w32-2-9-1-release/Pre-built.2/include/")
+    set(EXT_PTHREAD_LIBRARIES "C:/tools/pthreads-w32-2-9-1-release/Pre-built.2/lib/x64/libpthreadGC2.a")
+    set(OPENSSL_INCLUDE_DIRS "${OPEN_SRC_INSTALL_PREFIX}/include/openssl")
+    set(OPENSSL_CRYPTO_LIBRARY "${OPEN_SRC_INSTALL_PREFIX}/lib/libcrypto.lib")
+    set(OPENSSL_SSL_LIBRARY "${OPEN_SRC_INSTALL_PREFIX}/lib/libssl.lib")
     set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
                   -DUSE_OPENSSL=${USE_OPENSSL}
                   -DUSE_MBEDTLS=${USE_MBEDTLS} 
