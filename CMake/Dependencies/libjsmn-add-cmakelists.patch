@@ -4,7 +4,7 @@ index 0000000..f4a1d44
 --- /dev/null
 +++ b/CMakeLists.txt
 @@ -0,0 +1,11 @@
-+cmake_minimum_required(VERSION 3.13)
++cmake_minimum_required(VERSION 2.8.12)
 +project(jsmn C)
 +
 +
