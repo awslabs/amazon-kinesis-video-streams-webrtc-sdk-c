@@ -131,9 +131,9 @@ if(BUILD_DEPENDENCIES)
 
 
   if(WIN32)
-    set(EXT_PTHREAD_INCLUDE_DIR "C:\\tools\\pthreads-w32-2-9-1-release\\Pre-built.2\\include" CACHE PATH "EXT_PTHREAD_INCLUDE_DIR for libwebsockets")
+    set(EXT_PTHREAD_INCLUDE_DIR "C:\\tools\\pthreads-w32-2-9-1-release\\Pre-built.2\\include\\" CACHE PATH "EXT_PTHREAD_INCLUDE_DIR for libwebsockets")
     set(EXT_PTHREAD_LIBRARIES "C:\\tools\\pthreads-w32-2-9-1-release\\Pre-built.2\\lib\\x64\\libpthreadGC2.a" CACHE FILEPATH "EXT_PTHREAD_LIBRARIES for libwebsockets")
-    set(OPENSSL_INCLUDE_DIRS "C:\\Program Files\\OpenSSL\\include" CACHE PATH "OPENSSL_INCLUDE_DIRS for libwebsockets")
+    set(OPENSSL_INCLUDE_DIRS "C:\\Program Files\\OpenSSL\\include\\" CACHE PATH "OPENSSL_INCLUDE_DIRS for libwebsockets")
     set(OPENSSL_CRYPTO_LIBRARY "C:\\Program Files\\OpenSSL\\lib\\libcrypto.lib" CACHE FILEPATH "OPENSSL_LIBRARIES for libwebsockets")
     set(OPENSSL_SSL_LIBRARY "C:\\Program Files\\OpenSSL\\lib\\libssl.lib" CACHE FILEPATH "OPENSSL_LIBRARIES for libwebsockets")
     set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
@@ -141,9 +141,9 @@ if(BUILD_DEPENDENCIES)
                   -DUSE_MBEDTLS=${USE_MBEDTLS} 
                   -DLWS_EXT_PTHREAD_INCLUDE_DIR=${EXT_PTHREAD_INCLUDE_DIR}
                   -DLWS_EXT_PTHREAD_LIBRARIES=${EXT_PTHREAD_LIBRARIES}
-                  -DLWS_OPENSSL_INCLUDE_DIRS=${OPEN_SRC_INCLUDE_DIRS}
-                  -DLWS_OPENSSL_CRYPTO_LIBRARY=${OPENSSL_CRYPTO_LIBRARY}
-                  -DLWS_OPENSSL_SSL_LIBRARY=${OPENSSL_SSL_LIBRARY}
+                  -DLWS_OPENSSL_INCLUDE_DIRS=${OPENSSL_INCLUDE_DIRS}
+                  -DMY_OPENSSL_CRYPTO_LIBRARY=${OPENSSL_CRYPTO_LIBRARY}
+                  -DMY_OPENSSL_SSL_LIBRARY=${OPENSSL_SSL_LIBRARY}
                   -DLWS_WITH_THREADPOOL=ON
                   -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
   message("PPPPPPPPPPPPPPPPP")
