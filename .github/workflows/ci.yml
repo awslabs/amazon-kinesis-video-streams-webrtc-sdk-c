@@ -384,12 +384,7 @@ jobs:
       - name: Run tests
         shell: powershell
         run: |
-          cd D:\a\webrtc\build\
-          dir
-          cd D:\a\webrtc\build\tst
-          dir
-          & "webrtc_client_test.exe --gtest_filter="-DataChannelFunctionalityTest.*:IceApiTest.*:IceFunctionalityTest.*:PeerConnectionFunctionalityTest.*:SignalingApiFunctionalityTest.*:TurnConnectionFunctionalityTest.*:RtpFunctionalityTest.marshallUnmarshallH264Data:RtpFunctionalityTest.packingUnpackingVerifySameH264Frame:RtcpFunctionalityTest.onRtcpPacketCompound:RtcpFunctionalityTest.twcc3"
-          & "webrtc_client_test.exe 
+          & "D:\a\webrtc\build\tst\webrtc_client_test.exe
   # arm64-cross-compilation:
   #   runs-on: ubuntu-20.04
   #   env:
