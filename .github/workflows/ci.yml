@@ -380,10 +380,15 @@ jobs:
         run: |
           cd D:\a\webrtc
           git config --system core.longpaths true
-          .github/build_windows.bat
+          .github\build_windows.bat
       - name: Run tests
         shell: powershell
         run: |
+          cd D:\a\webrtc\build\
+          dir
+          cd D:\a\webrtc\build\tst
+          dir
+          & "D:\a\webrtc\build\tst\webrtc_client_test.exe --gtest_filter='-DataChannelFunctionalityTest.*:IceApiTest.*:IceFunctionalityTest.*:PeerConnectionFunctionalityTest.*:SignalingApiFunctionalityTest.*:TurnConnectionFunctionalityTest.*:RtpFunctionalityTest.marshallUnmarshallH264Data:RtpFunctionalityTest.packingUnpackingVerifySameH264Frame:RtcpFunctionalityTest.onRtcpPacketCompound:RtcpFunctionalityTest.twcc3'"
           & "D:\a\webrtc\build\tst\webrtc_client_test.exe"
   # arm64-cross-compilation:
   #   runs-on: ubuntu-20.04
