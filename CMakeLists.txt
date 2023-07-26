@@ -134,7 +134,7 @@ if(BUILD_DEPENDENCIES)
   if(WIN32)
     set(EXT_PTHREAD_INCLUDE_DIR "C:/tools/pthreads-w32-2-9-1-release/Pre-built.2/include/")
     set(EXT_PTHREAD_LIBRARIES "C:/tools/pthreads-w32-2-9-1-release/Pre-built.2/lib/x64/libpthreadGC2.a")
-    set(OPENSSL_INCLUDE_DIRS "${OPEN_SRC_INSTALL_PREFIX}/include/openssl")
+    set(OPENSSL_INCLUDE_DIRS "${OPEN_SRC_INSTALL_PREFIX}/include/")
     set(OPENSSL_CRYPTO_LIBRARY "${OPEN_SRC_INSTALL_PREFIX}/lib/libcrypto.lib")
     set(OPENSSL_SSL_LIBRARY "${OPEN_SRC_INSTALL_PREFIX}/lib/libssl.lib")
     set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
