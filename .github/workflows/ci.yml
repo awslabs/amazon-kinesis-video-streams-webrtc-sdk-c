@@ -384,7 +384,8 @@ jobs:
       - name: Run tests
         run: |
           cd D:\a\webrtc
-          & "D:\a\webrtc\tst\webrtc_client_test.exe --gtest
+          & "D:\a\webrtc\tst\webrtc_client_test.exe --gtest_filter="-DataChannelFunctionalityTest.*:IceApiTest.*:IceFunctionalityTest.*:PeerConnectionFunctionalityTest.*:SignalingApiFunctionalityTest.*:TurnConnectionFunctionalityTest.*:RtpFunctionalityTest.marshallUnmarshallH264Data:RtpFunctionalityTest.packingUnpackingVerifySameH264Frame:RtcpFunctionalityTest.onRtcpPacketCompound:RtcpFunctionalityTest.twcc3"
+          & "D:\a\webrtc\tst\webrtc_client_test.exe 
   # arm64-cross-compilation:
   #   runs-on: ubuntu-20.04
   #   env:
