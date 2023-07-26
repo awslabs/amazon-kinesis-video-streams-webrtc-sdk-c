@@ -200,8 +200,8 @@ endif()
 find_package(Threads)
 find_package(PkgConfig REQUIRED)
 if (USE_OPENSSL)
-  # find_package(OpenSSL REQUIRED)
-  # set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR})
+  find_package(OpenSSL REQUIRED)
+  set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR})
 else()
   find_package(MbedTLS REQUIRED)
   set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${MBEDTLS_INCLUDE_DIRS})
@@ -331,6 +331,8 @@ target_link_libraries(
   PRIVATE kvspicUtils
           kvspicState
           ${CMAKE_THREAD_LIBS_INIT}
+          ${OPENSSL_SSL_LIBRARY}
+          ${OPENSSL_CRYPTO_LIBRARY}
           ${SRTP_LIBRARIES}
           ${Usrsctp}
           ${MBEDTLS_LIBRARIES}
@@ -349,6 +351,8 @@ target_link_libraries(
          kvspicState
          ${CMAKE_THREAD_LIBS_INIT}
          ${EXTRA_DEPS}
+         ${OPENSSL_SSL_LIBRARY}
+         ${OPENSSL_CRYPTO_LIBRARY}
          ${GPERFTOOLS_MALLOC_LIBRARIES}
          ${GPERFTOOLS_PROFILER_LIBRARIES}
          ${MBEDTLS_LIBRARIES})
