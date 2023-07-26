@@ -384,7 +384,9 @@ jobs:
       - name: Run tests
         shell: powershell
         run: |
-          .\D:\a\webrtc\build\tst\webrtc_client_test.exe
+          cd D:\a\webrtc\build\tst\
+          dir
+          Start-Process -FilePath "D:\a\webrtc\build\tst\webrtc_client_test.exe"
   # arm64-cross-compilation:
   #   runs-on: ubuntu-20.04
   #   env:
