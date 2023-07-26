@@ -379,13 +379,11 @@ jobs:
         shell: powershell
         run: |
           cd D:\a\webrtc
-          $env:Path += ';D:\a\webrtc\open-source\bin;'
           git config --system core.longpaths true
           .github/build_windows.bat
       - name: Run tests
         run: |
           cd D:\a\webrtc
-          $env:Path += ';C:\Strawberry\perl\site\bin;C:\Strawberry\perl\bin;C:\Strawberry\c\bin;C:\Program Files\NASM;D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\open-source\lib;D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\open-source\bin;C:\tools\pthreads-w32-2-9-1-release\Pre-built.2\lib\x64'
           & "D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-cbuild\tst\webrtc_client_test.exe --gtest
   # arm64-cross-compilation:
   #   runs-on: ubuntu-20.04
