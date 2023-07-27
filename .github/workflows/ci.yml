@@ -382,8 +382,6 @@ jobs:
           .github\build_windows.bat
       - name: Run tests
         run: |
-          cd D:\a\webrtc\build\tst\
-          dir
           & "D:\a\webrtc\build\tst\webrtc_client_test.exe"
   # arm64-cross-compilation:
   #   runs-on: ubuntu-20.04
