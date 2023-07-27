@@ -487,7 +487,7 @@ extern "C" {
 /**
  * Version of SignalingClientInfo structure
  */
-#define SIGNALING_CLIENT_INFO_CURRENT_VERSION 1
+#define SIGNALING_CLIENT_INFO_CURRENT_VERSION 2
 
 /**
  * Version of SignalingClientCallbacks structure
@@ -497,7 +497,7 @@ extern "C" {
 /**
  * Version of signaling client
  */
-#define SIGNALING_CLIENT_CURRENT_VERSION 2
+#define SIGNALING_CLIENT_CURRENT_VERSION 1
 
 /**
  * Version of SignalingChannelDescription structure
@@ -1202,6 +1202,8 @@ typedef struct {
     INT32 signalingClientCreationMaxRetryAttempts;             //!< Max attempts to create signaling client before returning error to the caller
     UINT32 stateMachineRetryCountReadOnly; //!< Retry count of state machine. Note that this **MUST NOT** be modified by the user. It is a read only
                                            //!< field
+    UINT32 signalingMessagesMinimumThreads;
+    UINT32 signalingMessagesMaximumThreads;
 } SignalingClientInfo, *PSignalingClientInfo;
 
 /**
