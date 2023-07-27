@@ -350,7 +350,7 @@ To build on a 32-bit Raspbian GNU/Linux 11 on 64-bit hardware, the OpenSSL libra
 
 ### Threadpool for Signaling Channel messages
 The threadpool is enabled by default, and starts with 3 threads that it can increase up to 5 if all 3 are actively in use. To change these values to better match the resources of your use case
-please edit src/source/Signaling/Signaling.h defines `KVS_SIGNALING_THREADPOOL_MIN` and `KVS_SIGNALING_THREADPOOL_MAX`. You can also disable the threadpool to instead create and detach each thread
+please edit samples/Samples.h defines `KVS_SIGNALING_THREADPOOL_MIN` and `KVS_SIGNALING_THREADPOOL_MAX`. You can also disable the threadpool to instead create and detach each thread
 to handle signaling messages by commenting out `KVS_USE_SIGNALING_CHANNEL_THREADPOOL`.
 
 ## Documentation
