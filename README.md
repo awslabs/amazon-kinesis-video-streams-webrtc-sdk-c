@@ -295,6 +295,11 @@ This is useful to reduce candidate gathering time when it is known for certain n
 `configuration.kvsRtcConfiguration.iceSetInterfaceFilterFunc = sampleFilterNetworkInterfaces`
 
 
+### Threadpool for Signaling Channel messages
+The threadpool is enabled by default, and starts with 3 threads that it can increase up to 5 if all 3 are actively in use. To change these values to better match the resources of your use case
+please edit samples/Samples.h defines `KVS_SIGNALING_THREADPOOL_MIN` and `KVS_SIGNALING_THREADPOOL_MAX`. You can also disable the threadpool to instead create and detach each thread
+to handle signaling messages by commenting out `KVS_USE_SIGNALING_CHANNEL_THREADPOOL`.
+
 ## Documentation
 All Public APIs are documented in our [Include.h](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/blob/master/src/include/com/amazonaws/kinesis/video/webrtcclient/Include.h), we also generate a [Doxygen](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-c/) each commit for easier navigation.
 
