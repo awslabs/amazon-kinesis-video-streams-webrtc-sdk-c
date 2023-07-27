@@ -613,6 +613,8 @@ STATUS validateSignalingClientInfo(PSignalingClient pSignalingClient, PSignaling
             break;
 
         case 1:
+            // explicit-fallthrough
+        case 2:
             // If the path is specified and not empty then we validate and copy/store
             if (pSignalingClient->clientInfo.signalingClientInfo.cacheFilePath != NULL &&
                 pSignalingClient->clientInfo.signalingClientInfo.cacheFilePath[0] != '\0') {
