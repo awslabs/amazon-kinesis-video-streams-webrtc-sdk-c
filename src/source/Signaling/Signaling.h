@@ -328,6 +328,10 @@ typedef struct {
     UINT64 getIceConfigTime;
     UINT64 deleteTime;
     UINT64 connectTime;
+
+#ifdef KVS_USE_SIGNALING_CHANNEL_THREADPOOL
+    PThreadpool pThreadpool;
+#endif
 } SignalingClient, *PSignalingClient;
 
 // Public handle to and from object converters

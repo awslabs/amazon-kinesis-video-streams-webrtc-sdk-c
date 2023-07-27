@@ -813,6 +813,8 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     pSampleConfiguration->clientInfo.loggingLevel = logLevel;
     pSampleConfiguration->clientInfo.cacheFilePath = NULL; // Use the default path
     pSampleConfiguration->clientInfo.signalingClientCreationMaxRetryAttempts = CREATE_SIGNALING_CLIENT_RETRY_ATTEMPTS_SENTINEL_VALUE;
+    pSampleConfiguration->clientInfo.signalingMessagesMinimumThreads = KVS_SIGNALING_THREADPOOL_MIN;
+    pSampleConfiguration->clientInfo.signalingMessagesMaximumThreads = KVS_SIGNALING_THREADPOOL_MAX;
     pSampleConfiguration->iceCandidatePairStatsTimerId = MAX_UINT32;
     pSampleConfiguration->pregenerateCertTimerId = MAX_UINT32;
 

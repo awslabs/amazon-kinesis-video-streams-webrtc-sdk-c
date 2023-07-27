@@ -37,6 +37,10 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     CHK_STATUS(createValidateChannelInfo(pChannelInfo, &pSignalingClient->pChannelInfo));
     CHK_STATUS(validateSignalingCallbacks(pSignalingClient, pCallbacks));
     CHK_STATUS(validateSignalingClientInfo(pSignalingClient, pClientInfo));
+#ifdef KVS_USE_SIGNALING_CHANNEL_THREADPOOL
+    CHK_STATUS(threadpoolCreate(&pSignalingClient->pThreadpool, pClientInfo->signalingClientInfo.signalingMessagesMinimumThreads,
+                                pClientInfo->signalingClientInfo.signalingMessagesMaximumThreads));
+#endif
 
     pSignalingClient->version = SIGNALING_CLIENT_CURRENT_VERSION;
 
@@ -221,6 +225,10 @@ STATUS freeSignaling(PSignalingClient* ppSignalingClient)
     stackQueueFree(pSignalingClient->pMessageQueue);
 
     hashTableFree(pSignalingClient->diagnostics.pEndpointToClockSkewHashMap);
+
+#ifdef KVS_USE_SIGNALING_CHANNEL_THREADPOOL
+    threadpoolFree(pSignalingClient->pThreadpool);
+#endif
 
     if (IS_VALID_MUTEX_VALUE(pSignalingClient->connectedLock)) {
         MUTEX_FREE(pSignalingClient->connectedLock);
@@ -605,6 +613,8 @@ STATUS validateSignalingClientInfo(PSignalingClient pSignalingClient, PSignaling
             break;
 
         case 1:
+            // explicit-fallthrough
+        case 2:
             // If the path is specified and not empty then we validate and copy/store
             if (pSignalingClient->clientInfo.signalingClientInfo.cacheFilePath != NULL &&
                 pSignalingClient->clientInfo.signalingClientInfo.cacheFilePath[0] != '\0') {
