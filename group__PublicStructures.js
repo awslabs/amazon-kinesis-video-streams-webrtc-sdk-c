@@ -72,6 +72,8 @@ var group__PublicStructures =
       [ "clientId", "group__StatusCodes.html#ga164f67d7c1bb29cfe65eeace765495cd", null ],
       [ "loggingLevel", "group__StatusCodes.html#ga8df6838b31452ecf1bd1cf1a0fffa680", null ],
       [ "signalingClientCreationMaxRetryAttempts", "group__StatusCodes.html#gafaf099a0c85ede248da1ef35bea2bf5c", null ],
+      [ "signalingMessagesMaximumThreads", "group__StatusCodes.html#ga342d674d1971cf0286208ac91dcb2bea", null ],
+      [ "signalingMessagesMinimumThreads", "group__StatusCodes.html#ga1f6bfce0b61a782b35f735370544aadc", null ],
       [ "signalingRetryStrategyCallbacks", "group__StatusCodes.html#ga87eb795fbdbf266819688941c80770eb", null ],
       [ "stateMachineRetryCountReadOnly", "group__StatusCodes.html#ga9121e19802bb740a1b695f2be5250e47", null ],
       [ "version", "group__StatusCodes.html#gaad776eab978b30bd3f21ecd3432c93a0", null ]

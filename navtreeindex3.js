@@ -1,5 +1,9 @@
 var NAVTREEINDEX3 =
 {
+"group__StatusCodes.html#gaf6aedc152cf044872d63fbe4619971ce":[1,0,175],
+"group__StatusCodes.html#gaf9844307e1563b060be0be199bcdf0f8":[1,0,173],
+"group__StatusCodes.html#gaf9844307e1563b060be0be199bcdf0f8":[1,0,19,13,15],
+"group__StatusCodes.html#gafae937b08befda5ffdbb7b6b17d481e1":[1,0,19,11,1],
 "group__StatusCodes.html#gafae937b08befda5ffdbb7b6b17d481e1":[1,0,128],
 "group__StatusCodes.html#gafaf099a0c85ede248da1ef35bea2bf5c":[1,0,19,12,3],
 "group__StatusCodes.html#gafaf099a0c85ede248da1ef35bea2bf5c":[1,0,188],
@@ -245,9 +249,5 @@ var NAVTREEINDEX3 =
 "structRtcReceivedRtpStreamStats.html#a374bb7b13236b475bbb61edcd93098af":[1,0,20,15,11],
 "structRtcReceivedRtpStreamStats.html#a4a6237551abbf519c49a511a8738b195":[1,0,20,15,0],
 "structRtcReceivedRtpStreamStats.html#a53cfe29cae723821c5564d7a620f971a":[1,0,20,15,8],
-"structRtcReceivedRtpStreamStats.html#a88a0e79f32578b3c8fd42522566325a1":[1,0,20,15,3],
-"structRtcReceivedRtpStreamStats.html#a8b98319cbbc6a815c6200d96a28bdaf8":[1,0,20,15,10],
-"structRtcReceivedRtpStreamStats.html#aa922b68f385d4c9a64c2775b4f36db6d":[1,0,20,15,7],
-"structRtcReceivedRtpStreamStats.html#aaaa7db7b5df60941f38fdc7c51242f67":[1,0,20,15,1],
-"structRtcReceivedRtpStreamStats.html#aba5695816f67711472ada4f08890fed2":[1,0,20,15,4]
+"structRtcReceivedRtpStreamStats.html#a88a0e79f32578b3c8fd42522566325a1":[1,0,20,15,3]
 };

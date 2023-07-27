@@ -191,6 +191,8 @@ var group__StatusCodes =
     [ "signalingClientCreationMaxRetryAttempts", "group__StatusCodes.html#gafaf099a0c85ede248da1ef35bea2bf5c", null ],
     [ "signalingClientStats", "group__StatusCodes.html#ga19e455ef17680d69fc2de9f0c886ea80", null ],
     [ "signalingMessage", "group__StatusCodes.html#gadffadd7d879a948434b9fa7904eb5358", null ],
+    [ "signalingMessagesMaximumThreads", "group__StatusCodes.html#ga342d674d1971cf0286208ac91dcb2bea", null ],
+    [ "signalingMessagesMinimumThreads", "group__StatusCodes.html#ga1f6bfce0b61a782b35f735370544aadc", null ],
     [ "signalingRetryStrategyCallbacks", "group__StatusCodes.html#ga87eb795fbdbf266819688941c80770eb", null ],
     [ "stateChangeFn", "group__StatusCodes.html#ga8a72e56bbf4b4dae2b19306acda39523", null ],
     [ "stateMachineRetryCountReadOnly", "group__StatusCodes.html#ga9121e19802bb740a1b695f2be5250e47", null ],
