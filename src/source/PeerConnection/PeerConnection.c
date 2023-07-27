@@ -695,9 +695,11 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
     IceAgentCallbacks iceAgentCallbacks;
     DtlsSessionCallbacks dtlsSessionCallbacks;
     PConnectionListener pConnectionListener = NULL;
+    UINT64 startTime = 0;
 
     CHK(pConfiguration != NULL && ppPeerConnection != NULL, STATUS_NULL_ARG);
 
+    startTime = GETTIME();
     MEMSET(&iceAgentCallbacks, 0, SIZEOF(IceAgentCallbacks));
     MEMSET(&dtlsSessionCallbacks, 0, SIZEOF(DtlsSessionCallbacks));
 
@@ -756,6 +758,9 @@ CleanUp:
 
     if (STATUS_FAILED(retStatus)) {
         freePeerConnection((PRtcPeerConnection*) &pKvsPeerConnection);
+    } else {
+        PROFILE_WITH_START_TIME_OBJ(startTime, pKvsPeerConnection->peerConnectionDiagnostics.peerConnectionCreationTime,
+                                    "Peer connection object creation time");
     }
 
     LEAVES();
@@ -1508,6 +1513,7 @@ STATUS peerConnectionGetMetrics(PRtcPeerConnection pPeerConnection, PPeerConnect
         DLOGW("Peer connection metrics object version invalid..setting to highest default version %d", PEER_CONNECTION_METRICS_CURRENT_VERSION);
         pPeerConnectionMetrics->version = PEER_CONNECTION_METRICS_CURRENT_VERSION;
     }
+    pPeerConnectionMetrics->peerConnectionStats.peerConnectionCreationTime = pKvsPeerConnection->peerConnectionDiagnostics.peerConnectionCreationTime;
     pPeerConnectionMetrics->peerConnectionStats.dtlsSessionSetupTime = pKvsPeerConnection->peerConnectionDiagnostics.dtlsSessionSetupTime;
     pPeerConnectionMetrics->peerConnectionStats.iceHolePunchingTime = pKvsPeerConnection->peerConnectionDiagnostics.iceHolePunchingTime;
     // Cannot record these 2 in here because peer connection object would become NULL after clearing. Need another strategy

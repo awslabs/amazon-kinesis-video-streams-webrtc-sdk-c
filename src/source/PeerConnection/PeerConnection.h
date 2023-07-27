@@ -58,6 +58,7 @@ typedef struct {
 } TwccManager, *PTwccManager;
 
 typedef struct {
+    UINT64 peerConnectionCreationTime;
     UINT64 dtlsSessionSetupTime;
     UINT64 iceHolePunchingTime;
     UINT64 closePeerConnectionTime;

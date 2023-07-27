@@ -599,11 +599,14 @@ STATUS iceAgentStartGathering(PIceAgent pIceAgent)
                                                                    pIceAgent->kvsRtcConfiguration.iceSetInterfaceFilterFunc,
                                                                    pIceAgent->kvsRtcConfiguration.filterCustomData)),
                                 pIceAgent->iceAgentProfileDiagnostics.localCandidateGatheringTime, "Host candidate gathering from local interfaces");
-        CHK_STATUS(iceAgentInitHostCandidate(pIceAgent));
-        CHK_STATUS(iceAgentInitSrflxCandidate(pIceAgent));
+        PROFILE_CALL_WITH_T_OBJ(CHK_STATUS(iceAgentInitHostCandidate(pIceAgent)), pIceAgent->iceAgentProfileDiagnostics.hostCandidateSetUpTime,
+                                "Host candidates setup time");
+        PROFILE_CALL_WITH_T_OBJ(CHK_STATUS(iceAgentInitSrflxCandidate(pIceAgent)), pIceAgent->iceAgentProfileDiagnostics.srflxCandidateSetUpTime,
+                                "Srflx candidates setup time");
     }
 
-    CHK_STATUS(iceAgentInitRelayCandidates(pIceAgent));
+    PROFILE_CALL_WITH_T_OBJ(CHK_STATUS(iceAgentInitRelayCandidates(pIceAgent)), pIceAgent->iceAgentProfileDiagnostics.relayCandidateSetUpTime,
+                            "Relay candidates setup time");
 
     // start listening for incoming data
     CHK_STATUS(connectionListenerStart(pIceAgent->pConnectionListener));
@@ -2812,6 +2815,9 @@ STATUS getIceAgentStats(PIceAgent pIceAgent, PKvsIceAgentMetrics pKvsIceAgentMet
     UINT32 i = 0;
     CHK(pIceAgent != NULL && pKvsIceAgentMetrics != NULL, STATUS_NULL_ARG);
     pKvsIceAgentMetrics->kvsIceAgentStats.localCandidateGatheringTime = pIceAgent->iceAgentProfileDiagnostics.localCandidateGatheringTime;
+    pKvsIceAgentMetrics->kvsIceAgentStats.hostCandidateSetUpTime = pIceAgent->iceAgentProfileDiagnostics.hostCandidateSetUpTime;
+    pKvsIceAgentMetrics->kvsIceAgentStats.srflxCandidateSetUpTime = pIceAgent->iceAgentProfileDiagnostics.srflxCandidateSetUpTime;
+    pKvsIceAgentMetrics->kvsIceAgentStats.relayCandidateSetUpTime = pIceAgent->iceAgentProfileDiagnostics.relayCandidateSetUpTime;
     for (i = 0; i < MAX_ICE_SERVERS_COUNT; i++) {
         pKvsIceAgentMetrics->kvsIceAgentStats.iceServerParsingTime += pIceAgent->iceAgentProfileDiagnostics.iceServerParsingTime[i];
     }

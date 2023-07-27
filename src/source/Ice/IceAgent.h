@@ -180,6 +180,9 @@ typedef struct {
 
 typedef struct {
     UINT64 localCandidateGatheringTime;
+    UINT64 hostCandidateSetUpTime;
+    UINT64 srflxCandidateSetUpTime;
+    UINT64 relayCandidateSetUpTime;
     UINT64 iceServerParsingTime[MAX_ICE_SERVERS_COUNT];
     UINT64 iceCandidatePairNominationTime;
     UINT64 candidateGatheringTime;

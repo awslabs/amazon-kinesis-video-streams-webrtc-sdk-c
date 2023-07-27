@@ -249,6 +249,9 @@ typedef struct {
  */
 typedef struct {
     UINT64 localCandidateGatheringTime;
+    UINT64 hostCandidateSetUpTime;
+    UINT64 srflxCandidateSetUpTime;
+    UINT64 relayCandidateSetUpTime;
     UINT64 iceServerParsingTime;
     UINT64 iceCandidatePairNominationTime;
     UINT64 candidateGatheringTime;
@@ -604,10 +607,11 @@ typedef struct {
 } SignalingClientStats, *PSignalingClientStats;
 
 typedef struct {
-    UINT64 dtlsSessionSetupTime;    //!< Time taken (ms) for DTLS handshake to complete
-    UINT64 iceHolePunchingTime;     //!< Time taken (ms) for ICE agent set up to complete
-    UINT64 closePeerConnectionTime; //!< Time taken (ms) to close the peer connection
-    UINT64 freePeerConnectionTime;  //!< Time taken (ms) to free the peer connection object
+    UINT64 peerConnectionCreationTime; //!< Time taken (ms) for peer connection object creation time
+    UINT64 dtlsSessionSetupTime;       //!< Time taken (ms) for DTLS handshake to complete
+    UINT64 iceHolePunchingTime;        //!< Time taken (ms) for ICE agent set up to complete
+    UINT64 closePeerConnectionTime;    //!< Time taken (ms) to close the peer connection
+    UINT64 freePeerConnectionTime;     //!< Time taken (ms) to free the peer connection object
 } PeerConnectionStats, *PPeerConnectionStats;
 
 /**
