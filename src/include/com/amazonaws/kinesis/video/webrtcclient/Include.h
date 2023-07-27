@@ -487,7 +487,7 @@ extern "C" {
 /**
  * Version of SignalingClientInfo structure
  */
-#define SIGNALING_CLIENT_INFO_CURRENT_VERSION 2
+#define SIGNALING_CLIENT_INFO_CURRENT_VERSION 1
 
 /**
  * Version of SignalingClientCallbacks structure
