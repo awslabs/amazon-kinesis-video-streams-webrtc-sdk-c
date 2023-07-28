@@ -6,10 +6,8 @@ SET(PATCH_COMMAND git apply --ignore-whitespace ${CMAKE_CURRENT_LIST_DIR}/libweb
 
 include(ExternalProject)
 if (BUILD_STATIC_LIBS)
-  set(LWS_WITH_STATIC 1)
   set(LWS_WITH_SHARED 0)
 else()
-  set(LWS_WITH_STATIC 0)
   set(LWS_WITH_SHARED 1)
   if (USE_OPENSSL AND NOT WIN32)
     find_package(OpenSSL REQUIRED)
@@ -54,7 +52,7 @@ ExternalProject_Add(project_libwebsockets
         -DLWS_WITH_MINIMAL_EXAMPLES=1
         -DLWS_WITH_ZLIB=0
         -DLWS_HAVE_EVENTFD=0
-        -DLWS_WITH_STATIC=${LWS_WITH_STATIC}
+        -DLWS_WITH_STATIC=1
         -DLWS_WITH_SHARED=${LWS_WITH_SHARED}
         -DLWS_WITH_MBEDTLS=${LWS_WITH_MBEDTLS}
         -DLWS_HAVE_PTHREAD_H=${LWS_HAVE_PTHREAD_H}
