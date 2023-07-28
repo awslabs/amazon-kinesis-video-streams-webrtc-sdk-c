@@ -342,33 +342,79 @@ jobs:
         run:  |
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-  # windows-msvc:
+  windows-msvc-openssl:
+    runs-on: windows-2022
+    env:
+      AWS_KVS_LOG_LEVEL: 7
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v3
+      - name: Move cloned repo
+        shell: powershell
+        run: |
+          mkdir D:\a\webrtc
+          Move-Item -Path "D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\*" -Destination "D:\a\webrtc"
+          cd D:\a\webrtc
+          dir
+      - name: Install dependencies
+        shell: powershell
+        run: |
+          choco install gstreamer --version=1.16.2
+          choco install gstreamer-devel --version=1.16.2 
+          curl.exe -o C:\tools\pthreads-w32-2-9-1-release.zip ftp://sourceware.org/pub/pthreads-win32/pthreads-w32-2-9-1-release.zip
+          mkdir C:\tools\pthreads-w32-2-9-1-release\
+          Expand-Archive -Path C:\tools\pthreads-w32-2-9-1-release.zip -DestinationPath C:\tools\pthreads-w32-2-9-1-release    
+      # - name: Build libwebsockets from source
+      #   shell: powershell
+      #   run: |
+      #     $env:Path += ';C:\Strawberry\perl\site\bin;C:\Strawberry\perl\bin;C:\Strawberry\c\bin;C:\Program Files\NASM;D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\open-source\bin;C:\tools\pthreads-w32-2-9-1-release\Pre-built.2\lib\x64;C:\tools\pthreads-w32-2-9-1-release\Pre-built.2\include'
+      #     git config --system core.longpaths true
+      #     cd C:\tools\
+      #     git clone https://github.com/warmcat/libwebsockets.git
+      #     git checkout v4.2.2
+      #     cd libwebsockets
+      #     mkdir build 
+      #     cd build
+      #     cmake .. -DLWS_HAVE_PTHREAD_H=1 -DLWS_EXT_PTHREAD_INCLUDE_DIR="C:\\tools\\pthreads-w32-2-9-1-release\\Pre-built.2\\include" -DLWS_EXT_PTHREAD_LIBRARIES="C:\\tools\\pthreads-w32-2-9-1-release\\Pre-built.2\\lib\\x64\\libpthreadGC2.a" -DLWS_WITH_MINIMAL_EXAMPLES=1 -DLWS_OPENSSL_INCLUDE_DIRS="C:\\Program Files\\OpenSSL\\include" -DLWS_OPENSSL_LIBRARIES="C:\\Program Files\\OpenSSL\\lib\\libssl.lib;C:\\Program Files\\OpenSSL\\lib\\libcrypto.lib"
+      #     cmake --build . --config DEBUG
+      - name: Build repository
+        shell: powershell
+        run: |
+          cd D:\a\webrtc
+          git config --system core.longpaths true
+          .github\build_windows_openssl.bat
+      # TODO: Fix these tests
+      # - name: Run tests
+      #   run: |
+      #     & "D:\a\webrtc\build\tst\webrtc_client_test.exe --gtest_filter='-DataChannelFunctionalityTest.*:IceApiTest.*:IceFunctionalityTest.*:PeerConnectionFunctionalityTest.*:SignalingApiFunctionalityTest.*:TurnConnectionFunctionalityTest.*:RtpFunctionalityTest.marshallUnmarshallH264Data:RtpFunctionalityTest.packingUnpackingVerifySameH264Frame:RtcpFunctionalityTest.onRtcpPacketCompound:RtcpFunctionalityTest.twcc3'" 
+  # windows-msvc-mbedtls:
   #   runs-on: windows-2022
   #   env:
   #     AWS_KVS_LOG_LEVEL: 7
-  #   permissions:
-  #     id-token: write
-  #     contents: read
   #   steps:
   #     - name: Clone repository
   #       uses: actions/checkout@v3
-  #     - name: Install dependencies
+  #     - name: Move cloned repo
+  #       shell: powershell
   #       run: |
-  #         choco install nasm strawberryperl
+  #         mkdir D:\a\webrtc
+  #         Move-Item -Path "D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\*" -Destination "D:\a\webrtc"
+  #         cd D:\a\webrtc
+  #         dir
+  #     - name: Install dependencies
+  #       shell: powershell
+  #       run: |
   #         choco install gstreamer --version=1.16.2
   #         choco install gstreamer-devel --version=1.16.2 
-  #     - name: Install pthreads
-  #       run: |
-  #         C:\msys64\pacman -S mingw-w64-x86_64-winpthreads
+  #         curl.exe -o C:\tools\pthreads-w32-2-9-1-release.zip ftp://sourceware.org/pub/pthreads-win32/pthreads-w32-2-9-1-release.zip
+  #         mkdir C:\tools\pthreads-w32-2-9-1-release\
+  #         Expand-Archive -Path C:\tools\pthreads-w32-2-9-1-release.zip -DestinationPath C:\tools\pthreads-w32-2-9-1-release    
   #     - name: Build repository
+  #       shell: powershell
   #       run: |
-  #         $env:Path += ';C:\Strawberry\perl\site\bin;C:\Strawberry\perl\bin;C:\Strawberry\c\bin;C:\Program Files\NASM;D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\open-source\local\lib;D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\open-source\local\bin;D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\open-source\libopenssl'
+  #         cd D:\a\webrtc
   #         git config --system core.longpaths true
-  #         .github/build_windows.bat
-  #     - name: Run tests
-  #       run: |
-  #         $env:Path += ';C:\Strawberry\perl\site\bin;C:\Strawberry\perl\bin;C:\Strawberry\c\bin;C:\Program Files\NASM;D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\open-source\local\lib;D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\open-source\local\bin'
-  #         & "D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-cbuild\tst\webrtc_client_test.exe --gtest_filter="-DataChannelFunctionalityTest.*:IceApiTest.*:IceFunctionalityTest.*:PeerConnectionFunctionalityTest.*:SignalingApiFunctionalityTest.*:TurnConnectionFunctionalityTest.*:RtpFunctionalityTest.marshallUnmarshallH264Data:RtpFunctionalityTest.packingUnpackingVerifySameH264Frame:RtcpFunctionalityTest.onRtcpPacketCompound:RtcpFunctionalityTest.twcc3" 
+  #         .github\build_windows_mbedtls.bat
   arm64-cross-compilation:
     runs-on: ubuntu-20.04
     env:

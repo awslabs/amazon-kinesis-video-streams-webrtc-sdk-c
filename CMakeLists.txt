@@ -31,6 +31,11 @@ option(THREAD_SANITIZER "Build with ThreadSanitizer." OFF)
 option(UNDEFINED_BEHAVIOR_SANITIZER "Build with UndefinedBehaviorSanitizer." OFF)
 option(LINK_PROFILER "Link gperftools profiler" OFF)
 
+if(WIN32)
+  set(EXT_PTHREAD_INCLUDE_DIR "" CACHE PATH "Path to the PThread dir")
+  set(EXT_PTHREAD_LIBRARIES "" CACHE FILEPATH "Path to PThread libraries")
+endif()
+
 execute_process(
         COMMAND git rev-parse HEAD
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
@@ -98,8 +103,8 @@ if(USE_OPENSSL)
 elseif(USE_MBEDTLS)
   add_definitions(-DKVS_USE_MBEDTLS)
   # FIXME: there's probably a better way to inject MBEDTLS_USER_CONFIG_FILE flag without mutating the global CMAKE_C_FLAGS and CMAKE_CXX_FLAGS
-  set(CMAKE_C_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/configs -DMBEDTLS_USER_CONFIG_FILE='<config_mbedtls.h>' ${CMAKE_C_FLAGS}")
-  set(CMAKE_CXX_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/configs -DMBEDTLS_USER_CONFIG_FILE='<config_mbedtls.h>' ${CMAKE_CXX_FLAGS}")
+  set(CMAKE_C_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/configs -DMBEDTLS_USER_CONFIG_FILE=\"<config_mbedtls.h>\" ${CMAKE_C_FLAGS}")
+  set(CMAKE_CXX_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/configs -DMBEDTLS_USER_CONFIG_FILE=\"<config_mbedtls.h>\" ${CMAKE_CXX_FLAGS}")
 endif()
 
 if(BUILD_DEPENDENCIES)
@@ -132,11 +137,30 @@ if(BUILD_DEPENDENCIES)
   endif()
 
 
-  set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
-                 -DOPENSSL_DIR=${OPEN_SRC_INSTALL_PREFIX}
-                 -DUSE_OPENSSL=${USE_OPENSSL}
-                 -DUSE_MBEDTLS=${USE_MBEDTLS}
-                 -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
+  if(WIN32)
+    set(OPENSSL_INCLUDE_DIRS "${OPEN_SRC_INSTALL_PREFIX}/include/")
+    set(OPENSSL_CRYPTO_LIBRARY "${OPEN_SRC_INSTALL_PREFIX}/lib/libcrypto.lib")
+    set(OPENSSL_SSL_LIBRARY "${OPEN_SRC_INSTALL_PREFIX}/lib/libssl.lib")
+    set(OPENSSL_LIBRARIES ${OPENSSL_SSL_LIBRARY} ${OPENSSL_CRYPTO_LIBRARY})
+    string(REPLACE ";" "|" OPENSSL_LIBRARIES_ALT_SEP "${OPENSSL_LIBRARIES}")
+    set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
+                  -DUSE_OPENSSL=${USE_OPENSSL}
+                  -DUSE_MBEDTLS=${USE_MBEDTLS} 
+                  -DLWS_EXT_PTHREAD_INCLUDE_DIR=${EXT_PTHREAD_INCLUDE_DIR}
+                  -DLWS_EXT_PTHREAD_LIBRARIES=${EXT_PTHREAD_LIBRARIES}
+                  -DLWS_OPENSSL_INCLUDE_DIRS=${OPENSSL_INCLUDE_DIRS}
+                  -DLWS_OPENSSL_LIBRARIES=${OPENSSL_LIBRARIES_ALT_SEP}
+                  -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
+  else()
+    set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
+                  -DOPENSSL_DIR=${OPEN_SRC_INSTALL_PREFIX}
+                  -DUSE_OPENSSL=${USE_OPENSSL}
+                  -DUSE_MBEDTLS=${USE_MBEDTLS}
+                  -DLWS_OPENSSL_CRYPTO_LIBRARY=${OPENSSL_CRYPTO_LIBRARY}
+                  -DLWS_OPENSSL_SSL_LIBRARY=${OPENSSL_SSL_LIBRARY}
+                  -DLWS_OPENSSL_INCLUDE_DIRS=${OPENSSL_INCLUDE_DIR}
+                  -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
+  endif()
   build_dependency(websockets ${BUILD_ARGS})
 
   set(BUILD_ARGS
