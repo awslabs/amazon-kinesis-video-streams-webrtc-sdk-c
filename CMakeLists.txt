@@ -31,8 +31,10 @@ option(THREAD_SANITIZER "Build with ThreadSanitizer." OFF)
 option(UNDEFINED_BEHAVIOR_SANITIZER "Build with UndefinedBehaviorSanitizer." OFF)
 option(LINK_PROFILER "Link gperftools profiler" OFF)
 
-set(EXT_PTHREAD_INCLUDE_DIR "" CACHE PATH "Path to the PThread dir")
-set(EXT_PTHREAD_LIBRARIES "" CACHE FILEPATH "Path to PThread libraries")
+if(WIN32)
+  set(EXT_PTHREAD_INCLUDE_DIR "" CACHE PATH "Path to the PThread dir")
+  set(EXT_PTHREAD_LIBRARIES "" CACHE FILEPATH "Path to PThread libraries")
+endif()
 
 execute_process(
         COMMAND git rev-parse HEAD
