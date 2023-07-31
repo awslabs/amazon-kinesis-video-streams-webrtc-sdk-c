@@ -178,6 +178,17 @@ typedef struct {
     RtcIceCandidatePairDiagnostics rtcIceCandidatePairDiagnostics;
 } IceCandidatePair, *PIceCandidatePair;
 
+typedef struct {
+    UINT64 localCandidateGatheringTime;
+    UINT64 hostCandidateSetUpTime;
+    UINT64 srflxCandidateSetUpTime;
+    UINT64 relayCandidateSetUpTime;
+    UINT64 iceServerParsingTime[MAX_ICE_SERVERS_COUNT];
+    UINT64 iceCandidatePairNominationTime;
+    UINT64 candidateGatheringTime;
+    UINT64 iceAgentSetUpTime;
+} IceAgentProfileDiagnostics, *PIceAgentProfileDiagnostics;
+
 struct __IceAgent {
     volatile ATOMIC_BOOL agentStartGathering;
     volatile ATOMIC_BOOL remoteCredentialReceived;
@@ -195,6 +206,7 @@ struct __IceAgent {
     RtcIceServerDiagnostics rtcIceServerDiagnostics[MAX_ICE_SERVERS_COUNT];
     RtcIceCandidateDiagnostics rtcSelectedLocalIceCandidateDiagnostics;
     RtcIceCandidateDiagnostics rtcSelectedRemoteIceCandidateDiagnostics;
+    IceAgentProfileDiagnostics iceAgentProfileDiagnostics;
 
     PHashTable requestTimestampDiagnostics;
 
@@ -250,6 +262,9 @@ struct __IceAgent {
 
     // store transaction ids for stun binding request.
     PTransactionIdStore pStunBindingRequestTransactionIdStore;
+
+    UINT64 candidateGatheringStartTime;
+    UINT64 iceAgentStartTime;
 };
 
 //////////////////////////////////////////////
@@ -429,6 +444,8 @@ UINT32 computeCandidatePriority(PIceCandidate);
 UINT64 computeCandidatePairPriority(PIceCandidatePair, BOOL);
 PCHAR iceAgentGetCandidateTypeStr(ICE_CANDIDATE_TYPE);
 STATUS updateSelectedLocalRemoteCandidateStats(PIceAgent);
+
+STATUS getIceAgentStats(PIceAgent, PKvsIceAgentMetrics);
 
 #ifdef __cplusplus
 }

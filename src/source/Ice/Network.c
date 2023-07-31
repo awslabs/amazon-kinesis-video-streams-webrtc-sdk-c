@@ -90,7 +90,7 @@ STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen,
             destIpList[ipCount].isPointToPoint = ((ifa->ifa_flags & IFF_POINTOPOINT) != 0);
 
             if (filter != NULL) {
-                // The callback evaluates to a FALSE if the application is interested in black listing an interface
+                // The callback evaluates to a FALSE if the application is interested in disallowing an interface
                 if (filter(customData, ifa->ifa_name) == FALSE) {
                     filterSet = FALSE;
                 } else {
@@ -110,7 +110,7 @@ STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen,
                     destIpList[ipCount].family = KVS_IP_FAMILY_TYPE_IPV6;
                     destIpList[ipCount].port = 0;
                     pIpv6Addr = (struct sockaddr_in6*) ifa->ifa_addr;
-                    // Ignore unspecified addres: the other peer can't use this address
+                    // Ignore unspecified address: the other peer can't use this address
                     // Ignore link local: not very useful and will add work unnecessarily
                     // Ignore site local: https://tools.ietf.org/html/rfc8445#section-5.1.1.1
                     if (IN6_IS_ADDR_UNSPECIFIED(&pIpv6Addr->sin6_addr) || IN6_IS_ADDR_LINKLOCAL(&pIpv6Addr->sin6_addr) ||
@@ -405,6 +405,7 @@ STATUS getIpWithHostName(PCHAR hostname, PKvsIpAddress destIp)
     CHAR addressResolved[KVS_IP_ADDRESS_STRING_BUFFER_LEN + 1] = {'\0'};
 
     CHK(hostname != NULL, STATUS_NULL_ARG);
+    DLOGI("ICE SERVER Hostname received: %s", hostname);
 
     hostnameLen = STRLEN(hostname);
     addrLen = SIZEOF(addr);
@@ -442,11 +443,11 @@ STATUS getIpWithHostName(PCHAR hostname, PKvsIpAddress destIp)
         freeaddrinfo(res);
         CHK_ERR(resolved, STATUS_HOSTNAME_NOT_FOUND, "Could not find network address of %s", hostname);
         getIpAddrStr(destIp, addressResolved, ARRAY_SIZE(addressResolved));
-        DLOGI("ICE Server address for %s with getaddrinfo: %s", hostname, addressResolved);
+        DLOGP("ICE Server address for %s with getaddrinfo: %s", hostname, addressResolved);
     }
 
     else {
-        DLOGI("ICE Server address for %s: %s", hostname, addr);
+        DLOGP("ICE Server address for %s: %s", hostname, addr);
         inet_pton(AF_INET, addr, &inaddr);
         destIp->family = KVS_IP_FAMILY_TYPE_IPV4;
         MEMCPY(destIp->address, &inaddr, IPV4_ADDRESS_LENGTH);

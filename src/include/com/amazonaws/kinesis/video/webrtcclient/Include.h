@@ -25,6 +25,33 @@ extern "C" {
 #pragma clang diagnostic pop
 #endif
 
+/* TODO: Potentially move these call to PIC instead. Moving to PIC in the future would not cause any backward compatibility issues */
+#define PROFILE_CALL(f, msg)                                                                                                                         \
+    do {                                                                                                                                             \
+        startTimeInMacro = GETTIME();                                                                                                                \
+        f;                                                                                                                                           \
+        DLOGP("[%s] Time taken: %" PRIu64 " ms", (msg), (GETTIME() - startTimeInMacro) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);                        \
+    } while (FALSE)
+
+#define PROFILE_CALL_WITH_T_OBJ(f, t, msg)                                                                                                           \
+    do {                                                                                                                                             \
+        startTimeInMacro = GETTIME();                                                                                                                \
+        f;                                                                                                                                           \
+        t = (GETTIME() - startTimeInMacro) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;                                                                     \
+        DLOGP("[%s] Time taken: %" PRIu64 " ms", (msg), (t));                                                                                        \
+    } while (FALSE)
+
+#define PROFILE_WITH_START_TIME(t, msg)                                                                                                              \
+    do {                                                                                                                                             \
+        DLOGP("[%s] Time taken: %" PRIu64 " ms", msg, (GETTIME() - (t)) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);                                       \
+    } while (FALSE)
+
+#define PROFILE_WITH_START_TIME_OBJ(t1, t2, msg)                                                                                                     \
+    do {                                                                                                                                             \
+        t2 = (GETTIME() - (t1)) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;                                                                                \
+        DLOGP("[%s] Time taken: %" PRIu64 " ms", (msg), t2);                                                                                         \
+    } while (FALSE)
+
 /*! \addtogroup StatusCodes
  * WEBRTC related status codes. Each value is an positive integer formed by adding
  * a base integer inticating the category to an index. Users may run scripts/parse_status.py
@@ -531,7 +558,17 @@ extern "C" {
 /**
  * Version of SignalingClientMetrics structure
  */
-#define SIGNALING_CLIENT_METRICS_CURRENT_VERSION 0
+#define SIGNALING_CLIENT_METRICS_CURRENT_VERSION 1
+
+/**
+ * Version of PeerConnectionMetrics structure
+ */
+#define PEER_CONNECTION_METRICS_CURRENT_VERSION 0
+
+/**
+ * Version of KvsIceAgentMetrics structure
+ */
+#define ICE_AGENT_METRICS_CURRENT_VERSION 0
 
 /*!@} */
 
@@ -1442,6 +1479,22 @@ typedef struct {
 } SignalingClientMetrics, *PSignalingClientMetrics;
 
 /**
+ * @brief KVS ICE Agent Collection of ICE agent related stats. Can be expanded in the future
+ */
+typedef struct {
+    UINT32 version;                    //!< Structure version
+    KvsIceAgentStats kvsIceAgentStats; //!< ICE agent metrics. Reference in Stats.h
+} KvsIceAgentMetrics, *PKvsIceAgentMetrics;
+
+/**
+ * @brief SignalingStats Collection of signaling related stats. Can be expanded in the future
+ */
+typedef struct {
+    UINT32 version;                          //!< Structure version
+    PeerConnectionStats peerConnectionStats; //!< Peer connection metrics stats. Reference in Stats.h
+} PeerConnectionMetrics, *PPeerConnectionMetrics;
+
+/**
  * @brief The stats object is populated based on RTCStatsType request
  *
  */
@@ -2022,6 +2075,22 @@ PUBLIC_API STATUS signalingClientDeleteSync(SIGNALING_CLIENT_HANDLE);
  * @param[in,out] PSignalingClientMetrics Signaling stats
  */
 PUBLIC_API STATUS signalingClientGetMetrics(SIGNALING_CLIENT_HANDLE, PSignalingClientMetrics);
+
+/**
+ * @brief Get peer connection related metrics
+ *
+ * @param[in] PRtcPeerConnection Peer connection object
+ * @param[in,out] PPeerConnectionMetrics Peer connection stats object
+ */
+PUBLIC_API STATUS peerConnectionGetMetrics(PRtcPeerConnection, PPeerConnectionMetrics);
+
+/**
+ * @brief Get peer connection related metrics
+ *
+ * @param[in] PRtcPeerConnection Peer connection object
+ * @param[in,out] PKvsIceAgentMetrics KVS ICE agent stats object
+ */
+PUBLIC_API STATUS iceAgentGetMetrics(PRtcPeerConnection, PKvsIceAgentMetrics);
 
 /**
  * @brief Get the relevant/all metrics based on the RTCStatsType field. This does not include

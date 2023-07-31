@@ -48,7 +48,7 @@ STATUS stepIceAgentStateMachine(PIceAgent pIceAgent)
 
     if (oldState != pIceAgent->iceAgentState) {
         if (pIceAgent->iceAgentCallbacks.connectionStateChangedFn != NULL) {
-            DLOGD("Ice agent state changed from %s to %s.", iceAgentStateToString(oldState), iceAgentStateToString(pIceAgent->iceAgentState));
+            DLOGI("Ice agent state changed from %s to %s.", iceAgentStateToString(oldState), iceAgentStateToString(pIceAgent->iceAgentState));
             pIceAgent->iceAgentCallbacks.connectionStateChangedFn(pIceAgent->iceAgentCallbacks.customData, pIceAgent->iceAgentState);
         }
     } else {
@@ -286,6 +286,10 @@ CleanUp:
         retStatus = STATUS_SUCCESS;
     }
 
+    if (pIceAgent->iceAgentStartTime == 0) {
+        pIceAgent->iceAgentStartTime = GETTIME();
+    }
+
     LEAVES();
     return retStatus;
 }
@@ -427,6 +431,7 @@ STATUS executeNominatingIceAgentState(UINT64 customData, UINT64 time)
     UNUSED_PARAM(time);
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
+    UINT64 startTimeInMacro = 0;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
 
@@ -436,7 +441,8 @@ STATUS executeNominatingIceAgentState(UINT64 customData, UINT64 time)
     }
 
     if (pIceAgent->isControlling) {
-        CHK_STATUS(iceAgentSendCandidateNomination(pIceAgent));
+        PROFILE_CALL_WITH_T_OBJ(CHK_STATUS(iceAgentSendCandidateNomination(pIceAgent)),
+                                pIceAgent->iceAgentProfileDiagnostics.iceCandidatePairNominationTime, "ICE candidate pair nomination");
     } else {
         // if not controlling, keep sending connection checks and wait for peer
         // to nominate a pair.
@@ -524,7 +530,6 @@ STATUS executeReadyIceAgentState(UINT64 customData, UINT64 time)
     PIceAgent pIceAgent = (PIceAgent) customData;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
-
     if (pIceAgent->iceAgentState != ICE_AGENT_STATE_READY) {
         CHK_STATUS(iceAgentReadyStateSetup(pIceAgent));
         pIceAgent->iceAgentState = ICE_AGENT_STATE_READY;
@@ -537,6 +542,12 @@ CleanUp:
 
         // fix up retStatus so we can successfully transition to failed state.
         retStatus = STATUS_SUCCESS;
+    }
+
+    if (pIceAgent->iceAgentStartTime != 0) {
+        PROFILE_WITH_START_TIME_OBJ(pIceAgent->iceAgentStartTime, pIceAgent->iceAgentProfileDiagnostics.iceAgentSetUpTime,
+                                    "Time taken to get ICE Agent ready for media exchange");
+        pIceAgent->iceAgentStartTime = 0;
     }
 
     LEAVES();

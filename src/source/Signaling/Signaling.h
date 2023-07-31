@@ -180,6 +180,16 @@ typedef struct {
     UINT64 connectTime;
     UINT64 cpApiLatency;
     UINT64 dpApiLatency;
+    UINT64 getTokenCallTime;
+    UINT64 describeCallTime;
+    UINT64 createCallTime;
+    UINT64 getEndpointCallTime;
+    UINT64 getIceConfigCallTime;
+    UINT64 connectCallTime;
+    UINT64 createClientTime;
+    UINT64 fetchClientTime;
+    UINT64 connectClientTime;
+    UINT64 offerToAnswerTime;
     PHashTable pEndpointToClockSkewHashMap;
     UINT32 stateMachineRetryCount;
 } SignalingDiagnostics, PSignalingDiagnostics;
@@ -332,6 +342,7 @@ typedef struct {
 #ifdef KVS_USE_SIGNALING_CHANNEL_THREADPOOL
     PThreadpool pThreadpool;
 #endif
+    UINT64 offerTime;
 } SignalingClient, *PSignalingClient;
 
 // Public handle to and from object converters
