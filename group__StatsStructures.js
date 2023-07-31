@@ -17,6 +17,14 @@ var group__StatsStructures =
       [ "signalingClientStats", "group__StatusCodes.html#ga19e455ef17680d69fc2de9f0c886ea80", null ],
       [ "version", "group__StatusCodes.html#ga9ff5ba01b5b62d3996d2828763ec4a0d", null ]
     ] ],
+    [ "KvsIceAgentMetrics", "structKvsIceAgentMetrics.html", [
+      [ "kvsIceAgentStats", "group__StatusCodes.html#ga4f2c08754c0b4aae91b78d1692f13725", null ],
+      [ "version", "group__StatusCodes.html#gade8acb268e343167d31f7cd2753d4dab", null ]
+    ] ],
+    [ "PeerConnectionMetrics", "structPeerConnectionMetrics.html", [
+      [ "peerConnectionStats", "group__StatusCodes.html#gaaae697eeda8a69db788200e06134027c", null ],
+      [ "version", "group__StatusCodes.html#gafc354027ca23029aba4f574a0e396260", null ]
+    ] ],
     [ "RtcStats", "structRtcStats.html", [
       [ "requestedTypeOfStats", "group__StatusCodes.html#gab177e7034390e789397933b107eea948", null ],
       [ "rtcStatsObject", "group__StatusCodes.html#gafc691e43b541bf7ac94abda8fdcd5892", null ],
@@ -73,6 +81,16 @@ var group__StatsStructures =
       [ "totalResponsesReceived", "structRtcIceServerStats.html#a51be9f1f837bc9ed9faa73248d1f4583", null ],
       [ "totalRoundTripTime", "structRtcIceServerStats.html#a9f655978fbf2923c730610386acc80e8", null ],
       [ "url", "structRtcIceServerStats.html#ac2bc499602273f0d2c6071405daa6cf6", null ]
+    ] ],
+    [ "KvsIceAgentStats", "structKvsIceAgentStats.html", [
+      [ "candidateGatheringTime", "structKvsIceAgentStats.html#a1697c6e365f809e524d5fb7814b211ec", null ],
+      [ "hostCandidateSetUpTime", "structKvsIceAgentStats.html#aa5b7877228bd50f7b303bc9c4120d6aa", null ],
+      [ "iceAgentSetUpTime", "structKvsIceAgentStats.html#ad733b0c3a05f2892b901f4079f24dd6b", null ],
+      [ "iceCandidatePairNominationTime", "structKvsIceAgentStats.html#a083f517f1fbff0a3f15b92de5ac7f9c8", null ],
+      [ "iceServerParsingTime", "structKvsIceAgentStats.html#afd8b6e85a479028367bac6f5feb60ebf", null ],
+      [ "localCandidateGatheringTime", "structKvsIceAgentStats.html#aa0a30043602d41cc103e21334605d0c5", null ],
+      [ "relayCandidateSetUpTime", "structKvsIceAgentStats.html#a2146d3e7ca0af63604c4e3da2044a493", null ],
+      [ "srflxCandidateSetUpTime", "structKvsIceAgentStats.html#a1fbbc1a88e44d82a4e3739b5cf094f59", null ]
     ] ],
     [ "RtcIceCandidateStats", "structRtcIceCandidateStats.html", [
       [ "address", "structRtcIceCandidateStats.html#a0f2fd29d6b8ef55e599acfaaefbe8345", null ],
@@ -240,16 +258,33 @@ var group__StatsStructures =
     ] ],
     [ "SignalingClientStats", "structSignalingClientStats.html", [
       [ "apiCallRetryCount", "structSignalingClientStats.html#a95a513a223371b29c540983fd3ecaf04", null ],
+      [ "connectCallTime", "structSignalingClientStats.html#a19727f1de36f06b07a6877ff0b69d43d", null ],
+      [ "connectClientTime", "structSignalingClientStats.html#a9685ff1d6dce67ea8c4580065790f997", null ],
       [ "connectionDuration", "structSignalingClientStats.html#a11d655b6febcfa1b84596b769248d086", null ],
       [ "cpApiCallLatency", "structSignalingClientStats.html#a6dc71a2165fa2c15cd1ab1391337d932", null ],
+      [ "createCallTime", "structSignalingClientStats.html#addca1f3b2556f449a863c330f8a9da64", null ],
+      [ "createClientTime", "structSignalingClientStats.html#aaf1b82a44eb540b4f0a133f93be2e523", null ],
+      [ "describeCallTime", "structSignalingClientStats.html#a37476bd4a95c89d9dcd01cfa3d0d686d", null ],
       [ "dpApiCallLatency", "structSignalingClientStats.html#a00f3d2b3ea61ddc1353a4a7d5ed6084a", null ],
+      [ "fetchClientTime", "structSignalingClientStats.html#aaa941b8e117483e0aeb070dd565d2b71", null ],
+      [ "getEndpointCallTime", "structSignalingClientStats.html#a9e7f8a8485e6f1ee0348b15e727072f2", null ],
+      [ "getIceConfigCallTime", "structSignalingClientStats.html#a304aa3a80fc36dd82cf4457bcfa7f4f5", null ],
+      [ "getTokenCallTime", "structSignalingClientStats.html#a38411c47a7e2132934323749c778a055", null ],
       [ "iceRefreshCount", "structSignalingClientStats.html#a86d9e6bea63d4c69c4b04223d59c5142", null ],
       [ "numberOfErrors", "structSignalingClientStats.html#a30f98d510f5ecdd19c53afb8f9ef1f6b", null ],
       [ "numberOfMessagesReceived", "structSignalingClientStats.html#aca900ed2e3622b2605c81790768df294", null ],
       [ "numberOfMessagesSent", "structSignalingClientStats.html#a76b01fd641d9e83b517ac40aaba4d42a", null ],
       [ "numberOfReconnects", "structSignalingClientStats.html#a88a95942f794d84724583ef8b6d9f181", null ],
       [ "numberOfRuntimeErrors", "structSignalingClientStats.html#ac9ba962af79e44d73aac0688f09019ca", null ],
+      [ "offerToAnswerTime", "structSignalingClientStats.html#a5f778adfc7b9281a028a712afb5253e4", null ],
       [ "signalingClientUptime", "structSignalingClientStats.html#ac581ceebed9a391235a48dba8e4cff34", null ]
+    ] ],
+    [ "PeerConnectionStats", "structPeerConnectionStats.html", [
+      [ "closePeerConnectionTime", "structPeerConnectionStats.html#ab4753053c8ba611bbfc79ddb7ff63354", null ],
+      [ "dtlsSessionSetupTime", "structPeerConnectionStats.html#a412b46f47dcc4a258e97e42b141b7895", null ],
+      [ "freePeerConnectionTime", "structPeerConnectionStats.html#ae7ec7065fae6c858d749a72636efe0cf", null ],
+      [ "iceHolePunchingTime", "structPeerConnectionStats.html#a9a6571358bdd506414ab5969ace3fbaa", null ],
+      [ "peerConnectionCreationTime", "structPeerConnectionStats.html#aaebad827f202401d21ca767885ff1618", null ]
     ] ],
     [ "RtcStatsObject", "structRtcStatsObject.html", [
       [ "iceCandidatePairStats", "structRtcStatsObject.html#a4593b66b951d6cdb12d059548a2af36c", null ],
@@ -263,6 +298,10 @@ var group__StatsStructures =
       [ "transportStats", "structRtcStatsObject.html#aeda2b94e27f89786810339e7342e0827", null ]
     ] ],
     [ "PDscpPacketsSentRecord", "group__StatsStructures.html#ga7540403bae7393d7da52dcc72e3cc847", null ],
+    [ "PKvsIceAgentMetrics", "group__StatsStructures.html#ga232921a5a49f018324d40f2f7ac88b22", null ],
+    [ "PKvsIceAgentStats", "group__StatsStructures.html#ga646ca2b9dcb229baa3109505f61a3eaa", null ],
+    [ "PPeerConnectionMetrics", "group__StatsStructures.html#ga54eefc1eff0a064dc0220f284f7ff979", null ],
+    [ "PPeerConnectionStats", "group__StatsStructures.html#ga114aa5bdc713cabddcfd4332094ec9d4", null ],
     [ "PQualityLimitationDurationsRecord", "group__StatsStructures.html#ga5a5117e57ea0a264eac97ed99d875139", null ],
     [ "PRtcDataChannelStats", "group__StatsStructures.html#gad50fadcf7938259a9cdf1e03c73e87d8", null ],
     [ "PRtcEncoderStats", "group__StatsStructures.html#ga8927731e3a97833866d3a5ecb00a3460", null ],
@@ -281,7 +320,7 @@ var group__StatsStructures =
     [ "PRtcStreamMetrics", "group__StatsStructures.html#ga4dbcedb5303986f1f9f88b41c411f24f", null ],
     [ "PRtcTransportStats", "group__StatsStructures.html#gaa801ef5411f4260b44c1658874999aa3", null ],
     [ "PSignalingClientMetrics", "group__StatsStructures.html#ga9db7af67932ea54332e1978fae9240ba", null ],
-    [ "PSignalingClientStats", "group__StatsStructures.html#gaed2abeea73109d8decf11ef16a5b1a88", null ],
+    [ "PSignalingClientStats", "group__StatsStructures.html#gac44b1b81f0a970ad138adbc0014f5301", null ],
     [ "RTC_DATA_CHANNEL_STATE", "group__StatsStructures.html#ga760e5b16b6a0731e5839f9c37dfcb0a4", [
       [ "RTC_DATA_CHANNEL_STATE_CONNECTING", "group__StatsStructures.html#gga760e5b16b6a0731e5839f9c37dfcb0a4a3458300a4d519b9dcd111e101bd6f9da", null ],
       [ "RTC_DATA_CHANNEL_STATE_OPEN", "group__StatsStructures.html#gga760e5b16b6a0731e5839f9c37dfcb0a4a17473b170a5066e366408f9f4097d7d0", null ],

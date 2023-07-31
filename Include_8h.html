@@ -242,6 +242,12 @@ Classes</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClientMetrics.html">SignalingClientMetrics</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">SignalingStats Collection of signaling related stats. Can be expanded in the future.  <a href="structSignalingClientMetrics.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structKvsIceAgentMetrics.html">KvsIceAgentMetrics</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">KVS ICE Agent Collection of ICE agent related stats. Can be expanded in the future.  <a href="structKvsIceAgentMetrics.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structPeerConnectionMetrics.html">PeerConnectionMetrics</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">SignalingStats Collection of signaling related stats. Can be expanded in the future.  <a href="structPeerConnectionMetrics.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRtcStats.html">RtcStats</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">The stats object is populated based on RTCStatsType request.  <a href="structRtcStats.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -251,6 +257,14 @@ Classes</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="define-members"></a>
 Macros</h2></td></tr>
+<tr class="memitem:aa0c4b76a5784f0a44b3c56643d05efcd"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#aa0c4b76a5784f0a44b3c56643d05efcd">PROFILE_CALL</a>(f,  msg)</td></tr>
+<tr class="separator:aa0c4b76a5784f0a44b3c56643d05efcd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a75424b56e8a6b19cf3f4165d51f09e1a"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#a75424b56e8a6b19cf3f4165d51f09e1a">PROFILE_CALL_WITH_T_OBJ</a>(f,  t,  msg)</td></tr>
+<tr class="separator:a75424b56e8a6b19cf3f4165d51f09e1a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a20e8458fac11a83a782dbdab18030472"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#a20e8458fac11a83a782dbdab18030472">PROFILE_WITH_START_TIME</a>(t,  msg)</td></tr>
+<tr class="separator:a20e8458fac11a83a782dbdab18030472"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0f297044c553227fb3386e7f00118806"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Include_8h.html#a0f297044c553227fb3386e7f00118806">PROFILE_WITH_START_TIME_OBJ</a>(t1,  t2,  msg)</td></tr>
+<tr class="separator:a0f297044c553227fb3386e7f00118806"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga9b55ffc88e2786cc34f6ef948d563420"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga9b55ffc88e2786cc34f6ef948d563420">STATUS_WEBRTC_BASE</a>&#160;&#160;&#160;0x55000000</td></tr>
 <tr class="separator:ga9b55ffc88e2786cc34f6ef948d563420"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga609b523c9a213fa2bf6379b5a9ebd20e"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__SessionDescriptionInitStatusCodes.html#ga609b523c9a213fa2bf6379b5a9ebd20e">STATUS_SESSION_DESCRIPTION_INIT_NOT_OBJECT</a>&#160;&#160;&#160;<a class="el" href="group__StatusCodes.html#ga9b55ffc88e2786cc34f6ef948d563420">STATUS_WEBRTC_BASE</a> + 0x00000001</td></tr>
@@ -705,8 +719,12 @@ Macros</h2></td></tr>
 <tr class="separator:gaa80794687556eb5f0c2b180a1c6a24c9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gaf30a982ce920e96a99d1b171f3e7592d"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StructureVersions.html#gaf30a982ce920e96a99d1b171f3e7592d">RTC_STREAM_METRICS_CURRENT_VERSION</a>&#160;&#160;&#160;0</td></tr>
 <tr class="separator:gaf30a982ce920e96a99d1b171f3e7592d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga9a000afcb54122521c547851528af0eb"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StructureVersions.html#ga9a000afcb54122521c547851528af0eb">SIGNALING_CLIENT_METRICS_CURRENT_VERSION</a>&#160;&#160;&#160;0</td></tr>
+<tr class="memitem:ga9a000afcb54122521c547851528af0eb"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StructureVersions.html#ga9a000afcb54122521c547851528af0eb">SIGNALING_CLIENT_METRICS_CURRENT_VERSION</a>&#160;&#160;&#160;1</td></tr>
 <tr class="separator:ga9a000afcb54122521c547851528af0eb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga03550360a45b2c46be1b822a1a00fb45"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StructureVersions.html#ga03550360a45b2c46be1b822a1a00fb45">PEER_CONNECTION_METRICS_CURRENT_VERSION</a>&#160;&#160;&#160;0</td></tr>
+<tr class="separator:ga03550360a45b2c46be1b822a1a00fb45"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga2359cfab4464c232b409269083169bb1"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StructureVersions.html#ga2359cfab4464c232b409269083169bb1">ICE_AGENT_METRICS_CURRENT_VERSION</a>&#160;&#160;&#160;0</td></tr>
+<tr class="separator:ga2359cfab4464c232b409269083169bb1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga4e6cbb5c5fbb3b5b4eb065e6182051e9"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Counts.html#ga4e6cbb5c5fbb3b5b4eb065e6182051e9">MAX_ICE_CONFIG_URI_COUNT</a>&#160;&#160;&#160;4</td></tr>
 <tr class="separator:ga4e6cbb5c5fbb3b5b4eb065e6182051e9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga1bba324d8b527831b53d9412da235656"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Counts.html#ga1bba324d8b527831b53d9412da235656">MAX_ICE_CONFIG_COUNT</a>&#160;&#160;&#160;5</td></tr>
@@ -853,6 +871,10 @@ Typedefs</h2></td></tr>
 <tr class="separator:ga4dbcedb5303986f1f9f88b41c411f24f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga9db7af67932ea54332e1978fae9240ba"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structSignalingClientMetrics.html">SignalingClientMetrics</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatsStructures.html#ga9db7af67932ea54332e1978fae9240ba">PSignalingClientMetrics</a></td></tr>
 <tr class="separator:ga9db7af67932ea54332e1978fae9240ba"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga232921a5a49f018324d40f2f7ac88b22"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structKvsIceAgentMetrics.html">KvsIceAgentMetrics</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatsStructures.html#ga232921a5a49f018324d40f2f7ac88b22">PKvsIceAgentMetrics</a></td></tr>
+<tr class="separator:ga232921a5a49f018324d40f2f7ac88b22"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga54eefc1eff0a064dc0220f284f7ff979"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structPeerConnectionMetrics.html">PeerConnectionMetrics</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatsStructures.html#ga54eefc1eff0a064dc0220f284f7ff979">PPeerConnectionMetrics</a></td></tr>
+<tr class="separator:ga54eefc1eff0a064dc0220f284f7ff979"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gabdd6279872601de0a012f1f3f50c8c82"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRtcStats.html">RtcStats</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatsStructures.html#gabdd6279872601de0a012f1f3f50c8c82">PRtcStats</a></td></tr>
 <tr class="separator:gabdd6279872601de0a012f1f3f50c8c82"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga8927731e3a97833866d3a5ecb00a3460"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRtcEncoderStats.html">RtcEncoderStats</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatsStructures.html#ga8927731e3a97833866d3a5ecb00a3460">PRtcEncoderStats</a></td></tr>
@@ -1117,6 +1139,12 @@ Functions</h2></td></tr>
 <tr class="memitem:gad600c2fa22f9ac2817a6fdfed8b2f407"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicMemberFunctions.html#gad600c2fa22f9ac2817a6fdfed8b2f407">signalingClientGetMetrics</a> (<a class="el" href="group__StatusCodes.html#ga1a31b45408a80e1064d39d578bd3b751">SIGNALING_CLIENT_HANDLE</a>, <a class="el" href="group__StatsStructures.html#ga9db7af67932ea54332e1978fae9240ba">PSignalingClientMetrics</a>)</td></tr>
 <tr class="memdesc:gad600c2fa22f9ac2817a6fdfed8b2f407"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get signaling related metrics.  <a href="group__PublicMemberFunctions.html#gad600c2fa22f9ac2817a6fdfed8b2f407">More...</a><br /></td></tr>
 <tr class="separator:gad600c2fa22f9ac2817a6fdfed8b2f407"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga84a68cd53825426050af16006b381a94"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicMemberFunctions.html#ga84a68cd53825426050af16006b381a94">peerConnectionGetMetrics</a> (<a class="el" href="group__PublicStructures.html#ga70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>, <a class="el" href="group__StatsStructures.html#ga54eefc1eff0a064dc0220f284f7ff979">PPeerConnectionMetrics</a>)</td></tr>
+<tr class="memdesc:ga84a68cd53825426050af16006b381a94"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get peer connection related metrics.  <a href="group__PublicMemberFunctions.html#ga84a68cd53825426050af16006b381a94">More...</a><br /></td></tr>
+<tr class="separator:ga84a68cd53825426050af16006b381a94"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gac3b970afd5791eb5d8e3e01334e17022"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicMemberFunctions.html#gac3b970afd5791eb5d8e3e01334e17022">iceAgentGetMetrics</a> (<a class="el" href="group__PublicStructures.html#ga70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>, <a class="el" href="group__StatsStructures.html#ga232921a5a49f018324d40f2f7ac88b22">PKvsIceAgentMetrics</a>)</td></tr>
+<tr class="memdesc:gac3b970afd5791eb5d8e3e01334e17022"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get peer connection related metrics.  <a href="group__PublicMemberFunctions.html#gac3b970afd5791eb5d8e3e01334e17022">More...</a><br /></td></tr>
+<tr class="separator:gac3b970afd5791eb5d8e3e01334e17022"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga469e0f69e03630ad5b03d8921afd62be"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicMemberFunctions.html#ga469e0f69e03630ad5b03d8921afd62be">rtcPeerConnectionGetMetrics</a> (<a class="el" href="group__PublicStructures.html#ga70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>, <a class="el" href="group__PublicStructures.html#ga575b38a26ceae3044dd16d8d72667ebf">PRtcRtpTransceiver</a>, <a class="el" href="group__StatsStructures.html#gabdd6279872601de0a012f1f3f50c8c82">PRtcStats</a>)</td></tr>
 <tr class="memdesc:ga469e0f69e03630ad5b03d8921afd62be"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the relevant/all metrics based on the RTCStatsType field. This does not include any signaling related metrics. The caller of the API is expected to populate requestedTypeOfStats member of PRtcStats object with one of the values in RTC_STATS_TYPE.  <a href="group__PublicMemberFunctions.html#ga469e0f69e03630ad5b03d8921afd62be">More...</a><br /></td></tr>
 <tr class="separator:ga469e0f69e03630ad5b03d8921afd62be"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -1127,13 +1155,156 @@ Functions</h2></td></tr>
 <tr class="memdesc:gac847bd3f95ca79c90788f0948c4ee093"><td class="mdescLeft">&#160;</td><td class="mdescRight">Frees previously generated <a class="el" href="structRtcCertificate.html" title="Specifies the certificate and the private key used by the certificate. The Certificates are in the fo...">RtcCertificate</a> object.  <a href="group__PublicMemberFunctions.html#gac847bd3f95ca79c90788f0948c4ee093">More...</a><br /></td></tr>
 <tr class="separator:gac847bd3f95ca79c90788f0948c4ee093"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
+<h2 class="groupheader">Macro Definition Documentation</h2>
+<a id="aa0c4b76a5784f0a44b3c56643d05efcd"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa0c4b76a5784f0a44b3c56643d05efcd">&#9670;&nbsp;</a></span>PROFILE_CALL</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define PROFILE_CALL</td>
+          <td>(</td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname">f, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname">msg&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<b>Value:</b><div class="fragment"><div class="line">    <span class="keywordflow">do</span> {                                                                                                                                             \</div>
+<div class="line">        startTimeInMacro = GETTIME();                                                                                                                \</div>
+<div class="line">        f;                                                                                                                                           \</div>
+<div class="line">        DLOGP(<span class="stringliteral">&quot;[%s] Time taken: %&quot;</span> PRIu64 <span class="stringliteral">&quot; ms&quot;</span>, (msg), (GETTIME() - startTimeInMacro) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);                        \</div>
+<div class="line">    } <span class="keywordflow">while</span> (FALSE)</div>
+</div><!-- fragment -->
+</div>
+</div>
+<a id="a75424b56e8a6b19cf3f4165d51f09e1a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a75424b56e8a6b19cf3f4165d51f09e1a">&#9670;&nbsp;</a></span>PROFILE_CALL_WITH_T_OBJ</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define PROFILE_CALL_WITH_T_OBJ</td>
+          <td>(</td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname">f, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname">t, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname">msg&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<b>Value:</b><div class="fragment"><div class="line">    <span class="keywordflow">do</span> {                                                                                                                                             \</div>
+<div class="line">        startTimeInMacro = GETTIME();                                                                                                                \</div>
+<div class="line">        f;                                                                                                                                           \</div>
+<div class="line">        t = (GETTIME() - startTimeInMacro) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;                                                                     \</div>
+<div class="line">        DLOGP(<span class="stringliteral">&quot;[%s] Time taken: %&quot;</span> PRIu64 <span class="stringliteral">&quot; ms&quot;</span>, (msg), (t));                                                                                        \</div>
+<div class="line">    } <span class="keywordflow">while</span> (FALSE)</div>
+</div><!-- fragment -->
+</div>
+</div>
+<a id="a20e8458fac11a83a782dbdab18030472"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a20e8458fac11a83a782dbdab18030472">&#9670;&nbsp;</a></span>PROFILE_WITH_START_TIME</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define PROFILE_WITH_START_TIME</td>
+          <td>(</td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname">t, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname">msg&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<b>Value:</b><div class="fragment"><div class="line">    <span class="keywordflow">do</span> {                                                                                                                                             \</div>
+<div class="line">        DLOGP(<span class="stringliteral">&quot;[%s] Time taken: %&quot;</span> PRIu64 <span class="stringliteral">&quot; ms&quot;</span>, msg, (GETTIME() - (t)) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);                                       \</div>
+<div class="line">    } <span class="keywordflow">while</span> (FALSE)</div>
+</div><!-- fragment -->
+</div>
+</div>
+<a id="a0f297044c553227fb3386e7f00118806"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0f297044c553227fb3386e7f00118806">&#9670;&nbsp;</a></span>PROFILE_WITH_START_TIME_OBJ</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define PROFILE_WITH_START_TIME_OBJ</td>
+          <td>(</td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname">t1, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname">t2, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname">msg&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<b>Value:</b><div class="fragment"><div class="line">    <span class="keywordflow">do</span> {                                                                                                                                             \</div>
+<div class="line">        t2 = (GETTIME() - (t1)) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;                                                                                \</div>
+<div class="line">        DLOGP(<span class="stringliteral">&quot;[%s] Time taken: %&quot;</span> PRIu64 <span class="stringliteral">&quot; ms&quot;</span>, (msg), t2);                                                                                         \</div>
+<div class="line">    } <span class="keywordflow">while</span> (FALSE)</div>
+</div><!-- fragment -->
+</div>
+</div>
 </div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_b0856f6b0d80ccb263b2f415c91f9e17.html">include</a></li><li class="navelem"><a class="el" href="dir_8f5ac45a6ada111b95e80af22bb6017d.html">com</a></li><li class="navelem"><a class="el" href="dir_6eddcaa8cb3f84b1b7290fa7880ed0c5.html">amazonaws</a></li><li class="navelem"><a class="el" href="dir_ffe25b375dd9c47f978782781b252738.html">kinesis</a></li><li class="navelem"><a class="el" href="dir_40be0bfe93e499fae0ac3fc2c0b3ca29.html">video</a></li><li class="navelem"><a class="el" href="dir_4165afa699965307903ffe413a1cdec9.html">webrtcclient</a></li><li class="navelem"><a class="el" href="Include_8h.html">Include.h</a></li>
-    <li class="footer">Generated on Fri Jul 28 2023 18:30:41 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Mon Jul 31 2023 21:24:14 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>

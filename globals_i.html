@@ -94,6 +94,9 @@ $(document).ready(function(){initNavTree('globals_i.html',''); initResizable(); 
 <div class="textblock">Here is a list of all file members with links to the files they belong to:</div>
 
 <h3><a id="index_i"></a>- i -</h3><ul>
+<li>ICE_AGENT_METRICS_CURRENT_VERSION
+: <a class="el" href="group__StructureVersions.html#ga2359cfab4464c232b409269083169bb1">Include.h</a>
+</li>
 <li>ICE_AGENT_STATE_CHECK_CONNECTION
 : <a class="el" href="IceAgentStateMachine_8h.html#ac93a4230920d667ac1bba42b1cb3202b">IceAgentStateMachine.h</a>
 </li>
@@ -312,17 +315,21 @@ $(document).ready(function(){initNavTree('globals_i.html',''); initResizable(); 
 : <a class="el" href="IceAgent_8c.html#a1cfd588b7d18304d6feb6e32417a508f">IceAgent.c</a>
 , <a class="el" href="IceAgent_8h.html#ae7a97b4228e1172f1bf21d0a8bee0739">IceAgent.h</a>
 </li>
+<li>iceAgentGetMetrics()
+: <a class="el" href="group__PublicMemberFunctions.html#gac3b970afd5791eb5d8e3e01334e17022">Include.h</a>
+, <a class="el" href="group__PublicMemberFunctions.html#gac3b970afd5791eb5d8e3e01334e17022">PeerConnection.c</a>
+</li>
 <li>iceAgentInitHostCandidate()
 : <a class="el" href="IceAgent_8c.html#a404897a5797a45ca76444ee244c5b760">IceAgent.c</a>
 , <a class="el" href="IceAgent_8h.html#ab7fc78b0a2605c5291b7ec8d7ed40cdc">IceAgent.h</a>
 </li>
 <li>iceAgentInitRelayCandidate()
-: <a class="el" href="IceAgent_8c.html#aa82059f636933c877ef87e25f4a62669">IceAgent.c</a>
-, <a class="el" href="IceAgent_8h.html#a16f8a3535bbc9b23cd08b98bd79e49b4">IceAgent.h</a>
+: <a class="el" href="IceAgent_8h.html#a16f8a3535bbc9b23cd08b98bd79e49b4">IceAgent.h</a>
+, <a class="el" href="IceAgent_8c.html#aa82059f636933c877ef87e25f4a62669">IceAgent.c</a>
 </li>
 <li>iceAgentInitRelayCandidates()
-: <a class="el" href="IceAgent_8h.html#a90515bdf78b9dec41ee9c9d579da0045">IceAgent.h</a>
-, <a class="el" href="IceAgent_8c.html#a888fc1a2a5c2fe190f30db87c85c6759">IceAgent.c</a>
+: <a class="el" href="IceAgent_8c.html#a888fc1a2a5c2fe190f30db87c85c6759">IceAgent.c</a>
+, <a class="el" href="IceAgent_8h.html#a90515bdf78b9dec41ee9c9d579da0045">IceAgent.h</a>
 </li>
 <li>iceAgentInitSrflxCandidate()
 : <a class="el" href="IceAgent_8c.html#a0a39b316e5aff662b257648e97e53146">IceAgent.c</a>
@@ -441,8 +448,8 @@ $(document).ready(function(){initNavTree('globals_i.html',''); initResizable(); 
 , <a class="el" href="IceUtils_8h.html#aa56bda109a4ac2765d483532d0c4e2ef">IceUtils.h</a>
 </li>
 <li>iceUtilsSendStunPacket()
-: <a class="el" href="IceUtils_8c.html#a163008ed55dd5e46e25737a89d5beabb">IceUtils.c</a>
-, <a class="el" href="IceUtils_8h.html#a6121d3d4752fc6b07d8926410ef62b39">IceUtils.h</a>
+: <a class="el" href="IceUtils_8h.html#a6121d3d4752fc6b07d8926410ef62b39">IceUtils.h</a>
+, <a class="el" href="IceUtils_8c.html#a163008ed55dd5e46e25737a89d5beabb">IceUtils.c</a>
 </li>
 <li>incomingDataHandler()
 : <a class="el" href="IceAgent_8c.html#a97079f5f6e61ff478f94f9934af5eec0">IceAgent.c</a>
@@ -495,8 +502,8 @@ $(document).ready(function(){initNavTree('globals_i.html',''); initResizable(); 
 , <a class="el" href="IOBuffer_8h.html#a78684630917f86486c8555f23d4ed05a">IOBuffer.h</a>
 </li>
 <li>ioBufferReset()
-: <a class="el" href="IOBuffer_8c.html#a04baed52cfc34b413a5dd087bf197c06">IOBuffer.c</a>
-, <a class="el" href="IOBuffer_8h.html#a0e64c8ebf0c539ef29157f419348f363">IOBuffer.h</a>
+: <a class="el" href="IOBuffer_8h.html#a0e64c8ebf0c539ef29157f419348f363">IOBuffer.h</a>
+, <a class="el" href="IOBuffer_8c.html#a04baed52cfc34b413a5dd087bf197c06">IOBuffer.c</a>
 </li>
 <li>ioBufferWrite()
 : <a class="el" href="IOBuffer_8c.html#a1fd767c00239c83072309f23641b22f6">IOBuffer.c</a>
@@ -564,7 +571,7 @@ $(document).ready(function(){initNavTree('globals_i.html',''); initResizable(); 
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="footer">Generated on Fri Jul 28 2023 18:30:41 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Mon Jul 31 2023 21:24:15 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>

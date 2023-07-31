@@ -1,14 +1,14 @@
 <map id="__LwsCallInfo" name="__LwsCallInfo">
-<area shape="rect" id="node1" title=" " alt="" coords="5,542,156,737"/>
-<area shape="rect" id="node2" href="$structSignalingClient.html" title=" " alt="" coords="659,836,844,1060"/>
-<area shape="rect" id="node3" href="$structSignalingDiagnostics.html" title=" " alt="" coords="180,520,427,759"/>
-<area shape="rect" id="node4" href="$structSignalingClientInfoInternal.html" title=" " alt="" coords="451,527,646,751"/>
-<area shape="rect" id="node5" href="$structSignalingClientInfo.html" title="Populate Signaling client with client ID and application log level." alt="" coords="418,219,679,457"/>
-<area shape="rect" id="node6" href="$structChannelInfo.html" title="Contains all signaling channel related information." alt="" coords="670,527,833,751"/>
-<area shape="rect" id="node7" href="$structThreadTracker.html" title=" " alt="" coords="857,579,971,700"/>
-<area shape="rect" id="node8" href="$structIceConfigInfo.html" title="ICE configuration information struct." alt="" coords="995,564,1102,715"/>
-<area shape="rect" id="node9" href="$structSignalingClientCallbacks.html" title="Register Signaling client callbacks." alt="" coords="1127,571,1309,707"/>
-<area shape="rect" id="node10" href="$structReceivedSignalingMessage.html" title="Structure defining the signaling message to be received." alt="" coords="1118,285,1318,391"/>
-<area shape="rect" id="node11" href="$structSignalingMessage.html" title="Structure defining the basic signaling message." alt="" coords="1148,5,1288,156"/>
-<area shape="rect" id="node12" href="$structSignalingChannelDescription.html" title="Signaling channel description returned from the service." alt="" coords="1333,549,1543,729"/>
+<area shape="rect" id="node1" title=" " alt="" coords="5,535,156,729"/>
+<area shape="rect" id="node2" href="$structSignalingClient.html" title=" " alt="" coords="639,821,824,1045"/>
+<area shape="rect" id="node3" href="$structSignalingDiagnostics.html" title=" " alt="" coords="181,520,407,744"/>
+<area shape="rect" id="node4" href="$structSignalingClientInfoInternal.html" title=" " alt="" coords="431,520,626,744"/>
+<area shape="rect" id="node5" href="$structSignalingClientInfo.html" title="Populate Signaling client with client ID and application log level." alt="" coords="398,219,659,457"/>
+<area shape="rect" id="node6" href="$structChannelInfo.html" title="Contains all signaling channel related information." alt="" coords="650,520,813,744"/>
+<area shape="rect" id="node7" href="$structThreadTracker.html" title=" " alt="" coords="837,571,951,693"/>
+<area shape="rect" id="node8" href="$structIceConfigInfo.html" title="ICE configuration information struct." alt="" coords="975,557,1082,707"/>
+<area shape="rect" id="node9" href="$structSignalingClientCallbacks.html" title="Register Signaling client callbacks." alt="" coords="1107,564,1289,700"/>
+<area shape="rect" id="node10" href="$structReceivedSignalingMessage.html" title="Structure defining the signaling message to be received." alt="" coords="1098,285,1298,391"/>
+<area shape="rect" id="node11" href="$structSignalingMessage.html" title="Structure defining the basic signaling message." alt="" coords="1128,5,1268,156"/>
+<area shape="rect" id="node12" href="$structSignalingChannelDescription.html" title="Signaling channel description returned from the service." alt="" coords="1313,542,1523,722"/>
 </map>

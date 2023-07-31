@@ -132,8 +132,12 @@ Macros</h2></td></tr>
 <tr class="separator:gaa80794687556eb5f0c2b180a1c6a24c9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gaf30a982ce920e96a99d1b171f3e7592d"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StructureVersions.html#gaf30a982ce920e96a99d1b171f3e7592d">RTC_STREAM_METRICS_CURRENT_VERSION</a>&#160;&#160;&#160;0</td></tr>
 <tr class="separator:gaf30a982ce920e96a99d1b171f3e7592d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga9a000afcb54122521c547851528af0eb"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StructureVersions.html#ga9a000afcb54122521c547851528af0eb">SIGNALING_CLIENT_METRICS_CURRENT_VERSION</a>&#160;&#160;&#160;0</td></tr>
+<tr class="memitem:ga9a000afcb54122521c547851528af0eb"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StructureVersions.html#ga9a000afcb54122521c547851528af0eb">SIGNALING_CLIENT_METRICS_CURRENT_VERSION</a>&#160;&#160;&#160;1</td></tr>
 <tr class="separator:ga9a000afcb54122521c547851528af0eb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga03550360a45b2c46be1b822a1a00fb45"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StructureVersions.html#ga03550360a45b2c46be1b822a1a00fb45">PEER_CONNECTION_METRICS_CURRENT_VERSION</a>&#160;&#160;&#160;0</td></tr>
+<tr class="separator:ga03550360a45b2c46be1b822a1a00fb45"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga2359cfab4464c232b409269083169bb1"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StructureVersions.html#ga2359cfab4464c232b409269083169bb1">ICE_AGENT_METRICS_CURRENT_VERSION</a>&#160;&#160;&#160;0</td></tr>
+<tr class="separator:ga2359cfab4464c232b409269083169bb1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <p>Structure version macros. </p>
@@ -154,6 +158,21 @@ Macros</h2></td></tr>
 
 </div>
 </div>
+<a id="ga2359cfab4464c232b409269083169bb1"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga2359cfab4464c232b409269083169bb1">&#9670;&nbsp;</a></span>ICE_AGENT_METRICS_CURRENT_VERSION</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define ICE_AGENT_METRICS_CURRENT_VERSION&#160;&#160;&#160;0</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Version of <a class="el" href="structKvsIceAgentMetrics.html" title="KVS ICE Agent Collection of ICE agent related stats. Can be expanded in the future.">KvsIceAgentMetrics</a> structure </p>
+
+</div>
+</div>
 <a id="gaa0f2c940f478034f48566420b85f6a8b"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#gaa0f2c940f478034f48566420b85f6a8b">&#9670;&nbsp;</a></span>PEER_CONNECTION_CURRENT_VERSION</h2>
 
@@ -166,6 +185,21 @@ Macros</h2></td></tr>
       </table>
 </div><div class="memdoc">
 <p>Version of <a class="el" href="structRtcPeerConnection.html" title="An RtcPeerConnection instance allows an application to establish peer-to-peer communications with ano...">RtcPeerConnection</a> structure </p>
+
+</div>
+</div>
+<a id="ga03550360a45b2c46be1b822a1a00fb45"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga03550360a45b2c46be1b822a1a00fb45">&#9670;&nbsp;</a></span>PEER_CONNECTION_METRICS_CURRENT_VERSION</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define PEER_CONNECTION_METRICS_CURRENT_VERSION&#160;&#160;&#160;0</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Version of <a class="el" href="structPeerConnectionMetrics.html" title="SignalingStats Collection of signaling related stats. Can be expanded in the future.">PeerConnectionMetrics</a> structure </p>
 
 </div>
 </div>
@@ -266,7 +300,7 @@ Macros</h2></td></tr>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">#define SIGNALING_CLIENT_METRICS_CURRENT_VERSION&#160;&#160;&#160;0</td>
+          <td class="memname">#define SIGNALING_CLIENT_METRICS_CURRENT_VERSION&#160;&#160;&#160;1</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -309,7 +343,7 @@ Macros</h2></td></tr>
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="footer">Generated on Fri Jul 28 2023 18:30:41 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Mon Jul 31 2023 21:24:15 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>

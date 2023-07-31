@@ -1,7 +1,9 @@
 var group__StructureVersions =
 [
     [ "CHANNEL_INFO_CURRENT_VERSION", "group__StructureVersions.html#gae7a5b2883ec07248e6c913777cabfbab", null ],
+    [ "ICE_AGENT_METRICS_CURRENT_VERSION", "group__StructureVersions.html#ga2359cfab4464c232b409269083169bb1", null ],
     [ "PEER_CONNECTION_CURRENT_VERSION", "group__StructureVersions.html#gaa0f2c940f478034f48566420b85f6a8b", null ],
+    [ "PEER_CONNECTION_METRICS_CURRENT_VERSION", "group__StructureVersions.html#ga03550360a45b2c46be1b822a1a00fb45", null ],
     [ "RTC_ICE_METRICS_CURRENT_VERSION", "group__StructureVersions.html#gaa80794687556eb5f0c2b180a1c6a24c9", null ],
     [ "RTC_STREAM_METRICS_CURRENT_VERSION", "group__StructureVersions.html#gaf30a982ce920e96a99d1b171f3e7592d", null ],
     [ "SIGNALING_CHANNEL_DESCRIPTION_CURRENT_VERSION", "group__StructureVersions.html#gad43eff9ad752a5282f3d7e11623034eb", null ],

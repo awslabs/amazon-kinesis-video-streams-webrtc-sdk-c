@@ -1,0 +1,4 @@
+<map id="PeerConnectionMetrics" name="PeerConnectionMetrics">
+<area shape="rect" id="node1" title="SignalingStats Collection of signaling related stats. Can be expanded in the future." alt="" coords="33,204,205,281"/>
+<area shape="rect" id="node2" href="$structPeerConnectionStats.html" title=" " alt="" coords="5,5,232,141"/>
+</map>

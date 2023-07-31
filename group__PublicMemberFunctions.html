@@ -248,6 +248,12 @@ Functions</h2></td></tr>
 <tr class="memitem:gad600c2fa22f9ac2817a6fdfed8b2f407"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicMemberFunctions.html#gad600c2fa22f9ac2817a6fdfed8b2f407">signalingClientGetMetrics</a> (<a class="el" href="group__StatusCodes.html#ga1a31b45408a80e1064d39d578bd3b751">SIGNALING_CLIENT_HANDLE</a>, <a class="el" href="group__StatsStructures.html#ga9db7af67932ea54332e1978fae9240ba">PSignalingClientMetrics</a>)</td></tr>
 <tr class="memdesc:gad600c2fa22f9ac2817a6fdfed8b2f407"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get signaling related metrics.  <a href="group__PublicMemberFunctions.html#gad600c2fa22f9ac2817a6fdfed8b2f407">More...</a><br /></td></tr>
 <tr class="separator:gad600c2fa22f9ac2817a6fdfed8b2f407"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga84a68cd53825426050af16006b381a94"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicMemberFunctions.html#ga84a68cd53825426050af16006b381a94">peerConnectionGetMetrics</a> (<a class="el" href="group__PublicStructures.html#ga70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>, <a class="el" href="group__StatsStructures.html#ga54eefc1eff0a064dc0220f284f7ff979">PPeerConnectionMetrics</a>)</td></tr>
+<tr class="memdesc:ga84a68cd53825426050af16006b381a94"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get peer connection related metrics.  <a href="group__PublicMemberFunctions.html#ga84a68cd53825426050af16006b381a94">More...</a><br /></td></tr>
+<tr class="separator:ga84a68cd53825426050af16006b381a94"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gac3b970afd5791eb5d8e3e01334e17022"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicMemberFunctions.html#gac3b970afd5791eb5d8e3e01334e17022">iceAgentGetMetrics</a> (<a class="el" href="group__PublicStructures.html#ga70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>, <a class="el" href="group__StatsStructures.html#ga232921a5a49f018324d40f2f7ac88b22">PKvsIceAgentMetrics</a>)</td></tr>
+<tr class="memdesc:gac3b970afd5791eb5d8e3e01334e17022"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get peer connection related metrics.  <a href="group__PublicMemberFunctions.html#gac3b970afd5791eb5d8e3e01334e17022">More...</a><br /></td></tr>
+<tr class="separator:gac3b970afd5791eb5d8e3e01334e17022"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga469e0f69e03630ad5b03d8921afd62be"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicMemberFunctions.html#ga469e0f69e03630ad5b03d8921afd62be">rtcPeerConnectionGetMetrics</a> (<a class="el" href="group__PublicStructures.html#ga70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>, <a class="el" href="group__PublicStructures.html#ga575b38a26ceae3044dd16d8d72667ebf">PRtcRtpTransceiver</a>, <a class="el" href="group__StatsStructures.html#gabdd6279872601de0a012f1f3f50c8c82">PRtcStats</a>)</td></tr>
 <tr class="memdesc:ga469e0f69e03630ad5b03d8921afd62be"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the relevant/all metrics based on the RTCStatsType field. This does not include any signaling related metrics. The caller of the API is expected to populate requestedTypeOfStats member of PRtcStats object with one of the values in RTC_STATS_TYPE.  <a href="group__PublicMemberFunctions.html#ga469e0f69e03630ad5b03d8921afd62be">More...</a><br /></td></tr>
 <tr class="separator:ga469e0f69e03630ad5b03d8921afd62be"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -1603,6 +1609,52 @@ Here is the call graph for this function:</div>
 
 </div>
 </div>
+<a id="gac3b970afd5791eb5d8e3e01334e17022"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gac3b970afd5791eb5d8e3e01334e17022">&#9670;&nbsp;</a></span>iceAgentGetMetrics()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">PUBLIC_API STATUS iceAgentGetMetrics </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__PublicStructures.html#ga70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>&#160;</td>
+          <td class="paramname"><em>pPeerConnection</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="group__StatsStructures.html#ga232921a5a49f018324d40f2f7ac88b22">PKvsIceAgentMetrics</a>&#160;</td>
+          <td class="paramname"><em>pKvsIceAgentMetrics</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get peer connection related metrics. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">PRtcPeerConnection</td><td>Peer connection object </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">PKvsIceAgentMetrics</td><td>KVS ICE agent stats object </td></tr>
+  </table>
+  </dd>
+</dl>
+<div class="dynheader">
+Here is the call graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__PublicMemberFunctions_gac3b970afd5791eb5d8e3e01334e17022_cgraph.png" border="0" usemap="#agroup__PublicMemberFunctions_gac3b970afd5791eb5d8e3e01334e17022_cgraph" alt=""/></div>
+<map name="agroup__PublicMemberFunctions_gac3b970afd5791eb5d8e3e01334e17022_cgraph" id="agroup__PublicMemberFunctions_gac3b970afd5791eb5d8e3e01334e17022_cgraph">
+<area shape="rect" title="Get peer connection related metrics." alt="" coords="5,5,156,32"/>
+<area shape="rect" href="IceAgent_8c.html#a80987d0a618dde24678fbf71590473cb" title=" " alt="" coords="204,5,337,32"/>
+</map>
+</div>
+
+</div>
+</div>
 <a id="ga0091e2920ba137e0e80d40402a675abb"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ga0091e2920ba137e0e80d40402a675abb">&#9670;&nbsp;</a></span>initKvsWebRtc()</h2>
 
@@ -1782,6 +1834,43 @@ Here is the call graph for this function:</div>
 <area shape="rect" href="Serialize_8c.html#a864e3e307a205326f3cd134c7492f35f" title=" " alt="" coords="597,585,723,611"/>
 </map>
 </div>
+
+</div>
+</div>
+<a id="ga84a68cd53825426050af16006b381a94"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga84a68cd53825426050af16006b381a94">&#9670;&nbsp;</a></span>peerConnectionGetMetrics()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">PUBLIC_API STATUS peerConnectionGetMetrics </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__PublicStructures.html#ga70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>&#160;</td>
+          <td class="paramname"><em>pPeerConnection</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="group__StatsStructures.html#ga54eefc1eff0a064dc0220f284f7ff979">PPeerConnectionMetrics</a>&#160;</td>
+          <td class="paramname"><em>pPeerConnectionMetrics</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get peer connection related metrics. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">PRtcPeerConnection</td><td>Peer connection object </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">PPeerConnectionMetrics</td><td>Peer connection stats object </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>
@@ -3036,7 +3125,7 @@ Here is the call graph for this function:</div>
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="footer">Generated on Fri Jul 28 2023 18:30:41 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Mon Jul 31 2023 21:24:15 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>

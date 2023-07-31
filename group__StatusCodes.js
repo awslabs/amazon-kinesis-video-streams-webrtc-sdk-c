@@ -143,6 +143,7 @@ var group__StatusCodes =
     [ "iceTransportPolicy", "group__StatusCodes.html#ga5088878594e4eab3d1b5010960fc15a5", null ],
     [ "id", "group__StatusCodes.html#ga50c0078699a2a62cc69cd30ce726b0ed", null ],
     [ "kind", "group__StatusCodes.html#ga0ab3d1535c557003a68f2c0d9abde2c3", null ],
+    [ "kvsIceAgentStats", "group__StatusCodes.html#ga4f2c08754c0b4aae91b78d1692f13725", null ],
     [ "kvsRtcConfiguration", "group__StatusCodes.html#ga69bb47ece52e306b555cf69a153db483", null ],
     [ "localRtcIceCandidateStats", "group__StatusCodes.html#ga68e096213b6c4dd37b46b9a1aa484c02", null ],
     [ "loggingLevel", "group__StatusCodes.html#ga8df6838b31452ecf1bd1cf1a0fffa680", null ],
@@ -166,6 +167,7 @@ var group__StatusCodes =
     [ "pControlPlaneUrl", "group__StatusCodes.html#gacab882bab3270fb6f87325195f17fd13", null ],
     [ "pCustomUserAgent", "group__StatusCodes.html#gae3dd11cf23eca8ffbf822a8f92fb570b", null ],
     [ "peerClientId", "group__StatusCodes.html#ga02c3030e0e011ae7a1ef1a77003fa048", null ],
+    [ "peerConnectionStats", "group__StatusCodes.html#gaaae697eeda8a69db788200e06134027c", null ],
     [ "pKmsKeyId", "group__StatusCodes.html#ga08bab1b25f23e34515fd6c17a07b2c91", null ],
     [ "pPrivateKey", "group__StatusCodes.html#gacf9edbaf8bcf6068a19ddeadea9aa9ba", null ],
     [ "pRegion", "group__StatusCodes.html#ga03b591edffe71fb5572ca7b6b218ece7", null ],
@@ -221,6 +223,8 @@ var group__StatusCodes =
     [ "version", "group__StatusCodes.html#gaee368f82e38baffef4a1e71d55ef1e8b", null ],
     [ "version", "group__StatusCodes.html#gaa4d86ac72d03331f4b926c374b44e9ac", null ],
     [ "version", "group__StatusCodes.html#ga9ff5ba01b5b62d3996d2828763ec4a0d", null ],
+    [ "version", "group__StatusCodes.html#gade8acb268e343167d31f7cd2753d4dab", null ],
+    [ "version", "group__StatusCodes.html#gafc354027ca23029aba4f574a0e396260", null ],
     [ "voiceActivity", "group__StatusCodes.html#gaad2b456926b4ca8616953ecfd80e6cf3", null ],
     [ "width", "group__StatusCodes.html#ga9750be60f7b4746198aaea8d07a19e16", null ]
 ];

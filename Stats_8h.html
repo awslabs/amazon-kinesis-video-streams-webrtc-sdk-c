@@ -169,6 +169,9 @@ Classes</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRtcIceServerStats.html">RtcIceServerStats</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">: <a class="el" href="structRtcIceServerStats.html" title=": RtcIceServerStats Stats related to the ICE Server">RtcIceServerStats</a> Stats related to the ICE Server  <a href="structRtcIceServerStats.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structKvsIceAgentStats.html">KvsIceAgentStats</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">: IceAgent profiling Stats related to the KVS ICE Agent  <a href="structKvsIceAgentStats.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRtcIceCandidateStats.html">RtcIceCandidateStats</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">: <a class="el" href="structRtcIceCandidateStats.html" title=": RtcIceCandidateStats Stats related to a specific candidate in a pair">RtcIceCandidateStats</a> Stats related to a specific candidate in a pair  <a href="structRtcIceCandidateStats.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -196,6 +199,8 @@ Classes</h2></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClientStats.html">SignalingClientStats</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="structSignalingClientMetrics.html" title="SignalingStats Collection of signaling related stats. Can be expanded in the future.">SignalingClientMetrics</a> Represent the stats related to the KVS WebRTC SDK signaling client.  <a href="structSignalingClientStats.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structPeerConnectionStats.html">PeerConnectionStats</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRtcStatsObject.html">RtcStatsObject</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">RTCStatsObject Represents an object passed in by the application developer which will be populated internally.  <a href="structRtcStatsObject.html#details">More...</a><br /></td></tr>
@@ -238,6 +243,8 @@ Typedefs</h2></td></tr>
 <tr class="separator:gad5c2bddb835a03760d18a36fc0909a9d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga80ee72ddf667966d6f9961623581a483"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRtcIceServerStats.html">RtcIceServerStats</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatsStructures.html#ga80ee72ddf667966d6f9961623581a483">PRtcIceServerStats</a></td></tr>
 <tr class="separator:ga80ee72ddf667966d6f9961623581a483"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga646ca2b9dcb229baa3109505f61a3eaa"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structKvsIceAgentStats.html">KvsIceAgentStats</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatsStructures.html#ga646ca2b9dcb229baa3109505f61a3eaa">PKvsIceAgentStats</a></td></tr>
+<tr class="separator:ga646ca2b9dcb229baa3109505f61a3eaa"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga8e33ff95419056e16a23551fb6c148dd"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRtcIceCandidateStats.html">RtcIceCandidateStats</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatsStructures.html#ga8e33ff95419056e16a23551fb6c148dd">PRtcIceCandidateStats</a></td></tr>
 <tr class="separator:ga8e33ff95419056e16a23551fb6c148dd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gaa801ef5411f4260b44c1658874999aa3"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRtcTransportStats.html">RtcTransportStats</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatsStructures.html#gaa801ef5411f4260b44c1658874999aa3">PRtcTransportStats</a></td></tr>
@@ -256,8 +263,10 @@ Typedefs</h2></td></tr>
 <tr class="separator:ga95c97b1845412106873b7efdc86e27fb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gad50fadcf7938259a9cdf1e03c73e87d8"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRtcDataChannelStats.html">RtcDataChannelStats</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatsStructures.html#gad50fadcf7938259a9cdf1e03c73e87d8">PRtcDataChannelStats</a></td></tr>
 <tr class="separator:gad50fadcf7938259a9cdf1e03c73e87d8"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gaed2abeea73109d8decf11ef16a5b1a88"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structSignalingClientStats.html">SignalingClientStats</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatsStructures.html#gaed2abeea73109d8decf11ef16a5b1a88">PSignalingClientStats</a></td></tr>
-<tr class="separator:gaed2abeea73109d8decf11ef16a5b1a88"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gac44b1b81f0a970ad138adbc0014f5301"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structSignalingClientStats.html">SignalingClientStats</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatsStructures.html#gac44b1b81f0a970ad138adbc0014f5301">PSignalingClientStats</a></td></tr>
+<tr class="separator:gac44b1b81f0a970ad138adbc0014f5301"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga114aa5bdc713cabddcfd4332094ec9d4"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structPeerConnectionStats.html">PeerConnectionStats</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatsStructures.html#ga114aa5bdc713cabddcfd4332094ec9d4">PPeerConnectionStats</a></td></tr>
+<tr class="separator:ga114aa5bdc713cabddcfd4332094ec9d4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga7ee11917e4ab69400576ae7fceea344e"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRtcStatsObject.html">RtcStatsObject</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatsStructures.html#ga7ee11917e4ab69400576ae7fceea344e">PRtcStatsObject</a></td></tr>
 <tr class="separator:ga7ee11917e4ab69400576ae7fceea344e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
@@ -567,7 +576,7 @@ Enumerations</h2></td></tr>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_b0856f6b0d80ccb263b2f415c91f9e17.html">include</a></li><li class="navelem"><a class="el" href="dir_8f5ac45a6ada111b95e80af22bb6017d.html">com</a></li><li class="navelem"><a class="el" href="dir_6eddcaa8cb3f84b1b7290fa7880ed0c5.html">amazonaws</a></li><li class="navelem"><a class="el" href="dir_ffe25b375dd9c47f978782781b252738.html">kinesis</a></li><li class="navelem"><a class="el" href="dir_40be0bfe93e499fae0ac3fc2c0b3ca29.html">video</a></li><li class="navelem"><a class="el" href="dir_4165afa699965307903ffe413a1cdec9.html">webrtcclient</a></li><li class="navelem"><a class="el" href="Stats_8h.html">Stats.h</a></li>
-    <li class="footer">Generated on Fri Jul 28 2023 18:30:41 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Mon Jul 31 2023 21:24:14 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>
