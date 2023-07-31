@@ -431,6 +431,7 @@ STATUS executeNominatingIceAgentState(UINT64 customData, UINT64 time)
     UNUSED_PARAM(time);
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
+    UINT64 startTimeInMacro = 0;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
 

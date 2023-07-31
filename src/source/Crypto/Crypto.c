@@ -13,7 +13,6 @@ STATUS createRtcCertificate(PRtcCertificate* ppRtcCertificate)
     CHK(NULL != (pRtcCertificate = (PRtcCertificate) MEMCALLOC(1, SIZEOF(RtcCertificate))), STATUS_NOT_ENOUGH_MEMORY);
 
 #ifdef KVS_USE_OPENSSL
-    startTimeInMacro = GETTIME();
     PROFILE_CALL(CHK_STATUS(createCertificateAndKey(GENERATED_CERTIFICATE_BITS, FALSE, (X509**) &pRtcCertificate->pCertificate,
                                                     (EVP_PKEY**) &pRtcCertificate->pPrivateKey)),
                  "Certificate creation time");
@@ -23,7 +22,6 @@ STATUS createRtcCertificate(PRtcCertificate* ppRtcCertificate)
     CHK(NULL != (pRtcCertificate->pPrivateKey = (PBYTE) MEMCALLOC(1, SIZEOF(mbedtls_pk_context))), STATUS_NOT_ENOUGH_MEMORY);
     pRtcCertificate->certificateSize = SIZEOF(mbedtls_x509_crt);
     pRtcCertificate->privateKeySize = SIZEOF(mbedtls_pk_context);
-    startTimeInMacro = GETTIME();
     PROFILE_CALL(CHK_STATUS(createCertificateAndKey(GENERATED_CERTIFICATE_BITS, FALSE, (mbedtls_x509_crt*) pRtcCertificate->pCertificate,
                                                     (mbedtls_pk_context*) pRtcCertificate->pPrivateKey)),
                  "Certificate creation time");

@@ -299,7 +299,6 @@ STATUS createDtlsSession(PDtlsSessionCallbacks pDtlsSessionCallbacks, TIMER_QUEU
     }
 
     if (certCount == 0) {
-        startTimeInMacro = GETTIME();
         PROFILE_CALL(CHK_STATUS(createCertificateAndKey(certificateBits, generateRSACertificate, &certInfos[0].pCert, &certInfos[0].pKey)),
                      "Certificate creation time");
         certInfos[0].created = TRUE;

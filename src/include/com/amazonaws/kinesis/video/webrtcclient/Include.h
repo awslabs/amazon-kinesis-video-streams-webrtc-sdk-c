@@ -28,13 +28,14 @@ extern "C" {
 /* TODO: Potentially move these call to PIC instead. Moving to PIC in the future would not cause any backward compatibility issues */
 #define PROFILE_CALL(f, msg)                                                                                                                         \
     do {                                                                                                                                             \
+        startTimeInMacro = GETTIME();                                                                                                                \
         f;                                                                                                                                           \
         DLOGP("[%s] Time taken: %" PRIu64 " ms", (msg), (GETTIME() - startTimeInMacro) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);                        \
     } while (FALSE)
 
 #define PROFILE_CALL_WITH_T_OBJ(f, t, msg)                                                                                                           \
     do {                                                                                                                                             \
-        UINT64 startTimeInMacro = GETTIME();                                                                                                         \
+        startTimeInMacro = GETTIME();                                                                                                                \
         f;                                                                                                                                           \
         t = (GETTIME() - startTimeInMacro) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;                                                                     \
         DLOGP("[%s] Time taken: %" PRIu64 " ms", (msg), (t));                                                                                        \

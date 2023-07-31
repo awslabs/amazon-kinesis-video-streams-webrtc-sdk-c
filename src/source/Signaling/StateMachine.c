@@ -309,6 +309,7 @@ STATUS executeGetTokenSignalingState(UINT64 customData, UINT64 time)
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
     SERVICE_CALL_RESULT serviceCallResult;
+    UINT64 startTimeInMacro = 0;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
@@ -391,6 +392,7 @@ STATUS executeDescribeSignalingState(UINT64 customData, UINT64 time)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
+    UINT64 startTimeInMacro = 0;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
@@ -450,6 +452,7 @@ STATUS executeCreateSignalingState(UINT64 customData, UINT64 time)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
+    UINT64 startTimeInMacro = 0;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
@@ -507,6 +510,7 @@ STATUS executeGetEndpointSignalingState(UINT64 customData, UINT64 time)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
+    UINT64 startTimeInMacro = 0;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
@@ -566,6 +570,7 @@ STATUS executeGetIceConfigSignalingState(UINT64 customData, UINT64 time)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
+    UINT64 startTimeInMacro = 0;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
@@ -723,6 +728,7 @@ STATUS executeConnectSignalingState(UINT64 customData, UINT64 time)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
+    UINT64 startTimeInMacro = 0;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
