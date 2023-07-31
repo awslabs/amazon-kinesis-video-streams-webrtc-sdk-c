@@ -28,28 +28,27 @@ extern "C" {
 /* TODO: Potentially move these call to PIC instead. Moving to PIC in the future would not cause any backward compatibility issues */
 #define PROFILE_CALL(f, msg)                                                                                                                         \
     do {                                                                                                                                             \
-        UINT64 startTime = GETTIME();                                                                                                                \
         f;                                                                                                                                           \
-        DLOGP("[%s] Time taken: %" PRIu64 " ms", msg, (GETTIME() - startTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);                                 \
+        DLOGP("[%s] Time taken: %" PRIu64 " ms", (msg), (GETTIME() - startTimeInMacro) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);                        \
     } while (FALSE)
 
 #define PROFILE_CALL_WITH_T_OBJ(f, t, msg)                                                                                                           \
     do {                                                                                                                                             \
-        UINT64 startTime = GETTIME();                                                                                                                \
+        UINT64 startTimeInMacro = GETTIME();                                                                                                         \
         f;                                                                                                                                           \
-        t = (GETTIME() - startTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;                                                                            \
-        DLOGP("[%s] Time taken: %" PRIu64 " ms", msg, t);                                                                                            \
+        t = (GETTIME() - startTimeInMacro) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;                                                                     \
+        DLOGP("[%s] Time taken: %" PRIu64 " ms", (msg), (t));                                                                                        \
     } while (FALSE)
 
 #define PROFILE_WITH_START_TIME(t, msg)                                                                                                              \
     do {                                                                                                                                             \
-        DLOGP("[%s] Time taken: %" PRIu64 " ms", msg, (GETTIME() - t) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);                                         \
+        DLOGP("[%s] Time taken: %" PRIu64 " ms", msg, (GETTIME() - (t)) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);                                       \
     } while (FALSE)
 
 #define PROFILE_WITH_START_TIME_OBJ(t1, t2, msg)                                                                                                     \
     do {                                                                                                                                             \
-        t2 = (GETTIME() - t1) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;                                                                                  \
-        DLOGP("[%s] Time taken: %" PRIu64 " ms", msg, t2);                                                                                           \
+        t2 = (GETTIME() - (t1)) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;                                                                                \
+        DLOGP("[%s] Time taken: %" PRIu64 " ms", (msg), t2);                                                                                         \
     } while (FALSE)
 
 /*! \addtogroup StatusCodes

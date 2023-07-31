@@ -2528,6 +2528,8 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
                 pIceCandidatePair->roundTripTime = GETTIME() - requestSentTime;
                 pIceCandidatePair->rtcIceCandidatePairDiagnostics.currentRoundTripTime =
                     (DOUBLE) (pIceCandidatePair->roundTripTime) / HUNDREDS_OF_NANOS_IN_A_SECOND;
+            } else {
+                DLOGW("Unable to fetch request Timestamp from the hash table. No update to RTT for the pair (error code: 0x%08x)", retStatus);
             }
             CHK_WARN(transactionIdStoreHasId(pIceCandidatePair->pTransactionIdStore, pBuffer + STUN_PACKET_TRANSACTION_ID_OFFSET), retStatus,
                      "Dropping response packet because transaction id does not match");
@@ -2574,6 +2576,8 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
                         (DOUBLE) (pIceCandidatePair->roundTripTime) / HUNDREDS_OF_NANOS_IN_A_SECOND;
 
                     CHK_STATUS(hashTableRemove(pIceCandidatePair->requestSentTime, checkSum));
+                } else {
+                    DLOGW("Unable to fetch request Timestamp from the hash table. No update to RTT for the pair (error code: 0x%08x)", retStatus);
                 }
             }
 

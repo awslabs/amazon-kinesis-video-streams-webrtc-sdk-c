@@ -275,6 +275,7 @@ STATUS createDtlsSession(PDtlsSessionCallbacks pDtlsSessionCallbacks, TIMER_QUEU
     STATUS retStatus = STATUS_SUCCESS;
     PDtlsSession pDtlsSession = NULL;
     UINT32 i, certCount;
+    UINT64 startTimeInMacro = 0;
     DtlsSessionCertificateInfo certInfos[MAX_RTCCONFIGURATION_CERTIFICATES];
     MEMSET(certInfos, 0x00, SIZEOF(certInfos));
 
@@ -298,6 +299,7 @@ STATUS createDtlsSession(PDtlsSessionCallbacks pDtlsSessionCallbacks, TIMER_QUEU
     }
 
     if (certCount == 0) {
+        startTimeInMacro = GETTIME();
         PROFILE_CALL(CHK_STATUS(createCertificateAndKey(certificateBits, generateRSACertificate, &certInfos[0].pCert, &certInfos[0].pKey)),
                      "Certificate creation time");
         certInfos[0].created = TRUE;
