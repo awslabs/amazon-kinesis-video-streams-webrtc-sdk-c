@@ -62,8 +62,9 @@ STATUS createSignalingClientSync(PSignalingClientInfo pClientInfo, PChannelInfo 
     KvsRetryStrategy createSignalingClientRetryStrategy = {NULL, NULL, KVS_RETRY_STRATEGY_DISABLED};
     INT32 signalingClientCreationMaxRetryCount;
     UINT64 signalingClientCreationWaitTime;
+    UINT64 startTime = 0;
 
-    DLOGV("Creating Signaling Client Sync");
+    DLOGI("Creating Signaling Client Sync");
     CHK(pSignalingHandle != NULL && pClientInfo != NULL, STATUS_NULL_ARG);
 
     // Convert the client info to the internal structure with empty values
@@ -77,6 +78,7 @@ STATUS createSignalingClientSync(PSignalingClientInfo pClientInfo, PChannelInfo 
     } else {
         signalingClientCreationMaxRetryCount = pClientInfo->signalingClientCreationMaxRetryAttempts;
     }
+    startTime = GETTIME();
     while (TRUE) {
         retStatus = createSignalingSync(&signalingClientInfoInternal, pChannelInfo, pCallbacks, pCredentialProvider, &pSignalingClient);
         // NOTE: This will retry on all status codes except SUCCESS.
@@ -105,11 +107,11 @@ STATUS createSignalingClientSync(PSignalingClientInfo pClientInfo, PChannelInfo 
     }
 
 CleanUp:
-
     if (STATUS_FAILED(retStatus)) {
         DLOGE("Create signaling client API failed with return code [0x%08x]", retStatus);
         freeSignaling(&pSignalingClient);
     } else {
+        PROFILE_WITH_START_TIME_OBJ(startTime, pSignalingClient->diagnostics.createClientTime, "Create signaling client");
         *pSignalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
     }
 
@@ -164,10 +166,12 @@ STATUS signalingClientConnectSync(SIGNALING_CLIENT_HANDLE signalingClientHandle)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = FROM_SIGNALING_CLIENT_HANDLE(signalingClientHandle);
+    UINT64 startTimeInMacro = 0;
 
     DLOGV("Signaling Client Connect Sync");
 
-    CHK_STATUS(signalingConnectSync(pSignalingClient));
+    PROFILE_CALL_WITH_T_OBJ(CHK_STATUS(signalingConnectSync(pSignalingClient)), pSignalingClient->diagnostics.connectClientTime,
+                            "Connect signaling client");
 
 CleanUp:
 
@@ -185,8 +189,9 @@ STATUS signalingClientFetchSync(SIGNALING_CLIENT_HANDLE signalingClientHandle)
     KvsRetryStrategy createSignalingClientRetryStrategy = {NULL, NULL, KVS_RETRY_STRATEGY_DISABLED};
     INT32 signalingClientCreationMaxRetryCount;
     UINT64 signalingClientCreationWaitTime;
+    UINT64 startTime = 0;
 
-    DLOGV("Signaling Client Fetch Sync");
+    DLOGI("Signaling Client Fetch Sync");
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
     // Convert the client info to the internal structure with empty values
@@ -199,7 +204,7 @@ STATUS signalingClientFetchSync(SIGNALING_CLIENT_HANDLE signalingClientHandle)
     if (signalingClientCreationMaxRetryCount == CREATE_SIGNALING_CLIENT_RETRY_ATTEMPTS_SENTINEL_VALUE) {
         signalingClientCreationMaxRetryCount = DEFAULT_CREATE_SIGNALING_CLIENT_RETRY_ATTEMPTS;
     }
-
+    startTime = GETTIME();
     while (TRUE) {
         retStatus = signalingFetchSync(pSignalingClient);
         // NOTE: This will retry on all status codes except SUCCESS.
@@ -233,6 +238,7 @@ CleanUp:
     SIGNALING_UPDATE_ERROR_COUNT(pSignalingClient, retStatus);
     if (pSignalingClient != NULL) {
         freeRetryStrategyForCreatingSignalingClient(&pSignalingClient->clientInfo.signalingClientInfo, &createSignalingClientRetryStrategy);
+        PROFILE_WITH_START_TIME_OBJ(startTime, pSignalingClient->diagnostics.fetchClientTime, "Fetch signaling client");
     }
     LEAVES();
     return retStatus;
@@ -406,13 +412,15 @@ STATUS signalingClientGetMetrics(SIGNALING_CLIENT_HANDLE signalingClientHandle, 
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = FROM_SIGNALING_CLIENT_HANDLE(signalingClientHandle);
-
+    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     DLOGV("Signaling Client Get Metrics");
 
     CHK_STATUS(signalingGetMetrics(pSignalingClient, pSignalingClientMetrics));
 
 CleanUp:
-    SIGNALING_UPDATE_ERROR_COUNT(pSignalingClient, retStatus);
+    if (pSignalingClient != NULL) {
+        SIGNALING_UPDATE_ERROR_COUNT(pSignalingClient, retStatus);
+    }
     LEAVES();
     return retStatus;
 }

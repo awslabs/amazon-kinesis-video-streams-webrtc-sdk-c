@@ -58,6 +58,14 @@ typedef struct {
 } TwccManager, *PTwccManager;
 
 typedef struct {
+    UINT64 peerConnectionCreationTime;
+    UINT64 dtlsSessionSetupTime;
+    UINT64 iceHolePunchingTime;
+    UINT64 closePeerConnectionTime;
+    UINT64 freePeerConnectionTime;
+} KvsPeerConnectionDiagnostics, *PKvsPeerConnectionDiagnostics;
+
+typedef struct {
     RtcPeerConnection peerConnection;
     // UINT32 padding padding makes transportWideSequenceNumber 64bit aligned
     // we put atomics at the top of structs because customers application could set the packing to 0
@@ -131,6 +139,9 @@ typedef struct {
     PTwccManager pTwccManager;
     RtcOnSenderBandwidthEstimation onSenderBandwidthEstimation;
     UINT64 onSenderBandwidthEstimationCustomData;
+
+    UINT64 iceConnectingStartTime;
+    KvsPeerConnectionDiagnostics peerConnectionDiagnostics;
 } KvsPeerConnection, *PKvsPeerConnection;
 
 typedef struct {

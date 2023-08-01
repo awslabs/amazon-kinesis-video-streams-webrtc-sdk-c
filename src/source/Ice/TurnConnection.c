@@ -923,7 +923,6 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
             } else {
                 CHK(currentTime < pTurnConnection->stateTimeoutTime, STATUS_TURN_CONNECTION_STATE_TRANSITION_TIMEOUT);
             }
-            break;
 
         // fallthrough here, missing break intended
         case TURN_STATE_GET_CREDENTIALS:
@@ -1064,7 +1063,6 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
                                                        (UINT32) ATOMIC_LOAD(&pTurnConnection->timerCallbackId),
                                                        pTurnConnection->currentTimerCallingPeriod));
             }
-
             break;
 
         case TURN_STATE_CLEAN_UP:

@@ -6,7 +6,6 @@
 <h4 align="center">Pure C WebRTC Client for Amazon Kinesis Video Streams </h4>
 
 <p align="center">
-  <a href="https://travis-ci.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c"> <img src="https://travis-ci.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c.svg?branch=master" alt="Build Status"> </a>
   <a href="https://codecov.io/gh/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c"> <img src="https://codecov.io/gh/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/branch/master/graph/badge.svg" alt="Coverage Status"> </a>
 </p>
 
@@ -164,7 +163,7 @@ export AWS_SESSION_TOKEN=<session token>
 export AWS_DEFAULT_REGION= <AWS region>
 ```
 
-### Setup desired log level:
+### Setup logging:
 Set up the desired log level. The log levels and corresponding values currently available are:
 1. `LOG_LEVEL_VERBOSE` ---- 1
 2. `LOG_LEVEL_DEBUG`   ---- 2
@@ -186,11 +185,22 @@ export AWS_KVS_LOG_LEVEL = 2 switches on DEBUG level logs while runnning the sam
 
 Note: The default log level is `LOG_LEVEL_WARN`.
 
-* Optionally, set path to SSL CA certificate with variable (`../certs/cert.pem` is default one and points to file in this repository):
+Starting v1.7.x (**TO_BE_UPDATED**), by default, the SDK creates a log file that would have execution timing details of certain steps in connection establishment. It would be stored in the `build` directory as `kvsFileLogFilter.x`. In case you do not want to use defaults, you can modify certain parameters such as log file directory, log file size and file rotation index in the `createFileLoggerWithLevelFiltering` function in the samples.
+In addition to these logs, if you would like to have other level logs in a file as well, run:
+
+```
+export AWS_ENABLE_FILE_LOGGING=TRUE
+```
+
+### Set path to SSL CA certificate (**Optional**)
+
+If you have a custom CA certificate path to set, you can set it using:
 
 ```
 export AWS_KVS_CACERT_PATH=../certs/cert.pem
 ```
+
+By defaut, the SSL CA certificate is set to `../certs/cert.pem` which points to the file in this repository:
 
 ### Running the Samples
 After executing `make` you will have sample applications in your `build/samples` directory. From the `build/` directory, run any of the sample applications by passing to it the name of your signaling channel. If a signaling channel does not exist with the name you provide, the application creates one.
@@ -298,11 +308,6 @@ In the mbedTLS version, the SDK uses /dev/urandom on Unix and CryptGenRandom API
 If you would like to print out the SDPs, run this command:
 `export DEBUG_LOG_SDP=TRUE`
 
-### File logging
-If you would like to enable file logging, run this command:
-`export AWS_ENABLE_FILE_LOGGING=TRUE`
-You can also change settings such as buffer size, number of log files for rotation and log file path in the samples
-
 ### Adjust MTU
 If ICE connection can be established successfully but media can not be transferred, make sure the actual MTU is higher than the MTU setting here: https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/blob/master/src/source/PeerConnection/Rtp.h#L12.
 
@@ -347,6 +352,11 @@ When building on MacOS M1, if the build fails while trying to build OpenSSL or W
 
 To build on a 32-bit Raspbian GNU/Linux 11 on 64-bit hardware, the OpenSSL library must be manually configured. This is due to the OpenSSL autoconfiguration script detecting 64-bit hardware and emitting 64-bit ARM assembly instructions which are not allowed in 32-bit executables. A 32-bit ARM version of OpenSSL can be configured by setting 32-bit ARM platform:
 `cmake .. -DBUILD_OPENSSL_PLATFORM=linux-armv4`
+
+### Threadpool for Signaling Channel messages
+The threadpool is enabled by default, and starts with 3 threads that it can increase up to 5 if all 3 are actively in use. To change these values to better match the resources of your use case
+please edit samples/Samples.h defines `KVS_SIGNALING_THREADPOOL_MIN` and `KVS_SIGNALING_THREADPOOL_MAX`. You can also disable the threadpool to instead create and detach each thread
+to handle signaling messages by commenting out `KVS_USE_SIGNALING_CHANNEL_THREADPOOL`.
 
 ## Documentation
 All Public APIs are documented in our [Include.h](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/blob/master/src/include/com/amazonaws/kinesis/video/webrtcclient/Include.h), we also generate a [Doxygen](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-c/) each commit for easier navigation.

@@ -268,6 +268,22 @@ STATUS changePeerConnectionState(PKvsPeerConnection pKvsPeerConnection, RTC_PEER
 
     MUTEX_LOCK(pKvsPeerConnection->peerConnectionObjLock);
     locked = TRUE;
+    switch (newState) {
+        case RTC_PEER_CONNECTION_STATE_CONNECTING:
+            if (pKvsPeerConnection->iceConnectingStartTime == 0) {
+                pKvsPeerConnection->iceConnectingStartTime = GETTIME();
+            }
+            break;
+        case RTC_PEER_CONNECTION_STATE_CONNECTED:
+            if (pKvsPeerConnection->iceConnectingStartTime != 0) {
+                PROFILE_WITH_START_TIME_OBJ(pKvsPeerConnection->iceConnectingStartTime,
+                                            pKvsPeerConnection->peerConnectionDiagnostics.iceHolePunchingTime, "ICE Hole Punching Time");
+                pKvsPeerConnection->iceConnectingStartTime = 0;
+            }
+            break;
+        default:
+            break;
+    }
 
     /* new and closed state are terminal*/
     CHK(pKvsPeerConnection->connectionState != newState && pKvsPeerConnection->connectionState != RTC_PEER_CONNECTION_STATE_FAILED &&
@@ -423,7 +439,6 @@ VOID onIceConnectionStateChange(UINT64 customData, UINT64 connectionState)
 
     if (startDtlsSession) {
         CHK_STATUS(dtlsSessionIsInitFinished(pKvsPeerConnection->pDtlsSession, &dtlsConnected));
-
         if (dtlsConnected) {
             // In ICE restart scenario, DTLS handshake is not going to be reset. Therefore, we need to check
             // if the DTLS state has been connected.
@@ -574,6 +589,9 @@ VOID onDtlsStateChange(UINT64 customData, RTC_DTLS_TRANSPORT_STATE newDtlsState)
     pKvsPeerConnection = (PKvsPeerConnection) customData;
 
     switch (newDtlsState) {
+        case RTC_DTLS_TRANSPORT_STATE_CONNECTED:
+            pKvsPeerConnection->peerConnectionDiagnostics.dtlsSessionSetupTime = pKvsPeerConnection->pDtlsSession->dtlsSessionSetupTime;
+            break;
         case RTC_DTLS_TRANSPORT_STATE_CLOSED:
             changePeerConnectionState(pKvsPeerConnection, RTC_PEER_CONNECTION_STATE_CLOSED);
             break;
@@ -677,9 +695,11 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
     IceAgentCallbacks iceAgentCallbacks;
     DtlsSessionCallbacks dtlsSessionCallbacks;
     PConnectionListener pConnectionListener = NULL;
+    UINT64 startTime = 0;
 
     CHK(pConfiguration != NULL && ppPeerConnection != NULL, STATUS_NULL_ARG);
 
+    startTime = GETTIME();
     MEMSET(&iceAgentCallbacks, 0, SIZEOF(IceAgentCallbacks));
     MEMSET(&dtlsSessionCallbacks, 0, SIZEOF(DtlsSessionCallbacks));
 
@@ -738,6 +758,9 @@ CleanUp:
 
     if (STATUS_FAILED(retStatus)) {
         freePeerConnection((PRtcPeerConnection*) &pKvsPeerConnection);
+    } else {
+        PROFILE_WITH_START_TIME_OBJ(startTime, pKvsPeerConnection->peerConnectionDiagnostics.peerConnectionCreationTime,
+                                    "Peer connection object creation time");
     }
 
     LEAVES();
@@ -761,6 +784,7 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
     PKvsPeerConnection pKvsPeerConnection;
     PDoubleListNode pCurNode = NULL;
     UINT64 item = 0;
+    UINT64 startTime;
 
     CHK(ppPeerConnection != NULL, STATUS_NULL_ARG);
 
@@ -768,6 +792,7 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
 
     CHK(pKvsPeerConnection != NULL, retStatus);
 
+    startTime = GETTIME();
     /* Shutdown IceAgent first so there is no more incoming packets which can cause
      * SCTP to be allocated again after SCTP is freed. */
     CHK_LOG_ERR(iceAgentShutdown(pKvsPeerConnection->pIceAgent));
@@ -835,8 +860,8 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
         SAFE_MEMFREE(pKvsPeerConnection->pTwccManager);
     }
 
+    PROFILE_WITH_START_TIME_OBJ(startTime, pKvsPeerConnection->peerConnectionDiagnostics.freePeerConnectionTime, "Free peer connection");
     SAFE_MEMFREE(*ppPeerConnection);
-
 CleanUp:
 
     LEAVES();
@@ -1049,6 +1074,9 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
             STRNCPY(pKvsPeerConnection->remoteCertificateFingerprint, pSessionDescription->sdpAttributes[i].attributeValue + 8,
                     CERTIFICATE_FINGERPRINT_LENGTH);
         } else if (pKvsPeerConnection->isOffer && STRCMP(pSessionDescription->sdpAttributes[i].attributeName, "setup") == 0) {
+            // possible values are actpass, passive and active. If the incoming SDP has active, it indicates it is taking up a client role
+            // In case of actpass and passive, the other peer is taking up a server role and is waiting for incoming connection
+            // Reference: https://www.rfc-editor.org/rfc/rfc4572#section-6.2
             pKvsPeerConnection->dtlsIsServer = STRCMP(pSessionDescription->sdpAttributes[i].attributeValue, "active") == 0;
         } else if (STRCMP(pSessionDescription->sdpAttributes[i].attributeName, "ice-options") == 0 &&
                    STRSTR(pSessionDescription->sdpAttributes[i].attributeValue, "trickle") != NULL) {
@@ -1101,12 +1129,14 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
         CHK_STATUS(generateJSONSafeString(pKvsPeerConnection->localIceUfrag, LOCAL_ICE_UFRAG_LEN));
         CHK_STATUS(generateJSONSafeString(pKvsPeerConnection->localIcePwd, LOCAL_ICE_PWD_LEN));
         CHK_STATUS(iceAgentRestart(pKvsPeerConnection->pIceAgent, pKvsPeerConnection->localIceUfrag, pKvsPeerConnection->localIcePwd));
+        // This starts the gathering process timer callback that periodically checks for local candidate list
         CHK_STATUS(iceAgentStartGathering(pKvsPeerConnection->pIceAgent));
     }
 
     STRNCPY(pKvsPeerConnection->remoteIceUfrag, remoteIceUfrag, MAX_ICE_UFRAG_LEN);
     STRNCPY(pKvsPeerConnection->remoteIcePwd, remoteIcePwd, MAX_ICE_PWD_LEN);
 
+    // This starts the state machine timer callback that transitions states periodically
     CHK_STATUS(iceAgentStartAgent(pKvsPeerConnection->pIceAgent, pKvsPeerConnection->remoteIceUfrag, pKvsPeerConnection->remoteIcePwd, controlling));
 
     if (!pKvsPeerConnection->isOffer) {
@@ -1351,10 +1381,11 @@ STATUS closePeerConnection(PRtcPeerConnection pPeerConnection)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pPeerConnection;
-
+    UINT64 startTime = GETTIME();
     CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
     CHK_LOG_ERR(dtlsSessionShutdown(pKvsPeerConnection->pDtlsSession));
     CHK_LOG_ERR(iceAgentShutdown(pKvsPeerConnection->pIceAgent));
+    PROFILE_WITH_START_TIME_OBJ(startTime, pKvsPeerConnection->peerConnectionDiagnostics.closePeerConnectionTime, "Close peer connection");
 
 CleanUp:
 
@@ -1364,7 +1395,7 @@ CleanUp:
     return retStatus;
 }
 
-PUBLIC_API NullableBool canTrickleIceCandidates(PRtcPeerConnection pPeerConnection)
+NullableBool canTrickleIceCandidates(PRtcPeerConnection pPeerConnection)
 {
     NullableBool canTrickle = {FALSE, FALSE};
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pPeerConnection;
@@ -1474,5 +1505,39 @@ CleanUp:
     CHK_LOG_ERR(retStatus);
 
     LEAVES();
+    return retStatus;
+}
+
+STATUS peerConnectionGetMetrics(PRtcPeerConnection pPeerConnection, PPeerConnectionMetrics pPeerConnectionMetrics)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pPeerConnection;
+    CHK(pKvsPeerConnection != NULL && pPeerConnectionMetrics != NULL, STATUS_NULL_ARG);
+    if (pPeerConnectionMetrics->version > PEER_CONNECTION_METRICS_CURRENT_VERSION) {
+        DLOGW("Peer connection metrics object version invalid..setting to highest default version %d", PEER_CONNECTION_METRICS_CURRENT_VERSION);
+        pPeerConnectionMetrics->version = PEER_CONNECTION_METRICS_CURRENT_VERSION;
+    }
+    pPeerConnectionMetrics->peerConnectionStats.peerConnectionCreationTime = pKvsPeerConnection->peerConnectionDiagnostics.peerConnectionCreationTime;
+    pPeerConnectionMetrics->peerConnectionStats.dtlsSessionSetupTime = pKvsPeerConnection->peerConnectionDiagnostics.dtlsSessionSetupTime;
+    pPeerConnectionMetrics->peerConnectionStats.iceHolePunchingTime = pKvsPeerConnection->peerConnectionDiagnostics.iceHolePunchingTime;
+    // Cannot record these 2 in here because peer connection object would become NULL after clearing. Need another strategy
+    pPeerConnectionMetrics->peerConnectionStats.closePeerConnectionTime = pKvsPeerConnection->peerConnectionDiagnostics.closePeerConnectionTime;
+    pPeerConnectionMetrics->peerConnectionStats.freePeerConnectionTime = pKvsPeerConnection->peerConnectionDiagnostics.freePeerConnectionTime;
+CleanUp:
+    return retStatus;
+}
+
+STATUS iceAgentGetMetrics(PRtcPeerConnection pPeerConnection, PKvsIceAgentMetrics pKvsIceAgentMetrics)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pPeerConnection;
+    CHK(pKvsPeerConnection != NULL && pKvsIceAgentMetrics != NULL, STATUS_NULL_ARG);
+
+    if (pKvsIceAgentMetrics->version > ICE_AGENT_METRICS_CURRENT_VERSION) {
+        DLOGW("ICE agent metrics object version invalid..setting to highest default version %d", PEER_CONNECTION_METRICS_CURRENT_VERSION);
+        pKvsIceAgentMetrics->version = ICE_AGENT_METRICS_CURRENT_VERSION;
+    }
+    CHK_STATUS(getIceAgentStats(pKvsPeerConnection->pIceAgent, pKvsIceAgentMetrics));
+CleanUp:
     return retStatus;
 }
