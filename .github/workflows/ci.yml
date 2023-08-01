@@ -383,7 +383,7 @@ jobs:
           cd D:\a\webrtc
           git config --system core.longpaths true
           .github\build_windows_openssl.bat
-      TODO: Fix these tests
+      # TODO: Fix these tests
       - name: Run tests
         run: |
           & "D:\a\webrtc\build\tst\webrtc_client_test.exe --gtest_filter='-DataChannelFunctionalityTest.*:IceApiTest.*:IceFunctionalityTest.*:PeerConnectionFunctionalityTest.*:SignalingApiFunctionalityTest.*:TurnConnectionFunctionalityTest.*:RtpFunctionalityTest.marshallUnmarshallH264Data:RtpFunctionalityTest.packingUnpackingVerifySameH264Frame:RtcpFunctionalityTest.onRtcpPacketCompound:RtcpFunctionalityTest.twcc3'" 
