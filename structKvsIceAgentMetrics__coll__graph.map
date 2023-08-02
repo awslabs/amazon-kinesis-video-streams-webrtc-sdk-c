@@ -1,0 +1,4 @@
+<map id="KvsIceAgentMetrics" name="KvsIceAgentMetrics">
+<area shape="rect" id="node1" title="KVS ICE Agent Collection of ICE agent related stats. Can be expanded in the future." alt="" coords="57,248,208,325"/>
+<area shape="rect" id="node2" href="$structKvsIceAgentStats.html" title=": IceAgent profiling Stats related to the KVS ICE Agent" alt="" coords="5,5,260,185"/>
+</map>

@@ -1,0 +1,10 @@
+<map id="socketWrite" name="socketWrite">
+<area shape="rect" id="node1" title=" " alt="" coords="883,56,981,83"/>
+<area shape="rect" id="node2" href="$ConnectionListener_8c.html#a49f4d889996cb555ffe78ecf4584ec1a" title=" " alt="" coords="661,56,835,83"/>
+<area shape="rect" id="node3" href="$ConnectionListener_8c.html#a24660cc58fb5a9b154011e3a4092819b" title=" " alt="" coords="425,5,613,32"/>
+<area shape="rect" id="node5" href="$group__PublicMemberFunctions.html#ga6c4139787f87c307c2033b51d65284ce" title="Use the process described in https://tools.ietf.org/html/rfc5780#section&#45;4.3 to discover NAT behavior..." alt="" coords="219,56,377,83"/>
+<area shape="rect" id="node6" href="$IceAgent_8c.html#a767c2a29e3bfba0aa45872d26b41a6f4" title=" " alt="" coords="467,107,572,133"/>
+<area shape="rect" id="node4" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,107,171,133"/>
+<area shape="rect" id="node7" href="$IceAgent_8c.html#af2fe29241b2d4ab4997fe04c41534578" title=" " alt="" coords="238,107,358,133"/>
+<area shape="rect" id="node8" href="$group__PublicMemberFunctions.html#ga433b1bd125e7f221bcdad97a2a0e8949" title="Free a RtcPeerConnection." alt="" coords="223,157,373,184"/>
+</map>

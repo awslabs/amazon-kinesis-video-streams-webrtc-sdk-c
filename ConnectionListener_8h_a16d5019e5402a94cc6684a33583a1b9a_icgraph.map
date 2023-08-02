@@ -1,0 +1,8 @@
+<map id="connectionListenerRemoveAllConnection" name="connectionListenerRemoveAllConnection">
+<area shape="rect" id="node1" title=" " alt="" coords="632,23,831,65"/>
+<area shape="rect" id="node2" href="$group__PublicMemberFunctions.html#ga6c4139787f87c307c2033b51d65284ce" title="Use the process described in https://tools.ietf.org/html/rfc5780#section&#45;4.3 to discover NAT behavior..." alt="" coords="425,5,584,32"/>
+<area shape="rect" id="node3" href="$IceAgent_8c.html#a0240b9dcf5654427458c2fdda5a2da29" title=" " alt="" coords="433,56,576,83"/>
+<area shape="rect" id="node4" href="$group__PublicMemberFunctions.html#ga9babad6ea2bc9bb97279c7034697375a" title="Close the underlying DTLS session and IceAgent connection. Trigger RtcOnConnectionStateChange to RTC_..." alt="" coords="219,31,377,57"/>
+<area shape="rect" id="node5" href="$group__PublicMemberFunctions.html#ga433b1bd125e7f221bcdad97a2a0e8949" title="Free a RtcPeerConnection." alt="" coords="223,81,373,108"/>
+<area shape="rect" id="node6" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,81,171,108"/>
+</map>

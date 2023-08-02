@@ -1,0 +1,8 @@
+<map id="KvsDataChannel" name="KvsDataChannel">
+<area shape="rect" id="node1" title=" " alt="" coords="234,461,426,568"/>
+<area shape="rect" id="node2" href="$structRtcDataChannelInit.html" title="RtcDataChannelInit dictionary used to configure properties of the underlying channel such as data rel..." alt="" coords="5,219,153,325"/>
+<area shape="rect" id="node3" href="$structNullableUint16.html" title="Custom data type to allow setting UINT16 data type to NULL since C does not support setting basic dat..." alt="" coords="20,5,139,97"/>
+<area shape="rect" id="node4" href="$struct____RtcDataChannel.html" title="RtcDataChannel represents a bi&#45;directional data channel between two peers." alt="" coords="178,226,319,318"/>
+<area shape="rect" id="node5" href="$structRtcDataChannelStats.html" title=" " alt="" coords="344,175,521,369"/>
+<area shape="rect" id="node6" href="$structRtcPeerConnection.html" title="An RtcPeerConnection instance allows an application to establish peer&#45;to&#45;peer communications with ano..." alt="" coords="564,233,709,311"/>
+</map>

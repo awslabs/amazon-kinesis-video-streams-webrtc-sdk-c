@@ -1,0 +1,6 @@
+<map id="createCertificateAndKey" name="createCertificateAndKey">
+<area shape="rect" id="node1" title=" " alt="" coords="417,31,596,57"/>
+<area shape="rect" id="node2" href="$Dtls_8h.html#ac281e5a858d8c8ef0df8b26768d0663b" title=" " alt="" coords="225,5,363,32"/>
+<area shape="rect" id="node4" href="$group__PublicMemberFunctions.html#ga626872eca33a639a1af1903798e9be15" title="Creates an RtcCertificate object." alt="" coords="219,56,369,83"/>
+<area shape="rect" id="node3" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,5,171,32"/>
+</map>

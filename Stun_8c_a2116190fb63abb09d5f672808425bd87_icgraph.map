@@ -1,0 +1,12 @@
+<map id="appendStunLifetimeAttribute" name="appendStunLifetimeAttribute">
+<area shape="rect" id="node1" title=" " alt="" coords="1896,42,2107,69"/>
+<area shape="rect" id="node2" href="$TurnConnection_8c.html#a06a0f12aa630dbc36d8343e120c8f216" title=" " alt="" coords="1647,5,1848,47"/>
+<area shape="rect" id="node3" href="$TurnConnection_8c.html#ae091e90d262a8b35996555dbc4f0d7d9" title=" " alt="" coords="1415,42,1599,69"/>
+<area shape="rect" id="node4" href="$TurnConnection_8c.html#af01ecc35132ec796882b5cfca6c25e0c" title=" " alt="" coords="1152,42,1367,69"/>
+<area shape="rect" id="node5" href="$TurnConnection_8c.html#a5b98aaf2a1b05b95f8cb088cf29aac54" title=" " alt="" coords="952,42,1104,69"/>
+<area shape="rect" id="node6" href="$IceAgent_8c.html#aa82059f636933c877ef87e25f4a62669" title=" " alt="" coords="701,42,904,69"/>
+<area shape="rect" id="node7" href="$IceAgent_8c.html#a888fc1a2a5c2fe190f30db87c85c6759" title=" " alt="" coords="443,42,653,69"/>
+<area shape="rect" id="node8" href="$IceAgent_8c.html#a89dd4cb4f8c55e2d376df8c33f300e80" title=" " alt="" coords="220,42,395,69"/>
+<area shape="rect" id="node9" href="$group__PublicMemberFunctions.html#ga060e71a4e33e0b7a8087317d4839fa8a" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the local descript..." alt="" coords="13,17,164,43"/>
+<area shape="rect" id="node10" href="$group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,67,172,94"/>
+</map>

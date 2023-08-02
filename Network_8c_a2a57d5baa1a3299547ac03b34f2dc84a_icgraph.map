@@ -1,0 +1,6 @@
+<map id="createSocketPair" name="createSocketPair">
+<area shape="rect" id="node1" title=" " alt="" coords="455,31,585,57"/>
+<area shape="rect" id="node2" href="$ConnectionListener_8c.html#a24660cc58fb5a9b154011e3a4092819b" title=" " alt="" coords="219,31,407,57"/>
+<area shape="rect" id="node3" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,5,171,32"/>
+<area shape="rect" id="node4" href="$group__PublicMemberFunctions.html#ga6c4139787f87c307c2033b51d65284ce" title="Use the process described in https://tools.ietf.org/html/rfc5780#section&#45;4.3 to discover NAT behavior..." alt="" coords="9,56,167,83"/>
+</map>

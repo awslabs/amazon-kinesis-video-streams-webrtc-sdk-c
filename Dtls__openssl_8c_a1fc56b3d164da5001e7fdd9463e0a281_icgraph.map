@@ -1,0 +1,4 @@
+<map id="dtlsSessionShutdown" name="dtlsSessionShutdown">
+<area shape="rect" id="node1" title=" " alt="" coords="212,5,372,32"/>
+<area shape="rect" id="node2" href="$group__PublicMemberFunctions.html#ga9babad6ea2bc9bb97279c7034697375a" title="Close the underlying DTLS session and IceAgent connection. Trigger RtcOnConnectionStateChange to RTC_..." alt="" coords="5,5,164,32"/>
+</map>

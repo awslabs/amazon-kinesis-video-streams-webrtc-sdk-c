@@ -1,0 +1,6 @@
+<map id="freeDtlsSession" name="freeDtlsSession">
+<area shape="rect" id="node1" title=" " alt="" coords="417,31,541,57"/>
+<area shape="rect" id="node2" href="$Dtls__openssl_8c.html#ac40bba1019de3e73a9006b12c9dc4eaa" title=" " alt="" coords="225,5,363,32"/>
+<area shape="rect" id="node4" href="$group__PublicMemberFunctions.html#ga433b1bd125e7f221bcdad97a2a0e8949" title="Free a RtcPeerConnection." alt="" coords="219,56,369,83"/>
+<area shape="rect" id="node3" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,31,171,57"/>
+</map>

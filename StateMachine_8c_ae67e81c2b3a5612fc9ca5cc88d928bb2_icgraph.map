@@ -1,0 +1,6 @@
+<map id="getSignalingStateFromStateMachineState" name="getSignalingStateFromStateMachineState">
+<area shape="rect" id="node1" title=" " alt="" coords="484,27,688,69"/>
+<area shape="rect" id="node2" href="$Signaling_8c.html#ab095306d46a8e5ae01e2b28a8de0487a" title=" " alt="" coords="263,5,418,32"/>
+<area shape="rect" id="node4" href="$group__PublicMemberFunctions.html#gab9b925bdc5aba1999e9192308f9cc6a9" title="Gets the Signaling client current state." alt="" coords="245,57,436,98"/>
+<area shape="rect" id="node3" href="$group__PublicMemberFunctions.html#ga375ddffe8376298cdaafe63799b53b1e" title="Creates a Signaling client and returns a handle to it." alt="" coords="5,5,197,32"/>
+</map>

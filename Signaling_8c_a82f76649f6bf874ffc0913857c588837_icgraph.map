@@ -1,0 +1,6 @@
+<map id="freeSignaling" name="freeSignaling">
+<area shape="rect" id="node1" title=" " alt="" coords="448,31,556,57"/>
+<area shape="rect" id="node2" href="$group__PublicMemberFunctions.html#ga375ddffe8376298cdaafe63799b53b1e" title="Creates a Signaling client and returns a handle to it." alt="" coords="5,5,197,32"/>
+<area shape="rect" id="node3" href="$Signaling_8c.html#ab095306d46a8e5ae01e2b28a8de0487a" title=" " alt="" coords="245,31,400,57"/>
+<area shape="rect" id="node4" href="$group__PublicMemberFunctions.html#gafb4629e6a81552152c1b475a32e06e9c" title="Frees the Signaling client object." alt="" coords="249,81,396,108"/>
+</map>

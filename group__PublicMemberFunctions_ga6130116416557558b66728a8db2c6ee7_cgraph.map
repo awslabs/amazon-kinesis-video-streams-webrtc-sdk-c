@@ -1,0 +1,10 @@
+<map id="signalingClientDisconnectSync" name="signalingClientDisconnectSync">
+<area shape="rect" id="node1" title="Disconnects the signaling client." alt="" coords="5,31,228,57"/>
+<area shape="rect" id="node2" href="$Signaling_8c.html#adc40a64fec23ce36f66ce679dfe4e35a" title=" " alt="" coords="276,31,460,57"/>
+<area shape="rect" id="node3" href="$StateMachine_8c.html#aadc0cffe12b55f3d81cd3b74244bdc3c" title=" " alt="" coords="508,5,727,32"/>
+<area shape="rect" id="node4" href="$Signaling_8c.html#af63aa814d51002790ba8da3bf07a2285" title=" " alt="" coords="512,56,723,83"/>
+<area shape="rect" id="node5" href="$Signaling_8c.html#a653edfffd5d129d08f5971d91f16fc5e" title=" " alt="" coords="1296,31,1496,57"/>
+<area shape="rect" id="node6" href="$LwsApiCalls_8c.html#ac8ef143a573f3b4ae83bd3ad0eb9fd6f" title=" " alt="" coords="775,81,969,108"/>
+<area shape="rect" id="node7" href="$LwsApiCalls_8c.html#ae7928b7a5bf47cbdf2ccf753f1c1e8df" title=" " alt="" coords="1017,81,1248,108"/>
+<area shape="rect" id="node8" href="$LwsApiCalls_8c.html#a799bfe087bea205476d1359524b17656" title=" " alt="" coords="1297,81,1495,108"/>
+</map>

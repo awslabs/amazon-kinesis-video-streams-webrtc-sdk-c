@@ -1,0 +1,37 @@
+<map id="tlsSessionShutdown" name="tlsSessionShutdown">
+<area shape="rect" id="node1" title=" " alt="" coords="2324,405,2476,432"/>
+<area shape="rect" id="node2" href="$Tls__openssl_8c.html#aa94c64c8b1c8378f85d7081459ec9425" title=" " alt="" coords="2159,353,2276,380"/>
+<area shape="rect" id="node29" href="$SocketConnection_8c.html#ae1067d81a0037b1cb7e2275d55b554a4" title=" " alt="" coords="1739,433,1920,460"/>
+<area shape="rect" id="node3" href="$Tls__openssl_8c.html#a0f345e7d94587cd9aa82d7f91fbe263c" title=" " alt="" coords="1979,328,2111,355"/>
+<area shape="rect" id="node4" href="$SocketConnection_8c.html#a0842946fe56ca18ca71603a5521ea36f" title=" " alt="" coords="1728,270,1931,311"/>
+<area shape="rect" id="node13" href="$SocketConnection_8c.html#aeea1e134b1c24f7138c4784b9b146e6b" title=" " alt="" coords="1499,379,1663,405"/>
+<area shape="rect" id="node5" href="$TurnConnection_8c.html#ae091e90d262a8b35996555dbc4f0d7d9" title=" " alt="" coords="1489,261,1673,288"/>
+<area shape="rect" id="node6" href="$TurnConnection_8c.html#af01ecc35132ec796882b5cfca6c25e0c" title=" " alt="" coords="1219,53,1433,80"/>
+<area shape="rect" id="node7" href="$TurnConnection_8c.html#a5b98aaf2a1b05b95f8cb088cf29aac54" title=" " alt="" coords="985,5,1137,32"/>
+<area shape="rect" id="node8" href="$IceAgent_8c.html#aa82059f636933c877ef87e25f4a62669" title=" " alt="" coords="701,56,904,83"/>
+<area shape="rect" id="node9" href="$IceAgent_8c.html#a888fc1a2a5c2fe190f30db87c85c6759" title=" " alt="" coords="443,56,653,83"/>
+<area shape="rect" id="node10" href="$IceAgent_8c.html#a89dd4cb4f8c55e2d376df8c33f300e80" title=" " alt="" coords="220,157,395,184"/>
+<area shape="rect" id="node11" href="$group__PublicMemberFunctions.html#ga060e71a4e33e0b7a8087317d4839fa8a" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the local descript..." alt="" coords="13,157,164,184"/>
+<area shape="rect" id="node12" href="$group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,360,172,387"/>
+<area shape="rect" id="node14" href="$SocketConnection_8c.html#a5dd11b0d4a90925f1f6019984576125a" title=" " alt="" coords="1237,151,1415,177"/>
+<area shape="rect" id="node15" href="$group__PublicMemberFunctions.html#ga6c4139787f87c307c2033b51d65284ce" title="Use the process described in https://tools.ietf.org/html/rfc5780#section&#45;4.3 to discover NAT behavior..." alt="" coords="982,208,1141,235"/>
+<area shape="rect" id="node18" href="$IceAgent_8c.html#a767c2a29e3bfba0aa45872d26b41a6f4" title=" " alt="" coords="1009,360,1114,387"/>
+<area shape="rect" id="node22" href="$TurnConnection_8c.html#aae1ee157e839fde1869e664af4424c6a" title=" " alt="" coords="1252,404,1400,431"/>
+<area shape="rect" id="node25" href="$IceAgent_8c.html#aad8b693b79de0b9b57770fb4efe64ee4" title=" " alt="" coords="952,519,1171,545"/>
+<area shape="rect" id="node27" href="$IceAgent_8c.html#a311a951cf965e83e76372560f2ce1c0f" title=" " alt="" coords="998,461,1125,488"/>
+<area shape="rect" id="node16" href="$IceAgent_8c.html#a404897a5797a45ca76444ee244c5b760" title=" " alt="" coords="450,107,646,133"/>
+<area shape="rect" id="node17" href="$IceAgent_8c.html#a0a39b316e5aff662b257648e97e53146" title=" " alt="" coords="451,157,645,184"/>
+<area shape="rect" id="node19" href="$IceAgent_8c.html#af2fe29241b2d4ab4997fe04c41534578" title=" " alt="" coords="743,360,863,387"/>
+<area shape="rect" id="node21" href="$group__PublicMemberFunctions.html#ga433b1bd125e7f221bcdad97a2a0e8949" title="Free a RtcPeerConnection." alt="" coords="727,461,878,488"/>
+<area shape="rect" id="node20" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="465,411,631,437"/>
+<area shape="rect" id="node23" href="$TurnConnection_8c.html#a45124af8be2273f83db9e6278ae3d0d6" title=" " alt="" coords="980,259,1143,285"/>
+<area shape="rect" id="node24" href="$IceAgentStateMachine_8c.html#a7f3932d8047a60dd57fda36e1a8d0ac2" title=" " alt="" coords="969,411,1154,437"/>
+<area shape="rect" id="node26" href="$IceAgentStateMachine_8c.html#ae73bb89e7e9f087dd2ccfa8cf1f1833a" title=" " alt="" coords="703,563,902,605"/>
+<area shape="rect" id="node28" href="$group__PublicMemberFunctions.html#gade9fcbb056cb321f33890c1cf1222e64" title="Instructs the RtcPeerConnection that ICE should be restarted. Subsequent calls to createOffer will cr..." alt="" coords="761,411,845,437"/>
+<area shape="rect" id="node30" href="$ConnectionListener_8c.html#ad4b0c7229cc56aa8bc3eaef7d75c2ab7" title=" " alt="" coords="1482,313,1679,354"/>
+<area shape="rect" id="node32" href="$ConnectionListener_8c.html#a0f848846ecef82f2b18aba63304cb9b1" title=" " alt="" coords="1481,430,1680,471"/>
+<area shape="rect" id="node33" href="$IceAgent_8c.html#a0240b9dcf5654427458c2fdda5a2da29" title=" " alt="" coords="1255,657,1397,684"/>
+<area shape="rect" id="node35" href="$ConnectionListener_8c.html#aadef069d7cf4137e975a3d91c8a46400" title=" " alt="" coords="1481,522,1680,563"/>
+<area shape="rect" id="node31" href="$ConnectionListener_8c.html#ac6b964c533b9932afd35358f2b49f5a8" title=" " alt="" coords="1238,201,1414,228"/>
+<area shape="rect" id="node34" href="$group__PublicMemberFunctions.html#ga9babad6ea2bc9bb97279c7034697375a" title="Close the underlying DTLS session and IceAgent connection. Trigger RtcOnConnectionStateChange to RTC_..." alt="" coords="982,657,1141,684"/>
+</map>
