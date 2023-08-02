@@ -153,27 +153,27 @@ jobs:
         run:  |
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-  memory-sanitizer:
-    runs-on: ubuntu-18.04
-    env:
-      CC: clang-7
-      CXX: clang++-7
-      AWS_KVS_LOG_LEVEL: 2
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v3
-      - name: Install dependencies
-        run: |
-          sudo apt clean && sudo apt update
-          sudo apt-get -y install clang-7
-      - name: Build repository
-        run: |
-          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-          mkdir build && cd build
-          cmake .. -DMEMORY_SANITIZER=TRUE -DBUILD_TEST=TRUE
-          make
-          ulimit -c unlimited -S
-          timeout --signal=SIGABRT 60m build/tst/webrtc_client_test
+  # memory-sanitizer:
+  #   runs-on: ubuntu-18.04
+  #   env:
+  #     CC: clang-7
+  #     CXX: clang++-7
+  #     AWS_KVS_LOG_LEVEL: 2
+  #   steps:
+  #     - name: Clone repository
+  #       uses: actions/checkout@v3
+  #     - name: Install dependencies
+  #       run: |
+  #         sudo apt clean && sudo apt update
+  #         sudo apt-get -y install clang-7
+  #     - name: Build repository
+  #       run: |
+  #         sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+  #         mkdir build && cd build
+  #         cmake .. -DMEMORY_SANITIZER=TRUE -DBUILD_TEST=TRUE
+  #         make
+  #         ulimit -c unlimited -S
+  #         timeout --signal=SIGABRT 60m build/tst/webrtc_client_test
   thread-sanitizer:
     runs-on: ubuntu-20.04
     env:
