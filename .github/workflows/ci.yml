@@ -386,8 +386,12 @@ jobs:
       # TODO: Fix these tests
       - name: Run tests
         run: |
-          $env:Path += ';C:\Strawberry\perl\site\bin;C:\Strawberry\perl\bin;C:\Strawberry\c\bin;C:\Program Files\NASM;D:\a\webrtc\open-source\lib;D:\a\webrtc\open-source\bin'
-          cmd.exe /c "D:\a\webrtc\build\tst\webrtc_client_test.exe"
+          $filePath = "D:\a\webrtc\build\tst\webrtc_client_test.exe"
+          $acl = Get-Acl $filePath
+          $rule = New-Object System.Security.AccessControl.FileSystemAccessRule("Users", "Modify", "ContainerInherit,ObjectInherit", "None", "Allow")
+          $acl.SetAccessRule($rule)
+          Set-Acl $filePath $acl
+          & "D:\a\webrtc\build\tst\webrtc_client_test.exe"
   # windows-msvc-mbedtls:
   #   runs-on: windows-2022
   #   env:
