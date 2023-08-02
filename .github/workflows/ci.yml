@@ -345,17 +345,15 @@ jobs:
   windows-msvc-openssl:
     runs-on: windows-2022
     env:
-      AWS_KVS_LOG_LEVEL: 7
+      AWS_KVS_LOG_LEVEL: 1
     steps:
       - name: Clone repository
         uses: actions/checkout@v3
       - name: Move cloned repo
         shell: powershell
         run: |
-          mkdir D:\a\webrtc
-          Move-Item -Path "D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\*" -Destination "D:\a\webrtc"
-          cd D:\a\webrtc
-          dir
+          mkdir C:\webrtc
+          Move-Item -Path "D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\*" -Destination "C:\webrtc"
       - name: Install dependencies
         shell: powershell
         run: |
@@ -380,13 +378,14 @@ jobs:
       - name: Build repository
         shell: powershell
         run: |
-          cd D:\a\webrtc
+          cd C:\webrtc
           git config --system core.longpaths true
           .github\build_windows_openssl.bat
-      # TODO: Fix these tests
-      # - name: Run tests
-      #   run: |
-      #     & "D:\a\webrtc\build\tst\webrtc_client_test.exe --gtest_filter='-DataChannelFunctionalityTest.*:IceApiTest.*:IceFunctionalityTest.*:PeerConnectionFunctionalityTest.*:SignalingApiFunctionalityTest.*:TurnConnectionFunctionalityTest.*:RtpFunctionalityTest.marshallUnmarshallH264Data:RtpFunctionalityTest.packingUnpackingVerifySameH264Frame:RtcpFunctionalityTest.onRtcpPacketCompound:RtcpFunctionalityTest.twcc3'" 
+      - name: Run tests
+        shell: powershell
+        run: |
+          $env:Path += ';C:\webrtc\open-source\bin;C:\tools\pthreads-w32-2-9-1-release\Pre-built.2\dll\x64'
+          & "C:\webrtc\build\tst\webrtc_client_test.exe" --gtest_filter="-DataChannelFunctionalityTest.*:IceApiTest.*:IceFunctionalityTest.*:PeerConnectionFunctionalityTest.*:SignalingApiFunctionalityTest.*:TurnConnectionFunctionalityTest.*:RtpFunctionalityTest.marshallUnmarshallH264Data:RtpFunctionalityTest.packingUnpackingVerifySameH264Frame:RtcpFunctionalityTest.onRtcpPacketCompound:RtcpFunctionalityTest.twcc3"
   # windows-msvc-mbedtls:
   #   runs-on: windows-2022
   #   env:
