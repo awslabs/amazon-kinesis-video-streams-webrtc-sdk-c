@@ -354,7 +354,6 @@ jobs:
         run: |
           mkdir C:\webrtc
           Move-Item -Path "D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\*" -Destination "C:\webrtc"
-          cd C:\webrtc
       - name: Install dependencies
         shell: powershell
         run: |
@@ -379,9 +378,9 @@ jobs:
       - name: Build repository
         shell: powershell
         run: |
+          cd C:\webrtc
           git config --system core.longpaths true
           .github\build_windows_openssl.bat
-      # TODO: Fix these tests
       - name: Run tests
         shell: powershell
         run: |
