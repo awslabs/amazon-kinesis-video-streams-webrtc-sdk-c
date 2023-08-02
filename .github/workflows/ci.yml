@@ -387,7 +387,7 @@ jobs:
       - name: Run tests
         run: |
           $env:Path += ';C:\Strawberry\perl\site\bin;C:\Strawberry\perl\bin;C:\Strawberry\c\bin;C:\Program Files\NASM;D:\a\webrtc\open-source\lib;D:\a\webrtc\open-source\bin'
-          & "D:\a\webrtc\build\tst\webrtc_client_test.exe"
+          cmd.exe /c "D:\a\webrtc\build\tst\webrtc_client_test.exe"
   # windows-msvc-mbedtls:
   #   runs-on: windows-2022
   #   env:
