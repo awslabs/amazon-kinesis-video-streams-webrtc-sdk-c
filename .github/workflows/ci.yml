@@ -38,6 +38,12 @@ jobs:
           mkdir build && cd build
           cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
           make
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1-node16
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          role-session-name: ${{ secrets.AWS_ROLE_SESSION_NAME }}
+          aws-region: ${{ secrets.AWS_REGION }}
       - name: Run tests
         run:  |
           cd build
@@ -56,6 +62,12 @@ jobs:
           mkdir build && cd build
           cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
           make
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1-node16
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          role-session-name: ${{ secrets.AWS_ROLE_SESSION_NAME }}
+          aws-region: ${{ secrets.AWS_REGION }}
       - name: Run tests
         run:  |
           cd build
@@ -74,6 +86,12 @@ jobs:
           mkdir build && cd build
           cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE
           make
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1-node16
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          role-session-name: ${{ secrets.AWS_ROLE_SESSION_NAME }}
+          aws-region: ${{ secrets.AWS_REGION }}
       - name: Run tests
         run:  |
           cd build
@@ -92,6 +110,12 @@ jobs:
           cmake .. -DCODE_COVERAGE=TRUE -DBUILD_TEST=TRUE
           make
           ulimit -c unlimited -S
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1-node16
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          role-session-name: ${{ secrets.AWS_ROLE_SESSION_NAME }}
+          aws-region: ${{ secrets.AWS_REGION }}
       - name: Run tests
         run:  |
           cd build
@@ -123,6 +147,12 @@ jobs:
           cmake .. -DBUILD_TEST=TRUE -DADDRESS_SANITIZER=TRUE
           make
           ulimit -c unlimited -S
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1-node16
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          role-session-name: ${{ secrets.AWS_ROLE_SESSION_NAME }}
+          aws-region: ${{ secrets.AWS_REGION }}
       - name: Run tests
         run:  |
           cd build
@@ -149,6 +179,12 @@ jobs:
           cmake .. -DBUILD_TEST=TRUE -DUNDEFINED_BEHAVIOR_SANITIZER=TRUE
           make
           ulimit -c unlimited -S
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1-node16
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          role-session-name: ${{ secrets.AWS_ROLE_SESSION_NAME }}
+          aws-region: ${{ secrets.AWS_REGION }}
       - name: Run tests
         run:  |
           cd build
@@ -195,6 +231,12 @@ jobs:
           cmake .. -DBUILD_TEST=TRUE -DTHREAD_SANITIZER=TRUE
           make
           ulimit -c unlimited -S
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1-node16
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          role-session-name: ${{ secrets.AWS_ROLE_SESSION_NAME }}
+          aws-region: ${{ secrets.AWS_REGION }}
       - name: Run tests
         run:  |
           cd build
@@ -223,6 +265,12 @@ jobs:
           cmake .. -DBUILD_TEST=TRUE
           make
           ulimit -c unlimited -S
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1-node16
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          role-session-name: ${{ secrets.AWS_ROLE_SESSION_NAME }}
+          aws-region: ${{ secrets.AWS_REGION }}
       - name: Run tests
         run:  |
           cd build
@@ -271,6 +319,12 @@ jobs:
           cmake .. -DBUILD_TEST=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
           make
           ulimit -c unlimited -S
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1-node16
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          role-session-name: ${{ secrets.AWS_ROLE_SESSION_NAME }}
+          aws-region: ${{ secrets.AWS_REGION }}
       - name: Run tests
         run:  |
           cd build
@@ -295,6 +349,12 @@ jobs:
           cmake .. -DBUILD_TEST=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
           make
           ulimit -c unlimited -S
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1-node16
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          role-session-name: ${{ secrets.AWS_ROLE_SESSION_NAME }}
+          aws-region: ${{ secrets.AWS_REGION }}
       - name: Run tests
         run:  |
           cd build
@@ -338,6 +398,12 @@ jobs:
           mkdir build && cd build
           cmake .. -DBUILD_TEST=TRUE
           make
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1-node16
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          role-session-name: ${{ secrets.AWS_ROLE_SESSION_NAME }}
+          aws-region: ${{ secrets.AWS_REGION }}
       - name: Run tests
         run:  |
           cd build
@@ -381,6 +447,12 @@ jobs:
           cd C:\webrtc
           git config --system core.longpaths true
           .github\build_windows_openssl.bat
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1-node16
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          role-session-name: ${{ secrets.AWS_ROLE_SESSION_NAME }}
+          aws-region: ${{ secrets.AWS_REGION }}
       - name: Run tests
         shell: powershell
         run: |

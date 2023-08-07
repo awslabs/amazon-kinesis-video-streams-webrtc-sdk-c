@@ -88,6 +88,7 @@ class TurnConnectionFunctionalityTest : public WebRtcClientTestBase {
 TEST_F(TurnConnectionFunctionalityTest, turnConnectionReceiveRelayedAddress)
 {
     if (!mAccessKeyIdSet) {
+        DLOGW("Skipping turnConnectionReceiveRelayedAddress");
         return;
     }
 
@@ -118,6 +119,7 @@ TEST_F(TurnConnectionFunctionalityTest, turnConnectionReceiveRelayedAddress)
 TEST_F(TurnConnectionFunctionalityTest, turnConnectionRefreshPermissionTest)
 {
     if (!mAccessKeyIdSet) {
+        DLOGW("Skipping turnConnectionRefreshPermissionTest");
         return;
     }
 
@@ -197,6 +199,7 @@ TEST_F(TurnConnectionFunctionalityTest, turnConnectionRefreshPermissionTest)
 TEST_F(TurnConnectionFunctionalityTest, turnConnectionShutdownCompleteBeforeTimeout)
 {
     if (!mAccessKeyIdSet) {
+        DLOGW("Skipping turnConnectionShutdownCompleteBeforeTimeout");
         return;
     }
 
@@ -239,6 +242,7 @@ TEST_F(TurnConnectionFunctionalityTest, turnConnectionShutdownCompleteBeforeTime
 TEST_F(TurnConnectionFunctionalityTest, turnConnectionShutdownAsync)
 {
     if (!mAccessKeyIdSet) {
+        DLOGW("Skipping turnConnectionShutdownAsync");
         return;
     }
 
@@ -288,6 +292,7 @@ TEST_F(TurnConnectionFunctionalityTest, turnConnectionShutdownAsync)
 TEST_F(TurnConnectionFunctionalityTest, turnConnectionShutdownWithAllocationRemovesTurnSocketConnection)
 {
     if (!mAccessKeyIdSet) {
+        DLOGW("Skipping turnConnectionShutdownWithAllocationRemovesTurnSocketConnection");
         return;
     }
 
@@ -348,6 +353,7 @@ TEST_F(TurnConnectionFunctionalityTest, turnConnectionShutdownWithAllocationRemo
 TEST_F(TurnConnectionFunctionalityTest, turnConnectionShutdownWithoutAllocationRemovesTurnSocketConnection)
 {
     if (!mAccessKeyIdSet) {
+        DLOGW("Skipping turnConnectionShutdownWithoutAllocationRemovesTurnSocketConnection");
         return;
     }
 
@@ -407,6 +413,7 @@ TEST_F(TurnConnectionFunctionalityTest, turnConnectionShutdownWithoutAllocationR
 TEST_F(TurnConnectionFunctionalityTest, turnConnectionShutdownAfterFailure)
 {
     if (!mAccessKeyIdSet) {
+        DLOGW("Skipping turnConnectionShutdownAfterFailure");
         return;
     }
 
@@ -469,6 +476,7 @@ TEST_F(TurnConnectionFunctionalityTest, turnConnectionShutdownAfterFailure)
 TEST_F(TurnConnectionFunctionalityTest, turnConnectionReceivePartialChannelMessageTest)
 {
     if (!mAccessKeyIdSet) {
+        DLOGW("Skipping turnConnectionReceivePartialChannelMessageTest");
         return;
     }
 
@@ -584,6 +592,7 @@ TEST_F(TurnConnectionFunctionalityTest, turnConnectionReceivePartialChannelMessa
 TEST_F(TurnConnectionFunctionalityTest, turnConnectionReceiveChannelDataMixedWithStunMessage)
 {
     if (!mAccessKeyIdSet) {
+        DLOGW("Skipping turnConnectionReceiveChannelDataMixedWithStunMessage");
         return;
     }
 
@@ -921,6 +930,7 @@ TEST_F(TurnConnectionFunctionalityTest, turnConnectionReceiveChannelDataMixedWit
 TEST_F(TurnConnectionFunctionalityTest, turnConnectionCallMultipleTurnSendDataInThreads)
 {
     if (!mAccessKeyIdSet) {
+        DLOGW("Skipping turnConnectionCallMultipleTurnSendDataInThreads");
         return;
     }
 

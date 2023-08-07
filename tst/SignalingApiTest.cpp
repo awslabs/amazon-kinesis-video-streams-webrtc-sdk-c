@@ -91,6 +91,7 @@ TEST_F(SignalingApiTest, signalingSendMessageSyncFileCredsProvider)
     UINT32 length = ARRAY_SIZE(fileContent);
 
     if (!mAccessKeyIdSet) {
+        DLOGW("Skipping signalingSendMessageSyncFileCredsProvider");
         return;
     }
 
@@ -281,6 +282,7 @@ TEST_F(SignalingApiTest, signalingClientGetMetrics)
     EXPECT_NE(STATUS_SUCCESS, signalingClientGetMetrics(mSignalingClientHandle, NULL));
 
     if (!mAccessKeyIdSet) {
+        DLOGW("Skipping signalingClientGetMetrics");
         return;
     }
 

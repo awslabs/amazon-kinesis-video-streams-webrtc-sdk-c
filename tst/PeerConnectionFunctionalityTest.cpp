@@ -190,6 +190,7 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithPresetCerts)
 TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersForcedTURN)
 {
     if (!mAccessKeyIdSet) {
+        DLOGW("Skipping connectTwoPeersForcedTURN");
         return;
     }
 
@@ -219,6 +220,7 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersForcedTURN)
 TEST_F(PeerConnectionFunctionalityTest, sendDataWithClosedSocketConnectionWithHostAndStun)
 {
     if (!mAccessKeyIdSet) {
+        DLOGW("Skipping sendDataWithClosedSocketConnectionWithHostAndStun");
         return;
     }
 
@@ -282,6 +284,7 @@ TEST_F(PeerConnectionFunctionalityTest, sendDataWithClosedSocketConnectionWithHo
 TEST_F(PeerConnectionFunctionalityTest, sendDataWithClosedSocketConnectionWithForcedTurn)
 {
     if (!mAccessKeyIdSet) {
+        DLOGW("Skipping sendDataWithClosedSocketConnectionWithForcedTurn");
         return;
     }
 
@@ -350,6 +353,7 @@ TEST_F(PeerConnectionFunctionalityTest, sendDataWithClosedSocketConnectionWithFo
 TEST_F(PeerConnectionFunctionalityTest, shutdownTurnDueToP2PFoundBeforeTurnEstablished)
 {
     if (!mAccessKeyIdSet) {
+
         return;
     }
 
@@ -411,6 +415,7 @@ TEST_F(PeerConnectionFunctionalityTest, shutdownTurnDueToP2PFoundBeforeTurnEstab
 TEST_F(PeerConnectionFunctionalityTest, shutdownTurnDueToP2PFoundAfterTurnEstablished)
 {
     if (!mAccessKeyIdSet) {
+        DLOGW("Skipping shutdownTurnDueToP2PFoundAfterTurnEstablished");
         return;
     }
 
@@ -542,6 +547,7 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithHostAndStun)
 TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersThenDisconnectTest)
 {
     if (!mAccessKeyIdSet) {
+        DLOGW("Skipping connectTwoPeersThenDisconnectTest");
         return;
     }
 
@@ -784,6 +790,7 @@ TEST_F(PeerConnectionFunctionalityTest, exchangeMedia)
 TEST_F(PeerConnectionFunctionalityTest, exchangeMediaRSA)
 {
     if (!mAccessKeyIdSet) {
+        DLOGW("Skipping exchangeMediaRSA");
         return;
     }
 
@@ -870,6 +877,7 @@ TEST_F(PeerConnectionFunctionalityTest, iceRestartTestForcedTurn)
     PRtcPeerConnection offerPc = NULL, answerPc = NULL;
 
     if (!mAccessKeyIdSet) {
+        DLOGW("Skipping iceRestartTestForcedTurn");
         return;
     }
 
@@ -906,6 +914,7 @@ TEST_F(PeerConnectionFunctionalityTest, peerConnectionOfferCloseConnection)
     PRtcPeerConnection offerPc = NULL, answerPc = NULL;
 
     if (!mAccessKeyIdSet) {
+        DLOGW("Skipping peerConnectionOfferCloseConnection");
         return;
     }
 
@@ -935,6 +944,7 @@ TEST_F(PeerConnectionFunctionalityTest, peerConnectionAnswerCloseConnection)
     PRtcPeerConnection offerPc = NULL, answerPc = NULL;
 
     if (!mAccessKeyIdSet) {
+        DLOGW("Skipping peerConnectionAnswerCloseConnection");
         return;
     }
 
@@ -961,6 +971,7 @@ TEST_F(PeerConnectionFunctionalityTest, peerConnectionAnswerCloseConnection)
 TEST_F(PeerConnectionFunctionalityTest, DISABLED_exchangeMediaThroughTurnRandomStop)
 {
     if (!mAccessKeyIdSet) {
+        DLOGW("Skipping exchangeMediaThroughTurnRandomStop");
         return;
     }
 

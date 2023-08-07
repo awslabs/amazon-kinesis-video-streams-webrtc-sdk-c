@@ -641,6 +641,7 @@ TEST_F(IceFunctionalityTest, IceAgentPruneUnconnectedIceCandidatePairUnitTest)
 TEST_F(IceFunctionalityTest, IceAgentCandidateGatheringTest)
 {
     if (!mAccessKeyIdSet) {
+        DLOGW("Skipping IceAgentCandidateGatheringTest");
         return;
     }
 
