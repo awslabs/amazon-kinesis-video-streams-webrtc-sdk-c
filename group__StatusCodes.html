@@ -211,7 +211,11 @@ Macros</h2></td></tr>
 <tr class="separator:gadd9a4e15ee04829735c1c7d64480e6b4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gaea8ae00fe5223b227c8dd67918600f5c"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#gaea8ae00fe5223b227c8dd67918600f5c">MAX_RTP_TIMESTAMP</a>&#160;&#160;&#160;((UINT32) MAX_UINT32)</td></tr>
 <tr class="separator:gaea8ae00fe5223b227c8dd67918600f5c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gab921a27e047a959153fde4d7466ec5aa"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#gab921a27e047a959153fde4d7466ec5aa">KINESIS_VIDEO_STUN_URL</a>&#160;&#160;&#160;&quot;stun:stun.kinesisvideo.%s.amazonaws.com:443&quot;</td></tr>
+<tr class="memitem:gafb5444f1f0d078a43fd18129ecece080"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#gafb5444f1f0d078a43fd18129ecece080">KINESIS_VIDEO_STUN_URL_POSTFIX</a>&#160;&#160;&#160;&quot;amazonaws.com&quot;</td></tr>
+<tr class="separator:gafb5444f1f0d078a43fd18129ecece080"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaac03f32227ed4105862f2d1353a26bb7"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#gaac03f32227ed4105862f2d1353a26bb7">KINESIS_VIDEO_STUN_URL_POSTFIX_CN</a>&#160;&#160;&#160;&quot;amazonaws.com.cn&quot;</td></tr>
+<tr class="separator:gaac03f32227ed4105862f2d1353a26bb7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gab921a27e047a959153fde4d7466ec5aa"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#gab921a27e047a959153fde4d7466ec5aa">KINESIS_VIDEO_STUN_URL</a>&#160;&#160;&#160;&quot;stun:stun.kinesisvideo.%s.%s:443&quot;</td></tr>
 <tr class="separator:gab921a27e047a959153fde4d7466ec5aa"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga88c324018b021dba73e56d93ddab2427"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga88c324018b021dba73e56d93ddab2427">SIGNALING_DEFAULT_SSL_PORT</a>&#160;&#160;&#160;DEFAULT_SSL_PORT_NUMBER</td></tr>
 <tr class="separator:ga88c324018b021dba73e56d93ddab2427"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -671,11 +675,39 @@ Variables</h2></td></tr>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">#define KINESIS_VIDEO_STUN_URL&#160;&#160;&#160;&quot;stun:stun.kinesisvideo.%s.amazonaws.com:443&quot;</td>
+          <td class="memname">#define KINESIS_VIDEO_STUN_URL&#160;&#160;&#160;&quot;stun:stun.kinesisvideo.%s.%s:443&quot;</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="gafb5444f1f0d078a43fd18129ecece080"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gafb5444f1f0d078a43fd18129ecece080">&#9670;&nbsp;</a></span>KINESIS_VIDEO_STUN_URL_POSTFIX</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define KINESIS_VIDEO_STUN_URL_POSTFIX&#160;&#160;&#160;&quot;amazonaws.com&quot;</td>
         </tr>
       </table>
 </div><div class="memdoc">
 <p>Parameterized string for KVS STUN Server </p>
+
+</div>
+</div>
+<a id="gaac03f32227ed4105862f2d1353a26bb7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaac03f32227ed4105862f2d1353a26bb7">&#9670;&nbsp;</a></span>KINESIS_VIDEO_STUN_URL_POSTFIX_CN</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define KINESIS_VIDEO_STUN_URL_POSTFIX_CN&#160;&#160;&#160;&quot;amazonaws.com.cn&quot;</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
 
 </div>
 </div>
@@ -2838,7 +2870,7 @@ Variables</h2></td></tr>
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="footer">Generated on Fri Aug 4 2023 23:03:53 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Tue Aug 8 2023 22:16:34 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>

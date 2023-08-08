@@ -1,11 +1,11 @@
 var NAVTREEINDEX1 =
 {
 "group__PublicEnums.html#ggad42c829d5095ba5e3ab0b6fff6ff8678a9255d14292683ad9f73b58b91e373a25":[1,0,17,3,5],
-"group__PublicEnums.html#ggad42c829d5095ba5e3ab0b6fff6ff8678a9255d14292683ad9f73b58b91e373a25":[1,0,47],
+"group__PublicEnums.html#ggad42c829d5095ba5e3ab0b6fff6ff8678a9255d14292683ad9f73b58b91e373a25":[1,0,49],
 "group__PublicEnums.html#ggad42c829d5095ba5e3ab0b6fff6ff8678abffe8707aa6a01e4f949c22d4c189e57":[1,0,17,3,0],
-"group__PublicEnums.html#ggad42c829d5095ba5e3ab0b6fff6ff8678abffe8707aa6a01e4f949c22d4c189e57":[1,0,45],
+"group__PublicEnums.html#ggad42c829d5095ba5e3ab0b6fff6ff8678abffe8707aa6a01e4f949c22d4c189e57":[1,0,47],
 "group__PublicEnums.html#ggad42c829d5095ba5e3ab0b6fff6ff8678afb72759d662497abc396c07ae5dea519":[1,0,17,3,4],
-"group__PublicEnums.html#ggad42c829d5095ba5e3ab0b6fff6ff8678afb72759d662497abc396c07ae5dea519":[1,0,42],
+"group__PublicEnums.html#ggad42c829d5095ba5e3ab0b6fff6ff8678afb72759d662497abc396c07ae5dea519":[1,0,44],
 "group__PublicMemberFunctions.html":[1,0,21],
 "group__PublicMemberFunctions.html#ga0091e2920ba137e0e80d40402a675abb":[1,0,21,24],
 "group__PublicMemberFunctions.html#ga060e71a4e33e0b7a8087317d4839fa8a":[1,0,21,35],

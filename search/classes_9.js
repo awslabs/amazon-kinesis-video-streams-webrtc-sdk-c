@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['qualitylimitationdurationsrecord_2788',['QualityLimitationDurationsRecord',['../structQualityLimitationDurationsRecord.html',1,'']]]
+  ['qualitylimitationdurationsrecord_2790',['QualityLimitationDurationsRecord',['../structQualityLimitationDurationsRecord.html',1,'']]]
 ];

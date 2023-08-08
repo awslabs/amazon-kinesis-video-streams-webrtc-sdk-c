@@ -27,6 +27,8 @@ var group__StatusCodes =
     [ "INVALID_SIGNALING_CLIENT_HANDLE_VALUE", "group__StatusCodes.html#ga2b482ee4231032c03a94091b7ee61990", null ],
     [ "IS_VALID_SIGNALING_CLIENT_HANDLE", "group__StatusCodes.html#ga880ad6a773c90b7ddbb1b9fbb1442599", null ],
     [ "KINESIS_VIDEO_STUN_URL", "group__StatusCodes.html#gab921a27e047a959153fde4d7466ec5aa", null ],
+    [ "KINESIS_VIDEO_STUN_URL_POSTFIX", "group__StatusCodes.html#gafb5444f1f0d078a43fd18129ecece080", null ],
+    [ "KINESIS_VIDEO_STUN_URL_POSTFIX_CN", "group__StatusCodes.html#gaac03f32227ed4105862f2d1353a26bb7", null ],
     [ "MAX_RTP_SEQUENCE_NUM", "group__StatusCodes.html#gadd9a4e15ee04829735c1c7d64480e6b4", null ],
     [ "MAX_RTP_TIMESTAMP", "group__StatusCodes.html#gaea8ae00fe5223b227c8dd67918600f5c", null ],
     [ "SIGNALING_API_CALL_CACHE_TTL_SENTINEL_VALUE", "group__StatusCodes.html#gafffcbc366bf0d963121a10259b988d31", null ],
