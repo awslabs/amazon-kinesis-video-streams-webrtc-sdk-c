@@ -20,7 +20,11 @@ example_sums = hex_sums(operands_map)
 print(example_sums) # {'STATUS_CHILD': "0x5", 'STATUS_PARENT': "0x4"}
 '''
 
+<<<<<<< HEAD
 pattern = re.compile("#define *(STATUS\_[A-Z_]*) *(([A-Z_]*) *\+ *)?0x([0-9a-fA-F]*)")
+=======
+pattern = re.compile("#define *(STATUS\_[A-Z_]*) *(([A-Z_]*) *\+ *)?0x([0-9]*)")
+>>>>>>> master
 
 def operands_by_name(paragraph):
     matches = filter(None, [pattern.match(line) for line in paragraph.splitlines()])
