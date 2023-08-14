@@ -6,7 +6,7 @@ include(ExternalProject)
 
 ExternalProject_Add(libkvsCommonLws-download
     GIT_REPOSITORY    https://github.com/awslabs/amazon-kinesis-video-streams-producer-c.git
-    GIT_TAG           da1d09c635ee3c0b41709bae528a8f93cd015029
+    GIT_TAG           611b9b9efb1fe3a404b94f493d877e6bc1a8b8e7
     PREFIX            ${CMAKE_CURRENT_BINARY_DIR}/build
     CMAKE_ARGS        
       -DCMAKE_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX}
