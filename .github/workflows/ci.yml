@@ -5,10 +5,18 @@ on:
     branches:
       - develop
       - master
+      - Release-WebRTC-Streams-Ingestion-Public-Preview 
   pull_request:
     branches:
       - develop
       - master
+      - Release-WebRTC-Streams-Ingestion-Public-Preview 
+  pull_request_target:
+    types: [assigned, opened, synchronize, reopened]
+    branches:
+      - develop
+      - master
+      - Release-WebRTC-Streams-Ingestion-Public-Preview 
 jobs:
   clang-format-check:
     runs-on: macos-11
@@ -92,6 +100,9 @@ jobs:
           cmake .. -DCODE_COVERAGE=TRUE -DBUILD_TEST=TRUE
           make
           ulimit -c unlimited -S
+      - name: Run tests
+        run:  |
+          cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
       - name: Code coverage
         run: |

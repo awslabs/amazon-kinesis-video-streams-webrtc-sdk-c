@@ -93,8 +93,8 @@ STATUS allocateSctp(PKvsPeerConnection pKvsPeerConnection)
             CHK(FALSE, retStatus);
         }
         CHK(pKvsDataChannel != NULL, STATUS_INTERNAL_ERROR);
-        sctpSessionWriteDcep(pKvsPeerConnection->pSctpSession, currentDataChannelId, pKvsDataChannel->dataChannel.name,
-                             STRLEN(pKvsDataChannel->dataChannel.name), &pKvsDataChannel->rtcDataChannelInit);
+        CHK_STATUS(sctpSessionWriteDcep(pKvsPeerConnection->pSctpSession, currentDataChannelId, pKvsDataChannel->dataChannel.name,
+                                        STRLEN(pKvsDataChannel->dataChannel.name), &pKvsDataChannel->rtcDataChannelInit));
         pKvsDataChannel->rtcDataChannelDiagnostics.state = RTC_DATA_CHANNEL_STATE_OPEN;
         if (STATUS_FAILED(hashTableUpsert(pKvsPeerConnection->pDataChannels, currentDataChannelId, (UINT64) pKvsDataChannel))) {
             DLOGW("Failed to update entry in hash table with recent changes to data channel");
@@ -147,6 +147,10 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
 #ifdef ENABLE_DATA_CHANNEL
             if (pKvsPeerConnection->pSctpSession == NULL) {
                 CHK_STATUS(allocateSctp(pKvsPeerConnection));
+            }
+
+            if (signedBuffLen > 0) {
+                CHK_STATUS(putSctpPacket(pKvsPeerConnection->pSctpSession, buff, signedBuffLen));
             }
 #endif
             changePeerConnectionState(pKvsPeerConnection, RTC_PEER_CONNECTION_STATE_CONNECTED);
@@ -425,6 +429,7 @@ VOID onIceConnectionStateChange(UINT64 customData, UINT64 connectionState)
             break;
 
         case ICE_AGENT_STATE_DISCONNECTED:
+            DLOGD("ice agent disconnected");
             newConnectionState = RTC_PEER_CONNECTION_STATE_DISCONNECTED;
             break;
 
@@ -1340,7 +1345,7 @@ STATUS addIceCandidate(PRtcPeerConnection pPeerConnection, PCHAR pIceCandidate)
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pPeerConnection;
 
     CHK(pKvsPeerConnection != NULL && pIceCandidate != NULL, STATUS_NULL_ARG);
-
+    DLOGD("%s", pIceCandidate);
     iceAgentAddRemoteCandidate(pKvsPeerConnection->pIceAgent, pIceCandidate);
 
 CleanUp:

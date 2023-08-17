@@ -42,12 +42,12 @@ extern "C" {
 
 #define RTSP_PIPELINE_MAX_CHAR_COUNT 1000
 
+
 #define IOT_CORE_CREDENTIAL_ENDPOINT ((PCHAR) "AWS_IOT_CORE_CREDENTIAL_ENDPOINT")
 #define IOT_CORE_CERT                ((PCHAR) "AWS_IOT_CORE_CERT")
 #define IOT_CORE_PRIVATE_KEY         ((PCHAR) "AWS_IOT_CORE_PRIVATE_KEY")
 #define IOT_CORE_ROLE_ALIAS          ((PCHAR) "AWS_IOT_CORE_ROLE_ALIAS")
 #define IOT_CORE_THING_NAME          ((PCHAR) "AWS_IOT_CORE_THING_NAME")
-#define IOT_CORE_CERTIFICATE_ID      ((PCHAR) "AWS_IOT_CORE_CERTIFICATE_ID")
 
 #define MASTER_DATA_CHANNEL_MESSAGE "This message is from the KVS Master"
 #define VIEWER_DATA_CHANNEL_MESSAGE "This message is from the KVS Viewer"
@@ -130,6 +130,8 @@ typedef struct {
     UINT32 iceUriCount;
     SignalingClientCallbacks signalingClientCallbacks;
     SignalingClientInfo clientInfo;
+
+    UINT64 mediaStorageClipLength;
     RtcStats rtcIceCandidatePairMetrics;
 
     MUTEX signalingSendMessageLock;
@@ -202,6 +204,7 @@ STATUS respondWithAnswer(PSampleStreamingSession);
 STATUS resetSampleConfigurationState(PSampleConfiguration);
 VOID sampleVideoFrameHandler(UINT64, PFrame);
 VOID sampleAudioFrameHandler(UINT64, PFrame);
+VOID sampleFrameHandler(UINT64, PFrame);
 VOID sampleBandwidthEstimationHandler(UINT64, DOUBLE);
 VOID sampleSenderBandwidthEstimationHandler(UINT64, UINT32, UINT32, UINT32, UINT32, UINT64);
 VOID onDataChannel(UINT64, PRtcDataChannel);

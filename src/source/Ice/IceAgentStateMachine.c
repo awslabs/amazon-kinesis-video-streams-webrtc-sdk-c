@@ -103,6 +103,7 @@ STATUS iceAgentStateMachineCheckDisconnection(PIceAgent pIceAgent, PUINT64 pNext
     currentTime = GETTIME();
     if (!pIceAgent->detectedDisconnection && IS_VALID_TIMESTAMP(pIceAgent->lastDataReceivedTime) &&
         pIceAgent->lastDataReceivedTime + KVS_ICE_ENTER_STATE_DISCONNECTION_GRACE_PERIOD <= currentTime) {
+        DLOGD("detect disconnection");
         *pNextState = ICE_AGENT_STATE_DISCONNECTED;
     } else if (pIceAgent->detectedDisconnection) {
         if (IS_VALID_TIMESTAMP(pIceAgent->lastDataReceivedTime) &&

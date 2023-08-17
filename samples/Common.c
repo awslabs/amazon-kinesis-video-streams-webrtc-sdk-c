@@ -79,6 +79,7 @@ VOID onConnectionStateChange(UINT64 customData, RTC_PEER_CONNECTION_STATE newSta
         case RTC_PEER_CONNECTION_STATE_CLOSED:
             // explicit fallthrough
         case RTC_PEER_CONNECTION_STATE_DISCONNECTED:
+            DLOGD("p2p connection disconnected");
             ATOMIC_STORE_BOOL(&pSampleStreamingSession->terminateFlag, TRUE);
             CVAR_BROADCAST(pSampleConfiguration->cvar);
             // explicit fallthrough
@@ -220,7 +221,7 @@ STATUS handleOffer(PSampleConfiguration pSampleConfiguration, PSampleStreamingSe
 
     MEMSET(&offerSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
     MEMSET(&pSampleStreamingSession->answerSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
-
+    DLOGD("**offer:%s", pSignalingMessage->payload);
     CHK_STATUS(deserializeSessionDescriptionInit(pSignalingMessage->payload, pSignalingMessage->payloadLen, &offerSessionDescriptionInit));
     CHK_STATUS(setRemoteDescription(pSampleStreamingSession->pPeerConnection, &offerSessionDescriptionInit));
     canTrickle = canTrickleIceCandidates(pSampleStreamingSession->pPeerConnection);
@@ -634,6 +635,18 @@ VOID sampleAudioFrameHandler(UINT64 customData, PFrame pFrame)
     DLOGV("Audio Frame received. TrackId: %" PRIu64 ", Size: %u, Flags %u", pFrame->trackId, pFrame->size, pFrame->flags);
 }
 
+VOID sampleFrameHandler(UINT64 customData, PFrame pFrame)
+{
+    UNUSED_PARAM(customData);
+    DLOGV("Frame received. TrackId: %" PRIu64 ", Size: %u, Flags %u", pFrame->trackId, pFrame->size, pFrame->flags);
+    PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) customData;
+    if (pSampleStreamingSession->firstFrame) {
+        pSampleStreamingSession->firstFrame = FALSE;
+        pSampleStreamingSession->startUpLatency = (GETTIME() - pSampleStreamingSession->offerReceiveTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+        printf("Start up latency from offer to first frame: %" PRIu64 "ms\n", pSampleStreamingSession->startUpLatency);
+    }
+}
+
 VOID sampleBandwidthEstimationHandler(UINT64 customData, DOUBLE maximumBitrate)
 {
     UNUSED_PARAM(customData);
@@ -704,7 +717,7 @@ STATUS lookForSslCert(PSampleConfiguration* ppSampleConfiguration)
     PSampleConfiguration pSampleConfiguration = *ppSampleConfiguration;
 
     MEMSET(certName, 0x0, ARRAY_SIZE(certName));
-    pSampleConfiguration->pCaCertPath = getenv(CACERT_PATH_ENV_VAR);
+    pSampleConfiguration->pCaCertPath = GETENV(CACERT_PATH_ENV_VAR);
 
     // if ca cert path is not set from the environment, try to use the one that cmake detected
     if (pSampleConfiguration->pCaCertPath == NULL) {
@@ -747,22 +760,22 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     CHK(NULL != (pSampleConfiguration = (PSampleConfiguration) MEMCALLOC(1, SIZEOF(SampleConfiguration))), STATUS_NOT_ENOUGH_MEMORY);
 
 #ifdef IOT_CORE_ENABLE_CREDENTIALS
-    PCHAR pIotCoreCredentialEndPoint, pIotCoreCert, pIotCorePrivateKey, pIotCoreRoleAlias, pIotCoreThingName, pIotCoreCertificateId;
-    CHK_ERR((pIotCoreCredentialEndPoint = getenv(IOT_CORE_CREDENTIAL_ENDPOINT)) != NULL, STATUS_INVALID_OPERATION,
+    PCHAR pIotCoreCredentialEndPoint, pIotCoreCert, pIotCorePrivateKey, pIotCoreRoleAlias, pIotCoreThingName;
+    CHK_ERR((pIotCoreCredentialEndPoint = GETENV(IOT_CORE_CREDENTIAL_ENDPOINT)) != NULL, STATUS_INVALID_OPERATION,
             "AWS_IOT_CORE_CREDENTIAL_ENDPOINT must be set");
-    CHK_ERR((pIotCoreCert = getenv(IOT_CORE_CERT)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_CERT must be set");
-    CHK_ERR((pIotCorePrivateKey = getenv(IOT_CORE_PRIVATE_KEY)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_PRIVATE_KEY must be set");
-    CHK_ERR((pIotCoreRoleAlias = getenv(IOT_CORE_ROLE_ALIAS)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_ROLE_ALIAS must be set");
+    CHK_ERR((pIotCoreCert = GETENV(IOT_CORE_CERT)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_CERT must be set");
+    CHK_ERR((pIotCorePrivateKey = GETENV(IOT_CORE_PRIVATE_KEY)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_PRIVATE_KEY must be set");
+    CHK_ERR((pIotCoreRoleAlias = GETENV(IOT_CORE_ROLE_ALIAS)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_ROLE_ALIAS must be set");
 #else
-    CHK_ERR((pAccessKey = getenv(ACCESS_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_ACCESS_KEY_ID must be set");
-    CHK_ERR((pSecretKey = getenv(SECRET_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_SECRET_ACCESS_KEY must be set");
+    CHK_ERR((pAccessKey = GETENV(ACCESS_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_ACCESS_KEY_ID must be set");
+    CHK_ERR((pSecretKey = GETENV(SECRET_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_SECRET_ACCESS_KEY must be set");
 #endif
 
-    pSessionToken = getenv(SESSION_TOKEN_ENV_VAR);
+    pSessionToken = GETENV(SESSION_TOKEN_ENV_VAR);
 
     // If the env is set, we generate normal log files apart from filtered profile log files
     // If not set, we generate only the filtered profile log files
-    if (NULL != getenv(ENABLE_FILE_LOGGING)) {
+    if (NULL != GETENV(ENABLE_FILE_LOGGING)) {
         retStatus = createFileLoggerWithLevelFiltering(FILE_LOGGING_BUFFER_SIZE, MAX_NUMBER_OF_LOG_FILES, (PCHAR) FILE_LOGGER_LOG_FILE_DIRECTORY_PATH,
                                                        TRUE, TRUE, TRUE, LOG_LEVEL_PROFILE, NULL);
 
@@ -782,7 +795,7 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
         }
     }
 
-    if ((pSampleConfiguration->channelInfo.pRegion = getenv(DEFAULT_REGION_ENV_VAR)) == NULL) {
+    if ((pSampleConfiguration->channelInfo.pRegion = GETENV(DEFAULT_REGION_ENV_VAR)) == NULL) {
         pSampleConfiguration->channelInfo.pRegion = DEFAULT_AWS_REGION;
     }
 
@@ -811,11 +824,6 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
 
     pSampleConfiguration->channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
     pSampleConfiguration->channelInfo.pChannelName = channelName;
-#ifdef IOT_CORE_ENABLE_CREDENTIALS
-    if ((pIotCoreCertificateId = getenv(IOT_CORE_CERTIFICATE_ID)) != NULL) {
-        pSampleConfiguration->channelInfo.pChannelName = pIotCoreCertificateId;
-    }
-#endif
     pSampleConfiguration->channelInfo.pKmsKeyId = NULL;
     pSampleConfiguration->channelInfo.tagCount = 0;
     pSampleConfiguration->channelInfo.pTags = NULL;

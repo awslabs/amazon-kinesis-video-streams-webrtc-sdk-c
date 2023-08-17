@@ -62,6 +62,10 @@ INT32 main(INT32 argc, CHAR* argv[])
     CHK_STATUS(initKvsWebRtc());
     DLOGI("[KVS Viewer] KVS WebRTC initialization completed successfully");
 
+#ifdef ENABLE_DATA_CHANNEL
+    pSampleConfiguration->onDataChannel = onDataChannel;
+#endif
+
     SPRINTF(clientId, "%s_%u", SAMPLE_VIEWER_CLIENT_ID, RAND() % MAX_UINT32);
     CHK_STATUS(initSignaling(pSampleConfiguration, clientId));
     DLOGI("[KVS Viewer] Signaling client connection established");

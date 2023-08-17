@@ -17,11 +17,14 @@ TEST_F(SignalingApiTest, createValidateChannelInfo)
     UINT32 postfixLen = STRLEN(SIGNALING_USER_AGENT_POSTFIX_NAME) + STRLEN(SIGNALING_USER_AGENT_POSTFIX_VERSION) + 1;
     SNPRINTF(agentString, postfixLen + 1, (PCHAR) "%s/%s", SIGNALING_USER_AGENT_POSTFIX_NAME, SIGNALING_USER_AGENT_POSTFIX_VERSION);
     STRCPY(mChannelArn, TEST_CHANNEL_ARN);
+    STRCPY(mStreamArn, TEST_STREAM_ARN);
     STRCPY(mKmsKeyId, TEST_KMS_KEY_ID_ARN);
     mChannelInfo.pChannelArn = mChannelArn;
+    mChannelInfo.pStorageStreamArn = mStreamArn;
     mChannelInfo.pKmsKeyId = mKmsKeyId;
     EXPECT_EQ(STATUS_SUCCESS, createValidateChannelInfo(&mChannelInfo, &rChannelInfo));
     EXPECT_EQ(0, STRCMP(rChannelInfo->pChannelArn, TEST_CHANNEL_ARN));
+    EXPECT_EQ(0, STRCMP(rChannelInfo->pStorageStreamArn, TEST_STREAM_ARN));
     EXPECT_EQ(0, STRCMP(rChannelInfo->pKmsKeyId, TEST_KMS_KEY_ID_ARN));
     EXPECT_EQ(rChannelInfo->version, CHANNEL_INFO_CURRENT_VERSION);
     EXPECT_EQ(rChannelInfo->tagCount, 3);
@@ -32,6 +35,7 @@ TEST_F(SignalingApiTest, createValidateChannelInfo)
     // The createValidateChannelInfo() is expected to fix up caching period to an hour
     EXPECT_EQ(rChannelInfo->cachingPeriod, SIGNALING_DEFAULT_API_CALL_CACHE_TTL);
     EXPECT_EQ(rChannelInfo->reconnect, TRUE);
+    EXPECT_EQ(rChannelInfo->useMediaStorage, FALSE);
     EXPECT_EQ(0, STRCMP(rChannelInfo->pCertPath, mCaCertPath));
     EXPECT_EQ(rChannelInfo->messageTtl, TEST_SIGNALING_MESSAGE_TTL);
     EXPECT_EQ(0, STRCMP(rChannelInfo->pRegion, TEST_DEFAULT_REGION));

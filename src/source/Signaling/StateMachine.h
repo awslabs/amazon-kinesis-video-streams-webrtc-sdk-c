@@ -26,7 +26,8 @@ extern "C" {
 #define SIGNALING_STATE_DISCONNECTED   ((UINT64) (1 << 9))
 #define SIGNALING_STATE_DELETE         ((UINT64) (1 << 10))
 #define SIGNALING_STATE_DELETED        ((UINT64) (1 << 11))
-
+#define SIGNALING_STATE_DESCRIBE_MEDIA ((UINT64) (1 << 12))
+#define SIGNALING_STATE_JOIN_SESSION   ((UINT64) (1 << 13))
 // Indicates infinite retries
 #define INFINITE_RETRY_COUNT_SENTINEL 0
 
@@ -45,6 +46,8 @@ STATUS fromGetTokenSignalingState(UINT64, PUINT64);
 STATUS executeGetTokenSignalingState(UINT64, UINT64);
 STATUS fromDescribeSignalingState(UINT64, PUINT64);
 STATUS executeDescribeSignalingState(UINT64, UINT64);
+STATUS fromDescribeMediaStorageConfState(UINT64, PUINT64);
+STATUS executeDescribeMediaStorageConfState(UINT64, UINT64);
 STATUS fromCreateSignalingState(UINT64, PUINT64);
 STATUS executeCreateSignalingState(UINT64, UINT64);
 STATUS fromGetEndpointSignalingState(UINT64, PUINT64);
@@ -55,6 +58,8 @@ STATUS fromReadySignalingState(UINT64, PUINT64);
 STATUS executeReadySignalingState(UINT64, UINT64);
 STATUS fromConnectSignalingState(UINT64, PUINT64);
 STATUS executeConnectSignalingState(UINT64, UINT64);
+STATUS fromJoinStorageSessionState(UINT64, PUINT64);
+STATUS executeJoinStorageSessionState(UINT64, UINT64);
 STATUS fromConnectedSignalingState(UINT64, PUINT64);
 STATUS executeConnectedSignalingState(UINT64, UINT64);
 STATUS fromDisconnectedSignalingState(UINT64, PUINT64);

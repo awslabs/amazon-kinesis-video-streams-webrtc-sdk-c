@@ -6,10 +6,11 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
 
-    UINT32 allocSize, nameLen = 0, arnLen = 0, regionLen = 0, cplLen = 0, certLen = 0, postfixLen = 0, agentLen = 0, userAgentLen = 0, kmsLen = 0,
-                      tagsSize;
+    UINT32 allocSize, channelNameLen = 0, channelArnLen = 0, storageStreamArnLen = 0, regionLen = 0, cpUrlLen = 0, certPathLen = 0,
+                      userAgentPostfixLen = 0, customUserAgentLen = 0, userAgentLen = 0, kmsLen = 0, tagsSize;
     PCHAR pCurPtr, pRegionPtr, pUserAgentPostfixPtr;
     CHAR agentString[MAX_CUSTOM_USER_AGENT_NAME_POSTFIX_LEN + 1];
+
     PChannelInfo pChannelInfo = NULL;
 
     CHK(pOrigChannelInfo != NULL && ppChannelInfo != NULL, STATUS_NULL_ARG);
@@ -18,12 +19,18 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
 
     // Get and validate the lengths for all strings and store lengths excluding null terminator
     if (pOrigChannelInfo->pChannelName != NULL) {
-        CHK((nameLen = (UINT32) STRNLEN(pOrigChannelInfo->pChannelName, MAX_CHANNEL_NAME_LEN + 1)) <= MAX_CHANNEL_NAME_LEN,
+        CHK((channelNameLen = (UINT32) STRNLEN(pOrigChannelInfo->pChannelName, MAX_CHANNEL_NAME_LEN + 1)) <= MAX_CHANNEL_NAME_LEN,
             STATUS_SIGNALING_INVALID_CHANNEL_NAME_LENGTH);
     }
 
     if (pOrigChannelInfo->pChannelArn != NULL) {
-        CHK((arnLen = (UINT32) STRNLEN(pOrigChannelInfo->pChannelArn, MAX_ARN_LEN + 1)) <= MAX_ARN_LEN, STATUS_SIGNALING_INVALID_CHANNEL_ARN_LENGTH);
+        CHK((channelArnLen = (UINT32) STRNLEN(pOrigChannelInfo->pChannelArn, MAX_ARN_LEN + 1)) <= MAX_ARN_LEN,
+            STATUS_SIGNALING_INVALID_CHANNEL_ARN_LENGTH);
+    }
+
+    if (pOrigChannelInfo->pStorageStreamArn != NULL) {
+        CHK((storageStreamArnLen = (UINT32) STRNLEN(pOrigChannelInfo->pStorageStreamArn, MAX_ARN_LEN + 1)) <= MAX_ARN_LEN,
+            STATUS_SIGNALING_INVALID_CHANNEL_ARN_LENGTH);
     }
 
     // Fix-up the region
@@ -37,37 +44,37 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
     }
 
     if (pOrigChannelInfo->pControlPlaneUrl != NULL) {
-        CHK((cplLen = (UINT32) STRNLEN(pOrigChannelInfo->pControlPlaneUrl, MAX_URI_CHAR_LEN + 1)) <= MAX_URI_CHAR_LEN,
+        CHK((cpUrlLen = (UINT32) STRNLEN(pOrigChannelInfo->pControlPlaneUrl, MAX_URI_CHAR_LEN + 1)) <= MAX_URI_CHAR_LEN,
             STATUS_SIGNALING_INVALID_CPL_LENGTH);
     } else {
-        cplLen = MAX_CONTROL_PLANE_URI_CHAR_LEN;
+        cpUrlLen = MAX_CONTROL_PLANE_URI_CHAR_LEN;
     }
 
     if (pOrigChannelInfo->pCertPath != NULL) {
-        CHK((certLen = (UINT32) STRNLEN(pOrigChannelInfo->pCertPath, MAX_PATH_LEN + 1)) <= MAX_PATH_LEN,
+        CHK((certPathLen = (UINT32) STRNLEN(pOrigChannelInfo->pCertPath, MAX_PATH_LEN + 1)) <= MAX_PATH_LEN,
             STATUS_SIGNALING_INVALID_CERTIFICATE_PATH_LENGTH);
     }
 
     userAgentLen = MAX_USER_AGENT_LEN;
 
-    if (pOrigChannelInfo->pUserAgentPostfix != NULL && STRCMP(pOrigChannelInfo->pUserAgentPostfix, EMPTY_STRING) != 0) {
-        CHK((postfixLen = (UINT32) STRNLEN(pOrigChannelInfo->pUserAgentPostfix, MAX_CUSTOM_USER_AGENT_NAME_POSTFIX_LEN + 1)) <=
+    if (pOrigChannelInfo->pUserAgentPostfix != NULL) {
+        CHK((userAgentPostfixLen = (UINT32) STRNLEN(pOrigChannelInfo->pUserAgentPostfix, MAX_CUSTOM_USER_AGENT_NAME_POSTFIX_LEN + 1)) <=
                 MAX_CUSTOM_USER_AGENT_NAME_POSTFIX_LEN,
             STATUS_SIGNALING_INVALID_AGENT_POSTFIX_LENGTH);
         pUserAgentPostfixPtr = pOrigChannelInfo->pUserAgentPostfix;
     } else {
         // Account for the "/" in the agent string.
         // The default user agent postfix is:AWS-WEBRTC-KVS-AGENT/<SDK-version>
-        postfixLen = STRLEN(SIGNALING_USER_AGENT_POSTFIX_NAME) + STRLEN(SIGNALING_USER_AGENT_POSTFIX_VERSION) + 1;
-        CHK(postfixLen <= MAX_CUSTOM_USER_AGENT_NAME_POSTFIX_LEN, STATUS_SIGNALING_INVALID_AGENT_POSTFIX_LENGTH);
+        userAgentPostfixLen = STRLEN(SIGNALING_USER_AGENT_POSTFIX_NAME) + STRLEN(SIGNALING_USER_AGENT_POSTFIX_VERSION) + 1;
+        CHK(userAgentPostfixLen <= MAX_CUSTOM_USER_AGENT_NAME_POSTFIX_LEN, STATUS_SIGNALING_INVALID_AGENT_POSTFIX_LENGTH);
         SNPRINTF(agentString,
-                 postfixLen + 1, // account for null terminator
+                 userAgentPostfixLen + 1, // account for null terminator
                  (PCHAR) "%s/%s", SIGNALING_USER_AGENT_POSTFIX_NAME, SIGNALING_USER_AGENT_POSTFIX_VERSION);
         pUserAgentPostfixPtr = agentString;
     }
 
     if (pOrigChannelInfo->pCustomUserAgent != NULL) {
-        CHK((agentLen = (UINT32) STRNLEN(pOrigChannelInfo->pCustomUserAgent, MAX_CUSTOM_USER_AGENT_LEN + 1)) <= MAX_CUSTOM_USER_AGENT_LEN,
+        CHK((customUserAgentLen = (UINT32) STRNLEN(pOrigChannelInfo->pCustomUserAgent, MAX_CUSTOM_USER_AGENT_LEN + 1)) <= MAX_CUSTOM_USER_AGENT_LEN,
             STATUS_SIGNALING_INVALID_AGENT_LENGTH);
     }
 
@@ -89,10 +96,12 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
     CHK_STATUS(packageTags(pOrigChannelInfo->tagCount, pOrigChannelInfo->pTags, 0, NULL, &tagsSize));
 
     // Allocate enough storage to hold the data with aligned strings size and set the pointers and NULL terminators
-    allocSize = SIZEOF(ChannelInfo) + ALIGN_UP_TO_MACHINE_WORD(1 + nameLen) + ALIGN_UP_TO_MACHINE_WORD(1 + arnLen) +
-        ALIGN_UP_TO_MACHINE_WORD(1 + regionLen) + ALIGN_UP_TO_MACHINE_WORD(1 + cplLen) + ALIGN_UP_TO_MACHINE_WORD(1 + certLen) +
-        ALIGN_UP_TO_MACHINE_WORD(1 + postfixLen) + ALIGN_UP_TO_MACHINE_WORD(1 + agentLen) + ALIGN_UP_TO_MACHINE_WORD(1 + userAgentLen) +
-        ALIGN_UP_TO_MACHINE_WORD(1 + kmsLen) + tagsSize;
+    // concatenate the data space with channel info.
+    allocSize = SIZEOF(ChannelInfo) + ALIGN_UP_TO_MACHINE_WORD(1 + channelNameLen) + ALIGN_UP_TO_MACHINE_WORD(1 + channelArnLen) +
+        ALIGN_UP_TO_MACHINE_WORD(1 + storageStreamArnLen) + ALIGN_UP_TO_MACHINE_WORD(1 + regionLen) + ALIGN_UP_TO_MACHINE_WORD(1 + cpUrlLen) +
+        ALIGN_UP_TO_MACHINE_WORD(1 + certPathLen) + ALIGN_UP_TO_MACHINE_WORD(1 + userAgentPostfixLen) +
+        ALIGN_UP_TO_MACHINE_WORD(1 + customUserAgentLen) + ALIGN_UP_TO_MACHINE_WORD(1 + userAgentLen) + ALIGN_UP_TO_MACHINE_WORD(1 + kmsLen) +
+        tagsSize;
     CHK(NULL != (pChannelInfo = (PChannelInfo) MEMCALLOC(1, allocSize)), STATUS_NOT_ENOUGH_MEMORY);
 
     pChannelInfo->version = CHANNEL_INFO_CURRENT_VERSION;
@@ -103,6 +112,7 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
     pChannelInfo->reconnect = pOrigChannelInfo->reconnect;
     pChannelInfo->messageTtl = pOrigChannelInfo->messageTtl;
     pChannelInfo->tagCount = pOrigChannelInfo->tagCount;
+    pChannelInfo->useMediaStorage = pOrigChannelInfo->useMediaStorage;
 
     // V1 handling
     if (pOrigChannelInfo->version > 0) {
@@ -116,16 +126,22 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
 
     // Set the pointers to the end and copy the data.
     // NOTE: the structure is calloc-ed so the strings will be NULL terminated
-    if (nameLen != 0) {
+    if (channelNameLen != 0) {
         STRCPY(pCurPtr, pOrigChannelInfo->pChannelName);
         pChannelInfo->pChannelName = pCurPtr;
-        pCurPtr += ALIGN_UP_TO_MACHINE_WORD(nameLen + 1); // For the NULL terminator
+        pCurPtr += ALIGN_UP_TO_MACHINE_WORD(channelNameLen + 1); // For the NULL terminator
     }
 
-    if (arnLen != 0) {
+    if (channelArnLen != 0) {
         STRCPY(pCurPtr, pOrigChannelInfo->pChannelArn);
         pChannelInfo->pChannelArn = pCurPtr;
-        pCurPtr += ALIGN_UP_TO_MACHINE_WORD(arnLen + 1);
+        pCurPtr += ALIGN_UP_TO_MACHINE_WORD(channelArnLen + 1);
+    }
+
+    if (storageStreamArnLen != 0) {
+        STRCPY(pCurPtr, pOrigChannelInfo->pStorageStreamArn);
+        pChannelInfo->pStorageStreamArn = pCurPtr;
+        pCurPtr += ALIGN_UP_TO_MACHINE_WORD(storageStreamArnLen + 1);
     }
 
     STRCPY(pCurPtr, pRegionPtr);
@@ -145,24 +161,24 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
     }
 
     pChannelInfo->pControlPlaneUrl = pCurPtr;
-    pCurPtr += ALIGN_UP_TO_MACHINE_WORD(cplLen + 1);
+    pCurPtr += ALIGN_UP_TO_MACHINE_WORD(cpUrlLen + 1);
 
-    if (certLen != 0) {
+    if (certPathLen != 0) {
         STRCPY(pCurPtr, pOrigChannelInfo->pCertPath);
         pChannelInfo->pCertPath = pCurPtr;
-        pCurPtr += ALIGN_UP_TO_MACHINE_WORD(certLen + 1);
+        pCurPtr += ALIGN_UP_TO_MACHINE_WORD(certPathLen + 1);
     }
 
-    if (postfixLen != 0) {
+    if (userAgentPostfixLen != 0) {
         STRCPY(pCurPtr, pUserAgentPostfixPtr);
         pChannelInfo->pUserAgentPostfix = pCurPtr;
-        pCurPtr += ALIGN_UP_TO_MACHINE_WORD(postfixLen + 1);
+        pCurPtr += ALIGN_UP_TO_MACHINE_WORD(userAgentPostfixLen + 1);
     }
 
-    if (agentLen != 0) {
+    if (customUserAgentLen != 0) {
         STRCPY(pCurPtr, pOrigChannelInfo->pCustomUserAgent);
         pChannelInfo->pCustomUserAgent = pCurPtr;
-        pCurPtr += ALIGN_UP_TO_MACHINE_WORD(agentLen + 1);
+        pCurPtr += ALIGN_UP_TO_MACHINE_WORD(customUserAgentLen + 1);
     }
 
     getUserAgentString(pUserAgentPostfixPtr, pOrigChannelInfo->pCustomUserAgent, MAX_USER_AGENT_LEN, pCurPtr);
