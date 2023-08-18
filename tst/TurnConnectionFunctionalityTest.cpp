@@ -87,11 +87,7 @@ class TurnConnectionFunctionalityTest : public WebRtcClientTestBase {
 
 TEST_F(TurnConnectionFunctionalityTest, turnConnectionReceiveRelayedAddress)
 {
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping turnConnectionReceiveRelayedAddress");
-        return;
-    }
-
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
     UINT64 getRelayAddrTimeout;
     KvsIpAddress relayAddress;
     BOOL relayAddressReceived = FALSE;
@@ -118,10 +114,7 @@ TEST_F(TurnConnectionFunctionalityTest, turnConnectionReceiveRelayedAddress)
  */
 TEST_F(TurnConnectionFunctionalityTest, turnConnectionRefreshPermissionTest)
 {
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping turnConnectionRefreshPermissionTest");
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     BOOL turnReady = FALSE;
     KvsIpAddress turnPeerAddr;
@@ -198,10 +191,7 @@ TEST_F(TurnConnectionFunctionalityTest, turnConnectionRefreshPermissionTest)
 
 TEST_F(TurnConnectionFunctionalityTest, turnConnectionShutdownCompleteBeforeTimeout)
 {
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping turnConnectionShutdownCompleteBeforeTimeout");
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     BOOL turnReady = FALSE;
     KvsIpAddress turnPeerAddr;
@@ -241,10 +231,7 @@ TEST_F(TurnConnectionFunctionalityTest, turnConnectionShutdownCompleteBeforeTime
 
 TEST_F(TurnConnectionFunctionalityTest, turnConnectionShutdownAsync)
 {
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping turnConnectionShutdownAsync");
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     BOOL turnReady = FALSE;
     KvsIpAddress turnPeerAddr;
@@ -291,10 +278,7 @@ TEST_F(TurnConnectionFunctionalityTest, turnConnectionShutdownAsync)
 
 TEST_F(TurnConnectionFunctionalityTest, turnConnectionShutdownWithAllocationRemovesTurnSocketConnection)
 {
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping turnConnectionShutdownWithAllocationRemovesTurnSocketConnection");
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     BOOL doneAllocate = FALSE;
     UINT64 shutdownTimeout;
@@ -352,10 +336,7 @@ TEST_F(TurnConnectionFunctionalityTest, turnConnectionShutdownWithAllocationRemo
 
 TEST_F(TurnConnectionFunctionalityTest, turnConnectionShutdownWithoutAllocationRemovesTurnSocketConnection)
 {
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping turnConnectionShutdownWithoutAllocationRemovesTurnSocketConnection");
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     BOOL atGetCredential = FALSE;
     UINT64 shutdownTimeout;
@@ -412,10 +393,7 @@ TEST_F(TurnConnectionFunctionalityTest, turnConnectionShutdownWithoutAllocationR
 
 TEST_F(TurnConnectionFunctionalityTest, turnConnectionShutdownAfterFailure)
 {
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping turnConnectionShutdownAfterFailure");
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     BOOL atGetCredential = FALSE;
     UINT64 shutdownTimeout;
@@ -475,10 +453,7 @@ TEST_F(TurnConnectionFunctionalityTest, turnConnectionShutdownAfterFailure)
 
 TEST_F(TurnConnectionFunctionalityTest, turnConnectionReceivePartialChannelMessageTest)
 {
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping turnConnectionReceivePartialChannelMessageTest");
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     // there are 3 channel messages for channel 0x4001
     BYTE channelMsg[] = {0x40, 0x01, 0x00, 0x64, 0x00, 0x01, 0x00, 0x50, 0x21, 0x12, 0xa4, 0x42, 0x42, 0x37, 0x73, 0x2f, 0x51, 0x48, 0x7a, 0x54, 0x69,
@@ -591,10 +566,7 @@ TEST_F(TurnConnectionFunctionalityTest, turnConnectionReceivePartialChannelMessa
 
 TEST_F(TurnConnectionFunctionalityTest, turnConnectionReceiveChannelDataMixedWithStunMessage)
 {
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping turnConnectionReceiveChannelDataMixedWithStunMessage");
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     BYTE incomingData[] = {
         0x40,
@@ -929,10 +901,7 @@ TEST_F(TurnConnectionFunctionalityTest, turnConnectionReceiveChannelDataMixedWit
 
 TEST_F(TurnConnectionFunctionalityTest, turnConnectionCallMultipleTurnSendDataInThreads)
 {
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping turnConnectionCallMultipleTurnSendDataInThreads");
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     BOOL turnReady = FALSE;
     KvsIpAddress turnPeerAddr;

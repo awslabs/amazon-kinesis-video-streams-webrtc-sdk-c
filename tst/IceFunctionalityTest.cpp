@@ -640,10 +640,7 @@ TEST_F(IceFunctionalityTest, IceAgentPruneUnconnectedIceCandidatePairUnitTest)
 
 TEST_F(IceFunctionalityTest, IceAgentCandidateGatheringTest)
 {
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping IceAgentCandidateGatheringTest");
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     typedef struct {
         std::vector<std::string> list;

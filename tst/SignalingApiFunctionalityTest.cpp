@@ -220,10 +220,7 @@ VOID setupSignalingStateMachineRetryStrategyCallbacks(PSignalingClientInfo pSign
 ////////////////////////////////////////////////////////////////////
 TEST_F(SignalingApiFunctionalityTest, basicCreateConnectFree)
 {
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping basicCreateConnectFree");
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -273,10 +270,7 @@ TEST_F(SignalingApiFunctionalityTest, basicCreateConnectFree)
 
 TEST_F(SignalingApiFunctionalityTest, basicCreateWithRetries)
 {
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping basicCreateWithRetries");
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     SignalingClientInfo clientInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -823,10 +817,7 @@ TEST_F(SignalingApiFunctionalityTest, invalidChannelInfoInput)
 
 TEST_F(SignalingApiFunctionalityTest, iceReconnectEmulation)
 {
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping iceReconnectEmulation");
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -911,10 +902,7 @@ TEST_F(SignalingApiFunctionalityTest, iceReconnectEmulation)
 
 TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedVariations)
 {
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping iceServerConfigRefreshNotConnectedVariations");
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -1177,11 +1165,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedVariatio
 
 TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedVariations)
 {
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping iceServerConfigRefreshConnectedVariations");
-        return;
-    }
-
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
     SignalingClientInfoInternal clientInfoInternal;
@@ -1446,10 +1430,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedVariations)
 
 TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedAuthExpiration)
 {
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping iceServerConfigRefreshNotConnectedAuthExpiration");
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -1570,10 +1551,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedAuthExpi
 
 TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedAuthExpiration)
 {
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping iceServerConfigRefreshConnectedAuthExpiration");
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -1697,10 +1675,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedAuthExpirat
 
 TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithFaultInjectionRecovered)
 {
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping iceServerConfigRefreshNotConnectedWithFaultInjectionRecovered");
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -1815,11 +1790,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithFaul
 
 TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithFaultInjectionRecovered)
 {
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping iceServerConfigRefreshConnectedWithFaultInjectionRecovered");
-        return;
-    }
-
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
     SignalingClientInfoInternal clientInfoInternal;
@@ -1935,10 +1906,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithFaultIn
 
 TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithFaultInjectionNotRecovered)
 {
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping iceServerConfigRefreshNotConnectedWithFaultInjectionNotRecovered");
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -2051,10 +2019,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithFaul
 
 TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithFaultInjectionNot1669)
 {
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping iceServerConfigRefreshConnectedWithFaultInjectionNot1669");
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -2170,10 +2135,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithFaultIn
 
 TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithBadAuth)
 {
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping iceServerConfigRefreshNotConnectedWithBadAuth");
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -2292,10 +2254,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithBadA
 
 TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithBadAuth)
 {
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping iceServerConfigRefreshConnectedWithBadAuth");
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -2418,10 +2377,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithBadAuth
 
 TEST_F(SignalingApiFunctionalityTest, goAwayEmulation)
 {
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping goAwayEmulation");
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -2505,10 +2461,7 @@ TEST_F(SignalingApiFunctionalityTest, goAwayEmulation)
 
 TEST_F(SignalingApiFunctionalityTest, unknownMessageTypeEmulation)
 {
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping unknownMessageTypeEmulation");
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -2596,10 +2549,7 @@ TEST_F(SignalingApiFunctionalityTest, unknownMessageTypeEmulation)
 
 TEST_F(SignalingApiFunctionalityTest, connectTimeoutEmulation)
 {
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping connectTimeoutEmulation");
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -2720,10 +2670,7 @@ TEST_F(SignalingApiFunctionalityTest, connectTimeoutEmulation)
 
 TEST_F(SignalingApiFunctionalityTest, channelInfoArnSkipDescribe)
 {
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping channelInfoArnSkipDescribe");
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -2855,10 +2802,7 @@ TEST_F(SignalingApiFunctionalityTest, channelInfoArnSkipDescribe)
 
 TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedWithArn)
 {
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping deleteChannelCreatedWithArn");
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -2990,10 +2934,7 @@ TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedWithArn)
 
 TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedAuthExpiration)
 {
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping deleteChannelCreatedAuthExpiration");
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -3104,10 +3045,7 @@ TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedAuthExpiration)
 
 TEST_F(SignalingApiFunctionalityTest, signalingClientDisconnectSyncVariations)
 {
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping signalingClientDisconnectSyncVariations");
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     initializeSignalingClient();
 
@@ -3151,10 +3089,7 @@ TEST_F(SignalingApiFunctionalityTest, signalingClientDisconnectSyncVariations)
 
 TEST_F(SignalingApiFunctionalityTest, cachingWithFaultInjection)
 {
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping cachingWithFaultInjection");
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -3288,11 +3223,7 @@ TEST_F(SignalingApiFunctionalityTest, cachingWithFaultInjection)
 
 TEST_F(SignalingApiFunctionalityTest, fileCachingTest)
 {
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping fileCachingTest");
-        return;
-    }
-
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
     SignalingClientInfoInternal clientInfoInternal;
@@ -3545,10 +3476,7 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateFullMultiChannelCache)
 
 TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer)
 {
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping receivingIceConfigOffer");
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -3734,10 +3662,7 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer)
 
 TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_SlowClockSkew)
 {
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping receivingIceConfigOffer_SlowClockSkew");
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -3927,10 +3852,7 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_SlowClockSkew)
 
 TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_FastClockSkew)
 {
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping receivingIceConfigOffer_FastClockSkew");
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -4119,10 +4041,7 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_FastClockSkew)
 
 TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_FastClockSkew_VerifyOffsetRemovedWhenClockFixed)
 {
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping receivingIceConfigOffer_FastClockSkew_VerifyOffsetRemovedWhenClockFixed");
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;

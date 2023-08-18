@@ -85,15 +85,12 @@ TEST_F(SignalingApiTest, signalingSendMessageSync)
 
 TEST_F(SignalingApiTest, signalingSendMessageSyncFileCredsProvider)
 {
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
+
     SignalingMessage signalingMessage;
     PAwsCredentialProvider pAwsCredentialProvider = NULL;
     CHAR fileContent[10000];
     UINT32 length = ARRAY_SIZE(fileContent);
-
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping signalingSendMessageSyncFileCredsProvider");
-        return;
-    }
 
     // Store the credentials in a file under the current dir
     length = SNPRINTF(fileContent, length, "CREDENTIALS %s %s", mAccessKey, mSecretKey);
@@ -272,6 +269,7 @@ TEST_F(SignalingApiTest, signalingClientDisconnectSync)
 
 TEST_F(SignalingApiTest, signalingClientGetMetrics)
 {
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
     SignalingClientMetrics metrics;
     SignalingMessage signalingMessage;
     metrics.version = SIGNALING_CLIENT_METRICS_CURRENT_VERSION;
@@ -281,10 +279,6 @@ TEST_F(SignalingApiTest, signalingClientGetMetrics)
     EXPECT_NE(STATUS_SUCCESS, signalingClientGetMetrics(INVALID_SIGNALING_CLIENT_HANDLE_VALUE, NULL));
     EXPECT_NE(STATUS_SUCCESS, signalingClientGetMetrics(mSignalingClientHandle, NULL));
 
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping signalingClientGetMetrics");
-        return;
-    }
 
     initializeSignalingClient();
     // Valid call

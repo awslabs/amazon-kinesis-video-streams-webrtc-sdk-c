@@ -189,10 +189,7 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithPresetCerts)
 // Assert that two PeerConnections with forced TURN can connect to each other and go to connected
 TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersForcedTURN)
 {
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping connectTwoPeersForcedTURN");
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     RtcConfiguration configuration;
     PRtcPeerConnection offerPc = NULL, answerPc = NULL;
@@ -219,10 +216,7 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersForcedTURN)
 
 TEST_F(PeerConnectionFunctionalityTest, sendDataWithClosedSocketConnectionWithHostAndStun)
 {
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping sendDataWithClosedSocketConnectionWithHostAndStun");
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     RtcMediaStreamTrack offerVideoTrack;
     PRtcRtpTransceiver offerVideoTransceiver;
@@ -283,10 +277,7 @@ TEST_F(PeerConnectionFunctionalityTest, sendDataWithClosedSocketConnectionWithHo
 
 TEST_F(PeerConnectionFunctionalityTest, sendDataWithClosedSocketConnectionWithForcedTurn)
 {
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping sendDataWithClosedSocketConnectionWithForcedTurn");
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     RtcMediaStreamTrack offerVideoTrack;
     PRtcRtpTransceiver offerVideoTransceiver;
@@ -352,10 +343,7 @@ TEST_F(PeerConnectionFunctionalityTest, sendDataWithClosedSocketConnectionWithFo
 
 TEST_F(PeerConnectionFunctionalityTest, shutdownTurnDueToP2PFoundBeforeTurnEstablished)
 {
-    if (!mAccessKeyIdSet) {
-
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     RtcConfiguration configuration;
     PRtcPeerConnection offerPc = NULL, answerPc = NULL;
@@ -414,10 +402,7 @@ TEST_F(PeerConnectionFunctionalityTest, shutdownTurnDueToP2PFoundBeforeTurnEstab
 
 TEST_F(PeerConnectionFunctionalityTest, shutdownTurnDueToP2PFoundAfterTurnEstablished)
 {
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping shutdownTurnDueToP2PFoundAfterTurnEstablished");
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     RtcConfiguration configuration;
     PRtcPeerConnection offerPc = NULL, answerPc = NULL;
@@ -546,10 +531,7 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithHostAndStun)
 // Assert that two PeerConnections can connect and then terminate one of them, the other one will eventually report disconnection
 TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersThenDisconnectTest)
 {
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping connectTwoPeersThenDisconnectTest");
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     RtcConfiguration configuration;
     PRtcPeerConnection offerPc = NULL, answerPc = NULL;
@@ -789,10 +771,7 @@ TEST_F(PeerConnectionFunctionalityTest, exchangeMedia)
 // Same test as exchangeMedia, but assert that if one side is RSA DTLS and Key Extraction works
 TEST_F(PeerConnectionFunctionalityTest, exchangeMediaRSA)
 {
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping exchangeMediaRSA");
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     auto const frameBufferSize = 200000;
 
@@ -873,13 +852,10 @@ TEST_F(PeerConnectionFunctionalityTest, iceRestartTest)
 
 TEST_F(PeerConnectionFunctionalityTest, iceRestartTestForcedTurn)
 {
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
+
     RtcConfiguration configuration;
     PRtcPeerConnection offerPc = NULL, answerPc = NULL;
-
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping iceRestartTestForcedTurn");
-        return;
-    }
 
     MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
     configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_RELAY;
@@ -910,13 +886,10 @@ TEST_F(PeerConnectionFunctionalityTest, iceRestartTestForcedTurn)
 
 TEST_F(PeerConnectionFunctionalityTest, peerConnectionOfferCloseConnection)
 {
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
+
     RtcConfiguration configuration;
     PRtcPeerConnection offerPc = NULL, answerPc = NULL;
-
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping peerConnectionOfferCloseConnection");
-        return;
-    }
 
     MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
 
@@ -943,10 +916,7 @@ TEST_F(PeerConnectionFunctionalityTest, peerConnectionAnswerCloseConnection)
     RtcConfiguration configuration;
     PRtcPeerConnection offerPc = NULL, answerPc = NULL;
 
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping peerConnectionAnswerCloseConnection");
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
 
@@ -970,10 +940,7 @@ TEST_F(PeerConnectionFunctionalityTest, peerConnectionAnswerCloseConnection)
 
 TEST_F(PeerConnectionFunctionalityTest, DISABLED_exchangeMediaThroughTurnRandomStop)
 {
-    if (!mAccessKeyIdSet) {
-        DLOGW("Skipping exchangeMediaThroughTurnRandomStop");
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     initializeSignalingClient();
 
