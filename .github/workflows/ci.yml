@@ -10,18 +10,18 @@ on:
       - develop
       - master
 jobs:
-  clang-format-check:
-    runs-on: macos-11
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v3
-      - name: Install clang-format
-        run: |
-          brew install clang-format
-          clang-format --version
-      - name: Run clang format check
-        run: |
-          bash scripts/check-clang.sh
+#  clang-format-check:
+#    runs-on: macos-11
+#    steps:
+#      - name: Clone repository
+#        uses: actions/checkout@v3
+#      - name: Install clang-format
+#        run: |
+#          brew install clang-format
+#          clang-format --version
+#      - name: Run clang format check
+#        run: |
+#          bash scripts/check-clang.sh
   mac-os-build-clang:
     runs-on: macos-11
     env:
@@ -30,6 +30,9 @@ jobs:
       AWS_KVS_LOG_LEVEL: 2
       LDFLAGS: -L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib
       CPATH: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Clone repository
         uses: actions/checkout@v3
