@@ -144,6 +144,7 @@ TEST_F(TurnConnectionFunctionalityTest, turnConnectionRefreshPermissionTest)
         MUTEX_UNLOCK(pTurnConnection->lock);
     }
 
+    DLOGI("Checking if TURN_STATE_READY is set");
     EXPECT_TRUE(turnReady == TRUE);
 
     // modify permission expiration time to trigger refresh permission
@@ -151,14 +152,22 @@ TEST_F(TurnConnectionFunctionalityTest, turnConnectionRefreshPermissionTest)
     pTurnConnection->turnPeerList[0].permissionExpirationTime = GETTIME();
     MUTEX_UNLOCK(pTurnConnection->lock);
 
-    // turn Connection timer run happens every second when at ready state.
-    THREAD_SLEEP(1500 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
-
     // verify we are no longer in ready state.
-    MUTEX_LOCK(pTurnConnection->lock);
-    EXPECT_TRUE(pTurnConnection->state != TURN_STATE_READY);
-    MUTEX_UNLOCK(pTurnConnection->lock);
+    turnReady = FALSE;
+    turnReadyTimeout = GETTIME() + 10 * HUNDREDS_OF_NANOS_IN_A_SECOND;
+    while (!turnReady && GETTIME() < turnReadyTimeout) {
+        THREAD_SLEEP(5 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+        MUTEX_LOCK(pTurnConnection->lock);
+        if (pTurnConnection->state != TURN_STATE_READY) {
+            turnReady = TRUE;
+        }
+        MUTEX_UNLOCK(pTurnConnection->lock);
+    }
 
+    //here "TRUE" actually means not in the ready state
+    EXPECT_TRUE(turnReady == TRUE);
+
+    //and now let's make sure we get back to ready
     turnReady = FALSE;
     turnReadyTimeout = GETTIME() + 10 * HUNDREDS_OF_NANOS_IN_A_SECOND;
 
