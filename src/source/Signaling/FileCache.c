@@ -41,7 +41,7 @@ STATUS deserializeSignalingCacheEntries(PCHAR cachedFileContent, UINT64 fileSize
     while (remainingSize > MAX_SIGNALING_CACHE_ENTRY_TIMESTAMP_STR_LEN) {
         nextLine = STRCHR(pCurrent, '\n');
         while ((nextToken = STRCHR(pCurrent, ',')) != NULL && nextToken < nextLine) {
-            switch (tokenCount % 7) {
+            switch (tokenCount % 9) {
                 case 0:
                     STRNCPY(pSignalingFileCacheEntryList[entryCount].channelName, pCurrent, nextToken - pCurrent);
                     break;

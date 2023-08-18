@@ -3358,9 +3358,13 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingTest)
 
         signalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
         EXPECT_TRUE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
-        EXPECT_EQ(STATUS_SUCCESS,signalingClientFetchSync(signalingHandle));
+        EXPECT_EQ(STATUS_SUCCESS, signalingClientFetchSync(signalingHandle));
         EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
     }
+
+    DLOGD("describeCount: %d, describeCountNoCache: %d", describeCount, describeCountNoCache);
+    DLOGD("getEndpointCount: %d, getEndpointCountNoCache: %d", getEndpointCount, getEndpointCountNoCache);
+
 
     /* describeCount and getEndpointCount should only increase by 1 because they are cached for all channels except one */
     EXPECT_TRUE(describeCount > describeCountNoCache && (describeCount - describeCountNoCache) == 1);

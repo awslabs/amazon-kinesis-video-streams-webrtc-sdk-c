@@ -37,7 +37,7 @@ extern "C" {
 #define SIGNALING_CLIENT_STATE_DISCONNECTED_STR    "Disconnected"
 #define SIGNALING_CLIENT_STATE_DELETE_STR          "Delete"
 #define SIGNALING_CLIENT_STATE_DELETED_STR         "Deleted"
-#define SIGNALING_CLIENT_STATE_DESCRIBE_MEDIA_STR  "Describe media storage"
+#define SIGNALING_CLIENT_STATE_DESCRIBE_MEDIA_STR  "Describe Media Storage"
 #define SIGNALING_CLIENT_STATE_JOIN_SESSION_STR    "Join Session"
 
 // Error refreshing ICE server configuration string

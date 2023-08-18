@@ -587,9 +587,10 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
     }
 
     if (pRtcMediaStreamTrack->codec == RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE) {
-        // if (pKvsPeerConnection->isOffer) {
-        currentFmtp = DEFAULT_H264_FMTP;
-        //}
+        // TODO: Need additional condition for a signaling channel with an ENABLED media storage configuration
+        if (pKvsPeerConnection->isOffer) {
+            currentFmtp = DEFAULT_H264_FMTP;
+        }
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtpmap");
         SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%" PRId64 " H264/90000", payloadType);
         attributeCount++;
