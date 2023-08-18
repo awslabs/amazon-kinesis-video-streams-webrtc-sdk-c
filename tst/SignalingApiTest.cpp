@@ -90,9 +90,7 @@ TEST_F(SignalingApiTest, signalingSendMessageSyncFileCredsProvider)
     CHAR fileContent[10000];
     UINT32 length = ARRAY_SIZE(fileContent);
 
-    if (!mAccessKeyIdSet) {
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     // Store the credentials in a file under the current dir
     length = SNPRINTF(fileContent, length, "CREDENTIALS %s %s", mAccessKey, mSecretKey);
@@ -280,9 +278,7 @@ TEST_F(SignalingApiTest, signalingClientGetMetrics)
     EXPECT_NE(STATUS_SUCCESS, signalingClientGetMetrics(INVALID_SIGNALING_CLIENT_HANDLE_VALUE, NULL));
     EXPECT_NE(STATUS_SUCCESS, signalingClientGetMetrics(mSignalingClientHandle, NULL));
 
-    if (!mAccessKeyIdSet) {
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     initializeSignalingClient();
     // Valid call
