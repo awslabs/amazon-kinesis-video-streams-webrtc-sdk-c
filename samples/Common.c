@@ -747,7 +747,7 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     CHK(NULL != (pSampleConfiguration = (PSampleConfiguration) MEMCALLOC(1, SIZEOF(SampleConfiguration))), STATUS_NOT_ENOUGH_MEMORY);
 
 #ifdef IOT_CORE_ENABLE_CREDENTIALS
-    PCHAR pIotCoreCredentialEndPoint, pIotCoreCert, pIotCorePrivateKey, pIotCoreRoleAlias, pIotCoreThingName, pIotCoreCertificateId;
+    PCHAR pIotCoreCredentialEndPoint, pIotCoreCert, pIotCorePrivateKey, pIotCoreRoleAlias, pIotCoreCertificateId;
     CHK_ERR((pIotCoreCredentialEndPoint = getenv(IOT_CORE_CREDENTIAL_ENDPOINT)) != NULL, STATUS_INVALID_OPERATION,
             "AWS_IOT_CORE_CREDENTIAL_ENDPOINT must be set");
     CHK_ERR((pIotCoreCert = getenv(IOT_CORE_CERT)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_CERT must be set");
@@ -1102,28 +1102,6 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
     pSampleConfiguration = *ppSampleConfiguration;
 
     CHK(pSampleConfiguration != NULL, retStatus);
-    if (IS_VALID_TIMER_QUEUE_HANDLE(pSampleConfiguration->timerQueueHandle)) {
-        if (pSampleConfiguration->iceCandidatePairStatsTimerId != MAX_UINT32) {
-            retStatus = timerQueueCancelTimer(pSampleConfiguration->timerQueueHandle, pSampleConfiguration->iceCandidatePairStatsTimerId,
-                                              (UINT64) pSampleConfiguration);
-            if (STATUS_FAILED(retStatus)) {
-                DLOGE("Failed to cancel stats timer with: 0x%08x", retStatus);
-            }
-            pSampleConfiguration->iceCandidatePairStatsTimerId = MAX_UINT32;
-        }
-
-        if (pSampleConfiguration->pregenerateCertTimerId != MAX_UINT32) {
-            retStatus = timerQueueCancelTimer(pSampleConfiguration->timerQueueHandle, pSampleConfiguration->pregenerateCertTimerId,
-                                              (UINT64) pSampleConfiguration);
-            if (STATUS_FAILED(retStatus)) {
-                DLOGE("Failed to cancel certificate pre-generation timer with: 0x%08x", retStatus);
-            }
-            pSampleConfiguration->pregenerateCertTimerId = MAX_UINT32;
-        }
-
-        timerQueueFree(&pSampleConfiguration->timerQueueHandle);
-    }
-
     if (IS_VALID_TIMER_QUEUE_HANDLE(pSampleConfiguration->timerQueueHandle)) {
         if (pSampleConfiguration->iceCandidatePairStatsTimerId != MAX_UINT32) {
             retStatus = timerQueueCancelTimer(pSampleConfiguration->timerQueueHandle, pSampleConfiguration->iceCandidatePairStatsTimerId,
