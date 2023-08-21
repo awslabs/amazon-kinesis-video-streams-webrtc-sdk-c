@@ -229,7 +229,7 @@ jobs:
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   static-build-linux:
     runs-on: ubuntu-20.04
-    container: 
+    container:
       image: alpine:3.15.4
     env:
       CC: gcc
@@ -361,7 +361,7 @@ jobs:
           choco install gstreamer-devel --version=1.16.2 
           curl.exe -o C:\tools\pthreads-w32-2-9-1-release.zip ftp://sourceware.org/pub/pthreads-win32/pthreads-w32-2-9-1-release.zip
           mkdir C:\tools\pthreads-w32-2-9-1-release\
-          Expand-Archive -Path C:\tools\pthreads-w32-2-9-1-release.zip -DestinationPath C:\tools\pthreads-w32-2-9-1-release    
+          Expand-Archive -Path C:\tools\pthreads-w32-2-9-1-release.zip -DestinationPath C:\tools\pthreads-w32-2-9-1-release
       # - name: Build libwebsockets from source
       #   shell: powershell
       #   run: |
@@ -371,7 +371,7 @@ jobs:
       #     git clone https://github.com/warmcat/libwebsockets.git
       #     git checkout v4.2.2
       #     cd libwebsockets
-      #     mkdir build 
+      #     mkdir build
       #     cd build
       #     cmake .. -DLWS_HAVE_PTHREAD_H=1 -DLWS_EXT_PTHREAD_INCLUDE_DIR="C:\\tools\\pthreads-w32-2-9-1-release\\Pre-built.2\\include" -DLWS_EXT_PTHREAD_LIBRARIES="C:\\tools\\pthreads-w32-2-9-1-release\\Pre-built.2\\lib\\x64\\libpthreadGC2.a" -DLWS_WITH_MINIMAL_EXAMPLES=1 -DLWS_OPENSSL_INCLUDE_DIRS="C:\\Program Files\\OpenSSL\\include" -DLWS_OPENSSL_LIBRARIES="C:\\Program Files\\OpenSSL\\lib\\libssl.lib;C:\\Program Files\\OpenSSL\\lib\\libcrypto.lib"
       #     cmake --build . --config DEBUG
@@ -404,10 +404,10 @@ jobs:
   #       shell: powershell
   #       run: |
   #         choco install gstreamer --version=1.16.2
-  #         choco install gstreamer-devel --version=1.16.2 
+  #         choco install gstreamer-devel --version=1.16.2
   #         curl.exe -o C:\tools\pthreads-w32-2-9-1-release.zip ftp://sourceware.org/pub/pthreads-win32/pthreads-w32-2-9-1-release.zip
   #         mkdir C:\tools\pthreads-w32-2-9-1-release\
-  #         Expand-Archive -Path C:\tools\pthreads-w32-2-9-1-release.zip -DestinationPath C:\tools\pthreads-w32-2-9-1-release    
+  #         Expand-Archive -Path C:\tools\pthreads-w32-2-9-1-release.zip -DestinationPath C:\tools\pthreads-w32-2-9-1-release
   #     - name: Build repository
   #       shell: powershell
   #       run: |
