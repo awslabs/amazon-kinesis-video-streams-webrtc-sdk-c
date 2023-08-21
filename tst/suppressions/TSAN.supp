@@ -177,3 +177,4 @@ deadlock:com::amazonaws::kinesis::video::webrtcclient::DtlsFunctionalityTest::cr
 deadlock:lwsListenerHandler
 deadlock:connectSignalingChannelLws
 race:lwsListenerHandler
+race:PeerConnectionFunctionalityTest_iceRestartTestForcedTurn
