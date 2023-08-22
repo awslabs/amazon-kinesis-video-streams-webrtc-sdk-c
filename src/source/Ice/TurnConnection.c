@@ -94,43 +94,42 @@ STATUS freeTurnConnection(PTurnConnection* ppTurnConnection)
     timerCallbackId = ATOMIC_EXCHANGE(&pTurnConnection->timerCallbackId, MAX_UINT32);
     if (timerCallbackId != MAX_UINT32) {
         CHK_LOG_ERR(timerQueueCancelTimer(pTurnConnection->timerQueueHandle, (UINT32) timerCallbackId, (UINT64) pTurnConnection));
-        // shutdown control channel
-        DLOGI("Shutdown timer thread done");
-        if (pTurnConnection->pControlChannel) {
-            CHK_LOG_ERR(connectionListenerRemoveConnection(pTurnConnection->pConnectionListener, pTurnConnection->pControlChannel));
-            CHK_LOG_ERR(freeSocketConnection(&pTurnConnection->pControlChannel));
-        }
-
-        // free transactionId store for each turn peer
-        for (i = 0; i < pTurnConnection->turnPeerCount; ++i) {
-            pTurnPeer = &pTurnConnection->turnPeerList[i];
-            freeTransactionIdStore(&pTurnPeer->pTransactionIdStore);
-        }
-
-        if (IS_VALID_MUTEX_VALUE(pTurnConnection->lock)) {
-            /* in case some thread is in the middle of a turn api call. */
-            MUTEX_LOCK(pTurnConnection->lock);
-            MUTEX_UNLOCK(pTurnConnection->lock);
-            MUTEX_FREE(pTurnConnection->lock);
-        }
-
-        if (IS_VALID_MUTEX_VALUE(pTurnConnection->sendLock)) {
-            /* in case some thread is in the middle of a turn api call. */
-            MUTEX_LOCK(pTurnConnection->sendLock);
-            MUTEX_UNLOCK(pTurnConnection->sendLock);
-            MUTEX_FREE(pTurnConnection->sendLock);
-        }
-
-        if (IS_VALID_CVAR_VALUE(pTurnConnection->freeAllocationCvar)) {
-            CVAR_FREE(pTurnConnection->freeAllocationCvar);
-        }
-
-        turnConnectionFreePreAllocatedPackets(pTurnConnection);
-
-        MEMFREE(pTurnConnection);
-
-        *ppTurnConnection = NULL;
     }
+    // shutdown control channel
+    if (pTurnConnection->pControlChannel) {
+        CHK_LOG_ERR(connectionListenerRemoveConnection(pTurnConnection->pConnectionListener, pTurnConnection->pControlChannel));
+        CHK_LOG_ERR(freeSocketConnection(&pTurnConnection->pControlChannel));
+    }
+
+    // free transactionId store for each turn peer
+    for (i = 0; i < pTurnConnection->turnPeerCount; ++i) {
+        pTurnPeer = &pTurnConnection->turnPeerList[i];
+        freeTransactionIdStore(&pTurnPeer->pTransactionIdStore);
+    }
+
+    if (IS_VALID_MUTEX_VALUE(pTurnConnection->lock)) {
+        /* in case some thread is in the middle of a turn api call. */
+        MUTEX_LOCK(pTurnConnection->lock);
+        MUTEX_UNLOCK(pTurnConnection->lock);
+        MUTEX_FREE(pTurnConnection->lock);
+    }
+
+    if (IS_VALID_MUTEX_VALUE(pTurnConnection->sendLock)) {
+        /* in case some thread is in the middle of a turn api call. */
+        MUTEX_LOCK(pTurnConnection->sendLock);
+        MUTEX_UNLOCK(pTurnConnection->sendLock);
+        MUTEX_FREE(pTurnConnection->sendLock);
+    }
+
+    if (IS_VALID_CVAR_VALUE(pTurnConnection->freeAllocationCvar)) {
+        CVAR_FREE(pTurnConnection->freeAllocationCvar);
+    }
+
+    turnConnectionFreePreAllocatedPackets(pTurnConnection);
+
+    MEMFREE(pTurnConnection);
+
+    *ppTurnConnection = NULL;
 
 CleanUp:
 

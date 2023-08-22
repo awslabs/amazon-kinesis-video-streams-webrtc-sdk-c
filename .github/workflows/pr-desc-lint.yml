@@ -1,56 +1,56 @@
-#name: PR Description Check
-#
-#on:
-#  pull_request:
-#    branches:
-#      - develop
-#      - master
-#    types:
-#      - opened
-#      - synchronize
-#      - reopened
-#      - edited
-#
-#jobs:
-#  check-description:
-#    runs-on: macos-latest
-#    steps:
-#      - name: Install GitHub CLI
-#        run: |
-#          brew install gh
-#
-#      - name: Check PR Description
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#        run: |
-#          pr_description=$(gh pr view https://github.com/${GITHUB_REPOSITORY}/pull/${{ github.event.pull_request.number }} --json body -q ".body")
-#          error_occurred=0
-#          # Define minimum character count for each section
-#          MIN_CHARS=25
-#
-#          # Extract contents
-#          # Extract contents
-#          what_changed=$(echo "$pr_description" | sed -n -e '/\*What was changed?\*/,/\*/p' | sed '$d' | sed '1d')
-#          why_changed=$(echo "$pr_description" | sed -n -e '/\*Why was it changed?\*/,/\*/p' | sed '$d' | sed '1d')
-#          how_changed=$(echo "$pr_description" | sed -n -e '/\*How was it changed?\*/,/\*/p' | sed '$d' | sed '1d')
-#          testing_done=$(echo "$pr_description" | sed -n -e '/\*What testing was done for the changes?\*/,/\*/p' | sed '$d' | sed '1d')
-#
-#          if [[ ${#what_changed} -lt $MIN_CHARS ]]; then
-#            echo "PR description for what changed section is either missing or too short."
-#            error_occurred=1
-#          fi
-#          if [[ ${#why_changed} -lt $MIN_CHARS ]]; then
-#            echo "PR description for why it changed section is either missing or too short."
-#            error_occurred=1
-#          fi
-#          if [[ ${#how_changed} -lt $MIN_CHARS ]]; then
-#            echo "PR description for how was it changed section is either missing or too short."
-#            error_occurred=1
-#          fi
-#          if [[ ${#testing_done} -lt $MIN_CHARS ]]; then
-#            echo "PR description for testing section are either missing or too short."
-#            error_occurred=1
-#          fi
-#          if [[ $error_occurred -eq 1 ]]; then
-#          exit 1
-#          fi
+name: PR Description Check
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - master
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - edited
+
+jobs:
+  check-description:
+    runs-on: macos-latest
+    steps:
+      - name: Install GitHub CLI
+        run: |
+          brew install gh
+
+      - name: Check PR Description
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          pr_description=$(gh pr view https://github.com/${GITHUB_REPOSITORY}/pull/${{ github.event.pull_request.number }} --json body -q ".body")
+          error_occurred=0
+          # Define minimum character count for each section
+          MIN_CHARS=25
+
+          # Extract contents
+          # Extract contents
+          what_changed=$(echo "$pr_description" | sed -n -e '/\*What was changed?\*/,/\*/p' | sed '$d' | sed '1d')
+          why_changed=$(echo "$pr_description" | sed -n -e '/\*Why was it changed?\*/,/\*/p' | sed '$d' | sed '1d')
+          how_changed=$(echo "$pr_description" | sed -n -e '/\*How was it changed?\*/,/\*/p' | sed '$d' | sed '1d')
+          testing_done=$(echo "$pr_description" | sed -n -e '/\*What testing was done for the changes?\*/,/\*/p' | sed '$d' | sed '1d')
+
+          if [[ ${#what_changed} -lt $MIN_CHARS ]]; then
+            echo "PR description for what changed section is either missing or too short."
+            error_occurred=1
+          fi
+          if [[ ${#why_changed} -lt $MIN_CHARS ]]; then
+            echo "PR description for why it changed section is either missing or too short."
+            error_occurred=1
+          fi
+          if [[ ${#how_changed} -lt $MIN_CHARS ]]; then
+            echo "PR description for how was it changed section is either missing or too short."
+            error_occurred=1
+          fi
+          if [[ ${#testing_done} -lt $MIN_CHARS ]]; then
+            echo "PR description for testing section are either missing or too short."
+            error_occurred=1
+          fi
+          if [[ $error_occurred -eq 1 ]]; then
+          exit 1
+          fi
