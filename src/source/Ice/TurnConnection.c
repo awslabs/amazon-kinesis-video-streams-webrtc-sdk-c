@@ -1076,7 +1076,7 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
                 }
 
                 CHK_STATUS(turnConnectionFreePreAllocatedPackets(pTurnConnection));
-                if(pTurnConnection != NULL) {
+                if (pTurnConnection != NULL) {
                     CHK_STATUS(socketConnectionClosed(pTurnConnection->pControlChannel));
                 }
                 pTurnConnection->state = STATUS_SUCCEEDED(pTurnConnection->errorStatus) ? TURN_STATE_NEW : TURN_STATE_FAILED;
