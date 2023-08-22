@@ -1,6 +1,17 @@
 #define LOG_CLASS "ChannelInfo"
 #include "../Include_i.h"
 
+#define ARN_DELIMETER_CHAR ':'
+#define ARN_CHANNEL_NAME_CODE_SEP '/'
+#define ARN_BEGIN "arn:aws"
+#define SIGNALING_CHANNEL_ARN_SERVICE_NAME "kinesisvideo"
+#define SIGNALING_CHANNEL_ARN_RESOURCE_TYPE "channel/"
+#define AWS_ACCOUNT_ID_LENGTH 12
+#define AWS_KVS_ARN_CODE_LENGTH 13
+#define SIGNALING_CHANNEL_ARN_MIN_LENGTH 59
+
+static const SIZE_T DELIMETER_LEN = 8; /* strlen("arn:::::") */
+
 STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* ppChannelInfo)
 {
     ENTERS();
@@ -323,4 +334,99 @@ PCHAR getStringFromChannelRoleType(SIGNALING_CHANNEL_ROLE_TYPE type)
     }
 
     return typeStr;
+}
+
+
+// arn:aws:kinesisvideo:region:account-id:channel/channel-name/code
+STATUS validateKvsSignalingChannelArnAndExtractChannelName(PChannelInfo pChannelInfo)
+{
+    UINT16 arnLength;
+    UINT16 currPosIndex = 0, channelNameLength = 0;
+    PCHAR partitionEnd, regionEnd, channelNameEnd;
+    PCHAR currPos;
+    UINT8 accountIdStart = 1, accountIdEnd = 12;
+    UINT8 timeCodeStart = 0, timeCodeEnd = 12;
+
+    if (pChannelInfo != NULL && pChannelInfo->pChannelArn != NULL) {
+        arnLength = STRNLEN(pChannelInfo->pChannelArn, MAX_ARN_LEN);
+
+        if (arnLength >= SIGNALING_CHANNEL_ARN_MIN_LENGTH) {
+            currPos = pChannelInfo->pChannelArn;
+
+            if (STRNCMP(currPos, ARN_BEGIN, STRLEN(ARN_BEGIN)) == 0) {
+                currPosIndex += STRLEN(ARN_BEGIN);
+                partitionEnd = STRNCHR(currPos + currPosIndex, arnLength - currPosIndex, ARN_DELIMETER_CHAR);
+
+                if (partitionEnd != NULL && (partitionEnd - currPos) < arnLength) {
+                    currPosIndex = partitionEnd - currPos + 1;
+
+                    if (currPosIndex < arnLength &&
+                        STRNCMP(currPos + currPosIndex, SIGNALING_CHANNEL_ARN_SERVICE_NAME, STRLEN(SIGNALING_CHANNEL_ARN_SERVICE_NAME)) == 0) {
+                        currPosIndex += STRLEN(SIGNALING_CHANNEL_ARN_SERVICE_NAME);
+
+                        if (currPosIndex < arnLength && *(currPos + currPosIndex) == ARN_DELIMETER_CHAR) {
+                            currPosIndex++;
+
+                            regionEnd = STRNCHR(currPos + currPosIndex, arnLength - currPosIndex, ARN_DELIMETER_CHAR);
+
+                            if (regionEnd != NULL) {
+                                if (currPosIndex < arnLength && (regionEnd - currPos) < arnLength) {
+                                    currPosIndex = regionEnd - currPos;
+
+                                    if (currPosIndex + 36 <= arnLength) {
+                                        while (accountIdStart <= accountIdEnd &&
+                                               (*(currPos + currPosIndex + accountIdStart) >= '0' &&
+                                                *(currPos + currPosIndex + accountIdStart) <= '9')) {
+                                            accountIdStart++;
+                                        }
+
+                                        if (accountIdStart == accountIdEnd + 1 && *(currPos + currPosIndex + accountIdStart) == ARN_DELIMETER_CHAR) {
+                                            currPosIndex += (accountIdStart + 1);
+
+                                            if (STRNCMP(currPos + currPosIndex, SIGNALING_CHANNEL_ARN_RESOURCE_TYPE,
+                                                        STRLEN(SIGNALING_CHANNEL_ARN_RESOURCE_TYPE)) == 0) {
+                                                // Channel Name Begins Here, ends when we hit ARN_CHANNEL_NAME_CODE_SEP
+                                                currPosIndex += STRLEN(SIGNALING_CHANNEL_ARN_RESOURCE_TYPE);
+                                                channelNameEnd =
+                                                    STRNCHR(currPos + currPosIndex, arnLength - currPosIndex - 13, ARN_CHANNEL_NAME_CODE_SEP);
+
+                                                if (channelNameEnd != NULL) {
+                                                    channelNameLength = channelNameEnd - (currPos + currPosIndex);
+                                                    if (channelNameLength > 0) {
+
+                                                        pChannelInfo->pChannelName = MEMALLOC(channelNameLength + 1);
+                                                        MEMCPY(pChannelInfo->pChannelName, currPos + currPosIndex, channelNameLength);
+                                                        pChannelInfo->pChannelName[channelNameLength] = '\0';
+
+                                                        currPosIndex += (channelNameLength + 1);
+
+                                                        if (currPosIndex + AWS_KVS_ARN_CODE_LENGTH == arnLength) {
+                                                            // 13 digit time code
+
+                                                            while ((timeCodeStart <= timeCodeEnd) &&
+                                                                   *(currPos + currPosIndex + timeCodeStart) >= '0' &&
+                                                                   *(currPos + currPosIndex + timeCodeStart) <= '9') {
+                                                                timeCodeStart++;
+                                                            }
+
+                                                            // Verify that we have 13 digits and that we are not at the end of the arn
+                                                            if (currPosIndex + timeCodeStart == arnLength) {
+                                                                return STATUS_SUCCESS;
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return STATUS_SIGNALING_INVALID_CHANNEL_ARN;
 }

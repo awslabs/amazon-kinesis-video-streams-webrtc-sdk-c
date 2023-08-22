@@ -5,18 +5,10 @@ on:
     branches:
       - develop
       - master
-      - Release-WebRTC-Streams-Ingestion-Public-Preview 
   pull_request:
     branches:
       - develop
       - master
-      - Release-WebRTC-Streams-Ingestion-Public-Preview 
-  pull_request_target:
-    types: [assigned, opened, synchronize, reopened]
-    branches:
-      - develop
-      - master
-      - Release-WebRTC-Streams-Ingestion-Public-Preview 
 jobs:
   clang-format-check:
     runs-on: macos-11
@@ -38,9 +30,17 @@ jobs:
       AWS_KVS_LOG_LEVEL: 2
       LDFLAGS: -L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib
       CPATH: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Clone repository
         uses: actions/checkout@v3
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
       - name: Build repository
         run: |
           mkdir build && cd build
@@ -56,9 +56,17 @@ jobs:
       CC: gcc
       CXX: g++
       AWS_KVS_LOG_LEVEL: 2
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Clone repository
         uses: actions/checkout@v3
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
       - name: Build repository
         run: |
           mkdir build && cd build
@@ -74,9 +82,17 @@ jobs:
       AWS_KVS_LOG_LEVEL: 2
       LDFLAGS: -L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib
       CPATH: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Clone repository
         uses: actions/checkout@v3
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
       - name: Build repository
         run: |
           mkdir build && cd build
@@ -90,9 +106,17 @@ jobs:
     runs-on: ubuntu-20.04
     env:
       AWS_KVS_LOG_LEVEL: 2
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Clone repository
         uses: actions/checkout@v3
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
       - name: Build repository
         run: |
           sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
@@ -116,9 +140,17 @@ jobs:
       CC: clang
       CXX: clang++
       AWS_KVS_LOG_LEVEL: 2
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Clone repository
         uses: actions/checkout@v3
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
       - name: Install dependencies
         run: |
           sudo apt clean && sudo apt update
@@ -142,9 +174,17 @@ jobs:
       CC: clang
       CXX: clang++
       AWS_KVS_LOG_LEVEL: 2
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Clone repository
         uses: actions/checkout@v3
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
       - name: Install dependencies
         run: |
           sudo apt clean && sudo apt update
@@ -189,9 +229,17 @@ jobs:
       CC: clang
       CXX: clang++
       AWS_KVS_LOG_LEVEL: 2
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Clone repository
         uses: actions/checkout@v3
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
       - name: Install dependencies
         run: |
           sudo apt clean && sudo apt update
@@ -212,9 +260,17 @@ jobs:
     env:
       AWS_KVS_LOG_LEVEL: 2
       CC: gcc-4.4
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Clone repository
         uses: actions/checkout@v3
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
       - name: Install deps
         run: |
           sudo apt clean && sudo apt update
@@ -243,6 +299,9 @@ jobs:
       CC: gcc
       CXX: g++
       AWS_KVS_LOG_LEVEL: 2
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Clone repository
         uses: actions/checkout@v3
@@ -260,9 +319,17 @@ jobs:
     runs-on: ubuntu-20.04
     env:
       AWS_KVS_LOG_LEVEL: 2
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Clone repository
         uses: actions/checkout@v3
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
       - name: Install deps
         run: |
           sudo apt clean && sudo apt update
@@ -289,9 +356,17 @@ jobs:
       CC: clang
       CXX: clang++
       AWS_KVS_LOG_LEVEL: 2
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Clone repository
         uses: actions/checkout@v3
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
       - name: Install dependencies
         run: |
           sudo apt clean && sudo apt update
@@ -319,10 +394,9 @@ jobs:
       - name: Clone repository
         uses: actions/checkout@v3
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1-node16
+        uses: aws-actions/configure-aws-credentials@v2
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          role-session-name: ${{ secrets.AWS_ROLE_SESSION_NAME }}
           aws-region: ${{ secrets.AWS_REGION }}
       - name: Build repository
         run: |
@@ -336,9 +410,17 @@ jobs:
     runs-on: ubuntu-20.04
     env:
       AWS_KVS_LOG_LEVEL: 2
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Clone repository
         uses: actions/checkout@v3
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
       - name: Build repository
         run: |
           # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
@@ -354,9 +436,17 @@ jobs:
     runs-on: windows-2022
     env:
       AWS_KVS_LOG_LEVEL: 1
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Clone repository
         uses: actions/checkout@v3
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
       - name: Move cloned repo
         shell: powershell
         run: |

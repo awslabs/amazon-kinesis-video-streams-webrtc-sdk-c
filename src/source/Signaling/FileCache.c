@@ -152,7 +152,7 @@ STATUS signalingCacheLoadFromFile(PCHAR channelName, PCHAR region, SIGNALING_CHA
             /* Assume channel name and region has been validated */
             if (STRCMP(entries[i].channelName, channelName) == 0 && STRCMP(entries[i].region, region) == 0 && entries[i].role == role) {
                 cacheFound = TRUE;
-                *pSignalingFileCacheEntry = entries[i];
+                MEMCPY(pSignalingFileCacheEntry, &entries[i], SIZEOF(entries[i]));
             }
         }
     }
@@ -221,10 +221,11 @@ STATUS signalingCacheSaveToFile(PSignalingFileCacheEntry pSignalingFileCacheEntr
         newEntry = FALSE;
     }
 
-    entries[i] = *pSignalingFileCacheEntry;
     if (newEntry) {
         entryCount++;
     }
+
+    entries[i] = *pSignalingFileCacheEntry;
 
     for (i = 0; i < entryCount; ++i) {
         serializedCacheEntryLen =

@@ -3365,10 +3365,9 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingTest)
     DLOGD("describeCount: %d, describeCountNoCache: %d", describeCount, describeCountNoCache);
     DLOGD("getEndpointCount: %d, getEndpointCountNoCache: %d", getEndpointCount, getEndpointCountNoCache);
 
-
-    /* describeCount and getEndpointCount should only increase by 1 because they are cached for all channels except one */
-    EXPECT_TRUE(describeCount > describeCountNoCache && (describeCount - describeCountNoCache) == 1);
-    EXPECT_TRUE(getEndpointCount > getEndpointCountNoCache && (getEndpointCount - 2 * getEndpointCountNoCache) == 1);
+    /* describeCount and getEndpointCount should only increase by 2 because they are cached for all channels except one and we iterate twice*/
+    EXPECT_TRUE(describeCount > describeCountNoCache && (describeCount - describeCountNoCache) == 2);
+    EXPECT_TRUE(getEndpointCount > getEndpointCountNoCache && (getEndpointCount - getEndpointCountNoCache) == 2);
 }
 
 TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateCache)
@@ -3377,6 +3376,13 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateCache)
 
     SignalingFileCacheEntry testEntry;
     SignalingFileCacheEntry testEntry2;
+
+    // It is very important to either MEMSET these to 0.
+    // Otherwise SignalingFileCacheEntry will have uninitialized values for
+    // the items that were not initialized and this results in garbage values
+    // being written to the cache file
+    MEMSET(&testEntry, 0x00, SIZEOF(testEntry));
+    MEMSET(&testEntry2, 0x00, SIZEOF(testEntry2));
 
     testEntry.role = SIGNALING_CHANNEL_ROLE_TYPE_VIEWER;
     STRCPY(testEntry.wssEndpoint, "testWssEnpoint");
@@ -3407,6 +3413,8 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateMultiChannelCache)
     srand(GETTIME());
 
     SignalingFileCacheEntry testEntry;
+    MEMSET(&testEntry, 0x00, SIZEOF(testEntry));
+
     BOOL cacheFound = FALSE;
     int additionalEntries = rand()%15 + 2;
     char testWssEndpoint[MAX_SIGNALING_ENDPOINT_URI_LEN + 1] = {0};
@@ -3421,6 +3429,9 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateMultiChannelCache)
     UINT64 fileSize;
     UINT32 entryCount;
     SignalingFileCacheEntry entries[MAX_SIGNALING_CACHE_ENTRY_COUNT];
+    MEMSET(entries, 0x00, SIZEOF(entries));
+
+
     const int TEST_CHANNEL_COUNT = 5;
 
     for(i = 0; i < MAX_SIGNALING_CACHE_ENTRY_COUNT + additionalEntries; i++) {
@@ -3468,7 +3479,6 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateMultiChannelCache)
     EXPECT_LT(entryCount, TEST_CHANNEL_COUNT+1);
 
     MEMFREE(fileBuffer);
-
     FREMOVE(DEFAULT_CACHE_FILE_PATH);
 }
 
@@ -3478,6 +3488,8 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateFullMultiChannelCache)
     srand(GETTIME());
 
     SignalingFileCacheEntry testEntry;
+    MEMSET(&testEntry, 0x00, SIZEOF(testEntry));
+
     BOOL cacheFound = FALSE;
     int additionalEntries = rand()%15 + 2;
     char testWssEndpoint[MAX_SIGNALING_ENDPOINT_URI_LEN + 1] = {0};

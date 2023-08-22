@@ -105,6 +105,17 @@ SIGNALING_CHANNEL_ROLE_TYPE getChannelRoleTypeFromString(PCHAR, UINT32);
  */
 PCHAR getStringFromChannelRoleType(SIGNALING_CHANNEL_ROLE_TYPE);
 
+/**
+ * Determines whether or not the channel arn is valid
+ * If VALID it extracts the channel name
+ * And Sets the pChannelName field in PChannelInfo
+ *
+ * @param - PChannelInfo - IN - channel info object
+ *
+ */
+STATUS validateKvsSignalingChannelArnAndExtractChannelName(PChannelInfo);
+
+
 #ifdef __cplusplus
 }
 #endif
