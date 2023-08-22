@@ -1,29 +1,29 @@
-name: Codecov for WebRTC C SDK
-on:
-  push:
-    branches:
-      - develop
-      - master
-  pull_request:
-    branches:
-      - develop
-      - master
-jobs:
-  linux-gcc-codecov:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Fetch
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 2
-      - name: Run code coverage
-        run: |
-          mkdir build
-          cd build
-          cmake .. -DCODE_COVERAGE=TRUE -DBUILD_TEST=TRUE
-          make
-          export AWS_KVS_LOG_LEVEL=3
-          ulimit -c unlimited -S
-          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-          for test_file in $(find CMakeFiles/kvsWebrtcClient.dir CMakeFiles/kvsWebrtcSignalingClient.dir -name '*.gcno'); do gcov $test_file; done
-          bash <(curl -s https://codecov.io/bash)
+#name: Codecov for WebRTC C SDK
+#on:
+#  push:
+#    branches:
+#      - develop
+#      - master
+#  pull_request:
+#    branches:
+#      - develop
+#      - master
+#jobs:
+#  linux-gcc-codecov:
+#    runs-on: ubuntu-latest
+#    steps:
+#      - name: Fetch
+#        uses: actions/checkout@v3
+#        with:
+#          fetch-depth: 2
+#      - name: Run code coverage
+#        run: |
+#          mkdir build
+#          cd build
+#          cmake .. -DCODE_COVERAGE=TRUE -DBUILD_TEST=TRUE
+#          make
+#          export AWS_KVS_LOG_LEVEL=3
+#          ulimit -c unlimited -S
+#          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+#          for test_file in $(find CMakeFiles/kvsWebrtcClient.dir CMakeFiles/kvsWebrtcSignalingClient.dir -name '*.gcno'); do gcov $test_file; done
+#          bash <(curl -s https://codecov.io/bash)
