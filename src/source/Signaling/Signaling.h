@@ -241,7 +241,6 @@ typedef struct {
 
     volatile ATOMIC_BOOL offerReceived;
 
-
     // Stored Client info
     SignalingClientInfoInternal clientInfo;
 
@@ -355,7 +354,6 @@ typedef struct {
     UINT64 deleteTime;
     UINT64 connectTime;
     UINT64 describeMediaTime;
-
 
 #ifdef KVS_USE_SIGNALING_CHANNEL_THREADPOOL
     PThreadpool pThreadpool;

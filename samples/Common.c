@@ -903,7 +903,7 @@ STATUS initSignaling(PSampleConfiguration pSampleConfiguration, PCHAR clientId)
     CHK_STATUS(signalingClientFetchSync(pSampleConfiguration->signalingClientHandle));
 
 #ifdef ENABLE_DATA_CHANNEL
-    //pSampleConfiguration->onDataChannel = onDataChannel;
+    // pSampleConfiguration->onDataChannel = onDataChannel;
 #endif
 
     CHK_STATUS(signalingClientConnectSync(pSampleConfiguration->signalingClientHandle));

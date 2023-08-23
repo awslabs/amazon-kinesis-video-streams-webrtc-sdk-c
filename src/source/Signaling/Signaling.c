@@ -535,7 +535,8 @@ STATUS signalingConnectSync(PSignalingClient pSignalingClient)
 
     // If media storage is enabled we keep going until join session connected, otherwise stop at connected.
     CHK_STATUS(signalingStateMachineIterator(pSignalingClient, SIGNALING_GET_CURRENT_TIME(pSignalingClient) + SIGNALING_CONNECT_STATE_TIMEOUT,
-                                             pSignalingClient->mediaStorageConfig.storageStatus ? SIGNALING_STATE_JOIN_SESSION_CONNECTED : SIGNALING_STATE_CONNECTED));
+                                             pSignalingClient->mediaStorageConfig.storageStatus ? SIGNALING_STATE_JOIN_SESSION_CONNECTED
+                                                                                                : SIGNALING_STATE_CONNECTED));
 
 CleanUp:
 

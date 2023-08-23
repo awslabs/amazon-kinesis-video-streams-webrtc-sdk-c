@@ -1092,7 +1092,7 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
     for (i = 0; i < pSessionDescription->mediaCount; i++) {
 #ifdef ENABLE_DATA_CHANNEL
         if (STRNCMP(pSessionDescription->mediaDescriptions[i].mediaName, "application", SIZEOF("application") - 1) == 0) {
-            if(!pKvsPeerConnection->isOffer && !pKvsPeerConnection->sctpIsEnabled) {
+            if (!pKvsPeerConnection->isOffer && !pKvsPeerConnection->sctpIsEnabled) {
                 CHK_STATUS(initSctpSession());
                 pKvsPeerConnection->sctpIsEnabled = TRUE;
             }
@@ -1178,7 +1178,7 @@ STATUS createOffer(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionIni
     pKvsPeerConnection->isOffer = TRUE;
 
 #ifdef ENABLE_DATA_CHANNEL
-    if(!pKvsPeerConnection->sctpIsEnabled) {
+    if (!pKvsPeerConnection->sctpIsEnabled) {
         CHK_STATUS(initSctpSession());
         pKvsPeerConnection->sctpIsEnabled = TRUE;
     }

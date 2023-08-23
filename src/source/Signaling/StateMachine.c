@@ -22,8 +22,9 @@ StateMachineState SIGNALING_STATE_MACHINE_STATES[] = {
          SIGNALING_STATE_DISCONNECTED,
      fromDescribeSignalingState, executeDescribeSignalingState, defaultSignalingStateTransitionHook, SIGNALING_STATES_DEFAULT_RETRY_COUNT,
      STATUS_SIGNALING_DESCRIBE_CALL_FAILED},
-    {SIGNALING_STATE_DESCRIBE_MEDIA, SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_DESCRIBE_MEDIA, fromDescribeMediaStorageConfState, executeDescribeMediaStorageConfState,
-     defaultSignalingStateTransitionHook, SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_DESCRIBE_MEDIA_CALL_FAILED},
+    {SIGNALING_STATE_DESCRIBE_MEDIA, SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_DESCRIBE_MEDIA, fromDescribeMediaStorageConfState,
+     executeDescribeMediaStorageConfState, defaultSignalingStateTransitionHook, SIGNALING_STATES_DEFAULT_RETRY_COUNT,
+     STATUS_SIGNALING_DESCRIBE_MEDIA_CALL_FAILED},
     {SIGNALING_STATE_CREATE, SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_DESCRIBE_MEDIA | SIGNALING_STATE_CREATE, fromCreateSignalingState,
      executeCreateSignalingState, defaultSignalingStateTransitionHook, SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_CREATE_CALL_FAILED},
     {SIGNALING_STATE_GET_ENDPOINT,
@@ -44,8 +45,10 @@ StateMachineState SIGNALING_STATE_MACHINE_STATES[] = {
      STATUS_SIGNALING_CONNECT_CALL_FAILED},
     {SIGNALING_STATE_CONNECTED, SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_JOIN_SESSION, fromConnectedSignalingState,
      executeConnectedSignalingState, defaultSignalingStateTransitionHook, INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_CONNECTED_CALLBACK_FAILED},
-    {SIGNALING_STATE_DISCONNECTED, SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_JOIN_SESSION | SIGNALING_STATE_JOIN_SESSION_WAITING | SIGNALING_STATE_JOIN_SESSION_CONNECTED, fromDisconnectedSignalingState,
-     executeDisconnectedSignalingState, defaultSignalingStateTransitionHook, SIGNALING_STATES_DEFAULT_RETRY_COUNT,
+    {SIGNALING_STATE_DISCONNECTED,
+     SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_JOIN_SESSION | SIGNALING_STATE_JOIN_SESSION_WAITING |
+         SIGNALING_STATE_JOIN_SESSION_CONNECTED,
+     fromDisconnectedSignalingState, executeDisconnectedSignalingState, defaultSignalingStateTransitionHook, SIGNALING_STATES_DEFAULT_RETRY_COUNT,
      STATUS_SIGNALING_DISCONNECTED_CALLBACK_FAILED},
     {SIGNALING_STATE_DELETE,
      SIGNALING_STATE_GET_TOKEN | SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_DESCRIBE_MEDIA | SIGNALING_STATE_CREATE | SIGNALING_STATE_GET_ENDPOINT |
@@ -55,12 +58,14 @@ StateMachineState SIGNALING_STATE_MACHINE_STATES[] = {
      STATUS_SIGNALING_DELETE_CALL_FAILED},
     {SIGNALING_STATE_DELETED, SIGNALING_STATE_DELETE | SIGNALING_STATE_DELETED, fromDeletedSignalingState, executeDeletedSignalingState,
      defaultSignalingStateTransitionHook, INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_DELETE_CALL_FAILED},
-    {SIGNALING_STATE_JOIN_SESSION, SIGNALING_STATE_CONNECTED | SIGNALING_STATE_JOIN_SESSION_WAITING | SIGNALING_STATE_JOIN_SESSION_CONNECTED, fromJoinStorageSessionState, executeJoinStorageSessionState,
-     defaultSignalingStateTransitionHook, INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_JOIN_SESSION_CALL_FAILED},
+    {SIGNALING_STATE_JOIN_SESSION, SIGNALING_STATE_CONNECTED | SIGNALING_STATE_JOIN_SESSION_WAITING | SIGNALING_STATE_JOIN_SESSION_CONNECTED,
+     fromJoinStorageSessionState, executeJoinStorageSessionState, defaultSignalingStateTransitionHook, INFINITE_RETRY_COUNT_SENTINEL,
+     STATUS_SIGNALING_JOIN_SESSION_CALL_FAILED},
     {SIGNALING_STATE_JOIN_SESSION_WAITING, SIGNALING_STATE_JOIN_SESSION, fromJoinStorageSessionWaitingState, executeJoinStorageSessionWaitingState,
      defaultSignalingStateTransitionHook, INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_JOIN_SESSION_CONNECTED_FAILED},
-    {SIGNALING_STATE_JOIN_SESSION_CONNECTED, SIGNALING_STATE_JOIN_SESSION_WAITING, fromJoinStorageSessionConnectedState, executeJoinStorageSessionConnectedState,
-     defaultSignalingStateTransitionHook, INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_JOIN_SESSION_CONNECTED_FAILED}
+    {SIGNALING_STATE_JOIN_SESSION_CONNECTED, SIGNALING_STATE_JOIN_SESSION_WAITING, fromJoinStorageSessionConnectedState,
+     executeJoinStorageSessionConnectedState, defaultSignalingStateTransitionHook, INFINITE_RETRY_COUNT_SENTINEL,
+     STATUS_SIGNALING_JOIN_SESSION_CONNECTED_FAILED}
 
 };
 
@@ -151,8 +156,7 @@ STATUS signalingStateMachineIterator(PSignalingClient pSignalingClient, UINT64 e
 
         CHK_STATUS(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pState));
 
-        DLOGV("State Machine - Current state: 0x%016" PRIx64 , pState->state);
-
+        DLOGV("State Machine - Current state: 0x%016" PRIx64, pState->state);
 
         CHK(!(pState->state == finalState), STATUS_SUCCESS);
     }
@@ -1109,12 +1113,11 @@ STATUS executeJoinStorageSessionWaitingState(UINT64 customData, UINT64 time)
     }
     MUTEX_UNLOCK(pSignalingClient->jssWaitLock);
 
-
 CleanUp:
 
     if (retStatus == STATUS_OPERATION_TIMED_OUT) {
         ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
-    } else if (STATUS_SUCCEEDED(retStatus)){
+    } else if (STATUS_SUCCEEDED(retStatus)) {
         ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_OK);
     } else {
         ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
@@ -1123,7 +1126,6 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
 
 STATUS fromJoinStorageSessionConnectedState(UINT64 customData, PUINT64 pState)
 {
@@ -1208,7 +1210,6 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
 
 STATUS fromDisconnectedSignalingState(UINT64 customData, PUINT64 pState)
 {

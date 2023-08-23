@@ -415,7 +415,7 @@ STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, U
 
                 getIpAddrStr(&pSocketConnection->hostIpAddr, ipAddr, ARRAY_SIZE(ipAddr));
                 DLOGD("hostIpAddr Ip: %s:%u. family:%d", ipAddr, (UINT16) getInt16(pSocketConnection->hostIpAddr.port),
-                          pSocketConnection->hostIpAddr.family);
+                      pSocketConnection->hostIpAddr.family);
                 break;
             }
 

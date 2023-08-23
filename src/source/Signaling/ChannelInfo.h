@@ -115,7 +115,6 @@ PCHAR getStringFromChannelRoleType(SIGNALING_CHANNEL_ROLE_TYPE);
  */
 STATUS validateKvsSignalingChannelArnAndExtractChannelName(PChannelInfo);
 
-
 #ifdef __cplusplus
 }
 #endif

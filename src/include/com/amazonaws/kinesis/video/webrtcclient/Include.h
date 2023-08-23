@@ -341,7 +341,6 @@ extern "C" {
 #define STATUS_SIGNALING_JOIN_SESSION_CONNECTED_FAILED             STATUS_SIGNALING_BASE + 0x0000004b
 #define STATUS_SIGNALING_DESCRIBE_MEDIA_CALL_FAILED                STATUS_SIGNALING_BASE + 0x0000004c
 
-
 /*!@} */
 
 /////////////////////////////////////////////////////
@@ -659,7 +658,6 @@ extern "C" {
  * Default signaling message alive time
  */
 #define SIGNALING_DEFAULT_MESSAGE_TTL_VALUE (60 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-
 
 #define SIGNALING_JOIN_STORAGE_SESSION_WAIT_TIMEOUT (6 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 

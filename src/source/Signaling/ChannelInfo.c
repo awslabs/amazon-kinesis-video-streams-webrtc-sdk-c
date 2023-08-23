@@ -1,14 +1,14 @@
 #define LOG_CLASS "ChannelInfo"
 #include "../Include_i.h"
 
-#define ARN_DELIMETER_CHAR ':'
-#define ARN_CHANNEL_NAME_CODE_SEP '/'
-#define ARN_BEGIN "arn:aws"
-#define SIGNALING_CHANNEL_ARN_SERVICE_NAME "kinesisvideo"
+#define ARN_DELIMETER_CHAR                  ':'
+#define ARN_CHANNEL_NAME_CODE_SEP           '/'
+#define ARN_BEGIN                           "arn:aws"
+#define SIGNALING_CHANNEL_ARN_SERVICE_NAME  "kinesisvideo"
 #define SIGNALING_CHANNEL_ARN_RESOURCE_TYPE "channel/"
-#define AWS_ACCOUNT_ID_LENGTH 12
-#define AWS_KVS_ARN_CODE_LENGTH 13
-#define SIGNALING_CHANNEL_ARN_MIN_LENGTH 59
+#define AWS_ACCOUNT_ID_LENGTH               12
+#define AWS_KVS_ARN_CODE_LENGTH             13
+#define SIGNALING_CHANNEL_ARN_MIN_LENGTH    59
 
 static const SIZE_T DELIMETER_LEN = 8; /* strlen("arn:::::") */
 
@@ -335,7 +335,6 @@ PCHAR getStringFromChannelRoleType(SIGNALING_CHANNEL_ROLE_TYPE type)
     return typeStr;
 }
 
-
 // arn:aws:kinesisvideo:region:account-id:channel/channel-name/code
 STATUS validateKvsSignalingChannelArnAndExtractChannelName(PChannelInfo pChannelInfo)
 {
@@ -392,7 +391,6 @@ STATUS validateKvsSignalingChannelArnAndExtractChannelName(PChannelInfo pChannel
                                                 if (channelNameEnd != NULL) {
                                                     channelNameLength = channelNameEnd - (currPos + currPosIndex);
                                                     if (channelNameLength > 0) {
-
                                                         pChannelInfo->pChannelName = MEMALLOC(channelNameLength + 1);
                                                         MEMCPY(pChannelInfo->pChannelName, currPos + currPosIndex, channelNameLength);
                                                         pChannelInfo->pChannelName[channelNameLength] = '\0';
