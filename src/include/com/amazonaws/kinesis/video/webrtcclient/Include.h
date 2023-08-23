@@ -631,11 +631,17 @@ extern "C" {
  */
 #define SIGNALING_CONNECT_TIMEOUT (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
+#ifdef _WIN32
+/**
+ * Default timeout for sending data
+ */
+#define SIGNALING_SEND_TIMEOUT (15 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#else
 /**
  * Default timeout for sending data
  */
 #define SIGNALING_SEND_TIMEOUT (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-
+#endif
 /**
  * Default timeout for deleting a channel
  */
