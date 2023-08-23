@@ -1096,6 +1096,7 @@ CleanUp:
 STATUS executeJoinStorageSessionWaitingState(UINT64 customData, UINT64 time)
 {
     ENTERS();
+    UNUSED_PARAM(time);
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
 
