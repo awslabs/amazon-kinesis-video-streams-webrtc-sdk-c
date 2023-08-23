@@ -3280,8 +3280,12 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingTest)
         EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
     }
 
-    describeCountNoCache = describeCount;
-    getEndpointCountNoCache = getEndpointCount;
+    DLOGD("describeCount: %d, describeCountNoCache: %d", describeCount, describeCountNoCache);
+    DLOGD("getEndpointCount: %d, getEndpointCountNoCache: %d", getEndpointCount, getEndpointCountNoCache);
+
+    /* describeCount and getEndpointCount should only increase by 2 because they are cached for all channels except one and we iterate twice*/
+    EXPECT_TRUE(describeCount > describeCountNoCache && (describeCount - describeCountNoCache) == 2);
+    EXPECT_TRUE(getEndpointCount > getEndpointCountNoCache && (getEndpointCount - getEndpointCountNoCache) == 2);
 
     for (i = 0; i < totalChannelCount; ++i) {
         SPRINTF(signalingChannelName, "%s%u", TEST_SIGNALING_CHANNEL_NAME, i);
