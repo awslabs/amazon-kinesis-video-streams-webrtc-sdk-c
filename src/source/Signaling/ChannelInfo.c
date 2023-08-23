@@ -6,11 +6,8 @@
 #define ARN_BEGIN                           "arn:aws"
 #define SIGNALING_CHANNEL_ARN_SERVICE_NAME  "kinesisvideo"
 #define SIGNALING_CHANNEL_ARN_RESOURCE_TYPE "channel/"
-#define AWS_ACCOUNT_ID_LENGTH               12
 #define AWS_KVS_ARN_CODE_LENGTH             13
 #define SIGNALING_CHANNEL_ARN_MIN_LENGTH    59
-
-static const SIZE_T DELIMETER_LEN = 8; /* strlen("arn:::::") */
 
 STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* ppChannelInfo)
 {
