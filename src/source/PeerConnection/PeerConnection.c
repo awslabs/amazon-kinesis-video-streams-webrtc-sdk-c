@@ -133,7 +133,7 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
         dtlsSessionProcessPacket(pKvsPeerConnection->pDtlsSession, buff, &signedBuffLen);
 
 #ifdef ENABLE_DATA_CHANNEL
-        if (signedBuffLen > 0) {
+        if (pKvsPeerConnection->sctpIsEnabled && signedBuffLen > 0) {
             CHK_STATUS(putSctpPacket(pKvsPeerConnection->pSctpSession, buff, signedBuffLen));
         }
 #endif
@@ -145,12 +145,14 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
             }
 
 #ifdef ENABLE_DATA_CHANNEL
-            if (pKvsPeerConnection->pSctpSession == NULL) {
-                CHK_STATUS(allocateSctp(pKvsPeerConnection));
-            }
+            if (pKvsPeerConnection->sctpIsEnabled) {
+                if (pKvsPeerConnection->pSctpSession == NULL) {
+                    CHK_STATUS(allocateSctp(pKvsPeerConnection));
+                }
 
-            if (signedBuffLen > 0) {
-                CHK_STATUS(putSctpPacket(pKvsPeerConnection->pSctpSession, buff, signedBuffLen));
+                if (signedBuffLen > 0) {
+                    CHK_STATUS(putSctpPacket(pKvsPeerConnection->pSctpSession, buff, signedBuffLen));
+                }
             }
 #endif
             changePeerConnectionState(pKvsPeerConnection, RTC_PEER_CONNECTION_STATE_CONNECTED);
@@ -1090,7 +1092,10 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
     for (i = 0; i < pSessionDescription->mediaCount; i++) {
 #ifdef ENABLE_DATA_CHANNEL
         if (STRNCMP(pSessionDescription->mediaDescriptions[i].mediaName, "application", SIZEOF("application") - 1) == 0) {
-            pKvsPeerConnection->sctpIsEnabled = TRUE;
+            if(!pKvsPeerConnection->isOffer && !pKvsPeerConnection->sctpIsEnabled) {
+                CHK_STATUS(initSctpSession());
+                pKvsPeerConnection->sctpIsEnabled = TRUE;
+            }
         }
 #endif
 
@@ -1173,8 +1178,12 @@ STATUS createOffer(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionIni
     pKvsPeerConnection->isOffer = TRUE;
 
 #ifdef ENABLE_DATA_CHANNEL
-    pKvsPeerConnection->sctpIsEnabled = TRUE;
+    if(!pKvsPeerConnection->sctpIsEnabled) {
+        CHK_STATUS(initSctpSession());
+        pKvsPeerConnection->sctpIsEnabled = TRUE;
+    }
 #endif
+
     CHK_STATUS(setPayloadTypesForOffer(pKvsPeerConnection->pCodecTable));
 
     CHK_STATUS(populateSessionDescription(pKvsPeerConnection, &(pKvsPeerConnection->remoteSessionDescription), pSessionDescription));
@@ -1206,6 +1215,7 @@ STATUS createAnswer(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionIn
     CHK(pKvsPeerConnection->remoteSessionDescription.sessionName[0] != '\0', STATUS_PEERCONNECTION_CREATE_ANSWER_WITHOUT_REMOTE_DESCRIPTION);
 
     pSessionDescriptionInit->type = SDP_TYPE_ANSWER;
+    pKvsPeerConnection->isOffer = FALSE;
 
     CHK_STATUS(peerConnectionGetCurrentLocalDescription(pPeerConnection, pSessionDescriptionInit));
 
@@ -1428,10 +1438,6 @@ STATUS initKvsWebRtc(VOID)
 
     KVS_CRYPTO_INIT();
     LOG_GIT_HASH();
-
-#ifdef ENABLE_DATA_CHANNEL
-    CHK_STATUS(initSctpSession());
-#endif
 
     ATOMIC_STORE_BOOL(&gKvsWebRtcInitialized, TRUE);
 

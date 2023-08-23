@@ -337,6 +337,9 @@ extern "C" {
 #define STATUS_SIGNALING_UPDATE_MEDIA_STORAGE_CONFIG               STATUS_SIGNALING_BASE + 0x00000037
 #define STATUS_SIGNALING_MEDIA_STORAGE_DISABLED                    STATUS_SIGNALING_BASE + 0x00000038
 #define STATUS_SIGNALING_INVALID_CHANNEL_ARN                       STATUS_SIGNALING_BASE + 0x00000039
+#define STATUS_SIGNALING_JOIN_SESSION_CALL_FAILED                  STATUS_SIGNALING_BASE + 0x0000004a
+#define STATUS_SIGNALING_JOIN_SESSION_CONNECTED_FAILED             STATUS_SIGNALING_BASE + 0x0000004b
+#define STATUS_SIGNALING_DESCRIBE_MEDIA_CALL_FAILED                STATUS_SIGNALING_BASE + 0x0000004c
 
 
 /*!@} */
@@ -657,6 +660,9 @@ extern "C" {
  */
 #define SIGNALING_DEFAULT_MESSAGE_TTL_VALUE (60 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
+
+#define SIGNALING_JOIN_STORAGE_SESSION_WAIT_TIMEOUT (6 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+
 /**
  * Default jitter buffer tolerated latency, frame will be dropped if it is out of window
  */
@@ -862,6 +868,8 @@ typedef enum {
                                     //!< This is a terminal state.
     SIGNALING_CLIENT_STATE_DESCRIBE_MEDIA,
     SIGNALING_CLIENT_STATE_JOIN_SESSION,
+    SIGNALING_CLIENT_STATE_JOIN_SESSION_WAITING,
+    SIGNALING_CLIENT_STATE_JOIN_SESSION_CONNECTED,
     SIGNALING_CLIENT_STATE_MAX_VALUE, //!< This state indicates maximum number of signaling client states
 } SIGNALING_CLIENT_STATE,
     *PSIGNALING_CLIENT_STATE;
@@ -1322,8 +1330,6 @@ typedef struct {
     BOOL asyncIceServerConfig; //!< This parameter has no effect any longer. All ICE config retrieving
                                //!< is done reactively when needed which will simplify the processing
                                //!< and will help with issues on a small footprint platforms
-
-    BOOL useMediaStorage; //!< use the feature of media storage.
 
 } ChannelInfo, *PChannelInfo;
 
@@ -2045,15 +2051,6 @@ PUBLIC_API STATUS signalingClientFetchSync(SIGNALING_CLIENT_HANDLE);
  * @return STATUS code of the execution. STATUS_SUCCESS on success
  */
 PUBLIC_API STATUS signalingClientConnectSync(SIGNALING_CLIENT_HANDLE);
-
-/**
- * @brief Trigger the storage session.
- *
- * @param[in] SIGNALING_CLIENT_HANDLE Signaling client handle
- *
- * @return STATUS code of execution. STATUS_SUCCESS on success
- */
-PUBLIC_API STATUS signalingClientJoinSessionSync(SIGNALING_CLIENT_HANDLE);
 
 /**
  * @brief Disconnects the signaling client.

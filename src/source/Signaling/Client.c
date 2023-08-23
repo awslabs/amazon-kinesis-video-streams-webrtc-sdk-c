@@ -180,22 +180,6 @@ CleanUp:
     return retStatus;
 }
 
-STATUS signalingClientJoinSessionSync(SIGNALING_CLIENT_HANDLE signalingClientHandle)
-{
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-    PSignalingClient pSignalingClient = FROM_SIGNALING_CLIENT_HANDLE(signalingClientHandle);
-
-    DLOGV("Signaling Client Join Session Sync");
-    CHK_STATUS(signalingJoinSessionSync(pSignalingClient));
-
-CleanUp:
-
-    SIGNALING_UPDATE_ERROR_COUNT(pSignalingClient, retStatus);
-    LEAVES();
-    return retStatus;
-}
-
 STATUS signalingClientFetchSync(SIGNALING_CLIENT_HANDLE signalingClientHandle)
 {
     ENTERS();
@@ -342,6 +326,8 @@ STATUS signalingClientGetCurrentState(SIGNALING_CLIENT_HANDLE signalingClientHan
 
     CHK_STATUS(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pStateMachineState));
     state = getSignalingStateFromStateMachineState(pStateMachineState->state);
+
+    DLOGV("Current state: 0x%016" PRIx64, pStateMachineState->state);
 
 CleanUp:
 

@@ -109,7 +109,6 @@ class WebRtcClientTestBase : public ::testing::Test {
         mChannelInfo.cachingPeriod = 0;
         mChannelInfo.retry = TRUE;
         mChannelInfo.reconnect = TRUE;
-        mChannelInfo.useMediaStorage = FALSE;
         mChannelInfo.pCertPath = mCaCertPath;
         mChannelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
         if ((mChannelInfo.pRegion = getenv(DEFAULT_REGION_ENV_VAR)) == NULL) {

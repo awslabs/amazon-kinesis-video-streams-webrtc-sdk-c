@@ -1005,7 +1005,7 @@ STATUS getChannelEndpointLws(PSignalingClient pSignalingClient, UINT64 time)
     STRCAT(url, GET_SIGNALING_CHANNEL_ENDPOINT_API_POSTFIX);
 
     // Prepare the json params for the call
-    if (pSignalingClient->pChannelInfo->useMediaStorage == FALSE || pSignalingClient->mediaStorageConfig.storageStatus == FALSE) {
+    if (pSignalingClient->mediaStorageConfig.storageStatus == FALSE) {
         SNPRINTF(paramsJson, ARRAY_SIZE(paramsJson), GET_CHANNEL_ENDPOINT_PARAM_JSON_TEMPLATE, pSignalingClient->channelDescription.channelArn,
                  SIGNALING_CHANNEL_PROTOCOL, getStringFromChannelRoleType(pSignalingClient->pChannelInfo->channelRoleType));
     } else {
@@ -1774,7 +1774,7 @@ STATUS sendLwsMessage(PSignalingClient pSignalingClient, SIGNALING_MESSAGE_TYPE 
     UINT64 curTime;
 
     // Ensure we are in a connected state
-    CHK_STATUS(acceptSignalingStateMachineState(pSignalingClient, SIGNALING_STATE_CONNECTED));
+    CHK_STATUS(acceptSignalingStateMachineState(pSignalingClient, SIGNALING_STATE_CONNECTED | SIGNALING_STATE_JOIN_SESSION_CONNECTED));
 
     CHK(pSignalingClient != NULL && pSignalingClient->pOngoingCallInfo != NULL, STATUS_NULL_ARG);
 
@@ -2364,6 +2364,10 @@ PVOID receiveLwsMessageWrapper(PVOID args)
     if (pSignalingClient->signalingClientCallbacks.messageReceivedFn != NULL) {
         if (messageType == SIGNALING_MESSAGE_TYPE_OFFER) {
             pSignalingClient->offerTime = GETTIME();
+            MUTEX_LOCK(pSignalingClient->jssWaitLock);
+            ATOMIC_STORE_BOOL(&pSignalingClient->offerReceived, TRUE);
+            MUTEX_UNLOCK(pSignalingClient->jssWaitLock);
+            CVAR_BROADCAST(pSignalingClient->jssWaitCvar);
         }
         if (messageType == SIGNALING_MESSAGE_TYPE_ANSWER) {
             PROFILE_WITH_START_TIME_OBJ(pSignalingClient->offerTime, pSignalingClient->diagnostics.offerToAnswerTime, "Offer to answer time");

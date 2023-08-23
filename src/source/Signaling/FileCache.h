@@ -25,6 +25,7 @@ extern "C" {
 typedef struct {
     SIGNALING_CHANNEL_ROLE_TYPE role;
     UINT64 creationTsEpochSeconds;
+    CHAR storageEnabled[2];
     CHAR channelName[MAX_CHANNEL_NAME_LEN + 1];
     CHAR channelArn[MAX_ARN_LEN + 1];
     CHAR region[MAX_REGION_NAME_LEN + 1];

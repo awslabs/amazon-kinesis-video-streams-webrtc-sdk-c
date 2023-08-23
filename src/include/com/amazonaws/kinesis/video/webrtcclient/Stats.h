@@ -595,6 +595,7 @@ typedef struct {
     UINT32 apiCallRetryCount;        //!< Number of retries due to API call failures in the state machine
     UINT64 getTokenCallTime;         //!< Time (ms) taken to get credentials for signaling
     UINT64 describeCallTime;         //!< Time (ms) taken to execute describeChannel call
+    UINT64 describeMediaCallTime;    //!< Time (ms) taken to execute describeChannel call
     UINT64 createCallTime;           //!< Time (ms) taken to execute createChannel call
     UINT64 getEndpointCallTime;      //!< Time (ms) taken to execute getEndpoint call
     UINT64 getIceConfigCallTime;     //!< Time (ms) taken to execute getIceServerConfig call

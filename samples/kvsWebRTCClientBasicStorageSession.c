@@ -105,15 +105,13 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     printf("Beginning streaming...check the stream over channel %s", pChannelName);
 
-    if (pSampleConfiguration->channelInfo.useMediaStorage == TRUE) {
-        printf("invoke join storage session");
-        retStatus = signalingClientJoinSessionSync(pSampleConfiguration->signalingClientHandle);
-        if (retStatus != STATUS_SUCCESS) {
-            printf("[KVS Master] signalingClientConnectSync(): operation returned status code: 0x%08x", retStatus);
-            goto CleanUp;
-        }
-        printf("[KVS Master] Signaling client connection to socket established");
-    }
+    //printf("invoke join storage session");
+    //retStatus = signalingClientJoinSessionSync(pSampleConfiguration->signalingClientHandle);
+    //if (retStatus != STATUS_SUCCESS) {
+    //    printf("[KVS Master] signalingClientConnectSync(): operation returned status code: 0x%08x", retStatus);
+    //    goto CleanUp;
+    //}
+    printf("[KVS Master] Signaling client connection to socket established");
 
     gSampleConfiguration = pSampleConfiguration;
 

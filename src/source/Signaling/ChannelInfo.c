@@ -123,7 +123,6 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
     pChannelInfo->reconnect = pOrigChannelInfo->reconnect;
     pChannelInfo->messageTtl = pOrigChannelInfo->messageTtl;
     pChannelInfo->tagCount = pOrigChannelInfo->tagCount;
-    pChannelInfo->useMediaStorage = pOrigChannelInfo->useMediaStorage;
 
     // V1 handling
     if (pOrigChannelInfo->version > 0) {

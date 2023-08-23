@@ -3377,7 +3377,7 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateCache)
     SignalingFileCacheEntry testEntry;
     SignalingFileCacheEntry testEntry2;
 
-    // It is very important to either MEMSET these to 0.
+    // It is very important to MEMSET these to 0.
     // Otherwise SignalingFileCacheEntry will have uninitialized values for
     // the items that were not initialized and this results in garbage values
     // being written to the cache file

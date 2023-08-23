@@ -41,7 +41,7 @@ STATUS deserializeSignalingCacheEntries(PCHAR cachedFileContent, UINT64 fileSize
     while (remainingSize > MAX_SIGNALING_CACHE_ENTRY_TIMESTAMP_STR_LEN) {
         nextLine = STRCHR(pCurrent, '\n');
         while ((nextToken = STRCHR(pCurrent, ',')) != NULL && nextToken < nextLine) {
-            switch (tokenCount % 9) {
+            switch (tokenCount % 10) {
                 case 0:
                     STRNCPY(pSignalingFileCacheEntryList[entryCount].channelName, pCurrent, nextToken - pCurrent);
                     break;
@@ -68,9 +68,12 @@ STATUS deserializeSignalingCacheEntries(PCHAR cachedFileContent, UINT64 fileSize
                     STRNCPY(pSignalingFileCacheEntryList[entryCount].wssEndpoint, pCurrent, nextToken - pCurrent);
                     break;
                 case 6:
-                    STRNCPY(pSignalingFileCacheEntryList[entryCount].storageStreamArn, pCurrent, nextToken - pCurrent);
+                    STRNCPY(pSignalingFileCacheEntryList[entryCount].storageEnabled, pCurrent, nextToken - pCurrent);
                     break;
                 case 7:
+                    STRNCPY(pSignalingFileCacheEntryList[entryCount].storageStreamArn, pCurrent, nextToken - pCurrent);
+                    break;
+                case 8:
                     STRNCPY(pSignalingFileCacheEntryList[entryCount].webrtcEndpoint, pCurrent, nextToken - pCurrent);
                     break;
                 default:
@@ -229,11 +232,11 @@ STATUS signalingCacheSaveToFile(PSignalingFileCacheEntry pSignalingFileCacheEntr
 
     for (i = 0; i < entryCount; ++i) {
         serializedCacheEntryLen =
-            SNPRINTF(serializedCacheEntry, ARRAY_SIZE(serializedCacheEntry), "%s,%s,%s,%s,%s,%s,%s,%s,%.10" PRIu64 "\n", entries[i].channelName,
+            SNPRINTF(serializedCacheEntry, ARRAY_SIZE(serializedCacheEntry), "%s,%s,%s,%s,%s,%s,%s,%s,%s,%.10" PRIu64 "\n", entries[i].channelName,
                      entries[i].role == SIGNALING_CHANNEL_ROLE_TYPE_MASTER ? SIGNALING_FILE_CACHE_ROLE_TYPE_MASTER_STR
                                                                            : SIGNALING_FILE_CACHE_ROLE_TYPE_VIEWER_STR,
-                     entries[i].region, entries[i].channelArn, entries[i].httpsEndpoint, entries[i].wssEndpoint, entries[i].storageStreamArn,
-                     entries[i].webrtcEndpoint, entries[i].creationTsEpochSeconds);
+                     entries[i].region, entries[i].channelArn, entries[i].httpsEndpoint, entries[i].wssEndpoint, entries[i].storageEnabled,
+                     entries[i].storageStreamArn, entries[i].webrtcEndpoint, entries[i].creationTsEpochSeconds);
         CHK_STATUS(writeFile(cacheFilePath, FALSE, i == 0 ? FALSE : TRUE, (PBYTE) serializedCacheEntry, serializedCacheEntryLen));
     }
 

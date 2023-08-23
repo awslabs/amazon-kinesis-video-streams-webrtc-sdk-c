@@ -188,6 +188,7 @@ typedef struct {
     UINT64 dpApiLatency;
     UINT64 getTokenCallTime;
     UINT64 describeCallTime;
+    UINT64 describeMediaCallTime;
     UINT64 createCallTime;
     UINT64 getEndpointCallTime;
     UINT64 getIceConfigCallTime;
@@ -228,12 +229,6 @@ typedef struct {
     // The channel is deleted
     volatile ATOMIC_BOOL deleted;
 
-    // Retrieve the information of media storage configuration
-    volatile ATOMIC_BOOL describeMediaStorageConf;
-
-    // Join the media storage.
-    volatile ATOMIC_BOOL joinSession;
-
     // Having state machine logic rely on call result of SERVICE_CALL_RESULT_SIGNALING_RECONNECT_ICE
     // to transition to ICE config state is not enough in Async update mode when
     // connect is in progress as the result of connect will override the result
@@ -243,6 +238,9 @@ typedef struct {
 
     // Indicates that there is another thread attempting to grab the service lock
     volatile ATOMIC_BOOL serviceLockContention;
+
+    volatile ATOMIC_BOOL offerReceived;
+
 
     // Stored Client info
     SignalingClientInfoInternal clientInfo;
@@ -356,13 +354,20 @@ typedef struct {
     UINT64 getIceConfigTime;
     UINT64 deleteTime;
     UINT64 connectTime;
+    UINT64 describeMediaTime;
+
 
 #ifdef KVS_USE_SIGNALING_CHANNEL_THREADPOOL
     PThreadpool pThreadpool;
 #endif
     UINT64 offerTime;
-    UINT64 describeMediaTime;
     UINT64 joinSessionTime;
+
+    // mutex for join session wait condition variable
+    MUTEX jssWaitLock;
+
+    // Conditional variable for join storage session wait state
+    CVAR jssWaitCvar;
 
 } SignalingClient, *PSignalingClient;
 
@@ -405,7 +410,6 @@ STATUS getChannelEndpoint(PSignalingClient, UINT64);
 STATUS getIceConfig(PSignalingClient, UINT64);
 STATUS connectSignalingChannel(PSignalingClient, UINT64);
 STATUS joinStorageSession(PSignalingClient, UINT64);
-STATUS signalingJoinSessionSync(PSignalingClient);
 STATUS describeMediaStorageConf(PSignalingClient, UINT64);
 STATUS deleteChannel(PSignalingClient, UINT64);
 STATUS signalingGetMetrics(PSignalingClient, PSignalingClientMetrics);

@@ -35,7 +35,6 @@ TEST_F(SignalingApiTest, createValidateChannelInfo)
     // The createValidateChannelInfo() is expected to fix up caching period to an hour
     EXPECT_EQ(rChannelInfo->cachingPeriod, SIGNALING_DEFAULT_API_CALL_CACHE_TTL);
     EXPECT_EQ(rChannelInfo->reconnect, TRUE);
-    EXPECT_EQ(rChannelInfo->useMediaStorage, FALSE);
     EXPECT_EQ(0, STRCMP(rChannelInfo->pCertPath, mCaCertPath));
     EXPECT_EQ(rChannelInfo->messageTtl, TEST_SIGNALING_MESSAGE_TTL);
     EXPECT_EQ(0, STRCMP(rChannelInfo->pRegion, TEST_DEFAULT_REGION));
