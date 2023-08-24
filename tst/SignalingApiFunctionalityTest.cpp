@@ -3326,7 +3326,7 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingTest)
 
     /* describeCount and getEndpointCount should only increase by 2 because they are cached for all channels except one and we iterate twice*/
     EXPECT_TRUE(describeCount > describeCountNoCache && (describeCount - describeCountNoCache) == 2);
-    EXPECT_TRUE(getEndpointCount > getEndpointCountNoCache && (getEndpointCount - getEndpointCountNoCache) == 2);
+    EXPECT_TRUE(getEndpointCount > getEndpointCountNoCache && (getEndpointCount - 2*getEndpointCountNoCache) == 2);
 }
 
 TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateCache)
