@@ -231,16 +231,24 @@ TEST_F(SignalingApiTest, signalingSendMessageSyncFileCredsProvider)
     PAwsCredentialProvider pAwsCredentialProvider = NULL;
     CHAR fileContent[10000];
     UINT32 length = ARRAY_SIZE(fileContent);
+    CHAR futureTime[] = "2200-06-05T09:39:36Z";
 
     if (!mAccessKeyIdSet) {
         return;
     }
 
-    // Store the credentials in a file under the current dir
-    length = SNPRINTF(fileContent, length, "CREDENTIALS %s %s", mAccessKey, mSecretKey);
-    ASSERT_GT(ARRAY_SIZE(fileContent), length);
-    ASSERT_EQ(STATUS_SUCCESS, writeFile(TEST_FILE_CREDENTIALS_FILE_PATH, FALSE, FALSE, (PBYTE) fileContent, length));
+    if (mSessionToken == NULL) {
+        // Store the credentials in a file under the current dir
+        length = SNPRINTF(fileContent, length, "CREDENTIALS %s %s", mAccessKey, mSecretKey);
+        ASSERT_GT(ARRAY_SIZE(fileContent), length);
+    } else {
+        // test Temp Creds
+        // "CREDENTIALS accessKey expiration secretKey sessionToken"
+        length = SNPRINTF(fileContent, length, "CREDENTIALS %s %s %s %s", mAccessKey, futureTime, mSecretKey, mSessionToken);
+        ASSERT_GT(ARRAY_SIZE(fileContent), length);
+    }
 
+    ASSERT_EQ(STATUS_SUCCESS, writeFile(TEST_FILE_CREDENTIALS_FILE_PATH, FALSE, FALSE, (PBYTE) fileContent, length));
     // Create file creds provider from the file
     EXPECT_EQ(STATUS_SUCCESS, createFileCredentialProvider(TEST_FILE_CREDENTIALS_FILE_PATH, &pAwsCredentialProvider));
 
