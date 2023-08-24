@@ -152,7 +152,10 @@ STATUS signalingStateMachineIterator(PSignalingClient pSignalingClient, UINT64 e
         }
 
         retStatus = stepStateMachine(pSignalingClient->pStateMachine);
-        DLOGI("Exited step state machine with status:  0x%08x", retStatus);
+
+        if (STATUS_FAILED(retStatus)) {
+            DLOGD("Exited step state machine with status:  0x%08x", retStatus);
+        }
 
         CHK_STATUS(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pState));
 

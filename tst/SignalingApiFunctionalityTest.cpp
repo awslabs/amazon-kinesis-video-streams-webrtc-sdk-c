@@ -27,6 +27,11 @@ class SignalingApiFunctionalityTest : public WebRtcClientTestBase {
         describeRecover = 0;
         describeResult = STATUS_SUCCESS;
 
+        describeMediaCount = 0;
+        describeMediaFail = MAX_UINT32;
+        describeMediaRecover = 0;
+        describeMediaResult = STATUS_SUCCESS;
+
         getEndpointCount = 0;
         getEndpointFail = MAX_UINT32;
         getEndpointRecover = 0;
@@ -54,6 +59,11 @@ class SignalingApiFunctionalityTest : public WebRtcClientTestBase {
     UINT32 describeFail;
     UINT32 describeRecover;
     UINT32 describeCount;
+
+    STATUS describeMediaResult;
+    UINT32 describeMediaFail;
+    UINT32 describeMediaRecover;
+    UINT32 describeMediaCount;
 
     STATUS getEndpointResult;
     UINT32 getEndpointFail;
@@ -180,6 +190,21 @@ STATUS describePreHook(UINT64 hookCustomData)
     }
 
     pTest->describeCount++;
+    DLOGD("Signaling client describe hook returning 0x%08x", retStatus);
+    return retStatus;
+};
+
+STATUS describeMediaPreHook(UINT64 hookCustomData)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    SignalingApiFunctionalityTest* pTest = (SignalingApiFunctionalityTest*) hookCustomData;
+    CHECK(pTest != NULL);
+
+    if (pTest->describeMediaCount >= pTest->describeFail && pTest->describeMediaCount < pTest->describeMediaRecover) {
+        retStatus = pTest->describeResult;
+    }
+
+    pTest->describeMediaCount++;
     DLOGD("Signaling client describe hook returning 0x%08x", retStatus);
     return retStatus;
 };
@@ -3278,7 +3303,7 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingTest)
     SIGNALING_CLIENT_HANDLE signalingHandle;
     CHAR signalingChannelName[64];
     const UINT32 totalChannelCount = MAX_SIGNALING_CACHE_ENTRY_COUNT + 1;
-    UINT32 i, describeCountNoCache, getEndpointCountNoCache;
+    UINT32 i, describeCountNoCache, describeMediaCountNoCache, getEndpointCountNoCache;
     CHAR channelArn[MAX_ARN_LEN + 1];
 
     signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
@@ -3296,6 +3321,7 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingTest)
     clientInfoInternal.hookCustomData = (UINT64) this;
     clientInfoInternal.connectPreHookFn = connectPreHook;
     clientInfoInternal.describePreHookFn = describePreHook;
+    clientInfoInternal.descirbeMediaStorageConfPreHookFn = describeMediaPreHook;
     clientInfoInternal.getEndpointPreHookFn = getEndpointPreHook;
     setupSignalingStateMachineRetryStrategyCallbacks(&clientInfoInternal);
 
@@ -3313,6 +3339,7 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingTest)
     channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_FILE;
     channelInfo.pRegion = TEST_DEFAULT_REGION;
 
+
     FREMOVE(DEFAULT_CACHE_FILE_PATH);
 
     for (i = 0; i < totalChannelCount; ++i) {
@@ -3328,6 +3355,7 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingTest)
     }
 
     describeCountNoCache = describeCount;
+    describeMediaCountNoCache = describeMediaCount;
     getEndpointCountNoCache = getEndpointCount;
 
     for (i = 0; i < totalChannelCount; ++i) {
@@ -3363,10 +3391,12 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingTest)
     }
 
     DLOGD("describeCount: %d, describeCountNoCache: %d", describeCount, describeCountNoCache);
+    DLOGD("describeMediaCount: %d, describeMediaCountNoCache: %d", describeMediaCount, describeMediaCountNoCache);
     DLOGD("getEndpointCount: %d, getEndpointCountNoCache: %d", getEndpointCount, getEndpointCountNoCache);
 
     /* describeCount and getEndpointCount should only increase by 2 because they are cached for all channels except one and we iterate twice*/
     EXPECT_TRUE(describeCount > describeCountNoCache && (describeCount - describeCountNoCache) == 2);
+    EXPECT_TRUE(describeMediaCount > describeMediaCountNoCache && (describeMediaCount - describeMediaCountNoCache) == 2);
     EXPECT_TRUE(getEndpointCount > getEndpointCountNoCache && (getEndpointCount - getEndpointCountNoCache) == 2);
 }
 

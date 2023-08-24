@@ -13,8 +13,9 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
+    UINT16 channelNameStartPos = 0, channelNameLen = 0;
 
-    UINT32 allocSize, channelNameLen = 0, channelArnLen = 0, storageStreamArnLen = 0, regionLen = 0, cpUrlLen = 0, certPathLen = 0,
+    UINT32 allocSize, channelArnLen = 0, storageStreamArnLen = 0, regionLen = 0, cpUrlLen = 0, certPathLen = 0,
                       userAgentPostfixLen = 0, customUserAgentLen = 0, userAgentLen = 0, kmsLen = 0, tagsSize;
     PCHAR pCurPtr, pRegionPtr, pUserAgentPostfixPtr;
     CHAR agentString[MAX_CUSTOM_USER_AGENT_NAME_POSTFIX_LEN + 1];
@@ -34,6 +35,10 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
     if (pOrigChannelInfo->pChannelArn != NULL) {
         CHK((channelArnLen = (UINT32) STRNLEN(pOrigChannelInfo->pChannelArn, MAX_ARN_LEN + 1)) <= MAX_ARN_LEN,
             STATUS_SIGNALING_INVALID_CHANNEL_ARN_LENGTH);
+
+        if (pOrigChannelInfo->pChannelName == NULL) {
+            CHK_STATUS(validateKvsSignalingChannelArnAndExtractChannelName(pOrigChannelInfo, &channelNameStartPos, &channelNameLen));
+        }
     }
 
     if (pOrigChannelInfo->pStorageStreamArn != NULL) {
@@ -134,7 +139,11 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
     // Set the pointers to the end and copy the data.
     // NOTE: the structure is calloc-ed so the strings will be NULL terminated
     if (channelNameLen != 0) {
-        STRCPY(pCurPtr, pOrigChannelInfo->pChannelName);
+        if (pOrigChannelInfo->pChannelName != NULL) {
+            STRCPY(pCurPtr, pOrigChannelInfo->pChannelName);
+        } else {
+            STRNCPY(pCurPtr, pOrigChannelInfo->pChannelArn + channelNameStartPos, channelNameLen);
+        }
         pChannelInfo->pChannelName = pCurPtr;
         pCurPtr += ALIGN_UP_TO_MACHINE_WORD(channelNameLen + 1); // For the NULL terminator
     }
@@ -332,11 +341,12 @@ PCHAR getStringFromChannelRoleType(SIGNALING_CHANNEL_ROLE_TYPE type)
     return typeStr;
 }
 
-// arn:aws:kinesisvideo:region:account-id:channel/channel-name/code
-STATUS validateKvsSignalingChannelArnAndExtractChannelName(PChannelInfo pChannelInfo)
+
+// https://docs.aws.amazon.com/kinesisvideostreams-webrtc-dg/latest/devguide/kvswebrtc-how-iam.html#kinesis-using-iam-arn-format
+// Example: arn:aws:kinesisvideo:region:account-id:channel/channel-name/code
+STATUS validateKvsSignalingChannelArnAndExtractChannelName(PChannelInfo pChannelInfo, PUINT16 pStart, PUINT16 pNumChars)
 {
-    UINT16 arnLength;
-    UINT16 currPosIndex = 0, channelNameLength = 0;
+    UINT16 arnLength, currPosIndex = 0, channelNameLength = 0, channelNameStart = 0;
     PCHAR partitionEnd, regionEnd, channelNameEnd;
     PCHAR currPos;
     UINT8 accountIdStart = 1, accountIdEnd = 12;
@@ -388,10 +398,7 @@ STATUS validateKvsSignalingChannelArnAndExtractChannelName(PChannelInfo pChannel
                                                 if (channelNameEnd != NULL) {
                                                     channelNameLength = channelNameEnd - (currPos + currPosIndex);
                                                     if (channelNameLength > 0) {
-                                                        pChannelInfo->pChannelName = MEMALLOC(channelNameLength + 1);
-                                                        MEMCPY(pChannelInfo->pChannelName, currPos + currPosIndex, channelNameLength);
-                                                        pChannelInfo->pChannelName[channelNameLength] = '\0';
-
+                                                        channelNameStart = currPosIndex;
                                                         currPosIndex += (channelNameLength + 1);
 
                                                         if (currPosIndex + AWS_KVS_ARN_CODE_LENGTH == arnLength) {
@@ -405,6 +412,8 @@ STATUS validateKvsSignalingChannelArnAndExtractChannelName(PChannelInfo pChannel
 
                                                             // Verify that we have 13 digits and that we are not at the end of the arn
                                                             if (currPosIndex + timeCodeStart == arnLength) {
+                                                                *pStart = channelNameStart;
+                                                                *pNumChars = channelNameLength;
                                                                 return STATUS_SUCCESS;
                                                             }
                                                         }

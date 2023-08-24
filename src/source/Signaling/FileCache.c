@@ -218,8 +218,7 @@ STATUS signalingCacheSaveToFile(PSignalingFileCacheEntry pSignalingFileCacheEntr
     }
 
     /* at this point i is at most entryCount */
-    if (entryCount >= MAX_SIGNALING_CACHE_ENTRY_COUNT) {
-        DLOGW("Overwrote 32nd entry to store signaling cache because max entry count of %u reached", MAX_SIGNALING_CACHE_ENTRY_COUNT);
+    if (newEntry && entryCount >= MAX_SIGNALING_CACHE_ENTRY_COUNT) {
         i = MAX_SIGNALING_CACHE_ENTRY_COUNT - 1;
         newEntry = FALSE;
     }

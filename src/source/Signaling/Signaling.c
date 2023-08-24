@@ -56,17 +56,10 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     pSignalingClient->describeMediaTime = INVALID_TIMESTAMP_VALUE;
     pSignalingClient->joinSessionTime = INVALID_TIMESTAMP_VALUE;
 
-    if (pChannelInfo->pChannelName == NULL && pChannelInfo->pChannelArn != NULL) {
-        // If the channel arn IS supplied and the channel NAME is not supplied
-        // We need to (1) Validate the Channel Arn and (2) Extract the Channel Name from the validated arn.
-        CHK_STATUS(validateKvsSignalingChannelArnAndExtractChannelName(pChannelInfo));
-    }
-
     if (pSignalingClient->pChannelInfo->cachingPolicy == SIGNALING_API_CALL_CACHE_TYPE_FILE) {
-        // Signaling channel name can be NULL in case of pre-created channels in which case we use ARN as the name
-        if (STATUS_FAILED(signalingCacheLoadFromFile(pChannelInfo->pChannelName != NULL ? pChannelInfo->pChannelName : pChannelInfo->pChannelArn,
-                                                     pChannelInfo->pRegion, pChannelInfo->channelRoleType, pFileCacheEntry, &cacheFound,
-                                                     pSignalingClient->clientInfo.cacheFilePath))) {
+        if (STATUS_FAILED(signalingCacheLoadFromFile(pSignalingClient->pChannelInfo->pChannelName,
+                                                     pSignalingClient->pChannelInfo->pRegion, pSignalingClient->pChannelInfo->channelRoleType,
+                                                     pFileCacheEntry, &cacheFound, pSignalingClient->clientInfo.cacheFilePath))) {
             DLOGW("Failed to load signaling cache from file");
         } else if (cacheFound) {
             STRCPY(pSignalingClient->channelDescription.channelName, pFileCacheEntry->channelName);
@@ -1083,9 +1076,13 @@ STATUS getChannelEndpoint(PSignalingClient pSignalingClient, UINT64 time)
         case SIGNALING_API_CALL_CACHE_TYPE_DESCRIBE_GETENDPOINT:
             /* explicit fall-through */
         case SIGNALING_API_CALL_CACHE_TYPE_FILE:
+            DLOGD("time: %llu, endpoint time: %llu,  Caching Period:  %llu", time, pSignalingClient->getEndpointTime, pSignalingClient->pChannelInfo->cachingPeriod);
             if (IS_VALID_TIMESTAMP(pSignalingClient->getEndpointTime) &&
                 time <= pSignalingClient->getEndpointTime + pSignalingClient->pChannelInfo->cachingPeriod) {
                 apiCall = FALSE;
+                DLOGD("[HASSAN] Using Cached Value");
+            } else {
+                DLOGD("[HASSAN] NOT using Cached Value");
             }
 
             break;
