@@ -57,9 +57,9 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     pSignalingClient->joinSessionTime = INVALID_TIMESTAMP_VALUE;
 
     if (pSignalingClient->pChannelInfo->cachingPolicy == SIGNALING_API_CALL_CACHE_TYPE_FILE) {
-        if (STATUS_FAILED(signalingCacheLoadFromFile(pSignalingClient->pChannelInfo->pChannelName,
-                                                     pSignalingClient->pChannelInfo->pRegion, pSignalingClient->pChannelInfo->channelRoleType,
-                                                     pFileCacheEntry, &cacheFound, pSignalingClient->clientInfo.cacheFilePath))) {
+        if (STATUS_FAILED(signalingCacheLoadFromFile(pSignalingClient->pChannelInfo->pChannelName, pSignalingClient->pChannelInfo->pRegion,
+                                                     pSignalingClient->pChannelInfo->channelRoleType, pFileCacheEntry, &cacheFound,
+                                                     pSignalingClient->clientInfo.cacheFilePath))) {
             DLOGW("Failed to load signaling cache from file");
         } else if (cacheFound) {
             STRCPY(pSignalingClient->channelDescription.channelName, pFileCacheEntry->channelName);
@@ -1076,7 +1076,8 @@ STATUS getChannelEndpoint(PSignalingClient pSignalingClient, UINT64 time)
         case SIGNALING_API_CALL_CACHE_TYPE_DESCRIBE_GETENDPOINT:
             /* explicit fall-through */
         case SIGNALING_API_CALL_CACHE_TYPE_FILE:
-            DLOGD("time: %llu, endpoint time: %llu,  Caching Period:  %llu", time, pSignalingClient->getEndpointTime, pSignalingClient->pChannelInfo->cachingPeriod);
+            DLOGD("time: %llu, endpoint time: %llu,  Caching Period:  %llu", time, pSignalingClient->getEndpointTime,
+                  pSignalingClient->pChannelInfo->cachingPeriod);
             if (IS_VALID_TIMESTAMP(pSignalingClient->getEndpointTime) &&
                 time <= pSignalingClient->getEndpointTime + pSignalingClient->pChannelInfo->cachingPeriod) {
                 apiCall = FALSE;

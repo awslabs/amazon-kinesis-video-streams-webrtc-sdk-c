@@ -15,8 +15,8 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
     STATUS retStatus = STATUS_SUCCESS;
     UINT16 channelNameStartPos = 0, channelNameLen = 0;
 
-    UINT32 allocSize, channelArnLen = 0, storageStreamArnLen = 0, regionLen = 0, cpUrlLen = 0, certPathLen = 0,
-                      userAgentPostfixLen = 0, customUserAgentLen = 0, userAgentLen = 0, kmsLen = 0, tagsSize;
+    UINT32 allocSize, channelArnLen = 0, storageStreamArnLen = 0, regionLen = 0, cpUrlLen = 0, certPathLen = 0, userAgentPostfixLen = 0,
+                      customUserAgentLen = 0, userAgentLen = 0, kmsLen = 0, tagsSize;
     PCHAR pCurPtr, pRegionPtr, pUserAgentPostfixPtr;
     CHAR agentString[MAX_CUSTOM_USER_AGENT_NAME_POSTFIX_LEN + 1];
 
@@ -340,7 +340,6 @@ PCHAR getStringFromChannelRoleType(SIGNALING_CHANNEL_ROLE_TYPE type)
 
     return typeStr;
 }
-
 
 // https://docs.aws.amazon.com/kinesisvideostreams-webrtc-dg/latest/devguide/kvswebrtc-how-iam.html#kinesis-using-iam-arn-format
 // Example: arn:aws:kinesisvideo:region:account-id:channel/channel-name/code
