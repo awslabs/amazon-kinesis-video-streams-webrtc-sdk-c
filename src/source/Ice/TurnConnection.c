@@ -90,11 +90,11 @@ STATUS freeTurnConnection(PTurnConnection* ppTurnConnection)
 
     pTurnConnection = *ppTurnConnection;
 
+    // Ensure we are not freeing everything without cancelling the timer
     timerCallbackId = ATOMIC_EXCHANGE(&pTurnConnection->timerCallbackId, MAX_UINT32);
     if (timerCallbackId != MAX_UINT32) {
         CHK_LOG_ERR(timerQueueCancelTimer(pTurnConnection->timerQueueHandle, (UINT32) timerCallbackId, (UINT64) pTurnConnection));
     }
-
     // shutdown control channel
     if (pTurnConnection->pControlChannel) {
         CHK_LOG_ERR(connectionListenerRemoveConnection(pTurnConnection->pConnectionListener, pTurnConnection->pControlChannel));
@@ -1076,7 +1076,9 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
                 }
 
                 CHK_STATUS(turnConnectionFreePreAllocatedPackets(pTurnConnection));
-                CHK_STATUS(socketConnectionClosed(pTurnConnection->pControlChannel));
+                if (pTurnConnection != NULL) {
+                    CHK_STATUS(socketConnectionClosed(pTurnConnection->pControlChannel));
+                }
                 pTurnConnection->state = STATUS_SUCCEEDED(pTurnConnection->errorStatus) ? TURN_STATE_NEW : TURN_STATE_FAILED;
                 ATOMIC_STORE_BOOL(&pTurnConnection->shutdownComplete, TRUE);
             }

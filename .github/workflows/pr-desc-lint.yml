@@ -27,14 +27,14 @@ jobs:
           error_occurred=0
           # Define minimum character count for each section
           MIN_CHARS=25
-          
+
           # Extract contents
           # Extract contents
           what_changed=$(echo "$pr_description" | sed -n -e '/\*What was changed?\*/,/\*/p' | sed '$d' | sed '1d')
           why_changed=$(echo "$pr_description" | sed -n -e '/\*Why was it changed?\*/,/\*/p' | sed '$d' | sed '1d')
           how_changed=$(echo "$pr_description" | sed -n -e '/\*How was it changed?\*/,/\*/p' | sed '$d' | sed '1d')
           testing_done=$(echo "$pr_description" | sed -n -e '/\*What testing was done for the changes?\*/,/\*/p' | sed '$d' | sed '1d')
-          
+
           if [[ ${#what_changed} -lt $MIN_CHARS ]]; then
             echo "PR description for what changed section is either missing or too short."
             error_occurred=1
