@@ -81,7 +81,6 @@ typedef struct {
     MUTEX pSrtpSessionLock;
     PSrtpSession pSrtpSession;
 
-    MUTEX pSctpSessionLock;
     PSctpSession pSctpSession;
 
     SessionDescription remoteSessionDescription;
@@ -89,7 +88,7 @@ typedef struct {
     PDoubleList pFakeTransceivers;
     PDoubleList pAnswerTransceivers;
 
-    BOOL sctpIsEnabled;
+    volatile ATOMIC_BOOL sctpIsEnabled;
 
     CHAR localIceUfrag[LOCAL_ICE_UFRAG_LEN + 1];
     CHAR localIcePwd[LOCAL_ICE_PWD_LEN + 1];
