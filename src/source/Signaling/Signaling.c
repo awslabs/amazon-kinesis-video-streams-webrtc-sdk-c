@@ -1081,11 +1081,7 @@ STATUS getChannelEndpoint(PSignalingClient pSignalingClient, UINT64 time)
             if (IS_VALID_TIMESTAMP(pSignalingClient->getEndpointTime) &&
                 time <= pSignalingClient->getEndpointTime + pSignalingClient->pChannelInfo->cachingPeriod) {
                 apiCall = FALSE;
-                DLOGD("[HASSAN] Using Cached Value");
-            } else {
-                DLOGD("[HASSAN] NOT using Cached Value");
             }
-
             break;
     }
 

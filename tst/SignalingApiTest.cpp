@@ -82,6 +82,8 @@ TEST_F(SignalingApiTest, testChannelArnsValid)
 
     channelInfo.pChannelArn = arn8;
     EXPECT_EQ(createValidateChannelInfo(&channelInfo, &pChannelInfo), STATUS_SUCCESS);
+
+    freeChannelInfo(&pChannelInfo);
 }
 
 
