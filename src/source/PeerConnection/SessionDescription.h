@@ -36,12 +36,14 @@ extern "C" {
 #define RTX_VALUE       "rtx/90000"
 #define RTX_CODEC_VALUE "apt="
 #define FMTP_VALUE      "fmtp:"
+#define RTPMAP_VALUE    "rtpmap"
 
-#define DEFAULT_PAYLOAD_MULAW (UINT64) 0
-#define DEFAULT_PAYLOAD_ALAW  (UINT64) 8
-#define DEFAULT_PAYLOAD_OPUS  (UINT64) 111
-#define DEFAULT_PAYLOAD_VP8   (UINT64) 96
-#define DEFAULT_PAYLOAD_H264  (UINT64) 125
+#define MAX_PAYLOAD_TYPE_LENGTH (UINT64) 10
+#define DEFAULT_PAYLOAD_MULAW   (UINT64) 0
+#define DEFAULT_PAYLOAD_ALAW    (UINT64) 8
+#define DEFAULT_PAYLOAD_OPUS    (UINT64) 111
+#define DEFAULT_PAYLOAD_VP8     (UINT64) 96
+#define DEFAULT_PAYLOAD_H264    (UINT64) 125
 
 #define DEFAULT_PAYLOAD_MULAW_STR (PCHAR) "0"
 #define DEFAULT_PAYLOAD_ALAW_STR  (PCHAR) "8"
@@ -80,7 +82,7 @@ STATUS setPayloadTypesForOffer(PHashTable);
 
 STATUS setTransceiverPayloadTypes(PHashTable, PHashTable, PDoubleList);
 STATUS populateSessionDescription(PKvsPeerConnection, PSessionDescription, PSessionDescription);
-STATUS reorderTransceiverByRemoteDescription(PKvsPeerConnection, PSessionDescription);
+STATUS findTransceiversByRemoteDescription(PKvsPeerConnection, PSessionDescription, PHashTable, PHashTable);
 STATUS setReceiversSsrc(PSessionDescription, PDoubleList);
 PCHAR fmtpForPayloadType(UINT64, PSessionDescription);
 UINT64 getH264FmtpScore(PCHAR);

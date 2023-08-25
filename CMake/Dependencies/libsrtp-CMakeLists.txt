@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.6.3)
 
 project(libsrtp-download NONE)
 
@@ -52,6 +52,7 @@ ExternalProject_Add(project_libsrtp
                       -D ENABLE_OPENSSL=${LIBSRTP_ENABLE_OPENSSL}
                       -D BUILD_SHARED_LIBS=${LIBSRTP_SHARED_LIBS}
                       -D OPENSSL_ROOT_DIR=${OPEN_SRC_INSTALL_PREFIX}
+                      -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
     CONFIGURE_COMMAND ${CONFIGURE_COMMAND}
     TEST_COMMAND      ""
 )

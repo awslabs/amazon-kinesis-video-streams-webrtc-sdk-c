@@ -22,6 +22,9 @@ extern "C" {
 
 #define KVS_GET_IP_ADDRESS_PORT(a) ((UINT16) getInt16((a)->port))
 
+#define IPV4_TEMPLATE "%d.%d.%d.%d"
+#define IPV6_TEMPLATE "%04x:%04x:%04x:%04x:%04x:%04x:%04x:%04x"
+
 #if defined(__MACH__)
 #define NO_SIGNAL SO_NOSIGPIPE
 #else
@@ -59,6 +62,16 @@ typedef enum {
  */
 STATUS getLocalhostIpAddresses(PKvsIpAddress, PUINT32, IceSetInterfaceFilterFunc, UINT64);
 
+// TODO add support for windows socketpair
+#ifndef _WIN32
+/**
+ * @param - INT32 (*)[2] - OUT - Array for the socket pair fds
+ *
+ * @return - STATUS status of execution
+ */
+STATUS createSocketPair(INT32 (*)[2]);
+#endif
+
 /**
  * @param - KVS_IP_FAMILY_TYPE - IN - Family for the socket. Must be one of KVS_IP_FAMILY_TYPE
  * @param - KVS_SOCKET_PROTOCOL - IN - either tcp or udp
@@ -93,6 +106,15 @@ STATUS socketBind(PKvsIpAddress, INT32);
 STATUS socketConnect(PKvsIpAddress, INT32);
 
 /**
+ * @param - INT32 - Socket to write to
+ * @param - const void * - buffer of data to write
+ * @param - SIZE_T - length of buffer
+ *
+ * @return - STATUS status of execution
+ */
+STATUS socketWrite(INT32, const void*, SIZE_T);
+
+/**
  * @param - PCHAR - IN - hostname to resolve
  *
  * @param - PKvsIpAddress - OUT - resolved ip address
@@ -100,6 +122,17 @@ STATUS socketConnect(PKvsIpAddress, INT32);
  * @return - STATUS status of execution
  */
 STATUS getIpWithHostName(PCHAR, PKvsIpAddress);
+
+/**
+ * @param - PCHAR - IN - IP address string to verify if it is IPv4 or IPv6 format
+ *
+ * @param - UINT16 - IN - Length of string
+ *
+ * @param - BOOL - OUT - Evaluates to TRUE if the provided string is IPv4/IPv6. False otherwise
+ *
+ * @return - STATUS status of execution
+ */
+BOOL isIpAddr(PCHAR, UINT16);
 
 STATUS getIpAddrStr(PKvsIpAddress, PCHAR, UINT32);
 

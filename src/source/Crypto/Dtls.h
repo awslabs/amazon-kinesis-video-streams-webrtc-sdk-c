@@ -104,6 +104,7 @@ struct __DtlsSession {
     TIMER_QUEUE_HANDLE timerQueueHandle;
     UINT32 timerId;
     UINT64 dtlsSessionStartTime;
+    UINT64 dtlsSessionSetupTime;
     RTC_DTLS_TRANSPORT_STATE state;
     MUTEX sslLock;
 

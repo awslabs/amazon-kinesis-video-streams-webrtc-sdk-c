@@ -14,6 +14,8 @@
 #define TEST_SIGNALING_MASTER_CLIENT_ID (PCHAR) "Test_Master_ClientId"
 #define TEST_SIGNALING_VIEWER_CLIENT_ID (PCHAR) "Test_Viewer_ClientId"
 #define TEST_SIGNALING_CHANNEL_NAME     (PCHAR) "ScaryTestChannel_"
+#define TEST_KMS_KEY_ID_ARN             (PCHAR) "arn:aws:kms:us-west-2:123456789012:key/0000-0000-0000-0000-0000"
+#define TEST_CHANNEL_ARN                (PCHAR) "arn:aws:kinesisvideo:us-west-2:123456789012:channel/ScaryTestChannel"
 #define SIGNAING_TEST_CORRELATION_ID    (PCHAR) "Test_correlation_id"
 #define TEST_SIGNALING_MESSAGE_TTL      (120 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define TEST_VIDEO_FRAME_SIZE           (120 * 1024)
@@ -294,6 +296,8 @@ class WebRtcClientTestBase : public ::testing::Test {
     CHAR mDefaultRegion[MAX_REGION_NAME_LEN + 1];
     BOOL mAccessKeyIdSet;
     CHAR mChannelName[MAX_CHANNEL_NAME_LEN + 1];
+    CHAR mChannelArn[MAX_ARN_LEN + 1];
+    CHAR mKmsKeyId[MAX_ARN_LEN + 1];
 
     PJitterBuffer mJitterBuffer;
     PBYTE mFrame;

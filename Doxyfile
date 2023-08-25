@@ -5,7 +5,7 @@
 #---------------------------------------------------------------------------
 PROJECT_NAME           = "Amazon Kinesis Webrtc C SDK"
 OUTPUT_DIRECTORY       = doc
-INPUT                  = ../src/include Introduction.md ../src/source/
+INPUT                  = src/include Introduction.md src/source/
 FILE_PATTERNS          = *.h *.c
 RECURSIVE              = YES
 EXAMPLE_PATTERNS       = *

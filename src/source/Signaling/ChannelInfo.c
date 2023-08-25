@@ -8,7 +8,8 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
 
     UINT32 allocSize, nameLen = 0, arnLen = 0, regionLen = 0, cplLen = 0, certLen = 0, postfixLen = 0, agentLen = 0, userAgentLen = 0, kmsLen = 0,
                       tagsSize;
-    PCHAR pCurPtr, pRegionPtr;
+    PCHAR pCurPtr, pRegionPtr, pUserAgentPostfixPtr;
+    CHAR agentString[MAX_CUSTOM_USER_AGENT_NAME_POSTFIX_LEN + 1];
     PChannelInfo pChannelInfo = NULL;
 
     CHK(pOrigChannelInfo != NULL && ppChannelInfo != NULL, STATUS_NULL_ARG);
@@ -49,10 +50,20 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
 
     userAgentLen = MAX_USER_AGENT_LEN;
 
-    if (pOrigChannelInfo->pUserAgentPostfix != NULL) {
+    if (pOrigChannelInfo->pUserAgentPostfix != NULL && STRCMP(pOrigChannelInfo->pUserAgentPostfix, EMPTY_STRING) != 0) {
         CHK((postfixLen = (UINT32) STRNLEN(pOrigChannelInfo->pUserAgentPostfix, MAX_CUSTOM_USER_AGENT_NAME_POSTFIX_LEN + 1)) <=
                 MAX_CUSTOM_USER_AGENT_NAME_POSTFIX_LEN,
             STATUS_SIGNALING_INVALID_AGENT_POSTFIX_LENGTH);
+        pUserAgentPostfixPtr = pOrigChannelInfo->pUserAgentPostfix;
+    } else {
+        // Account for the "/" in the agent string.
+        // The default user agent postfix is:AWS-WEBRTC-KVS-AGENT/<SDK-version>
+        postfixLen = STRLEN(SIGNALING_USER_AGENT_POSTFIX_NAME) + STRLEN(SIGNALING_USER_AGENT_POSTFIX_VERSION) + 1;
+        CHK(postfixLen <= MAX_CUSTOM_USER_AGENT_NAME_POSTFIX_LEN, STATUS_SIGNALING_INVALID_AGENT_POSTFIX_LENGTH);
+        SNPRINTF(agentString,
+                 postfixLen + 1, // account for null terminator
+                 (PCHAR) "%s/%s", SIGNALING_USER_AGENT_POSTFIX_NAME, SIGNALING_USER_AGENT_POSTFIX_VERSION);
+        pUserAgentPostfixPtr = agentString;
     }
 
     if (pOrigChannelInfo->pCustomUserAgent != NULL) {
@@ -143,7 +154,7 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
     }
 
     if (postfixLen != 0) {
-        STRCPY(pCurPtr, pOrigChannelInfo->pUserAgentPostfix);
+        STRCPY(pCurPtr, pUserAgentPostfixPtr);
         pChannelInfo->pUserAgentPostfix = pCurPtr;
         pCurPtr += ALIGN_UP_TO_MACHINE_WORD(postfixLen + 1);
     }
@@ -154,13 +165,13 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
         pCurPtr += ALIGN_UP_TO_MACHINE_WORD(agentLen + 1);
     }
 
-    getUserAgentString(pOrigChannelInfo->pUserAgentPostfix, pOrigChannelInfo->pCustomUserAgent, MAX_USER_AGENT_LEN, pCurPtr);
+    getUserAgentString(pUserAgentPostfixPtr, pOrigChannelInfo->pCustomUserAgent, MAX_USER_AGENT_LEN, pCurPtr);
     pChannelInfo->pUserAgent = pCurPtr;
     pChannelInfo->pUserAgent[MAX_USER_AGENT_LEN] = '\0';
     pCurPtr += ALIGN_UP_TO_MACHINE_WORD(userAgentLen + 1);
 
     if (kmsLen != 0) {
-        STRCPY(pCurPtr, pOrigChannelInfo->pCustomUserAgent);
+        STRCPY(pCurPtr, pOrigChannelInfo->pKmsKeyId);
         pChannelInfo->pKmsKeyId = pCurPtr;
         pCurPtr += ALIGN_UP_TO_MACHINE_WORD(kmsLen + 1);
     }

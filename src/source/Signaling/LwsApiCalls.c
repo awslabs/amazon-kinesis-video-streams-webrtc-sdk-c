@@ -1082,7 +1082,7 @@ STATUS getChannelEndpointLws(PSignalingClient pSignalingClient, UINT64 time)
                     i++;
                 } else if (compareJsonString(pResponseStr, &tokens[i], JSMN_STRING, (PCHAR) "ResourceEndpoint")) {
                     strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
-                    CHK(strLen <= MAX_CHANNEL_NAME_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
+                    CHK(strLen <= MAX_SIGNALING_ENDPOINT_URI_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
                     pEndpoint = pResponseStr + tokens[i + 1].start;
                     endpointLen = strLen;
                     endpoint = TRUE;
@@ -2011,9 +2011,13 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
         DLOGW("Failed to validate the ICE server configuration received with an Offer");
     }
 
+#ifdef KVS_USE_SIGNALING_CHANNEL_THREADPOOL
+    CHK_STATUS(threadpoolPush(pSignalingClient->pThreadpool, receiveLwsMessageWrapper, (PVOID) pSignalingMessageWrapper));
+#else
     // Issue the callback on a separate thread
     CHK_STATUS(THREAD_CREATE(&receivedTid, receiveLwsMessageWrapper, (PVOID) pSignalingMessageWrapper));
     CHK_STATUS(THREAD_DETACH(receivedTid));
+#endif
 
 CleanUp:
 
@@ -2154,8 +2158,11 @@ PVOID receiveLwsMessageWrapper(PVOID args)
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingMessageWrapper pSignalingMessageWrapper = (PSignalingMessageWrapper) args;
     PSignalingClient pSignalingClient = NULL;
+    SIGNALING_MESSAGE_TYPE messageType = SIGNALING_MESSAGE_TYPE_UNKNOWN;
 
     CHK(pSignalingMessageWrapper != NULL, STATUS_NULL_ARG);
+
+    messageType = pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.messageType;
 
     pSignalingClient = pSignalingMessageWrapper->pSignalingClient;
 
@@ -2166,6 +2173,12 @@ PVOID receiveLwsMessageWrapper(PVOID args)
 
     // Calling client receive message callback if specified
     if (pSignalingClient->signalingClientCallbacks.messageReceivedFn != NULL) {
+        if (messageType == SIGNALING_MESSAGE_TYPE_OFFER) {
+            pSignalingClient->offerTime = GETTIME();
+        }
+        if (messageType == SIGNALING_MESSAGE_TYPE_ANSWER) {
+            PROFILE_WITH_START_TIME_OBJ(pSignalingClient->offerTime, pSignalingClient->diagnostics.offerToAnswerTime, "Offer to answer time");
+        }
         CHK_STATUS(pSignalingClient->signalingClientCallbacks.messageReceivedFn(pSignalingClient->signalingClientCallbacks.customData,
                                                                                 &pSignalingMessageWrapper->receivedSignalingMessage));
     }

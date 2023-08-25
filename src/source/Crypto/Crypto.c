@@ -5,6 +5,7 @@ STATUS createRtcCertificate(PRtcCertificate* ppRtcCertificate)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
+    UINT64 startTimeInMacro = 0;
     PRtcCertificate pRtcCertificate = NULL;
 
     CHK(ppRtcCertificate != NULL, STATUS_NULL_ARG);
@@ -12,16 +13,18 @@ STATUS createRtcCertificate(PRtcCertificate* ppRtcCertificate)
     CHK(NULL != (pRtcCertificate = (PRtcCertificate) MEMCALLOC(1, SIZEOF(RtcCertificate))), STATUS_NOT_ENOUGH_MEMORY);
 
 #ifdef KVS_USE_OPENSSL
-    CHK_STATUS(createCertificateAndKey(GENERATED_CERTIFICATE_BITS, FALSE, (X509**) &pRtcCertificate->pCertificate,
-                                       (EVP_PKEY**) &pRtcCertificate->pPrivateKey));
+    PROFILE_CALL(CHK_STATUS(createCertificateAndKey(GENERATED_CERTIFICATE_BITS, FALSE, (X509**) &pRtcCertificate->pCertificate,
+                                                    (EVP_PKEY**) &pRtcCertificate->pPrivateKey)),
+                 "Certificate creation time");
 #elif KVS_USE_MBEDTLS
     // Need to allocate space for the cert and the key for mbedTLS
     CHK(NULL != (pRtcCertificate->pCertificate = (PBYTE) MEMCALLOC(1, SIZEOF(mbedtls_x509_crt))), STATUS_NOT_ENOUGH_MEMORY);
     CHK(NULL != (pRtcCertificate->pPrivateKey = (PBYTE) MEMCALLOC(1, SIZEOF(mbedtls_pk_context))), STATUS_NOT_ENOUGH_MEMORY);
     pRtcCertificate->certificateSize = SIZEOF(mbedtls_x509_crt);
     pRtcCertificate->privateKeySize = SIZEOF(mbedtls_pk_context);
-    CHK_STATUS(createCertificateAndKey(GENERATED_CERTIFICATE_BITS, FALSE, (mbedtls_x509_crt*) pRtcCertificate->pCertificate,
-                                       (mbedtls_pk_context*) pRtcCertificate->pPrivateKey));
+    PROFILE_CALL(CHK_STATUS(createCertificateAndKey(GENERATED_CERTIFICATE_BITS, FALSE, (mbedtls_x509_crt*) pRtcCertificate->pCertificate,
+                                                    (mbedtls_pk_context*) pRtcCertificate->pPrivateKey)),
+                 "Certificate creation time");
 #else
 #error "A Crypto implementation is required."
 #endif

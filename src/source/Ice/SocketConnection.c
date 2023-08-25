@@ -66,7 +66,12 @@ STATUS freeSocketConnection(PSocketConnection* ppSocketConnection)
     CHK(ppSocketConnection != NULL, STATUS_NULL_ARG);
     pSocketConnection = *ppSocketConnection;
     CHK(pSocketConnection != NULL, retStatus);
+
+    // connectionClosed is accessed and modified when checking if socket connection is closed
+    // Hence the modification needs to be protected
+    MUTEX_LOCK(pSocketConnection->lock);
     ATOMIC_STORE_BOOL(&pSocketConnection->connectionClosed, TRUE);
+    MUTEX_UNLOCK(pSocketConnection->lock);
 
     // Await for the socket connection to be released
     shutdownTimeout = GETTIME() + KVS_ICE_TURN_CONNECTION_SHUTDOWN_TIMEOUT;
@@ -130,8 +135,7 @@ VOID socketConnectionTlsSessionOnStateChange(UINT64 customData, TLS_SESSION_STAT
             break;
         case TLS_SESSION_STATE_CONNECTED:
             if (IS_VALID_TIMESTAMP(pSocketConnection->tlsHandshakeStartTime)) {
-                DLOGD("TLS handshake done. Time taken %" PRIu64 " ms",
-                      (GETTIME() - pSocketConnection->tlsHandshakeStartTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+                PROFILE_WITH_START_TIME(pSocketConnection->tlsHandshakeStartTime, "TLS handshake time");
                 pSocketConnection->tlsHandshakeStartTime = INVALID_TIMESTAMP_VALUE;
             }
             break;
@@ -186,7 +190,7 @@ STATUS socketConnectionSendData(PSocketConnection pSocketConnection, PBYTE pBuf,
 
     // Using a single CHK_WARN might output too much spew in bad network conditions
     if (ATOMIC_LOAD_BOOL(&pSocketConnection->connectionClosed)) {
-        DLOGD("Warning: Failed to send data. Socket closed already");
+        DLOGW("Warning: Failed to send data. Socket closed already");
         CHK(FALSE, STATUS_SOCKET_CONNECTION_CLOSED_ALREADY);
     }
 
@@ -365,16 +369,16 @@ STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, U
 
                 if (result == 0) {
                     /* loop back and try again */
-                    DLOGD("poll() timed out");
+                    DLOGE("poll() timed out");
                 } else if (result < 0) {
-                    DLOGD("poll() failed with errno %s", getErrorString(getErrorCode()));
+                    DLOGE("poll() failed with errno %s", getErrorString(getErrorCode()));
                     break;
                 }
             } else if (errorNum == EINTR) {
                 /* nothing need to be done, just retry */
             } else {
                 /* fatal error from send() */
-                DLOGD("sendto() failed with errno %s", getErrorString(errorNum));
+                DLOGE("sendto() failed with errno %s", getErrorString(errorNum));
                 break;
             }
 
