@@ -734,6 +734,7 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
     CHK_STATUS(doubleListCreate(&(pKvsPeerConnection->pAnswerTransceivers)));
 
     pKvsPeerConnection->pSrtpSessionLock = MUTEX_CREATE(TRUE);
+    pKvsPeerConnection->pSctpSessionLock = MUTEX_CREATE(TRUE);
     pKvsPeerConnection->peerConnectionObjLock = MUTEX_CREATE(FALSE);
     pKvsPeerConnection->connectionState = RTC_PEER_CONNECTION_STATE_NONE;
     pKvsPeerConnection->MTU = pConfiguration->kvsRtcConfiguration.maximumTransmissionUnit == 0
@@ -847,6 +848,9 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
     CHK_LOG_ERR(hashTableFree(pKvsPeerConnection->pRtxTable));
     if (IS_VALID_MUTEX_VALUE(pKvsPeerConnection->pSrtpSessionLock)) {
         MUTEX_FREE(pKvsPeerConnection->pSrtpSessionLock);
+    }
+    if (IS_VALID_MUTEX_VALUE(pKvsPeerConnection->pSctpSessionLock)) {
+        MUTEX_FREE(pKvsPeerConnection->pSctpSessionLock);
     }
 
     if (IS_VALID_MUTEX_VALUE(pKvsPeerConnection->peerConnectionObjLock)) {
@@ -1060,6 +1064,7 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
     STATUS retStatus = STATUS_SUCCESS;
     PCHAR remoteIceUfrag = NULL, remoteIcePwd = NULL;
     UINT32 i, j;
+    BOOL locked = false;
 
     CHK(pPeerConnection != NULL, STATUS_NULL_ARG);
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pPeerConnection;
@@ -1092,10 +1097,14 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
     for (i = 0; i < pSessionDescription->mediaCount; i++) {
 #ifdef ENABLE_DATA_CHANNEL
         if (STRNCMP(pSessionDescription->mediaDescriptions[i].mediaName, "application", SIZEOF("application") - 1) == 0) {
+            MUTEX_LOCK(pKvsPeerConnection->pSctpSessionLock);
+            locked = TRUE;
             if (!pKvsPeerConnection->isOffer && !pKvsPeerConnection->sctpIsEnabled) {
                 CHK_STATUS(initSctpSession());
                 pKvsPeerConnection->sctpIsEnabled = TRUE;
             }
+            MUTEX_UNLOCK(pKvsPeerConnection->pSctpSessionLock);
+            locked = FALSE;
         }
 #endif
 
@@ -1157,6 +1166,11 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
 
 CleanUp:
 
+    if (locked) {
+        MUTEX_UNLOCK(pKvsPeerConnection->pSctpSessionLock);
+        locked = FALSE;
+    }
+
     LEAVES();
     return retStatus;
 }
@@ -1167,6 +1181,7 @@ STATUS createOffer(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionIni
     STATUS retStatus = STATUS_SUCCESS;
     PSessionDescription pSessionDescription = NULL;
     UINT32 serializeLen = 0;
+    BOOL locked = FALSE;
 
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pPeerConnection;
 
@@ -1178,10 +1193,14 @@ STATUS createOffer(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionIni
     pKvsPeerConnection->isOffer = TRUE;
 
 #ifdef ENABLE_DATA_CHANNEL
+    MUTEX_LOCK(pKvsPeerConnection->pSctpSessionLock);
+    locked = TRUE;
     if (!pKvsPeerConnection->sctpIsEnabled) {
         CHK_STATUS(initSctpSession());
         pKvsPeerConnection->sctpIsEnabled = TRUE;
     }
+    MUTEX_UNLOCK(pKvsPeerConnection->pSctpSessionLock);
+    locked = FALSE;
 #endif
 
     CHK_STATUS(setPayloadTypesForOffer(pKvsPeerConnection->pCodecTable));
@@ -1197,6 +1216,11 @@ STATUS createOffer(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionIni
         DLOGD("LOCAL_SDP:%s", pSessionDescriptionInit->sdp);
     }
 CleanUp:
+
+    if (locked) {
+        MUTEX_UNLOCK(pKvsPeerConnection->pSctpSessionLock);
+        locked = FALSE;
+    }
 
     SAFE_MEMFREE(pSessionDescription);
 

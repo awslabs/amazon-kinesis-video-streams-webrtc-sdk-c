@@ -61,28 +61,35 @@ TEST_F(SignalingApiTest, testChannelArnsValid)
 
     channelInfo.pChannelArn = arn1;
     EXPECT_EQ(createValidateChannelInfo(&channelInfo, &pChannelInfo), STATUS_SUCCESS);
+    freeChannelInfo(&pChannelInfo);
+
 
     channelInfo.pChannelArn = arn2;
     EXPECT_EQ(createValidateChannelInfo(&channelInfo, &pChannelInfo), STATUS_SUCCESS);
+    freeChannelInfo(&pChannelInfo);
 
     channelInfo.pChannelArn = arn3;
     EXPECT_EQ(createValidateChannelInfo(&channelInfo, &pChannelInfo), STATUS_SUCCESS);
+    freeChannelInfo(&pChannelInfo);
 
     channelInfo.pChannelArn = arn4;
     EXPECT_EQ(createValidateChannelInfo(&channelInfo, &pChannelInfo), STATUS_SUCCESS);
+    freeChannelInfo(&pChannelInfo);
 
     channelInfo.pChannelArn = arn5;
     EXPECT_EQ(createValidateChannelInfo(&channelInfo, &pChannelInfo), STATUS_SUCCESS);
+    freeChannelInfo(&pChannelInfo);
 
     channelInfo.pChannelArn = arn6;
     EXPECT_EQ(createValidateChannelInfo(&channelInfo, &pChannelInfo), STATUS_SUCCESS);
+    freeChannelInfo(&pChannelInfo);
 
     channelInfo.pChannelArn = arn7;
     EXPECT_EQ(createValidateChannelInfo(&channelInfo, &pChannelInfo), STATUS_SUCCESS);
+    freeChannelInfo(&pChannelInfo);
 
     channelInfo.pChannelArn = arn8;
     EXPECT_EQ(createValidateChannelInfo(&channelInfo, &pChannelInfo), STATUS_SUCCESS);
-
     freeChannelInfo(&pChannelInfo);
 }
 
