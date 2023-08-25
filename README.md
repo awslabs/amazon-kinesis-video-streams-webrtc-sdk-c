@@ -6,10 +6,6 @@
 <h4 align="center">Pure C WebRTC Client for Amazon Kinesis Video Streams </h4>
 
 <p align="center">
-  <a href="https://codecov.io/gh/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c"> <img src="https://codecov.io/gh/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/branch/master/graph/badge.svg" alt="Coverage Status"> </a>
-</p>
-
-<p align="center">
   <a href="#key-features">Key Features</a> •
   <a href="#build">Build</a> •
   <a href="#run">Run</a> •
@@ -19,6 +15,9 @@
   <a href="#related">Related</a> •
   <a href="#license">License</a>
 </p>
+
+## New feature announcements
+Please refer to the release notes in [Releases](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/releases) page
 
 ## Key Features
 * Audio/Video Support
@@ -80,7 +79,7 @@ These would be applicable if the SDK is being linked with system dependencies in
 
 #### Cross-Compilation
 
-If you wish to cross-compile `CC` and `CXX` are respected when building the library and all its dependencies. You will also need to set `BUILD_OPENSSL_PLATFORM`, `BUILD_LIBSRTP_HOST_PLATFORM` and `BUILD_LIBSRTP_DESTINATION_PLATFORM`. See our [.travis.yml](.travis.yml) for an example of this. Every commit is cross compiled to ensure that it continues to work.
+If you wish to cross-compile `CC` and `CXX` are respected when building the library and all its dependencies. You will also need to set `BUILD_OPENSSL_PLATFORM`, `BUILD_LIBSRTP_HOST_PLATFORM` and `BUILD_LIBSRTP_DESTINATION_PLATFORM`. See our codecov.io for an example of this. Every commit is cross compiled to ensure that it continues to work.
 
 #### Static Builds
 
@@ -172,6 +171,7 @@ Set up the desired log level. The log levels and corresponding values currently 
 5. `LOG_LEVEL_ERROR`   ---- 5
 6. `LOG_LEVEL_FATAL`   ---- 6
 7. `LOG_LEVEL_SILENT`  ---- 7
+8. `LOG_LEVEL_PROFILE` ---- 8
 
 To set a log level, run the following command:
 ```
@@ -185,7 +185,7 @@ export AWS_KVS_LOG_LEVEL = 2 switches on DEBUG level logs while runnning the sam
 
 Note: The default log level is `LOG_LEVEL_WARN`.
 
-Starting v1.7.x (**TO_BE_UPDATED**), by default, the SDK creates a log file that would have execution timing details of certain steps in connection establishment. It would be stored in the `build` directory as `kvsFileLogFilter.x`. In case you do not want to use defaults, you can modify certain parameters such as log file directory, log file size and file rotation index in the `createFileLoggerWithLevelFiltering` function in the samples.
+Starting v1.8.0, by default, the SDK creates a log file that would have execution timing details of certain steps in connection establishment. It would be stored in the `build` directory as `kvsFileLogFilter.x`. In case you do not want to use defaults, you can modify certain parameters such as log file directory, log file size and file rotation index in the `createFileLoggerWithLevelFiltering` function in the samples.
 In addition to these logs, if you would like to have other level logs in a file as well, run:
 
 ```
