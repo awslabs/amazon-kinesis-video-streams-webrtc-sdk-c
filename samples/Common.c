@@ -625,7 +625,6 @@ CleanUp:
 }
 
 VOID sampleVideoFrameHandler(UINT64 customData, PFrame pFrame)
-<<<<<<< HEAD
 {
     UNUSED_PARAM(customData);
     DLOGV("Video Frame received. TrackId: %" PRIu64 ", Size: %u, Flags %u", pFrame->trackId, pFrame->size, pFrame->flags);
@@ -638,17 +637,9 @@ VOID sampleAudioFrameHandler(UINT64 customData, PFrame pFrame)
 }
 
 VOID sampleFrameHandler(UINT64 customData, PFrame pFrame)
-=======
->>>>>>> master
 {
     UNUSED_PARAM(customData);
     DLOGV("Video Frame received. TrackId: %" PRIu64 ", Size: %u, Flags %u", pFrame->trackId, pFrame->size, pFrame->flags);
-}
-
-VOID sampleAudioFrameHandler(UINT64 customData, PFrame pFrame)
-{
-    UNUSED_PARAM(customData);
-    DLOGV("Audio Frame received. TrackId: %" PRIu64 ", Size: %u, Flags %u", pFrame->trackId, pFrame->size, pFrame->flags);
 }
 
 VOID sampleBandwidthEstimationHandler(UINT64 customData, DOUBLE maximumBitrate)
@@ -764,13 +755,8 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     CHK(NULL != (pSampleConfiguration = (PSampleConfiguration) MEMCALLOC(1, SIZEOF(SampleConfiguration))), STATUS_NOT_ENOUGH_MEMORY);
 
 #ifdef IOT_CORE_ENABLE_CREDENTIALS
-<<<<<<< HEAD
     PCHAR pIotCoreCredentialEndPoint, pIotCoreCert, pIotCorePrivateKey, pIotCoreRoleAlias, pIotCoreThingName;
     CHK_ERR((pIotCoreCredentialEndPoint = GETENV(IOT_CORE_CREDENTIAL_ENDPOINT)) != NULL, STATUS_INVALID_OPERATION,
-=======
-    PCHAR pIotCoreCredentialEndPoint, pIotCoreCert, pIotCorePrivateKey, pIotCoreRoleAlias, pIotCoreCertificateId;
-    CHK_ERR((pIotCoreCredentialEndPoint = getenv(IOT_CORE_CREDENTIAL_ENDPOINT)) != NULL, STATUS_INVALID_OPERATION,
->>>>>>> master
             "AWS_IOT_CORE_CREDENTIAL_ENDPOINT must be set");
     CHK_ERR((pIotCoreCert = GETENV(IOT_CORE_CERT)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_CERT must be set");
     CHK_ERR((pIotCorePrivateKey = GETENV(IOT_CORE_PRIVATE_KEY)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_PRIVATE_KEY must be set");
