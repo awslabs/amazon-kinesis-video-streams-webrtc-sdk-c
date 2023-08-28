@@ -443,7 +443,6 @@ STATUS executeDescribeSignalingState(UINT64 customData, UINT64 time)
     // Call the aggregate function
     PROFILE_CALL_WITH_T_OBJ(retStatus = describeChannel(pSignalingClient, time), pSignalingClient->diagnostics.describeCallTime,
                             "Describe signaling call");
-<<<<<<< HEAD
 
 CleanUp:
 
@@ -512,8 +511,6 @@ STATUS executeDescribeMediaStorageConfState(UINT64 customData, UINT64 time)
     // Call the aggregate function
     PROFILE_CALL_WITH_T_OBJ(retStatus = describeMediaStorageConf(pSignalingClient, time), pSignalingClient->diagnostics.describeMediaCallTime,
                             "Describe Media Storage call");
-=======
->>>>>>> master
 
 CleanUp:
 
