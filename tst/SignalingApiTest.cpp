@@ -249,9 +249,7 @@ TEST_F(SignalingApiTest, signalingSendMessageSyncFileCredsProvider)
     UINT32 length = ARRAY_SIZE(fileContent);
     CHAR futureTime[] = "2200-06-05T09:39:36Z";
 
-    if (!mAccessKeyIdSet) {
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     if (mSessionToken == NULL) {
         // Store the credentials in a file under the current dir
@@ -446,9 +444,7 @@ TEST_F(SignalingApiTest, signalingClientGetMetrics)
     EXPECT_NE(STATUS_SUCCESS, signalingClientGetMetrics(INVALID_SIGNALING_CLIENT_HANDLE_VALUE, NULL));
     EXPECT_NE(STATUS_SUCCESS, signalingClientGetMetrics(mSignalingClientHandle, NULL));
 
-    if (!mAccessKeyIdSet) {
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     initializeSignalingClient();
     // Valid call

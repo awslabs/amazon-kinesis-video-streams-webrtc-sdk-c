@@ -80,7 +80,12 @@ STATUS freeSocketConnection(PSocketConnection* ppSocketConnection)
     CHK(ppSocketConnection != NULL, STATUS_NULL_ARG);
     pSocketConnection = *ppSocketConnection;
     CHK(pSocketConnection != NULL, retStatus);
+
+    // connectionClosed is accessed and modified when checking if socket connection is closed
+    // Hence the modification needs to be protected
+    MUTEX_LOCK(pSocketConnection->lock);
     ATOMIC_STORE_BOOL(&pSocketConnection->connectionClosed, TRUE);
+    MUTEX_UNLOCK(pSocketConnection->lock);
 
     // Await for the socket connection to be released
     shutdownTimeout = GETTIME() + KVS_ICE_TURN_CONNECTION_SHUTDOWN_TIMEOUT;

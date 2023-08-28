@@ -64,7 +64,7 @@ STATUS createSignalingClientSync(PSignalingClientInfo pClientInfo, PChannelInfo 
     UINT64 signalingClientCreationWaitTime;
     UINT64 startTime = 0;
 
-    DLOGV("Creating Signaling Client Sync");
+    DLOGI("Creating Signaling Client Sync");
     CHK(pSignalingHandle != NULL && pClientInfo != NULL, STATUS_NULL_ARG);
 
     // Convert the client info to the internal structure with empty values

@@ -625,6 +625,7 @@ CleanUp:
 }
 
 VOID sampleVideoFrameHandler(UINT64 customData, PFrame pFrame)
+<<<<<<< HEAD
 {
     UNUSED_PARAM(customData);
     DLOGV("Video Frame received. TrackId: %" PRIu64 ", Size: %u, Flags %u", pFrame->trackId, pFrame->size, pFrame->flags);
@@ -637,15 +638,17 @@ VOID sampleAudioFrameHandler(UINT64 customData, PFrame pFrame)
 }
 
 VOID sampleFrameHandler(UINT64 customData, PFrame pFrame)
+=======
+>>>>>>> master
 {
     UNUSED_PARAM(customData);
-    DLOGV("Frame received. TrackId: %" PRIu64 ", Size: %u, Flags %u", pFrame->trackId, pFrame->size, pFrame->flags);
-    PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) customData;
-    if (pSampleStreamingSession->firstFrame) {
-        pSampleStreamingSession->firstFrame = FALSE;
-        pSampleStreamingSession->startUpLatency = (GETTIME() - pSampleStreamingSession->offerReceiveTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
-        printf("Start up latency from offer to first frame: %" PRIu64 "ms\n", pSampleStreamingSession->startUpLatency);
-    }
+    DLOGV("Video Frame received. TrackId: %" PRIu64 ", Size: %u, Flags %u", pFrame->trackId, pFrame->size, pFrame->flags);
+}
+
+VOID sampleAudioFrameHandler(UINT64 customData, PFrame pFrame)
+{
+    UNUSED_PARAM(customData);
+    DLOGV("Audio Frame received. TrackId: %" PRIu64 ", Size: %u, Flags %u", pFrame->trackId, pFrame->size, pFrame->flags);
 }
 
 VOID sampleBandwidthEstimationHandler(UINT64 customData, DOUBLE maximumBitrate)
@@ -761,8 +764,13 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     CHK(NULL != (pSampleConfiguration = (PSampleConfiguration) MEMCALLOC(1, SIZEOF(SampleConfiguration))), STATUS_NOT_ENOUGH_MEMORY);
 
 #ifdef IOT_CORE_ENABLE_CREDENTIALS
+<<<<<<< HEAD
     PCHAR pIotCoreCredentialEndPoint, pIotCoreCert, pIotCorePrivateKey, pIotCoreRoleAlias, pIotCoreThingName;
     CHK_ERR((pIotCoreCredentialEndPoint = GETENV(IOT_CORE_CREDENTIAL_ENDPOINT)) != NULL, STATUS_INVALID_OPERATION,
+=======
+    PCHAR pIotCoreCredentialEndPoint, pIotCoreCert, pIotCorePrivateKey, pIotCoreRoleAlias, pIotCoreCertificateId;
+    CHK_ERR((pIotCoreCredentialEndPoint = getenv(IOT_CORE_CREDENTIAL_ENDPOINT)) != NULL, STATUS_INVALID_OPERATION,
+>>>>>>> master
             "AWS_IOT_CORE_CREDENTIAL_ENDPOINT must be set");
     CHK_ERR((pIotCoreCert = GETENV(IOT_CORE_CERT)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_CERT must be set");
     CHK_ERR((pIotCorePrivateKey = GETENV(IOT_CORE_PRIVATE_KEY)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_PRIVATE_KEY must be set");
@@ -825,6 +833,11 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
 
     pSampleConfiguration->channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
     pSampleConfiguration->channelInfo.pChannelName = channelName;
+#ifdef IOT_CORE_ENABLE_CREDENTIALS
+    if ((pIotCoreCertificateId = getenv(IOT_CORE_CERTIFICATE_ID)) != NULL) {
+        pSampleConfiguration->channelInfo.pChannelName = pIotCoreCertificateId;
+    }
+#endif
     pSampleConfiguration->channelInfo.pKmsKeyId = NULL;
     pSampleConfiguration->channelInfo.tagCount = 0;
     pSampleConfiguration->channelInfo.pTags = NULL;
@@ -1117,27 +1130,6 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
     pSampleConfiguration = *ppSampleConfiguration;
 
     CHK(pSampleConfiguration != NULL, retStatus);
-    if (IS_VALID_TIMER_QUEUE_HANDLE(pSampleConfiguration->timerQueueHandle)) {
-        if (pSampleConfiguration->iceCandidatePairStatsTimerId != MAX_UINT32) {
-            retStatus = timerQueueCancelTimer(pSampleConfiguration->timerQueueHandle, pSampleConfiguration->iceCandidatePairStatsTimerId,
-                                              (UINT64) pSampleConfiguration);
-            if (STATUS_FAILED(retStatus)) {
-                DLOGE("Failed to cancel stats timer with: 0x%08x", retStatus);
-            }
-            pSampleConfiguration->iceCandidatePairStatsTimerId = MAX_UINT32;
-        }
-
-        if (pSampleConfiguration->pregenerateCertTimerId != MAX_UINT32) {
-            retStatus = timerQueueCancelTimer(pSampleConfiguration->timerQueueHandle, pSampleConfiguration->pregenerateCertTimerId,
-                                              (UINT64) pSampleConfiguration);
-            if (STATUS_FAILED(retStatus)) {
-                DLOGE("Failed to cancel certificate pre-generation timer with: 0x%08x", retStatus);
-            }
-            pSampleConfiguration->pregenerateCertTimerId = MAX_UINT32;
-        }
-
-        timerQueueFree(&pSampleConfiguration->timerQueueHandle);
-    }
 
     if (IS_VALID_TIMER_QUEUE_HANDLE(pSampleConfiguration->timerQueueHandle)) {
         if (pSampleConfiguration->iceCandidatePairStatsTimerId != MAX_UINT32) {

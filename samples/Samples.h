@@ -47,6 +47,7 @@ extern "C" {
 #define IOT_CORE_PRIVATE_KEY         ((PCHAR) "AWS_IOT_CORE_PRIVATE_KEY")
 #define IOT_CORE_ROLE_ALIAS          ((PCHAR) "AWS_IOT_CORE_ROLE_ALIAS")
 #define IOT_CORE_THING_NAME          ((PCHAR) "AWS_IOT_CORE_THING_NAME")
+#define IOT_CORE_CERTIFICATE_ID      ((PCHAR) "AWS_IOT_CORE_CERTIFICATE_ID")
 
 #define MASTER_DATA_CHANNEL_MESSAGE "This message is from the KVS Master"
 #define VIEWER_DATA_CHANNEL_MESSAGE "This message is from the KVS Viewer"
@@ -57,9 +58,6 @@ extern "C" {
 
 // comment out this line to disable the feature
 #define KVS_USE_SIGNALING_CHANNEL_THREADPOOL 1
-
-#define MASTER_DATA_CHANNEL_MESSAGE "This message is from the KVS Master"
-#define VIEWER_DATA_CHANNEL_MESSAGE "This message is from the KVS Viewer"
 
 /* Uncomment the following line in order to enable IoT credentials checks in the provided samples */
 // #define IOT_CORE_ENABLE_CREDENTIALS  1

@@ -6,10 +6,6 @@
 <h4 align="center">Pure C WebRTC Client for Amazon Kinesis Video Streams </h4>
 
 <p align="center">
-  <a href="https://codecov.io/gh/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c"> <img src="https://codecov.io/gh/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/branch/master/graph/badge.svg" alt="Coverage Status"> </a>
-</p>
-
-<p align="center">
   <a href="#key-features">Key Features</a> •
   <a href="#build">Build</a> •
   <a href="#run">Run</a> •
@@ -19,6 +15,9 @@
   <a href="#related">Related</a> •
   <a href="#license">License</a>
 </p>
+
+## New feature announcements
+Please refer to the release notes in [Releases](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/releases) page
 
 ## Key Features
 * Audio/Video Support
@@ -174,6 +173,7 @@ Set up the desired log level. The log levels and corresponding values currently 
 5. `LOG_LEVEL_ERROR`   ---- 5
 6. `LOG_LEVEL_FATAL`   ---- 6
 7. `LOG_LEVEL_SILENT`  ---- 7
+8. `LOG_LEVEL_PROFILE` ---- 8
 
 To set a log level, run the following command:
 ```
@@ -187,7 +187,7 @@ export AWS_KVS_LOG_LEVEL = 2 switches on DEBUG level logs while runnning the sam
 
 Note: The default log level is `LOG_LEVEL_WARN`.
 
-Starting v1.7.x (**TO_BE_UPDATED**), by default, the SDK creates a log file that would have execution timing details of certain steps in connection establishment. It would be stored in the `build` directory as `kvsFileLogFilter.x`. In case you do not want to use defaults, you can modify certain parameters such as log file directory, log file size and file rotation index in the `createFileLoggerWithLevelFiltering` function in the samples.
+Starting v1.8.0, by default, the SDK creates a log file that would have execution timing details of certain steps in connection establishment. It would be stored in the `build` directory as `kvsFileLogFilter.x`. In case you do not want to use defaults, you can modify certain parameters such as log file directory, log file size and file rotation index in the `createFileLoggerWithLevelFiltering` function in the samples.
 In addition to these logs, if you would like to have other level logs in a file as well, run:
 
 ```
@@ -206,11 +206,6 @@ By defaut, the SSL CA certificate is set to `../certs/cert.pem` which points to 
 
 ### Running the Samples
 After executing `make` you will have sample applications in your `build/samples` directory. From the `build/` directory, run any of the sample applications by passing to it the name of your signaling channel. If a signaling channel does not exist with the name you provide, the application creates one.
-
-* `kvsWebrtcClientMaster` - This application sends sample H264/Opus frames (path: `/samples/h264SampleFrames` and `/samples/opusSampleFrames`) via WebRTC. It also accepts incoming audio, if enabled in the browser. When checked in the browser, it prints the metadata of the received audio packets in your terminal.
-* `kvsWebrtcClientViewer` - This application accepts sample H264/Opus frames and prints them out.
-* `kvsWebrtcClientMasterGstSample` - This application sends sample H264/Opus frames from a GStreamer pipeline. It also will playback incoming audio via an `autoaudiosink`.
-* `kvsWebRTCClientBasicStorageSession` - This application ingests sample video & audio frames and demonstrates how to store WebRTC media in Kinesis Video Streams
 
 #### Sample: kvsWebrtcClientMaster
 This application sends sample H264/Opus frames (path: `/samples/h264SampleFrames` and `/samples/opusSampleFrames`) via WebRTC. It also accepts incoming audio, if enabled in the browser. When checked in the browser, it prints the metadata of the received audio packets in your terminal. To run:
@@ -234,11 +229,6 @@ Pass the desired media and source type when running the sample. The mediaType ca
 ./samples/kvsWebrtcClientMasterGstSample <channelName> <mediaType> rtspsrc rtsp://<rtspUri>
 ```
 
-#### Sample: kvsWebRTCClientBasicStorageSession
-This application uses a signaling channel which has a media storage configuration enabled.  In this case there are no viewers, the KVS service will send an offer and the applicaation is set up to receive the offer and send an answer to the KVS backend and begin streaming. The video will be ingested into the Stream resource specified in the media source configuration associated with the signaling channel.
-```
-./samples/kvsWebRTCClientBasicStorageSession <channelName>
-```
 
 ### Viewing Master Samples
 

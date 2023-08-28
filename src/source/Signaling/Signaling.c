@@ -41,11 +41,7 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     CHK_STATUS(threadpoolCreate(&pSignalingClient->pThreadpool, pClientInfo->signalingClientInfo.signalingMessagesMinimumThreads,
                                 pClientInfo->signalingClientInfo.signalingMessagesMaximumThreads));
 #endif
-
     pSignalingClient->version = SIGNALING_CLIENT_CURRENT_VERSION;
-
-    pSignalingClient->version = SIGNALING_CLIENT_CURRENT_VERSION;
-
     // Set invalid call times
     pSignalingClient->describeTime = INVALID_TIMESTAMP_VALUE;
     pSignalingClient->createTime = INVALID_TIMESTAMP_VALUE;

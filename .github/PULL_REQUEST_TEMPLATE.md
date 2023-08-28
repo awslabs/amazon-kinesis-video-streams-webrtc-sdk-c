@@ -1,15 +1,11 @@
 *Issue #, if available:*
 
-*Description of changes:*
+*What was changed?*
 
-    * What was changed
-    * Why was it changed
-    * How it was changed
-    * Changes in upcoming PRs (if the PR is part of a feature item and modularized)
+*Why was it changed?*
 
-*Testing:*
+*How was it changed?*
 
-    * Unit test (if included in the PR)
-    * Local test (how the changes were tested locally)
+*What testing was done for the changes?*
 
 By submitting this pull request, I confirm that you can use, modify, copy, and redistribute this contribution, under the terms of your choice.

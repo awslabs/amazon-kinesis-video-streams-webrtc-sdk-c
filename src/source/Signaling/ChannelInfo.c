@@ -70,7 +70,7 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
 
     userAgentLen = MAX_USER_AGENT_LEN;
 
-    if (pOrigChannelInfo->pUserAgentPostfix != NULL) {
+    if (pOrigChannelInfo->pUserAgentPostfix != NULL && STRCMP(pOrigChannelInfo->pUserAgentPostfix, EMPTY_STRING) != 0) {
         CHK((userAgentPostfixLen = (UINT32) STRNLEN(pOrigChannelInfo->pUserAgentPostfix, MAX_CUSTOM_USER_AGENT_NAME_POSTFIX_LEN + 1)) <=
                 MAX_CUSTOM_USER_AGENT_NAME_POSTFIX_LEN,
             STATUS_SIGNALING_INVALID_AGENT_POSTFIX_LENGTH);

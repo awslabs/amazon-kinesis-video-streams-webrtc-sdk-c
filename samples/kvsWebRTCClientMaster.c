@@ -30,7 +30,9 @@ INT32 main(INT32 argc, CHAR* argv[])
     pSampleConfiguration->audioSource = sendAudioPackets;
     pSampleConfiguration->videoSource = sendVideoPackets;
     pSampleConfiguration->receiveAudioVideoSource = sampleReceiveAudioVideoFrame;
-
+#ifdef ENABLE_DATA_CHANNEL
+    pSampleConfiguration->onDataChannel = onDataChannel;
+#endif
     pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
     DLOGI("[KVS Master] Finished setting handlers");
 
@@ -63,20 +65,6 @@ CleanUp:
     if (pSampleConfiguration != NULL) {
         // Kick of the termination sequence
         ATOMIC_STORE_BOOL(&pSampleConfiguration->appTerminateFlag, TRUE);
-
-        if (IS_VALID_MUTEX_VALUE(pSampleConfiguration->sampleConfigurationObjLock)) {
-            MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
-        }
-
-        // Cancel the media thread
-        if (pSampleConfiguration->mediaThreadStarted) {
-            DLOGD("Canceling media thread");
-            THREAD_CANCEL(pSampleConfiguration->mediaSenderTid);
-        }
-
-        if (IS_VALID_MUTEX_VALUE(pSampleConfiguration->sampleConfigurationObjLock)) {
-            MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
-        }
 
         if (pSampleConfiguration->mediaSenderTid != INVALID_TID_VALUE) {
             THREAD_JOIN(pSampleConfiguration->mediaSenderTid, NULL);
