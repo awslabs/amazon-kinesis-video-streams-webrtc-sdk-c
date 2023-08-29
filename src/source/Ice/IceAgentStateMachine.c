@@ -33,6 +33,7 @@ STATUS stepIceAgentStateMachine(PIceAgent pIceAgent)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
+    STATUS iceAgentStatus = STATUS_SUCCESS;
     UINT64 oldState;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
@@ -41,8 +42,13 @@ STATUS stepIceAgentStateMachine(PIceAgent pIceAgent)
 
     CHK_STATUS(stepStateMachine(pIceAgent->pStateMachine));
 
+    MUTEX_LOCK(pIceAgent->lock);
+    iceAgentStatus = pIceAgent->iceAgentStatus;
+    MUTEX_UNLOCK(pIceAgent->lock);
+
+
     // if any failure happened and state machine is not in failed state, stepStateMachine again into failed state.
-    if (pIceAgent->iceAgentState != ICE_AGENT_STATE_FAILED && STATUS_FAILED(pIceAgent->iceAgentStatus)) {
+    if (pIceAgent->iceAgentState != ICE_AGENT_STATE_FAILED && STATUS_FAILED(iceAgentStatus)) {
         CHK_STATUS(stepStateMachine(pIceAgent->pStateMachine));
     }
 
@@ -283,7 +289,9 @@ STATUS executeCheckConnectionIceAgentState(UINT64 customData, UINT64 time)
 CleanUp:
 
     if (STATUS_FAILED(retStatus)) {
+        MUTEX_LOCK(pIceAgent->lock);
         pIceAgent->iceAgentStatus = retStatus;
+        MUTEX_UNLOCK(pIceAgent->lock);
 
         // fix up retStatus so we can successfully transition to failed state.
         retStatus = STATUS_SUCCESS;
@@ -357,7 +365,9 @@ STATUS executeConnectedIceAgentState(UINT64 customData, UINT64 time)
 CleanUp:
 
     if (STATUS_FAILED(retStatus)) {
+        MUTEX_LOCK(pIceAgent->lock);
         pIceAgent->iceAgentStatus = retStatus;
+        MUTEX_UNLOCK(pIceAgent->lock);
 
         // fix up retStatus so we can successfully transition to failed state.
         retStatus = STATUS_SUCCESS;
@@ -457,7 +467,9 @@ STATUS executeNominatingIceAgentState(UINT64 customData, UINT64 time)
 CleanUp:
 
     if (STATUS_FAILED(retStatus)) {
+        MUTEX_LOCK(pIceAgent->lock);
         pIceAgent->iceAgentStatus = retStatus;
+        MUTEX_UNLOCK(pIceAgent->lock);
 
         // fix up retStatus so we can successfully transition to failed state.
         retStatus = STATUS_SUCCESS;
@@ -544,7 +556,9 @@ STATUS executeReadyIceAgentState(UINT64 customData, UINT64 time)
 CleanUp:
 
     if (STATUS_FAILED(retStatus)) {
+        MUTEX_LOCK(pIceAgent->lock);
         pIceAgent->iceAgentStatus = retStatus;
+        MUTEX_UNLOCK(pIceAgent->lock);
 
         // fix up retStatus so we can successfully transition to failed state.
         retStatus = STATUS_SUCCESS;
@@ -627,7 +641,9 @@ STATUS executeDisconnectedIceAgentState(UINT64 customData, UINT64 time)
 CleanUp:
 
     if (STATUS_FAILED(retStatus)) {
+        MUTEX_LOCK(pIceAgent->lock);
         pIceAgent->iceAgentStatus = retStatus;
+        MUTEX_UNLOCK(pIceAgent->lock);
 
         // fix up retStatus so we can successfully transition to failed state.
         retStatus = STATUS_SUCCESS;
@@ -659,6 +675,7 @@ STATUS executeFailedIceAgentState(UINT64 customData, UINT64 time)
     ENTERS();
     UNUSED_PARAM(time);
     STATUS retStatus = STATUS_SUCCESS;
+    STATUS iceAgentStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
     const PCHAR errMsgPrefix = (PCHAR) "IceAgent fatal error:";
 
@@ -667,13 +684,17 @@ STATUS executeFailedIceAgentState(UINT64 customData, UINT64 time)
 
     pIceAgent->iceAgentState = ICE_AGENT_STATE_FAILED;
 
+    MUTEX_LOCK(pIceAgent->lock);
+    iceAgentStatus = pIceAgent->iceAgentStatus;
+    MUTEX_UNLOCK(pIceAgent->lock);
+
     // log some debug info about the failure once.
-    switch (pIceAgent->iceAgentStatus) {
+    switch (iceAgentStatus) {
         case STATUS_ICE_NO_AVAILABLE_ICE_CANDIDATE_PAIR:
             DLOGE("%s No ice candidate pairs available to make connection.", errMsgPrefix);
             break;
         default:
-            DLOGE("IceAgent failed with 0x%08x", pIceAgent->iceAgentStatus);
+            DLOGE("IceAgent failed with 0x%08x", iceAgentStatus);
             break;
     }
 

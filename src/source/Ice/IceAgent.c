@@ -1354,7 +1354,8 @@ STATUS iceAgentStateTransitionTimerCallback(UINT32 timerId, UINT64 currentTime, 
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
 
-    // Do not acquire lock because stepIceAgentStateMachine acquires lock.
+    // Do not acquire lock because from/execute methods
+    // in state machine acquire lock
     // Drive the state machine
     CHK_STATUS(stepIceAgentStateMachine(pIceAgent));
 
