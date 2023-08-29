@@ -178,8 +178,10 @@ if(BUILD_DEPENDENCIES)
       -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
 
   build_dependency(usrsctp ${BUILD_ARGS})
+
   if(BUILD_TEST)
     build_dependency(gtest)
+#    build_dependency(awscpp)
   endif()
 
   if(BUILD_BENCHMARK)

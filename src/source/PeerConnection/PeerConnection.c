@@ -1093,7 +1093,6 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
 #ifdef ENABLE_DATA_CHANNEL
         if (STRNCMP(pSessionDescription->mediaDescriptions[i].mediaName, "application", SIZEOF("application") - 1) == 0) {
             if (!pKvsPeerConnection->isOffer && !ATOMIC_LOAD_BOOL(&pKvsPeerConnection->sctpIsEnabled)) {
-                CHK_STATUS(initSctpSession());
                 ATOMIC_STORE_BOOL(&pKvsPeerConnection->sctpIsEnabled, TRUE);
             }
         }

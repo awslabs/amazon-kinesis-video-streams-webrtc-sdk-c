@@ -16,9 +16,6 @@ UINT64 gTotalWebRtcClientMemoryUsage = 0;
 //
 MUTEX gTotalWebRtcClientMemoryMutex;
 
-// Global kvs webrtc init lock
-MUTEX kvsWebRtcInitMutex = MUTEX_CREATE(TRUE);
-
 STATUS createRtpPacketWithSeqNum(UINT16 seqNum, PRtpPacket *ppRtpPacket) {
     STATUS retStatus = STATUS_SUCCESS;
     BYTE payload[10];
@@ -72,9 +69,7 @@ void WebRtcClientTestBase::SetUp()
 
     SET_LOGGER_LOG_LEVEL(mLogLevel);
 
-    MUTEX_LOCK(kvsWebRtcInitMutex);
     initKvsWebRtc();
-    MUTEX_UNLOCK(kvsWebRtcInitMutex);
 
     if (NULL != (mAccessKey = getenv(ACCESS_KEY_ENV_VAR))) {
         mAccessKeyIdSet = TRUE;
@@ -117,9 +112,7 @@ void WebRtcClientTestBase::TearDown()
 {
     DLOGI("\nTearing down test: %s\n", GetTestName());
 
-    MUTEX_LOCK(kvsWebRtcInitMutex);
     deinitKvsWebRtc();
-    MUTEX_UNLOCK(kvsWebRtcInitMutex);
 
     freeStaticCredentialProvider(&mTestCredentialProvider);
 

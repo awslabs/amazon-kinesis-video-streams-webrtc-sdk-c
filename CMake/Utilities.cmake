@@ -3,6 +3,7 @@ function(build_dependency lib_name)
   set(supported_libs
       gperftools
       gtest
+      awscpp
       benchmark
       jsmn
       openssl
