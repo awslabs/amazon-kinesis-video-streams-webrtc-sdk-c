@@ -1058,6 +1058,7 @@ TEST_F(PeerConnectionFunctionalityTest, multipleCandidateSuccessOneDTLSCheck)
                 case ICE_AGENT_STATE_READY:
                     if(pSendingPair != NULL) {
                         EXPECT_EQ(pSendingPair, pKvsPeerConnection->pIceAgent->pDataSendingIceCandidatePair);
+                        pSendingPair = NULL;
                     }
                     break;
                 default:
@@ -1150,6 +1151,7 @@ TEST_F(PeerConnectionFunctionalityTest, aggressiveNominationDTLSRaceConditionChe
                 case ICE_AGENT_STATE_READY:
                     if(pSendingPair != NULL) {
                         EXPECT_EQ(pSendingPair, pKvsPeerConnection->pIceAgent->pDataSendingIceCandidatePair);
+                        pSendingPair = NULL;
                     }
                     break;
                 default:
