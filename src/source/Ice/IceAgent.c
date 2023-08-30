@@ -352,7 +352,7 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
     state = SDP_ICE_CANDIDATE_PARSER_STATE_FOUNDATION;
 
     while ((next = STRNCHR(curr, tail - curr, ' ')) != NULL && !foundType) {
-        tokenLen = (UINT32)(next - curr);
+        tokenLen = (UINT32) (next - curr);
 
         switch (state) {
             case SDP_ICE_CANDIDATE_PARSER_STATE_FOUNDATION:
@@ -2533,7 +2533,7 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
             if (hashTableGet(pIceCandidatePair->requestSentTime, checkSum, &requestSentTime) == STATUS_SUCCESS) {
                 pIceCandidatePair->roundTripTime = GETTIME() - requestSentTime;
                 pIceCandidatePair->rtcIceCandidatePairDiagnostics.currentRoundTripTime =
-                    (DOUBLE)(pIceCandidatePair->roundTripTime) / HUNDREDS_OF_NANOS_IN_A_SECOND;
+                    (DOUBLE) (pIceCandidatePair->roundTripTime) / HUNDREDS_OF_NANOS_IN_A_SECOND;
             } else {
                 DLOGW("Unable to fetch request Timestamp from the hash table. No update to RTT for the pair (error code: 0x%08x)", retStatus);
             }
@@ -2579,7 +2579,7 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
                     DLOGD("Ice candidate pair %s_%s is connected. Round trip time: %" PRIu64 "ms", pIceCandidatePair->local->id,
                           pIceCandidatePair->remote->id, pIceCandidatePair->roundTripTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
                     pIceCandidatePair->rtcIceCandidatePairDiagnostics.totalRoundTripTime +=
-                        (DOUBLE)(pIceCandidatePair->roundTripTime) / HUNDREDS_OF_NANOS_IN_A_SECOND;
+                        (DOUBLE) (pIceCandidatePair->roundTripTime) / HUNDREDS_OF_NANOS_IN_A_SECOND;
 
                     CHK_STATUS(hashTableRemove(pIceCandidatePair->requestSentTime, checkSum));
                 } else {
