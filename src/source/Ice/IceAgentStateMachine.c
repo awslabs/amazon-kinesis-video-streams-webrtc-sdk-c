@@ -46,7 +46,6 @@ STATUS stepIceAgentStateMachine(PIceAgent pIceAgent)
     iceAgentStatus = pIceAgent->iceAgentStatus;
     MUTEX_UNLOCK(pIceAgent->lock);
 
-
     // if any failure happened and state machine is not in failed state, stepStateMachine again into failed state.
     if (pIceAgent->iceAgentState != ICE_AGENT_STATE_FAILED && STATUS_FAILED(iceAgentStatus)) {
         CHK_STATUS(stepStateMachine(pIceAgent->pStateMachine));
@@ -277,8 +276,6 @@ STATUS executeCheckConnectionIceAgentState(UINT64 customData, UINT64 time)
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
 
-    UINT64 currentTime = GETTIME();
-
     if (pIceAgent->iceAgentState != ICE_AGENT_STATE_CHECK_CONNECTION) {
         CHK_STATUS(iceAgentCheckConnectionStateSetup(pIceAgent));
         pIceAgent->iceAgentState = ICE_AGENT_STATE_CHECK_CONNECTION;
@@ -354,7 +351,6 @@ STATUS executeConnectedIceAgentState(UINT64 customData, UINT64 time)
     UNUSED_PARAM(time);
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
-    UINT64 currentTime = GETTIME();
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
 
@@ -446,7 +442,6 @@ STATUS executeNominatingIceAgentState(UINT64 customData, UINT64 time)
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
     UINT64 startTimeInMacro = 0;
-    UINT64 currentTime = GETTIME();
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
 
@@ -548,7 +543,6 @@ STATUS executeReadyIceAgentState(UINT64 customData, UINT64 time)
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
     if (pIceAgent->iceAgentState != ICE_AGENT_STATE_READY) {
-        UINT64 t1 = GETTIME();
         CHK_STATUS(iceAgentReadyStateSetup(pIceAgent));
         pIceAgent->iceAgentState = ICE_AGENT_STATE_READY;
     }
