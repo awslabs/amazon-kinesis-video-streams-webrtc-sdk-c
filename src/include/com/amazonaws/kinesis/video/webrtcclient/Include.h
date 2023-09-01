@@ -794,7 +794,7 @@ typedef enum {
     ICE_TRANSPORT_POLICY_RELAY = 1, //!< The ICE Agent uses only media relay candidates such as candidates
                                     //!< passing through a TURN server
 
-    ICE_TRANSPORT_POLICY_ALL = 2, //!< The ICE Agent can use any type of candidate when this value is specified.
+    ICE_TRANSPORT_POLICY_ALL = 2,   //!< The ICE Agent can use any type of candidate when this value is specified.
 } ICE_TRANSPORT_POLICY;
 
 /**
@@ -892,7 +892,7 @@ typedef enum {
  * @brief Type of caching implementation to use with the signaling client
  */
 typedef enum {
-    SIGNALING_API_CALL_CACHE_TYPE_NONE, //!< No caching. The calls to the backend will be made for every API.
+    SIGNALING_API_CALL_CACHE_TYPE_NONE,                 //!< No caching. The calls to the backend will be made for every API.
 
     SIGNALING_API_CALL_CACHE_TYPE_DESCRIBE_GETENDPOINT, //!< Cache DeleteSignalingChannel and GetSignalingChannelEndpoint
                                                         //!< backend API calls.
@@ -1109,18 +1109,18 @@ typedef struct {
  *  issues that we have today.
  */
 typedef struct {
-    UINT16 maximumTransmissionUnit; //!< Controls the size of the largest packet the WebRTC SDK will send
-                                    //!< Some networks may drop packets if they exceed a certain size, and is useful in those conditions.
-                                    //!< A smaller MTU will incur higher bandwidth usage however since more packets will be generated with
-                                    //!< smaller payloads. If unset DEFAULT_MTU_SIZE will be used
+    UINT16 maximumTransmissionUnit;           //!< Controls the size of the largest packet the WebRTC SDK will send
+                                              //!< Some networks may drop packets if they exceed a certain size, and is useful in those conditions.
+                                              //!< A smaller MTU will incur higher bandwidth usage however since more packets will be generated with
+                                              //!< smaller payloads. If unset DEFAULT_MTU_SIZE will be used
 
     UINT32 iceLocalCandidateGatheringTimeout; //!< Maximum time ice will wait for gathering STUN and RELAY candidates. Once
                                               //!< it's reached, ice will proceed with whatever candidate it current has. Use default value if 0.
 
-    UINT32 iceConnectionCheckTimeout; //!< Maximum time allowed waiting for at least one ice candidate pair to receive
-                                      //!< binding response from the peer. Use default value if 0.
+    UINT32 iceConnectionCheckTimeout;         //!< Maximum time allowed waiting for at least one ice candidate pair to receive
+                                              //!< binding response from the peer. Use default value if 0.
 
-    UINT32 iceCandidateNominationTimeout; //!< If client is ice controlling, this is the timeout for receiving bind response of requests that has
+    UINT32 iceCandidateNominationTimeout;     //!< If client is ice controlling, this is the timeout for receiving bind response of requests that has
                                           //!< USE_CANDIDATE attribute. If client is ice controlled, this is the timeout for receiving binding request
                                           //!< that has USE_CANDIDATE attribute after connection check is done. Use default value if 0.
 
@@ -1131,17 +1131,17 @@ typedef struct {
                                     //!< A smaller amount of bits may result in less CPU usage on startup, but will cause a weaker certificate to be
                                     //!< generated If set to 0 the default GENERATED_CERTIFICATE_BITS will be used
 
-    BOOL generateRSACertificate; //!< GenerateRSACertificate controls if an ECDSA or RSA certificate is generated.
-                                 //!< By default we generate an ECDSA certificate but some platforms may not support them.
+    BOOL generateRSACertificate;    //!< GenerateRSACertificate controls if an ECDSA or RSA certificate is generated.
+                                    //!< By default we generate an ECDSA certificate but some platforms may not support them.
 
-    UINT32 sendBufSize; //!< Socket send buffer length. Item larger then this size will get dropped. Use system default if 0.
+    UINT32 sendBufSize;             //!< Socket send buffer length. Item larger then this size will get dropped. Use system default if 0.
 
-    UINT64 filterCustomData; //!< Custom Data that can be populated by the developer while developing filter function
+    UINT64 filterCustomData;        //!< Custom Data that can be populated by the developer while developing filter function
 
     IceSetInterfaceFilterFunc iceSetInterfaceFilterFunc; //!< Filter function callback to be set when the developer
                                                          //!< would like to whitelist/blacklist specific network interfaces
 
-    BOOL disableSenderSideBandwidthEstimation; //!< Disable TWCC feedback based sender bandwidth estimation, enabled by default.
+    BOOL disableSenderSideBandwidthEstimation;           //!< Disable TWCC feedback based sender bandwidth estimation, enabled by default.
                                                //!< You want to set this to TRUE if you are on a very stable connection and want to save 1.2MB of
                                                //!< memory
 } KvsRtcConfiguration, *PKvsRtcConfiguration;
@@ -1206,29 +1206,29 @@ typedef struct {
  * @brief Structure defining the basic signaling message
  */
 typedef struct {
-    UINT32 version; //!< Current version of the structure
+    UINT32 version;                                     //!< Current version of the structure
 
-    SIGNALING_MESSAGE_TYPE messageType; //!< Type of signaling message.
+    SIGNALING_MESSAGE_TYPE messageType;                 //!< Type of signaling message.
 
-    CHAR correlationId[MAX_CORRELATION_ID_LEN + 1]; //!< Correlation Id string
+    CHAR correlationId[MAX_CORRELATION_ID_LEN + 1];     //!< Correlation Id string
 
     CHAR peerClientId[MAX_SIGNALING_CLIENT_ID_LEN + 1]; //!< Sender client id
 
-    UINT32 payloadLen; //!< Optional payload length. If 0, the length will be calculated
+    UINT32 payloadLen;                                  //!< Optional payload length. If 0, the length will be calculated
 
-    CHAR payload[MAX_SIGNALING_MESSAGE_LEN + 1]; //!< Actual signaling message payload
+    CHAR payload[MAX_SIGNALING_MESSAGE_LEN + 1];        //!< Actual signaling message payload
 } SignalingMessage, *PSignalingMessage;
 
 /**
  * @brief Structure defining the signaling message to be received
  */
 typedef struct {
-    SignalingMessage signalingMessage; //!< The signaling message with details such as message type, correlation ID,
-                                       //!< peer client ID and payload
+    SignalingMessage signalingMessage;                 //!< The signaling message with details such as message type, correlation ID,
+                                                       //!< peer client ID and payload
 
-    SERVICE_CALL_RESULT statusCode; //!< Response status code
+    SERVICE_CALL_RESULT statusCode;                    //!< Response status code
 
-    CHAR errorType[MAX_ERROR_TYPE_STRING_LEN + 1]; //!< Error type of the signaling message
+    CHAR errorType[MAX_ERROR_TYPE_STRING_LEN + 1];     //!< Error type of the signaling message
 
     CHAR description[MAX_MESSAGE_DESCRIPTION_LEN + 1]; //!< Optional description of the message
 } ReceivedSignalingMessage, *PReceivedSignalingMessage;
@@ -1259,59 +1259,59 @@ typedef struct {
  * @brief Contains all signaling channel related information
  */
 typedef struct {
-    UINT32 version; //!< Version of the structure
+    UINT32 version;                              //!< Version of the structure
 
-    PCHAR pChannelName; //!< Name of the signaling channel name. Maximum length is defined by MAX_CHANNEL_NAME_LEN + 1
+    PCHAR pChannelName;                          //!< Name of the signaling channel name. Maximum length is defined by MAX_CHANNEL_NAME_LEN + 1
 
-    PCHAR pChannelArn; //!< Channel Amazon Resource Name (ARN). This is an optional parameter
-                       //!< Maximum length is defined by MAX_ARN_LEN+1
+    PCHAR pChannelArn;                           //!< Channel Amazon Resource Name (ARN). This is an optional parameter
+                                                 //!< Maximum length is defined by MAX_ARN_LEN+1
 
-    PCHAR pRegion; //!< AWS Region in which the channel is to be opened. Can be empty for default
-                   //!< Maximum length is defined by MAX_REGION_NAME_LEN+1
+    PCHAR pRegion;                               //!< AWS Region in which the channel is to be opened. Can be empty for default
+                                                 //!< Maximum length is defined by MAX_REGION_NAME_LEN+1
 
-    PCHAR pControlPlaneUrl; //!< Optional fully qualified control plane URL
-                            //!< Maximum length is defined by MAX_ARN_LEN+1
+    PCHAR pControlPlaneUrl;                      //!< Optional fully qualified control plane URL
+                                                 //!< Maximum length is defined by MAX_ARN_LEN+1
 
-    PCHAR pCertPath; //!< Optional certificate path. Maximum length is defined by MAX_PATH_LEN+1
+    PCHAR pCertPath;                             //!< Optional certificate path. Maximum length is defined by MAX_PATH_LEN+1
 
-    PCHAR pUserAgentPostfix; //!< Optional user agent post-fix. Maximum length is defined by
-                             //!< MAX_CUSTOM_USER_AGENT_NAME_POSTFIX_LEN+1
+    PCHAR pUserAgentPostfix;                     //!< Optional user agent post-fix. Maximum length is defined by
+                                                 //!< MAX_CUSTOM_USER_AGENT_NAME_POSTFIX_LEN+1
 
-    PCHAR pCustomUserAgent; //!< Optional custom user agent name. Maximum length is defined by MAX_USER_AGENT_LEN+1
+    PCHAR pCustomUserAgent;                      //!< Optional custom user agent name. Maximum length is defined by MAX_USER_AGENT_LEN+1
 
-    PCHAR pUserAgent; //!< Combined user agent.  Maximum length is defined by MAX_USER_AGENT_LEN+1
+    PCHAR pUserAgent;                            //!< Combined user agent.  Maximum length is defined by MAX_USER_AGENT_LEN+1
 
-    PCHAR pKmsKeyId; //!< Optional KMS key id ARN. Maximum length is defined by MAX_ARN_LEN+1
+    PCHAR pKmsKeyId;                             //!< Optional KMS key id ARN. Maximum length is defined by MAX_ARN_LEN+1
 
-    SIGNALING_CHANNEL_TYPE channelType; //!< Channel type when creating.
+    SIGNALING_CHANNEL_TYPE channelType;          //!< Channel type when creating.
 
     SIGNALING_CHANNEL_ROLE_TYPE channelRoleType; //!< Channel role type for the endpoint - master/viewer
 
-    BOOL reserved; //!< Reserved field for compatibility
+    BOOL reserved;                               //!< Reserved field for compatibility
 
-    UINT64 cachingPeriod; //!< Endpoint caching TTL.
-                          //!< For no caching policy this param will be ignored.
-                          //!< For caching policies the default value will be used
-                          //!< if this parameter is 0 (::SIGNALING_API_CALL_CACHE_TTL_SENTINEL_VALUE).
+    UINT64 cachingPeriod;                        //!< Endpoint caching TTL.
+                                                 //!< For no caching policy this param will be ignored.
+                                                 //!< For caching policies the default value will be used
+                                                 //!< if this parameter is 0 (::SIGNALING_API_CALL_CACHE_TTL_SENTINEL_VALUE).
 
-    BOOL retry; //!< Flag determines if a retry of the network calls is to be done on errors up to max retry times
+    BOOL retry;                                  //!< Flag determines if a retry of the network calls is to be done on errors up to max retry times
 
-    BOOL reconnect; //!< Flag determines if reconnection should be attempted on connection drop
+    BOOL reconnect;                              //!< Flag determines if reconnection should be attempted on connection drop
 
-    UINT64 messageTtl; //!< The message TTL. Must be in the range of 5ns and 120ns.
-                       //!< Specifying zero will default to 60ns
+    UINT64 messageTtl;                           //!< The message TTL. Must be in the range of 5ns and 120ns.
+                                                 //!< Specifying zero will default to 60ns
 
-    UINT32 tagCount; //!< Number of tags associated with the stream
+    UINT32 tagCount;                             //!< Number of tags associated with the stream
 
-    PTag pTags; //!< Stream tags array
+    PTag pTags;                                  //!< Stream tags array
 
     /* --- V1 members --- */
 
     SIGNALING_API_CALL_CACHE_TYPE cachingPolicy; //!< Backend API call caching policy
 
-    BOOL asyncIceServerConfig; //!< This parameter has no effect any longer. All ICE config retrieving
-                               //!< is done reactively when needed which will simplify the processing
-                               //!< and will help with issues on a small footprint platforms
+    BOOL asyncIceServerConfig;                   //!< This parameter has no effect any longer. All ICE config retrieving
+                                                 //!< is done reactively when needed which will simplify the processing
+                                                 //!< and will help with issues on a small footprint platforms
 
 } ChannelInfo, *PChannelInfo;
 
