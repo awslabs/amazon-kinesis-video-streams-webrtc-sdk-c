@@ -587,6 +587,8 @@ STATUS iceAgentStartGathering(PIceAgent pIceAgent)
 {
     STATUS retStatus = STATUS_SUCCESS;
     UINT64 startTimeInMacro = 0;
+    PKvsIpAddress pKvsIpAddress = NULL;
+    BOOL cacheFound = FALSE;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
     CHK(!ATOMIC_LOAD_BOOL(&pIceAgent->agentStartGathering), retStatus);
@@ -597,10 +599,29 @@ STATUS iceAgentStartGathering(PIceAgent pIceAgent)
     // skip gathering host candidate and srflx candidate if relay only
     if (pIceAgent->iceTransportPolicy != ICE_TRANSPORT_POLICY_RELAY) {
         // Skip getting local host candidates if transport policy is relay only
-        PROFILE_CALL_WITH_T_OBJ(CHK_STATUS(getLocalhostIpAddresses(pIceAgent->localNetworkInterfaces, &pIceAgent->localNetworkInterfaceCount,
+        if (STATUS_FAILED(iceCandidateCacheLoadFromFile(pIceAgent->localNetworkInterfaces, &cacheFound, DEFAULT_ICE_CANDIDATE_CACHE_FILE_PATH))) {
+            DLOGW("Failed to load ice candidate cache from file");
+            PROFILE_CALL_WITH_T_OBJ(CHK_STATUS(getLocalhostIpAddresses(pIceAgent->localNetworkInterfaces, &pIceAgent->localNetworkInterfaceCount,
                                                                    pIceAgent->kvsRtcConfiguration.iceSetInterfaceFilterFunc,
                                                                    pIceAgent->kvsRtcConfiguration.filterCustomData)),
                                 pIceAgent->iceAgentProfileDiagnostics.localCandidateGatheringTime, "Host candidate gathering from local interfaces");
+            if (STATUS_FAILED(iceCandidateCacheSaveToFile(pIceAgent->localNetworkInterfaces, pIceAgent->localNetworkInterfaceCount,
+                                                          DEFAULT_ICE_CANDIDATE_CACHE_FILE_PATH))) {
+                DLOGW("Failed to save ice candidate cache to file");
+            }
+        } else if (cacheFound) {
+            *(pIceAgent->localNetworkInterfaces) = *pKvsIpAddress;
+        } else if (!cacheFound) {
+            PROFILE_CALL_WITH_T_OBJ(CHK_STATUS(getLocalhostIpAddresses(pIceAgent->localNetworkInterfaces, &pIceAgent->localNetworkInterfaceCount,
+                                                                       pIceAgent->kvsRtcConfiguration.iceSetInterfaceFilterFunc,
+                                                                       pIceAgent->kvsRtcConfiguration.filterCustomData)),
+                                    pIceAgent->iceAgentProfileDiagnostics.localCandidateGatheringTime, "Host candidate gathering from local interfaces");
+            if (STATUS_FAILED(iceCandidateCacheSaveToFile(pIceAgent->localNetworkInterfaces, pIceAgent->localNetworkInterfaceCount,
+                                                          DEFAULT_ICE_CANDIDATE_CACHE_FILE_PATH))) {
+                DLOGW("Failed to save ice candidate cache to file");
+            }
+        }
+
         PROFILE_CALL_WITH_T_OBJ(CHK_STATUS(iceAgentInitHostCandidate(pIceAgent)), pIceAgent->iceAgentProfileDiagnostics.hostCandidateSetUpTime,
                                 "Host candidates setup time");
         PROFILE_CALL_WITH_T_OBJ(CHK_STATUS(iceAgentInitSrflxCandidate(pIceAgent)), pIceAgent->iceAgentProfileDiagnostics.srflxCandidateSetUpTime,

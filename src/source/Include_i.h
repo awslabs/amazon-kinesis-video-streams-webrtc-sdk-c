@@ -129,6 +129,7 @@ STATUS generateJSONSafeString(PCHAR, UINT32);
 #include "Ice/IceUtils.h"
 #include "Sdp/Sdp.h"
 #include "Ice/IceAgent.h"
+#include "Ice/IceCandidateFileCache.h"
 #include "Ice/TurnConnection.h"
 #include "Ice/IceAgentStateMachine.h"
 #include "Ice/NatBehaviorDiscovery.h"
