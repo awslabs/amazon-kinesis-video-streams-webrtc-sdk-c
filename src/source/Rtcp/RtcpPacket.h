@@ -37,7 +37,7 @@ extern "C" {
 #define RTCP_FIRST_REPORT_DELAY (3 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
 typedef enum {
-    RTCP_PACKET_TYPE_FIR = 192,             // https://tools.ietf.org/html/rfc2032#section-5.2.1
+    RTCP_PACKET_TYPE_FIR = 192, // https://tools.ietf.org/html/rfc2032#section-5.2.1
     RTCP_PACKET_TYPE_SENDER_REPORT = 200,
     RTCP_PACKET_TYPE_RECEIVER_REPORT = 201, // https://tools.ietf.org/html/rfc3550#section-6.4.2
     RTCP_PACKET_TYPE_SOURCE_DESCRIPTION = 202,

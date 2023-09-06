@@ -43,7 +43,6 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
 #endif
 
     pSignalingClient->version = SIGNALING_CLIENT_CURRENT_VERSION;
-
     // Set invalid call times
     pSignalingClient->describeTime = INVALID_TIMESTAMP_VALUE;
     pSignalingClient->createTime = INVALID_TIMESTAMP_VALUE;
