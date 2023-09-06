@@ -6,6 +6,11 @@
 <h4 align="center">Pure C WebRTC Client for Amazon Kinesis Video Streams </h4>
 
 <p align="center">
+  <a href="https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/actions/workflows/ci.yml"> <img src="https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/actions/workflows/ci.yml/badge.svg"> </a>
+  <a href="https://codecov.io/gh/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c"> <img src="https://codecov.io/gh/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/branch/master/graph/badge.svg" alt="Coverage Status"> </a>
+</p>
+
+<p align="center">
   <a href="#key-features">Key Features</a> •
   <a href="#build">Build</a> •
   <a href="#run">Run</a> •
