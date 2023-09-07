@@ -19,6 +19,7 @@ option(BUILD_LIBSRTP_DESTINATION_PLATFORM "If buildng LibSRTP what is the destin
 option(BUILD_SAMPLE "Build available samples" ON)
 option(ENABLE_DATA_CHANNEL "Enable support for data channel" ON)
 option(INSTRUMENTED_ALLOCATORS "Enable memory instrumentation" OFF)
+option(ENABLE_AWS_SDK_IN_TESTS "Enable support for compiling AWS SDKs for tests" ON)
 
 # Developer Flags
 option(BUILD_TEST "Build the testing tree." OFF)
@@ -181,7 +182,11 @@ if(BUILD_DEPENDENCIES)
 
   if(BUILD_TEST)
     build_dependency(gtest)
-#    build_dependency(awscpp)
+
+    if(ENABLE_AWS_SDK_IN_TESTS)
+      build_dependency(awscpp)
+    endif()
+
   endif()
 
   if(BUILD_BENCHMARK)
@@ -297,6 +302,10 @@ if (INSTRUMENTED_ALLOCATORS)
   add_definitions(-DINSTRUMENTED_ALLOCATORS)
 endif()
 
+if(ENABLE_AWS_SDK_IN_TESTS)
+  add_definitions(-DENABLE_AWS_SDK_IN_TESTS)
+endif()
+
 file(
   GLOB
   WEBRTC_CLIENT_SOURCE_FILES
@@ -399,6 +408,8 @@ if (BUILD_SAMPLE)
 endif()
 
 if(BUILD_TEST)
+  # adding ZLIB because aws sdk static link seems to be broken when zlib is needed
+  find_package(ZLIB REQUIRED)
   add_subdirectory(tst)
 endif()
 

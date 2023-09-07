@@ -1,4 +1,4 @@
-#include "WebRTCClientTestFixture.h"
+#include "SignalingApiFunctionalityTest.h.h"
 
 namespace com {
 namespace amazonaws {
@@ -6,70 +6,41 @@ namespace kinesis {
 namespace video {
 namespace webrtcclient {
 
-class SignalingApiFunctionalityTest : public WebRtcClientTestBase {
-  public:
-    SignalingApiFunctionalityTest() : pActiveClient(NULL)
-    {
-        MEMSET(signalingStatesCounts, 0x00, SIZEOF(signalingStatesCounts));
 
-        getIceConfigCount = 0;
-        getIceConfigFail = MAX_UINT32;
-        getIceConfigRecover = 0;
-        getIceConfigResult = STATUS_SUCCESS;
 
-        connectCount = 0;
-        connectFail = MAX_UINT32;
-        connectRecover = 0;
-        connectResult = STATUS_SUCCESS;
 
-        describeCount = 0;
-        describeFail = MAX_UINT32;
-        describeRecover = 0;
-        describeResult = STATUS_SUCCESS;
+SignalingApiFunctionalityTest::SignalingApiFunctionalityTest() : pActiveClient(NULL)
+{
+    MEMSET(signalingStatesCounts, 0x00, SIZEOF(signalingStatesCounts));
 
-        describeMediaCount = 0;
-        describeMediaFail = MAX_UINT32;
-        describeMediaRecover = 0;
-        describeMediaResult = STATUS_SUCCESS;
+    getIceConfigCount = 0;
+    getIceConfigFail = MAX_UINT32;
+    getIceConfigRecover = 0;
+    getIceConfigResult = STATUS_SUCCESS;
 
-        getEndpointCount = 0;
-        getEndpointFail = MAX_UINT32;
-        getEndpointRecover = 0;
-        getEndpointResult = STATUS_SUCCESS;
+    connectCount = 0;
+    connectFail = MAX_UINT32;
+    connectRecover = 0;
+    connectResult = STATUS_SUCCESS;
 
-        errStatus = STATUS_SUCCESS;
-        errMsg[0] = '\0';
-    };
+    describeCount = 0;
+    describeFail = MAX_UINT32;
+    describeRecover = 0;
+    describeResult = STATUS_SUCCESS;
 
-    PSignalingClient pActiveClient;
-    UINT32 getIceConfigFail;
-    UINT32 getIceConfigRecover;
-    UINT32 getIceConfigCount;
-    STATUS getIceConfigResult;
-    UINT32 signalingStatesCounts[SIGNALING_CLIENT_STATE_MAX_VALUE];
-    STATUS errStatus;
-    CHAR errMsg[1024];
+    describeMediaCount = 0;
+    describeMediaFail = MAX_UINT32;
+    describeMediaRecover = 0;
+    describeMediaResult = STATUS_SUCCESS;
 
-    STATUS connectResult;
-    UINT32 connectFail;
-    UINT32 connectRecover;
-    UINT32 connectCount;
+    getEndpointCount = 0;
+    getEndpointFail = MAX_UINT32;
+    getEndpointRecover = 0;
+    getEndpointResult = STATUS_SUCCESS;
 
-    STATUS describeResult;
-    UINT32 describeFail;
-    UINT32 describeRecover;
-    UINT32 describeCount;
-
-    STATUS describeMediaResult;
-    UINT32 describeMediaFail;
-    UINT32 describeMediaRecover;
-    UINT32 describeMediaCount;
-
-    STATUS getEndpointResult;
-    UINT32 getEndpointFail;
-    UINT32 getEndpointRecover;
-    UINT32 getEndpointCount;
-};
+    errStatus = STATUS_SUCCESS;
+    errMsg[0] = '\0';
+}
 
 STATUS masterMessageReceived(UINT64 customData, PReceivedSignalingMessage pReceivedSignalingMessage)
 {
@@ -4308,7 +4279,6 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_FastClockSkew_Veri
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
 }
-
 
 } // namespace webrtcclient
 } // namespace video
