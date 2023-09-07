@@ -49,7 +49,7 @@ INT32 main(INT32 argc, CHAR* argv[])
 #endif
 
     // do trickle-ice by default
-    printf("[KVS Master] Using trickleICE by default\n");
+    printf("[KVS Viewer] Using trickleICE by default\n");
 
 #ifdef IOT_CORE_ENABLE_CREDENTIALS
     CHK_ERR((pChannelName = getenv(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_THING_NAME must be set");
@@ -70,7 +70,7 @@ INT32 main(INT32 argc, CHAR* argv[])
         retStatus =
             createFileLogger(FILE_LOGGING_BUFFER_SIZE, MAX_NUMBER_OF_LOG_FILES, (PCHAR) FILE_LOGGER_LOG_FILE_DIRECTORY_PATH, TRUE, TRUE, NULL);
         if (retStatus != STATUS_SUCCESS) {
-            printf("[KVS Master] createFileLogger(): operation returned status code: 0x%08x \n", retStatus);
+            printf("[KVS Viewer] createFileLogger(): operation returned status code: 0x%08x \n", retStatus);
             pSampleConfiguration->enableFileLogging = FALSE;
         }
     }
@@ -101,7 +101,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     // Enable the processing of the messages
     retStatus = signalingClientFetchSync(pSampleConfiguration->signalingClientHandle);
     if (retStatus != STATUS_SUCCESS) {
-        printf("[KVS Master] signalingClientFetchSync(): operation returned status code: 0x%08x \n", retStatus);
+        printf("[KVS Viewer] signalingClientFetchSync(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;
     }
 
@@ -243,12 +243,12 @@ CleanUp:
     if (pSampleConfiguration != NULL) {
         retStatus = freeSignalingClient(&pSampleConfiguration->signalingClientHandle);
         if (retStatus != STATUS_SUCCESS) {
-            printf("[KVS Master] freeSignalingClient(): operation returned status code: 0x%08x \n", retStatus);
+            printf("[KVS Viewer] freeSignalingClient(): operation returned status code: 0x%08x \n", retStatus);
         }
 
         retStatus = freeSampleConfiguration(&pSampleConfiguration);
         if (retStatus != STATUS_SUCCESS) {
-            printf("[KVS Master] freeSampleConfiguration(): operation returned status code: 0x%08x \n", retStatus);
+            printf("[KVS Viewer] freeSampleConfiguration(): operation returned status code: 0x%08x \n", retStatus);
         }
     }
     printf("[KVS Viewer] Cleanup done\n");
