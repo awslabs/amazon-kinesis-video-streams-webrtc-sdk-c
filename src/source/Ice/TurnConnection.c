@@ -50,7 +50,7 @@ STATUS createTurnConnection(PIceServer pTurnServer, TIMER_QUEUE_HANDLE timerQueu
     }
     pTurnConnection->recvDataBufferSize = DEFAULT_TURN_MESSAGE_RECV_CHANNEL_DATA_BUFFER_LEN;
     pTurnConnection->dataBufferSize = DEFAULT_TURN_MESSAGE_SEND_CHANNEL_DATA_BUFFER_LEN;
-    pTurnConnection->sendDataBuffer = (PBYTE) (pTurnConnection + 1);
+    pTurnConnection->sendDataBuffer = (PBYTE)(pTurnConnection + 1);
     pTurnConnection->recvDataBuffer = pTurnConnection->sendDataBuffer + pTurnConnection->dataBufferSize;
     pTurnConnection->completeChannelDataBuffer =
         pTurnConnection->sendDataBuffer + pTurnConnection->dataBufferSize + pTurnConnection->recvDataBufferSize;
@@ -540,7 +540,7 @@ STATUS turnConnectionHandleChannelDataTcpMode(PTurnConnection pTurnConnection, P
         if (pTurnConnection->currRecvDataLen != 0) {
             if (pTurnConnection->currRecvDataLen >= TURN_DATA_CHANNEL_SEND_OVERHEAD) {
                 /* pTurnConnection->recvDataBuffer always has channel data start */
-                paddedChannelDataLen = ROUND_UP((UINT32) getInt16(*(PINT16) (pTurnConnection->recvDataBuffer + SIZEOF(channelNumber))), 4);
+                paddedChannelDataLen = ROUND_UP((UINT32) getInt16(*(PINT16)(pTurnConnection->recvDataBuffer + SIZEOF(channelNumber))), 4);
                 remainingMsgSize = paddedChannelDataLen - (pTurnConnection->currRecvDataLen - TURN_DATA_CHANNEL_SEND_OVERHEAD);
                 bytesToCopy = MIN(remainingMsgSize, remainingBufLen);
                 remainingBufLen -= bytesToCopy;
@@ -585,7 +585,7 @@ STATUS turnConnectionHandleChannelDataTcpMode(PTurnConnection pTurnConnection, P
             /* new channel message start */
             CHK(*pCurPos == TURN_DATA_CHANNEL_MSG_FIRST_BYTE, STATUS_TURN_MISSING_CHANNEL_DATA_HEADER);
 
-            paddedChannelDataLen = ROUND_UP((UINT32) getInt16(*(PINT16) (pCurPos + SIZEOF(UINT16))), 4);
+            paddedChannelDataLen = ROUND_UP((UINT32) getInt16(*(PINT16)(pCurPos + SIZEOF(UINT16))), 4);
             if (remainingBufLen >= (paddedChannelDataLen + TURN_DATA_CHANNEL_SEND_OVERHEAD)) {
                 channelNumber = (UINT16) getInt16(*(PINT16) pCurPos);
                 if ((pTurnPeer = turnConnectionGetPeerWithChannelNumber(pTurnConnection, channelNumber)) != NULL) {
@@ -717,8 +717,8 @@ STATUS turnConnectionSendData(PTurnConnection pTurnConnection, PBYTE pBuf, UINT3
     paddedDataLen = (UINT32) ROUND_UP(TURN_DATA_CHANNEL_SEND_OVERHEAD + bufLen, 4);
 
     /* generate data channel TURN message */
-    putInt16((PINT16) (pTurnConnection->sendDataBuffer), pSendPeer->channelNumber);
-    putInt16((PINT16) (pTurnConnection->sendDataBuffer + 2), (UINT16) bufLen);
+    putInt16((PINT16)(pTurnConnection->sendDataBuffer), pSendPeer->channelNumber);
+    putInt16((PINT16)(pTurnConnection->sendDataBuffer + 2), (UINT16) bufLen);
     MEMCPY(pTurnConnection->sendDataBuffer + TURN_DATA_CHANNEL_SEND_OVERHEAD, pBuf, bufLen);
 
     retStatus = iceUtilsSendData(pTurnConnection->sendDataBuffer, paddedDataLen, &pTurnConnection->turnServer.ipAddress,
@@ -1226,6 +1226,62 @@ BOOL turnConnectionGetRelayAddress(PTurnConnection pTurnConnection, PKvsIpAddres
     return FALSE;
 }
 
+STATUS checkTurnPeerConnections(PTurnConnection pTurnConnection)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PTurnPeer pTurnPeer = NULL;
+    PStunAttributeAddress pStunAttributeAddress = NULL;
+    PStunAttributeChannelNumber pStunAttributeChannelNumber = NULL;
+    PStunAttributeLifetime pStunAttributeLifetime = NULL;
+
+    // turn mutex is assumed to be locked.
+    CHK(pTurnConnection != NULL, STATUS_NULL_ARG);
+    for (i = 0; i < pTurnConnection->turnPeerCount; ++i) {
+        pTurnPeer = &pTurnConnection->turnPeerList[i];
+
+        if (pTurnPeer->connectionState == TURN_PEER_CONN_STATE_CREATE_PERMISSION) {
+            // update peer address;
+            CHK_STATUS(getStunAttribute(pTurnConnection->pTurnCreatePermissionPacket, STUN_ATTRIBUTE_TYPE_XOR_PEER_ADDRESS,
+                                        (PStunAttributeHeader*) &pStunAttributeAddress));
+            CHK_WARN(pStunAttributeAddress != NULL, STATUS_INTERNAL_ERROR, "xor peer address attribute not found");
+            pStunAttributeAddress->address = pTurnPeer->address;
+
+            CHK_STATUS(iceUtilsGenerateTransactionId(pTurnConnection->pTurnCreatePermissionPacket->header.transactionId,
+                                                     ARRAY_SIZE(pTurnConnection->pTurnCreatePermissionPacket->header.transactionId)));
+
+            CHK(pTurnPeer->pTransactionIdStore != NULL, STATUS_INVALID_OPERATION);
+            transactionIdStoreInsert(pTurnPeer->pTransactionIdStore, pTurnConnection->pTurnCreatePermissionPacket->header.transactionId);
+            sendStatus = iceUtilsSendStunPacket(pTurnConnection->pTurnCreatePermissionPacket, pTurnConnection->longTermKey,
+                                                ARRAY_SIZE(pTurnConnection->longTermKey), &pTurnConnection->turnServer.ipAddress,
+                                                pTurnConnection->pControlChannel, NULL, FALSE);
+
+        } else if (pTurnPeer->connectionState == TURN_PEER_CONN_STATE_BIND_CHANNEL) {
+            // update peer address;
+            CHK_STATUS(getStunAttribute(pTurnConnection->pTurnChannelBindPacket, STUN_ATTRIBUTE_TYPE_XOR_PEER_ADDRESS,
+                                        (PStunAttributeHeader*) &pStunAttributeAddress));
+            CHK_WARN(pStunAttributeAddress != NULL, STATUS_INTERNAL_ERROR, "xor peer address attribute not found");
+            pStunAttributeAddress->address = pTurnPeer->address;
+
+            // update channel number
+            CHK_STATUS(getStunAttribute(pTurnConnection->pTurnChannelBindPacket, STUN_ATTRIBUTE_TYPE_CHANNEL_NUMBER,
+                                        (PStunAttributeHeader*) &pStunAttributeChannelNumber));
+            CHK_WARN(pStunAttributeChannelNumber != NULL, STATUS_INTERNAL_ERROR, "channel number attribute not found");
+            pStunAttributeChannelNumber->channelNumber = pTurnPeer->channelNumber;
+
+            CHK_STATUS(iceUtilsGenerateTransactionId(pTurnConnection->pTurnChannelBindPacket->header.transactionId,
+                                                     ARRAY_SIZE(pTurnConnection->pTurnChannelBindPacket->header.transactionId)));
+
+            CHK(pTurnPeer->pTransactionIdStore != NULL, STATUS_INVALID_OPERATION);
+            transactionIdStoreInsert(pTurnPeer->pTransactionIdStore, pTurnConnection->pTurnChannelBindPacket->header.transactionId);
+            sendStatus = iceUtilsSendStunPacket(pTurnConnection->pTurnChannelBindPacket, pTurnConnection->longTermKey,
+                                                ARRAY_SIZE(pTurnConnection->longTermKey), &pTurnConnection->turnServer.ipAddress,
+                                                pTurnConnection->pControlChannel, NULL, FALSE);
+        }
+    }
+
+    CHK_STATUS(turnConnectionRefreshAllocation(pTurnConnection));
+}
+
 STATUS turnConnectionTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
     UNUSED_PARAM(timerId);
@@ -1412,31 +1468,6 @@ CleanUp:
     }
 
     return retStatus;
-}
-
-PCHAR turnConnectionGetStateStr(TURN_CONNECTION_STATE state)
-{
-    switch (state) {
-        case TURN_STATE_NEW:
-            return TURN_STATE_NEW_STR;
-        case TURN_STATE_CHECK_SOCKET_CONNECTION:
-            return TURN_STATE_CHECK_SOCKET_CONNECTION_STR;
-        case TURN_STATE_GET_CREDENTIALS:
-            return TURN_STATE_GET_CREDENTIALS_STR;
-        case TURN_STATE_ALLOCATION:
-            return TURN_STATE_ALLOCATION_STR;
-        case TURN_STATE_CREATE_PERMISSION:
-            return TURN_STATE_CREATE_PERMISSION_STR;
-        case TURN_STATE_BIND_CHANNEL:
-            return TURN_STATE_BIND_CHANNEL_STR;
-        case TURN_STATE_READY:
-            return TURN_STATE_READY_STR;
-        case TURN_STATE_CLEAN_UP:
-            return TURN_STATE_CLEAN_UP_STR;
-        case TURN_STATE_FAILED:
-            return TURN_STATE_FAILED_STR;
-    }
-    return TURN_STATE_UNKNOWN_STR;
 }
 
 PTurnPeer turnConnectionGetPeerWithChannelNumber(PTurnConnection pTurnConnection, UINT16 channelNumber)

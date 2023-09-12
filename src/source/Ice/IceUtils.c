@@ -16,7 +16,7 @@ STATUS createTransactionIdStore(UINT32 maxIdCount, PTransactionIdStore* ppTransa
     pTransactionIdStore = (PTransactionIdStore) MEMCALLOC(1, SIZEOF(TransactionIdStore) + STUN_TRANSACTION_ID_LEN * maxIdCount);
     CHK(pTransactionIdStore != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
-    pTransactionIdStore->transactionIds = (PBYTE) (pTransactionIdStore + 1);
+    pTransactionIdStore->transactionIds = (PBYTE)(pTransactionIdStore + 1);
     pTransactionIdStore->maxTransactionIdsCount = maxIdCount;
 
 CleanUp:
@@ -126,7 +126,7 @@ STATUS iceUtilsGenerateTransactionId(PBYTE pBuffer, UINT32 bufferLen)
     CHK(bufferLen == STUN_TRANSACTION_ID_LEN, STATUS_INVALID_ARG);
 
     for (i = 0; i < STUN_TRANSACTION_ID_LEN; ++i) {
-        pBuffer[i] = ((BYTE) (RAND() % 0x100));
+        pBuffer[i] = ((BYTE)(RAND() % 0x100));
     }
 
 CleanUp:
@@ -167,6 +167,19 @@ STATUS iceUtilsSendStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 pa
     BYTE stunPacketBuffer[STUN_PACKET_ALLOCATION_SIZE];
 
     CHK_STATUS(iceUtilsPackageStunPacket(pStunPacket, password, passwordLen, stunPacketBuffer, &stunPacketSize));
+    CHK(pDest != NULL, STATUS_NULL_ARG);
+    switch (pStunPacket->header.stunMessageType) {
+        case STUN_PACKET_TYPE_BINDING_REQUEST:
+            DLOGD("Sending BINDING_REQUEST to ip:%u.%u.%u.%u, port:%u", pDest->address[0], pDest->address[1], pDest->address[2], pDest->address[3],
+                  (UINT16) getInt16(pDest->port));
+            break;
+        case STUN_PACKET_TYPE_BINDING_RESPONSE_SUCCESS:
+            DLOGD("Sending BINDING_RESPONSE_SUCCESS to ip:%u.%u.%u.%u, port:%u", pDest->address[0], pDest->address[1], pDest->address[2],
+                  pDest->address[3], (UINT16) getInt16(pDest->port));
+            break;
+        default:
+            break;
+    }
     CHK_STATUS(iceUtilsSendData(stunPacketBuffer, stunPacketSize, pDest, pSocketConnection, pTurnConnection, useTurn));
 
 CleanUp:

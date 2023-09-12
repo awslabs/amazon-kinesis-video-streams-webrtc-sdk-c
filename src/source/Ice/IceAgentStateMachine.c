@@ -37,25 +37,27 @@ STATUS stepIceAgentStateMachine(PIceAgent pIceAgent)
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
 
-    oldState = pIceAgent->iceAgentState;
+    do {
+        oldState = pIceAgent->iceAgentState;
 
-    CHK_STATUS(stepStateMachine(pIceAgent->pStateMachine));
-
-    // if any failure happened and state machine is not in failed state, stepStateMachine again into failed state.
-    if (pIceAgent->iceAgentState != ICE_AGENT_STATE_FAILED && STATUS_FAILED(pIceAgent->iceAgentStatus)) {
         CHK_STATUS(stepStateMachine(pIceAgent->pStateMachine));
-    }
 
-    if (oldState != pIceAgent->iceAgentState) {
-        if (pIceAgent->iceAgentCallbacks.connectionStateChangedFn != NULL) {
-            DLOGI("Ice agent state changed from %s to %s.", iceAgentStateToString(oldState), iceAgentStateToString(pIceAgent->iceAgentState));
-            pIceAgent->iceAgentCallbacks.connectionStateChangedFn(pIceAgent->iceAgentCallbacks.customData, pIceAgent->iceAgentState);
+        // if any failure happened and state machine is not in failed state, stepStateMachine again into failed state.
+        if (pIceAgent->iceAgentState != ICE_AGENT_STATE_FAILED && STATUS_FAILED(pIceAgent->iceAgentStatus)) {
+            CHK_STATUS(stepStateMachine(pIceAgent->pStateMachine));
         }
-    } else {
-        // state machine retry is not used. resetStateMachineRetryCount just to avoid
-        // state machine retry grace period overflow warning.
-        CHK_STATUS(resetStateMachineRetryCount(pIceAgent->pStateMachine));
-    }
+
+        if (oldState != pIceAgent->iceAgentState) {
+            if (pIceAgent->iceAgentCallbacks.connectionStateChangedFn != NULL) {
+                DLOGI("Ice agent state changed from %s to %s.", iceAgentStateToString(oldState), iceAgentStateToString(pIceAgent->iceAgentState));
+                pIceAgent->iceAgentCallbacks.connectionStateChangedFn(pIceAgent->iceAgentCallbacks.customData, pIceAgent->iceAgentState);
+            }
+        } else {
+            // state machine retry is not used. resetStateMachineRetryCount just to avoid
+            // state machine retry grace period overflow warning.
+            CHK_STATUS(resetStateMachineRetryCount(pIceAgent->pStateMachine));
+        }
+    } while (oldState != pIceAgent->iceAgentState);
 
 CleanUp:
 
@@ -482,22 +484,6 @@ STATUS fromReadyIceAgentState(UINT64 customData, PUINT64 pState)
 
     CHK_STATUS(iceAgentStateMachineCheckDisconnection(pIceAgent, &state));
 
-    // Free TurnConnections that are shutdown
-    CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
-    while (pCurNode != NULL) {
-        pIceCandidate = (PIceCandidate) pCurNode->data;
-        pNodeToDelete = pCurNode;
-        pCurNode = pCurNode->pNext;
-
-        if (pIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED && turnConnectionIsShutdownComplete(pIceCandidate->pTurnConnection)) {
-            MUTEX_UNLOCK(pIceAgent->lock);
-            CHK_LOG_ERR(freeTurnConnection(&pIceCandidate->pTurnConnection));
-            MUTEX_LOCK(pIceAgent->lock);
-            MEMFREE(pIceCandidate);
-            CHK_STATUS(doubleListDeleteNode(pIceAgent->localCandidates, pNodeToDelete));
-        }
-    }
-
     // return early if changing to disconnected state
     CHK(state != ICE_AGENT_STATE_DISCONNECTED, retStatus);
 
@@ -527,12 +513,32 @@ STATUS executeReadyIceAgentState(UINT64 customData, UINT64 time)
     ENTERS();
     UNUSED_PARAM(time);
     STATUS retStatus = STATUS_SUCCESS;
+    BOOL locked = FALSE;
     PIceAgent pIceAgent = (PIceAgent) customData;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
     if (pIceAgent->iceAgentState != ICE_AGENT_STATE_READY) {
         CHK_STATUS(iceAgentReadyStateSetup(pIceAgent));
         pIceAgent->iceAgentState = ICE_AGENT_STATE_READY;
+    }
+
+    MUTEX_LOCK(pIceAgent->lock);
+    locked = TRUE;
+
+    // Free TurnConnections that are shutdown
+    CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
+    while (pCurNode != NULL) {
+        pIceCandidate = (PIceCandidate) pCurNode->data;
+        pNodeToDelete = pCurNode;
+        pCurNode = pCurNode->pNext;
+
+        if (pIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED && turnConnectionIsShutdownComplete(pIceCandidate->pTurnConnection)) {
+            MUTEX_UNLOCK(pIceAgent->lock);
+            CHK_LOG_ERR(freeTurnConnection(&pIceCandidate->pTurnConnection));
+            MUTEX_LOCK(pIceAgent->lock);
+            MEMFREE(pIceCandidate);
+            CHK_STATUS(doubleListDeleteNode(pIceAgent->localCandidates, pNodeToDelete));
+        }
     }
 
 CleanUp:
@@ -548,6 +554,10 @@ CleanUp:
         PROFILE_WITH_START_TIME_OBJ(pIceAgent->iceAgentStartTime, pIceAgent->iceAgentProfileDiagnostics.iceAgentSetUpTime,
                                     "Time taken to get ICE Agent ready for media exchange");
         pIceAgent->iceAgentStartTime = 0;
+    }
+
+    if (locked) {
+        MUTEX_UNLOCK(pIceAgent->lock);
     }
 
     LEAVES();
