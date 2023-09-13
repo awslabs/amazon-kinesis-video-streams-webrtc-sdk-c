@@ -58,7 +58,7 @@ STATUS createIceAgent(PCHAR username, PCHAR password, PIceAgentCallbacks pIceAge
     }
     pIceAgent->stateEndTime = 0;
     pIceAgent->foundationCounter = 0;
-    pIceAgent->localNetworkInterfaceCount = ARRAY_SIZE(pIceAgent->localNetworkInterfaces);
+    pIceAgent->localNetworkInterfaceCount = pRtcConfiguration->kvsRtcConfiguration.cachedLocalNetworkInterfaceCount;
     pIceAgent->candidateGatheringEndTime = INVALID_TIMESTAMP_VALUE;
 
     pIceAgent->lock = MUTEX_CREATE(FALSE);
@@ -77,6 +77,9 @@ STATUS createIceAgent(PCHAR username, PCHAR password, PIceAgentCallbacks pIceAge
     pIceAgent->pConnectionListener = pConnectionListener;
     pIceAgent->pDataSendingIceCandidatePair = NULL;
     pIceAgent->iceAgentState = ICE_AGENT_STATE_NEW;
+
+    MEMCPY(pIceAgent->localNetworkInterfaces, pRtcConfiguration->kvsRtcConfiguration.cachedLocalNetworkInterfaces, SIZEOF(KvsIpAddress) * pIceAgent->localNetworkInterfaceCount);
+    
     CHK_STATUS(createTransactionIdStore(DEFAULT_MAX_STORED_TRANSACTION_ID_COUNT, &pIceAgent->pStunBindingRequestTransactionIdStore));
 
     pIceAgent->relayCandidateCount = 0;
@@ -597,10 +600,6 @@ STATUS iceAgentStartGathering(PIceAgent pIceAgent)
     // skip gathering host candidate and srflx candidate if relay only
     if (pIceAgent->iceTransportPolicy != ICE_TRANSPORT_POLICY_RELAY) {
         // Skip getting local host candidates if transport policy is relay only
-        PROFILE_CALL_WITH_T_OBJ(CHK_STATUS(getLocalhostIpAddresses(pIceAgent->localNetworkInterfaces, &pIceAgent->localNetworkInterfaceCount,
-                                                                   pIceAgent->kvsRtcConfiguration.iceSetInterfaceFilterFunc,
-                                                                   pIceAgent->kvsRtcConfiguration.filterCustomData)),
-                                pIceAgent->iceAgentProfileDiagnostics.localCandidateGatheringTime, "Host candidate gathering from local interfaces");
         PROFILE_CALL_WITH_T_OBJ(CHK_STATUS(iceAgentInitHostCandidate(pIceAgent)), pIceAgent->iceAgentProfileDiagnostics.hostCandidateSetUpTime,
                                 "Host candidates setup time");
         PROFILE_CALL_WITH_T_OBJ(CHK_STATUS(iceAgentInitSrflxCandidate(pIceAgent)), pIceAgent->iceAgentProfileDiagnostics.srflxCandidateSetUpTime,

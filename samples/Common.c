@@ -356,6 +356,18 @@ CleanUp:
     CHK_LOG_ERR(retStatus);
 }
 
+PVOID refreshCachedLocalNetworkInterfaces(PVOID args) 
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
+    CHK_STATUS(getLocalhostIpAddresses(pSampleConfiguration->cachedLocalNetworkInterfaces, &pSampleConfiguration->cachedLocalNetworkInterfaceCount, 
+        NULL, 0));
+
+CleanUp:
+
+    return (PVOID) (ULONG_PTR) retStatus;
+}
+
 STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcPeerConnection* ppRtcPeerConnection)
 {
     ENTERS();
@@ -375,6 +387,9 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
 
     // Set the ICE mode explicitly
     configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_ALL;
+
+    configuration.kvsRtcConfiguration.cachedLocalNetworkInterfaceCount = pSampleConfiguration->cachedLocalNetworkInterfaceCount;
+    MEMCPY(configuration.kvsRtcConfiguration.cachedLocalNetworkInterfaces, pSampleConfiguration->cachedLocalNetworkInterfaces, SIZEOF(KvsIpAddress) * pSampleConfiguration->cachedLocalNetworkInterfaceCount);
 
     // Set the  STUN server
     PCHAR pKinesisVideoStunUrlPostFix = KINESIS_VIDEO_STUN_URL_POSTFIX;
@@ -429,7 +444,10 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
         configuration.certificates[0] = *pRtcCertificate;
     }
 
+
     CHK_STATUS(createPeerConnection(&configuration, ppRtcPeerConnection));
+
+    threadpoolPush(pSampleConfiguration->pThreadpool, refreshCachedLocalNetworkInterfaces, pSampleConfiguration);
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
@@ -907,6 +925,12 @@ STATUS initSignaling(PSampleConfiguration pSampleConfiguration, PCHAR clientId)
     DLOGP("[Signaling fetch client] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.fetchClientTime);
     DLOGP("[Signaling connect client] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.connectClientTime);
     pSampleConfiguration->signalingClientMetrics = signalingClientMetrics;
+    
+    pSampleConfiguration->cachedLocalNetworkInterfaceCount = ARRAY_SIZE(pSampleConfiguration->cachedLocalNetworkInterfaces);
+    CHK_STATUS(getLocalhostIpAddresses(pSampleConfiguration->cachedLocalNetworkInterfaces, &pSampleConfiguration->cachedLocalNetworkInterfaceCount, 
+        NULL, 0));
+    CHK_STATUS(threadpoolCreate(&pSampleConfiguration->pThreadpool, 3, 5));
+    
     gSampleConfiguration = pSampleConfiguration;
 CleanUp:
     return retStatus;

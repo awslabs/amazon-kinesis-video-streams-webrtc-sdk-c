@@ -96,12 +96,6 @@ typedef enum {
     KVS_IP_FAMILY_TYPE_IPV6 = (UINT16) 0x0002,
 } KVS_IP_FAMILY_TYPE;
 
-typedef struct {
-    UINT16 family;
-    UINT16 port;                       // port is stored in network byte order
-    BYTE address[IPV6_ADDRESS_LENGTH]; // address is stored in network byte order
-    BOOL isPointToPoint;
-} KvsIpAddress, *PKvsIpAddress;
 
 #define IS_IPV4_ADDR(pAddress) ((pAddress)->family == KVS_IP_FAMILY_TYPE_IPV4)
 

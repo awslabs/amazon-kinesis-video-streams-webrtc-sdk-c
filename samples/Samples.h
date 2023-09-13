@@ -136,6 +136,11 @@ typedef struct {
 
     PCHAR rtspUri;
     UINT32 logLevel;
+
+    BOOL cacheLocalNetworkInterfaces;
+    KvsIpAddress cachedLocalNetworkInterfaces[20];
+    UINT32 cachedLocalNetworkInterfaceCount;
+    PThreadpool pThreadpool;
 } SampleConfiguration, *PSampleConfiguration;
 
 typedef struct {

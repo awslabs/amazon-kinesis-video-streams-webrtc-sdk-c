@@ -1101,6 +1101,13 @@ typedef struct {
     UINT32 privateKeySize; //!< Size of private key in bytes (optional)
 } RtcCertificate, *PRtcCertificate;
 
+typedef struct {
+    UINT16 family;
+    UINT16 port;                       // port is stored in network byte order
+    BYTE address[16]; // address is stored in network byte order
+    BOOL isPointToPoint;
+} KvsIpAddress, *PKvsIpAddress;
+
 /**
  *  KvsRtcConfiguration is a collection of non-standard extensions to RTCConfiguration
  *  these exist to serve use cases that currently aren't being served by the W3C standard
@@ -1144,6 +1151,10 @@ typedef struct {
     BOOL disableSenderSideBandwidthEstimation; //!< Disable TWCC feedback based sender bandwidth estimation, enabled by default.
                                                //!< You want to set this to TRUE if you are on a very stable connection and want to save 1.2MB of
                                                //!< memory
+    BOOL cacheLocalNetworkInterfaces;
+    KvsIpAddress cachedLocalNetworkInterfaces[20];
+    UINT32 cachedLocalNetworkInterfaceCount;
+    PThreadpool pThreadpool;
 } KvsRtcConfiguration, *PKvsRtcConfiguration;
 
 /**
@@ -1537,6 +1548,7 @@ typedef struct {
  * @{
  */
 
+PUBLIC_API STATUS getLocalhostIpAddresses(PKvsIpAddress, PUINT32, IceSetInterfaceFilterFunc, UINT64);
 /**
  * @brief Initialize a RtcPeerConnection with the provided Configuration
  *
