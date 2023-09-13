@@ -38,8 +38,10 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     CHK_STATUS(validateSignalingCallbacks(pSignalingClient, pCallbacks));
     CHK_STATUS(validateSignalingClientInfo(pSignalingClient, pClientInfo));
 #ifdef ENABLE_KVS_THREADPOOL
+    DLOGD("Going to crate the threadpool for signaling");
     CHK_STATUS(threadpoolCreate(&pSignalingClient->pThreadpool, pClientInfo->signalingClientInfo.signalingMessagesMinimumThreads,
                                 pClientInfo->signalingClientInfo.signalingMessagesMaximumThreads));
+    DLOGD("Successfully created the threadpool for signaling");
 #endif
 
     pSignalingClient->version = SIGNALING_CLIENT_CURRENT_VERSION;
