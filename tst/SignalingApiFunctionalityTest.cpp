@@ -270,6 +270,8 @@ TEST_F(SignalingApiFunctionalityTest, basicCreateConnectFree)
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, basicCreateWithRetries)
@@ -301,6 +303,8 @@ TEST_F(SignalingApiFunctionalityTest, basicCreateWithRetries)
     EXPECT_EQ(STATUS_NULL_ARG,
               createSignalingClientSync(&clientInfo, NULL, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider,
                                         &signalingHandle));
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, mockMaster)
@@ -442,6 +446,8 @@ TEST_F(SignalingApiFunctionalityTest, mockMaster)
     // Free again
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
     EXPECT_FALSE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, mockViewer)
@@ -558,6 +564,8 @@ TEST_F(SignalingApiFunctionalityTest, mockViewer)
     // Free again
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
     EXPECT_FALSE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, invalidChannelInfoInput)
@@ -829,6 +837,8 @@ TEST_F(SignalingApiFunctionalityTest, invalidChannelInfoInput)
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, iceReconnectEmulation)
@@ -916,6 +926,8 @@ TEST_F(SignalingApiFunctionalityTest, iceReconnectEmulation)
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedVariations)
@@ -1181,6 +1193,8 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedVariatio
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedVariations)
@@ -1448,6 +1462,8 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedVariations)
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedAuthExpiration)
@@ -1571,6 +1587,8 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedAuthExpi
     EXPECT_EQ(STATUS_SIGNALING_ICE_CONFIG_REFRESH_FAILED, errStatus);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedAuthExpiration)
@@ -1697,6 +1715,8 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedAuthExpirat
     EXPECT_EQ(STATUS_SIGNALING_ICE_CONFIG_REFRESH_FAILED, errStatus);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithFaultInjectionRecovered)
@@ -1814,6 +1834,8 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithFaul
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithFaultInjectionRecovered)
@@ -1933,6 +1955,8 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithFaultIn
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithFaultInjectionNotRecovered)
@@ -2048,6 +2072,8 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithFaul
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithFaultInjectionNot1669)
@@ -2166,6 +2192,8 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithFaultIn
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithBadAuth)
@@ -2287,6 +2315,8 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithBadA
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithBadAuth)
@@ -2412,6 +2442,8 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithBadAuth
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, goAwayEmulation)
@@ -2498,6 +2530,8 @@ TEST_F(SignalingApiFunctionalityTest, goAwayEmulation)
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, unknownMessageTypeEmulation)
@@ -2588,6 +2622,8 @@ TEST_F(SignalingApiFunctionalityTest, unknownMessageTypeEmulation)
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, connectTimeoutEmulation)
@@ -2711,6 +2747,8 @@ TEST_F(SignalingApiFunctionalityTest, connectTimeoutEmulation)
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, channelInfoArnSkipDescribe)
@@ -2845,6 +2883,8 @@ TEST_F(SignalingApiFunctionalityTest, channelInfoArnSkipDescribe)
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedWithArn)
@@ -2979,6 +3019,8 @@ TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedWithArn)
     EXPECT_EQ(STATUS_SUCCESS, signalingClientDeleteSync(signalingHandle));
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedAuthExpiration)
@@ -3092,6 +3134,8 @@ TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedAuthExpiration)
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, signalingClientDisconnectSyncVariations)
@@ -3136,6 +3180,8 @@ TEST_F(SignalingApiFunctionalityTest, signalingClientDisconnectSyncVariations)
     EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(mSignalingClientHandle, &message));
 
     deinitializeSignalingClient();
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, cachingWithFaultInjection)
@@ -3272,6 +3318,8 @@ TEST_F(SignalingApiFunctionalityTest, cachingWithFaultInjection)
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, fileCachingTest)
@@ -3377,6 +3425,8 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingTest)
     /* describeCount and getEndpointCount should only increase by 2 because they are cached for all channels except one and we iterate twice*/
     EXPECT_TRUE(describeCount > describeCountNoCache && (describeCount - describeCountNoCache) == 2);
     EXPECT_TRUE(getEndpointCount > getEndpointCountNoCache && (getEndpointCount - 2*getEndpointCountNoCache) == 2);
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateCache)
@@ -3407,6 +3457,8 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateCache)
     testEntry.creationTsEpochSeconds = GETTIME() / HUNDREDS_OF_NANOS_IN_A_SECOND;
     /* update first cache entry*/
     EXPECT_EQ(STATUS_SUCCESS, signalingCacheSaveToFile(&testEntry, DEFAULT_CACHE_FILE_PATH));
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateMultiChannelCache)
@@ -3478,6 +3530,8 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateMultiChannelCache)
     MEMFREE(fileBuffer);
 
     FREMOVE(DEFAULT_CACHE_FILE_PATH);
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateFullMultiChannelCache)
@@ -3531,6 +3585,8 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateFullMultiChannelCache)
     EXPECT_EQ(0, STRCMP(testEntry.channelName, testChannel));
 
     FREMOVE(DEFAULT_CACHE_FILE_PATH);
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer)
@@ -3719,6 +3775,8 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer)
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_SlowClockSkew)
@@ -3910,6 +3968,8 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_SlowClockSkew)
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 
@@ -4102,6 +4162,8 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_FastClockSkew)
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_FastClockSkew_VerifyOffsetRemovedWhenClockFixed)
@@ -4321,6 +4383,8 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_FastClockSkew_Veri
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 
