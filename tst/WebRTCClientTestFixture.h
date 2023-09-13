@@ -95,7 +95,7 @@ class WebRtcClientTestBase : public ::testing::Test {
         mClientInfo.signalingRetryStrategyCallbacks.freeRetryStrategyFn = freeRetryStrategyFn;
         mClientInfo.signalingRetryStrategyCallbacks.executeRetryStrategyFn = executeRetryStrategyFn;
         mClientInfo.signalingClientCreationMaxRetryAttempts = 0;
-        mClientInfo.signalingMessagesMaximumThreads = 3;
+        mClientInfo.signalingMessagesMinimumThreads = 3;
         mClientInfo.signalingMessagesMaximumThreads = 5;
 
         MEMSET(&mChannelInfo, 0x00, SIZEOF(mChannelInfo));
