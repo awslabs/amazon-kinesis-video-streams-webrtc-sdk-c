@@ -239,6 +239,8 @@ TEST_F(SignalingApiFunctionalityTest, basicCreateConnectFree)
     clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
     clientInfo.cacheFilePath = NULL;
+    clientInfo.signalingMessagesMinimumThreads = 3;
+    clientInfo.signalingMessagesMaximumThreads = 5;
     clientInfo.signalingClientCreationMaxRetryAttempts = 0;
     STRCPY(clientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     setupSignalingStateMachineRetryStrategyCallbacks(&clientInfo);
@@ -289,6 +291,8 @@ TEST_F(SignalingApiFunctionalityTest, basicCreateWithRetries)
     clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
     clientInfo.cacheFilePath = NULL;
+    clientInfo.signalingMessagesMinimumThreads = 3;
+    clientInfo.signalingMessagesMaximumThreads = 5;
     clientInfo.signalingClientCreationMaxRetryAttempts = 3;
     STRCPY(clientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     setupSignalingStateMachineRetryStrategyCallbacks(&clientInfo);
@@ -329,6 +333,8 @@ TEST_F(SignalingApiFunctionalityTest, mockMaster)
     clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
     clientInfo.cacheFilePath = NULL;
+    clientInfo.signalingMessagesMinimumThreads = 3;
+    clientInfo.signalingMessagesMaximumThreads = 5;
     clientInfo.signalingClientCreationMaxRetryAttempts = 0;
     STRCPY(clientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     setupSignalingStateMachineRetryStrategyCallbacks(&clientInfo);
@@ -469,6 +475,8 @@ TEST_F(SignalingApiFunctionalityTest, mockViewer)
     clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
     clientInfo.cacheFilePath = NULL;
+    clientInfo.signalingMessagesMinimumThreads = 3;
+    clientInfo.signalingMessagesMaximumThreads = 5;
     clientInfo.signalingClientCreationMaxRetryAttempts = 0;
     STRCPY(clientInfo.clientId, TEST_SIGNALING_VIEWER_CLIENT_ID);
     setupSignalingStateMachineRetryStrategyCallbacks(&clientInfo);
@@ -575,6 +583,8 @@ TEST_F(SignalingApiFunctionalityTest, invalidChannelInfoInput)
     STRCPY(clientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
     clientInfo.cacheFilePath = NULL;
+    clientInfo.signalingMessagesMinimumThreads = 3;
+    clientInfo.signalingMessagesMaximumThreads = 5;
     clientInfo.signalingClientCreationMaxRetryAttempts = 0;
     setupSignalingStateMachineRetryStrategyCallbacks(&clientInfo);
 
@@ -767,6 +777,8 @@ TEST_F(SignalingApiFunctionalityTest, invalidChannelInfoInput)
 
     clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
+    clientInfo.signalingMessagesMinimumThreads = 3;
+    clientInfo.signalingMessagesMaximumThreads = 5;
     clientInfo.signalingClientCreationMaxRetryAttempts = 0;
     STRCPY(clientInfo.clientId, TEST_SIGNALING_VIEWER_CLIENT_ID);
     setupSignalingStateMachineRetryStrategyCallbacks(&clientInfo);
@@ -839,6 +851,8 @@ TEST_F(SignalingApiFunctionalityTest, iceReconnectEmulation)
     clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
     clientInfo.cacheFilePath = NULL;
+    clientInfo.signalingMessagesMinimumThreads = 3;
+    clientInfo.signalingMessagesMaximumThreads = 5;
     clientInfo.signalingClientCreationMaxRetryAttempts = 0;
     STRCPY(clientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     setupSignalingStateMachineRetryStrategyCallbacks(&clientInfo);
@@ -2400,6 +2414,8 @@ TEST_F(SignalingApiFunctionalityTest, goAwayEmulation)
     clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
     clientInfo.cacheFilePath = NULL;
+    clientInfo.signalingMessagesMinimumThreads = 3;
+    clientInfo.signalingMessagesMaximumThreads = 5;
     STRCPY(clientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     setupSignalingStateMachineRetryStrategyCallbacks(&clientInfo);
 
@@ -2484,6 +2500,8 @@ TEST_F(SignalingApiFunctionalityTest, unknownMessageTypeEmulation)
     clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
     clientInfo.cacheFilePath = NULL;
+    clientInfo.signalingMessagesMinimumThreads = 3;
+    clientInfo.signalingMessagesMaximumThreads = 5;
     clientInfo.signalingClientCreationMaxRetryAttempts = 0;
     STRCPY(clientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     setupSignalingStateMachineRetryStrategyCallbacks(&clientInfo);
