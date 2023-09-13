@@ -225,7 +225,7 @@ STATUS freeSignaling(PSignalingClient* ppSignalingClient)
 
     hashTableFree(pSignalingClient->diagnostics.pEndpointToClockSkewHashMap);
 
-#ifdef USE_KVS_THREADPOOL
+#ifdef ENABLE_KVS_THREADPOOL
     threadpoolFree(pSignalingClient->pThreadpool);
 #endif
 
