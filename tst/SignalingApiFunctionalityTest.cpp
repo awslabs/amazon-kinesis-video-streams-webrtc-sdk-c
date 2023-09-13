@@ -941,6 +941,8 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedVariatio
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
+    clientInfoInternal.signalingClientInfo.signalingMessagesMinimumThreads = 3;
+    clientInfoInternal.signalingClientInfo.signalingMessagesMaximumThreads = 5;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     setupSignalingStateMachineRetryStrategyCallbacks(&clientInfoInternal);
 
@@ -1204,6 +1206,8 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedVariations)
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
+    clientInfoInternal.signalingClientInfo.signalingMessagesMinimumThreads = 3;
+    clientInfoInternal.signalingClientInfo.signalingMessagesMaximumThreads = 5;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     setupSignalingStateMachineRetryStrategyCallbacks(&clientInfoInternal);
 
@@ -1469,6 +1473,8 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedAuthExpi
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
+    clientInfoInternal.signalingClientInfo.signalingMessagesMinimumThreads = 3;
+    clientInfoInternal.signalingClientInfo.signalingMessagesMaximumThreads = 5;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     setupSignalingStateMachineRetryStrategyCallbacks(&clientInfoInternal);
 
@@ -1590,6 +1596,8 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedAuthExpirat
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
+    clientInfoInternal.signalingClientInfo.signalingMessagesMinimumThreads = 3;
+    clientInfoInternal.signalingClientInfo.signalingMessagesMaximumThreads = 5;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     setupSignalingStateMachineRetryStrategyCallbacks(&clientInfoInternal);
 
@@ -1714,6 +1722,8 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithFaul
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
+    clientInfoInternal.signalingClientInfo.signalingMessagesMinimumThreads = 3;
+    clientInfoInternal.signalingClientInfo.signalingMessagesMaximumThreads = 5;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfoInternal.hookCustomData = (UINT64) this;
     clientInfoInternal.getIceConfigPreHookFn = getIceConfigPreHook;
@@ -1829,6 +1839,8 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithFaultIn
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
+    clientInfoInternal.signalingClientInfo.signalingMessagesMinimumThreads = 3;
+    clientInfoInternal.signalingClientInfo.signalingMessagesMaximumThreads = 5;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfoInternal.hookCustomData = (UINT64) this;
     clientInfoInternal.getIceConfigPreHookFn = getIceConfigPreHook;
@@ -1946,6 +1958,8 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithFaul
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
+    clientInfoInternal.signalingClientInfo.signalingMessagesMinimumThreads = 3;
+    clientInfoInternal.signalingClientInfo.signalingMessagesMaximumThreads = 5;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfoInternal.hookCustomData = (UINT64) this;
     clientInfoInternal.getIceConfigPreHookFn = getIceConfigPreHook;
@@ -2059,6 +2073,8 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithFaultIn
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
+    clientInfoInternal.signalingClientInfo.signalingMessagesMinimumThreads = 3;
+    clientInfoInternal.signalingClientInfo.signalingMessagesMaximumThreads = 5;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfoInternal.hookCustomData = (UINT64) this;
     clientInfoInternal.getIceConfigPreHookFn = getIceConfigPreHook;
@@ -2175,6 +2191,8 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithBadA
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
+    clientInfoInternal.signalingClientInfo.signalingMessagesMinimumThreads = 3;
+    clientInfoInternal.signalingClientInfo.signalingMessagesMaximumThreads = 5;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     setupSignalingStateMachineRetryStrategyCallbacks(&clientInfoInternal);
 
@@ -2295,6 +2313,8 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithBadAuth
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
+    clientInfoInternal.signalingClientInfo.signalingMessagesMinimumThreads = 3;
+    clientInfoInternal.signalingClientInfo.signalingMessagesMaximumThreads = 5;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     setupSignalingStateMachineRetryStrategyCallbacks(&clientInfoInternal);
 
@@ -2594,6 +2614,8 @@ TEST_F(SignalingApiFunctionalityTest, connectTimeoutEmulation)
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
+    clientInfoInternal.signalingClientInfo.signalingMessagesMinimumThreads = 3;
+    clientInfoInternal.signalingClientInfo.signalingMessagesMaximumThreads = 5;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfoInternal.connectTimeout = 1 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
     setupSignalingStateMachineRetryStrategyCallbacks(&clientInfoInternal);
@@ -2713,6 +2735,8 @@ TEST_F(SignalingApiFunctionalityTest, channelInfoArnSkipDescribe)
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
+    clientInfoInternal.signalingClientInfo.signalingMessagesMinimumThreads = 3;
+    clientInfoInternal.signalingClientInfo.signalingMessagesMaximumThreads = 5;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfoInternal.connectTimeout = 0;
     setupSignalingStateMachineRetryStrategyCallbacks(&clientInfoInternal);
@@ -2845,6 +2869,8 @@ TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedWithArn)
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
+    clientInfoInternal.signalingClientInfo.signalingMessagesMinimumThreads = 3;
+    clientInfoInternal.signalingClientInfo.signalingMessagesMaximumThreads = 5;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfoInternal.connectTimeout = 0;
     setupSignalingStateMachineRetryStrategyCallbacks(&clientInfoInternal);
@@ -2976,6 +3002,8 @@ TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedAuthExpiration)
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
+    clientInfoInternal.signalingClientInfo.signalingMessagesMinimumThreads = 3;
+    clientInfoInternal.signalingClientInfo.signalingMessagesMaximumThreads = 5;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfoInternal.connectTimeout = 0;
     setupSignalingStateMachineRetryStrategyCallbacks(&clientInfoInternal);
@@ -3131,6 +3159,8 @@ TEST_F(SignalingApiFunctionalityTest, cachingWithFaultInjection)
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
+    clientInfoInternal.signalingClientInfo.signalingMessagesMinimumThreads = 3;
+    clientInfoInternal.signalingClientInfo.signalingMessagesMaximumThreads = 5;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfoInternal.hookCustomData = (UINT64) this;
     clientInfoInternal.connectPreHookFn = connectPreHook;
@@ -3269,6 +3299,8 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingTest)
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
+    clientInfoInternal.signalingClientInfo.signalingMessagesMinimumThreads = 3;
+    clientInfoInternal.signalingClientInfo.signalingMessagesMaximumThreads = 5;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfoInternal.hookCustomData = (UINT64) this;
     clientInfoInternal.connectPreHookFn = connectPreHook;
@@ -3524,6 +3556,8 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer)
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
+    clientInfoInternal.signalingClientInfo.signalingMessagesMinimumThreads = 3;
+    clientInfoInternal.signalingClientInfo.signalingMessagesMaximumThreads = 5;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     setupSignalingStateMachineRetryStrategyCallbacks(&clientInfoInternal);
 
@@ -3710,6 +3744,8 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_SlowClockSkew)
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
+    clientInfoInternal.signalingClientInfo.signalingMessagesMinimumThreads = 3;
+    clientInfoInternal.signalingClientInfo.signalingMessagesMaximumThreads = 5;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
@@ -3900,6 +3936,8 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_FastClockSkew)
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
+    clientInfoInternal.signalingClientInfo.signalingMessagesMinimumThreads = 3;
+    clientInfoInternal.signalingClientInfo.signalingMessagesMaximumThreads = 5;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
@@ -4092,6 +4130,8 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_FastClockSkew_Veri
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
+    clientInfoInternal.signalingClientInfo.signalingMessagesMinimumThreads = 3;
+    clientInfoInternal.signalingClientInfo.signalingMessagesMaximumThreads = 5;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
