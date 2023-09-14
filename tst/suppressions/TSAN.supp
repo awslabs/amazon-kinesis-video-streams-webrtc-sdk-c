@@ -177,3 +177,32 @@ deadlock:com::amazonaws::kinesis::video::webrtcclient::DtlsFunctionalityTest::cr
 deadlock:lwsListenerHandler
 deadlock:connectSignalingChannelLws
 race:lwsListenerHandler
+
+# ==================
+# WARNING: ThreadSanitizer: unlock of an unlocked mutex (or by a wrong thread) (pid=17000)
+#     #0 pthread_mutex_unlock <null> (webrtc_client_test+0x4668f6)
+#     #1 defaultUnlockMutex <null> (libkvsWebrtcClient.so+0x9dd94)
+# 
+#   Location is heap block of size 48 at 0x7b0c00001a70 allocated by main thread:
+#     #0 calloc <null> (webrtc_client_test+0x447d50)
+#     #1 defaultMemCalloc <null> (libkvsWebrtcClient.so+0x99fdc)
+#     #2 createSignalingClientSync /home/runner/work/amazon-kinesis-video-streams-webrtc-sdk-c/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/Client.c:83:21 (libkvsWebrtcSignalingClient.so+0xed0b)
+# 2023-09-13 23:48:26.175 ERROR   timerQueue
+#     #3 com::amazonaws::kinesis::video::webrtcclient::WebRtcClientTestBase::initializeSignalingClient(__AwsCredentialProvider*) /home/runner/work/amazon-kinesis-video-streams-webrtc-sdk-c/amazon-kinesis-video-streams-webrtc-sdk-c/tst/WebRTCClientTestFixture.h:127:21 (webrtc_client_test+0x53d564)
+#     #4 com::amazonaws::kinesis::video::webrtcclient::IceFunctionalityTest_IceAgentCandidateGatheringTest_Test::TestBody() /home/runner/work/amazon-kinesis-video-streams-webrtc-sdk-c/amazon-kinesis-video-streams-webrtc-sdk-c/tst/IceFunctionalityTest.cpp:665:5 (webrtc_client_test+0x53a313)
+#     #5 void testing::internal::HandleSehExceptionsInMethodIfSupported<testing::Test, void>(testing::Test*, void (testing::Test::*)(), char const*) <null> (webrtc_client_test+0x767253)
+#     #6 main /home/runner/work/amazon-kinesis-video-streams-webrtc-sdk-c/amazon-kinesis-video-streams-webrtc-sdk-c/tst/main.cpp:68:14 (webrtc_client_test+0x714b55)
+# 
+#   Mutex M1128 (0x7b0c00001a78) created at:
+#     #0 pthread_mutex_init <null> (webrtc_client_test+0x44a91d)
+#     #1 defaultCreateMutex <null> (libkvsWebrtcClient.so+0x9dd05)
+#     #2 createSignalingClientSync /home/runner/work/amazon-kinesis-video-streams-webrtc-sdk-c/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/Client.c:83:21 (libkvsWebrtcSignalingClient.so+0xed0b)
+#     #3 com::amazonaws::kinesis::video::webrtcclient::WebRtcClientTestBase::initializeSignalingClient(__AwsCredentialProvider*) /home/runner/work/amazon-kinesis-video-streams-webrtc-sdk-c/amazon-kinesis-video-streams-webrtc-sdk-c/tst/WebRTCClientTestFixture.h:127:21 (webrtc_client_test+0x53d564)
+#     #4 com::amazonaws::kinesis::video::webrtcclient::IceFunctionalityTest_IceAgentCandidateGatheringTest_Test::TestBody() /home/runner/work/amazon-kinesis-video-streams-webrtc-sdk-c/amazon-kinesis-video-streams-webrtc-sdk-c/tst/IceFunctionalityTest.cpp:665:5 (webrtc_client_test+0x53a313)
+#     #5 void testing::internal::HandleSehExceptionsInMethodIfSupported<testing::Test, void>(testing::Test*, void (testing::Test::*)(), char const*) <null> (webrtc_client_test+0x767253)
+#     #6 main /home/runner/work/amazon-kinesis-video-streams-webrtc-sdk-c/amazon-kinesis-video-streams-webrtc-sdk-c/tst/main.cpp:68:14 (webrtc_client_test+0x714b55)
+# 
+# SUMMARY: ThreadSanitizer: unlock of an unlocked mutex (or by a wrong thread) (/home/runner/work/amazon-kinesis-video-streams-webrtc-sdk-c/amazon-kinesis-video-streams-webrtc-sdk-c/build/tst/webrtc_client_test+0x4668f6) in pthread_mutex_unlock
+# ==================
+# This is the expected behavior by the KVS Threadpool in pic
+race:createSignalingClientSync
