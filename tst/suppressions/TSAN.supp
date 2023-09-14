@@ -206,4 +206,5 @@ race:lwsListenerHandler
 # ==================
 # This is the expected behavior by the KVS Threadpool in pic
 race:threadpoolCreate
+race:threadpoolPush
 race:threadpoolFree
