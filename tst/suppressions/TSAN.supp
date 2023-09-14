@@ -206,4 +206,4 @@ SUMMARY: ThreadSanitizer: unlock of an unlocked mutex (or by a wrong thread) (/h
 ==================
 
 # This is the expected behavior by the KVS Threadpool in pic
-race:IceAgentCandidateGatheringTest
+race:createSignalingClientSync
