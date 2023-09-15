@@ -208,4 +208,4 @@ race:lwsListenerHandler
 race:threadpoolCreate
 race:threadpoolPush
 race:threadpoolFree
-race:pthread_mutex_unlock
+race:IceFunctionalityTest.IceAgentCandidateGatheringTest
