@@ -205,7 +205,5 @@ race:lwsListenerHandler
 # SUMMARY: ThreadSanitizer: unlock of an unlocked mutex (or by a wrong thread) (/home/runner/work/amazon-kinesis-video-streams-webrtc-sdk-c/amazon-kinesis-video-streams-webrtc-sdk-c/build/tst/webrtc_client_test+0x4668f6) in pthread_mutex_unlock
 # ==================
 # This is the expected behavior by the KVS Threadpool in pic
-race:threadpoolCreate
-race:threadpoolPush
-race:threadpoolFree
-race:IceAgentCandidateGatheringTest
+mutex:lock
+mutex:candidateList.lock
