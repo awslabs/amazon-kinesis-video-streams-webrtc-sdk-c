@@ -59,6 +59,9 @@ STATUS createTurnConnection(PIceServer pTurnServer, TIMER_QUEUE_HANDLE timerQueu
     pTurnConnection->nextAllocationRefreshTime = 0;
     pTurnConnection->currentTimerCallingPeriod = DEFAULT_TURN_TIMER_INTERVAL_BEFORE_READY;
 
+    CHK_STATUS(createStateMachine(TURN_CONNECTION_STATE_MACHINE_STATES, TURN_CONNECTION_STATE_MACHINE_STATE_COUNT,
+                    (UINT64)pTurnConnection, turnConnectionGetTime, (UINT64) pTurnConnection, &pTurnConnection->pStateMachine);
+
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
@@ -124,6 +127,8 @@ STATUS freeTurnConnection(PTurnConnection* ppTurnConnection)
     if (IS_VALID_CVAR_VALUE(pTurnConnection->freeAllocationCvar)) {
         CVAR_FREE(pTurnConnection->freeAllocationCvar);
     }
+
+    freeStateMachine(pTurnConnection->pStateMachine);
 
     turnConnectionFreePreAllocatedPackets(pTurnConnection);
 

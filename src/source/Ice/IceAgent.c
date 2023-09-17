@@ -1,5 +1,5 @@
 /**
- * Kinesis Video Producer Callbacks Provider
+ * Ice Agent APIs
  */
 #define LOG_CLASS "IceAgent"
 #include "../Include_i.h"
@@ -2249,6 +2249,7 @@ STATUS iceAgentNominateCandidatePair(PIceAgent pIceAgent)
     CHK(pNominatedCandidatePair != NULL, STATUS_ICE_FAILED_TO_NOMINATE_CANDIDATE_PAIR);
 
     pNominatedCandidatePair->nominated = TRUE;
+    checkIceAgentStateMachine(pIceAgent);
 
     // reset transaction id list to ignore future connectivity check response.
     transactionIdStoreClear(pNominatedCandidatePair->pTransactionIdStore);
@@ -2476,6 +2477,7 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
                           iceAgentGetCandidateTypeStr(pIceCandidatePair->local->iceCandidateType), pIceCandidatePair->local->id,
                           pIceCandidatePair->remote->id);
                     pIceCandidatePair->nominated = TRUE;
+                    checkIceAgentStateMachine(pIceAgent);
                 }
             }
 
@@ -2577,6 +2579,7 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
             if (pIceCandidatePair->state != ICE_CANDIDATE_PAIR_STATE_SUCCEEDED) {
                 DLOGD("Pair succeeded! %s %s", pIceCandidatePair->local->id, pIceCandidatePair->remote->id);
                 pIceCandidatePair->state = ICE_CANDIDATE_PAIR_STATE_SUCCEEDED;
+                checkIceAgentStateMachine(pIceAgent);
                 retStatus = hashTableGet(pIceCandidatePair->requestSentTime, checkSum, &requestSentTime);
                 if (hashTableGet(pIceCandidatePair->requestSentTime, checkSum, &requestSentTime) == STATUS_SUCCESS) {
                     pIceCandidatePair->roundTripTime = GETTIME() - requestSentTime;

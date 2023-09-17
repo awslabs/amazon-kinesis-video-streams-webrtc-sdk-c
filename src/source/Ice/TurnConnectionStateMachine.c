@@ -8,7 +8,7 @@
 /**
  * Static definitions of the states
  */
-StateMachineState ICE_AGENT_STATE_MACHINE_STATES[] = {
+StateMachineState TURN_CONNECTION_STATE_MACHINE_STATES[] = {
     {TURN_STATE_NEW, /*TODO ACCEPT*/, fromNewTurnState, executeNewTurnState, NULL, INFINITE_RETRY_COUNT_SENTINEL, STATUS_TURN_INVALID_STATE},
     {TURN_STATE_CHECK_SOCKET_CONNECTION, /*TODO ACCEPT*/, fromCheckSocketConnectionTurnState, executeCheckSocketConnectionTurnState, NULL,
      INFINITE_RETRY_COUNT_SENTINEL, STATUS_TURN_INVALID_STATE},

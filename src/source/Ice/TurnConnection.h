@@ -180,6 +180,8 @@ struct __TurnConnection {
 
     UINT64 currentTimerCallingPeriod;
     BOOL deallocatePacketSent;
+
+    PStateMachine pStateMachine;
 };
 typedef struct __TurnConnection* PTurnConnection;
 
