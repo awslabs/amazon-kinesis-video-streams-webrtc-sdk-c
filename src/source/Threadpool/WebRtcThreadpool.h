@@ -14,14 +14,10 @@ extern "C" {
 // Project include files
 ////////////////////////////////////////////////////
 
-typedef struct {
-    PThreadpool pThreadpool;
-} ThreadPoolContext, *PThreadPoolContext;
-
-PUBLIC_API STATUS createThreadPoolContext();
-PUBLIC_API STATUS getThreadPoolContext(PThreadPoolContext);
-PUBLIC_API STATUS threadpoolContextPush(startRoutine, PVOID);
-PUBLIC_API STATUS destroyThreadPoolContext();
+PUBLIC_API PThreadpool getThreadpoolInstance();
+PUBLIC_API STATUS webRtcCreateThreadPool();
+PUBLIC_API STATUS webRtcThreadPoolPush(startRoutine, PVOID);
+PUBLIC_API STATUS webRtcDestroyThreadPool();
 
 #ifdef __cplusplus
 }

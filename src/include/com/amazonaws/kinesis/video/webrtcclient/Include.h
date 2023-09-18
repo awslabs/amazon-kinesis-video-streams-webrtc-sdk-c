@@ -631,8 +631,25 @@ extern "C" {
  */
 #define SIGNALING_CONNECT_TIMEOUT (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
+/**
+ * Default minimum number of threads in the threadpool for the SDK
+ */
 #define THREADPOOL_MIN_THREADS 5
+
+/**
+ * Default maximum number of threads in the threadpool for the SDK
+ */
 #define THREADPOOL_MAX_THREADS 10
+
+/**
+ * Env to set minimum number of threads in the threadpool for the KVS SDK
+ */
+#define WEBRTC_THREADPOOL_MIN_THREADS_ENV_VAR (PCHAR) "AWS_KVS_WEBRTC_THREADPOOL_MIN_THREADS"
+
+/**
+ * Env to set maximum number of threads in the threadpool for the SDK
+ */
+#define WEBRTC_THREADPOOL_MAX_THREADS_ENV_VAR (PCHAR) "AWS_KVS_WEBRTC_THREADPOOL_MAX_THREADS"
 
 #ifdef _WIN32
 /**
