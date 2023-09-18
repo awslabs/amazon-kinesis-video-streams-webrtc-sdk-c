@@ -206,5 +206,5 @@ race:lwsListenerHandler
 # ==================
 # This is the expected behavior by the KVS Threadpool in pic
 mutex:lock
-
+deadlock:createSignalingSync
 deadlock:iceServerConfigRefreshConnectedAuthExpiration
