@@ -358,9 +358,12 @@ When building on MacOS M1, if the build fails while trying to build OpenSSL or W
 To build on a 32-bit Raspbian GNU/Linux 11 on 64-bit hardware, the OpenSSL library must be manually configured. This is due to the OpenSSL autoconfiguration script detecting 64-bit hardware and emitting 64-bit ARM assembly instructions which are not allowed in 32-bit executables. A 32-bit ARM version of OpenSSL can be configured by setting 32-bit ARM platform:
 `cmake .. -DBUILD_OPENSSL_PLATFORM=linux-armv4`
 
-### Threadpool for Signaling Channel messages
-The threadpool is enabled by default, and starts with 3 threads that it can increase up to 5 if all 3 are actively in use. To change these values to better match the resources of your use case
-please edit samples/Samples.h defines `KVS_SIGNALING_THREADPOOL_MIN` and `KVS_SIGNALING_THREADPOOL_MAX`. You can also disable the threadpool to instead create and detach each thread to handle signaling messages by disabling the flag `-DENABLE_KVS_THREADPOOL` while building with cmake.
+### Threadpool for the SDK
+The threadpool is enabled by default, and starts with 5 threads that it can increase up to 10 if all are actively in use. To change these values to better match the resources of your use case you can set the environment variables to do so:
+1. `export AWS_KVS_WEBRTC_THREADPOOL_MIN_THREADS=<value>`
+2. `export AWS_KVS_WEBRTC_THREADPOOL_MAX_THREADS=<value>`
+
+To disable threadpool, run `cmake .. -DENABLE_KVS_THREADPOOL=OFF`
 
 ## Documentation
 All Public APIs are documented in our [Include.h](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/blob/master/src/include/com/amazonaws/kinesis/video/webrtcclient/Include.h), we also generate a [Doxygen](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-c/) each commit for easier navigation.
