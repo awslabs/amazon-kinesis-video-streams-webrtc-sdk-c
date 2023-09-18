@@ -343,7 +343,7 @@ endif()
 #signaling client.
 # WIN32 seems to require a static library linkage and SHARED LINKAGE does not work
 if(ENABLE_KVS_THREADPOOL)
-  file(GLOB THREADPOOL_SOURCE_FILES "src/source/Threadpool/WebRtcThreadpool.c")
+  file(GLOB THREADPOOL_SOURCE_FILES "src/source/Threadpool/ThreadPoolContext.c")
   add_library(kvsWebRtcThreadpool SHARED ${THREADPOOL_SOURCE_FILES})
   target_link_libraries(kvsWebRtcThreadpool PRIVATE kvspicUtils)
 endif()

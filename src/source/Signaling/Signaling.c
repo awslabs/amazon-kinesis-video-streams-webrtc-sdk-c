@@ -226,11 +226,7 @@ STATUS freeSignaling(PSignalingClient* ppSignalingClient)
     stackQueueFree(pSignalingClient->pMessageQueue);
 
     hashTableFree(pSignalingClient->diagnostics.pEndpointToClockSkewHashMap);
-
-#ifdef ENABLE_KVS_THREADPOOL
-    threadpoolFree(pSignalingClient->pThreadpool);
-#endif
-
+    
     if (IS_VALID_MUTEX_VALUE(pSignalingClient->connectedLock)) {
         MUTEX_FREE(pSignalingClient->connectedLock);
     }
