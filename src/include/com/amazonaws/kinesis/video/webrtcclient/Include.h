@@ -631,6 +631,9 @@ extern "C" {
  */
 #define SIGNALING_CONNECT_TIMEOUT (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
+#define THREADPOOL_MIN_THREADS 5
+#define THREADPOOL_MAX_THREADS 10
+
 #ifdef _WIN32
 /**
  * Default timeout for sending data
