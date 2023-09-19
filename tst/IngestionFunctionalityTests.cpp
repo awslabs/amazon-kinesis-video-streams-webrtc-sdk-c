@@ -315,6 +315,9 @@ TEST_F(IngestionFunctionalityTest, basicCreateConnectJoinSession)
 {
     ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
+    SignalingClientMetrics signalingClientMetrics;
+    signalingClientMetrics.version = SIGNALING_CLIENT_METRICS_CURRENT_VERSION;
+
     MediaConfigurationInfo mediaConfigurationInfo = createStreamAndChannelAndLink();
     ASSERT_EQ(TRUE, mediaConfigurationInfo.isValid);
     ASSERT_EQ(TRUE, mediaConfigurationInfo.enabledStatus);
@@ -384,7 +387,7 @@ TEST_F(IngestionFunctionalityTest, basicCreateConnectJoinSession)
 
     // This channel has ENABLED status so we should be calling join session
     EXPECT_EQ(1, joinSessionCount);
-
+    
     UnlinkAndDeleteStreamAndChannel(mediaConfigurationInfo);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));

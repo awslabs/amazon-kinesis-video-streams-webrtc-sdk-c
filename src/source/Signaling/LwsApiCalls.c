@@ -1525,6 +1525,7 @@ STATUS joinStorageSessionLws(PSignalingClient pSignalingClient, UINT64 time)
     CHK_STATUS(createLwsCallInfo(pSignalingClient, pRequestInfo, PROTOCOL_INDEX_HTTPS,
                                  &pLwsCallInfo)); //!< TBD. Accroding to the design document, the prefix of url will be webrtc://
 
+    pSignalingClient->diagnostics.joinSessionToOfferRecvTime = GETTIME();
     // Make a blocking call
     CHK_STATUS(lwsCompleteSync(pLwsCallInfo));
 
@@ -2367,6 +2368,8 @@ PVOID receiveLwsMessageWrapper(PVOID args)
         pSignalingClient->offerTime = GETTIME();
         MUTEX_LOCK(pSignalingClient->jssWaitLock);
         ATOMIC_STORE_BOOL(&pSignalingClient->offerReceived, TRUE);
+        pSignalingClient->diagnostics.joinSessionToOfferRecvTime =
+            pSignalingClient->offerTime - pSignalingClient->diagnostics.joinSessionToOfferRecvTime;
         MUTEX_UNLOCK(pSignalingClient->jssWaitLock);
         CVAR_BROADCAST(pSignalingClient->jssWaitCvar);
     } else if (messageType == SIGNALING_MESSAGE_TYPE_ANSWER) {

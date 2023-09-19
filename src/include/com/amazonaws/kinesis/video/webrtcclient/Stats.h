@@ -600,11 +600,13 @@ typedef struct {
     UINT64 getEndpointCallTime;      //!< Time (ms) taken to execute getEndpoint call
     UINT64 getIceConfigCallTime;     //!< Time (ms) taken to execute getIceServerConfig call
     UINT64 connectCallTime;          //!< Time (ms) taken to execute connectChannel call
+    UINT64 joinSessionCallTime;      //!< Time (ms) taken to execute joinSession call
     UINT64 createClientTime;         //!< Total time (ms) taken to create signaling client which includes getting credentials
     UINT64
     fetchClientTime; //!< Total time (ms) taken to fetch signaling client which includes describe, create, get endpoint and get ICE server config
     UINT64 connectClientTime; //!< Total time (ms) taken to  connect the signaling client which includes connecting to the signaling channel
     UINT64 offerToAnswerTime;
+    UINT64 joinSessionToOfferRecvTime; //!< Total time (ms) taken from joinSession call until offer is received
 } SignalingClientStats, *PSignalingClientStats;
 
 typedef struct {
