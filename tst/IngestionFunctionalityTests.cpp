@@ -387,7 +387,7 @@ TEST_F(IngestionFunctionalityTest, basicCreateConnectJoinSession)
 
     // This channel has ENABLED status so we should be calling join session
     EXPECT_EQ(1, joinSessionCount);
-    
+
     UnlinkAndDeleteStreamAndChannel(mediaConfigurationInfo);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));

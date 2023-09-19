@@ -2368,6 +2368,7 @@ PVOID receiveLwsMessageWrapper(PVOID args)
         pSignalingClient->offerTime = GETTIME();
         MUTEX_LOCK(pSignalingClient->jssWaitLock);
         ATOMIC_STORE_BOOL(&pSignalingClient->offerReceived, TRUE);
+        DLOGI("Offer Received  from JoinStorageSession Call.");
         pSignalingClient->diagnostics.joinSessionToOfferRecvTime =
             pSignalingClient->offerTime - pSignalingClient->diagnostics.joinSessionToOfferRecvTime;
         MUTEX_UNLOCK(pSignalingClient->jssWaitLock);
