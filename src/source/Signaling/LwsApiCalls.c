@@ -2011,7 +2011,7 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
         DLOGW("Failed to validate the ICE server configuration received with an Offer");
     }
 
-#ifdef ENABLE_KVS_SIGNALING_THREADPOOL
+#ifdef ENABLE_KVS_THREADPOOL
     CHK_STATUS(threadpoolPush(pSignalingClient->pThreadpool, receiveLwsMessageWrapper, (PVOID) pSignalingMessageWrapper));
 #else
     // Issue the callback on a separate thread

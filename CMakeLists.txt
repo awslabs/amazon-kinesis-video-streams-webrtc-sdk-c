@@ -18,7 +18,7 @@ option(BUILD_LIBSRTP_HOST_PLATFORM "If buildng LibSRTP what is the current platf
 option(BUILD_LIBSRTP_DESTINATION_PLATFORM "If buildng LibSRTP what is the destination platform" OFF)
 option(BUILD_SAMPLE "Build available samples" ON)
 option(ENABLE_DATA_CHANNEL "Enable support for data channel" ON)
-option(ENABLE_KVS_SIGNALING_THREADPOOL "Enable support for KVS thread pool in signaling" ON)
+option(ENABLE_KVS_THREADPOOL "Enable support for KVS thread pool in signaling" ON)
 option(INSTRUMENTED_ALLOCATORS "Enable memory instrumentation" OFF)
 
 # Developer Flags
@@ -99,8 +99,8 @@ message(STATUS "dependencies install path is ${OPEN_SRC_INSTALL_PREFIX}")
 add_definitions(-DKVS_CA_CERT_PATH="${CMAKE_SOURCE_DIR}/certs/cert.pem")
 add_definitions(-DCMAKE_DETECTED_CACERT_PATH)
 
-if (ENABLE_KVS_SIGNALING_THREADPOOL)
-  add_definitions(-DENABLE_KVS_SIGNALING_THREADPOOL)
+if (ENABLE_KVS_THREADPOOL)
+  add_definitions(-DENABLE_KVS_THREADPOOL)
 endif()
 
 if(USE_OPENSSL)

@@ -360,7 +360,7 @@ To build on a 32-bit Raspbian GNU/Linux 11 on 64-bit hardware, the OpenSSL libra
 
 ### Threadpool for Signaling Channel messages
 The threadpool is enabled by default, and starts with 3 threads that it can increase up to 5 if all 3 are actively in use. To change these values to better match the resources of your use case
-please edit samples/Samples.h defines `KVS_SIGNALING_THREADPOOL_MIN` and `KVS_SIGNALING_THREADPOOL_MAX`. You can also disable the threadpool to instead create and detach each thread to handle signaling messages by disabling the flag `-DENABLE_KVS_SIGNALING_THREADPOOL` while building with cmake.
+please edit samples/Samples.h defines `KVS_SIGNALING_THREADPOOL_MIN` and `KVS_SIGNALING_THREADPOOL_MAX`. You can also disable the threadpool to instead create and detach each thread to handle signaling messages by disabling the flag `-DENABLE_KVS_THREADPOOL` while building with cmake.
 
 ## Documentation
 All Public APIs are documented in our [Include.h](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/blob/master/src/include/com/amazonaws/kinesis/video/webrtcclient/Include.h), we also generate a [Doxygen](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-c/) each commit for easier navigation.
