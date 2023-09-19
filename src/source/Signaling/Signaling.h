@@ -338,10 +338,6 @@ typedef struct {
     UINT64 getIceConfigTime;
     UINT64 deleteTime;
     UINT64 connectTime;
-
-#ifdef ENABLE_KVS_THREADPOOL
-    PThreadpool pThreadpool;
-#endif
     UINT64 offerTime;
 } SignalingClient, *PSignalingClient;
 

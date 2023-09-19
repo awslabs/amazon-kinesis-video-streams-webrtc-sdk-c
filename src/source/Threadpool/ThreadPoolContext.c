@@ -4,7 +4,7 @@
 // Function to get access to the Singleton instance
 PThreadPoolContext getThreadContextInstance()
 {
-    static ThreadPoolContext t;
+    static ThreadPoolContext t = {.pThreadpool = NULL};
     return &t;
 }
 
@@ -42,7 +42,7 @@ STATUS destroyThreadPoolContext()
     PThreadPoolContext pThreadPoolContext = getThreadContextInstance();
     CHK_WARN(pThreadPoolContext->pThreadpool != NULL, STATUS_NULL_ARG, "Destroying threadpool without setting up");
     threadpoolFree(pThreadPoolContext->pThreadpool);
-    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    pThreadPoolContext->pThreadpool = NULL;
 CleanUp:
     return retStatus;
 };
