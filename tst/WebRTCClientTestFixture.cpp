@@ -113,7 +113,6 @@ void WebRtcClientTestBase::TearDown()
     DLOGI("\nTearing down test: %s\n", GetTestName());
 
     deinitKvsWebRtc();
-    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 
     freeStaticCredentialProvider(&mTestCredentialProvider);
 

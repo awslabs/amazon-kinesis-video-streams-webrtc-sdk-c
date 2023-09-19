@@ -11,9 +11,9 @@ PThreadPoolContext getThreadContextInstance()
 STATUS createThreadPoolContext()
 {
     STATUS retStatus = STATUS_SUCCESS;
-    PThreadPoolContext pThreadPoolContext = getThreadContextInstance();
     PCHAR pMinThreads, pMaxThreads;
     UINT32 minThreads, maxThreads;
+    PThreadPoolContext pThreadPoolContext = getThreadContextInstance();
     CHK_WARN(pThreadPoolContext->pThreadpool == NULL, retStatus, "Threadpool already set up. Nothing to do");
     if (NULL == (pMinThreads = GETENV(WEBRTC_THREADPOOL_MIN_THREADS_ENV_VAR)) || STATUS_SUCCESS != STRTOUI32(pMinThreads, NULL, 10, &minThreads)) {
         minThreads = THREADPOOL_MIN_THREADS;
@@ -42,6 +42,7 @@ STATUS destroyThreadPoolContext()
     PThreadPoolContext pThreadPoolContext = getThreadContextInstance();
     CHK_WARN(pThreadPoolContext->pThreadpool != NULL, STATUS_NULL_ARG, "Destroying threadpool without setting up");
     threadpoolFree(pThreadPoolContext->pThreadpool);
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 CleanUp:
     return retStatus;
 };
