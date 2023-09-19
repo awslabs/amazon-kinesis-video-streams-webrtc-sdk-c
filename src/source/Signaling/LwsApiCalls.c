@@ -1733,7 +1733,8 @@ PVOID reconnectHandler(PVOID args)
 
     // Attempt to reconnect by driving the state machine to connected state
     CHK_STATUS(signalingStateMachineIterator(pSignalingClient, SIGNALING_GET_CURRENT_TIME(pSignalingClient) + SIGNALING_CONNECT_STATE_TIMEOUT,
-                                             SIGNALING_STATE_CONNECTED));
+                                             pSignalingClient->mediaStorageConfig.storageStatus ? SIGNALING_STATE_JOIN_SESSION_CONNECTED
+                                                                                                : SIGNALING_STATE_CONNECTED));
 
 CleanUp:
 
@@ -2157,7 +2158,8 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
 
             // Iterate the state machinery
             CHK_STATUS(signalingStateMachineIterator(pSignalingClient, SIGNALING_GET_CURRENT_TIME(pSignalingClient) + SIGNALING_CONNECT_STATE_TIMEOUT,
-                                                     SIGNALING_STATE_CONNECTED));
+                                                     pSignalingClient->mediaStorageConfig.storageStatus ? SIGNALING_STATE_JOIN_SESSION_CONNECTED
+                                                                                                        : SIGNALING_STATE_CONNECTED));
 
             CHK(FALSE, retStatus);
             break;
@@ -2171,7 +2173,8 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
 
             // Iterate the state machinery
             CHK_STATUS(signalingStateMachineIterator(pSignalingClient, SIGNALING_GET_CURRENT_TIME(pSignalingClient) + SIGNALING_CONNECT_STATE_TIMEOUT,
-                                                     SIGNALING_STATE_CONNECTED));
+                                                     pSignalingClient->mediaStorageConfig.storageStatus ? SIGNALING_STATE_JOIN_SESSION_CONNECTED
+                                                                                                        : SIGNALING_STATE_CONNECTED));
 
             CHK(FALSE, retStatus);
             break;
@@ -2360,18 +2363,17 @@ PVOID receiveLwsMessageWrapper(PVOID args)
     // Updating the diagnostics info before calling the client callback
     ATOMIC_INCREMENT(&pSignalingClient->diagnostics.numberOfMessagesReceived);
 
+    if (messageType == SIGNALING_MESSAGE_TYPE_OFFER) {
+        pSignalingClient->offerTime = GETTIME();
+        MUTEX_LOCK(pSignalingClient->jssWaitLock);
+        ATOMIC_STORE_BOOL(&pSignalingClient->offerReceived, TRUE);
+        MUTEX_UNLOCK(pSignalingClient->jssWaitLock);
+        CVAR_BROADCAST(pSignalingClient->jssWaitCvar);
+    } else if (messageType == SIGNALING_MESSAGE_TYPE_ANSWER) {
+        PROFILE_WITH_START_TIME_OBJ(pSignalingClient->offerTime, pSignalingClient->diagnostics.offerToAnswerTime, "Offer to answer time");
+    }
     // Calling client receive message callback if specified
     if (pSignalingClient->signalingClientCallbacks.messageReceivedFn != NULL) {
-        if (messageType == SIGNALING_MESSAGE_TYPE_OFFER) {
-            pSignalingClient->offerTime = GETTIME();
-            MUTEX_LOCK(pSignalingClient->jssWaitLock);
-            ATOMIC_STORE_BOOL(&pSignalingClient->offerReceived, TRUE);
-            MUTEX_UNLOCK(pSignalingClient->jssWaitLock);
-            CVAR_BROADCAST(pSignalingClient->jssWaitCvar);
-        }
-        if (messageType == SIGNALING_MESSAGE_TYPE_ANSWER) {
-            PROFILE_WITH_START_TIME_OBJ(pSignalingClient->offerTime, pSignalingClient->diagnostics.offerToAnswerTime, "Offer to answer time");
-        }
         CHK_STATUS(pSignalingClient->signalingClientCallbacks.messageReceivedFn(pSignalingClient->signalingClientCallbacks.customData,
                                                                                 &pSignalingMessageWrapper->receivedSignalingMessage));
     }

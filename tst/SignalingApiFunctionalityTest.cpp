@@ -1,4 +1,4 @@
-#include "SignalingApiFunctionalityTest.h.h"
+#include "SignalingApiFunctionalityTest.h"
 
 namespace com {
 namespace amazonaws {
@@ -3251,7 +3251,7 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingTest)
     clientInfoInternal.hookCustomData = (UINT64) this;
     clientInfoInternal.connectPreHookFn = connectPreHook;
     clientInfoInternal.describePreHookFn = describePreHook;
-    clientInfoInternal.descirbeMediaStorageConfPreHookFn = describeMediaPreHook;
+    clientInfoInternal.describeMediaStorageConfPreHookFn = describeMediaPreHook;
     clientInfoInternal.getEndpointPreHookFn = getEndpointPreHook;
     setupSignalingStateMachineRetryStrategyCallbacks(&clientInfoInternal);
 

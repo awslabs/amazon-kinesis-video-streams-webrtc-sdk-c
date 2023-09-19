@@ -21,6 +21,11 @@ else()
   else()
     SET(CONFIGURE_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/build/src/project_libopenssl/config ${OPENSSL_EXTRA} --prefix=${OPEN_SRC_INSTALL_PREFIX} --openssldir=${OPEN_SRC_INSTALL_PREFIX} -Wno-nullability-completeness -Wno-expansion-to-defined)
   endif()
+
+  if (DEFINED CMAKE_OSX_SYSROOT AND NOT CMAKE_OSX_SYSROOT STREQUAL "")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -isysroot ${CMAKE_OSX_SYSROOT}")
+  endif()
+
 endif()
 
 include(ExternalProject)
@@ -28,6 +33,7 @@ ExternalProject_Add(project_libopenssl
     GIT_REPOSITORY    https://github.com/openssl/openssl.git
     GIT_TAG           OpenSSL_1_1_1t
     PREFIX            ${CMAKE_CURRENT_BINARY_DIR}/build
+    CMAKE_ARGS        -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
     CONFIGURE_COMMAND ${CONFIGURE_COMMAND}
     BUILD_COMMAND     ${MAKE_EXE}
     BUILD_IN_SOURCE   TRUE

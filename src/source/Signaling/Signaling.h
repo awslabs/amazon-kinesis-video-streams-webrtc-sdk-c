@@ -24,21 +24,25 @@ extern "C" {
 #define SIGNALING_CLIENT_SHUTDOWN_TIMEOUT ((2 + SIGNALING_SERVICE_API_CALL_TIMEOUT_IN_SECONDS) * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
 // Signaling client state literal definitions
-#define SIGNALING_CLIENT_STATE_UNKNOWN_STR         "Unknown"
-#define SIGNALING_CLIENT_STATE_NEW_STR             "New"
-#define SIGNALING_CLIENT_STATE_GET_CREDENTIALS_STR "Get Security Credentials"
-#define SIGNALING_CLIENT_STATE_DESCRIBE_STR        "Describe Channel"
-#define SIGNALING_CLIENT_STATE_CREATE_STR          "Create Channel"
-#define SIGNALING_CLIENT_STATE_GET_ENDPOINT_STR    "Get Channel Endpoint"
-#define SIGNALING_CLIENT_STATE_GET_ICE_CONFIG_STR  "Get ICE Server Configuration"
-#define SIGNALING_CLIENT_STATE_READY_STR           "Ready"
-#define SIGNALING_CLIENT_STATE_CONNECTING_STR      "Connecting"
-#define SIGNALING_CLIENT_STATE_CONNECTED_STR       "Connected"
-#define SIGNALING_CLIENT_STATE_DISCONNECTED_STR    "Disconnected"
-#define SIGNALING_CLIENT_STATE_DELETE_STR          "Delete"
-#define SIGNALING_CLIENT_STATE_DELETED_STR         "Deleted"
-#define SIGNALING_CLIENT_STATE_DESCRIBE_MEDIA_STR  "Describe Media Storage"
-#define SIGNALING_CLIENT_STATE_JOIN_SESSION_STR    "Join Session"
+#define SIGNALING_CLIENT_STATE_UNKNOWN_STR                   "Unknown"
+#define SIGNALING_CLIENT_STATE_NEW_STR                       "New"
+#define SIGNALING_CLIENT_STATE_GET_CREDENTIALS_STR           "Get Security Credentials"
+#define SIGNALING_CLIENT_STATE_DESCRIBE_STR                  "Describe Channel"
+#define SIGNALING_CLIENT_STATE_CREATE_STR                    "Create Channel"
+#define SIGNALING_CLIENT_STATE_GET_ENDPOINT_STR              "Get Channel Endpoint"
+#define SIGNALING_CLIENT_STATE_GET_ICE_CONFIG_STR            "Get ICE Server Configuration"
+#define SIGNALING_CLIENT_STATE_READY_STR                     "Ready"
+#define SIGNALING_CLIENT_STATE_CONNECTING_STR                "Connecting"
+#define SIGNALING_CLIENT_STATE_CONNECTED_STR                 "Connected"
+#define SIGNALING_CLIENT_STATE_DISCONNECTED_STR              "Disconnected"
+#define SIGNALING_CLIENT_STATE_DELETE_STR                    "Delete"
+#define SIGNALING_CLIENT_STATE_DELETED_STR                   "Deleted"
+#define SIGNALING_CLIENT_STATE_DESCRIBE_MEDIA_STR            "Describe Media Storage"
+#define SIGNALING_CLIENT_STATE_JOIN_SESSION_STR              "Join Session"
+#define SIGNALING_CLIENT_STATE_JOIN_SESSION_WAITING_STR      "Join Session Waiting"
+#define SIGNALING_CLIENT_STATE_JOIN_SESSION_CONNECTED_STR    "Join Session Connected"
+
+
 
 // Error refreshing ICE server configuration string
 #define SIGNALING_ICE_CONFIG_REFRESH_ERROR_MSG "Failed refreshing ICE server configuration with status code 0x%08x."
@@ -152,8 +156,8 @@ typedef struct {
     SignalingApiCallHookFunc connectPostHookFn;
     SignalingApiCallHookFunc joinSessionPreHookFn;
     SignalingApiCallHookFunc joinSessionPostHookFn;
-    SignalingApiCallHookFunc descirbeMediaStorageConfPreHookFn;
-    SignalingApiCallHookFunc descirbeMediaStorageConfPostHookFn;
+    SignalingApiCallHookFunc describeMediaStorageConfPreHookFn;
+    SignalingApiCallHookFunc describeMediaStorageConfPostHookFn;
     SignalingApiCallHookFunc deletePreHookFn;
     SignalingApiCallHookFunc deletePostHookFn;
 

@@ -29,12 +29,12 @@ StateMachineState SIGNALING_STATE_MACHINE_STATES[] = {
      executeCreateSignalingState, defaultSignalingStateTransitionHook, SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_CREATE_CALL_FAILED},
     {SIGNALING_STATE_GET_ENDPOINT,
      SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_DESCRIBE_MEDIA | SIGNALING_STATE_CREATE | SIGNALING_STATE_GET_TOKEN | SIGNALING_STATE_READY |
-         SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_JOIN_SESSION | SIGNALING_STATE_GET_ENDPOINT,
+         SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_JOIN_SESSION | SIGNALING_STATE_JOIN_SESSION_CONNECTED | SIGNALING_STATE_GET_ENDPOINT,
      fromGetEndpointSignalingState, executeGetEndpointSignalingState, defaultSignalingStateTransitionHook, SIGNALING_STATES_DEFAULT_RETRY_COUNT,
      STATUS_SIGNALING_GET_ENDPOINT_CALL_FAILED},
     {SIGNALING_STATE_GET_ICE_CONFIG,
      SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_DESCRIBE_MEDIA | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_JOIN_SESSION |
-         SIGNALING_STATE_GET_ENDPOINT | SIGNALING_STATE_READY | SIGNALING_STATE_GET_ICE_CONFIG,
+         SIGNALING_STATE_JOIN_SESSION_WAITING | SIGNALING_STATE_JOIN_SESSION_CONNECTED | SIGNALING_STATE_GET_ENDPOINT | SIGNALING_STATE_READY | SIGNALING_STATE_GET_ICE_CONFIG,
      fromGetIceConfigSignalingState, executeGetIceConfigSignalingState, defaultSignalingStateTransitionHook, SIGNALING_STATES_DEFAULT_RETRY_COUNT,
      STATUS_SIGNALING_GET_ICE_CONFIG_CALL_FAILED},
     {SIGNALING_STATE_READY, SIGNALING_STATE_GET_ICE_CONFIG | SIGNALING_STATE_DISCONNECTED | SIGNALING_STATE_READY, fromReadySignalingState,
@@ -61,9 +61,9 @@ StateMachineState SIGNALING_STATE_MACHINE_STATES[] = {
     {SIGNALING_STATE_JOIN_SESSION, SIGNALING_STATE_CONNECTED | SIGNALING_STATE_JOIN_SESSION_WAITING | SIGNALING_STATE_JOIN_SESSION_CONNECTED,
      fromJoinStorageSessionState, executeJoinStorageSessionState, defaultSignalingStateTransitionHook, INFINITE_RETRY_COUNT_SENTINEL,
      STATUS_SIGNALING_JOIN_SESSION_CALL_FAILED},
-    {SIGNALING_STATE_JOIN_SESSION_WAITING, SIGNALING_STATE_JOIN_SESSION, fromJoinStorageSessionWaitingState, executeJoinStorageSessionWaitingState,
+    {SIGNALING_STATE_JOIN_SESSION_WAITING, SIGNALING_STATE_JOIN_SESSION_WAITING | SIGNALING_STATE_JOIN_SESSION, fromJoinStorageSessionWaitingState, executeJoinStorageSessionWaitingState,
      defaultSignalingStateTransitionHook, INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_JOIN_SESSION_CONNECTED_FAILED},
-    {SIGNALING_STATE_JOIN_SESSION_CONNECTED, SIGNALING_STATE_JOIN_SESSION_WAITING, fromJoinStorageSessionConnectedState,
+    {SIGNALING_STATE_JOIN_SESSION_CONNECTED, SIGNALING_STATE_JOIN_SESSION_WAITING | SIGNALING_STATE_JOIN_SESSION_CONNECTED, fromJoinStorageSessionConnectedState,
      executeJoinStorageSessionConnectedState, defaultSignalingStateTransitionHook, INFINITE_RETRY_COUNT_SENTINEL,
      STATUS_SIGNALING_JOIN_SESSION_CONNECTED_FAILED}
 
@@ -656,6 +656,14 @@ STATUS fromGetIceConfigSignalingState(UINT64 customData, PUINT64 pState)
         case SERVICE_CALL_NOT_AUTHORIZED:
             state = SIGNALING_STATE_GET_TOKEN;
             break;
+        case SERVICE_CALL_RESOURCE_NOT_FOUND:
+            // This can happen if we read from the cache and the channel either doesn't exist
+            // Or was re-created so now has a new channel arn.  We need to invalidate the cache.
+            pSignalingClient->describeTime = INVALID_TIMESTAMP_VALUE;
+            pSignalingClient->describeMediaTime = INVALID_TIMESTAMP_VALUE;
+            pSignalingClient->getEndpointTime = INVALID_TIMESTAMP_VALUE;
+            state = SIGNALING_STATE_DESCRIBE;
+            break;
 
         default:
             break;
@@ -1047,9 +1055,13 @@ STATUS fromJoinStorageSessionWaitingState(UINT64 customData, PUINT64 pState)
             }
             break;
         case SERVICE_CALL_RESULT_NOT_SET:
-            // We timed out and did not get an offer in time so we need to retry join session
-            state = SIGNALING_STATE_JOIN_SESSION;
-
+            // We timed out and did not get an offer in time
+            // so if we are still connected we need to retry join session
+            if (!ATOMIC_LOAD_BOOL(&pSignalingClient->connected)) {
+                state = SIGNALING_STATE_DISCONNECTED;
+            } else {
+                state = SIGNALING_STATE_JOIN_SESSION;
+            }
         case SERVICE_CALL_RESOURCE_NOT_FOUND:
             state = SIGNALING_STATE_DESCRIBE;
             break;
@@ -1101,6 +1113,7 @@ STATUS executeJoinStorageSessionWaitingState(UINT64 customData, UINT64 time)
     ENTERS();
     UNUSED_PARAM(time);
     STATUS retStatus = STATUS_SUCCESS;
+    BOOL locked = FALSE;
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
@@ -1112,10 +1125,13 @@ STATUS executeJoinStorageSessionWaitingState(UINT64 customData, UINT64 time)
     }
 
     MUTEX_LOCK(pSignalingClient->jssWaitLock);
+    locked = TRUE;
     while (!ATOMIC_LOAD(&pSignalingClient->offerReceived)) {
+        DLOGI("Waiting for offer...");
         CHK_STATUS(CVAR_WAIT(pSignalingClient->jssWaitCvar, pSignalingClient->jssWaitLock, SIGNALING_JOIN_STORAGE_SESSION_WAIT_TIMEOUT));
     }
     MUTEX_UNLOCK(pSignalingClient->jssWaitLock);
+    locked = FALSE;
 
 CleanUp:
 
@@ -1125,6 +1141,10 @@ CleanUp:
         ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_OK);
     } else {
         ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
+    }
+
+    if (locked) {
+        MUTEX_UNLOCK(pSignalingClient->jssWaitLock);
     }
 
     LEAVES();
@@ -1150,24 +1170,6 @@ STATUS fromJoinStorageSessionConnectedState(UINT64 customData, PUINT64 pState)
                 state = SIGNALING_STATE_JOIN_SESSION;
             }
 
-            break;
-
-        case SERVICE_CALL_RESOURCE_NOT_FOUND:
-            state = SIGNALING_STATE_DESCRIBE;
-            break;
-
-        case SERVICE_CALL_FORBIDDEN:
-        case SERVICE_CALL_NOT_AUTHORIZED:
-            state = SIGNALING_STATE_GET_TOKEN;
-            break;
-
-        case SERVICE_CALL_INTERNAL_ERROR:
-        case SERVICE_CALL_BAD_REQUEST:
-        case SERVICE_CALL_NETWORK_CONNECTION_TIMEOUT:
-        case SERVICE_CALL_NETWORK_READ_TIMEOUT:
-        case SERVICE_CALL_REQUEST_TIMEOUT:
-        case SERVICE_CALL_GATEWAY_TIMEOUT:
-            state = SIGNALING_STATE_GET_ENDPOINT;
             break;
 
         case SERVICE_CALL_RESULT_SIGNALING_GO_AWAY:

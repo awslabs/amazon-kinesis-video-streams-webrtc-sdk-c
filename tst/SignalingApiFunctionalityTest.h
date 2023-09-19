@@ -58,4 +58,10 @@ STATUS getEndpointPreHook(UINT64);
 VOID setupSignalingStateMachineRetryStrategyCallbacks(PSignalingClientInfoInternal);
 VOID setupSignalingStateMachineRetryStrategyCallbacks(PSignalingClientInfo);
 
+} // namespace webrtcclient
+} // namespace video
+} // namespace kinesis
+} // namespace amazonaws
+} // namespace com
+
 #endif // AMAZON_KINESIS_VIDEO_STREAMS_WEBRTC_SDK_C_SIGNALINGAPIFUNCTIONALITYTEST_H

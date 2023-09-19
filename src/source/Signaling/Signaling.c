@@ -514,7 +514,8 @@ STATUS signalingConnectSync(PSignalingClient pSignalingClient)
 
     // Validate the state
     CHK_STATUS(acceptSignalingStateMachineState(
-        pSignalingClient, SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_DISCONNECTED | SIGNALING_STATE_CONNECTED));
+        pSignalingClient, SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_DISCONNECTED | SIGNALING_STATE_CONNECTED |
+        SIGNALING_STATE_JOIN_SESSION | SIGNALING_STATE_JOIN_SESSION_WAITING | SIGNALING_STATE_JOIN_SESSION_CONNECTED));
 
     // Check if we are already connected
     CHK(!ATOMIC_LOAD_BOOL(&pSignalingClient->connected), retStatus);
@@ -714,7 +715,8 @@ STATUS refreshIceConfiguration(PSignalingClient pSignalingClient)
 
     // ICE config can be retrieved in specific states only
     CHK_STATUS(acceptSignalingStateMachineState(
-        pSignalingClient, SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_DISCONNECTED));
+        pSignalingClient, SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_JOIN_SESSION |
+            SIGNALING_STATE_JOIN_SESSION_WAITING | SIGNALING_STATE_JOIN_SESSION_CONNECTED | SIGNALING_STATE_DISCONNECTED));
 
     MUTEX_LOCK(pSignalingClient->stateLock);
     locked = TRUE;
@@ -1338,8 +1340,8 @@ STATUS describeMediaStorageConf(PSignalingClient pSignalingClient, UINT64 time)
     if (STATUS_SUCCEEDED(retStatus)) {
         if (apiCall) {
             // Call pre hook func
-            if (pSignalingClient->clientInfo.descirbeMediaStorageConfPreHookFn != NULL) {
-                retStatus = pSignalingClient->clientInfo.descirbeMediaStorageConfPreHookFn(pSignalingClient->clientInfo.hookCustomData);
+            if (pSignalingClient->clientInfo.describeMediaStorageConfPreHookFn != NULL) {
+                retStatus = pSignalingClient->clientInfo.describeMediaStorageConfPreHookFn(pSignalingClient->clientInfo.hookCustomData);
             }
 
             if (STATUS_SUCCEEDED(retStatus)) {
@@ -1353,8 +1355,8 @@ STATUS describeMediaStorageConf(PSignalingClient pSignalingClient, UINT64 time)
             }
 
             // Call post hook func
-            if (pSignalingClient->clientInfo.descirbeMediaStorageConfPostHookFn != NULL) {
-                retStatus = pSignalingClient->clientInfo.descirbeMediaStorageConfPostHookFn(pSignalingClient->clientInfo.hookCustomData);
+            if (pSignalingClient->clientInfo.describeMediaStorageConfPostHookFn != NULL) {
+                retStatus = pSignalingClient->clientInfo.describeMediaStorageConfPostHookFn(pSignalingClient->clientInfo.hookCustomData);
             }
         } else {
             ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_OK);

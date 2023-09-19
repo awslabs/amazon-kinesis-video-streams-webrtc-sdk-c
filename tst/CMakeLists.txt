@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.6.3)
+set(CMAKE_VERBOSE_MAKEFILE ON)
 
 # Enabling the instrumented allocators to track memory
 add_definitions(-DINSTRUMENTED_ALLOCATORS)
