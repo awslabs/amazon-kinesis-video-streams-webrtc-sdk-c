@@ -634,7 +634,7 @@ extern "C" {
 /**
  * Default minimum number of threads in the threadpool for the SDK
  */
-#define THREADPOOL_MIN_THREADS 5
+#define THREADPOOL_MIN_THREADS 3
 
 /**
  * Default maximum number of threads in the threadpool for the SDK

@@ -16,6 +16,8 @@ extern "C" {
 
 typedef struct {
     PThreadpool pThreadpool;
+    BOOL isInitialized;
+    MUTEX threadpoolContextLock;
 } ThreadPoolContext, *PThreadPoolContext;
 
 PUBLIC_API STATUS createThreadPoolContext();
