@@ -17,7 +17,6 @@
 
 #include <random>
 
-
 namespace com {
 namespace amazonaws {
 namespace kinesis {
@@ -80,7 +79,7 @@ unsigned char random_char() {
 
 std::string generate_hex(const unsigned int len) {
     std::stringstream ss;
-    for(auto i = 0; i < len; i++) {
+    for(unsigned int i = 0; i < len; i++) {
         auto rc = random_char();
         std::stringstream hexstream;
         hexstream << std::hex << int(rc);
@@ -98,7 +97,7 @@ IngestionFunctionalityTest::MediaConfigurationInfo IngestionFunctionalityTest::c
     Aws::KinesisVideo::Model::CreateStreamOutcome createStreamOutcome;
     Aws::KinesisVideo::Model::CreateStreamRequest createStreamRequest;
 
-    std::string nameSuffix = generate_hex(16LU);
+    std::string nameSuffix = generate_hex(16);
     std::string streamName = "WrtcIngestionTestStream_" + nameSuffix;
     std::string channelName = "WrtcIngestionTestChannel_" + nameSuffix;
     createStreamRequest.WithStreamName(streamName);
