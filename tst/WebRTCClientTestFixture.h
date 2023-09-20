@@ -95,6 +95,8 @@ class WebRtcClientTestBase : public ::testing::Test {
         mClientInfo.signalingRetryStrategyCallbacks.freeRetryStrategyFn = freeRetryStrategyFn;
         mClientInfo.signalingRetryStrategyCallbacks.executeRetryStrategyFn = executeRetryStrategyFn;
         mClientInfo.signalingClientCreationMaxRetryAttempts = 0;
+        mClientInfo.signalingMessagesMinimumThreads = 3;
+        mClientInfo.signalingMessagesMaximumThreads = 5;
 
         MEMSET(&mChannelInfo, 0x00, SIZEOF(mChannelInfo));
         mChannelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
@@ -110,6 +112,7 @@ class WebRtcClientTestBase : public ::testing::Test {
         mChannelInfo.reconnect = TRUE;
         mChannelInfo.pCertPath = mCaCertPath;
         mChannelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
+
         if ((mChannelInfo.pRegion = getenv(DEFAULT_REGION_ENV_VAR)) == NULL) {
             mChannelInfo.pRegion = (PCHAR) TEST_DEFAULT_REGION;
         }

@@ -339,7 +339,7 @@ typedef struct {
     UINT64 deleteTime;
     UINT64 connectTime;
 
-#ifdef KVS_USE_SIGNALING_CHANNEL_THREADPOOL
+#ifdef ENABLE_KVS_THREADPOOL
     PThreadpool pThreadpool;
 #endif
     UINT64 offerTime;

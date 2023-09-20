@@ -37,9 +37,11 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     CHK_STATUS(createValidateChannelInfo(pChannelInfo, &pSignalingClient->pChannelInfo));
     CHK_STATUS(validateSignalingCallbacks(pSignalingClient, pCallbacks));
     CHK_STATUS(validateSignalingClientInfo(pSignalingClient, pClientInfo));
-#ifdef KVS_USE_SIGNALING_CHANNEL_THREADPOOL
+#ifdef ENABLE_KVS_THREADPOOL
+    DLOGD("Going to crate the threadpool for signaling");
     CHK_STATUS(threadpoolCreate(&pSignalingClient->pThreadpool, pClientInfo->signalingClientInfo.signalingMessagesMinimumThreads,
                                 pClientInfo->signalingClientInfo.signalingMessagesMaximumThreads));
+    DLOGD("Successfully created the threadpool for signaling");
 #endif
 
     pSignalingClient->version = SIGNALING_CLIENT_CURRENT_VERSION;
@@ -225,7 +227,7 @@ STATUS freeSignaling(PSignalingClient* ppSignalingClient)
 
     hashTableFree(pSignalingClient->diagnostics.pEndpointToClockSkewHashMap);
 
-#ifdef KVS_USE_SIGNALING_CHANNEL_THREADPOOL
+#ifdef ENABLE_KVS_THREADPOOL
     threadpoolFree(pSignalingClient->pThreadpool);
 #endif
 
