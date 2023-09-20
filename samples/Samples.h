@@ -56,9 +56,6 @@ extern "C" {
 #define KVS_SIGNALING_THREADPOOL_MIN 3
 #define KVS_SIGNALING_THREADPOOL_MAX 5
 
-// comment out this line to disable the feature
-#define KVS_USE_SIGNALING_CHANNEL_THREADPOOL 1
-
 /* Uncomment the following line in order to enable IoT credentials checks in the provided samples */
 // #define IOT_CORE_ENABLE_CREDENTIALS  1
 
