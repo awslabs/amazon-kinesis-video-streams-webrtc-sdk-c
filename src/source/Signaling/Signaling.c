@@ -220,7 +220,7 @@ STATUS freeSignaling(PSignalingClient* ppSignalingClient)
     stackQueueFree(pSignalingClient->pMessageQueue);
 
     hashTableFree(pSignalingClient->diagnostics.pEndpointToClockSkewHashMap);
-    
+
     if (IS_VALID_MUTEX_VALUE(pSignalingClient->connectedLock)) {
         MUTEX_FREE(pSignalingClient->connectedLock);
     }

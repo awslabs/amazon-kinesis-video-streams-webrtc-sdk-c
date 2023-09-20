@@ -2010,7 +2010,7 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
     if (jsonInIceServerList && STATUS_FAILED(validateIceConfiguration(pSignalingClient))) {
         DLOGW("Failed to validate the ICE server configuration received with an Offer");
     }
-    
+
 #ifdef ENABLE_KVS_THREADPOOL
     // This would fail if threadpool was not created
     CHK_STATUS(threadpoolContextPush(receiveLwsMessageWrapper, pSignalingMessageWrapper));

@@ -248,7 +248,7 @@ jobs:
         run: |
           sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
           mkdir build && cd build
-          cmake .. -DBUILD_TEST=TRUE -DTHREAD_SANITIZER=TRUE -DENABLE_THREADPOOL_USAGE=OFF
+          cmake .. -DBUILD_TEST=TRUE -DTHREAD_SANITIZER=TRUE
           make
           ulimit -c unlimited -S
       - name: Run tests

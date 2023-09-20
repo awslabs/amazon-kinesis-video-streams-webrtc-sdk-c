@@ -1269,10 +1269,10 @@ typedef struct {
                                                                //!< being used this value can be NULL or point to an EMPTY_STRING.
     KvsRetryStrategyCallbacks signalingRetryStrategyCallbacks; //!< Retry strategy callbacks used while creating signaling client
     INT32 signalingClientCreationMaxRetryAttempts;             //!< Max attempts to create signaling client before returning error to the caller
-    UINT32 stateMachineRetryCountReadOnly; //!< Retry count of state machine. Note that this **MUST NOT** be modified by the user. It is a read only
-                                           //!< field
-    UINT32 signalingMessagesMinimumThreads;
-    UINT32 signalingMessagesMaximumThreads;
+    UINT32 stateMachineRetryCountReadOnly;  //!< Retry count of state machine. Note that this **MUST NOT** be modified by the user. It is a read only
+                                            //!< field
+    UINT32 signalingMessagesMinimumThreads; //!< Unused field post v1.8.1
+    UINT32 signalingMessagesMaximumThreads; //!< Unused field post v1.8.1
 } SignalingClientInfo, *PSignalingClientInfo;
 
 /**

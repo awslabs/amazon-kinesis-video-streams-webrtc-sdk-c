@@ -341,7 +341,6 @@ endif()
 
 # The library **MUST** have a shared linkage. This library is used by both WebRtc client an
 #signaling client.
-# WIN32 seems to require a static library linkage and SHARED LINKAGE does not work
 if(ENABLE_KVS_THREADPOOL)
   file(GLOB THREADPOOL_SOURCE_FILES "src/source/Threadpool/ThreadPoolContext.c")
   add_library(kvsWebRtcThreadpool SHARED ${THREADPOOL_SOURCE_FILES})
