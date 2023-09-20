@@ -98,7 +98,7 @@ IngestionFunctionalityTest::MediaConfigurationInfo IngestionFunctionalityTest::c
     Aws::KinesisVideo::Model::CreateStreamOutcome createStreamOutcome;
     Aws::KinesisVideo::Model::CreateStreamRequest createStreamRequest;
 
-    std::string nameSuffix = generate_hex(16);
+    std::string nameSuffix = generate_hex(16LU);
     std::string streamName = "WrtcIngestionTestStream_" + nameSuffix;
     std::string channelName = "WrtcIngestionTestChannel_" + nameSuffix;
     createStreamRequest.WithStreamName(streamName);
@@ -405,7 +405,6 @@ TEST_F(IngestionFunctionalityTest, iceReconnectEmulationWithJoinSession)
 
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
-    SignalingClientInfo clientInfo;
     PSignalingClient pSignalingClient;
     SIGNALING_CLIENT_HANDLE signalingHandle = INVALID_SIGNALING_CLIENT_HANDLE_VALUE;
     SignalingClientInfoInternal clientInfoInternal;
