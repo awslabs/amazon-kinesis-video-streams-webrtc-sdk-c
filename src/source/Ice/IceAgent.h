@@ -136,6 +136,7 @@ typedef struct {
     IceInboundPacketFunc inboundPacketFn;
     IceConnectionStateChangedFunc connectionStateChangedFn;
     IceNewLocalCandidateFunc newLocalCandidateFn;
+    IceServerSetIpFunc setStunServerIpFn;
 } IceAgentCallbacks, *PIceAgentCallbacks;
 
 typedef struct {

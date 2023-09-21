@@ -32,7 +32,7 @@ STATUS createThreadPoolContext()
     MUTEX_LOCK(pThreadPoolContext->threadpoolContextLock);
     locked = TRUE;
     CHK_WARN(!pThreadPoolContext->isInitialized, retStatus, "Threadpool already set up. Nothing to do");
-    CHK_ERR(pThreadPoolContext->pThreadpool == NULL, STATUS_NULL_ARG, "Threadpool object is to be set up");
+    CHK_WARN(pThreadPoolContext->pThreadpool == NULL, STATUS_INVALID_OPERATION, "Threadpool object already allocated");
     CHK_STATUS(threadpoolCreate(&pThreadPoolContext->pThreadpool, minThreads, maxThreads));
     pThreadPoolContext->isInitialized = TRUE;
 CleanUp:

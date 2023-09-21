@@ -108,6 +108,9 @@ typedef struct {
 // Used for ensuring alignment
 #define ALIGN_UP_TO_MACHINE_WORD(x) ROUND_UP((x), SIZEOF(SIZE_T))
 
+typedef STATUS (*IceServerSetIpFunc)(UINT64, PCHAR, PKvsIpAddress);
+STATUS getIpAddrStr(PKvsIpAddress pKvsIpAddress, PCHAR pBuffer, UINT32 bufferLen);
+
 ////////////////////////////////////////////////////
 // Project forward declarations
 ////////////////////////////////////////////////////

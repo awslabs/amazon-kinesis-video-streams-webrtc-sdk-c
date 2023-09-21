@@ -4,6 +4,34 @@
 
 static volatile ATOMIC_BOOL gKvsWebRtcInitialized = (SIZE_T) FALSE;
 
+// Function to get access to the Singleton instance
+PWebRtcClientContext getWebRtcClientInstance()
+{
+    static WebRtcClientContext w = {.pStunIpAddrCtx = NULL};
+    return &w;
+}
+
+PStunIpAddrContext getStunIpContext()
+{
+    PWebRtcClientContext pWebRtcClientContext = getWebRtcClientInstance();
+    return pWebRtcClientContext->pStunIpAddrCtx;
+}
+
+STATUS createWebRtcClientInstance()
+{
+    PWebRtcClientContext pWebRtcClientContext = getWebRtcClientInstance();
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK_WARN(pWebRtcClientContext->pStunIpAddrCtx == NULL, STATUS_INVALID_OPERATION, "STUN object already allocated");
+    pWebRtcClientContext->pStunIpAddrCtx = (PStunIpAddrContext) MEMCALLOC(1, SIZEOF(StunIpAddrContext));
+    CHK_ERR(pWebRtcClientContext->pStunIpAddrCtx != NULL, STATUS_NULL_ARG, "Memory allocation for WebRtc client object failed");
+    pWebRtcClientContext->pStunIpAddrCtx->lock = MUTEX_CREATE(FALSE);
+    pWebRtcClientContext->pStunIpAddrCtx->expirationDuration = 2 * HUNDREDS_OF_NANOS_IN_AN_HOUR;
+
+CleanUp:
+    return retStatus;
+}
+
 STATUS allocateSrtp(PKvsPeerConnection pKvsPeerConnection)
 {
     DtlsKeyingMaterial dtlsKeyingMaterial;
@@ -687,6 +715,108 @@ CleanUp:
     return retStatus;
 }
 
+// Not thread safe
+STATUS getAddrAsync(PStunIpAddrContext pStunIpAddrCtx)
+{
+    INT32 errCode;
+    STATUS retStatus = STATUS_SUCCESS;
+    struct addrinfo *rp, *res;
+    struct sockaddr_in* ipv4Addr;
+    BOOL resolved = FALSE;
+
+    errCode = getaddrinfo(pStunIpAddrCtx->hostname, NULL, NULL, &res);
+    if (errCode != 0) {
+        DLOGI("Failed to resolve hostname with errcode: %d", errCode);
+        retStatus = STATUS_RESOLVE_HOSTNAME_FAILED;
+    } else {
+        for (rp = res; rp != NULL && !resolved; rp = rp->ai_next) {
+            if (rp->ai_family == AF_INET) {
+                ipv4Addr = (struct sockaddr_in*) rp->ai_addr;
+                pStunIpAddrCtx->kvsIpAddr.family = KVS_IP_FAMILY_TYPE_IPV4;
+                pStunIpAddrCtx->kvsIpAddr.port = 0;
+                MEMCPY(pStunIpAddrCtx->kvsIpAddr.address, &ipv4Addr->sin_addr, IPV4_ADDRESS_LENGTH);
+                resolved = TRUE;
+            }
+        }
+        freeaddrinfo(res);
+    }
+    if (!resolved) {
+        retStatus = STATUS_RESOLVE_HOSTNAME_FAILED;
+    }
+CleanUp:
+    return retStatus;
+}
+
+STATUS onSetStunServerIp(UINT64 customData, PCHAR url, PKvsIpAddress pIpAddr)
+{
+    UNUSED_PARAM(customData);
+    STATUS retStatus = STATUS_SUCCESS;
+    CHAR addressResolved[KVS_IP_ADDRESS_STRING_BUFFER_LEN + 1] = {'\0'};
+    PStunIpAddrContext pStunIpAddrCtx = getStunIpContext();
+    CHK_ERR(pStunIpAddrCtx != NULL, STATUS_NULL_ARG, "WebRTC Client object could not be created");
+    UINT64 currentTime = GETTIME();
+
+    MUTEX_LOCK(pStunIpAddrCtx->lock);
+    CHK(STRCMP(url, pStunIpAddrCtx->hostname) == 0, STATUS_PEERCONNECTION_UNSUPPORTED_HOSTNAME);
+
+    if (pStunIpAddrCtx->isIpInitialized) {
+        DLOGI("Initialized successfully");
+        if (currentTime > (pStunIpAddrCtx->startTime + pStunIpAddrCtx->expirationDuration)) {
+            DLOGI("Expired...need to refresh STUN address");
+            // Reset start time
+            pStunIpAddrCtx->startTime = 0;
+            CHK_ERR(getAddrAsync(pStunIpAddrCtx) == STATUS_SUCCESS, retStatus, "Failed to resolve after cache expiry");
+        }
+        MEMCPY(pIpAddr, &pStunIpAddrCtx->kvsIpAddr, SIZEOF(pStunIpAddrCtx->kvsIpAddr));
+    } else {
+        DLOGE("Initialization failed");
+    }
+CleanUp:
+    MUTEX_UNLOCK(pStunIpAddrCtx->lock);
+    return retStatus;
+}
+
+PVOID resolveStunIceServerIp(PVOID args)
+{
+    UNUSED_PARAM(args);
+    BOOL locked = FALSE;
+    CHAR addressResolved[KVS_IP_ADDRESS_STRING_BUFFER_LEN + 1] = {'\0'};
+    PStunIpAddrContext pStunIpAddrCtx = getStunIpContext();
+
+    PCHAR pRegion;
+    PCHAR pHostnamePostfix;
+    if (pStunIpAddrCtx == NULL) {
+        DLOGE("Failed to resolve STUN IP address because webrtc client instance was not created");
+        return NULL;
+    }
+
+    if ((pRegion = GETENV(DEFAULT_REGION_ENV_VAR)) == NULL) {
+        pRegion = DEFAULT_AWS_REGION;
+    }
+
+    pHostnamePostfix = KINESIS_VIDEO_STUN_URL_POSTFIX;
+    // If region is in CN, add CN region uri postfix
+    if (STRSTR(pRegion, "cn-")) {
+        pHostnamePostfix = KINESIS_VIDEO_STUN_URL_POSTFIX_CN;
+    }
+
+    MUTEX_LOCK(pStunIpAddrCtx->lock);
+    locked = TRUE;
+    SNPRINTF(pStunIpAddrCtx->hostname, SIZEOF(pStunIpAddrCtx->hostname), KINESIS_VIDEO_STUN_URL_WITHOUT_PORT, pRegion, pHostnamePostfix);
+    if (getAddrAsync(pStunIpAddrCtx) == STATUS_SUCCESS) {
+        getIpAddrStr(&pStunIpAddrCtx->kvsIpAddr, addressResolved, ARRAY_SIZE(addressResolved));
+        DLOGI("ICE Server address for %s with getaddrinfo: %s", pStunIpAddrCtx->hostname, addressResolved);
+        pStunIpAddrCtx->isIpInitialized = TRUE;
+    } else {
+        DLOGE("Failed to resolve %s", pStunIpAddrCtx->hostname);
+    }
+    pStunIpAddrCtx->startTime = GETTIME();
+    if (locked) {
+        MUTEX_UNLOCK(pStunIpAddrCtx->lock);
+    }
+    return NULL;
+}
+
 STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection* ppPeerConnection)
 {
     ENTERS();
@@ -738,6 +868,8 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
     iceAgentCallbacks.inboundPacketFn = onInboundPacket;
     iceAgentCallbacks.connectionStateChangedFn = onIceConnectionStateChange;
     iceAgentCallbacks.newLocalCandidateFn = onNewIceLocalCandidate;
+    iceAgentCallbacks.setStunServerIpFn = onSetStunServerIp;
+
     CHK_STATUS(createConnectionListener(&pConnectionListener));
     // IceAgent will own the lifecycle of pConnectionListener;
     CHK_STATUS(createIceAgent(pKvsPeerConnection->localIceUfrag, pKvsPeerConnection->localIcePwd, &iceAgentCallbacks, pConfiguration,
@@ -1433,12 +1565,41 @@ STATUS initKvsWebRtc(VOID)
 #ifdef ENABLE_KVS_THREADPOOL
     DLOGI("KVS WebRtc library using thread pool");
     CHK_STATUS(createThreadPoolContext());
+    createWebRtcClientInstance();
+    CHK_STATUS(threadpoolContextPush(resolveStunIceServerIp, NULL));
 #endif
     ATOMIC_STORE_BOOL(&gKvsWebRtcInitialized, TRUE);
 
 CleanUp:
 
     LEAVES();
+    return retStatus;
+}
+
+STATUS cleanupWebRtcClientContext()
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    // Stun object cleanup
+    PWebRtcClientContext pWebRtcClientContext = getWebRtcClientInstance();
+
+    CHK_WARN(pWebRtcClientContext->pStunIpAddrCtx != NULL, STATUS_NULL_ARG, "Destroying STUN object without setting up");
+
+    /* Start of handling STUN object */
+    // Need this check to ensure we do not clean up the object in the next
+    // step while the resolve thread is ongoing
+
+    MUTEX_LOCK(pWebRtcClientContext->pStunIpAddrCtx->lock);
+    pWebRtcClientContext->pStunIpAddrCtx->isIpInitialized = FALSE;
+    MUTEX_UNLOCK(pWebRtcClientContext->pStunIpAddrCtx->lock);
+    if (IS_VALID_MUTEX_VALUE(pWebRtcClientContext->pStunIpAddrCtx->lock)) {
+        MUTEX_FREE(pWebRtcClientContext->pStunIpAddrCtx->lock);
+    }
+    SAFE_MEMFREE(pWebRtcClientContext->pStunIpAddrCtx);
+    DLOGI("Destroyed STUN IP object");
+    /* End of handling STUN object */
+
+    DLOGI("Destroyed WebRtc client context");
+CleanUp:
     return retStatus;
 }
 
@@ -1456,8 +1617,9 @@ STATUS deinitKvsWebRtc(VOID)
 
     ATOMIC_STORE_BOOL(&gKvsWebRtcInitialized, FALSE);
 #ifdef ENABLE_KVS_THREADPOOL
-    DLOGI("Destroying KVS Webrtc library threadpool");
     destroyThreadPoolContext();
+    DLOGI("Destroyed threadpool");
+    cleanupWebRtcClientContext();
 #endif
 
 CleanUp:

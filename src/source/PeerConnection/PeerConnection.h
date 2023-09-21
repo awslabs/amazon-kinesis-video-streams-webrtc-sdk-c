@@ -150,6 +150,22 @@ typedef struct {
     PHashTable unkeyedDataChannels;
 } AllocateSctpSortDataChannelsData, *PAllocateSctpSortDataChannelsData;
 
+typedef struct {
+    CHAR hostname[MAX_ICE_CONFIG_URI_LEN + 1];
+    KvsIpAddress kvsIpAddr;
+    BOOL isIpInitialized;
+    UINT64 startTime;
+    UINT64 expirationDuration;
+    STATUS status;
+    MUTEX lock;
+} StunIpAddrContext, *PStunIpAddrContext;
+
+// Declare the structure of the Singleton
+// Members of the singleton are responsible for their own sync mechanisms.
+typedef struct {
+    PStunIpAddrContext pStunIpAddrCtx;
+} WebRtcClientContext, *PWebRtcClientContext;
+
 STATUS onFrameReadyFunc(UINT64, UINT16, UINT16, UINT32);
 STATUS onFrameDroppedFunc(UINT64, UINT16, UINT16, UINT32);
 VOID onSctpSessionOutboundPacket(UINT64, PBYTE, UINT32);
