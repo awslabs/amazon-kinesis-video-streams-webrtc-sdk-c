@@ -239,8 +239,6 @@ TEST_F(SignalingApiFunctionalityTest, basicCreateConnectFree)
     clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
     clientInfo.cacheFilePath = NULL;
-    clientInfo.signalingMessagesMinimumThreads = 3;
-    clientInfo.signalingMessagesMaximumThreads = 5;
     clientInfo.signalingClientCreationMaxRetryAttempts = 0;
     STRCPY(clientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     setupSignalingStateMachineRetryStrategyCallbacks(&clientInfo);
@@ -270,8 +268,6 @@ TEST_F(SignalingApiFunctionalityTest, basicCreateConnectFree)
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
-    //wait for threads of threadpool to close
-    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, basicCreateWithRetries)
@@ -293,8 +289,6 @@ TEST_F(SignalingApiFunctionalityTest, basicCreateWithRetries)
     clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
     clientInfo.cacheFilePath = NULL;
-    clientInfo.signalingMessagesMinimumThreads = 3;
-    clientInfo.signalingMessagesMaximumThreads = 5;
     clientInfo.signalingClientCreationMaxRetryAttempts = 3;
     STRCPY(clientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     setupSignalingStateMachineRetryStrategyCallbacks(&clientInfo);
@@ -303,8 +297,6 @@ TEST_F(SignalingApiFunctionalityTest, basicCreateWithRetries)
     EXPECT_EQ(STATUS_NULL_ARG,
               createSignalingClientSync(&clientInfo, NULL, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider,
                                         &signalingHandle));
-    //wait for threads of threadpool to close
-    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, mockMaster)
@@ -337,8 +329,6 @@ TEST_F(SignalingApiFunctionalityTest, mockMaster)
     clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
     clientInfo.cacheFilePath = NULL;
-    clientInfo.signalingMessagesMinimumThreads = 3;
-    clientInfo.signalingMessagesMaximumThreads = 5;
     clientInfo.signalingClientCreationMaxRetryAttempts = 0;
     STRCPY(clientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     setupSignalingStateMachineRetryStrategyCallbacks(&clientInfo);
@@ -446,8 +436,6 @@ TEST_F(SignalingApiFunctionalityTest, mockMaster)
     // Free again
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
     EXPECT_FALSE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
-    //wait for threads of threadpool to close
-    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, mockViewer)
@@ -481,8 +469,6 @@ TEST_F(SignalingApiFunctionalityTest, mockViewer)
     clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
     clientInfo.cacheFilePath = NULL;
-    clientInfo.signalingMessagesMinimumThreads = 3;
-    clientInfo.signalingMessagesMaximumThreads = 5;
     clientInfo.signalingClientCreationMaxRetryAttempts = 0;
     STRCPY(clientInfo.clientId, TEST_SIGNALING_VIEWER_CLIENT_ID);
     setupSignalingStateMachineRetryStrategyCallbacks(&clientInfo);
@@ -564,8 +550,6 @@ TEST_F(SignalingApiFunctionalityTest, mockViewer)
     // Free again
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
     EXPECT_FALSE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
-    //wait for threads of threadpool to close
-    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, invalidChannelInfoInput)
@@ -591,8 +575,6 @@ TEST_F(SignalingApiFunctionalityTest, invalidChannelInfoInput)
     STRCPY(clientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
     clientInfo.cacheFilePath = NULL;
-    clientInfo.signalingMessagesMinimumThreads = 3;
-    clientInfo.signalingMessagesMaximumThreads = 5;
     clientInfo.signalingClientCreationMaxRetryAttempts = 0;
     setupSignalingStateMachineRetryStrategyCallbacks(&clientInfo);
 
@@ -785,8 +767,6 @@ TEST_F(SignalingApiFunctionalityTest, invalidChannelInfoInput)
 
     clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
-    clientInfo.signalingMessagesMinimumThreads = 3;
-    clientInfo.signalingMessagesMaximumThreads = 5;
     clientInfo.signalingClientCreationMaxRetryAttempts = 0;
     STRCPY(clientInfo.clientId, TEST_SIGNALING_VIEWER_CLIENT_ID);
     setupSignalingStateMachineRetryStrategyCallbacks(&clientInfo);
@@ -837,8 +817,6 @@ TEST_F(SignalingApiFunctionalityTest, invalidChannelInfoInput)
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
-    //wait for threads of threadpool to close
-    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, iceReconnectEmulation)
@@ -861,8 +839,6 @@ TEST_F(SignalingApiFunctionalityTest, iceReconnectEmulation)
     clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
     clientInfo.cacheFilePath = NULL;
-    clientInfo.signalingMessagesMinimumThreads = 3;
-    clientInfo.signalingMessagesMaximumThreads = 5;
     clientInfo.signalingClientCreationMaxRetryAttempts = 0;
     STRCPY(clientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     setupSignalingStateMachineRetryStrategyCallbacks(&clientInfo);
@@ -926,8 +902,6 @@ TEST_F(SignalingApiFunctionalityTest, iceReconnectEmulation)
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
-    //wait for threads of threadpool to close
-    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedVariations)
@@ -953,8 +927,6 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedVariatio
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
-    clientInfoInternal.signalingClientInfo.signalingMessagesMinimumThreads = 3;
-    clientInfoInternal.signalingClientInfo.signalingMessagesMaximumThreads = 5;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     setupSignalingStateMachineRetryStrategyCallbacks(&clientInfoInternal);
 
@@ -1193,8 +1165,6 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedVariatio
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
-    //wait for threads of threadpool to close
-    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedVariations)
@@ -1220,8 +1190,6 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedVariations)
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
-    clientInfoInternal.signalingClientInfo.signalingMessagesMinimumThreads = 3;
-    clientInfoInternal.signalingClientInfo.signalingMessagesMaximumThreads = 5;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     setupSignalingStateMachineRetryStrategyCallbacks(&clientInfoInternal);
 
@@ -1462,8 +1430,6 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedVariations)
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
-    //wait for threads of threadpool to close
-    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedAuthExpiration)
@@ -1489,8 +1455,6 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedAuthExpi
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
-    clientInfoInternal.signalingClientInfo.signalingMessagesMinimumThreads = 3;
-    clientInfoInternal.signalingClientInfo.signalingMessagesMaximumThreads = 5;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     setupSignalingStateMachineRetryStrategyCallbacks(&clientInfoInternal);
 
@@ -1587,8 +1551,6 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedAuthExpi
     EXPECT_EQ(STATUS_SIGNALING_ICE_CONFIG_REFRESH_FAILED, errStatus);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
-    //wait for threads of threadpool to close
-    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedAuthExpiration)
@@ -1614,8 +1576,6 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedAuthExpirat
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
-    clientInfoInternal.signalingClientInfo.signalingMessagesMinimumThreads = 3;
-    clientInfoInternal.signalingClientInfo.signalingMessagesMaximumThreads = 5;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     setupSignalingStateMachineRetryStrategyCallbacks(&clientInfoInternal);
 
@@ -1715,8 +1675,6 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedAuthExpirat
     EXPECT_EQ(STATUS_SIGNALING_ICE_CONFIG_REFRESH_FAILED, errStatus);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
-    //wait for threads of threadpool to close
-    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithFaultInjectionRecovered)
@@ -1742,8 +1700,6 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithFaul
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
-    clientInfoInternal.signalingClientInfo.signalingMessagesMinimumThreads = 3;
-    clientInfoInternal.signalingClientInfo.signalingMessagesMaximumThreads = 5;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfoInternal.hookCustomData = (UINT64) this;
     clientInfoInternal.getIceConfigPreHookFn = getIceConfigPreHook;
@@ -1834,8 +1790,6 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithFaul
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
-    //wait for threads of threadpool to close
-    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithFaultInjectionRecovered)
@@ -1861,8 +1815,6 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithFaultIn
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
-    clientInfoInternal.signalingClientInfo.signalingMessagesMinimumThreads = 3;
-    clientInfoInternal.signalingClientInfo.signalingMessagesMaximumThreads = 5;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfoInternal.hookCustomData = (UINT64) this;
     clientInfoInternal.getIceConfigPreHookFn = getIceConfigPreHook;
@@ -1955,8 +1907,6 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithFaultIn
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
-    //wait for threads of threadpool to close
-    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithFaultInjectionNotRecovered)
@@ -1982,8 +1932,6 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithFaul
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
-    clientInfoInternal.signalingClientInfo.signalingMessagesMinimumThreads = 3;
-    clientInfoInternal.signalingClientInfo.signalingMessagesMaximumThreads = 5;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfoInternal.hookCustomData = (UINT64) this;
     clientInfoInternal.getIceConfigPreHookFn = getIceConfigPreHook;
@@ -2072,8 +2020,6 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithFaul
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
-    //wait for threads of threadpool to close
-    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithFaultInjectionNot1669)
@@ -2099,8 +2045,6 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithFaultIn
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
-    clientInfoInternal.signalingClientInfo.signalingMessagesMinimumThreads = 3;
-    clientInfoInternal.signalingClientInfo.signalingMessagesMaximumThreads = 5;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfoInternal.hookCustomData = (UINT64) this;
     clientInfoInternal.getIceConfigPreHookFn = getIceConfigPreHook;
@@ -2192,8 +2136,6 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithFaultIn
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
-    //wait for threads of threadpool to close
-    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithBadAuth)
@@ -2219,8 +2161,6 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithBadA
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
-    clientInfoInternal.signalingClientInfo.signalingMessagesMinimumThreads = 3;
-    clientInfoInternal.signalingClientInfo.signalingMessagesMaximumThreads = 5;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     setupSignalingStateMachineRetryStrategyCallbacks(&clientInfoInternal);
 
@@ -2315,8 +2255,6 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithBadA
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
-    //wait for threads of threadpool to close
-    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithBadAuth)
@@ -2343,8 +2281,6 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithBadAuth
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
-    clientInfoInternal.signalingClientInfo.signalingMessagesMinimumThreads = 3;
-    clientInfoInternal.signalingClientInfo.signalingMessagesMaximumThreads = 5;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     setupSignalingStateMachineRetryStrategyCallbacks(&clientInfoInternal);
 
@@ -2442,8 +2378,6 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithBadAuth
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
-    //wait for threads of threadpool to close
-    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, goAwayEmulation)
@@ -2466,8 +2400,6 @@ TEST_F(SignalingApiFunctionalityTest, goAwayEmulation)
     clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
     clientInfo.cacheFilePath = NULL;
-    clientInfo.signalingMessagesMinimumThreads = 3;
-    clientInfo.signalingMessagesMaximumThreads = 5;
     STRCPY(clientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     setupSignalingStateMachineRetryStrategyCallbacks(&clientInfo);
 
@@ -2530,8 +2462,6 @@ TEST_F(SignalingApiFunctionalityTest, goAwayEmulation)
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
-    //wait for threads of threadpool to close
-    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, unknownMessageTypeEmulation)
@@ -2554,8 +2484,6 @@ TEST_F(SignalingApiFunctionalityTest, unknownMessageTypeEmulation)
     clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfo.loggingLevel = LOG_LEVEL_VERBOSE;
     clientInfo.cacheFilePath = NULL;
-    clientInfo.signalingMessagesMinimumThreads = 3;
-    clientInfo.signalingMessagesMaximumThreads = 5;
     clientInfo.signalingClientCreationMaxRetryAttempts = 0;
     STRCPY(clientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     setupSignalingStateMachineRetryStrategyCallbacks(&clientInfo);
@@ -2622,8 +2550,6 @@ TEST_F(SignalingApiFunctionalityTest, unknownMessageTypeEmulation)
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
-    //wait for threads of threadpool to close
-    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, connectTimeoutEmulation)
@@ -2650,8 +2576,6 @@ TEST_F(SignalingApiFunctionalityTest, connectTimeoutEmulation)
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
-    clientInfoInternal.signalingClientInfo.signalingMessagesMinimumThreads = 3;
-    clientInfoInternal.signalingClientInfo.signalingMessagesMaximumThreads = 5;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfoInternal.connectTimeout = 1 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
     setupSignalingStateMachineRetryStrategyCallbacks(&clientInfoInternal);
@@ -2747,8 +2671,6 @@ TEST_F(SignalingApiFunctionalityTest, connectTimeoutEmulation)
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
-    //wait for threads of threadpool to close
-    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, channelInfoArnSkipDescribe)
@@ -2773,8 +2695,6 @@ TEST_F(SignalingApiFunctionalityTest, channelInfoArnSkipDescribe)
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
-    clientInfoInternal.signalingClientInfo.signalingMessagesMinimumThreads = 3;
-    clientInfoInternal.signalingClientInfo.signalingMessagesMaximumThreads = 5;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfoInternal.connectTimeout = 0;
     setupSignalingStateMachineRetryStrategyCallbacks(&clientInfoInternal);
@@ -2883,8 +2803,6 @@ TEST_F(SignalingApiFunctionalityTest, channelInfoArnSkipDescribe)
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
-    //wait for threads of threadpool to close
-    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedWithArn)
@@ -2909,8 +2827,6 @@ TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedWithArn)
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
-    clientInfoInternal.signalingClientInfo.signalingMessagesMinimumThreads = 3;
-    clientInfoInternal.signalingClientInfo.signalingMessagesMaximumThreads = 5;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfoInternal.connectTimeout = 0;
     setupSignalingStateMachineRetryStrategyCallbacks(&clientInfoInternal);
@@ -3019,8 +2935,6 @@ TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedWithArn)
     EXPECT_EQ(STATUS_SUCCESS, signalingClientDeleteSync(signalingHandle));
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
-    //wait for threads of threadpool to close
-    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedAuthExpiration)
@@ -3044,8 +2958,6 @@ TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedAuthExpiration)
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
-    clientInfoInternal.signalingClientInfo.signalingMessagesMinimumThreads = 3;
-    clientInfoInternal.signalingClientInfo.signalingMessagesMaximumThreads = 5;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfoInternal.connectTimeout = 0;
     setupSignalingStateMachineRetryStrategyCallbacks(&clientInfoInternal);
@@ -3134,8 +3046,6 @@ TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedAuthExpiration)
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
-    //wait for threads of threadpool to close
-    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, signalingClientDisconnectSyncVariations)
@@ -3180,8 +3090,6 @@ TEST_F(SignalingApiFunctionalityTest, signalingClientDisconnectSyncVariations)
     EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(mSignalingClientHandle, &message));
 
     deinitializeSignalingClient();
-    //wait for threads of threadpool to close
-    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, cachingWithFaultInjection)
@@ -3205,8 +3113,6 @@ TEST_F(SignalingApiFunctionalityTest, cachingWithFaultInjection)
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
-    clientInfoInternal.signalingClientInfo.signalingMessagesMinimumThreads = 3;
-    clientInfoInternal.signalingClientInfo.signalingMessagesMaximumThreads = 5;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfoInternal.hookCustomData = (UINT64) this;
     clientInfoInternal.connectPreHookFn = connectPreHook;
@@ -3318,8 +3224,6 @@ TEST_F(SignalingApiFunctionalityTest, cachingWithFaultInjection)
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
-    //wait for threads of threadpool to close
-    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, fileCachingTest)
@@ -3347,8 +3251,6 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingTest)
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
-    clientInfoInternal.signalingClientInfo.signalingMessagesMinimumThreads = 3;
-    clientInfoInternal.signalingClientInfo.signalingMessagesMaximumThreads = 5;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     clientInfoInternal.hookCustomData = (UINT64) this;
     clientInfoInternal.connectPreHookFn = connectPreHook;
@@ -3373,7 +3275,7 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingTest)
     FREMOVE(DEFAULT_CACHE_FILE_PATH);
 
     for (i = 0; i < totalChannelCount; ++i) {
-        SPRINTF(signalingChannelName, "%s%u", TEST_SIGNALING_CHANNEL_NAME, i);
+        SNPRINTF(signalingChannelName, SIZEOF(signalingChannelName), "%s%u", TEST_SIGNALING_CHANNEL_NAME, i);
         channelInfo.pChannelName = signalingChannelName;
         EXPECT_EQ(STATUS_SUCCESS,
                   createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider,
@@ -3388,7 +3290,7 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingTest)
     getEndpointCountNoCache = getEndpointCount;
 
     for (i = 0; i < totalChannelCount; ++i) {
-        SPRINTF(signalingChannelName, "%s%u", TEST_SIGNALING_CHANNEL_NAME, i);
+        SNPRINTF(signalingChannelName, SIZEOF(signalingChannelName), "%s%u", TEST_SIGNALING_CHANNEL_NAME, i);
         channelInfo.pChannelName = signalingChannelName;
         channelInfo.pChannelArn = NULL;
         EXPECT_EQ(STATUS_SUCCESS,
@@ -3425,8 +3327,6 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingTest)
     /* describeCount and getEndpointCount should only increase by 2 because they are cached for all channels except one and we iterate twice*/
     EXPECT_TRUE(describeCount > describeCountNoCache && (describeCount - describeCountNoCache) == 2);
     EXPECT_TRUE(getEndpointCount > getEndpointCountNoCache && (getEndpointCount - 2*getEndpointCountNoCache) == 2);
-    //wait for threads of threadpool to close
-    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateCache)
@@ -3457,8 +3357,6 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateCache)
     testEntry.creationTsEpochSeconds = GETTIME() / HUNDREDS_OF_NANOS_IN_A_SECOND;
     /* update first cache entry*/
     EXPECT_EQ(STATUS_SUCCESS, signalingCacheSaveToFile(&testEntry, DEFAULT_CACHE_FILE_PATH));
-    //wait for threads of threadpool to close
-    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateMultiChannelCache)
@@ -3492,11 +3390,11 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateMultiChannelCache)
         MEMSET(testChannel, 0, MAX_CHANNEL_NAME_LEN+1);
 
         append = rand()%TEST_CHANNEL_COUNT;
-        SPRINTF(testWssEndpoint, "%s%d", "testWssEndpoint", append);
-        SPRINTF(testHttpsEndpoint, "%s%d", "testHttpsEndpoint", append);
-        SPRINTF(testRegion, "%s%d", "testRegion", append);
-        SPRINTF(testChannelArn, "%s%d", "testChannelArn", append);
-        SPRINTF(testChannel, "%s%d", "testChannel", append);
+        SNPRINTF(testWssEndpoint, SIZEOF(testWssEndpoint), "%s%d", "testWssEndpoint", append);
+        SNPRINTF(testHttpsEndpoint, SIZEOF(testHttpsEndpoint),"%s%d", "testHttpsEndpoint", append);
+        SNPRINTF(testRegion, SIZEOF(testRegion),"%s%d", "testRegion", append);
+        SNPRINTF(testChannelArn, SIZEOF(testChannelArn),"%s%d", "testChannelArn", append);
+        SNPRINTF(testChannel, SIZEOF(testChannel),"%s%d", "testChannel", append);
 
         STRCPY(testEntry.wssEndpoint, testWssEndpoint);
         STRCPY(testEntry.httpsEndpoint, testHttpsEndpoint);
@@ -3530,8 +3428,6 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateMultiChannelCache)
     MEMFREE(fileBuffer);
 
     FREMOVE(DEFAULT_CACHE_FILE_PATH);
-    //wait for threads of threadpool to close
-    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateFullMultiChannelCache)
@@ -3560,11 +3456,11 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateFullMultiChannelCache)
         MEMSET(testChannel, 0, MAX_CHANNEL_NAME_LEN+1);
 
         append = i;
-        SPRINTF(testWssEndpoint, "%s%d", "testWssEndpoint", append);
-        SPRINTF(testHttpsEndpoint, "%s%d", "testHttpsEndpoint", append);
-        SPRINTF(testRegion, "%s%d", "testRegion", append);
-        SPRINTF(testChannelArn, "%s%d", "testChannelArn", append);
-        SPRINTF(testChannel, "%s%d", "testChannel", append);
+        SNPRINTF(testWssEndpoint, SIZEOF(testWssEndpoint), "%s%d", "testWssEndpoint", append);
+        SNPRINTF(testHttpsEndpoint, SIZEOF(testHttpsEndpoint), "%s%d", "testHttpsEndpoint", append);
+        SNPRINTF(testRegion, SIZEOF(testRegion), "%s%d", "testRegion", append);
+        SNPRINTF(testChannelArn, SIZEOF(testChannelArn), "%s%d", "testChannelArn", append);
+        SNPRINTF(testChannel, SIZEOF(testChannel), "%s%d", "testChannel", append);
 
         STRCPY(testEntry.wssEndpoint, testWssEndpoint);
         STRCPY(testEntry.httpsEndpoint, testHttpsEndpoint);
@@ -3585,8 +3481,6 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateFullMultiChannelCache)
     EXPECT_EQ(0, STRCMP(testEntry.channelName, testChannel));
 
     FREMOVE(DEFAULT_CACHE_FILE_PATH);
-    //wait for threads of threadpool to close
-    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer)
@@ -3612,8 +3506,6 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer)
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
-    clientInfoInternal.signalingClientInfo.signalingMessagesMinimumThreads = 3;
-    clientInfoInternal.signalingClientInfo.signalingMessagesMaximumThreads = 5;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     setupSignalingStateMachineRetryStrategyCallbacks(&clientInfoInternal);
 
@@ -3775,8 +3667,6 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer)
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
-    //wait for threads of threadpool to close
-    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_SlowClockSkew)
@@ -3802,8 +3692,6 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_SlowClockSkew)
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
-    clientInfoInternal.signalingClientInfo.signalingMessagesMinimumThreads = 3;
-    clientInfoInternal.signalingClientInfo.signalingMessagesMaximumThreads = 5;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
@@ -3968,8 +3856,6 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_SlowClockSkew)
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
-    //wait for threads of threadpool to close
-    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 
@@ -3996,8 +3882,6 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_FastClockSkew)
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
-    clientInfoInternal.signalingClientInfo.signalingMessagesMinimumThreads = 3;
-    clientInfoInternal.signalingClientInfo.signalingMessagesMaximumThreads = 5;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
@@ -4162,8 +4046,6 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_FastClockSkew)
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
-    //wait for threads of threadpool to close
-    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_FastClockSkew_VerifyOffsetRemovedWhenClockFixed)
@@ -4192,8 +4074,6 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_FastClockSkew_Veri
 
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
-    clientInfoInternal.signalingClientInfo.signalingMessagesMinimumThreads = 3;
-    clientInfoInternal.signalingClientInfo.signalingMessagesMaximumThreads = 5;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
@@ -4383,8 +4263,6 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_FastClockSkew_Veri
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
-    //wait for threads of threadpool to close
-    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 
