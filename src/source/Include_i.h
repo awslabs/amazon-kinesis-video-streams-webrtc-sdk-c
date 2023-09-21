@@ -118,6 +118,7 @@ STATUS generateJSONSafeString(PCHAR, UINT32);
 ////////////////////////////////////////////////////
 // Project internal includes
 ////////////////////////////////////////////////////
+#include "Threadpool/ThreadpoolContext.h"
 #include "Crypto/IOBuffer.h"
 #include "Crypto/Crypto.h"
 #include "Crypto/Dtls.h"

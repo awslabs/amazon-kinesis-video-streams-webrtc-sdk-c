@@ -1427,7 +1427,10 @@ STATUS initKvsWebRtc(VOID)
 #ifdef ENABLE_DATA_CHANNEL
     CHK_STATUS(initSctpSession());
 #endif
-
+#ifdef ENABLE_KVS_THREADPOOL
+    DLOGI("KVS WebRtc library using thread pool");
+    CHK_STATUS(createThreadPoolContext());
+#endif
     ATOMIC_STORE_BOOL(&gKvsWebRtcInitialized, TRUE);
 
 CleanUp:
@@ -1449,6 +1452,10 @@ STATUS deinitKvsWebRtc(VOID)
     srtp_shutdown();
 
     ATOMIC_STORE_BOOL(&gKvsWebRtcInitialized, FALSE);
+#ifdef ENABLE_KVS_THREADPOOL
+    DLOGI("Destroying KVS Webrtc library threadpool");
+    destroyThreadPoolContext();
+#endif
 
 CleanUp:
 

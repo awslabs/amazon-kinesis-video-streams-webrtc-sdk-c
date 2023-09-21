@@ -631,6 +631,26 @@ extern "C" {
  */
 #define SIGNALING_CONNECT_TIMEOUT (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
+/**
+ * Default minimum number of threads in the threadpool for the SDK
+ */
+#define THREADPOOL_MIN_THREADS 3
+
+/**
+ * Default maximum number of threads in the threadpool for the SDK
+ */
+#define THREADPOOL_MAX_THREADS 10
+
+/**
+ * Env to set minimum number of threads in the threadpool for the KVS SDK
+ */
+#define WEBRTC_THREADPOOL_MIN_THREADS_ENV_VAR (PCHAR) "AWS_KVS_WEBRTC_THREADPOOL_MIN_THREADS"
+
+/**
+ * Env to set maximum number of threads in the threadpool for the SDK
+ */
+#define WEBRTC_THREADPOOL_MAX_THREADS_ENV_VAR (PCHAR) "AWS_KVS_WEBRTC_THREADPOOL_MAX_THREADS"
+
 #ifdef _WIN32
 /**
  * Default timeout for sending data
@@ -1249,10 +1269,10 @@ typedef struct {
                                                                //!< being used this value can be NULL or point to an EMPTY_STRING.
     KvsRetryStrategyCallbacks signalingRetryStrategyCallbacks; //!< Retry strategy callbacks used while creating signaling client
     INT32 signalingClientCreationMaxRetryAttempts;             //!< Max attempts to create signaling client before returning error to the caller
-    UINT32 stateMachineRetryCountReadOnly; //!< Retry count of state machine. Note that this **MUST NOT** be modified by the user. It is a read only
-                                           //!< field
-    UINT32 signalingMessagesMinimumThreads;
-    UINT32 signalingMessagesMaximumThreads;
+    UINT32 stateMachineRetryCountReadOnly;  //!< Retry count of state machine. Note that this **MUST NOT** be modified by the user. It is a read only
+                                            //!< field
+    UINT32 signalingMessagesMinimumThreads; //!< Unused field post v1.8.1
+    UINT32 signalingMessagesMaximumThreads; //!< Unused field post v1.8.1
 } SignalingClientInfo, *PSignalingClientInfo;
 
 /**

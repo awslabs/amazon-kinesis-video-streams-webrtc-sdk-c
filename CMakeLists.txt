@@ -332,12 +332,19 @@ file(GLOB WEBRTC_SIGNALING_CLIENT_SOURCE_FILES "src/source/Signaling/*.c")
 include_directories(${OPEN_SRC_INCLUDE_DIRS})
 include_directories(${OPEN_SRC_INSTALL_PREFIX}/include)
 include_directories(${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/include)
-include_directories(${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/ice)
 
 add_library(kvsWebrtcClient ${LINKAGE} ${WEBRTC_CLIENT_SOURCE_FILES} ${DATACHANNEL_SRC})
 
 if(USE_MBEDTLS)
   target_compile_definitions(kvsWebrtcClient PRIVATE LWS_WITH_MBEDTLS)
+endif()
+
+# The library **MUST** have a shared linkage. This library is used by both WebRtc client an
+#signaling client.
+if(ENABLE_KVS_THREADPOOL)
+  file(GLOB THREADPOOL_SOURCE_FILES "src/source/Threadpool/ThreadPoolContext.c")
+  add_library(kvsWebRtcThreadpool SHARED ${THREADPOOL_SOURCE_FILES})
+  target_link_libraries(kvsWebRtcThreadpool PRIVATE kvspicUtils)
 endif()
 
 target_link_libraries(
@@ -358,6 +365,11 @@ add_library(kvsWebrtcSignalingClient ${LINKAGE} ${WEBRTC_SIGNALING_CLIENT_SOURCE
 
 if(USE_MBEDTLS)
   target_compile_definitions(kvsWebrtcSignalingClient PRIVATE LWS_WITH_MBEDTLS)
+endif()
+
+if(ENABLE_KVS_THREADPOOL)
+  target_link_libraries(kvsWebrtcClient PRIVATE kvsWebRtcThreadpool)
+  target_link_libraries(kvsWebrtcSignalingClient PRIVATE kvsWebRtcThreadpool)
 endif()
 
 target_link_libraries(

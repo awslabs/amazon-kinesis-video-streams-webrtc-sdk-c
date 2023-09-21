@@ -37,12 +37,6 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     CHK_STATUS(createValidateChannelInfo(pChannelInfo, &pSignalingClient->pChannelInfo));
     CHK_STATUS(validateSignalingCallbacks(pSignalingClient, pCallbacks));
     CHK_STATUS(validateSignalingClientInfo(pSignalingClient, pClientInfo));
-#ifdef ENABLE_KVS_THREADPOOL
-    DLOGD("Going to crate the threadpool for signaling");
-    CHK_STATUS(threadpoolCreate(&pSignalingClient->pThreadpool, pClientInfo->signalingClientInfo.signalingMessagesMinimumThreads,
-                                pClientInfo->signalingClientInfo.signalingMessagesMaximumThreads));
-    DLOGD("Successfully created the threadpool for signaling");
-#endif
 
     pSignalingClient->version = SIGNALING_CLIENT_CURRENT_VERSION;
     // Set invalid call times
@@ -226,10 +220,6 @@ STATUS freeSignaling(PSignalingClient* ppSignalingClient)
     stackQueueFree(pSignalingClient->pMessageQueue);
 
     hashTableFree(pSignalingClient->diagnostics.pEndpointToClockSkewHashMap);
-
-#ifdef ENABLE_KVS_THREADPOOL
-    threadpoolFree(pSignalingClient->pThreadpool);
-#endif
 
     if (IS_VALID_MUTEX_VALUE(pSignalingClient->connectedLock)) {
         MUTEX_FREE(pSignalingClient->connectedLock);
