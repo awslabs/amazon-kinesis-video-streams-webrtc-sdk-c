@@ -15,7 +15,6 @@ STATUS createThreadPoolContext()
     PCHAR pMinThreads, pMaxThreads;
     UINT32 minThreads, maxThreads;
     PThreadPoolContext pThreadPoolContext = getThreadContextInstance();
-
     if (NULL == (pMinThreads = GETENV(WEBRTC_THREADPOOL_MIN_THREADS_ENV_VAR)) || STATUS_SUCCESS != STRTOUI32(pMinThreads, NULL, 10, &minThreads)) {
         minThreads = THREADPOOL_MIN_THREADS;
     }
@@ -23,11 +22,11 @@ STATUS createThreadPoolContext()
         maxThreads = THREADPOOL_MAX_THREADS;
     }
 
+    CHK_ERR(!IS_VALID_MUTEX_VALUE(pThreadPoolContext->threadpoolContextLock), STATUS_INVALID_OPERATION, "Mutex seems to have been created already");
+
+    pThreadPoolContext->threadpoolContextLock = MUTEX_CREATE(FALSE);
     // Protecting this section to ensure we are not pushing threads / destroying the pool
     // when it is being created.
-    if (!IS_VALID_MUTEX_VALUE(pThreadPoolContext->threadpoolContextLock)) {
-        pThreadPoolContext->threadpoolContextLock = MUTEX_CREATE(FALSE);
-    }
     MUTEX_LOCK(pThreadPoolContext->threadpoolContextLock);
     locked = TRUE;
     CHK_WARN(!pThreadPoolContext->isInitialized, retStatus, "Threadpool already set up. Nothing to do");

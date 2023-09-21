@@ -157,7 +157,6 @@ typedef struct {
     UINT64 startTime;
     UINT64 expirationDuration;
     STATUS status;
-    MUTEX lock;
 } StunIpAddrContext, *PStunIpAddrContext;
 
 // Declare the structure of the Singleton
@@ -165,6 +164,7 @@ typedef struct {
 typedef struct {
     PStunIpAddrContext pStunIpAddrCtx;
     BOOL isContextInitialized;
+    MUTEX stunCtxlock;
 } WebRtcClientContext, *PWebRtcClientContext;
 
 STATUS onFrameReadyFunc(UINT64, UINT16, UINT16, UINT32);
