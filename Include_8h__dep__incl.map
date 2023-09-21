@@ -1,6 +1,6 @@
 <map id="src/include/com/amazonaws/kinesis/video/webrtcclient/Include.h" name="src/include/com/amazonaws/kinesis/video/webrtcclient/Include.h">
-<area shape="rect" id="node1" title=" " alt="" coords="4413,5,4620,61"/>
-<area shape="rect" id="node2" href="$Include__i_8h.html" title=" " alt="" coords="4435,109,4598,136"/>
+<area shape="rect" id="node1" title=" " alt="" coords="4523,5,4729,61"/>
+<area shape="rect" id="node2" href="$Include__i_8h.html" title=" " alt="" coords="4545,109,4707,136"/>
 <area shape="rect" id="node3" href="$Crypto_8c.html" title=" " alt="" coords="5,191,199,218"/>
 <area shape="rect" id="node4" href="$Dtls_8c.html" title=" " alt="" coords="223,191,399,218"/>
 <area shape="rect" id="node5" href="$Dtls__mbedtls_8c.html" title=" " alt="" coords="423,184,589,225"/>
@@ -44,4 +44,5 @@
 <area shape="rect" id="node43" href="$StateMachine_8c.html" title=" " alt="" coords="8249,184,8401,225"/>
 <area shape="rect" id="node44" href="$SrtpSession_8c.html" title=" " alt="" coords="8425,191,8635,218"/>
 <area shape="rect" id="node45" href="$Stun_8c.html" title=" " alt="" coords="8659,191,8825,218"/>
+<area shape="rect" id="node46" href="$ThreadPoolContext_8c.html" title=" " alt="" coords="8849,184,9014,225"/>
 </map>

@@ -122,6 +122,14 @@ Macros</h2></td></tr>
 <tr class="separator:ga9b33106e24ac70a17e7d760d01fc39b9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gafc91aa7fd8995fa426f68d31de70b3e6"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Timeouts.html#gafc91aa7fd8995fa426f68d31de70b3e6">SIGNALING_CONNECT_TIMEOUT</a>&#160;&#160;&#160;(5 * HUNDREDS_OF_NANOS_IN_A_SECOND)</td></tr>
 <tr class="separator:gafc91aa7fd8995fa426f68d31de70b3e6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga7d64f314ba743c9854489c093ad7b6d5"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Timeouts.html#ga7d64f314ba743c9854489c093ad7b6d5">THREADPOOL_MIN_THREADS</a>&#160;&#160;&#160;3</td></tr>
+<tr class="separator:ga7d64f314ba743c9854489c093ad7b6d5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gad7530c71d6a97f0472190122e53b1e4d"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Timeouts.html#gad7530c71d6a97f0472190122e53b1e4d">THREADPOOL_MAX_THREADS</a>&#160;&#160;&#160;10</td></tr>
+<tr class="separator:gad7530c71d6a97f0472190122e53b1e4d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga5beba71350f19721cddf1bb4fc7f1a06"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Timeouts.html#ga5beba71350f19721cddf1bb4fc7f1a06">WEBRTC_THREADPOOL_MIN_THREADS_ENV_VAR</a>&#160;&#160;&#160;(PCHAR) &quot;AWS_KVS_WEBRTC_THREADPOOL_MIN_THREADS&quot;</td></tr>
+<tr class="separator:ga5beba71350f19721cddf1bb4fc7f1a06"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga167b8c2ac28906b0a211b461397aaa89"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Timeouts.html#ga167b8c2ac28906b0a211b461397aaa89">WEBRTC_THREADPOOL_MAX_THREADS_ENV_VAR</a>&#160;&#160;&#160;(PCHAR) &quot;AWS_KVS_WEBRTC_THREADPOOL_MAX_THREADS&quot;</td></tr>
+<tr class="separator:ga167b8c2ac28906b0a211b461397aaa89"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gad1b8f63e3ef3b4e3d3d1c40792929896"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Timeouts.html#gad1b8f63e3ef3b4e3d3d1c40792929896">SIGNALING_SEND_TIMEOUT</a>&#160;&#160;&#160;(5 * HUNDREDS_OF_NANOS_IN_A_SECOND)</td></tr>
 <tr class="separator:gad1b8f63e3ef3b4e3d3d1c40792929896"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gaf8435cf31d8d11ee2261c227a7b913ea"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Timeouts.html#gaf8435cf31d8d11ee2261c227a7b913ea">SIGNALING_DELETE_TIMEOUT</a>&#160;&#160;&#160;(5 * HUNDREDS_OF_NANOS_IN_A_SECOND)</td></tr>
@@ -270,12 +278,72 @@ Macros</h2></td></tr>
 
 </div>
 </div>
+<a id="gad7530c71d6a97f0472190122e53b1e4d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gad7530c71d6a97f0472190122e53b1e4d">&#9670;&nbsp;</a></span>THREADPOOL_MAX_THREADS</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define THREADPOOL_MAX_THREADS&#160;&#160;&#160;10</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Default maximum number of threads in the threadpool for the SDK </p>
+
+</div>
+</div>
+<a id="ga7d64f314ba743c9854489c093ad7b6d5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga7d64f314ba743c9854489c093ad7b6d5">&#9670;&nbsp;</a></span>THREADPOOL_MIN_THREADS</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define THREADPOOL_MIN_THREADS&#160;&#160;&#160;3</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Default minimum number of threads in the threadpool for the SDK </p>
+
+</div>
+</div>
+<a id="ga167b8c2ac28906b0a211b461397aaa89"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga167b8c2ac28906b0a211b461397aaa89">&#9670;&nbsp;</a></span>WEBRTC_THREADPOOL_MAX_THREADS_ENV_VAR</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define WEBRTC_THREADPOOL_MAX_THREADS_ENV_VAR&#160;&#160;&#160;(PCHAR) &quot;AWS_KVS_WEBRTC_THREADPOOL_MAX_THREADS&quot;</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Env to set maximum number of threads in the threadpool for the SDK </p>
+
+</div>
+</div>
+<a id="ga5beba71350f19721cddf1bb4fc7f1a06"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga5beba71350f19721cddf1bb4fc7f1a06">&#9670;&nbsp;</a></span>WEBRTC_THREADPOOL_MIN_THREADS_ENV_VAR</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define WEBRTC_THREADPOOL_MIN_THREADS_ENV_VAR&#160;&#160;&#160;(PCHAR) &quot;AWS_KVS_WEBRTC_THREADPOOL_MIN_THREADS&quot;</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Env to set minimum number of threads in the threadpool for the KVS SDK </p>
+
+</div>
+</div>
 </div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="footer">Generated on Wed Sep 20 2023 20:39:19 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Thu Sep 21 2023 16:59:50 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>
