@@ -23,8 +23,8 @@ STATUS serializeSessionDescriptionInit(PRtcSessionDescriptionInit pSessionDescri
     curr = pSessionDescriptionInit->sdp;
     tail = pSessionDescriptionInit->sdp + STRLEN(pSessionDescriptionInit->sdp);
 
-    while ((next = STRNCHR(curr, (UINT32) (tail - curr), '\n')) != NULL) {
-        lineLen = (UINT32) (next - curr);
+    while ((next = STRNCHR(curr, (UINT32)(tail - curr), '\n')) != NULL) {
+        lineLen = (UINT32)(next - curr);
 
         if (lineLen > 0 && curr[lineLen - 1] == '\r') {
             lineLen--;
@@ -95,7 +95,7 @@ STATUS deserializeSessionDescriptionInit(PCHAR sessionDescriptionJSON, UINT32 se
             //     \r becomes '\' and 'r'
             //     \n becomes '\' and 'n'
             while ((next = STRNSTR(curr, SESSION_DESCRIPTION_INIT_LINE_ENDING_WITHOUT_CR, tail - curr)) != NULL) {
-                lineLen = (INT32) (next - curr);
+                lineLen = (INT32)(next - curr);
 
                 // Check if the SDP format is using \r\n or \n separator.
                 // There are escape characters before \n and \r, so we need to move back 1 more character
@@ -231,7 +231,7 @@ STATUS setPayloadTypesFromOffer(PHashTable codecTable, PHashTable rtxTable, PSes
                 CHK_STATUS(STRTOUI64(end + STRLEN(RTX_CODEC_VALUE), NULL, 10, &parsedPayloadType));
                 if ((end = STRSTR(attributeValue, FMTP_VALUE)) != NULL) {
                     CHK_STATUS(STRTOUI64(end + STRLEN(FMTP_VALUE), NULL, 10, &fmtpVal));
-                    aptFmtpVals[aptFmtpValCount++] = (UINT32) ((fmtpVal << 8u) & parsedPayloadType);
+                    aptFmtpVals[aptFmtpValCount++] = (UINT32)((fmtpVal << 8u) & parsedPayloadType);
                 }
             }
         }
@@ -877,6 +877,13 @@ STATUS populateSessionDescription(PKvsPeerConnection pKvsPeerConnection, PSessio
 
     STRCPY(pLocalSessionDescription->sdpAttributes[0].attributeName, "group");
     STRCPY(pLocalSessionDescription->sdpAttributes[0].attributeValue, BUNDLE_KEY);
+    pLocalSessionDescription->sessionAttributesCount++;
+
+    if (pKvsPeerConnection->canTrickleIce.value) {
+        STRCPY(pLocalSessionDescription->sdpAttributes[pLocalSessionDescription->sessionAttributesCount].attributeName, "ice-options");
+        STRCPY(pLocalSessionDescription->sdpAttributes[pLocalSessionDescription->sessionAttributesCount].attributeValue, "trickle");
+        pLocalSessionDescription->sessionAttributesCount++;
+    }
 
     // check all session attribute lines to see if a line with BUNDLE is present. If it is present, copy its content and break
     for (i = 0; i < pRemoteSessionDescription->sessionAttributesCount; i++) {
@@ -908,7 +915,6 @@ STATUS populateSessionDescription(PKvsPeerConnection pKvsPeerConnection, PSessio
         STRCPY(pLocalSessionDescription->mediaDescriptions[i].sdpConnectionInformation.addressType, "IP4");
         STRCPY(pLocalSessionDescription->mediaDescriptions[i].sdpConnectionInformation.connectionAddress, "127.0.0.1");
     }
-    pLocalSessionDescription->sessionAttributesCount++;
 
     STRCPY(pLocalSessionDescription->sdpAttributes[pLocalSessionDescription->sessionAttributesCount].attributeName, "msid-semantic");
     STRCPY(pLocalSessionDescription->sdpAttributes[pLocalSessionDescription->sessionAttributesCount].attributeValue, " WMS myKvsVideoStream");

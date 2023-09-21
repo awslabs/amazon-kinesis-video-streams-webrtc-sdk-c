@@ -1206,6 +1206,7 @@ typedef struct {
  */
 typedef struct {
     SDP_TYPE type;                                      //!< Indicates an offer/answer SDP type
+    BOOL useTrickleIce;                                 //!< Indicates if an offer should set trickle ice
     CHAR sdp[MAX_SESSION_DESCRIPTION_INIT_SDP_LEN + 1]; //!< SDP Data containing media capabilities, transport addresses
                                                         //!< and related metadata in a transport agnostic manner
                                                         //!<
