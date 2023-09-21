@@ -14,6 +14,9 @@ PWebRtcClientContext getWebRtcClientInstance()
 PStunIpAddrContext getStunIpContext()
 {
     PWebRtcClientContext pWebRtcClientContext = getWebRtcClientInstance();
+    if (!pWebRtcClientContext->isContextInitialized) {
+        return NULL;
+    }
     return pWebRtcClientContext->pStunIpAddrCtx;
 }
 
@@ -21,6 +24,7 @@ STATUS createWebRtcClientInstance()
 {
     PWebRtcClientContext pWebRtcClientContext = getWebRtcClientInstance();
     STATUS retStatus = STATUS_SUCCESS;
+    CHK_WARN(!pWebRtcClientContext->isContextInitialized, retStatus, "WebRtc client context already initialized, nothing to do");
 
     CHK_WARN(pWebRtcClientContext->pStunIpAddrCtx == NULL, STATUS_INVALID_OPERATION, "STUN object already allocated");
     pWebRtcClientContext->pStunIpAddrCtx = (PStunIpAddrContext) MEMCALLOC(1, SIZEOF(StunIpAddrContext));
@@ -28,6 +32,7 @@ STATUS createWebRtcClientInstance()
     pWebRtcClientContext->pStunIpAddrCtx->lock = MUTEX_CREATE(FALSE);
     pWebRtcClientContext->pStunIpAddrCtx->expirationDuration = 2 * HUNDREDS_OF_NANOS_IN_AN_HOUR;
 
+    pWebRtcClientContext->isContextInitialized = TRUE;
 CleanUp:
     return retStatus;
 }
@@ -743,7 +748,6 @@ STATUS getAddrAsync(PStunIpAddrContext pStunIpAddrCtx)
     if (!resolved) {
         retStatus = STATUS_RESOLVE_HOSTNAME_FAILED;
     }
-CleanUp:
     return retStatus;
 }
 
@@ -751,7 +755,6 @@ STATUS onSetStunServerIp(UINT64 customData, PCHAR url, PKvsIpAddress pIpAddr)
 {
     UNUSED_PARAM(customData);
     STATUS retStatus = STATUS_SUCCESS;
-    CHAR addressResolved[KVS_IP_ADDRESS_STRING_BUFFER_LEN + 1] = {'\0'};
     PStunIpAddrContext pStunIpAddrCtx = getStunIpContext();
     CHK_ERR(pStunIpAddrCtx != NULL, STATUS_NULL_ARG, "WebRTC Client object could not be created");
     UINT64 currentTime = GETTIME();
@@ -1582,6 +1585,7 @@ STATUS cleanupWebRtcClientContext()
     // Stun object cleanup
     PWebRtcClientContext pWebRtcClientContext = getWebRtcClientInstance();
 
+    CHK_WARN(pWebRtcClientContext->isContextInitialized, STATUS_INVALID_OPERATION, "WebRtc context not initialized, nothing to clean up");
     CHK_WARN(pWebRtcClientContext->pStunIpAddrCtx != NULL, STATUS_NULL_ARG, "Destroying STUN object without setting up");
 
     /* Start of handling STUN object */
@@ -1599,6 +1603,7 @@ STATUS cleanupWebRtcClientContext()
     /* End of handling STUN object */
 
     DLOGI("Destroyed WebRtc client context");
+    pWebRtcClientContext->isContextInitialized = FALSE;
 CleanUp:
     return retStatus;
 }
@@ -1617,9 +1622,9 @@ STATUS deinitKvsWebRtc(VOID)
 
     ATOMIC_STORE_BOOL(&gKvsWebRtcInitialized, FALSE);
 #ifdef ENABLE_KVS_THREADPOOL
-    destroyThreadPoolContext();
-    DLOGI("Destroyed threadpool");
     cleanupWebRtcClientContext();
+    DLOGI("Destroyed threadpool");
+    destroyThreadPoolContext();
 #endif
 
 CleanUp:

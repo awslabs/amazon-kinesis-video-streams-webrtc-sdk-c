@@ -164,6 +164,7 @@ typedef struct {
 // Members of the singleton are responsible for their own sync mechanisms.
 typedef struct {
     PStunIpAddrContext pStunIpAddrCtx;
+    BOOL isContextInitialized;
 } WebRtcClientContext, *PWebRtcClientContext;
 
 STATUS onFrameReadyFunc(UINT64, UINT16, UINT16, UINT32);
