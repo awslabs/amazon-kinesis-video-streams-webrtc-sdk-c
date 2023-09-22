@@ -187,7 +187,7 @@ STATUS sendPacketToRtpReceiver(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuf
     CHK(pKvsPeerConnection != NULL && pBuffer != NULL, STATUS_NULL_ARG);
     CHK(bufferLen >= MIN_HEADER_LENGTH, STATUS_INVALID_ARG);
 
-    ssrc = getInt32(*(PUINT32)(pBuffer + SSRC_OFFSET));
+    ssrc = getInt32(*(PUINT32) (pBuffer + SSRC_OFFSET));
 
     CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pTransceivers, &pCurNode));
     while (pCurNode != NULL) {
@@ -332,7 +332,7 @@ STATUS onFrameReadyFunc(UINT64 customData, UINT16 startIndex, UINT16 endIndex, U
     CHK(pPacket != NULL, STATUS_NULL_ARG);
     MUTEX_LOCK(pTransceiver->statsLock);
     // https://www.w3.org/TR/webrtc-stats/#dom-rtcinboundrtpstreamstats-jitterbufferdelay
-    pTransceiver->inboundStats.jitterBufferDelay += (DOUBLE)(GETTIME() - pPacket->receivedTime) / HUNDREDS_OF_NANOS_IN_A_SECOND;
+    pTransceiver->inboundStats.jitterBufferDelay += (DOUBLE) (GETTIME() - pPacket->receivedTime) / HUNDREDS_OF_NANOS_IN_A_SECOND;
     index = pTransceiver->inboundStats.jitterBufferEmittedCount;
     pTransceiver->inboundStats.jitterBufferEmittedCount++;
     if (MEDIA_STREAM_TRACK_KIND_VIDEO == pTransceiver->transceiver.receiver.track.kind) {
@@ -342,7 +342,7 @@ STATUS onFrameReadyFunc(UINT64 customData, UINT16 startIndex, UINT16 endIndex, U
 
     if (frameSize > pTransceiver->peerFrameBufferSize) {
         MEMFREE(pTransceiver->peerFrameBuffer);
-        pTransceiver->peerFrameBufferSize = (UINT32)(frameSize * PEER_FRAME_BUFFER_SIZE_INCREMENT_FACTOR);
+        pTransceiver->peerFrameBufferSize = (UINT32) (frameSize * PEER_FRAME_BUFFER_SIZE_INCREMENT_FACTOR);
         pTransceiver->peerFrameBuffer = (PBYTE) MEMALLOC(pTransceiver->peerFrameBufferSize);
         CHK(pTransceiver->peerFrameBuffer != NULL, STATUS_NOT_ENOUGH_MEMORY);
     }
@@ -386,7 +386,7 @@ STATUS onFrameDroppedFunc(UINT64 customData, UINT16 startIndex, UINT16 endIndex,
     CHK(pPacket != NULL, STATUS_NULL_ARG);
     MUTEX_LOCK(pTransceiver->statsLock);
     // https://www.w3.org/TR/webrtc-stats/#dom-rtcinboundrtpstreamstats-jitterbufferdelay
-    pTransceiver->inboundStats.jitterBufferDelay += (DOUBLE)(GETTIME() - pPacket->receivedTime) / HUNDREDS_OF_NANOS_IN_A_SECOND;
+    pTransceiver->inboundStats.jitterBufferDelay += (DOUBLE) (GETTIME() - pPacket->receivedTime) / HUNDREDS_OF_NANOS_IN_A_SECOND;
     pTransceiver->inboundStats.jitterBufferEmittedCount++;
     pTransceiver->inboundStats.received.framesDropped++;
     pTransceiver->inboundStats.received.fullFramesLost++;
