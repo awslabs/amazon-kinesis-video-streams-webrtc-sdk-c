@@ -131,6 +131,8 @@ STATUS iceUtilsGenerateTransactionId(PBYTE pBuffer, UINT32 bufferLen)
 
 CleanUp:
 
+    CHK_LOG_ERR(retStatus);
+
     return retStatus;
 }
 

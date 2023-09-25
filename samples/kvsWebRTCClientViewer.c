@@ -78,6 +78,7 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     MEMSET(&offerSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
 
+    offerSessionDescriptionInit.useTrickleIce = pSampleStreamingSession->remoteCanTrickleIce;
     CHK_STATUS(setLocalDescription(pSampleStreamingSession->pPeerConnection, &offerSessionDescriptionInit));
     DLOGI("[KVS Viewer] Completed setting local description");
 

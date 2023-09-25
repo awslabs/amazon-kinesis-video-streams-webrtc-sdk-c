@@ -1133,6 +1133,66 @@ a=ice-options:trickle
     });
 }
 
+TEST_F(SdpApiTest, noMediaTrickleIce) {
+    PRtcPeerConnection offerPc = NULL;
+    PRtcPeerConnection answerPc = NULL;
+    RtcConfiguration configurationOffer;
+    RtcConfiguration configurationAnswer;
+    RtcSessionDescriptionInit sessionDescriptionInitViewer;
+    RtcSessionDescriptionInit sessionDescriptionInitMaster;
+
+    MEMSET(&configurationOffer, 0x00, SIZEOF(RtcConfiguration));
+    MEMSET(&configurationAnswer, 0x00, SIZEOF(RtcConfiguration));
+
+    // Create peer connection
+    EXPECT_EQ(createPeerConnection(&configurationOffer, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configurationAnswer, &answerPc), STATUS_SUCCESS);
+
+    sessionDescriptionInitViewer.useTrickleIce = TRUE;
+
+    EXPECT_EQ(STATUS_SUCCESS, createOffer(offerPc, &sessionDescriptionInitViewer));
+    STRCPY(sessionDescriptionInitMaster.sdp, sessionDescriptionInitViewer.sdp);
+    sessionDescriptionInitMaster.type = SDP_TYPE_OFFER;
+    EXPECT_EQ(setRemoteDescription(answerPc, &sessionDescriptionInitMaster), STATUS_SUCCESS);
+    EXPECT_EQ(TRUE, canTrickleIceCandidates(answerPc).value);
+
+    closePeerConnection(offerPc);
+    freePeerConnection(&offerPc);
+
+    closePeerConnection(answerPc);
+    freePeerConnection(&answerPc);
+}
+
+TEST_F(SdpApiTest, noMediaTrickleIceNegativeCase) {
+    PRtcPeerConnection offerPc = NULL;
+    PRtcPeerConnection answerPc = NULL;
+    RtcConfiguration configurationOffer;
+    RtcConfiguration configurationAnswer;
+    RtcSessionDescriptionInit sessionDescriptionInitViewer;
+    RtcSessionDescriptionInit sessionDescriptionInitMaster;
+
+    MEMSET(&configurationOffer, 0x00, SIZEOF(RtcConfiguration));
+    MEMSET(&configurationAnswer, 0x00, SIZEOF(RtcConfiguration));
+
+    // Create peer connection
+    EXPECT_EQ(createPeerConnection(&configurationOffer, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configurationAnswer, &answerPc), STATUS_SUCCESS);
+
+    sessionDescriptionInitViewer.useTrickleIce = FALSE;
+
+    EXPECT_EQ(STATUS_SUCCESS, createOffer(offerPc, &sessionDescriptionInitViewer));
+    STRCPY(sessionDescriptionInitMaster.sdp, sessionDescriptionInitViewer.sdp);
+    sessionDescriptionInitMaster.type = SDP_TYPE_OFFER;
+    EXPECT_EQ(setRemoteDescription(answerPc, &sessionDescriptionInitMaster), STATUS_SUCCESS);
+    EXPECT_EQ(FALSE, canTrickleIceCandidates(answerPc).value);
+
+    closePeerConnection(offerPc);
+    freePeerConnection(&offerPc);
+
+    closePeerConnection(answerPc);
+    freePeerConnection(&answerPc);
+}
+
 TEST_F(SdpApiTest, answerMlinesOrderSameAsOfferMLinesOrder)
 {
     auto offer = std::string(R"(v=0
