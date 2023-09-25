@@ -1166,6 +1166,9 @@ STATUS createOffer(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionIni
     CHK(NULL != (pSessionDescription = (PSessionDescription) MEMCALLOC(1, SIZEOF(SessionDescription))), STATUS_NOT_ENOUGH_MEMORY);
     pSessionDescriptionInit->type = SDP_TYPE_OFFER;
     pKvsPeerConnection->isOffer = TRUE;
+    if (pSessionDescriptionInit->useTrickleIce) {
+        NULLABLE_SET_VALUE(pKvsPeerConnection->canTrickleIce, TRUE);
+    }
 
 #ifdef ENABLE_DATA_CHANNEL
     pKvsPeerConnection->sctpIsEnabled = TRUE;
