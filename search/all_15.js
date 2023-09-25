@@ -16,5 +16,6 @@ var searchData=
   ['url_2724',['url',['../structIceServer.html#a3f824daf89b8f75f1733dd95dec53758',1,'IceServer::url()'],['../structRtcIceCandidateDiagnostics.html#a1b659e525a91da6515226915362114a6',1,'RtcIceCandidateDiagnostics::url()'],['../structRtcIceServerDiagnostics.html#a28d57c5cff161b101e834b699a968dc7',1,'RtcIceServerDiagnostics::url()'],['../structRtcIceCandidateStats.html#a0070154c6ed62908cb2b5a9b882687ab',1,'RtcIceCandidateStats::url()'],['../structRtcIceServerStats.html#ac2bc499602273f0d2c6071405daa6cf6',1,'RtcIceServerStats::url()']]],
   ['urls_2725',['urls',['../group__StatusCodes.html#ga61295588ec2ba33f881ad9fe409d3266',1,'RtcIceServer']]],
   ['username_2726',['userName',['../structStunAttributeUsername.html#a25d7ede0a7215d95f926dcc1fd47b746',1,'StunAttributeUsername::userName()'],['../structSdpOrigin.html#a61369e8e981fd594012930e20f58905e',1,'SdpOrigin::userName()'],['../group__StatusCodes.html#ga3b18eba2e7f0da146df438408a2c8a1b',1,'IceConfigInfo::userName()']]],
-  ['username_2727',['username',['../structIceServer.html#ae0149c5c6a3006864f14f4332cff00dd',1,'IceServer::username()'],['../group__StatusCodes.html#ga78f671a5121e5ba99a253108fb3d16c7',1,'RtcIceServer::username()']]]
+  ['username_2727',['username',['../structIceServer.html#ae0149c5c6a3006864f14f4332cff00dd',1,'IceServer::username()'],['../group__StatusCodes.html#ga78f671a5121e5ba99a253108fb3d16c7',1,'RtcIceServer::username()']]],
+  ['usetrickleice_2728',['useTrickleIce',['../group__StatusCodes.html#gabad78ddf2f8b7fec195ded8d69a74886',1,'RtcSessionDescriptionInit']]]
 ];

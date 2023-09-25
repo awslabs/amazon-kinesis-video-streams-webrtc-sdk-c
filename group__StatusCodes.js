@@ -215,6 +215,7 @@ var group__StatusCodes =
     [ "urls", "group__StatusCodes.html#ga61295588ec2ba33f881ad9fe409d3266", null ],
     [ "username", "group__StatusCodes.html#ga78f671a5121e5ba99a253108fb3d16c7", null ],
     [ "userName", "group__StatusCodes.html#ga3b18eba2e7f0da146df438408a2c8a1b", null ],
+    [ "useTrickleIce", "group__StatusCodes.html#gabad78ddf2f8b7fec195ded8d69a74886", null ],
     [ "version", "group__StatusCodes.html#ga19b58ac2436203028cd705d575ab7ea6", null ],
     [ "version", "group__StatusCodes.html#ga278d902dd02371c74db3f9aa2a90960b", null ],
     [ "version", "group__StatusCodes.html#gaad776eab978b30bd3f21ecd3432c93a0", null ],

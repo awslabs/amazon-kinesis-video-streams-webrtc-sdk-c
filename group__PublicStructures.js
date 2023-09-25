@@ -48,7 +48,8 @@ var group__PublicStructures =
     ] ],
     [ "RtcSessionDescriptionInit", "structRtcSessionDescriptionInit.html", [
       [ "sdp", "group__StatusCodes.html#ga62c6f63074c9ca7e465cb1bf39854db9", null ],
-      [ "type", "group__StatusCodes.html#ga66e8134ccd2c83b700bbf4e8e6649a6f", null ]
+      [ "type", "group__StatusCodes.html#ga66e8134ccd2c83b700bbf4e8e6649a6f", null ],
+      [ "useTrickleIce", "group__StatusCodes.html#gabad78ddf2f8b7fec195ded8d69a74886", null ]
     ] ],
     [ "RtcIceCandidateInit", "structRtcIceCandidateInit.html", [
       [ "candidate", "group__StatusCodes.html#gadeaea422887b09718e78abb70d0bd476", null ]
