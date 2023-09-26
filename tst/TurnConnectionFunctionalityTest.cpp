@@ -32,6 +32,7 @@ class TurnConnectionFunctionalityTest : public WebRtcClientTestBase {
         for (uriCount = 0, i = 0; i < iceConfigCount; i++) {
             EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(mSignalingClientHandle, i, &pIceConfigInfo));
             for (j = 0; j < pIceConfigInfo->uriCount; j++) {
+                iceServers[uriCount].setIpFn = NULL;
                 EXPECT_EQ(STATUS_SUCCESS,
                           parseIceServer(&iceServers[uriCount++], pIceConfigInfo->uris[j], pIceConfigInfo->userName, pIceConfigInfo->password));
             }
