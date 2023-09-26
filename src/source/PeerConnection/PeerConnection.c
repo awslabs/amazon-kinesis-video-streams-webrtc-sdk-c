@@ -19,7 +19,7 @@ PWebRtcClientContext getWebRtcClientInstance()
             ATOMIC_STORE_BOOL(&w.isSemAccessInitialized, TRUE);
         }
     } else {
-        DLOGI("WebRTC Client instance hasnt been initialized");
+        DLOGI("WebRTC Client instance hasnt been initialized for the semaphore");
     }
     return &w;
 }
@@ -27,8 +27,7 @@ PWebRtcClientContext getWebRtcClientInstance()
 STATUS releaseHoldOnWebRtcClientInstance(PWebRtcClientContext pWebRtcClientContext)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    INT32 count;
-    if (ATOMIC_LOAD_BOOL(&pWebRtcClientContext->isContextInitialized) && ATOMIC_LOAD_BOOL(&pWebRtcClientContext->isSemAccessInitialized)) {
+    if (ATOMIC_LOAD_BOOL(&pWebRtcClientContext->isSemAccessInitialized)) {
         CHK_STATUS(semaphoreRelease(pWebRtcClientContext->usageSemaphore));
     }
 
@@ -41,11 +40,12 @@ STATUS createWebRtcClientInstance()
     PWebRtcClientContext pWebRtcClientContext = getWebRtcClientInstance();
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
+
     CHK_WARN(!ATOMIC_LOAD_BOOL(&pWebRtcClientContext->isContextInitialized), retStatus, "WebRtc client context already initialized, nothing to do");
     CHK_ERR(!IS_VALID_MUTEX_VALUE(pWebRtcClientContext->stunCtxlock), retStatus, "Mutex seems to have been created already");
     CHK_ERR(!IS_VALID_SEMAPHORE_HANDLE(pWebRtcClientContext->usageSemaphore), retStatus, "Semaphore seems to have been created already");
-    pWebRtcClientContext->stunCtxlock = MUTEX_CREATE(FALSE);
 
+    pWebRtcClientContext->stunCtxlock = MUTEX_CREATE(FALSE);
     CHK_STATUS(semaphoreCreate(MAX_ACCESS_THREADS_WEBRTC_CLIENT_CONTEXT, &pWebRtcClientContext->usageSemaphore));
 
     MUTEX_LOCK(pWebRtcClientContext->stunCtxlock);
@@ -1617,7 +1617,7 @@ CleanUp:
 STATUS cleanupWebRtcClientInstance()
 {
     STATUS retStatus = STATUS_SUCCESS;
-    INT32 count = 0;
+
     // Stun object cleanup
     PWebRtcClientContext pWebRtcClientContext = getWebRtcClientInstance();
 
@@ -1628,6 +1628,15 @@ STATUS cleanupWebRtcClientInstance()
     /* Start of handling STUN object */
     // Need this check to ensure we do not clean up the object in the next
     // step while the resolve thread is ongoing
+
+    if (IS_VALID_SEMAPHORE_HANDLE(pWebRtcClientContext->usageSemaphore)) {
+        releaseHoldOnWebRtcClientInstance(pWebRtcClientContext);
+
+        semaphoreLock(pWebRtcClientContext->usageSemaphore);
+        semaphoreWaitUntilClear(pWebRtcClientContext->usageSemaphore, CLIENT_SHUTDOWN_SEMAPHORE_TIMEOUT);
+        semaphoreFree(&pWebRtcClientContext->usageSemaphore);
+        pWebRtcClientContext->usageSemaphore = INVALID_SEMAPHORE_HANDLE_VALUE;
+    }
 
     MUTEX_LOCK(pWebRtcClientContext->stunCtxlock);
     SAFE_MEMFREE(pWebRtcClientContext->pStunIpAddrCtx);
@@ -1640,17 +1649,13 @@ STATUS cleanupWebRtcClientInstance()
         MUTEX_FREE(pWebRtcClientContext->stunCtxlock);
         pWebRtcClientContext->stunCtxlock = INVALID_MUTEX_VALUE;
     }
-    ATOMIC_STORE_BOOL(&pWebRtcClientContext->isSemAccessInitialized, FALSE);
-    ATOMIC_STORE_BOOL(&pWebRtcClientContext->isContextInitialized, FALSE);
 
-    if (IS_VALID_SEMAPHORE_HANDLE(pWebRtcClientContext->usageSemaphore)) {
-        semaphoreRelease(pWebRtcClientContext->usageSemaphore);
-        semaphoreGetCount(pWebRtcClientContext->usageSemaphore, &count);
-        DLOGI("Sem count: %d", count);
-        semaphoreFree(&pWebRtcClientContext->usageSemaphore);
-        THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
-        pWebRtcClientContext->usageSemaphore = INVALID_SEMAPHORE_HANDLE_VALUE;
-    }
+    // Ensure this happens after release because we check for init before releasing.
+    // It is still ok to reset these to post releasing the semaphore because there is no
+    // resource destruction for these bools and when we hit this path, we have already finished
+    // using the relevant objects and it is safe to clean
+    ATOMIC_STORE_BOOL(&pWebRtcClientContext->isContextInitialized, FALSE);
+    ATOMIC_STORE_BOOL(&pWebRtcClientContext->isSemAccessInitialized, FALSE);
 
     DLOGI("Destroyed WebRtc client context");
 CleanUp:
