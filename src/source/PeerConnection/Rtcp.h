@@ -31,7 +31,7 @@ typedef enum {
 #define TWCC_FB_PACKETCHUNK_SIZE               2
 #define IS_TWCC_RUNLEN(packetChunk)            ((((packetChunk) >> 15u) & 1u) == 0)
 #define TWCC_RUNLEN_STATUS_SYMBOL(packetChunk) (((packetChunk) >> 13u) & 3u)
-#define TWCC_RUNLEN_GET(packetChunk)           ((packetChunk) & 0x1fffu)
+#define TWCC_RUNLEN_GET(packetChunk)           ((packetChunk) &0x1fffu)
 #define TWCC_IS_NOTRECEIVED(statusSymbol)      ((statusSymbol) == TWCC_STATUS_SYMBOL_NOTRECEIVED)
 #define TWCC_ISRECEIVED(statusSymbol)          ((statusSymbol) == TWCC_STATUS_SYMBOL_SMALLDELTA || (statusSymbol) == TWCC_STATUS_SYMBOL_LARGEDELTA)
 #define TWCC_RUNLEN_ISRECEIVED(packetChunk)    TWCC_ISRECEIVED(TWCC_RUNLEN_STATUS_SYMBOL(packetChunk))
@@ -39,7 +39,7 @@ typedef enum {
 #define TWCC_STATUSVECTOR_SSIZE(packetChunk)   (TWCC_STATUSVECTOR_IS_2BIT(packetChunk) ? 2u : 1u)
 #define TWCC_STATUSVECTOR_SMASK(packetChunk)   (TWCC_STATUSVECTOR_IS_2BIT(packetChunk) ? 2u : 1u)
 #define TWCC_STATUSVECTOR_STATUS(packetChunk, i)                                                                                                     \
-    (((packetChunk) >> (14u - (i) * TWCC_STATUSVECTOR_SSIZE(packetChunk))) & TWCC_STATUSVECTOR_SMASK(packetChunk))
+    (((packetChunk) >> (14u - (i) *TWCC_STATUSVECTOR_SSIZE(packetChunk))) & TWCC_STATUSVECTOR_SMASK(packetChunk))
 #define TWCC_STATUSVECTOR_COUNT(packetChunk) (TWCC_STATUSVECTOR_IS_2BIT(packetChunk) ? 7 : 14)
 #define TWCC_PACKET_STATUS_COUNT(payload)    (getUnalignedInt16BigEndian((payload) + 10))
 
