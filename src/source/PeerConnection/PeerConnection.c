@@ -797,44 +797,48 @@ CleanUp:
 PVOID resolveStunIceServerIp(PVOID args)
 {
     UNUSED_PARAM(args);
+    PWebRtcClientContext pWebRtcClientContext = getWebRtcClientInstance();
     BOOL locked = FALSE;
     CHAR addressResolved[KVS_IP_ADDRESS_STRING_BUFFER_LEN + 1] = {'\0'};
     PCHAR pRegion;
     PCHAR pHostnamePostfix;
-    PWebRtcClientContext pWebRtcClientContext = getWebRtcClientInstance();
 
-    MUTEX_LOCK(pWebRtcClientContext->stunCtxlock);
-    locked = TRUE;
+    if (ATOMIC_LOAD_BOOL(&pWebRtcClientContext->isContextInitialized)) {
+        MUTEX_LOCK(pWebRtcClientContext->stunCtxlock);
+        locked = TRUE;
 
-    if (pWebRtcClientContext->pStunIpAddrCtx == NULL) {
-        DLOGE("Failed to resolve STUN IP address because webrtc client instance was not created");
-    } else {
-        if ((pRegion = GETENV(DEFAULT_REGION_ENV_VAR)) == NULL) {
-            pRegion = DEFAULT_AWS_REGION;
-        }
-
-        pHostnamePostfix = KINESIS_VIDEO_STUN_URL_POSTFIX;
-        // If region is in CN, add CN region uri postfix
-        if (STRSTR(pRegion, "cn-")) {
-            pHostnamePostfix = KINESIS_VIDEO_STUN_URL_POSTFIX_CN;
-        }
-
-        SNPRINTF(pWebRtcClientContext->pStunIpAddrCtx->hostname, SIZEOF(pWebRtcClientContext->pStunIpAddrCtx->hostname),
-                 KINESIS_VIDEO_STUN_URL_WITHOUT_PORT, pRegion, pHostnamePostfix);
-        if (getStunAddr(pWebRtcClientContext->pStunIpAddrCtx) == STATUS_SUCCESS) {
-            getIpAddrStr(&pWebRtcClientContext->pStunIpAddrCtx->kvsIpAddr, addressResolved, ARRAY_SIZE(addressResolved));
-            DLOGI("ICE Server address for %s with getaddrinfo: %s", pWebRtcClientContext->pStunIpAddrCtx->hostname, addressResolved);
-            pWebRtcClientContext->pStunIpAddrCtx->isIpInitialized = TRUE;
+        if (pWebRtcClientContext->pStunIpAddrCtx == NULL) {
+            DLOGE("Failed to resolve STUN IP address because webrtc client instance was not created");
         } else {
-            DLOGE("Failed to resolve %s", pWebRtcClientContext->pStunIpAddrCtx->hostname);
+            if ((pRegion = GETENV(DEFAULT_REGION_ENV_VAR)) == NULL) {
+                pRegion = DEFAULT_AWS_REGION;
+            }
+
+            pHostnamePostfix = KINESIS_VIDEO_STUN_URL_POSTFIX;
+            // If region is in CN, add CN region uri postfix
+            if (STRSTR(pRegion, "cn-")) {
+                pHostnamePostfix = KINESIS_VIDEO_STUN_URL_POSTFIX_CN;
+            }
+
+            SNPRINTF(pWebRtcClientContext->pStunIpAddrCtx->hostname, SIZEOF(pWebRtcClientContext->pStunIpAddrCtx->hostname),
+                     KINESIS_VIDEO_STUN_URL_WITHOUT_PORT, pRegion, pHostnamePostfix);
+            if (getStunAddr(pWebRtcClientContext->pStunIpAddrCtx) == STATUS_SUCCESS) {
+                getIpAddrStr(&pWebRtcClientContext->pStunIpAddrCtx->kvsIpAddr, addressResolved, ARRAY_SIZE(addressResolved));
+                DLOGI("ICE Server address for %s with getaddrinfo: %s", pWebRtcClientContext->pStunIpAddrCtx->hostname, addressResolved);
+                pWebRtcClientContext->pStunIpAddrCtx->isIpInitialized = TRUE;
+            } else {
+                DLOGE("Failed to resolve %s", pWebRtcClientContext->pStunIpAddrCtx->hostname);
+            }
+            pWebRtcClientContext->pStunIpAddrCtx->startTime = GETTIME();
         }
-        pWebRtcClientContext->pStunIpAddrCtx->startTime = GETTIME();
+        if (locked) {
+            MUTEX_UNLOCK(pWebRtcClientContext->stunCtxlock);
+        }
+    } else {
+        DLOGW("STUN DNS thread invoked without context being initialized");
     }
-    if (locked) {
-        MUTEX_UNLOCK(pWebRtcClientContext->stunCtxlock);
-    }
-    DLOGD("Exiting from stun server IP resolution thread");
     releaseHoldOnInstance(pWebRtcClientContext);
+    DLOGD("Exiting from stun server IP resolution thread");
     return NULL;
 }
 
