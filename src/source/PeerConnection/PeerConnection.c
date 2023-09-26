@@ -7,32 +7,14 @@ static volatile ATOMIC_BOOL gKvsWebRtcInitialized = (SIZE_T) FALSE;
 // Function to get access to the Singleton instance
 PWebRtcClientContext getWebRtcClientInstance()
 {
-    static WebRtcClientContext w = {.pStunIpAddrCtx = NULL,
-                                    .stunCtxlock = INVALID_MUTEX_VALUE,
-                                    .usageSemaphore = INVALID_SEMAPHORE_HANDLE_VALUE,
-                                    .isSemAccessInitialized = FALSE,
-                                    .isContextInitialized = FALSE};
-    if (w.isSemAccessInitialized) {
-        if (STATUS_FAILED(semaphoreAcquire(w.usageSemaphore, INFINITE_TIME_VALUE))) {
-            DLOGW("Failed to create the semaphore to control access to the client context instance");
-        } else {
-            ATOMIC_STORE_BOOL(&w.isSemAccessInitialized, TRUE);
-        }
-    } else {
-        DLOGI("WebRTC Client instance hasnt been initialized for the semaphore");
-    }
+    static WebRtcClientContext w = {.pStunIpAddrCtx = NULL, .stunCtxlock = INVALID_MUTEX_VALUE, .contextRefCnt = 0, .isContextInitialized = FALSE};
+    ATOMIC_INCREMENT(&w.contextRefCnt);
     return &w;
 }
 
-STATUS releaseHoldOnWebRtcClientInstance(PWebRtcClientContext pWebRtcClientContext)
+VOID releaseHoldOnInstance(PWebRtcClientContext pWebRtcClientContext)
 {
-    STATUS retStatus = STATUS_SUCCESS;
-    if (ATOMIC_LOAD_BOOL(&pWebRtcClientContext->isSemAccessInitialized)) {
-        CHK_STATUS(semaphoreRelease(pWebRtcClientContext->usageSemaphore));
-    }
-
-CleanUp:
-    return retStatus;
+    ATOMIC_DECREMENT(&pWebRtcClientContext->contextRefCnt);
 }
 
 STATUS createWebRtcClientInstance()
@@ -43,11 +25,9 @@ STATUS createWebRtcClientInstance()
 
     CHK_WARN(!ATOMIC_LOAD_BOOL(&pWebRtcClientContext->isContextInitialized), retStatus, "WebRtc client context already initialized, nothing to do");
     CHK_ERR(!IS_VALID_MUTEX_VALUE(pWebRtcClientContext->stunCtxlock), retStatus, "Mutex seems to have been created already");
-    CHK_ERR(!IS_VALID_SEMAPHORE_HANDLE(pWebRtcClientContext->usageSemaphore), retStatus, "Semaphore seems to have been created already");
 
     pWebRtcClientContext->stunCtxlock = MUTEX_CREATE(FALSE);
-    CHK_STATUS(semaphoreCreate(MAX_ACCESS_THREADS_WEBRTC_CLIENT_CONTEXT, &pWebRtcClientContext->usageSemaphore));
-    ATOMIC_STORE_BOOL(&pWebRtcClientContext->isSemAccessInitialized, TRUE);
+    CHK_ERR(IS_VALID_MUTEX_VALUE(pWebRtcClientContext->stunCtxlock), STATUS_NULL_ARG, "Mutex creation failed");
     MUTEX_LOCK(pWebRtcClientContext->stunCtxlock);
     locked = TRUE;
     CHK_WARN(pWebRtcClientContext->pStunIpAddrCtx == NULL, STATUS_INVALID_OPERATION, "STUN object already allocated");
@@ -60,6 +40,7 @@ CleanUp:
     if (locked) {
         MUTEX_UNLOCK(pWebRtcClientContext->stunCtxlock);
     }
+    releaseHoldOnInstance(pWebRtcClientContext);
     return retStatus;
 }
 
@@ -783,13 +764,13 @@ STATUS onSetStunServerIp(UINT64 customData, PCHAR url, PKvsIpAddress pIpAddr)
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
     PWebRtcClientContext pWebRtcClientContext = getWebRtcClientInstance();
-
     CHK_WARN(ATOMIC_LOAD_BOOL(&pWebRtcClientContext->isContextInitialized), STATUS_NULL_ARG, "WebRTC Client object Object not initialized");
 
     UINT64 currentTime = GETTIME();
 
     MUTEX_LOCK(pWebRtcClientContext->stunCtxlock);
     locked = TRUE;
+
     CHK(STRCMP(url, pWebRtcClientContext->pStunIpAddrCtx->hostname) == 0, STATUS_PEERCONNECTION_UNSUPPORTED_HOSTNAME);
 
     if (pWebRtcClientContext->pStunIpAddrCtx->isIpInitialized) {
@@ -808,7 +789,8 @@ CleanUp:
     if (locked) {
         MUTEX_UNLOCK(pWebRtcClientContext->stunCtxlock);
     }
-    retStatus = releaseHoldOnWebRtcClientInstance(pWebRtcClientContext);
+    DLOGD("Exiting from stun server IP callback");
+    releaseHoldOnInstance(pWebRtcClientContext);
     return retStatus;
 }
 
@@ -851,7 +833,8 @@ PVOID resolveStunIceServerIp(PVOID args)
     if (locked) {
         MUTEX_UNLOCK(pWebRtcClientContext->stunCtxlock);
     }
-    releaseHoldOnWebRtcClientInstance(pWebRtcClientContext);
+    DLOGD("Exiting from stun server IP resolution thread");
+    releaseHoldOnInstance(pWebRtcClientContext);
     return NULL;
 }
 
@@ -1597,6 +1580,7 @@ STATUS initKvsWebRtc(VOID)
     KVS_CRYPTO_INIT();
     LOG_GIT_HASH();
 
+    SET_INSTRUMENTED_ALLOCATORS();
 #ifdef ENABLE_DATA_CHANNEL
     CHK_STATUS(initSctpSession());
 #endif
@@ -1617,28 +1601,21 @@ CleanUp:
 STATUS cleanupWebRtcClientInstance()
 {
     STATUS retStatus = STATUS_SUCCESS;
-    INT32 count = 0;
     // Stun object cleanup
     PWebRtcClientContext pWebRtcClientContext = getWebRtcClientInstance();
-
     CHK_WARN(ATOMIC_LOAD_BOOL(&pWebRtcClientContext->isContextInitialized), STATUS_INVALID_OPERATION,
              "WebRtc context not initialized, nothing to clean up");
+    DLOGD("Releasing webrtc client context instance from cleanupWebRtcClientInstance");
+    releaseHoldOnInstance(pWebRtcClientContext);
+
+    while (ATOMIC_LOAD(&pWebRtcClientContext->contextRefCnt) > 0) {
+        DLOGV("Waiting on all references to be returned...%d", pWebRtcClientContext->contextRefCnt);
+        THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
 
     /* Start of handling STUN object */
     // Need this check to ensure we do not clean up the object in the next
     // step while the resolve thread is ongoing
-
-    if (IS_VALID_SEMAPHORE_HANDLE(pWebRtcClientContext->usageSemaphore)) {
-        releaseHoldOnWebRtcClientInstance(pWebRtcClientContext);
-        ATOMIC_STORE_BOOL(&pWebRtcClientContext->isSemAccessInitialized, FALSE);
-        semaphoreLock(pWebRtcClientContext->usageSemaphore);
-        semaphoreWaitUntilClear(pWebRtcClientContext->usageSemaphore, CLIENT_SHUTDOWN_SEMAPHORE_TIMEOUT);
-        semaphoreGetCount(pWebRtcClientContext->usageSemaphore, &count);
-        DLOGI("Semaphore pending count: %d", count);
-        semaphoreFree(&pWebRtcClientContext->usageSemaphore);
-        pWebRtcClientContext->usageSemaphore = INVALID_SEMAPHORE_HANDLE_VALUE;
-    }
-
     CHK_WARN(pWebRtcClientContext->pStunIpAddrCtx != NULL, STATUS_NULL_ARG, "Destroying STUN object without setting up");
     MUTEX_LOCK(pWebRtcClientContext->stunCtxlock);
     SAFE_MEMFREE(pWebRtcClientContext->pStunIpAddrCtx);
@@ -1652,13 +1629,10 @@ STATUS cleanupWebRtcClientInstance()
         pWebRtcClientContext->stunCtxlock = INVALID_MUTEX_VALUE;
     }
 
-    // Ensure this happens after release because we check for init before releasing.
-    // It is still ok to reset these to post releasing the semaphore because there is no
-    // resource destruction for these bools and when we hit this path, we have already finished
-    // using the relevant objects and it is safe to clean
     ATOMIC_STORE_BOOL(&pWebRtcClientContext->isContextInitialized, FALSE);
 
     DLOGI("Destroyed WebRtc client context");
+
 CleanUp:
     return retStatus;
 }
@@ -1679,6 +1653,7 @@ STATUS deinitKvsWebRtc(VOID)
     cleanupWebRtcClientInstance();
     destroyThreadPoolContext();
     DLOGI("Destroyed threadpool");
+    RESET_INSTRUMENTED_ALLOCATORS();
 #endif
     ATOMIC_STORE_BOOL(&gKvsWebRtcInitialized, FALSE);
 CleanUp:

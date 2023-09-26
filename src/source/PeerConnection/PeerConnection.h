@@ -166,9 +166,8 @@ typedef struct {
 typedef struct {
     PStunIpAddrContext pStunIpAddrCtx;
     volatile ATOMIC_BOOL isContextInitialized;
+    volatile SIZE_T contextRefCnt;
     MUTEX stunCtxlock;
-    SEMAPHORE_HANDLE usageSemaphore;
-    volatile ATOMIC_BOOL isSemAccessInitialized;
 } WebRtcClientContext, *PWebRtcClientContext;
 
 STATUS onFrameReadyFunc(UINT64, UINT16, UINT16, UINT32);
