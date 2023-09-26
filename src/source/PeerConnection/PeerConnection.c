@@ -1605,12 +1605,17 @@ CleanUp:
 STATUS cleanupWebRtcClientInstance()
 {
     STATUS retStatus = STATUS_SUCCESS;
+
     // Stun object cleanup
     PWebRtcClientContext pWebRtcClientContext = getWebRtcClientInstance();
-    CHK_WARN(ATOMIC_LOAD_BOOL(&pWebRtcClientContext->isContextInitialized), STATUS_INVALID_OPERATION,
-             "WebRtc context not initialized, nothing to clean up");
+
     DLOGD("Releasing webrtc client context instance from cleanupWebRtcClientInstance");
     releaseHoldOnInstance(pWebRtcClientContext);
+
+    CHK_WARN(ATOMIC_LOAD_BOOL(&pWebRtcClientContext->isContextInitialized), STATUS_INVALID_OPERATION,
+             "WebRtc context not initialized, nothing to clean up");
+
+    ATOMIC_STORE_BOOL(&pWebRtcClientContext->isContextInitialized, FALSE);
 
     while (ATOMIC_LOAD(&pWebRtcClientContext->contextRefCnt) > 0) {
         DLOGV("Waiting on all references to be returned...%d", pWebRtcClientContext->contextRefCnt);
@@ -1632,8 +1637,6 @@ STATUS cleanupWebRtcClientInstance()
         MUTEX_FREE(pWebRtcClientContext->stunCtxlock);
         pWebRtcClientContext->stunCtxlock = INVALID_MUTEX_VALUE;
     }
-
-    ATOMIC_STORE_BOOL(&pWebRtcClientContext->isContextInitialized, FALSE);
 
     DLOGI("Destroyed WebRtc client context");
 
