@@ -38,6 +38,8 @@ extern "C" {
 // Environment variable to display SDPs
 #define DEBUG_LOG_SDP ((PCHAR) "DEBUG_LOG_SDP")
 
+#define MAX_ACCESS_THREADS_WEBRTC_CLIENT_CONTEXT 50
+
 typedef enum {
     RTC_RTX_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE = 1,
     RTC_RTX_CODEC_VP8 = 2,
@@ -163,8 +165,10 @@ typedef struct {
 // Members of the singleton are responsible for their own sync mechanisms.
 typedef struct {
     PStunIpAddrContext pStunIpAddrCtx;
-    BOOL isContextInitialized;
+    volatile ATOMIC_BOOL isContextInitialized;
     MUTEX stunCtxlock;
+    SEMAPHORE_HANDLE usageSemaphore;
+    volatile ATOMIC_BOOL isSemAccessInitialized;
 } WebRtcClientContext, *PWebRtcClientContext;
 
 STATUS onFrameReadyFunc(UINT64, UINT16, UINT16, UINT32);

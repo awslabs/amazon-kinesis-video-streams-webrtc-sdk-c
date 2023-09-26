@@ -254,6 +254,8 @@ STATUS parseIceServer(PIceServer pIceServer, PCHAR url, PCHAR username, PCHAR cr
         retStatus = pIceServer->setIpFn(0, pIceServer->url, &pIceServer->ipAddress);
     }
 
+    // Adding a NULL_ARG check specifically to cover for the case where early STUN
+    // resolution might not be enabled
     if (retStatus == STATUS_NULL_ARG || pIceServer->setIpFn == NULL) {
         // Reset the retStatus to ensure the appropriate status code is returned from
         // getIpWithHostName
