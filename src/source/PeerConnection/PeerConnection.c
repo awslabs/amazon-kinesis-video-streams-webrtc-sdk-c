@@ -12,7 +12,7 @@ PWebRtcClientContext getWebRtcClientInstance()
                                     .usageSemaphore = INVALID_SEMAPHORE_HANDLE_VALUE,
                                     .isSemAccessInitialized = FALSE,
                                     .isContextInitialized = FALSE};
-    if (w.isContextInitialized) {
+    if (w.isSemAccessInitialized) {
         if (STATUS_FAILED(semaphoreAcquire(w.usageSemaphore, INFINITE_TIME_VALUE))) {
             DLOGW("Failed to create the semaphore to control access to the client context instance");
         } else {
@@ -47,7 +47,7 @@ STATUS createWebRtcClientInstance()
 
     pWebRtcClientContext->stunCtxlock = MUTEX_CREATE(FALSE);
     CHK_STATUS(semaphoreCreate(MAX_ACCESS_THREADS_WEBRTC_CLIENT_CONTEXT, &pWebRtcClientContext->usageSemaphore));
-
+    ATOMIC_STORE_BOOL(&pWebRtcClientContext->isSemAccessInitialized, TRUE);
     MUTEX_LOCK(pWebRtcClientContext->stunCtxlock);
     locked = TRUE;
     CHK_WARN(pWebRtcClientContext->pStunIpAddrCtx == NULL, STATUS_INVALID_OPERATION, "STUN object already allocated");
@@ -817,9 +817,9 @@ PVOID resolveStunIceServerIp(PVOID args)
     UNUSED_PARAM(args);
     BOOL locked = FALSE;
     CHAR addressResolved[KVS_IP_ADDRESS_STRING_BUFFER_LEN + 1] = {'\0'};
-    PWebRtcClientContext pWebRtcClientContext = getWebRtcClientInstance();
     PCHAR pRegion;
     PCHAR pHostnamePostfix;
+    PWebRtcClientContext pWebRtcClientContext = getWebRtcClientInstance();
 
     MUTEX_LOCK(pWebRtcClientContext->stunCtxlock);
     locked = TRUE;
@@ -1617,13 +1617,12 @@ CleanUp:
 STATUS cleanupWebRtcClientInstance()
 {
     STATUS retStatus = STATUS_SUCCESS;
-
+    INT32 count = 0;
     // Stun object cleanup
     PWebRtcClientContext pWebRtcClientContext = getWebRtcClientInstance();
 
     CHK_WARN(ATOMIC_LOAD_BOOL(&pWebRtcClientContext->isContextInitialized), STATUS_INVALID_OPERATION,
              "WebRtc context not initialized, nothing to clean up");
-    CHK_WARN(pWebRtcClientContext->pStunIpAddrCtx != NULL, STATUS_NULL_ARG, "Destroying STUN object without setting up");
 
     /* Start of handling STUN object */
     // Need this check to ensure we do not clean up the object in the next
@@ -1631,13 +1630,16 @@ STATUS cleanupWebRtcClientInstance()
 
     if (IS_VALID_SEMAPHORE_HANDLE(pWebRtcClientContext->usageSemaphore)) {
         releaseHoldOnWebRtcClientInstance(pWebRtcClientContext);
-
+        ATOMIC_STORE_BOOL(&pWebRtcClientContext->isSemAccessInitialized, FALSE);
         semaphoreLock(pWebRtcClientContext->usageSemaphore);
         semaphoreWaitUntilClear(pWebRtcClientContext->usageSemaphore, CLIENT_SHUTDOWN_SEMAPHORE_TIMEOUT);
+        semaphoreGetCount(pWebRtcClientContext->usageSemaphore, &count);
+        DLOGI("Semaphore pending count: %d", count);
         semaphoreFree(&pWebRtcClientContext->usageSemaphore);
         pWebRtcClientContext->usageSemaphore = INVALID_SEMAPHORE_HANDLE_VALUE;
     }
 
+    CHK_WARN(pWebRtcClientContext->pStunIpAddrCtx != NULL, STATUS_NULL_ARG, "Destroying STUN object without setting up");
     MUTEX_LOCK(pWebRtcClientContext->stunCtxlock);
     SAFE_MEMFREE(pWebRtcClientContext->pStunIpAddrCtx);
     pWebRtcClientContext->pStunIpAddrCtx = NULL;
@@ -1655,7 +1657,6 @@ STATUS cleanupWebRtcClientInstance()
     // resource destruction for these bools and when we hit this path, we have already finished
     // using the relevant objects and it is safe to clean
     ATOMIC_STORE_BOOL(&pWebRtcClientContext->isContextInitialized, FALSE);
-    ATOMIC_STORE_BOOL(&pWebRtcClientContext->isSemAccessInitialized, FALSE);
 
     DLOGI("Destroyed WebRtc client context");
 CleanUp:
