@@ -348,6 +348,7 @@ extern "C" {
 #define STATUS_PEERCONNECTION_CREATE_ANSWER_WITHOUT_REMOTE_DESCRIPTION STATUS_PEERCONNECTION_BASE + 0x00000001
 #define STATUS_PEERCONNECTION_CODEC_INVALID                            STATUS_PEERCONNECTION_BASE + 0x00000002
 #define STATUS_PEERCONNECTION_CODEC_MAX_EXCEEDED                       STATUS_PEERCONNECTION_BASE + 0x00000003
+#define STATUS_PEERCONNECTION_UNSUPPORTED_HOSTNAME                     STATUS_PEERCONNECTION_BASE + 0x00000004
 /*!@} */
 
 /////////////////////////////////////////////////////
@@ -696,9 +697,10 @@ extern "C" {
 /**
  * Parameterized string for KVS STUN Server
  */
-#define KINESIS_VIDEO_STUN_URL_POSTFIX    "amazonaws.com"
-#define KINESIS_VIDEO_STUN_URL_POSTFIX_CN "amazonaws.com.cn"
-#define KINESIS_VIDEO_STUN_URL            "stun:stun.kinesisvideo.%s.%s:443"
+#define KINESIS_VIDEO_STUN_URL_POSTFIX      "amazonaws.com"
+#define KINESIS_VIDEO_STUN_URL_POSTFIX_CN   "amazonaws.com.cn"
+#define KINESIS_VIDEO_STUN_URL              "stun:stun.kinesisvideo.%s.%s:443"
+#define KINESIS_VIDEO_STUN_URL_WITHOUT_PORT "stun.kinesisvideo.%s.%s"
 
 /**
  * Default signaling SSL port

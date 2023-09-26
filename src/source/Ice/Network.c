@@ -402,7 +402,6 @@ STATUS getIpWithHostName(PCHAR hostname, PKvsIpAddress destIp)
     struct in_addr inaddr;
 
     CHAR addr[KVS_IP_ADDRESS_STRING_BUFFER_LEN + 1] = {'\0'};
-    CHAR addressResolved[KVS_IP_ADDRESS_STRING_BUFFER_LEN + 1] = {'\0'};
 
     CHK(hostname != NULL, STATUS_NULL_ARG);
     DLOGI("ICE SERVER Hostname received: %s", hostname);
@@ -442,12 +441,9 @@ STATUS getIpWithHostName(PCHAR hostname, PKvsIpAddress destIp)
         }
         freeaddrinfo(res);
         CHK_ERR(resolved, STATUS_HOSTNAME_NOT_FOUND, "Could not find network address of %s", hostname);
-        getIpAddrStr(destIp, addressResolved, ARRAY_SIZE(addressResolved));
-        DLOGP("ICE Server address for %s with getaddrinfo: %s", hostname, addressResolved);
     }
 
     else {
-        DLOGP("ICE Server address for %s: %s", hostname, addr);
         inet_pton(AF_INET, addr, &inaddr);
         destIp->family = KVS_IP_FAMILY_TYPE_IPV4;
         MEMCPY(destIp->address, &inaddr, IPV4_ADDRESS_LENGTH);
