@@ -5,7 +5,7 @@ include(CheckIncludeFiles)
 include(CheckFunctionExists)
 
 # The version MUST be updated before every release
-project(KinesisVideoWebRTCClient VERSION 1.8.0 LANGUAGES C)
+project(KinesisVideoWebRTCClient VERSION 1.8.1 LANGUAGES C)
 
 # User Flags
 option(ADD_MUCLIBC "Add -muclibc c flag" OFF)
@@ -18,6 +18,7 @@ option(BUILD_LIBSRTP_HOST_PLATFORM "If buildng LibSRTP what is the current platf
 option(BUILD_LIBSRTP_DESTINATION_PLATFORM "If buildng LibSRTP what is the destination platform" OFF)
 option(BUILD_SAMPLE "Build available samples" ON)
 option(ENABLE_DATA_CHANNEL "Enable support for data channel" ON)
+option(ENABLE_KVS_THREADPOOL "Enable support for KVS thread pool in signaling" ON)
 option(INSTRUMENTED_ALLOCATORS "Enable memory instrumentation" OFF)
 
 # Developer Flags
@@ -97,6 +98,10 @@ message(STATUS "dependencies install path is ${OPEN_SRC_INSTALL_PREFIX}")
 # pass ca cert location to sdk
 add_definitions(-DKVS_CA_CERT_PATH="${CMAKE_SOURCE_DIR}/certs/cert.pem")
 add_definitions(-DCMAKE_DETECTED_CACERT_PATH)
+
+if (ENABLE_KVS_THREADPOOL)
+  add_definitions(-DENABLE_KVS_THREADPOOL)
+endif()
 
 if(USE_OPENSSL)
   add_definitions(-DKVS_USE_OPENSSL)
@@ -327,12 +332,19 @@ file(GLOB WEBRTC_SIGNALING_CLIENT_SOURCE_FILES "src/source/Signaling/*.c")
 include_directories(${OPEN_SRC_INCLUDE_DIRS})
 include_directories(${OPEN_SRC_INSTALL_PREFIX}/include)
 include_directories(${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/include)
-include_directories(${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/ice)
 
 add_library(kvsWebrtcClient ${LINKAGE} ${WEBRTC_CLIENT_SOURCE_FILES} ${DATACHANNEL_SRC})
 
 if(USE_MBEDTLS)
   target_compile_definitions(kvsWebrtcClient PRIVATE LWS_WITH_MBEDTLS)
+endif()
+
+# The library **MUST** have a shared linkage. This library is used by both WebRtc client an
+#signaling client.
+if(ENABLE_KVS_THREADPOOL)
+  file(GLOB THREADPOOL_SOURCE_FILES "src/source/Threadpool/ThreadPoolContext.c")
+  add_library(kvsWebRtcThreadpool SHARED ${THREADPOOL_SOURCE_FILES})
+  target_link_libraries(kvsWebRtcThreadpool PRIVATE kvspicUtils)
 endif()
 
 target_link_libraries(
@@ -353,6 +365,11 @@ add_library(kvsWebrtcSignalingClient ${LINKAGE} ${WEBRTC_SIGNALING_CLIENT_SOURCE
 
 if(USE_MBEDTLS)
   target_compile_definitions(kvsWebrtcSignalingClient PRIVATE LWS_WITH_MBEDTLS)
+endif()
+
+if(ENABLE_KVS_THREADPOOL)
+  target_link_libraries(kvsWebrtcClient PRIVATE kvsWebRtcThreadpool)
+  target_link_libraries(kvsWebrtcSignalingClient PRIVATE kvsWebRtcThreadpool)
 endif()
 
 target_link_libraries(

@@ -108,6 +108,9 @@ typedef struct {
 // Used for ensuring alignment
 #define ALIGN_UP_TO_MACHINE_WORD(x) ROUND_UP((x), SIZEOF(SIZE_T))
 
+typedef STATUS (*IceServerSetIpFunc)(UINT64, PCHAR, PKvsIpAddress);
+STATUS getIpAddrStr(PKvsIpAddress pKvsIpAddress, PCHAR pBuffer, UINT32 bufferLen);
+
 ////////////////////////////////////////////////////
 // Project forward declarations
 ////////////////////////////////////////////////////
@@ -118,6 +121,7 @@ STATUS generateJSONSafeString(PCHAR, UINT32);
 ////////////////////////////////////////////////////
 // Project internal includes
 ////////////////////////////////////////////////////
+#include "Threadpool/ThreadpoolContext.h"
 #include "Crypto/IOBuffer.h"
 #include "Crypto/Crypto.h"
 #include "Crypto/Dtls.h"

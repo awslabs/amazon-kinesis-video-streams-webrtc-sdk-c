@@ -38,6 +38,8 @@ extern "C" {
 // Environment variable to display SDPs
 #define DEBUG_LOG_SDP ((PCHAR) "DEBUG_LOG_SDP")
 
+#define MAX_ACCESS_THREADS_WEBRTC_CLIENT_CONTEXT 50
+
 typedef enum {
     RTC_RTX_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE = 1,
     RTC_RTX_CODEC_VP8 = 2,
@@ -149,6 +151,24 @@ typedef struct {
     PKvsPeerConnection pKvsPeerConnection;
     PHashTable unkeyedDataChannels;
 } AllocateSctpSortDataChannelsData, *PAllocateSctpSortDataChannelsData;
+
+typedef struct {
+    CHAR hostname[MAX_ICE_CONFIG_URI_LEN + 1];
+    KvsIpAddress kvsIpAddr;
+    BOOL isIpInitialized;
+    UINT64 startTime;
+    UINT64 expirationDuration;
+    STATUS status;
+} StunIpAddrContext, *PStunIpAddrContext;
+
+// Declare the structure of the Singleton
+// Members of the singleton are responsible for their own sync mechanisms.
+typedef struct {
+    PStunIpAddrContext pStunIpAddrCtx;
+    volatile ATOMIC_BOOL isContextInitialized;
+    volatile SIZE_T contextRefCnt;
+    MUTEX stunCtxlock;
+} WebRtcClientContext, *PWebRtcClientContext;
 
 STATUS onFrameReadyFunc(UINT64, UINT16, UINT16, UINT32);
 STATUS onFrameDroppedFunc(UINT64, UINT16, UINT16, UINT32);

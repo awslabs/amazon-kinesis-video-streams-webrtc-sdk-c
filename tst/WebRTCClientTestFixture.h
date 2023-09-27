@@ -110,6 +110,7 @@ class WebRtcClientTestBase : public ::testing::Test {
         mChannelInfo.reconnect = TRUE;
         mChannelInfo.pCertPath = mCaCertPath;
         mChannelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
+
         if ((mChannelInfo.pRegion = getenv(DEFAULT_REGION_ENV_VAR)) == NULL) {
             mChannelInfo.pRegion = (PCHAR) TEST_DEFAULT_REGION;
         }

@@ -38,6 +38,8 @@ TEST_F(SignalingApiTest, createValidateChannelInfo)
     // Test default agent postfix
     EXPECT_PRED_FORMAT2(testing::IsSubstring, agentString, rChannelInfo->pUserAgent);
     freeChannelInfo(&rChannelInfo);
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiTest, signalingSendMessageSync)
@@ -81,6 +83,8 @@ TEST_F(SignalingApiTest, signalingSendMessageSync)
     EXPECT_EQ(expectedStatus, signalingClientSendMessageSync(mSignalingClientHandle, &signalingMessage));
 
     deinitializeSignalingClient();
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiTest, signalingSendMessageSyncFileCredsProvider)
@@ -138,6 +142,8 @@ TEST_F(SignalingApiTest, signalingSendMessageSyncFileCredsProvider)
     deinitializeSignalingClient();
 
     EXPECT_EQ(STATUS_SUCCESS, freeFileCredentialProvider(&pAwsCredentialProvider));
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiTest, signalingClientConnectSync)
@@ -154,6 +160,8 @@ TEST_F(SignalingApiTest, signalingClientConnectSync)
     EXPECT_EQ(expectedStatus, signalingClientConnectSync(mSignalingClientHandle));
 
     deinitializeSignalingClient();
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiTest, signalingClientDeleteSync)
@@ -184,6 +192,8 @@ TEST_F(SignalingApiTest, signalingClientDeleteSync)
     EXPECT_EQ(expectedStatus, signalingClientSendMessageSync(mSignalingClientHandle, &signalingMessage));
 
     deinitializeSignalingClient();
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiTest, signalingClientGetIceConfigInfoCount)
@@ -204,6 +214,8 @@ TEST_F(SignalingApiTest, signalingClientGetIceConfigInfoCount)
     }
 
     deinitializeSignalingClient();
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiTest, signalingClientGetIceConfigInfo)
@@ -240,6 +252,8 @@ TEST_F(SignalingApiTest, signalingClientGetIceConfigInfo)
     }
 
     deinitializeSignalingClient();
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiTest, signalingClientGetCurrentState)
@@ -259,6 +273,8 @@ TEST_F(SignalingApiTest, signalingClientGetCurrentState)
     EXPECT_EQ(expectedState, state);
 
     deinitializeSignalingClient();
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiTest, signalingClientGetStateString)
@@ -270,11 +286,15 @@ TEST_F(SignalingApiTest, signalingClientGetStateString)
         EXPECT_EQ(STATUS_SUCCESS, signalingClientGetStateString((SIGNALING_CLIENT_STATE) i, &pStateStr));
         DLOGV("Iterating states \"%s\"", pStateStr);
     }
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiTest, signalingClientDisconnectSync)
 {
     EXPECT_NE(STATUS_SUCCESS, signalingClientDisconnectSync(INVALID_SIGNALING_CLIENT_HANDLE_VALUE));
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiTest, signalingClientGetMetrics)
@@ -365,6 +385,8 @@ TEST_F(SignalingApiTest, signalingClientGetMetrics)
     EXPECT_NE(0, metrics.signalingClientStats.dpApiCallLatency);
 
     deinitializeSignalingClient();
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiTest, signalingClientCreateWithClientInfoVariations)
@@ -498,6 +520,8 @@ TEST_F(SignalingApiTest, signalingClientCreateWithClientInfoVariations)
 
     deinitializeSignalingClient();
     mClientInfo.cacheFilePath = NULL;
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 } // namespace webrtcclient

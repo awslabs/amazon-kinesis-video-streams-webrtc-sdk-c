@@ -4,6 +4,46 @@
 
 static volatile ATOMIC_BOOL gKvsWebRtcInitialized = (SIZE_T) FALSE;
 
+// Function to get access to the Singleton instance
+PWebRtcClientContext getWebRtcClientInstance()
+{
+    static WebRtcClientContext w = {.pStunIpAddrCtx = NULL, .stunCtxlock = INVALID_MUTEX_VALUE, .contextRefCnt = 0, .isContextInitialized = FALSE};
+    ATOMIC_INCREMENT(&w.contextRefCnt);
+    return &w;
+}
+
+VOID releaseHoldOnInstance(PWebRtcClientContext pWebRtcClientContext)
+{
+    ATOMIC_DECREMENT(&pWebRtcClientContext->contextRefCnt);
+}
+
+STATUS createWebRtcClientInstance()
+{
+    PWebRtcClientContext pWebRtcClientContext = getWebRtcClientInstance();
+    STATUS retStatus = STATUS_SUCCESS;
+    BOOL locked = FALSE;
+
+    CHK_WARN(!ATOMIC_LOAD_BOOL(&pWebRtcClientContext->isContextInitialized), retStatus, "WebRtc client context already initialized, nothing to do");
+    CHK_ERR(!IS_VALID_MUTEX_VALUE(pWebRtcClientContext->stunCtxlock), retStatus, "Mutex seems to have been created already");
+
+    pWebRtcClientContext->stunCtxlock = MUTEX_CREATE(FALSE);
+    CHK_ERR(IS_VALID_MUTEX_VALUE(pWebRtcClientContext->stunCtxlock), STATUS_NULL_ARG, "Mutex creation failed");
+    MUTEX_LOCK(pWebRtcClientContext->stunCtxlock);
+    locked = TRUE;
+    CHK_WARN(pWebRtcClientContext->pStunIpAddrCtx == NULL, STATUS_INVALID_OPERATION, "STUN object already allocated");
+    pWebRtcClientContext->pStunIpAddrCtx = (PStunIpAddrContext) MEMCALLOC(1, SIZEOF(StunIpAddrContext));
+    CHK_ERR(pWebRtcClientContext->pStunIpAddrCtx != NULL, STATUS_NULL_ARG, "Memory allocation for WebRtc client object failed");
+    pWebRtcClientContext->pStunIpAddrCtx->expirationDuration = 2 * HUNDREDS_OF_NANOS_IN_AN_HOUR;
+    ATOMIC_STORE_BOOL(&pWebRtcClientContext->isContextInitialized, TRUE);
+    DLOGI("Initialized WebRTC Client instance");
+CleanUp:
+    if (locked) {
+        MUTEX_UNLOCK(pWebRtcClientContext->stunCtxlock);
+    }
+    releaseHoldOnInstance(pWebRtcClientContext);
+    return retStatus;
+}
+
 STATUS allocateSrtp(PKvsPeerConnection pKvsPeerConnection)
 {
     DtlsKeyingMaterial dtlsKeyingMaterial;
@@ -687,6 +727,121 @@ CleanUp:
     return retStatus;
 }
 
+// Not thread safe
+STATUS getStunAddr(PStunIpAddrContext pStunIpAddrCtx)
+{
+    INT32 errCode;
+    STATUS retStatus = STATUS_SUCCESS;
+    struct addrinfo *rp, *res;
+    struct sockaddr_in* ipv4Addr;
+    BOOL resolved = FALSE;
+
+    errCode = getaddrinfo(pStunIpAddrCtx->hostname, NULL, NULL, &res);
+    if (errCode != 0) {
+        DLOGI("Failed to resolve hostname with errcode: %d", errCode);
+        retStatus = STATUS_RESOLVE_HOSTNAME_FAILED;
+    } else {
+        for (rp = res; rp != NULL && !resolved; rp = rp->ai_next) {
+            if (rp->ai_family == AF_INET) {
+                ipv4Addr = (struct sockaddr_in*) rp->ai_addr;
+                pStunIpAddrCtx->kvsIpAddr.family = KVS_IP_FAMILY_TYPE_IPV4;
+                pStunIpAddrCtx->kvsIpAddr.port = 0;
+                MEMCPY(pStunIpAddrCtx->kvsIpAddr.address, &ipv4Addr->sin_addr, IPV4_ADDRESS_LENGTH);
+                resolved = TRUE;
+            }
+        }
+        freeaddrinfo(res);
+    }
+    if (!resolved) {
+        retStatus = STATUS_RESOLVE_HOSTNAME_FAILED;
+    }
+    return retStatus;
+}
+
+STATUS onSetStunServerIp(UINT64 customData, PCHAR url, PKvsIpAddress pIpAddr)
+{
+    UNUSED_PARAM(customData);
+    STATUS retStatus = STATUS_SUCCESS;
+    BOOL locked = FALSE;
+    PWebRtcClientContext pWebRtcClientContext = getWebRtcClientInstance();
+    CHK_WARN(ATOMIC_LOAD_BOOL(&pWebRtcClientContext->isContextInitialized), STATUS_NULL_ARG, "WebRTC Client object Object not initialized");
+
+    UINT64 currentTime = GETTIME();
+
+    MUTEX_LOCK(pWebRtcClientContext->stunCtxlock);
+    locked = TRUE;
+
+    CHK(STRCMP(url, pWebRtcClientContext->pStunIpAddrCtx->hostname) == 0, STATUS_PEERCONNECTION_UNSUPPORTED_HOSTNAME);
+
+    if (pWebRtcClientContext->pStunIpAddrCtx->isIpInitialized) {
+        DLOGI("Initialized successfully");
+        if (currentTime > (pWebRtcClientContext->pStunIpAddrCtx->startTime + pWebRtcClientContext->pStunIpAddrCtx->expirationDuration)) {
+            DLOGI("Expired...need to refresh STUN address");
+            // Reset start time
+            pWebRtcClientContext->pStunIpAddrCtx->startTime = 0;
+            CHK_ERR(getStunAddr(pWebRtcClientContext->pStunIpAddrCtx) == STATUS_SUCCESS, retStatus, "Failed to resolve after cache expiry");
+        }
+        MEMCPY(pIpAddr, &pWebRtcClientContext->pStunIpAddrCtx->kvsIpAddr, SIZEOF(pWebRtcClientContext->pStunIpAddrCtx->kvsIpAddr));
+    } else {
+        DLOGE("Initialization failed");
+    }
+CleanUp:
+    if (locked) {
+        MUTEX_UNLOCK(pWebRtcClientContext->stunCtxlock);
+    }
+    DLOGD("Exiting from stun server IP callback");
+    releaseHoldOnInstance(pWebRtcClientContext);
+    return retStatus;
+}
+
+PVOID resolveStunIceServerIp(PVOID args)
+{
+    UNUSED_PARAM(args);
+    PWebRtcClientContext pWebRtcClientContext = getWebRtcClientInstance();
+    BOOL locked = FALSE;
+    CHAR addressResolved[KVS_IP_ADDRESS_STRING_BUFFER_LEN + 1] = {'\0'};
+    PCHAR pRegion;
+    PCHAR pHostnamePostfix;
+
+    if (ATOMIC_LOAD_BOOL(&pWebRtcClientContext->isContextInitialized)) {
+        MUTEX_LOCK(pWebRtcClientContext->stunCtxlock);
+        locked = TRUE;
+
+        if (pWebRtcClientContext->pStunIpAddrCtx == NULL) {
+            DLOGE("Failed to resolve STUN IP address because webrtc client instance was not created");
+        } else {
+            if ((pRegion = GETENV(DEFAULT_REGION_ENV_VAR)) == NULL) {
+                pRegion = DEFAULT_AWS_REGION;
+            }
+
+            pHostnamePostfix = KINESIS_VIDEO_STUN_URL_POSTFIX;
+            // If region is in CN, add CN region uri postfix
+            if (STRSTR(pRegion, "cn-")) {
+                pHostnamePostfix = KINESIS_VIDEO_STUN_URL_POSTFIX_CN;
+            }
+
+            SNPRINTF(pWebRtcClientContext->pStunIpAddrCtx->hostname, SIZEOF(pWebRtcClientContext->pStunIpAddrCtx->hostname),
+                     KINESIS_VIDEO_STUN_URL_WITHOUT_PORT, pRegion, pHostnamePostfix);
+            if (getStunAddr(pWebRtcClientContext->pStunIpAddrCtx) == STATUS_SUCCESS) {
+                getIpAddrStr(&pWebRtcClientContext->pStunIpAddrCtx->kvsIpAddr, addressResolved, ARRAY_SIZE(addressResolved));
+                DLOGI("ICE Server address for %s with getaddrinfo: %s", pWebRtcClientContext->pStunIpAddrCtx->hostname, addressResolved);
+                pWebRtcClientContext->pStunIpAddrCtx->isIpInitialized = TRUE;
+            } else {
+                DLOGE("Failed to resolve %s", pWebRtcClientContext->pStunIpAddrCtx->hostname);
+            }
+            pWebRtcClientContext->pStunIpAddrCtx->startTime = GETTIME();
+        }
+        if (locked) {
+            MUTEX_UNLOCK(pWebRtcClientContext->stunCtxlock);
+        }
+    } else {
+        DLOGW("STUN DNS thread invoked without context being initialized");
+    }
+    releaseHoldOnInstance(pWebRtcClientContext);
+    DLOGD("Exiting from stun server IP resolution thread");
+    return NULL;
+}
+
 STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection* ppPeerConnection)
 {
     ENTERS();
@@ -738,6 +893,8 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
     iceAgentCallbacks.inboundPacketFn = onInboundPacket;
     iceAgentCallbacks.connectionStateChangedFn = onIceConnectionStateChange;
     iceAgentCallbacks.newLocalCandidateFn = onNewIceLocalCandidate;
+    iceAgentCallbacks.setStunServerIpFn = onSetStunServerIp;
+
     CHK_STATUS(createConnectionListener(&pConnectionListener));
     // IceAgent will own the lifecycle of pConnectionListener;
     CHK_STATUS(createIceAgent(pKvsPeerConnection->localIceUfrag, pKvsPeerConnection->localIcePwd, &iceAgentCallbacks, pConfiguration,
@@ -1166,6 +1323,9 @@ STATUS createOffer(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionIni
     CHK(NULL != (pSessionDescription = (PSessionDescription) MEMCALLOC(1, SIZEOF(SessionDescription))), STATUS_NOT_ENOUGH_MEMORY);
     pSessionDescriptionInit->type = SDP_TYPE_OFFER;
     pKvsPeerConnection->isOffer = TRUE;
+    if (pSessionDescriptionInit->useTrickleIce) {
+        NULLABLE_SET_VALUE(pKvsPeerConnection->canTrickleIce, TRUE);
+    }
 
 #ifdef ENABLE_DATA_CHANNEL
     pKvsPeerConnection->sctpIsEnabled = TRUE;
@@ -1413,7 +1573,7 @@ STATUS initKvsWebRtc(VOID)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     CHK(!ATOMIC_LOAD_BOOL(&gKvsWebRtcInitialized), retStatus);
-
+    DLOGI("Initializing WebRTC library...");
     SRAND(GETTIME());
 
     CHK(srtp_init() == srtp_err_status_ok, STATUS_SRTP_INIT_FAILED);
@@ -1424,15 +1584,63 @@ STATUS initKvsWebRtc(VOID)
     KVS_CRYPTO_INIT();
     LOG_GIT_HASH();
 
+    SET_INSTRUMENTED_ALLOCATORS();
 #ifdef ENABLE_DATA_CHANNEL
     CHK_STATUS(initSctpSession());
 #endif
-
+#ifdef ENABLE_KVS_THREADPOOL
+    DLOGI("KVS WebRtc library using thread pool");
+    CHK_STATUS(createWebRtcClientInstance());
+    CHK_STATUS(createThreadPoolContext());
+    CHK_STATUS(threadpoolContextPush(resolveStunIceServerIp, NULL));
+#endif
     ATOMIC_STORE_BOOL(&gKvsWebRtcInitialized, TRUE);
 
 CleanUp:
 
     LEAVES();
+    return retStatus;
+}
+
+STATUS cleanupWebRtcClientInstance()
+{
+    STATUS retStatus = STATUS_SUCCESS;
+
+    // Stun object cleanup
+    PWebRtcClientContext pWebRtcClientContext = getWebRtcClientInstance();
+
+    DLOGD("Releasing webrtc client context instance from cleanupWebRtcClientInstance");
+    releaseHoldOnInstance(pWebRtcClientContext);
+
+    CHK_WARN(ATOMIC_LOAD_BOOL(&pWebRtcClientContext->isContextInitialized), STATUS_INVALID_OPERATION,
+             "WebRtc context not initialized, nothing to clean up");
+
+    ATOMIC_STORE_BOOL(&pWebRtcClientContext->isContextInitialized, FALSE);
+
+    while (ATOMIC_LOAD(&pWebRtcClientContext->contextRefCnt) > 0) {
+        DLOGV("Waiting on all references to be returned...%d", pWebRtcClientContext->contextRefCnt);
+        THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+
+    /* Start of handling STUN object */
+    // Need this check to ensure we do not clean up the object in the next
+    // step while the resolve thread is ongoing
+    CHK_WARN(pWebRtcClientContext->pStunIpAddrCtx != NULL, STATUS_NULL_ARG, "Destroying STUN object without setting up");
+    MUTEX_LOCK(pWebRtcClientContext->stunCtxlock);
+    SAFE_MEMFREE(pWebRtcClientContext->pStunIpAddrCtx);
+    pWebRtcClientContext->pStunIpAddrCtx = NULL;
+    DLOGI("Destroyed STUN IP object");
+    MUTEX_UNLOCK(pWebRtcClientContext->stunCtxlock);
+    /* End of handling STUN object */
+
+    if (IS_VALID_MUTEX_VALUE(pWebRtcClientContext->stunCtxlock)) {
+        MUTEX_FREE(pWebRtcClientContext->stunCtxlock);
+        pWebRtcClientContext->stunCtxlock = INVALID_MUTEX_VALUE;
+    }
+
+    DLOGI("Destroyed WebRtc client context");
+
+CleanUp:
     return retStatus;
 }
 
@@ -1448,8 +1656,13 @@ STATUS deinitKvsWebRtc(VOID)
 
     srtp_shutdown();
 
+#ifdef ENABLE_KVS_THREADPOOL
+    cleanupWebRtcClientInstance();
+    destroyThreadPoolContext();
+    DLOGI("Destroyed threadpool");
+    RESET_INSTRUMENTED_ALLOCATORS();
+#endif
     ATOMIC_STORE_BOOL(&gKvsWebRtcInitialized, FALSE);
-
 CleanUp:
 
     LEAVES();

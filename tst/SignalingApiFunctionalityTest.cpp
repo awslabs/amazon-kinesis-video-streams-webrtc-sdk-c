@@ -3275,7 +3275,7 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingTest)
     FREMOVE(DEFAULT_CACHE_FILE_PATH);
 
     for (i = 0; i < totalChannelCount; ++i) {
-        SPRINTF(signalingChannelName, "%s%u", TEST_SIGNALING_CHANNEL_NAME, i);
+        SNPRINTF(signalingChannelName, SIZEOF(signalingChannelName), "%s%u", TEST_SIGNALING_CHANNEL_NAME, i);
         channelInfo.pChannelName = signalingChannelName;
         EXPECT_EQ(STATUS_SUCCESS,
                   createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider,
@@ -3290,7 +3290,7 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingTest)
     getEndpointCountNoCache = getEndpointCount;
 
     for (i = 0; i < totalChannelCount; ++i) {
-        SPRINTF(signalingChannelName, "%s%u", TEST_SIGNALING_CHANNEL_NAME, i);
+        SNPRINTF(signalingChannelName, SIZEOF(signalingChannelName), "%s%u", TEST_SIGNALING_CHANNEL_NAME, i);
         channelInfo.pChannelName = signalingChannelName;
         channelInfo.pChannelArn = NULL;
         EXPECT_EQ(STATUS_SUCCESS,
@@ -3390,11 +3390,11 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateMultiChannelCache)
         MEMSET(testChannel, 0, MAX_CHANNEL_NAME_LEN+1);
 
         append = rand()%TEST_CHANNEL_COUNT;
-        SPRINTF(testWssEndpoint, "%s%d", "testWssEndpoint", append);
-        SPRINTF(testHttpsEndpoint, "%s%d", "testHttpsEndpoint", append);
-        SPRINTF(testRegion, "%s%d", "testRegion", append);
-        SPRINTF(testChannelArn, "%s%d", "testChannelArn", append);
-        SPRINTF(testChannel, "%s%d", "testChannel", append);
+        SNPRINTF(testWssEndpoint, SIZEOF(testWssEndpoint), "%s%d", "testWssEndpoint", append);
+        SNPRINTF(testHttpsEndpoint, SIZEOF(testHttpsEndpoint),"%s%d", "testHttpsEndpoint", append);
+        SNPRINTF(testRegion, SIZEOF(testRegion),"%s%d", "testRegion", append);
+        SNPRINTF(testChannelArn, SIZEOF(testChannelArn),"%s%d", "testChannelArn", append);
+        SNPRINTF(testChannel, SIZEOF(testChannel),"%s%d", "testChannel", append);
 
         STRCPY(testEntry.wssEndpoint, testWssEndpoint);
         STRCPY(testEntry.httpsEndpoint, testHttpsEndpoint);
@@ -3456,11 +3456,11 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateFullMultiChannelCache)
         MEMSET(testChannel, 0, MAX_CHANNEL_NAME_LEN+1);
 
         append = i;
-        SPRINTF(testWssEndpoint, "%s%d", "testWssEndpoint", append);
-        SPRINTF(testHttpsEndpoint, "%s%d", "testHttpsEndpoint", append);
-        SPRINTF(testRegion, "%s%d", "testRegion", append);
-        SPRINTF(testChannelArn, "%s%d", "testChannelArn", append);
-        SPRINTF(testChannel, "%s%d", "testChannel", append);
+        SNPRINTF(testWssEndpoint, SIZEOF(testWssEndpoint), "%s%d", "testWssEndpoint", append);
+        SNPRINTF(testHttpsEndpoint, SIZEOF(testHttpsEndpoint), "%s%d", "testHttpsEndpoint", append);
+        SNPRINTF(testRegion, SIZEOF(testRegion), "%s%d", "testRegion", append);
+        SNPRINTF(testChannelArn, SIZEOF(testChannelArn), "%s%d", "testChannelArn", append);
+        SNPRINTF(testChannel, SIZEOF(testChannel), "%s%d", "testChannel", append);
 
         STRCPY(testEntry.wssEndpoint, testWssEndpoint);
         STRCPY(testEntry.httpsEndpoint, testHttpsEndpoint);
