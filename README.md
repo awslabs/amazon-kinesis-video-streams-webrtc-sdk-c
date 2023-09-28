@@ -260,13 +260,13 @@ Then choose Start Viewer to start live video streaming of the sample H264/Opus f
             "kinesisvideo:GetIceServerConfig",
             "kinesisvideo:ConnectAsMaster"
           ],
-          "Resource":"arn:aws:kinesisvideo:*:*:channel/${credentials-iot:ThingName}/*"
+          "Resource":"arn:aws:kinesisvideo:*:*:channel/*/*"
       }
    ]
 }
 ```
 
-Note: "kinesisvideo:CreateSignalingChannel" can be removed if you are running with existing KVS signaling channels. Viewer sample requires "kinesisvideo:ConnectAsViewer" permission. Integration test requires both "kinesisvideo:ConnectAsViewer" and "kinesisvideo:DeleteSignalingChannel" permission.
+Note: "kinesisvideo:CreateSignalingChannel" can be removed if you are running with existing KVS signaling channels. Viewer sample requires "kinesisvideo:ConnectAsViewer" permission. Integration test requires both "kinesisvideo:ConnectAsViewer" and "kinesisvideo:DeleteSignalingChannel" permission. The resource allows accessing any KVS signaling channel. It might be set to "arn:aws:kinesisvideo:*:*:channel/${credentials-iot:ThingName}/*", in order to allow the IoT thing to access only to the signaling channel which has the same name with the IoT thing.
 
 * With the IoT certificate, IoT credentials provider endpoint (Note: it is not the endpoint on IoT AWS Console!), public key and private key ready, you can replace the static credentials provider createStaticCredentialProvider() and freeStaticCredentialProvider() with IoT credentials provider like below, the credentials provider for [samples](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/blob/master/samples/Common.c) is in createSampleConfiguration():
 
@@ -277,7 +277,7 @@ createLwsIotCredentialProvider(
             "/Users/username/Downloads/iot-signaling/private.pem.key", // path to iot private key
             "/Users/username/Downloads/iot-signaling/cacert.pem", // path to CA cert
             "KinesisVideoSignalingCameraIoTRoleAlias", // IoT role alias
-            channelName, // iot thing name, recommended to be same as your channel name
+            "IoTThingName", // iot thing name
             &pSampleConfiguration->pCredentialProvider));
 
 freeIotCredentialProvider(&pSampleConfiguration->pCredentialProvider);
