@@ -50,7 +50,7 @@ echo '{
                 "kinesisvideo:ConnectAsMaster",
                 "kinesisvideo:ConnectAsViewer"
             ],
-            "Resource": "arn:aws:kinesisvideo:*:*:channel/*/*"
+            "Resource": "arn:aws:kinesisvideo:*:*:channel/${credentials-iot:ThingName}/*"
         }
     ]
 }' > iam-permission-document.json
