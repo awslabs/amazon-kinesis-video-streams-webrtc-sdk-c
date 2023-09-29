@@ -395,7 +395,11 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     signal(SIGINT, sigintHandler);
 
+#ifdef IOT_CORE_ENABLE_CREDENTIALS
+    CHK_ERR((pChannelName = argc > 1 ? argv[1] : getenv(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_THING_NAME must be set");
+#else
     pChannelName = argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME;
+#endif
 
     CHK_STATUS(createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, logLevel, &pSampleConfiguration));
 
