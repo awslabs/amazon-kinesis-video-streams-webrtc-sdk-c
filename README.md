@@ -266,6 +266,9 @@ Then choose Start Viewer to start live video streaming of the sample H264/Opus f
 }
 ```
 
+We recommend following [best practices](https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html) while setting up the IAM policy and not allow access to all channels in the account, but allow access to only the REQUIRED channel names if the use case demands it. KVS recommendation is to use iot thing name as channel name as per public docs.
+https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/how-iot.html
+
 Note: "kinesisvideo:CreateSignalingChannel" can be removed if you are running with existing KVS signaling channels. Viewer sample requires "kinesisvideo:ConnectAsViewer" permission. Integration test requires both "kinesisvideo:ConnectAsViewer" and "kinesisvideo:DeleteSignalingChannel" permission.
 
 * With the IoT certificate, IoT credentials provider endpoint (Note: it is not the endpoint on IoT AWS Console!), public key and private key ready, you can replace the static credentials provider createStaticCredentialProvider() and freeStaticCredentialProvider() with IoT credentials provider like below, the credentials provider for [samples](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/blob/master/samples/Common.c) is in createSampleConfiguration():
