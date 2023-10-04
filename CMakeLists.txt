@@ -136,7 +136,7 @@ if(BUILD_DEPENDENCIES)
     message("TTTTTTTTTTTTT")
     build_dependency(openssl ${BUILD_ARGS})
     set(OPENSSL_ROOT_DIR ${OPEN_SRC_INSTALL_PREFIX})
-  elseif(USE_MBEDTLS)
+  elseif (USE_MBEDTLS)
     set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
                    "-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -std=c99")
     message("RRRRRRRRRRRRRRRRRRRRRR")
