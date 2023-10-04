@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.6.3)
 
-project(libopenssl-download NONE)
+project(libopenssl-download LANGUAGES C)
+
+message(STATUS "CMAKE_C_COMPILER_ID is set to ${CMAKE_C_COMPILER_ID} [inside libopenssl cmakelists]")
+
 
 if (WIN32)
   find_program(MAKE_EXE NAMES nmake)
@@ -16,24 +19,31 @@ else()
     SET(OPENSSL_EXTRA ${OPENSSL_EXTRA} no-shared no-dso)
   endif()
 
+  if (DEFINED CMAKE_OSX_SYSROOT AND NOT CMAKE_OSX_SYSROOT STREQUAL "")
+      if ("${CMAKE_C_COMPILER_ID}" MATCHES "Clang")
+        SET(OPENSSL_EXTRA ${OPENSSL_EXTRA} -I${CMAKE_OSX_SYSROOT}/usr/include -L${CMAKE_OSX_SYSROOT}/usr/lib)
+      endif()
+  endif()
+
   if (DEFINED BUILD_OPENSSL_PLATFORM AND NOT BUILD_OPENSSL_PLATFORM STREQUAL OFF)
     SET(CONFIGURE_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/build/src/project_libopenssl/Configure ${OPENSSL_EXTRA} no-async --prefix=${OPEN_SRC_INSTALL_PREFIX} --openssldir=${OPEN_SRC_INSTALL_PREFIX} ${BUILD_OPENSSL_PLATFORM} -Wno-nullability-completeness -Wno-expansion-to-defined)
   else()
     SET(CONFIGURE_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/build/src/project_libopenssl/config ${OPENSSL_EXTRA} --prefix=${OPEN_SRC_INSTALL_PREFIX} --openssldir=${OPEN_SRC_INSTALL_PREFIX} -Wno-nullability-completeness -Wno-expansion-to-defined)
   endif()
 
-  if (DEFINED CMAKE_OSX_SYSROOT AND NOT CMAKE_OSX_SYSROOT STREQUAL "")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -isysroot ${CMAKE_OSX_SYSROOT}")
-  endif()
-
 endif()
+
+
+message(STATUS "PREFIX is ${CMAKE_CURRENT_BINARY_DIR}/build")
+message(STATUS "CONFIGURE_COMMAND is ${CONFIGURE_COMMAND}")
+message(STATUS "BUILD_COMMAND is ${MAKE_EXE}")
+message(STATUS "INSTALL_COMMAND is ${MAKE_EXE} install_sw")
 
 include(ExternalProject)
 ExternalProject_Add(project_libopenssl
     GIT_REPOSITORY    https://github.com/openssl/openssl.git
     GIT_TAG           OpenSSL_1_1_1t
     PREFIX            ${CMAKE_CURRENT_BINARY_DIR}/build
-    CMAKE_ARGS        -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
     CONFIGURE_COMMAND ${CONFIGURE_COMMAND}
     BUILD_COMMAND     ${MAKE_EXE}
     BUILD_IN_SOURCE   TRUE

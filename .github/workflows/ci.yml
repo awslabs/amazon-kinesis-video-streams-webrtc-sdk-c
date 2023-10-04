@@ -28,8 +28,6 @@ jobs:
       CC: /usr/bin/clang
       CXX: /usr/bin/clang++
       AWS_KVS_LOG_LEVEL: 2
-      LDFLAGS: -L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib
-      CPATH: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/
     permissions:
       id-token: write
       contents: read
@@ -80,8 +78,6 @@ jobs:
     runs-on: macos-11
     env:
       AWS_KVS_LOG_LEVEL: 2
-      LDFLAGS: -L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib
-      CPATH: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/
     permissions:
       id-token: write
       contents: read

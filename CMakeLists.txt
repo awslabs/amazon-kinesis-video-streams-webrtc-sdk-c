@@ -7,6 +7,7 @@ include(CheckFunctionExists)
 # The version MUST be updated before every release
 project(KinesisVideoWebRTCClient VERSION 1.8.1 LANGUAGES C)
 
+
 # User Flags
 option(ADD_MUCLIBC "Add -muclibc c flag" OFF)
 option(BUILD_DEPENDENCIES "Whether or not to build depending libraries from source" ON)
@@ -36,6 +37,7 @@ if(WIN32)
   set(EXT_PTHREAD_INCLUDE_DIR "" CACHE PATH "Path to the PThread dir")
   set(EXT_PTHREAD_LIBRARIES "" CACHE FILEPATH "Path to PThread libraries")
 endif()
+
 
 execute_process(
         COMMAND git rev-parse HEAD
@@ -107,6 +109,7 @@ elseif(USE_MBEDTLS)
   set(CMAKE_C_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/configs -DMBEDTLS_USER_CONFIG_FILE=\"<config_mbedtls.h>\" ${CMAKE_C_FLAGS}")
   set(CMAKE_CXX_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/configs -DMBEDTLS_USER_CONFIG_FILE=\"<config_mbedtls.h>\" ${CMAKE_CXX_FLAGS}")
 endif()
+
 
 if(BUILD_DEPENDENCIES)
   if(NOT EXISTS ${OPEN_SRC_INSTALL_PREFIX})
@@ -260,7 +263,6 @@ endif()
 
 if("${CMAKE_C_COMPILER_ID}" MATCHES "GNU|Clang")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
-
 
   if(CODE_COVERAGE)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -g -fprofile-arcs -ftest-coverage")
