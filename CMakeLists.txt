@@ -138,6 +138,7 @@ if(BUILD_DEPENDENCIES)
   elseif(USE_MBEDTLS)
     set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
                    "-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -std=c99")
+    message("RRRRRRRRRRRRRRRRRRRRRR")
     build_dependency(mbedtls ${BUILD_ARGS})
   endif()
 
@@ -158,6 +159,7 @@ if(BUILD_DEPENDENCIES)
                     -DLWS_OPENSSL_LIBRARIES=${OPENSSL_LIBRARIES_ALT_SEP}
                     -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
     elseif (USE_MBEDTLS)
+      message("SSSSSSSSSSSSSSSSSSS")
       set(LWS_MBEDTLS_INCLUDE_DIRS "${OPEN_SRC_INSTALL_PREFIX}/include/mbedtls")
       set(MBEDTLS_LIBRARY "${OPEN_SRC_INSTALL_PREFIX}/lib/mbedtls.lib")
       set(MBEDX509_LIBRARY "${OPEN_SRC_INSTALL_PREFIX}/lib/mbedx509.lib")
