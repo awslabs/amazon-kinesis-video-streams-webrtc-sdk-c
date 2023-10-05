@@ -2249,6 +2249,7 @@ STATUS terminateConnectionWithStatus(PSignalingClient pSignalingClient, SERVICE_
     CVAR_BROADCAST(pSignalingClient->connectedCvar);
     CVAR_BROADCAST(pSignalingClient->receiveCvar);
     CVAR_BROADCAST(pSignalingClient->sendCvar);
+    CVAR_BROADCAST(pSignalingClient->jssWaitCvar);
     ATOMIC_STORE(&pSignalingClient->messageResult, (SIZE_T) SERVICE_CALL_UNKNOWN);
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) callResult);
 
