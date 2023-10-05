@@ -116,7 +116,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt clean && sudo apt update
-          sudo apt-get -y install libcurl-dev
+          sudo apt-get -y install libcurl4-openssl-dev
       - name: Build repository
         run: |
           sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
@@ -155,7 +155,7 @@ jobs:
         run: |
           sudo apt clean && sudo apt update
           sudo apt-get -y install clang
-          sudo apt-get -y install libcurl-dev
+          sudo apt-get -y install libcurl4-openssl-dev
       - name: Build repository
         run: |
           # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
@@ -190,7 +190,7 @@ jobs:
         run: |
           sudo apt clean && sudo apt update
           sudo apt-get -y install clang
-          sudo apt-get -y install libcurl-dev
+          sudo apt-get -y install libcurl4-openssl-dev
       - name: Build repository
         run: |
           # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
@@ -246,7 +246,7 @@ jobs:
         run: |
           sudo apt clean && sudo apt update
           sudo apt-get -y install clang
-          sudo apt-get -y install libcurl-dev
+          sudo apt-get -y install libcurl4-openssl-dev
       - name: Build repository
         run: |
           sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
@@ -284,7 +284,7 @@ jobs:
           sudo apt-get -q update
           sudo apt-get -y install gcc-4.4
           sudo apt-get -y install gdb
-          sudo apt-get -y install libcurl-dev
+          sudo apt-get -y install libcurl4-openssl-dev
       - name: Build repository
         run: |
           mkdir build && cd build
@@ -313,7 +313,7 @@ jobs:
         run: |
           apk update
           apk upgrade
-          apk add alpine-sdk cmake clang linux-headers perl bash openssl-dev
+          apk add alpine-sdk cmake clang linux-headers perl bash openssl-dev zlib-dev curl-dev
       - name: Build Repository
         run: |
           mkdir build && cd build
@@ -427,6 +427,10 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
+      - name: Install dependencies
+        run: |
+          sudo apt clean && sudo apt update
+          sudo apt-get -y install libcurl4-openssl-dev
       - name: Build repository
         run: |
           # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
