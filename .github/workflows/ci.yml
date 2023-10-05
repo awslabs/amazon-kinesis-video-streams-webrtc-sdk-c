@@ -288,7 +288,8 @@ jobs:
       - name: Build repository
         run: |
           mkdir build && cd build
-          cmake .. -DBUILD_TEST=TRUE
+          # As per REAMDE here: https://github.com/aws/aws-sdk-cpp minimum supported GCC is 4.9 so we do not run those tests here
+          cmake .. -DBUILD_TEST=TRUE -DENABLE_AWS_SDK_IN_TESTS=OFF
           make
           ulimit -c unlimited -S
       - name: Run tests
