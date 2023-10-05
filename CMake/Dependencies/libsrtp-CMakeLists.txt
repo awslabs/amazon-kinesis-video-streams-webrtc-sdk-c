@@ -7,12 +7,25 @@ SET(CONFIGURE_COMMAND "")
 # There is known bug in libsrtp where cross compiling using configure on ARM fails. Do not
 # enable this option if cross compilng on ARM
 # Check https://github.com/cisco/libsrtp/pull/496
+
+
 if(BUILD_LIBSRTP_DESTINATION_PLATFORM STREQUAL BUILD_LIBSRTP_HOST_PLATFORM)
+
   if(UNIX OR APPLE)
-    if(USE_OPENSSL)
-      SET(CONFIGURE_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/build/src/project_libsrtp/configure "CFLAGS=${CMAKE_C_FLAGS}" --prefix=${OPEN_SRC_INSTALL_PREFIX}  --enable-openssl --with-openssl-dir=${OPENSSL_DIR})
+
+    SET(CONFIGURE_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/build/src/project_libsrtp/configure CC=${CMAKE_C_COMPILER})
+
+    if (DEFINED CMAKE_OSX_SYSROOT AND NOT CMAKE_OSX_SYSROOT STREQUAL "")
+      if ("${CMAKE_C_COMPILER_ID}" MATCHES "Clang")
+        SET(KVS_CFLAGS "-I${CMAKE_OSX_SYSROOT}/usr/include -Wno-error=implicit-function-declaration")
+        SET(CONFIGURE_COMMAND ${CONFIGURE_COMMAND} CFLAGS=${KVS_CFLAGS} LDFLAGS=-L${CMAKE_OSX_SYSROOT}/usr/lib)
+      endif()
+    endif()
+
+    if (USE_OPENSSL)
+      SET(CONFIGURE_COMMAND ${CONFIGURE_COMMAND} --prefix=${OPEN_SRC_INSTALL_PREFIX} --enable-openssl --with-openssl-dir=${OPENSSL_DIR})
     else()
-      SET(CONFIGURE_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/build/src/project_libsrtp/configure "CFLAGS=${CMAKE_C_FLAGS}" --prefix=${OPEN_SRC_INSTALL_PREFIX})
+      SET(CONFIGURE_COMMAND ${CONFIGURE_COMMAND} --prefix=${OPEN_SRC_INSTALL_PREFIX})
     endif()
 
     if (DEFINED BUILD_LIBSRTP_DESTINATION_PLATFORM AND NOT BUILD_LIBSRTP_DESTINATION_PLATFORM STREQUAL OFF)
@@ -23,9 +36,6 @@ if(BUILD_LIBSRTP_DESTINATION_PLATFORM STREQUAL BUILD_LIBSRTP_HOST_PLATFORM)
       set(CONFIGURE_COMMAND ${CONFIGURE_COMMAND} --build=${BUILD_LIBSRTP_HOST_PLATFORM})
     endif()
 
-    if (DEFINED CMAKE_OSX_SYSROOT AND NOT CMAKE_OSX_SYSROOT STREQUAL "")
-      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -isysroot ${CMAKE_OSX_SYSROOT}")
-    endif()
   endif()
 endif()
 
@@ -41,18 +51,19 @@ else()
   set(LIBSRTP_ENABLE_OPENSSL OFF)
 endif()
 
+message(STATUS "CONFIGURE_COMMAND is ${CONFIGURE_COMMAND}")
+
 
 include(ExternalProject)
 ExternalProject_Add(project_libsrtp
     GIT_REPOSITORY    https://github.com/cisco/libsrtp.git
     GIT_TAG           bd0f27ec0e299ad101a396dde3f7c90d48efc8fc
     PREFIX            ${CMAKE_CURRENT_BINARY_DIR}/build
-    CMAKE_ARGS        -D CMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
-                      -D CMAKE_INSTALL_PREFIX:STRING=${OPEN_SRC_INSTALL_PREFIX}
-                      -D ENABLE_OPENSSL=${LIBSRTP_ENABLE_OPENSSL}
-                      -D BUILD_SHARED_LIBS=${LIBSRTP_SHARED_LIBS}
-                      -D OPENSSL_ROOT_DIR=${OPEN_SRC_INSTALL_PREFIX}
-                      -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
+    CMAKE_ARGS        -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
+                      -DCMAKE_INSTALL_PREFIX:STRING=${OPEN_SRC_INSTALL_PREFIX}
+                      -DENABLE_OPENSSL=${LIBSRTP_ENABLE_OPENSSL}
+                      -DBUILD_SHARED_LIBS=${LIBSRTP_SHARED_LIBS}
+                      -DOPENSSL_ROOT_DIR=${OPEN_SRC_INSTALL_PREFIX}
     CONFIGURE_COMMAND ${CONFIGURE_COMMAND}
     TEST_COMMAND      ""
 )
