@@ -262,12 +262,12 @@ STATUS freeSignaling(PSignalingClient* ppSignalingClient)
         CVAR_FREE(pSignalingClient->receiveCvar);
     }
 
-    if (IS_VALID_CVAR_VALUE(pSignalingClient->jssWaitCvar)) {
-        CVAR_FREE(pSignalingClient->jssWaitCvar);
-    }
-
     if (IS_VALID_MUTEX_VALUE(pSignalingClient->jssWaitLock)) {
         MUTEX_FREE(pSignalingClient->jssWaitLock);
+    }
+
+    if (IS_VALID_CVAR_VALUE(pSignalingClient->jssWaitCvar)) {
+        CVAR_FREE(pSignalingClient->jssWaitCvar);
     }
 
     if (IS_VALID_MUTEX_VALUE(pSignalingClient->stateLock)) {
