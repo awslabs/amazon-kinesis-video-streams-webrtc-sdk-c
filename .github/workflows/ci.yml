@@ -371,8 +371,8 @@ jobs:
           sudo apt clean && sudo apt update
           sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
           sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-          sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ trusty main'
-          sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ trusty universe'
+          sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ jammy main'
+          sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ jammy universe'
           sudo apt-get -q update
           sudo apt-get -y install gcc-4.4
           sudo apt-get -y install gdb

@@ -136,9 +136,14 @@ if(BUILD_DEPENDENCIES)
     build_dependency(openssl ${BUILD_ARGS})
     set(OPENSSL_ROOT_DIR ${OPEN_SRC_INSTALL_PREFIX})
   elseif(USE_MBEDTLS)
-    set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
-                   "-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -std=c99 -Wno-error=stringop-overflow")
-    build_dependency(mbedtls ${BUILD_ARGS})
+    if("${CMAKE_C_COMPILER_ID}" MATCHES "GNU|Clang")
+      set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
+                    "-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -std=c99")
+    else()
+      set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
+              "-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -std=c99 -Wno-error=stringop-overflow")
+    endif()
+      build_dependency(mbedtls ${BUILD_ARGS})
   endif()
 
 
