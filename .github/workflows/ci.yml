@@ -374,8 +374,6 @@ jobs:
           sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ jammy main'
           sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ jammy universe'
           sudo apt-get -q update
-          sudo apt-get -y install gcc-4.4
-          sudo apt-get -y install gdb
       - name: Build repository
         run: |
           mkdir build && cd build
