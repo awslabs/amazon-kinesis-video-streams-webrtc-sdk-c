@@ -24,6 +24,10 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
+      - name: Install dependencies
+        run: |
+          sudo apt clean && sudo apt update
+          sudo apt-get -y install libcurl4-openssl-dev
       - name: Run code coverage
         run: |
           mkdir build
