@@ -983,7 +983,6 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
 #ifdef ENABLE_DATA_CHANNEL
     CHK_LOG_ERR(freeSctpSession(&pKvsPeerConnection->pSctpSession));
 #endif
-    CHK_LOG_ERR(freeIceAgent(&pKvsPeerConnection->pIceAgent));
 
     // free transceivers
     CHK_LOG_ERR(doubleListGetHeadNode(pKvsPeerConnection->pTransceivers, &pCurNode));

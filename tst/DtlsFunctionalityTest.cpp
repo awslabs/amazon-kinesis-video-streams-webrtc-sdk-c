@@ -244,8 +244,8 @@ TEST_F(DtlsFunctionalityTest, processPacketWithVariedSizesInThread)
 
     freeDtlsSession(&pClient);
     freeDtlsSession(&pServer);
-timerQueueFree(&timerQueueHandle);
-MEMFREE(pData);
+    timerQueueFree(&timerQueueHandle);
+    MEMFREE(pData);
 }
 
 
