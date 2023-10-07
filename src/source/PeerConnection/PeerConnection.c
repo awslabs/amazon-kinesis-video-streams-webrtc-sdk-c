@@ -436,6 +436,13 @@ CleanUp:
     return retStatus;
 }
 
+PVOID dtlsSessionStartThread(PVOID args)
+{
+    PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) args;
+    dtlsSessionHandshakeInThread(pKvsPeerConnection->pDtlsSession, pKvsPeerConnection->dtlsIsServer);
+    return NULL;
+}
+
 VOID onIceConnectionStateChange(UINT64 customData, UINT64 connectionState)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -457,7 +464,8 @@ VOID onIceConnectionStateChange(UINT64 customData, UINT64 connectionState)
         case ICE_AGENT_STATE_CONNECTED:
             /* explicit fall-through */
         case ICE_AGENT_STATE_NOMINATING:
-            /* explicit fall-through */
+            newConnectionState = RTC_PEER_CONNECTION_STATE_CONNECTING;
+            break;
         case ICE_AGENT_STATE_READY:
             /* start dtlsSession as soon as ice is connected */
             newConnectionState = RTC_PEER_CONNECTION_STATE_CONNECTING;
@@ -488,7 +496,15 @@ VOID onIceConnectionStateChange(UINT64 customData, UINT64 connectionState)
             // wait until DTLS state changes to CONNECTED.
             //
             // Reference: https://w3c.github.io/webrtc-pc/#rtcpeerconnectionstate-enum
+#ifdef ENABLE_KVS_THREADPOOL
+#ifdef KVS_USE_OPENSSL
+            CHK_STATUS(threadpoolContextPush(dtlsSessionStartThread, (PVOID) pKvsPeerConnection));
+#else
             CHK_STATUS(dtlsSessionStart(pKvsPeerConnection->pDtlsSession, pKvsPeerConnection->dtlsIsServer));
+#endif
+#else
+            CHK_STATUS(dtlsSessionStart(pKvsPeerConnection->pDtlsSession, pKvsPeerConnection->dtlsIsServer));
+#endif
         }
     }
 
@@ -851,6 +867,7 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
     DtlsSessionCallbacks dtlsSessionCallbacks;
     PConnectionListener pConnectionListener = NULL;
     UINT64 startTime = 0;
+    UINT64 startTimeInMacro = 0;
 
     CHK(pConfiguration != NULL && ppPeerConnection != NULL, STATUS_NULL_ARG);
 
@@ -868,9 +885,10 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
     CHK_STATUS(generateJSONSafeString(pKvsPeerConnection->localIcePwd, LOCAL_ICE_PWD_LEN));
     CHK_STATUS(generateJSONSafeString(pKvsPeerConnection->localCNAME, LOCAL_CNAME_LEN));
 
-    CHK_STATUS(createDtlsSession(
-        &dtlsSessionCallbacks, pKvsPeerConnection->timerQueueHandle, pConfiguration->kvsRtcConfiguration.generatedCertificateBits,
-        pConfiguration->kvsRtcConfiguration.generateRSACertificate, pConfiguration->certificates, &pKvsPeerConnection->pDtlsSession));
+    PROFILE_CALL(CHK_STATUS(createDtlsSession(
+                     &dtlsSessionCallbacks, pKvsPeerConnection->timerQueueHandle, pConfiguration->kvsRtcConfiguration.generatedCertificateBits,
+                     pConfiguration->kvsRtcConfiguration.generateRSACertificate, pConfiguration->certificates, &pKvsPeerConnection->pDtlsSession)),
+                 "Create DTLS Session object");
     CHK_STATUS(dtlsSessionOnOutBoundData(pKvsPeerConnection->pDtlsSession, (UINT64) pKvsPeerConnection, onDtlsOutboundPacket));
     CHK_STATUS(dtlsSessionOnStateChange(pKvsPeerConnection->pDtlsSession, (UINT64) pKvsPeerConnection, onDtlsStateChange));
 
@@ -895,10 +913,11 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
     iceAgentCallbacks.newLocalCandidateFn = onNewIceLocalCandidate;
     iceAgentCallbacks.setStunServerIpFn = onSetStunServerIp;
 
-    CHK_STATUS(createConnectionListener(&pConnectionListener));
+    PROFILE_CALL(CHK_STATUS(createConnectionListener(&pConnectionListener)), "Create connection listener");
     // IceAgent will own the lifecycle of pConnectionListener;
-    CHK_STATUS(createIceAgent(pKvsPeerConnection->localIceUfrag, pKvsPeerConnection->localIcePwd, &iceAgentCallbacks, pConfiguration,
-                              pKvsPeerConnection->timerQueueHandle, pConnectionListener, &pKvsPeerConnection->pIceAgent));
+    PROFILE_CALL(CHK_STATUS(createIceAgent(pKvsPeerConnection->localIceUfrag, pKvsPeerConnection->localIcePwd, &iceAgentCallbacks, pConfiguration,
+                                           pKvsPeerConnection->timerQueueHandle, pConnectionListener, &pKvsPeerConnection->pIceAgent)),
+                 "Create ICE agent object");
 
     NULLABLE_SET_EMPTY(pKvsPeerConnection->canTrickleIce);
 
@@ -990,6 +1009,9 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
     // free rest of structs
     CHK_LOG_ERR(freeSrtpSession(&pKvsPeerConnection->pSrtpSession));
     CHK_LOG_ERR(freeDtlsSession(&pKvsPeerConnection->pDtlsSession));
+    // Since ICE agent has a callback invoked from DTLS during handshake,
+    // it is safer to free the ICE agent after DTLS session
+    CHK_LOG_ERR(freeIceAgent(&pKvsPeerConnection->pIceAgent));
     CHK_LOG_ERR(doubleListFree(pKvsPeerConnection->pTransceivers));
     CHK_LOG_ERR(doubleListFree(pKvsPeerConnection->pFakeTransceivers));
     CHK_LOG_ERR(doubleListFree(pKvsPeerConnection->pAnswerTransceivers));

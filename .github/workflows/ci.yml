@@ -5,6 +5,7 @@ on:
     branches:
       - develop
       - master
+      - dtls-handshake-improvement
   pull_request:
     branches:
       - develop
@@ -170,7 +171,7 @@ jobs:
   undefined-behavior-sanitizer:
     runs-on: ubuntu-20.04
     env:
-      UBSAN_OPTIONS: halt_on_error=1
+      UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
       CC: clang
       CXX: clang++
       AWS_KVS_LOG_LEVEL: 2
