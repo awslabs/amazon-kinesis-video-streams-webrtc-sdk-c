@@ -26,15 +26,15 @@ extern "C" {
  */
 
 #define TURN_STATE_NONE                    ((UINT64) 0)
-#define TURN_STATE_NEW                     ((UINT64)(1 << 0))
-#define TURN_STATE_CHECK_SOCKET_CONNECTION ((UINT64)(1 << 1))
-#define TURN_STATE_GET_CREDENTIALS         ((UINT64)(1 << 2))
-#define TURN_STATE_ALLOCATION              ((UINT64)(1 << 3))
-#define TURN_STATE_CREATE_PERMISSION       ((UINT64)(1 << 4))
-#define TURN_STATE_BIND_CHANNEL            ((UINT64)(1 << 5))
-#define TURN_STATE_READY                   ((UINT64)(1 << 6))
-#define TURN_STATE_CLEAN_UP                ((UINT64)(1 << 7))
-#define TURN_STATE_FAILED                  ((UINT64)(1 << 8))
+#define TURN_STATE_NEW                     ((UINT64) (1 << 0))
+#define TURN_STATE_CHECK_SOCKET_CONNECTION ((UINT64) (1 << 1))
+#define TURN_STATE_GET_CREDENTIALS         ((UINT64) (1 << 2))
+#define TURN_STATE_ALLOCATION              ((UINT64) (1 << 3))
+#define TURN_STATE_CREATE_PERMISSION       ((UINT64) (1 << 4))
+#define TURN_STATE_BIND_CHANNEL            ((UINT64) (1 << 5))
+#define TURN_STATE_READY                   ((UINT64) (1 << 6))
+#define TURN_STATE_CLEAN_UP                ((UINT64) (1 << 7))
+#define TURN_STATE_FAILED                  ((UINT64) (1 << 8))
 
 #define TURN_STATE_NONE_STR                    (PCHAR) "TURN_STATE_NONE"
 #define TURN_STATE_NEW_STR                     (PCHAR) "TURN_STATE_NEW"
@@ -49,9 +49,9 @@ extern "C" {
 #define TURN_STATE_UNKNOWN_STR                 (PCHAR) "TURN_STATE_UNKNOWN"
 
 // Whether to step the state machine
-STATUS stepTurnStateMachine(PTurn);
-STATUS acceptTurnMachineState(PTurn, UINT64);
-PCHAR turnStateToString(UINT64);
+STATUS stepTurnStateMachine(PTurnConnection);
+STATUS acceptTurnMachineState(PTurnConnection, UINT64);
+PCHAR turnStateGetStateStr(UINT64 state);
 
 /**
  * Turn state machine callbacks

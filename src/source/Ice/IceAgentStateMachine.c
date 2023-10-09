@@ -537,6 +537,8 @@ STATUS executeReadyIceAgentState(UINT64 customData, UINT64 time)
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
     PIceAgent pIceAgent = (PIceAgent) customData;
+    PDoubleListNode pCurNode = NULL, pNodeToDelete = NULL;
+    PIceCandidate pIceCandidate = NULL;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
     if (pIceAgent->iceAgentState != ICE_AGENT_STATE_READY) {

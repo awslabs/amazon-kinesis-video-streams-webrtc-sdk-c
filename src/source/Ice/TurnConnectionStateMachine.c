@@ -9,24 +9,33 @@
  * Static definitions of the states
  */
 StateMachineState TURN_CONNECTION_STATE_MACHINE_STATES[] = {
-    {TURN_STATE_NEW, /*TODO ACCEPT*/, fromNewTurnState, executeNewTurnState, NULL, INFINITE_RETRY_COUNT_SENTINEL, STATUS_TURN_INVALID_STATE},
-    {TURN_STATE_CHECK_SOCKET_CONNECTION, /*TODO ACCEPT*/, fromCheckSocketConnectionTurnState, executeCheckSocketConnectionTurnState, NULL,
+    {TURN_STATE_NEW, TURN_STATE_NEW | TURN_STATE_CLEAN_UP, fromNewTurnState, executeNewTurnState, NULL, INFINITE_RETRY_COUNT_SENTINEL,
+     STATUS_TURN_INVALID_STATE},
+    {TURN_STATE_CHECK_SOCKET_CONNECTION, TURN_STATE_NEW | TURN_STATE_CHECK_SOCKET_CONNECTION, fromCheckSocketConnectionTurnState,
+     executeCheckSocketConnectionTurnState, NULL, INFINITE_RETRY_COUNT_SENTINEL, STATUS_TURN_INVALID_STATE},
+    {TURN_STATE_GET_CREDENTIALS, TURN_STATE_CHECK_SOCKET_CONNECTION | TURN_STATE_GET_CREDENTIALS, fromGetCredentialsTurnState,
+     executeGetCredentialsTurnState, NULL, INFINITE_RETRY_COUNT_SENTINEL, STATUS_TURN_INVALID_STATE},
+    {TURN_STATE_ALLOCATION, TURN_STATE_ALLOCATION | TURN_STATE_GET_CREDENTIALS, fromAllocationTurnState, executeAllocationTurnState, NULL,
      INFINITE_RETRY_COUNT_SENTINEL, STATUS_TURN_INVALID_STATE},
-    {TURN_STATE_GET_CREDENTIALS, /*TODO ACCEPT*/, fromGetCredentialsTurnState, executeGetCredentialsTurnState, NULL, INFINITE_RETRY_COUNT_SENTINEL,
-     STATUS_TURN_INVALID_STATE},
-    {TURN_STATE_ALLOCATION, /*TODO ACCEPT*/, fromAllocationTurnState, executeAllocationTurnState, NULL, INFINITE_RETRY_COUNT_SENTINEL,
-     STATUS_TURN_INVALID_STATE},
-    {TURN_STATE_CREATE_PERMISSION, /*TODO ACCEPT*/, fromCreatePermissionTurnState, executeCreatePermissionTurnState, NULL,
+    {TURN_STATE_CREATE_PERMISSION, TURN_STATE_CREATE_PERMISSION | TURN_STATE_ALLOCATION | TURN_STATE_READY, fromCreatePermissionTurnState,
+     executeCreatePermissionTurnState, NULL, INFINITE_RETRY_COUNT_SENTINEL, STATUS_TURN_INVALID_STATE},
+    {TURN_STATE_BIND_CHANNEL, TURN_STATE_BIND_CHANNEL | TURN_STATE_CREATE_PERMISSION, fromBindChannelTurnState, executeBindChannelTurnState, NULL,
      INFINITE_RETRY_COUNT_SENTINEL, STATUS_TURN_INVALID_STATE},
-    {TURN_STATE_BIND_CHANNEL, /*TODO ACCEPT*/, fromBindChannelTurnState, executeBindChannelTurnState, NULL, INFINITE_RETRY_COUNT_SENTINEL,
+    {TURN_STATE_READY, TURN_STATE_READY | TURN_STATE_BIND_CHANNEL, fromReadyTurnState, executeReadyTurnState, NULL, INFINITE_RETRY_COUNT_SENTINEL,
      STATUS_TURN_INVALID_STATE},
-    {TURN_STATE_READY, /*TODO ACCEPT*/, fromReadyTurnState, executeReadyTurnState, NULL, INFINITE_RETRY_COUNT_SENTINEL, STATUS_TURN_INVALID_STATE},
-    {TURN_STATE_CLEAN_UP, /*TODO ACCEPT*/, fromCleanUpTurnState, executeCleanUpTurnState, NULL, INFINITE_RETRY_COUNT_SENTINEL,
-     STATUS_TURN_INVALID_STATE},
-    {TURN_STATE_FAILED, /*TODO ACCEPT*/, fromFailedTurnState, executeFailedTurnState, NULL, INFINITE_RETRY_COUNT_SENTINEL, STATUS_TURN_INVALID_STATE},
+    {TURN_STATE_CLEAN_UP,
+     TURN_STATE_CLEAN_UP | TURN_STATE_FAILED | TURN_STATE_CHECK_SOCKET_CONNECTION | TURN_STATE_GET_CREDENTIALS | TURN_STATE_ALLOCATION |
+         TURN_STATE_CREATE_PERMISSION | TURN_STATE_BIND_CHANNEL | TURN_STATE_READY,
+     fromCleanUpTurnState, executeCleanUpTurnState, NULL, INFINITE_RETRY_COUNT_SENTINEL, STATUS_TURN_INVALID_STATE},
+    {TURN_STATE_FAILED,
+     TURN_STATE_CLEAN_UP | TURN_STATE_FAILED | TURN_STATE_CHECK_SOCKET_CONNECTION | TURN_STATE_GET_CREDENTIALS | TURN_STATE_ALLOCATION |
+         TURN_STATE_CREATE_PERMISSION | TURN_STATE_BIND_CHANNEL | TURN_STATE_READY,
+     fromFailedTurnState, executeFailedTurnState, NULL, INFINITE_RETRY_COUNT_SENTINEL, STATUS_TURN_INVALID_STATE},
 };
 
-PCHAR turnConnectionGetStateStr(TURN_CONNECTION_STATE state)
+UINT32 TURN_CONNECTION_STATE_MACHINE_STATE_COUNT = ARRAY_SIZE(TURN_CONNECTION_STATE_MACHINE_STATES);
+
+PCHAR turnConnectionGetStateStr(UINT64 state)
 {
     switch (state) {
         case TURN_STATE_NEW:
@@ -49,6 +58,61 @@ PCHAR turnConnectionGetStateStr(TURN_CONNECTION_STATE state)
             return TURN_STATE_FAILED_STR;
     }
     return TURN_STATE_UNKNOWN_STR;
+}
+
+STATUS stepTurnConnectionStateMachine(PTurnConnection pTurnConnection)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    UINT64 oldState;
+    UINT64 currentTime;
+
+    CHK(pTurnConnection != NULL, STATUS_NULL_ARG);
+
+    do {
+        oldState = pTurnConnection->state;
+
+        retStatus = stepStateMachine(pTurnConnection->pStateMachine);
+
+        if (STATUS_SUCCEEDED(retStatus) && ATOMIC_LOAD_BOOL(&pTurnConnection->stopTurnConnection) && pTurnConnection->state != TURN_STATE_NEW &&
+            pTurnConnection->state != TURN_STATE_CLEAN_UP) {
+            currentTime = GETTIME();
+            pTurnConnection->state = TURN_STATE_CLEAN_UP;
+            pTurnConnection->stateTimeoutTime = currentTime + DEFAULT_TURN_CLEAN_UP_TIMEOUT;
+
+            /* fix up state to trigger transition into TURN_STATE_CLEAN_UP */
+            retStatus = STATUS_SUCCESS;
+            CHK_STATUS(stepStateMachine(pTurnConnection->pStateMachine));
+        } else if (STATUS_FAILED(retStatus) && pTurnConnection->state != TURN_STATE_FAILED) {
+            pTurnConnection->errorStatus = retStatus;
+            pTurnConnection->state = TURN_STATE_FAILED;
+
+            if (pTurnConnection->turnConnectionCallbacks.turnStateFailedFn != NULL) {
+                pTurnConnection->turnConnectionCallbacks.turnStateFailedFn(pTurnConnection->pControlChannel,
+                                                                           pTurnConnection->turnConnectionCallbacks.customData);
+            }
+
+            /* fix up state to trigger transition into TURN_STATE_FAILED  */
+            retStatus = STATUS_SUCCESS;
+            CHK_STATUS(stepStateMachine(pTurnConnection->pStateMachine));
+        }
+
+        if (oldState != pTurnConnection->state) {
+            DLOGD("Turn connection state changed from %s to %s.", turnConnectionGetStateStr(oldState),
+                  turnConnectionGetStateStr(pTurnConnection->state));
+        } else {
+            // state machine retry is not used. resetStateMachineRetryCount just to avoid
+            // state machine retry grace period overflow warning.
+            CHK_STATUS(resetStateMachineRetryCount(pTurnConnection->pStateMachine));
+        }
+    } while (oldState != pTurnConnection->state);
+
+CleanUp:
+
+    CHK_LOG_ERR(retStatus);
+
+    LEAVES();
+    return retStatus;
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -134,11 +198,13 @@ CleanUp:
 STATUS fromGetCredentialsTurnState(UINT64 customData, PUINT64 pState)
 {
     ENTERS();
+    UINT64 currentTime;
     STATUS retStatus = STATUS_SUCCESS;
     PTurnConnection pTurnConnection = (PTurnConnection) customData;
     UINT64 state = TURN_STATE_GET_CREDENTIALS;
 
     CHK(pTurnConnection != NULL && pState != NULL, STATUS_NULL_ARG);
+    currentTime = GETTIME();
 
     if (pTurnConnection->credentialObtained) {
         state = TURN_STATE_ALLOCATION;
@@ -191,10 +257,12 @@ STATUS fromAllocationTurnState(UINT64 customData, PUINT64 pState)
     STATUS retStatus = STATUS_SUCCESS;
     PTurnConnection pTurnConnection = (PTurnConnection) customData;
     UINT64 state = TURN_STATE_ALLOCATION;
+    UINT64 currentTime;
 
     CHK(pTurnConnection != NULL && pState != NULL, STATUS_NULL_ARG);
     if (ATOMIC_LOAD_BOOL(&pTurnConnection->hasAllocation)) {
         state = TURN_STATE_CREATE_PERMISSION;
+        currentTime = GETTIME();
         pTurnConnection->stateTimeoutTime = currentTime + DEFAULT_TURN_CREATE_PERMISSION_TIMEOUT;
     }
 
@@ -245,9 +313,20 @@ STATUS fromCreatePermissionTurnState(UINT64 customData, PUINT64 pState)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PTurnConnection pTurnConnection = (PTurnConnection) customData;
-    UINT64 state = TURN_STATE_CREATE_PERMISSION;
+    UINT64 state = TURN_STATE_CREATE_PERMISSION, currentTime;
+    UINT32 channelWithPermissionCount = 0, i = 0;
 
     CHK(pTurnConnection != NULL && pState != NULL, STATUS_NULL_ARG);
+    currentTime = GETTIME();
+
+    for (i = 0; i < pTurnConnection->turnPeerCount; ++i) {
+        // As soon as create permission succeeded, we start sending channel bind message.
+        // So connectionState could've already advanced to ready state.
+        if (pTurnConnection->turnPeerList[i].connectionState == TURN_PEER_CONN_STATE_BIND_CHANNEL ||
+            pTurnConnection->turnPeerList[i].connectionState == TURN_PEER_CONN_STATE_READY) {
+            channelWithPermissionCount++;
+        }
+    }
 
     if (currentTime >= pTurnConnection->stateTimeoutTime || channelWithPermissionCount == pTurnConnection->turnPeerCount) {
         CHK(channelWithPermissionCount > 0, STATUS_TURN_CONNECTION_FAILED_TO_CREATE_PERMISSION);
@@ -270,6 +349,9 @@ STATUS executeCreatePermissionTurnState(UINT64 customData, UINT64 time)
     UNUSED_PARAM(time);
     STATUS retStatus = STATUS_SUCCESS;
     PTurnConnection pTurnConnection = (PTurnConnection) customData;
+    CHAR ipAddrStr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
+    UINT64 currentTime;
+    UINT32 i = 0;
 
     CHK(pTurnConnection != NULL, STATUS_NULL_ARG);
 
@@ -316,17 +398,9 @@ STATUS executeCreatePermissionTurnState(UINT64 customData, UINT64 time)
 
     CHK_STATUS(checkTurnPeerConnections(pTurnConnection));
 
-    for (i = 0; i < pTurnConnection->turnPeerCount; ++i) {
-        // As soon as create permission succeeded, we start sending channel bind message.
-        // So connectionState could've already advanced to ready state.
-        if (pTurnConnection->turnPeerList[i].connectionState == TURN_PEER_CONN_STATE_BIND_CHANNEL ||
-            pTurnConnection->turnPeerList[i].connectionState == TURN_PEER_CONN_STATE_READY) {
-            channelWithPermissionCount++;
-        }
-    }
-
     // push back timeout if no peer is available yet
     if (pTurnConnection->turnPeerCount == 0) {
+        currentTime = GETTIME();
         pTurnConnection->stateTimeoutTime = currentTime + DEFAULT_TURN_CREATE_PERMISSION_TIMEOUT;
         CHK(FALSE, retStatus);
     }
@@ -343,9 +417,17 @@ STATUS fromBindChannelTurnState(UINT64 customData, PUINT64 pState)
     STATUS retStatus = STATUS_SUCCESS;
     PTurnConnection pTurnConnection = (PTurnConnection) customData;
     UINT64 state = TURN_STATE_BIND_CHANNEL;
+    UINT64 currentTime;
+    UINT32 readyPeerCount = 0, i = 0;
 
     CHK(pTurnConnection != NULL && pState != NULL, STATUS_NULL_ARG);
 
+    currentTime = GETTIME();
+    for (i = 0; i < pTurnConnection->turnPeerCount; ++i) {
+        if (pTurnConnection->turnPeerList[i].connectionState == TURN_PEER_CONN_STATE_READY) {
+            readyPeerCount++;
+        }
+    }
     if (currentTime >= pTurnConnection->stateTimeoutTime || readyPeerCount == pTurnConnection->turnPeerCount) {
         CHK(readyPeerCount > 0, STATUS_TURN_CONNECTION_FAILED_TO_BIND_CHANNEL);
         // go to next state if we have at least one ready peer
@@ -365,14 +447,10 @@ STATUS executeBindChannelTurnState(UINT64 customData, UINT64 time)
     UNUSED_PARAM(time);
     STATUS retStatus = STATUS_SUCCESS;
     PTurnConnection pTurnConnection = (PTurnConnection) customData;
+    UINT32 i;
 
     CHK(pTurnConnection != NULL, STATUS_NULL_ARG);
     pTurnConnection->state = TURN_STATE_BIND_CHANNEL;
-    for (i = 0; i < pTurnConnection->turnPeerCount; ++i) {
-        if (pTurnConnection->turnPeerList[i].connectionState == TURN_PEER_CONN_STATE_READY) {
-            readyPeerCount++;
-        }
-    }
     CHK_STATUS(checkTurnPeerConnections(pTurnConnection));
 
 CleanUp:
@@ -388,10 +466,13 @@ STATUS fromReadyTurnState(UINT64 customData, PUINT64 pState)
     PTurnConnection pTurnConnection = (PTurnConnection) customData;
     UINT64 state = TURN_STATE_READY;
     BOOL refreshPeerPermission = FALSE;
+    UINT64 currentTime;
+    UINT32 i;
 
     CHK(pTurnConnection != NULL && pState != NULL, STATUS_NULL_ARG);
 
     CHK_STATUS(turnConnectionRefreshPermission(pTurnConnection, &refreshPeerPermission));
+    currentTime = GETTIME();
     if (refreshPeerPermission) {
         // reset pTurnPeer->connectionState to make them go through create permission and channel bind again
         for (i = 0; i < pTurnConnection->turnPeerCount; ++i) {
@@ -441,12 +522,15 @@ STATUS fromCleanUpTurnState(UINT64 customData, PUINT64 pState)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PTurnConnection pTurnConnection = (PTurnConnection) customData;
-    UINT64 state = TURN_STATE_CLEANUP;
+    UINT64 state = TURN_STATE_CLEAN_UP;
+    UINT64 currentTime;
+    UINT32 i = 0;
 
     CHK(pTurnConnection != NULL && pState != NULL, STATUS_NULL_ARG);
 
     /* start cleanning up even if we dont receive allocation freed response in time, or if connection is already closed,
      * since we already sent multiple STUN refresh packets with 0 lifetime. */
+    currentTime = GETTIME();
     if (socketConnectionIsClosed(pTurnConnection->pControlChannel) || !ATOMIC_LOAD_BOOL(&pTurnConnection->hasAllocation) ||
         currentTime >= pTurnConnection->stateTimeoutTime) {
         // clean transactionId store for each turn peer, preserving the peers
@@ -475,10 +559,11 @@ STATUS executeCleanUpTurnState(UINT64 customData, UINT64 time)
     UNUSED_PARAM(time);
     STATUS retStatus = STATUS_SUCCESS;
     PTurnConnection pTurnConnection = (PTurnConnection) customData;
+    PStunAttributeLifetime pStunAttributeLifetime = NULL;
 
     CHK(pTurnConnection != NULL, STATUS_NULL_ARG);
 
-    pTurnConnection->state = TURN_STATE_CLEANUP;
+    pTurnConnection->state = TURN_STATE_CLEAN_UP;
     if (ATOMIC_LOAD_BOOL(&pTurnConnection->hasAllocation)) {
         CHK_STATUS(getStunAttribute(pTurnConnection->pTurnAllocationRefreshPacket, STUN_ATTRIBUTE_TYPE_LIFETIME,
                                     (PStunAttributeHeader*) &pStunAttributeLifetime));
@@ -502,11 +587,13 @@ STATUS fromFailedTurnState(UINT64 customData, PUINT64 pState)
     STATUS retStatus = STATUS_SUCCESS;
     PTurnConnection pTurnConnection = (PTurnConnection) customData;
     UINT64 state = TURN_STATE_FAILED;
+    UINT64 currentTime;
 
     CHK(pTurnConnection != NULL && pState != NULL, STATUS_NULL_ARG);
 
     /* If we haven't done cleanup, go to cleanup state which will do the cleanup then go to failed state again. */
     if (!ATOMIC_LOAD_BOOL(&pTurnConnection->shutdownComplete)) {
+        currentTime = GETTIME();
         state = TURN_STATE_CLEAN_UP;
         pTurnConnection->stateTimeoutTime = currentTime + DEFAULT_TURN_CLEAN_UP_TIMEOUT;
     }
