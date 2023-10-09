@@ -175,7 +175,7 @@ Macros</h2></td></tr>
 <tr class="separator:a60db4d3b2bc7f22bcb0d0dbf3ac3684b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a63a3eb30be8485db860252b1bb2b36b4"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtcp_8h.html#a63a3eb30be8485db860252b1bb2b36b4">TWCC_RUNLEN_STATUS_SYMBOL</a>(packetChunk)&#160;&#160;&#160;(((packetChunk) &gt;&gt; 13u) &amp; 3u)</td></tr>
 <tr class="separator:a63a3eb30be8485db860252b1bb2b36b4"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a5f08ca1e5dd9cc6ca868f2374ba09547"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtcp_8h.html#a5f08ca1e5dd9cc6ca868f2374ba09547">TWCC_RUNLEN_GET</a>(packetChunk)&#160;&#160;&#160;((packetChunk) &amp;0x1fffu)</td></tr>
+<tr class="memitem:a5f08ca1e5dd9cc6ca868f2374ba09547"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtcp_8h.html#a5f08ca1e5dd9cc6ca868f2374ba09547">TWCC_RUNLEN_GET</a>(packetChunk)&#160;&#160;&#160;((packetChunk) &amp; 0x1fffu)</td></tr>
 <tr class="separator:a5f08ca1e5dd9cc6ca868f2374ba09547"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:afad753ba70f1761f68495bec0aa95668"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtcp_8h.html#afad753ba70f1761f68495bec0aa95668">TWCC_IS_NOTRECEIVED</a>(statusSymbol)&#160;&#160;&#160;((statusSymbol) == <a class="el" href="Rtcp_8h.html#a21ec0b7d62f75b6f30fa0ea3491769d0a59ad34f86ce80c658570827be280534b">TWCC_STATUS_SYMBOL_NOTRECEIVED</a>)</td></tr>
 <tr class="separator:afad753ba70f1761f68495bec0aa95668"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -189,7 +189,7 @@ Macros</h2></td></tr>
 <tr class="separator:a89b552478196a161443c9c9a199b7096"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a52911adfa831297765397816d19a82b4"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtcp_8h.html#a52911adfa831297765397816d19a82b4">TWCC_STATUSVECTOR_SMASK</a>(packetChunk)&#160;&#160;&#160;(<a class="el" href="Rtcp_8h.html#a543e20e46d803e9c626fe6f2863bfc37">TWCC_STATUSVECTOR_IS_2BIT</a>(packetChunk) ? 2u : 1u)</td></tr>
 <tr class="separator:a52911adfa831297765397816d19a82b4"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a005850c9fa3a6f716b8b8f4c636aee5c"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtcp_8h.html#a005850c9fa3a6f716b8b8f4c636aee5c">TWCC_STATUSVECTOR_STATUS</a>(packetChunk,  i)&#160;&#160;&#160;    (((packetChunk) &gt;&gt; (14u - (i) *<a class="el" href="Rtcp_8h.html#a89b552478196a161443c9c9a199b7096">TWCC_STATUSVECTOR_SSIZE</a>(packetChunk))) &amp; <a class="el" href="Rtcp_8h.html#a52911adfa831297765397816d19a82b4">TWCC_STATUSVECTOR_SMASK</a>(packetChunk))</td></tr>
+<tr class="memitem:a005850c9fa3a6f716b8b8f4c636aee5c"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtcp_8h.html#a005850c9fa3a6f716b8b8f4c636aee5c">TWCC_STATUSVECTOR_STATUS</a>(packetChunk,  i)&#160;&#160;&#160;    (((packetChunk) &gt;&gt; (14u - (i) * <a class="el" href="Rtcp_8h.html#a89b552478196a161443c9c9a199b7096">TWCC_STATUSVECTOR_SSIZE</a>(packetChunk))) &amp; <a class="el" href="Rtcp_8h.html#a52911adfa831297765397816d19a82b4">TWCC_STATUSVECTOR_SMASK</a>(packetChunk))</td></tr>
 <tr class="separator:a005850c9fa3a6f716b8b8f4c636aee5c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7610fd25403fe72b01f1f776452fa768"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtcp_8h.html#a7610fd25403fe72b01f1f776452fa768">TWCC_STATUSVECTOR_COUNT</a>(packetChunk)&#160;&#160;&#160;(<a class="el" href="Rtcp_8h.html#a543e20e46d803e9c626fe6f2863bfc37">TWCC_STATUSVECTOR_IS_2BIT</a>(packetChunk) ? 7 : 14)</td></tr>
 <tr class="separator:a7610fd25403fe72b01f1f776452fa768"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -385,7 +385,7 @@ Functions</h2></td></tr>
           <td>(</td>
           <td class="paramtype">&#160;</td>
           <td class="paramname">packetChunk</td><td>)</td>
-          <td>&#160;&#160;&#160;((packetChunk) &amp;0x1fffu)</td>
+          <td>&#160;&#160;&#160;((packetChunk) &amp; 0x1fffu)</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -521,7 +521,7 @@ Functions</h2></td></tr>
         <tr>
           <td></td>
           <td>)</td>
-          <td></td><td>&#160;&#160;&#160;    (((packetChunk) &gt;&gt; (14u - (i) *<a class="el" href="Rtcp_8h.html#a89b552478196a161443c9c9a199b7096">TWCC_STATUSVECTOR_SSIZE</a>(packetChunk))) &amp; <a class="el" href="Rtcp_8h.html#a52911adfa831297765397816d19a82b4">TWCC_STATUSVECTOR_SMASK</a>(packetChunk))</td>
+          <td></td><td>&#160;&#160;&#160;    (((packetChunk) &gt;&gt; (14u - (i) * <a class="el" href="Rtcp_8h.html#a89b552478196a161443c9c9a199b7096">TWCC_STATUSVECTOR_SSIZE</a>(packetChunk))) &amp; <a class="el" href="Rtcp_8h.html#a52911adfa831297765397816d19a82b4">TWCC_STATUSVECTOR_SMASK</a>(packetChunk))</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -771,7 +771,7 @@ Here is the caller graph for this function:</div>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_94e7a0fbe7f8eaf7f05ee7b02c647e9f.html">source</a></li><li class="navelem"><a class="el" href="dir_3f63ab91aeb49885abb85dedd791923c.html">PeerConnection</a></li><li class="navelem"><a class="el" href="Rtcp_8h.html">Rtcp.h</a></li>
-    <li class="footer">Generated on Tue Sep 26 2023 23:28:20 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Mon Oct 9 2023 15:25:24 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>

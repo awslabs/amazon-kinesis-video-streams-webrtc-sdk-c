@@ -143,7 +143,7 @@ $(document).ready(function(){initNavTree('RtpPacket_8h_source.html',''); initRes
 <div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;<span class="comment"> */</span></div>
 <div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;<span class="comment">// https://tools.ietf.org/html/draft-holmer-rmcat-transport-wide-cc-extensions-01</span></div>
 <div class="line"><a name="l00048"></a><span class="lineno"><a class="line" href="RtpPacket_8h.html#a0d516945a999adb6de5c8df4da1ad5b1">   48</a></span>&#160;<span class="preprocessor">#define TWCC_EXT_PROFILE                 0xBEDE</span></div>
-<div class="line"><a name="l00049"></a><span class="lineno"><a class="line" href="RtpPacket_8h.html#ad500e7d0473883a141e279f8a97908bc">   49</a></span>&#160;<span class="preprocessor">#define TWCC_PAYLOAD(extId, sequenceNum) htonl((((extId) &amp;0xfu) &lt;&lt; 28u) | (1u &lt;&lt; 24u) | ((UINT32) (sequenceNum) &lt;&lt; 8u))</span></div>
+<div class="line"><a name="l00049"></a><span class="lineno"><a class="line" href="RtpPacket_8h.html#ad500e7d0473883a141e279f8a97908bc">   49</a></span>&#160;<span class="preprocessor">#define TWCC_PAYLOAD(extId, sequenceNum) htonl((((extId) &amp; 0xfu) &lt;&lt; 28u) | (1u &lt;&lt; 24u) | ((UINT32) (sequenceNum) &lt;&lt; 8u))</span></div>
 <div class="line"><a name="l00050"></a><span class="lineno"><a class="line" href="RtpPacket_8h.html#a9df78c4c30e07f0d2831735e69a10877">   50</a></span>&#160;<span class="preprocessor">#define TWCC_SEQNUM(extPayload)          ((UINT16) getUnalignedInt16BigEndian(extPayload + 1))</span></div>
 <div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160; </div>
 <div class="line"><a name="l00052"></a><span class="lineno"><a class="line" href="RtpPacket_8h.html#a6918ad0323871199fbe1e7c0653bde3a">   52</a></span>&#160;<span class="keyword">typedef</span> STATUS (*<a class="code" href="RtpPacket_8h.html#a6918ad0323871199fbe1e7c0653bde3a">DepayRtpPayloadFunc</a>)(PBYTE, UINT32, PBYTE, PUINT32, PBOOL);</div>
@@ -268,7 +268,7 @@ $(document).ready(function(){initNavTree('RtpPacket_8h_source.html',''); initRes
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_94e7a0fbe7f8eaf7f05ee7b02c647e9f.html">source</a></li><li class="navelem"><a class="el" href="dir_0b17a3b3ab1f965fe1acafe7d60c10e8.html">Rtp</a></li><li class="navelem"><a class="el" href="RtpPacket_8h.html">RtpPacket.h</a></li>
-    <li class="footer">Generated on Tue Sep 26 2023 23:28:20 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Mon Oct 9 2023 15:25:24 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>
