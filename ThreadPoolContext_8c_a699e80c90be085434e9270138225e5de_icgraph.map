@@ -1,7 +1,9 @@
 <map id="threadpoolContextPush" name="threadpoolContextPush">
-<area shape="rect" id="node1" title=" " alt="" coords="875,5,1049,32"/>
-<area shape="rect" id="node2" href="$LwsApiCalls_8c.html#a4c9dcb58ab89a46831b232ea6f1b9903" title=" " alt="" coords="673,5,827,32"/>
-<area shape="rect" id="node3" href="$LwsApiCalls_8c.html#ada0698d028687c46481e076ce1be4359" title=" " alt="" coords="448,5,625,32"/>
-<area shape="rect" id="node4" href="$Signaling_8c.html#ab095306d46a8e5ae01e2b28a8de0487a" title=" " alt="" coords="245,5,400,32"/>
-<area shape="rect" id="node5" href="$group__PublicMemberFunctions.html#ga375ddffe8376298cdaafe63799b53b1e" title="Creates a Signaling client and returns a handle to it." alt="" coords="5,5,197,32"/>
+<area shape="rect" id="node1" title=" " alt="" coords="935,31,1109,57"/>
+<area shape="rect" id="node2" href="$PeerConnection_8c.html#a0a0385b5afef472a439ff5d8d8d7c1a0" title=" " alt="" coords="673,5,887,32"/>
+<area shape="rect" id="node4" href="$LwsApiCalls_8c.html#a4c9dcb58ab89a46831b232ea6f1b9903" title=" " alt="" coords="703,56,857,83"/>
+<area shape="rect" id="node3" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="454,5,619,32"/>
+<area shape="rect" id="node5" href="$LwsApiCalls_8c.html#ada0698d028687c46481e076ce1be4359" title=" " alt="" coords="448,56,625,83"/>
+<area shape="rect" id="node6" href="$Signaling_8c.html#ab095306d46a8e5ae01e2b28a8de0487a" title=" " alt="" coords="245,56,400,83"/>
+<area shape="rect" id="node7" href="$group__PublicMemberFunctions.html#ga375ddffe8376298cdaafe63799b53b1e" title="Creates a Signaling client and returns a handle to it." alt="" coords="5,56,197,83"/>
 </map>

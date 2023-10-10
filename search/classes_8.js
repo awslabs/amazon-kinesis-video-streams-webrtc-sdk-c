@@ -1,5 +1,5 @@
 var searchData=
 [
-  ['peerconnectionmetrics_2831',['PeerConnectionMetrics',['../structPeerConnectionMetrics.html',1,'']]],
-  ['peerconnectionstats_2832',['PeerConnectionStats',['../structPeerConnectionStats.html',1,'']]]
+  ['peerconnectionmetrics_2845',['PeerConnectionMetrics',['../structPeerConnectionMetrics.html',1,'']]],
+  ['peerconnectionstats_2846',['PeerConnectionStats',['../structPeerConnectionStats.html',1,'']]]
 ];

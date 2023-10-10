@@ -181,6 +181,8 @@ Functions</h2></td></tr>
 <tr class="separator:af9a81361c6870b54ba2accc75c8fc2ff"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:acb76c8f97caeeed13b80dce1adb0ccad"><td class="memItemLeft" align="right" valign="top">INT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Dtls__mbedtls_8c.html#acb76c8f97caeeed13b80dce1adb0ccad">dtlsSessionKeyDerivationCallback</a> (PVOID customData, const unsigned char *pMasterSecret, const unsigned char *pKeyBlock, ULONG maclen, ULONG keylen, ULONG ivlen, const unsigned char clientRandom[32], const unsigned char serverRandom[32], mbedtls_tls_prf_types tlsProfile)</td></tr>
 <tr class="separator:acb76c8f97caeeed13b80dce1adb0ccad"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aba4e06631285e39f593bad553a88b456"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Dtls__mbedtls_8c.html#aba4e06631285e39f593bad553a88b456">dtlsSessionHandshakeInThread</a> (<a class="el" href="Dtls_8h.html#a26ca7dadcdec16a8584b8a97811cb2f6">PDtlsSession</a> pDtlsSession, BOOL isServer)</td></tr>
+<tr class="separator:aba4e06631285e39f593bad553a88b456"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0872f720df900a4176081befd72bedf4"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Dtls__mbedtls_8c.html#a0872f720df900a4176081befd72bedf4">dtlsSessionStart</a> (<a class="el" href="Dtls_8h.html#a26ca7dadcdec16a8584b8a97811cb2f6">PDtlsSession</a> pDtlsSession, BOOL isServer)</td></tr>
 <tr class="separator:a0872f720df900a4176081befd72bedf4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1c58c2bc5945aa0225fc2f1ce6f1eec8"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Dtls__mbedtls_8c.html#a1c58c2bc5945aa0225fc2f1ce6f1eec8">dtlsSessionIsInitFinished</a> (<a class="el" href="Dtls_8h.html#a26ca7dadcdec16a8584b8a97811cb2f6">PDtlsSession</a> pDtlsSession, PBOOL pIsFinished)</td></tr>
@@ -498,6 +500,34 @@ Here is the caller graph for this function:</div>
 <area shape="rect" href="group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,5,171,32"/>
 </map>
 </div>
+
+</div>
+</div>
+<a id="aba4e06631285e39f593bad553a88b456"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aba4e06631285e39f593bad553a88b456">&#9670;&nbsp;</a></span>dtlsSessionHandshakeInThread()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">STATUS dtlsSessionHandshakeInThread </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="Dtls_8h.html#a26ca7dadcdec16a8584b8a97811cb2f6">PDtlsSession</a>&#160;</td>
+          <td class="paramname"><em>pDtlsSession</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">BOOL&#160;</td>
+          <td class="paramname"><em>isServer</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
 
 </div>
 </div>
@@ -1102,7 +1132,7 @@ Here is the caller graph for this function:</div>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_94e7a0fbe7f8eaf7f05ee7b02c647e9f.html">source</a></li><li class="navelem"><a class="el" href="dir_bb0babb9660851e963dd030d37ce8ee6.html">Crypto</a></li><li class="navelem"><a class="el" href="Dtls__mbedtls_8c.html">Dtls_mbedtls.c</a></li>
-    <li class="footer">Generated on Tue Oct 10 2023 18:26:42 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Tue Oct 10 2023 22:38:08 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>

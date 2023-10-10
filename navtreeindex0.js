@@ -21,13 +21,14 @@ var NAVTREEINDEX0 =
 "group__Counts.html#ga4e6cbb5c5fbb3b5b4eb065e6182051e9":[1,0,15,1],
 "group__Counts.html#gaf71fd75acb6989a1b298d55458dda375":[1,0,15,2],
 "group__DTLSStatusCodes.html":[1,0,4],
-"group__DTLSStatusCodes.html#ga1aad80f91e7952fba656cc34666207b3":[1,0,4,4],
-"group__DTLSStatusCodes.html#ga275a2e4263f48bfcc2c5be6c66bb1f1f":[1,0,4,6],
+"group__DTLSStatusCodes.html#ga1aad80f91e7952fba656cc34666207b3":[1,0,4,5],
+"group__DTLSStatusCodes.html#ga275a2e4263f48bfcc2c5be6c66bb1f1f":[1,0,4,7],
 "group__DTLSStatusCodes.html#ga4999e97b2991ab225df0297475895735":[1,0,4,0],
-"group__DTLSStatusCodes.html#ga84ffd460a86661011b40927dc0401977":[1,0,4,5],
+"group__DTLSStatusCodes.html#ga84ffd460a86661011b40927dc0401977":[1,0,4,6],
+"group__DTLSStatusCodes.html#ga9d222503eef3c2aeaf9510ee3aa8c3f7":[1,0,4,2],
 "group__DTLSStatusCodes.html#gadda1fe61c08ceea71b9f9a1c61905e05":[1,0,4,1],
-"group__DTLSStatusCodes.html#gaed33edb5344ea6b5c793a5b135e45bb7":[1,0,4,3],
-"group__DTLSStatusCodes.html#gaeeb0d5b34f3e2591f994c872200f07e6":[1,0,4,2],
+"group__DTLSStatusCodes.html#gaed33edb5344ea6b5c793a5b135e45bb7":[1,0,4,4],
+"group__DTLSStatusCodes.html#gaeeb0d5b34f3e2591f994c872200f07e6":[1,0,4,3],
 "group__ICEStatusCodes.html":[1,0,5],
 "group__ICEStatusCodes.html#ga02f325e52d093d42ee082244cd5e7346":[1,0,5,18],
 "group__ICEStatusCodes.html#ga04a4c612994ef56d94decfc63adbad0c":[1,0,5,4],
@@ -248,6 +249,5 @@ var NAVTREEINDEX0 =
 "group__PublicEnums.html#ggad42c829d5095ba5e3ab0b6fff6ff8678a0c5c0cac508158371cf57c5ae4e08547":[1,0,17,3,2],
 "group__PublicEnums.html#ggad42c829d5095ba5e3ab0b6fff6ff8678a0c5c0cac508158371cf57c5ae4e08547":[1,0,47],
 "group__PublicEnums.html#ggad42c829d5095ba5e3ab0b6fff6ff8678a116e5ba6a09e28d6d6f5885bafaf36de":[1,0,17,3,3],
-"group__PublicEnums.html#ggad42c829d5095ba5e3ab0b6fff6ff8678a116e5ba6a09e28d6d6f5885bafaf36de":[1,0,46],
-"group__PublicEnums.html#ggad42c829d5095ba5e3ab0b6fff6ff8678a1dd503f12e5dc038196c5ca882320b61":[1,0,17,3,1]
+"group__PublicEnums.html#ggad42c829d5095ba5e3ab0b6fff6ff8678a116e5ba6a09e28d6d6f5885bafaf36de":[1,0,46]
 };

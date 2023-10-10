@@ -1,0 +1,8 @@
+<map id="beginHandshakeProcess" name="beginHandshakeProcess">
+<area shape="rect" id="node1" title=" " alt="" coords="973,31,1153,57"/>
+<area shape="rect" id="node2" href="$Dtls__openssl_8c.html#aba4e06631285e39f593bad553a88b456" title=" " alt="" coords="700,5,925,32"/>
+<area shape="rect" id="node6" href="$Dtls__openssl_8c.html#a0872f720df900a4176081befd72bedf4" title=" " alt="" coords="503,56,629,83"/>
+<area shape="rect" id="node3" href="$PeerConnection_8c.html#a2866c8ee0d8506fb54885976750bac71" title=" " alt="" coords="480,5,652,32"/>
+<area shape="rect" id="node4" href="$PeerConnection_8c.html#a0a0385b5afef472a439ff5d8d8d7c1a0" title=" " alt="" coords="219,31,432,57"/>
+<area shape="rect" id="node5" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,31,171,57"/>
+</map>

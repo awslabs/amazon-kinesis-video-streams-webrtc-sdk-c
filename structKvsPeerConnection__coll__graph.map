@@ -17,7 +17,7 @@
 <area shape="rect" id="node16" href="$structTwccManager.html" title=" " alt="" coords="300,1185,475,1292"/>
 <area shape="rect" id="node17" href="$structTwccPacket.html" title=" " alt="" coords="325,825,466,947"/>
 <area shape="rect" id="node18" href="$struct____RtcDataChannel.html" title="RtcDataChannel represents a bi&#45;directional data channel between two peers." alt="" coords="499,1193,641,1285"/>
-<area shape="rect" id="node19" href="$struct____DtlsSession.html" title=" " alt="" coords="665,1141,846,1336"/>
+<area shape="rect" id="node19" href="$struct____DtlsSession.html" title=" " alt="" coords="665,1127,846,1351"/>
 <area shape="rect" id="node20" href="$structDtlsSessionCallbacks.html" title=" " alt="" coords="515,825,753,947"/>
 <area shape="rect" id="node21" href="$struct____IceAgent.html" title=" " alt="" coords="3207,1127,3426,1351"/>
 <area shape="rect" id="node29" href="$structIceCandidate.html" title=" " alt="" coords="4129,1428,4281,1623"/>
