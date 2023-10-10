@@ -55,8 +55,8 @@ STATUS dtlsTransmissionTimerCallback(UINT32 timerID, UINT64 currentTime, UINT64 
     UINT64 timeoutValDefaultTimeUnit = 0;
     LONG dtlsTimeoutRet = 0;
 
-    CHK(pDtlsSession != NULL, STATUS_NULL_ARG);
     acquireDtlsSession(pDtlsSession);
+    CHK(pDtlsSession != NULL, STATUS_NULL_ARG);
 
     MEMSET(&timeout, 0x00, SIZEOF(struct timeval));
 
@@ -386,6 +386,7 @@ STATUS beginHandshakeProcess(PDtlsSession pDtlsSession, BOOL isServer, PINT32 ss
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
 
+    acquireDtlsSession(pDtlsSession);
     CHK(pDtlsSession != NULL, STATUS_NULL_ARG);
 
     CHK(!ATOMIC_LOAD_BOOL(&pDtlsSession->isStarted), retStatus);
@@ -408,6 +409,7 @@ STATUS beginHandshakeProcess(PDtlsSession pDtlsSession, BOOL isServer, PINT32 ss
     *sslRet = SSL_do_handshake(pDtlsSession->pSsl);
 CleanUp:
     CHK_LOG_ERR(retStatus);
+    releaseDtlsSession(pDtlsSession);
     LEAVES();
     return retStatus;
 }
@@ -419,9 +421,8 @@ STATUS dtlsSessionStart(PDtlsSession pDtlsSession, BOOL isServer)
     BOOL locked = FALSE;
     INT32 sslRet;
 
-    CHK(pDtlsSession != NULL && pDtlsSession != NULL, STATUS_NULL_ARG);
-
     acquireDtlsSession(pDtlsSession);
+    CHK(pDtlsSession != NULL, STATUS_NULL_ARG);
 
     MUTEX_LOCK(pDtlsSession->sslLock);
     locked = TRUE;
@@ -453,9 +454,9 @@ STATUS dtlsSessionHandshakeInThread(PDtlsSession pDtlsSession, BOOL isServer)
     BOOL dtlsHandshakeErrored = FALSE;
     BOOL timedOut = FALSE;
     MEMSET(&timeout, 0x00, SIZEOF(struct timeval));
-    CHK(pDtlsSession != NULL && pDtlsSession != NULL, STATUS_NULL_ARG);
 
     acquireDtlsSession(pDtlsSession);
+    CHK(pDtlsSession != NULL, STATUS_NULL_ARG);
 
     MUTEX_LOCK(pDtlsSession->sslLock);
     locked = TRUE;
@@ -594,8 +595,8 @@ STATUS dtlsSessionProcessPacket(PDtlsSession pDtlsSession, PBYTE pData, PINT32 p
     INT32 sslRet = 0, sslErr;
     INT32 dataLen = 0;
 
-    CHK(pDtlsSession != NULL && pDtlsSession != NULL && pDataLen != NULL, STATUS_NULL_ARG);
     acquireDtlsSession(pDtlsSession);
+    CHK(pDtlsSession != NULL && pDataLen != NULL, STATUS_NULL_ARG);
     CHK(ATOMIC_LOAD_BOOL(&pDtlsSession->isStarted), STATUS_SSL_PACKET_BEFORE_DTLS_READY);
 
     MUTEX_LOCK(pDtlsSession->sslLock);
@@ -662,9 +663,8 @@ STATUS dtlsSessionPutApplicationData(PDtlsSession pDtlsSession, PBYTE pData, INT
     SIZE_T pending;
     BOOL locked = FALSE;
 
-    CHK(pDtlsSession != NULL && pData != NULL, STATUS_NULL_ARG);
-
     acquireDtlsSession(pDtlsSession);
+    CHK(pDtlsSession != NULL && pData != NULL, STATUS_NULL_ARG);
 
     MUTEX_LOCK(pDtlsSession->sslLock);
     locked = TRUE;
@@ -698,9 +698,9 @@ STATUS dtlsSessionShutdown(PDtlsSession pDtlsSession)
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
 
+    acquireDtlsSession(pDtlsSession);
     CHK(pDtlsSession != NULL, STATUS_NULL_ARG);
 
-    acquireDtlsSession(pDtlsSession);
     MUTEX_LOCK(pDtlsSession->sslLock);
     locked = TRUE;
 
@@ -755,9 +755,9 @@ STATUS dtlsSessionIsInitFinished(PDtlsSession pDtlsSession, PBOOL pIsConnected)
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
 
+    acquireDtlsSession(pDtlsSession);
     CHK(pDtlsSession != NULL && pIsConnected != NULL, STATUS_NULL_ARG);
 
-    acquireDtlsSession(pDtlsSession);
     MUTEX_LOCK(pDtlsSession->sslLock);
     locked = TRUE;
     *pIsConnected = SSL_is_init_finished(pDtlsSession->pSsl);
@@ -786,9 +786,9 @@ STATUS dtlsSessionPopulateKeyingMaterial(PDtlsSession pDtlsSession, PDtlsKeyingM
     BYTE keyingMaterialBuffer[MAX_SRTP_MASTER_KEY_LEN * 2 + MAX_SRTP_SALT_KEY_LEN * 2];
     BOOL locked = FALSE;
 
+    acquireDtlsSession(pDtlsSession);
     CHK(pDtlsSession != NULL && pDtlsKeyingMaterial != NULL, STATUS_NULL_ARG);
 
-    acquireDtlsSession(pDtlsSession);
     MUTEX_LOCK(pDtlsSession->sslLock);
     locked = TRUE;
 
@@ -834,9 +834,9 @@ STATUS dtlsSessionGetLocalCertificateFingerprint(PDtlsSession pDtlsSession, PCHA
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
 
+    acquireDtlsSession(pDtlsSession);
     CHK(pDtlsSession != NULL && pBuff != NULL, STATUS_NULL_ARG);
 
-    acquireDtlsSession(pDtlsSession);
     CHK(buffLen >= CERTIFICATE_FINGERPRINT_LENGTH, STATUS_INVALID_ARG_LEN);
 
     MUTEX_LOCK(pDtlsSession->sslLock);
@@ -862,9 +862,9 @@ STATUS dtlsSessionVerifyRemoteCertificateFingerprint(PDtlsSession pDtlsSession, 
     X509* pRemoteCertificate = NULL;
     BOOL locked = FALSE;
 
+    acquireDtlsSession(pDtlsSession);
     CHK(pDtlsSession != NULL && pExpectedFingerprint != NULL, STATUS_NULL_ARG);
 
-    acquireDtlsSession(pDtlsSession);
     MUTEX_LOCK(pDtlsSession->sslLock);
     locked = TRUE;
 

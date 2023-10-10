@@ -439,7 +439,11 @@ CleanUp:
 PVOID dtlsSessionStartThread(PVOID args)
 {
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) args;
-    dtlsSessionHandshakeInThread(pKvsPeerConnection->pDtlsSession, pKvsPeerConnection->dtlsIsServer);
+    if (pKvsPeerConnection != NULL) {
+        dtlsSessionHandshakeInThread(pKvsPeerConnection->pDtlsSession, pKvsPeerConnection->dtlsIsServer);
+    } else {
+        DLOGE("Peer connection object NULL, cannot start DTLS handshake");
+    }
     return NULL;
 }
 
@@ -496,12 +500,8 @@ VOID onIceConnectionStateChange(UINT64 customData, UINT64 connectionState)
             // wait until DTLS state changes to CONNECTED.
             //
             // Reference: https://w3c.github.io/webrtc-pc/#rtcpeerconnectionstate-enum
-#ifdef ENABLE_KVS_THREADPOOL
-#ifdef KVS_USE_OPENSSL
+#if defined(ENABLE_KVS_THREADPOOL) && defined(KVS_USE_OPENSSL)
             CHK_STATUS(threadpoolContextPush(dtlsSessionStartThread, (PVOID) pKvsPeerConnection));
-#else
-            CHK_STATUS(dtlsSessionStart(pKvsPeerConnection->pDtlsSession, pKvsPeerConnection->dtlsIsServer));
-#endif
 #else
             CHK_STATUS(dtlsSessionStart(pKvsPeerConnection->pDtlsSession, pKvsPeerConnection->dtlsIsServer));
 #endif
