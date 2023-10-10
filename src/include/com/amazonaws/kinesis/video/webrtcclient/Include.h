@@ -1335,6 +1335,8 @@ typedef struct {
                                //!< is done reactively when needed which will simplify the processing
                                //!< and will help with issues on a small footprint platforms
 
+    BOOL useMediaStorage; //!< use the feature of media storage.
+
 } ChannelInfo, *PChannelInfo;
 
 /**

@@ -398,7 +398,11 @@ STATUS fromDescribeSignalingState(UINT64 customData, PUINT64 pState)
             if (ATOMIC_LOAD_BOOL(&pSignalingClient->deleting)) {
                 state = SIGNALING_STATE_DELETE;
             } else {
-                state = SIGNALING_STATE_DESCRIBE_MEDIA;
+                if (pSignalingClient->pChannelInfo->useMediaStorage) {
+                    state = SIGNALING_STATE_DESCRIBE_MEDIA;
+                } else {
+                    state = SIGNALING_STATE_GET_ENDPOINT;
+                }
             }
 
             break;

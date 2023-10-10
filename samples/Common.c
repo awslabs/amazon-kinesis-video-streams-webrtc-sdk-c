@@ -76,6 +76,11 @@ VOID onConnectionStateChange(UINT64 customData, RTC_PEER_CONNECTION_STATE newSta
             }
             break;
         case RTC_PEER_CONNECTION_STATE_FAILED:
+            if (pSampleConfiguration->channelInfo.useMediaStorage) {
+                DLOGI("PeerConnection Failed for Media Storage Session, reconnecting...");
+                CHK_STATUS(signalingClientConnectSync(pSampleConfiguration->signalingClientHandle));
+            }
+
             // explicit fallthrough
         case RTC_PEER_CONNECTION_STATE_CLOSED:
             // explicit fallthrough
