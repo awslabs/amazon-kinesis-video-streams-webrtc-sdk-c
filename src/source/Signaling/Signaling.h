@@ -362,7 +362,8 @@ typedef struct {
 #ifdef KVS_USE_SIGNALING_CHANNEL_THREADPOOL
     PThreadpool pThreadpool;
 #endif
-    UINT64 offerTime;
+    UINT64 offerReceivedTime;
+    UINT64 offerSentTime
     UINT64 joinSessionTime;
 
     // mutex for join session wait condition variable

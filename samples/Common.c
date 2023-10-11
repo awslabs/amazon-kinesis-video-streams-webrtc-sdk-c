@@ -280,7 +280,7 @@ STATUS sendSignalingMessage(PSampleStreamingSession pSampleStreamingSession, PSi
     CHK_STATUS(signalingClientSendMessageSync(pSampleConfiguration->signalingClientHandle, pMessage));
     if (pMessage->messageType == SIGNALING_MESSAGE_TYPE_ANSWER) {
         CHK_STATUS(signalingClientGetMetrics(pSampleConfiguration->signalingClientHandle, &pSampleConfiguration->signalingClientMetrics));
-        DLOGP("[Signaling offer to answer] %" PRIu64 " ms", pSampleConfiguration->signalingClientMetrics.signalingClientStats.offerToAnswerTime);
+        DLOGP("[Signaling offer received to to answer sent time] %" PRIu64 " ms", pSampleConfiguration->signalingClientMetrics.signalingClientStats.offerToAnswerTime);
     }
 
 CleanUp:
@@ -1451,7 +1451,7 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
 
             startStats = pSampleConfiguration->iceCandidatePairStatsTimerId == MAX_UINT32;
             CHK_STATUS(signalingClientGetMetrics(pSampleConfiguration->signalingClientHandle, &pSampleConfiguration->signalingClientMetrics));
-            DLOGP("[Signaling offer to answer] %" PRIu64 " ms", pSampleConfiguration->signalingClientMetrics.signalingClientStats.offerToAnswerTime);
+            DLOGP("[Signaling offer sent to answer received time] %" PRIu64 " ms", pSampleConfiguration->signalingClientMetrics.signalingClientStats.offerToAnswerTime);
             break;
 
         case SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE:

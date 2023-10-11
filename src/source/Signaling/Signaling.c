@@ -405,10 +405,10 @@ STATUS signalingSendMessageSync(PSignalingClient pSignalingClient, PSignalingMes
     CHK_STATUS(sendLwsMessage(pSignalingClient, pSignalingMessage->messageType, pSignalingMessage->peerClientId, pSignalingMessage->payload,
                               pSignalingMessage->payloadLen, pSignalingMessage->correlationId, 0));
     if (pSignalingMessage->messageType == SIGNALING_MESSAGE_TYPE_ANSWER) {
-        PROFILE_WITH_START_TIME_OBJ(pSignalingClient->offerTime, pSignalingClient->diagnostics.offerToAnswerTime, "Offer to answer time");
+        PROFILE_WITH_START_TIME_OBJ(pSignalingClient->offerReceivedTime, pSignalingClient->diagnostics.offerToAnswerTime, "Offer Received to Answer Sent time");
     }
     if (pSignalingMessage->messageType == SIGNALING_MESSAGE_TYPE_OFFER) {
-        pSignalingClient->offerTime = GETTIME();
+        pSignalingClient->offerSentTime = GETTIME();
     }
     // Update the internal diagnostics only after successfully sending
     ATOMIC_INCREMENT(&pSignalingClient->diagnostics.numberOfMessagesSent);
