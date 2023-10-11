@@ -8,7 +8,7 @@ namespace webrtcclient {
 
 class DtlsFunctionalityTest : public WebRtcClientTestBase {
   public:
-    STATUS createAndConnect(TIMER_QUEUE_HANDLE timerQueueHandle, PDtlsSession* ppClient, PDtlsSession* ppServer)
+    STATUS createAndConnect(TIMER_QUEUE_HANDLE timerQueueHandle, PDtlsSession* ppClient, PDtlsSession* ppServer, BOOL useThread)
     {
         struct Context {
             std::mutex mtx;
@@ -20,6 +20,7 @@ class DtlsFunctionalityTest : public WebRtcClientTestBase {
         PDtlsSession pClient = NULL, pServer = NULL;
         UINT64 sleepDelay = 20 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
         Context clientCtx, serverCtx;
+        std::thread dtlsClientThread, dtlsServerThread;
 
         MEMSET(&callbacks, 0, SIZEOF(callbacks));
         callbacks.stateChangeFn = [](UINT64 customData, RTC_DTLS_TRANSPORT_STATE state) {
@@ -68,8 +69,19 @@ class DtlsFunctionalityTest : public WebRtcClientTestBase {
         CHK_STATUS(dtlsSessionOnOutBoundData(pServer, (UINT64) &clientCtx, outboundPacketFn));
         CHK_STATUS(dtlsSessionOnOutBoundData(pClient, (UINT64) &serverCtx, outboundPacketFn));
 
-        CHK_STATUS(dtlsSessionStart(pServer, FALSE));
+        // In case of mbedtls it will be a black return of SUCCESS
+#ifdef KVS_USE_OPENSSL
+        if(useThread) {
+            dtlsClientThread = std::thread(dtlsSessionHandshakeInThread, pClient, TRUE);
+            dtlsServerThread = std::thread(dtlsSessionHandshakeInThread, pServer, FALSE);
+        } else {
+            CHK_STATUS(dtlsSessionStart(pClient, TRUE));
+            CHK_STATUS(dtlsSessionStart(pServer, FALSE));
+        }
+#else
         CHK_STATUS(dtlsSessionStart(pClient, TRUE));
+        CHK_STATUS(dtlsSessionStart(pServer, FALSE));
+#endif
 
         for (UINT64 duration = 0; duration < MAX_TEST_AWAIT_DURATION && ATOMIC_LOAD(&connectedCount) != 2; duration += sleepDelay) {
             CHK_STATUS(consumeMessages(&serverCtx, pServer));
@@ -81,6 +93,13 @@ class DtlsFunctionalityTest : public WebRtcClientTestBase {
 
         *ppClient = pClient;
         *ppServer = pServer;
+
+#ifdef KVS_USE_OPENSSL
+        if(useThread) {
+            dtlsClientThread.join();
+            dtlsServerThread.join();
+        }
+#endif
 
     CleanUp:
 
@@ -117,7 +136,7 @@ TEST_F(DtlsFunctionalityTest, putApplicationDataWithVariedSizes)
     };
 
     EXPECT_EQ(STATUS_SUCCESS, timerQueueCreate(&timerQueueHandle));
-    EXPECT_EQ(STATUS_SUCCESS, createAndConnect(timerQueueHandle, &pClient, &pServer));
+    EXPECT_EQ(STATUS_SUCCESS, createAndConnect(timerQueueHandle, &pClient, &pServer, FALSE));
 
     EXPECT_EQ(STATUS_SUCCESS, dtlsSessionOnOutBoundData(pClient, 0, outboundPacketFnNoop));
     EXPECT_EQ(STATUS_SUCCESS, dtlsSessionOnOutBoundData(pServer, 0, outboundPacketFnNoop));
@@ -148,7 +167,7 @@ TEST_F(DtlsFunctionalityTest, processPacketWithVariedSizes)
     INT32 readDataSize;
 
     EXPECT_EQ(STATUS_SUCCESS, timerQueueCreate(&timerQueueHandle));
-    EXPECT_EQ(STATUS_SUCCESS, createAndConnect(timerQueueHandle, &pClient, &pServer));
+    EXPECT_EQ(STATUS_SUCCESS, createAndConnect(timerQueueHandle, &pClient, &pServer, FALSE));
 
     EXPECT_EQ(STATUS_SUCCESS, dtlsSessionOnOutBoundData(pServer, 0, outboundPacketFnNoop));
     EXPECT_EQ(STATUS_SUCCESS, dtlsSessionOnOutBoundData(pClient, 0, outboundPacketFnNoop));
@@ -166,6 +185,69 @@ TEST_F(DtlsFunctionalityTest, processPacketWithVariedSizes)
     timerQueueFree(&timerQueueHandle);
     MEMFREE(pData);
 }
+
+TEST_F(DtlsFunctionalityTest, putApplicationDataWithVariedSizesInThread)
+{
+    PDtlsSession pClient = NULL, pServer = NULL;
+    TIMER_QUEUE_HANDLE timerQueueHandle = INVALID_TIMER_QUEUE_HANDLE_VALUE;
+    PBYTE pData = NULL;
+    INT32 dataSizes[] = {
+            4,                      // very small packet
+            DEFAULT_MTU_SIZE - 200, // small packet but should be still under mtu
+            DEFAULT_MTU_SIZE + 200, // big packet and bigger than even a jumbo frame
+    };
+
+    EXPECT_EQ(STATUS_SUCCESS, timerQueueCreate(&timerQueueHandle));
+    EXPECT_EQ(STATUS_SUCCESS, createAndConnect(timerQueueHandle, &pClient, &pServer, TRUE));
+
+    EXPECT_EQ(STATUS_SUCCESS, dtlsSessionOnOutBoundData(pClient, 0, outboundPacketFnNoop));
+    EXPECT_EQ(STATUS_SUCCESS, dtlsSessionOnOutBoundData(pServer, 0, outboundPacketFnNoop));
+
+    for (int i = 0; i < (INT32) ARRAY_SIZE(dataSizes); i++) {
+        pData = (PBYTE) MEMREALLOC(pData, dataSizes[i]);
+        ASSERT_TRUE(pData != NULL);
+        MEMSET(pData, 0x11, dataSizes[i]);
+        EXPECT_EQ(STATUS_SUCCESS, dtlsSessionPutApplicationData(pClient, pData, dataSizes[i]));
+    }
+
+    freeDtlsSession(&pClient);
+    freeDtlsSession(&pServer);
+    timerQueueFree(&timerQueueHandle);
+MEMFREE(pData);
+}
+
+TEST_F(DtlsFunctionalityTest, processPacketWithVariedSizesInThread)
+{
+    PDtlsSession pClient = NULL, pServer = NULL;
+    TIMER_QUEUE_HANDLE timerQueueHandle = INVALID_TIMER_QUEUE_HANDLE_VALUE;
+    PBYTE pData = NULL;
+    INT32 dataSizes[] = {
+            4,                      // very small packet
+            DEFAULT_MTU_SIZE - 200, // small packet but should be still under mtu
+            DEFAULT_MTU_SIZE + 200, // big packet and bigger than even a jumbo frame
+    };
+    INT32 readDataSize;
+
+    EXPECT_EQ(STATUS_SUCCESS, timerQueueCreate(&timerQueueHandle));
+    EXPECT_EQ(STATUS_SUCCESS, createAndConnect(timerQueueHandle, &pClient, &pServer, TRUE));
+    EXPECT_EQ(STATUS_SUCCESS, dtlsSessionOnOutBoundData(pServer, 0, outboundPacketFnNoop));
+    EXPECT_EQ(STATUS_SUCCESS, dtlsSessionOnOutBoundData(pClient, 0, outboundPacketFnNoop));
+
+
+    for (int i = 0; i < (INT32) ARRAY_SIZE(dataSizes); i++) {
+        pData = (PBYTE) MEMREALLOC(pData, dataSizes[i]);
+        readDataSize = dataSizes[i];
+        ASSERT_TRUE(pData != NULL);
+        MEMSET(pData, 0x11, dataSizes[i]);
+        EXPECT_EQ(STATUS_SUCCESS, dtlsSessionProcessPacket(pServer, pData, &readDataSize));
+    }
+
+    freeDtlsSession(&pClient);
+    freeDtlsSession(&pServer);
+    timerQueueFree(&timerQueueHandle);
+    MEMFREE(pData);
+}
+
 
 } // namespace webrtcclient
 } // namespace video

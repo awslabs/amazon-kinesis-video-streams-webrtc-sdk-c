@@ -191,7 +191,7 @@ extern "C" {
 #define STATUS_SSL_PACKET_BEFORE_DTLS_READY               STATUS_DTLS_BASE + 0x00000004
 #define STATUS_SSL_UNKNOWN_SRTP_PROFILE                   STATUS_DTLS_BASE + 0x00000005
 #define STATUS_SSL_INVALID_CERTIFICATE_BITS               STATUS_DTLS_BASE + 0x00000006
-
+#define STATUS_DTLS_SESSION_ALREADY_FREED                 STATUS_DTLS_BASE + 0x00000007
 /*!@} */
 
 /////////////////////////////////////////////////////

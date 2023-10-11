@@ -67,7 +67,7 @@ GStreamer is installed on your system.
 
 On Ubuntu and Raspberry Pi OS you can get the libraries by running
 ```
-$ sudo apt-get install libssl-dev libcurl4-openssl-dev liblog4cplus-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev gstreamer1.0-plugins-base-apps gstreamer1.0-plugins-bad gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly gstreamer1.0-tools 
+sudo apt-get install libssl-dev libcurl4-openssl-dev liblog4cplus-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev gstreamer1.0-plugins-base-apps gstreamer1.0-plugins-bad gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly gstreamer1.0-tools 
 ```
 
 By default we download all the libraries from GitHub and build them locally, so should require nothing to be installed ahead of time.
@@ -266,6 +266,9 @@ Then choose Start Viewer to start live video streaming of the sample H264/Opus f
 }
 ```
 
+We recommend following [best practices](https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html) while setting up the IAM policy and not allow access to all channels in the account, but allow access to only the REQUIRED channel names if the use case demands it. KVS recommendation is to use iot thing name as channel name as per public docs.
+https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/how-iot.html
+
 Note: "kinesisvideo:CreateSignalingChannel" can be removed if you are running with existing KVS signaling channels. Viewer sample requires "kinesisvideo:ConnectAsViewer" permission. Integration test requires both "kinesisvideo:ConnectAsViewer" and "kinesisvideo:DeleteSignalingChannel" permission.
 
 * With the IoT certificate, IoT credentials provider endpoint (Note: it is not the endpoint on IoT AWS Console!), public key and private key ready, you can replace the static credentials provider createStaticCredentialProvider() and freeStaticCredentialProvider() with IoT credentials provider like below, the credentials provider for [samples](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/blob/master/samples/Common.c) is in createSampleConfiguration():
@@ -277,7 +280,7 @@ createLwsIotCredentialProvider(
             "/Users/username/Downloads/iot-signaling/private.pem.key", // path to iot private key
             "/Users/username/Downloads/iot-signaling/cacert.pem", // path to CA cert
             "KinesisVideoSignalingCameraIoTRoleAlias", // IoT role alias
-            channelName, // iot thing name, recommended to be same as your channel name
+            "IoTThingName", // iot thing name, recommended to be same as your channel name
             &pSampleConfiguration->pCredentialProvider));
 
 freeIotCredentialProvider(&pSampleConfiguration->pCredentialProvider);

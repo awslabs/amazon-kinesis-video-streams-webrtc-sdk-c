@@ -108,8 +108,15 @@ if(USE_OPENSSL)
 elseif(USE_MBEDTLS)
   add_definitions(-DKVS_USE_MBEDTLS)
   # FIXME: there's probably a better way to inject MBEDTLS_USER_CONFIG_FILE flag without mutating the global CMAKE_C_FLAGS and CMAKE_CXX_FLAGS
-  set(CMAKE_C_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/configs -DMBEDTLS_USER_CONFIG_FILE=\"<config_mbedtls.h>\" ${CMAKE_C_FLAGS}")
-  set(CMAKE_CXX_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/configs -DMBEDTLS_USER_CONFIG_FILE=\"<config_mbedtls.h>\" ${CMAKE_CXX_FLAGS}")
+  if("${CMAKE_C_COMPILER_ID}" MATCHES "Clang")
+    message(STATUS "Detected clang")
+    set(CMAKE_C_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/configs -DMBEDTLS_USER_CONFIG_FILE=\"<config_mbedtls.h>\" ${CMAKE_C_FLAGS}")
+    set(CMAKE_CXX_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/configs -DMBEDTLS_USER_CONFIG_FILE=\"<config_mbedtls.h>\" ${CMAKE_CXX_FLAGS}")
+  else()
+    message(STATUS "Detected gcc")
+    set(CMAKE_C_FLAGS "-Wno-error=stringop-overflow -I${CMAKE_CURRENT_SOURCE_DIR}/configs -DMBEDTLS_USER_CONFIG_FILE=\"<config_mbedtls.h>\" ${CMAKE_C_FLAGS}")
+    set(CMAKE_CXX_FLAGS "-Wno-error=stringop-overflow -I${CMAKE_CURRENT_SOURCE_DIR}/configs -DMBEDTLS_USER_CONFIG_FILE=\"<config_mbedtls.h>\" ${CMAKE_CXX_FLAGS}")
+  endif()
 endif()
 
 if(BUILD_DEPENDENCIES)
@@ -137,8 +144,8 @@ if(BUILD_DEPENDENCIES)
     set(OPENSSL_ROOT_DIR ${OPEN_SRC_INSTALL_PREFIX})
   elseif(USE_MBEDTLS)
     set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
-                   "-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -std=c99")
-    build_dependency(mbedtls ${BUILD_ARGS})
+                    "-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -std=c99")
+      build_dependency(mbedtls ${BUILD_ARGS})
   endif()
 
 
