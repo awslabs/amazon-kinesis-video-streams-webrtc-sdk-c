@@ -170,7 +170,7 @@ IngestionFunctionalityTest::MediaConfigurationInfo IngestionFunctionalityTest::c
                         mediaConfigurationInfo.isValid = TRUE;
                         return mediaConfigurationInfo;
                     } else {
-                        DLOGE("Update Media Storage Configuration FAILED");
+                        DLOGE("Update Media Storage Configuration FAILED.  %s", updateMediaStorageConfigurationOutcome.GetError().GetMessage().c_str());
                     }
                 }
             }
