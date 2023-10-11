@@ -801,6 +801,116 @@ TEST_F(IngestionFunctionalityTest, iceServerConfigRefreshConnectedJoinSessionWit
 }
 
 
+TEST_F(IngestionFunctionalityTest, fileCachingTestWithDescribeMedia)
+{
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
+
+    ChannelInfo channelInfo;
+    SignalingClientCallbacks signalingClientCallbacks;
+    SignalingClientInfoInternal clientInfoInternal;
+    PSignalingClient pSignalingClient;
+    SIGNALING_CLIENT_HANDLE signalingHandle;
+    CHAR signalingChannelName[64];
+    const UINT32 totalChannelCount = MAX_SIGNALING_CACHE_ENTRY_COUNT + 1;
+    UINT32 i, describeCountNoCache, describeMediaCountNoCache, getEndpointCountNoCache;
+    CHAR channelArn[MAX_ARN_LEN + 1];
+
+    signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
+    signalingClientCallbacks.customData = (UINT64) this;
+    signalingClientCallbacks.messageReceivedFn = NULL;
+    signalingClientCallbacks.errorReportFn = signalingClientError;
+    signalingClientCallbacks.stateChangeFn = signalingClientStateChanged;
+    signalingClientCallbacks.getCurrentTimeFn = NULL;
+
+    MEMSET(&clientInfoInternal, 0x00, SIZEOF(SignalingClientInfoInternal));
+
+    clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
+    clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
+    STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    clientInfoInternal.hookCustomData = (UINT64) this;
+    clientInfoInternal.connectPreHookFn = connectPreHook;
+    clientInfoInternal.describePreHookFn = describePreHook;
+    clientInfoInternal.describeMediaStorageConfPreHookFn = describeMediaPreHook;
+    clientInfoInternal.getEndpointPreHookFn = getEndpointPreHook;
+    setupSignalingStateMachineRetryStrategyCallbacks(&clientInfoInternal);
+
+    MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
+    channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
+    channelInfo.pKmsKeyId = NULL;
+    channelInfo.tagCount = 0;
+    channelInfo.pTags = NULL;
+    channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
+    channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
+    channelInfo.retry = TRUE;
+    channelInfo.reconnect = TRUE;
+    channelInfo.pCertPath = mCaCertPath;
+    channelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
+    channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_FILE;
+    channelInfo.pRegion = TEST_DEFAULT_REGION;
+    channelInfo.useMediaStorage = TRUE;
+
+
+    FREMOVE(DEFAULT_CACHE_FILE_PATH);
+
+    for (i = 0; i < totalChannelCount; ++i) {
+        SPRINTF(signalingChannelName, "%s%u", TEST_SIGNALING_CHANNEL_NAME, i);
+        channelInfo.pChannelName = signalingChannelName;
+        EXPECT_EQ(STATUS_SUCCESS,
+                  createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider,
+                                      &pSignalingClient));
+        signalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
+        EXPECT_EQ(STATUS_SUCCESS,signalingClientFetchSync(signalingHandle));
+        EXPECT_TRUE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
+        EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+    }
+
+    describeCountNoCache = describeCount;
+    describeMediaCountNoCache = describeMediaCount;
+    getEndpointCountNoCache = getEndpointCount;
+
+    for (i = 0; i < totalChannelCount; ++i) {
+        SPRINTF(signalingChannelName, "%s%u", TEST_SIGNALING_CHANNEL_NAME, i);
+        channelInfo.pChannelName = signalingChannelName;
+        channelInfo.pChannelArn = NULL;
+        EXPECT_EQ(STATUS_SUCCESS,
+                  createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider,
+                                      &pSignalingClient))
+            << "Failed on channel name: " << channelInfo.pChannelName;
+
+        signalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
+        EXPECT_TRUE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
+        EXPECT_EQ(STATUS_SUCCESS,signalingClientFetchSync(signalingHandle));
+
+        // Store the channel ARN to be used later
+        STRCPY(channelArn, pSignalingClient->channelDescription.channelArn);
+
+        EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+
+        // Repeat the same with the ARN only
+        channelInfo.pChannelName = NULL;
+        channelInfo.pChannelArn = channelArn;
+
+        EXPECT_EQ(STATUS_SUCCESS,
+                  createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider,
+                                      &pSignalingClient));
+
+        signalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
+        EXPECT_TRUE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
+        EXPECT_EQ(STATUS_SUCCESS, signalingClientFetchSync(signalingHandle));
+        EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+    }
+
+    DLOGD("describeCount: %d, describeCountNoCache: %d", describeCount, describeCountNoCache);
+    DLOGD("describeMediaCount: %d, describeMediaCountNoCache: %d", describeMediaCount, describeMediaCountNoCache);
+    DLOGD("getEndpointCount: %d, getEndpointCountNoCache: %d", getEndpointCount, getEndpointCountNoCache);
+
+    /* describeCount and getEndpointCount should only increase by 2 because they are cached for all channels except one and we iterate twice*/
+    EXPECT_TRUE(describeCount > describeCountNoCache && (describeCount - describeCountNoCache) == 2);
+    EXPECT_TRUE(describeMediaCount > describeMediaCountNoCache && (describeMediaCount - describeMediaCountNoCache) == 2);
+    EXPECT_TRUE(getEndpointCount > getEndpointCountNoCache && (getEndpointCount - getEndpointCountNoCache) == 2);
+}
+
+
 
 } // namespace webrtcclient
 } // namespace video
