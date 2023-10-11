@@ -38,9 +38,9 @@ STATUS stepIceAgentStateMachine(PIceAgent pIceAgent)
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
 
     oldState = pIceAgent->iceAgentState;
-
+    DLOGI("In stepping state machine");
     CHK_STATUS(stepStateMachine(pIceAgent->pStateMachine));
-
+    DLOGI("Current state: %s", iceAgentStateToString(oldState));
     // if any failure happened and state machine is not in failed state, stepStateMachine again into failed state.
     if (pIceAgent->iceAgentState != ICE_AGENT_STATE_FAILED && STATUS_FAILED(pIceAgent->iceAgentStatus)) {
         CHK_STATUS(stepStateMachine(pIceAgent->pStateMachine));
@@ -306,7 +306,7 @@ STATUS fromConnectedIceAgentState(UINT64 customData, PUINT64 pState)
 
     MUTEX_LOCK(pIceAgent->lock);
     locked = TRUE;
-
+    DLOGI("In connected state: 0x%08x", pIceAgent->iceAgentStatus);
     // move to failed state if any error happened.
     CHK_STATUS(pIceAgent->iceAgentStatus);
 
@@ -476,7 +476,7 @@ STATUS fromReadyIceAgentState(UINT64 customData, PUINT64 pState)
 
     MUTEX_LOCK(pIceAgent->lock);
     locked = TRUE;
-
+    DLOGI("Current status: 0x%08x", pIceAgent->iceAgentStatus);
     // move to failed state if any error happened.
     CHK_STATUS(pIceAgent->iceAgentStatus);
 
@@ -665,6 +665,9 @@ STATUS executeFailedIceAgentState(UINT64 customData, UINT64 time)
     switch (pIceAgent->iceAgentStatus) {
         case STATUS_ICE_NO_AVAILABLE_ICE_CANDIDATE_PAIR:
             DLOGE("%s No ice candidate pairs available to make connection.", errMsgPrefix);
+            break;
+        case STATUS_SOCKET_CONNECTION_CLOSED_ALREADY:
+            DLOGE("Socket connection closed, no possible recovery");
             break;
         default:
             DLOGE("IceAgent failed with 0x%08x", pIceAgent->iceAgentStatus);

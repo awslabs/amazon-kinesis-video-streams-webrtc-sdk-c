@@ -64,6 +64,7 @@ VOID onConnectionStateChange(UINT64 customData, RTC_PEER_CONNECTION_STATE newSta
 
     switch (newState) {
         case RTC_PEER_CONNECTION_STATE_CONNECTED:
+            DLOGI("Connected");
             ATOMIC_STORE_BOOL(&pSampleConfiguration->connected, TRUE);
             CVAR_BROADCAST(pSampleConfiguration->cvar);
 
@@ -79,12 +80,14 @@ VOID onConnectionStateChange(UINT64 customData, RTC_PEER_CONNECTION_STATE newSta
         case RTC_PEER_CONNECTION_STATE_CLOSED:
             // explicit fallthrough
         case RTC_PEER_CONNECTION_STATE_DISCONNECTED:
-            ATOMIC_STORE_BOOL(&pSampleStreamingSession->terminateFlag, TRUE);
+            DLOGI("Terminated");
+            restartIce(pSampleStreamingSession->pPeerConnection);
+//            ATOMIC_STORE_BOOL(&pSampleStreamingSession->terminateFlag, TRUE);
             CVAR_BROADCAST(pSampleConfiguration->cvar);
             // explicit fallthrough
         default:
-            ATOMIC_STORE_BOOL(&pSampleConfiguration->connected, FALSE);
-            CVAR_BROADCAST(pSampleConfiguration->cvar);
+//            ATOMIC_STORE_BOOL(&pSampleConfiguration->connected, FALSE);
+//            CVAR_BROADCAST(pSampleConfiguration->cvar);
 
             break;
     }
@@ -1249,7 +1252,7 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
 
                 MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
                 streamingSessionListReadLockLocked = FALSE;
-
+                DLOGI("Freeing sample streaming session");
                 CHK_STATUS(freeSampleStreamingSession(&pSampleStreamingSession));
             }
         }

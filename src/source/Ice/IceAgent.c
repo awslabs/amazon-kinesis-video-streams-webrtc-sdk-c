@@ -655,8 +655,12 @@ STATUS iceAgentSendPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen)
     CHK(bufferLen != 0, STATUS_INVALID_ARG);
 
     CHK_WARN(pIceAgent->pDataSendingIceCandidatePair != NULL, retStatus, "No valid ice candidate pair available to send data");
-    CHK_WARN(pIceAgent->pDataSendingIceCandidatePair->state == ICE_CANDIDATE_PAIR_STATE_SUCCEEDED, retStatus,
-             "Invalid state for data sending candidate pair.");
+
+    if(pIceAgent->pDataSendingIceCandidatePair->state != ICE_CANDIDATE_PAIR_STATE_SUCCEEDED && pIceAgent->pDataSendingIceCandidatePair->state != ICE_CANDIDATE_PAIR_STATE_FAILED) {
+        DLOGW("Invalid state for data sending candidate pair: %d", pIceAgent->pDataSendingIceCandidatePair->state);
+        retStatus = STATUS_SUCCESS;
+        goto CleanUp;
+    }
 
     CHK_WARN(pIceAgent->pDataSendingIceCandidatePair->local != NULL, retStatus, "Local ice candidate is invalid");
 
@@ -671,15 +675,14 @@ STATUS iceAgentSendPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen)
                                  pIceAgent->pDataSendingIceCandidatePair->local->pSocketConnection, pTurnConnection, isRelay);
 
     if (STATUS_FAILED(retStatus)) {
-        DLOGW("iceUtilsSendData failed with 0x%08x", retStatus);
+//        DLOGW("iceUtilsSendData failed with 0x%08x", retStatus);
         packetsDiscarded++;
         bytesDiscarded = bufferLen; // This includes header and padding. TODO: update length to remove header and padding
-        if (retStatus == STATUS_SOCKET_CONNECTION_CLOSED_ALREADY) {
-            DLOGW("IceAgent connection closed unexpectedly");
+        if (retStatus == STATUS_SOCKET_CONNECTION_CLOSED_ALREADY || retStatus == STATUS_SEND_DATA_FAILED) {
+//            DLOGW("IceAgent connection closed unexpectedly");
             pIceAgent->iceAgentStatus = STATUS_SOCKET_CONNECTION_CLOSED_ALREADY;
             pIceAgent->pDataSendingIceCandidatePair->state = ICE_CANDIDATE_PAIR_STATE_FAILED;
         }
-        retStatus = STATUS_SUCCESS;
     } else {
         // TODO: use a better estimate of actual time when packet was sent
         // eg setsockopt(SO_TIMESTAMPING)
@@ -692,7 +695,6 @@ STATUS iceAgentSendPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen)
     }
 
 CleanUp:
-
     if (STATUS_SUCCEEDED(retStatus) && pIceAgent->pDataSendingIceCandidatePair != NULL) {
         pIceAgent->pDataSendingIceCandidatePair->rtcIceCandidatePairDiagnostics.packetsDiscardedOnSend += packetsDiscarded;
         pIceAgent->pDataSendingIceCandidatePair->rtcIceCandidatePairDiagnostics.bytesDiscardedOnSend += bytesDiscarded;
@@ -765,6 +767,7 @@ STATUS iceAgentShutdown(PIceAgent pIceAgent)
     CHK(!ATOMIC_EXCHANGE_BOOL(&pIceAgent->shutdown, TRUE), retStatus);
 
     if (pIceAgent->iceAgentStateTimerTask != MAX_UINT32) {
+        DLOGI("Shutting down timer");
         CHK_STATUS(timerQueueCancelTimer(pIceAgent->timerQueueHandle, pIceAgent->iceAgentStateTimerTask, (UINT64) pIceAgent));
         pIceAgent->iceAgentStateTimerTask = MAX_UINT32;
     }
@@ -1356,9 +1359,9 @@ STATUS iceAgentStateTransitionTimerCallback(UINT32 timerId, UINT64 currentTime, 
     UNUSED_PARAM(currentTime);
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
-
+    DLOGI("Invoking this callback");
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
-
+    DLOGI("Here");
     // Do not acquire lock because stepIceAgentStateMachine acquires lock.
     // Drive the state machine
     CHK_STATUS(stepIceAgentStateMachine(pIceAgent));

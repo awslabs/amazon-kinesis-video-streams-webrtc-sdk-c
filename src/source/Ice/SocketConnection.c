@@ -190,7 +190,7 @@ STATUS socketConnectionSendData(PSocketConnection pSocketConnection, PBYTE pBuf,
 
     // Using a single CHK_WARN might output too much spew in bad network conditions
     if (ATOMIC_LOAD_BOOL(&pSocketConnection->connectionClosed)) {
-        DLOGW("Warning: Failed to send data. Socket closed already");
+//        DLOGW("Warning: Failed to send data. Socket closed already");
         CHK(FALSE, STATUS_SOCKET_CONNECTION_CLOSED_ALREADY);
     }
 

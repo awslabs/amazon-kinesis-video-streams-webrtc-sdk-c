@@ -1537,7 +1537,7 @@ STATUS restartIce(PRtcPeerConnection pPeerConnection)
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pPeerConnection;
 
     CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
-
+    DLOGI("Restarting ICE in PC");
     /* generate new local uFrag and uPwd and clear out remote uFrag and uPwd */
     CHK_STATUS(generateJSONSafeString(pKvsPeerConnection->localIceUfrag, LOCAL_ICE_UFRAG_LEN));
     CHK_STATUS(generateJSONSafeString(pKvsPeerConnection->localIcePwd, LOCAL_ICE_PWD_LEN));
