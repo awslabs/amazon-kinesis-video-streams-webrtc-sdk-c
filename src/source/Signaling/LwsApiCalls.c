@@ -2377,7 +2377,6 @@ PVOID receiveLwsMessageWrapper(PVOID args)
                 pSignalingClient->offerTime - pSignalingClient->diagnostics.joinSessionToOfferRecvTime;
             CVAR_BROADCAST(pSignalingClient->jssWaitCvar);
             MUTEX_UNLOCK(pSignalingClient->jssWaitLock);
-
         }
     } else if (messageType == SIGNALING_MESSAGE_TYPE_ANSWER) {
         PROFILE_WITH_START_TIME_OBJ(pSignalingClient->offerTime, pSignalingClient->diagnostics.offerToAnswerTime, "Offer to answer time");

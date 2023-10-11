@@ -274,6 +274,8 @@ TEST_F(IngestionFunctionalityTest, basicCreateConnectFreeNoJoinSession)
     channelInfo.pCertPath = mCaCertPath;
     channelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
 
+    channelInfo.useMediaStorage = TRUE;
+
     EXPECT_EQ(STATUS_SUCCESS,
               createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider,
                                         &pSignalingClient));
@@ -363,6 +365,7 @@ TEST_F(IngestionFunctionalityTest, basicCreateConnectJoinSession)
     channelInfo.reconnect = TRUE;
     channelInfo.pCertPath = mCaCertPath;
     channelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
+    channelInfo.useMediaStorage = TRUE;
 
     EXPECT_EQ(STATUS_SUCCESS,
               createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider,
@@ -443,6 +446,7 @@ TEST_F(IngestionFunctionalityTest, iceReconnectEmulationWithJoinSession)
     channelInfo.reconnect = TRUE;
     channelInfo.pCertPath = mCaCertPath;
     channelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
+    channelInfo.useMediaStorage = TRUE;
 
     EXPECT_EQ(STATUS_SUCCESS,
               createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider,
@@ -559,6 +563,7 @@ TEST_F(IngestionFunctionalityTest, iceServerConfigRefreshNotConnectedJoinSession
     channelInfo.reconnect = TRUE;
     channelInfo.pCertPath = mCaCertPath;
     channelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
+    channelInfo.useMediaStorage = TRUE;
 
     EXPECT_EQ(STATUS_SUCCESS, createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider, &pSignalingClient));
     signalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
@@ -697,6 +702,7 @@ TEST_F(IngestionFunctionalityTest, iceServerConfigRefreshConnectedJoinSessionWit
     channelInfo.reconnect = TRUE;
     channelInfo.pCertPath = mCaCertPath;
     channelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
+    channelInfo.useMediaStorage = TRUE;
 
     EXPECT_EQ(STATUS_SUCCESS, createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider, &pSignalingClient));
     signalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
