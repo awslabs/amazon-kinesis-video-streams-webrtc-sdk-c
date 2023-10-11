@@ -363,7 +363,7 @@ typedef struct {
     PThreadpool pThreadpool;
 #endif
     UINT64 offerReceivedTime;
-    UINT64 offerSentTime
+    UINT64 offerSentTime;
     UINT64 joinSessionTime;
 
     // mutex for join session wait condition variable

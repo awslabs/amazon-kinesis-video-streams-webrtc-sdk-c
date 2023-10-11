@@ -2374,12 +2374,13 @@ PVOID receiveLwsMessageWrapper(PVOID args)
             ATOMIC_STORE_BOOL(&pSignalingClient->offerReceived, TRUE);
             DLOGI("Offer Received from JoinStorageSession Call.");
             pSignalingClient->diagnostics.joinSessionToOfferRecvTime =
-                pSignalingClient->offerTime - pSignalingClient->diagnostics.joinSessionToOfferRecvTime;
+                pSignalingClient->offerReceivedTime - pSignalingClient->diagnostics.joinSessionToOfferRecvTime;
             CVAR_BROADCAST(pSignalingClient->jssWaitCvar);
             MUTEX_UNLOCK(pSignalingClient->jssWaitLock);
         }
     } else if (messageType == SIGNALING_MESSAGE_TYPE_ANSWER) {
-        PROFILE_WITH_START_TIME_OBJ(pSignalingClient->offerSentTime, pSignalingClient->diagnostics.offerToAnswerTime, "Offer Sent to Answer Received time");
+        PROFILE_WITH_START_TIME_OBJ(pSignalingClient->offerSentTime, pSignalingClient->diagnostics.offerToAnswerTime,
+                                    "Offer Sent to Answer Received time");
     }
     // Calling client receive message callback if specified
     if (pSignalingClient->signalingClientCallbacks.messageReceivedFn != NULL) {
