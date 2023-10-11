@@ -26,7 +26,7 @@ STATUS createWebRtcClientInstance()
     CHK_WARN(!ATOMIC_LOAD_BOOL(&pWebRtcClientContext->isContextInitialized), retStatus, "WebRtc client context already initialized, nothing to do");
     CHK_ERR(!IS_VALID_MUTEX_VALUE(pWebRtcClientContext->stunCtxlock), retStatus, "Mutex seems to have been created already");
 
-    pWebRtcClientContext->stunCtxlock = MUTEX_CREATE(FALSE);
+    pWebRtcClientContext->stunCtxlock = MUTEX_CREATE(TRUE);
     CHK_ERR(IS_VALID_MUTEX_VALUE(pWebRtcClientContext->stunCtxlock), STATUS_NULL_ARG, "Mutex creation failed");
     MUTEX_LOCK(pWebRtcClientContext->stunCtxlock);
     locked = TRUE;
@@ -818,11 +818,11 @@ PVOID resolveStunIceServerIp(PVOID args)
     CHAR addressResolved[KVS_IP_ADDRESS_STRING_BUFFER_LEN + 1] = {'\0'};
     PCHAR pRegion;
     PCHAR pHostnamePostfix;
+    UINT64 stunDnsResolutionStartTime = 0;
 
     if (ATOMIC_LOAD_BOOL(&pWebRtcClientContext->isContextInitialized)) {
         MUTEX_LOCK(pWebRtcClientContext->stunCtxlock);
         locked = TRUE;
-
         if (pWebRtcClientContext->pStunIpAddrCtx == NULL) {
             DLOGE("Failed to resolve STUN IP address because webrtc client instance was not created");
         } else {
@@ -838,6 +838,7 @@ PVOID resolveStunIceServerIp(PVOID args)
 
             SNPRINTF(pWebRtcClientContext->pStunIpAddrCtx->hostname, SIZEOF(pWebRtcClientContext->pStunIpAddrCtx->hostname),
                      KINESIS_VIDEO_STUN_URL_WITHOUT_PORT, pRegion, pHostnamePostfix);
+            stunDnsResolutionStartTime = GETTIME();
             if (getStunAddr(pWebRtcClientContext->pStunIpAddrCtx) == STATUS_SUCCESS) {
                 getIpAddrStr(&pWebRtcClientContext->pStunIpAddrCtx->kvsIpAddr, addressResolved, ARRAY_SIZE(addressResolved));
                 DLOGI("ICE Server address for %s with getaddrinfo: %s", pWebRtcClientContext->pStunIpAddrCtx->hostname, addressResolved);
@@ -846,6 +847,8 @@ PVOID resolveStunIceServerIp(PVOID args)
                 DLOGE("Failed to resolve %s", pWebRtcClientContext->pStunIpAddrCtx->hostname);
             }
             pWebRtcClientContext->pStunIpAddrCtx->startTime = GETTIME();
+            PROFILE_WITH_START_TIME_OBJ(stunDnsResolutionStartTime, pWebRtcClientContext->pStunIpAddrCtx->stunDnsResolutionTime,
+                                        "STUN DNS resolution time taken");
         }
         if (locked) {
             MUTEX_UNLOCK(pWebRtcClientContext->stunCtxlock);
@@ -1742,11 +1745,22 @@ STATUS peerConnectionGetMetrics(PRtcPeerConnection pPeerConnection, PPeerConnect
 {
     STATUS retStatus = STATUS_SUCCESS;
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pPeerConnection;
+    PWebRtcClientContext pWebRtcClientContext = getWebRtcClientInstance();
+
     CHK(pKvsPeerConnection != NULL && pPeerConnectionMetrics != NULL, STATUS_NULL_ARG);
     if (pPeerConnectionMetrics->version > PEER_CONNECTION_METRICS_CURRENT_VERSION) {
         DLOGW("Peer connection metrics object version invalid..setting to highest default version %d", PEER_CONNECTION_METRICS_CURRENT_VERSION);
         pPeerConnectionMetrics->version = PEER_CONNECTION_METRICS_CURRENT_VERSION;
     }
+
+    MUTEX_LOCK(pWebRtcClientContext->stunCtxlock);
+    if (pWebRtcClientContext->isContextInitialized) {
+        if (pWebRtcClientContext->pStunIpAddrCtx->isIpInitialized) {
+            pPeerConnectionMetrics->peerConnectionStats.stunDnsResolutionTime = pWebRtcClientContext->pStunIpAddrCtx->stunDnsResolutionTime;
+        }
+    }
+    MUTEX_UNLOCK(pWebRtcClientContext->stunCtxlock);
+
     pPeerConnectionMetrics->peerConnectionStats.peerConnectionCreationTime = pKvsPeerConnection->peerConnectionDiagnostics.peerConnectionCreationTime;
     pPeerConnectionMetrics->peerConnectionStats.dtlsSessionSetupTime = pKvsPeerConnection->peerConnectionDiagnostics.dtlsSessionSetupTime;
     pPeerConnectionMetrics->peerConnectionStats.iceHolePunchingTime = pKvsPeerConnection->peerConnectionDiagnostics.iceHolePunchingTime;
@@ -1754,6 +1768,7 @@ STATUS peerConnectionGetMetrics(PRtcPeerConnection pPeerConnection, PPeerConnect
     pPeerConnectionMetrics->peerConnectionStats.closePeerConnectionTime = pKvsPeerConnection->peerConnectionDiagnostics.closePeerConnectionTime;
     pPeerConnectionMetrics->peerConnectionStats.freePeerConnectionTime = pKvsPeerConnection->peerConnectionDiagnostics.freePeerConnectionTime;
 CleanUp:
+    releaseHoldOnInstance(pWebRtcClientContext);
     return retStatus;
 }
 

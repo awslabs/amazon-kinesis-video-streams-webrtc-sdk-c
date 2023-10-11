@@ -612,6 +612,7 @@ typedef struct {
     UINT64 iceHolePunchingTime;        //!< Time taken (ms) for ICE agent set up to complete
     UINT64 closePeerConnectionTime;    //!< Time taken (ms) to close the peer connection
     UINT64 freePeerConnectionTime;     //!< Time taken (ms) to free the peer connection object
+    UINT64 stunDnsResolutionTime;      //!< Time taken (ms) to complete STUN DNS resolution on the thread
 } PeerConnectionStats, *PPeerConnectionStats;
 
 /**
