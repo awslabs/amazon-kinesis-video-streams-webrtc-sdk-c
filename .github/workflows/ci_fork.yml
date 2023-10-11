@@ -25,7 +25,7 @@ jobs:
           bash scripts/check-clang.sh
   mac-os-build-clang:
     runs-on: macos-11
-    if: github.event.label.name == 'safe-to-test' && github.event.pull_request.head.repo.fork == true
+    if: github.event.label.name == 'safe-to-test-1' && github.event.label.name == 'safe-to-test-2' && github.event.pull_request.head.repo.fork == true
     env:
       CC: /usr/bin/clang
       CXX: /usr/bin/clang++
@@ -62,7 +62,7 @@ jobs:
 
   mac-os-build-gcc:
     runs-on: macos-11
-    if: github.event.label.name == 'safe-to-test' && github.event.pull_request.head.repo.fork == true
+    if: github.event.label.name == 'safe-to-test-1' && github.event.label.name == 'safe-to-test-2' && github.event.pull_request.head.repo.fork == true
     env:
       CC: gcc
       CXX: g++
@@ -93,7 +93,7 @@ jobs:
           ./tst/webrtc_client_test
   static-build-mac:
     runs-on: macos-11
-    if: github.event.label.name == 'safe-to-test' && github.event.pull_request.head.repo.fork == true
+    if: github.event.label.name == 'safe-to-test-1' && github.event.label.name == 'safe-to-test-2' && github.event.pull_request.head.repo.fork == true
     env:
       AWS_KVS_LOG_LEVEL: 2
       LDFLAGS: -L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib
@@ -124,7 +124,7 @@ jobs:
           ./tst/webrtc_client_test
   linux-gcc-code-coverage:
     runs-on: ubuntu-20.04
-    if: github.event.label.name == 'safe-to-test' && github.event.pull_request.head.repo.fork == true
+    if: github.event.label.name == 'safe-to-test-1' && github.event.label.name == 'safe-to-test-2' && github.event.pull_request.head.repo.fork == true
     env:
       AWS_KVS_LOG_LEVEL: 2
     permissions:
@@ -159,7 +159,7 @@ jobs:
           bash <(curl -s https://codecov.io/bash)
   address-sanitizer:
     runs-on: ubuntu-20.04
-    if: github.event.label.name == 'safe-to-test' && github.event.pull_request.head.repo.fork == true
+    if: github.event.label.name == 'safe-to-test-1' && github.event.label.name == 'safe-to-test-2' && github.event.pull_request.head.repo.fork == true
     env:
       ASAN_OPTIONS: detect_odr_violation=0:detect_leaks=1
       LSAN_OPTIONS: suppressions=../tst/suppressions/LSAN.supp
@@ -199,7 +199,7 @@ jobs:
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   undefined-behavior-sanitizer:
     runs-on: ubuntu-20.04
-    if: github.event.label.name == 'safe-to-test' && github.event.pull_request.head.repo.fork == true
+    if: github.event.label.name == 'safe-to-test-1' && github.event.label.name == 'safe-to-test-2' && github.event.pull_request.head.repo.fork == true
     env:
       UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
       CC: clang
@@ -238,7 +238,7 @@ jobs:
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   thread-sanitizer:
     runs-on: ubuntu-20.04
-    if: github.event.label.name == 'safe-to-test' && github.event.pull_request.head.repo.fork == true
+    if: github.event.label.name == 'safe-to-test-1' && github.event.label.name == 'safe-to-test-2' && github.event.pull_request.head.repo.fork == true
     env:
       TSAN_OPTIONS: second_deadlock_stack=1:halt_on_error=1:suppressions=../tst/suppressions/TSAN.supp
       CC: clang
@@ -276,7 +276,7 @@ jobs:
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   linux-gcc-4_4:
     runs-on: ubuntu-20.04
-    if: github.event.label.name == 'safe-to-test' && github.event.pull_request.head.repo.fork == true
+    if: github.event.label.name == 'safe-to-test-1' && github.event.label.name == 'safe-to-test-2' && github.event.pull_request.head.repo.fork == true
     env:
       AWS_KVS_LOG_LEVEL: 2
       CC: gcc-4.4
@@ -317,7 +317,7 @@ jobs:
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   static-build-linux:
     runs-on: ubuntu-20.04
-    if: github.event.label.name == 'safe-to-test' && github.event.pull_request.head.repo.fork == true
+    if: github.event.label.name == 'safe-to-test-1' && github.event.label.name == 'safe-to-test-2' && github.event.pull_request.head.repo.fork == true
     container:
       image: alpine:3.15.4
     env:
@@ -346,7 +346,7 @@ jobs:
           make
   mbedtls-ubuntu-gcc:
     runs-on: ubuntu-20.04
-    if: github.event.label.name == 'safe-to-test' && github.event.pull_request.head.repo.fork == true
+    if: github.event.label.name == 'safe-to-test-1' && github.event.label.name == 'safe-to-test-2' && github.event.pull_request.head.repo.fork == true
     env:
       AWS_KVS_LOG_LEVEL: 2
     permissions:
@@ -387,7 +387,7 @@ jobs:
 
   mbedtls-ubuntu-gcc-11:
     runs-on: ubuntu-latest
-    if: github.event.label.name == 'safe-to-test' && github.event.pull_request.head.repo.fork == true
+    if: github.event.label.name == 'safe-to-test-1' && github.event.label.name == 'safe-to-test-2' && github.event.pull_request.head.repo.fork == true
     env:
       AWS_KVS_LOG_LEVEL: 2
     permissions:
@@ -425,7 +425,7 @@ jobs:
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   mbedtls-ubuntu-clang:
     runs-on: ubuntu-20.04
-    if: github.event.label.name == 'safe-to-test' && github.event.pull_request.head.repo.fork == true
+    if: github.event.label.name == 'safe-to-test-1' && github.event.label.name == 'safe-to-test-2' && github.event.pull_request.head.repo.fork == true
     env:
       CC: clang
       CXX: clang++
@@ -461,7 +461,7 @@ jobs:
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   sample-check:
-    if: github.repository == 'awslabs/amazon-kinesis-video-streams-webrtc-sdk-c' && (github.event.label.name == 'safe-to-test' && github.event.pull_request.head.repo.fork == true)
+    if: github.repository == 'awslabs/amazon-kinesis-video-streams-webrtc-sdk-c' && (github.event.label.name == 'safe-to-test-1' && github.event.label.name == 'safe-to-test-2' && github.event.pull_request.head.repo.fork == true)
     runs-on: ubuntu-20.04
     env:
       AWS_KVS_LOG_LEVEL: 2
@@ -490,7 +490,7 @@ jobs:
           ./scripts/check-sample.sh
   ubuntu-os-build:
     runs-on: ubuntu-20.04
-    if: github.event.label.name == 'safe-to-test' && github.event.pull_request.head.repo.fork == true
+    if: github.event.label.name == 'safe-to-test-1' && github.event.label.name == 'safe-to-test-2' && github.event.pull_request.head.repo.fork == true
     env:
       AWS_KVS_LOG_LEVEL: 2
     permissions:
@@ -521,7 +521,7 @@ jobs:
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   windows-msvc-openssl:
     runs-on: windows-2022
-    if: github.event.label.name == 'safe-to-test' && github.event.pull_request.head.repo.fork == true
+    if: github.event.label.name == 'safe-to-test-1' && github.event.label.name == 'safe-to-test-2' && github.event.pull_request.head.repo.fork == true
     env:
       AWS_KVS_LOG_LEVEL: 1
     permissions:
@@ -565,7 +565,7 @@ jobs:
           & "C:\webrtc\build\tst\webrtc_client_test.exe" --gtest_filter="-DataChannelFunctionalityTest.*:IceApiTest.*:IceFunctionalityTest.*:PeerConnectionFunctionalityTest.*:SignalingApiFunctionalityTest.*:TurnConnectionFunctionalityTest.*:RtpFunctionalityTest.marshallUnmarshallH264Data:RtpFunctionalityTest.packingUnpackingVerifySameH264Frame:RtcpFunctionalityTest.onRtcpPacketCompound:RtcpFunctionalityTest.twcc3"
   arm64-cross-compilation:
     runs-on: ubuntu-20.04
-    if: github.event.label.name == 'safe-to-test' && github.event.pull_request.head.repo.fork == true
+    if: github.event.label.name == 'safe-to-test-1' && github.event.label.name == 'safe-to-test-2' && github.event.pull_request.head.repo.fork == true
     env:
       CC: aarch64-linux-gnu-gcc
       CXX: aarch64-linux-gnu-g++
@@ -588,7 +588,7 @@ jobs:
           make
   linux-aarch64-cross-compilation:
     runs-on: ubuntu-20.04
-    if: github.event.label.name == 'safe-to-test' && github.event.pull_request.head.repo.fork == true
+    if: github.event.label.name == 'safe-to-test-1' && github.event.label.name == 'safe-to-test-2' && github.event.pull_request.head.repo.fork == true
     env:
       CC: aarch64-linux-gnu-gcc
       CXX: aarch64-linux-gnu-g++
@@ -611,7 +611,7 @@ jobs:
           make
   arm32-cross-compilation:
     runs-on: ubuntu-20.04
-    if: github.event.label.name == 'safe-to-test' && github.event.pull_request.head.repo.fork == true
+    if: github.event.label.name == 'safe-to-test-1' && github.event.label.name == 'safe-to-test-2' && github.event.pull_request.head.repo.fork == true
     env:
       CC: arm-linux-gnueabi-gcc
       CXX: arm-linux-gnueabi-g++
