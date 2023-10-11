@@ -9,6 +9,7 @@ on:
 jobs:
   generate-and-deploy-doxygen:
     runs-on: ubuntu-latest
+    if: github.event.pull_request.fork == false
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3

@@ -8,6 +8,7 @@ on:
 jobs:
   cleanup:
     runs-on: ubuntu-latest
+    if: github.event.pull_request.fork == false || github.event_name == 'push'
     name: Close stale issues
     steps:
       - uses: aws-actions/stale-issue-cleanup@v3
