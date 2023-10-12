@@ -20,7 +20,7 @@ TEST_F(DataChannelApiTest, createDataChannel_Disconnected)
     EXPECT_EQ(createPeerConnection(&configuration, &pPeerConnection), STATUS_SUCCESS);
 
     // Create two DataChannels
-    EXPECT_EQ(createDataChannel(pPeerConnection, (PCHAR) "DataChannel 1", nullptr, &pDataChannel), STATUS_SUCCESS);
+    EXPECT_EQ(createDataChannel(pPeerConnection, (PCHAR) "DataChannel 1", nullptr, &pDataChannel), STATUS_NULL_ARG);
     EXPECT_EQ(createDataChannel(pPeerConnection, (PCHAR) "DataChannel 2", nullptr, &pDataChannel), STATUS_SUCCESS);
 
     // Don't allow NULL
