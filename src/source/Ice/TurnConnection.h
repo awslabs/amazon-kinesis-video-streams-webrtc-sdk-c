@@ -205,6 +205,8 @@ VOID turnConnectionFatalError(PTurnConnection, STATUS);
 PTurnPeer turnConnectionGetPeerWithChannelNumber(PTurnConnection, UINT16);
 PTurnPeer turnConnectionGetPeerWithIp(PTurnConnection, PKvsIpAddress);
 
+STATUS checkTurnPeerConnections(PTurnConnection);
+
 #ifdef __cplusplus
 }
 #endif
