@@ -40,6 +40,7 @@ STATUS checkIceAgentStateMachine(PIceAgent pIceAgent)
     // if a state transition is ready, tell the timer to kick the timer
     CHK_STATUS(checkForStateTransition(pIceAgent->pStateMachine, &transitionReady));
     if (transitionReady) {
+        // dangerous to have any mutexes locked by timerqueue when entering this function
         CHK_STATUS(timerQueueKick(pIceAgent->timerQueueHandle, pIceAgent->iceAgentStateTimerTask));
     }
 

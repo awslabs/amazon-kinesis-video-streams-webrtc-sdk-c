@@ -162,6 +162,11 @@ STATUS fromCheckSocketConnectionTurnState(UINT64 customData, PUINT64 pState)
 
     CHK(pTurnConnection != NULL && pState != NULL, STATUS_NULL_ARG);
 
+    if (pTurnConnection->state == TURN_STATE_CLEAN_UP || pTurnConnection->state == TURN_STATE_FAILED) {
+        *pState = pTurnConnection->state;
+        CHK(FALSE, STATUS_SUCCESS);
+    }
+
     if (socketConnectionIsConnected(pTurnConnection->pControlChannel)) {
         state = TURN_STATE_GET_CREDENTIALS;
     }
@@ -204,6 +209,12 @@ STATUS fromGetCredentialsTurnState(UINT64 customData, PUINT64 pState)
     UINT64 state = TURN_STATE_GET_CREDENTIALS;
 
     CHK(pTurnConnection != NULL && pState != NULL, STATUS_NULL_ARG);
+
+    if (pTurnConnection->state == TURN_STATE_CLEAN_UP || pTurnConnection->state == TURN_STATE_FAILED) {
+        *pState = pTurnConnection->state;
+        CHK(FALSE, STATUS_SUCCESS);
+    }
+
     currentTime = GETTIME();
 
     if (pTurnConnection->credentialObtained) {
@@ -260,6 +271,12 @@ STATUS fromAllocationTurnState(UINT64 customData, PUINT64 pState)
     UINT64 currentTime;
 
     CHK(pTurnConnection != NULL && pState != NULL, STATUS_NULL_ARG);
+
+    if (pTurnConnection->state == TURN_STATE_CLEAN_UP || pTurnConnection->state == TURN_STATE_FAILED) {
+        *pState = pTurnConnection->state;
+        CHK(FALSE, STATUS_SUCCESS);
+    }
+
     if (ATOMIC_LOAD_BOOL(&pTurnConnection->hasAllocation)) {
         state = TURN_STATE_CREATE_PERMISSION;
         currentTime = GETTIME();
@@ -317,6 +334,14 @@ STATUS fromCreatePermissionTurnState(UINT64 customData, PUINT64 pState)
     UINT32 channelWithPermissionCount = 0, i = 0;
 
     CHK(pTurnConnection != NULL && pState != NULL, STATUS_NULL_ARG);
+
+    *pState = state;
+
+    if (pTurnConnection->state == TURN_STATE_CLEAN_UP || pTurnConnection->state == TURN_STATE_FAILED) {
+        *pState = pTurnConnection->state;
+        CHK(FALSE, STATUS_SUCCESS);
+    }
+
     currentTime = GETTIME();
 
     for (i = 0; i < pTurnConnection->turnPeerCount; ++i) {
@@ -326,6 +351,12 @@ STATUS fromCreatePermissionTurnState(UINT64 customData, PUINT64 pState)
             pTurnConnection->turnPeerList[i].connectionState == TURN_PEER_CONN_STATE_READY) {
             channelWithPermissionCount++;
         }
+    }
+
+    // push back timeout if no peer is available yet
+    if (pTurnConnection->turnPeerCount == 0) {
+        pTurnConnection->stateTimeoutTime = currentTime + DEFAULT_TURN_CREATE_PERMISSION_TIMEOUT;
+        CHK(FALSE, retStatus);
     }
 
     if (currentTime >= pTurnConnection->stateTimeoutTime || channelWithPermissionCount == pTurnConnection->turnPeerCount) {
@@ -422,6 +453,11 @@ STATUS fromBindChannelTurnState(UINT64 customData, PUINT64 pState)
 
     CHK(pTurnConnection != NULL && pState != NULL, STATUS_NULL_ARG);
 
+    if (pTurnConnection->state == TURN_STATE_CLEAN_UP || pTurnConnection->state == TURN_STATE_FAILED) {
+        *pState = pTurnConnection->state;
+        CHK(FALSE, STATUS_SUCCESS);
+    }
+
     currentTime = GETTIME();
     for (i = 0; i < pTurnConnection->turnPeerCount; ++i) {
         if (pTurnConnection->turnPeerList[i].connectionState == TURN_PEER_CONN_STATE_READY) {
@@ -470,6 +506,11 @@ STATUS fromReadyTurnState(UINT64 customData, PUINT64 pState)
     UINT32 i;
 
     CHK(pTurnConnection != NULL && pState != NULL, STATUS_NULL_ARG);
+
+    if (pTurnConnection->state == TURN_STATE_CLEAN_UP || pTurnConnection->state == TURN_STATE_FAILED) {
+        *pState = pTurnConnection->state;
+        CHK(FALSE, STATUS_SUCCESS);
+    }
 
     CHK_STATUS(turnConnectionRefreshPermission(pTurnConnection, &refreshPeerPermission));
     currentTime = GETTIME();
@@ -528,6 +569,11 @@ STATUS fromCleanUpTurnState(UINT64 customData, PUINT64 pState)
 
     CHK(pTurnConnection != NULL && pState != NULL, STATUS_NULL_ARG);
 
+    if (pTurnConnection->state == TURN_STATE_FAILED) {
+        *pState = pTurnConnection->state;
+        CHK(FALSE, STATUS_SUCCESS);
+    }
+
     /* start cleanning up even if we dont receive allocation freed response in time, or if connection is already closed,
      * since we already sent multiple STUN refresh packets with 0 lifetime. */
     currentTime = GETTIME();
@@ -542,7 +588,7 @@ STATUS fromCleanUpTurnState(UINT64 customData, PUINT64 pState)
         if (pTurnConnection != NULL) {
             CHK_STATUS(socketConnectionClosed(pTurnConnection->pControlChannel));
         }
-        state = STATUS_SUCCEEDED(pTurnConnection->errorStatus) ? TURN_STATE_NEW : TURN_STATE_FAILED;
+        state = STATUS_SUCCEEDED(pTurnConnection->errorStatus) ? TURN_STATE_CLEAN_UP : TURN_STATE_FAILED;
         ATOMIC_STORE_BOOL(&pTurnConnection->shutdownComplete, TRUE);
     }
     *pState = state;
@@ -590,6 +636,11 @@ STATUS fromFailedTurnState(UINT64 customData, PUINT64 pState)
     UINT64 currentTime;
 
     CHK(pTurnConnection != NULL && pState != NULL, STATUS_NULL_ARG);
+
+    if (pTurnConnection->state == TURN_STATE_CLEAN_UP) {
+        *pState = pTurnConnection->state;
+        CHK(FALSE, STATUS_SUCCESS);
+    }
 
     /* If we haven't done cleanup, go to cleanup state which will do the cleanup then go to failed state again. */
     if (!ATOMIC_LOAD_BOOL(&pTurnConnection->shutdownComplete)) {
