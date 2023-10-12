@@ -2838,7 +2838,7 @@ STATUS getIceAgentStats(PIceAgent pIceAgent, PKvsIceAgentMetrics pKvsIceAgentMet
     pKvsIceAgentMetrics->kvsIceAgentStats.hostCandidateSetUpTime = pIceAgent->iceAgentProfileDiagnostics.hostCandidateSetUpTime;
     pKvsIceAgentMetrics->kvsIceAgentStats.srflxCandidateSetUpTime = pIceAgent->iceAgentProfileDiagnostics.srflxCandidateSetUpTime;
     pKvsIceAgentMetrics->kvsIceAgentStats.relayCandidateSetUpTime = pIceAgent->iceAgentProfileDiagnostics.relayCandidateSetUpTime;
-    for (i = 0; i < MAX_ICE_SERVERS_COUNT; i++) {
+    for (i = 0; i < pIceAgent->iceServersCount; i++) {
         pKvsIceAgentMetrics->kvsIceAgentStats.iceServerParsingTime += pIceAgent->iceAgentProfileDiagnostics.iceServerParsingTime[i];
     }
     pKvsIceAgentMetrics->kvsIceAgentStats.iceCandidatePairNominationTime = pIceAgent->iceAgentProfileDiagnostics.iceCandidatePairNominationTime;
