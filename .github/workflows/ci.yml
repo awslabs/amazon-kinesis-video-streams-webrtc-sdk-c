@@ -12,7 +12,7 @@ on:
 jobs:
   clang-format-check:
     runs-on: macos-latest
-    if: github.event.pull_request.fork == false
+    if: github.event.pull_request.head.repo.fork == false
     steps:
       - name: Clone repository
         uses: actions/checkout@v3
