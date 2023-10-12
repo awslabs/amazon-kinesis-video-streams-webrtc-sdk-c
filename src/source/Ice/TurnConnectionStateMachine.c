@@ -185,7 +185,6 @@ STATUS executeCheckSocketConnectionTurnState(UINT64 customData, UINT64 time)
     UNUSED_PARAM(time);
     STATUS retStatus = STATUS_SUCCESS;
     PTurnConnection pTurnConnection = (PTurnConnection) customData;
-    UINT64 state;
 
     CHK(pTurnConnection != NULL, STATUS_NULL_ARG);
 
@@ -382,7 +381,6 @@ STATUS executeCreatePermissionTurnState(UINT64 customData, UINT64 time)
     PTurnConnection pTurnConnection = (PTurnConnection) customData;
     CHAR ipAddrStr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
     UINT64 currentTime;
-    UINT32 i = 0;
 
     CHK(pTurnConnection != NULL, STATUS_NULL_ARG);
 
@@ -483,7 +481,6 @@ STATUS executeBindChannelTurnState(UINT64 customData, UINT64 time)
     UNUSED_PARAM(time);
     STATUS retStatus = STATUS_SUCCESS;
     PTurnConnection pTurnConnection = (PTurnConnection) customData;
-    UINT32 i;
 
     CHK(pTurnConnection != NULL, STATUS_NULL_ARG);
     pTurnConnection->state = TURN_STATE_BIND_CHANNEL;
