@@ -12,7 +12,7 @@ on:
 jobs:
   clang-format-check:
     runs-on: macos-latest
-    if: github.event.pull_request.fork == false || github.event_name == 'push'
+    if: github.event.pull_request.fork == false
     steps:
       - name: Clone repository
         uses: actions/checkout@v3
@@ -54,7 +54,7 @@ jobs:
           ./tst/webrtc_client_test
   mac-os-build-gcc:
     runs-on: macos-11
-    if: github.event.pull_request.fork == false || github.event_name == 'push'
+    if: github.event.pull_request.fork == false
     env:
       CC: gcc
       CXX: g++
@@ -81,7 +81,7 @@ jobs:
           ./tst/webrtc_client_test
   static-build-mac:
     runs-on: macos-11
-    if: github.event.pull_request.fork == false || github.event_name == 'push'
+    if: github.event.pull_request.fork == false
     env:
       AWS_KVS_LOG_LEVEL: 2
       LDFLAGS: -L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib
@@ -108,7 +108,7 @@ jobs:
           ./tst/webrtc_client_test
   linux-gcc-code-coverage:
     runs-on: ubuntu-20.04
-    if: github.event.pull_request.fork == false || github.event_name == 'push'
+    if: github.event.pull_request.fork == false
     env:
       AWS_KVS_LOG_LEVEL: 2
     permissions:
@@ -139,7 +139,7 @@ jobs:
           bash <(curl -s https://codecov.io/bash)
   address-sanitizer:
     runs-on: ubuntu-20.04
-    if: github.event.pull_request.fork == false || github.event_name == 'push'
+    if: github.event.pull_request.fork == false
     env:
       ASAN_OPTIONS: detect_odr_violation=0:detect_leaks=1
       LSAN_OPTIONS: suppressions=../tst/suppressions/LSAN.supp
@@ -175,7 +175,7 @@ jobs:
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   undefined-behavior-sanitizer:
     runs-on: ubuntu-20.04
-    if: github.event.pull_request.fork == false || github.event_name == 'push'
+    if: github.event.pull_request.fork == false
     env:
       UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
       CC: clang
@@ -231,7 +231,7 @@ jobs:
   #         timeout --signal=SIGABRT 60m build/tst/webrtc_client_test
   thread-sanitizer:
     runs-on: ubuntu-20.04
-    if: github.event.pull_request.fork == false || github.event_name == 'push'
+    if: github.event.pull_request.fork == false
     env:
       TSAN_OPTIONS: second_deadlock_stack=1:halt_on_error=1:suppressions=../tst/suppressions/TSAN.supp
       CC: clang
@@ -265,7 +265,7 @@ jobs:
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   linux-gcc-4_4:
     runs-on: ubuntu-20.04
-    if: github.event.pull_request.fork == false || github.event_name == 'push'
+    if: github.event.pull_request.fork == false
     env:
       AWS_KVS_LOG_LEVEL: 2
       CC: gcc-4.4
@@ -302,7 +302,7 @@ jobs:
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   static-build-linux:
     runs-on: ubuntu-20.04
-    if: github.event.pull_request.fork == false || github.event_name == 'push'
+    if: github.event.pull_request.fork == false
     container:
       image: alpine:3.15.4
     env:
@@ -327,7 +327,7 @@ jobs:
           make
   mbedtls-ubuntu-gcc:
     runs-on: ubuntu-20.04
-    if: github.event.pull_request.fork == false || github.event_name == 'push'
+    if: github.event.pull_request.fork == false
     env:
       AWS_KVS_LOG_LEVEL: 2
     permissions:
@@ -364,7 +364,7 @@ jobs:
 
   mbedtls-ubuntu-gcc-11:
     runs-on: ubuntu-latest
-    if: github.event.pull_request.fork == false || github.event_name == 'push'
+    if: github.event.pull_request.fork == false
     env:
       AWS_KVS_LOG_LEVEL: 2
     permissions:
@@ -398,7 +398,7 @@ jobs:
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   mbedtls-ubuntu-clang:
     runs-on: ubuntu-20.04
-    if: github.event.pull_request.fork == false || github.event_name == 'push'
+    if: github.event.pull_request.fork == false
     env:
       CC: clang
       CXX: clang++
@@ -430,7 +430,7 @@ jobs:
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   sample-check:
-    if: github.repository == 'awslabs/amazon-kinesis-video-streams-webrtc-sdk-c' && (github.event.pull_request.fork == false || github.event_name == 'push')
+    if: github.repository == 'awslabs/amazon-kinesis-video-streams-webrtc-sdk-c' && github.event.pull_request.fork == false
     runs-on: ubuntu-20.04
     env:
       AWS_KVS_LOG_LEVEL: 2
@@ -455,7 +455,7 @@ jobs:
           ./scripts/check-sample.sh
   ubuntu-os-build:
     runs-on: ubuntu-20.04
-    if: github.event.pull_request.fork == false || github.event_name == 'push'
+    if: github.event.pull_request.head.repo.fork == false
     env:
       AWS_KVS_LOG_LEVEL: 2
     permissions:
