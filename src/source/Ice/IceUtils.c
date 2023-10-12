@@ -256,7 +256,8 @@ STATUS parseIceServer(PIceServer pIceServer, PCHAR url, PCHAR username, PCHAR cr
 
     // Adding a NULL_ARG check specifically to cover for the case where early STUN
     // resolution might not be enabled
-    if (retStatus == STATUS_NULL_ARG || pIceServer->setIpFn == NULL) {
+    // Also cover the case where hostname is not resolved because the request was made too soon
+    if (retStatus == STATUS_NULL_ARG || retStatus == STATUS_PEERCONNECTION_EARLY_DNS_RESOLUTION_FAILED || pIceServer->setIpFn == NULL) {
         // Reset the retStatus to ensure the appropriate status code is returned from
         // getIpWithHostName
         retStatus = STATUS_SUCCESS;
