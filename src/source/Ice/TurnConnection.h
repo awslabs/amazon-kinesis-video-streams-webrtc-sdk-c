@@ -189,7 +189,6 @@ STATUS turnConnectionFreePreAllocatedPackets(PTurnConnection);
 // used for state machine
 UINT64 turnConnectionGetTime(UINT64);
 
-STATUS turnConnectionStepState(PTurnConnection);
 STATUS turnConnectionUpdateNonce(PTurnConnection);
 STATUS turnConnectionTimerCallback(UINT32, UINT64, UINT64);
 STATUS turnConnectionGetLongTermKey(PCHAR, PCHAR, PCHAR, PBYTE, UINT32);

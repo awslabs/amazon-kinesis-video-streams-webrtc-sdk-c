@@ -49,7 +49,7 @@ extern "C" {
 #define TURN_STATE_UNKNOWN_STR                 (PCHAR) "TURN_STATE_UNKNOWN"
 
 // Whether to step the state machine
-STATUS stepTurnStateMachine(PTurnConnection);
+STATUS stepTurnConnectionStateMachine(PTurnConnection);
 STATUS acceptTurnMachineState(PTurnConnection, UINT64);
 PCHAR turnStateGetStateStr(UINT64 state);
 
