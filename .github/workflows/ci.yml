@@ -23,530 +23,484 @@ jobs:
       - name: Run clang format check
         run: |
           bash scripts/check-clang.sh
-  mac-os-build-clang:
-    runs-on: macos-11
-    if: github.event.pull_request.fork == false || github.event_name == 'push'
-    env:
-      CC: /usr/bin/clang
-      CXX: /usr/bin/clang++
-      AWS_KVS_LOG_LEVEL: 2
-      LDFLAGS: -L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib
-      CPATH: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v3
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
-      - name: Build repository
-        run: |
-          mkdir build && cd build
-          cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
-          make
-      - name: Run tests
-        run:  |
-          cd build
-          ./tst/webrtc_client_test
-  mac-os-build-gcc:
-    runs-on: macos-11
-    if: github.event.pull_request.fork == false
-    env:
-      CC: gcc
-      CXX: g++
-      AWS_KVS_LOG_LEVEL: 2
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v3
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
-      - name: Build repository
-        run: |
-          mkdir build && cd build
-          cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
-          make
-      - name: Run tests
-        run:  |
-          cd build
-          ./tst/webrtc_client_test
-  static-build-mac:
-    runs-on: macos-11
-    if: github.event.pull_request.fork == false
-    env:
-      AWS_KVS_LOG_LEVEL: 2
-      LDFLAGS: -L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib
-      CPATH: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v3
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
-      - name: Build repository
-        run: |
-          mkdir build && cd build
-          cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE
-          make
-      - name: Run tests
-        run:  |
-          cd build
-          ./tst/webrtc_client_test
-  linux-gcc-code-coverage:
-    runs-on: ubuntu-20.04
-    if: github.event.pull_request.fork == false
-    env:
-      AWS_KVS_LOG_LEVEL: 2
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v3
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
-      - name: Build repository
-        run: |
-          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-          mkdir build && cd build
-          cmake .. -DCODE_COVERAGE=TRUE -DBUILD_TEST=TRUE
-          make
-          ulimit -c unlimited -S
-      - name: Run tests
-        run:  |
-          cd build
-          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-      - name: Code coverage
-        run: |
-          for test_file in $(find CMakeFiles/kvsWebrtcClient.dir CMakeFiles/kvsWebrtcSignalingClient.dir -name '*.gcno'); do gcov $test_file; done
-          bash <(curl -s https://codecov.io/bash)
-  address-sanitizer:
-    runs-on: ubuntu-20.04
-    if: github.event.pull_request.fork == false
-    env:
-      ASAN_OPTIONS: detect_odr_violation=0:detect_leaks=1
-      LSAN_OPTIONS: suppressions=../tst/suppressions/LSAN.supp
-      CC: clang
-      CXX: clang++
-      AWS_KVS_LOG_LEVEL: 2
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v3
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
-      - name: Install dependencies
-        run: |
-          sudo apt clean && sudo apt update
-          sudo apt-get -y install clang
-      - name: Build repository
-        run: |
-          # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
-          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-          mkdir build && cd build
-          cmake .. -DBUILD_TEST=TRUE -DADDRESS_SANITIZER=TRUE
-          make
-          ulimit -c unlimited -S
-      - name: Run tests
-        run:  |
-          cd build
-          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-  undefined-behavior-sanitizer:
-    runs-on: ubuntu-20.04
-    if: github.event.pull_request.fork == false
-    env:
-      UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
-      CC: clang
-      CXX: clang++
-      AWS_KVS_LOG_LEVEL: 2
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v3
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
-      - name: Install dependencies
-        run: |
-          sudo apt clean && sudo apt update
-          sudo apt-get -y install clang
-      - name: Build repository
-        run: |
-          # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
-          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-          mkdir build && cd build
-          cmake .. -DBUILD_TEST=TRUE -DUNDEFINED_BEHAVIOR_SANITIZER=TRUE
-          make
-          ulimit -c unlimited -S
-      - name: Run tests
-        run:  |
-          cd build
-          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-  # memory-sanitizer:
-  #   runs-on: ubuntu-18.04
+  # mac-os-build-clang:
+  #   runs-on: macos-11
+  #   if: github.event.pull_request.fork == false || github.event_name == 'push'
   #   env:
-  #     CC: clang-7
-  #     CXX: clang++-7
+  #     CC: /usr/bin/clang
+  #     CXX: /usr/bin/clang++
   #     AWS_KVS_LOG_LEVEL: 2
+  #     LDFLAGS: -L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib
+  #     CPATH: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/
+  #   permissions:
+  #     id-token: write
+  #     contents: read
+  #   steps:
+  #     - name: Clone repository
+  #       uses: actions/checkout@v3
+  #     - name: Configure AWS Credentials
+  #       uses: aws-actions/configure-aws-credentials@v2
+  #       with:
+  #         role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+  #         aws-region: ${{ secrets.AWS_REGION }}
+  #     - name: Build repository
+  #       run: |
+  #         mkdir build && cd build
+  #         cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
+  #         make
+  #     - name: Run tests
+  #       run:  |
+  #         cd build
+  #         ./tst/webrtc_client_test
+  # mac-os-build-gcc:
+  #   runs-on: macos-11
+  #   if: github.event.pull_request.fork == false
+  #   env:
+  #     CC: gcc
+  #     CXX: g++
+  #     AWS_KVS_LOG_LEVEL: 2
+  #   permissions:
+  #     id-token: write
+  #     contents: read
+  #   steps:
+  #     - name: Clone repository
+  #       uses: actions/checkout@v3
+  #     - name: Configure AWS Credentials
+  #       uses: aws-actions/configure-aws-credentials@v2
+  #       with:
+  #         role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+  #         aws-region: ${{ secrets.AWS_REGION }}
+  #     - name: Build repository
+  #       run: |
+  #         mkdir build && cd build
+  #         cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
+  #         make
+  #     - name: Run tests
+  #       run:  |
+  #         cd build
+  #         ./tst/webrtc_client_test
+  # static-build-mac:
+  #   runs-on: macos-11
+  #   if: github.event.pull_request.fork == false
+  #   env:
+  #     AWS_KVS_LOG_LEVEL: 2
+  #     LDFLAGS: -L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib
+  #     CPATH: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/
+  #   permissions:
+  #     id-token: write
+  #     contents: read
+  #   steps:
+  #     - name: Clone repository
+  #       uses: actions/checkout@v3
+  #     - name: Configure AWS Credentials
+  #       uses: aws-actions/configure-aws-credentials@v2
+  #       with:
+  #         role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+  #         aws-region: ${{ secrets.AWS_REGION }}
+  #     - name: Build repository
+  #       run: |
+  #         mkdir build && cd build
+  #         cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE
+  #         make
+  #     - name: Run tests
+  #       run:  |
+  #         cd build
+  #         ./tst/webrtc_client_test
+  # linux-gcc-code-coverage:
+  #   runs-on: ubuntu-20.04
+  #   if: github.event.pull_request.fork == false
+  #   env:
+  #     AWS_KVS_LOG_LEVEL: 2
+  #   permissions:
+  #     id-token: write
+  #     contents: read
+  #   steps:
+  #     - name: Clone repository
+  #       uses: actions/checkout@v3
+  #     - name: Configure AWS Credentials
+  #       uses: aws-actions/configure-aws-credentials@v2
+  #       with:
+  #         role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+  #         aws-region: ${{ secrets.AWS_REGION }}
+  #     - name: Build repository
+  #       run: |
+  #         sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+  #         mkdir build && cd build
+  #         cmake .. -DCODE_COVERAGE=TRUE -DBUILD_TEST=TRUE
+  #         make
+  #         ulimit -c unlimited -S
+  #     - name: Run tests
+  #       run:  |
+  #         cd build
+  #         timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+  #     - name: Code coverage
+  #       run: |
+  #         for test_file in $(find CMakeFiles/kvsWebrtcClient.dir CMakeFiles/kvsWebrtcSignalingClient.dir -name '*.gcno'); do gcov $test_file; done
+  #         bash <(curl -s https://codecov.io/bash)
+  # address-sanitizer:
+  #   runs-on: ubuntu-20.04
+  #   if: github.event.pull_request.fork == false
+  #   env:
+  #     ASAN_OPTIONS: detect_odr_violation=0:detect_leaks=1
+  #     LSAN_OPTIONS: suppressions=../tst/suppressions/LSAN.supp
+  #     CC: clang
+  #     CXX: clang++
+  #     AWS_KVS_LOG_LEVEL: 2
+  #   permissions:
+  #     id-token: write
+  #     contents: read
+  #   steps:
+  #     - name: Clone repository
+  #       uses: actions/checkout@v3
+  #     - name: Configure AWS Credentials
+  #       uses: aws-actions/configure-aws-credentials@v2
+  #       with:
+  #         role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+  #         aws-region: ${{ secrets.AWS_REGION }}
+  #     - name: Install dependencies
+  #       run: |
+  #         sudo apt clean && sudo apt update
+  #         sudo apt-get -y install clang
+  #     - name: Build repository
+  #       run: |
+  #         # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
+  #         sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+  #         mkdir build && cd build
+  #         cmake .. -DBUILD_TEST=TRUE -DADDRESS_SANITIZER=TRUE
+  #         make
+  #         ulimit -c unlimited -S
+  #     - name: Run tests
+  #       run:  |
+  #         cd build
+  #         timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+  # undefined-behavior-sanitizer:
+  #   runs-on: ubuntu-20.04
+  #   if: github.event.pull_request.fork == false
+  #   env:
+  #     UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+  #     CC: clang
+  #     CXX: clang++
+  #     AWS_KVS_LOG_LEVEL: 2
+  #   permissions:
+  #     id-token: write
+  #     contents: read
+  #   steps:
+  #     - name: Clone repository
+  #       uses: actions/checkout@v3
+  #     - name: Configure AWS Credentials
+  #       uses: aws-actions/configure-aws-credentials@v2
+  #       with:
+  #         role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+  #         aws-region: ${{ secrets.AWS_REGION }}
+  #     - name: Install dependencies
+  #       run: |
+  #         sudo apt clean && sudo apt update
+  #         sudo apt-get -y install clang
+  #     - name: Build repository
+  #       run: |
+  #         # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
+  #         sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+  #         mkdir build && cd build
+  #         cmake .. -DBUILD_TEST=TRUE -DUNDEFINED_BEHAVIOR_SANITIZER=TRUE
+  #         make
+  #         ulimit -c unlimited -S
+  #     - name: Run tests
+  #       run:  |
+  #         cd build
+  #         timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+  # # memory-sanitizer:
+  # #   runs-on: ubuntu-18.04
+  # #   env:
+  # #     CC: clang-7
+  # #     CXX: clang++-7
+  # #     AWS_KVS_LOG_LEVEL: 2
+  # #   steps:
+  # #     - name: Clone repository
+  # #       uses: actions/checkout@v3
+  # #     - name: Install dependencies
+  # #       run: |
+  # #         sudo apt clean && sudo apt update
+  # #         sudo apt-get -y install clang-7
+  # #     - name: Build repository
+  # #       run: |
+  # #         sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+  # #         mkdir build && cd build
+  # #         cmake .. -DMEMORY_SANITIZER=TRUE -DBUILD_TEST=TRUE
+  # #         make
+  # #         ulimit -c unlimited -S
+  # #         timeout --signal=SIGABRT 60m build/tst/webrtc_client_test
+  # thread-sanitizer:
+  #   runs-on: ubuntu-20.04
+  #   if: github.event.pull_request.fork == false
+  #   env:
+  #     TSAN_OPTIONS: second_deadlock_stack=1:halt_on_error=1:suppressions=../tst/suppressions/TSAN.supp
+  #     CC: clang
+  #     CXX: clang++
+  #     AWS_KVS_LOG_LEVEL: 2
+  #   permissions:
+  #     id-token: write
+  #     contents: read
+  #   steps:
+  #     - name: Clone repository
+  #       uses: actions/checkout@v3
+  #     - name: Configure AWS Credentials
+  #       uses: aws-actions/configure-aws-credentials@v2
+  #       with:
+  #         role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+  #         aws-region: ${{ secrets.AWS_REGION }}
+  #     - name: Install dependencies
+  #       run: |
+  #         sudo apt clean && sudo apt update
+  #         sudo apt-get -y install clang
+  #     - name: Build repository
+  #       run: |
+  #         sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+  #         mkdir build && cd build
+  #         cmake .. -DBUILD_TEST=TRUE -DTHREAD_SANITIZER=TRUE
+  #         make
+  #         ulimit -c unlimited -S
+  #     - name: Run tests
+  #       run:  |
+  #         cd build
+  #         timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+  # linux-gcc-4_4:
+  #   runs-on: ubuntu-20.04
+  #   if: github.event.pull_request.fork == false
+  #   env:
+  #     AWS_KVS_LOG_LEVEL: 2
+  #     CC: gcc-4.4
+  #   permissions:
+  #     id-token: write
+  #     contents: read
+  #   steps:
+  #     - name: Clone repository
+  #       uses: actions/checkout@v3
+  #     - name: Configure AWS Credentials
+  #       uses: aws-actions/configure-aws-credentials@v2
+  #       with:
+  #         role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+  #         aws-region: ${{ secrets.AWS_REGION }}
+  #     - name: Install deps
+  #       run: |
+  #         sudo apt clean && sudo apt update
+  #         sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+  #         sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+  #         sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ trusty main'
+  #         sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ trusty universe'
+  #         sudo apt-get -q update
+  #         sudo apt-get -y install gcc-4.4
+  #         sudo apt-get -y install gdb
+  #     - name: Build repository
+  #       run: |
+  #         mkdir build && cd build
+  #         cmake .. -DBUILD_TEST=TRUE
+  #         make
+  #         ulimit -c unlimited -S
+  #     - name: Run tests
+  #       run:  |
+  #         cd build
+  #         timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+  # static-build-linux:
+  #   runs-on: ubuntu-20.04
+  #   if: github.event.pull_request.fork == false
+  #   container:
+  #     image: alpine:3.15.4
+  #   env:
+  #     CC: gcc
+  #     CXX: g++
+  #     AWS_KVS_LOG_LEVEL: 2
+  #   permissions:
+  #     id-token: write
+  #     contents: read
   #   steps:
   #     - name: Clone repository
   #       uses: actions/checkout@v3
   #     - name: Install dependencies
   #       run: |
+  #         apk update
+  #         apk upgrade
+  #         apk add alpine-sdk cmake clang linux-headers perl bash openssl-dev
+  #     - name: Build Repository
+  #       run: |
+  #         mkdir build && cd build
+  #         cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE
+  #         make
+  # mbedtls-ubuntu-gcc:
+  #   runs-on: ubuntu-20.04
+  #   if: github.event.pull_request.fork == false
+  #   env:
+  #     AWS_KVS_LOG_LEVEL: 2
+  #   permissions:
+  #     id-token: write
+  #     contents: read
+  #   steps:
+  #     - name: Clone repository
+  #       uses: actions/checkout@v3
+  #     - name: Configure AWS Credentials
+  #       uses: aws-actions/configure-aws-credentials@v2
+  #       with:
+  #         role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+  #         aws-region: ${{ secrets.AWS_REGION }}
+  #     - name: Install deps
+  #       run: |
   #         sudo apt clean && sudo apt update
-  #         sudo apt-get -y install clang-7
+  #         sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+  #         sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+  #         sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ trusty main'
+  #         sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ trusty universe'
+  #         sudo apt-get -q update
+  #         sudo apt-get -y install gcc-4.4
+  #         sudo apt-get -y install gdb
+  #     - name: Build repository
+  #       run: |
+  #         mkdir build && cd build
+  #         cmake .. -DBUILD_TEST=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
+  #         make
+  #         ulimit -c unlimited -S
+  #     - name: Run tests
+  #       run:  |
+  #         cd build
+  #         timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+
+  # mbedtls-ubuntu-gcc-11:
+  #   runs-on: ubuntu-latest
+  #   if: github.event.pull_request.fork == false
+  #   env:
+  #     AWS_KVS_LOG_LEVEL: 2
+  #   permissions:
+  #     id-token: write
+  #     contents: read
+  #   steps:
+  #     - name: Clone repository
+  #       uses: actions/checkout@v3
+  #     - name: Configure AWS Credentials
+  #       uses: aws-actions/configure-aws-credentials@v2
+  #       with:
+  #         role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+  #         aws-region: ${{ secrets.AWS_REGION }}
+  #     - name: Install deps
+  #       run: |
+  #         sudo apt clean && sudo apt update
+  #         sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+  #         sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+  #         sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ jammy main'
+  #         sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ jammy universe'
+  #         sudo apt-get -q update
+  #     - name: Build repository
+  #       run: |
+  #         mkdir build && cd build
+  #         cmake .. -DBUILD_TEST=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
+  #         make
+  #         ulimit -c unlimited -S
+  #     - name: Run tests
+  #       run:  |
+  #         cd build
+  #         timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+  # mbedtls-ubuntu-clang:
+  #   runs-on: ubuntu-20.04
+  #   if: github.event.pull_request.fork == false
+  #   env:
+  #     CC: clang
+  #     CXX: clang++
+  #     AWS_KVS_LOG_LEVEL: 2
+  #   permissions:
+  #     id-token: write
+  #     contents: read
+  #   steps:
+  #     - name: Clone repository
+  #       uses: actions/checkout@v3
+  #     - name: Configure AWS Credentials
+  #       uses: aws-actions/configure-aws-credentials@v2
+  #       with:
+  #         role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+  #         aws-region: ${{ secrets.AWS_REGION }}
+  #     - name: Install dependencies
+  #       run: |
+  #         sudo apt clean && sudo apt update
+  #         sudo apt-get -y install clang
   #     - name: Build repository
   #       run: |
   #         sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
   #         mkdir build && cd build
-  #         cmake .. -DMEMORY_SANITIZER=TRUE -DBUILD_TEST=TRUE
+  #         cmake .. -DBUILD_TEST=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
   #         make
   #         ulimit -c unlimited -S
-  #         timeout --signal=SIGABRT 60m build/tst/webrtc_client_test
-  thread-sanitizer:
-    runs-on: ubuntu-20.04
-    if: github.event.pull_request.fork == false
-    env:
-      TSAN_OPTIONS: second_deadlock_stack=1:halt_on_error=1:suppressions=../tst/suppressions/TSAN.supp
-      CC: clang
-      CXX: clang++
-      AWS_KVS_LOG_LEVEL: 2
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v3
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
-      - name: Install dependencies
-        run: |
-          sudo apt clean && sudo apt update
-          sudo apt-get -y install clang
-      - name: Build repository
-        run: |
-          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-          mkdir build && cd build
-          cmake .. -DBUILD_TEST=TRUE -DTHREAD_SANITIZER=TRUE
-          make
-          ulimit -c unlimited -S
-      - name: Run tests
-        run:  |
-          cd build
-          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-  linux-gcc-4_4:
-    runs-on: ubuntu-20.04
-    if: github.event.pull_request.fork == false
-    env:
-      AWS_KVS_LOG_LEVEL: 2
-      CC: gcc-4.4
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v3
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
-      - name: Install deps
-        run: |
-          sudo apt clean && sudo apt update
-          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-          sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ trusty main'
-          sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ trusty universe'
-          sudo apt-get -q update
-          sudo apt-get -y install gcc-4.4
-          sudo apt-get -y install gdb
-      - name: Build repository
-        run: |
-          mkdir build && cd build
-          cmake .. -DBUILD_TEST=TRUE
-          make
-          ulimit -c unlimited -S
-      - name: Run tests
-        run:  |
-          cd build
-          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-  static-build-linux:
-    runs-on: ubuntu-20.04
-    if: github.event.pull_request.fork == false
-    container:
-      image: alpine:3.15.4
-    env:
-      CC: gcc
-      CXX: g++
-      AWS_KVS_LOG_LEVEL: 2
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v3
-      - name: Install dependencies
-        run: |
-          apk update
-          apk upgrade
-          apk add alpine-sdk cmake clang linux-headers perl bash openssl-dev
-      - name: Build Repository
-        run: |
-          mkdir build && cd build
-          cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE
-          make
-  mbedtls-ubuntu-gcc:
-    runs-on: ubuntu-20.04
-    if: github.event.pull_request.fork == false
-    env:
-      AWS_KVS_LOG_LEVEL: 2
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v3
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
-      - name: Install deps
-        run: |
-          sudo apt clean && sudo apt update
-          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-          sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ trusty main'
-          sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ trusty universe'
-          sudo apt-get -q update
-          sudo apt-get -y install gcc-4.4
-          sudo apt-get -y install gdb
-      - name: Build repository
-        run: |
-          mkdir build && cd build
-          cmake .. -DBUILD_TEST=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
-          make
-          ulimit -c unlimited -S
-      - name: Run tests
-        run:  |
-          cd build
-          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-
-  mbedtls-ubuntu-gcc-11:
-    runs-on: ubuntu-latest
-    if: github.event.pull_request.fork == false
-    env:
-      AWS_KVS_LOG_LEVEL: 2
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v3
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
-      - name: Install deps
-        run: |
-          sudo apt clean && sudo apt update
-          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-          sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ jammy main'
-          sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ jammy universe'
-          sudo apt-get -q update
-      - name: Build repository
-        run: |
-          mkdir build && cd build
-          cmake .. -DBUILD_TEST=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
-          make
-          ulimit -c unlimited -S
-      - name: Run tests
-        run:  |
-          cd build
-          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-  mbedtls-ubuntu-clang:
-    runs-on: ubuntu-20.04
-    if: github.event.pull_request.fork == false
-    env:
-      CC: clang
-      CXX: clang++
-      AWS_KVS_LOG_LEVEL: 2
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v3
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
-      - name: Install dependencies
-        run: |
-          sudo apt clean && sudo apt update
-          sudo apt-get -y install clang
-      - name: Build repository
-        run: |
-          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-          mkdir build && cd build
-          cmake .. -DBUILD_TEST=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
-          make
-          ulimit -c unlimited -S
-      - name: Run tests
-        run:  |
-          cd build
-          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-  sample-check:
-    if: github.repository == 'awslabs/amazon-kinesis-video-streams-webrtc-sdk-c' && github.event.pull_request.fork == false
-    runs-on: ubuntu-20.04
-    env:
-      AWS_KVS_LOG_LEVEL: 2
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v3
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
-      - name: Build repository
-        run: |
-          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-          mkdir build && cd build
-          cmake ..
-          make
-          cd ..
-          ./scripts/check-sample.sh
-  ubuntu-os-build:
-    runs-on: ubuntu-20.04
-    if: github.event.pull_request.head.repo.fork == false
-    env:
-      AWS_KVS_LOG_LEVEL: 2
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v3
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
-      - name: Build repository
-        run: |
-          # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
-          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-          mkdir build && cd build
-          cmake .. -DBUILD_TEST=TRUE
-          make
-      - name: Run tests
-        run:  |
-          cd build
-          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-  windows-msvc-openssl:
-    runs-on: windows-2022
-    if: github.event.pull_request.fork == false || github.event_name == 'push'
-    env:
-      AWS_KVS_LOG_LEVEL: 1
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v3
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
-      - name: Move cloned repo
-        shell: powershell
-        run: |
-          mkdir C:\webrtc
-          Move-Item -Path "D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\*" -Destination "C:\webrtc"
-      - name: Install dependencies
-        shell: powershell
-        run: |
-          choco install gstreamer --version=1.16.2
-          choco install gstreamer-devel --version=1.16.2
-          curl.exe -o C:\tools\pthreads-w32-2-9-1-release.zip ftp://sourceware.org/pub/pthreads-win32/pthreads-w32-2-9-1-release.zip
-          mkdir C:\tools\pthreads-w32-2-9-1-release\
-          Expand-Archive -Path C:\tools\pthreads-w32-2-9-1-release.zip -DestinationPath C:\tools\pthreads-w32-2-9-1-release
-      # - name: Build libwebsockets from source
-      #   shell: powershell
-      #   run: |
-      #     $env:Path += ';C:\Strawberry\perl\site\bin;C:\Strawberry\perl\bin;C:\Strawberry\c\bin;C:\Program Files\NASM;D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\open-source\bin;C:\tools\pthreads-w32-2-9-1-release\Pre-built.2\lib\x64;C:\tools\pthreads-w32-2-9-1-release\Pre-built.2\include'
-      #     git config --system core.longpaths true
-      #     cd C:\tools\
-      #     git clone https://github.com/warmcat/libwebsockets.git
-      #     git checkout v4.2.2
-      #     cd libwebsockets
-      #     mkdir build
-      #     cd build
-      #     cmake .. -DLWS_HAVE_PTHREAD_H=1 -DLWS_EXT_PTHREAD_INCLUDE_DIR="C:\\tools\\pthreads-w32-2-9-1-release\\Pre-built.2\\include" -DLWS_EXT_PTHREAD_LIBRARIES="C:\\tools\\pthreads-w32-2-9-1-release\\Pre-built.2\\lib\\x64\\libpthreadGC2.a" -DLWS_WITH_MINIMAL_EXAMPLES=1 -DLWS_OPENSSL_INCLUDE_DIRS="C:\\Program Files\\OpenSSL\\include" -DLWS_OPENSSL_LIBRARIES="C:\\Program Files\\OpenSSL\\lib\\libssl.lib;C:\\Program Files\\OpenSSL\\lib\\libcrypto.lib"
-      #     cmake --build . --config DEBUG
-      - name: Build repository
-        shell: powershell
-        run: |
-          cd C:\webrtc
-          git config --system core.longpaths true
-          .github\build_windows_openssl.bat
-      - name: Run tests
-        shell: powershell
-        run: |
-          $env:Path += ';C:\webrtc\open-source\bin;C:\tools\pthreads-w32-2-9-1-release\Pre-built.2\dll\x64;C:\webrtc\build'
-          & "C:\webrtc\build\tst\webrtc_client_test.exe" --gtest_filter="-DataChannelFunctionalityTest.*:IceApiTest.*:IceFunctionalityTest.*:PeerConnectionFunctionalityTest.*:SignalingApiFunctionalityTest.*:TurnConnectionFunctionalityTest.*:RtpFunctionalityTest.marshallUnmarshallH264Data:RtpFunctionalityTest.packingUnpackingVerifySameH264Frame:RtcpFunctionalityTest.onRtcpPacketCompound:RtcpFunctionalityTest.twcc3"
-  # windows-msvc-mbedtls:
-  #   runs-on: windows-2022
+  #     - name: Run tests
+  #       run:  |
+  #         cd build
+  #         timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+  # sample-check:
+  #   if: github.repository == 'awslabs/amazon-kinesis-video-streams-webrtc-sdk-c' && github.event.pull_request.fork == false
+  #   runs-on: ubuntu-20.04
   #   env:
-  #     AWS_KVS_LOG_LEVEL: 7
+  #     AWS_KVS_LOG_LEVEL: 2
+  #   permissions:
+  #     id-token: write
+  #     contents: read
   #   steps:
   #     - name: Clone repository
   #       uses: actions/checkout@v3
+  #     - name: Configure AWS Credentials
+  #       uses: aws-actions/configure-aws-credentials@v2
+  #       with:
+  #         role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+  #         aws-region: ${{ secrets.AWS_REGION }}
+  #     - name: Build repository
+  #       run: |
+  #         sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+  #         mkdir build && cd build
+  #         cmake ..
+  #         make
+  #         cd ..
+  #         ./scripts/check-sample.sh
+  # ubuntu-os-build:
+  #   runs-on: ubuntu-20.04
+  #   if: github.event.pull_request.head.repo.fork == false
+  #   env:
+  #     AWS_KVS_LOG_LEVEL: 2
+  #   permissions:
+  #     id-token: write
+  #     contents: read
+  #   steps:
+  #     - name: Clone repository
+  #       uses: actions/checkout@v3
+  #     - name: Configure AWS Credentials
+  #       uses: aws-actions/configure-aws-credentials@v2
+  #       with:
+  #         role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+  #         aws-region: ${{ secrets.AWS_REGION }}
+  #     - name: Build repository
+  #       run: |
+  #         # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
+  #         sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+  #         mkdir build && cd build
+  #         cmake .. -DBUILD_TEST=TRUE
+  #         make
+  #     - name: Run tests
+  #       run:  |
+  #         cd build
+  #         timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+  # windows-msvc-openssl:
+  #   runs-on: windows-2022
+  #   if: github.event.pull_request.fork == false || github.event_name == 'push'
+  #   env:
+  #     AWS_KVS_LOG_LEVEL: 1
+  #   permissions:
+  #     id-token: write
+  #     contents: read
+  #   steps:
+  #     - name: Clone repository
+  #       uses: actions/checkout@v3
+  #     - name: Configure AWS Credentials
+  #       uses: aws-actions/configure-aws-credentials@v2
+  #       with:
+  #         role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+  #         aws-region: ${{ secrets.AWS_REGION }}
   #     - name: Move cloned repo
   #       shell: powershell
   #       run: |
-  #         mkdir D:\a\webrtc
-  #         Move-Item -Path "D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\*" -Destination "D:\a\webrtc"
-  #         cd D:\a\webrtc
-  #         dir
+  #         mkdir C:\webrtc
+  #         Move-Item -Path "D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\*" -Destination "C:\webrtc"
   #     - name: Install dependencies
   #       shell: powershell
   #       run: |
@@ -555,66 +509,112 @@ jobs:
   #         curl.exe -o C:\tools\pthreads-w32-2-9-1-release.zip ftp://sourceware.org/pub/pthreads-win32/pthreads-w32-2-9-1-release.zip
   #         mkdir C:\tools\pthreads-w32-2-9-1-release\
   #         Expand-Archive -Path C:\tools\pthreads-w32-2-9-1-release.zip -DestinationPath C:\tools\pthreads-w32-2-9-1-release
+  #     # - name: Build libwebsockets from source
+  #     #   shell: powershell
+  #     #   run: |
+  #     #     $env:Path += ';C:\Strawberry\perl\site\bin;C:\Strawberry\perl\bin;C:\Strawberry\c\bin;C:\Program Files\NASM;D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\open-source\bin;C:\tools\pthreads-w32-2-9-1-release\Pre-built.2\lib\x64;C:\tools\pthreads-w32-2-9-1-release\Pre-built.2\include'
+  #     #     git config --system core.longpaths true
+  #     #     cd C:\tools\
+  #     #     git clone https://github.com/warmcat/libwebsockets.git
+  #     #     git checkout v4.2.2
+  #     #     cd libwebsockets
+  #     #     mkdir build
+  #     #     cd build
+  #     #     cmake .. -DLWS_HAVE_PTHREAD_H=1 -DLWS_EXT_PTHREAD_INCLUDE_DIR="C:\\tools\\pthreads-w32-2-9-1-release\\Pre-built.2\\include" -DLWS_EXT_PTHREAD_LIBRARIES="C:\\tools\\pthreads-w32-2-9-1-release\\Pre-built.2\\lib\\x64\\libpthreadGC2.a" -DLWS_WITH_MINIMAL_EXAMPLES=1 -DLWS_OPENSSL_INCLUDE_DIRS="C:\\Program Files\\OpenSSL\\include" -DLWS_OPENSSL_LIBRARIES="C:\\Program Files\\OpenSSL\\lib\\libssl.lib;C:\\Program Files\\OpenSSL\\lib\\libcrypto.lib"
+  #     #     cmake --build . --config DEBUG
   #     - name: Build repository
   #       shell: powershell
   #       run: |
-  #         cd D:\a\webrtc
+  #         cd C:\webrtc
   #         git config --system core.longpaths true
-  #         .github\build_windows_mbedtls.bat
-  arm64-cross-compilation:
-    runs-on: ubuntu-20.04
-    if: github.event.pull_request.fork == false || github.event_name == 'push'
-    env:
-      CC: aarch64-linux-gnu-gcc
-      CXX: aarch64-linux-gnu-g++
-    steps:
-      - name: Install dependencies
-        run: |
-          sudo apt clean && sudo apt update
-          sudo apt-get -y install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu binutils-aarch64-linux-gnu
-      - name: Clone repository
-        uses: actions/checkout@v3
-      - name: Build Repository
-        run: |
-          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-          mkdir build && cd build
-          cmake .. -DBUILD_OPENSSL=TRUE -DBUILD_OPENSSL_PLATFORM=linux-generic64 -DBUILD_LIBSRTP_HOST_PLATFORM=x86_64-unknown-linux-gnu -DBUILD_LIBSRTP_DESTINATION_PLATFORM=arm-unknown-linux-uclibcgnueabi
-          make
-  linux-aarch64-cross-compilation:
-    runs-on: ubuntu-20.04
-    if: github.event.pull_request.fork == false || github.event_name == 'push'
-    env:
-      CC: aarch64-linux-gnu-gcc
-      CXX: aarch64-linux-gnu-g++
-    steps:
-      - name: Install dependencies
-        run: |
-          sudo apt clean && sudo apt update
-          sudo apt-get -y install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu binutils-aarch64-linux-gnu
-      - name: Clone repository
-        uses: actions/checkout@v3
-      - name: Build Repository
-        run: |
-          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-          mkdir build && cd build
-          cmake .. -DBUILD_OPENSSL=TRUE -DBUILD_OPENSSL_PLATFORM=linux-aarch64 -DBUILD_LIBSRTP_HOST_PLATFORM=x86_64-unknown-linux-gnu -DBUILD_LIBSRTP_DESTINATION_PLATFORM=arm-unknown-linux-uclibcgnueabi
-          make
-  arm32-cross-compilation:
-    runs-on: ubuntu-20.04
-    if: github.event.pull_request.fork == false || github.event_name == 'push'
-    env:
-      CC: arm-linux-gnueabi-gcc
-      CXX: arm-linux-gnueabi-g++
-    steps:
-      - name: Install dependencies
-        run: |
-          sudo apt clean && sudo apt update
-          sudo apt-get -y install gcc-arm-linux-gnueabi g++-arm-linux-gnueabi binutils-arm-linux-gnueabi
-      - name: Clone repository
-        uses: actions/checkout@v3
-      - name: Build Repository
-        run: |
-          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-          mkdir build && cd build
-          cmake .. -DBUILD_OPENSSL=TRUE -DBUILD_OPENSSL_PLATFORM=linux-generic32 -DBUILD_LIBSRTP_HOST_PLATFORM=x86_64-unknown-linux-gnu -DBUILD_LIBSRTP_DESTINATION_PLATFORM=arm-unknown-linux-uclibcgnueabi
-          make
+  #         .github\build_windows_openssl.bat
+  #     - name: Run tests
+  #       shell: powershell
+  #       run: |
+  #         $env:Path += ';C:\webrtc\open-source\bin;C:\tools\pthreads-w32-2-9-1-release\Pre-built.2\dll\x64;C:\webrtc\build'
+  #         & "C:\webrtc\build\tst\webrtc_client_test.exe" --gtest_filter="-DataChannelFunctionalityTest.*:IceApiTest.*:IceFunctionalityTest.*:PeerConnectionFunctionalityTest.*:SignalingApiFunctionalityTest.*:TurnConnectionFunctionalityTest.*:RtpFunctionalityTest.marshallUnmarshallH264Data:RtpFunctionalityTest.packingUnpackingVerifySameH264Frame:RtcpFunctionalityTest.onRtcpPacketCompound:RtcpFunctionalityTest.twcc3"
+  # # windows-msvc-mbedtls:
+  # #   runs-on: windows-2022
+  # #   env:
+  # #     AWS_KVS_LOG_LEVEL: 7
+  # #   steps:
+  # #     - name: Clone repository
+  # #       uses: actions/checkout@v3
+  # #     - name: Move cloned repo
+  # #       shell: powershell
+  # #       run: |
+  # #         mkdir D:\a\webrtc
+  # #         Move-Item -Path "D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\*" -Destination "D:\a\webrtc"
+  # #         cd D:\a\webrtc
+  # #         dir
+  # #     - name: Install dependencies
+  # #       shell: powershell
+  # #       run: |
+  # #         choco install gstreamer --version=1.16.2
+  # #         choco install gstreamer-devel --version=1.16.2
+  # #         curl.exe -o C:\tools\pthreads-w32-2-9-1-release.zip ftp://sourceware.org/pub/pthreads-win32/pthreads-w32-2-9-1-release.zip
+  # #         mkdir C:\tools\pthreads-w32-2-9-1-release\
+  # #         Expand-Archive -Path C:\tools\pthreads-w32-2-9-1-release.zip -DestinationPath C:\tools\pthreads-w32-2-9-1-release
+  # #     - name: Build repository
+  # #       shell: powershell
+  # #       run: |
+  # #         cd D:\a\webrtc
+  # #         git config --system core.longpaths true
+  # #         .github\build_windows_mbedtls.bat
+  # arm64-cross-compilation:
+  #   runs-on: ubuntu-20.04
+  #   if: github.event.pull_request.fork == false || github.event_name == 'push'
+  #   env:
+  #     CC: aarch64-linux-gnu-gcc
+  #     CXX: aarch64-linux-gnu-g++
+  #   steps:
+  #     - name: Install dependencies
+  #       run: |
+  #         sudo apt clean && sudo apt update
+  #         sudo apt-get -y install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu binutils-aarch64-linux-gnu
+  #     - name: Clone repository
+  #       uses: actions/checkout@v3
+  #     - name: Build Repository
+  #       run: |
+  #         sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+  #         mkdir build && cd build
+  #         cmake .. -DBUILD_OPENSSL=TRUE -DBUILD_OPENSSL_PLATFORM=linux-generic64 -DBUILD_LIBSRTP_HOST_PLATFORM=x86_64-unknown-linux-gnu -DBUILD_LIBSRTP_DESTINATION_PLATFORM=arm-unknown-linux-uclibcgnueabi
+  #         make
+  # linux-aarch64-cross-compilation:
+  #   runs-on: ubuntu-20.04
+  #   if: github.event.pull_request.fork == false || github.event_name == 'push'
+  #   env:
+  #     CC: aarch64-linux-gnu-gcc
+  #     CXX: aarch64-linux-gnu-g++
+  #   steps:
+  #     - name: Install dependencies
+  #       run: |
+  #         sudo apt clean && sudo apt update
+  #         sudo apt-get -y install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu binutils-aarch64-linux-gnu
+  #     - name: Clone repository
+  #       uses: actions/checkout@v3
+  #     - name: Build Repository
+  #       run: |
+  #         sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+  #         mkdir build && cd build
+  #         cmake .. -DBUILD_OPENSSL=TRUE -DBUILD_OPENSSL_PLATFORM=linux-aarch64 -DBUILD_LIBSRTP_HOST_PLATFORM=x86_64-unknown-linux-gnu -DBUILD_LIBSRTP_DESTINATION_PLATFORM=arm-unknown-linux-uclibcgnueabi
+  #         make
+  # arm32-cross-compilation:
+  #   runs-on: ubuntu-20.04
+  #   if: github.event.pull_request.fork == false || github.event_name == 'push'
+  #   env:
+  #     CC: arm-linux-gnueabi-gcc
+  #     CXX: arm-linux-gnueabi-g++
+  #   steps:
+  #     - name: Install dependencies
+  #       run: |
+  #         sudo apt clean && sudo apt update
+  #         sudo apt-get -y install gcc-arm-linux-gnueabi g++-arm-linux-gnueabi binutils-arm-linux-gnueabi
+  #     - name: Clone repository
+  #       uses: actions/checkout@v3
+  #     - name: Build Repository
+  #       run: |
+  #         sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+  #         mkdir build && cd build
+  #         cmake .. -DBUILD_OPENSSL=TRUE -DBUILD_OPENSSL_PLATFORM=linux-generic32 -DBUILD_LIBSRTP_HOST_PLATFORM=x86_64-unknown-linux-gnu -DBUILD_LIBSRTP_DESTINATION_PLATFORM=arm-unknown-linux-uclibcgnueabi
+  #         make
