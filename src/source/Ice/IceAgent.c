@@ -580,6 +580,8 @@ STATUS iceAgentStartAgent(PIceAgent pIceAgent, PCHAR remoteUsername, PCHAR remot
 
 CleanUp:
 
+    CHK_LOG_ERR(retStatus);
+
     if (locked) {
         MUTEX_UNLOCK(pIceAgent->lock);
     }

@@ -105,6 +105,7 @@ STATUS acceptIceAgentMachineState(PIceAgent pIceAgent, UINT64 state)
     CHK_STATUS(acceptStateMachineState(pIceAgent->pStateMachine, state));
 
 CleanUp:
+    CHK_LOG_ERR(retStatus);
 
     if (locked) {
         MUTEX_UNLOCK(pIceAgent->lock);
@@ -219,6 +220,7 @@ STATUS executeNewIceAgentState(UINT64 customData, UINT64 time)
     pIceAgent->iceAgentState = ICE_AGENT_STATE_NEW;
 
 CleanUp:
+    CHK_LOG_ERR(retStatus);
 
     LEAVES();
     return retStatus;
@@ -266,6 +268,7 @@ STATUS fromCheckConnectionIceAgentState(UINT64 customData, PUINT64 pState)
     }
 
 CleanUp:
+    CHK_LOG_ERR(retStatus);
 
     if (STATUS_FAILED(retStatus)) {
         state = ICE_AGENT_STATE_FAILED;
@@ -303,6 +306,7 @@ STATUS executeCheckConnectionIceAgentState(UINT64 customData, UINT64 time)
     CHK_STATUS(iceAgentCheckCandidatePairConnection(pIceAgent));
 
 CleanUp:
+    CHK_LOG_ERR(retStatus);
 
     if (STATUS_FAILED(retStatus)) {
         pIceAgent->iceAgentStatus = retStatus;
@@ -342,6 +346,7 @@ STATUS fromConnectedIceAgentState(UINT64 customData, PUINT64 pState)
     state = ICE_AGENT_STATE_NOMINATING;
 
 CleanUp:
+    CHK_LOG_ERR(retStatus);
 
     if (STATUS_FAILED(retStatus)) {
         state = ICE_AGENT_STATE_FAILED;
@@ -376,6 +381,7 @@ STATUS executeConnectedIceAgentState(UINT64 customData, UINT64 time)
     pIceAgent->iceAgentState = ICE_AGENT_STATE_CONNECTED;
 
 CleanUp:
+    CHK_LOG_ERR(retStatus);
 
     if (STATUS_FAILED(retStatus)) {
         pIceAgent->iceAgentStatus = retStatus;
@@ -430,6 +436,7 @@ STATUS fromNominatingIceAgentState(UINT64 customData, PUINT64 pState)
     }
 
 CleanUp:
+    CHK_LOG_ERR(retStatus);
 
     if (STATUS_FAILED(retStatus)) {
         state = ICE_AGENT_STATE_FAILED;
@@ -475,6 +482,7 @@ STATUS executeNominatingIceAgentState(UINT64 customData, UINT64 time)
     }
 
 CleanUp:
+    CHK_LOG_ERR(retStatus);
 
     if (STATUS_FAILED(retStatus)) {
         pIceAgent->iceAgentStatus = retStatus;
@@ -511,6 +519,7 @@ STATUS fromReadyIceAgentState(UINT64 customData, PUINT64 pState)
     CHK(state != ICE_AGENT_STATE_DISCONNECTED, retStatus);
 
 CleanUp:
+    CHK_LOG_ERR(retStatus);
 
     if (STATUS_FAILED(retStatus)) {
         state = ICE_AGENT_STATE_FAILED;
@@ -567,6 +576,7 @@ STATUS executeReadyIceAgentState(UINT64 customData, UINT64 time)
     }
 
 CleanUp:
+    CHK_LOG_ERR(retStatus);
 
     if (STATUS_FAILED(retStatus)) {
         pIceAgent->iceAgentStatus = retStatus;
@@ -606,6 +616,7 @@ STATUS fromDisconnectedIceAgentState(UINT64 customData, PUINT64 pState)
     CHK_STATUS(pIceAgent->iceAgentStatus);
 
 CleanUp:
+    CHK_LOG_ERR(retStatus);
 
     if (STATUS_FAILED(retStatus)) {
         state = ICE_AGENT_STATE_FAILED;
@@ -654,6 +665,7 @@ STATUS executeDisconnectedIceAgentState(UINT64 customData, UINT64 time)
     CHK_STATUS(stepStateMachine(pIceAgent->pStateMachine));
 
 CleanUp:
+    CHK_LOG_ERR(retStatus);
 
     if (STATUS_FAILED(retStatus)) {
         pIceAgent->iceAgentStatus = retStatus;
@@ -678,6 +690,7 @@ STATUS fromFailedIceAgentState(UINT64 customData, PUINT64 pState)
     *pState = ICE_AGENT_STATE_FAILED;
 
 CleanUp:
+    CHK_LOG_ERR(retStatus);
 
     LEAVES();
     return retStatus;
@@ -707,6 +720,7 @@ STATUS executeFailedIceAgentState(UINT64 customData, UINT64 time)
     }
 
 CleanUp:
+    CHK_LOG_ERR(retStatus);
 
     LEAVES();
     return retStatus;

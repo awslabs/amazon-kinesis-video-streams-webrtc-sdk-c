@@ -1170,12 +1170,12 @@ TEST_F(PeerConnectionFunctionalityTest, aggressiveNominationDTLSRaceConditionChe
             onIceConnectionStateChange(customData, connectionState);
             switch(connectionState) {
                 case ICE_AGENT_STATE_CHECK_CONNECTION:
+                    MUTEX_LOCK(pIceAgent->lock);
+                    locked = TRUE;
                     if(!setUseCandidate) {
                         setUseCandidate = TRUE;
                         appendStunFlagAttribute(pIceAgent->pBindingRequest, STUN_ATTRIBUTE_TYPE_USE_CANDIDATE);
                     }
-                    MUTEX_LOCK(pIceAgent->lock);
-                    locked = TRUE;
                     doubleListGetHeadNode(pIceAgent->iceCandidatePairs, &pCurNode);
                     while (pCurNode != NULL) {
                         pIceCandidatePair = (PIceCandidatePair) pCurNode->data;
