@@ -14,6 +14,7 @@ on:
 jobs:
   check-description:
     runs-on: macos-latest
+    if: github.event.pull_request.fork == false || github.event_name == 'push'
     steps:
       - name: Install GitHub CLI
         run: |

@@ -1,21 +1,21 @@
 name: WebRTC C SDK CI
 
 on:
-  push:
+  pull_request_target:
+    types: [labeled, synchronize]
     branches:
       - develop
-      - master
-  pull_request:
-    branches:
-      - develop
-      - master
 jobs:
-  clang-format-check:
+  clang-format-check-fork:
     runs-on: macos-latest
-    if: github.event.pull_request.fork == false || github.event_name == 'push'
+    if: github.event.label.name == 'safe-to-test' && github.event.pull_request.head.repo.fork == true
     steps:
       - name: Clone repository
         uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          token: ${{ secrets.YOUR_PERSONAL_ACCESS_TOKEN }}
       - name: Install clang-format
         run: |
           brew install clang-format
@@ -23,9 +23,9 @@ jobs:
       - name: Run clang format check
         run: |
           bash scripts/check-clang.sh
-  mac-os-build-clang:
+  mac-os-build-clang-fork:
     runs-on: macos-11
-    if: github.event.pull_request.fork == false || github.event_name == 'push'
+    if: github.event.label.name == 'safe-to-test' && github.event.pull_request.head.repo.fork == true
     env:
       CC: /usr/bin/clang
       CXX: /usr/bin/clang++
@@ -36,25 +36,33 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - name: Clone repository
+      - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          token: ${{ secrets.YOUR_PERSONAL_ACCESS_TOKEN }}
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
+
       - name: Build repository
         run: |
           mkdir build && cd build
           cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
           make
+
       - name: Run tests
         run:  |
           cd build
           ./tst/webrtc_client_test
-  mac-os-build-gcc:
+
+  mac-os-build-gcc-fork:
     runs-on: macos-11
-    if: github.event.pull_request.fork == false || github.event_name == 'push'
+    if: github.event.label.name == 'safe-to-test' && github.event.pull_request.head.repo.fork == true
     env:
       CC: gcc
       CXX: g++
@@ -65,6 +73,10 @@ jobs:
     steps:
       - name: Clone repository
         uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          token: ${{ secrets.YOUR_PERSONAL_ACCESS_TOKEN }}
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -79,9 +91,9 @@ jobs:
         run:  |
           cd build
           ./tst/webrtc_client_test
-  static-build-mac:
+  static-build-mac-fork:
     runs-on: macos-11
-    if: github.event.pull_request.fork == false || github.event_name == 'push'
+    if: github.event.label.name == 'safe-to-test' && github.event.pull_request.head.repo.fork == true
     env:
       AWS_KVS_LOG_LEVEL: 2
       LDFLAGS: -L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib
@@ -92,6 +104,10 @@ jobs:
     steps:
       - name: Clone repository
         uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          token: ${{ secrets.YOUR_PERSONAL_ACCESS_TOKEN }}
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -106,9 +122,9 @@ jobs:
         run:  |
           cd build
           ./tst/webrtc_client_test
-  linux-gcc-code-coverage:
+  linux-gcc-code-coverage-fork:
     runs-on: ubuntu-20.04
-    if: github.event.pull_request.fork == false || github.event_name == 'push'
+    if: github.event.label.name == 'safe-to-test' && github.event.pull_request.head.repo.fork == true
     env:
       AWS_KVS_LOG_LEVEL: 2
     permissions:
@@ -117,6 +133,10 @@ jobs:
     steps:
       - name: Clone repository
         uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          token: ${{ secrets.YOUR_PERSONAL_ACCESS_TOKEN }}
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -137,9 +157,9 @@ jobs:
         run: |
           for test_file in $(find CMakeFiles/kvsWebrtcClient.dir CMakeFiles/kvsWebrtcSignalingClient.dir -name '*.gcno'); do gcov $test_file; done
           bash <(curl -s https://codecov.io/bash)
-  address-sanitizer:
+  address-sanitizer-fork:
     runs-on: ubuntu-20.04
-    if: github.event.pull_request.fork == false || github.event_name == 'push'
+    if: github.event.label.name == 'safe-to-test' && github.event.pull_request.head.repo.fork == true
     env:
       ASAN_OPTIONS: detect_odr_violation=0:detect_leaks=1
       LSAN_OPTIONS: suppressions=../tst/suppressions/LSAN.supp
@@ -152,6 +172,10 @@ jobs:
     steps:
       - name: Clone repository
         uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          token: ${{ secrets.YOUR_PERSONAL_ACCESS_TOKEN }}
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -173,9 +197,9 @@ jobs:
         run:  |
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-  undefined-behavior-sanitizer:
+  undefined-behavior-sanitizer-fork:
     runs-on: ubuntu-20.04
-    if: github.event.pull_request.fork == false || github.event_name == 'push'
+    if: github.event.label.name == 'safe-to-test' && github.event.pull_request.head.repo.fork == true
     env:
       UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
       CC: clang
@@ -187,6 +211,10 @@ jobs:
     steps:
       - name: Clone repository
         uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          token: ${{ secrets.YOUR_PERSONAL_ACCESS_TOKEN }}
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -208,30 +236,9 @@ jobs:
         run:  |
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-  # memory-sanitizer:
-  #   runs-on: ubuntu-18.04
-  #   env:
-  #     CC: clang-7
-  #     CXX: clang++-7
-  #     AWS_KVS_LOG_LEVEL: 2
-  #   steps:
-  #     - name: Clone repository
-  #       uses: actions/checkout@v3
-  #     - name: Install dependencies
-  #       run: |
-  #         sudo apt clean && sudo apt update
-  #         sudo apt-get -y install clang-7
-  #     - name: Build repository
-  #       run: |
-  #         sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-  #         mkdir build && cd build
-  #         cmake .. -DMEMORY_SANITIZER=TRUE -DBUILD_TEST=TRUE
-  #         make
-  #         ulimit -c unlimited -S
-  #         timeout --signal=SIGABRT 60m build/tst/webrtc_client_test
-  thread-sanitizer:
+  thread-sanitizer-fork:
     runs-on: ubuntu-20.04
-    if: github.event.pull_request.fork == false || github.event_name == 'push'
+    if: github.event.label.name == 'safe-to-test' && github.event.pull_request.head.repo.fork == true
     env:
       TSAN_OPTIONS: second_deadlock_stack=1:halt_on_error=1:suppressions=../tst/suppressions/TSAN.supp
       CC: clang
@@ -243,6 +250,10 @@ jobs:
     steps:
       - name: Clone repository
         uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          token: ${{ secrets.YOUR_PERSONAL_ACCESS_TOKEN }}
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -263,9 +274,9 @@ jobs:
         run:  |
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-  linux-gcc-4_4:
+  linux-gcc-4_4-fork:
     runs-on: ubuntu-20.04
-    if: github.event.pull_request.fork == false || github.event_name == 'push'
+    if: github.event.label.name == 'safe-to-test' && github.event.pull_request.head.repo.fork == true
     env:
       AWS_KVS_LOG_LEVEL: 2
       CC: gcc-4.4
@@ -275,6 +286,10 @@ jobs:
     steps:
       - name: Clone repository
         uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          token: ${{ secrets.YOUR_PERSONAL_ACCESS_TOKEN }}
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -300,9 +315,9 @@ jobs:
         run:  |
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-  static-build-linux:
+  static-build-linux-fork:
     runs-on: ubuntu-20.04
-    if: github.event.pull_request.fork == false || github.event_name == 'push'
+    if: github.event.label.name == 'safe-to-test' && github.event.pull_request.head.repo.fork == true
     container:
       image: alpine:3.15.4
     env:
@@ -315,6 +330,10 @@ jobs:
     steps:
       - name: Clone repository
         uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          token: ${{ secrets.YOUR_PERSONAL_ACCESS_TOKEN }}
       - name: Install dependencies
         run: |
           apk update
@@ -325,9 +344,9 @@ jobs:
           mkdir build && cd build
           cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE
           make
-  mbedtls-ubuntu-gcc:
+  mbedtls-ubuntu-gcc-fork:
     runs-on: ubuntu-20.04
-    if: github.event.pull_request.fork == false || github.event_name == 'push'
+    if: github.event.label.name == 'safe-to-test' && github.event.pull_request.head.repo.fork == true
     env:
       AWS_KVS_LOG_LEVEL: 2
     permissions:
@@ -336,6 +355,10 @@ jobs:
     steps:
       - name: Clone repository
         uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          token: ${{ secrets.YOUR_PERSONAL_ACCESS_TOKEN }}
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -362,9 +385,9 @@ jobs:
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
 
-  mbedtls-ubuntu-gcc-11:
+  mbedtls-ubuntu-gcc-11-fork:
     runs-on: ubuntu-latest
-    if: github.event.pull_request.fork == false || github.event_name == 'push'
+    if: github.event.label.name == 'safe-to-test' && github.event.pull_request.head.repo.fork == true
     env:
       AWS_KVS_LOG_LEVEL: 2
     permissions:
@@ -373,6 +396,10 @@ jobs:
     steps:
       - name: Clone repository
         uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          token: ${{ secrets.YOUR_PERSONAL_ACCESS_TOKEN }}
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -396,9 +423,9 @@ jobs:
         run:  |
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-  mbedtls-ubuntu-clang:
+  mbedtls-ubuntu-clang-fork:
     runs-on: ubuntu-20.04
-    if: github.event.pull_request.fork == false || github.event_name == 'push'
+    if: github.event.label.name == 'safe-to-test' && github.event.pull_request.head.repo.fork == true
     env:
       CC: clang
       CXX: clang++
@@ -409,6 +436,10 @@ jobs:
     steps:
       - name: Clone repository
         uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          token: ${{ secrets.YOUR_PERSONAL_ACCESS_TOKEN }}
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -429,8 +460,8 @@ jobs:
         run:  |
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-  sample-check:
-    if: github.repository == 'awslabs/amazon-kinesis-video-streams-webrtc-sdk-c' && (github.event.pull_request.fork == false || github.event_name == 'push')
+  sample-check-fork:
+    if: github.repository == 'awslabs/amazon-kinesis-video-streams-webrtc-sdk-c' && (github.event.label.name == 'safe-to-test' && github.event.pull_request.head.repo.fork == true)
     runs-on: ubuntu-20.04
     env:
       AWS_KVS_LOG_LEVEL: 2
@@ -440,6 +471,10 @@ jobs:
     steps:
       - name: Clone repository
         uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          token: ${{ secrets.YOUR_PERSONAL_ACCESS_TOKEN }}
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -453,9 +488,9 @@ jobs:
           make
           cd ..
           ./scripts/check-sample.sh
-  ubuntu-os-build:
+  ubuntu-os-build-fork:
     runs-on: ubuntu-20.04
-    if: github.event.pull_request.fork == false || github.event_name == 'push'
+    if: github.event.label.name == 'safe-to-test' && github.event.pull_request.head.repo.fork == true
     env:
       AWS_KVS_LOG_LEVEL: 2
     permissions:
@@ -464,6 +499,10 @@ jobs:
     steps:
       - name: Clone repository
         uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          token: ${{ secrets.YOUR_PERSONAL_ACCESS_TOKEN }}
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -480,9 +519,9 @@ jobs:
         run:  |
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-  windows-msvc-openssl:
+  windows-msvc-openssl-fork:
     runs-on: windows-2022
-    if: github.event.pull_request.fork == false || github.event_name == 'push'
+    if: github.event.label.name == 'safe-to-test' && github.event.pull_request.head.repo.fork == true
     env:
       AWS_KVS_LOG_LEVEL: 1
     permissions:
@@ -491,6 +530,10 @@ jobs:
     steps:
       - name: Clone repository
         uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          token: ${{ secrets.YOUR_PERSONAL_ACCESS_TOKEN }}
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -509,19 +552,6 @@ jobs:
           curl.exe -o C:\tools\pthreads-w32-2-9-1-release.zip ftp://sourceware.org/pub/pthreads-win32/pthreads-w32-2-9-1-release.zip
           mkdir C:\tools\pthreads-w32-2-9-1-release\
           Expand-Archive -Path C:\tools\pthreads-w32-2-9-1-release.zip -DestinationPath C:\tools\pthreads-w32-2-9-1-release
-      # - name: Build libwebsockets from source
-      #   shell: powershell
-      #   run: |
-      #     $env:Path += ';C:\Strawberry\perl\site\bin;C:\Strawberry\perl\bin;C:\Strawberry\c\bin;C:\Program Files\NASM;D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\open-source\bin;C:\tools\pthreads-w32-2-9-1-release\Pre-built.2\lib\x64;C:\tools\pthreads-w32-2-9-1-release\Pre-built.2\include'
-      #     git config --system core.longpaths true
-      #     cd C:\tools\
-      #     git clone https://github.com/warmcat/libwebsockets.git
-      #     git checkout v4.2.2
-      #     cd libwebsockets
-      #     mkdir build
-      #     cd build
-      #     cmake .. -DLWS_HAVE_PTHREAD_H=1 -DLWS_EXT_PTHREAD_INCLUDE_DIR="C:\\tools\\pthreads-w32-2-9-1-release\\Pre-built.2\\include" -DLWS_EXT_PTHREAD_LIBRARIES="C:\\tools\\pthreads-w32-2-9-1-release\\Pre-built.2\\lib\\x64\\libpthreadGC2.a" -DLWS_WITH_MINIMAL_EXAMPLES=1 -DLWS_OPENSSL_INCLUDE_DIRS="C:\\Program Files\\OpenSSL\\include" -DLWS_OPENSSL_LIBRARIES="C:\\Program Files\\OpenSSL\\lib\\libssl.lib;C:\\Program Files\\OpenSSL\\lib\\libcrypto.lib"
-      #     cmake --build . --config DEBUG
       - name: Build repository
         shell: powershell
         run: |
@@ -533,37 +563,9 @@ jobs:
         run: |
           $env:Path += ';C:\webrtc\open-source\bin;C:\tools\pthreads-w32-2-9-1-release\Pre-built.2\dll\x64;C:\webrtc\build'
           & "C:\webrtc\build\tst\webrtc_client_test.exe" --gtest_filter="-DataChannelFunctionalityTest.*:IceApiTest.*:IceFunctionalityTest.*:PeerConnectionFunctionalityTest.*:SignalingApiFunctionalityTest.*:TurnConnectionFunctionalityTest.*:RtpFunctionalityTest.marshallUnmarshallH264Data:RtpFunctionalityTest.packingUnpackingVerifySameH264Frame:RtcpFunctionalityTest.onRtcpPacketCompound:RtcpFunctionalityTest.twcc3"
-  # windows-msvc-mbedtls:
-  #   runs-on: windows-2022
-  #   env:
-  #     AWS_KVS_LOG_LEVEL: 7
-  #   steps:
-  #     - name: Clone repository
-  #       uses: actions/checkout@v3
-  #     - name: Move cloned repo
-  #       shell: powershell
-  #       run: |
-  #         mkdir D:\a\webrtc
-  #         Move-Item -Path "D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\*" -Destination "D:\a\webrtc"
-  #         cd D:\a\webrtc
-  #         dir
-  #     - name: Install dependencies
-  #       shell: powershell
-  #       run: |
-  #         choco install gstreamer --version=1.16.2
-  #         choco install gstreamer-devel --version=1.16.2
-  #         curl.exe -o C:\tools\pthreads-w32-2-9-1-release.zip ftp://sourceware.org/pub/pthreads-win32/pthreads-w32-2-9-1-release.zip
-  #         mkdir C:\tools\pthreads-w32-2-9-1-release\
-  #         Expand-Archive -Path C:\tools\pthreads-w32-2-9-1-release.zip -DestinationPath C:\tools\pthreads-w32-2-9-1-release
-  #     - name: Build repository
-  #       shell: powershell
-  #       run: |
-  #         cd D:\a\webrtc
-  #         git config --system core.longpaths true
-  #         .github\build_windows_mbedtls.bat
-  arm64-cross-compilation:
+  arm64-cross-compilation-fork:
     runs-on: ubuntu-20.04
-    if: github.event.pull_request.fork == false || github.event_name == 'push'
+    if: github.event.label.name == 'safe-to-test' && github.event.pull_request.head.repo.fork == true
     env:
       CC: aarch64-linux-gnu-gcc
       CXX: aarch64-linux-gnu-g++
@@ -574,15 +576,19 @@ jobs:
           sudo apt-get -y install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu binutils-aarch64-linux-gnu
       - name: Clone repository
         uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          token: ${{ secrets.YOUR_PERSONAL_ACCESS_TOKEN }}
       - name: Build Repository
         run: |
           sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
           mkdir build && cd build
           cmake .. -DBUILD_OPENSSL=TRUE -DBUILD_OPENSSL_PLATFORM=linux-generic64 -DBUILD_LIBSRTP_HOST_PLATFORM=x86_64-unknown-linux-gnu -DBUILD_LIBSRTP_DESTINATION_PLATFORM=arm-unknown-linux-uclibcgnueabi
           make
-  linux-aarch64-cross-compilation:
+  linux-aarch64-cross-compilation-fork:
     runs-on: ubuntu-20.04
-    if: github.event.pull_request.fork == false || github.event_name == 'push'
+    if: github.event.label.name == 'safe-to-test' && github.event.pull_request.head.repo.fork == true
     env:
       CC: aarch64-linux-gnu-gcc
       CXX: aarch64-linux-gnu-g++
@@ -593,15 +599,19 @@ jobs:
           sudo apt-get -y install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu binutils-aarch64-linux-gnu
       - name: Clone repository
         uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          token: ${{ secrets.YOUR_PERSONAL_ACCESS_TOKEN }}
       - name: Build Repository
         run: |
           sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
           mkdir build && cd build
           cmake .. -DBUILD_OPENSSL=TRUE -DBUILD_OPENSSL_PLATFORM=linux-aarch64 -DBUILD_LIBSRTP_HOST_PLATFORM=x86_64-unknown-linux-gnu -DBUILD_LIBSRTP_DESTINATION_PLATFORM=arm-unknown-linux-uclibcgnueabi
           make
-  arm32-cross-compilation:
+  arm32-cross-compilation-fork:
     runs-on: ubuntu-20.04
-    if: github.event.pull_request.fork == false || github.event_name == 'push'
+    if: github.event.label.name == 'safe-to-test' && github.event.pull_request.head.repo.fork == true
     env:
       CC: arm-linux-gnueabi-gcc
       CXX: arm-linux-gnueabi-g++
@@ -612,9 +622,23 @@ jobs:
           sudo apt-get -y install gcc-arm-linux-gnueabi g++-arm-linux-gnueabi binutils-arm-linux-gnueabi
       - name: Clone repository
         uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          token: ${{ secrets.YOUR_PERSONAL_ACCESS_TOKEN }}
       - name: Build Repository
         run: |
           sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
           mkdir build && cd build
           cmake .. -DBUILD_OPENSSL=TRUE -DBUILD_OPENSSL_PLATFORM=linux-generic32 -DBUILD_LIBSRTP_HOST_PLATFORM=x86_64-unknown-linux-gnu -DBUILD_LIBSRTP_DESTINATION_PLATFORM=arm-unknown-linux-uclibcgnueabi
           make
+  remove-label-fork:
+    runs-on: ubuntu-20.04
+    if: github.event.label.name == 'safe-to-test' && github.event.pull_request.head.repo.fork == true
+    steps:
+      - name: Remove 'safe to test' label
+        if: success()
+        run: |
+          gh pr edit ${{ github.event.pull_request.number }} --remove-label "safe-to-test"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

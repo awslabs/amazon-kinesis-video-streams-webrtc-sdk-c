@@ -11,7 +11,7 @@ jobs:
   analyze:
     name: Analyze
     runs-on: ubuntu-latest
-
+    if: github.event.pull_request.fork == false || github.event_name == 'push'
     strategy:
       fail-fast: false
       matrix:
