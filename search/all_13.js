@@ -457,7 +457,7 @@ var searchData=
   ['status_5fpeerconnection_5fcodec_5finvalid_2261',['STATUS_PEERCONNECTION_CODEC_INVALID',['../group__PeerConnectionStatusCodes.html#gaaf780f91addca3a68d54be9c9b45fe95',1,'Include.h']]],
   ['status_5fpeerconnection_5fcodec_5fmax_5fexceeded_2262',['STATUS_PEERCONNECTION_CODEC_MAX_EXCEEDED',['../group__PeerConnectionStatusCodes.html#ga4acefae264c40f2e776c8527f79f608f',1,'Include.h']]],
   ['status_5fpeerconnection_5fcreate_5fanswer_5fwithout_5fremote_5fdescription_2263',['STATUS_PEERCONNECTION_CREATE_ANSWER_WITHOUT_REMOTE_DESCRIPTION',['../group__PeerConnectionStatusCodes.html#ga65782295dc5babc9378d8d27df9b9c67',1,'Include.h']]],
-  ['status_5fpeerconnection_5funsupported_5fhostname_2264',['STATUS_PEERCONNECTION_UNSUPPORTED_HOSTNAME',['../group__PeerConnectionStatusCodes.html#gaa0aec7fe0cfafd37e396f7652c17737f',1,'Include.h']]],
+  ['status_5fpeerconnection_5fearly_5fdns_5fresolution_5ffailed_2264',['STATUS_PEERCONNECTION_EARLY_DNS_RESOLUTION_FAILED',['../group__PeerConnectionStatusCodes.html#gae3fbbf73a2a1ae6100e7f3bb9a02dc68',1,'Include.h']]],
   ['status_5fresolve_5fhostname_5ffailed_2265',['STATUS_RESOLVE_HOSTNAME_FAILED',['../group__NetworkingStatusCodes.html#gaedbdc23fa607cfb415a5608c0df01e57',1,'Include.h']]],
   ['status_5frolling_5fbuffer_5fbase_2266',['STATUS_ROLLING_BUFFER_BASE',['../group__RollingBufferStatusCodes.html#gae92d4390a03c744c23afba149ada9e8d',1,'Include.h']]],
   ['status_5frolling_5fbuffer_5fnot_5fin_5frange_2267',['STATUS_ROLLING_BUFFER_NOT_IN_RANGE',['../group__RollingBufferStatusCodes.html#ga8e633d1c4091f48151153fda2bf007fd',1,'Include.h']]],
