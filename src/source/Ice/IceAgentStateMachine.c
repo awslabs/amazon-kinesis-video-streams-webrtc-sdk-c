@@ -61,10 +61,10 @@ STATUS stepIceAgentStateMachine(PIceAgent pIceAgent)
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
 
-    MUTEX_LOCK(pIceAgent->lock);
-    locked = TRUE;
     do {
         oldState = pIceAgent->iceAgentState;
+        MUTEX_LOCK(pIceAgent->lock);
+        locked = TRUE;
 
         CHK_STATUS(stepStateMachine(pIceAgent->pStateMachine));
 
@@ -74,6 +74,9 @@ STATUS stepIceAgentStateMachine(PIceAgent pIceAgent)
                   pIceAgent->iceAgentStatus);
             CHK_STATUS(stepStateMachine(pIceAgent->pStateMachine));
         }
+
+        MUTEX_UNLOCK(pIceAgent->lock);
+        locked = FALSE;
 
         if (oldState != pIceAgent->iceAgentState) {
             if (pIceAgent->iceAgentCallbacks.connectionStateChangedFn != NULL) {
