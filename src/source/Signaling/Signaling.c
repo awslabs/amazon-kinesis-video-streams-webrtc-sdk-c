@@ -294,6 +294,10 @@ STATUS freeSignaling(PSignalingClient* ppSignalingClient)
         MUTEX_FREE(pSignalingClient->diagnosticsLock);
     }
 
+    if (IS_VALID_MUTEX_VALUE(pSignalingClient->offerSendReceiveTimeLock)) {
+        MUTEX_FREE(pSignalingClient->offerSendReceiveTimeLock);
+    }
+
     uninitializeThreadTracker(&pSignalingClient->reconnecterTracker);
     uninitializeThreadTracker(&pSignalingClient->listenerTracker);
 
