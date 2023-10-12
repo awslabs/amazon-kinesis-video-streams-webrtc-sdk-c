@@ -2368,7 +2368,10 @@ PVOID receiveLwsMessageWrapper(PVOID args)
     ATOMIC_INCREMENT(&pSignalingClient->diagnostics.numberOfMessagesReceived);
 
     if (messageType == SIGNALING_MESSAGE_TYPE_OFFER) {
+        MUTEX_LOCK(pSignalingClient->offerSendReceiveTimeLock);
         pSignalingClient->offerReceivedTime = GETTIME();
+        MUTEX_UNLOCK(pSignalingClient->offerSendReceiveTimeLock);
+
         if (pSignalingClient->mediaStorageConfig.storageStatus) {
             MUTEX_LOCK(pSignalingClient->jssWaitLock);
             ATOMIC_STORE_BOOL(&pSignalingClient->offerReceived, TRUE);
@@ -2379,8 +2382,10 @@ PVOID receiveLwsMessageWrapper(PVOID args)
             MUTEX_UNLOCK(pSignalingClient->jssWaitLock);
         }
     } else if (messageType == SIGNALING_MESSAGE_TYPE_ANSWER) {
+        MUTEX_LOCK(pSignalingClient->offerSendReceiveTimeLock);
         PROFILE_WITH_START_TIME_OBJ(pSignalingClient->offerSentTime, pSignalingClient->diagnostics.offerToAnswerTime,
                                     "Offer Sent to Answer Received time");
+        MUTEX_UNLOCK(pSignalingClient->offerSendReceiveTimeLock);
     }
     // Calling client receive message callback if specified
     if (pSignalingClient->signalingClientCallbacks.messageReceivedFn != NULL) {

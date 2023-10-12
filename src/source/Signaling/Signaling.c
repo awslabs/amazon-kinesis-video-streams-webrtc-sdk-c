@@ -51,6 +51,8 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     pSignalingClient->connectTime = INVALID_TIMESTAMP_VALUE;
     pSignalingClient->describeMediaTime = INVALID_TIMESTAMP_VALUE;
     pSignalingClient->joinSessionTime = INVALID_TIMESTAMP_VALUE;
+    pSignalingClient->offerReceivedTime = INVALID_TIMESTAMP_VALUE;
+    pSignalingClient->offerSentTime = INVALID_TIMESTAMP_VALUE;
 
     if (pSignalingClient->pChannelInfo->cachingPolicy == SIGNALING_API_CALL_CACHE_TYPE_FILE) {
         if (STATUS_FAILED(signalingCacheLoadFromFile(pSignalingClient->pChannelInfo->pChannelName, pSignalingClient->pChannelInfo->pRegion,
@@ -140,6 +142,8 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     CHK(IS_VALID_CVAR_VALUE(pSignalingClient->jssWaitCvar), STATUS_INVALID_OPERATION);
     pSignalingClient->jssWaitLock = MUTEX_CREATE(FALSE);
     CHK(IS_VALID_MUTEX_VALUE(pSignalingClient->jssWaitLock), STATUS_INVALID_OPERATION);
+    pSignalingClient->offerSendReceiveTimeLock = MUTEX_CREATE(FALSE);
+    CHK(IS_VALID_MUTEX_VALUE(pSignalingClient->offerSendReceiveTimeLock), STATUS_INVALID_OPERATION);
 
     pSignalingClient->stateLock = MUTEX_CREATE(TRUE);
     CHK(IS_VALID_MUTEX_VALUE(pSignalingClient->stateLock), STATUS_INVALID_OPERATION);
@@ -404,13 +408,15 @@ STATUS signalingSendMessageSync(PSignalingClient pSignalingClient, PSignalingMes
     // Perform the call
     CHK_STATUS(sendLwsMessage(pSignalingClient, pSignalingMessage->messageType, pSignalingMessage->peerClientId, pSignalingMessage->payload,
                               pSignalingMessage->payloadLen, pSignalingMessage->correlationId, 0));
-    if (pSignalingMessage->messageType == SIGNALING_MESSAGE_TYPE_ANSWER) {
+
+    MUTEX_LOCK(pSignalingClient->offerSendReceiveTimeLock);
+    if (pSignalingMessage->messageType == SIGNALING_MESSAGE_TYPE_OFFER) {
+        pSignalingClient->offerSentTime = GETTIME();
+    } else if (pSignalingMessage->messageType == SIGNALING_MESSAGE_TYPE_ANSWER) {
         PROFILE_WITH_START_TIME_OBJ(pSignalingClient->offerReceivedTime, pSignalingClient->diagnostics.offerToAnswerTime,
                                     "Offer Received to Answer Sent time");
     }
-    if (pSignalingMessage->messageType == SIGNALING_MESSAGE_TYPE_OFFER) {
-        pSignalingClient->offerSentTime = GETTIME();
-    }
+    MUTEX_UNLOCK(pSignalingClient->offerSendReceiveTimeLock);
     // Update the internal diagnostics only after successfully sending
     ATOMIC_INCREMENT(&pSignalingClient->diagnostics.numberOfMessagesSent);
 

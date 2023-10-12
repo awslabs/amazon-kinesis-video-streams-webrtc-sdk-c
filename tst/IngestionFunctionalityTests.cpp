@@ -202,7 +202,7 @@ VOID IngestionFunctionalityTest::UnlinkAndDeleteStreamAndChannel(IngestionFuncti
     updateMediaStorageConfigurationOutcome = mKvsClient.UpdateMediaStorageConfiguration(updateMediaStorageConfigurationRequest);
 
     if (!updateMediaStorageConfigurationOutcome.IsSuccess()) {
-        DLOGE("Update Media Storage Configuration FAILED!");
+        DLOGE("Update Media Storage Configuration FAILED! %s", updateMediaStorageConfigurationOutcome.GetError().GetMessage().c_str());
     }
 
     Aws::KinesisVideo::Model::DeleteSignalingChannelOutcome deleteSignalingChannelOutcome;
@@ -213,7 +213,7 @@ VOID IngestionFunctionalityTest::UnlinkAndDeleteStreamAndChannel(IngestionFuncti
     deleteSignalingChannelOutcome = mKvsClient.DeleteSignalingChannel(deleteSignalingChannelRequest);
 
     if (!deleteSignalingChannelOutcome.IsSuccess()) {
-        DLOGE("Delete Signaling Channel (%s) FAILED!", (PCHAR)mediaConfigurationInfo.channelArn.c_str());
+        DLOGE("Delete Signaling Channel (%s) FAILED! %s", (PCHAR)mediaConfigurationInfo.channelArn.c_str(), deleteSignalingChannelOutcome.GetError().GetMessage().c_str());
     }
 
     Aws::KinesisVideo::Model::DeleteStreamOutcome deleteStreamOutcome;
@@ -224,7 +224,7 @@ VOID IngestionFunctionalityTest::UnlinkAndDeleteStreamAndChannel(IngestionFuncti
     deleteStreamOutcome = mKvsClient.DeleteStream(deleteStreamRequest);
 
     if (!deleteStreamOutcome.IsSuccess()) {
-        DLOGE("Delete Stream (%s) FAILED!", (PCHAR)mediaConfigurationInfo.streamArn.c_str());
+        DLOGE("Delete Stream (%s) FAILED!  %s", (PCHAR)mediaConfigurationInfo.streamArn.c_str(), deleteStreamOutcome.GetError().GetMessage().c_str());
     }
 
 }

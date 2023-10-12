@@ -364,6 +364,8 @@ typedef struct {
 #endif
     UINT64 offerReceivedTime;
     UINT64 offerSentTime;
+
+    MUTEX offerSendReceiveTimeLock;
     UINT64 joinSessionTime;
 
     // mutex for join session wait condition variable
