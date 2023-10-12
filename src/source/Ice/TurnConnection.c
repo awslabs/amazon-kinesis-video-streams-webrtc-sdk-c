@@ -993,7 +993,6 @@ STATUS checkTurnPeerConnections(PTurnConnection pTurnConnection)
     PTurnPeer pTurnPeer = NULL;
     PStunAttributeAddress pStunAttributeAddress = NULL;
     PStunAttributeChannelNumber pStunAttributeChannelNumber = NULL;
-    PStunAttributeLifetime pStunAttributeLifetime = NULL;
     UINT32 i = 0;
 
     // turn mutex is assumed to be locked.
@@ -1054,14 +1053,9 @@ STATUS turnConnectionTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 cu
 {
     UNUSED_PARAM(timerId);
     UNUSED_PARAM(currentTime);
-    STATUS retStatus = STATUS_SUCCESS, sendStatus = STATUS_SUCCESS;
+    STATUS retStatus = STATUS_SUCCESS;
     PTurnConnection pTurnConnection = (PTurnConnection) customData;
     BOOL locked = FALSE, stopScheduling = FALSE;
-    PTurnPeer pTurnPeer = NULL;
-    PStunAttributeAddress pStunAttributeAddress = NULL;
-    PStunAttributeChannelNumber pStunAttributeChannelNumber = NULL;
-    PStunAttributeLifetime pStunAttributeLifetime = NULL;
-    UINT32 i = 0;
 
     CHK(pTurnConnection != NULL, STATUS_NULL_ARG);
 
