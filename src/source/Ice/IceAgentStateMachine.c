@@ -57,9 +57,12 @@ STATUS stepIceAgentStateMachine(PIceAgent pIceAgent)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT64 oldState;
+    BOOL locked = FALSE;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
 
+    MUTEX_LOCK(pIceAgent->lock);
+    locked = TRUE;
     do {
         oldState = pIceAgent->iceAgentState;
 
@@ -87,6 +90,9 @@ STATUS stepIceAgentStateMachine(PIceAgent pIceAgent)
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
+    if (locked) {
+        MUTEX_UNLOCK(pIceAgent->lock);
+    }
 
     LEAVES();
     return retStatus;
