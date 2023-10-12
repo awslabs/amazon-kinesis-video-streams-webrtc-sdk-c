@@ -67,7 +67,8 @@ STATUS stepIceAgentStateMachine(PIceAgent pIceAgent)
 
         // if any failure happened and state machine is not in failed state, stepStateMachine again into failed state.
         if (pIceAgent->iceAgentState != ICE_AGENT_STATE_FAILED && STATUS_FAILED(pIceAgent->iceAgentStatus)) {
-            DLOGD("Ice agent state %s operation encountered error 0x%08x", iceAgentStateToString(pIceAgent->iceAgentState), pIceAgent->iceAgentStatus);
+            DLOGD("Ice agent state %s operation encountered error 0x%08x", iceAgentStateToString(pIceAgent->iceAgentState),
+                  pIceAgent->iceAgentStatus);
             CHK_STATUS(stepStateMachine(pIceAgent->pStateMachine));
         }
 
