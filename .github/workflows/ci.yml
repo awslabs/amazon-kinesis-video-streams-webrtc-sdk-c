@@ -5,6 +5,7 @@ on:
     branches:
       - develop
       - master
+      - dtls-err-handling
   pull_request:
     branches:
       - develop

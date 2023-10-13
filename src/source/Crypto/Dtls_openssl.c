@@ -448,9 +448,9 @@ STATUS dtlsSessionHandshakeInThread(PDtlsSession pDtlsSession, BOOL isServer)
     BOOL locked = FALSE;
     INT32 sslRet, sslErr;
     struct timeval timeout;
-    LONG dtlsTimeoutRet = 0;
+    int dtlsTimeoutRet = 0, dtlsHandleTimeoutRet = 0;
     BOOL firstMsg = TRUE;
-    UINT64 waitTime = INFINITE_TIME_VALUE;
+    UINT64 waitTime = 1 * HUNDREDS_OF_NANOS_IN_A_SECOND;
     BOOL dtlsHandshakeErrored = FALSE;
     BOOL timedOut = FALSE;
     MEMSET(&timeout, 0x00, SIZEOF(struct timeval));
@@ -464,11 +464,6 @@ STATUS dtlsSessionHandshakeInThread(PDtlsSession pDtlsSession, BOOL isServer)
     CHK(!ATOMIC_LOAD_BOOL(&pDtlsSession->isCleanUp), STATUS_DTLS_SESSION_ALREADY_FREED);
     CHK_STATUS(beginHandshakeProcess(pDtlsSession, isServer, &sslRet));
     while (!(ATOMIC_LOAD_BOOL(&pDtlsSession->sslInitFinished)) && !dtlsHandshakeErrored && !(ATOMIC_LOAD_BOOL(&pDtlsSession->isCleanUp))) {
-        dtlsTimeoutRet = DTLSv1_get_timeout(pDtlsSession->pSsl, &timeout);
-        if (dtlsTimeoutRet > 0) {
-            waitTime = timeout.tv_sec * HUNDREDS_OF_NANOS_IN_A_SECOND + timeout.tv_usec * HUNDREDS_OF_NANOS_IN_A_MICROSECOND;
-        }
-
         switch (pDtlsSession->handshakeState) {
             case DTLS_STATE_HANDSHAKE_NEW:
                 if (sslRet <= 0) {
@@ -490,25 +485,39 @@ STATUS dtlsSessionHandshakeInThread(PDtlsSession pDtlsSession, BOOL isServer)
                     ATOMIC_STORE_BOOL(&pDtlsSession->sslInitFinished, TRUE);
                     CHK_STATUS(dtlsSessionChangeState(pDtlsSession, RTC_DTLS_TRANSPORT_STATE_CONNECTED));
                 } else {
-                    if (dtlsTimeoutRet < 0) {
-                        pDtlsSession->handshakeState = DTLS_STATE_HANDSHAKE_ERROR;
-                        dtlsHandshakeErrored = TRUE;
+                    dtlsTimeoutRet = DTLSv1_get_timeout(pDtlsSession->pSsl, &timeout);
+                    if (dtlsTimeoutRet == 0) {
+                        DLOGI("No timeout is active, no retransmissions to handle");
                     } else {
-                        timedOut = (CVAR_WAIT(pDtlsSession->receivePacketCvar, pDtlsSession->sslLock, waitTime) == STATUS_OPERATION_TIMED_OUT);
-                        if (timedOut) {
-                            DLOGD("DTLS handshake timeout event occurred, going to retransmit");
-                            DTLSv1_handle_timeout(pDtlsSession->pSsl);
-                        }
-
-                        // We start calculating start of handshake DTLS handshake time taken in server mode only after clientHello
-                        // is received, until then, we are only waiting, so we should not count that time into handshake latency
-                        // calculation
-                        if (isServer && firstMsg) {
-                            pDtlsSession->dtlsSessionStartTime = GETTIME();
-                            firstMsg = FALSE;
-                        }
-                        CHK_STATUS(dtlsCheckOutgoingDataBuffer(pDtlsSession));
+                        waitTime = timeout.tv_sec * HUNDREDS_OF_NANOS_IN_A_SECOND + timeout.tv_usec * HUNDREDS_OF_NANOS_IN_A_MICROSECOND;
                     }
+                    timedOut = (CVAR_WAIT(pDtlsSession->receivePacketCvar, pDtlsSession->sslLock, waitTime) == STATUS_OPERATION_TIMED_OUT);
+                    if (timedOut) {
+                        DLOGD("DTLS handshake timeout event occurred, going to retransmit");
+                        dtlsHandleTimeoutRet = DTLSv1_handle_timeout(pDtlsSession->pSsl);
+                        if (dtlsHandleTimeoutRet > 0) {
+                            DLOGI("Timeout handled successfully, packet retransmitted");
+                        } else if (dtlsHandleTimeoutRet == 0) {
+                            DLOGI("No pending timeout event to handle");
+                        } else {
+                            sslErr = SSL_get_error(pDtlsSession->pSsl, sslRet);
+                            if (sslErr == SSL_ERROR_WANT_READ || sslErr == SSL_ERROR_WANT_WRITE) {
+                                DLOGW("Non fatal error while handling timeout, will retry next time");
+                            } else {
+                                DLOGE("A fatal error was encountered while handling timeout");
+                                pDtlsSession->handshakeState = DTLS_STATE_HANDSHAKE_ERROR;
+                                dtlsHandshakeErrored = TRUE;
+                            }
+                        }
+                    }
+                    // We start calculating start of handshake DTLS handshake time taken in server mode only after clientHello
+                    // is received, until then, we are only waiting, so we should not count that time into handshake latency
+                    // calculation
+                    if (isServer && firstMsg) {
+                        pDtlsSession->dtlsSessionStartTime = GETTIME();
+                        firstMsg = FALSE;
+                    }
+                    CHK_STATUS(dtlsCheckOutgoingDataBuffer(pDtlsSession));
                 }
                 break;
             case DTLS_STATE_HANDSHAKE_COMPLETED:
