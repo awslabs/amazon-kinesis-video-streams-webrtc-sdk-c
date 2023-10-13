@@ -490,7 +490,7 @@ STATUS dtlsSessionHandshakeInThread(PDtlsSession pDtlsSession, BOOL isServer)
                     ATOMIC_STORE_BOOL(&pDtlsSession->sslInitFinished, TRUE);
                     CHK_STATUS(dtlsSessionChangeState(pDtlsSession, RTC_DTLS_TRANSPORT_STATE_CONNECTED));
                 } else {
-                    if (dtlsTimeoutRet < 0) {
+                    if (dtlsTimeoutRet <= 0) {
                         pDtlsSession->handshakeState = DTLS_STATE_HANDSHAKE_ERROR;
                         dtlsHandshakeErrored = TRUE;
                     } else {
