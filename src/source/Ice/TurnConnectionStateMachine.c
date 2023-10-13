@@ -200,7 +200,7 @@ STATUS fromCheckSocketConnectionTurnState(UINT64 customData, PUINT64 pState)
         CHK(FALSE, STATUS_SUCCESS);
     }
 
-    if (pTurnConnection->state == TURN_STATE_CHECK_SOCKET_CONNECTION) {
+    if (socketConnectionIsConnected(pTurnConnection->pControlChannel)) { // pTurnConnection->state == TURN_STATE_CHECK_SOCKET_CONNECTION) {
         state = TURN_STATE_GET_CREDENTIALS;
     }
 
@@ -273,7 +273,7 @@ STATUS executeGetCredentialsTurnState(UINT64 customData, UINT64 time)
 
     CHK(pTurnConnection != NULL, STATUS_NULL_ARG);
 
-    if (socketConnectionIsConnected(pTurnConnection->pControlChannel) && pTurnConnection->state != TURN_STATE_GET_CREDENTIALS) {
+    if (pTurnConnection->state != TURN_STATE_GET_CREDENTIALS) {
         /* initialize TLS once tcp connection is established */
         /* Start receiving data for TLS handshake */
         ATOMIC_STORE_BOOL(&pTurnConnection->pControlChannel->receiveData, TRUE);
