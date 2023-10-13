@@ -485,6 +485,14 @@ STATUS dtlsSessionHandshakeInThread(PDtlsSession pDtlsSession, BOOL isServer)
                     ATOMIC_STORE_BOOL(&pDtlsSession->sslInitFinished, TRUE);
                     CHK_STATUS(dtlsSessionChangeState(pDtlsSession, RTC_DTLS_TRANSPORT_STATE_CONNECTED));
                 } else {
+                    // We check for timeout here. If the timeout is 0, it is likely it
+                    // is in Server mode at which point it is basically waiting on the first message
+                    // from DTLS client. So, we need to wait on the CVAR. Even if timeout is 0, there is no
+                    // guarantee that handshake was complete. It just means that no retransmission is required
+                    // We always rely on sslInitFinished to be set to truly confirm handshake was complete
+
+                    // DTLSv1_handle_timeout: https://www.openssl.org/docs/manmaster/man3/DTLSv1_handle_timeout.html
+                    // DTLSv1_get_timeout: https://www.openssl.org/docs/manmaster/man3/DTLSv1_get_timeout.html
                     dtlsTimeoutRet = DTLSv1_get_timeout(pDtlsSession->pSsl, &timeout);
                     if (dtlsTimeoutRet == 0) {
                         // Listening in on fatal errors only: https://www.openssl.org/docs/man1.1.1/man3/SSL_get_error.html
