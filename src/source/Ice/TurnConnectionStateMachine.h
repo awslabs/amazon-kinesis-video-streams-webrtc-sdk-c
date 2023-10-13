@@ -1,6 +1,6 @@
-/*******************************************
-Signaling State Machine internal include file
-*******************************************/
+/***************************************************
+TURN Connections State Machine internal include file
+***************************************************/
 #ifndef __KINESIS_VIDEO_WEBRTC_TURN_STATE_MACHINE__
 #define __KINESIS_VIDEO_WEBRTC_TURN_STATE_MACHINE__
 
@@ -11,7 +11,7 @@ extern "C" {
 #endif
 
 /**
- * Ice states definitions
+ * TURN states definitions
  *
  * TURN_STATE_NONE:                        Dummy state
  * TURN_STATE_NEW:                         State at creation
