@@ -709,7 +709,7 @@ TEST_F(IngestionFunctionalityTest, iceServerConfigRefreshConnectedJoinSessionWit
     EXPECT_TRUE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
     EXPECT_EQ(STATUS_SUCCESS,signalingClientFetchSync(signalingHandle));
 
-    // Connect to the channel
+    // Connect to the channel, will call join session
     EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
 
     pActiveClient = pSignalingClient;
@@ -766,7 +766,7 @@ TEST_F(IngestionFunctionalityTest, iceServerConfigRefreshConnectedJoinSessionWit
     EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
     EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, 0, &pIceConfigInfo));
 
-    // Connect to the signaling client = no-op
+    // Connect to the signaling client (already connected -- but we will call join session again)
     EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
     EXPECT_LT(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
@@ -778,9 +778,9 @@ TEST_F(IngestionFunctionalityTest, iceServerConfigRefreshConnectedJoinSessionWit
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_JOIN_SESSION]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_JOIN_SESSION_WAITING]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_JOIN_SESSION_CONNECTED]);
+    EXPECT_EQ(3, signalingStatesCounts[SIGNALING_CLIENT_STATE_JOIN_SESSION]);
+    EXPECT_EQ(3, signalingStatesCounts[SIGNALING_CLIENT_STATE_JOIN_SESSION_WAITING]);
+    EXPECT_EQ(3, signalingStatesCounts[SIGNALING_CLIENT_STATE_JOIN_SESSION_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
     // Check that we are connected and can send a message
