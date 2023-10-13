@@ -915,7 +915,7 @@ STATUS iceAgentRestart(PIceAgent pIceAgent, PCHAR localIceUfrag, PCHAR localIceP
      * pIceAgent->pDataSendingIceCandidatePair and its ice candidates. Therefore safe to proceed freeing resources */
 
     for (i = 0; i < localCandidateCount; ++i) {
-        if (localCandidates[i] != pIceAgent->pDataSendingIceCandidatePair->local) {
+        if (pIceAgent->pDataSendingIceCandidatePair == NULL || localCandidates[i] != pIceAgent->pDataSendingIceCandidatePair->local) {
             if (localCandidates[i]->iceCandidateType != ICE_CANDIDATE_TYPE_RELAYED) {
                 CHK_STATUS(connectionListenerRemoveConnection(pIceAgent->pConnectionListener, localCandidates[i]->pSocketConnection));
                 CHK_STATUS(freeSocketConnection(&localCandidates[i]->pSocketConnection));
