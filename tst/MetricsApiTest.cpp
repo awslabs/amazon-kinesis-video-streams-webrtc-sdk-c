@@ -22,7 +22,7 @@ TEST_F(MetricsApiTest, webRtcGetMetrics)
 
     MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
 
-    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+    ASSERT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
 
     EXPECT_EQ(STATUS_NULL_ARG, rtcPeerConnectionGetMetrics(pRtcPeerConnection, NULL, NULL));
 
@@ -57,7 +57,7 @@ TEST_F(MetricsApiTest, webRtcIceServerGetMetrics)
     STRNCPY(configuration.iceServers[1].credential, (PCHAR) "username", MAX_ICE_CONFIG_CREDENTIAL_LEN);
     STRNCPY(configuration.iceServers[1].username, (PCHAR) "password", MAX_ICE_CONFIG_USER_NAME_LEN);
 
-    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+    ASSERT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
 
     EXPECT_EQ(STATUS_ICE_SERVER_INDEX_INVALID, rtcPeerConnectionGetMetrics(pRtcPeerConnection, NULL, &rtcIceMetrics));
 
@@ -90,10 +90,15 @@ TEST_F(MetricsApiTest, webRtcIceCandidateGetMetrics)
     STRNCPY(configuration.iceServers[0].credential, (PCHAR) "", MAX_ICE_CONFIG_CREDENTIAL_LEN);
     STRNCPY(configuration.iceServers[0].username, (PCHAR) "", MAX_ICE_CONFIG_USER_NAME_LEN);
 
-    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+    ASSERT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
 
     pIceAgent = ((PKvsPeerConnection) pRtcPeerConnection)->pIceAgent;
 
+    if(pIceAgent == NULL) {
+        DLOGI("ICE Agent null");
+    } else {
+        DLOGI("ICE agent not null");
+    }
     IceCandidate localCandidate;
     IceCandidate remoteCandidate;
     IceCandidatePair iceCandidatePair;
