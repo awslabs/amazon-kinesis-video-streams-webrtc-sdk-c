@@ -60,6 +60,39 @@ PCHAR turnConnectionGetStateStr(UINT64 state)
     return TURN_STATE_UNKNOWN_STR;
 }
 
+STATUS checkTurnConnectionStateMachine(PTurnConnection pTurnConnection)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    BOOL transitionReady = FALSE;
+    BOOL locked = FALSE;
+
+    CHK(pTurnConnection != NULL && pTurnConnection->pStateMachine != NULL, STATUS_NULL_ARG);
+
+    MUTEX_LOCK(pTurnConnection->lock);
+    locked = TRUE;
+    // if a state transition is ready, tell the timer to kick the timer
+    CHK_STATUS(checkForStateTransition(pTurnConnection->pStateMachine, &transitionReady));
+
+    MUTEX_UNLOCK(pTurnConnection->lock);
+    locked = FALSE;
+    if (transitionReady) {
+        // dangerous to have any mutexes locked by timerqueue when entering this function
+        CHK_STATUS(timerQueueKick(pTurnConnection->timerQueueHandle, pTurnConnection->timerCallbackId));
+    }
+
+CleanUp:
+
+    CHK_LOG_ERR(retStatus);
+
+    if (locked) {
+        MUTEX_UNLOCK(pTurnConnection->lock);
+    }
+
+    LEAVES();
+    return retStatus;
+}
+
 STATUS stepTurnConnectionStateMachine(PTurnConnection pTurnConnection)
 {
     ENTERS();
@@ -167,7 +200,7 @@ STATUS fromCheckSocketConnectionTurnState(UINT64 customData, PUINT64 pState)
         CHK(FALSE, STATUS_SUCCESS);
     }
 
-    if (socketConnectionIsConnected(pTurnConnection->pControlChannel)) {
+    if (pTurnConnection->state == TURN_STATE_CHECK_SOCKET_CONNECTION) {
         state = TURN_STATE_GET_CREDENTIALS;
     }
 
@@ -240,7 +273,7 @@ STATUS executeGetCredentialsTurnState(UINT64 customData, UINT64 time)
 
     CHK(pTurnConnection != NULL, STATUS_NULL_ARG);
 
-    if (pTurnConnection->state != TURN_STATE_GET_CREDENTIALS) {
+    if (socketConnectionIsConnected(pTurnConnection->pControlChannel) && pTurnConnection->state != TURN_STATE_GET_CREDENTIALS) {
         /* initialize TLS once tcp connection is established */
         /* Start receiving data for TLS handshake */
         ATOMIC_STORE_BOOL(&pTurnConnection->pControlChannel->receiveData, TRUE);

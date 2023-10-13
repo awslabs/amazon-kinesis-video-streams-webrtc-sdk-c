@@ -26,7 +26,7 @@ STATUS createTurnConnection(PIceServer pTurnServer, TIMER_QUEUE_HANDLE timerQueu
         1, SIZEOF(TurnConnection) + DEFAULT_TURN_MESSAGE_RECV_CHANNEL_DATA_BUFFER_LEN * 2 + DEFAULT_TURN_MESSAGE_SEND_CHANNEL_DATA_BUFFER_LEN);
     CHK(pTurnConnection != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
-    pTurnConnection->lock = MUTEX_CREATE(FALSE);
+    pTurnConnection->lock = MUTEX_CREATE(TRUE);
     pTurnConnection->sendLock = MUTEX_CREATE(FALSE);
     pTurnConnection->freeAllocationCvar = CVAR_CREATE();
     pTurnConnection->timerQueueHandle = timerQueueHandle;
@@ -180,6 +180,7 @@ STATUS turnConnectionIncomingDataHandler(PTurnConnection pTurnConnection, PBYTE 
             } else {
                 CHK_STATUS(turnConnectionHandleStun(pTurnConnection, pCurrent, processedDataLen));
             }
+            checkTurnConnectionStateMachine(pTurnConnection);
         } else {
             /* must be channel data if not stun */
             CHK_STATUS(turnConnectionHandleChannelData(pTurnConnection, pCurrent, remainingDataSize, &channelDataList[totalChannelDataCount],
@@ -1070,15 +1071,15 @@ CleanUp:
 
     CHK_LOG_ERR(retStatus);
 
-    if (locked) {
-        MUTEX_UNLOCK(pTurnConnection->lock);
-    }
-
     if (stopScheduling) {
         retStatus = STATUS_TIMER_QUEUE_STOP_SCHEDULING;
         if (pTurnConnection != NULL) {
             ATOMIC_STORE(&pTurnConnection->timerCallbackId, MAX_UINT32);
         }
+    }
+
+    if (locked) {
+        MUTEX_UNLOCK(pTurnConnection->lock);
     }
 
     return retStatus;
