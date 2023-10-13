@@ -530,7 +530,7 @@ STATUS signalingConnectSync(PSignalingClient pSignalingClient)
                                                     SIGNALING_STATE_JOIN_SESSION_CONNECTED));
 
     // Check if we are already connected
-    CHK(!ATOMIC_LOAD_BOOL(&pSignalingClient->connected), retStatus);
+    CHK(!ATOMIC_LOAD_BOOL(&pSignalingClient->connected) || pSignalingClient->mediaStorageConfig.storageStatus, retStatus);
 
     // Store the signaling state in case we error/timeout so we can re-set it on exit
     CHK_STATUS(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pState));

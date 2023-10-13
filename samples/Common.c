@@ -76,11 +76,6 @@ VOID onConnectionStateChange(UINT64 customData, RTC_PEER_CONNECTION_STATE newSta
             }
             break;
         case RTC_PEER_CONNECTION_STATE_FAILED:
-            if (pSampleConfiguration->channelInfo.useMediaStorage) {
-                DLOGI("PeerConnection Failed for Media Storage Session, reconnecting...");
-                CHK_STATUS(signalingClientConnectSync(pSampleConfiguration->signalingClientHandle));
-            }
-
             // explicit fallthrough
         case RTC_PEER_CONNECTION_STATE_CLOSED:
             // explicit fallthrough
@@ -1276,8 +1271,18 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
                 streamingSessionListReadLockLocked = FALSE;
 
                 CHK_STATUS(freeSampleStreamingSession(&pSampleStreamingSession));
+
+                if (pSampleConfiguration->channelInfo.useMediaStorage && !ATOMIC_LOAD_BOOL(&pSampleConfiguration->recreateSignalingClient)) {
+                    // In the WebRTC Media Storage Ingestion Case the backend till terminate the session after
+                    // 1 hour.  The SDK needs to make a new JoinSession Call in order to receive a new
+                    // offer from the backend.  We will create a new sample streaming session upon receipt of the
+                    // offer.  The signalingClientConnectSync call will result in a JoinSession API call being made.
+                    CHK_STATUS(signalingClientConnectSync(pSampleConfiguration->signalingClientHandle));
+                }
+
             }
         }
+
 
         // Check if we need to re-create the signaling client on-the-fly
         if (ATOMIC_LOAD_BOOL(&pSampleConfiguration->recreateSignalingClient)) {

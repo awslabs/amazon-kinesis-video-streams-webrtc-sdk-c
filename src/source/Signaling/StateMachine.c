@@ -1144,7 +1144,7 @@ STATUS fromJoinStorageSessionConnectedState(UINT64 customData, PUINT64 pState)
             if (!ATOMIC_LOAD_BOOL(&pSignalingClient->connected)) {
                 state = SIGNALING_STATE_DISCONNECTED;
             } else if (pSignalingClient->mediaStorageConfig.storageStatus) {
-                state = SIGNALING_STATE_JOIN_SESSION_CONNECTED;
+                state = SIGNALING_STATE_JOIN_SESSION;
             }
 
             break;

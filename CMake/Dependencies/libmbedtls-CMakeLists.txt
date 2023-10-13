@@ -16,6 +16,8 @@ else()
   set(CMAKE_MACOSX_RPATH 0)
 endif()
 
+message(STATUS "C flags here are ${CMAKE_C_FLAGS}")
+
 ExternalProject_Add(
   project_libmbedtls
   GIT_REPOSITORY  https://github.com/ARMmbed/mbedtls.git
