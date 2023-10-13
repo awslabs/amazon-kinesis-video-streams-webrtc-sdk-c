@@ -477,6 +477,10 @@ STATUS dtlsSessionHandshakeInThread(PDtlsSession pDtlsSession, BOOL isServer)
                         LOG_OPENSSL_ERROR("SSL_do_handshake");
                     }
                     pDtlsSession->handshakeState = DTLS_STATE_HANDSHAKE_IN_PROGRESS;
+                } else {
+                    pDtlsSession->handshakeState = DTLS_STATE_HANDSHAKE_COMPLETED;
+                    ATOMIC_STORE_BOOL(&pDtlsSession->sslInitFinished, TRUE);
+                    CHK_STATUS(dtlsSessionChangeState(pDtlsSession, RTC_DTLS_TRANSPORT_STATE_CONNECTED));
                 }
                 break;
             case DTLS_STATE_HANDSHAKE_IN_PROGRESS:
