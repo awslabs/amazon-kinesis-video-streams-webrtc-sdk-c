@@ -1,20 +1,20 @@
 #define LOG_CLASS "ChannelInfo"
 #include "../Include_i.h"
 
-#define ARN_DELIMETER_CHAR                                    ':'
-#define ARN_CHANNEL_NAME_CODE_SEP                             '/'
-#define ARN_BEGIN                                             "arn:aws"
-#define SIGNALING_CHANNEL_ARN_SERVICE_NAME                    "kinesisvideo"
-#define SIGNALING_CHANNEL_ARN_RESOURCE_TYPE                   "channel/"
-#define AWS_KVS_ARN_CODE_LENGTH                               13
-#define SIGNALING_CHANNEL_ARN_MIN_LENGTH                      59
+#define ARN_DELIMETER_CHAR                  ':'
+#define ARN_CHANNEL_NAME_CODE_SEP           '/'
+#define ARN_BEGIN                           "arn:aws"
+#define SIGNALING_CHANNEL_ARN_SERVICE_NAME  "kinesisvideo"
+#define SIGNALING_CHANNEL_ARN_RESOURCE_TYPE "channel/"
+#define AWS_KVS_ARN_CODE_LENGTH             13
+#define SIGNALING_CHANNEL_ARN_MIN_LENGTH    59
 
 // Example: arn:aws:kinesisvideo:region:account-id:channel/channel-name/code
 // Min Length of ":account-id:channel/channel-name/code"
 // = len(":") + len(account-id) + len(":") + len("channel") + len("/") + len(channel-name) + len("/") + len(code)
 // channel name must be at least 1 char
 // = 1 + 12 + 1 + 7 + 1 + 1 + 1 + 13 = 37
-#define CHANNEL_ARN_MIN_DIST_FROM_REGION_END_TO_END_OF_ARN    37
+#define CHANNEL_ARN_MIN_DIST_FROM_REGION_END_TO_END_OF_ARN 37
 
 STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* ppChannelInfo)
 {
@@ -399,8 +399,8 @@ STATUS validateKvsSignalingChannelArnAndExtractChannelName(PChannelInfo pChannel
                                                         STRLEN(SIGNALING_CHANNEL_ARN_RESOURCE_TYPE)) == 0) {
                                                 // Channel Name Begins Here, ends when we hit ARN_CHANNEL_NAME_CODE_SEP
                                                 currPosIndex += STRLEN(SIGNALING_CHANNEL_ARN_RESOURCE_TYPE);
-                                                channelNameEnd =
-                                                    STRNCHR(currPos + currPosIndex, arnLength - currPosIndex - AWS_KVS_ARN_CODE_LENGTH, ARN_CHANNEL_NAME_CODE_SEP);
+                                                channelNameEnd = STRNCHR(currPos + currPosIndex, arnLength - currPosIndex - AWS_KVS_ARN_CODE_LENGTH,
+                                                                         ARN_CHANNEL_NAME_CODE_SEP);
 
                                                 if (channelNameEnd != NULL) {
                                                     channelNameLength = channelNameEnd - (currPos + currPosIndex);
