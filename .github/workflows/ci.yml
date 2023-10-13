@@ -379,6 +379,7 @@ jobs:
           sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ jammy main'
           sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ jammy universe'
           sudo apt-get -q update
+          sudo apt-get -y install libcurl4-openssl-dev
       - name: Build repository
         run: |
           mkdir build && cd build

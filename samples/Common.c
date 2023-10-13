@@ -1279,10 +1279,8 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
                     // offer.  The signalingClientConnectSync call will result in a JoinSession API call being made.
                     CHK_STATUS(signalingClientConnectSync(pSampleConfiguration->signalingClientHandle));
                 }
-
             }
         }
-
 
         // Check if we need to re-create the signaling client on-the-fly
         if (ATOMIC_LOAD_BOOL(&pSampleConfiguration->recreateSignalingClient)) {
