@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.6.3)
 
 project(libwebsocket-download NONE)
 
-SET(PATCH_COMMAND git apply --ignore-whitespace ${CMAKE_CURRENT_LIST_DIR}/libwebsockets-old-gcc-fix-cast-cmakelists.patch)
+SET(PATCH_COMMAND git apply --verbose --ignore-whitespace ${CMAKE_CURRENT_LIST_DIR}/libwebsockets-old-gcc-fix-cast-cmakelists.patch)
 
 include(ExternalProject)
 if (BUILD_STATIC_LIBS)
