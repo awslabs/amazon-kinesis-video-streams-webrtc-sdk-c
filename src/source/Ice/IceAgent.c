@@ -1,5 +1,5 @@
 /**
- * Kinesis Video Producer Callbacks Provider
+ * Ice Agent APIs
  */
 #define LOG_CLASS "IceAgent"
 #include "../Include_i.h"
@@ -61,7 +61,7 @@ STATUS createIceAgent(PCHAR username, PCHAR password, PIceAgentCallbacks pIceAge
     pIceAgent->localNetworkInterfaceCount = ARRAY_SIZE(pIceAgent->localNetworkInterfaces);
     pIceAgent->candidateGatheringEndTime = INVALID_TIMESTAMP_VALUE;
 
-    pIceAgent->lock = MUTEX_CREATE(FALSE);
+    pIceAgent->lock = MUTEX_CREATE(TRUE);
 
     // Create the state machine
     CHK_STATUS(createStateMachine(ICE_AGENT_STATE_MACHINE_STATES, ICE_AGENT_STATE_MACHINE_STATE_COUNT, (UINT64) pIceAgent, iceAgentGetCurrentTime,
@@ -580,6 +580,8 @@ STATUS iceAgentStartAgent(PIceAgent pIceAgent, PCHAR remoteUsername, PCHAR remot
 
 CleanUp:
 
+    CHK_LOG_ERR(retStatus);
+
     if (locked) {
         MUTEX_UNLOCK(pIceAgent->lock);
     }
@@ -913,7 +915,7 @@ STATUS iceAgentRestart(PIceAgent pIceAgent, PCHAR localIceUfrag, PCHAR localIceP
      * pIceAgent->pDataSendingIceCandidatePair and its ice candidates. Therefore safe to proceed freeing resources */
 
     for (i = 0; i < localCandidateCount; ++i) {
-        if (localCandidates[i] != pIceAgent->pDataSendingIceCandidatePair->local) {
+        if (pIceAgent->pDataSendingIceCandidatePair == NULL || localCandidates[i] != pIceAgent->pDataSendingIceCandidatePair->local) {
             if (localCandidates[i]->iceCandidateType != ICE_CANDIDATE_TYPE_RELAYED) {
                 CHK_STATUS(connectionListenerRemoveConnection(pIceAgent->pConnectionListener, localCandidates[i]->pSocketConnection));
                 CHK_STATUS(freeSocketConnection(&localCandidates[i]->pSocketConnection));
@@ -1804,12 +1806,14 @@ STATUS turnStateFailedFn(PSocketConnection pSocketConnection, UINT64 data)
 
     PIceCandidate pNewCandidate = (PIceCandidate) data;
     CHK(pNewCandidate != NULL, STATUS_NULL_ARG);
+    MUTEX_LOCK(pNewCandidate->pIceAgent->lock);
 
     if (pNewCandidate->state == ICE_CANDIDATE_STATE_NEW) {
         pNewCandidate->state = ICE_CANDIDATE_STATE_INVALID;
     }
 
 CleanUp:
+    MUTEX_UNLOCK(pNewCandidate->pIceAgent->lock);
     return retStatus;
 }
 
@@ -2112,6 +2116,10 @@ STATUS iceAgentNominatingStateSetup(PIceAgent pIceAgent)
 
     pIceAgent->stateEndTime = GETTIME() + pIceAgent->kvsRtcConfiguration.iceCandidateNominationTimeout;
 
+    MUTEX_UNLOCK(pIceAgent->lock);
+    locked = FALSE;
+    checkIceAgentStateMachine(pIceAgent);
+
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
@@ -2369,6 +2377,9 @@ STATUS incomingDataHandler(UINT64 customData, PSocketConnection pSocketConnectio
     } else {
         if (ATOMIC_LOAD_BOOL(&pIceAgent->processStun)) {
             CHK_STATUS(handleStunPacket(pIceAgent, pBuffer, bufferLen, pSocketConnection, pSrc, pDest));
+            MUTEX_UNLOCK(pIceAgent->lock);
+            locked = FALSE;
+            checkIceAgentStateMachine(pIceAgent);
         }
     }
 

@@ -467,12 +467,13 @@ STATUS dtlsSessionHandshakeInThread(PDtlsSession pDtlsSession, BOOL isServer)
         switch (pDtlsSession->handshakeState) {
             case DTLS_STATE_HANDSHAKE_NEW:
                 if (sslRet <= 0) {
-                    DLOGI("Failed to complete handshake..but let it go on");
                     sslErr = SSL_get_error(pDtlsSession->pSsl, sslRet);
                     if (sslErr == SSL_ERROR_WANT_READ || sslErr == SSL_ERROR_WANT_WRITE) {
                         // If OpenSSL wants to read or write, it's an indication we should check the BIO
+                        DLOGD("Handshake want READ/WRITE");
                         CHK_STATUS(dtlsCheckOutgoingDataBuffer(pDtlsSession));
                     } else {
+                        DLOGI("Failed to complete handshake..but let it go on");
                         // Handle other errors
                         LOG_OPENSSL_ERROR("SSL_do_handshake");
                     }
@@ -482,6 +483,7 @@ STATUS dtlsSessionHandshakeInThread(PDtlsSession pDtlsSession, BOOL isServer)
                     ATOMIC_STORE_BOOL(&pDtlsSession->sslInitFinished, TRUE);
                     CHK_STATUS(dtlsSessionChangeState(pDtlsSession, RTC_DTLS_TRANSPORT_STATE_CONNECTED));
                 }
+                pDtlsSession->handshakeState = DTLS_STATE_HANDSHAKE_IN_PROGRESS;
                 break;
             case DTLS_STATE_HANDSHAKE_IN_PROGRESS:
                 if (SSL_is_init_finished(pDtlsSession->pSsl)) {
