@@ -1,5 +1,6 @@
 var NAVTREEINDEX4 =
 {
+"structRtcOutboundRtpStreamStats.html#a23c25d74c16cfc7ef1905d98026dcf3a":[1,0,20,16,18],
 "structRtcOutboundRtpStreamStats.html#a314c0adc68d070905a9ace7d7c63422f":[1,0,20,16,0],
 "structRtcOutboundRtpStreamStats.html#a42a7fd9ea8f12b7883f601a876466384":[1,0,20,16,16],
 "structRtcOutboundRtpStreamStats.html#a4d0dbe884c0e806618cb197caaa7d679":[1,0,20,16,23],

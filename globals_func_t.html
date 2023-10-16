@@ -206,12 +206,15 @@ $(document).ready(function(){initNavTree('globals_func_t.html',''); initResizabl
 , <a class="el" href="TurnConnection_8h.html#a9089a120e759743f89829105574ded02">TurnConnection.h</a>
 </li>
 <li>turnConnectionGetStateStr()
-: <a class="el" href="TurnConnection_8c.html#a11b4f824855769674d8fbea08846413d">TurnConnection.c</a>
-, <a class="el" href="TurnConnection_8h.html#a85c4b8e4f4374d7a942a51f1c94e4de1">TurnConnection.h</a>
+: <a class="el" href="TurnConnectionStateMachine_8c.html#ab2cdaa389cda6f8b710789078a12b04e">TurnConnectionStateMachine.c</a>
+</li>
+<li>turnConnectionGetTime()
+: <a class="el" href="TurnConnection_8c.html#a0412df9eeccb0d3084100fee6c5a0741">TurnConnection.c</a>
+, <a class="el" href="TurnConnection_8h.html#a399afb356e3978522a11769a63e77ea6">TurnConnection.h</a>
 </li>
 <li>turnConnectionHandleChannelData()
-: <a class="el" href="TurnConnection_8h.html#a5cece92e9f318a9ad2adfc6f32986a0c">TurnConnection.h</a>
-, <a class="el" href="TurnConnection_8c.html#a469ffb6f5621fc4161cbfb2e8dbe1c3f">TurnConnection.c</a>
+: <a class="el" href="TurnConnection_8c.html#a469ffb6f5621fc4161cbfb2e8dbe1c3f">TurnConnection.c</a>
+, <a class="el" href="TurnConnection_8h.html#a5cece92e9f318a9ad2adfc6f32986a0c">TurnConnection.h</a>
 </li>
 <li>turnConnectionHandleChannelDataTcpMode()
 : <a class="el" href="TurnConnection_8c.html#aabf71dcfeb80d0959763e038c1cb4749">TurnConnection.c</a>
@@ -230,8 +233,8 @@ $(document).ready(function(){initNavTree('globals_func_t.html',''); initResizabl
 , <a class="el" href="TurnConnection_8h.html#a789385fa9291b652188672b1463c593d">TurnConnection.h</a>
 </li>
 <li>turnConnectionIsShutdownComplete()
-: <a class="el" href="TurnConnection_8h.html#af6735058208f660f6dfc4dc210476dc9">TurnConnection.h</a>
-, <a class="el" href="TurnConnection_8c.html#a1b1d3874f32df127b7cbf69a9a1bdf99">TurnConnection.c</a>
+: <a class="el" href="TurnConnection_8c.html#a1b1d3874f32df127b7cbf69a9a1bdf99">TurnConnection.c</a>
+, <a class="el" href="TurnConnection_8h.html#af6735058208f660f6dfc4dc210476dc9">TurnConnection.h</a>
 </li>
 <li>turnConnectionPackageTurnAllocationRequest()
 : <a class="el" href="TurnConnection_8c.html#a06a0f12aa630dbc36d8343e120c8f216">TurnConnection.c</a>
@@ -250,16 +253,12 @@ $(document).ready(function(){initNavTree('globals_func_t.html',''); initResizabl
 , <a class="el" href="TurnConnection_8h.html#ab7da7e3ce56eb4d828ac1cfea94ba7bf">TurnConnection.h</a>
 </li>
 <li>turnConnectionShutdown()
-: <a class="el" href="TurnConnection_8c.html#acafa7ed7d0b238b1a6b27a78280712f8">TurnConnection.c</a>
-, <a class="el" href="TurnConnection_8h.html#a6047d16f2a321f74560d6c790fc113b4">TurnConnection.h</a>
+: <a class="el" href="TurnConnection_8h.html#a6047d16f2a321f74560d6c790fc113b4">TurnConnection.h</a>
+, <a class="el" href="TurnConnection_8c.html#acafa7ed7d0b238b1a6b27a78280712f8">TurnConnection.c</a>
 </li>
 <li>turnConnectionStart()
 : <a class="el" href="TurnConnection_8c.html#a5b98aaf2a1b05b95f8cb088cf29aac54">TurnConnection.c</a>
 , <a class="el" href="TurnConnection_8h.html#a7805d6421b4cb1f7b401f447a7b5b26a">TurnConnection.h</a>
-</li>
-<li>turnConnectionStepState()
-: <a class="el" href="TurnConnection_8c.html#ae091e90d262a8b35996555dbc4f0d7d9">TurnConnection.c</a>
-, <a class="el" href="TurnConnection_8h.html#a6a4c556b18348cd3fa9558d697573daa">TurnConnection.h</a>
 </li>
 <li>turnConnectionTimerCallback()
 : <a class="el" href="TurnConnection_8c.html#af01ecc35132ec796882b5cfca6c25e0c">TurnConnection.c</a>
@@ -272,6 +271,9 @@ $(document).ready(function(){initNavTree('globals_func_t.html',''); initResizabl
 <li>turnStateFailedFn()
 : <a class="el" href="IceAgent_8c.html#a484a080e7ea429250a7258ac375b678f">IceAgent.c</a>
 </li>
+<li>turnStateGetStateStr()
+: <a class="el" href="TurnConnectionStateMachine_8h.html#acdbcd4fabed4064ae98c2745c2ad75ff">TurnConnectionStateMachine.h</a>
+</li>
 <li>twccManagerOnPacketSent()
 : <a class="el" href="PeerConnection_8c.html#a7019d40c53b38733acb5d9ce7d0404ce">PeerConnection.c</a>
 , <a class="el" href="PeerConnection_8h.html#af0ad3d177811599deddecc881ae3714d">PeerConnection.h</a>
@@ -282,7 +284,7 @@ $(document).ready(function(){initNavTree('globals_func_t.html',''); initResizabl
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="footer">Generated on Fri Oct 13 2023 19:38:33 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Mon Oct 16 2023 19:27:22 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>
