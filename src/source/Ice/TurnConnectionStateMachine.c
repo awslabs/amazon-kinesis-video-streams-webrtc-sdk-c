@@ -207,7 +207,7 @@ STATUS fromCheckSocketConnectionTurnState(UINT64 customData, PUINT64 pState)
         CHK(FALSE, STATUS_SUCCESS);
     }
 
-    if (socketConnectionIsConnected(pTurnConnection->pControlChannel)) { // pTurnConnection->state == TURN_STATE_CHECK_SOCKET_CONNECTION) {
+    if (socketConnectionIsConnected(pTurnConnection->pControlChannel)) {
         state = TURN_STATE_GET_CREDENTIALS;
     }
 

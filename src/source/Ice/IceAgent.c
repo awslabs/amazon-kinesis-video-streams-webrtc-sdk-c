@@ -1803,10 +1803,6 @@ STATUS turnStateFailedFn(PSocketConnection pSocketConnection, UINT64 data)
     UNUSED_PARAM(pSocketConnection);
 
     STATUS retStatus = STATUS_SUCCESS;
-    /* There is data race condition when editing the candidate state without holding
-     * the IceAgent lock. However holding the turn lock and then locking the ice agent lock
-     * can result in a dead lock. Ice must always be locked first, and then turn.
-     */
 
     PIceCandidate pNewCandidate = (PIceCandidate) data;
     CHK(pNewCandidate != NULL, STATUS_NULL_ARG);
@@ -2497,7 +2493,6 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
                           iceAgentGetCandidateTypeStr(pIceCandidatePair->local->iceCandidateType), pIceCandidatePair->local->id,
                           pIceCandidatePair->remote->id);
                     pIceCandidatePair->nominated = TRUE;
-                    // checkIceAgentStateMachine(pIceAgent);
                 }
             }
 
@@ -2599,7 +2594,6 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
             if (pIceCandidatePair->state != ICE_CANDIDATE_PAIR_STATE_SUCCEEDED) {
                 DLOGD("Pair succeeded! %s %s", pIceCandidatePair->local->id, pIceCandidatePair->remote->id);
                 pIceCandidatePair->state = ICE_CANDIDATE_PAIR_STATE_SUCCEEDED;
-                // checkIceAgentStateMachine(pIceAgent);
                 retStatus = hashTableGet(pIceCandidatePair->requestSentTime, checkSum, &requestSentTime);
                 if (hashTableGet(pIceCandidatePair->requestSentTime, checkSum, &requestSentTime) == STATUS_SUCCESS) {
                     pIceCandidatePair->roundTripTime = GETTIME() - requestSentTime;
