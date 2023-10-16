@@ -301,8 +301,9 @@ STATUS respondWithAnswer(PSampleStreamingSession pSampleStreamingSession)
     message.messageType = SIGNALING_MESSAGE_TYPE_ANSWER;
     STRNCPY(message.peerClientId, pSampleStreamingSession->peerId, MAX_SIGNALING_CLIENT_ID_LEN);
     message.payloadLen = (UINT32) STRLEN(message.payload);
-    message.correlationId[0] = '\0';
-
+    // SNPRINTF appends null terminator, so we do not manually add it
+    SNPRINTF(message.correlationId, MAX_CORRELATION_ID_LEN, "%llu_%llu", GETTIME(), ATOMIC_INCREMENT(&pSampleStreamingSession->correlationIdPostFix));
+    DLOGD("Responding With Answer With correlationId: %s", message.correlationId);
     CHK_STATUS(sendSignalingMessage(pSampleStreamingSession, &message));
 
 CleanUp:

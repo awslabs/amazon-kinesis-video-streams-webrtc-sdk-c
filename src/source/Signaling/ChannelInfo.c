@@ -6,6 +6,7 @@
 #define ARN_BEGIN                           "arn:aws"
 #define SIGNALING_CHANNEL_ARN_SERVICE_NAME  "kinesisvideo"
 #define SIGNALING_CHANNEL_ARN_RESOURCE_TYPE "channel/"
+#define AWS_ACCOUNT_ID_LENGTH               12
 #define AWS_KVS_ARN_CODE_LENGTH             13
 #define SIGNALING_CHANNEL_ARN_MIN_LENGTH    59
 
@@ -356,8 +357,8 @@ STATUS validateKvsSignalingChannelArnAndExtractChannelName(PChannelInfo pChannel
     UINT16 arnLength, currPosIndex = 0, channelNameLength = 0, channelNameStart = 0;
     PCHAR partitionEnd, regionEnd, channelNameEnd;
     PCHAR currPos;
-    UINT8 accountIdStart = 1, accountIdEnd = 12;
-    UINT8 timeCodeStart = 0, timeCodeEnd = 12;
+    UINT8 accountIdStart = 1, accountIdEnd = AWS_ACCOUNT_ID_LENGTH;
+    UINT8 timeCodeStart = 0, timeCodeEnd = AWS_KVS_ARN_CODE_LENGTH - 1;
 
     if (pChannelInfo != NULL && pChannelInfo->pChannelArn != NULL) {
         arnLength = STRNLEN(pChannelInfo->pChannelArn, MAX_ARN_LEN);

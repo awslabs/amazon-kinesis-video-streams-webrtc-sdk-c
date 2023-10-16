@@ -153,6 +153,7 @@ struct __SampleStreamingSession {
     volatile ATOMIC_BOOL peerIdReceived;
     volatile ATOMIC_BOOL firstFrame;
     volatile SIZE_T frameIndex;
+    volatile SIZE_T correlationIdPostFix;
     PRtcPeerConnection pPeerConnection;
     PRtcRtpTransceiver pVideoRtcRtpTransceiver;
     PRtcRtpTransceiver pAudioRtcRtpTransceiver;
