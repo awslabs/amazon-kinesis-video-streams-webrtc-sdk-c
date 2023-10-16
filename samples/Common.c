@@ -33,15 +33,79 @@ STATUS signalingCallFailed(STATUS status)
 
 VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL isBinary, PBYTE pMessage, UINT32 pMessageLen)
 {
+    STATUS retStatus = STATUS_SUCCESS;
+    UINT32 i, strLen, tokenCount;
+    UINT64 masterToViewerE2E = 0, viewerToMasterE2E = 0, t1, t2, t3, t4, t5;
+    DataChannelMessage dataChannelMessage = { '\0', '\0', '\0', '\0', '\0', '\0' };
+    CHAR pMessageSend[SIZEOF(DataChannelMessage)];
+    jsmn_parser parser;
+    jsmn_init(&parser);
+    jsmntok_t tokens[MAX_JSON_TOKEN_COUNT];
+
+    PCHAR json = (PCHAR) pMessage;
+
+    tokenCount = jsmn_parse(&parser, json, STRLEN(json), tokens, SIZEOF(tokens) / SIZEOF(jsmntok_t));
+
+    for (i = 1; i < tokenCount; i++) {
+        if (compareJsonString(json, &tokens[i], JSMN_STRING, (PCHAR) "content")) {
+            strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
+            STRNCPY(dataChannelMessage.content, json + tokens[i + 1].start, tokens[i + 1].end - tokens[i + 1].start);
+        } else if (compareJsonString(json, &tokens[i], JSMN_STRING, (PCHAR) "t1")) {
+            strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
+            STRNCPY(dataChannelMessage.t1, json + tokens[i + 1].start, tokens[i + 1].end - tokens[i + 1].start);
+        } else if (compareJsonString(json, &tokens[i], JSMN_STRING, (PCHAR) "t2")) {
+            strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
+            if (strLen != 0) {
+                STRNCPY(dataChannelMessage.t2, json + tokens[i + 1].start, tokens[i + 1].end - tokens[i + 1].start);
+            } else {
+                SNPRINTF(dataChannelMessage.t2, 20, "%llu", GETTIME() / 10000);
+                dataChannelMessage.t3[0] = '\0';
+                dataChannelMessage.t4[0] = '\0';
+                dataChannelMessage.t5[0] = '\0';
+                break;
+            }
+        } else if (compareJsonString(json, &tokens[i], JSMN_STRING, (PCHAR) "t3")) {
+            strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
+            STRNCPY(dataChannelMessage.t3, json + tokens[i + 1].start, tokens[i + 1].end - tokens[i + 1].start);
+        } else if (compareJsonString(json, &tokens[i], JSMN_STRING, (PCHAR) "t4")) {
+            strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
+            if (strLen != 0) {
+                STRNCPY(dataChannelMessage.t4, json + tokens[i + 1].start, tokens[i + 1].end - tokens[i + 1].start);
+            } else {
+                SNPRINTF(dataChannelMessage.t4, 20, "%llu", GETTIME() / 10000);
+                dataChannelMessage.t5[0] = '\0';
+                break;
+            }
+        } else if (compareJsonString(json, &tokens[i], JSMN_STRING, (PCHAR) "t5")) {
+            strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
+            STRNCPY(dataChannelMessage.t5, json + tokens[i + 1].start, tokens[i + 1].end - tokens[i + 1].start);
+        }
+    }
+
     UNUSED_PARAM(customData);
     if (isBinary) {
         DLOGI("DataChannel Binary Message");
     } else {
         DLOGI("DataChannel String Message: %.*s\n", pMessageLen, pMessage);
     }
-    // Send a response to the message sent by the viewer
-    STATUS retStatus = STATUS_SUCCESS;
-    retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) MASTER_DATA_CHANNEL_MESSAGE, STRLEN(MASTER_DATA_CHANNEL_MESSAGE));
+
+    if (STRLEN(dataChannelMessage.t5) == 0) {
+        SNPRINTF(pMessageSend, SIZEOF(DataChannelMessage), DATA_CHANNEL_MESSAGE_TEMPLATE, MASTER_DATA_CHANNEL_MESSAGE,
+                 dataChannelMessage.t1, dataChannelMessage.t2, dataChannelMessage.t3,
+                 dataChannelMessage.t4, dataChannelMessage.t5);
+        DLOGI("Master's response: %s", pMessageSend);
+
+        retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) pMessageSend, STRLEN(pMessageSend));
+    } else  {
+        STRTOUI64(dataChannelMessage.t2, dataChannelMessage.t2 + STRLEN(dataChannelMessage.t2), 10, &t2);
+        STRTOUI64(dataChannelMessage.t3, dataChannelMessage.t3 + STRLEN(dataChannelMessage.t3), 10, &t3);
+        STRTOUI64(dataChannelMessage.t4, dataChannelMessage.t4 + STRLEN(dataChannelMessage.t4), 10, &t4);
+        masterToViewerE2E = t3 - t2;
+        viewerToMasterE2E = t4 - t3;
+        DLOGI("MASTER TO VIEWER: %llu ms", masterToViewerE2E);
+        DLOGI("VIEWER TO MASTER: %llu ms", viewerToMasterE2E);
+    }
+
     if (retStatus != STATUS_SUCCESS) {
         DLOGI("[KVS Master] dataChannelSend(): operation returned status code: 0x%08x \n", retStatus);
     }
