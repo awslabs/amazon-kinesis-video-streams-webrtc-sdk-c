@@ -787,19 +787,26 @@ STATUS onSetStunServerIp(UINT64 customData, PCHAR url, PKvsIpAddress pIpAddr)
     MUTEX_LOCK(pWebRtcClientContext->stunCtxlock);
     locked = TRUE;
 
-    CHK(STRCMP(url, pWebRtcClientContext->pStunIpAddrCtx->hostname) == 0, STATUS_PEERCONNECTION_UNSUPPORTED_HOSTNAME);
-
-    if (pWebRtcClientContext->pStunIpAddrCtx->isIpInitialized) {
-        DLOGI("Initialized successfully");
-        if (currentTime > (pWebRtcClientContext->pStunIpAddrCtx->startTime + pWebRtcClientContext->pStunIpAddrCtx->expirationDuration)) {
-            DLOGI("Expired...need to refresh STUN address");
-            // Reset start time
-            pWebRtcClientContext->pStunIpAddrCtx->startTime = 0;
-            CHK_ERR(getStunAddr(pWebRtcClientContext->pStunIpAddrCtx) == STATUS_SUCCESS, retStatus, "Failed to resolve after cache expiry");
-        }
-        MEMCPY(pIpAddr, &pWebRtcClientContext->pStunIpAddrCtx->kvsIpAddr, SIZEOF(pWebRtcClientContext->pStunIpAddrCtx->kvsIpAddr));
+    // This covers a situation where say we receive a URL that is not the default STUN or the hostname is not populated
+    // pWebRtcClientContext->pStunIpAddrCtx->status needs to be set to ensure we do not go ahead with resolution on thread
+    // in case we receive the request early on
+    if (STRCMP(url, pWebRtcClientContext->pStunIpAddrCtx->hostname) != 0) {
+        retStatus = STATUS_PEERCONNECTION_EARLY_DNS_RESOLUTION_FAILED;
+        // This is to ensure we do not go ahead with STUN resolution if this call is already made
+        pWebRtcClientContext->pStunIpAddrCtx->status = STATUS_PEERCONNECTION_EARLY_DNS_RESOLUTION_FAILED;
     } else {
-        DLOGE("Initialization failed");
+        if (pWebRtcClientContext->pStunIpAddrCtx->isIpInitialized) {
+            DLOGI("Initialized successfully");
+            if (currentTime > (pWebRtcClientContext->pStunIpAddrCtx->startTime + pWebRtcClientContext->pStunIpAddrCtx->expirationDuration)) {
+                DLOGI("Expired...need to refresh STUN address");
+                // Reset start time
+                pWebRtcClientContext->pStunIpAddrCtx->startTime = 0;
+                CHK_ERR(getStunAddr(pWebRtcClientContext->pStunIpAddrCtx) == STATUS_SUCCESS, retStatus, "Failed to resolve after cache expiry");
+            }
+            MEMCPY(pIpAddr, &pWebRtcClientContext->pStunIpAddrCtx->kvsIpAddr, SIZEOF(pWebRtcClientContext->pStunIpAddrCtx->kvsIpAddr));
+        } else {
+            DLOGE("Initialization failed");
+        }
     }
 CleanUp:
     if (locked) {
@@ -826,27 +833,30 @@ PVOID resolveStunIceServerIp(PVOID args)
         if (pWebRtcClientContext->pStunIpAddrCtx == NULL) {
             DLOGE("Failed to resolve STUN IP address because webrtc client instance was not created");
         } else {
-            if ((pRegion = GETENV(DEFAULT_REGION_ENV_VAR)) == NULL) {
-                pRegion = DEFAULT_AWS_REGION;
-            }
+            if (pWebRtcClientContext->pStunIpAddrCtx->status != STATUS_PEERCONNECTION_EARLY_DNS_RESOLUTION_FAILED) {
+                if ((pRegion = GETENV(DEFAULT_REGION_ENV_VAR)) == NULL) {
+                    pRegion = DEFAULT_AWS_REGION;
+                }
 
-            pHostnamePostfix = KINESIS_VIDEO_STUN_URL_POSTFIX;
-            // If region is in CN, add CN region uri postfix
-            if (STRSTR(pRegion, "cn-")) {
-                pHostnamePostfix = KINESIS_VIDEO_STUN_URL_POSTFIX_CN;
-            }
+                pHostnamePostfix = KINESIS_VIDEO_STUN_URL_POSTFIX;
+                // If region is in CN, add CN region uri postfix
+                if (STRSTR(pRegion, "cn-")) {
+                    pHostnamePostfix = KINESIS_VIDEO_STUN_URL_POSTFIX_CN;
+                }
 
-            SNPRINTF(pWebRtcClientContext->pStunIpAddrCtx->hostname, SIZEOF(pWebRtcClientContext->pStunIpAddrCtx->hostname),
-                     KINESIS_VIDEO_STUN_URL_WITHOUT_PORT, pRegion, pHostnamePostfix);
-            stunDnsResolutionStartTime = GETTIME();
-            if (getStunAddr(pWebRtcClientContext->pStunIpAddrCtx) == STATUS_SUCCESS) {
-                getIpAddrStr(&pWebRtcClientContext->pStunIpAddrCtx->kvsIpAddr, addressResolved, ARRAY_SIZE(addressResolved));
-                DLOGI("ICE Server address for %s with getaddrinfo: %s", pWebRtcClientContext->pStunIpAddrCtx->hostname, addressResolved);
-                pWebRtcClientContext->pStunIpAddrCtx->isIpInitialized = TRUE;
+                SNPRINTF(pWebRtcClientContext->pStunIpAddrCtx->hostname, SIZEOF(pWebRtcClientContext->pStunIpAddrCtx->hostname),
+                         KINESIS_VIDEO_STUN_URL_WITHOUT_PORT, pRegion, pHostnamePostfix);
+                if (getStunAddr(pWebRtcClientContext->pStunIpAddrCtx) == STATUS_SUCCESS) {
+                    getIpAddrStr(&pWebRtcClientContext->pStunIpAddrCtx->kvsIpAddr, addressResolved, ARRAY_SIZE(addressResolved));
+                    DLOGI("ICE Server address for %s with getaddrinfo: %s", pWebRtcClientContext->pStunIpAddrCtx->hostname, addressResolved);
+                    pWebRtcClientContext->pStunIpAddrCtx->isIpInitialized = TRUE;
+                } else {
+                    DLOGE("Failed to resolve %s", pWebRtcClientContext->pStunIpAddrCtx->hostname);
+                }
+                pWebRtcClientContext->pStunIpAddrCtx->startTime = GETTIME();
             } else {
-                DLOGE("Failed to resolve %s", pWebRtcClientContext->pStunIpAddrCtx->hostname);
+                DLOGW("Request already received to get the URL before resolution could even start...allowing higher layers to handle resolution");
             }
-            pWebRtcClientContext->pStunIpAddrCtx->startTime = GETTIME();
             PROFILE_WITH_START_TIME_OBJ(stunDnsResolutionStartTime, pWebRtcClientContext->pStunIpAddrCtx->stunDnsResolutionTime,
                                         "STUN DNS resolution time taken");
         }
