@@ -1803,15 +1803,21 @@ STATUS turnStateFailedFn(PSocketConnection pSocketConnection, UINT64 data)
     UNUSED_PARAM(pSocketConnection);
 
     STATUS retStatus = STATUS_SUCCESS;
+    /* There is data race condition when editing the candidate state without holding
+     * the IceAgent lock. However holding the turn lock and then locking the ice agent lock
+     * can result in a dead lock. Ice must always be locked first, and then turn.
+     */
 
     PIceCandidate pNewCandidate = (PIceCandidate) data;
     CHK(pNewCandidate != NULL, STATUS_NULL_ARG);
+    MUTEX_LOCK(pNewCandidate->pIceAgent->lock);
 
     if (pNewCandidate->state == ICE_CANDIDATE_STATE_NEW) {
         pNewCandidate->state = ICE_CANDIDATE_STATE_INVALID;
     }
 
 CleanUp:
+    MUTEX_UNLOCK(pNewCandidate->pIceAgent->lock);
     return retStatus;
 }
 

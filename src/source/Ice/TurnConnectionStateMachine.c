@@ -120,10 +120,17 @@ STATUS stepTurnConnectionStateMachine(PTurnConnection pTurnConnection)
             pTurnConnection->errorStatus = retStatus;
             pTurnConnection->state = TURN_STATE_FAILED;
 
+            /* There is data race condition when editing the candidate state without holding
+             * the IceAgent lock. However holding the turn lock and then locking the ice agent lock
+             * can result in a dead lock. Ice must always be locked first, and then turn.
+             */
+
+            MUTEX_UNLOCK(pTurnConnection->lock);
             if (pTurnConnection->turnConnectionCallbacks.turnStateFailedFn != NULL) {
                 pTurnConnection->turnConnectionCallbacks.turnStateFailedFn(pTurnConnection->pControlChannel,
                                                                            pTurnConnection->turnConnectionCallbacks.customData);
             }
+            MUTEX_LOCK(pTurnConnection->lock);
 
             /* fix up state to trigger transition into TURN_STATE_FAILED  */
             retStatus = STATUS_SUCCESS;
