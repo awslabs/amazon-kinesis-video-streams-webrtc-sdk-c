@@ -51,6 +51,7 @@ extern "C" {
 
 #define MASTER_DATA_CHANNEL_MESSAGE "This message is from the KVS Master"
 #define VIEWER_DATA_CHANNEL_MESSAGE "This message is from the KVS Viewer"
+#define DATA_CHANNEL_MESSAGE_TEMPLATE "{\"content\":\"%s\",\"t1\":\"%s\",\"t2\":\"%s\",\"t3\":\"%s\",\"t4\":\"%s\",\"t5\":\"%s\"}"
 
 /* Uncomment the following line in order to enable IoT credentials checks in the provided samples */
 // #define IOT_CORE_ENABLE_CREDENTIALS  1
@@ -130,6 +131,16 @@ typedef struct {
     PCHAR rtspUri;
     UINT32 logLevel;
 } SampleConfiguration, *PSampleConfiguration;
+
+typedef struct {
+    CHAR content[100];
+    CHAR t1[100];
+    CHAR t2[100];
+    CHAR t3[100];
+    CHAR t4[100];
+    CHAR t5[100];
+} DataChannelMessage;
+
 
 typedef struct {
     UINT64 hashValue;
