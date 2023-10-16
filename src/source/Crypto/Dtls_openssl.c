@@ -541,7 +541,6 @@ STATUS dtlsSessionHandshakeInThread(PDtlsSession pDtlsSession, BOOL isServer)
                         }
                         CHK_STATUS(dtlsCheckOutgoingDataBuffer(pDtlsSession));
                     }
-                    CHK_STATUS(dtlsCheckOutgoingDataBuffer(pDtlsSession));
                 }
                 break;
             case DTLS_STATE_HANDSHAKE_COMPLETED:
