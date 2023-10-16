@@ -128,7 +128,6 @@ typedef struct {
     SignalingClientCallbacks signalingClientCallbacks;
     SignalingClientInfo clientInfo;
 
-    UINT64 mediaStorageClipLength;
     RtcStats rtcIceCandidatePairMetrics;
 
     MUTEX signalingSendMessageLock;
