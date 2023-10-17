@@ -3,6 +3,7 @@
 
 PSampleConfiguration gSampleConfiguration = NULL;
 
+BOOL failed = FALSE;
 VOID sigintHandler(INT32 sigNum)
 {
     UNUSED_PARAM(sigNum);
@@ -79,6 +80,7 @@ VOID onConnectionStateChange(UINT64 customData, RTC_PEER_CONNECTION_STATE newSta
         case RTC_PEER_CONNECTION_STATE_CLOSED:
             // explicit fallthrough
         case RTC_PEER_CONNECTION_STATE_DISCONNECTED:
+            failed = TRUE;
             ATOMIC_STORE_BOOL(&pSampleStreamingSession->terminateFlag, TRUE);
             CVAR_BROADCAST(pSampleConfiguration->cvar);
             // explicit fallthrough
@@ -374,7 +376,7 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     configuration.kvsRtcConfiguration.iceSetInterfaceFilterFunc = NULL;
 
     // Set the ICE mode explicitly
-    configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_ALL;
+    configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_RELAY;
 
     // Set the  STUN server
     PCHAR pKinesisVideoStunUrlPostFix = KINESIS_VIDEO_STUN_URL_POSTFIX;
@@ -385,6 +387,10 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, pSampleConfiguration->channelInfo.pRegion,
              pKinesisVideoStunUrlPostFix);
 
+    if(failed) {
+        DLOGI("Detected error, allowing turn now");
+        pSampleConfiguration->useTurn = TRUE;
+    }
     if (pSampleConfiguration->useTurn) {
         // Set the URIs from the configuration
         CHK_STATUS(signalingClientGetIceConfigInfoCount(pSampleConfiguration->signalingClientHandle, &iceConfigCount));
@@ -1249,7 +1255,7 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
 
                 MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
                 streamingSessionListReadLockLocked = FALSE;
-
+                DLOGI("Freeing sample streaming session in cleanup wait");
                 CHK_STATUS(freeSampleStreamingSession(&pSampleStreamingSession));
             }
         }
@@ -1261,7 +1267,7 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
                 // Re-set the variable again
                 ATOMIC_STORE_BOOL(&pSampleConfiguration->recreateSignalingClient, FALSE);
             } else if (signalingCallFailed(retStatus)) {
-                printf("[KVS Common] recreating Signaling Client\n");
+                DLOGI("Recreating Signaling Client");
                 freeSignalingClient(&pSampleConfiguration->signalingClientHandle);
                 createSignalingClientSync(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
                                           &pSampleConfiguration->signalingClientCallbacks, pSampleConfiguration->pCredentialProvider,
@@ -1361,6 +1367,7 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
     switch (pReceivedSignalingMessage->signalingMessage.messageType) {
         case SIGNALING_MESSAGE_TYPE_OFFER:
             // Check if we already have an ongoing master session with the same peer
+            DLOGI("Offer received");
             CHK_ERR(!peerConnectionFound, STATUS_INVALID_OPERATION, "Peer connection %s is in progress",
                     pReceivedSignalingMessage->signalingMessage.peerClientId);
 

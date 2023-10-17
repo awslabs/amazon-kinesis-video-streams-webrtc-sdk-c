@@ -602,7 +602,7 @@ STATUS iceAgentStartGathering(PIceAgent pIceAgent)
     pIceAgent->candidateGatheringStartTime = GETTIME();
 
     // skip gathering host candidate and srflx candidate if relay only
-    if (pIceAgent->iceTransportPolicy != ICE_TRANSPORT_POLICY_RELAY) {
+    if (pIceAgent->iceTransportPolicy != ICE_TRANSPORT_POLICY_ALL) {
         // Skip getting local host candidates if transport policy is relay only
         PROFILE_CALL_WITH_T_OBJ(CHK_STATUS(getLocalhostIpAddresses(pIceAgent->localNetworkInterfaces, &pIceAgent->localNetworkInterfaceCount,
                                                                    pIceAgent->kvsRtcConfiguration.iceSetInterfaceFilterFunc,

@@ -1795,7 +1795,7 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
     UINT64 ttl;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
-
+    DLOGI("Received message");
     // If we have a signalingMessage and if there is a correlation id specified then the response should be non-empty
     if (pMessage == NULL || messageLen == 0) {
         if (BLOCK_ON_CORRELATION_ID) {
