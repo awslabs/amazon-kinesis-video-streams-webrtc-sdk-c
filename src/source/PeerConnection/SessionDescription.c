@@ -617,9 +617,10 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
             attributeCount++;
         }
     } else if (pRtcMediaStreamTrack->codec == RTC_CODEC_OPUS) {
-        //        if (pKvsPeerConnection->isOffer) {
-        currentFmtp = DEFAULT_OPUS_FMTP;
-        //        }
+        if (pKvsPeerConnection->isOffer) {
+            currentFmtp = DEFAULT_OPUS_FMTP;
+        }
+
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtpmap");
         SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%" PRId64 " opus/48000/2", payloadType);
         attributeCount++;
@@ -938,7 +939,7 @@ STATUS populateSessionDescription(PKvsPeerConnection pKvsPeerConnection, PSessio
     for (i = 0; i < pLocalSessionDescription->mediaCount; i++) {
         STRCPY(pLocalSessionDescription->mediaDescriptions[i].sdpConnectionInformation.networkType, "IN");
         STRCPY(pLocalSessionDescription->mediaDescriptions[i].sdpConnectionInformation.addressType, "IP4");
-        STRCPY(pLocalSessionDescription->mediaDescriptions[i].sdpConnectionInformation.connectionAddress, "0.0.0.0");
+        STRCPY(pLocalSessionDescription->mediaDescriptions[i].sdpConnectionInformation.connectionAddress, "127.0.0.1");
     }
     pLocalSessionDescription->sessionAttributesCount++;
 

@@ -299,7 +299,7 @@ INT32 lwsWssCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, P
     SIZE_T offset, bufferSize;
     BOOL connected, locked = FALSE;
 
-    DLOGV("WSS callback with reason %d", reason);
+    DLOGD("WSS callback with reason %d", reason);
 
     // Early check before accessing custom field to see if we are interested in the message
     switch (reason) {
@@ -2183,8 +2183,10 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
             break;
 
         case SIGNALING_MESSAGE_TYPE_OFFER:
-            // CHK(pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.peerClientId[0] != '\0',
-            //     STATUS_SIGNALING_NO_PEER_CLIENT_ID_IN_MESSAGE);
+            if (!pSignalingClient->mediaStorageConfig.storageStatus) {
+                CHK(pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.peerClientId[0] != '\0',
+                    STATUS_SIGNALING_NO_PEER_CLIENT_ID_IN_MESSAGE);
+            }
             //  Explicit fall-through !!!
         case SIGNALING_MESSAGE_TYPE_ANSWER:
         case SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE:
