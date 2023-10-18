@@ -97,11 +97,12 @@ VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL 
 
         retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) pMessageSend, STRLEN(pMessageSend));
     } else  {
+        STRTOUI64(dataChannelMessage.t1, dataChannelMessage.t1 + STRLEN(dataChannelMessage.t2), 10, &t1);
         STRTOUI64(dataChannelMessage.t2, dataChannelMessage.t2 + STRLEN(dataChannelMessage.t2), 10, &t2);
         STRTOUI64(dataChannelMessage.t3, dataChannelMessage.t3 + STRLEN(dataChannelMessage.t3), 10, &t3);
         STRTOUI64(dataChannelMessage.t4, dataChannelMessage.t4 + STRLEN(dataChannelMessage.t4), 10, &t4);
-        masterToViewerE2E = t3 - t2;
-        viewerToMasterE2E = t4 - t3;
+        masterToViewerE2E = t3 - t1;
+        viewerToMasterE2E = t4 - t2;
         DLOGI("MASTER TO VIEWER: %llu ms", masterToViewerE2E);
         DLOGI("VIEWER TO MASTER: %llu ms", viewerToMasterE2E);
     }
