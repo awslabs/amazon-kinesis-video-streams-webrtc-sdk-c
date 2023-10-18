@@ -157,6 +157,7 @@ typedef struct {
     KvsIpAddress kvsIpAddr;
     BOOL isIpInitialized;
     UINT64 startTime;
+    UINT64 stunDnsResolutionTime;
     UINT64 expirationDuration;
     STATUS status;
 } StunIpAddrContext, *PStunIpAddrContext;
