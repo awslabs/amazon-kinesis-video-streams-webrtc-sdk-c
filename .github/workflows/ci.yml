@@ -79,8 +79,6 @@ jobs:
   mac-os-m1-build-clang:
     runs-on: macos-13
     env:
-      CC: /usr/bin/clang
-      CXX: /usr/bin/clang++
       AWS_KVS_LOG_LEVEL: 2
     permissions:
       id-token: write
