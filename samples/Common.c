@@ -1238,7 +1238,7 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
     STATUS retStatus = STATUS_SUCCESS;
     PSampleStreamingSession pSampleStreamingSession = NULL;
     UINT32 i, clientIdHash;
-    BOOL sampleConfigurationObjLockLocked = FALSE, streamingSessionListReadLockLocked = FALSE, peerConnectionFound = FALSE;
+    BOOL sampleConfigurationObjLockLocked = FALSE, streamingSessionListReadLockLocked = FALSE, peerConnectionFound = FALSE, sessionFreed = FALSE;
     SIGNALING_CLIENT_STATE signalingClientState;
 
     CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
@@ -1272,15 +1272,19 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
                 streamingSessionListReadLockLocked = FALSE;
 
                 CHK_STATUS(freeSampleStreamingSession(&pSampleStreamingSession));
-
-                if (pSampleConfiguration->channelInfo.useMediaStorage && !ATOMIC_LOAD_BOOL(&pSampleConfiguration->recreateSignalingClient)) {
-                    // In the WebRTC Media Storage Ingestion Case the backend till terminate the session after
-                    // 1 hour.  The SDK needs to make a new JoinSession Call in order to receive a new
-                    // offer from the backend.  We will create a new sample streaming session upon receipt of the
-                    // offer.  The signalingClientConnectSync call will result in a JoinSession API call being made.
-                    CHK_STATUS(signalingClientConnectSync(pSampleConfiguration->signalingClientHandle));
-                }
+                sessionFreed = TRUE;
             }
+        }
+
+        if (sessionFreed && pSampleConfiguration->channelInfo.useMediaStorage && !ATOMIC_LOAD_BOOL(&pSampleConfiguration->recreateSignalingClient)) {
+            // In the WebRTC Media Storage Ingestion Case the backend till terminate the session after
+            // 1 hour.  The SDK needs to make a new JoinSession Call in order to receive a new
+            // offer from the backend.  We will create a new sample streaming session upon receipt of the
+            // offer.  The signalingClientConnectSync call will result in a JoinSession API call being made.
+            CHK_STATUS(signalingClientDisconnectSync(pSampleConfiguration->signalingClientHandle));
+            CHK_STATUS(signalingClientFetchSync(pSampleConfiguration->signalingClientHandle));
+            CHK_STATUS(signalingClientConnectSync(pSampleConfiguration->signalingClientHandle));
+            sessionFreed = FALSE;
         }
 
         // Check if we need to re-create the signaling client on-the-fly

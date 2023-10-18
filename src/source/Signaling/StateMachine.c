@@ -1144,7 +1144,9 @@ STATUS fromJoinStorageSessionConnectedState(UINT64 customData, PUINT64 pState)
             if (!ATOMIC_LOAD_BOOL(&pSignalingClient->connected)) {
                 state = SIGNALING_STATE_DISCONNECTED;
             } else if (pSignalingClient->mediaStorageConfig.storageStatus) {
-                state = SIGNALING_STATE_JOIN_SESSION;
+                // Before calling JoinSession again after stepping out of the
+                // storage streaming state, we need to update ice config
+                state = SIGNALING_STATE_GET_ICE_CONFIG;
             }
 
             break;

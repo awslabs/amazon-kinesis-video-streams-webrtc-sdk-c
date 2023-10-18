@@ -615,11 +615,11 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
     // and a wss is in progress. This is the case when we have a current websocket listener
     // and need to perform an https call due to ICE server config refresh for example.
     // If we have an ongoing wss operations, we can't call lws_client_connect_via_info API
-    // due to threading model of LWS. WHat we need to do is to wake up the potentially blocked
+    // due to threading model of LWS. What we need to do is to wake up the potentially blocked
     // ongoing wss handler for it to release the service lock which it holds while calling lws_service()
     // API so we can grab the lock in order to perform the lws_client_connect_via_info API call.
     // The need to wake up the wss handler (if any) to compete for the lock is the reason for this
-    // loop. In order to avoid pegging of the CPU while the contention for the lock happes,
+    // loop. In order to avoid pegging of the CPU while the contention for the lock happens,
     // we are setting an atomic and releasing it to trigger a timed wait when the lws_service call
     // awakes to make sure we are not going to starve this thread.
 
