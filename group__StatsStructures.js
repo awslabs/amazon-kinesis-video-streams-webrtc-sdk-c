@@ -284,7 +284,8 @@ var group__StatsStructures =
       [ "dtlsSessionSetupTime", "structPeerConnectionStats.html#a412b46f47dcc4a258e97e42b141b7895", null ],
       [ "freePeerConnectionTime", "structPeerConnectionStats.html#ae7ec7065fae6c858d749a72636efe0cf", null ],
       [ "iceHolePunchingTime", "structPeerConnectionStats.html#a9a6571358bdd506414ab5969ace3fbaa", null ],
-      [ "peerConnectionCreationTime", "structPeerConnectionStats.html#aaebad827f202401d21ca767885ff1618", null ]
+      [ "peerConnectionCreationTime", "structPeerConnectionStats.html#aaebad827f202401d21ca767885ff1618", null ],
+      [ "stunDnsResolutionTime", "structPeerConnectionStats.html#a1a313a9ddae426ba094442d84fb6087e", null ]
     ] ],
     [ "RtcStatsObject", "structRtcStatsObject.html", [
       [ "iceCandidatePairStats", "structRtcStatsObject.html#a4593b66b951d6cdb12d059548a2af36c", null ],
