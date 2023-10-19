@@ -63,7 +63,8 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
             STRCPY(pSignalingClient->channelDescription.channelName, pFileCacheEntry->channelName);
             STRCPY(pSignalingClient->channelDescription.channelArn, pFileCacheEntry->channelArn);
             STRCPY(pSignalingClient->mediaStorageConfig.storageStreamArn, pFileCacheEntry->storageStreamArn);
-            pSignalingClient->mediaStorageConfig.storageStatus = STRNCMP(pFileCacheEntry->storageEnabled, "1", 1) == 0 ? TRUE : FALSE;
+            // If client channel info has explicitly set use media storage to false, we need to set this to false even if the cache says the signaling channel has media enabled
+            pSignalingClient->mediaStorageConfig.storageStatus = (pSignalingClient->pChannelInfo->useMediaStorage && (STRNCMP(pFileCacheEntry->storageEnabled, "1", 1) == 0)) ? TRUE : FALSE;
             STRCPY(pSignalingClient->channelEndpointHttps, pFileCacheEntry->httpsEndpoint);
             STRCPY(pSignalingClient->channelEndpointWss, pFileCacheEntry->wssEndpoint);
             STRCPY(pSignalingClient->channelEndpointWebrtc, pFileCacheEntry->webrtcEndpoint);

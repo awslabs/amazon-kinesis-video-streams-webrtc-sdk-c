@@ -41,7 +41,7 @@ Please refer to the release notes in [Releases](https://github.com/awslabs/amazo
 * Signaling Client Included
   - KVS Provides STUN/TURN and Signaling Backend
   - Connect with [Android](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-android)/[iOS](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-ios)/[Web](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-js) using pre-made samples
-* Storage for WebRTC
+* Storage for WebRTC [NEW]
   * Ingest media into a Kinesis Video Stream.
 * Portable
   - Tested on Linux/MacOS
@@ -216,6 +216,12 @@ After executing `make` you will have sample applications in your `build/samples`
 This application sends sample H264/Opus frames (path: `/samples/h264SampleFrames` and `/samples/opusSampleFrames`) via WebRTC. It also accepts incoming audio, if enabled in the browser. When checked in the browser, it prints the metadata of the received audio packets in your terminal. To run:
 ```
 ./samples/kvsWebrtcClientMaster <channelName>
+```
+
+To use the **Storage for WebRTC** feature run the same command as above but with an additional command line arg to enable the feature.  
+
+```
+./samples/kvsWebrtcClientMaster <channelName> 1
 ```
 
 #### Sample: kvsWebrtcClientViewer

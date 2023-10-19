@@ -31,8 +31,9 @@ INT32 main(INT32 argc, CHAR* argv[])
     pSampleConfiguration->videoSource = sendVideoPackets;
     pSampleConfiguration->receiveAudioVideoSource = sampleReceiveAudioVideoFrame;
 
-    // uncomment to enable use of signaling channel which is configured with a stream for ingestion
-    // pSampleConfiguration->channelInfo.useMediaStorage = TRUE;
+    if (argc > 2 && STRNCMP(argv[2], "1", 2) == 0) {
+        pSampleConfiguration->channelInfo.useMediaStorage = TRUE;
+    }
 
 #ifdef ENABLE_DATA_CHANNEL
     pSampleConfiguration->onDataChannel = onDataChannel;

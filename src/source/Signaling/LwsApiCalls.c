@@ -299,7 +299,7 @@ INT32 lwsWssCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, P
     SIZE_T offset, bufferSize;
     BOOL connected, locked = FALSE;
 
-    DLOGD("WSS callback with reason %d", reason);
+    DLOGV("WSS callback with reason %d", reason);
 
     // Early check before accessing custom field to see if we are interested in the message
     switch (reason) {
@@ -311,6 +311,7 @@ INT32 lwsWssCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, P
         case LWS_CALLBACK_CLIENT_WRITEABLE:
             break;
         default:
+            DLOGI("WSS callback with reason %d", reason);
             CHK(FALSE, retStatus);
     }
 

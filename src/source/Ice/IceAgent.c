@@ -2611,6 +2611,19 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
                 CHK(hexStr != NULL, STATUS_NOT_ENOUGH_MEMORY);
                 CHK_STATUS(hexEncode(pBuffer, bufferLen, hexStr, &hexStrLen));
                 DLOGW("Error STUN packet. Packet type: 0x%02x. Packet content: \n\t%s", stunPacketType, hexStr);
+                if (stunPacketType == STUN_PACKET_TYPE_BINDING_RESPONSE_ERROR) {
+                    CHK_STATUS(
+                        findIceCandidatePairWithLocalSocketConnectionAndRemoteAddr(pIceAgent, pSocketConnection, pSrcAddr, TRUE, &pIceCandidatePair));
+                    if (pIceCandidatePair == NULL) {
+                        CHK_STATUS(getIpAddrStr(pSrcAddr, ipAddrStr, ARRAY_SIZE(ipAddrStr)));
+                        CHK_STATUS(getIpAddrStr(&pSocketConnection->hostIpAddr, ipAddrStr2, ARRAY_SIZE(ipAddrStr2)));
+                        CHK_WARN(
+                            FALSE, retStatus,
+                            "ERROR cannot find candidate pair with local candidate %s and remote candidate %s. Dropping STUN binding error response",
+                            ipAddrStr2, ipAddrStr);
+                    }
+                    DLOGW("Error binding response! %s %s", pIceCandidatePair->local->id, pIceCandidatePair->remote->id);
+                }
                 SAFE_MEMFREE(hexStr);
             }
             break;
