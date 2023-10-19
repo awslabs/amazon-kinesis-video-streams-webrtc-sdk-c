@@ -387,10 +387,10 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, pSampleConfiguration->channelInfo.pRegion,
              pKinesisVideoStunUrlPostFix);
 
-    if(failed) {
-        DLOGI("Detected error, allowing turn now");
-        pSampleConfiguration->useTurn = TRUE;
-    }
+//    if(failed) {
+//        DLOGI("Detected error, allowing turn now");
+//        pSampleConfiguration->useTurn = TRUE;
+//    }
     if (pSampleConfiguration->useTurn) {
         // Set the URIs from the configuration
         CHK_STATUS(signalingClientGetIceConfigInfoCount(pSampleConfiguration->signalingClientHandle, &iceConfigCount));
@@ -1257,9 +1257,12 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
                 streamingSessionListReadLockLocked = FALSE;
                 DLOGI("Freeing sample streaming session in cleanup wait");
                 CHK_STATUS(freeSampleStreamingSession(&pSampleStreamingSession));
+//                if(!ATOMIC_LOAD_BOOL(&pSampleConfiguration->recreateSignalingClient)) {
+//                    CHK_STATUS(signalingClientDisconnectSync(pSampleConfiguration->signalingClientHandle));
+//                    CHK_STATUS(signalingClientFetchSync(pSampleConfiguration->signalingClientHandle));
+//                }
             }
         }
-
         // Check if we need to re-create the signaling client on-the-fly
         if (ATOMIC_LOAD_BOOL(&pSampleConfiguration->recreateSignalingClient)) {
             retStatus = signalingClientFetchSync(pSampleConfiguration->signalingClientHandle);

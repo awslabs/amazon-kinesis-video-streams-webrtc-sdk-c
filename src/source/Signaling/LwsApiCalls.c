@@ -303,8 +303,10 @@ INT32 lwsWssCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, P
     // Early check before accessing custom field to see if we are interested in the message
     switch (reason) {
         case LWS_CALLBACK_CLIENT_CONNECTION_ERROR:
+            DLOGI("Client callback error");
         case LWS_CALLBACK_CLIENT_ESTABLISHED:
         case LWS_CALLBACK_CLIENT_CLOSED:
+            DLOGI("Client callback closed");
         case LWS_CALLBACK_WS_PEER_INITIATED_CLOSE:
         case LWS_CALLBACK_CLIENT_RECEIVE:
         case LWS_CALLBACK_CLIENT_WRITEABLE:
