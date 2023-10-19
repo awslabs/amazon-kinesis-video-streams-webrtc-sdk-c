@@ -54,6 +54,10 @@ jobs:
     runs-on: macos-13
     env:
       AWS_KVS_LOG_LEVEL: 2
+      CC: /usr/bin/clang
+      CXX: /usr/bin/clang++
+      LDFLAGS: -L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib
+      CPATH: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/
     permissions:
       id-token: write
       contents: read
@@ -68,7 +72,7 @@ jobs:
       - name: Build repository
         run: |
           mkdir build && cd build
-          sh -c 'cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE -DBUILD_OPENSSL_PLATFORM=darwin64-arm64-cc;cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE -DBUILD_OPENSSL_PLATFORM=darwin64-arm64-cc'
+          cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE -DBUILD_OPENSSL_PLATFORM=darwin64-arm64-cc
           make
       - name: Run tests
         run:  |
