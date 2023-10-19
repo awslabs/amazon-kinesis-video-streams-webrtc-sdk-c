@@ -1277,7 +1277,7 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
         }
 
         if (sessionFreed && pSampleConfiguration->channelInfo.useMediaStorage && !ATOMIC_LOAD_BOOL(&pSampleConfiguration->recreateSignalingClient)) {
-            // In the WebRTC Media Storage Ingestion Case the backend till terminate the session after
+            // In the WebRTC Media Storage Ingestion Case the backend will terminate the session after
             // 1 hour.  The SDK needs to make a new JoinSession Call in order to receive a new
             // offer from the backend.  We will create a new sample streaming session upon receipt of the
             // offer.  The signalingClientConnectSync call will result in a JoinSession API call being made.
