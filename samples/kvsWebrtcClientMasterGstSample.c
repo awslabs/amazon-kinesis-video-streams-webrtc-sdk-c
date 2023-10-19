@@ -406,6 +406,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     pSampleConfiguration->videoSource = sendGstreamerAudioVideo;
     pSampleConfiguration->mediaType = SAMPLE_STREAMING_VIDEO_ONLY;
     pSampleConfiguration->receiveAudioVideoSource = receiveGstreamerAudioVideo;
+
 #ifdef ENABLE_DATA_CHANNEL
     pSampleConfiguration->onDataChannel = onDataChannel;
 #endif
@@ -419,6 +420,10 @@ INT32 main(INT32 argc, CHAR* argv[])
         if (STRCMP(argv[2], "video-only") == 0) {
             pSampleConfiguration->mediaType = SAMPLE_STREAMING_VIDEO_ONLY;
             DLOGI("[KVS Gstreamer Master] Streaming video only");
+        } else if (STRCMP(argv[2], "audio-video-storage") == 0) {
+            pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
+            pSampleConfiguration->channelInfo.useMediaStorage = TRUE;
+            DLOGI("[KVS Gstreamer Master] Streaming audio and video");
         } else if (STRCMP(argv[2], "audio-video") == 0) {
             pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
             DLOGI("[KVS Gstreamer Master] Streaming audio and video");

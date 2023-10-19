@@ -224,22 +224,22 @@ To use the **Storage for WebRTC** feature run the same command as above but with
 ./samples/kvsWebrtcClientMaster <channelName> 1
 ```
 
-#### Sample: kvsWebrtcClientViewer
-This application accepts sample H264/Opus frames and prints them out. To run:
-```
-./samples/kvsWebrtcClientViewer <channelName>
-```
-
 #### Sample: kvsWebrtcClientMasterGstSample
 This application can send media from a GStreamer pipeline using test H264/Opus frames, device `autovideosrc` and `autoaudiosrc` input, or a received RTSP stream. It also will playback incoming audio via an `autoaudiosink`. To run:
 ```
 ./samples/kvsWebrtcClientMasterGstSample <channelName> <mediaType> <sourceType>
 ```
-Pass the desired media and source type when running the sample. The mediaType can be `audio-video` or `video-only`. The source type can be `testsrc`, `devicesrc`, or `rtspsrc`. Specify the RTSP URI if using `rtspsrc`:
+Pass the desired media and source type when running the sample. The mediaType can be `audio-video` or `video-only`. To use the **Storage For WebRTC** use `audio-video-storage` as the mediaType. The source type can be `testsrc`, `devicesrc`, or `rtspsrc`. Specify the RTSP URI if using `rtspsrc`:
 ```
 ./samples/kvsWebrtcClientMasterGstSample <channelName> <mediaType> rtspsrc rtsp://<rtspUri>
 ```
 
+
+#### Sample: kvsWebrtcClientViewer
+This application accepts sample H264/Opus frames and prints them out. To run:
+```
+./samples/kvsWebrtcClientViewer <channelName>
+```
 
 ### Viewing Master Samples
 
