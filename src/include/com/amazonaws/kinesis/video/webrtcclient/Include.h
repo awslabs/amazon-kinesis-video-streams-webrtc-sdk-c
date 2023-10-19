@@ -625,11 +625,6 @@ extern "C" {
 #define SIGNALING_CONNECT_STATE_TIMEOUT (15 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
 /**
- * Default join session API timeout
- */
-#define SIGNALING_JOIN_SESSION_STATE_TIMEOUT (15 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-
-/**
  * Default disconnect sync API timeout
  */
 #define SIGNALING_DISCONNECT_STATE_TIMEOUT (15 * HUNDREDS_OF_NANOS_IN_A_SECOND)
