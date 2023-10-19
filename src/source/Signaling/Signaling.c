@@ -231,7 +231,6 @@ STATUS freeSignaling(PSignalingClient* ppSignalingClient)
 
     if (IS_VALID_MUTEX_VALUE(pSignalingClient->sendLock)) {
         // This ensures no thread is using this lock when being freed
-        MUTEX_LOCK(pSignalingClient->sendLock);
         MUTEX_FREE(pSignalingClient->sendLock);
     }
 
@@ -240,7 +239,6 @@ STATUS freeSignaling(PSignalingClient* ppSignalingClient)
     }
 
     if (IS_VALID_MUTEX_VALUE(pSignalingClient->receiveLock)) {
-        MUTEX_LOCK(pSignalingClient->receiveLock);
         MUTEX_FREE(pSignalingClient->receiveLock);
     }
 
