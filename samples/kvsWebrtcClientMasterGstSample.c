@@ -78,7 +78,7 @@ GstFlowReturn on_new_sample(GstElement* sink, gpointer data, UINT64 trackid)
             status = writeFrame(pRtcRtpTransceiver, &frame);
             if (status != STATUS_SRTP_NOT_READY_YET && status != STATUS_SUCCESS) {
 #ifdef VERBOSE
-                DLOGE("writeFrame() failed with 0x%08x", status);
+                DLOGE("[KVS GStreamer Master] writeFrame() failed with 0x%08x", status);
 #endif
             } else if (status == STATUS_SUCCESS && pSampleStreamingSession->firstFrame) {
                 PROFILE_WITH_START_TIME(pSampleStreamingSession->offerReceiveTime, "Time to first frame");
@@ -283,7 +283,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
 CleanUp:
 
     if (error != NULL) {
-        DLOGE("%s", error->message);
+        DLOGE("[KVS GStreamer Master] %s", error->message);
         g_clear_error(&error);
     }
 
@@ -379,7 +379,7 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
 
 CleanUp:
     if (error != NULL) {
-        DLOGE("%s", error->message);
+        DLOGE("[KVS GStreamer Master] %s", error->message);
         g_clear_error(&error);
     }
 
