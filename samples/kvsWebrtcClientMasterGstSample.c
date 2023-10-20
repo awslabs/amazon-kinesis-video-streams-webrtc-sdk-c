@@ -246,7 +246,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
 
     if (!(appsinkVideo != NULL || appsinkAudio != NULL)) {
         DLOGE("[KVS GStreamer Master] sendGstreamerAudioVideo(): cant find appsink, operation returned status code: 0x%08x \n",
-               STATUS_INTERNAL_ERROR);
+              STATUS_INTERNAL_ERROR);
         goto CleanUp;
     }
 
@@ -442,7 +442,7 @@ INT32 main(INT32 argc, CHAR* argv[])
             if (argc < 5) {
                 DLOGI("[KVS GStreamer Master] No RTSP source URI included. Defaulting to device source");
                 DLOGI("[KVS GStreamer Master] Usage: ./kvsWebrtcClientMasterGstSample <channel name> audio-video rtspsrc rtsp://<rtsp uri>\n"
-                       "or ./kvsWebrtcClientMasterGstSample <channel name> video-only rtspsrc <rtsp://<rtsp uri>");
+                      "or ./kvsWebrtcClientMasterGstSample <channel name> video-only rtspsrc <rtsp://<rtsp uri>");
                 pSampleConfiguration->srcType = DEVICE_SOURCE;
             } else {
                 pSampleConfiguration->srcType = RTSP_SOURCE;
