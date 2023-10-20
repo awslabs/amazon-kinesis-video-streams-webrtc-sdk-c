@@ -84,7 +84,7 @@ GstFlowReturn on_new_sample(GstElement* sink, gpointer data, UINT64 trackid)
                 PROFILE_WITH_START_TIME(pSampleStreamingSession->offerReceiveTime, "Time to first frame");
                 pSampleStreamingSession->firstFrame = FALSE;
             } else if (status == STATUS_SRTP_NOT_READY_YET) {
-                DLOGI("[KVS GStreamer Master] SRTP not ready yet, dropping frame")
+                DLOGI("[KVS GStreamer Master] SRTP not ready yet, dropping frame");
             }
         }
         MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
