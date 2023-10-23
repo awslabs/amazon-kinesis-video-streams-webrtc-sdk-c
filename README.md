@@ -197,6 +197,10 @@ In addition to these logs, if you would like to have other level logs in a file 
 export AWS_ENABLE_FILE_LOGGING=TRUE
 ```
 
+The SDK also tracks entry and exit of functions which increases the verbosity of the logs. This will be useful when you want to track the transitions within the codebase. To do so, you need to set log level to `LOG_LEVEL_VERBOSE` and add the following to the cmake file:
+`add_definitions(-DLOG_STREAMING)`
+Note: This log level is extremely VERBOSE and could flood the files if using file based logging strategy.
+
 ### Set path to SSL CA certificate (**Optional**)
 
 If you have a custom CA certificate path to set, you can set it using:
