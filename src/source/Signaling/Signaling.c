@@ -858,26 +858,58 @@ STATUS signalingGetOngoingMessage(PSignalingClient pSignalingClient, PCHAR corre
     StackQueueIterator iterator;
     UINT64 data;
 
+    UINT64 stackCount = 0;
+
     CHK(pSignalingClient != NULL && correlationId != NULL && ppSignalingMessage != NULL, STATUS_NULL_ARG);
+
+    DLOGD("TESTING : signalingGetOngoingMessage invoked for... correlationId %s,  peerClientId %s", correlationId, peerClientId);
+
     if (peerClientId == NULL || IS_EMPTY_STRING(peerClientId)) {
+        DLOGD("TESTING : Setting checkPeerClientId to false due to peerClientId is null or empty");
         checkPeerClientId = FALSE;
     }
 
     MUTEX_LOCK(pSignalingClient->messageQueueLock);
     locked = TRUE;
+    CHK_STATUS (stackQueueGetCount(pSignalingClient->pMessageQueue,&stackCount));
+    DLOGD("TESTING : Message queue stack count: %d", stackCount);
 
     CHK_STATUS(stackQueueGetIterator(pSignalingClient->pMessageQueue, &iterator));
     while (IS_VALID_ITERATOR(iterator)) {
+
+        DLOGD("TESTING : IS_VALID_ITERATOR returned true, entering while loop");
+
         CHK_STATUS(stackQueueIteratorGetItem(iterator, &data));
 
         pExistingMessage = (PSignalingMessage) data;
         CHK(pExistingMessage != NULL, STATUS_INTERNAL_ERROR);
+
+        DLOGD("TESTING : pExistingMessage type is %d", pExistingMessage->messageType);
+
+        if(correlationId[0] == '\0')
+        {
+            DLOGD("TESTING : TRUE: correlationId[0] == '\\0'");
+        }
+        if(pExistingMessage->correlationId[0] == '\0')
+        {
+            DLOGD("TESTING : TRUE: pExistingMessage->correlationId[0] == '\\0'");
+        }
+        if(0 == STRCMP(pExistingMessage->correlationId, correlationId))
+        {
+            DLOGD("TESTING : TRUE: 0 == STRCMP(pExistingMessage->correlationId, correlationId)");
+        }
+        if(0 == STRCMP(pExistingMessage->peerClientId, peerClientId))
+        {
+            DLOGD("TESTING : TRUE: 0 == STRCMP(pExistingMessage->peerClientId, peerClientId)");
+        }
+
 
         if (((correlationId[0] == '\0' && pExistingMessage->correlationId[0] == '\0') ||
              0 == STRCMP(pExistingMessage->correlationId, correlationId)) &&
             (!checkPeerClientId || 0 == STRCMP(pExistingMessage->peerClientId, peerClientId))) {
             *ppSignalingMessage = pExistingMessage;
 
+            DLOGD("TESTING : signalingGetOngoingMessage returning early due to above conditions.");
             // Early return
             CHK(FALSE, retStatus);
         }
