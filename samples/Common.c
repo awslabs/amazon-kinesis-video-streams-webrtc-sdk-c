@@ -631,13 +631,13 @@ CleanUp:
 VOID sampleVideoFrameHandler(UINT64 customData, PFrame pFrame)
 {
     UNUSED_PARAM(customData);
-    DLOGV("Video Frame received. TrackId: %" PRIu64 ", Size: %u, Flags %u", pFrame->trackId, pFrame->size, pFrame->flags);
+//    DLOGV("Video Frame received. TrackId: %" PRIu64 ", Size: %u, Flags %u", pFrame->trackId, pFrame->size, pFrame->flags);
 }
 
 VOID sampleAudioFrameHandler(UINT64 customData, PFrame pFrame)
 {
     UNUSED_PARAM(customData);
-    DLOGV("Audio Frame received. TrackId: %" PRIu64 ", Size: %u, Flags %u", pFrame->trackId, pFrame->size, pFrame->flags);
+//    DLOGV("Audio Frame received. TrackId: %" PRIu64 ", Size: %u, Flags %u", pFrame->trackId, pFrame->size, pFrame->flags);
 }
 
 VOID sampleBandwidthEstimationHandler(UINT64 customData, DOUBLE maximumBitrate)
@@ -1257,10 +1257,6 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
                 streamingSessionListReadLockLocked = FALSE;
                 DLOGI("Freeing sample streaming session in cleanup wait");
                 CHK_STATUS(freeSampleStreamingSession(&pSampleStreamingSession));
-//                if(!ATOMIC_LOAD_BOOL(&pSampleConfiguration->recreateSignalingClient)) {
-//                    CHK_STATUS(signalingClientDisconnectSync(pSampleConfiguration->signalingClientHandle));
-//                    CHK_STATUS(signalingClientFetchSync(pSampleConfiguration->signalingClientHandle));
-//                }
             }
         }
         // Check if we need to re-create the signaling client on-the-fly

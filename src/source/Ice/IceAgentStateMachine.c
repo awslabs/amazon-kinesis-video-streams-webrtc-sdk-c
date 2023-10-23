@@ -60,7 +60,7 @@ STATUS stepIceAgentStateMachine(PIceAgent pIceAgent)
     BOOL locked = FALSE;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
-
+    DLOGI("Step ICE agent state machine");
     do {
         oldState = pIceAgent->iceAgentState;
         MUTEX_LOCK(pIceAgent->lock);
@@ -264,7 +264,7 @@ STATUS fromCheckConnectionIceAgentState(UINT64 customData, PUINT64 pState)
     CHK_STATUS(doubleListGetHeadNode(pIceAgent->iceCandidatePairs, &pCurNode));
     while (pCurNode != NULL && !connectedCandidatePairFound) {
         pIceCandidatePair = (PIceCandidatePair) pCurNode->data;
-        DLOGD("Checking pair: %s %s, state: %d", pIceCandidatePair->local->id, pIceCandidatePair->remote->id, pIceCandidatePair->state);
+    //    DLOGD("Checking pair: %s %s, state: %d", pIceCandidatePair->local->id, pIceCandidatePair->remote->id, pIceCandidatePair->state);
         pCurNode = pCurNode->pNext;
 
         if (pIceCandidatePair->state == ICE_CANDIDATE_PAIR_STATE_SUCCEEDED) {

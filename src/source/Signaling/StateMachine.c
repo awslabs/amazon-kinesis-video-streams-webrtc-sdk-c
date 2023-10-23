@@ -107,7 +107,7 @@ STATUS signalingStateMachineIterator(PSignalingClient pSignalingClient, UINT64 e
 
     MUTEX_LOCK(pSignalingClient->stateLock);
     locked = TRUE;
-
+    DLOGI("Step signaling state machine");
     while (TRUE) {
         CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
@@ -758,20 +758,24 @@ STATUS fromConnectedSignalingState(UINT64 customData, PUINT64 pState)
     CHK(pSignalingClient != NULL && pState != NULL, STATUS_NULL_ARG);
 
     result = ATOMIC_LOAD(&pSignalingClient->result);
+    DLOGI("Returned with result: 0x%08x", result);
     switch (result) {
         case SERVICE_CALL_RESULT_OK:
             if (!ATOMIC_LOAD_BOOL(&pSignalingClient->connected)) {
                 state = SIGNALING_STATE_DISCONNECTED;
+                DLOGI("Not connected anymore");
             }
 
             break;
 
         case SERVICE_CALL_RESOURCE_NOT_FOUND:
+            DLOGI("Not found");
             state = SIGNALING_STATE_DESCRIBE;
             break;
 
         case SERVICE_CALL_FORBIDDEN:
         case SERVICE_CALL_NOT_AUTHORIZED:
+            DLOGI("Not authorized");
             state = SIGNALING_STATE_GET_TOKEN;
             break;
 
