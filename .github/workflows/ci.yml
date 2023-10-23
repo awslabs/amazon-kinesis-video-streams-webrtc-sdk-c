@@ -11,7 +11,7 @@ on:
       - master
 jobs:
   clang-format-check:
-    runs-on: macos-11
+    runs-on: macos-latest
     steps:
       - name: Clone repository
         uses: actions/checkout@v3
@@ -30,9 +30,17 @@ jobs:
       AWS_KVS_LOG_LEVEL: 2
       LDFLAGS: -L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib
       CPATH: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Clone repository
         uses: actions/checkout@v3
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
       - name: Build repository
         run: |
           mkdir build && cd build
@@ -48,9 +56,17 @@ jobs:
       CC: gcc
       CXX: g++
       AWS_KVS_LOG_LEVEL: 2
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Clone repository
         uses: actions/checkout@v3
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
       - name: Build repository
         run: |
           mkdir build && cd build
@@ -66,9 +82,17 @@ jobs:
       AWS_KVS_LOG_LEVEL: 2
       LDFLAGS: -L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib
       CPATH: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Clone repository
         uses: actions/checkout@v3
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
       - name: Build repository
         run: |
           mkdir build && cd build
@@ -82,9 +106,17 @@ jobs:
     runs-on: ubuntu-20.04
     env:
       AWS_KVS_LOG_LEVEL: 2
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Clone repository
         uses: actions/checkout@v3
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
       - name: Build repository
         run: |
           sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
@@ -108,9 +140,17 @@ jobs:
       CC: clang
       CXX: clang++
       AWS_KVS_LOG_LEVEL: 2
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Clone repository
         uses: actions/checkout@v3
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
       - name: Install dependencies
         run: |
           sudo apt clean && sudo apt update
@@ -130,13 +170,21 @@ jobs:
   undefined-behavior-sanitizer:
     runs-on: ubuntu-20.04
     env:
-      UBSAN_OPTIONS: halt_on_error=1
+      UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
       CC: clang
       CXX: clang++
       AWS_KVS_LOG_LEVEL: 2
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Clone repository
         uses: actions/checkout@v3
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
       - name: Install dependencies
         run: |
           sudo apt clean && sudo apt update
@@ -177,13 +225,21 @@ jobs:
   thread-sanitizer:
     runs-on: ubuntu-20.04
     env:
-      TSAN_OPTIONS: halt_on_error=1:suppressions=../tst/suppressions/TSAN.supp
+      TSAN_OPTIONS: second_deadlock_stack=1:halt_on_error=1:suppressions=../tst/suppressions/TSAN.supp
       CC: clang
       CXX: clang++
       AWS_KVS_LOG_LEVEL: 2
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Clone repository
         uses: actions/checkout@v3
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
       - name: Install dependencies
         run: |
           sudo apt clean && sudo apt update
@@ -204,9 +260,17 @@ jobs:
     env:
       AWS_KVS_LOG_LEVEL: 2
       CC: gcc-4.4
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Clone repository
         uses: actions/checkout@v3
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
       - name: Install deps
         run: |
           sudo apt clean && sudo apt update
@@ -229,12 +293,15 @@ jobs:
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   static-build-linux:
     runs-on: ubuntu-20.04
-    container: 
+    container:
       image: alpine:3.15.4
     env:
       CC: gcc
       CXX: g++
       AWS_KVS_LOG_LEVEL: 2
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Clone repository
         uses: actions/checkout@v3
@@ -252,9 +319,17 @@ jobs:
     runs-on: ubuntu-20.04
     env:
       AWS_KVS_LOG_LEVEL: 2
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Clone repository
         uses: actions/checkout@v3
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
       - name: Install deps
         run: |
           sudo apt clean && sudo apt update
@@ -275,15 +350,57 @@ jobs:
         run:  |
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+
+  mbedtls-ubuntu-gcc-11:
+    runs-on: ubuntu-latest
+    env:
+      AWS_KVS_LOG_LEVEL: 2
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v3
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Install deps
+        run: |
+          sudo apt clean && sudo apt update
+          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+          sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ jammy main'
+          sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ jammy universe'
+          sudo apt-get -q update
+      - name: Build repository
+        run: |
+          mkdir build && cd build
+          cmake .. -DBUILD_TEST=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
+          make
+          ulimit -c unlimited -S
+      - name: Run tests
+        run:  |
+          cd build
+          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   mbedtls-ubuntu-clang:
     runs-on: ubuntu-20.04
     env:
       CC: clang
       CXX: clang++
       AWS_KVS_LOG_LEVEL: 2
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Clone repository
         uses: actions/checkout@v3
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
       - name: Install dependencies
         run: |
           sudo apt clean && sudo apt update
@@ -311,10 +428,9 @@ jobs:
       - name: Clone repository
         uses: actions/checkout@v3
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1-node16
+        uses: aws-actions/configure-aws-credentials@v2
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          role-session-name: ${{ secrets.AWS_ROLE_SESSION_NAME }}
           aws-region: ${{ secrets.AWS_REGION }}
       - name: Build repository
         run: |
@@ -328,9 +444,17 @@ jobs:
     runs-on: ubuntu-20.04
     env:
       AWS_KVS_LOG_LEVEL: 2
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Clone repository
         uses: actions/checkout@v3
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
       - name: Build repository
         run: |
           # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
@@ -342,33 +466,86 @@ jobs:
         run:  |
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-  # windows-msvc:
+  windows-msvc-openssl:
+    runs-on: windows-2022
+    env:
+      AWS_KVS_LOG_LEVEL: 1
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v3
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Move cloned repo
+        shell: powershell
+        run: |
+          mkdir C:\webrtc
+          Move-Item -Path "D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\*" -Destination "C:\webrtc"
+      - name: Install dependencies
+        shell: powershell
+        run: |
+          choco install gstreamer --version=1.16.2
+          choco install gstreamer-devel --version=1.16.2
+          curl.exe -o C:\tools\pthreads-w32-2-9-1-release.zip ftp://sourceware.org/pub/pthreads-win32/pthreads-w32-2-9-1-release.zip
+          mkdir C:\tools\pthreads-w32-2-9-1-release\
+          Expand-Archive -Path C:\tools\pthreads-w32-2-9-1-release.zip -DestinationPath C:\tools\pthreads-w32-2-9-1-release
+      # - name: Build libwebsockets from source
+      #   shell: powershell
+      #   run: |
+      #     $env:Path += ';C:\Strawberry\perl\site\bin;C:\Strawberry\perl\bin;C:\Strawberry\c\bin;C:\Program Files\NASM;D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\open-source\bin;C:\tools\pthreads-w32-2-9-1-release\Pre-built.2\lib\x64;C:\tools\pthreads-w32-2-9-1-release\Pre-built.2\include'
+      #     git config --system core.longpaths true
+      #     cd C:\tools\
+      #     git clone https://github.com/warmcat/libwebsockets.git
+      #     git checkout v4.2.2
+      #     cd libwebsockets
+      #     mkdir build
+      #     cd build
+      #     cmake .. -DLWS_HAVE_PTHREAD_H=1 -DLWS_EXT_PTHREAD_INCLUDE_DIR="C:\\tools\\pthreads-w32-2-9-1-release\\Pre-built.2\\include" -DLWS_EXT_PTHREAD_LIBRARIES="C:\\tools\\pthreads-w32-2-9-1-release\\Pre-built.2\\lib\\x64\\libpthreadGC2.a" -DLWS_WITH_MINIMAL_EXAMPLES=1 -DLWS_OPENSSL_INCLUDE_DIRS="C:\\Program Files\\OpenSSL\\include" -DLWS_OPENSSL_LIBRARIES="C:\\Program Files\\OpenSSL\\lib\\libssl.lib;C:\\Program Files\\OpenSSL\\lib\\libcrypto.lib"
+      #     cmake --build . --config DEBUG
+      - name: Build repository
+        shell: powershell
+        run: |
+          cd C:\webrtc
+          git config --system core.longpaths true
+          .github\build_windows_openssl.bat
+      - name: Run tests
+        shell: powershell
+        run: |
+          $env:Path += ';C:\webrtc\open-source\bin;C:\tools\pthreads-w32-2-9-1-release\Pre-built.2\dll\x64;C:\webrtc\build'
+          & "C:\webrtc\build\tst\webrtc_client_test.exe" --gtest_filter="-DataChannelFunctionalityTest.*:IceApiTest.*:IceFunctionalityTest.*:PeerConnectionFunctionalityTest.*:SignalingApiFunctionalityTest.*:TurnConnectionFunctionalityTest.*:RtpFunctionalityTest.marshallUnmarshallH264Data:RtpFunctionalityTest.packingUnpackingVerifySameH264Frame:RtcpFunctionalityTest.onRtcpPacketCompound:RtcpFunctionalityTest.twcc3"
+  # windows-msvc-mbedtls:
   #   runs-on: windows-2022
   #   env:
   #     AWS_KVS_LOG_LEVEL: 7
-  #   permissions:
-  #     id-token: write
-  #     contents: read
   #   steps:
   #     - name: Clone repository
   #       uses: actions/checkout@v3
+  #     - name: Move cloned repo
+  #       shell: powershell
+  #       run: |
+  #         mkdir D:\a\webrtc
+  #         Move-Item -Path "D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\*" -Destination "D:\a\webrtc"
+  #         cd D:\a\webrtc
+  #         dir
   #     - name: Install dependencies
+  #       shell: powershell
   #       run: |
-  #         choco install nasm strawberryperl
   #         choco install gstreamer --version=1.16.2
-  #         choco install gstreamer-devel --version=1.16.2 
-  #     - name: Install pthreads
-  #       run: |
-  #         C:\msys64\pacman -S mingw-w64-x86_64-winpthreads
+  #         choco install gstreamer-devel --version=1.16.2
+  #         curl.exe -o C:\tools\pthreads-w32-2-9-1-release.zip ftp://sourceware.org/pub/pthreads-win32/pthreads-w32-2-9-1-release.zip
+  #         mkdir C:\tools\pthreads-w32-2-9-1-release\
+  #         Expand-Archive -Path C:\tools\pthreads-w32-2-9-1-release.zip -DestinationPath C:\tools\pthreads-w32-2-9-1-release
   #     - name: Build repository
+  #       shell: powershell
   #       run: |
-  #         $env:Path += ';C:\Strawberry\perl\site\bin;C:\Strawberry\perl\bin;C:\Strawberry\c\bin;C:\Program Files\NASM;D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\open-source\local\lib;D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\open-source\local\bin;D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\open-source\libopenssl'
+  #         cd D:\a\webrtc
   #         git config --system core.longpaths true
-  #         .github/build_windows.bat
-  #     - name: Run tests
-  #       run: |
-  #         $env:Path += ';C:\Strawberry\perl\site\bin;C:\Strawberry\perl\bin;C:\Strawberry\c\bin;C:\Program Files\NASM;D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\open-source\local\lib;D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\open-source\local\bin'
-  #         & "D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-cbuild\tst\webrtc_client_test.exe --gtest_filter="-DataChannelFunctionalityTest.*:IceApiTest.*:IceFunctionalityTest.*:PeerConnectionFunctionalityTest.*:SignalingApiFunctionalityTest.*:TurnConnectionFunctionalityTest.*:RtpFunctionalityTest.marshallUnmarshallH264Data:RtpFunctionalityTest.packingUnpackingVerifySameH264Frame:RtcpFunctionalityTest.onRtcpPacketCompound:RtcpFunctionalityTest.twcc3" 
+  #         .github\build_windows_mbedtls.bat
   arm64-cross-compilation:
     runs-on: ubuntu-20.04
     env:

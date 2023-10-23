@@ -43,6 +43,13 @@ typedef enum {
     RTC_DTLS_TRANSPORT_STATE_FAILED,     /* The transport has failed as the result of an error */
 } RTC_DTLS_TRANSPORT_STATE;
 
+typedef enum {
+    DTLS_STATE_HANDSHAKE_NEW,
+    DTLS_STATE_HANDSHAKE_IN_PROGRESS,
+    DTLS_STATE_HANDSHAKE_COMPLETED,
+    DTLS_STATE_HANDSHAKE_ERROR,
+} DTLS_HANDSHAKE_STATE;
+
 /* Callback that is fired when Dtls Server wishes to send packet */
 typedef VOID (*DtlsSessionOutboundPacketFunc)(UINT64, PBYTE, UINT32);
 
@@ -98,17 +105,22 @@ typedef struct {
 typedef struct __DtlsSession DtlsSession, *PDtlsSession;
 struct __DtlsSession {
     volatile ATOMIC_BOOL isStarted;
-    volatile ATOMIC_BOOL shutdown;
+    volatile ATOMIC_BOOL isShutdown;
+    volatile ATOMIC_BOOL isCleanUp;
     UINT32 certificateCount;
     DtlsSessionCallbacks dtlsSessionCallbacks;
     TIMER_QUEUE_HANDLE timerQueueHandle;
     UINT32 timerId;
     UINT64 dtlsSessionStartTime;
+    UINT64 dtlsSessionSetupTime;
     RTC_DTLS_TRANSPORT_STATE state;
+    DTLS_HANDSHAKE_STATE handshakeState;
     MUTEX sslLock;
 
 #ifdef KVS_USE_OPENSSL
     volatile ATOMIC_BOOL sslInitFinished;
+    volatile SIZE_T objRefCount;
+    CVAR receivePacketCvar;
     // dtls message must fit into a UDP packet
     BYTE outgoingDataBuffer[MAX_UDP_PACKET_SIZE];
     UINT32 outgoingDataLen;
@@ -167,6 +179,7 @@ STATUS dtlsSessionShutdown(PDtlsSession);
 
 STATUS dtlsSessionOnOutBoundData(PDtlsSession, UINT64, DtlsSessionOutboundPacketFunc);
 STATUS dtlsSessionOnStateChange(PDtlsSession, UINT64, DtlsSessionOnStateChange);
+STATUS dtlsSessionHandshakeInThread(PDtlsSession, BOOL);
 
 /******** Internal Functions **********/
 STATUS dtlsValidateRtcCertificates(PRtcCertificate, PUINT32);

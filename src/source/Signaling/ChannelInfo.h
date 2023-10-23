@@ -32,6 +32,14 @@ extern "C" {
 #define MIN_SIGNALING_MESSAGE_TTL_VALUE (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define MAX_SIGNALING_MESSAGE_TTL_VALUE (120 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
+#define SIGNALING_USER_AGENT_POSTFIX_NAME (PCHAR) "AWS-WEBRTC-KVS-AGENT"
+
+#ifdef VERSION_STRING
+#define SIGNALING_USER_AGENT_POSTFIX_VERSION (PCHAR) VERSION_STRING
+#else
+#define SIGNALING_USER_AGENT_POSTFIX_VERSION (PCHAR) "UNKNOWN"
+#endif
+
 /**
  * Takes in a pointer to a public version of ChannelInfo object.
  * Validates and creates an internal object

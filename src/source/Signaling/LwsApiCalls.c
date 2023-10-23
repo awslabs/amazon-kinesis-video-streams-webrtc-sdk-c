@@ -173,7 +173,6 @@ INT32 lwsHttpCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, 
                             pLwsCallInfo->callInfo.callResult = SERVICE_CALL_SIGNATURE_NOT_YET_CURRENT;
                         }
                     }
-
                 } else {
                     DLOGV("Received client http read response:  %s", pLwsCallInfo->callInfo.responseData);
                 }
@@ -2012,9 +2011,14 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
         DLOGW("Failed to validate the ICE server configuration received with an Offer");
     }
 
+#ifdef ENABLE_KVS_THREADPOOL
+    // This would fail if threadpool was not created
+    CHK_STATUS(threadpoolContextPush(receiveLwsMessageWrapper, pSignalingMessageWrapper));
+#else
     // Issue the callback on a separate thread
     CHK_STATUS(THREAD_CREATE(&receivedTid, receiveLwsMessageWrapper, (PVOID) pSignalingMessageWrapper));
     CHK_STATUS(THREAD_DETACH(receivedTid));
+#endif
 
 CleanUp:
 
@@ -2155,8 +2159,11 @@ PVOID receiveLwsMessageWrapper(PVOID args)
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingMessageWrapper pSignalingMessageWrapper = (PSignalingMessageWrapper) args;
     PSignalingClient pSignalingClient = NULL;
+    SIGNALING_MESSAGE_TYPE messageType = SIGNALING_MESSAGE_TYPE_UNKNOWN;
 
     CHK(pSignalingMessageWrapper != NULL, STATUS_NULL_ARG);
+
+    messageType = pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.messageType;
 
     pSignalingClient = pSignalingMessageWrapper->pSignalingClient;
 
@@ -2167,6 +2174,12 @@ PVOID receiveLwsMessageWrapper(PVOID args)
 
     // Calling client receive message callback if specified
     if (pSignalingClient->signalingClientCallbacks.messageReceivedFn != NULL) {
+        if (messageType == SIGNALING_MESSAGE_TYPE_OFFER) {
+            pSignalingClient->offerTime = GETTIME();
+        }
+        if (messageType == SIGNALING_MESSAGE_TYPE_ANSWER) {
+            PROFILE_WITH_START_TIME_OBJ(pSignalingClient->offerTime, pSignalingClient->diagnostics.offerToAnswerTime, "Offer to answer time");
+        }
         CHK_STATUS(pSignalingClient->signalingClientCallbacks.messageReceivedFn(pSignalingClient->signalingClientCallbacks.customData,
                                                                                 &pSignalingMessageWrapper->receivedSignalingMessage));
     }

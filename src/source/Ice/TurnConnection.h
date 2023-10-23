@@ -58,18 +58,6 @@ extern "C" {
 typedef STATUS (*RelayAddressAvailableFunc)(UINT64, PKvsIpAddress, PSocketConnection);
 
 typedef enum {
-    TURN_STATE_NEW,
-    TURN_STATE_CHECK_SOCKET_CONNECTION,
-    TURN_STATE_GET_CREDENTIALS,
-    TURN_STATE_ALLOCATION,
-    TURN_STATE_CREATE_PERMISSION,
-    TURN_STATE_BIND_CHANNEL,
-    TURN_STATE_READY,
-    TURN_STATE_CLEAN_UP,
-    TURN_STATE_FAILED,
-} TURN_CONNECTION_STATE;
-
-typedef enum {
     TURN_PEER_CONN_STATE_CREATE_PERMISSION,
     TURN_PEER_CONN_STATE_BIND_CHANNEL,
     TURN_PEER_CONN_STATE_READY,
@@ -137,7 +125,7 @@ struct __TurnConnection {
     MUTEX sendLock;
     CVAR freeAllocationCvar;
 
-    TURN_CONNECTION_STATE state;
+    UINT64 state;
 
     UINT64 stateTimeoutTime;
 
@@ -174,6 +162,8 @@ struct __TurnConnection {
 
     UINT64 currentTimerCallingPeriod;
     BOOL deallocatePacketSent;
+
+    PStateMachine pStateMachine;
 };
 typedef struct __TurnConnection* PTurnConnection;
 
@@ -190,12 +180,13 @@ STATUS turnConnectionRefreshAllocation(PTurnConnection);
 STATUS turnConnectionRefreshPermission(PTurnConnection, PBOOL);
 STATUS turnConnectionFreePreAllocatedPackets(PTurnConnection);
 
-STATUS turnConnectionStepState(PTurnConnection);
+// used for state machine
+UINT64 turnConnectionGetTime(UINT64);
+
 STATUS turnConnectionUpdateNonce(PTurnConnection);
 STATUS turnConnectionTimerCallback(UINT32, UINT64, UINT64);
 STATUS turnConnectionGetLongTermKey(PCHAR, PCHAR, PCHAR, PBYTE, UINT32);
 STATUS turnConnectionPackageTurnAllocationRequest(PCHAR, PCHAR, PBYTE, UINT16, UINT32, PStunPacket*);
-PCHAR turnConnectionGetStateStr(TURN_CONNECTION_STATE);
 
 STATUS turnConnectionIncomingDataHandler(PTurnConnection, PBYTE, UINT32, PKvsIpAddress, PKvsIpAddress, PTurnChannelData, PUINT32);
 
@@ -207,6 +198,8 @@ VOID turnConnectionFatalError(PTurnConnection, STATUS);
 
 PTurnPeer turnConnectionGetPeerWithChannelNumber(PTurnConnection, UINT16);
 PTurnPeer turnConnectionGetPeerWithIp(PTurnConnection, PKvsIpAddress);
+
+STATUS checkTurnPeerConnections(PTurnConnection);
 
 #ifdef __cplusplus
 }

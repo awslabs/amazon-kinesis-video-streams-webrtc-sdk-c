@@ -4,7 +4,8 @@ include(Utilities)
 include(CheckIncludeFiles)
 include(CheckFunctionExists)
 
-project(KinesisVideoWebRTCClient LANGUAGES C)
+# The version MUST be updated before every release
+project(KinesisVideoWebRTCClient VERSION 1.8.1 LANGUAGES C)
 
 # User Flags
 option(ADD_MUCLIBC "Add -muclibc c flag" OFF)
@@ -17,6 +18,7 @@ option(BUILD_LIBSRTP_HOST_PLATFORM "If buildng LibSRTP what is the current platf
 option(BUILD_LIBSRTP_DESTINATION_PLATFORM "If buildng LibSRTP what is the destination platform" OFF)
 option(BUILD_SAMPLE "Build available samples" ON)
 option(ENABLE_DATA_CHANNEL "Enable support for data channel" ON)
+option(ENABLE_KVS_THREADPOOL "Enable support for KVS thread pool in signaling" ON)
 option(INSTRUMENTED_ALLOCATORS "Enable memory instrumentation" OFF)
 
 # Developer Flags
@@ -30,6 +32,11 @@ option(THREAD_SANITIZER "Build with ThreadSanitizer." OFF)
 option(UNDEFINED_BEHAVIOR_SANITIZER "Build with UndefinedBehaviorSanitizer." OFF)
 option(LINK_PROFILER "Link gperftools profiler" OFF)
 
+if(WIN32)
+  set(EXT_PTHREAD_INCLUDE_DIR "" CACHE PATH "Path to the PThread dir")
+  set(EXT_PTHREAD_LIBRARIES "" CACHE FILEPATH "Path to PThread libraries")
+endif()
+
 execute_process(
         COMMAND git rev-parse HEAD
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
@@ -37,6 +44,7 @@ execute_process(
         OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 add_definitions(-DSDK_VERSION=\"${GIT_COMMIT_HASH}\")
+add_definitions(-DVERSION_STRING=\"${PROJECT_VERSION}\")
 add_definitions(-DDETECTED_GIT_HASH)
 
 if(NOT OPEN_SRC_INSTALL_PREFIX OR OPEN_SRC_INSTALL_PREFIX STREQUAL "")
@@ -91,13 +99,24 @@ message(STATUS "dependencies install path is ${OPEN_SRC_INSTALL_PREFIX}")
 add_definitions(-DKVS_CA_CERT_PATH="${CMAKE_SOURCE_DIR}/certs/cert.pem")
 add_definitions(-DCMAKE_DETECTED_CACERT_PATH)
 
+if (ENABLE_KVS_THREADPOOL)
+  add_definitions(-DENABLE_KVS_THREADPOOL)
+endif()
+
 if(USE_OPENSSL)
   add_definitions(-DKVS_USE_OPENSSL)
 elseif(USE_MBEDTLS)
   add_definitions(-DKVS_USE_MBEDTLS)
   # FIXME: there's probably a better way to inject MBEDTLS_USER_CONFIG_FILE flag without mutating the global CMAKE_C_FLAGS and CMAKE_CXX_FLAGS
-  set(CMAKE_C_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/configs -DMBEDTLS_USER_CONFIG_FILE='<config_mbedtls.h>' ${CMAKE_C_FLAGS}")
-  set(CMAKE_CXX_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/configs -DMBEDTLS_USER_CONFIG_FILE='<config_mbedtls.h>' ${CMAKE_CXX_FLAGS}")
+  if("${CMAKE_C_COMPILER_ID}" MATCHES "Clang")
+    message(STATUS "Detected clang")
+    set(CMAKE_C_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/configs -DMBEDTLS_USER_CONFIG_FILE=\"<config_mbedtls.h>\" ${CMAKE_C_FLAGS}")
+    set(CMAKE_CXX_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/configs -DMBEDTLS_USER_CONFIG_FILE=\"<config_mbedtls.h>\" ${CMAKE_CXX_FLAGS}")
+  else()
+    message(STATUS "Detected gcc")
+    set(CMAKE_C_FLAGS "-Wno-error=stringop-overflow -I${CMAKE_CURRENT_SOURCE_DIR}/configs -DMBEDTLS_USER_CONFIG_FILE=\"<config_mbedtls.h>\" ${CMAKE_C_FLAGS}")
+    set(CMAKE_CXX_FLAGS "-Wno-error=stringop-overflow -I${CMAKE_CURRENT_SOURCE_DIR}/configs -DMBEDTLS_USER_CONFIG_FILE=\"<config_mbedtls.h>\" ${CMAKE_CXX_FLAGS}")
+  endif()
 endif()
 
 if(BUILD_DEPENDENCIES)
@@ -125,16 +144,35 @@ if(BUILD_DEPENDENCIES)
     set(OPENSSL_ROOT_DIR ${OPEN_SRC_INSTALL_PREFIX})
   elseif(USE_MBEDTLS)
     set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
-                   "-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -std=c99")
-    build_dependency(mbedtls ${BUILD_ARGS})
+                    "-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -std=c99")
+      build_dependency(mbedtls ${BUILD_ARGS})
   endif()
 
 
-  set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
-                 -DOPENSSL_DIR=${OPEN_SRC_INSTALL_PREFIX}
-                 -DUSE_OPENSSL=${USE_OPENSSL}
-                 -DUSE_MBEDTLS=${USE_MBEDTLS}
-                 -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
+  if(WIN32)
+    set(OPENSSL_INCLUDE_DIRS "${OPEN_SRC_INSTALL_PREFIX}/include/")
+    set(OPENSSL_CRYPTO_LIBRARY "${OPEN_SRC_INSTALL_PREFIX}/lib/libcrypto.lib")
+    set(OPENSSL_SSL_LIBRARY "${OPEN_SRC_INSTALL_PREFIX}/lib/libssl.lib")
+    set(OPENSSL_LIBRARIES ${OPENSSL_SSL_LIBRARY} ${OPENSSL_CRYPTO_LIBRARY})
+    string(REPLACE ";" "|" OPENSSL_LIBRARIES_ALT_SEP "${OPENSSL_LIBRARIES}")
+    set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
+                  -DUSE_OPENSSL=${USE_OPENSSL}
+                  -DUSE_MBEDTLS=${USE_MBEDTLS} 
+                  -DLWS_EXT_PTHREAD_INCLUDE_DIR=${EXT_PTHREAD_INCLUDE_DIR}
+                  -DLWS_EXT_PTHREAD_LIBRARIES=${EXT_PTHREAD_LIBRARIES}
+                  -DLWS_OPENSSL_INCLUDE_DIRS=${OPENSSL_INCLUDE_DIRS}
+                  -DLWS_OPENSSL_LIBRARIES=${OPENSSL_LIBRARIES_ALT_SEP}
+                  -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
+  else()
+    set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
+                  -DOPENSSL_DIR=${OPEN_SRC_INSTALL_PREFIX}
+                  -DUSE_OPENSSL=${USE_OPENSSL}
+                  -DUSE_MBEDTLS=${USE_MBEDTLS}
+                  -DLWS_OPENSSL_CRYPTO_LIBRARY=${OPENSSL_CRYPTO_LIBRARY}
+                  -DLWS_OPENSSL_SSL_LIBRARY=${OPENSSL_SSL_LIBRARY}
+                  -DLWS_OPENSSL_INCLUDE_DIRS=${OPENSSL_INCLUDE_DIR}
+                  -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
+  endif()
   build_dependency(websockets ${BUILD_ARGS})
 
   set(BUILD_ARGS
@@ -163,17 +201,16 @@ if(BUILD_DEPENDENCIES)
   if (LINK_PROFILER)
     build_dependency(gperftools)
   endif()
-
-  # building kvsCommonLws also builds kvspic
-  set(BUILD_ARGS
-      -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-      -DUSE_OPENSSL=${USE_OPENSSL}
-      -DUSE_MBEDTLS=${USE_MBEDTLS}
-      -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
-  build_dependency(kvsCommonLws ${BUILD_ARGS})
-
   message(STATUS "Finished building dependencies.")
 endif()
+
+# building kvsCommonLws also builds kvspic
+set(BUILD_ARGS
+        -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+        -DUSE_OPENSSL=${USE_OPENSSL}
+        -DUSE_MBEDTLS=${USE_MBEDTLS}
+        -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
+build_dependency(kvsCommonLws ${BUILD_ARGS})
 
 ############# find dependent libraries ############
 
@@ -302,9 +339,20 @@ file(GLOB WEBRTC_SIGNALING_CLIENT_SOURCE_FILES "src/source/Signaling/*.c")
 include_directories(${OPEN_SRC_INCLUDE_DIRS})
 include_directories(${OPEN_SRC_INSTALL_PREFIX}/include)
 include_directories(${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/include)
-include_directories(${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/ice)
 
 add_library(kvsWebrtcClient ${LINKAGE} ${WEBRTC_CLIENT_SOURCE_FILES} ${DATACHANNEL_SRC})
+
+if(USE_MBEDTLS)
+  target_compile_definitions(kvsWebrtcClient PRIVATE LWS_WITH_MBEDTLS)
+endif()
+
+# The library **MUST** have a shared linkage. This library is used by both WebRtc client an
+#signaling client.
+if(ENABLE_KVS_THREADPOOL)
+  file(GLOB THREADPOOL_SOURCE_FILES "src/source/Threadpool/ThreadPoolContext.c")
+  add_library(kvsWebRtcThreadpool SHARED ${THREADPOOL_SOURCE_FILES})
+  target_link_libraries(kvsWebRtcThreadpool PRIVATE kvspicUtils)
+endif()
 
 target_link_libraries(
   kvsWebrtcClient
@@ -321,6 +369,15 @@ target_link_libraries(
           ${EXTRA_DEPS})
 
 add_library(kvsWebrtcSignalingClient ${LINKAGE} ${WEBRTC_SIGNALING_CLIENT_SOURCE_FILES})
+
+if(USE_MBEDTLS)
+  target_compile_definitions(kvsWebrtcSignalingClient PRIVATE LWS_WITH_MBEDTLS)
+endif()
+
+if(ENABLE_KVS_THREADPOOL)
+  target_link_libraries(kvsWebrtcClient PRIVATE kvsWebRtcThreadpool)
+  target_link_libraries(kvsWebrtcSignalingClient PRIVATE kvsWebRtcThreadpool)
+endif()
 
 target_link_libraries(
   kvsWebrtcSignalingClient

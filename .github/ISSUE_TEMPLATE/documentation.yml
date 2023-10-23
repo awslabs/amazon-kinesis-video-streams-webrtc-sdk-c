@@ -1,0 +1,31 @@
+---
+name: "Documentation Issue"
+description: Report an issue in the github Readme. For issues in AWS documentation pages, submit feedback on the concerned AWS page
+title: "[Documentation]: "
+labels: ["documentation", "needs-triage"]
+assignees: []
+body:
+  - type: checkboxes
+    attributes:
+      label: Please confirm you have already done the following
+      options:
+        - label: I have searched the repository for related/existing documentation issue reports
+        - label: I have all the details the issue requires
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the issue
+      description: A clear and concise description of the issue.
+    validations:
+      required: true
+
+  - type: textarea
+    id: links
+    attributes:
+      label: Links
+      description: |
+        Include links to affected documentation page(s).
+    validations:
+      required: true

@@ -13,6 +13,9 @@ TEST_F(SignalingApiTest, createValidateChannelInfo)
 {
     initializeSignalingClientStructs();
     PChannelInfo rChannelInfo;
+    CHAR agentString[MAX_CUSTOM_USER_AGENT_NAME_POSTFIX_LEN + 1];
+    UINT32 postfixLen = STRLEN(SIGNALING_USER_AGENT_POSTFIX_NAME) + STRLEN(SIGNALING_USER_AGENT_POSTFIX_VERSION) + 1;
+    SNPRINTF(agentString, postfixLen + 1, (PCHAR) "%s/%s", SIGNALING_USER_AGENT_POSTFIX_NAME, SIGNALING_USER_AGENT_POSTFIX_VERSION);
     STRCPY(mChannelArn, TEST_CHANNEL_ARN);
     STRCPY(mKmsKeyId, TEST_KMS_KEY_ID_ARN);
     mChannelInfo.pChannelArn = mChannelArn;
@@ -32,7 +35,11 @@ TEST_F(SignalingApiTest, createValidateChannelInfo)
     EXPECT_EQ(0, STRCMP(rChannelInfo->pCertPath, mCaCertPath));
     EXPECT_EQ(rChannelInfo->messageTtl, TEST_SIGNALING_MESSAGE_TTL);
     EXPECT_EQ(0, STRCMP(rChannelInfo->pRegion, TEST_DEFAULT_REGION));
+    // Test default agent postfix
+    EXPECT_PRED_FORMAT2(testing::IsSubstring, agentString, rChannelInfo->pUserAgent);
     freeChannelInfo(&rChannelInfo);
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiTest, signalingSendMessageSync)
@@ -76,6 +83,8 @@ TEST_F(SignalingApiTest, signalingSendMessageSync)
     EXPECT_EQ(expectedStatus, signalingClientSendMessageSync(mSignalingClientHandle, &signalingMessage));
 
     deinitializeSignalingClient();
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiTest, signalingSendMessageSyncFileCredsProvider)
@@ -84,14 +93,22 @@ TEST_F(SignalingApiTest, signalingSendMessageSyncFileCredsProvider)
     PAwsCredentialProvider pAwsCredentialProvider = NULL;
     CHAR fileContent[10000];
     UINT32 length = ARRAY_SIZE(fileContent);
+    CHAR futureTime[] = "2200-06-05T09:39:36Z";
 
-    if (!mAccessKeyIdSet) {
-        return;
+
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
+
+    if (mSessionToken == NULL) {
+        // Store the credentials in a file under the current dir
+        length = SNPRINTF(fileContent, length, "CREDENTIALS %s %s", mAccessKey, mSecretKey);
+        ASSERT_GT(ARRAY_SIZE(fileContent), length);
+    } else {
+        // test Temp Creds
+        // "CREDENTIALS accessKey expiration secretKey sessionToken"
+        length = SNPRINTF(fileContent, length, "CREDENTIALS %s %s %s %s", mAccessKey, futureTime, mSecretKey, mSessionToken);
+        ASSERT_GT(ARRAY_SIZE(fileContent), length);
     }
-
-    // Store the credentials in a file under the current dir
-    length = SNPRINTF(fileContent, length, "CREDENTIALS %s %s", mAccessKey, mSecretKey);
-    ASSERT_GT(ARRAY_SIZE(fileContent), length);
+    
     ASSERT_EQ(STATUS_SUCCESS, writeFile(TEST_FILE_CREDENTIALS_FILE_PATH, FALSE, FALSE, (PBYTE) fileContent, length));
 
     // Create file creds provider from the file
@@ -125,6 +142,8 @@ TEST_F(SignalingApiTest, signalingSendMessageSyncFileCredsProvider)
     deinitializeSignalingClient();
 
     EXPECT_EQ(STATUS_SUCCESS, freeFileCredentialProvider(&pAwsCredentialProvider));
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiTest, signalingClientConnectSync)
@@ -141,6 +160,8 @@ TEST_F(SignalingApiTest, signalingClientConnectSync)
     EXPECT_EQ(expectedStatus, signalingClientConnectSync(mSignalingClientHandle));
 
     deinitializeSignalingClient();
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiTest, signalingClientDeleteSync)
@@ -171,6 +192,8 @@ TEST_F(SignalingApiTest, signalingClientDeleteSync)
     EXPECT_EQ(expectedStatus, signalingClientSendMessageSync(mSignalingClientHandle, &signalingMessage));
 
     deinitializeSignalingClient();
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiTest, signalingClientGetIceConfigInfoCount)
@@ -191,6 +214,8 @@ TEST_F(SignalingApiTest, signalingClientGetIceConfigInfoCount)
     }
 
     deinitializeSignalingClient();
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiTest, signalingClientGetIceConfigInfo)
@@ -227,6 +252,8 @@ TEST_F(SignalingApiTest, signalingClientGetIceConfigInfo)
     }
 
     deinitializeSignalingClient();
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiTest, signalingClientGetCurrentState)
@@ -246,6 +273,8 @@ TEST_F(SignalingApiTest, signalingClientGetCurrentState)
     EXPECT_EQ(expectedState, state);
 
     deinitializeSignalingClient();
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiTest, signalingClientGetStateString)
@@ -257,11 +286,15 @@ TEST_F(SignalingApiTest, signalingClientGetStateString)
         EXPECT_EQ(STATUS_SUCCESS, signalingClientGetStateString((SIGNALING_CLIENT_STATE) i, &pStateStr));
         DLOGV("Iterating states \"%s\"", pStateStr);
     }
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiTest, signalingClientDisconnectSync)
 {
     EXPECT_NE(STATUS_SUCCESS, signalingClientDisconnectSync(INVALID_SIGNALING_CLIENT_HANDLE_VALUE));
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiTest, signalingClientGetMetrics)
@@ -275,9 +308,7 @@ TEST_F(SignalingApiTest, signalingClientGetMetrics)
     EXPECT_NE(STATUS_SUCCESS, signalingClientGetMetrics(INVALID_SIGNALING_CLIENT_HANDLE_VALUE, NULL));
     EXPECT_NE(STATUS_SUCCESS, signalingClientGetMetrics(mSignalingClientHandle, NULL));
 
-    if (!mAccessKeyIdSet) {
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     initializeSignalingClient();
     // Valid call
@@ -354,6 +385,8 @@ TEST_F(SignalingApiTest, signalingClientGetMetrics)
     EXPECT_NE(0, metrics.signalingClientStats.dpApiCallLatency);
 
     deinitializeSignalingClient();
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiTest, signalingClientCreateWithClientInfoVariations)
@@ -487,6 +520,8 @@ TEST_F(SignalingApiTest, signalingClientCreateWithClientInfoVariations)
 
     deinitializeSignalingClient();
     mClientInfo.cacheFilePath = NULL;
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 } // namespace webrtcclient

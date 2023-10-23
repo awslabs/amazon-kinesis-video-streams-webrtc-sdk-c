@@ -8,6 +8,7 @@
 #include <atomic>
 
 #define TEST_DEFAULT_REGION             ((PCHAR) "us-west-2")
+#define TEST_DEFAULT_STUN_URL_POSTFIX   (KINESIS_VIDEO_STUN_URL_POSTFIX)
 #define TEST_STREAMING_TOKEN_DURATION   (40 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define TEST_JITTER_BUFFER_CLOCK_RATE   (1000)
 #define TEST_SIGNALING_MASTER_CLIENT_ID (PCHAR) "Test_Master_ClientId"
@@ -109,6 +110,7 @@ class WebRtcClientTestBase : public ::testing::Test {
         mChannelInfo.reconnect = TRUE;
         mChannelInfo.pCertPath = mCaCertPath;
         mChannelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
+
         if ((mChannelInfo.pRegion = getenv(DEFAULT_REGION_ENV_VAR)) == NULL) {
             mChannelInfo.pRegion = (PCHAR) TEST_DEFAULT_REGION;
         }

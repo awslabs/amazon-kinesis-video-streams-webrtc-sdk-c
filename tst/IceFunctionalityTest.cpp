@@ -206,12 +206,7 @@ TEST_F(IceFunctionalityTest, connectionListenerFunctionalityTest)
     EXPECT_TRUE( IS_VALID_TID_VALUE(threadId));
     ATOMIC_STORE_BOOL(&pConnectionListener->terminate, TRUE);
 
-    THREAD_SLEEP(CONNECTION_LISTENER_SHUTDOWN_TIMEOUT + 1 * HUNDREDS_OF_NANOS_IN_A_SECOND);
-
-    MUTEX_LOCK(pConnectionListener->lock);
-    threadId = pConnectionListener->receiveDataRoutine;
-    MUTEX_UNLOCK(pConnectionListener->lock);
-    EXPECT_FALSE( IS_VALID_TID_VALUE(threadId));
+    THREAD_JOIN(threadId, NULL);
 
     EXPECT_EQ(STATUS_SUCCESS, freeConnectionListener(&pConnectionListener));
 
@@ -645,9 +640,7 @@ TEST_F(IceFunctionalityTest, IceAgentPruneUnconnectedIceCandidatePairUnitTest)
 
 TEST_F(IceFunctionalityTest, IceAgentCandidateGatheringTest)
 {
-    if (!mAccessKeyIdSet) {
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     typedef struct {
         std::vector<std::string> list;

@@ -39,7 +39,6 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     CHK_STATUS(validateSignalingClientInfo(pSignalingClient, pClientInfo));
 
     pSignalingClient->version = SIGNALING_CLIENT_CURRENT_VERSION;
-
     // Set invalid call times
     pSignalingClient->describeTime = INVALID_TIMESTAMP_VALUE;
     pSignalingClient->createTime = INVALID_TIMESTAMP_VALUE;
@@ -380,7 +379,12 @@ STATUS signalingSendMessageSync(PSignalingClient pSignalingClient, PSignalingMes
     // Perform the call
     CHK_STATUS(sendLwsMessage(pSignalingClient, pSignalingMessage->messageType, pSignalingMessage->peerClientId, pSignalingMessage->payload,
                               pSignalingMessage->payloadLen, pSignalingMessage->correlationId, 0));
-
+    if (pSignalingMessage->messageType == SIGNALING_MESSAGE_TYPE_ANSWER) {
+        PROFILE_WITH_START_TIME_OBJ(pSignalingClient->offerTime, pSignalingClient->diagnostics.offerToAnswerTime, "Offer to answer time");
+    }
+    if (pSignalingMessage->messageType == SIGNALING_MESSAGE_TYPE_OFFER) {
+        pSignalingClient->offerTime = GETTIME();
+    }
     // Update the internal diagnostics only after successfully sending
     ATOMIC_INCREMENT(&pSignalingClient->diagnostics.numberOfMessagesSent);
 
@@ -605,6 +609,8 @@ STATUS validateSignalingClientInfo(PSignalingClient pSignalingClient, PSignaling
             break;
 
         case 1:
+            // explicit-fallthrough
+        case 2:
             // If the path is specified and not empty then we validate and copy/store
             if (pSignalingClient->clientInfo.signalingClientInfo.cacheFilePath != NULL &&
                 pSignalingClient->clientInfo.signalingClientInfo.cacheFilePath[0] != '\0') {
@@ -691,7 +697,7 @@ STATUS refreshIceConfiguration(PSignalingClient pSignalingClient)
     // Force the state machine to revert back to get ICE configuration without re-connection
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_SIGNALING_RECONNECT_ICE);
     ATOMIC_STORE(&pSignalingClient->refreshIceConfig, TRUE);
-
+    DLOGI("Retrieving ICE config through getIceServerConfig call again");
     // Iterate the state machinery in steady states only - ready or connected
     if (pStateMachineState->state == SIGNALING_STATE_READY || pStateMachineState->state == SIGNALING_STATE_CONNECTED) {
         CHK_STATUS(signalingStateMachineIterator(pSignalingClient, curTime + SIGNALING_REFRESH_ICE_CONFIG_STATE_TIMEOUT, pStateMachineState->state));
@@ -941,6 +947,7 @@ STATUS describeChannel(PSignalingClient pSignalingClient, UINT64 time)
     // Call DescribeChannel API
     if (STATUS_SUCCEEDED(retStatus)) {
         if (apiCall) {
+            DLOGI("Calling because call is uncached");
             // Call pre hook func
             if (pSignalingClient->clientInfo.describePreHookFn != NULL) {
                 retStatus = pSignalingClient->clientInfo.describePreHookFn(pSignalingClient->clientInfo.hookCustomData);
@@ -1236,26 +1243,48 @@ STATUS signalingGetMetrics(PSignalingClient pSignalingClient, PSignalingClientMe
     curTime = SIGNALING_GET_CURRENT_TIME(pSignalingClient);
 
     CHK(pSignalingClient != NULL && pSignalingClientMetrics != NULL, STATUS_NULL_ARG);
-    CHK(pSignalingClientMetrics->version <= SIGNALING_CLIENT_METRICS_CURRENT_VERSION, STATUS_SIGNALING_INVALID_METRICS_VERSION);
+
+    if (pSignalingClientMetrics->version > SIGNALING_CLIENT_METRICS_CURRENT_VERSION) {
+        DLOGW("Invalid signaling client metrics version...setting to highest supported by default version %d",
+              SIGNALING_CLIENT_METRICS_CURRENT_VERSION);
+        pSignalingClientMetrics->version = SIGNALING_CLIENT_METRICS_CURRENT_VERSION;
+    }
 
     // Interlock the threading due to data race possibility
     MUTEX_LOCK(pSignalingClient->diagnosticsLock);
 
-    // Fill in the data structures according to the version of the requested structure - currently only v0
-    pSignalingClientMetrics->signalingClientStats.signalingClientUptime = curTime - pSignalingClient->diagnostics.createTime;
-    pSignalingClientMetrics->signalingClientStats.numberOfMessagesSent = (UINT32) pSignalingClient->diagnostics.numberOfMessagesSent;
-    pSignalingClientMetrics->signalingClientStats.numberOfMessagesReceived = (UINT32) pSignalingClient->diagnostics.numberOfMessagesReceived;
-    pSignalingClientMetrics->signalingClientStats.iceRefreshCount = (UINT32) pSignalingClient->diagnostics.iceRefreshCount;
-    pSignalingClientMetrics->signalingClientStats.numberOfErrors = (UINT32) pSignalingClient->diagnostics.numberOfErrors;
-    pSignalingClientMetrics->signalingClientStats.numberOfRuntimeErrors = (UINT32) pSignalingClient->diagnostics.numberOfRuntimeErrors;
-    pSignalingClientMetrics->signalingClientStats.numberOfReconnects = (UINT32) pSignalingClient->diagnostics.numberOfReconnects;
-    pSignalingClientMetrics->signalingClientStats.cpApiCallLatency = pSignalingClient->diagnostics.cpApiLatency;
-    pSignalingClientMetrics->signalingClientStats.dpApiCallLatency = pSignalingClient->diagnostics.dpApiLatency;
+    MEMSET(&pSignalingClientMetrics->signalingClientStats, 0x00, SIZEOF(pSignalingClientMetrics->signalingClientStats));
 
-    pSignalingClientMetrics->signalingClientStats.connectionDuration =
-        ATOMIC_LOAD_BOOL(&pSignalingClient->connected) ? curTime - pSignalingClient->diagnostics.connectTime : 0;
-    pSignalingClientMetrics->signalingClientStats.apiCallRetryCount = pSignalingClient->diagnostics.stateMachineRetryCount;
+    switch (pSignalingClientMetrics->version) {
+        case 1:
+            pSignalingClientMetrics->signalingClientStats.getTokenCallTime = pSignalingClient->diagnostics.getTokenCallTime;
+            pSignalingClientMetrics->signalingClientStats.describeCallTime = pSignalingClient->diagnostics.describeCallTime;
+            pSignalingClientMetrics->signalingClientStats.createCallTime = pSignalingClient->diagnostics.createCallTime;
+            pSignalingClientMetrics->signalingClientStats.getEndpointCallTime = pSignalingClient->diagnostics.getEndpointCallTime;
+            pSignalingClientMetrics->signalingClientStats.getIceConfigCallTime = pSignalingClient->diagnostics.getIceConfigCallTime;
+            pSignalingClientMetrics->signalingClientStats.connectCallTime = pSignalingClient->diagnostics.connectCallTime;
+            pSignalingClientMetrics->signalingClientStats.createClientTime = pSignalingClient->diagnostics.createClientTime;
+            pSignalingClientMetrics->signalingClientStats.fetchClientTime = pSignalingClient->diagnostics.fetchClientTime;
+            pSignalingClientMetrics->signalingClientStats.connectClientTime = pSignalingClient->diagnostics.connectClientTime;
+            pSignalingClientMetrics->signalingClientStats.offerToAnswerTime = pSignalingClient->diagnostics.offerToAnswerTime;
+        case 0:
+            // Fill in the data structures according to the version of the requested structure
+            pSignalingClientMetrics->signalingClientStats.signalingClientUptime = curTime - pSignalingClient->diagnostics.createTime;
+            pSignalingClientMetrics->signalingClientStats.numberOfMessagesSent = (UINT32) pSignalingClient->diagnostics.numberOfMessagesSent;
+            pSignalingClientMetrics->signalingClientStats.numberOfMessagesReceived = (UINT32) pSignalingClient->diagnostics.numberOfMessagesReceived;
+            pSignalingClientMetrics->signalingClientStats.iceRefreshCount = (UINT32) pSignalingClient->diagnostics.iceRefreshCount;
+            pSignalingClientMetrics->signalingClientStats.numberOfErrors = (UINT32) pSignalingClient->diagnostics.numberOfErrors;
+            pSignalingClientMetrics->signalingClientStats.numberOfRuntimeErrors = (UINT32) pSignalingClient->diagnostics.numberOfRuntimeErrors;
+            pSignalingClientMetrics->signalingClientStats.numberOfReconnects = (UINT32) pSignalingClient->diagnostics.numberOfReconnects;
+            pSignalingClientMetrics->signalingClientStats.cpApiCallLatency = pSignalingClient->diagnostics.cpApiLatency;
+            pSignalingClientMetrics->signalingClientStats.dpApiCallLatency = pSignalingClient->diagnostics.dpApiLatency;
 
+            pSignalingClientMetrics->signalingClientStats.connectionDuration =
+                ATOMIC_LOAD_BOOL(&pSignalingClient->connected) ? curTime - pSignalingClient->diagnostics.connectTime : 0;
+            pSignalingClientMetrics->signalingClientStats.apiCallRetryCount = pSignalingClient->diagnostics.stateMachineRetryCount;
+        default:
+            break;
+    }
     MUTEX_UNLOCK(pSignalingClient->diagnosticsLock);
 
 CleanUp:
