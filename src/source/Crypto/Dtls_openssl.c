@@ -104,26 +104,48 @@ STATUS createCertificateAndKey(INT32 certificateBits, BOOL generateRSACertificat
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    BIGNUM* pBne = NULL;
-    RSA* pRsa = NULL;
     X509_NAME* pX509Name = NULL;
-    UINT32 eccGroup = 0;
-    EC_KEY* eccKey = NULL;
+    RSA* pRsa = NULL;
     UINT64 certSn;
 
     CHK(ppCert != NULL && ppPkey != NULL, STATUS_NULL_ARG);
     CHK((*ppPkey = EVP_PKEY_new()) != NULL, STATUS_CERTIFICATE_GENERATION_FAILED);
     CHK_STATUS(dtlsFillPseudoRandomBits((PBYTE) &certSn, SIZEOF(UINT64)));
 
+#if (OPENSSL_VERSION_NUMBER >= 0x30000000L)
+    DLOGI("Detected openssl version greater than 3.0.0");
+    EVP_PKEY_CTX* pctx = NULL;
     if (generateRSACertificate) {
+        DLOGI("Using RSA");
+        CHK_ERR(pctx = EVP_PKEY_CTX_new_from_name(NULL, "RSA", NULL), STATUS_CERTIFICATE_GENERATION_FAILED, "Error creating EVP_PKEY_CTX for RSA");
+        CHK_ERR(EVP_PKEY_keygen_init(pctx) > 0, STATUS_CERTIFICATE_GENERATION_FAILED, "Error initializing RSA keygen");
+        CHK_ERR(EVP_PKEY_CTX_set_rsa_keygen_bits(pctx, certificateBits) > 0, STATUS_CERTIFICATE_GENERATION_FAILED, "Error setting RSA key size");
+        CHK_ERR(EVP_PKEY_keygen(pctx, ppPkey) > 0, STATUS_CERTIFICATE_GENERATION_FAILED, "RSA Key generation errored");
+    } else {
+        DLOGI("Using EC");
+        CHK_ERR(pctx = EVP_PKEY_CTX_new_from_name(NULL, "EC", NULL), STATUS_CERTIFICATE_GENERATION_FAILED, "Error creating EVP_PKEY_CTX for EC");
+        CHK_ERR(EVP_PKEY_keygen_init(pctx) > 0, STATUS_CERTIFICATE_GENERATION_FAILED, "Error initializing EC keygen");
+        CHK_ERR(EVP_PKEY_CTX_set_ec_paramgen_curve_nid(pctx, OBJ_sn2nid("prime256v1")) > 0, STATUS_CERTIFICATE_GENERATION_FAILED,
+                "Error setting curve name");
+        CHK_ERR(EVP_PKEY_keygen(pctx, ppPkey) > 0, STATUS_CERTIFICATE_GENERATION_FAILED, "EC Key generation errored");
+    }
+    EVP_PKEY_CTX_free(pctx);
+#else
+    if (generateRSACertificate) {
+        BIGNUM* pBne = NULL;
+        DLOGI("Detected older version");
         CHK((pBne = BN_new()) != NULL, STATUS_CERTIFICATE_GENERATION_FAILED);
         CHK(BN_set_word(pBne, KVS_RSA_F4) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);
-
         CHK((pRsa = RSA_new()) != NULL, STATUS_CERTIFICATE_GENERATION_FAILED);
         CHK(RSA_generate_key_ex(pRsa, certificateBits, pBne, NULL) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);
         CHK((EVP_PKEY_assign_RSA(*ppPkey, pRsa)) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);
+        if (pBne != NULL) {
+            BN_free(pBne);
+        }
         pRsa = NULL;
     } else {
+        UINT32 eccGroup = 0;
+        EC_KEY* eccKey = NULL;
         CHK((eccGroup = OBJ_txt2nid("prime256v1")) != NID_undef, STATUS_CERTIFICATE_GENERATION_FAILED);
         CHK((eccKey = EC_KEY_new_by_curve_name(eccGroup)) != NULL, STATUS_CERTIFICATE_GENERATION_FAILED);
 
@@ -133,6 +155,7 @@ STATUS createCertificateAndKey(INT32 certificateBits, BOOL generateRSACertificat
         CHK(EC_KEY_generate_key(eccKey) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);
         CHK(EVP_PKEY_assign_EC_KEY(*ppPkey, eccKey) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);
     }
+#endif
 
     CHK((*ppCert = X509_new()) != NULL, STATUS_CERTIFICATE_GENERATION_FAILED);
     X509_set_version(*ppCert, 2);
@@ -149,14 +172,12 @@ STATUS createCertificateAndKey(INT32 certificateBits, BOOL generateRSACertificat
     CHK(X509_sign(*ppCert, *ppPkey, EVP_sha1()) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);
 
 CleanUp:
-    if (pBne != NULL) {
-        BN_free(pBne);
-    }
-
     if (STATUS_FAILED(retStatus)) {
+#if (OPENSSL_VERSION_NUMBER < 0x30000000L)
         if (pRsa != NULL) {
             RSA_free(pRsa);
         }
+#endif
         freeCertificateAndKey(ppCert, ppPkey);
     }
 
