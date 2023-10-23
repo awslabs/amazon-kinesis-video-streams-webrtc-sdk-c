@@ -1801,25 +1801,6 @@ CleanUp:
     return retStatus;
 }
 
-STATUS turnStateFailedFn(PSocketConnection pSocketConnection, UINT64 data)
-{
-    UNUSED_PARAM(pSocketConnection);
-
-    STATUS retStatus = STATUS_SUCCESS;
-
-    PIceCandidate pNewCandidate = (PIceCandidate) data;
-    CHK(pNewCandidate != NULL, STATUS_NULL_ARG);
-    MUTEX_LOCK(pNewCandidate->pIceAgent->lock);
-
-    if (pNewCandidate->state == ICE_CANDIDATE_STATE_NEW) {
-        pNewCandidate->state = ICE_CANDIDATE_STATE_INVALID;
-    }
-
-CleanUp:
-    MUTEX_UNLOCK(pNewCandidate->pIceAgent->lock);
-    return retStatus;
-}
-
 STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent, UINT32 iceServerIndex, KVS_SOCKET_PROTOCOL protocol)
 {
     STATUS retStatus = STATUS_SUCCESS;

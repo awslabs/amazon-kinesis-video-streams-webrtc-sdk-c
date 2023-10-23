@@ -99,7 +99,7 @@ STATUS stepTurnConnectionStateMachine(PTurnConnection pTurnConnection)
         retStatus = stepStateMachine(pTurnConnection->pStateMachine);
 
         if (STATUS_SUCCEEDED(retStatus) && ATOMIC_LOAD_BOOL(&pTurnConnection->stopTurnConnection) && pTurnConnection->state != TURN_STATE_NEW &&
-            pTurnConnection->state != TURN_STATE_CLEAN_UP) {
+            pTurnConnection->state != TURN_STATE_CLEAN_UP && !ATOMIC_LOAD_BOOL(&pTurnConnection->shutdownComplete)) {
             currentTime = GETTIME();
             pTurnConnection->state = TURN_STATE_CLEAN_UP;
             pTurnConnection->stateTimeoutTime = currentTime + DEFAULT_TURN_CLEAN_UP_TIMEOUT;
@@ -110,18 +110,6 @@ STATUS stepTurnConnectionStateMachine(PTurnConnection pTurnConnection)
         } else if (STATUS_FAILED(retStatus) && pTurnConnection->state != TURN_STATE_FAILED) {
             pTurnConnection->errorStatus = retStatus;
             pTurnConnection->state = TURN_STATE_FAILED;
-
-            /* There is data race condition when editing the candidate state without holding
-             * the IceAgent lock. However holding the turn lock and then locking the ice agent lock
-             * can result in a dead lock. Ice must always be locked first, and then turn.
-             */
-
-            MUTEX_UNLOCK(pTurnConnection->lock);
-            if (pTurnConnection->turnConnectionCallbacks.turnStateFailedFn != NULL) {
-                pTurnConnection->turnConnectionCallbacks.turnStateFailedFn(pTurnConnection->pControlChannel,
-                                                                           pTurnConnection->turnConnectionCallbacks.customData);
-            }
-            MUTEX_LOCK(pTurnConnection->lock);
 
             /* fix up state to trigger transition into TURN_STATE_FAILED  */
             retStatus = STATUS_SUCCESS;
@@ -261,8 +249,6 @@ STATUS fromGetCredentialsTurnState(UINT64 customData, PUINT64 pState)
     if (pTurnConnection->credentialObtained) {
         state = TURN_STATE_ALLOCATION;
         pTurnConnection->stateTimeoutTime = currentTime + DEFAULT_TURN_ALLOCATION_TIMEOUT;
-        pTurnConnection->stateTryCountMax = DEFAULT_TURN_ALLOCATION_MAX_TRY_COUNT;
-        pTurnConnection->stateTryCount = 0;
     }
 
     *pState = state;
@@ -362,9 +348,6 @@ STATUS executeAllocationTurnState(UINT64 customData, UINT64 time)
                                                               pTurnConnection->turnNonce, pTurnConnection->nonceLen,
                                                               DEFAULT_TURN_ALLOCATION_LIFETIME_SECONDS, &pTurnConnection->pTurnPacket));
         pTurnConnection->state = TURN_STATE_ALLOCATION;
-    } else {
-        pTurnConnection->stateTryCount++;
-        CHK(pTurnConnection->stateTryCount < pTurnConnection->stateTryCountMax, STATUS_TURN_CONNECTION_ALLOCAITON_FAILED);
     }
     CHK_STATUS(iceUtilsSendStunPacket(pTurnConnection->pTurnPacket, pTurnConnection->longTermKey, ARRAY_SIZE(pTurnConnection->longTermKey),
                                       &pTurnConnection->turnServer.ipAddress, pTurnConnection->pControlChannel, NULL, FALSE));
