@@ -12,10 +12,9 @@ extern "C" {
 #define KVS_MD5_DIGEST_LENGTH  MD5_DIGEST_LENGTH
 #define KVS_SHA1_DIGEST_LENGTH SHA_DIGEST_LENGTH
 
-STATUS generateMd5Digest(PBYTE srcBuffer, UINT64 len, PBYTE destBuffer);
-
 // https://www.openssl.org/docs/man3.1/man3/MD5.html
 #if (OPENSSL_VERSION_NUMBER >= 0x30000000L)
+STATUS generateMd5Digest(PBYTE srcBuffer, UINT64 len, PBYTE destBuffer);
 #define KVS_MD5_DIGEST(m, mlen, ob) generateMd5Digest((m), (mlen), (ob)); // TODO: Respond to the return value of this function
 #else
 #define KVS_MD5_DIGEST(m, mlen, ob) MD5((m), (mlen), (ob));
