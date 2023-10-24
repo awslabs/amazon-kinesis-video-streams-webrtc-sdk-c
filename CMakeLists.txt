@@ -58,14 +58,14 @@ else()
 endif()
 
 if(NOT WIN32)
-  CHECK_INCLUDE_FILES(ifaddrs.h       KVSWEBRTC_HAVE_IFADDRS_H)
-  if(NOT KVSWEBRTC_HAVE_IFADDRS_H)
-    message(FATAL_ERROR "Platform should support the ifaddrs interface.")
-  endif()
-  CHECK_FUNCTION_EXISTS(getifaddrs    KVSWEBRTC_HAVE_GETIFADDRS)
-  if(NOT KVSWEBRTC_HAVE_GETIFADDRS)
-    message(FATAL_ERROR "Platform should support getifaddrs API.")
-  endif()
+CHECK_INCLUDE_FILES(ifaddrs.h       KVSWEBRTC_HAVE_IFADDRS_H)
+if(NOT KVSWEBRTC_HAVE_IFADDRS_H)
+  message(FATAL_ERROR "Platform should support the ifaddrs interface.")
+endif()
+CHECK_FUNCTION_EXISTS(getifaddrs    KVSWEBRTC_HAVE_GETIFADDRS)
+if(NOT KVSWEBRTC_HAVE_GETIFADDRS)
+  message(FATAL_ERROR "Platform should support getifaddrs API.")
+endif()
 endif()
 
 set(CMAKE_MACOSX_RPATH TRUE)
@@ -143,15 +143,15 @@ if(BUILD_DEPENDENCIES)
 
   if (USE_OPENSSL)
     set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
-            -DBUILD_OPENSSL_PLATFORM=${BUILD_OPENSSL_PLATFORM}
-            -DOPENSSL_EXTRA=${OPENSSL_EXTRA}
-            -DBUILD_LEGACY_OPENSSL_VERSION=${BUILD_LEGACY_OPENSSL_VERSION})
+                   -DBUILD_OPENSSL_PLATFORM=${BUILD_OPENSSL_PLATFORM}
+                   -DOPENSSL_EXTRA=${OPENSSL_EXTRA}
+                   -DBUILD_LEGACY_OPENSSL_VERSION=${BUILD_LEGACY_OPENSSL_VERSION})
     build_dependency(openssl ${BUILD_ARGS})
     set(OPENSSL_ROOT_DIR ${OPEN_SRC_INSTALL_PREFIX})
   elseif(USE_MBEDTLS)
     set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
-            "-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -std=c99")
-    build_dependency(mbedtls ${BUILD_ARGS})
+                    "-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -std=c99")
+      build_dependency(mbedtls ${BUILD_ARGS})
   endif()
 
 
@@ -161,39 +161,40 @@ if(BUILD_DEPENDENCIES)
     set(OPENSSL_SSL_LIBRARY "${OPEN_SRC_INSTALL_PREFIX}/lib/libssl.lib")
     set(OPENSSL_LIBRARIES ${OPENSSL_SSL_LIBRARY} ${OPENSSL_CRYPTO_LIBRARY})
     string(REPLACE ";" "|" OPENSSL_LIBRARIES_ALT_SEP "${OPENSSL_LIBRARIES}")
+
     set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
-            -DUSE_OPENSSL=${USE_OPENSSL}
-            -DUSE_MBEDTLS=${USE_MBEDTLS}
-            -DLWS_EXT_PTHREAD_INCLUDE_DIR=${EXT_PTHREAD_INCLUDE_DIR}
-            -DLWS_EXT_PTHREAD_LIBRARIES=${EXT_PTHREAD_LIBRARIES}
-            -DLWS_OPENSSL_INCLUDE_DIRS=${OPENSSL_INCLUDE_DIRS}
-            -DLWS_OPENSSL_LIBRARIES=${OPENSSL_LIBRARIES_ALT_SEP}
-            -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
+                   -DUSE_OPENSSL=${USE_OPENSSL}
+                   -DUSE_MBEDTLS=${USE_MBEDTLS}
+                   -DLWS_EXT_PTHREAD_INCLUDE_DIR=${EXT_PTHREAD_INCLUDE_DIR}
+                   -DLWS_EXT_PTHREAD_LIBRARIES=${EXT_PTHREAD_LIBRARIES}
+                   -DLWS_OPENSSL_INCLUDE_DIRS=${OPENSSL_INCLUDE_DIRS}
+                   -DLWS_OPENSSL_LIBRARIES=${OPENSSL_LIBRARIES_ALT_SEP}
+                   -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
   else()
     set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
-            -DOPENSSL_DIR=${OPEN_SRC_INSTALL_PREFIX}
-            -DUSE_OPENSSL=${USE_OPENSSL}
-            -DUSE_MBEDTLS=${USE_MBEDTLS}
-            -DLWS_OPENSSL_CRYPTO_LIBRARY=${OPENSSL_CRYPTO_LIBRARY}
-            -DLWS_OPENSSL_SSL_LIBRARY=${OPENSSL_SSL_LIBRARY}
-            -DLWS_OPENSSL_INCLUDE_DIRS=${OPENSSL_INCLUDE_DIR}
-            -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
+                   -DOPENSSL_DIR=${OPEN_SRC_INSTALL_PREFIX}
+                   -DUSE_OPENSSL=${USE_OPENSSL}
+                   -DUSE_MBEDTLS=${USE_MBEDTLS}
+                   -DLWS_OPENSSL_CRYPTO_LIBRARY=${OPENSSL_CRYPTO_LIBRARY}
+                   -DLWS_OPENSSL_SSL_LIBRARY=${OPENSSL_SSL_LIBRARY}
+                   -DLWS_OPENSSL_INCLUDE_DIRS=${OPENSSL_INCLUDE_DIR}
+                   -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
   endif()
   build_dependency(websockets ${BUILD_ARGS})
 
   set(BUILD_ARGS
-          -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
-          -DOPENSSL_DIR=${OPEN_SRC_INSTALL_PREFIX}
-          -DBUILD_LIBSRTP_HOST_PLATFORM=${BUILD_LIBSRTP_HOST_PLATFORM}
-          -DBUILD_LIBSRTP_DESTINATION_PLATFORM=${BUILD_LIBSRTP_DESTINATION_PLATFORM}
-          -DUSE_OPENSSL=${USE_OPENSSL}
-          -DUSE_MBEDTLS=${USE_MBEDTLS}
-          -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
+      -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
+      -DOPENSSL_DIR=${OPEN_SRC_INSTALL_PREFIX}
+      -DBUILD_LIBSRTP_HOST_PLATFORM=${BUILD_LIBSRTP_HOST_PLATFORM}
+      -DBUILD_LIBSRTP_DESTINATION_PLATFORM=${BUILD_LIBSRTP_DESTINATION_PLATFORM}
+      -DUSE_OPENSSL=${USE_OPENSSL}
+      -DUSE_MBEDTLS=${USE_MBEDTLS}
+      -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
 
   build_dependency(srtp ${BUILD_ARGS})
 
   set(BUILD_ARGS
-          -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
+      -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
 
   build_dependency(usrsctp ${BUILD_ARGS})
 
@@ -259,12 +260,12 @@ endif()
 
 # usrsctp dont support pkgconfig yet
 find_library(
-        Usrsctp
-        NAMES ${USRSCTP_LIBNAME} usrsctp REQUIRED
-        PATHS ${OPEN_SRC_INSTALL_PREFIX}/lib ${OPEN_SRC_INSTALL_PREFIX}/lib64)
+  Usrsctp
+  NAMES ${USRSCTP_LIBNAME} usrsctp REQUIRED
+  PATHS ${OPEN_SRC_INSTALL_PREFIX}/lib ${OPEN_SRC_INSTALL_PREFIX}/lib64)
 
 set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${LIBSRTP_INCLUDE_DIRS}
-        ${CURL_INCLUDE_DIRS} ${LIBWEBSOCKETS_INCLUDE_DIRS})
+                          ${CURL_INCLUDE_DIRS} ${LIBWEBSOCKETS_INCLUDE_DIRS})
 
 link_directories(${LIBSRTP_LIBRARY_DIRS})
 link_directories(${LIBWEBSOCKETS_LIBRARY_DIRS})
@@ -311,9 +312,9 @@ endif()
 if (ENABLE_DATA_CHANNEL)
   add_definitions(-DENABLE_DATA_CHANNEL)
   set (DATACHANNEL_SRC
-          src/source/PeerConnection/DataChannel.c
-          src/source/Sctp/Sctp.c
-  )
+      src/source/PeerConnection/DataChannel.c
+      src/source/Sctp/Sctp.c
+      )
 endif()
 
 if (INSTRUMENTED_ALLOCATORS)
@@ -325,24 +326,24 @@ if(ENABLE_AWS_SDK_IN_TESTS)
 endif()
 
 file(
-        GLOB
-        WEBRTC_CLIENT_SOURCE_FILES
-        "src/source/Crypto/*.c"
-        "src/source/Ice/*.c"
-        "src/source/PeerConnection/JitterBuffer.c"
-        "src/source/PeerConnection/jsmn.c"
-        "src/source/PeerConnection/PeerConnection.c"
-        "src/source/PeerConnection/Retransmitter.c"
-        "src/source/PeerConnection/Rtcp.c"
-        "src/source/PeerConnection/Rtp.c"
-        "src/source/PeerConnection/SessionDescription.c"
-        "src/source/Rtcp/*.c"
-        "src/source/Rtp/*.c"
-        "src/source/Rtp/Codecs/*.c"
-        "src/source/Sdp/*.c"
-        "src/source/Srtp/*.c"
-        "src/source/Stun/*.c"
-        "src/source/Metrics/*.c")
+  GLOB
+  WEBRTC_CLIENT_SOURCE_FILES
+  "src/source/Crypto/*.c"
+  "src/source/Ice/*.c"
+  "src/source/PeerConnection/JitterBuffer.c"
+  "src/source/PeerConnection/jsmn.c"
+  "src/source/PeerConnection/PeerConnection.c"
+  "src/source/PeerConnection/Retransmitter.c"
+  "src/source/PeerConnection/Rtcp.c"
+  "src/source/PeerConnection/Rtp.c"
+  "src/source/PeerConnection/SessionDescription.c"
+  "src/source/Rtcp/*.c"
+  "src/source/Rtp/*.c"
+  "src/source/Rtp/Codecs/*.c"
+  "src/source/Sdp/*.c"
+  "src/source/Srtp/*.c"
+  "src/source/Stun/*.c"
+  "src/source/Metrics/*.c")
 
 if (USE_OPENSSL)
   list(FILTER WEBRTC_CLIENT_SOURCE_FILES EXCLUDE REGEX ".*_mbedtls\\.c")
@@ -371,18 +372,18 @@ if(ENABLE_KVS_THREADPOOL)
 endif()
 
 target_link_libraries(
-        kvsWebrtcClient
-        PRIVATE kvspicUtils
-        kvspicState
-        ${CMAKE_THREAD_LIBS_INIT}
-        ${OPENSSL_SSL_LIBRARY}
-        ${OPENSSL_CRYPTO_LIBRARY}
-        ${SRTP_LIBRARIES}
-        ${Usrsctp}
-        ${MBEDTLS_LIBRARIES}
-        ${GPERFTOOLS_MALLOC_LIBRARIES}
-        ${GPERFTOOLS_PROFILER_LIBRARIES}
-        ${EXTRA_DEPS})
+  kvsWebrtcClient
+  PRIVATE kvspicUtils
+  kvspicState
+  ${CMAKE_THREAD_LIBS_INIT}
+  ${OPENSSL_SSL_LIBRARY}
+  ${OPENSSL_CRYPTO_LIBRARY}
+  ${SRTP_LIBRARIES}
+  ${Usrsctp}
+  ${MBEDTLS_LIBRARIES}
+  ${GPERFTOOLS_MALLOC_LIBRARIES}
+  ${GPERFTOOLS_PROFILER_LIBRARIES}
+  ${EXTRA_DEPS})
 
 add_library(kvsWebrtcSignalingClient ${LINKAGE} ${WEBRTC_SIGNALING_CLIENT_SOURCE_FILES})
 
@@ -391,19 +392,19 @@ if(USE_MBEDTLS)
 endif()
 
 target_link_libraries(
-        kvsWebrtcSignalingClient
-        PUBLIC
-        kvsCommonLws
-        ${LIBWEBSOCKETS_LIBRARIES}
-        PRIVATE kvspicUtils
-        kvspicState
-        ${CMAKE_THREAD_LIBS_INIT}
-        ${EXTRA_DEPS}
-        ${OPENSSL_SSL_LIBRARY}
-        ${OPENSSL_CRYPTO_LIBRARY}
-        ${GPERFTOOLS_MALLOC_LIBRARIES}
-        ${GPERFTOOLS_PROFILER_LIBRARIES}
-        ${MBEDTLS_LIBRARIES})
+  kvsWebrtcSignalingClient
+  PUBLIC
+  kvsCommonLws
+  ${LIBWEBSOCKETS_LIBRARIES}
+  PRIVATE kvspicUtils
+  kvspicState
+  ${CMAKE_THREAD_LIBS_INIT}
+  ${EXTRA_DEPS}
+  ${OPENSSL_SSL_LIBRARY}
+  ${OPENSSL_CRYPTO_LIBRARY}
+  ${GPERFTOOLS_MALLOC_LIBRARIES}
+  ${GPERFTOOLS_PROFILER_LIBRARIES}
+  ${MBEDTLS_LIBRARIES})
 
 if (WIN32)
   target_link_libraries(kvsWebrtcClient PRIVATE "Ws2_32" "iphlpapi")
@@ -415,12 +416,12 @@ if(COMPILER_WARNINGS)
 endif()
 
 install(TARGETS kvsWebrtcClient kvsWebrtcSignalingClient
-        LIBRARY DESTINATION lib
-        ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
 )
 
 install(DIRECTORY ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/include/
-        DESTINATION include
+  DESTINATION include
 )
 
 if (BUILD_SAMPLE)

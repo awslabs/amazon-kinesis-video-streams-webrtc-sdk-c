@@ -541,6 +541,7 @@ jobs:
       - name: Build repository
         shell: powershell
         run: |
+          openssl version
           cd C:\webrtc
           git config --system core.longpaths true
           .github\build_windows_openssl.bat
