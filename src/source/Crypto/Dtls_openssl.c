@@ -105,7 +105,6 @@ STATUS createCertificateAndKey(INT32 certificateBits, BOOL generateRSACertificat
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     X509_NAME* pX509Name = NULL;
-    RSA* pRsa = NULL;
     UINT64 certSn;
 
     CHK(ppCert != NULL && ppPkey != NULL, STATUS_NULL_ARG);
@@ -133,6 +132,7 @@ STATUS createCertificateAndKey(INT32 certificateBits, BOOL generateRSACertificat
 #else
     if (generateRSACertificate) {
         BIGNUM* pBne = NULL;
+        RSA* pRsa = NULL;
         DLOGI("Detected older version");
         CHK((pBne = BN_new()) != NULL, STATUS_CERTIFICATE_GENERATION_FAILED);
         CHK(BN_set_word(pBne, KVS_RSA_F4) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);
@@ -143,6 +143,9 @@ STATUS createCertificateAndKey(INT32 certificateBits, BOOL generateRSACertificat
             BN_free(pBne);
         }
         pRsa = NULL;
+        if (pRsa != NULL) {
+            RSA_free(pRsa);
+        }
     } else {
         UINT32 eccGroup = 0;
         EC_KEY* eccKey = NULL;
@@ -173,11 +176,6 @@ STATUS createCertificateAndKey(INT32 certificateBits, BOOL generateRSACertificat
 
 CleanUp:
     if (STATUS_FAILED(retStatus)) {
-#if (OPENSSL_VERSION_NUMBER < 0x30000000L)
-        if (pRsa != NULL) {
-            RSA_free(pRsa);
-        }
-#endif
         freeCertificateAndKey(ppCert, ppPkey);
     }
 
