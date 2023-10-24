@@ -182,7 +182,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                                                     pSampleConfiguration->rtspUri);
 
                     if (stringOutcome > RTSP_PIPELINE_MAX_CHAR_COUNT) {
-                        DLOGE("[KVS GStreamer Master] ERROR: rtsp uri entered exceeds maximum allowed length set by RTSP_PIPELINE_MAX_CHAR_COUNT\n");
+                        DLOGE("[KVS GStreamer Master] ERROR: rtsp uri entered exceeds maximum allowed length set by RTSP_PIPELINE_MAX_CHAR_COUNT");
                         goto CleanUp;
                     }
                     pipeline = gst_parse_launch(rtspPipeLineBuffer, &error);
@@ -228,7 +228,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                                                     pSampleConfiguration->rtspUri);
 
                     if (stringOutcome > RTSP_PIPELINE_MAX_CHAR_COUNT) {
-                        DLOGE("[KVS GStreamer Master] ERROR: rtsp uri entered exceeds maximum allowed length set by RTSP_PIPELINE_MAX_CHAR_COUNT\n");
+                        DLOGE("[KVS GStreamer Master] ERROR: rtsp uri entered exceeds maximum allowed length set by RTSP_PIPELINE_MAX_CHAR_COUNT");
                         goto CleanUp;
                     }
                     pipeline = gst_parse_launch(rtspPipeLineBuffer, &error);
@@ -245,7 +245,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
     appsinkAudio = gst_bin_get_by_name(GST_BIN(pipeline), "appsink-audio");
 
     if (!(appsinkVideo != NULL || appsinkAudio != NULL)) {
-        DLOGE("[KVS GStreamer Master] sendGstreamerAudioVideo(): cant find appsink, operation returned status code: 0x%08x \n",
+        DLOGE("[KVS GStreamer Master] sendGstreamerAudioVideo(): cant find appsink, operation returned status code: 0x%08x",
               STATUS_INTERNAL_ERROR);
         goto CleanUp;
     }
