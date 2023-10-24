@@ -8,10 +8,19 @@ extern "C" {
 #endif
 
 #ifdef KVS_USE_OPENSSL
-#define KVS_RSA_F4                  RSA_F4
-#define KVS_MD5_DIGEST_LENGTH       MD5_DIGEST_LENGTH
-#define KVS_SHA1_DIGEST_LENGTH      SHA_DIGEST_LENGTH
+#define KVS_RSA_F4             RSA_F4
+#define KVS_MD5_DIGEST_LENGTH  MD5_DIGEST_LENGTH
+#define KVS_SHA1_DIGEST_LENGTH SHA_DIGEST_LENGTH
+
+STATUS generateMd5Digest(PBYTE srcBuffer, UINT64 len, PBYTE destBuffer);
+
+// https://www.openssl.org/docs/man3.1/man3/MD5.html
+#if (OPENSSL_VERSION_NUMBER >= 0x30000000L)
+#define KVS_MD5_DIGEST(m, mlen, ob) generateMd5Digest((m), (mlen), (ob)); // TODO: Respond to the return value of this function
+#else
 #define KVS_MD5_DIGEST(m, mlen, ob) MD5((m), (mlen), (ob));
+#endif
+
 #define KVS_SHA1_HMAC(k, klen, m, mlen, ob, plen)                                                                                                    \
     CHK(NULL != HMAC(EVP_sha1(), (k), (INT32) (klen), (m), (mlen), (ob), (plen)), STATUS_HMAC_GENERATION_ERROR);
 #define KVS_CRYPTO_INIT()                                                                                                                            \
