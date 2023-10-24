@@ -441,7 +441,7 @@ INT32 main(INT32 argc, CHAR* argv[])
             DLOGI("[KVS GStreamer Master] Using RTSP source in GStreamer");
             if (argc < 5) {
                 DLOGI("[KVS GStreamer Master] No RTSP source URI included. Defaulting to device source");
-                DLOGI("[KVS GStreamer Master] Usage: ./kvsWebrtcClientMasterGstSample <channel name> audio-video rtspsrc rtsp://<rtsp uri>\n"
+                DLOGI("[KVS GStreamer Master] Usage: ./kvsWebrtcClientMasterGstSample <channel name> audio-video rtspsrc rtsp://<rtsp uri>"
                       "or ./kvsWebrtcClientMasterGstSample <channel name> video-only rtspsrc <rtsp://<rtsp uri>");
                 pSampleConfiguration->srcType = DEVICE_SOURCE;
             } else {
@@ -452,7 +452,7 @@ INT32 main(INT32 argc, CHAR* argv[])
             DLOGI("[KVS Gstreamer Master] Unrecognized source type. Defaulting to device source in GStreamer");
         }
     } else {
-        DLOGI("[KVS GStreamer Master] Using device source in GStreamer\n");
+        DLOGI("[KVS GStreamer Master] Using device source in GStreamer");
     }
 
     switch (pSampleConfiguration->mediaType) {
