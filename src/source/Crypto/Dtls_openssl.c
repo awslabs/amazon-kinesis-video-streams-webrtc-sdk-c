@@ -195,11 +195,6 @@ STATUS createSslCtx(PDtlsSessionCertificateInfo pCertificates, UINT32 certCount,
     CHK(pCertificates != NULL && ppSslCtx != NULL, STATUS_NULL_ARG);
     CHK(certCount > 0, STATUS_INTERNAL_ERROR);
 
-    // Version less than 1.0.2
-#if (OPENSSL_VERSION_NUMBER < 0x10002000L)
-    EC_KEY* ecdh = NULL;
-#endif
-
     // Version greater than or equal to 1.1.0
 #if (OPENSSL_VERSION_NUMBER >= 0x10100000L)
     pSslCtx = SSL_CTX_new(DTLS_method());
@@ -213,11 +208,13 @@ STATUS createSslCtx(PDtlsSessionCertificateInfo pCertificates, UINT32 certCount,
 
     CHK(pSslCtx != NULL, STATUS_SSL_CTX_CREATION_FAILED);
 
-#if (OPENSSL_VERSION_NUMBER < 0x10100000L)
     // Version less than 1.1.0
+#if (OPENSSL_VERSION_NUMBER < 0x10100000L)
     SSL_CTX_set_ecdh_auto(pSslCtx, TRUE);
-#elif (OPENSSL_VERSION_NUMBER < 0x30000000L)
+
     // Version less than 3.0.0 and greater than 1.1.0
+#elif (OPENSSL_VERSION_NUMBER < 0x30000000L)
+    EC_KEY* ecdh = NULL;
     CHK((ecdh = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1)) != NULL, STATUS_SSL_CTX_CREATION_FAILED);
     CHK(SSL_CTX_set_tmp_ecdh(pSslCtx, ecdh) == 1, STATUS_SSL_CTX_CREATION_FAILED);
 #else
