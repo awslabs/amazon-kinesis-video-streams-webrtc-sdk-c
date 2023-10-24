@@ -190,7 +190,6 @@ STATUS createSslCtx(PDtlsSessionCertificateInfo pCertificates, UINT32 certCount,
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     SSL_CTX* pSslCtx = NULL;
-    EC_KEY* pEcKey = NULL;
     UINT32 i;
 
     CHK(pCertificates != NULL && ppSslCtx != NULL, STATUS_NULL_ARG);
@@ -214,12 +213,15 @@ STATUS createSslCtx(PDtlsSessionCertificateInfo pCertificates, UINT32 certCount,
 
     CHK(pSslCtx != NULL, STATUS_SSL_CTX_CREATION_FAILED);
 
-    // Version greater than or equal to 1.0.2
-#if (OPENSSL_VERSION_NUMBER >= 0x10002000L)
+#if (OPENSSL_VERSION_NUMBER < 0x10100000L)
+    // Version less than 1.1.0
     SSL_CTX_set_ecdh_auto(pSslCtx, TRUE);
-#else
+#elif (OPENSSL_VERSION_NUMBER < 0x30000000L)
+    // Version less than 3.0.0 and greater than 1.1.0
     CHK((ecdh = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1)) != NULL, STATUS_SSL_CTX_CREATION_FAILED);
     CHK(SSL_CTX_set_tmp_ecdh(pSslCtx, ecdh) == 1, STATUS_SSL_CTX_CREATION_FAILED);
+#else
+    DLOGI("ECDH enabled by default in 3.0.0. Nothing to do");
 #endif
 
     SSL_CTX_set_verify(pSslCtx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, dtlsCertificateVerifyCallback);
@@ -236,10 +238,6 @@ STATUS createSslCtx(PDtlsSessionCertificateInfo pCertificates, UINT32 certCount,
 CleanUp:
     if (STATUS_FAILED(retStatus) && pSslCtx != NULL) {
         SSL_CTX_free(pSslCtx);
-    }
-
-    if (pEcKey != NULL) {
-        EC_KEY_free(pEcKey);
     }
 
     LEAVES();
