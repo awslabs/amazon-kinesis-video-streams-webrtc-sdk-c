@@ -404,12 +404,17 @@ STATUS signalingSendMessageSync(PSignalingClient pSignalingClient, PSignalingMes
     STATUS retStatus = STATUS_SUCCESS;
     BOOL removeFromList = FALSE;
 
+    UINT64 stackCount = 0;
+
     CHK(pSignalingClient != NULL && pSignalingMessage != NULL, STATUS_NULL_ARG);
     CHK(pSignalingMessage->peerClientId != NULL && pSignalingMessage->payload != NULL, STATUS_INVALID_ARG);
     CHK(pSignalingMessage->version <= SIGNALING_MESSAGE_CURRENT_VERSION, STATUS_SIGNALING_INVALID_SIGNALING_MESSAGE_VERSION);
 
     // Store the signaling message
     CHK_STATUS(signalingStoreOngoingMessage(pSignalingClient, pSignalingMessage));
+    CHK_STATUS (stackQueueGetCount(pSignalingClient->pMessageQueue,&stackCount));
+    DLOGD("SDK-TESTING : Just after signalingStoreOngoingMessage(), message queue stack count: %d", stackCount);
+
     removeFromList = TRUE;
 
     // Perform the call
@@ -787,6 +792,8 @@ STATUS signalingStoreOngoingMessage(PSignalingClient pSignalingClient, PSignalin
     BOOL locked = FALSE;
     PSignalingMessage pExistingMessage = NULL;
 
+    UINT64 stackCount = 0;
+
     CHK(pSignalingClient != NULL && pSignalingMessage != NULL, STATUS_NULL_ARG);
     MUTEX_LOCK(pSignalingClient->messageQueueLock);
     locked = TRUE;
@@ -794,6 +801,8 @@ STATUS signalingStoreOngoingMessage(PSignalingClient pSignalingClient, PSignalin
     CHK_STATUS(signalingGetOngoingMessage(pSignalingClient, pSignalingMessage->correlationId, pSignalingMessage->peerClientId, &pExistingMessage));
     CHK(pExistingMessage == NULL, STATUS_SIGNALING_DUPLICATE_MESSAGE_BEING_SENT);
     CHK_STATUS(stackQueueEnqueue(pSignalingClient->pMessageQueue, (UINT64) pSignalingMessage));
+    CHK_STATUS (stackQueueGetCount(pSignalingClient->pMessageQueue,&stackCount));
+    DLOGD("SDK-TESTING : Just after stackQueueEnqueue(), message queue stack count: %d", stackCount);
 
 CleanUp:
 
