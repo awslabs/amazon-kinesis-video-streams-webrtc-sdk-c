@@ -1,23 +1,6 @@
 #define LOG_CLASS "DTLS_openssl"
 #include "../Include_i.h"
 
-STATUS generateMd5Digest(PBYTE srcBuffer, UINT64 len, PBYTE destBuffer)
-{
-    STATUS retStatus = STATUS_SUCCESS;
-    DLOGI("New MD5 digest");
-    EVP_MD_CTX* mdctx;
-    const EVP_MD* md;
-    CHK_ERR(md = EVP_MD_fetch(NULL, "MD5", NULL), STATUS_INVALID_OPERATION, "Failed to fetch MD5 provider");
-    mdctx = EVP_MD_CTX_new();
-    EVP_DigestInit_ex(mdctx, md, NULL);
-    EVP_DigestUpdate(mdctx, srcBuffer, len);
-    EVP_DigestFinal_ex(mdctx, destBuffer, NULL);
-CleanUp:
-    EVP_MD_CTX_free(mdctx);
-    EVP_MD_free((EVP_MD*) md);
-    return retStatus;
-}
-
 // Allow all certificates since they are checked via fingerprint in SDP later
 // https://www.openssl.org/docs/man1.0.2/man3/SSL_CTX_set_verify.html
 INT32 dtlsCertificateVerifyCallback(INT32 preverify_ok, X509_STORE_CTX* ctx)

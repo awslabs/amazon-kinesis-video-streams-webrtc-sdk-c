@@ -471,7 +471,7 @@ jobs:
         run:  |
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-  ubuntu-os-build-opnessl-111w:
+  ubuntu-os-build-openssl-111w:
     runs-on: ubuntu-latest
     env:
       AWS_KVS_LOG_LEVEL: 2

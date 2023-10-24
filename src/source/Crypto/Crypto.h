@@ -14,8 +14,22 @@ extern "C" {
 
 // https://www.openssl.org/docs/man3.1/man3/MD5.html
 #if (OPENSSL_VERSION_NUMBER >= 0x30000000L)
-STATUS generateMd5Digest(PBYTE srcBuffer, UINT64 len, PBYTE destBuffer);
-#define KVS_MD5_DIGEST(m, mlen, ob) generateMd5Digest((m), (mlen), (ob)); // TODO: Respond to the return value of this function
+#define KVS_MD5_DIGEST(m, mlen, ob)                                                                                                                  \
+    do {                                                                                                                                             \
+        EVP_MD_CTX* mdctx;                                                                                                                           \
+        const EVP_MD* md;                                                                                                                            \
+        md = EVP_MD_fetch(NULL, "MD5", NULL);                                                                                                        \
+        if (md == NULL) {                                                                                                                            \
+            DLOGI("Failed to fetch MD5 provider");                                                                                                   \
+        } else {                                                                                                                                     \
+            mdctx = EVP_MD_CTX_new();                                                                                                                \
+            EVP_DigestInit_ex(mdctx, md, NULL);                                                                                                      \
+            EVP_DigestUpdate(mdctx, m, mlen);                                                                                                        \
+            EVP_DigestFinal_ex(mdctx, ob, NULL);                                                                                                     \
+            EVP_MD_CTX_free(mdctx);                                                                                                                  \
+            EVP_MD_free((EVP_MD*) md);                                                                                                               \
+        }                                                                                                                                            \
+    } while (0)
 #else
 #define KVS_MD5_DIGEST(m, mlen, ob) MD5((m), (mlen), (ob));
 #endif
