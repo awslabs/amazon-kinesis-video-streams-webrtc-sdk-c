@@ -130,9 +130,9 @@ STATUS createCertificateAndKey(INT32 certificateBits, BOOL generateRSACertificat
     }
     EVP_PKEY_CTX_free(pctx);
 #else
+    RSA* pRsa = NULL;
     if (generateRSACertificate) {
         BIGNUM* pBne = NULL;
-        RSA* pRsa = NULL;
         DLOGI("Detected older version");
         CHK((pBne = BN_new()) != NULL, STATUS_CERTIFICATE_GENERATION_FAILED);
         CHK(BN_set_word(pBne, KVS_RSA_F4) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);
