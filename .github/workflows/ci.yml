@@ -5,6 +5,7 @@ on:
     branches:
       - develop
       - master
+      - openssl-3.1.3
   pull_request:
     branches:
       - develop
@@ -465,6 +466,32 @@ jobs:
           sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
           mkdir build && cd build
           cmake .. -DBUILD_TEST=TRUE
+          make
+      - name: Run tests
+        run:  |
+          cd build
+          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+  ubuntu-os-build-opnessl-111w:
+    runs-on: ubuntu-latest
+    env:
+      AWS_KVS_LOG_LEVEL: 2
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v3
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Build repository
+        run: |
+          # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
+          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+          mkdir build && cd build
+          cmake .. -DBUILD_TEST=TRUE -DBUILD_LEGACY_OPENSSL_VERSION=ON
           make
       - name: Run tests
         run:  |
