@@ -65,17 +65,12 @@ STATUS checkTurnConnectionStateMachine(PTurnConnection pTurnConnection)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     BOOL transitionReady = FALSE;
-    BOOL locked = FALSE;
 
     CHK(pTurnConnection != NULL && pTurnConnection->pStateMachine != NULL, STATUS_NULL_ARG);
 
-    MUTEX_LOCK(pTurnConnection->lock);
-    locked = TRUE;
     // if a state transition is ready, tell the timer to kick the timer
     CHK_STATUS(checkForStateTransition(pTurnConnection->pStateMachine, &transitionReady));
 
-    MUTEX_UNLOCK(pTurnConnection->lock);
-    locked = FALSE;
     if (transitionReady) {
         // dangerous to have any mutexes locked by timerqueue when entering this function
         CHK_STATUS(timerQueueKick(pTurnConnection->timerQueueHandle, pTurnConnection->timerCallbackId));
@@ -84,10 +79,6 @@ STATUS checkTurnConnectionStateMachine(PTurnConnection pTurnConnection)
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
-
-    if (locked) {
-        MUTEX_UNLOCK(pTurnConnection->lock);
-    }
 
     LEAVES();
     return retStatus;
@@ -199,9 +190,12 @@ STATUS fromCheckSocketConnectionTurnState(UINT64 customData, PUINT64 pState)
     STATUS retStatus = STATUS_SUCCESS;
     PTurnConnection pTurnConnection = (PTurnConnection) customData;
     UINT64 state = TURN_STATE_CHECK_SOCKET_CONNECTION;
+    BOOL locked = FALSE;
 
     CHK(pTurnConnection != NULL && pState != NULL, STATUS_NULL_ARG);
 
+    MUTEX_LOCK(pTurnConnection->lock);
+    locked = TRUE;
     if (pTurnConnection->state == TURN_STATE_CLEAN_UP || pTurnConnection->state == TURN_STATE_FAILED) {
         *pState = pTurnConnection->state;
         CHK(FALSE, STATUS_SUCCESS);
@@ -214,6 +208,10 @@ STATUS fromCheckSocketConnectionTurnState(UINT64 customData, PUINT64 pState)
     *pState = state;
 
 CleanUp:
+
+    if (locked) {
+        MUTEX_UNLOCK(pTurnConnection->lock);
+    }
 
     LEAVES();
     return retStatus;
@@ -246,8 +244,12 @@ STATUS fromGetCredentialsTurnState(UINT64 customData, PUINT64 pState)
     STATUS retStatus = STATUS_SUCCESS;
     PTurnConnection pTurnConnection = (PTurnConnection) customData;
     UINT64 state = TURN_STATE_GET_CREDENTIALS;
+    BOOL locked = FALSE;
 
     CHK(pTurnConnection != NULL && pState != NULL, STATUS_NULL_ARG);
+
+    MUTEX_LOCK(pTurnConnection->lock);
+    locked = TRUE;
 
     if (pTurnConnection->state == TURN_STATE_CLEAN_UP || pTurnConnection->state == TURN_STATE_FAILED) {
         *pState = pTurnConnection->state;
@@ -266,6 +268,9 @@ STATUS fromGetCredentialsTurnState(UINT64 customData, PUINT64 pState)
     *pState = state;
 
 CleanUp:
+    if (locked) {
+        MUTEX_UNLOCK(pTurnConnection->lock);
+    }
 
     LEAVES();
     return retStatus;
@@ -308,8 +313,11 @@ STATUS fromAllocationTurnState(UINT64 customData, PUINT64 pState)
     PTurnConnection pTurnConnection = (PTurnConnection) customData;
     UINT64 state = TURN_STATE_ALLOCATION;
     UINT64 currentTime;
+    BOOL locked = FALSE;
 
     CHK(pTurnConnection != NULL && pState != NULL, STATUS_NULL_ARG);
+    MUTEX_LOCK(pTurnConnection->lock);
+    locked = TRUE;
 
     if (pTurnConnection->state == TURN_STATE_CLEAN_UP || pTurnConnection->state == TURN_STATE_FAILED) {
         *pState = pTurnConnection->state;
@@ -325,6 +333,9 @@ STATUS fromAllocationTurnState(UINT64 customData, PUINT64 pState)
     *pState = state;
 
 CleanUp:
+    if (locked) {
+        MUTEX_UNLOCK(pTurnConnection->lock);
+    }
 
     LEAVES();
     return retStatus;
@@ -371,8 +382,12 @@ STATUS fromCreatePermissionTurnState(UINT64 customData, PUINT64 pState)
     PTurnConnection pTurnConnection = (PTurnConnection) customData;
     UINT64 state = TURN_STATE_CREATE_PERMISSION, currentTime;
     UINT32 channelWithPermissionCount = 0, i = 0;
+    BOOL locked = FALSE;
 
     CHK(pTurnConnection != NULL && pState != NULL, STATUS_NULL_ARG);
+
+    MUTEX_LOCK(pTurnConnection->lock);
+    locked = TRUE;
 
     *pState = state;
 
@@ -408,6 +423,10 @@ STATUS fromCreatePermissionTurnState(UINT64 customData, PUINT64 pState)
     *pState = state;
 
 CleanUp:
+
+    if (locked) {
+        MUTEX_UNLOCK(pTurnConnection->lock);
+    }
 
     LEAVES();
     return retStatus;
@@ -487,9 +506,13 @@ STATUS fromBindChannelTurnState(UINT64 customData, PUINT64 pState)
     PTurnConnection pTurnConnection = (PTurnConnection) customData;
     UINT64 state = TURN_STATE_BIND_CHANNEL;
     UINT64 currentTime;
+    BOOL locked = FALSE;
     UINT32 readyPeerCount = 0, i = 0;
 
     CHK(pTurnConnection != NULL && pState != NULL, STATUS_NULL_ARG);
+
+    MUTEX_LOCK(pTurnConnection->lock);
+    locked = TRUE;
 
     if (pTurnConnection->state == TURN_STATE_CLEAN_UP || pTurnConnection->state == TURN_STATE_FAILED) {
         *pState = pTurnConnection->state;
@@ -510,6 +533,9 @@ STATUS fromBindChannelTurnState(UINT64 customData, PUINT64 pState)
     *pState = state;
 
 CleanUp:
+    if (locked) {
+        MUTEX_UNLOCK(pTurnConnection->lock);
+    }
 
     LEAVES();
     return retStatus;
@@ -541,8 +567,12 @@ STATUS fromReadyTurnState(UINT64 customData, PUINT64 pState)
     BOOL refreshPeerPermission = FALSE;
     UINT64 currentTime;
     UINT32 i;
+    BOOL locked = FALSE;
 
     CHK(pTurnConnection != NULL && pState != NULL, STATUS_NULL_ARG);
+
+    MUTEX_LOCK(pTurnConnection->lock);
+    locked = TRUE;
 
     if (pTurnConnection->state == TURN_STATE_CLEAN_UP || pTurnConnection->state == TURN_STATE_FAILED) {
         *pState = pTurnConnection->state;
@@ -558,13 +588,17 @@ STATUS fromReadyTurnState(UINT64 customData, PUINT64 pState)
         }
 
         pTurnConnection->currentTimerCallingPeriod = DEFAULT_TURN_TIMER_INTERVAL_BEFORE_READY;
-        CHK_STATUS(timerQueueUpdateTimerPeriod(pTurnConnection->timerQueueHandle, (UINT64) pTurnConnection,
-                                               (UINT32) ATOMIC_LOAD(&pTurnConnection->timerCallbackId), pTurnConnection->currentTimerCallingPeriod));
         state = TURN_STATE_CREATE_PERMISSION;
         pTurnConnection->stateTimeoutTime = currentTime + DEFAULT_TURN_CREATE_PERMISSION_TIMEOUT;
+        MUTEX_UNLOCK(pTurnConnection->lock);
+        locked = FALSE;
+        CHK_STATUS(timerQueueUpdateTimerPeriod(pTurnConnection->timerQueueHandle, (UINT64) pTurnConnection,
+                                               (UINT32) ATOMIC_LOAD(&pTurnConnection->timerCallbackId), pTurnConnection->currentTimerCallingPeriod));
     } else if (pTurnConnection->currentTimerCallingPeriod != DEFAULT_TURN_TIMER_INTERVAL_AFTER_READY) {
         // use longer timer interval as now it just needs to check disconnection and permission expiration.
         pTurnConnection->currentTimerCallingPeriod = DEFAULT_TURN_TIMER_INTERVAL_AFTER_READY;
+        MUTEX_UNLOCK(pTurnConnection->lock);
+        locked = FALSE;
         CHK_STATUS(timerQueueUpdateTimerPeriod(pTurnConnection->timerQueueHandle, (UINT64) pTurnConnection,
                                                (UINT32) ATOMIC_LOAD(&pTurnConnection->timerCallbackId), pTurnConnection->currentTimerCallingPeriod));
     }
@@ -572,6 +606,10 @@ STATUS fromReadyTurnState(UINT64 customData, PUINT64 pState)
     *pState = state;
 
 CleanUp:
+
+    if (locked) {
+        MUTEX_UNLOCK(pTurnConnection->lock);
+    }
 
     LEAVES();
     return retStatus;
@@ -603,8 +641,11 @@ STATUS fromCleanUpTurnState(UINT64 customData, PUINT64 pState)
     UINT64 state = TURN_STATE_CLEAN_UP;
     UINT64 currentTime;
     UINT32 i = 0;
+    BOOL locked = FALSE;
 
     CHK(pTurnConnection != NULL && pState != NULL, STATUS_NULL_ARG);
+    MUTEX_LOCK(pTurnConnection->lock);
+    locked = TRUE;
 
     if (pTurnConnection->state == TURN_STATE_FAILED) {
         *pState = pTurnConnection->state;
@@ -631,6 +672,9 @@ STATUS fromCleanUpTurnState(UINT64 customData, PUINT64 pState)
     *pState = state;
 
 CleanUp:
+    if (locked) {
+        MUTEX_UNLOCK(pTurnConnection->lock);
+    }
 
     LEAVES();
     return retStatus;
@@ -671,8 +715,11 @@ STATUS fromFailedTurnState(UINT64 customData, PUINT64 pState)
     PTurnConnection pTurnConnection = (PTurnConnection) customData;
     UINT64 state = TURN_STATE_FAILED;
     UINT64 currentTime;
+    BOOL locked = FALSE;
 
     CHK(pTurnConnection != NULL && pState != NULL, STATUS_NULL_ARG);
+    MUTEX_LOCK(pTurnConnection->lock);
+    locked = TRUE;
 
     if (pTurnConnection->state == TURN_STATE_CLEAN_UP) {
         *pState = pTurnConnection->state;
@@ -689,6 +736,9 @@ STATUS fromFailedTurnState(UINT64 customData, PUINT64 pState)
     *pState = state;
 
 CleanUp:
+    if (locked) {
+        MUTEX_UNLOCK(pTurnConnection->lock);
+    }
 
     LEAVES();
     return retStatus;
