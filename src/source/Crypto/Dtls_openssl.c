@@ -916,7 +916,11 @@ STATUS dtlsSessionVerifyRemoteCertificateFingerprint(PDtlsSession pDtlsSession, 
     MUTEX_LOCK(pDtlsSession->sslLock);
     locked = TRUE;
 
+#if (OPENSSL_VERSION_NUMBER >= 0x30000000L)
     CHK((pRemoteCertificate = SSL_get1_peer_certificate(pDtlsSession->pSsl)) != NULL, STATUS_INTERNAL_ERROR);
+#else
+    CHK((pRemoteCertificate = SSL_get_peer_certificate(pDtlsSession->pSsl)) != NULL, STATUS_INTERNAL_ERROR);
+#endif
     CHK_STATUS(dtlsCertificateFingerprint(pRemoteCertificate, actualFingerprint));
 
     CHK(STRCMP(pExpectedFingerprint, actualFingerprint) == 0, STATUS_SSL_REMOTE_CERTIFICATE_VERIFICATION_FAILED);
