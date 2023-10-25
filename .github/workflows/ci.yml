@@ -442,7 +442,7 @@ jobs:
         run: |
           ./scripts/check-sample.sh
   ubuntu-os-build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     env:
       AWS_KVS_LOG_LEVEL: 2
     permissions:
@@ -471,8 +471,8 @@ jobs:
         run:  |
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-  ubuntu-os-build-openssl-111w:
-    runs-on: ubuntu-latest
+  ubuntu-os-build-openssl-old:
+    runs-on: ubuntu-20.04
     env:
       AWS_KVS_LOG_LEVEL: 2
     permissions:
@@ -549,7 +549,61 @@ jobs:
         shell: powershell
         run: |
           $env:Path += ';C:\webrtc\open-source\bin;C:\tools\pthreads-w32-2-9-1-release\Pre-built.2\dll\x64;C:\webrtc\build'
-          & "C:\webrtc\build\tst\webrtc_client_test.exe" --gtest_filter="-DataChannelFunctionalityTest.*:DtlsApiTest.*:IceApiTest.*:IceFunctionalityTest.*:PeerConnectionFunctionalityTest.*:SignalingApiFunctionalityTest.*:TurnConnectionFunctionalityTest.*:RtpFunctionalityTest.marshallUnmarshallH264Data:RtpFunctionalityTest.packingUnpackingVerifySameH264Frame:RtcpFunctionalityTest.onRtcpPacketCompound:RtcpFunctionalityTest.twcc3"
+          & "C:\webrtc\build\tst\webrtc_client_test.exe" --gtest_filter="-DataChannelFunctionalityTest.*:IceApiTest.*:IceFunctionalityTest.*:PeerConnectionFunctionalityTest.*:SignalingApiFunctionalityTest.*:TurnConnectionFunctionalityTest.*:RtpFunctionalityTest.marshallUnmarshallH264Data:RtpFunctionalityTest.packingUnpackingVerifySameH264Frame:RtcpFunctionalityTest.onRtcpPacketCompound:RtcpFunctionalityTest.twcc3"
+  windows-msvc-openssl-old:
+    runs-on: windows-2022
+    env:
+      AWS_KVS_LOG_LEVEL: 1
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v3
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Move cloned repo
+        shell: powershell
+        run: |
+          mkdir C:\webrtc
+          Move-Item -Path "D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\*" -Destination "C:\webrtc"
+      - name: Install dependencies
+        shell: powershell
+        run: |
+          choco install gstreamer --version=1.16.2
+          choco install gstreamer-devel --version=1.16.2
+          curl.exe -o C:\tools\pthreads-w32-2-9-1-release.zip ftp://sourceware.org/pub/pthreads-win32/pthreads-w32-2-9-1-release.zip
+          mkdir C:\tools\pthreads-w32-2-9-1-release\
+          Expand-Archive -Path C:\tools\pthreads-w32-2-9-1-release.zip -DestinationPath C:\tools\pthreads-w32-2-9-1-release
+      # - name: Build libwebsockets from source
+      #   shell: powershell
+      #   run: |
+      #     $env:Path += ';C:\Strawberry\perl\site\bin;C:\Strawberry\perl\bin;C:\Strawberry\c\bin;C:\Program Files\NASM;D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\open-source\bin;C:\tools\pthreads-w32-2-9-1-release\Pre-built.2\lib\x64;C:\tools\pthreads-w32-2-9-1-release\Pre-built.2\include'
+      #     git config --system core.longpaths true
+      #     cd C:\tools\
+      #     git clone https://github.com/warmcat/libwebsockets.git
+      #     git checkout v4.2.2
+      #     cd libwebsockets
+      #     mkdir build
+      #     cd build
+      #     cmake .. -DLWS_HAVE_PTHREAD_H=1 -DLWS_EXT_PTHREAD_INCLUDE_DIR="C:\\tools\\pthreads-w32-2-9-1-release\\Pre-built.2\\include" -DLWS_EXT_PTHREAD_LIBRARIES="C:\\tools\\pthreads-w32-2-9-1-release\\Pre-built.2\\lib\\x64\\libpthreadGC2.a" -DLWS_WITH_MINIMAL_EXAMPLES=1 -DLWS_OPENSSL_INCLUDE_DIRS="C:\\Program Files\\OpenSSL\\include" -DLWS_OPENSSL_LIBRARIES="C:\\Program Files\\OpenSSL\\lib\\libssl.lib;C:\\Program Files\\OpenSSL\\lib\\libcrypto.lib"
+      #     cmake --build . --config DEBUG
+      - name: Build repository
+        shell: powershell
+        run: |
+          openssl version
+          cd C:\webrtc
+          git config --system core.longpaths true
+          .github\build_windows_openssl_old.bat
+      - name: Run tests
+        shell: powershell
+        run: |
+          $env:Path += ';C:\webrtc\open-source\bin;C:\tools\pthreads-w32-2-9-1-release\Pre-built.2\dll\x64;C:\webrtc\build'
+          & "C:\webrtc\build\tst\webrtc_client_test.exe" --gtest_filter="-DataChannelFunctionalityTest.*:IceApiTest.*:IceFunctionalityTest.*:PeerConnectionFunctionalityTest.*:SignalingApiFunctionalityTest.*:TurnConnectionFunctionalityTest.*:RtpFunctionalityTest.marshallUnmarshallH264Data:RtpFunctionalityTest.packingUnpackingVerifySameH264Frame:RtcpFunctionalityTest.onRtcpPacketCompound:RtcpFunctionalityTest.twcc3"
+
   # windows-msvc-mbedtls:
   #   runs-on: windows-2022
   #   env:

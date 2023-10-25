@@ -233,7 +233,9 @@ find_package(Threads)
 find_package(PkgConfig REQUIRED)
 if (USE_OPENSSL)
   find_package(OpenSSL REQUIRED)
-  set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR})
+  set(OPEN_SRC_INCLUDE_DIRS ${OPENSSL_INCLUDE_DIR})
+
+  # In Windows, the openssl search paths get reset and the system openssl ends up being used
   if(WIN32)
     set(OPENSSL_INCLUDE_DIRS "${OPEN_SRC_INSTALL_PREFIX}/include/")
     set(OPENSSL_CRYPTO_LIBRARY "${OPEN_SRC_INSTALL_PREFIX}/lib/libcrypto.lib")
