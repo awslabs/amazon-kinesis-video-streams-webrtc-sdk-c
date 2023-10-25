@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.6.3)
 
 project(libopenssl-download LANGUAGES C)
 
-if(BUILD_LEGACY_OPENSSL_VERSION)
+if(BUILD_OLD_OPENSSL_VERSION)
     SET(OPENSSL_GIT_TAG "OpenSSL_1_1_1w")
 else()
     SET(OPENSSL_GIT_TAG "openssl-3.1.3")
