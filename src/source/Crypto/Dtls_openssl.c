@@ -106,14 +106,20 @@ STATUS createCertificateAndKey(INT32 certificateBits, BOOL generateRSACertificat
     STATUS retStatus = STATUS_SUCCESS;
     X509_NAME* pX509Name = NULL;
     UINT64 certSn;
-
+#if (OPENSSL_VERSION_NUMBER >= 0x30000000L)
+    EVP_PKEY_CTX* pctx = NULL;
+#else
+    RSA* pRsa = NULL;
+    BIGNUM* pBne = NULL;
+    UINT32 eccGroup = 0;
+    EC_KEY* eccKey = NULL;
+#endif
     CHK(ppCert != NULL && ppPkey != NULL, STATUS_NULL_ARG);
     CHK((*ppPkey = EVP_PKEY_new()) != NULL, STATUS_CERTIFICATE_GENERATION_FAILED);
     CHK_STATUS(dtlsFillPseudoRandomBits((PBYTE) &certSn, SIZEOF(UINT64)));
 
 #if (OPENSSL_VERSION_NUMBER >= 0x30000000L)
     DLOGI("Detected openssl version greater than 3.0.0");
-    EVP_PKEY_CTX* pctx = NULL;
     if (generateRSACertificate) {
         DLOGI("Using RSA");
         CHK_ERR(pctx = EVP_PKEY_CTX_new_from_name(NULL, "RSA", NULL), STATUS_CERTIFICATE_GENERATION_FAILED, "Error creating EVP_PKEY_CTX for RSA");
@@ -130,9 +136,7 @@ STATUS createCertificateAndKey(INT32 certificateBits, BOOL generateRSACertificat
     }
     EVP_PKEY_CTX_free(pctx);
 #else
-    RSA* pRsa = NULL;
     if (generateRSACertificate) {
-        BIGNUM* pBne = NULL;
         DLOGI("Detected older version");
         CHK((pBne = BN_new()) != NULL, STATUS_CERTIFICATE_GENERATION_FAILED);
         CHK(BN_set_word(pBne, KVS_RSA_F4) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);
@@ -144,8 +148,6 @@ STATUS createCertificateAndKey(INT32 certificateBits, BOOL generateRSACertificat
         }
         pRsa = NULL;
     } else {
-        UINT32 eccGroup = 0;
-        EC_KEY* eccKey = NULL;
         CHK((eccGroup = OBJ_txt2nid("prime256v1")) != NID_undef, STATUS_CERTIFICATE_GENERATION_FAILED);
         CHK((eccKey = EC_KEY_new_by_curve_name(eccGroup)) != NULL, STATUS_CERTIFICATE_GENERATION_FAILED);
 
@@ -191,7 +193,9 @@ STATUS createSslCtx(PDtlsSessionCertificateInfo pCertificates, UINT32 certCount,
     STATUS retStatus = STATUS_SUCCESS;
     SSL_CTX* pSslCtx = NULL;
     UINT32 i;
-
+#if (OPENSSL_VERSION_NUMBER < 0x30000000L)
+    EC_KEY* ecdh = NULL;
+#endif
     CHK(pCertificates != NULL && ppSslCtx != NULL, STATUS_NULL_ARG);
     CHK(certCount > 0, STATUS_INTERNAL_ERROR);
 
@@ -214,7 +218,6 @@ STATUS createSslCtx(PDtlsSessionCertificateInfo pCertificates, UINT32 certCount,
 
     // Version less than 3.0.0 and greater than 1.1.0
 #elif (OPENSSL_VERSION_NUMBER < 0x30000000L)
-    EC_KEY* ecdh = NULL;
     CHK((ecdh = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1)) != NULL, STATUS_SSL_CTX_CREATION_FAILED);
     CHK(SSL_CTX_set_tmp_ecdh(pSslCtx, ecdh) == 1, STATUS_SSL_CTX_CREATION_FAILED);
 #else
