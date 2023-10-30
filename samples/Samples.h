@@ -49,12 +49,23 @@ extern "C" {
 #define IOT_CORE_THING_NAME          ((PCHAR) "AWS_IOT_CORE_THING_NAME")
 #define IOT_CORE_CERTIFICATE_ID      ((PCHAR) "AWS_IOT_CORE_CERTIFICATE_ID")
 
+/* Uncomment the following line in order to enable IoT credentials checks in the provided samples */
+// #define IOT_CORE_ENABLE_CREDENTIALS  1
+
 #define MASTER_DATA_CHANNEL_MESSAGE "This message is from the KVS Master"
 #define VIEWER_DATA_CHANNEL_MESSAGE "This message is from the KVS Viewer"
 #define DATA_CHANNEL_MESSAGE_TEMPLATE "{\"content\":\"%s\",\"t1\":\"%s\",\"t2\":\"%s\",\"t3\":\"%s\",\"t4\":\"%s\",\"t5\":\"%s\"}"
+#define PEER_CONNECTION_METRICS_JSON_TEMPLATE "{\"peerConnectionCreationTime\":\"%llu\", \"dtlsSessionSetupTime\":\"%llu\", \"iceHolePunchingTime\":\"%llu\"}"
+#define SIGNALING_CLIENT_METRICS_JSON_TEMPLATE "{\"cpApiCallLatency\":\"%llu\", \"dpApiCallLatency\":\"%llu\", \"getTokenCallTime\":\"%llu\", \"describeCallTime\":\"%llu\", \"createCallTime\":\"%llu\", \"getEndpointCallTime\":\"%llu\", \"getIceConfigCallTime\":\"%llu\", \"connectCallTime\":\"%llu\", \"createClientTime\":\"%llu\", \"fetchClientTime\":\"%llu\", \"connectClientTime\":\"%llu\", \"offerToAnswerTime\":\"%llu\"}"
+#define ICE_AGENT_METRICS_JSON_TEMPLATE "{\"localCandidateGatheringTime\":\"%llu\", \"hostCandidateSetUpTime\":\"%llu\", \"srflxCandidateSetUpTime\":\"%llu\", \"relayCandidateSetUpTime\":\"%llu\", \"iceServerParsingTime\":\"%llu\", \"iceCandidatePairNominationTime\":\"%llu\", \"candidateGatheringTime\":\"%llu\", \"iceAgentSetUpTime\":\"%llu\"}"
 
-/* Uncomment the following line in order to enable IoT credentials checks in the provided samples */
-// #define IOT_CORE_ENABLE_CREDENTIALS  1
+#define MAX_PEER_CONNECTION_METRICS_MESSAGE_SIZE 98 + 20 * 3
+#define MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE 329 + 20 * 13
+#define MAX_ICE_AGENT_METRICS_MESSAGE_SIZE 272 + 20 * 8
+
+CHAR pPeerConnectionMetricsMessage[MAX_PEER_CONNECTION_METRICS_MESSAGE_SIZE];
+CHAR pSignalingClientMetricsMessage[MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE]; 
+CHAR pIceAgentMetricsMessage[MAX_ICE_AGENT_METRICS_MESSAGE_SIZE];
 
 typedef enum {
     SAMPLE_STREAMING_VIDEO_ONLY,

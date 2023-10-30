@@ -105,6 +105,9 @@ VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL 
         viewerToMasterE2E = t4 - t2;
         DLOGI("MASTER TO VIEWER: %llu ms", masterToViewerE2E);
         DLOGI("VIEWER TO MASTER: %llu ms", viewerToMasterE2E);
+        retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) pSignalingClientMetricsMessage, STRLEN(pSignalingClientMetricsMessage));
+        retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) pPeerConnectionMetricsMessage, STRLEN(pPeerConnectionMetricsMessage));
+        retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) pIceAgentMetricsMessage, STRLEN(pIceAgentMetricsMessage));
     }
 
     if (retStatus != STATUS_SUCCESS) {
@@ -132,8 +135,41 @@ VOID onConnectionStateChange(UINT64 customData, RTC_PEER_CONNECTION_STATE newSta
             ATOMIC_STORE_BOOL(&pSampleConfiguration->connected, TRUE);
             CVAR_BROADCAST(pSampleConfiguration->cvar);
 
+            SNPRINTF(pSignalingClientMetricsMessage, STRLEN(SIGNALING_CLIENT_METRICS_JSON_TEMPLATE) + 20 * 13, SIGNALING_CLIENT_METRICS_JSON_TEMPLATE, 
+                pSampleConfiguration->signalingClientMetrics.signalingClientStats.cpApiCallLatency, 
+                pSampleConfiguration->signalingClientMetrics.signalingClientStats.dpApiCallLatency, 
+                pSampleConfiguration->signalingClientMetrics.signalingClientStats.getTokenCallTime,
+                pSampleConfiguration->signalingClientMetrics.signalingClientStats.describeCallTime,
+                pSampleConfiguration->signalingClientMetrics.signalingClientStats.createCallTime, 
+                pSampleConfiguration->signalingClientMetrics.signalingClientStats.getEndpointCallTime, 
+                pSampleConfiguration->signalingClientMetrics.signalingClientStats.getIceConfigCallTime, 
+                pSampleConfiguration->signalingClientMetrics.signalingClientStats.connectCallTime,
+                pSampleConfiguration->signalingClientMetrics.signalingClientStats.createClientTime,
+                pSampleConfiguration->signalingClientMetrics.signalingClientStats.fetchClientTime,
+                pSampleConfiguration->signalingClientMetrics.signalingClientStats.connectClientTime,
+                pSampleConfiguration->signalingClientMetrics.signalingClientStats.offerToAnswerTime);
+            DLOGI("SIGNALING_METRICS: %s", pSignalingClientMetricsMessage);
+            
+
             CHK_STATUS(peerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->peerConnectionMetrics));
+            SNPRINTF(pPeerConnectionMetricsMessage, STRLEN(PEER_CONNECTION_METRICS_JSON_TEMPLATE) + 20 * 3, PEER_CONNECTION_METRICS_JSON_TEMPLATE, 
+                pSampleStreamingSession->peerConnectionMetrics.peerConnectionStats.peerConnectionCreationTime, 
+                pSampleStreamingSession->peerConnectionMetrics.peerConnectionStats.dtlsSessionSetupTime, 
+                pSampleStreamingSession->peerConnectionMetrics.peerConnectionStats.iceHolePunchingTime);
+            DLOGI("PEER_CONNECTION_METRICS: %s", pPeerConnectionMetricsMessage);
+            
+            
             CHK_STATUS(iceAgentGetMetrics(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->iceMetrics));
+            SNPRINTF(pIceAgentMetricsMessage, STRLEN(ICE_AGENT_METRICS_JSON_TEMPLATE) + 20 * 8, ICE_AGENT_METRICS_JSON_TEMPLATE, 
+                pSampleStreamingSession->iceMetrics.kvsIceAgentStats.localCandidateGatheringTime, 
+                pSampleStreamingSession->iceMetrics.kvsIceAgentStats.hostCandidateSetUpTime, 
+                pSampleStreamingSession->iceMetrics.kvsIceAgentStats.srflxCandidateSetUpTime, 
+                pSampleStreamingSession->iceMetrics.kvsIceAgentStats.relayCandidateSetUpTime, 
+                pSampleStreamingSession->iceMetrics.kvsIceAgentStats.iceServerParsingTime, 
+                pSampleStreamingSession->iceMetrics.kvsIceAgentStats.iceCandidatePairNominationTime, 
+                pSampleStreamingSession->iceMetrics.kvsIceAgentStats.candidateGatheringTime, 
+                pSampleStreamingSession->iceMetrics.kvsIceAgentStats.iceAgentSetUpTime);
+            DLOGI("ICE_CONNECTION_METRICS: %s", pIceAgentMetricsMessage);
 
             if (STATUS_FAILED(retStatus = logSelectedIceCandidatesInformation(pSampleStreamingSession))) {
                 DLOGW("Failed to get information about selected Ice candidates: 0x%08x", retStatus);
