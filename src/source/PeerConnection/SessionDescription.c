@@ -679,6 +679,10 @@ STATUS populateSessionDescriptionDataChannel(PKvsPeerConnection pKvsPeerConnecti
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, pKvsPeerConnection->localIcePwd);
     attributeCount++;
 
+    STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ice-options");
+    STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "trickle");
+    attributeCount++;
+  
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "fingerprint");
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "sha-256 ");
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue + 8, pCertificateFingerprint);
