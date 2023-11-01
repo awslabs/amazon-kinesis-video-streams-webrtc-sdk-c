@@ -40,20 +40,20 @@ index b214df75..06eaf255 100644
  			endif()
  			set(OPENSSL_INCLUDE_DIRS "${OPENSSL_INCLUDE_DIR}")
 diff --git a/lib/core/lws_map.c b/lib/core/lws_map.c
-index d149d8675..b319d79f4 100644
+index d149d86752..b319d79f49 100644
 --- a/lib/core/lws_map.c
 +++ b/lib/core/lws_map.c
 @@ -29,11 +29,11 @@ typedef struct lws_map_hashtable {
  	lws_dll2_owner_t		ho;
  } lws_map_hashtable_t;
-
+ 
 -typedef struct lws_map {
 +struct lws_map {
  	lws_map_info_t			info;
-
+ 
  	/* array of info.modulo x lws_map_hashtable_t overallocated */
 -} lws_map_t;
 +};
-
+ 
  typedef struct lws_map_item {
  	lws_dll2_t			list; /* owned by hashtable */
