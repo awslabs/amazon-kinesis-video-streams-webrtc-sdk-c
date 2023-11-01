@@ -3,32 +3,7 @@
 
 STATUS md5Digest(PBYTE inputStringBuff, UINT64 length, PBYTE outputBuff)
 {
-    STATUS retStatus = STATUS_SUCCESS;
-    EVP_MD_CTX* mdctx;
-    const EVP_MD* md;
-#ifdef KVS_USE_OPENSSL
-    DLOGI("Crypto Openssl detected for MD5");
-#if (OPENSSL_VERSION_NUMBER >= 0x30000000L)
-    CHK_ERR((md = EVP_MD_fetch(NULL, "MD5", NULL)) != NULL, STATUS_INTERNAL_ERROR, "Failed to fetch MD5 provider");
-    mdctx = EVP_MD_CTX_new();
-    CHK_ERR(EVP_DigestInit_ex(mdctx, md, NULL) != 0, STATUS_INTERNAL_ERROR, "Message digest initialization failed.");
-    CHK_ERR(EVP_DigestUpdate(mdctx, inputStringBuff, length) != 0, STATUS_INTERNAL_ERROR, "Message digest update failed");
-    CHK_ERR(EVP_DigestFinal_ex(mdctx, outputBuff, NULL) != 0, STATUS_INTERNAL_ERROR, "Message digest finalization failed");
-#else
-    MD5(inputStringBuff, length, outputBuff);
-#endif
-#elif KVS_USE_MBEDTLS
-    DLOGI("Crypto MBedtls detected for MD5");
-    mbedtls_md5_ret(inputStringBuff, length, outputBuff);
-#endif
-CleanUp:
-#ifdef KVS_USE_OPENSSL
-#if (OPENSSL_VERSION_NUMBER >= 0x30000000L)
-    EVP_MD_CTX_free(mdctx);
-    EVP_MD_free((EVP_MD*) md);
-#endif
-#endif
-    return retStatus;
+    return md5DigestCalculation(inputStringBuff, length, outputBuff);
 }
 
 STATUS createRtcCertificate(PRtcCertificate* ppRtcCertificate)

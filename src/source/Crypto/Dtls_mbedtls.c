@@ -8,6 +8,11 @@ mbedtls_ssl_srtp_profile DTLS_SRTP_SUPPORTED_PROFILES[] = {
     MBEDTLS_TLS_SRTP_UNSET,
 };
 
+STATUS md5DigestCalculation(PBYTE inputStringBuff, UINT64 length, PBYTE outputBuff)
+{
+    mbedtls_md5_ret(inputStringBuff, length, outputBuff);
+    return STATUS_SUCCESS;
+}
 STATUS createDtlsSession(PDtlsSessionCallbacks pDtlsSessionCallbacks, TIMER_QUEUE_HANDLE timerQueueHandle, INT32 certificateBits,
                          BOOL generateRSACertificate, PRtcCertificate pRtcCertificates, PDtlsSession* ppDtlsSession)
 {

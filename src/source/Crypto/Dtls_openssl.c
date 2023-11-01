@@ -44,6 +44,28 @@ CleanUp:
     return retStatus;
 }
 
+STATUS md5DigestCalculation(PBYTE inputStringBuff, UINT64 length, PBYTE outputBuff)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+#if (OPENSSL_VERSION_NUMBER >= 0x30000000L)
+    EVP_MD_CTX* mdctx = NULL;
+    const EVP_MD* md = NULL;
+    CHK_ERR(md = EVP_MD_fetch(NULL, "MD5", NULL), STATUS_INTERNAL_ERROR, "Failed to fetch MD5 provider");
+    mdctx = EVP_MD_CTX_new();
+    CHK_ERR(EVP_DigestInit_ex(mdctx, md, NULL), STATUS_INTERNAL_ERROR, "Message digest initialization failed.");
+    CHK_ERR(EVP_DigestUpdate(mdctx, inputStringBuff, length), STATUS_INTERNAL_ERROR, "Message digest update failed");
+    CHK_ERR(EVP_DigestFinal_ex(mdctx, outputBuff, NULL), STATUS_INTERNAL_ERROR, "Message digest finalization failed");
+#else
+    MD5(inputStringBuff, length, outputBuff);
+#endif
+
+CleanUp:
+#if (OPENSSL_VERSION_NUMBER >= 0x30000000L)
+    EVP_MD_CTX_free(mdctx);
+    EVP_MD_free((EVP_MD*) md);
+#endif
+    return retStatus;
+}
 STATUS dtlsTransmissionTimerCallback(UINT32 timerID, UINT64 currentTime, UINT64 customData)
 {
     UNUSED_PARAM(timerID);
