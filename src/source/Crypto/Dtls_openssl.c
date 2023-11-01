@@ -119,7 +119,7 @@ STATUS createCertificateAndKey(INT32 certificateBits, BOOL generateRSACertificat
     CHK_STATUS(dtlsFillPseudoRandomBits((PBYTE) &certSn, SIZEOF(UINT64)));
 
 #if (OPENSSL_VERSION_NUMBER >= 0x30000000L)
-    DLOGI("Detected openssl version greater than 3.0.0");
+    DLOGI("Detected openssl version greater than or equal to 3.0.0");
     if (generateRSACertificate) {
         DLOGI("Using RSA");
         CHK_ERR(pctx = EVP_PKEY_CTX_new_from_name(NULL, "RSA", NULL), STATUS_CERTIFICATE_GENERATION_FAILED, "Error creating EVP_PKEY_CTX for RSA");
@@ -143,9 +143,6 @@ STATUS createCertificateAndKey(INT32 certificateBits, BOOL generateRSACertificat
         CHK((pRsa = RSA_new()) != NULL, STATUS_CERTIFICATE_GENERATION_FAILED);
         CHK(RSA_generate_key_ex(pRsa, certificateBits, pBne, NULL) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);
         CHK((EVP_PKEY_assign_RSA(*ppPkey, pRsa)) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);
-        if (pBne != NULL) {
-            BN_free(pBne);
-        }
         pRsa = NULL;
     } else {
         CHK((eccGroup = OBJ_txt2nid("prime256v1")) != NID_undef, STATUS_CERTIFICATE_GENERATION_FAILED);
@@ -176,6 +173,9 @@ STATUS createCertificateAndKey(INT32 certificateBits, BOOL generateRSACertificat
 CleanUp:
     if (STATUS_FAILED(retStatus)) {
 #if (OPENSSL_VERSION_NUMBER < 0x30000000L)
+        if (pBne != NULL) {
+            BN_free(pBne);
+        }
         if (pRsa != NULL) {
             RSA_free(pRsa);
         }
