@@ -63,9 +63,13 @@ CleanUp:
 #if (OPENSSL_VERSION_NUMBER >= 0x30000000L)
     EVP_MD_CTX_free(mdctx);
     EVP_MD_free((EVP_MD*) md);
+// Adding else to get around Mac unused label error
+#else
+    retStatus = STATUS_SUCCESS;
 #endif
     return retStatus;
 }
+
 STATUS dtlsTransmissionTimerCallback(UINT32 timerID, UINT64 currentTime, UINT64 customData)
 {
     UNUSED_PARAM(timerID);
