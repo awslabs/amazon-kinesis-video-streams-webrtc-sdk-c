@@ -14,28 +14,6 @@ STATUS md5Digest(PBYTE, UINT64, PBYTE);
 #define KVS_MD5_DIGEST_LENGTH  MD5_DIGEST_LENGTH
 #define KVS_SHA1_DIGEST_LENGTH SHA_DIGEST_LENGTH
 
-// https://www.openssl.org/docs/man3.1/man3/MD5.html
-#if (OPENSSL_VERSION_NUMBER >= 0x30000000L)
-#define KVS_MD5_DIGEST(m, mlen, ob)                                                                                                                  \
-    do {                                                                                                                                             \
-        EVP_MD_CTX* mdctx;                                                                                                                           \
-        const EVP_MD* md;                                                                                                                            \
-        md = EVP_MD_fetch(NULL, "MD5", NULL);                                                                                                        \
-        if (md == NULL) {                                                                                                                            \
-            DLOGI("Failed to fetch MD5 provider");                                                                                                   \
-        } else {                                                                                                                                     \
-            mdctx = EVP_MD_CTX_new();                                                                                                                \
-            EVP_DigestInit_ex(mdctx, md, NULL);                                                                                                      \
-            EVP_DigestUpdate(mdctx, m, mlen);                                                                                                        \
-            EVP_DigestFinal_ex(mdctx, ob, NULL);                                                                                                     \
-            EVP_MD_CTX_free(mdctx);                                                                                                                  \
-            EVP_MD_free((EVP_MD*) md);                                                                                                               \
-        }                                                                                                                                            \
-    } while (0)
-#else
-#define KVS_MD5_DIGEST(m, mlen, ob) MD5((m), (mlen), (ob));
-#endif
-
 #define KVS_SHA1_HMAC(k, klen, m, mlen, ob, plen)                                                                                                    \
     CHK(NULL != HMAC(EVP_sha1(), (k), (INT32) (klen), (m), (mlen), (ob), (plen)), STATUS_HMAC_GENERATION_ERROR);
 #define KVS_CRYPTO_INIT()                                                                                                                            \
@@ -56,10 +34,9 @@ typedef enum {
     KVS_SRTP_PROFILE_AES128_CM_HMAC_SHA1_32 = SRTP_AES128_CM_SHA1_32,
 } KVS_SRTP_PROFILE;
 #elif KVS_USE_MBEDTLS
-#define KVS_RSA_F4                  0x10001L
-#define KVS_MD5_DIGEST_LENGTH       16
-#define KVS_SHA1_DIGEST_LENGTH      20
-#define KVS_MD5_DIGEST(m, mlen, ob) mbedtls_md5_ret((m), (mlen), (ob));
+#define KVS_RSA_F4             0x10001L
+#define KVS_MD5_DIGEST_LENGTH  16
+#define KVS_SHA1_DIGEST_LENGTH 20
 #define KVS_SHA1_HMAC(k, klen, m, mlen, ob, plen)                                                                                                    \
     CHK(0 == mbedtls_md_hmac(mbedtls_md_info_from_type(MBEDTLS_MD_SHA1), (k), (klen), (m), (mlen), (ob)), STATUS_HMAC_GENERATION_ERROR);             \
     *(plen) = mbedtls_md_get_size(mbedtls_md_info_from_type(MBEDTLS_MD_SHA1));
