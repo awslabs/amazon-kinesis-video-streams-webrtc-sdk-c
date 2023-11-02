@@ -502,9 +502,11 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, pKvsPeerConnection->localIcePwd);
     attributeCount++;
 
-    STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ice-options");
-    STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "trickle");
-    attributeCount++;
+    if (pKvsPeerConnection->canTrickleIce.value) {
+        STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ice-options");
+        STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "trickle");
+        attributeCount++;
+    }
 
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "fingerprint");
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "sha-256 ");
@@ -678,6 +680,12 @@ STATUS populateSessionDescriptionDataChannel(PKvsPeerConnection pKvsPeerConnecti
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ice-pwd");
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, pKvsPeerConnection->localIcePwd);
     attributeCount++;
+
+    if (pKvsPeerConnection->canTrickleIce.value) {
+        STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ice-options");
+        STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "trickle");
+        attributeCount++;
+    }
 
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "fingerprint");
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "sha-256 ");
