@@ -245,16 +245,16 @@ STATUS createSslCtx(PDtlsSessionCertificateInfo pCertificates, UINT32 certCount,
 
     CHK(pSslCtx != NULL, STATUS_SSL_CTX_CREATION_FAILED);
 
-    // Version less than 1.1.0
-#if (OPENSSL_VERSION_NUMBER < 0x10100000L)
-    SSL_CTX_set_ecdh_auto(pSslCtx, TRUE);
-
-    // Version less than 3.0.0 and greater than 1.1.0
-#elif (OPENSSL_VERSION_NUMBER < 0x30000000L)
+// https://www.openssl.org/docs/man1.0.2/man3/
+// https://www.openssl.org/docs/man1.1.1/man3/
+// Version < 3.0.0
+#if (OPENSSL_VERSION_NUMBER < 0x30000000L)
     CHK((ecdh = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1)) != NULL, STATUS_SSL_CTX_CREATION_FAILED);
     CHK(SSL_CTX_set_tmp_ecdh(pSslCtx, ecdh) == 1, STATUS_SSL_CTX_CREATION_FAILED);
 #else
-    DLOGI("ECDH enabled by default in 3.0.0. Nothing to do");
+    // https://www.openssl.org/docs/man3.0/man3/EC_KEY_new_by_curve_name.html -- indicates that EC_KEY_new_by_curve_name and SSL_CTX_set_tmp_ecdh are
+    // deprecated https://www.openssl.org/docs/man1.1.1/man3/SSL_CTX_set1_groups.html
+    CHK(SSL_CTX_set1_groups_list(pSslCtx, "prime256v1") == 1, STATUS_SSL_CTX_CREATION_FAILED);
 #endif
 
     SSL_CTX_set_verify(pSslCtx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, dtlsCertificateVerifyCallback);
