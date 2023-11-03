@@ -3333,8 +3333,8 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateCache)
 {
     FREMOVE(DEFAULT_CACHE_FILE_PATH);
 
-    SignalingFileCacheEntry testEntry;
-    SignalingFileCacheEntry testEntry2;
+    SignalingCacheEntry testEntry;
+    SignalingCacheEntry testEntry2;
 
     testEntry.role = SIGNALING_CHANNEL_ROLE_TYPE_VIEWER;
     STRCPY(testEntry.wssEndpoint, "testWssEnpoint");
@@ -3364,7 +3364,7 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateMultiChannelCache)
     FREMOVE(DEFAULT_CACHE_FILE_PATH);
     srand(GETTIME());
 
-    SignalingFileCacheEntry testEntry;
+    SignalingCacheEntry testEntry;
     BOOL cacheFound = FALSE;
     int additionalEntries = rand()%15 + 2;
     char testWssEndpoint[MAX_SIGNALING_ENDPOINT_URI_LEN + 1] = {0};
@@ -3378,7 +3378,7 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateMultiChannelCache)
     char * fileBuffer;
     UINT64 fileSize;
     UINT32 entryCount;
-    SignalingFileCacheEntry entries[MAX_SIGNALING_CACHE_ENTRY_COUNT];
+    SignalingCacheEntry entries[MAX_SIGNALING_CACHE_ENTRY_COUNT];
     const int TEST_CHANNEL_COUNT = 5;
 
     for(i = 0; i < MAX_SIGNALING_CACHE_ENTRY_COUNT + additionalEntries; i++) {
@@ -3435,7 +3435,7 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateFullMultiChannelCache)
     FREMOVE(DEFAULT_CACHE_FILE_PATH);
     srand(GETTIME());
 
-    SignalingFileCacheEntry testEntry;
+    SignalingCacheEntry testEntry;
     BOOL cacheFound = FALSE;
     int additionalEntries = rand()%15 + 2;
     char testWssEndpoint[MAX_SIGNALING_ENDPOINT_URI_LEN + 1] = {0};

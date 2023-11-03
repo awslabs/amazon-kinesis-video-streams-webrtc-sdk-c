@@ -19,12 +19,12 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     };
     PStateMachineState pStateMachineState;
     BOOL cacheFound = FALSE;
-    PSignalingFileCacheEntry pFileCacheEntry = NULL;
+    PSignalingCacheEntry pFileCacheEntry = NULL;
 
     CHK(pClientInfo != NULL && pChannelInfo != NULL && pCallbacks != NULL && pCredentialProvider != NULL && ppSignalingClient != NULL,
         STATUS_NULL_ARG);
     CHK(pChannelInfo->version <= CHANNEL_INFO_CURRENT_VERSION, STATUS_SIGNALING_INVALID_CHANNEL_INFO_VERSION);
-    CHK(NULL != (pFileCacheEntry = (PSignalingFileCacheEntry) MEMALLOC(SIZEOF(SignalingFileCacheEntry))), STATUS_NOT_ENOUGH_MEMORY);
+    CHK(NULL != (pFileCacheEntry = (PSignalingCacheEntry) MEMALLOC(SIZEOF(SignalingCacheEntry))), STATUS_NOT_ENOUGH_MEMORY);
 
     // Allocate enough storage
     CHK(NULL != (pSignalingClient = (PSignalingClient) MEMCALLOC(1, SIZEOF(SignalingClient))), STATUS_NOT_ENOUGH_MEMORY);
@@ -933,6 +933,7 @@ STATUS describeChannel(PSignalingClient pSignalingClient, UINT64 time)
         case SIGNALING_API_CALL_CACHE_TYPE_NONE:
             break;
 
+        case SIGNALING_API_CALL_CACHE_TYPE_CALLBACK:
         case SIGNALING_API_CALL_CACHE_TYPE_DESCRIBE_GETENDPOINT:
             /* explicit fall-through */
         case SIGNALING_API_CALL_CACHE_TYPE_FILE:
@@ -1026,7 +1027,7 @@ STATUS getChannelEndpoint(PSignalingClient pSignalingClient, UINT64 time)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     BOOL apiCall = TRUE;
-    SignalingFileCacheEntry signalingFileCacheEntry;
+    SignalingCacheEntry signalingFileCacheEntry;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
@@ -1041,6 +1042,7 @@ STATUS getChannelEndpoint(PSignalingClient pSignalingClient, UINT64 time)
         case SIGNALING_API_CALL_CACHE_TYPE_NONE:
             break;
 
+        case SIGNALING_API_CALL_CACHE_TYPE_CALLBACK:
         case SIGNALING_API_CALL_CACHE_TYPE_DESCRIBE_GETENDPOINT:
             /* explicit fall-through */
         case SIGNALING_API_CALL_CACHE_TYPE_FILE:

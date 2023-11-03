@@ -233,7 +233,7 @@ Pass the desired media and source type when running the sample. The mediaType ca
 #### Sample: kvsWebrtcClientViewer
 This application accepts sample H264/Opus frames and prints them out. To run:
 ```
-./samples/kvsWebrtcClientMaster <channelName>
+./samples/kvsWebrtcClientViwer <channelName>
 ```
 ### Viewing Master Samples
 

@@ -917,7 +917,7 @@ typedef enum {
 typedef enum {
     SIGNALING_API_CALL_CACHE_TYPE_NONE, //!< No caching. The calls to the backend will be made for every API.
 
-    SIGNALING_API_CALL_CACHE_TYPE_DESCRIBE_GETENDPOINT, //!< Cache DeleteSignalingChannel and GetSignalingChannelEndpoint
+    SIGNALING_API_CALL_CACHE_TYPE_DESCRIBE_GETENDPOINT, //!< Cache DescribeSignalingChannel and GetSignalingChannelEndpoint
                                                         //!< backend API calls.
                                                         //!< In this mode, the actual backend APIs will be
                                                         //!< called once and the
@@ -926,12 +926,17 @@ typedef enum {
                                                         //!< use cases when the
                                                         //!< signaling channel is not being constantly
                                                         //!< created/deleted by other entities.
-    SIGNALING_API_CALL_CACHE_TYPE_FILE,                 //!< Cache DeleteSignalingChannel and GetSignalingChannelEndpoint
+    SIGNALING_API_CALL_CACHE_TYPE_FILE,                 //!< Cache DescribeSignalingChannel and GetSignalingChannelEndpoint
                                                         //!< backend API calls.
                                                         //!< In this mode, the actual backend APIs will be
                                                         //!< called once and the
                                                         //!< information will be cached into file
                                                         //!< which will allow the cache to persist next time the signaling client is created.
+    SIGNALING_API_CALL_CACHE_TYPE_CALLBACK,             //!< Cache DescribeSignalingChannel and GetSignalingChannelEndpoint
+                                                        //!< backend API calls.
+                                                        //!< In this mode, the actual backend APIs will be
+                                                        //!< cached via provided callbacks and will retrieved
+                                                        //!< by the corresponding getter callbacks
 } SIGNALING_API_CALL_CACHE_TYPE;
 /*!@} */
 
@@ -1355,6 +1360,16 @@ typedef struct {
     CHAR userName[MAX_ICE_CONFIG_USER_NAME_LEN + 1];                 //!< Username for the server
     CHAR password[MAX_ICE_CONFIG_CREDENTIAL_LEN + 1];                //!< Password for the server
 } IceConfigInfo, *PIceConfigInfo;
+
+typedef struct {
+    SIGNALING_CHANNEL_ROLE_TYPE role;
+    UINT64 creationTsEpochSeconds;
+    CHAR channelName[MAX_CHANNEL_NAME_LEN + 1];
+    CHAR channelArn[MAX_ARN_LEN + 1];
+    CHAR region[MAX_REGION_NAME_LEN + 1];
+    CHAR httpsEndpoint[MAX_SIGNALING_ENDPOINT_URI_LEN + 1];
+    CHAR wssEndpoint[MAX_SIGNALING_ENDPOINT_URI_LEN + 1];
+} SignalingCacheEntry, *PSignalingCacheEntry;
 /*!@} */
 
 /*! \addtogroup Callbacks
@@ -1405,6 +1420,11 @@ typedef STATUS (*SignalingClientErrorReportFunc)(UINT64, STATUS, PCHAR, UINT32);
  * @return - STATUS code of the operation
  */
 typedef STATUS (*SignalingClientStateChangedFunc)(UINT64, SIGNALING_CLIENT_STATE);
+
+typedef STATUS (*SignalingCacheDescribeSetFunc)(PSignalingCacheEntry pCache);
+typedef STATUS (*SignalingCacheDescribeGetFunc)(PSignalingCacheEntry pCache);
+typedef STATUS (*SignalingCacheGetEndpointSetFunc)(PSignalingCacheEntry pCache);
+typedef STATUS (*SignalingCacheGetEndpointGetFunc)(PSignalingCacheEntry pCache);
 /*!@} */
 
 /*! \addtogroup PublicStructures
@@ -1421,6 +1441,10 @@ typedef struct {
     SignalingClientErrorReportFunc errorReportFn;         //!< Error reporting function. This is an optional member
     SignalingClientStateChangedFunc stateChangeFn;        //!< Signaling client state change callback
     GetCurrentTimeFunc getCurrentTimeFn;                  //!< callback to override system time, used for testing clock skew
+    SignalingCacheDescribeSetFunc setDescribeFn;              //!< callback to have higher application save describe result
+    SignalingCacheDescribeGetFunc getDescribeFn;              //!< callback to have higher application return describe result
+    SignalingCacheGetEndpointGetFunc setGetEndpointFn;        //!< callback to have higher application save get endpoint result
+    SignalingCacheGetEndpointSetFunc getGetEndpointFn;        //!< callback to have higher application return get endpoint result
 } SignalingClientCallbacks, *PSignalingClientCallbacks;
 
 /**
@@ -1551,6 +1575,7 @@ typedef struct {
     BOOL voiceActivity;    //!< Only valid for audio. TRUE if last audio packet contained voice.
     DOMString encoderImplementation; //!< encoder name eg "libvpx" or "x264"
 } RtcEncoderStats, *PRtcEncoderStats;
+
 /*!@} */
 
 ////////////////////////////////////////////////////

@@ -24,7 +24,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS deserializeSignalingCacheEntries(PCHAR cachedFileContent, UINT64 fileSize, PSignalingFileCacheEntry pSignalingFileCacheEntryList,
+STATUS deserializeSignalingCacheEntries(PCHAR cachedFileContent, UINT64 fileSize, PSignalingCacheEntry pSignalingCacheEntryList,
                                         PUINT32 pEntryCount, PCHAR cacheFilePath)
 {
     ENTERS();
@@ -32,7 +32,7 @@ STATUS deserializeSignalingCacheEntries(PCHAR cachedFileContent, UINT64 fileSize
     UINT32 listSize = 0, entryCount = 0, tokenCount = 0, remainingSize, tokenSize = 0;
     PCHAR pCurrent = NULL, nextToken = NULL, nextLine = NULL;
 
-    CHK(cachedFileContent != NULL && pSignalingFileCacheEntryList != NULL && pEntryCount != NULL && cacheFilePath != NULL, STATUS_NULL_ARG);
+    CHK(cachedFileContent != NULL && pSignalingCacheEntryList != NULL && pEntryCount != NULL && cacheFilePath != NULL, STATUS_NULL_ARG);
     listSize = *pEntryCount;
 
     pCurrent = cachedFileContent;
@@ -43,29 +43,29 @@ STATUS deserializeSignalingCacheEntries(PCHAR cachedFileContent, UINT64 fileSize
         while ((nextToken = STRCHR(pCurrent, ',')) != NULL && nextToken < nextLine) {
             switch (tokenCount % 7) {
                 case 0:
-                    STRNCPY(pSignalingFileCacheEntryList[entryCount].channelName, pCurrent, nextToken - pCurrent);
+                    STRNCPY(pSignalingCacheEntryList[entryCount].channelName, pCurrent, nextToken - pCurrent);
                     break;
                 case 1:
-                    STRNCPY(pSignalingFileCacheEntryList[entryCount].region, pCurrent, nextToken - pCurrent);
+                    STRNCPY(pSignalingCacheEntryList[entryCount].region, pCurrent, nextToken - pCurrent);
                     if (STRNCMP(pCurrent, SIGNALING_FILE_CACHE_ROLE_TYPE_MASTER_STR, STRLEN(SIGNALING_FILE_CACHE_ROLE_TYPE_MASTER_STR)) == 0) {
-                        pSignalingFileCacheEntryList[entryCount].role = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
+                        pSignalingCacheEntryList[entryCount].role = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
                     } else if (STRNCMP(pCurrent, SIGNALING_FILE_CACHE_ROLE_TYPE_VIEWER_STR, STRLEN(SIGNALING_FILE_CACHE_ROLE_TYPE_VIEWER_STR)) == 0) {
-                        pSignalingFileCacheEntryList[entryCount].role = SIGNALING_CHANNEL_ROLE_TYPE_VIEWER;
+                        pSignalingCacheEntryList[entryCount].role = SIGNALING_CHANNEL_ROLE_TYPE_VIEWER;
                     } else {
                         CHK_WARN(FALSE, STATUS_INVALID_ARG, "Unknown role type");
                     }
                     break;
                 case 2:
-                    STRNCPY(pSignalingFileCacheEntryList[entryCount].region, pCurrent, nextToken - pCurrent);
+                    STRNCPY(pSignalingCacheEntryList[entryCount].region, pCurrent, nextToken - pCurrent);
                     break;
                 case 3:
-                    STRNCPY(pSignalingFileCacheEntryList[entryCount].channelArn, pCurrent, nextToken - pCurrent);
+                    STRNCPY(pSignalingCacheEntryList[entryCount].channelArn, pCurrent, nextToken - pCurrent);
                     break;
                 case 4:
-                    STRNCPY(pSignalingFileCacheEntryList[entryCount].httpsEndpoint, pCurrent, nextToken - pCurrent);
+                    STRNCPY(pSignalingCacheEntryList[entryCount].httpsEndpoint, pCurrent, nextToken - pCurrent);
                     break;
                 case 5:
-                    STRNCPY(pSignalingFileCacheEntryList[entryCount].wssEndpoint, pCurrent, nextToken - pCurrent);
+                    STRNCPY(pSignalingCacheEntryList[entryCount].wssEndpoint, pCurrent, nextToken - pCurrent);
                     break;
                 default:
                     break;
@@ -78,16 +78,16 @@ STATUS deserializeSignalingCacheEntries(PCHAR cachedFileContent, UINT64 fileSize
 
         /* time stamp element is always 10 characters */
         CHK_STATUS(STRTOUI64(pCurrent, pCurrent + MAX_SIGNALING_CACHE_ENTRY_TIMESTAMP_STR_LEN, 10,
-                             &pSignalingFileCacheEntryList[entryCount].creationTsEpochSeconds));
+                             &pSignalingCacheEntryList[entryCount].creationTsEpochSeconds));
         tokenCount++;
         pCurrent += MAX_SIGNALING_CACHE_ENTRY_TIMESTAMP_STR_LEN + 1;
         remainingSize -= MAX_SIGNALING_CACHE_ENTRY_TIMESTAMP_STR_LEN + 1;
 
-        CHK(!IS_EMPTY_STRING(pSignalingFileCacheEntryList[entryCount].channelArn) &&
-                !IS_EMPTY_STRING(pSignalingFileCacheEntryList[entryCount].channelName) &&
-                !IS_EMPTY_STRING(pSignalingFileCacheEntryList[entryCount].region) &&
-                !IS_EMPTY_STRING(pSignalingFileCacheEntryList[entryCount].httpsEndpoint) &&
-                !IS_EMPTY_STRING(pSignalingFileCacheEntryList[entryCount].wssEndpoint),
+        CHK(!IS_EMPTY_STRING(pSignalingCacheEntryList[entryCount].channelArn) &&
+                !IS_EMPTY_STRING(pSignalingCacheEntryList[entryCount].channelName) &&
+                !IS_EMPTY_STRING(pSignalingCacheEntryList[entryCount].region) &&
+                !IS_EMPTY_STRING(pSignalingCacheEntryList[entryCount].httpsEndpoint) &&
+                !IS_EMPTY_STRING(pSignalingCacheEntryList[entryCount].wssEndpoint),
             STATUS_INVALID_ARG);
 
         entryCount++;
@@ -115,17 +115,17 @@ CleanUp:
 }
 
 STATUS signalingCacheLoadFromFile(PCHAR channelName, PCHAR region, SIGNALING_CHANNEL_ROLE_TYPE role,
-                                  PSignalingFileCacheEntry pSignalingFileCacheEntry, PBOOL pCacheFound, PCHAR cacheFilePath)
+                                  PSignalingCacheEntry pSignalingCacheEntry, PBOOL pCacheFound, PCHAR cacheFilePath)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT64 fileSize = 0;
     PCHAR fileBuffer = NULL;
-    SignalingFileCacheEntry entries[MAX_SIGNALING_CACHE_ENTRY_COUNT];
+    SignalingCacheEntry entries[MAX_SIGNALING_CACHE_ENTRY_COUNT];
     UINT32 entryCount = ARRAY_SIZE(entries), i;
     BOOL cacheFound = FALSE;
 
-    CHK(channelName != NULL && region != NULL && pSignalingFileCacheEntry != NULL && pCacheFound != NULL && cacheFilePath != NULL, STATUS_NULL_ARG);
+    CHK(channelName != NULL && region != NULL && pSignalingCacheEntry != NULL && pCacheFound != NULL && cacheFilePath != NULL, STATUS_NULL_ARG);
     CHK(!IS_EMPTY_STRING(channelName) && !IS_EMPTY_STRING(region), STATUS_INVALID_ARG);
 
     CHK_STATUS(createFileIfNotExist(cacheFilePath));
@@ -146,7 +146,7 @@ STATUS signalingCacheLoadFromFile(PCHAR channelName, PCHAR region, SIGNALING_CHA
             /* Assume channel name and region has been validated */
             if (STRCMP(entries[i].channelName, channelName) == 0 && STRCMP(entries[i].region, region) == 0 && entries[i].role == role) {
                 cacheFound = TRUE;
-                *pSignalingFileCacheEntry = entries[i];
+                *pSignalingCacheEntry = entries[i];
             }
         }
     }
@@ -163,22 +163,22 @@ CleanUp:
     return retStatus;
 }
 
-STATUS signalingCacheSaveToFile(PSignalingFileCacheEntry pSignalingFileCacheEntry, PCHAR cacheFilePath)
+STATUS signalingCacheSaveToFile(PSignalingCacheEntry pSignalingCacheEntry, PCHAR cacheFilePath)
 {
     ENTERS();
 
     STATUS retStatus = STATUS_SUCCESS;
-    SignalingFileCacheEntry entries[MAX_SIGNALING_CACHE_ENTRY_COUNT];
+    SignalingCacheEntry entries[MAX_SIGNALING_CACHE_ENTRY_COUNT];
     UINT32 entryCount = ARRAY_SIZE(entries), i, serializedCacheEntryLen;
     UINT64 fileSize = 0;
     PCHAR fileBuffer = NULL;
     BOOL newEntry = TRUE;
     CHAR serializedCacheEntry[MAX_SERIALIZED_SIGNALING_CACHE_ENTRY_LEN];
 
-    CHK(cacheFilePath != NULL && pSignalingFileCacheEntry != NULL, STATUS_NULL_ARG);
-    CHK(!IS_EMPTY_STRING(pSignalingFileCacheEntry->channelArn) && !IS_EMPTY_STRING(pSignalingFileCacheEntry->channelName) &&
-            !IS_EMPTY_STRING(pSignalingFileCacheEntry->region) && !IS_EMPTY_STRING(pSignalingFileCacheEntry->httpsEndpoint) &&
-            !IS_EMPTY_STRING(pSignalingFileCacheEntry->wssEndpoint),
+    CHK(cacheFilePath != NULL && pSignalingCacheEntry != NULL, STATUS_NULL_ARG);
+    CHK(!IS_EMPTY_STRING(pSignalingCacheEntry->channelArn) && !IS_EMPTY_STRING(pSignalingCacheEntry->channelName) &&
+            !IS_EMPTY_STRING(pSignalingCacheEntry->region) && !IS_EMPTY_STRING(pSignalingCacheEntry->httpsEndpoint) &&
+            !IS_EMPTY_STRING(pSignalingCacheEntry->wssEndpoint),
         STATUS_INVALID_ARG);
 
     MEMSET(entries, 0x00, SIZEOF(entries));
@@ -201,8 +201,8 @@ STATUS signalingCacheSaveToFile(PSignalingFileCacheEntry pSignalingFileCacheEntr
 
     for (i = 0; i < entryCount; ++i) {
         /* Assume channel name and region has been validated */
-        if (STRCMP(entries[i].channelName, pSignalingFileCacheEntry->channelName) == 0 &&
-            STRCMP(entries[i].region, pSignalingFileCacheEntry->region) == 0 && entries[i].role == pSignalingFileCacheEntry->role) {
+        if (STRCMP(entries[i].channelName, pSignalingCacheEntry->channelName) == 0 &&
+            STRCMP(entries[i].region, pSignalingCacheEntry->region) == 0 && entries[i].role == pSignalingCacheEntry->role) {
             newEntry = FALSE;
             break;
         }
@@ -215,7 +215,7 @@ STATUS signalingCacheSaveToFile(PSignalingFileCacheEntry pSignalingFileCacheEntr
         newEntry = FALSE;
     }
 
-    entries[i] = *pSignalingFileCacheEntry;
+    entries[i] = *pSignalingCacheEntry;
     if (newEntry) {
         entryCount++;
     }
