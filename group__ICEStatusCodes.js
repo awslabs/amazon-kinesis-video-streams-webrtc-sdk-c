@@ -33,7 +33,6 @@ var group__ICEStatusCodes =
     [ "STATUS_TURN_CONNECTION_NO_HOST_INTERFACE_FOUND", "group__ICEStatusCodes.html#ga2689bc8b71216444cbcefec30b20a2e8", null ],
     [ "STATUS_TURN_CONNECTION_PEER_NOT_USABLE", "group__ICEStatusCodes.html#ga2d77c9b7b2362ac0fd76cb85d903e4d0", null ],
     [ "STATUS_TURN_CONNECTION_STATE_TRANSITION_TIMEOUT", "group__ICEStatusCodes.html#ga72041071e715ee4a7453655c64db8a45", null ],
-    [ "STATUS_TURN_INVALID_STATE", "group__ICEStatusCodes.html#ga83ea97ecffdf05aad647fb355f5a2566", null ],
     [ "STATUS_TURN_MISSING_CHANNEL_DATA_HEADER", "group__ICEStatusCodes.html#ga1b9ec90b1798287230fc0f73e621feff", null ],
     [ "STATUS_TURN_NEW_DATA_CHANNEL_MSG_HEADER_BEFORE_PREVIOUS_MSG_FINISH", "group__ICEStatusCodes.html#ga418b5fd3de2e95c260e06eb85f954d23", null ]
 ];

@@ -48,8 +48,7 @@ var group__PublicStructures =
     ] ],
     [ "RtcSessionDescriptionInit", "structRtcSessionDescriptionInit.html", [
       [ "sdp", "group__StatusCodes.html#ga62c6f63074c9ca7e465cb1bf39854db9", null ],
-      [ "type", "group__StatusCodes.html#ga66e8134ccd2c83b700bbf4e8e6649a6f", null ],
-      [ "useTrickleIce", "group__StatusCodes.html#gabad78ddf2f8b7fec195ded8d69a74886", null ]
+      [ "type", "group__StatusCodes.html#ga66e8134ccd2c83b700bbf4e8e6649a6f", null ]
     ] ],
     [ "RtcIceCandidateInit", "structRtcIceCandidateInit.html", [
       [ "candidate", "group__StatusCodes.html#gadeaea422887b09718e78abb70d0bd476", null ]
@@ -93,6 +92,7 @@ var group__PublicStructures =
       [ "pCustomUserAgent", "group__StatusCodes.html#gae3dd11cf23eca8ffbf822a8f92fb570b", null ],
       [ "pKmsKeyId", "group__StatusCodes.html#ga08bab1b25f23e34515fd6c17a07b2c91", null ],
       [ "pRegion", "group__StatusCodes.html#ga03b591edffe71fb5572ca7b6b218ece7", null ],
+      [ "pStorageStreamArn", "group__StatusCodes.html#gad69fae44278f378707daa3156bb60366", null ],
       [ "pTags", "group__StatusCodes.html#ga3aa4cefce4b890d78079217c5c7025fb", null ],
       [ "pUserAgent", "group__StatusCodes.html#ga96bd36b833500aa9cdeb911090b81b54", null ],
       [ "pUserAgentPostfix", "group__StatusCodes.html#gaf9844307e1563b060be0be199bcdf0f8", null ],
@@ -100,6 +100,7 @@ var group__PublicStructures =
       [ "reserved", "group__StatusCodes.html#ga3e223c7cb71dcce2963818551782c052", null ],
       [ "retry", "group__StatusCodes.html#ga0c0868239cfea2dddc22abe841c66f2a", null ],
       [ "tagCount", "group__StatusCodes.html#ga068126ee9a6ec0eec32278185d0bb4fe", null ],
+      [ "useMediaStorage", "group__StatusCodes.html#ga9a9501b5908df6d14a0eefd348276378", null ],
       [ "version", "group__StatusCodes.html#ga7aef1a2aa352519fb948d32416fc94f3", null ]
     ] ],
     [ "IceConfigInfo", "structIceConfigInfo.html", [
@@ -109,6 +110,10 @@ var group__PublicStructures =
       [ "uris", "group__StatusCodes.html#ga223f06386852e206da201cd92b5f4b04", null ],
       [ "userName", "group__StatusCodes.html#ga3b18eba2e7f0da146df438408a2c8a1b", null ],
       [ "version", "group__StatusCodes.html#ga804c9f31a8d542f6ffee45d353f24c4e", null ]
+    ] ],
+    [ "MediaStorageConfig", "structMediaStorageConfig.html", [
+      [ "storageStatus", "group__StatusCodes.html#ga0d6aeb8634bc4fdcc6fb1293649ef592", null ],
+      [ "storageStreamArn", "group__StatusCodes.html#ga3c9a4f80fcaa01a1b67ccc3b7e4a64ae", null ]
     ] ],
     [ "SignalingClientCallbacks", "structSignalingClientCallbacks.html", [
       [ "customData", "group__StatusCodes.html#gac1108b3f0f014f820025b0eaf345ffc4", null ],
@@ -141,6 +146,7 @@ var group__PublicStructures =
     [ "PChannelInfo", "group__PublicStructures.html#gab1a88feab2cf5a556a90170eb434910a", null ],
     [ "PIceConfigInfo", "group__PublicStructures.html#gafb53cec62851ea389537d44f8b0abcb9", null ],
     [ "PKvsRtcConfiguration", "group__PublicStructures.html#ga4eb0ff204690ce9b79a1ac287c431354", null ],
+    [ "PMediaStorageConfig", "group__PublicStructures.html#ga1bfe3f004b373fdb68e1bbe0fc340e46", null ],
     [ "PReceivedSignalingMessage", "group__PublicStructures.html#gaac73733daa2b6ccb68ce4fefa48e60fa", null ],
     [ "PRtcCertificate", "group__PublicStructures.html#ga7f1a9ea27f23f9d24beb8f271c0482b8", null ],
     [ "PRtcConfiguration", "group__PublicStructures.html#gab085c3d89945657593ef4c32a48928c1", null ],
