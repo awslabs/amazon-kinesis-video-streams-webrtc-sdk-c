@@ -27,6 +27,7 @@ extern "C" {
 #define CANDIDATE_KEY "candidate"
 #define SSRC_KEY      "ssrc"
 #define BUNDLE_KEY    "BUNDLE"
+#define MID_KEY       "mid"
 
 #define H264_VALUE      "H264/90000"
 #define OPUS_VALUE      "opus/48000"

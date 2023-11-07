@@ -127,6 +127,7 @@ typedef struct {
     UINT32 iceUriCount;
     SignalingClientCallbacks signalingClientCallbacks;
     SignalingClientInfo clientInfo;
+
     RtcStats rtcIceCandidatePairMetrics;
 
     MUTEX signalingSendMessageLock;
@@ -152,6 +153,7 @@ struct __SampleStreamingSession {
     volatile ATOMIC_BOOL peerIdReceived;
     volatile ATOMIC_BOOL firstFrame;
     volatile SIZE_T frameIndex;
+    volatile SIZE_T correlationIdPostFix;
     PRtcPeerConnection pPeerConnection;
     PRtcRtpTransceiver pVideoRtcRtpTransceiver;
     PRtcRtpTransceiver pAudioRtcRtpTransceiver;
@@ -199,6 +201,7 @@ STATUS respondWithAnswer(PSampleStreamingSession);
 STATUS resetSampleConfigurationState(PSampleConfiguration);
 VOID sampleVideoFrameHandler(UINT64, PFrame);
 VOID sampleAudioFrameHandler(UINT64, PFrame);
+VOID sampleFrameHandler(UINT64, PFrame);
 VOID sampleBandwidthEstimationHandler(UINT64, DOUBLE);
 VOID sampleSenderBandwidthEstimationHandler(UINT64, UINT32, UINT32, UINT32, UINT32, UINT64);
 VOID onDataChannel(UINT64, PRtcDataChannel);

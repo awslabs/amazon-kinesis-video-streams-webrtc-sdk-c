@@ -332,6 +332,14 @@ extern "C" {
 #define STATUS_SIGNALING_INVALID_METRICS_VERSION                   STATUS_SIGNALING_BASE + 0x00000032
 #define STATUS_SIGNALING_INVALID_CLIENT_INFO_CACHE_FILE_PATH_LEN   STATUS_SIGNALING_BASE + 0x00000033
 #define STATUS_SIGNALING_LWS_CALL_FAILED                           STATUS_SIGNALING_BASE + 0x00000034
+#define STATUS_SIGNALING_INVALID_STREAM_ARN_LENGTH                 STATUS_SIGNALING_BASE + 0x00000035
+#define STATUS_SIGNALING_MISMATCH_MEDIA_STORAGE_CONFIG             STATUS_SIGNALING_BASE + 0x00000036
+#define STATUS_SIGNALING_UPDATE_MEDIA_STORAGE_CONFIG               STATUS_SIGNALING_BASE + 0x00000037
+#define STATUS_SIGNALING_MEDIA_STORAGE_DISABLED                    STATUS_SIGNALING_BASE + 0x00000038
+#define STATUS_SIGNALING_INVALID_CHANNEL_ARN                       STATUS_SIGNALING_BASE + 0x00000039
+#define STATUS_SIGNALING_JOIN_SESSION_CALL_FAILED                  STATUS_SIGNALING_BASE + 0x0000004a
+#define STATUS_SIGNALING_JOIN_SESSION_CONNECTED_FAILED             STATUS_SIGNALING_BASE + 0x0000004b
+#define STATUS_SIGNALING_DESCRIBE_MEDIA_CALL_FAILED                STATUS_SIGNALING_BASE + 0x0000004c
 
 /*!@} */
 
@@ -652,6 +660,8 @@ extern "C" {
  */
 #define SIGNALING_DEFAULT_MESSAGE_TTL_VALUE (60 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
+#define SIGNALING_JOIN_STORAGE_SESSION_WAIT_TIMEOUT (6 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+
 /**
  * Default jitter buffer tolerated latency, frame will be dropped if it is out of window
  */
@@ -855,6 +865,10 @@ typedef enum {
     SIGNALING_CLIENT_STATE_DELETE,          //!< This state transition happens when the application calls signalingClientDeleteSync API.
     SIGNALING_CLIENT_STATE_DELETED, //!< This state transition happens after the channel gets deleted as a result of a signalingClientDeleteSync API.
                                     //!< This is a terminal state.
+    SIGNALING_CLIENT_STATE_DESCRIBE_MEDIA,
+    SIGNALING_CLIENT_STATE_JOIN_SESSION,
+    SIGNALING_CLIENT_STATE_JOIN_SESSION_WAITING,
+    SIGNALING_CLIENT_STATE_JOIN_SESSION_CONNECTED,
     SIGNALING_CLIENT_STATE_MAX_VALUE, //!< This state indicates maximum number of signaling client states
 } SIGNALING_CLIENT_STATE,
     *PSIGNALING_CLIENT_STATE;
@@ -910,6 +924,7 @@ typedef enum {
                                                         //!< information will be cached into file
                                                         //!< which will allow the cache to persist next time the signaling client is created.
 } SIGNALING_API_CALL_CACHE_TYPE;
+
 /*!@} */
 
 ////////////////////////////////////////////////////
@@ -1263,8 +1278,10 @@ typedef struct {
 
     PCHAR pChannelName; //!< Name of the signaling channel name. Maximum length is defined by MAX_CHANNEL_NAME_LEN + 1
 
-    PCHAR pChannelArn; //!< Channel Amazon Resource Name (ARN). This is an optional parameter
-                       //!< Maximum length is defined by MAX_ARN_LEN+1
+    PCHAR pChannelArn;       //!< Channel Amazon Resource Name (ARN). This is an optional parameter
+                             //!< Maximum length is defined by MAX_ARN_LEN+1
+    PCHAR pStorageStreamArn; //!< Storage Stream Amazon Resource Name (ARN). This is an optional parameter
+                             //!< Maximum length is defined by MAX_ARN_LEN+1
 
     PCHAR pRegion; //!< AWS Region in which the channel is to be opened. Can be empty for default
                    //!< Maximum length is defined by MAX_REGION_NAME_LEN+1
@@ -1313,6 +1330,8 @@ typedef struct {
                                //!< is done reactively when needed which will simplify the processing
                                //!< and will help with issues on a small footprint platforms
 
+    BOOL useMediaStorage; //!< use the feature of media storage.
+
 } ChannelInfo, *PChannelInfo;
 
 /**
@@ -1331,6 +1350,11 @@ typedef struct {
     CHAR userName[MAX_ICE_CONFIG_USER_NAME_LEN + 1];                 //!< Username for the server
     CHAR password[MAX_ICE_CONFIG_CREDENTIAL_LEN + 1];                //!< Password for the server
 } IceConfigInfo, *PIceConfigInfo;
+
+typedef struct {
+    BOOL storageStatus;                     //!< Indicate the association between channelArn and storageStreamArn
+    CHAR storageStreamArn[MAX_ARN_LEN + 1]; //!< The arn of kvs stream, optional if you already associate signaling channel with stream
+} MediaStorageConfig, *PMediaStorageConfig;
 /*!@} */
 
 /*! \addtogroup Callbacks

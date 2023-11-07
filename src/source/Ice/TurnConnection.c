@@ -416,14 +416,22 @@ STATUS turnConnectionHandleStunError(PTurnConnection pTurnConnection, PBYTE pBuf
             /* Remove peer for any other error */
             DLOGW("Received STUN error response. Error type: 0x%02x, Error Code: %u. attribute len %u, Error detail: %s.", stunPacketType,
                   pStunAttributeErrorCode->errorCode, pStunAttributeErrorCode->attribute.length, pStunAttributeErrorCode->errorPhrase);
-
+            BOOL found = FALSE;
             /* Find TurnPeer using transaction Id, then mark it as failed */
             for (i = 0; iterate && i < pTurnConnection->turnPeerCount; ++i) {
                 pTurnPeer = &pTurnConnection->turnPeerList[i];
                 if (transactionIdStoreHasId(pTurnPeer->pTransactionIdStore, pBuffer + STUN_PACKET_TRANSACTION_ID_OFFSET)) {
+                    CHAR ipAddr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
                     pTurnPeer->connectionState = TURN_PEER_CONN_STATE_FAILED;
                     iterate = FALSE;
+                    found = TRUE;
+                    getIpAddrStr(&pTurnPeer->address, ipAddr, ARRAY_SIZE(ipAddr));
+                    DLOGD("remove turn peer with ip: %s:%u. family:%d", ipAddr, (UINT16) getInt16(pTurnPeer->address.port),
+                          pTurnPeer->address.family);
                 }
+            }
+            if (found == FALSE) {
+                DLOGD("can not find any corresponding turn peer");
             }
             break;
     }

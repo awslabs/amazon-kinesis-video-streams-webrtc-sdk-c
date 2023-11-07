@@ -7,6 +7,7 @@ include(CheckFunctionExists)
 # The version MUST be updated before every release
 project(KinesisVideoWebRTCClient VERSION 1.8.1 LANGUAGES C)
 
+
 # User Flags
 option(ADD_MUCLIBC "Add -muclibc c flag" OFF)
 option(BUILD_DEPENDENCIES "Whether or not to build depending libraries from source" ON)
@@ -19,6 +20,7 @@ option(BUILD_LIBSRTP_DESTINATION_PLATFORM "If buildng LibSRTP what is the destin
 option(BUILD_SAMPLE "Build available samples" ON)
 option(ENABLE_DATA_CHANNEL "Enable support for data channel" ON)
 option(INSTRUMENTED_ALLOCATORS "Enable memory instrumentation" OFF)
+option(ENABLE_AWS_SDK_IN_TESTS "Enable support for compiling AWS SDKs for tests" ON)
 
 # Developer Flags
 option(BUILD_TEST "Build the testing tree." OFF)
@@ -35,6 +37,7 @@ if(WIN32)
   set(EXT_PTHREAD_INCLUDE_DIR "" CACHE PATH "Path to the PThread dir")
   set(EXT_PTHREAD_LIBRARIES "" CACHE FILEPATH "Path to PThread libraries")
 endif()
+
 
 execute_process(
         COMMAND git rev-parse HEAD
@@ -103,9 +106,17 @@ if(USE_OPENSSL)
 elseif(USE_MBEDTLS)
   add_definitions(-DKVS_USE_MBEDTLS)
   # FIXME: there's probably a better way to inject MBEDTLS_USER_CONFIG_FILE flag without mutating the global CMAKE_C_FLAGS and CMAKE_CXX_FLAGS
-  set(CMAKE_C_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/configs -DMBEDTLS_USER_CONFIG_FILE=\"<config_mbedtls.h>\" ${CMAKE_C_FLAGS}")
-  set(CMAKE_CXX_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/configs -DMBEDTLS_USER_CONFIG_FILE=\"<config_mbedtls.h>\" ${CMAKE_CXX_FLAGS}")
+  if("${CMAKE_C_COMPILER_ID}" MATCHES "Clang")
+    message(STATUS "Detected clang")
+    set(CMAKE_C_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/configs -DMBEDTLS_USER_CONFIG_FILE=\"<config_mbedtls.h>\" ${CMAKE_C_FLAGS}")
+    set(CMAKE_CXX_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/configs -DMBEDTLS_USER_CONFIG_FILE=\"<config_mbedtls.h>\" ${CMAKE_CXX_FLAGS}")
+  else()
+    message(STATUS "Detected gcc")
+    set(CMAKE_C_FLAGS "-Wno-error=stringop-overflow -I${CMAKE_CURRENT_SOURCE_DIR}/configs -DMBEDTLS_USER_CONFIG_FILE=\"<config_mbedtls.h>\" ${CMAKE_C_FLAGS}")
+    set(CMAKE_CXX_FLAGS "-Wno-error=stringop-overflow -I${CMAKE_CURRENT_SOURCE_DIR}/configs -DMBEDTLS_USER_CONFIG_FILE=\"<config_mbedtls.h>\" ${CMAKE_CXX_FLAGS}")
+  endif()
 endif()
+
 
 if(BUILD_DEPENDENCIES)
   if(NOT EXISTS ${OPEN_SRC_INSTALL_PREFIX})
@@ -178,8 +189,14 @@ if(BUILD_DEPENDENCIES)
       -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
 
   build_dependency(usrsctp ${BUILD_ARGS})
+
   if(BUILD_TEST)
     build_dependency(gtest)
+
+    if(ENABLE_AWS_SDK_IN_TESTS)
+      build_dependency(awscpp)
+    endif()
+
   endif()
 
   if(BUILD_BENCHMARK)
@@ -245,13 +262,14 @@ set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${LIBSRTP_INCLUDE_DIRS}
 link_directories(${LIBSRTP_LIBRARY_DIRS})
 link_directories(${LIBWEBSOCKETS_LIBRARY_DIRS})
 link_directories(${OPEN_SRC_INSTALL_PREFIX}/lib)
-link_directories(${OPEN_SRC_INSTALL_PREFIX}/lib64)
 
+if(EXISTS ${OPEN_SRC_INSTALL_PREFIX}/lib64)
+  link_directories(${OPEN_SRC_INSTALL_PREFIX}/lib64)
+endif()
 ############# find dependent libraries end ############
 
 if("${CMAKE_C_COMPILER_ID}" MATCHES "GNU|Clang")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
-
 
   if(CODE_COVERAGE)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -g -fprofile-arcs -ftest-coverage")
@@ -293,6 +311,10 @@ endif()
 
 if (INSTRUMENTED_ALLOCATORS)
   add_definitions(-DINSTRUMENTED_ALLOCATORS)
+endif()
+
+if(ENABLE_AWS_SDK_IN_TESTS)
+  add_definitions(-DENABLE_AWS_SDK_IN_TESTS)
 endif()
 
 file(
@@ -397,6 +419,8 @@ if (BUILD_SAMPLE)
 endif()
 
 if(BUILD_TEST)
+  # adding ZLIB because aws sdk static link seems to be broken when zlib is needed
+  find_package(ZLIB REQUIRED)
   add_subdirectory(tst)
 endif()
 

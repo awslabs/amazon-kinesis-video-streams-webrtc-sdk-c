@@ -1354,7 +1354,8 @@ STATUS iceAgentStateTransitionTimerCallback(UINT32 timerId, UINT64 currentTime, 
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
 
-    // Do not acquire lock because stepIceAgentStateMachine acquires lock.
+    // Do not acquire lock because from/execute methods
+    // in state machine acquire lock
     // Drive the state machine
     CHK_STATUS(stepIceAgentStateMachine(pIceAgent));
 
@@ -2144,12 +2145,13 @@ STATUS iceAgentReadyStateSetup(PIceAgent pIceAgent)
 
         if (pIceCandidatePair->nominated && pIceCandidatePair->state == ICE_CANDIDATE_PAIR_STATE_SUCCEEDED) {
             pNominatedAndValidCandidatePair = pIceCandidatePair;
+            pNominatedAndValidCandidatePair->rtcIceCandidatePairDiagnostics.nominated = pIceCandidatePair->nominated;
             break;
         }
     }
 
     CHK(pNominatedAndValidCandidatePair != NULL, STATUS_ICE_NO_NOMINATED_VALID_CANDIDATE_PAIR_AVAILABLE);
-
+    // change the data sending ice candidate pair as the nomination ice candidate pair.
     pIceAgent->pDataSendingIceCandidatePair = pNominatedAndValidCandidatePair;
     CHK_STATUS(getIpAddrStr(&pIceAgent->pDataSendingIceCandidatePair->local->ipAddress, ipAddrStr, ARRAY_SIZE(ipAddrStr)));
     DLOGP("Selected pair %s_%s, local candidate type: %s. remote candidate type: %s. Round trip time %u ms. Local candidate priority: %u, ice "
@@ -2402,7 +2404,7 @@ STATUS iceCandidateSerialize(PIceCandidate pIceCandidate, PCHAR pOutputData, PUI
     if (pOutputData == NULL) {
         *pOutputLength = ((UINT32) amountWritten) + 1; // +1 for null terminator
     } else {
-        // amountWritten doesnt account for null char
+        // amountWritten doesn't account for null char
         CHK(amountWritten < (INT32) *pOutputLength, STATUS_BUFFER_TOO_SMALL);
     }
 
@@ -2466,8 +2468,9 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
             if (!pIceCandidatePair->nominated) {
                 CHK_STATUS(getStunAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_USE_CANDIDATE, &pStunAttr));
                 if (pStunAttr != NULL) {
-                    DLOGD("received candidate with USE_CANDIDATE flag, local candidate type %s.",
-                          iceAgentGetCandidateTypeStr(pIceCandidatePair->local->iceCandidateType));
+                    DLOGD("received candidate with USE_CANDIDATE flag, local candidate type %s(%s:%s).",
+                          iceAgentGetCandidateTypeStr(pIceCandidatePair->local->iceCandidateType), pIceCandidatePair->local->id,
+                          pIceCandidatePair->remote->id);
                     pIceCandidatePair->nominated = TRUE;
                 }
             }
@@ -2482,6 +2485,8 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
                 pIceAgent->pDataSendingIceCandidatePair->rtcIceCandidatePairDiagnostics.requestsReceived += connectivityCheckRequestsReceived;
                 pIceAgent->pDataSendingIceCandidatePair->rtcIceCandidatePairDiagnostics.responsesSent += connectivityCheckResponsesSent;
                 pIceAgent->pDataSendingIceCandidatePair->rtcIceCandidatePairDiagnostics.nominated = pIceCandidatePair->nominated;
+            } else {
+                DLOGD("going to change the data sending ice candidate pair.");
             }
             break;
 
@@ -2606,6 +2611,19 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
                 CHK(hexStr != NULL, STATUS_NOT_ENOUGH_MEMORY);
                 CHK_STATUS(hexEncode(pBuffer, bufferLen, hexStr, &hexStrLen));
                 DLOGW("Error STUN packet. Packet type: 0x%02x. Packet content: \n\t%s", stunPacketType, hexStr);
+                if (stunPacketType == STUN_PACKET_TYPE_BINDING_RESPONSE_ERROR) {
+                    CHK_STATUS(
+                        findIceCandidatePairWithLocalSocketConnectionAndRemoteAddr(pIceAgent, pSocketConnection, pSrcAddr, TRUE, &pIceCandidatePair));
+                    if (pIceCandidatePair == NULL) {
+                        CHK_STATUS(getIpAddrStr(pSrcAddr, ipAddrStr, ARRAY_SIZE(ipAddrStr)));
+                        CHK_STATUS(getIpAddrStr(&pSocketConnection->hostIpAddr, ipAddrStr2, ARRAY_SIZE(ipAddrStr2)));
+                        CHK_WARN(
+                            FALSE, retStatus,
+                            "ERROR cannot find candidate pair with local candidate %s and remote candidate %s. Dropping STUN binding error response",
+                            ipAddrStr2, ipAddrStr);
+                    }
+                    DLOGW("Error binding response! %s %s", pIceCandidatePair->local->id, pIceCandidatePair->remote->id);
+                }
                 SAFE_MEMFREE(hexStr);
             }
             break;

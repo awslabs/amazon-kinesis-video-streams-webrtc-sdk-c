@@ -24,7 +24,7 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     CHK(pClientInfo != NULL && pChannelInfo != NULL && pCallbacks != NULL && pCredentialProvider != NULL && ppSignalingClient != NULL,
         STATUS_NULL_ARG);
     CHK(pChannelInfo->version <= CHANNEL_INFO_CURRENT_VERSION, STATUS_SIGNALING_INVALID_CHANNEL_INFO_VERSION);
-    CHK(NULL != (pFileCacheEntry = (PSignalingFileCacheEntry) MEMALLOC(SIZEOF(SignalingFileCacheEntry))), STATUS_NOT_ENOUGH_MEMORY);
+    CHK(NULL != (pFileCacheEntry = (PSignalingFileCacheEntry) MEMCALLOC(1, SIZEOF(SignalingFileCacheEntry))), STATUS_NOT_ENOUGH_MEMORY);
 
     // Allocate enough storage
     CHK(NULL != (pSignalingClient = (PSignalingClient) MEMCALLOC(1, SIZEOF(SignalingClient))), STATUS_NOT_ENOUGH_MEMORY);
@@ -41,7 +41,6 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     CHK_STATUS(threadpoolCreate(&pSignalingClient->pThreadpool, pClientInfo->signalingClientInfo.signalingMessagesMinimumThreads,
                                 pClientInfo->signalingClientInfo.signalingMessagesMaximumThreads));
 #endif
-
     pSignalingClient->version = SIGNALING_CLIENT_CURRENT_VERSION;
     // Set invalid call times
     pSignalingClient->describeTime = INVALID_TIMESTAMP_VALUE;
@@ -50,18 +49,29 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     pSignalingClient->getIceConfigTime = INVALID_TIMESTAMP_VALUE;
     pSignalingClient->deleteTime = INVALID_TIMESTAMP_VALUE;
     pSignalingClient->connectTime = INVALID_TIMESTAMP_VALUE;
+    pSignalingClient->describeMediaTime = INVALID_TIMESTAMP_VALUE;
+    pSignalingClient->joinSessionTime = INVALID_TIMESTAMP_VALUE;
+    pSignalingClient->offerReceivedTime = INVALID_TIMESTAMP_VALUE;
+    pSignalingClient->offerSentTime = INVALID_TIMESTAMP_VALUE;
 
     if (pSignalingClient->pChannelInfo->cachingPolicy == SIGNALING_API_CALL_CACHE_TYPE_FILE) {
-        // Signaling channel name can be NULL in case of pre-created channels in which case we use ARN as the name
-        if (STATUS_FAILED(signalingCacheLoadFromFile(pChannelInfo->pChannelName != NULL ? pChannelInfo->pChannelName : pChannelInfo->pChannelArn,
-                                                     pChannelInfo->pRegion, pChannelInfo->channelRoleType, pFileCacheEntry, &cacheFound,
+        if (STATUS_FAILED(signalingCacheLoadFromFile(pSignalingClient->pChannelInfo->pChannelName, pSignalingClient->pChannelInfo->pRegion,
+                                                     pSignalingClient->pChannelInfo->channelRoleType, pFileCacheEntry, &cacheFound,
                                                      pSignalingClient->clientInfo.cacheFilePath))) {
             DLOGW("Failed to load signaling cache from file");
         } else if (cacheFound) {
+            STRCPY(pSignalingClient->channelDescription.channelName, pFileCacheEntry->channelName);
             STRCPY(pSignalingClient->channelDescription.channelArn, pFileCacheEntry->channelArn);
+            STRCPY(pSignalingClient->mediaStorageConfig.storageStreamArn, pFileCacheEntry->storageStreamArn);
+            // If client channel info has explicitly set use media storage to false, we need to set this to false even if the cache says the signaling
+            // channel has media enabled
+            pSignalingClient->mediaStorageConfig.storageStatus =
+                (pSignalingClient->pChannelInfo->useMediaStorage && (STRNCMP(pFileCacheEntry->storageEnabled, "1", 1) == 0)) ? TRUE : FALSE;
             STRCPY(pSignalingClient->channelEndpointHttps, pFileCacheEntry->httpsEndpoint);
             STRCPY(pSignalingClient->channelEndpointWss, pFileCacheEntry->wssEndpoint);
+            STRCPY(pSignalingClient->channelEndpointWebrtc, pFileCacheEntry->webrtcEndpoint);
             pSignalingClient->describeTime = pFileCacheEntry->creationTsEpochSeconds * HUNDREDS_OF_NANOS_IN_A_SECOND;
+            pSignalingClient->describeMediaTime = pFileCacheEntry->creationTsEpochSeconds * HUNDREDS_OF_NANOS_IN_A_SECOND;
             pSignalingClient->getEndpointTime = pFileCacheEntry->creationTsEpochSeconds * HUNDREDS_OF_NANOS_IN_A_SECOND;
         }
     }
@@ -131,6 +141,12 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     CHK(IS_VALID_CVAR_VALUE(pSignalingClient->receiveCvar), STATUS_INVALID_OPERATION);
     pSignalingClient->receiveLock = MUTEX_CREATE(FALSE);
     CHK(IS_VALID_MUTEX_VALUE(pSignalingClient->receiveLock), STATUS_INVALID_OPERATION);
+    pSignalingClient->jssWaitCvar = CVAR_CREATE();
+    CHK(IS_VALID_CVAR_VALUE(pSignalingClient->jssWaitCvar), STATUS_INVALID_OPERATION);
+    pSignalingClient->jssWaitLock = MUTEX_CREATE(FALSE);
+    CHK(IS_VALID_MUTEX_VALUE(pSignalingClient->jssWaitLock), STATUS_INVALID_OPERATION);
+    pSignalingClient->offerSendReceiveTimeLock = MUTEX_CREATE(FALSE);
+    CHK(IS_VALID_MUTEX_VALUE(pSignalingClient->offerSendReceiveTimeLock), STATUS_INVALID_OPERATION);
 
     pSignalingClient->stateLock = MUTEX_CREATE(TRUE);
     CHK(IS_VALID_MUTEX_VALUE(pSignalingClient->stateLock), STATUS_INVALID_OPERATION);
@@ -253,6 +269,14 @@ STATUS freeSignaling(PSignalingClient* ppSignalingClient)
         CVAR_FREE(pSignalingClient->receiveCvar);
     }
 
+    if (IS_VALID_MUTEX_VALUE(pSignalingClient->jssWaitLock)) {
+        MUTEX_FREE(pSignalingClient->jssWaitLock);
+    }
+
+    if (IS_VALID_CVAR_VALUE(pSignalingClient->jssWaitCvar)) {
+        CVAR_FREE(pSignalingClient->jssWaitCvar);
+    }
+
     if (IS_VALID_MUTEX_VALUE(pSignalingClient->stateLock)) {
         MUTEX_FREE(pSignalingClient->stateLock);
     }
@@ -271,6 +295,10 @@ STATUS freeSignaling(PSignalingClient* ppSignalingClient)
 
     if (IS_VALID_MUTEX_VALUE(pSignalingClient->diagnosticsLock)) {
         MUTEX_FREE(pSignalingClient->diagnosticsLock);
+    }
+
+    if (IS_VALID_MUTEX_VALUE(pSignalingClient->offerSendReceiveTimeLock)) {
+        MUTEX_FREE(pSignalingClient->offerSendReceiveTimeLock);
     }
 
     uninitializeThreadTracker(&pSignalingClient->reconnecterTracker);
@@ -387,12 +415,15 @@ STATUS signalingSendMessageSync(PSignalingClient pSignalingClient, PSignalingMes
     // Perform the call
     CHK_STATUS(sendLwsMessage(pSignalingClient, pSignalingMessage->messageType, pSignalingMessage->peerClientId, pSignalingMessage->payload,
                               pSignalingMessage->payloadLen, pSignalingMessage->correlationId, 0));
-    if (pSignalingMessage->messageType == SIGNALING_MESSAGE_TYPE_ANSWER) {
-        PROFILE_WITH_START_TIME_OBJ(pSignalingClient->offerTime, pSignalingClient->diagnostics.offerToAnswerTime, "Offer to answer time");
-    }
+
+    MUTEX_LOCK(pSignalingClient->offerSendReceiveTimeLock);
     if (pSignalingMessage->messageType == SIGNALING_MESSAGE_TYPE_OFFER) {
-        pSignalingClient->offerTime = GETTIME();
+        pSignalingClient->offerSentTime = GETTIME();
+    } else if (pSignalingMessage->messageType == SIGNALING_MESSAGE_TYPE_ANSWER) {
+        PROFILE_WITH_START_TIME_OBJ(pSignalingClient->offerReceivedTime, pSignalingClient->diagnostics.offerToAnswerTime,
+                                    "Offer Received to Answer Sent time");
     }
+    MUTEX_UNLOCK(pSignalingClient->offerSendReceiveTimeLock);
     // Update the internal diagnostics only after successfully sending
     ATOMIC_INCREMENT(&pSignalingClient->diagnostics.numberOfMessagesSent);
 
@@ -496,17 +527,21 @@ STATUS signalingConnectSync(PSignalingClient pSignalingClient)
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
     // Validate the state
-    CHK_STATUS(acceptSignalingStateMachineState(
-        pSignalingClient, SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_DISCONNECTED | SIGNALING_STATE_CONNECTED));
+    CHK_STATUS(acceptSignalingStateMachineState(pSignalingClient,
+                                                SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_DISCONNECTED |
+                                                    SIGNALING_STATE_CONNECTED | SIGNALING_STATE_JOIN_SESSION | SIGNALING_STATE_JOIN_SESSION_WAITING |
+                                                    SIGNALING_STATE_JOIN_SESSION_CONNECTED));
 
     // Check if we are already connected
-    CHK(!ATOMIC_LOAD_BOOL(&pSignalingClient->connected), retStatus);
+    CHK(!ATOMIC_LOAD_BOOL(&pSignalingClient->connected) || pSignalingClient->mediaStorageConfig.storageStatus, retStatus);
 
     // Store the signaling state in case we error/timeout so we can re-set it on exit
     CHK_STATUS(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pState));
 
+    // If media storage is enabled we keep going until join session connected, otherwise stop at connected.
     CHK_STATUS(signalingStateMachineIterator(pSignalingClient, SIGNALING_GET_CURRENT_TIME(pSignalingClient) + SIGNALING_CONNECT_STATE_TIMEOUT,
-                                             SIGNALING_STATE_CONNECTED));
+                                             pSignalingClient->mediaStorageConfig.storageStatus ? SIGNALING_STATE_JOIN_SESSION_CONNECTED
+                                                                                                : SIGNALING_STATE_CONNECTED));
 
 CleanUp:
 
@@ -694,8 +729,10 @@ STATUS refreshIceConfiguration(PSignalingClient pSignalingClient)
     CHK(pSignalingClient->iceConfigCount == 0 || curTime > pSignalingClient->iceConfigExpiration, retStatus);
 
     // ICE config can be retrieved in specific states only
-    CHK_STATUS(acceptSignalingStateMachineState(
-        pSignalingClient, SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_DISCONNECTED));
+    CHK_STATUS(acceptSignalingStateMachineState(pSignalingClient,
+                                                SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED |
+                                                    SIGNALING_STATE_JOIN_SESSION | SIGNALING_STATE_JOIN_SESSION_WAITING |
+                                                    SIGNALING_STATE_JOIN_SESSION_CONNECTED | SIGNALING_STATE_DISCONNECTED));
 
     MUTEX_LOCK(pSignalingClient->stateLock);
     locked = TRUE;
@@ -706,8 +743,9 @@ STATUS refreshIceConfiguration(PSignalingClient pSignalingClient)
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_SIGNALING_RECONNECT_ICE);
     ATOMIC_STORE(&pSignalingClient->refreshIceConfig, TRUE);
     DLOGI("Retrieving ICE config through getIceServerConfig call again");
-    // Iterate the state machinery in steady states only - ready or connected
-    if (pStateMachineState->state == SIGNALING_STATE_READY || pStateMachineState->state == SIGNALING_STATE_CONNECTED) {
+    // Iterate the state machinery in steady states only - ready / connected / join session connected
+    if (pStateMachineState->state == SIGNALING_STATE_READY || pStateMachineState->state == SIGNALING_STATE_CONNECTED ||
+        pStateMachineState->state == SIGNALING_STATE_JOIN_SESSION_CONNECTED) {
         CHK_STATUS(signalingStateMachineIterator(pSignalingClient, curTime + SIGNALING_REFRESH_ICE_CONFIG_STATE_TIMEOUT, pStateMachineState->state));
     }
 
@@ -1052,11 +1090,12 @@ STATUS getChannelEndpoint(PSignalingClient pSignalingClient, UINT64 time)
         case SIGNALING_API_CALL_CACHE_TYPE_DESCRIBE_GETENDPOINT:
             /* explicit fall-through */
         case SIGNALING_API_CALL_CACHE_TYPE_FILE:
+            DLOGD("time: %llu, endpoint time: %llu,  Caching Period:  %llu", time, pSignalingClient->getEndpointTime,
+                  pSignalingClient->pChannelInfo->cachingPeriod);
             if (IS_VALID_TIMESTAMP(pSignalingClient->getEndpointTime) &&
                 time <= pSignalingClient->getEndpointTime + pSignalingClient->pChannelInfo->cachingPeriod) {
                 apiCall = FALSE;
             }
-
             break;
     }
 
@@ -1082,8 +1121,11 @@ STATUS getChannelEndpoint(PSignalingClient pSignalingClient, UINT64 time)
                                                                                     : pSignalingClient->pChannelInfo->pChannelArn);
                         STRCPY(signalingFileCacheEntry.region, pSignalingClient->pChannelInfo->pRegion);
                         STRCPY(signalingFileCacheEntry.channelArn, pSignalingClient->channelDescription.channelArn);
+                        STRCPY(signalingFileCacheEntry.storageEnabled, pSignalingClient->mediaStorageConfig.storageStatus ? "1" : "0");
+                        STRCPY(signalingFileCacheEntry.storageStreamArn, pSignalingClient->mediaStorageConfig.storageStreamArn);
                         STRCPY(signalingFileCacheEntry.httpsEndpoint, pSignalingClient->channelEndpointHttps);
                         STRCPY(signalingFileCacheEntry.wssEndpoint, pSignalingClient->channelEndpointWss);
+                        STRCPY(signalingFileCacheEntry.webrtcEndpoint, pSignalingClient->channelEndpointWebrtc);
                         if (STATUS_FAILED(signalingCacheSaveToFile(&signalingFileCacheEntry, pSignalingClient->clientInfo.cacheFilePath))) {
                             DLOGW("Failed to save signaling cache to file");
                         }
@@ -1236,6 +1278,113 @@ CleanUp:
     return retStatus;
 }
 
+STATUS joinStorageSession(PSignalingClient pSignalingClient, UINT64 time)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+
+    THREAD_SLEEP_UNTIL(time);
+
+    CHK(pSignalingClient->mediaStorageConfig.storageStatus == TRUE, STATUS_SIGNALING_MEDIA_STORAGE_DISABLED);
+    // Check for the stale credentials
+    CHECK_SIGNALING_CREDENTIALS_EXPIRATION(pSignalingClient);
+
+    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
+
+    // We are not caching connect calls
+    if (pSignalingClient->clientInfo.joinSessionPreHookFn != NULL) {
+        retStatus = pSignalingClient->clientInfo.joinSessionPreHookFn(pSignalingClient->clientInfo.hookCustomData);
+    }
+
+    if (STATUS_SUCCEEDED(retStatus)) {
+        if (ATOMIC_LOAD_BOOL(&pSignalingClient->connected)) {
+            retStatus = joinStorageSessionLws(pSignalingClient, time);
+
+            // Store the time of the call on success
+            if (STATUS_SUCCEEDED(retStatus)) {
+                pSignalingClient->joinSessionTime = time;
+            }
+            // Calculate the latency whether the call succeeded or not
+            SIGNALING_API_LATENCY_CALCULATION(pSignalingClient, time, TRUE);
+        } else {
+            ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_INVALID_ARG); //!< TBD
+        }
+    }
+
+    if (pSignalingClient->clientInfo.joinSessionPostHookFn != NULL) {
+        retStatus = pSignalingClient->clientInfo.joinSessionPostHookFn(pSignalingClient->clientInfo.hookCustomData);
+    }
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS describeMediaStorageConf(PSignalingClient pSignalingClient, UINT64 time)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    BOOL apiCall = TRUE;
+
+    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+
+    THREAD_SLEEP_UNTIL(time);
+    // Check for the stale credentials
+    CHECK_SIGNALING_CREDENTIALS_EXPIRATION(pSignalingClient);
+
+    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
+
+    switch (pSignalingClient->pChannelInfo->cachingPolicy) {
+        case SIGNALING_API_CALL_CACHE_TYPE_NONE:
+            break;
+
+        case SIGNALING_API_CALL_CACHE_TYPE_DESCRIBE_GETENDPOINT:
+            /* explicit fall-through */
+        case SIGNALING_API_CALL_CACHE_TYPE_FILE:
+            if (IS_VALID_TIMESTAMP(pSignalingClient->describeMediaTime) &&
+                time <= pSignalingClient->describeMediaTime + pSignalingClient->pChannelInfo->cachingPeriod) {
+                apiCall = FALSE;
+            }
+
+            break;
+    }
+
+    // Call API
+    if (STATUS_SUCCEEDED(retStatus)) {
+        if (apiCall) {
+            // Call pre hook func
+            if (pSignalingClient->clientInfo.describeMediaStorageConfPreHookFn != NULL) {
+                retStatus = pSignalingClient->clientInfo.describeMediaStorageConfPreHookFn(pSignalingClient->clientInfo.hookCustomData);
+            }
+
+            if (STATUS_SUCCEEDED(retStatus)) {
+                retStatus = describeMediaStorageConfLws(pSignalingClient, time);
+                // Store the last call time on success
+                if (STATUS_SUCCEEDED(retStatus)) {
+                    pSignalingClient->describeMediaTime = time;
+                }
+                // Calculate the latency whether the call succeeded or not
+                SIGNALING_API_LATENCY_CALCULATION(pSignalingClient, time, TRUE);
+            }
+
+            // Call post hook func
+            if (pSignalingClient->clientInfo.describeMediaStorageConfPostHookFn != NULL) {
+                retStatus = pSignalingClient->clientInfo.describeMediaStorageConfPostHookFn(pSignalingClient->clientInfo.hookCustomData);
+            }
+        } else {
+            ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_OK);
+        }
+    }
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
+
 UINT64 signalingGetCurrentTime(UINT64 customData)
 {
     UNUSED_PARAM(customData);
@@ -1267,6 +1416,7 @@ STATUS signalingGetMetrics(PSignalingClient pSignalingClient, PSignalingClientMe
         case 1:
             pSignalingClientMetrics->signalingClientStats.getTokenCallTime = pSignalingClient->diagnostics.getTokenCallTime;
             pSignalingClientMetrics->signalingClientStats.describeCallTime = pSignalingClient->diagnostics.describeCallTime;
+            pSignalingClientMetrics->signalingClientStats.describeMediaCallTime = pSignalingClient->diagnostics.describeMediaCallTime;
             pSignalingClientMetrics->signalingClientStats.createCallTime = pSignalingClient->diagnostics.createCallTime;
             pSignalingClientMetrics->signalingClientStats.getEndpointCallTime = pSignalingClient->diagnostics.getEndpointCallTime;
             pSignalingClientMetrics->signalingClientStats.getIceConfigCallTime = pSignalingClient->diagnostics.getIceConfigCallTime;
@@ -1274,7 +1424,9 @@ STATUS signalingGetMetrics(PSignalingClient pSignalingClient, PSignalingClientMe
             pSignalingClientMetrics->signalingClientStats.createClientTime = pSignalingClient->diagnostics.createClientTime;
             pSignalingClientMetrics->signalingClientStats.fetchClientTime = pSignalingClient->diagnostics.fetchClientTime;
             pSignalingClientMetrics->signalingClientStats.connectClientTime = pSignalingClient->diagnostics.connectClientTime;
+            pSignalingClientMetrics->signalingClientStats.joinSessionCallTime = pSignalingClient->diagnostics.joinSessionCallTime;
             pSignalingClientMetrics->signalingClientStats.offerToAnswerTime = pSignalingClient->diagnostics.offerToAnswerTime;
+            pSignalingClientMetrics->signalingClientStats.joinSessionToOfferRecvTime = pSignalingClient->diagnostics.joinSessionToOfferRecvTime;
         case 0:
             // Fill in the data structures according to the version of the requested structure
             pSignalingClientMetrics->signalingClientStats.signalingClientUptime = curTime - pSignalingClient->diagnostics.createTime;
