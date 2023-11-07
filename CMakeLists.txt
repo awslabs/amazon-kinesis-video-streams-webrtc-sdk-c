@@ -8,6 +8,7 @@ include(CheckFunctionExists)
 project(KinesisVideoWebRTCClient VERSION 1.10.1 LANGUAGES C)
 
 
+
 # User Flags
 option(ADD_MUCLIBC "Add -muclibc c flag" OFF)
 option(BUILD_DEPENDENCIES "Whether or not to build depending libraries from source" ON)

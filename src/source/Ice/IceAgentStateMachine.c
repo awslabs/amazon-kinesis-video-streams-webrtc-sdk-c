@@ -34,7 +34,6 @@ STATUS checkIceAgentStateMachine(PIceAgent pIceAgent)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     BOOL transitionReady = FALSE;
-
     CHK(pIceAgent != NULL && pIceAgent->pStateMachine != NULL, STATUS_NULL_ARG);
 
     // if a state transition is ready, tell the timer to kick the timer
