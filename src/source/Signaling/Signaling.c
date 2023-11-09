@@ -1267,6 +1267,18 @@ STATUS signalingGetMetrics(PSignalingClient pSignalingClient, PSignalingClientMe
             pSignalingClientMetrics->signalingClientStats.fetchClientTime = pSignalingClient->diagnostics.fetchClientTime;
             pSignalingClientMetrics->signalingClientStats.connectClientTime = pSignalingClient->diagnostics.connectClientTime;
             pSignalingClientMetrics->signalingClientStats.offerToAnswerTime = pSignalingClient->diagnostics.offerToAnswerTime;
+            pSignalingClientMetrics->signalingClientStats.describeChannelStartTime = pSignalingClient->diagnostics.describeChannelStartTime;
+            pSignalingClientMetrics->signalingClientStats.describeChannelEndTime = pSignalingClient->diagnostics.describeChannelEndTime;
+            pSignalingClientMetrics->signalingClientStats.getSignalingChannelEndpointStartTime = pSignalingClient->diagnostics.getSignalingChannelEndpointStartTime;
+            pSignalingClientMetrics->signalingClientStats.getSignalingChannelEndpointEndTime = pSignalingClient->diagnostics.getSignalingChannelEndpointEndTime;
+            pSignalingClientMetrics->signalingClientStats.getIceServerConfigStartTime = pSignalingClient->diagnostics.getIceServerConfigStartTime;
+            pSignalingClientMetrics->signalingClientStats.getIceServerConfigEndTime = pSignalingClient->diagnostics.getIceServerConfigEndTime;
+            pSignalingClientMetrics->signalingClientStats.getTokenStartTime = pSignalingClient->diagnostics.getTokenStartTime;
+            pSignalingClientMetrics->signalingClientStats.getTokenEndTime = pSignalingClient->diagnostics.getTokenEndTime;
+            pSignalingClientMetrics->signalingClientStats.createChannelStartTime = pSignalingClient->diagnostics.createChannelStartTime;
+            pSignalingClientMetrics->signalingClientStats.createChannelEndTime = pSignalingClient->diagnostics.createChannelEndTime;
+            pSignalingClientMetrics->signalingClientStats.connectStartTime = pSignalingClient->diagnostics.connectStartTime;
+            pSignalingClientMetrics->signalingClientStats.connectEndTime = pSignalingClient->diagnostics.connectEndTime;
         case 0:
             // Fill in the data structures according to the version of the requested structure
             pSignalingClientMetrics->signalingClientStats.signalingClientUptime = curTime - pSignalingClient->diagnostics.createTime;

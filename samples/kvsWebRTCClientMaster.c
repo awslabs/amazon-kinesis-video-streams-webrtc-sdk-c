@@ -47,7 +47,9 @@ INT32 main(INT32 argc, CHAR* argv[])
     CHK_STATUS(initKvsWebRtc());
     DLOGI("[KVS Master] KVS WebRTC initialization completed successfully");
 
+    pSampleConfiguration->signalingClientMetrics.signalingClientStats.signalingStartTime = GETTIME();
     CHK_STATUS(initSignaling(pSampleConfiguration, SAMPLE_MASTER_CLIENT_ID));
+    pSampleConfiguration->signalingClientMetrics.signalingClientStats.signalingEndTime = GETTIME();
     DLOGI("[KVS Master] Channel %s set up done ", pChannelName);
 
     // Checking for termination
