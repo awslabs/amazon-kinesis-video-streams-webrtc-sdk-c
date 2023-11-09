@@ -256,6 +256,8 @@ typedef struct {
     UINT64 iceCandidatePairNominationTime;
     UINT64 candidateGatheringTime;
     UINT64 iceAgentSetUpTime;
+    UINT64 candidateGatheringStartTime;
+    UINT64 candidateGatheringEndTime;
 } KvsIceAgentStats, *PKvsIceAgentStats;
 
 /**
@@ -571,6 +573,22 @@ typedef struct {
  * @brief SignalingClientMetrics Represent the stats related to the KVS WebRTC SDK signaling client
  */
 typedef struct {
+    UINT64 signalingStartTime;
+    UINT64 signalingEndTime;
+    UINT64 offerReceiptTime;
+    UINT64 sendAnswerTime;
+    UINT64 describeChannelStartTime;
+    UINT64 describeChannelEndTime;
+    UINT64 getSignalingChannelEndpointStartTime;
+    UINT64 getSignalingChannelEndpointEndTime;
+    UINT64 getIceServerConfigStartTime;
+    UINT64 getIceServerConfigEndTime;
+    UINT64 getTokenStartTime;
+    UINT64 getTokenEndTime;
+    UINT64 createChannelStartTime;
+    UINT64 createChannelEndTime;
+    UINT64 connectStartTime;
+    UINT64 connectEndTime;
     UINT64 cpApiCallLatency;         //!< Latency (in 100 ns) incurred per backend API call for the control plane APIs
     UINT64 dpApiCallLatency;         //!< Latency (in 100 ns) incurred per backend API call for the data plane APIs
     UINT64 signalingClientUptime;    //!< Client uptime (in 100 ns). Timestamp will be recorded at every SIGNALING_CLIENT_STATE_CONNECTED
@@ -607,6 +625,8 @@ typedef struct {
 } SignalingClientStats, *PSignalingClientStats;
 
 typedef struct {
+    UINT64 peerConnectionStartTime;
+    UINT64 peerConnectionConnectedTime;
     UINT64 peerConnectionCreationTime; //!< Time taken (ms) for peer connection object creation time
     UINT64 dtlsSessionSetupTime;       //!< Time taken (ms) for DTLS handshake to complete
     UINT64 iceHolePunchingTime;        //!< Time taken (ms) for ICE agent set up to complete

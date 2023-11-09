@@ -41,6 +41,14 @@ extern "C" {
         DLOGP("[%s] Time taken: %" PRIu64 " ms", (msg), (t));                                                                                        \
     } while (FALSE)
 
+#define PROFILE_CALL_WITH_START_END_T_OBJ(f, s, e, msg)                                                                                                           \
+    do {                                                                                                                                             \
+        s = GETTIME();                                                                                                                \
+        f;                                                                                                                                           \
+        e = GETTIME();                                                                    \
+        DLOGP("[%s] Time taken: %" PRIu64 " ms", (msg), ((e - s) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND));                                                                                        \
+    } while (FALSE)
+
 #define PROFILE_WITH_START_TIME(t, msg)                                                                                                              \
     do {                                                                                                                                             \
         DLOGP("[%s] Time taken: %" PRIu64 " ms", msg, (GETTIME() - (t)) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);                                       \

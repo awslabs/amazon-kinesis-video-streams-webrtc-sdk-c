@@ -54,14 +54,14 @@ extern "C" {
 
 #define MASTER_DATA_CHANNEL_MESSAGE "This message is from the KVS Master"
 #define VIEWER_DATA_CHANNEL_MESSAGE "This message is from the KVS Viewer"
-#define DATA_CHANNEL_MESSAGE_TEMPLATE "{\"content\":\"%s\",\"t1\":\"%s\",\"t2\":\"%s\",\"t3\":\"%s\",\"t4\":\"%s\",\"t5\":\"%s\"}"
-#define PEER_CONNECTION_METRICS_JSON_TEMPLATE "{\"peerConnectionCreationTime\":\"%llu\", \"dtlsSessionSetupTime\":\"%llu\", \"iceHolePunchingTime\":\"%llu\"}"
-#define SIGNALING_CLIENT_METRICS_JSON_TEMPLATE "{\"cpApiCallLatency\":\"%llu\", \"dpApiCallLatency\":\"%llu\", \"getTokenCallTime\":\"%llu\", \"describeCallTime\":\"%llu\", \"createCallTime\":\"%llu\", \"getEndpointCallTime\":\"%llu\", \"getIceConfigCallTime\":\"%llu\", \"connectCallTime\":\"%llu\", \"createClientTime\":\"%llu\", \"fetchClientTime\":\"%llu\", \"connectClientTime\":\"%llu\", \"offerToAnswerTime\":\"%llu\"}"
-#define ICE_AGENT_METRICS_JSON_TEMPLATE "{\"localCandidateGatheringTime\":\"%llu\", \"hostCandidateSetUpTime\":\"%llu\", \"srflxCandidateSetUpTime\":\"%llu\", \"relayCandidateSetUpTime\":\"%llu\", \"iceServerParsingTime\":\"%llu\", \"iceCandidatePairNominationTime\":\"%llu\", \"candidateGatheringTime\":\"%llu\", \"iceAgentSetUpTime\":\"%llu\"}"
+#define DATA_CHANNEL_MESSAGE_TEMPLATE "{\"content\":\"%s\",\"t1\": \"%s\",\"t2\": \"%s\",\"t3\": \"%s\",\"t4\": \"%s\",\"t5\": \"%s\" }"
+#define PEER_CONNECTION_METRICS_JSON_TEMPLATE "{\"peerConnectionStartTime\": %llu, \"peerConnectionEndTime\": %llu }"
+#define SIGNALING_CLIENT_METRICS_JSON_TEMPLATE "{\"signalingStartTime\": %llu, \"signalingEndTime\": %llu, \"offerReceiptTime\": %llu, \"sendAnswerTime\": %llu, \"describeChannelStartTime\": %llu, \"describeChannelEndTime\": %llu, \"getSignalingChannelEndpointStartTime\": %llu, \"getSignalingChannelEndpointEndTime\": %llu, \"getIceServerConfigStartTime\": %llu, \"getIceServerConfigEndTime\": %llu, \"getTokenStartTime\": %llu, \"getTokenEndTime\": %llu, \"createChannelStartTime\": %llu, \"createChannelEndTime\": %llu, \"connectStartTime\": %llu, \"connectEndTime\": %llu }"
+#define ICE_AGENT_METRICS_JSON_TEMPLATE "{\"candidateGatheringStartTime\": %llu, \"candidateGatheringEndTime\": %llu }"
 
-#define MAX_PEER_CONNECTION_METRICS_MESSAGE_SIZE 98 + 20 * 3
-#define MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE 329 + 20 * 13
-#define MAX_ICE_AGENT_METRICS_MESSAGE_SIZE 272 + 20 * 8
+#define MAX_PEER_CONNECTION_METRICS_MESSAGE_SIZE 98 + 20 * 2
+#define MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE 497 + 20 * 10
+#define MAX_ICE_AGENT_METRICS_MESSAGE_SIZE 272 + 20 * 2
 
 CHAR pPeerConnectionMetricsMessage[MAX_PEER_CONNECTION_METRICS_MESSAGE_SIZE];
 CHAR pSignalingClientMetricsMessage[MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE]; 
@@ -145,11 +145,11 @@ typedef struct {
 
 typedef struct {
     CHAR content[100];
-    CHAR t1[100];
-    CHAR t2[100];
-    CHAR t3[100];
-    CHAR t4[100];
-    CHAR t5[100];
+    CHAR t1[20];
+    CHAR t2[20];
+    CHAR t3[20];
+    CHAR t4[20];
+    CHAR t5[20];
 } DataChannelMessage;
 
 
