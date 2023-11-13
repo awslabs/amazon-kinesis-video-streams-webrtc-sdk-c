@@ -573,10 +573,6 @@ typedef struct {
  * @brief SignalingClientMetrics Represent the stats related to the KVS WebRTC SDK signaling client
  */
 typedef struct {
-    UINT64 signalingStartTime;
-    UINT64 signalingEndTime;
-    UINT64 offerReceiptTime;
-    UINT64 sendAnswerTime;
     UINT64 describeChannelStartTime;
     UINT64 describeChannelEndTime;
     UINT64 getSignalingChannelEndpointStartTime;

@@ -98,10 +98,10 @@ VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL 
             retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) pMessageSend, STRLEN(pMessageSend));
         } else  {
             SNPRINTF(pSignalingClientMetricsMessage, MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE, SIGNALING_CLIENT_METRICS_JSON_TEMPLATE, 
-                    pSampleConfiguration->signalingClientMetrics.signalingClientStats.signalingStartTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND, 
-                    pSampleConfiguration->signalingClientMetrics.signalingClientStats.signalingEndTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND, 
-                    pSampleConfiguration->signalingClientMetrics.signalingClientStats.offerReceiptTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
-                    pSampleConfiguration->signalingClientMetrics.signalingClientStats.sendAnswerTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
+                    pSampleConfiguration->signalingClientMetrics.signalingStartTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND, 
+                    pSampleConfiguration->signalingClientMetrics.signalingEndTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND, 
+                    pSampleConfiguration->signalingClientMetrics.offerReceiptTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
+                    pSampleConfiguration->signalingClientMetrics.sendAnswerTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
                     pSampleConfiguration->signalingClientMetrics.signalingClientStats.describeChannelStartTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
                     pSampleConfiguration->signalingClientMetrics.signalingClientStats.describeChannelEndTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
                     pSampleConfiguration->signalingClientMetrics.signalingClientStats.getSignalingChannelEndpointStartTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
@@ -381,7 +381,7 @@ STATUS sendSignalingMessage(PSampleStreamingSession pSampleStreamingSession, PSi
     locked = TRUE;
     CHK_STATUS(signalingClientSendMessageSync(pSampleConfiguration->signalingClientHandle, pMessage));
     if (pMessage->messageType == SIGNALING_MESSAGE_TYPE_ANSWER) {
-        // CHK_STATUS(signalingClientGetMetrics(pSampleConfiguration->signalingClientHandle, &pSampleConfiguration->signalingClientMetrics));
+        CHK_STATUS(signalingClientGetMetrics(pSampleConfiguration->signalingClientHandle, &pSampleConfiguration->signalingClientMetrics));
         DLOGP("[Signaling offer to answer] %" PRIu64 " ms", pSampleConfiguration->signalingClientMetrics.signalingClientStats.offerToAnswerTime);
     }
 
@@ -994,7 +994,6 @@ STATUS initSignaling(PSampleConfiguration pSampleConfiguration, PCHAR clientId)
     STATUS retStatus = STATUS_SUCCESS;
     SignalingClientMetrics signalingClientMetrics = pSampleConfiguration->signalingClientMetrics;
     pSampleConfiguration->signalingClientCallbacks.messageReceivedFn = signalingMessageReceived;
-    UINT64 startTime = GETTIME();
     
     STRCPY(pSampleConfiguration->clientInfo.clientId, clientId);
     CHK_STATUS(createSignalingClientSync(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
@@ -1018,7 +1017,6 @@ STATUS initSignaling(PSampleConfiguration pSampleConfiguration, PCHAR clientId)
     DLOGP("[Signaling fetch client] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.fetchClientTime);
     DLOGP("[Signaling connect client] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.connectClientTime);
     pSampleConfiguration->signalingClientMetrics = signalingClientMetrics;
-    pSampleConfiguration->signalingClientMetrics.signalingClientStats.signalingStartTime = startTime;
     gSampleConfiguration = pSampleConfiguration;
 CleanUp:
     return retStatus;
@@ -1473,7 +1471,7 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
 
     switch (pReceivedSignalingMessage->signalingMessage.messageType) {
         case SIGNALING_MESSAGE_TYPE_OFFER:
-            pSampleConfiguration->signalingClientMetrics.signalingClientStats.offerReceiptTime = GETTIME();
+            pSampleConfiguration->signalingClientMetrics.offerReceiptTime = GETTIME();
             // Check if we already have an ongoing master session with the same peer
             CHK_ERR(!peerConnectionFound, STATUS_INVALID_OPERATION, "Peer connection %s is in progress",
                     pReceivedSignalingMessage->signalingMessage.peerClientId);
@@ -1504,7 +1502,7 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
 
             CHK_STATUS(handleOffer(pSampleConfiguration, pSampleStreamingSession, &pReceivedSignalingMessage->signalingMessage));
 
-            pSampleConfiguration->signalingClientMetrics.signalingClientStats.sendAnswerTime = GETTIME();
+            pSampleConfiguration->signalingClientMetrics.sendAnswerTime = GETTIME();
 
             CHK_STATUS(hashTablePut(pSampleConfiguration->pRtcPeerConnectionForRemoteClient, clientIdHash, (UINT64) pSampleStreamingSession));
 

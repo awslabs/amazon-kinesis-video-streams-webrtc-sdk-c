@@ -1515,6 +1515,10 @@ typedef struct {
  */
 typedef struct {
     UINT32 version;                            //!< Structure version
+    UINT64 signalingStartTime;
+    UINT64 signalingEndTime;  
+    UINT64 offerReceiptTime;
+    UINT64 sendAnswerTime;                         
     SignalingClientStats signalingClientStats; //!< Signaling client metrics stats. Reference in Stats.h
 } SignalingClientMetrics, *PSignalingClientMetrics;
 
