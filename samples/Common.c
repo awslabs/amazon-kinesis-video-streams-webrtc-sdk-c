@@ -34,88 +34,125 @@ STATUS signalingCallFailed(STATUS status)
 VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL isBinary, PBYTE pMessage, UINT32 pMessageLen)
 {
     STATUS retStatus = STATUS_SUCCESS;
+#ifdef ENABLE_SENDING_METRICS_TO_VIEWER
     UINT32 i, strLen, tokenCount;
     UINT64 masterToViewerE2E = 0, viewerToMasterE2E = 0, t1, t2, t3, t4, t5;
+    PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) customData;
+    PSampleConfiguration pSampleConfiguration = pSampleStreamingSession->pSampleConfiguration;
     DataChannelMessage dataChannelMessage = { '\0', '\0', '\0', '\0', '\0', '\0' };
     CHAR pMessageSend[SIZEOF(DataChannelMessage)];
     jsmn_parser parser;
     jsmn_init(&parser);
     jsmntok_t tokens[MAX_JSON_TOKEN_COUNT];
-
     PCHAR json = (PCHAR) pMessage;
 
     tokenCount = jsmn_parse(&parser, json, STRLEN(json), tokens, SIZEOF(tokens) / SIZEOF(jsmntok_t));
+ 
+    if (tokenCount > 1) {
 
-    for (i = 1; i < tokenCount; i++) {
-        if (compareJsonString(json, &tokens[i], JSMN_STRING, (PCHAR) "content")) {
-            strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
-            STRNCPY(dataChannelMessage.content, json + tokens[i + 1].start, tokens[i + 1].end - tokens[i + 1].start);
-        } else if (compareJsonString(json, &tokens[i], JSMN_STRING, (PCHAR) "t1")) {
-            strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
-            STRNCPY(dataChannelMessage.t1, json + tokens[i + 1].start, tokens[i + 1].end - tokens[i + 1].start);
-        } else if (compareJsonString(json, &tokens[i], JSMN_STRING, (PCHAR) "t2")) {
-            strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
-            if (strLen != 0) {
-                STRNCPY(dataChannelMessage.t2, json + tokens[i + 1].start, tokens[i + 1].end - tokens[i + 1].start);
-            } else {
-                SNPRINTF(dataChannelMessage.t2, 20, "%llu", GETTIME() / 10000);
-                dataChannelMessage.t3[0] = '\0';
-                dataChannelMessage.t4[0] = '\0';
-                dataChannelMessage.t5[0] = '\0';
-                break;
+        CHK(tokens[0].type == JSMN_OBJECT, STATUS_INVALID_API_CALL_RETURN_JSON);
+        DLOGI("DataChannel json message: %.*s\n", pMessageLen, pMessage);
+
+        for (i = 1; i < tokenCount; i++) {
+            if (compareJsonString(json, &tokens[i], JSMN_STRING, (PCHAR) "content")) {
+                strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
+                STRNCPY(dataChannelMessage.content, json + tokens[i + 1].start, tokens[i + 1].end - tokens[i + 1].start);
+            } else if (compareJsonString(json, &tokens[i], JSMN_STRING, (PCHAR) "t1")) {
+                strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
+                STRNCPY(dataChannelMessage.t1, json + tokens[i + 1].start, tokens[i + 1].end - tokens[i + 1].start);
+            } else if (compareJsonString(json, &tokens[i], JSMN_STRING, (PCHAR) "t2")) {
+                strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
+                if (strLen != 0) {
+                    STRNCPY(dataChannelMessage.t2, json + tokens[i + 1].start, tokens[i + 1].end - tokens[i + 1].start);
+                } else {
+                    SNPRINTF(dataChannelMessage.t2, 20, "%llu", GETTIME() / 10000);
+                    dataChannelMessage.t3[0] = '\0';
+                    dataChannelMessage.t4[0] = '\0';
+                    dataChannelMessage.t5[0] = '\0';
+                    break;
+                }
+            } else if (compareJsonString(json, &tokens[i], JSMN_STRING, (PCHAR) "t3")) {
+                strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
+                STRNCPY(dataChannelMessage.t3, json + tokens[i + 1].start, tokens[i + 1].end - tokens[i + 1].start);
+            } else if (compareJsonString(json, &tokens[i], JSMN_STRING, (PCHAR) "t4")) {
+                strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
+                if (strLen != 0) {
+                    STRNCPY(dataChannelMessage.t4, json + tokens[i + 1].start, tokens[i + 1].end - tokens[i + 1].start);
+                } else {
+                    SNPRINTF(dataChannelMessage.t4, 20, "%llu", GETTIME() / 10000);
+                    dataChannelMessage.t5[0] = '\0';
+                    break;
+                }
+            } else if (compareJsonString(json, &tokens[i], JSMN_STRING, (PCHAR) "t5")) {
+                strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
+                STRNCPY(dataChannelMessage.t5, json + tokens[i + 1].start, tokens[i + 1].end - tokens[i + 1].start);
             }
-        } else if (compareJsonString(json, &tokens[i], JSMN_STRING, (PCHAR) "t3")) {
-            strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
-            STRNCPY(dataChannelMessage.t3, json + tokens[i + 1].start, tokens[i + 1].end - tokens[i + 1].start);
-        } else if (compareJsonString(json, &tokens[i], JSMN_STRING, (PCHAR) "t4")) {
-            strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
-            if (strLen != 0) {
-                STRNCPY(dataChannelMessage.t4, json + tokens[i + 1].start, tokens[i + 1].end - tokens[i + 1].start);
-            } else {
-                SNPRINTF(dataChannelMessage.t4, 20, "%llu", GETTIME() / 10000);
-                dataChannelMessage.t5[0] = '\0';
-                break;
-            }
-        } else if (compareJsonString(json, &tokens[i], JSMN_STRING, (PCHAR) "t5")) {
-            strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
-            STRNCPY(dataChannelMessage.t5, json + tokens[i + 1].start, tokens[i + 1].end - tokens[i + 1].start);
         }
-    }
 
+        if (STRLEN(dataChannelMessage.t5) == 0) {
+            SNPRINTF(pMessageSend, SIZEOF(DataChannelMessage), DATA_CHANNEL_MESSAGE_TEMPLATE, MASTER_DATA_CHANNEL_MESSAGE,
+                    dataChannelMessage.t1, dataChannelMessage.t2, dataChannelMessage.t3,
+                    dataChannelMessage.t4, dataChannelMessage.t5);
+            DLOGI("Master's response: %s", pMessageSend);
+
+            retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) pMessageSend, STRLEN(pMessageSend));
+        } else  {
+            SNPRINTF(pSignalingClientMetricsMessage, MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE, SIGNALING_CLIENT_METRICS_JSON_TEMPLATE, 
+                    pSampleConfiguration->signalingClientMetrics.signalingClientStats.signalingStartTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND, 
+                    pSampleConfiguration->signalingClientMetrics.signalingClientStats.signalingEndTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND, 
+                    pSampleConfiguration->signalingClientMetrics.signalingClientStats.offerReceiptTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
+                    pSampleConfiguration->signalingClientMetrics.signalingClientStats.sendAnswerTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
+                    pSampleConfiguration->signalingClientMetrics.signalingClientStats.describeChannelStartTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
+                    pSampleConfiguration->signalingClientMetrics.signalingClientStats.describeChannelEndTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
+                    pSampleConfiguration->signalingClientMetrics.signalingClientStats.getSignalingChannelEndpointStartTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
+                    pSampleConfiguration->signalingClientMetrics.signalingClientStats.getSignalingChannelEndpointEndTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
+                    pSampleConfiguration->signalingClientMetrics.signalingClientStats.getIceServerConfigStartTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
+                    pSampleConfiguration->signalingClientMetrics.signalingClientStats.getIceServerConfigEndTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
+                    pSampleConfiguration->signalingClientMetrics.signalingClientStats.getTokenStartTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
+                    pSampleConfiguration->signalingClientMetrics.signalingClientStats.getTokenEndTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
+                    pSampleConfiguration->signalingClientMetrics.signalingClientStats.createChannelStartTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
+                    pSampleConfiguration->signalingClientMetrics.signalingClientStats.createChannelEndTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
+                    pSampleConfiguration->signalingClientMetrics.signalingClientStats.connectStartTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
+                    pSampleConfiguration->signalingClientMetrics.signalingClientStats.connectEndTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+                    
+                DLOGI("Sending signaling metrics to the viewer: %s", pSignalingClientMetricsMessage);
+
+                CHK_STATUS(peerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->peerConnectionMetrics));
+                SNPRINTF(pPeerConnectionMetricsMessage, MAX_PEER_CONNECTION_METRICS_MESSAGE_SIZE, PEER_CONNECTION_METRICS_JSON_TEMPLATE, 
+                    pSampleStreamingSession->peerConnectionMetrics.peerConnectionStats.peerConnectionStartTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND, 
+                    pSampleStreamingSession->peerConnectionMetrics.peerConnectionStats.peerConnectionConnectedTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+                DLOGI("Sending peer-connection metrics to the viewer: %s", pPeerConnectionMetricsMessage);
+                
+                CHK_STATUS(iceAgentGetMetrics(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->iceMetrics));
+                SNPRINTF(pIceAgentMetricsMessage, MAX_ICE_AGENT_METRICS_MESSAGE_SIZE, ICE_AGENT_METRICS_JSON_TEMPLATE, 
+                    pSampleStreamingSession->iceMetrics.kvsIceAgentStats.candidateGatheringStartTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND, 
+                    pSampleStreamingSession->iceMetrics.kvsIceAgentStats.candidateGatheringEndTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+                DLOGI("Sending ice-agent metrics to the viewer: %s", pIceAgentMetricsMessage);
+
+            retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) pSignalingClientMetricsMessage, STRLEN(pSignalingClientMetricsMessage));
+            retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) pPeerConnectionMetricsMessage, STRLEN(pPeerConnectionMetricsMessage));
+            retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) pIceAgentMetricsMessage, STRLEN(pIceAgentMetricsMessage));
+        }
+    } else {
+        DLOGI("DataChannel string message: %.*s\n", pMessageLen, pMessage);
+        retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) MASTER_DATA_CHANNEL_MESSAGE, STRLEN(MASTER_DATA_CHANNEL_MESSAGE));
+    }
+#else
     UNUSED_PARAM(customData);
     if (isBinary) {
         DLOGI("DataChannel Binary Message");
     } else {
         DLOGI("DataChannel String Message: %.*s\n", pMessageLen, pMessage);
     }
-
-    if (STRLEN(dataChannelMessage.t5) == 0) {
-        SNPRINTF(pMessageSend, SIZEOF(DataChannelMessage), DATA_CHANNEL_MESSAGE_TEMPLATE, MASTER_DATA_CHANNEL_MESSAGE,
-                 dataChannelMessage.t1, dataChannelMessage.t2, dataChannelMessage.t3,
-                 dataChannelMessage.t4, dataChannelMessage.t5);
-        DLOGI("Master's response: %s", pMessageSend);
-
-        retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) pMessageSend, STRLEN(pMessageSend));
-    } else  {
-        STRTOUI64(dataChannelMessage.t1, dataChannelMessage.t1 + STRLEN(dataChannelMessage.t2), 10, &t1);
-        STRTOUI64(dataChannelMessage.t2, dataChannelMessage.t2 + STRLEN(dataChannelMessage.t2), 10, &t2);
-        STRTOUI64(dataChannelMessage.t3, dataChannelMessage.t3 + STRLEN(dataChannelMessage.t3), 10, &t3);
-        STRTOUI64(dataChannelMessage.t4, dataChannelMessage.t4 + STRLEN(dataChannelMessage.t4), 10, &t4);
-        
-        masterToViewerE2E = t3 - t1;
-        viewerToMasterE2E = t4 - t2;
-
-        DLOGI("MASTER TO VIEWER: %llu ms", masterToViewerE2E);
-        DLOGI("VIEWER TO MASTER: %llu ms", viewerToMasterE2E);
-
-        retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) pSignalingClientMetricsMessage, STRLEN(pSignalingClientMetricsMessage));
-        retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) pPeerConnectionMetricsMessage, STRLEN(pPeerConnectionMetricsMessage));
-        retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) pIceAgentMetricsMessage, STRLEN(pIceAgentMetricsMessage));
-    }
-
+    // Send a response to the message sent by the viewer
+    retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) MASTER_DATA_CHANNEL_MESSAGE, STRLEN(MASTER_DATA_CHANNEL_MESSAGE));
+#endif
     if (retStatus != STATUS_SUCCESS) {
         DLOGI("[KVS Master] dataChannelSend(): operation returned status code: 0x%08x \n", retStatus);
     }
+
+CleanUp:
+    CHK_LOG_ERR(retStatus);
 }
 
 VOID onDataChannel(UINT64 customData, PRtcDataChannel pRtcDataChannel)
@@ -139,39 +176,8 @@ VOID onConnectionStateChange(UINT64 customData, RTC_PEER_CONNECTION_STATE newSta
             CVAR_BROADCAST(pSampleConfiguration->cvar);
 
             pSampleStreamingSession->peerConnectionMetrics.peerConnectionStats.peerConnectionConnectedTime = GETTIME();
-            SNPRINTF(pSignalingClientMetricsMessage, MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE, SIGNALING_CLIENT_METRICS_JSON_TEMPLATE, 
-                pSampleConfiguration->signalingClientMetrics.signalingClientStats.signalingStartTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND, 
-                pSampleConfiguration->signalingClientMetrics.signalingClientStats.signalingEndTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND, 
-                pSampleConfiguration->signalingClientMetrics.signalingClientStats.offerReceiptTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
-                pSampleConfiguration->signalingClientMetrics.signalingClientStats.sendAnswerTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
-                pSampleConfiguration->signalingClientMetrics.signalingClientStats.describeChannelStartTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
-                pSampleConfiguration->signalingClientMetrics.signalingClientStats.describeChannelEndTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
-                pSampleConfiguration->signalingClientMetrics.signalingClientStats.getSignalingChannelEndpointStartTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
-                pSampleConfiguration->signalingClientMetrics.signalingClientStats.getSignalingChannelEndpointEndTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
-                pSampleConfiguration->signalingClientMetrics.signalingClientStats.getIceServerConfigStartTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
-                pSampleConfiguration->signalingClientMetrics.signalingClientStats.getIceServerConfigEndTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
-                pSampleConfiguration->signalingClientMetrics.signalingClientStats.getTokenStartTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
-                pSampleConfiguration->signalingClientMetrics.signalingClientStats.getTokenEndTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
-                pSampleConfiguration->signalingClientMetrics.signalingClientStats.createChannelStartTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
-                pSampleConfiguration->signalingClientMetrics.signalingClientStats.createChannelEndTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
-                pSampleConfiguration->signalingClientMetrics.signalingClientStats.connectStartTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
-                pSampleConfiguration->signalingClientMetrics.signalingClientStats.connectEndTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
-                
-            DLOGI("SIGNALING_METRICS: %s", pSignalingClientMetricsMessage);
-            
-
             CHK_STATUS(peerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->peerConnectionMetrics));
-            SNPRINTF(pPeerConnectionMetricsMessage, MAX_PEER_CONNECTION_METRICS_MESSAGE_SIZE, PEER_CONNECTION_METRICS_JSON_TEMPLATE, 
-                pSampleStreamingSession->peerConnectionMetrics.peerConnectionStats.peerConnectionStartTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND, 
-                pSampleStreamingSession->peerConnectionMetrics.peerConnectionStats.peerConnectionConnectedTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
-            DLOGI("PEER_CONNECTION_METRICS: %s", pPeerConnectionMetricsMessage);
-            
-            
             CHK_STATUS(iceAgentGetMetrics(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->iceMetrics));
-            SNPRINTF(pIceAgentMetricsMessage, MAX_ICE_AGENT_METRICS_MESSAGE_SIZE, ICE_AGENT_METRICS_JSON_TEMPLATE, 
-                pSampleStreamingSession->iceMetrics.kvsIceAgentStats.candidateGatheringStartTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND, 
-                pSampleStreamingSession->iceMetrics.kvsIceAgentStats.candidateGatheringEndTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
-            DLOGI("ICE_CONNECTION_METRICS: %s", pIceAgentMetricsMessage);
 
             if (STATUS_FAILED(retStatus = logSelectedIceCandidatesInformation(pSampleStreamingSession))) {
                 DLOGW("Failed to get information about selected Ice candidates: 0x%08x", retStatus);
