@@ -1264,8 +1264,10 @@ STATUS signalingGetMetrics(PSignalingClient pSignalingClient, PSignalingClientMe
             pSignalingClientMetrics->signalingClientStats.offerTime = pSignalingClient->offerTime;
             pSignalingClientMetrics->signalingClientStats.describeChannelStartTime = pSignalingClient->diagnostics.describeChannelStartTime;
             pSignalingClientMetrics->signalingClientStats.describeChannelEndTime = pSignalingClient->diagnostics.describeChannelEndTime;
-            pSignalingClientMetrics->signalingClientStats.getSignalingChannelEndpointStartTime = pSignalingClient->diagnostics.getSignalingChannelEndpointStartTime;
-            pSignalingClientMetrics->signalingClientStats.getSignalingChannelEndpointEndTime = pSignalingClient->diagnostics.getSignalingChannelEndpointEndTime;
+            pSignalingClientMetrics->signalingClientStats.getSignalingChannelEndpointStartTime =
+                pSignalingClient->diagnostics.getSignalingChannelEndpointStartTime;
+            pSignalingClientMetrics->signalingClientStats.getSignalingChannelEndpointEndTime =
+                pSignalingClient->diagnostics.getSignalingChannelEndpointEndTime;
             pSignalingClientMetrics->signalingClientStats.getIceServerConfigStartTime = pSignalingClient->diagnostics.getIceServerConfigStartTime;
             pSignalingClientMetrics->signalingClientStats.getIceServerConfigEndTime = pSignalingClient->diagnostics.getIceServerConfigEndTime;
             pSignalingClientMetrics->signalingClientStats.getTokenStartTime = pSignalingClient->diagnostics.getTokenStartTime;

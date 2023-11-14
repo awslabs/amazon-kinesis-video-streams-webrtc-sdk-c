@@ -56,17 +56,22 @@ extern "C" {
 #define VIEWER_DATA_CHANNEL_MESSAGE "This message is from the KVS Viewer"
 
 #ifdef ENABLE_SENDING_METRICS_TO_VIEWER
-#define DATA_CHANNEL_MESSAGE_TEMPLATE "{\"content\":\"%s\",\"t1\": \"%s\",\"t2\": \"%s\",\"t3\": \"%s\",\"t4\": \"%s\",\"t5\": \"%s\" }"
+#define DATA_CHANNEL_MESSAGE_TEMPLATE         "{\"content\":\"%s\",\"t1\": \"%s\",\"t2\": \"%s\",\"t3\": \"%s\",\"t4\": \"%s\",\"t5\": \"%s\" }"
 #define PEER_CONNECTION_METRICS_JSON_TEMPLATE "{\"peerConnectionStartTime\": %llu, \"peerConnectionEndTime\": %llu }"
-#define SIGNALING_CLIENT_METRICS_JSON_TEMPLATE "{\"signalingStartTime\": %llu, \"signalingEndTime\": %llu, \"offerReceiptTime\": %llu, \"sendAnswerTime\": %llu, \"describeChannelStartTime\": %llu, \"describeChannelEndTime\": %llu, \"getSignalingChannelEndpointStartTime\": %llu, \"getSignalingChannelEndpointEndTime\": %llu, \"getIceServerConfigStartTime\": %llu, \"getIceServerConfigEndTime\": %llu, \"getTokenStartTime\": %llu, \"getTokenEndTime\": %llu, \"createChannelStartTime\": %llu, \"createChannelEndTime\": %llu, \"connectStartTime\": %llu, \"connectEndTime\": %llu }"
+#define SIGNALING_CLIENT_METRICS_JSON_TEMPLATE                                                                                                       \
+    "{\"signalingStartTime\": %llu, \"signalingEndTime\": %llu, \"offerReceiptTime\": %llu, \"sendAnswerTime\": %llu, "                              \
+    "\"describeChannelStartTime\": %llu, \"describeChannelEndTime\": %llu, \"getSignalingChannelEndpointStartTime\": %llu, "                         \
+    "\"getSignalingChannelEndpointEndTime\": %llu, \"getIceServerConfigStartTime\": %llu, \"getIceServerConfigEndTime\": %llu, "                     \
+    "\"getTokenStartTime\": %llu, \"getTokenEndTime\": %llu, \"createChannelStartTime\": %llu, \"createChannelEndTime\": %llu, "                     \
+    "\"connectStartTime\": %llu, \"connectEndTime\": %llu }"
 #define ICE_AGENT_METRICS_JSON_TEMPLATE "{\"candidateGatheringStartTime\": %llu, \"candidateGatheringEndTime\": %llu }"
 
-#define MAX_PEER_CONNECTION_METRICS_MESSAGE_SIZE STRLEN(PEER_CONNECTION_METRICS_JSON_TEMPLATE) + 20 * 2
+#define MAX_PEER_CONNECTION_METRICS_MESSAGE_SIZE  STRLEN(PEER_CONNECTION_METRICS_JSON_TEMPLATE) + 20 * 2
 #define MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE STRLEN(SIGNALING_CLIENT_METRICS_JSON_TEMPLATE) + 20 * 10
-#define MAX_ICE_AGENT_METRICS_MESSAGE_SIZE STRLEN(ICE_AGENT_METRICS_JSON_TEMPLATE) + 20 * 2
+#define MAX_ICE_AGENT_METRICS_MESSAGE_SIZE        STRLEN(ICE_AGENT_METRICS_JSON_TEMPLATE) + 20 * 2
 
 CHAR pPeerConnectionMetricsMessage[MAX_PEER_CONNECTION_METRICS_MESSAGE_SIZE];
-CHAR pSignalingClientMetricsMessage[MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE]; 
+CHAR pSignalingClientMetricsMessage[MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE];
 CHAR pIceAgentMetricsMessage[MAX_ICE_AGENT_METRICS_MESSAGE_SIZE];
 #endif
 

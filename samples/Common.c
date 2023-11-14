@@ -39,7 +39,7 @@ VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL 
     UINT64 masterToViewerE2E = 0, viewerToMasterE2E = 0, t1, t2, t3, t4, t5;
     PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) customData;
     PSampleConfiguration pSampleConfiguration = pSampleStreamingSession->pSampleConfiguration;
-    DataChannelMessage dataChannelMessage = { '\0', '\0', '\0', '\0', '\0', '\0' };
+    DataChannelMessage dataChannelMessage = {'\0', '\0', '\0', '\0', '\0', '\0'};
     CHAR pMessageSend[SIZEOF(DataChannelMessage)];
     jsmn_parser parser;
     jsmn_init(&parser);
@@ -47,9 +47,8 @@ VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL 
     PCHAR json = (PCHAR) pMessage;
 
     tokenCount = jsmn_parse(&parser, json, STRLEN(json), tokens, SIZEOF(tokens) / SIZEOF(jsmntok_t));
- 
-    if (tokenCount > 1) {
 
+    if (tokenCount > 1) {
         CHK(tokens[0].type == JSMN_OBJECT, STATUS_INVALID_API_CALL_RETURN_JSON);
         DLOGI("DataChannel json message: %.*s\n", pMessageLen, pMessage);
 
@@ -90,43 +89,41 @@ VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL 
         }
 
         if (STRLEN(dataChannelMessage.t5) == 0) {
-            SNPRINTF(pMessageSend, SIZEOF(DataChannelMessage), DATA_CHANNEL_MESSAGE_TEMPLATE, MASTER_DATA_CHANNEL_MESSAGE,
-                    dataChannelMessage.t1, dataChannelMessage.t2, dataChannelMessage.t3,
-                    dataChannelMessage.t4, dataChannelMessage.t5);
+            SNPRINTF(pMessageSend, SIZEOF(DataChannelMessage), DATA_CHANNEL_MESSAGE_TEMPLATE, MASTER_DATA_CHANNEL_MESSAGE, dataChannelMessage.t1,
+                     dataChannelMessage.t2, dataChannelMessage.t3, dataChannelMessage.t4, dataChannelMessage.t5);
             DLOGI("Master's response: %s", pMessageSend);
 
             retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) pMessageSend, STRLEN(pMessageSend));
-        } else  {
-            SNPRINTF(pSignalingClientMetricsMessage, MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE, SIGNALING_CLIENT_METRICS_JSON_TEMPLATE, 
-                    pSampleConfiguration->signalingClientMetrics.signalingStartTime, 
-                    pSampleConfiguration->signalingClientMetrics.signalingEndTime, 
-                    pSampleConfiguration->signalingClientMetrics.signalingClientStats.offerTime,
-                    pSampleConfiguration->signalingClientMetrics.signalingClientStats.answerTime,
-                    pSampleConfiguration->signalingClientMetrics.signalingClientStats.describeChannelStartTime,
-                    pSampleConfiguration->signalingClientMetrics.signalingClientStats.describeChannelEndTime,
-                    pSampleConfiguration->signalingClientMetrics.signalingClientStats.getSignalingChannelEndpointStartTime,
-                    pSampleConfiguration->signalingClientMetrics.signalingClientStats.getSignalingChannelEndpointEndTime,
-                    pSampleConfiguration->signalingClientMetrics.signalingClientStats.getIceServerConfigStartTime,
-                    pSampleConfiguration->signalingClientMetrics.signalingClientStats.getIceServerConfigEndTime,
-                    pSampleConfiguration->signalingClientMetrics.signalingClientStats.getTokenStartTime,
-                    pSampleConfiguration->signalingClientMetrics.signalingClientStats.getTokenEndTime,
-                    pSampleConfiguration->signalingClientMetrics.signalingClientStats.createChannelStartTime,
-                    pSampleConfiguration->signalingClientMetrics.signalingClientStats.createChannelEndTime,
-                    pSampleConfiguration->signalingClientMetrics.signalingClientStats.connectStartTime,
-                    pSampleConfiguration->signalingClientMetrics.signalingClientStats.connectEndTime);
-                DLOGI("Sending signaling metrics to the viewer: %s", pSignalingClientMetricsMessage);
+        } else {
+            SNPRINTF(pSignalingClientMetricsMessage, MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE, SIGNALING_CLIENT_METRICS_JSON_TEMPLATE,
+                     pSampleConfiguration->signalingClientMetrics.signalingStartTime, pSampleConfiguration->signalingClientMetrics.signalingEndTime,
+                     pSampleConfiguration->signalingClientMetrics.signalingClientStats.offerTime,
+                     pSampleConfiguration->signalingClientMetrics.signalingClientStats.answerTime,
+                     pSampleConfiguration->signalingClientMetrics.signalingClientStats.describeChannelStartTime,
+                     pSampleConfiguration->signalingClientMetrics.signalingClientStats.describeChannelEndTime,
+                     pSampleConfiguration->signalingClientMetrics.signalingClientStats.getSignalingChannelEndpointStartTime,
+                     pSampleConfiguration->signalingClientMetrics.signalingClientStats.getSignalingChannelEndpointEndTime,
+                     pSampleConfiguration->signalingClientMetrics.signalingClientStats.getIceServerConfigStartTime,
+                     pSampleConfiguration->signalingClientMetrics.signalingClientStats.getIceServerConfigEndTime,
+                     pSampleConfiguration->signalingClientMetrics.signalingClientStats.getTokenStartTime,
+                     pSampleConfiguration->signalingClientMetrics.signalingClientStats.getTokenEndTime,
+                     pSampleConfiguration->signalingClientMetrics.signalingClientStats.createChannelStartTime,
+                     pSampleConfiguration->signalingClientMetrics.signalingClientStats.createChannelEndTime,
+                     pSampleConfiguration->signalingClientMetrics.signalingClientStats.connectStartTime,
+                     pSampleConfiguration->signalingClientMetrics.signalingClientStats.connectEndTime);
+            DLOGI("Sending signaling metrics to the viewer: %s", pSignalingClientMetricsMessage);
 
-                CHK_STATUS(peerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->peerConnectionMetrics));
-                SNPRINTF(pPeerConnectionMetricsMessage, MAX_PEER_CONNECTION_METRICS_MESSAGE_SIZE, PEER_CONNECTION_METRICS_JSON_TEMPLATE, 
-                    pSampleStreamingSession->peerConnectionMetrics.peerConnectionStats.peerConnectionStartTime, 
-                    pSampleStreamingSession->peerConnectionMetrics.peerConnectionStats.peerConnectionConnectedTime);
-                DLOGI("Sending peer-connection metrics to the viewer: %s", pPeerConnectionMetricsMessage);
-                
-                CHK_STATUS(iceAgentGetMetrics(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->iceMetrics));
-                SNPRINTF(pIceAgentMetricsMessage, MAX_ICE_AGENT_METRICS_MESSAGE_SIZE, ICE_AGENT_METRICS_JSON_TEMPLATE, 
-                    pSampleStreamingSession->iceMetrics.kvsIceAgentStats.candidateGatheringStartTime, 
-                    pSampleStreamingSession->iceMetrics.kvsIceAgentStats.candidateGatheringEndTime);
-                DLOGI("Sending ice-agent metrics to the viewer: %s", pIceAgentMetricsMessage);
+            CHK_STATUS(peerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->peerConnectionMetrics));
+            SNPRINTF(pPeerConnectionMetricsMessage, MAX_PEER_CONNECTION_METRICS_MESSAGE_SIZE, PEER_CONNECTION_METRICS_JSON_TEMPLATE,
+                     pSampleStreamingSession->peerConnectionMetrics.peerConnectionStats.peerConnectionStartTime,
+                     pSampleStreamingSession->peerConnectionMetrics.peerConnectionStats.peerConnectionConnectedTime);
+            DLOGI("Sending peer-connection metrics to the viewer: %s", pPeerConnectionMetricsMessage);
+
+            CHK_STATUS(iceAgentGetMetrics(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->iceMetrics));
+            SNPRINTF(pIceAgentMetricsMessage, MAX_ICE_AGENT_METRICS_MESSAGE_SIZE, ICE_AGENT_METRICS_JSON_TEMPLATE,
+                     pSampleStreamingSession->iceMetrics.kvsIceAgentStats.candidateGatheringStartTime,
+                     pSampleStreamingSession->iceMetrics.kvsIceAgentStats.candidateGatheringEndTime);
+            DLOGI("Sending ice-agent metrics to the viewer: %s", pIceAgentMetricsMessage);
 
             retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) pSignalingClientMetricsMessage, STRLEN(pSignalingClientMetricsMessage));
             retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) pPeerConnectionMetricsMessage, STRLEN(pPeerConnectionMetricsMessage));
@@ -174,7 +171,8 @@ VOID onConnectionStateChange(UINT64 customData, RTC_PEER_CONNECTION_STATE newSta
             ATOMIC_STORE_BOOL(&pSampleConfiguration->connected, TRUE);
             CVAR_BROADCAST(pSampleConfiguration->cvar);
 
-            pSampleStreamingSession->peerConnectionMetrics.peerConnectionStats.peerConnectionConnectedTime = GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+            pSampleStreamingSession->peerConnectionMetrics.peerConnectionStats.peerConnectionConnectedTime =
+                GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
             CHK_STATUS(peerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->peerConnectionMetrics));
             CHK_STATUS(iceAgentGetMetrics(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->iceMetrics));
 
@@ -381,8 +379,9 @@ STATUS sendSignalingMessage(PSampleStreamingSession pSampleStreamingSession, PSi
     CHK_STATUS(signalingClientSendMessageSync(pSampleConfiguration->signalingClientHandle, pMessage));
     if (pMessage->messageType == SIGNALING_MESSAGE_TYPE_ANSWER) {
         CHK_STATUS(signalingClientGetMetrics(pSampleConfiguration->signalingClientHandle, &pSampleConfiguration->signalingClientMetrics));
-        DLOGP("[Signaling offer to answer] %" PRIu64 " ms", pSampleConfiguration->signalingClientMetrics.signalingClientStats.answerTime - 
-            pSampleConfiguration->signalingClientMetrics.signalingClientStats.offerTime);
+        DLOGP("[Signaling offer to answer] %" PRIu64 " ms",
+              pSampleConfiguration->signalingClientMetrics.signalingClientStats.answerTime -
+                  pSampleConfiguration->signalingClientMetrics.signalingClientStats.offerTime);
     }
 
 CleanUp:
@@ -1006,12 +1005,20 @@ STATUS initSignaling(PSampleConfiguration pSampleConfiguration, PCHAR clientId)
     signalingClientGetMetrics(pSampleConfiguration->signalingClientHandle, &signalingClientMetrics);
 
     // Logging this here since the logs in signaling library do not get routed to file
-    DLOGP("[Signaling Get token] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.getTokenEndTime - signalingClientMetrics.signalingClientStats.getTokenStartTime);
-    DLOGP("[Signaling Describe] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.describeChannelEndTime - signalingClientMetrics.signalingClientStats.describeChannelStartTime);
-    DLOGP("[Signaling Create Channel] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.createChannelEndTime - signalingClientMetrics.signalingClientStats.createChannelStartTime);
-    DLOGP("[Signaling Get endpoint] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.getSignalingChannelEndpointEndTime - signalingClientMetrics.signalingClientStats.getSignalingChannelEndpointStartTime);
-    DLOGP("[Signaling Get ICE config] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.getIceServerConfigEndTime - signalingClientMetrics.signalingClientStats.getIceServerConfigStartTime);
-    DLOGP("[Signaling Connect] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.connectEndTime - signalingClientMetrics.signalingClientStats.connectStartTime);
+    DLOGP("[Signaling Get token] %" PRIu64 " ms",
+          signalingClientMetrics.signalingClientStats.getTokenEndTime - signalingClientMetrics.signalingClientStats.getTokenStartTime);
+    DLOGP("[Signaling Describe] %" PRIu64 " ms",
+          signalingClientMetrics.signalingClientStats.describeChannelEndTime - signalingClientMetrics.signalingClientStats.describeChannelStartTime);
+    DLOGP("[Signaling Create Channel] %" PRIu64 " ms",
+          signalingClientMetrics.signalingClientStats.createChannelEndTime - signalingClientMetrics.signalingClientStats.createChannelStartTime);
+    DLOGP("[Signaling Get endpoint] %" PRIu64 " ms",
+          signalingClientMetrics.signalingClientStats.getSignalingChannelEndpointEndTime -
+              signalingClientMetrics.signalingClientStats.getSignalingChannelEndpointStartTime);
+    DLOGP("[Signaling Get ICE config] %" PRIu64 " ms",
+          signalingClientMetrics.signalingClientStats.getIceServerConfigEndTime -
+              signalingClientMetrics.signalingClientStats.getIceServerConfigStartTime);
+    DLOGP("[Signaling Connect] %" PRIu64 " ms",
+          signalingClientMetrics.signalingClientStats.connectEndTime - signalingClientMetrics.signalingClientStats.connectStartTime);
     DLOGP("[Signaling create client] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.createClientTime);
     DLOGP("[Signaling fetch client] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.fetchClientTime);
     DLOGP("[Signaling connect client] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.connectClientTime);
@@ -1537,8 +1544,9 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
 
             startStats = pSampleConfiguration->iceCandidatePairStatsTimerId == MAX_UINT32;
             CHK_STATUS(signalingClientGetMetrics(pSampleConfiguration->signalingClientHandle, &pSampleConfiguration->signalingClientMetrics));
-            DLOGP("[Signaling offer to answer] %" PRIu64 " ms", pSampleConfiguration->signalingClientMetrics.signalingClientStats.answerTime - 
-                pSampleConfiguration->signalingClientMetrics.signalingClientStats.offerTime);
+            DLOGP("[Signaling offer to answer] %" PRIu64 " ms",
+                  pSampleConfiguration->signalingClientMetrics.signalingClientStats.answerTime -
+                      pSampleConfiguration->signalingClientMetrics.signalingClientStats.offerTime);
             break;
 
         case SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE:

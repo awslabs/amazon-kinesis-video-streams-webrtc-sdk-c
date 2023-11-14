@@ -191,7 +191,7 @@ typedef struct {
     UINT64 createTime;
     UINT64 connectTime;
     UINT64 cpApiLatency;
-    UINT64 dpApiLatency; 
+    UINT64 dpApiLatency;
     UINT64 createClientTime;
     UINT64 fetchClientTime;
     UINT64 connectClientTime;
