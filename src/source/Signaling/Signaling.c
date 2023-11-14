@@ -380,7 +380,6 @@ STATUS signalingSendMessageSync(PSignalingClient pSignalingClient, PSignalingMes
     CHK_STATUS(sendLwsMessage(pSignalingClient, pSignalingMessage->messageType, pSignalingMessage->peerClientId, pSignalingMessage->payload,
                               pSignalingMessage->payloadLen, pSignalingMessage->correlationId, 0));
     if (pSignalingMessage->messageType == SIGNALING_MESSAGE_TYPE_ANSWER) {
-
         PROFILE_WITH_START_END_TIME_OBJ(pSignalingClient->offerTime, pSignalingClient->answerTime, "Offer to answer time");
     }
     if (pSignalingMessage->messageType == SIGNALING_MESSAGE_TYPE_OFFER) {

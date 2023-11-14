@@ -994,7 +994,6 @@ STATUS initSignaling(PSampleConfiguration pSampleConfiguration, PCHAR clientId)
     STATUS retStatus = STATUS_SUCCESS;
     SignalingClientMetrics signalingClientMetrics = pSampleConfiguration->signalingClientMetrics;
     pSampleConfiguration->signalingClientCallbacks.messageReceivedFn = signalingMessageReceived;
-    
     STRCPY(pSampleConfiguration->clientInfo.clientId, clientId);
     CHK_STATUS(createSignalingClientSync(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
                                          &pSampleConfiguration->signalingClientCallbacks, pSampleConfiguration->pCredentialProvider,
@@ -1500,7 +1499,6 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
             MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
 
             CHK_STATUS(handleOffer(pSampleConfiguration, pSampleStreamingSession, &pReceivedSignalingMessage->signalingMessage));
-
             CHK_STATUS(hashTablePut(pSampleConfiguration->pRtcPeerConnectionForRemoteClient, clientIdHash, (UINT64) pSampleStreamingSession));
 
             // If there are any ice candidate messages in the queue for this client id, submit them now.
