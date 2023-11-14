@@ -599,7 +599,7 @@ STATUS iceAgentStartGathering(PIceAgent pIceAgent)
     CHK(!ATOMIC_LOAD_BOOL(&pIceAgent->agentStartGathering), retStatus);
 
     ATOMIC_STORE_BOOL(&pIceAgent->agentStartGathering, TRUE);
-    pIceAgent->candidateGatheringStartTime = GETTIME();
+    pIceAgent->candidateGatheringProcessStartTime = GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
 
     // skip gathering host candidate and srflx candidate if relay only
     if (pIceAgent->iceTransportPolicy != ICE_TRANSPORT_POLICY_RELAY) {
@@ -1609,9 +1609,8 @@ STATUS iceAgentGatherCandidateTimerCallback(UINT32 timerId, UINT64 currentTime, 
 
     if (stopScheduling) {
         ATOMIC_STORE_BOOL(&pIceAgent->candidateGatheringFinished, TRUE);
-        PROFILE_WITH_START_TIME_OBJ(pIceAgent->candidateGatheringStartTime, pIceAgent->iceAgentProfileDiagnostics.candidateGatheringTime,
+        PROFILE_WITH_START_END_TIME_OBJ(pIceAgent->candidateGatheringProcessStartTime, pIceAgent->candidateGatheringProcessEndTime, 
                                     "Candidate gathering time");
-        pIceAgent->candidateGatheringCalculatedEndTime = GETTIME();
         /* notify that candidate gathering is finished. */
         if (pIceAgent->iceAgentCallbacks.newLocalCandidateFn != NULL) {
             pIceAgent->iceAgentCallbacks.newLocalCandidateFn(pIceAgent->iceAgentCallbacks.customData, NULL);
@@ -2856,8 +2855,8 @@ STATUS getIceAgentStats(PIceAgent pIceAgent, PKvsIceAgentMetrics pKvsIceAgentMet
     pKvsIceAgentMetrics->kvsIceAgentStats.iceCandidatePairNominationTime = pIceAgent->iceAgentProfileDiagnostics.iceCandidatePairNominationTime;
     pKvsIceAgentMetrics->kvsIceAgentStats.candidateGatheringTime = pIceAgent->iceAgentProfileDiagnostics.candidateGatheringTime;
     pKvsIceAgentMetrics->kvsIceAgentStats.iceAgentSetUpTime = pIceAgent->iceAgentProfileDiagnostics.iceAgentSetUpTime;
-    pKvsIceAgentMetrics->kvsIceAgentStats.candidateGatheringStartTime = pIceAgent->candidateGatheringStartTime;
-    pKvsIceAgentMetrics->kvsIceAgentStats.candidateGatheringEndTime = pIceAgent->candidateGatheringCalculatedEndTime;
+    pKvsIceAgentMetrics->kvsIceAgentStats.candidateGatheringStartTime = pIceAgent->candidateGatheringProcessStartTime;
+    pKvsIceAgentMetrics->kvsIceAgentStats.candidateGatheringEndTime = pIceAgent->candidateGatheringProcessEndTime;
 CleanUp:
     return retStatus;
 }

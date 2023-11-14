@@ -2175,10 +2175,10 @@ PVOID receiveLwsMessageWrapper(PVOID args)
     // Calling client receive message callback if specified
     if (pSignalingClient->signalingClientCallbacks.messageReceivedFn != NULL) {
         if (messageType == SIGNALING_MESSAGE_TYPE_OFFER) {
-            pSignalingClient->offerTime = GETTIME();
+            pSignalingClient->offerTime = GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
         }
         if (messageType == SIGNALING_MESSAGE_TYPE_ANSWER) {
-            PROFILE_WITH_START_TIME_OBJ(pSignalingClient->offerTime, pSignalingClient->diagnostics.offerToAnswerTime, "Offer to answer time");
+            PROFILE_WITH_START_TIME_OBJ(pSignalingClient->offerTime, pSignalingClient->answerTime, "Offer to answer time");
         }
         CHK_STATUS(pSignalingClient->signalingClientCallbacks.messageReceivedFn(pSignalingClient->signalingClientCallbacks.customData,
                                                                                 &pSignalingMessageWrapper->receivedSignalingMessage));
