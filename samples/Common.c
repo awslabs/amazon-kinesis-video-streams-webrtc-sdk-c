@@ -147,8 +147,10 @@ VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL 
         DLOGI("[KVS Master] dataChannelSend(): operation returned status code: 0x%08x \n", retStatus);
     }
 
+#ifdef ENABLE_SENDING_METRICS_TO_VIEWER
 CleanUp:
     CHK_LOG_ERR(retStatus);
+#endif
 }
 
 VOID onDataChannel(UINT64 customData, PRtcDataChannel pRtcDataChannel)
