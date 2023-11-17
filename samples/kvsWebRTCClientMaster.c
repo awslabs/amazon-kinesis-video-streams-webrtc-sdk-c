@@ -1,6 +1,15 @@
 #include "Samples.h"
+#include "../Include.h"
+
 
 extern PSampleConfiguration gSampleConfiguration;
+
+VOID shceduleShutdown(UINT64 duration, PSampleConfiguration pSampleConfiguration)
+{
+    THREAD_SLEEP(duration);
+    DLOGD("Terminating canary due to duration reached");
+    ATOMIC_STORE_BOOL(&pSampleConfiguration->interrupted, TRUE);
+}
 
 INT32 main(INT32 argc, CHAR* argv[])
 {
@@ -11,8 +20,28 @@ INT32 main(INT32 argc, CHAR* argv[])
     SignalingClientMetrics signalingClientMetrics;
     signalingClientMetrics.version = SIGNALING_CLIENT_METRICS_CURRENT_VERSION;
 
+    auto canaryConfig = Canary::Config();
+    Aws::SDKOptions options;
+    UINT64 t1;
+    BOOL initialized = FALSE;
+
     SET_INSTRUMENTED_ALLOCATORS();
     UINT32 logLevel = setLogLevel();
+
+
+    t1 = GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+    std::string filePath = "../toConsumer.txt";
+    remove(filePath.c_str());
+
+    std::thread canaryDurationThread;
+
+    Aws::InitAPI(options);
+    CHK_STATUS(canaryConfig.init(argc, argv));
+    canaryConfig.isStorage = true;	
+    CHK_STATUS(Canary::Cloudwatch::init(&canaryConfig));
+    canaryConfig.print();
+    SET_LOGGER_LOG_LEVEL(canaryConfig.logLevel.value);
+    DLOGD("Canary init time: %d [ms]", (GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND) - t1);
 
 #ifndef _WIN32
     signal(SIGINT, sigintHandler);
@@ -21,19 +50,24 @@ INT32 main(INT32 argc, CHAR* argv[])
 #ifdef IOT_CORE_ENABLE_CREDENTIALS
     CHK_ERR((pChannelName = getenv(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_THING_NAME must be set");
 #else
-    pChannelName = argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME;
+    pChannelName = (PCHAR) canaryConfig.channelName.value.c_str();
 #endif
 
     CHK_STATUS(createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, logLevel, &pSampleConfiguration));
+
+    // TODO: can remove this log once testing is complete
+    DLOGD("pSampleConfiguration address after creation: %d", pSampleConfiguration);
 
     // Set the audio and video handlers
     pSampleConfiguration->audioSource = sendAudioPackets;
     pSampleConfiguration->videoSource = sendVideoPackets;
     pSampleConfiguration->receiveAudioVideoSource = sampleReceiveAudioVideoFrame;
 
-    if (argc > 2 && STRNCMP(argv[2], "1", 2) == 0) {
-        pSampleConfiguration->channelInfo.useMediaStorage = TRUE;
-    }
+    // Force sample to use storage mode.
+    pSampleConfiguration->channelInfo.useMediaStorage = TRUE;
+
+    pSampleConfiguration->storageDisconnectedTime = 0;
+
 
 #ifdef ENABLE_DATA_CHANNEL
     pSampleConfiguration->onDataChannel = onDataChannel;
@@ -42,19 +76,26 @@ INT32 main(INT32 argc, CHAR* argv[])
     DLOGI("[KVS Master] Finished setting handlers");
 
     // Check if the samples are present
-
-    CHK_STATUS(readFrameFromDisk(NULL, &frameSize, "./h264SampleFrames/frame-0001.h264"));
+    DLOGI("[KVS Master] Checking sample video frame availability....");
+    CHK_STATUS(readFrameFromDisk(NULL, &frameSize, "./assets/h264SampleFrames/frame-0001.h264"));
     DLOGI("[KVS Master] Checked sample video frame availability....available");
 
-    CHK_STATUS(readFrameFromDisk(NULL, &frameSize, "./opusSampleFrames/sample-001.opus"));
+    CHK_STATUS(readFrameFromDisk(NULL, &frameSize, "./assets/opusSampleFrames/sample-001.opus"));
     DLOGI("[KVS Master] Checked sample audio frame availability....available");
 
     // Initialize KVS WebRTC. This must be done before anything else, and must only be done once.
     CHK_STATUS(initKvsWebRtc());
     DLOGI("[KVS Master] KVS WebRTC initialization completed successfully");
+    initialized = TRUE;
 
     CHK_STATUS(initSignaling(pSampleConfiguration, SAMPLE_MASTER_CLIENT_ID));
     DLOGI("[KVS Master] Channel %s set up done ", pChannelName);
+
+    if(canaryConfig.duration.value != 0) {
+        DLOGD("Scheduling canary duration for %lu seconds", canaryConfig.duration.value / HUNDREDS_OF_NANOS_IN_A_SECOND);
+        canaryDurationThread = std::thread(shceduleShutdown, canaryConfig.duration.value, pSampleConfiguration);
+        canaryDurationThread.detach();
+    }
 
     // Checking for termination
     CHK_STATUS(sessionCleanupWait(pSampleConfiguration));
@@ -65,6 +106,12 @@ CleanUp:
     if (retStatus != STATUS_SUCCESS) {
         DLOGE("[KVS Master] Terminated with status code 0x%08x", retStatus);
     }
+
+    DLOGI("Exiting with 0x%08x", retStatus);
+    if (initialized) {
+        Canary::Cloudwatch::getInstance().monitoring.pushExitStatus(retStatus);
+    }
+    Canary::Cloudwatch::deinit();
 
     DLOGI("[KVS Master] Cleaning up....");
     if (pSampleConfiguration != NULL) {
@@ -121,6 +168,34 @@ CleanUp:
     return retStatus;
 }
 
+// Save first-frame-sent time to file for consumer-end access.
+PVOID writeFirstFrameSentTimeToFile(){
+    DLOGI("Opening toConsumer file");
+    FILE *toConsumer = FOPEN("../toConsumer.txt", "w");
+    if (toConsumer == NULL)
+    {
+        printf("Error opening toConsumer file\n");
+        exit(1);
+    }
+    fprintf(toConsumer, "%lli\n", GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    FCLOSE(toConsumer);
+    
+}
+
+VOID calculateDisconnectToFrameSentTime(PSampleConfiguration pSampleConfiguration)
+{
+    UINT64 disconnectTime = pSampleConfiguration->storageDisconnectedTime.load();
+    if (disconnectTime != 0){
+        DOUBLE storageDisconnectToFrameSentTime = (DOUBLE) (GETTIME() - disconnectTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+        Canary::Cloudwatch::getInstance().monitoring.pushStorageDisconnectToFrameSentTime(storageDisconnectToFrameSentTime,
+                                                                        Aws::CloudWatch::Model::StandardUnit::Milliseconds);
+        DLOGI("Setting storageDisconnectedTime to zero");
+        pSampleConfiguration->storageDisconnectedTime = 0;
+    } else {
+        DLOGI("Not sending storageDisconnectToFrameSentTime metric, storageDisconnectedTime is zero (not set)");
+    }
+}
+
 PVOID sendVideoPackets(PVOID args)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -141,7 +216,7 @@ PVOID sendVideoPackets(PVOID args)
 
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
         fileIndex = fileIndex % NUMBER_OF_H264_FRAME_FILES + 1;
-        SNPRINTF(filePath, MAX_PATH_LEN, "./h264SampleFrames/frame-%04d.h264", fileIndex);
+        SNPRINTF(filePath, MAX_PATH_LEN, "./assets/h264SampleFrames/frame-%04d.h264", fileIndex);
 
         CHK_STATUS(readFrameFromDisk(NULL, &frameSize, filePath));
 
@@ -163,10 +238,22 @@ PVOID sendVideoPackets(PVOID args)
         encoderStats.targetBitrate = 262000;
         frame.presentationTs += SAMPLE_VIDEO_FRAME_DURATION;
         MUTEX_LOCK(pSampleConfiguration->streamingSessionListReadLock);
+
         for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
+
+            handleWriteFrameMetricIncrementation(pSampleConfiguration->sampleStreamingSessionList[i], frame.size);
+
             status = writeFrame(pSampleConfiguration->sampleStreamingSessionList[i]->pVideoRtcRtpTransceiver, &frame);
             if (pSampleConfiguration->sampleStreamingSessionList[i]->firstFrame && status == STATUS_SUCCESS) {
+                writeFirstFrameSentTimeToFile();
                 PROFILE_WITH_START_TIME(pSampleConfiguration->sampleStreamingSessionList[i]->offerReceiveTime, "Time to first frame");
+                
+                DOUBLE timeToFirstFrame = (DOUBLE) (GETTIME() - pSampleConfiguration->offerReceiveTimestamp) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+                DLOGD("Start up latency from offer receive to first frame write: %lf ms", timeToFirstFrame);
+                Canary::Cloudwatch::getInstance().monitoring.pushTimeToFirstFrame(timeToFirstFrame,
+                                                                                Aws::CloudWatch::Model::StandardUnit::Milliseconds);
+                calculateDisconnectToFrameSentTime(pSampleConfiguration);
+
                 pSampleConfiguration->sampleStreamingSessionList[i]->firstFrame = FALSE;
             }
             encoderStats.encodeTimeMsec = 4; // update encode time to an arbitrary number to demonstrate stats update
@@ -175,6 +262,9 @@ PVOID sendVideoPackets(PVOID args)
                 if (status != STATUS_SUCCESS) {
                     DLOGV("writeFrame() failed with 0x%08x", status);
                 }
+            } else {
+                // Reset file index to ensure first frame sent upon SRTP ready is a key frame.
+                fileIndex = 0;
             }
         }
         MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
@@ -210,7 +300,7 @@ PVOID sendAudioPackets(PVOID args)
 
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
         fileIndex = fileIndex % NUMBER_OF_OPUS_FRAME_FILES + 1;
-        SNPRINTF(filePath, MAX_PATH_LEN, "./opusSampleFrames/sample-%03d.opus", fileIndex);
+        SNPRINTF(filePath, MAX_PATH_LEN, "./assets/opusSampleFrames/sample-%03d.opus", fileIndex);
 
         CHK_STATUS(readFrameFromDisk(NULL, &frameSize, filePath));
 
@@ -235,9 +325,21 @@ PVOID sendAudioPackets(PVOID args)
                 if (status != STATUS_SUCCESS) {
                     DLOGV("writeFrame() failed with 0x%08x", status);
                 } else if (pSampleConfiguration->sampleStreamingSessionList[i]->firstFrame && status == STATUS_SUCCESS) {
+                    writeFirstFrameSentTimeToFile();
                     PROFILE_WITH_START_TIME(pSampleConfiguration->sampleStreamingSessionList[i]->offerReceiveTime, "Time to first frame");
+
+                    DOUBLE timeToFirstFrame = (DOUBLE) (GETTIME() - pSampleConfiguration->offerReceiveTimestamp) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+                    DLOGD("Start up latency from offer receive to first frame write: %lf ms", timeToFirstFrame);
+                    Canary::Cloudwatch::getInstance().monitoring.pushTimeToFirstFrame(timeToFirstFrame,
+                                                                                Aws::CloudWatch::Model::StandardUnit::Milliseconds);
+
+                    calculateDisconnectToFrameSentTime(pSampleConfiguration);
+
                     pSampleConfiguration->sampleStreamingSessionList[i]->firstFrame = FALSE;
                 }
+            } else {
+                // Reset file index to ensure first frame sent upon SRTP ready is a key frame.
+                fileIndex = 0;
             }
         }
         MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
