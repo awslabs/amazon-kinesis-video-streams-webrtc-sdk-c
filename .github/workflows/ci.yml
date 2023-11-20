@@ -76,12 +76,14 @@ jobs:
         run:  |
           cd build
           ./tst/webrtc_client_test
-  mac-os-m1-build-gcc:
+  mac-os-m1-build-clang:
     runs-on: macos-13-xlarge
     env:
-      CC: /usr/local/bin/gcc-13
-      CXX: /usr/local/bin/g++-13
+      CC: /usr/bin/clang
+      CXX: /usr/bin/clang++
       AWS_KVS_LOG_LEVEL: 2
+      LDFLAGS: -L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib
+      CPATH: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/
     permissions:
       id-token: write
       contents: read
@@ -95,7 +97,6 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
       - name: Build repository
         run: |
-          brew unlink openssl
           mkdir build && cd build
           cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
           make
