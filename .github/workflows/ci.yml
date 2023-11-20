@@ -53,8 +53,8 @@ jobs:
   mac-os-build-gcc:
     runs-on: macos-11
     env:
-      CC: gcc
-      CXX: g++
+      CC: /usr/local/bin/gcc-13
+      CXX: /usr/local/bin/g++-13
       AWS_KVS_LOG_LEVEL: 2
     permissions:
       id-token: write
@@ -69,6 +69,33 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
       - name: Build repository
         run: |
+          mkdir build && cd build
+          cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
+          make
+      - name: Run tests
+        run:  |
+          cd build
+          ./tst/webrtc_client_test
+  mac-os-m1-build-gcc:
+    runs-on: macos-13-xlarge
+    env:
+      CC: /usr/local/bin/gcc-13
+      CXX: /usr/local/bin/g++-13
+      AWS_KVS_LOG_LEVEL: 2
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v3
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Build repository
+        run: |
+          brew unlink openssl
           mkdir build && cd build
           cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
           make
