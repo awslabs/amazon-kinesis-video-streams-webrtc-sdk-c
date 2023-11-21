@@ -24,7 +24,7 @@ if(BUILD_LIBSRTP_DESTINATION_PLATFORM STREQUAL BUILD_LIBSRTP_HOST_PLATFORM)
     endif()
 
     if (DEFINED CMAKE_OSX_SYSROOT AND NOT CMAKE_OSX_SYSROOT STREQUAL "")
-      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -isysroot${CMAKE_OSX_SYSROOT}" -Wno-nullability-completeness)
+      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -isysroot${CMAKE_OSX_SYSROOT}")
     endif()
   endif()
 endif()
