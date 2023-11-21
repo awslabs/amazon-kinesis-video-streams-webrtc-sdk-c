@@ -79,8 +79,6 @@ jobs:
   mac-os-m1-build-clang:
     runs-on: macos-13-xlarge
     env:
-      CC: /usr/bin/clang
-      CXX: /usr/bin/clang++
       AWS_KVS_LOG_LEVEL: 2
     permissions:
       id-token: write
@@ -97,7 +95,7 @@ jobs:
         run: |
           brew unlink openssl
           mkdir build && cd build
-          sh -c 'cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE;cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE'
+          sh -c 'cmake .. -D CMAKE_C_COMPILER=$(brew --prefix llvm)/bin/clang -D CMAKE_CXX_COMPILER=$(brew --prefix llvm)/bin/clang++;cmake .. -D CMAKE_C_COMPILER=$(brew --prefix llvm)/bin/clang -D CMAKE_CXX_COMPILER=$(brew --prefix llvm)/bin/clang++'
           make
       - name: Run tests
         run:  |
