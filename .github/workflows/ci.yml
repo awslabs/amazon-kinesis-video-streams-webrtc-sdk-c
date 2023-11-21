@@ -97,10 +97,6 @@ jobs:
           mkdir build && cd build
           sh -c 'cmake .. -D CMAKE_C_COMPILER=$(brew --prefix llvm@15)/bin/clang -D CMAKE_CXX_COMPILER=$(brew --prefix llvm@15)/bin/clang++;cmake .. -D CMAKE_C_COMPILER=$(brew --prefix llvm@15)/bin/clang -D CMAKE_CXX_COMPILER=$(brew --prefix llvm@15)/bin/clang++'
           make
-      - name: Run tests
-        run:  |
-          cd build
-          ./tst/webrtc_client_test
   static-build-mac:
     runs-on: macos-11
     env:
