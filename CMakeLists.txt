@@ -400,7 +400,7 @@ endif()
 
 if(COMPILER_WARNINGS)
   target_compile_options(kvsWebrtcClient PUBLIC -Wall -Werror -pedantic -Wextra -Wno-unknown-warning-option  -Wno-nullability-extension)
-  target_compile_options(kvsWebrtcSignalingClient PUBLIC -Wall -Werror -pedantic -Wextra -Wno-unknown-warning-option)
+  target_compile_options(kvsWebrtcSignalingClient PUBLIC -Wall -Werror -pedantic -Wextra -Wno-unknown-warning-option  -Wno-nullability-extension)
 endif()
 
 install(TARGETS kvsWebrtcClient kvsWebrtcSignalingClient
