@@ -53,8 +53,8 @@ jobs:
   mac-os-build-gcc:
     runs-on: macos-11
     env:
-      CC: /usr/local/bin/gcc-13
-      CXX: /usr/local/bin/g++-13
+      CC: gcc
+      CXX: g++
       AWS_KVS_LOG_LEVEL: 2
     permissions:
       id-token: write
