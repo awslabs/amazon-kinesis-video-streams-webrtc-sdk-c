@@ -118,6 +118,16 @@ $(document).ready(function(){initNavTree('globals_t.html',''); initResizable(); 
 : <a class="el" href="Signaling_8c.html#af63aa814d51002790ba8da3bf07a2285">Signaling.c</a>
 , <a class="el" href="Signaling_8h.html#ad2865850530e65325a947e96803efab0">Signaling.h</a>
 </li>
+<li>THREADPOOL_MAX_THREADS
+: <a class="el" href="group__Timeouts.html#gad7530c71d6a97f0472190122e53b1e4d">Include.h</a>
+</li>
+<li>THREADPOOL_MIN_THREADS
+: <a class="el" href="group__Timeouts.html#ga7d64f314ba743c9854489c093ad7b6d5">Include.h</a>
+</li>
+<li>threadpoolContextPush()
+: <a class="el" href="ThreadPoolContext_8c.html#a699e80c90be085434e9270138225e5de">ThreadPoolContext.c</a>
+, <a class="el" href="ThreadpoolContext_8h.html#a9c5be3fe93254714ba7c4a1df3beed2e">ThreadpoolContext.h</a>
+</li>
 <li>TIMESTAMP_OFFSET
 : <a class="el" href="RtpPacket_8h.html#aff83058c8de5c5d87e0742c80bba4de1">RtpPacket.h</a>
 </li>
@@ -153,8 +163,8 @@ $(document).ready(function(){initNavTree('globals_t.html',''); initResizable(); 
 : <a class="el" href="Tls_8h.html#a81fe84e08f8d1a696586c39dba06044e">Tls.h</a>
 </li>
 <li>tlsSessionProcessPacket()
-: <a class="el" href="Tls__openssl_8c.html#a0e12aa367800be684668c31b7af5d01b">Tls_openssl.c</a>
-, <a class="el" href="Tls__mbedtls_8c.html#a0e12aa367800be684668c31b7af5d01b">Tls_mbedtls.c</a>
+: <a class="el" href="Tls__mbedtls_8c.html#a0e12aa367800be684668c31b7af5d01b">Tls_mbedtls.c</a>
+, <a class="el" href="Tls__openssl_8c.html#a0e12aa367800be684668c31b7af5d01b">Tls_openssl.c</a>
 , <a class="el" href="Tls_8h.html#aa4fe15fc18b9910c16b5c63cc38376d6">Tls.h</a>
 </li>
 <li>tlsSessionPutApplicationData()
@@ -169,14 +179,14 @@ $(document).ready(function(){initNavTree('globals_t.html',''); initResizable(); 
 : <a class="el" href="Tls__mbedtls_8c.html#a3325b2c5cc6c30229693c215f1c4d7fb">Tls_mbedtls.c</a>
 </li>
 <li>tlsSessionShutdown()
-: <a class="el" href="Tls_8h.html#a8958186faf233249645017a55c80e1fc">Tls.h</a>
+: <a class="el" href="Tls__openssl_8c.html#aca41778af81f4d5b5a71dcaf5e686bb9">Tls_openssl.c</a>
 , <a class="el" href="Tls__mbedtls_8c.html#aca41778af81f4d5b5a71dcaf5e686bb9">Tls_mbedtls.c</a>
-, <a class="el" href="Tls__openssl_8c.html#aca41778af81f4d5b5a71dcaf5e686bb9">Tls_openssl.c</a>
+, <a class="el" href="Tls_8h.html#a8958186faf233249645017a55c80e1fc">Tls.h</a>
 </li>
 <li>tlsSessionStart()
 : <a class="el" href="Tls_8h.html#a2158f2643cad7b1d8c01bc772746f20e">Tls.h</a>
-, <a class="el" href="Tls__openssl_8c.html#af3ffd0234e13d548e6e11230d4bd57b9">Tls_openssl.c</a>
 , <a class="el" href="Tls__mbedtls_8c.html#af3ffd0234e13d548e6e11230d4bd57b9">Tls_mbedtls.c</a>
+, <a class="el" href="Tls__openssl_8c.html#af3ffd0234e13d548e6e11230d4bd57b9">Tls_openssl.c</a>
 </li>
 <li>TO_SIGNALING_CLIENT_HANDLE
 : <a class="el" href="Signaling_8h.html#a9c8daaf4a67ca0c21585e89e0cd2501f">Signaling.h</a>
@@ -190,8 +200,8 @@ $(document).ready(function(){initNavTree('globals_t.html',''); initResizable(); 
 , <a class="el" href="IceUtils_8h.html#ae6dcd6e2b487e6d2705ec4095c8788a7">IceUtils.h</a>
 </li>
 <li>transactionIdStoreInsert()
-: <a class="el" href="IceUtils_8c.html#acfc63004cbbadc9fa89e311798da9ab6">IceUtils.c</a>
-, <a class="el" href="IceUtils_8h.html#aebe4112ee2402c5667b043d69491c8e1">IceUtils.h</a>
+: <a class="el" href="IceUtils_8h.html#aebe4112ee2402c5667b043d69491c8e1">IceUtils.h</a>
+, <a class="el" href="IceUtils_8c.html#acfc63004cbbadc9fa89e311798da9ab6">IceUtils.c</a>
 </li>
 <li>transactionIdStoreRemove()
 : <a class="el" href="IceUtils_8c.html#af2c71e62177dcc6e40bb55dff1f3dc98">IceUtils.c</a>
@@ -221,8 +231,13 @@ $(document).ready(function(){initNavTree('globals_t.html',''); initResizable(); 
 <li>TURN_CONNECTION_DATA_TRANSFER_MODE_SEND_INDIDATION
 : <a class="el" href="TurnConnection_8h.html#a23f3a4cb706b4bdbc3ab360fe79dd9bba120b33115cc5efdfca3abc261f9fdb8f">TurnConnection.h</a>
 </li>
-<li>TURN_CONNECTION_STATE
-: <a class="el" href="TurnConnection_8h.html#abf499a86fd3159f2d04a885cd0d9323f">TurnConnection.h</a>
+<li>TURN_CONNECTION_STATE_MACHINE_STATE_COUNT
+: <a class="el" href="TurnConnection_8c.html#a4a077c7b89b864a43ab1899cd59608f4">TurnConnection.c</a>
+, <a class="el" href="TurnConnectionStateMachine_8c.html#a4a077c7b89b864a43ab1899cd59608f4">TurnConnectionStateMachine.c</a>
+</li>
+<li>TURN_CONNECTION_STATE_MACHINE_STATES
+: <a class="el" href="TurnConnection_8c.html#a9a0a2b50a6bbfca36c51ae3487425ef0">TurnConnection.c</a>
+, <a class="el" href="TurnConnectionStateMachine_8c.html#a9a0a2b50a6bbfca36c51ae3487425ef0">TurnConnectionStateMachine.c</a>
 </li>
 <li>TURN_DATA_CHANNEL_MSG_FIRST_BYTE
 : <a class="el" href="TurnConnection_8h.html#a82d59a01a55892a4e215af6d6bedae82">TurnConnection.h</a>
@@ -255,61 +270,77 @@ $(document).ready(function(){initNavTree('globals_t.html',''); initResizable(); 
 : <a class="el" href="TurnConnection_8h.html#a90288288e6ed295f2adf5dfe0bd02fc5">TurnConnection.h</a>
 </li>
 <li>TURN_STATE_ALLOCATION
-: <a class="el" href="TurnConnection_8h.html#abf499a86fd3159f2d04a885cd0d9323fa4420f5c6be6171d8a5af51e4da239e83">TurnConnection.h</a>
+: <a class="el" href="TurnConnectionStateMachine_8h.html#affa7c52f3edb3be37863272838a144f3">TurnConnectionStateMachine.h</a>
 </li>
 <li>TURN_STATE_ALLOCATION_STR
 : <a class="el" href="TurnConnection_8h.html#a7df8e1fcdfc7a5e925c1f23b2b4b1780">TurnConnection.h</a>
+, <a class="el" href="TurnConnectionStateMachine_8h.html#a7df8e1fcdfc7a5e925c1f23b2b4b1780">TurnConnectionStateMachine.h</a>
 </li>
 <li>TURN_STATE_BIND_CHANNEL
-: <a class="el" href="TurnConnection_8h.html#abf499a86fd3159f2d04a885cd0d9323faaf46a2aad370d32f80eafcfc02aa7dcd">TurnConnection.h</a>
+: <a class="el" href="TurnConnectionStateMachine_8h.html#a8eacf53e1743cfb3f261b65cfb891faf">TurnConnectionStateMachine.h</a>
 </li>
 <li>TURN_STATE_BIND_CHANNEL_STR
 : <a class="el" href="TurnConnection_8h.html#afb62034bf50129aaadafecdc98a4be8d">TurnConnection.h</a>
+, <a class="el" href="TurnConnectionStateMachine_8h.html#afb62034bf50129aaadafecdc98a4be8d">TurnConnectionStateMachine.h</a>
 </li>
 <li>TURN_STATE_CHECK_SOCKET_CONNECTION
-: <a class="el" href="TurnConnection_8h.html#abf499a86fd3159f2d04a885cd0d9323faee3f4b59203b0c49c339674fd88705d8">TurnConnection.h</a>
+: <a class="el" href="TurnConnectionStateMachine_8h.html#af4512be6d947d40b945580f3206f7f88">TurnConnectionStateMachine.h</a>
 </li>
 <li>TURN_STATE_CHECK_SOCKET_CONNECTION_STR
 : <a class="el" href="TurnConnection_8h.html#af9d5d4ad49be0377f0c81e03f48f7b5c">TurnConnection.h</a>
+, <a class="el" href="TurnConnectionStateMachine_8h.html#af9d5d4ad49be0377f0c81e03f48f7b5c">TurnConnectionStateMachine.h</a>
 </li>
 <li>TURN_STATE_CLEAN_UP
-: <a class="el" href="TurnConnection_8h.html#abf499a86fd3159f2d04a885cd0d9323fa7e579c0e60f9c93a308c8fd6d6178432">TurnConnection.h</a>
+: <a class="el" href="TurnConnectionStateMachine_8h.html#af46ebbf895e1209d6876e63c4ba60240">TurnConnectionStateMachine.h</a>
 </li>
 <li>TURN_STATE_CLEAN_UP_STR
 : <a class="el" href="TurnConnection_8h.html#a89c818c358d456fb86bc205039a03580">TurnConnection.h</a>
+, <a class="el" href="TurnConnectionStateMachine_8h.html#a89c818c358d456fb86bc205039a03580">TurnConnectionStateMachine.h</a>
 </li>
 <li>TURN_STATE_CREATE_PERMISSION
-: <a class="el" href="TurnConnection_8h.html#abf499a86fd3159f2d04a885cd0d9323faab4f45e7354327e5256bddd898dbc735">TurnConnection.h</a>
+: <a class="el" href="TurnConnectionStateMachine_8h.html#a8a2d4db1e9acc69dd375a023dd9948fe">TurnConnectionStateMachine.h</a>
 </li>
 <li>TURN_STATE_CREATE_PERMISSION_STR
 : <a class="el" href="TurnConnection_8h.html#a02b0ddd9b9b316c822630ba638983431">TurnConnection.h</a>
+, <a class="el" href="TurnConnectionStateMachine_8h.html#a02b0ddd9b9b316c822630ba638983431">TurnConnectionStateMachine.h</a>
 </li>
 <li>TURN_STATE_FAILED
-: <a class="el" href="TurnConnection_8h.html#abf499a86fd3159f2d04a885cd0d9323fac10546d5a7eed21e4f5ef4be9f81c7d3">TurnConnection.h</a>
+: <a class="el" href="TurnConnectionStateMachine_8h.html#a24ad84e267ee29d813cd53963a48c8b9">TurnConnectionStateMachine.h</a>
 </li>
 <li>TURN_STATE_FAILED_STR
-: <a class="el" href="TurnConnection_8h.html#a665c380a1a25b453f2c5d8fabe27082e">TurnConnection.h</a>
+: <a class="el" href="TurnConnectionStateMachine_8h.html#a665c380a1a25b453f2c5d8fabe27082e">TurnConnectionStateMachine.h</a>
+, <a class="el" href="TurnConnection_8h.html#a665c380a1a25b453f2c5d8fabe27082e">TurnConnection.h</a>
 </li>
 <li>TURN_STATE_GET_CREDENTIALS
-: <a class="el" href="TurnConnection_8h.html#abf499a86fd3159f2d04a885cd0d9323fa88327b8cef512f02c8f01a8972494be8">TurnConnection.h</a>
+: <a class="el" href="TurnConnectionStateMachine_8h.html#a91cd96ad16c1b8a51a786d2953b43d32">TurnConnectionStateMachine.h</a>
 </li>
 <li>TURN_STATE_GET_CREDENTIALS_STR
-: <a class="el" href="TurnConnection_8h.html#a5c2c0091eb455ee8f50f0c467aa34da9">TurnConnection.h</a>
+: <a class="el" href="TurnConnectionStateMachine_8h.html#a5c2c0091eb455ee8f50f0c467aa34da9">TurnConnectionStateMachine.h</a>
+, <a class="el" href="TurnConnection_8h.html#a5c2c0091eb455ee8f50f0c467aa34da9">TurnConnection.h</a>
 </li>
 <li>TURN_STATE_NEW
-: <a class="el" href="TurnConnection_8h.html#abf499a86fd3159f2d04a885cd0d9323fa0c7f32846f258a5ca96745cd1b61eb04">TurnConnection.h</a>
+: <a class="el" href="TurnConnectionStateMachine_8h.html#ab00c41c0d594416668626a06f48e932f">TurnConnectionStateMachine.h</a>
 </li>
 <li>TURN_STATE_NEW_STR
 : <a class="el" href="TurnConnection_8h.html#a2fe35710a21f4300c7fd7b8c0ca575c2">TurnConnection.h</a>
+, <a class="el" href="TurnConnectionStateMachine_8h.html#a2fe35710a21f4300c7fd7b8c0ca575c2">TurnConnectionStateMachine.h</a>
+</li>
+<li>TURN_STATE_NONE
+: <a class="el" href="TurnConnectionStateMachine_8h.html#a5cfcfed305937a889c343f950108df5e">TurnConnectionStateMachine.h</a>
+</li>
+<li>TURN_STATE_NONE_STR
+: <a class="el" href="TurnConnectionStateMachine_8h.html#ab072a3b45313466ecefa988339c6aaf7">TurnConnectionStateMachine.h</a>
 </li>
 <li>TURN_STATE_READY
-: <a class="el" href="TurnConnection_8h.html#abf499a86fd3159f2d04a885cd0d9323fa74df97fdbf74316e2aa21c0cf701982e">TurnConnection.h</a>
+: <a class="el" href="TurnConnectionStateMachine_8h.html#a7a50be2fda85b2948479851b2cbf553e">TurnConnectionStateMachine.h</a>
 </li>
 <li>TURN_STATE_READY_STR
 : <a class="el" href="TurnConnection_8h.html#ad897e43e409d66a2b18a3ef6037d5ae7">TurnConnection.h</a>
+, <a class="el" href="TurnConnectionStateMachine_8h.html#ad897e43e409d66a2b18a3ef6037d5ae7">TurnConnectionStateMachine.h</a>
 </li>
 <li>TURN_STATE_UNKNOWN_STR
 : <a class="el" href="TurnConnection_8h.html#aae4fcc239dff20d380d8121779f9cbc0">TurnConnection.h</a>
+, <a class="el" href="TurnConnectionStateMachine_8h.html#aae4fcc239dff20d380d8121779f9cbc0">TurnConnectionStateMachine.h</a>
 </li>
 <li>TurnConnection
 : <a class="el" href="TurnConnection_8h.html#af93a1148dd38144b328ae817f5ce3a4e">TurnConnection.h</a>
@@ -343,8 +374,11 @@ $(document).ready(function(){initNavTree('globals_t.html',''); initResizable(); 
 , <a class="el" href="TurnConnection_8h.html#a9089a120e759743f89829105574ded02">TurnConnection.h</a>
 </li>
 <li>turnConnectionGetStateStr()
-: <a class="el" href="TurnConnection_8c.html#a11b4f824855769674d8fbea08846413d">TurnConnection.c</a>
-, <a class="el" href="TurnConnection_8h.html#a85c4b8e4f4374d7a942a51f1c94e4de1">TurnConnection.h</a>
+: <a class="el" href="TurnConnectionStateMachine_8c.html#ab2cdaa389cda6f8b710789078a12b04e">TurnConnectionStateMachine.c</a>
+</li>
+<li>turnConnectionGetTime()
+: <a class="el" href="TurnConnection_8c.html#a0412df9eeccb0d3084100fee6c5a0741">TurnConnection.c</a>
+, <a class="el" href="TurnConnection_8h.html#a399afb356e3978522a11769a63e77ea6">TurnConnection.h</a>
 </li>
 <li>turnConnectionHandleChannelData()
 : <a class="el" href="TurnConnection_8c.html#a469ffb6f5621fc4161cbfb2e8dbe1c3f">TurnConnection.c</a>
@@ -371,8 +405,8 @@ $(document).ready(function(){initNavTree('globals_t.html',''); initResizable(); 
 , <a class="el" href="TurnConnection_8h.html#af6735058208f660f6dfc4dc210476dc9">TurnConnection.h</a>
 </li>
 <li>turnConnectionPackageTurnAllocationRequest()
-: <a class="el" href="TurnConnection_8c.html#a06a0f12aa630dbc36d8343e120c8f216">TurnConnection.c</a>
-, <a class="el" href="TurnConnection_8h.html#ac8a90c17ee7ec6dd072da06140cc6220">TurnConnection.h</a>
+: <a class="el" href="TurnConnection_8h.html#ac8a90c17ee7ec6dd072da06140cc6220">TurnConnection.h</a>
+, <a class="el" href="TurnConnection_8c.html#a06a0f12aa630dbc36d8343e120c8f216">TurnConnection.c</a>
 </li>
 <li>turnConnectionRefreshAllocation()
 : <a class="el" href="TurnConnection_8c.html#a46459e6ac66501521c9160b1fcdf6d84">TurnConnection.c</a>
@@ -383,8 +417,8 @@ $(document).ready(function(){initNavTree('globals_t.html',''); initResizable(); 
 , <a class="el" href="TurnConnection_8h.html#a9d8f5dac06e7eb4beb616050b27c4cd5">TurnConnection.h</a>
 </li>
 <li>turnConnectionSendData()
-: <a class="el" href="TurnConnection_8h.html#ab7da7e3ce56eb4d828ac1cfea94ba7bf">TurnConnection.h</a>
-, <a class="el" href="TurnConnection_8c.html#a0d996d98abef81b2f6c54be480ef7ea1">TurnConnection.c</a>
+: <a class="el" href="TurnConnection_8c.html#a0d996d98abef81b2f6c54be480ef7ea1">TurnConnection.c</a>
+, <a class="el" href="TurnConnection_8h.html#ab7da7e3ce56eb4d828ac1cfea94ba7bf">TurnConnection.h</a>
 </li>
 <li>turnConnectionShutdown()
 : <a class="el" href="TurnConnection_8c.html#acafa7ed7d0b238b1a6b27a78280712f8">TurnConnection.c</a>
@@ -394,13 +428,9 @@ $(document).ready(function(){initNavTree('globals_t.html',''); initResizable(); 
 : <a class="el" href="TurnConnection_8c.html#a5b98aaf2a1b05b95f8cb088cf29aac54">TurnConnection.c</a>
 , <a class="el" href="TurnConnection_8h.html#a7805d6421b4cb1f7b401f447a7b5b26a">TurnConnection.h</a>
 </li>
-<li>turnConnectionStepState()
-: <a class="el" href="TurnConnection_8c.html#ae091e90d262a8b35996555dbc4f0d7d9">TurnConnection.c</a>
-, <a class="el" href="TurnConnection_8h.html#a6a4c556b18348cd3fa9558d697573daa">TurnConnection.h</a>
-</li>
 <li>turnConnectionTimerCallback()
-: <a class="el" href="TurnConnection_8c.html#af01ecc35132ec796882b5cfca6c25e0c">TurnConnection.c</a>
-, <a class="el" href="TurnConnection_8h.html#a74801f6687767a6443b5edd1de9a3798">TurnConnection.h</a>
+: <a class="el" href="TurnConnection_8h.html#a74801f6687767a6443b5edd1de9a3798">TurnConnection.h</a>
+, <a class="el" href="TurnConnection_8c.html#af01ecc35132ec796882b5cfca6c25e0c">TurnConnection.c</a>
 </li>
 <li>turnConnectionUpdateNonce()
 : <a class="el" href="TurnConnection_8c.html#ad75d440eb6e8134cba6f87fcc7204a96">TurnConnection.c</a>
@@ -411,6 +441,9 @@ $(document).ready(function(){initNavTree('globals_t.html',''); initResizable(); 
 </li>
 <li>TurnStateFailedFunc
 : <a class="el" href="TurnConnection_8h.html#a90fec347a0681cd92cd97f4d9147d475">TurnConnection.h</a>
+</li>
+<li>turnStateGetStateStr()
+: <a class="el" href="TurnConnectionStateMachine_8h.html#acdbcd4fabed4064ae98c2745c2ad75ff">TurnConnectionStateMachine.h</a>
 </li>
 <li>TWCC_ESTIMATOR_TIME_WINDOW
 : <a class="el" href="Rtcp_8h.html#a58025589dc534ff7d9b4ddc678afc801">Rtcp.h</a>
@@ -497,7 +530,7 @@ $(document).ready(function(){initNavTree('globals_t.html',''); initResizable(); 
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="footer">Generated on Tue Nov 7 2023 21:34:20 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Mon Nov 27 2023 20:47:25 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>
