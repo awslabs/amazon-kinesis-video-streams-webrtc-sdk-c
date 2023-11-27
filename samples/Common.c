@@ -760,6 +760,10 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
 #endif
 
     pSessionToken = getenv(SESSION_TOKEN_ENV_VAR);
+    if (IS_EMPTY_STRING(pSessionToken)) {
+        DLOGW("Session token is set but its value is empty. Ignoring.");
+        pSessionToken = NULL;
+    }
 
     // If the env is set, we generate normal log files apart from filtered profile log files
     // If not set, we generate only the filtered profile log files
