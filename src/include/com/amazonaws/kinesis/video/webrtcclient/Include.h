@@ -1573,6 +1573,8 @@ typedef struct {
  */
 PUBLIC_API STATUS createPeerConnection(PRtcConfiguration, PRtcPeerConnection*);
 
+PUBLIC_API STATUS addConfigToServerList(PRtcPeerConnection*, PIceConfigInfo);
+
 /**
  * @brief Free a RtcPeerConnection
  *

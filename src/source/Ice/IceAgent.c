@@ -262,6 +262,69 @@ CleanUp:
     return retStatus;
 }
 
+STATUS iceAgentAddConfig(PIceAgent pIceAgent, PIceConfigInfo pIceConfigInfo)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    UINT32 i = 0;
+    // used in PROFILE macro
+    UINT64 startTimeInMacro = 0;
+    BOOL locked = FALSE;
+
+    CHK(pIceAgent != NULL && pIceConfigInfo != NULL, STATUS_NULL_ARG);
+
+    MUTEX_LOCK(pIceAgent->lock);
+    locked = TRUE;
+
+    for (i = 0; i < pIceConfigInfo->uriCount; i++) {
+        PROFILE_CALL_WITH_T_OBJ(retStatus = parseIceServer(&pIceAgent->iceServers[pIceAgent->iceServersCount], (PCHAR) pIceConfigInfo->uris[i],
+                                                           (PCHAR) pIceConfigInfo->userName, (PCHAR) pIceConfigInfo->password),
+                                pIceAgent->iceAgentProfileDiagnostics.iceServerParsingTime[i], "ICE server parsing");
+        if (STATUS_SUCCEEDED(retStatus)) {
+            pIceAgent->rtcIceServerDiagnostics[i].port = (INT32) getInt16(pIceAgent->iceServers[i].ipAddress.port);
+            switch (pIceAgent->iceServers[pIceAgent->iceServersCount].transport) {
+                case KVS_SOCKET_PROTOCOL_UDP:
+                    STRCPY(pIceAgent->rtcIceServerDiagnostics[i].protocol, ICE_TRANSPORT_TYPE_UDP);
+                    break;
+                case KVS_SOCKET_PROTOCOL_TCP:
+                    STRCPY(pIceAgent->rtcIceServerDiagnostics[i].protocol, ICE_TRANSPORT_TYPE_TCP);
+                    break;
+                default:
+                    MEMSET(pIceAgent->rtcIceServerDiagnostics[i].protocol, 0, SIZEOF(pIceAgent->rtcIceServerDiagnostics[i].protocol));
+            }
+            STRCPY(pIceAgent->rtcIceServerDiagnostics[i].url, pIceConfigInfo->uris[i]);
+
+            // init candidate && pairs
+            if (pIceAgent->iceServers[pIceAgent->iceServersCount].isTurn) {
+                if (pIceAgent->iceServers[pIceAgent->iceServersCount].transport == KVS_SOCKET_PROTOCOL_UDP ||
+                    pIceAgent->iceServers[pIceAgent->iceServersCount].transport == KVS_SOCKET_PROTOCOL_NONE) {
+                    CHK_STATUS(iceAgentInitRelayCandidate(pIceAgent, pIceAgent->iceServersCount, KVS_SOCKET_PROTOCOL_UDP));
+                }
+
+                if (pIceAgent->iceServers[pIceAgent->iceServersCount].transport == KVS_SOCKET_PROTOCOL_TCP ||
+                    pIceAgent->iceServers[pIceAgent->iceServersCount].transport == KVS_SOCKET_PROTOCOL_NONE) {
+                    CHK_STATUS(iceAgentInitRelayCandidate(pIceAgent, pIceAgent->iceServersCount, KVS_SOCKET_PROTOCOL_TCP));
+                }
+            }
+
+            pIceAgent->iceServersCount++;
+        } else {
+            DLOGE("Failed to parse ICE servers");
+        }
+    }
+
+    MUTEX_UNLOCK(pIceAgent->lock);
+    locked = FALSE;
+
+CleanUp:
+    CHK_LOG_ERR(retStatus);
+
+    if (locked) {
+        MUTEX_UNLOCK(pIceAgent->lock);
+    }
+
+    return retStatus;
+}
+
 STATUS iceAgentValidateKvsRtcConfig(PKvsRtcConfiguration pKvsRtcConfiguration)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -613,9 +676,10 @@ STATUS iceAgentStartGathering(PIceAgent pIceAgent)
         PROFILE_CALL_WITH_T_OBJ(CHK_STATUS(iceAgentInitSrflxCandidate(pIceAgent)), pIceAgent->iceAgentProfileDiagnostics.srflxCandidateSetUpTime,
                                 "Srflx candidates setup time");
     }
-
+#if 0
     PROFILE_CALL_WITH_T_OBJ(CHK_STATUS(iceAgentInitRelayCandidates(pIceAgent)), pIceAgent->iceAgentProfileDiagnostics.relayCandidateSetUpTime,
                             "Relay candidates setup time");
+#endif
 
     // start listening for incoming data
     CHK_STATUS(connectionListenerStart(pIceAgent->pConnectionListener));
@@ -1857,14 +1921,14 @@ STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent, UINT32 iceServerIndex, KV
     callback.relayAddressAvailableFn = NULL;
     callback.turnStateFailedFn = turnStateFailedFn;
 
+    MUTEX_LOCK(pIceAgent->lock);
+    locked = TRUE;
+
     CHK_STATUS(createTurnConnection(&pIceAgent->iceServers[iceServerIndex], pIceAgent->timerQueueHandle,
                                     TURN_CONNECTION_DATA_TRANSFER_MODE_SEND_INDIDATION, protocol, &callback, pNewCandidate->pSocketConnection,
                                     pIceAgent->pConnectionListener, &pTurnConnection));
     pNewCandidate->pIceAgent = pIceAgent;
     pNewCandidate->pTurnConnection = pTurnConnection;
-
-    MUTEX_LOCK(pIceAgent->lock);
-    locked = TRUE;
 
     CHK_STATUS(doubleListInsertItemHead(pIceAgent->localCandidates, (UINT64) pNewCandidate));
     pNewCandidate = NULL;
