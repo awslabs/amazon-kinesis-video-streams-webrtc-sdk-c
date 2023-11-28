@@ -70,6 +70,8 @@ On Ubuntu and Raspberry Pi OS you can get the libraries by running
 sudo apt-get install cmake m4 pkg-config libssl-dev libcurl4-openssl-dev liblog4cplus-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev gstreamer1.0-plugins-base-apps gstreamer1.0-plugins-bad gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly gstreamer1.0-tools 
 ```
 
+By default we download all the libraries from GitHub and build them locally, so should require nothing to be installed ahead of time. If you do wish to link to existing libraries you can use the following flags to customize your build.
+
 ### Configuring on Windows
 
 Install [MS Visual Studio Community / Enterprise](https://visualstudio.microsoft.com/vs/community/), [Strawberry perl](https://strawberryperl.com/), and [Chocolatey](https://chocolatey.org/install) if not installed already
@@ -106,8 +108,10 @@ Build the SDK
 .github\build_windows_openssl.bat
 ```
 
-By default we download all the libraries from GitHub and build them locally, so should require nothing to be installed ahead of time.
-If you do wish to link to existing libraries you can use the following flags to customize your build.
+To run the sample application, make sure that you've exported the following paths and appended them to env:Path for powershell
+```
+$env:Path += ';C:\webrtc\open-source\bin;C:\tools\pthreads-w32-2-9-1-release\Pre-built.2\dll\x64;C:\webrtc\build'
+```
 
 ### Dependency requirements
 
