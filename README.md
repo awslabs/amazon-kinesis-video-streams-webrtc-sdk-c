@@ -57,7 +57,7 @@ To download run the following command:
 
 You will also need to install `pkg-config` and `CMake` and a build environment
 
-### Configure
+### Configuring on Ubuntu / Unix
 Create a build directory in the newly checked out repository, and execute CMake from it.
 
 `mkdir -p amazon-kinesis-video-streams-webrtc-sdk-c/build; cd amazon-kinesis-video-streams-webrtc-sdk-c/build; cmake .. `
@@ -68,6 +68,42 @@ GStreamer is installed on your system.
 On Ubuntu and Raspberry Pi OS you can get the libraries by running
 ```
 sudo apt-get install cmake m4 pkg-config libssl-dev libcurl4-openssl-dev liblog4cplus-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev gstreamer1.0-plugins-base-apps gstreamer1.0-plugins-bad gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly gstreamer1.0-tools 
+```
+
+### Configuring on Windows
+
+Install [MS Visual Studio Community / Enterprise](https://visualstudio.microsoft.com/vs/community/), [Strawberry perl](https://strawberryperl.com/), and [Chocolatey](https://chocolatey.org/install) if not installed already
+
+Get the libraries by running the following in powershell
+```
+choco install gstreamer
+choco install gstreamer-devel
+curl.exe -o C:\tools\pthreads-w32-2-9-1-release.zip ftp://sourceware.org/pub/pthreads-win32/pthreads-w32-2-9-1-release.zip
+mkdir C:\tools\pthreads-w32-2-9-1-release\
+Expand-Archive -Path C:\tools\pthreads-w32-2-9-1-release.zip -DestinationPath C:\tools\pthreads-w32-2-9-1-release
+```
+
+Modify the path to the downloaded and unzipped PThreads in cmake in `build_windows_openssl.bat` if needed / unzipped at a different path other than the one mentioned above
+```
+cmake -G "NMake Makefiles" -DBUILD_TEST=TRUE -DEXT_PTHREAD_INCLUDE_DIR="C:/tools/pthreads-w32-2-9-1-release/Pre-built.2/include/" -DEXT_PTHREAD_LIBRARIES="C:/tools/pthreads-w32-2-9-1-release/Pre-built.2/lib/x64/libpthreadGC2.a" ..
+```
+Modify the path to MSVC as well in the `build_windows_openssl.bat` if needed / installed a different version / location
+
+```
+call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64
+```
+
+Allow long paths before we start the build
+```
+git config --system core.longpaths true
+```
+
+Note that if the paths are still too long (which can cause the build to fail unfortunately), we recommend renaming the folders to use shorter names and moving them to `C:/`
+
+Build the SDK
+
+```
+.github\build_windows_openssl.bat
 ```
 
 By default we download all the libraries from GitHub and build them locally, so should require nothing to be installed ahead of time.
