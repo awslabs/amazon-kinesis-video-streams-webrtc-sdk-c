@@ -85,7 +85,7 @@ mkdir C:\tools\pthreads-w32-2-9-1-release\
 Expand-Archive -Path C:\tools\pthreads-w32-2-9-1-release.zip -DestinationPath C:\tools\pthreads-w32-2-9-1-release
 ```
 
-Modify the path to the downloaded and unzipped PThreads in cmake in `build_windows_openssl.bat` if needed / unzipped at a different path other than the one mentioned above
+Modify the path to the downloaded and unzipped PThreads in cmake in `build_windows_openssl.bat` if needed / unzipped at a path other than the one mentioned above
 ```
 cmake -G "NMake Makefiles" -DBUILD_TEST=TRUE -DEXT_PTHREAD_INCLUDE_DIR="C:/tools/pthreads-w32-2-9-1-release/Pre-built.2/include/" -DEXT_PTHREAD_LIBRARIES="C:/tools/pthreads-w32-2-9-1-release/Pre-built.2/lib/x64/libpthreadGC2.a" ..
 ```
