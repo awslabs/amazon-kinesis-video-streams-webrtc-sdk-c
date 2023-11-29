@@ -446,8 +446,8 @@ if (WIN32)
 endif()
 
 if(COMPILER_WARNINGS)
-  target_compile_options(kvsWebrtcClient PUBLIC -Wall -Werror -Wextra -Wno-unknown-warning-option)
-  target_compile_options(kvsWebrtcSignalingClient PUBLIC -Wall -Werror -Wextra -Wno-unknown-warning-option)
+  target_compile_options(kvsWebrtcClient PUBLIC -Wall -Werror -Wpedantic -Wextra -Wno-unknown-warning-option)
+  target_compile_options(kvsWebrtcSignalingClient PUBLIC -Wall -Werror -Wpedantic -Wextra -Wno-unknown-warning-option)
 endif()
 
 install(TARGETS kvsWebrtcClient kvsWebrtcSignalingClient
