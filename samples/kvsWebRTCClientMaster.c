@@ -31,7 +31,14 @@ INT32 main(INT32 argc, CHAR* argv[])
     pSampleConfiguration->audioSource = sendAudioPackets;
     pSampleConfiguration->videoSource = sendVideoPackets;
     pSampleConfiguration->receiveAudioVideoSource = sampleReceiveAudioVideoFrame;
+
+    if (argc > 2 && STRNCMP(argv[2], "1", 2) == 0) {
+        pSampleConfiguration->channelInfo.useMediaStorage = TRUE;
+    }
+
+#ifdef ENABLE_DATA_CHANNEL
     pSampleConfiguration->onDataChannel = onDataChannel;
+#endif
     pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
     DLOGI("[KVS Master] Finished setting handlers");
 

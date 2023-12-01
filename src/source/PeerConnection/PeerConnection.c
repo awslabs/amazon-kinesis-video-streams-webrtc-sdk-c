@@ -133,8 +133,8 @@ STATUS allocateSctp(PKvsPeerConnection pKvsPeerConnection)
             CHK(FALSE, retStatus);
         }
         CHK(pKvsDataChannel != NULL, STATUS_INTERNAL_ERROR);
-        sctpSessionWriteDcep(pKvsPeerConnection->pSctpSession, currentDataChannelId, pKvsDataChannel->dataChannel.name,
-                             STRLEN(pKvsDataChannel->dataChannel.name), &pKvsDataChannel->rtcDataChannelInit);
+        CHK_STATUS(sctpSessionWriteDcep(pKvsPeerConnection->pSctpSession, currentDataChannelId, pKvsDataChannel->dataChannel.name,
+                                        STRLEN(pKvsDataChannel->dataChannel.name), &pKvsDataChannel->rtcDataChannelInit));
         pKvsDataChannel->rtcDataChannelDiagnostics.state = RTC_DATA_CHANNEL_STATE_OPEN;
         if (STATUS_FAILED(hashTableUpsert(pKvsPeerConnection->pDataChannels, currentDataChannelId, (UINT64) pKvsDataChannel))) {
             DLOGW("Failed to update entry in hash table with recent changes to data channel");
@@ -173,7 +173,7 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
         dtlsSessionProcessPacket(pKvsPeerConnection->pDtlsSession, buff, &signedBuffLen);
 
 #ifdef ENABLE_DATA_CHANNEL
-        if (signedBuffLen > 0) {
+        if (ATOMIC_LOAD_BOOL(&pKvsPeerConnection->sctpIsEnabled) && signedBuffLen > 0) {
             CHK_STATUS(putSctpPacket(pKvsPeerConnection->pSctpSession, buff, signedBuffLen));
         }
 #endif
@@ -185,8 +185,14 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
             }
 
 #ifdef ENABLE_DATA_CHANNEL
-            if (pKvsPeerConnection->pSctpSession == NULL) {
-                CHK_STATUS(allocateSctp(pKvsPeerConnection));
+            if (ATOMIC_LOAD_BOOL(&pKvsPeerConnection->sctpIsEnabled)) {
+                if (pKvsPeerConnection->pSctpSession == NULL) {
+                    CHK_STATUS(allocateSctp(pKvsPeerConnection));
+                }
+
+                if (signedBuffLen > 0) {
+                    CHK_STATUS(putSctpPacket(pKvsPeerConnection->pSctpSession, buff, signedBuffLen));
+                }
             }
 #endif
             changePeerConnectionState(pKvsPeerConnection, RTC_PEER_CONNECTION_STATE_CONNECTED);
@@ -477,6 +483,7 @@ VOID onIceConnectionStateChange(UINT64 customData, UINT64 connectionState)
             break;
 
         case ICE_AGENT_STATE_DISCONNECTED:
+            DLOGD("ice agent disconnected");
             newConnectionState = RTC_PEER_CONNECTION_STATE_DISCONNECTED;
             break;
 
@@ -919,7 +926,7 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
     pKvsPeerConnection->MTU = pConfiguration->kvsRtcConfiguration.maximumTransmissionUnit == 0
         ? DEFAULT_MTU_SIZE
         : pConfiguration->kvsRtcConfiguration.maximumTransmissionUnit;
-    pKvsPeerConnection->sctpIsEnabled = FALSE;
+    ATOMIC_STORE_BOOL(&pKvsPeerConnection->sctpIsEnabled, FALSE);
 
     iceAgentCallbacks.customData = (UINT64) pKvsPeerConnection;
     iceAgentCallbacks.inboundPacketFn = onInboundPacket;
@@ -1277,7 +1284,9 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
     for (i = 0; i < pSessionDescription->mediaCount; i++) {
 #ifdef ENABLE_DATA_CHANNEL
         if (STRNCMP(pSessionDescription->mediaDescriptions[i].mediaName, "application", SIZEOF("application") - 1) == 0) {
-            pKvsPeerConnection->sctpIsEnabled = TRUE;
+            if (!pKvsPeerConnection->isOffer && !ATOMIC_LOAD_BOOL(&pKvsPeerConnection->sctpIsEnabled)) {
+                ATOMIC_STORE_BOOL(&pKvsPeerConnection->sctpIsEnabled, TRUE);
+            }
         }
 #endif
 
@@ -1363,8 +1372,9 @@ STATUS createOffer(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionIni
     }
 
 #ifdef ENABLE_DATA_CHANNEL
-    pKvsPeerConnection->sctpIsEnabled = TRUE;
+    ATOMIC_STORE_BOOL(&pKvsPeerConnection->sctpIsEnabled, TRUE);
 #endif
+
     CHK_STATUS(setPayloadTypesForOffer(pKvsPeerConnection->pCodecTable));
 
     CHK_STATUS(populateSessionDescription(pKvsPeerConnection, &(pKvsPeerConnection->remoteSessionDescription), pSessionDescription));
@@ -1396,6 +1406,7 @@ STATUS createAnswer(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionIn
     CHK(pKvsPeerConnection->remoteSessionDescription.sessionName[0] != '\0', STATUS_PEERCONNECTION_CREATE_ANSWER_WITHOUT_REMOTE_DESCRIPTION);
 
     pSessionDescriptionInit->type = SDP_TYPE_ANSWER;
+    pKvsPeerConnection->isOffer = FALSE;
 
     CHK_STATUS(peerConnectionGetCurrentLocalDescription(pPeerConnection, pSessionDescriptionInit));
 
@@ -1535,7 +1546,7 @@ STATUS addIceCandidate(PRtcPeerConnection pPeerConnection, PCHAR pIceCandidate)
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pPeerConnection;
 
     CHK(pKvsPeerConnection != NULL && pIceCandidate != NULL, STATUS_NULL_ARG);
-
+    DLOGD("%s", pIceCandidate);
     iceAgentAddRemoteCandidate(pKvsPeerConnection->pIceAgent, pIceCandidate);
 
 CleanUp:

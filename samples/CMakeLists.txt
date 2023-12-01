@@ -78,3 +78,4 @@ endif()
 install(TARGETS kvsWebrtcClientMaster kvsWebrtcClientViewer discoverNatBehavior
   RUNTIME DESTINATION bin
 )
+

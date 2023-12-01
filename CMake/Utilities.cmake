@@ -3,6 +3,7 @@ function(build_dependency lib_name)
   set(supported_libs
       gperftools
       gtest
+      awscpp
       benchmark
       jsmn
       openssl
@@ -26,6 +27,8 @@ function(build_dependency lib_name)
     set(lib_file_name srtp2)
   elseif(${lib_name} STREQUAL "gperftools")
     set(lib_file_name profiler)
+  elseif(${lib_name} STREQUAL "awscpp")
+    set(lib_file_name aws-cpp-sdk-core)
   endif()
   set(library_found NOTFOUND)
   find_library(

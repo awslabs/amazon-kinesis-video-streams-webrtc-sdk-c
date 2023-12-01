@@ -1,4 +1,4 @@
-#include "WebRTCClientTestFixture.h"
+#include "SignalingApiFunctionalityTest.h"
 
 namespace com {
 namespace amazonaws {
@@ -6,60 +6,41 @@ namespace kinesis {
 namespace video {
 namespace webrtcclient {
 
-class SignalingApiFunctionalityTest : public WebRtcClientTestBase {
-  public:
-    SignalingApiFunctionalityTest() : pActiveClient(NULL)
-    {
-        MEMSET(signalingStatesCounts, 0x00, SIZEOF(signalingStatesCounts));
 
-        getIceConfigCount = 0;
-        getIceConfigFail = MAX_UINT32;
-        getIceConfigRecover = 0;
-        getIceConfigResult = STATUS_SUCCESS;
 
-        connectCount = 0;
-        connectFail = MAX_UINT32;
-        connectRecover = 0;
-        connectResult = STATUS_SUCCESS;
 
-        describeCount = 0;
-        describeFail = MAX_UINT32;
-        describeRecover = 0;
-        describeResult = STATUS_SUCCESS;
+SignalingApiFunctionalityTest::SignalingApiFunctionalityTest() : pActiveClient(NULL)
+{
+    MEMSET(signalingStatesCounts, 0x00, SIZEOF(signalingStatesCounts));
 
-        getEndpointCount = 0;
-        getEndpointFail = MAX_UINT32;
-        getEndpointRecover = 0;
-        getEndpointResult = STATUS_SUCCESS;
+    getIceConfigCount = 0;
+    getIceConfigFail = MAX_UINT32;
+    getIceConfigRecover = 0;
+    getIceConfigResult = STATUS_SUCCESS;
 
-        errStatus = STATUS_SUCCESS;
-        errMsg[0] = '\0';
-    };
+    connectCount = 0;
+    connectFail = MAX_UINT32;
+    connectRecover = 0;
+    connectResult = STATUS_SUCCESS;
 
-    PSignalingClient pActiveClient;
-    UINT32 getIceConfigFail;
-    UINT32 getIceConfigRecover;
-    UINT32 getIceConfigCount;
-    STATUS getIceConfigResult;
-    UINT32 signalingStatesCounts[SIGNALING_CLIENT_STATE_MAX_VALUE];
-    STATUS errStatus;
-    CHAR errMsg[1024];
+    describeCount = 0;
+    describeFail = MAX_UINT32;
+    describeRecover = 0;
+    describeResult = STATUS_SUCCESS;
 
-    STATUS connectResult;
-    UINT32 connectFail;
-    UINT32 connectRecover;
-    UINT32 connectCount;
+    describeMediaCount = 0;
+    describeMediaFail = MAX_UINT32;
+    describeMediaRecover = 0;
+    describeMediaResult = STATUS_SUCCESS;
 
-    STATUS describeResult;
-    UINT32 describeFail;
-    UINT32 describeRecover;
-    UINT32 describeCount;
+    getEndpointCount = 0;
+    getEndpointFail = MAX_UINT32;
+    getEndpointRecover = 0;
+    getEndpointResult = STATUS_SUCCESS;
 
-    STATUS getEndpointResult;
-    UINT32 getEndpointFail;
-    UINT32 getEndpointRecover;
-    UINT32 getEndpointCount;
-};
+    errStatus = STATUS_SUCCESS;
+    errMsg[0] = '\0';
+}
 
 STATUS masterMessageReceived(UINT64 customData, PReceivedSignalingMessage pReceivedSignalingMessage)
 {
@@ -180,6 +161,21 @@ STATUS describePreHook(UINT64 hookCustomData)
     }
 
     pTest->describeCount++;
+    DLOGD("Signaling client describe hook returning 0x%08x", retStatus);
+    return retStatus;
+};
+
+STATUS describeMediaPreHook(UINT64 hookCustomData)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    SignalingApiFunctionalityTest* pTest = (SignalingApiFunctionalityTest*) hookCustomData;
+    CHECK(pTest != NULL);
+
+    if (pTest->describeMediaCount >= pTest->describeFail && pTest->describeMediaCount < pTest->describeMediaRecover) {
+        retStatus = pTest->describeResult;
+    }
+
+    pTest->describeMediaCount++;
     DLOGD("Signaling client describe hook returning 0x%08x", retStatus);
     return retStatus;
 };
@@ -3237,7 +3233,7 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingTest)
     SIGNALING_CLIENT_HANDLE signalingHandle;
     CHAR signalingChannelName[64];
     const UINT32 totalChannelCount = MAX_SIGNALING_CACHE_ENTRY_COUNT + 1;
-    UINT32 i, describeCountNoCache, getEndpointCountNoCache;
+    UINT32 i, describeCountNoCache, describeMediaCountNoCache, getEndpointCountNoCache;
     CHAR channelArn[MAX_ARN_LEN + 1];
 
     signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
@@ -3255,6 +3251,7 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingTest)
     clientInfoInternal.hookCustomData = (UINT64) this;
     clientInfoInternal.connectPreHookFn = connectPreHook;
     clientInfoInternal.describePreHookFn = describePreHook;
+    clientInfoInternal.describeMediaStorageConfPreHookFn = describeMediaPreHook;
     clientInfoInternal.getEndpointPreHookFn = getEndpointPreHook;
     setupSignalingStateMachineRetryStrategyCallbacks(&clientInfoInternal);
 
@@ -3272,6 +3269,7 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingTest)
     channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_FILE;
     channelInfo.pRegion = TEST_DEFAULT_REGION;
 
+
     FREMOVE(DEFAULT_CACHE_FILE_PATH);
 
     for (i = 0; i < totalChannelCount; ++i) {
@@ -3287,6 +3285,7 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingTest)
     }
 
     describeCountNoCache = describeCount;
+    describeMediaCountNoCache = describeMediaCount;
     getEndpointCountNoCache = getEndpointCount;
 
     for (i = 0; i < totalChannelCount; ++i) {
@@ -3317,17 +3316,21 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingTest)
 
         signalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
         EXPECT_TRUE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
-        EXPECT_EQ(STATUS_SUCCESS,signalingClientFetchSync(signalingHandle));
+        EXPECT_EQ(STATUS_SUCCESS, signalingClientFetchSync(signalingHandle));
         EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
     }
 
     DLOGD("describeCount: %d, describeCountNoCache: %d", describeCount, describeCountNoCache);
+    DLOGD("describeMediaCount: %d, describeMediaCountNoCache: %d", describeMediaCount, describeMediaCountNoCache);
     DLOGD("getEndpointCount: %d, getEndpointCountNoCache: %d", getEndpointCount, getEndpointCountNoCache);
 
     /* describeCount and getEndpointCount should only increase by 2 because they are cached for all channels except one and we iterate twice*/
     EXPECT_TRUE(describeCount > describeCountNoCache && (describeCount - describeCountNoCache) == 2);
-    EXPECT_TRUE(getEndpointCount > getEndpointCountNoCache && (getEndpointCount - 2*getEndpointCountNoCache) == 2);
+    EXPECT_TRUE(describeMediaCount == 0);
+    EXPECT_TRUE(getEndpointCount > getEndpointCountNoCache && (getEndpointCount - getEndpointCountNoCache) == 2);
 }
+
+
 
 TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateCache)
 {
@@ -3335,6 +3338,13 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateCache)
 
     SignalingFileCacheEntry testEntry;
     SignalingFileCacheEntry testEntry2;
+
+    // It is very important to MEMSET these to 0.
+    // Otherwise SignalingFileCacheEntry will have uninitialized values for
+    // the items that were not initialized and this results in garbage values
+    // being written to the cache file
+    MEMSET(&testEntry, 0x00, SIZEOF(testEntry));
+    MEMSET(&testEntry2, 0x00, SIZEOF(testEntry2));
 
     testEntry.role = SIGNALING_CHANNEL_ROLE_TYPE_VIEWER;
     STRCPY(testEntry.wssEndpoint, "testWssEnpoint");
@@ -3365,6 +3375,8 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateMultiChannelCache)
     srand(GETTIME());
 
     SignalingFileCacheEntry testEntry;
+    MEMSET(&testEntry, 0x00, SIZEOF(testEntry));
+
     BOOL cacheFound = FALSE;
     int additionalEntries = rand()%15 + 2;
     char testWssEndpoint[MAX_SIGNALING_ENDPOINT_URI_LEN + 1] = {0};
@@ -3379,6 +3391,9 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateMultiChannelCache)
     UINT64 fileSize;
     UINT32 entryCount;
     SignalingFileCacheEntry entries[MAX_SIGNALING_CACHE_ENTRY_COUNT];
+    MEMSET(entries, 0x00, SIZEOF(entries));
+
+
     const int TEST_CHANNEL_COUNT = 5;
 
     for(i = 0; i < MAX_SIGNALING_CACHE_ENTRY_COUNT + additionalEntries; i++) {
@@ -3426,7 +3441,6 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateMultiChannelCache)
     EXPECT_LT(entryCount, TEST_CHANNEL_COUNT+1);
 
     MEMFREE(fileBuffer);
-
     FREMOVE(DEFAULT_CACHE_FILE_PATH);
 }
 
@@ -3436,6 +3450,8 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateFullMultiChannelCache)
     srand(GETTIME());
 
     SignalingFileCacheEntry testEntry;
+    MEMSET(&testEntry, 0x00, SIZEOF(testEntry));
+
     BOOL cacheFound = FALSE;
     int additionalEntries = rand()%15 + 2;
     char testWssEndpoint[MAX_SIGNALING_ENDPOINT_URI_LEN + 1] = {0};
@@ -3482,6 +3498,7 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateFullMultiChannelCache)
 
     FREMOVE(DEFAULT_CACHE_FILE_PATH);
 }
+
 
 TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer)
 {
@@ -4264,7 +4281,6 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_FastClockSkew_Veri
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
 }
-
 
 } // namespace webrtcclient
 } // namespace video

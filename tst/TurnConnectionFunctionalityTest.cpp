@@ -26,7 +26,9 @@ class TurnConnectionFunctionalityTest : public WebRtcClientTestBase {
         PKvsIpAddress pTurnSocketAddr = NULL;
         PSocketConnection pTurnSocket = NULL;
 
-        initializeSignalingClient();
+        // If this failed we will not be in the Connected state, need to bail out
+        ASSERT_EQ(STATUS_SUCCESS, initializeSignalingClient());
+
         EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(mSignalingClientHandle, &iceConfigCount));
 
         for (uriCount = 0, i = 0; i < iceConfigCount; i++) {
