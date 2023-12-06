@@ -188,6 +188,7 @@ STATUS tlsSessionPutApplicationData(PTlsSession pTlsSession, PBYTE pData, UINT32
 
     SIZE_T wBioDataLen = 0;
     PCHAR wBioBuffer = NULL;
+    LONG wBioGetMemDataRet = 0;
 
     CHK(pTlsSession != NULL, STATUS_NULL_ARG);
 
@@ -212,8 +213,9 @@ STATUS tlsSessionPutApplicationData(PTlsSession pTlsSession, PBYTE pData, UINT32
         }
     }
 
-    wBioDataLen = (SIZE_T) BIO_get_mem_data(SSL_get_wbio(pTlsSession->pSsl), &wBioBuffer);
-    CHK_ERR(wBioDataLen >= 0, STATUS_SEND_DATA_FAILED, "BIO_get_mem_data failed");
+    wBioGetMemDataRet = BIO_get_mem_data(SSL_get_wbio(pTlsSession->pSsl), &wBioBuffer);
+    CHK_ERR(wBioGetMemDataRet >= 0, STATUS_SEND_DATA_FAILED, "BIO_get_mem_data failed");
+    wBioDataLen = (SIZE_T) wBioGetMemDataRet;
 
     if (wBioDataLen > 0) {
         retStatus =
