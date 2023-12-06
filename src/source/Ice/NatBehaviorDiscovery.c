@@ -9,7 +9,6 @@ STATUS natTestIncomingDataHandler(UINT64 customData, PSocketConnection pSocketCo
     UNUSED_PARAM(pSrc);
     UNUSED_PARAM(pDest);
 
-    STATUS retStatus = STATUS_SUCCESS;
     PNatTestData pNatTestData = (PNatTestData) customData;
     PStunPacket pStunPacket = NULL;
 
