@@ -1580,7 +1580,7 @@ STATUS iceAgentCheckCandidatePairConnection(PIceAgent pIceAgent)
             switch (pIceCandidatePair->state) {
                 case ICE_CANDIDATE_PAIR_STATE_WAITING:
                     pIceCandidatePair->state = ICE_CANDIDATE_PAIR_STATE_IN_PROGRESS;
-                    // explicit fall-through
+                    /* FALLTHRU */
                 case ICE_CANDIDATE_PAIR_STATE_IN_PROGRESS:
                     CHK_STATUS(iceCandidatePairCheckConnection(pIceAgent->pBindingRequest, pIceAgent, pIceCandidatePair));
                     break;
