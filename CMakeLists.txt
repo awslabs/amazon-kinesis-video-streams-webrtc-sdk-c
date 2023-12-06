@@ -385,8 +385,9 @@ endif()
 
 file(GLOB WEBRTC_SIGNALING_CLIENT_SOURCE_FILES "src/source/Signaling/*.c")
 
-include_directories(${OPEN_SRC_INCLUDE_DIRS})
-include_directories(${OPEN_SRC_INSTALL_PREFIX}/include)
+
+include_directories(SYSTEM ${OPEN_SRC_INCLUDE_DIRS})
+include_directories(SYSTEM ${OPEN_SRC_INSTALL_PREFIX}/include)
 include_directories(${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/include)
 # include sdp_config.h
 include_directories(src/source/Sdp/kvssdp)
