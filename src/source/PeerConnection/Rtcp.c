@@ -132,6 +132,12 @@ static STATUS onRtcpReceiverReport(PRtcpPacket pRtcpPacket, PKvsPeerConnection p
     pTransceiver->remoteInboundStats.roundTripTime = rttPropDelayMsec;
     MUTEX_UNLOCK(pTransceiver->statsLock);
 
+    // Cast to void to avoid "set but not used" warning
+    (void)senderSSRC;
+    (void)cumulativeLost;
+    (void)extHiSeqNumReceived;
+    (void)interarrivalJitter;
+
 CleanUp:
 
     return retStatus;
