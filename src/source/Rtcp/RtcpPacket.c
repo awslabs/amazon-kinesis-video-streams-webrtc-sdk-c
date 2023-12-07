@@ -15,7 +15,7 @@ STATUS setRtcpPacketFromBytes(PBYTE pRawPacket, UINT32 pRawPacketsLen, PRtcpPack
     // We don't assert exact length since this may be a compound packet, it
     // is the callers responsibility to parse subsequent entries
     packetLen = getInt16(*(PUINT16) (pRawPacket + RTCP_PACKET_LEN_OFFSET));
-    CHK((packetLen + 1) * RTCP_PACKET_LEN_WORD_SIZE <= pRawPacketsLen, STATUS_RTCP_INPUT_PARTIAL_PACKET);
+    CHK((packetLen + 1) * ((UINT16) RTCP_PACKET_LEN_WORD_SIZE) <= pRawPacketsLen, STATUS_RTCP_INPUT_PARTIAL_PACKET);
 
     pRtcpPacket->header.version = (pRawPacket[0] >> VERSION_SHIFT) & VERSION_MASK;
     CHK(pRtcpPacket->header.version == RTCP_PACKET_VERSION_VAL, STATUS_RTCP_INPUT_PACKET_INVALID_VERSION);
