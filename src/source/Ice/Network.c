@@ -338,7 +338,7 @@ CleanUp:
 BOOL isIpAddr(PCHAR hostname, UINT16 length)
 {
     BOOL status = TRUE;
-    UINT32 ip_1, ip_2, ip_3, ip_4, ip_5, ip_6, ip_7, ip_8;
+    INT16 ip_1, ip_2, ip_3, ip_4, ip_5, ip_6, ip_7, ip_8;
     if (hostname == NULL || length > MAX_ICE_CONFIG_URI_LEN) {
         DLOGW("Provided NULL hostname");
         status = FALSE;
