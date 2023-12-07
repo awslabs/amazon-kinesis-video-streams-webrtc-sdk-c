@@ -380,5 +380,8 @@ PCHAR getNatBehaviorStr(NAT_BEHAVIOR natBehavior)
             return NAT_BEHAVIOR_ADDRESS_DEPENDENT_STR;
         case NAT_BEHAVIOR_PORT_DEPENDENT:
             return NAT_BEHAVIOR_PORT_DEPENDENT_STR;
+        default:
+            // NOTE: This should be properly handled with something like "NAT_BEHAVIOR_UNDEFINED"
+            return NAT_BEHAVIOR_NONE_STR;
     }
 }
