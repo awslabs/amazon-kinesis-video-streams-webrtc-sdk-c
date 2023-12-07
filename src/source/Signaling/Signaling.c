@@ -384,7 +384,7 @@ STATUS signalingSendMessageSync(PSignalingClient pSignalingClient, PSignalingMes
                                         "Offer to answer time");
     }
     if (pSignalingMessage->messageType == SIGNALING_MESSAGE_TYPE_OFFER) {
-        pSignalingClient->offerTime = GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+        pSignalingClient->offerTime = GETTIME();
     }
     // Update the internal diagnostics only after successfully sending
     ATOMIC_INCREMENT(&pSignalingClient->diagnostics.numberOfMessagesSent);
