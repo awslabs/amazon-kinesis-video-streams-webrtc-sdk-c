@@ -380,8 +380,7 @@ STATUS signalingSendMessageSync(PSignalingClient pSignalingClient, PSignalingMes
     CHK_STATUS(sendLwsMessage(pSignalingClient, pSignalingMessage->messageType, pSignalingMessage->peerClientId, pSignalingMessage->payload,
                               pSignalingMessage->payloadLen, pSignalingMessage->correlationId, 0));
     if (pSignalingMessage->messageType == SIGNALING_MESSAGE_TYPE_ANSWER) {
-        PROFILE_WITH_START_END_TIME_OBJ(pSignalingClient->offerTime, pSignalingClient->answerTime, pSignalingClient->diagnostics.offerToAnswerTime,
-                                        "Offer to answer time");
+        DLOGP("[Signaling offer to answer] %" PRIu64 " ms", pSampleConfiguration->signalingClientMetrics.signalingClientStats.offerToAnswerTime);
     }
     if (pSignalingMessage->messageType == SIGNALING_MESSAGE_TYPE_OFFER) {
         pSignalingClient->offerTime = GETTIME();
