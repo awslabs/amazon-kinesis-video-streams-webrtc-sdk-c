@@ -108,16 +108,16 @@ if(ADD_MUCLIBC)
 endif()
 
 
-message(STATUS "Kinesis Video WebRTC Client path is ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}")
-message(STATUS "dependencies install path is ${OPEN_SRC_INSTALL_PREFIX}")
+# message(STATUS "Kinesis Video WebRTC Client path is ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}")
+# message(STATUS "dependencies install path is ${OPEN_SRC_INSTALL_PREFIX}")
 
-# pass ca cert location to sdk
-add_definitions(-DKVS_CA_CERT_PATH="${CMAKE_SOURCE_DIR}/certs/cert.pem")
-add_definitions(-DCMAKE_DETECTED_CACERT_PATH)
+# # pass ca cert location to sdk
+# add_definitions(-DKVS_CA_CERT_PATH="${CMAKE_SOURCE_DIR}/certs/cert.pem")
+# add_definitions(-DCMAKE_DETECTED_CACERT_PATH)
 
-if (ENABLE_KVS_THREADPOOL)
-  add_definitions(-DENABLE_KVS_THREADPOOL)
-endif()
+# if (ENABLE_KVS_THREADPOOL)
+#   add_definitions(-DENABLE_KVS_THREADPOOL)
+# endif()
 
 if(USE_OPENSSL)
   add_definitions(-DKVS_USE_OPENSSL)
@@ -142,10 +142,31 @@ elseif(USE_MBEDTLS)
 endif()
 
 
-if(BUILD_DEPENDENCIES)
-  if(NOT EXISTS ${OPEN_SRC_INSTALL_PREFIX})
-    file(MAKE_DIRECTORY ${OPEN_SRC_INSTALL_PREFIX})
-  endif()
+#   if(WIN32)
+#     set(OPENSSL_INCLUDE_DIRS "${OPEN_SRC_INSTALL_PREFIX}/include/")
+#     set(OPENSSL_CRYPTO_LIBRARY "${OPEN_SRC_INSTALL_PREFIX}/lib/libcrypto.lib")
+#     set(OPENSSL_SSL_LIBRARY "${OPEN_SRC_INSTALL_PREFIX}/lib/libssl.lib")
+#     set(OPENSSL_LIBRARIES ${OPENSSL_SSL_LIBRARY} ${OPENSSL_CRYPTO_LIBRARY})
+#     string(REPLACE ";" "|" OPENSSL_LIBRARIES_ALT_SEP "${OPENSSL_LIBRARIES}")
+#     set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
+#                   -DUSE_OPENSSL=${USE_OPENSSL}
+#                   -DUSE_MBEDTLS=${USE_MBEDTLS} 
+#                   -DLWS_EXT_PTHREAD_INCLUDE_DIR=${EXT_PTHREAD_INCLUDE_DIR}
+#                   -DLWS_EXT_PTHREAD_LIBRARIES=${EXT_PTHREAD_LIBRARIES}
+#                   -DLWS_OPENSSL_INCLUDE_DIRS=${OPENSSL_INCLUDE_DIRS}
+#                   -DLWS_OPENSSL_LIBRARIES=${OPENSSL_LIBRARIES_ALT_SEP}
+#                   -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
+#   else()
+#     set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
+#                   -DOPENSSL_DIR=${OPEN_SRC_INSTALL_PREFIX}
+#                   -DUSE_OPENSSL=${USE_OPENSSL}
+#                   -DUSE_MBEDTLS=${USE_MBEDTLS}
+#                   -DLWS_OPENSSL_CRYPTO_LIBRARY=${OPENSSL_CRYPTO_LIBRARY}
+#                   -DLWS_OPENSSL_SSL_LIBRARY=${OPENSSL_SSL_LIBRARY}
+#                   -DLWS_OPENSSL_INCLUDE_DIRS=${OPENSSL_INCLUDE_DIR}
+#                   -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
+#   endif()
+#   build_dependency(websockets ${BUILD_ARGS})
 
   set(ENV{PKG_CONFIG_PATH} "$ENV{PKG_CONFIG_PATH}:${OPEN_SRC_INSTALL_PREFIX}/lib/pkgconfig")
   set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${OPEN_SRC_INSTALL_PREFIX})
@@ -238,15 +259,15 @@ if(BUILD_DEPENDENCIES)
 
   endif()
 
-  if(BUILD_BENCHMARK)
-    build_dependency(benchmark)
-  endif()
+#   if(BUILD_BENCHMARK)
+#     build_dependency(benchmark)
+#   endif()
 
-  if (LINK_PROFILER)
-    build_dependency(gperftools)
-  endif()
-  message(STATUS "Finished building dependencies.")
-endif()
+#   if (LINK_PROFILER)
+#     build_dependency(gperftools)
+#   endif()
+#   message(STATUS "Finished building dependencies.")
+# endif()
 
 # building kvsCommonLws also builds kvspic
 set(BUILD_ARGS
@@ -259,45 +280,45 @@ build_dependency(kvsCommonLws ${BUILD_ARGS})
 
 ############# find dependent libraries ############
 
-find_package(Threads)
-find_package(PkgConfig REQUIRED)
-if (USE_OPENSSL)
-  find_package(OpenSSL REQUIRED)
-  set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR})
-else()
-  find_package(MbedTLS REQUIRED)
-  set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${MBEDTLS_INCLUDE_DIRS})
-endif()
+# find_package(Threads)
+# find_package(PkgConfig REQUIRED)
+# if (USE_OPENSSL)
+#   find_package(OpenSSL REQUIRED)
+#   set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR})
+# else()
+#   find_package(MbedTLS REQUIRED)
+#   set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${MBEDTLS_INCLUDE_DIRS})
+# endif()
 
-if (OPEN_SRC_INSTALL_PREFIX)
-  find_library(SRTP_LIBRARIES srtp2 REQUIRED PATHS ${OPEN_SRC_INSTALL_PREFIX})
+# if (OPEN_SRC_INSTALL_PREFIX)
+#   find_library(SRTP_LIBRARIES srtp2 REQUIRED PATHS ${OPEN_SRC_INSTALL_PREFIX})
 
-  if (LINK_PROFILER)
-    find_library(GPERFTOOLS_MALLOC_LIBRARIES tcmalloc REQUIRED PATHS ${OPEN_SRC_INSTALL_PREFIX})
-    find_library(GPERFTOOLS_PROFILER_LIBRARIES profiler REQUIRED PATHS ${OPEN_SRC_INSTALL_PREFIX})
-  endif()
-else()
-  find_library(SRTP_LIBRARIES srtp2 REQUIRED )
-  if (LINK_PROFILER)
-    find_library(GPERFTOOLS_MALLOC_LIBRARIES tcmalloc REQUIRED)
-    find_library(GPERFTOOLS_PROFILER_LIBRARIES profiler REQUIRED)
-  endif()
-endif()
+#   if (LINK_PROFILER)
+#     find_library(GPERFTOOLS_MALLOC_LIBRARIES tcmalloc REQUIRED PATHS ${OPEN_SRC_INSTALL_PREFIX})
+#     find_library(GPERFTOOLS_PROFILER_LIBRARIES profiler REQUIRED PATHS ${OPEN_SRC_INSTALL_PREFIX})
+#   endif()
+# else()
+#   find_library(SRTP_LIBRARIES srtp2 REQUIRED )
+#   if (LINK_PROFILER)
+#     find_library(GPERFTOOLS_MALLOC_LIBRARIES tcmalloc REQUIRED)
+#     find_library(GPERFTOOLS_PROFILER_LIBRARIES profiler REQUIRED)
+#   endif()
+# endif()
 
-if (WIN32)
-  SET(LIBWEBSOCKETS_LIBRARIES "websockets.lib")
-else()
-  pkg_check_modules(LIBWEBSOCKETS REQUIRED libwebsockets)
-endif()
+# if (WIN32)
+#   SET(LIBWEBSOCKETS_LIBRARIES "websockets.lib")
+# else()
+#   pkg_check_modules(LIBWEBSOCKETS REQUIRED libwebsockets)
+# endif()
 
 # usrsctp dont support pkgconfig yet
-find_library(
-  Usrsctp
-  NAMES ${USRSCTP_LIBNAME} usrsctp REQUIRED
-  PATHS ${OPEN_SRC_INSTALL_PREFIX}/lib ${OPEN_SRC_INSTALL_PREFIX}/lib64)
+# find_library(
+#   Usrsctp
+#   NAMES ${USRSCTP_LIBNAME} usrsctp REQUIRED
+#   PATHS ${OPEN_SRC_INSTALL_PREFIX}/lib ${OPEN_SRC_INSTALL_PREFIX}/lib64)
 
-set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${LIBSRTP_INCLUDE_DIRS}
-                          ${CURL_INCLUDE_DIRS} ${LIBWEBSOCKETS_INCLUDE_DIRS})
+# set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${LIBSRTP_INCLUDE_DIRS}
+#                           ${CURL_INCLUDE_DIRS} ${LIBWEBSOCKETS_INCLUDE_DIRS})
 
 link_directories(${LIBSRTP_LIBRARY_DIRS})
 link_directories(${LIBWEBSOCKETS_LIBRARY_DIRS})
