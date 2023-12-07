@@ -49,7 +49,7 @@ jobs:
       - name: Run tests
         run:  |
           cd build
-          ./tst/webrtc_client_test    
+          ./tst/webrtc_client_test
   mac-os-build-gcc:
     runs-on: macos-11
     env:
