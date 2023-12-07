@@ -760,7 +760,7 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
 #endif
 
     pSessionToken = GETENV(SESSION_TOKEN_ENV_VAR);
-    if (IS_EMPTY_STRING(pSessionToken)) {
+    if (pSessionToken != NULL && IS_EMPTY_STRING(pSessionToken)) {
         DLOGW("Session token is set but its value is empty. Ignoring.");
         pSessionToken = NULL;
     }
