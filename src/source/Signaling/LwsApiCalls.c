@@ -237,6 +237,11 @@ INT32 lwsHttpCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, 
                 DLOGD("Here 9\n");
 
                 // Remove the head
+                if(pRequestInfo->pRequestHeaders) {
+                    DLOGD("pRequestHeaders is NOT null\n");
+                } else {
+                    DLOGD("pRequestHeaders is null\n");
+                }
                 CHK_STATUS(singleListDeleteHead(pRequestInfo->pRequestHeaders));
                 DLOGD("Here 9.5\n");
                 MEMFREE(pRequestHeader);
