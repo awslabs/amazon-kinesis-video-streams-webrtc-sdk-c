@@ -198,26 +198,34 @@ INT32 lwsHttpCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, 
             DLOGD("Client append handshake header\n");
 
             CHK_STATUS(singleListGetNodeCount(pRequestInfo->pRequestHeaders, &headerCount));
+            DLOGD("Here 1\n");
             ppStartPtr = (PBYTE*) pDataIn;
             pEndPtr = *ppStartPtr + dataSize - 1;
 
+            DLOGD("Here 2\n");
             // Iterate through the headers
             while (headerCount != 0) {
+                DLOGD("Here 3\n");
                 CHK_STATUS(singleListGetHeadNode(pRequestInfo->pRequestHeaders, &pCurNode));
                 CHK_STATUS(singleListGetNodeData(pCurNode, &item));
+                DLOGD("Here 4\n");
 
                 pRequestHeader = (PRequestHeader) item;
 
+                DLOGD("Here 5\n");
                 // Append the colon at the end of the name
                 if (pRequestHeader->pName[pRequestHeader->nameLen - 1] != ':') {
+                    DLOGD("Here 6\n");
                     STRCPY(pBuffer, pRequestHeader->pName);
                     pBuffer[pRequestHeader->nameLen] = ':';
                     pBuffer[pRequestHeader->nameLen + 1] = '\0';
                     pRequestHeader->pName = pBuffer;
                     pRequestHeader->nameLen++;
                 }
-
+                
+                DLOGD("Here 7\n");
                 DLOGV("Appending header - %s %s", pRequestHeader->pName, pRequestHeader->pValue);
+                DLOGD("Here 8\n");
 
                 status = lws_add_http_header_by_name(wsi, (PBYTE) pRequestHeader->pName, (PBYTE) pRequestHeader->pValue, pRequestHeader->valueLen,
                                                      ppStartPtr, pEndPtr);
@@ -226,9 +234,13 @@ INT32 lwsHttpCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, 
                     CHK(FALSE, retStatus);
                 }
 
+                DLOGD("Here 9\n");
+
                 // Remove the head
                 CHK_STATUS(singleListDeleteHead(pRequestInfo->pRequestHeaders));
                 MEMFREE(pRequestHeader);
+
+                DLOGD("Here 10\n");
 
                 // Decrement to iterate
                 headerCount--;
@@ -267,6 +279,7 @@ INT32 lwsHttpCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, 
 
 CleanUp:
 
+    DLOGD("Here 11\n");
     if (STATUS_FAILED(retStatus)) {
         DLOGW("Failed in HTTPS handling routine with 0x%08x", retStatus);
         if (pRequestInfo != NULL) {
@@ -277,10 +290,14 @@ CleanUp:
 
         retValue = -1;
     }
+    
+    DLOGD("Here 12\n");
 
     if (locked) {
         MUTEX_UNLOCK(pSignalingClient->lwsServiceLock);
     }
+
+    DLOGD("Here 13\n");
 
     return retValue;
 }
