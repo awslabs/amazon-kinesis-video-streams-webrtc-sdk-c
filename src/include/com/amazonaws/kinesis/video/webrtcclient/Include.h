@@ -41,29 +41,32 @@ extern "C" {
         DLOGP("[%s] Time taken: %" PRIu64 " ms", (msg), (t));                                                                                        \
     } while (FALSE)
 
-#define PROFILE_CALL_WITH_START_END_T_OBJ(f, s, e, msg)                                                                                              \
+#define PROFILE_WITH_START_TIME(t, msg)                                                                                                              \
+    do {                                                                                                                                             \
+        DLOGP("[%s] Time taken: %" PRIu64 " ms", msg, (GETTIME() - (t)) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);                                       \
+    } while (FALSE)
+
+#define PROFILE_CALL_WITH_START_END_T_OBJ(f, s, e, d, msg)                                                                                           \
     do {                                                                                                                                             \
         s = GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;                                                                                          \
         f;                                                                                                                                           \
         e = GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;                                                                                          \
-        DLOGP("[%s] Time taken: %" PRIu64 " ms", (msg), (e - s));                                                                                    \
+        d = ((e) - (s));                                                                                                                             \
+        DLOGP("[%s] Time taken: %" PRIu64 " ms", (msg), (d));                                                                                        \                       
     } while (FALSE)
 
-#define PROFILE_WITH_START_TIME(t, msg)                                                                                                              \
+#define PROFILE_WITH_START_END_TIME_OBJ(t1, t2, d, msg)                                                                                              \
     do {                                                                                                                                             \
-        DLOGP("[%s] Time taken: %" PRIu64 " ms", msg, (GETTIME() - (t)) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);                                       \
+        t1 = (t1 / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);                                                                                              \
+        t2 = (GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);                                                                                       \
+        d = ((t2) - (t1));                                                                                                                           \
+        DLOGP("[%s] Time taken: %" PRIu64 " ms", (msg), (d));                                                                                        \
     } while (FALSE)
 
 #define PROFILE_WITH_START_TIME_OBJ(t1, t2, msg)                                                                                                     \
     do {                                                                                                                                             \
         t2 = (GETTIME() - (t1)) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;                                                                                \
         DLOGP("[%s] Time taken: %" PRIu64 " ms", (msg), t2);                                                                                         \
-    } while (FALSE)
-
-#define PROFILE_WITH_START_END_TIME_OBJ(t1, t2, msg)                                                                                                 \
-    do {                                                                                                                                             \
-        t2 = GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;                                                                                         \
-        DLOGP("[%s] Time taken: %" PRIu64 " ms", (msg), (t2 - t1));                                                                                  \
     } while (FALSE)
 
 /*! \addtogroup StatusCodes
@@ -1523,6 +1526,7 @@ typedef struct {
     UINT32 version; //!< Structure version
     UINT64 signalingStartTime;
     UINT64 signalingEndTime;
+    UINT64 signalingCallTime;
     SignalingClientStats signalingClientStats; //!< Signaling client metrics stats. Reference in Stats.h
 } SignalingClientMetrics, *PSignalingClientMetrics;
 

@@ -19,7 +19,6 @@ option(BUILD_LIBSRTP_DESTINATION_PLATFORM "If buildng LibSRTP what is the destin
 option(BUILD_SAMPLE "Build available samples" ON)
 option(ENABLE_DATA_CHANNEL "Enable support for data channel" ON)
 option(ENABLE_KVS_THREADPOOL "Enable support for KVS thread pool in signaling" ON)
-option(ENABLE_SENDING_METRICS_TO_VIEWER "Enable sending master-side metrics to the viewer as a json string via the datachannel" OFF)
 option(INSTRUMENTED_ALLOCATORS "Enable memory instrumentation" OFF)
 
 # Developer Flags
@@ -102,10 +101,6 @@ add_definitions(-DCMAKE_DETECTED_CACERT_PATH)
 
 if (ENABLE_KVS_THREADPOOL)
   add_definitions(-DENABLE_KVS_THREADPOOL)
-endif()
-
-if (ENABLE_SENDING_METRICS_TO_VIEWER)
-  add_definitions(-DENABLE_SENDING_METRICS_TO_VIEWER)
 endif()
 
 if(USE_OPENSSL)

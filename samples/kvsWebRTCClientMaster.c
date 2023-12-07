@@ -49,7 +49,8 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     PROFILE_CALL_WITH_START_END_T_OBJ(
         retStatus = initSignaling(pSampleConfiguration, SAMPLE_MASTER_CLIENT_ID), pSampleConfiguration->signalingClientMetrics.signalingStartTime,
-        pSampleConfiguration->signalingClientMetrics.signalingEndTime, "Initialize signaling client and connect to the signaling channel");
+        pSampleConfiguration->signalingClientMetrics.signalingEndTime, pSampleConfiguration->signalingClientMetrics.signalingCallTime,
+        "Initialize signaling client and connect to the signaling channel");
 
     DLOGI("[KVS Master] Channel %s set up done ", pChannelName);
 

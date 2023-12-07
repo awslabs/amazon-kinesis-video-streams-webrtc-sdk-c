@@ -380,7 +380,8 @@ STATUS signalingSendMessageSync(PSignalingClient pSignalingClient, PSignalingMes
     CHK_STATUS(sendLwsMessage(pSignalingClient, pSignalingMessage->messageType, pSignalingMessage->peerClientId, pSignalingMessage->payload,
                               pSignalingMessage->payloadLen, pSignalingMessage->correlationId, 0));
     if (pSignalingMessage->messageType == SIGNALING_MESSAGE_TYPE_ANSWER) {
-        PROFILE_WITH_START_END_TIME_OBJ(pSignalingClient->offerTime, pSignalingClient->answerTime, "Offer to answer time");
+        PROFILE_WITH_START_END_TIME_OBJ(pSignalingClient->offerTime, pSignalingClient->answerTime, pSignalingClient->diagnostics.offerToAnswerTime,
+                                        "Offer to answer time");
     }
     if (pSignalingMessage->messageType == SIGNALING_MESSAGE_TYPE_OFFER) {
         pSignalingClient->offerTime = GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
@@ -1257,9 +1258,16 @@ STATUS signalingGetMetrics(PSignalingClient pSignalingClient, PSignalingClientMe
 
     switch (pSignalingClientMetrics->version) {
         case 1:
+            pSignalingClientMetrics->signalingClientStats.getTokenCallTime = pSignalingClient->diagnostics.getTokenCallTime;
+            pSignalingClientMetrics->signalingClientStats.describeCallTime = pSignalingClient->diagnostics.describeCallTime;
+            pSignalingClientMetrics->signalingClientStats.createCallTime = pSignalingClient->diagnostics.createCallTime;
+            pSignalingClientMetrics->signalingClientStats.getEndpointCallTime = pSignalingClient->diagnostics.getEndpointCallTime;
+            pSignalingClientMetrics->signalingClientStats.getIceConfigCallTime = pSignalingClient->diagnostics.getIceConfigCallTime;
+            pSignalingClientMetrics->signalingClientStats.connectCallTime = pSignalingClient->diagnostics.connectCallTime;
             pSignalingClientMetrics->signalingClientStats.createClientTime = pSignalingClient->diagnostics.createClientTime;
             pSignalingClientMetrics->signalingClientStats.fetchClientTime = pSignalingClient->diagnostics.fetchClientTime;
             pSignalingClientMetrics->signalingClientStats.connectClientTime = pSignalingClient->diagnostics.connectClientTime;
+            pSignalingClientMetrics->signalingClientStats.offerToAnswerTime = pSignalingClient->diagnostics.offerToAnswerTime;
             pSignalingClientMetrics->signalingClientStats.answerTime = pSignalingClient->answerTime;
             pSignalingClientMetrics->signalingClientStats.offerTime = pSignalingClient->offerTime;
             pSignalingClientMetrics->signalingClientStats.describeChannelStartTime = pSignalingClient->diagnostics.describeChannelStartTime;

@@ -55,7 +55,6 @@ extern "C" {
 #define MASTER_DATA_CHANNEL_MESSAGE "This message is from the KVS Master"
 #define VIEWER_DATA_CHANNEL_MESSAGE "This message is from the KVS Viewer"
 
-#ifdef ENABLE_SENDING_METRICS_TO_VIEWER
 #define DATA_CHANNEL_MESSAGE_TEMPLATE         "{\"content\":\"%s\",\"t1\": \"%s\",\"t2\": \"%s\",\"t3\": \"%s\",\"t4\": \"%s\",\"t5\": \"%s\" }"
 #define PEER_CONNECTION_METRICS_JSON_TEMPLATE "{\"peerConnectionStartTime\": %llu, \"peerConnectionEndTime\": %llu }"
 #define SIGNALING_CLIENT_METRICS_JSON_TEMPLATE                                                                                                       \
@@ -74,7 +73,6 @@ extern "C" {
 CHAR pPeerConnectionMetricsMessage[MAX_PEER_CONNECTION_METRICS_MESSAGE_SIZE];
 CHAR pSignalingClientMetricsMessage[MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE];
 CHAR pIceAgentMetricsMessage[MAX_ICE_AGENT_METRICS_MESSAGE_SIZE];
-#endif
 
 typedef enum {
     SAMPLE_STREAMING_VIDEO_ONLY,
@@ -133,6 +131,7 @@ typedef struct {
     CVAR cvar;
     BOOL trickleIce;
     BOOL useTurn;
+    BOOL enableSendingMetricsToViewerViaDc;
     BOOL enableFileLogging;
     UINT64 customData;
     PSampleStreamingSession sampleStreamingSessionList[DEFAULT_MAX_CONCURRENT_STREAMING_SESSION];
@@ -152,16 +151,14 @@ typedef struct {
     UINT32 logLevel;
 } SampleConfiguration, *PSampleConfiguration;
 
-#ifdef ENABLE_SENDING_METRICS_TO_VIEWER
 typedef struct {
     CHAR content[100];
-    CHAR t1[20];
-    CHAR t2[20];
-    CHAR t3[20];
-    CHAR t4[20];
-    CHAR t5[20];
+    CHAR timestamp1[20];
+    CHAR timestamp2[20];
+    CHAR timestamp3[20];
+    CHAR timestamp4[20];
+    CHAR timestamp5[20];
 } DataChannelMessage;
-#endif
 
 typedef struct {
     UINT64 hashValue;

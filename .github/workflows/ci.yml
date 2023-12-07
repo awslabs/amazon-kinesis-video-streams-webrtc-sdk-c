@@ -50,28 +50,6 @@ jobs:
         run:  |
           cd build
           ./tst/webrtc_client_test    
-  mac-os-dc-metrics-build-gcc:
-    runs-on: macos-11
-    env:
-      CC: gcc
-      CXX: g++
-      AWS_KVS_LOG_LEVEL: 2
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v3
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
-      - name: Build repository
-        run: |
-          mkdir build && cd build
-          cmake .. -DBUILD_TEST=TRUE -DENABLE_SENDING_METRICS_TO_VIEWER=ON
-          make
   mac-os-build-gcc:
     runs-on: macos-11
     env:
@@ -483,32 +461,6 @@ jobs:
           sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
           mkdir build && cd build
           cmake .. -DBUILD_TEST=TRUE
-          make
-      - name: Run tests
-        run:  |
-          cd build
-          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-  ubuntu-os-dc-metrics-build:
-    runs-on: ubuntu-20.04
-    env:
-      AWS_KVS_LOG_LEVEL: 2
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v3
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
-      - name: Build repository
-        run: |
-          # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
-          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-          mkdir build && cd build
-          cmake .. -DBUILD_TEST=TRUE -DENABLE_SENDING_METRICS_TO_VIEWER=ON
           make
       - name: Run tests
         run:  |
