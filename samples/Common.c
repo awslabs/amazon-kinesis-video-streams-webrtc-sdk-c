@@ -38,7 +38,7 @@ VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL 
 {
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 i, strLen, tokenCount;
-    UINT64 masterToViewerE2E = 0, viewerToMasterE2E = 0, timestamp1, timestamp2, timestamp3, timestamp4, timestamp5;
+    UINT64 masterToViewerE2E = 0, viewerToMasterE2E = 0, timestamp1, timestamp2, timestamp4, timestamp5;
     PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) customData;
     PSampleConfiguration pSampleConfiguration = pSampleStreamingSession->pSampleConfiguration;
     DataChannelMessage dataChannelMessage = {'\0', '\0', '\0', '\0', '\0', '\0'};
