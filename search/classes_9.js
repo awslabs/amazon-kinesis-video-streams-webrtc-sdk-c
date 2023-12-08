@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['qualitylimitationdurationsrecord_2878',['QualityLimitationDurationsRecord',['../structQualityLimitationDurationsRecord.html',1,'']]]
+  ['peerconnectionmetrics_2866',['PeerConnectionMetrics',['../structPeerConnectionMetrics.html',1,'']]],
+  ['peerconnectionstats_2867',['PeerConnectionStats',['../structPeerConnectionStats.html',1,'']]]
 ];

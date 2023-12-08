@@ -105,7 +105,7 @@ Collaboration diagram for __DtlsSession:</div>
 <div class="dyncontent">
 <div class="center"><img src="struct____DtlsSession__coll__graph.png" border="0" usemap="#a____DtlsSession_coll__map" alt="Collaboration graph"/></div>
 <map name="a____DtlsSession_coll__map" id="a____DtlsSession_coll__map">
-<area shape="rect" title=" " alt="" coords="34,189,215,413"/>
+<area shape="rect" title=" " alt="" coords="34,189,215,384"/>
 <area shape="rect" href="structDtlsSessionCallbacks.html" title=" " alt="" coords="5,5,244,127"/>
 </map>
 </div>
@@ -114,10 +114,8 @@ Collaboration diagram for __DtlsSession:</div>
 Public Attributes</h2></td></tr>
 <tr class="memitem:a1cb36831f553e63f197514d474dd995e"><td class="memItemLeft" align="right" valign="top">volatile ATOMIC_BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct____DtlsSession.html#a1cb36831f553e63f197514d474dd995e">isStarted</a></td></tr>
 <tr class="separator:a1cb36831f553e63f197514d474dd995e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af38d3087b813c0ea223f1bbc5e07d413"><td class="memItemLeft" align="right" valign="top">volatile ATOMIC_BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct____DtlsSession.html#af38d3087b813c0ea223f1bbc5e07d413">isShutdown</a></td></tr>
-<tr class="separator:af38d3087b813c0ea223f1bbc5e07d413"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac9f1a65e50ef8a4f8638d52b48754030"><td class="memItemLeft" align="right" valign="top">volatile ATOMIC_BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct____DtlsSession.html#ac9f1a65e50ef8a4f8638d52b48754030">isCleanUp</a></td></tr>
-<tr class="separator:ac9f1a65e50ef8a4f8638d52b48754030"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aaa837cd02b32dff9ebc874b5a588b3d7"><td class="memItemLeft" align="right" valign="top">volatile ATOMIC_BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct____DtlsSession.html#aaa837cd02b32dff9ebc874b5a588b3d7">shutdown</a></td></tr>
+<tr class="separator:aaa837cd02b32dff9ebc874b5a588b3d7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9afa83609ca58cd22584866031344cc1"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct____DtlsSession.html#a9afa83609ca58cd22584866031344cc1">certificateCount</a></td></tr>
 <tr class="separator:a9afa83609ca58cd22584866031344cc1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af671819aab0aa28f0702308ea1a09e7e"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structDtlsSessionCallbacks.html">DtlsSessionCallbacks</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct____DtlsSession.html#af671819aab0aa28f0702308ea1a09e7e">dtlsSessionCallbacks</a></td></tr>
@@ -132,8 +130,6 @@ Public Attributes</h2></td></tr>
 <tr class="separator:a06da00353806a4cdc221e94830cd1f72"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a123b1a4d3abd9395e6c10d71ee9b27bb"><td class="memItemLeft" align="right" valign="top"><a class="el" href="Dtls_8h.html#aa3c340420ea2933671b7564d7bb9ac2e">RTC_DTLS_TRANSPORT_STATE</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct____DtlsSession.html#a123b1a4d3abd9395e6c10d71ee9b27bb">state</a></td></tr>
 <tr class="separator:a123b1a4d3abd9395e6c10d71ee9b27bb"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a51c436cf7a9364b02b653e9a48bc1451"><td class="memItemLeft" align="right" valign="top"><a class="el" href="Dtls_8h.html#a24a0a539af96854f8039db1b633a5fb8">DTLS_HANDSHAKE_STATE</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct____DtlsSession.html#a51c436cf7a9364b02b653e9a48bc1451">handshakeState</a></td></tr>
-<tr class="separator:a51c436cf7a9364b02b653e9a48bc1451"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad57aa1fb00f88ef4bd5ea17a6704992c"><td class="memItemLeft" align="right" valign="top">MUTEX&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct____DtlsSession.html#ad57aa1fb00f88ef4bd5ea17a6704992c">sslLock</a></td></tr>
 <tr class="separator:ad57aa1fb00f88ef4bd5ea17a6704992c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
@@ -194,48 +190,6 @@ Public Attributes</h2></td></tr>
 
 </div>
 </div>
-<a id="a51c436cf7a9364b02b653e9a48bc1451"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a51c436cf7a9364b02b653e9a48bc1451">&#9670;&nbsp;</a></span>handshakeState</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname"><a class="el" href="Dtls_8h.html#a24a0a539af96854f8039db1b633a5fb8">DTLS_HANDSHAKE_STATE</a> __DtlsSession::handshakeState</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="ac9f1a65e50ef8a4f8638d52b48754030"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac9f1a65e50ef8a4f8638d52b48754030">&#9670;&nbsp;</a></span>isCleanUp</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">volatile ATOMIC_BOOL __DtlsSession::isCleanUp</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="af38d3087b813c0ea223f1bbc5e07d413"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#af38d3087b813c0ea223f1bbc5e07d413">&#9670;&nbsp;</a></span>isShutdown</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">volatile ATOMIC_BOOL __DtlsSession::isShutdown</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
 <a id="a1cb36831f553e63f197514d474dd995e"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a1cb36831f553e63f197514d474dd995e">&#9670;&nbsp;</a></span>isStarted</h2>
 
@@ -244,6 +198,20 @@ Public Attributes</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname">volatile ATOMIC_BOOL __DtlsSession::isStarted</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="aaa837cd02b32dff9ebc874b5a588b3d7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aaa837cd02b32dff9ebc874b5a588b3d7">&#9670;&nbsp;</a></span>shutdown</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">volatile ATOMIC_BOOL __DtlsSession::shutdown</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -315,7 +283,7 @@ Public Attributes</h2></td></tr>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="struct____DtlsSession.html">__DtlsSession</a></li>
-    <li class="footer">Generated on Thu Dec 7 2023 20:21:40 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Fri Dec 8 2023 21:48:05 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>

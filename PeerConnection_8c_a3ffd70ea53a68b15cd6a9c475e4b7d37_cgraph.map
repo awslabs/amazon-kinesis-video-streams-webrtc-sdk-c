@@ -1,6 +1,4 @@
 <map id="onSctpSessionOutboundPacket" name="onSctpSessionOutboundPacket">
-<area shape="rect" id="node1" title=" " alt="" coords="5,31,227,57"/>
-<area shape="rect" id="node2" href="$Dtls_8h.html#ad3b6d661f7cb0ec209c19713d499febe" title=" " alt="" coords="275,31,496,57"/>
-<area shape="rect" id="node3" href="$Dtls__openssl_8c.html#af3bfcfebc77d873de4356b748060a048" title=" " alt="" coords="544,5,691,32"/>
-<area shape="rect" id="node4" href="$Dtls__openssl_8c.html#a7098126d6dad351545fc6aea9afc2668" title=" " alt="" coords="544,56,691,83"/>
+<area shape="rect" id="node1" title=" " alt="" coords="5,5,227,32"/>
+<area shape="rect" id="node2" href="$Dtls_8h.html#ad3b6d661f7cb0ec209c19713d499febe" title=" " alt="" coords="275,5,496,32"/>
 </map>
