@@ -23,7 +23,7 @@ jobs:
         run: |
           bash scripts/check-clang.sh
   mac-os-build-clang:
-    runs-on: macos-11
+    runs-on: macos-13
     env:
       CC: /usr/bin/clang
       CXX: /usr/bin/clang++
@@ -51,7 +51,7 @@ jobs:
           cd build
           ./tst/webrtc_client_test
   mac-os-build-gcc:
-    runs-on: macos-11
+    runs-on: macos-13
     env:
       CC: gcc
       CXX: g++
@@ -77,7 +77,7 @@ jobs:
           cd build
           ./tst/webrtc_client_test
   static-build-mac:
-    runs-on: macos-11
+    runs-on: macos-13
     env:
       AWS_KVS_LOG_LEVEL: 2
       LDFLAGS: -L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib
