@@ -214,7 +214,9 @@ STATUS tlsSessionPutApplicationData(PTlsSession pTlsSession, PBYTE pData, UINT32
     }
 
     wBioGetMemDataRet = BIO_get_mem_data(SSL_get_wbio(pTlsSession->pSsl), &wBioBuffer);
-    CHK_ERR(wBioGetMemDataRet >= 0, STATUS_SEND_DATA_FAILED, "BIO_get_mem_data failed");
+    CHK_ERR(wBioGetMemDataRet != 0, STATUS_SEND_DATA_FAILED, "BIO_get_mem_data failed with: no BIO was connected to the SSL object.");
+    CHK_ERR(wBioGetMemDataRet > 0, STATUS_SEND_DATA_FAILED, "BIO_get_mem_data failed");
+    
     wBioDataLen = (SIZE_T) wBioGetMemDataRet;
 
     if (wBioDataLen > 0) {
