@@ -227,11 +227,6 @@ INT32 lwsHttpCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, 
                 }
 
                 // Remove the head
-                if(pRequestInfo->pRequestHeaders) {
-                    DLOGD("pRequestHeaders is NOT null\n");
-                } else {
-                    DLOGD("pRequestHeaders is null\n");
-                }
                 CHK_STATUS(singleListDeleteHead(pRequestInfo->pRequestHeaders));
                 MEMFREE(pRequestHeader);
 
@@ -272,7 +267,6 @@ INT32 lwsHttpCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, 
 
 CleanUp:
 
-    DLOGD("Here 11\n");
     if (STATUS_FAILED(retStatus)) {
         DLOGW("Failed in HTTPS handling routine with 0x%08x", retStatus);
         if (pRequestInfo != NULL) {
@@ -284,13 +278,9 @@ CleanUp:
         retValue = -1;
     }
     
-    DLOGD("Here 12\n");
-
     if (locked) {
         MUTEX_UNLOCK(pSignalingClient->lwsServiceLock);
     }
-
-    DLOGD("Here 13\n");
 
     return retValue;
 }
