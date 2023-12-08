@@ -8,6 +8,15 @@ mbedtls_ssl_srtp_profile DTLS_SRTP_SUPPORTED_PROFILES[] = {
     MBEDTLS_TLS_SRTP_UNSET,
 };
 
+STATUS md5DigestCalculation(PBYTE inputStringBuff, UINT64 length, PBYTE outputBuff)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    CHK_ERR(inputStringBuff != NULL && outputBuff != NULL, STATUS_INVALID_ARG, "Invalid input or output buffer");
+    CHK_ERR(!mbedtls_md5_ret(inputStringBuff, length, outputBuff), STATUS_INTERNAL_ERROR, "MD5 calculation failed");
+CleanUp:
+    return retStatus;
+}
+
 STATUS createDtlsSession(PDtlsSessionCallbacks pDtlsSessionCallbacks, TIMER_QUEUE_HANDLE timerQueueHandle, INT32 certificateBits,
                          BOOL generateRSACertificate, PRtcCertificate pRtcCertificates, PDtlsSession* ppDtlsSession)
 {

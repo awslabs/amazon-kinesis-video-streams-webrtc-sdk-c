@@ -32,6 +32,7 @@ function(build_dependency lib_name)
     library_found
     NAMES ${lib_file_name}
     PATHS ${OPEN_SRC_INSTALL_PREFIX}/lib
+    PATHS ${OPEN_SRC_INSTALL_PREFIX}/lib64
     NO_DEFAULT_PATH)
   if(library_found)
     message(STATUS "${lib_name} already built")

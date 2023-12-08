@@ -7,11 +7,13 @@
 extern "C" {
 #endif
 
+STATUS md5Digest(PBYTE, UINT64, PBYTE);
+
 #ifdef KVS_USE_OPENSSL
 #define KVS_RSA_F4                  RSA_F4
 #define KVS_MD5_DIGEST_LENGTH       MD5_DIGEST_LENGTH
 #define KVS_SHA1_DIGEST_LENGTH      SHA_DIGEST_LENGTH
-#define KVS_MD5_DIGEST(m, mlen, ob) MD5((m), (mlen), (ob));
+#define KVS_MD5_DIGEST(m, mlen, ob) md5Digest((m), (mlen), (ob));
 #define KVS_SHA1_HMAC(k, klen, m, mlen, ob, plen)                                                                                                    \
     CHK(NULL != HMAC(EVP_sha1(), (k), (INT32) (klen), (m), (mlen), (ob), (plen)), STATUS_HMAC_GENERATION_ERROR);
 #define KVS_CRYPTO_INIT()                                                                                                                            \
@@ -35,7 +37,7 @@ typedef enum {
 #define KVS_RSA_F4                  0x10001L
 #define KVS_MD5_DIGEST_LENGTH       16
 #define KVS_SHA1_DIGEST_LENGTH      20
-#define KVS_MD5_DIGEST(m, mlen, ob) mbedtls_md5_ret((m), (mlen), (ob));
+#define KVS_MD5_DIGEST(m, mlen, ob) md5Digest((m), (mlen), (ob));
 #define KVS_SHA1_HMAC(k, klen, m, mlen, ob, plen)                                                                                                    \
     CHK(0 == mbedtls_md_hmac(mbedtls_md_info_from_type(MBEDTLS_MD_SHA1), (k), (klen), (m), (mlen), (ob)), STATUS_HMAC_GENERATION_ERROR);             \
     *(plen) = mbedtls_md_get_size(mbedtls_md_info_from_type(MBEDTLS_MD_SHA1));

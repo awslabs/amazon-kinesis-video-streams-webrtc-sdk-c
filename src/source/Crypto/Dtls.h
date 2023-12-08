@@ -180,6 +180,7 @@ STATUS dtlsSessionShutdown(PDtlsSession);
 STATUS dtlsSessionOnOutBoundData(PDtlsSession, UINT64, DtlsSessionOutboundPacketFunc);
 STATUS dtlsSessionOnStateChange(PDtlsSession, UINT64, DtlsSessionOnStateChange);
 STATUS dtlsSessionHandshakeInThread(PDtlsSession, BOOL);
+STATUS md5DigestCalculation(PBYTE, UINT64, PBYTE);
 
 /******** Internal Functions **********/
 STATUS dtlsValidateRtcCertificates(PRtcCertificate, PUINT32);

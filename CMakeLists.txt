@@ -20,6 +20,7 @@ option(BUILD_SAMPLE "Build available samples" ON)
 option(ENABLE_DATA_CHANNEL "Enable support for data channel" ON)
 option(ENABLE_KVS_THREADPOOL "Enable support for KVS thread pool in signaling" ON)
 option(INSTRUMENTED_ALLOCATORS "Enable memory instrumentation" OFF)
+option(BUILD_OLD_OPENSSL_VERSION "Builds openssl version 1.1.1t. Note this went EOL in Sept 2023" OFF)
 
 # Developer Flags
 option(BUILD_TEST "Build the testing tree." OFF)
@@ -124,7 +125,7 @@ if(BUILD_DEPENDENCIES)
     file(MAKE_DIRECTORY ${OPEN_SRC_INSTALL_PREFIX})
   endif()
 
-  set(ENV{PKG_CONFIG_PATH} "$ENV{PKG_CONFIG_PATH}:${OPEN_SRC_INSTALL_PREFIX}/lib/pkgconfig")
+  set(ENV{PKG_CONFIG_PATH} "$ENV{PKG_CONFIG_PATH}:${OPEN_SRC_INSTALL_PREFIX}/lib/pkgconfig:${OPEN_SRC_INSTALL_PREFIX}/lib64/pkgconfig")
   set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${OPEN_SRC_INSTALL_PREFIX})
 
   message(STATUS "Begin building dependencies.")
@@ -139,7 +140,8 @@ if(BUILD_DEPENDENCIES)
   if (USE_OPENSSL)
     set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
                    -DBUILD_OPENSSL_PLATFORM=${BUILD_OPENSSL_PLATFORM}
-                   -DOPENSSL_EXTRA=${OPENSSL_EXTRA})
+                   -DOPENSSL_EXTRA=${OPENSSL_EXTRA}
+                   -DBUILD_OLD_OPENSSL_VERSION=${BUILD_OLD_OPENSSL_VERSION})
     build_dependency(openssl ${BUILD_ARGS})
     set(OPENSSL_ROOT_DIR ${OPEN_SRC_INSTALL_PREFIX})
   elseif(USE_MBEDTLS)
@@ -263,7 +265,6 @@ link_directories(${OPEN_SRC_INSTALL_PREFIX}/lib64)
 
 if("${CMAKE_C_COMPILER_ID}" MATCHES "GNU|Clang")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
-
 
   if(CODE_COVERAGE)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -g -fprofile-arcs -ftest-coverage")
