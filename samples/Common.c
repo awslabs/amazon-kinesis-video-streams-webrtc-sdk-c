@@ -42,7 +42,7 @@ VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL 
     PCHAR json;
     PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) customData;
     PSampleConfiguration pSampleConfiguration = pSampleStreamingSession->pSampleConfiguration;
-    DataChannelMessage dataChannelMessage = {"\0", "\0", "\0", "\0", "\0", "\0"};
+    DataChannelMessage dataChannelMessage = {'\0', '\0', '\0', '\0', '\0', '\0'};
     jsmn_parser parser;
     jsmntok_t tokens[MAX_JSON_TOKEN_COUNT];
 

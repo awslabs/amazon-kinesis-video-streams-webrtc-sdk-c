@@ -55,7 +55,8 @@ extern "C" {
 #define MASTER_DATA_CHANNEL_MESSAGE "This message is from the KVS Master"
 #define VIEWER_DATA_CHANNEL_MESSAGE "This message is from the KVS Viewer"
 
-#define DATA_CHANNEL_MESSAGE_TEMPLATE         "{\"content\":\"%s\",\"t1\": \"%s\",\"t2\": \"%s\",\"t3\": \"%s\",\"t4\": \"%s\",\"t5\": \"%s\" }"
+#define DATA_CHANNEL_MESSAGE_TEMPLATE                                                                                                                \
+    "{\"content\":\"%s\",\"timestamp1\": \"%s\",\"timestamp2\": \"%s\",\"timestamp3\": \"%s\",\"timestamp4\": \"%s\",\"timestamp5\": \"%s\" }"
 #define PEER_CONNECTION_METRICS_JSON_TEMPLATE "{\"peerConnectionStartTime\": %llu, \"peerConnectionEndTime\": %llu }"
 #define SIGNALING_CLIENT_METRICS_JSON_TEMPLATE                                                                                                       \
     "{\"signalingStartTime\": %llu, \"signalingEndTime\": %llu, \"offerReceiptTime\": %llu, \"sendAnswerTime\": %llu, "                              \
