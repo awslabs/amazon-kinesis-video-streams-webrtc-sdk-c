@@ -2,6 +2,9 @@
 #include "Samples.h"
 
 PSampleConfiguration gSampleConfiguration = NULL;
+CHAR pPeerConnectionMetricsMessage[MAX_PEER_CONNECTION_METRICS_MESSAGE_SIZE];
+CHAR pSignalingClientMetricsMessage[MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE];
+CHAR pIceAgentMetricsMessage[MAX_ICE_AGENT_METRICS_MESSAGE_SIZE];
 
 VOID sigintHandler(INT32 sigNum)
 {
