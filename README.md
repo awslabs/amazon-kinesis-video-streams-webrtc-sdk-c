@@ -201,6 +201,11 @@ The SDK also tracks entry and exit of functions which increases the verbosity of
 `add_definitions(-DLOG_STREAMING)`
 Note: This log level is extremely VERBOSE and could flood the files if using file based logging strategy.
 
+<details>
+  <summary>Time-to-first-frame breakdown metrics</summary>
+    There is a flag in the sample application which (pSampleConfiguration->enableSendingMetricsToViewerViaDc) can be set to TRUE to send metrics from the master to the [JS](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-js/examples/index.html) viewer. This helps get a detailed breakdown of time-to-first-frame and all the processes and API calls on master and the viewer both. This is intended to be used with the KVS WebRTC C SDK running as the master and the JS SDK as the viewer. The master sends peer, ice-agent, signaling and data-channel metrics to the viewer which are plotted ~ 20 seconds after the viewer is started. Since the timeline plot is intended to understand the time-to-first-frame, the sample web page needs to be refreshed and the master needs to be restarted if a new / updated plot is needed. While using the SDK in this mode, it is expected that all datachannel messages are JSON messages. This feature is only meant to be used for a single viewer at a time.
+</details>
+
 ### Set path to SSL CA certificate (**Optional**)
 
 If you have a custom CA certificate path to set, you can set it using:
