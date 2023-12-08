@@ -216,7 +216,7 @@ INT32 lwsHttpCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, 
                     pRequestHeader->pName = pBuffer;
                     pRequestHeader->nameLen++;
                 }
-                
+
                 DLOGV("Appending header - %s %s", pRequestHeader->pName, pRequestHeader->pValue);
 
                 status = lws_add_http_header_by_name(wsi, (PBYTE) pRequestHeader->pName, (PBYTE) pRequestHeader->pValue, pRequestHeader->valueLen,
@@ -277,7 +277,7 @@ CleanUp:
 
         retValue = -1;
     }
-    
+
     if (locked) {
         MUTEX_UNLOCK(pSignalingClient->lwsServiceLock);
     }
