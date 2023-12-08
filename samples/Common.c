@@ -136,7 +136,6 @@ VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL 
             retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) MASTER_DATA_CHANNEL_MESSAGE, STRLEN(MASTER_DATA_CHANNEL_MESSAGE));
         }
     } else {
-        UNUSED_PARAM(customData);
         if (isBinary) {
             DLOGI("DataChannel Binary Message");
         } else {

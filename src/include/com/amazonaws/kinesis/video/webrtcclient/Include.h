@@ -52,7 +52,7 @@ extern "C" {
         f;                                                                                                                                           \
         e = GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;                                                                                          \
         d = ((e) - (s));                                                                                                                             \
-        DLOGP("[%s] Time taken: %" PRIu64 " ms", (msg), (d));                                                                                        \                       
+        DLOGP("[%s] Time taken: %" PRIu64 " ms", (msg), (d));                                                                                        \
     } while (FALSE)
 
 #define PROFILE_WITH_START_END_TIME_OBJ(t1, t2, d, msg)                                                                                              \
