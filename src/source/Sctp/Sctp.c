@@ -358,6 +358,8 @@ INT32 onSctpInboundPacket(struct socket* sock, union sctp_sockstore addr, PVOID 
 
 CleanUp:
 
+    UNUSED_PARAM(retStatus);
+    
     /*
      * IMPORTANT!!! The allocation is done in the sctp library using default allocator
      * so we need to use the default free API.
