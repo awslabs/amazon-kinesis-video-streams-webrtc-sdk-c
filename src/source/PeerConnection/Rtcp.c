@@ -133,10 +133,10 @@ static STATUS onRtcpReceiverReport(PRtcpPacket pRtcpPacket, PKvsPeerConnection p
     MUTEX_UNLOCK(pTransceiver->statsLock);
 
     // Cast to void to avoid "set but not used" warning
-    (void)senderSSRC;
-    (void)cumulativeLost;
-    (void)extHiSeqNumReceived;
-    (void)interarrivalJitter;
+    UNUSED_PARAM(senderSSRC);
+    UNUSED_PARAM(cumulativeLost);
+    UNUSED_PARAM(extHiSeqNumReceived);
+    UNUSED_PARAM(interarrivalJitter);
 
 CleanUp:
 
