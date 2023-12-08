@@ -39,16 +39,17 @@ VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL 
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 i, strLen, tokenCount;
     UINT64 masterToViewerE2E = 0, viewerToMasterE2E = 0;
+    CHAR pMessageSend[SIZEOF(DataChannelMessage)];
+    PCHAR json;
     PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) customData;
     PSampleConfiguration pSampleConfiguration = pSampleStreamingSession->pSampleConfiguration;
     DataChannelMessage dataChannelMessage = {'\0', '\0', '\0', '\0', '\0', '\0'};
-    CHAR pMessageSend[SIZEOF(DataChannelMessage)];
     jsmn_parser parser;
-    jsmn_init(&parser);
     jsmntok_t tokens[MAX_JSON_TOKEN_COUNT];
-    PCHAR json = (PCHAR) pMessage;
 
     if (pSampleConfiguration->enableSendingMetricsToViewerViaDc) {
+        jsmn_init(&parser);
+        json = (PCHAR) pMessage;
         tokenCount = jsmn_parse(&parser, json, STRLEN(json), tokens, SIZEOF(tokens) / SIZEOF(jsmntok_t));
 
         if (tokenCount > 1) {
