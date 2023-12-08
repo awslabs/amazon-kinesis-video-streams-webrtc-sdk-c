@@ -333,6 +333,7 @@ INT32 onSctpInboundPacket(struct socket* sock, union sctp_sockstore addr, PVOID 
     UNUSED_PARAM(sock);
     UNUSED_PARAM(addr);
     UNUSED_PARAM(flags);
+    STATUS retStatus = STATUS_SUCCESS;
     PSctpSession pSctpSession = (PSctpSession) ulp_info;
     BOOL isBinary = FALSE;
 
