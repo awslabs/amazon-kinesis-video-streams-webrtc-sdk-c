@@ -1101,7 +1101,7 @@ STATUS addConfigToServerList(PRtcPeerConnection* ppPeerConnection, PIceConfigInf
 
     CHK(ppPeerConnection != NULL && pIceConfigInfo != NULL, STATUS_NULL_ARG);
 
-    pKvsPeerConnection = (PKvsPeerConnection)*ppPeerConnection;
+    pKvsPeerConnection = (PKvsPeerConnection) *ppPeerConnection;
 
     CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
 
