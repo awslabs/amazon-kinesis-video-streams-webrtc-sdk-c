@@ -1651,6 +1651,8 @@ PUBLIC_API STATUS peerConnectionGetLocalDescription(PRtcPeerConnection, PRtcSess
  */
 PUBLIC_API STATUS peerConnectionGetCurrentLocalDescription(PRtcPeerConnection, PRtcSessionDescriptionInit);
 
+PUBLIC_API STATUS peerConnectionAsync(startRoutine fn, PVOID data);
+
 /**
  * @brief Populate the provided answer that contains an RFC 3264 offer
  * with the supported configurations for the session.
