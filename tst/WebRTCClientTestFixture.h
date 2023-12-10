@@ -272,7 +272,9 @@ class WebRtcClientTestBase : public ::testing::Test {
                          PCHAR pAnswerCertFingerprint = NULL);
     void addTrackToPeerConnection(PRtcPeerConnection pRtcPeerConnection, PRtcMediaStreamTrack track, PRtcRtpTransceiver* transceiver, RTC_CODEC codec,
                                   MEDIA_STREAM_TRACK_KIND kind);
-    void getIceServers(PRtcConfiguration pRtcConfiguration);
+    void getIceServers(PRtcConfiguration pRtcConfiguration, PRtcPeerConnection pRtcPeerConnection);
+
+    void getIceServers(PRtcConfiguration pRtcConfiguration, PIceAgent pIceAgent);
 
   protected:
     virtual void SetUp();

@@ -249,7 +249,7 @@ void WebRtcClientTestBase::addTrackToPeerConnection(PRtcPeerConnection pRtcPeerC
     EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, track, NULL, transceiver));
 }
 
-void WebRtcClientTestBase::getIceServers(PRtcConfiguration pRtcConfiguration)
+void WebRtcClientTestBase::getIceServers(PRtcConfiguration pRtcConfiguration, PIceAgent pIceAgent)
 {
     UINT32 i, j, iceConfigCount, uriCount;
     PIceConfigInfo pIceConfigInfo;
@@ -269,6 +269,32 @@ void WebRtcClientTestBase::getIceServers(PRtcConfiguration pRtcConfiguration)
 
             uriCount++;
         }
+        EXPECT_EQ(STATUS_SUCCESS, iceAgentAddConfig(pIceAgent, pIceConfigInfo));
+    }
+}
+
+
+void WebRtcClientTestBase::getIceServers(PRtcConfiguration pRtcConfiguration, PRtcPeerConnection pRtcPeerConnection)
+{
+    UINT32 i, j, iceConfigCount, uriCount;
+    PIceConfigInfo pIceConfigInfo;
+
+    // Assume signaling client is already created
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(mSignalingClientHandle, &iceConfigCount));
+
+    // Set the  STUN server
+    SNPRINTF(pRtcConfiguration->iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION, TEST_DEFAULT_STUN_URL_POSTFIX);
+
+    for (uriCount = 0, i = 0; i < iceConfigCount; i++) {
+        EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(mSignalingClientHandle, i, &pIceConfigInfo));
+        for (j = 0; j < pIceConfigInfo->uriCount; j++) {
+            STRNCPY(pRtcConfiguration->iceServers[uriCount + 1].urls, pIceConfigInfo->uris[j], MAX_ICE_CONFIG_URI_LEN);
+            STRNCPY(pRtcConfiguration->iceServers[uriCount + 1].credential, pIceConfigInfo->password, MAX_ICE_CONFIG_CREDENTIAL_LEN);
+            STRNCPY(pRtcConfiguration->iceServers[uriCount + 1].username, pIceConfigInfo->userName, MAX_ICE_CONFIG_USER_NAME_LEN);
+
+            uriCount++;
+        }
+        EXPECT_EQ(STATUS_SUCCESS, addConfigToServerList(&pRtcPeerConnection, pIceConfigInfo));
     }
 }
 

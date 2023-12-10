@@ -663,7 +663,6 @@ TEST_F(IceFunctionalityTest, IceAgentCandidateGatheringTest)
     MEMSET(&iceAgentCallbacks, 0x00, SIZEOF(IceAgentCallbacks));
 
     initializeSignalingClient();
-    getIceServers(&configuration);
 
     auto onICECandidateHdlr = [](UINT64 customData, PCHAR candidateStr) -> void {
         CandidateList* candidateList1 = (CandidateList*) customData;
@@ -685,6 +684,8 @@ TEST_F(IceFunctionalityTest, IceAgentCandidateGatheringTest)
     EXPECT_EQ(STATUS_SUCCESS, timerQueueCreate(&timerQueueHandle));
     EXPECT_EQ(STATUS_SUCCESS,
               createIceAgent(localIceUfrag, localIcePwd, &iceAgentCallbacks, &configuration, timerQueueHandle, pConnectionListener, &pIceAgent));
+
+    getIceServers(&configuration, pIceAgent);
 
     EXPECT_EQ(STATUS_SUCCESS, iceAgentStartGathering(pIceAgent));
 

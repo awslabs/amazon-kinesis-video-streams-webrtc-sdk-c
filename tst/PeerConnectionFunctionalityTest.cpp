@@ -198,10 +198,12 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersForcedTURN)
     configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_RELAY;
 
     initializeSignalingClient();
-    getIceServers(&configuration);
 
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
     EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    getIceServers(&configuration, offerPc);
+    getIceServers(&configuration, answerPc);
 
     EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
 
@@ -292,10 +294,11 @@ TEST_F(PeerConnectionFunctionalityTest, sendDataWithClosedSocketConnectionWithFo
     configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_RELAY;
 
     initializeSignalingClient();
-    getIceServers(&configuration);
 
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
     EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+    getIceServers(&configuration, offerPc);
+    getIceServers(&configuration, answerPc);
 
     // addTrackToPeerConnection is necessary because we need to add a transceiver which will trigger the RTCP callback. The RTCP callback
     // will send application data. The expected behavior for the PeerConnection is to bail out when the socket connection that's being used
@@ -354,10 +357,12 @@ TEST_F(PeerConnectionFunctionalityTest, shutdownTurnDueToP2PFoundBeforeTurnEstab
     MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
 
     initializeSignalingClient();
-    getIceServers(&configuration);
 
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
     EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    getIceServers(&configuration, offerPc);
+    getIceServers(&configuration, answerPc);
 
     EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
 
@@ -416,10 +421,12 @@ TEST_F(PeerConnectionFunctionalityTest, shutdownTurnDueToP2PFoundAfterTurnEstabl
     MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
 
     initializeSignalingClient();
-    getIceServers(&configuration);
 
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
     EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    getIceServers(&configuration, offerPc);
+    getIceServers(&configuration, answerPc);
 
     auto onICECandidateHdlr = [](UINT64 customData, PCHAR candidateStr) -> void {
         PSIZE_T pDoneGatherCandidate = (PSIZE_T) customData;
@@ -860,10 +867,12 @@ TEST_F(PeerConnectionFunctionalityTest, iceRestartTestForcedTurn)
     configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_RELAY;
 
     initializeSignalingClient();
-    getIceServers(&configuration);
 
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
     EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    getIceServers(&configuration, offerPc);
+    getIceServers(&configuration, answerPc);
 
     EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
 
@@ -893,10 +902,12 @@ TEST_F(PeerConnectionFunctionalityTest, peerConnectionOfferCloseConnection)
     MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
 
     initializeSignalingClient();
-    getIceServers(&configuration);
 
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
     EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    getIceServers(&configuration, offerPc);
+    getIceServers(&configuration, answerPc);
 
     EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
 
@@ -919,10 +930,12 @@ TEST_F(PeerConnectionFunctionalityTest, peerConnectionAnswerCloseConnection)
     MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
 
     initializeSignalingClient();
-    getIceServers(&configuration);
 
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
     EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    getIceServers(&configuration, offerPc);
+    getIceServers(&configuration, answerPc);
 
     EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
 
@@ -960,10 +973,12 @@ TEST_F(PeerConnectionFunctionalityTest, DISABLED_exchangeMediaThroughTurnRandomS
         for (int i = 0; i < iteration; ++i) {
             MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
             configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_RELAY;
-            getIceServers(&configuration);
 
             EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
             EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+            getIceServers(&configuration, offerPc);
+            getIceServers(&configuration, answerPc);
 
             addTrackToPeerConnection(offerPc, &offerVideoTrack, &offerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
             addTrackToPeerConnection(offerPc, &offerAudioTrack, &offerAudioTransceiver, RTC_CODEC_OPUS, MEDIA_STREAM_TRACK_KIND_AUDIO);
