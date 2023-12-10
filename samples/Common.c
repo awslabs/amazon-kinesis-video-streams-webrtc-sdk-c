@@ -397,7 +397,7 @@ PVOID asyncGetIceConfigInfo(PVOID args)
 CleanUp:
     SAFE_MEMFREE(data);
     CHK_LOG_ERR(retStatus);
-    return;
+    return NULL;
 }
 
 STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcPeerConnection* ppRtcPeerConnection)
@@ -405,8 +405,11 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     RtcConfiguration configuration;
-    UINT32 i, j, uriCount = 0, maxTurnServer = 1;
+#ifndef ENABLE_KVS_THREADPOOL
+    UINT32 i, j, maxTurnServer = 1;
     PIceConfigInfo pIceConfigInfo;
+#else
+    UINT32 uriCount = 0;
     UINT64 data;
     PRtcCertificate pRtcCertificate = NULL;
 
