@@ -1029,6 +1029,8 @@ STATUS iceAgentRestart(PIceAgent pIceAgent, PCHAR localIceUfrag, PCHAR localIceP
     CHK_STATUS(setStateMachineCurrentState(pIceAgent->pStateMachine, ICE_AGENT_STATE_NEW));
 
     ATOMIC_STORE_BOOL(&pIceAgent->processStun, TRUE);
+    // this API does not reset servers, so re-initialize relay candidates now.
+    CHK_STATUS(iceAgentInitRelayCandidates(pIceAgent));
 
 CleanUp:
 
