@@ -43,7 +43,6 @@ typedef struct {
 
 } AsyncGetIceStruct;
 
-
 STATUS createRtpPacketWithSeqNum(UINT16 seqNum, PRtpPacket* ppRtpPacket);
 
 PVOID asyncGetIceConfigInfo(PVOID args);
@@ -293,7 +292,7 @@ class WebRtcClientTestBase : public ::testing::Test {
     bool connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerConnection answerPc, PCHAR pOfferCertFingerprint = NULL,
                          PCHAR pAnswerCertFingerprint = NULL);
     bool connectTwoPeersAsyncIce(PRtcPeerConnection offerPc, PRtcPeerConnection answerPc, PCHAR pOfferCertFingerprint = NULL,
-                         PCHAR pAnswerCertFingerprint = NULL);
+                                 PCHAR pAnswerCertFingerprint = NULL);
     void addTrackToPeerConnection(PRtcPeerConnection pRtcPeerConnection, PRtcMediaStreamTrack track, PRtcRtpTransceiver* transceiver, RTC_CODEC codec,
                                   MEDIA_STREAM_TRACK_KIND kind);
     void getIceServers(PRtcConfiguration pRtcConfiguration, PRtcPeerConnection pRtcPeerConnection);

@@ -6,8 +6,7 @@ namespace kinesis {
 namespace video {
 namespace webrtcclient {
 
-class PeerConnectionApiTest : public WebRtcClientTestBase {
-};
+class PeerConnectionApiTest : public WebRtcClientTestBase {};
 
 TEST_F(PeerConnectionApiTest, deserializeRtcIceCandidateInit)
 {

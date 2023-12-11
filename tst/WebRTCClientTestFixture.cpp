@@ -16,20 +16,20 @@ UINT64 gTotalWebRtcClientMemoryUsage = 0;
 //
 MUTEX gTotalWebRtcClientMemoryMutex;
 
-STATUS createRtpPacketWithSeqNum(UINT16 seqNum, PRtpPacket *ppRtpPacket) {
+STATUS createRtpPacketWithSeqNum(UINT16 seqNum, PRtpPacket* ppRtpPacket)
+{
     STATUS retStatus = STATUS_SUCCESS;
     BYTE payload[10];
     PRtpPacket pRtpPacket = NULL;
 
-    CHK_STATUS(createRtpPacket(2, FALSE, FALSE, 0, FALSE,
-                               96, seqNum, 100, 0x1234ABCD, NULL, 0, 0, NULL, payload, 10, &pRtpPacket));
+    CHK_STATUS(createRtpPacket(2, FALSE, FALSE, 0, FALSE, 96, seqNum, 100, 0x1234ABCD, NULL, 0, 0, NULL, payload, 10, &pRtpPacket));
     *ppRtpPacket = pRtpPacket;
 
     CHK_STATUS(createBytesFromRtpPacket(pRtpPacket, NULL, &pRtpPacket->rawPacketLength));
     CHK(NULL != (pRtpPacket->pRawPacket = (PBYTE) MEMALLOC(pRtpPacket->rawPacketLength)), STATUS_NOT_ENOUGH_MEMORY);
     CHK_STATUS(createBytesFromRtpPacket(pRtpPacket, pRtpPacket->pRawPacket, &pRtpPacket->rawPacketLength));
 
-    CleanUp:
+CleanUp:
     return retStatus;
 }
 
@@ -68,14 +68,9 @@ CleanUp:
     return NULL;
 }
 
-WebRtcClientTestBase::WebRtcClientTestBase() :
-        mSignalingClientHandle(INVALID_SIGNALING_CLIENT_HANDLE_VALUE),
-        mAccessKey(NULL),
-        mSecretKey(NULL),
-        mSessionToken(NULL),
-        mRegion(NULL),
-        mCaCertPath(NULL),
-        mAccessKeyIdSet(FALSE)
+WebRtcClientTestBase::WebRtcClientTestBase()
+    : mSignalingClientHandle(INVALID_SIGNALING_CLIENT_HANDLE_VALUE), mAccessKey(NULL), mSecretKey(NULL), mSessionToken(NULL), mRegion(NULL),
+      mCaCertPath(NULL), mAccessKeyIdSet(FALSE)
 {
     // Initialize the endianness of the library
     initializeEndianness();
@@ -269,7 +264,7 @@ bool WebRtcClientTestBase::connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerC
 }
 
 bool WebRtcClientTestBase::connectTwoPeersAsyncIce(PRtcPeerConnection offerPc, PRtcPeerConnection answerPc, PCHAR pOfferCertFingerprint,
-                                           PCHAR pAnswerCertFingerprint)
+                                                   PCHAR pAnswerCertFingerprint)
 {
     AsyncGetIceStruct* pAsyncData = NULL;
     RtcSessionDescriptionInit sdp;
@@ -349,7 +344,8 @@ void WebRtcClientTestBase::getIceServers(PRtcConfiguration pRtcConfiguration, PI
     EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(mSignalingClientHandle, &iceConfigCount));
 
     // Set the  STUN server
-    SNPRINTF(pRtcConfiguration->iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION, TEST_DEFAULT_STUN_URL_POSTFIX);
+    SNPRINTF(pRtcConfiguration->iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION,
+             TEST_DEFAULT_STUN_URL_POSTFIX);
 
     for (uriCount = 0, i = 0; i < iceConfigCount; i++) {
         EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(mSignalingClientHandle, i, &pIceConfigInfo));
@@ -364,7 +360,6 @@ void WebRtcClientTestBase::getIceServers(PRtcConfiguration pRtcConfiguration, PI
     }
 }
 
-
 void WebRtcClientTestBase::getIceServers(PRtcConfiguration pRtcConfiguration, PRtcPeerConnection pRtcPeerConnection)
 {
     UINT32 i, j, iceConfigCount, uriCount;
@@ -374,7 +369,8 @@ void WebRtcClientTestBase::getIceServers(PRtcConfiguration pRtcConfiguration, PR
     EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(mSignalingClientHandle, &iceConfigCount));
 
     // Set the  STUN server
-    SNPRINTF(pRtcConfiguration->iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION, TEST_DEFAULT_STUN_URL_POSTFIX);
+    SNPRINTF(pRtcConfiguration->iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION,
+             TEST_DEFAULT_STUN_URL_POSTFIX);
 
     for (uriCount = 0, i = 0; i < iceConfigCount; i++) {
         EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(mSignalingClientHandle, i, &pIceConfigInfo));
