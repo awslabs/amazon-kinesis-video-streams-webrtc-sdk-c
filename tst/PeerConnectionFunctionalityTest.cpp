@@ -29,6 +29,32 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeers)
     freePeerConnection(&answerPc);
 }
 
+TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithAsyncGetIceConfigForceTurn)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    RtcSessionDescriptionInit sdp;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_RELAY;
+
+    initializeSignalingClient();
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    EXPECT_EQ(connectTwoPeersAsyncIce(offerPc, answerPc), TRUE);
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+
+    deinitializeSignalingClient();
+}
+
+
 TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithDelay)
 {
     RtcConfiguration configuration;

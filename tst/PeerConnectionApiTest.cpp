@@ -198,6 +198,27 @@ TEST_F(PeerConnectionApiTest, connectionState)
     freePeerConnection(&pc);
 }
 
+TEST_F(PeerConnectionApiTest, peerConnectionAsyncUnitTest)
+{
+    PRtcPeerConnection pc = nullptr;
+    RtcConfiguration config{};
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pc));
+
+    closePeerConnection(pc);
+    freePeerConnection(&pc);
+}
+
+TEST_F(PeerConnectionApiTest, addConfigToServerListUnitTest)
+{
+    PRtcPeerConnection pc = nullptr;
+    PIceConfigInfo pIceConfigInfo = nullptr;
+    RtcConfiguration config{};
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pc));
+
+    closePeerConnection(pc);
+    freePeerConnection(&pc);
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis

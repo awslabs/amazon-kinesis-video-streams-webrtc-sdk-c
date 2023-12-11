@@ -33,6 +33,41 @@ STATUS createRtpPacketWithSeqNum(UINT16 seqNum, PRtpPacket *ppRtpPacket) {
     return retStatus;
 }
 
+PVOID asyncGetIceConfigInfo(PVOID args)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    AsyncGetIceStruct* data = (AsyncGetIceStruct*) args;
+    PIceConfigInfo pIceConfigInfo = NULL;
+    UINT32 uriCount = 0;
+    UINT32 i = 0, maxTurnServer = 1;
+
+    if (data != NULL) {
+        /* signalingClientGetIceConfigInfoCount can return more than one turn server. Use only one to optimize
+         * candidate gathering latency. But user can also choose to use more than 1 turn server. */
+        for (uriCount = 0, i = 0; i < maxTurnServer; i++) {
+            /*
+             * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port?transport=udp" then ICE will try TURN over UDP
+             * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port?transport=tcp" then ICE will try TURN over TCP/TLS
+             * if configuration.iceServers[uriCount + 1].urls is "turns:ip:port?transport=udp", it's currently ignored because sdk dont do TURN
+             * over DTLS yet. if configuration.iceServers[uriCount + 1].urls is "turns:ip:port?transport=tcp" then ICE will try TURN over TCP/TLS
+             * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port" then ICE will try both TURN over UDP and TCP/TLS
+             *
+             * It's recommended to not pass too many TURN iceServers to configuration because it will slow down ice gathering in non-trickle mode.
+             */
+            CHK_STATUS(signalingClientGetIceConfigInfo(data->signalingClientHandle, i, &pIceConfigInfo));
+            CHECK(uriCount < MAX_ICE_SERVERS_COUNT);
+            uriCount += pIceConfigInfo->uriCount;
+            CHK_STATUS(addConfigToServerList(data->ppRtcPeerConnection, pIceConfigInfo));
+        }
+    }
+    *(data->pUriCount) += uriCount;
+
+CleanUp:
+    SAFE_MEMFREE(data);
+    CHK_LOG_ERR(retStatus);
+    return NULL;
+}
+
 WebRtcClientTestBase::WebRtcClientTestBase() :
         mSignalingClientHandle(INVALID_SIGNALING_CLIENT_HANDLE_VALUE),
         mAccessKey(NULL),
@@ -221,6 +256,62 @@ bool WebRtcClientTestBase::connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerC
     EXPECT_EQ(STATUS_SUCCESS, createAnswer(answerPc, &sdp));
     EXPECT_EQ(STATUS_SUCCESS, setLocalDescription(answerPc, &sdp));
     EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(offerPc, &sdp));
+
+    if (pAnswerCertFingerprint != NULL) {
+        EXPECT_NE((PCHAR) NULL, STRSTR(sdp.sdp, pAnswerCertFingerprint));
+    }
+
+    for (auto i = 0; i <= 100 && ATOMIC_LOAD(&this->stateChangeCount[RTC_PEER_CONNECTION_STATE_CONNECTED]) != 2; i++) {
+        THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
+    }
+
+    return ATOMIC_LOAD(&this->stateChangeCount[RTC_PEER_CONNECTION_STATE_CONNECTED]) == 2;
+}
+
+bool WebRtcClientTestBase::connectTwoPeersAsyncIce(PRtcPeerConnection offerPc, PRtcPeerConnection answerPc, PCHAR pOfferCertFingerprint,
+                                           PCHAR pAnswerCertFingerprint)
+{
+    AsyncGetIceStruct* pAsyncData = NULL;
+    RtcSessionDescriptionInit sdp;
+
+    auto onICECandidateHdlr = [](UINT64 customData, PCHAR candidateStr) -> void {
+        if (candidateStr != NULL) {
+            std::thread(
+                [customData](std::string candidate) {
+                    RtcIceCandidateInit iceCandidate;
+                    EXPECT_EQ(STATUS_SUCCESS, deserializeRtcIceCandidateInit((PCHAR) candidate.c_str(), STRLEN(candidate.c_str()), &iceCandidate));
+                    EXPECT_EQ(STATUS_SUCCESS, addIceCandidate((PRtcPeerConnection) customData, iceCandidate.candidate));
+                },
+                std::string(candidateStr))
+                .detach();
+        }
+    };
+
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(offerPc, (UINT64) answerPc, onICECandidateHdlr));
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(answerPc, (UINT64) offerPc, onICECandidateHdlr));
+
+    auto onICEConnectionStateChangeHdlr = [](UINT64 customData, RTC_PEER_CONNECTION_STATE newState) -> void {
+        ATOMIC_INCREMENT((PSIZE_T) customData + newState);
+    };
+
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnConnectionStateChange(offerPc, (UINT64) this->stateChangeCount, onICEConnectionStateChangeHdlr));
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnConnectionStateChange(answerPc, (UINT64) this->stateChangeCount, onICEConnectionStateChangeHdlr));
+
+    EXPECT_EQ(STATUS_SUCCESS, createOffer(offerPc, &sdp));
+    EXPECT_EQ(STATUS_SUCCESS, setLocalDescription(offerPc, &sdp));
+    EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(answerPc, &sdp));
+
+    // Validate the cert fingerprint if we are asked to do so
+    if (pOfferCertFingerprint != NULL) {
+        EXPECT_NE((PCHAR) NULL, STRSTR(sdp.sdp, pOfferCertFingerprint));
+    }
+
+    EXPECT_EQ(STATUS_SUCCESS, createAnswer(answerPc, &sdp));
+    EXPECT_EQ(STATUS_SUCCESS, setLocalDescription(answerPc, &sdp));
+    EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(offerPc, &sdp));
+
+    asyncGetIceConfig(answerPc);
+    asyncGetIceConfig(offerPc);
 
     if (pAnswerCertFingerprint != NULL) {
         EXPECT_NE((PCHAR) NULL, STRSTR(sdp.sdp, pAnswerCertFingerprint));

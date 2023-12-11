@@ -36,7 +36,17 @@ typedef struct {
     PAwsCredentials pAwsCredentials;
 } StaticCredentialProvider, *PStaticCredentialProvider;
 
+typedef struct {
+    SIGNALING_CLIENT_HANDLE signalingClientHandle;
+    PRtcPeerConnection* ppRtcPeerConnection;
+    PUINT32 pUriCount;
+
+} AsyncGetIceStruct;
+
+
 STATUS createRtpPacketWithSeqNum(UINT16 seqNum, PRtpPacket* ppRtpPacket);
+
+PVOID asyncGetIceConfigInfo(PVOID args);
 
 class WebRtcClientTestBase : public ::testing::Test {
   public:
@@ -47,6 +57,7 @@ class WebRtcClientTestBase : public ::testing::Test {
     UINT32 mExpectedDroppedFrameCount;
     PRtpPacket* mPRtpPackets;
     UINT32 mRtpPacketCount;
+    UINT32 mUriCount = 0;
     SIGNALING_CLIENT_HANDLE mSignalingClientHandle;
 
     WebRtcClientTestBase();
@@ -146,6 +157,17 @@ class WebRtcClientTestBase : public ::testing::Test {
 
         EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&mSignalingClientHandle));
 
+        return STATUS_SUCCESS;
+    }
+
+    STATUS asyncGetIceConfig(PRtcPeerConnection pRtcPeerConnection)
+    {
+        AsyncGetIceStruct* pAsyncData = NULL;
+        pAsyncData = (AsyncGetIceStruct*) MEMCALLOC(1, SIZEOF(AsyncGetIceStruct));
+        pAsyncData->signalingClientHandle = mSignalingClientHandle;
+        pAsyncData->ppRtcPeerConnection = &pRtcPeerConnection;
+        pAsyncData->pUriCount = &(this->mUriCount);
+        EXPECT_EQ(STATUS_SUCCESS, peerConnectionAsync(asyncGetIceConfigInfo, (PVOID) pAsyncData));
         return STATUS_SUCCESS;
     }
 
@@ -269,6 +291,8 @@ class WebRtcClientTestBase : public ::testing::Test {
     }
 
     bool connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerConnection answerPc, PCHAR pOfferCertFingerprint = NULL,
+                         PCHAR pAnswerCertFingerprint = NULL);
+    bool connectTwoPeersAsyncIce(PRtcPeerConnection offerPc, PRtcPeerConnection answerPc, PCHAR pOfferCertFingerprint = NULL,
                          PCHAR pAnswerCertFingerprint = NULL);
     void addTrackToPeerConnection(PRtcPeerConnection pRtcPeerConnection, PRtcMediaStreamTrack track, PRtcRtpTransceiver* transceiver, RTC_CODEC codec,
                                   MEDIA_STREAM_TRACK_KIND kind);
