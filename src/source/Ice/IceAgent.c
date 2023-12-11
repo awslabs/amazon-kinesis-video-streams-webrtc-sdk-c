@@ -272,14 +272,18 @@ STATUS iceAgentAddConfig(PIceAgent pIceAgent, PIceConfigInfo pIceConfigInfo)
 
     CHK(pIceAgent != NULL && pIceConfigInfo != NULL, STATUS_NULL_ARG);
 
-    MUTEX_LOCK(pIceAgent->lock);
-    locked = TRUE;
-
     for (i = 0; i < pIceConfigInfo->uriCount; i++) {
+        MUTEX_LOCK(pIceAgent->lock);
+        locked = TRUE;
         PROFILE_CALL_WITH_T_OBJ(retStatus = parseIceServer(&pIceAgent->iceServers[pIceAgent->iceServersCount], (PCHAR) pIceConfigInfo->uris[i],
                                                            (PCHAR) pIceConfigInfo->userName, (PCHAR) pIceConfigInfo->password),
                                 pIceAgent->iceAgentProfileDiagnostics.iceServerParsingTime[i], "ICE server parsing");
+        MUTEX_UNLOCK(pIceAgent->lock);
+        locked = FALSE;
+
         if (STATUS_SUCCEEDED(retStatus)) {
+            MUTEX_LOCK(pIceAgent->lock);
+            locked = TRUE;
             pIceAgent->rtcIceServerDiagnostics[i].port = (INT32) getInt16(pIceAgent->iceServers[i].ipAddress.port);
             switch (pIceAgent->iceServers[pIceAgent->iceServersCount].transport) {
                 case KVS_SOCKET_PROTOCOL_UDP:
@@ -293,7 +297,12 @@ STATUS iceAgentAddConfig(PIceAgent pIceAgent, PIceConfigInfo pIceConfigInfo)
             }
             STRCPY(pIceAgent->rtcIceServerDiagnostics[i].url, pIceConfigInfo->uris[i]);
 
-            // init candidate && pairs
+            MUTEX_UNLOCK(pIceAgent->lock);
+            locked = FALSE;
+
+            // important to unlock iceAgent lock before calling init relay candidate, since iceAgent APIs are thread safe
+            // if you don't unlock this can lead to a deadlock with the timerqueue.
+            //  init candidate && pairs
             if (pIceAgent->iceServers[pIceAgent->iceServersCount].isTurn) {
                 if (pIceAgent->iceServers[pIceAgent->iceServersCount].transport == KVS_SOCKET_PROTOCOL_UDP ||
                     pIceAgent->iceServers[pIceAgent->iceServersCount].transport == KVS_SOCKET_PROTOCOL_NONE) {
@@ -306,14 +315,18 @@ STATUS iceAgentAddConfig(PIceAgent pIceAgent, PIceConfigInfo pIceConfigInfo)
                 }
             }
 
+            MUTEX_LOCK(pIceAgent->lock);
+            locked = TRUE;
+
             pIceAgent->iceServersCount++;
+
+            MUTEX_UNLOCK(pIceAgent->lock);
+            locked = FALSE;
+
         } else {
             DLOGE("Failed to parse ICE servers");
         }
     }
-
-    MUTEX_UNLOCK(pIceAgent->lock);
-    locked = FALSE;
 
 CleanUp:
     CHK_LOG_ERR(retStatus);

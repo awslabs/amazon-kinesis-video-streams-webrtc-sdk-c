@@ -678,6 +678,9 @@ TEST_F(IceFunctionalityTest, IceAgentCandidateGatheringTest)
     iceAgentCallbacks.customData = (UINT64) &candidateList;
     iceAgentCallbacks.newLocalCandidateFn = onICECandidateHdlr;
 
+    // Set the  STUN server
+    SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION, TEST_DEFAULT_STUN_URL_POSTFIX);
+
     EXPECT_EQ(STATUS_SUCCESS, generateJSONSafeString(localIceUfrag, LOCAL_ICE_UFRAG_LEN));
     EXPECT_EQ(STATUS_SUCCESS, generateJSONSafeString(localIcePwd, LOCAL_ICE_PWD_LEN));
     EXPECT_EQ(STATUS_SUCCESS, createConnectionListener(&pConnectionListener));
@@ -685,9 +688,8 @@ TEST_F(IceFunctionalityTest, IceAgentCandidateGatheringTest)
     EXPECT_EQ(STATUS_SUCCESS,
               createIceAgent(localIceUfrag, localIcePwd, &iceAgentCallbacks, &configuration, timerQueueHandle, pConnectionListener, &pIceAgent));
 
-    getIceServers(&configuration, pIceAgent);
-
     EXPECT_EQ(STATUS_SUCCESS, iceAgentStartGathering(pIceAgent));
+    getIceServers(&configuration, pIceAgent);
 
     THREAD_SLEEP(KVS_ICE_GATHER_REFLEXIVE_AND_RELAYED_CANDIDATE_TIMEOUT + 2 * HUNDREDS_OF_NANOS_IN_A_SECOND);
 
