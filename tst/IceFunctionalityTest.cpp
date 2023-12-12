@@ -663,6 +663,9 @@ TEST_F(IceFunctionalityTest, IceAgentCandidateGatheringTest)
 
     initializeSignalingClient();
 
+    SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION,
+             TEST_DEFAULT_STUN_URL_POSTFIX);
+
     auto onICECandidateHdlr = [](UINT64 customData, PCHAR candidateStr) -> void {
         CandidateList* candidateList1 = (CandidateList*) customData;
         candidateList1->lock.lock();

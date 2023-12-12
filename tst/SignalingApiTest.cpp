@@ -319,11 +319,11 @@ TEST_F(SignalingApiTest, signalingClientGetMetrics)
     EXPECT_EQ(0, metrics.signalingClientStats.numberOfMessagesReceived);
     EXPECT_EQ(0, metrics.signalingClientStats.numberOfErrors);
     EXPECT_EQ(0, metrics.signalingClientStats.numberOfRuntimeErrors);
-    EXPECT_EQ(1, metrics.signalingClientStats.iceRefreshCount);
+    EXPECT_EQ(0, metrics.signalingClientStats.iceRefreshCount);
     EXPECT_NE(0, metrics.signalingClientStats.signalingClientUptime);
     EXPECT_EQ(0, metrics.signalingClientStats.connectionDuration);
     EXPECT_NE(0, metrics.signalingClientStats.cpApiCallLatency);
-    EXPECT_NE(0, metrics.signalingClientStats.dpApiCallLatency);
+    EXPECT_EQ(0, metrics.signalingClientStats.dpApiCallLatency);
 
     // Connect and get metrics
     EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(mSignalingClientHandle));
@@ -337,11 +337,11 @@ TEST_F(SignalingApiTest, signalingClientGetMetrics)
     EXPECT_EQ(0, metrics.signalingClientStats.numberOfMessagesReceived);
     EXPECT_EQ(0, metrics.signalingClientStats.numberOfErrors);
     EXPECT_EQ(0, metrics.signalingClientStats.numberOfRuntimeErrors);
-    EXPECT_EQ(1, metrics.signalingClientStats.iceRefreshCount);
+    EXPECT_EQ(0, metrics.signalingClientStats.iceRefreshCount);
     EXPECT_NE(0, metrics.signalingClientStats.signalingClientUptime);
     EXPECT_NE(0, metrics.signalingClientStats.connectionDuration);
     EXPECT_NE(0, metrics.signalingClientStats.cpApiCallLatency);
-    EXPECT_NE(0, metrics.signalingClientStats.dpApiCallLatency);
+    EXPECT_EQ(0, metrics.signalingClientStats.dpApiCallLatency);
 
     // Send a message and get metrics
     signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
@@ -359,11 +359,11 @@ TEST_F(SignalingApiTest, signalingClientGetMetrics)
     EXPECT_EQ(0, metrics.signalingClientStats.numberOfMessagesReceived);
     EXPECT_EQ(0, metrics.signalingClientStats.numberOfErrors);
     EXPECT_EQ(0, metrics.signalingClientStats.numberOfRuntimeErrors);
-    EXPECT_EQ(1, metrics.signalingClientStats.iceRefreshCount);
+    EXPECT_EQ(0, metrics.signalingClientStats.iceRefreshCount);
     EXPECT_NE(0, metrics.signalingClientStats.signalingClientUptime);
     EXPECT_NE(0, metrics.signalingClientStats.connectionDuration);
     EXPECT_NE(0, metrics.signalingClientStats.cpApiCallLatency);
-    EXPECT_NE(0, metrics.signalingClientStats.dpApiCallLatency);
+    EXPECT_EQ(0, metrics.signalingClientStats.dpApiCallLatency);
 
     // Make a couple of bad API invocations
     EXPECT_NE(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(mSignalingClientHandle, NULL));
@@ -371,6 +371,22 @@ TEST_F(SignalingApiTest, signalingClientGetMetrics)
     EXPECT_NE(STATUS_SUCCESS, signalingClientGetCurrentState(mSignalingClientHandle, NULL));
     EXPECT_NE(STATUS_SUCCESS, signalingClientGetMetrics(mSignalingClientHandle, NULL));
     EXPECT_NE(STATUS_SUCCESS, signalingClientSendMessageSync(mSignalingClientHandle, NULL));
+
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetMetrics(mSignalingClientHandle, &metrics));
+    EXPECT_EQ(0, metrics.signalingClientStats.numberOfReconnects);
+    EXPECT_EQ(1, metrics.signalingClientStats.numberOfMessagesSent);
+    EXPECT_EQ(0, metrics.signalingClientStats.numberOfMessagesReceived);
+    EXPECT_EQ(5, metrics.signalingClientStats.numberOfErrors);
+    EXPECT_EQ(0, metrics.signalingClientStats.numberOfRuntimeErrors);
+    EXPECT_EQ(0, metrics.signalingClientStats.iceRefreshCount);
+    EXPECT_NE(0, metrics.signalingClientStats.signalingClientUptime);
+    EXPECT_NE(0, metrics.signalingClientStats.connectionDuration);
+    EXPECT_NE(0, metrics.signalingClientStats.cpApiCallLatency);
+    EXPECT_EQ(0, metrics.signalingClientStats.dpApiCallLatency);
+
+    UINT32 iceCount = 0;
+    //Get ice config
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(mSignalingClientHandle, &iceCount));
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientGetMetrics(mSignalingClientHandle, &metrics));
     EXPECT_EQ(0, metrics.signalingClientStats.numberOfReconnects);
