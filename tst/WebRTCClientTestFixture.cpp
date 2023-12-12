@@ -306,10 +306,11 @@ bool WebRtcClientTestBase::connectTwoPeersAsyncIce(PRtcPeerConnection offerPc, P
     EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(offerPc, &sdp));
 
     asyncGetIceConfig(answerPc);
+
     //lazy sleep added to this test that's needed because both peer connections are on the
     //same device and we're not sending the remote candidates over the signaling client like
     //we normally would. This results in a weird race condition
-    THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
+    THREAD_SLEEP(3*HUNDREDS_OF_NANOS_IN_A_SECOND);
     asyncGetIceConfig(offerPc);
 
     if (pAnswerCertFingerprint != NULL) {
