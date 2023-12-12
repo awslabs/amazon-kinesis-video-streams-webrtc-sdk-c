@@ -35,6 +35,8 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithAsyncGetIceConfigForc
     RtcSessionDescriptionInit sdp;
 
     MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION,
+             TEST_DEFAULT_STUN_URL_POSTFIX);
     configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_RELAY;
 
     initializeSignalingClient();
