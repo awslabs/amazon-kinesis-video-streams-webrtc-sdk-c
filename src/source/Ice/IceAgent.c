@@ -386,8 +386,6 @@ STATUS iceAgentReportNewLocalCandidate(PIceAgent pIceAgent, PIceCandidate pIceCa
     iceAgentLogNewCandidate(pIceCandidate);
 
     CHK_WARN(pIceAgent->iceAgentCallbacks.newLocalCandidateFn != NULL, retStatus, "newLocalCandidateFn callback not implemented");
-    CHK_WARN(!ATOMIC_LOAD_BOOL(&pIceAgent->candidateGatheringFinished), retStatus,
-             "Cannot report new ice candidate because candidate gathering is already finished");
     CHK_STATUS(iceCandidateSerialize(pIceCandidate, serializedIceCandidateBuf, &serializedIceCandidateBufLen));
     pIceAgent->iceAgentCallbacks.newLocalCandidateFn(pIceAgent->iceAgentCallbacks.customData, serializedIceCandidateBuf);
 
@@ -1942,6 +1940,7 @@ STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent, UINT32 iceServerIndex, KV
     pNewCandidate->pTurnConnection = pTurnConnection;
 
     CHK_STATUS(doubleListInsertItemHead(pIceAgent->localCandidates, (UINT64) pNewCandidate));
+    CHK_STATUS(iceAgentReportNewLocalCandidate(pIceAgent, pNewCandidate));
     pNewCandidate = NULL;
 
     /* add existing remote candidates to turn. Need to acquire lock because remoteCandidates can be mutated by

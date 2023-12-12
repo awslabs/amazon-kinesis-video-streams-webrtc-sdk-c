@@ -695,9 +695,7 @@ TEST_F(IceFunctionalityTest, IceAgentCandidateGatheringTest)
 
     THREAD_SLEEP(KVS_ICE_GATHER_REFLEXIVE_AND_RELAYED_CANDIDATE_TIMEOUT + 2 * HUNDREDS_OF_NANOS_IN_A_SECOND);
 
-    // newLocalCandidateFn should've returned null in its last invocation, which was converted to empty string
     candidateList.lock.lock();
-    EXPECT_TRUE(candidateList.list[candidateList.list.size() - 1].empty());
 
     for (std::vector<std::string>::iterator it = candidateList.list.begin(); it != candidateList.list.end(); ++it) {
         std::string candidateStr = *it;

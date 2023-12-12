@@ -336,7 +336,7 @@ void WebRtcClientTestBase::addTrackToPeerConnection(PRtcPeerConnection pRtcPeerC
 
 void WebRtcClientTestBase::getIceServers(PRtcConfiguration pRtcConfiguration, PIceAgent pIceAgent)
 {
-    UINT32 i, j, iceConfigCount, uriCount;
+    UINT32 i, j, iceConfigCount = 0, uriCount;
     PIceConfigInfo pIceConfigInfo;
 
     // Assume signaling client is already created
@@ -361,7 +361,7 @@ void WebRtcClientTestBase::getIceServers(PRtcConfiguration pRtcConfiguration, PI
 
 void WebRtcClientTestBase::getIceServers(PRtcConfiguration pRtcConfiguration, PRtcPeerConnection pRtcPeerConnection)
 {
-    UINT32 i, j, iceConfigCount, uriCount;
+    UINT32 i, j, iceConfigCount = 0, uriCount;
     PIceConfigInfo pIceConfigInfo;
 
     // Assume signaling client is already created
