@@ -202,10 +202,10 @@ TEST_F(PeerConnectionApiTest, addConfigToServerListUnitTest)
     PRtcPeerConnection pc = nullptr;
     PIceConfigInfo pIceConfigInfo = nullptr;
     RtcConfiguration config{};
-    EXPECT_NE(STATUS_SUCCESS, addConfigToServerList(pc, pIceConfigInfo));
+    EXPECT_NE(STATUS_SUCCESS, addConfigToServerList(&pc, pIceConfigInfo));
     EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pc));
 
-    EXPECT_NE(STATUS_SUCCESS, addConfigToServerList(pc, pIceConfigInfo));
+    EXPECT_NE(STATUS_SUCCESS, addConfigToServerList(&pc, pIceConfigInfo));
 
     closePeerConnection(pc);
     freePeerConnection(&pc);
