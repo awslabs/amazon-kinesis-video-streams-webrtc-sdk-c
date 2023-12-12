@@ -356,15 +356,6 @@ CleanUp:
     CHK_LOG_ERR(retStatus);
 }
 
-// TODO this should all be in a higher webrtccontext layer above PeerConnection
-// Placing it here now since this is where all the current webrtccontext functions are placed
-typedef struct {
-    SIGNALING_CLIENT_HANDLE signalingClientHandle;
-    PRtcPeerConnection* ppRtcPeerConnection;
-    PUINT32 pUriCount;
-
-} AsyncGetIceStruct;
-
 PVOID asyncGetIceConfigInfo(PVOID args)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -389,7 +380,7 @@ PVOID asyncGetIceConfigInfo(PVOID args)
             CHK_STATUS(signalingClientGetIceConfigInfo(data->signalingClientHandle, i, &pIceConfigInfo));
             CHECK(uriCount < MAX_ICE_SERVERS_COUNT);
             uriCount += pIceConfigInfo->uriCount;
-            CHK_STATUS(addConfigToServerList(data->ppRtcPeerConnection, pIceConfigInfo));
+            CHK_STATUS(addConfigToServerList(&(data->pRtcPeerConnection), pIceConfigInfo));
         }
     }
     *(data->pUriCount) += uriCount;
@@ -453,7 +444,7 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
 
         pAsyncData = (AsyncGetIceStruct*) MEMCALLOC(1, SIZEOF(AsyncGetIceStruct));
         pAsyncData->signalingClientHandle = pSampleConfiguration->signalingClientHandle;
-        pAsyncData->ppRtcPeerConnection = ppRtcPeerConnection;
+        pAsyncData->pRtcPeerConnection = *ppRtcPeerConnection;
         pAsyncData->pUriCount = &(pSampleConfiguration->iceUriCount);
         CHK_STATUS(peerConnectionAsync(asyncGetIceConfigInfo, (PVOID) pAsyncData));
 #else

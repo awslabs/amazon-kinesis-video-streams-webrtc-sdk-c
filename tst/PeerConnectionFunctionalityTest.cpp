@@ -32,7 +32,6 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithAsyncGetIceConfigForc
 {
     RtcConfiguration configuration;
     PRtcPeerConnection offerPc = NULL, answerPc = NULL;
-    RtcSessionDescriptionInit sdp;
 
     MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
     SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION,
