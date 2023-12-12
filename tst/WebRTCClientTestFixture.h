@@ -25,8 +25,8 @@
 
 typedef struct {
     SIGNALING_CLIENT_HANDLE signalingClientHandle;
-    PRtcPeerConnection* ppOffer;
-    PRtcPeerConnection* ppAnswer;
+    PRtcPeerConnection pOffer;
+    PRtcPeerConnection pAnswer;
     PUINT32 pUriCount;
 } AsyncGetIceStruct;
 
@@ -164,8 +164,8 @@ class WebRtcClientTestBase : public ::testing::Test {
         AsyncGetIceStruct* pAsyncData = NULL;
         pAsyncData = (AsyncGetIceStruct*) MEMCALLOC(1, SIZEOF(AsyncGetIceStruct));
         pAsyncData->signalingClientHandle = mSignalingClientHandle;
-        pAsyncData->ppAnswer = &pAnswer;
-        pAsyncData->ppOffer = &pOffer;
+        pAsyncData->pAnswer = pAnswer;
+        pAsyncData->pOffer = pOffer;
         pAsyncData->pUriCount = &(this->mUriCount);
         EXPECT_EQ(STATUS_SUCCESS, peerConnectionAsync(asyncGetIceConfigInfo, (PVOID) pAsyncData));
         return STATUS_SUCCESS;

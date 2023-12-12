@@ -57,8 +57,8 @@ PVOID asyncGetIceConfigInfo(PVOID args)
             CHK_STATUS(signalingClientGetIceConfigInfo(data->signalingClientHandle, i, &pIceConfigInfo));
             CHECK(uriCount < MAX_ICE_SERVERS_COUNT);
             uriCount += pIceConfigInfo->uriCount;
-            CHK_STATUS(addConfigToServerList(data->ppAnswer, pIceConfigInfo));
-            CHK_STATUS(addConfigToServerList(data->ppOffer, pIceConfigInfo));
+            CHK_STATUS(addConfigToServerList(&(data->pAnswer), pIceConfigInfo));
+            CHK_STATUS(addConfigToServerList(&(data->pOffer), pIceConfigInfo));
         }
     }
     *(data->pUriCount) += uriCount;
@@ -267,7 +267,6 @@ bool WebRtcClientTestBase::connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerC
 bool WebRtcClientTestBase::connectTwoPeersAsyncIce(PRtcPeerConnection offerPc, PRtcPeerConnection answerPc, PCHAR pOfferCertFingerprint,
                                                    PCHAR pAnswerCertFingerprint)
 {
-    AsyncGetIceStruct* pAsyncData = NULL;
     RtcSessionDescriptionInit sdp;
 
     auto onICECandidateHdlr = [](UINT64 customData, PCHAR candidateStr) -> void {
