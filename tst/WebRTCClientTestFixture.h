@@ -23,6 +23,13 @@
 #define MAX_TEST_AWAIT_DURATION         (2 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define TEST_CACHE_FILE_PATH            (PCHAR) "./.TestSignalingCache_v0"
 
+typedef struct {
+    SIGNALING_CLIENT_HANDLE signalingClientHandle;
+    PRtcPeerConnection* ppOffer;
+    PRtcPeerConnection* ppAnswer;
+    PUINT32 pUriCount;
+} AsyncGetIceStruct;
+
 namespace com {
 namespace amazonaws {
 namespace kinesis {
@@ -35,13 +42,6 @@ typedef struct {
     AwsCredentialProvider credentialProvider;
     PAwsCredentials pAwsCredentials;
 } StaticCredentialProvider, *PStaticCredentialProvider;
-
-typedef struct {
-    SIGNALING_CLIENT_HANDLE signalingClientHandle;
-    PRtcPeerConnection* ppRtcPeerConnection;
-    PUINT32 pUriCount;
-
-} AsyncGetIceStruct;
 
 STATUS createRtpPacketWithSeqNum(UINT16 seqNum, PRtpPacket* ppRtpPacket);
 
@@ -159,12 +159,13 @@ class WebRtcClientTestBase : public ::testing::Test {
         return STATUS_SUCCESS;
     }
 
-    STATUS asyncGetIceConfig(PRtcPeerConnection pRtcPeerConnection)
+    STATUS asyncGetIceConfig(PRtcPeerConnection pOffer, PRtcPeerConnection pAnswer)
     {
         AsyncGetIceStruct* pAsyncData = NULL;
         pAsyncData = (AsyncGetIceStruct*) MEMCALLOC(1, SIZEOF(AsyncGetIceStruct));
         pAsyncData->signalingClientHandle = mSignalingClientHandle;
-        pAsyncData->ppRtcPeerConnection = &pRtcPeerConnection;
+        pAsyncData->ppAnswer = &pAnswer;
+        pAsyncData->ppOffer = &pOffer;
         pAsyncData->pUriCount = &(this->mUriCount);
         EXPECT_EQ(STATUS_SUCCESS, peerConnectionAsync(asyncGetIceConfigInfo, (PVOID) pAsyncData));
         return STATUS_SUCCESS;

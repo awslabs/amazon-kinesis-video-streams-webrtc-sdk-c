@@ -57,7 +57,8 @@ PVOID asyncGetIceConfigInfo(PVOID args)
             CHK_STATUS(signalingClientGetIceConfigInfo(data->signalingClientHandle, i, &pIceConfigInfo));
             CHECK(uriCount < MAX_ICE_SERVERS_COUNT);
             uriCount += pIceConfigInfo->uriCount;
-            CHK_STATUS(addConfigToServerList(data->ppRtcPeerConnection, pIceConfigInfo));
+            CHK_STATUS(addConfigToServerList(data->ppAnswer, pIceConfigInfo));
+            CHK_STATUS(addConfigToServerList(data->ppOffer, pIceConfigInfo));
         }
     }
     *(data->pUriCount) += uriCount;
@@ -305,13 +306,7 @@ bool WebRtcClientTestBase::connectTwoPeersAsyncIce(PRtcPeerConnection offerPc, P
     EXPECT_EQ(STATUS_SUCCESS, setLocalDescription(answerPc, &sdp));
     EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(offerPc, &sdp));
 
-    asyncGetIceConfig(answerPc);
-
-    //lazy sleep added to this test that's needed because both peer connections are on the
-    //same device and we're not sending the remote candidates over the signaling client like
-    //we normally would. This results in a weird race condition
-    THREAD_SLEEP(3*HUNDREDS_OF_NANOS_IN_A_SECOND);
-    asyncGetIceConfig(offerPc);
+    asyncGetIceConfig(offerPc, answerPc);
 
     if (pAnswerCertFingerprint != NULL) {
         EXPECT_NE((PCHAR) NULL, STRSTR(sdp.sdp, pAnswerCertFingerprint));
