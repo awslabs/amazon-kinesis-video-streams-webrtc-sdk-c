@@ -145,7 +145,7 @@ void WebRtcClientTestBase::TearDown()
 
     deinitKvsWebRtc();
     // Need this sleep for threads in threadpool to close
-    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    THREAD_SLEEP(400 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 
     freeStaticCredentialProvider(&mTestCredentialProvider);
 
