@@ -399,8 +399,8 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
 #ifndef ENABLE_KVS_THREADPOOL
     UINT32 i, j, maxTurnServer = 1;
     PIceConfigInfo pIceConfigInfo;
-#endif
     UINT32 uriCount = 0;
+#endif
     UINT64 data;
     PRtcCertificate pRtcCertificate = NULL;
 
