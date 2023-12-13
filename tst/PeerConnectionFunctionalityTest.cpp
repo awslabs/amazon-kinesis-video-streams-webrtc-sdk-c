@@ -60,6 +60,8 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithDelay)
     RtcSessionDescriptionInit sdp;
     SIZE_T connectedCount = 0;
     PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    PeerContainer offer;
+    PeerContainer answer;
 
     MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
 
@@ -67,20 +69,25 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithDelay)
     EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
 
     auto onICECandidateHdlr = [](UINT64 customData, PCHAR candidateStr) -> void {
+        PPeerContainer container = (PPeerContainer)customData;
         if (candidateStr != NULL) {
-            std::thread(
-                [customData](std::string candidate) {
+            container->client->threads.push_back(std::thread(
+                [container](std::string candidate) {
                     RtcIceCandidateInit iceCandidate;
                     EXPECT_EQ(STATUS_SUCCESS, deserializeRtcIceCandidateInit((PCHAR) candidate.c_str(), STRLEN(candidate.c_str()), &iceCandidate));
-                    EXPECT_EQ(STATUS_SUCCESS, addIceCandidate((PRtcPeerConnection) customData, iceCandidate.candidate));
+                    EXPECT_EQ(STATUS_SUCCESS, addIceCandidate((PRtcPeerConnection) container->pc, iceCandidate.candidate));
                 },
-                std::string(candidateStr))
-                .detach();
+                std::string(candidateStr)));
         }
     };
 
-    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(offerPc, (UINT64) answerPc, onICECandidateHdlr));
-    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(answerPc, (UINT64) offerPc, onICECandidateHdlr));
+    offer.pc = offerPc;
+    offer.client = this;
+    answer.pc = answerPc;
+    answer.client = this;
+
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(offerPc, (UINT64) &answer, onICECandidateHdlr));
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(answerPc, (UINT64) &offer, onICECandidateHdlr));
 
     auto onICEConnectionStateChangeHdlr = [](UINT64 customData, RTC_PEER_CONNECTION_STATE newState) -> void {
         if (newState == RTC_PEER_CONNECTION_STATE_CONNECTED) {
@@ -107,6 +114,11 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithDelay)
     }
 
     EXPECT_EQ(2, connectedCount);
+
+    //join all threads before leaving
+    for (auto& th : this->threads) th.join();
+
+    this->threads.clear();
 
     closePeerConnection(offerPc);
     closePeerConnection(answerPc);
@@ -635,6 +647,9 @@ TEST_F(PeerConnectionFunctionalityTest, noLostFramesAfterConnected)
     ATOMIC_BOOL seenFirstFrame = FALSE;
     Frame videoFrame;
 
+    PeerContainer offer;
+    PeerContainer answer;
+
     MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
     MEMSET(&videoFrame, 0x00, SIZEOF(Frame));
 
@@ -654,6 +669,24 @@ TEST_F(PeerConnectionFunctionalityTest, noLostFramesAfterConnected)
     addTrackToPeerConnection(offerPc, &offerVideoTrack, &offerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
     addTrackToPeerConnection(answerPc, &answerVideoTrack, &answerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
 
+    auto onICECandidateHdlr = [](UINT64 customData, PCHAR candidateStr) -> void {
+        PPeerContainer container = (PPeerContainer)customData;
+        if (candidateStr != NULL) {
+            container->client->threads.push_back(std::thread(
+                [container](std::string candidate) {
+                    RtcIceCandidateInit iceCandidate;
+                    EXPECT_EQ(STATUS_SUCCESS, deserializeRtcIceCandidateInit((PCHAR) candidate.c_str(), STRLEN(candidate.c_str()), &iceCandidate));
+                    EXPECT_EQ(STATUS_SUCCESS, addIceCandidate((PRtcPeerConnection) container->pc, iceCandidate.candidate));
+                },
+                std::string(candidateStr)));
+        }
+    };
+
+    offer.pc = offerPc;
+    offer.client = this;
+    answer.pc = answerPc;
+    answer.client = this;
+
     auto onFrameHandler = [](UINT64 customData, PFrame pFrame) -> void {
         UNUSED_PARAM(pFrame);
         if (pFrame->frameData[0] == 1) {
@@ -662,21 +695,8 @@ TEST_F(PeerConnectionFunctionalityTest, noLostFramesAfterConnected)
     };
     EXPECT_EQ(transceiverOnFrame(answerVideoTransceiver, (UINT64) &seenFirstFrame, onFrameHandler), STATUS_SUCCESS);
 
-    auto onICECandidateHdlr = [](UINT64 customData, PCHAR candidateStr) -> void {
-        if (candidateStr != NULL) {
-            std::thread(
-                [customData](std::string candidate) {
-                    RtcIceCandidateInit iceCandidate;
-                    EXPECT_EQ(STATUS_SUCCESS, deserializeRtcIceCandidateInit((PCHAR) candidate.c_str(), STRLEN(candidate.c_str()), &iceCandidate));
-                    EXPECT_EQ(STATUS_SUCCESS, addIceCandidate((PRtcPeerConnection) customData, iceCandidate.candidate));
-                },
-                std::string(candidateStr))
-                .detach();
-        }
-    };
-
-    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(offerPc, (UINT64) answerPc, onICECandidateHdlr));
-    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(answerPc, (UINT64) offerPc, onICECandidateHdlr));
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(offerPc, (UINT64) &answer, onICECandidateHdlr));
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(answerPc, (UINT64) &offer, onICECandidateHdlr));
 
     auto onICEConnectionStateChangeHdlr = [](UINT64 customData, RTC_PEER_CONNECTION_STATE newState) -> void {
         Context* pContext = (Context*) customData;
@@ -713,6 +733,10 @@ TEST_F(PeerConnectionFunctionalityTest, noLostFramesAfterConnected)
     for (auto i = 0; i <= 1000 && !ATOMIC_LOAD_BOOL(&seenFirstFrame); i++) {
         THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
     }
+
+    for (auto& th : this->threads) th.join();
+
+    this->threads.clear();
 
     MEMFREE(videoFrame.frameData);
     closePeerConnection(offerPc);

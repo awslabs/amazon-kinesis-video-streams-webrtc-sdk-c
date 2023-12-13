@@ -58,6 +58,7 @@ class WebRtcClientTestBase : public ::testing::Test {
     UINT32 mRtpPacketCount;
     UINT32 mUriCount = 0;
     SIGNALING_CLIENT_HANDLE mSignalingClientHandle;
+    std::vector<std::thread> threads;
 
     WebRtcClientTestBase();
 
@@ -336,6 +337,11 @@ class WebRtcClientTestBase : public ::testing::Test {
     SignalingClientInfo mClientInfo;
     Tag mTags[3];
 };
+
+typedef struct {
+    PRtcPeerConnection pc;
+    WebRtcClientTestBase* client;
+} PeerContainer, *PPeerContainer;
 
 } // namespace webrtcclient
 } // namespace video

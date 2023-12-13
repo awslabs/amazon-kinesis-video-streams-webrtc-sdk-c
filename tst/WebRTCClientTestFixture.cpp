@@ -216,22 +216,29 @@ bool WebRtcClientTestBase::connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerC
                                            PCHAR pAnswerCertFingerprint)
 {
     RtcSessionDescriptionInit sdp;
+    PeerContainer offer;
+    PeerContainer answer;
 
     auto onICECandidateHdlr = [](UINT64 customData, PCHAR candidateStr) -> void {
+        PPeerContainer container = (PPeerContainer)customData;
         if (candidateStr != NULL) {
-            std::thread(
-                [customData](std::string candidate) {
+            container->client->threads.push_back(std::thread(
+                [container](std::string candidate) {
                     RtcIceCandidateInit iceCandidate;
                     EXPECT_EQ(STATUS_SUCCESS, deserializeRtcIceCandidateInit((PCHAR) candidate.c_str(), STRLEN(candidate.c_str()), &iceCandidate));
-                    EXPECT_EQ(STATUS_SUCCESS, addIceCandidate((PRtcPeerConnection) customData, iceCandidate.candidate));
+                    EXPECT_EQ(STATUS_SUCCESS, addIceCandidate((PRtcPeerConnection) container->pc, iceCandidate.candidate));
                 },
-                std::string(candidateStr))
-                .detach();
+                std::string(candidateStr)));
         }
     };
 
-    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(offerPc, (UINT64) answerPc, onICECandidateHdlr));
-    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(answerPc, (UINT64) offerPc, onICECandidateHdlr));
+    offer.pc = offerPc;
+    offer.client = this;
+    answer.pc = answerPc;
+    answer.client = this;
+
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(offerPc, (UINT64) &answer, onICECandidateHdlr));
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(answerPc, (UINT64) &offer, onICECandidateHdlr));
 
     auto onICEConnectionStateChangeHdlr = [](UINT64 customData, RTC_PEER_CONNECTION_STATE newState) -> void {
         ATOMIC_INCREMENT((PSIZE_T) customData + newState);
@@ -261,6 +268,11 @@ bool WebRtcClientTestBase::connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerC
         THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
     }
 
+    //join all threads before leaving
+    for (auto& th : this->threads) th.join();
+
+    this->threads.clear();
+
     return ATOMIC_LOAD(&this->stateChangeCount[RTC_PEER_CONNECTION_STATE_CONNECTED]) == 2;
 }
 
@@ -268,22 +280,29 @@ bool WebRtcClientTestBase::connectTwoPeersAsyncIce(PRtcPeerConnection offerPc, P
                                                    PCHAR pAnswerCertFingerprint)
 {
     RtcSessionDescriptionInit sdp;
+    PeerContainer offer;
+    PeerContainer answer;
 
     auto onICECandidateHdlr = [](UINT64 customData, PCHAR candidateStr) -> void {
+        PPeerContainer container = (PPeerContainer)customData;
         if (candidateStr != NULL) {
-            std::thread(
-                [customData](std::string candidate) {
+            container->client->threads.push_back(std::thread(
+                [container](std::string candidate) {
                     RtcIceCandidateInit iceCandidate;
                     EXPECT_EQ(STATUS_SUCCESS, deserializeRtcIceCandidateInit((PCHAR) candidate.c_str(), STRLEN(candidate.c_str()), &iceCandidate));
-                    EXPECT_EQ(STATUS_SUCCESS, addIceCandidate((PRtcPeerConnection) customData, iceCandidate.candidate));
+                    EXPECT_EQ(STATUS_SUCCESS, addIceCandidate((PRtcPeerConnection) container->pc, iceCandidate.candidate));
                 },
-                std::string(candidateStr))
-                .detach();
+                std::string(candidateStr)));
         }
     };
 
-    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(offerPc, (UINT64) answerPc, onICECandidateHdlr));
-    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(answerPc, (UINT64) offerPc, onICECandidateHdlr));
+    offer.pc = offerPc;
+    offer.client = this;
+    answer.pc = answerPc;
+    answer.client = this;
+
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(offerPc, (UINT64) &answer, onICECandidateHdlr));
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(answerPc, (UINT64) &offer, onICECandidateHdlr));
 
     auto onICEConnectionStateChangeHdlr = [](UINT64 customData, RTC_PEER_CONNECTION_STATE newState) -> void {
         ATOMIC_INCREMENT((PSIZE_T) customData + newState);
@@ -314,6 +333,8 @@ bool WebRtcClientTestBase::connectTwoPeersAsyncIce(PRtcPeerConnection offerPc, P
     for (auto i = 0; i <= 100 && ATOMIC_LOAD(&this->stateChangeCount[RTC_PEER_CONNECTION_STATE_CONNECTED]) != 2; i++) {
         THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
     }
+
+    this->threads.clear();
 
     return ATOMIC_LOAD(&this->stateChangeCount[RTC_PEER_CONNECTION_STATE_CONNECTED]) == 2;
 }
