@@ -260,7 +260,7 @@ STATUS socketBind(PKvsIpAddress pHostIpAddress, INT32 sockfd)
         ipv6Addr.sin6_port = 0; // use next available port
         MEMCPY(&ipv6Addr.sin6_addr, pHostIpAddress->address, IPV6_ADDRESS_LENGTH);
         // TODO: Properly handle the non-portable sin6_len field if needed per https://issues.amazon.com/KinesisVideo-4952
-        ipv6Addr.sin6_len = SIZEOF(ipv6Addr);
+        // ipv6Addr.sin6_len = SIZEOF(ipv6Addr);
         sockAddr = (struct sockaddr*) &ipv6Addr;
         addrLen = SIZEOF(struct sockaddr_in6);
     }
