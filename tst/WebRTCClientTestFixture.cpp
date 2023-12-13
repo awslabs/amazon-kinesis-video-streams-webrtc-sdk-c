@@ -334,6 +334,9 @@ bool WebRtcClientTestBase::connectTwoPeersAsyncIce(PRtcPeerConnection offerPc, P
         THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
     }
 
+    //join all threads before leaving
+    for (auto& th : this->threads) th.join();
+
     this->threads.clear();
 
     return ATOMIC_LOAD(&this->stateChangeCount[RTC_PEER_CONNECTION_STATE_CONNECTED]) == 2;
