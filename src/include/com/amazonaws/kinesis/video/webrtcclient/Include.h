@@ -1573,6 +1573,14 @@ typedef struct {
  */
 PUBLIC_API STATUS createPeerConnection(PRtcConfiguration, PRtcPeerConnection*);
 
+/**
+ * @brief Give peer connection an ice config to add to its server list
+ *
+ * @param[in] PRtcPeerConnection* initialized RtcPeerConnection
+ * @param[in] PIceConfigInfo Ice config info to add to this peer connection
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
 PUBLIC_API STATUS addConfigToServerList(PRtcPeerConnection*, PIceConfigInfo);
 
 /**
@@ -1651,6 +1659,14 @@ PUBLIC_API STATUS peerConnectionGetLocalDescription(PRtcPeerConnection, PRtcSess
  */
 PUBLIC_API STATUS peerConnectionGetCurrentLocalDescription(PRtcPeerConnection, PRtcSessionDescriptionInit);
 
+/**
+ * Allows use of internal threadpool
+ *
+ * @param[in] startRoutine function pointer to execute in threadpool
+ * @param[in] PVOID void pointer to pass to function pointer
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
 PUBLIC_API STATUS peerConnectionAsync(startRoutine fn, PVOID data);
 
 /**

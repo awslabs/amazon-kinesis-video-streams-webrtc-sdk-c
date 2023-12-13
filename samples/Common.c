@@ -440,6 +440,7 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
 
     if (pSampleConfiguration->useTurn) {
 #ifdef ENABLE_KVS_THREADPOOL
+        pSampleConfiguration->iceUriCount = 1;
         AsyncGetIceStruct* pAsyncData = NULL;
 
         pAsyncData = (AsyncGetIceStruct*) MEMCALLOC(1, SIZEOF(AsyncGetIceStruct));
@@ -466,10 +467,10 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
             uriCount += pIceConfigInfo->uriCount;
             CHK_STATUS(addConfigToServerList(ppRtcPeerConnection, pIceConfigInfo));
         }
+        pSampleConfiguration->iceUriCount = uriCount + 1;
 #endif
     }
 
-    pSampleConfiguration->iceUriCount = uriCount + 1;
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
