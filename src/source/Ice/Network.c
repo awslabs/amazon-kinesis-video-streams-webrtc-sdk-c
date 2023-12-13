@@ -174,16 +174,17 @@ STATUS createSocket(KVS_IP_FAMILY_TYPE familyType, KVS_SOCKET_PROTOCOL protocol,
     sockType = protocol == KVS_SOCKET_PROTOCOL_UDP ? SOCK_DGRAM : SOCK_STREAM;
 
     sockfd = socket(familyType == KVS_IP_FAMILY_TYPE_IPV4 ? AF_INET : AF_INET6, sockType, 0);
+
     if (sockfd == -1) {
         DLOGW("socket() failed to create socket with errno %s", getErrorString(getErrorCode()));
         CHK(FALSE, STATUS_CREATE_UDP_SOCKET_FAILED);
     }
-
+#ifdef NO_SIGNAL_SOCK_OPT
     optionValue = 1;
-    if (setsockopt(sockfd, SOL_SOCKET, NO_SIGNAL, &optionValue, SIZEOF(optionValue)) < 0) {
-        DLOGD("setsockopt() NO_SIGNAL failed with errno %s", getErrorString(getErrorCode()));
+    if (setsockopt(sockfd, SOL_SOCKET, NO_SIGNAL_SOCK_OPT, &optionValue, SIZEOF(optionValue)) < 0) {
+        DLOGD("setsockopt() NO_SIGNAL_SOCK_OPT failed with errno %s", getErrorString(getErrorCode()));
     }
-
+#endif /* NO_SIGNAL_SOCK_OPT */
     if (sendBufSize > 0 && setsockopt(sockfd, SOL_SOCKET, SO_SNDBUF, &sendBufSize, SIZEOF(sendBufSize)) < 0) {
         DLOGW("setsockopt() SO_SNDBUF failed with errno %s", getErrorString(getErrorCode()));
         CHK(FALSE, STATUS_SOCKET_SET_SEND_BUFFER_SIZE_FAILED);

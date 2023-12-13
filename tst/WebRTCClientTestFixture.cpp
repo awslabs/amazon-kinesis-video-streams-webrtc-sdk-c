@@ -100,7 +100,9 @@ void WebRtcClientTestBase::SetUp()
 
     SET_LOGGER_LOG_LEVEL(mLogLevel);
 
-    initKvsWebRtc();
+    if (STATUS_SUCCESS != initKvsWebRtc()) {
+        DLOGE("Test initKvsWebRtc FAILED!!!!");
+    }
 
     if (NULL != (mAccessKey = getenv(ACCESS_KEY_ENV_VAR))) {
         mAccessKeyIdSet = TRUE;

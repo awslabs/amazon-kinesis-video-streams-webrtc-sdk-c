@@ -41,6 +41,8 @@ Please refer to the release notes in [Releases](https://github.com/awslabs/amazo
 * Signaling Client Included
   - KVS Provides STUN/TURN and Signaling Backend
   - Connect with [Android](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-android)/[iOS](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-ios)/[Web](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-js) using pre-made samples
+* Storage for WebRTC [NEW]
+  * Ingest media into a Kinesis Video Stream.
 * Portable
   - Tested on Linux/MacOS
   - Tested on x64, ARMv5
@@ -260,21 +262,29 @@ This application sends sample H264/Opus frames (path: `/samples/h264SampleFrames
 ./samples/kvsWebrtcClientMaster <channelName>
 ```
 
+To use the **Storage for WebRTC** feature, run the same command as above but with an additional command line arg to enable the feature.  
+
+```
+./samples/kvsWebrtcClientMaster <channelName> 1
+```
+
 #### Sample: kvsWebrtcClientMasterGstSample
 This application can send media from a GStreamer pipeline using test H264/Opus frames, device `autovideosrc` and `autoaudiosrc` input, or a received RTSP stream. It also will playback incoming audio via an `autoaudiosink`. To run:
 ```
 ./samples/kvsWebrtcClientMasterGstSample <channelName> <mediaType> <sourceType>
 ```
-Pass the desired media and source type when running the sample. The mediaType can be `audio-video` or `video-only`. The source type can be `testsrc`, `devicesrc`, or `rtspsrc`. Specify the RTSP URI if using `rtspsrc`:
+Pass the desired media and source type when running the sample. The mediaType can be `audio-video` or `video-only`. To use the **Storage For WebRTC** feature, use `audio-video-storage` as the mediaType. The source type can be `testsrc`, `devicesrc`, or `rtspsrc`. Specify the RTSP URI if using `rtspsrc`:
 ```
 ./samples/kvsWebrtcClientMasterGstSample <channelName> <mediaType> rtspsrc rtsp://<rtspUri>
 ```
 
+
 #### Sample: kvsWebrtcClientViewer
 This application accepts sample H264/Opus frames and prints them out. To run:
 ```
-./samples/kvsWebrtcClientMaster <channelName>
+./samples/kvsWebrtcClientViewer <channelName>
 ```
+
 ### Viewing Master Samples
 
 After running one of the master samples, when the command line application prints "Signaling client connection to socket established", indicating that your signaling channel is created and the connected master is streaming media to it, you can view the stream. To do so, check the media playback viewer on the KVS Signaling Channels console or open the [WebRTC SDK Test Page](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-js/examples/index.html).

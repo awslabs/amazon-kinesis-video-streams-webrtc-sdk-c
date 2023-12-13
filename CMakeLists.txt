@@ -7,6 +7,7 @@ include(CheckFunctionExists)
 # The version MUST be updated before every release
 project(KinesisVideoWebRTCClient VERSION 1.8.1 LANGUAGES C)
 
+
 # User Flags
 option(ADD_MUCLIBC "Add -muclibc c flag" OFF)
 option(BUILD_DEPENDENCIES "Whether or not to build depending libraries from source" ON)
@@ -20,6 +21,7 @@ option(BUILD_SAMPLE "Build available samples" ON)
 option(ENABLE_DATA_CHANNEL "Enable support for data channel" ON)
 option(ENABLE_KVS_THREADPOOL "Enable support for KVS thread pool in signaling" ON)
 option(INSTRUMENTED_ALLOCATORS "Enable memory instrumentation" OFF)
+option(ENABLE_AWS_SDK_IN_TESTS "Enable support for compiling AWS SDKs for tests" ON)
 
 # Developer Flags
 option(BUILD_TEST "Build the testing tree." OFF)
@@ -36,6 +38,7 @@ if(WIN32)
   set(EXT_PTHREAD_INCLUDE_DIR "" CACHE PATH "Path to the PThread dir")
   set(EXT_PTHREAD_LIBRARIES "" CACHE FILEPATH "Path to PThread libraries")
 endif()
+
 
 execute_process(
         COMMAND git rev-parse HEAD
@@ -119,6 +122,7 @@ elseif(USE_MBEDTLS)
   endif()
 endif()
 
+
 if(BUILD_DEPENDENCIES)
   if(NOT EXISTS ${OPEN_SRC_INSTALL_PREFIX})
     file(MAKE_DIRECTORY ${OPEN_SRC_INSTALL_PREFIX})
@@ -190,8 +194,14 @@ if(BUILD_DEPENDENCIES)
       -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
 
   build_dependency(usrsctp ${BUILD_ARGS})
+
   if(BUILD_TEST)
     build_dependency(gtest)
+
+    if(ENABLE_AWS_SDK_IN_TESTS)
+      build_dependency(awscpp)
+    endif()
+
   endif()
 
   if(BUILD_BENCHMARK)
@@ -257,13 +267,14 @@ set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${LIBSRTP_INCLUDE_DIRS}
 link_directories(${LIBSRTP_LIBRARY_DIRS})
 link_directories(${LIBWEBSOCKETS_LIBRARY_DIRS})
 link_directories(${OPEN_SRC_INSTALL_PREFIX}/lib)
-link_directories(${OPEN_SRC_INSTALL_PREFIX}/lib64)
 
+if(EXISTS ${OPEN_SRC_INSTALL_PREFIX}/lib64)
+  link_directories(${OPEN_SRC_INSTALL_PREFIX}/lib64)
+endif()
 ############# find dependent libraries end ############
 
 if("${CMAKE_C_COMPILER_ID}" MATCHES "GNU|Clang")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
-
 
   if(CODE_COVERAGE)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -g -fprofile-arcs -ftest-coverage")
@@ -307,6 +318,10 @@ if (INSTRUMENTED_ALLOCATORS)
   add_definitions(-DINSTRUMENTED_ALLOCATORS)
 endif()
 
+if(ENABLE_AWS_SDK_IN_TESTS)
+  add_definitions(-DENABLE_AWS_SDK_IN_TESTS)
+endif()
+
 file(
   GLOB
   WEBRTC_CLIENT_SOURCE_FILES
@@ -346,12 +361,11 @@ if(USE_MBEDTLS)
   target_compile_definitions(kvsWebrtcClient PRIVATE LWS_WITH_MBEDTLS)
 endif()
 
-# The library **MUST** have a shared linkage. This library is used by both WebRtc client an
-#signaling client.
 if(ENABLE_KVS_THREADPOOL)
-  file(GLOB THREADPOOL_SOURCE_FILES "src/source/Threadpool/ThreadPoolContext.c")
-  add_library(kvsWebRtcThreadpool SHARED ${THREADPOOL_SOURCE_FILES})
+  file(GLOB THREADPOOL_SOURCE_FILES "src/source/Threadpool/*.c")
+  add_library(kvsWebRtcThreadpool ${LINKAGE} ${THREADPOOL_SOURCE_FILES})
   target_link_libraries(kvsWebRtcThreadpool PRIVATE kvspicUtils)
+  set(EXTRA_DEPS ${EXTRA_DEPS} kvsWebRtcThreadpool)
 endif()
 
 target_link_libraries(
@@ -372,11 +386,6 @@ add_library(kvsWebrtcSignalingClient ${LINKAGE} ${WEBRTC_SIGNALING_CLIENT_SOURCE
 
 if(USE_MBEDTLS)
   target_compile_definitions(kvsWebrtcSignalingClient PRIVATE LWS_WITH_MBEDTLS)
-endif()
-
-if(ENABLE_KVS_THREADPOOL)
-  target_link_libraries(kvsWebrtcClient PRIVATE kvsWebRtcThreadpool)
-  target_link_libraries(kvsWebrtcSignalingClient PRIVATE kvsWebRtcThreadpool)
 endif()
 
 target_link_libraries(
@@ -421,6 +430,8 @@ if (BUILD_SAMPLE)
 endif()
 
 if(BUILD_TEST)
+  # adding ZLIB because aws sdk static link seems to be broken when zlib is needed
+  find_package(ZLIB REQUIRED)
   add_subdirectory(tst)
 endif()
 

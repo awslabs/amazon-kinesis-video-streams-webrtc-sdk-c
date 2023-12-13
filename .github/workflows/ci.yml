@@ -28,8 +28,6 @@ jobs:
       CC: /usr/bin/clang
       CXX: /usr/bin/clang++
       AWS_KVS_LOG_LEVEL: 2
-      LDFLAGS: -L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib
-      CPATH: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/
     permissions:
       id-token: write
       contents: read
@@ -95,14 +93,16 @@ jobs:
         run: |
           brew unlink openssl
           mkdir build && cd build
-          sh -c 'cmake .. -DCMAKE_C_COMPILER=$(brew --prefix llvm@15)/bin/clang -DCMAKE_CXX_COMPILER=$(brew --prefix llvm@15)/bin/clang++;cmake .. -DCMAKE_C_COMPILER=$(brew --prefix llvm@15)/bin/clang -DCMAKE_CXX_COMPILER=$(brew --prefix llvm@15)/bin/clang++'
+          sh -c 'cmake .. -DBUILD_TEST=TRUE -DCMAKE_C_COMPILER=$(brew --prefix llvm@15)/bin/clang -DCMAKE_CXX_COMPILER=$(brew --prefix llvm@15)/bin/clang++'
           make
+      - name: Run tests
+        run:  |
+          cd build
+          ./tst/webrtc_client_test
   static-build-mac:
     runs-on: macos-11
     env:
       AWS_KVS_LOG_LEVEL: 2
-      LDFLAGS: -L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib
-      CPATH: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/
     permissions:
       id-token: write
       contents: read
@@ -123,36 +123,6 @@ jobs:
         run:  |
           cd build
           ./tst/webrtc_client_test
-  linux-gcc-code-coverage:
-    runs-on: ubuntu-20.04
-    env:
-      AWS_KVS_LOG_LEVEL: 2
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v3
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
-      - name: Build repository
-        run: |
-          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-          mkdir build && cd build
-          cmake .. -DCODE_COVERAGE=TRUE -DBUILD_TEST=TRUE
-          make
-          ulimit -c unlimited -S
-      - name: Run tests
-        run:  |
-          cd build
-          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-      - name: Code coverage
-        run: |
-          for test_file in $(find CMakeFiles/kvsWebrtcClient.dir CMakeFiles/kvsWebrtcSignalingClient.dir -name '*.gcno'); do gcov $test_file; done
-          bash <(curl -s https://codecov.io/bash)
   address-sanitizer:
     runs-on: ubuntu-20.04
     env:
@@ -176,6 +146,7 @@ jobs:
         run: |
           sudo apt clean && sudo apt update
           sudo apt-get -y install clang
+          sudo apt-get -y install libcurl4-openssl-dev
       - name: Build repository
         run: |
           # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
@@ -210,6 +181,7 @@ jobs:
         run: |
           sudo apt clean && sudo apt update
           sudo apt-get -y install clang
+          sudo apt-get -y install libcurl4-openssl-dev
       - name: Build repository
         run: |
           # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
@@ -265,6 +237,7 @@ jobs:
         run: |
           sudo apt clean && sudo apt update
           sudo apt-get -y install clang
+          sudo apt-get -y install libcurl4-openssl-dev
       - name: Build repository
         run: |
           sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
@@ -302,10 +275,12 @@ jobs:
           sudo apt-get -q update
           sudo apt-get -y install gcc-4.4
           sudo apt-get -y install gdb
+          sudo apt-get -y install libcurl4-openssl-dev
       - name: Build repository
         run: |
           mkdir build && cd build
-          cmake .. -DBUILD_TEST=TRUE
+          # As per REAMDE here: https://github.com/aws/aws-sdk-cpp minimum supported GCC is 4.9 so we do not run those tests here
+          cmake .. -DBUILD_TEST=TRUE -DENABLE_AWS_SDK_IN_TESTS=OFF
           make
           ulimit -c unlimited -S
       - name: Run tests
@@ -330,7 +305,7 @@ jobs:
         run: |
           apk update
           apk upgrade
-          apk add alpine-sdk cmake clang linux-headers perl bash openssl-dev
+          apk add alpine-sdk cmake clang linux-headers perl bash openssl-dev zlib-dev curl-dev
       - name: Build Repository
         run: |
           mkdir build && cd build
@@ -361,6 +336,7 @@ jobs:
           sudo apt-get -q update
           sudo apt-get -y install gcc-4.4
           sudo apt-get -y install gdb
+          sudo apt-get -y install libcurl4-openssl-dev
       - name: Build repository
         run: |
           mkdir build && cd build
@@ -371,7 +347,6 @@ jobs:
         run:  |
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-
   mbedtls-ubuntu-gcc-11:
     runs-on: ubuntu-latest
     env:
@@ -395,6 +370,7 @@ jobs:
           sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ jammy main'
           sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ jammy universe'
           sudo apt-get -q update
+          sudo apt-get -y install libcurl4-openssl-dev
       - name: Build repository
         run: |
           mkdir build && cd build
@@ -426,6 +402,7 @@ jobs:
         run: |
           sudo apt clean && sudo apt update
           sudo apt-get -y install clang
+          sudo apt-get -y install libcurl4-openssl-dev
       - name: Build repository
         run: |
           sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
@@ -476,6 +453,10 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
+      - name: Install dependencies
+        run: |
+          sudo apt clean && sudo apt update
+          sudo apt-get -y install libcurl4-openssl-dev
       - name: Build repository
         run: |
           # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.

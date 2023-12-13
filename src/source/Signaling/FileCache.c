@@ -41,7 +41,7 @@ STATUS deserializeSignalingCacheEntries(PCHAR cachedFileContent, UINT64 fileSize
     while (remainingSize > MAX_SIGNALING_CACHE_ENTRY_TIMESTAMP_STR_LEN) {
         nextLine = STRCHR(pCurrent, '\n');
         while ((nextToken = STRCHR(pCurrent, ',')) != NULL && nextToken < nextLine) {
-            switch (tokenCount % 7) {
+            switch (tokenCount % 10) {
                 case 0:
                     STRNCPY(pSignalingFileCacheEntryList[entryCount].channelName, pCurrent, nextToken - pCurrent);
                     break;
@@ -66,6 +66,15 @@ STATUS deserializeSignalingCacheEntries(PCHAR cachedFileContent, UINT64 fileSize
                     break;
                 case 5:
                     STRNCPY(pSignalingFileCacheEntryList[entryCount].wssEndpoint, pCurrent, nextToken - pCurrent);
+                    break;
+                case 6:
+                    STRNCPY(pSignalingFileCacheEntryList[entryCount].storageEnabled, pCurrent, nextToken - pCurrent);
+                    break;
+                case 7:
+                    STRNCPY(pSignalingFileCacheEntryList[entryCount].storageStreamArn, pCurrent, nextToken - pCurrent);
+                    break;
+                case 8:
+                    STRNCPY(pSignalingFileCacheEntryList[entryCount].webrtcEndpoint, pCurrent, nextToken - pCurrent);
                     break;
                 default:
                     break;
@@ -146,7 +155,7 @@ STATUS signalingCacheLoadFromFile(PCHAR channelName, PCHAR region, SIGNALING_CHA
             /* Assume channel name and region has been validated */
             if (STRCMP(entries[i].channelName, channelName) == 0 && STRCMP(entries[i].region, region) == 0 && entries[i].role == role) {
                 cacheFound = TRUE;
-                *pSignalingFileCacheEntry = entries[i];
+                MEMCPY(pSignalingFileCacheEntry, &entries[i], SIZEOF(entries[i]));
             }
         }
     }
@@ -209,23 +218,24 @@ STATUS signalingCacheSaveToFile(PSignalingFileCacheEntry pSignalingFileCacheEntr
     }
 
     /* at this point i is at most entryCount */
-    if (entryCount >= MAX_SIGNALING_CACHE_ENTRY_COUNT) {
-        DLOGW("Overwrote 32nd entry to store signaling cache because max entry count of %u reached", MAX_SIGNALING_CACHE_ENTRY_COUNT);
+    if (newEntry && entryCount >= MAX_SIGNALING_CACHE_ENTRY_COUNT) {
         i = MAX_SIGNALING_CACHE_ENTRY_COUNT - 1;
         newEntry = FALSE;
     }
 
-    entries[i] = *pSignalingFileCacheEntry;
     if (newEntry) {
         entryCount++;
     }
 
+    entries[i] = *pSignalingFileCacheEntry;
+
     for (i = 0; i < entryCount; ++i) {
         serializedCacheEntryLen =
-            SNPRINTF(serializedCacheEntry, ARRAY_SIZE(serializedCacheEntry), "%s,%s,%s,%s,%s,%s,%.10" PRIu64 "\n", entries[i].channelName,
+            SNPRINTF(serializedCacheEntry, ARRAY_SIZE(serializedCacheEntry), "%s,%s,%s,%s,%s,%s,%s,%s,%s,%.10" PRIu64 "\n", entries[i].channelName,
                      entries[i].role == SIGNALING_CHANNEL_ROLE_TYPE_MASTER ? SIGNALING_FILE_CACHE_ROLE_TYPE_MASTER_STR
                                                                            : SIGNALING_FILE_CACHE_ROLE_TYPE_VIEWER_STR,
-                     entries[i].region, entries[i].channelArn, entries[i].httpsEndpoint, entries[i].wssEndpoint, entries[i].creationTsEpochSeconds);
+                     entries[i].region, entries[i].channelArn, entries[i].httpsEndpoint, entries[i].wssEndpoint, entries[i].storageEnabled,
+                     entries[i].storageStreamArn, entries[i].webrtcEndpoint, entries[i].creationTsEpochSeconds);
         CHK_STATUS(writeFile(cacheFilePath, FALSE, i == 0 ? FALSE : TRUE, (PBYTE) serializedCacheEntry, serializedCacheEntryLen));
     }
 

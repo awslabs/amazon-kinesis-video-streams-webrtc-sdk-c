@@ -28,7 +28,8 @@ STATUS signalingCallFailed(STATUS status)
 {
     return (STATUS_SIGNALING_GET_TOKEN_CALL_FAILED == status || STATUS_SIGNALING_DESCRIBE_CALL_FAILED == status ||
             STATUS_SIGNALING_CREATE_CALL_FAILED == status || STATUS_SIGNALING_GET_ENDPOINT_CALL_FAILED == status ||
-            STATUS_SIGNALING_GET_ICE_CONFIG_CALL_FAILED == status || STATUS_SIGNALING_CONNECT_CALL_FAILED == status);
+            STATUS_SIGNALING_GET_ICE_CONFIG_CALL_FAILED == status || STATUS_SIGNALING_CONNECT_CALL_FAILED == status ||
+            STATUS_SIGNALING_DESCRIBE_MEDIA_CALL_FAILED == status);
 }
 
 VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL isBinary, PBYTE pMessage, UINT32 pMessageLen)
@@ -79,6 +80,7 @@ VOID onConnectionStateChange(UINT64 customData, RTC_PEER_CONNECTION_STATE newSta
         case RTC_PEER_CONNECTION_STATE_CLOSED:
             // explicit fallthrough
         case RTC_PEER_CONNECTION_STATE_DISCONNECTED:
+            DLOGD("p2p connection disconnected");
             ATOMIC_STORE_BOOL(&pSampleStreamingSession->terminateFlag, TRUE);
             CVAR_BROADCAST(pSampleConfiguration->cvar);
             // explicit fallthrough
@@ -220,7 +222,7 @@ STATUS handleOffer(PSampleConfiguration pSampleConfiguration, PSampleStreamingSe
 
     MEMSET(&offerSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
     MEMSET(&pSampleStreamingSession->answerSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
-
+    DLOGD("**offer:%s", pSignalingMessage->payload);
     CHK_STATUS(deserializeSessionDescriptionInit(pSignalingMessage->payload, pSignalingMessage->payloadLen, &offerSessionDescriptionInit));
     CHK_STATUS(setRemoteDescription(pSampleStreamingSession->pPeerConnection, &offerSessionDescriptionInit));
     canTrickle = canTrickleIceCandidates(pSampleStreamingSession->pPeerConnection);
@@ -273,7 +275,8 @@ STATUS sendSignalingMessage(PSampleStreamingSession pSampleStreamingSession, PSi
     CHK_STATUS(signalingClientSendMessageSync(pSampleConfiguration->signalingClientHandle, pMessage));
     if (pMessage->messageType == SIGNALING_MESSAGE_TYPE_ANSWER) {
         CHK_STATUS(signalingClientGetMetrics(pSampleConfiguration->signalingClientHandle, &pSampleConfiguration->signalingClientMetrics));
-        DLOGP("[Signaling offer to answer] %" PRIu64 " ms", pSampleConfiguration->signalingClientMetrics.signalingClientStats.offerToAnswerTime);
+        DLOGP("[Signaling offer received to answer sent time] %" PRIu64 " ms",
+              pSampleConfiguration->signalingClientMetrics.signalingClientStats.offerToAnswerTime);
     }
 
 CleanUp:
@@ -298,8 +301,9 @@ STATUS respondWithAnswer(PSampleStreamingSession pSampleStreamingSession)
     message.messageType = SIGNALING_MESSAGE_TYPE_ANSWER;
     STRNCPY(message.peerClientId, pSampleStreamingSession->peerId, MAX_SIGNALING_CLIENT_ID_LEN);
     message.payloadLen = (UINT32) STRLEN(message.payload);
-    message.correlationId[0] = '\0';
-
+    // SNPRINTF appends null terminator, so we do not manually add it
+    SNPRINTF(message.correlationId, MAX_CORRELATION_ID_LEN, "%llu_%llu", GETTIME(), ATOMIC_INCREMENT(&pSampleStreamingSession->correlationIdPostFix));
+    DLOGD("Responding With Answer With correlationId: %s", message.correlationId);
     CHK_STATUS(sendSignalingMessage(pSampleStreamingSession, &message));
 
 CleanUp:
@@ -675,6 +679,12 @@ VOID sampleAudioFrameHandler(UINT64 customData, PFrame pFrame)
     DLOGV("Audio Frame received. TrackId: %" PRIu64 ", Size: %u, Flags %u", pFrame->trackId, pFrame->size, pFrame->flags);
 }
 
+VOID sampleFrameHandler(UINT64 customData, PFrame pFrame)
+{
+    UNUSED_PARAM(customData);
+    DLOGV("Video Frame received. TrackId: %" PRIu64 ", Size: %u, Flags %u", pFrame->trackId, pFrame->size, pFrame->flags);
+}
+
 VOID sampleBandwidthEstimationHandler(UINT64 customData, DOUBLE maximumBitrate)
 {
     UNUSED_PARAM(customData);
@@ -936,6 +946,11 @@ STATUS initSignaling(PSampleConfiguration pSampleConfiguration, PCHAR clientId)
 
     // Enable the processing of the messages
     CHK_STATUS(signalingClientFetchSync(pSampleConfiguration->signalingClientHandle));
+
+#ifdef ENABLE_DATA_CHANNEL
+    pSampleConfiguration->onDataChannel = onDataChannel;
+#endif
+
     CHK_STATUS(signalingClientConnectSync(pSampleConfiguration->signalingClientHandle));
 
     signalingClientGetMetrics(pSampleConfiguration->signalingClientHandle, &signalingClientMetrics);
@@ -943,10 +958,14 @@ STATUS initSignaling(PSampleConfiguration pSampleConfiguration, PCHAR clientId)
     // Logging this here since the logs in signaling library do not get routed to file
     DLOGP("[Signaling Get token] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.getTokenCallTime);
     DLOGP("[Signaling Describe] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.describeCallTime);
+    DLOGP("[Signaling Describe Media] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.describeMediaCallTime);
     DLOGP("[Signaling Create Channel] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.createCallTime);
     DLOGP("[Signaling Get endpoint] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.getEndpointCallTime);
     DLOGP("[Signaling Get ICE config] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.getIceConfigCallTime);
     DLOGP("[Signaling Connect] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.connectCallTime);
+    if (signalingClientMetrics.signalingClientStats.joinSessionCallTime != 0) {
+        DLOGP("[Signaling Join Session] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.joinSessionCallTime);
+    }
     DLOGP("[Signaling create client] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.createClientTime);
     DLOGP("[Signaling fetch client] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.fetchClientTime);
     DLOGP("[Signaling connect client] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.connectClientTime);
@@ -1146,6 +1165,7 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
     pSampleConfiguration = *ppSampleConfiguration;
 
     CHK(pSampleConfiguration != NULL, retStatus);
+
     if (IS_VALID_TIMER_QUEUE_HANDLE(pSampleConfiguration->timerQueueHandle)) {
         if (pSampleConfiguration->iceCandidatePairStatsTimerId != MAX_UINT32) {
             retStatus = timerQueueCancelTimer(pSampleConfiguration->timerQueueHandle, pSampleConfiguration->iceCandidatePairStatsTimerId,
@@ -1262,7 +1282,7 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
     STATUS retStatus = STATUS_SUCCESS;
     PSampleStreamingSession pSampleStreamingSession = NULL;
     UINT32 i, clientIdHash;
-    BOOL sampleConfigurationObjLockLocked = FALSE, streamingSessionListReadLockLocked = FALSE, peerConnectionFound = FALSE;
+    BOOL sampleConfigurationObjLockLocked = FALSE, streamingSessionListReadLockLocked = FALSE, peerConnectionFound = FALSE, sessionFreed = FALSE;
     SIGNALING_CLIENT_STATE signalingClientState;
 
     CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
@@ -1296,7 +1316,19 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
                 streamingSessionListReadLockLocked = FALSE;
 
                 CHK_STATUS(freeSampleStreamingSession(&pSampleStreamingSession));
+                sessionFreed = TRUE;
             }
+        }
+
+        if (sessionFreed && pSampleConfiguration->channelInfo.useMediaStorage && !ATOMIC_LOAD_BOOL(&pSampleConfiguration->recreateSignalingClient)) {
+            // In the WebRTC Media Storage Ingestion Case the backend will terminate the session after
+            // 1 hour.  The SDK needs to make a new JoinSession Call in order to receive a new
+            // offer from the backend.  We will create a new sample streaming session upon receipt of the
+            // offer.  The signalingClientConnectSync call will result in a JoinSession API call being made.
+            CHK_STATUS(signalingClientDisconnectSync(pSampleConfiguration->signalingClientHandle));
+            CHK_STATUS(signalingClientFetchSync(pSampleConfiguration->signalingClientHandle));
+            CHK_STATUS(signalingClientConnectSync(pSampleConfiguration->signalingClientHandle));
+            sessionFreed = FALSE;
         }
 
         // Check if we need to re-create the signaling client on-the-fly
@@ -1472,7 +1504,8 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
 
             startStats = pSampleConfiguration->iceCandidatePairStatsTimerId == MAX_UINT32;
             CHK_STATUS(signalingClientGetMetrics(pSampleConfiguration->signalingClientHandle, &pSampleConfiguration->signalingClientMetrics));
-            DLOGP("[Signaling offer to answer] %" PRIu64 " ms", pSampleConfiguration->signalingClientMetrics.signalingClientStats.offerToAnswerTime);
+            DLOGP("[Signaling offer sent to answer received time] %" PRIu64 " ms",
+                  pSampleConfiguration->signalingClientMetrics.signalingClientStats.offerToAnswerTime);
             break;
 
         case SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE:
