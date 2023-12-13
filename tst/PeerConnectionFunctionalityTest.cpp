@@ -72,13 +72,15 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithDelay)
         PPeerContainer container = (PPeerContainer)customData;
         if (candidateStr != NULL) {
             container->client->lock.lock();
-            container->client->threads.push_back(std::thread(
-                [container](std::string candidate) {
-                    RtcIceCandidateInit iceCandidate;
-                    EXPECT_EQ(STATUS_SUCCESS, deserializeRtcIceCandidateInit((PCHAR) candidate.c_str(), STRLEN(candidate.c_str()), &iceCandidate));
-                    EXPECT_EQ(STATUS_SUCCESS, addIceCandidate((PRtcPeerConnection) container->pc, iceCandidate.candidate));
-                },
-                std::string(candidateStr)));
+            if(!container->client->noNewThreads) {
+                container->client->threads.push_back(std::thread(
+                    [container](std::string candidate) {
+                        RtcIceCandidateInit iceCandidate;
+                        EXPECT_EQ(STATUS_SUCCESS, deserializeRtcIceCandidateInit((PCHAR) candidate.c_str(), STRLEN(candidate.c_str()), &iceCandidate));
+                        EXPECT_EQ(STATUS_SUCCESS, addIceCandidate((PRtcPeerConnection) container->pc, iceCandidate.candidate));
+                    },
+                    std::string(candidateStr)));
+            }
             container->client->lock.unlock();
         }
     };
@@ -117,10 +119,13 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithDelay)
 
     EXPECT_EQ(2, connectedCount);
 
+    this->lock.lock();
     //join all threads before leaving
     for (auto& th : this->threads) th.join();
 
     this->threads.clear();
+    this->noNewThreads = TRUE;
+    this->lock.unlock();
 
     closePeerConnection(offerPc);
     closePeerConnection(answerPc);
@@ -675,13 +680,15 @@ TEST_F(PeerConnectionFunctionalityTest, noLostFramesAfterConnected)
         PPeerContainer container = (PPeerContainer)customData;
         if (candidateStr != NULL) {
             container->client->lock.lock();
-            container->client->threads.push_back(std::thread(
-                [container](std::string candidate) {
-                    RtcIceCandidateInit iceCandidate;
-                    EXPECT_EQ(STATUS_SUCCESS, deserializeRtcIceCandidateInit((PCHAR) candidate.c_str(), STRLEN(candidate.c_str()), &iceCandidate));
-                    EXPECT_EQ(STATUS_SUCCESS, addIceCandidate((PRtcPeerConnection) container->pc, iceCandidate.candidate));
-                },
-                std::string(candidateStr)));
+            if(!container->client->noNewThreads) {
+                container->client->threads.push_back(std::thread(
+                    [container](std::string candidate) {
+                        RtcIceCandidateInit iceCandidate;
+                        EXPECT_EQ(STATUS_SUCCESS, deserializeRtcIceCandidateInit((PCHAR) candidate.c_str(), STRLEN(candidate.c_str()), &iceCandidate));
+                        EXPECT_EQ(STATUS_SUCCESS, addIceCandidate((PRtcPeerConnection) container->pc, iceCandidate.candidate));
+                    },
+                    std::string(candidateStr)));
+            }
             container->client->lock.unlock();
         }
     };
@@ -738,9 +745,12 @@ TEST_F(PeerConnectionFunctionalityTest, noLostFramesAfterConnected)
         THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
     }
 
+    this->lock.lock();
     for (auto& th : this->threads) th.join();
 
     this->threads.clear();
+    this->noNewThreads = TRUE;
+    this->lock.unlock();
 
     MEMFREE(videoFrame.frameData);
     closePeerConnection(offerPc);

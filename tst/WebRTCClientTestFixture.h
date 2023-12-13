@@ -60,6 +60,7 @@ class WebRtcClientTestBase : public ::testing::Test {
     SIGNALING_CLIENT_HANDLE mSignalingClientHandle;
     std::vector<std::thread> threads;
     std::mutex lock;
+    BOOL noNewThreads = FALSE;
 
     WebRtcClientTestBase();
 

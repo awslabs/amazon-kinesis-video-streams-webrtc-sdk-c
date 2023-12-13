@@ -223,13 +223,15 @@ bool WebRtcClientTestBase::connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerC
         PPeerContainer container = (PPeerContainer)customData;
         if (candidateStr != NULL) {
             container->client->lock.lock();
-            container->client->threads.push_back(std::thread(
-                [container](std::string candidate) {
-                    RtcIceCandidateInit iceCandidate;
-                    EXPECT_EQ(STATUS_SUCCESS, deserializeRtcIceCandidateInit((PCHAR) candidate.c_str(), STRLEN(candidate.c_str()), &iceCandidate));
-                    EXPECT_EQ(STATUS_SUCCESS, addIceCandidate((PRtcPeerConnection) container->pc, iceCandidate.candidate));
-                },
-                std::string(candidateStr)));
+            if(!container->client->noNewThreads) {
+                container->client->threads.push_back(std::thread(
+                    [container](std::string candidate) {
+                        RtcIceCandidateInit iceCandidate;
+                        EXPECT_EQ(STATUS_SUCCESS, deserializeRtcIceCandidateInit((PCHAR) candidate.c_str(), STRLEN(candidate.c_str()), &iceCandidate));
+                        EXPECT_EQ(STATUS_SUCCESS, addIceCandidate((PRtcPeerConnection) container->pc, iceCandidate.candidate));
+                    },
+                    std::string(candidateStr)));
+            }
             container->client->lock.unlock();
         }
 
@@ -271,10 +273,13 @@ bool WebRtcClientTestBase::connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerC
         THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
     }
 
+    this->lock.lock();
     //join all threads before leaving
     for (auto& th : this->threads) th.join();
 
     this->threads.clear();
+    this->noNewThreads = TRUE;
+    this->lock.unlock();
 
     return ATOMIC_LOAD(&this->stateChangeCount[RTC_PEER_CONNECTION_STATE_CONNECTED]) == 2;
 }
@@ -290,13 +295,15 @@ bool WebRtcClientTestBase::connectTwoPeersAsyncIce(PRtcPeerConnection offerPc, P
         PPeerContainer container = (PPeerContainer)customData;
         if (candidateStr != NULL) {
             container->client->lock.lock();
-            container->client->threads.push_back(std::thread(
-                [container](std::string candidate) {
-                    RtcIceCandidateInit iceCandidate;
-                    EXPECT_EQ(STATUS_SUCCESS, deserializeRtcIceCandidateInit((PCHAR) candidate.c_str(), STRLEN(candidate.c_str()), &iceCandidate));
-                    EXPECT_EQ(STATUS_SUCCESS, addIceCandidate((PRtcPeerConnection) container->pc, iceCandidate.candidate));
-                },
-                std::string(candidateStr)));
+            if(!container->client->noNewThreads) {
+                container->client->threads.push_back(std::thread(
+                    [container](std::string candidate) {
+                        RtcIceCandidateInit iceCandidate;
+                        EXPECT_EQ(STATUS_SUCCESS, deserializeRtcIceCandidateInit((PCHAR) candidate.c_str(), STRLEN(candidate.c_str()), &iceCandidate));
+                        EXPECT_EQ(STATUS_SUCCESS, addIceCandidate((PRtcPeerConnection) container->pc, iceCandidate.candidate));
+                    },
+                    std::string(candidateStr)));
+            }
             container->client->lock.unlock();
         }
     };
@@ -339,10 +346,13 @@ bool WebRtcClientTestBase::connectTwoPeersAsyncIce(PRtcPeerConnection offerPc, P
         THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
     }
 
+    this->lock.lock();
     //join all threads before leaving
     for (auto& th : this->threads) th.join();
 
     this->threads.clear();
+    this->noNewThreads = TRUE;
+    this->lock.unlock();
 
     return ATOMIC_LOAD(&this->stateChangeCount[RTC_PEER_CONNECTION_STATE_CONNECTED]) == 2;
 }
