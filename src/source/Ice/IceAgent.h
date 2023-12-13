@@ -448,6 +448,8 @@ STATUS updateSelectedLocalRemoteCandidateStats(PIceAgent);
 
 STATUS getIceAgentStats(PIceAgent, PKvsIceAgentMetrics);
 
+STATUS iceAgentAddConfig(PIceAgent, PIceConfigInfo);
+
 #ifdef __cplusplus
 }
 #endif

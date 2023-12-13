@@ -6,8 +6,7 @@ namespace kinesis {
 namespace video {
 namespace webrtcclient {
 
-class IceFunctionalityTest : public WebRtcClientTestBase {
-};
+class IceFunctionalityTest : public WebRtcClientTestBase {};
 
 // check if iceCandidatePairs is in descending order
 BOOL candidatePairsInOrder(PDoubleList iceCandidatePairs)
@@ -135,7 +134,7 @@ PVOID connectionListenAddConnectionRoutine(PVOID arg)
     }
 
     for (i = 0; i < pCustomData->connectionToAdd; ++i) {
-        randomDelay = (UINT64)(RAND() % 300) * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+        randomDelay = (UINT64) (RAND() % 300) * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
         THREAD_SLEEP(randomDelay);
         CHECK(STATUS_SUCCEEDED(createSocketConnection((KVS_IP_FAMILY_TYPE) localhost.family, KVS_SOCKET_PROTOCOL_UDP, &localhost, NULL, 0, NULL, 0,
                                                       &pSocketConnection)));
@@ -151,7 +150,7 @@ TEST_F(IceFunctionalityTest, connectionListenerFunctionalityTest)
     PConnectionListener pConnectionListener;
     ConnectionListenerTestCustomData routine1CustomData, routine2CustomData;
     TID routine1, routine2;
-    UINT32 connectionCount , newConnectionCount, i;
+    UINT32 connectionCount, newConnectionCount, i;
     PSocketConnection pSocketConnection = NULL;
     KvsIpAddress localhost;
     TID threadId;
@@ -203,7 +202,7 @@ TEST_F(IceFunctionalityTest, connectionListenerFunctionalityTest)
     MUTEX_LOCK(pConnectionListener->lock);
     threadId = pConnectionListener->receiveDataRoutine;
     MUTEX_UNLOCK(pConnectionListener->lock);
-    EXPECT_TRUE( IS_VALID_TID_VALUE(threadId));
+    EXPECT_TRUE(IS_VALID_TID_VALUE(threadId));
     ATOMIC_STORE_BOOL(&pConnectionListener->terminate, TRUE);
 
     THREAD_JOIN(threadId, NULL);
@@ -359,7 +358,7 @@ TEST_F(IceFunctionalityTest, IceAgentAddRemoteCandidateUnitTest)
 
     EXPECT_EQ(STATUS_SUCCESS, doubleListGetHeadNode(iceAgent.remoteCandidates, &pCurNode));
     // parsing candidate priority correctly
-    EXPECT_EQ(2122260223, ((PIceCandidate)pCurNode->data)->priority);
+    EXPECT_EQ(2122260223, ((PIceCandidate) pCurNode->data)->priority);
 
     // candidate pair formed
     EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(iceAgent.iceCandidatePairs, &iceCandidateCount));
@@ -378,7 +377,7 @@ TEST_F(IceFunctionalityTest, IceAgentAddRemoteCandidateUnitTest)
 
     // parsing candidate priority correctly
     EXPECT_EQ(STATUS_SUCCESS, doubleListGetHeadNode(iceAgent.remoteCandidates, &pCurNode));
-    EXPECT_EQ(2122262783, ((PIceCandidate)pCurNode->data)->priority);
+    EXPECT_EQ(2122262783, ((PIceCandidate) pCurNode->data)->priority);
 
     iceAgent.iceAgentState = ICE_AGENT_STATE_CHECK_CONNECTION;
     EXPECT_EQ(STATUS_SUCCESS, iceAgentAddRemoteCandidate(&iceAgent, relayCandidateStr));
@@ -390,7 +389,7 @@ TEST_F(IceFunctionalityTest, IceAgentAddRemoteCandidateUnitTest)
 
     EXPECT_EQ(STATUS_SUCCESS, doubleListGetHeadNode(iceAgent.remoteCandidates, &pCurNode));
     // parsing candidate priority correctly
-    EXPECT_EQ(41885439, ((PIceCandidate)pCurNode->data)->priority);
+    EXPECT_EQ(41885439, ((PIceCandidate) pCurNode->data)->priority);
 
     MUTEX_FREE(iceAgent.lock);
     EXPECT_EQ(STATUS_SUCCESS, doubleListGetHeadNode(iceAgent.iceCandidatePairs, &pCurNode));
@@ -663,7 +662,9 @@ TEST_F(IceFunctionalityTest, IceAgentCandidateGatheringTest)
     MEMSET(&iceAgentCallbacks, 0x00, SIZEOF(IceAgentCallbacks));
 
     initializeSignalingClient();
-    getIceServers(&configuration);
+
+    SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION,
+             TEST_DEFAULT_STUN_URL_POSTFIX);
 
     auto onICECandidateHdlr = [](UINT64 customData, PCHAR candidateStr) -> void {
         CandidateList* candidateList1 = (CandidateList*) customData;
@@ -679,6 +680,9 @@ TEST_F(IceFunctionalityTest, IceAgentCandidateGatheringTest)
     iceAgentCallbacks.customData = (UINT64) &candidateList;
     iceAgentCallbacks.newLocalCandidateFn = onICECandidateHdlr;
 
+    // Set the  STUN server
+    SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION, TEST_DEFAULT_STUN_URL_POSTFIX);
+
     EXPECT_EQ(STATUS_SUCCESS, generateJSONSafeString(localIceUfrag, LOCAL_ICE_UFRAG_LEN));
     EXPECT_EQ(STATUS_SUCCESS, generateJSONSafeString(localIcePwd, LOCAL_ICE_PWD_LEN));
     EXPECT_EQ(STATUS_SUCCESS, createConnectionListener(&pConnectionListener));
@@ -687,12 +691,11 @@ TEST_F(IceFunctionalityTest, IceAgentCandidateGatheringTest)
               createIceAgent(localIceUfrag, localIcePwd, &iceAgentCallbacks, &configuration, timerQueueHandle, pConnectionListener, &pIceAgent));
 
     EXPECT_EQ(STATUS_SUCCESS, iceAgentStartGathering(pIceAgent));
+    getIceServers(&configuration, pIceAgent);
 
     THREAD_SLEEP(KVS_ICE_GATHER_REFLEXIVE_AND_RELAYED_CANDIDATE_TIMEOUT + 2 * HUNDREDS_OF_NANOS_IN_A_SECOND);
 
-    // newLocalCandidateFn should've returned null in its last invocation, which was converted to empty string
     candidateList.lock.lock();
-    EXPECT_TRUE(candidateList.list[candidateList.list.size() - 1].empty());
 
     for (std::vector<std::string>::iterator it = candidateList.list.begin(); it != candidateList.list.end(); ++it) {
         std::string candidateStr = *it;
