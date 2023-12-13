@@ -161,6 +161,24 @@ Include dependency graph for ChannelInfo.c:</div>
 Macros</h2></td></tr>
 <tr class="memitem:a7207e343606b6631ce2556bf7411b833"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ChannelInfo_8c.html#a7207e343606b6631ce2556bf7411b833">LOG_CLASS</a>&#160;&#160;&#160;&quot;ChannelInfo&quot;</td></tr>
 <tr class="separator:a7207e343606b6631ce2556bf7411b833"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6bc8a9b94e4bbccb26a006e9118c95f5"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ChannelInfo_8c.html#a6bc8a9b94e4bbccb26a006e9118c95f5">ARN_DELIMETER_CHAR</a>&#160;&#160;&#160;':'</td></tr>
+<tr class="separator:a6bc8a9b94e4bbccb26a006e9118c95f5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a917d7534d3f45b428714a08068b276e5"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ChannelInfo_8c.html#a917d7534d3f45b428714a08068b276e5">ARN_CHANNEL_NAME_CODE_SEP</a>&#160;&#160;&#160;'/'</td></tr>
+<tr class="separator:a917d7534d3f45b428714a08068b276e5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:addb67c600ff925d6a88ad201c8c1c3df"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ChannelInfo_8c.html#addb67c600ff925d6a88ad201c8c1c3df">ARN_BEGIN</a>&#160;&#160;&#160;&quot;arn:aws&quot;</td></tr>
+<tr class="separator:addb67c600ff925d6a88ad201c8c1c3df"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad6b0dbfba15d47e4ae9d7d028a47f0f0"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ChannelInfo_8c.html#ad6b0dbfba15d47e4ae9d7d028a47f0f0">SIGNALING_CHANNEL_ARN_SERVICE_NAME</a>&#160;&#160;&#160;&quot;kinesisvideo&quot;</td></tr>
+<tr class="separator:ad6b0dbfba15d47e4ae9d7d028a47f0f0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af0534c83bcac37c062ebe2199c9702d1"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ChannelInfo_8c.html#af0534c83bcac37c062ebe2199c9702d1">SIGNALING_CHANNEL_ARN_RESOURCE_TYPE</a>&#160;&#160;&#160;&quot;channel/&quot;</td></tr>
+<tr class="separator:af0534c83bcac37c062ebe2199c9702d1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a40af1f927e75758b31f06d8ff77ee58f"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ChannelInfo_8c.html#a40af1f927e75758b31f06d8ff77ee58f">AWS_ACCOUNT_ID_LENGTH</a>&#160;&#160;&#160;12</td></tr>
+<tr class="separator:a40af1f927e75758b31f06d8ff77ee58f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad6f47732083d8e0f3c785fee249ac181"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ChannelInfo_8c.html#ad6f47732083d8e0f3c785fee249ac181">AWS_KVS_ARN_CODE_LENGTH</a>&#160;&#160;&#160;13</td></tr>
+<tr class="separator:ad6f47732083d8e0f3c785fee249ac181"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5b1419b5c4f34356b546a709bf8d894a"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ChannelInfo_8c.html#a5b1419b5c4f34356b546a709bf8d894a">SIGNALING_CHANNEL_ARN_MIN_LENGTH</a>&#160;&#160;&#160;59</td></tr>
+<tr class="separator:a5b1419b5c4f34356b546a709bf8d894a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af98d842e962e6ff494531a280d91f726"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ChannelInfo_8c.html#af98d842e962e6ff494531a280d91f726">CHANNEL_ARN_MIN_DIST_FROM_REGION_END_TO_END_OF_ARN</a>&#160;&#160;&#160;37</td></tr>
+<tr class="separator:af98d842e962e6ff494531a280d91f726"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
@@ -178,8 +196,94 @@ Functions</h2></td></tr>
 <tr class="separator:a189f3f1de4a4fc95ec4e8e70bc0b81ae"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8a9f270957f5b1d641521615089742bf"><td class="memItemLeft" align="right" valign="top">PCHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ChannelInfo_8c.html#a8a9f270957f5b1d641521615089742bf">getStringFromChannelRoleType</a> (<a class="el" href="group__PublicEnums.html#ga67e678c57beb89ab9de7c9861f7d41cd">SIGNALING_CHANNEL_ROLE_TYPE</a> type)</td></tr>
 <tr class="separator:a8a9f270957f5b1d641521615089742bf"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ace032d897b4d6d58dea23b77476ff225"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ChannelInfo_8c.html#ace032d897b4d6d58dea23b77476ff225">validateKvsSignalingChannelArnAndExtractChannelName</a> (<a class="el" href="group__PublicStructures.html#gab1a88feab2cf5a556a90170eb434910a">PChannelInfo</a> pChannelInfo, PUINT16 pStart, PUINT16 pNumChars)</td></tr>
+<tr class="separator:ace032d897b4d6d58dea23b77476ff225"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Macro Definition Documentation</h2>
+<a id="addb67c600ff925d6a88ad201c8c1c3df"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#addb67c600ff925d6a88ad201c8c1c3df">&#9670;&nbsp;</a></span>ARN_BEGIN</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define ARN_BEGIN&#160;&#160;&#160;&quot;arn:aws&quot;</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a917d7534d3f45b428714a08068b276e5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a917d7534d3f45b428714a08068b276e5">&#9670;&nbsp;</a></span>ARN_CHANNEL_NAME_CODE_SEP</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define ARN_CHANNEL_NAME_CODE_SEP&#160;&#160;&#160;'/'</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a6bc8a9b94e4bbccb26a006e9118c95f5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6bc8a9b94e4bbccb26a006e9118c95f5">&#9670;&nbsp;</a></span>ARN_DELIMETER_CHAR</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define ARN_DELIMETER_CHAR&#160;&#160;&#160;':'</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a40af1f927e75758b31f06d8ff77ee58f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a40af1f927e75758b31f06d8ff77ee58f">&#9670;&nbsp;</a></span>AWS_ACCOUNT_ID_LENGTH</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define AWS_ACCOUNT_ID_LENGTH&#160;&#160;&#160;12</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ad6f47732083d8e0f3c785fee249ac181"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad6f47732083d8e0f3c785fee249ac181">&#9670;&nbsp;</a></span>AWS_KVS_ARN_CODE_LENGTH</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define AWS_KVS_ARN_CODE_LENGTH&#160;&#160;&#160;13</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="af98d842e962e6ff494531a280d91f726"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af98d842e962e6ff494531a280d91f726">&#9670;&nbsp;</a></span>CHANNEL_ARN_MIN_DIST_FROM_REGION_END_TO_END_OF_ARN</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define CHANNEL_ARN_MIN_DIST_FROM_REGION_END_TO_END_OF_ARN&#160;&#160;&#160;37</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a id="a7207e343606b6631ce2556bf7411b833"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a7207e343606b6631ce2556bf7411b833">&#9670;&nbsp;</a></span>LOG_CLASS</h2>
 
@@ -188,6 +292,48 @@ Functions</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname">#define LOG_CLASS&#160;&#160;&#160;&quot;ChannelInfo&quot;</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a5b1419b5c4f34356b546a709bf8d894a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5b1419b5c4f34356b546a709bf8d894a">&#9670;&nbsp;</a></span>SIGNALING_CHANNEL_ARN_MIN_LENGTH</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define SIGNALING_CHANNEL_ARN_MIN_LENGTH&#160;&#160;&#160;59</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="af0534c83bcac37c062ebe2199c9702d1"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af0534c83bcac37c062ebe2199c9702d1">&#9670;&nbsp;</a></span>SIGNALING_CHANNEL_ARN_RESOURCE_TYPE</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define SIGNALING_CHANNEL_ARN_RESOURCE_TYPE&#160;&#160;&#160;&quot;channel/&quot;</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ad6b0dbfba15d47e4ae9d7d028a47f0f0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad6b0dbfba15d47e4ae9d7d028a47f0f0">&#9670;&nbsp;</a></span>SIGNALING_CHANNEL_ARN_SERVICE_NAME</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define SIGNALING_CHANNEL_ARN_SERVICE_NAME&#160;&#160;&#160;&quot;kinesisvideo&quot;</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -227,8 +373,9 @@ Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="ChannelInfo_8c_ad0868d0a2cc5b05d94d83fc21711e9e5_cgraph.png" border="0" usemap="#aChannelInfo_8c_ad0868d0a2cc5b05d94d83fc21711e9e5_cgraph" alt=""/></div>
 <map name="aChannelInfo_8c_ad0868d0a2cc5b05d94d83fc21711e9e5_cgraph" id="aChannelInfo_8c_ad0868d0a2cc5b05d94d83fc21711e9e5_cgraph">
-<area shape="rect" title=" " alt="" coords="5,5,200,32"/>
-<area shape="rect" href="ChannelInfo_8c.html#a8905e3a1f13ab3a638df50f03ab30bd8" title=" " alt="" coords="248,5,375,32"/>
+<area shape="rect" title=" " alt="" coords="5,35,200,61"/>
+<area shape="rect" href="ChannelInfo_8c.html#a8905e3a1f13ab3a638df50f03ab30bd8" title=" " alt="" coords="291,5,417,32"/>
+<area shape="rect" href="ChannelInfo_8c.html#ace032d897b4d6d58dea23b77476ff225" title=" " alt="" coords="248,57,460,98"/>
 </map>
 </div>
 <div class="dynheader">
@@ -490,13 +637,68 @@ Here is the caller graph for this function:</div>
 
 </div>
 </div>
+<a id="ace032d897b4d6d58dea23b77476ff225"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ace032d897b4d6d58dea23b77476ff225">&#9670;&nbsp;</a></span>validateKvsSignalingChannelArnAndExtractChannelName()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">STATUS validateKvsSignalingChannelArnAndExtractChannelName </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__PublicStructures.html#gab1a88feab2cf5a556a90170eb434910a">PChannelInfo</a>&#160;</td>
+          <td class="paramname"><em>pChannelInfo</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">PUINT16&#160;</td>
+          <td class="paramname"><em>pStart</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">PUINT16&#160;</td>
+          <td class="paramname"><em>pNumChars</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Determines whether or not the channel arn is valid If VALID it extracts the channel name And Sets the pChannelName field in PChannelInfo</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">-</td><td>PChannelInfo - IN - channel info object </td></tr>
+    <tr><td class="paramname">-</td><td>PUINT16 - OUT - start index of the arn (if valid) where the channel name is </td></tr>
+    <tr><td class="paramname">-</td><td>PUINT16 - OUT - number of characters for the arn (if valid)</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>- success if arn was valid otherwise failure </dd></dl>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="ChannelInfo_8c_ace032d897b4d6d58dea23b77476ff225_icgraph.png" border="0" usemap="#aChannelInfo_8c_ace032d897b4d6d58dea23b77476ff225_icgraph" alt=""/></div>
+<map name="aChannelInfo_8c_ace032d897b4d6d58dea23b77476ff225_icgraph" id="aChannelInfo_8c_ace032d897b4d6d58dea23b77476ff225_icgraph">
+<area shape="rect" title=" " alt="" coords="691,5,903,47"/>
+<area shape="rect" href="ChannelInfo_8c.html#ad0868d0a2cc5b05d94d83fc21711e9e5" title=" " alt="" coords="448,13,643,39"/>
+<area shape="rect" href="Signaling_8c.html#ab095306d46a8e5ae01e2b28a8de0487a" title=" " alt="" coords="245,13,400,39"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga375ddffe8376298cdaafe63799b53b1e" title="Creates a Signaling client and returns a handle to it." alt="" coords="5,13,197,39"/>
+</map>
+</div>
+
+</div>
+</div>
 </div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_94e7a0fbe7f8eaf7f05ee7b02c647e9f.html">source</a></li><li class="navelem"><a class="el" href="dir_a2c552ed41e223deef2a46f0c92d8956.html">Signaling</a></li><li class="navelem"><a class="el" href="ChannelInfo_8c.html">ChannelInfo.c</a></li>
-    <li class="footer">Generated on Wed Dec 13 2023 02:12:59 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Wed Dec 13 2023 22:24:11 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>

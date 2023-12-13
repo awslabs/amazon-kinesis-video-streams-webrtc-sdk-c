@@ -1,6 +1,7 @@
 <map id="fromCheckSocketConnectionTurnState" name="fromCheckSocketConnectionTurnState">
-<area shape="rect" id="node1" title=" " alt="" coords="5,23,215,65"/>
-<area shape="rect" id="node2" href="$SocketConnection_8c.html#aac8eeb6d42a35111dbe2ee0d1e8c1952" title=" " alt="" coords="263,31,480,57"/>
+<area shape="rect" id="node1" title=" " alt="" coords="5,49,215,90"/>
+<area shape="rect" id="node2" href="$SocketConnection_8c.html#aac8eeb6d42a35111dbe2ee0d1e8c1952" title=" " alt="" coords="263,56,480,83"/>
 <area shape="rect" id="node3" href="$Network_8c.html#a4946ffd5e8761a38b4fc7bb253c1491a" title=" " alt="" coords="531,5,637,32"/>
 <area shape="rect" id="node4" href="$Network_8c.html#a3179b58589909af6767082bb0a81aa62" title=" " alt="" coords="528,56,640,83"/>
+<area shape="rect" id="node5" href="$Network_8c.html#afaa547109e09c5a34437553b7258e818" title=" " alt="" coords="533,107,635,133"/>
 </map>

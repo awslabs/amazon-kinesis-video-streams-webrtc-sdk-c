@@ -1,7 +1,8 @@
 <map id="freeSocketConnection" name="freeSocketConnection">
-<area shape="rect" id="node1" title=" " alt="" coords="5,81,169,108"/>
+<area shape="rect" id="node1" title=" " alt="" coords="5,107,169,133"/>
 <area shape="rect" id="node2" href="$Network_8c.html#a8c64aed52ea980830d0f9db66fc93e1b" title=" " alt="" coords="227,56,325,83"/>
 <area shape="rect" id="node5" href="$Tls_8h.html#a5913d6c2f44307241d2402af463f9fec" title=" " alt="" coords="217,107,335,133"/>
+<area shape="rect" id="node8" href="$Network_8c.html#afaa547109e09c5a34437553b7258e818" title=" " alt="" coords="225,157,327,184"/>
 <area shape="rect" id="node3" href="$Network_8c.html#a4946ffd5e8761a38b4fc7bb253c1491a" title=" " alt="" coords="405,5,512,32"/>
 <area shape="rect" id="node4" href="$Network_8c.html#a3179b58589909af6767082bb0a81aa62" title=" " alt="" coords="403,56,515,83"/>
 <area shape="rect" id="node6" href="$IOBuffer_8c.html#a716982d27f4e9cf43d6737555e684289" title=" " alt="" coords="408,107,509,133"/>

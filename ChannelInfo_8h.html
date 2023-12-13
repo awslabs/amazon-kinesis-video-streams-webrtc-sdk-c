@@ -198,6 +198,8 @@ Functions</h2></td></tr>
 <tr class="separator:a22158f2bc9bfbd03861e695b24c1635d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a18501079617f002f543ce88582321477"><td class="memItemLeft" align="right" valign="top">PCHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ChannelInfo_8h.html#a18501079617f002f543ce88582321477">getStringFromChannelRoleType</a> (<a class="el" href="group__PublicEnums.html#ga67e678c57beb89ab9de7c9861f7d41cd">SIGNALING_CHANNEL_ROLE_TYPE</a>)</td></tr>
 <tr class="separator:a18501079617f002f543ce88582321477"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae8a2929753f9185326e48b9fa1763873"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ChannelInfo_8h.html#ae8a2929753f9185326e48b9fa1763873">validateKvsSignalingChannelArnAndExtractChannelName</a> (<a class="el" href="group__PublicStructures.html#gab1a88feab2cf5a556a90170eb434910a">PChannelInfo</a>, PUINT16, PUINT16)</td></tr>
+<tr class="separator:ae8a2929753f9185326e48b9fa1763873"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Macro Definition Documentation</h2>
 <a id="af6d330768f4d0373a1e369243c127bab"></a>
@@ -401,8 +403,9 @@ Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="ChannelInfo_8h_af9e8887c9c11678da8f4917362665437_cgraph.png" border="0" usemap="#aChannelInfo_8h_af9e8887c9c11678da8f4917362665437_cgraph" alt=""/></div>
 <map name="aChannelInfo_8h_af9e8887c9c11678da8f4917362665437_cgraph" id="aChannelInfo_8h_af9e8887c9c11678da8f4917362665437_cgraph">
-<area shape="rect" title=" " alt="" coords="5,5,200,32"/>
-<area shape="rect" href="ChannelInfo_8c.html#a8905e3a1f13ab3a638df50f03ab30bd8" title=" " alt="" coords="248,5,375,32"/>
+<area shape="rect" title=" " alt="" coords="5,35,200,61"/>
+<area shape="rect" href="ChannelInfo_8c.html#a8905e3a1f13ab3a638df50f03ab30bd8" title=" " alt="" coords="291,5,417,32"/>
+<area shape="rect" href="ChannelInfo_8c.html#ace032d897b4d6d58dea23b77476ff225" title=" " alt="" coords="248,57,460,98"/>
 </map>
 </div>
 <div class="dynheader">
@@ -664,13 +667,68 @@ Here is the caller graph for this function:</div>
 
 </div>
 </div>
+<a id="ae8a2929753f9185326e48b9fa1763873"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae8a2929753f9185326e48b9fa1763873">&#9670;&nbsp;</a></span>validateKvsSignalingChannelArnAndExtractChannelName()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">STATUS validateKvsSignalingChannelArnAndExtractChannelName </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__PublicStructures.html#gab1a88feab2cf5a556a90170eb434910a">PChannelInfo</a>&#160;</td>
+          <td class="paramname"><em>pChannelInfo</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">PUINT16&#160;</td>
+          <td class="paramname"><em>pStart</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">PUINT16&#160;</td>
+          <td class="paramname"><em>pNumChars</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Determines whether or not the channel arn is valid If VALID it extracts the channel name And Sets the pChannelName field in PChannelInfo</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">-</td><td>PChannelInfo - IN - channel info object </td></tr>
+    <tr><td class="paramname">-</td><td>PUINT16 - OUT - start index of the arn (if valid) where the channel name is </td></tr>
+    <tr><td class="paramname">-</td><td>PUINT16 - OUT - number of characters for the arn (if valid)</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>- success if arn was valid otherwise failure </dd></dl>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="ChannelInfo_8h_ae8a2929753f9185326e48b9fa1763873_icgraph.png" border="0" usemap="#aChannelInfo_8h_ae8a2929753f9185326e48b9fa1763873_icgraph" alt=""/></div>
+<map name="aChannelInfo_8h_ae8a2929753f9185326e48b9fa1763873_icgraph" id="aChannelInfo_8h_ae8a2929753f9185326e48b9fa1763873_icgraph">
+<area shape="rect" title=" " alt="" coords="691,5,903,47"/>
+<area shape="rect" href="ChannelInfo_8c.html#ad0868d0a2cc5b05d94d83fc21711e9e5" title=" " alt="" coords="448,13,643,39"/>
+<area shape="rect" href="Signaling_8c.html#ab095306d46a8e5ae01e2b28a8de0487a" title=" " alt="" coords="245,13,400,39"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga375ddffe8376298cdaafe63799b53b1e" title="Creates a Signaling client and returns a handle to it." alt="" coords="5,13,197,39"/>
+</map>
+</div>
+
+</div>
+</div>
 </div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_94e7a0fbe7f8eaf7f05ee7b02c647e9f.html">source</a></li><li class="navelem"><a class="el" href="dir_a2c552ed41e223deef2a46f0c92d8956.html">Signaling</a></li><li class="navelem"><a class="el" href="ChannelInfo_8h.html">ChannelInfo.h</a></li>
-    <li class="footer">Generated on Wed Dec 13 2023 02:12:59 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Wed Dec 13 2023 22:24:11 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>

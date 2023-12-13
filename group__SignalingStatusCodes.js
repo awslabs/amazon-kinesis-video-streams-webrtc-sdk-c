@@ -7,6 +7,7 @@ var group__SignalingStatusCodes =
     [ "STATUS_SIGNALING_CREATE_CALL_FAILED", "group__SignalingStatusCodes.html#gacb814f6fa3d67a2273a165960e40fa1e", null ],
     [ "STATUS_SIGNALING_DELETE_CALL_FAILED", "group__SignalingStatusCodes.html#ga2ea5261e8d5a54c65a628dea6719dd00", null ],
     [ "STATUS_SIGNALING_DESCRIBE_CALL_FAILED", "group__SignalingStatusCodes.html#ga700932a3b6c29c5a977ca392e7976588", null ],
+    [ "STATUS_SIGNALING_DESCRIBE_MEDIA_CALL_FAILED", "group__SignalingStatusCodes.html#gab64164e22a5b591f5015911d9dd4b50e", null ],
     [ "STATUS_SIGNALING_DISCONNECTED_CALLBACK_FAILED", "group__SignalingStatusCodes.html#ga4b015acb42be7a79b7f02f343404e55b", null ],
     [ "STATUS_SIGNALING_DUPLICATE_MESSAGE_BEING_SENT", "group__SignalingStatusCodes.html#ga1625c3d3568ebb751258a53a5ac28585", null ],
     [ "STATUS_SIGNALING_GET_ENDPOINT_CALL_FAILED", "group__SignalingStatusCodes.html#ga50df1511cc483f8b46287338d2235e58", null ],
@@ -17,6 +18,7 @@ var group__SignalingStatusCodes =
     [ "STATUS_SIGNALING_INVALID_AGENT_LENGTH", "group__SignalingStatusCodes.html#ga840141a99d0274cb7e81c8729f24256a", null ],
     [ "STATUS_SIGNALING_INVALID_AGENT_POSTFIX_LENGTH", "group__SignalingStatusCodes.html#ga1ac3d67972461bb3ea1dc444484ff1cc", null ],
     [ "STATUS_SIGNALING_INVALID_CERTIFICATE_PATH_LENGTH", "group__SignalingStatusCodes.html#ga4c87beca4c49ad212eae881e267e0fa5", null ],
+    [ "STATUS_SIGNALING_INVALID_CHANNEL_ARN", "group__SignalingStatusCodes.html#gac91128f58c5ab50272cd7cb2da166c1b", null ],
     [ "STATUS_SIGNALING_INVALID_CHANNEL_ARN_LENGTH", "group__SignalingStatusCodes.html#ga2dc203f7853c7ddd24391798a4c40cb5", null ],
     [ "STATUS_SIGNALING_INVALID_CHANNEL_INFO_VERSION", "group__SignalingStatusCodes.html#gab98fa8c44d7b15ea57e71d4c92db3ecd", null ],
     [ "STATUS_SIGNALING_INVALID_CHANNEL_NAME_LENGTH", "group__SignalingStatusCodes.html#gacbb6189b118b589e0cbf4f8cd7c3fbb9", null ],
@@ -34,6 +36,9 @@ var group__SignalingStatusCodes =
     [ "STATUS_SIGNALING_INVALID_REGION_LENGTH", "group__SignalingStatusCodes.html#ga434d1a99d37ff342fd3b2e50a18b6c88", null ],
     [ "STATUS_SIGNALING_INVALID_SIGNALING_CALLBACKS_VERSION", "group__SignalingStatusCodes.html#ga916975b02b4b3c261717f22c5b6b336a", null ],
     [ "STATUS_SIGNALING_INVALID_SIGNALING_MESSAGE_VERSION", "group__SignalingStatusCodes.html#gae69c8b47072ce1beb9c229df150bfd97", null ],
+    [ "STATUS_SIGNALING_INVALID_STREAM_ARN_LENGTH", "group__SignalingStatusCodes.html#ga4645d5dbf1fbccf2a0a93e5c2fde9cb5", null ],
+    [ "STATUS_SIGNALING_JOIN_SESSION_CALL_FAILED", "group__SignalingStatusCodes.html#gadf7da20c43e4f4f63dcb7f2e0d84b686", null ],
+    [ "STATUS_SIGNALING_JOIN_SESSION_CONNECTED_FAILED", "group__SignalingStatusCodes.html#ga7a01ef28a233e5b83cbdc4176f354ff1", null ],
     [ "STATUS_SIGNALING_LWS_CALL_FAILED", "group__SignalingStatusCodes.html#ga382554dbb1fbc016648c5acea0637730", null ],
     [ "STATUS_SIGNALING_LWS_CLIENT_CONNECT_FAILED", "group__SignalingStatusCodes.html#gaa891b62857cc6c4d22f2c9aed97a599b", null ],
     [ "STATUS_SIGNALING_LWS_CREATE_CONTEXT_FAILED", "group__SignalingStatusCodes.html#ga037212d0a7e31ae9a7bdc014d9f8e93d", null ],
@@ -41,7 +46,9 @@ var group__SignalingStatusCodes =
     [ "STATUS_SIGNALING_MAX_ICE_URI_COUNT", "group__SignalingStatusCodes.html#gab30430e86aae378d47fa0ca49d3d757c", null ],
     [ "STATUS_SIGNALING_MAX_ICE_URI_LEN", "group__SignalingStatusCodes.html#ga975c7b8d4c16c3856fe263f4c759903e", null ],
     [ "STATUS_SIGNALING_MAX_MESSAGE_LEN_AFTER_ENCODING", "group__SignalingStatusCodes.html#ga932238047852bb2ab0b665cef952be79", null ],
+    [ "STATUS_SIGNALING_MEDIA_STORAGE_DISABLED", "group__SignalingStatusCodes.html#gac02c1ab2be45b63d2ed36a05d7f6c34c", null ],
     [ "STATUS_SIGNALING_MESSAGE_DELIVERY_FAILED", "group__SignalingStatusCodes.html#gabf70d15f2cc5e932e7db244fa57daee0", null ],
+    [ "STATUS_SIGNALING_MISMATCH_MEDIA_STORAGE_CONFIG", "group__SignalingStatusCodes.html#gad3af7a6688f61823c09e8abe33089390", null ],
     [ "STATUS_SIGNALING_MISSING_ENDPOINTS_IN_GET_ENDPOINT", "group__SignalingStatusCodes.html#ga50126b9eac7328a5a8386ac3540ef64e", null ],
     [ "STATUS_SIGNALING_NO_ARN_RETURNED_ON_CREATE", "group__SignalingStatusCodes.html#ga00ce4ff8d334dcc2dd5543b6e0ff8975", null ],
     [ "STATUS_SIGNALING_NO_CONFIG_SPECIFIED", "group__SignalingStatusCodes.html#ga5f200864bc0a541731aacd329d09bca2", null ],
@@ -52,5 +59,6 @@ var group__SignalingStatusCodes =
     [ "STATUS_SIGNALING_RECEIVE_BINARY_DATA_NOT_SUPPORTED", "group__SignalingStatusCodes.html#ga759f13b2f4153d411dddbc7e3ef73d8f", null ],
     [ "STATUS_SIGNALING_RECEIVE_EMPTY_DATA_NOT_SUPPORTED", "group__SignalingStatusCodes.html#ga8d225a905811a7962a0ff80438a3bc8d", null ],
     [ "STATUS_SIGNALING_RECEIVED_MESSAGE_LARGER_THAN_MAX_DATA_LEN", "group__SignalingStatusCodes.html#ga84ce13bf56d8aa5e997ad4cf46b1b832", null ],
-    [ "STATUS_SIGNALING_RECONNECT_FAILED", "group__SignalingStatusCodes.html#ga6e87e9f2235dd13cdb3da1582fd0d505", null ]
+    [ "STATUS_SIGNALING_RECONNECT_FAILED", "group__SignalingStatusCodes.html#ga6e87e9f2235dd13cdb3da1582fd0d505", null ],
+    [ "STATUS_SIGNALING_UPDATE_MEDIA_STORAGE_CONFIG", "group__SignalingStatusCodes.html#ga5c8a70717eb5e60fa097b66b9f453bb5", null ]
 ];
