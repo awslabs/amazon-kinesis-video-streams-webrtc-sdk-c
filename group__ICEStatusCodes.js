@@ -27,12 +27,13 @@ var group__ICEStatusCodes =
     [ "STATUS_ICE_URL_INVALID_PREFIX", "group__ICEStatusCodes.html#ga59e85d2c53978d67680cdc4830bf2787", null ],
     [ "STATUS_ICE_URL_TURN_MISSING_CREDENTIAL", "group__ICEStatusCodes.html#ga7b428d05e0aa2c8b1aa3a2567ef3cc68", null ],
     [ "STATUS_ICE_URL_TURN_MISSING_USERNAME", "group__ICEStatusCodes.html#ga8f4186696ccb87be6d412311b9a2dd44", null ],
-    [ "STATUS_TURN_CONNECTION_ALLOCAITON_FAILED", "group__ICEStatusCodes.html#ga50e3f5dcab3781d9548a2bdcd408e811", null ],
+    [ "STATUS_TURN_CONNECTION_ALLOCATION_FAILED", "group__ICEStatusCodes.html#ga6067f3dee0b0b145d25462245f98de89", null ],
     [ "STATUS_TURN_CONNECTION_FAILED_TO_BIND_CHANNEL", "group__ICEStatusCodes.html#gacc938bee658deb6c85703526e19dbe10", null ],
     [ "STATUS_TURN_CONNECTION_FAILED_TO_CREATE_PERMISSION", "group__ICEStatusCodes.html#ga34dfa9cfb52aa5eea97dce2502d3f975", null ],
     [ "STATUS_TURN_CONNECTION_NO_HOST_INTERFACE_FOUND", "group__ICEStatusCodes.html#ga2689bc8b71216444cbcefec30b20a2e8", null ],
     [ "STATUS_TURN_CONNECTION_PEER_NOT_USABLE", "group__ICEStatusCodes.html#ga2d77c9b7b2362ac0fd76cb85d903e4d0", null ],
     [ "STATUS_TURN_CONNECTION_STATE_TRANSITION_TIMEOUT", "group__ICEStatusCodes.html#ga72041071e715ee4a7453655c64db8a45", null ],
+    [ "STATUS_TURN_INVALID_STATE", "group__ICEStatusCodes.html#ga83ea97ecffdf05aad647fb355f5a2566", null ],
     [ "STATUS_TURN_MISSING_CHANNEL_DATA_HEADER", "group__ICEStatusCodes.html#ga1b9ec90b1798287230fc0f73e621feff", null ],
     [ "STATUS_TURN_NEW_DATA_CHANNEL_MSG_HEADER_BEFORE_PREVIOUS_MSG_FINISH", "group__ICEStatusCodes.html#ga418b5fd3de2e95c260e06eb85f954d23", null ]
 ];

@@ -79,10 +79,6 @@ var group__PublicEnums =
       [ "SIGNALING_CLIENT_STATE_DISCONNECTED", "group__PublicEnums.html#gga647050ade80304e5c5e55d76831d984dabb96ba5134abf86a76ff9c9aba9f44e3", null ],
       [ "SIGNALING_CLIENT_STATE_DELETE", "group__PublicEnums.html#gga647050ade80304e5c5e55d76831d984dab0fcc5d526f0e854f7e828b86a921135", null ],
       [ "SIGNALING_CLIENT_STATE_DELETED", "group__PublicEnums.html#gga647050ade80304e5c5e55d76831d984dac677f77ae861a4a3f4afc488f9f6ac22", null ],
-      [ "SIGNALING_CLIENT_STATE_DESCRIBE_MEDIA", "group__PublicEnums.html#gga647050ade80304e5c5e55d76831d984da22a1b6ca7463f7197d8eaa93d8803f27", null ],
-      [ "SIGNALING_CLIENT_STATE_JOIN_SESSION", "group__PublicEnums.html#gga647050ade80304e5c5e55d76831d984da20e4c1ff1e55e9411ccf3c93a1636b1e", null ],
-      [ "SIGNALING_CLIENT_STATE_JOIN_SESSION_WAITING", "group__PublicEnums.html#gga647050ade80304e5c5e55d76831d984da6abdd53c8ec62a328e5120e08c4f88df", null ],
-      [ "SIGNALING_CLIENT_STATE_JOIN_SESSION_CONNECTED", "group__PublicEnums.html#gga647050ade80304e5c5e55d76831d984da910ff60b84a05821cfafa9e8af309f10", null ],
       [ "SIGNALING_CLIENT_STATE_MAX_VALUE", "group__PublicEnums.html#gga647050ade80304e5c5e55d76831d984da9bd01d62129c18f2d7da18b7680e6bf7", null ]
     ] ],
     [ "SIGNALING_MESSAGE_TYPE", "group__PublicEnums.html#ga863b17793bf973897892564e7afbe65f", [

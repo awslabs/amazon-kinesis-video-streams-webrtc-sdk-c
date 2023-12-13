@@ -217,6 +217,8 @@ Macros</h2></td></tr>
 <tr class="separator:gaac03f32227ed4105862f2d1353a26bb7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gab921a27e047a959153fde4d7466ec5aa"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#gab921a27e047a959153fde4d7466ec5aa">KINESIS_VIDEO_STUN_URL</a>&#160;&#160;&#160;&quot;stun:stun.kinesisvideo.%s.%s:443&quot;</td></tr>
 <tr class="separator:gab921a27e047a959153fde4d7466ec5aa"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga13238228a0effe4dccc615189c04c73f"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga13238228a0effe4dccc615189c04c73f">KINESIS_VIDEO_STUN_URL_WITHOUT_PORT</a>&#160;&#160;&#160;&quot;stun.kinesisvideo.%s.%s&quot;</td></tr>
+<tr class="separator:ga13238228a0effe4dccc615189c04c73f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga88c324018b021dba73e56d93ddab2427"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga88c324018b021dba73e56d93ddab2427">SIGNALING_DEFAULT_SSL_PORT</a>&#160;&#160;&#160;DEFAULT_SSL_PORT_NUMBER</td></tr>
 <tr class="separator:ga88c324018b021dba73e56d93ddab2427"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga1410303128efe2263a439489f49300ab"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga1410303128efe2263a439489f49300ab">SIGNALING_DEFAULT_NON_SSL_PORT</a>&#160;&#160;&#160;DEFAULT_NON_SSL_PORT_NUMBER</td></tr>
@@ -336,6 +338,9 @@ Variables</h2></td></tr>
 <tr class="memitem:ga66e8134ccd2c83b700bbf4e8e6649a6f"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gabaa9adac53ec269df1574665ec4ec222">SDP_TYPE</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga66e8134ccd2c83b700bbf4e8e6649a6f">RtcSessionDescriptionInit::type</a></td></tr>
 <tr class="memdesc:ga66e8134ccd2c83b700bbf4e8e6649a6f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Indicates an offer/answer SDP type.  <a href="group__StatusCodes.html#ga66e8134ccd2c83b700bbf4e8e6649a6f">More...</a><br /></td></tr>
 <tr class="separator:ga66e8134ccd2c83b700bbf4e8e6649a6f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gabad78ddf2f8b7fec195ded8d69a74886"><td class="memItemLeft" align="right" valign="top">BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#gabad78ddf2f8b7fec195ded8d69a74886">RtcSessionDescriptionInit::useTrickleIce</a></td></tr>
+<tr class="memdesc:gabad78ddf2f8b7fec195ded8d69a74886"><td class="mdescLeft">&#160;</td><td class="mdescRight">Indicates if an offer should set trickle ice.  <a href="group__StatusCodes.html#gabad78ddf2f8b7fec195ded8d69a74886">More...</a><br /></td></tr>
+<tr class="separator:gabad78ddf2f8b7fec195ded8d69a74886"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga62c6f63074c9ca7e465cb1bf39854db9"><td class="memItemLeft" align="right" valign="top">CHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga62c6f63074c9ca7e465cb1bf39854db9">RtcSessionDescriptionInit::sdp</a> [25000+1]</td></tr>
 <tr class="separator:ga62c6f63074c9ca7e465cb1bf39854db9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gadeaea422887b09718e78abb70d0bd476"><td class="memItemLeft" align="right" valign="top">CHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#gadeaea422887b09718e78abb70d0bd476">RtcIceCandidateInit::candidate</a> [255+1]</td></tr>
@@ -388,8 +393,10 @@ Variables</h2></td></tr>
 <tr class="memitem:ga9121e19802bb740a1b695f2be5250e47"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga9121e19802bb740a1b695f2be5250e47">SignalingClientInfo::stateMachineRetryCountReadOnly</a></td></tr>
 <tr class="separator:ga9121e19802bb740a1b695f2be5250e47"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga1f6bfce0b61a782b35f735370544aadc"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga1f6bfce0b61a782b35f735370544aadc">SignalingClientInfo::signalingMessagesMinimumThreads</a></td></tr>
+<tr class="memdesc:ga1f6bfce0b61a782b35f735370544aadc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Unused field post v1.8.1.  <a href="group__StatusCodes.html#ga1f6bfce0b61a782b35f735370544aadc">More...</a><br /></td></tr>
 <tr class="separator:ga1f6bfce0b61a782b35f735370544aadc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga342d674d1971cf0286208ac91dcb2bea"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga342d674d1971cf0286208ac91dcb2bea">SignalingClientInfo::signalingMessagesMaximumThreads</a></td></tr>
+<tr class="memdesc:ga342d674d1971cf0286208ac91dcb2bea"><td class="mdescLeft">&#160;</td><td class="mdescRight">Unused field post v1.8.1.  <a href="group__StatusCodes.html#ga342d674d1971cf0286208ac91dcb2bea">More...</a><br /></td></tr>
 <tr class="separator:ga342d674d1971cf0286208ac91dcb2bea"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga7aef1a2aa352519fb948d32416fc94f3"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga7aef1a2aa352519fb948d32416fc94f3">ChannelInfo::version</a></td></tr>
 <tr class="memdesc:ga7aef1a2aa352519fb948d32416fc94f3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Version of the structure.  <a href="group__StatusCodes.html#ga7aef1a2aa352519fb948d32416fc94f3">More...</a><br /></td></tr>
@@ -399,8 +406,6 @@ Variables</h2></td></tr>
 <tr class="separator:gadef595cb33bd19debe39ead386ea39b0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga48e8eda47fef8691b5e1f0f98af09492"><td class="memItemLeft" align="right" valign="top">PCHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga48e8eda47fef8691b5e1f0f98af09492">ChannelInfo::pChannelArn</a></td></tr>
 <tr class="separator:ga48e8eda47fef8691b5e1f0f98af09492"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gad69fae44278f378707daa3156bb60366"><td class="memItemLeft" align="right" valign="top">PCHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#gad69fae44278f378707daa3156bb60366">ChannelInfo::pStorageStreamArn</a></td></tr>
-<tr class="separator:gad69fae44278f378707daa3156bb60366"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga03b591edffe71fb5572ca7b6b218ece7"><td class="memItemLeft" align="right" valign="top">PCHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga03b591edffe71fb5572ca7b6b218ece7">ChannelInfo::pRegion</a></td></tr>
 <tr class="separator:ga03b591edffe71fb5572ca7b6b218ece7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gacab882bab3270fb6f87325195f17fd13"><td class="memItemLeft" align="right" valign="top">PCHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#gacab882bab3270fb6f87325195f17fd13">ChannelInfo::pControlPlaneUrl</a></td></tr>
@@ -449,9 +454,6 @@ Variables</h2></td></tr>
 <tr class="separator:gacd86cb8e6c4f92d93635c2c58a8073d2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gaa9746b411ce24f571591c2402fc2eaf9"><td class="memItemLeft" align="right" valign="top">BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#gaa9746b411ce24f571591c2402fc2eaf9">ChannelInfo::asyncIceServerConfig</a></td></tr>
 <tr class="separator:gaa9746b411ce24f571591c2402fc2eaf9"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga9a9501b5908df6d14a0eefd348276378"><td class="memItemLeft" align="right" valign="top">BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga9a9501b5908df6d14a0eefd348276378">ChannelInfo::useMediaStorage</a></td></tr>
-<tr class="memdesc:ga9a9501b5908df6d14a0eefd348276378"><td class="mdescLeft">&#160;</td><td class="mdescRight">use the feature of media storage.  <a href="group__StatusCodes.html#ga9a9501b5908df6d14a0eefd348276378">More...</a><br /></td></tr>
-<tr class="separator:ga9a9501b5908df6d14a0eefd348276378"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga804c9f31a8d542f6ffee45d353f24c4e"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga804c9f31a8d542f6ffee45d353f24c4e">IceConfigInfo::version</a></td></tr>
 <tr class="memdesc:ga804c9f31a8d542f6ffee45d353f24c4e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Version of the struct.  <a href="group__StatusCodes.html#ga804c9f31a8d542f6ffee45d353f24c4e">More...</a><br /></td></tr>
 <tr class="separator:ga804c9f31a8d542f6ffee45d353f24c4e"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -470,12 +472,6 @@ Variables</h2></td></tr>
 <tr class="memitem:ga1db8b969ab7e15d5f1221bc04310b33d"><td class="memItemLeft" align="right" valign="top">CHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga1db8b969ab7e15d5f1221bc04310b33d">IceConfigInfo::password</a> [256+1]</td></tr>
 <tr class="memdesc:ga1db8b969ab7e15d5f1221bc04310b33d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Password for the server.  <a href="group__StatusCodes.html#ga1db8b969ab7e15d5f1221bc04310b33d">More...</a><br /></td></tr>
 <tr class="separator:ga1db8b969ab7e15d5f1221bc04310b33d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga0d6aeb8634bc4fdcc6fb1293649ef592"><td class="memItemLeft" align="right" valign="top">BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga0d6aeb8634bc4fdcc6fb1293649ef592">MediaStorageConfig::storageStatus</a></td></tr>
-<tr class="memdesc:ga0d6aeb8634bc4fdcc6fb1293649ef592"><td class="mdescLeft">&#160;</td><td class="mdescRight">Indicate the association between channelArn and storageStreamArn.  <a href="group__StatusCodes.html#ga0d6aeb8634bc4fdcc6fb1293649ef592">More...</a><br /></td></tr>
-<tr class="separator:ga0d6aeb8634bc4fdcc6fb1293649ef592"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga3c9a4f80fcaa01a1b67ccc3b7e4a64ae"><td class="memItemLeft" align="right" valign="top">CHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga3c9a4f80fcaa01a1b67ccc3b7e4a64ae">MediaStorageConfig::storageStreamArn</a> [MAX_ARN_LEN+1]</td></tr>
-<tr class="memdesc:ga3c9a4f80fcaa01a1b67ccc3b7e4a64ae"><td class="mdescLeft">&#160;</td><td class="mdescRight">The arn of kvs stream, optional if you already associate signaling channel with stream.  <a href="group__StatusCodes.html#ga3c9a4f80fcaa01a1b67ccc3b7e4a64ae">More...</a><br /></td></tr>
-<tr class="separator:ga3c9a4f80fcaa01a1b67ccc3b7e4a64ae"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga28e1f7ffcd30600fbeecd7f682e6afed"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga28e1f7ffcd30600fbeecd7f682e6afed">SignalingClientCallbacks::version</a></td></tr>
 <tr class="memdesc:ga28e1f7ffcd30600fbeecd7f682e6afed"><td class="mdescLeft">&#160;</td><td class="mdescRight">Current version of the structure.  <a href="group__StatusCodes.html#ga28e1f7ffcd30600fbeecd7f682e6afed">More...</a><br /></td></tr>
 <tr class="separator:ga28e1f7ffcd30600fbeecd7f682e6afed"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -716,6 +712,20 @@ Variables</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname">#define KINESIS_VIDEO_STUN_URL_POSTFIX_CN&#160;&#160;&#160;&quot;amazonaws.com.cn&quot;</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ga13238228a0effe4dccc615189c04c73f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga13238228a0effe4dccc615189c04c73f">&#9670;&nbsp;</a></span>KINESIS_VIDEO_STUN_URL_WITHOUT_PORT</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define KINESIS_VIDEO_STUN_URL_WITHOUT_PORT&#160;&#160;&#160;&quot;stun.kinesisvideo.%s.%s&quot;</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -2022,21 +2032,6 @@ Variables</h2></td></tr>
 
 </div>
 </div>
-<a id="gad69fae44278f378707daa3156bb60366"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#gad69fae44278f378707daa3156bb60366">&#9670;&nbsp;</a></span>pStorageStreamArn</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">PCHAR ChannelInfo::pStorageStreamArn</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>Storage Stream Amazon Resource Name (ARN). This is an optional parameter Maximum length is defined by MAX_ARN_LEN+1 </p>
-
-</div>
-</div>
 <a id="ga3aa4cefce4b890d78079217c5c7025fb"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ga3aa4cefce4b890d78079217c5c7025fb">&#9670;&nbsp;</a></span>pTags</h2>
 
@@ -2366,6 +2361,8 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
+<p>Unused field post v1.8.1. </p>
+
 </div>
 </div>
 <a id="ga1f6bfce0b61a782b35f735370544aadc"></a>
@@ -2379,6 +2376,8 @@ Variables</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+
+<p>Unused field post v1.8.1. </p>
 
 </div>
 </div>
@@ -2442,38 +2441,6 @@ Variables</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Response status code. </p>
-
-</div>
-</div>
-<a id="ga0d6aeb8634bc4fdcc6fb1293649ef592"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga0d6aeb8634bc4fdcc6fb1293649ef592">&#9670;&nbsp;</a></span>storageStatus</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">BOOL MediaStorageConfig::storageStatus</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Indicate the association between channelArn and storageStreamArn. </p>
-
-</div>
-</div>
-<a id="ga3c9a4f80fcaa01a1b67ccc3b7e4a64ae"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga3c9a4f80fcaa01a1b67ccc3b7e4a64ae">&#9670;&nbsp;</a></span>storageStreamArn</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">CHAR MediaStorageConfig::storageStreamArn[MAX_ARN_LEN+1]</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>The arn of kvs stream, optional if you already associate signaling channel with stream. </p>
 
 </div>
 </div>
@@ -2667,22 +2634,6 @@ Variables</h2></td></tr>
 
 </div>
 </div>
-<a id="ga9a9501b5908df6d14a0eefd348276378"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga9a9501b5908df6d14a0eefd348276378">&#9670;&nbsp;</a></span>useMediaStorage</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">BOOL ChannelInfo::useMediaStorage</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>use the feature of media storage. </p>
-
-</div>
-</div>
 <a id="ga78f671a5121e5ba99a253108fb3d16c7"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ga78f671a5121e5ba99a253108fb3d16c7">&#9670;&nbsp;</a></span>username</h2>
 
@@ -2712,6 +2663,22 @@ Variables</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Username for the server. </p>
+
+</div>
+</div>
+<a id="gabad78ddf2f8b7fec195ded8d69a74886"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gabad78ddf2f8b7fec195ded8d69a74886">&#9670;&nbsp;</a></span>useTrickleIce</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">BOOL RtcSessionDescriptionInit::useTrickleIce</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Indicates if an offer should set trickle ice. </p>
 
 </div>
 </div>
@@ -2944,7 +2911,7 @@ Variables</h2></td></tr>
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="footer">Generated on Fri Dec 8 2023 21:48:05 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Wed Dec 13 2023 02:12:59 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>

@@ -1,7 +1,13 @@
 <map id="iceAgentReportNewLocalCandidate" name="iceAgentReportNewLocalCandidate">
-<area shape="rect" id="node1" title=" " alt="" coords="717,31,968,57"/>
-<area shape="rect" id="node2" href="$IceAgent_8c.html#a29472fae79b73dc335a310925493391c" title=" " alt="" coords="443,23,669,65"/>
-<area shape="rect" id="node3" href="$IceAgent_8c.html#a89dd4cb4f8c55e2d376df8c33f300e80" title=" " alt="" coords="220,31,395,57"/>
-<area shape="rect" id="node4" href="$group__PublicMemberFunctions.html#ga060e71a4e33e0b7a8087317d4839fa8a" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the local descript..." alt="" coords="13,5,164,32"/>
-<area shape="rect" id="node5" href="$group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,56,172,83"/>
+<area shape="rect" id="node1" title=" " alt="" coords="968,81,1219,108"/>
+<area shape="rect" id="node2" href="$IceAgent_8c.html#a29472fae79b73dc335a310925493391c" title=" " alt="" coords="693,45,920,86"/>
+<area shape="rect" id="node6" href="$IceAgent_8c.html#aa82059f636933c877ef87e25f4a62669" title=" " alt="" coords="705,111,908,137"/>
+<area shape="rect" id="node3" href="$IceAgent_8c.html#a89dd4cb4f8c55e2d376df8c33f300e80" title=" " alt="" coords="453,52,627,79"/>
+<area shape="rect" id="node4" href="$group__PublicMemberFunctions.html#ga060e71a4e33e0b7a8087317d4839fa8a" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the local descript..." alt="" coords="228,5,379,32"/>
+<area shape="rect" id="node5" href="$group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,81,172,108"/>
+<area shape="rect" id="node7" href="$IceAgent_8c.html#a13816c51f4959ce3f3efa41341662d8c" title=" " alt="" coords="467,107,613,133"/>
+<area shape="rect" id="node9" href="$IceAgent_8c.html#a888fc1a2a5c2fe190f30db87c85c6759" title=" " alt="" coords="435,157,645,184"/>
+<area shape="rect" id="node8" href="$group__PublicMemberFunctions.html#ga577207b68c0fe53137a2b32f975abb09" title="Give peer connection an ice config to add to its server list." alt="" coords="220,107,387,133"/>
+<area shape="rect" id="node10" href="$IceAgent_8c.html#a311a951cf965e83e76372560f2ce1c0f" title=" " alt="" coords="240,157,367,184"/>
+<area shape="rect" id="node11" href="$group__PublicMemberFunctions.html#gade9fcbb056cb321f33890c1cf1222e64" title="Instructs the RtcPeerConnection that ICE should be restarted. Subsequent calls to createOffer will cr..." alt="" coords="47,157,131,184"/>
 </map>

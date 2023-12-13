@@ -159,8 +159,8 @@ Public Attributes</h2></td></tr>
 <tr class="separator:a03bd1915a9bb6e13a4c028ba21884fc1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:acdbabd4aa3f1133a3d10ecd4e3074403"><td class="memItemLeft" align="right" valign="top">CVAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct____TurnConnection.html#acdbabd4aa3f1133a3d10ecd4e3074403">freeAllocationCvar</a></td></tr>
 <tr class="separator:acdbabd4aa3f1133a3d10ecd4e3074403"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a9176b0c8ee06ed7b7f27a6f57f7e396b"><td class="memItemLeft" align="right" valign="top"><a class="el" href="TurnConnection_8h.html#abf499a86fd3159f2d04a885cd0d9323f">TURN_CONNECTION_STATE</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct____TurnConnection.html#a9176b0c8ee06ed7b7f27a6f57f7e396b">state</a></td></tr>
-<tr class="separator:a9176b0c8ee06ed7b7f27a6f57f7e396b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af74508560bc37d8583f2755ee8aa250e"><td class="memItemLeft" align="right" valign="top">UINT64&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct____TurnConnection.html#af74508560bc37d8583f2755ee8aa250e">state</a></td></tr>
+<tr class="separator:af74508560bc37d8583f2755ee8aa250e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1b3234c41b2ad5f3c580b52ce97f2b81"><td class="memItemLeft" align="right" valign="top">UINT64&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct____TurnConnection.html#a1b3234c41b2ad5f3c580b52ce97f2b81">stateTimeoutTime</a></td></tr>
 <tr class="separator:a1b3234c41b2ad5f3c580b52ce97f2b81"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa4d859d454ae332b768afd084e0a897b"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct____TurnConnection.html#aa4d859d454ae332b768afd084e0a897b">stateTryCount</a></td></tr>
@@ -209,6 +209,8 @@ Public Attributes</h2></td></tr>
 <tr class="separator:a6465333727d47eb85323cde72bfb4cbd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae8fd4501dc1282f98f6f85324aa05913"><td class="memItemLeft" align="right" valign="top">BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct____TurnConnection.html#ae8fd4501dc1282f98f6f85324aa05913">deallocatePacketSent</a></td></tr>
 <tr class="separator:ae8fd4501dc1282f98f6f85324aa05913"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a124e003fa580e284b26588582486806b"><td class="memItemLeft" align="right" valign="top">PStateMachine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct____TurnConnection.html#a124e003fa580e284b26588582486806b">pStateMachine</a></td></tr>
+<tr class="separator:a124e003fa580e284b26588582486806b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Member Data Documentation</h2>
 <a id="a458849256129f0b85387275400d6d53d"></a>
@@ -477,6 +479,20 @@ Public Attributes</h2></td></tr>
 
 </div>
 </div>
+<a id="a124e003fa580e284b26588582486806b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a124e003fa580e284b26588582486806b">&#9670;&nbsp;</a></span>pStateMachine</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">PStateMachine __TurnConnection::pStateMachine</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a id="a578f2e2a5d53078bf2177133e3a64e1c"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a578f2e2a5d53078bf2177133e3a64e1c">&#9670;&nbsp;</a></span>pTurnAllocationRefreshPacket</h2>
 
@@ -631,14 +647,14 @@ Public Attributes</h2></td></tr>
 
 </div>
 </div>
-<a id="a9176b0c8ee06ed7b7f27a6f57f7e396b"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a9176b0c8ee06ed7b7f27a6f57f7e396b">&#9670;&nbsp;</a></span>state</h2>
+<a id="af74508560bc37d8583f2755ee8aa250e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af74508560bc37d8583f2755ee8aa250e">&#9670;&nbsp;</a></span>state</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="TurnConnection_8h.html#abf499a86fd3159f2d04a885cd0d9323f">TURN_CONNECTION_STATE</a> __TurnConnection::state</td>
+          <td class="memname">UINT64 __TurnConnection::state</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -822,7 +838,7 @@ Public Attributes</h2></td></tr>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="struct____TurnConnection.html">__TurnConnection</a></li>
-    <li class="footer">Generated on Fri Dec 8 2023 21:48:05 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Wed Dec 13 2023 02:12:59 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>
