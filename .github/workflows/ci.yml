@@ -311,6 +311,10 @@ jobs:
           mkdir build && cd build
           cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE
           make
+      - name: Run tests
+        run:  |
+          cd build
+          ./tst/webrtc_client_test
   mbedtls-ubuntu-gcc:
     runs-on: ubuntu-20.04
     env:

@@ -383,7 +383,7 @@ TEST_F(IngestionFunctionalityTest, basicCreateConnectJoinSession)
     EXPECT_EQ(1, describeCount);
     EXPECT_EQ(1, describeMediaCount);
     EXPECT_EQ(1, getEndpointCount);
-    EXPECT_EQ(1, getIceConfigCount);
+    EXPECT_EQ(0, getIceConfigCount);
 
     EXPECT_EQ(1, connectCount);
 
@@ -466,7 +466,7 @@ TEST_F(IngestionFunctionalityTest, iceReconnectEmulationWithJoinSession)
     EXPECT_EQ(1, describeCount);
     EXPECT_EQ(1, describeMediaCount);
     EXPECT_EQ(1, getEndpointCount);
-    EXPECT_EQ(1, getIceConfigCount);
+    EXPECT_EQ(0, getIceConfigCount);
     EXPECT_EQ(1, connectCount);
 
     // This channel has ENABLED status so we should be calling join session
@@ -508,7 +508,7 @@ TEST_F(IngestionFunctionalityTest, iceReconnectEmulationWithJoinSession)
     EXPECT_EQ(1, describeCount);
     EXPECT_EQ(1, describeMediaCount);
     EXPECT_EQ(1, getEndpointCount);
-    EXPECT_EQ(2, getIceConfigCount);
+    EXPECT_EQ(1, getIceConfigCount);
     EXPECT_EQ(2, connectCount);
 
     // This channel has ENABLED status so we should be calling join session
