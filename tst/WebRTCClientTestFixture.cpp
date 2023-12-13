@@ -222,6 +222,7 @@ bool WebRtcClientTestBase::connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerC
     auto onICECandidateHdlr = [](UINT64 customData, PCHAR candidateStr) -> void {
         PPeerContainer container = (PPeerContainer)customData;
         if (candidateStr != NULL) {
+            container->client->lock.lock();
             container->client->threads.push_back(std::thread(
                 [container](std::string candidate) {
                     RtcIceCandidateInit iceCandidate;
@@ -229,7 +230,9 @@ bool WebRtcClientTestBase::connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerC
                     EXPECT_EQ(STATUS_SUCCESS, addIceCandidate((PRtcPeerConnection) container->pc, iceCandidate.candidate));
                 },
                 std::string(candidateStr)));
+            container->client->lock.unlock();
         }
+
     };
 
     offer.pc = offerPc;
@@ -286,6 +289,7 @@ bool WebRtcClientTestBase::connectTwoPeersAsyncIce(PRtcPeerConnection offerPc, P
     auto onICECandidateHdlr = [](UINT64 customData, PCHAR candidateStr) -> void {
         PPeerContainer container = (PPeerContainer)customData;
         if (candidateStr != NULL) {
+            container->client->lock.lock();
             container->client->threads.push_back(std::thread(
                 [container](std::string candidate) {
                     RtcIceCandidateInit iceCandidate;
@@ -293,6 +297,7 @@ bool WebRtcClientTestBase::connectTwoPeersAsyncIce(PRtcPeerConnection offerPc, P
                     EXPECT_EQ(STATUS_SUCCESS, addIceCandidate((PRtcPeerConnection) container->pc, iceCandidate.candidate));
                 },
                 std::string(candidateStr)));
+            container->client->lock.unlock();
         }
     };
 

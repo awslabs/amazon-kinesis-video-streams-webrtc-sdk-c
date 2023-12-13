@@ -71,6 +71,7 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithDelay)
     auto onICECandidateHdlr = [](UINT64 customData, PCHAR candidateStr) -> void {
         PPeerContainer container = (PPeerContainer)customData;
         if (candidateStr != NULL) {
+            container->client->lock.lock();
             container->client->threads.push_back(std::thread(
                 [container](std::string candidate) {
                     RtcIceCandidateInit iceCandidate;
@@ -78,6 +79,7 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithDelay)
                     EXPECT_EQ(STATUS_SUCCESS, addIceCandidate((PRtcPeerConnection) container->pc, iceCandidate.candidate));
                 },
                 std::string(candidateStr)));
+            container->client->lock.unlock();
         }
     };
 
@@ -672,6 +674,7 @@ TEST_F(PeerConnectionFunctionalityTest, noLostFramesAfterConnected)
     auto onICECandidateHdlr = [](UINT64 customData, PCHAR candidateStr) -> void {
         PPeerContainer container = (PPeerContainer)customData;
         if (candidateStr != NULL) {
+            container->client->lock.lock();
             container->client->threads.push_back(std::thread(
                 [container](std::string candidate) {
                     RtcIceCandidateInit iceCandidate;
@@ -679,6 +682,7 @@ TEST_F(PeerConnectionFunctionalityTest, noLostFramesAfterConnected)
                     EXPECT_EQ(STATUS_SUCCESS, addIceCandidate((PRtcPeerConnection) container->pc, iceCandidate.candidate));
                 },
                 std::string(candidateStr)));
+            container->client->lock.unlock();
         }
     };
 

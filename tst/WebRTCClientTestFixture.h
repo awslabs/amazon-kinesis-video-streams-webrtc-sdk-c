@@ -59,6 +59,7 @@ class WebRtcClientTestBase : public ::testing::Test {
     UINT32 mUriCount = 0;
     SIGNALING_CLIENT_HANDLE mSignalingClientHandle;
     std::vector<std::thread> threads;
+    std::mutex lock;
 
     WebRtcClientTestBase();
 
