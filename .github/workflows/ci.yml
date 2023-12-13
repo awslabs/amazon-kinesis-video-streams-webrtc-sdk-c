@@ -292,7 +292,7 @@ jobs:
     container:
       image: alpine:3.15.4
       ports:
-        - "40000-65536:40000-65536"
+        - "50000-65000:50000-65000"
     env:
       CC: gcc
       CXX: g++
