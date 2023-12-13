@@ -139,6 +139,11 @@ STATUS generateJSONSafeString(PCHAR, UINT32);
 #include "Ice/NatBehaviorDiscovery.h"
 #include "Srtp/SrtpSession.h"
 #include "Sctp/Sctp.h"
+#include "Signaling/FileCache.h"
+#include "Signaling/Signaling.h"
+#include "Signaling/ChannelInfo.h"
+#include "Signaling/StateMachine.h"
+#include "Signaling/LwsApiCalls.h"
 #include "Rtp/RtpPacket.h"
 #include "Rtcp/RtcpPacket.h"
 #include "Rtcp/RollingBuffer.h"
@@ -154,11 +159,6 @@ STATUS generateJSONSafeString(PCHAR, UINT32);
 #include "Rtp/Codecs/RtpH264Payloader.h"
 #include "Rtp/Codecs/RtpOpusPayloader.h"
 #include "Rtp/Codecs/RtpG711Payloader.h"
-#include "Signaling/FileCache.h"
-#include "Signaling/Signaling.h"
-#include "Signaling/ChannelInfo.h"
-#include "Signaling/StateMachine.h"
-#include "Signaling/LwsApiCalls.h"
 #include "Metrics/Metrics.h"
 
 ////////////////////////////////////////////////////

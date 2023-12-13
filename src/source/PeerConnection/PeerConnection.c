@@ -515,6 +515,15 @@ CleanUp:
     CHK_LOG_ERR(retStatus);
 }
 
+STATUS peerConnectionAsync(startRoutine fn, PVOID data)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    CHK_STATUS(threadpoolContextPush(fn, data));
+CleanUp:
+
+    return retStatus;
+}
+
 VOID onNewIceLocalCandidate(UINT64 customData, PCHAR candidateSdpStr)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -1082,6 +1091,24 @@ CleanUp:
     }
 
     LEAVES();
+    return retStatus;
+}
+
+STATUS addConfigToServerList(PRtcPeerConnection* ppPeerConnection, PIceConfigInfo pIceConfigInfo)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PKvsPeerConnection pKvsPeerConnection = NULL;
+
+    CHK(ppPeerConnection != NULL && pIceConfigInfo != NULL, STATUS_NULL_ARG);
+
+    pKvsPeerConnection = (PKvsPeerConnection) *ppPeerConnection;
+
+    CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
+
+    CHK_STATUS(iceAgentAddConfig(pKvsPeerConnection->pIceAgent, pIceConfigInfo));
+
+CleanUp:
+
     return retStatus;
 }
 

@@ -6,8 +6,7 @@ namespace kinesis {
 namespace video {
 namespace webrtcclient {
 
-class PeerConnectionApiTest : public WebRtcClientTestBase {
-};
+class PeerConnectionApiTest : public WebRtcClientTestBase {};
 
 TEST_F(PeerConnectionApiTest, deserializeRtcIceCandidateInit)
 {
@@ -193,6 +192,20 @@ TEST_F(PeerConnectionApiTest, connectionState)
     EXPECT_EQ(RTC_PEER_CONNECTION_STATE_CONNECTING, fromIceAgentState(pc, ICE_AGENT_STATE_READY));
     EXPECT_EQ(RTC_PEER_CONNECTION_STATE_DISCONNECTED, fromIceAgentState(pc, ICE_AGENT_STATE_DISCONNECTED));
     EXPECT_EQ(RTC_PEER_CONNECTION_STATE_FAILED, fromIceAgentState(pc, ICE_AGENT_STATE_FAILED));
+
+    closePeerConnection(pc);
+    freePeerConnection(&pc);
+}
+
+TEST_F(PeerConnectionApiTest, addConfigToServerListUnitTest)
+{
+    PRtcPeerConnection pc = nullptr;
+    PIceConfigInfo pIceConfigInfo = nullptr;
+    RtcConfiguration config{};
+    EXPECT_NE(STATUS_SUCCESS, addConfigToServerList(&pc, pIceConfigInfo));
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pc));
+
+    EXPECT_NE(STATUS_SUCCESS, addConfigToServerList(&pc, pIceConfigInfo));
 
     closePeerConnection(pc);
     freePeerConnection(&pc);

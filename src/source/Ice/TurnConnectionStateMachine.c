@@ -364,7 +364,7 @@ STATUS executeAllocationTurnState(UINT64 customData, UINT64 time)
         pTurnConnection->state = TURN_STATE_ALLOCATION;
     } else {
         pTurnConnection->stateTryCount++;
-        CHK(pTurnConnection->stateTryCount < pTurnConnection->stateTryCountMax, STATUS_TURN_CONNECTION_ALLOCAITON_FAILED);
+        CHK(pTurnConnection->stateTryCount < pTurnConnection->stateTryCountMax, STATUS_TURN_CONNECTION_ALLOCATION_FAILED);
     }
     CHK_STATUS(iceUtilsSendStunPacket(pTurnConnection->pTurnPacket, pTurnConnection->longTermKey, ARRAY_SIZE(pTurnConnection->longTermKey),
                                       &pTurnConnection->turnServer.ipAddress, pTurnConnection->pControlChannel, NULL, FALSE));

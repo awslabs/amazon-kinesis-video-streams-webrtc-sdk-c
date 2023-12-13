@@ -16,31 +16,62 @@ UINT64 gTotalWebRtcClientMemoryUsage = 0;
 //
 MUTEX gTotalWebRtcClientMemoryMutex;
 
-STATUS createRtpPacketWithSeqNum(UINT16 seqNum, PRtpPacket *ppRtpPacket) {
+STATUS createRtpPacketWithSeqNum(UINT16 seqNum, PRtpPacket* ppRtpPacket)
+{
     STATUS retStatus = STATUS_SUCCESS;
     BYTE payload[10];
     PRtpPacket pRtpPacket = NULL;
 
-    CHK_STATUS(createRtpPacket(2, FALSE, FALSE, 0, FALSE,
-                               96, seqNum, 100, 0x1234ABCD, NULL, 0, 0, NULL, payload, 10, &pRtpPacket));
+    CHK_STATUS(createRtpPacket(2, FALSE, FALSE, 0, FALSE, 96, seqNum, 100, 0x1234ABCD, NULL, 0, 0, NULL, payload, 10, &pRtpPacket));
     *ppRtpPacket = pRtpPacket;
 
     CHK_STATUS(createBytesFromRtpPacket(pRtpPacket, NULL, &pRtpPacket->rawPacketLength));
     CHK(NULL != (pRtpPacket->pRawPacket = (PBYTE) MEMALLOC(pRtpPacket->rawPacketLength)), STATUS_NOT_ENOUGH_MEMORY);
     CHK_STATUS(createBytesFromRtpPacket(pRtpPacket, pRtpPacket->pRawPacket, &pRtpPacket->rawPacketLength));
 
-    CleanUp:
+CleanUp:
     return retStatus;
 }
 
-WebRtcClientTestBase::WebRtcClientTestBase() :
-        mSignalingClientHandle(INVALID_SIGNALING_CLIENT_HANDLE_VALUE),
-        mAccessKey(NULL),
-        mSecretKey(NULL),
-        mSessionToken(NULL),
-        mRegion(NULL),
-        mCaCertPath(NULL),
-        mAccessKeyIdSet(FALSE)
+PVOID asyncGetIceConfigInfo(PVOID args)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    AsyncGetIceStruct* data = (AsyncGetIceStruct*) args;
+    PIceConfigInfo pIceConfigInfo = NULL;
+    UINT32 uriCount = 0;
+    UINT32 i = 0, maxTurnServer = 1;
+
+    if (data != NULL) {
+        /* signalingClientGetIceConfigInfoCount can return more than one turn server. Use only one to optimize
+         * candidate gathering latency. But user can also choose to use more than 1 turn server. */
+        for (uriCount = 0, i = 0; i < maxTurnServer; i++) {
+            /*
+             * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port?transport=udp" then ICE will try TURN over UDP
+             * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port?transport=tcp" then ICE will try TURN over TCP/TLS
+             * if configuration.iceServers[uriCount + 1].urls is "turns:ip:port?transport=udp", it's currently ignored because sdk dont do TURN
+             * over DTLS yet. if configuration.iceServers[uriCount + 1].urls is "turns:ip:port?transport=tcp" then ICE will try TURN over TCP/TLS
+             * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port" then ICE will try both TURN over UDP and TCP/TLS
+             *
+             * It's recommended to not pass too many TURN iceServers to configuration because it will slow down ice gathering in non-trickle mode.
+             */
+            CHK_STATUS(signalingClientGetIceConfigInfo(data->signalingClientHandle, i, &pIceConfigInfo));
+            CHECK(uriCount < MAX_ICE_SERVERS_COUNT);
+            uriCount += pIceConfigInfo->uriCount;
+            CHK_STATUS(addConfigToServerList(&(data->pAnswer), pIceConfigInfo));
+            CHK_STATUS(addConfigToServerList(&(data->pOffer), pIceConfigInfo));
+        }
+    }
+    *(data->pUriCount) += uriCount;
+
+CleanUp:
+    SAFE_MEMFREE(data);
+    CHK_LOG_ERR(retStatus);
+    return NULL;
+}
+
+WebRtcClientTestBase::WebRtcClientTestBase()
+    : mSignalingClientHandle(INVALID_SIGNALING_CLIENT_HANDLE_VALUE), mAccessKey(NULL), mSecretKey(NULL), mSessionToken(NULL), mRegion(NULL),
+      mCaCertPath(NULL), mAccessKeyIdSet(FALSE)
 {
     // Initialize the endianness of the library
     initializeEndianness();
@@ -114,7 +145,7 @@ void WebRtcClientTestBase::TearDown()
 
     deinitKvsWebRtc();
     // Need this sleep for threads in threadpool to close
-    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    THREAD_SLEEP(400 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 
     freeStaticCredentialProvider(&mTestCredentialProvider);
 
@@ -233,6 +264,60 @@ bool WebRtcClientTestBase::connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerC
     return ATOMIC_LOAD(&this->stateChangeCount[RTC_PEER_CONNECTION_STATE_CONNECTED]) == 2;
 }
 
+bool WebRtcClientTestBase::connectTwoPeersAsyncIce(PRtcPeerConnection offerPc, PRtcPeerConnection answerPc, PCHAR pOfferCertFingerprint,
+                                                   PCHAR pAnswerCertFingerprint)
+{
+    RtcSessionDescriptionInit sdp;
+
+    auto onICECandidateHdlr = [](UINT64 customData, PCHAR candidateStr) -> void {
+        if (candidateStr != NULL) {
+            std::thread(
+                [customData](std::string candidate) {
+                    RtcIceCandidateInit iceCandidate;
+                    EXPECT_EQ(STATUS_SUCCESS, deserializeRtcIceCandidateInit((PCHAR) candidate.c_str(), STRLEN(candidate.c_str()), &iceCandidate));
+                    EXPECT_EQ(STATUS_SUCCESS, addIceCandidate((PRtcPeerConnection) customData, iceCandidate.candidate));
+                },
+                std::string(candidateStr))
+                .detach();
+        }
+    };
+
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(offerPc, (UINT64) answerPc, onICECandidateHdlr));
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(answerPc, (UINT64) offerPc, onICECandidateHdlr));
+
+    auto onICEConnectionStateChangeHdlr = [](UINT64 customData, RTC_PEER_CONNECTION_STATE newState) -> void {
+        ATOMIC_INCREMENT((PSIZE_T) customData + newState);
+    };
+
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnConnectionStateChange(offerPc, (UINT64) this->stateChangeCount, onICEConnectionStateChangeHdlr));
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnConnectionStateChange(answerPc, (UINT64) this->stateChangeCount, onICEConnectionStateChangeHdlr));
+
+    EXPECT_EQ(STATUS_SUCCESS, createOffer(offerPc, &sdp));
+    EXPECT_EQ(STATUS_SUCCESS, setLocalDescription(offerPc, &sdp));
+    EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(answerPc, &sdp));
+
+    // Validate the cert fingerprint if we are asked to do so
+    if (pOfferCertFingerprint != NULL) {
+        EXPECT_NE((PCHAR) NULL, STRSTR(sdp.sdp, pOfferCertFingerprint));
+    }
+
+    EXPECT_EQ(STATUS_SUCCESS, createAnswer(answerPc, &sdp));
+    EXPECT_EQ(STATUS_SUCCESS, setLocalDescription(answerPc, &sdp));
+    EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(offerPc, &sdp));
+
+    asyncGetIceConfig(offerPc, answerPc);
+
+    if (pAnswerCertFingerprint != NULL) {
+        EXPECT_NE((PCHAR) NULL, STRSTR(sdp.sdp, pAnswerCertFingerprint));
+    }
+
+    for (auto i = 0; i <= 100 && ATOMIC_LOAD(&this->stateChangeCount[RTC_PEER_CONNECTION_STATE_CONNECTED]) != 2; i++) {
+        THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
+    }
+
+    return ATOMIC_LOAD(&this->stateChangeCount[RTC_PEER_CONNECTION_STATE_CONNECTED]) == 2;
+}
+
 // Create track and transceiver and adds to PeerConnection
 void WebRtcClientTestBase::addTrackToPeerConnection(PRtcPeerConnection pRtcPeerConnection, PRtcMediaStreamTrack track,
                                                     PRtcRtpTransceiver* transceiver, RTC_CODEC codec, MEDIA_STREAM_TRACK_KIND kind)
@@ -249,16 +334,17 @@ void WebRtcClientTestBase::addTrackToPeerConnection(PRtcPeerConnection pRtcPeerC
     EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, track, NULL, transceiver));
 }
 
-void WebRtcClientTestBase::getIceServers(PRtcConfiguration pRtcConfiguration)
+void WebRtcClientTestBase::getIceServers(PRtcConfiguration pRtcConfiguration, PIceAgent pIceAgent)
 {
-    UINT32 i, j, iceConfigCount, uriCount;
+    UINT32 i, j, iceConfigCount = 0, uriCount;
     PIceConfigInfo pIceConfigInfo;
 
     // Assume signaling client is already created
     EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(mSignalingClientHandle, &iceConfigCount));
 
     // Set the  STUN server
-    SNPRINTF(pRtcConfiguration->iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION, TEST_DEFAULT_STUN_URL_POSTFIX);
+    SNPRINTF(pRtcConfiguration->iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION,
+             TEST_DEFAULT_STUN_URL_POSTFIX);
 
     for (uriCount = 0, i = 0; i < iceConfigCount; i++) {
         EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(mSignalingClientHandle, i, &pIceConfigInfo));
@@ -269,6 +355,32 @@ void WebRtcClientTestBase::getIceServers(PRtcConfiguration pRtcConfiguration)
 
             uriCount++;
         }
+        EXPECT_EQ(STATUS_SUCCESS, iceAgentAddConfig(pIceAgent, pIceConfigInfo));
+    }
+}
+
+void WebRtcClientTestBase::getIceServers(PRtcConfiguration pRtcConfiguration, PRtcPeerConnection pRtcPeerConnection)
+{
+    UINT32 i, j, iceConfigCount = 0, uriCount;
+    PIceConfigInfo pIceConfigInfo;
+
+    // Assume signaling client is already created
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(mSignalingClientHandle, &iceConfigCount));
+
+    // Set the  STUN server
+    SNPRINTF(pRtcConfiguration->iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION,
+             TEST_DEFAULT_STUN_URL_POSTFIX);
+
+    for (uriCount = 0, i = 0; i < iceConfigCount; i++) {
+        EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(mSignalingClientHandle, i, &pIceConfigInfo));
+        for (j = 0; j < pIceConfigInfo->uriCount; j++) {
+            STRNCPY(pRtcConfiguration->iceServers[uriCount + 1].urls, pIceConfigInfo->uris[j], MAX_ICE_CONFIG_URI_LEN);
+            STRNCPY(pRtcConfiguration->iceServers[uriCount + 1].credential, pIceConfigInfo->password, MAX_ICE_CONFIG_CREDENTIAL_LEN);
+            STRNCPY(pRtcConfiguration->iceServers[uriCount + 1].username, pIceConfigInfo->userName, MAX_ICE_CONFIG_USER_NAME_LEN);
+
+            uriCount++;
+        }
+        EXPECT_EQ(STATUS_SUCCESS, addConfigToServerList(&pRtcPeerConnection, pIceConfigInfo));
     }
 }
 

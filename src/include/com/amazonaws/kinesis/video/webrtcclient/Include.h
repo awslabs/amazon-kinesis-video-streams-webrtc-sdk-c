@@ -236,7 +236,7 @@ extern "C" {
 #define STATUS_TURN_CONNECTION_PEER_NOT_USABLE                             STATUS_ICE_BASE + 0x00000027
 #define STATUS_ICE_SERVER_INDEX_INVALID                                    STATUS_ICE_BASE + 0x00000028
 #define STATUS_ICE_CANDIDATE_STRING_MISSING_TYPE                           STATUS_ICE_BASE + 0x00000029
-#define STATUS_TURN_CONNECTION_ALLOCAITON_FAILED                           STATUS_ICE_BASE + 0x0000002a
+#define STATUS_TURN_CONNECTION_ALLOCATION_FAILED                           STATUS_ICE_BASE + 0x0000002a
 #define STATUS_TURN_INVALID_STATE                                          STATUS_ICE_BASE + 0x0000002b
 /*!@} */
 
@@ -1574,6 +1574,16 @@ typedef struct {
 PUBLIC_API STATUS createPeerConnection(PRtcConfiguration, PRtcPeerConnection*);
 
 /**
+ * @brief Give peer connection an ice config to add to its server list
+ *
+ * @param[in] PRtcPeerConnection* initialized RtcPeerConnection
+ * @param[in] PIceConfigInfo Ice config info to add to this peer connection
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
+PUBLIC_API STATUS addConfigToServerList(PRtcPeerConnection*, PIceConfigInfo);
+
+/**
  * @brief Free a RtcPeerConnection
  *
  * @param[in] PRtcPeerConnection* RtcPeerConnection that is to be freed
@@ -1648,6 +1658,16 @@ PUBLIC_API STATUS peerConnectionGetLocalDescription(PRtcPeerConnection, PRtcSess
  * @return STATUS code of the execution. STATUS_SUCCESS on success
  */
 PUBLIC_API STATUS peerConnectionGetCurrentLocalDescription(PRtcPeerConnection, PRtcSessionDescriptionInit);
+
+/**
+ * Allows use of internal threadpool
+ *
+ * @param[in] startRoutine function pointer to execute in threadpool
+ * @param[in] PVOID void pointer to pass to function pointer
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
+PUBLIC_API STATUS peerConnectionAsync(startRoutine fn, PVOID data);
 
 /**
  * @brief Populate the provided answer that contains an RFC 3264 offer
