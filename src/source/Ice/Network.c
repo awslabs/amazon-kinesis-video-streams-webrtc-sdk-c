@@ -250,7 +250,7 @@ STATUS socketBind(PKvsIpAddress pHostIpAddress, INT32 sockfd)
         ipv4Addr.sin_port = 0; // use next available port
         MEMCPY(&ipv4Addr.sin_addr, pHostIpAddress->address, IPV4_ADDRESS_LENGTH);
         // TODO: Properly handle the non-portable sin_len field if needed per https://issues.amazon.com/KinesisVideo-4952
-        ipv4Addr.sin_len = SIZEOF(ipv4Addr);
+        // ipv4Addr.sin_len = SIZEOF(ipv4Addr);
         sockAddr = (struct sockaddr*) &ipv4Addr;
         addrLen = SIZEOF(struct sockaddr_in);
 
