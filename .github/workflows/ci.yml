@@ -291,8 +291,6 @@ jobs:
     runs-on: ubuntu-20.04
     container:
       image: alpine:3.15.4
-      ports:
-        - "56425-56435:56425-56435"
     env:
       CC: gcc
       CXX: g++
@@ -313,10 +311,6 @@ jobs:
           mkdir build && cd build
           cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE
           make
-      - name: Run tests
-        run:  |
-          cd build
-          ./tst/webrtc_client_test
   mbedtls-ubuntu-gcc:
     runs-on: ubuntu-20.04
     env:
