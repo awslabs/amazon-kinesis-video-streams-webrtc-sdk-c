@@ -26,14 +26,13 @@ TEST_F(DtlsApiTest, createCertificateAndKey_Returns_Success)
 
 TEST_F(DtlsApiTest, dtlsSessionIsInitFinished_Null_Check)
 {
-    PDtlsSession pClient;
+    PDtlsSession pClient = NULL;
     BOOL isDtlsConnected = FALSE;
     DtlsSessionCallbacks callbacks;
     TIMER_QUEUE_HANDLE timerQueueHandle = INVALID_TIMER_QUEUE_HANDLE_VALUE;
     EXPECT_EQ(STATUS_SUCCESS, timerQueueCreate(&timerQueueHandle));
-    EXPECT_EQ(STATUS_NULL_ARG, dtlsSessionIsInitFinished(NULL, &isDtlsConnected));
+    EXPECT_EQ(STATUS_NULL_ARG, dtlsSessionIsInitFinished(pClient, &isDtlsConnected));
     EXPECT_EQ(FALSE, isDtlsConnected);
-    EXPECT_EQ(STATUS_SUCCESS, timerQueueCreate(&timerQueueHandle));
     EXPECT_EQ(STATUS_SUCCESS, createDtlsSession(&callbacks, timerQueueHandle, 0, FALSE, NULL, &pClient));
     EXPECT_EQ(STATUS_NULL_ARG, dtlsSessionIsInitFinished(pClient, NULL));
     freeDtlsSession(&pClient);
@@ -45,7 +44,7 @@ TEST_F(DtlsApiTest, dtlsSessionIsInitFinished_Null_Check)
 TEST_F(DtlsApiTest, dtlsSessionCreated_RefCount)
 {
     DtlsSessionCallbacks callbacks;
-    PDtlsSession pClient;
+    PDtlsSession pClient = NULL;
     TIMER_QUEUE_HANDLE timerQueueHandle = INVALID_TIMER_QUEUE_HANDLE_VALUE;
     EXPECT_EQ(STATUS_SUCCESS, timerQueueCreate(&timerQueueHandle));
     EXPECT_EQ(STATUS_SUCCESS, createDtlsSession(&callbacks, timerQueueHandle, 0, FALSE, NULL, &pClient));
@@ -58,10 +57,10 @@ TEST_F(DtlsApiTest, dtlsSessionCreated_RefCount)
 TEST_F(DtlsApiTest, dtlsProcessPacket_Api_Check)
 {
     DtlsSessionCallbacks callbacks;
-    PDtlsSession pClient;
+    PDtlsSession pClient = NULL;
     INT32 length;
     TIMER_QUEUE_HANDLE timerQueueHandle = INVALID_TIMER_QUEUE_HANDLE_VALUE;
-    EXPECT_EQ(STATUS_NULL_ARG, dtlsSessionProcessPacket(NULL, NULL, &length));
+    EXPECT_EQ(STATUS_NULL_ARG, dtlsSessionProcessPacket(pClient, NULL, &length));
     EXPECT_EQ(STATUS_SUCCESS, timerQueueCreate(&timerQueueHandle));
     EXPECT_EQ(STATUS_SUCCESS, createDtlsSession(&callbacks, timerQueueHandle, 0, FALSE, NULL, &pClient));
     EXPECT_EQ(STATUS_NULL_ARG, dtlsSessionProcessPacket(pClient, NULL, NULL));
