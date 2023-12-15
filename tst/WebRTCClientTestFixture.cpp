@@ -88,6 +88,7 @@ void WebRtcClientTestBase::SetUp()
     mDroppedFrameIndex = 0;
     mExpectedFrameCount = 0;
     mExpectedDroppedFrameCount = 0;
+    noNewThreads = FALSE;
 
     SET_INSTRUMENTED_ALLOCATORS();
 
@@ -218,6 +219,7 @@ bool WebRtcClientTestBase::connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerC
     RtcSessionDescriptionInit sdp;
     PeerContainer offer;
     PeerContainer answer;
+    this->noNewThreads = FALSE;
 
     auto onICECandidateHdlr = [](UINT64 customData, PCHAR candidateStr) -> void {
         PPeerContainer container = (PPeerContainer)customData;
@@ -290,6 +292,7 @@ bool WebRtcClientTestBase::connectTwoPeersAsyncIce(PRtcPeerConnection offerPc, P
     RtcSessionDescriptionInit sdp;
     PeerContainer offer;
     PeerContainer answer;
+    this->noNewThreads = FALSE;
 
     auto onICECandidateHdlr = [](UINT64 customData, PCHAR candidateStr) -> void {
         PPeerContainer container = (PPeerContainer)customData;
