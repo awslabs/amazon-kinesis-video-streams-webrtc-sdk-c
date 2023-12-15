@@ -240,6 +240,8 @@ bool WebRtcClientTestBase::connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerC
     };
 
     auto onICECandidateHdlrDone = [](UINT64 customData, PCHAR candidateStr) -> void {
+        UNUSED_PARAM(customData);
+        UNUSED_PARAM(candidateStr);
     };
 
     offer.pc = offerPc;
@@ -319,6 +321,8 @@ bool WebRtcClientTestBase::connectTwoPeersAsyncIce(PRtcPeerConnection offerPc, P
     };
 
     auto onICECandidateHdlrDone = [](UINT64 customData, PCHAR candidateStr) -> void {
+        UNUSED_PARAM(customData);
+        UNUSED_PARAM(candidateStr);
     };
 
     offer.pc = offerPc;

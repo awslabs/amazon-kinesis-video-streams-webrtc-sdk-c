@@ -91,6 +91,8 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithDelay)
     answer.client = this;
 
     auto onICECandidateHdlrDone = [](UINT64 customData, PCHAR candidateStr) -> void {
+        UNUSED_PARAM(customData);
+        UNUSED_PARAM(candidateStr);
     };
 
     EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(offerPc, (UINT64) &answer, onICECandidateHdlr));
@@ -705,6 +707,8 @@ TEST_F(PeerConnectionFunctionalityTest, noLostFramesAfterConnected)
     answer.client = this;
 
     auto onICECandidateHdlrDone = [](UINT64 customData, PCHAR candidateStr) -> void {
+        UNUSED_PARAM(customData);
+        UNUSED_PARAM(candidateStr);
     };
 
     auto onFrameHandler = [](UINT64 customData, PFrame pFrame) -> void {
