@@ -90,6 +90,9 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithDelay)
     answer.pc = answerPc;
     answer.client = this;
 
+    auto onICECandidateHdlrDone = [](UINT64 customData, PCHAR candidateStr) -> void {
+    };
+
     EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(offerPc, (UINT64) &answer, onICECandidateHdlr));
     EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(answerPc, (UINT64) &offer, onICECandidateHdlr));
 
@@ -126,6 +129,9 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithDelay)
     this->threads.clear();
     this->noNewThreads = TRUE;
     this->lock.unlock();
+
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(offerPc, (UINT64) 0, onICECandidateHdlrDone));
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(answerPc, (UINT64) 0, onICECandidateHdlrDone));
 
     closePeerConnection(offerPc);
     closePeerConnection(answerPc);
@@ -698,6 +704,9 @@ TEST_F(PeerConnectionFunctionalityTest, noLostFramesAfterConnected)
     answer.pc = answerPc;
     answer.client = this;
 
+    auto onICECandidateHdlrDone = [](UINT64 customData, PCHAR candidateStr) -> void {
+    };
+
     auto onFrameHandler = [](UINT64 customData, PFrame pFrame) -> void {
         UNUSED_PARAM(pFrame);
         if (pFrame->frameData[0] == 1) {
@@ -751,6 +760,9 @@ TEST_F(PeerConnectionFunctionalityTest, noLostFramesAfterConnected)
     this->threads.clear();
     this->noNewThreads = TRUE;
     this->lock.unlock();
+
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(offerPc, (UINT64) 0, onICECandidateHdlrDone));
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(answerPc, (UINT64) 0, onICECandidateHdlrDone));
 
     MEMFREE(videoFrame.frameData);
     closePeerConnection(offerPc);

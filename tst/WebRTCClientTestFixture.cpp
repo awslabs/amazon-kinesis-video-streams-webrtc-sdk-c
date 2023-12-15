@@ -239,6 +239,9 @@ bool WebRtcClientTestBase::connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerC
 
     };
 
+    auto onICECandidateHdlrDone = [](UINT64 customData, PCHAR candidateStr) -> void {
+    };
+
     offer.pc = offerPc;
     offer.client = this;
     answer.pc = answerPc;
@@ -283,6 +286,10 @@ bool WebRtcClientTestBase::connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerC
     this->noNewThreads = TRUE;
     this->lock.unlock();
 
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(offerPc, (UINT64) 0, onICECandidateHdlrDone));
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(answerPc, (UINT64) 0, onICECandidateHdlrDone));
+
+
     return ATOMIC_LOAD(&this->stateChangeCount[RTC_PEER_CONNECTION_STATE_CONNECTED]) == 2;
 }
 
@@ -309,6 +316,9 @@ bool WebRtcClientTestBase::connectTwoPeersAsyncIce(PRtcPeerConnection offerPc, P
             }
             container->client->lock.unlock();
         }
+    };
+
+    auto onICECandidateHdlrDone = [](UINT64 customData, PCHAR candidateStr) -> void {
     };
 
     offer.pc = offerPc;
@@ -356,6 +366,9 @@ bool WebRtcClientTestBase::connectTwoPeersAsyncIce(PRtcPeerConnection offerPc, P
     this->threads.clear();
     this->noNewThreads = TRUE;
     this->lock.unlock();
+
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(offerPc, (UINT64) 0, onICECandidateHdlrDone));
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(answerPc, (UINT64) 0, onICECandidateHdlrDone));
 
     return ATOMIC_LOAD(&this->stateChangeCount[RTC_PEER_CONNECTION_STATE_CONNECTED]) == 2;
 }
