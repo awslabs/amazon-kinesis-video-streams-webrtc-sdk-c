@@ -105,7 +105,7 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     pSignalingClient->currentWsi[PROTOCOL_INDEX_WSS] = NULL;
 
     MEMSET(&creationInfo, 0x00, SIZEOF(struct lws_context_creation_info));
-    creationInfo.options = LWS_SERVER_OPTION_DO_SSL_GLOBAL_INIT | LWS_SERVER_OPTION_H2_JUST_FIX_WINDOW_UPDATE_OVERFLOW;
+    creationInfo.options = LWS_SERVER_OPTION_DO_SSL_GLOBAL_INIT;
     creationInfo.port = CONTEXT_PORT_NO_LISTEN;
     creationInfo.protocols = pSignalingClient->signalingProtocols;
     creationInfo.timeout_secs = SIGNALING_SERVICE_API_CALL_TIMEOUT_IN_SECONDS;
