@@ -47,7 +47,6 @@ VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL 
     CHK(pMessage != NULL && pDataChannel != NULL, STATUS_NULL_ARG);
 
     if (pSampleConfiguration->enableSendingMetricsToViewerViaDc) {
-
         jsmn_init(&parser);
         json = (PCHAR) pMessage;
         tokenCount = jsmn_parse(&parser, json, STRLEN(json), tokens, SIZEOF(tokens) / SIZEOF(jsmntok_t));
@@ -81,7 +80,7 @@ VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL 
                     if (strLen != 0) {
                         // since the length is not zero, we have already attached this timestamp to structure in the last iteration
                         STRNCPY(dataChannelMessage.firstMessageFromMasterTs, json + tokens[i + 1].start, tokens[i + 1].end - tokens[i + 1].start);
-                    } else { 
+                    } else {
                         // if this timestamp was not assigned during the previous message session, add it now
                         SNPRINTF(dataChannelMessage.firstMessageFromMasterTs, 20, "%llu", GETTIME() / 10000);
                         break;
