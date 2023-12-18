@@ -370,7 +370,6 @@ typedef struct {
     UINT64 deleteTime;
     UINT64 connectTime;
     UINT64 describeMediaTime;
-    UINT64 offerTime;
     UINT64 answerTime;
 
 #ifdef KVS_USE_SIGNALING_CHANNEL_THREADPOOL

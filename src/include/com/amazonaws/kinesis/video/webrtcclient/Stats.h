@@ -620,7 +620,7 @@ typedef struct {
     fetchClientTime; //!< Total time (ms) taken to fetch signaling client which includes describe, create, get endpoint and get ICE server config
     UINT64 connectClientTime; //!< Total time (ms) taken to  connect the signaling client which includes connecting to the signaling channel
     UINT64 offerToAnswerTime;
-    UINT64 offerTime;
+    UINT64 offerReceivedTime;
     UINT64 answerTime;
     UINT64 joinSessionToOfferRecvTime; //!< Total time (ms) taken from joinSession call until offer is received
 } SignalingClientStats, *PSignalingClientStats;

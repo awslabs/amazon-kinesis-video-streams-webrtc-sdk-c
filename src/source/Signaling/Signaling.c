@@ -416,8 +416,8 @@ STATUS signalingSendMessageSync(PSignalingClient pSignalingClient, PSignalingMes
     if (pSignalingMessage->messageType == SIGNALING_MESSAGE_TYPE_OFFER) {
         pSignalingClient->offerSentTime = GETTIME();
     } else if (pSignalingMessage->messageType == SIGNALING_MESSAGE_TYPE_ANSWER) {
-        PROFILE_WITH_START_TIME_OBJ(pSignalingClient->offerReceivedTime, pSignalingClient->diagnostics.offerToAnswerTime,
-                                    "Offer Received to Answer Sent time");
+        PROFILE_WITH_START_END_TIME_OBJ(pSignalingClient->offerReceivedTime, pSignalingClient->answerTime,
+                                        pSignalingClient->diagnostics.offerToAnswerTime, "Offer Received to Answer Sent time");
     }
     MUTEX_UNLOCK(pSignalingClient->offerSendReceiveTimeLock);
     // Update the internal diagnostics only after successfully sending
@@ -1423,7 +1423,7 @@ STATUS signalingGetMetrics(PSignalingClient pSignalingClient, PSignalingClientMe
             pSignalingClientMetrics->signalingClientStats.joinSessionCallTime = pSignalingClient->diagnostics.joinSessionCallTime;
             pSignalingClientMetrics->signalingClientStats.offerToAnswerTime = pSignalingClient->diagnostics.offerToAnswerTime;
             pSignalingClientMetrics->signalingClientStats.answerTime = pSignalingClient->answerTime;
-            pSignalingClientMetrics->signalingClientStats.offerTime = pSignalingClient->offerTime;
+            pSignalingClientMetrics->signalingClientStats.offerReceivedTime = pSignalingClient->offerReceivedTime;
             pSignalingClientMetrics->signalingClientStats.describeChannelStartTime = pSignalingClient->diagnostics.describeChannelStartTime;
             pSignalingClientMetrics->signalingClientStats.describeChannelEndTime = pSignalingClient->diagnostics.describeChannelEndTime;
             pSignalingClientMetrics->signalingClientStats.getSignalingChannelEndpointStartTime =

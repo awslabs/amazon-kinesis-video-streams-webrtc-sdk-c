@@ -103,7 +103,7 @@ VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL 
                 SNPRINTF(pSignalingClientMetricsMessage, MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE, SIGNALING_CLIENT_METRICS_JSON_TEMPLATE,
                          pSampleConfiguration->signalingClientMetrics.signalingStartTime,
                          pSampleConfiguration->signalingClientMetrics.signalingEndTime,
-                         pSampleConfiguration->signalingClientMetrics.signalingClientStats.offerTime,
+                         pSampleConfiguration->signalingClientMetrics.signalingClientStats.offerReceivedTime,
                          pSampleConfiguration->signalingClientMetrics.signalingClientStats.answerTime,
                          pSampleConfiguration->signalingClientMetrics.signalingClientStats.describeChannelStartTime,
                          pSampleConfiguration->signalingClientMetrics.signalingClientStats.describeChannelEndTime,
