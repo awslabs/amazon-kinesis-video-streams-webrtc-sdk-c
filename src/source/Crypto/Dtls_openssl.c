@@ -226,7 +226,7 @@ STATUS createSslCtx(PDtlsSessionCertificateInfo pCertificates, UINT32 certCount,
     STATUS retStatus = STATUS_SUCCESS;
     SSL_CTX* pSslCtx = NULL;
     UINT32 i;
-#if (OPENSSL_VERSION_NUMBER < 0x30000000L)
+#if (OPENSSL_VERSION_NUMBER < 0x10002000L)
     EC_KEY* ecdh = NULL;
 #endif
     CHK(pCertificates != NULL && ppSslCtx != NULL, STATUS_NULL_ARG);
@@ -245,16 +245,23 @@ STATUS createSslCtx(PDtlsSessionCertificateInfo pCertificates, UINT32 certCount,
 
     CHK(pSslCtx != NULL, STATUS_SSL_CTX_CREATION_FAILED);
 
-// https://www.openssl.org/docs/man1.0.2/man3/
-// https://www.openssl.org/docs/man1.1.1/man3/
-// Version < 3.0.0
-#if (OPENSSL_VERSION_NUMBER < 0x30000000L)
+    // Version greater than or equal to 1.0.2
+#if (OPENSSL_VERSION_NUMBER >= 0x10002000L)
+    SSL_CTX_set_ecdh_auto(pSslCtx, TRUE);
+#else
+#endif
+
+// For openssl versions < 1.0.2
+#if (OPENSSL_VERSION_NUMBER < 0x10002000L)
     CHK((ecdh = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1)) != NULL, STATUS_SSL_CTX_CREATION_FAILED);
     CHK(SSL_CTX_set_tmp_ecdh(pSslCtx, ecdh) == 1, STATUS_SSL_CTX_CREATION_FAILED);
+#elif (OPENSSL_VERSION_NUMBER < 0x10100000L)
+    // For OpenSSL versions >=1.0.2 and < 1.1.0
+    SSL_CTX_set_ecdh_auto(pSslCtx, 1);
 #else
-    // https://www.openssl.org/docs/man3.0/man3/EC_KEY_new_by_curve_name.html -- indicates that EC_KEY_new_by_curve_name and SSL_CTX_set_tmp_ecdh are
-    // deprecated https://www.openssl.org/docs/man1.1.1/man3/SSL_CTX_set1_groups.html
-    CHK(SSL_CTX_set1_groups_list(pSslCtx, "prime256v1") == 1, STATUS_SSL_CTX_CREATION_FAILED);
+    // For OpenSSL versions >= 1.1.0, ECDH parameters are set automatically, so no additional code is needed here
+    // Reference: https://github.com/openssl/openssl/issues/1437
+    DLOGI("ECDH enabled by default here. So nothing to do");
 #endif
 
     SSL_CTX_set_verify(pSslCtx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, dtlsCertificateVerifyCallback);
@@ -273,6 +280,9 @@ CleanUp:
         SSL_CTX_free(pSslCtx);
     }
 
+#if (OPENSSL_VERSION_NUMBER < 0x10002000L)
+    EC_KEY_free(ecdh);
+#endif
     LEAVES();
     return retStatus;
 }

@@ -127,6 +127,31 @@ jobs:
         run:  |
           cd build
           ./tst/webrtc_client_test
+  mac-os-m1-build-clang-openssl-old:
+    runs-on: macos-13-xlarge
+    env:
+      AWS_KVS_LOG_LEVEL: 2
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v3
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Build repository
+        run: |
+          brew unlink openssl
+          mkdir build && cd build
+          sh -c 'cmake .. -DBUILD_TEST=TRUE -DCMAKE_C_COMPILER=$(brew --prefix llvm@15)/bin/clang -DCMAKE_CXX_COMPILER=$(brew --prefix llvm@15)/bin/clang++' -DBUILD_OLD_OPENSSL_VERSION=ON
+          make
+      - name: Run tests
+        run:  |
+          cd build
+          ./tst/webrtc_client_test
   static-build-mac:
     runs-on: macos-11
     env:
