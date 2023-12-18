@@ -2,9 +2,6 @@
 #include "Samples.h"
 
 PSampleConfiguration gSampleConfiguration = NULL;
-CHAR pPeerConnectionMetricsMessage[MAX_PEER_CONNECTION_METRICS_MESSAGE_SIZE];
-CHAR pSignalingClientMetricsMessage[MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE];
-CHAR pIceAgentMetricsMessage[MAX_ICE_AGENT_METRICS_MESSAGE_SIZE];
 
 VOID sigintHandler(INT32 sigNum)
 {
@@ -100,8 +97,8 @@ VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL 
 
                 retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) pMessageSend, STRLEN(pMessageSend));
             } else {
-                SNPRINTF(pSignalingClientMetricsMessage, MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE, SIGNALING_CLIENT_METRICS_JSON_TEMPLATE,
-                         pSampleConfiguration->signalingClientMetrics.signalingStartTime,
+                SNPRINTF(pSampleStreamingSession->pSignalingClientMetricsMessage, MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE,
+                         SIGNALING_CLIENT_METRICS_JSON_TEMPLATE, pSampleConfiguration->signalingClientMetrics.signalingStartTime,
                          pSampleConfiguration->signalingClientMetrics.signalingEndTime,
                          pSampleConfiguration->signalingClientMetrics.signalingClientStats.offerReceivedTime,
                          pSampleConfiguration->signalingClientMetrics.signalingClientStats.answerTime,
@@ -117,23 +114,27 @@ VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL 
                          pSampleConfiguration->signalingClientMetrics.signalingClientStats.createChannelEndTime,
                          pSampleConfiguration->signalingClientMetrics.signalingClientStats.connectStartTime,
                          pSampleConfiguration->signalingClientMetrics.signalingClientStats.connectEndTime);
-                DLOGI("Sending signaling metrics to the viewer: %s", pSignalingClientMetricsMessage);
+                DLOGI("Sending signaling metrics to the viewer: %s", pSampleStreamingSession->pSignalingClientMetricsMessage);
 
                 CHK_STATUS(peerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->peerConnectionMetrics));
-                SNPRINTF(pPeerConnectionMetricsMessage, MAX_PEER_CONNECTION_METRICS_MESSAGE_SIZE, PEER_CONNECTION_METRICS_JSON_TEMPLATE,
+                SNPRINTF(pSampleStreamingSession->pPeerConnectionMetricsMessage, MAX_PEER_CONNECTION_METRICS_MESSAGE_SIZE,
+                         PEER_CONNECTION_METRICS_JSON_TEMPLATE,
                          pSampleStreamingSession->peerConnectionMetrics.peerConnectionStats.peerConnectionStartTime,
                          pSampleStreamingSession->peerConnectionMetrics.peerConnectionStats.peerConnectionConnectedTime);
-                DLOGI("Sending peer-connection metrics to the viewer: %s", pPeerConnectionMetricsMessage);
+                DLOGI("Sending peer-connection metrics to the viewer: %s", pSampleStreamingSession->pPeerConnectionMetricsMessage);
 
                 CHK_STATUS(iceAgentGetMetrics(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->iceMetrics));
-                SNPRINTF(pIceAgentMetricsMessage, MAX_ICE_AGENT_METRICS_MESSAGE_SIZE, ICE_AGENT_METRICS_JSON_TEMPLATE,
+                SNPRINTF(pSampleStreamingSession->pIceAgentMetricsMessage, MAX_ICE_AGENT_METRICS_MESSAGE_SIZE, ICE_AGENT_METRICS_JSON_TEMPLATE,
                          pSampleStreamingSession->iceMetrics.kvsIceAgentStats.candidateGatheringStartTime,
                          pSampleStreamingSession->iceMetrics.kvsIceAgentStats.candidateGatheringEndTime);
-                DLOGI("Sending ice-agent metrics to the viewer: %s", pIceAgentMetricsMessage);
+                DLOGI("Sending ice-agent metrics to the viewer: %s", pSampleStreamingSession->pIceAgentMetricsMessage);
 
-                retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) pSignalingClientMetricsMessage, STRLEN(pSignalingClientMetricsMessage));
-                retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) pPeerConnectionMetricsMessage, STRLEN(pPeerConnectionMetricsMessage));
-                retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) pIceAgentMetricsMessage, STRLEN(pIceAgentMetricsMessage));
+                retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) pSampleStreamingSession->pSignalingClientMetricsMessage,
+                                            STRLEN(pSampleStreamingSession->pSignalingClientMetricsMessage));
+                retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) pSampleStreamingSession->pPeerConnectionMetricsMessage,
+                                            STRLEN(pSampleStreamingSession->pPeerConnectionMetricsMessage));
+                retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) pSampleStreamingSession->pIceAgentMetricsMessage,
+                                            STRLEN(pSampleStreamingSession->pIceAgentMetricsMessage));
             }
         } else {
             DLOGI("DataChannel string message: %.*s\n", pMessageLen, pMessage);
