@@ -177,9 +177,10 @@ if(BUILD_DEPENDENCIES)
                    -DOPENSSL_DIR=${OPEN_SRC_INSTALL_PREFIX}
                    -DUSE_OPENSSL=${USE_OPENSSL}
                    -DUSE_MBEDTLS=${USE_MBEDTLS}
+                   -DLWS_OPENSSL_LIBRARIES=${OPEN_SRC_INSTALL_PREFIX}
                    -DLWS_OPENSSL_CRYPTO_LIBRARY=${OPENSSL_CRYPTO_LIBRARY}
                    -DLWS_OPENSSL_SSL_LIBRARY=${OPENSSL_SSL_LIBRARY}
-                   -DLWS_OPENSSL_INCLUDE_DIRS=${OPENSSL_INCLUDE_DIR}
+                   -DLWS_OPENSSL_INCLUDE_DIRS=${OPENSSL_INCLUDE_DIRS}
                    -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
   endif()
   build_dependency(websockets ${BUILD_ARGS})

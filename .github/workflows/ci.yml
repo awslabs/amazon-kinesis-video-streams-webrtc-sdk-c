@@ -492,7 +492,7 @@ jobs:
         run: |
           ./scripts/check-sample.sh
   ubuntu-os-build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     env:
       AWS_KVS_LOG_LEVEL: 2
     permissions:
@@ -523,7 +523,7 @@ jobs:
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   ubuntu-os-build-openssl-old:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     env:
       AWS_KVS_LOG_LEVEL: 2
     permissions:
