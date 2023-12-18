@@ -56,7 +56,8 @@ extern "C" {
 #define VIEWER_DATA_CHANNEL_MESSAGE "This message is from the KVS Viewer"
 
 #define DATA_CHANNEL_MESSAGE_TEMPLATE                                                                                                                \
-    "{\"content\":\"%s\",\"timestamp1\": \"%s\",\"timestamp2\": \"%s\",\"timestamp3\": \"%s\",\"timestamp4\": \"%s\",\"timestamp5\": \"%s\" }"
+    "{\"content\":\"%s\",\"firstMessageFromViewerTs\":\"%s\",\"firstMessageFromMasterTs\":\"%s\",\"secondMessageFromViewerTs\":\"%s\","              \
+    "\"secondMessageFromMasterTs\":\"%s\",\"lastMessageFromViewerTs\":\"%s\" }"
 #define PEER_CONNECTION_METRICS_JSON_TEMPLATE "{\"peerConnectionStartTime\": %llu, \"peerConnectionEndTime\": %llu }"
 #define SIGNALING_CLIENT_METRICS_JSON_TEMPLATE                                                                                                       \
     "{\"signalingStartTime\": %llu, \"signalingEndTime\": %llu, \"offerReceiptTime\": %llu, \"sendAnswerTime\": %llu, "                              \
@@ -66,7 +67,7 @@ extern "C" {
     "\"connectStartTime\": %llu, \"connectEndTime\": %llu }"
 #define ICE_AGENT_METRICS_JSON_TEMPLATE "{\"candidateGatheringStartTime\": %llu, \"candidateGatheringEndTime\": %llu }"
 
-#define MAX_DATA_CHANNEL_METRICS_MESSAGE_SIZE     172 // strlen(DATA_CHANNEL_MESSAGE_TEMPLATE) + 20 * 5
+#define MAX_DATA_CHANNEL_METRICS_MESSAGE_SIZE     260 // strlen(DATA_CHANNEL_MESSAGE_TEMPLATE) + 20 * 5
 #define MAX_PEER_CONNECTION_METRICS_MESSAGE_SIZE  105 // strlen(PEER_CONNECTION_METRICS_JSON_TEMPLATE) + 20 * 2
 #define MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE 736 // strlen(SIGNALING_CLIENT_METRICS_JSON_TEMPLATE) + 20 * 10
 #define MAX_ICE_AGENT_METRICS_MESSAGE_SIZE        113 // strlen(ICE_AGENT_METRICS_JSON_TEMPLATE) + 20 * 2
@@ -151,11 +152,11 @@ typedef struct {
 
 typedef struct {
     CHAR content[100];
-    CHAR timestamp1[20];
-    CHAR timestamp2[20];
-    CHAR timestamp3[20];
-    CHAR timestamp4[20];
-    CHAR timestamp5[20];
+    CHAR firstMessageFromViewerTs[20];
+    CHAR firstMessageFromMasterTs[20];
+    CHAR secondMessageFromViewerTs[20];
+    CHAR secondMessageFromMasterTs[20];
+    CHAR lastMessageFromViewerTs[20];
 } DataChannelMessage;
 
 typedef struct {

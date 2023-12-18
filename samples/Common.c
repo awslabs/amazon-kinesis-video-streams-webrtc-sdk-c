@@ -36,7 +36,7 @@ VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL 
 {
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 i, strLen, tokenCount;
-    CHAR pMessageSend[SIZEOF(DataChannelMessage)];
+    CHAR pMessageSend[MAX_DATA_CHANNEL_METRICS_MESSAGE_SIZE];
     PCHAR json;
     PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) customData;
     PSampleConfiguration pSampleConfiguration = pSampleStreamingSession->pSampleConfiguration;
@@ -44,10 +44,20 @@ VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL 
     jsmn_parser parser;
     jsmntok_t tokens[MAX_JSON_TOKEN_COUNT];
 
+    CHK(pMessage != NULL && pDataChannel != NULL, STATUS_NULL_ARG);
+
     if (pSampleConfiguration->enableSendingMetricsToViewerViaDc) {
+
         jsmn_init(&parser);
         json = (PCHAR) pMessage;
         tokenCount = jsmn_parse(&parser, json, STRLEN(json), tokens, SIZEOF(tokens) / SIZEOF(jsmntok_t));
+
+        MEMSET(dataChannelMessage.content, '\0', SIZEOF(dataChannelMessage.content));
+        MEMSET(dataChannelMessage.firstMessageFromViewerTs, '\0', SIZEOF(dataChannelMessage.firstMessageFromViewerTs));
+        MEMSET(dataChannelMessage.firstMessageFromMasterTs, '\0', SIZEOF(dataChannelMessage.firstMessageFromMasterTs));
+        MEMSET(dataChannelMessage.secondMessageFromViewerTs, '\0', SIZEOF(dataChannelMessage.secondMessageFromViewerTs));
+        MEMSET(dataChannelMessage.secondMessageFromMasterTs, '\0', SIZEOF(dataChannelMessage.secondMessageFromMasterTs));
+        MEMSET(dataChannelMessage.lastMessageFromViewerTs, '\0', SIZEOF(dataChannelMessage.lastMessageFromViewerTs));
 
         if (tokenCount > 1) {
             CHK(tokens[0].type == JSMN_OBJECT, STATUS_INVALID_API_CALL_RETURN_JSON);
@@ -56,47 +66,61 @@ VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL 
             for (i = 1; i < tokenCount; i++) {
                 if (compareJsonString(json, &tokens[i], JSMN_STRING, (PCHAR) "content")) {
                     strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
-                    STRNCPY(dataChannelMessage.content, json + tokens[i + 1].start, tokens[i + 1].end - tokens[i + 1].start);
-                } else if (compareJsonString(json, &tokens[i], JSMN_STRING, (PCHAR) "timestamp1")) {
+                    if (strLen != 0) {
+                        STRNCPY(dataChannelMessage.content, json + tokens[i + 1].start, tokens[i + 1].end - tokens[i + 1].start);
+                    }
+                } else if (compareJsonString(json, &tokens[i], JSMN_STRING, (PCHAR) "firstMessageFromViewerTs")) {
                     strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
-                    STRNCPY(dataChannelMessage.timestamp1, json + tokens[i + 1].start, tokens[i + 1].end - tokens[i + 1].start);
-                } else if (compareJsonString(json, &tokens[i], JSMN_STRING, (PCHAR) "timestamp2")) {
+                    // parse and retain this message from the viewer to send it back again
+                    if (strLen != 0) {
+                        // since the length is not zero, we have already attached this timestamp to structure in the last iteration
+                        STRNCPY(dataChannelMessage.firstMessageFromViewerTs, json + tokens[i + 1].start, tokens[i + 1].end - tokens[i + 1].start);
+                    }
+                } else if (compareJsonString(json, &tokens[i], JSMN_STRING, (PCHAR) "firstMessageFromMasterTs")) {
                     strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
                     if (strLen != 0) {
-                        STRNCPY(dataChannelMessage.timestamp2, json + tokens[i + 1].start, tokens[i + 1].end - tokens[i + 1].start);
-                    } else {
-                        SNPRINTF(dataChannelMessage.timestamp2, 20, "%llu", GETTIME() / 10000);
-                        dataChannelMessage.timestamp3[0] = '\0';
-                        dataChannelMessage.timestamp4[0] = '\0';
-                        dataChannelMessage.timestamp5[0] = '\0';
+                        // since the length is not zero, we have already attached this timestamp to structure in the last iteration
+                        STRNCPY(dataChannelMessage.firstMessageFromMasterTs, json + tokens[i + 1].start, tokens[i + 1].end - tokens[i + 1].start);
+                    } else { 
+                        // if this timestamp was not assigned during the previous message session, add it now
+                        SNPRINTF(dataChannelMessage.firstMessageFromMasterTs, 20, "%llu", GETTIME() / 10000);
                         break;
                     }
-                } else if (compareJsonString(json, &tokens[i], JSMN_STRING, (PCHAR) "timestamp3")) {
+                } else if (compareJsonString(json, &tokens[i], JSMN_STRING, (PCHAR) "secondMessageFromViewerTs")) {
                     strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
-                    STRNCPY(dataChannelMessage.timestamp3, json + tokens[i + 1].start, tokens[i + 1].end - tokens[i + 1].start);
-                } else if (compareJsonString(json, &tokens[i], JSMN_STRING, (PCHAR) "timestamp4")) {
+                    // parse and retain this message from the viewer to send it back again
+                    if (strLen != 0) {
+                        STRNCPY(dataChannelMessage.secondMessageFromViewerTs, json + tokens[i + 1].start, tokens[i + 1].end - tokens[i + 1].start);
+                    }
+                } else if (compareJsonString(json, &tokens[i], JSMN_STRING, (PCHAR) "secondMessageFromMasterTs")) {
                     strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
                     if (strLen != 0) {
-                        STRNCPY(dataChannelMessage.timestamp4, json + tokens[i + 1].start, tokens[i + 1].end - tokens[i + 1].start);
+                        // since the length is not zero, we have already attached this timestamp to structure in the last iteration
+                        STRNCPY(dataChannelMessage.secondMessageFromMasterTs, json + tokens[i + 1].start, tokens[i + 1].end - tokens[i + 1].start);
                     } else {
-                        SNPRINTF(dataChannelMessage.timestamp4, 20, "%llu", GETTIME() / 10000);
-                        dataChannelMessage.timestamp5[0] = '\0';
+                        // if this timestamp was not assigned during the previous message session, add it now
+                        SNPRINTF(dataChannelMessage.secondMessageFromMasterTs, 20, "%llu", GETTIME() / 10000);
                         break;
                     }
-                } else if (compareJsonString(json, &tokens[i], JSMN_STRING, (PCHAR) "timestamp5")) {
+                } else if (compareJsonString(json, &tokens[i], JSMN_STRING, (PCHAR) "lastMessageFromViewerTs")) {
                     strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
-                    STRNCPY(dataChannelMessage.timestamp5, json + tokens[i + 1].start, tokens[i + 1].end - tokens[i + 1].start);
+                    if (strLen != 0) {
+                        STRNCPY(dataChannelMessage.lastMessageFromViewerTs, json + tokens[i + 1].start, tokens[i + 1].end - tokens[i + 1].start);
+                    }
                 }
             }
 
-            if (STRLEN(dataChannelMessage.timestamp5) == 0) {
-                SNPRINTF(pMessageSend, SIZEOF(DataChannelMessage), DATA_CHANNEL_MESSAGE_TEMPLATE, MASTER_DATA_CHANNEL_MESSAGE,
-                         dataChannelMessage.timestamp1, dataChannelMessage.timestamp2, dataChannelMessage.timestamp3, dataChannelMessage.timestamp4,
-                         dataChannelMessage.timestamp5);
+            if (STRLEN(dataChannelMessage.lastMessageFromViewerTs) == 0) {
+                // continue sending the data_channel_metrics_message with new timestamps until we receive the lastMessageFromViewerTs from the viewer
+                SNPRINTF(pMessageSend, MAX_DATA_CHANNEL_METRICS_MESSAGE_SIZE, DATA_CHANNEL_MESSAGE_TEMPLATE, MASTER_DATA_CHANNEL_MESSAGE,
+                         dataChannelMessage.firstMessageFromViewerTs, dataChannelMessage.firstMessageFromMasterTs,
+                         dataChannelMessage.secondMessageFromViewerTs, dataChannelMessage.secondMessageFromMasterTs,
+                         dataChannelMessage.lastMessageFromViewerTs);
                 DLOGI("Master's response: %s", pMessageSend);
 
                 retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) pMessageSend, STRLEN(pMessageSend));
             } else {
+                // now that we've received the last message, send across the signaling, peerConnection, ice metrics
                 SNPRINTF(pSampleStreamingSession->pSignalingClientMetricsMessage, MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE,
                          SIGNALING_CLIENT_METRICS_JSON_TEMPLATE, pSampleConfiguration->signalingClientMetrics.signalingStartTime,
                          pSampleConfiguration->signalingClientMetrics.signalingEndTime,
