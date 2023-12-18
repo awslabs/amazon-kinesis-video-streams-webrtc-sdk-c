@@ -54,8 +54,6 @@ jobs:
       CC: /usr/bin/clang
       CXX: /usr/bin/clang++
       AWS_KVS_LOG_LEVEL: 2
-      LDFLAGS: -L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib
-      CPATH: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/
     permissions:
       id-token: write
       contents: read
@@ -538,12 +536,16 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
+      - name: Install dependencies
+        run: |
+          sudo apt clean && sudo apt update
+          sudo apt-get -y install libcurl4-openssl-dev
       - name: Build repository
         run: |
           # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
           sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
           mkdir build && cd build
-          cmake .. -DBUILD_TEST=TRUE -DBUILD_OLD_OPENSSL_VERSION=ON
+          cmake .. -DBUILD_TEST=TRUE -DBUILD_OLD_OPENSSL_VERSION=ON -DENABLE_AWS_SDK_IN_TESTS=OFF
           make
       - name: Run tests
         run:  |
