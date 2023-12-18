@@ -327,6 +327,8 @@ STATUS signalingClientGetCurrentState(SIGNALING_CLIENT_HANDLE signalingClientHan
     CHK_STATUS(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pStateMachineState));
     state = getSignalingStateFromStateMachineState(pStateMachineState->state);
 
+    DLOGV("Current state: 0x%016" PRIx64, pStateMachineState->state);
+
 CleanUp:
 
     if (pState != NULL) {
@@ -393,7 +395,18 @@ STATUS signalingClientGetStateString(SIGNALING_CLIENT_STATE state, PCHAR* ppStat
         case SIGNALING_CLIENT_STATE_DELETED:
             *ppStateStr = SIGNALING_CLIENT_STATE_DELETED_STR;
             break;
-
+        case SIGNALING_CLIENT_STATE_DESCRIBE_MEDIA:
+            *ppStateStr = SIGNALING_CLIENT_STATE_DESCRIBE_MEDIA_STR;
+            break;
+        case SIGNALING_CLIENT_STATE_JOIN_SESSION:
+            *ppStateStr = SIGNALING_CLIENT_STATE_JOIN_SESSION_STR;
+            break;
+        case SIGNALING_CLIENT_STATE_JOIN_SESSION_WAITING:
+            *ppStateStr = SIGNALING_CLIENT_STATE_JOIN_SESSION_WAITING_STR;
+            break;
+        case SIGNALING_CLIENT_STATE_JOIN_SESSION_CONNECTED:
+            *ppStateStr = SIGNALING_CLIENT_STATE_JOIN_SESSION_CONNECTED_STR;
+            break;
         case SIGNALING_CLIENT_STATE_MAX_VALUE:
         case SIGNALING_CLIENT_STATE_UNKNOWN:
             // Explicit fall-through

@@ -609,10 +609,12 @@ typedef struct {
     UINT32 apiCallRetryCount;        //!< Number of retries due to API call failures in the state machine
     UINT64 getTokenCallTime;         //!< Time (ms) taken to get credentials for signaling
     UINT64 describeCallTime;         //!< Time (ms) taken to execute describeChannel call
+    UINT64 describeMediaCallTime;    //!< Time (ms) taken to execute describeChannel call
     UINT64 createCallTime;           //!< Time (ms) taken to execute createChannel call
     UINT64 getEndpointCallTime;      //!< Time (ms) taken to execute getEndpoint call
     UINT64 getIceConfigCallTime;     //!< Time (ms) taken to execute getIceServerConfig call
     UINT64 connectCallTime;          //!< Time (ms) taken to execute connectChannel call
+    UINT64 joinSessionCallTime;      //!< Time (ms) taken to execute joinSession call
     UINT64 createClientTime;         //!< Total time (ms) taken to create signaling client which includes getting credentials
     UINT64
     fetchClientTime; //!< Total time (ms) taken to fetch signaling client which includes describe, create, get endpoint and get ICE server config
@@ -620,6 +622,7 @@ typedef struct {
     UINT64 offerToAnswerTime;
     UINT64 offerTime;
     UINT64 answerTime;
+    UINT64 joinSessionToOfferRecvTime; //!< Total time (ms) taken from joinSession call until offer is received
 } SignalingClientStats, *PSignalingClientStats;
 
 typedef struct {

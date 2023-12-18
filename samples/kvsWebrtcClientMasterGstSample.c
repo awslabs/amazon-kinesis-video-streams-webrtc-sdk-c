@@ -397,7 +397,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     signal(SIGINT, sigintHandler);
 
 #ifdef IOT_CORE_ENABLE_CREDENTIALS
-    CHK_ERR((pChannelName = argc > 1 ? argv[1] : getenv(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION,
+    CHK_ERR((pChannelName = argc > 1 ? argv[1] : GETENV(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION,
             "AWS_IOT_CORE_THING_NAME must be set");
 #else
     pChannelName = argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME;
@@ -408,7 +408,10 @@ INT32 main(INT32 argc, CHAR* argv[])
     pSampleConfiguration->videoSource = sendGstreamerAudioVideo;
     pSampleConfiguration->mediaType = SAMPLE_STREAMING_VIDEO_ONLY;
     pSampleConfiguration->receiveAudioVideoSource = receiveGstreamerAudioVideo;
+
+#ifdef ENABLE_DATA_CHANNEL
     pSampleConfiguration->onDataChannel = onDataChannel;
+#endif
     pSampleConfiguration->customData = (UINT64) pSampleConfiguration;
     pSampleConfiguration->srcType = DEVICE_SOURCE; // Default to device source (autovideosrc and autoaudiosrc)
     /* Initialize GStreamer */
@@ -419,6 +422,10 @@ INT32 main(INT32 argc, CHAR* argv[])
         if (STRCMP(argv[2], "video-only") == 0) {
             pSampleConfiguration->mediaType = SAMPLE_STREAMING_VIDEO_ONLY;
             DLOGI("[KVS Gstreamer Master] Streaming video only");
+        } else if (STRCMP(argv[2], "audio-video-storage") == 0) {
+            pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
+            pSampleConfiguration->channelInfo.useMediaStorage = TRUE;
+            DLOGI("[KVS Gstreamer Master] Streaming audio and video");
         } else if (STRCMP(argv[2], "audio-video") == 0) {
             pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
             DLOGI("[KVS Gstreamer Master] Streaming audio and video");

@@ -14,7 +14,9 @@ STATUS createThreadPoolContext()
     BOOL locked = FALSE;
     PCHAR pMinThreads, pMaxThreads;
     UINT32 minThreads, maxThreads;
+
     PThreadPoolContext pThreadPoolContext = getThreadContextInstance();
+
     if (NULL == (pMinThreads = GETENV(WEBRTC_THREADPOOL_MIN_THREADS_ENV_VAR)) || STATUS_SUCCESS != STRTOUI32(pMinThreads, NULL, 10, &minThreads)) {
         minThreads = THREADPOOL_MIN_THREADS;
     }

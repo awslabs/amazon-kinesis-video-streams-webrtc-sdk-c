@@ -24,19 +24,23 @@ extern "C" {
 #define SIGNALING_CLIENT_SHUTDOWN_TIMEOUT ((2 + SIGNALING_SERVICE_API_CALL_TIMEOUT_IN_SECONDS) * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
 // Signaling client state literal definitions
-#define SIGNALING_CLIENT_STATE_UNKNOWN_STR         "Unknown"
-#define SIGNALING_CLIENT_STATE_NEW_STR             "New"
-#define SIGNALING_CLIENT_STATE_GET_CREDENTIALS_STR "Get Security Credentials"
-#define SIGNALING_CLIENT_STATE_DESCRIBE_STR        "Describe Channel"
-#define SIGNALING_CLIENT_STATE_CREATE_STR          "Create Channel"
-#define SIGNALING_CLIENT_STATE_GET_ENDPOINT_STR    "Get Channel Endpoint"
-#define SIGNALING_CLIENT_STATE_GET_ICE_CONFIG_STR  "Get ICE Server Configuration"
-#define SIGNALING_CLIENT_STATE_READY_STR           "Ready"
-#define SIGNALING_CLIENT_STATE_CONNECTING_STR      "Connecting"
-#define SIGNALING_CLIENT_STATE_CONNECTED_STR       "Connected"
-#define SIGNALING_CLIENT_STATE_DISCONNECTED_STR    "Disconnected"
-#define SIGNALING_CLIENT_STATE_DELETE_STR          "Delete"
-#define SIGNALING_CLIENT_STATE_DELETED_STR         "Deleted"
+#define SIGNALING_CLIENT_STATE_UNKNOWN_STR                "Unknown"
+#define SIGNALING_CLIENT_STATE_NEW_STR                    "New"
+#define SIGNALING_CLIENT_STATE_GET_CREDENTIALS_STR        "Get Security Credentials"
+#define SIGNALING_CLIENT_STATE_DESCRIBE_STR               "Describe Channel"
+#define SIGNALING_CLIENT_STATE_CREATE_STR                 "Create Channel"
+#define SIGNALING_CLIENT_STATE_GET_ENDPOINT_STR           "Get Channel Endpoint"
+#define SIGNALING_CLIENT_STATE_GET_ICE_CONFIG_STR         "Get ICE Server Configuration"
+#define SIGNALING_CLIENT_STATE_READY_STR                  "Ready"
+#define SIGNALING_CLIENT_STATE_CONNECTING_STR             "Connecting"
+#define SIGNALING_CLIENT_STATE_CONNECTED_STR              "Connected"
+#define SIGNALING_CLIENT_STATE_DISCONNECTED_STR           "Disconnected"
+#define SIGNALING_CLIENT_STATE_DELETE_STR                 "Delete"
+#define SIGNALING_CLIENT_STATE_DELETED_STR                "Deleted"
+#define SIGNALING_CLIENT_STATE_DESCRIBE_MEDIA_STR         "Describe Media Storage"
+#define SIGNALING_CLIENT_STATE_JOIN_SESSION_STR           "Join Session"
+#define SIGNALING_CLIENT_STATE_JOIN_SESSION_WAITING_STR   "Join Session Waiting"
+#define SIGNALING_CLIENT_STATE_JOIN_SESSION_CONNECTED_STR "Join Session Connected"
 
 // Error refreshing ICE server configuration string
 #define SIGNALING_ICE_CONFIG_REFRESH_ERROR_MSG "Failed refreshing ICE server configuration with status code 0x%08x."
@@ -148,6 +152,10 @@ typedef struct {
     SignalingApiCallHookFunc getIceConfigPostHookFn;
     SignalingApiCallHookFunc connectPreHookFn;
     SignalingApiCallHookFunc connectPostHookFn;
+    SignalingApiCallHookFunc joinSessionPreHookFn;
+    SignalingApiCallHookFunc joinSessionPostHookFn;
+    SignalingApiCallHookFunc describeMediaStorageConfPreHookFn;
+    SignalingApiCallHookFunc describeMediaStorageConfPostHookFn;
     SignalingApiCallHookFunc deletePreHookFn;
     SignalingApiCallHookFunc deletePostHookFn;
 
@@ -194,6 +202,7 @@ typedef struct {
     UINT64 dpApiLatency;
     UINT64 getTokenCallTime;
     UINT64 describeCallTime;
+    UINT64 describeMediaCallTime;
     UINT64 createCallTime;
     UINT64 getEndpointCallTime;
     UINT64 getIceConfigCallTime;
@@ -202,6 +211,8 @@ typedef struct {
     UINT64 fetchClientTime;
     UINT64 connectClientTime;
     UINT64 offerToAnswerTime;
+    UINT64 joinSessionCallTime;
+    UINT64 joinSessionToOfferRecvTime;
     PHashTable pEndpointToClockSkewHashMap;
     UINT32 stateMachineRetryCount;
 } SignalingDiagnostics, PSignalingDiagnostics;
@@ -244,6 +255,8 @@ typedef struct {
     // Indicates that there is another thread attempting to grab the service lock
     volatile ATOMIC_BOOL serviceLockContention;
 
+    volatile ATOMIC_BOOL offerReceived;
+
     // Stored Client info
     SignalingClientInfoInternal clientInfo;
 
@@ -259,11 +272,17 @@ typedef struct {
     // Returned signaling channel description
     SignalingChannelDescription channelDescription;
 
+    // Returned media storage session
+    MediaStorageConfig mediaStorageConfig;
+
     // Signaling endpoint
     CHAR channelEndpointWss[MAX_SIGNALING_ENDPOINT_URI_LEN + 1];
 
     // Signaling endpoint
     CHAR channelEndpointHttps[MAX_SIGNALING_ENDPOINT_URI_LEN + 1];
+
+    // Media storage endpoint
+    CHAR channelEndpointWebrtc[MAX_SIGNALING_ENDPOINT_URI_LEN + 1];
 
     // Number of Ice Server objects
     UINT32 iceConfigCount;
@@ -350,8 +369,24 @@ typedef struct {
     UINT64 getIceConfigTime;
     UINT64 deleteTime;
     UINT64 connectTime;
+    UINT64 describeMediaTime;
     UINT64 offerTime;
     UINT64 answerTime;
+
+#ifdef KVS_USE_SIGNALING_CHANNEL_THREADPOOL
+    PThreadpool pThreadpool;
+#endif
+    UINT64 offerReceivedTime;
+    UINT64 offerSentTime;
+
+    MUTEX offerSendReceiveTimeLock;
+    UINT64 joinSessionTime;
+
+    // mutex for join session wait condition variable
+    MUTEX jssWaitLock;
+
+    // Conditional variable for join storage session wait state
+    CVAR jssWaitCvar;
 } SignalingClient, *PSignalingClient;
 
 // Public handle to and from object converters
@@ -392,6 +427,8 @@ STATUS createChannel(PSignalingClient, UINT64);
 STATUS getChannelEndpoint(PSignalingClient, UINT64);
 STATUS getIceConfig(PSignalingClient, UINT64);
 STATUS connectSignalingChannel(PSignalingClient, UINT64);
+STATUS joinStorageSession(PSignalingClient, UINT64);
+STATUS describeMediaStorageConf(PSignalingClient, UINT64);
 STATUS deleteChannel(PSignalingClient, UINT64);
 STATUS signalingGetMetrics(PSignalingClient, PSignalingClientMetrics);
 

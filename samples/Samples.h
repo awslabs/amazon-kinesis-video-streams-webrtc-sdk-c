@@ -137,6 +137,7 @@ typedef struct {
     UINT32 iceUriCount;
     SignalingClientCallbacks signalingClientCallbacks;
     SignalingClientInfo clientInfo;
+
     RtcStats rtcIceCandidatePairMetrics;
 
     MUTEX signalingSendMessageLock;
@@ -171,6 +172,7 @@ struct __SampleStreamingSession {
     volatile ATOMIC_BOOL peerIdReceived;
     volatile ATOMIC_BOOL firstFrame;
     volatile SIZE_T frameIndex;
+    volatile SIZE_T correlationIdPostFix;
     PRtcPeerConnection pPeerConnection;
     PRtcRtpTransceiver pVideoRtcRtpTransceiver;
     PRtcRtpTransceiver pAudioRtcRtpTransceiver;
@@ -191,6 +193,15 @@ struct __SampleStreamingSession {
     PeerConnectionMetrics peerConnectionMetrics;
     KvsIceAgentMetrics iceMetrics;
 };
+
+// TODO this should all be in a higher webrtccontext layer above PeerConnection
+// Placing it here now since this is where all the current webrtccontext functions are placed
+typedef struct {
+    SIGNALING_CLIENT_HANDLE signalingClientHandle;
+    PRtcPeerConnection pRtcPeerConnection;
+    PUINT32 pUriCount;
+
+} AsyncGetIceStruct;
 
 VOID sigintHandler(INT32);
 STATUS readFrameFromDisk(PBYTE, PUINT32, PCHAR);
@@ -218,6 +229,7 @@ STATUS respondWithAnswer(PSampleStreamingSession);
 STATUS resetSampleConfigurationState(PSampleConfiguration);
 VOID sampleVideoFrameHandler(UINT64, PFrame);
 VOID sampleAudioFrameHandler(UINT64, PFrame);
+VOID sampleFrameHandler(UINT64, PFrame);
 VOID sampleBandwidthEstimationHandler(UINT64, DOUBLE);
 VOID sampleSenderBandwidthEstimationHandler(UINT64, UINT32, UINT32, UINT32, UINT32, UINT64);
 VOID onDataChannel(UINT64, PRtcDataChannel);
