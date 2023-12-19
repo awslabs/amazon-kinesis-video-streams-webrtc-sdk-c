@@ -36,7 +36,7 @@ VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL 
 {
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 i, strLen, tokenCount;
-    CHAR pMessageSend[MAX_DATA_CHANNEL_METRICS_MESSAGE_SIZE];
+    CHAR pMessageSend[MAX_DATA_CHANNEL_METRICS_MESSAGE_SIZE], errorMessage[200];
     PCHAR json;
     PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) customData;
     PSampleConfiguration pSampleConfiguration;
@@ -47,15 +47,17 @@ VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL 
     CHK(pMessage != NULL && pDataChannel != NULL, STATUS_NULL_ARG);
 
     if (pSampleStreamingSession == NULL) {
-        retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) "Could not generate stats since the streaming session is NULL", STRLEN(MASTER_DATA_CHANNEL_MESSAGE));
-        DLOGE("Could not generate stats since the streaming session is NULL");
+        STRCPY(errorMessage, "Could not generate stats since the streaming session is NULL");
+        retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) errorMessage, STRLEN(errorMessage));
+        DLOGE("%s", errorMessage);
         goto CleanUp;
     }
-    
+
     pSampleConfiguration = pSampleStreamingSession->pSampleConfiguration;
     if (pSampleConfiguration == NULL) {
-        retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) "Could not generate stats since the sample configuration is NULL", STRLEN(MASTER_DATA_CHANNEL_MESSAGE));
-        DLOGE("Could not generate stats since the sample configuration is NULL");
+        STRCPY(errorMessage, "Could not generate stats since the sample configuration is NULL");
+        retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) errorMessage, STRLEN(errorMessage));
+        DLOGE("%s", errorMessage);
         goto CleanUp;
     }
 
@@ -174,7 +176,9 @@ VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL 
             }
         } else {
             DLOGI("DataChannel string message: %.*s\n", pMessageLen, pMessage);
-            retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) MASTER_DATA_CHANNEL_MESSAGE, STRLEN(MASTER_DATA_CHANNEL_MESSAGE));
+            STRCPY(errorMessage, "Send a json message for benchmarking as the C SDK is operating in benchmarking mode");
+            retStatus =
+                dataChannelSend(pDataChannel, FALSE, (PBYTE) errorMessage, STRLEN(errorMessage));
         }
     } else {
         if (isBinary) {
