@@ -8,7 +8,12 @@ VOID shceduleShutdown(UINT64 duration, PSampleConfiguration pSampleConfiguration
 {
     THREAD_SLEEP(duration);
     DLOGD("Terminating canary due to duration reached");
-    ATOMIC_STORE_BOOL(&pSampleConfiguration->interrupted, TRUE);
+    if (gSampleConfiguration != NULL) {
+        ATOMIC_STORE_BOOL(&pSampleConfiguration->interrupted, TRUE);
+        CVAR_BROADCAST(gSampleConfiguration->cvar);
+    } else {
+        DLOGD("Error terminating canary: gSampleConfiguration is null");
+    }
 }
 
 INT32 main(INT32 argc, CHAR* argv[])
