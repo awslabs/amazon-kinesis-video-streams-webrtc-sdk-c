@@ -177,8 +177,7 @@ VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL 
         } else {
             DLOGI("DataChannel string message: %.*s\n", pMessageLen, pMessage);
             STRCPY(errorMessage, "Send a json message for benchmarking as the C SDK is operating in benchmarking mode");
-            retStatus =
-                dataChannelSend(pDataChannel, FALSE, (PBYTE) errorMessage, STRLEN(errorMessage));
+            retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) errorMessage, STRLEN(errorMessage));
         }
     } else {
         if (isBinary) {
