@@ -7,12 +7,12 @@ extern PSampleConfiguration gSampleConfiguration;
 VOID shceduleShutdown(UINT64 duration, PSampleConfiguration pSampleConfiguration)
 {
     THREAD_SLEEP(duration);
-    DLOGD("Terminating canary due to duration reached");
+    DLOGD("[Canary] Terminating canary due to duration reached");
     if (gSampleConfiguration != NULL) {
         ATOMIC_STORE_BOOL(&pSampleConfiguration->interrupted, TRUE);
         CVAR_BROADCAST(gSampleConfiguration->cvar);
     } else {
-        DLOGD("Error terminating canary: gSampleConfiguration is null");
+        DLOGE("[Canary] Error terminating canary: gSampleConfiguration is null");
     }
 }
 
@@ -46,7 +46,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     CHK_STATUS(Canary::Cloudwatch::init(&canaryConfig));
     canaryConfig.print();
     SET_LOGGER_LOG_LEVEL(canaryConfig.logLevel.value);
-    DLOGD("Canary init time: %d [ms]", (GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND) - t1);
+    DLOGD("[Canary] Canary init time: %d [ms]", (GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND) - t1);
 
 #ifndef _WIN32
     signal(SIGINT, sigintHandler);
@@ -60,17 +60,15 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     CHK_STATUS(createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, logLevel, &pSampleConfiguration));
 
-    // TODO: can remove this log once testing is complete
-    DLOGD("pSampleConfiguration address after creation: %d", pSampleConfiguration);
-
     // Set the audio and video handlers
     pSampleConfiguration->audioSource = sendAudioPackets;
     pSampleConfiguration->videoSource = sendVideoPackets;
     pSampleConfiguration->receiveAudioVideoSource = sampleReceiveAudioVideoFrame;
 
-    // Force sample to use storage mode.
+    // Set sample to use storage mode
     pSampleConfiguration->channelInfo.useMediaStorage = TRUE;
 
+    // Initialize storage disconnected timestamp
     pSampleConfiguration->storageDisconnectedTime = 0;
 
 
@@ -97,7 +95,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     DLOGI("[KVS Master] Channel %s set up done ", pChannelName);
 
     if(canaryConfig.duration.value != 0) {
-        DLOGD("Scheduling canary duration for %lu seconds", canaryConfig.duration.value / HUNDREDS_OF_NANOS_IN_A_SECOND);
+        DLOGD("[Canary] Scheduling canary duration for %lu seconds", canaryConfig.duration.value / HUNDREDS_OF_NANOS_IN_A_SECOND);
         canaryDurationThread = std::thread(shceduleShutdown, canaryConfig.duration.value, pSampleConfiguration);
         canaryDurationThread.detach();
     }
@@ -175,16 +173,15 @@ CleanUp:
 
 // Save first-frame-sent time to file for consumer-end access.
 PVOID writeFirstFrameSentTimeToFile(){
-    DLOGI("Opening toConsumer file");
+    DLOGI("[Canary] Opening toConsumer.txt");
     FILE *toConsumer = FOPEN("../toConsumer.txt", "w");
     if (toConsumer == NULL)
     {
-        printf("Error opening toConsumer file\n");
+        printf("[Canary] Error opening toConsumer.txt\n");
         exit(1);
     }
     fprintf(toConsumer, "%lli\n", GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
     FCLOSE(toConsumer);
-    
 }
 
 VOID calculateDisconnectToFrameSentTime(PSampleConfiguration pSampleConfiguration)
@@ -194,10 +191,10 @@ VOID calculateDisconnectToFrameSentTime(PSampleConfiguration pSampleConfiguratio
         DOUBLE storageDisconnectToFrameSentTime = (DOUBLE) (GETTIME() - disconnectTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
         Canary::Cloudwatch::getInstance().monitoring.pushStorageDisconnectToFrameSentTime(storageDisconnectToFrameSentTime,
                                                                         Aws::CloudWatch::Model::StandardUnit::Milliseconds);
-        DLOGI("Setting storageDisconnectedTime to zero");
+        DLOGI("[Canary] Setting storageDisconnectedTime to zero (not set)");
         pSampleConfiguration->storageDisconnectedTime = 0;
     } else {
-        DLOGI("Not sending storageDisconnectToFrameSentTime metric, storageDisconnectedTime is zero (not set)");
+        DLOGI("[Canary] Not sending storageDisconnectToFrameSentTime metric, storageDisconnectedTime is zero (not set)");
     }
 }
 
@@ -254,7 +251,7 @@ PVOID sendVideoPackets(PVOID args)
                 PROFILE_WITH_START_TIME(pSampleConfiguration->sampleStreamingSessionList[i]->offerReceiveTime, "Time to first frame");
                 
                 DOUBLE timeToFirstFrame = (DOUBLE) (GETTIME() - pSampleConfiguration->offerReceiveTimestamp) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
-                DLOGD("Start up latency from offer receive to first frame write: %lf ms", timeToFirstFrame);
+                DLOGD("[Canary] Start up latency from offer received to first frame sent (timeToFirstFrame): %lf ms", timeToFirstFrame);
                 Canary::Cloudwatch::getInstance().monitoring.pushTimeToFirstFrame(timeToFirstFrame,
                                                                                 Aws::CloudWatch::Model::StandardUnit::Milliseconds);
                 calculateDisconnectToFrameSentTime(pSampleConfiguration);
@@ -334,7 +331,7 @@ PVOID sendAudioPackets(PVOID args)
                     PROFILE_WITH_START_TIME(pSampleConfiguration->sampleStreamingSessionList[i]->offerReceiveTime, "Time to first frame");
 
                     DOUBLE timeToFirstFrame = (DOUBLE) (GETTIME() - pSampleConfiguration->offerReceiveTimestamp) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
-                    DLOGD("Start up latency from offer receive to first frame write: %lf ms", timeToFirstFrame);
+                DLOGD("[Canary] Start up latency from offer received to first frame sent (timeToFirstFrame): %lf ms", timeToFirstFrame);
                     Canary::Cloudwatch::getInstance().monitoring.pushTimeToFirstFrame(timeToFirstFrame,
                                                                                 Aws::CloudWatch::Model::StandardUnit::Milliseconds);
 
