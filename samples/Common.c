@@ -39,12 +39,25 @@ VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL 
     CHAR pMessageSend[MAX_DATA_CHANNEL_METRICS_MESSAGE_SIZE];
     PCHAR json;
     PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) customData;
-    PSampleConfiguration pSampleConfiguration = pSampleStreamingSession->pSampleConfiguration;
+    PSampleConfiguration pSampleConfiguration;
     DataChannelMessage dataChannelMessage;
     jsmn_parser parser;
     jsmntok_t tokens[MAX_JSON_TOKEN_COUNT];
 
-    CHK(pMessage != NULL && pDataChannel != NULL && pSampleStreamingSession != NULL, STATUS_NULL_ARG);
+    CHK(pMessage != NULL && pDataChannel != NULL, STATUS_NULL_ARG);
+
+    if (pSampleStreamingSession == NULL) {
+        retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) "Could not generate stats since the streaming session is NULL", STRLEN(MASTER_DATA_CHANNEL_MESSAGE));
+        DLOGE("Could not generate stats since the streaming session is NULL");
+        goto CleanUp;
+    }
+    
+    pSampleConfiguration = pSampleStreamingSession->pSampleConfiguration;
+    if (pSampleConfiguration == NULL) {
+        retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) "Could not generate stats since the sample configuration is NULL", STRLEN(MASTER_DATA_CHANNEL_MESSAGE));
+        DLOGE("Could not generate stats since the sample configuration is NULL");
+        goto CleanUp;
+    }
 
     if (pSampleConfiguration->enableSendingMetricsToViewerViaDc) {
         jsmn_init(&parser);
@@ -178,9 +191,6 @@ VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL 
 
 CleanUp:
     CHK_LOG_ERR(retStatus);
-    if (pSampleStreamingSession == NULL) {
-        DLOGE("Stats object could not be populated because of invalid arg");
-    }
 }
 
 VOID onDataChannel(UINT64 customData, PRtcDataChannel pRtcDataChannel)
