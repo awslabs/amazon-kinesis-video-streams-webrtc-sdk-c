@@ -44,7 +44,7 @@ VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL 
     jsmn_parser parser;
     jsmntok_t tokens[MAX_JSON_TOKEN_COUNT];
 
-    CHK(pMessage != NULL && pDataChannel != NULL, STATUS_NULL_ARG);
+    CHK(pMessage != NULL && pDataChannel != NULL && pSampleStreamingSession != NULL, STATUS_NULL_ARG);
 
     if (pSampleConfiguration->enableSendingMetricsToViewerViaDc) {
         jsmn_init(&parser);
@@ -178,6 +178,9 @@ VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL 
 
 CleanUp:
     CHK_LOG_ERR(retStatus);
+    if (pSampleStreamingSession == NULL) {
+        DLOGE("Stats object could not be populated because of invalid arg");
+    }
 }
 
 VOID onDataChannel(UINT64 customData, PRtcDataChannel pRtcDataChannel)
