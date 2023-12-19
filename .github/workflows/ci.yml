@@ -509,12 +509,13 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt clean && sudo apt update
+          sudo apt-get -y install libcurl4-openssl-dev
       - name: Build repository
         run: |
           # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
           sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
           mkdir build && cd build
-          cmake .. -DBUILD_TEST=TRUE -DENABLE_AWS_SDK_IN_TESTS=OFF
+          cmake .. -DBUILD_TEST=TRUE
           make
       - name: Run tests
         run:  |
