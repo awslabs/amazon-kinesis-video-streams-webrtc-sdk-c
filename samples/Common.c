@@ -89,7 +89,7 @@ VOID onConnectionStateChange(UINT64 customData, RTC_PEER_CONNECTION_STATE newSta
             DLOGD("p2p connection disconnected");
             ATOMIC_STORE_BOOL(&pSampleStreamingSession->terminateFlag, TRUE);
             CVAR_BROADCAST(pSampleConfiguration->cvar);
-            DLOGI("Setting storageDisconnectedTime member to current time");
+            DLOGI("[Canary] Setting storageDisconnectedTime member to current time");
             pSampleConfiguration->storageDisconnectedTime = GETTIME();
             // explicit fallthrough
         default:
@@ -479,6 +479,8 @@ CleanUp:
 
 STATUS populateOutgoingRtpMetricsContext(PSampleStreamingSession pSampleStreamingSession)
 {
+    DLOGD("[Canary] populateOutgoingRtpMetricsContext(...) invoked");
+
     DOUBLE currentDuration = 0;
 
     currentDuration = (DOUBLE)(pSampleStreamingSession->canaryMetrics.timestamp - pSampleStreamingSession->canaryOutgoingRTPMetricsContext.prevTs) / HUNDREDS_OF_NANOS_IN_A_SECOND;
@@ -516,82 +518,56 @@ STATUS populateOutgoingRtpMetricsContext(PSampleStreamingSession pSampleStreamin
 
 STATUS canaryRtpOutboundStats(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
-    DLOGD("canaryRtpOutboundStats function invoked");
+    DLOGD("[Canary] canaryRtpOutboundStats(...) invoked");
     UNUSED_PARAM(timerId);
     UNUSED_PARAM(currentTime);
     STATUS retStatus = STATUS_SUCCESS;
 
     PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) customData;
     PSampleConfiguration pSampleConfiguration;
-    BOOL locked = FALSE;
+    BOOL sampleConfigurationObjLockLocked = FALSE;
     BOOL sessionCoummunalLockLocked = FALSE;
 
-    //TODO: can remove some of the below logs after done testing. 
-
     if (!MUTEX_TRYLOCK(sessionCoummunalLock)) {
-        DLOGD("Failed to lock sessionCoummunalLock mutex");
         return retStatus;
     } else {
-        DLOGD("Succesfully locked sessionCoummunalLock mutex");
         sessionCoummunalLockLocked = TRUE;
     }
 
-    DLOGD("Checking for null pSampleStreamingSession");
     CHK(pSampleStreamingSession != NULL, STATUS_NULL_ARG);
-
     CHK(!ATOMIC_LOAD_BOOL(&pSampleStreamingSession->terminateFlag), retStatus);
 
-    pSampleConfiguration = pSampleStreamingSession->pSampleConfiguration; // HERE could be causing the segfault
-    DLOGD("Checking for null pSampleConfiguration");
+    pSampleConfiguration = pSampleStreamingSession->pSampleConfiguration;
     CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
-
-    DLOGD("pSampleConfiguration address at metric function: %d", pSampleConfiguration);
-
     CHK(!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag), retStatus);
 
-    DLOGD("Attmempting to lock sampleConfigurationObjLock mutex");
     // Use MUTEX_TRYLOCK to avoid possible dead lock when canceling timerQueue
     if (!MUTEX_TRYLOCK(pSampleConfiguration->sampleConfigurationObjLock)) {
-        DLOGD("Failed to lock sampleConfigurationObjLock mutex");
         if (sessionCoummunalLockLocked) {
-            DLOGD("Unlocking sessionCoummunalLock mutex");
             MUTEX_UNLOCK(sessionCoummunalLock);
         }
         return retStatus;
     } else {
-        DLOGD("Succesfully locked sampleConfigurationObjLock mutex");
-        locked = TRUE;
+        sampleConfigurationObjLockLocked = TRUE;
     }
 
-    DLOGD("Checking for terminate flags");
-    // TODO: cleanup the below.
     if(!ATOMIC_LOAD_BOOL(&pSampleStreamingSession->terminateFlag) && !ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
-        DLOGD("Checking for transceiver");
         if (pSampleStreamingSession->pVideoRtcRtpTransceiver) {
-                DLOGD("Setting requestedTypeOfStats");
                 pSampleStreamingSession->canaryMetrics.requestedTypeOfStats = RTC_STATS_TYPE_OUTBOUND_RTP;
-                DLOGD("Getting metrics");
                 CHK_LOG_ERR(rtcPeerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, pSampleStreamingSession->pVideoRtcRtpTransceiver, &(pSampleStreamingSession->canaryMetrics)));
-                DLOGD("Populating metrics context");
                 populateOutgoingRtpMetricsContext(pSampleStreamingSession);
-                DLOGD("Sending metrics");
                 Canary::POutgoingRTPMetricsContext pCanaryOutgoingRTPMetricsContext = reinterpret_cast<Canary::POutgoingRTPMetricsContext>(&(pSampleStreamingSession->canaryOutgoingRTPMetricsContext));
-                DLOGD("Calling pushOutboundRtpStats...");
                 Canary::Cloudwatch::getInstance().monitoring.pushOutboundRtpStats(pCanaryOutgoingRTPMetricsContext);
-                DLOGD("Finished calling pushOutboundRtpStats");
-                DLOGD("Past sending metrics");
             }
     } else {
         retStatus = STATUS_TIMER_QUEUE_STOP_SCHEDULING;
     }
 
 CleanUp:
-    if (locked) {
-        DLOGD("Unlocking sampleConfigurationObjLock mutex");
+    if (sampleConfigurationObjLockLocked) {
         MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
     }
     if (sessionCoummunalLockLocked) {
-        DLOGD("Unlocking sessionCoummunalLock mutex");
         MUTEX_UNLOCK(sessionCoummunalLock);
     }
     return retStatus;
@@ -599,6 +575,8 @@ CleanUp:
 
 STATUS sendProfilingMetrics(PSampleStreamingSession pSampleStreamingSession)
 {
+    DLOGD("[Canary] sendProfilingMetrics(...) invoked");
+
     STATUS retStatus = STATUS_SUCCESS;
     UINT64 joinSessionToOfferRecvTime;
     PSampleConfiguration pSampleConfiguration;
@@ -610,7 +588,6 @@ STATUS sendProfilingMetrics(PSampleStreamingSession pSampleStreamingSession)
     CHK(!pSampleStreamingSession->firstFrame, STATUS_WAITING_ON_FIRST_FRAME);
 
     // We want to batch send all the metrics once the first frame is sent out.
-    //pSampleConfiguration->signalingClientMetrics.version = SIGNALING_CLIENT_METRICS_CURRENT_VERSION;
 
     if(STATUS_FAILED(signalingClientGetMetrics(pSampleConfiguration->signalingClientHandle, &pSampleConfiguration->signalingClientMetrics))) {
         DLOGW("Could not get signaling client metrics (0x%08x)", retStatus);
@@ -650,7 +627,7 @@ CleanUp:
 
 STATUS sendProfilingMetricsTryer(PSampleStreamingSession pSampleStreamingSession)
 {
-    DLOGD("sendProfilingMetricsTryer called");
+    DLOGD("[Canary] sendProfilingMetricsTryer(...) invoked");
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration;
     BOOL done = FALSE;
@@ -659,13 +636,12 @@ STATUS sendProfilingMetricsTryer(PSampleStreamingSession pSampleStreamingSession
     pSampleConfiguration = pSampleStreamingSession->pSampleConfiguration;
     CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
 
-    // TODO: Consider add mutex lock for streaming session config, maybe use the sessionCoummunalLock mutex.
     while (!ATOMIC_LOAD_BOOL(&pSampleStreamingSession->terminateFlag) && !ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
         retStatus = sendProfilingMetrics(pSampleStreamingSession);
         if (retStatus == STATUS_WAITING_ON_FIRST_FRAME) {
             THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_MILLISECOND * 100); // to prevent busy waiting
         } else if (retStatus == STATUS_SUCCESS) {
-            DLOGI("First frame sent out, pushed profiling metrics");
+            DLOGI("[Canary] First frame sent out, pushed profiling metrics");
             done = TRUE;
             break;
         }
@@ -673,7 +649,7 @@ STATUS sendProfilingMetricsTryer(PSampleStreamingSession pSampleStreamingSession
 
 CleanUp:
     if(!done) {
-            DLOGE("First frame never got sent out...no profiling metrics pushed to cloudwatch..error code: 0x%08x", retStatus);
+            DLOGE("[Canary] First frame never got sent out...no profiling metrics pushed to cloudwatch..error code: 0x%08x", retStatus);
         }
     return retStatus;
 }
@@ -690,13 +666,9 @@ STATUS initMetricsTimers(PSampleStreamingSession pSampleStreamingSession)
     pSampleStreamingSession->pushProfilingThread = std::thread(sendProfilingMetricsTryer, pSampleStreamingSession);
     pSampleStreamingSession->pushProfilingThread.detach();
 
-    DLOGD("Adding metricsTimer");
     CHK_STATUS(timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, METRICS_INVOCATION_PERIOD, METRICS_INVOCATION_PERIOD, canaryRtpOutboundStats, (UINT64) pSampleStreamingSession,
                                       &pSampleStreamingSession->metricsTimerId));
-    DLOGD("Done adding metricsTimer");
-    DLOGD("Metrics Timer created with ID: %lu", pSampleStreamingSession->metricsTimerId);
-    DLOGD("...and for timerQueueHandle: %llu", pSampleConfiguration->timerQueueHandle);
-
+    DLOGD("[Canary] Added metricsTimer");
 
 CleanUp:
     return retStatus;
@@ -787,7 +759,6 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
                                                          sampleSenderBandwidthEstimationHandler));
     pSampleStreamingSession->startUpLatency = 0;
 
-    DLOGD("Setting up metrics timer for session");
     pSampleStreamingSession->canaryOutgoingRTPMetricsContext.prevTs = GETTIME();
     pSampleStreamingSession->canaryOutgoingRTPMetricsContext.prevFramesDiscardedOnSend = 0;
     pSampleStreamingSession->canaryOutgoingRTPMetricsContext.prevNackCount = 0;
@@ -823,11 +794,7 @@ STATUS freeSampleStreamingSession(PSampleStreamingSession* ppSampleStreamingSess
     // this would cause 2 sessions to occur at the same time as disconnect triggers a new session.
     // It might be worth moving the new session creation to be called at the end of freeSession if config terminate is not true.
     // OR is there a way to not allow session to reconnect? Calling create session on the same master-viewer seems to be a totally new use case
-    DLOGD("Going to lock sessionCoummunalLock mutex from free()");
     MUTEX_LOCK(sessionCoummunalLock);
-    DLOGD("Successfully locked sessionCoummunalLock mutex from free()");
-
-    DLOGD("Freeing streaming session with peer id: %s ", pSampleStreamingSession->peerId);
 
     ATOMIC_STORE_BOOL(&pSampleStreamingSession->terminateFlag, TRUE);
 
@@ -842,10 +809,7 @@ STATUS freeSampleStreamingSession(PSampleStreamingSession* ppSampleStreamingSess
     // De-initialize the session stats timer if there are no active sessions
     // NOTE: we need to perform this under the lock which might be acquired by
     // the running thread but it's OK as it's re-entrant
-
-    DLOGD("Going to lock sampleConfigurationObjLock mutex from free()");
     MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
-    DLOGD("Successfully locked sampleConfigurationObjLock mutex from free()");
 
     if (pSampleConfiguration->iceCandidatePairStatsTimerId != MAX_UINT32 && pSampleConfiguration->streamingSessionCount == 0 &&
         IS_VALID_TIMER_QUEUE_HANDLE(pSampleConfiguration->timerQueueHandle)) {
@@ -855,13 +819,11 @@ STATUS freeSampleStreamingSession(PSampleStreamingSession* ppSampleStreamingSess
     }
 
     // Free the metrics timer, make new one for each session (therefore making a new one for each 60min storage session).
-    DLOGD("Checking for Cleaningup Metrics Timer");
     if (pSampleStreamingSession->metricsTimerId != MAX_UINT32 && IS_VALID_TIMER_QUEUE_HANDLE(pSampleConfiguration->timerQueueHandle)) {
-        DLOGD("Cleaningup Metrics Timer with ID: %lu", pSampleStreamingSession->metricsTimerId);
-        DLOGD("...and for timerQueueHandle: %llu", pSampleConfiguration->timerQueueHandle);
         CHK_LOG_ERR(timerQueueCancelTimer(pSampleConfiguration->timerQueueHandle, pSampleStreamingSession->metricsTimerId,
                                           (UINT64) pSampleStreamingSession));
     }
+
     MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
 
     CHK_LOG_ERR(closePeerConnection(pSampleStreamingSession->pPeerConnection));
@@ -1036,30 +998,6 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
 #endif
 
     pSessionToken = GETENV(SESSION_TOKEN_ENV_VAR);
-
-
-    /*Commented out below to use canary logging instead*/
-    // If the env is set, we generate normal log files apart from filtered profile log files
-    // If not set, we generate only the filtered profile log files
-    // if (NULL != GETENV(ENABLE_FILE_LOGGING)) {
-    //     retStatus = createFileLoggerWithLevelFiltering(FILE_LOGGING_BUFFER_SIZE, MAX_NUMBER_OF_LOG_FILES, (PCHAR) FILE_LOGGER_LOG_FILE_DIRECTORY_PATH,
-    //                                                    TRUE, TRUE, TRUE, LOG_LEVEL_PROFILE, NULL);
-
-    //     if (retStatus != STATUS_SUCCESS) {
-    //         DLOGW("[KVS Master] createFileLogger(): operation returned status code: 0x%08x", retStatus);
-    //     } else {
-    //         pSampleConfiguration->enableFileLogging = TRUE;
-    //     }
-    // } else {
-    //     retStatus = createFileLoggerWithLevelFiltering(FILE_LOGGING_BUFFER_SIZE, MAX_NUMBER_OF_LOG_FILES, (PCHAR) FILE_LOGGER_LOG_FILE_DIRECTORY_PATH,
-    //                                                    TRUE, TRUE, FALSE, LOG_LEVEL_PROFILE, NULL);
-
-    //     if (retStatus != STATUS_SUCCESS) {
-    //         DLOGW("[KVS Master] createFileLogger(): operation returned status code: 0x%08x", retStatus);
-    //     } else {
-    //         pSampleConfiguration->enableFileLogging = TRUE;
-    //     }
-    // }
 
     if ((pSampleConfiguration->channelInfo.pRegion = GETENV(DEFAULT_REGION_ENV_VAR)) == NULL) {
         pSampleConfiguration->channelInfo.pRegion = DEFAULT_AWS_REGION;
@@ -1693,33 +1631,23 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
             }
             CHK_STATUS(createSampleStreamingSession(pSampleConfiguration, pReceivedSignalingMessage->signalingMessage.peerClientId, TRUE,
                                                     &pSampleStreamingSession));
-            DLOGD("Finished calling createSampleStreamingSession");
                                                 
             MUTEX_LOCK(pSampleConfiguration->streamingSessionListReadLock);
-            DLOGD("Adding pSampleStreamingSession ");
             pSampleConfiguration->sampleStreamingSessionList[pSampleConfiguration->streamingSessionCount++] = pSampleStreamingSession;
-            DLOGD("Added pSampleStreamingSession ");
             MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
 
-            DLOGD("Calling handleOffer");
             CHK_STATUS(handleOffer(pSampleConfiguration, pSampleStreamingSession, &pReceivedSignalingMessage->signalingMessage));
-            DLOGD("Calling hashTablePut");
             CHK_STATUS(hashTablePut(pSampleConfiguration->pRtcPeerConnectionForRemoteClient, clientIdHash, (UINT64) pSampleStreamingSession));
-
-            DLOGD("Calling getPendingMessageQueueForHash");
 
             // If there are any ice candidate messages in the queue for this client id, submit them now.
             CHK_STATUS(getPendingMessageQueueForHash(pSampleConfiguration->pPendingSignalingMessageForRemoteClient, clientIdHash, TRUE,
                                                      &pPendingMessageQueue));
             if (pPendingMessageQueue != NULL) {
-                DLOGD("Calling submitPendingIceCandidate");
                 CHK_STATUS(submitPendingIceCandidate(pPendingMessageQueue, pSampleStreamingSession));
 
                 // NULL the pointer to avoid it being freed in the cleanup
                 pPendingMessageQueue = NULL;
             }
-
-            DLOGD("Setting iceCandidatePairStatsTimerId");
 
             startStats = pSampleConfiguration->iceCandidatePairStatsTimerId == MAX_UINT32;
             break;
