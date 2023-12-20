@@ -416,7 +416,7 @@ jobs:
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   sample-check:
     if: github.repository == 'awslabs/amazon-kinesis-video-streams-webrtc-sdk-c'
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     env:
       AWS_KVS_LOG_LEVEL: 2
     permissions:
@@ -424,19 +424,21 @@ jobs:
       contents: read
     steps:
       - name: Clone repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
+          role-duration-seconds: 10800
       - name: Build repository
         run: |
           sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
           mkdir build && cd build
           cmake ..
           make
-          cd ..
+      - name: Sample check
+        run: |
           ./scripts/check-sample.sh
   ubuntu-os-build:
     runs-on: ubuntu-20.04
