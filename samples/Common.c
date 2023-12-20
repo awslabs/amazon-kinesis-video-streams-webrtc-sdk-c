@@ -74,7 +74,13 @@ VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL 
         MEMSET(dataChannelMessage.lastMessageFromViewerTs, '\0', SIZEOF(dataChannelMessage.lastMessageFromViewerTs));
 
         if (tokenCount > 1) {
-            CHK(tokens[0].type == JSMN_OBJECT, STATUS_INVALID_API_CALL_RETURN_JSON);
+            if (tokens[0].type != JSMN_OBJECT) {
+                STRCPY(errorMessage, "Invalid JSON received, please send a valid json as the SDK is operating in datachannel-benchmarking mode");
+                retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) errorMessage, STRLEN(errorMessage));
+                DLOGE("%s", errorMessage);
+                retStatus = STATUS_INVALID_API_CALL_RETURN_JSON;
+                goto CleanUp;
+            }
             DLOGI("DataChannel json message: %.*s\n", pMessageLen, pMessage);
 
             for (i = 1; i < tokenCount; i++) {
