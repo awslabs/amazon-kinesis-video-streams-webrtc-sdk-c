@@ -265,6 +265,7 @@ struct __IceAgent {
     PTransactionIdStore pStunBindingRequestTransactionIdStore;
 
     UINT64 candidateGatheringStartTime;
+    UINT64 candidateGatheringProcessEndTime;
     UINT64 iceAgentStartTime;
 };
 

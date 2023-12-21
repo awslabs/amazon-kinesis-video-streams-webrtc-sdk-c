@@ -49,11 +49,28 @@ extern "C" {
 #define IOT_CORE_THING_NAME          ((PCHAR) "AWS_IOT_CORE_THING_NAME")
 #define IOT_CORE_CERTIFICATE_ID      ((PCHAR) "AWS_IOT_CORE_CERTIFICATE_ID")
 
+/* Uncomment the following line in order to enable IoT credentials checks in the provided samples */
+// #define IOT_CORE_ENABLE_CREDENTIALS  1
+
 #define MASTER_DATA_CHANNEL_MESSAGE "This message is from the KVS Master"
 #define VIEWER_DATA_CHANNEL_MESSAGE "This message is from the KVS Viewer"
 
-/* Uncomment the following line in order to enable IoT credentials checks in the provided samples */
-// #define IOT_CORE_ENABLE_CREDENTIALS  1
+#define DATA_CHANNEL_MESSAGE_TEMPLATE                                                                                                                \
+    "{\"content\":\"%s\",\"firstMessageFromViewerTs\":\"%s\",\"firstMessageFromMasterTs\":\"%s\",\"secondMessageFromViewerTs\":\"%s\","              \
+    "\"secondMessageFromMasterTs\":\"%s\",\"lastMessageFromViewerTs\":\"%s\" }"
+#define PEER_CONNECTION_METRICS_JSON_TEMPLATE "{\"peerConnectionStartTime\": %llu, \"peerConnectionEndTime\": %llu }"
+#define SIGNALING_CLIENT_METRICS_JSON_TEMPLATE                                                                                                       \
+    "{\"signalingStartTime\": %llu, \"signalingEndTime\": %llu, \"offerReceiptTime\": %llu, \"sendAnswerTime\": %llu, "                              \
+    "\"describeChannelStartTime\": %llu, \"describeChannelEndTime\": %llu, \"getSignalingChannelEndpointStartTime\": %llu, "                         \
+    "\"getSignalingChannelEndpointEndTime\": %llu, \"getIceServerConfigStartTime\": %llu, \"getIceServerConfigEndTime\": %llu, "                     \
+    "\"getTokenStartTime\": %llu, \"getTokenEndTime\": %llu, \"createChannelStartTime\": %llu, \"createChannelEndTime\": %llu, "                     \
+    "\"connectStartTime\": %llu, \"connectEndTime\": %llu }"
+#define ICE_AGENT_METRICS_JSON_TEMPLATE "{\"candidateGatheringStartTime\": %llu, \"candidateGatheringEndTime\": %llu }"
+
+#define MAX_DATA_CHANNEL_METRICS_MESSAGE_SIZE     260 // strlen(DATA_CHANNEL_MESSAGE_TEMPLATE) + 20 * 5
+#define MAX_PEER_CONNECTION_METRICS_MESSAGE_SIZE  105 // strlen(PEER_CONNECTION_METRICS_JSON_TEMPLATE) + 20 * 2
+#define MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE 736 // strlen(SIGNALING_CLIENT_METRICS_JSON_TEMPLATE) + 20 * 10
+#define MAX_ICE_AGENT_METRICS_MESSAGE_SIZE        113 // strlen(ICE_AGENT_METRICS_JSON_TEMPLATE) + 20 * 2
 
 typedef enum {
     SAMPLE_STREAMING_VIDEO_ONLY,
@@ -112,6 +129,7 @@ typedef struct {
     CVAR cvar;
     BOOL trickleIce;
     BOOL useTurn;
+    BOOL enableSendingMetricsToViewerViaDc;
     BOOL enableFileLogging;
     UINT64 customData;
     PSampleStreamingSession sampleStreamingSessionList[DEFAULT_MAX_CONCURRENT_STREAMING_SESSION];
@@ -131,6 +149,15 @@ typedef struct {
     PCHAR rtspUri;
     UINT32 logLevel;
 } SampleConfiguration, *PSampleConfiguration;
+
+typedef struct {
+    CHAR content[100];
+    CHAR firstMessageFromViewerTs[20];
+    CHAR firstMessageFromMasterTs[20];
+    CHAR secondMessageFromViewerTs[20];
+    CHAR secondMessageFromMasterTs[20];
+    CHAR lastMessageFromViewerTs[20];
+} DataChannelMessage;
 
 typedef struct {
     UINT64 hashValue;
@@ -166,6 +193,9 @@ struct __SampleStreamingSession {
     UINT64 offerReceiveTime;
     PeerConnectionMetrics peerConnectionMetrics;
     KvsIceAgentMetrics iceMetrics;
+    CHAR pPeerConnectionMetricsMessage[MAX_PEER_CONNECTION_METRICS_MESSAGE_SIZE];
+    CHAR pSignalingClientMetricsMessage[MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE];
+    CHAR pIceAgentMetricsMessage[MAX_ICE_AGENT_METRICS_MESSAGE_SIZE];
 };
 
 // TODO this should all be in a higher webrtccontext layer above PeerConnection

@@ -1,13 +1,10 @@
 #!/bin/bash
 
-if [[ -z "$AWS_ACCESS_KEY_ID" || -z "$AWS_SECRET_ACCESS_KEY" ]]
+if [[ -z "$AWS_ACCESS_KEY_ID" || -z "$AWS_SECRET_ACCESS_KEY" || -z "$AWS_SESSION_TOKEN" ]]
 then
   echo "Couldn't find AWS credentials. Very likely this build is coming from a fork. Ignoring."
   exit 0
 fi
-
-# Set session token to empty string to check that it gets ignored
-export AWS_SESSION_TOKEN=
 
 # Set bash to print out every command that's running to the screen
 # Set logging after checking credentials so that we don't leak them

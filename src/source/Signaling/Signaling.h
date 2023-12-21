@@ -184,6 +184,18 @@ typedef struct {
     volatile SIZE_T numberOfErrors;
     volatile SIZE_T numberOfRuntimeErrors;
     volatile SIZE_T numberOfReconnects;
+    UINT64 describeChannelStartTime;
+    UINT64 describeChannelEndTime;
+    UINT64 getSignalingChannelEndpointStartTime;
+    UINT64 getSignalingChannelEndpointEndTime;
+    UINT64 getIceServerConfigStartTime;
+    UINT64 getIceServerConfigEndTime;
+    UINT64 getTokenStartTime;
+    UINT64 getTokenEndTime;
+    UINT64 createChannelStartTime;
+    UINT64 createChannelEndTime;
+    UINT64 connectStartTime;
+    UINT64 connectEndTime;
     UINT64 createTime;
     UINT64 connectTime;
     UINT64 cpApiLatency;
@@ -358,6 +370,7 @@ typedef struct {
     UINT64 deleteTime;
     UINT64 connectTime;
     UINT64 describeMediaTime;
+    UINT64 answerTime;
 
 #ifdef KVS_USE_SIGNALING_CHANNEL_THREADPOOL
     PThreadpool pThreadpool;

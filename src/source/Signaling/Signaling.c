@@ -416,8 +416,8 @@ STATUS signalingSendMessageSync(PSignalingClient pSignalingClient, PSignalingMes
     if (pSignalingMessage->messageType == SIGNALING_MESSAGE_TYPE_OFFER) {
         pSignalingClient->offerSentTime = GETTIME();
     } else if (pSignalingMessage->messageType == SIGNALING_MESSAGE_TYPE_ANSWER) {
-        PROFILE_WITH_START_TIME_OBJ(pSignalingClient->offerReceivedTime, pSignalingClient->diagnostics.offerToAnswerTime,
-                                    "Offer Received to Answer Sent time");
+        PROFILE_WITH_START_END_TIME_OBJ(pSignalingClient->offerReceivedTime, pSignalingClient->answerTime,
+                                        pSignalingClient->diagnostics.offerToAnswerTime, "Offer Received to Answer Sent time");
     }
     MUTEX_UNLOCK(pSignalingClient->offerSendReceiveTimeLock);
     // Update the internal diagnostics only after successfully sending
@@ -1422,6 +1422,22 @@ STATUS signalingGetMetrics(PSignalingClient pSignalingClient, PSignalingClientMe
             pSignalingClientMetrics->signalingClientStats.connectClientTime = pSignalingClient->diagnostics.connectClientTime;
             pSignalingClientMetrics->signalingClientStats.joinSessionCallTime = pSignalingClient->diagnostics.joinSessionCallTime;
             pSignalingClientMetrics->signalingClientStats.offerToAnswerTime = pSignalingClient->diagnostics.offerToAnswerTime;
+            pSignalingClientMetrics->signalingClientStats.answerTime = pSignalingClient->answerTime;
+            pSignalingClientMetrics->signalingClientStats.offerReceivedTime = pSignalingClient->offerReceivedTime;
+            pSignalingClientMetrics->signalingClientStats.describeChannelStartTime = pSignalingClient->diagnostics.describeChannelStartTime;
+            pSignalingClientMetrics->signalingClientStats.describeChannelEndTime = pSignalingClient->diagnostics.describeChannelEndTime;
+            pSignalingClientMetrics->signalingClientStats.getSignalingChannelEndpointStartTime =
+                pSignalingClient->diagnostics.getSignalingChannelEndpointStartTime;
+            pSignalingClientMetrics->signalingClientStats.getSignalingChannelEndpointEndTime =
+                pSignalingClient->diagnostics.getSignalingChannelEndpointEndTime;
+            pSignalingClientMetrics->signalingClientStats.getIceServerConfigStartTime = pSignalingClient->diagnostics.getIceServerConfigStartTime;
+            pSignalingClientMetrics->signalingClientStats.getIceServerConfigEndTime = pSignalingClient->diagnostics.getIceServerConfigEndTime;
+            pSignalingClientMetrics->signalingClientStats.getTokenStartTime = pSignalingClient->diagnostics.getTokenStartTime;
+            pSignalingClientMetrics->signalingClientStats.getTokenEndTime = pSignalingClient->diagnostics.getTokenEndTime;
+            pSignalingClientMetrics->signalingClientStats.createChannelStartTime = pSignalingClient->diagnostics.createChannelStartTime;
+            pSignalingClientMetrics->signalingClientStats.createChannelEndTime = pSignalingClient->diagnostics.createChannelEndTime;
+            pSignalingClientMetrics->signalingClientStats.connectStartTime = pSignalingClient->diagnostics.connectStartTime;
+            pSignalingClientMetrics->signalingClientStats.connectEndTime = pSignalingClient->diagnostics.connectEndTime;
             pSignalingClientMetrics->signalingClientStats.joinSessionToOfferRecvTime = pSignalingClient->diagnostics.joinSessionToOfferRecvTime;
         case 0:
             // Fill in the data structures according to the version of the requested structure
