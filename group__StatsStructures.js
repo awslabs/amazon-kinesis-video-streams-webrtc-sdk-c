@@ -14,7 +14,10 @@ var group__StatsStructures =
       [ "version", "group__StatusCodes.html#gaa4d86ac72d03331f4b926c374b44e9ac", null ]
     ] ],
     [ "SignalingClientMetrics", "structSignalingClientMetrics.html", [
+      [ "signalingCallTime", "group__StatusCodes.html#ga583ffb902ebef3705cf6683c72e2103e", null ],
       [ "signalingClientStats", "group__StatusCodes.html#ga19e455ef17680d69fc2de9f0c886ea80", null ],
+      [ "signalingEndTime", "group__StatusCodes.html#ga0cde18706bd721a92d95c6f498447a01", null ],
+      [ "signalingStartTime", "group__StatusCodes.html#gaba12c2015498c1e3751817128323bd43", null ],
       [ "version", "group__StatusCodes.html#ga9ff5ba01b5b62d3996d2828763ec4a0d", null ]
     ] ],
     [ "KvsIceAgentMetrics", "structKvsIceAgentMetrics.html", [
@@ -83,6 +86,8 @@ var group__StatsStructures =
       [ "url", "structRtcIceServerStats.html#ac2bc499602273f0d2c6071405daa6cf6", null ]
     ] ],
     [ "KvsIceAgentStats", "structKvsIceAgentStats.html", [
+      [ "candidateGatheringEndTime", "structKvsIceAgentStats.html#a6a864359e5f9d4d0fbf23a4d2f2e5c15", null ],
+      [ "candidateGatheringStartTime", "structKvsIceAgentStats.html#abda033adeb2bb2b0d8672486205b223a", null ],
       [ "candidateGatheringTime", "structKvsIceAgentStats.html#a1697c6e365f809e524d5fb7814b211ec", null ],
       [ "hostCandidateSetUpTime", "structKvsIceAgentStats.html#aa5b7877228bd50f7b303bc9c4120d6aa", null ],
       [ "iceAgentSetUpTime", "structKvsIceAgentStats.html#ad733b0c3a05f2892b901f4079f24dd6b", null ],
@@ -257,20 +262,33 @@ var group__StatsStructures =
       [ "transportId", "structRtcDataChannelStats.html#a8def150a423033b6d77697d0a6b32d48", null ]
     ] ],
     [ "SignalingClientStats", "structSignalingClientStats.html", [
+      [ "answerTime", "structSignalingClientStats.html#a028f62d7b2d12a616dbf1003c4ee50cf", null ],
       [ "apiCallRetryCount", "structSignalingClientStats.html#a95a513a223371b29c540983fd3ecaf04", null ],
       [ "connectCallTime", "structSignalingClientStats.html#a19727f1de36f06b07a6877ff0b69d43d", null ],
       [ "connectClientTime", "structSignalingClientStats.html#a9685ff1d6dce67ea8c4580065790f997", null ],
+      [ "connectEndTime", "structSignalingClientStats.html#aa5178287454518b4217f8759abf831f7", null ],
       [ "connectionDuration", "structSignalingClientStats.html#a11d655b6febcfa1b84596b769248d086", null ],
+      [ "connectStartTime", "structSignalingClientStats.html#a38194e3be4b7e0b4ddb522a202cb4e95", null ],
       [ "cpApiCallLatency", "structSignalingClientStats.html#a6dc71a2165fa2c15cd1ab1391337d932", null ],
       [ "createCallTime", "structSignalingClientStats.html#addca1f3b2556f449a863c330f8a9da64", null ],
+      [ "createChannelEndTime", "structSignalingClientStats.html#a1ee463c25ab18505bb959dbfe00308f4", null ],
+      [ "createChannelStartTime", "structSignalingClientStats.html#a8729ae2d90bd6adf1aacd772442f57f4", null ],
       [ "createClientTime", "structSignalingClientStats.html#aaf1b82a44eb540b4f0a133f93be2e523", null ],
       [ "describeCallTime", "structSignalingClientStats.html#a37476bd4a95c89d9dcd01cfa3d0d686d", null ],
+      [ "describeChannelEndTime", "structSignalingClientStats.html#a56e72fa4c53c64d2cd137c383741c8ff", null ],
+      [ "describeChannelStartTime", "structSignalingClientStats.html#a6a02499598111cd7ba1da2295294d16f", null ],
       [ "describeMediaCallTime", "structSignalingClientStats.html#a856683cc6127802465b3c863a3906dac", null ],
       [ "dpApiCallLatency", "structSignalingClientStats.html#a00f3d2b3ea61ddc1353a4a7d5ed6084a", null ],
       [ "fetchClientTime", "structSignalingClientStats.html#aaa941b8e117483e0aeb070dd565d2b71", null ],
       [ "getEndpointCallTime", "structSignalingClientStats.html#a9e7f8a8485e6f1ee0348b15e727072f2", null ],
       [ "getIceConfigCallTime", "structSignalingClientStats.html#a304aa3a80fc36dd82cf4457bcfa7f4f5", null ],
+      [ "getIceServerConfigEndTime", "structSignalingClientStats.html#a261785a723cf9b43fe00a8b30f03854a", null ],
+      [ "getIceServerConfigStartTime", "structSignalingClientStats.html#a3c312a48c99926662e58d412aab99071", null ],
+      [ "getSignalingChannelEndpointEndTime", "structSignalingClientStats.html#aa47f9926b146cdc7494401d18b07e0d5", null ],
+      [ "getSignalingChannelEndpointStartTime", "structSignalingClientStats.html#a2314e1601312bd4ae6fe57aae8bbe68c", null ],
       [ "getTokenCallTime", "structSignalingClientStats.html#a38411c47a7e2132934323749c778a055", null ],
+      [ "getTokenEndTime", "structSignalingClientStats.html#a9c442c597a01f1f40733d1a9592aa11e", null ],
+      [ "getTokenStartTime", "structSignalingClientStats.html#a66443a9f226748063d0d2af850932139", null ],
       [ "iceRefreshCount", "structSignalingClientStats.html#a86d9e6bea63d4c69c4b04223d59c5142", null ],
       [ "joinSessionCallTime", "structSignalingClientStats.html#a70c1f8cb58cae9dcb5f9ecba1601be3d", null ],
       [ "joinSessionToOfferRecvTime", "structSignalingClientStats.html#a965175141e7d0b12ba46450469e3bfa7", null ],
@@ -279,6 +297,7 @@ var group__StatsStructures =
       [ "numberOfMessagesSent", "structSignalingClientStats.html#a76b01fd641d9e83b517ac40aaba4d42a", null ],
       [ "numberOfReconnects", "structSignalingClientStats.html#a88a95942f794d84724583ef8b6d9f181", null ],
       [ "numberOfRuntimeErrors", "structSignalingClientStats.html#ac9ba962af79e44d73aac0688f09019ca", null ],
+      [ "offerReceivedTime", "structSignalingClientStats.html#a1199591942fe9a4f884f18e89c1af449", null ],
       [ "offerToAnswerTime", "structSignalingClientStats.html#a5f778adfc7b9281a028a712afb5253e4", null ],
       [ "signalingClientUptime", "structSignalingClientStats.html#ac581ceebed9a391235a48dba8e4cff34", null ]
     ] ],
@@ -287,7 +306,9 @@ var group__StatsStructures =
       [ "dtlsSessionSetupTime", "structPeerConnectionStats.html#a412b46f47dcc4a258e97e42b141b7895", null ],
       [ "freePeerConnectionTime", "structPeerConnectionStats.html#ae7ec7065fae6c858d749a72636efe0cf", null ],
       [ "iceHolePunchingTime", "structPeerConnectionStats.html#a9a6571358bdd506414ab5969ace3fbaa", null ],
+      [ "peerConnectionConnectedTime", "structPeerConnectionStats.html#a821630af03d781aeab03b4561985b1e6", null ],
       [ "peerConnectionCreationTime", "structPeerConnectionStats.html#aaebad827f202401d21ca767885ff1618", null ],
+      [ "peerConnectionStartTime", "structPeerConnectionStats.html#a8b0a35f62e500d7cd0478930ecb39284", null ],
       [ "stunDnsResolutionTime", "structPeerConnectionStats.html#a1a313a9ddae426ba094442d84fb6087e", null ]
     ] ],
     [ "RtcStatsObject", "structRtcStatsObject.html", [

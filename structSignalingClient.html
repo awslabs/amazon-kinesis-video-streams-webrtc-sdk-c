@@ -105,19 +105,19 @@ Collaboration diagram for SignalingClient:</div>
 <div class="dyncontent">
 <div class="center"><img src="structSignalingClient__coll__graph.png" border="0" usemap="#aSignalingClient_coll__map" alt="Collaboration graph"/></div>
 <map name="aSignalingClient_coll__map" id="aSignalingClient_coll__map">
-<area shape="rect" title=" " alt="" coords="709,821,894,1045"/>
-<area shape="rect" href="struct____LwsCallInfo.html" title=" " alt="" coords="726,1108,877,1303"/>
-<area shape="rect" href="structSignalingDiagnostics.html" title=" " alt="" coords="5,520,232,744"/>
-<area shape="rect" href="structSignalingClientInfoInternal.html" title=" " alt="" coords="256,520,451,744"/>
-<area shape="rect" href="structSignalingClientInfo.html" title="Populate Signaling client with client ID and application log level." alt="" coords="223,219,484,457"/>
-<area shape="rect" href="structMediaStorageConfig.html" title=" " alt="" coords="475,586,629,678"/>
-<area shape="rect" href="structChannelInfo.html" title="Contains all signaling channel related information." alt="" coords="654,520,818,744"/>
-<area shape="rect" href="structThreadTracker.html" title=" " alt="" coords="842,571,955,693"/>
-<area shape="rect" href="structIceConfigInfo.html" title="ICE configuration information struct." alt="" coords="980,557,1087,707"/>
-<area shape="rect" href="structSignalingClientCallbacks.html" title="Register Signaling client callbacks." alt="" coords="1111,564,1294,700"/>
-<area shape="rect" href="structReceivedSignalingMessage.html" title="Structure defining the signaling message to be received." alt="" coords="1103,285,1303,391"/>
-<area shape="rect" href="structSignalingMessage.html" title="Structure defining the basic signaling message." alt="" coords="1133,5,1273,156"/>
-<area shape="rect" href="structSignalingChannelDescription.html" title="Signaling channel description returned from the service." alt="" coords="1318,542,1527,722"/>
+<area shape="rect" title=" " alt="" coords="711,851,896,1075"/>
+<area shape="rect" href="struct____LwsCallInfo.html" title=" " alt="" coords="728,1137,879,1332"/>
+<area shape="rect" href="structSignalingDiagnostics.html" title=" " alt="" coords="5,520,233,773"/>
+<area shape="rect" href="structSignalingClientInfoInternal.html" title=" " alt="" coords="258,535,453,759"/>
+<area shape="rect" href="structSignalingClientInfo.html" title="Populate Signaling client with client ID and application log level." alt="" coords="225,219,486,457"/>
+<area shape="rect" href="structMediaStorageConfig.html" title=" " alt="" coords="477,601,631,693"/>
+<area shape="rect" href="structChannelInfo.html" title="Contains all signaling channel related information." alt="" coords="656,535,820,759"/>
+<area shape="rect" href="structThreadTracker.html" title=" " alt="" coords="844,586,957,707"/>
+<area shape="rect" href="structIceConfigInfo.html" title="ICE configuration information struct." alt="" coords="982,571,1089,722"/>
+<area shape="rect" href="structSignalingClientCallbacks.html" title="Register Signaling client callbacks." alt="" coords="1113,579,1296,715"/>
+<area shape="rect" href="structReceivedSignalingMessage.html" title="Structure defining the signaling message to be received." alt="" coords="1105,285,1305,391"/>
+<area shape="rect" href="structSignalingMessage.html" title="Structure defining the basic signaling message." alt="" coords="1135,5,1275,156"/>
+<area shape="rect" href="structSignalingChannelDescription.html" title="Signaling channel description returned from the service." alt="" coords="1320,557,1529,737"/>
 </map>
 </div>
 <table class="memberdecls">
@@ -229,6 +229,8 @@ Public Attributes</h2></td></tr>
 <tr class="separator:a5fa0c4900eba13570fe2ddd50a7f97de"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:acfb4179217a39f0e080703ed0c0220fd"><td class="memItemLeft" align="right" valign="top">UINT64&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClient.html#acfb4179217a39f0e080703ed0c0220fd">describeMediaTime</a></td></tr>
 <tr class="separator:acfb4179217a39f0e080703ed0c0220fd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9f7e44fe3d825cfeb70863a924cf8f00"><td class="memItemLeft" align="right" valign="top">UINT64&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClient.html#a9f7e44fe3d825cfeb70863a924cf8f00">answerTime</a></td></tr>
+<tr class="separator:a9f7e44fe3d825cfeb70863a924cf8f00"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a451de55f94b912b4a7f4b667af36f577"><td class="memItemLeft" align="right" valign="top">UINT64&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClient.html#a451de55f94b912b4a7f4b667af36f577">offerReceivedTime</a></td></tr>
 <tr class="separator:a451de55f94b912b4a7f4b667af36f577"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5372aa1c6e2bba733c057ded88fd522d"><td class="memItemLeft" align="right" valign="top">UINT64&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingClient.html#a5372aa1c6e2bba733c057ded88fd522d">offerSentTime</a></td></tr>
@@ -245,6 +247,20 @@ Public Attributes</h2></td></tr>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Internal representation of the Signaling client. </p>
 </div><h2 class="groupheader">Member Data Documentation</h2>
+<a id="a9f7e44fe3d825cfeb70863a924cf8f00"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9f7e44fe3d825cfeb70863a924cf8f00">&#9670;&nbsp;</a></span>answerTime</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">UINT64 SignalingClient::answerTime</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a id="a7924fa6967bacbc6df8ff58891266f98"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a7924fa6967bacbc6df8ff58891266f98">&#9670;&nbsp;</a></span>channelDescription</h2>
 
@@ -1080,7 +1096,7 @@ Public Attributes</h2></td></tr>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="structSignalingClient.html">SignalingClient</a></li>
-    <li class="footer">Generated on Mon Dec 18 2023 21:56:27 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Thu Dec 21 2023 01:24:37 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>
