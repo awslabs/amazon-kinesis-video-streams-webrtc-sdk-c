@@ -555,7 +555,7 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
     magicCookie = (UINT32) getInt32(*(PUINT32) ((PBYTE) pStunHeader + STUN_HEADER_TYPE_LEN + STUN_HEADER_DATA_LEN));
 
     // Validate the specified size
-    CHK(bufferSize >= (UINT16)(messageLength + STUN_HEADER_LEN), STATUS_INVALID_ARG);
+    CHK(bufferSize >= (UINT16) (messageLength + STUN_HEADER_LEN), STATUS_INVALID_ARG);
 
     // Validate the magic cookie
     CHK(magicCookie == STUN_HEADER_MAGIC_COOKIE, STATUS_STUN_MAGIC_COOKIE_MISMATCH);
