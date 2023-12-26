@@ -108,6 +108,9 @@ typedef struct {
 // Used for ensuring alignment
 #define ALIGN_UP_TO_MACHINE_WORD(x) ROUND_UP((x), SIZEOF(SIZE_T))
 
+typedef STATUS (*IceServerSetIpFunc)(UINT64, PCHAR, PKvsIpAddress);
+STATUS getIpAddrStr(PKvsIpAddress pKvsIpAddress, PCHAR pBuffer, UINT32 bufferLen);
+
 ////////////////////////////////////////////////////
 // Project forward declarations
 ////////////////////////////////////////////////////
@@ -118,6 +121,7 @@ STATUS generateJSONSafeString(PCHAR, UINT32);
 ////////////////////////////////////////////////////
 // Project internal includes
 ////////////////////////////////////////////////////
+#include "Threadpool/ThreadpoolContext.h"
 #include "Crypto/IOBuffer.h"
 #include "Crypto/Crypto.h"
 #include "Crypto/Dtls.h"
@@ -131,9 +135,15 @@ STATUS generateJSONSafeString(PCHAR, UINT32);
 #include "Ice/IceAgent.h"
 #include "Ice/TurnConnection.h"
 #include "Ice/IceAgentStateMachine.h"
+#include "Ice/TurnConnectionStateMachine.h"
 #include "Ice/NatBehaviorDiscovery.h"
 #include "Srtp/SrtpSession.h"
 #include "Sctp/Sctp.h"
+#include "Signaling/FileCache.h"
+#include "Signaling/Signaling.h"
+#include "Signaling/ChannelInfo.h"
+#include "Signaling/StateMachine.h"
+#include "Signaling/LwsApiCalls.h"
 #include "Rtp/RtpPacket.h"
 #include "Rtcp/RtcpPacket.h"
 #include "Rtcp/RollingBuffer.h"
@@ -149,11 +159,6 @@ STATUS generateJSONSafeString(PCHAR, UINT32);
 #include "Rtp/Codecs/RtpH264Payloader.h"
 #include "Rtp/Codecs/RtpOpusPayloader.h"
 #include "Rtp/Codecs/RtpG711Payloader.h"
-#include "Signaling/FileCache.h"
-#include "Signaling/Signaling.h"
-#include "Signaling/ChannelInfo.h"
-#include "Signaling/StateMachine.h"
-#include "Signaling/LwsApiCalls.h"
 #include "Metrics/Metrics.h"
 
 ////////////////////////////////////////////////////

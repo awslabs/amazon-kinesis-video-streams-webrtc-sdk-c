@@ -25,6 +25,50 @@ extern "C" {
 #pragma clang diagnostic pop
 #endif
 
+/* TODO: Potentially move these call to PIC instead. Moving to PIC in the future would not cause any backward compatibility issues */
+#define PROFILE_CALL(f, msg)                                                                                                                         \
+    do {                                                                                                                                             \
+        startTimeInMacro = GETTIME();                                                                                                                \
+        f;                                                                                                                                           \
+        DLOGP("[%s] Time taken: %" PRIu64 " ms", (msg), (GETTIME() - startTimeInMacro) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);                        \
+    } while (FALSE)
+
+#define PROFILE_CALL_WITH_T_OBJ(f, t, msg)                                                                                                           \
+    do {                                                                                                                                             \
+        startTimeInMacro = GETTIME();                                                                                                                \
+        f;                                                                                                                                           \
+        t = (GETTIME() - startTimeInMacro) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;                                                                     \
+        DLOGP("[%s] Time taken: %" PRIu64 " ms", (msg), (t));                                                                                        \
+    } while (FALSE)
+
+#define PROFILE_WITH_START_TIME(t, msg)                                                                                                              \
+    do {                                                                                                                                             \
+        DLOGP("[%s] Time taken: %" PRIu64 " ms", msg, (GETTIME() - (t)) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);                                       \
+    } while (FALSE)
+
+#define PROFILE_CALL_WITH_START_END_T_OBJ(f, s, e, d, msg)                                                                                           \
+    do {                                                                                                                                             \
+        s = GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;                                                                                          \
+        f;                                                                                                                                           \
+        e = GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;                                                                                          \
+        d = ((e) - (s));                                                                                                                             \
+        DLOGP("[%s] Time taken: %" PRIu64 " ms", (msg), (d));                                                                                        \
+    } while (FALSE)
+
+#define PROFILE_WITH_START_END_TIME_OBJ(t1, t2, d, msg)                                                                                              \
+    do {                                                                                                                                             \
+        t1 = (t1 / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);                                                                                              \
+        t2 = (GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);                                                                                       \
+        d = ((t2) - (t1));                                                                                                                           \
+        DLOGP("[%s] Time taken: %" PRIu64 " ms", (msg), (d));                                                                                        \
+    } while (FALSE)
+
+#define PROFILE_WITH_START_TIME_OBJ(t1, t2, msg)                                                                                                     \
+    do {                                                                                                                                             \
+        t2 = (GETTIME() - (t1)) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;                                                                                \
+        DLOGP("[%s] Time taken: %" PRIu64 " ms", (msg), t2);                                                                                         \
+    } while (FALSE)
+
 /*! \addtogroup StatusCodes
  * WEBRTC related status codes. Each value is an positive integer formed by adding
  * a base integer inticating the category to an index. Users may run scripts/parse_status.py
@@ -143,6 +187,10 @@ extern "C" {
 #define STATUS_GET_SOCKET_FLAG_FAILED              STATUS_NETWORKING_BASE + 0x00000024
 #define STATUS_SET_SOCKET_FLAG_FAILED              STATUS_NETWORKING_BASE + 0x00000025
 #define STATUS_CLOSE_SOCKET_FAILED                 STATUS_NETWORKING_BASE + 0x00000026
+#define STATUS_CREATE_SOCKET_PAIR_FAILED           STATUS_NETWORKING_BASE + 0x00000027
+#define STATUS_SOCKET_WRITE_FAILED                 STATUS_NETWORKING_BASE + 0X00000028
+#define STATUS_INVALID_ADDRESS_LENGTH              STATUS_NETWORKING_BASE + 0X00000029
+
 /*!@} */
 
 /////////////////////////////////////////////////////
@@ -160,7 +208,7 @@ extern "C" {
 #define STATUS_SSL_PACKET_BEFORE_DTLS_READY               STATUS_DTLS_BASE + 0x00000004
 #define STATUS_SSL_UNKNOWN_SRTP_PROFILE                   STATUS_DTLS_BASE + 0x00000005
 #define STATUS_SSL_INVALID_CERTIFICATE_BITS               STATUS_DTLS_BASE + 0x00000006
-
+#define STATUS_DTLS_SESSION_ALREADY_FREED                 STATUS_DTLS_BASE + 0x00000007
 /*!@} */
 
 /////////////////////////////////////////////////////
@@ -205,7 +253,8 @@ extern "C" {
 #define STATUS_TURN_CONNECTION_PEER_NOT_USABLE                             STATUS_ICE_BASE + 0x00000027
 #define STATUS_ICE_SERVER_INDEX_INVALID                                    STATUS_ICE_BASE + 0x00000028
 #define STATUS_ICE_CANDIDATE_STRING_MISSING_TYPE                           STATUS_ICE_BASE + 0x00000029
-#define STATUS_TURN_CONNECTION_ALLOCAITON_FAILED                           STATUS_ICE_BASE + 0x0000002a
+#define STATUS_TURN_CONNECTION_ALLOCATION_FAILED                           STATUS_ICE_BASE + 0x0000002a
+#define STATUS_TURN_INVALID_STATE                                          STATUS_ICE_BASE + 0x0000002b
 /*!@} */
 
 /////////////////////////////////////////////////////
@@ -301,6 +350,14 @@ extern "C" {
 #define STATUS_SIGNALING_INVALID_METRICS_VERSION                   STATUS_SIGNALING_BASE + 0x00000032
 #define STATUS_SIGNALING_INVALID_CLIENT_INFO_CACHE_FILE_PATH_LEN   STATUS_SIGNALING_BASE + 0x00000033
 #define STATUS_SIGNALING_LWS_CALL_FAILED                           STATUS_SIGNALING_BASE + 0x00000034
+#define STATUS_SIGNALING_INVALID_STREAM_ARN_LENGTH                 STATUS_SIGNALING_BASE + 0x00000035
+#define STATUS_SIGNALING_MISMATCH_MEDIA_STORAGE_CONFIG             STATUS_SIGNALING_BASE + 0x00000036
+#define STATUS_SIGNALING_UPDATE_MEDIA_STORAGE_CONFIG               STATUS_SIGNALING_BASE + 0x00000037
+#define STATUS_SIGNALING_MEDIA_STORAGE_DISABLED                    STATUS_SIGNALING_BASE + 0x00000038
+#define STATUS_SIGNALING_INVALID_CHANNEL_ARN                       STATUS_SIGNALING_BASE + 0x00000039
+#define STATUS_SIGNALING_JOIN_SESSION_CALL_FAILED                  STATUS_SIGNALING_BASE + 0x0000004a
+#define STATUS_SIGNALING_JOIN_SESSION_CONNECTED_FAILED             STATUS_SIGNALING_BASE + 0x0000004b
+#define STATUS_SIGNALING_DESCRIBE_MEDIA_CALL_FAILED                STATUS_SIGNALING_BASE + 0x0000004c
 
 /*!@} */
 
@@ -317,6 +374,7 @@ extern "C" {
 #define STATUS_PEERCONNECTION_CREATE_ANSWER_WITHOUT_REMOTE_DESCRIPTION STATUS_PEERCONNECTION_BASE + 0x00000001
 #define STATUS_PEERCONNECTION_CODEC_INVALID                            STATUS_PEERCONNECTION_BASE + 0x00000002
 #define STATUS_PEERCONNECTION_CODEC_MAX_EXCEEDED                       STATUS_PEERCONNECTION_BASE + 0x00000003
+#define STATUS_PEERCONNECTION_EARLY_DNS_RESOLUTION_FAILED              STATUS_PEERCONNECTION_BASE + 0x00000004
 /*!@} */
 
 /////////////////////////////////////////////////////
@@ -324,7 +382,7 @@ extern "C" {
 /////////////////////////////////////////////////////
 
 /*! \addtogroup SCTPStatusCodes
- * WEBRTC SCTP related codes. Values are derived from STATUS_STUN_BASE (0x5f000000)
+ * WEBRTC SCTP related codes. Values are derived from STATUS_SCTP_BASE (0x5f000000)
  *  @{
  */
 #define STATUS_SCTP_BASE                 STATUS_PEERCONNECTION_BASE + 0x01000000
@@ -487,7 +545,7 @@ extern "C" {
 /**
  * Version of SignalingClientInfo structure
  */
-#define SIGNALING_CLIENT_INFO_CURRENT_VERSION 1
+#define SIGNALING_CLIENT_INFO_CURRENT_VERSION 2
 
 /**
  * Version of SignalingClientCallbacks structure
@@ -527,7 +585,17 @@ extern "C" {
 /**
  * Version of SignalingClientMetrics structure
  */
-#define SIGNALING_CLIENT_METRICS_CURRENT_VERSION 0
+#define SIGNALING_CLIENT_METRICS_CURRENT_VERSION 1
+
+/**
+ * Version of PeerConnectionMetrics structure
+ */
+#define PEER_CONNECTION_METRICS_CURRENT_VERSION 0
+
+/**
+ * Version of KvsIceAgentMetrics structure
+ */
+#define ICE_AGENT_METRICS_CURRENT_VERSION 0
 
 /*!@} */
 
@@ -591,10 +659,36 @@ extern "C" {
 #define SIGNALING_CONNECT_TIMEOUT (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
 /**
+ * Default minimum number of threads in the threadpool for the SDK
+ */
+#define THREADPOOL_MIN_THREADS 3
+
+/**
+ * Default maximum number of threads in the threadpool for the SDK
+ */
+#define THREADPOOL_MAX_THREADS 10
+
+/**
+ * Env to set minimum number of threads in the threadpool for the KVS SDK
+ */
+#define WEBRTC_THREADPOOL_MIN_THREADS_ENV_VAR (PCHAR) "AWS_KVS_WEBRTC_THREADPOOL_MIN_THREADS"
+
+/**
+ * Env to set maximum number of threads in the threadpool for the SDK
+ */
+#define WEBRTC_THREADPOOL_MAX_THREADS_ENV_VAR (PCHAR) "AWS_KVS_WEBRTC_THREADPOOL_MAX_THREADS"
+
+#ifdef _WIN32
+/**
+ * Default timeout for sending data
+ */
+#define SIGNALING_SEND_TIMEOUT (15 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#else
+/**
  * Default timeout for sending data
  */
 #define SIGNALING_SEND_TIMEOUT (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-
+#endif
 /**
  * Default timeout for deleting a channel
  */
@@ -604,6 +698,8 @@ extern "C" {
  * Default signaling message alive time
  */
 #define SIGNALING_DEFAULT_MESSAGE_TTL_VALUE (60 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+
+#define SIGNALING_JOIN_STORAGE_SESSION_WAIT_TIMEOUT (6 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
 /**
  * Default jitter buffer tolerated latency, frame will be dropped if it is out of window
@@ -619,12 +715,20 @@ extern "C" {
 /**
  * Maximum sequence number in rtp packet/jitter buffer
  */
-#define MAX_SEQUENCE_NUM ((UINT32) MAX_UINT16)
+#define MAX_RTP_SEQUENCE_NUM ((UINT32) MAX_UINT16)
+
+/**
+ * Maximum timestamp in rtp packet/jitter buffer
+ */
+#define MAX_RTP_TIMESTAMP ((UINT32) MAX_UINT32)
 
 /**
  * Parameterized string for KVS STUN Server
  */
-#define KINESIS_VIDEO_STUN_URL "stun:stun.kinesisvideo.%s.amazonaws.com:443"
+#define KINESIS_VIDEO_STUN_URL_POSTFIX      "amazonaws.com"
+#define KINESIS_VIDEO_STUN_URL_POSTFIX_CN   "amazonaws.com.cn"
+#define KINESIS_VIDEO_STUN_URL              "stun:stun.kinesisvideo.%s.%s:443"
+#define KINESIS_VIDEO_STUN_URL_WITHOUT_PORT "stun.kinesisvideo.%s.%s"
 
 /**
  * Default signaling SSL port
@@ -801,6 +905,10 @@ typedef enum {
     SIGNALING_CLIENT_STATE_DELETE,          //!< This state transition happens when the application calls signalingClientDeleteSync API.
     SIGNALING_CLIENT_STATE_DELETED, //!< This state transition happens after the channel gets deleted as a result of a signalingClientDeleteSync API.
                                     //!< This is a terminal state.
+    SIGNALING_CLIENT_STATE_DESCRIBE_MEDIA,
+    SIGNALING_CLIENT_STATE_JOIN_SESSION,
+    SIGNALING_CLIENT_STATE_JOIN_SESSION_WAITING,
+    SIGNALING_CLIENT_STATE_JOIN_SESSION_CONNECTED,
     SIGNALING_CLIENT_STATE_MAX_VALUE, //!< This state indicates maximum number of signaling client states
 } SIGNALING_CLIENT_STATE,
     *PSIGNALING_CLIENT_STATE;
@@ -856,6 +964,7 @@ typedef enum {
                                                         //!< information will be cached into file
                                                         //!< which will allow the cache to persist next time the signaling client is created.
 } SIGNALING_API_CALL_CACHE_TYPE;
+
 /*!@} */
 
 ////////////////////////////////////////////////////
@@ -1132,6 +1241,7 @@ typedef struct {
  */
 typedef struct {
     SDP_TYPE type;                                      //!< Indicates an offer/answer SDP type
+    BOOL useTrickleIce;                                 //!< Indicates if an offer should set trickle ice
     CHAR sdp[MAX_SESSION_DESCRIPTION_INIT_SDP_LEN + 1]; //!< SDP Data containing media capabilities, transport addresses
                                                         //!< and related metadata in a transport agnostic manner
                                                         //!<
@@ -1195,8 +1305,10 @@ typedef struct {
                                                                //!< being used this value can be NULL or point to an EMPTY_STRING.
     KvsRetryStrategyCallbacks signalingRetryStrategyCallbacks; //!< Retry strategy callbacks used while creating signaling client
     INT32 signalingClientCreationMaxRetryAttempts;             //!< Max attempts to create signaling client before returning error to the caller
-    UINT32 stateMachineRetryCountReadOnly; //!< Retry count of state machine. Note that this **MUST NOT** be modified by the user. It is a read only
-                                           //!< field
+    UINT32 stateMachineRetryCountReadOnly;  //!< Retry count of state machine. Note that this **MUST NOT** be modified by the user. It is a read only
+                                            //!< field
+    UINT32 signalingMessagesMinimumThreads; //!< Unused field post v1.8.1
+    UINT32 signalingMessagesMaximumThreads; //!< Unused field post v1.8.1
 } SignalingClientInfo, *PSignalingClientInfo;
 
 /**
@@ -1207,8 +1319,10 @@ typedef struct {
 
     PCHAR pChannelName; //!< Name of the signaling channel name. Maximum length is defined by MAX_CHANNEL_NAME_LEN + 1
 
-    PCHAR pChannelArn; //!< Channel Amazon Resource Name (ARN). This is an optional parameter
-                       //!< Maximum length is defined by MAX_ARN_LEN+1
+    PCHAR pChannelArn;       //!< Channel Amazon Resource Name (ARN). This is an optional parameter
+                             //!< Maximum length is defined by MAX_ARN_LEN+1
+    PCHAR pStorageStreamArn; //!< Storage Stream Amazon Resource Name (ARN). This is an optional parameter
+                             //!< Maximum length is defined by MAX_ARN_LEN+1
 
     PCHAR pRegion; //!< AWS Region in which the channel is to be opened. Can be empty for default
                    //!< Maximum length is defined by MAX_REGION_NAME_LEN+1
@@ -1257,6 +1371,8 @@ typedef struct {
                                //!< is done reactively when needed which will simplify the processing
                                //!< and will help with issues on a small footprint platforms
 
+    BOOL useMediaStorage; //!< use the feature of media storage.
+
 } ChannelInfo, *PChannelInfo;
 
 /**
@@ -1275,6 +1391,11 @@ typedef struct {
     CHAR userName[MAX_ICE_CONFIG_USER_NAME_LEN + 1];                 //!< Username for the server
     CHAR password[MAX_ICE_CONFIG_CREDENTIAL_LEN + 1];                //!< Password for the server
 } IceConfigInfo, *PIceConfigInfo;
+
+typedef struct {
+    BOOL storageStatus;                     //!< Indicate the association between channelArn and storageStreamArn
+    CHAR storageStreamArn[MAX_ARN_LEN + 1]; //!< The arn of kvs stream, optional if you already associate signaling channel with stream
+} MediaStorageConfig, *PMediaStorageConfig;
 /*!@} */
 
 /*! \addtogroup Callbacks
@@ -1426,9 +1547,28 @@ typedef struct {
  * @brief SignalingStats Collection of signaling related stats. Can be expanded in the future
  */
 typedef struct {
-    UINT32 version;                            //!< Structure version
+    UINT32 version; //!< Structure version
+    UINT64 signalingStartTime;
+    UINT64 signalingEndTime;
+    UINT64 signalingCallTime;
     SignalingClientStats signalingClientStats; //!< Signaling client metrics stats. Reference in Stats.h
 } SignalingClientMetrics, *PSignalingClientMetrics;
+
+/**
+ * @brief KVS ICE Agent Collection of ICE agent related stats. Can be expanded in the future
+ */
+typedef struct {
+    UINT32 version;                    //!< Structure version
+    KvsIceAgentStats kvsIceAgentStats; //!< ICE agent metrics. Reference in Stats.h
+} KvsIceAgentMetrics, *PKvsIceAgentMetrics;
+
+/**
+ * @brief SignalingStats Collection of signaling related stats. Can be expanded in the future
+ */
+typedef struct {
+    UINT32 version;                          //!< Structure version
+    PeerConnectionStats peerConnectionStats; //!< Peer connection metrics stats. Reference in Stats.h
+} PeerConnectionMetrics, *PPeerConnectionMetrics;
 
 /**
  * @brief The stats object is populated based on RTCStatsType request
@@ -1476,6 +1616,16 @@ typedef struct {
  * @return STATUS code of the execution. STATUS_SUCCESS on success
  */
 PUBLIC_API STATUS createPeerConnection(PRtcConfiguration, PRtcPeerConnection*);
+
+/**
+ * @brief Give peer connection an ice config to add to its server list
+ *
+ * @param[in] PRtcPeerConnection* initialized RtcPeerConnection
+ * @param[in] PIceConfigInfo Ice config info to add to this peer connection
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
+PUBLIC_API STATUS addConfigToServerList(PRtcPeerConnection*, PIceConfigInfo);
 
 /**
  * @brief Free a RtcPeerConnection
@@ -1552,6 +1702,16 @@ PUBLIC_API STATUS peerConnectionGetLocalDescription(PRtcPeerConnection, PRtcSess
  * @return STATUS code of the execution. STATUS_SUCCESS on success
  */
 PUBLIC_API STATUS peerConnectionGetCurrentLocalDescription(PRtcPeerConnection, PRtcSessionDescriptionInit);
+
+/**
+ * Allows use of internal threadpool
+ *
+ * @param[in] startRoutine function pointer to execute in threadpool
+ * @param[in] PVOID void pointer to pass to function pointer
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
+PUBLIC_API STATUS peerConnectionAsync(startRoutine fn, PVOID data);
 
 /**
  * @brief Populate the provided answer that contains an RFC 3264 offer
@@ -2011,6 +2171,22 @@ PUBLIC_API STATUS signalingClientDeleteSync(SIGNALING_CLIENT_HANDLE);
  * @param[in,out] PSignalingClientMetrics Signaling stats
  */
 PUBLIC_API STATUS signalingClientGetMetrics(SIGNALING_CLIENT_HANDLE, PSignalingClientMetrics);
+
+/**
+ * @brief Get peer connection related metrics
+ *
+ * @param[in] PRtcPeerConnection Peer connection object
+ * @param[in,out] PPeerConnectionMetrics Peer connection stats object
+ */
+PUBLIC_API STATUS peerConnectionGetMetrics(PRtcPeerConnection, PPeerConnectionMetrics);
+
+/**
+ * @brief Get peer connection related metrics
+ *
+ * @param[in] PRtcPeerConnection Peer connection object
+ * @param[in,out] PKvsIceAgentMetrics KVS ICE agent stats object
+ */
+PUBLIC_API STATUS iceAgentGetMetrics(PRtcPeerConnection, PKvsIceAgentMetrics);
 
 /**
  * @brief Get the relevant/all metrics based on the RTCStatsType field. This does not include

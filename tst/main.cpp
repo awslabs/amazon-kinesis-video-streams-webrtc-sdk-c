@@ -7,6 +7,10 @@
 #include <string>
 #include <sstream>
 
+#ifdef ENABLE_AWS_SDK_IN_TESTS
+#include <aws/core/Aws.h>
+#endif
+
 // The number of retries allowed. 0 means no retry, all tests will run exactly run once.
 #define MAX_TRIALS 10
 
@@ -46,9 +50,15 @@ int main(int argc, char** argv)
 {
     int trial = 0, rc;
     bool breakOnFailure;
-
+#ifdef ENABLE_AWS_SDK_IN_TESTS
+    Aws::SDKOptions options;
+#endif
     ::testing::InitGoogleTest(&argc, argv);
     breakOnFailure = ::testing::GTEST_FLAG(break_on_failure);
+
+#ifdef ENABLE_AWS_SDK_IN_TESTS
+    Aws::InitAPI(options);
+#endif
 
     Retrier* retrier = new Retrier();
     // Adds a listener to the end. googletest takes the ownership.
@@ -72,6 +82,10 @@ int main(int argc, char** argv)
         // again since it should break out from the loop.
         ::testing::GTEST_FLAG(filter) = retrier->testFilter();
     } while (rc != 0 && trial++ < MAX_TRIALS);
+
+#ifdef ENABLE_AWS_SDK_IN_TESTS
+    Aws::ShutdownAPI(options);
+#endif
 
     return rc;
 }

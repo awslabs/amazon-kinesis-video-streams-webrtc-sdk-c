@@ -399,6 +399,9 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
     PRtcMediaStreamTrack pRtcMediaStreamTrack = &(pKvsRtpTransceiver->sender.track);
     PSdpMediaDescription pSdpMediaDescriptionRemote;
     PCHAR currentFmtp = NULL, rtpMapValue = NULL;
+    CHAR remoteSdpAttributeValue[MAX_SDP_ATTRIBUTE_VALUE_LENGTH];
+
+    MEMSET(remoteSdpAttributeValue, 0, MAX_SDP_ATTRIBUTE_VALUE_LENGTH);
 
     if (pRtcMediaStreamTrack->codec == RTC_CODEC_UNKNOWN && pUnknownCodecPayloadTypesTable != NULL) {
         CHK_STATUS(hashTableGet(pUnknownCodecPayloadTypesTable, unknownCodecHashTableKey, &payloadType));
@@ -502,9 +505,11 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, pKvsPeerConnection->localIcePwd);
     attributeCount++;
 
-    STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ice-options");
-    STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "trickle");
-    attributeCount++;
+    if (pKvsPeerConnection->canTrickleIce.value) {
+        STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ice-options");
+        STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "trickle");
+        attributeCount++;
+    }
 
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "fingerprint");
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "sha-256 ");
@@ -516,7 +521,22 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
     attributeCount++;
 
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "mid");
-    SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%d", mediaSectionId);
+    // check all session attribute lines to see if a line with mid is present. If it is present, copy its content and break
+    for (i = 0; i < pRemoteSessionDescription->mediaDescriptions[mediaSectionId].mediaAttributesCount; i++) {
+        if (STRCMP(pRemoteSessionDescription->mediaDescriptions[mediaSectionId].sdpAttributes[i].attributeName, MID_KEY) == 0) {
+            STRCPY(remoteSdpAttributeValue, pRemoteSessionDescription->mediaDescriptions[mediaSectionId].sdpAttributes[i].attributeValue);
+            break;
+        }
+    }
+
+    // check if we already have a value for the "mid" session attribute from remote description. If we have it, we use it.
+    // If we don't have it, we loop over, create and add them
+    if (STRLEN(remoteSdpAttributeValue) > 0) {
+        CHK(STRLEN(remoteSdpAttributeValue) < MAX_SDP_ATTRIBUTE_VALUE_LENGTH, STATUS_BUFFER_TOO_SMALL);
+        SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%s", remoteSdpAttributeValue);
+    } else {
+        SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%d", mediaSectionId);
+    }
     attributeCount++;
 
     if (pKvsPeerConnection->isOffer) {
@@ -563,15 +583,23 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtcp-mux");
     attributeCount++;
 
-    STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtcp-rsize");
-    attributeCount++;
+    if (mediaSectionId != 0) {
+        STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtcp-rsize");
+        attributeCount++;
+    }
 
     if (pRtcMediaStreamTrack->codec == RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE) {
+        // TODO: Need additional condition for a signaling channel with an ENABLED media storage configuration
         if (pKvsPeerConnection->isOffer) {
             currentFmtp = DEFAULT_H264_FMTP;
         }
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtpmap");
         SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%" PRId64 " H264/90000", payloadType);
+        attributeCount++;
+
+        STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtcp-fb");
+        SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%" PRId64 " nack", payloadType);
+        SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%" PRId64 " nack pli", payloadType);
         attributeCount++;
 
         // TODO: If level asymmetry is allowed, consider sending back DEFAULT_H264_FMTP instead of the received fmtp value.
@@ -594,6 +622,7 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
         if (pKvsPeerConnection->isOffer) {
             currentFmtp = DEFAULT_OPUS_FMTP;
         }
+
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtpmap");
         SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%" PRId64 " opus/48000/2", payloadType);
         attributeCount++;
@@ -633,8 +662,14 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
         attributeCount++;
     }
 
-    STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtcp-fb");
-    SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%" PRId64 " nack", payloadType);
+    STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ssrc");
+    SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%u cname:%s", pKvsRtpTransceiver->sender.ssrc,
+            pKvsPeerConnection->localCNAME);
+    attributeCount++;
+
+    STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ssrc");
+    SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%u msid:%s %s", pKvsRtpTransceiver->sender.ssrc,
+            pRtcMediaStreamTrack->streamId, pRtcMediaStreamTrack->trackId);
     attributeCount++;
 
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtcp-fb");
@@ -678,6 +713,12 @@ STATUS populateSessionDescriptionDataChannel(PKvsPeerConnection pKvsPeerConnecti
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ice-pwd");
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, pKvsPeerConnection->localIcePwd);
     attributeCount++;
+
+    if (pKvsPeerConnection->canTrickleIce.value) {
+        STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ice-options");
+        STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "trickle");
+        attributeCount++;
+    }
 
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "fingerprint");
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "sha-256 ");
@@ -821,7 +862,7 @@ STATUS populateSessionDescriptionMedia(PKvsPeerConnection pKvsPeerConnection, PS
         }
     }
 
-    if (pKvsPeerConnection->sctpIsEnabled) {
+    if (ATOMIC_LOAD_BOOL(&pKvsPeerConnection->sctpIsEnabled)) {
         CHK(pLocalSessionDescription->mediaCount < MAX_SDP_SESSION_MEDIA_COUNT, STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT);
         CHK_STATUS(populateSessionDescriptionDataChannel(pKvsPeerConnection,
                                                          &(pLocalSessionDescription->mediaDescriptions[pLocalSessionDescription->mediaCount]),
@@ -877,6 +918,13 @@ STATUS populateSessionDescription(PKvsPeerConnection pKvsPeerConnection, PSessio
 
     STRCPY(pLocalSessionDescription->sdpAttributes[0].attributeName, "group");
     STRCPY(pLocalSessionDescription->sdpAttributes[0].attributeValue, BUNDLE_KEY);
+    pLocalSessionDescription->sessionAttributesCount++;
+
+    if (pKvsPeerConnection->canTrickleIce.value) {
+        STRCPY(pLocalSessionDescription->sdpAttributes[pLocalSessionDescription->sessionAttributesCount].attributeName, "ice-options");
+        STRCPY(pLocalSessionDescription->sdpAttributes[pLocalSessionDescription->sessionAttributesCount].attributeValue, "trickle");
+        pLocalSessionDescription->sessionAttributesCount++;
+    }
 
     // check all session attribute lines to see if a line with BUNDLE is present. If it is present, copy its content and break
     for (i = 0; i < pRemoteSessionDescription->sessionAttributesCount; i++) {
@@ -908,7 +956,6 @@ STATUS populateSessionDescription(PKvsPeerConnection pKvsPeerConnection, PSessio
         STRCPY(pLocalSessionDescription->mediaDescriptions[i].sdpConnectionInformation.addressType, "IP4");
         STRCPY(pLocalSessionDescription->mediaDescriptions[i].sdpConnectionInformation.connectionAddress, "127.0.0.1");
     }
-    pLocalSessionDescription->sessionAttributesCount++;
 
     STRCPY(pLocalSessionDescription->sdpAttributes[pLocalSessionDescription->sessionAttributesCount].attributeName, "msid-semantic");
     STRCPY(pLocalSessionDescription->sdpAttributes[pLocalSessionDescription->sessionAttributesCount].attributeValue, " WMS myKvsVideoStream");

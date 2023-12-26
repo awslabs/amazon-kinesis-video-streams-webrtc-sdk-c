@@ -26,12 +26,15 @@ class TurnConnectionFunctionalityTest : public WebRtcClientTestBase {
         PKvsIpAddress pTurnSocketAddr = NULL;
         PSocketConnection pTurnSocket = NULL;
 
-        initializeSignalingClient();
+        // If this failed we will not be in the Connected state, need to bail out
+        ASSERT_EQ(STATUS_SUCCESS, initializeSignalingClient());
+
         EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(mSignalingClientHandle, &iceConfigCount));
 
         for (uriCount = 0, i = 0; i < iceConfigCount; i++) {
             EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(mSignalingClientHandle, i, &pIceConfigInfo));
             for (j = 0; j < pIceConfigInfo->uriCount; j++) {
+                iceServers[uriCount].setIpFn = NULL;
                 EXPECT_EQ(STATUS_SUCCESS,
                           parseIceServer(&iceServers[uriCount++], pIceConfigInfo->uris[j], pIceConfigInfo->userName, pIceConfigInfo->password));
             }
@@ -149,6 +152,7 @@ TEST_F(TurnConnectionFunctionalityTest, turnConnectionRefreshPermissionTest)
         MUTEX_UNLOCK(pTurnConnection->lock);
     }
 
+    DLOGI("Checking if TURN_STATE_READY is set");
     EXPECT_TRUE(turnReady == TRUE);
 
     // modify permission expiration time to trigger refresh permission
@@ -156,14 +160,22 @@ TEST_F(TurnConnectionFunctionalityTest, turnConnectionRefreshPermissionTest)
     pTurnConnection->turnPeerList[0].permissionExpirationTime = GETTIME();
     MUTEX_UNLOCK(pTurnConnection->lock);
 
-    // turn Connection timer run happens every second when at ready state.
-    THREAD_SLEEP(1500 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
-
     // verify we are no longer in ready state.
-    MUTEX_LOCK(pTurnConnection->lock);
-    EXPECT_TRUE(pTurnConnection->state != TURN_STATE_READY);
-    MUTEX_UNLOCK(pTurnConnection->lock);
+    turnReady = FALSE;
+    turnReadyTimeout = GETTIME() + 10 * HUNDREDS_OF_NANOS_IN_A_SECOND;
+    while (!turnReady && GETTIME() < turnReadyTimeout) {
+        THREAD_SLEEP(5 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+        MUTEX_LOCK(pTurnConnection->lock);
+        if (pTurnConnection->state != TURN_STATE_READY) {
+            turnReady = TRUE;
+        }
+        MUTEX_UNLOCK(pTurnConnection->lock);
+    }
 
+    //here "TRUE" actually means not in the ready state
+    EXPECT_TRUE(turnReady == TRUE);
+
+    //and now let's make sure we get back to ready
     turnReady = FALSE;
     turnReadyTimeout = GETTIME() + 10 * HUNDREDS_OF_NANOS_IN_A_SECOND;
 

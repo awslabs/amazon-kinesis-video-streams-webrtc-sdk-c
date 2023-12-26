@@ -12,27 +12,194 @@ VOID sigintHandler(INT32 sigNum)
     }
 }
 
+UINT32 setLogLevel()
+{
+    PCHAR pLogLevel;
+    UINT32 logLevel = LOG_LEVEL_DEBUG;
+    if (NULL == (pLogLevel = GETENV(DEBUG_LOG_LEVEL_ENV_VAR)) || STATUS_SUCCESS != STRTOUI32(pLogLevel, NULL, 10, &logLevel) ||
+        logLevel < LOG_LEVEL_VERBOSE || logLevel > LOG_LEVEL_SILENT) {
+        logLevel = LOG_LEVEL_WARN;
+    }
+    SET_LOGGER_LOG_LEVEL(logLevel);
+    return logLevel;
+}
+
 STATUS signalingCallFailed(STATUS status)
 {
     return (STATUS_SIGNALING_GET_TOKEN_CALL_FAILED == status || STATUS_SIGNALING_DESCRIBE_CALL_FAILED == status ||
             STATUS_SIGNALING_CREATE_CALL_FAILED == status || STATUS_SIGNALING_GET_ENDPOINT_CALL_FAILED == status ||
-            STATUS_SIGNALING_GET_ICE_CONFIG_CALL_FAILED == status || STATUS_SIGNALING_CONNECT_CALL_FAILED == status);
+            STATUS_SIGNALING_GET_ICE_CONFIG_CALL_FAILED == status || STATUS_SIGNALING_CONNECT_CALL_FAILED == status ||
+            STATUS_SIGNALING_DESCRIBE_MEDIA_CALL_FAILED == status);
 }
 
 VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL isBinary, PBYTE pMessage, UINT32 pMessageLen)
 {
-    UNUSED_PARAM(customData);
-    if (isBinary) {
-        DLOGI("DataChannel Binary Message");
-    } else {
-        DLOGI("DataChannel String Message: %.*s\n", pMessageLen, pMessage);
-    }
-    // Send a response to the message sent by the viewer
     STATUS retStatus = STATUS_SUCCESS;
-    retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) MASTER_DATA_CHANNEL_MESSAGE, STRLEN(MASTER_DATA_CHANNEL_MESSAGE));
+    UINT32 i, strLen, tokenCount;
+    CHAR pMessageSend[MAX_DATA_CHANNEL_METRICS_MESSAGE_SIZE], errorMessage[200];
+    PCHAR json;
+    PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) customData;
+    PSampleConfiguration pSampleConfiguration;
+    DataChannelMessage dataChannelMessage;
+    jsmn_parser parser;
+    jsmntok_t tokens[MAX_JSON_TOKEN_COUNT];
+
+    CHK(pMessage != NULL && pDataChannel != NULL, STATUS_NULL_ARG);
+
+    if (pSampleStreamingSession == NULL) {
+        STRCPY(errorMessage, "Could not generate stats since the streaming session is NULL");
+        retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) errorMessage, STRLEN(errorMessage));
+        DLOGE("%s", errorMessage);
+        goto CleanUp;
+    }
+
+    pSampleConfiguration = pSampleStreamingSession->pSampleConfiguration;
+    if (pSampleConfiguration == NULL) {
+        STRCPY(errorMessage, "Could not generate stats since the sample configuration is NULL");
+        retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) errorMessage, STRLEN(errorMessage));
+        DLOGE("%s", errorMessage);
+        goto CleanUp;
+    }
+
+    if (pSampleConfiguration->enableSendingMetricsToViewerViaDc) {
+        jsmn_init(&parser);
+        json = (PCHAR) pMessage;
+        tokenCount = jsmn_parse(&parser, json, STRLEN(json), tokens, SIZEOF(tokens) / SIZEOF(jsmntok_t));
+
+        MEMSET(dataChannelMessage.content, '\0', SIZEOF(dataChannelMessage.content));
+        MEMSET(dataChannelMessage.firstMessageFromViewerTs, '\0', SIZEOF(dataChannelMessage.firstMessageFromViewerTs));
+        MEMSET(dataChannelMessage.firstMessageFromMasterTs, '\0', SIZEOF(dataChannelMessage.firstMessageFromMasterTs));
+        MEMSET(dataChannelMessage.secondMessageFromViewerTs, '\0', SIZEOF(dataChannelMessage.secondMessageFromViewerTs));
+        MEMSET(dataChannelMessage.secondMessageFromMasterTs, '\0', SIZEOF(dataChannelMessage.secondMessageFromMasterTs));
+        MEMSET(dataChannelMessage.lastMessageFromViewerTs, '\0', SIZEOF(dataChannelMessage.lastMessageFromViewerTs));
+
+        if (tokenCount > 1) {
+            if (tokens[0].type != JSMN_OBJECT) {
+                STRCPY(errorMessage, "Invalid JSON received, please send a valid json as the SDK is operating in datachannel-benchmarking mode");
+                retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) errorMessage, STRLEN(errorMessage));
+                DLOGE("%s", errorMessage);
+                retStatus = STATUS_INVALID_API_CALL_RETURN_JSON;
+                goto CleanUp;
+            }
+            DLOGI("DataChannel json message: %.*s\n", pMessageLen, pMessage);
+
+            for (i = 1; i < tokenCount; i++) {
+                if (compareJsonString(json, &tokens[i], JSMN_STRING, (PCHAR) "content")) {
+                    strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
+                    if (strLen != 0) {
+                        STRNCPY(dataChannelMessage.content, json + tokens[i + 1].start, tokens[i + 1].end - tokens[i + 1].start);
+                    }
+                } else if (compareJsonString(json, &tokens[i], JSMN_STRING, (PCHAR) "firstMessageFromViewerTs")) {
+                    strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
+                    // parse and retain this message from the viewer to send it back again
+                    if (strLen != 0) {
+                        // since the length is not zero, we have already attached this timestamp to structure in the last iteration
+                        STRNCPY(dataChannelMessage.firstMessageFromViewerTs, json + tokens[i + 1].start, tokens[i + 1].end - tokens[i + 1].start);
+                    }
+                } else if (compareJsonString(json, &tokens[i], JSMN_STRING, (PCHAR) "firstMessageFromMasterTs")) {
+                    strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
+                    if (strLen != 0) {
+                        // since the length is not zero, we have already attached this timestamp to structure in the last iteration
+                        STRNCPY(dataChannelMessage.firstMessageFromMasterTs, json + tokens[i + 1].start, tokens[i + 1].end - tokens[i + 1].start);
+                    } else {
+                        // if this timestamp was not assigned during the previous message session, add it now
+                        SNPRINTF(dataChannelMessage.firstMessageFromMasterTs, 20, "%llu", GETTIME() / 10000);
+                        break;
+                    }
+                } else if (compareJsonString(json, &tokens[i], JSMN_STRING, (PCHAR) "secondMessageFromViewerTs")) {
+                    strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
+                    // parse and retain this message from the viewer to send it back again
+                    if (strLen != 0) {
+                        STRNCPY(dataChannelMessage.secondMessageFromViewerTs, json + tokens[i + 1].start, tokens[i + 1].end - tokens[i + 1].start);
+                    }
+                } else if (compareJsonString(json, &tokens[i], JSMN_STRING, (PCHAR) "secondMessageFromMasterTs")) {
+                    strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
+                    if (strLen != 0) {
+                        // since the length is not zero, we have already attached this timestamp to structure in the last iteration
+                        STRNCPY(dataChannelMessage.secondMessageFromMasterTs, json + tokens[i + 1].start, tokens[i + 1].end - tokens[i + 1].start);
+                    } else {
+                        // if this timestamp was not assigned during the previous message session, add it now
+                        SNPRINTF(dataChannelMessage.secondMessageFromMasterTs, 20, "%llu", GETTIME() / 10000);
+                        break;
+                    }
+                } else if (compareJsonString(json, &tokens[i], JSMN_STRING, (PCHAR) "lastMessageFromViewerTs")) {
+                    strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
+                    if (strLen != 0) {
+                        STRNCPY(dataChannelMessage.lastMessageFromViewerTs, json + tokens[i + 1].start, tokens[i + 1].end - tokens[i + 1].start);
+                    }
+                }
+            }
+
+            if (STRLEN(dataChannelMessage.lastMessageFromViewerTs) == 0) {
+                // continue sending the data_channel_metrics_message with new timestamps until we receive the lastMessageFromViewerTs from the viewer
+                SNPRINTF(pMessageSend, MAX_DATA_CHANNEL_METRICS_MESSAGE_SIZE, DATA_CHANNEL_MESSAGE_TEMPLATE, MASTER_DATA_CHANNEL_MESSAGE,
+                         dataChannelMessage.firstMessageFromViewerTs, dataChannelMessage.firstMessageFromMasterTs,
+                         dataChannelMessage.secondMessageFromViewerTs, dataChannelMessage.secondMessageFromMasterTs,
+                         dataChannelMessage.lastMessageFromViewerTs);
+                DLOGI("Master's response: %s", pMessageSend);
+
+                retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) pMessageSend, STRLEN(pMessageSend));
+            } else {
+                // now that we've received the last message, send across the signaling, peerConnection, ice metrics
+                SNPRINTF(pSampleStreamingSession->pSignalingClientMetricsMessage, MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE,
+                         SIGNALING_CLIENT_METRICS_JSON_TEMPLATE, pSampleConfiguration->signalingClientMetrics.signalingStartTime,
+                         pSampleConfiguration->signalingClientMetrics.signalingEndTime,
+                         pSampleConfiguration->signalingClientMetrics.signalingClientStats.offerReceivedTime,
+                         pSampleConfiguration->signalingClientMetrics.signalingClientStats.answerTime,
+                         pSampleConfiguration->signalingClientMetrics.signalingClientStats.describeChannelStartTime,
+                         pSampleConfiguration->signalingClientMetrics.signalingClientStats.describeChannelEndTime,
+                         pSampleConfiguration->signalingClientMetrics.signalingClientStats.getSignalingChannelEndpointStartTime,
+                         pSampleConfiguration->signalingClientMetrics.signalingClientStats.getSignalingChannelEndpointEndTime,
+                         pSampleConfiguration->signalingClientMetrics.signalingClientStats.getIceServerConfigStartTime,
+                         pSampleConfiguration->signalingClientMetrics.signalingClientStats.getIceServerConfigEndTime,
+                         pSampleConfiguration->signalingClientMetrics.signalingClientStats.getTokenStartTime,
+                         pSampleConfiguration->signalingClientMetrics.signalingClientStats.getTokenEndTime,
+                         pSampleConfiguration->signalingClientMetrics.signalingClientStats.createChannelStartTime,
+                         pSampleConfiguration->signalingClientMetrics.signalingClientStats.createChannelEndTime,
+                         pSampleConfiguration->signalingClientMetrics.signalingClientStats.connectStartTime,
+                         pSampleConfiguration->signalingClientMetrics.signalingClientStats.connectEndTime);
+                DLOGI("Sending signaling metrics to the viewer: %s", pSampleStreamingSession->pSignalingClientMetricsMessage);
+
+                CHK_STATUS(peerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->peerConnectionMetrics));
+                SNPRINTF(pSampleStreamingSession->pPeerConnectionMetricsMessage, MAX_PEER_CONNECTION_METRICS_MESSAGE_SIZE,
+                         PEER_CONNECTION_METRICS_JSON_TEMPLATE,
+                         pSampleStreamingSession->peerConnectionMetrics.peerConnectionStats.peerConnectionStartTime,
+                         pSampleStreamingSession->peerConnectionMetrics.peerConnectionStats.peerConnectionConnectedTime);
+                DLOGI("Sending peer-connection metrics to the viewer: %s", pSampleStreamingSession->pPeerConnectionMetricsMessage);
+
+                CHK_STATUS(iceAgentGetMetrics(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->iceMetrics));
+                SNPRINTF(pSampleStreamingSession->pIceAgentMetricsMessage, MAX_ICE_AGENT_METRICS_MESSAGE_SIZE, ICE_AGENT_METRICS_JSON_TEMPLATE,
+                         pSampleStreamingSession->iceMetrics.kvsIceAgentStats.candidateGatheringStartTime,
+                         pSampleStreamingSession->iceMetrics.kvsIceAgentStats.candidateGatheringEndTime);
+                DLOGI("Sending ice-agent metrics to the viewer: %s", pSampleStreamingSession->pIceAgentMetricsMessage);
+
+                retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) pSampleStreamingSession->pSignalingClientMetricsMessage,
+                                            STRLEN(pSampleStreamingSession->pSignalingClientMetricsMessage));
+                retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) pSampleStreamingSession->pPeerConnectionMetricsMessage,
+                                            STRLEN(pSampleStreamingSession->pPeerConnectionMetricsMessage));
+                retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) pSampleStreamingSession->pIceAgentMetricsMessage,
+                                            STRLEN(pSampleStreamingSession->pIceAgentMetricsMessage));
+            }
+        } else {
+            DLOGI("DataChannel string message: %.*s\n", pMessageLen, pMessage);
+            STRCPY(errorMessage, "Send a json message for benchmarking as the C SDK is operating in benchmarking mode");
+            retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) errorMessage, STRLEN(errorMessage));
+        }
+    } else {
+        if (isBinary) {
+            DLOGI("DataChannel Binary Message");
+        } else {
+            DLOGI("DataChannel String Message: %.*s\n", pMessageLen, pMessage);
+        }
+        // Send a response to the message sent by the viewer
+        retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) MASTER_DATA_CHANNEL_MESSAGE, STRLEN(MASTER_DATA_CHANNEL_MESSAGE));
+    }
     if (retStatus != STATUS_SUCCESS) {
         DLOGI("[KVS Master] dataChannelSend(): operation returned status code: 0x%08x \n", retStatus);
     }
+
+CleanUp:
+    CHK_LOG_ERR(retStatus);
 }
 
 VOID onDataChannel(UINT64 customData, PRtcDataChannel pRtcDataChannel)
@@ -45,7 +212,6 @@ VOID onConnectionStateChange(UINT64 customData, RTC_PEER_CONNECTION_STATE newSta
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) customData;
-
     CHK(pSampleStreamingSession != NULL && pSampleStreamingSession->pSampleConfiguration != NULL, STATUS_INTERNAL_ERROR);
 
     PSampleConfiguration pSampleConfiguration = pSampleStreamingSession->pSampleConfiguration;
@@ -55,6 +221,12 @@ VOID onConnectionStateChange(UINT64 customData, RTC_PEER_CONNECTION_STATE newSta
         case RTC_PEER_CONNECTION_STATE_CONNECTED:
             ATOMIC_STORE_BOOL(&pSampleConfiguration->connected, TRUE);
             CVAR_BROADCAST(pSampleConfiguration->cvar);
+
+            pSampleStreamingSession->peerConnectionMetrics.peerConnectionStats.peerConnectionConnectedTime =
+                GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+            CHK_STATUS(peerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->peerConnectionMetrics));
+            CHK_STATUS(iceAgentGetMetrics(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->iceMetrics));
+
             if (STATUS_FAILED(retStatus = logSelectedIceCandidatesInformation(pSampleStreamingSession))) {
                 DLOGW("Failed to get information about selected Ice candidates: 0x%08x", retStatus);
             }
@@ -64,12 +236,14 @@ VOID onConnectionStateChange(UINT64 customData, RTC_PEER_CONNECTION_STATE newSta
         case RTC_PEER_CONNECTION_STATE_CLOSED:
             // explicit fallthrough
         case RTC_PEER_CONNECTION_STATE_DISCONNECTED:
+            DLOGD("p2p connection disconnected");
             ATOMIC_STORE_BOOL(&pSampleStreamingSession->terminateFlag, TRUE);
             CVAR_BROADCAST(pSampleConfiguration->cvar);
             // explicit fallthrough
         default:
             ATOMIC_STORE_BOOL(&pSampleConfiguration->connected, FALSE);
             CVAR_BROADCAST(pSampleConfiguration->cvar);
+
             break;
     }
 
@@ -204,7 +378,7 @@ STATUS handleOffer(PSampleConfiguration pSampleConfiguration, PSampleStreamingSe
 
     MEMSET(&offerSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
     MEMSET(&pSampleStreamingSession->answerSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
-
+    DLOGD("**offer:%s", pSignalingMessage->payload);
     CHK_STATUS(deserializeSessionDescriptionInit(pSignalingMessage->payload, pSignalingMessage->payloadLen, &offerSessionDescriptionInit));
     CHK_STATUS(setRemoteDescription(pSampleStreamingSession->pPeerConnection, &offerSessionDescriptionInit));
     canTrickle = canTrickleIceCandidates(pSampleStreamingSession->pPeerConnection);
@@ -219,8 +393,6 @@ STATUS handleOffer(PSampleConfiguration pSampleConfiguration, PSampleStreamingSe
     if (pSampleStreamingSession->remoteCanTrickleIce) {
         CHK_STATUS(createAnswer(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->answerSessionDescriptionInit));
         CHK_STATUS(respondWithAnswer(pSampleStreamingSession));
-        DLOGD("time taken to send answer %" PRIu64 " ms",
-              (GETTIME() - pSampleStreamingSession->offerReceiveTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
     }
 
     mediaThreadStarted = ATOMIC_EXCHANGE_BOOL(&pSampleConfiguration->mediaThreadStarted, TRUE);
@@ -244,16 +416,24 @@ STATUS sendSignalingMessage(PSampleStreamingSession pSampleStreamingSession, PSi
 {
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
-
+    PSampleConfiguration pSampleConfiguration;
     // Validate the input params
     CHK(pSampleStreamingSession != NULL && pSampleStreamingSession->pSampleConfiguration != NULL && pMessage != NULL, STATUS_NULL_ARG);
-    CHK(IS_VALID_MUTEX_VALUE(pSampleStreamingSession->pSampleConfiguration->signalingSendMessageLock) &&
-            IS_VALID_SIGNALING_CLIENT_HANDLE(pSampleStreamingSession->pSampleConfiguration->signalingClientHandle),
+
+    pSampleConfiguration = pSampleStreamingSession->pSampleConfiguration;
+
+    CHK(IS_VALID_MUTEX_VALUE(pSampleConfiguration->signalingSendMessageLock) &&
+            IS_VALID_SIGNALING_CLIENT_HANDLE(pSampleConfiguration->signalingClientHandle),
         STATUS_INVALID_OPERATION);
 
-    MUTEX_LOCK(pSampleStreamingSession->pSampleConfiguration->signalingSendMessageLock);
+    MUTEX_LOCK(pSampleConfiguration->signalingSendMessageLock);
     locked = TRUE;
-    CHK_STATUS(signalingClientSendMessageSync(pSampleStreamingSession->pSampleConfiguration->signalingClientHandle, pMessage));
+    CHK_STATUS(signalingClientSendMessageSync(pSampleConfiguration->signalingClientHandle, pMessage));
+    if (pMessage->messageType == SIGNALING_MESSAGE_TYPE_ANSWER) {
+        CHK_STATUS(signalingClientGetMetrics(pSampleConfiguration->signalingClientHandle, &pSampleConfiguration->signalingClientMetrics));
+        DLOGP("[Signaling offer received to answer sent time] %" PRIu64 " ms",
+              pSampleConfiguration->signalingClientMetrics.signalingClientStats.offerToAnswerTime);
+    }
 
 CleanUp:
 
@@ -277,8 +457,9 @@ STATUS respondWithAnswer(PSampleStreamingSession pSampleStreamingSession)
     message.messageType = SIGNALING_MESSAGE_TYPE_ANSWER;
     STRNCPY(message.peerClientId, pSampleStreamingSession->peerId, MAX_SIGNALING_CLIENT_ID_LEN);
     message.payloadLen = (UINT32) STRLEN(message.payload);
-    message.correlationId[0] = '\0';
-
+    // SNPRINTF appends null terminator, so we do not manually add it
+    SNPRINTF(message.correlationId, MAX_CORRELATION_ID_LEN, "%llu_%llu", GETTIME(), ATOMIC_INCREMENT(&pSampleStreamingSession->correlationIdPostFix));
+    DLOGD("Responding With Answer With correlationId: %s", message.correlationId);
     CHK_STATUS(sendSignalingMessage(pSampleStreamingSession, &message));
 
 CleanUp:
@@ -315,8 +496,6 @@ VOID onIceCandidateHandler(UINT64 customData, PCHAR candidateJson)
             !pSampleStreamingSession->remoteCanTrickleIce) {
             CHK_STATUS(createAnswer(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->answerSessionDescriptionInit));
             CHK_STATUS(respondWithAnswer(pSampleStreamingSession));
-            DLOGD("time taken to send answer %" PRIu64 " ms",
-                  (GETTIME() - pSampleStreamingSession->offerReceiveTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
         } else if (pSampleStreamingSession->pSampleConfiguration->channelInfo.channelRoleType == SIGNALING_CHANNEL_ROLE_TYPE_VIEWER &&
                    !pSampleStreamingSession->pSampleConfiguration->trickleIce) {
             CVAR_BROADCAST(pSampleStreamingSession->pSampleConfiguration->cvar);
@@ -337,14 +516,52 @@ CleanUp:
     CHK_LOG_ERR(retStatus);
 }
 
+PVOID asyncGetIceConfigInfo(PVOID args)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    AsyncGetIceStruct* data = (AsyncGetIceStruct*) args;
+    PIceConfigInfo pIceConfigInfo = NULL;
+    UINT32 uriCount = 0;
+    UINT32 i = 0, maxTurnServer = 1;
+
+    if (data != NULL) {
+        /* signalingClientGetIceConfigInfoCount can return more than one turn server. Use only one to optimize
+         * candidate gathering latency. But user can also choose to use more than 1 turn server. */
+        for (uriCount = 0, i = 0; i < maxTurnServer; i++) {
+            /*
+             * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port?transport=udp" then ICE will try TURN over UDP
+             * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port?transport=tcp" then ICE will try TURN over TCP/TLS
+             * if configuration.iceServers[uriCount + 1].urls is "turns:ip:port?transport=udp", it's currently ignored because sdk dont do TURN
+             * over DTLS yet. if configuration.iceServers[uriCount + 1].urls is "turns:ip:port?transport=tcp" then ICE will try TURN over TCP/TLS
+             * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port" then ICE will try both TURN over UDP and TCP/TLS
+             *
+             * It's recommended to not pass too many TURN iceServers to configuration because it will slow down ice gathering in non-trickle mode.
+             */
+            CHK_STATUS(signalingClientGetIceConfigInfo(data->signalingClientHandle, i, &pIceConfigInfo));
+            CHECK(uriCount < MAX_ICE_SERVERS_COUNT);
+            uriCount += pIceConfigInfo->uriCount;
+            CHK_STATUS(addConfigToServerList(&(data->pRtcPeerConnection), pIceConfigInfo));
+        }
+    }
+    *(data->pUriCount) += uriCount;
+
+CleanUp:
+    SAFE_MEMFREE(data);
+    CHK_LOG_ERR(retStatus);
+    return NULL;
+}
+
 STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcPeerConnection* ppRtcPeerConnection)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     RtcConfiguration configuration;
-    UINT32 i, j, iceConfigCount, uriCount = 0, maxTurnServer = 1;
+#ifndef ENABLE_KVS_THREADPOOL
+    UINT32 i, j, maxTurnServer = 1;
     PIceConfigInfo pIceConfigInfo;
-    UINT64 data, curTime;
+    UINT32 uriCount = 0;
+#endif
+    UINT64 data;
     PRtcCertificate pRtcCertificate = NULL;
 
     CHK(pSampleConfiguration != NULL && ppRtcPeerConnection != NULL, STATUS_NULL_ARG);
@@ -358,38 +575,13 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_ALL;
 
     // Set the  STUN server
-    SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, pSampleConfiguration->channelInfo.pRegion);
-
-    if (pSampleConfiguration->useTurn) {
-        // Set the URIs from the configuration
-        CHK_STATUS(signalingClientGetIceConfigInfoCount(pSampleConfiguration->signalingClientHandle, &iceConfigCount));
-
-        /* signalingClientGetIceConfigInfoCount can return more than one turn server. Use only one to optimize
-         * candidate gathering latency. But user can also choose to use more than 1 turn server. */
-        for (uriCount = 0, i = 0; i < maxTurnServer; i++) {
-            CHK_STATUS(signalingClientGetIceConfigInfo(pSampleConfiguration->signalingClientHandle, i, &pIceConfigInfo));
-            for (j = 0; j < pIceConfigInfo->uriCount; j++) {
-                CHECK(uriCount < MAX_ICE_SERVERS_COUNT);
-                /*
-                 * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port?transport=udp" then ICE will try TURN over UDP
-                 * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port?transport=tcp" then ICE will try TURN over TCP/TLS
-                 * if configuration.iceServers[uriCount + 1].urls is "turns:ip:port?transport=udp", it's currently ignored because sdk dont do TURN
-                 * over DTLS yet. if configuration.iceServers[uriCount + 1].urls is "turns:ip:port?transport=tcp" then ICE will try TURN over TCP/TLS
-                 * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port" then ICE will try both TURN over UPD and TCP/TLS
-                 *
-                 * It's recommended to not pass too many TURN iceServers to configuration because it will slow down ice gathering in non-trickle mode.
-                 */
-
-                STRNCPY(configuration.iceServers[uriCount + 1].urls, pIceConfigInfo->uris[j], MAX_ICE_CONFIG_URI_LEN);
-                STRNCPY(configuration.iceServers[uriCount + 1].credential, pIceConfigInfo->password, MAX_ICE_CONFIG_CREDENTIAL_LEN);
-                STRNCPY(configuration.iceServers[uriCount + 1].username, pIceConfigInfo->userName, MAX_ICE_CONFIG_USER_NAME_LEN);
-
-                uriCount++;
-            }
-        }
+    PCHAR pKinesisVideoStunUrlPostFix = KINESIS_VIDEO_STUN_URL_POSTFIX;
+    // If region is in CN, add CN region uri postfix
+    if (STRSTR(pSampleConfiguration->channelInfo.pRegion, "cn-")) {
+        pKinesisVideoStunUrlPostFix = KINESIS_VIDEO_STUN_URL_POSTFIX_CN;
     }
-
-    pSampleConfiguration->iceUriCount = uriCount + 1;
+    SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, pSampleConfiguration->channelInfo.pRegion,
+             pKinesisVideoStunUrlPostFix);
 
     // Check if we have any pregenerated certs and use them
     // NOTE: We are running under the config lock
@@ -404,9 +596,40 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
         configuration.certificates[0] = *pRtcCertificate;
     }
 
-    curTime = GETTIME();
     CHK_STATUS(createPeerConnection(&configuration, ppRtcPeerConnection));
-    DLOGD("time taken to create peer connection %" PRIu64 " ms", (GETTIME() - curTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+
+    if (pSampleConfiguration->useTurn) {
+#ifdef ENABLE_KVS_THREADPOOL
+        pSampleConfiguration->iceUriCount = 1;
+        AsyncGetIceStruct* pAsyncData = NULL;
+
+        pAsyncData = (AsyncGetIceStruct*) MEMCALLOC(1, SIZEOF(AsyncGetIceStruct));
+        pAsyncData->signalingClientHandle = pSampleConfiguration->signalingClientHandle;
+        pAsyncData->pRtcPeerConnection = *ppRtcPeerConnection;
+        pAsyncData->pUriCount = &(pSampleConfiguration->iceUriCount);
+        CHK_STATUS(peerConnectionAsync(asyncGetIceConfigInfo, (PVOID) pAsyncData));
+#else
+
+        /* signalingClientGetIceConfigInfoCount can return more than one turn server. Use only one to optimize
+         * candidate gathering latency. But user can also choose to use more than 1 turn server. */
+        for (uriCount = 0, i = 0; i < maxTurnServer; i++) {
+            /*
+             * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port?transport=udp" then ICE will try TURN over UDP
+             * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port?transport=tcp" then ICE will try TURN over TCP/TLS
+             * if configuration.iceServers[uriCount + 1].urls is "turns:ip:port?transport=udp", it's currently ignored because sdk dont do TURN
+             * over DTLS yet. if configuration.iceServers[uriCount + 1].urls is "turns:ip:port?transport=tcp" then ICE will try TURN over TCP/TLS
+             * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port" then ICE will try both TURN over UDP and TCP/TLS
+             *
+             * It's recommended to not pass too many TURN iceServers to configuration because it will slow down ice gathering in non-trickle mode.
+             */
+            CHK_STATUS(signalingClientGetIceConfigInfo(pSampleConfiguration->signalingClientHandle, i, &pIceConfigInfo));
+            CHECK(uriCount < MAX_ICE_SERVERS_COUNT);
+            uriCount += pIceConfigInfo->uriCount;
+            CHK_STATUS(addConfigToServerList(ppRtcPeerConnection, pIceConfigInfo));
+        }
+        pSampleConfiguration->iceUriCount = uriCount + 1;
+#endif
+    }
 
 CleanUp:
 
@@ -459,6 +682,8 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     CHK((isMaster && peerId != NULL) || !isMaster, STATUS_INVALID_ARG);
 
     pSampleStreamingSession = (PSampleStreamingSession) MEMCALLOC(1, SIZEOF(SampleStreamingSession));
+    pSampleStreamingSession->firstFrame = TRUE;
+    pSampleStreamingSession->offerReceiveTime = GETTIME();
     CHK(pSampleStreamingSession != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
     if (isMaster) {
@@ -473,12 +698,17 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
 
     pSampleStreamingSession->pSampleConfiguration = pSampleConfiguration;
     pSampleStreamingSession->rtcMetricsHistory.prevTs = GETTIME();
+
+    pSampleStreamingSession->peerConnectionMetrics.version = PEER_CONNECTION_METRICS_CURRENT_VERSION;
+    pSampleStreamingSession->iceMetrics.version = ICE_AGENT_METRICS_CURRENT_VERSION;
+
     // if we're the viewer, we control the trickle ice mode
     pSampleStreamingSession->remoteCanTrickleIce = !isMaster && pSampleConfiguration->trickleIce;
 
     ATOMIC_STORE_BOOL(&pSampleStreamingSession->terminateFlag, FALSE);
     ATOMIC_STORE_BOOL(&pSampleStreamingSession->candidateGatheringDone, FALSE);
 
+    pSampleStreamingSession->peerConnectionMetrics.peerConnectionStats.peerConnectionStartTime = GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
     CHK_STATUS(initializePeerConnection(pSampleConfiguration, &pSampleStreamingSession->pPeerConnection));
     CHK_STATUS(peerConnectionOnIceCandidate(pSampleStreamingSession->pPeerConnection, (UINT64) pSampleStreamingSession, onIceCandidateHandler));
     CHK_STATUS(
@@ -518,7 +748,6 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     // twcc bandwidth estimation
     CHK_STATUS(peerConnectionOnSenderBandwidthEstimation(pSampleStreamingSession->pPeerConnection, (UINT64) pSampleStreamingSession,
                                                          sampleSenderBandwidthEstimationHandler));
-    pSampleStreamingSession->firstFrame = TRUE;
     pSampleStreamingSession->startUpLatency = 0;
 CleanUp:
 
@@ -599,24 +828,18 @@ VOID sampleVideoFrameHandler(UINT64 customData, PFrame pFrame)
 {
     UNUSED_PARAM(customData);
     DLOGV("Video Frame received. TrackId: %" PRIu64 ", Size: %u, Flags %u", pFrame->trackId, pFrame->size, pFrame->flags);
-    PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) customData;
-    if (pSampleStreamingSession->firstFrame) {
-        pSampleStreamingSession->firstFrame = FALSE;
-        pSampleStreamingSession->startUpLatency = (GETTIME() - pSampleStreamingSession->offerReceiveTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
-        printf("Start up latency from offer to first video frame: %" PRIu64 "ms\n", pSampleStreamingSession->startUpLatency);
-    }
 }
 
 VOID sampleAudioFrameHandler(UINT64 customData, PFrame pFrame)
 {
     UNUSED_PARAM(customData);
     DLOGV("Audio Frame received. TrackId: %" PRIu64 ", Size: %u, Flags %u", pFrame->trackId, pFrame->size, pFrame->flags);
-    PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) customData;
-    if (pSampleStreamingSession->firstFrame) {
-        pSampleStreamingSession->firstFrame = FALSE;
-        pSampleStreamingSession->startUpLatency = (GETTIME() - pSampleStreamingSession->offerReceiveTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
-        printf("Start up latency from offer to first audio frame: %" PRIu64 "ms\n", pSampleStreamingSession->startUpLatency);
-    }
+}
+
+VOID sampleFrameHandler(UINT64 customData, PFrame pFrame)
+{
+    UNUSED_PARAM(customData);
+    DLOGV("Video Frame received. TrackId: %" PRIu64 ", Size: %u, Flags %u", pFrame->trackId, pFrame->size, pFrame->flags);
 }
 
 VOID sampleBandwidthEstimationHandler(UINT64 customData, DOUBLE maximumBitrate)
@@ -689,7 +912,7 @@ STATUS lookForSslCert(PSampleConfiguration* ppSampleConfiguration)
     PSampleConfiguration pSampleConfiguration = *ppSampleConfiguration;
 
     MEMSET(certName, 0x0, ARRAY_SIZE(certName));
-    pSampleConfiguration->pCaCertPath = getenv(CACERT_PATH_ENV_VAR);
+    pSampleConfiguration->pCaCertPath = GETENV(CACERT_PATH_ENV_VAR);
 
     // if ca cert path is not set from the environment, try to use the one that cmake detected
     if (pSampleConfiguration->pCaCertPath == NULL) {
@@ -720,52 +943,67 @@ CleanUp:
     return retStatus;
 }
 
-STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE roleType, BOOL trickleIce, BOOL useTurn,
+STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE roleType, BOOL trickleIce, BOOL useTurn, UINT32 logLevel,
                                  PSampleConfiguration* ppSampleConfiguration)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    PCHAR pAccessKey, pSecretKey, pSessionToken, pLogLevel;
+    PCHAR pAccessKey, pSecretKey, pSessionToken;
     PSampleConfiguration pSampleConfiguration = NULL;
-    UINT32 logLevel = LOG_LEVEL_DEBUG;
 
     CHK(ppSampleConfiguration != NULL, STATUS_NULL_ARG);
 
     CHK(NULL != (pSampleConfiguration = (PSampleConfiguration) MEMCALLOC(1, SIZEOF(SampleConfiguration))), STATUS_NOT_ENOUGH_MEMORY);
 
 #ifdef IOT_CORE_ENABLE_CREDENTIALS
-    PCHAR pIotCoreCredentialEndPoint, pIotCoreCert, pIotCorePrivateKey, pIotCoreRoleAlias, pIotCoreThingName;
-    CHK_ERR((pIotCoreCredentialEndPoint = getenv(IOT_CORE_CREDENTIAL_ENDPOINT)) != NULL, STATUS_INVALID_OPERATION,
+    PCHAR pIotCoreCredentialEndPoint, pIotCoreCert, pIotCorePrivateKey, pIotCoreRoleAlias, pIotCoreCertificateId, pIotCoreThingName;
+    CHK_ERR((pIotCoreCredentialEndPoint = GETENV(IOT_CORE_CREDENTIAL_ENDPOINT)) != NULL, STATUS_INVALID_OPERATION,
             "AWS_IOT_CORE_CREDENTIAL_ENDPOINT must be set");
-    CHK_ERR((pIotCoreCert = getenv(IOT_CORE_CERT)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_CERT must be set");
-    CHK_ERR((pIotCorePrivateKey = getenv(IOT_CORE_PRIVATE_KEY)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_PRIVATE_KEY must be set");
-    CHK_ERR((pIotCoreRoleAlias = getenv(IOT_CORE_ROLE_ALIAS)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_ROLE_ALIAS must be set");
+    CHK_ERR((pIotCoreCert = GETENV(IOT_CORE_CERT)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_CERT must be set");
+    CHK_ERR((pIotCorePrivateKey = GETENV(IOT_CORE_PRIVATE_KEY)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_PRIVATE_KEY must be set");
+    CHK_ERR((pIotCoreRoleAlias = GETENV(IOT_CORE_ROLE_ALIAS)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_ROLE_ALIAS must be set");
+    CHK_ERR((pIotCoreThingName = GETENV(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_THING_NAME must be set");
 #else
-    CHK_ERR((pAccessKey = getenv(ACCESS_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_ACCESS_KEY_ID must be set");
-    CHK_ERR((pSecretKey = getenv(SECRET_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_SECRET_ACCESS_KEY must be set");
+    CHK_ERR((pAccessKey = GETENV(ACCESS_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_ACCESS_KEY_ID must be set");
+    CHK_ERR((pSecretKey = GETENV(SECRET_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_SECRET_ACCESS_KEY must be set");
 #endif
 
-    pSessionToken = getenv(SESSION_TOKEN_ENV_VAR);
-    pSampleConfiguration->enableFileLogging = FALSE;
-    if (NULL != getenv(ENABLE_FILE_LOGGING)) {
-        pSampleConfiguration->enableFileLogging = TRUE;
+    pSessionToken = GETENV(SESSION_TOKEN_ENV_VAR);
+    if (pSessionToken != NULL && IS_EMPTY_STRING(pSessionToken)) {
+        DLOGW("Session token is set but its value is empty. Ignoring.");
+        pSessionToken = NULL;
     }
-    if ((pSampleConfiguration->channelInfo.pRegion = getenv(DEFAULT_REGION_ENV_VAR)) == NULL) {
+
+    // If the env is set, we generate normal log files apart from filtered profile log files
+    // If not set, we generate only the filtered profile log files
+    if (NULL != GETENV(ENABLE_FILE_LOGGING)) {
+        retStatus = createFileLoggerWithLevelFiltering(FILE_LOGGING_BUFFER_SIZE, MAX_NUMBER_OF_LOG_FILES, (PCHAR) FILE_LOGGER_LOG_FILE_DIRECTORY_PATH,
+                                                       TRUE, TRUE, TRUE, LOG_LEVEL_PROFILE, NULL);
+
+        if (retStatus != STATUS_SUCCESS) {
+            DLOGW("[KVS Master] createFileLogger(): operation returned status code: 0x%08x", retStatus);
+        } else {
+            pSampleConfiguration->enableFileLogging = TRUE;
+        }
+    } else {
+        retStatus = createFileLoggerWithLevelFiltering(FILE_LOGGING_BUFFER_SIZE, MAX_NUMBER_OF_LOG_FILES, (PCHAR) FILE_LOGGER_LOG_FILE_DIRECTORY_PATH,
+                                                       TRUE, TRUE, FALSE, LOG_LEVEL_PROFILE, NULL);
+
+        if (retStatus != STATUS_SUCCESS) {
+            DLOGW("[KVS Master] createFileLogger(): operation returned status code: 0x%08x", retStatus);
+        } else {
+            pSampleConfiguration->enableFileLogging = TRUE;
+        }
+    }
+
+    if ((pSampleConfiguration->channelInfo.pRegion = GETENV(DEFAULT_REGION_ENV_VAR)) == NULL) {
         pSampleConfiguration->channelInfo.pRegion = DEFAULT_AWS_REGION;
     }
 
     CHK_STATUS(lookForSslCert(&pSampleConfiguration));
 
-    // Set the logger log level
-    if (NULL == (pLogLevel = getenv(DEBUG_LOG_LEVEL_ENV_VAR)) || STATUS_SUCCESS != STRTOUI32(pLogLevel, NULL, 10, &logLevel) ||
-        logLevel < LOG_LEVEL_VERBOSE || logLevel > LOG_LEVEL_SILENT) {
-        logLevel = LOG_LEVEL_WARN;
-    }
-
-    SET_LOGGER_LOG_LEVEL(logLevel);
-
 #ifdef IOT_CORE_ENABLE_CREDENTIALS
     CHK_STATUS(createLwsIotCredentialProvider(pIotCoreCredentialEndPoint, pIotCoreCert, pIotCorePrivateKey, pSampleConfiguration->pCaCertPath,
-                                              pIotCoreRoleAlias, channelName, &pSampleConfiguration->pCredentialProvider));
+                                              pIotCoreRoleAlias, pIotCoreThingName, &pSampleConfiguration->pCredentialProvider));
 #else
     CHK_STATUS(
         createStaticCredentialProvider(pAccessKey, 0, pSecretKey, 0, pSessionToken, 0, MAX_UINT64, &pSampleConfiguration->pCredentialProvider));
@@ -783,9 +1021,15 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
      * not ahead of time. */
     pSampleConfiguration->trickleIce = trickleIce;
     pSampleConfiguration->useTurn = useTurn;
+    pSampleConfiguration->enableSendingMetricsToViewerViaDc = FALSE;
 
     pSampleConfiguration->channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
     pSampleConfiguration->channelInfo.pChannelName = channelName;
+#ifdef IOT_CORE_ENABLE_CREDENTIALS
+    if ((pIotCoreCertificateId = GETENV(IOT_CORE_CERTIFICATE_ID)) != NULL) {
+        pSampleConfiguration->channelInfo.pChannelName = pIotCoreCertificateId;
+    }
+#endif
     pSampleConfiguration->channelInfo.pKmsKeyId = NULL;
     pSampleConfiguration->channelInfo.tagCount = 0;
     pSampleConfiguration->channelInfo.pTags = NULL;
@@ -810,6 +1054,7 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     pSampleConfiguration->clientInfo.signalingClientCreationMaxRetryAttempts = CREATE_SIGNALING_CLIENT_RETRY_ATTEMPTS_SENTINEL_VALUE;
     pSampleConfiguration->iceCandidatePairStatsTimerId = MAX_UINT32;
     pSampleConfiguration->pregenerateCertTimerId = MAX_UINT32;
+    pSampleConfiguration->signalingClientMetrics.version = SIGNALING_CLIENT_METRICS_CURRENT_VERSION;
 
     ATOMIC_STORE_BOOL(&pSampleConfiguration->interrupted, FALSE);
     ATOMIC_STORE_BOOL(&pSampleConfiguration->mediaThreadStarted, FALSE);
@@ -844,6 +1089,47 @@ CleanUp:
         *ppSampleConfiguration = pSampleConfiguration;
     }
 
+    return retStatus;
+}
+
+STATUS initSignaling(PSampleConfiguration pSampleConfiguration, PCHAR clientId)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    SignalingClientMetrics signalingClientMetrics = pSampleConfiguration->signalingClientMetrics;
+    pSampleConfiguration->signalingClientCallbacks.messageReceivedFn = signalingMessageReceived;
+    STRCPY(pSampleConfiguration->clientInfo.clientId, clientId);
+    CHK_STATUS(createSignalingClientSync(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
+                                         &pSampleConfiguration->signalingClientCallbacks, pSampleConfiguration->pCredentialProvider,
+                                         &pSampleConfiguration->signalingClientHandle));
+
+    // Enable the processing of the messages
+    CHK_STATUS(signalingClientFetchSync(pSampleConfiguration->signalingClientHandle));
+
+#ifdef ENABLE_DATA_CHANNEL
+    pSampleConfiguration->onDataChannel = onDataChannel;
+#endif
+
+    CHK_STATUS(signalingClientConnectSync(pSampleConfiguration->signalingClientHandle));
+
+    signalingClientGetMetrics(pSampleConfiguration->signalingClientHandle, &signalingClientMetrics);
+
+    // Logging this here since the logs in signaling library do not get routed to file
+    DLOGP("[Signaling Get token] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.getTokenCallTime);
+    DLOGP("[Signaling Describe] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.describeCallTime);
+    DLOGP("[Signaling Describe Media] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.describeMediaCallTime);
+    DLOGP("[Signaling Create Channel] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.createCallTime);
+    DLOGP("[Signaling Get endpoint] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.getEndpointCallTime);
+    DLOGP("[Signaling Get ICE config] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.getIceConfigCallTime);
+    DLOGP("[Signaling Connect] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.connectCallTime);
+    if (signalingClientMetrics.signalingClientStats.joinSessionCallTime != 0) {
+        DLOGP("[Signaling Join Session] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.joinSessionCallTime);
+    }
+    DLOGP("[Signaling create client] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.createClientTime);
+    DLOGP("[Signaling fetch client] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.fetchClientTime);
+    DLOGP("[Signaling connect client] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.connectClientTime);
+    pSampleConfiguration->signalingClientMetrics = signalingClientMetrics;
+    gSampleConfiguration = pSampleConfiguration;
+CleanUp:
     return retStatus;
 }
 
@@ -1137,7 +1423,9 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
         CHK_LOG_ERR(stackQueueFree(pSampleConfiguration->pregeneratedCertificates));
         pSampleConfiguration->pregeneratedCertificates = NULL;
     }
-
+    if (pSampleConfiguration->enableFileLogging) {
+        freeFileLogger();
+    }
     SAFE_MEMFREE(*ppSampleConfiguration);
 
 CleanUp:
@@ -1152,7 +1440,7 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
     STATUS retStatus = STATUS_SUCCESS;
     PSampleStreamingSession pSampleStreamingSession = NULL;
     UINT32 i, clientIdHash;
-    BOOL locked = FALSE, peerConnectionFound = FALSE;
+    BOOL sampleConfigurationObjLockLocked = FALSE, streamingSessionListReadLockLocked = FALSE, peerConnectionFound = FALSE, sessionFreed = FALSE;
     SIGNALING_CLIENT_STATE signalingClientState;
 
     CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
@@ -1160,7 +1448,7 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->interrupted)) {
         // Keep the main set of operations interlocked until cvar wait which would atomically unlock
         MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
-        locked = TRUE;
+        sampleConfigurationObjLockLocked = TRUE;
 
         // scan and cleanup terminated streaming session
         for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
@@ -1168,6 +1456,7 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
                 pSampleStreamingSession = pSampleConfiguration->sampleStreamingSessionList[i];
 
                 MUTEX_LOCK(pSampleConfiguration->streamingSessionListReadLock);
+                streamingSessionListReadLockLocked = TRUE;
 
                 // swap with last element and decrement count
                 pSampleConfiguration->streamingSessionCount--;
@@ -1182,9 +1471,22 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
                 }
 
                 MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
+                streamingSessionListReadLockLocked = FALSE;
 
                 CHK_STATUS(freeSampleStreamingSession(&pSampleStreamingSession));
+                sessionFreed = TRUE;
             }
+        }
+
+        if (sessionFreed && pSampleConfiguration->channelInfo.useMediaStorage && !ATOMIC_LOAD_BOOL(&pSampleConfiguration->recreateSignalingClient)) {
+            // In the WebRTC Media Storage Ingestion Case the backend will terminate the session after
+            // 1 hour.  The SDK needs to make a new JoinSession Call in order to receive a new
+            // offer from the backend.  We will create a new sample streaming session upon receipt of the
+            // offer.  The signalingClientConnectSync call will result in a JoinSession API call being made.
+            CHK_STATUS(signalingClientDisconnectSync(pSampleConfiguration->signalingClientHandle));
+            CHK_STATUS(signalingClientFetchSync(pSampleConfiguration->signalingClientHandle));
+            CHK_STATUS(signalingClientConnectSync(pSampleConfiguration->signalingClientHandle));
+            sessionFreed = FALSE;
         }
 
         // Check if we need to re-create the signaling client on-the-fly
@@ -1216,15 +1518,19 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
         // periodically wake up and clean up terminated streaming session
         CVAR_WAIT(pSampleConfiguration->cvar, pSampleConfiguration->sampleConfigurationObjLock, SAMPLE_SESSION_CLEANUP_WAIT_PERIOD);
         MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
-        locked = FALSE;
+        sampleConfigurationObjLockLocked = FALSE;
     }
 
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
 
-    if (locked) {
+    if (sampleConfigurationObjLockLocked) {
         MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
+    }
+
+    if (streamingSessionListReadLockLocked) {
+        MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
     }
 
     LEAVES();
@@ -1299,6 +1605,7 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
              * any ice candidate messages queued in pPendingSignalingMessageForRemoteClient. If so then submit
              * all of them.
              */
+
             if (pSampleConfiguration->streamingSessionCount == ARRAY_SIZE(pSampleConfiguration->sampleStreamingSessionList)) {
                 DLOGW("Max simultaneous streaming session count reached.");
 
@@ -1358,6 +1665,9 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
             }
 
             startStats = pSampleConfiguration->iceCandidatePairStatsTimerId == MAX_UINT32;
+            CHK_STATUS(signalingClientGetMetrics(pSampleConfiguration->signalingClientHandle, &pSampleConfiguration->signalingClientMetrics));
+            DLOGP("[Signaling offer sent to answer received time] %" PRIu64 " ms",
+                  pSampleConfiguration->signalingClientMetrics.signalingClientStats.offerToAnswerTime);
             break;
 
         case SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE:

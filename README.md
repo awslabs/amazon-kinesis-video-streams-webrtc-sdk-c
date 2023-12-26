@@ -6,7 +6,7 @@
 <h4 align="center">Pure C WebRTC Client for Amazon Kinesis Video Streams </h4>
 
 <p align="center">
-  <a href="https://travis-ci.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c"> <img src="https://travis-ci.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c.svg?branch=master" alt="Build Status"> </a>
+  <a href="https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/actions/workflows/ci.yml"> <img src="https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/actions/workflows/ci.yml/badge.svg"> </a>
   <a href="https://codecov.io/gh/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c"> <img src="https://codecov.io/gh/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/branch/master/graph/badge.svg" alt="Coverage Status"> </a>
 </p>
 
@@ -20,6 +20,9 @@
   <a href="#related">Related</a> •
   <a href="#license">License</a>
 </p>
+
+## New feature announcements
+Please refer to the release notes in [Releases](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/releases) page
 
 ## Key Features
 * Audio/Video Support
@@ -38,6 +41,8 @@
 * Signaling Client Included
   - KVS Provides STUN/TURN and Signaling Backend
   - Connect with [Android](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-android)/[iOS](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-ios)/[Web](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-js) using pre-made samples
+* Storage for WebRTC [NEW]
+  * Ingest media into a Kinesis Video Stream.
 * Portable
   - Tested on Linux/MacOS
   - Tested on x64, ARMv5
@@ -52,9 +57,9 @@ To download run the following command:
 
 `git clone --recursive https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c.git`
 
-You will also need to install `pkg-config` and `CMake` and a build enviroment
+You will also need to install `pkg-config` and `CMake` and a build environment
 
-### Configure
+### Configuring on Ubuntu / Unix
 Create a build directory in the newly checked out repository, and execute CMake from it.
 
 `mkdir -p amazon-kinesis-video-streams-webrtc-sdk-c/build; cd amazon-kinesis-video-streams-webrtc-sdk-c/build; cmake .. `
@@ -64,16 +69,64 @@ GStreamer is installed on your system.
 
 On Ubuntu and Raspberry Pi OS you can get the libraries by running
 ```
-$ sudo apt-get install libssl-dev libcurl4-openssl-dev liblog4cplus-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev gstreamer1.0-plugins-base-apps gstreamer1.0-plugins-bad gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly gstreamer1.0-tools
+sudo apt-get install cmake m4 pkg-config libssl-dev libcurl4-openssl-dev liblog4cplus-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev gstreamer1.0-plugins-base-apps gstreamer1.0-plugins-bad gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly gstreamer1.0-tools 
 ```
 
-By default we download all the libraries from GitHub and build them locally, so should require nothing to be installed ahead of time.
-If you do wish to link to existing libraries you can use the following flags to customize your build.
+By default we download all the libraries from GitHub and build them locally, so should require nothing to be installed ahead of time. If you do wish to link to existing libraries you can use the following flags to customize your build.
 
+### Configuring on Windows
+
+Install [MS Visual Studio Community / Enterprise](https://visualstudio.microsoft.com/vs/community/), [Strawberry perl](https://strawberryperl.com/), and [Chocolatey](https://chocolatey.org/install) if not installed already
+
+Get the libraries by running the following in powershell
+```
+choco install gstreamer
+choco install gstreamer-devel
+curl.exe -o C:\tools\pthreads-w32-2-9-1-release.zip ftp://sourceware.org/pub/pthreads-win32/pthreads-w32-2-9-1-release.zip
+mkdir C:\tools\pthreads-w32-2-9-1-release\
+Expand-Archive -Path C:\tools\pthreads-w32-2-9-1-release.zip -DestinationPath C:\tools\pthreads-w32-2-9-1-release
+```
+
+Modify the path to the downloaded and unzipped PThreads in cmake in `build_windows_openssl.bat` if needed / unzipped at a path other than the one mentioned above
+```
+cmake -G "NMake Makefiles" -DBUILD_TEST=TRUE -DEXT_PTHREAD_INCLUDE_DIR="C:/tools/pthreads-w32-2-9-1-release/Pre-built.2/include/" -DEXT_PTHREAD_LIBRARIES="C:/tools/pthreads-w32-2-9-1-release/Pre-built.2/lib/x64/libpthreadGC2.a" ..
+```
+Modify the path to MSVC as well in the `build_windows_openssl.bat` if needed / installed a different version / location
+
+```
+call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64
+```
+
+Allow long paths before we start the build
+```
+git config --system core.longpaths true
+```
+
+Note that if the paths are still too long (which can cause the build to fail unfortunately), we recommend renaming the folders to use shorter names and moving them to `C:/`
+
+Build the SDK
+
+```
+.github\build_windows_openssl.bat
+```
+
+To run the sample application, make sure that you've exported the following paths and appended them to env:Path for powershell
+```
+$env:Path += ';C:\webrtc\open-source\bin;C:\tools\pthreads-w32-2-9-1-release\Pre-built.2\dll\x64;C:\webrtc\build'
+```
+
+### Dependency requirements
+
+These would be applicable if the SDK is being linked with system dependencies instead of building from source by the SDK.
+`libmbedtls`: `>= 2.25.0 & < 3.x.x`
+`libopenssl`: `= 1.1.1x`
+`libsrtp2` : `<= 2.5.0`
+`libusrsctp` : `<= 0.9.5.0`
+`libwebsockets` : `>= 4.2.0`
 
 #### Cross-Compilation
 
-If you wish to cross-compile `CC` and `CXX` are respected when building the library and all its dependencies. You will also need to set `BUILD_OPENSSL_PLATFORM`, `BUILD_LIBSRTP_HOST_PLATFORM` and `BUILD_LIBSRTP_DESTINATION_PLATFORM`. See our [.travis.yml](.travis.yml) for an example of this. Every commit is cross compiled to ensure that it continues to work.
+If you wish to cross-compile `CC` and `CXX` are respected when building the library and all its dependencies. You will also need to set `BUILD_OPENSSL_PLATFORM`, `BUILD_LIBSRTP_HOST_PLATFORM` and `BUILD_LIBSRTP_DESTINATION_PLATFORM`. See our codecov.io for an example of this. Every commit is cross compiled to ensure that it continues to work.
 
 #### Static Builds
 
@@ -85,9 +138,9 @@ You can pass the following options to `cmake ..`.
 * `-DBUILD_STATIC_LIBS` -- Build all KVS WebRTC and third-party libraries as static libraries.
 * `-DADD_MUCLIBC`  -- Add -muclibc c flag
 * `-DBUILD_DEPENDENCIES` -- Whether or not to build depending libraries from source
-* `-DBUILD_OPENSSL_PLATFORM` -- If buildng OpenSSL what is the target platform
-* `-DBUILD_LIBSRTP_HOST_PLATFORM` -- If buildng LibSRTP what is the current platform
-* `-DBUILD_LIBSRTP_DESTINATION_PLATFORM` -- If buildng LibSRTP what is the destination platform
+* `-DBUILD_OPENSSL_PLATFORM` -- If building OpenSSL what is the target platform
+* `-DBUILD_LIBSRTP_HOST_PLATFORM` -- If building LibSRTP what is the current platform
+* `-DBUILD_LIBSRTP_DESTINATION_PLATFORM` -- If building LibSRTP what is the destination platform
 * `-DBUILD_TEST=TRUE` -- Build unit/integration tests, may be useful for confirm support for your device. `./tst/webrtc_client_test`
 * `-DCODE_COVERAGE` --  Enable coverage reporting
 * `-DCOMPILER_WARNINGS` -- Enable all compiler warnings
@@ -112,6 +165,29 @@ To build the library and the provided samples run make in the build directory yo
 
 `make`
 
+### Building with dependencies off
+
+In addition to the dependencies already installed, install the dependencies using the appropriate package manager. 
+
+On Ubuntu:
+`sudo apt-get install libsrtp2-dev libusrsctp-dev libwebsockets-dev`
+
+On MacOS:
+`brew install srtp libusrsctp libwebsockets `
+
+To use OpenSSL:
+```
+cmake .. -DBUILD_DEPENDENCIES=OFF -DUSE_OPENSSL=ON
+```
+
+To use MBedTLS:
+```
+cmake .. -DBUILD_DEPENDENCIES=OFF -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
+```
+
+Note: Please follow the dependency requirements to confirm the version requirements are satisfied to use the SDK with system installed dependencies.
+If the versions are not satisfied, this option would not work and enabling the SDK to build dependencies for you would be the best option to go ahead with.
+
 ## Run
 ### Setup your environment with your AWS account credentials and AWS region:
 * First set the appropriate environment variables so you can connect to KVS. If you want to use IoT certificate instead, check <a href="#setup-iot">Setup IoT</a>.
@@ -133,7 +209,7 @@ export AWS_SESSION_TOKEN=<session token>
 export AWS_DEFAULT_REGION= <AWS region>
 ```
 
-### Setup desired log level:
+### Setup logging:
 Set up the desired log level. The log levels and corresponding values currently available are:
 1. `LOG_LEVEL_VERBOSE` ---- 1
 2. `LOG_LEVEL_DEBUG`   ---- 2
@@ -142,6 +218,7 @@ Set up the desired log level. The log levels and corresponding values currently 
 5. `LOG_LEVEL_ERROR`   ---- 5
 6. `LOG_LEVEL_FATAL`   ---- 6
 7. `LOG_LEVEL_SILENT`  ---- 7
+8. `LOG_LEVEL_PROFILE` ---- 8
 
 To set a log level, run the following command:
 ```
@@ -155,34 +232,75 @@ export AWS_KVS_LOG_LEVEL = 2 switches on DEBUG level logs while runnning the sam
 
 Note: The default log level is `LOG_LEVEL_WARN`.
 
-* Optionally, set path to SSL CA certificate with variable (`../certs/cert.pem` is default one and points to file in this repository):
+Starting v1.8.0, by default, the SDK creates a log file that would have execution timing details of certain steps in connection establishment. It would be stored in the `build` directory as `kvsFileLogFilter.x`. In case you do not want to use defaults, you can modify certain parameters such as log file directory, log file size and file rotation index in the `createFileLoggerWithLevelFiltering` function in the samples.
+In addition to these logs, if you would like to have other level logs in a file as well, run:
+
+```
+export AWS_ENABLE_FILE_LOGGING=TRUE
+```
+
+The SDK also tracks entry and exit of functions which increases the verbosity of the logs. This will be useful when you want to track the transitions within the codebase. To do so, you need to set log level to `LOG_LEVEL_VERBOSE` and add the following to the cmake file:
+`add_definitions(-DLOG_STREAMING)`
+Note: This log level is extremely VERBOSE and could flood the files if using file based logging strategy.
+
+<details>
+  <summary>Time-to-first-frame breakdown metrics</summary>
+    There is a flag in the sample application which (pSampleConfiguration->enableSendingMetricsToViewerViaDc) can be set to TRUE to send metrics from the master to the [JS](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-js/examples/index.html) viewer. This helps get a detailed breakdown of time-to-first-frame and all the processes and API calls on master and the viewer both. This is intended to be used with the KVS WebRTC C SDK running as the master and the JS SDK as the viewer. The master sends peer, ice-agent, signaling and data-channel metrics to the viewer which are plotted ~ 20 seconds after the viewer is started. Since the timeline plot is intended to understand the time-to-first-frame, the sample web page needs to be refreshed and the master needs to be restarted if a new / updated plot is needed. While using the SDK in this mode, it is expected that all datachannel messages are JSON messages. This feature is only meant to be used for a single viewer at a time.
+</details>
+
+### Set path to SSL CA certificate (**Optional**)
+
+If you have a custom CA certificate path to set, you can set it using:
 
 ```
 export AWS_KVS_CACERT_PATH=../certs/cert.pem
 ```
 
+By defaut, the SSL CA certificate is set to `../certs/cert.pem` which points to the file in this repository:
+
 ### Running the Samples
-After executing `make` you will have the following sample applications in your `build/samples` directory:
+After executing `make` you will have sample applications in your `build/samples` directory. From the `build/` directory, run any of the sample applications by passing to it the name of your signaling channel. If a signaling channel does not exist with the name you provide, the application creates one.
 
-* `kvsWebrtcClientMaster` - This application sends sample H264/Opus frames (path: `/samples/h264SampleFrames` and `/samples/opusSampleFrames`) via WebRTC. It also accepts incoming audio, if enabled in the browser. When checked in the browser, it prints the metadata of the received audio packets in your terminal.
-* `kvsWebrtcClientViewer` - This application accepts sample H264/Opus frames and prints them out.
-* `kvsWebrtcClientMasterGstSample` - This application sends sample H264/Opus frames from a GStreamer pipeline. It also will playback incoming audio via an `autoaudiosink`.
-
-Run any of the sample applications by passing to it the name that you want to give to your signaling channel. The application creates the signaling channel using the name you provide. For example, to create a signaling channel called myChannel and to start sending sample H264/Opus frames via this channel, run the following command from `build/` directory:
-
+#### Sample: kvsWebrtcClientMaster
+This application sends sample H264/Opus frames (path: `/samples/h264SampleFrames` and `/samples/opusSampleFrames`) via WebRTC. It also accepts incoming audio, if enabled in the browser. When checked in the browser, it prints the metadata of the received audio packets in your terminal. To run:
 ```
-./samples/kvsWebrtcClientMaster myChannel
+./samples/kvsWebrtcClientMaster <channelName>
 ```
 
-When the command line application prints "Signaling client connection to socket established", you can proceed to the next step.
+To use the **Storage for WebRTC** feature, run the same command as above but with an additional command line arg to enable the feature.  
 
-Now that your signaling channel is created and the connected master is streaming media to it, you can view this stream. To do so, open the [WebRTC SDK Test Page](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-js/examples/index.html) using the steps in Using the Kinesis Video Streams with WebRTC Test Page and set the following values using the same AWS credentials and the same signaling channel that you specified for the master above:
+```
+./samples/kvsWebrtcClientMaster <channelName> 1
+```
+
+#### Sample: kvsWebrtcClientMasterGstSample
+This application can send media from a GStreamer pipeline using test H264/Opus frames, device `autovideosrc` and `autoaudiosrc` input, or a received RTSP stream. It also will playback incoming audio via an `autoaudiosink`. To run:
+```
+./samples/kvsWebrtcClientMasterGstSample <channelName> <mediaType> <sourceType>
+```
+Pass the desired media and source type when running the sample. The mediaType can be `audio-video` or `video-only`. To use the **Storage For WebRTC** feature, use `audio-video-storage` as the mediaType. The source type can be `testsrc`, `devicesrc`, or `rtspsrc`. Specify the RTSP URI if using `rtspsrc`:
+```
+./samples/kvsWebrtcClientMasterGstSample <channelName> <mediaType> rtspsrc rtsp://<rtspUri>
+```
+
+
+#### Sample: kvsWebrtcClientViewer
+This application accepts sample H264/Opus frames and prints them out. To run:
+```
+./samples/kvsWebrtcClientViewer <channelName>
+```
+
+### Viewing Master Samples
+
+After running one of the master samples, when the command line application prints "Signaling client connection to socket established", indicating that your signaling channel is created and the connected master is streaming media to it, you can view the stream. To do so, check the media playback viewer on the KVS Signaling Channels console or open the [WebRTC SDK Test Page](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-js/examples/index.html).
+
+If using the WebRTC SDK Test Page, set the following values using the same AWS credentials and the same signaling channel that you specified for the master above:
 * Access key ID
 * Secret access key
 * Signaling channel name
 * Client ID (optional)
-
-Choose Start viewer to start live video streaming of the sample H264/Opus frames.
+  
+Then choose Start Viewer to start live video streaming of the sample H264/Opus frames.
 
 ## Setup IoT
 * To use IoT certificate to authenticate with KVS signaling, please refer to [Controlling Access to Kinesis Video Streams Resources Using AWS IoT](https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/how-iot.html) for provisioning details.
@@ -207,6 +325,9 @@ Choose Start viewer to start live video streaming of the sample H264/Opus frames
 }
 ```
 
+We recommend following [best practices](https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html) while setting up the IAM policy and not allow access to all channels in the account, but allow access to only the REQUIRED channel names if the use case demands it. KVS recommendation is to use iot thing name as channel name as per public docs.
+https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/how-iot.html
+
 Note: "kinesisvideo:CreateSignalingChannel" can be removed if you are running with existing KVS signaling channels. Viewer sample requires "kinesisvideo:ConnectAsViewer" permission. Integration test requires both "kinesisvideo:ConnectAsViewer" and "kinesisvideo:DeleteSignalingChannel" permission.
 
 * With the IoT certificate, IoT credentials provider endpoint (Note: it is not the endpoint on IoT AWS Console!), public key and private key ready, you can replace the static credentials provider createStaticCredentialProvider() and freeStaticCredentialProvider() with IoT credentials provider like below, the credentials provider for [samples](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/blob/master/samples/Common.c) is in createSampleConfiguration():
@@ -218,7 +339,7 @@ createLwsIotCredentialProvider(
             "/Users/username/Downloads/iot-signaling/private.pem.key", // path to iot private key
             "/Users/username/Downloads/iot-signaling/cacert.pem", // path to CA cert
             "KinesisVideoSignalingCameraIoTRoleAlias", // IoT role alias
-            channelName, // iot thing name, recommended to be same as your channel name
+            "IoTThingName", // iot thing name, recommended to be same as your channel name
             &pSampleConfiguration->pCredentialProvider));
 
 freeIotCredentialProvider(&pSampleConfiguration->pCredentialProvider);
@@ -253,11 +374,6 @@ In the mbedTLS version, the SDK uses /dev/urandom on Unix and CryptGenRandom API
 ### Getting the SDPs
 If you would like to print out the SDPs, run this command:
 `export DEBUG_LOG_SDP=TRUE`
-
-### File logging
-If you would like to enable file logging, run this command:
-`export AWS_ENABLE_FILE_LOGGING=TRUE`
-You can also change settings such as buffer size, number of log files for rotation and log file path in the samples
 
 ### Adjust MTU
 If ICE connection can be established successfully but media can not be transferred, make sure the actual MTU is higher than the MTU setting here: https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/blob/master/src/source/PeerConnection/Rtp.h#L12.
@@ -295,6 +411,21 @@ More information about what environment variables you can configure can be found
 This is useful to reduce candidate gathering time when it is known for certain network interfaces to not work well. A sample callback is available in `Common.c`. The `iceSetInterfaceFilterFunc` in `KvsRtcConfiguration` must be set to the required callback. In the sample, it can be done this way in `initializePeerConnection()`: 
 `configuration.kvsRtcConfiguration.iceSetInterfaceFilterFunc = sampleFilterNetworkInterfaces`
 
+### Building on MacOS M1
+When building on MacOS M1, if the build fails while trying to build OpenSSL or Websockets, run the following command:
+`cmake .. -DBUILD_OPENSSL_PLATFORM=darwin64-arm64-cc`
+
+### Building on 32 bit Raspbian GNU/Linux 11
+
+To build on a 32-bit Raspbian GNU/Linux 11 on 64-bit hardware, the OpenSSL library must be manually configured. This is due to the OpenSSL autoconfiguration script detecting 64-bit hardware and emitting 64-bit ARM assembly instructions which are not allowed in 32-bit executables. A 32-bit ARM version of OpenSSL can be configured by setting 32-bit ARM platform:
+`cmake .. -DBUILD_OPENSSL_PLATFORM=linux-armv4`
+
+### Threadpool for the SDK
+The threadpool is enabled by default, and starts with 5 threads that it can increase up to 10 if all are actively in use. To change these values to better match the resources of your use case you can set the environment variables to do so:
+1. `export AWS_KVS_WEBRTC_THREADPOOL_MIN_THREADS=<value>`
+2. `export AWS_KVS_WEBRTC_THREADPOOL_MAX_THREADS=<value>`
+
+To disable threadpool, run `cmake .. -DENABLE_KVS_THREADPOOL=OFF`
 
 ## Documentation
 All Public APIs are documented in our [Include.h](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/blob/master/src/include/com/amazonaws/kinesis/video/webrtcclient/Include.h), we also generate a [Doxygen](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-c/) each commit for easier navigation.

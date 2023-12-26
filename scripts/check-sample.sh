@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [[ -z "$AWS_ACCESS_KEY_ID" || -z "$AWS_SECRET_ACCESS_KEY" ]]
+if [[ -z "$AWS_ACCESS_KEY_ID" || -z "$AWS_SECRET_ACCESS_KEY" || -z "$AWS_SESSION_TOKEN" ]]
 then
   echo "Couldn't find AWS credentials. Very likely this build is coming from a fork. Ignoring."
   exit 0

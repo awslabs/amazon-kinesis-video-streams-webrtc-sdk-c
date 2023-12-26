@@ -13,12 +13,18 @@ TEST_F(SignalingApiTest, createValidateChannelInfo)
 {
     initializeSignalingClientStructs();
     PChannelInfo rChannelInfo;
+    CHAR agentString[MAX_CUSTOM_USER_AGENT_NAME_POSTFIX_LEN + 1];
+    UINT32 postfixLen = STRLEN(SIGNALING_USER_AGENT_POSTFIX_NAME) + STRLEN(SIGNALING_USER_AGENT_POSTFIX_VERSION) + 1;
+    SNPRINTF(agentString, postfixLen + 1, (PCHAR) "%s/%s", SIGNALING_USER_AGENT_POSTFIX_NAME, SIGNALING_USER_AGENT_POSTFIX_VERSION);
     STRCPY(mChannelArn, TEST_CHANNEL_ARN);
+    STRCPY(mStreamArn, TEST_STREAM_ARN);
     STRCPY(mKmsKeyId, TEST_KMS_KEY_ID_ARN);
     mChannelInfo.pChannelArn = mChannelArn;
+    mChannelInfo.pStorageStreamArn = mStreamArn;
     mChannelInfo.pKmsKeyId = mKmsKeyId;
     EXPECT_EQ(STATUS_SUCCESS, createValidateChannelInfo(&mChannelInfo, &rChannelInfo));
     EXPECT_EQ(0, STRCMP(rChannelInfo->pChannelArn, TEST_CHANNEL_ARN));
+    EXPECT_EQ(0, STRCMP(rChannelInfo->pStorageStreamArn, TEST_STREAM_ARN));
     EXPECT_EQ(0, STRCMP(rChannelInfo->pKmsKeyId, TEST_KMS_KEY_ID_ARN));
     EXPECT_EQ(rChannelInfo->version, CHANNEL_INFO_CURRENT_VERSION);
     EXPECT_EQ(rChannelInfo->tagCount, 3);
@@ -32,7 +38,165 @@ TEST_F(SignalingApiTest, createValidateChannelInfo)
     EXPECT_EQ(0, STRCMP(rChannelInfo->pCertPath, mCaCertPath));
     EXPECT_EQ(rChannelInfo->messageTtl, TEST_SIGNALING_MESSAGE_TTL);
     EXPECT_EQ(0, STRCMP(rChannelInfo->pRegion, TEST_DEFAULT_REGION));
+    // Test default agent postfix
+    EXPECT_PRED_FORMAT2(testing::IsSubstring, agentString, rChannelInfo->pUserAgent);
     freeChannelInfo(&rChannelInfo);
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+}
+
+TEST_F(SignalingApiTest, testChannelArnsValid)
+{
+    PChannelInfo pChannelInfo;
+    ChannelInfo channelInfo;
+
+    MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
+
+    PCHAR arn1 = (PCHAR)"arn:aws:kinesisvideo:us-west-2:123456789012:channel/a/0123456789012";
+    PCHAR arn2 = (PCHAR)"arn:aws:kinesisvideo:us-west-2:123456789012:channel/ab/0123456789012";
+    PCHAR arn3 = (PCHAR)"arn:aws-cn:kinesisvideo:us-west-2:123456789012:channel/channel_name/0123456789012";
+    PCHAR arn4 = (PCHAR)"arn:aws-xyz:kinesisvideo:us-west-2:123456789012:channel/channel_name/0123456789012";
+    PCHAR arn5 = (PCHAR)"arn:aws:kinesisvideo:us-east-2:123456789012:channel/channel_name/0123456789012";
+    PCHAR arn6 = (PCHAR)"arn:aws:kinesisvideo:us-east-1:123456789012:channel/channel_name/0123456789012";
+    PCHAR arn7 = (PCHAR)"arn:aws:kinesisvideo:us-west-2:123456789012:channel/channel_name/5738283847173";
+    PCHAR arn8 = (PCHAR)"arn:aws:kinesisvideo:us-west-2:123456789012:channel/channel_name/1223445566666";
+
+    channelInfo.pChannelArn = arn1;
+    EXPECT_EQ(createValidateChannelInfo(&channelInfo, &pChannelInfo), STATUS_SUCCESS);
+    freeChannelInfo(&pChannelInfo);
+
+    channelInfo.pChannelArn = arn2;
+    EXPECT_EQ(createValidateChannelInfo(&channelInfo, &pChannelInfo), STATUS_SUCCESS);
+    freeChannelInfo(&pChannelInfo);
+
+    channelInfo.pChannelArn = arn3;
+    EXPECT_EQ(createValidateChannelInfo(&channelInfo, &pChannelInfo), STATUS_SUCCESS);
+    freeChannelInfo(&pChannelInfo);
+
+    channelInfo.pChannelArn = arn4;
+    EXPECT_EQ(createValidateChannelInfo(&channelInfo, &pChannelInfo), STATUS_SUCCESS);
+    freeChannelInfo(&pChannelInfo);
+
+    channelInfo.pChannelArn = arn5;
+    EXPECT_EQ(createValidateChannelInfo(&channelInfo, &pChannelInfo), STATUS_SUCCESS);
+    freeChannelInfo(&pChannelInfo);
+
+    channelInfo.pChannelArn = arn6;
+    EXPECT_EQ(createValidateChannelInfo(&channelInfo, &pChannelInfo), STATUS_SUCCESS);
+    freeChannelInfo(&pChannelInfo);
+
+    channelInfo.pChannelArn = arn7;
+    EXPECT_EQ(createValidateChannelInfo(&channelInfo, &pChannelInfo), STATUS_SUCCESS);
+    freeChannelInfo(&pChannelInfo);
+
+    channelInfo.pChannelArn = arn8;
+    EXPECT_EQ(createValidateChannelInfo(&channelInfo, &pChannelInfo), STATUS_SUCCESS);
+    freeChannelInfo(&pChannelInfo);
+}
+
+
+TEST_F(SignalingApiTest, testChannelArnsInValid)
+{
+    PChannelInfo pChannelInfo;
+    ChannelInfo channelInfo;
+    MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
+
+    PCHAR arn1 = (PCHAR)"arn:aws:kinesaisvideo:us-west-2:123456789012:channel/a/0123456789012";
+    PCHAR arn2 = (PCHAR)"arn:aws:kinesisvideo:us-west-2:123456789012:chanel/ab/0123456789012";
+    PCHAR arn3 = (PCHAR)"arn:aw:kinesisvideo:us-west-2:123456789012:channel/channel_name/0123456789012";
+    PCHAR arn4 = (PCHAR)"arn:aws-xyz:kinesisvideo:us-west-2:12345679012:channel/channel_name/0123456789012";
+    PCHAR arn5 = (PCHAR)"arn:aws:kinesisvideo:us-east-2:123456789012:channel/channel_name/012345679012";
+    PCHAR arn6 = (PCHAR)"arn:aws:kinesisvideo:us-east-1:123456789012:channel//0123456789012";
+    PCHAR arn7 = (PCHAR)"arn:aws:kinesisvideo:us-west-2:123456789012:channel/5738283847173";
+    PCHAR arn8 = (PCHAR)"arn:aws:kinesisvideo:us-west-2:123456789012:channel1223445566666";
+    PCHAR arn9 = (PCHAR)"arn:aws:kinesisvideo:us-west-2:123456789012channel/a/0123456789012";
+    PCHAR arn10 = (PCHAR)"arn:aws:kinesisvideo:us-west-2:123456789012:channnnnnnnnel/ab/0123456789012";
+    PCHAR arn11 = (PCHAR)"arn:aws:kinesisvideo:123456789012:channel/channel_name/0123456789012";
+    PCHAR arn12 = (PCHAR)"arn:aws-xyz:kinesisvideo:::channel/channel_name/0123456789012";
+    PCHAR arn13 = (PCHAR)"arn:aws:012345679012";
+    PCHAR arn14 = (PCHAR)"this:is:a:test:arn:which:is:not:real";
+    PCHAR arn15 = (PCHAR)"arn:aws:kinesisvideo:us-west-2:123456789012:/:/:///5738283847173";
+    PCHAR arn16 = (PCHAR)"arn:aws:kinesisvideo:us-west-2:cool_channel_Name";
+    PCHAR arn17 = (PCHAR)"arn:aws:kinesisvideo::123456789012:channel/a/0123456789012";
+    PCHAR arn18 = (PCHAR)"arn:aws:kinesisvideo:us-west-2:123456789012:channel/a/01234567890123";
+    PCHAR arn19 = (PCHAR)"ar:aws:kinesisvideo:us-west-2:123456789012:channel/a/0123456789012";
+    PCHAR arn20 = (PCHAR)"arn:aws:kinesisvideo::us-west-2:123456789012:channel/a/01234567890123";
+    PCHAR arn21 = (PCHAR)"arn:aws::kinesisvideo:us-west-2:123456789012:channel/a/01234567890123";
+    PCHAR arn22 = (PCHAR)"arn::aws::kinesisvideo:us-west-2:123456789012:channel/a/01234567890123";
+    PCHAR arn23 = (PCHAR)"arn:aws::kinesisvideo:us-west-2::123456789012:channel/a/01234567890123";
+    PCHAR arn24 = (PCHAR)"arn:aws:kinesisvideo:us-west-2:123456789012:channel/a/b/0123456789012";
+
+    channelInfo.pChannelArn = arn1;
+    EXPECT_EQ(STATUS_SIGNALING_INVALID_CHANNEL_ARN, createValidateChannelInfo(&channelInfo, &pChannelInfo));
+
+    channelInfo.pChannelArn = arn2;
+    EXPECT_EQ(STATUS_SIGNALING_INVALID_CHANNEL_ARN, createValidateChannelInfo(&channelInfo, &pChannelInfo));
+
+    channelInfo.pChannelArn = arn3;
+    EXPECT_EQ(STATUS_SIGNALING_INVALID_CHANNEL_ARN, createValidateChannelInfo(&channelInfo, &pChannelInfo));
+
+    channelInfo.pChannelArn = arn4;
+    EXPECT_EQ(STATUS_SIGNALING_INVALID_CHANNEL_ARN, createValidateChannelInfo(&channelInfo, &pChannelInfo));
+
+    channelInfo.pChannelArn = arn5;
+    EXPECT_EQ(STATUS_SIGNALING_INVALID_CHANNEL_ARN, createValidateChannelInfo(&channelInfo, &pChannelInfo));
+
+    channelInfo.pChannelArn = arn6;
+    EXPECT_EQ(STATUS_SIGNALING_INVALID_CHANNEL_ARN, createValidateChannelInfo(&channelInfo, &pChannelInfo));
+
+    channelInfo.pChannelArn = arn7;
+    EXPECT_EQ(STATUS_SIGNALING_INVALID_CHANNEL_ARN, createValidateChannelInfo(&channelInfo, &pChannelInfo));
+
+    channelInfo.pChannelArn = arn8;
+    EXPECT_EQ(STATUS_SIGNALING_INVALID_CHANNEL_ARN, createValidateChannelInfo(&channelInfo, &pChannelInfo));
+
+    channelInfo.pChannelArn = arn9;
+    EXPECT_EQ(STATUS_SIGNALING_INVALID_CHANNEL_ARN, createValidateChannelInfo(&channelInfo, &pChannelInfo));
+
+    channelInfo.pChannelArn = arn10;
+    EXPECT_EQ(STATUS_SIGNALING_INVALID_CHANNEL_ARN, createValidateChannelInfo(&channelInfo, &pChannelInfo));
+
+    channelInfo.pChannelArn = arn11;
+    EXPECT_EQ(STATUS_SIGNALING_INVALID_CHANNEL_ARN, createValidateChannelInfo(&channelInfo, &pChannelInfo));
+
+    channelInfo.pChannelArn = arn12;
+    EXPECT_EQ(STATUS_SIGNALING_INVALID_CHANNEL_ARN, createValidateChannelInfo(&channelInfo, &pChannelInfo));
+
+    channelInfo.pChannelArn = arn13;
+    EXPECT_EQ(STATUS_SIGNALING_INVALID_CHANNEL_ARN, createValidateChannelInfo(&channelInfo, &pChannelInfo));
+
+    channelInfo.pChannelArn = arn14;
+    EXPECT_EQ(STATUS_SIGNALING_INVALID_CHANNEL_ARN, createValidateChannelInfo(&channelInfo, &pChannelInfo));
+
+    channelInfo.pChannelArn = arn15;
+    EXPECT_EQ(STATUS_SIGNALING_INVALID_CHANNEL_ARN, createValidateChannelInfo(&channelInfo, &pChannelInfo));
+
+    channelInfo.pChannelArn = arn16;
+    EXPECT_EQ(STATUS_SIGNALING_INVALID_CHANNEL_ARN, createValidateChannelInfo(&channelInfo, &pChannelInfo));
+
+    channelInfo.pChannelArn = arn17;
+    EXPECT_EQ(STATUS_SIGNALING_INVALID_CHANNEL_ARN, createValidateChannelInfo(&channelInfo, &pChannelInfo));
+
+    channelInfo.pChannelArn = arn18;
+    EXPECT_EQ(STATUS_SIGNALING_INVALID_CHANNEL_ARN, createValidateChannelInfo(&channelInfo, &pChannelInfo));
+
+    channelInfo.pChannelArn = arn19;
+    EXPECT_EQ(STATUS_SIGNALING_INVALID_CHANNEL_ARN, createValidateChannelInfo(&channelInfo, &pChannelInfo));
+
+    channelInfo.pChannelArn = arn20;
+    EXPECT_EQ(STATUS_SIGNALING_INVALID_CHANNEL_ARN, createValidateChannelInfo(&channelInfo, &pChannelInfo));
+
+    channelInfo.pChannelArn = arn21;
+    EXPECT_EQ(STATUS_SIGNALING_INVALID_CHANNEL_ARN, createValidateChannelInfo(&channelInfo, &pChannelInfo));
+
+    channelInfo.pChannelArn = arn22;
+    EXPECT_EQ(STATUS_SIGNALING_INVALID_CHANNEL_ARN, createValidateChannelInfo(&channelInfo, &pChannelInfo));
+
+    channelInfo.pChannelArn = arn23;
+    EXPECT_EQ(STATUS_SIGNALING_INVALID_CHANNEL_ARN, createValidateChannelInfo(&channelInfo, &pChannelInfo));
+
+    channelInfo.pChannelArn = arn24;
+    EXPECT_EQ(STATUS_SIGNALING_INVALID_CHANNEL_ARN, createValidateChannelInfo(&channelInfo, &pChannelInfo));
 }
 
 TEST_F(SignalingApiTest, signalingSendMessageSync)
@@ -76,6 +240,8 @@ TEST_F(SignalingApiTest, signalingSendMessageSync)
     EXPECT_EQ(expectedStatus, signalingClientSendMessageSync(mSignalingClientHandle, &signalingMessage));
 
     deinitializeSignalingClient();
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiTest, signalingSendMessageSyncFileCredsProvider)
@@ -84,16 +250,22 @@ TEST_F(SignalingApiTest, signalingSendMessageSyncFileCredsProvider)
     PAwsCredentialProvider pAwsCredentialProvider = NULL;
     CHAR fileContent[10000];
     UINT32 length = ARRAY_SIZE(fileContent);
+    CHAR futureTime[] = "2200-06-05T09:39:36Z";
 
-    if (!mAccessKeyIdSet) {
-        return;
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
+
+    if (mSessionToken == NULL) {
+        // Store the credentials in a file under the current dir
+        length = SNPRINTF(fileContent, length, "CREDENTIALS %s %s", mAccessKey, mSecretKey);
+        ASSERT_GT(ARRAY_SIZE(fileContent), length);
+    } else {
+        // test Temp Creds
+        // "CREDENTIALS accessKey expiration secretKey sessionToken"
+        length = SNPRINTF(fileContent, length, "CREDENTIALS %s %s %s %s", mAccessKey, futureTime, mSecretKey, mSessionToken);
+        ASSERT_GT(ARRAY_SIZE(fileContent), length);
     }
 
-    // Store the credentials in a file under the current dir
-    length = SNPRINTF(fileContent, length, "CREDENTIALS %s %s", mAccessKey, mSecretKey);
-    ASSERT_GT(ARRAY_SIZE(fileContent), length);
     ASSERT_EQ(STATUS_SUCCESS, writeFile(TEST_FILE_CREDENTIALS_FILE_PATH, FALSE, FALSE, (PBYTE) fileContent, length));
-
     // Create file creds provider from the file
     EXPECT_EQ(STATUS_SUCCESS, createFileCredentialProvider(TEST_FILE_CREDENTIALS_FILE_PATH, &pAwsCredentialProvider));
 
@@ -125,6 +297,8 @@ TEST_F(SignalingApiTest, signalingSendMessageSyncFileCredsProvider)
     deinitializeSignalingClient();
 
     EXPECT_EQ(STATUS_SUCCESS, freeFileCredentialProvider(&pAwsCredentialProvider));
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiTest, signalingClientConnectSync)
@@ -141,6 +315,8 @@ TEST_F(SignalingApiTest, signalingClientConnectSync)
     EXPECT_EQ(expectedStatus, signalingClientConnectSync(mSignalingClientHandle));
 
     deinitializeSignalingClient();
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiTest, signalingClientDeleteSync)
@@ -171,6 +347,8 @@ TEST_F(SignalingApiTest, signalingClientDeleteSync)
     EXPECT_EQ(expectedStatus, signalingClientSendMessageSync(mSignalingClientHandle, &signalingMessage));
 
     deinitializeSignalingClient();
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiTest, signalingClientGetIceConfigInfoCount)
@@ -191,6 +369,8 @@ TEST_F(SignalingApiTest, signalingClientGetIceConfigInfoCount)
     }
 
     deinitializeSignalingClient();
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiTest, signalingClientGetIceConfigInfo)
@@ -227,6 +407,8 @@ TEST_F(SignalingApiTest, signalingClientGetIceConfigInfo)
     }
 
     deinitializeSignalingClient();
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiTest, signalingClientGetCurrentState)
@@ -246,6 +428,8 @@ TEST_F(SignalingApiTest, signalingClientGetCurrentState)
     EXPECT_EQ(expectedState, state);
 
     deinitializeSignalingClient();
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiTest, signalingClientGetStateString)
@@ -257,11 +441,15 @@ TEST_F(SignalingApiTest, signalingClientGetStateString)
         EXPECT_EQ(STATUS_SUCCESS, signalingClientGetStateString((SIGNALING_CLIENT_STATE) i, &pStateStr));
         DLOGV("Iterating states \"%s\"", pStateStr);
     }
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiTest, signalingClientDisconnectSync)
 {
     EXPECT_NE(STATUS_SUCCESS, signalingClientDisconnectSync(INVALID_SIGNALING_CLIENT_HANDLE_VALUE));
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiTest, signalingClientGetMetrics)
@@ -275,9 +463,7 @@ TEST_F(SignalingApiTest, signalingClientGetMetrics)
     EXPECT_NE(STATUS_SUCCESS, signalingClientGetMetrics(INVALID_SIGNALING_CLIENT_HANDLE_VALUE, NULL));
     EXPECT_NE(STATUS_SUCCESS, signalingClientGetMetrics(mSignalingClientHandle, NULL));
 
-    if (!mAccessKeyIdSet) {
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     initializeSignalingClient();
     // Valid call
@@ -288,11 +474,11 @@ TEST_F(SignalingApiTest, signalingClientGetMetrics)
     EXPECT_EQ(0, metrics.signalingClientStats.numberOfMessagesReceived);
     EXPECT_EQ(0, metrics.signalingClientStats.numberOfErrors);
     EXPECT_EQ(0, metrics.signalingClientStats.numberOfRuntimeErrors);
-    EXPECT_EQ(1, metrics.signalingClientStats.iceRefreshCount);
+    EXPECT_EQ(0, metrics.signalingClientStats.iceRefreshCount);
     EXPECT_NE(0, metrics.signalingClientStats.signalingClientUptime);
     EXPECT_EQ(0, metrics.signalingClientStats.connectionDuration);
     EXPECT_NE(0, metrics.signalingClientStats.cpApiCallLatency);
-    EXPECT_NE(0, metrics.signalingClientStats.dpApiCallLatency);
+    EXPECT_EQ(0, metrics.signalingClientStats.dpApiCallLatency);
 
     // Connect and get metrics
     EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(mSignalingClientHandle));
@@ -306,11 +492,11 @@ TEST_F(SignalingApiTest, signalingClientGetMetrics)
     EXPECT_EQ(0, metrics.signalingClientStats.numberOfMessagesReceived);
     EXPECT_EQ(0, metrics.signalingClientStats.numberOfErrors);
     EXPECT_EQ(0, metrics.signalingClientStats.numberOfRuntimeErrors);
-    EXPECT_EQ(1, metrics.signalingClientStats.iceRefreshCount);
+    EXPECT_EQ(0, metrics.signalingClientStats.iceRefreshCount);
     EXPECT_NE(0, metrics.signalingClientStats.signalingClientUptime);
     EXPECT_NE(0, metrics.signalingClientStats.connectionDuration);
     EXPECT_NE(0, metrics.signalingClientStats.cpApiCallLatency);
-    EXPECT_NE(0, metrics.signalingClientStats.dpApiCallLatency);
+    EXPECT_EQ(0, metrics.signalingClientStats.dpApiCallLatency);
 
     // Send a message and get metrics
     signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
@@ -328,11 +514,11 @@ TEST_F(SignalingApiTest, signalingClientGetMetrics)
     EXPECT_EQ(0, metrics.signalingClientStats.numberOfMessagesReceived);
     EXPECT_EQ(0, metrics.signalingClientStats.numberOfErrors);
     EXPECT_EQ(0, metrics.signalingClientStats.numberOfRuntimeErrors);
-    EXPECT_EQ(1, metrics.signalingClientStats.iceRefreshCount);
+    EXPECT_EQ(0, metrics.signalingClientStats.iceRefreshCount);
     EXPECT_NE(0, metrics.signalingClientStats.signalingClientUptime);
     EXPECT_NE(0, metrics.signalingClientStats.connectionDuration);
     EXPECT_NE(0, metrics.signalingClientStats.cpApiCallLatency);
-    EXPECT_NE(0, metrics.signalingClientStats.dpApiCallLatency);
+    EXPECT_EQ(0, metrics.signalingClientStats.dpApiCallLatency);
 
     // Make a couple of bad API invocations
     EXPECT_NE(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(mSignalingClientHandle, NULL));
@@ -347,6 +533,22 @@ TEST_F(SignalingApiTest, signalingClientGetMetrics)
     EXPECT_EQ(0, metrics.signalingClientStats.numberOfMessagesReceived);
     EXPECT_EQ(5, metrics.signalingClientStats.numberOfErrors);
     EXPECT_EQ(0, metrics.signalingClientStats.numberOfRuntimeErrors);
+    EXPECT_EQ(0, metrics.signalingClientStats.iceRefreshCount);
+    EXPECT_NE(0, metrics.signalingClientStats.signalingClientUptime);
+    EXPECT_NE(0, metrics.signalingClientStats.connectionDuration);
+    EXPECT_NE(0, metrics.signalingClientStats.cpApiCallLatency);
+    EXPECT_EQ(0, metrics.signalingClientStats.dpApiCallLatency);
+
+    UINT32 iceCount = 0;
+    //Get ice config
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(mSignalingClientHandle, &iceCount));
+
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetMetrics(mSignalingClientHandle, &metrics));
+    EXPECT_EQ(0, metrics.signalingClientStats.numberOfReconnects);
+    EXPECT_EQ(1, metrics.signalingClientStats.numberOfMessagesSent);
+    EXPECT_EQ(0, metrics.signalingClientStats.numberOfMessagesReceived);
+    EXPECT_EQ(5, metrics.signalingClientStats.numberOfErrors);
+    EXPECT_EQ(0, metrics.signalingClientStats.numberOfRuntimeErrors);
     EXPECT_EQ(1, metrics.signalingClientStats.iceRefreshCount);
     EXPECT_NE(0, metrics.signalingClientStats.signalingClientUptime);
     EXPECT_NE(0, metrics.signalingClientStats.connectionDuration);
@@ -354,6 +556,8 @@ TEST_F(SignalingApiTest, signalingClientGetMetrics)
     EXPECT_NE(0, metrics.signalingClientStats.dpApiCallLatency);
 
     deinitializeSignalingClient();
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiTest, signalingClientCreateWithClientInfoVariations)
@@ -487,6 +691,8 @@ TEST_F(SignalingApiTest, signalingClientCreateWithClientInfoVariations)
 
     deinitializeSignalingClient();
     mClientInfo.cacheFilePath = NULL;
+    //wait for threads of threadpool to close
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 } // namespace webrtcclient

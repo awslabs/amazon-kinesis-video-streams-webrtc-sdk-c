@@ -34,28 +34,54 @@ extern "C" {
 
 #define CA_CERT_PEM_FILE_EXTENSION ".pem"
 
-#define FILE_LOGGING_BUFFER_SIZE (100 * 1024)
+#define FILE_LOGGING_BUFFER_SIZE (10 * 1024)
 #define MAX_NUMBER_OF_LOG_FILES  5
 
 #define SAMPLE_HASH_TABLE_BUCKET_COUNT  50
 #define SAMPLE_HASH_TABLE_BUCKET_LENGTH 2
+
+#define RTSP_PIPELINE_MAX_CHAR_COUNT 1000
 
 #define IOT_CORE_CREDENTIAL_ENDPOINT ((PCHAR) "AWS_IOT_CORE_CREDENTIAL_ENDPOINT")
 #define IOT_CORE_CERT                ((PCHAR) "AWS_IOT_CORE_CERT")
 #define IOT_CORE_PRIVATE_KEY         ((PCHAR) "AWS_IOT_CORE_PRIVATE_KEY")
 #define IOT_CORE_ROLE_ALIAS          ((PCHAR) "AWS_IOT_CORE_ROLE_ALIAS")
 #define IOT_CORE_THING_NAME          ((PCHAR) "AWS_IOT_CORE_THING_NAME")
+#define IOT_CORE_CERTIFICATE_ID      ((PCHAR) "AWS_IOT_CORE_CERTIFICATE_ID")
+
+/* Uncomment the following line in order to enable IoT credentials checks in the provided samples */
+// #define IOT_CORE_ENABLE_CREDENTIALS  1
 
 #define MASTER_DATA_CHANNEL_MESSAGE "This message is from the KVS Master"
 #define VIEWER_DATA_CHANNEL_MESSAGE "This message is from the KVS Viewer"
 
-/* Uncomment the following line in order to enable IoT credentials checks in the provided samples */
-// #define IOT_CORE_ENABLE_CREDENTIALS  1
+#define DATA_CHANNEL_MESSAGE_TEMPLATE                                                                                                                \
+    "{\"content\":\"%s\",\"firstMessageFromViewerTs\":\"%s\",\"firstMessageFromMasterTs\":\"%s\",\"secondMessageFromViewerTs\":\"%s\","              \
+    "\"secondMessageFromMasterTs\":\"%s\",\"lastMessageFromViewerTs\":\"%s\" }"
+#define PEER_CONNECTION_METRICS_JSON_TEMPLATE "{\"peerConnectionStartTime\": %llu, \"peerConnectionEndTime\": %llu }"
+#define SIGNALING_CLIENT_METRICS_JSON_TEMPLATE                                                                                                       \
+    "{\"signalingStartTime\": %llu, \"signalingEndTime\": %llu, \"offerReceiptTime\": %llu, \"sendAnswerTime\": %llu, "                              \
+    "\"describeChannelStartTime\": %llu, \"describeChannelEndTime\": %llu, \"getSignalingChannelEndpointStartTime\": %llu, "                         \
+    "\"getSignalingChannelEndpointEndTime\": %llu, \"getIceServerConfigStartTime\": %llu, \"getIceServerConfigEndTime\": %llu, "                     \
+    "\"getTokenStartTime\": %llu, \"getTokenEndTime\": %llu, \"createChannelStartTime\": %llu, \"createChannelEndTime\": %llu, "                     \
+    "\"connectStartTime\": %llu, \"connectEndTime\": %llu }"
+#define ICE_AGENT_METRICS_JSON_TEMPLATE "{\"candidateGatheringStartTime\": %llu, \"candidateGatheringEndTime\": %llu }"
+
+#define MAX_DATA_CHANNEL_METRICS_MESSAGE_SIZE     260 // strlen(DATA_CHANNEL_MESSAGE_TEMPLATE) + 20 * 5
+#define MAX_PEER_CONNECTION_METRICS_MESSAGE_SIZE  105 // strlen(PEER_CONNECTION_METRICS_JSON_TEMPLATE) + 20 * 2
+#define MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE 736 // strlen(SIGNALING_CLIENT_METRICS_JSON_TEMPLATE) + 20 * 10
+#define MAX_ICE_AGENT_METRICS_MESSAGE_SIZE        113 // strlen(ICE_AGENT_METRICS_JSON_TEMPLATE) + 20 * 2
 
 typedef enum {
     SAMPLE_STREAMING_VIDEO_ONLY,
     SAMPLE_STREAMING_AUDIO_VIDEO,
 } SampleStreamingMediaType;
+
+typedef enum {
+    TEST_SOURCE,
+    DEVICE_SOURCE,
+    RTSP_SOURCE,
+} SampleSourceType;
 
 typedef struct __SampleStreamingSession SampleStreamingSession;
 typedef struct __SampleStreamingSession* PSampleStreamingSession;
@@ -75,7 +101,7 @@ typedef struct {
     volatile ATOMIC_BOOL mediaThreadStarted;
     volatile ATOMIC_BOOL recreateSignalingClient;
     volatile ATOMIC_BOOL connected;
-    BOOL useTestSrc;
+    SampleSourceType srcType;
     ChannelInfo channelInfo;
     PCHAR pCaCertPath;
     PAwsCredentialProvider pCredentialProvider;
@@ -94,6 +120,7 @@ typedef struct {
     startRoutine videoSource;
     startRoutine receiveAudioVideoSource;
     RtcOnDataChannel onDataChannel;
+    SignalingClientMetrics signalingClientMetrics;
 
     PStackQueue pPendingSignalingMessageForRemoteClient;
     PHashTable pRtcPeerConnectionForRemoteClient;
@@ -102,6 +129,7 @@ typedef struct {
     CVAR cvar;
     BOOL trickleIce;
     BOOL useTurn;
+    BOOL enableSendingMetricsToViewerViaDc;
     BOOL enableFileLogging;
     UINT64 customData;
     PSampleStreamingSession sampleStreamingSessionList[DEFAULT_MAX_CONCURRENT_STREAMING_SESSION];
@@ -110,13 +138,26 @@ typedef struct {
     UINT32 iceUriCount;
     SignalingClientCallbacks signalingClientCallbacks;
     SignalingClientInfo clientInfo;
+
     RtcStats rtcIceCandidatePairMetrics;
 
     MUTEX signalingSendMessageLock;
 
     UINT32 pregenerateCertTimerId;
     PStackQueue pregeneratedCertificates; // Max MAX_RTCCONFIGURATION_CERTIFICATES certificates
+
+    PCHAR rtspUri;
+    UINT32 logLevel;
 } SampleConfiguration, *PSampleConfiguration;
+
+typedef struct {
+    CHAR content[100];
+    CHAR firstMessageFromViewerTs[20];
+    CHAR firstMessageFromMasterTs[20];
+    CHAR secondMessageFromViewerTs[20];
+    CHAR secondMessageFromMasterTs[20];
+    CHAR lastMessageFromViewerTs[20];
+} DataChannelMessage;
 
 typedef struct {
     UINT64 hashValue;
@@ -130,7 +171,9 @@ struct __SampleStreamingSession {
     volatile ATOMIC_BOOL terminateFlag;
     volatile ATOMIC_BOOL candidateGatheringDone;
     volatile ATOMIC_BOOL peerIdReceived;
+    volatile ATOMIC_BOOL firstFrame;
     volatile SIZE_T frameIndex;
+    volatile SIZE_T correlationIdPostFix;
     PRtcPeerConnection pPeerConnection;
     PRtcRtpTransceiver pVideoRtcRtpTransceiver;
     PRtcRtpTransceiver pAudioRtcRtpTransceiver;
@@ -140,16 +183,29 @@ struct __SampleStreamingSession {
     UINT64 videoTimestamp;
     CHAR peerId[MAX_SIGNALING_CLIENT_ID_LEN + 1];
     TID receiveAudioVideoSenderTid;
-    UINT64 offerReceiveTime;
     UINT64 startUpLatency;
-    BOOL firstFrame;
     RtcMetricsHistory rtcMetricsHistory;
     BOOL remoteCanTrickleIce;
 
     // this is called when the SampleStreamingSession is being freed
     StreamSessionShutdownCallback shutdownCallback;
     UINT64 shutdownCallbackCustomData;
+    UINT64 offerReceiveTime;
+    PeerConnectionMetrics peerConnectionMetrics;
+    KvsIceAgentMetrics iceMetrics;
+    CHAR pPeerConnectionMetricsMessage[MAX_PEER_CONNECTION_METRICS_MESSAGE_SIZE];
+    CHAR pSignalingClientMetricsMessage[MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE];
+    CHAR pIceAgentMetricsMessage[MAX_ICE_AGENT_METRICS_MESSAGE_SIZE];
 };
+
+// TODO this should all be in a higher webrtccontext layer above PeerConnection
+// Placing it here now since this is where all the current webrtccontext functions are placed
+typedef struct {
+    SIGNALING_CLIENT_HANDLE signalingClientHandle;
+    PRtcPeerConnection pRtcPeerConnection;
+    PUINT32 pUriCount;
+
+} AsyncGetIceStruct;
 
 VOID sigintHandler(INT32);
 STATUS readFrameFromDisk(PBYTE, PUINT32, PCHAR);
@@ -160,7 +216,7 @@ PVOID sampleReceiveAudioVideoFrame(PVOID);
 PVOID getPeriodicIceCandidatePairStats(PVOID);
 STATUS getIceCandidatePairStatsCallback(UINT32, UINT64, UINT64);
 STATUS pregenerateCertTimerCallback(UINT32, UINT64, UINT64);
-STATUS createSampleConfiguration(PCHAR, SIGNALING_CHANNEL_ROLE_TYPE, BOOL, BOOL, PSampleConfiguration*);
+STATUS createSampleConfiguration(PCHAR, SIGNALING_CHANNEL_ROLE_TYPE, BOOL, BOOL, UINT32, PSampleConfiguration*);
 STATUS freeSampleConfiguration(PSampleConfiguration*);
 STATUS signalingClientStateChanged(UINT64, SIGNALING_CLIENT_STATE);
 STATUS signalingMessageReceived(UINT64, PReceivedSignalingMessage);
@@ -177,6 +233,7 @@ STATUS respondWithAnswer(PSampleStreamingSession);
 STATUS resetSampleConfigurationState(PSampleConfiguration);
 VOID sampleVideoFrameHandler(UINT64, PFrame);
 VOID sampleAudioFrameHandler(UINT64, PFrame);
+VOID sampleFrameHandler(UINT64, PFrame);
 VOID sampleBandwidthEstimationHandler(UINT64, DOUBLE);
 VOID sampleSenderBandwidthEstimationHandler(UINT64, UINT32, UINT32, UINT32, UINT32, UINT64);
 VOID onDataChannel(UINT64, PRtcDataChannel);
@@ -190,7 +247,9 @@ STATUS freeMessageQueue(PPendingMessageQueue);
 STATUS submitPendingIceCandidate(PPendingMessageQueue, PSampleStreamingSession);
 STATUS removeExpiredMessageQueues(PStackQueue);
 STATUS getPendingMessageQueueForHash(PStackQueue, UINT64, BOOL, PPendingMessageQueue*);
+STATUS initSignaling(PSampleConfiguration, PCHAR);
 BOOL sampleFilterNetworkInterfaces(UINT64, PCHAR);
+UINT32 setLogLevel();
 
 #ifdef __cplusplus
 }

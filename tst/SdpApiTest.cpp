@@ -614,7 +614,7 @@ a=group:BUNDLE 0
         RtcSessionDescriptionInit offerSdp{};
         RtcSessionDescriptionInit answerSdp{};
 
-        SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION);
+        SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION, TEST_DEFAULT_STUN_URL_POSTFIX);
 
         track1.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
         track1.codec = RTC_CODEC_VP8;
@@ -667,7 +667,7 @@ a=group:BUNDLE audio video data
         RtcSessionDescriptionInit offerSdp{};
         RtcSessionDescriptionInit answerSdp{};
 
-        SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION);
+        SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION, TEST_DEFAULT_STUN_URL_POSTFIX);
 
         track1.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
         track1.codec = RTC_CODEC_VP8;
@@ -728,7 +728,7 @@ a=group:BUNDLE 0
         RtcSessionDescriptionInit offerSdp{};
         RtcSessionDescriptionInit answerSdp{};
 
-        SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION);
+        SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION, TEST_DEFAULT_STUN_URL_POSTFIX);
 
         track1.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
         track1.codec = RTC_CODEC_VP8;
@@ -786,7 +786,7 @@ a=group:BUNDLE 0
         RtcSessionDescriptionInit offerSdp{};
         RtcSessionDescriptionInit answerSdp{};
 
-        SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION);
+        SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION, TEST_DEFAULT_STUN_URL_POSTFIX);
 
         track1.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
         track1.codec = RTC_CODEC_VP8;
@@ -849,7 +849,7 @@ a=ice-options:trickle
         RtcSessionDescriptionInit offerSdp{};
         RtcSessionDescriptionInit answerSdp{};
 
-        SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION);
+        SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION, TEST_DEFAULT_STUN_URL_POSTFIX);
 
         track1.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
         track1.codec = RTC_CODEC_VP8;
@@ -1102,7 +1102,7 @@ a=ice-options:trickle
         RtcSessionDescriptionInit offerSdp{};
         RtcSessionDescriptionInit answerSdp{};
 
-        SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION);
+        SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION, TEST_DEFAULT_STUN_URL_POSTFIX);
 
         track1.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
         track1.codec = RTC_CODEC_VP8;
@@ -1131,6 +1131,66 @@ a=ice-options:trickle
         closePeerConnection(pRtcPeerConnection);
         EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
     });
+}
+
+TEST_F(SdpApiTest, noMediaTrickleIce) {
+    PRtcPeerConnection offerPc = NULL;
+    PRtcPeerConnection answerPc = NULL;
+    RtcConfiguration configurationOffer;
+    RtcConfiguration configurationAnswer;
+    RtcSessionDescriptionInit sessionDescriptionInitViewer;
+    RtcSessionDescriptionInit sessionDescriptionInitMaster;
+
+    MEMSET(&configurationOffer, 0x00, SIZEOF(RtcConfiguration));
+    MEMSET(&configurationAnswer, 0x00, SIZEOF(RtcConfiguration));
+
+    // Create peer connection
+    EXPECT_EQ(createPeerConnection(&configurationOffer, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configurationAnswer, &answerPc), STATUS_SUCCESS);
+
+    sessionDescriptionInitViewer.useTrickleIce = TRUE;
+
+    EXPECT_EQ(STATUS_SUCCESS, createOffer(offerPc, &sessionDescriptionInitViewer));
+    STRCPY(sessionDescriptionInitMaster.sdp, sessionDescriptionInitViewer.sdp);
+    sessionDescriptionInitMaster.type = SDP_TYPE_OFFER;
+    EXPECT_EQ(setRemoteDescription(answerPc, &sessionDescriptionInitMaster), STATUS_SUCCESS);
+    EXPECT_EQ(TRUE, canTrickleIceCandidates(answerPc).value);
+
+    closePeerConnection(offerPc);
+    freePeerConnection(&offerPc);
+
+    closePeerConnection(answerPc);
+    freePeerConnection(&answerPc);
+}
+
+TEST_F(SdpApiTest, noMediaTrickleIceNegativeCase) {
+    PRtcPeerConnection offerPc = NULL;
+    PRtcPeerConnection answerPc = NULL;
+    RtcConfiguration configurationOffer;
+    RtcConfiguration configurationAnswer;
+    RtcSessionDescriptionInit sessionDescriptionInitViewer;
+    RtcSessionDescriptionInit sessionDescriptionInitMaster;
+
+    MEMSET(&configurationOffer, 0x00, SIZEOF(RtcConfiguration));
+    MEMSET(&configurationAnswer, 0x00, SIZEOF(RtcConfiguration));
+
+    // Create peer connection
+    EXPECT_EQ(createPeerConnection(&configurationOffer, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configurationAnswer, &answerPc), STATUS_SUCCESS);
+
+    sessionDescriptionInitViewer.useTrickleIce = FALSE;
+
+    EXPECT_EQ(STATUS_SUCCESS, createOffer(offerPc, &sessionDescriptionInitViewer));
+    STRCPY(sessionDescriptionInitMaster.sdp, sessionDescriptionInitViewer.sdp);
+    sessionDescriptionInitMaster.type = SDP_TYPE_OFFER;
+    EXPECT_EQ(setRemoteDescription(answerPc, &sessionDescriptionInitMaster), STATUS_SUCCESS);
+    EXPECT_EQ(FALSE, canTrickleIceCandidates(answerPc).value);
+
+    closePeerConnection(offerPc);
+    freePeerConnection(&offerPc);
+
+    closePeerConnection(answerPc);
+    freePeerConnection(&answerPc);
 }
 
 TEST_F(SdpApiTest, answerMlinesOrderSameAsOfferMLinesOrder)
@@ -1320,7 +1380,7 @@ a=ssrc:1644235696 cname:{36a6a74c-73a4-594b-9bb0-023b4d357280})";
         RtcSessionDescriptionInit offerSdp{};
         RtcSessionDescriptionInit answerSdp{};
 
-        SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION);
+        SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION, TEST_DEFAULT_STUN_URL_POSTFIX);
 
         track1.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
         track1.codec = RTC_CODEC_VP8;

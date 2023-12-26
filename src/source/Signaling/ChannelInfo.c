@@ -1,14 +1,33 @@
 #define LOG_CLASS "ChannelInfo"
 #include "../Include_i.h"
 
+#define ARN_DELIMETER_CHAR                  ':'
+#define ARN_CHANNEL_NAME_CODE_SEP           '/'
+#define ARN_BEGIN                           "arn:aws"
+#define SIGNALING_CHANNEL_ARN_SERVICE_NAME  "kinesisvideo"
+#define SIGNALING_CHANNEL_ARN_RESOURCE_TYPE "channel/"
+#define AWS_ACCOUNT_ID_LENGTH               12
+#define AWS_KVS_ARN_CODE_LENGTH             13
+#define SIGNALING_CHANNEL_ARN_MIN_LENGTH    59
+
+// Example: arn:aws:kinesisvideo:region:account-id:channel/channel-name/code
+// Min Length of ":account-id:channel/channel-name/code"
+// = len(":") + len(account-id) + len(":") + len("channel") + len("/") + len(channel-name) + len("/") + len(code)
+// channel name must be at least 1 char
+// = 1 + 12 + 1 + 7 + 1 + 1 + 1 + 13 = 37
+#define CHANNEL_ARN_MIN_DIST_FROM_REGION_END_TO_END_OF_ARN 37
+
 STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* ppChannelInfo)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
+    UINT16 channelNameStartPos = 0, channelNameLen = 0;
 
-    UINT32 allocSize, nameLen = 0, arnLen = 0, regionLen = 0, cplLen = 0, certLen = 0, postfixLen = 0, agentLen = 0, userAgentLen = 0, kmsLen = 0,
-                      tagsSize;
-    PCHAR pCurPtr, pRegionPtr;
+    UINT32 allocSize, channelArnLen = 0, storageStreamArnLen = 0, regionLen = 0, cpUrlLen = 0, certPathLen = 0, userAgentPostfixLen = 0,
+                      customUserAgentLen = 0, userAgentLen = 0, kmsLen = 0, tagsSize;
+    PCHAR pCurPtr, pRegionPtr, pUserAgentPostfixPtr;
+    CHAR agentString[MAX_CUSTOM_USER_AGENT_NAME_POSTFIX_LEN + 1];
+
     PChannelInfo pChannelInfo = NULL;
 
     CHK(pOrigChannelInfo != NULL && ppChannelInfo != NULL, STATUS_NULL_ARG);
@@ -17,12 +36,22 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
 
     // Get and validate the lengths for all strings and store lengths excluding null terminator
     if (pOrigChannelInfo->pChannelName != NULL) {
-        CHK((nameLen = (UINT32) STRNLEN(pOrigChannelInfo->pChannelName, MAX_CHANNEL_NAME_LEN + 1)) <= MAX_CHANNEL_NAME_LEN,
+        CHK((channelNameLen = (UINT32) STRNLEN(pOrigChannelInfo->pChannelName, MAX_CHANNEL_NAME_LEN + 1)) <= MAX_CHANNEL_NAME_LEN,
             STATUS_SIGNALING_INVALID_CHANNEL_NAME_LENGTH);
     }
 
     if (pOrigChannelInfo->pChannelArn != NULL) {
-        CHK((arnLen = (UINT32) STRNLEN(pOrigChannelInfo->pChannelArn, MAX_ARN_LEN + 1)) <= MAX_ARN_LEN, STATUS_SIGNALING_INVALID_CHANNEL_ARN_LENGTH);
+        CHK((channelArnLen = (UINT32) STRNLEN(pOrigChannelInfo->pChannelArn, MAX_ARN_LEN + 1)) <= MAX_ARN_LEN,
+            STATUS_SIGNALING_INVALID_CHANNEL_ARN_LENGTH);
+
+        if (pOrigChannelInfo->pChannelName == NULL) {
+            CHK_STATUS(validateKvsSignalingChannelArnAndExtractChannelName(pOrigChannelInfo, &channelNameStartPos, &channelNameLen));
+        }
+    }
+
+    if (pOrigChannelInfo->pStorageStreamArn != NULL) {
+        CHK((storageStreamArnLen = (UINT32) STRNLEN(pOrigChannelInfo->pStorageStreamArn, MAX_ARN_LEN + 1)) <= MAX_ARN_LEN,
+            STATUS_SIGNALING_INVALID_CHANNEL_ARN_LENGTH);
     }
 
     // Fix-up the region
@@ -36,27 +65,37 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
     }
 
     if (pOrigChannelInfo->pControlPlaneUrl != NULL) {
-        CHK((cplLen = (UINT32) STRNLEN(pOrigChannelInfo->pControlPlaneUrl, MAX_URI_CHAR_LEN + 1)) <= MAX_URI_CHAR_LEN,
+        CHK((cpUrlLen = (UINT32) STRNLEN(pOrigChannelInfo->pControlPlaneUrl, MAX_URI_CHAR_LEN + 1)) <= MAX_URI_CHAR_LEN,
             STATUS_SIGNALING_INVALID_CPL_LENGTH);
     } else {
-        cplLen = MAX_CONTROL_PLANE_URI_CHAR_LEN;
+        cpUrlLen = MAX_CONTROL_PLANE_URI_CHAR_LEN;
     }
 
     if (pOrigChannelInfo->pCertPath != NULL) {
-        CHK((certLen = (UINT32) STRNLEN(pOrigChannelInfo->pCertPath, MAX_PATH_LEN + 1)) <= MAX_PATH_LEN,
+        CHK((certPathLen = (UINT32) STRNLEN(pOrigChannelInfo->pCertPath, MAX_PATH_LEN + 1)) <= MAX_PATH_LEN,
             STATUS_SIGNALING_INVALID_CERTIFICATE_PATH_LENGTH);
     }
 
     userAgentLen = MAX_USER_AGENT_LEN;
 
-    if (pOrigChannelInfo->pUserAgentPostfix != NULL) {
-        CHK((postfixLen = (UINT32) STRNLEN(pOrigChannelInfo->pUserAgentPostfix, MAX_CUSTOM_USER_AGENT_NAME_POSTFIX_LEN + 1)) <=
+    if (pOrigChannelInfo->pUserAgentPostfix != NULL && STRCMP(pOrigChannelInfo->pUserAgentPostfix, EMPTY_STRING) != 0) {
+        CHK((userAgentPostfixLen = (UINT32) STRNLEN(pOrigChannelInfo->pUserAgentPostfix, MAX_CUSTOM_USER_AGENT_NAME_POSTFIX_LEN + 1)) <=
                 MAX_CUSTOM_USER_AGENT_NAME_POSTFIX_LEN,
             STATUS_SIGNALING_INVALID_AGENT_POSTFIX_LENGTH);
+        pUserAgentPostfixPtr = pOrigChannelInfo->pUserAgentPostfix;
+    } else {
+        // Account for the "/" in the agent string.
+        // The default user agent postfix is:AWS-WEBRTC-KVS-AGENT/<SDK-version>
+        userAgentPostfixLen = STRLEN(SIGNALING_USER_AGENT_POSTFIX_NAME) + STRLEN(SIGNALING_USER_AGENT_POSTFIX_VERSION) + 1;
+        CHK(userAgentPostfixLen <= MAX_CUSTOM_USER_AGENT_NAME_POSTFIX_LEN, STATUS_SIGNALING_INVALID_AGENT_POSTFIX_LENGTH);
+        SNPRINTF(agentString,
+                 userAgentPostfixLen + 1, // account for null terminator
+                 (PCHAR) "%s/%s", SIGNALING_USER_AGENT_POSTFIX_NAME, SIGNALING_USER_AGENT_POSTFIX_VERSION);
+        pUserAgentPostfixPtr = agentString;
     }
 
     if (pOrigChannelInfo->pCustomUserAgent != NULL) {
-        CHK((agentLen = (UINT32) STRNLEN(pOrigChannelInfo->pCustomUserAgent, MAX_CUSTOM_USER_AGENT_LEN + 1)) <= MAX_CUSTOM_USER_AGENT_LEN,
+        CHK((customUserAgentLen = (UINT32) STRNLEN(pOrigChannelInfo->pCustomUserAgent, MAX_CUSTOM_USER_AGENT_LEN + 1)) <= MAX_CUSTOM_USER_AGENT_LEN,
             STATUS_SIGNALING_INVALID_AGENT_LENGTH);
     }
 
@@ -78,10 +117,12 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
     CHK_STATUS(packageTags(pOrigChannelInfo->tagCount, pOrigChannelInfo->pTags, 0, NULL, &tagsSize));
 
     // Allocate enough storage to hold the data with aligned strings size and set the pointers and NULL terminators
-    allocSize = SIZEOF(ChannelInfo) + ALIGN_UP_TO_MACHINE_WORD(1 + nameLen) + ALIGN_UP_TO_MACHINE_WORD(1 + arnLen) +
-        ALIGN_UP_TO_MACHINE_WORD(1 + regionLen) + ALIGN_UP_TO_MACHINE_WORD(1 + cplLen) + ALIGN_UP_TO_MACHINE_WORD(1 + certLen) +
-        ALIGN_UP_TO_MACHINE_WORD(1 + postfixLen) + ALIGN_UP_TO_MACHINE_WORD(1 + agentLen) + ALIGN_UP_TO_MACHINE_WORD(1 + userAgentLen) +
-        ALIGN_UP_TO_MACHINE_WORD(1 + kmsLen) + tagsSize;
+    // concatenate the data space with channel info.
+    allocSize = SIZEOF(ChannelInfo) + ALIGN_UP_TO_MACHINE_WORD(1 + channelNameLen) + ALIGN_UP_TO_MACHINE_WORD(1 + channelArnLen) +
+        ALIGN_UP_TO_MACHINE_WORD(1 + storageStreamArnLen) + ALIGN_UP_TO_MACHINE_WORD(1 + regionLen) + ALIGN_UP_TO_MACHINE_WORD(1 + cpUrlLen) +
+        ALIGN_UP_TO_MACHINE_WORD(1 + certPathLen) + ALIGN_UP_TO_MACHINE_WORD(1 + userAgentPostfixLen) +
+        ALIGN_UP_TO_MACHINE_WORD(1 + customUserAgentLen) + ALIGN_UP_TO_MACHINE_WORD(1 + userAgentLen) + ALIGN_UP_TO_MACHINE_WORD(1 + kmsLen) +
+        tagsSize;
     CHK(NULL != (pChannelInfo = (PChannelInfo) MEMCALLOC(1, allocSize)), STATUS_NOT_ENOUGH_MEMORY);
 
     pChannelInfo->version = CHANNEL_INFO_CURRENT_VERSION;
@@ -92,6 +133,7 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
     pChannelInfo->reconnect = pOrigChannelInfo->reconnect;
     pChannelInfo->messageTtl = pOrigChannelInfo->messageTtl;
     pChannelInfo->tagCount = pOrigChannelInfo->tagCount;
+    pChannelInfo->useMediaStorage = pOrigChannelInfo->useMediaStorage;
 
     // V1 handling
     if (pOrigChannelInfo->version > 0) {
@@ -105,16 +147,26 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
 
     // Set the pointers to the end and copy the data.
     // NOTE: the structure is calloc-ed so the strings will be NULL terminated
-    if (nameLen != 0) {
-        STRCPY(pCurPtr, pOrigChannelInfo->pChannelName);
+    if (channelNameLen != 0) {
+        if (pOrigChannelInfo->pChannelName != NULL) {
+            STRCPY(pCurPtr, pOrigChannelInfo->pChannelName);
+        } else {
+            STRNCPY(pCurPtr, pOrigChannelInfo->pChannelArn + channelNameStartPos, channelNameLen);
+        }
         pChannelInfo->pChannelName = pCurPtr;
-        pCurPtr += ALIGN_UP_TO_MACHINE_WORD(nameLen + 1); // For the NULL terminator
+        pCurPtr += ALIGN_UP_TO_MACHINE_WORD(channelNameLen + 1); // For the NULL terminator
     }
 
-    if (arnLen != 0) {
+    if (channelArnLen != 0) {
         STRCPY(pCurPtr, pOrigChannelInfo->pChannelArn);
         pChannelInfo->pChannelArn = pCurPtr;
-        pCurPtr += ALIGN_UP_TO_MACHINE_WORD(arnLen + 1);
+        pCurPtr += ALIGN_UP_TO_MACHINE_WORD(channelArnLen + 1);
+    }
+
+    if (storageStreamArnLen != 0) {
+        STRCPY(pCurPtr, pOrigChannelInfo->pStorageStreamArn);
+        pChannelInfo->pStorageStreamArn = pCurPtr;
+        pCurPtr += ALIGN_UP_TO_MACHINE_WORD(storageStreamArnLen + 1);
     }
 
     STRCPY(pCurPtr, pRegionPtr);
@@ -127,30 +179,34 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
         // Create a fully qualified URI
         SNPRINTF(pCurPtr, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s%s.%s%s", CONTROL_PLANE_URI_PREFIX, KINESIS_VIDEO_SERVICE_NAME, pChannelInfo->pRegion,
                  CONTROL_PLANE_URI_POSTFIX);
+        // If region is in CN, add CN region uri postfix
+        if (STRSTR(pChannelInfo->pRegion, "cn-")) {
+            STRCAT(pCurPtr, ".cn");
+        }
     }
 
     pChannelInfo->pControlPlaneUrl = pCurPtr;
-    pCurPtr += ALIGN_UP_TO_MACHINE_WORD(cplLen + 1);
+    pCurPtr += ALIGN_UP_TO_MACHINE_WORD(cpUrlLen + 1);
 
-    if (certLen != 0) {
+    if (certPathLen != 0) {
         STRCPY(pCurPtr, pOrigChannelInfo->pCertPath);
         pChannelInfo->pCertPath = pCurPtr;
-        pCurPtr += ALIGN_UP_TO_MACHINE_WORD(certLen + 1);
+        pCurPtr += ALIGN_UP_TO_MACHINE_WORD(certPathLen + 1);
     }
 
-    if (postfixLen != 0) {
-        STRCPY(pCurPtr, pOrigChannelInfo->pUserAgentPostfix);
+    if (userAgentPostfixLen != 0) {
+        STRCPY(pCurPtr, pUserAgentPostfixPtr);
         pChannelInfo->pUserAgentPostfix = pCurPtr;
-        pCurPtr += ALIGN_UP_TO_MACHINE_WORD(postfixLen + 1);
+        pCurPtr += ALIGN_UP_TO_MACHINE_WORD(userAgentPostfixLen + 1);
     }
 
-    if (agentLen != 0) {
+    if (customUserAgentLen != 0) {
         STRCPY(pCurPtr, pOrigChannelInfo->pCustomUserAgent);
         pChannelInfo->pCustomUserAgent = pCurPtr;
-        pCurPtr += ALIGN_UP_TO_MACHINE_WORD(agentLen + 1);
+        pCurPtr += ALIGN_UP_TO_MACHINE_WORD(customUserAgentLen + 1);
     }
 
-    getUserAgentString(pOrigChannelInfo->pUserAgentPostfix, pOrigChannelInfo->pCustomUserAgent, MAX_USER_AGENT_LEN, pCurPtr);
+    getUserAgentString(pUserAgentPostfixPtr, pOrigChannelInfo->pCustomUserAgent, MAX_USER_AGENT_LEN, pCurPtr);
     pChannelInfo->pUserAgent = pCurPtr;
     pChannelInfo->pUserAgent[MAX_USER_AGENT_LEN] = '\0';
     pCurPtr += ALIGN_UP_TO_MACHINE_WORD(userAgentLen + 1);
@@ -292,4 +348,96 @@ PCHAR getStringFromChannelRoleType(SIGNALING_CHANNEL_ROLE_TYPE type)
     }
 
     return typeStr;
+}
+
+// https://docs.aws.amazon.com/kinesisvideostreams-webrtc-dg/latest/devguide/kvswebrtc-how-iam.html#kinesis-using-iam-arn-format
+// Example: arn:aws:kinesisvideo:region:account-id:channel/channel-name/code
+STATUS validateKvsSignalingChannelArnAndExtractChannelName(PChannelInfo pChannelInfo, PUINT16 pStart, PUINT16 pNumChars)
+{
+    UINT16 arnLength, currPosIndex = 0, channelNameLength = 0, channelNameStart = 0;
+    PCHAR partitionEnd, regionEnd, channelNameEnd;
+    PCHAR currPos;
+    UINT8 accountIdStart = 1, accountIdEnd = AWS_ACCOUNT_ID_LENGTH;
+    UINT8 timeCodeStart = 0, timeCodeEnd = AWS_KVS_ARN_CODE_LENGTH - 1;
+
+    if (pChannelInfo != NULL && pChannelInfo->pChannelArn != NULL) {
+        arnLength = STRNLEN(pChannelInfo->pChannelArn, MAX_ARN_LEN);
+
+        if (arnLength >= SIGNALING_CHANNEL_ARN_MIN_LENGTH) {
+            currPos = pChannelInfo->pChannelArn;
+
+            if (STRNCMP(currPos, ARN_BEGIN, STRLEN(ARN_BEGIN)) == 0) {
+                currPosIndex += STRLEN(ARN_BEGIN);
+                partitionEnd = STRNCHR(currPos + currPosIndex, arnLength - currPosIndex, ARN_DELIMETER_CHAR);
+
+                if (partitionEnd != NULL && (partitionEnd - currPos) < arnLength) {
+                    currPosIndex = partitionEnd - currPos + 1;
+
+                    if (currPosIndex < arnLength &&
+                        STRNCMP(currPos + currPosIndex, SIGNALING_CHANNEL_ARN_SERVICE_NAME, STRLEN(SIGNALING_CHANNEL_ARN_SERVICE_NAME)) == 0) {
+                        currPosIndex += STRLEN(SIGNALING_CHANNEL_ARN_SERVICE_NAME);
+
+                        if (currPosIndex < arnLength && *(currPos + currPosIndex) == ARN_DELIMETER_CHAR) {
+                            currPosIndex++;
+
+                            regionEnd = STRNCHR(currPos + currPosIndex, arnLength - currPosIndex, ARN_DELIMETER_CHAR);
+
+                            if (regionEnd != NULL) {
+                                if (currPosIndex < arnLength && (regionEnd - currPos) < arnLength) {
+                                    currPosIndex = regionEnd - currPos;
+
+                                    if (currPosIndex + CHANNEL_ARN_MIN_DIST_FROM_REGION_END_TO_END_OF_ARN <= arnLength) {
+                                        while (accountIdStart <= accountIdEnd &&
+                                               (*(currPos + currPosIndex + accountIdStart) >= '0' &&
+                                                *(currPos + currPosIndex + accountIdStart) <= '9')) {
+                                            accountIdStart++;
+                                        }
+
+                                        if (accountIdStart == accountIdEnd + 1 && *(currPos + currPosIndex + accountIdStart) == ARN_DELIMETER_CHAR) {
+                                            currPosIndex += (accountIdStart + 1);
+
+                                            if (STRNCMP(currPos + currPosIndex, SIGNALING_CHANNEL_ARN_RESOURCE_TYPE,
+                                                        STRLEN(SIGNALING_CHANNEL_ARN_RESOURCE_TYPE)) == 0) {
+                                                // Channel Name Begins Here, ends when we hit ARN_CHANNEL_NAME_CODE_SEP
+                                                currPosIndex += STRLEN(SIGNALING_CHANNEL_ARN_RESOURCE_TYPE);
+                                                channelNameEnd = STRNCHR(currPos + currPosIndex, arnLength - currPosIndex - AWS_KVS_ARN_CODE_LENGTH,
+                                                                         ARN_CHANNEL_NAME_CODE_SEP);
+
+                                                if (channelNameEnd != NULL) {
+                                                    channelNameLength = channelNameEnd - (currPos + currPosIndex);
+                                                    if (channelNameLength > 0) {
+                                                        channelNameStart = currPosIndex;
+                                                        currPosIndex += (channelNameLength + 1);
+
+                                                        if (currPosIndex + AWS_KVS_ARN_CODE_LENGTH == arnLength) {
+                                                            // 13 digit time code
+
+                                                            while ((timeCodeStart <= timeCodeEnd) &&
+                                                                   *(currPos + currPosIndex + timeCodeStart) >= '0' &&
+                                                                   *(currPos + currPosIndex + timeCodeStart) <= '9') {
+                                                                timeCodeStart++;
+                                                            }
+
+                                                            // Verify that we have 13 digits and that we are not at the end of the arn
+                                                            if (currPosIndex + timeCodeStart == arnLength) {
+                                                                *pStart = channelNameStart;
+                                                                *pNumChars = channelNameLength;
+                                                                return STATUS_SUCCESS;
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return STATUS_SIGNALING_INVALID_CHANNEL_ARN;
 }

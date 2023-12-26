@@ -1215,6 +1215,8 @@ STATUS getStunAttribute(PStunPacket pStunPacket, STUN_ATTRIBUTE_TYPE attributeTy
 
 CleanUp:
 
+    CHK_LOG_ERR(retStatus);
+
     if (ppStunAttribute != NULL) {
         *ppStunAttribute = pTargetAttribute;
     }

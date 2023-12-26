@@ -38,6 +38,8 @@ extern "C" {
 // Environment variable to display SDPs
 #define DEBUG_LOG_SDP ((PCHAR) "DEBUG_LOG_SDP")
 
+#define MAX_ACCESS_THREADS_WEBRTC_CLIENT_CONTEXT 50
+
 typedef enum {
     RTC_RTX_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE = 1,
     RTC_RTX_CODEC_VP8 = 2,
@@ -56,6 +58,14 @@ typedef struct {
     UINT64 lastLocalTimeKvs;
     UINT16 lastReportedSeqNum;
 } TwccManager, *PTwccManager;
+
+typedef struct {
+    UINT64 peerConnectionCreationTime;
+    UINT64 dtlsSessionSetupTime;
+    UINT64 iceHolePunchingTime;
+    UINT64 closePeerConnectionTime;
+    UINT64 freePeerConnectionTime;
+} KvsPeerConnectionDiagnostics, *PKvsPeerConnectionDiagnostics;
 
 typedef struct {
     RtcPeerConnection peerConnection;
@@ -80,7 +90,7 @@ typedef struct {
     PDoubleList pFakeTransceivers;
     PDoubleList pAnswerTransceivers;
 
-    BOOL sctpIsEnabled;
+    volatile ATOMIC_BOOL sctpIsEnabled;
 
     CHAR localIceUfrag[LOCAL_ICE_UFRAG_LEN + 1];
     CHAR localIcePwd[LOCAL_ICE_PWD_LEN + 1];
@@ -131,6 +141,9 @@ typedef struct {
     PTwccManager pTwccManager;
     RtcOnSenderBandwidthEstimation onSenderBandwidthEstimation;
     UINT64 onSenderBandwidthEstimationCustomData;
+
+    UINT64 iceConnectingStartTime;
+    KvsPeerConnectionDiagnostics peerConnectionDiagnostics;
 } KvsPeerConnection, *PKvsPeerConnection;
 
 typedef struct {
@@ -138,6 +151,25 @@ typedef struct {
     PKvsPeerConnection pKvsPeerConnection;
     PHashTable unkeyedDataChannels;
 } AllocateSctpSortDataChannelsData, *PAllocateSctpSortDataChannelsData;
+
+typedef struct {
+    CHAR hostname[MAX_ICE_CONFIG_URI_LEN + 1];
+    KvsIpAddress kvsIpAddr;
+    BOOL isIpInitialized;
+    UINT64 startTime;
+    UINT64 stunDnsResolutionTime;
+    UINT64 expirationDuration;
+    STATUS status;
+} StunIpAddrContext, *PStunIpAddrContext;
+
+// Declare the structure of the Singleton
+// Members of the singleton are responsible for their own sync mechanisms.
+typedef struct {
+    PStunIpAddrContext pStunIpAddrCtx;
+    volatile ATOMIC_BOOL isContextInitialized;
+    volatile SIZE_T contextRefCnt;
+    MUTEX stunCtxlock;
+} WebRtcClientContext, *PWebRtcClientContext;
 
 STATUS onFrameReadyFunc(UINT64, UINT16, UINT16, UINT32);
 STATUS onFrameDroppedFunc(UINT64, UINT16, UINT16, UINT32);

@@ -8,6 +8,7 @@
 #include <atomic>
 
 #define TEST_DEFAULT_REGION             ((PCHAR) "us-west-2")
+#define TEST_DEFAULT_STUN_URL_POSTFIX   (KINESIS_VIDEO_STUN_URL_POSTFIX)
 #define TEST_STREAMING_TOKEN_DURATION   (40 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define TEST_JITTER_BUFFER_CLOCK_RATE   (1000)
 #define TEST_SIGNALING_MASTER_CLIENT_ID (PCHAR) "Test_Master_ClientId"
@@ -15,12 +16,20 @@
 #define TEST_SIGNALING_CHANNEL_NAME     (PCHAR) "ScaryTestChannel_"
 #define TEST_KMS_KEY_ID_ARN             (PCHAR) "arn:aws:kms:us-west-2:123456789012:key/0000-0000-0000-0000-0000"
 #define TEST_CHANNEL_ARN                (PCHAR) "arn:aws:kinesisvideo:us-west-2:123456789012:channel/ScaryTestChannel"
+#define TEST_STREAM_ARN                 (PCHAR) "arn:aws:kinesisvideo:us-west-2:123456789012:stream/ScaryTestStream"
 #define SIGNAING_TEST_CORRELATION_ID    (PCHAR) "Test_correlation_id"
 #define TEST_SIGNALING_MESSAGE_TTL      (120 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define TEST_VIDEO_FRAME_SIZE           (120 * 1024)
 #define TEST_FILE_CREDENTIALS_FILE_PATH (PCHAR) "credsFile"
 #define MAX_TEST_AWAIT_DURATION         (2 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define TEST_CACHE_FILE_PATH            (PCHAR) "./.TestSignalingCache_v0"
+
+typedef struct {
+    SIGNALING_CLIENT_HANDLE signalingClientHandle;
+    PRtcPeerConnection pOffer;
+    PRtcPeerConnection pAnswer;
+    PUINT32 pUriCount;
+} AsyncGetIceStruct;
 
 namespace com {
 namespace amazonaws {
@@ -37,6 +46,8 @@ typedef struct {
 
 STATUS createRtpPacketWithSeqNum(UINT16 seqNum, PRtpPacket* ppRtpPacket);
 
+PVOID asyncGetIceConfigInfo(PVOID args);
+
 class WebRtcClientTestBase : public ::testing::Test {
   public:
     PUINT32 mExpectedFrameSizeArr;
@@ -46,7 +57,11 @@ class WebRtcClientTestBase : public ::testing::Test {
     UINT32 mExpectedDroppedFrameCount;
     PRtpPacket* mPRtpPackets;
     UINT32 mRtpPacketCount;
+    UINT32 mUriCount = 0;
     SIGNALING_CLIENT_HANDLE mSignalingClientHandle;
+    std::vector<std::thread> threads;
+    std::mutex lock;
+    BOOL noNewThreads = FALSE;
 
     WebRtcClientTestBase();
 
@@ -109,6 +124,7 @@ class WebRtcClientTestBase : public ::testing::Test {
         mChannelInfo.reconnect = TRUE;
         mChannelInfo.pCertPath = mCaCertPath;
         mChannelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
+
         if ((mChannelInfo.pRegion = getenv(DEFAULT_REGION_ENV_VAR)) == NULL) {
             mChannelInfo.pRegion = (PCHAR) TEST_DEFAULT_REGION;
         }
@@ -144,6 +160,18 @@ class WebRtcClientTestBase : public ::testing::Test {
 
         EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&mSignalingClientHandle));
 
+        return STATUS_SUCCESS;
+    }
+
+    STATUS asyncGetIceConfig(PRtcPeerConnection pOffer, PRtcPeerConnection pAnswer)
+    {
+        AsyncGetIceStruct* pAsyncData = NULL;
+        pAsyncData = (AsyncGetIceStruct*) MEMCALLOC(1, SIZEOF(AsyncGetIceStruct));
+        pAsyncData->signalingClientHandle = mSignalingClientHandle;
+        pAsyncData->pAnswer = pAnswer;
+        pAsyncData->pOffer = pOffer;
+        pAsyncData->pUriCount = &(this->mUriCount);
+        EXPECT_EQ(STATUS_SUCCESS, peerConnectionAsync(asyncGetIceConfigInfo, (PVOID) pAsyncData));
         return STATUS_SUCCESS;
     }
 
@@ -268,9 +296,13 @@ class WebRtcClientTestBase : public ::testing::Test {
 
     bool connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerConnection answerPc, PCHAR pOfferCertFingerprint = NULL,
                          PCHAR pAnswerCertFingerprint = NULL);
+    bool connectTwoPeersAsyncIce(PRtcPeerConnection offerPc, PRtcPeerConnection answerPc, PCHAR pOfferCertFingerprint = NULL,
+                                 PCHAR pAnswerCertFingerprint = NULL);
     void addTrackToPeerConnection(PRtcPeerConnection pRtcPeerConnection, PRtcMediaStreamTrack track, PRtcRtpTransceiver* transceiver, RTC_CODEC codec,
                                   MEDIA_STREAM_TRACK_KIND kind);
-    void getIceServers(PRtcConfiguration pRtcConfiguration);
+    void getIceServers(PRtcConfiguration pRtcConfiguration, PRtcPeerConnection pRtcPeerConnection);
+
+    void getIceServers(PRtcConfiguration pRtcConfiguration, PIceAgent pIceAgent);
 
   protected:
     virtual void SetUp();
@@ -296,6 +328,7 @@ class WebRtcClientTestBase : public ::testing::Test {
     BOOL mAccessKeyIdSet;
     CHAR mChannelName[MAX_CHANNEL_NAME_LEN + 1];
     CHAR mChannelArn[MAX_ARN_LEN + 1];
+    CHAR mStreamArn[MAX_ARN_LEN + 1];
     CHAR mKmsKeyId[MAX_ARN_LEN + 1];
 
     PJitterBuffer mJitterBuffer;
@@ -308,6 +341,11 @@ class WebRtcClientTestBase : public ::testing::Test {
     SignalingClientInfo mClientInfo;
     Tag mTags[3];
 };
+
+typedef struct {
+    PRtcPeerConnection pc;
+    WebRtcClientTestBase* client;
+} PeerContainer, *PPeerContainer;
 
 } // namespace webrtcclient
 } // namespace video
