@@ -37,7 +37,7 @@ extern "C" {
 #define DEFAULT_TURN_CHANNEL_DATA_BUFFER_SIZE             512
 #define DEFAULT_TURN_MAX_PEER_COUNT                       32
 
-#define DEFAULT_TURN_ALLOCATION_MAX_TRY_COUNT 3
+#define DEFAULT_TURN_ALLOCATION_MAX_TRY_COUNT 50
 
 // all turn channel numbers must be greater than 0x4000 and less than 0x7FFF
 #define TURN_CHANNEL_BIND_CHANNEL_NUMBER_BASE (UINT16) 0x4000
