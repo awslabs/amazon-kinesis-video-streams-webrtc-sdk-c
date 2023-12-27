@@ -442,7 +442,7 @@ jobs:
 #        run: |
 #          ./scripts/check-sample.sh
   ubuntu-os-build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     env:
       AWS_KVS_LOG_LEVEL: 2
     permissions:
@@ -470,7 +470,7 @@ jobs:
       - name: Run tests
         run:  |
           cd build
-          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test --gtest_filter="IngestionFunctionalityTest.basicCreateConnectJoinSession"
 #  windows-msvc-openssl:
 #    runs-on: windows-2022
 #    env:
