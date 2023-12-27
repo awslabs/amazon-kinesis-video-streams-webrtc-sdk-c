@@ -92,19 +92,22 @@ std::string generate_hex(const unsigned int len) {
 
 // Create a Stream and a Channel and link
 IngestionFunctionalityTest::MediaConfigurationInfo IngestionFunctionalityTest::createStreamAndChannelAndLink() {
+    DLOGI("Here 0");
     IngestionFunctionalityTest::MediaConfigurationInfo mediaConfigurationInfo;
-
+    DLOGI("Here 1");
     Aws::KinesisVideo::Model::CreateStreamOutcome createStreamOutcome;
     Aws::KinesisVideo::Model::CreateStreamRequest createStreamRequest;
-
+    DLOGI("Here 2");
     std::string nameSuffix = generate_hex(16);
     std::string streamName = "WrtcIngestionTestStream_" + nameSuffix;
     std::string channelName = "WrtcIngestionTestChannel_" + nameSuffix;
     createStreamRequest.WithStreamName(streamName);
+    DLOGI("Here 3");
     createStreamRequest.WithDataRetentionInHours(24);
+    DLOGI("Here 4");
 
     createStreamOutcome = mKvsClient.CreateStream(createStreamRequest);
-
+    DLOGI("Here 5");
     if (createStreamOutcome.IsSuccess()) {
         Aws::KinesisVideo::Model::CreateSignalingChannelOutcome createSignalingChannelOutcome;
         Aws::KinesisVideo::Model::CreateSignalingChannelRequest createSignalingChannelRequest;
@@ -319,7 +322,7 @@ TEST_F(IngestionFunctionalityTest, basicCreateConnectJoinSession)
     SignalingClientMetrics signalingClientMetrics;
     signalingClientMetrics.version = SIGNALING_CLIENT_METRICS_CURRENT_VERSION;
 
-//    MediaConfigurationInfo mediaConfigurationInfo = createStreamAndChannelAndLink();
+    MediaConfigurationInfo mediaConfigurationInfo = createStreamAndChannelAndLink();
 //    ASSERT_EQ(TRUE, mediaConfigurationInfo.isValid);
 //    ASSERT_EQ(TRUE, mediaConfigurationInfo.enabledStatus);
 //
