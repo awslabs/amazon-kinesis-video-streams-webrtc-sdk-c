@@ -317,82 +317,11 @@ TEST_F(IngestionFunctionalityTest, basicCreateConnectFreeNoJoinSession)
 */
 TEST_F(IngestionFunctionalityTest, basicCreateConnectJoinSession)
 {
-        ASSERT_EQ(TRUE, mAccessKeyIdSet);
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
-    ChannelInfo channelInfo;
-    SignalingClientCallbacks signalingClientCallbacks;
-    SignalingClientInfoInternal clientInfoInternal;
-    SIGNALING_CLIENT_HANDLE signalingHandle = INVALID_SIGNALING_CLIENT_HANDLE_VALUE;
-    PSignalingClient pSignalingClient;
-
-    signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
-    signalingClientCallbacks.customData = (UINT64) this;
-    signalingClientCallbacks.messageReceivedFn = NULL;
-    signalingClientCallbacks.errorReportFn = signalingClientError;
-    signalingClientCallbacks.stateChangeFn = signalingClientStateChanged;
-    signalingClientCallbacks.getCurrentTimeFn = NULL;
-
-    MEMSET(&clientInfoInternal, 0x00, SIZEOF(SignalingClientInfoInternal));
-
-    clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
-    clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
-    STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
-    clientInfoInternal.hookCustomData = (UINT64) this;
-    clientInfoInternal.connectPreHookFn = connectPreHook;
-    clientInfoInternal.describePreHookFn = describePreHook;
-    clientInfoInternal.getEndpointPreHookFn = getEndpointPreHook;
-    clientInfoInternal.describeMediaStorageConfPreHookFn = describeMediaPreHook;
-    clientInfoInternal.joinSessionPreHookFn = joinSessionPreHook;
-    setupSignalingStateMachineRetryStrategyCallbacks(&clientInfoInternal);
-
-    MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
-    channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
-    channelInfo.pChannelName = mChannelName;
-    channelInfo.pKmsKeyId = NULL;
-    channelInfo.tagCount = 0;
-    channelInfo.pTags = NULL;
-    channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
-    channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
-    channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_NONE;
-    channelInfo.retry = TRUE;
-    channelInfo.reconnect = TRUE;
-    channelInfo.pCertPath = mCaCertPath;
-    channelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
-
-    channelInfo.useMediaStorage = TRUE;
-
-    EXPECT_EQ(STATUS_SUCCESS,
-              createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider,
-                                        &pSignalingClient));
-
-    signalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
-    EXPECT_TRUE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
-
-    EXPECT_EQ(STATUS_SUCCESS,signalingClientFetchSync(signalingHandle));
-    pActiveClient = pSignalingClient;
-
-    // Connect twice - the second time will be no-op
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
-
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
-
-    // Validate the hook counts
-    EXPECT_EQ(2, describeCount);
-    EXPECT_EQ(1, describeMediaCount);
-    EXPECT_EQ(1, getEndpointCount);
-    EXPECT_EQ(1, connectCount);
-
-    // This channel does not have an associated stream
-    EXPECT_EQ(0, joinSessionCount);
-
-    deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
-
-    EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
-//    ASSERT_EQ(TRUE, mAccessKeyIdSet);
-//
-//    SignalingClientMetrics signalingClientMetrics;
-//    signalingClientMetrics.version = SIGNALING_CLIENT_METRICS_CURRENT_VERSION;
-//    MediaConfigurationInfo mediaConfigurationInfo = createStreamAndChannelAndLink();
+    SignalingClientMetrics signalingClientMetrics;
+    signalingClientMetrics.version = SIGNALING_CLIENT_METRICS_CURRENT_VERSION;
+    MediaConfigurationInfo mediaConfigurationInfo = createStreamAndChannelAndLink();
 //    ASSERT_EQ(TRUE, mediaConfigurationInfo.isValid);
 //    ASSERT_EQ(TRUE, mediaConfigurationInfo.enabledStatus);
 //

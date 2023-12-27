@@ -57,7 +57,9 @@ int main(int argc, char** argv)
     breakOnFailure = ::testing::GTEST_FLAG(break_on_failure);
 
 #ifdef ENABLE_AWS_SDK_IN_TESTS
+    cout<<"Here\n";
     Aws::InitAPI(options);
+    cout<<"Out of here\n";
 #endif
 
     Retrier* retrier = new Retrier();
@@ -84,7 +86,9 @@ int main(int argc, char** argv)
     } while (rc != 0 && trial++ < MAX_TRIALS);
 
 #ifdef ENABLE_AWS_SDK_IN_TESTS
+    cout<<"Shutting down\n";
     Aws::ShutdownAPI(options);
+    cout<<"Shutting down done\n";
 #endif
 
     return rc;
