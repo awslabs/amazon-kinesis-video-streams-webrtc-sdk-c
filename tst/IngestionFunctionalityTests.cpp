@@ -323,15 +323,15 @@ TEST_F(IngestionFunctionalityTest, basicCreateConnectJoinSession)
     signalingClientMetrics.version = SIGNALING_CLIENT_METRICS_CURRENT_VERSION;
 
     MediaConfigurationInfo mediaConfigurationInfo = createStreamAndChannelAndLink();
-//    ASSERT_EQ(TRUE, mediaConfigurationInfo.isValid);
-//    ASSERT_EQ(TRUE, mediaConfigurationInfo.enabledStatus);
-//
-//
-//    ChannelInfo channelInfo;
-//    SignalingClientCallbacks signalingClientCallbacks;
-//    SignalingClientInfoInternal clientInfoInternal;
-//    SIGNALING_CLIENT_HANDLE signalingHandle = INVALID_SIGNALING_CLIENT_HANDLE_VALUE;
-//    PSignalingClient pSignalingClient;
+    ASSERT_EQ(TRUE, mediaConfigurationInfo.isValid);
+    ASSERT_EQ(TRUE, mediaConfigurationInfo.enabledStatus);
+
+
+    ChannelInfo channelInfo;
+    SignalingClientCallbacks signalingClientCallbacks;
+    SignalingClientInfoInternal clientInfoInternal;
+    SIGNALING_CLIENT_HANDLE signalingHandle = INVALID_SIGNALING_CLIENT_HANDLE_VALUE;
+    PSignalingClient pSignalingClient;
 //
 //    signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
 //    signalingClientCallbacks.customData = (UINT64) this;

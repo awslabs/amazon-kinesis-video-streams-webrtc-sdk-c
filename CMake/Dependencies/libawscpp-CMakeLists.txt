@@ -9,6 +9,7 @@ ExternalProject_Add(libawscpp-download
     CMAKE_ARGS       -DBUILD_SHARED_LIBS=OFF
                      -DBUILD_ONLY=kinesisvideo|kinesis-video-webrtc-storage
                      -DCMAKE_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX}
+                     -DENABLE_TESTING=OFF
     BUILD_ALWAYS      TRUE
     TEST_COMMAND      ""
 )
