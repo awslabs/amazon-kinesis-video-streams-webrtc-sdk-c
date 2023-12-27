@@ -321,8 +321,8 @@ TEST_F(IngestionFunctionalityTest, basicCreateConnectJoinSession)
 
     SignalingClientMetrics signalingClientMetrics;
     signalingClientMetrics.version = SIGNALING_CLIENT_METRICS_CURRENT_VERSION;
-
-    MediaConfigurationInfo mediaConfigurationInfo = createStreamAndChannelAndLink();
+    IngestionFunctionalityTest ingestionTest;
+    MediaConfigurationInfo mediaConfigurationInfo = ingestionTest.createStreamAndChannelAndLink();
 //    ASSERT_EQ(TRUE, mediaConfigurationInfo.isValid);
 //    ASSERT_EQ(TRUE, mediaConfigurationInfo.enabledStatus);
 //
