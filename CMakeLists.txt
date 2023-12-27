@@ -159,28 +159,26 @@ if(BUILD_DEPENDENCIES)
     set(OPENSSL_INCLUDE_DIRS "${OPEN_SRC_INSTALL_PREFIX}/include/")
     set(OPENSSL_CRYPTO_LIBRARY "${OPEN_SRC_INSTALL_PREFIX}/lib/libcrypto.lib")
     set(OPENSSL_SSL_LIBRARY "${OPEN_SRC_INSTALL_PREFIX}/lib/libssl.lib")
-    message(STATUS "Openssl lib path set to: ${OPENSSL_SSL_LIBRARY}")
-    message(STATUS "Openssl crypto path set to: ${OPENSSL_CRYPTO_LIBRARY}")
     set(OPENSSL_LIBRARIES ${OPENSSL_SSL_LIBRARY} ${OPENSSL_CRYPTO_LIBRARY})
     string(REPLACE ";" "|" OPENSSL_LIBRARIES_ALT_SEP "${OPENSSL_LIBRARIES}")
 
     set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
-                   -DUSE_OPENSSL=${USE_OPENSSL}
-                   -DUSE_MBEDTLS=${USE_MBEDTLS}
-                   -DLWS_EXT_PTHREAD_INCLUDE_DIR=${EXT_PTHREAD_INCLUDE_DIR}
-                   -DLWS_EXT_PTHREAD_LIBRARIES=${EXT_PTHREAD_LIBRARIES}
-                   -DLWS_OPENSSL_INCLUDE_DIRS=${OPENSSL_INCLUDE_DIRS}
-                   -DLWS_OPENSSL_LIBRARIES=${OPENSSL_LIBRARIES_ALT_SEP}
-                   -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
+                  -DUSE_OPENSSL=${USE_OPENSSL}
+                  -DUSE_MBEDTLS=${USE_MBEDTLS}
+                  -DLWS_EXT_PTHREAD_INCLUDE_DIR=${EXT_PTHREAD_INCLUDE_DIR}
+                  -DLWS_EXT_PTHREAD_LIBRARIES=${EXT_PTHREAD_LIBRARIES}
+                  -DLWS_OPENSSL_INCLUDE_DIRS=${OPENSSL_INCLUDE_DIRS}
+                  -DLWS_OPENSSL_LIBRARIES=${OPENSSL_LIBRARIES_ALT_SEP}
+                  -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
   else()
     set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
-                   -DOPENSSL_DIR=${OPEN_SRC_INSTALL_PREFIX}
-                   -DUSE_OPENSSL=${USE_OPENSSL}
-                   -DUSE_MBEDTLS=${USE_MBEDTLS}
-                   -DLWS_OPENSSL_CRYPTO_LIBRARY=${OPENSSL_CRYPTO_LIBRARY}
-                   -DLWS_OPENSSL_SSL_LIBRARY=${OPENSSL_SSL_LIBRARY}
-                   -DLWS_OPENSSL_INCLUDE_DIRS=${OPENSSL_INCLUDE_DIR}
-                   -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
+                  -DOPENSSL_DIR=${OPEN_SRC_INSTALL_PREFIX}
+                  -DUSE_OPENSSL=${USE_OPENSSL}
+                  -DUSE_MBEDTLS=${USE_MBEDTLS}
+                  -DLWS_OPENSSL_CRYPTO_LIBRARY=${OPENSSL_CRYPTO_LIBRARY}
+                  -DLWS_OPENSSL_SSL_LIBRARY=${OPENSSL_SSL_LIBRARY}
+                  -DLWS_OPENSSL_INCLUDE_DIRS=${OPENSSL_INCLUDE_DIR}
+                  -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
   endif()
   build_dependency(websockets ${BUILD_ARGS})
 
@@ -233,15 +231,12 @@ find_package(Threads)
 find_package(PkgConfig REQUIRED)
 if (USE_OPENSSL)
   find_package(OpenSSL REQUIRED)
-  set(OPEN_SRC_INCLUDE_DIRS ${OPENSSL_INCLUDE_DIR})
 
   # In Windows, the openssl search paths get reset and the system openssl ends up being used
   if(WIN32)
     set(OPENSSL_INCLUDE_DIRS "${OPEN_SRC_INSTALL_PREFIX}/include/")
     set(OPENSSL_CRYPTO_LIBRARY "${OPEN_SRC_INSTALL_PREFIX}/lib/libcrypto.lib")
     set(OPENSSL_SSL_LIBRARY "${OPEN_SRC_INSTALL_PREFIX}/lib/libssl.lib")
-    message(STATUS "Post reset Openssl lib path set to: ${OPENSSL_SSL_LIBRARY}")
-    message(STATUS "Post reset Openssl crypto path set to: ${OPENSSL_CRYPTO_LIBRARY}")
     set(OPENSSL_LIBRARIES ${OPENSSL_SSL_LIBRARY} ${OPENSSL_CRYPTO_LIBRARY})
     string(REPLACE ";" "|" OPENSSL_LIBRARIES_ALT_SEP "${OPENSSL_LIBRARIES}")
   endif()
@@ -387,16 +382,16 @@ endif()
 target_link_libraries(
   kvsWebrtcClient
   PRIVATE kvspicUtils
-  kvspicState
-  ${CMAKE_THREAD_LIBS_INIT}
-  ${OPENSSL_SSL_LIBRARY}
-  ${OPENSSL_CRYPTO_LIBRARY}
-  ${SRTP_LIBRARIES}
-  ${Usrsctp}
-  ${MBEDTLS_LIBRARIES}
-  ${GPERFTOOLS_MALLOC_LIBRARIES}
-  ${GPERFTOOLS_PROFILER_LIBRARIES}
-  ${EXTRA_DEPS})
+          kvspicState
+          ${CMAKE_THREAD_LIBS_INIT}
+          ${OPENSSL_SSL_LIBRARY}
+          ${OPENSSL_CRYPTO_LIBRARY}
+          ${SRTP_LIBRARIES}
+          ${Usrsctp}
+          ${MBEDTLS_LIBRARIES}
+          ${GPERFTOOLS_MALLOC_LIBRARIES}
+          ${GPERFTOOLS_PROFILER_LIBRARIES}
+          ${EXTRA_DEPS})
 
 add_library(kvsWebrtcSignalingClient ${LINKAGE} ${WEBRTC_SIGNALING_CLIENT_SOURCE_FILES})
 
@@ -407,17 +402,17 @@ endif()
 target_link_libraries(
   kvsWebrtcSignalingClient
   PUBLIC
-  kvsCommonLws
-  ${LIBWEBSOCKETS_LIBRARIES}
+        kvsCommonLws
+        ${LIBWEBSOCKETS_LIBRARIES} 
   PRIVATE kvspicUtils
-  kvspicState
-  ${CMAKE_THREAD_LIBS_INIT}
-  ${EXTRA_DEPS}
-  ${OPENSSL_SSL_LIBRARY}
-  ${OPENSSL_CRYPTO_LIBRARY}
-  ${GPERFTOOLS_MALLOC_LIBRARIES}
-  ${GPERFTOOLS_PROFILER_LIBRARIES}
-  ${MBEDTLS_LIBRARIES})
+         kvspicState
+         ${CMAKE_THREAD_LIBS_INIT}
+         ${EXTRA_DEPS}
+         ${OPENSSL_SSL_LIBRARY}
+         ${OPENSSL_CRYPTO_LIBRARY}
+         ${GPERFTOOLS_MALLOC_LIBRARIES}
+         ${GPERFTOOLS_PROFILER_LIBRARIES}
+         ${MBEDTLS_LIBRARIES})
 
 if (WIN32)
   target_link_libraries(kvsWebrtcClient PRIVATE "Ws2_32" "iphlpapi")
