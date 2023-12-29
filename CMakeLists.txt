@@ -123,6 +123,8 @@ elseif(USE_MBEDTLS)
       set(CMAKE_C_FLAGS "-Wno-error=stringop-overflow ${CMAKE_C_FLAGS}")
       set(CMAKE_CXX_FLAGS "-Wno-error=stringop-overflow ${CMAKE_CXX_FLAGS}")
     endif()
+  else()
+    message(FATAL_ERROR "Detected unsupported compiler: ${CMAKE_C_COMPILER_ID}")
   endif()
 endif()
 
