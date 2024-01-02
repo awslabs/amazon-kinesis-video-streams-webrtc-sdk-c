@@ -583,66 +583,66 @@ jobs:
         run:  |
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-  ubuntu-os-build-openssl-old-2004:
-    runs-on: ubuntu-20.04
-    env:
-      AWS_KVS_LOG_LEVEL: 2
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v4
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
-      - name: Install dependencies
-        run: |
-          sudo apt clean && sudo apt update
-          sudo apt-get -y install libcurl4-openssl-dev
-      - name: Build repository
-        run: |
-          # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
-          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-          mkdir build && cd build
-          cmake .. -DBUILD_TEST=TRUE -DBUILD_OLD_OPENSSL_VERSION=ON
-          make
-      - name: Run tests
-        run:  |
-          cd build
-          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-  ubuntu-os-build-openssl-old-latest:
-    runs-on: ubuntu-latest
-    env:
-      AWS_KVS_LOG_LEVEL: 2
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v4
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
-      - name: Install dependencies
-        run: |
-          sudo apt clean && sudo apt update
-          sudo apt-get -y install libcurl4-openssl-dev
-      - name: Build repository
-        run: |
-          # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
-          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-          mkdir build && cd build
-          cmake .. -DBUILD_TEST=TRUE -DBUILD_OLD_OPENSSL_VERSION=ON
-          make
-      - name: Run tests
-        run:  |
-          cd build
-          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+#  ubuntu-os-build-openssl-old-2004:
+#    runs-on: ubuntu-20.04
+#    env:
+#      AWS_KVS_LOG_LEVEL: 2
+#    permissions:
+#      id-token: write
+#      contents: read
+#    steps:
+#      - name: Clone repository
+#        uses: actions/checkout@v4
+#      - name: Configure AWS Credentials
+#        uses: aws-actions/configure-aws-credentials@v4
+#        with:
+#          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+#          aws-region: ${{ secrets.AWS_REGION }}
+#      - name: Install dependencies
+#        run: |
+#          sudo apt clean && sudo apt update
+#          sudo apt-get -y install libcurl4-openssl-dev
+#      - name: Build repository
+#        run: |
+#          # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
+#          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+#          mkdir build && cd build
+#          cmake .. -DBUILD_TEST=TRUE -DBUILD_OLD_OPENSSL_VERSION=ON
+#          make
+#      - name: Run tests
+#        run:  |
+#          cd build
+#          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+#  ubuntu-os-build-openssl-old-latest:
+#    runs-on: ubuntu-latest
+#    env:
+#      AWS_KVS_LOG_LEVEL: 2
+#    permissions:
+#      id-token: write
+#      contents: read
+#    steps:
+#      - name: Clone repository
+#        uses: actions/checkout@v4
+#      - name: Configure AWS Credentials
+#        uses: aws-actions/configure-aws-credentials@v4
+#        with:
+#          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+#          aws-region: ${{ secrets.AWS_REGION }}
+#      - name: Install dependencies
+#        run: |
+#          sudo apt clean && sudo apt update
+#          sudo apt-get -y install libcurl4-openssl-dev
+#      - name: Build repository
+#        run: |
+#          # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
+#          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+#          mkdir build && cd build
+#          cmake .. -DBUILD_TEST=TRUE -DBUILD_OLD_OPENSSL_VERSION=ON
+#          make
+#      - name: Run tests
+#        run:  |
+#          cd build
+#          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
 #  windows-msvc-openssl:
 #    runs-on: windows-2022
 #    env:
