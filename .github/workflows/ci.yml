@@ -5,7 +5,7 @@ on:
     branches:
       - develop
       - master
-      - openssl-failure
+      - test-master-lws
   pull_request:
     branches:
       - develop
