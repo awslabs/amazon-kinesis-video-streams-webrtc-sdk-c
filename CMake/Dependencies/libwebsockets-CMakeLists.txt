@@ -29,8 +29,8 @@ if (WIN32)
 endif()
 
 ExternalProject_Add(project_libwebsockets
-    GIT_REPOSITORY    https://github.com/disa6302/libwebsockets-local.git
-    GIT_TAG           alpn_mbedtls_test
+    GIT_REPOSITORY    https://github.com/warmcat/libwebsockets.git
+    GIT_TAG           v4.2.2
     PATCH_COMMAND     ${PATCH_COMMAND}
     PREFIX            ${CMAKE_CURRENT_BINARY_DIR}/build
     LIST_SEPARATOR    |
@@ -51,7 +51,7 @@ ExternalProject_Add(project_libwebsockets
         -DLWS_WITH_STATIC=1
         -DLWS_WITH_SHARED=${LWS_WITH_SHARED}
         -DLWS_WITH_MBEDTLS=${LWS_WITH_MBEDTLS}
-        -DLWS_WITH_MINIMAL_EXAMPLES=1
+        -DLWS_WITH_MINIMAL_EXAMPLES=0
         -DLWS_HAVE_PTHREAD_H=1 
         -DLWS_WITH_THREADPOOL=${LWS_WITH_THREADPOOL}
         -DLWS_WITH_ZLIB=0
