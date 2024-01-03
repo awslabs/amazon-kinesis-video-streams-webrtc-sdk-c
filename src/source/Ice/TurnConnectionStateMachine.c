@@ -261,8 +261,6 @@ STATUS fromGetCredentialsTurnState(UINT64 customData, PUINT64 pState)
     if (pTurnConnection->credentialObtained) {
         state = TURN_STATE_ALLOCATION;
         pTurnConnection->stateTimeoutTime = currentTime + DEFAULT_TURN_ALLOCATION_TIMEOUT;
-        pTurnConnection->stateTryCountMax = DEFAULT_TURN_ALLOCATION_MAX_TRY_COUNT;
-        pTurnConnection->stateTryCount = 0;
     }
 
     *pState = state;
@@ -347,9 +345,10 @@ STATUS executeAllocationTurnState(UINT64 customData, UINT64 time)
     UNUSED_PARAM(time);
     STATUS retStatus = STATUS_SUCCESS;
     PTurnConnection pTurnConnection = (PTurnConnection) customData;
-
+    UINT64 currentTime;
     CHK(pTurnConnection != NULL, STATUS_NULL_ARG);
 
+    currentTime = GETTIME();
     if (pTurnConnection->state != TURN_STATE_ALLOCATION) {
         DLOGV("Updated turn allocation request credential after receiving 401");
 
@@ -363,8 +362,7 @@ STATUS executeAllocationTurnState(UINT64 customData, UINT64 time)
                                                               DEFAULT_TURN_ALLOCATION_LIFETIME_SECONDS, &pTurnConnection->pTurnPacket));
         pTurnConnection->state = TURN_STATE_ALLOCATION;
     } else {
-        pTurnConnection->stateTryCount++;
-        CHK(pTurnConnection->stateTryCount < pTurnConnection->stateTryCountMax, STATUS_TURN_CONNECTION_ALLOCATION_FAILED);
+        CHK(currentTime < pTurnConnection->stateTimeoutTime, STATUS_TURN_CONNECTION_ALLOCATION_FAILED);
     }
     CHK_STATUS(iceUtilsSendStunPacket(pTurnConnection->pTurnPacket, pTurnConnection->longTermKey, ARRAY_SIZE(pTurnConnection->longTermKey),
                                       &pTurnConnection->turnServer.ipAddress, pTurnConnection->pControlChannel, NULL, FALSE));
