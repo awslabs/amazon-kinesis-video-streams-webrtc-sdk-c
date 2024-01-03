@@ -403,11 +403,8 @@ target_link_libraries(
          kvspicState
          ${CMAKE_THREAD_LIBS_INIT}
          ${EXTRA_DEPS}
-         ${OPENSSL_SSL_LIBRARY}
-         ${OPENSSL_CRYPTO_LIBRARY}
          ${GPERFTOOLS_MALLOC_LIBRARIES}
-         ${GPERFTOOLS_PROFILER_LIBRARIES}
-         ${MBEDTLS_LIBRARIES})
+         ${GPERFTOOLS_PROFILER_LIBRARIES})
 
 if (WIN32)
   target_link_libraries(kvsWebrtcClient PRIVATE "Ws2_32" "iphlpapi")
