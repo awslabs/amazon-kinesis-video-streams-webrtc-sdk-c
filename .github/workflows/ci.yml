@@ -554,10 +554,10 @@ jobs:
           cd build
           cd ../open-source/lib
           ls
-          ldd libwebsockets.*
-          cd build
-          ldd libkvsWebrtcSignalingClient.*
-          ldd libkvsWebrtcClient.*
+          ldd libwebsockets.so.*
+          cd ../../build
+          ldd libkvsWebrtcSignalingClient.so
+          ldd libkvsWebrtcClient.so
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test --gtest_filter="IceFunctionalityTest.IceAgentCandidateGatheringTest"
   ubuntu-os-build-latest:
     runs-on: ubuntu-latest
