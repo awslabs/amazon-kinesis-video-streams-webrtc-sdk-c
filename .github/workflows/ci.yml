@@ -549,15 +549,18 @@ jobs:
           mkdir build && cd build
           cmake .. -DBUILD_TEST=TRUE
           make
+      - name: ldd output lws
+        run: |
+          cd open-source/lib
+          ls
+          ldd libwebsockets.so.*
+      - name: ldd output kvs
+        run: |
+          cd build
+          ldd libkvsWebrtcSignalingClient.so
       - name: Run tests
         run:  |
           cd build
-          cd ../open-source/lib
-          ls
-          ldd libwebsockets.so.*
-          cd ../../build
-          ldd libkvsWebrtcSignalingClient.so
-          ldd libkvsWebrtcClient.so
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test --gtest_filter="IceFunctionalityTest.IceAgentCandidateGatheringTest"
   ubuntu-os-build-latest:
     runs-on: ubuntu-latest
