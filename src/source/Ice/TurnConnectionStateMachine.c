@@ -288,6 +288,7 @@ STATUS executeGetCredentialsTurnState(UINT64 customData, UINT64 time)
     currentTime = GETTIME();
 
     if (pTurnConnection->state != TURN_STATE_GET_CREDENTIALS) {
+        pTurnConnection->turnProfileDiagnostics.getCredentialsStartTime = currentTime;
         /* initialize TLS once tcp connection is established */
         /* Start receiving data for TLS handshake */
         ATOMIC_STORE_BOOL(&pTurnConnection->pControlChannel->receiveData, TRUE);
@@ -357,7 +358,7 @@ STATUS executeAllocationTurnState(UINT64 customData, UINT64 time)
     currentTime = GETTIME();
     if (pTurnConnection->state != TURN_STATE_ALLOCATION) {
         DLOGV("Updated turn allocation request credential after receiving 401");
-
+        pTurnConnection->turnProfileDiagnostics.createAllocationStartTime = GETTIME();
         // update turn allocation packet with credentials
         CHK_STATUS(freeStunPacket(&pTurnConnection->pTurnPacket));
         CHK_STATUS(turnConnectionGetLongTermKey(pTurnConnection->turnServer.username, pTurnConnection->turnRealm,
@@ -450,7 +451,7 @@ STATUS executeCreatePermissionTurnState(UINT64 customData, UINT64 time)
     if (pTurnConnection->state != TURN_STATE_CREATE_PERMISSION) {
         CHK_STATUS(getIpAddrStr(&pTurnConnection->relayAddress, ipAddrStr, ARRAY_SIZE(ipAddrStr)));
         DLOGD("Relay address received: %s, port: %u", ipAddrStr, (UINT16) getInt16(pTurnConnection->relayAddress.port));
-
+        pTurnConnection->turnProfileDiagnostics.createPermissionStartTime = GETTIME();
         if (pTurnConnection->pTurnCreatePermissionPacket != NULL) {
             CHK_STATUS(freeStunPacket(&pTurnConnection->pTurnCreatePermissionPacket));
         }
@@ -553,7 +554,10 @@ STATUS executeBindChannelTurnState(UINT64 customData, UINT64 time)
     PTurnConnection pTurnConnection = (PTurnConnection) customData;
 
     CHK(pTurnConnection != NULL, STATUS_NULL_ARG);
-    pTurnConnection->state = TURN_STATE_BIND_CHANNEL;
+    if(pTurnConnection->state != TURN_STATE_BIND_CHANNEL) {
+        pTurnConnection->state = TURN_STATE_BIND_CHANNEL;
+        pTurnConnection->turnProfileDiagnostics.bindChannelStartTime = GETTIME();
+    }
     CHK_STATUS(checkTurnPeerConnections(pTurnConnection));
 
 CleanUp:

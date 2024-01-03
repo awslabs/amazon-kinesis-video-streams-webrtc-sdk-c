@@ -26,7 +26,6 @@ STATUS createTurnConnection(PIceServer pTurnServer, TIMER_QUEUE_HANDLE timerQueu
     pTurnConnection = (PTurnConnection) MEMCALLOC(
         1, SIZEOF(TurnConnection) + DEFAULT_TURN_MESSAGE_RECV_CHANNEL_DATA_BUFFER_LEN * 2 + DEFAULT_TURN_MESSAGE_SEND_CHANNEL_DATA_BUFFER_LEN);
     CHK(pTurnConnection != NULL, STATUS_NOT_ENOUGH_MEMORY);
-
     pTurnConnection->lock = MUTEX_CREATE(TRUE);
     pTurnConnection->sendLock = MUTEX_CREATE(FALSE);
     pTurnConnection->freeAllocationCvar = CVAR_CREATE();
@@ -251,6 +250,11 @@ STATUS turnConnectionHandleStun(PTurnConnection pTurnConnection, PBYTE pBuffer, 
             pStunAttributeAddress = (PStunAttributeAddress) pStunAttr;
             pTurnConnection->relayAddress = pStunAttributeAddress->address;
             ATOMIC_STORE_BOOL(&pTurnConnection->hasAllocation, TRUE);
+            CHAR debugStr[256];
+            CHAR ipAddrStr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
+            getIpAddrStr(&pTurnConnection->relayAddress, ipAddrStr, ARRAY_SIZE(ipAddrStr));
+            SPRINTF(debugStr, "%p - %s:%d - %s", (PVOID)pTurnConnection, ipAddrStr, pTurnConnection->relayAddress.port, "TURN allocation");
+            PROFILE_WITH_START_TIME_OBJ(pTurnConnection->turnProfileDiagnostics.createAllocationStartTime, pTurnConnection->turnProfileDiagnostics.createAllocationTime, debugStr);
 
             if (!pTurnConnection->relayAddressReported && pTurnConnection->turnConnectionCallbacks.relayAddressAvailableFn != NULL) {
                 pTurnConnection->relayAddressReported = TRUE;
@@ -291,7 +295,10 @@ STATUS turnConnectionHandleStun(PTurnConnection pTurnConnection, PBYTE pBuffer, 
                     if (pTurnPeer->connectionState == TURN_PEER_CONN_STATE_CREATE_PERMISSION) {
                         pTurnPeer->connectionState = TURN_PEER_CONN_STATE_BIND_CHANNEL;
                         CHK_STATUS(getIpAddrStr(&pTurnPeer->address, ipAddrStr, ARRAY_SIZE(ipAddrStr)));
-                        DLOGD("create permission succeeded for peer %s", ipAddrStr);
+                        DLOGD("create permission succeeded for peer %s:%d", ipAddrStr, pTurnConnection->relayAddress.port);
+                        CHAR debugStr[256];
+                        SPRINTF(debugStr, "%p - %s:%d - %s", (PVOID)pTurnConnection, ipAddrStr, pTurnConnection->relayAddress.port, "TURN create permission");
+                        PROFILE_WITH_START_TIME_OBJ(pTurnConnection->turnProfileDiagnostics.createPermissionStartTime, pTurnConnection->turnProfileDiagnostics.createPermissionTime, debugStr);
                     }
 
                     pTurnPeer->permissionExpirationTime = TURN_PERMISSION_LIFETIME + currentTime;
@@ -315,6 +322,9 @@ STATUS turnConnectionHandleStun(PTurnConnection pTurnConnection, PBYTE pBuffer, 
                     CHK_STATUS(getIpAddrStr(&pTurnPeer->address, ipAddrStr, ARRAY_SIZE(ipAddrStr)));
                     DLOGD("Channel bind succeeded with peer %s, port: %u, channel number %u", ipAddrStr, (UINT16) getInt16(pTurnPeer->address.port),
                           pTurnPeer->channelNumber);
+                    CHAR debugStr[256];
+                    SPRINTF(debugStr, "%p - %s:%u - %s", (PVOID)pTurnConnection, ipAddrStr, (UINT16) getInt16(pTurnPeer->address.port), "TURN bind channel");
+                    PROFILE_WITH_START_TIME_OBJ(pTurnConnection->turnProfileDiagnostics.bindChannelStartTime, pTurnConnection->turnProfileDiagnostics.bindChannelTime, debugStr);
 
                     break;
                 }
@@ -412,6 +422,9 @@ STATUS turnConnectionHandleStunError(PTurnConnection pTurnConnection, PBYTE pBuf
             pTurnConnection->turnRealm[pStunAttributeRealm->attribute.length] = '\0';
 
             pTurnConnection->credentialObtained = TRUE;
+            CHAR debugStr[256];
+            SPRINTF(debugStr, "%p - %s", (PVOID)pTurnConnection, "TURN Get Credentials");
+            PROFILE_WITH_START_TIME_OBJ(pTurnConnection->turnProfileDiagnostics.getCredentialsStartTime, pTurnConnection->turnProfileDiagnostics.getCredentialsTime, debugStr);
 
             CHK_STATUS(turnConnectionUpdateNonce(pTurnConnection));
             break;

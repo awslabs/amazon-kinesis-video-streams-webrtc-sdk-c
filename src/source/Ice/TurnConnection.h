@@ -99,6 +99,17 @@ typedef struct {
     BOOL ready;
 } TurnPeer, *PTurnPeer;
 
+typedef struct {
+    UINT64 getCredentialsStartTime;
+    UINT64 getCredentialsTime;
+    UINT64 createAllocationStartTime;
+    UINT64 createAllocationTime;
+    UINT64 createPermissionStartTime;
+    UINT64 createPermissionTime;
+    UINT64 bindChannelStartTime;
+    UINT64 bindChannelTime;
+} TurnProfileDiagnostics, *PTurnProfileDiagnostics;
+
 typedef struct __TurnConnection TurnConnection;
 struct __TurnConnection {
     volatile ATOMIC_BOOL stopTurnConnection;
@@ -165,7 +176,7 @@ struct __TurnConnection {
 
     UINT64 currentTimerCallingPeriod;
     BOOL deallocatePacketSent;
-
+    TurnProfileDiagnostics turnProfileDiagnostics;
     PStateMachine pStateMachine;
 };
 typedef struct __TurnConnection* PTurnConnection;

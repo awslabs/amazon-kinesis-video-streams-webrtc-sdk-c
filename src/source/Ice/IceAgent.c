@@ -2400,7 +2400,6 @@ STATUS incomingRelayedDataHandler(UINT64 customData, PSocketConnection pSocketCo
 
     CHK(pRelayedCandidate != NULL && pSocketConnection != NULL, STATUS_NULL_ARG);
 
-    DLOGV("Candidate id: %s", pRelayedCandidate->id);
     CHK_STATUS(turnConnectionIncomingDataHandler(pRelayedCandidate->pTurnConnection, pBuffer, bufferLen, pSrc, pDest, turnChannelData,
                                                  &turnChannelDataCount));
     for (i = 0; i < turnChannelDataCount; ++i) {
