@@ -340,6 +340,7 @@ STATUS onRtcpPacket(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuff, UINT32 b
     UINT32 currentOffset = 0;
 
     CHK(pKvsPeerConnection != NULL && pBuff != NULL, STATUS_NULL_ARG);
+    DLOGD("**rtcp**");
     while (currentOffset < buffLen) {
         CHK_STATUS(setRtcpPacketFromBytes(pBuff + currentOffset, buffLen - currentOffset, &rtcpPacket));
 
