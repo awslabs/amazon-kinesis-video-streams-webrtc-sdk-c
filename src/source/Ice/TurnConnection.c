@@ -289,6 +289,7 @@ STATUS turnConnectionHandleStun(PTurnConnection pTurnConnection, PBYTE pBuffer, 
             break;
 
         case STUN_PACKET_TYPE_CREATE_PERMISSION_SUCCESS_RESPONSE:
+            DLOGI("TURN peer count: %d", pTurnConnection->turnPeerCount);
             for (i = 0; i < pTurnConnection->turnPeerCount; ++i) {
                 pTurnPeer = &pTurnConnection->turnPeerList[i];
                 if (transactionIdStoreHasId(pTurnPeer->pTransactionIdStore, pBuffer + STUN_PACKET_TRANSACTION_ID_OFFSET)) {
