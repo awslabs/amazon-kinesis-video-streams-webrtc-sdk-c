@@ -62,8 +62,8 @@ STATUS createTurnConnection(PIceServer pTurnServer, TIMER_QUEUE_HANDLE timerQueu
     pTurnConnection->nextAllocationRefreshTime = 0;
     pTurnConnection->currentTimerCallingPeriod = DEFAULT_TURN_TIMER_INTERVAL_BEFORE_READY;
 
-    CHK_STATUS(createStateMachine(TURN_CONNECTION_STATE_MACHINE_STATES, TURN_CONNECTION_STATE_MACHINE_STATE_COUNT, (UINT64) pTurnConnection,
-                                  turnConnectionGetTime, (UINT64) pTurnConnection, &pTurnConnection->pStateMachine));
+    CHK_STATUS(createStateMachineWithName(TURN_CONNECTION_STATE_MACHINE_STATES, TURN_CONNECTION_STATE_MACHINE_STATE_COUNT, (UINT64) pTurnConnection,
+                                          turnConnectionGetTime, (UINT64) pTurnConnection, TURN_STATE_MACHINE_NAME, &pTurnConnection->pStateMachine));
 
 CleanUp:
 

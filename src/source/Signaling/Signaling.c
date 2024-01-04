@@ -91,9 +91,10 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     CHK_STATUS(configureRetryStrategyForSignalingStateMachine(pSignalingClient));
 
     // Create the state machine
-    CHK_STATUS(createStateMachine(SIGNALING_STATE_MACHINE_STATES, SIGNALING_STATE_MACHINE_STATE_COUNT,
-                                  CUSTOM_DATA_FROM_SIGNALING_CLIENT(pSignalingClient), signalingGetCurrentTime,
-                                  CUSTOM_DATA_FROM_SIGNALING_CLIENT(pSignalingClient), &pSignalingClient->pStateMachine));
+    CHK_STATUS(createStateMachineWithName(SIGNALING_STATE_MACHINE_STATES, SIGNALING_STATE_MACHINE_STATE_COUNT,
+                                          CUSTOM_DATA_FROM_SIGNALING_CLIENT(pSignalingClient), signalingGetCurrentTime,
+                                          CUSTOM_DATA_FROM_SIGNALING_CLIENT(pSignalingClient), SIGNALING_STATE_MACHINE_NAME,
+                                          &pSignalingClient->pStateMachine));
 
     // Prepare the signaling channel protocols array
     pSignalingClient->signalingProtocols[PROTOCOL_INDEX_HTTPS].name = HTTPS_SCHEME_NAME;

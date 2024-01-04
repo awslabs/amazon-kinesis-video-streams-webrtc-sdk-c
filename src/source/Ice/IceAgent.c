@@ -64,8 +64,8 @@ STATUS createIceAgent(PCHAR username, PCHAR password, PIceAgentCallbacks pIceAge
     pIceAgent->lock = MUTEX_CREATE(TRUE);
 
     // Create the state machine
-    CHK_STATUS(createStateMachine(ICE_AGENT_STATE_MACHINE_STATES, ICE_AGENT_STATE_MACHINE_STATE_COUNT, (UINT64) pIceAgent, iceAgentGetCurrentTime,
-                                  (UINT64) pIceAgent, &pIceAgent->pStateMachine));
+    CHK_STATUS(createStateMachineWithName(ICE_AGENT_STATE_MACHINE_STATES, ICE_AGENT_STATE_MACHINE_STATE_COUNT, (UINT64) pIceAgent,
+                                          iceAgentGetCurrentTime, (UINT64) pIceAgent, ICE_STATE_MACHINE_NAME, &pIceAgent->pStateMachine));
     pIceAgent->iceAgentStatus = STATUS_SUCCESS;
     pIceAgent->iceAgentStateTimerTask = MAX_UINT32;
     pIceAgent->keepAliveTimerTask = MAX_UINT32;
