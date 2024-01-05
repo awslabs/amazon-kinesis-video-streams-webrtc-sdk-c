@@ -464,7 +464,7 @@ STATUS executeCreatePermissionTurnState(UINT64 customData, UINT64 time)
         CHK_STATUS(appendStunNonceAttribute(pTurnConnection->pTurnCreatePermissionPacket, pTurnConnection->turnNonce, pTurnConnection->nonceLen));
 
         // create channel bind packet here too so for each peer as soon as permission is created, it can start
-        // sending chaneel bind request
+        // sending channel bind request
         if (pTurnConnection->pTurnChannelBindPacket != NULL) {
             CHK_STATUS(freeStunPacket(&pTurnConnection->pTurnChannelBindPacket));
         }
@@ -660,7 +660,7 @@ STATUS fromCleanUpTurnState(UINT64 customData, PUINT64 pState)
         CHK(FALSE, STATUS_SUCCESS);
     }
 
-    /* start cleanning up even if we dont receive allocation freed response in time, or if connection is already closed,
+    /* start cleaning up even if we dont receive allocation freed response in time, or if connection is already closed,
      * since we already sent multiple STUN refresh packets with 0 lifetime. */
     currentTime = GETTIME();
     if (socketConnectionIsClosed(pTurnConnection->pControlChannel) || !ATOMIC_LOAD_BOOL(&pTurnConnection->hasAllocation) ||
