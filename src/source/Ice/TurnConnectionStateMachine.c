@@ -554,7 +554,7 @@ STATUS executeBindChannelTurnState(UINT64 customData, UINT64 time)
     PTurnConnection pTurnConnection = (PTurnConnection) customData;
 
     CHK(pTurnConnection != NULL, STATUS_NULL_ARG);
-    if(pTurnConnection->state != TURN_STATE_BIND_CHANNEL) {
+    if (pTurnConnection->state != TURN_STATE_BIND_CHANNEL) {
         pTurnConnection->state = TURN_STATE_BIND_CHANNEL;
         pTurnConnection->turnProfileDiagnostics.bindChannelStartTime = GETTIME();
     }

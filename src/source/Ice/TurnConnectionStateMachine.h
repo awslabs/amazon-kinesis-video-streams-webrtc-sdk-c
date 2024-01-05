@@ -25,16 +25,16 @@ extern "C" {
  * TURN_STATE_FAILED:
  */
 
-#define TURN_STATE_NONE                    ((UINT64) 0)
-#define TURN_STATE_NEW                     ((UINT64) (1 << 0))
-#define TURN_STATE_CHECK_SOCKET_CONNECTION ((UINT64) (1 << 1))
-#define TURN_STATE_GET_CREDENTIALS         ((UINT64) (1 << 2))
-#define TURN_STATE_ALLOCATION              ((UINT64) (1 << 3))
-#define TURN_STATE_CREATE_PERMISSION       ((UINT64) (1 << 4))
-#define TURN_STATE_BIND_CHANNEL            ((UINT64) (1 << 5))
-#define TURN_STATE_READY                   ((UINT64) (1 << 6))
-#define TURN_STATE_CLEAN_UP                ((UINT64) (1 << 7))
-#define TURN_STATE_FAILED                  ((UINT64) (1 << 8))
+#define TURN_STATE_NONE                    ((UINT64) 0)        // 0x000000000
+#define TURN_STATE_NEW                     ((UINT64) (1 << 0)) // 0x000000001
+#define TURN_STATE_CHECK_SOCKET_CONNECTION ((UINT64) (1 << 1)) // 0x000000002
+#define TURN_STATE_GET_CREDENTIALS         ((UINT64) (1 << 2)) // 0x000000004
+#define TURN_STATE_ALLOCATION              ((UINT64) (1 << 3)) // 0x000000008
+#define TURN_STATE_CREATE_PERMISSION       ((UINT64) (1 << 4)) // 0x000000010
+#define TURN_STATE_BIND_CHANNEL            ((UINT64) (1 << 5)) // 0x000000020
+#define TURN_STATE_READY                   ((UINT64) (1 << 6)) // 0x000000040
+#define TURN_STATE_CLEAN_UP                ((UINT64) (1 << 7)) // 0x000000080
+#define TURN_STATE_FAILED                  ((UINT64) (1 << 8)) // 0x000000100
 
 #define TURN_STATE_NONE_STR                    (PCHAR) "TURN_STATE_NONE"
 #define TURN_STATE_NEW_STR                     (PCHAR) "TURN_STATE_NEW"

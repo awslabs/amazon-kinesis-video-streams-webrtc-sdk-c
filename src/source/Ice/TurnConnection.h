@@ -35,6 +35,7 @@ extern "C" {
 #define DEFAULT_TURN_MESSAGE_RECV_CHANNEL_DATA_BUFFER_LEN MAX_TURN_CHANNEL_DATA_MESSAGE_SIZE
 #define DEFAULT_TURN_CHANNEL_DATA_BUFFER_SIZE             512
 #define DEFAULT_TURN_MAX_PEER_COUNT                       32
+#define MAX_TURN_PROFILE_LOG_DESC_LEN                     256
 
 // all turn channel numbers must be greater than 0x4000 and less than 0x7FFF
 #define TURN_CHANNEL_BIND_CHANNEL_NUMBER_BASE (UINT16) 0x4000
