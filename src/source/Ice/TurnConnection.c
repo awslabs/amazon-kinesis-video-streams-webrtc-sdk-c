@@ -298,10 +298,12 @@ STATUS turnConnectionHandleStun(PTurnConnection pTurnConnection, PBYTE pBuffer, 
                         pTurnPeer->connectionState = TURN_PEER_CONN_STATE_BIND_CHANNEL;
                         CHK_STATUS(getIpAddrStr(&pTurnPeer->address, ipAddrStr, ARRAY_SIZE(ipAddrStr)));
                         DLOGD("[%p] Create permission succeeded for peer %s:%d", pTurnConnection, ipAddrStr, pTurnPeer->address.port);
-                        SNPRINTF(profileDebugStr, MAX_TURN_PROFILE_LOG_DESC_LEN, "%p - %s:%d - %s", (PVOID) pTurnConnection, ipAddrStr,
-                                 pTurnPeer->address.port, "TURN create permission");
-                        PROFILE_WITH_START_TIME_OBJ(pTurnConnection->turnProfileDiagnostics.createPermissionStartTime,
-                                                    pTurnConnection->turnProfileDiagnostics.createPermissionTime, profileDebugStr);
+                        if (pTurnPeer->firstTimeCreatePermResponse) {
+                            pTurnPeer->firstTimeCreatePermResponse = FALSE;
+                            SNPRINTF(profileDebugStr, MAX_TURN_PROFILE_LOG_DESC_LEN, "%p - %s:%d - %s", (PVOID) pTurnConnection, ipAddrStr,
+                                     pTurnPeer->address.port, "TURN create permission");
+                            PROFILE_WITH_START_TIME_OBJ(pTurnPeer->createPermissionStartTime, pTurnPeer->createPermissionTime, profileDebugStr);
+                        }
                     }
 
                     pTurnPeer->permissionExpirationTime = TURN_PERMISSION_LIFETIME + currentTime;
@@ -325,10 +327,12 @@ STATUS turnConnectionHandleStun(PTurnConnection pTurnConnection, PBYTE pBuffer, 
                     CHK_STATUS(getIpAddrStr(&pTurnPeer->address, ipAddrStr, ARRAY_SIZE(ipAddrStr)));
                     DLOGD("[%p] Channel bind succeeded with peer %s, port: %d, channel number %u", pTurnConnection, ipAddrStr,
                           pTurnPeer->address.port, pTurnPeer->channelNumber);
-                    SNPRINTF(profileDebugStr, MAX_TURN_PROFILE_LOG_DESC_LEN, "%p - %s:%d:%u - %s", (PVOID) pTurnConnection, ipAddrStr,
-                             pTurnPeer->address.port, pTurnPeer->channelNumber, "TURN bind channel");
-                    PROFILE_WITH_START_TIME_OBJ(pTurnConnection->turnProfileDiagnostics.bindChannelStartTime,
-                                                pTurnConnection->turnProfileDiagnostics.bindChannelTime, profileDebugStr);
+                    if (pTurnPeer->firstTimeBindChannelResponse) {
+                        pTurnPeer->firstTimeBindChannelResponse = FALSE;
+                        SNPRINTF(profileDebugStr, MAX_TURN_PROFILE_LOG_DESC_LEN, "%p - %s:%d:%u - %s", (PVOID) pTurnConnection, ipAddrStr,
+                                 pTurnPeer->address.port, pTurnPeer->channelNumber, "TURN bind channel");
+                        PROFILE_WITH_START_TIME_OBJ(pTurnPeer->bindChannelStartTime, pTurnPeer->bindChannelTime, profileDebugStr);
+                    }
 
                     break;
                 }
@@ -690,6 +694,10 @@ STATUS turnConnectionAddPeer(PTurnConnection pTurnConnection, PKvsIpAddress pPee
     pTurnPeer->channelNumber = (UINT16) pTurnConnection->turnPeerCount + TURN_CHANNEL_BIND_CHANNEL_NUMBER_BASE;
     pTurnPeer->permissionExpirationTime = INVALID_TIMESTAMP_VALUE;
     pTurnPeer->ready = FALSE;
+    pTurnPeer->firstTimeCreatePermReq = TRUE;
+    pTurnPeer->firstTimeBindChannelReq = TRUE;
+    pTurnPeer->firstTimeCreatePermResponse = TRUE;
+    pTurnPeer->firstTimeBindChannelResponse = TRUE;
 
     CHK_STATUS(xorIpAddress(&pTurnPeer->xorAddress, NULL)); /* only work for IPv4 for now */
     CHK_STATUS(createTransactionIdStore(DEFAULT_MAX_STORED_TRANSACTION_ID_COUNT, &pTurnPeer->pTransactionIdStore));
@@ -1031,6 +1039,10 @@ STATUS checkTurnPeerConnections(PTurnConnection pTurnConnection)
         pTurnPeer = &pTurnConnection->turnPeerList[i];
 
         if (pTurnPeer->connectionState == TURN_PEER_CONN_STATE_CREATE_PERMISSION) {
+            if (pTurnPeer->firstTimeCreatePermReq) {
+                pTurnPeer->createPermissionStartTime = GETTIME();
+                pTurnPeer->firstTimeCreatePermReq = FALSE;
+            }
             // update peer address;
             CHK_STATUS(getStunAttribute(pTurnConnection->pTurnCreatePermissionPacket, STUN_ATTRIBUTE_TYPE_XOR_PEER_ADDRESS,
                                         (PStunAttributeHeader*) &pStunAttributeAddress));
@@ -1047,6 +1059,10 @@ STATUS checkTurnPeerConnections(PTurnConnection pTurnConnection)
                                                 pTurnConnection->pControlChannel, NULL, FALSE);
 
         } else if (pTurnPeer->connectionState == TURN_PEER_CONN_STATE_BIND_CHANNEL) {
+            if (pTurnPeer->firstTimeBindChannelReq) {
+                pTurnPeer->bindChannelStartTime = GETTIME();
+                pTurnPeer->firstTimeBindChannelReq = FALSE;
+            }
             // update peer address;
             CHK_STATUS(getStunAttribute(pTurnConnection->pTurnChannelBindPacket, STUN_ATTRIBUTE_TYPE_XOR_PEER_ADDRESS,
                                         (PStunAttributeHeader*) &pStunAttributeAddress));

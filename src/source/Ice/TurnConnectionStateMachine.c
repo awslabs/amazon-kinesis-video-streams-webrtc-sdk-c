@@ -451,7 +451,6 @@ STATUS executeCreatePermissionTurnState(UINT64 customData, UINT64 time)
     if (pTurnConnection->state != TURN_STATE_CREATE_PERMISSION) {
         CHK_STATUS(getIpAddrStr(&pTurnConnection->relayAddress, ipAddrStr, ARRAY_SIZE(ipAddrStr)));
         DLOGD("Relay address received: %s, port: %u", ipAddrStr, (UINT16) getInt16(pTurnConnection->relayAddress.port));
-        pTurnConnection->turnProfileDiagnostics.createPermissionStartTime = GETTIME();
         if (pTurnConnection->pTurnCreatePermissionPacket != NULL) {
             CHK_STATUS(freeStunPacket(&pTurnConnection->pTurnCreatePermissionPacket));
         }
@@ -556,7 +555,6 @@ STATUS executeBindChannelTurnState(UINT64 customData, UINT64 time)
     CHK(pTurnConnection != NULL, STATUS_NULL_ARG);
     if (pTurnConnection->state != TURN_STATE_BIND_CHANNEL) {
         pTurnConnection->state = TURN_STATE_BIND_CHANNEL;
-        pTurnConnection->turnProfileDiagnostics.bindChannelStartTime = GETTIME();
     }
     CHK_STATUS(checkTurnPeerConnections(pTurnConnection));
 
@@ -628,6 +626,9 @@ STATUS executeReadyTurnState(UINT64 customData, UINT64 time)
     ENTERS();
     UNUSED_PARAM(time);
     STATUS retStatus = STATUS_SUCCESS;
+    UINT64 totalCreatePermTime, totalBindChannelTime;
+    PTurnPeer pTurnPeer = NULL;
+    UINT32 i;
     PTurnConnection pTurnConnection = (PTurnConnection) customData;
 
     CHK(pTurnConnection != NULL, STATUS_NULL_ARG);

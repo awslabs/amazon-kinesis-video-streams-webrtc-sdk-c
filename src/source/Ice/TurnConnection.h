@@ -98,6 +98,14 @@ typedef struct {
     UINT16 channelNumber;
     UINT64 permissionExpirationTime;
     BOOL ready;
+    BOOL firstTimeCreatePermReq;
+    BOOL firstTimeCreatePermResponse;
+    UINT64 createPermissionStartTime;
+    UINT64 createPermissionTime;
+    BOOL firstTimeBindChannelReq;
+    BOOL firstTimeBindChannelResponse;
+    UINT64 bindChannelStartTime;
+    UINT64 bindChannelTime;
 } TurnPeer, *PTurnPeer;
 
 typedef struct {
@@ -105,10 +113,6 @@ typedef struct {
     UINT64 getCredentialsTime;
     UINT64 createAllocationStartTime;
     UINT64 createAllocationTime;
-    UINT64 createPermissionStartTime;
-    UINT64 createPermissionTime;
-    UINT64 bindChannelStartTime;
-    UINT64 bindChannelTime;
 } TurnProfileDiagnostics, *PTurnProfileDiagnostics;
 
 typedef struct __TurnConnection TurnConnection;
