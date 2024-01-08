@@ -360,7 +360,7 @@ STATUS iceAgentValidateKvsRtcConfig(PKvsRtcConfiguration pKvsRtcConfiguration)
         pKvsRtcConfiguration->iceConnectionCheckPollingInterval = KVS_ICE_CONNECTION_CHECK_POLLING_INTERVAL;
     }
 
-    DLOGD("\n\ticeLocalCandidateGatheringTimeout: %u ms"
+    DLOGI("\n\ticeLocalCandidateGatheringTimeout: %u ms"
           "\n\ticeConnectionCheckTimeout: %u ms"
           "\n\ticeCandidateNominationTimeout: %u ms"
           "\n\ticeConnectionCheckPollingInterval: %u ms",

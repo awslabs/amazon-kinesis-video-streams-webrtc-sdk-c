@@ -14,12 +14,16 @@ extern "C" {
 #define KVS_ICE_MAX_REMOTE_CANDIDATE_COUNT                     100
 #define KVS_ICE_MAX_LOCAL_CANDIDATE_COUNT                      100
 #define KVS_ICE_GATHER_REFLEXIVE_AND_RELAYED_CANDIDATE_TIMEOUT (10 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define KVS_ICE_CONNECTIVITY_CHECK_TIMEOUT                     (10 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define KVS_ICE_CANDIDATE_NOMINATION_TIMEOUT                   (10 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define KVS_ICE_SEND_KEEP_ALIVE_INTERVAL                       (15 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define KVS_ICE_TURN_CONNECTION_SHUTDOWN_TIMEOUT               (1 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define KVS_ICE_DEFAULT_TIMER_START_DELAY                      (3 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
-#define KVS_ICE_SHORT_CHECK_DELAY                              (50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
+#define KVS_ICE_CONNECTIVITY_CHECK_TIMEOUT                                                                                                           \
+    (12 * HUNDREDS_OF_NANOS_IN_A_SECOND) // This should be greater than KVS_ICE_GATHER_REFLEXIVE_AND_RELAYED_CANDIDATE_TIMEOUT to ensure there is
+                                         // buffer wait time for connectivity checks with the pairs formed with near timeout created pairs
+#define KVS_ICE_CANDIDATE_NOMINATION_TIMEOUT                                                                                                         \
+    (12 * HUNDREDS_OF_NANOS_IN_A_SECOND) // This should be greater than KVS_ICE_GATHER_REFLEXIVE_AND_RELAYED_CANDIDATE_TIMEOUT to ensure there is some
+                                         // buffer for nomination with near timeout generated candidates
+#define KVS_ICE_SEND_KEEP_ALIVE_INTERVAL         (15 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define KVS_ICE_TURN_CONNECTION_SHUTDOWN_TIMEOUT (1 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define KVS_ICE_DEFAULT_TIMER_START_DELAY        (3 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
+#define KVS_ICE_SHORT_CHECK_DELAY                (50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
 
 // Ta in https://tools.ietf.org/html/rfc8445
 #define KVS_ICE_CONNECTION_CHECK_POLLING_INTERVAL  (50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
