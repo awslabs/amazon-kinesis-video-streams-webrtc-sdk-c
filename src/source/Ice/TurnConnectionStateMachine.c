@@ -626,9 +626,6 @@ STATUS executeReadyTurnState(UINT64 customData, UINT64 time)
     ENTERS();
     UNUSED_PARAM(time);
     STATUS retStatus = STATUS_SUCCESS;
-    UINT64 totalCreatePermTime, totalBindChannelTime;
-    PTurnPeer pTurnPeer = NULL;
-    UINT32 i;
     PTurnConnection pTurnConnection = (PTurnConnection) customData;
 
     CHK(pTurnConnection != NULL, STATUS_NULL_ARG);
