@@ -473,6 +473,32 @@ jobs:
       - name: Sample check
         run: |
           ./scripts/check-sample.sh
+  sample-check-no-data-channel:
+    if: github.repository == 'awslabs/amazon-kinesis-video-streams-webrtc-sdk-c'
+    runs-on: ubuntu-latest
+    env:
+      AWS_KVS_LOG_LEVEL: 2
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+          role-duration-seconds: 10800
+      - name: Build repository
+        run: |
+          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+          mkdir build && cd build
+          cmake .. -DENABLE_DATA_CHANNEL=OFF
+          make
+      - name: Sample check without data channel
+        run: |
+          ./scripts/check-sample.sh
   ubuntu-os-build:
     runs-on: ubuntu-20.04
     env:
