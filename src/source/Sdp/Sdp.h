@@ -48,14 +48,14 @@ extern "C" {
 #define MAX_SDP_ENCRYPTION_KEY_LENGTH        255
 
 /* https://datatracker.ietf.org/doc/html/rfc4566#section-5.7 -- the SDK hardcodes this to be IN as per spec.
- * Also, this SDK is to be used in the Internet realm
+ * Also, this SDK is to be used in the Internet realm. Allowing for some extra buffer
  */
-#define MAX_SDP_NETWORK_TYPE_LENGTH 8
+#define MAX_SDP_NETWORK_TYPE_LENGTH 7
 
 /* https://datatracker.ietf.org/doc/html/rfc4566#section-5.7 -- Given the SDK is to operate in IP based sessions,
- * the possible values are IP4/IP6 as registered with IANA
+ * the possible values are IP4/IP6 as registered with IANA. Allowing for some extra buffer
  */
-#define MAX_SDP_ADDRESS_TYPE_LENGTH 8
+#define MAX_SDP_ADDRESS_TYPE_LENGTH 7
 
 /* https://datatracker.ietf.org/doc/html/rfc4566#section-5.7 -- Given the SDK is to operate in IP based sessions,
  * an IPv4 address can be a maximum of <IPv4(15)/TTL(3)/multicast number of addresses(3)> characters where TTL is
