@@ -39,7 +39,7 @@ Shared include file for the samples
 #define CA_CERT_PEM_FILE_EXTENSION ".pem"
 
 #define FILE_LOGGING_BUFFER_SIZE (10 * 1024)
-#define MAX_NUMBER_OF_LOG_FILES  5
+// #define MAX_NUMBER_OF_LOG_FILES  5  (redefined in canary code)
 
 #define SAMPLE_HASH_TABLE_BUCKET_COUNT  50
 #define SAMPLE_HASH_TABLE_BUCKET_LENGTH 2
@@ -138,6 +138,8 @@ typedef struct {
 
     std::atomic<UINT64> storageDisconnectedTime;
     UINT64 offerReceiveTimestamp;
+    UINT64 sampleDuration;
+    PCHAR fristFrameSentTSFileName;
 
     UINT32 pregenerateCertTimerId;
     PStackQueue pregeneratedCertificates; // Max MAX_RTCCONFIGURATION_CERTIFICATES certificates
