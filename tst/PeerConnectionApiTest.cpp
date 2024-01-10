@@ -144,6 +144,7 @@ a=fmtp:97 profile-level-id=42e01f;level-asymmetry-allowed=1
 )";
 
     SessionDescription sessionDescription;
+    DLOGI("SIZEOF: %d", SIZEOF(SessionDescription));
     MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
     EXPECT_EQ(deserializeSessionDescription(&sessionDescription, (PCHAR) rawSessionDescription), STATUS_SUCCESS);
     EXPECT_STREQ(fmtpForPayloadType(97, &sessionDescription), "profile-level-id=42e01f;level-asymmetry-allowed=1");

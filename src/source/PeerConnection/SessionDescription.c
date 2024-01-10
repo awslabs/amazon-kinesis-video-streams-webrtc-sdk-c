@@ -423,14 +423,17 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
         containRtx = (retStatus == STATUS_SUCCESS);
         retStatus = STATUS_SUCCESS;
         if (containRtx) {
-            SNPRINTF(pSdpMediaDescription->mediaName, SIZEOF(pSdpMediaDescription->mediaName), "video 9 UDP/TLS/RTP/SAVPF %" PRId64 " %" PRId64,
+            SNPRINTF(pSdpMediaDescription->mediaName, SIZEOF(pSdpMediaDescription->mediaName), "video 49170/2 UDP/TLS/RTP/SAVPF %" PRId64 " %" PRId64,
                      payloadType, rtxPayloadType);
         } else {
-            SNPRINTF(pSdpMediaDescription->mediaName, SIZEOF(pSdpMediaDescription->mediaName), "video 9 UDP/TLS/RTP/SAVPF %" PRId64, payloadType);
+            SNPRINTF(pSdpMediaDescription->mediaName, SIZEOF(pSdpMediaDescription->mediaName), "video 49170/2 UDP/TLS/RTP/SAVPF %" PRId64,
+                     payloadType);
         }
     } else if (pRtcMediaStreamTrack->kind == MEDIA_STREAM_TRACK_KIND_AUDIO) {
         SNPRINTF(pSdpMediaDescription->mediaName, SIZEOF(pSdpMediaDescription->mediaName), "audio 9 UDP/TLS/RTP/SAVPF %" PRId64, payloadType);
     }
+
+    DLOGI("Length of media name: %d", STRLEN(pSdpMediaDescription->mediaName));
 
     CHK_STATUS(iceAgentPopulateSdpMediaDescriptionCandidates(pKvsPeerConnection->pIceAgent, pSdpMediaDescription, MAX_SDP_ATTRIBUTE_VALUE_LENGTH,
                                                              &attributeCount));
@@ -932,9 +935,7 @@ STATUS populateSessionDescription(PKvsPeerConnection pKvsPeerConnection, PSessio
     INT32 charsCopied;
 
     CHK(pKvsPeerConnection != NULL && pLocalSessionDescription != NULL && pRemoteSessionDescription != NULL, STATUS_NULL_ARG);
-    DLOGI("Inside populating");
     CHK_STATUS(populateSessionDescriptionMedia(pKvsPeerConnection, pRemoteSessionDescription, pLocalSessionDescription));
-    DLOGI("Outside populating");
     MEMSET(bundleValue, 0, MAX_SDP_ATTRIBUTE_VALUE_LENGTH);
     MEMSET(wmsValue, 0, MAX_SDP_ATTRIBUTE_VALUE_LENGTH);
     MEMSET(remoteSdpAttributeValue, 0, MAX_SDP_ATTRIBUTE_VALUE_LENGTH);
