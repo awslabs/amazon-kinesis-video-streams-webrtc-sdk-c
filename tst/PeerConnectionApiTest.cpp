@@ -144,7 +144,7 @@ a=fmtp:97 profile-level-id=42e01f;level-asymmetry-allowed=1
 )";
 
     SessionDescription sessionDescription;
-    MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
+//    MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
 //    DLOGI("Deserialize start");
 //    EXPECT_EQ(deserializeSessionDescription(&sessionDescription, (PCHAR) rawSessionDescription), STATUS_SUCCESS);
 //    DLOGI("Deserialize done");
