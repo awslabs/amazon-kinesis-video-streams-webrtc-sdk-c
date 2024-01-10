@@ -89,6 +89,8 @@ extern "C" {
 
 #define DEFAULT_CREATE_SIGNALING_CLIENT_RETRY_ATTEMPTS 7
 
+#define SIGNALING_STATE_MACHINE_NAME (PCHAR) "SIGNALING"
+
 static const ExponentialBackoffRetryStrategyConfig DEFAULT_SIGNALING_STATE_MACHINE_EXPONENTIAL_BACKOFF_RETRY_CONFIGURATION = {
     /* Exponential wait times with this config will look like following -
         ************************************

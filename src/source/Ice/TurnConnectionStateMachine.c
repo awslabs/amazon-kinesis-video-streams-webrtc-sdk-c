@@ -129,7 +129,7 @@ STATUS stepTurnConnectionStateMachine(PTurnConnection pTurnConnection)
         }
 
         if (oldState != pTurnConnection->state) {
-            DLOGD("Turn connection state changed from %s to %s.", turnConnectionGetStateStr(oldState),
+            DLOGD("[%p] Turn connection state changed from %s to %s.", (PVOID) pTurnConnection, turnConnectionGetStateStr(oldState),
                   turnConnectionGetStateStr(pTurnConnection->state));
         } else {
             // state machine retry is not used. resetStateMachineRetryCount just to avoid

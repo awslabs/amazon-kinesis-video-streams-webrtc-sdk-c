@@ -15,6 +15,7 @@ STATUS createTurnConnection(PIceServer pTurnServer, TIMER_QUEUE_HANDLE timerQueu
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PTurnConnection pTurnConnection = NULL;
+    CHAR turnStateMachineName[MAX_STATE_MACHINE_NAME_LENGTH];
 
     CHK(pTurnServer != NULL && ppTurnConnection != NULL && pTurnSocket != NULL, STATUS_NULL_ARG);
     CHK(IS_VALID_TIMER_QUEUE_HANDLE(timerQueueHandle), STATUS_INVALID_ARG);
@@ -62,8 +63,9 @@ STATUS createTurnConnection(PIceServer pTurnServer, TIMER_QUEUE_HANDLE timerQueu
     pTurnConnection->nextAllocationRefreshTime = 0;
     pTurnConnection->currentTimerCallingPeriod = DEFAULT_TURN_TIMER_INTERVAL_BEFORE_READY;
 
-    CHK_STATUS(createStateMachine(TURN_CONNECTION_STATE_MACHINE_STATES, TURN_CONNECTION_STATE_MACHINE_STATE_COUNT, (UINT64) pTurnConnection,
-                                  turnConnectionGetTime, (UINT64) pTurnConnection, &pTurnConnection->pStateMachine));
+    SNPRINTF(turnStateMachineName, MAX_STATE_MACHINE_NAME_LENGTH, "%s-%p", TURN_STATE_MACHINE_NAME, (PVOID) pTurnConnection);
+    CHK_STATUS(createStateMachineWithName(TURN_CONNECTION_STATE_MACHINE_STATES, TURN_CONNECTION_STATE_MACHINE_STATE_COUNT, (UINT64) pTurnConnection,
+                                          turnConnectionGetTime, (UINT64) pTurnConnection, turnStateMachineName, &pTurnConnection->pStateMachine));
 
 CleanUp:
 
