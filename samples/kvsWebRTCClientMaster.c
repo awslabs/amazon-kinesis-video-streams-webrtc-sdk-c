@@ -4,18 +4,6 @@
 
 extern PSampleConfiguration gSampleConfiguration;
 
-VOID shceduleShutdown(UINT64 duration, PSampleConfiguration pSampleConfiguration)
-{
-    THREAD_SLEEP(duration);
-    DLOGD("[Canary] Terminating canary due to duration reached");
-    if (gSampleConfiguration != NULL) {
-        ATOMIC_STORE_BOOL(&pSampleConfiguration->interrupted, TRUE);
-        CVAR_BROADCAST(gSampleConfiguration->cvar);
-    } else {
-        DLOGE("[Canary] Error terminating canary: gSampleConfiguration is null");
-    }
-}
-
 INT32 main(INT32 argc, CHAR* argv[])
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -35,18 +23,12 @@ INT32 main(INT32 argc, CHAR* argv[])
 
 
     t1 = GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
-    std::string filePath = "../toConsumer.txt";
-    remove(filePath.c_str());
-
-    std::thread canaryDurationThread;
-
     Aws::InitAPI(options);
+    canaryConfig.isStorage = true;
     CHK_STATUS(canaryConfig.init(argc, argv));
-    canaryConfig.isStorage = true;	
     CHK_STATUS(Canary::Cloudwatch::init(&canaryConfig));
     canaryConfig.print();
     SET_LOGGER_LOG_LEVEL(canaryConfig.logLevel.value);
-    DLOGD("[Canary] Canary init time: %d [ms]", (GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND) - t1);
 
 #ifndef _WIN32
     signal(SIGINT, sigintHandler);
@@ -59,6 +41,10 @@ INT32 main(INT32 argc, CHAR* argv[])
 #endif
 
     CHK_STATUS(createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, logLevel, &pSampleConfiguration));
+
+    pSampleConfiguration->fristFrameSentTSFileName = &canaryConfig.storageFristFrameSentTSFileName.value[0];
+    remove(pSampleConfiguration->fristFrameSentTSFileName);
+    DLOGD("[Canary] Canary init time: %d [ms]", (GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND) - t1);
 
     // Set the audio and video handlers
     pSampleConfiguration->audioSource = sendAudioPackets;
@@ -95,9 +81,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     DLOGI("[KVS Master] Channel %s set up done ", pChannelName);
 
     if(canaryConfig.duration.value != 0) {
-        DLOGD("[Canary] Scheduling canary duration for %lu seconds", canaryConfig.duration.value / HUNDREDS_OF_NANOS_IN_A_SECOND);
-        canaryDurationThread = std::thread(shceduleShutdown, canaryConfig.duration.value, pSampleConfiguration);
-        canaryDurationThread.detach();
+        pSampleConfiguration->sampleDuration = canaryConfig.duration.value;
     }
 
     // Checking for termination
@@ -172,16 +156,12 @@ CleanUp:
 }
 
 // Save first-frame-sent time to file for consumer-end access.
-PVOID writeFirstFrameSentTimeToFile(){
-    DLOGI("[Canary] Opening toConsumer.txt");
-    FILE *toConsumer = FOPEN("../toConsumer.txt", "w");
-    if (toConsumer == NULL)
-    {
-        printf("[Canary] Error opening toConsumer.txt\n");
-        exit(1);
-    }
-    fprintf(toConsumer, "%lli\n", GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
-    FCLOSE(toConsumer);
+VOID writeFirstFrameSentTimeToFile(PCHAR fileName){
+    DLOGI("[Canary] Writing to {} file", fileName);
+    UINT64 currentTimeMilliS =  GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+    CHAR cuurrentTimeChars[MAX_UINT64_DIGIT_COUNT + 1]; // +1 accounts for null terminator
+    UINT64 writeSize = SPRINTF(cuurrentTimeChars, "%lu", currentTimeMilliS);
+    writeFile((PCHAR) fileName, false, false, static_cast<PBYTE>(static_cast<PVOID>(cuurrentTimeChars)), writeSize);
 }
 
 VOID calculateDisconnectToFrameSentTime(PSampleConfiguration pSampleConfiguration)
@@ -247,7 +227,7 @@ PVOID sendVideoPackets(PVOID args)
 
             status = writeFrame(pSampleConfiguration->sampleStreamingSessionList[i]->pVideoRtcRtpTransceiver, &frame);
             if (pSampleConfiguration->sampleStreamingSessionList[i]->firstFrame && status == STATUS_SUCCESS) {
-                writeFirstFrameSentTimeToFile();
+                writeFirstFrameSentTimeToFile(pSampleConfiguration->fristFrameSentTSFileName);
                 PROFILE_WITH_START_TIME(pSampleConfiguration->sampleStreamingSessionList[i]->offerReceiveTime, "Time to first frame");
                 
                 DOUBLE timeToFirstFrame = (DOUBLE) (GETTIME() - pSampleConfiguration->offerReceiveTimestamp) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
@@ -327,7 +307,7 @@ PVOID sendAudioPackets(PVOID args)
                 if (status != STATUS_SUCCESS) {
                     DLOGV("writeFrame() failed with 0x%08x", status);
                 } else if (pSampleConfiguration->sampleStreamingSessionList[i]->firstFrame && status == STATUS_SUCCESS) {
-                    writeFirstFrameSentTimeToFile();
+                    writeFirstFrameSentTimeToFile(pSampleConfiguration->fristFrameSentTSFileName);
                     PROFILE_WITH_START_TIME(pSampleConfiguration->sampleStreamingSessionList[i]->offerReceiveTime, "Time to first frame");
 
                     DOUBLE timeToFirstFrame = (DOUBLE) (GETTIME() - pSampleConfiguration->offerReceiveTimestamp) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
