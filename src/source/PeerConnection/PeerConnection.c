@@ -1370,7 +1370,7 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
     CHK_STATUS(setReceiversSsrc(pSessionDescription, pKvsPeerConnection->pTransceivers));
 
     if (NULL != GETENV(DEBUG_LOG_SDP)) {
-        DLOGD("REMOTE_SDP:%s\n", pSessionDescriptionInit->sdp);
+        DLOGI("REMOTE_SDP:%s\n", pSessionDescriptionInit->sdp);
     }
 
 CleanUp:
@@ -1403,16 +1403,16 @@ STATUS createOffer(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionIni
 #endif
 
     CHK_STATUS(setPayloadTypesForOffer(pKvsPeerConnection->pCodecTable));
-
+    DLOGI("Entering populating");
     CHK_STATUS(populateSessionDescription(pKvsPeerConnection, &(pKvsPeerConnection->remoteSessionDescription), pSessionDescription));
     CHK_STATUS(serializeSessionDescription(pSessionDescription, NULL, &serializeLen));
     CHK(serializeLen <= MAX_SESSION_DESCRIPTION_INIT_SDP_LEN, STATUS_NOT_ENOUGH_MEMORY);
-
+    DLOGI("Here");
     CHK_STATUS(serializeSessionDescription(pSessionDescription, pSessionDescriptionInit->sdp, &serializeLen));
-
+    DLOGI("Out");
     // If embedded SDK acts as the viewer
     if (NULL != GETENV(DEBUG_LOG_SDP)) {
-        DLOGD("LOCAL_SDP:%s", pSessionDescriptionInit->sdp);
+        DLOGI("LOCAL_SDP:%s", pSessionDescriptionInit->sdp);
     }
 CleanUp:
 
@@ -1436,10 +1436,9 @@ STATUS createAnswer(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionIn
     pKvsPeerConnection->isOffer = FALSE;
 
     CHK_STATUS(peerConnectionGetCurrentLocalDescription(pPeerConnection, pSessionDescriptionInit));
-
     // If embedded SDK acts as the master
     if (NULL != GETENV(DEBUG_LOG_SDP)) {
-        DLOGD("LOCAL_SDP:%s", pSessionDescriptionInit->sdp);
+        DLOGI("LOCAL_SDP:%s", pSessionDescriptionInit->sdp);
     }
 CleanUp:
 

@@ -51,7 +51,7 @@ extern "C" {
 #define MAX_SDP_CONNECTION_ADDRESS_LENGTH    255
 #define MAX_SDP_SESSION_USERNAME_LENGTH      255
 #define MAX_SDP_ATTRIBUTE_NAME_LENGTH        255
-#define MAX_SDP_ATTRIBUTE_VALUE_LENGTH       255
+#define MAX_SDP_ATTRIBUTE_VALUE_LENGTH       513 // One of the attributes is streamId + trackId which sums up to 512 maximum characters
 #define MAX_SDP_MEDIA_NAME_LENGTH            255
 #define MAX_SDP_MEDIA_TITLE_LENGTH           255
 #define MAX_SDP_BANDWIDTH_LENGTH             255
