@@ -131,18 +131,18 @@ TEST_F(PeerConnectionApiTest, deserializeSessionDescriptionInit)
 
 TEST_F(PeerConnectionApiTest, fmtpForPayloadType)
 {
-//    auto rawSessionDescription = R"(v=0
-//o=- 686950092 1576880200 IN IP4 0.0.0.0
-//s=-
-//t=0 0
-//m=audio 9 UDP/TLS/RTP/SAVPF 109
-//a=rtpmap:109 opus/48000/2
-//a=fmtp:109 minptime=10;useinbandfec=1
-//m=video 9 UDP/TLS/RTP/SAVPF 97
-//a=rtpmap:97 H264/90000
-//a=fmtp:97 profile-level-id=42e01f;level-asymmetry-allowed=1
-//)";
-//
+    auto rawSessionDescription = R"(v=0
+o=- 686950092 1576880200 IN IP4 0.0.0.0
+s=-
+t=0 0
+m=audio 9 UDP/TLS/RTP/SAVPF 109
+a=rtpmap:109 opus/48000/2
+a=fmtp:109 minptime=10;useinbandfec=1
+m=video 9 UDP/TLS/RTP/SAVPF 97
+a=rtpmap:97 H264/90000
+a=fmtp:97 profile-level-id=42e01f;level-asymmetry-allowed=1
+)";
+
 //    SessionDescription sessionDescription;
 //    MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
 //    DLOGI("Desrialize start");
