@@ -1104,7 +1104,7 @@ STATUS turnConnectionGetLongTermKey(PCHAR username, PCHAR realm, PCHAR password,
     CHK(username[0] != '\0' && realm[0] != '\0' && password[0] != '\0' && bufferLen >= KVS_MD5_DIGEST_LENGTH, STATUS_INVALID_ARG);
     CHK((STRLEN(username) + STRLEN(realm) + STRLEN(password)) <= ARRAY_SIZE(stringBuffer) - 2, STATUS_INVALID_ARG);
 
-    SPRINTF(stringBuffer, "%s:%s:%s", username, realm, password);
+    SNPRINTF(stringBuffer, SIZEOF(stringBuffer), "%s:%s:%s", username, realm, password);
 
     // TODO: Return back the error check
     KVS_MD5_DIGEST((PBYTE) stringBuffer, STRLEN(stringBuffer), pBuffer);
