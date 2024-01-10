@@ -150,7 +150,7 @@ a=fmtp:97 profile-level-id=42e01f;level-asymmetry-allowed=1
     DLOGI("Desrialize done");
     EXPECT_STREQ(fmtpForPayloadType(97, &sessionDescription), "profile-level-id=42e01f;level-asymmetry-allowed=1");
     EXPECT_STREQ(fmtpForPayloadType(109, &sessionDescription), "minptime=10;useinbandfec=1");
-//    EXPECT_STREQ(fmtpForPayloadType(25, &sessionDescription), NULL);
+    EXPECT_STREQ(fmtpForPayloadType(25, &sessionDescription), NULL);
 }
 
 TEST_F(PeerConnectionApiTest, CONVERT_TIMESTAMP_TO_RTP_BigTimestamp)
