@@ -147,8 +147,8 @@ a=fmtp:97 profile-level-id=42e01f;level-asymmetry-allowed=1
     MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
     DLOGI("Desrialize start");
     EXPECT_EQ(deserializeSessionDescription(&sessionDescription, (PCHAR) rawSessionDescription), STATUS_SUCCESS);
-//    DLOGI("Desrialize done");
-//    EXPECT_STREQ(fmtpForPayloadType(97, &sessionDescription), "profile-level-id=42e01f;level-asymmetry-allowed=1");
+    DLOGI("Desrialize done");
+    EXPECT_STREQ(fmtpForPayloadType(97, &sessionDescription), "profile-level-id=42e01f;level-asymmetry-allowed=1");
 //    EXPECT_STREQ(fmtpForPayloadType(109, &sessionDescription), "minptime=10;useinbandfec=1");
 //    EXPECT_STREQ(fmtpForPayloadType(25, &sessionDescription), NULL);
 }
