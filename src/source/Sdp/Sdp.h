@@ -46,31 +46,47 @@ extern "C" {
 #define MAX_SDP_OFFSET_LENGTH                255
 #define MAX_SDP_ENCRYPTION_KEY_METHOD_LENGTH 255
 #define MAX_SDP_ENCRYPTION_KEY_LENGTH        255
-#define MAX_SDP_NETWORK_TYPE_LENGTH                                                                                                                  \
-    8 /* https://datatracker.ietf.org/doc/html/rfc4566#section-5.7 -- the SDK hardcodes this to be IN as per spec.                                   \
-       * Also, this SDK is to be used in the Internet realm                                                                                          \
-       */
-#define MAX_SDP_ADDRESS_TYPE_LENGTH                                                                                                                  \
-    8 /* https://datatracker.ietf.org/doc/html/rfc4566#section-5.7 -- Given the SDK is to operate in IP based sessions,                              \
-       * the possible values are IP4/IP6 as registered with IANA                                                                                     \
-       */
-#define MAX_SDP_CONNECTION_ADDRESS_LENGTH                                                                                                            \
-    63 /* https://datatracker.ietf.org/doc/html/rfc4566#section-5.7 -- Given the SDK is to operate in IP based sessions,                             \
-        * an IPv4 address can be a maximum of <IPv4(15)/TTL(3)/multicast number of addresses(3)> characters where TTL is                             \
-        * between 0 and 255. IPv6 can be a maximum of <IPv6 uncompressed(39)>. Setting to 63 for additional padding                                  \
-        */
-#define MAX_SDP_SESSION_USERNAME_LENGTH                                                                                                              \
-    32 // https://datatracker.ietf.org/doc/html/rfc4566#section-5.2 -- the SDK sets it to "-" and the SDK does not parse incoming username either
-#define MAX_SDP_ATTRIBUTE_NAME_LENGTH                                                                                                                \
-    32 // https://datatracker.ietf.org/doc/html/rfc4566#section-6 -- name length restricted based on current supported attribute set
-#define MAX_SDP_ATTRIBUTE_VALUE_LENGTH 512 // One of the attributes is streamId + trackId which sums up to 512 maximum characters
+
+/* https://datatracker.ietf.org/doc/html/rfc4566#section-5.7 -- the SDK hardcodes this to be IN as per spec.
+ * Also, this SDK is to be used in the Internet realm
+ */
+#define MAX_SDP_NETWORK_TYPE_LENGTH 8
+
+/* https://datatracker.ietf.org/doc/html/rfc4566#section-5.7 -- Given the SDK is to operate in IP based sessions,
+ * the possible values are IP4/IP6 as registered with IANA
+ */
+#define MAX_SDP_ADDRESS_TYPE_LENGTH 8
+
+/* https://datatracker.ietf.org/doc/html/rfc4566#section-5.7 -- Given the SDK is to operate in IP based sessions,
+ * an IPv4 address can be a maximum of <IPv4(15)/TTL(3)/multicast number of addresses(3)> characters where TTL is
+ * between 0 and 255. IPv6 can be a maximum of <IPv6 uncompressed(39)>. Setting to 63 for additional padding
+ */
+#define MAX_SDP_CONNECTION_ADDRESS_LENGTH 63
+
+// https://datatracker.ietf.org/doc/html/rfc4566#section-5.2 -- the SDK sets it to "-" and the SDK does not parse incoming username either
+#define MAX_SDP_SESSION_USERNAME_LENGTH 32
+
+// https://datatracker.ietf.org/doc/html/rfc4566#section-6 -- name length restricted based on current supported attribute set
+#define MAX_SDP_ATTRIBUTE_NAME_LENGTH 32
+
+// One of the attributes is streamId + trackId which sums up to 512 maximum characters
+#define MAX_SDP_ATTRIBUTE_VALUE_LENGTH 512
+
 #define MAX_SDP_MEDIA_NAME_LENGTH      255
-#define MAX_SDP_MEDIA_TITLE_LENGTH                                                                                                                   \
-    127 /* https://tools.ietf.org/html/rfc4566#section-5.4. Given these are free-form textual strings, that is, the length could be anything.        \
-           Although our SDK parses this information, the SDK does not use it. Leaving this attribute in if SDK uses it in                            \
-           the future, but keeping it at smaller size to ensure structure memory efficiency */
+
+/* https://tools.ietf.org/html/rfc4566#section-5.4. Given these are free-form textual strings, that is, the length could be anything.
+ * Although our SDK parses this information, the SDK does not use it. Leaving this attribute in if SDK uses it in
+ * the future, but keeping it at smaller size to ensure structure memory efficiency
+ */
+#define MAX_SDP_MEDIA_TITLE_LENGTH           127
+
+/* https://tools.ietf.org/html/rfc4566#section-5.4. Given these are free-form textual strings, that is, the length could be anything.
+ * Although our SDK parses this information, the SDK does not use it. Leaving this attribute in if SDK uses it in
+ * the future, but keeping it at smaller size to ensure structure memory efficiency
+ */
+#define MAX_SDP_SESSION_INFORMATION_LENGTH   127
+
 #define MAX_SDP_SESSION_NAME_LENGTH          255
-#define MAX_SDP_SESSION_INFORMATION_LENGTH   255
 #define MAX_SDP_SESSION_URI_LENGTH           255
 #define MAX_SDP_SESSION_EMAIL_ADDRESS_LENGTH 255
 #define MAX_SDP_SESSION_PHONE_NUMBER_LENGTH  255
