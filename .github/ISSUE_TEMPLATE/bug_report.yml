@@ -1,10 +1,8 @@
 ---
 name: Bug Report
 description: File a bug report
-title: '[Bug]: '
-labels:
-  - bug
-  - needs-triage
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
 assignees: []
 body:
   - type: checkboxes
@@ -15,11 +13,13 @@ body:
         - label: I have all the details the issue requires
     validations:
       required: true
- - type: checkboxes
+  - type: checkboxes
     attributes:
       label: Please answer the following prompt
       options:
-         - label: This issue is replicable using the unmodified sample application       
+        - label: This issue is replicable using the unmodified sample application
+    validations:
+      required: false
   - type: textarea
     id: description
     attributes:
@@ -39,36 +39,24 @@ body:
     id: current
     attributes:
       label: Current Behavior
-      description: >
+      description: |
         What actually happened?
-
-
-        Please include full errors, uncaught exceptions, stack traces, and
-        relevant VERBOSE logs.
-
-        To get relevant VERBOSE logs from the SDK, you can retrieve by running
-        `export AWS_KVS_LOG_LEVEL=1`
+        
+        Please include full errors, uncaught exceptions, stack traces, and relevant VERBOSE logs.
+        To get relevant VERBOSE logs from the SDK, you can retrieve by running `export AWS_KVS_LOG_LEVEL=1`
     validations:
       required: true
   - type: textarea
     id: reproduction
     attributes:
       label: Reproduction Steps
-      description: >
+      description: |
         Provide a self-contained, concise snippet of code that can be used to
-        reproduce the issue, or
-
-        the command used to run the unmodified sample application. Please share
-        which SDK you are using
-
-        as master and as viewer, and also any timing-related information, if
+        reproduce the issue, or the command used to run the unmodified sample application. Please share
+        which SDK you are using as master and as viewer, and also any timing-related information, if
         applicable.
-
-        For more complex issues provide a repo with the smallest sample that
-        reproduces the bug.
-
-        Avoid including business logic or unrelated code, it makes diagnosis
-        more difficult.
+        For more complex issues provide a repo with the smallest sample that reproduces the bug.
+        Avoid including business logic or unrelated code, it makes diagnosis more difficult.
     validations:
       required: true
   - type: input
@@ -78,9 +66,11 @@ body:
     validations:
       required: true
   - type: input
-    id: sdk-previous-version
+    id: sdk-version
     attributes:
-      label: 'If it was working in a previous version, which one?'
+      label: If it was working in a previous version, which one?
+    validations:
+      required: false
   - type: input
     id: compiler-version
     attributes:
