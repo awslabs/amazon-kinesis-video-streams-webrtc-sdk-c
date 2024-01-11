@@ -6,6 +6,7 @@ labels: ["bug", "needs-triage"]
 assignees: []
 body:
   - type: checkboxes
+    id: confirm
     attributes:
       label: Please confirm you have already done the following
       options:
@@ -14,6 +15,7 @@ body:
     validations:
       required: true
   - type: checkboxes
+    id: prompt
     attributes:
       label: Please answer the following prompt
       options:
@@ -66,7 +68,7 @@ body:
     validations:
       required: true
   - type: input
-    id: sdk-version
+    id: sdk-previous-version
     attributes:
       label: If it was working in a previous version, which one?
     validations:
