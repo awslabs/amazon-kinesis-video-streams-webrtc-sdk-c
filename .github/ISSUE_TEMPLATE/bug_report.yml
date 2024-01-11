@@ -46,6 +46,10 @@ body:
         
         Please include full errors, uncaught exceptions, stack traces, and relevant VERBOSE logs.
         To get relevant VERBOSE logs from the SDK, you can retrieve by running `export AWS_KVS_LOG_LEVEL=1`
+
+        If you are reporting a memory leak, please provide sufficient evidence such as a `valgrind` output.
+        Note that the CI for this repository uses [Google Sanitizers](https://github.com/google/sanitizers)
+        to minimize software issues and vulnerabilities.
     validations:
       required: true
   - type: textarea
