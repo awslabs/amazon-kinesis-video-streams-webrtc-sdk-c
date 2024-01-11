@@ -14,11 +14,11 @@ body:
         - label: I have all the details the issue requires
     validations:
       required: true
-  - type: checkboxes
-    label: Please answer the following prompt
+ - type: checkboxes
     attributes:
+      label: Please answer the following prompt
       options:
-        - label: This issue is replicable using the unmodified sample application
+         - label: This issue is replicable using the unmodified sample application       
   - type: textarea
     id: description
     attributes:
