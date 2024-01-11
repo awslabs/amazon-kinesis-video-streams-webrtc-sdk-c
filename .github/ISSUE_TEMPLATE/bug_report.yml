@@ -13,6 +13,10 @@ body:
         - label: I have all the details the issue requires
     validations:
       required: true
+   - type: checkboxes
+    attributes:
+      options:
+        - label: This issue is replicable using the unmodified sample application
   - type: textarea
     id: description
     attributes:
@@ -44,7 +48,9 @@ body:
     attributes:
       label: Reproduction Steps
       description: |
-        Provide a self-contained, concise snippet of code that can be used to reproduce the issue.
+        Provide a self-contained, concise snippet of code that can be used to reproduce the issue, or
+        the command used to run the unmodified sample application. Please share which SDK you are using
+        as master and as viewer, and also any timing-related information, if applicable.
         For more complex issues provide a repo with the smallest sample that reproduces the bug.
         Avoid including business logic or unrelated code, it makes diagnosis more difficult.
     validations:
@@ -52,9 +58,13 @@ body:
   - type: input
     id: sdk-version
     attributes:
-      label: WebRTC C SDK version being used
+      label: WebRTC C SDK version being used 
     validations:
       required: true
+  - type: input
+    id: sdk-previous-version
+    attributes:
+      label: If it was working in a previous version, which one?
   - type: input
     id: compiler-version
     attributes:
