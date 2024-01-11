@@ -15,6 +15,7 @@ body:
     validations:
       required: true
   - type: checkboxes
+    label: Please answer the following prompt
     attributes:
       options:
         - label: This issue is replicable using the unmodified sample application
