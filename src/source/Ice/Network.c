@@ -4,7 +4,8 @@
 #define LOG_CLASS "Network"
 #include "../Include_i.h"
 
-STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen, IceSetInterfaceFilterFunc filter, UINT64 customData)
+STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen, IceSetInterfaceFilterFunc filter, BOOL disableIpv6,
+                               UINT64 customData)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -60,7 +61,7 @@ STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen,
 
                     pIpv4Addr = (struct sockaddr_in*) (ua->Address.lpSockaddr);
                     MEMCPY(destIpList[ipCount].address, &pIpv4Addr->sin_addr, IPV4_ADDRESS_LENGTH);
-                } else {
+                } else if (!disableIpv6) {
                     destIpList[ipCount].family = KVS_IP_FAMILY_TYPE_IPV6;
                     destIpList[ipCount].port = 0;
 
@@ -85,7 +86,7 @@ STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen,
     for (ifa = ifaddr; ifa != NULL && ipCount < destIpListLen; ifa = ifa->ifa_next) {
         if (ifa->ifa_addr != NULL && (ifa->ifa_flags & IFF_LOOPBACK) == 0 && // ignore loopback interface
             (ifa->ifa_flags & IFF_RUNNING) > 0 &&                            // interface has to be allocated
-            (ifa->ifa_addr->sa_family == AF_INET || ifa->ifa_addr->sa_family == AF_INET6)) {
+            (ifa->ifa_addr->sa_family == AF_INET || (!disableIpv6 && ifa->ifa_addr->sa_family == AF_INET6))) {
             // mark vpn interface
             destIpList[ipCount].isPointToPoint = ((ifa->ifa_flags & IFF_POINTOPOINT) != 0);
 
@@ -106,7 +107,7 @@ STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen,
                     pIpv4Addr = (struct sockaddr_in*) ifa->ifa_addr;
                     MEMCPY(destIpList[ipCount].address, &pIpv4Addr->sin_addr, IPV4_ADDRESS_LENGTH);
 
-                } else {
+                } else if (!disableIpv6) {
                     destIpList[ipCount].family = KVS_IP_FAMILY_TYPE_IPV6;
                     destIpList[ipCount].port = 0;
                     pIpv6Addr = (struct sockaddr_in6*) ifa->ifa_addr;
@@ -400,6 +401,14 @@ STATUS getIpWithHostName(PCHAR hostname, PKvsIpAddress destIp)
     BOOL resolved = FALSE;
     struct sockaddr_in* ipv4Addr;
     struct sockaddr_in6* ipv6Addr;
+    struct addrinfo hints = {.ai_flags = 0,
+                             .ai_family = AF_INET,
+                             .ai_socktype = 0,
+                             .ai_protocol = 0,
+                             .ai_addrlen = 0,
+                             .ai_addr = NULL,
+                             .ai_canonname = NULL,
+                             .ai_next = NULL};
     struct in_addr inaddr;
 
     CHAR addr[KVS_IP_ADDRESS_STRING_BUFFER_LEN + 1] = {'\0'};
@@ -422,7 +431,7 @@ STATUS getIpWithHostName(PCHAR hostname, PKvsIpAddress destIp)
     // Verify the generated address has the format x.x.x.x
     if (!isIpAddr(addr, hostnameLen) || retStatus != STATUS_SUCCESS) {
         DLOGW("Parsing for address failed for %s, fallback to getaddrinfo", hostname);
-        errCode = getaddrinfo(hostname, NULL, NULL, &res);
+        errCode = getaddrinfo(hostname, NULL, &hints, &res);
         if (errCode != 0) {
             errStr = errCode == EAI_SYSTEM ? (strerror(errno)) : ((PCHAR) gai_strerror(errCode));
             CHK_ERR(FALSE, STATUS_RESOLVE_HOSTNAME_FAILED, "getaddrinfo() with errno %s", errStr);

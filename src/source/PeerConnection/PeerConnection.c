@@ -765,10 +765,20 @@ STATUS getStunAddr(PStunIpAddrContext pStunIpAddrCtx)
     INT32 errCode;
     STATUS retStatus = STATUS_SUCCESS;
     struct addrinfo *rp, *res;
+
+    // STUN IPv6 is not supported, so this filter helps in ensuring we collect only IPv4 candidates
+    struct addrinfo hints = {.ai_flags = 0,
+                             .ai_family = AF_INET,
+                             .ai_socktype = 0,
+                             .ai_protocol = 0,
+                             .ai_addrlen = 0,
+                             .ai_addr = NULL,
+                             .ai_canonname = NULL,
+                             .ai_next = NULL};
     struct sockaddr_in* ipv4Addr;
     BOOL resolved = FALSE;
 
-    errCode = getaddrinfo(pStunIpAddrCtx->hostname, NULL, NULL, &res);
+    errCode = getaddrinfo(pStunIpAddrCtx->hostname, NULL, &hints, &res);
     if (errCode != 0) {
         DLOGI("Failed to resolve hostname with errcode: %d", errCode);
         retStatus = STATUS_RESOLVE_HOSTNAME_FAILED;

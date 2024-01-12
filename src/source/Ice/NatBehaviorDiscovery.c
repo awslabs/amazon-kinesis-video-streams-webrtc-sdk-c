@@ -283,7 +283,7 @@ STATUS discoverNatBehavior(PCHAR stunServer, NAT_BEHAVIOR* pNatMappingBehavior, 
     lock = MUTEX_CREATE(FALSE);
     CHK_STATUS(parseIceServer(&iceServerStun, stunServer, NULL, NULL));
 
-    CHK_STATUS(getLocalhostIpAddresses(localNetworkInterfaces, &localNetworkInterfaceCount, filterFunc, filterFuncCustomData));
+    CHK_STATUS(getLocalhostIpAddresses(localNetworkInterfaces, &localNetworkInterfaceCount, filterFunc, FALSE, filterFuncCustomData));
 
     customData.cvar = cvar;
     customData.lock = lock;

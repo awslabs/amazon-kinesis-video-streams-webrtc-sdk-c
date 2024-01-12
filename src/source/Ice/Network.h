@@ -56,12 +56,15 @@ typedef enum {
  *                                   will be in network byte order.
  * @param - UINT32 - IN/OUT - length of the array, upon return it will be updated to the actual number of ips in the array
  *
- *@param - IceSetInterfaceFilterFunc - IN - set to custom interface filter callback
+ * @param - IceSetInterfaceFilterFunc - IN - set to custom interface filter callback
  *
- *@param - UINT64 - IN - Set to custom data that can be used in the callback later
+ * @param - BOOL - IN - Enable IPv6 gathering of candidates
+ *
+ * @param - UINT64 - IN - Set to custom data that can be used in the callback later
+ *
  * @return - STATUS status of execution
  */
-STATUS getLocalhostIpAddresses(PKvsIpAddress, PUINT32, IceSetInterfaceFilterFunc, UINT64);
+STATUS getLocalhostIpAddresses(PKvsIpAddress, PUINT32, IceSetInterfaceFilterFunc, BOOL, UINT64);
 
 // TODO add support for windows socketpair
 #ifndef _WIN32

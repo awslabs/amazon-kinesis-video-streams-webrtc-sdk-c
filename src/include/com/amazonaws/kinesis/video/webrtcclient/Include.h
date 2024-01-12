@@ -1199,6 +1199,7 @@ typedef struct {
     BOOL disableSenderSideBandwidthEstimation; //!< Disable TWCC feedback based sender bandwidth estimation, enabled by default.
                                                //!< You want to set this to TRUE if you are on a very stable connection and want to save 1.2MB of
                                                //!< memory
+    BOOL disableIpv6;                          //!< Disable gathering of IPv6 candidates if you have IPv4 only set up
 } KvsRtcConfiguration, *PKvsRtcConfiguration;
 
 /**

@@ -678,10 +678,11 @@ STATUS iceAgentStartGathering(PIceAgent pIceAgent)
     // skip gathering host candidate and srflx candidate if relay only
     if (pIceAgent->iceTransportPolicy != ICE_TRANSPORT_POLICY_RELAY) {
         // Skip getting local host candidates if transport policy is relay only
-        PROFILE_CALL_WITH_T_OBJ(CHK_STATUS(getLocalhostIpAddresses(pIceAgent->localNetworkInterfaces, &pIceAgent->localNetworkInterfaceCount,
-                                                                   pIceAgent->kvsRtcConfiguration.iceSetInterfaceFilterFunc,
-                                                                   pIceAgent->kvsRtcConfiguration.filterCustomData)),
-                                pIceAgent->iceAgentProfileDiagnostics.localCandidateGatheringTime, "Host candidate gathering from local interfaces");
+        PROFILE_CALL_WITH_T_OBJ(
+            CHK_STATUS(getLocalhostIpAddresses(pIceAgent->localNetworkInterfaces, &pIceAgent->localNetworkInterfaceCount,
+                                               pIceAgent->kvsRtcConfiguration.iceSetInterfaceFilterFunc, pIceAgent->kvsRtcConfiguration.disableIpv6,
+                                               pIceAgent->kvsRtcConfiguration.filterCustomData)),
+            pIceAgent->iceAgentProfileDiagnostics.localCandidateGatheringTime, "Host candidate gathering from local interfaces");
         PROFILE_CALL_WITH_T_OBJ(CHK_STATUS(iceAgentInitHostCandidate(pIceAgent)), pIceAgent->iceAgentProfileDiagnostics.hostCandidateSetUpTime,
                                 "Host candidates setup time");
         PROFILE_CALL_WITH_T_OBJ(CHK_STATUS(iceAgentInitSrflxCandidate(pIceAgent)), pIceAgent->iceAgentProfileDiagnostics.srflxCandidateSetUpTime,
@@ -1941,7 +1942,6 @@ STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent, UINT32 iceServerIndex, KV
     pNewCandidate->pTurnConnection = pTurnConnection;
 
     CHK_STATUS(doubleListInsertItemHead(pIceAgent->localCandidates, (UINT64) pNewCandidate));
-    CHK_STATUS(iceAgentReportNewLocalCandidate(pIceAgent, pNewCandidate));
     pNewCandidate = NULL;
 
     /* add existing remote candidates to turn. Need to acquire lock because remoteCandidates can be mutated by

@@ -569,6 +569,7 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
 
     // Set this to custom callback to enable filtering of interfaces
+    configuration.kvsRtcConfiguration.disableIpv6 = TRUE;
     configuration.kvsRtcConfiguration.iceSetInterfaceFilterFunc = NULL;
 
     // Set the ICE mode explicitly
