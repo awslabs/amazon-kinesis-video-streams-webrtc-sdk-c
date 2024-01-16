@@ -26,7 +26,6 @@ STATUS createTurnConnection(PIceServer pTurnServer, TIMER_QUEUE_HANDLE timerQueu
     pTurnConnection = (PTurnConnection) MEMCALLOC(
         1, SIZEOF(TurnConnection) + DEFAULT_TURN_MESSAGE_RECV_CHANNEL_DATA_BUFFER_LEN * 2 + DEFAULT_TURN_MESSAGE_SEND_CHANNEL_DATA_BUFFER_LEN);
     CHK(pTurnConnection != NULL, STATUS_NOT_ENOUGH_MEMORY);
-
     pTurnConnection->lock = MUTEX_CREATE(TRUE);
     pTurnConnection->sendLock = MUTEX_CREATE(FALSE);
     pTurnConnection->freeAllocationCvar = CVAR_CREATE();
@@ -215,6 +214,7 @@ STATUS turnConnectionHandleStun(PTurnConnection pTurnConnection, PBYTE pBuffer, 
     PStunAttributeAddress pStunAttributeAddress = NULL;
     PStunAttributeLifetime pStunAttributeLifetime = NULL;
     PStunPacket pStunPacket = NULL;
+    CHAR profileDebugStr[MAX_TURN_PROFILE_LOG_DESC_LEN];
     CHAR ipAddrStr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
     BOOL locked = FALSE;
     ATOMIC_BOOL hasAllocation = FALSE;
@@ -245,12 +245,18 @@ STATUS turnConnectionHandleStun(PTurnConnection pTurnConnection, PBYTE pBuffer, 
 
             // convert lifetime to 100ns and store it
             pTurnConnection->allocationExpirationTime = (pStunAttributeLifetime->lifetime * HUNDREDS_OF_NANOS_IN_A_SECOND) + currentTime;
-            DLOGD("TURN Allocation succeeded. Life time: %u seconds. Allocation expiration epoch %" PRIu64, pStunAttributeLifetime->lifetime,
-                  pTurnConnection->allocationExpirationTime / DEFAULT_TIME_UNIT_IN_NANOS);
 
             pStunAttributeAddress = (PStunAttributeAddress) pStunAttr;
             pTurnConnection->relayAddress = pStunAttributeAddress->address;
             ATOMIC_STORE_BOOL(&pTurnConnection->hasAllocation, TRUE);
+            getIpAddrStr(&pTurnConnection->relayAddress, ipAddrStr, ARRAY_SIZE(ipAddrStr));
+            SNPRINTF(profileDebugStr, MAX_TURN_PROFILE_LOG_DESC_LEN, "%p - %s:%d - %s", (PVOID) pTurnConnection, ipAddrStr,
+                     pTurnConnection->relayAddress.port, "TURN allocation");
+            DLOGD("[%p - %s:%d] TURN Allocation succeeded. Life time: %u seconds. Allocation expiration epoch %" PRIu64, pTurnConnection, ipAddrStr,
+                  pTurnConnection->relayAddress.port, pStunAttributeLifetime->lifetime,
+                  pTurnConnection->allocationExpirationTime / DEFAULT_TIME_UNIT_IN_NANOS);
+            PROFILE_WITH_START_TIME_OBJ(pTurnConnection->turnProfileDiagnostics.createAllocationStartTime,
+                                        pTurnConnection->turnProfileDiagnostics.createAllocationTime, profileDebugStr);
 
             if (!pTurnConnection->relayAddressReported && pTurnConnection->turnConnectionCallbacks.relayAddressAvailableFn != NULL) {
                 pTurnConnection->relayAddressReported = TRUE;
@@ -291,7 +297,13 @@ STATUS turnConnectionHandleStun(PTurnConnection pTurnConnection, PBYTE pBuffer, 
                     if (pTurnPeer->connectionState == TURN_PEER_CONN_STATE_CREATE_PERMISSION) {
                         pTurnPeer->connectionState = TURN_PEER_CONN_STATE_BIND_CHANNEL;
                         CHK_STATUS(getIpAddrStr(&pTurnPeer->address, ipAddrStr, ARRAY_SIZE(ipAddrStr)));
-                        DLOGD("create permission succeeded for peer %s", ipAddrStr);
+                        DLOGD("[%p] Create permission succeeded for peer %s:%d", pTurnConnection, ipAddrStr, pTurnPeer->address.port);
+                        if (pTurnPeer->firstTimeCreatePermResponse) {
+                            pTurnPeer->firstTimeCreatePermResponse = FALSE;
+                            SNPRINTF(profileDebugStr, MAX_TURN_PROFILE_LOG_DESC_LEN, "%p - %s:%d - %s", (PVOID) pTurnConnection, ipAddrStr,
+                                     pTurnPeer->address.port, "TURN create permission");
+                            PROFILE_WITH_START_TIME_OBJ(pTurnPeer->createPermissionStartTime, pTurnPeer->createPermissionTime, profileDebugStr);
+                        }
                     }
 
                     pTurnPeer->permissionExpirationTime = TURN_PERMISSION_LIFETIME + currentTime;
@@ -313,8 +325,14 @@ STATUS turnConnectionHandleStun(PTurnConnection pTurnConnection, PBYTE pBuffer, 
                     pTurnPeer->connectionState = TURN_PEER_CONN_STATE_READY;
 
                     CHK_STATUS(getIpAddrStr(&pTurnPeer->address, ipAddrStr, ARRAY_SIZE(ipAddrStr)));
-                    DLOGD("Channel bind succeeded with peer %s, port: %u, channel number %u", ipAddrStr, (UINT16) getInt16(pTurnPeer->address.port),
-                          pTurnPeer->channelNumber);
+                    DLOGD("[%p] Channel bind succeeded with peer %s, port: %d, channel number %u", pTurnConnection, ipAddrStr,
+                          pTurnPeer->address.port, pTurnPeer->channelNumber);
+                    if (pTurnPeer->firstTimeBindChannelResponse) {
+                        pTurnPeer->firstTimeBindChannelResponse = FALSE;
+                        SNPRINTF(profileDebugStr, MAX_TURN_PROFILE_LOG_DESC_LEN, "%p - %s:%d:%u - %s", (PVOID) pTurnConnection, ipAddrStr,
+                                 pTurnPeer->address.port, pTurnPeer->channelNumber, "TURN bind channel");
+                        PROFILE_WITH_START_TIME_OBJ(pTurnPeer->bindChannelStartTime, pTurnPeer->bindChannelTime, profileDebugStr);
+                    }
 
                     break;
                 }
@@ -360,6 +378,7 @@ STATUS turnConnectionHandleStunError(PTurnConnection pTurnConnection, PBYTE pBuf
     PStunPacket pStunPacket = NULL;
     BOOL locked = FALSE, iterate = TRUE;
     PTurnPeer pTurnPeer = NULL;
+    CHAR profileDebugStr[MAX_TURN_PROFILE_LOG_DESC_LEN];
     UINT32 i;
 
     CHK(pTurnConnection != NULL, STATUS_NULL_ARG);
@@ -412,7 +431,9 @@ STATUS turnConnectionHandleStunError(PTurnConnection pTurnConnection, PBYTE pBuf
             pTurnConnection->turnRealm[pStunAttributeRealm->attribute.length] = '\0';
 
             pTurnConnection->credentialObtained = TRUE;
-
+            SNPRINTF(profileDebugStr, MAX_TURN_PROFILE_LOG_DESC_LEN, "%p - %s", (PVOID) pTurnConnection, "TURN Get Credentials");
+            PROFILE_WITH_START_TIME_OBJ(pTurnConnection->turnProfileDiagnostics.getCredentialsStartTime,
+                                        pTurnConnection->turnProfileDiagnostics.getCredentialsTime, profileDebugStr);
             CHK_STATUS(turnConnectionUpdateNonce(pTurnConnection));
             break;
 
@@ -561,8 +582,8 @@ STATUS turnConnectionHandleChannelDataTcpMode(PTurnConnection pTurnConnection, P
     /* process only one channel data and return. Because channel data can be intermixed with STUN packet.
      * need to check remainingBufLen too because channel data could be incomplete. */
     while (remainingBufLen != 0 && channelDataCount == 0) {
-        DLOGV("currRecvDataLen: %d", pTurnConnection->currRecvDataLen);
         if (pTurnConnection->currRecvDataLen != 0) {
+            DLOGV("currRecvDataLen: %d", pTurnConnection->currRecvDataLen);
             if (pTurnConnection->currRecvDataLen >= TURN_DATA_CHANNEL_SEND_OVERHEAD) {
                 /* pTurnConnection->recvDataBuffer always has channel data start */
                 paddedChannelDataLen = ROUND_UP((UINT32) getInt16(*(PINT16) (pTurnConnection->recvDataBuffer + SIZEOF(channelNumber))), 4);
@@ -673,6 +694,10 @@ STATUS turnConnectionAddPeer(PTurnConnection pTurnConnection, PKvsIpAddress pPee
     pTurnPeer->channelNumber = (UINT16) pTurnConnection->turnPeerCount + TURN_CHANNEL_BIND_CHANNEL_NUMBER_BASE;
     pTurnPeer->permissionExpirationTime = INVALID_TIMESTAMP_VALUE;
     pTurnPeer->ready = FALSE;
+    pTurnPeer->firstTimeCreatePermReq = TRUE;
+    pTurnPeer->firstTimeBindChannelReq = TRUE;
+    pTurnPeer->firstTimeCreatePermResponse = TRUE;
+    pTurnPeer->firstTimeBindChannelResponse = TRUE;
 
     CHK_STATUS(xorIpAddress(&pTurnPeer->xorAddress, NULL)); /* only work for IPv4 for now */
     CHK_STATUS(createTransactionIdStore(DEFAULT_MAX_STORED_TRANSACTION_ID_COUNT, &pTurnPeer->pTransactionIdStore));
@@ -852,6 +877,7 @@ STATUS turnConnectionRefreshPermission(PTurnConnection pTurnConnection, PBOOL pN
     UINT64 currTime = 0;
     PTurnPeer pTurnPeer = NULL;
     BOOL needRefresh = FALSE;
+    CHAR ipAddr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
     UINT32 i;
 
     CHK(pTurnConnection != NULL && pNeedRefresh != NULL, STATUS_NULL_ARG);
@@ -863,7 +889,8 @@ STATUS turnConnectionRefreshPermission(PTurnConnection pTurnConnection, PBOOL pN
         pTurnPeer = &pTurnConnection->turnPeerList[i];
         if (IS_VALID_TIMESTAMP(pTurnPeer->permissionExpirationTime) &&
             currTime + DEFAULT_TURN_PERMISSION_REFRESH_GRACE_PERIOD >= pTurnPeer->permissionExpirationTime) {
-            DLOGD("Refreshing turn permission");
+            getIpAddrStr(&pTurnPeer->address, ipAddr, ARRAY_SIZE(ipAddr));
+            DLOGD("[%p] Refreshing turn permission for %s:%d", pTurnConnection, ipAddr, pTurnPeer->address.port);
             needRefresh = TRUE;
         }
     }
@@ -1012,6 +1039,10 @@ STATUS checkTurnPeerConnections(PTurnConnection pTurnConnection)
         pTurnPeer = &pTurnConnection->turnPeerList[i];
 
         if (pTurnPeer->connectionState == TURN_PEER_CONN_STATE_CREATE_PERMISSION) {
+            if (pTurnPeer->firstTimeCreatePermReq) {
+                pTurnPeer->createPermissionStartTime = GETTIME();
+                pTurnPeer->firstTimeCreatePermReq = FALSE;
+            }
             // update peer address;
             CHK_STATUS(getStunAttribute(pTurnConnection->pTurnCreatePermissionPacket, STUN_ATTRIBUTE_TYPE_XOR_PEER_ADDRESS,
                                         (PStunAttributeHeader*) &pStunAttributeAddress));
@@ -1028,6 +1059,10 @@ STATUS checkTurnPeerConnections(PTurnConnection pTurnConnection)
                                                 pTurnConnection->pControlChannel, NULL, FALSE);
 
         } else if (pTurnPeer->connectionState == TURN_PEER_CONN_STATE_BIND_CHANNEL) {
+            if (pTurnPeer->firstTimeBindChannelReq) {
+                pTurnPeer->bindChannelStartTime = GETTIME();
+                pTurnPeer->firstTimeBindChannelReq = FALSE;
+            }
             // update peer address;
             CHK_STATUS(getStunAttribute(pTurnConnection->pTurnChannelBindPacket, STUN_ATTRIBUTE_TYPE_XOR_PEER_ADDRESS,
                                         (PStunAttributeHeader*) &pStunAttributeAddress));

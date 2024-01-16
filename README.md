@@ -429,6 +429,24 @@ The threadpool is enabled by default, and starts with 5 threads that it can incr
 
 To disable threadpool, run `cmake .. -DENABLE_KVS_THREADPOOL=OFF`
 
+### Setting ICE related timeouts
+
+There are some default timeout values set for different steps in ICE in the [KvsRtcConfiguration](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-c/structKvsRtcConfiguration.html). These are configurable in the application. While the defaults are generous, there could be applications that might need more flexibility to improve chances of connection establishment because of poor network. 
+
+You can find the default setting in the logs:
+```
+2024-01-08 19:43:44.433 INFO    iceAgentValidateKvsRtcConfig():
+	iceLocalCandidateGatheringTimeout: 10000 ms
+	iceConnectionCheckTimeout: 12000 ms
+	iceCandidateNominationTimeout: 12000 ms
+	iceConnectionCheckPollingInterval: 50 ms
+```
+Let us look into when each of these could be changed:
+1. `iceCandidateNominationTimeout`: Say the connection with host/srflx could not be established and TURN seems to be the only resort. Let us assume it takes about 15 seconds to gather the first local relay candidate, the application could set the timeout to a value more than 15 seconds to ensure candidate pairs with the local relay candidate are tried for success. If the value is set to less than 15 seconds in this case, the SDK would lose out on trying a potential candidate pair leading to connection establishment failure
+2. `iceLocalCandidateGatheringTimeout`: Say the host candidates would not work and srflx/relay candidates need to be tried. Due to poor network, it is anticipated the candidates are gathered slowly and the application does not want to spend more than 20 seconds on this step. The goal is to try all possible candidate pairs. Increasing the timeout helps in giving some more time to gather more potential candidates to try for connection. Also note, this parameter increase would not make a difference in the situation unless `iceCandidateNominationTimeout` > `iceLocalCandidateGatheringTimeout` since nomination step should also be given time to work with the new candidates
+3. `iceConnectionCheckTimeout`: It is useful to increase this timeout in unstable/slow network where the packet exchange takes time and hence the binding request/response. Essentially, increasing it will allow atleast one candidate pair to be tried for nomination by the other peer. 
+4. `iceConnectionCheckPollingInterval`: This value is set to a default of 50 ms per [spec](https://datatracker.ietf.org/doc/html/rfc8445#section-14.2). Changing this would change the frequency of connectivity checks and essentially, the ICE state machine transitions. Decreasing the value could help in faster connection establishment in a reliable high performant network setting with good system resources. Increasing the value could help in reducing the network load, however, the connection establishment could slow down. Unless there is a strong reasoning, it is **NOT** recommended to deviate from spec/default.
+
 ## Documentation
 All Public APIs are documented in our [Include.h](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/blob/master/src/include/com/amazonaws/kinesis/video/webrtcclient/Include.h), we also generate a [Doxygen](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-c/) each commit for easier navigation.
 

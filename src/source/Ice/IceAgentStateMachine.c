@@ -605,7 +605,7 @@ CleanUp:
 
     if (pIceAgent->iceAgentStartTime != 0) {
         PROFILE_WITH_START_TIME_OBJ(pIceAgent->iceAgentStartTime, pIceAgent->iceAgentProfileDiagnostics.iceAgentSetUpTime,
-                                    "Time taken to get ICE Agent ready for media exchange");
+                                    "ICE Agent ready for media exchange from check connection start");
         pIceAgent->iceAgentStartTime = 0;
     }
 

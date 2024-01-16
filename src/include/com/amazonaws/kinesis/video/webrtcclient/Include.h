@@ -255,6 +255,8 @@ extern "C" {
 #define STATUS_ICE_CANDIDATE_STRING_MISSING_TYPE                           STATUS_ICE_BASE + 0x00000029
 #define STATUS_TURN_CONNECTION_ALLOCATION_FAILED                           STATUS_ICE_BASE + 0x0000002a
 #define STATUS_TURN_INVALID_STATE                                          STATUS_ICE_BASE + 0x0000002b
+#define STATUS_TURN_CONNECTION_GET_CREDENTIALS_FAILED                      STATUS_ICE_BASE + 0x0000002c
+
 /*!@} */
 
 /////////////////////////////////////////////////////
@@ -1179,7 +1181,7 @@ typedef struct {
                                           //!< USE_CANDIDATE attribute. If client is ice controlled, this is the timeout for receiving binding request
                                           //!< that has USE_CANDIDATE attribute after connection check is done. Use default value if 0.
 
-    UINT32 iceConnectionCheckPollingInterval; //!< Ta in https://tools.ietf.org/html/rfc8445
+    UINT32 iceConnectionCheckPollingInterval; //!< Ta in https://datatracker.ietf.org/doc/html/rfc8445#section-14.2
                                               //!< rate at which binding request packets are sent during connection check. Use default interval if 0.
 
     INT32 generatedCertificateBits; //!< GeneratedCertificateBits controls the amount of bits the locally generated self-signed certificate uses

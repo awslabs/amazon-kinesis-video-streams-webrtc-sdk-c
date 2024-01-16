@@ -159,7 +159,6 @@ STATUS fromNewTurnState(UINT64 customData, PUINT64 pState)
     CHK(pTurnConnection != NULL && pState != NULL, STATUS_NULL_ARG);
 
     state = TURN_STATE_CHECK_SOCKET_CONNECTION;
-
     *pState = state;
 
 CleanUp:
@@ -191,6 +190,7 @@ STATUS fromCheckSocketConnectionTurnState(UINT64 customData, PUINT64 pState)
     PTurnConnection pTurnConnection = (PTurnConnection) customData;
     UINT64 state = TURN_STATE_CHECK_SOCKET_CONNECTION;
     BOOL locked = FALSE;
+    UINT64 currentTime;
 
     CHK(pTurnConnection != NULL && pState != NULL, STATUS_NULL_ARG);
 
@@ -201,8 +201,10 @@ STATUS fromCheckSocketConnectionTurnState(UINT64 customData, PUINT64 pState)
         CHK(FALSE, STATUS_SUCCESS);
     }
 
+    currentTime = GETTIME();
     if (socketConnectionIsConnected(pTurnConnection->pControlChannel)) {
         state = TURN_STATE_GET_CREDENTIALS;
+        pTurnConnection->stateTimeoutTime = currentTime + DEFAULT_TURN_GET_CREDENTIAL_TIMEOUT;
     }
 
     *pState = state;
@@ -261,8 +263,6 @@ STATUS fromGetCredentialsTurnState(UINT64 customData, PUINT64 pState)
     if (pTurnConnection->credentialObtained) {
         state = TURN_STATE_ALLOCATION;
         pTurnConnection->stateTimeoutTime = currentTime + DEFAULT_TURN_ALLOCATION_TIMEOUT;
-        pTurnConnection->stateTryCountMax = DEFAULT_TURN_ALLOCATION_MAX_TRY_COUNT;
-        pTurnConnection->stateTryCount = 0;
     }
 
     *pState = state;
@@ -282,10 +282,13 @@ STATUS executeGetCredentialsTurnState(UINT64 customData, UINT64 time)
     UNUSED_PARAM(time);
     STATUS retStatus = STATUS_SUCCESS;
     PTurnConnection pTurnConnection = (PTurnConnection) customData;
-
+    UINT64 currentTime;
     CHK(pTurnConnection != NULL, STATUS_NULL_ARG);
 
+    currentTime = GETTIME();
+
     if (pTurnConnection->state != TURN_STATE_GET_CREDENTIALS) {
+        pTurnConnection->turnProfileDiagnostics.getCredentialsStartTime = currentTime;
         /* initialize TLS once tcp connection is established */
         /* Start receiving data for TLS handshake */
         ATOMIC_STORE_BOOL(&pTurnConnection->pControlChannel->receiveData, TRUE);
@@ -296,6 +299,8 @@ STATUS executeGetCredentialsTurnState(UINT64 customData, UINT64 time)
             CHK_STATUS(socketConnectionInitSecureConnection(pTurnConnection->pControlChannel, FALSE));
         }
         pTurnConnection->state = TURN_STATE_GET_CREDENTIALS;
+    } else {
+        CHK(currentTime <= pTurnConnection->stateTimeoutTime, STATUS_TURN_CONNECTION_GET_CREDENTIALS_FAILED);
     }
     CHK_STATUS(iceUtilsSendStunPacket(pTurnConnection->pTurnPacket, NULL, 0, &pTurnConnection->turnServer.ipAddress, pTurnConnection->pControlChannel,
                                       NULL, FALSE));
@@ -347,12 +352,13 @@ STATUS executeAllocationTurnState(UINT64 customData, UINT64 time)
     UNUSED_PARAM(time);
     STATUS retStatus = STATUS_SUCCESS;
     PTurnConnection pTurnConnection = (PTurnConnection) customData;
-
+    UINT64 currentTime;
     CHK(pTurnConnection != NULL, STATUS_NULL_ARG);
 
+    currentTime = GETTIME();
     if (pTurnConnection->state != TURN_STATE_ALLOCATION) {
         DLOGV("Updated turn allocation request credential after receiving 401");
-
+        pTurnConnection->turnProfileDiagnostics.createAllocationStartTime = GETTIME();
         // update turn allocation packet with credentials
         CHK_STATUS(freeStunPacket(&pTurnConnection->pTurnPacket));
         CHK_STATUS(turnConnectionGetLongTermKey(pTurnConnection->turnServer.username, pTurnConnection->turnRealm,
@@ -363,8 +369,7 @@ STATUS executeAllocationTurnState(UINT64 customData, UINT64 time)
                                                               DEFAULT_TURN_ALLOCATION_LIFETIME_SECONDS, &pTurnConnection->pTurnPacket));
         pTurnConnection->state = TURN_STATE_ALLOCATION;
     } else {
-        pTurnConnection->stateTryCount++;
-        CHK(pTurnConnection->stateTryCount < pTurnConnection->stateTryCountMax, STATUS_TURN_CONNECTION_ALLOCATION_FAILED);
+        CHK(currentTime <= pTurnConnection->stateTimeoutTime, STATUS_TURN_CONNECTION_ALLOCATION_FAILED);
     }
     CHK_STATUS(iceUtilsSendStunPacket(pTurnConnection->pTurnPacket, pTurnConnection->longTermKey, ARRAY_SIZE(pTurnConnection->longTermKey),
                                       &pTurnConnection->turnServer.ipAddress, pTurnConnection->pControlChannel, NULL, FALSE));
@@ -413,7 +418,7 @@ STATUS fromCreatePermissionTurnState(UINT64 customData, PUINT64 pState)
         CHK(FALSE, retStatus);
     }
 
-    if (currentTime >= pTurnConnection->stateTimeoutTime || channelWithPermissionCount == pTurnConnection->turnPeerCount) {
+    if (currentTime > pTurnConnection->stateTimeoutTime || channelWithPermissionCount == pTurnConnection->turnPeerCount) {
         CHK(channelWithPermissionCount > 0, STATUS_TURN_CONNECTION_FAILED_TO_CREATE_PERMISSION);
 
         // go to next state if we have at least one ready peer
@@ -446,7 +451,6 @@ STATUS executeCreatePermissionTurnState(UINT64 customData, UINT64 time)
     if (pTurnConnection->state != TURN_STATE_CREATE_PERMISSION) {
         CHK_STATUS(getIpAddrStr(&pTurnConnection->relayAddress, ipAddrStr, ARRAY_SIZE(ipAddrStr)));
         DLOGD("Relay address received: %s, port: %u", ipAddrStr, (UINT16) getInt16(pTurnConnection->relayAddress.port));
-
         if (pTurnConnection->pTurnCreatePermissionPacket != NULL) {
             CHK_STATUS(freeStunPacket(&pTurnConnection->pTurnCreatePermissionPacket));
         }
@@ -459,7 +463,7 @@ STATUS executeCreatePermissionTurnState(UINT64 customData, UINT64 time)
         CHK_STATUS(appendStunNonceAttribute(pTurnConnection->pTurnCreatePermissionPacket, pTurnConnection->turnNonce, pTurnConnection->nonceLen));
 
         // create channel bind packet here too so for each peer as soon as permission is created, it can start
-        // sending chaneel bind request
+        // sending channel bind request
         if (pTurnConnection->pTurnChannelBindPacket != NULL) {
             CHK_STATUS(freeStunPacket(&pTurnConnection->pTurnChannelBindPacket));
         }
@@ -525,7 +529,7 @@ STATUS fromBindChannelTurnState(UINT64 customData, PUINT64 pState)
             readyPeerCount++;
         }
     }
-    if (currentTime >= pTurnConnection->stateTimeoutTime || readyPeerCount == pTurnConnection->turnPeerCount) {
+    if (currentTime > pTurnConnection->stateTimeoutTime || readyPeerCount == pTurnConnection->turnPeerCount) {
         CHK(readyPeerCount > 0, STATUS_TURN_CONNECTION_FAILED_TO_BIND_CHANNEL);
         // go to next state if we have at least one ready peer
         state = TURN_STATE_READY;
@@ -549,7 +553,9 @@ STATUS executeBindChannelTurnState(UINT64 customData, UINT64 time)
     PTurnConnection pTurnConnection = (PTurnConnection) customData;
 
     CHK(pTurnConnection != NULL, STATUS_NULL_ARG);
-    pTurnConnection->state = TURN_STATE_BIND_CHANNEL;
+    if (pTurnConnection->state != TURN_STATE_BIND_CHANNEL) {
+        pTurnConnection->state = TURN_STATE_BIND_CHANNEL;
+    }
     CHK_STATUS(checkTurnPeerConnections(pTurnConnection));
 
 CleanUp:
@@ -652,11 +658,11 @@ STATUS fromCleanUpTurnState(UINT64 customData, PUINT64 pState)
         CHK(FALSE, STATUS_SUCCESS);
     }
 
-    /* start cleanning up even if we dont receive allocation freed response in time, or if connection is already closed,
+    /* start cleaning up even if we dont receive allocation freed response in time, or if connection is already closed,
      * since we already sent multiple STUN refresh packets with 0 lifetime. */
     currentTime = GETTIME();
     if (socketConnectionIsClosed(pTurnConnection->pControlChannel) || !ATOMIC_LOAD_BOOL(&pTurnConnection->hasAllocation) ||
-        currentTime >= pTurnConnection->stateTimeoutTime) {
+        currentTime > pTurnConnection->stateTimeoutTime) {
         // clean transactionId store for each turn peer, preserving the peers
         for (i = 0; i < pTurnConnection->turnPeerCount; ++i) {
             transactionIdStoreClear(pTurnConnection->turnPeerList[i].pTransactionIdStore);

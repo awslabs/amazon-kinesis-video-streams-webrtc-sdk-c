@@ -21,11 +21,10 @@ extern "C" {
 #define DEFAULT_TURN_SEND_REFRESH_INVERVAL       (1 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
 // turn state timeouts
-#define DEFAULT_TURN_SOCKET_CONNECT_TIMEOUT    (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define DEFAULT_TURN_GET_CREDENTIAL_TIMEOUT    (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define DEFAULT_TURN_ALLOCATION_TIMEOUT        (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define DEFAULT_TURN_CREATE_PERMISSION_TIMEOUT (2 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define DEFAULT_TURN_BIND_CHANNEL_TIMEOUT      (3 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define DEFAULT_TURN_CREATE_PERMISSION_TIMEOUT (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define DEFAULT_TURN_BIND_CHANNEL_TIMEOUT      (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define DEFAULT_TURN_CLEAN_UP_TIMEOUT          (10 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
 #define DEFAULT_TURN_ALLOCATION_REFRESH_GRACE_PERIOD (30 * HUNDREDS_OF_NANOS_IN_A_SECOND)
@@ -36,8 +35,7 @@ extern "C" {
 #define DEFAULT_TURN_MESSAGE_RECV_CHANNEL_DATA_BUFFER_LEN MAX_TURN_CHANNEL_DATA_MESSAGE_SIZE
 #define DEFAULT_TURN_CHANNEL_DATA_BUFFER_SIZE             512
 #define DEFAULT_TURN_MAX_PEER_COUNT                       32
-
-#define DEFAULT_TURN_ALLOCATION_MAX_TRY_COUNT 3
+#define MAX_TURN_PROFILE_LOG_DESC_LEN                     256
 
 // all turn channel numbers must be greater than 0x4000 and less than 0x7FFF
 #define TURN_CHANNEL_BIND_CHANNEL_NUMBER_BASE (UINT16) 0x4000
@@ -100,7 +98,22 @@ typedef struct {
     UINT16 channelNumber;
     UINT64 permissionExpirationTime;
     BOOL ready;
+    BOOL firstTimeCreatePermReq;
+    BOOL firstTimeCreatePermResponse;
+    UINT64 createPermissionStartTime;
+    UINT64 createPermissionTime;
+    BOOL firstTimeBindChannelReq;
+    BOOL firstTimeBindChannelResponse;
+    UINT64 bindChannelStartTime;
+    UINT64 bindChannelTime;
 } TurnPeer, *PTurnPeer;
+
+typedef struct {
+    UINT64 getCredentialsStartTime;
+    UINT64 getCredentialsTime;
+    UINT64 createAllocationStartTime;
+    UINT64 createAllocationTime;
+} TurnProfileDiagnostics, *PTurnProfileDiagnostics;
 
 typedef struct __TurnConnection TurnConnection;
 struct __TurnConnection {
@@ -134,8 +147,6 @@ struct __TurnConnection {
     UINT64 state;
 
     UINT64 stateTimeoutTime;
-    UINT32 stateTryCount;
-    UINT32 stateTryCountMax;
 
     STATUS errorStatus;
 
@@ -170,7 +181,7 @@ struct __TurnConnection {
 
     UINT64 currentTimerCallingPeriod;
     BOOL deallocatePacketSent;
-
+    TurnProfileDiagnostics turnProfileDiagnostics;
     PStateMachine pStateMachine;
 };
 typedef struct __TurnConnection* PTurnConnection;
