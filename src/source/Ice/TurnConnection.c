@@ -1134,12 +1134,14 @@ STATUS turnConnectionGetLongTermKey(PCHAR username, PCHAR realm, PCHAR password,
 {
     STATUS retStatus = STATUS_SUCCESS;
     CHAR stringBuffer[STUN_MAX_USERNAME_LEN + MAX_ICE_CONFIG_CREDENTIAL_LEN + STUN_MAX_REALM_LEN + 2]; // 2 for two ":" between each value
+    INT32 amountWritten = 0;
 
     CHK(username != NULL && realm != NULL && password != NULL && pBuffer != NULL, STATUS_NULL_ARG);
     CHK(username[0] != '\0' && realm[0] != '\0' && password[0] != '\0' && bufferLen >= KVS_MD5_DIGEST_LENGTH, STATUS_INVALID_ARG);
     CHK((STRLEN(username) + STRLEN(realm) + STRLEN(password)) <= ARRAY_SIZE(stringBuffer) - 2, STATUS_INVALID_ARG);
 
-    SNPRINTF(stringBuffer, SIZEOF(stringBuffer), "%s:%s:%s", username, realm, password);
+    amountWritten = SNPRINTF(stringBuffer, SIZEOF(stringBuffer), "%s:%s:%s", username, realm, password);
+    CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "SNPRINTF error: Failed to generate the long term key with username, realm and password");
 
     // TODO: Return back the error check
     KVS_MD5_DIGEST((PBYTE) stringBuffer, STRLEN(stringBuffer), pBuffer);
