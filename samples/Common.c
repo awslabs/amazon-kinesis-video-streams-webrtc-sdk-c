@@ -1573,7 +1573,7 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) customData;
-    BOOL peerConnectionFound = FALSE, locked = FALSE, startStats = FALSE;
+    BOOL peerConnectionFound = FALSE, locked = FALSE, startStats = FALSE, freeStreamingSession = FALSE;
     UINT32 clientIdHash;
     UINT64 hashValue = 0;
     PPendingMessageQueue pPendingMessageQueue = NULL;
@@ -1619,10 +1619,7 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
             }
             CHK_STATUS(createSampleStreamingSession(pSampleConfiguration, pReceivedSignalingMessage->signalingMessage.peerClientId, TRUE,
                                                     &pSampleStreamingSession));
-            MUTEX_LOCK(pSampleConfiguration->streamingSessionListReadLock);
-            pSampleConfiguration->sampleStreamingSessionList[pSampleConfiguration->streamingSessionCount++] = pSampleStreamingSession;
-            MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
-
+            freeStreamingSession = TRUE;
             CHK_STATUS(handleOffer(pSampleConfiguration, pSampleStreamingSession, &pReceivedSignalingMessage->signalingMessage));
             CHK_STATUS(hashTablePut(pSampleConfiguration->pRtcPeerConnectionForRemoteClient, clientIdHash, (UINT64) pSampleStreamingSession));
 
@@ -1635,6 +1632,11 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
                 // NULL the pointer to avoid it being freed in the cleanup
                 pPendingMessageQueue = NULL;
             }
+
+            MUTEX_LOCK(pSampleConfiguration->streamingSessionListReadLock);
+            pSampleConfiguration->sampleStreamingSessionList[pSampleConfiguration->streamingSessionCount++] = pSampleStreamingSession;
+            MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
+            freeStreamingSession = FALSE;
 
             startStats = pSampleConfiguration->iceCandidatePairStatsTimerId == MAX_UINT32;
             break;
@@ -1718,6 +1720,10 @@ CleanUp:
     SAFE_MEMFREE(pReceivedSignalingMessageCopy);
     if (pPendingMessageQueue != NULL) {
         freeMessageQueue(pPendingMessageQueue);
+    }
+
+    if (freeStreamingSession && pSampleStreamingSession != NULL) {
+        freeSampleStreamingSession(&pSampleStreamingSession);
     }
 
     if (locked) {
