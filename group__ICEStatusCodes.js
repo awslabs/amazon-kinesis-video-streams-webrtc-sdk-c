@@ -30,6 +30,7 @@ var group__ICEStatusCodes =
     [ "STATUS_TURN_CONNECTION_ALLOCATION_FAILED", "group__ICEStatusCodes.html#ga6067f3dee0b0b145d25462245f98de89", null ],
     [ "STATUS_TURN_CONNECTION_FAILED_TO_BIND_CHANNEL", "group__ICEStatusCodes.html#gacc938bee658deb6c85703526e19dbe10", null ],
     [ "STATUS_TURN_CONNECTION_FAILED_TO_CREATE_PERMISSION", "group__ICEStatusCodes.html#ga34dfa9cfb52aa5eea97dce2502d3f975", null ],
+    [ "STATUS_TURN_CONNECTION_GET_CREDENTIALS_FAILED", "group__ICEStatusCodes.html#gaa59db6e88ee1afef920dd58b2c84c2b1", null ],
     [ "STATUS_TURN_CONNECTION_NO_HOST_INTERFACE_FOUND", "group__ICEStatusCodes.html#ga2689bc8b71216444cbcefec30b20a2e8", null ],
     [ "STATUS_TURN_CONNECTION_PEER_NOT_USABLE", "group__ICEStatusCodes.html#ga2d77c9b7b2362ac0fd76cb85d903e4d0", null ],
     [ "STATUS_TURN_CONNECTION_STATE_TRANSITION_TIMEOUT", "group__ICEStatusCodes.html#ga72041071e715ee4a7453655c64db8a45", null ],

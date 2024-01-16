@@ -105,7 +105,7 @@ Collaboration diagram for TurnPeer:</div>
 <div class="dyncontent">
 <div class="center"><img src="structTurnPeer__coll__graph.png" border="0" usemap="#aTurnPeer_coll__map" alt="Collaboration graph"/></div>
 <map name="aTurnPeer_coll__map" id="aTurnPeer_coll__map">
-<area shape="rect" title=" " alt="" coords="61,219,269,340"/>
+<area shape="rect" title=" " alt="" coords="45,219,285,457"/>
 <area shape="rect" href="structKvsIpAddress.html" title=" " alt="" coords="5,13,133,134"/>
 <area shape="rect" href="structTransactionIdStore.html" title=" " alt="" coords="157,5,365,141"/>
 </map>
@@ -127,6 +127,22 @@ Public Attributes</h2></td></tr>
 <tr class="separator:af12568eda8f339dde24a5e80b9d4a4d4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa4fd4ba0e23736562cf655cb58e33319"><td class="memItemLeft" align="right" valign="top">BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structTurnPeer.html#aa4fd4ba0e23736562cf655cb58e33319">ready</a></td></tr>
 <tr class="separator:aa4fd4ba0e23736562cf655cb58e33319"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac231e6211f6c98156ee8187ea687e9c8"><td class="memItemLeft" align="right" valign="top">BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structTurnPeer.html#ac231e6211f6c98156ee8187ea687e9c8">firstTimeCreatePermReq</a></td></tr>
+<tr class="separator:ac231e6211f6c98156ee8187ea687e9c8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:adc974b22150cdb4639f0e71f2df3ec56"><td class="memItemLeft" align="right" valign="top">BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structTurnPeer.html#adc974b22150cdb4639f0e71f2df3ec56">firstTimeCreatePermResponse</a></td></tr>
+<tr class="separator:adc974b22150cdb4639f0e71f2df3ec56"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:acf76cd84f03e2c012abf2e7d100848b3"><td class="memItemLeft" align="right" valign="top">UINT64&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structTurnPeer.html#acf76cd84f03e2c012abf2e7d100848b3">createPermissionStartTime</a></td></tr>
+<tr class="separator:acf76cd84f03e2c012abf2e7d100848b3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a620f42c7bc88fe16108ca56cc2629c6b"><td class="memItemLeft" align="right" valign="top">UINT64&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structTurnPeer.html#a620f42c7bc88fe16108ca56cc2629c6b">createPermissionTime</a></td></tr>
+<tr class="separator:a620f42c7bc88fe16108ca56cc2629c6b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afd0f137b40d54ab520026e6b0fa1ebf0"><td class="memItemLeft" align="right" valign="top">BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structTurnPeer.html#afd0f137b40d54ab520026e6b0fa1ebf0">firstTimeBindChannelReq</a></td></tr>
+<tr class="separator:afd0f137b40d54ab520026e6b0fa1ebf0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af55ec35b4f6dcaba0d0565d4192de22a"><td class="memItemLeft" align="right" valign="top">BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structTurnPeer.html#af55ec35b4f6dcaba0d0565d4192de22a">firstTimeBindChannelResponse</a></td></tr>
+<tr class="separator:af55ec35b4f6dcaba0d0565d4192de22a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aaaf015cae9a561c4734a50b0248dc036"><td class="memItemLeft" align="right" valign="top">UINT64&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structTurnPeer.html#aaaf015cae9a561c4734a50b0248dc036">bindChannelStartTime</a></td></tr>
+<tr class="separator:aaaf015cae9a561c4734a50b0248dc036"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a25cbb77bb0f04f5a32d99bfdeac6bcf8"><td class="memItemLeft" align="right" valign="top">UINT64&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structTurnPeer.html#a25cbb77bb0f04f5a32d99bfdeac6bcf8">bindChannelTime</a></td></tr>
+<tr class="separator:a25cbb77bb0f04f5a32d99bfdeac6bcf8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Member Data Documentation</h2>
 <a id="aa11824ea2fe7112ed862ca0d06a29a9e"></a>
@@ -137,6 +153,34 @@ Public Attributes</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname"><a class="el" href="structKvsIpAddress.html">KvsIpAddress</a> TurnPeer::address</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="aaaf015cae9a561c4734a50b0248dc036"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aaaf015cae9a561c4734a50b0248dc036">&#9670;&nbsp;</a></span>bindChannelStartTime</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">UINT64 TurnPeer::bindChannelStartTime</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a25cbb77bb0f04f5a32d99bfdeac6bcf8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a25cbb77bb0f04f5a32d99bfdeac6bcf8">&#9670;&nbsp;</a></span>bindChannelTime</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">UINT64 TurnPeer::bindChannelTime</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -165,6 +209,90 @@ Public Attributes</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname"><a class="el" href="TurnConnection_8h.html#a55eb4c6ede27be47adf8277f73a5c656">TURN_PEER_CONNECTION_STATE</a> TurnPeer::connectionState</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="acf76cd84f03e2c012abf2e7d100848b3"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#acf76cd84f03e2c012abf2e7d100848b3">&#9670;&nbsp;</a></span>createPermissionStartTime</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">UINT64 TurnPeer::createPermissionStartTime</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a620f42c7bc88fe16108ca56cc2629c6b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a620f42c7bc88fe16108ca56cc2629c6b">&#9670;&nbsp;</a></span>createPermissionTime</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">UINT64 TurnPeer::createPermissionTime</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="afd0f137b40d54ab520026e6b0fa1ebf0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afd0f137b40d54ab520026e6b0fa1ebf0">&#9670;&nbsp;</a></span>firstTimeBindChannelReq</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">BOOL TurnPeer::firstTimeBindChannelReq</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="af55ec35b4f6dcaba0d0565d4192de22a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af55ec35b4f6dcaba0d0565d4192de22a">&#9670;&nbsp;</a></span>firstTimeBindChannelResponse</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">BOOL TurnPeer::firstTimeBindChannelResponse</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ac231e6211f6c98156ee8187ea687e9c8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac231e6211f6c98156ee8187ea687e9c8">&#9670;&nbsp;</a></span>firstTimeCreatePermReq</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">BOOL TurnPeer::firstTimeCreatePermReq</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="adc974b22150cdb4639f0e71f2df3ec56"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#adc974b22150cdb4639f0e71f2df3ec56">&#9670;&nbsp;</a></span>firstTimeCreatePermResponse</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">BOOL TurnPeer::firstTimeCreatePermResponse</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -236,7 +364,7 @@ Public Attributes</h2></td></tr>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="structTurnPeer.html">TurnPeer</a></li>
-    <li class="footer">Generated on Fri Jan 5 2024 22:00:58 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Tue Jan 16 2024 18:46:36 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>

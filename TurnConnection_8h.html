@@ -166,6 +166,8 @@ Classes</h2></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structTurnPeer.html">TurnPeer</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structTurnProfileDiagnostics.html">TurnProfileDiagnostics</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct____TurnConnection.html">__TurnConnection</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
@@ -185,15 +187,13 @@ Macros</h2></td></tr>
 <tr class="separator:a04922fa9031bd9d30fad9857bd047de8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aac110ff8d619b0130abc2091132dab59"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="TurnConnection_8h.html#aac110ff8d619b0130abc2091132dab59">DEFAULT_TURN_SEND_REFRESH_INVERVAL</a>&#160;&#160;&#160;(1 * HUNDREDS_OF_NANOS_IN_A_SECOND)</td></tr>
 <tr class="separator:aac110ff8d619b0130abc2091132dab59"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a103b1f79d04f3c8e2211448d130624ef"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="TurnConnection_8h.html#a103b1f79d04f3c8e2211448d130624ef">DEFAULT_TURN_SOCKET_CONNECT_TIMEOUT</a>&#160;&#160;&#160;(5 * HUNDREDS_OF_NANOS_IN_A_SECOND)</td></tr>
-<tr class="separator:a103b1f79d04f3c8e2211448d130624ef"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a48e1c021b2f65ca08715206a5fa1d0cd"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="TurnConnection_8h.html#a48e1c021b2f65ca08715206a5fa1d0cd">DEFAULT_TURN_GET_CREDENTIAL_TIMEOUT</a>&#160;&#160;&#160;(5 * HUNDREDS_OF_NANOS_IN_A_SECOND)</td></tr>
 <tr class="separator:a48e1c021b2f65ca08715206a5fa1d0cd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2f22429cc94cef557135a81a82e1f73c"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="TurnConnection_8h.html#a2f22429cc94cef557135a81a82e1f73c">DEFAULT_TURN_ALLOCATION_TIMEOUT</a>&#160;&#160;&#160;(5 * HUNDREDS_OF_NANOS_IN_A_SECOND)</td></tr>
 <tr class="separator:a2f22429cc94cef557135a81a82e1f73c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a9120f3c52108446ac507a9b7f71b74a5"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="TurnConnection_8h.html#a9120f3c52108446ac507a9b7f71b74a5">DEFAULT_TURN_CREATE_PERMISSION_TIMEOUT</a>&#160;&#160;&#160;(2 * HUNDREDS_OF_NANOS_IN_A_SECOND)</td></tr>
+<tr class="memitem:a9120f3c52108446ac507a9b7f71b74a5"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="TurnConnection_8h.html#a9120f3c52108446ac507a9b7f71b74a5">DEFAULT_TURN_CREATE_PERMISSION_TIMEOUT</a>&#160;&#160;&#160;(5 * HUNDREDS_OF_NANOS_IN_A_SECOND)</td></tr>
 <tr class="separator:a9120f3c52108446ac507a9b7f71b74a5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a703fdd716c686a99932a62df674e6bd2"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="TurnConnection_8h.html#a703fdd716c686a99932a62df674e6bd2">DEFAULT_TURN_BIND_CHANNEL_TIMEOUT</a>&#160;&#160;&#160;(3 * HUNDREDS_OF_NANOS_IN_A_SECOND)</td></tr>
+<tr class="memitem:a703fdd716c686a99932a62df674e6bd2"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="TurnConnection_8h.html#a703fdd716c686a99932a62df674e6bd2">DEFAULT_TURN_BIND_CHANNEL_TIMEOUT</a>&#160;&#160;&#160;(5 * HUNDREDS_OF_NANOS_IN_A_SECOND)</td></tr>
 <tr class="separator:a703fdd716c686a99932a62df674e6bd2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a67174f634964281884f905dbb951e13a"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="TurnConnection_8h.html#a67174f634964281884f905dbb951e13a">DEFAULT_TURN_CLEAN_UP_TIMEOUT</a>&#160;&#160;&#160;(10 * HUNDREDS_OF_NANOS_IN_A_SECOND)</td></tr>
 <tr class="separator:a67174f634964281884f905dbb951e13a"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -211,8 +211,8 @@ Macros</h2></td></tr>
 <tr class="separator:a79f76252257beabace0fabf1c815fb28"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:afeb9d157cc0915697deb724cb2c64830"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="TurnConnection_8h.html#afeb9d157cc0915697deb724cb2c64830">DEFAULT_TURN_MAX_PEER_COUNT</a>&#160;&#160;&#160;32</td></tr>
 <tr class="separator:afeb9d157cc0915697deb724cb2c64830"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a03f579f4369870b66293838d3c054a6e"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="TurnConnection_8h.html#a03f579f4369870b66293838d3c054a6e">DEFAULT_TURN_ALLOCATION_MAX_TRY_COUNT</a>&#160;&#160;&#160;3</td></tr>
-<tr class="separator:a03f579f4369870b66293838d3c054a6e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a478767155f36c094a39b7c9428d8bc71"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="TurnConnection_8h.html#a478767155f36c094a39b7c9428d8bc71">MAX_TURN_PROFILE_LOG_DESC_LEN</a>&#160;&#160;&#160;256</td></tr>
+<tr class="separator:a478767155f36c094a39b7c9428d8bc71"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:acd4da2c733c8b0a0b04e573b332b924e"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="TurnConnection_8h.html#acd4da2c733c8b0a0b04e573b332b924e">TURN_CHANNEL_BIND_CHANNEL_NUMBER_BASE</a>&#160;&#160;&#160;(UINT16) 0x4000</td></tr>
 <tr class="separator:acd4da2c733c8b0a0b04e573b332b924e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6603b35cfd394de7e97f11517700d975"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="TurnConnection_8h.html#a6603b35cfd394de7e97f11517700d975">TURN_DATA_CHANNEL_SEND_OVERHEAD</a>&#160;&#160;&#160;4</td></tr>
@@ -254,6 +254,8 @@ Typedefs</h2></td></tr>
 <tr class="separator:ab08f7b6a169d5cba899aa0ba41277c18"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abd1a7e402d82840884d14a1e0922b8c9"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structTurnPeer.html">TurnPeer</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="TurnConnection_8h.html#abd1a7e402d82840884d14a1e0922b8c9">PTurnPeer</a></td></tr>
 <tr class="separator:abd1a7e402d82840884d14a1e0922b8c9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8e5f0e5c2c93cf9c2414006f33dbcffe"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structTurnProfileDiagnostics.html">TurnProfileDiagnostics</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="TurnConnection_8h.html#a8e5f0e5c2c93cf9c2414006f33dbcffe">PTurnProfileDiagnostics</a></td></tr>
+<tr class="separator:a8e5f0e5c2c93cf9c2414006f33dbcffe"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af93a1148dd38144b328ae817f5ce3a4e"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct____TurnConnection.html">__TurnConnection</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="TurnConnection_8h.html#af93a1148dd38144b328ae817f5ce3a4e">TurnConnection</a></td></tr>
 <tr class="separator:af93a1148dd38144b328ae817f5ce3a4e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aef7a909aaf1e3759cabe2ae9a8514ec8"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct____TurnConnection.html">__TurnConnection</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="TurnConnection_8h.html#aef7a909aaf1e3759cabe2ae9a8514ec8">PTurnConnection</a></td></tr>
@@ -340,20 +342,6 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a03f579f4369870b66293838d3c054a6e"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a03f579f4369870b66293838d3c054a6e">&#9670;&nbsp;</a></span>DEFAULT_TURN_ALLOCATION_MAX_TRY_COUNT</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define DEFAULT_TURN_ALLOCATION_MAX_TRY_COUNT&#160;&#160;&#160;3</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
 <a id="afe39195ff1a063ef698a07b42f355d4e"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#afe39195ff1a063ef698a07b42f355d4e">&#9670;&nbsp;</a></span>DEFAULT_TURN_ALLOCATION_REFRESH_GRACE_PERIOD</h2>
 
@@ -389,7 +377,7 @@ Functions</h2></td></tr>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">#define DEFAULT_TURN_BIND_CHANNEL_TIMEOUT&#160;&#160;&#160;(3 * HUNDREDS_OF_NANOS_IN_A_SECOND)</td>
+          <td class="memname">#define DEFAULT_TURN_BIND_CHANNEL_TIMEOUT&#160;&#160;&#160;(5 * HUNDREDS_OF_NANOS_IN_A_SECOND)</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -431,7 +419,7 @@ Functions</h2></td></tr>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">#define DEFAULT_TURN_CREATE_PERMISSION_TIMEOUT&#160;&#160;&#160;(2 * HUNDREDS_OF_NANOS_IN_A_SECOND)</td>
+          <td class="memname">#define DEFAULT_TURN_CREATE_PERMISSION_TIMEOUT&#160;&#160;&#160;(5 * HUNDREDS_OF_NANOS_IN_A_SECOND)</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -522,20 +510,6 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a103b1f79d04f3c8e2211448d130624ef"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a103b1f79d04f3c8e2211448d130624ef">&#9670;&nbsp;</a></span>DEFAULT_TURN_SOCKET_CONNECT_TIMEOUT</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define DEFAULT_TURN_SOCKET_CONNECT_TIMEOUT&#160;&#160;&#160;(5 * HUNDREDS_OF_NANOS_IN_A_SECOND)</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
 <a id="a04922fa9031bd9d30fad9857bd047de8"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a04922fa9031bd9d30fad9857bd047de8">&#9670;&nbsp;</a></span>DEFAULT_TURN_TIMER_INTERVAL_AFTER_READY</h2>
 
@@ -572,6 +546,20 @@ Functions</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname">#define MAX_TURN_CHANNEL_DATA_MESSAGE_SIZE&#160;&#160;&#160;4 + 65536 /* header + data */</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a478767155f36c094a39b7c9428d8bc71"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a478767155f36c094a39b7c9428d8bc71">&#9670;&nbsp;</a></span>MAX_TURN_PROFILE_LOG_DESC_LEN</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define MAX_TURN_PROFILE_LOG_DESC_LEN&#160;&#160;&#160;256</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -867,6 +855,20 @@ Functions</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname">typedef  struct <a class="el" href="structTurnPeer.html">TurnPeer</a> * <a class="el" href="TurnConnection_8h.html#abd1a7e402d82840884d14a1e0922b8c9">PTurnPeer</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a8e5f0e5c2c93cf9c2414006f33dbcffe"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8e5f0e5c2c93cf9c2414006f33dbcffe">&#9670;&nbsp;</a></span>PTurnProfileDiagnostics</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef  struct <a class="el" href="structTurnProfileDiagnostics.html">TurnProfileDiagnostics</a> * <a class="el" href="TurnConnection_8h.html#a8e5f0e5c2c93cf9c2414006f33dbcffe">PTurnProfileDiagnostics</a></td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -2162,6 +2164,15 @@ Here is the caller graph for this function:</div>
       </table>
 </div><div class="memdoc">
 <div class="dynheader">
+Here is the call graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="TurnConnection_8h_a9d8f5dac06e7eb4beb616050b27c4cd5_cgraph.png" border="0" usemap="#aTurnConnection_8h_a9d8f5dac06e7eb4beb616050b27c4cd5_cgraph" alt=""/></div>
+<map name="aTurnConnection_8h_a9d8f5dac06e7eb4beb616050b27c4cd5_cgraph" id="aTurnConnection_8h_a9d8f5dac06e7eb4beb616050b27c4cd5_cgraph">
+<area shape="rect" title=" " alt="" coords="5,5,248,32"/>
+<area shape="rect" href="Network_8c.html#afaa547109e09c5a34437553b7258e818" title=" " alt="" coords="296,5,399,32"/>
+</map>
+</div>
+<div class="dynheader">
 Here is the caller graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="TurnConnection_8h_a9d8f5dac06e7eb4beb616050b27c4cd5_icgraph.png" border="0" usemap="#aTurnConnection_8h_a9d8f5dac06e7eb4beb616050b27c4cd5_icgraph" alt=""/></div>
@@ -2491,7 +2502,7 @@ Here is the caller graph for this function:</div>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_94e7a0fbe7f8eaf7f05ee7b02c647e9f.html">source</a></li><li class="navelem"><a class="el" href="dir_32510f36cb14405623866513ac2ca2a4.html">Ice</a></li><li class="navelem"><a class="el" href="TurnConnection_8h.html">TurnConnection.h</a></li>
-    <li class="footer">Generated on Fri Jan 5 2024 22:00:57 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Tue Jan 16 2024 18:46:36 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>
