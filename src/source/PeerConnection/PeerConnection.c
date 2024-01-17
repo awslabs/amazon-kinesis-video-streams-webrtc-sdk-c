@@ -293,7 +293,7 @@ CleanUp:
         pTransceiver->inboundStats.headerBytesReceived += headerBytesReceived;
         pTransceiver->inboundStats.bytesReceived += bytesReceived;
         pTransceiver->inboundStats.received.jitter = pTransceiver->pJitterBuffer->jitter / pTransceiver->pJitterBuffer->clockRate;
-        pTransceiver->inboundStats.received.packetsDiscarded = packetsDiscarded;
+        pTransceiver->inboundStats.received.packetsDiscarded += packetsDiscarded;
         MUTEX_UNLOCK(pTransceiver->statsLock);
     }
     if (!ownedByJitterBuffer) {
