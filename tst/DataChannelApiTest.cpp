@@ -1,5 +1,6 @@
 #include "WebRTCClientTestFixture.h"
 
+#ifdef ENABLE_DATA_CHANNEL
 namespace com {
 namespace amazonaws {
 namespace kinesis {
@@ -37,3 +38,5 @@ TEST_F(DataChannelApiTest, createDataChannel_Disconnected)
 } // namespace kinesis
 } // namespace amazonaws
 } // namespace com
+
+#endif
