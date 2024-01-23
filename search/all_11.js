@@ -1,8 +1,8 @@
 var searchData=
 [
-  ['qpsum_1608',['qpSum',['../structRtcOutboundRtpStreamStats.html#a7b5258b117ec34aa05092e6840f10a04',1,'RtcOutboundRtpStreamStats::qpSum()'],['../structRtcInboundRtpStreamStats.html#a41a03d4e1c66f3c91a849c5089b772fc',1,'RtcInboundRtpStreamStats::qpSum()']]],
-  ['qualitylimitationdurations_1609',['qualityLimitationDurations',['../structRtcOutboundRtpStreamStats.html#aaa15ed430daffabe10164e88b07d5a1c',1,'RtcOutboundRtpStreamStats']]],
-  ['qualitylimitationdurationsrecord_1610',['QualityLimitationDurationsRecord',['../structQualityLimitationDurationsRecord.html',1,'']]],
-  ['qualitylimitationreason_1611',['qualityLimitationReason',['../structQualityLimitationDurationsRecord.html#a8606dc7d8a3dd3c5f0cd9b8bf6630ca8',1,'QualityLimitationDurationsRecord::qualityLimitationReason()'],['../structRtcOutboundRtpStreamStats.html#a4d0dbe884c0e806618cb197caaa7d679',1,'RtcOutboundRtpStreamStats::qualityLimitationReason()']]],
-  ['qualitylimitationresolutionchanges_1612',['qualityLimitationResolutionChanges',['../structRtcOutboundRtpStreamStats.html#ad54c4e64935776d25af0dc376f7185ab',1,'RtcOutboundRtpStreamStats']]]
+  ['qpsum_1605',['qpSum',['../structRtcOutboundRtpStreamStats.html#a7b5258b117ec34aa05092e6840f10a04',1,'RtcOutboundRtpStreamStats::qpSum()'],['../structRtcInboundRtpStreamStats.html#a41a03d4e1c66f3c91a849c5089b772fc',1,'RtcInboundRtpStreamStats::qpSum()']]],
+  ['qualitylimitationdurations_1606',['qualityLimitationDurations',['../structRtcOutboundRtpStreamStats.html#aaa15ed430daffabe10164e88b07d5a1c',1,'RtcOutboundRtpStreamStats']]],
+  ['qualitylimitationdurationsrecord_1607',['QualityLimitationDurationsRecord',['../structQualityLimitationDurationsRecord.html',1,'']]],
+  ['qualitylimitationreason_1608',['qualityLimitationReason',['../structQualityLimitationDurationsRecord.html#a8606dc7d8a3dd3c5f0cd9b8bf6630ca8',1,'QualityLimitationDurationsRecord::qualityLimitationReason()'],['../structRtcOutboundRtpStreamStats.html#a4d0dbe884c0e806618cb197caaa7d679',1,'RtcOutboundRtpStreamStats::qualityLimitationReason()']]],
+  ['qualitylimitationresolutionchanges_1609',['qualityLimitationResolutionChanges',['../structRtcOutboundRtpStreamStats.html#ad54c4e64935776d25af0dc376f7185ab',1,'RtcOutboundRtpStreamStats']]]
 ];

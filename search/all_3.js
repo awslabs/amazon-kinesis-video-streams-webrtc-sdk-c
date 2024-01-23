@@ -83,7 +83,7 @@ var searchData=
   ['connection_5flistener_5fkick_5fsocket_5fwrite_163',['CONNECTION_LISTENER_KICK_SOCKET_WRITE',['../ConnectionListener_8h.html#a383df893eaeda67eb466665a1ac0ba06',1,'ConnectionListener.h']]],
   ['connection_5flistener_5fshutdown_5ftimeout_164',['CONNECTION_LISTENER_SHUTDOWN_TIMEOUT',['../ConnectionListener_8h.html#a5dd03244bebe143ff20363fd75799a9c',1,'ConnectionListener.h']]],
   ['connection_5flistener_5fsocket_5fwait_5ffor_5fdata_5ftimeout_165',['CONNECTION_LISTENER_SOCKET_WAIT_FOR_DATA_TIMEOUT',['../ConnectionListener_8h.html#a2899474a732dab5b403a1a8ed6edae1e',1,'ConnectionListener.h']]],
-  ['connectionaddress_166',['connectionAddress',['../structSdpConnectionInformation.html#adbd96a6fbdfb44c0774c1aa833451594',1,'SdpConnectionInformation']]],
+  ['connectionaddress_166',['connectionAddress',['../structSdpConnectionInformation.html#a2e1a94e0f36aca2120b9f98998ddd7c9',1,'SdpConnectionInformation']]],
   ['connectionclosed_167',['connectionClosed',['../struct____SocketConnection.html#a3b413b1b97c018b29fa2a763e31fddae',1,'__SocketConnection']]],
   ['connectiondataavailablefunc_168',['ConnectionDataAvailableFunc',['../SocketConnection_8h.html#a93b97a5cd84f23921fd498da3a996a83',1,'SocketConnection.h']]],
   ['connectionduration_169',['connectionDuration',['../structSignalingClientStats.html#a11d655b6febcfa1b84596b769248d086',1,'SignalingClientStats']]],
