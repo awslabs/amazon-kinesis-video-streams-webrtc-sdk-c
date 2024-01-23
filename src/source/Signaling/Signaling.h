@@ -373,10 +373,6 @@ typedef struct {
     UINT64 connectTime;
     UINT64 describeMediaTime;
     UINT64 answerTime;
-
-#ifdef KVS_USE_SIGNALING_CHANNEL_THREADPOOL
-    PThreadpool pThreadpool;
-#endif
     UINT64 offerReceivedTime;
     UINT64 offerSentTime;
 
