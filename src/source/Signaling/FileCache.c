@@ -147,7 +147,7 @@ STATUS signalingCacheLoadFromFile(PCHAR channelName, PCHAR region, SIGNALING_CHA
         /* +1 for null terminator */
         fileBuffer = MEMCALLOC(1, (fileSize + 1) * SIZEOF(CHAR));
         CHK(fileBuffer != NULL, STATUS_NOT_ENOUGH_MEMORY);
-        CHK_STATUS(readFile(cacheFilePath, FALSE, (PBYTE) fileBuffer, &fileSize));
+        CHK_STATUS(readFile(cacheFilePath, TRUE, (PBYTE) fileBuffer, &fileSize));
 
         CHK_STATUS(deserializeSignalingCacheEntries(fileBuffer, fileSize, entries, &entryCount, cacheFilePath));
 
