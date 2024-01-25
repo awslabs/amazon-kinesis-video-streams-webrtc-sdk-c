@@ -82,6 +82,7 @@ STATUS tlsSessionStart(PTlsSession pTlsSession, BOOL isServer)
     SSL_CTX_set_read_ahead(pTlsSession->pSslCtx, 1);
     SSL_CTX_set_verify(pTlsSession->pSslCtx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, tlsSessionCertificateVerifyCallback);
     CHK(SSL_CTX_set_cipher_list(pTlsSession->pSslCtx, "HIGH:!aNULL:!MD5:!RC4"), STATUS_SSL_CTX_CREATION_FAILED);
+    SSL_CTX_set_mode(pTlsSession->pSslCtx, SSL_CTX_get_mode(pTlsSession->pSslCtx) | SSL_MODE_RELEASE_BUFFERS);
 
     pTlsSession->pSsl = SSL_new(pTlsSession->pSslCtx);
     CHK(pTlsSession->pSsl != NULL, STATUS_CREATE_SSL_FAILED);
@@ -190,7 +191,6 @@ STATUS tlsSessionPutApplicationData(PTlsSession pTlsSession, PBYTE pData, UINT32
     PCHAR wBioBuffer = NULL;
 
     CHK(pTlsSession != NULL, STATUS_NULL_ARG);
-
     if (SSL_is_init_finished(pTlsSession->pSsl)) {
         tlsSessionChangeState(pTlsSession, TLS_SESSION_STATE_CONNECTED);
 

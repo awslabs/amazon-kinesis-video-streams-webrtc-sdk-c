@@ -184,6 +184,7 @@ PVOID mediaSenderRoutine(PVOID customData)
         THREAD_JOIN(pSampleConfiguration->audioSenderTid, NULL);
     }
 
+
 CleanUp:
     // clean the flag of the media thread.
     ATOMIC_STORE_BOOL(&pSampleConfiguration->mediaThreadStarted, FALSE);
@@ -205,6 +206,7 @@ STATUS handleOffer(PSampleConfiguration pSampleConfiguration, PSampleStreamingSe
     DLOGD("**offer:%s", pSignalingMessage->payload);
     CHK_STATUS(deserializeSessionDescriptionInit(pSignalingMessage->payload, pSignalingMessage->payloadLen, &offerSessionDescriptionInit));
     CHK_STATUS(setRemoteDescription(pSampleStreamingSession->pPeerConnection, &offerSessionDescriptionInit));
+    DLOGI("Success");
     canTrickle = canTrickleIceCandidates(pSampleStreamingSession->pPeerConnection);
     /* cannot be null after setRemoteDescription */
     CHECK(!NULLABLE_CHECK_EMPTY(canTrickle));
@@ -218,6 +220,7 @@ STATUS handleOffer(PSampleConfiguration pSampleConfiguration, PSampleStreamingSe
         CHK_STATUS(createAnswer(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->answerSessionDescriptionInit));
         CHK_STATUS(respondWithAnswer(pSampleStreamingSession));
     }
+
 
     mediaThreadStarted = ATOMIC_EXCHANGE_BOOL(&pSampleConfiguration->mediaThreadStarted, TRUE);
     if (!mediaThreadStarted) {
@@ -285,7 +288,6 @@ STATUS respondWithAnswer(PSampleStreamingSession pSampleStreamingSession)
     SNPRINTF(message.correlationId, MAX_CORRELATION_ID_LEN, "%llu_%llu", GETTIME(), ATOMIC_INCREMENT(&pSampleStreamingSession->correlationIdPostFix));
     DLOGD("Responding With Answer With correlationId: %s", message.correlationId);
     CHK_STATUS(sendSignalingMessage(pSampleStreamingSession, &message));
-
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
@@ -396,7 +398,7 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     configuration.kvsRtcConfiguration.iceSetInterfaceFilterFunc = NULL;
 
     // Set the ICE mode explicitly
-    configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_ALL;
+    configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_RELAY;
 
     // Set the  STUN server
     PCHAR pKinesisVideoStunUrlPostFix = KINESIS_VIDEO_STUN_URL_POSTFIX;
@@ -519,6 +521,7 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
 
     pSampleStreamingSession->pAudioRtcRtpTransceiver = NULL;
     pSampleStreamingSession->pVideoRtcRtpTransceiver = NULL;
+
 
     pSampleStreamingSession->pSampleConfiguration = pSampleConfiguration;
     pSampleStreamingSession->rtcMetricsHistory.prevTs = GETTIME();
@@ -851,6 +854,7 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
 
     pSampleConfiguration->channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
     pSampleConfiguration->channelInfo.pChannelName = channelName;
+    pSampleConfiguration->terminateTid = INVALID_TID_VALUE;
 #ifdef IOT_CORE_ENABLE_CREDENTIALS
     if ((pIotCoreCertificateId = GETENV(IOT_CORE_CERTIFICATE_ID)) != NULL) {
         pSampleConfiguration->channelInfo.pChannelName = pIotCoreCertificateId;
@@ -1150,6 +1154,9 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
 
     CHK(pSampleConfiguration != NULL, retStatus);
 
+    if(pSampleConfiguration->terminateTid != INVALID_TID_VALUE) {
+        THREAD_JOIN(pSampleConfiguration->terminateTid, NULL);
+    }
     if (IS_VALID_TIMER_QUEUE_HANDLE(pSampleConfiguration->timerQueueHandle)) {
         if (pSampleConfiguration->iceCandidatePairStatsTimerId != MAX_UINT32) {
             retStatus = timerQueueCancelTimer(pSampleConfiguration->timerQueueHandle, pSampleConfiguration->iceCandidatePairStatsTimerId,
@@ -1395,11 +1402,23 @@ CleanUp:
     return retStatus;
 }
 
+PVOID terminate(PVOID args) {
+    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
+    UINT64 currentTime = GETTIME();
+    while(GETTIME() < currentTime + (5 * HUNDREDS_OF_NANOS_IN_A_MINUTE)) {
+        ;
+    }
+
+    ATOMIC_STORE_BOOL(&pSampleConfiguration->appTerminateFlag, TRUE);
+    ATOMIC_STORE_BOOL(&pSampleConfiguration->interrupted, TRUE);
+    return NULL;
+}
+
 STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pReceivedSignalingMessage)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) customData;
-    BOOL peerConnectionFound = FALSE, locked = FALSE, startStats = FALSE, freeStreamingSession = FALSE;
+    BOOL peerConnectionFound = FALSE, locked = FALSE, startStats = FALSE;
     UINT32 clientIdHash;
     UINT64 hashValue = 0;
     PPendingMessageQueue pPendingMessageQueue = NULL;
@@ -1445,7 +1464,10 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
             }
             CHK_STATUS(createSampleStreamingSession(pSampleConfiguration, pReceivedSignalingMessage->signalingMessage.peerClientId, TRUE,
                                                     &pSampleStreamingSession));
-            freeStreamingSession = TRUE;
+            MUTEX_LOCK(pSampleConfiguration->streamingSessionListReadLock);
+            pSampleConfiguration->sampleStreamingSessionList[pSampleConfiguration->streamingSessionCount++] = pSampleStreamingSession;
+            MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
+
             CHK_STATUS(handleOffer(pSampleConfiguration, pSampleStreamingSession, &pReceivedSignalingMessage->signalingMessage));
             CHK_STATUS(hashTablePut(pSampleConfiguration->pRtcPeerConnectionForRemoteClient, clientIdHash, (UINT64) pSampleStreamingSession));
 
@@ -1459,12 +1481,12 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
                 pPendingMessageQueue = NULL;
             }
 
-            MUTEX_LOCK(pSampleConfiguration->streamingSessionListReadLock);
-            pSampleConfiguration->sampleStreamingSessionList[pSampleConfiguration->streamingSessionCount++] = pSampleStreamingSession;
-            MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
-            freeStreamingSession = FALSE;
-
             startStats = pSampleConfiguration->iceCandidatePairStatsTimerId == MAX_UINT32;
+//            pSampleConfiguration->terminate = terminate;
+//            DLOGI("Recevied offer, starting thread");
+//            if (pSampleConfiguration->terminate != NULL) {
+//                THREAD_CREATE(&pSampleConfiguration->terminateTid, pSampleConfiguration->terminate, (PVOID) pSampleConfiguration);
+//            }
             break;
 
         case SIGNALING_MESSAGE_TYPE_ANSWER:
@@ -1546,10 +1568,6 @@ CleanUp:
     SAFE_MEMFREE(pReceivedSignalingMessageCopy);
     if (pPendingMessageQueue != NULL) {
         freeMessageQueue(pPendingMessageQueue);
-    }
-
-    if (freeStreamingSession && pSampleStreamingSession != NULL) {
-        freeSampleStreamingSession(&pSampleStreamingSession);
     }
 
     if (locked) {

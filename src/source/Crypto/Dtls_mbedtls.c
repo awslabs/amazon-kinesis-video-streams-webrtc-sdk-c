@@ -298,7 +298,7 @@ STATUS dtlsSessionStart(PDtlsSession pDtlsSession, BOOL isServer)
     pDtlsSession->dtlsSessionStartTime = GETTIME();
     CHK_STATUS(timerQueueAddTimer(pDtlsSession->timerQueueHandle, DTLS_SESSION_TIMER_START_DELAY, DTLS_TRANSMISSION_INTERVAL,
                                   dtlsTransmissionTimerCallback, (UINT64) pDtlsSession, &pDtlsSession->timerId));
-
+    DLOGI("Starting mbedtls dtls session");
 CleanUp:
     if (locked) {
         MUTEX_UNLOCK(pDtlsSession->sslLock);

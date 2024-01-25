@@ -296,6 +296,7 @@ STATUS executeGetCredentialsTurnState(UINT64 customData, UINT64 time)
         /* We dont support DTLS and TCP, so only options are TCP/TLS and UDP. */
         /* TODO: add plain TCP once it becomes available. */
         if (pTurnConnection->protocol == KVS_SOCKET_PROTOCOL_TCP && pTurnConnection->pControlChannel->pTlsSession == NULL) {
+            DLOGI("Secure connection start");
             CHK_STATUS(socketConnectionInitSecureConnection(pTurnConnection->pControlChannel, FALSE));
         }
         pTurnConnection->state = TURN_STATE_GET_CREDENTIALS;

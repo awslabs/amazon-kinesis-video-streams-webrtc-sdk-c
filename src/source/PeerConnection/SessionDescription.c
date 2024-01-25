@@ -413,7 +413,7 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
         CHK_STATUS(hashTableGet(pUnknownCodecPayloadTypesTable, unknownCodecHashTableKey, &payloadType));
     } else {
         CHK_STATUS(hashTableGet(pKvsPeerConnection->pCodecTable, pRtcMediaStreamTrack->codec, &payloadType));
-        currentFmtp = fmtpForPayloadType(payloadType, &(pKvsPeerConnection->remoteSessionDescription));
+        currentFmtp = fmtpForPayloadType(payloadType, pKvsPeerConnection->pRemoteSessionDescription);
     }
 
     if (pRtcMediaStreamTrack->kind == MEDIA_STREAM_TRACK_KIND_VIDEO) {
@@ -910,8 +910,8 @@ STATUS populateSessionDescriptionMedia(PKvsPeerConnection pKvsPeerConnection, PS
         }
     } else {
         pDtlsRole = DTLS_ROLE_ACTIVE;
-        CHK_STATUS(hashTableCreate(&pUnknownCodecPayloadTypesTable));
-        CHK_STATUS(hashTableCreate(&pUnknownCodecRtpmapTable));
+        CHK_STATUS(hashTableCreateWithParams(100, 2, &pUnknownCodecPayloadTypesTable));
+        CHK_STATUS(hashTableCreateWithParams(100, 2, &pUnknownCodecRtpmapTable));
 
         // this function creates a list of transceivers corresponding to each m-line and adds it answerTransceivers
         // if an m-line does not have a corresponding transceiver created by the user, we create a fake transceiver
@@ -1112,7 +1112,7 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
     PRtcMediaStreamTrack pRtcMediaStreamTrack;
     RtcMediaStreamTrack track;
 
-    CHK_STATUS(hashTableCreate(&pSeenTransceivers)); // to be used by findCodecInTransceivers
+    CHK_STATUS(hashTableCreateWithParams(100, 2, &pSeenTransceivers));
 
     // sample m-lines
     // m=audio 9 UDP/TLS/RTP/SAVPF 111 63 103 104 9 0 8 106 105 13 110 112 113 126

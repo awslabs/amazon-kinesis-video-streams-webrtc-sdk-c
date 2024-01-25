@@ -1812,7 +1812,6 @@ PUBLIC_API STATUS setLocalDescription(PRtcPeerConnection, PRtcSessionDescription
  * @return STATUS code of the execution. STATUS_SUCCESS on success
  */
 PUBLIC_API STATUS setRemoteDescription(PRtcPeerConnection, PRtcSessionDescriptionInit);
-
 /**
  * @brief Instructs the RtcPeerConnection that ICE should be restarted. Subsequent calls to createOffer will create
  * descriptions to restart ICE.

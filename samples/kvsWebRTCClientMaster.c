@@ -4,6 +4,7 @@ extern PSampleConfiguration gSampleConfiguration;
 
 INT32 main(INT32 argc, CHAR* argv[])
 {
+    THREAD_SLEEP(30 * HUNDREDS_OF_NANOS_IN_A_SECOND);
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 frameSize;
     PSampleConfiguration pSampleConfiguration = NULL;

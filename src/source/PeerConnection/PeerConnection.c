@@ -842,7 +842,6 @@ PVOID resolveStunIceServerIp(PVOID args)
     PCHAR pRegion;
     PCHAR pHostnamePostfix;
     UINT64 stunDnsResolutionStartTime = 0;
-
     if (ATOMIC_LOAD_BOOL(&pWebRtcClientContext->isContextInitialized)) {
         MUTEX_LOCK(pWebRtcClientContext->stunCtxlock);
         locked = TRUE;
@@ -906,6 +905,7 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
     MEMSET(&dtlsSessionCallbacks, 0, SIZEOF(DtlsSessionCallbacks));
 
     pKvsPeerConnection = (PKvsPeerConnection) MEMCALLOC(1, SIZEOF(KvsPeerConnection));
+    DLOGI("Sizeof peer connection: %d", SIZEOF(KvsPeerConnection));
     CHK(pKvsPeerConnection != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
     CHK_STATUS(timerQueueCreate(&pKvsPeerConnection->timerQueueHandle));
@@ -923,7 +923,9 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
     CHK_STATUS(dtlsSessionOnStateChange(pKvsPeerConnection->pDtlsSession, (UINT64) pKvsPeerConnection, onDtlsStateChange));
 
     CHK_STATUS(hashTableCreateWithParams(CODEC_HASH_TABLE_BUCKET_COUNT, CODEC_HASH_TABLE_BUCKET_LENGTH, &pKvsPeerConnection->pCodecTable));
+#ifdef ENABLE_DATA_CHANNEL
     CHK_STATUS(hashTableCreateWithParams(CODEC_HASH_TABLE_BUCKET_COUNT, CODEC_HASH_TABLE_BUCKET_LENGTH, &pKvsPeerConnection->pDataChannels));
+#endif
     CHK_STATUS(hashTableCreateWithParams(RTX_HASH_TABLE_BUCKET_COUNT, RTX_HASH_TABLE_BUCKET_LENGTH, &pKvsPeerConnection->pRtxTable));
     CHK_STATUS(doubleListCreate(&(pKvsPeerConnection->pTransceivers)));
     CHK_STATUS(doubleListCreate(&(pKvsPeerConnection->pFakeTransceivers)));
@@ -1214,7 +1216,7 @@ STATUS peerConnectionGetLocalDescription(PRtcPeerConnection pRtcPeerConnection, 
         pRtcSessionDescriptionInit->type = SDP_TYPE_ANSWER;
     }
 
-    CHK_STATUS(populateSessionDescription(pKvsPeerConnection, &(pKvsPeerConnection->remoteSessionDescription), pSessionDescription));
+    CHK_STATUS(populateSessionDescription(pKvsPeerConnection, pKvsPeerConnection->pRemoteSessionDescription, pSessionDescription));
     CHK_STATUS(serializeSessionDescription(pSessionDescription, NULL, &serializeLen));
     CHK(serializeLen <= MAX_SESSION_DESCRIPTION_INIT_SDP_LEN, STATUS_NOT_ENOUGH_MEMORY);
 
@@ -1237,12 +1239,13 @@ STATUS peerConnectionGetCurrentLocalDescription(PRtcPeerConnection pRtcPeerConne
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pRtcPeerConnection;
 
     CHK(pRtcPeerConnection != NULL && pRtcSessionDescriptionInit != NULL, STATUS_NULL_ARG);
-    // do nothing if remote session description hasn't been received
-    CHK(pKvsPeerConnection->remoteSessionDescription.sessionName[0] != '\0', retStatus);
+//    // do nothing if remote session description hasn't been received
+//    CHK(pKvsPeerConnection->remoteSessionDescription.sessionName[0] != '\0', retStatus);
+    CHK(pKvsPeerConnection->pRemoteSessionDescription != NULL, retStatus);
 
     CHK(NULL != (pSessionDescription = (PSessionDescription) MEMCALLOC(1, SIZEOF(SessionDescription))), STATUS_NOT_ENOUGH_MEMORY);
 
-    CHK_STATUS(populateSessionDescription(pKvsPeerConnection, &(pKvsPeerConnection->remoteSessionDescription), pSessionDescription));
+    CHK_STATUS(populateSessionDescription(pKvsPeerConnection, pKvsPeerConnection->pRemoteSessionDescription, pSessionDescription));
 
     CHK_STATUS(serializeSessionDescription(pSessionDescription, NULL, &serializeLen));
     CHK(serializeLen <= MAX_SESSION_DESCRIPTION_INIT_SDP_LEN, STATUS_NOT_ENOUGH_MEMORY);
@@ -1278,21 +1281,22 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PCHAR remoteIceUfrag = NULL, remoteIcePwd = NULL;
+    PSessionDescription pSessionDescription = NULL;
     UINT32 i, j;
 
     CHK(pPeerConnection != NULL, STATUS_NULL_ARG);
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pPeerConnection;
-    PSessionDescription pSessionDescription = &pKvsPeerConnection->remoteSessionDescription;
 
-    CHK(pSessionDescriptionInit != NULL, STATUS_NULL_ARG);
+    CHK(NULL != (pSessionDescription = (PSessionDescription) MEMCALLOC(1, SIZEOF(SessionDescription))), STATUS_NOT_ENOUGH_MEMORY);
+    pKvsPeerConnection->pRemoteSessionDescription = pSessionDescription;
 
-    MEMSET(pSessionDescription, 0x00, SIZEOF(SessionDescription));
+            CHK(pSessionDescriptionInit != NULL, STATUS_NULL_ARG);
+
     pKvsPeerConnection->dtlsIsServer = FALSE;
     /* Assume cant trickle at first */
     NULLABLE_SET_VALUE(pKvsPeerConnection->canTrickleIce, FALSE);
 
     CHK_STATUS(deserializeSessionDescription(pSessionDescription, pSessionDescriptionInit->sdp));
-
     for (i = 0; i < pSessionDescription->sessionAttributesCount; i++) {
         if (STRCMP(pSessionDescription->sdpAttributes[i].attributeName, "fingerprint") == 0) {
             STRNCPY(pKvsPeerConnection->remoteCertificateFingerprint, pSessionDescription->sdpAttributes[i].attributeValue + 8,
@@ -1362,13 +1366,11 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
     // This starts the state machine timer callback that transitions states periodically
     CHK_STATUS(iceAgentStartAgent(pKvsPeerConnection->pIceAgent, pKvsPeerConnection->remoteIceUfrag, pKvsPeerConnection->remoteIcePwd,
                                   pKvsPeerConnection->isOffer));
-
     if (!pKvsPeerConnection->isOffer) {
         CHK_STATUS(setPayloadTypesFromOffer(pKvsPeerConnection->pCodecTable, pKvsPeerConnection->pRtxTable, pSessionDescription));
     }
     CHK_STATUS(setTransceiverPayloadTypes(pKvsPeerConnection->pCodecTable, pKvsPeerConnection->pRtxTable, pKvsPeerConnection->pTransceivers));
     CHK_STATUS(setReceiversSsrc(pSessionDescription, pKvsPeerConnection->pTransceivers));
-
     if (NULL != GETENV(DEBUG_LOG_SDP)) {
         DLOGD("REMOTE_SDP:%s\n", pSessionDescriptionInit->sdp);
     }
@@ -1403,7 +1405,7 @@ STATUS createOffer(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionIni
 #endif
 
     CHK_STATUS(setPayloadTypesForOffer(pKvsPeerConnection->pCodecTable));
-    CHK_STATUS(populateSessionDescription(pKvsPeerConnection, &(pKvsPeerConnection->remoteSessionDescription), pSessionDescription));
+    CHK_STATUS(populateSessionDescription(pKvsPeerConnection, pKvsPeerConnection->pRemoteSessionDescription, pSessionDescription));
     CHK_STATUS(serializeSessionDescription(pSessionDescription, NULL, &serializeLen));
     CHK(serializeLen <= MAX_SESSION_DESCRIPTION_INIT_SDP_LEN, STATUS_NOT_ENOUGH_MEMORY);
     CHK_STATUS(serializeSessionDescription(pSessionDescription, pSessionDescriptionInit->sdp, &serializeLen));
@@ -1419,6 +1421,13 @@ CleanUp:
     return retStatus;
 }
 
+STATUS freeRemoteDescription(PKvsPeerConnection pKvsPeerConnection) {
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    SAFE_MEMFREE(pKvsPeerConnection->pRemoteSessionDescription);
+    return STATUS_SUCCESS;
+}
+
 STATUS createAnswer(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionInit pSessionDescriptionInit)
 {
     ENTERS();
@@ -1427,8 +1436,7 @@ STATUS createAnswer(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionIn
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pPeerConnection;
 
     CHK(pKvsPeerConnection != NULL && pSessionDescriptionInit != NULL, STATUS_NULL_ARG);
-    CHK(pKvsPeerConnection->remoteSessionDescription.sessionName[0] != '\0', STATUS_PEERCONNECTION_CREATE_ANSWER_WITHOUT_REMOTE_DESCRIPTION);
-
+    CHK(pKvsPeerConnection->pRemoteSessionDescription != NULL, STATUS_PEERCONNECTION_CREATE_ANSWER_WITHOUT_REMOTE_DESCRIPTION);
     pSessionDescriptionInit->type = SDP_TYPE_ANSWER;
     pKvsPeerConnection->isOffer = FALSE;
 
@@ -1437,6 +1445,7 @@ STATUS createAnswer(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionIn
     if (NULL != GETENV(DEBUG_LOG_SDP)) {
         DLOGD("LOCAL_SDP:%s", pSessionDescriptionInit->sdp);
     }
+    CHK_STATUS(freeRemoteDescription(pKvsPeerConnection));
 CleanUp:
 
     LEAVES();
@@ -1755,7 +1764,10 @@ STATUS twccManagerOnPacketSent(PKvsPeerConnection pc, PRtpPacket pRtpPacket)
     locked = TRUE;
 
     seqNum = TWCC_SEQNUM(pRtpPacket->header.extensionPayload);
+//    DLOGI("Sequence number: %d", seqNum);
     CHK_STATUS(stackQueueEnqueue(&pc->pTwccManager->twccPackets, seqNum));
+    CHK_STATUS(stackQueuePeek(&pc->pTwccManager->twccPackets, &sn));
+//    DLOGI("Stack recent: %d", sn);
     pc->pTwccManager->twccPacketBySeqNum[seqNum].seqNum = seqNum;
     pc->pTwccManager->twccPacketBySeqNum[seqNum].packetSize = pRtpPacket->payloadLength;
     pc->pTwccManager->twccPacketBySeqNum[seqNum].localTimeKvs = pRtpPacket->sentTime;
@@ -1769,6 +1781,7 @@ STATUS twccManagerOnPacketSent(PKvsPeerConnection pc, PRtpPacket pRtpPacket)
         lastLocalTimeKvs = pRtpPacket->sentTime;
         ageOfOldest = lastLocalTimeKvs - firstTimeKvs;
         if (ageOfOldest > TWCC_ESTIMATOR_TIME_WINDOW) {
+//            DLOGI("Removed");
             CHK_STATUS(stackQueueDequeue(&pc->pTwccManager->twccPackets, &sn));
             CHK_STATUS(stackQueueIsEmpty(&pc->pTwccManager->twccPackets, &isEmpty));
         } else {

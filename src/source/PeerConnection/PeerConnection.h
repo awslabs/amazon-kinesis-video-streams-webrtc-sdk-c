@@ -85,7 +85,7 @@ typedef struct {
 
     PSctpSession pSctpSession;
 
-    SessionDescription remoteSessionDescription;
+    PSessionDescription pRemoteSessionDescription;
     PDoubleList pTransceivers;
     PDoubleList pFakeTransceivers;
     PDoubleList pAnswerTransceivers;
