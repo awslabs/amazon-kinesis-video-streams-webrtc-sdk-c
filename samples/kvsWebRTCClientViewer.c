@@ -129,7 +129,7 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
 
     switch (pSampleStreamingSession->pAudioRtcRtpTransceiver->receiver.track.codec) {
         case RTC_CODEC_OPUS:
-            audioDescription = "appsrc name=appsrc-audio ! audio/x-opus ! opusparse ! queue ! mux.";
+            audioDescription = "appsrc name=appsrc-audio ! audio/x-opus ! opusparse ! queue ! mux. ";
             audiocaps = gst_caps_new_simple("audio/x-opus",
                                                      "rate", G_TYPE_INT, 48000,
                                                      "channels", G_TYPE_INT, 2,
@@ -137,14 +137,14 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
             break;
 
         case RTC_CODEC_MULAW:
-            audioDescription = "appsrc name=appsrc-audio ! audio/x-mulaw, rate=8000, channels=1 ! mulawdec ! audioconvert ! queue ! mux.";
+            audioDescription = "appsrc name=appsrc-audio ! audio/x-mulaw, rate=8000, channels=1 ! mulawdec ! audioconvert ! queue ! mux. ";
              audiocaps = gst_caps_new_simple("audio/x-mulaw",
                                                      "rate", G_TYPE_INT, 8000,
                                                      "channels", G_TYPE_INT, 1,
                                                      NULL);
             break;
         case RTC_CODEC_ALAW:
-            audioDescription = "appsrc name=appsrc-audio ! audio/x-alaw, rate=8000, channels=1 ! alawdec ! audioconvert ! queue ! mux.";
+            audioDescription = "appsrc name=appsrc-audio ! audio/x-alaw, rate=8000, channels=1 ! alawdec ! audioconvert ! queue ! mux. ";
              audiocaps = gst_caps_new_simple("audio/x-alaw",
                                                      "rate", G_TYPE_INT, 8000,
                                                      "channels", G_TYPE_INT, 1,
@@ -155,7 +155,7 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
             break;
     }
 
-    audioVideoDescription = g_strjoin(" ", audioDescription, videoDescription, NULL);
+    audioVideoDescription = g_strjoin(" ", videoDescription, audioDescription, NULL);
     DLOGI("Pipeline: %s", audioVideoDescription);
     pipeline = gst_parse_launch(audioVideoDescription, &error);
     CHK_ERR(pipeline != NULL, STATUS_INTERNAL_ERROR, "[KVS Gstreamer Viewer] Pipeline is NULL");
