@@ -1391,7 +1391,6 @@ STATUS createOffer(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionIni
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pPeerConnection;
 
     CHK(pKvsPeerConnection != NULL && pSessionDescriptionInit != NULL, STATUS_NULL_ARG);
-
     // SessionDescription is large enough structure to not define on the stack and use heap memory
     CHK(NULL != (pSessionDescription = (PSessionDescription) MEMCALLOC(1, SIZEOF(SessionDescription))), STATUS_NOT_ENOUGH_MEMORY);
     pSessionDescriptionInit->type = SDP_TYPE_OFFER;
@@ -1411,7 +1410,7 @@ STATUS createOffer(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionIni
     CHK_STATUS(serializeSessionDescription(pSessionDescription, pSessionDescriptionInit->sdp, &serializeLen));
     // If embedded SDK acts as the viewer
     if (NULL != GETENV(DEBUG_LOG_SDP)) {
-        DLOGD("LOCAL_SDP:%s", pSessionDescriptionInit->sdp);
+        DLOGI("LOCAL_SDP:%s", pSessionDescriptionInit->sdp);
     }
 CleanUp:
 
@@ -1442,9 +1441,9 @@ STATUS createAnswer(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionIn
 
     CHK_STATUS(peerConnectionGetCurrentLocalDescription(pPeerConnection, pSessionDescriptionInit));
     // If embedded SDK acts as the master
-    if (NULL != GETENV(DEBUG_LOG_SDP)) {
-        DLOGD("LOCAL_SDP:%s", pSessionDescriptionInit->sdp);
-    }
+//    if (NULL != GETENV(DEBUG_LOG_SDP)) {
+        DLOGI("LOCAL_SDP:%s", pSessionDescriptionInit->sdp);
+//    }
     CHK_STATUS(freeRemoteDescription(pKvsPeerConnection));
 CleanUp:
 

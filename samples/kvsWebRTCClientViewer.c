@@ -1,4 +1,6 @@
 #include "Samples.h"
+#include <gst/gst.h>
+#include <gst/app/gstappsrc.h>
 
 extern PSampleConfiguration gSampleConfiguration;
 
@@ -31,6 +33,110 @@ VOID dataChannelOnOpenCallback(UINT64 customData, PRtcDataChannel pDataChannel)
 }
 #endif
 
+VOID onSampleStreamingSessionShutdown(UINT64 customData, PSampleStreamingSession pSampleStreamingSession)
+{
+    (void) (pSampleStreamingSession);
+    GstElement* appsrc = (GstElement*) customData;
+    GstFlowReturn ret;
+
+    g_signal_emit_by_name(appsrc, "end-of-stream", &ret);
+}
+
+VOID onGstVideoFrameReady(UINT64 customData, PFrame pFrame)
+{
+    GstFlowReturn ret;
+    GstBuffer *buffer;
+    GstElement *appsrcVideo = (GstElement *)customData;
+    if(!appsrcVideo) {
+        DLOGE("Null");
+    }
+    buffer = gst_buffer_new_allocate(NULL, pFrame->size, NULL);
+    if (!buffer) {
+        DLOGE("Buffer allocation failed");
+        return;
+    }
+
+    DLOGI("Frame size: %d, %llu", pFrame->size, pFrame->presentationTs);
+    GST_BUFFER_PTS(buffer) = pFrame->presentationTs;
+    GST_BUFFER_DURATION(buffer) = gst_util_uint64_scale(1, GST_SECOND, 24);
+    if (gst_buffer_fill(buffer, 0, pFrame->frameData, pFrame->size) != pFrame->size) {
+        DLOGE("Buffer fill did not complete correctly");
+        gst_buffer_unref(buffer);
+        return;
+    }
+    g_signal_emit_by_name(appsrcVideo, "push-buffer", buffer, &ret);
+    if (ret != GST_FLOW_OK) {
+        DLOGE("Error pushing buffer: %s", gst_flow_get_name(ret));
+        // Handle flow error
+    }
+    gst_buffer_unref(buffer);
+}
+
+PVOID receiveGstreamerAudioVideo(PVOID args)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    GstElement *pipeline = NULL, *appsrcVideo = NULL;
+    GstBus* bus;
+    GstMessage* msg;
+    GError* error = NULL;
+    PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) args;
+    gchar *videoDescription = "";
+
+    CHK_ERR(pSampleStreamingSession != NULL, STATUS_NULL_ARG, "[KVS Gstreamer Master] Sample streaming session is NULL");
+
+    switch (pSampleStreamingSession->pVideoRtcRtpTransceiver->receiver.track.codec) {
+        case RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE:
+            videoDescription = "appsrc name=appsrc-video ! h264parse ! matroskamux ! filesink location=video.mkv";
+            break;
+        default:
+            break;
+    }
+
+    pipeline = gst_parse_launch(videoDescription, &error);
+    CHK_ERR(pipeline != NULL, STATUS_INTERNAL_ERROR, "[KVS Gstreamer Viewer] Pipeline is NULL");
+
+    appsrcVideo = gst_bin_get_by_name(GST_BIN(pipeline), "appsrc-video");
+    CHK_ERR(appsrcVideo != NULL, STATUS_INTERNAL_ERROR, "[KVS Gstreamer Viewer] Cannot find appsrc");
+
+    GstCaps *caps = gst_caps_new_simple("video/x-h264",
+                                        "stream-format", G_TYPE_STRING, "byte-stream",
+                                        "alignment", G_TYPE_STRING, "nal",
+                                        NULL);
+    g_object_set(G_OBJECT(appsrcVideo), "caps", caps, NULL);
+    gst_caps_unref(caps);
+
+    CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pVideoRtcRtpTransceiver, (UINT64) appsrcVideo, onGstVideoFrameReady));
+    CHK_STATUS(streamingSessionOnShutdown(pSampleStreamingSession, (UINT64) appsrcVideo, onSampleStreamingSessionShutdown));
+
+    gst_element_set_state(pipeline, GST_STATE_PLAYING);
+    /* block until error or EOS */
+    bus = gst_element_get_bus(pipeline);
+    msg = gst_bus_timed_pop_filtered(bus, GST_CLOCK_TIME_NONE, GST_MESSAGE_ERROR | GST_MESSAGE_EOS);
+
+    /* Free resources */
+    if (msg != NULL) {
+        gst_message_unref(msg);
+    }
+    if (bus != NULL) {
+        gst_object_unref(bus);
+    }
+    if (pipeline != NULL) {
+        gst_element_set_state(pipeline, GST_STATE_NULL);
+        gst_object_unref(pipeline);
+    }
+    if (appsrcVideo != NULL) {
+        gst_object_unref(appsrcVideo);
+    }
+
+    CleanUp:
+    if (error != NULL) {
+        DLOGE("[KVS GStreamer Master] %s", error->message);
+        g_clear_error(&error);
+    }
+
+    return (PVOID) (ULONG_PTR) retStatus;
+}
+
 INT32 main(INT32 argc, CHAR* argv[])
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -56,8 +162,9 @@ INT32 main(INT32 argc, CHAR* argv[])
 #else
     pChannelName = argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME;
 #endif
-
+    gst_init(&argc, &argv);
     CHK_STATUS(createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_VIEWER, TRUE, TRUE, logLevel, &pSampleConfiguration));
+    pSampleConfiguration->receiveAudioVideoSource = receiveGstreamerAudioVideo;
 
     // Initialize KVS WebRTC. This must be done before anything else, and must only be done once.
     CHK_STATUS(initKvsWebRtc());
@@ -87,8 +194,6 @@ INT32 main(INT32 argc, CHAR* argv[])
     CHK_STATUS(setLocalDescription(pSampleStreamingSession->pPeerConnection, &offerSessionDescriptionInit));
     DLOGI("[KVS Viewer] Completed setting local description");
 
-    CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pAudioRtcRtpTransceiver, (UINT64) pSampleStreamingSession, sampleAudioFrameHandler));
-
     if (!pSampleConfiguration->trickleIce) {
         DLOGI("[KVS Viewer] Non trickle ice. Wait for Candidate collection to complete");
         MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
@@ -105,7 +210,6 @@ INT32 main(INT32 argc, CHAR* argv[])
 
         DLOGI("[KVS Viewer] Candidate collection completed");
     }
-
     CHK_STATUS(createOffer(pSampleStreamingSession->pPeerConnection, &offerSessionDescriptionInit));
     DLOGI("[KVS Viewer] Offer creation successful");
 
@@ -140,6 +244,10 @@ INT32 main(INT32 argc, CHAR* argv[])
     CHK_STATUS(dataChannelOnOpen(pDataChannel, (UINT64) &datachannelLocalOpenCount, dataChannelOnOpenCallback));
     DLOGI("[KVS Viewer] Data Channel open now...");
 #endif
+//
+//    CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pVideoRtcRtpTransceiver, (UINT64) pSampleStreamingSession, sampleVideoFrameHandler));
+//    CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pAudioRtcRtpTransceiver, (UINT64) pSampleStreamingSession, sampleAudioFrameHandler));
+
 
     // Block until interrupted
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->interrupted) && !ATOMIC_LOAD_BOOL(&pSampleStreamingSession->terminateFlag)) {

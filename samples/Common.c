@@ -144,7 +144,13 @@ STATUS handleAnswer(PSampleConfiguration pSampleConfiguration, PSampleStreamingS
 
     CHK_STATUS(deserializeSessionDescriptionInit(pSignalingMessage->payload, pSignalingMessage->payloadLen, &answerSessionDescriptionInit));
     CHK_STATUS(setRemoteDescription(pSampleStreamingSession->pPeerConnection, &answerSessionDescriptionInit));
-
+    DLOGI("Starting the thread");
+    // The audio video receive routine should be per streaming session
+    if (pSampleConfiguration->receiveAudioVideoSource != NULL) {
+        DLOGI("Next..");
+        THREAD_CREATE(&pSampleStreamingSession->receiveAudioVideoSenderTid, pSampleConfiguration->receiveAudioVideoSource,
+                      (PVOID) pSampleStreamingSession);
+    }
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
@@ -206,7 +212,6 @@ STATUS handleOffer(PSampleConfiguration pSampleConfiguration, PSampleStreamingSe
     DLOGD("**offer:%s", pSignalingMessage->payload);
     CHK_STATUS(deserializeSessionDescriptionInit(pSignalingMessage->payload, pSignalingMessage->payloadLen, &offerSessionDescriptionInit));
     CHK_STATUS(setRemoteDescription(pSampleStreamingSession->pPeerConnection, &offerSessionDescriptionInit));
-    DLOGI("Success");
     canTrickle = canTrickleIceCandidates(pSampleStreamingSession->pPeerConnection);
     /* cannot be null after setRemoteDescription */
     CHECK(!NULLABLE_CHECK_EMPTY(canTrickle));
@@ -656,13 +661,13 @@ CleanUp:
 VOID sampleVideoFrameHandler(UINT64 customData, PFrame pFrame)
 {
     UNUSED_PARAM(customData);
-    DLOGV("Video Frame received. TrackId: %" PRIu64 ", Size: %u, Flags %u", pFrame->trackId, pFrame->size, pFrame->flags);
+    DLOGI("Video Frame received. TrackId: %" PRIu64 ", Size: %u, Flags %u", pFrame->trackId, pFrame->size, pFrame->flags);
 }
 
 VOID sampleAudioFrameHandler(UINT64 customData, PFrame pFrame)
 {
     UNUSED_PARAM(customData);
-    DLOGV("Audio Frame received. TrackId: %" PRIu64 ", Size: %u, Flags %u", pFrame->trackId, pFrame->size, pFrame->flags);
+    DLOGI("Audio Frame received. TrackId: %" PRIu64 ", Size: %u, Flags %u", pFrame->trackId, pFrame->size, pFrame->flags);
 }
 
 VOID sampleFrameHandler(UINT64 customData, PFrame pFrame)

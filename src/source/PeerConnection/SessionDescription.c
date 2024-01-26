@@ -409,11 +409,17 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
 
     MEMSET(remoteSdpAttributeValue, 0, MAX_SDP_ATTRIBUTE_VALUE_LENGTH);
 
+    if(!pKvsPeerConnection->isOffer) {
+        CHK(pRemoteSessionDescription != NULL, STATUS_NULL_ARG);
+    }
     if (pRtcMediaStreamTrack->codec == RTC_CODEC_UNKNOWN && pUnknownCodecPayloadTypesTable != NULL) {
         CHK_STATUS(hashTableGet(pUnknownCodecPayloadTypesTable, unknownCodecHashTableKey, &payloadType));
     } else {
         CHK_STATUS(hashTableGet(pKvsPeerConnection->pCodecTable, pRtcMediaStreamTrack->codec, &payloadType));
-        currentFmtp = fmtpForPayloadType(payloadType, pKvsPeerConnection->pRemoteSessionDescription);
+        if(!pKvsPeerConnection->isOffer) {
+            currentFmtp = fmtpForPayloadType(payloadType, pKvsPeerConnection->pRemoteSessionDescription);
+        }
+
     }
 
     if (pRtcMediaStreamTrack->kind == MEDIA_STREAM_TRACK_KIND_VIDEO) {
@@ -556,12 +562,15 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
 
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "mid");
     // check all session attribute lines to see if a line with mid is present. If it is present, copy its content and break
-    for (i = 0; i < pRemoteSessionDescription->mediaDescriptions[mediaSectionId].mediaAttributesCount; i++) {
-        if (STRCMP(pRemoteSessionDescription->mediaDescriptions[mediaSectionId].sdpAttributes[i].attributeName, MID_KEY) == 0) {
-            STRCPY(remoteSdpAttributeValue, pRemoteSessionDescription->mediaDescriptions[mediaSectionId].sdpAttributes[i].attributeValue);
-            break;
+    if(!pKvsPeerConnection->isOffer) {
+        for (i = 0; i < pRemoteSessionDescription->mediaDescriptions[mediaSectionId].mediaAttributesCount; i++) {
+            if (STRCMP(pRemoteSessionDescription->mediaDescriptions[mediaSectionId].sdpAttributes[i].attributeName, MID_KEY) == 0) {
+                STRCPY(remoteSdpAttributeValue, pRemoteSessionDescription->mediaDescriptions[mediaSectionId].sdpAttributes[i].attributeValue);
+                break;
+            }
         }
     }
+
 
     // check if we already have a value for the "mid" session attribute from remote description. If we have it, we use it.
     // If we don't have it, we loop over, create and add them
@@ -594,6 +603,7 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
                 STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "inactive");
         }
     } else {
+
         pSdpMediaDescriptionRemote = &pRemoteSessionDescription->mediaDescriptions[mediaSectionId];
         remoteAttributeCount = pSdpMediaDescriptionRemote->mediaAttributesCount;
 
@@ -917,7 +927,6 @@ STATUS populateSessionDescriptionMedia(PKvsPeerConnection pKvsPeerConnection, PS
         // if an m-line does not have a corresponding transceiver created by the user, we create a fake transceiver
         CHK_STATUS(findTransceiversByRemoteDescription(pKvsPeerConnection, pRemoteSessionDescription, pUnknownCodecPayloadTypesTable,
                                                        pUnknownCodecRtpmapTable));
-
         // pAnswerTransceivers contains transceivers created by the user as well as fake transceivers
         CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pAnswerTransceivers, &pCurNode));
         while (pCurNode != NULL) {
@@ -926,7 +935,29 @@ STATUS populateSessionDescriptionMedia(PKvsPeerConnection pKvsPeerConnection, PS
             pKvsRtpTransceiver = (PKvsRtpTransceiver) data;
             if (pKvsRtpTransceiver != NULL) {
                 CHK(pLocalSessionDescription->mediaCount < MAX_SDP_SESSION_MEDIA_COUNT, STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT);
-                if (isPresentInRemote(pKvsRtpTransceiver, pRemoteSessionDescription)) {
+                if(pRemoteSessionDescription != NULL) {
+                    if (isPresentInRemote(pKvsRtpTransceiver, pRemoteSessionDescription)) {
+                        if (pKvsRtpTransceiver->sender.track.codec == RTC_CODEC_UNKNOWN) {
+                            CHK_STATUS(populateSingleMediaSection(pKvsPeerConnection, pKvsRtpTransceiver,
+                                                                  &(pLocalSessionDescription->mediaDescriptions[pLocalSessionDescription->mediaCount]),
+                                                                  pRemoteSessionDescription, certificateFingerprint, pLocalSessionDescription->mediaCount,
+                                                                  pDtlsRole, pUnknownCodecPayloadTypesTable, pUnknownCodecRtpmapTable,
+                                                                  unknownCodecHashTableKey));
+                            unknownCodecHashTableKey++;
+                            // unknownCodecHashTableKey is the key for pUnknownCodecRtpmapTable and pUnknownCodecPayloadTypesTable
+                            // a value for the same key in both hashtables corresponds to rtpmap and payloadtype for the same m-line / unknown codec
+
+                        } else {
+                            // in case of a user-added transceiver, the pUnknownCodecPayloadTypesTable, pUnknownCodecRtpmapTable are not populated by
+                            // the function findTransceiversByRemoteDescription and are NULL
+                            CHK_STATUS(populateSingleMediaSection(pKvsPeerConnection, pKvsRtpTransceiver,
+                                                                  &(pLocalSessionDescription->mediaDescriptions[pLocalSessionDescription->mediaCount]),
+                                                                  pRemoteSessionDescription, certificateFingerprint, pLocalSessionDescription->mediaCount,
+                                                                  pDtlsRole, NULL, NULL, 0));
+                        }
+                        pLocalSessionDescription->mediaCount++;
+                    }
+                } else {
                     if (pKvsRtpTransceiver->sender.track.codec == RTC_CODEC_UNKNOWN) {
                         CHK_STATUS(populateSingleMediaSection(pKvsPeerConnection, pKvsRtpTransceiver,
                                                               &(pLocalSessionDescription->mediaDescriptions[pLocalSessionDescription->mediaCount]),
@@ -984,7 +1015,10 @@ STATUS populateSessionDescription(PKvsPeerConnection pKvsPeerConnection, PSessio
     UINT32 i, sizeRemaining;
     INT32 charsCopied;
 
-    CHK(pKvsPeerConnection != NULL && pLocalSessionDescription != NULL && pRemoteSessionDescription != NULL, STATUS_NULL_ARG);
+    CHK(pKvsPeerConnection != NULL && pLocalSessionDescription != NULL, STATUS_NULL_ARG);
+    if(!pKvsPeerConnection->isOffer) {
+        CHK(pRemoteSessionDescription != NULL, STATUS_NULL_ARG);
+    }
     CHK_STATUS(populateSessionDescriptionMedia(pKvsPeerConnection, pRemoteSessionDescription, pLocalSessionDescription));
     MEMSET(bundleValue, 0, MAX_SDP_ATTRIBUTE_VALUE_LENGTH);
     MEMSET(wmsValue, 0, MAX_SDP_ATTRIBUTE_VALUE_LENGTH);
@@ -1013,13 +1047,17 @@ STATUS populateSessionDescription(PKvsPeerConnection pKvsPeerConnection, PSessio
         pLocalSessionDescription->sessionAttributesCount++;
     }
 
-    // check all session attribute lines to see if a line with BUNDLE is present. If it is present, copy its content and break
-    for (i = 0; i < pRemoteSessionDescription->sessionAttributesCount; i++) {
-        if (STRSTR(pRemoteSessionDescription->sdpAttributes[i].attributeValue, BUNDLE_KEY) != NULL) {
-            STRCPY(remoteSdpAttributeValue, pRemoteSessionDescription->sdpAttributes[i].attributeValue + ARRAY_SIZE(BUNDLE_KEY) - 1);
-            break;
+
+    if(!pKvsPeerConnection->isOffer) {
+        // check all session attribute lines to see if a line with BUNDLE is present. If it is present, copy its content and break
+        for (i = 0; i < pRemoteSessionDescription->sessionAttributesCount; i++) {
+            if (STRSTR(pRemoteSessionDescription->sdpAttributes[i].attributeValue, BUNDLE_KEY) != NULL) {
+                STRCPY(remoteSdpAttributeValue, pRemoteSessionDescription->sdpAttributes[i].attributeValue + ARRAY_SIZE(BUNDLE_KEY) - 1);
+                break;
+            }
         }
     }
+
 
     // check if we already have a value for the "group" session attribute from remote description. If we have it, we use it.
     // If we don't have it, we loop over, create and add them
