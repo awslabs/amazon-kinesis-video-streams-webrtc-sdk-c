@@ -661,13 +661,13 @@ CleanUp:
 VOID sampleVideoFrameHandler(UINT64 customData, PFrame pFrame)
 {
     UNUSED_PARAM(customData);
-    DLOGI("Video Frame received. TrackId: %" PRIu64 ", Size: %u, Flags %u", pFrame->trackId, pFrame->size, pFrame->flags);
+    DLOGV("Video Frame received. TrackId: %" PRIu64 ", Size: %u, Flags %u", pFrame->trackId, pFrame->size, pFrame->flags);
 }
 
 VOID sampleAudioFrameHandler(UINT64 customData, PFrame pFrame)
 {
     UNUSED_PARAM(customData);
-    DLOGI("Audio Frame received. TrackId: %" PRIu64 ", Size: %u, Flags %u", pFrame->trackId, pFrame->size, pFrame->flags);
+    DLOGV("Audio Frame received. TrackId: %" PRIu64 ", Size: %u, Flags %u", pFrame->trackId, pFrame->size, pFrame->flags);
 }
 
 VOID sampleFrameHandler(UINT64 customData, PFrame pFrame)
