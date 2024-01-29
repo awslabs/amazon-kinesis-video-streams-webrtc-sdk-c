@@ -94,7 +94,6 @@ TEST_F(SignalingApiTest, testChannelArnsValid)
     freeChannelInfo(&pChannelInfo);
 }
 
-
 TEST_F(SignalingApiTest, testChannelArnsInValid)
 {
     PChannelInfo pChannelInfo;
