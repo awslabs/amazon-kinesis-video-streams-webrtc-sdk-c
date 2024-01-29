@@ -424,11 +424,13 @@ To build on a 32-bit Raspbian GNU/Linux 11 on 64-bit hardware, the OpenSSL libra
 `cmake .. -DBUILD_OPENSSL_PLATFORM=linux-armv4`
 
 ### Threadpool for the SDK
-The threadpool is enabled by default, and starts with 5 threads that it can increase up to 10 if all are actively in use. To change these values to better match the resources of your use case you can set the environment variables to do so:
+The threadpool is enabled by default, and starts with 3 threads that it can increase up to 10 if all are actively in use. To change these values to better match the resources of your use case you can set the environment variables to do so:
 1. `export AWS_KVS_WEBRTC_THREADPOOL_MIN_THREADS=<value>`
 2. `export AWS_KVS_WEBRTC_THREADPOOL_MAX_THREADS=<value>`
 
 To disable threadpool, run `cmake .. -DENABLE_KVS_THREADPOOL=OFF`
+
+Starting version 1.10.0, threadpool usage provides latency improvements in connection establishment. Note, that increasing the number of minimum threads can increase stack memory usage. So, ensure to increase with caution.
 
 ### Setting ICE related timeouts
 
