@@ -522,6 +522,7 @@ CleanUp:
     CHK_LOG_ERR(retStatus);
 }
 
+#ifdef ENABLE_KVS_THREADPOOL
 STATUS peerConnectionAsync(startRoutine fn, PVOID data)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -530,6 +531,7 @@ CleanUp:
 
     return retStatus;
 }
+#endif
 
 VOID onNewIceLocalCandidate(UINT64 customData, PCHAR candidateSdpStr)
 {
@@ -1797,7 +1799,7 @@ STATUS peerConnectionGetMetrics(PRtcPeerConnection pPeerConnection, PPeerConnect
         DLOGW("Peer connection metrics object version invalid..setting to highest default version %d", PEER_CONNECTION_METRICS_CURRENT_VERSION);
         pPeerConnectionMetrics->version = PEER_CONNECTION_METRICS_CURRENT_VERSION;
     }
-
+#ifdef ENABLE_KVS_THREADPOOL
     MUTEX_LOCK(pWebRtcClientContext->stunCtxlock);
     if (pWebRtcClientContext->isContextInitialized) {
         if (pWebRtcClientContext->pStunIpAddrCtx->isIpInitialized) {
@@ -1805,6 +1807,7 @@ STATUS peerConnectionGetMetrics(PRtcPeerConnection pPeerConnection, PPeerConnect
         }
     }
     MUTEX_UNLOCK(pWebRtcClientContext->stunCtxlock);
+#endif
 
     pPeerConnectionMetrics->peerConnectionStats.peerConnectionCreationTime = pKvsPeerConnection->peerConnectionDiagnostics.peerConnectionCreationTime;
     pPeerConnectionMetrics->peerConnectionStats.dtlsSessionSetupTime = pKvsPeerConnection->peerConnectionDiagnostics.dtlsSessionSetupTime;
