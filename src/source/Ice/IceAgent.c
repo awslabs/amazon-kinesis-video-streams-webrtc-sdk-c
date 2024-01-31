@@ -675,7 +675,7 @@ STATUS iceAgentStartGathering(PIceAgent pIceAgent)
 
     ATOMIC_STORE_BOOL(&pIceAgent->agentStartGathering, TRUE);
     pIceAgent->candidateGatheringStartTime = GETTIME();
-
+    DLOGI("Starting gathering");
     // skip gathering host candidate and srflx candidate if relay only
     if (pIceAgent->iceTransportPolicy != ICE_TRANSPORT_POLICY_RELAY) {
         // Skip getting local host candidates if transport policy is relay only
@@ -688,6 +688,7 @@ STATUS iceAgentStartGathering(PIceAgent pIceAgent)
         PROFILE_CALL_WITH_T_OBJ(CHK_STATUS(iceAgentInitSrflxCandidate(pIceAgent)), pIceAgent->iceAgentProfileDiagnostics.srflxCandidateSetUpTime,
                                 "Srflx candidates setup time");
     }
+    DLOGI("Gathered candidates from local interfaces");
 
     // start listening for incoming data
     CHK_STATUS(connectionListenerStart(pIceAgent->pConnectionListener));
