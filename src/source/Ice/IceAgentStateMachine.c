@@ -55,6 +55,7 @@ STATUS stepIceAgentStateMachine(PIceAgent pIceAgent)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
+    STATUS iceAgentStatus = STATUS_SUCCESS;
     UINT64 oldState;
     BOOL locked = FALSE;
 

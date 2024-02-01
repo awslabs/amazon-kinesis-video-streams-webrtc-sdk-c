@@ -524,6 +524,74 @@ CleanUp:
     return retStatus;
 }
 
+STATUS fromDescribeMediaStorageConfState(UINT64 customData, PUINT64 pState)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
+    UINT64 state = SIGNALING_STATE_DESCRIBE_MEDIA;
+    SIZE_T result;
+
+    CHK(pSignalingClient != NULL && pState != NULL, STATUS_NULL_ARG);
+
+    result = ATOMIC_LOAD(&pSignalingClient->result);
+    switch (result) {
+        case SERVICE_CALL_RESULT_OK:
+            // If we are trying to delete the channel then move to delete state
+            if (ATOMIC_LOAD_BOOL(&pSignalingClient->deleting)) {
+                state = SIGNALING_STATE_DELETE;
+            } else {
+                state = SIGNALING_STATE_GET_ENDPOINT;
+            }
+            break;
+
+        case SERVICE_CALL_RESOURCE_NOT_FOUND:
+            state = SIGNALING_STATE_CREATE;
+            break;
+
+        case SERVICE_CALL_FORBIDDEN:
+        case SERVICE_CALL_NOT_AUTHORIZED:
+            state = SIGNALING_STATE_GET_TOKEN;
+            break;
+
+        default:
+            break;
+    }
+
+    *pState = state;
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS executeDescribeMediaStorageConfState(UINT64 customData, UINT64 time)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
+    UINT64 startTimeInMacro = 0;
+
+    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
+
+    // Notify of the state change
+    if (pSignalingClient->signalingClientCallbacks.stateChangeFn != NULL) {
+        CHK_STATUS(pSignalingClient->signalingClientCallbacks.stateChangeFn(pSignalingClient->signalingClientCallbacks.customData,
+                                                                            SIGNALING_CLIENT_STATE_DESCRIBE_MEDIA));
+    }
+
+    // Call the aggregate function
+    PROFILE_CALL_WITH_T_OBJ(retStatus = describeMediaStorageConf(pSignalingClient, time), pSignalingClient->diagnostics.describeMediaCallTime,
+                            "Describe Media Storage call");
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
+
 STATUS fromCreateSignalingState(UINT64 customData, PUINT64 pState)
 {
     ENTERS();
