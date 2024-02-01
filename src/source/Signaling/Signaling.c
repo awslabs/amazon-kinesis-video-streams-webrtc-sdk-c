@@ -37,10 +37,6 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     CHK_STATUS(createValidateChannelInfo(pChannelInfo, &pSignalingClient->pChannelInfo));
     CHK_STATUS(validateSignalingCallbacks(pSignalingClient, pCallbacks));
     CHK_STATUS(validateSignalingClientInfo(pSignalingClient, pClientInfo));
-#ifdef KVS_USE_SIGNALING_CHANNEL_THREADPOOL
-    CHK_STATUS(threadpoolCreate(&pSignalingClient->pThreadpool, pClientInfo->signalingClientInfo.signalingMessagesMinimumThreads,
-                                pClientInfo->signalingClientInfo.signalingMessagesMaximumThreads));
-#endif
     pSignalingClient->version = SIGNALING_CLIENT_CURRENT_VERSION;
     // Set invalid call times
     pSignalingClient->describeTime = INVALID_TIMESTAMP_VALUE;
