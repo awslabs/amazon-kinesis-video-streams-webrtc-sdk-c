@@ -18,11 +18,11 @@ cd build/samples
 ./kvsWebrtcClientMaster SampleChannel &
 pids+=" $!"
 
-sleep 2
+sleep 15
 ./kvsWebrtcClientViewer SampleChannel &
 pids+=" $!"
 
-bash -c "sleep 10 && kill -s INT $(jobs -p)" &
+bash -c "sleep 300 && kill -s INT $(jobs -p)" &
 
 for pid in $pids; do
   if ! wait $pid; then

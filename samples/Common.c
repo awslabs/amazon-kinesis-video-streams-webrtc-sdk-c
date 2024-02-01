@@ -12,6 +12,58 @@ VOID sigintHandler(INT32 sigNum)
     }
 }
 
+LONG writeRssAnonToFile(PCHAR message, BOOL writeToFile) {
+    CHAR filepath[256];
+    CHAR line[256];
+    LONG rssAnon;
+    FILE *outfile = NULL;
+    SNPRINTF(filepath, SIZEOF(filepath), "/proc/self/status");
+
+    FILE *file = fopen(filepath, "r");
+    if (file == NULL) {
+        perror("Error opening file");
+        exit(EXIT_FAILURE);
+    }
+    if(writeToFile) {
+        outfile = fopen("report.txt", "a"); // Open for appending
+        if (outfile == NULL) {
+            perror("Error opening file");
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    while (fgets(line, sizeof(line), file)) {
+        if (STRNCMP(line, "RssAnon:", 8) == 0) {
+            DLOGI("RssAnon: %s", line);
+            SSCANF(line, "RssAnon: %ld kB", &rssAnon);
+            if (outfile != NULL) {
+                fprintf(outfile, "%s: %ld", message, rssAnon);
+            }
+            break;
+        }
+    }
+    fclose(file);
+    if (outfile != NULL) {
+        fclose(outfile);
+    }
+    return rssAnon;
+}
+
+PVOID findMaxRssAnon(PVOID arg) {
+    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) arg;
+    LONG max = 0, ret = 0;
+    while(!pSampleConfiguration->interrupted) {
+        ret = writeRssAnonToFile(NULL, FALSE);
+        if(ret > max) {
+            max = ret;
+        }
+        DLOGI("Current max RssAnon: %ld", max);
+        THREAD_SLEEP(5 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+    }
+    writeRssAnonToFile("Max RssAnon recorded", TRUE);
+    return NULL;
+}
+
 UINT32 setLogLevel()
 {
     PCHAR pLogLevel;
@@ -859,7 +911,7 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
 
     pSampleConfiguration->channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
     pSampleConfiguration->channelInfo.pChannelName = channelName;
-    pSampleConfiguration->terminateTid = INVALID_TID_VALUE;
+    pSampleConfiguration->findMemUsageTid = INVALID_TID_VALUE;
 #ifdef IOT_CORE_ENABLE_CREDENTIALS
     if ((pIotCoreCertificateId = GETENV(IOT_CORE_CERTIFICATE_ID)) != NULL) {
         pSampleConfiguration->channelInfo.pChannelName = pIotCoreCertificateId;
@@ -1159,8 +1211,8 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
 
     CHK(pSampleConfiguration != NULL, retStatus);
 
-    if(pSampleConfiguration->terminateTid != INVALID_TID_VALUE) {
-        THREAD_JOIN(pSampleConfiguration->terminateTid, NULL);
+    if(pSampleConfiguration->findMemUsageTid != INVALID_TID_VALUE) {
+        THREAD_JOIN(pSampleConfiguration->findMemUsageTid, NULL);
     }
     if (IS_VALID_TIMER_QUEUE_HANDLE(pSampleConfiguration->timerQueueHandle)) {
         if (pSampleConfiguration->iceCandidatePairStatsTimerId != MAX_UINT32) {
@@ -1264,6 +1316,8 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
     if (pSampleConfiguration->enableFileLogging) {
         freeFileLogger();
     }
+
+    writeRssAnonToFile("Pre-application exit", TRUE);
     SAFE_MEMFREE(*ppSampleConfiguration);
 
 CleanUp:
@@ -1313,6 +1367,7 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
 
                 CHK_STATUS(freeSampleStreamingSession(&pSampleStreamingSession));
                 sessionFreed = TRUE;
+                writeRssAnonToFile("Post viewer disconnect", TRUE);
             }
         }
 
@@ -1445,6 +1500,7 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
 
     switch (pReceivedSignalingMessage->signalingMessage.messageType) {
         case SIGNALING_MESSAGE_TYPE_OFFER:
+            writeRssAnonToFile("Pre-offer", TRUE);
             // Check if we already have an ongoing master session with the same peer
             CHK_ERR(!peerConnectionFound, STATUS_INVALID_OPERATION, "Peer connection %s is in progress",
                     pReceivedSignalingMessage->signalingMessage.peerClientId);
@@ -1472,7 +1528,6 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
             MUTEX_LOCK(pSampleConfiguration->streamingSessionListReadLock);
             pSampleConfiguration->sampleStreamingSessionList[pSampleConfiguration->streamingSessionCount++] = pSampleStreamingSession;
             MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
-
             CHK_STATUS(handleOffer(pSampleConfiguration, pSampleStreamingSession, &pReceivedSignalingMessage->signalingMessage));
             CHK_STATUS(hashTablePut(pSampleConfiguration->pRtcPeerConnectionForRemoteClient, clientIdHash, (UINT64) pSampleStreamingSession));
 
@@ -1487,11 +1542,10 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
             }
 
             startStats = pSampleConfiguration->iceCandidatePairStatsTimerId == MAX_UINT32;
-//            pSampleConfiguration->terminate = terminate;
-//            DLOGI("Recevied offer, starting thread");
-//            if (pSampleConfiguration->terminate != NULL) {
-//                THREAD_CREATE(&pSampleConfiguration->terminateTid, pSampleConfiguration->terminate, (PVOID) pSampleConfiguration);
-//            }
+            pSampleConfiguration->findMemUsage = findMaxRssAnon;
+            if (pSampleConfiguration->findMemUsage != NULL) {
+                THREAD_CREATE(&pSampleConfiguration->findMemUsageTid, pSampleConfiguration->findMemUsage, (PVOID) pSampleConfiguration);
+            }
             break;
 
         case SIGNALING_MESSAGE_TYPE_ANSWER:

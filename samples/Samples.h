@@ -113,14 +113,14 @@ typedef struct {
     TID mediaSenderTid;
     TID audioSenderTid;
     TID videoSenderTid;
-    TID terminateTid;
+    TID findMemUsageTid;
     TIMER_QUEUE_HANDLE timerQueueHandle;
     UINT32 iceCandidatePairStatsTimerId;
     SampleStreamingMediaType mediaType;
     startRoutine audioSource;
     startRoutine videoSource;
     startRoutine receiveAudioVideoSource;
-    startRoutine terminate;
+    startRoutine findMemUsage;
     RtcOnDataChannel onDataChannel;
     SignalingClientMetrics signalingClientMetrics;
 
