@@ -34,9 +34,10 @@ LONG writeRssAnonToFile(PCHAR message, BOOL writeToFile) {
 
     while (fgets(line, sizeof(line), file)) {
         if (STRNCMP(line, "RssAnon:", 8) == 0) {
-            DLOGI("RssAnon: %s", line);
+            DLOGI("%s:%s", message, line);
             SSCANF(line, "RssAnon: %ld kB", &rssAnon);
             if (outfile != NULL) {
+                DLOGI("Writing to file");
                 fprintf(outfile, "%s: %ld", message, rssAnon);
             }
             break;
