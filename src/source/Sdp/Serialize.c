@@ -1,19 +1,21 @@
-#define LOG_CLASS "SDP"
+#define LOG_CLASS "SDPSerialize"
 #include "../Include_i.h"
+#include "sdp_serializer.h"
 
-STATUS serializeVersion(UINT64 version, PCHAR* ppOutputData, PUINT32 pTotalWritten, PUINT32 pBufferSize)
+static STATUS serializeVersion(SdpSerializerContext_t* pCtx, UINT64 version)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    UINT32 currentWriteSize = 0;
+    SdpResult_t sdpResult = SDP_RESULT_OK;
 
-    currentWriteSize = SNPRINTF(*ppOutputData, (*ppOutputData) == NULL ? 0 : *pBufferSize - *pTotalWritten,
-                                SDP_VERSION_MARKER "%" PRIu64 SDP_LINE_SEPARATOR, version);
+    sdpResult = SdpSerializer_AddU64(pCtx, SDP_TYPE_VERSION, version);
 
-    CHK(*ppOutputData == NULL || ((*pBufferSize - *pTotalWritten) >= currentWriteSize), STATUS_BUFFER_TOO_SMALL);
-    *pTotalWritten += currentWriteSize;
-    if (*ppOutputData != NULL) {
-        *ppOutputData += currentWriteSize;
+    if (sdpResult == SDP_RESULT_OK) {
+        retStatus = STATUS_SUCCESS;
+    } else if (sdpResult == SDP_RESULT_OUT_OF_MEMORY) {
+        retStatus = STATUS_BUFFER_TOO_SMALL;
+    } else {
+        retStatus = sdpResult;
     }
 
 CleanUp:
@@ -22,25 +24,76 @@ CleanUp:
     return retStatus;
 }
 
-STATUS serializeOrigin(PSdpOrigin pSDPOrigin, PCHAR* ppOutputData, PUINT32 pTotalWritten, PUINT32 pBufferSize)
+static STATUS serializeOrigin(SdpSerializerContext_t* pCtx, PSdpOrigin pSDPOrigin)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    UINT32 currentWriteSize = 0;
+    SdpResult_t sdpResult = SDP_RESULT_OK;
+    SdpOriginator_t origin;
 
     CHK(pSDPOrigin != NULL, STATUS_NULL_ARG);
 
     if (pSDPOrigin->userName[0] != '\0' && pSDPOrigin->sdpConnectionInformation.networkType[0] != '\0' &&
         pSDPOrigin->sdpConnectionInformation.addressType[0] != '\0' && pSDPOrigin->sdpConnectionInformation.connectionAddress[0] != '\0') {
-        currentWriteSize = SNPRINTF(*ppOutputData, (*ppOutputData) == NULL ? 0 : *pBufferSize - *pTotalWritten,
-                                    SDP_ORIGIN_MARKER "%s %" PRIu64 " %" PRIu64 " %s %s %s" SDP_LINE_SEPARATOR, pSDPOrigin->userName,
-                                    pSDPOrigin->sessionId, pSDPOrigin->sessionVersion, pSDPOrigin->sdpConnectionInformation.networkType,
-                                    pSDPOrigin->sdpConnectionInformation.addressType, pSDPOrigin->sdpConnectionInformation.connectionAddress);
+        origin.pUserName = pSDPOrigin->userName;
+        origin.userNameLength = STRLEN(pSDPOrigin->userName);
+        origin.sessionId = pSDPOrigin->sessionId;
+        origin.sessionVersion = pSDPOrigin->sessionVersion;
 
-        CHK(*ppOutputData == NULL || ((*pBufferSize - *pTotalWritten) >= currentWriteSize), STATUS_BUFFER_TOO_SMALL);
-        *pTotalWritten += currentWriteSize;
-        if (*ppOutputData != NULL) {
-            *ppOutputData += currentWriteSize;
+        CHK(STRCMP(pSDPOrigin->sdpConnectionInformation.networkType, "IN") == 0, STATUS_INVALID_ARG);
+
+        origin.connectionInfo.networkType = SDP_NETWORK_IN;
+    }
+
+    CHK(STRCMP(pSDPOrigin->sdpConnectionInformation.addressType, "IP4") == 0 ||
+        STRCMP(pSDPOrigin->sdpConnectionInformation.addressType, "IP6") == 0, STATUS_INVALID_ARG);
+
+    if (STRCMP(pSDPOrigin->sdpConnectionInformation.addressType, "IP4") == 0) {
+        origin.connectionInfo.addressType = SDP_ADDRESS_IPV4;
+    } else {
+        origin.connectionInfo.addressType = SDP_ADDRESS_IPV6;
+    }
+
+    origin.connectionInfo.pAddress = pSDPOrigin->sdpConnectionInformation.connectionAddress;
+    origin.connectionInfo.addressLength = STRLEN(pSDPOrigin->sdpConnectionInformation.connectionAddress);
+
+    sdpResult = SdpSerializer_AddOriginator(pCtx,
+                                            SDP_TYPE_ORIGINATOR,
+                                            &origin);
+
+    if (sdpResult == SDP_RESULT_OK) {
+        retStatus = STATUS_SUCCESS;
+    } else if (sdpResult == SDP_RESULT_OUT_OF_MEMORY) {
+        retStatus = STATUS_BUFFER_TOO_SMALL;
+    } else {
+        retStatus = sdpResult;
+    }
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
+
+static STATUS serializeSessionName(SdpSerializerContext_t* pCtx, PCHAR sessionName)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    SdpResult_t sdpResult = SDP_RESULT_OK;
+
+    /* Check if session name available. */
+    if ((sessionName != NULL) && (sessionName[0] != '\0')) {
+        sdpResult = SdpSerializer_AddBuffer(pCtx,
+                                            SDP_TYPE_SESSION_NAME,
+                                            sessionName,
+                                            STRLEN(sessionName));
+
+        if (sdpResult == SDP_RESULT_OK) {
+            retStatus = STATUS_SUCCESS;
+        } else if (sdpResult == SDP_RESULT_OUT_OF_MEMORY) {
+            retStatus = STATUS_BUFFER_TOO_SMALL;
+        } else {
+            retStatus = sdpResult;
         }
     }
 
@@ -50,21 +103,27 @@ CleanUp:
     return retStatus;
 }
 
-STATUS serializeSessionName(PCHAR sessionName, PCHAR* ppOutputData, PUINT32 pTotalWritten, PUINT32 pBufferSize)
+static STATUS serializeTimeDescription(SdpSerializerContext_t* pCtx, PSdpTimeDescription pSDPTimeDescription)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    UINT32 currentWriteSize = 0;
+    SdpResult_t sdpResult = SDP_RESULT_OK;
+    SdpTimeDescription_t time;
 
-    if (sessionName[0] != '\0') {
-        currentWriteSize = SNPRINTF(*ppOutputData, (*ppOutputData) == NULL ? 0 : *pBufferSize - *pTotalWritten,
-                                    SDP_SESSION_NAME_MARKER "%s" SDP_LINE_SEPARATOR, sessionName);
+    CHK(pSDPTimeDescription != NULL, STATUS_NULL_ARG);
 
-        CHK(*ppOutputData == NULL || ((*pBufferSize - *pTotalWritten) >= currentWriteSize), STATUS_BUFFER_TOO_SMALL);
-        *pTotalWritten += currentWriteSize;
-        if (*ppOutputData != NULL) {
-            *ppOutputData += currentWriteSize;
-        }
+    time.startTime = pSDPTimeDescription->startTime;
+    time.stopTime = pSDPTimeDescription->stopTime;
+    sdpResult = SdpSerializer_AddTimeActive(pCtx,
+                                            SDP_TYPE_TIME_ACTIVE,
+                                            &time);
+
+    if (sdpResult == SDP_RESULT_OK) {
+        retStatus = STATUS_SUCCESS;
+    } else if (sdpResult == SDP_RESULT_OUT_OF_MEMORY) {
+        retStatus = STATUS_BUFFER_TOO_SMALL;
+    } else {
+        retStatus = sdpResult;
     }
 
 CleanUp:
@@ -73,63 +132,36 @@ CleanUp:
     return retStatus;
 }
 
-STATUS serializeTimeDescription(PSdpTimeDescription pSDPTimeDescription, PCHAR* ppOutputData, PUINT32 pTotalWritten, PUINT32 pBufferSize)
+static STATUS serializeAttribute(SdpSerializerContext_t* pCtx, PSdpAttributes pSDPAttributes)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    UINT32 currentWriteSize = 0;
+    SdpResult_t sdpResult = SDP_RESULT_OK;
+    SdpAttribute_t attribute;
 
-    currentWriteSize = SNPRINTF(*ppOutputData, (*ppOutputData) == NULL ? 0 : *pBufferSize - *pTotalWritten,
-                                SDP_TIME_DESCRIPTION_MARKER "%" PRIu64 " %" PRIu64 SDP_LINE_SEPARATOR, pSDPTimeDescription->startTime,
-                                pSDPTimeDescription->stopTime);
+    CHK(pSDPAttributes != NULL, STATUS_NULL_ARG);
 
-    *pTotalWritten += currentWriteSize;
-    if (*ppOutputData != NULL) {
-        *ppOutputData += currentWriteSize;
-    }
-
-    LEAVES();
-    return retStatus;
-}
-
-STATUS serializeAttribute(PSdpAttributes pSDPAttributes, PCHAR* ppOutputData, PUINT32 pTotalWritten, PUINT32 pBufferSize)
-{
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-    UINT32 currentWriteSize = 0;
+    attribute.pAttributeName = pSDPAttributes->attributeName;
+    attribute.attributeNameLength = STRLEN(pSDPAttributes->attributeName);
 
     if (pSDPAttributes->attributeValue[0] == '\0') {
-        currentWriteSize = SNPRINTF(*ppOutputData, (*ppOutputData) == NULL ? 0 : *pBufferSize - *pTotalWritten,
-                                    SDP_ATTRIBUTE_MARKER "%s" SDP_LINE_SEPARATOR, pSDPAttributes->attributeName);
+        attribute.pAttributeValue = NULL;
+        attribute.attributeValueLength = 0;
     } else {
-        currentWriteSize = snprintf(*ppOutputData, (*ppOutputData) == NULL ? 0 : *pBufferSize - *pTotalWritten,
-                                    SDP_ATTRIBUTE_MARKER "%s:%s" SDP_LINE_SEPARATOR, pSDPAttributes->attributeName, pSDPAttributes->attributeValue);
+        attribute.pAttributeValue = pSDPAttributes->attributeValue;
+        attribute.attributeValueLength = STRLEN(pSDPAttributes->attributeValue);
     }
 
-    *pTotalWritten += currentWriteSize;
-    if (*ppOutputData != NULL) {
-        *ppOutputData += currentWriteSize;
-    }
+    sdpResult = SdpSerializer_AddAttribute(pCtx,
+                                           SDP_TYPE_ATTRIBUTE,
+                                           &attribute);
 
-    LEAVES();
-    return retStatus;
-}
-
-STATUS serializeMediaName(PCHAR pMediaName, PCHAR* ppOutputData, PUINT32 pTotalWritten, PUINT32 pBufferSize)
-{
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-    UINT32 currentWriteSize = 0;
-
-    if (pMediaName[0] != '\0') {
-        currentWriteSize = snprintf(*ppOutputData, (*ppOutputData) == NULL ? 0 : *pBufferSize - *pTotalWritten,
-                                    SDP_MEDIA_NAME_MARKER "%s" SDP_LINE_SEPARATOR, pMediaName);
-
-        CHK(*ppOutputData == NULL || ((*pBufferSize - *pTotalWritten) >= currentWriteSize), STATUS_BUFFER_TOO_SMALL);
-        *pTotalWritten += currentWriteSize;
-        if (*ppOutputData != NULL) {
-            *ppOutputData += currentWriteSize;
-        }
+    if (sdpResult == SDP_RESULT_OK) {
+        retStatus = STATUS_SUCCESS;
+    } else if (sdpResult == SDP_RESULT_OUT_OF_MEMORY) {
+        retStatus = STATUS_BUFFER_TOO_SMALL;
+    } else {
+        retStatus = STATUS_INTERNAL_ERROR;
     }
 
 CleanUp:
@@ -138,22 +170,69 @@ CleanUp:
     return retStatus;
 }
 
-STATUS serializeMediaConnectionInformation(PSdpConnectionInformation pSdpConnectionInformation, PCHAR* ppOutputData, PUINT32 pTotalWritten,
-                                           PUINT32 pBufferSize)
+static STATUS serializeMediaName(SdpSerializerContext_t* pCtx, PCHAR pMediaName)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    UINT32 currentWriteSize = 0;
+    SdpResult_t sdpResult = SDP_RESULT_OK;
+
+    CHK(pMediaName != NULL, STATUS_NULL_ARG);
+
+    sdpResult =  SdpSerializer_AddBuffer(pCtx,
+                                         SDP_TYPE_MEDIA,
+                                         pMediaName,
+                                         STRLEN(pMediaName));
+
+    if (sdpResult == SDP_RESULT_OK) {
+        retStatus = STATUS_SUCCESS;
+    } else if (sdpResult == SDP_RESULT_OUT_OF_MEMORY) {
+        retStatus = STATUS_BUFFER_TOO_SMALL;
+    } else {
+        retStatus = STATUS_INTERNAL_ERROR;
+    }
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
+
+static STATUS serializeMediaConnectionInformation(SdpSerializerContext_t* pCtx, PSdpConnectionInformation pSdpConnectionInformation)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    SdpResult_t sdpResult = SDP_RESULT_OK;
+    SdpConnectionInfo_t connInfo;
+
+    CHK(pSdpConnectionInformation != NULL, STATUS_NULL_ARG);
 
     if (pSdpConnectionInformation->networkType[0] != '\0') {
-        currentWriteSize = SNPRINTF(*ppOutputData, (*ppOutputData) == NULL ? 0 : *pBufferSize - *pTotalWritten,
-                                    SDP_CONNECTION_INFORMATION_MARKER "%s %s %s" SDP_LINE_SEPARATOR, pSdpConnectionInformation->networkType,
-                                    pSdpConnectionInformation->addressType, pSdpConnectionInformation->connectionAddress);
+        /* Append connection info */
+        CHK(STRCMP(pSdpConnectionInformation->networkType, "IN") == 0, STATUS_INVALID_ARG);
+        connInfo.networkType = SDP_NETWORK_IN;
 
-        CHK(*ppOutputData == NULL || ((*pBufferSize - *pTotalWritten) >= currentWriteSize), STATUS_BUFFER_TOO_SMALL);
-        *pTotalWritten += currentWriteSize;
-        if (*ppOutputData != NULL) {
-            *ppOutputData += currentWriteSize;
+        CHK(STRCMP(pSdpConnectionInformation->addressType, "IP4") == 0 ||
+            STRCMP(pSdpConnectionInformation->addressType, "IP6") == 0, STATUS_INVALID_ARG);
+
+        if (STRCMP(pSdpConnectionInformation->addressType, "IP4") == 0) {
+            connInfo.addressType = SDP_ADDRESS_IPV4;
+        } else {
+            connInfo.addressType = SDP_ADDRESS_IPV6;
+        }
+
+        connInfo.pAddress = pSdpConnectionInformation->connectionAddress;
+        connInfo.addressLength = STRLEN(pSdpConnectionInformation->connectionAddress);
+
+        sdpResult = SdpSerializer_AddConnectionInfo(pCtx,
+                                                    SDP_TYPE_CONNINFO,
+                                                    &connInfo);
+
+        if (sdpResult == SDP_RESULT_OK) {
+            retStatus = STATUS_SUCCESS;
+        } else if (sdpResult == SDP_RESULT_OUT_OF_MEMORY) {
+            retStatus = STATUS_BUFFER_TOO_SMALL;
+        } else {
+            retStatus = sdpResult;
         }
     }
 
@@ -167,34 +246,49 @@ STATUS serializeSessionDescription(PSessionDescription pSessionDescription, PCHA
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    PCHAR curr = sdpBytes;
-    UINT32 i, j, bufferSize = 0;
+    SdpResult_t sdpResult = SDP_RESULT_OK;
+    SdpSerializerContext_t ctx;
+    const CHAR * pSdpMessage;
+    UINT32 sdpMessageLength;
+    UINT32 i, j;
 
-    CHK(pSessionDescription != NULL && sdpBytesLength != NULL, STATUS_NULL_ARG);
+    sdpResult = SdpSerializer_Init(&ctx, sdpBytes, *sdpBytesLength);
+    CHK(sdpResult == SDP_RESULT_OK, sdpResult);
 
-    bufferSize = *sdpBytesLength;
-    *sdpBytesLength = 0;
+    /* Append version. */
+    CHK_STATUS(serializeVersion(&ctx, pSessionDescription->version));
 
-    CHK_STATUS(serializeVersion(pSessionDescription->version, &curr, sdpBytesLength, &bufferSize));
-    CHK_STATUS(serializeOrigin(&pSessionDescription->sdpOrigin, &curr, sdpBytesLength, &bufferSize));
-    CHK_STATUS(serializeSessionName(pSessionDescription->sessionName, &curr, sdpBytesLength, &bufferSize));
+    /* Append originator. */
+    CHK_STATUS(serializeOrigin(&ctx, &(pSessionDescription->sdpOrigin)));
+
+    /* Append session name. */
+    CHK_STATUS(serializeSessionName(&ctx, pSessionDescription->sessionName));
+
+    /* Append time description. */
     for (i = 0; i < pSessionDescription->timeDescriptionCount; i++) {
-        CHK_STATUS(serializeTimeDescription(&pSessionDescription->sdpTimeDescription[i], &curr, sdpBytesLength, &bufferSize));
-    }
-    for (i = 0; i < pSessionDescription->sessionAttributesCount; i++) {
-        CHK_STATUS(serializeAttribute(&pSessionDescription->sdpAttributes[i], &curr, sdpBytesLength, &bufferSize));
+        CHK_STATUS(serializeTimeDescription(&ctx, &(pSessionDescription->sdpTimeDescription[i])));
     }
 
+    /* Append session attributes. */
+    for (i = 0; i < pSessionDescription->sessionAttributesCount; i++) {
+        CHK_STATUS(serializeAttribute(&ctx, &(pSessionDescription->sdpAttributes[i])));
+    }
+
+    /* Append media. */
     for (i = 0; i < pSessionDescription->mediaCount; i++) {
-        CHK_STATUS(serializeMediaName(pSessionDescription->mediaDescriptions[i].mediaName, &curr, sdpBytesLength, &bufferSize));
-        CHK_STATUS(serializeMediaConnectionInformation(&(pSessionDescription->mediaDescriptions[i].sdpConnectionInformation), &curr, sdpBytesLength,
-                                                       &bufferSize));
+        CHK_STATUS(serializeMediaName(&ctx, pSessionDescription->mediaDescriptions[i].mediaName));
+        CHK_STATUS(serializeMediaConnectionInformation(&ctx, &(pSessionDescription->mediaDescriptions[i].sdpConnectionInformation)));
+
+        /* Append media attributes. */
         for (j = 0; j < pSessionDescription->mediaDescriptions[i].mediaAttributesCount; j++) {
-            CHK_STATUS(serializeAttribute(&pSessionDescription->mediaDescriptions[i].sdpAttributes[j], &curr, sdpBytesLength, &bufferSize));
+            CHK_STATUS(serializeAttribute(&ctx, &(pSessionDescription->mediaDescriptions[i].sdpAttributes[j])));
         }
     }
 
-    *sdpBytesLength += 1; // NULL terminator
+    sdpResult = SdpSerializer_Finalize(&(ctx), &pSdpMessage, (SIZE_T*)&sdpMessageLength);
+    CHK(sdpResult==SDP_RESULT_OK, sdpResult);
+
+    *sdpBytesLength = sdpMessageLength + 1U; // NULL terminator
 
 CleanUp:
     LEAVES();
