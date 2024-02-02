@@ -448,6 +448,12 @@ jobs:
 #        run:  |
 #          cd build
 #          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+  stack-size-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: stack-size-print
+        run: |
+          ulimit -s
   sample-check:
     if: github.repository == 'awslabs/amazon-kinesis-video-streams-webrtc-sdk-c'
     runs-on: ubuntu-latest
