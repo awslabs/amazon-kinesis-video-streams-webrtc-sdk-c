@@ -21,14 +21,14 @@ LONG writeRssAnonToFile(PCHAR message, BOOL writeToFile, BOOL writeRecorded, LON
 
     FILE *file = fopen(filepath, "r");
     if (file == NULL) {
-        perror("Error opening file");
-        exit(EXIT_FAILURE);
+        DLOGW("Error opening file");
+        return 1;
     }
     if(writeToFile) {
         outfile = fopen("ram_usage.txt", "a"); // Open for appending
         if (outfile == NULL) {
-            perror("Error opening file");
-            exit(EXIT_FAILURE);
+            DLOGW("Error opening file");
+            return 1;
         }
     }
 
@@ -50,7 +50,9 @@ LONG writeRssAnonToFile(PCHAR message, BOOL writeToFile, BOOL writeRecorded, LON
         }
     }
 
-    fclose(file);
+    if(file != NULL) {
+        fclose(file);
+    }
     if (outfile != NULL) {
         fclose(outfile);
     }
@@ -461,6 +463,7 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
 
     // Set this to custom callback to enable filtering of interfaces
     configuration.kvsRtcConfiguration.iceSetInterfaceFilterFunc = NULL;
+    configuration.kvsRtcConfiguration.disableSenderSideBandwidthEstimation = TRUE;
 
     // Set the ICE mode explicitly
     configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_RELAY;
