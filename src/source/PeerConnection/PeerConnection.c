@@ -953,7 +953,9 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
 
     NULLABLE_SET_EMPTY(pKvsPeerConnection->canTrickleIce);
 
+    DLOGI("Checking twcc");
     if (!pConfiguration->kvsRtcConfiguration.disableSenderSideBandwidthEstimation) {
+        DLOGI("Enabled twcc");
         pKvsPeerConnection->twccLock = MUTEX_CREATE(TRUE);
         pKvsPeerConnection->pTwccManager = (PTwccManager) MEMCALLOC(1, SIZEOF(TwccManager));
     }

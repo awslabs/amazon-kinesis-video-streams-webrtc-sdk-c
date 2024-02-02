@@ -10,6 +10,7 @@ Shared include file for the samples
 extern "C" {
 #endif
 
+#define CONSTRAINED_DEVICE  1
 #include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
 
 #define NUMBER_OF_H264_FRAME_FILES               1500
