@@ -5,13 +5,6 @@ extern PSampleConfiguration gSampleConfiguration;
 INT32 main(INT32 argc, CHAR* argv[])
 {
     // THREAD_SLEEP(30 * HUNDREDS_OF_NANOS_IN_A_SECOND);
-
-    pthread_attr_t attr;
-    size_t stacksize;
-
-    pthread_attr_init(&attr);
-    pthread_attr_getstacksize(&attr, &stacksize);
-    printf("Stack size: %zu\n", stacksize);
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 frameSize;
     PSampleConfiguration pSampleConfiguration = NULL;
@@ -21,6 +14,13 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     SET_INSTRUMENTED_ALLOCATORS();
     UINT32 logLevel = setLogLevel();
+
+    pthread_attr_t attr;
+    size_t stacksize;
+
+    pthread_attr_init(&attr);
+    pthread_attr_getstacksize(&attr, &stacksize);
+    DLOGI("Stack size to start with: %zu", stacksize);
 
 #ifndef _WIN32
     signal(SIGINT, sigintHandler);
