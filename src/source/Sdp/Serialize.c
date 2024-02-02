@@ -45,8 +45,8 @@ static STATUS serializeOrigin(SdpSerializerContext_t* pCtx, PSdpOrigin pSDPOrigi
         origin.connectionInfo.networkType = SDP_NETWORK_IN;
     }
 
-    CHK(STRCMP(pSDPOrigin->sdpConnectionInformation.addressType, "IP4") == 0 ||
-        STRCMP(pSDPOrigin->sdpConnectionInformation.addressType, "IP6") == 0, STATUS_INVALID_ARG);
+    CHK(STRCMP(pSDPOrigin->sdpConnectionInformation.addressType, "IP4") == 0 || STRCMP(pSDPOrigin->sdpConnectionInformation.addressType, "IP6") == 0,
+        STATUS_INVALID_ARG);
 
     if (STRCMP(pSDPOrigin->sdpConnectionInformation.addressType, "IP4") == 0) {
         origin.connectionInfo.addressType = SDP_ADDRESS_IPV4;
@@ -57,9 +57,7 @@ static STATUS serializeOrigin(SdpSerializerContext_t* pCtx, PSdpOrigin pSDPOrigi
     origin.connectionInfo.pAddress = pSDPOrigin->sdpConnectionInformation.connectionAddress;
     origin.connectionInfo.addressLength = STRLEN(pSDPOrigin->sdpConnectionInformation.connectionAddress);
 
-    sdpResult = SdpSerializer_AddOriginator(pCtx,
-                                            SDP_TYPE_ORIGINATOR,
-                                            &origin);
+    sdpResult = SdpSerializer_AddOriginator(pCtx, SDP_TYPE_ORIGINATOR, &origin);
 
     if (sdpResult == SDP_RESULT_OK) {
         retStatus = STATUS_SUCCESS;
@@ -83,10 +81,7 @@ static STATUS serializeSessionName(SdpSerializerContext_t* pCtx, PCHAR sessionNa
 
     /* Check if session name available. */
     if ((sessionName != NULL) && (sessionName[0] != '\0')) {
-        sdpResult = SdpSerializer_AddBuffer(pCtx,
-                                            SDP_TYPE_SESSION_NAME,
-                                            sessionName,
-                                            STRLEN(sessionName));
+        sdpResult = SdpSerializer_AddBuffer(pCtx, SDP_TYPE_SESSION_NAME, sessionName, STRLEN(sessionName));
 
         if (sdpResult == SDP_RESULT_OK) {
             retStatus = STATUS_SUCCESS;
@@ -114,9 +109,7 @@ static STATUS serializeTimeDescription(SdpSerializerContext_t* pCtx, PSdpTimeDes
 
     time.startTime = pSDPTimeDescription->startTime;
     time.stopTime = pSDPTimeDescription->stopTime;
-    sdpResult = SdpSerializer_AddTimeActive(pCtx,
-                                            SDP_TYPE_TIME_ACTIVE,
-                                            &time);
+    sdpResult = SdpSerializer_AddTimeActive(pCtx, SDP_TYPE_TIME_ACTIVE, &time);
 
     if (sdpResult == SDP_RESULT_OK) {
         retStatus = STATUS_SUCCESS;
@@ -152,9 +145,7 @@ static STATUS serializeAttribute(SdpSerializerContext_t* pCtx, PSdpAttributes pS
         attribute.attributeValueLength = STRLEN(pSDPAttributes->attributeValue);
     }
 
-    sdpResult = SdpSerializer_AddAttribute(pCtx,
-                                           SDP_TYPE_ATTRIBUTE,
-                                           &attribute);
+    sdpResult = SdpSerializer_AddAttribute(pCtx, SDP_TYPE_ATTRIBUTE, &attribute);
 
     if (sdpResult == SDP_RESULT_OK) {
         retStatus = STATUS_SUCCESS;
@@ -178,10 +169,7 @@ static STATUS serializeMediaName(SdpSerializerContext_t* pCtx, PCHAR pMediaName)
 
     CHK(pMediaName != NULL, STATUS_NULL_ARG);
 
-    sdpResult =  SdpSerializer_AddBuffer(pCtx,
-                                         SDP_TYPE_MEDIA,
-                                         pMediaName,
-                                         STRLEN(pMediaName));
+    sdpResult = SdpSerializer_AddBuffer(pCtx, SDP_TYPE_MEDIA, pMediaName, STRLEN(pMediaName));
 
     if (sdpResult == SDP_RESULT_OK) {
         retStatus = STATUS_SUCCESS;
@@ -211,8 +199,8 @@ static STATUS serializeMediaConnectionInformation(SdpSerializerContext_t* pCtx, 
         CHK(STRCMP(pSdpConnectionInformation->networkType, "IN") == 0, STATUS_INVALID_ARG);
         connInfo.networkType = SDP_NETWORK_IN;
 
-        CHK(STRCMP(pSdpConnectionInformation->addressType, "IP4") == 0 ||
-            STRCMP(pSdpConnectionInformation->addressType, "IP6") == 0, STATUS_INVALID_ARG);
+        CHK(STRCMP(pSdpConnectionInformation->addressType, "IP4") == 0 || STRCMP(pSdpConnectionInformation->addressType, "IP6") == 0,
+            STATUS_INVALID_ARG);
 
         if (STRCMP(pSdpConnectionInformation->addressType, "IP4") == 0) {
             connInfo.addressType = SDP_ADDRESS_IPV4;
@@ -223,9 +211,7 @@ static STATUS serializeMediaConnectionInformation(SdpSerializerContext_t* pCtx, 
         connInfo.pAddress = pSdpConnectionInformation->connectionAddress;
         connInfo.addressLength = STRLEN(pSdpConnectionInformation->connectionAddress);
 
-        sdpResult = SdpSerializer_AddConnectionInfo(pCtx,
-                                                    SDP_TYPE_CONNINFO,
-                                                    &connInfo);
+        sdpResult = SdpSerializer_AddConnectionInfo(pCtx, SDP_TYPE_CONNINFO, &connInfo);
 
         if (sdpResult == SDP_RESULT_OK) {
             retStatus = STATUS_SUCCESS;
@@ -248,7 +234,7 @@ STATUS serializeSessionDescription(PSessionDescription pSessionDescription, PCHA
     STATUS retStatus = STATUS_SUCCESS;
     SdpResult_t sdpResult = SDP_RESULT_OK;
     SdpSerializerContext_t ctx;
-    const CHAR * pSdpMessage;
+    const CHAR* pSdpMessage;
     UINT32 sdpMessageLength;
     UINT32 i, j;
 
@@ -285,8 +271,8 @@ STATUS serializeSessionDescription(PSessionDescription pSessionDescription, PCHA
         }
     }
 
-    sdpResult = SdpSerializer_Finalize(&(ctx), &pSdpMessage, (SIZE_T*)&sdpMessageLength);
-    CHK(sdpResult==SDP_RESULT_OK, sdpResult);
+    sdpResult = SdpSerializer_Finalize(&(ctx), &pSdpMessage, (SIZE_T*) &sdpMessageLength);
+    CHK(sdpResult == SDP_RESULT_OK, sdpResult);
 
     *sdpBytesLength = sdpMessageLength + 1U; // NULL terminator
 

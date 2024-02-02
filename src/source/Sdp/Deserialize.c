@@ -30,12 +30,12 @@ STATUS parseSessionAttributes(PSessionDescription pSessionDescription, PCHAR pVa
     sdpResult = SdpDeserializer_ParseAttribute(pValue, valueLength, &attribute);
     CHK(sdpResult == SDP_RESULT_OK, sdpResult);
 
-    STRNCPY(pSessionDescription->sdpAttributes[pSessionDescription->sessionAttributesCount].attributeName,
-            attribute.pAttributeName, attribute.attributeNameLength);
+    STRNCPY(pSessionDescription->sdpAttributes[pSessionDescription->sessionAttributesCount].attributeName, attribute.pAttributeName,
+            attribute.attributeNameLength);
 
     if (attribute.pAttributeValue != NULL) {
-        STRNCPY(pSessionDescription->sdpAttributes[pSessionDescription->sessionAttributesCount].attributeValue,
-                attribute.pAttributeValue, attribute.attributeValueLength);
+        STRNCPY(pSessionDescription->sdpAttributes[pSessionDescription->sessionAttributesCount].attributeValue, attribute.pAttributeValue,
+                attribute.attributeValueLength);
     }
 
     pSessionDescription->sessionAttributesCount++;
@@ -63,12 +63,12 @@ STATUS parseMediaAttributes(PSessionDescription pSessionDescription, PCHAR pValu
     sdpResult = SdpDeserializer_ParseAttribute(pValue, valueLength, &attribute);
     CHK(sdpResult == SDP_RESULT_OK, sdpResult);
 
-    STRNCPY(pSessionDescription->mediaDescriptions[mediaIdx].sdpAttributes[currentMediaAttributesCount].attributeName,
-            attribute.pAttributeName, attribute.attributeNameLength);
+    STRNCPY(pSessionDescription->mediaDescriptions[mediaIdx].sdpAttributes[currentMediaAttributesCount].attributeName, attribute.pAttributeName,
+            attribute.attributeNameLength);
 
     if (attribute.pAttributeValue != NULL) {
-        STRNCPY(pSessionDescription->mediaDescriptions[mediaIdx].sdpAttributes[currentMediaAttributesCount].attributeValue,
-                attribute.pAttributeValue, attribute.attributeValueLength);
+        STRNCPY(pSessionDescription->mediaDescriptions[mediaIdx].sdpAttributes[currentMediaAttributesCount].attributeValue, attribute.pAttributeValue,
+                attribute.attributeValueLength);
     }
 
     pSessionDescription->mediaDescriptions[mediaIdx].mediaAttributesCount++;
@@ -85,7 +85,7 @@ STATUS deserializeSessionDescription(PSessionDescription pSessionDescription, PC
     STATUS retStatus = STATUS_SUCCESS;
     SdpResult_t sdpResult = SDP_RESULT_OK;
     SdpDeserializerContext_t ctx;
-    CHAR *pValue;
+    CHAR* pValue;
     UINT32 valueLength;
     UINT8 type;
     INT32 sscanfRetVal;
@@ -95,8 +95,8 @@ STATUS deserializeSessionDescription(PSessionDescription pSessionDescription, PC
     sdpResult = SdpDeserializer_Init(&ctx, sdpBytes, STRLEN(sdpBytes));
     CHK(sdpResult == SDP_RESULT_OK, sdpResult);
 
-    for (;sdpResult == SDP_RESULT_OK;) {
-        sdpResult = SdpDeserializer_GetNext(&ctx, &type, (const CHAR **)&pValue, (SIZE_T *)&valueLength);
+    for (; sdpResult == SDP_RESULT_OK;) {
+        sdpResult = SdpDeserializer_GetNext(&ctx, &type, (const CHAR**) &pValue, (SIZE_T*) &valueLength);
 
         if (sdpResult == SDP_RESULT_OK) {
             /* Do nothing. */
@@ -116,8 +116,7 @@ STATUS deserializeSessionDescription(PSessionDescription pSessionDescription, PC
                 CHK_STATUS(parseMediaAttributes(pSessionDescription, pValue, valueLength));
             } else if (type == SDP_TYPE_SESSION_INFO) {
                 // Media Title
-                STRNCPY(pSessionDescription->mediaDescriptions[pSessionDescription->mediaCount - 1].mediaTitle,
-                        pValue, valueLength);
+                STRNCPY(pSessionDescription->mediaDescriptions[pSessionDescription->mediaCount - 1].mediaTitle, pValue, valueLength);
             } else {
                 /* Do nothing. */
             }
