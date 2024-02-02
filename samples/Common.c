@@ -1516,14 +1516,13 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
         CHK_STATUS(hashTableGet(pSampleConfiguration->pRtcPeerConnectionForRemoteClient, clientIdHash, &hashValue));
         pSampleStreamingSession = (PSampleStreamingSession) hashValue;
     }
-
+    DLOGI("Hash value for peer connection: %d", hashValue);
     switch (pReceivedSignalingMessage->signalingMessage.messageType) {
         case SIGNALING_MESSAGE_TYPE_OFFER:
-            writeRssAnonToFile("Pre-offer", TRUE, FALSE, 0);
             // Check if we already have an ongoing master session with the same peer
             CHK_ERR(!peerConnectionFound, STATUS_INVALID_OPERATION, "Peer connection %s is in progress",
                     pReceivedSignalingMessage->signalingMessage.peerClientId);
-
+            writeRssAnonToFile("Pre-offer", TRUE, FALSE, 0);
             /*
              * Create new streaming session for each offer, then insert the client id and streaming session into
              * pRtcPeerConnectionForRemoteClient for subsequent ice candidate messages. Lastly check if there is
