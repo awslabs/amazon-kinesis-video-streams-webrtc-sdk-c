@@ -1099,6 +1099,7 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
+    UINT32 htcount;
     UINT32 currentMedia, currentAttribute, tokenLen = 0, codec = 0, count = 0, unknownCodecCounter = 0;
     PSdpMediaDescription pMediaDescription = NULL;
     PCHAR attributeValue, end, codecs = NULL;
@@ -1143,12 +1144,15 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
         }
 
         do {
+            DLOGI("Attribute value: %s", attributeValue);
             count++;
+            // Extract 9
             if ((end = STRCHR(attributeValue, ' ')) != NULL) {
                 tokenLen = (end - attributeValue);
             } else {
                 tokenLen = STRLEN(attributeValue);
             }
+            DLOGI("Attribute value len: %d", tokenLen);
             if (count == 4) {
                 codecs = attributeValue; // codecs = 111 63 103 104 9 0 8 106 105 13 110 112 113 126
             }
@@ -1165,14 +1169,16 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
 
                 // if a supported codec is found, check if a user has created a transceiver for that
                 if (supportCodec) {
+                    DLOGI("Codec supported");
                     CHK_STATUS(findCodecInTransceivers(pKvsPeerConnection, rtcCodec, &foundMediaSectionWithCodec, pSeenTransceivers));
                 }
+                DLOGI("foundMediaSectionWithCodec? %s", foundMediaSectionWithCodec ? "Found" : "Not found");
             }
             if (end != NULL) {
                 attributeValue = end + 1;
             }
         } while (end != NULL && !foundMediaSectionWithCodec);
-
+        DLOGI("Codecs: %s", codecs);
         // get the first payload type from codecs in case we need to use it to generate a fake transceiver to respond to an m-line
         // if we don't have a user-created one corresponding to an m-line
         // we can respond to an m-line by including any one codec the offer had
@@ -1189,7 +1195,7 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
         for (currentAttribute = 0; currentAttribute < pMediaDescription->mediaAttributesCount && !foundMediaSectionWithCodec; currentAttribute++) {
             attributeValue = pMediaDescription->sdpAttributes[currentAttribute].attributeValue;
             rtcCodec = RTC_CODEC_UNKNOWN;
-
+            DLOGI("Attribute value new: %s", attributeValue);
             // check for supported codec in rtpmap values only if an a-line contains the keyword "rtpmap" to save string comparisons
             if (STRNCMP(RTPMAP_VALUE, pMediaDescription->sdpAttributes[currentAttribute].attributeName, 6) == 0) {
                 if (STRSTR(attributeValue, H264_VALUE) != NULL) {
@@ -1213,6 +1219,7 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
 
                 // if a supported codec is found, check if a user has created a transceiver for that
                 if (supportCodec) {
+                    DLOGI("Supported codec: %d", rtcCodec);
                     CHK_STATUS(findCodecInTransceivers(pKvsPeerConnection, rtcCodec, &foundMediaSectionWithCodec, pSeenTransceivers));
                 }
 
@@ -1264,7 +1271,8 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
     }
 
 CleanUp:
-
+    hashTableGetCount(pSeenTransceivers, &htcount);
+    DLOGI("Size of hashmap: %d", htcount);
     CHK_STATUS(hashTableFree(pSeenTransceivers));
     CHK_LOG_ERR(retStatus);
 
