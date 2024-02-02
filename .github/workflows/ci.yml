@@ -475,7 +475,6 @@ jobs:
         run: |
           ./scripts/check-sample.sh
           cd build/samples
-          ls
           cat report.txt
 #  sample-check-no-data-channel:
 #    if: github.repository == 'awslabs/amazon-kinesis-video-streams-webrtc-sdk-c'

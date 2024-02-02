@@ -12,7 +12,7 @@ VOID sigintHandler(INT32 sigNum)
     }
 }
 
-LONG writeRssAnonToFile(PCHAR message, BOOL writeToFile) {
+LONG writeRssAnonToFile(PCHAR message, BOOL writeToFile, BOOL writeRecorded, LONG value) {
     CHAR filepath[256];
     CHAR line[256];
     LONG rssAnon;
@@ -32,17 +32,25 @@ LONG writeRssAnonToFile(PCHAR message, BOOL writeToFile) {
         }
     }
 
-    while (fgets(line, sizeof(line), file)) {
-        if (STRNCMP(line, "RssAnon:", 8) == 0) {
-            DLOGI("%s:%s", message, line);
-            SSCANF(line, "RssAnon: %ld kB", &rssAnon);
-            if (outfile != NULL) {
-                DLOGI("Writing to file");
-                fprintf(outfile, "%s: %ld", message, rssAnon);
+    if (outfile != NULL && writeRecorded) {
+        DLOGI("Writing to file");
+        fprintf(outfile, "%s: %ld KB\n", message, value);
+    }
+
+    else {
+        while (fgets(line, sizeof(line), file)) {
+            if (STRNCMP(line, "RssAnon:", 8) == 0) {
+                DLOGI("%s:%s", message, line);
+                SSCANF(line, "RssAnon: %ld kB", &rssAnon);
+                if (outfile != NULL) {
+                    DLOGI("Writing to file");
+                    fprintf(outfile, "%s: %ld KB\n", message, rssAnon);
+                }
+                break;
             }
-            break;
         }
     }
+
     fclose(file);
     if (outfile != NULL) {
         fclose(outfile);
@@ -54,14 +62,14 @@ PVOID findMaxRssAnon(PVOID arg) {
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) arg;
     LONG max = 0, ret = 0;
     while(!pSampleConfiguration->interrupted) {
-        ret = writeRssAnonToFile(NULL, FALSE);
+        ret = writeRssAnonToFile(NULL, FALSE, FALSE, 0);
         if(ret > max) {
             max = ret;
         }
         DLOGI("Current max RssAnon: %ld", max);
         THREAD_SLEEP(5 * HUNDREDS_OF_NANOS_IN_A_SECOND);
     }
-    writeRssAnonToFile("Max RssAnon recorded", TRUE);
+    writeRssAnonToFile("Max RssAnon recorded", TRUE, TRUE, max);
     return NULL;
 }
 
@@ -692,7 +700,7 @@ STATUS freeSampleStreamingSession(PSampleStreamingSession* ppSampleStreamingSess
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
-
+    writeRssAnonToFile("Post viewer disconnect", TRUE, FALSE, 0);
     return retStatus;
 }
 
@@ -1318,7 +1326,7 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
         freeFileLogger();
     }
 
-    writeRssAnonToFile("Pre-application exit", TRUE);
+    writeRssAnonToFile("Pre-application exit", TRUE, FALSE, 0);
     SAFE_MEMFREE(*ppSampleConfiguration);
 
 CleanUp:
@@ -1368,7 +1376,6 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
 
                 CHK_STATUS(freeSampleStreamingSession(&pSampleStreamingSession));
                 sessionFreed = TRUE;
-                writeRssAnonToFile("Post viewer disconnect", TRUE);
             }
         }
 
@@ -1501,7 +1508,7 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
 
     switch (pReceivedSignalingMessage->signalingMessage.messageType) {
         case SIGNALING_MESSAGE_TYPE_OFFER:
-            writeRssAnonToFile("Pre-offer", TRUE);
+            writeRssAnonToFile("Pre-offer", TRUE, FALSE, 0);
             // Check if we already have an ongoing master session with the same peer
             CHK_ERR(!peerConnectionFound, STATUS_INVALID_OPERATION, "Peer connection %s is in progress",
                     pReceivedSignalingMessage->signalingMessage.peerClientId);
