@@ -519,7 +519,7 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
         pCurNode = pCurNode->pNext;
 
         // TODO: Remove IPv4 check once IPv6 TURN relay candidates are chosen. Disabling this to reduce the number of TURN permissions we create
-        if (pLocalIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED && IS_IPV4_ADDR(&pLocalIceCandidate->ipAddress)) {
+        if (pLocalIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED) {
             CHK_STATUS(turnConnectionAddPeer(pLocalIceCandidate->pTurnConnection, &pIceCandidate->ipAddress));
         }
     }

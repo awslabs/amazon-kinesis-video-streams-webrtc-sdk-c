@@ -474,6 +474,7 @@ jobs:
       - name: Sample check
         run: |
           ./scripts/check-sample.sh
+          cd build/samples
           ls
           cat report.txt
 #  sample-check-no-data-channel:
