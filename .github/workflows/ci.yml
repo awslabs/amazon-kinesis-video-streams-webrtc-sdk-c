@@ -475,7 +475,9 @@ jobs:
         run: |
           ./scripts/check-sample.sh
           cd build/samples
-          cat report.txt
+          echo "======================================="
+          cat ram_usage.txt | sed 's/^[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}T[0-9]\{2\}:[0-9]\{2\}:[0-9]\{2\}\.[0-9]\{7\}Z //'
+          echo "======================================="
 #  sample-check-no-data-channel:
 #    if: github.repository == 'awslabs/amazon-kinesis-video-streams-webrtc-sdk-c'
 #    runs-on: ubuntu-latest

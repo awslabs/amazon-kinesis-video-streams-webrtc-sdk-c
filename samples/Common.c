@@ -25,7 +25,7 @@ LONG writeRssAnonToFile(PCHAR message, BOOL writeToFile, BOOL writeRecorded, LON
         exit(EXIT_FAILURE);
     }
     if(writeToFile) {
-        outfile = fopen("report.txt", "a"); // Open for appending
+        outfile = fopen("ram_usage.txt", "a"); // Open for appending
         if (outfile == NULL) {
             perror("Error opening file");
             exit(EXIT_FAILURE);
@@ -33,7 +33,6 @@ LONG writeRssAnonToFile(PCHAR message, BOOL writeToFile, BOOL writeRecorded, LON
     }
 
     if (outfile != NULL && writeRecorded) {
-        DLOGI("Writing to file");
         fprintf(outfile, "%s: %ld KB\n", message, value);
     }
 
@@ -576,6 +575,7 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     pSampleStreamingSession = (PSampleStreamingSession) MEMCALLOC(1, SIZEOF(SampleStreamingSession));
     pSampleStreamingSession->firstFrame = TRUE;
     pSampleStreamingSession->offerReceiveTime = GETTIME();
+    pSampleStreamingSession->isMaster = isMaster;
     CHK(pSampleStreamingSession != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
     if (isMaster) {
@@ -700,7 +700,6 @@ STATUS freeSampleStreamingSession(PSampleStreamingSession* ppSampleStreamingSess
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
-    writeRssAnonToFile("Post viewer disconnect", TRUE, FALSE, 0);
     return retStatus;
 }
 
@@ -1214,6 +1213,7 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
     UINT64 data;
     StackQueueIterator iterator;
     BOOL locked = FALSE;
+    BOOL isMaster = FALSE;
 
     CHK(ppSampleConfiguration != NULL, STATUS_NULL_ARG);
     pSampleConfiguration = *ppSampleConfiguration;
@@ -1272,7 +1272,13 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
         if (STATUS_FAILED(retStatus)) {
             DLOGW("Failed to ICE Server Stats for streaming session %d: %08x", i, retStatus);
         }
+        if(pSampleConfiguration->sampleStreamingSessionList[i]->isMaster) {
+            isMaster = TRUE;
+        }
         freeSampleStreamingSession(&pSampleConfiguration->sampleStreamingSessionList[i]);
+        if(isMaster) {
+            writeRssAnonToFile("Post viewer disconnect", TRUE, FALSE, 0);
+        }
     }
     if (locked) {
         MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
@@ -1325,8 +1331,10 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
     if (pSampleConfiguration->enableFileLogging) {
         freeFileLogger();
     }
+    if(isMaster) {
+        writeRssAnonToFile("Pre-application exit", TRUE, FALSE, 0);
+    }
 
-    writeRssAnonToFile("Pre-application exit", TRUE, FALSE, 0);
     SAFE_MEMFREE(*ppSampleConfiguration);
 
 CleanUp:
