@@ -5,6 +5,7 @@ on:
     branches:
       - develop
       - master
+      - reduce-hash-table-size
   pull_request:
     branches:
       - develop
