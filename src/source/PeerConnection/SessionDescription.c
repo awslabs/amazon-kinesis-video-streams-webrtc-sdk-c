@@ -1152,7 +1152,6 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
 
         do {
             count++;
-            // Extract 9
             if ((end = STRCHR(attributeValue, ' ')) != NULL) {
                 tokenLen = (end - attributeValue);
             } else {
