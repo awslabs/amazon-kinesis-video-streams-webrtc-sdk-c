@@ -1,9 +1,11 @@
 [submodule "open-source/amazon-kinesis-video-streams-pic"]
 	path = open-source/amazon-kinesis-video-streams-pic
 	url = https://github.com/awslabs/amazon-kinesis-video-streams-pic.git
+	update = none
 [submodule "open-source/amazon-kinesis-video-streams-producer-c"]
 	path = open-source/amazon-kinesis-video-streams-producer-c
 	url = https://github.com/awslabs/amazon-kinesis-video-streams-producer-c.git
+	update = none
 [submodule "src/source/Sdp/amazon-kinesis-video-streams-sdp"]
 	path = src/source/Sdp/amazon-kinesis-video-streams-sdp
 	url = https://github.com/awslabs/amazon-kinesis-video-streams-sdp
