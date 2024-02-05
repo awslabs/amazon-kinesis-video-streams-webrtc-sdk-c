@@ -18,8 +18,6 @@ static STATUS serializeVersion(SdpSerializerContext_t* pCtx, UINT64 version)
         retStatus = sdpResult;
     }
 
-CleanUp:
-
     LEAVES();
     return retStatus;
 }
@@ -91,8 +89,6 @@ static STATUS serializeSessionName(SdpSerializerContext_t* pCtx, PCHAR sessionNa
             retStatus = sdpResult;
         }
     }
-
-CleanUp:
 
     LEAVES();
     return retStatus;
@@ -234,8 +230,8 @@ STATUS serializeSessionDescription(PSessionDescription pSessionDescription, PCHA
     STATUS retStatus = STATUS_SUCCESS;
     SdpResult_t sdpResult = SDP_RESULT_OK;
     SdpSerializerContext_t ctx;
-    const CHAR* pSdpMessage;
-    UINT32 sdpMessageLength;
+    const PCHAR pSdpMessage;
+    size_t sdpMessageLength;
     UINT32 i, j;
 
     sdpResult = SdpSerializer_Init(&ctx, sdpBytes, *sdpBytesLength);
@@ -271,7 +267,7 @@ STATUS serializeSessionDescription(PSessionDescription pSessionDescription, PCHA
         }
     }
 
-    sdpResult = SdpSerializer_Finalize(&(ctx), &pSdpMessage, (SIZE_T*) &sdpMessageLength);
+    sdpResult = SdpSerializer_Finalize(&ctx, &pSdpMessage, (size_t*) &sdpMessageLength);
     CHK(sdpResult == SDP_RESULT_OK, sdpResult);
 
     *sdpBytesLength = sdpMessageLength + 1U; // NULL terminator
