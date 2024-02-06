@@ -274,6 +274,10 @@ STATUS serializeSessionDescription(PSessionDescription pSessionDescription, PCHA
     if (*sdpBytesLength >= sdpMessageLength + 1U) {
         *(pSdpMessage + sdpMessageLength) = '\0';
         *sdpBytesLength = sdpMessageLength + 1U;
+    } else if (sdpBytes == NULL){
+        /* If buffer is NULL, we don't really need to append null terminator.
+         * Reserve space for null terminator. */
+        *sdpBytesLength = sdpMessageLength + 1U;
     } else {
         retStatus = STATUS_BUFFER_TOO_SMALL;
     }
