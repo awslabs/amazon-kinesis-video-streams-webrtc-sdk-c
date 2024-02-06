@@ -589,7 +589,7 @@ a=group:BUNDLE 0 1 2 3
         SessionDescription sessionDescription;
         MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
         // as log as Sdp.h  MAX_SDP_SESSION_MEDIA_COUNT 5 this should fail instead of overwriting memory
-        EXPECT_EQ(STATUS_BUFFER_TOO_SMALL, deserializeSessionDescription(&sessionDescription, (PCHAR) sdp));
+        EXPECT_EQ(STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT, deserializeSessionDescription(&sessionDescription, (PCHAR) sdp));
     });
 }
 
