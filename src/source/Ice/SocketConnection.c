@@ -18,6 +18,7 @@ STATUS createSocketConnection(KVS_IP_FAMILY_TYPE familyType, KVS_SOCKET_PROTOCOL
 
     pSocketConnection = (PSocketConnection) MEMCALLOC(1, SIZEOF(SocketConnection));
     CHK(pSocketConnection != NULL, STATUS_NOT_ENOUGH_MEMORY);
+    ATOMIC_INCREMENT(&pSocketConnection->refCount);
 
     pSocketConnection->lock = MUTEX_CREATE(FALSE);
     CHK(pSocketConnection->lock != INVALID_MUTEX_VALUE, STATUS_INVALID_OPERATION);
@@ -63,6 +64,7 @@ CleanUp:
 
     if (ppSocketConnection != NULL) {
         *ppSocketConnection = pSocketConnection;
+        ATOMIC_DECREMENT(&pSocketConnection->refCount);
     }
 
     LEAVES();
@@ -85,7 +87,6 @@ STATUS freeSocketConnection(PSocketConnection* ppSocketConnection)
     // Hence the modification needs to be protected
     MUTEX_LOCK(pSocketConnection->lock);
     ATOMIC_STORE_BOOL(&pSocketConnection->connectionClosed, TRUE);
-    MUTEX_UNLOCK(pSocketConnection->lock);
 
     // Await for the socket connection to be released
     shutdownTimeout = GETTIME() + KVS_ICE_TURN_CONNECTION_SHUTDOWN_TIMEOUT;
@@ -97,13 +98,6 @@ STATUS freeSocketConnection(PSocketConnection* ppSocketConnection)
         DLOGW("Shutting down socket connection timedout after %u seconds", KVS_ICE_TURN_CONNECTION_SHUTDOWN_TIMEOUT / HUNDREDS_OF_NANOS_IN_A_SECOND);
     }
 
-    if (IS_VALID_MUTEX_VALUE(pSocketConnection->lock)) {
-        MUTEX_FREE(pSocketConnection->lock);
-    }
-
-    if (pSocketConnection->pTlsSession != NULL) {
-        freeTlsSession(&pSocketConnection->pTlsSession);
-    }
 
     getIpAddrStr(&pSocketConnection->hostIpAddr, ipAddr, ARRAY_SIZE(ipAddr));
     DLOGD("close socket with ip: %s:%u. family:%d", ipAddr, (UINT16) getInt16(pSocketConnection->hostIpAddr.port),
@@ -117,8 +111,18 @@ STATUS freeSocketConnection(PSocketConnection* ppSocketConnection)
         DLOGW("Failed to close the local socket with 0x%08x", retStatus);
     }
 
-    MEMFREE(pSocketConnection);
+    while(ATOMIC_LOAD(&pSocketConnection->refCount) > 0) {
+        THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
 
+    if (pSocketConnection->pTlsSession != NULL) {
+        freeTlsSession(&pSocketConnection->pTlsSession);
+    }
+    if (IS_VALID_MUTEX_VALUE(pSocketConnection->lock)) {
+        MUTEX_UNLOCK(pSocketConnection->lock);
+        MUTEX_FREE(pSocketConnection->lock);
+    }
+    MEMFREE(pSocketConnection);
     *ppSocketConnection = NULL;
 
 CleanUp:
@@ -134,9 +138,11 @@ STATUS socketConnectionTlsSessionOutBoundPacket(UINT64 customData, PBYTE pBuffer
     CHK(customData != 0, STATUS_NULL_ARG);
 
     pSocketConnection = (PSocketConnection) customData;
+    ATOMIC_INCREMENT(&pSocketConnection->refCount);
     CHK_STATUS(socketSendDataWithRetry(pSocketConnection, pBuffer, bufferLen, NULL, NULL));
 
 CleanUp:
+    ATOMIC_DECREMENT(&pSocketConnection->refCount);
     return retStatus;
 }
 
@@ -148,6 +154,7 @@ VOID socketConnectionTlsSessionOnStateChange(UINT64 customData, TLS_SESSION_STAT
     }
 
     pSocketConnection = (PSocketConnection) customData;
+    ATOMIC_INCREMENT(&pSocketConnection->refCount);
     switch (state) {
         case TLS_SESSION_STATE_NEW:
             pSocketConnection->tlsHandshakeStartTime = INVALID_TIMESTAMP_VALUE;
@@ -165,6 +172,7 @@ VOID socketConnectionTlsSessionOnStateChange(UINT64 customData, TLS_SESSION_STAT
             ATOMIC_STORE_BOOL(&pSocketConnection->connectionClosed, TRUE);
             break;
     }
+    ATOMIC_DECREMENT(&pSocketConnection->refCount);
 }
 
 STATUS socketConnectionInitSecureConnection(PSocketConnection pSocketConnection, BOOL isServer)
@@ -176,6 +184,7 @@ STATUS socketConnectionInitSecureConnection(PSocketConnection pSocketConnection,
 
     CHK(pSocketConnection != NULL, STATUS_NULL_ARG);
 
+    ATOMIC_INCREMENT(&pSocketConnection->refCount);
     MUTEX_LOCK(pSocketConnection->lock);
     locked = TRUE;
 
@@ -198,6 +207,8 @@ CleanUp:
         MUTEX_UNLOCK(pSocketConnection->lock);
     }
 
+    ATOMIC_DECREMENT(&pSocketConnection->refCount);
+
     LEAVES();
     return retStatus;
 }
@@ -208,6 +219,7 @@ STATUS socketConnectionSendData(PSocketConnection pSocketConnection, PBYTE pBuf,
     BOOL locked = FALSE;
 
     CHK(pSocketConnection != NULL, STATUS_NULL_ARG);
+    ATOMIC_INCREMENT(&pSocketConnection->refCount);
     CHK((pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_TCP || pDestIp != NULL), STATUS_INVALID_ARG);
 
     // Using a single CHK_WARN might output too much spew in bad network conditions
@@ -236,7 +248,7 @@ CleanUp:
     if (locked) {
         MUTEX_UNLOCK(pSocketConnection->lock);
     }
-
+    ATOMIC_DECREMENT(&pSocketConnection->refCount);
     return retStatus;
 }
 
@@ -248,6 +260,7 @@ STATUS socketConnectionReadData(PSocketConnection pSocketConnection, PBYTE pBuf,
     CHK(pSocketConnection != NULL && pBuf != NULL && pDataLen != NULL, STATUS_NULL_ARG);
     CHK(bufferLen != 0, STATUS_INVALID_ARG);
 
+    ATOMIC_INCREMENT(&pSocketConnection->refCount);
     MUTEX_LOCK(pSocketConnection->lock);
     locked = TRUE;
 
@@ -266,6 +279,7 @@ CleanUp:
     if (locked) {
         MUTEX_UNLOCK(pSocketConnection->lock);
     }
+    ATOMIC_DECREMENT(&pSocketConnection->refCount);
 
     return retStatus;
 }
@@ -275,6 +289,7 @@ STATUS socketConnectionClosed(PSocketConnection pSocketConnection)
     STATUS retStatus = STATUS_SUCCESS;
 
     CHK(pSocketConnection != NULL, STATUS_NULL_ARG);
+    ATOMIC_INCREMENT(&pSocketConnection->refCount);
     CHK(!ATOMIC_LOAD_BOOL(&pSocketConnection->connectionClosed), retStatus);
     MUTEX_LOCK(pSocketConnection->lock);
     DLOGD("Close socket %d", pSocketConnection->localSocket);
@@ -287,7 +302,7 @@ STATUS socketConnectionClosed(PSocketConnection pSocketConnection)
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
-
+    ATOMIC_DECREMENT(&pSocketConnection->refCount);
     return retStatus;
 }
 
@@ -311,7 +326,7 @@ BOOL socketConnectionIsConnected(PSocketConnection pSocketConnection)
     CHAR peerIpAddr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
 
     CHECK(pSocketConnection != NULL);
-
+    ATOMIC_INCREMENT(&pSocketConnection->refCount);
     if (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_UDP) {
         return TRUE;
     }
@@ -347,6 +362,7 @@ BOOL socketConnectionIsConnected(PSocketConnection pSocketConnection)
     }
 
     DLOGW("socket connection check failed with errno %s(%d)", getErrorString(getErrorCode()), getErrorCode());
+    ATOMIC_DECREMENT(&pSocketConnection->refCount);
     return FALSE;
 }
 
@@ -367,6 +383,7 @@ STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, U
     CHK(pSocketConnection != NULL, STATUS_NULL_ARG);
     CHK(buf != NULL && bufLen > 0, STATUS_INVALID_ARG);
 
+    ATOMIC_INCREMENT(&pSocketConnection->refCount);
     if (pDestIp != NULL) {
         if (IS_IPV4_ADDR(pDestIp)) {
             addrLen = SIZEOF(ipv4Addr);
@@ -450,6 +467,6 @@ CleanUp:
     if (STATUS_FAILED(retStatus)) {
         DLOGD("Warning: Send data failed with 0x%08x", retStatus);
     }
-
+    ATOMIC_DECREMENT(&pSocketConnection->refCount);
     return retStatus;
 }

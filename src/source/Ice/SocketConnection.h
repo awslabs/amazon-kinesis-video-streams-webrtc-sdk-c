@@ -44,6 +44,7 @@ struct __SocketConnection {
     ConnectionDataAvailableFunc dataAvailableCallbackFn;
     UINT64 dataAvailableCallbackCustomData;
     UINT64 tlsHandshakeStartTime;
+    UINT64 refCount;
 };
 typedef struct __SocketConnection* PSocketConnection;
 
