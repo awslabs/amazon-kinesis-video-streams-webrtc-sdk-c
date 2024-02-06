@@ -1214,7 +1214,7 @@ STATUS peerConnectionGetLocalDescription(PRtcPeerConnection pRtcPeerConnection, 
         pRtcSessionDescriptionInit->type = SDP_TYPE_ANSWER;
     }
 
-    CHK_STATUS(populateSessionDescription(pKvsPeerConnection, &(pKvsPeerConnection->remoteSessionDescription), pSessionDescription));
+    CHK_STATUS(populateSessionDescription(pKvsPeerConnection, pKvsPeerConnection->pRemoteSessionDescription, pSessionDescription));
     CHK_STATUS(serializeSessionDescription(pSessionDescription, NULL, &serializeLen));
     CHK(serializeLen <= MAX_SESSION_DESCRIPTION_INIT_SDP_LEN, STATUS_NOT_ENOUGH_MEMORY);
 
@@ -1238,11 +1238,11 @@ STATUS peerConnectionGetCurrentLocalDescription(PRtcPeerConnection pRtcPeerConne
 
     CHK(pRtcPeerConnection != NULL && pRtcSessionDescriptionInit != NULL, STATUS_NULL_ARG);
     // do nothing if remote session description hasn't been received
-    CHK(pKvsPeerConnection->remoteSessionDescription.sessionName[0] != '\0', retStatus);
+    CHK(pKvsPeerConnection->pRemoteSessionDescription != NULL, retStatus);
 
     CHK(NULL != (pSessionDescription = (PSessionDescription) MEMCALLOC(1, SIZEOF(SessionDescription))), STATUS_NOT_ENOUGH_MEMORY);
 
-    CHK_STATUS(populateSessionDescription(pKvsPeerConnection, &(pKvsPeerConnection->remoteSessionDescription), pSessionDescription));
+    CHK_STATUS(populateSessionDescription(pKvsPeerConnection, pKvsPeerConnection->pRemoteSessionDescription, pSessionDescription));
 
     CHK_STATUS(serializeSessionDescription(pSessionDescription, NULL, &serializeLen));
     CHK(serializeLen <= MAX_SESSION_DESCRIPTION_INIT_SDP_LEN, STATUS_NOT_ENOUGH_MEMORY);
@@ -1279,14 +1279,15 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
     STATUS retStatus = STATUS_SUCCESS;
     PCHAR remoteIceUfrag = NULL, remoteIcePwd = NULL;
     UINT32 i, j;
+    PSessionDescription pSessionDescription;
 
     CHK(pPeerConnection != NULL, STATUS_NULL_ARG);
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pPeerConnection;
-    PSessionDescription pSessionDescription = &pKvsPeerConnection->remoteSessionDescription;
 
+    pKvsPeerConnection->pRemoteSessionDescription = (PSessionDescription) MEMCALLOC(1, SIZEOF(SessionDescription));
+    pSessionDescription = pKvsPeerConnection->pRemoteSessionDescription;
     CHK(pSessionDescriptionInit != NULL, STATUS_NULL_ARG);
 
-    MEMSET(pSessionDescription, 0x00, SIZEOF(SessionDescription));
     pKvsPeerConnection->dtlsIsServer = FALSE;
     /* Assume cant trickle at first */
     NULLABLE_SET_VALUE(pKvsPeerConnection->canTrickleIce, FALSE);
@@ -1403,7 +1404,7 @@ STATUS createOffer(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionIni
 #endif
 
     CHK_STATUS(setPayloadTypesForOffer(pKvsPeerConnection->pCodecTable));
-    CHK_STATUS(populateSessionDescription(pKvsPeerConnection, &(pKvsPeerConnection->remoteSessionDescription), pSessionDescription));
+    CHK_STATUS(populateSessionDescription(pKvsPeerConnection, pKvsPeerConnection->pRemoteSessionDescription, pSessionDescription));
     CHK_STATUS(serializeSessionDescription(pSessionDescription, NULL, &serializeLen));
     CHK(serializeLen <= MAX_SESSION_DESCRIPTION_INIT_SDP_LEN, STATUS_NOT_ENOUGH_MEMORY);
     CHK_STATUS(serializeSessionDescription(pSessionDescription, pSessionDescriptionInit->sdp, &serializeLen));
@@ -1427,7 +1428,7 @@ STATUS createAnswer(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionIn
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pPeerConnection;
 
     CHK(pKvsPeerConnection != NULL && pSessionDescriptionInit != NULL, STATUS_NULL_ARG);
-    CHK(pKvsPeerConnection->remoteSessionDescription.sessionName[0] != '\0', STATUS_PEERCONNECTION_CREATE_ANSWER_WITHOUT_REMOTE_DESCRIPTION);
+    CHK(pKvsPeerConnection->pRemoteSessionDescription != NULL, STATUS_PEERCONNECTION_CREATE_ANSWER_WITHOUT_REMOTE_DESCRIPTION);
 
     pSessionDescriptionInit->type = SDP_TYPE_ANSWER;
     pKvsPeerConnection->isOffer = FALSE;
@@ -1437,6 +1438,9 @@ STATUS createAnswer(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionIn
     if (NULL != GETENV(DEBUG_LOG_SDP)) {
         DLOGD("LOCAL_SDP:%s", pSessionDescriptionInit->sdp);
     }
+
+    // Once answer is created, remote SDP is not needed anymore
+    SAFE_MEMFREE(pKvsPeerConnection->pRemoteSessionDescription);
 CleanUp:
 
     LEAVES();
