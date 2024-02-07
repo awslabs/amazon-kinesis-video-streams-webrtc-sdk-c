@@ -912,16 +912,6 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
 
     pKvsPeerConnection->peerConnection.version = PEER_CONNECTION_CURRENT_VERSION;
 
-    if (pConfiguration->rollingBufferDurationInSec == 0.0f) {
-        pKvsPeerConnection->rollingBufferDurationInSec = DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS;
-    } else {
-        pKvsPeerConnection->rollingBufferDurationInSec = pConfiguration->rollingBufferDurationInSec;
-    }
-    if (pConfiguration->rollingBufferBitrateInMBps == 0.0f) {
-        pKvsPeerConnection->rollingBufferBitrateInMBps = HIGHEST_EXPECTED_BIT_RATE;
-    } else {
-        pKvsPeerConnection->rollingBufferBitrateInMBps = pConfiguration->rollingBufferBitrateInMBps * 1024 * 1024;
-    }
     CHK_STATUS(generateJSONSafeString(pKvsPeerConnection->localIceUfrag, LOCAL_ICE_UFRAG_LEN));
     CHK_STATUS(generateJSONSafeString(pKvsPeerConnection->localIcePwd, LOCAL_ICE_PWD_LEN));
     CHK_STATUS(generateJSONSafeString(pKvsPeerConnection->localCNAME, LOCAL_CNAME_LEN));
@@ -1526,8 +1516,8 @@ STATUS addTransceiver(PRtcPeerConnection pPeerConnection, PRtcMediaStreamTrack p
     }
 
     // TODO: Add ssrc duplicate detection here not only relying on RAND()
-    CHK_STATUS(createKvsRtpTransceiver(direction, pKvsPeerConnection, ssrc, rtxSsrc, pRtcMediaStreamTrack, NULL, pRtcMediaStreamTrack->codec,
-                                       &pKvsRtpTransceiver));
+    CHK_STATUS(createKvsRtpTransceiver(pRtcRtpTransceiverInit, pKvsPeerConnection, ssrc, rtxSsrc, pRtcMediaStreamTrack, NULL,
+                                       pRtcMediaStreamTrack->codec, &pKvsRtpTransceiver));
     CHK_STATUS(createJitterBuffer(onFrameReadyFunc, onFrameDroppedFunc, depayFunc, DEFAULT_JITTER_BUFFER_MAX_LATENCY, clockRate,
                                   (UINT64) pKvsRtpTransceiver, &pJitterBuffer));
     CHK_STATUS(kvsRtpTransceiverSetJitterBuffer(pKvsRtpTransceiver, pJitterBuffer));

@@ -295,12 +295,10 @@ STATUS setTransceiverPayloadTypes(PHashTable codecTable, PHashTable rtxTable, PD
             }
         }
 
-        DLOGI("Sizes: %lf, %lf", pKvsRtpTransceiver->rollingBufferDurationInSec, pKvsRtpTransceiver->rollingBufferBitrateInMBps);
-        UINT64 size = pKvsRtpTransceiver->rollingBufferDurationInSec * pKvsRtpTransceiver->rollingBufferBitrateInMBps / 8 /
-                      DEFAULT_MTU_SIZE;
+        DLOGI("Sizes: %d, %d", pKvsRtpTransceiver->rollingBufferDurationSec, pKvsRtpTransceiver->rollingBufferBitrateInMbps);
+        UINT64 size = pKvsRtpTransceiver->rollingBufferDurationSec * pKvsRtpTransceiver->rollingBufferBitrateInMbps / 8 / DEFAULT_MTU_SIZE;
         DLOGI("Cap: %d", size);
-        CHK_STATUS(createRtpRollingBuffer(size,
-                                          &pKvsRtpTransceiver->sender.packetBuffer));
+        CHK_STATUS(createRtpRollingBuffer(size, &pKvsRtpTransceiver->sender.packetBuffer));
         CHK_STATUS(createRetransmitter(DEFAULT_SEQ_NUM_BUFFER_SIZE, DEFAULT_VALID_INDEX_BUFFER_SIZE, &pKvsRtpTransceiver->sender.retransmitter));
     }
 
@@ -1105,6 +1103,7 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 currentMedia, currentAttribute, tokenLen = 0, codec = 0, count = 0, unknownCodecCounter = 0;
     PSdpMediaDescription pMediaDescription = NULL;
+    RtcRtpTransceiverInit rtcRtpTransceiverInit;
     PCHAR attributeValue, end, codecs = NULL;
     PCHAR rtpMapValue = NULL;
     CHAR firstCodec[MAX_PAYLOAD_TYPE_LENGTH];
@@ -1244,8 +1243,9 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
             STRCPY(track.streamId, "fakeStream");
             STRCPY(track.trackId, "fakeTrack");
             pRtcMediaStreamTrack = &track;
-            CHK_STATUS(createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE, pKvsPeerConnection, (UINT32) RAND(), (UINT32) RAND(),
-                                               pRtcMediaStreamTrack, NULL, RTC_CODEC_UNKNOWN, &pKvsRtpFakeTransceiver));
+            rtcRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE;
+            CHK_STATUS(createKvsRtpTransceiver(&rtcRtpTransceiverInit, pKvsPeerConnection, (UINT32) RAND(), (UINT32) RAND(), pRtcMediaStreamTrack,
+                                               NULL, RTC_CODEC_UNKNOWN, &pKvsRtpFakeTransceiver));
 
             // add the new transceiver to a list of fake transceivers to keep a track of them
             // add the same to the pAnswerTransceivers since it will be needed later to serialize

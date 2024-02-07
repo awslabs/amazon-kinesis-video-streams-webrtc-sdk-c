@@ -1129,6 +1129,8 @@ typedef struct {
  */
 typedef struct {
     RTC_RTP_TRANSCEIVER_DIRECTION direction; //!< Transceiver direction
+    UINT64 rollingBufferDurationSec;
+    UINT64 rollingBufferBitrateInMbps;
     RtcRtpReceiver receiver;                 //!< RtcRtpReceiver that has track specific information
 } RtcRtpTransceiver, *PRtcRtpTransceiver;
 
@@ -1232,8 +1234,6 @@ typedef struct {
                                                          //!< connection to avoid a compromised client weakening the security of the new connections.
                                                          //!<
                                                          //!< NOTE: The certificates, if specified, can be freed after the peer connection create call
-    DOUBLE rollingBufferDurationInSec;
-    DOUBLE rollingBufferBitrateInMBps;
 } RtcConfiguration, *PRtcConfiguration;
 
 /**
@@ -1490,6 +1490,8 @@ typedef struct {
  */
 typedef struct {
     RTC_RTP_TRANSCEIVER_DIRECTION direction; //!< Transceiver direction - SENDONLY, RECVONLY, SENDRECV
+    UINT64 rollingBufferDurationSec;
+    UINT64 rollingBufferBitrateInMbps;
 } RtcRtpTransceiverInit, *PRtcRtpTransceiverInit;
 
 /**

@@ -49,8 +49,8 @@ typedef struct {
 
     PKvsPeerConnection pKvsPeerConnection;
 
-    DOUBLE rollingBufferDurationInSec;
-    DOUBLE rollingBufferBitrateInMBps;
+    UINT64 rollingBufferDurationSec;
+    UINT64 rollingBufferBitrateInMbps;
 
     UINT32 jitterBufferSsrc;
     PJitterBuffer pJitterBuffer;
@@ -74,7 +74,7 @@ typedef struct {
     RtcInboundRtpStreamStats inboundStats;
 } KvsRtpTransceiver, *PKvsRtpTransceiver;
 
-STATUS createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION, PKvsPeerConnection, UINT32, UINT32, PRtcMediaStreamTrack, PJitterBuffer, RTC_CODEC,
+STATUS createKvsRtpTransceiver(PRtcRtpTransceiverInit, PKvsPeerConnection, UINT32, UINT32, PRtcMediaStreamTrack, PJitterBuffer, RTC_CODEC,
                                PKvsRtpTransceiver*);
 STATUS freeKvsRtpTransceiver(PKvsRtpTransceiver*);
 
