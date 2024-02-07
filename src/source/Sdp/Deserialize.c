@@ -2,15 +2,18 @@
 #include "../Include_i.h"
 #include "sdp_deserializer.h"
 
-STATUS parseMediaName(PSessionDescription pSessionDescription, PCHAR mediaValue, UINT32 mediaValueLength)
+STATUS parseMediaName(PSessionDescription pSessionDescription, PCHAR mediaValue, size_t mediaValueLength)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
+    size_t copyLength;
 
     CHK(pSessionDescription->mediaCount < MAX_SDP_SESSION_MEDIA_COUNT, STATUS_BUFFER_TOO_SMALL);
 
+    copyLength = MIN(MAX_SDP_MEDIA_NAME_LENGTH, mediaValueLength);
     STRNCPY(pSessionDescription->mediaDescriptions[pSessionDescription->mediaCount].mediaName, mediaValue,
-            MIN(MAX_SDP_MEDIA_NAME_LENGTH, mediaValueLength));
+            copyLength);
+    pSessionDescription->mediaDescriptions[pSessionDescription->mediaCount].mediaName[copyLength] = '\0';
     pSessionDescription->mediaCount++;
 
 CleanUp:
@@ -18,12 +21,13 @@ CleanUp:
     return retStatus;
 }
 
-STATUS parseSessionAttributes(PSessionDescription pSessionDescription, PCHAR pValue, UINT32 valueLength)
+STATUS parseSessionAttributes(PSessionDescription pSessionDescription, PCHAR pValue, size_t valueLength)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     SdpResult_t sdpResult = SDP_RESULT_OK;
     SdpAttribute_t attribute;
+    size_t copyLength;
 
     CHK(pSessionDescription->sessionAttributesCount < MAX_SDP_ATTRIBUTES_COUNT, STATUS_SDP_ATTRIBUTE_MAX_EXCEEDED);
 
@@ -31,12 +35,16 @@ STATUS parseSessionAttributes(PSessionDescription pSessionDescription, PCHAR pVa
     sdpResult = SdpDeserializer_ParseAttribute(pValue, valueLength, &attribute);
     CHK(sdpResult == SDP_RESULT_OK, sdpResult);
 
+    copyLength = MIN(MAX_SDP_ATTRIBUTE_NAME_LENGTH, attribute.attributeNameLength);
     STRNCPY(pSessionDescription->sdpAttributes[pSessionDescription->sessionAttributesCount].attributeName, attribute.pAttributeName,
-            MIN(MAX_SDP_ATTRIBUTE_NAME_LENGTH, attribute.attributeNameLength));
+            copyLength);
+    pSessionDescription->sdpAttributes[pSessionDescription->sessionAttributesCount].attributeName[copyLength] = '\0';
 
     if (attribute.pAttributeValue != NULL) {
+        copyLength = MIN(MAX_SDP_ATTRIBUTE_VALUE_LENGTH, attribute.attributeValueLength);
         STRNCPY(pSessionDescription->sdpAttributes[pSessionDescription->sessionAttributesCount].attributeValue, attribute.pAttributeValue,
-                MIN(MAX_SDP_ATTRIBUTE_VALUE_LENGTH, attribute.attributeValueLength));
+                copyLength);
+        pSessionDescription->sdpAttributes[pSessionDescription->sessionAttributesCount].attributeValue[copyLength] = '\0';
     }
 
     pSessionDescription->sessionAttributesCount++;
@@ -47,7 +55,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS parseMediaAttributes(PSessionDescription pSessionDescription, PCHAR pValue, UINT32 valueLength)
+STATUS parseMediaAttributes(PSessionDescription pSessionDescription, PCHAR pValue, size_t valueLength)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -55,6 +63,7 @@ STATUS parseMediaAttributes(PSessionDescription pSessionDescription, PCHAR pValu
     SdpAttribute_t attribute;
     UINT16 currentMediaAttributesCount;
     UINT32 mediaIdx = pSessionDescription->mediaCount - 1;
+    size_t copyLength;
 
     currentMediaAttributesCount = pSessionDescription->mediaDescriptions[mediaIdx].mediaAttributesCount;
 
@@ -64,12 +73,16 @@ STATUS parseMediaAttributes(PSessionDescription pSessionDescription, PCHAR pValu
     sdpResult = SdpDeserializer_ParseAttribute(pValue, valueLength, &attribute);
     CHK(sdpResult == SDP_RESULT_OK, sdpResult);
 
+    copyLength = MIN(MAX_SDP_ATTRIBUTE_NAME_LENGTH, attribute.attributeNameLength);
     STRNCPY(pSessionDescription->mediaDescriptions[mediaIdx].sdpAttributes[currentMediaAttributesCount].attributeName, attribute.pAttributeName,
-            MIN(MAX_SDP_ATTRIBUTE_NAME_LENGTH, attribute.attributeNameLength));
+            copyLength);
+    pSessionDescription->mediaDescriptions[mediaIdx].sdpAttributes[currentMediaAttributesCount].attributeName[copyLength] = '\0';
 
     if (attribute.pAttributeValue != NULL) {
+        copyLength = MIN(MAX_SDP_ATTRIBUTE_VALUE_LENGTH, attribute.attributeValueLength);
         STRNCPY(pSessionDescription->mediaDescriptions[mediaIdx].sdpAttributes[currentMediaAttributesCount].attributeValue, attribute.pAttributeValue,
-                MIN(MAX_SDP_ATTRIBUTE_VALUE_LENGTH, attribute.attributeValueLength));
+                copyLength);
+        pSessionDescription->mediaDescriptions[mediaIdx].sdpAttributes[currentMediaAttributesCount].attributeValue[copyLength] = '\0';
     }
 
     pSessionDescription->mediaDescriptions[mediaIdx].mediaAttributesCount++;
@@ -89,6 +102,7 @@ STATUS deserializeSessionDescription(PSessionDescription pSessionDescription, PC
     CHAR* pValue;
     size_t valueLength;
     UINT8 type;
+    size_t copyLength;
 
     CHK(sdpBytes != NULL, STATUS_SESSION_DESCRIPTION_INVALID_SESSION_DESCRIPTION);
 
@@ -116,27 +130,39 @@ STATUS deserializeSessionDescription(PSessionDescription pSessionDescription, PC
                 CHK_STATUS(parseMediaAttributes(pSessionDescription, pValue, valueLength));
             } else if (type == SDP_TYPE_SESSION_INFO) {
                 // Media Title
+                copyLength = MIN(MAX_SDP_MEDIA_TITLE_LENGTH, valueLength);
                 STRNCPY(pSessionDescription->mediaDescriptions[pSessionDescription->mediaCount - 1].mediaTitle, pValue,
-                        MIN(MAX_SDP_MEDIA_TITLE_LENGTH, valueLength));
+                        copyLength);
+                pSessionDescription->mediaDescriptions[pSessionDescription->mediaCount - 1].mediaTitle[copyLength] = '\0';
             } else {
                 /* Do nothing. */
             }
         } else {
             if (type == SDP_TYPE_SESSION_NAME) {
                 // SDP Session Name
-                STRNCPY(pSessionDescription->sessionName, pValue, MIN(MAX_SDP_SESSION_NAME_LENGTH, valueLength));
+                copyLength = MIN(MAX_SDP_SESSION_NAME_LENGTH, valueLength);
+                STRNCPY(pSessionDescription->sessionName, pValue, copyLength);
+                pSessionDescription->sessionName[copyLength] = '\0';
             } else if (type == SDP_TYPE_SESSION_INFO) {
                 // SDP Session Information
-                STRNCPY(pSessionDescription->sessionInformation, pValue, MIN(MAX_SDP_SESSION_INFORMATION_LENGTH, valueLength));
+                copyLength = MIN(MAX_SDP_SESSION_INFORMATION_LENGTH, valueLength);
+                STRNCPY(pSessionDescription->sessionInformation, pValue, copyLength);
+                pSessionDescription->sessionInformation[copyLength] = '\0';
             } else if (type == SDP_TYPE_URI) {
                 // SDP URI
-                STRNCPY(pSessionDescription->uri, pValue, MIN(MAX_SDP_SESSION_URI_LENGTH, valueLength));
+                copyLength = MIN(MAX_SDP_SESSION_URI_LENGTH, valueLength);
+                STRNCPY(pSessionDescription->uri, pValue, copyLength);
+                pSessionDescription->uri[copyLength] = '\0';
             } else if (type == SDP_TYPE_EMAIL) {
                 // SDP Email Address
-                STRNCPY(pSessionDescription->emailAddress, pValue, MIN(MAX_SDP_SESSION_EMAIL_ADDRESS_LENGTH, valueLength));
+                copyLength = MIN(MAX_SDP_SESSION_EMAIL_ADDRESS_LENGTH, valueLength);
+                STRNCPY(pSessionDescription->emailAddress, pValue, copyLength);
+                pSessionDescription->emailAddress[copyLength] = '\0';
             } else if (type == SDP_TYPE_PHONE) {
                 // SDP Phone number
-                STRNCPY(pSessionDescription->phoneNumber, pValue, MIN(MAX_SDP_SESSION_PHONE_NUMBER_LENGTH, valueLength));
+                copyLength = MIN(MAX_SDP_SESSION_PHONE_NUMBER_LENGTH, valueLength);
+                STRNCPY(pSessionDescription->phoneNumber, pValue, copyLength);
+                pSessionDescription->phoneNumber[copyLength] = '\0';
             } else if (type == SDP_TYPE_VERSION) {
                 // Version
                 STRTOUI64(pValue, pValue + valueLength, 10, &pSessionDescription->version);
