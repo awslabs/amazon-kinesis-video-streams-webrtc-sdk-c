@@ -34,7 +34,7 @@ static STATUS serializeOrigin(SdpSerializerContext_t* pCtx, PSdpOrigin pSDPOrigi
     if (pSDPOrigin->userName[0] != '\0' && pSDPOrigin->sdpConnectionInformation.networkType[0] != '\0' &&
         pSDPOrigin->sdpConnectionInformation.addressType[0] != '\0' && pSDPOrigin->sdpConnectionInformation.connectionAddress[0] != '\0') {
         origin.pUserName = pSDPOrigin->userName;
-        origin.userNameLength = STRLEN(pSDPOrigin->userName);
+        origin.userNameLength = STRNLEN(pSDPOrigin->userName, MAX_SDP_SESSION_USERNAME_LENGTH);
         origin.sessionId = pSDPOrigin->sessionId;
         origin.sessionVersion = pSDPOrigin->sessionVersion;
 
@@ -53,7 +53,7 @@ static STATUS serializeOrigin(SdpSerializerContext_t* pCtx, PSdpOrigin pSDPOrigi
     }
 
     origin.connectionInfo.pAddress = pSDPOrigin->sdpConnectionInformation.connectionAddress;
-    origin.connectionInfo.addressLength = STRLEN(pSDPOrigin->sdpConnectionInformation.connectionAddress);
+    origin.connectionInfo.addressLength = STRNLEN(pSDPOrigin->sdpConnectionInformation.connectionAddress, MAX_SDP_CONNECTION_ADDRESS_LENGTH);
 
     sdpResult = SdpSerializer_AddOriginator(pCtx, SDP_TYPE_ORIGINATOR, &origin);
 
@@ -71,7 +71,7 @@ CleanUp:
     return retStatus;
 }
 
-static STATUS serializeSessionName(SdpSerializerContext_t* pCtx, PCHAR sessionName)
+static STATUS serializeSessionName(SdpSerializerContext_t* pCtx, PCHAR sessionName, UINT32 sessionNameSize)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -79,7 +79,7 @@ static STATUS serializeSessionName(SdpSerializerContext_t* pCtx, PCHAR sessionNa
 
     /* Check if session name available. */
     if ((sessionName != NULL) && (sessionName[0] != '\0')) {
-        sdpResult = SdpSerializer_AddBuffer(pCtx, SDP_TYPE_SESSION_NAME, sessionName, STRLEN(sessionName));
+        sdpResult = SdpSerializer_AddBuffer(pCtx, SDP_TYPE_SESSION_NAME, sessionName, STRNLEN(sessionName, sessionNameSize));
 
         if (sdpResult == SDP_RESULT_OK) {
             retStatus = STATUS_SUCCESS;
@@ -131,14 +131,14 @@ static STATUS serializeAttribute(SdpSerializerContext_t* pCtx, PSdpAttributes pS
     CHK(pSDPAttributes != NULL, STATUS_NULL_ARG);
 
     attribute.pAttributeName = pSDPAttributes->attributeName;
-    attribute.attributeNameLength = STRLEN(pSDPAttributes->attributeName);
+    attribute.attributeNameLength = STRNLEN(pSDPAttributes->attributeName, MAX_SDP_ATTRIBUTE_NAME_LENGTH);
 
     if (pSDPAttributes->attributeValue[0] == '\0') {
         attribute.pAttributeValue = NULL;
         attribute.attributeValueLength = 0;
     } else {
         attribute.pAttributeValue = pSDPAttributes->attributeValue;
-        attribute.attributeValueLength = STRLEN(pSDPAttributes->attributeValue);
+        attribute.attributeValueLength = STRNLEN(pSDPAttributes->attributeValue, MAX_SDP_ATTRIBUTE_VALUE_LENGTH);
     }
 
     sdpResult = SdpSerializer_AddAttribute(pCtx, SDP_TYPE_ATTRIBUTE, &attribute);
@@ -157,7 +157,7 @@ CleanUp:
     return retStatus;
 }
 
-static STATUS serializeMediaName(SdpSerializerContext_t* pCtx, PCHAR pMediaName)
+static STATUS serializeMediaName(SdpSerializerContext_t* pCtx, PCHAR pMediaName, UINT32 mediaNameSize)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -165,7 +165,7 @@ static STATUS serializeMediaName(SdpSerializerContext_t* pCtx, PCHAR pMediaName)
 
     CHK(pMediaName != NULL, STATUS_NULL_ARG);
 
-    sdpResult = SdpSerializer_AddBuffer(pCtx, SDP_TYPE_MEDIA, pMediaName, STRLEN(pMediaName));
+    sdpResult = SdpSerializer_AddBuffer(pCtx, SDP_TYPE_MEDIA, pMediaName, STRNLEN(pMediaName, mediaNameSize));
 
     if (sdpResult == SDP_RESULT_OK) {
         retStatus = STATUS_SUCCESS;
@@ -205,7 +205,7 @@ static STATUS serializeMediaConnectionInformation(SdpSerializerContext_t* pCtx, 
         }
 
         connInfo.pAddress = pSdpConnectionInformation->connectionAddress;
-        connInfo.addressLength = STRLEN(pSdpConnectionInformation->connectionAddress);
+        connInfo.addressLength = STRNLEN(pSdpConnectionInformation->connectionAddress, MAX_SDP_CONNECTION_ADDRESS_LENGTH);
 
         sdpResult = SdpSerializer_AddConnectionInfo(pCtx, SDP_TYPE_CONNINFO, &connInfo);
 
@@ -244,7 +244,7 @@ STATUS serializeSessionDescription(PSessionDescription pSessionDescription, PCHA
     CHK_STATUS(serializeOrigin(&ctx, &(pSessionDescription->sdpOrigin)));
 
     /* Append session name. */
-    CHK_STATUS(serializeSessionName(&ctx, pSessionDescription->sessionName));
+    CHK_STATUS(serializeSessionName(&ctx, pSessionDescription->sessionName, MAX_SDP_SESSION_NAME_LENGTH));
 
     /* Append time description. */
     for (i = 0; i < pSessionDescription->timeDescriptionCount; i++) {
@@ -258,7 +258,7 @@ STATUS serializeSessionDescription(PSessionDescription pSessionDescription, PCHA
 
     /* Append media. */
     for (i = 0; i < pSessionDescription->mediaCount; i++) {
-        CHK_STATUS(serializeMediaName(&ctx, pSessionDescription->mediaDescriptions[i].mediaName));
+        CHK_STATUS(serializeMediaName(&ctx, pSessionDescription->mediaDescriptions[i].mediaName, MAX_SDP_MEDIA_NAME_LENGTH));
         CHK_STATUS(serializeMediaConnectionInformation(&ctx, &(pSessionDescription->mediaDescriptions[i].sdpConnectionInformation)));
 
         /* Append media attributes. */
