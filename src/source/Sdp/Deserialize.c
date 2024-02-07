@@ -87,7 +87,7 @@ STATUS deserializeSessionDescription(PSessionDescription pSessionDescription, PC
     SdpResult_t sdpResult = SDP_RESULT_OK;
     SdpDeserializerContext_t ctx;
     CHAR* pValue;
-    UINT32 valueLength;
+    size_t valueLength;
     UINT8 type;
 
     CHK(sdpBytes != NULL, STATUS_SESSION_DESCRIPTION_INVALID_SESSION_DESCRIPTION);
@@ -96,7 +96,7 @@ STATUS deserializeSessionDescription(PSessionDescription pSessionDescription, PC
     CHK(sdpResult == SDP_RESULT_OK, sdpResult);
 
     for (; sdpResult == SDP_RESULT_OK;) {
-        sdpResult = SdpDeserializer_GetNext(&ctx, &type, (const CHAR**) &pValue, (size_t*) &valueLength);
+        sdpResult = SdpDeserializer_GetNext(&ctx, &type, (const CHAR**) &pValue, &valueLength);
 
         if (sdpResult == SDP_RESULT_OK) {
             /* Do nothing. */
