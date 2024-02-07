@@ -886,7 +886,7 @@ STATUS populateSessionDescriptionMedia(PKvsPeerConnection pKvsPeerConnection, PS
     PCHAR pDtlsRole = NULL;
     PHashTable pUnknownCodecPayloadTypesTable = NULL, pUnknownCodecRtpmapTable = NULL;
     UINT32 unknownCodecHashTableKey = 0;
-    UINT32 unknownHashTableBucketCount;
+    UINT32 unknownHashTableBucketCount = 0;
 
     CHK_STATUS(dtlsSessionGetLocalCertificateFingerprint(pKvsPeerConnection->pDtlsSession, certificateFingerprint, CERTIFICATE_FINGERPRINT_LENGTH));
 
