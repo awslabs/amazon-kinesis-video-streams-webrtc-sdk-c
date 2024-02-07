@@ -998,6 +998,11 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
 
     CHK(pKvsPeerConnection != NULL, retStatus);
 
+    // This should be freed once answer is created, but unit tests might not invoke `createAnswer`
+    if (pKvsPeerConnection->pRemoteSessionDescription != NULL) {
+        DLOGW("Remote description field not deallocated");
+        SAFE_MEMFREE(pKvsPeerConnection->pRemoteSessionDescription);
+    }
     startTime = GETTIME();
     /* Shutdown IceAgent first so there is no more incoming packets which can cause
      * SCTP to be allocated again after SCTP is freed. */
@@ -1374,8 +1379,11 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
         DLOGD("REMOTE_SDP:%s\n", pSessionDescriptionInit->sdp);
     }
 
+    // Remove remote description once required parameters are set from answer
+    if (pKvsPeerConnection->isOffer) {
+        SAFE_MEMFREE(pKvsPeerConnection->pRemoteSessionDescription);
+    }
 CleanUp:
-
     LEAVES();
     return retStatus;
 }
@@ -1439,7 +1447,8 @@ STATUS createAnswer(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionIn
         DLOGD("LOCAL_SDP:%s", pSessionDescriptionInit->sdp);
     }
 
-    // Once answer is created, remote SDP is not needed anymore
+    // Once answer is created, remote SDP is not needed anymore. We also clear only if
+    // answer SDP is successfully created
     SAFE_MEMFREE(pKvsPeerConnection->pRemoteSessionDescription);
 CleanUp:
 
