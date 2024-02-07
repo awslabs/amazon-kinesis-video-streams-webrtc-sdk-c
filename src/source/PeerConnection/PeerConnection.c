@@ -912,12 +912,12 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
 
     pKvsPeerConnection->peerConnection.version = PEER_CONNECTION_CURRENT_VERSION;
 
-    if (pConfiguration->rollingBufferDurationInSec == 0) {
+    if (pConfiguration->rollingBufferDurationInSec == 0.0f) {
         pKvsPeerConnection->rollingBufferDurationInSec = DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS;
     } else {
         pKvsPeerConnection->rollingBufferDurationInSec = pConfiguration->rollingBufferDurationInSec;
     }
-    if (pConfiguration->rollingBufferBitrateInMBps == 0) {
+    if (pConfiguration->rollingBufferBitrateInMBps == 0.0f) {
         pKvsPeerConnection->rollingBufferBitrateInMBps = HIGHEST_EXPECTED_BIT_RATE;
     } else {
         pKvsPeerConnection->rollingBufferBitrateInMBps = pConfiguration->rollingBufferBitrateInMBps * 1024 * 1024;

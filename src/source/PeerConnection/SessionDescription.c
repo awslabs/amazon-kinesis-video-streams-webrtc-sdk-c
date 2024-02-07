@@ -295,9 +295,11 @@ STATUS setTransceiverPayloadTypes(PHashTable codecTable, PHashTable rtxTable, PD
             }
         }
 
-        DLOGI("Sizes: %d, %d", pKvsRtpTransceiver->rollingBufferDurationInSec, pKvsRtpTransceiver->rollingBufferBitrateInMBps);
-        CHK_STATUS(createRtpRollingBuffer(pKvsRtpTransceiver->rollingBufferDurationInSec * pKvsRtpTransceiver->rollingBufferBitrateInMBps / 8 /
-                                              DEFAULT_MTU_SIZE,
+        DLOGI("Sizes: %lf, %lf", pKvsRtpTransceiver->rollingBufferDurationInSec, pKvsRtpTransceiver->rollingBufferBitrateInMBps);
+        UINT64 size = pKvsRtpTransceiver->rollingBufferDurationInSec * pKvsRtpTransceiver->rollingBufferBitrateInMBps / 8 /
+                      DEFAULT_MTU_SIZE;
+        DLOGI("Cap: %d", size);
+        CHK_STATUS(createRtpRollingBuffer(size,
                                           &pKvsRtpTransceiver->sender.packetBuffer));
         CHK_STATUS(createRetransmitter(DEFAULT_SEQ_NUM_BUFFER_SIZE, DEFAULT_VALID_INDEX_BUFFER_SIZE, &pKvsRtpTransceiver->sender.retransmitter));
     }

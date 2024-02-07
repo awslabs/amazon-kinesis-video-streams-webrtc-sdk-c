@@ -407,6 +407,8 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, pSampleConfiguration->channelInfo.pRegion,
              pKinesisVideoStunUrlPostFix);
 
+    configuration.rollingBufferDurationInSec = 0.0f;
+    configuration.rollingBufferBitrateInMBps = 0.0f;
     // Check if we have any pregenerated certs and use them
     // NOTE: We are running under the config lock
     retStatus = stackQueueDequeue(pSampleConfiguration->pregeneratedCertificates, &data);

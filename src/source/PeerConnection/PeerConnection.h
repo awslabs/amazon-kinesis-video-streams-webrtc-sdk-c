@@ -120,8 +120,8 @@ typedef struct {
     // DataChannels keyed by streamId
     PHashTable pDataChannels;
 
-    UINT32 rollingBufferDurationInSec;
-    UINT32 rollingBufferBitrateInMBps;
+    DOUBLE rollingBufferDurationInSec;
+    DOUBLE rollingBufferBitrateInMBps;
 
     UINT64 onDataChannelCustomData;
     RtcOnDataChannel onDataChannel;
