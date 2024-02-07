@@ -11,8 +11,7 @@ STATUS parseMediaName(PSessionDescription pSessionDescription, PCHAR mediaValue,
     CHK(pSessionDescription->mediaCount < MAX_SDP_SESSION_MEDIA_COUNT, STATUS_BUFFER_TOO_SMALL);
 
     copyLength = MIN(MAX_SDP_MEDIA_NAME_LENGTH, mediaValueLength);
-    STRNCPY(pSessionDescription->mediaDescriptions[pSessionDescription->mediaCount].mediaName, mediaValue,
-            copyLength);
+    STRNCPY(pSessionDescription->mediaDescriptions[pSessionDescription->mediaCount].mediaName, mediaValue, copyLength);
     pSessionDescription->mediaDescriptions[pSessionDescription->mediaCount].mediaName[copyLength] = '\0';
     pSessionDescription->mediaCount++;
 
@@ -36,8 +35,7 @@ STATUS parseSessionAttributes(PSessionDescription pSessionDescription, PCHAR pVa
     CHK(sdpResult == SDP_RESULT_OK, sdpResult);
 
     copyLength = MIN(MAX_SDP_ATTRIBUTE_NAME_LENGTH, attribute.attributeNameLength);
-    STRNCPY(pSessionDescription->sdpAttributes[pSessionDescription->sessionAttributesCount].attributeName, attribute.pAttributeName,
-            copyLength);
+    STRNCPY(pSessionDescription->sdpAttributes[pSessionDescription->sessionAttributesCount].attributeName, attribute.pAttributeName, copyLength);
     pSessionDescription->sdpAttributes[pSessionDescription->sessionAttributesCount].attributeName[copyLength] = '\0';
 
     if (attribute.pAttributeValue != NULL) {
@@ -131,8 +129,7 @@ STATUS deserializeSessionDescription(PSessionDescription pSessionDescription, PC
             } else if (type == SDP_TYPE_SESSION_INFO) {
                 // Media Title
                 copyLength = MIN(MAX_SDP_MEDIA_TITLE_LENGTH, valueLength);
-                STRNCPY(pSessionDescription->mediaDescriptions[pSessionDescription->mediaCount - 1].mediaTitle, pValue,
-                        copyLength);
+                STRNCPY(pSessionDescription->mediaDescriptions[pSessionDescription->mediaCount - 1].mediaTitle, pValue, copyLength);
                 pSessionDescription->mediaDescriptions[pSessionDescription->mediaCount - 1].mediaTitle[copyLength] = '\0';
             } else {
                 /* Do nothing. */
