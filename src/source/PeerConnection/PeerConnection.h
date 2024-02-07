@@ -120,6 +120,9 @@ typedef struct {
     // DataChannels keyed by streamId
     PHashTable pDataChannels;
 
+    UINT32 rollingBufferDurationInSec;
+    UINT32 rollingBufferBitrateInMBps;
+
     UINT64 onDataChannelCustomData;
     RtcOnDataChannel onDataChannel;
 
@@ -144,6 +147,7 @@ typedef struct {
 
     UINT64 iceConnectingStartTime;
     KvsPeerConnectionDiagnostics peerConnectionDiagnostics;
+
 } KvsPeerConnection, *PKvsPeerConnection;
 
 typedef struct {

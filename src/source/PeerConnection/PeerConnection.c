@@ -911,6 +911,17 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
     CHK_STATUS(timerQueueCreate(&pKvsPeerConnection->timerQueueHandle));
 
     pKvsPeerConnection->peerConnection.version = PEER_CONNECTION_CURRENT_VERSION;
+
+    if (pConfiguration->rollingBufferDurationInSec == 0) {
+        pKvsPeerConnection->rollingBufferDurationInSec = DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS;
+    } else {
+        pKvsPeerConnection->rollingBufferDurationInSec = pConfiguration->rollingBufferDurationInSec;
+    }
+    if (pConfiguration->rollingBufferBitrateInMBps == 0) {
+        pKvsPeerConnection->rollingBufferBitrateInMBps = HIGHEST_EXPECTED_BIT_RATE;
+    } else {
+        pKvsPeerConnection->rollingBufferBitrateInMBps = pConfiguration->rollingBufferBitrateInMBps * 1024 * 1024;
+    }
     CHK_STATUS(generateJSONSafeString(pKvsPeerConnection->localIceUfrag, LOCAL_ICE_UFRAG_LEN));
     CHK_STATUS(generateJSONSafeString(pKvsPeerConnection->localIcePwd, LOCAL_ICE_PWD_LEN));
     CHK_STATUS(generateJSONSafeString(pKvsPeerConnection->localCNAME, LOCAL_CNAME_LEN));

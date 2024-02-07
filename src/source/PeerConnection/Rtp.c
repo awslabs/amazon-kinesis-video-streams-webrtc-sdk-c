@@ -30,6 +30,8 @@ STATUS createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION direction, PKvsPeer
     pKvsRtpTransceiver->transceiver.receiver.track.codec = rtcCodec;
     pKvsRtpTransceiver->transceiver.receiver.track.kind = pRtcMediaStreamTrack->kind;
     pKvsRtpTransceiver->transceiver.direction = direction;
+    pKvsRtpTransceiver->rollingBufferDurationInSec = pKvsPeerConnection->rollingBufferDurationInSec;
+    pKvsRtpTransceiver->rollingBufferBitrateInMBps = pKvsPeerConnection->rollingBufferBitrateInMBps;
 
     pKvsRtpTransceiver->outboundStats.sent.rtpStream.ssrc = ssrc;
     STRNCPY(pKvsRtpTransceiver->outboundStats.sent.rtpStream.kind, pRtcMediaStreamTrack->kind == MEDIA_STREAM_TRACK_KIND_AUDIO ? "audio" : "video",

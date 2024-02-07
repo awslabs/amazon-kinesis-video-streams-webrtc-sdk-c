@@ -11,7 +11,7 @@ extern "C" {
 // https://groups.google.com/forum/#!topic/discuss-webrtc/gH5ysR3SoZI
 #define DEFAULT_MTU_SIZE                           1200
 #define DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS 1
-#define HIGHEST_EXPECTED_BIT_RATE                  (10 * 1024 * 1024)
+#define HIGHEST_EXPECTED_BIT_RATE                  (5 * 1024 * 1024)
 #define DEFAULT_SEQ_NUM_BUFFER_SIZE                1000
 #define DEFAULT_VALID_INDEX_BUFFER_SIZE            1000
 #define DEFAULT_PEER_FRAME_BUFFER_SIZE             (5 * 1024)
@@ -48,6 +48,9 @@ typedef struct {
     RtcRtpSender sender;
 
     PKvsPeerConnection pKvsPeerConnection;
+
+    UINT32 rollingBufferDurationInSec;
+    UINT32 rollingBufferBitrateInMBps;
 
     UINT32 jitterBufferSsrc;
     PJitterBuffer pJitterBuffer;
