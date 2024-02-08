@@ -1129,7 +1129,7 @@ typedef struct {
  */
 typedef struct {
     RTC_RTP_TRANSCEIVER_DIRECTION direction; //!< Transceiver direction
-    RtcRtpReceiver receiver; //!< RtcRtpReceiver that has track specific information
+    RtcRtpReceiver receiver;                 //!< RtcRtpReceiver that has track specific information
 } RtcRtpTransceiver, *PRtcRtpTransceiver;
 
 /**
