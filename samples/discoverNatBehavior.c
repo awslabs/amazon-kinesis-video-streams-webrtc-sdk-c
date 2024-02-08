@@ -2,12 +2,12 @@
 
 #define NETWORK_INTERFACE_NAME_PARAM "-i"
 #define STUN_HOSTNAME_PARAM          "-s"
-#define DEFAULT_STUN_HOST            "stun:stun.sipgate.net:3478"
+#define DEFAULT_STUN_HOST            "stun:stun.kinesisvideo.us-west-2.amazonaws.com:443"
 
 BOOL filterFunc(UINT64 data, PCHAR name)
 {
     CHAR* desiredInterface = (CHAR*) data;
-    if (desiredInterface == NULL || STRCMP(name, desiredInterface) == 0) {
+    if (desiredInterface == NULL || STRNCMP(name, desiredInterface, STRLEN(name)) == 0) {
         return TRUE;
     }
     return FALSE;
