@@ -78,6 +78,8 @@ extern "C" {
 #define TWCC_SDP_ATTR "transport-cc"
 #define TWCC_EXT_URL  "http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01"
 
+#define CODEC_RTPMAP_PAYLOAD_TYPES_HASH_TABLE_BUCKET_LENGTH 2
+
 STATUS setPayloadTypesFromOffer(PHashTable, PHashTable, PSessionDescription);
 STATUS setPayloadTypesForOffer(PHashTable);
 
