@@ -24,10 +24,10 @@ INT32 main(INT32 argc, CHAR** argv)
     CHAR* logLevelStr = NULL;
 
     for (i = 1; i < argc; ++i) {
-        if (STRCMP(argv[i], NETWORK_INTERFACE_NAME_PARAM) == 0) {
+        if (STRNCMP(argv[i], NETWORK_INTERFACE_NAME_PARAM, STRLEN(argv[i])) == 0) {
             interfaceName = argv[++i];
             i++;
-        } else if (STRCMP(argv[i], STUN_HOSTNAME_PARAM) == 0) {
+        } else if (STRNCMP(argv[i], STUN_HOSTNAME_PARAM, STRLEN(argv[i])) == 0) {
             stunHostname = argv[++i];
             i++;
         } else {
