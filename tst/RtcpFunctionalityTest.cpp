@@ -365,6 +365,69 @@ TEST_F(RtcpFunctionalityTest, twcc3)
     parseTwcc("4487A9E754B3E6FD04B60036147CAA852024C002D999D6407800000000000000000000000000040000000000000000", 43, 11);
     parseTwcc("4487A9E754B3E6FD040200E4147C9F81202700B7E6649000000000000000000004000000000008000018000000001", 43, 185);
 }
+
+
+TEST_F(RtcpFunctionalityTest, testRollingBufferParams)
+{
+    RtcConfiguration config{};
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pRtcPeerConnection));
+    pKvsPeerConnection = reinterpret_cast<PKvsPeerConnection>(pRtcPeerConnection);
+    PRtcRtpTransceiver out = nullptr;
+    RtcMediaStreamTrack trackEmptyRtcRtpTransceiverInitTrack{};
+    RtcMediaStreamTrack trackInvalidRbTimeTrack{};
+    RtcRtpTransceiverInit trackInvalidRbTimeInit{};
+    RtcMediaStreamTrack trackInvalidRbBitrateTrack{};
+    RtcRtpTransceiverInit trackInvalidRbBitrateInit{};
+    RtcMediaStreamTrack trackInvalidRbBitrateRbTimeTrack{};
+    RtcRtpTransceiverInit trackInvalidRbBitrateRbTimeInit{};
+    RtcMediaStreamTrack trackValidRbTrack{};
+    RtcRtpTransceiverInit trackValidRbInit{};
+
+    trackEmptyRtcRtpTransceiverInitTrack.codec = RTC_CODEC_VP8;
+    EXPECT_EQ(STATUS_SUCCESS, ::addTransceiver(pRtcPeerConnection, &trackEmptyRtcRtpTransceiverInitTrack, nullptr, &out));
+    pKvsRtpTransceiver = reinterpret_cast<PKvsRtpTransceiver>(out);
+    EXPECT_EQ(pKvsRtpTransceiver->rollingBufferDurationSec, DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS);
+    EXPECT_EQ(pKvsRtpTransceiver->rollingBufferBitrateBps, HIGHEST_EXPECTED_BIT_RATE);
+
+    trackInvalidRbTimeTrack.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+    trackInvalidRbTimeInit.rollingBufferDurationSec = 0.01;
+    trackInvalidRbTimeInit.rollingBufferBitrateBps = 2 * 1024 * 1024;
+
+    EXPECT_EQ(STATUS_SUCCESS, ::addTransceiver(pRtcPeerConnection, &trackInvalidRbTimeTrack, &trackInvalidRbTimeInit, &out));
+    pKvsRtpTransceiver = reinterpret_cast<PKvsRtpTransceiver>(out);
+    EXPECT_EQ(pKvsRtpTransceiver->rollingBufferDurationSec, DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS);
+    EXPECT_EQ(pKvsRtpTransceiver->rollingBufferBitrateBps, trackInvalidRbTimeInit.rollingBufferBitrateBps);
+
+    trackInvalidRbBitrateTrack.codec = RTC_CODEC_OPUS;
+    trackInvalidRbBitrateInit.rollingBufferDurationSec = 0.1;
+    trackInvalidRbBitrateInit.rollingBufferBitrateBps = 0.01 * 1024 * 1024;
+
+    EXPECT_EQ(STATUS_SUCCESS, ::addTransceiver(pRtcPeerConnection, &trackInvalidRbBitrateTrack, &trackInvalidRbBitrateInit, &out));
+    pKvsRtpTransceiver = reinterpret_cast<PKvsRtpTransceiver>(out);
+    EXPECT_EQ(pKvsRtpTransceiver->rollingBufferDurationSec, trackInvalidRbBitrateInit.rollingBufferDurationSec);
+    EXPECT_EQ(pKvsRtpTransceiver->rollingBufferBitrateBps, HIGHEST_EXPECTED_BIT_RATE);
+
+    trackInvalidRbBitrateRbTimeTrack.codec = RTC_CODEC_OPUS;
+    trackInvalidRbBitrateRbTimeInit.rollingBufferDurationSec = 0.001;
+    trackInvalidRbBitrateRbTimeInit.rollingBufferBitrateBps = 0.01 * 1024 * 1024;
+
+    EXPECT_EQ(STATUS_SUCCESS, ::addTransceiver(pRtcPeerConnection, &trackInvalidRbBitrateRbTimeTrack, &trackInvalidRbBitrateRbTimeInit, &out));
+    pKvsRtpTransceiver = reinterpret_cast<PKvsRtpTransceiver>(out);
+    EXPECT_EQ(pKvsRtpTransceiver->rollingBufferDurationSec, DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS);
+    EXPECT_EQ(pKvsRtpTransceiver->rollingBufferBitrateBps, HIGHEST_EXPECTED_BIT_RATE);
+
+    trackValidRbTrack.codec = RTC_CODEC_OPUS;
+    trackValidRbInit.rollingBufferDurationSec = 10;
+    trackValidRbInit.rollingBufferBitrateBps = 10 * 1024 * 1024;
+
+    EXPECT_EQ(STATUS_SUCCESS, ::addTransceiver(pRtcPeerConnection, &trackValidRbTrack, &trackValidRbInit, &out));
+    pKvsRtpTransceiver = reinterpret_cast<PKvsRtpTransceiver>(out);
+    EXPECT_EQ(pKvsRtpTransceiver->rollingBufferDurationSec, trackValidRbInit.rollingBufferDurationSec);
+    EXPECT_EQ(pKvsRtpTransceiver->rollingBufferBitrateBps, trackValidRbInit.rollingBufferBitrateBps);
+
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis

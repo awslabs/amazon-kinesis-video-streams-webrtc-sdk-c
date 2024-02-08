@@ -211,6 +211,7 @@ TEST_F(PeerConnectionApiTest, addConfigToServerListUnitTest)
     freePeerConnection(&pc);
 }
 
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis

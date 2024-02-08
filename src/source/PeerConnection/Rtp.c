@@ -4,14 +4,14 @@
 
 typedef STATUS (*RtpPayloadFunc)(UINT32, PBYTE, UINT32, PBYTE, PUINT32, PUINT32, PUINT32);
 
-STATUS createKvsRtpTransceiver(PRtcRtpTransceiverInit pRtcRtpTransceiverInit, PKvsPeerConnection pKvsPeerConnection, UINT32 ssrc, UINT32 rtxSsrc,
-                               PRtcMediaStreamTrack pRtcMediaStreamTrack, PJitterBuffer pJitterBuffer, RTC_CODEC rtcCodec,
-                               PKvsRtpTransceiver* ppKvsRtpTransceiver)
+STATUS createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION direction, DOUBLE rollingBufferDurationSec, DOUBLE rollingBufferBitrateBps,
+                               PKvsPeerConnection pKvsPeerConnection, UINT32 ssrc, UINT32 rtxSsrc, PRtcMediaStreamTrack pRtcMediaStreamTrack,
+                               PJitterBuffer pJitterBuffer, RTC_CODEC rtcCodec, PKvsRtpTransceiver* ppKvsRtpTransceiver)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PKvsRtpTransceiver pKvsRtpTransceiver = NULL;
 
-    CHK(ppKvsRtpTransceiver != NULL && pKvsPeerConnection != NULL && pRtcMediaStreamTrack != NULL && pRtcRtpTransceiverInit != NULL, STATUS_NULL_ARG);
+    CHK(ppKvsRtpTransceiver != NULL && pKvsPeerConnection != NULL && pRtcMediaStreamTrack != NULL, STATUS_NULL_ARG);
 
     pKvsRtpTransceiver = (PKvsRtpTransceiver) MEMCALLOC(1, SIZEOF(KvsRtpTransceiver));
     CHK(pKvsRtpTransceiver != NULL, STATUS_NOT_ENOUGH_MEMORY);
@@ -29,20 +29,21 @@ STATUS createKvsRtpTransceiver(PRtcRtpTransceiverInit pRtcRtpTransceiverInit, PK
     pKvsRtpTransceiver->pJitterBuffer = pJitterBuffer;
     pKvsRtpTransceiver->transceiver.receiver.track.codec = rtcCodec;
     pKvsRtpTransceiver->transceiver.receiver.track.kind = pRtcMediaStreamTrack->kind;
-    pKvsRtpTransceiver->transceiver.direction = pRtcRtpTransceiverInit->direction;
+    pKvsRtpTransceiver->transceiver.direction = direction;
 
-    if (pRtcRtpTransceiverInit->rollingBufferDurationSec < 1) {
+    if (rollingBufferDurationSec < 0.1) {
+        DLOGW("Rolling buffer duration set to less than 100 ms. Setting to default %d sec", DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS);
         pKvsRtpTransceiver->rollingBufferDurationSec = DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS;
     } else {
-        pKvsRtpTransceiver->rollingBufferDurationSec = pRtcRtpTransceiverInit->rollingBufferDurationSec;
+        pKvsRtpTransceiver->rollingBufferDurationSec = rollingBufferDurationSec;
     }
-    if (pRtcRtpTransceiverInit->rollingBufferBitrateInMbps < 1024 * 1024) {
-        pKvsRtpTransceiver->rollingBufferBitrateInMbps = HIGHEST_EXPECTED_BIT_RATE;
+    if (rollingBufferBitrateBps < (0.1 * 1024 * 1024)) {
+        DLOGW("Rolling buffer duration set to less than 100 KBps. Setting to default %d Bps", HIGHEST_EXPECTED_BIT_RATE);
+        pKvsRtpTransceiver->rollingBufferBitrateBps = HIGHEST_EXPECTED_BIT_RATE;
     } else {
-        pKvsRtpTransceiver->rollingBufferBitrateInMbps = pRtcRtpTransceiverInit->rollingBufferBitrateInMbps;
+        pKvsRtpTransceiver->rollingBufferBitrateBps = rollingBufferBitrateBps;
     }
 
-    DLOGI("Sizes set to: %d, %d", pKvsRtpTransceiver->rollingBufferDurationSec, pKvsRtpTransceiver->rollingBufferBitrateInMbps);
     pKvsRtpTransceiver->outboundStats.sent.rtpStream.ssrc = ssrc;
     STRNCPY(pKvsRtpTransceiver->outboundStats.sent.rtpStream.kind, pRtcMediaStreamTrack->kind == MEDIA_STREAM_TRACK_KIND_AUDIO ? "audio" : "video",
             MAX_STATS_STRING_LENGTH);

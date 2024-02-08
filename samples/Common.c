@@ -552,8 +552,6 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     videoTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
     videoTrack.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
     videoRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
-    videoRtpTransceiverInit.rollingBufferDurationSec = 1;
-    videoRtpTransceiverInit.rollingBufferBitrateInMbps = 1;
     STRCPY(videoTrack.streamId, "myKvsVideoStream");
     STRCPY(videoTrack.trackId, "myVideoTrack");
     CHK_STATUS(addTransceiver(pSampleStreamingSession->pPeerConnection, &videoTrack, &videoRtpTransceiverInit,
@@ -566,8 +564,6 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     audioTrack.kind = MEDIA_STREAM_TRACK_KIND_AUDIO;
     audioTrack.codec = RTC_CODEC_OPUS;
     audioRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
-    audioRtpTransceiverInit.rollingBufferDurationSec = 1;
-    audioRtpTransceiverInit.rollingBufferBitrateInMbps = 1;
     STRCPY(audioTrack.streamId, "myKvsVideoStream");
     STRCPY(audioTrack.trackId, "myAudioTrack");
     CHK_STATUS(addTransceiver(pSampleStreamingSession->pPeerConnection, &audioTrack, &audioRtpTransceiverInit,

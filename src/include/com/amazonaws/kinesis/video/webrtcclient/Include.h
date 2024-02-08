@@ -1130,8 +1130,8 @@ typedef struct {
 typedef struct {
     RTC_RTP_TRANSCEIVER_DIRECTION direction; //!< Transceiver direction
     UINT64 rollingBufferDurationSec;
-    UINT64 rollingBufferBitrateInMbps;
-    RtcRtpReceiver receiver;                 //!< RtcRtpReceiver that has track specific information
+    UINT64 rollingBufferBitrateInBps;
+    RtcRtpReceiver receiver; //!< RtcRtpReceiver that has track specific information
 } RtcRtpTransceiver, *PRtcRtpTransceiver;
 
 /**
@@ -1490,8 +1490,8 @@ typedef struct {
  */
 typedef struct {
     RTC_RTP_TRANSCEIVER_DIRECTION direction; //!< Transceiver direction - SENDONLY, RECVONLY, SENDRECV
-    UINT64 rollingBufferDurationSec;
-    UINT64 rollingBufferBitrateInMbps;
+    DOUBLE rollingBufferDurationSec;
+    DOUBLE rollingBufferBitrateBps;
 } RtcRtpTransceiverInit, *PRtcRtpTransceiverInit;
 
 /**
