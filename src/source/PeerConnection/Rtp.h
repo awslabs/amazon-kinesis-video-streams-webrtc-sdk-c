@@ -50,7 +50,7 @@ typedef struct {
     PKvsPeerConnection pKvsPeerConnection;
 
     DOUBLE rollingBufferDurationSec;
-    DOUBLE rollingBufferBitrateBps;
+    DOUBLE rollingBufferBitratebps;
 
     UINT32 jitterBufferSsrc;
     PJitterBuffer pJitterBuffer;

@@ -1474,7 +1474,7 @@ STATUS addTransceiver(PRtcPeerConnection pPeerConnection, PRtcMediaStreamTrack p
     UINT32 ssrc = (UINT32) RAND(), rtxSsrc = (UINT32) RAND();
     RTC_RTP_TRANSCEIVER_DIRECTION direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
     DOUBLE rollingBufferDurationSec = DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS;
-    DOUBLE rollingBufferBitrateBps = HIGHEST_EXPECTED_BIT_RATE;
+    DOUBLE rollingBufferBitratebps = HIGHEST_EXPECTED_BIT_RATE;
     RtcMediaStreamTrack videoTrack;
 
     CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
@@ -1482,7 +1482,7 @@ STATUS addTransceiver(PRtcPeerConnection pPeerConnection, PRtcMediaStreamTrack p
     if (pRtcRtpTransceiverInit != NULL) {
         direction = pRtcRtpTransceiverInit->direction;
         rollingBufferDurationSec = pRtcRtpTransceiverInit->rollingBufferDurationSec;
-        rollingBufferBitrateBps = pRtcRtpTransceiverInit->rollingBufferBitrateBps;
+        rollingBufferBitratebps = pRtcRtpTransceiverInit->rollingBufferBitratebps;
     }
 
     if (direction == RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY && pRtcMediaStreamTrack == NULL) {
@@ -1521,7 +1521,7 @@ STATUS addTransceiver(PRtcPeerConnection pPeerConnection, PRtcMediaStreamTrack p
     }
 
     // TODO: Add ssrc duplicate detection here not only relying on RAND()
-    CHK_STATUS(createKvsRtpTransceiver(direction, rollingBufferDurationSec, rollingBufferBitrateBps, pKvsPeerConnection, ssrc, rtxSsrc,
+    CHK_STATUS(createKvsRtpTransceiver(direction, rollingBufferDurationSec, rollingBufferBitratebps, pKvsPeerConnection, ssrc, rtxSsrc,
                                        pRtcMediaStreamTrack, NULL, pRtcMediaStreamTrack->codec, &pKvsRtpTransceiver));
     CHK_STATUS(createJitterBuffer(onFrameReadyFunc, onFrameDroppedFunc, depayFunc, DEFAULT_JITTER_BUFFER_MAX_LATENCY, clockRate,
                                   (UINT64) pKvsRtpTransceiver, &pJitterBuffer));

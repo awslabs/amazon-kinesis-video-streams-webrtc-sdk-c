@@ -4,7 +4,7 @@
 
 typedef STATUS (*RtpPayloadFunc)(UINT32, PBYTE, UINT32, PBYTE, PUINT32, PUINT32, PUINT32);
 
-STATUS createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION direction, DOUBLE rollingBufferDurationSec, DOUBLE rollingBufferBitrateBps,
+STATUS createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION direction, DOUBLE rollingBufferDurationSec, DOUBLE rollingBufferBitratebps,
                                PKvsPeerConnection pKvsPeerConnection, UINT32 ssrc, UINT32 rtxSsrc, PRtcMediaStreamTrack pRtcMediaStreamTrack,
                                PJitterBuffer pJitterBuffer, RTC_CODEC rtcCodec, PKvsRtpTransceiver* ppKvsRtpTransceiver)
 {
@@ -37,11 +37,11 @@ STATUS createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION direction, DOUBLE r
     } else {
         pKvsRtpTransceiver->rollingBufferDurationSec = rollingBufferDurationSec;
     }
-    if (rollingBufferBitrateBps < (0.1 * 1024 * 1024)) {
+    if (rollingBufferBitratebps < (0.1 * 1024 * 1024)) {
         DLOGW("Rolling buffer duration set to less than 100 KBps. Setting to default %d Bps", HIGHEST_EXPECTED_BIT_RATE);
-        pKvsRtpTransceiver->rollingBufferBitrateBps = HIGHEST_EXPECTED_BIT_RATE;
+        pKvsRtpTransceiver->rollingBufferBitratebps = HIGHEST_EXPECTED_BIT_RATE;
     } else {
-        pKvsRtpTransceiver->rollingBufferBitrateBps = rollingBufferBitrateBps;
+        pKvsRtpTransceiver->rollingBufferBitratebps = rollingBufferBitratebps;
     }
 
     pKvsRtpTransceiver->outboundStats.sent.rtpStream.ssrc = ssrc;

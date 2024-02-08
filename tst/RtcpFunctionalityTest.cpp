@@ -387,43 +387,43 @@ TEST_F(RtcpFunctionalityTest, testRollingBufferParams)
     EXPECT_EQ(STATUS_SUCCESS, ::addTransceiver(pRtcPeerConnection, &trackEmptyRtcRtpTransceiverInitTrack, nullptr, &out));
     pKvsRtpTransceiver = reinterpret_cast<PKvsRtpTransceiver>(out);
     EXPECT_EQ(pKvsRtpTransceiver->rollingBufferDurationSec, DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS);
-    EXPECT_EQ(pKvsRtpTransceiver->rollingBufferBitrateBps, HIGHEST_EXPECTED_BIT_RATE);
+    EXPECT_EQ(pKvsRtpTransceiver->rollingBufferBitratebps, HIGHEST_EXPECTED_BIT_RATE);
 
     trackInvalidRbTimeTrack.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
     trackInvalidRbTimeInit.rollingBufferDurationSec = 0.01;
-    trackInvalidRbTimeInit.rollingBufferBitrateBps = 2 * 1024 * 1024;
+    trackInvalidRbTimeInit.rollingBufferBitratebps = 2 * 1024 * 1024;
 
     EXPECT_EQ(STATUS_SUCCESS, ::addTransceiver(pRtcPeerConnection, &trackInvalidRbTimeTrack, &trackInvalidRbTimeInit, &out));
     pKvsRtpTransceiver = reinterpret_cast<PKvsRtpTransceiver>(out);
     EXPECT_EQ(pKvsRtpTransceiver->rollingBufferDurationSec, DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS);
-    EXPECT_EQ(pKvsRtpTransceiver->rollingBufferBitrateBps, trackInvalidRbTimeInit.rollingBufferBitrateBps);
+    EXPECT_EQ(pKvsRtpTransceiver->rollingBufferBitratebps, trackInvalidRbTimeInit.rollingBufferBitratebps);
 
     trackInvalidRbBitrateTrack.codec = RTC_CODEC_OPUS;
     trackInvalidRbBitrateInit.rollingBufferDurationSec = 0.1;
-    trackInvalidRbBitrateInit.rollingBufferBitrateBps = 0.01 * 1024 * 1024;
+    trackInvalidRbBitrateInit.rollingBufferBitratebps = 0.01 * 1024 * 1024;
 
     EXPECT_EQ(STATUS_SUCCESS, ::addTransceiver(pRtcPeerConnection, &trackInvalidRbBitrateTrack, &trackInvalidRbBitrateInit, &out));
     pKvsRtpTransceiver = reinterpret_cast<PKvsRtpTransceiver>(out);
     EXPECT_EQ(pKvsRtpTransceiver->rollingBufferDurationSec, trackInvalidRbBitrateInit.rollingBufferDurationSec);
-    EXPECT_EQ(pKvsRtpTransceiver->rollingBufferBitrateBps, HIGHEST_EXPECTED_BIT_RATE);
+    EXPECT_EQ(pKvsRtpTransceiver->rollingBufferBitratebps, HIGHEST_EXPECTED_BIT_RATE);
 
     trackInvalidRbBitrateRbTimeTrack.codec = RTC_CODEC_OPUS;
     trackInvalidRbBitrateRbTimeInit.rollingBufferDurationSec = 0.001;
-    trackInvalidRbBitrateRbTimeInit.rollingBufferBitrateBps = 0.01 * 1024 * 1024;
+    trackInvalidRbBitrateRbTimeInit.rollingBufferBitratebps = 0.01 * 1024 * 1024;
 
     EXPECT_EQ(STATUS_SUCCESS, ::addTransceiver(pRtcPeerConnection, &trackInvalidRbBitrateRbTimeTrack, &trackInvalidRbBitrateRbTimeInit, &out));
     pKvsRtpTransceiver = reinterpret_cast<PKvsRtpTransceiver>(out);
     EXPECT_EQ(pKvsRtpTransceiver->rollingBufferDurationSec, DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS);
-    EXPECT_EQ(pKvsRtpTransceiver->rollingBufferBitrateBps, HIGHEST_EXPECTED_BIT_RATE);
+    EXPECT_EQ(pKvsRtpTransceiver->rollingBufferBitratebps, HIGHEST_EXPECTED_BIT_RATE);
 
     trackValidRbTrack.codec = RTC_CODEC_OPUS;
     trackValidRbInit.rollingBufferDurationSec = 10;
-    trackValidRbInit.rollingBufferBitrateBps = 10 * 1024 * 1024;
+    trackValidRbInit.rollingBufferBitratebps = 10 * 1024 * 1024;
 
     EXPECT_EQ(STATUS_SUCCESS, ::addTransceiver(pRtcPeerConnection, &trackValidRbTrack, &trackValidRbInit, &out));
     pKvsRtpTransceiver = reinterpret_cast<PKvsRtpTransceiver>(out);
     EXPECT_EQ(pKvsRtpTransceiver->rollingBufferDurationSec, trackValidRbInit.rollingBufferDurationSec);
-    EXPECT_EQ(pKvsRtpTransceiver->rollingBufferBitrateBps, trackValidRbInit.rollingBufferBitrateBps);
+    EXPECT_EQ(pKvsRtpTransceiver->rollingBufferBitratebps, trackValidRbInit.rollingBufferBitratebps);
 
     EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
 }
