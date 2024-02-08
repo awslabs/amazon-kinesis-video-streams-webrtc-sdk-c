@@ -53,6 +53,7 @@ var group__StatusCodes =
     [ "NAT_BEHAVIOR_PORT_DEPENDENT", "group__PublicEnums.html#ggad42c829d5095ba5e3ab0b6fff6ff8678a9255d14292683ad9f73b58b91e373a25", null ],
     [ "RTC_CODEC_ALAW", "group__PublicEnums.html#gga93240fd6a0e599dfb0c69ca76e406665a19f80c44053520d7f28f3077a60bdc70", null ],
     [ "RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE", "group__PublicEnums.html#gga93240fd6a0e599dfb0c69ca76e406665aeedf0ec291348430d2cd519105e0f6ca", null ],
+    [ "RTC_CODEC_MAX", "group__PublicEnums.html#gga93240fd6a0e599dfb0c69ca76e406665ae60a7ad014a57e0187107ea6ef55267a", null ],
     [ "RTC_CODEC_MULAW", "group__PublicEnums.html#gga93240fd6a0e599dfb0c69ca76e406665a610046a4f77ed6434ca35c5d5d70a9c3", null ],
     [ "RTC_CODEC_OPUS", "group__PublicEnums.html#gga93240fd6a0e599dfb0c69ca76e406665adf9dfdd0eada90839c288b9577693e71", null ],
     [ "RTC_CODEC_UNKNOWN", "group__PublicEnums.html#gga93240fd6a0e599dfb0c69ca76e406665a65041cc492cd9bbabb73a3ad9b649208", null ],

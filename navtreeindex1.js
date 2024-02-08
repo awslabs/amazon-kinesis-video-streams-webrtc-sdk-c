@@ -1,11 +1,13 @@
 var NAVTREEINDEX1 =
 {
+"group__PublicEnums.html#ggac57cd2738a817d8ed6fb3ff8943ccceca6e0a11cf658318d12fea430342f88967":[1,0,17,10,0],
+"group__PublicEnums.html#ggac57cd2738a817d8ed6fb3ff8943ccceca6e0a11cf658318d12fea430342f88967":[1,0,79],
 "group__PublicEnums.html#ggac57cd2738a817d8ed6fb3ff8943cccecaa51d1798f6fc0ba7fb0eb8a0f20ab9e7":[1,0,17,10,1],
-"group__PublicEnums.html#ggac57cd2738a817d8ed6fb3ff8943cccecaa51d1798f6fc0ba7fb0eb8a0f20ab9e7":[1,0,77],
+"group__PublicEnums.html#ggac57cd2738a817d8ed6fb3ff8943cccecaa51d1798f6fc0ba7fb0eb8a0f20ab9e7":[1,0,78],
 "group__PublicEnums.html#ggac57cd2738a817d8ed6fb3ff8943cccecabdaedc8379ad72c39dfb16975563c68a":[1,0,17,10,3],
-"group__PublicEnums.html#ggac57cd2738a817d8ed6fb3ff8943cccecabdaedc8379ad72c39dfb16975563c68a":[1,0,79],
+"group__PublicEnums.html#ggac57cd2738a817d8ed6fb3ff8943cccecabdaedc8379ad72c39dfb16975563c68a":[1,0,80],
 "group__PublicEnums.html#ggac57cd2738a817d8ed6fb3ff8943cccecabfa053467fcc2add2a8ac3080a03cccd":[1,0,17,10,2],
-"group__PublicEnums.html#ggac57cd2738a817d8ed6fb3ff8943cccecabfa053467fcc2add2a8ac3080a03cccd":[1,0,80],
+"group__PublicEnums.html#ggac57cd2738a817d8ed6fb3ff8943cccecabfa053467fcc2add2a8ac3080a03cccd":[1,0,81],
 "group__PublicEnums.html#ggad42c829d5095ba5e3ab0b6fff6ff8678a0c5c0cac508158371cf57c5ae4e08547":[1,0,17,3,2],
 "group__PublicEnums.html#ggad42c829d5095ba5e3ab0b6fff6ff8678a0c5c0cac508158371cf57c5ae4e08547":[1,0,47],
 "group__PublicEnums.html#ggad42c829d5095ba5e3ab0b6fff6ff8678a116e5ba6a09e28d6d6f5885bafaf36de":[1,0,17,3,3],
@@ -247,7 +249,5 @@ var NAVTREEINDEX1 =
 "group__StatsNameLengths.html#ga4afa41bce022b8bec8581c021e8d8c81":[1,3,6],
 "group__StatsNameLengths.html#ga8eb68b1e05b3ae2de5775202931617de":[1,3,0],
 "group__StatsNameLengths.html#gab3b05eb23c726d76352f92e7722f1877":[1,3,3],
-"group__StatsNameLengths.html#gac55f060221aeba8a69391c39ed31de2e":[1,3,4],
-"group__StatsNameLengths.html#gaeb7cb54e2a66447e46fca79db9a8fda0":[1,3,1],
-"group__StatsNameLengths.html#gaefd9f545d5b4bcd8ce932a79204382b0":[1,3,7]
+"group__StatsNameLengths.html#gac55f060221aeba8a69391c39ed31de2e":[1,3,4]
 };
