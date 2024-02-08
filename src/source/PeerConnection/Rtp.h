@@ -17,7 +17,7 @@ extern "C" {
 #define DEFAULT_PEER_FRAME_BUFFER_SIZE             (5 * 1024)
 #define SRTP_AUTH_TAG_OVERHEAD                     10
 #define MIN_ROLLING_BUFFER_DURATION_IN_SECONDS     (DOUBLE) 0.1
-#define MIN_EXPECTED_BIT_RATE                      (102.4 * 1024) // Considering 1Kb = 1024 bits
+#define MIN_EXPECTED_BIT_RATE                      (DOUBLE)(102.4 * 1024) // Considering 1Kb = 1024 bits
 
 // https://www.w3.org/TR/webrtc-stats/#dom-rtcoutboundrtpstreamstats-huge
 // Huge frames, by definition, are frames that have an encoded size at least 2.5 times the average size of the frames.

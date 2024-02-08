@@ -31,7 +31,6 @@ STATUS createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION direction, DOUBLE r
     pKvsRtpTransceiver->transceiver.receiver.track.kind = pRtcMediaStreamTrack->kind;
     pKvsRtpTransceiver->transceiver.direction = direction;
 
-    DLOGI("Rolling buffer duratioN: %lf, %lf", rollingBufferDurationSec, MIN_ROLLING_BUFFER_DURATION_IN_SECONDS);
     if (rollingBufferDurationSec < MIN_ROLLING_BUFFER_DURATION_IN_SECONDS) {
         DLOGW("Rolling buffer duration set to less than 100 ms. Setting to default %d sec", DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS);
         pKvsRtpTransceiver->rollingBufferDurationSec = DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS;

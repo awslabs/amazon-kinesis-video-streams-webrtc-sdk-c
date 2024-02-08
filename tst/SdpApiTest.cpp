@@ -252,6 +252,8 @@ TEST_F(SdpApiTest, setTransceiverPayloadTypes_NoRtxType)
     transceiver.transceiver.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
     transceiver.sender.packetBuffer = NULL;
     transceiver.sender.retransmitter = NULL;
+    transceiver.rollingBufferDurationSec = DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS;
+    transceiver.rollingBufferBitratebps = HIGHEST_EXPECTED_BIT_RATE;
     EXPECT_EQ(STATUS_SUCCESS, hashTableCreate(&pCodecTable));
     EXPECT_EQ(STATUS_SUCCESS, hashTablePut(pCodecTable, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, 1));
     EXPECT_EQ(STATUS_SUCCESS, hashTableCreate(&pRtxTable));
@@ -278,6 +280,8 @@ TEST_F(SdpApiTest, setTransceiverPayloadTypes_HasRtxType)
     transceiver.transceiver.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
     transceiver.sender.packetBuffer = NULL;
     transceiver.sender.retransmitter = NULL;
+    transceiver.rollingBufferDurationSec = DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS;
+    transceiver.rollingBufferBitratebps = HIGHEST_EXPECTED_BIT_RATE;
     EXPECT_EQ(STATUS_SUCCESS, hashTableCreate(&pCodecTable));
     EXPECT_EQ(STATUS_SUCCESS, hashTablePut(pCodecTable, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, 1));
     EXPECT_EQ(STATUS_SUCCESS, hashTableCreate(&pRtxTable));
