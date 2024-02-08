@@ -466,7 +466,7 @@ With buffer duration = 1 second,  Highest expected bitrate = 5 MBps and MTU 1200
 The rolling buffer size can be configured per transceiver through the following fields:
 ```
 RtcRtpTransceiverInit.rollingBufferDurationSec = <duration in seconds, must be more than 100ms (translates to 0.1 seconds)
-RtcRtpTransceiverInit.rollingBufferBitratebps = <bitrate in bits/sec, must be more than 100Kbits/sec
+RtcRtpTransceiverInit.rollingBufferBitratebps = <bitrate in bits/sec, must be more than 100kbits/sec
 ```
 
 For example, if we want to set duration to 200ms and birtate to 150kbps,
@@ -474,6 +474,8 @@ For example, if we want to set duration to 200ms and birtate to 150kbps,
 RtcRtpTransceiverInit.rollingBufferDurationSec = 0.2;
 RtcRtpTransceiverInit.rollingBufferBitratebps = 150 * 1024;
 ```
+
+By setting these up, applications can have better control over the amount of memory that the application consumes. However, note, if the allocation is too small and the network bad leading to multiple nacks, it can lead to choppy media / dropped frames. Hence, care must be taken while deciding on the values to ensure the parameters satisfy necessary performance requirements.
 
 ## Documentation
 All Public APIs are documented in our [Include.h](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/blob/master/src/include/com/amazonaws/kinesis/video/webrtcclient/Include.h), we also generate a [Doxygen](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-c/) each commit for easier navigation.

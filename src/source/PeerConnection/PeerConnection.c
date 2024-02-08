@@ -1483,8 +1483,8 @@ STATUS addTransceiver(PRtcPeerConnection pPeerConnection, PRtcMediaStreamTrack p
         direction = pRtcRtpTransceiverInit->direction;
         rollingBufferDurationSec = pRtcRtpTransceiverInit->rollingBufferDurationSec;
         rollingBufferBitratebps = pRtcRtpTransceiverInit->rollingBufferBitratebps;
+        DLOGI("Received: %lf, %lf", rollingBufferDurationSec, pRtcRtpTransceiverInit->rollingBufferDurationSec);
     }
-
     if (direction == RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY && pRtcMediaStreamTrack == NULL) {
         MEMSET(&videoTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
         videoTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
