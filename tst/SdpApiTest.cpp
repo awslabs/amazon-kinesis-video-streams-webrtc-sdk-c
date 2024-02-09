@@ -490,6 +490,7 @@ a=rtpmap:102 H264/90000
         MEMSET(&rtcConfiguration, 0x00, SIZEOF(RtcConfiguration));
         MEMSET(&rtcMediaStreamTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
         MEMSET(&rtcSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
+        MEMSET(&rtcRtpTransceiverInit, 0x00, SIZEOF(RtcRtpTransceiverInit));
 
         EXPECT_EQ(createPeerConnection(&rtcConfiguration, &pRtcPeerConnection), STATUS_SUCCESS);
         EXPECT_EQ(addSupportedCodec(pRtcPeerConnection, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE), STATUS_SUCCESS);
@@ -981,6 +982,7 @@ a=fmtp:125 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42e01
         MEMSET(&rtcConfiguration, 0x00, SIZEOF(RtcConfiguration));
         MEMSET(&rtcMediaStreamTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
         MEMSET(&rtcSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
+        MEMSET(&rtcRtpTransceiverInit, 0x00, SIZEOF(RtcRtpTransceiverInit));
 
         EXPECT_EQ(createPeerConnection(&rtcConfiguration, &pRtcPeerConnection), STATUS_SUCCESS);
         EXPECT_EQ(addSupportedCodec(pRtcPeerConnection, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE), STATUS_SUCCESS);
@@ -1456,6 +1458,7 @@ TEST_P(SdpApiTest_SdpMatch, populateSingleMediaSection_TestH264Fmtp)
     MEMSET(&rtcConfiguration, 0x00, SIZEOF(RtcConfiguration));
     MEMSET(&track1, 0x00, SIZEOF(RtcMediaStreamTrack));
     MEMSET(&rtcSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
+    MEMSET(&rtcRtpTransceiverInit, 0x00, SIZEOF(RtcRtpTransceiverInit));
 
     EXPECT_EQ(createPeerConnection(&rtcConfiguration, &pRtcPeerConnection), STATUS_SUCCESS);
     EXPECT_EQ(addSupportedCodec(pRtcPeerConnection, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE), STATUS_SUCCESS);
