@@ -1474,23 +1474,29 @@ STATUS addTransceiver(PRtcPeerConnection pPeerConnection, PRtcMediaStreamTrack p
     UINT32 ssrc = (UINT32) RAND(), rtxSsrc = (UINT32) RAND();
     RTC_RTP_TRANSCEIVER_DIRECTION direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
     DOUBLE rollingBufferDurationSec = DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS;
-    DOUBLE rollingBufferBitratebps;
+    DOUBLE rollingBufferBitratebps = DEFAULT_EXPECTED_VIDEO_BIT_RATE;
     RtcMediaStreamTrack videoTrack;
 
     CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
 
-    if (pRtcMediaStreamTrack->kind == MEDIA_STREAM_TRACK_KIND_VIDEO) {
-        rollingBufferBitratebps = DEFAULT_EXPECTED_VIDEO_BIT_RATE;
-    } else if (pRtcMediaStreamTrack->kind == MEDIA_STREAM_TRACK_KIND_AUDIO) {
-        rollingBufferBitratebps = DEFAULT_EXPECTED_AUDIO_BIT_RATE;
-    } else {
-        rollingBufferBitratebps = DEFAULT_EXPECTED_VIDEO_BIT_RATE;
+    // Set defaults for audio and video track. This can be modified to values set up with pRtcRtpTransceiverInit
+    // if so.
+    if (pRtcMediaStreamTrack != NULL) {
+        if (pRtcMediaStreamTrack->kind == MEDIA_STREAM_TRACK_KIND_VIDEO) {
+            rollingBufferBitratebps = DEFAULT_EXPECTED_VIDEO_BIT_RATE;
+        } else if (pRtcMediaStreamTrack->kind == MEDIA_STREAM_TRACK_KIND_AUDIO) {
+            rollingBufferBitratebps = DEFAULT_EXPECTED_AUDIO_BIT_RATE;
+        } else {
+            rollingBufferBitratebps = DEFAULT_EXPECTED_VIDEO_BIT_RATE;
+        }
     }
+
     if (pRtcRtpTransceiverInit != NULL) {
         direction = pRtcRtpTransceiverInit->direction;
         rollingBufferDurationSec = pRtcRtpTransceiverInit->rollingBufferDurationSec;
         rollingBufferBitratebps = pRtcRtpTransceiverInit->rollingBufferBitratebps;
     }
+
     if (direction == RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY && pRtcMediaStreamTrack == NULL) {
         MEMSET(&videoTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
         videoTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
@@ -1498,6 +1504,8 @@ STATUS addTransceiver(PRtcPeerConnection pPeerConnection, PRtcMediaStreamTrack p
         STRCPY(videoTrack.streamId, "myKvsVideoStream");
         STRCPY(videoTrack.trackId, "myVideoTrack");
         pRtcMediaStreamTrack = &videoTrack;
+        // rollingBufferDurationSec will be DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS
+        // rollingBufferBitratebps will be DEFAULT_EXPECTED_VIDEO_BIT_RATE
     }
 
     switch (pRtcMediaStreamTrack->codec) {

@@ -442,7 +442,6 @@ TEST_F(SdpApiTest, populateSingleMediaSection_TestTxRecvOnlyStreamNull)
 
     // Create peer connection
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
-
     PRtcRtpTransceiver pTransceiver;
     RtcRtpTransceiverInit rtcRtpTransceiverInit;
     rtcRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY;
