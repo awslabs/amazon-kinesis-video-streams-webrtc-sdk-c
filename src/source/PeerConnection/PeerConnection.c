@@ -1474,11 +1474,18 @@ STATUS addTransceiver(PRtcPeerConnection pPeerConnection, PRtcMediaStreamTrack p
     UINT32 ssrc = (UINT32) RAND(), rtxSsrc = (UINT32) RAND();
     RTC_RTP_TRANSCEIVER_DIRECTION direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
     DOUBLE rollingBufferDurationSec = DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS;
-    DOUBLE rollingBufferBitratebps = HIGHEST_EXPECTED_BIT_RATE;
+    DOUBLE rollingBufferBitratebps;
     RtcMediaStreamTrack videoTrack;
 
     CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
 
+    if (pRtcMediaStreamTrack->kind == MEDIA_STREAM_TRACK_KIND_VIDEO) {
+        rollingBufferBitratebps = DEFAULT_EXPECTED_VIDEO_BIT_RATE;
+    } else if (pRtcMediaStreamTrack->kind == MEDIA_STREAM_TRACK_KIND_AUDIO) {
+        rollingBufferBitratebps = DEFAULT_EXPECTED_AUDIO_BIT_RATE;
+    } else {
+        rollingBufferBitratebps = DEFAULT_EXPECTED_VIDEO_BIT_RATE;
+    }
     if (pRtcRtpTransceiverInit != NULL) {
         direction = pRtcRtpTransceiverInit->direction;
         rollingBufferDurationSec = pRtcRtpTransceiverInit->rollingBufferDurationSec;
