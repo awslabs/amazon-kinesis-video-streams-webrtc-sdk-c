@@ -454,7 +454,7 @@ Let us look into when each of these could be changed:
 The SDK maintains an RTP rolling buffer to hold the RTP packets. This is useful to respond to NACKs and even in case of JitterBuffer. The rolling buffer size is controlled by 3 parameters:
 1. MTU: This is set to a default of 1200
 2. Buffer duration: This is the amount of time of media that you would like the rolling buffer to accommodate before it is overwritten due to buffer overflow. By default, the SDK sets this to 1 second
-3. Highest expected bitrate: This is the expected bitrate of the media in question. The typical bitrates could vary based on resolution and codec. By default, the SDK sets this to 5 Mbps
+3. Highest expected bitrate: This is the expected bitrate of the media in question. The typical bitrates could vary based on resolution and codec. By default, the SDK sets this to 5 Mbps for video and 1 Mbps for audio
 
 The rolling buffer capacity is calculated as follows:
 ```
@@ -474,8 +474,8 @@ For example, if we want to set duration to 200ms and birtate to 150kbps,
 RtcRtpTransceiverInit.rollingBufferDurationSec = 0.2;
 RtcRtpTransceiverInit.rollingBufferBitratebps = 150 * 1024;
 ```
-
 By setting these up, applications can have better control over the amount of memory that the application consumes. However, note, if the allocation is too small and the network bad leading to multiple nacks, it can lead to choppy media / dropped frames. Hence, care must be taken while deciding on the values to ensure the parameters satisfy necessary performance requirements.
+For more information, check the sample to see how these values are set up.
 
 ## Documentation
 All Public APIs are documented in our [Include.h](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/blob/master/src/include/com/amazonaws/kinesis/video/webrtcclient/Include.h), we also generate a [Doxygen](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-c/) each commit for easier navigation.
