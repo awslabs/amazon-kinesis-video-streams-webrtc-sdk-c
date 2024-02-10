@@ -10,7 +10,7 @@ on:
       - master
 jobs:
   linux-gcc-codecov:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     env:
       AWS_KVS_LOG_LEVEL: 2
     permissions:

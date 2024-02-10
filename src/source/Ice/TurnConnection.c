@@ -1144,7 +1144,7 @@ STATUS turnConnectionGetLongTermKey(PCHAR username, PCHAR realm, PCHAR password,
     CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "SNPRINTF error: Failed to generate the long term key with username, realm and password");
 
     // TODO: Return back the error check
-    KVS_MD5_DIGEST((PBYTE) stringBuffer, STRLEN(stringBuffer), pBuffer);
+    CHK_STATUS(md5Digest((PBYTE) stringBuffer, STRLEN(stringBuffer), pBuffer));
 
 CleanUp:
 

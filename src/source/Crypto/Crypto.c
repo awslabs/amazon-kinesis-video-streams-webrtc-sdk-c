@@ -1,6 +1,11 @@
 #define LOG_CLASS "Crypto"
 #include "../Include_i.h"
 
+STATUS md5Digest(PBYTE inputStringBuff, UINT64 length, PBYTE outputBuff)
+{
+    return md5DigestCalculation(inputStringBuff, length, outputBuff);
+}
+
 STATUS createRtcCertificate(PRtcCertificate* ppRtcCertificate)
 {
     ENTERS();

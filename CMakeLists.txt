@@ -17,6 +17,7 @@ option(BUILD_STATIC_LIBS "Build all libraries statically. (This includes third-p
 option(BUILD_OPENSSL_PLATFORM "If buildng OpenSSL what is the target platform" OFF)
 option(BUILD_LIBSRTP_HOST_PLATFORM "If buildng LibSRTP what is the current platform" OFF)
 option(BUILD_LIBSRTP_DESTINATION_PLATFORM "If buildng LibSRTP what is the destination platform" OFF)
+option(BUILD_OLD_OPENSSL_VERSION "Builds openssl version 1.1.1w. Note this went EOL in Sept 2023" OFF)
 option(BUILD_SAMPLE "Build available samples" ON)
 option(ENABLE_DATA_CHANNEL "Enable support for data channel" ON)
 option(ENABLE_KVS_THREADPOOL "Enable support for KVS thread pool in signaling" ON)
@@ -154,7 +155,8 @@ if(BUILD_DEPENDENCIES)
     set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
                    -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
                    -DBUILD_OPENSSL_PLATFORM=${BUILD_OPENSSL_PLATFORM}
-                   -DOPENSSL_EXTRA=${OPENSSL_EXTRA})
+                   -DOPENSSL_EXTRA=${OPENSSL_EXTRA}
+                   -DBUILD_OLD_OPENSSL_VERSION=${BUILD_OLD_OPENSSL_VERSION})
     build_dependency(openssl ${BUILD_ARGS})
     set(OPENSSL_ROOT_DIR ${OPEN_SRC_INSTALL_PREFIX})
   elseif(USE_MBEDTLS)
@@ -171,6 +173,7 @@ if(BUILD_DEPENDENCIES)
     set(OPENSSL_SSL_LIBRARY "${OPEN_SRC_INSTALL_PREFIX}/lib/libssl.lib")
     set(OPENSSL_LIBRARIES ${OPENSSL_SSL_LIBRARY} ${OPENSSL_CRYPTO_LIBRARY})
     string(REPLACE ";" "|" OPENSSL_LIBRARIES_ALT_SEP "${OPENSSL_LIBRARIES}")
+
     set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
                   -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
                   -DUSE_OPENSSL=${USE_OPENSSL}
@@ -244,7 +247,15 @@ find_package(Threads)
 find_package(PkgConfig REQUIRED)
 if (USE_OPENSSL)
   find_package(OpenSSL REQUIRED)
-  set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR})
+
+  # In Windows, the openssl search paths get reset and the system openssl ends up being used
+  if(WIN32)
+    set(OPENSSL_INCLUDE_DIRS "${OPEN_SRC_INSTALL_PREFIX}/include/")
+    set(OPENSSL_CRYPTO_LIBRARY "${OPEN_SRC_INSTALL_PREFIX}/lib/libcrypto.lib")
+    set(OPENSSL_SSL_LIBRARY "${OPEN_SRC_INSTALL_PREFIX}/lib/libssl.lib")
+    set(OPENSSL_LIBRARIES ${OPENSSL_SSL_LIBRARY} ${OPENSSL_CRYPTO_LIBRARY})
+    string(REPLACE ";" "|" OPENSSL_LIBRARIES_ALT_SEP "${OPENSSL_LIBRARIES}")
+  endif()
 else()
   find_package(MbedTLS REQUIRED)
   set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${MBEDTLS_INCLUDE_DIRS})
@@ -459,4 +470,3 @@ get_directory_property(clean_files ADDITIONAL_CLEAN_FILES)
 list(APPEND clean_files "${OPEN_SRC_INSTALL_PREFIX}")
 list(APPEND clean_files "${CMAKE_CURRENT_SOURCE_DIR}/build")
 set_directory_properties(PROPERTIES ADDITIONAL_CLEAN_FILES "${clean_files}")
-
