@@ -9,7 +9,7 @@ ARCH_EXPECTED="$2"
 declare -A ARCH_PATTERNS
 ARCH_PATTERNS=(
     ["ARM64"]="ARM aarch64"
-    ["ARM32"]="ARM,"
+    ["ARM32"]="32-bit" # Using 32-bit instead of ARM for distinct string
     ["x86_64"]="x86-64"
     # Add more architectures here as needed
 )
@@ -44,7 +44,6 @@ fi
 # Initialize LINK_MATCH based on determined linkage type
 LINK_MATCH=1 # Default to fail
 
-echo $LINKAGE_TYPE
 if [ "$LINKAGE_TYPE" == "static" ]; then
     # Extract and check the first object file if static
     FIRST_OBJ=$(ar -t $LIB_FILE | head -n 1)
@@ -52,7 +51,6 @@ if [ "$LINKAGE_TYPE" == "static" ]; then
     if [ -n "$FIRST_OBJ" ]; then
         ar -x $LIB_FILE $FIRST_OBJ
         OBJ_FILE_OUTPUT=$(file $FIRST_OBJ)
-        echo $OBJ_FILE_OUTPUT
         # Check for expected architecture in the output
         ARCH_MATCH=$(echo "$OBJ_FILE_OUTPUT" | grep -q "${ARCH_PATTERNS[$ARCH_EXPECTED]}"; echo $?)
         LINK_MATCH=$(echo "$OBJ_FILE_OUTPUT" | grep -Eq "relocatable"; echo $?)
@@ -64,7 +62,6 @@ elif [ "$LINKAGE_TYPE" == "dynamic" ]; then
   FILE_OUTPUT=$(file $LIB_FILE)
   # Check for expected architecture in the output
   ARCH_MATCH=$(echo "$FILE_OUTPUT" | grep -q "${ARCH_PATTERNS[$ARCH_EXPECTED]}"; echo $?)
-  echo $FILE_OUTPUT
   # Check for "dynamically linked" in the output for dynamic libraries
   LINK_MATCH=$(echo "$FILE_OUTPUT" | grep -q "dynamically linked"; echo $?)
 fi
