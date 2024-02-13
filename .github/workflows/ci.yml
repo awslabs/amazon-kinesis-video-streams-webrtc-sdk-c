@@ -648,6 +648,7 @@ jobs:
           make
       - name: Verify library is ARM64 type
         run: |
+          cd build
           file libkvsWebrtcClient.so
 
   arm64-cross-compilation-mbedtls-static:
@@ -670,6 +671,10 @@ jobs:
           make
       - name: Verify library is ARM64 type
         run: | 
+          cd build
+          ls
+          file libkvsWebrtcClient.a
+          ar -xv libkvsWebrtcClient.a
           ls
 
   linux-aarch64-cross-compilation:
@@ -730,4 +735,5 @@ jobs:
           make
       - name: Verify library is ARM32 type
         run: |
+          cd build
           file libkvsWebrtcClient.so
