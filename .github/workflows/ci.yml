@@ -649,6 +649,7 @@ jobs:
       - name: Verify library is ARM64 type
         run: |
           cd scripts
+          chmod +x verify_lib.sh
           ./verify_lib.sh ../build/libkvsWebrtcClient.so "ARM64"
 
   arm64-cross-compilation-mbedtls-static:
@@ -672,6 +673,7 @@ jobs:
       - name: Verify library is ARM64 type
         run: | 
           cd scripts
+          chmod +x verify_lib.sh
           ./verify_lib.sh ../build/libkvsWebrtcClient.a "ARM64"
 
   linux-aarch64-cross-compilation:
@@ -695,6 +697,7 @@ jobs:
       - name: Verify library is ARM64 type
         run: |
           cd scripts
+          chmod +x verify_lib.sh
           ./verify_lib.sh ../build/libkvsWebrtcClient.so "ARM64"
 
   arm32-cross-compilation:
@@ -718,6 +721,7 @@ jobs:
       - name: Verify library is ARM32 type
         run: |
           cd scripts
+          chmod +x verify_lib.sh
           ./verify_lib.sh ../build/libkvsWebrtcClient.a "ARM32"
 
   arm32-cross-compilation-mbedtls:
@@ -741,6 +745,7 @@ jobs:
       - name: Verify library is ARM32 type
         run: |
           cd scripts
+          chmod +x verify_lib.sh
           ./verify_lib.sh ../build/libkvsWebrtcClient.so "ARM32"
 
   arm32-cross-compilation-mbedtls-static:
@@ -764,4 +769,5 @@ jobs:
       - name: Verify library is ARM32 type
         run: |
           cd scripts
+          chmod +x verify_lib.sh
           ./verify_lib.sh ../build/libkvsWebrtcClient.a "ARM32"
