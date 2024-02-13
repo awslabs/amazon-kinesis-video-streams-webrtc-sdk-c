@@ -179,8 +179,8 @@ STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager pTwccManager)
     CHK(pTwccManager != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
 
     baseSeqNum = getUnalignedInt16BigEndian(pRtcpPacket->payload + 8);
+    pTwccManager->prevReportedSeqNum = baseSeqNum;
     packetStatusCount = TWCC_PACKET_STATUS_COUNT(pRtcpPacket->payload);
-
     referenceTime = (pRtcpPacket->payload[12] << 16) | (pRtcpPacket->payload[13] << 8) | (pRtcpPacket->payload[14] & 0xff);
     referenceTime = KVS_CONVERT_TIMESCALE(referenceTime * 64, MILLISECONDS_PER_SECOND, HUNDREDS_OF_NANOS_IN_A_SECOND);
     // TODO: handle lost twcc report packets
@@ -201,19 +201,23 @@ STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager pTwccManager)
     chunkOffset = 16;
     packetSeqNum = baseSeqNum;
     packetsRemaining = packetStatusCount;
+    DLOGI("Before entering while loop");
     while (packetsRemaining > 0) {
         packetChunk = getUnalignedInt16BigEndian(pRtcpPacket->payload + chunkOffset);
         statusSymbol = TWCC_RUNLEN_STATUS_SYMBOL(packetChunk);
         if (IS_TWCC_RUNLEN(packetChunk)) {
+            DLOGI("Packet chunk: %d, %d", packetChunk, TWCC_RUNLEN_GET(packetChunk));
             for (i = 0; i < TWCC_RUNLEN_GET(packetChunk); i++) {
                 recvDelta = MIN_INT16;
                 switch (statusSymbol) {
                     case TWCC_STATUS_SYMBOL_SMALLDELTA:
                         recvDelta = (INT16) pRtcpPacket->payload[recvOffset];
+                        DLOGI("Recv delta: %d, %d", recvOffset, recvDelta);
                         recvOffset++;
                         break;
                     case TWCC_STATUS_SYMBOL_LARGEDELTA:
                         recvDelta = getUnalignedInt16BigEndian(pRtcpPacket->payload + recvOffset);
+                        DLOGI("Recv large delta: %d", recvDelta);
                         recvOffset += 2;
                         break;
                     case TWCC_STATUS_SYMBOL_NOTRECEIVED:
@@ -296,16 +300,14 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
     locked = TRUE;
     twcc = pKvsPeerConnection->pTwccManager;
     CHK_STATUS(parseRtcpTwccPacket(pRtcpPacket, twcc));
-    CHK_STATUS(stackQueueIsEmpty(&twcc->twccPackets, &empty));
-    CHK(!empty, STATUS_SUCCESS);
-    CHK_STATUS(stackQueuePeek(&twcc->twccPackets, &sn));
-    ageOfOldestPacket = twcc->lastLocalTimeKvs - twcc->twccPacketBySeqNum[(UINT16) sn].localTimeKvs;
-    CHK(ageOfOldestPacket > TWCC_ESTIMATOR_TIME_WINDOW / 2, STATUS_SUCCESS);
+    sn = twcc->prevReportedSeqNum;
     localStartTimeKvs = twcc->twccPacketBySeqNum[(UINT16) (sn - 1)].localTimeKvs;
     if (localStartTimeKvs == TWCC_PACKET_UNITIALIZED_TIME) {
         // time not yet set (only happens for first rtp packet)
         localStartTimeKvs = twcc->twccPacketBySeqNum[(UINT16) sn].localTimeKvs;
     }
+
+    DLOGI("Checking seq number: %d, %d to %d", (UINT16) (sn - 1), sn, twcc->lastReportedSeqNum);
     for (seqNum = sn; seqNum != twcc->lastReportedSeqNum; seqNum++) {
         twccPacket = &twcc->twccPacketBySeqNum[seqNum];
         localEndTimeKvs = twccPacket->localTimeKvs;
