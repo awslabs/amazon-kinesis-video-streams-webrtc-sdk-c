@@ -722,7 +722,7 @@ jobs:
         run: |
           cd scripts
           chmod +x verify_lib.sh
-          ./verify_lib.sh ../build/libkvsWebrtcClient.a "ARM32"
+          ./verify_lib.sh ../build/libkvsWebrtcClient.so "ARM32"
 
   arm32-cross-compilation-mbedtls:
     runs-on: ubuntu-20.04

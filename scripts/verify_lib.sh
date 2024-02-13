@@ -24,8 +24,6 @@ else
     exit 1
 fi
 
-# Use the file command to check the file type
-FILE_OUTPUT=$(file $LIB_FILE)
 
 # Function to print verification result and exit appropriately
 function verify_result() {
@@ -49,19 +47,25 @@ ARCH_MATCH=$(echo "$FILE_OUTPUT" | grep -q "${ARCH_PATTERNS[$ARCH_EXPECTED]}"; e
 # Initialize LINK_MATCH based on determined linkage type
 LINK_MATCH=1 # Default to fail
 
+echo $LINKAGE_TYPE
 if [ "$LINKAGE_TYPE" == "static" ]; then
     # Extract and check the first object file if static
     FIRST_OBJ=$(ar -t $LIB_FILE | head -n 1)
+    echo $FIRST_OBJ
     if [ -n "$FIRST_OBJ" ]; then
         ar -x $LIB_FILE $FIRST_OBJ
         OBJ_FILE_OUTPUT=$(file $FIRST_OBJ)
+        echo $OBJ_FILE_OUTPUT
         LINK_MATCH=$(echo "$OBJ_FILE_OUTPUT" | grep -Eq "relocatable"; echo $?)
         # Clean up extracted file
         rm -f $FIRST_OBJ
     fi
 elif [ "$LINKAGE_TYPE" == "dynamic" ]; then
-    # Check for "dynamically linked" in the output for dynamic libraries
-    LINK_MATCH=$(echo "$FILE_OUTPUT" | grep -q "dynamically linked"; echo $?)
+  # Use the file command to check the file type
+  FILE_OUTPUT=$(file $LIB_FILE)
+  echo $FILE_OUTPUT
+  # Check for "dynamically linked" in the output for dynamic libraries
+  LINK_MATCH=$(echo "$FILE_OUTPUT" | grep -q "dynamically linked"; echo $?)
 fi
 
 # Verify both expected architecture and determined linkage type
