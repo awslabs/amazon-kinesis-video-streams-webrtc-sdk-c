@@ -53,10 +53,10 @@ typedef struct {
 } TwccPacket, *PTwccPacket;
 
 typedef struct {
-    StackQueue twccPackets;
     TwccPacket twccPacketBySeqNum[65536]; // twccPacketBySeqNum takes about 1.2MB of RAM but provides great cache locality
     UINT64 lastLocalTimeKvs;
     UINT16 lastReportedSeqNum;
+    UINT16 prevReportedSeqNum;
 } TwccManager, *PTwccManager;
 
 typedef struct {

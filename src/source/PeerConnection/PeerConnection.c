@@ -1068,9 +1068,6 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
         if (IS_VALID_MUTEX_VALUE(pKvsPeerConnection->twccLock)) {
             MUTEX_FREE(pKvsPeerConnection->twccLock);
         }
-        // twccManager.twccPackets contains sequence numbers of packets (as opposed to pointers to actual packets)
-        // we should not deallocate items but we do need to clear the queue
-        CHK_LOG_ERR(stackQueueClear(&pKvsPeerConnection->pTwccManager->twccPackets, FALSE));
         SAFE_MEMFREE(pKvsPeerConnection->pTwccManager);
     }
 
@@ -1787,27 +1784,11 @@ STATUS twccManagerOnPacketSent(PKvsPeerConnection pc, PRtpPacket pRtpPacket)
     locked = TRUE;
 
     seqNum = TWCC_SEQNUM(pRtpPacket->header.extensionPayload);
-    CHK_STATUS(stackQueueEnqueue(&pc->pTwccManager->twccPackets, seqNum));
     pc->pTwccManager->twccPacketBySeqNum[seqNum].seqNum = seqNum;
     pc->pTwccManager->twccPacketBySeqNum[seqNum].packetSize = pRtpPacket->payloadLength;
     pc->pTwccManager->twccPacketBySeqNum[seqNum].localTimeKvs = pRtpPacket->sentTime;
     pc->pTwccManager->twccPacketBySeqNum[seqNum].remoteTimeKvs = TWCC_PACKET_LOST_TIME;
     pc->pTwccManager->lastLocalTimeKvs = pRtpPacket->sentTime;
-
-    // cleanup queue until it contains up to 2 seconds of sent packets
-    do {
-        CHK_STATUS(stackQueuePeek(&pc->pTwccManager->twccPackets, &sn));
-        firstTimeKvs = pc->pTwccManager->twccPacketBySeqNum[(UINT16) sn].localTimeKvs;
-        lastLocalTimeKvs = pRtpPacket->sentTime;
-        ageOfOldest = lastLocalTimeKvs - firstTimeKvs;
-        if (ageOfOldest > TWCC_ESTIMATOR_TIME_WINDOW) {
-            CHK_STATUS(stackQueueDequeue(&pc->pTwccManager->twccPackets, &sn));
-            CHK_STATUS(stackQueueIsEmpty(&pc->pTwccManager->twccPackets, &isEmpty));
-        } else {
-            break;
-        }
-    } while (!isEmpty);
-
 CleanUp:
     if (locked) {
         MUTEX_UNLOCK(pc->twccLock);
