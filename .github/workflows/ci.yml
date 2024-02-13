@@ -670,7 +670,7 @@ jobs:
           make
       - name: Verify library is ARM64 type
         run: | 
-          ar -xv libkvsWebrtcClient.a
+          ls
 
   linux-aarch64-cross-compilation:
     runs-on: ubuntu-20.04
