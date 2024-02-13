@@ -648,8 +648,8 @@ jobs:
           make
       - name: Verify library is ARM64 type
         run: |
-          cd build
-          ./verify_lib.sh libkvsWebrtcClient.so "ARM aarch64"
+          cd scripts
+          ./verify_lib.sh ../build/libkvsWebrtcClient.so "ARM64"
 
   arm64-cross-compilation-mbedtls-static:
     runs-on: ubuntu-20.04
@@ -671,8 +671,8 @@ jobs:
           make
       - name: Verify library is ARM64 type
         run: | 
-          cd build
-          ./verify_lib.sh libkvsWebrtcClient.a "ARM aarch64"
+          cd scripts
+          ./verify_lib.sh ../build/libkvsWebrtcClient.a "ARM64"
 
   linux-aarch64-cross-compilation:
     runs-on: ubuntu-20.04
@@ -692,6 +692,10 @@ jobs:
           mkdir build && cd build
           cmake .. -DBUILD_OPENSSL_PLATFORM=linux-aarch64 -DBUILD_LIBSRTP_HOST_PLATFORM=x86_64-unknown-linux-gnu -DBUILD_LIBSRTP_DESTINATION_PLATFORM=arm-unknown-linux-uclibcgnueabi
           make
+      - name: Verify library is ARM64 type
+        run: |
+          cd scripts
+          ./verify_lib.sh ../build/libkvsWebrtcClient.so "ARM64"
 
   arm32-cross-compilation:
     runs-on: ubuntu-20.04
@@ -711,6 +715,10 @@ jobs:
           mkdir build && cd build
           cmake .. -DBUILD_OPENSSL_PLATFORM=linux-generic32 -DBUILD_LIBSRTP_HOST_PLATFORM=x86_64-unknown-linux-gnu -DBUILD_LIBSRTP_DESTINATION_PLATFORM=arm-unknown-linux-uclibcgnueabi
           make
+      - name: Verify library is ARM32 type
+        run: |
+          cd scripts
+          ./verify_lib.sh ../build/libkvsWebrtcClient.a "ARM32"
 
   arm32-cross-compilation-mbedtls:
     runs-on: ubuntu-20.04
@@ -732,8 +740,8 @@ jobs:
           make
       - name: Verify library is ARM32 type
         run: |
-          cd build
-          ./verify_lib.sh libkvsWebrtcClient.so "ARM"
+          cd scripts
+          ./verify_lib.sh ../build/libkvsWebrtcClient.so "ARM32"
 
   arm32-cross-compilation-mbedtls-static:
     runs-on: ubuntu-20.04
@@ -755,5 +763,5 @@ jobs:
           make
       - name: Verify library is ARM32 type
         run: |
-          cd build
-          ./verify_lib.sh libkvsWebrtcClient.a "ARM aarch64"
+          cd scripts
+          ./verify_lib.sh ../build/libkvsWebrtcClient.a "ARM32"
