@@ -176,6 +176,8 @@ STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager pTwccManager)
     UINT32 statuses;
     UINT32 i;
     UINT64 referenceTime;
+    PTwccPacket pTwccPacket;
+    UINT64 value;
     CHK(pTwccManager != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
 
     baseSeqNum = getUnalignedInt16BigEndian(pRtcpPacket->payload + 8);
@@ -196,33 +198,35 @@ STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager pTwccManager)
         }
         chunkOffset += TWCC_FB_PACKETCHUNK_SIZE;
     }
-
+    DLOGI("Sequence numbers being checked: %d to %d", pTwccManager->prevReportedSeqNum, baseSeqNum + packetStatusCount);
     recvOffset = chunkOffset;
     chunkOffset = 16;
     packetSeqNum = baseSeqNum;
     packetsRemaining = packetStatusCount;
-    DLOGI("Before entering while loop");
     while (packetsRemaining > 0) {
         packetChunk = getUnalignedInt16BigEndian(pRtcpPacket->payload + chunkOffset);
         statusSymbol = TWCC_RUNLEN_STATUS_SYMBOL(packetChunk);
         if (IS_TWCC_RUNLEN(packetChunk)) {
-            DLOGI("Packet chunk: %d, %d", packetChunk, TWCC_RUNLEN_GET(packetChunk));
             for (i = 0; i < TWCC_RUNLEN_GET(packetChunk); i++) {
                 recvDelta = MIN_INT16;
                 switch (statusSymbol) {
                     case TWCC_STATUS_SYMBOL_SMALLDELTA:
                         recvDelta = (INT16) pRtcpPacket->payload[recvOffset];
-                        DLOGI("Recv delta: %d, %d", recvOffset, recvDelta);
                         recvOffset++;
                         break;
                     case TWCC_STATUS_SYMBOL_LARGEDELTA:
                         recvDelta = getUnalignedInt16BigEndian(pRtcpPacket->payload + recvOffset);
-                        DLOGI("Recv large delta: %d", recvDelta);
                         recvOffset += 2;
                         break;
                     case TWCC_STATUS_SYMBOL_NOTRECEIVED:
                         DLOGS("runLength packetSeqNum %u not received %lu", packetSeqNum, referenceTime);
-                        pTwccManager->twccPacketBySeqNum[packetSeqNum].remoteTimeKvs = TWCC_PACKET_LOST_TIME;
+                        if(hashTableGet(pTwccManager->pTwccPacketsHashTable, packetSeqNum, &value) == STATUS_HASH_KEY_NOT_PRESENT) {
+                            DLOGW("Packet seq number %d is not present in the hash table. Cannot check for not received", packetSeqNum);
+                        } else {
+                            pTwccPacket = (PTwccPacket) value;
+                            pTwccPacket->remoteTimeKvs = TWCC_PACKET_LOST_TIME;
+                            CHK_STATUS(hashTableUpsert(pTwccManager->pTwccPacketsHashTable, packetSeqNum, (UINT64) pTwccPacket));
+                        }
                         pTwccManager->lastReportedSeqNum = packetSeqNum;
                         break;
                     default:
@@ -231,7 +235,13 @@ STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager pTwccManager)
                 if (recvDelta != MIN_INT16) {
                     referenceTime += KVS_CONVERT_TIMESCALE(recvDelta, TWCC_TICKS_PER_SECOND, HUNDREDS_OF_NANOS_IN_A_SECOND);
                     DLOGS("runLength packetSeqNum %u received %lu", packetSeqNum, referenceTime);
-                    pTwccManager->twccPacketBySeqNum[packetSeqNum].remoteTimeKvs = referenceTime;
+                    if(hashTableGet(pTwccManager->pTwccPacketsHashTable, packetSeqNum, &value) == STATUS_HASH_KEY_NOT_PRESENT) {
+                        DLOGW("Packet seq number %d is not present in the hash table. It is likely it is removed from the table as acknowledged.", packetSeqNum);
+                    } else {
+                        pTwccPacket = (PTwccPacket) value;
+                        pTwccPacket->remoteTimeKvs = referenceTime;
+                        CHK_STATUS(hashTableUpsert(pTwccManager->pTwccPacketsHashTable, packetSeqNum, (UINT64) pTwccPacket));
+                    }
                     pTwccManager->lastReportedSeqNum = packetSeqNum;
                 }
                 packetSeqNum++;
@@ -254,7 +264,13 @@ STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager pTwccManager)
                         break;
                     case TWCC_STATUS_SYMBOL_NOTRECEIVED:
                         DLOGS("statusVector packetSeqNum %u not received %lu", packetSeqNum, referenceTime);
-                        pTwccManager->twccPacketBySeqNum[packetSeqNum].remoteTimeKvs = TWCC_PACKET_LOST_TIME;
+                        if(hashTableGet(pTwccManager->pTwccPacketsHashTable, packetSeqNum, &value) == STATUS_HASH_KEY_NOT_PRESENT) {
+                            DLOGW("Packet seq number %d is not present in the hash table. Cannot check for not received", packetSeqNum);
+                        } else {
+                            pTwccPacket = (PTwccPacket) value;
+                            pTwccPacket->remoteTimeKvs = TWCC_PACKET_LOST_TIME;
+                            CHK_STATUS(hashTableUpsert(pTwccManager->pTwccPacketsHashTable, packetSeqNum, (UINT64) pTwccPacket));
+                        }
                         pTwccManager->lastReportedSeqNum = packetSeqNum;
                         break;
                     default:
@@ -263,7 +279,13 @@ STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager pTwccManager)
                 if (recvDelta != MIN_INT16) {
                     referenceTime += KVS_CONVERT_TIMESCALE(recvDelta, TWCC_TICKS_PER_SECOND, HUNDREDS_OF_NANOS_IN_A_SECOND);
                     DLOGS("statusVector packetSeqNum %u received %lu", packetSeqNum, referenceTime);
-                    pTwccManager->twccPacketBySeqNum[packetSeqNum].remoteTimeKvs = referenceTime;
+                    if(hashTableGet(pTwccManager->pTwccPacketsHashTable, packetSeqNum, &value) == STATUS_HASH_KEY_NOT_PRESENT) {
+                        DLOGW("Packet seq number %d is not present in the hash table. It is likely it is removed from the table as acknowledged.", packetSeqNum);
+                    } else {
+                        pTwccPacket = (PTwccPacket) value;
+                        pTwccPacket->remoteTimeKvs = referenceTime;
+                        CHK_STATUS(hashTableUpsert(pTwccManager->pTwccPacketsHashTable, packetSeqNum, (UINT64) pTwccPacket));
+                    }
                     pTwccManager->lastReportedSeqNum = packetSeqNum;
                 }
                 packetSeqNum++;
@@ -291,7 +313,9 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
     UINT64 sentPackets = 0, receivedPackets = 0;
     INT64 duration = 0;
     UINT16 seqNum;
-    PTwccPacket twccPacket;
+    PTwccPacket pTwccPacket;
+    UINT64 value;
+    BOOL localStartTimeRecorded = FALSE;
 
     CHK(pKvsPeerConnection != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
     CHK(pKvsPeerConnection->onSenderBandwidthEstimation != NULL && pKvsPeerConnection->pTwccManager != NULL, STATUS_SUCCESS);
@@ -301,22 +325,47 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
     twcc = pKvsPeerConnection->pTwccManager;
     CHK_STATUS(parseRtcpTwccPacket(pRtcpPacket, twcc));
     sn = twcc->prevReportedSeqNum;
-    localStartTimeKvs = twcc->twccPacketBySeqNum[(UINT16) (sn - 1)].localTimeKvs;
-    if (localStartTimeKvs == TWCC_PACKET_UNITIALIZED_TIME) {
-        // time not yet set (only happens for first rtp packet)
-        localStartTimeKvs = twcc->twccPacketBySeqNum[(UINT16) sn].localTimeKvs;
-    }
 
-    DLOGI("Checking seq number: %d, %d to %d", (UINT16) (sn - 1), sn, twcc->lastReportedSeqNum);
     for (seqNum = sn; seqNum != twcc->lastReportedSeqNum; seqNum++) {
-        twccPacket = &twcc->twccPacketBySeqNum[seqNum];
-        localEndTimeKvs = twccPacket->localTimeKvs;
-        duration = localEndTimeKvs - localStartTimeKvs;
-        sentBytes += twccPacket->packetSize;
-        sentPackets++;
-        if (twccPacket->remoteTimeKvs != TWCC_PACKET_LOST_TIME) {
-            receivedBytes += twccPacket->packetSize;
-            receivedPackets++;
+        if(!localStartTimeRecorded) {
+            if(seqNum == 0) {
+                localStartTimeKvs = TWCC_PACKET_UNITIALIZED_TIME;
+            } else {
+                if(hashTableGet(twcc->pTwccPacketsHashTable, seqNum - 1, &value) == STATUS_HASH_KEY_NOT_PRESENT) {
+                    DLOGW("Sequence number visited already, moving on");
+                } else {
+                    pTwccPacket = (PTwccPacket) value;
+                    localStartTimeKvs = pTwccPacket->localTimeKvs;
+                    localStartTimeRecorded = TRUE;
+                }
+            }
+            if (localStartTimeKvs == TWCC_PACKET_UNITIALIZED_TIME) {
+                // time not yet set (only happens for first rtp packet)
+                if(hashTableGet(twcc->pTwccPacketsHashTable, seqNum, &value) == STATUS_HASH_KEY_NOT_PRESENT) {
+                    DLOGW("Sequence number does not exist in hash table anymore...lets iterate till we see the first seqNum");
+                } else {
+                    pTwccPacket = (PTwccPacket) value;
+                    localStartTimeKvs = pTwccPacket->localTimeKvs;
+                    localStartTimeRecorded = TRUE;
+                }
+            }
+        }
+        if(hashTableGet(twcc->pTwccPacketsHashTable, seqNum, &value) == STATUS_HASH_KEY_NOT_PRESENT) {
+            DLOGW("Packet already visited and does not exist in hash map anymore, moving on");
+        } else {
+            pTwccPacket = (PTwccPacket) value;
+            DLOGI("Read from hash table: %d: %d, %d, %d", seqNum, pTwccPacket->packetSize, pTwccPacket->localTimeKvs, pTwccPacket->remoteTimeKvs);
+            localEndTimeKvs = pTwccPacket->localTimeKvs;
+            duration = localEndTimeKvs - localStartTimeKvs;
+            sentBytes += pTwccPacket->packetSize;
+            sentPackets++;
+            if (pTwccPacket->remoteTimeKvs != TWCC_PACKET_LOST_TIME) {
+                receivedBytes += pTwccPacket->packetSize;
+                receivedPackets++;
+                CHK_STATUS(hashTableRemove(twcc->pTwccPacketsHashTable, seqNum));
+                DLOGI("Freed allocation for %d", seqNum);
+                SAFE_MEMFREE(pTwccPacket);
+            }
         }
     }
 
