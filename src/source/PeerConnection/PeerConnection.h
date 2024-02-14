@@ -46,14 +46,13 @@ typedef enum {
 } RTX_CODEC;
 
 typedef struct {
-    UINT16 seqNum;
-    UINT16 packetSize;
+    UINT32 packetSize;
     UINT64 localTimeKvs;
     UINT64 remoteTimeKvs;
 } TwccPacket, *PTwccPacket;
 
 typedef struct {
-    TwccPacket twccPacketBySeqNum[65536]; // twccPacketBySeqNum takes about 1.2MB of RAM but provides great cache locality
+    PHashTable pTwccPacketsHashTable;
     UINT64 lastLocalTimeKvs;
     UINT16 lastReportedSeqNum;
     UINT16 prevReportedSeqNum;
