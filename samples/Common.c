@@ -1,6 +1,9 @@
 #define LOG_CLASS "WebRtcSamples"
 #include "Samples.h"
 
+#define KVS_DEFAULT_MEDIA_SENDER_THREAD_STACK_SIZE 32 * 1024
+#define KVS_MINIMUM_THREAD_STACK_SIZE              16 * 1024
+
 PSampleConfiguration gSampleConfiguration = NULL;
 
 VOID sigintHandler(INT32 sigNum)
@@ -174,11 +177,11 @@ PVOID mediaSenderRoutine(PVOID customData)
     CHK(!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag), retStatus);
 
     if (pSampleConfiguration->videoSource != NULL) {
-        THREAD_CREATE(&pSampleConfiguration->videoSenderTid, pSampleConfiguration->videoSource, (PVOID) pSampleConfiguration);
+        THREAD_CREATE_WITH_PARAMS(&pSampleConfiguration->videoSenderTid, pSampleConfiguration->videoSource, KVS_DEFAULT_MEDIA_SENDER_THREAD_STACK_SIZE, (PVOID) pSampleConfiguration);
     }
 
     if (pSampleConfiguration->audioSource != NULL) {
-        THREAD_CREATE(&pSampleConfiguration->audioSenderTid, pSampleConfiguration->audioSource, (PVOID) pSampleConfiguration);
+        THREAD_CREATE_WITH_PARAMS(&pSampleConfiguration->audioSenderTid, pSampleConfiguration->audioSource, KVS_DEFAULT_MEDIA_SENDER_THREAD_STACK_SIZE, (PVOID) pSampleConfiguration);
     }
 
     if (pSampleConfiguration->videoSenderTid != INVALID_TID_VALUE) {
@@ -226,7 +229,7 @@ STATUS handleOffer(PSampleConfiguration pSampleConfiguration, PSampleStreamingSe
 
     mediaThreadStarted = ATOMIC_EXCHANGE_BOOL(&pSampleConfiguration->mediaThreadStarted, TRUE);
     if (!mediaThreadStarted) {
-        THREAD_CREATE(&pSampleConfiguration->mediaSenderTid, mediaSenderRoutine, (PVOID) pSampleConfiguration);
+        THREAD_CREATE_WITH_PARAMS(&pSampleConfiguration->mediaSenderTid, mediaSenderRoutine, KVS_MINIMUM_THREAD_STACK_SIZE, (PVOID) pSampleConfiguration);
     }
 
     // The audio video receive routine should be per streaming session
