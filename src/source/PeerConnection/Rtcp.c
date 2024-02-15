@@ -198,7 +198,6 @@ STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager pTwccManager)
         }
         chunkOffset += TWCC_FB_PACKETCHUNK_SIZE;
     }
-    DLOGI("Sequence numbers being checked: %d to %d", pTwccManager->prevReportedSeqNum, baseSeqNum + packetStatusCount);
     recvOffset = chunkOffset;
     chunkOffset = 16;
     packetSeqNum = baseSeqNum;
@@ -326,7 +325,7 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
     CHK_STATUS(parseRtcpTwccPacket(pRtcpPacket, twcc));
     sn = twcc->prevReportedSeqNum;
 
-    for (seqNum = sn; seqNum != twcc->lastReportedSeqNum; seqNum++) {
+    for (seqNum = sn; seqNum <= twcc->lastReportedSeqNum; seqNum++) {
         if(!localStartTimeRecorded) {
             if(seqNum == 0) {
                 localStartTimeKvs = TWCC_PACKET_UNITIALIZED_TIME;
@@ -354,7 +353,6 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
             DLOGW("Packet already visited and does not exist in hash map anymore, moving on");
         } else {
             pTwccPacket = (PTwccPacket) value;
-            DLOGI("Read from hash table: %d: %d, %d, %d", seqNum, pTwccPacket->packetSize, pTwccPacket->localTimeKvs, pTwccPacket->remoteTimeKvs);
             localEndTimeKvs = pTwccPacket->localTimeKvs;
             duration = localEndTimeKvs - localStartTimeKvs;
             sentBytes += pTwccPacket->packetSize;
