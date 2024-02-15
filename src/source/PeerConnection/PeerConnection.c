@@ -955,7 +955,6 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
     if (!pConfiguration->kvsRtcConfiguration.disableSenderSideBandwidthEstimation) {
         pKvsPeerConnection->twccLock = MUTEX_CREATE(TRUE);
         pKvsPeerConnection->pTwccManager = (PTwccManager) MEMCALLOC(1, SIZEOF(TwccManager));
-        CHK_STATUS(hashTableCreateWithParams(2000, 2, &pKvsPeerConnection->pTwccManager->pTwccPacketsHashTable));
     }
 
     *ppPeerConnection = (PRtcPeerConnection) pKvsPeerConnection;
@@ -1074,11 +1073,6 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
     }
 
     if (pKvsPeerConnection->pTwccManager != NULL) {
-        UINT32 count;
-        hashTableGetCount(pKvsPeerConnection->pTwccManager->pTwccPacketsHashTable, &count);
-        DLOGI("Count before freeing: %d", count);
-        hashTableIterateEntries(pKvsPeerConnection->pTwccManager->pTwccPacketsHashTable, 0, freeTwccPacketHashEntry);
-        hashTableFree(pKvsPeerConnection->pTwccManager->pTwccPacketsHashTable);
         if (IS_VALID_MUTEX_VALUE(pKvsPeerConnection->twccLock)) {
             MUTEX_FREE(pKvsPeerConnection->twccLock);
         }
@@ -1787,24 +1781,26 @@ STATUS twccManagerOnPacketSent(PKvsPeerConnection pc, PRtpPacket pRtpPacket)
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
     UINT16 seqNum;
+    BOOL isEmpty = FALSE;
     PTwccPacket pTwccPacket;
-    INT64 firstTimeKvs, lastLocalTimeKvs, ageOfOldest;
-
     CHK(pc != NULL && pRtpPacket != NULL, STATUS_NULL_ARG);
     CHK(pc->onSenderBandwidthEstimation != NULL && pc->pTwccManager != NULL, STATUS_SUCCESS);
-
     CHK(TWCC_EXT_PROFILE == pRtpPacket->header.extensionProfile, STATUS_SUCCESS);
 
     MUTEX_LOCK(pc->twccLock);
     locked = TRUE;
+
     CHK((pTwccPacket = MEMCALLOC(1, SIZEOF(TwccPacket))) != NULL, STATUS_NOT_ENOUGH_MEMORY);
+    seqNum = TWCC_SEQNUM(pRtpPacket->header.extensionPayload);
+
     pTwccPacket->packetSize = pRtpPacket->payloadLength;
     pTwccPacket->localTimeKvs = pRtpPacket->sentTime;
     pTwccPacket->remoteTimeKvs = TWCC_PACKET_LOST_TIME;
-    seqNum = TWCC_SEQNUM(pRtpPacket->header.extensionPayload);
-    CHK_STATUS(hashTableUpsert(pc->pTwccManager->pTwccPacketsHashTable, seqNum, (UINT64) pTwccPacket));
-    DLOGI("Writing to hash table: %d: %d, %d, %d", seqNum, pTwccPacket->packetSize, pTwccPacket->localTimeKvs, pTwccPacket->remoteTimeKvs);
+    pc->pTwccManager->twccPacketBySeqNum[seqNum] = pTwccPacket;
+
+//    DLOGI("Writing to allocated packet: %d: %d, %d, %d", seqNum, pTwccPacket->packetSize, pTwccPacket->localTimeKvs, pTwccPacket->remoteTimeKvs);
     pc->pTwccManager->lastLocalTimeKvs = pRtpPacket->sentTime;
+
 CleanUp:
     if (locked) {
         MUTEX_UNLOCK(pc->twccLock);
