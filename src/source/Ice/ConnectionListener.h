@@ -15,7 +15,7 @@ extern "C" {
 #define CONNECTION_LISTENER_DEFAULT_MAX_LISTENING_CONNECTION 64
 #define CONNECTION_LISTENER_KICK_SOCKET_LISTEN               0
 #define CONNECTION_LISTENER_KICK_SOCKET_WRITE                1
-#define CONNECTION_LISTENER_STACK_SIZE                       96 * 1024
+#define CONNECTION_LISTENER_STACK_SIZE                       128 * 1024
 
 typedef struct {
     volatile ATOMIC_BOOL terminate;

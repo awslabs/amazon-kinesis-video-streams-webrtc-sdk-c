@@ -431,6 +431,9 @@ The threadpool is enabled by default, and starts with 5 threads that it can incr
 
 To disable threadpool, run `cmake .. -DENABLE_KVS_THREADPOOL=OFF`
 
+### Thread stack sizes
+The default thread stack size for the KVS WebRTC SDK is 64 kb. Notable stack sized that may need to be changed for your specific application will be the ConnectionListener Receiver thread and the media sender threads. Please modify the stack sizes for these media dependent threads to be suitable for the media your application is processing.
+
 ### Setting ICE related timeouts
 
 There are some default timeout values set for different steps in ICE in the [KvsRtcConfiguration](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-c/structKvsRtcConfiguration.html). These are configurable in the application. While the defaults are generous, there could be applications that might need more flexibility to improve chances of connection establishment because of poor network. 
