@@ -46,9 +46,9 @@ typedef enum {
 } RTX_CODEC;
 
 typedef struct {
-    UINT32 packetSize;
     UINT64 localTimeKvs;
     UINT64 remoteTimeKvs;
+    UINT32 packetSize;
 } TwccPacket, *PTwccPacket;
 
 typedef struct {
