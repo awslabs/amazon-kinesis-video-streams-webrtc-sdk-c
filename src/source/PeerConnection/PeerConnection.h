@@ -53,7 +53,7 @@ typedef struct {
 
 typedef struct {
     PTwccPacket twccPacketBySeqNum[65536]; // twccPacketBySeqNum takes about 1.2MB of RAM but provides great cache locality
-    UINT64 lastLocalTimeKvs;
+    UINT16 firstSeqNumInRollingWindow;
     UINT16 lastReportedSeqNum;
     UINT16 prevReportedBsn;
 } TwccManager, *PTwccManager;
@@ -68,7 +68,7 @@ typedef struct {
 
 typedef struct {
     RtcPeerConnection peerConnection;
-    // UINT32 padding padding makes transportWideSequenceNumber 64bit aligned
+    // UINT32 padding makes transportWideSequenceNumber 64bit aligned
     // we put atomics at the top of structs because customers application could set the packing to 0
     // in which case any atomic operations would result in bus errors if there is a misalignment
     // for more see https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/pull/987#discussion_r534432907
