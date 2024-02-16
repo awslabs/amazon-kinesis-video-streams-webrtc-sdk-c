@@ -267,7 +267,7 @@ STATUS serializeSessionDescription(PSessionDescription pSessionDescription, PCHA
         }
     }
 
-    sdpResult = SdpSerializer_Finalize(&ctx, (const char**) &pSdpMessage, &sdpMessageLength);
+    sdpResult = SdpSerializer_Finalize(&ctx, (const char**) &pSdpMessage, (size_t*) &sdpMessageLength);
     CHK(sdpResult == SDP_RESULT_OK, sdpResult);
 
     /* Append NULL terminator. */
