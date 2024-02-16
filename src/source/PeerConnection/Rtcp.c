@@ -352,7 +352,7 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
             sentBytes += pTwccPacket->packetSize;
             sentPackets++;
             if (pTwccPacket->remoteTimeKvs != TWCC_PACKET_LOST_TIME) {
-      //          DLOGI("Reading from allocated packet: %d: %d, %d, %d", seqNum, pTwccPacket->packetSize, pTwccPacket->localTimeKvs, pTwccPacket->remoteTimeKvs);
+ //               DLOGI("Reading from allocated packet: %d: %d, %d, %d", seqNum, pTwccPacket->packetSize, pTwccPacket->localTimeKvs, pTwccPacket->remoteTimeKvs);
                 receivedBytes += pTwccPacket->packetSize;
                 receivedPackets++;
                 SAFE_MEMFREE(pTwccPacket);
@@ -369,7 +369,7 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
                                                         sentPackets, receivedPackets, duration);
     }
 
-CleanUp:
+    CleanUp:
     CHK_LOG_ERR(retStatus);
     if (locked) {
         MUTEX_UNLOCK(pKvsPeerConnection->twccLock);

@@ -1000,6 +1000,7 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
     PDoubleListNode pCurNode = NULL;
     UINT64 item = 0;
     UINT64 startTime;
+    PTwccPacket pTwccPacket;
 
     CHK(ppPeerConnection != NULL, STATUS_NULL_ARG);
 
@@ -1073,7 +1074,16 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
     }
 
     if (pKvsPeerConnection->pTwccManager != NULL) {
+        MUTEX_LOCK(pKvsPeerConnection->twccLock);
+        for(UINT16 i = 0; i < MAX_UINT16; i++) {
+            pTwccPacket = pKvsPeerConnection->pTwccManager->twccPacketBySeqNum[i];
+            if(pTwccPacket != NULL) {
+                SAFE_MEMFREE(pTwccPacket);
+                pKvsPeerConnection->pTwccManager->twccPacketBySeqNum[i] = NULL;
+            }
+        }
         if (IS_VALID_MUTEX_VALUE(pKvsPeerConnection->twccLock)) {
+            MUTEX_UNLOCK(pKvsPeerConnection->twccLock);
             MUTEX_FREE(pKvsPeerConnection->twccLock);
         }
         SAFE_MEMFREE(pKvsPeerConnection->pTwccManager);
@@ -1780,9 +1790,10 @@ STATUS twccManagerOnPacketSent(PKvsPeerConnection pc, PRtpPacket pRtpPacket)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
-    UINT16 seqNum;
+    UINT16 seqNum, updatedSeqNum;
     BOOL isEmpty = FALSE;
-    PTwccPacket pTwccPacket;
+    PTwccPacket pTwccPacket, tTwccPacket;
+    UINT64 firstRtpTime, ageOfOldest;
     CHK(pc != NULL && pRtpPacket != NULL, STATUS_NULL_ARG);
     CHK(pc->onSenderBandwidthEstimation != NULL && pc->pTwccManager != NULL, STATUS_SUCCESS);
     CHK(TWCC_EXT_PROFILE == pRtpPacket->header.extensionProfile, STATUS_SUCCESS);
@@ -1793,14 +1804,36 @@ STATUS twccManagerOnPacketSent(PKvsPeerConnection pc, PRtpPacket pRtpPacket)
     CHK((pTwccPacket = MEMCALLOC(1, SIZEOF(TwccPacket))) != NULL, STATUS_NOT_ENOUGH_MEMORY);
     seqNum = TWCC_SEQNUM(pRtpPacket->header.extensionPayload);
 
+
     pTwccPacket->packetSize = pRtpPacket->payloadLength;
     pTwccPacket->localTimeKvs = pRtpPacket->sentTime;
     pTwccPacket->remoteTimeKvs = TWCC_PACKET_LOST_TIME;
     pc->pTwccManager->twccPacketBySeqNum[seqNum] = pTwccPacket;
 
 //    DLOGI("Writing to allocated packet: %d: %d, %d, %d", seqNum, pTwccPacket->packetSize, pTwccPacket->localTimeKvs, pTwccPacket->remoteTimeKvs);
-    pc->pTwccManager->lastLocalTimeKvs = pRtpPacket->sentTime;
 
+
+    updatedSeqNum = pc->pTwccManager->firstSeqNumInRollingWindow;
+    do {
+        tTwccPacket = pc->pTwccManager->twccPacketBySeqNum[(UINT16) updatedSeqNum];
+        if(tTwccPacket != NULL) {
+            firstRtpTime = tTwccPacket->localTimeKvs;
+            ageOfOldest =  pRtpPacket->sentTime - firstRtpTime;
+            if(ageOfOldest > TWCC_ESTIMATOR_TIME_WINDOW) {
+                SAFE_MEMFREE(tTwccPacket);
+                pc->pTwccManager->twccPacketBySeqNum[(UINT16) updatedSeqNum] = NULL;
+                updatedSeqNum++;
+            } else {
+                pc->pTwccManager->firstSeqNumInRollingWindow = updatedSeqNum;
+                isEmpty = TRUE;
+            }
+        } else {
+            updatedSeqNum++;
+        }
+    } while(!isEmpty && updatedSeqNum <= seqNum);
+    if(updatedSeqNum == seqNum) {
+        pc->pTwccManager->firstSeqNumInRollingWindow = seqNum;
+    }
 CleanUp:
     if (locked) {
         MUTEX_UNLOCK(pc->twccLock);
