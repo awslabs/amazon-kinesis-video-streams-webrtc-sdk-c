@@ -131,8 +131,8 @@ TEST_F(DtlsFunctionalityTest, putApplicationDataWithVariedSizes)
     PBYTE pData = NULL;
     INT32 dataSizes[] = {
         4,                      // very small packet
-        DEFAULT_MTU_SIZE - 200, // small packet but should be still under mtu
-        DEFAULT_MTU_SIZE + 200, // big packet and bigger than even a jumbo frame
+        DEFAULT_MTU_SIZE_BYTES - 200, // small packet but should be still under mtu
+        DEFAULT_MTU_SIZE_BYTES + 200, // big packet and bigger than even a jumbo frame
     };
 
     EXPECT_EQ(STATUS_SUCCESS, timerQueueCreate(&timerQueueHandle));
@@ -161,8 +161,8 @@ TEST_F(DtlsFunctionalityTest, processPacketWithVariedSizes)
     PBYTE pData = NULL;
     INT32 dataSizes[] = {
         4,                      // very small packet
-        DEFAULT_MTU_SIZE - 200, // small packet but should be still under mtu
-        DEFAULT_MTU_SIZE + 200, // big packet and bigger than even a jumbo frame
+        DEFAULT_MTU_SIZE_BYTES - 200, // small packet but should be still under mtu
+        DEFAULT_MTU_SIZE_BYTES + 200, // big packet and bigger than even a jumbo frame
     };
     INT32 readDataSize;
 
@@ -193,8 +193,8 @@ TEST_F(DtlsFunctionalityTest, putApplicationDataWithVariedSizesInThread)
     PBYTE pData = NULL;
     INT32 dataSizes[] = {
             4,                      // very small packet
-            DEFAULT_MTU_SIZE - 200, // small packet but should be still under mtu
-            DEFAULT_MTU_SIZE + 200, // big packet and bigger than even a jumbo frame
+            DEFAULT_MTU_SIZE_BYTES - 200, // small packet but should be still under mtu
+            DEFAULT_MTU_SIZE_BYTES + 200, // big packet and bigger than even a jumbo frame
     };
 
     EXPECT_EQ(STATUS_SUCCESS, timerQueueCreate(&timerQueueHandle));
@@ -223,8 +223,8 @@ TEST_F(DtlsFunctionalityTest, processPacketWithVariedSizesInThread)
     PBYTE pData = NULL;
     INT32 dataSizes[] = {
             4,                      // very small packet
-            DEFAULT_MTU_SIZE - 200, // small packet but should be still under mtu
-            DEFAULT_MTU_SIZE + 200, // big packet and bigger than even a jumbo frame
+            DEFAULT_MTU_SIZE_BYTES - 200, // small packet but should be still under mtu
+            DEFAULT_MTU_SIZE_BYTES + 200, // big packet and bigger than even a jumbo frame
     };
     INT32 readDataSize;
 

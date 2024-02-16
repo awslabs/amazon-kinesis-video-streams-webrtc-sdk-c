@@ -153,7 +153,7 @@ TEST_F(RtcpFunctionalityTest, onRtcpPacketCompoundNack)
     BYTE validRtcpPacket[] = {0x81, 0xcd, 0x00, 0x03, 0x2c, 0xd1, 0xa0, 0xde, 0x00, 0x00, 0xab, 0xe0, 0x00, 0x00, 0x00, 0x00};
     initTransceiver(44000);
     ASSERT_EQ(STATUS_SUCCESS,
-              createRtpRollingBuffer(DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS * DEFAULT_EXPECTED_VIDEO_BIT_RATE / 8 / DEFAULT_MTU_SIZE,
+              createRtpRollingBuffer(DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS * DEFAULT_EXPECTED_VIDEO_BIT_RATE / 8 / DEFAULT_MTU_SIZE_BYTES,
                                      &pKvsRtpTransceiver->sender.packetBuffer));
     ASSERT_EQ(STATUS_SUCCESS,
               createRetransmitter(DEFAULT_SEQ_NUM_BUFFER_SIZE, DEFAULT_VALID_INDEX_BUFFER_SIZE, &pKvsRtpTransceiver->sender.retransmitter));

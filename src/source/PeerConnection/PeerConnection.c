@@ -934,7 +934,7 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
     pKvsPeerConnection->peerConnectionObjLock = MUTEX_CREATE(FALSE);
     pKvsPeerConnection->connectionState = RTC_PEER_CONNECTION_STATE_NONE;
     pKvsPeerConnection->MTU = pConfiguration->kvsRtcConfiguration.maximumTransmissionUnit == 0
-        ? DEFAULT_MTU_SIZE
+        ? DEFAULT_MTU_SIZE_BYTES
         : pConfiguration->kvsRtcConfiguration.maximumTransmissionUnit;
     ATOMIC_STORE_BOOL(&pKvsPeerConnection->sctpIsEnabled, FALSE);
 
