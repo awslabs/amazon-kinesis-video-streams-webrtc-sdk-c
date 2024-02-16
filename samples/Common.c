@@ -143,7 +143,6 @@ STATUS handleAnswer(PSampleConfiguration pSampleConfiguration, PSampleStreamingS
     STATUS retStatus = STATUS_SUCCESS;
     PRtcSessionDescriptionInit pAnswerSessionDescriptionInit = NULL;
 
-    MEMSET(&pAnswerSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
     pAnswerSessionDescriptionInit = (PRtcSessionDescriptionInit) MEMCALLOC(1, SIZEOF(RtcSessionDescriptionInit));
 
     CHK_STATUS(deserializeSessionDescriptionInit(pSignalingMessage->payload, pSignalingMessage->payloadLen, pAnswerSessionDescriptionInit));
