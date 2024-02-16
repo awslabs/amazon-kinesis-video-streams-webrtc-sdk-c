@@ -1488,9 +1488,9 @@ typedef struct {
  */
 typedef struct {
     RTC_RTP_TRANSCEIVER_DIRECTION direction; //!< Transceiver direction - SENDONLY, RECVONLY, SENDRECV
-    DOUBLE rollingBufferDurationSec;         //!< Duration of media that needs to be buffered (in seconds). The lowest allowed is 0.1 seconds (100ms)
-    DOUBLE rollingBufferBitratebps; //!< Expected bitrate of media (In bits/second). It is used to determine the buffer capacity. The lowest allowed
-                                    //!< is 100 Kbps
+    DOUBLE rollingBufferDurationSec; //!< Maximum duration of media that needs to be buffered (in seconds). The lowest allowed is 0.1 seconds (100ms)
+    DOUBLE rollingBufferBitratebps;  //!< Maximum expected bitrate of media (In bits/second). It is used to determine the buffer capacity. The lowest
+                                    //!< allowed is 100 Kbps
 } RtcRtpTransceiverInit, *PRtcRtpTransceiverInit;
 
 /**

@@ -295,10 +295,11 @@ STATUS setTransceiverPayloadTypes(PHashTable codecTable, PHashTable rtxTable, PD
             }
         }
 
-        UINT64 size = (UINT64) (pKvsRtpTransceiver->rollingBufferDurationSec * pKvsRtpTransceiver->rollingBufferBitratebps / 8 / DEFAULT_MTU_SIZE);
+        UINT64 rollingBufferCapacity =
+            (UINT64) (pKvsRtpTransceiver->rollingBufferDurationSec * pKvsRtpTransceiver->rollingBufferBitratebps / 8 / DEFAULT_MTU_SIZE);
 
-        DLOGI("The rolling buffer is configured to store %d RTP packets", size);
-        CHK_STATUS(createRtpRollingBuffer(size, &pKvsRtpTransceiver->sender.packetBuffer));
+        DLOGI("The rolling buffer is configured to store %d RTP packets", rollingBufferCapacity);
+        CHK_STATUS(createRtpRollingBuffer(rollingBufferCapacity, &pKvsRtpTransceiver->sender.packetBuffer));
         CHK_STATUS(createRetransmitter(DEFAULT_SEQ_NUM_BUFFER_SIZE, DEFAULT_VALID_INDEX_BUFFER_SIZE, &pKvsRtpTransceiver->sender.retransmitter));
     }
 

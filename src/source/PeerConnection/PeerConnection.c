@@ -1480,7 +1480,6 @@ STATUS addTransceiver(PRtcPeerConnection pPeerConnection, PRtcMediaStreamTrack p
     CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
 
     // Set defaults for audio and video track. This can be modified to values set up with pRtcRtpTransceiverInit
-    // if so.
     if (pRtcMediaStreamTrack != NULL) {
         if (pRtcMediaStreamTrack->kind == MEDIA_STREAM_TRACK_KIND_VIDEO) {
             rollingBufferBitratebps = DEFAULT_EXPECTED_VIDEO_BIT_RATE;
