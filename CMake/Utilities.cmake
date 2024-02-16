@@ -13,7 +13,8 @@ function(build_dependency lib_name)
       curl
       mbedtls
       kvspic
-      kvsCommonLws)
+      kvsCommonLws
+      kvssdp)
   list(FIND supported_libs ${lib_name} index)
   if(${index} EQUAL -1)
     message(WARNING "${lib_name} is not supported to build from source")

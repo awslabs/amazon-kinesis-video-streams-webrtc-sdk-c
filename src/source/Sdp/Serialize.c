@@ -1,6 +1,6 @@
 #define LOG_CLASS "SDPSerialize"
 #include "../Include_i.h"
-#include "sdp_serializer.h"
+#include "kvssdp/sdp_serializer.h"
 
 static STATUS serializeVersion(SdpSerializerContext_t* pCtx, UINT64 version)
 {

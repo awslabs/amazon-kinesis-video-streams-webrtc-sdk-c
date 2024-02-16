@@ -1,6 +1,6 @@
 #define LOG_CLASS "SDPDeserialize"
 #include "../Include_i.h"
-#include "sdp_deserializer.h"
+#include "kvssdp/sdp_deserializer.h"
 
 STATUS parseMediaName(PSessionDescription pSessionDescription, PCHAR mediaValue, size_t mediaValueLength)
 {

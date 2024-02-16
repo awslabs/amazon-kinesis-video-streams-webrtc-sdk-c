@@ -211,6 +211,13 @@ if(BUILD_DEPENDENCIES)
 
   build_dependency(usrsctp ${BUILD_ARGS})
 
+  set(BUILD_ARGS
+      -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
+      -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+      -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
+
+  build_dependency(kvssdp ${BUILD_ARGS})
+
   if(BUILD_TEST)
     build_dependency(gtest)
 
@@ -338,11 +345,6 @@ if(ENABLE_AWS_SDK_IN_TESTS)
   add_definitions(-DENABLE_AWS_SDK_IN_TESTS)
 endif()
 
-# include components path
-include(src/source/Sdp/amazon-kinesis-video-streams-sdp/sdpFilePaths.cmake)
-# include sdp_config.h
-include_directories(src/source/Sdp)
-
 file(
   GLOB
   WEBRTC_CLIENT_SOURCE_FILES
@@ -361,8 +363,7 @@ file(
   "src/source/Sdp/*.c"
   "src/source/Srtp/*.c"
   "src/source/Stun/*.c"
-  "src/source/Metrics/*.c"
-  ${SDP_SOURCES})
+  "src/source/Metrics/*.c")
 
 if (USE_OPENSSL)
   list(FILTER WEBRTC_CLIENT_SOURCE_FILES EXCLUDE REGEX ".*_mbedtls\\.c")
@@ -375,7 +376,8 @@ file(GLOB WEBRTC_SIGNALING_CLIENT_SOURCE_FILES "src/source/Signaling/*.c")
 include_directories(${OPEN_SRC_INCLUDE_DIRS})
 include_directories(${OPEN_SRC_INSTALL_PREFIX}/include)
 include_directories(${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/include)
-include_directories(${SDP_INCLUDE_PUBLIC_DIRS})
+# include sdp_config.h
+include_directories(src/source/Sdp/kvssdp)
 
 add_library(kvsWebrtcClient ${LINKAGE} ${WEBRTC_CLIENT_SOURCE_FILES} ${DATACHANNEL_SRC})
 
@@ -414,7 +416,8 @@ target_link_libraries(
   kvsWebrtcSignalingClient
   PUBLIC
         kvsCommonLws
-        ${LIBWEBSOCKETS_LIBRARIES} 
+        ${LIBWEBSOCKETS_LIBRARIES}
+        kvssdp
   PRIVATE kvspicUtils
          kvspicState
          ${CMAKE_THREAD_LIBS_INIT}
