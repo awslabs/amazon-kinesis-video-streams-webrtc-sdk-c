@@ -65,7 +65,7 @@ Create a build directory in the newly checked out repository, and execute CMake 
 
 `mkdir -p amazon-kinesis-video-streams-webrtc-sdk-c/build; cd amazon-kinesis-video-streams-webrtc-sdk-c/build; cmake .. `
 
-We have provided an example of using GStreamer to capture/encode video, and then send via this library. This is only build if `pkg-config` finds
+We have provided an example of using GStreamer to capture/encode video, and then send via this library. This is only built if `pkg-config` finds
 GStreamer is installed on your system.
 
 On Ubuntu and Raspberry Pi OS you can get the libraries by running
