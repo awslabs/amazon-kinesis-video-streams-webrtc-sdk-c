@@ -17,6 +17,7 @@ ExternalProject_Add(libkvssdp
         -DCMAKE_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX}
         -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -DCMAKE_PROJECT_kvssdp_INCLUDE=${CMAKE_CURRENT_LIST_DIR}/../../src/source/Sdp/kvssdp/sdp.cmake
         -DBUILD_SHARED_LIBS=${LIBKVSSDP_SHARED_LIBS}
+        -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
     BUILD_ALWAYS      TRUE
     TEST_COMMAND      ""
 )
