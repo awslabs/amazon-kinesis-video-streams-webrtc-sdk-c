@@ -8,7 +8,7 @@ STATUS parseMediaName(PSessionDescription pSessionDescription, PCHAR mediaValue,
     STATUS retStatus = STATUS_SUCCESS;
     size_t copyLength;
 
-    CHK(pSessionDescription->mediaCount < MAX_SDP_SESSION_MEDIA_COUNT, STATUS_BUFFER_TOO_SMALL);
+    CHK(pSessionDescription->mediaCount < MAX_SDP_SESSION_MEDIA_COUNT, STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT);
 
     copyLength = MIN(MAX_SDP_MEDIA_NAME_LENGTH, mediaValueLength);
     STRNCPY(pSessionDescription->mediaDescriptions[pSessionDescription->mediaCount].mediaName, mediaValue, copyLength);
