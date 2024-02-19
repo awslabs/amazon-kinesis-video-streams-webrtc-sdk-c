@@ -52,7 +52,11 @@ typedef struct {
 } TwccPacket, *PTwccPacket;
 
 typedef struct {
+<<<<<<< Updated upstream
     PTwccPacket twccPacketBySeqNum[65536]; // twccPacketBySeqNum takes about 1.2MB of RAM but provides great cache locality
+=======
+    PHashTable pTwccPacketsHashTable;
+>>>>>>> Stashed changes
     UINT16 firstSeqNumInRollingWindow;
     UINT16 lastReportedSeqNum;
     UINT16 prevReportedBsn;
