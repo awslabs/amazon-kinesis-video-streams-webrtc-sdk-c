@@ -2,11 +2,11 @@
 #include "../Include_i.h"
 #include "kvssdp/sdp_deserializer.h"
 
-STATUS parseMediaName(PSessionDescription pSessionDescription, PCHAR mediaValue, size_t mediaValueLength)
+STATUS parseMediaName(PSessionDescription pSessionDescription, PCHAR mediaValue, UINT64 mediaValueLength)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    size_t copyLength;
+    UINT64 copyLength;
 
     CHK(pSessionDescription->mediaCount < MAX_SDP_SESSION_MEDIA_COUNT, STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT);
 
@@ -20,13 +20,13 @@ CleanUp:
     return retStatus;
 }
 
-STATUS parseSessionAttributes(PSessionDescription pSessionDescription, PCHAR pValue, size_t valueLength)
+STATUS parseSessionAttributes(PSessionDescription pSessionDescription, PCHAR pValue, UINT64 valueLength)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     SdpResult_t sdpResult = SDP_RESULT_OK;
     SdpAttribute_t attribute;
-    size_t copyLength;
+    UINT64 copyLength;
 
     CHK(pSessionDescription->sessionAttributesCount < MAX_SDP_ATTRIBUTES_COUNT, STATUS_SDP_ATTRIBUTE_MAX_EXCEEDED);
 
@@ -53,7 +53,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS parseMediaAttributes(PSessionDescription pSessionDescription, PCHAR pValue, size_t valueLength)
+STATUS parseMediaAttributes(PSessionDescription pSessionDescription, PCHAR pValue, UINT64 valueLength)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -61,14 +61,14 @@ STATUS parseMediaAttributes(PSessionDescription pSessionDescription, PCHAR pValu
     SdpAttribute_t attribute;
     UINT16 currentMediaAttributesCount;
     UINT32 mediaIdx = pSessionDescription->mediaCount - 1;
-    size_t copyLength;
+    UINT64 copyLength;
 
     currentMediaAttributesCount = pSessionDescription->mediaDescriptions[mediaIdx].mediaAttributesCount;
 
     CHK(currentMediaAttributesCount < MAX_SDP_ATTRIBUTES_COUNT, STATUS_SDP_ATTRIBUTE_MAX_EXCEEDED);
 
     // Media attributes
-    sdpResult = SdpDeserializer_ParseAttribute(pValue, valueLength, &attribute);
+    sdpResult = SdpDeserializer_ParseAttribute(pValue, (size_t) valueLength, &attribute);
     CHK(sdpResult == SDP_RESULT_OK, sdpResult);
 
     copyLength = MIN(MAX_SDP_ATTRIBUTE_NAME_LENGTH, attribute.attributeNameLength);
@@ -98,9 +98,9 @@ STATUS deserializeSessionDescription(PSessionDescription pSessionDescription, PC
     SdpResult_t sdpResult = SDP_RESULT_OK;
     SdpDeserializerContext_t ctx;
     CHAR* pValue;
-    size_t valueLength;
+    UINT64 valueLength;
     UINT8 type;
-    size_t copyLength;
+    UINT64 copyLength;
 
     CHK(sdpBytes != NULL, STATUS_SESSION_DESCRIPTION_INVALID_SESSION_DESCRIPTION);
 
@@ -122,10 +122,10 @@ STATUS deserializeSessionDescription(PSessionDescription pSessionDescription, PC
         }
 
         if (type == SDP_TYPE_MEDIA) {
-            CHK_STATUS(parseMediaName(pSessionDescription, pValue, valueLength));
+            CHK_STATUS(parseMediaName(pSessionDescription, pValue, (size_t) valueLength));
         } else if (pSessionDescription->mediaCount != 0) {
             if (type == SDP_TYPE_ATTRIBUTE) {
-                CHK_STATUS(parseMediaAttributes(pSessionDescription, pValue, valueLength));
+                CHK_STATUS(parseMediaAttributes(pSessionDescription, pValue, (size_t) valueLength));
             } else if (type == SDP_TYPE_SESSION_INFO) {
                 // Media Title
                 copyLength = MIN(MAX_SDP_MEDIA_TITLE_LENGTH, valueLength);
@@ -164,7 +164,7 @@ STATUS deserializeSessionDescription(PSessionDescription pSessionDescription, PC
                 // Version
                 STRTOUI64(pValue, pValue + valueLength, 10, &pSessionDescription->version);
             } else if (type == SDP_TYPE_ATTRIBUTE) {
-                CHK_STATUS(parseSessionAttributes(pSessionDescription, pValue, valueLength));
+                CHK_STATUS(parseSessionAttributes(pSessionDescription, pValue, (size_t) valueLength));
             } else {
                 /* Do nothing. */
             }
