@@ -4,9 +4,9 @@
 
 typedef STATUS (*RtpPayloadFunc)(UINT32, PBYTE, UINT32, PBYTE, PUINT32, PUINT32, PUINT32);
 
-STATUS createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION direction, PKvsPeerConnection pKvsPeerConnection, UINT32 ssrc, UINT32 rtxSsrc,
-                               PRtcMediaStreamTrack pRtcMediaStreamTrack, PJitterBuffer pJitterBuffer, RTC_CODEC rtcCodec,
-                               PKvsRtpTransceiver* ppKvsRtpTransceiver)
+STATUS createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION direction, DOUBLE rollingBufferDurationSec, DOUBLE rollingBufferBitratebps,
+                               PKvsPeerConnection pKvsPeerConnection, UINT32 ssrc, UINT32 rtxSsrc, PRtcMediaStreamTrack pRtcMediaStreamTrack,
+                               PJitterBuffer pJitterBuffer, RTC_CODEC rtcCodec, PKvsRtpTransceiver* ppKvsRtpTransceiver)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PKvsRtpTransceiver pKvsRtpTransceiver = NULL;
@@ -30,6 +30,28 @@ STATUS createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION direction, PKvsPeer
     pKvsRtpTransceiver->transceiver.receiver.track.codec = rtcCodec;
     pKvsRtpTransceiver->transceiver.receiver.track.kind = pRtcMediaStreamTrack->kind;
     pKvsRtpTransceiver->transceiver.direction = direction;
+
+    if (rollingBufferDurationSec < MIN_ROLLING_BUFFER_DURATION_IN_SECONDS) {
+        DLOGW("Rolling buffer duration set to less than 100 ms. Setting to default %d sec", DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS);
+        pKvsRtpTransceiver->rollingBufferDurationSec = DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS;
+    } else {
+        pKvsRtpTransceiver->rollingBufferDurationSec = rollingBufferDurationSec;
+    }
+    if (rollingBufferBitratebps < MIN_EXPECTED_BIT_RATE) {
+        if (pRtcMediaStreamTrack->kind == MEDIA_STREAM_TRACK_KIND_VIDEO) {
+            DLOGW("Rolling buffer duration set to less than 100 Kibps for video. Setting to default %d bps", DEFAULT_EXPECTED_VIDEO_BIT_RATE);
+            pKvsRtpTransceiver->rollingBufferBitratebps = DEFAULT_EXPECTED_VIDEO_BIT_RATE;
+        } else if (pRtcMediaStreamTrack->kind == MEDIA_STREAM_TRACK_KIND_AUDIO) {
+            DLOGW("Rolling buffer duration set to less than 100 Kibps for audio. Setting to default %d bps", DEFAULT_EXPECTED_AUDIO_BIT_RATE);
+            pKvsRtpTransceiver->rollingBufferBitratebps = DEFAULT_EXPECTED_AUDIO_BIT_RATE;
+        } else {
+            DLOGW("Rolling buffer duration set to less than 100 Kibps for unknown codec. Setting to default %d bps", DEFAULT_EXPECTED_AUDIO_BIT_RATE);
+            rollingBufferBitratebps = DEFAULT_EXPECTED_VIDEO_BIT_RATE;
+        }
+
+    } else {
+        pKvsRtpTransceiver->rollingBufferBitratebps = rollingBufferBitratebps;
+    }
 
     pKvsRtpTransceiver->outboundStats.sent.rtpStream.ssrc = ssrc;
     STRNCPY(pKvsRtpTransceiver->outboundStats.sent.rtpStream.kind, pRtcMediaStreamTrack->kind == MEDIA_STREAM_TRACK_KIND_AUDIO ? "audio" : "video",

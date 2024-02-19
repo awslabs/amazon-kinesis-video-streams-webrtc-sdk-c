@@ -147,6 +147,7 @@ typedef struct {
 
     UINT64 iceConnectingStartTime;
     KvsPeerConnectionDiagnostics peerConnectionDiagnostics;
+
 } KvsPeerConnection, *PKvsPeerConnection;
 
 typedef struct {
