@@ -253,6 +253,8 @@ TEST_F(SdpApiTest, setTransceiverPayloadTypes_NoRtxType)
     transceiver.transceiver.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
     transceiver.sender.packetBuffer = NULL;
     transceiver.sender.retransmitter = NULL;
+    transceiver.rollingBufferDurationSec = DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS;
+    transceiver.rollingBufferBitratebps = DEFAULT_EXPECTED_VIDEO_BIT_RATE;
     EXPECT_EQ(STATUS_SUCCESS, hashTableCreate(&pCodecTable));
     EXPECT_EQ(STATUS_SUCCESS, hashTablePut(pCodecTable, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, 1));
     EXPECT_EQ(STATUS_SUCCESS, hashTableCreate(&pRtxTable));
@@ -279,6 +281,8 @@ TEST_F(SdpApiTest, setTransceiverPayloadTypes_HasRtxType)
     transceiver.transceiver.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
     transceiver.sender.packetBuffer = NULL;
     transceiver.sender.retransmitter = NULL;
+    transceiver.rollingBufferDurationSec = DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS;
+    transceiver.rollingBufferBitratebps = DEFAULT_EXPECTED_VIDEO_BIT_RATE;
     EXPECT_EQ(STATUS_SUCCESS, hashTableCreate(&pCodecTable));
     EXPECT_EQ(STATUS_SUCCESS, hashTablePut(pCodecTable, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, 1));
     EXPECT_EQ(STATUS_SUCCESS, hashTableCreate(&pRtxTable));
@@ -439,7 +443,6 @@ TEST_F(SdpApiTest, populateSingleMediaSection_TestTxRecvOnlyStreamNull)
 
     // Create peer connection
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
-
     PRtcRtpTransceiver pTransceiver;
     RtcRtpTransceiverInit rtcRtpTransceiverInit;
     rtcRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY;
@@ -487,6 +490,7 @@ a=rtpmap:102 H264/90000
         MEMSET(&rtcConfiguration, 0x00, SIZEOF(RtcConfiguration));
         MEMSET(&rtcMediaStreamTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
         MEMSET(&rtcSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
+        MEMSET(&rtcRtpTransceiverInit, 0x00, SIZEOF(RtcRtpTransceiverInit));
 
         EXPECT_EQ(createPeerConnection(&rtcConfiguration, &pRtcPeerConnection), STATUS_SUCCESS);
         EXPECT_EQ(addSupportedCodec(pRtcPeerConnection, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE), STATUS_SUCCESS);
@@ -1168,6 +1172,7 @@ a=fmtp:125 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42e01
         MEMSET(&rtcConfiguration, 0x00, SIZEOF(RtcConfiguration));
         MEMSET(&rtcMediaStreamTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
         MEMSET(&rtcSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
+        MEMSET(&rtcRtpTransceiverInit, 0x00, SIZEOF(RtcRtpTransceiverInit));
 
         EXPECT_EQ(createPeerConnection(&rtcConfiguration, &pRtcPeerConnection), STATUS_SUCCESS);
         EXPECT_EQ(addSupportedCodec(pRtcPeerConnection, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE), STATUS_SUCCESS);
@@ -1643,6 +1648,7 @@ TEST_P(SdpApiTest_SdpMatch, populateSingleMediaSection_TestH264Fmtp)
     MEMSET(&rtcConfiguration, 0x00, SIZEOF(RtcConfiguration));
     MEMSET(&track1, 0x00, SIZEOF(RtcMediaStreamTrack));
     MEMSET(&rtcSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
+    MEMSET(&rtcRtpTransceiverInit, 0x00, SIZEOF(RtcRtpTransceiverInit));
 
     EXPECT_EQ(createPeerConnection(&rtcConfiguration, &pRtcPeerConnection), STATUS_SUCCESS);
     EXPECT_EQ(addSupportedCodec(pRtcPeerConnection, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE), STATUS_SUCCESS);

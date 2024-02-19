@@ -295,8 +295,11 @@ STATUS setTransceiverPayloadTypes(PHashTable codecTable, PHashTable rtxTable, PD
             }
         }
 
-        CHK_STATUS(createRtpRollingBuffer(DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS * HIGHEST_EXPECTED_BIT_RATE / 8 / DEFAULT_MTU_SIZE,
-                                          &pKvsRtpTransceiver->sender.packetBuffer));
+        UINT64 rollingBufferCapacity =
+            (UINT64) (pKvsRtpTransceiver->rollingBufferDurationSec * pKvsRtpTransceiver->rollingBufferBitratebps / 8 / DEFAULT_MTU_SIZE_BYTES);
+
+        DLOGI("The rolling buffer is configured to store %d RTP packets", rollingBufferCapacity);
+        CHK_STATUS(createRtpRollingBuffer(rollingBufferCapacity, &pKvsRtpTransceiver->sender.packetBuffer));
         CHK_STATUS(createRetransmitter(DEFAULT_SEQ_NUM_BUFFER_SIZE, DEFAULT_VALID_INDEX_BUFFER_SIZE, &pKvsRtpTransceiver->sender.retransmitter));
     }
 
@@ -1248,7 +1251,7 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
             STRCPY(track.streamId, "fakeStream");
             STRCPY(track.trackId, "fakeTrack");
             pRtcMediaStreamTrack = &track;
-            CHK_STATUS(createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE, pKvsPeerConnection, (UINT32) RAND(), (UINT32) RAND(),
+            CHK_STATUS(createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE, 0, 0, pKvsPeerConnection, (UINT32) RAND(), (UINT32) RAND(),
                                                pRtcMediaStreamTrack, NULL, RTC_CODEC_UNKNOWN, &pKvsRtpFakeTransceiver));
 
             // add the new transceiver to a list of fake transceivers to keep a track of them
