@@ -320,7 +320,7 @@ endif()
 # add_definitions(-DENABLE_LOG_THREAD_ID)
 
 # Uncomment below line for very verbose logging
-# add_definitions(-DLOG_STREAMING)
+add_definitions(-DLOG_STREAMING)
 
 if (ENABLE_DATA_CHANNEL)
   add_definitions(-DENABLE_DATA_CHANNEL)
