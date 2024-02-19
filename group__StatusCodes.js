@@ -191,6 +191,8 @@ var group__StatusCodes =
     [ "requestedTypeOfStats", "group__StatusCodes.html#gab177e7034390e789397933b107eea948", null ],
     [ "reserved", "group__StatusCodes.html#ga3e223c7cb71dcce2963818551782c052", null ],
     [ "retry", "group__StatusCodes.html#ga0c0868239cfea2dddc22abe841c66f2a", null ],
+    [ "rollingBufferBitratebps", "group__StatusCodes.html#ga520de785dce77b50a14f12afbe7768e5", null ],
+    [ "rollingBufferDurationSec", "group__StatusCodes.html#gace8bf7741e34e83480a207bf14d61c98", null ],
     [ "rtcIceCandidatePairStats", "group__StatusCodes.html#ga5427abf5f6370d371acb461a1bd36061", null ],
     [ "rtcIceServerStats", "group__StatusCodes.html#ga1447ae2dbefa78ca1af68b91d0e5e20c", null ],
     [ "rtcInboundStats", "group__StatusCodes.html#ga3388b9bb359bf647efc46477e06a642a", null ],

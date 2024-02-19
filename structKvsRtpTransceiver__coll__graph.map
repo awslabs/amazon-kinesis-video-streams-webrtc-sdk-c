@@ -1,5 +1,5 @@
 <map id="KvsRtpTransceiver" name="KvsRtpTransceiver">
-<area shape="rect" id="node1" title=" " alt="" coords="4668,1181,4941,1405"/>
+<area shape="rect" id="node1" title=" " alt="" coords="4668,1181,4941,1435"/>
 <area shape="rect" id="node2" href="$structRtcInboundRtpStreamStats.html" title="The RTCInboundRtpStreamStats dictionary represents the measurement metrics for the incoming RTP media..." alt="" coords="4153,895,4350,1119"/>
 <area shape="rect" id="node3" href="$structRtcReceivedRtpStreamStats.html" title=" " alt="" coords="4017,608,4222,832"/>
 <area shape="rect" id="node4" href="$structRTCRtpStreamStats.html" title="RTCRtpStreamStats captures stream stats that will be used as part of RTCSentRtpStreamStats report Ref..." alt="" coords="4428,307,4576,428"/>
