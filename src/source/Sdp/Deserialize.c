@@ -81,6 +81,8 @@ STATUS deserializeSessionDescription(PSessionDescription pSessionDescription, PC
     curr = sdpBytes;
     tail = sdpBytes + STRLEN(sdpBytes);
 
+    CHK(sizeof(SIZE_T) == sizeof(size_t), sizeof(SIZE_T));
+
     while ((next = STRNCHR(curr, tail - curr, '\n')) != NULL) {
         lineLen = (UINT32) (next - curr);
 
