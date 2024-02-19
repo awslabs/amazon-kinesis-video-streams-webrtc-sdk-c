@@ -205,18 +205,20 @@ if(BUILD_DEPENDENCIES)
 
   build_dependency(srtp ${BUILD_ARGS})
 
-  set(BUILD_ARGS
-      -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-      -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
-
-  build_dependency(usrsctp ${BUILD_ARGS})
-
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -I${CMAKE_CURRENT_SOURCE_DIR}/configs")
   set(BUILD_ARGS
       -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
       -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
       -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
 
   build_dependency(kvssdp ${BUILD_ARGS})
+
+  set(BUILD_ARGS
+      -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+      -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
+
+  build_dependency(usrsctp ${BUILD_ARGS})
+
 
   if(BUILD_TEST)
     build_dependency(gtest)
