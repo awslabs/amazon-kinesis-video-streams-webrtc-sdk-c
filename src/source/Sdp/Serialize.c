@@ -231,7 +231,7 @@ STATUS serializeSessionDescription(PSessionDescription pSessionDescription, PCHA
     SdpResult_t sdpResult = SDP_RESULT_OK;
     SdpSerializerContext_t ctx;
     char* pSdpMessage;
-    SIZE_T sdpMessageLength;
+    size_t sdpMessageLength;
     UINT32 i, j;
 
     sdpResult = SdpSerializer_Init(&ctx, sdpBytes, *sdpBytesLength);

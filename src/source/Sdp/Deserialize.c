@@ -2,11 +2,11 @@
 #include "../Include_i.h"
 #include "kvssdp/sdp_deserializer.h"
 
-STATUS parseMediaName(PSessionDescription pSessionDescription, PCHAR mediaValue, SIZE_T mediaValueLength)
+STATUS parseMediaName(PSessionDescription pSessionDescription, PCHAR mediaValue, size_t mediaValueLength)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    SIZE_T copyLength;
+    size_t copyLength;
 
     CHK(pSessionDescription->mediaCount < MAX_SDP_SESSION_MEDIA_COUNT, STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT);
 
@@ -20,13 +20,13 @@ CleanUp:
     return retStatus;
 }
 
-STATUS parseSessionAttributes(PSessionDescription pSessionDescription, PCHAR pValue, SIZE_T valueLength)
+STATUS parseSessionAttributes(PSessionDescription pSessionDescription, PCHAR pValue, size_t valueLength)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     SdpResult_t sdpResult = SDP_RESULT_OK;
     SdpAttribute_t attribute;
-    SIZE_T copyLength;
+    size_t copyLength;
 
     CHK(pSessionDescription->sessionAttributesCount < MAX_SDP_ATTRIBUTES_COUNT, STATUS_SDP_ATTRIBUTE_MAX_EXCEEDED);
 
@@ -53,7 +53,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS parseMediaAttributes(PSessionDescription pSessionDescription, PCHAR pValue, SIZE_T valueLength)
+STATUS parseMediaAttributes(PSessionDescription pSessionDescription, PCHAR pValue, size_t valueLength)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -61,7 +61,7 @@ STATUS parseMediaAttributes(PSessionDescription pSessionDescription, PCHAR pValu
     SdpAttribute_t attribute;
     UINT16 currentMediaAttributesCount;
     UINT32 mediaIdx = pSessionDescription->mediaCount - 1;
-    SIZE_T copyLength;
+    size_t copyLength;
 
     currentMediaAttributesCount = pSessionDescription->mediaDescriptions[mediaIdx].mediaAttributesCount;
 
@@ -98,9 +98,9 @@ STATUS deserializeSessionDescription(PSessionDescription pSessionDescription, PC
     SdpResult_t sdpResult = SDP_RESULT_OK;
     SdpDeserializerContext_t ctx;
     CHAR* pValue;
-    SIZE_T valueLength;
+    size_t valueLength;
     UINT8 type;
-    SIZE_T copyLength;
+    size_t copyLength;
 
     CHK(sdpBytes != NULL, STATUS_SESSION_DESCRIPTION_INVALID_SESSION_DESCRIPTION);
 
