@@ -104,8 +104,6 @@ STATUS deserializeSessionDescription(PSessionDescription pSessionDescription, PC
 
     CHK(sdpBytes != NULL, STATUS_SESSION_DESCRIPTION_INVALID_SESSION_DESCRIPTION);
 
-    DLOGD("sizeof(SIZE_T):%lu sizeof(size_t):%lu\n", sizeof(SIZE_T), sizeof(size_t));
-
     sdpResult = SdpDeserializer_Init(&ctx, sdpBytes, STRLEN(sdpBytes));
     CHK(sdpResult == SDP_RESULT_OK, sdpResult);
 
