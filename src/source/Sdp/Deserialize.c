@@ -108,7 +108,7 @@ STATUS deserializeSessionDescription(PSessionDescription pSessionDescription, PC
     CHK(sdpResult == SDP_RESULT_OK, sdpResult);
 
     for (; sdpResult == SDP_RESULT_OK;) {
-        sdpResult = SdpDeserializer_GetNext(&ctx, &type, (const CHAR**) &pValue, (size_t*) &valueLength);
+        sdpResult = SdpDeserializer_GetNext(&ctx, &type, (const CHAR**) &pValue, &valueLength);
 
         if (sdpResult == SDP_RESULT_OK) {
             /* Do nothing. */
