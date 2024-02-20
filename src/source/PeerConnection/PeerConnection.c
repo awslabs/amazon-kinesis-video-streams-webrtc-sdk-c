@@ -955,6 +955,7 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
     if (!pConfiguration->kvsRtcConfiguration.disableSenderSideBandwidthEstimation) {
         pKvsPeerConnection->twccLock = MUTEX_CREATE(TRUE);
         pKvsPeerConnection->pTwccManager = (PTwccManager) MEMCALLOC(1, SIZEOF(TwccManager));
+        CHK_STATUS(hashTableCreateWithParams(100, 2, &pKvsPeerConnection->pTwccManager->pTwccPacketsHashTable));
     }
 
     *ppPeerConnection = (PRtcPeerConnection) pKvsPeerConnection;
@@ -1075,21 +1076,11 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
 
     if (pKvsPeerConnection->pTwccManager != NULL) {
         MUTEX_LOCK(pKvsPeerConnection->twccLock);
-<<<<<<< Updated upstream
-        for(UINT16 i = 0; i < MAX_UINT16; i++) {
-            pTwccPacket = pKvsPeerConnection->pTwccManager->twccPacketBySeqNum[i];
-            if(pTwccPacket != NULL) {
-                SAFE_MEMFREE(pTwccPacket);
-                pKvsPeerConnection->pTwccManager->twccPacketBySeqNum[i] = NULL;
-            }
-        }
-=======
         UINT32 count;
         hashTableGetCount(pKvsPeerConnection->pTwccManager->pTwccPacketsHashTable, &count);
         DLOGI("Count before freeing: %d", count);
         hashTableIterateEntries(pKvsPeerConnection->pTwccManager->pTwccPacketsHashTable, 0, freeTwccPacketHashEntry);
         hashTableFree(pKvsPeerConnection->pTwccManager->pTwccPacketsHashTable);
->>>>>>> Stashed changes
         if (IS_VALID_MUTEX_VALUE(pKvsPeerConnection->twccLock)) {
             MUTEX_UNLOCK(pKvsPeerConnection->twccLock);
             MUTEX_FREE(pKvsPeerConnection->twccLock);
@@ -1799,17 +1790,11 @@ STATUS twccManagerOnPacketSent(PKvsPeerConnection pc, PRtpPacket pRtpPacket)
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
     UINT16 seqNum, updatedSeqNum;
-<<<<<<< Updated upstream
-    BOOL isEmpty = FALSE;
-    PTwccPacket pTwccPacket, tTwccPacket;
-    UINT64 firstRtpTime, ageOfOldest;
-=======
     PTwccPacket pTwccPacket, tTwccPacket;
     INT64 firstTimeKvs, lastLocalTimeKvs, ageOfOldest, firstRtpTime;
     UINT64 value;
     BOOL isEmpty = FALSE;
 
->>>>>>> Stashed changes
     CHK(pc != NULL && pRtpPacket != NULL, STATUS_NULL_ARG);
     CHK(pc->onSenderBandwidthEstimation != NULL && pc->pTwccManager != NULL, STATUS_SUCCESS);
     CHK(TWCC_EXT_PROFILE == pRtpPacket->header.extensionProfile, STATUS_SUCCESS);
@@ -1824,22 +1809,6 @@ STATUS twccManagerOnPacketSent(PKvsPeerConnection pc, PRtpPacket pRtpPacket)
     pTwccPacket->packetSize = pRtpPacket->payloadLength;
     pTwccPacket->localTimeKvs = pRtpPacket->sentTime;
     pTwccPacket->remoteTimeKvs = TWCC_PACKET_LOST_TIME;
-<<<<<<< Updated upstream
-    pc->pTwccManager->twccPacketBySeqNum[seqNum] = pTwccPacket;
-
-//    DLOGI("Writing to allocated packet: %d: %d, %d, %d", seqNum, pTwccPacket->packetSize, pTwccPacket->localTimeKvs, pTwccPacket->remoteTimeKvs);
-
-
-    updatedSeqNum = pc->pTwccManager->firstSeqNumInRollingWindow;
-    do {
-        tTwccPacket = pc->pTwccManager->twccPacketBySeqNum[(UINT16) updatedSeqNum];
-        if(tTwccPacket != NULL) {
-            firstRtpTime = tTwccPacket->localTimeKvs;
-            ageOfOldest =  pRtpPacket->sentTime - firstRtpTime;
-            if(ageOfOldest > TWCC_ESTIMATOR_TIME_WINDOW) {
-                SAFE_MEMFREE(tTwccPacket);
-                pc->pTwccManager->twccPacketBySeqNum[(UINT16) updatedSeqNum] = NULL;
-=======
     seqNum = TWCC_SEQNUM(pRtpPacket->header.extensionPayload);
     CHK_STATUS(hashTableUpsert(pc->pTwccManager->pTwccPacketsHashTable, seqNum, (UINT64) pTwccPacket));
     DLOGI("Writing to hash table: %d: %d, %d, %d", seqNum, pTwccPacket->packetSize, pTwccPacket->localTimeKvs, pTwccPacket->remoteTimeKvs);
@@ -1859,7 +1828,6 @@ STATUS twccManagerOnPacketSent(PKvsPeerConnection pc, PRtpPacket pRtpPacket)
                 CHK_STATUS(hashTableRemove(pc->pTwccManager->pTwccPacketsHashTable, updatedSeqNum));
                 DLOGI("Removed %d", updatedSeqNum);
                 SAFE_MEMFREE(tTwccPacket);
->>>>>>> Stashed changes
                 updatedSeqNum++;
             } else {
                 pc->pTwccManager->firstSeqNumInRollingWindow = updatedSeqNum;
