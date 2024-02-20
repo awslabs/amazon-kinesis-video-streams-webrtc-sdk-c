@@ -331,7 +331,8 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
                 localStartTimeKvs = TWCC_PACKET_UNITIALIZED_TIME;
             } else {
                 if(hashTableGet(twcc->pTwccPacketsHashTable, seqNum - 1, &value) == STATUS_HASH_KEY_NOT_PRESENT) {
-                    DLOGW("Sequence number visited already, moving on");
+                    DLOGW("Sequence number %d visited already, moving on", seqNum - 1);
+                    localStartTimeKvs = TWCC_PACKET_UNITIALIZED_TIME;
                 } else {
                     pTwccPacket = (PTwccPacket) value;
                     localStartTimeKvs = pTwccPacket->localTimeKvs;
@@ -341,7 +342,7 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
             if (localStartTimeKvs == TWCC_PACKET_UNITIALIZED_TIME) {
                 // time not yet set (only happens for first rtp packet)
                 if(hashTableGet(twcc->pTwccPacketsHashTable, seqNum, &value) == STATUS_HASH_KEY_NOT_PRESENT) {
-                    DLOGW("Sequence number does not exist in hash table anymore...lets iterate till we see the first seqNum");
+                    DLOGW("Sequence number %d does not exist in hash table anymore...lets iterate till we see the first seqNum", seqNum);
                 } else {
                     pTwccPacket = (PTwccPacket) value;
                     localStartTimeKvs = pTwccPacket->localTimeKvs;
