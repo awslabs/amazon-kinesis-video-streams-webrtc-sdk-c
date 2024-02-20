@@ -27,7 +27,7 @@ jobs:
     env:
       CC: /usr/bin/clang
       CXX: /usr/bin/clang++
-      AWS_KVS_LOG_LEVEL: 1
+      AWS_KVS_LOG_LEVEL: 2
     permissions:
       id-token: write
       contents: read
