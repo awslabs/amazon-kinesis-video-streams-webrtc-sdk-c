@@ -27,7 +27,7 @@ jobs:
     env:
       CC: /usr/bin/clang
       CXX: /usr/bin/clang++
-      AWS_KVS_LOG_LEVEL: 2
+      AWS_KVS_LOG_LEVEL: 1
     permissions:
       id-token: write
       contents: read
@@ -42,7 +42,7 @@ jobs:
       - name: Build repository
         run: |
           mkdir build && cd build
-          cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
+          cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE -DLOG_STREAMING=TRUE
           make
       - name: Run tests
         run:  |
