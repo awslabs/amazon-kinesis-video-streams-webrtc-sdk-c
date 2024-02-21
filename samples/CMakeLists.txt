@@ -45,14 +45,14 @@ link_directories(${OPEN_SRC_INSTALL_PREFIX}/lib)
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/opusSampleFrames" DESTINATION .)
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/h264SampleFrames" DESTINATION .)
 
-#add_executable(
-#  master
-#  examples/simpleMaster.c
-#  examples/samplePeer.c
-#  examples/sampleSignaling.c
-#  examples/abstraction.c
-#)
-#target_link_libraries(master kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} kvsCommonLws kvspicUtils websockets)
+add_executable(
+  master
+  examples/simpleMaster.c
+  examples/samplePeer.c
+  examples/sampleSignaling.c
+  examples/abstraction.c
+)
+target_link_libraries(master kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} kvsCommonLws kvspicUtils websockets)
 
 add_executable(
   kvsWebrtcClientMaster

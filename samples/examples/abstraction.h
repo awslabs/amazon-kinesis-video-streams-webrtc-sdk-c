@@ -14,11 +14,11 @@ extern "C" {
 #include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
 
 typedef struct {
-    PCHAR channelName;
+    CHAR channelName[256];
 } AppCtx, *PAppCtx;
 
 
-STATUS initializeLibrary();
+STATUS initializeLibrary(PAppCtx);
 STATUS deinitializeLibrary();
 
 #ifdef __cplusplus

@@ -2,6 +2,7 @@
 #include "samplePeer.h"
 
 INT32 main(INT32 argc, CHAR* argv[]) {
-    initializeLibrary();
+    AppCtx appCtx;
+    initializeLibrary(&appCtx);
     deinitializeLibrary();
 }

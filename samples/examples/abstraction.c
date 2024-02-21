@@ -12,11 +12,24 @@ static UINT32 setLogLevel() {
     return logLevel;
 }
 
-STATUS initializeLibrary() {
+static STATUS readFromEnvs(PAppCtx pAppCtx) {
+    STATUS retStatus = STATUS_SUCCESS;
+    PCHAR pChannelName;
+    if (NULL == (pChannelName = GETENV("CHANNEL_NAME"))) {
+        STRNCPY(pAppCtx->channelName, "SampleTestChannel", STRLEN("SampleTestChannel"));
+    } else {
+        STRNCPY(pAppCtx->channelName, pChannelName, SIZEOF(pAppCtx->channelName));
+    }
+    DLOGI("Channel name: %s", pAppCtx->channelName);
+CleanUp:
+    return retStatus;
+}
+
+STATUS initializeLibrary(PAppCtx pAppCtx) {
     STATUS retStatus = STATUS_SUCCESS;
     setLogLevel();
     CHK_STATUS(initKvsWebRtc());
-    CHK_STATUS(readFromEnvs());
+    CHK_STATUS(readFromEnvs(pAppCtx));
 CleanUp:
     return retStatus;
 }
