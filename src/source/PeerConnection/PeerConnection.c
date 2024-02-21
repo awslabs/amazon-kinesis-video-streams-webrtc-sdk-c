@@ -955,7 +955,7 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
     if (!pConfiguration->kvsRtcConfiguration.disableSenderSideBandwidthEstimation) {
         pKvsPeerConnection->twccLock = MUTEX_CREATE(TRUE);
         pKvsPeerConnection->pTwccManager = (PTwccManager) MEMCALLOC(1, SIZEOF(TwccManager));
-        CHK_STATUS(hashTableCreateWithParams(100, 2, &pKvsPeerConnection->pTwccManager->pTwccPacketsHashTable));
+        CHK_STATUS(hashTableCreateWithParams(100, 2, &pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable));
     }
 
     *ppPeerConnection = (PRtcPeerConnection) pKvsPeerConnection;
@@ -985,8 +985,8 @@ STATUS freeHashEntry(UINT64 customData, PHashEntry pHashEntry)
 STATUS freeTwccPacketHashEntry(UINT64 customData, PHashEntry pHashEntry)
 {
     UNUSED_PARAM(customData);
-    PTwccPacket pTwccPacket = (PTwccPacket) pHashEntry->value;
-    SAFE_MEMFREE(pTwccPacket);
+    PTwccRtpPacketInfo pTwccRtpPktInfo = (PTwccRtpPacketInfo) pHashEntry->value;
+    SAFE_MEMFREE(pTwccRtpPktInfo);
     return STATUS_SUCCESS;
 }
 
@@ -1001,7 +1001,7 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
     PDoubleListNode pCurNode = NULL;
     UINT64 item = 0;
     UINT64 startTime;
-    PTwccPacket pTwccPacket;
+    PTwccRtpPacketInfo pTwccRtpPktInfo;
 
     CHK(ppPeerConnection != NULL, STATUS_NULL_ARG);
 
@@ -1077,10 +1077,10 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
     if (pKvsPeerConnection->pTwccManager != NULL) {
         MUTEX_LOCK(pKvsPeerConnection->twccLock);
         UINT32 count;
-        hashTableGetCount(pKvsPeerConnection->pTwccManager->pTwccPacketsHashTable, &count);
+        hashTableGetCount(pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable, &count);
         DLOGI("Count before freeing: %d", count);
-        hashTableIterateEntries(pKvsPeerConnection->pTwccManager->pTwccPacketsHashTable, 0, freeTwccPacketHashEntry);
-        hashTableFree(pKvsPeerConnection->pTwccManager->pTwccPacketsHashTable);
+        hashTableIterateEntries(pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable, 0, freeTwccPacketHashEntry);
+        hashTableFree(pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable);
         if (IS_VALID_MUTEX_VALUE(pKvsPeerConnection->twccLock)) {
             MUTEX_UNLOCK(pKvsPeerConnection->twccLock);
             MUTEX_FREE(pKvsPeerConnection->twccLock);
@@ -1790,7 +1790,7 @@ STATUS twccManagerOnPacketSent(PKvsPeerConnection pc, PRtpPacket pRtpPacket)
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
     UINT16 seqNum, updatedSeqNum;
-    PTwccPacket pTwccPacket, tTwccPacket;
+    PTwccRtpPacketInfo pTwccRtpPktInfo, tempTwccRtpPktInfo;
     INT64 firstTimeKvs, lastLocalTimeKvs, ageOfOldest, firstRtpTime;
     UINT64 value;
     BOOL isEmpty = FALSE;
@@ -1802,32 +1802,29 @@ STATUS twccManagerOnPacketSent(PKvsPeerConnection pc, PRtpPacket pRtpPacket)
     MUTEX_LOCK(pc->twccLock);
     locked = TRUE;
 
-    CHK((pTwccPacket = MEMCALLOC(1, SIZEOF(TwccPacket))) != NULL, STATUS_NOT_ENOUGH_MEMORY);
+    CHK((pTwccRtpPktInfo = MEMCALLOC(1, SIZEOF(TwccRtpPacketInfo))) != NULL, STATUS_NOT_ENOUGH_MEMORY);
     seqNum = TWCC_SEQNUM(pRtpPacket->header.extensionPayload);
 
-
-    pTwccPacket->packetSize = pRtpPacket->payloadLength;
-    pTwccPacket->localTimeKvs = pRtpPacket->sentTime;
-    pTwccPacket->remoteTimeKvs = TWCC_PACKET_LOST_TIME;
+    pTwccRtpPktInfo->packetSize = pRtpPacket->payloadLength;
+    pTwccRtpPktInfo->localTimeKvs = pRtpPacket->sentTime;
+    pTwccRtpPktInfo->remoteTimeKvs = TWCC_PACKET_LOST_TIME;
     seqNum = TWCC_SEQNUM(pRtpPacket->header.extensionPayload);
-    CHK_STATUS(hashTableUpsert(pc->pTwccManager->pTwccPacketsHashTable, seqNum, (UINT64) pTwccPacket));
-    DLOGI("Writing to hash table: %d: %d, %d, %d", seqNum, pTwccPacket->packetSize, pTwccPacket->localTimeKvs, pTwccPacket->remoteTimeKvs);
+    CHK_STATUS(hashTableUpsert(pc->pTwccManager->pTwccRtpPktInfosHashTable, seqNum, (UINT64) pTwccRtpPktInfo));
+    DLOGI("Writing to hash table: %d: %d, %d, %d", seqNum, pTwccRtpPktInfo->packetSize, pTwccRtpPktInfo->localTimeKvs,
+          pTwccRtpPktInfo->remoteTimeKvs);
 
     updatedSeqNum = pc->pTwccManager->firstSeqNumInRollingWindow;
     do {
-        if(hashTableGet(pc->pTwccManager->pTwccPacketsHashTable, updatedSeqNum, &value) == STATUS_HASH_KEY_NOT_PRESENT) {
-            DLOGW("Sequence number %d deleted already, moving on", updatedSeqNum);
+        if (hashTableGet(pc->pTwccManager->pTwccRtpPktInfosHashTable, updatedSeqNum, &value) == STATUS_HASH_KEY_NOT_PRESENT) {
         } else {
-            tTwccPacket = (PTwccPacket) value;
+            tempTwccRtpPktInfo = (PTwccRtpPacketInfo) value;
         }
-        if(tTwccPacket != NULL) {
-            firstRtpTime = tTwccPacket->localTimeKvs;
-            ageOfOldest =  pRtpPacket->sentTime - firstRtpTime;
-            DLOGI("Age of oldest %d: %d", updatedSeqNum, ageOfOldest);
-            if(ageOfOldest > TWCC_ESTIMATOR_TIME_WINDOW) {
-                CHK_STATUS(hashTableRemove(pc->pTwccManager->pTwccPacketsHashTable, updatedSeqNum));
-                DLOGI("Removed %d", updatedSeqNum);
-                SAFE_MEMFREE(tTwccPacket);
+        if (tempTwccRtpPktInfo != NULL) {
+            firstRtpTime = tempTwccRtpPktInfo->localTimeKvs;
+            ageOfOldest = pRtpPacket->sentTime - firstRtpTime;
+            if (ageOfOldest > TWCC_ESTIMATOR_TIME_WINDOW) {
+                CHK_STATUS(hashTableRemove(pc->pTwccManager->pTwccRtpPktInfosHashTable, updatedSeqNum));
+                SAFE_MEMFREE(tempTwccRtpPktInfo);
                 updatedSeqNum++;
             } else {
                 pc->pTwccManager->firstSeqNumInRollingWindow = updatedSeqNum;
@@ -1836,8 +1833,8 @@ STATUS twccManagerOnPacketSent(PKvsPeerConnection pc, PRtpPacket pRtpPacket)
         } else {
             updatedSeqNum++;
         }
-    } while(!isEmpty && updatedSeqNum <= seqNum);
-    if(updatedSeqNum == seqNum) {
+    } while (!isEmpty && updatedSeqNum <= seqNum);
+    if (updatedSeqNum == seqNum) {
         pc->pTwccManager->firstSeqNumInRollingWindow = seqNum;
     }
 CleanUp:

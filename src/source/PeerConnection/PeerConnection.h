@@ -49,10 +49,10 @@ typedef struct {
     UINT64 localTimeKvs;
     UINT64 remoteTimeKvs;
     UINT32 packetSize;
-} TwccPacket, *PTwccPacket;
+} TwccRtpPacketInfo, *PTwccRtpPacketInfo;
 
 typedef struct {
-    PHashTable pTwccPacketsHashTable;
+    PHashTable pTwccRtpPktInfosHashTable;
     UINT16 firstSeqNumInRollingWindow;
     UINT16 lastReportedSeqNum;
     UINT16 prevReportedSeqNum;
@@ -180,6 +180,7 @@ VOID onSctpSessionDataChannelOpen(UINT64, UINT32, PBYTE, UINT32);
 STATUS sendPacketToRtpReceiver(PKvsPeerConnection, PBYTE, UINT32);
 STATUS changePeerConnectionState(PKvsPeerConnection, RTC_PEER_CONNECTION_STATE);
 STATUS twccManagerOnPacketSent(PKvsPeerConnection, PRtpPacket);
+UINT32 parseExtId(PCHAR);
 
 // visible for testing only
 VOID onIceConnectionStateChange(UINT64, UINT64);
