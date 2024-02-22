@@ -326,7 +326,6 @@ static void parseTwcc(const std::string& hex, const uint32_t expectedReceived, c
 
     UINT16 baseSeqNum = getUnalignedInt16BigEndian(rtcpPacket.payload + 8);
     UINT16 pktCount = TWCC_PACKET_STATUS_COUNT(rtcpPacket.payload);
-    DLOGI("In test: %d, %d", baseSeqNum, pktCount);
 
     for(auto i = baseSeqNum; i < baseSeqNum + pktCount; i++) {
         rtpPacket.header.extension = TRUE;
