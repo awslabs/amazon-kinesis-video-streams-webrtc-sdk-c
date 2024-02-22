@@ -219,9 +219,8 @@ STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager pTwccManager)
                         break;
                     case TWCC_STATUS_SYMBOL_NOTRECEIVED:
                         DLOGS("runLength packetSeqNum %u not received %lu", packetSeqNum, referenceTime);
-                        if (hashTableGet(pTwccManager->pTwccRtpPktInfosHashTable, packetSeqNum, &value) == STATUS_HASH_KEY_NOT_PRESENT) {
-                            DLOGW("Packet seq number %d is not present in the hash table. Cannot check for not received", packetSeqNum);
-                        } else {
+                        // If it does not exist it means the packet was already visited
+                        if (STATUS_SUCCEEDED(hashTableGet(pTwccManager->pTwccRtpPktInfosHashTable, packetSeqNum, &value))) {
                             pTwccPacket = (PTwccRtpPacketInfo) value;
                             pTwccPacket->remoteTimeKvs = TWCC_PACKET_LOST_TIME;
                             CHK_STATUS(hashTableUpsert(pTwccManager->pTwccRtpPktInfosHashTable, packetSeqNum, (UINT64) pTwccPacket));
@@ -234,10 +233,9 @@ STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager pTwccManager)
                 if (recvDelta != MIN_INT16) {
                     referenceTime += KVS_CONVERT_TIMESCALE(recvDelta, TWCC_TICKS_PER_SECOND, HUNDREDS_OF_NANOS_IN_A_SECOND);
                     DLOGS("runLength packetSeqNum %u received %lu", packetSeqNum, referenceTime);
-                    if (hashTableGet(pTwccManager->pTwccRtpPktInfosHashTable, packetSeqNum, &value) == STATUS_HASH_KEY_NOT_PRESENT) {
-                        DLOGW("Packet seq number %d is not present in the hash table. It is likely it is removed from the table as acknowledged.",
-                              packetSeqNum);
-                    } else {
+
+                    // If it does not exist it means the packet was already visited
+                    if (STATUS_SUCCEEDED(hashTableGet(pTwccManager->pTwccRtpPktInfosHashTable, packetSeqNum, &value))) {
                         pTwccPacket = (PTwccRtpPacketInfo) value;
                         pTwccPacket->remoteTimeKvs = referenceTime;
                         CHK_STATUS(hashTableUpsert(pTwccManager->pTwccRtpPktInfosHashTable, packetSeqNum, (UINT64) pTwccPacket));
@@ -264,9 +262,8 @@ STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager pTwccManager)
                         break;
                     case TWCC_STATUS_SYMBOL_NOTRECEIVED:
                         DLOGS("statusVector packetSeqNum %u not received %lu", packetSeqNum, referenceTime);
-                        if (hashTableGet(pTwccManager->pTwccRtpPktInfosHashTable, packetSeqNum, &value) == STATUS_HASH_KEY_NOT_PRESENT) {
-                            DLOGW("Packet seq number %d is not present in the hash table. Cannot check for not received", packetSeqNum);
-                        } else {
+                        // If it does not exist it means the packet was already visited
+                        if (STATUS_SUCCEEDED(hashTableGet(pTwccManager->pTwccRtpPktInfosHashTable, packetSeqNum, &value))) {
                             pTwccPacket = (PTwccRtpPacketInfo) value;
                             pTwccPacket->remoteTimeKvs = TWCC_PACKET_LOST_TIME;
                             CHK_STATUS(hashTableUpsert(pTwccManager->pTwccRtpPktInfosHashTable, packetSeqNum, (UINT64) pTwccPacket));
@@ -279,10 +276,8 @@ STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager pTwccManager)
                 if (recvDelta != MIN_INT16) {
                     referenceTime += KVS_CONVERT_TIMESCALE(recvDelta, TWCC_TICKS_PER_SECOND, HUNDREDS_OF_NANOS_IN_A_SECOND);
                     DLOGS("statusVector packetSeqNum %u received %lu", packetSeqNum, referenceTime);
-                    if (hashTableGet(pTwccManager->pTwccRtpPktInfosHashTable, packetSeqNum, &value) == STATUS_HASH_KEY_NOT_PRESENT) {
-                        DLOGW("Packet seq number %d is not present in the hash table. It is likely it is removed from the table as acknowledged.",
-                              packetSeqNum);
-                    } else {
+                    // If it does not exist it means the packet was already visited
+                    if (STATUS_SUCCEEDED(hashTableGet(pTwccManager->pTwccRtpPktInfosHashTable, packetSeqNum, &value))) {
                         pTwccPacket = (PTwccRtpPacketInfo) value;
                         pTwccPacket->remoteTimeKvs = referenceTime;
                         CHK_STATUS(hashTableUpsert(pTwccManager->pTwccRtpPktInfosHashTable, packetSeqNum, (UINT64) pTwccPacket));
@@ -295,7 +290,7 @@ STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager pTwccManager)
         }
         chunkOffset += TWCC_FB_PACKETCHUNK_SIZE;
     }
-    DLOGI("Checking seqNum %d to %d", baseSeqNum, pTwccManager->lastReportedSeqNum);
+    DLOGV("Checking seqNum %d to %d of TWCC reports", baseSeqNum, pTwccManager->lastReportedSeqNum);
 CleanUp:
     CHK_LOG_ERR(retStatus);
     return retStatus;
@@ -337,6 +332,8 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
             if (seqNum == 0) {
                 localStartTimeKvs = TWCC_PACKET_UNITIALIZED_TIME;
             } else {
+                // This could happen if the prev packet was deleted as part of rolling window or if there
+                // is an overlap of RTP packet statuses between TWCC packets
                 if (hashTableGet(twcc->pTwccRtpPktInfosHashTable, seqNum - 1, &value) == STATUS_HASH_KEY_NOT_PRESENT) {
                     localStartTimeKvs = TWCC_PACKET_UNITIALIZED_TIME;
                 } else {
@@ -346,19 +343,18 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
                 }
             }
             if (localStartTimeKvs == TWCC_PACKET_UNITIALIZED_TIME) {
-                // time not yet set (only happens for first rtp packet)
-                if (hashTableGet(twcc->pTwccRtpPktInfosHashTable, seqNum, &value) == STATUS_HASH_KEY_NOT_PRESENT) {
-                    DLOGW("Sequence number %d does not exist in hash table anymore...lets iterate till we see the first seqNum", seqNum);
-                } else {
+                // time not yet set. If prev seqNum was deleted
+                if (STATUS_SUCCEEDED(hashTableGet(twcc->pTwccRtpPktInfosHashTable, seqNum, &value))) {
                     pTwccPacket = (PTwccRtpPacketInfo) value;
                     localStartTimeKvs = pTwccPacket->localTimeKvs;
                     localStartTimeRecorded = TRUE;
                 }
             }
         }
-        if (hashTableGet(twcc->pTwccRtpPktInfosHashTable, seqNum, &value) == STATUS_HASH_KEY_NOT_PRESENT) {
-            DLOGW("Packet already visited and does not exist in hash map anymore, moving on");
-        } else {
+
+        // The time it would not succeed is if there is an overlap in the RTP packet status between the TWCC
+        // packets
+        if (STATUS_SUCCEEDED(hashTableGet(twcc->pTwccRtpPktInfosHashTable, seqNum, &value))) {
             pTwccPacket = (PTwccRtpPacketInfo) value;
             localEndTimeKvs = pTwccPacket->localTimeKvs;
             duration = localEndTimeKvs - localStartTimeKvs;
@@ -367,9 +363,9 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
             if (pTwccPacket->remoteTimeKvs != TWCC_PACKET_LOST_TIME) {
                 receivedBytes += pTwccPacket->packetSize;
                 receivedPackets++;
-                CHK_STATUS(hashTableRemove(twcc->pTwccRtpPktInfosHashTable, seqNum));
-                DLOGI("Freed allocation for %d", seqNum);
-                SAFE_MEMFREE(pTwccPacket);
+                if (STATUS_SUCCEEDED(hashTableRemove(pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable, seqNum))) {
+                    SAFE_MEMFREE(pTwccPacket);
+                }
             }
         }
     }
