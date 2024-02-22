@@ -835,6 +835,8 @@ typedef enum {
     RTC_CODEC_MULAW = 4,                                                          //!< MULAW audio codec
     RTC_CODEC_ALAW = 5,                                                           //!< ALAW audio codec
     RTC_CODEC_UNKNOWN = 6,
+    // RTC_CODEC_MAX **MUST** be the last enum in the list **ALWAYS** and not assigned a value
+    RTC_CODEC_MAX //!< Placeholder for max number of supported codecs
 } RTC_CODEC;
 
 /**
@@ -1232,7 +1234,6 @@ typedef struct {
                                                          //!< connection to avoid a compromised client weakening the security of the new connections.
                                                          //!<
                                                          //!< NOTE: The certificates, if specified, can be freed after the peer connection create call
-                                                         //!<
 } RtcConfiguration, *PRtcConfiguration;
 
 /**
@@ -1489,6 +1490,9 @@ typedef struct {
  */
 typedef struct {
     RTC_RTP_TRANSCEIVER_DIRECTION direction; //!< Transceiver direction - SENDONLY, RECVONLY, SENDRECV
+    DOUBLE rollingBufferDurationSec; //!< Maximum duration of media that needs to be buffered (in seconds). The lowest allowed is 0.1 seconds (100ms)
+    DOUBLE rollingBufferBitratebps;  //!< Maximum expected bitrate of media (In bits/second). It is used to determine the buffer capacity. The lowest
+                                     //!< allowed is 100 Kbps
 } RtcRtpTransceiverInit, *PRtcRtpTransceiverInit;
 
 /**

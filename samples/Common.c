@@ -568,6 +568,10 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     videoTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
     videoTrack.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
     videoRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+    videoRtpTransceiverInit.rollingBufferDurationSec = 3;
+    // Considering 4 Mbps for 720p (which is what our samples use). This is for H.264.
+    // The value could be different for other codecs.
+    videoRtpTransceiverInit.rollingBufferBitratebps = 4 * 1024 * 1024;
     STRCPY(videoTrack.streamId, "myKvsVideoStream");
     STRCPY(videoTrack.trackId, "myVideoTrack");
     CHK_STATUS(addTransceiver(pSampleStreamingSession->pPeerConnection, &videoTrack, &videoRtpTransceiverInit,
@@ -580,6 +584,9 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     audioTrack.kind = MEDIA_STREAM_TRACK_KIND_AUDIO;
     audioTrack.codec = RTC_CODEC_OPUS;
     audioRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+    audioRtpTransceiverInit.rollingBufferDurationSec = 3;
+    // For opus, the bitrate could be between 6 Kbps to 510 Kbps
+    audioRtpTransceiverInit.rollingBufferBitratebps = 510 * 1024;
     STRCPY(audioTrack.streamId, "myKvsVideoStream");
     STRCPY(audioTrack.trackId, "myAudioTrack");
     CHK_STATUS(addTransceiver(pSampleStreamingSession->pPeerConnection, &audioTrack, &audioRtpTransceiverInit,

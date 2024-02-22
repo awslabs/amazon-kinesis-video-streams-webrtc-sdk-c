@@ -65,7 +65,7 @@ Create a build directory in the newly checked out repository, and execute CMake 
 
 `mkdir -p amazon-kinesis-video-streams-webrtc-sdk-c/build; cd amazon-kinesis-video-streams-webrtc-sdk-c/build; cmake .. `
 
-We have provided an example of using GStreamer to capture/encode video, and then send via this library. This is only build if `pkg-config` finds
+We have provided an example of using GStreamer to capture/encode video, and then send via this library. This is only built if `pkg-config` finds
 GStreamer is installed on your system.
 
 On Ubuntu and Raspberry Pi OS you can get the libraries by running
@@ -451,6 +451,35 @@ Let us look into when each of these could be changed:
 2. `iceLocalCandidateGatheringTimeout`: Say the host candidates would not work and srflx/relay candidates need to be tried. Due to poor network, it is anticipated the candidates are gathered slowly and the application does not want to spend more than 20 seconds on this step. The goal is to try all possible candidate pairs. Increasing the timeout helps in giving some more time to gather more potential candidates to try for connection. Also note, this parameter increase would not make a difference in the situation unless `iceCandidateNominationTimeout` > `iceLocalCandidateGatheringTimeout` since nomination step should also be given time to work with the new candidates
 3. `iceConnectionCheckTimeout`: It is useful to increase this timeout in unstable/slow network where the packet exchange takes time and hence the binding request/response. Essentially, increasing it will allow atleast one candidate pair to be tried for nomination by the other peer. 
 4. `iceConnectionCheckPollingInterval`: This value is set to a default of 50 ms per [spec](https://datatracker.ietf.org/doc/html/rfc8445#section-14.2). Changing this would change the frequency of connectivity checks and essentially, the ICE state machine transitions. Decreasing the value could help in faster connection establishment in a reliable high performant network setting with good system resources. Increasing the value could help in reducing the network load, however, the connection establishment could slow down. Unless there is a strong reasoning, it is **NOT** recommended to deviate from spec/default.
+
+
+### Controlling RTP rolling buffer capacity
+
+The SDK maintains an RTP rolling buffer to hold the RTP packets. This is useful to respond to NACKs and even in case of JitterBuffer. The rolling buffer size is controlled by 3 parameters:
+1. MTU: This is set to a default of 1200 bytes
+2. Buffer duration: This is the amount of time of media that you would like the rolling buffer to accommodate before it is overwritten due to buffer overflow. By default, the SDK sets this to 1 second
+3. Highest expected bitrate: This is the expected bitrate of the media in question. The typical bitrates could vary based on resolution and codec. By default, the SDK sets this to 5 mibps for video and 1 mibps for audio
+
+The rolling buffer capacity is calculated as follows:
+```
+Capacity = Buffer duration * highest expected bitrate (in bps) / 8 / MTU
+
+With buffer duration = 1 second,  Highest expected bitrate = 5 mibps and MTU 1200 bytes, capacity = 546 RTP packets
+```
+
+The rolling buffer size can be configured per transceiver through the following fields:
+```
+RtcRtpTransceiverInit.rollingBufferDurationSec = <duration in seconds, must be more than 100ms (translates to 0.1 seconds)
+RtcRtpTransceiverInit.rollingBufferBitratebps = <bitrate in bits/sec, must be more than 100kibits/sec
+```
+
+For example, if we want to set duration to 200ms and birtate to 150kibps,
+```
+RtcRtpTransceiverInit.rollingBufferDurationSec = 0.2;
+RtcRtpTransceiverInit.rollingBufferBitratebps = 150 * 1024;
+```
+By setting these up, applications can have better control over the amount of memory that the application consumes. However, note, if the allocation is too small and the network bad leading to multiple nacks, it can lead to choppy media / dropped frames. Hence, care must be taken while deciding on the values to ensure the parameters satisfy necessary performance requirements.
+For more information, check the sample to see how these values are set up.
 
 ## Documentation
 All Public APIs are documented in our [Include.h](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/blob/master/src/include/com/amazonaws/kinesis/video/webrtcclient/Include.h), we also generate a [Doxygen](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-c/) each commit for easier navigation.
