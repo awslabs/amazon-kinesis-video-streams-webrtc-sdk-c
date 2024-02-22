@@ -215,7 +215,7 @@ STATUS connectionListenerStart(PConnectionListener pConnectionListener)
 
     CHK(!IS_VALID_TID_VALUE(pConnectionListener->receiveDataRoutine), retStatus);
     CHK_STATUS(THREAD_CREATE_WITH_PARAMS(&pConnectionListener->receiveDataRoutine, connectionListenerReceiveDataRoutine,
-                                         CONNECTION_LISTENER_STACK_SIZE, (PVOID) pConnectionListener));
+                                         CONNECTION_LISTENER_STACK_SIZE_BYTES, (PVOID) pConnectionListener));
 
 CleanUp:
 

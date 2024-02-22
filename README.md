@@ -432,7 +432,7 @@ The threadpool is enabled by default, and starts with 5 threads that it can incr
 To disable threadpool, run `cmake .. -DENABLE_KVS_THREADPOOL=OFF`
 
 ### Thread stack sizes
-The default thread stack size for the KVS WebRTC SDK is 64 kb. Notable stack sized that may need to be changed for your specific application will be the ConnectionListener Receiver thread and the media sender threads. Please modify the stack sizes for these media dependent threads to be suitable for the media your application is processing.
+The default thread stack size for the KVS WebRTC SDK is 64 kb. Notable stack sizes that may need to be changed for your specific application will be the ConnectionListener Receiver thread and the media sender threads. Please modify the stack sizes for these media dependent threads to be suitable for the media your application is processing.
 
 ### Setting ICE related timeouts
 
