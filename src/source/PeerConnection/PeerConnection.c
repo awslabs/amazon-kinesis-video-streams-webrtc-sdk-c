@@ -982,14 +982,6 @@ STATUS freeHashEntry(UINT64 customData, PHashEntry pHashEntry)
     return STATUS_SUCCESS;
 }
 
-STATUS freeTwccPacketHashEntry(UINT64 customData, PHashEntry pHashEntry)
-{
-    UNUSED_PARAM(customData);
-    PTwccRtpPacketInfo pTwccRtpPktInfo = (PTwccRtpPacketInfo) pHashEntry->value;
-    SAFE_MEMFREE(pTwccRtpPktInfo);
-    return STATUS_SUCCESS;
-}
-
 /*
  * NOT thread-safe
  */
@@ -1001,7 +993,7 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
     PDoubleListNode pCurNode = NULL;
     UINT64 item = 0;
     UINT64 startTime;
-    PTwccRtpPacketInfo pTwccRtpPktInfo;
+    UINT32 count;
 
     CHK(ppPeerConnection != NULL, STATUS_NULL_ARG);
 
@@ -1076,10 +1068,9 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
 
     if (pKvsPeerConnection->pTwccManager != NULL) {
         MUTEX_LOCK(pKvsPeerConnection->twccLock);
-        UINT32 count;
         hashTableGetCount(pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable, &count);
-        DLOGI("Count before freeing: %d", count);
-        hashTableIterateEntries(pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable, 0, freeTwccPacketHashEntry);
+        DLOGI("Number of TWCC info packets in memory: %d", count);
+        hashTableIterateEntries(pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable, 0, freeHashEntry);
         hashTableFree(pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable);
         if (IS_VALID_MUTEX_VALUE(pKvsPeerConnection->twccLock)) {
             MUTEX_UNLOCK(pKvsPeerConnection->twccLock);
