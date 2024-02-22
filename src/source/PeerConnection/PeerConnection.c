@@ -1784,62 +1784,86 @@ CleanUp:
     return retStatus;
 }
 
-STATUS twccManagerOnPacketSent(PKvsPeerConnection pc, PRtpPacket pRtpPacket)
+// Not thread safe. Ensure this function is invoked in a guarded section
+static STATUS twccRollingWindowDeletion(PKvsPeerConnection pKvsPeerConnection, PRtpPacket pRtpPacket, UINT16 seqNum)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    UINT16 updatedSeqNum;
+    PTwccRtpPacketInfo tempTwccRtpPktInfo = NULL;
+    UINT64 ageOfOldest, firstRtpTime;
+    UINT64 value;
+    BOOL isCheckComplete = FALSE;
+
+    CHK(pKvsPeerConnection != NULL && pRtpPacket != NULL, STATUS_NULL_ARG);
+
+    updatedSeqNum = pKvsPeerConnection->pTwccManager->firstSeqNumInRollingWindow;
+    do {
+        // If the seqNum is not present in the hash table, it is ok. We move on to the next
+        if (STATUS_SUCCEEDED(hashTableGet(pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable, updatedSeqNum, &value))) {
+            tempTwccRtpPktInfo = (PTwccRtpPacketInfo) value;
+        }
+        if (tempTwccRtpPktInfo != NULL) {
+            firstRtpTime = tempTwccRtpPktInfo->localTimeKvs;
+            // Would be the case if the timestamps are not monotonically increasing.
+            if (pRtpPacket->sentTime >= firstRtpTime) {
+                ageOfOldest = pRtpPacket->sentTime - firstRtpTime;
+                if (ageOfOldest > TWCC_ESTIMATOR_TIME_WINDOW) {
+                    // If the seqNum is not present in the hash table, move on. However, this case should not happen
+                    // given this function is holding the lock and tempTwccRtpPktInfo is populated because it exists
+                    if (STATUS_SUCCEEDED(hashTableRemove(pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable, updatedSeqNum))) {
+                        SAFE_MEMFREE(tempTwccRtpPktInfo);
+                    }
+                    updatedSeqNum++;
+                } else {
+                    isCheckComplete = TRUE;
+                }
+            } else {
+                // Move to the next seqNum to check if we can remove the next one atleast
+                DLOGV("Detected timestamp not increasing monotonically for RTP packet %d [ts: %" PRIu64 ". Current RTP packets' ts: %" PRIu64,
+                      updatedSeqNum, firstRtpTime, pRtpPacket->sentTime);
+                updatedSeqNum++;
+            }
+        } else {
+            updatedSeqNum++;
+        }
+    } while (!isCheckComplete && updatedSeqNum != (seqNum + 1));
+
+    // Update regardless. The loop checks until current RTP packets seq number irrespective of the failure
+    pKvsPeerConnection->pTwccManager->firstSeqNumInRollingWindow = updatedSeqNum;
+CleanUp:
+    LEAVES();
+    return retStatus;
+}
+
+STATUS twccManagerOnPacketSent(PKvsPeerConnection pKvsPeerConnection, PRtpPacket pRtpPacket)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
     UINT16 seqNum, updatedSeqNum;
     PTwccRtpPacketInfo pTwccRtpPktInfo, tempTwccRtpPktInfo;
-    INT64 firstTimeKvs, lastLocalTimeKvs, ageOfOldest, firstRtpTime;
-    UINT64 value;
-    BOOL isEmpty = FALSE;
 
-    CHK(pc != NULL && pRtpPacket != NULL, STATUS_NULL_ARG);
-    CHK(pc->onSenderBandwidthEstimation != NULL && pc->pTwccManager != NULL, STATUS_SUCCESS);
+    CHK(pKvsPeerConnection != NULL && pRtpPacket != NULL, STATUS_NULL_ARG);
+    CHK(pKvsPeerConnection->onSenderBandwidthEstimation != NULL && pKvsPeerConnection->pTwccManager != NULL, STATUS_SUCCESS);
     CHK(TWCC_EXT_PROFILE == pRtpPacket->header.extensionProfile, STATUS_SUCCESS);
 
-    MUTEX_LOCK(pc->twccLock);
+    MUTEX_LOCK(pKvsPeerConnection->twccLock);
     locked = TRUE;
 
     CHK((pTwccRtpPktInfo = MEMCALLOC(1, SIZEOF(TwccRtpPacketInfo))) != NULL, STATUS_NOT_ENOUGH_MEMORY);
-    seqNum = TWCC_SEQNUM(pRtpPacket->header.extensionPayload);
 
     pTwccRtpPktInfo->packetSize = pRtpPacket->payloadLength;
     pTwccRtpPktInfo->localTimeKvs = pRtpPacket->sentTime;
     pTwccRtpPktInfo->remoteTimeKvs = TWCC_PACKET_LOST_TIME;
     seqNum = TWCC_SEQNUM(pRtpPacket->header.extensionPayload);
-    CHK_STATUS(hashTableUpsert(pc->pTwccManager->pTwccRtpPktInfosHashTable, seqNum, (UINT64) pTwccRtpPktInfo));
-    DLOGI("Writing to hash table: %d: %d, %d, %d", seqNum, pTwccRtpPktInfo->packetSize, pTwccRtpPktInfo->localTimeKvs,
-          pTwccRtpPktInfo->remoteTimeKvs);
+    CHK_STATUS(hashTableUpsert(pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable, seqNum, (UINT64) pTwccRtpPktInfo));
 
-    updatedSeqNum = pc->pTwccManager->firstSeqNumInRollingWindow;
-    do {
-        if (hashTableGet(pc->pTwccManager->pTwccRtpPktInfosHashTable, updatedSeqNum, &value) == STATUS_HASH_KEY_NOT_PRESENT) {
-        } else {
-            tempTwccRtpPktInfo = (PTwccRtpPacketInfo) value;
-        }
-        if (tempTwccRtpPktInfo != NULL) {
-            firstRtpTime = tempTwccRtpPktInfo->localTimeKvs;
-            ageOfOldest = pRtpPacket->sentTime - firstRtpTime;
-            if (ageOfOldest > TWCC_ESTIMATOR_TIME_WINDOW) {
-                CHK_STATUS(hashTableRemove(pc->pTwccManager->pTwccRtpPktInfosHashTable, updatedSeqNum));
-                SAFE_MEMFREE(tempTwccRtpPktInfo);
-                updatedSeqNum++;
-            } else {
-                pc->pTwccManager->firstSeqNumInRollingWindow = updatedSeqNum;
-                isEmpty = TRUE;
-            }
-        } else {
-            updatedSeqNum++;
-        }
-    } while (!isEmpty && updatedSeqNum <= seqNum);
-    if (updatedSeqNum == seqNum) {
-        pc->pTwccManager->firstSeqNumInRollingWindow = seqNum;
-    }
+    // Ensure twccRollingWindowDeletion is run in a guarded section
+    CHK_STATUS(twccRollingWindowDeletion(pKvsPeerConnection, pRtpPacket, seqNum));
 CleanUp:
     if (locked) {
-        MUTEX_UNLOCK(pc->twccLock);
+        MUTEX_UNLOCK(pKvsPeerConnection->twccLock);
     }
     CHK_LOG_ERR(retStatus);
 

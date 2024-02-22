@@ -295,7 +295,7 @@ STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager pTwccManager)
         }
         chunkOffset += TWCC_FB_PACKETCHUNK_SIZE;
     }
-
+    DLOGI("Checking seqNum %d to %d", baseSeqNum, pTwccManager->lastReportedSeqNum);
 CleanUp:
     CHK_LOG_ERR(retStatus);
     return retStatus;
@@ -327,13 +327,17 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
     CHK_STATUS(parseRtcpTwccPacket(pRtcpPacket, twcc));
     sn = twcc->prevReportedSeqNum;
 
-    for (seqNum = sn; seqNum <= twcc->lastReportedSeqNum; seqNum++) {
+    // Use != instead to cover the case where the group of sequence numbers being checked
+    // are trending towards MAX_UINT16 and rolling over to 0+, example range [65534, 10]
+    // We also check for twcc->lastReportedSeqNum + 1 to include the last seq number in the
+    // report. Without this, we do not check for the seqNum that could cause it to not be cleared
+    // from memory
+    for (seqNum = sn; seqNum != (twcc->lastReportedSeqNum + 1); seqNum++) {
         if (!localStartTimeRecorded) {
             if (seqNum == 0) {
                 localStartTimeKvs = TWCC_PACKET_UNITIALIZED_TIME;
             } else {
                 if (hashTableGet(twcc->pTwccRtpPktInfosHashTable, seqNum - 1, &value) == STATUS_HASH_KEY_NOT_PRESENT) {
-                    DLOGW("Sequence number %d visited already, moving on", seqNum - 1);
                     localStartTimeKvs = TWCC_PACKET_UNITIALIZED_TIME;
                 } else {
                     pTwccPacket = (PTwccRtpPacketInfo) value;
