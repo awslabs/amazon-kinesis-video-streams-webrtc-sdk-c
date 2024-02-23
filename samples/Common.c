@@ -12,6 +12,68 @@ VOID sigintHandler(INT32 sigNum)
     }
 }
 
+LONG writeRssAnonToFile(PCHAR message, BOOL writeToFile, BOOL writeRecorded, LONG value) {
+    CHAR filepath[256];
+    CHAR line[256];
+    LONG rssAnon;
+    FILE *outfile = NULL;
+    SNPRINTF(filepath, SIZEOF(filepath), "/proc/self/status");
+
+    FILE *file = fopen(filepath, "r");
+    if (file == NULL) {
+        DLOGW("Error opening file");
+        return 1;
+    }
+    if(writeToFile) {
+        outfile = fopen("ram_usage.txt", "a"); // Open for appending
+        if (outfile == NULL) {
+            DLOGW("Error opening file");
+            return 1;
+        }
+    }
+
+    if (outfile != NULL && writeRecorded) {
+        fprintf(outfile, "%s: %ld KB\n", message, value);
+    }
+
+    else {
+        while (fgets(line, sizeof(line), file)) {
+            if (STRNCMP(line, "RssAnon:", 8) == 0) {
+                DLOGI("%s:%s", message, line);
+                SSCANF(line, "RssAnon: %ld kB", &rssAnon);
+                if (outfile != NULL) {
+                    DLOGI("Writing to file");
+                    fprintf(outfile, "%s: %ld KB\n", message, rssAnon);
+                }
+                break;
+            }
+        }
+    }
+
+    if(file != NULL) {
+        fclose(file);
+    }
+    if (outfile != NULL) {
+        fclose(outfile);
+    }
+    return rssAnon;
+}
+
+PVOID findMaxRssAnon(PVOID arg) {
+    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) arg;
+    LONG max = 0, ret = 0;
+    while(!pSampleConfiguration->interrupted) {
+        ret = writeRssAnonToFile(NULL, FALSE, FALSE, 0);
+        if(ret > max) {
+            max = ret;
+        }
+        DLOGI("Current max RssAnon: %ld", max);
+        THREAD_SLEEP(5 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+    }
+    writeRssAnonToFile("Max RssAnon recorded", TRUE, TRUE, max);
+    return NULL;
+}
+
 UINT32 setLogLevel()
 {
     PCHAR pLogLevel;
@@ -508,6 +570,7 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     pSampleStreamingSession = (PSampleStreamingSession) MEMCALLOC(1, SIZEOF(SampleStreamingSession));
     pSampleStreamingSession->firstFrame = TRUE;
     pSampleStreamingSession->offerReceiveTime = GETTIME();
+    pSampleStreamingSession->isMaster = isMaster;
     CHK(pSampleStreamingSession != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
     if (isMaster) {
@@ -693,7 +756,7 @@ VOID sampleSenderBandwidthEstimationHandler(UINT64 customData, UINT32 txBytes, U
     }
     // otherwise keep bitrate the same
 
-    DLOGS("received sender bitrate estimation: suggested bitrate %u sent: %u bytes %u packets received: %u bytes %u packets in %lu msec, ", bitrate,
+    DLOGV("received sender bitrate estimation: suggested bitrate %u sent: %u bytes %u packets received: %u bytes %u packets in %lu msec", bitrate,
           txBytes, txPacketsCnt, rxBytes, rxPacketsCnt, duration / 10000ULL);
 }
 
@@ -851,6 +914,7 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
 
     pSampleConfiguration->channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
     pSampleConfiguration->channelInfo.pChannelName = channelName;
+    pSampleConfiguration->findMemUsageTid = INVALID_TID_VALUE;
 #ifdef IOT_CORE_ENABLE_CREDENTIALS
     if ((pIotCoreCertificateId = GETENV(IOT_CORE_CERTIFICATE_ID)) != NULL) {
         pSampleConfiguration->channelInfo.pChannelName = pIotCoreCertificateId;
@@ -1144,11 +1208,16 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
     UINT64 data;
     StackQueueIterator iterator;
     BOOL locked = FALSE;
+    BOOL isMaster = FALSE;
 
     CHK(ppSampleConfiguration != NULL, STATUS_NULL_ARG);
     pSampleConfiguration = *ppSampleConfiguration;
 
     CHK(pSampleConfiguration != NULL, retStatus);
+
+    if(pSampleConfiguration->findMemUsageTid != INVALID_TID_VALUE) {
+        THREAD_JOIN(pSampleConfiguration->findMemUsageTid, NULL);
+    }
 
     if (IS_VALID_TIMER_QUEUE_HANDLE(pSampleConfiguration->timerQueueHandle)) {
         if (pSampleConfiguration->iceCandidatePairStatsTimerId != MAX_UINT32) {
@@ -1200,6 +1269,9 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
             DLOGW("Failed to ICE Server Stats for streaming session %d: %08x", i, retStatus);
         }
         freeSampleStreamingSession(&pSampleConfiguration->sampleStreamingSessionList[i]);
+        if(isMaster) {
+            writeRssAnonToFile("Post viewer disconnect", TRUE, FALSE, 0);
+        }
     }
     if (locked) {
         MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
@@ -1252,6 +1324,10 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
     if (pSampleConfiguration->enableFileLogging) {
         freeFileLogger();
     }
+    if(isMaster) {
+        writeRssAnonToFile("Pre-application exit", TRUE, FALSE, 0);
+    }
+
     SAFE_MEMFREE(*ppSampleConfiguration);
 
 CleanUp:
@@ -1424,7 +1500,7 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
             // Check if we already have an ongoing master session with the same peer
             CHK_ERR(!peerConnectionFound, STATUS_INVALID_OPERATION, "Peer connection %s is in progress",
                     pReceivedSignalingMessage->signalingMessage.peerClientId);
-
+            writeRssAnonToFile("Pre-offer", TRUE, FALSE, 0);
             /*
              * Create new streaming session for each offer, then insert the client id and streaming session into
              * pRtcPeerConnectionForRemoteClient for subsequent ice candidate messages. Lastly check if there is
@@ -1465,6 +1541,10 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
             freeStreamingSession = FALSE;
 
             startStats = pSampleConfiguration->iceCandidatePairStatsTimerId == MAX_UINT32;
+            pSampleConfiguration->findMemUsage = findMaxRssAnon;
+            if (pSampleConfiguration->findMemUsage != NULL) {
+                THREAD_CREATE(&pSampleConfiguration->findMemUsageTid, pSampleConfiguration->findMemUsage, (PVOID) pSampleConfiguration);
+            }
             break;
 
         case SIGNALING_MESSAGE_TYPE_ANSWER:

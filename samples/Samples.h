@@ -119,9 +119,10 @@ typedef struct {
     startRoutine audioSource;
     startRoutine videoSource;
     startRoutine receiveAudioVideoSource;
+    startRoutine findMemUsage;
     RtcOnDataChannel onDataChannel;
     SignalingClientMetrics signalingClientMetrics;
-
+    TID findMemUsageTid;
     PStackQueue pPendingSignalingMessageForRemoteClient;
     PHashTable pRtcPeerConnectionForRemoteClient;
 
@@ -186,6 +187,7 @@ struct __SampleStreamingSession {
     UINT64 startUpLatency;
     RtcMetricsHistory rtcMetricsHistory;
     BOOL remoteCanTrickleIce;
+    BOOL isMaster;
 
     // this is called when the SampleStreamingSession is being freed
     StreamSessionShutdownCallback shutdownCallback;
