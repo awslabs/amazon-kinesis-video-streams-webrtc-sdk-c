@@ -660,25 +660,25 @@ CleanUp:
 VOID sampleVideoFrameHandler(UINT64 customData, PFrame pFrame)
 {
     UNUSED_PARAM(customData);
-    DLOGS("Video Frame received. TrackId: %" PRIu64 ", Size: %u, Flags %u", pFrame->trackId, pFrame->size, pFrame->flags);
+    DLOGV("Video Frame received. TrackId: %" PRIu64 ", Size: %u, Flags %u", pFrame->trackId, pFrame->size, pFrame->flags);
 }
 
 VOID sampleAudioFrameHandler(UINT64 customData, PFrame pFrame)
 {
     UNUSED_PARAM(customData);
-    DLOGS("Audio Frame received. TrackId: %" PRIu64 ", Size: %u, Flags %u", pFrame->trackId, pFrame->size, pFrame->flags);
+    DLOGV("Audio Frame received. TrackId: %" PRIu64 ", Size: %u, Flags %u", pFrame->trackId, pFrame->size, pFrame->flags);
 }
 
 VOID sampleFrameHandler(UINT64 customData, PFrame pFrame)
 {
     UNUSED_PARAM(customData);
-    DLOGS("Video Frame received. TrackId: %" PRIu64 ", Size: %u, Flags %u", pFrame->trackId, pFrame->size, pFrame->flags);
+    DLOGV("Video Frame received. TrackId: %" PRIu64 ", Size: %u, Flags %u", pFrame->trackId, pFrame->size, pFrame->flags);
 }
 
 VOID sampleBandwidthEstimationHandler(UINT64 customData, DOUBLE maximumBitrate)
 {
     UNUSED_PARAM(customData);
-    DLOGS("received bitrate suggestion: %f", maximumBitrate);
+    DLOGV("received bitrate suggestion: %f", maximumBitrate);
 }
 
 VOID sampleSenderBandwidthEstimationHandler(UINT64 customData, UINT32 txBytes, UINT32 rxBytes, UINT32 txPacketsCnt, UINT32 rxPacketsCnt,
@@ -700,7 +700,7 @@ VOID sampleSenderBandwidthEstimationHandler(UINT64 customData, UINT32 txBytes, U
     }
     // otherwise keep bitrate the same
 
-    DLOGI("received sender bitrate estimation: suggested bitrate %u sent: %u bytes %u packets received: %u bytes %u packets in %lu msec", bitrate,
+    DLOGV("received sender bitrate estimation: suggested bitrate %u sent: %u bytes %u packets received: %u bytes %u packets in %lu msec", bitrate,
           txBytes, txPacketsCnt, rxBytes, rxPacketsCnt, duration / 10000ULL);
 }
 
