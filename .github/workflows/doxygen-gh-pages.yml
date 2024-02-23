@@ -12,8 +12,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-        with:
-          submodules: recursive
       
       - name: Install requirements
         run: sudo apt-get install doxygen graphviz -y
