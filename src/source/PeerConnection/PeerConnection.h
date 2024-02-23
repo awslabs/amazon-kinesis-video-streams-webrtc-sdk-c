@@ -52,10 +52,10 @@ typedef struct {
 } TwccRtpPacketInfo, *PTwccRtpPacketInfo;
 
 typedef struct {
-    PHashTable pTwccRtpPktInfosHashTable;
-    UINT16 firstSeqNumInRollingWindow;
-    UINT16 lastReportedSeqNum;
-    UINT16 prevReportedSeqNum;
+    PHashTable pTwccRtpPktInfosHashTable; // Hash table of [seqNum, PTwccPacket]
+    UINT16 firstSeqNumInRollingWindow;    // To monitor the last deleted packet in the rolling window
+    UINT16 lastReportedSeqNum;            // To monitor the last packet's seqNum in the TWCC response
+    UINT16 prevReportedBaseSeqNum;        // To monitor the base seqNum in the TWCC response
 } TwccManager, *PTwccManager;
 
 typedef struct {

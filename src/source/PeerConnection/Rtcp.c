@@ -181,7 +181,7 @@ STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager pTwccManager)
     CHK(pTwccManager != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
 
     baseSeqNum = getUnalignedInt16BigEndian(pRtcpPacket->payload + 8);
-    pTwccManager->prevReportedSeqNum = baseSeqNum;
+    pTwccManager->prevReportedBaseSeqNum = baseSeqNum;
     packetStatusCount = TWCC_PACKET_STATUS_COUNT(pRtcpPacket->payload);
     referenceTime = (pRtcpPacket->payload[12] << 16) | (pRtcpPacket->payload[13] << 8) | (pRtcpPacket->payload[14] & 0xff);
     referenceTime = KVS_CONVERT_TIMESCALE(referenceTime * 64, MILLISECONDS_PER_SECOND, HUNDREDS_OF_NANOS_IN_A_SECOND);
@@ -320,7 +320,7 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
     locked = TRUE;
     twcc = pKvsPeerConnection->pTwccManager;
     CHK_STATUS(parseRtcpTwccPacket(pRtcpPacket, twcc));
-    sn = twcc->prevReportedSeqNum;
+    sn = twcc->prevReportedBaseSeqNum;
 
     // Use != instead to cover the case where the group of sequence numbers being checked
     // are trending towards MAX_UINT16 and rolling over to 0+, example range [65534, 10]
@@ -329,24 +329,22 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
     // from memory
     for (seqNum = sn; seqNum != (twcc->lastReportedSeqNum + 1); seqNum++) {
         if (!localStartTimeRecorded) {
-            if (seqNum == 0) {
+            // This could happen if the prev packet was deleted as part of rolling window or if there
+            // is an overlap of RTP packet statuses between TWCC packets. This could also fail if it is
+            // the first ever packet (seqNum 0)
+            if (hashTableGet(twcc->pTwccRtpPktInfosHashTable, seqNum - 1, &value) == STATUS_HASH_KEY_NOT_PRESENT) {
                 localStartTimeKvs = TWCC_PACKET_UNITIALIZED_TIME;
             } else {
-                // This could happen if the prev packet was deleted as part of rolling window or if there
-                // is an overlap of RTP packet statuses between TWCC packets
-                if (hashTableGet(twcc->pTwccRtpPktInfosHashTable, seqNum - 1, &value) == STATUS_HASH_KEY_NOT_PRESENT) {
-                    localStartTimeKvs = TWCC_PACKET_UNITIALIZED_TIME;
-                } else {
-                    pTwccPacket = (PTwccRtpPacketInfo) value;
-                    localStartTimeKvs = pTwccPacket->localTimeKvs;
-                    localStartTimeRecorded = TRUE;
-                }
+                pTwccPacket = (PTwccRtpPacketInfo) value;
+                localStartTimeKvs = pTwccPacket->localTimeKvs;
+                localStartTimeRecorded = TRUE;
             }
             if (localStartTimeKvs == TWCC_PACKET_UNITIALIZED_TIME) {
                 // time not yet set. If prev seqNum was deleted
                 if (STATUS_SUCCEEDED(hashTableGet(twcc->pTwccRtpPktInfosHashTable, seqNum, &value))) {
                     pTwccPacket = (PTwccRtpPacketInfo) value;
                     localStartTimeKvs = pTwccPacket->localTimeKvs;
+                    DLOGI("Local start time for %d: %lu", seqNum, localStartTimeKvs);
                     localStartTimeRecorded = TRUE;
                 }
             }
@@ -357,6 +355,7 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
         if (STATUS_SUCCEEDED(hashTableGet(twcc->pTwccRtpPktInfosHashTable, seqNum, &value))) {
             pTwccPacket = (PTwccRtpPacketInfo) value;
             localEndTimeKvs = pTwccPacket->localTimeKvs;
+            DLOGI("Times: %d: %lu, %lu", seqNum, localEndTimeKvs, localStartTimeKvs);
             duration = localEndTimeKvs - localStartTimeKvs;
             sentBytes += pTwccPacket->packetSize;
             sentPackets++;
