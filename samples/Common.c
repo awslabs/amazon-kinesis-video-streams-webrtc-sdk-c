@@ -1276,9 +1276,6 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
             DLOGW("Failed to ICE Server Stats for streaming session %d: %08x", i, retStatus);
         }
         freeSampleStreamingSession(&pSampleConfiguration->sampleStreamingSessionList[i]);
-        if(isMaster) {
-            writeRssAnonToFile("Post viewer disconnect", TRUE, FALSE, 0);
-        }
     }
     if (locked) {
         MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
@@ -1331,9 +1328,7 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
     if (pSampleConfiguration->enableFileLogging) {
         freeFileLogger();
     }
-    if(isMaster) {
-        writeRssAnonToFile("Pre-application exit", TRUE, FALSE, 0);
-    }
+    writeRssAnonToFile("Pre-application exit", TRUE, FALSE, 0);
 
     SAFE_MEMFREE(*ppSampleConfiguration);
 
@@ -1383,6 +1378,7 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
                 streamingSessionListReadLockLocked = FALSE;
 
                 CHK_STATUS(freeSampleStreamingSession(&pSampleStreamingSession));
+                writeRssAnonToFile("Post viewer disconnect", TRUE, FALSE, 0);
                 sessionFreed = TRUE;
             }
         }

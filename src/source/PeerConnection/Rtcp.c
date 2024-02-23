@@ -290,7 +290,7 @@ STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager pTwccManager)
         }
         chunkOffset += TWCC_FB_PACKETCHUNK_SIZE;
     }
-    DLOGV("Checking seqNum %d to %d of TWCC reports", baseSeqNum, pTwccManager->lastReportedSeqNum);
+    DLOGI("Checking seqNum %d to %d of TWCC reports", baseSeqNum, pTwccManager->lastReportedSeqNum);
 CleanUp:
     CHK_LOG_ERR(retStatus);
     return retStatus;
