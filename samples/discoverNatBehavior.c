@@ -31,7 +31,7 @@ INT32 main(INT32 argc, CHAR** argv)
     if (STRSTR(pRegion, "cn-")) {
         pHostnamePostfix = KINESIS_VIDEO_STUN_URL_POSTFIX_CN;
     }
-    stunHostname = (PCHAR) MEMALLOC ((MAX_ICE_CONFIG_URI_LEN + 1) * SIZEOF(CHAR));
+    stunHostname = (PCHAR) MEMALLOC((MAX_ICE_CONFIG_URI_LEN + 1) * SIZEOF(CHAR));
     SNPRINTF(stunHostname, MAX_ICE_CONFIG_URI_LEN + 1, KINESIS_VIDEO_STUN_URL, pRegion, pHostnamePostfix);
 
     for (i = 1; i < argc; ++i) {
