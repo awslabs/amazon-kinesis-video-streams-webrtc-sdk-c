@@ -354,6 +354,22 @@ createLwsIotCredentialProvider(
 freeIotCredentialProvider(&pSampleConfiguration->pCredentialProvider);
 ```
 
+## Use of TWCC
+In order to listen in on TWCC reports, the application must set up a callback using the `peerConnectionOnSenderBandwidthEstimation` API. In our samples, it is set up like this:
+
+```
+    CHK_STATUS(peerConnectionOnSenderBandwidthEstimation(pSampleStreamingSession->pPeerConnection, (UINT64) pSampleStreamingSession,
+                                                         sampleSenderBandwidthEstimationHandler));
+```
+
+Note that TWCC is enabled by default in the SDK. In order to disable it, set the `disableSenderSideBandwidthEstimation` flag to TRUE. For example,
+
+```
+RtcConfiguration configuration;
+configuration.kvsRtcConfiguration.disableSenderSideBandwidthEstimation = TRUE;
+```
+
+
 ## Use Pre-generated Certificates
 The certificate generating function ([createCertificateAndKey](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-c/Dtls__openssl_8c.html#a451c48525b0c0a8919a880d6834c1f7f)) in createDtlsSession() can take between 5 - 15 seconds in low performance embedded devices, it is called for every peer connection creation when KVS WebRTC receives an offer. To avoid this extra start-up latency, certificate can be pre-generated and passed in when offer comes.
 

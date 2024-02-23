@@ -344,7 +344,6 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
                 if (STATUS_SUCCEEDED(hashTableGet(twcc->pTwccRtpPktInfosHashTable, seqNum, &value))) {
                     pTwccPacket = (PTwccRtpPacketInfo) value;
                     localStartTimeKvs = pTwccPacket->localTimeKvs;
-                    DLOGI("Local start time for %d: %lu", seqNum, localStartTimeKvs);
                     localStartTimeRecorded = TRUE;
                 }
             }
@@ -355,7 +354,6 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
         if (STATUS_SUCCEEDED(hashTableGet(twcc->pTwccRtpPktInfosHashTable, seqNum, &value))) {
             pTwccPacket = (PTwccRtpPacketInfo) value;
             localEndTimeKvs = pTwccPacket->localTimeKvs;
-            DLOGI("Times: %d: %lu, %lu", seqNum, localEndTimeKvs, localStartTimeKvs);
             duration = localEndTimeKvs - localStartTimeKvs;
             sentBytes += pTwccPacket->packetSize;
             sentPackets++;
