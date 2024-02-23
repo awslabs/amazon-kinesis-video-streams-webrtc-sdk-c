@@ -554,6 +554,7 @@ jobs:
         run: |
           choco install gstreamer --version=1.16.2
           choco install gstreamer-devel --version=1.16.2
+          choco install zlib --version=1.2.11
           curl.exe -o C:\tools\pthreads-w32-2-9-1-release.zip ftp://sourceware.org/pub/pthreads-win32/pthreads-w32-2-9-1-release.zip
           mkdir C:\tools\pthreads-w32-2-9-1-release\
           Expand-Archive -Path C:\tools\pthreads-w32-2-9-1-release.zip -DestinationPath C:\tools\pthreads-w32-2-9-1-release
