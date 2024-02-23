@@ -297,6 +297,12 @@ TEST_F(RtcpFunctionalityTest, onpli)
 
 static void testBwHandler(UINT64 customData, UINT32 txBytes, UINT32 rxBytes, UINT32 txPacketsCnt, UINT32 rxPacketsCnt,
                                                    UINT64 duration) {
+    UNUSED_PARAM(customData);
+    UNUSED_PARAM(txBytes);
+    UNUSED_PARAM(rxBytes);
+    UNUSED_PARAM(txPacketsCnt);
+    UNUSED_PARAM(rxPacketsCnt);
+    UNUSED_PARAM(duration);
     return;
 }
 

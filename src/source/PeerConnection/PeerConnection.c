@@ -1832,8 +1832,8 @@ STATUS twccManagerOnPacketSent(PKvsPeerConnection pKvsPeerConnection, PRtpPacket
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
-    UINT16 seqNum, updatedSeqNum;
-    PTwccRtpPacketInfo pTwccRtpPktInfo, tempTwccRtpPktInfo;
+    UINT16 seqNum;
+    PTwccRtpPacketInfo pTwccRtpPktInfo;
 
     CHK(pKvsPeerConnection != NULL && pRtpPacket != NULL, STATUS_NULL_ARG);
     CHK(pKvsPeerConnection->onSenderBandwidthEstimation != NULL && pKvsPeerConnection->pTwccManager != NULL, STATUS_SUCCESS);
