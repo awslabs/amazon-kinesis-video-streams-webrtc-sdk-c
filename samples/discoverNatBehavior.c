@@ -2,7 +2,6 @@
 
 #define NETWORK_INTERFACE_NAME_PARAM "-i"
 #define STUN_HOSTNAME_PARAM          "-s"
-#define DEFAULT_STUN_HOST            "stun:stun.kinesisvideo.us-west-2.amazonaws.com:443"
 
 BOOL filterFunc(UINT64 data, PCHAR name)
 {
@@ -15,13 +14,25 @@ BOOL filterFunc(UINT64 data, PCHAR name)
 
 INT32 main(INT32 argc, CHAR** argv)
 {
-    PCHAR interfaceName = NULL, stunHostname = NULL;
-    printf("Usage: ./discoverNatBehavior -i network-interface-name -s stun-hostname\n");
+    PCHAR interfaceName = NULL, stunHostname = NULL, pRegion = NULL, pHostnamePostfix = NULL;
     NAT_BEHAVIOR mappingBehavior = NAT_BEHAVIOR_NONE, filteringBehavior = NAT_BEHAVIOR_NONE;
     INT32 i;
     UINT32 logLevel = LOG_LEVEL_DEBUG;
     STATUS status = STATUS_SUCCESS;
     CHAR* logLevelStr = NULL;
+
+    printf("Usage: ./discoverNatBehavior -i network-interface-name -s stun-hostname\n");
+
+    if ((pRegion = GETENV(DEFAULT_REGION_ENV_VAR)) == NULL) {
+        pRegion = DEFAULT_AWS_REGION;
+    }
+    pHostnamePostfix = KINESIS_VIDEO_STUN_URL_POSTFIX;
+    // If region is in CN, add CN region uri postfix
+    if (STRSTR(pRegion, "cn-")) {
+        pHostnamePostfix = KINESIS_VIDEO_STUN_URL_POSTFIX_CN;
+    }
+    stunHostname = (PCHAR) MEMALLOC ((MAX_ICE_CONFIG_URI_LEN + 1) * SIZEOF(CHAR));
+    SNPRINTF(stunHostname, MAX_ICE_CONFIG_URI_LEN + 1, KINESIS_VIDEO_STUN_URL, pRegion, pHostnamePostfix);
 
     for (i = 1; i < argc; ++i) {
         if (STRNCMP(argv[i], NETWORK_INTERFACE_NAME_PARAM, STRLEN(argv[i])) == 0) {
@@ -33,10 +44,6 @@ INT32 main(INT32 argc, CHAR** argv)
         } else {
             printf("Unknown param %s", argv[i]);
         }
-    }
-
-    if (stunHostname == NULL) {
-        stunHostname = DEFAULT_STUN_HOST;
     }
 
     printf("Using stun host: %s, local network interface %s.\n", stunHostname, interfaceName);
@@ -104,6 +111,6 @@ INT32 main(INT32 argc, CHAR** argv)
     }
 
     deinitKvsWebRtc();
-
+    MEMFREE(stunHostname);
     return 0;
 }
