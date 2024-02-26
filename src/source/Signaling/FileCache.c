@@ -38,7 +38,8 @@ STATUS deserializeSignalingCacheEntries(PCHAR cachedFileContent, UINT64 fileSize
     pCurrent = cachedFileContent;
     remainingSize = (UINT32) fileSize;
     /* detect end of file */
-    while (STRNLEN(pCurrent, MAX_SERIALIZED_SIGNALING_CACHE_ENTRY_LEN * 32) > 0 && remainingSize > MAX_SIGNALING_CACHE_ENTRY_TIMESTAMP_STR_LEN) {
+    while (STRNLEN(pCurrent, MAX_SERIALIZED_SIGNALING_CACHE_ENTRY_LEN * MAX_SIGNALING_CACHE_ENTRY_COUNT) > 0 &&
+           remainingSize > MAX_SIGNALING_CACHE_ENTRY_TIMESTAMP_STR_LEN) {
         nextLine = STRCHR(pCurrent, '\n');
         while ((nextToken = STRCHR(pCurrent, ',')) != NULL && nextToken < nextLine) {
             switch (tokenCount % 10) {
