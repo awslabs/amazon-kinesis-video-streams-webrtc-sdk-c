@@ -955,7 +955,8 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
     if (!pConfiguration->kvsRtcConfiguration.disableSenderSideBandwidthEstimation) {
         pKvsPeerConnection->twccLock = MUTEX_CREATE(TRUE);
         pKvsPeerConnection->pTwccManager = (PTwccManager) MEMCALLOC(1, SIZEOF(TwccManager));
-        CHK_STATUS(hashTableCreateWithParams(100, 2, &pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable));
+        CHK_STATUS(hashTableCreateWithParams(TWCC_HASH_TABLE_BUCKET_COUNT, TWCC_HASH_TABLE_BUCKET_LENGTH,
+                                             &pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable));
     }
 
     *ppPeerConnection = (PRtcPeerConnection) pKvsPeerConnection;
