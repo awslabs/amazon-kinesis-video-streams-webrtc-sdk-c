@@ -21,7 +21,17 @@ INT32 main(INT32 argc, CHAR** argv)
     STATUS status = STATUS_SUCCESS;
     CHAR* logLevelStr = NULL;
 
-    printf("Usage: ./discoverNatBehavior -i network-interface-name -s stun-hostname\n");
+    if ((logLevelStr = GETENV(DEBUG_LOG_LEVEL_ENV_VAR)) != NULL) {
+        status = STRTOUI32(logLevelStr, NULL, 10, &logLevel);
+        if (STATUS_FAILED(status)) {
+            DLOGE("Failed to parse log level with error 0x%08x", status);
+            exit(1);
+        }
+        logLevel = MIN(MAX(logLevel, LOG_LEVEL_VERBOSE), LOG_LEVEL_SILENT);
+    }
+    SET_LOGGER_LOG_LEVEL(logLevel);
+
+    DLOGI("Usage: ./discoverNatBehavior -i network-interface-name -s stun-hostname");
 
     if ((pRegion = GETENV(DEFAULT_REGION_ENV_VAR)) == NULL) {
         pRegion = DEFAULT_AWS_REGION;
@@ -42,71 +52,61 @@ INT32 main(INT32 argc, CHAR** argv)
             stunHostname = argv[++i];
             i++;
         } else {
-            printf("Unknown param %s", argv[i]);
+            DLOGW("Unknown param %s", argv[i]);
         }
     }
 
-    printf("Using stun host: %s, local network interface %s.\n", stunHostname, interfaceName);
+    DLOGI("Using stun host: %s, local network interface %s.", stunHostname, interfaceName);
 
     initKvsWebRtc();
-    if ((logLevelStr = GETENV(DEBUG_LOG_LEVEL_ENV_VAR)) != NULL) {
-        status = STRTOUI32(logLevelStr, NULL, 10, &logLevel);
-        if (STATUS_FAILED(status)) {
-            fprintf(stderr, "Failed to parse log level with error 0x%08x\n", status);
-            exit(1);
-        }
-        logLevel = MIN(MAX(logLevel, LOG_LEVEL_VERBOSE), LOG_LEVEL_SILENT);
-    }
-
-    SET_LOGGER_LOG_LEVEL(logLevel);
 
     status = discoverNatBehavior(stunHostname, &mappingBehavior, &filteringBehavior, filterFunc, (UINT64) interfaceName);
     if (STATUS_FAILED(status)) {
-        fprintf(stderr, "Failed to detect NAT behavior with error 0x%08x\n", status);
+        DLOGE("Failed to detect NAT behavior with error 0x%08x", status);
         exit(1);
     }
 
-    printf("Detected NAT mapping behavior %s\n", getNatBehaviorStr(mappingBehavior));
+    DLOGI("Detected NAT mapping behavior %s", getNatBehaviorStr(mappingBehavior));
     switch (mappingBehavior) {
         case NAT_BEHAVIOR_NONE:
-            printf("Failed to detect NAT mapping behavior\n");
+            DLOGI("Failed to detect NAT mapping behavior");
             break;
         case NAT_BEHAVIOR_NOT_BEHIND_ANY_NAT:
-            printf("Host is not behind any NAT. Its IP address is the public IP address. STUN is not needed.\n");
+            DLOGI("Host is not behind any NAT. Its IP address is the public IP address. STUN is not needed.");
             break;
         case NAT_BEHAVIOR_NO_UDP_CONNECTIVITY:
-            printf("Host does not have any UDP connectivity. STUN is not usable. Can only connect using TCP relay\n");
+            DLOGI("Host does not have any UDP connectivity. STUN is not usable. Can only connect using TCP relay");
             break;
         case NAT_BEHAVIOR_ENDPOINT_INDEPENDENT:
-            printf("Host's NAT uses same public IP address regardless of destination address. STUN is usable.\n");
+            DLOGI("Host's NAT uses same public IP address regardless of destination address. STUN is usable.");
             break;
         case NAT_BEHAVIOR_ADDRESS_DEPENDENT:
-            printf("Host's NAT uses different public IP address for different destination address. STUN is not usable.\n");
+            DLOGI("Host's NAT uses different public IP address for different destination address. STUN is not usable.");
             break;
         case NAT_BEHAVIOR_PORT_DEPENDENT:
-            printf("Host's NAT uses different public IP address for different destination address and port. STUN is not usable.\n");
+            DLOGI("Host's NAT uses different public IP address for different destination address and port. STUN is not usable.");
             break;
     }
 
-    printf("Detected NAT filtering behavior %s\n", getNatBehaviorStr(filteringBehavior));
+    DLOGI("Detected NAT filtering behavior %s", getNatBehaviorStr(filteringBehavior));
     switch (filteringBehavior) {
         case NAT_BEHAVIOR_NONE:
-            printf("Failed to detect NAT filtering behavior\n");
+            DLOGI("Failed to detect NAT filtering behavior");
             break;
         case NAT_BEHAVIOR_NOT_BEHIND_ANY_NAT:
-            printf("Host is not behind any NAT. Its IP address is the public IP address. STUN is not needed.\n");
+            DLOGI("Host is not behind any NAT. Its IP address is the public IP address. STUN is not needed.");
             break;
         case NAT_BEHAVIOR_NO_UDP_CONNECTIVITY:
-            printf("Host does not have any UDP connectivity. STUN is not usable. Can only connect using TCP relay\n");
+            DLOGI("Host does not have any UDP connectivity. STUN is not usable. Can only connect using TCP relay");
             break;
         case NAT_BEHAVIOR_ENDPOINT_INDEPENDENT:
-            printf("Host's NAT allows to receive UDP packet from any external address. STUN is usable.\n");
+            DLOGI("Host's NAT allows to receive UDP packet from any external address. STUN is usable.");
             break;
         case NAT_BEHAVIOR_ADDRESS_DEPENDENT:
-            printf("Host's NAT allows to receive UDP packet from external address that host had previously sent data to. STUN is usable.\n");
+            DLOGI("Host's NAT allows to receive UDP packet from external address that host had previously sent data to. STUN is usable.");
             break;
         case NAT_BEHAVIOR_PORT_DEPENDENT:
-            printf("Host's NAT allows to receive UDP packet from external address and port that host had previously sent data to. STUN is usable.\n");
+            DLOGI("Host's NAT allows to receive UDP packet from external address and port that host had previously sent data to. STUN is usable.");
             break;
     }
 
