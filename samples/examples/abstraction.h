@@ -12,14 +12,24 @@ extern "C" {
 #endif
 
 #include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
+#include "sampleSignaling.h"
+
+typedef enum {
+    MASTER,
+    VIEWER
+} CONFIG_TYPE;
 
 typedef struct {
-    CHAR channelName[256];
+    SignalingCtx signalingCtx;
+    CONFIG_TYPE configType;
+    UINT32 logLevel;
 } AppCtx, *PAppCtx;
 
 
 STATUS initializeLibrary(PAppCtx);
 STATUS deinitializeLibrary();
+STATUS initializeAppCtx(PAppCtx, PCHAR, PCHAR);
+STATUS initializeSignaling(PAppCtx);
 
 #ifdef __cplusplus
 }

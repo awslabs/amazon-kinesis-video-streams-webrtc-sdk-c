@@ -1,6 +1,7 @@
 #include "abstraction.h"
 
 
+
 static UINT32 setLogLevel() {
     PCHAR pLogLevel;
     UINT32 logLevel = LOG_LEVEL_DEBUG;
@@ -12,25 +13,48 @@ static UINT32 setLogLevel() {
     return logLevel;
 }
 
-static STATUS readFromEnvs(PAppCtx pAppCtx) {
+STATUS initializeLibrary(PAppCtx pAppCtx) {
     STATUS retStatus = STATUS_SUCCESS;
-    PCHAR pChannelName;
-    if (NULL == (pChannelName = GETENV("CHANNEL_NAME"))) {
-        STRNCPY(pAppCtx->channelName, "SampleTestChannel", STRLEN("SampleTestChannel"));
-    } else {
-        STRNCPY(pAppCtx->channelName, pChannelName, SIZEOF(pAppCtx->channelName));
+    PCHAR pAccessKey, pSecretKey, pSessionToken;
+    pAppCtx->logLevel = setLogLevel();
+    CHK_STATUS(initKvsWebRtc());
+
+    CHK_ERR((pAccessKey = GETENV(ACCESS_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_ACCESS_KEY_ID must be set");
+    CHK_ERR((pSecretKey = GETENV(SECRET_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_SECRET_ACCESS_KEY must be set");
+    pSessionToken = GETENV(SESSION_TOKEN_ENV_VAR);
+    if (pSessionToken != NULL && IS_EMPTY_STRING(pSessionToken)) {
+        DLOGW("Session token is set but its value is empty. Ignoring.");
+        pSessionToken = NULL;
     }
-    DLOGI("Channel name: %s", pAppCtx->channelName);
+
+    CHK_STATUS(createStaticCredentialProvider(pAccessKey, 0, pSecretKey, 0, pSessionToken, 0, MAX_UINT64, &pAppCtx->signalingCtx.pCredentialProvider));
 CleanUp:
     return retStatus;
 }
 
-STATUS initializeLibrary(PAppCtx pAppCtx) {
+STATUS initializeAppCtx(PAppCtx pAppCtx, PCHAR channelName, PCHAR region) {
     STATUS retStatus = STATUS_SUCCESS;
-    setLogLevel();
-    CHK_STATUS(initKvsWebRtc());
-    CHK_STATUS(readFromEnvs(pAppCtx));
-CleanUp:
+    pAppCtx->signalingCtx.channelInfo.pChannelName = channelName;
+    pAppCtx->signalingCtx.channelInfo.pRegion = region;
+    pAppCtx->signalingCtx.clientInfo.loggingLevel = pAppCtx->logLevel;
+    CleanUp:
+    return retStatus;
+}
+
+STATUS initializeSignaling(PAppCtx pAppCtx)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+//    pAppCtx->signalingClientCallbacks.messageReceivedFn = signalingMessageReceived;
+    STRCPY(pAppCtx->signalingCtx.clientInfo.clientId, "ProducerMaster");
+    CHK_STATUS(createSignalingClientSync(&pAppCtx->signalingCtx.clientInfo, &pAppCtx->signalingCtx.channelInfo,
+                                         &pAppCtx->signalingCtx.signalingClientCallbacks, pAppCtx->signalingCtx.pCredentialProvider,
+                                         &pAppCtx->signalingCtx.signalingClientHandle));
+
+    // Enable the processing of the messages
+    CHK_STATUS(signalingClientFetchSync(pAppCtx->signalingCtx.signalingClientHandle));
+    CHK_STATUS(signalingClientConnectSync(pAppCtx->signalingCtx.signalingClientHandle));
+
+    CleanUp:
     return retStatus;
 }
 

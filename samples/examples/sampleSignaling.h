@@ -6,9 +6,14 @@
 extern "C" {
 #endif
 
-#include "abstraction.h"
-typedef struct {
+#include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
 
+typedef struct {
+    ChannelInfo channelInfo;
+    SignalingClientCallbacks signalingClientCallbacks;
+    SignalingClientInfo clientInfo;
+    PAwsCredentialProvider pCredentialProvider;
+    SIGNALING_CLIENT_HANDLE signalingClientHandle;
 } SignalingCtx, *PSignalingCtx;
 
 #ifdef __cplusplus
