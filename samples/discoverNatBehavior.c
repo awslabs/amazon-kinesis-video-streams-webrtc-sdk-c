@@ -1,12 +1,13 @@
 #include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
 
-#define NETWORK_INTERFACE_NAME_PARAM "-i"
-#define STUN_HOSTNAME_PARAM          "-s"
+#define NETWORK_INTERFACE_NAME_PARAM   "-i"
+#define STUN_HOSTNAME_PARAM            "-s"
+#define MAX_LEN_NETWORK_INTERFACE_NAME 15
 
 BOOL filterFunc(UINT64 data, PCHAR name)
 {
     CHAR* desiredInterface = (CHAR*) data;
-    if (desiredInterface == NULL || STRNCMP(name, desiredInterface, STRLEN(name)) == 0) {
+    if (desiredInterface == NULL || STRNCMP(name, desiredInterface, STRNLEN(name, MAX_LEN_NETWORK_INTERFACE_NAME)) == 0) {
         return TRUE;
     }
     return FALSE;
@@ -45,10 +46,10 @@ INT32 main(INT32 argc, CHAR** argv)
     SNPRINTF(stunHostname, MAX_ICE_CONFIG_URI_LEN + 1, KINESIS_VIDEO_STUN_URL, pRegion, pHostnamePostfix);
 
     for (i = 1; i < argc; ++i) {
-        if (STRNCMP(argv[i], NETWORK_INTERFACE_NAME_PARAM, STRLEN(argv[i])) == 0) {
+        if (STRNCMP(argv[i], NETWORK_INTERFACE_NAME_PARAM, STRNLEN(argv[i], MAX_LEN_NETWORK_INTERFACE_NAME)) == 0) {
             interfaceName = argv[++i];
             i++;
-        } else if (STRNCMP(argv[i], STUN_HOSTNAME_PARAM, STRLEN(argv[i])) == 0) {
+        } else if (STRNCMP(argv[i], STUN_HOSTNAME_PARAM, STRNLEN(argv[i], MAX_ICE_CONFIG_URI_LEN + 1)) == 0) {
             stunHostname = argv[++i];
             i++;
         } else {
