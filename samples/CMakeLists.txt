@@ -6,6 +6,14 @@ project(KinesisVideoWebRTCClientSamples LANGUAGES C)
 
 message("OPEN_SRC_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX}")
 
+if (WIN32)
+    if(EXISTS "C:\\gstreamer\\1.0\\x86_64\\bin\\pkg-config.exe")
+      set(PKG_CONFIG_EXECUTABLE "C:\\gstreamer\\1.0\\x86_64\\bin\\pkg-config.exe")
+    else()
+      set(PKG_CONFIG_EXECUTABLE "D:\\gstreamer\\1.0\\x86_64\\bin\\pkg-config.exe")
+    endif()
+  endif()
+  
 find_package(PkgConfig REQUIRED)
 
 pkg_check_modules(GST gstreamer-1.0)

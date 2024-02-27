@@ -15,7 +15,7 @@ STATUS createTlsSession(PTlsSessionCallbacks pCallbacks, PTlsSession* ppTlsSessi
     pTlsSession = (PTlsSession) MEMCALLOC(1, SIZEOF(TlsSession));
     CHK(pTlsSession != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
-    CHK_STATUS(createIOBuffer(DEFAULT_MTU_SIZE, &pTlsSession->pReadBuffer));
+    CHK_STATUS(createIOBuffer(DEFAULT_MTU_SIZE_BYTES, &pTlsSession->pReadBuffer));
     pTlsSession->callbacks = *pCallbacks;
     pTlsSession->state = TLS_SESSION_STATE_NEW;
 
@@ -117,7 +117,7 @@ STATUS tlsSessionStart(PTlsSession pTlsSession, BOOL isServer)
     mbedtls_ssl_conf_authmode(&pTlsSession->sslCtxConfig, MBEDTLS_SSL_VERIFY_REQUIRED);
     mbedtls_ssl_conf_rng(&pTlsSession->sslCtxConfig, mbedtls_ctr_drbg_random, &pTlsSession->ctrDrbg);
     CHK(mbedtls_ssl_setup(&pTlsSession->sslCtx, &pTlsSession->sslCtxConfig) == 0, STATUS_SSL_CTX_CREATION_FAILED);
-    mbedtls_ssl_set_mtu(&pTlsSession->sslCtx, DEFAULT_MTU_SIZE);
+    mbedtls_ssl_set_mtu(&pTlsSession->sslCtx, DEFAULT_MTU_SIZE_BYTES);
     mbedtls_ssl_set_bio(&pTlsSession->sslCtx, pTlsSession, tlsSessionSendCallback, tlsSessionReceiveCallback, NULL);
 
     /* init and send handshake */

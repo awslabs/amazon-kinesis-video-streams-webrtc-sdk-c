@@ -911,6 +911,7 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
     CHK_STATUS(timerQueueCreate(&pKvsPeerConnection->timerQueueHandle));
 
     pKvsPeerConnection->peerConnection.version = PEER_CONNECTION_CURRENT_VERSION;
+
     CHK_STATUS(generateJSONSafeString(pKvsPeerConnection->localIceUfrag, LOCAL_ICE_UFRAG_LEN));
     CHK_STATUS(generateJSONSafeString(pKvsPeerConnection->localIcePwd, LOCAL_ICE_PWD_LEN));
     CHK_STATUS(generateJSONSafeString(pKvsPeerConnection->localCNAME, LOCAL_CNAME_LEN));
@@ -933,7 +934,7 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
     pKvsPeerConnection->peerConnectionObjLock = MUTEX_CREATE(FALSE);
     pKvsPeerConnection->connectionState = RTC_PEER_CONNECTION_STATE_NONE;
     pKvsPeerConnection->MTU = pConfiguration->kvsRtcConfiguration.maximumTransmissionUnit == 0
-        ? DEFAULT_MTU_SIZE
+        ? DEFAULT_MTU_SIZE_BYTES
         : pConfiguration->kvsRtcConfiguration.maximumTransmissionUnit;
     ATOMIC_STORE_BOOL(&pKvsPeerConnection->sctpIsEnabled, FALSE);
 
@@ -998,6 +999,11 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
 
     CHK(pKvsPeerConnection != NULL, retStatus);
 
+    // This should be freed once answer is created, but unit tests might not invoke `createAnswer`
+    if (pKvsPeerConnection->pRemoteSessionDescription != NULL) {
+        DLOGW("Remote description field not deallocated");
+        SAFE_MEMFREE(pKvsPeerConnection->pRemoteSessionDescription);
+    }
     startTime = GETTIME();
     /* Shutdown IceAgent first so there is no more incoming packets which can cause
      * SCTP to be allocated again after SCTP is freed. */
@@ -1214,7 +1220,7 @@ STATUS peerConnectionGetLocalDescription(PRtcPeerConnection pRtcPeerConnection, 
         pRtcSessionDescriptionInit->type = SDP_TYPE_ANSWER;
     }
 
-    CHK_STATUS(populateSessionDescription(pKvsPeerConnection, &(pKvsPeerConnection->remoteSessionDescription), pSessionDescription));
+    CHK_STATUS(populateSessionDescription(pKvsPeerConnection, pKvsPeerConnection->pRemoteSessionDescription, pSessionDescription));
     CHK_STATUS(serializeSessionDescription(pSessionDescription, NULL, &serializeLen));
     CHK(serializeLen <= MAX_SESSION_DESCRIPTION_INIT_SDP_LEN, STATUS_NOT_ENOUGH_MEMORY);
 
@@ -1238,11 +1244,11 @@ STATUS peerConnectionGetCurrentLocalDescription(PRtcPeerConnection pRtcPeerConne
 
     CHK(pRtcPeerConnection != NULL && pRtcSessionDescriptionInit != NULL, STATUS_NULL_ARG);
     // do nothing if remote session description hasn't been received
-    CHK(pKvsPeerConnection->remoteSessionDescription.sessionName[0] != '\0', retStatus);
+    CHK(pKvsPeerConnection->pRemoteSessionDescription != NULL, retStatus);
 
     CHK(NULL != (pSessionDescription = (PSessionDescription) MEMCALLOC(1, SIZEOF(SessionDescription))), STATUS_NOT_ENOUGH_MEMORY);
 
-    CHK_STATUS(populateSessionDescription(pKvsPeerConnection, &(pKvsPeerConnection->remoteSessionDescription), pSessionDescription));
+    CHK_STATUS(populateSessionDescription(pKvsPeerConnection, pKvsPeerConnection->pRemoteSessionDescription, pSessionDescription));
 
     CHK_STATUS(serializeSessionDescription(pSessionDescription, NULL, &serializeLen));
     CHK(serializeLen <= MAX_SESSION_DESCRIPTION_INIT_SDP_LEN, STATUS_NOT_ENOUGH_MEMORY);
@@ -1279,14 +1285,15 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
     STATUS retStatus = STATUS_SUCCESS;
     PCHAR remoteIceUfrag = NULL, remoteIcePwd = NULL;
     UINT32 i, j;
+    PSessionDescription pSessionDescription;
 
     CHK(pPeerConnection != NULL, STATUS_NULL_ARG);
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pPeerConnection;
-    PSessionDescription pSessionDescription = &pKvsPeerConnection->remoteSessionDescription;
 
+    pKvsPeerConnection->pRemoteSessionDescription = (PSessionDescription) MEMCALLOC(1, SIZEOF(SessionDescription));
+    pSessionDescription = pKvsPeerConnection->pRemoteSessionDescription;
     CHK(pSessionDescriptionInit != NULL, STATUS_NULL_ARG);
 
-    MEMSET(pSessionDescription, 0x00, SIZEOF(SessionDescription));
     pKvsPeerConnection->dtlsIsServer = FALSE;
     /* Assume cant trickle at first */
     NULLABLE_SET_VALUE(pKvsPeerConnection->canTrickleIce, FALSE);
@@ -1373,8 +1380,11 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
         DLOGD("REMOTE_SDP:%s\n", pSessionDescriptionInit->sdp);
     }
 
+    // Remove remote description once required parameters are set from answer
+    if (pKvsPeerConnection->isOffer) {
+        SAFE_MEMFREE(pKvsPeerConnection->pRemoteSessionDescription);
+    }
 CleanUp:
-
     LEAVES();
     return retStatus;
 }
@@ -1403,7 +1413,7 @@ STATUS createOffer(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionIni
 #endif
 
     CHK_STATUS(setPayloadTypesForOffer(pKvsPeerConnection->pCodecTable));
-    CHK_STATUS(populateSessionDescription(pKvsPeerConnection, &(pKvsPeerConnection->remoteSessionDescription), pSessionDescription));
+    CHK_STATUS(populateSessionDescription(pKvsPeerConnection, pKvsPeerConnection->pRemoteSessionDescription, pSessionDescription));
     CHK_STATUS(serializeSessionDescription(pSessionDescription, NULL, &serializeLen));
     CHK(serializeLen <= MAX_SESSION_DESCRIPTION_INIT_SDP_LEN, STATUS_NOT_ENOUGH_MEMORY);
     CHK_STATUS(serializeSessionDescription(pSessionDescription, pSessionDescriptionInit->sdp, &serializeLen));
@@ -1427,7 +1437,7 @@ STATUS createAnswer(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionIn
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pPeerConnection;
 
     CHK(pKvsPeerConnection != NULL && pSessionDescriptionInit != NULL, STATUS_NULL_ARG);
-    CHK(pKvsPeerConnection->remoteSessionDescription.sessionName[0] != '\0', STATUS_PEERCONNECTION_CREATE_ANSWER_WITHOUT_REMOTE_DESCRIPTION);
+    CHK(pKvsPeerConnection->pRemoteSessionDescription != NULL, STATUS_PEERCONNECTION_CREATE_ANSWER_WITHOUT_REMOTE_DESCRIPTION);
 
     pSessionDescriptionInit->type = SDP_TYPE_ANSWER;
     pKvsPeerConnection->isOffer = FALSE;
@@ -1437,6 +1447,10 @@ STATUS createAnswer(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionIn
     if (NULL != GETENV(DEBUG_LOG_SDP)) {
         DLOGD("LOCAL_SDP:%s", pSessionDescriptionInit->sdp);
     }
+
+    // Once answer is created, remote SDP is not needed anymore. We also clear only if
+    // answer SDP is successfully created
+    SAFE_MEMFREE(pKvsPeerConnection->pRemoteSessionDescription);
 CleanUp:
 
     LEAVES();
@@ -1472,12 +1486,28 @@ STATUS addTransceiver(PRtcPeerConnection pPeerConnection, PRtcMediaStreamTrack p
     UINT32 clockRate = 0;
     UINT32 ssrc = (UINT32) RAND(), rtxSsrc = (UINT32) RAND();
     RTC_RTP_TRANSCEIVER_DIRECTION direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+    DOUBLE rollingBufferDurationSec = DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS;
+    DOUBLE rollingBufferBitratebps = DEFAULT_EXPECTED_VIDEO_BIT_RATE;
     RtcMediaStreamTrack videoTrack;
-    if (pRtcRtpTransceiverInit != NULL) {
-        direction = pRtcRtpTransceiverInit->direction;
-    }
 
     CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
+
+    // Set defaults for audio and video track. This can be modified to values set up with pRtcRtpTransceiverInit
+    if (pRtcMediaStreamTrack != NULL) {
+        if (pRtcMediaStreamTrack->kind == MEDIA_STREAM_TRACK_KIND_VIDEO) {
+            rollingBufferBitratebps = DEFAULT_EXPECTED_VIDEO_BIT_RATE;
+        } else if (pRtcMediaStreamTrack->kind == MEDIA_STREAM_TRACK_KIND_AUDIO) {
+            rollingBufferBitratebps = DEFAULT_EXPECTED_AUDIO_BIT_RATE;
+        } else {
+            rollingBufferBitratebps = DEFAULT_EXPECTED_VIDEO_BIT_RATE;
+        }
+    }
+
+    if (pRtcRtpTransceiverInit != NULL) {
+        direction = pRtcRtpTransceiverInit->direction;
+        rollingBufferDurationSec = pRtcRtpTransceiverInit->rollingBufferDurationSec;
+        rollingBufferBitratebps = pRtcRtpTransceiverInit->rollingBufferBitratebps;
+    }
 
     if (direction == RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY && pRtcMediaStreamTrack == NULL) {
         MEMSET(&videoTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
@@ -1486,6 +1516,8 @@ STATUS addTransceiver(PRtcPeerConnection pPeerConnection, PRtcMediaStreamTrack p
         STRCPY(videoTrack.streamId, "myKvsVideoStream");
         STRCPY(videoTrack.trackId, "myVideoTrack");
         pRtcMediaStreamTrack = &videoTrack;
+        // rollingBufferDurationSec will be DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS
+        // rollingBufferBitratebps will be DEFAULT_EXPECTED_VIDEO_BIT_RATE
     }
 
     switch (pRtcMediaStreamTrack->codec) {
@@ -1515,8 +1547,8 @@ STATUS addTransceiver(PRtcPeerConnection pPeerConnection, PRtcMediaStreamTrack p
     }
 
     // TODO: Add ssrc duplicate detection here not only relying on RAND()
-    CHK_STATUS(createKvsRtpTransceiver(direction, pKvsPeerConnection, ssrc, rtxSsrc, pRtcMediaStreamTrack, NULL, pRtcMediaStreamTrack->codec,
-                                       &pKvsRtpTransceiver));
+    CHK_STATUS(createKvsRtpTransceiver(direction, rollingBufferDurationSec, rollingBufferBitratebps, pKvsPeerConnection, ssrc, rtxSsrc,
+                                       pRtcMediaStreamTrack, NULL, pRtcMediaStreamTrack->codec, &pKvsRtpTransceiver));
     CHK_STATUS(createJitterBuffer(onFrameReadyFunc, onFrameDroppedFunc, depayFunc, DEFAULT_JITTER_BUFFER_MAX_LATENCY, clockRate,
                                   (UINT64) pKvsRtpTransceiver, &pJitterBuffer));
     CHK_STATUS(kvsRtpTransceiverSetJitterBuffer(pKvsRtpTransceiver, pJitterBuffer));
