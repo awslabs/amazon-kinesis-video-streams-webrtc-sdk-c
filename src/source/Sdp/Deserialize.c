@@ -2,6 +2,9 @@
 #include "../Include_i.h"
 #include "kvssdp/sdp_deserializer.h"
 
+// Convert error code from SDP library to STATUS.
+extern STATUS convertSdpErrorCode(SdpResult_t sdpResult);
+
 STATUS parseMediaName(PSessionDescription pSessionDescription, PCHAR mediaValue, SIZE_T mediaValueLength)
 {
     ENTERS();
@@ -32,7 +35,7 @@ STATUS parseSessionAttributes(PSessionDescription pSessionDescription, PCHAR pVa
 
     // Session attributes
     sdpResult = SdpDeserializer_ParseAttribute(pValue, valueLength, &attribute);
-    CHK(sdpResult == SDP_RESULT_OK, sdpResult);
+    CHK(sdpResult == SDP_RESULT_OK, convertSdpErrorCode(sdpResult));
 
     minAttributeLength = MIN(MAX_SDP_ATTRIBUTE_NAME_LENGTH, attribute.attributeNameLength);
     STRNCPY(pSessionDescription->sdpAttributes[pSessionDescription->sessionAttributesCount].attributeName, attribute.pAttributeName,
@@ -70,7 +73,7 @@ STATUS parseMediaAttributes(PSessionDescription pSessionDescription, PCHAR pValu
 
     // Media attributes
     sdpResult = SdpDeserializer_ParseAttribute(pValue, valueLength, &attribute);
-    CHK(sdpResult == SDP_RESULT_OK, sdpResult);
+    CHK(sdpResult == SDP_RESULT_OK, convertSdpErrorCode(sdpResult));
 
     minAttributeNameLength = MIN(MAX_SDP_ATTRIBUTE_NAME_LENGTH, attribute.attributeNameLength);
     STRNCPY(pSessionDescription->mediaDescriptions[mediaIdx].sdpAttributes[currentMediaAttributesCount].attributeName, attribute.pAttributeName,
@@ -106,7 +109,7 @@ STATUS deserializeSessionDescription(PSessionDescription pSessionDescription, PC
     CHK(sdpBytes != NULL, STATUS_SESSION_DESCRIPTION_INVALID_SESSION_DESCRIPTION);
 
     sdpResult = SdpDeserializer_Init(&ctx, sdpBytes, STRLEN(sdpBytes));
-    CHK(sdpResult == SDP_RESULT_OK, sdpResult);
+    CHK(sdpResult == SDP_RESULT_OK, convertSdpErrorCode(sdpResult));
 
     for (; sdpResult == SDP_RESULT_OK;) {
         sdpResult = SdpDeserializer_GetNext(&ctx, &type, (const CHAR**) &pValue, (size_t*) &valueLength);
@@ -118,7 +121,7 @@ STATUS deserializeSessionDescription(PSessionDescription pSessionDescription, PC
             retStatus = STATUS_SUCCESS;
             break;
         } else {
-            retStatus = sdpResult;
+            retStatus = convertSdpErrorCode(sdpResult);
             break;
         }
 

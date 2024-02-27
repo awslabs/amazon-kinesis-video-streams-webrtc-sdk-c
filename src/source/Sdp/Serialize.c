@@ -2,6 +2,9 @@
 #include "../Include_i.h"
 #include "kvssdp/sdp_serializer.h"
 
+// Convert error code from SDP library to STATUS.
+extern STATUS convertSdpErrorCode(SdpResult_t sdpResult);
+
 static STATUS serializeVersion(SdpSerializerContext_t* pCtx, UINT64 version)
 {
     ENTERS();
@@ -86,7 +89,7 @@ static STATUS serializeSessionName(SdpSerializerContext_t* pCtx, PCHAR sessionNa
         } else if (sdpResult == SDP_RESULT_OUT_OF_MEMORY) {
             retStatus = STATUS_BUFFER_TOO_SMALL;
         } else {
-            retStatus = sdpResult;
+            retStatus = convertSdpErrorCode(sdpResult);
         }
     }
 
@@ -112,7 +115,7 @@ static STATUS serializeTimeDescription(SdpSerializerContext_t* pCtx, PSdpTimeDes
     } else if (sdpResult == SDP_RESULT_OUT_OF_MEMORY) {
         retStatus = STATUS_BUFFER_TOO_SMALL;
     } else {
-        retStatus = sdpResult;
+        retStatus = convertSdpErrorCode(sdpResult);
     }
 
 CleanUp:
@@ -145,10 +148,8 @@ static STATUS serializeAttribute(SdpSerializerContext_t* pCtx, PSdpAttributes pS
 
     if (sdpResult == SDP_RESULT_OK) {
         retStatus = STATUS_SUCCESS;
-    } else if (sdpResult == SDP_RESULT_OUT_OF_MEMORY) {
-        retStatus = STATUS_BUFFER_TOO_SMALL;
     } else {
-        retStatus = STATUS_INTERNAL_ERROR;
+        retStatus = convertSdpErrorCode(sdpResult);
     }
 
 CleanUp:
@@ -169,10 +170,8 @@ static STATUS serializeMediaName(SdpSerializerContext_t* pCtx, PCHAR pMediaName,
 
     if (sdpResult == SDP_RESULT_OK) {
         retStatus = STATUS_SUCCESS;
-    } else if (sdpResult == SDP_RESULT_OUT_OF_MEMORY) {
-        retStatus = STATUS_BUFFER_TOO_SMALL;
     } else {
-        retStatus = STATUS_INTERNAL_ERROR;
+        retStatus = convertSdpErrorCode(sdpResult);
     }
 
 CleanUp:
@@ -211,10 +210,8 @@ static STATUS serializeMediaConnectionInformation(SdpSerializerContext_t* pCtx, 
 
         if (sdpResult == SDP_RESULT_OK) {
             retStatus = STATUS_SUCCESS;
-        } else if (sdpResult == SDP_RESULT_OUT_OF_MEMORY) {
-            retStatus = STATUS_BUFFER_TOO_SMALL;
         } else {
-            retStatus = sdpResult;
+            retStatus = convertSdpErrorCode(sdpResult);
         }
     }
 
@@ -235,7 +232,7 @@ STATUS serializeSessionDescription(PSessionDescription pSessionDescription, PCHA
     UINT32 i, j;
 
     sdpResult = SdpSerializer_Init(&ctx, sdpBytes, *sdpBytesLength);
-    CHK(sdpResult == SDP_RESULT_OK, sdpResult);
+    CHK(sdpResult == SDP_RESULT_OK, convertSdpErrorCode(sdpResult));
 
     /* Append version. */
     CHK_STATUS(serializeVersion(&ctx, pSessionDescription->version));
@@ -268,7 +265,7 @@ STATUS serializeSessionDescription(PSessionDescription pSessionDescription, PCHA
     }
 
     sdpResult = SdpSerializer_Finalize(&ctx, (const char**) &pSdpMessage, (size_t*) &sdpMessageLength);
-    CHK(sdpResult == SDP_RESULT_OK, sdpResult);
+    CHK(sdpResult == SDP_RESULT_OK, convertSdpErrorCode(sdpResult));
 
     /* Append NULL terminator. */
     if (*sdpBytesLength >= sdpMessageLength + 1U) {
