@@ -113,15 +113,16 @@ typedef struct {
     TID mediaSenderTid;
     TID audioSenderTid;
     TID videoSenderTid;
+    TID findMemUsageTid;
     TIMER_QUEUE_HANDLE timerQueueHandle;
     UINT32 iceCandidatePairStatsTimerId;
     SampleStreamingMediaType mediaType;
     startRoutine audioSource;
     startRoutine videoSource;
+    startRoutine findMemUsage;
     startRoutine receiveAudioVideoSource;
     RtcOnDataChannel onDataChannel;
     SignalingClientMetrics signalingClientMetrics;
-
     PStackQueue pPendingSignalingMessageForRemoteClient;
     PHashTable pRtcPeerConnectionForRemoteClient;
 

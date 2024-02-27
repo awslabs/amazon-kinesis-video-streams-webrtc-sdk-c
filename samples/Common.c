@@ -2,7 +2,7 @@
 #include "Samples.h"
 
 PSampleConfiguration gSampleConfiguration = NULL;
-
+CHAR fileName[256];
 VOID sigintHandler(INT32 sigNum)
 {
     UNUSED_PARAM(sigNum);
@@ -10,6 +10,69 @@ VOID sigintHandler(INT32 sigNum)
         ATOMIC_STORE_BOOL(&gSampleConfiguration->interrupted, TRUE);
         CVAR_BROADCAST(gSampleConfiguration->cvar);
     }
+}
+
+LONG writeRssAnonToFile(PCHAR message, BOOL writeToFile, BOOL writeRecorded, LONG value) {
+    CHAR filepath[256];
+    CHAR line[256];
+    LONG rssAnon;
+    FILE *outfile = NULL;
+    SNPRINTF(filepath, SIZEOF(filepath), "/proc/self/status");
+
+    DLOGI("File name: %s", fileName);
+    FILE *file = fopen(filepath, "r");
+    if (file == NULL) {
+        DLOGW("Error opening file");
+        return 1;
+    }
+    if(writeToFile) {
+        outfile = fopen(fileName, "a"); // Open for appending
+        if (outfile == NULL) {
+            DLOGW("Error opening file");
+            return 1;
+        }
+    }
+
+    if (outfile != NULL && writeRecorded) {
+        fprintf(outfile, "%s: %ld KB\n", message, value);
+    }
+
+    else {
+        while (fgets(line, sizeof(line), file)) {
+            if (STRNCMP(line, "RssAnon:", 8) == 0) {
+                DLOGI("%s:%s", message, line);
+                SSCANF(line, "RssAnon: %ld kB", &rssAnon);
+                if (outfile != NULL) {
+                    DLOGI("Writing to file");
+                    fprintf(outfile, "%s: %ld KB\n", message, rssAnon);
+                }
+                break;
+            }
+        }
+    }
+
+    if(file != NULL) {
+        fclose(file);
+    }
+    if (outfile != NULL) {
+        fclose(outfile);
+    }
+    return rssAnon;
+}
+
+PVOID findMaxRssAnon(PVOID arg) {
+    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) arg;
+    LONG max = 0, ret = 0;
+    while(!pSampleConfiguration->interrupted) {
+        ret = writeRssAnonToFile(NULL, FALSE, FALSE, 0);
+        if(ret > max) {
+            max = ret;
+        }
+        DLOGI("Current max RssAnon: %ld", max);
+        THREAD_SLEEP(5 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+    }
+    writeRssAnonToFile("Max RssAnon recorded", TRUE, TRUE, max);
+    return NULL;
 }
 
 UINT32 setLogLevel()
@@ -512,6 +575,7 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
 
     if (isMaster) {
         STRCPY(pSampleStreamingSession->peerId, peerId);
+        DLOGI("Client ID while creating streaming session: %s", pSampleStreamingSession->peerId);
     } else {
         STRCPY(pSampleStreamingSession->peerId, SAMPLE_VIEWER_CLIENT_ID);
     }
@@ -912,6 +976,11 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     CHK_STATUS(hashTableCreateWithParams(SAMPLE_HASH_TABLE_BUCKET_COUNT, SAMPLE_HASH_TABLE_BUCKET_LENGTH,
                                          &pSampleConfiguration->pRtcPeerConnectionForRemoteClient));
 
+    if(roleType == SIGNALING_CHANNEL_ROLE_TYPE_MASTER) {
+        STRCPY(fileName, "ram_usage_master.txt");
+    } else {
+        STRCPY(fileName, "ram_usage_viewer.txt");
+    }
 CleanUp:
 
     if (STATUS_FAILED(retStatus)) {
@@ -1207,6 +1276,7 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
             DLOGW("Failed to ICE Server Stats for streaming session %d: %08x", i, retStatus);
         }
         freeSampleStreamingSession(&pSampleConfiguration->sampleStreamingSessionList[i]);
+
     }
     if (locked) {
         MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
@@ -1260,7 +1330,7 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
         freeFileLogger();
     }
     SAFE_MEMFREE(*ppSampleConfiguration);
-
+    writeRssAnonToFile("Pre-application exit", TRUE, FALSE, 0);
 CleanUp:
 
     LEAVES();
@@ -1308,6 +1378,8 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
 
                 CHK_STATUS(freeSampleStreamingSession(&pSampleStreamingSession));
                 sessionFreed = TRUE;
+                DLOGI("Freeing session: %d", i);
+                writeRssAnonToFile("Post viewer disconnect", TRUE, FALSE, 0);
             }
         }
 
@@ -1431,7 +1503,8 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
             // Check if we already have an ongoing master session with the same peer
             CHK_ERR(!peerConnectionFound, STATUS_INVALID_OPERATION, "Peer connection %s is in progress",
                     pReceivedSignalingMessage->signalingMessage.peerClientId);
-
+            DLOGI("Client ID: %s", pReceivedSignalingMessage->signalingMessage.peerClientId);
+            writeRssAnonToFile("Pre-offer", TRUE, FALSE, 0);
             /*
              * Create new streaming session for each offer, then insert the client id and streaming session into
              * pRtcPeerConnectionForRemoteClient for subsequent ice candidate messages. Lastly check if there is
@@ -1472,6 +1545,10 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
             freeStreamingSession = FALSE;
 
             startStats = pSampleConfiguration->iceCandidatePairStatsTimerId == MAX_UINT32;
+            pSampleConfiguration->findMemUsage = findMaxRssAnon;
+            if (pSampleConfiguration->findMemUsage != NULL) {
+                THREAD_CREATE(&pSampleConfiguration->findMemUsageTid, pSampleConfiguration->findMemUsage, (PVOID) pSampleConfiguration);
+            }
             break;
 
         case SIGNALING_MESSAGE_TYPE_ANSWER:
