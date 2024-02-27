@@ -29,7 +29,6 @@ typedef struct {
 STATUS initializeLibrary(PAppCtx);
 STATUS deinitializeLibrary();
 STATUS initializeAppCtx(PAppCtx, PCHAR, PCHAR);
-STATUS initializeSignaling(PAppCtx);
 
 #ifdef __cplusplus
 }

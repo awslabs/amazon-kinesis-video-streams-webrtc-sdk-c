@@ -37,24 +37,8 @@ STATUS initializeAppCtx(PAppCtx pAppCtx, PCHAR channelName, PCHAR region) {
     pAppCtx->signalingCtx.channelInfo.pChannelName = channelName;
     pAppCtx->signalingCtx.channelInfo.pRegion = region;
     pAppCtx->signalingCtx.clientInfo.loggingLevel = pAppCtx->logLevel;
-    CleanUp:
-    return retStatus;
-}
-
-STATUS initializeSignaling(PAppCtx pAppCtx)
-{
-    STATUS retStatus = STATUS_SUCCESS;
-//    pAppCtx->signalingClientCallbacks.messageReceivedFn = signalingMessageReceived;
-    STRCPY(pAppCtx->signalingCtx.clientInfo.clientId, "ProducerMaster");
-    CHK_STATUS(createSignalingClientSync(&pAppCtx->signalingCtx.clientInfo, &pAppCtx->signalingCtx.channelInfo,
-                                         &pAppCtx->signalingCtx.signalingClientCallbacks, pAppCtx->signalingCtx.pCredentialProvider,
-                                         &pAppCtx->signalingCtx.signalingClientHandle));
-
-    // Enable the processing of the messages
-    CHK_STATUS(signalingClientFetchSync(pAppCtx->signalingCtx.signalingClientHandle));
-    CHK_STATUS(signalingClientConnectSync(pAppCtx->signalingCtx.signalingClientHandle));
-
-    CleanUp:
+    initializeSignaling(&pAppCtx->signalingCtx);
+CleanUp:
     return retStatus;
 }
 

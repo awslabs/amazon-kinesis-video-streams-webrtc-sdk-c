@@ -8,6 +8,8 @@ extern "C" {
 
 #include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
 
+#define CA_CERT_PEM_FILE_EXTENSION ".pem"
+
 typedef struct {
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -15,6 +17,8 @@ typedef struct {
     PAwsCredentialProvider pCredentialProvider;
     SIGNALING_CLIENT_HANDLE signalingClientHandle;
 } SignalingCtx, *PSignalingCtx;
+
+STATUS initializeSignaling(PSignalingCtx);
 
 #ifdef __cplusplus
 }
