@@ -3,10 +3,12 @@
 
 PSampleConfiguration gSampleConfiguration = NULL;
 CHAR fileName[256];
+
 VOID sigintHandler(INT32 sigNum)
 {
     UNUSED_PARAM(sigNum);
     if (gSampleConfiguration != NULL) {
+        DLOGI("Interrupted.......");
         ATOMIC_STORE_BOOL(&gSampleConfiguration->interrupted, TRUE);
         CVAR_BROADCAST(gSampleConfiguration->cvar);
     }
@@ -63,7 +65,7 @@ LONG writeRssAnonToFile(PCHAR message, BOOL writeToFile, BOOL writeRecorded, LON
 PVOID findMaxRssAnon(PVOID arg) {
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) arg;
     LONG max = 0, ret = 0;
-    while(!pSampleConfiguration->interrupted) {
+    while(!gSampleConfiguration->interrupted) {
         ret = writeRssAnonToFile(NULL, FALSE, FALSE, 0);
         if(ret > max) {
             max = ret;
@@ -1352,7 +1354,6 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
         // Keep the main set of operations interlocked until cvar wait which would atomically unlock
         MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
         sampleConfigurationObjLockLocked = TRUE;
-
         // scan and cleanup terminated streaming session
         for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
             if (ATOMIC_LOAD_BOOL(&pSampleConfiguration->sampleStreamingSessionList[i]->terminateFlag)) {
