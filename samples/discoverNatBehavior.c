@@ -54,8 +54,8 @@ INT32 main(INT32 argc, CHAR** argv)
             pHostnamePostfix = KINESIS_VIDEO_STUN_URL_POSTFIX_CN;
         }
         defaultStunHostName = (PCHAR) MEMALLOC((MAX_ICE_CONFIG_URI_LEN + 1) * SIZEOF(CHAR));
+        SNPRINTF(defaultStunHostName, MAX_ICE_CONFIG_URI_LEN + 1, KINESIS_VIDEO_STUN_URL, pRegion, pHostnamePostfix);
         stunHostname = defaultStunHostName;
-        SNPRINTF(stunHostname, MAX_ICE_CONFIG_URI_LEN + 1, KINESIS_VIDEO_STUN_URL, pRegion, pHostnamePostfix);
     }
 
     DLOGI("Using stun host: %s, local network interface %s.", stunHostname, interfaceName);
