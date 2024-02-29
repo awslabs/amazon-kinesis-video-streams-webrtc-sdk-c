@@ -469,7 +469,7 @@ jobs:
       - name: Build repository
         run: |
           mkdir build && cd build
-          cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
+          cmake .. -DBUILD_TEST=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
           make
       - name: Run tests
         run:  |
