@@ -7,8 +7,13 @@ STATUS convertSdpErrorCode(SdpResult_t sdpResult)
     STATUS retStatus = STATUS_SUCCESS;
 
     switch (sdpResult) {
+        case SDP_RESULT_OK:
+        case SDP_RESULT_MESSAGE_END:
+            /* SDP_RESULT_MESSAGE_END means content is completely parsed, no error happens. */
+            retStatus = STATUS_SUCCESS;
+            break;
         case SDP_RESULT_BAD_PARAM:
-            retStatus = STATUS_SDP_BAD_PARAM;
+            retStatus = STATUS_INVALID_ARG;
             break;
         case SDP_RESULT_MESSAGE_MALFORMED:
             retStatus = STATUS_SDP_MESSAGE_MALFORMED;

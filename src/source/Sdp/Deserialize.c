@@ -116,10 +116,6 @@ STATUS deserializeSessionDescription(PSessionDescription pSessionDescription, PC
 
         if (sdpResult == SDP_RESULT_OK) {
             /* Do nothing. */
-        } else if (sdpResult == SDP_RESULT_MESSAGE_END) {
-            /* Reset return value when done. */
-            retStatus = STATUS_SUCCESS;
-            break;
         } else {
             retStatus = convertSdpErrorCode(sdpResult);
             break;
