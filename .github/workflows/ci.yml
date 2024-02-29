@@ -450,7 +450,7 @@ jobs:
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
 
   mbedtls-mac-os-build-clang:
-    runs-on: macos-11
+    runs-on: macos-latest
     env:
       CC: /usr/bin/clang
       CXX: /usr/bin/clang++
