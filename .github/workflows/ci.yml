@@ -448,6 +448,34 @@ jobs:
         run:  |
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+
+  mbedtls-mac-os-build-clang:
+    runs-on: macos-11
+    env:
+      CC: /usr/bin/clang
+      CXX: /usr/bin/clang++
+      AWS_KVS_LOG_LEVEL: 2
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Build repository
+        run: |
+          mkdir build && cd build
+          cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
+          make
+      - name: Run tests
+        run:  |
+          cd build
+          ./tst/webrtc_client_test
+
   sample-check:
     if: github.repository == 'awslabs/amazon-kinesis-video-streams-webrtc-sdk-c'
     runs-on: ubuntu-latest
