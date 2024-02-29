@@ -5,6 +5,7 @@ on:
     branches:
       - develop
       - master
+      - mbedtls-update
   pull_request:
     branches:
       - develop
