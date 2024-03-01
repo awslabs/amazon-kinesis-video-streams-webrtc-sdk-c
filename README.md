@@ -413,6 +413,19 @@ Similar to the heap profile, you only need to specify the following environment 
 
 More information about what environment variables you can configure can be found [here](https://gperftools.github.io/gperftools/cpuprofile.html)
 
+### WebRTC Network Compatibility Checker
+
+This program allows you to understand the network compatibility for WebRTC usage. By providing necessary parameters, it detects NAT behavior and filtering behavior and tells you if you can work with a particular STUN server or not. By default, it uses the STUN server from your environment variable `AWS_DEFAULT_REGION` if present. If not, it uses the STUN server from `us-west-2`.
+#### How to Use
+
+1. **Parameters**:
+   - `-i network-interface-name`: Specify the network interface name.
+   - `-s stun-hostname`: Specify the STUN server hostname.
+
+2. **Example**:
+   ```bash
+   ./discoverNatBehavior -i eth0 -s stun.example.com
+
 ### Filtering network interfaces
 
 This is useful to reduce candidate gathering time when it is known for certain network interfaces to not work well. A sample callback is available in `Common.c`. The `iceSetInterfaceFilterFunc` in `KvsRtcConfiguration` must be set to the required callback. In the sample, it can be done this way in `initializePeerConnection()`: 
