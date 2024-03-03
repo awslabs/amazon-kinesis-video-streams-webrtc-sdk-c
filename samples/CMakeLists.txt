@@ -45,6 +45,7 @@ link_directories(${OPEN_SRC_INSTALL_PREFIX}/lib)
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/opusSampleFrames" DESTINATION .)
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/h264SampleFrames" DESTINATION .)
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/h265SampleFrames" DESTINATION .)
+file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/aacSampleFrames" DESTINATION .)
 
 add_executable(
   kvsWebrtcClientMaster

@@ -22,6 +22,7 @@ option(ENABLE_DATA_CHANNEL "Enable support for data channel" ON)
 option(INSTRUMENTED_ALLOCATORS "Enable memory instrumentation" OFF)
 option(ENABLE_AWS_SDK_IN_TESTS "Enable support for compiling AWS SDKs for tests" ON)
 option(USE_VIDEO_H265 "Use h265 video frames " ON)
+option(USE_AUDIO_AAC "Use aac audio frames " ON)
 
 # Developer Flags
 option(BUILD_TEST "Build the testing tree." OFF)
@@ -52,6 +53,10 @@ add_definitions(-DDETECTED_GIT_HASH)
 
 if(USE_VIDEO_H265)
   add_definitions(-DUSE_VIDEO_H265)
+endif()
+
+if(USE_AUDIO_AAC)
+  add_definitions(-DUSE_AUDIO_AAC)
 endif()
 
 if(NOT OPEN_SRC_INSTALL_PREFIX OR OPEN_SRC_INSTALL_PREFIX STREQUAL "")
@@ -420,6 +425,7 @@ if (BUILD_SAMPLE)
   file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/samples/opusSampleFrames" DESTINATION .)
   file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/samples/h264SampleFrames" DESTINATION .)
   file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/samples/h265SampleFrames" DESTINATION .)
+  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/samples/aacSampleFrames" DESTINATION .)
 
   add_subdirectory(samples)
 endif()
