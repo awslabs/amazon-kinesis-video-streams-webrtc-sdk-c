@@ -32,6 +32,7 @@ extern "C" {
 #define H264_VALUE      "H264/90000"
 #define H265_VALUE      "H265/90000"
 #define OPUS_VALUE      "opus/48000"
+#define AAC_VALUE      "AAC/16000"
 #define VP8_VALUE       "VP8/90000"
 #define MULAW_VALUE     "PCMU/8000"
 #define ALAW_VALUE      "PCMA/8000"
@@ -44,6 +45,7 @@ extern "C" {
 #define DEFAULT_PAYLOAD_MULAW   (UINT64) 0
 #define DEFAULT_PAYLOAD_ALAW    (UINT64) 8
 #define DEFAULT_PAYLOAD_OPUS    (UINT64) 111
+#define DEFAULT_PAYLOAD_AAC   (UINT64) 96 
 #define DEFAULT_PAYLOAD_VP8     (UINT64) 96
 #define DEFAULT_PAYLOAD_H264    (UINT64) 125
 #define DEFAULT_PAYLOAD_H265  (UINT64) 127
@@ -54,6 +56,7 @@ extern "C" {
 #define DEFAULT_H264_FMTP   (PCHAR) "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f"
 #define DEFAULT_H265_FMTP   (PCHAR) "profile-space=0;profile-id=0;tier-flag=0;level-id=0;interop-constraints=000000000000;sprop-vps=QAEMAf//AIAAAAMAAAMAAAMAAAMAALUCQA==;sprop-sps=QgEBAIAAAAMAAAMAAAMAAAMAAKACgIAtH+W1kkbQzkkktySqSfKSyA==;sprop-pps=RAHBpVgeSA=="
 #define DEFAULT_OPUS_FMTP   (PCHAR) "minptime=10;useinbandfec=1"
+#define DEFAULT_AAC_FMTP   (PCHAR) "profile-level-id=1; mode=AAC-hbr; config=F8F1; SizeLength=13; IndexLength=3; IndexDeltaLength=3"
 #define H264_PROFILE_42E01F 0x42e01f
 // profile-level-id:
 //   A base16 [7] (hexadecimal) representation of the following
@@ -75,6 +78,7 @@ extern "C" {
 
 #define VIDEO_CLOCKRATE (UINT64) 90000
 #define OPUS_CLOCKRATE  (UINT64) 48000
+#define AAC_CLOCKRATE  (UINT64) 16000
 #define PCM_CLOCKRATE   (UINT64) 8000
 
 // https://tools.ietf.org/html/draft-holmer-rmcat-transport-wide-cc-extensions-01
