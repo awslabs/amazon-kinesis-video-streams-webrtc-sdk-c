@@ -149,6 +149,7 @@ STATUS generateJSONSafeString(PCHAR, UINT32);
 #include "Rtp/Codecs/RtpH264Payloader.h"
 #include "Rtp/Codecs/RtpH265Payloader.h"
 #include "Rtp/Codecs/RtpOpusPayloader.h"
+#include "Rtp/Codecs/RtpAacPayloader.h"
 #include "Rtp/Codecs/RtpG711Payloader.h"
 #include "Signaling/FileCache.h"
 #include "Signaling/Signaling.h"

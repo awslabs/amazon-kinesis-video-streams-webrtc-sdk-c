@@ -1281,6 +1281,11 @@ STATUS addTransceiver(PRtcPeerConnection pPeerConnection, PRtcMediaStreamTrack p
             depayFunc = depayOpusFromRtpPayload;
             clockRate = OPUS_CLOCKRATE;
             break;
+	
+        case RTC_CODEC_AAC:
+            depayFunc = depayAacFromRtpPayload;
+			clockRate = AAC_CLOCKRATE;
+            break;
 
         case RTC_CODEC_MULAW:
         case RTC_CODEC_ALAW:
@@ -1358,6 +1363,8 @@ STATUS addSupportedCodec(PRtcPeerConnection pPeerConnection, RTC_CODEC rtcCodec)
 	    CHK_STATUS(hashTablePut(pKvsPeerConnection->pCodecTable, rtcCodec, DEFAULT_PAYLOAD_MULAW));
     } else if (rtcCodec == RTC_CODEC_ALAW) {
 	    CHK_STATUS(hashTablePut(pKvsPeerConnection->pCodecTable, rtcCodec, DEFAULT_PAYLOAD_ALAW));
+    } else if (rtcCodec == RTC_CODEC_AAC) {
+	    CHK_STATUS(hashTablePut(pKvsPeerConnection->pCodecTable, rtcCodec, DEFAULT_PAYLOAD_AAC));
     } else {
 	    CHK_STATUS(hashTablePut(pKvsPeerConnection->pCodecTable, rtcCodec, 0));
     }
