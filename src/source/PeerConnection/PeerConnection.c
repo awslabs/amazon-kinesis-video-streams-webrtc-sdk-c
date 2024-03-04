@@ -994,7 +994,8 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
     PDoubleListNode pCurNode = NULL;
     UINT64 item = 0;
     UINT64 startTime;
-    UINT32 count;
+    UINT32 twccHashTableCount = 0;
+    BOOL twccLocked = FALSE;
 
     CHK(ppPeerConnection != NULL, STATUS_NULL_ARG);
 
@@ -1069,12 +1070,17 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
 
     if (pKvsPeerConnection->pTwccManager != NULL) {
         MUTEX_LOCK(pKvsPeerConnection->twccLock);
-        hashTableGetCount(pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable, &count);
-        DLOGI("Number of TWCC info packets in memory: %d", count);
-        hashTableIterateEntries(pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable, 0, freeHashEntry);
-        hashTableFree(pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable);
+        twccLocked = TRUE;
+        if (STATUS_SUCCEEDED(hashTableGetCount(pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable, &twccHashTableCount))) {
+            DLOGI("Number of TWCC info packets in memory: %d", twccHashTableCount);
+        }
+        CHK_LOG_ERR(hashTableIterateEntries(pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable, 0, freeHashEntry));
+        CHK_LOG_ERR(hashTableFree(pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable));
         if (IS_VALID_MUTEX_VALUE(pKvsPeerConnection->twccLock)) {
-            MUTEX_UNLOCK(pKvsPeerConnection->twccLock);
+            if (twccLocked) {
+                MUTEX_UNLOCK(pKvsPeerConnection->twccLock);
+                twccLocked = FALSE;
+            }
             MUTEX_FREE(pKvsPeerConnection->twccLock);
         }
         SAFE_MEMFREE(pKvsPeerConnection->pTwccManager);
@@ -1781,19 +1787,19 @@ static STATUS twccRollingWindowDeletion(PKvsPeerConnection pKvsPeerConnection, P
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    UINT16 updatedSeqNum;
+    UINT16 updatedSeqNum = 0;
     PTwccRtpPacketInfo tempTwccRtpPktInfo = NULL;
-    UINT64 ageOfOldest, firstRtpTime;
-    UINT64 value;
+    UINT64 ageOfOldest = 0, firstRtpTime = 0;
+    UINT64 twccPacketValue = 0;
     BOOL isCheckComplete = FALSE;
 
-    CHK(pKvsPeerConnection != NULL && pRtpPacket != NULL, STATUS_NULL_ARG);
+    CHK(pKvsPeerConnection != NULL && pRtpPacket != NULL && pKvsPeerConnection->pTwccManager != NULL, STATUS_NULL_ARG);
 
     updatedSeqNum = pKvsPeerConnection->pTwccManager->firstSeqNumInRollingWindow;
     do {
         // If the seqNum is not present in the hash table, it is ok. We move on to the next
-        if (STATUS_SUCCEEDED(hashTableGet(pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable, updatedSeqNum, &value))) {
-            tempTwccRtpPktInfo = (PTwccRtpPacketInfo) value;
+        if (STATUS_SUCCEEDED(hashTableGet(pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable, updatedSeqNum, &twccPacketValue))) {
+            tempTwccRtpPktInfo = (PTwccRtpPacketInfo) twccPacketValue;
         }
         if (tempTwccRtpPktInfo != NULL) {
             firstRtpTime = tempTwccRtpPktInfo->localTimeKvs;
@@ -1819,6 +1825,8 @@ static STATUS twccRollingWindowDeletion(PKvsPeerConnection pKvsPeerConnection, P
         } else {
             updatedSeqNum++;
         }
+        // reset before next iteration
+        tempTwccRtpPktInfo = NULL;
     } while (!isCheckComplete && updatedSeqNum != (seqNum + 1));
 
     // Update regardless. The loop checks until current RTP packets seq number irrespective of the failure
@@ -1833,8 +1841,8 @@ STATUS twccManagerOnPacketSent(PKvsPeerConnection pKvsPeerConnection, PRtpPacket
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
-    UINT16 seqNum;
-    PTwccRtpPacketInfo pTwccRtpPktInfo;
+    UINT16 seqNum = 0;
+    PTwccRtpPacketInfo pTwccRtpPktInfo = NULL;
 
     CHK(pKvsPeerConnection != NULL && pRtpPacket != NULL, STATUS_NULL_ARG);
     CHK(pKvsPeerConnection->onSenderBandwidthEstimation != NULL && pKvsPeerConnection->pTwccManager != NULL, STATUS_SUCCESS);

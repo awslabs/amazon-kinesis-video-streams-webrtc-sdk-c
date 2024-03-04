@@ -362,11 +362,11 @@ In order to listen in on TWCC reports, the application must set up a callback us
                                                          sampleSenderBandwidthEstimationHandler));
 ```
 
-Note that TWCC is enabled by default in the SDK. In order to disable it, set the `disableSenderSideBandwidthEstimation` flag to TRUE. For example,
+Note that TWCC is disabled by default in the SDK samples. In order to enable it, set the `disableSenderSideBandwidthEstimation` flag to FALSE. For example,
 
 ```
 RtcConfiguration configuration;
-configuration.kvsRtcConfiguration.disableSenderSideBandwidthEstimation = TRUE;
+configuration.kvsRtcConfiguration.disableSenderSideBandwidthEstimation = FALSE;
 ```
 
 
