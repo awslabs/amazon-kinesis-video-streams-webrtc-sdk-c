@@ -155,6 +155,7 @@ You can pass the following options to `cmake ..`.
 * `-DUNDEFINED_BEHAVIOR_SANITIZER` -- Build with UndefinedBehaviorSanitizer
 * `-DCMAKE_BUILD_TYPE` -- Build Release/Debug libraries. By default, the SDK generates Release build. The standard options are listed [here](https://cmake.org/cmake/help/latest/manual/cmake-buildsystem.7.html#default-and-custom-configurations)
 * `-DLINK_PROFILER` -- Link with gperftools (available profiler options are listed [here](https://github.com/gperftools/gperftools))
+* `-DPKG_CONFIG_EXECUTABLE` -- Set pkg config path. This might be required to find gstreamer's pkg config specifically on Windows.
 
 To clean up the `open-source` and `build` folders from previous build, use `cmake --build . --target clean` from the `build` folder
 
