@@ -1,5 +1,5 @@
-<map id="serializeTimeDescription" name="serializeTimeDescription">
-<area shape="rect" id="node1" title=" " alt="" coords="716,64,900,91"/>
+<map id="convertSdpErrorCode" name="convertSdpErrorCode">
+<area shape="rect" id="node1" title=" " alt="" coords="716,64,875,91"/>
 <area shape="rect" id="node2" href="$Sdp_8h.html#a1e5c0750dbf14d9f67ad7ee68c417ac4" title=" " alt="" coords="467,64,668,91"/>
 <area shape="rect" id="node3" href="$group__PublicMemberFunctions.html#ga1779d268b0993835d80f0948281e2274" title="Populate the provided answer that contains an RFC 3264 offer with the supported configurations for th..." alt="" coords="244,5,339,32"/>
 <area shape="rect" id="node4" href="$group__PublicMemberFunctions.html#ga19dfcbdcf4d136b56ce366fe2fb9bfb3" title=" " alt="" coords="194,57,389,98"/>
