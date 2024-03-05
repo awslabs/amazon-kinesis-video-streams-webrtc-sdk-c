@@ -1,4 +1,4 @@
-test CI change
+test CI change.
 
 <h1 align="center">
   Amazon Kinesis Video Streams C WebRTC SDK
