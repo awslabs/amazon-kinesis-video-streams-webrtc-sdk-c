@@ -205,20 +205,11 @@ if(BUILD_DEPENDENCIES)
 
   build_dependency(srtp ${BUILD_ARGS})
 
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -I${CMAKE_CURRENT_SOURCE_DIR}/configs")
-  set(BUILD_ARGS
-      -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
-      -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-      -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
-
-  build_dependency(kvssdp ${BUILD_ARGS})
-
   set(BUILD_ARGS
       -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
       -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
 
   build_dependency(usrsctp ${BUILD_ARGS})
-
 
   if(BUILD_TEST)
     build_dependency(gtest)
@@ -375,11 +366,10 @@ endif()
 
 file(GLOB WEBRTC_SIGNALING_CLIENT_SOURCE_FILES "src/source/Signaling/*.c")
 
+
 include_directories(${OPEN_SRC_INCLUDE_DIRS})
 include_directories(${OPEN_SRC_INSTALL_PREFIX}/include)
 include_directories(${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/include)
-# include sdp_config.h
-include_directories(src/source/Sdp/kvssdp)
 
 add_library(kvsWebrtcClient ${LINKAGE} ${WEBRTC_CLIENT_SOURCE_FILES} ${DATACHANNEL_SRC})
 
@@ -398,7 +388,6 @@ target_link_libraries(
   kvsWebrtcClient
   PRIVATE kvspicUtils
           kvspicState
-          kvssdp
           ${CMAKE_THREAD_LIBS_INIT}
           ${OPENSSL_SSL_LIBRARY}
           ${OPENSSL_CRYPTO_LIBRARY}
@@ -419,8 +408,7 @@ target_link_libraries(
   kvsWebrtcSignalingClient
   PUBLIC
         kvsCommonLws
-        ${LIBWEBSOCKETS_LIBRARIES}
-        kvssdp
+        ${LIBWEBSOCKETS_LIBRARIES} 
   PRIVATE kvspicUtils
          kvspicState
          ${CMAKE_THREAD_LIBS_INIT}

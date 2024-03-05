@@ -736,7 +736,8 @@ a=rtpmap:111 opus/48000/2
 a=rtcp-fb:111 transport-cc
 a=fmtp:111 minptime=10;useinbandfec=1
 a=ssrc:331864867 cname:jyxeGEm09Qe6m8dq
-a=ssrc:331864867 msid:2e3ca9ff-0c7e-4b9d-9471-2ce80de74b84 757d07a0-892a-46e7-a13d-b43fc3ef68c7)");
+a=ssrc:331864867 msid:2e3ca9ff-0c7e-4b9d-9471-2ce80de74b84 757d07a0-892a-46e7-a13d-b43fc3ef68c7
+    )");
 
     auto videoSdp = std::string(R"(m=video 9 UDP/TLS/RTP/SAVPF 96 97 102 103 104 105
 c=IN IP4 0.0.0.0
@@ -766,7 +767,8 @@ a=ssrc-group:FID 2039979579 916070044
 a=ssrc:2039979579 cname:jyxeGEm09Qe6m8dq
 a=ssrc:2039979579 msid:2e3ca9ff-0c7e-4b9d-9471-2ce80de74b84 8c1b020b-e6ab-4002-8450-b816ebff0219
 a=ssrc:916070044 cname:jyxeGEm09Qe6m8dq
-a=ssrc:916070044 msid:2e3ca9ff-0c7e-4b9d-9471-2ce80de74b84 8c1b020b-e6ab-4002-8450-b816ebff0219)");
+a=ssrc:916070044 msid:2e3ca9ff-0c7e-4b9d-9471-2ce80de74b84 8c1b020b-e6ab-4002-8450-b816ebff0219
+    )");
 
     auto unsupportedVideoSdp = std::string(R"(m=video 9 UDP/TLS/RTP/SAVPF 200 230 250 270
 c=IN IP4 0.0.0.0
@@ -787,7 +789,8 @@ a=fmtp:230 apt=0
 a=rtpmap:250 xyz/90000
 a=rtpmap:270 xyz/90000
 a=fmtp:270 apt=100
-a=ssrc:916070099 msid:2e3ca9ff-0c7e-4b9d-9471-2ce80de74b84 8c1b020b-e6ab-4002-8450-b816ebff0219)");
+a=ssrc:916070099 msid:2e3ca9ff-0c7e-4b9d-9471-2ce80de74b84 8c1b020b-e6ab-4002-8450-b816ebff0219
+    )");
 
     auto unsupportedAudioSdp = std::string(R"(m=audio 9 UDP/TLS/RTP/SAVPF 500
 c=IN IP4 0.0.0.0
@@ -808,7 +811,8 @@ a=rtpmap:111 opus/48000/2
 a=rtcp-fb:111 transport-cc
 a=fmtp:111 minptime=10;useinbandfec=1
 a=ssrc:331864867 cname:jyxeGEm09Qe6m8dq
-a=ssrc:331864867 msid:2e3ca9ff-0c7e-4b9d-9471-2ce80de74b84 757d07a0-892a-46e7-a13d-b43fc3ef68c7)");
+a=ssrc:331864867 msid:2e3ca9ff-0c7e-4b9d-9471-2ce80de74b84 757d07a0-892a-46e7-a13d-b43fc3ef68c7
+    )");
 
     offerBase += "\n";
     offerBase += audioSdp;
