@@ -3,7 +3,7 @@
 #include <gst/app/gstappsink.h>
 
 extern PSampleConfiguration gSampleConfiguration;
-
+GstElement *pipeline = NULL;
 // #define VERBOSE
 
 GstFlowReturn on_new_sample(GstElement* sink, gpointer data, UINT64 trackid)
@@ -62,6 +62,26 @@ GstFlowReturn on_new_sample(GstElement* sink, gpointer data, UINT64 trackid)
         for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
             pSampleStreamingSession = pSampleConfiguration->sampleStreamingSessionList[i];
             frame.index = (UINT32) ATOMIC_INCREMENT(&pSampleStreamingSession->frameIndex);
+            if(pipeline != NULL) {
+                GstElement *encoder = gst_bin_get_by_name(GST_BIN(pipeline), "my_encoder");
+                if(encoder != NULL) {
+                    guint bitrate;
+                    g_object_get(G_OBJECT(encoder), "bitrate", &bitrate, NULL);
+                    pSampleStreamingSession->currentVideoBitrate = (UINT64) bitrate;
+                    DLOGI("Current encoder bitrate: %u kbps", pSampleStreamingSession->currentVideoBitrate);
+                    if(pSampleStreamingSession->newVideoBitrate != 0) {
+                        DLOGI("New bitrate: %d", pSampleStreamingSession->newVideoBitrate);
+                        bitrate = (guint) (pSampleStreamingSession->newVideoBitrate);
+                        pSampleStreamingSession->newVideoBitrate = 0;
+                        g_object_set(G_OBJECT(encoder), "bitrate", bitrate, NULL);
+                    }
+
+                } else {
+                    DLOGI("Encoder not found in pipeline");
+                }
+            } else {
+                DLOGI("pipeline is null");
+            }
 
             if (trackid == DEFAULT_AUDIO_TRACK_ID) {
                 pRtcRtpTransceiver = pSampleStreamingSession->pAudioRtcRtpTransceiver;
@@ -120,7 +140,7 @@ GstFlowReturn on_new_sample_audio(GstElement* sink, gpointer data)
 PVOID sendGstreamerAudioVideo(PVOID args)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    GstElement *appsinkVideo = NULL, *appsinkAudio = NULL, *pipeline = NULL;
+    GstElement *appsinkVideo = NULL, *appsinkAudio = NULL;
     GstBus* bus;
     GstMessage* msg;
     GError* error = NULL;
@@ -177,10 +197,9 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                                          &error);
                     break;
                 }
-                case DEVICE_SOURCE: {
-                    pipeline = gst_parse_launch("autovideosrc ! queue ! videoconvert ! videoscale ! video/x-raw,width=1280,height=720 ! "
-                                                "videorate ! video/x-raw,framerate=25/1 ! "
-                                                "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
+                case DEVICE_SOURCE: {xw
+                    pipeline = gst_parse_launch("autovideosrc ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
+                                                "x264enc name=my_encoder bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
                                                 "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE "
                                                 "emit-signals=TRUE name=appsink-video",
                                                 &error);
@@ -221,9 +240,8 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                 }
                 case DEVICE_SOURCE: {
                     pipeline =
-                        gst_parse_launch("autovideosrc ! queue ! videoconvert ! videoscale ! video/x-raw,width=1280,height=720 ! "
-                                         "videorate ! video/x-raw,framerate=25/1 ! "
-                                         "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
+                        gst_parse_launch("autovideosrc ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
+                                         "x264enc name=my_encoder bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
                                          "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE emit-signals=TRUE "
                                          "name=appsink-video autoaudiosrc ! "
                                          "queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample ! opusenc ! "

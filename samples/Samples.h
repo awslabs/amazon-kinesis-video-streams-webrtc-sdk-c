@@ -208,6 +208,10 @@ struct __SampleStreamingSession {
     CHAR pPeerConnectionMetricsMessage[MAX_PEER_CONNECTION_METRICS_MESSAGE_SIZE];
     CHAR pSignalingClientMetricsMessage[MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE];
     CHAR pIceAgentMetricsMessage[MAX_ICE_AGENT_METRICS_MESSAGE_SIZE];
+    UINT64 currentVideoBitrate;
+    UINT64 newVideoBitrate;
+    UINT64 newAudioBitrate;
+    UINT64 currentAudioBitrate;
 };
 
 // TODO this should all be in a higher webrtccontext layer above PeerConnection
