@@ -554,7 +554,7 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
 
     ATOMIC_STORE_BOOL(&pSampleStreamingSession->terminateFlag, FALSE);
     ATOMIC_STORE_BOOL(&pSampleStreamingSession->candidateGatheringDone, FALSE);
-
+    pSampleStreamingSession->newVideoBitrate = 0;
     pSampleStreamingSession->peerConnectionMetrics.peerConnectionStats.peerConnectionStartTime = GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
     // Flag to enable SDK to calculate selected ice server, local, remote and candidate pair stats.
     pSampleConfiguration->enableIceStats = FALSE;
@@ -709,23 +709,23 @@ VOID sampleBandwidthEstimationHandler(UINT64 customData, DOUBLE maximumBitrate)
 VOID sampleSenderBandwidthEstimationHandler(UINT64 customData, UINT32 txBytes, UINT32 rxBytes, UINT32 txPacketsCnt, UINT32 rxPacketsCnt,
                                             UINT64 duration)
 {
-    UNUSED_PARAM(customData);
     UNUSED_PARAM(duration);
     UNUSED_PARAM(rxBytes);
     UNUSED_PARAM(txBytes);
     UINT32 lostPacketsCnt = txPacketsCnt - rxPacketsCnt;
     UINT32 percentLost = lostPacketsCnt * 100 / txPacketsCnt;
-    UINT32 bitrate = 1024;
+    PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) customData;
+    UINT64 bitrate;
     if (percentLost < 2) {
         // increase encoder bitrate by 2 percent
-        bitrate *= 1.02f;
+        bitrate = pSampleStreamingSession->currentVideoBitrate * 1.02f;
     } else if (percentLost > 5) {
         // decrease encoder bitrate by packet loss percent
-        bitrate *= (1.0f - percentLost / 100.0f);
+        bitrate = pSampleStreamingSession->currentVideoBitrate * (1.0f - percentLost / 100.0f);
     }
     // otherwise keep bitrate the same
-
-    DLOGV("received sender bitrate estimation: suggested bitrate %u sent: %u bytes %u packets received: %u bytes %u packets in %lu msec", bitrate,
+    pSampleStreamingSession->newVideoBitrate = bitrate;
+    DLOGI("received sender bitrate estimation: suggested bitrate %u kbps sent: %u bytes %u packets received: %u bytes %u packets in %lu msec, ", bitrate,
           txBytes, txPacketsCnt, rxBytes, rxPacketsCnt, duration / 10000ULL);
 }
 
