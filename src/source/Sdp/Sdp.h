@@ -11,37 +11,11 @@
 extern "C" {
 #endif
 
-#define SDP_ATTRIBUTE_MARKER              "a="
-#define SDP_BANDWIDTH_MARKER              "b="
-#define SDP_CONNECTION_INFORMATION_MARKER "c="
-#define SDP_EMAIL_ADDRESS_MARKER          "e="
-#define SDP_ENCRYPTION_KEY_MARKER         "k="
-
-// Media title information or Session information
-#define SDP_INFORMATION_MARKER "i="
-
-#define SDP_MEDIA_NAME_MARKER       "m="
-#define SDP_ORIGIN_MARKER           "o="
-#define SDP_PHONE_NUMBER_MARKER     "p="
-#define SDP_SESSION_NAME_MARKER     "s="
-#define SDP_TIME_DESCRIPTION_MARKER "t="
-#define SDP_TIMEZONE_MARKER         "z="
-#define SDP_URI_MARKER              "u="
-#define SDP_VERSION_MARKER          "v="
-
-// The sequence CRLF (0x0d0a) is used to end a record, although parsers SHOULD be
-// tolerant and also accept records terminated with a single newline
-// character.
-// Reference: https://tools.ietf.org/html/rfc4566#section-5
-#define SDP_LINE_SEPARATOR "\r\n"
-
 #define SDP_CANDIDATE_TYPE_HOST    "host"
 #define SDP_CANDIDATE_TYPE_SERFLX  "srflx"
 #define SDP_CANDIDATE_TYPE_PRFLX   "prflx"
 #define SDP_CANDIDATE_TYPE_RELAY   "relay"
 #define SDP_CANDIDATE_TYPE_UNKNOWN "unknown"
-
-#define SDP_ATTRIBUTE_LENGTH 2
 
 #define MAX_SDP_OFFSET_LENGTH                255
 #define MAX_SDP_ENCRYPTION_KEY_METHOD_LENGTH 255
@@ -91,8 +65,7 @@ extern "C" {
 #define MAX_SDP_SESSION_EMAIL_ADDRESS_LENGTH 255
 #define MAX_SDP_SESSION_PHONE_NUMBER_LENGTH  255
 
-#define MAX_SDP_TOKEN_LENGTH 128
-#define MAX_SDP_FMTP_VALUES  64
+#define MAX_SDP_FMTP_VALUES 64
 
 #define MAX_SDP_SESSION_TIME_DESCRIPTION_COUNT 2
 #define MAX_SDP_SESSION_TIMEZONE_COUNT         2
@@ -236,10 +209,6 @@ STATUS deserializeSessionDescription(PSessionDescription, PCHAR);
 
 // Return code maps to a code if we are trying to serialize an invalid session_description
 STATUS serializeSessionDescription(PSessionDescription, PCHAR, PUINT32);
-
-STATUS parseMediaName(PSessionDescription, PCHAR, UINT32);
-STATUS parseSessionAttributes(PSessionDescription, PCHAR, UINT32);
-STATUS parseMediaAttributes(PSessionDescription, PCHAR, UINT32);
 
 #ifdef __cplusplus
 }

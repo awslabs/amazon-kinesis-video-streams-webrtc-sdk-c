@@ -156,6 +156,7 @@ You can pass the following options to `cmake ..`.
 * `-DCMAKE_BUILD_TYPE` -- Build Release/Debug libraries. By default, the SDK generates Release build. The standard options are listed [here](https://cmake.org/cmake/help/latest/manual/cmake-buildsystem.7.html#default-and-custom-configurations)
 * `-DLINK_PROFILER` -- Link with gperftools (available profiler options are listed [here](https://github.com/gperftools/gperftools))
 * `-DKVS_STACK_SIZE` -- Default stack size for threads created using THREAD_CREATE()
+* `-DPKG_CONFIG_EXECUTABLE` -- Set pkg config path. This might be required to find gstreamer's pkg config specifically on Windows.
 
 To clean up the `open-source` and `build` folders from previous build, use `cmake --build . --target clean` from the `build` folder
 
@@ -413,6 +414,19 @@ Similar to the heap profile, you only need to specify the following environment 
 `CPUPROFILE=/tmp/cpu.prof /path/to/your/binary`
 
 More information about what environment variables you can configure can be found [here](https://gperftools.github.io/gperftools/cpuprofile.html)
+
+### WebRTC Network Compatibility Checker
+
+This program allows you to understand the network compatibility for WebRTC usage. By providing necessary parameters, it detects NAT behavior and filtering behavior and tells you if you can work with a particular STUN server or not. By default, it uses the STUN server from your environment variable `AWS_DEFAULT_REGION` if present. If not, it uses the STUN server from `us-west-2`.
+#### How to Use
+
+1. **Parameters**:
+   - `-i network-interface-name`: Specify the network interface name.
+   - `-s stun-hostname`: Specify the STUN server hostname.
+
+2. **Example**:
+   ```bash
+   ./discoverNatBehavior -i eth0 -s stun.example.com
 
 ### Filtering network interfaces
 

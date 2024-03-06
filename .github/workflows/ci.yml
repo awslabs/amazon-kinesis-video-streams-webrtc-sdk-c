@@ -447,6 +447,34 @@ jobs:
         run:  |
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+
+  mbedtls-mac-os-build-clang:
+    runs-on: macos-latest
+    env:
+      CC: /usr/bin/clang
+      CXX: /usr/bin/clang++
+      AWS_KVS_LOG_LEVEL: 2
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Build repository
+        run: |
+          mkdir build && cd build
+          cmake .. -DBUILD_TEST=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
+          make
+      - name: Run tests
+        run:  |
+          cd build
+          ./tst/webrtc_client_test
+
   sample-check:
     if: github.repository == 'awslabs/amazon-kinesis-video-streams-webrtc-sdk-c'
     runs-on: ubuntu-latest
@@ -580,7 +608,7 @@ jobs:
         shell: powershell
         run: |
           $env:Path += ';C:\webrtc\open-source\bin;C:\tools\pthreads-w32-2-9-1-release\Pre-built.2\dll\x64;C:\webrtc\build'
-          & "C:\webrtc\build\tst\webrtc_client_test.exe" --gtest_filter="-SignalingApiFunctionalityTest.receivingIceConfigOffer_SlowClockSkew:SignalingApiFunctionalityTest.iceServerConfigRefreshConnectedAuthExpiration:SignalingApiFunctionalityTest.receivingIceConfigOffer_FastClockSkew:SignalingApiFunctionalityTest.receivingIceConfigOffer_FastClockSkew_VerifyOffsetRemovedWhenClockFixed:DataChannelFunctionalityTest.*:DtlsApiTest.*:IceApiTest.*:IceFunctionalityTest.*:PeerConnectionFunctionalityTest.*:TurnConnectionFunctionalityTest.*:RtpFunctionalityTest.marshallUnmarshallH264Data:RtpFunctionalityTest.packingUnpackingVerifySameH264Frame:RtcpFunctionalityTest.onRtcpPacketCompound:RtcpFunctionalityTest.twcc3" 
+          & "C:\webrtc\build\tst\webrtc_client_test.exe" --gtest_filter="-SignalingApiFunctionalityTest.receivingIceConfigOffer_SlowClockSkew:SignalingApiFunctionalityTest.iceServerConfigRefreshConnectedAuthExpiration:SignalingApiFunctionalityTest.receivingIceConfigOffer_FastClockSkew:SignalingApiFunctionalityTest.receivingIceConfigOffer_FastClockSkew_VerifyOffsetRemovedWhenClockFixed:DataChannelFunctionalityTest.*:DtlsApiTest.*:IceApiTest.*:IceFunctionalityTest.*:PeerConnectionFunctionalityTest.*:TurnConnectionFunctionalityTest.*:RtpFunctionalityTest.marshallUnmarshallH264Data:RtpFunctionalityTest.packingUnpackingVerifySameH264Frame:RtcpFunctionalityTest.onRtcpPacketCompound:RtcpFunctionalityTest.twcc3"
   # windows-msvc-mbedtls:
   #   runs-on: windows-2022
   #   env:
