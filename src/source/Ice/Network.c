@@ -36,7 +36,7 @@ STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen,
 
     for (aa = adapterAddresses; aa != NULL && ipCount < destIpListLen; aa = aa->Next) {
         // Skip inactive interfaces and loop back interfaces
-        if (aa->OperStatus == IfOperStatusUp && aa->IfType != IF_TYPE_SOFTWARE_LOOPBACK) {
+        if (aa->OperStatus == IfOperStatusUp && aa->IfType != IF_TYPE_SOFTWARE_LOOPBACK && aa->FirstGatewayAddress != NULL) {
             char ifa_name[BUFSIZ];
             memset(ifa_name, 0, BUFSIZ);
             WideCharToMultiByte(CP_ACP, 0, aa->FriendlyName, wcslen(aa->FriendlyName), ifa_name, BUFSIZ, NULL, NULL);
