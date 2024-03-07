@@ -14,7 +14,8 @@ STATUS getIceCandidatePairStats(PRtcPeerConnection pRtcPeerConnection, PRtcIceCa
     MUTEX_LOCK(pIceAgent->lock);
     locked = TRUE;
     CHK(pIceAgent->pDataSendingIceCandidatePair != NULL, STATUS_SUCCESS);
-    PRtcIceCandidatePairDiagnostics pRtcIceCandidatePairDiagnostics = &pIceAgent->pDataSendingIceCandidatePair->rtcIceCandidatePairDiagnostics;
+    PRtcIceCandidatePairDiagnostics pRtcIceCandidatePairDiagnostics = pIceAgent->pDataSendingIceCandidatePair->pRtcIceCandidatePairDiagnostics;
+    CHK_WARN(pRtcIceCandidatePairDiagnostics != NULL, STATUS_NULL_ARG, "Candidate pair not populated");
     STRCPY(pRtcIceCandidatePairStats->localCandidateId, pRtcIceCandidatePairDiagnostics->localCandidateId);
     STRCPY(pRtcIceCandidatePairStats->remoteCandidateId, pRtcIceCandidatePairDiagnostics->remoteCandidateId);
     pRtcIceCandidatePairStats->state = pRtcIceCandidatePairDiagnostics->state;
@@ -59,9 +60,10 @@ STATUS getIceCandidateStats(PRtcPeerConnection pRtcPeerConnection, BOOL isRemote
     CHK((pRtcPeerConnection != NULL || pRtcIceCandidateStats != NULL), STATUS_NULL_ARG);
     MUTEX_LOCK(pIceAgent->lock);
     locked = TRUE;
-    PRtcIceCandidateDiagnostics pRtcIceCandidateDiagnostics = &pIceAgent->rtcSelectedRemoteIceCandidateDiagnostics;
+    PRtcIceCandidateDiagnostics pRtcIceCandidateDiagnostics = pIceAgent->pRtcSelectedRemoteIceCandidateDiagnostics;
+    CHK_WARN(pRtcIceCandidateDiagnostics != NULL, STATUS_NULL_ARG, "Candidate stats not populated");
     if (!isRemote) {
-        pRtcIceCandidateDiagnostics = &pIceAgent->rtcSelectedLocalIceCandidateDiagnostics;
+        pRtcIceCandidateDiagnostics = pIceAgent->pRtcSelectedLocalIceCandidateDiagnostics;
         STRCPY(pRtcIceCandidateStats->relayProtocol, pRtcIceCandidateDiagnostics->relayProtocol);
         STRCPY(pRtcIceCandidateStats->url, pRtcIceCandidateDiagnostics->url);
     }
@@ -87,12 +89,12 @@ STATUS getIceServerStats(PRtcPeerConnection pRtcPeerConnection, PRtcIceServerSta
 
     MUTEX_LOCK(pIceAgent->lock);
     locked = TRUE;
-    pRtcIceServerStats->port = pIceAgent->rtcIceServerDiagnostics[pRtcIceServerStats->iceServerIndex].port;
-    STRCPY(pRtcIceServerStats->protocol, pIceAgent->rtcIceServerDiagnostics[pRtcIceServerStats->iceServerIndex].protocol);
-    STRCPY(pRtcIceServerStats->url, pIceAgent->rtcIceServerDiagnostics[pRtcIceServerStats->iceServerIndex].url);
-    pRtcIceServerStats->totalRequestsSent = pIceAgent->rtcIceServerDiagnostics[pRtcIceServerStats->iceServerIndex].totalRequestsSent;
-    pRtcIceServerStats->totalResponsesReceived = pIceAgent->rtcIceServerDiagnostics[pRtcIceServerStats->iceServerIndex].totalResponsesReceived;
-    pRtcIceServerStats->totalRoundTripTime = pIceAgent->rtcIceServerDiagnostics[pRtcIceServerStats->iceServerIndex].totalRoundTripTime;
+    pRtcIceServerStats->port = pIceAgent->pRtcIceServerDiagnostics[pRtcIceServerStats->iceServerIndex]->port;
+    STRCPY(pRtcIceServerStats->protocol, pIceAgent->pRtcIceServerDiagnostics[pRtcIceServerStats->iceServerIndex]->protocol);
+    STRCPY(pRtcIceServerStats->url, pIceAgent->pRtcIceServerDiagnostics[pRtcIceServerStats->iceServerIndex]->url);
+    pRtcIceServerStats->totalRequestsSent = pIceAgent->pRtcIceServerDiagnostics[pRtcIceServerStats->iceServerIndex]->totalRequestsSent;
+    pRtcIceServerStats->totalResponsesReceived = pIceAgent->pRtcIceServerDiagnostics[pRtcIceServerStats->iceServerIndex]->totalResponsesReceived;
+    pRtcIceServerStats->totalRoundTripTime = pIceAgent->pRtcIceServerDiagnostics[pRtcIceServerStats->iceServerIndex]->totalRoundTripTime;
 CleanUp:
     if (locked) {
         MUTEX_UNLOCK(pIceAgent->lock);

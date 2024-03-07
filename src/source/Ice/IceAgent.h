@@ -80,23 +80,23 @@ typedef struct __IceAgent* PIceAgent;
  * Internal structure tracking ICE server parameters for diagnostics and metrics/stats
  */
 typedef struct {
-    CHAR url[MAX_ICE_CONFIG_URI_LEN + 1];      //!< STUN/TURN server URL
-    CHAR protocol[MAX_PROTOCOL_LENGTH + 1];     //!< Valid values: UDP, TCP
-    INT32 port;                                 //!< Port number used by client
-    UINT64 totalRequestsSent;                   //!< Total amount of requests that have been sent to the server
-    UINT64 totalResponsesReceived;              //!< Total number of responses received from the server
-    UINT64 totalRoundTripTime;                  //!< Sum of RTTs of all the requests for which response has been received
+    CHAR url[MAX_ICE_CONFIG_URI_LEN + 1];   //!< STUN/TURN server URL
+    CHAR protocol[MAX_PROTOCOL_LENGTH + 1]; //!< Valid values: UDP, TCP
+    INT32 port;                             //!< Port number used by client
+    UINT64 totalRequestsSent;               //!< Total amount of requests that have been sent to the server
+    UINT64 totalResponsesReceived;          //!< Total number of responses received from the server
+    UINT64 totalRoundTripTime;              //!< Sum of RTTs of all the requests for which response has been received
 } RtcIceServerDiagnostics, *PRtcIceServerDiagnostics;
 
 typedef struct {
-    DOMString url; //!< For local candidates this is the URL of the ICE server from which the candidate was obtained
-    CHAR address[KVS_IP_ADDRESS_STRING_BUFFER_LEN];     //!< IPv4 or IPv6 address of the candidate
-    CHAR protocol[MAX_PROTOCOL_LENGTH + 1];                                 //!< Valid values: UDP, TCP
-    CHAR relayProtocol[MAX_PROTOCOL_LENGTH + 1];                          //!< Protocol used by endpoint to communicate with TURN server.
-                                                        //!< Valid values: UDP, TCP, TLS
-    CHAR candidateType[MAX_CANDIDATE_TYPE_LENGTH + 1];  //!< Type of local/remote ICE candidate
-    INT32 priority;                                     //!< Computed using the formula in https://tools.ietf.org/html/rfc5245#section-15.1
-    INT32 port;                                         //!< Port number of the candidate
+    DOMString url;                                  //!< For local candidates this is the URL of the ICE server from which the candidate was obtained
+    CHAR address[KVS_IP_ADDRESS_STRING_BUFFER_LEN]; //!< IPv4 or IPv6 address of the candidate
+    CHAR protocol[MAX_PROTOCOL_LENGTH + 1];         //!< Valid values: UDP, TCP
+    CHAR relayProtocol[MAX_PROTOCOL_LENGTH + 1];    //!< Protocol used by endpoint to communicate with TURN server.
+                                                    //!< Valid values: UDP, TCP, TLS
+    CHAR candidateType[MAX_CANDIDATE_TYPE_LENGTH + 1]; //!< Type of local/remote ICE candidate
+    INT32 priority;                                    //!< Computed using the formula in https://tools.ietf.org/html/rfc5245#section-15.1
+    INT32 port;                                        //!< Port number of the candidate
 } RtcIceCandidateDiagnostics, *PRtcIceCandidateDiagnostics;
 
 typedef struct {
@@ -182,7 +182,7 @@ typedef struct {
     PHashTable requestSentTime;
     UINT64 roundTripTime;
     UINT64 responsesReceived;
-    RtcIceCandidatePairDiagnostics rtcIceCandidatePairDiagnostics;
+    PRtcIceCandidatePairDiagnostics pRtcIceCandidatePairDiagnostics;
 } IceCandidatePair, *PIceCandidatePair;
 
 typedef struct {
@@ -210,9 +210,9 @@ struct __IceAgent {
     CHAR remotePassword[MAX_ICE_CONFIG_CREDENTIAL_LEN + 1];
     CHAR combinedUserName[(MAX_ICE_CONFIG_USER_NAME_LEN + 1) << 1]; //!< the combination of remote user name and local user name.
 
-    RtcIceServerDiagnostics rtcIceServerDiagnostics[MAX_ICE_SERVERS_COUNT];
-    RtcIceCandidateDiagnostics rtcSelectedLocalIceCandidateDiagnostics;
-    RtcIceCandidateDiagnostics rtcSelectedRemoteIceCandidateDiagnostics;
+    PRtcIceServerDiagnostics pRtcIceServerDiagnostics[MAX_ICE_SERVERS_COUNT];
+    PRtcIceCandidateDiagnostics pRtcSelectedLocalIceCandidateDiagnostics;
+    PRtcIceCandidateDiagnostics pRtcSelectedRemoteIceCandidateDiagnostics;
     IceAgentProfileDiagnostics iceAgentProfileDiagnostics;
 
     PHashTable requestTimestampDiagnostics;
@@ -273,6 +273,7 @@ struct __IceAgent {
     UINT64 candidateGatheringStartTime;
     UINT64 candidateGatheringProcessEndTime;
     UINT64 iceAgentStartTime;
+    BOOL enableIceStats;
 };
 
 //////////////////////////////////////////////

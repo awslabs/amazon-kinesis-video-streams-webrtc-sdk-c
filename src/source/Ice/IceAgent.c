@@ -81,6 +81,7 @@ STATUS createIceAgent(PCHAR username, PCHAR password, PIceAgentCallbacks pIceAge
     pIceAgent->pConnectionListener = pConnectionListener;
     pIceAgent->pDataSendingIceCandidatePair = NULL;
     pIceAgent->iceAgentState = ICE_AGENT_STATE_NEW;
+    pIceAgent->enableIceStats = pRtcConfiguration->kvsRtcConfiguration.enableIceStats;
     CHK_STATUS(createTransactionIdStore(DEFAULT_MAX_STORED_TRANSACTION_ID_COUNT, &pIceAgent->pStunBindingRequestTransactionIdStore));
 
     pIceAgent->relayCandidateCount = 0;
@@ -94,7 +95,6 @@ STATUS createIceAgent(PCHAR username, PCHAR password, PIceAgentCallbacks pIceAge
 
     // no other attribtues needed: https://tools.ietf.org/html/rfc8445#section-11
     CHK_STATUS(createStunPacket(STUN_PACKET_TYPE_BINDING_INDICATION, NULL, &pIceAgent->pBindingIndication));
-    CHK_STATUS(hashTableCreateWithParams(ICE_HASH_TABLE_BUCKET_COUNT, ICE_HASH_TABLE_BUCKET_LENGTH, &pIceAgent->requestTimestampDiagnostics));
 
     pIceAgent->iceServersCount = 0;
     for (i = 0; i < MAX_ICE_SERVERS_COUNT; i++) {
@@ -109,18 +109,22 @@ STATUS createIceAgent(PCHAR username, PCHAR password, PIceAgentCallbacks pIceAge
                                            (PCHAR) pRtcConfiguration->iceServers[i].username, (PCHAR) pRtcConfiguration->iceServers[i].credential),
                 pIceAgent->iceAgentProfileDiagnostics.iceServerParsingTime[i], "ICE server parsing");
             if (STATUS_SUCCEEDED(retStatus)) {
-                pIceAgent->rtcIceServerDiagnostics[i].port = (INT32) getInt16(pIceAgent->iceServers[i].ipAddress.port);
-                switch (pIceAgent->iceServers[pIceAgent->iceServersCount].transport) {
-                    case KVS_SOCKET_PROTOCOL_UDP:
-                        STRCPY(pIceAgent->rtcIceServerDiagnostics[i].protocol, ICE_TRANSPORT_TYPE_UDP);
-                        break;
-                    case KVS_SOCKET_PROTOCOL_TCP:
-                        STRCPY(pIceAgent->rtcIceServerDiagnostics[i].protocol, ICE_TRANSPORT_TYPE_TCP);
-                        break;
-                    default:
-                        MEMSET(pIceAgent->rtcIceServerDiagnostics[i].protocol, 0, SIZEOF(pIceAgent->rtcIceServerDiagnostics[i].protocol));
+                if (pIceAgent->enableIceStats) {
+                    CHK(NULL != (pIceAgent->pRtcIceServerDiagnostics[i] = (PRtcIceServerDiagnostics) MEMCALLOC(1, SIZEOF(RtcIceServerDiagnostics))),
+                        STATUS_NOT_ENOUGH_MEMORY);
+                    pIceAgent->pRtcIceServerDiagnostics[i]->port = (INT32) getInt16(pIceAgent->iceServers[i].ipAddress.port);
+                    switch (pIceAgent->iceServers[pIceAgent->iceServersCount].transport) {
+                        case KVS_SOCKET_PROTOCOL_UDP:
+                            STRCPY(pIceAgent->pRtcIceServerDiagnostics[i]->protocol, ICE_TRANSPORT_TYPE_UDP);
+                            break;
+                        case KVS_SOCKET_PROTOCOL_TCP:
+                            STRCPY(pIceAgent->pRtcIceServerDiagnostics[i]->protocol, ICE_TRANSPORT_TYPE_TCP);
+                            break;
+                        default:
+                            MEMSET(pIceAgent->pRtcIceServerDiagnostics[i]->protocol, 0, SIZEOF(pIceAgent->pRtcIceServerDiagnostics[i]->protocol));
+                    }
+                    STRCPY(pIceAgent->pRtcIceServerDiagnostics[i]->url, pRtcConfiguration->iceServers[i].urls);
                 }
-                STRCPY(pIceAgent->rtcIceServerDiagnostics[i].url, pRtcConfiguration->iceServers[i].urls);
                 pIceAgent->iceServersCount++;
             } else {
                 DLOGE("Failed to parse ICE servers");
@@ -128,6 +132,17 @@ STATUS createIceAgent(PCHAR username, PCHAR password, PIceAgentCallbacks pIceAge
         }
     }
 
+    if (pIceAgent->enableIceStats) {
+        CHK_STATUS(hashTableCreateWithParams(ICE_HASH_TABLE_BUCKET_COUNT, ICE_HASH_TABLE_BUCKET_LENGTH, &pIceAgent->requestTimestampDiagnostics));
+        CHK(NULL !=
+                (pIceAgent->pRtcSelectedLocalIceCandidateDiagnostics =
+                     (PRtcIceCandidateDiagnostics) MEMCALLOC(1, SIZEOF(RtcIceCandidateDiagnostics))),
+            STATUS_NOT_ENOUGH_MEMORY);
+        CHK(NULL !=
+                (pIceAgent->pRtcSelectedRemoteIceCandidateDiagnostics =
+                     (PRtcIceCandidateDiagnostics) MEMCALLOC(1, SIZEOF(RtcIceCandidateDiagnostics))),
+            STATUS_NOT_ENOUGH_MEMORY);
+    }
 CleanUp:
 
     if (STATUS_FAILED(retStatus) && pIceAgent != NULL) {
@@ -256,6 +271,12 @@ STATUS freeIceAgent(PIceAgent* ppIceAgent)
         freeTransactionIdStore(&pIceAgent->pStunBindingRequestTransactionIdStore);
     }
 
+    SAFE_MEMFREE(pIceAgent->pRtcSelectedLocalIceCandidateDiagnostics);
+    SAFE_MEMFREE(pIceAgent->pRtcSelectedRemoteIceCandidateDiagnostics);
+    for (int i = 0; i < MAX_ICE_SERVERS_COUNT; i++) {
+        SAFE_MEMFREE(pIceAgent->pRtcIceServerDiagnostics[i]);
+    }
+
     MEMFREE(pIceAgent);
 
     *ppIceAgent = NULL;
@@ -288,18 +309,21 @@ STATUS iceAgentAddConfig(PIceAgent pIceAgent, PIceConfigInfo pIceConfigInfo)
         if (STATUS_SUCCEEDED(retStatus)) {
             MUTEX_LOCK(pIceAgent->lock);
             locked = TRUE;
-            pIceAgent->rtcIceServerDiagnostics[i].port = (INT32) getInt16(pIceAgent->iceServers[i].ipAddress.port);
-            switch (pIceAgent->iceServers[pIceAgent->iceServersCount].transport) {
-                case KVS_SOCKET_PROTOCOL_UDP:
-                    STRCPY(pIceAgent->rtcIceServerDiagnostics[i].protocol, ICE_TRANSPORT_TYPE_UDP);
-                    break;
-                case KVS_SOCKET_PROTOCOL_TCP:
-                    STRCPY(pIceAgent->rtcIceServerDiagnostics[i].protocol, ICE_TRANSPORT_TYPE_TCP);
-                    break;
-                default:
-                    MEMSET(pIceAgent->rtcIceServerDiagnostics[i].protocol, 0, SIZEOF(pIceAgent->rtcIceServerDiagnostics[i].protocol));
+            if (pIceAgent->pRtcIceServerDiagnostics[i] != NULL) {
+                pIceAgent->pRtcIceServerDiagnostics[i]->port = (INT32) getInt16(pIceAgent->iceServers[i].ipAddress.port);
+                switch (pIceAgent->iceServers[pIceAgent->iceServersCount].transport) {
+                    case KVS_SOCKET_PROTOCOL_UDP:
+                        STRCPY(pIceAgent->pRtcIceServerDiagnostics[i]->protocol, ICE_TRANSPORT_TYPE_UDP);
+                        break;
+                    case KVS_SOCKET_PROTOCOL_TCP:
+                        STRCPY(pIceAgent->pRtcIceServerDiagnostics[i]->protocol, ICE_TRANSPORT_TYPE_TCP);
+                        break;
+                    default:
+                        MEMSET(pIceAgent->pRtcIceServerDiagnostics[i]->protocol, 0, SIZEOF(pIceAgent->pRtcIceServerDiagnostics[i]->protocol));
+                }
+
+                STRCPY(pIceAgent->pRtcIceServerDiagnostics[i]->url, pIceConfigInfo->uris[i]);
             }
-            STRCPY(pIceAgent->rtcIceServerDiagnostics[i].url, pIceConfigInfo->uris[i]);
 
             MUTEX_UNLOCK(pIceAgent->lock);
             locked = FALSE;
@@ -767,17 +791,18 @@ STATUS iceAgentSendPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen)
         packetsSent++;
     }
 
-
 CleanUp:
 
     if (STATUS_SUCCEEDED(retStatus) && pIceAgent->pDataSendingIceCandidatePair != NULL) {
-        pIceAgent->pDataSendingIceCandidatePair->rtcIceCandidatePairDiagnostics.packetsDiscardedOnSend += packetsDiscarded;
-        pIceAgent->pDataSendingIceCandidatePair->rtcIceCandidatePairDiagnostics.bytesDiscardedOnSend += bytesDiscarded;
-        pIceAgent->pDataSendingIceCandidatePair->rtcIceCandidatePairDiagnostics.state = pIceAgent->pDataSendingIceCandidatePair->state;
-        pIceAgent->pDataSendingIceCandidatePair->rtcIceCandidatePairDiagnostics.lastPacketSentTimestamp =
-            pIceAgent->pDataSendingIceCandidatePair->lastDataSentTime;
-        pIceAgent->pDataSendingIceCandidatePair->rtcIceCandidatePairDiagnostics.bytesSent += bytesSent;
-        pIceAgent->pDataSendingIceCandidatePair->rtcIceCandidatePairDiagnostics.packetsSent += packetsSent;
+        if (pIceAgent->pDataSendingIceCandidatePair->pRtcIceCandidatePairDiagnostics != NULL) {
+            pIceAgent->pDataSendingIceCandidatePair->pRtcIceCandidatePairDiagnostics->packetsDiscardedOnSend += packetsDiscarded;
+            pIceAgent->pDataSendingIceCandidatePair->pRtcIceCandidatePairDiagnostics->bytesDiscardedOnSend += bytesDiscarded;
+            pIceAgent->pDataSendingIceCandidatePair->pRtcIceCandidatePairDiagnostics->state = pIceAgent->pDataSendingIceCandidatePair->state;
+            pIceAgent->pDataSendingIceCandidatePair->pRtcIceCandidatePairDiagnostics->lastPacketSentTimestamp =
+                pIceAgent->pDataSendingIceCandidatePair->lastDataSentTime;
+            pIceAgent->pDataSendingIceCandidatePair->pRtcIceCandidatePairDiagnostics->bytesSent += bytesSent;
+            pIceAgent->pDataSendingIceCandidatePair->pRtcIceCandidatePairDiagnostics->packetsSent += packetsSent;
+        }
     }
 
     if (locked) {
@@ -1149,6 +1174,12 @@ STATUS createIceCandidatePairs(PIceAgent pIceAgent, PIceCandidate pIceCandidate,
         // pair local and remote candidates with the same family
         if (pCurrentIceCandidate->state == ICE_CANDIDATE_STATE_VALID && pCurrentIceCandidate->ipAddress.family == pIceCandidate->ipAddress.family) {
             pIceCandidatePair = (PIceCandidatePair) MEMCALLOC(1, SIZEOF(IceCandidatePair));
+            if (pIceAgent->enableIceStats) {
+                CHK(NULL !=
+                        (pIceCandidatePair->pRtcIceCandidatePairDiagnostics =
+                             (PRtcIceCandidatePairDiagnostics) MEMCALLOC(1, SIZEOF(RtcIceCandidatePairDiagnostics))),
+                    STATUS_NOT_ENOUGH_MEMORY);
+            }
             CHK(pIceCandidatePair != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
             if (isRemoteCandidate) {
@@ -1169,19 +1200,21 @@ STATUS createIceCandidatePairs(PIceAgent pIceAgent, PIceCandidate pIceCandidate,
             CHK_STATUS(hashTableCreateWithParams(ICE_HASH_TABLE_BUCKET_COUNT, ICE_HASH_TABLE_BUCKET_LENGTH, &pIceCandidatePair->requestSentTime));
 
             pIceCandidatePair->lastDataSentTime = 0;
-            STRNCPY(pIceCandidatePair->rtcIceCandidatePairDiagnostics.localCandidateId, pIceCandidatePair->local->id,
-                    ARRAY_SIZE(pIceCandidatePair->rtcIceCandidatePairDiagnostics.localCandidateId));
-            STRNCPY(pIceCandidatePair->rtcIceCandidatePairDiagnostics.remoteCandidateId, pIceCandidatePair->remote->id,
-                    ARRAY_SIZE(pIceCandidatePair->rtcIceCandidatePairDiagnostics.remoteCandidateId));
-            pIceCandidatePair->rtcIceCandidatePairDiagnostics.state = pIceCandidatePair->state;
-            pIceCandidatePair->rtcIceCandidatePairDiagnostics.nominated = pIceCandidatePair->nominated;
-            pIceCandidatePair->rtcIceCandidatePairDiagnostics.lastPacketSentTimestamp = pIceCandidatePair->lastDataSentTime;
+            if (pIceCandidatePair->pRtcIceCandidatePairDiagnostics != NULL) {
+                STRNCPY(pIceCandidatePair->pRtcIceCandidatePairDiagnostics->localCandidateId, pIceCandidatePair->local->id,
+                        ARRAY_SIZE(pIceCandidatePair->pRtcIceCandidatePairDiagnostics->localCandidateId));
+                STRNCPY(pIceCandidatePair->pRtcIceCandidatePairDiagnostics->remoteCandidateId, pIceCandidatePair->remote->id,
+                        ARRAY_SIZE(pIceCandidatePair->pRtcIceCandidatePairDiagnostics->remoteCandidateId));
+                pIceCandidatePair->pRtcIceCandidatePairDiagnostics->state = pIceCandidatePair->state;
+                pIceCandidatePair->pRtcIceCandidatePairDiagnostics->nominated = pIceCandidatePair->nominated;
+                pIceCandidatePair->pRtcIceCandidatePairDiagnostics->lastPacketSentTimestamp = pIceCandidatePair->lastDataSentTime;
+                pIceCandidatePair->priority = computeCandidatePairPriority(pIceCandidatePair, pIceAgent->isControlling);
+                pIceCandidatePair->pRtcIceCandidatePairDiagnostics->totalRoundTripTime = 0.0;
+                pIceCandidatePair->pRtcIceCandidatePairDiagnostics->currentRoundTripTime = 0.0;
+                // Set data sending ICE candidate pair stats
+                NULLABLE_SET_EMPTY(pIceCandidatePair->pRtcIceCandidatePairDiagnostics->circuitBreakerTriggerCount);
+            }
             pIceCandidatePair->firstStunRequest = TRUE;
-            pIceCandidatePair->priority = computeCandidatePairPriority(pIceCandidatePair, pIceAgent->isControlling);
-            pIceCandidatePair->rtcIceCandidatePairDiagnostics.totalRoundTripTime = 0.0;
-            pIceCandidatePair->rtcIceCandidatePairDiagnostics.currentRoundTripTime = 0.0;
-            // Set data sending ICE candidate pair stats
-            NULLABLE_SET_EMPTY(pIceCandidatePair->rtcIceCandidatePairDiagnostics.circuitBreakerTriggerCount);
             CHK_STATUS(insertIceCandidatePair(pIceAgent->iceCandidatePairs, pIceCandidatePair));
             freeObjOnFailure = FALSE;
         }
@@ -1210,6 +1243,7 @@ STATUS freeIceCandidatePair(PIceCandidatePair* ppIceCandidatePair)
     CHK(*ppIceCandidatePair != NULL, retStatus);
     pIceCandidatePair = *ppIceCandidatePair;
 
+    SAFE_MEMFREE(pIceCandidatePair->pRtcIceCandidatePairDiagnostics);
     CHK_LOG_ERR(freeTransactionIdStore(&pIceCandidatePair->pTransactionIdStore));
     CHK_LOG_ERR(hashTableFree(pIceCandidatePair->requestSentTime));
     SAFE_MEMFREE(pIceCandidatePair);
@@ -1353,18 +1387,23 @@ STATUS iceCandidatePairCheckConnection(PStunPacket pStunBindingRequest, PIceAgen
     transactionIdStoreInsert(pIceCandidatePair->pTransactionIdStore, pStunBindingRequest->header.transactionId);
     checkSum = COMPUTE_CRC32(pStunBindingRequest->header.transactionId, ARRAY_SIZE(pStunBindingRequest->header.transactionId));
     CHK_STATUS(hashTableUpsert(pIceCandidatePair->requestSentTime, checkSum, GETTIME()));
-    CHK_STATUS(hashTableUpsert(pIceAgent->requestTimestampDiagnostics, checkSum, GETTIME()));
+    if (pIceAgent->requestTimestampDiagnostics != NULL) {
+        CHK_STATUS(hashTableUpsert(pIceAgent->requestTimestampDiagnostics, checkSum, GETTIME()));
+    }
 
-    if (pIceCandidatePair->local->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED) {
-        pIceAgent->rtcIceServerDiagnostics[pIceCandidatePair->local->iceServerIndex].totalRequestsSent++;
+    if (pIceCandidatePair->local->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED &&
+        pIceAgent->pRtcIceServerDiagnostics[pIceCandidatePair->local->iceServerIndex] != NULL) {
+        pIceAgent->pRtcIceServerDiagnostics[pIceCandidatePair->local->iceServerIndex]->totalRequestsSent++;
     }
 
     CHK_STATUS(iceAgentSendStunPacket(pStunBindingRequest, (PBYTE) pIceAgent->remotePassword,
                                       (UINT32) STRLEN(pIceAgent->remotePassword) * SIZEOF(CHAR), pIceAgent, pIceCandidatePair->local,
                                       &pIceCandidatePair->remote->ipAddress));
 
-    pIceCandidatePair->rtcIceCandidatePairDiagnostics.lastRequestTimestamp = GETTIME();
-    pIceCandidatePair->rtcIceCandidatePairDiagnostics.requestsSent++;
+    if (pIceCandidatePair->pRtcIceCandidatePairDiagnostics != NULL) {
+        pIceCandidatePair->pRtcIceCandidatePairDiagnostics->lastRequestTimestamp = GETTIME();
+        pIceCandidatePair->pRtcIceCandidatePairDiagnostics->requestsSent++;
+    }
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
@@ -1409,7 +1448,9 @@ STATUS iceAgentSendStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 pa
                                                                               &pIceCandidatePair));
         if (pIceCandidatePair != NULL && pIceCandidatePair == pIceAgent->pDataSendingIceCandidatePair &&
             pIceAgent->pDataSendingIceCandidatePair->firstStunRequest) {
-            pIceAgent->pDataSendingIceCandidatePair->rtcIceCandidatePairDiagnostics.firstRequestTimestamp = GETTIME();
+            if (pIceAgent->pDataSendingIceCandidatePair->pRtcIceCandidatePairDiagnostics != NULL) {
+                pIceAgent->pDataSendingIceCandidatePair->pRtcIceCandidatePairDiagnostics->firstRequestTimestamp = GETTIME();
+            }
             pIceAgent->pDataSendingIceCandidatePair->firstStunRequest = FALSE;
         }
     }
@@ -1489,8 +1530,10 @@ STATUS iceAgentSendSrflxCandidateRequest(PIceAgent pIceAgent)
                         transactionIdStoreInsert(pIceAgent->pStunBindingRequestTransactionIdStore, pBindingRequest->header.transactionId);
                         checkSum = COMPUTE_CRC32(pBindingRequest->header.transactionId, ARRAY_SIZE(pBindingRequest->header.transactionId));
                         CHK_STATUS(iceAgentSendStunPacket(pBindingRequest, NULL, 0, pIceAgent, pCandidate, &pIceServer->ipAddress));
-                        pIceAgent->rtcIceServerDiagnostics[pCandidate->iceServerIndex].totalRequestsSent++;
-                        CHK_STATUS(hashTableUpsert(pIceAgent->requestTimestampDiagnostics, checkSum, GETTIME()));
+                        if (pIceAgent->pRtcIceServerDiagnostics[pCandidate->iceServerIndex] != NULL) {
+                            pIceAgent->pRtcIceServerDiagnostics[pCandidate->iceServerIndex]->totalRequestsSent++;
+                            CHK_STATUS(hashTableUpsert(pIceAgent->requestTimestampDiagnostics, checkSum, GETTIME()));
+                        }
                     }
                     break;
 
@@ -2041,10 +2084,12 @@ STATUS updateCandidateStats(PIceAgent pIceAgent, BOOL isRemote)
     STATUS retStatus = STATUS_SUCCESS;
     CHK(pIceAgent != NULL && pIceAgent->pDataSendingIceCandidatePair != NULL, STATUS_NULL_ARG);
     PIceCandidate pIceCandidate = pIceAgent->pDataSendingIceCandidatePair->remote;
-    PRtcIceCandidateDiagnostics pRtcIceCandidateDiagnostics = &pIceAgent->rtcSelectedRemoteIceCandidateDiagnostics;
+
+    PRtcIceCandidateDiagnostics pRtcIceCandidateDiagnostics = pIceAgent->pRtcSelectedRemoteIceCandidateDiagnostics;
+    CHK(pRtcIceCandidateDiagnostics != NULL, STATUS_SUCCESS);
     if (!isRemote) {
         pIceCandidate = pIceAgent->pDataSendingIceCandidatePair->local;
-        pRtcIceCandidateDiagnostics = &pIceAgent->rtcSelectedLocalIceCandidateDiagnostics;
+        pRtcIceCandidateDiagnostics = pIceAgent->pRtcSelectedLocalIceCandidateDiagnostics;
         STRNCPY(pRtcIceCandidateDiagnostics->url, STATS_NOT_APPLICABLE_STR, ARRAY_SIZE(pRtcIceCandidateDiagnostics->url));
         // URL and relay protocol are populated only for local candidate by spec.
         // If candidate type is host, there is no URL and is set to N/A
@@ -2063,7 +2108,7 @@ STATUS updateCandidateStats(PIceAgent pIceAgent, BOOL isRemote)
                     break;
                 case KVS_SOCKET_PROTOCOL_TCP:
                     STRNCPY(pRtcIceCandidateDiagnostics->relayProtocol, ICE_TRANSPORT_TYPE_TCP,
-                            ARRAY_SIZE(pIceAgent->rtcSelectedLocalIceCandidateDiagnostics.relayProtocol));
+                            ARRAY_SIZE(pIceAgent->pRtcSelectedLocalIceCandidateDiagnostics->relayProtocol));
                     break;
                 default:
                     MEMSET(pRtcIceCandidateDiagnostics->relayProtocol, 0, SIZEOF(pRtcIceCandidateDiagnostics->relayProtocol));
@@ -2077,8 +2122,8 @@ STATUS updateCandidateStats(PIceAgent pIceAgent, BOOL isRemote)
             ARRAY_SIZE(pRtcIceCandidateDiagnostics->candidateType));
 
     STRNCPY(pRtcIceCandidateDiagnostics->protocol, ICE_TRANSPORT_TYPE_UDP, ARRAY_SIZE(pRtcIceCandidateDiagnostics->protocol));
-    if (pIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED) {
-        STRNCPY(pRtcIceCandidateDiagnostics->protocol, pIceAgent->rtcIceServerDiagnostics[pIceCandidate->iceServerIndex].protocol,
+    if (pIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED && pIceAgent->pRtcIceServerDiagnostics[pIceCandidate->iceServerIndex] != NULL) {
+        STRNCPY(pRtcIceCandidateDiagnostics->protocol, pIceAgent->pRtcIceServerDiagnostics[pIceCandidate->iceServerIndex]->protocol,
                 ARRAY_SIZE(pRtcIceCandidateDiagnostics->protocol));
     }
 CleanUp:
@@ -2241,7 +2286,9 @@ STATUS iceAgentReadyStateSetup(PIceAgent pIceAgent)
             pCurNode = pCurNode->pNext;
             if (pIceCandidatePair->nominated && pIceCandidatePair->state == ICE_CANDIDATE_PAIR_STATE_SUCCEEDED) {
                 pNominatedAndValidCandidatePair = pIceCandidatePair;
-                pNominatedAndValidCandidatePair->rtcIceCandidatePairDiagnostics.nominated = pIceCandidatePair->nominated;
+                if (pNominatedAndValidCandidatePair->pRtcIceCandidatePairDiagnostics != NULL) {
+                    pNominatedAndValidCandidatePair->pRtcIceCandidatePairDiagnostics->nominated = pIceCandidatePair->nominated;
+                }
                 break;
             }
         }
@@ -2447,10 +2494,12 @@ STATUS incomingDataHandler(UINT64 customData, PSocketConnection pSocketConnectio
             pIceAgent->pDataSendingIceCandidatePair->remote->ipAddress.family == pSrc->family &&
             MEMCMP(pIceAgent->pDataSendingIceCandidatePair->remote->ipAddress.address, pSrc->address, addrLen) == 0 &&
             (pIceAgent->pDataSendingIceCandidatePair->remote->ipAddress.port == pSrc->port)) {
-            pIceAgent->pDataSendingIceCandidatePair->rtcIceCandidatePairDiagnostics.lastPacketReceivedTimestamp = GETTIME();
-            pIceAgent->pDataSendingIceCandidatePair->rtcIceCandidatePairDiagnostics.bytesReceived += bufferLen;
-            pIceAgent->pDataSendingIceCandidatePair->rtcIceCandidatePairDiagnostics
-                .packetsReceived++; // Since every byte buffer translates to a single RTP packet
+            if (pIceAgent->pDataSendingIceCandidatePair->pRtcIceCandidatePairDiagnostics != NULL) {
+                pIceAgent->pDataSendingIceCandidatePair->pRtcIceCandidatePairDiagnostics->lastPacketReceivedTimestamp = GETTIME();
+                pIceAgent->pDataSendingIceCandidatePair->pRtcIceCandidatePairDiagnostics->bytesReceived += bufferLen;
+                pIceAgent->pDataSendingIceCandidatePair->pRtcIceCandidatePairDiagnostics
+                    ->packetsReceived++; // Since every byte buffer translates to a single RTP packet
+            }
         }
     } else {
         if (ATOMIC_LOAD_BOOL(&pIceAgent->processStun)) {
@@ -2581,9 +2630,11 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
             }
 
             if (pIceCandidatePair == pIceAgent->pDataSendingIceCandidatePair) {
-                pIceAgent->pDataSendingIceCandidatePair->rtcIceCandidatePairDiagnostics.requestsReceived += connectivityCheckRequestsReceived;
-                pIceAgent->pDataSendingIceCandidatePair->rtcIceCandidatePairDiagnostics.responsesSent += connectivityCheckResponsesSent;
-                pIceAgent->pDataSendingIceCandidatePair->rtcIceCandidatePairDiagnostics.nominated = pIceCandidatePair->nominated;
+                if (pIceAgent->pDataSendingIceCandidatePair->pRtcIceCandidatePairDiagnostics != NULL) {
+                    pIceAgent->pDataSendingIceCandidatePair->pRtcIceCandidatePairDiagnostics->requestsReceived += connectivityCheckRequestsReceived;
+                    pIceAgent->pDataSendingIceCandidatePair->pRtcIceCandidatePairDiagnostics->responsesSent += connectivityCheckResponsesSent;
+                    pIceAgent->pDataSendingIceCandidatePair->pRtcIceCandidatePairDiagnostics->nominated = pIceCandidatePair->nominated;
+                }
             } else {
                 DLOGD("going to change the data sending ice candidate pair.");
             }
@@ -2599,13 +2650,15 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
                          pSocketConnection->localSocket);
 
                 // Update round trip time for serial reflexive candidate
-                pIceAgent->rtcIceServerDiagnostics[pIceCandidate->iceServerIndex].totalResponsesReceived++;
-                // Transaction ID count be same for candidates coming from same interface, which means there would only
-                // be one entry. It is not necessary to update a return sttaus since it is not indicative of a failure
-                if ((hashTableGet(pIceAgent->requestTimestampDiagnostics, checkSum, &requestSentTime)) == STATUS_SUCCESS) {
-                    pIceAgent->rtcIceServerDiagnostics[pIceCandidate->iceServerIndex].totalRoundTripTime += GETTIME() - requestSentTime;
-                    CHK_STATUS(hashTableRemove(pIceAgent->requestTimestampDiagnostics, checkSum));
-                    hashTableGetCount(pIceAgent->requestTimestampDiagnostics, &count);
+                if (pIceAgent->pRtcIceServerDiagnostics[pIceCandidate->iceServerIndex] != NULL) {
+                    pIceAgent->pRtcIceServerDiagnostics[pIceCandidate->iceServerIndex]->totalResponsesReceived++;
+                    // Transaction ID count be same for candidates coming from same interface, which means there would only
+                    // be one entry. It is not necessary to update a return sttaus since it is not indicative of a failure
+                    if ((hashTableGet(pIceAgent->requestTimestampDiagnostics, checkSum, &requestSentTime)) == STATUS_SUCCESS) {
+                        pIceAgent->pRtcIceServerDiagnostics[pIceCandidate->iceServerIndex]->totalRoundTripTime += GETTIME() - requestSentTime;
+                        CHK_STATUS(hashTableRemove(pIceAgent->requestTimestampDiagnostics, checkSum));
+                        hashTableGetCount(pIceAgent->requestTimestampDiagnostics, &count);
+                    }
                 }
 
                 CHK_STATUS(deserializeStunPacket(pBuffer, bufferLen, NULL, 0, &pStunPacket));
@@ -2631,22 +2684,28 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
                          ipAddrStr2, ipAddrStr);
             }
             DLOGD("Pair binding response! %s %s", pIceCandidatePair->local->id, pIceCandidatePair->remote->id);
-            if (hashTableGet(pIceCandidatePair->requestSentTime, checkSum, &requestSentTime) == STATUS_SUCCESS) {
-                pIceCandidatePair->roundTripTime = GETTIME() - requestSentTime;
-                pIceCandidatePair->rtcIceCandidatePairDiagnostics.currentRoundTripTime =
-                    (DOUBLE) (pIceCandidatePair->roundTripTime) / HUNDREDS_OF_NANOS_IN_A_SECOND;
-            } else {
-                DLOGW("Unable to fetch request Timestamp from the hash table. No update to RTT for the pair (error code: 0x%08x)", retStatus);
+            if (pIceCandidatePair->pRtcIceCandidatePairDiagnostics != NULL) {
+                if (hashTableGet(pIceCandidatePair->requestSentTime, checkSum, &requestSentTime) == STATUS_SUCCESS) {
+                    pIceCandidatePair->roundTripTime = GETTIME() - requestSentTime;
+                    if (pIceCandidatePair->pRtcIceCandidatePairDiagnostics != NULL) {
+                        pIceCandidatePair->pRtcIceCandidatePairDiagnostics->currentRoundTripTime =
+                            (DOUBLE) (pIceCandidatePair->roundTripTime) / HUNDREDS_OF_NANOS_IN_A_SECOND;
+                    }
+                } else {
+                    DLOGW("Unable to fetch request Timestamp from the hash table. No update to RTT for the pair (error code: 0x%08x)", retStatus);
+                }
             }
+
             CHK_WARN(transactionIdStoreHasId(pIceCandidatePair->pTransactionIdStore, pBuffer + STUN_PACKET_TRANSACTION_ID_OFFSET), retStatus,
                      "Dropping response packet because transaction id does not match");
 
             // Update round trip time and responses received only for relay candidates.
-            if (pIceCandidatePair->local->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED) {
-                pIceAgent->rtcIceServerDiagnostics[pIceCandidatePair->local->iceServerIndex].totalResponsesReceived++;
+            if (pIceCandidatePair->local->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED &&
+                pIceAgent->pRtcIceServerDiagnostics[pIceCandidatePair->local->iceServerIndex] != NULL) {
+                pIceAgent->pRtcIceServerDiagnostics[pIceCandidatePair->local->iceServerIndex]->totalResponsesReceived++;
                 retStatus = hashTableGet(pIceAgent->requestTimestampDiagnostics, checkSum, &requestSentTime);
                 if (hashTableGet(pIceAgent->requestTimestampDiagnostics, checkSum, &requestSentTime) == STATUS_SUCCESS) {
-                    pIceAgent->rtcIceServerDiagnostics[pIceCandidatePair->local->iceServerIndex].totalRoundTripTime += GETTIME() - requestSentTime;
+                    pIceAgent->pRtcIceServerDiagnostics[pIceCandidatePair->local->iceServerIndex]->totalRoundTripTime += GETTIME() - requestSentTime;
                     CHK_STATUS(hashTableRemove(pIceAgent->requestTimestampDiagnostics, checkSum));
                 }
             }
@@ -2679,8 +2738,10 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
                     pIceCandidatePair->roundTripTime = GETTIME() - requestSentTime;
                     DLOGD("Ice candidate pair %s_%s is connected. Round trip time: %" PRIu64 "ms", pIceCandidatePair->local->id,
                           pIceCandidatePair->remote->id, pIceCandidatePair->roundTripTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
-                    pIceCandidatePair->rtcIceCandidatePairDiagnostics.totalRoundTripTime +=
-                        (DOUBLE) (pIceCandidatePair->roundTripTime) / HUNDREDS_OF_NANOS_IN_A_SECOND;
+                    if (pIceCandidatePair->pRtcIceCandidatePairDiagnostics != NULL) {
+                        pIceCandidatePair->pRtcIceCandidatePairDiagnostics->totalRoundTripTime +=
+                            (DOUBLE) (pIceCandidatePair->roundTripTime) / HUNDREDS_OF_NANOS_IN_A_SECOND;
+                    }
 
                     CHK_STATUS(hashTableRemove(pIceCandidatePair->requestSentTime, checkSum));
                 } else {
@@ -2688,8 +2749,10 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
                 }
             }
 
-            pIceCandidatePair->rtcIceCandidatePairDiagnostics.responsesReceived += connectivityCheckResponsesReceived;
-            pIceCandidatePair->rtcIceCandidatePairDiagnostics.lastResponseTimestamp = GETTIME();
+            if (pIceCandidatePair->pRtcIceCandidatePairDiagnostics != NULL) {
+                pIceCandidatePair->pRtcIceCandidatePairDiagnostics->responsesReceived += connectivityCheckResponsesReceived;
+                pIceCandidatePair->pRtcIceCandidatePairDiagnostics->lastResponseTimestamp = GETTIME();
+            }
             break;
 
         case STUN_PACKET_TYPE_BINDING_INDICATION:

@@ -341,11 +341,9 @@ STATUS changePeerConnectionState(PKvsPeerConnection pKvsPeerConnection, RTC_PEER
     customData = pKvsPeerConnection->onConnectionStateChangeCustomData;
     MUTEX_UNLOCK(pKvsPeerConnection->peerConnectionObjLock);
     locked = FALSE;
-
     if (onConnectionStateChange != NULL) {
         onConnectionStateChange(customData, newState);
     }
-
 CleanUp:
 
     if (locked) {
