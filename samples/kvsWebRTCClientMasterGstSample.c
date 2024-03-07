@@ -391,9 +391,6 @@ INT32 main(INT32 argc, CHAR* argv[])
     PSampleConfiguration pSampleConfiguration = NULL;
     PCHAR pChannelName;
 
-    SET_INSTRUMENTED_ALLOCATORS();
-    UINT32 logLevel = setLogLevel();
-
     signal(SIGINT, sigintHandler);
 
 #ifdef IOT_CORE_ENABLE_CREDENTIALS
@@ -403,8 +400,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     pChannelName = argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME;
 #endif
 
-    CHK_STATUS(createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, logLevel, &pSampleConfiguration));
-
+    CHK_STATUS(initializeConfiguration(&pSampleConfiguration, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, NULL));
     pSampleConfiguration->videoSource = sendGstreamerAudioVideo;
     pSampleConfiguration->mediaType = SAMPLE_STREAMING_VIDEO_ONLY;
     pSampleConfiguration->receiveAudioVideoSource = receiveGstreamerAudioVideo;
@@ -469,10 +465,6 @@ INT32 main(INT32 argc, CHAR* argv[])
             DLOGI("[KVS GStreamer Master] streaming type audio-video");
             break;
     }
-
-    // Initalize KVS WebRTC. This must be done before anything else, and must only be done once.
-    CHK_STATUS(initKvsWebRtc());
-    DLOGI("[KVS GStreamer Master] KVS WebRTC initialization completed successfully");
 
     CHK_STATUS(initSignaling(pSampleConfiguration, SAMPLE_MASTER_CLIENT_ID));
     DLOGI("[KVS GStreamer Master] Channel %s set up done ", pChannelName);

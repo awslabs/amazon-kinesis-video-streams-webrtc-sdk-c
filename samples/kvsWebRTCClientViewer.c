@@ -43,9 +43,6 @@ INT32 main(INT32 argc, CHAR* argv[])
     PCHAR pChannelName;
     CHAR clientId[256];
 
-    SET_INSTRUMENTED_ALLOCATORS();
-    UINT32 logLevel = setLogLevel();
-
 #ifndef _WIN32
     signal(SIGINT, sigintHandler);
 #endif
@@ -57,11 +54,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     pChannelName = argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME;
 #endif
 
-    CHK_STATUS(createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_VIEWER, TRUE, TRUE, logLevel, &pSampleConfiguration));
-
-    // Initialize KVS WebRTC. This must be done before anything else, and must only be done once.
-    CHK_STATUS(initKvsWebRtc());
-    DLOGI("[KVS Viewer] KVS WebRTC initialization completed successfully");
+    CHK_STATUS(initializeConfiguration(&pSampleConfiguration, SIGNALING_CHANNEL_ROLE_TYPE_VIEWER, NULL));
 
 #ifdef ENABLE_DATA_CHANNEL
     pSampleConfiguration->onDataChannel = onDataChannel;

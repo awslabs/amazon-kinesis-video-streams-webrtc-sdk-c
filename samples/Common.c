@@ -12,16 +12,243 @@ VOID sigintHandler(INT32 sigNum)
     }
 }
 
-UINT32 setLogLevel()
+STATUS signalingClientError(UINT64 customData, STATUS status, PCHAR msg, UINT32 msgLen)
 {
+    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) customData;
+
+    DLOGW("Signaling client generated an error 0x%08x - '%.*s'", status, msgLen, msg);
+
+    // We will force re-create the signaling client on the following errors
+    if (status == STATUS_SIGNALING_ICE_CONFIG_REFRESH_FAILED || status == STATUS_SIGNALING_RECONNECT_FAILED) {
+        ATOMIC_STORE_BOOL(&pSampleConfiguration->recreateSignalingClient, TRUE);
+        CVAR_BROADCAST(pSampleConfiguration->cvar);
+    }
+
+    return STATUS_SUCCESS;
+}
+
+static STATUS setUpLogging(PSampleConfiguration pSampleConfiguration) {
     PCHAR pLogLevel;
     UINT32 logLevel = LOG_LEVEL_DEBUG;
+    STATUS retStatus = STATUS_SUCCESS;
     if (NULL == (pLogLevel = GETENV(DEBUG_LOG_LEVEL_ENV_VAR)) || STATUS_SUCCESS != STRTOUI32(pLogLevel, NULL, 10, &logLevel) ||
         logLevel < LOG_LEVEL_VERBOSE || logLevel > LOG_LEVEL_SILENT) {
         logLevel = LOG_LEVEL_WARN;
     }
     SET_LOGGER_LOG_LEVEL(logLevel);
-    return logLevel;
+
+    if (NULL != GETENV(ENABLE_FILE_LOGGING)) {
+        CHK_LOG_ERR(createFileLoggerWithLevelFiltering(FILE_LOGGING_BUFFER_SIZE, MAX_NUMBER_OF_LOG_FILES, (PCHAR) FILE_LOGGER_LOG_FILE_DIRECTORY_PATH,
+                                                       TRUE, TRUE, TRUE, LOG_LEVEL_PROFILE, NULL));
+        pSampleConfiguration->enableFileLogging = TRUE;
+    } else {
+        CHK_LOG_ERR(createFileLoggerWithLevelFiltering(FILE_LOGGING_BUFFER_SIZE, MAX_NUMBER_OF_LOG_FILES, (PCHAR) FILE_LOGGER_LOG_FILE_DIRECTORY_PATH,
+                                                       TRUE, TRUE, FALSE, LOG_LEVEL_PROFILE, NULL));
+        pSampleConfiguration->enableFileLogging = TRUE;
+    }
+    pSampleConfiguration->logLevel = logLevel;
+CleanUp:
+    return retStatus;
+}
+
+static STATUS setUpCredentialProvider(PSampleConfiguration pSampleConfiguration) {
+    STATUS retStatus = STATUS_SUCCESS;
+    PCHAR pAccessKey, pSecretKey, pSessionToken;
+#ifdef IOT_CORE_ENABLE_CREDENTIALS
+    PCHAR pIotCoreCredentialEndPoint, pIotCoreCert, pIotCorePrivateKey, pIotCoreRoleAlias, pIotCoreCertificateId, pIotCoreThingName;
+    CHK_ERR((pIotCoreCredentialEndPoint = GETENV(IOT_CORE_CREDENTIAL_ENDPOINT)) != NULL, STATUS_INVALID_OPERATION,
+            "AWS_IOT_CORE_CREDENTIAL_ENDPOINT must be set");
+    CHK_ERR((pIotCoreCert = GETENV(IOT_CORE_CERT)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_CERT must be set");
+    CHK_ERR((pIotCorePrivateKey = GETENV(IOT_CORE_PRIVATE_KEY)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_PRIVATE_KEY must be set");
+    CHK_ERR((pIotCoreRoleAlias = GETENV(IOT_CORE_ROLE_ALIAS)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_ROLE_ALIAS must be set");
+    CHK_ERR((pIotCoreThingName = GETENV(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_THING_NAME must be set");
+#else
+    CHK_ERR((pAccessKey = GETENV(ACCESS_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_ACCESS_KEY_ID must be set");
+    CHK_ERR((pSecretKey = GETENV(SECRET_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_SECRET_ACCESS_KEY must be set");
+#endif
+
+    pSessionToken = GETENV(SESSION_TOKEN_ENV_VAR);
+    if (pSessionToken != NULL && IS_EMPTY_STRING(pSessionToken)) {
+        DLOGW("Session token is set but its value is empty. Ignoring.");
+        pSessionToken = NULL;
+    }
+
+    if ((pSampleConfiguration->channelInfo.pRegion = GETENV(DEFAULT_REGION_ENV_VAR)) == NULL) {
+        pSampleConfiguration->channelInfo.pRegion = DEFAULT_AWS_REGION;
+    }
+
+    CHK_STATUS(lookForSslCert(&pSampleConfiguration));
+
+#ifdef IOT_CORE_ENABLE_CREDENTIALS
+    CHK_STATUS(createLwsIotCredentialProvider(pIotCoreCredentialEndPoint, pIotCoreCert, pIotCorePrivateKey, pSampleConfiguration->pCaCertPath,
+                                              pIotCoreRoleAlias, pIotCoreThingName, &pSampleConfiguration->pCredentialProvider));
+#else
+    CHK_STATUS(
+            createStaticCredentialProvider(pAccessKey, 0, pSecretKey, 0, pSessionToken, 0, MAX_UINT64, &pSampleConfiguration->pCredentialProvider));
+#endif
+CleanUp:
+    return retStatus;
+}
+
+static STATUS setUpDefaultsFn(UINT64 sampleConfigHandle) {
+    STATUS retStatus = STATUS_SUCCESS;
+    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) sampleConfigHandle;
+    pSampleConfiguration->mediaSenderTid = INVALID_TID_VALUE;
+    pSampleConfiguration->audioSenderTid = INVALID_TID_VALUE;
+    pSampleConfiguration->videoSenderTid = INVALID_TID_VALUE;
+    pSampleConfiguration->signalingClientHandle = INVALID_SIGNALING_CLIENT_HANDLE_VALUE;
+    pSampleConfiguration->sampleConfigurationObjLock = MUTEX_CREATE(TRUE);
+    pSampleConfiguration->cvar = CVAR_CREATE();
+    pSampleConfiguration->streamingSessionListReadLock = MUTEX_CREATE(FALSE);
+    pSampleConfiguration->signalingSendMessageLock = MUTEX_CREATE(FALSE);
+    /* This is ignored for master. Master can extract the info from offer. Viewer has to know if peer can trickle or
+     * not ahead of time. */
+    pSampleConfiguration->trickleIce = TRUE;
+    pSampleConfiguration->useTurn = TRUE;
+    pSampleConfiguration->enableSendingMetricsToViewerViaDc = FALSE;
+
+    pSampleConfiguration->channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
+    pSampleConfiguration->channelInfo.pChannelName = "test";
+#ifdef IOT_CORE_ENABLE_CREDENTIALS
+    if ((pIotCoreCertificateId = GETENV(IOT_CORE_CERTIFICATE_ID)) != NULL) {
+        pSampleConfiguration->channelInfo.pChannelName = pIotCoreCertificateId;
+    }
+#endif
+    pSampleConfiguration->channelInfo.pKmsKeyId = NULL;
+    pSampleConfiguration->channelInfo.tagCount = 0;
+    pSampleConfiguration->channelInfo.pTags = NULL;
+    pSampleConfiguration->channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
+    pSampleConfiguration->channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
+    pSampleConfiguration->channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_FILE;
+    pSampleConfiguration->channelInfo.cachingPeriod = SIGNALING_API_CALL_CACHE_TTL_SENTINEL_VALUE;
+    pSampleConfiguration->channelInfo.asyncIceServerConfig = TRUE; // has no effect
+    pSampleConfiguration->channelInfo.retry = TRUE;
+    pSampleConfiguration->channelInfo.reconnect = TRUE;
+    pSampleConfiguration->channelInfo.pCertPath = pSampleConfiguration->pCaCertPath;
+    pSampleConfiguration->channelInfo.messageTtl = 0; // Default is 60 seconds
+
+    pSampleConfiguration->signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
+    pSampleConfiguration->signalingClientCallbacks.errorReportFn = signalingClientError;
+    pSampleConfiguration->signalingClientCallbacks.stateChangeFn = signalingClientStateChanged;
+    pSampleConfiguration->signalingClientCallbacks.customData = (UINT64) pSampleConfiguration;
+
+    pSampleConfiguration->clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
+    pSampleConfiguration->clientInfo.loggingLevel = pSampleConfiguration->logLevel;
+    pSampleConfiguration->clientInfo.cacheFilePath = NULL; // Use the default path
+    pSampleConfiguration->clientInfo.signalingClientCreationMaxRetryAttempts = CREATE_SIGNALING_CLIENT_RETRY_ATTEMPTS_SENTINEL_VALUE;
+    pSampleConfiguration->iceCandidatePairStatsTimerId = MAX_UINT32;
+    pSampleConfiguration->pregenerateCertTimerId = MAX_UINT32;
+    pSampleConfiguration->signalingClientMetrics.version = SIGNALING_CLIENT_METRICS_CURRENT_VERSION;
+
+    ATOMIC_STORE_BOOL(&pSampleConfiguration->interrupted, FALSE);
+    ATOMIC_STORE_BOOL(&pSampleConfiguration->mediaThreadStarted, FALSE);
+    ATOMIC_STORE_BOOL(&pSampleConfiguration->appTerminateFlag, FALSE);
+    ATOMIC_STORE_BOOL(&pSampleConfiguration->recreateSignalingClient, FALSE);
+    ATOMIC_STORE_BOOL(&pSampleConfiguration->connected, FALSE);
+#ifdef ENABLE_DATA_CHANNEL
+    pSampleConfiguration->onDataChannel = onDataChannel;
+#endif
+    CHK_STATUS(timerQueueCreate(&pSampleConfiguration->timerQueueHandle));
+    CHK_STATUS(stackQueueCreate(&pSampleConfiguration->pregeneratedCertificates));
+
+    pSampleConfiguration->iceUriCount = 0;
+
+    CHK_STATUS(stackQueueCreate(&pSampleConfiguration->pPendingSignalingMessageForRemoteClient));
+    CHK_STATUS(doubleListCreate(&pSampleConfiguration->timerIdList));
+    CHK_STATUS(hashTableCreateWithParams(SAMPLE_HASH_TABLE_BUCKET_COUNT, SAMPLE_HASH_TABLE_BUCKET_LENGTH,
+                                         &pSampleConfiguration->pRtcPeerConnectionForRemoteClient));
+CleanUp:
+    return retStatus;
+}
+
+STATUS initializeConfiguration(PSampleConfiguration* ppSampleConfiguration, SIGNALING_CHANNEL_ROLE_TYPE roleType, ParamsSetFn paramsSetFn) {
+    STATUS retStatus = STATUS_SUCCESS;
+    PSampleConfiguration pSampleConfiguration = NULL;
+
+    CHK(ppSampleConfiguration != NULL, STATUS_NULL_ARG);
+
+#ifndef _WIN32
+    signal(SIGINT, sigintHandler);
+#endif
+
+    SET_INSTRUMENTED_ALLOCATORS();
+    CHK(NULL != (pSampleConfiguration = (PSampleConfiguration) MEMCALLOC(1, SIZEOF(SampleConfiguration))), STATUS_NOT_ENOUGH_MEMORY);
+    CHK_STATUS(initKvsWebRtc());
+    CHK_STATUS(setUpLogging(pSampleConfiguration));
+    CHK_STATUS(setUpCredentialProvider(pSampleConfiguration));
+
+    if(paramsSetFn == NULL) {
+        pSampleConfiguration->configureAppFn = setUpDefaultsFn;
+    } else {
+        pSampleConfiguration->configureAppFn = paramsSetFn;
+    }
+    pSampleConfiguration->configureAppFn((UINT64) pSampleConfiguration);
+CleanUp:
+    if (STATUS_FAILED(retStatus)) {
+        freeSampleConfiguration(&pSampleConfiguration);
+    }
+    if (ppSampleConfiguration != NULL) {
+        *ppSampleConfiguration = pSampleConfiguration;
+    }
+    return retStatus;
+}
+
+STATUS readFrameFromDisk(PBYTE pFrame, PUINT32 pSize, PCHAR frameFilePath)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    UINT64 size = 0;
+    CHK_ERR(pSize != NULL, STATUS_NULL_ARG, "[KVS Master] Invalid file size");
+    size = *pSize;
+    // Get the size and read into frame
+    CHK_STATUS(readFile(frameFilePath, TRUE, pFrame, &size));
+    CleanUp:
+
+    if (pSize != NULL) {
+        *pSize = (UINT32) size;
+    }
+
+    return retStatus;
+}
+
+STATUS initializeMediaSenders(PSampleConfiguration pSampleConfiguration, startRoutine audioSource, startRoutine videoSource)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    UINT32 frameSize;
+    CHK(pSampleConfiguration != NULL && (audioSource != NULL && videoSource != NULL), STATUS_NULL_ARG);
+    pSampleConfiguration->audioSource = audioSource;
+    pSampleConfiguration->videoSource = videoSource;
+    if(videoSource != NULL && audioSource == NULL) {
+        pSampleConfiguration->mediaType = SAMPLE_STREAMING_VIDEO_ONLY;
+    } else {
+        pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
+    }
+    CHK_STATUS(readFrameFromDisk(NULL, &frameSize, "./h264SampleFrames/frame-0001.h264"));
+    CHK_STATUS(readFrameFromDisk(NULL, &frameSize, "./opusSampleFrames/sample-001.opus"));
+CleanUp:
+    return retStatus;
+}
+
+STATUS initializeMediaReceivers(PSampleConfiguration pSampleConfiguration, startRoutine receiveAudioVideoSource)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    CHK(pSampleConfiguration != NULL && receiveAudioVideoSource != NULL, STATUS_NULL_ARG);
+    pSampleConfiguration->receiveAudioVideoSource = receiveAudioVideoSource;
+CleanUp:
+    return retStatus;
+}
+
+STATUS addTaskToTimerQueue(PSampleConfiguration pSampleConfiguration, PTimerTaskConfiguration pTimerTaskConfiguration) {
+    STATUS retStatus = STATUS_SUCCESS;
+    CHK(pSampleConfiguration != NULL && pTimerTaskConfiguration != NULL, STATUS_NULL_ARG);
+    CHK_LOG_ERR(timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, pTimerTaskConfiguration->startTime, pTimerTaskConfiguration->iterationTime,
+                                   pTimerTaskConfiguration->timerCallbackFunc, pTimerTaskConfiguration->customData,
+                                   &pTimerTaskConfiguration->timerId));
+    if(pTimerTaskConfiguration->timerId != MAX_UINT32) {
+        CHK_STATUS(doubleListInsertItemHead(pSampleConfiguration->timerIdList, (UINT64) pTimerTaskConfiguration->timerId));
+    }
+    DLOGI("Here");
+CleanUp:
+    return retStatus;
 }
 
 STATUS signalingCallFailed(STATUS status)
@@ -88,21 +315,6 @@ STATUS signalingClientStateChanged(UINT64 customData, SIGNALING_CLIENT_STATE sta
 
     // Return success to continue
     return retStatus;
-}
-
-STATUS signalingClientError(UINT64 customData, STATUS status, PCHAR msg, UINT32 msgLen)
-{
-    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) customData;
-
-    DLOGW("Signaling client generated an error 0x%08x - '%.*s'", status, msgLen, msg);
-
-    // We will force re-create the signaling client on the following errors
-    if (status == STATUS_SIGNALING_ICE_CONFIG_REFRESH_FAILED || status == STATUS_SIGNALING_RECONNECT_FAILED) {
-        ATOMIC_STORE_BOOL(&pSampleConfiguration->recreateSignalingClient, TRUE);
-        CVAR_BROADCAST(pSampleConfiguration->cvar);
-    }
-
-    return STATUS_SUCCESS;
 }
 
 STATUS logSelectedIceCandidatesInformation(PSampleStreamingSession pSampleStreamingSession)
@@ -776,155 +988,6 @@ CleanUp:
     return retStatus;
 }
 
-STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE roleType, BOOL trickleIce, BOOL useTurn, UINT32 logLevel,
-                                 PSampleConfiguration* ppSampleConfiguration)
-{
-    STATUS retStatus = STATUS_SUCCESS;
-    PCHAR pAccessKey, pSecretKey, pSessionToken;
-    PSampleConfiguration pSampleConfiguration = NULL;
-
-    CHK(ppSampleConfiguration != NULL, STATUS_NULL_ARG);
-
-    CHK(NULL != (pSampleConfiguration = (PSampleConfiguration) MEMCALLOC(1, SIZEOF(SampleConfiguration))), STATUS_NOT_ENOUGH_MEMORY);
-
-#ifdef IOT_CORE_ENABLE_CREDENTIALS
-    PCHAR pIotCoreCredentialEndPoint, pIotCoreCert, pIotCorePrivateKey, pIotCoreRoleAlias, pIotCoreCertificateId, pIotCoreThingName;
-    CHK_ERR((pIotCoreCredentialEndPoint = GETENV(IOT_CORE_CREDENTIAL_ENDPOINT)) != NULL, STATUS_INVALID_OPERATION,
-            "AWS_IOT_CORE_CREDENTIAL_ENDPOINT must be set");
-    CHK_ERR((pIotCoreCert = GETENV(IOT_CORE_CERT)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_CERT must be set");
-    CHK_ERR((pIotCorePrivateKey = GETENV(IOT_CORE_PRIVATE_KEY)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_PRIVATE_KEY must be set");
-    CHK_ERR((pIotCoreRoleAlias = GETENV(IOT_CORE_ROLE_ALIAS)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_ROLE_ALIAS must be set");
-    CHK_ERR((pIotCoreThingName = GETENV(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_THING_NAME must be set");
-#else
-    CHK_ERR((pAccessKey = GETENV(ACCESS_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_ACCESS_KEY_ID must be set");
-    CHK_ERR((pSecretKey = GETENV(SECRET_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_SECRET_ACCESS_KEY must be set");
-#endif
-
-    pSessionToken = GETENV(SESSION_TOKEN_ENV_VAR);
-    if (pSessionToken != NULL && IS_EMPTY_STRING(pSessionToken)) {
-        DLOGW("Session token is set but its value is empty. Ignoring.");
-        pSessionToken = NULL;
-    }
-
-    // If the env is set, we generate normal log files apart from filtered profile log files
-    // If not set, we generate only the filtered profile log files
-    if (NULL != GETENV(ENABLE_FILE_LOGGING)) {
-        retStatus = createFileLoggerWithLevelFiltering(FILE_LOGGING_BUFFER_SIZE, MAX_NUMBER_OF_LOG_FILES, (PCHAR) FILE_LOGGER_LOG_FILE_DIRECTORY_PATH,
-                                                       TRUE, TRUE, TRUE, LOG_LEVEL_PROFILE, NULL);
-
-        if (retStatus != STATUS_SUCCESS) {
-            DLOGW("[KVS Master] createFileLogger(): operation returned status code: 0x%08x", retStatus);
-        } else {
-            pSampleConfiguration->enableFileLogging = TRUE;
-        }
-    } else {
-        retStatus = createFileLoggerWithLevelFiltering(FILE_LOGGING_BUFFER_SIZE, MAX_NUMBER_OF_LOG_FILES, (PCHAR) FILE_LOGGER_LOG_FILE_DIRECTORY_PATH,
-                                                       TRUE, TRUE, FALSE, LOG_LEVEL_PROFILE, NULL);
-
-        if (retStatus != STATUS_SUCCESS) {
-            DLOGW("[KVS Master] createFileLogger(): operation returned status code: 0x%08x", retStatus);
-        } else {
-            pSampleConfiguration->enableFileLogging = TRUE;
-        }
-    }
-
-    if ((pSampleConfiguration->channelInfo.pRegion = GETENV(DEFAULT_REGION_ENV_VAR)) == NULL) {
-        pSampleConfiguration->channelInfo.pRegion = DEFAULT_AWS_REGION;
-    }
-
-    CHK_STATUS(lookForSslCert(&pSampleConfiguration));
-
-#ifdef IOT_CORE_ENABLE_CREDENTIALS
-    CHK_STATUS(createLwsIotCredentialProvider(pIotCoreCredentialEndPoint, pIotCoreCert, pIotCorePrivateKey, pSampleConfiguration->pCaCertPath,
-                                              pIotCoreRoleAlias, pIotCoreThingName, &pSampleConfiguration->pCredentialProvider));
-#else
-    CHK_STATUS(
-        createStaticCredentialProvider(pAccessKey, 0, pSecretKey, 0, pSessionToken, 0, MAX_UINT64, &pSampleConfiguration->pCredentialProvider));
-#endif
-
-    pSampleConfiguration->mediaSenderTid = INVALID_TID_VALUE;
-    pSampleConfiguration->audioSenderTid = INVALID_TID_VALUE;
-    pSampleConfiguration->videoSenderTid = INVALID_TID_VALUE;
-    pSampleConfiguration->signalingClientHandle = INVALID_SIGNALING_CLIENT_HANDLE_VALUE;
-    pSampleConfiguration->sampleConfigurationObjLock = MUTEX_CREATE(TRUE);
-    pSampleConfiguration->cvar = CVAR_CREATE();
-    pSampleConfiguration->streamingSessionListReadLock = MUTEX_CREATE(FALSE);
-    pSampleConfiguration->signalingSendMessageLock = MUTEX_CREATE(FALSE);
-    /* This is ignored for master. Master can extract the info from offer. Viewer has to know if peer can trickle or
-     * not ahead of time. */
-    pSampleConfiguration->trickleIce = trickleIce;
-    pSampleConfiguration->useTurn = useTurn;
-    pSampleConfiguration->enableSendingMetricsToViewerViaDc = FALSE;
-
-    pSampleConfiguration->channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
-    pSampleConfiguration->channelInfo.pChannelName = channelName;
-#ifdef IOT_CORE_ENABLE_CREDENTIALS
-    if ((pIotCoreCertificateId = GETENV(IOT_CORE_CERTIFICATE_ID)) != NULL) {
-        pSampleConfiguration->channelInfo.pChannelName = pIotCoreCertificateId;
-    }
-#endif
-    pSampleConfiguration->channelInfo.pKmsKeyId = NULL;
-    pSampleConfiguration->channelInfo.tagCount = 0;
-    pSampleConfiguration->channelInfo.pTags = NULL;
-    pSampleConfiguration->channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
-    pSampleConfiguration->channelInfo.channelRoleType = roleType;
-    pSampleConfiguration->channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_FILE;
-    pSampleConfiguration->channelInfo.cachingPeriod = SIGNALING_API_CALL_CACHE_TTL_SENTINEL_VALUE;
-    pSampleConfiguration->channelInfo.asyncIceServerConfig = TRUE; // has no effect
-    pSampleConfiguration->channelInfo.retry = TRUE;
-    pSampleConfiguration->channelInfo.reconnect = TRUE;
-    pSampleConfiguration->channelInfo.pCertPath = pSampleConfiguration->pCaCertPath;
-    pSampleConfiguration->channelInfo.messageTtl = 0; // Default is 60 seconds
-
-    pSampleConfiguration->signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
-    pSampleConfiguration->signalingClientCallbacks.errorReportFn = signalingClientError;
-    pSampleConfiguration->signalingClientCallbacks.stateChangeFn = signalingClientStateChanged;
-    pSampleConfiguration->signalingClientCallbacks.customData = (UINT64) pSampleConfiguration;
-
-    pSampleConfiguration->clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
-    pSampleConfiguration->clientInfo.loggingLevel = logLevel;
-    pSampleConfiguration->clientInfo.cacheFilePath = NULL; // Use the default path
-    pSampleConfiguration->clientInfo.signalingClientCreationMaxRetryAttempts = CREATE_SIGNALING_CLIENT_RETRY_ATTEMPTS_SENTINEL_VALUE;
-    pSampleConfiguration->iceCandidatePairStatsTimerId = MAX_UINT32;
-    pSampleConfiguration->pregenerateCertTimerId = MAX_UINT32;
-    pSampleConfiguration->signalingClientMetrics.version = SIGNALING_CLIENT_METRICS_CURRENT_VERSION;
-
-    ATOMIC_STORE_BOOL(&pSampleConfiguration->interrupted, FALSE);
-    ATOMIC_STORE_BOOL(&pSampleConfiguration->mediaThreadStarted, FALSE);
-    ATOMIC_STORE_BOOL(&pSampleConfiguration->appTerminateFlag, FALSE);
-    ATOMIC_STORE_BOOL(&pSampleConfiguration->recreateSignalingClient, FALSE);
-    ATOMIC_STORE_BOOL(&pSampleConfiguration->connected, FALSE);
-
-    CHK_STATUS(timerQueueCreate(&pSampleConfiguration->timerQueueHandle));
-
-    CHK_STATUS(stackQueueCreate(&pSampleConfiguration->pregeneratedCertificates));
-
-    // Start the cert pre-gen timer callback
-    if (SAMPLE_PRE_GENERATE_CERT) {
-        CHK_LOG_ERR(retStatus =
-                        timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, 0, SAMPLE_PRE_GENERATE_CERT_PERIOD, pregenerateCertTimerCallback,
-                                           (UINT64) pSampleConfiguration, &pSampleConfiguration->pregenerateCertTimerId));
-    }
-
-    pSampleConfiguration->iceUriCount = 0;
-
-    CHK_STATUS(stackQueueCreate(&pSampleConfiguration->pPendingSignalingMessageForRemoteClient));
-    CHK_STATUS(hashTableCreateWithParams(SAMPLE_HASH_TABLE_BUCKET_COUNT, SAMPLE_HASH_TABLE_BUCKET_LENGTH,
-                                         &pSampleConfiguration->pRtcPeerConnectionForRemoteClient));
-
-CleanUp:
-
-    if (STATUS_FAILED(retStatus)) {
-        freeSampleConfiguration(&pSampleConfiguration);
-    }
-
-    if (ppSampleConfiguration != NULL) {
-        *ppSampleConfiguration = pSampleConfiguration;
-    }
-
-    return retStatus;
-}
-
 STATUS initSignaling(PSampleConfiguration pSampleConfiguration, PCHAR clientId)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -937,10 +1000,6 @@ STATUS initSignaling(PSampleConfiguration pSampleConfiguration, PCHAR clientId)
 
     // Enable the processing of the messages
     CHK_STATUS(signalingClientFetchSync(pSampleConfiguration->signalingClientHandle));
-
-#ifdef ENABLE_DATA_CHANNEL
-    pSampleConfiguration->onDataChannel = onDataChannel;
-#endif
 
     CHK_STATUS(signalingClientConnectSync(pSampleConfiguration->signalingClientHandle));
 
@@ -1142,6 +1201,21 @@ CleanUp:
     return retStatus;
 }
 
+static STATUS cancelTimerTasks(PSampleConfiguration pSampleConfiguration) {
+    STATUS retStatus = STATUS_SUCCESS;
+    PDoubleListNode pCurNode = NULL;
+    UINT64 timerId;
+    CHK_STATUS(doubleListGetHeadNode(pSampleConfiguration->timerIdList, &pCurNode));
+    while (pCurNode != NULL) {
+        CHK_STATUS(doubleListGetNodeData(pCurNode, &timerId));
+        pCurNode = pCurNode->pNext;
+        CHK_STATUS(timerQueueCancelTimer(pSampleConfiguration->timerQueueHandle, timerId,
+                              (UINT64) pSampleConfiguration));
+    }
+    CHK_STATUS(doubleListClear(pSampleConfiguration->timerIdList, FALSE));
+CleanUp:
+    return retStatus;
+}
 STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
 {
     ENTERS();
@@ -1151,31 +1225,26 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
     UINT64 data;
     StackQueueIterator iterator;
     BOOL locked = FALSE;
+    SignalingClientMetrics signalingClientMetrics;
 
     CHK(ppSampleConfiguration != NULL, STATUS_NULL_ARG);
     pSampleConfiguration = *ppSampleConfiguration;
 
     CHK(pSampleConfiguration != NULL, retStatus);
 
+    // Kick of the termination sequence
+    ATOMIC_STORE_BOOL(&pSampleConfiguration->appTerminateFlag, TRUE);
+
+    if (pSampleConfiguration->mediaSenderTid != INVALID_TID_VALUE) {
+        THREAD_JOIN(pSampleConfiguration->mediaSenderTid, NULL);
+    }
+
+    CHK_LOG_ERR(signalingClientGetMetrics(pSampleConfiguration->signalingClientHandle, &signalingClientMetrics));
+    CHK_LOG_ERR(logSignalingClientStats(&signalingClientMetrics));
+    CHK_LOG_ERR(freeSignalingClient(&pSampleConfiguration->signalingClientHandle));
+
     if (IS_VALID_TIMER_QUEUE_HANDLE(pSampleConfiguration->timerQueueHandle)) {
-        if (pSampleConfiguration->iceCandidatePairStatsTimerId != MAX_UINT32) {
-            retStatus = timerQueueCancelTimer(pSampleConfiguration->timerQueueHandle, pSampleConfiguration->iceCandidatePairStatsTimerId,
-                                              (UINT64) pSampleConfiguration);
-            if (STATUS_FAILED(retStatus)) {
-                DLOGE("Failed to cancel stats timer with: 0x%08x", retStatus);
-            }
-            pSampleConfiguration->iceCandidatePairStatsTimerId = MAX_UINT32;
-        }
-
-        if (pSampleConfiguration->pregenerateCertTimerId != MAX_UINT32) {
-            retStatus = timerQueueCancelTimer(pSampleConfiguration->timerQueueHandle, pSampleConfiguration->pregenerateCertTimerId,
-                                              (UINT64) pSampleConfiguration);
-            if (STATUS_FAILED(retStatus)) {
-                DLOGE("Failed to cancel certificate pre-generation timer with: 0x%08x", retStatus);
-            }
-            pSampleConfiguration->pregenerateCertTimerId = MAX_UINT32;
-        }
-
+        cancelTimerTasks(pSampleConfiguration);
         timerQueueFree(&pSampleConfiguration->timerQueueHandle);
     }
 
@@ -1261,6 +1330,8 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
     }
     SAFE_MEMFREE(*ppSampleConfiguration);
 
+    retStatus = RESET_INSTRUMENTED_ALLOCATORS();
+    DLOGI("All SDK allocations freed? %s..0x%08x", retStatus == STATUS_SUCCESS ? "Yes" : "No", retStatus);
 CleanUp:
 
     LEAVES();
@@ -1406,7 +1477,7 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) customData;
-    BOOL peerConnectionFound = FALSE, locked = FALSE, startStats = FALSE, freeStreamingSession = FALSE;
+    BOOL peerConnectionFound = FALSE, locked = FALSE, freeStreamingSession = FALSE;
     UINT32 clientIdHash;
     UINT64 hashValue = 0;
     PPendingMessageQueue pPendingMessageQueue = NULL;
@@ -1471,7 +1542,6 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
             MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
             freeStreamingSession = FALSE;
 
-            startStats = pSampleConfiguration->iceCandidatePairStatsTimerId == MAX_UINT32;
             break;
 
         case SIGNALING_MESSAGE_TYPE_ANSWER:
@@ -1495,7 +1565,6 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
                 pPendingMessageQueue = NULL;
             }
 
-            startStats = pSampleConfiguration->iceCandidatePairStatsTimerId == MAX_UINT32;
             CHK_STATUS(signalingClientGetMetrics(pSampleConfiguration->signalingClientHandle, &pSampleConfiguration->signalingClientMetrics));
             DLOGP("[Signaling offer sent to answer received time] %" PRIu64 " ms",
                   pSampleConfiguration->signalingClientMetrics.signalingClientStats.offerToAnswerTime);
@@ -1535,18 +1604,6 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
 
     MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
     locked = FALSE;
-
-    if (startStats &&
-        STATUS_FAILED(retStatus = timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, SAMPLE_STATS_DURATION, SAMPLE_STATS_DURATION,
-                                                     getIceCandidatePairStatsCallback, (UINT64) pSampleConfiguration,
-                                                     &pSampleConfiguration->iceCandidatePairStatsTimerId))) {
-        DLOGW("Failed to add getIceCandidatePairStatsCallback to add to timer queue (code 0x%08x). "
-              "Cannot pull ice candidate pair metrics periodically",
-              retStatus);
-
-        // Reset the returned status
-        retStatus = STATUS_SUCCESS;
-    }
 
 CleanUp:
 

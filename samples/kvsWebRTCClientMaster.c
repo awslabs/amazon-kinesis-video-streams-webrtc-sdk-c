@@ -5,62 +5,28 @@ extern PSampleConfiguration gSampleConfiguration;
 INT32 main(INT32 argc, CHAR* argv[])
 {
     STATUS retStatus = STATUS_SUCCESS;
-    UINT32 frameSize;
     PSampleConfiguration pSampleConfiguration = NULL;
-    PCHAR pChannelName;
-    SignalingClientMetrics signalingClientMetrics;
-    signalingClientMetrics.version = SIGNALING_CLIENT_METRICS_CURRENT_VERSION;
-
-    SET_INSTRUMENTED_ALLOCATORS();
-    UINT32 logLevel = setLogLevel();
-
-#ifndef _WIN32
-    signal(SIGINT, sigintHandler);
-#endif
-
-#ifdef IOT_CORE_ENABLE_CREDENTIALS
-    CHK_ERR((pChannelName = argc > 1 ? argv[1] : GETENV(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION,
-            "AWS_IOT_CORE_THING_NAME must be set");
-#else
-    pChannelName = argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME;
-#endif
-
-    CHK_STATUS(createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, logLevel, &pSampleConfiguration));
-
-    // Set the audio and video handlers
-    pSampleConfiguration->audioSource = sendAudioPackets;
-    pSampleConfiguration->videoSource = sendVideoPackets;
-    pSampleConfiguration->receiveAudioVideoSource = sampleReceiveAudioVideoFrame;
+    TimerTaskConfiguration pregencertconfig, statsconfig;
+    CHK_STATUS(initializeConfiguration(&pSampleConfiguration, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, NULL));
+    pregencertconfig.startTime = 0;
+    pregencertconfig.iterationTime = SAMPLE_PRE_GENERATE_CERT_PERIOD;
+    pregencertconfig.timerCallbackFunc = pregenerateCertTimerCallback;
+    pregencertconfig.customData = (UINT64) pSampleConfiguration;
+    CHK_STATUS(addTaskToTimerQueue(pSampleConfiguration, &pregencertconfig));
+    CHK_STATUS(initializeMediaSenders(pSampleConfiguration, sendAudioPackets, sendVideoPackets));
+    CHK_STATUS(initializeMediaReceivers(pSampleConfiguration, sampleReceiveAudioVideoFrame));
 
     if (argc > 2 && STRNCMP(argv[2], "1", 2) == 0) {
         pSampleConfiguration->channelInfo.useMediaStorage = TRUE;
     }
 
-#ifdef ENABLE_DATA_CHANNEL
-    pSampleConfiguration->onDataChannel = onDataChannel;
-#endif
-    pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
-    DLOGI("[KVS Master] Finished setting handlers");
+    CHK_STATUS(initSignaling(pSampleConfiguration, SAMPLE_MASTER_CLIENT_ID));
 
-    // Check if the samples are present
-
-    CHK_STATUS(readFrameFromDisk(NULL, &frameSize, "./h264SampleFrames/frame-0001.h264"));
-    DLOGI("[KVS Master] Checked sample video frame availability....available");
-
-    CHK_STATUS(readFrameFromDisk(NULL, &frameSize, "./opusSampleFrames/sample-001.opus"));
-    DLOGI("[KVS Master] Checked sample audio frame availability....available");
-
-    // Initialize KVS WebRTC. This must be done before anything else, and must only be done once.
-    CHK_STATUS(initKvsWebRtc());
-    DLOGI("[KVS Master] KVS WebRTC initialization completed successfully");
-
-    PROFILE_CALL_WITH_START_END_T_OBJ(
-        retStatus = initSignaling(pSampleConfiguration, SAMPLE_MASTER_CLIENT_ID), pSampleConfiguration->signalingClientMetrics.signalingStartTime,
-        pSampleConfiguration->signalingClientMetrics.signalingEndTime, pSampleConfiguration->signalingClientMetrics.signalingCallTime,
-        "Initialize signaling client and connect to the signaling channel");
-
-    DLOGI("[KVS Master] Channel %s set up done ", pChannelName);
-
+    statsconfig.startTime = SAMPLE_STATS_DURATION;
+    statsconfig.iterationTime = SAMPLE_STATS_DURATION;
+    statsconfig.timerCallbackFunc = getIceCandidatePairStatsCallback;
+    statsconfig.customData = (UINT64) pSampleConfiguration;
+    CHK_STATUS(addTaskToTimerQueue(pSampleConfiguration, &statsconfig));
     // Checking for termination
     CHK_STATUS(sessionCleanupWait(pSampleConfiguration));
     DLOGI("[KVS Master] Streaming session terminated");
@@ -72,58 +38,16 @@ CleanUp:
     }
 
     DLOGI("[KVS Master] Cleaning up....");
-    if (pSampleConfiguration != NULL) {
-        // Kick of the termination sequence
-        ATOMIC_STORE_BOOL(&pSampleConfiguration->appTerminateFlag, TRUE);
-
-        if (pSampleConfiguration->mediaSenderTid != INVALID_TID_VALUE) {
-            THREAD_JOIN(pSampleConfiguration->mediaSenderTid, NULL);
-        }
-
-        retStatus = signalingClientGetMetrics(pSampleConfiguration->signalingClientHandle, &signalingClientMetrics);
-        if (retStatus == STATUS_SUCCESS) {
-            logSignalingClientStats(&signalingClientMetrics);
-        } else {
-            DLOGE("[KVS Master] signalingClientGetMetrics() operation returned status code: 0x%08x", retStatus);
-        }
-        retStatus = freeSignalingClient(&pSampleConfiguration->signalingClientHandle);
-        if (retStatus != STATUS_SUCCESS) {
-            DLOGE("[KVS Master] freeSignalingClient(): operation returned status code: 0x%08x", retStatus);
-        }
-
-        retStatus = freeSampleConfiguration(&pSampleConfiguration);
-        if (retStatus != STATUS_SUCCESS) {
-            DLOGE("[KVS Master] freeSampleConfiguration(): operation returned status code: 0x%08x", retStatus);
-        }
-    }
+    CHK_LOG_ERR(freeSampleConfiguration(&pSampleConfiguration));
     DLOGI("[KVS Master] Cleanup done");
     CHK_LOG_ERR(retStatus);
 
-    retStatus = RESET_INSTRUMENTED_ALLOCATORS();
-    DLOGI("All SDK allocations freed? %s..0x%08x", retStatus == STATUS_SUCCESS ? "Yes" : "No", retStatus);
     // https://www.gnu.org/software/libc/manual/html_node/Exit-Status.html
     // We can only return with 0 - 127. Some platforms treat exit code >= 128
     // to be a success code, which might give an unintended behaviour.
     // Some platforms also treat 1 or 0 differently, so it's better to use
     // EXIT_FAILURE and EXIT_SUCCESS macros for portability.
     return STATUS_FAILED(retStatus) ? EXIT_FAILURE : EXIT_SUCCESS;
-}
-
-STATUS readFrameFromDisk(PBYTE pFrame, PUINT32 pSize, PCHAR frameFilePath)
-{
-    STATUS retStatus = STATUS_SUCCESS;
-    UINT64 size = 0;
-    CHK_ERR(pSize != NULL, STATUS_NULL_ARG, "[KVS Master] Invalid file size");
-    size = *pSize;
-    // Get the size and read into frame
-    CHK_STATUS(readFile(frameFilePath, TRUE, pFrame, &size));
-CleanUp:
-
-    if (pSize != NULL) {
-        *pSize = (UINT32) size;
-    }
-
-    return retStatus;
 }
 
 PVOID sendVideoPackets(PVOID args)

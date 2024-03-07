@@ -95,6 +95,8 @@ typedef struct {
     UINT64 prevTs;
 } RtcMetricsHistory, *PRtcMetricsHistory;
 
+typedef STATUS (*ParamsSetFn) (UINT64);
+
 typedef struct {
     volatile ATOMIC_BOOL appTerminateFlag;
     volatile ATOMIC_BOOL interrupted;
@@ -145,10 +147,19 @@ typedef struct {
 
     UINT32 pregenerateCertTimerId;
     PStackQueue pregeneratedCertificates; // Max MAX_RTCCONFIGURATION_CERTIFICATES certificates
-
+    ParamsSetFn configureAppFn;
     PCHAR rtspUri;
     UINT32 logLevel;
+    PDoubleList timerIdList;
 } SampleConfiguration, *PSampleConfiguration;
+
+typedef struct {
+    UINT32 timerId;
+    UINT64 startTime;
+    UINT64 iterationTime;
+    UINT64 customData;
+    TimerCallbackFunc timerCallbackFunc;
+} TimerTaskConfiguration, *PTimerTaskConfiguration;
 
 typedef struct {
     CHAR content[100];
@@ -216,7 +227,6 @@ PVOID sampleReceiveAudioVideoFrame(PVOID);
 PVOID getPeriodicIceCandidatePairStats(PVOID);
 STATUS getIceCandidatePairStatsCallback(UINT32, UINT64, UINT64);
 STATUS pregenerateCertTimerCallback(UINT32, UINT64, UINT64);
-STATUS createSampleConfiguration(PCHAR, SIGNALING_CHANNEL_ROLE_TYPE, BOOL, BOOL, UINT32, PSampleConfiguration*);
 STATUS freeSampleConfiguration(PSampleConfiguration*);
 STATUS signalingClientStateChanged(UINT64, SIGNALING_CLIENT_STATE);
 STATUS signalingMessageReceived(UINT64, PReceivedSignalingMessage);
@@ -249,7 +259,11 @@ STATUS removeExpiredMessageQueues(PStackQueue);
 STATUS getPendingMessageQueueForHash(PStackQueue, UINT64, BOOL, PPendingMessageQueue*);
 STATUS initSignaling(PSampleConfiguration, PCHAR);
 BOOL sampleFilterNetworkInterfaces(UINT64, PCHAR);
-UINT32 setLogLevel();
+STATUS initializeConfiguration(PSampleConfiguration*, SIGNALING_CHANNEL_ROLE_TYPE, ParamsSetFn);
+STATUS initializeMediaSenders(PSampleConfiguration, startRoutine, startRoutine);
+STATUS initializeMediaReceivers(PSampleConfiguration, startRoutine);
+STATUS readFrameFromDisk(PBYTE, PUINT32, PCHAR);
+STATUS addTaskToTimerQueue(PSampleConfiguration, PTimerTaskConfiguration);
 
 #ifdef __cplusplus
 }
