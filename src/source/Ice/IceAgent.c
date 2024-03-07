@@ -40,7 +40,11 @@ STATUS createIceAgent(PCHAR username, PCHAR password, PIceAgentCallbacks pIceAge
     CHK(NULL != (pIceAgent = (PIceAgent) MEMCALLOC(1, SIZEOF(IceAgent))), STATUS_NOT_ENOUGH_MEMORY);
     STRNCPY(pIceAgent->localUsername, username, MAX_ICE_CONFIG_USER_NAME_LEN);
     STRNCPY(pIceAgent->localPassword, password, MAX_ICE_CONFIG_CREDENTIAL_LEN);
-
+    DLOGI("Size of RtcIceServerDiagnostics: %d", SIZEOF(RtcIceServerDiagnostics));
+    DLOGI("Size of RtcIceCandidateDiagnostics: %d", SIZEOF(RtcIceCandidateDiagnostics));
+    DLOGI("Size of IceAgentProfileDiagnostics: %d", SIZEOF(IceAgentProfileDiagnostics));
+    DLOGI("Size of KvsIpAddress: %d", SIZEOF(KvsIpAddress));
+    DLOGI("Size of ICE agent: %d", SIZEOF(IceAgent));
     ATOMIC_STORE_BOOL(&pIceAgent->remoteCredentialReceived, FALSE);
     ATOMIC_STORE_BOOL(&pIceAgent->agentStartGathering, FALSE);
     ATOMIC_STORE_BOOL(&pIceAgent->candidateGatheringFinished, FALSE);
@@ -88,7 +92,7 @@ STATUS createIceAgent(PCHAR username, PCHAR password, PIceAgentCallbacks pIceAge
 
     // Pre-allocate stun packets
 
-    // no other attributes needed: https://tools.ietf.org/html/rfc8445#section-11
+    // no other attribtues needed: https://tools.ietf.org/html/rfc8445#section-11
     CHK_STATUS(createStunPacket(STUN_PACKET_TYPE_BINDING_INDICATION, NULL, &pIceAgent->pBindingIndication));
     CHK_STATUS(hashTableCreateWithParams(ICE_HASH_TABLE_BUCKET_COUNT, ICE_HASH_TABLE_BUCKET_LENGTH, &pIceAgent->requestTimestampDiagnostics));
 
@@ -517,8 +521,7 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
         pLocalIceCandidate = (PIceCandidate) pCurNode->data;
         pCurNode = pCurNode->pNext;
 
-        // TODO: Remove IPv4 check once IPv6 TURN relay candidates are chosen. Disabling this to reduce the number of TURN permissions we create
-        if (pLocalIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED && IS_IPV4_ADDR(&pLocalIceCandidate->ipAddress)) {
+        if (pLocalIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED) {
             CHK_STATUS(turnConnectionAddPeer(pLocalIceCandidate->pTurnConnection, &pIceCandidate->ipAddress));
         }
     }
@@ -675,7 +678,6 @@ STATUS iceAgentStartGathering(PIceAgent pIceAgent)
 
     ATOMIC_STORE_BOOL(&pIceAgent->agentStartGathering, TRUE);
     pIceAgent->candidateGatheringStartTime = GETTIME();
-
     // skip gathering host candidate and srflx candidate if relay only
     if (pIceAgent->iceTransportPolicy != ICE_TRANSPORT_POLICY_RELAY) {
         // Skip getting local host candidates if transport policy is relay only
@@ -764,6 +766,7 @@ STATUS iceAgentSendPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen)
         bytesSent = bufferLen;
         packetsSent++;
     }
+
 
 CleanUp:
 

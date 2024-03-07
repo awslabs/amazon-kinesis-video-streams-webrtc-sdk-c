@@ -25,6 +25,11 @@ extern "C" {
 #define MAX_CANDIDATE_ID_LENGTH 9U
 
 /**
+ * Maximum allowed ICE URI length
+ */
+#define MAX_ICE_CONFIG_URI_LEN 256
+
+/**
  * Maximum allowed relay protocol length
  */
 #define MAX_RELAY_PROTOCOL_LENGTH 8U
@@ -63,6 +68,11 @@ extern "C" {
  * Maximum allowed generic length used in DOMString
  */
 #define MAX_STATS_STRING_LENGTH 255U
+
+/**
+ * Maximum length of candidate type (host, srflx, relay, prflx, unknown)
+ */
+#define MAX_CANDIDATE_TYPE_LENGTH   10U
 /*!@} */
 
 /**
@@ -233,8 +243,8 @@ typedef struct {
  * Reference: https://www.w3.org/TR/webrtc-stats/#ice-server-dict*
  */
 typedef struct {
-    DOMString url;                 //!< STUN/TURN server URL
-    DOMString protocol;            //!< Valid values: UDP, TCP
+    CHAR url[MAX_ICE_CONFIG_URI_LEN + 1]; //!< STUN/TURN server URL
+    CHAR protocol[MAX_PROTOCOL_LENGTH + 1];   //!< Valid values: UDP, TCP
     UINT32 iceServerIndex;         //!< Ice server index to get stats from. Not available in spec! Needs to be
                                    //!< populated by the application to get specific server stats
     INT32 port;                    //!< Port number used by client
@@ -268,14 +278,13 @@ typedef struct {
 
 typedef struct {
     DOMString url;                        //!< For local candidates this is the URL of the ICE server from which the candidate was obtained
-    DOMString transportId;                //!< Not used currently. ID of object that was inspected for RTCTransportStats
     CHAR address[IP_ADDR_STR_LENGTH + 1]; //!< IPv4 or IPv6 address of the candidate
-    DOMString protocol;                   //!< Valid values: UDP, TCP
-    DOMString relayProtocol;              //!< Protocol used by endpoint to communicate with TURN server. (Only for local candidate)
+    CHAR protocol[MAX_PROTOCOL_LENGTH + 1];                   //!< Valid values: UDP, TCP
+    CHAR relayProtocol[MAX_PROTOCOL_LENGTH + 1];              //!< Protocol used by endpoint to communicate with TURN server. (Only for local candidate)
                                           //!< Valid values: UDP, TCP, TLS
     INT32 priority;                       //!< Computed using the formula in https://tools.ietf.org/html/rfc5245#section-15.1
     INT32 port;                           //!< Port number of the candidate
-    DOMString candidateType;              //!< Type of local/remote ICE candidate
+    CHAR candidateType[MAX_CANDIDATE_TYPE_LENGTH + 1];              //!< Type of local/remote ICE candidate
 } RtcIceCandidateStats, *PRtcIceCandidateStats;
 
 /**

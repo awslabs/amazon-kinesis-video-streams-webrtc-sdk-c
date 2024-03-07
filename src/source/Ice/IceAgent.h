@@ -80,8 +80,8 @@ typedef struct __IceAgent* PIceAgent;
  * Internal structure tracking ICE server parameters for diagnostics and metrics/stats
  */
 typedef struct {
-    CHAR url[MAX_STATS_STRING_LENGTH + 1];      //!< STUN/TURN server URL
-    CHAR protocol[MAX_STATS_STRING_LENGTH + 1]; //!< Valid values: UDP, TCP
+    CHAR url[MAX_ICE_CONFIG_URI_LEN + 1];      //!< STUN/TURN server URL
+    CHAR protocol[MAX_PROTOCOL_LENGTH + 1];     //!< Valid values: UDP, TCP
     INT32 port;                                 //!< Port number used by client
     UINT64 totalRequestsSent;                   //!< Total amount of requests that have been sent to the server
     UINT64 totalResponsesReceived;              //!< Total number of responses received from the server
@@ -90,14 +90,13 @@ typedef struct {
 
 typedef struct {
     DOMString url; //!< For local candidates this is the URL of the ICE server from which the candidate was obtained
-    DOMString transportId[MAX_STATS_STRING_LENGTH + 1]; //!< ID of object that was inspected for RTCTransportStats
     CHAR address[KVS_IP_ADDRESS_STRING_BUFFER_LEN];     //!< IPv4 or IPv6 address of the candidate
-    DOMString protocol;                                 //!< Valid values: UDP, TCP
-    DOMString relayProtocol;                            //!< Protocol used by endpoint to communicate with TURN server.
+    CHAR protocol[MAX_PROTOCOL_LENGTH + 1];                                 //!< Valid values: UDP, TCP
+    CHAR relayProtocol[MAX_PROTOCOL_LENGTH + 1];                          //!< Protocol used by endpoint to communicate with TURN server.
                                                         //!< Valid values: UDP, TCP, TLS
+    CHAR candidateType[MAX_CANDIDATE_TYPE_LENGTH + 1];  //!< Type of local/remote ICE candidate
     INT32 priority;                                     //!< Computed using the formula in https://tools.ietf.org/html/rfc5245#section-15.1
     INT32 port;                                         //!< Port number of the candidate
-    DOMString candidateType;                            //!< Type of local/remote ICE candidate
 } RtcIceCandidateDiagnostics, *PRtcIceCandidateDiagnostics;
 
 typedef struct {
