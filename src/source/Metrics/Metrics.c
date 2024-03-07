@@ -60,18 +60,22 @@ STATUS getIceCandidateStats(PRtcPeerConnection pRtcPeerConnection, BOOL isRemote
     CHK((pRtcPeerConnection != NULL || pRtcIceCandidateStats != NULL), STATUS_NULL_ARG);
     MUTEX_LOCK(pIceAgent->lock);
     locked = TRUE;
+    DLOGI("Here");
     PRtcIceCandidateDiagnostics pRtcIceCandidateDiagnostics = pIceAgent->pRtcSelectedRemoteIceCandidateDiagnostics;
     CHK_WARN(pRtcIceCandidateDiagnostics != NULL, STATUS_NULL_ARG, "Candidate stats not populated");
     if (!isRemote) {
+        DLOGI("Here1");
         pRtcIceCandidateDiagnostics = pIceAgent->pRtcSelectedLocalIceCandidateDiagnostics;
         STRCPY(pRtcIceCandidateStats->relayProtocol, pRtcIceCandidateDiagnostics->relayProtocol);
         STRCPY(pRtcIceCandidateStats->url, pRtcIceCandidateDiagnostics->url);
     }
+    DLOGI("Here2");
     STRCPY(pRtcIceCandidateStats->address, pRtcIceCandidateDiagnostics->address);
     STRCPY(pRtcIceCandidateStats->candidateType, pRtcIceCandidateDiagnostics->candidateType);
     pRtcIceCandidateStats->port = pRtcIceCandidateDiagnostics->port;
     pRtcIceCandidateStats->priority = pRtcIceCandidateDiagnostics->priority;
     STRCPY(pRtcIceCandidateStats->protocol, pRtcIceCandidateDiagnostics->protocol);
+    DLOGI("Here3");
 CleanUp:
     if (locked) {
         MUTEX_UNLOCK(pIceAgent->lock);
