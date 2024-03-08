@@ -251,6 +251,10 @@ PVOID sendAudioPackets(PVOID args)
     frame.presentationTs = 0;
 
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
+#ifdef USE_AUDIO_AAC
+        fileIndex = fileIndex % NUMBER_OF_AAC_FRAME_FILES + 1;
+        SNPRINTF(filePath, MAX_PATH_LEN, "./aacSampleFrames/sample-%03d.aac", fileIndex);
+#else
         fileIndex = fileIndex % NUMBER_OF_OPUS_FRAME_FILES + 1;
 
         if (pSampleConfiguration->audioCodec == RTC_CODEC_AAC) {
@@ -259,6 +263,7 @@ PVOID sendAudioPackets(PVOID args)
             SNPRINTF(filePath, MAX_PATH_LEN, "./opusSampleFrames/sample-%03d.opus", fileIndex);
         }
 
+#endif
         CHK_STATUS(readFrameFromDisk(NULL, &frameSize, filePath));
 
         // Re-alloc if needed
@@ -273,7 +278,11 @@ PVOID sendAudioPackets(PVOID args)
 
         CHK_STATUS(readFrameFromDisk(frame.frameData, &frameSize, filePath));
 
+#ifdef USE_AUDIO_AAC
+        frame.presentationTs += SAMPLE_AUDIO_AAC_FRAME_DURATION;
+#else
         frame.presentationTs += SAMPLE_AUDIO_FRAME_DURATION;
+#endif
 
         MUTEX_LOCK(pSampleConfiguration->streamingSessionListReadLock);
         for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
@@ -291,7 +300,11 @@ PVOID sendAudioPackets(PVOID args)
             }
         }
         MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
+#ifdef USE_AUDIO_AAC
+        THREAD_SLEEP(SAMPLE_AUDIO_AAC_FRAME_DURATION);
+#else
         THREAD_SLEEP(SAMPLE_AUDIO_FRAME_DURATION);
+#endif
     }
 
 CleanUp:
