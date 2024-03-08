@@ -167,7 +167,7 @@ typedef struct {
     ParamsSetFn configureAppFn;
     UINT32 logLevel;
     PDoubleList timerIdList;
-} SampleConfiguration, *PSampleConfiguration;
+} DemoConfiguration, *PDemoConfiguration;
 
 typedef struct {
     UINT32 timerId;
@@ -205,7 +205,7 @@ struct __SampleStreamingSession {
     PRtcRtpTransceiver pVideoRtcRtpTransceiver;
     PRtcRtpTransceiver pAudioRtcRtpTransceiver;
     RtcSessionDescriptionInit answerSessionDescriptionInit;
-    PSampleConfiguration pSampleConfiguration;
+    PDemoConfiguration pDemoConfiguration;
     UINT64 audioTimestamp;
     UINT64 videoTimestamp;
     CHAR peerId[MAX_SIGNALING_CLIENT_ID_LEN + 1];
@@ -232,52 +232,56 @@ typedef struct {
     PUINT32 pUriCount;
 } AsyncGetIceStruct;
 
-VOID sigintHandler(INT32);
+
+// Initializers
+STATUS initSignaling(PDemoConfiguration, PCHAR);
+STATUS initializeConfiguration(PDemoConfiguration*, SIGNALING_CHANNEL_ROLE_TYPE, ParamsSetFn);
+STATUS initializeMediaSenders(PDemoConfiguration, startRoutine, startRoutine);
+STATUS initializeMediaReceivers(PDemoConfiguration, startRoutine);
+STATUS createStreamingSession(PDemoConfiguration, PCHAR, BOOL, PSampleStreamingSession*);
+STATUS createMessageQueue(UINT64, PPendingMessageQueue*);
+STATUS initializePeerConnection(PDemoConfiguration, PRtcPeerConnection*);
+
+// Utility
 STATUS readFrameFromDisk(PBYTE, PUINT32, PCHAR);
-PVOID sendVideoPackets(PVOID);
-PVOID sendAudioPackets(PVOID);
-PVOID sendGstreamerAudioVideo(PVOID);
-PVOID sampleReceiveAudioVideoFrame(PVOID);
-PVOID getPeriodicIceCandidatePairStats(PVOID);
-STATUS getIceCandidatePairStatsCallback(UINT32, UINT64, UINT64);
-STATUS pregenerateCertTimerCallback(UINT32, UINT64, UINT64);
-STATUS freeSampleConfiguration(PSampleConfiguration*);
-STATUS signalingClientStateChanged(UINT64, SIGNALING_CLIENT_STATE);
+STATUS addTaskToTimerQueue(PDemoConfiguration, PTimerTaskConfiguration);
+STATUS lookForSslCert(PDemoConfiguration*);
+VOID sigintHandler(INT32);
 STATUS signalingMessageReceived(UINT64, PReceivedSignalingMessage);
-STATUS handleAnswer(PSampleConfiguration, PSampleStreamingSession, PSignalingMessage);
-STATUS handleOffer(PSampleConfiguration, PSampleStreamingSession, PSignalingMessage);
+STATUS handleAnswer(PDemoConfiguration, PSampleStreamingSession, PSignalingMessage);
+STATUS handleOffer(PDemoConfiguration, PSampleStreamingSession, PSignalingMessage);
 STATUS handleRemoteCandidate(PSampleStreamingSession, PSignalingMessage);
-STATUS initializePeerConnection(PSampleConfiguration, PRtcPeerConnection*);
-STATUS lookForSslCert(PSampleConfiguration*);
-STATUS createStreamingSession(PSampleConfiguration, PCHAR, BOOL, PSampleStreamingSession*);
-STATUS freeSampleStreamingSession(PSampleStreamingSession*);
-STATUS streamingSessionOnShutdown(PSampleStreamingSession, UINT64, StreamSessionShutdownCallback);
 STATUS sendSignalingMessage(PSampleStreamingSession, PSignalingMessage);
 STATUS respondWithAnswer(PSampleStreamingSession);
-STATUS resetSampleConfigurationState(PSampleConfiguration);
+STATUS logSignalingClientStats(PSignalingClientMetrics);
+STATUS logSelectedIceCandidatesInformation(PSampleStreamingSession);
+STATUS submitPendingIceCandidate(PPendingMessageQueue, PSampleStreamingSession);
+STATUS removeExpiredMessageQueues(PStackQueue);
+STATUS getPendingMessageQueueForHash(PStackQueue, UINT64, BOOL, PPendingMessageQueue*);
+
+// Callbacks
 VOID sampleVideoFrameHandler(UINT64, PFrame);
 VOID sampleAudioFrameHandler(UINT64, PFrame);
 VOID sampleFrameHandler(UINT64, PFrame);
 VOID sampleBandwidthEstimationHandler(UINT64, DOUBLE);
-VOID sampleSenderBandwidthEstimationHandler(UINT64, UINT32, UINT32, UINT32, UINT32, UINT64);
+PVOID sendVideoPackets(PVOID);
+PVOID sendAudioPackets(PVOID);
+PVOID sendGstreamerAudioVideo(PVOID);
+PVOID sampleReceiveAudioVideoFrame(PVOID);
+BOOL sampleFilterNetworkInterfaces(UINT64, PCHAR);
 VOID onDataChannel(UINT64, PRtcDataChannel);
 VOID onConnectionStateChange(UINT64, RTC_PEER_CONNECTION_STATE);
-STATUS sessionCleanupWait(PSampleConfiguration);
-STATUS logSignalingClientStats(PSignalingClientMetrics);
-STATUS logSelectedIceCandidatesInformation(PSampleStreamingSession);
-STATUS logStartUpLatency(PSampleConfiguration);
-STATUS createMessageQueue(UINT64, PPendingMessageQueue*);
+STATUS getIceCandidatePairStatsCallback(UINT32, UINT64, UINT64);
+STATUS pregenerateCertTimerCallback(UINT32, UINT64, UINT64);
+STATUS signalingClientStateChanged(UINT64, SIGNALING_CLIENT_STATE);
+VOID sampleSenderBandwidthEstimationHandler(UINT64, UINT32, UINT32, UINT32, UINT32, UINT64);
+STATUS streamingSessionOnShutdown(PSampleStreamingSession, UINT64, StreamSessionShutdownCallback);
+
+// Deinitializers
+STATUS sessionCleanupWait(PDemoConfiguration);
 STATUS freeMessageQueue(PPendingMessageQueue);
-STATUS submitPendingIceCandidate(PPendingMessageQueue, PSampleStreamingSession);
-STATUS removeExpiredMessageQueues(PStackQueue);
-STATUS getPendingMessageQueueForHash(PStackQueue, UINT64, BOOL, PPendingMessageQueue*);
-STATUS initSignaling(PSampleConfiguration, PCHAR);
-BOOL sampleFilterNetworkInterfaces(UINT64, PCHAR);
-STATUS initializeConfiguration(PSampleConfiguration*, SIGNALING_CHANNEL_ROLE_TYPE, ParamsSetFn);
-STATUS initializeMediaSenders(PSampleConfiguration, startRoutine, startRoutine);
-STATUS initializeMediaReceivers(PSampleConfiguration, startRoutine);
-STATUS readFrameFromDisk(PBYTE, PUINT32, PCHAR);
-STATUS addTaskToTimerQueue(PSampleConfiguration, PTimerTaskConfiguration);
+STATUS freeDemoConfiguration(PDemoConfiguration*);
+STATUS freeSampleStreamingSession(PSampleStreamingSession*);
 
 #ifdef __cplusplus
 }

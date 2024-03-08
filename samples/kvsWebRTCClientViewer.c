@@ -1,6 +1,6 @@
 #include "Samples.h"
 
-extern PSampleConfiguration gSampleConfiguration;
+extern PDemoConfiguration gDemoConfiguration;
 
 #ifdef ENABLE_DATA_CHANNEL
 
@@ -37,7 +37,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     RtcSessionDescriptionInit offerSessionDescriptionInit;
     UINT32 buffLen = 0;
     SignalingMessage message;
-    PSampleConfiguration pSampleConfiguration = NULL;
+    PDemoConfiguration pDemoConfiguration = NULL;
     PSampleStreamingSession pSampleStreamingSession = NULL;
     BOOL locked = FALSE;
     PCHAR pChannelName;
@@ -54,24 +54,24 @@ INT32 main(INT32 argc, CHAR* argv[])
     pChannelName = argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME;
 #endif
 
-    CHK_STATUS(initializeConfiguration(&pSampleConfiguration, SIGNALING_CHANNEL_ROLE_TYPE_VIEWER, NULL));
+    CHK_STATUS(initializeConfiguration(&pDemoConfiguration, SIGNALING_CHANNEL_ROLE_TYPE_VIEWER, NULL));
 
 #ifdef ENABLE_DATA_CHANNEL
-    pSampleConfiguration->onDataChannel = onDataChannel;
+    pDemoConfiguration->onDataChannel = onDataChannel;
 #endif
 
     SPRINTF(clientId, "%s_%u", SAMPLE_VIEWER_CLIENT_ID, RAND() % MAX_UINT32);
-    CHK_STATUS(initSignaling(pSampleConfiguration, clientId));
+    CHK_STATUS(initSignaling(pDemoConfiguration, clientId));
     DLOGI("[KVS Viewer] Signaling client connection established");
 
     // Initialize streaming session
-    MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
+    MUTEX_LOCK(pDemoConfiguration->sampleConfigurationObjLock);
     locked = TRUE;
-    CHK_STATUS(createStreamingSession(pSampleConfiguration, NULL, FALSE, &pSampleStreamingSession));
+    CHK_STATUS(createStreamingSession(pDemoConfiguration, NULL, FALSE, &pSampleStreamingSession));
     DLOGI("[KVS Viewer] Creating streaming session...completed");
-    pSampleConfiguration->sampleStreamingSessionList[pSampleConfiguration->streamingSessionCount++] = pSampleStreamingSession;
+    pDemoConfiguration->sampleStreamingSessionList[pDemoConfiguration->streamingSessionCount++] = pSampleStreamingSession;
 
-    MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
+    MUTEX_UNLOCK(pDemoConfiguration->sampleConfigurationObjLock);
     locked = FALSE;
 
     MEMSET(&offerSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
@@ -82,18 +82,18 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pAudioRtcRtpTransceiver, (UINT64) pSampleStreamingSession, sampleAudioFrameHandler));
 
-    if (!pSampleConfiguration->appConfigCtx.trickleIce) {
+    if (!pDemoConfiguration->appConfigCtx.trickleIce) {
         DLOGI("[KVS Viewer] Non trickle ice. Wait for Candidate collection to complete");
-        MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
+        MUTEX_LOCK(pDemoConfiguration->sampleConfigurationObjLock);
         locked = TRUE;
 
         while (!ATOMIC_LOAD_BOOL(&pSampleStreamingSession->candidateGatheringDone)) {
             CHK_WARN(!ATOMIC_LOAD_BOOL(&pSampleStreamingSession->terminateFlag), STATUS_OPERATION_TIMED_OUT,
                      "application terminated and candidate gathering still not done");
-            CVAR_WAIT(pSampleConfiguration->cvar, pSampleConfiguration->sampleConfigurationObjLock, 5 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+            CVAR_WAIT(pDemoConfiguration->cvar, pDemoConfiguration->sampleConfigurationObjLock, 5 * HUNDREDS_OF_NANOS_IN_A_SECOND);
         }
 
-        MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
+        MUTEX_UNLOCK(pDemoConfiguration->sampleConfigurationObjLock);
         locked = FALSE;
 
         DLOGI("[KVS Viewer] Candidate collection completed");
@@ -119,7 +119,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     message.payloadLen = (buffLen / SIZEOF(CHAR)) - 1;
     message.correlationId[0] = '\0';
 
-    CHK_STATUS(signalingClientSendMessageSync(pSampleConfiguration->appSignalingCtx.signalingClientHandle, &message));
+    CHK_STATUS(signalingClientSendMessageSync(pDemoConfiguration->appSignalingCtx.signalingClientHandle, &message));
 #ifdef ENABLE_DATA_CHANNEL
     PRtcDataChannel pDataChannel = NULL;
     PRtcPeerConnection pPeerConnection = pSampleStreamingSession->pPeerConnection;
@@ -135,16 +135,16 @@ INT32 main(INT32 argc, CHAR* argv[])
 #endif
 
     // Block until interrupted
-    while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->interrupted) && !ATOMIC_LOAD_BOOL(&pSampleStreamingSession->terminateFlag)) {
+    while (!ATOMIC_LOAD_BOOL(&pDemoConfiguration->interrupted) && !ATOMIC_LOAD_BOOL(&pSampleStreamingSession->terminateFlag)) {
         THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
     }
 
 CleanUp:
     DLOGI("[KVS Viewer] Cleaning up....");
     if (locked) {
-        MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
+        MUTEX_UNLOCK(pDemoConfiguration->sampleConfigurationObjLock);
     }
-    CHK_LOG_ERR(freeSampleConfiguration(&pSampleConfiguration));
+    CHK_LOG_ERR(freeDemoConfiguration(&pDemoConfiguration));
     DLOGI("[KVS Viewer] Cleanup done");
 
     // https://www.gnu.org/software/libc/manual/html_node/Exit-Status.html

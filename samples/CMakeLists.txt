@@ -17,7 +17,7 @@ if (WIN32)
       message(FATAL_ERROR "Gstreamer not found in default path. Set the appropriate path with -DPKG_CONFIG_EXECUTABLE=<path>")
     endif()
 endif()
-  
+
 find_package(PkgConfig REQUIRED)
 
 pkg_check_modules(GST gstreamer-1.0)
@@ -59,15 +59,17 @@ file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/h264SampleFrames" DESTINATION .)
 
 add_executable(
   kvsWebrtcClientMaster
-        DemoConfig.c
+  DemoConfig.c
   StreamingSession.c
+  Callbacks.c
   kvsWebRTCClientMaster.c)
 target_link_libraries(kvsWebrtcClientMaster kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} kvsCommonLws kvspicUtils websockets kvssdp)
 
 add_executable(
   kvsWebrtcClientViewer
-        DemoConfig.c
+  DemoConfig.c
   StreamingSession.c
+  Callbacks.c
   kvsWebRTCClientViewer.c)
 target_link_libraries(kvsWebrtcClientViewer kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} kvsCommonLws kvspicUtils websockets kvssdp)
 
@@ -79,8 +81,9 @@ target_link_libraries(discoverNatBehavior kvsWebrtcClient ${EXTRA_DEPS} kvssdp)
 if(GST_FOUND)
   add_executable(
     kvsWebrtcClientMasterGstSample
-          DemoConfig.c
+    DemoConfig.c
     StreamingSession.c
+    Callbacks.c
     kvsWebRTCClientMasterGstSample.c
   )
   target_link_libraries(kvsWebrtcClientMasterGstSample kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} ${GST_SAMPLE_LIBRARIES} kvsCommonLws kvspicUtils websockets kvssdp)

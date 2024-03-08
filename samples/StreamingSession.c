@@ -26,13 +26,13 @@ VOID onIceCandidateHandler(UINT64 customData, PCHAR candidateJson)
         ATOMIC_STORE_BOOL(&pSampleStreamingSession->candidateGatheringDone, TRUE);
 
         // if application is master and non-trickle ice, send answer now.
-        if (pSampleStreamingSession->pSampleConfiguration->appSignalingCtx.channelInfo.channelRoleType == SIGNALING_CHANNEL_ROLE_TYPE_MASTER &&
+        if (pSampleStreamingSession->pDemoConfiguration->appSignalingCtx.channelInfo.channelRoleType == SIGNALING_CHANNEL_ROLE_TYPE_MASTER &&
             !pSampleStreamingSession->remoteCanTrickleIce) {
             CHK_STATUS(createAnswer(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->answerSessionDescriptionInit));
             CHK_STATUS(respondWithAnswer(pSampleStreamingSession));
-        } else if (pSampleStreamingSession->pSampleConfiguration->appSignalingCtx.channelInfo.channelRoleType == SIGNALING_CHANNEL_ROLE_TYPE_VIEWER &&
-                   !pSampleStreamingSession->pSampleConfiguration->appConfigCtx.trickleIce) {
-            CVAR_BROADCAST(pSampleStreamingSession->pSampleConfiguration->cvar);
+        } else if (pSampleStreamingSession->pDemoConfiguration->appSignalingCtx.channelInfo.channelRoleType == SIGNALING_CHANNEL_ROLE_TYPE_VIEWER &&
+                   !pSampleStreamingSession->pDemoConfiguration->appConfigCtx.trickleIce) {
+            CVAR_BROADCAST(pSampleStreamingSession->pDemoConfiguration->cvar);
         }
 
     } else if (pSampleStreamingSession->remoteCanTrickleIce && ATOMIC_LOAD_BOOL(&pSampleStreamingSession->peerIdReceived)) {
@@ -54,15 +54,15 @@ VOID onConnectionStateChange(UINT64 customData, RTC_PEER_CONNECTION_STATE newSta
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) customData;
-    CHK(pSampleStreamingSession != NULL && pSampleStreamingSession->pSampleConfiguration != NULL, STATUS_INTERNAL_ERROR);
+    CHK(pSampleStreamingSession != NULL && pSampleStreamingSession->pDemoConfiguration != NULL, STATUS_INTERNAL_ERROR);
 
-    PSampleConfiguration pSampleConfiguration = pSampleStreamingSession->pSampleConfiguration;
+    PDemoConfiguration pDemoConfiguration = pSampleStreamingSession->pDemoConfiguration;
     DLOGI("New connection state %u", newState);
 
     switch (newState) {
         case RTC_PEER_CONNECTION_STATE_CONNECTED:
-            ATOMIC_STORE_BOOL(&pSampleConfiguration->connected, TRUE);
-            CVAR_BROADCAST(pSampleConfiguration->cvar);
+            ATOMIC_STORE_BOOL(&pDemoConfiguration->connected, TRUE);
+            CVAR_BROADCAST(pDemoConfiguration->cvar);
             if (STATUS_FAILED(retStatus = logSelectedIceCandidatesInformation(pSampleStreamingSession))) {
                 DLOGW("Failed to get information about selected Ice candidates: 0x%08x", retStatus);
             }
@@ -74,11 +74,11 @@ VOID onConnectionStateChange(UINT64 customData, RTC_PEER_CONNECTION_STATE newSta
         case RTC_PEER_CONNECTION_STATE_DISCONNECTED:
             DLOGD("p2p connection disconnected");
             ATOMIC_STORE_BOOL(&pSampleStreamingSession->terminateFlag, TRUE);
-            CVAR_BROADCAST(pSampleConfiguration->cvar);
+            CVAR_BROADCAST(pDemoConfiguration->cvar);
             // explicit fallthrough
         default:
-            ATOMIC_STORE_BOOL(&pSampleConfiguration->connected, FALSE);
-            CVAR_BROADCAST(pSampleConfiguration->cvar);
+            ATOMIC_STORE_BOOL(&pDemoConfiguration->connected, FALSE);
+            CVAR_BROADCAST(pDemoConfiguration->cvar);
 
             break;
     }
@@ -88,8 +88,8 @@ CleanUp:
     CHK_LOG_ERR(retStatus);
 }
 
-// ----------//
-STATUS createStreamingSession(PSampleConfiguration pSampleConfiguration, PCHAR peerId, BOOL isMaster,
+// ---------- //
+STATUS createStreamingSession(PDemoConfiguration pDemoConfiguration, PCHAR peerId, BOOL isMaster,
                               PSampleStreamingSession* ppSampleStreamingSession)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -101,7 +101,7 @@ STATUS createStreamingSession(PSampleConfiguration pSampleConfiguration, PCHAR p
     MEMSET(&videoTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
     MEMSET(&audioTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
 
-    CHK(pSampleConfiguration != NULL && ppSampleStreamingSession != NULL, STATUS_NULL_ARG);
+    CHK(pDemoConfiguration != NULL && ppSampleStreamingSession != NULL, STATUS_NULL_ARG);
     CHK((isMaster && peerId != NULL) || !isMaster, STATUS_INVALID_ARG);
 
     pSampleStreamingSession = (PSampleStreamingSession) MEMCALLOC(1, SIZEOF(SampleStreamingSession));
@@ -119,24 +119,24 @@ STATUS createStreamingSession(PSampleConfiguration pSampleConfiguration, PCHAR p
     pSampleStreamingSession->pAudioRtcRtpTransceiver = NULL;
     pSampleStreamingSession->pVideoRtcRtpTransceiver = NULL;
 
-    pSampleStreamingSession->pSampleConfiguration = pSampleConfiguration;
+    pSampleStreamingSession->pDemoConfiguration = pDemoConfiguration;
     pSampleStreamingSession->rtcMetricsHistory.prevTs = GETTIME();
 
     // if we're the viewer, we control the trickle ice mode
-    pSampleStreamingSession->remoteCanTrickleIce = !isMaster && pSampleConfiguration->appConfigCtx.trickleIce;
+    pSampleStreamingSession->remoteCanTrickleIce = !isMaster && pDemoConfiguration->appConfigCtx.trickleIce;
 
     ATOMIC_STORE_BOOL(&pSampleStreamingSession->terminateFlag, FALSE);
     ATOMIC_STORE_BOOL(&pSampleStreamingSession->candidateGatheringDone, FALSE);
 
     pSampleStreamingSession->peerConnectionMetrics.peerConnectionStats.peerConnectionStartTime = GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
-    CHK_STATUS(initializePeerConnection(pSampleConfiguration, &pSampleStreamingSession->pPeerConnection));
+    CHK_STATUS(initializePeerConnection(pDemoConfiguration, &pSampleStreamingSession->pPeerConnection));
     CHK_STATUS(peerConnectionOnIceCandidate(pSampleStreamingSession->pPeerConnection, (UINT64) pSampleStreamingSession, onIceCandidateHandler));
     CHK_STATUS(
         peerConnectionOnConnectionStateChange(pSampleStreamingSession->pPeerConnection, (UINT64) pSampleStreamingSession, onConnectionStateChange));
 #ifdef ENABLE_DATA_CHANNEL
-    if (pSampleConfiguration->onDataChannel != NULL) {
+    if (pDemoConfiguration->onDataChannel != NULL) {
         CHK_STATUS(peerConnectionOnDataChannel(pSampleStreamingSession->pPeerConnection, (UINT64) pSampleStreamingSession,
-                                               pSampleConfiguration->onDataChannel));
+                                               pDemoConfiguration->onDataChannel));
     }
 #endif
 
@@ -210,12 +210,12 @@ STATUS freeSampleStreamingSession(PSampleStreamingSession* ppSampleStreamingSess
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSampleStreamingSession pSampleStreamingSession = NULL;
-    PSampleConfiguration pSampleConfiguration;
+    PDemoConfiguration pDemoConfiguration;
 
     CHK(ppSampleStreamingSession != NULL, STATUS_NULL_ARG);
     pSampleStreamingSession = *ppSampleStreamingSession;
-    CHK(pSampleStreamingSession != NULL && pSampleStreamingSession->pSampleConfiguration != NULL, retStatus);
-    pSampleConfiguration = pSampleStreamingSession->pSampleConfiguration;
+    CHK(pSampleStreamingSession != NULL && pSampleStreamingSession->pDemoConfiguration != NULL, retStatus);
+    pDemoConfiguration = pSampleStreamingSession->pDemoConfiguration;
 
     DLOGD("Freeing streaming session with peer id: %s ", pSampleStreamingSession->peerId);
 
