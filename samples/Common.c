@@ -27,7 +27,155 @@ STATUS signalingClientError(UINT64 customData, STATUS status, PCHAR msg, UINT32 
     return STATUS_SUCCESS;
 }
 
-static STATUS setUpLogging(PSampleConfiguration pSampleConfiguration) {
+PVOID sendVideoPackets(PVOID args)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
+    RtcEncoderStats encoderStats;
+    Frame frame;
+    UINT32 fileIndex = 0, frameSize;
+    CHAR filePath[MAX_PATH_LEN + 1];
+    STATUS status;
+    UINT32 i;
+    UINT64 startTime, lastFrameTime, elapsed;
+    MEMSET(&encoderStats, 0x00, SIZEOF(RtcEncoderStats));
+    CHK_ERR(pSampleConfiguration != NULL, STATUS_NULL_ARG, "[KVS Master] Streaming session is NULL");
+
+    frame.presentationTs = 0;
+    startTime = GETTIME();
+    lastFrameTime = startTime;
+
+    while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
+        fileIndex = fileIndex % NUMBER_OF_H264_FRAME_FILES + 1;
+        SNPRINTF(filePath, MAX_PATH_LEN, "./h264SampleFrames/frame-%04d.h264", fileIndex);
+
+        CHK_STATUS(readFrameFromDisk(NULL, &frameSize, filePath));
+
+        // Re-alloc if needed
+        if (frameSize > pSampleConfiguration->videoBufferSize) {
+            pSampleConfiguration->pVideoFrameBuffer = (PBYTE) MEMREALLOC(pSampleConfiguration->pVideoFrameBuffer, frameSize);
+            CHK_ERR(pSampleConfiguration->pVideoFrameBuffer != NULL, STATUS_NOT_ENOUGH_MEMORY, "[KVS Master] Failed to allocate video frame buffer");
+            pSampleConfiguration->videoBufferSize = frameSize;
+        }
+
+        frame.frameData = pSampleConfiguration->pVideoFrameBuffer;
+        frame.size = frameSize;
+
+        CHK_STATUS(readFrameFromDisk(frame.frameData, &frameSize, filePath));
+
+        // based on bitrate of samples/h264SampleFrames/frame-*
+        encoderStats.width = 640;
+        encoderStats.height = 480;
+        encoderStats.targetBitrate = 262000;
+        frame.presentationTs += SAMPLE_VIDEO_FRAME_DURATION;
+        MUTEX_LOCK(pSampleConfiguration->streamingSessionListReadLock);
+        for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
+            status = writeFrame(pSampleConfiguration->sampleStreamingSessionList[i]->pVideoRtcRtpTransceiver, &frame);
+            if (pSampleConfiguration->sampleStreamingSessionList[i]->firstFrame && status == STATUS_SUCCESS) {
+                PROFILE_WITH_START_TIME(pSampleConfiguration->sampleStreamingSessionList[i]->offerReceiveTime, "Time to first frame");
+                pSampleConfiguration->sampleStreamingSessionList[i]->firstFrame = FALSE;
+            }
+            encoderStats.encodeTimeMsec = 4; // update encode time to an arbitrary number to demonstrate stats update
+            updateEncoderStats(pSampleConfiguration->sampleStreamingSessionList[i]->pVideoRtcRtpTransceiver, &encoderStats);
+            if (status != STATUS_SRTP_NOT_READY_YET) {
+                if (status != STATUS_SUCCESS) {
+                    DLOGV("writeFrame() failed with 0x%08x", status);
+                }
+            } else {
+                // Reset file index to ensure first frame sent upon SRTP ready is a key frame.
+                fileIndex = 0;
+            }
+        }
+        MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
+
+        // Adjust sleep in the case the sleep itself and writeFrame take longer than expected. Since sleep makes sure that the thread
+        // will be paused at least until the given amount, we can assume that there's no too early frame scenario.
+        // Also, it's very unlikely to have a delay greater than SAMPLE_VIDEO_FRAME_DURATION, so the logic assumes that this is always
+        // true for simplicity.
+        elapsed = lastFrameTime - startTime;
+        THREAD_SLEEP(SAMPLE_VIDEO_FRAME_DURATION - elapsed % SAMPLE_VIDEO_FRAME_DURATION);
+        lastFrameTime = GETTIME();
+    }
+
+CleanUp:
+    DLOGI("[KVS Master] Closing video thread");
+    CHK_LOG_ERR(retStatus);
+
+    return (PVOID) (ULONG_PTR) retStatus;
+}
+
+PVOID sendAudioPackets(PVOID args)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
+    Frame frame;
+    UINT32 fileIndex = 0, frameSize;
+    CHAR filePath[MAX_PATH_LEN + 1];
+    UINT32 i;
+    STATUS status;
+
+    CHK_ERR(pSampleConfiguration != NULL, STATUS_NULL_ARG, "[KVS Master] Streaming session is NULL");
+    frame.presentationTs = 0;
+
+    while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
+        fileIndex = fileIndex % NUMBER_OF_OPUS_FRAME_FILES + 1;
+        SNPRINTF(filePath, MAX_PATH_LEN, "./opusSampleFrames/sample-%03d.opus", fileIndex);
+
+        CHK_STATUS(readFrameFromDisk(NULL, &frameSize, filePath));
+
+        // Re-alloc if needed
+        if (frameSize > pSampleConfiguration->audioBufferSize) {
+            pSampleConfiguration->pAudioFrameBuffer = (UINT8*) MEMREALLOC(pSampleConfiguration->pAudioFrameBuffer, frameSize);
+            CHK_ERR(pSampleConfiguration->pAudioFrameBuffer != NULL, STATUS_NOT_ENOUGH_MEMORY, "[KVS Master] Failed to allocate audio frame buffer");
+            pSampleConfiguration->audioBufferSize = frameSize;
+        }
+
+        frame.frameData = pSampleConfiguration->pAudioFrameBuffer;
+        frame.size = frameSize;
+
+        CHK_STATUS(readFrameFromDisk(frame.frameData, &frameSize, filePath));
+
+        frame.presentationTs += SAMPLE_AUDIO_FRAME_DURATION;
+
+        MUTEX_LOCK(pSampleConfiguration->streamingSessionListReadLock);
+        for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
+            status = writeFrame(pSampleConfiguration->sampleStreamingSessionList[i]->pAudioRtcRtpTransceiver, &frame);
+            if (status != STATUS_SRTP_NOT_READY_YET) {
+                if (status != STATUS_SUCCESS) {
+                    DLOGV("writeFrame() failed with 0x%08x", status);
+                } else if (pSampleConfiguration->sampleStreamingSessionList[i]->firstFrame && status == STATUS_SUCCESS) {
+                    PROFILE_WITH_START_TIME(pSampleConfiguration->sampleStreamingSessionList[i]->offerReceiveTime, "Time to first frame");
+                    pSampleConfiguration->sampleStreamingSessionList[i]->firstFrame = FALSE;
+                }
+            } else {
+                // Reset file index to stay in sync with video frames.
+                fileIndex = 0;
+            }
+        }
+        MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
+        THREAD_SLEEP(SAMPLE_AUDIO_FRAME_DURATION);
+    }
+
+CleanUp:
+    DLOGI("[KVS Master] closing audio thread");
+    return (PVOID) (ULONG_PTR) retStatus;
+}
+
+PVOID sampleReceiveAudioVideoFrame(PVOID args)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) args;
+    CHK_ERR(pSampleStreamingSession != NULL, STATUS_NULL_ARG, "[KVS Master] Streaming session is NULL");
+    CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pVideoRtcRtpTransceiver, (UINT64) pSampleStreamingSession, sampleVideoFrameHandler));
+    CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pAudioRtcRtpTransceiver, (UINT64) pSampleStreamingSession, sampleAudioFrameHandler));
+
+CleanUp:
+
+    return (PVOID) (ULONG_PTR) retStatus;
+}
+
+static STATUS setUpLogging(PSampleConfiguration pSampleConfiguration)
+{
     PCHAR pLogLevel;
     UINT32 logLevel = LOG_LEVEL_DEBUG;
     STATUS retStatus = STATUS_SUCCESS;
@@ -51,7 +199,8 @@ CleanUp:
     return retStatus;
 }
 
-static STATUS setUpCredentialProvider(PSampleConfiguration pSampleConfiguration) {
+static STATUS setUpCredentialProvider(PSampleConfiguration pSampleConfiguration)
+{
     STATUS retStatus = STATUS_SUCCESS;
     PCHAR pAccessKey, pSecretKey, pSessionToken;
 #ifdef IOT_CORE_ENABLE_CREDENTIALS
@@ -84,41 +233,21 @@ static STATUS setUpCredentialProvider(PSampleConfiguration pSampleConfiguration)
                                               pIotCoreRoleAlias, pIotCoreThingName, &pSampleConfiguration->pCredentialProvider));
 #else
     CHK_STATUS(
-            createStaticCredentialProvider(pAccessKey, 0, pSecretKey, 0, pSessionToken, 0, MAX_UINT64, &pSampleConfiguration->pCredentialProvider));
+        createStaticCredentialProvider(pAccessKey, 0, pSecretKey, 0, pSessionToken, 0, MAX_UINT64, &pSampleConfiguration->pCredentialProvider));
 #endif
 CleanUp:
     return retStatus;
 }
 
-static STATUS setUpDefaultsFn(UINT64 sampleConfigHandle) {
+static STATUS setUpSignalingDefaults(PSampleConfiguration pSampleConfiguration)
+{
     STATUS retStatus = STATUS_SUCCESS;
-    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) sampleConfigHandle;
-    pSampleConfiguration->mediaSenderTid = INVALID_TID_VALUE;
-    pSampleConfiguration->audioSenderTid = INVALID_TID_VALUE;
-    pSampleConfiguration->videoSenderTid = INVALID_TID_VALUE;
     pSampleConfiguration->signalingClientHandle = INVALID_SIGNALING_CLIENT_HANDLE_VALUE;
-    pSampleConfiguration->sampleConfigurationObjLock = MUTEX_CREATE(TRUE);
-    pSampleConfiguration->cvar = CVAR_CREATE();
-    pSampleConfiguration->streamingSessionListReadLock = MUTEX_CREATE(FALSE);
-    pSampleConfiguration->signalingSendMessageLock = MUTEX_CREATE(FALSE);
-    /* This is ignored for master. Master can extract the info from offer. Viewer has to know if peer can trickle or
-     * not ahead of time. */
-    pSampleConfiguration->trickleIce = TRUE;
-    pSampleConfiguration->useTurn = TRUE;
-    pSampleConfiguration->enableSendingMetricsToViewerViaDc = FALSE;
-
     pSampleConfiguration->channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
-    pSampleConfiguration->channelInfo.pChannelName = "test";
-#ifdef IOT_CORE_ENABLE_CREDENTIALS
-    if ((pIotCoreCertificateId = GETENV(IOT_CORE_CERTIFICATE_ID)) != NULL) {
-        pSampleConfiguration->channelInfo.pChannelName = pIotCoreCertificateId;
-    }
-#endif
     pSampleConfiguration->channelInfo.pKmsKeyId = NULL;
     pSampleConfiguration->channelInfo.tagCount = 0;
     pSampleConfiguration->channelInfo.pTags = NULL;
     pSampleConfiguration->channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
-    pSampleConfiguration->channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
     pSampleConfiguration->channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_FILE;
     pSampleConfiguration->channelInfo.cachingPeriod = SIGNALING_API_CALL_CACHE_TTL_SENTINEL_VALUE;
     pSampleConfiguration->channelInfo.asyncIceServerConfig = TRUE; // has no effect
@@ -136,32 +265,64 @@ static STATUS setUpDefaultsFn(UINT64 sampleConfigHandle) {
     pSampleConfiguration->clientInfo.loggingLevel = pSampleConfiguration->logLevel;
     pSampleConfiguration->clientInfo.cacheFilePath = NULL; // Use the default path
     pSampleConfiguration->clientInfo.signalingClientCreationMaxRetryAttempts = CREATE_SIGNALING_CLIENT_RETRY_ATTEMPTS_SENTINEL_VALUE;
-    pSampleConfiguration->iceCandidatePairStatsTimerId = MAX_UINT32;
-    pSampleConfiguration->pregenerateCertTimerId = MAX_UINT32;
-    pSampleConfiguration->signalingClientMetrics.version = SIGNALING_CLIENT_METRICS_CURRENT_VERSION;
+CleanUp:
+    return retStatus;
+}
 
-    ATOMIC_STORE_BOOL(&pSampleConfiguration->interrupted, FALSE);
-    ATOMIC_STORE_BOOL(&pSampleConfiguration->mediaThreadStarted, FALSE);
-    ATOMIC_STORE_BOOL(&pSampleConfiguration->appTerminateFlag, FALSE);
-    ATOMIC_STORE_BOOL(&pSampleConfiguration->recreateSignalingClient, FALSE);
-    ATOMIC_STORE_BOOL(&pSampleConfiguration->connected, FALSE);
+static STATUS setUpDefaultsFn(UINT64 sampleConfigHandle, SIGNALING_CHANNEL_ROLE_TYPE roleType)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) sampleConfigHandle;
+    /* This is ignored for master. Master can extract the info from offer. Viewer has to know if peer can trickle or
+     * not ahead of time. */
+    pSampleConfiguration->trickleIce = TRUE;
+    pSampleConfiguration->useTurn = TRUE;
+    pSampleConfiguration->enableSendingMetricsToViewerViaDc = FALSE;
+
+    pSampleConfiguration->channelInfo.channelRoleType = roleType;
+    pSampleConfiguration->channelInfo.pChannelName = "test";
+#ifdef IOT_CORE_ENABLE_CREDENTIALS
+    if ((pIotCoreCertificateId = GETENV(IOT_CORE_CERTIFICATE_ID)) != NULL) {
+        pSampleConfiguration->channelInfo.pChannelName = pIotCoreCertificateId;
+    }
+#endif
+
 #ifdef ENABLE_DATA_CHANNEL
     pSampleConfiguration->onDataChannel = onDataChannel;
 #endif
     CHK_STATUS(timerQueueCreate(&pSampleConfiguration->timerQueueHandle));
     CHK_STATUS(stackQueueCreate(&pSampleConfiguration->pregeneratedCertificates));
 
-    pSampleConfiguration->iceUriCount = 0;
-
-    CHK_STATUS(stackQueueCreate(&pSampleConfiguration->pPendingSignalingMessageForRemoteClient));
-    CHK_STATUS(doubleListCreate(&pSampleConfiguration->timerIdList));
-    CHK_STATUS(hashTableCreateWithParams(SAMPLE_HASH_TABLE_BUCKET_COUNT, SAMPLE_HASH_TABLE_BUCKET_LENGTH,
-                                         &pSampleConfiguration->pRtcPeerConnectionForRemoteClient));
 CleanUp:
     return retStatus;
 }
 
-STATUS initializeConfiguration(PSampleConfiguration* ppSampleConfiguration, SIGNALING_CHANNEL_ROLE_TYPE roleType, ParamsSetFn paramsSetFn) {
+static STATUS setUpDemoDefaults(PSampleConfiguration pSampleConfiguration)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    pSampleConfiguration->mediaSenderTid = INVALID_TID_VALUE;
+    pSampleConfiguration->audioSenderTid = INVALID_TID_VALUE;
+    pSampleConfiguration->videoSenderTid = INVALID_TID_VALUE;
+    pSampleConfiguration->sampleConfigurationObjLock = MUTEX_CREATE(TRUE);
+    pSampleConfiguration->cvar = CVAR_CREATE();
+    pSampleConfiguration->streamingSessionListReadLock = MUTEX_CREATE(FALSE);
+    pSampleConfiguration->signalingSendMessageLock = MUTEX_CREATE(FALSE);
+    ATOMIC_STORE_BOOL(&pSampleConfiguration->interrupted, FALSE);
+    ATOMIC_STORE_BOOL(&pSampleConfiguration->mediaThreadStarted, FALSE);
+    ATOMIC_STORE_BOOL(&pSampleConfiguration->appTerminateFlag, FALSE);
+    ATOMIC_STORE_BOOL(&pSampleConfiguration->recreateSignalingClient, FALSE);
+    ATOMIC_STORE_BOOL(&pSampleConfiguration->connected, FALSE);
+    CHK_STATUS(stackQueueCreate(&pSampleConfiguration->pPendingSignalingMessageForRemoteClient));
+    CHK_STATUS(doubleListCreate(&pSampleConfiguration->timerIdList));
+    CHK_STATUS(hashTableCreateWithParams(SAMPLE_HASH_TABLE_BUCKET_COUNT, SAMPLE_HASH_TABLE_BUCKET_LENGTH,
+                                         &pSampleConfiguration->pRtcPeerConnectionForRemoteClient));
+    pSampleConfiguration->iceUriCount = 0;
+CleanUp:
+    return retStatus;
+}
+
+STATUS initializeConfiguration(PSampleConfiguration* ppSampleConfiguration, SIGNALING_CHANNEL_ROLE_TYPE roleType, ParamsSetFn paramsSetFn)
+{
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = NULL;
 
@@ -176,13 +337,14 @@ STATUS initializeConfiguration(PSampleConfiguration* ppSampleConfiguration, SIGN
     CHK_STATUS(initKvsWebRtc());
     CHK_STATUS(setUpLogging(pSampleConfiguration));
     CHK_STATUS(setUpCredentialProvider(pSampleConfiguration));
-
-    if(paramsSetFn == NULL) {
+    CHK_STATUS(setUpDemoDefaults(pSampleConfiguration));
+    CHK_STATUS(setUpSignalingDefaults(pSampleConfiguration));
+    if (paramsSetFn == NULL) {
         pSampleConfiguration->configureAppFn = setUpDefaultsFn;
     } else {
         pSampleConfiguration->configureAppFn = paramsSetFn;
     }
-    pSampleConfiguration->configureAppFn((UINT64) pSampleConfiguration);
+    pSampleConfiguration->configureAppFn((UINT64) pSampleConfiguration, roleType);
 CleanUp:
     if (STATUS_FAILED(retStatus)) {
         freeSampleConfiguration(&pSampleConfiguration);
@@ -201,7 +363,7 @@ STATUS readFrameFromDisk(PBYTE pFrame, PUINT32 pSize, PCHAR frameFilePath)
     size = *pSize;
     // Get the size and read into frame
     CHK_STATUS(readFile(frameFilePath, TRUE, pFrame, &size));
-    CleanUp:
+CleanUp:
 
     if (pSize != NULL) {
         *pSize = (UINT32) size;
@@ -217,7 +379,7 @@ STATUS initializeMediaSenders(PSampleConfiguration pSampleConfiguration, startRo
     CHK(pSampleConfiguration != NULL && (audioSource != NULL && videoSource != NULL), STATUS_NULL_ARG);
     pSampleConfiguration->audioSource = audioSource;
     pSampleConfiguration->videoSource = videoSource;
-    if(videoSource != NULL && audioSource == NULL) {
+    if (videoSource != NULL && audioSource == NULL) {
         pSampleConfiguration->mediaType = SAMPLE_STREAMING_VIDEO_ONLY;
     } else {
         pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
@@ -237,16 +399,16 @@ CleanUp:
     return retStatus;
 }
 
-STATUS addTaskToTimerQueue(PSampleConfiguration pSampleConfiguration, PTimerTaskConfiguration pTimerTaskConfiguration) {
+STATUS addTaskToTimerQueue(PSampleConfiguration pSampleConfiguration, PTimerTaskConfiguration pTimerTaskConfiguration)
+{
     STATUS retStatus = STATUS_SUCCESS;
     CHK(pSampleConfiguration != NULL && pTimerTaskConfiguration != NULL, STATUS_NULL_ARG);
     CHK_LOG_ERR(timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, pTimerTaskConfiguration->startTime, pTimerTaskConfiguration->iterationTime,
                                    pTimerTaskConfiguration->timerCallbackFunc, pTimerTaskConfiguration->customData,
                                    &pTimerTaskConfiguration->timerId));
-    if(pTimerTaskConfiguration->timerId != MAX_UINT32) {
+    if (pTimerTaskConfiguration->timerId != MAX_UINT32) {
         CHK_STATUS(doubleListInsertItemHead(pSampleConfiguration->timerIdList, (UINT64) pTimerTaskConfiguration->timerId));
     }
-    DLOGI("Here");
 CleanUp:
     return retStatus;
 }
@@ -272,12 +434,6 @@ VOID onConnectionStateChange(UINT64 customData, RTC_PEER_CONNECTION_STATE newSta
         case RTC_PEER_CONNECTION_STATE_CONNECTED:
             ATOMIC_STORE_BOOL(&pSampleConfiguration->connected, TRUE);
             CVAR_BROADCAST(pSampleConfiguration->cvar);
-
-            pSampleStreamingSession->peerConnectionMetrics.peerConnectionStats.peerConnectionConnectedTime =
-                GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
-            CHK_STATUS(peerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->peerConnectionMetrics));
-            CHK_STATUS(iceAgentGetMetrics(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->iceMetrics));
-
             if (STATUS_FAILED(retStatus = logSelectedIceCandidatesInformation(pSampleStreamingSession))) {
                 DLOGW("Failed to get information about selected Ice candidates: 0x%08x", retStatus);
             }
@@ -414,7 +570,6 @@ STATUS handleOffer(PSampleConfiguration pSampleConfiguration, PSampleStreamingSe
 
     MEMSET(&offerSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
     MEMSET(&pSampleStreamingSession->answerSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
-    DLOGD("**offer:%s", pSignalingMessage->payload);
     CHK_STATUS(deserializeSessionDescriptionInit(pSignalingMessage->payload, pSignalingMessage->payloadLen, &offerSessionDescriptionInit));
     CHK_STATUS(setRemoteDescription(pSampleStreamingSession->pPeerConnection, &offerSessionDescriptionInit));
     canTrickle = canTrickleIceCandidates(pSampleStreamingSession->pPeerConnection);
@@ -735,9 +890,6 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     pSampleStreamingSession->pSampleConfiguration = pSampleConfiguration;
     pSampleStreamingSession->rtcMetricsHistory.prevTs = GETTIME();
 
-    pSampleStreamingSession->peerConnectionMetrics.version = PEER_CONNECTION_METRICS_CURRENT_VERSION;
-    pSampleStreamingSession->iceMetrics.version = ICE_AGENT_METRICS_CURRENT_VERSION;
-
     // if we're the viewer, we control the trickle ice mode
     pSampleStreamingSession->remoteCanTrickleIce = !isMaster && pSampleConfiguration->trickleIce;
 
@@ -793,7 +945,6 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     // twcc bandwidth estimation
     CHK_STATUS(peerConnectionOnSenderBandwidthEstimation(pSampleStreamingSession->pPeerConnection, (UINT64) pSampleStreamingSession,
                                                          sampleSenderBandwidthEstimationHandler));
-    pSampleStreamingSession->startUpLatency = 0;
 CleanUp:
 
     if (STATUS_FAILED(retStatus) && pSampleStreamingSession != NULL) {
@@ -830,18 +981,6 @@ STATUS freeSampleStreamingSession(PSampleStreamingSession* ppSampleStreamingSess
     if (IS_VALID_TID_VALUE(pSampleStreamingSession->receiveAudioVideoSenderTid)) {
         THREAD_JOIN(pSampleStreamingSession->receiveAudioVideoSenderTid, NULL);
     }
-
-    // De-initialize the session stats timer if there are no active sessions
-    // NOTE: we need to perform this under the lock which might be acquired by
-    // the running thread but it's OK as it's re-entrant
-    MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
-    if (pSampleConfiguration->iceCandidatePairStatsTimerId != MAX_UINT32 && pSampleConfiguration->streamingSessionCount == 0 &&
-        IS_VALID_TIMER_QUEUE_HANDLE(pSampleConfiguration->timerQueueHandle)) {
-        CHK_LOG_ERR(timerQueueCancelTimer(pSampleConfiguration->timerQueueHandle, pSampleConfiguration->iceCandidatePairStatsTimerId,
-                                          (UINT64) pSampleConfiguration));
-        pSampleConfiguration->iceCandidatePairStatsTimerId = MAX_UINT32;
-    }
-    MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
 
     CHK_LOG_ERR(closePeerConnection(pSampleStreamingSession->pPeerConnection));
     CHK_LOG_ERR(freePeerConnection(&pSampleStreamingSession->pPeerConnection));
@@ -1201,7 +1340,8 @@ CleanUp:
     return retStatus;
 }
 
-static STATUS cancelTimerTasks(PSampleConfiguration pSampleConfiguration) {
+static STATUS cancelTimerTasks(PSampleConfiguration pSampleConfiguration)
+{
     STATUS retStatus = STATUS_SUCCESS;
     PDoubleListNode pCurNode = NULL;
     UINT64 timerId;
@@ -1209,8 +1349,7 @@ static STATUS cancelTimerTasks(PSampleConfiguration pSampleConfiguration) {
     while (pCurNode != NULL) {
         CHK_STATUS(doubleListGetNodeData(pCurNode, &timerId));
         pCurNode = pCurNode->pNext;
-        CHK_STATUS(timerQueueCancelTimer(pSampleConfiguration->timerQueueHandle, timerId,
-                              (UINT64) pSampleConfiguration));
+        CHK_STATUS(timerQueueCancelTimer(pSampleConfiguration->timerQueueHandle, timerId, (UINT64) pSampleConfiguration));
     }
     CHK_STATUS(doubleListClear(pSampleConfiguration->timerIdList, FALSE));
 CleanUp:

@@ -95,7 +95,7 @@ typedef struct {
     UINT64 prevTs;
 } RtcMetricsHistory, *PRtcMetricsHistory;
 
-typedef STATUS (*ParamsSetFn) (UINT64);
+typedef STATUS (*ParamsSetFn)(UINT64, SIGNALING_CHANNEL_ROLE_TYPE);
 
 typedef struct {
     volatile ATOMIC_BOOL appTerminateFlag;
@@ -108,19 +108,19 @@ typedef struct {
     PCHAR pCaCertPath;
     PAwsCredentialProvider pCredentialProvider;
     SIGNALING_CLIENT_HANDLE signalingClientHandle;
+    PBYTE pVideoFrameBuffer;
     PBYTE pAudioFrameBuffer;
     UINT32 audioBufferSize;
-    PBYTE pVideoFrameBuffer;
     UINT32 videoBufferSize;
     TID mediaSenderTid;
     TID audioSenderTid;
     TID videoSenderTid;
-    TIMER_QUEUE_HANDLE timerQueueHandle;
-    UINT32 iceCandidatePairStatsTimerId;
-    SampleStreamingMediaType mediaType;
     startRoutine audioSource;
     startRoutine videoSource;
     startRoutine receiveAudioVideoSource;
+
+    TIMER_QUEUE_HANDLE timerQueueHandle;
+    SampleStreamingMediaType mediaType;
     RtcOnDataChannel onDataChannel;
     SignalingClientMetrics signalingClientMetrics;
 
@@ -194,7 +194,6 @@ struct __SampleStreamingSession {
     UINT64 videoTimestamp;
     CHAR peerId[MAX_SIGNALING_CLIENT_ID_LEN + 1];
     TID receiveAudioVideoSenderTid;
-    UINT64 startUpLatency;
     RtcMetricsHistory rtcMetricsHistory;
     BOOL remoteCanTrickleIce;
 
@@ -215,7 +214,6 @@ typedef struct {
     SIGNALING_CLIENT_HANDLE signalingClientHandle;
     PRtcPeerConnection pRtcPeerConnection;
     PUINT32 pUriCount;
-
 } AsyncGetIceStruct;
 
 VOID sigintHandler(INT32);
