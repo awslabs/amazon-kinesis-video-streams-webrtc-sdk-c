@@ -10,6 +10,8 @@ Signaling internal include file
 extern "C" {
 #endif
 
+#include "kvssignaling/signaling_data_types.h"
+
 // Request id header name
 #define SIGNALING_REQUEST_ID_HEADER_NAME KVS_REQUEST_ID_HEADER_NAME ":"
 
@@ -384,6 +386,9 @@ typedef struct {
 
     // Conditional variable for join storage session wait state
     CVAR jssWaitCvar;
+
+    // The context of signaling component
+    SignalingContext_t signalContext;
 } SignalingClient, *PSignalingClient;
 
 // Public handle to and from object converters

@@ -1,5 +1,6 @@
 #define LOG_CLASS "Signaling"
 #include "../Include_i.h"
+#include "kvssignaling/signaling_api.h"
 
 extern StateMachineState SIGNALING_STATE_MACHINE_STATES[];
 extern UINT32 SIGNALING_STATE_MACHINE_STATE_COUNT;
@@ -20,6 +21,8 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     PStateMachineState pStateMachineState;
     BOOL cacheFound = FALSE;
     PSignalingFileCacheEntry pFileCacheEntry = NULL;
+    SignalingResult_t retSignal;
+    SignalingCreate_t signalCreate;
 
     CHK(pClientInfo != NULL && pChannelInfo != NULL && pCallbacks != NULL && pCredentialProvider != NULL && ppSignalingClient != NULL,
         STATUS_NULL_ARG);
@@ -162,6 +165,19 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
 
     // Create the ongoing message list
     CHK_STATUS(stackQueueCreate(&pSignalingClient->pMessageQueue));
+
+    MEMSET(&signalCreate, 0x00, sizeof(SignalingCreate_t));
+    if (pSignalingClient->pChannelInfo->pControlPlaneUrl != NULL) {
+        signalCreate.controlPlaneUrlLength = strlen(pSignalingClient->pChannelInfo->pControlPlaneUrl);
+        signalCreate.pControlPlaneUrl = pSignalingClient->pChannelInfo->pControlPlaneUrl;
+    }
+    if (pSignalingClient->pChannelInfo->pRegion != NULL) {
+        signalCreate.regionLength = strlen(pSignalingClient->pChannelInfo->pRegion);
+        signalCreate.pRegion = pSignalingClient->pChannelInfo->pRegion;
+    }
+    retSignal = Signaling_createSignaling(&pSignalingClient->signalContext,
+                                    &signalCreate);
+    CHK(retSignal == SIGNALING_RESULT_OK, STATUS_INVALID_OPERATION);
 
     pSignalingClient->pLwsContext = lws_create_context(&creationInfo);
     CHK(pSignalingClient->pLwsContext != NULL, STATUS_SIGNALING_LWS_CREATE_CONTEXT_FAILED);

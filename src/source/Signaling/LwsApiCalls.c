@@ -3,6 +3,7 @@
  */
 #define LOG_CLASS "LwsApiCalls"
 #include "../Include_i.h"
+#include "kvssignaling/signaling_api.h"
 #define WEBRTC_SCHEME_NAME "webrtc"
 
 static BOOL gInterruptedFlagBySignalHandler;
@@ -10,6 +11,107 @@ VOID lwsSignalHandler(INT32 signal)
 {
     UNUSED_PARAM(signal);
     gInterruptedFlagBySignalHandler = TRUE;
+}
+
+static SignalingRole_t getChannelRoleType(SIGNALING_CHANNEL_ROLE_TYPE roleType)
+{
+    SignalingRole_t ret = SIGNALING_ROLE_NONE;
+
+    switch(roleType) {
+        case SIGNALING_CHANNEL_ROLE_TYPE_MASTER:
+            ret = SIGNALING_ROLE_MASTER;
+            break;
+        case SIGNALING_CHANNEL_ROLE_TYPE_VIEWER:
+            ret = SIGNALING_ROLE_VIEWER;
+            break;
+        default:
+            ret = SIGNALING_ROLE_NONE;
+            break;
+    }
+
+    return ret;
+}
+
+static STATUS getMessageType(SignalingTypeMessage_t messageType, SIGNALING_MESSAGE_TYPE * pMessageType)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+
+    if (messageType == SIGNALING_TYPE_MESSAGE_SDP_OFFER) {
+        *pMessageType = SIGNALING_MESSAGE_TYPE_OFFER;
+    } else if (messageType == SIGNALING_TYPE_MESSAGE_SDP_ANSWER) {
+        *pMessageType = SIGNALING_MESSAGE_TYPE_ANSWER;
+    } else if (messageType == SIGNALING_TYPE_MESSAGE_ICE_CANDIDATE) {
+        *pMessageType = SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE;
+    } else if (messageType == SIGNALING_TYPE_MESSAGE_GO_AWAY) {
+        *pMessageType = SIGNALING_MESSAGE_TYPE_GO_AWAY;
+    } else if (messageType == SIGNALING_TYPE_MESSAGE_RECONNECT_ICE_SERVER) {
+        *pMessageType = SIGNALING_MESSAGE_TYPE_RECONNECT_ICE_SERVER;
+    } else if (messageType == SIGNALING_TYPE_MESSAGE_STATUS_RESPONSE) {
+        *pMessageType = SIGNALING_MESSAGE_TYPE_STATUS_RESPONSE;
+    } else {
+        *pMessageType = SIGNALING_MESSAGE_TYPE_UNKNOWN;
+        CHK_WARN(FALSE, retStatus, "Unrecognized message type received");
+    }
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
+
+static STATUS updateIceServerList(PSignalingClient pSignalingClient, SignalingIceServerList_t *pIceServerList)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    int i, j;
+
+    CHK(pIceServerList != NULL, STATUS_SIGNALING_ICE_CONFIG_REFRESH_FAILED);
+    CHK(pIceServerList->iceServerNum <= MAX_ICE_CONFIG_COUNT, STATUS_SIGNALING_MAX_ICE_CONFIG_COUNT);
+
+    MEMSET(&pSignalingClient->iceConfigs, 0x00, MAX_ICE_CONFIG_COUNT * SIZEOF(IceConfigInfo));
+    pSignalingClient->iceConfigCount = 0;
+
+    for (i = 0; i < pIceServerList->iceServerNum; i++) {
+        if (pIceServerList->iceServer[i].pUserName != NULL) {
+            CHK(pIceServerList->iceServer[i].userNameLength <= MAX_ICE_CONFIG_USER_NAME_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
+            STRNCPY(pSignalingClient->iceConfigs[i].userName, pIceServerList->iceServer[i].pUserName, pIceServerList->iceServer[i].userNameLength);
+            pSignalingClient->iceConfigs[i].userName[pIceServerList->iceServer[i].userNameLength] = '\0';
+        }
+
+        if (pIceServerList->iceServer[i].pPassword != NULL) {
+            CHK(pIceServerList->iceServer[i].passwordLength <= MAX_ICE_CONFIG_CREDENTIAL_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
+            STRNCPY(pSignalingClient->iceConfigs[i].password, pIceServerList->iceServer[i].pPassword, pIceServerList->iceServer[i].passwordLength);
+            pSignalingClient->iceConfigs[i].password[pIceServerList->iceServer[i].passwordLength] = '\0';
+        }
+
+        if (pIceServerList->iceServer[i].messageTtlSeconds > 0) {
+            // NOTE: Ttl value is in seconds
+            pSignalingClient->iceConfigs[i].ttl = (UINT64) pIceServerList->iceServer[i].messageTtlSeconds * HUNDREDS_OF_NANOS_IN_A_SECOND;
+        }
+
+        if (pIceServerList->iceServer[i].pUris[0] != NULL) {
+            CHK(pIceServerList->iceServer[i].urisNum <= MAX_ICE_CONFIG_URI_COUNT, STATUS_SIGNALING_MAX_ICE_URI_COUNT);
+
+            for (j=0 ; j<pIceServerList->iceServer[i].urisNum ; j++) {
+                CHK(pIceServerList->iceServer[i].urisLength[j] <= MAX_ICE_CONFIG_URI_LEN, STATUS_SIGNALING_MAX_ICE_URI_LEN);
+
+                STRNCPY(pSignalingClient->iceConfigs[i].uris[j], pIceServerList->iceServer[i].pUris[j], pIceServerList->iceServer[i].urisLength[j]);
+                pSignalingClient->iceConfigs[i].uris[j][pIceServerList->iceServer[i].urisLength[j]] = '\0';
+                pSignalingClient->iceConfigs[i].uriCount++;
+            }
+        }
+    }
+
+    // Perform some validation on the ice configuration
+    pSignalingClient->iceConfigCount = pIceServerList->iceServerNum;
+
+CleanUp:
+
+    CHK_LOG_ERR(retStatus);
+
+    LEAVES();
+    return retStatus;
 }
 
 INT32 lwsHttpCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, PVOID user, PVOID pDataIn, size_t dataSize)
@@ -756,17 +858,28 @@ STATUS describeChannelLws(PSignalingClient pSignalingClient, UINT64 time)
     jsmntok_t tokens[MAX_JSON_TOKEN_COUNT];
     UINT32 i, strLen, resultLen;
     UINT32 tokenCount;
-    UINT64 messageTtl;
     BOOL jsonInChannelDescription = FALSE, jsonInMvConfiguration = FALSE;
+    SignalingResult_t retSignal;
+    SignalingRequest_t signalRequest;
+    SignalingDescribeSignalingChannelRequest_t describeSignalingChannelRequest;
+    SignalingDescribeSignalingChannelResponse_t describeSignalingChannelResponse;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+    CHK(pSignalingClient->pChannelInfo != NULL, STATUS_NULL_ARG);
+    CHK(pSignalingClient->pChannelInfo->pChannelName != NULL, STATUS_NULL_ARG);
 
+    // Prepare URL buffer
+    signalRequest.pUrl = &url[0];
+    signalRequest.urlLength = MAX_URI_CHAR_LEN + 1;
+    // Prepare body buffer
+    signalRequest.pBody = &paramsJson[0];
+    signalRequest.bodyLength = MAX_JSON_PARAMETER_STRING_LEN;
     // Create the API url
-    STRCPY(url, pSignalingClient->pChannelInfo->pControlPlaneUrl);
-    STRCAT(url, DESCRIBE_SIGNALING_CHANNEL_API_POSTFIX);
+    describeSignalingChannelRequest.channelNameLength = strlen(pSignalingClient->pChannelInfo->pChannelName);
+    describeSignalingChannelRequest.pChannelName = pSignalingClient->pChannelInfo->pChannelName;
+    retSignal = Signaling_constructDescribeSignalingChannelRequest(&pSignalingClient->signalContext, &describeSignalingChannelRequest, &signalRequest);
+    CHK(retSignal == SIGNALING_RESULT_OK, retSignal);
 
-    // Prepare the json params for the call
-    SNPRINTF(paramsJson, ARRAY_SIZE(paramsJson), DESCRIBE_CHANNEL_PARAM_JSON_TEMPLATE, pSignalingClient->pChannelInfo->pChannelName);
     // Create the request info with the body
     CHK_STATUS(createRequestInfo(url, paramsJson, pSignalingClient->pChannelInfo->pRegion, pSignalingClient->pChannelInfo->pCertPath, NULL, NULL,
                                  SSL_CERTIFICATE_TYPE_NOT_SPECIFIED, pSignalingClient->pChannelInfo->pUserAgent,
@@ -794,70 +907,43 @@ STATUS describeChannelLws(PSignalingClient pSignalingClient, UINT64 time)
     // Early return if we have a non-success result
     CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL,
         STATUS_SIGNALING_LWS_CALL_FAILED);
+    
+    retSignal = Signaling_parseDescribeSignalingChannelResponse( &pSignalingClient->signalContext, pResponseStr, resultLen, &describeSignalingChannelResponse );
+    CHK(retSignal == SIGNALING_RESULT_OK, retSignal);
 
     // Parse the response
-    jsmn_init(&parser);
-    tokenCount = jsmn_parse(&parser, pResponseStr, resultLen, tokens, SIZEOF(tokens) / SIZEOF(jsmntok_t));
-    CHK(tokenCount > 1, STATUS_INVALID_API_CALL_RETURN_JSON);
-    CHK(tokens[0].type == JSMN_OBJECT, STATUS_INVALID_API_CALL_RETURN_JSON);
     MEMSET(&pSignalingClient->channelDescription, 0x00, SIZEOF(SignalingChannelDescription));
-    // Loop through the tokens and extract the stream description
-    for (i = 1; i < tokenCount; i++) {
-        if (!jsonInChannelDescription) {
-            if (compareJsonString(pResponseStr, &tokens[i], JSMN_STRING, (PCHAR) "ChannelInfo")) {
-                pSignalingClient->channelDescription.version = SIGNALING_CHANNEL_DESCRIPTION_CURRENT_VERSION;
-                jsonInChannelDescription = TRUE;
-                i++;
-            }
-        } else {
-            if (compareJsonString(pResponseStr, &tokens[i], JSMN_STRING, (PCHAR) "ChannelARN")) {
-                strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
-                CHK(strLen <= MAX_ARN_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
-                STRNCPY(pSignalingClient->channelDescription.channelArn, pResponseStr + tokens[i + 1].start, strLen);
-                pSignalingClient->channelDescription.channelArn[MAX_ARN_LEN] = '\0';
-                i++;
-            } else if (compareJsonString(pResponseStr, &tokens[i], JSMN_STRING, (PCHAR) "ChannelName")) {
-                strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
-                CHK(strLen <= MAX_CHANNEL_NAME_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
-                STRNCPY(pSignalingClient->channelDescription.channelName, pResponseStr + tokens[i + 1].start, strLen);
-                pSignalingClient->channelDescription.channelName[MAX_CHANNEL_NAME_LEN] = '\0';
-                i++;
-            } else if (compareJsonString(pResponseStr, &tokens[i], JSMN_STRING, (PCHAR) "Version")) {
-                strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
-                CHK(strLen <= MAX_UPDATE_VERSION_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
-                STRNCPY(pSignalingClient->channelDescription.updateVersion, pResponseStr + tokens[i + 1].start, strLen);
-                pSignalingClient->channelDescription.updateVersion[MAX_UPDATE_VERSION_LEN] = '\0';
-                i++;
-            } else if (compareJsonString(pResponseStr, &tokens[i], JSMN_STRING, (PCHAR) "ChannelStatus")) {
-                strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
-                CHK(strLen <= MAX_DESCRIBE_CHANNEL_STATUS_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
-                pSignalingClient->channelDescription.channelStatus = getChannelStatusFromString(pResponseStr + tokens[i + 1].start, strLen);
-                i++;
-            } else if (compareJsonString(pResponseStr, &tokens[i], JSMN_STRING, (PCHAR) "ChannelType")) {
-                strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
-                CHK(strLen <= MAX_DESCRIBE_CHANNEL_TYPE_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
-                pSignalingClient->channelDescription.channelType = getChannelTypeFromString(pResponseStr + tokens[i + 1].start, strLen);
-                i++;
-            } else if (compareJsonString(pResponseStr, &tokens[i], JSMN_STRING, (PCHAR) "CreationTime")) {
-                // TODO: In the future parse out the creation time but currently we don't need it
-                i++;
-            } else {
-                if (!jsonInMvConfiguration) {
-                    if (compareJsonString(pResponseStr, &tokens[i], JSMN_STRING, (PCHAR) "SingleMasterConfiguration")) {
-                        jsonInMvConfiguration = TRUE;
-                        i++;
-                    }
-                } else {
-                    if (compareJsonString(pResponseStr, &tokens[i], JSMN_STRING, (PCHAR) "MessageTtlSeconds")) {
-                        CHK_STATUS(STRTOUI64(pResponseStr + tokens[i + 1].start, pResponseStr + tokens[i + 1].end, 10, &messageTtl));
+    if (describeSignalingChannelResponse.pChannelArn != NULL) {
+        CHK(describeSignalingChannelResponse.channelArnLength <= MAX_ARN_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
+        STRNCPY(pSignalingClient->channelDescription.channelArn, describeSignalingChannelResponse.pChannelArn, describeSignalingChannelResponse.channelArnLength);
+        pSignalingClient->channelDescription.channelArn[describeSignalingChannelResponse.channelArnLength] = '\0';
+    }
 
-                        // NOTE: Ttl value is in seconds
-                        pSignalingClient->channelDescription.messageTtl = messageTtl * HUNDREDS_OF_NANOS_IN_A_SECOND;
-                        i++;
-                    }
-                }
-            }
-        }
+    if (describeSignalingChannelResponse.pChannelName != NULL) {
+        CHK(describeSignalingChannelResponse.channelNameLength <= MAX_CHANNEL_NAME_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
+        STRNCPY(pSignalingClient->channelDescription.channelName, describeSignalingChannelResponse.pChannelName, describeSignalingChannelResponse.channelNameLength);
+        pSignalingClient->channelDescription.channelName[describeSignalingChannelResponse.channelNameLength] = '\0';
+    }
+
+    if (describeSignalingChannelResponse.pChannelStatus != NULL) {
+        CHK(describeSignalingChannelResponse.channelStatusLength <= MAX_DESCRIBE_CHANNEL_STATUS_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
+        pSignalingClient->channelDescription.channelStatus = getChannelStatusFromString((PCHAR)describeSignalingChannelResponse.pChannelStatus, describeSignalingChannelResponse.channelStatusLength);
+    }
+
+    if (describeSignalingChannelResponse.pChannelType != NULL) {
+        CHK(describeSignalingChannelResponse.channelTypeLength <= MAX_DESCRIBE_CHANNEL_TYPE_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
+        pSignalingClient->channelDescription.channelType = getChannelTypeFromString((PCHAR)describeSignalingChannelResponse.pChannelType, describeSignalingChannelResponse.channelTypeLength);
+    }
+
+    if (describeSignalingChannelResponse.pVersion != NULL) {
+        CHK(describeSignalingChannelResponse.versionLength <= MAX_UPDATE_VERSION_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
+        STRNCPY(pSignalingClient->channelDescription.updateVersion, describeSignalingChannelResponse.pVersion, describeSignalingChannelResponse.versionLength);
+        pSignalingClient->channelDescription.updateVersion[describeSignalingChannelResponse.versionLength] = '\0';
+    }
+
+    if (describeSignalingChannelResponse.messageTtlSeconds != 0) {
+        // NOTE: Ttl value is in seconds
+        pSignalingClient->channelDescription.messageTtl = describeSignalingChannelResponse.messageTtlSeconds * HUNDREDS_OF_NANOS_IN_A_SECOND;
     }
 
     // Perform some validation on the channel description
@@ -884,7 +970,6 @@ STATUS createChannelLws(PSignalingClient pSignalingClient, UINT64 time)
     PRequestInfo pRequestInfo = NULL;
     CHAR url[MAX_URI_CHAR_LEN + 1];
     CHAR paramsJson[MAX_JSON_PARAMETER_STRING_LEN];
-    CHAR tagsJson[2 * MAX_JSON_PARAMETER_STRING_LEN];
     PCHAR pCurPtr, pTagsStart, pResponseStr;
     UINT32 i, strLen, resultLen;
     INT32 charsCopied;
@@ -892,36 +977,38 @@ STATUS createChannelLws(PSignalingClient pSignalingClient, UINT64 time)
     jsmn_parser parser;
     jsmntok_t tokens[MAX_JSON_TOKEN_COUNT];
     UINT32 tokenCount;
+    SignalingResult_t retSignal;
+    SignalingRequest_t signalRequest;
+    SignalingCreateSignalingChannelRequest_t createSignalingChannelRequest;
+    SignalingCreateSignalingChannelResponse_t createChannelResponse;
+    SignalingTag_t tags[MAX_TAG_COUNT];
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+    CHK(pSignalingClient->pChannelInfo->tagCount <= MAX_TAG_COUNT, STATUS_INVALID_ARG);
 
+    // Prepare URL buffer
+    signalRequest.pUrl = &url[0];
+    signalRequest.urlLength = MAX_URI_CHAR_LEN + 1;
+    // Prepare body buffer
+    signalRequest.pBody = &paramsJson[0];
+    signalRequest.bodyLength = MAX_JSON_PARAMETER_STRING_LEN;
     // Create the API url
-    STRCPY(url, pSignalingClient->pChannelInfo->pControlPlaneUrl);
-    STRCAT(url, CREATE_SIGNALING_CHANNEL_API_POSTFIX);
-
-    tagsJson[0] = '\0';
-    if (pSignalingClient->pChannelInfo->tagCount != 0) {
-        // Prepare the tags elements. Format the list at the end
-        pCurPtr = tagsJson + MAX_JSON_PARAMETER_STRING_LEN;
-        pTagsStart = pCurPtr;
-        for (i = 0; i < pSignalingClient->pChannelInfo->tagCount; i++) {
-            charsCopied = SNPRINTF(pCurPtr, MAX_JSON_PARAMETER_STRING_LEN - (pCurPtr - pTagsStart), TAG_PARAM_JSON_OBJ_TEMPLATE,
-                                   pSignalingClient->pChannelInfo->pTags[i].name, pSignalingClient->pChannelInfo->pTags[i].value);
-            CHK(charsCopied > 0 && charsCopied < MAX_JSON_PARAMETER_STRING_LEN - (pCurPtr - pTagsStart), STATUS_INTERNAL_ERROR);
-            pCurPtr += charsCopied;
-        }
-
-        // Remove the tailing comma
-        *(pCurPtr - 1) = '\0';
-
-        // Prepare the json params for the call
-        SNPRINTF(tagsJson, MAX_JSON_PARAMETER_STRING_LEN, TAGS_PARAM_JSON_TEMPLATE, tagsJson + MAX_JSON_PARAMETER_STRING_LEN);
+    memset(&createSignalingChannelRequest, 0, sizeof(SignalingCreateSignalingChannelRequest_t));
+    createSignalingChannelRequest.channelInfo.channelNameLength = STRLEN(pSignalingClient->pChannelInfo->pChannelName);
+    createSignalingChannelRequest.channelInfo.pChannelName = pSignalingClient->pChannelInfo->pChannelName;
+    createSignalingChannelRequest.channelInfo.messageTtlSeconds = pSignalingClient->pChannelInfo->messageTtl / HUNDREDS_OF_NANOS_IN_A_SECOND;
+    createSignalingChannelRequest.channelInfo.type = pSignalingClient->pChannelInfo->channelType == SIGNALING_TYPE_CHANNEL_SINGLE_MASTER? SIGNALING_TYPE_CHANNEL_SINGLE_MASTER:SIGNALING_TYPE_CHANNEL_UNKNOWN;
+    createSignalingChannelRequest.tagsCount = pSignalingClient->pChannelInfo->tagCount;
+    /* Format tags into structure buffer. */
+    createSignalingChannelRequest.pTags = tags;
+    for (i = 0; i < pSignalingClient->pChannelInfo->tagCount; i++) {
+        tags[i].nameLength = STRLEN(pSignalingClient->pChannelInfo->pTags[i].name);
+        tags[i].pName = pSignalingClient->pChannelInfo->pTags[i].name;
+        tags[i].valueLength = STRLEN(pSignalingClient->pChannelInfo->pTags[i].value);
+        tags[i].pValue = pSignalingClient->pChannelInfo->pTags[i].value;
     }
-
-    // Prepare the json params for the call
-    SNPRINTF(paramsJson, ARRAY_SIZE(paramsJson), CREATE_CHANNEL_PARAM_JSON_TEMPLATE, pSignalingClient->pChannelInfo->pChannelName,
-             getStringFromChannelType(pSignalingClient->pChannelInfo->channelType),
-             pSignalingClient->pChannelInfo->messageTtl / HUNDREDS_OF_NANOS_IN_A_SECOND, tagsJson);
+    retSignal = Signaling_constructCreateSignalingChannelRequest(&pSignalingClient->signalContext, &createSignalingChannelRequest, &signalRequest);
+    CHK(retSignal == SIGNALING_RESULT_OK, retSignal);
 
     // Create the request info with the body
     CHK_STATUS(createRequestInfo(url, paramsJson, pSignalingClient->pChannelInfo->pRegion, pSignalingClient->pChannelInfo->pCertPath, NULL, NULL,
@@ -951,20 +1038,14 @@ STATUS createChannelLws(PSignalingClient pSignalingClient, UINT64 time)
         STATUS_SIGNALING_LWS_CALL_FAILED);
 
     // Parse out the ARN
-    jsmn_init(&parser);
-    tokenCount = jsmn_parse(&parser, pResponseStr, resultLen, tokens, SIZEOF(tokens) / SIZEOF(jsmntok_t));
-    CHK(tokenCount > 1, STATUS_INVALID_API_CALL_RETURN_JSON);
-    CHK(tokens[0].type == JSMN_OBJECT, STATUS_INVALID_API_CALL_RETURN_JSON);
+    retSignal = Signaling_parseCreateSignalingChannelResponse(&pSignalingClient->signalContext, pResponseStr, resultLen, &createChannelResponse);
+    CHK(retSignal == SIGNALING_RESULT_OK, retSignal);
 
-    // Loop through the tokens and extract the stream description
-    for (i = 1; i < tokenCount; i++) {
-        if (compareJsonString(pResponseStr, &tokens[i], JSMN_STRING, (PCHAR) "ChannelARN")) {
-            strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
-            CHK(strLen <= MAX_ARN_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
-            STRNCPY(pSignalingClient->channelDescription.channelArn, pResponseStr + tokens[i + 1].start, strLen);
-            pSignalingClient->channelDescription.channelArn[MAX_ARN_LEN] = '\0';
-            i++;
-        }
+    if (createChannelResponse.channelInfo.pChannelArn != NULL) {
+        CHK(createChannelResponse.channelInfo.channelArnLength <= MAX_ARN_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
+
+        STRNCPY(pSignalingClient->channelDescription.channelArn, createChannelResponse.channelInfo.pChannelArn, createChannelResponse.channelInfo.channelArnLength);
+        pSignalingClient->channelDescription.channelArn[createChannelResponse.channelInfo.channelArnLength] = '\0';
     }
 
     // Perform some validation on the channel description
@@ -998,21 +1079,30 @@ STATUS getChannelEndpointLws(PSignalingClient pSignalingClient, UINT64 time)
     jsmntok_t tokens[MAX_JSON_TOKEN_COUNT];
     UINT32 tokenCount;
     BOOL jsonInResourceEndpointList = FALSE, protocol = FALSE, endpoint = FALSE, inEndpointArray = FALSE;
+    SignalingResult_t retSignal;
+    SignalingRequest_t signalRequest;
+    SignalingGetSignalingChannelEndpointRequest_t getSignalingChannelEndpointRequest;
+    SignalingGetSignalingChannelEndpointResponse_t getSignalingChannelEndpointResponse;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+    CHK(pSignalingClient->channelDescription.channelArn[0] != '\0', STATUS_INVALID_OPERATION);
 
+    // Prepare URL buffer
+    signalRequest.pUrl = &url[0];
+    signalRequest.urlLength = MAX_URI_CHAR_LEN + 1;
+    // Prepare body buffer
+    signalRequest.pBody = &paramsJson[0];
+    signalRequest.bodyLength = MAX_JSON_PARAMETER_STRING_LEN;
     // Create the API url
-    STRCPY(url, pSignalingClient->pChannelInfo->pControlPlaneUrl);
-    STRCAT(url, GET_SIGNALING_CHANNEL_ENDPOINT_API_POSTFIX);
-
-    // Prepare the json params for the call
-    if (pSignalingClient->mediaStorageConfig.storageStatus == FALSE) {
-        SNPRINTF(paramsJson, ARRAY_SIZE(paramsJson), GET_CHANNEL_ENDPOINT_PARAM_JSON_TEMPLATE, pSignalingClient->channelDescription.channelArn,
-                 SIGNALING_CHANNEL_PROTOCOL, getStringFromChannelRoleType(pSignalingClient->pChannelInfo->channelRoleType));
-    } else {
-        SNPRINTF(paramsJson, ARRAY_SIZE(paramsJson), GET_CHANNEL_ENDPOINT_PARAM_JSON_TEMPLATE, pSignalingClient->channelDescription.channelArn,
-                 SIGNALING_CHANNEL_PROTOCOL_W_MEDIA_STORAGE, getStringFromChannelRoleType(pSignalingClient->pChannelInfo->channelRoleType));
+    getSignalingChannelEndpointRequest.pChannelArn = pSignalingClient->channelDescription.channelArn;
+    getSignalingChannelEndpointRequest.channelArnLength = strlen(pSignalingClient->channelDescription.channelArn);
+    getSignalingChannelEndpointRequest.protocolsBitsMap = SIGNALING_ENDPOINT_PROTOCOL_HTTPS | SIGNALING_ENDPOINT_PROTOCOL_WEBSOCKET_SECURE;
+    if (pSignalingClient->mediaStorageConfig.storageStatus != FALSE) {
+        getSignalingChannelEndpointRequest.protocolsBitsMap |= SIGNALING_ENDPOINT_PROTOCOL_WEBRTC;
     }
+    getSignalingChannelEndpointRequest.role = getChannelRoleType(pSignalingClient->pChannelInfo->channelRoleType);
+    retSignal = Signaling_constructGetSignalingChannelEndpointRequest(&pSignalingClient->signalContext, &getSignalingChannelEndpointRequest, &signalRequest);
+    CHK(retSignal == SIGNALING_RESULT_OK, retSignal);
 
     // Create the request info with the body
     CHK_STATUS(createRequestInfo(url, paramsJson, pSignalingClient->pChannelInfo->pRegion, pSignalingClient->pChannelInfo->pCertPath, NULL, NULL,
@@ -1042,77 +1132,30 @@ STATUS getChannelEndpointLws(PSignalingClient pSignalingClient, UINT64 time)
         STATUS_SIGNALING_LWS_CALL_FAILED);
 
     // Parse and extract the endpoints
-    jsmn_init(&parser);
-    tokenCount = jsmn_parse(&parser, pResponseStr, resultLen, tokens, SIZEOF(tokens) / SIZEOF(jsmntok_t));
-    CHK(tokenCount > 1, STATUS_INVALID_API_CALL_RETURN_JSON);
-    CHK(tokens[0].type == JSMN_OBJECT, STATUS_INVALID_API_CALL_RETURN_JSON);
+    retSignal = Signaling_parseGetSignalingChannelEndpointResponse(&pSignalingClient->signalContext, pResponseStr, resultLen, &getSignalingChannelEndpointResponse);
+    CHK(retSignal == SIGNALING_RESULT_OK, retSignal);
 
     pSignalingClient->channelEndpointWss[0] = '\0';
     pSignalingClient->channelEndpointHttps[0] = '\0';
     pSignalingClient->channelEndpointWebrtc[0] = '\0';
 
-    // Loop through the tokens and extract the stream description
-    for (i = 1; i < tokenCount; i++) {
-        if (!jsonInResourceEndpointList) {
-            if (compareJsonString(pResponseStr, &tokens[i], JSMN_STRING, (PCHAR) "ResourceEndpointList")) {
-                jsonInResourceEndpointList = TRUE;
-                i++;
-            }
-        } else {
-            if (!inEndpointArray && tokens[i].type == JSMN_ARRAY) {
-                inEndpointArray = TRUE;
-            } else {
-                if (tokens[i].type == JSMN_OBJECT) {
-                    // Process if both are set
-                    if (protocol && endpoint) {
-                        if (0 == STRNCMPI(pProtocol, WSS_SCHEME_NAME, protocolLen)) {
-                            STRNCPY(pSignalingClient->channelEndpointWss, pEndpoint, MIN(endpointLen, MAX_SIGNALING_ENDPOINT_URI_LEN));
-                            pSignalingClient->channelEndpointWss[MAX_SIGNALING_ENDPOINT_URI_LEN] = '\0';
-                        } else if (0 == STRNCMPI(pProtocol, HTTPS_SCHEME_NAME, protocolLen)) {
-                            STRNCPY(pSignalingClient->channelEndpointHttps, pEndpoint, MIN(endpointLen, MAX_SIGNALING_ENDPOINT_URI_LEN));
-                            pSignalingClient->channelEndpointHttps[MAX_SIGNALING_ENDPOINT_URI_LEN] = '\0';
-                        } else if (0 == STRNCMPI(pProtocol, WEBRTC_SCHEME_NAME, protocolLen)) {
-                            STRNCPY(pSignalingClient->channelEndpointWebrtc, pEndpoint, MIN(endpointLen, MAX_SIGNALING_ENDPOINT_URI_LEN));
-                            pSignalingClient->channelEndpointWebrtc[MAX_SIGNALING_ENDPOINT_URI_LEN] = '\0';
-                        }
-                    }
-
-                    protocol = FALSE;
-                    endpoint = FALSE;
-                    protocolLen = 0;
-                    endpointLen = 0;
-                    pProtocol = NULL;
-                    pEndpoint = NULL;
-                } else if (compareJsonString(pResponseStr, &tokens[i], JSMN_STRING, (PCHAR) "Protocol")) {
-                    strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
-                    pProtocol = pResponseStr + tokens[i + 1].start;
-                    protocolLen = strLen;
-                    protocol = TRUE;
-                    i++;
-                } else if (compareJsonString(pResponseStr, &tokens[i], JSMN_STRING, (PCHAR) "ResourceEndpoint")) {
-                    strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
-                    CHK(strLen <= MAX_SIGNALING_ENDPOINT_URI_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
-                    pEndpoint = pResponseStr + tokens[i + 1].start;
-                    endpointLen = strLen;
-                    endpoint = TRUE;
-                    i++;
-                }
-            }
-        }
+    // Parse the response
+    if (getSignalingChannelEndpointResponse.pEndpointWebsocketSecure != NULL) {
+        CHK(getSignalingChannelEndpointResponse.endpointWebsocketSecureLength <= MAX_SIGNALING_ENDPOINT_URI_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
+        STRNCPY(pSignalingClient->channelEndpointWss, getSignalingChannelEndpointResponse.pEndpointWebsocketSecure, getSignalingChannelEndpointResponse.endpointWebsocketSecureLength);
+        pSignalingClient->channelEndpointWss[getSignalingChannelEndpointResponse.endpointWebsocketSecureLength] = '\0';
     }
 
-    // Check if we have unprocessed protocol
-    if (protocol && endpoint) {
-        if (0 == STRNCMPI(pProtocol, WSS_SCHEME_NAME, protocolLen)) {
-            STRNCPY(pSignalingClient->channelEndpointWss, pEndpoint, MIN(endpointLen, MAX_SIGNALING_ENDPOINT_URI_LEN));
-            pSignalingClient->channelEndpointWss[MAX_SIGNALING_ENDPOINT_URI_LEN] = '\0';
-        } else if (0 == STRNCMPI(pProtocol, HTTPS_SCHEME_NAME, protocolLen)) {
-            STRNCPY(pSignalingClient->channelEndpointHttps, pEndpoint, MIN(endpointLen, MAX_SIGNALING_ENDPOINT_URI_LEN));
-            pSignalingClient->channelEndpointHttps[MAX_SIGNALING_ENDPOINT_URI_LEN] = '\0';
-        } else if (0 == STRNCMPI(pProtocol, WEBRTC_SCHEME_NAME, protocolLen)) {
-            STRNCPY(pSignalingClient->channelEndpointWebrtc, pEndpoint, MIN(endpointLen, MAX_SIGNALING_ENDPOINT_URI_LEN));
-            pSignalingClient->channelEndpointWebrtc[MAX_SIGNALING_ENDPOINT_URI_LEN] = '\0';
-        }
+    if (getSignalingChannelEndpointResponse.pEndpointHttps != NULL) {
+        CHK(getSignalingChannelEndpointResponse.endpointHttpsLength <= MAX_SIGNALING_ENDPOINT_URI_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
+        STRNCPY(pSignalingClient->channelEndpointHttps, getSignalingChannelEndpointResponse.pEndpointHttps, getSignalingChannelEndpointResponse.endpointHttpsLength);
+        pSignalingClient->channelEndpointHttps[getSignalingChannelEndpointResponse.endpointHttpsLength] = '\0';
+    }
+
+    if (getSignalingChannelEndpointResponse.pEndpointWebrtc != NULL) {
+        CHK(getSignalingChannelEndpointResponse.endpointWebrtcLength <= MAX_SIGNALING_ENDPOINT_URI_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
+        STRNCPY(pSignalingClient->channelEndpointWebrtc, getSignalingChannelEndpointResponse.pEndpointWebrtc, getSignalingChannelEndpointResponse.endpointWebrtcLength);
+        pSignalingClient->channelEndpointWebrtc[getSignalingChannelEndpointResponse.endpointWebrtcLength] = '\0';
     }
 
     // Perform some validation on the channel description
@@ -1149,20 +1192,32 @@ STATUS getIceConfigLws(PSignalingClient pSignalingClient, UINT64 time)
     INT32 j;
     UINT64 ttl;
     BOOL jsonInIceServerList = FALSE;
+    SignalingResult_t retSignal;
+    SignalingRequest_t signalRequest;
+    SignalingGetIceServerConfigRequest_t getIceServerConfigRequest;
+    SignalingGetIceServerConfigResponse_t getIceServerConfigResponse;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+    CHK(pSignalingClient->channelDescription.channelArn[0] != '\0', STATUS_INVALID_OPERATION);
     CHK(pSignalingClient->channelEndpointHttps[0] != '\0', STATUS_INTERNAL_ERROR);
 
     // Update the diagnostics info on the number of ICE refresh calls
     ATOMIC_INCREMENT(&pSignalingClient->diagnostics.iceRefreshCount);
 
-    // Create the API url
-    STRCPY(url, pSignalingClient->channelEndpointHttps);
-    STRCAT(url, GET_ICE_CONFIG_API_POSTFIX);
-
-    // Prepare the json params for the call
-    SNPRINTF(paramsJson, ARRAY_SIZE(paramsJson), GET_ICE_CONFIG_PARAM_JSON_TEMPLATE, pSignalingClient->channelDescription.channelArn,
-             pSignalingClient->clientInfo.signalingClientInfo.clientId);
+    // Prepare URL buffer
+    signalRequest.pUrl = &url[0];
+    signalRequest.urlLength = MAX_URI_CHAR_LEN + 1;
+    // Prepare body buffer
+    signalRequest.pBody = &paramsJson[0];
+    signalRequest.bodyLength = MAX_JSON_PARAMETER_STRING_LEN;
+    getIceServerConfigRequest.pChannelArn = pSignalingClient->channelDescription.channelArn;
+    getIceServerConfigRequest.channelArnLength = strlen(pSignalingClient->channelDescription.channelArn);
+    getIceServerConfigRequest.pEndpointHttps = pSignalingClient->channelEndpointHttps;
+    getIceServerConfigRequest.endpointHttpsLength = strlen(pSignalingClient->channelEndpointHttps);
+    getIceServerConfigRequest.pClientId = pSignalingClient->clientInfo.signalingClientInfo.clientId;
+    getIceServerConfigRequest.clientIdLength = strlen(pSignalingClient->clientInfo.signalingClientInfo.clientId);
+    retSignal = Signaling_constructGetIceServerConfigRequest(&pSignalingClient->signalContext, &getIceServerConfigRequest, &signalRequest);
+    CHK(retSignal == SIGNALING_RESULT_OK, retSignal);
 
     // Create the request info with the body
     CHK_STATUS(createRequestInfo(url, paramsJson, pSignalingClient->pChannelInfo->pRegion, pSignalingClient->pChannelInfo->pCertPath, NULL, NULL,
@@ -1192,64 +1247,11 @@ STATUS getIceConfigLws(PSignalingClient pSignalingClient, UINT64 time)
         STATUS_SIGNALING_LWS_CALL_FAILED);
 
     // Parse the response
-    jsmn_init(&parser);
-    tokenCount = jsmn_parse(&parser, pResponseStr, resultLen, tokens, SIZEOF(tokens) / SIZEOF(jsmntok_t));
-    CHK(tokenCount > 1, STATUS_INVALID_API_CALL_RETURN_JSON);
-    CHK(tokens[0].type == JSMN_OBJECT, STATUS_INVALID_API_CALL_RETURN_JSON);
+    retSignal = Signaling_parseGetIceServerConfigResponse( &pSignalingClient->signalContext, pResponseStr, resultLen, &getIceServerConfigResponse );
+    CHK(retSignal == SIGNALING_RESULT_OK, retSignal);
 
-    MEMSET(&pSignalingClient->iceConfigs, 0x00, MAX_ICE_CONFIG_COUNT * SIZEOF(IceConfigInfo));
-    pSignalingClient->iceConfigCount = 0;
-
-    // Loop through the tokens and extract the ice configuration
-    for (i = 0; i < tokenCount; i++) {
-        if (!jsonInIceServerList) {
-            if (compareJsonString(pResponseStr, &tokens[i], JSMN_STRING, (PCHAR) "IceServerList")) {
-                jsonInIceServerList = TRUE;
-
-                CHK(tokens[i + 1].type == JSMN_ARRAY, STATUS_INVALID_API_CALL_RETURN_JSON);
-                CHK(tokens[i + 1].size <= MAX_ICE_CONFIG_COUNT, STATUS_SIGNALING_MAX_ICE_CONFIG_COUNT);
-            }
-        } else {
-            pToken = &tokens[i];
-            if (pToken->type == JSMN_OBJECT) {
-                configCount++;
-            } else if (compareJsonString(pResponseStr, pToken, JSMN_STRING, (PCHAR) "Username")) {
-                strLen = (UINT32) (pToken[1].end - pToken[1].start);
-                CHK(strLen <= MAX_ICE_CONFIG_USER_NAME_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
-                STRNCPY(pSignalingClient->iceConfigs[configCount - 1].userName, pResponseStr + pToken[1].start, strLen);
-                pSignalingClient->iceConfigs[configCount - 1].userName[MAX_ICE_CONFIG_USER_NAME_LEN] = '\0';
-                i++;
-            } else if (compareJsonString(pResponseStr, pToken, JSMN_STRING, (PCHAR) "Password")) {
-                strLen = (UINT32) (pToken[1].end - pToken[1].start);
-                CHK(strLen <= MAX_ICE_CONFIG_CREDENTIAL_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
-                STRNCPY(pSignalingClient->iceConfigs[configCount - 1].password, pResponseStr + pToken[1].start, strLen);
-                pSignalingClient->iceConfigs[configCount - 1].userName[MAX_ICE_CONFIG_CREDENTIAL_LEN] = '\0';
-                i++;
-            } else if (compareJsonString(pResponseStr, pToken, JSMN_STRING, (PCHAR) "Ttl")) {
-                CHK_STATUS(STRTOUI64(pResponseStr + pToken[1].start, pResponseStr + pToken[1].end, 10, &ttl));
-
-                // NOTE: Ttl value is in seconds
-                pSignalingClient->iceConfigs[configCount - 1].ttl = ttl * HUNDREDS_OF_NANOS_IN_A_SECOND;
-                i++;
-            } else if (compareJsonString(pResponseStr, pToken, JSMN_STRING, (PCHAR) "Uris")) {
-                // Expect an array of elements
-                CHK(pToken[1].type == JSMN_ARRAY, STATUS_INVALID_API_CALL_RETURN_JSON);
-                CHK(pToken[1].size <= MAX_ICE_CONFIG_URI_COUNT, STATUS_SIGNALING_MAX_ICE_URI_COUNT);
-                for (j = 0; j < pToken[1].size; j++) {
-                    strLen = (UINT32) (pToken[j + 2].end - pToken[j + 2].start);
-                    CHK(strLen <= MAX_ICE_CONFIG_URI_LEN, STATUS_SIGNALING_MAX_ICE_URI_LEN);
-                    STRNCPY(pSignalingClient->iceConfigs[configCount - 1].uris[j], pResponseStr + pToken[j + 2].start, strLen);
-                    pSignalingClient->iceConfigs[configCount - 1].uris[j][MAX_ICE_CONFIG_URI_LEN] = '\0';
-                    pSignalingClient->iceConfigs[configCount - 1].uriCount++;
-                }
-
-                i += pToken[1].size + 1;
-            }
-        }
-    }
-
-    // Perform some validation on the ice configuration
-    pSignalingClient->iceConfigCount = configCount;
+    // Parse and validate the response
+    CHK_STATUS(updateIceServerList(pSignalingClient, &getIceServerConfigResponse));
     CHK_STATUS(validateIceConfiguration(pSignalingClient));
 
 CleanUp:
@@ -1275,6 +1277,9 @@ STATUS deleteChannelLws(PSignalingClient pSignalingClient, UINT64 time)
     CHAR paramsJson[MAX_JSON_PARAMETER_STRING_LEN];
     PLwsCallInfo pLwsCallInfo = NULL;
     SIZE_T result;
+    SignalingResult_t retSignal;
+    SignalingRequest_t signalRequest;
+    SignalingDeleteSignalingChannelRequest_t deleteSignalingChannelRequest;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     CHK(pSignalingClient->channelDescription.channelArn[0] != '\0', STATUS_INVALID_OPERATION);
@@ -1285,13 +1290,19 @@ STATUS deleteChannelLws(PSignalingClient pSignalingClient, UINT64 time)
         terminateConnectionWithStatus(pSignalingClient, SERVICE_CALL_RESULT_OK);
     }
 
+    // Prepare URL buffer
+    signalRequest.pUrl = &url[0];
+    signalRequest.urlLength = MAX_URI_CHAR_LEN + 1;
+    // Prepare body buffer
+    signalRequest.pBody = &paramsJson[0];
+    signalRequest.bodyLength = MAX_JSON_PARAMETER_STRING_LEN;
     // Create the API url
-    STRCPY(url, pSignalingClient->pChannelInfo->pControlPlaneUrl);
-    STRCAT(url, DELETE_SIGNALING_CHANNEL_API_POSTFIX);
-
-    // Prepare the json params for the call
-    SNPRINTF(paramsJson, ARRAY_SIZE(paramsJson), DELETE_CHANNEL_PARAM_JSON_TEMPLATE, pSignalingClient->channelDescription.channelArn,
-             pSignalingClient->channelDescription.updateVersion);
+    deleteSignalingChannelRequest.pChannelArn = pSignalingClient->channelDescription.channelArn;
+    deleteSignalingChannelRequest.channelArnLength = strlen(pSignalingClient->channelDescription.channelArn);
+    deleteSignalingChannelRequest.pVersion = pSignalingClient->channelDescription.updateVersion;
+    deleteSignalingChannelRequest.versionLength = strlen(pSignalingClient->channelDescription.updateVersion);
+    retSignal = Signaling_constructDeleteSignalingChannelRequest(&pSignalingClient->signalContext, &deleteSignalingChannelRequest, &signalRequest);
+    CHK(retSignal == SIGNALING_RESULT_OK, retSignal);
 
     // Create the request info with the body
     CHK_STATUS(createRequestInfo(url, paramsJson, pSignalingClient->pChannelInfo->pRegion, pSignalingClient->pChannelInfo->pCertPath, NULL, NULL,
@@ -1400,19 +1411,32 @@ STATUS connectSignalingChannelLws(PSignalingClient pSignalingClient, UINT64 time
     BOOL locked = FALSE;
     SERVICE_CALL_RESULT callResult = SERVICE_CALL_RESULT_NOT_SET;
     UINT64 timeout;
+    SignalingResult_t retSignal;
+    SignalingRequest_t signalRequest;
+    SignalingConnectWssEndpointRequest_t connectWssEndpointRequest;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     CHK(pSignalingClient->channelEndpointWss[0] != '\0', STATUS_INTERNAL_ERROR);
+    CHK(pSignalingClient->channelDescription.channelArn[0] != '\0', STATUS_INVALID_OPERATION);
 
-    // Prepare the json params for the call
+    // Prepare URL buffer
+    signalRequest.pUrl = &url[0];
+    signalRequest.urlLength = MAX_URI_CHAR_LEN + 1;
+    // Prepare body buffer
+    signalRequest.pBody = NULL;
+    signalRequest.bodyLength = 0;
+    MEMSET(&connectWssEndpointRequest, 0, sizeof(SignalingConnectWssEndpointRequest_t));
+    connectWssEndpointRequest.pChannelArn = pSignalingClient->channelDescription.channelArn;
+    connectWssEndpointRequest.channelArnLength = strlen(pSignalingClient->channelDescription.channelArn);
+    connectWssEndpointRequest.pEndpointWebsocketSecure = pSignalingClient->channelEndpointWss;
+    connectWssEndpointRequest.endpointWebsocketSecureLength = strlen(pSignalingClient->channelEndpointWss);
+    connectWssEndpointRequest.role = getChannelRoleType(pSignalingClient->pChannelInfo->channelRoleType);
     if (pSignalingClient->pChannelInfo->channelRoleType == SIGNALING_CHANNEL_ROLE_TYPE_VIEWER) {
-        SNPRINTF(url, ARRAY_SIZE(url), SIGNALING_ENDPOINT_VIEWER_URL_WSS_TEMPLATE, pSignalingClient->channelEndpointWss,
-                 SIGNALING_CHANNEL_ARN_PARAM_NAME, pSignalingClient->channelDescription.channelArn, SIGNALING_CLIENT_ID_PARAM_NAME,
-                 pSignalingClient->clientInfo.signalingClientInfo.clientId);
-    } else {
-        SNPRINTF(url, ARRAY_SIZE(url), SIGNALING_ENDPOINT_MASTER_URL_WSS_TEMPLATE, pSignalingClient->channelEndpointWss,
-                 SIGNALING_CHANNEL_ARN_PARAM_NAME, pSignalingClient->channelDescription.channelArn);
+        connectWssEndpointRequest.pClientId = pSignalingClient->clientInfo.signalingClientInfo.clientId;
+        connectWssEndpointRequest.clientIdLength = strlen(pSignalingClient->clientInfo.signalingClientInfo.clientId);
     }
+    retSignal = Signaling_constructConnectWssEndpointRequest( &pSignalingClient->signalContext, &connectWssEndpointRequest, &signalRequest );
+    CHK(retSignal == SIGNALING_RESULT_OK, retSignal);
 
     // Create the request info with the body
     CHK_STATUS(createRequestInfo(url, NULL, pSignalingClient->pChannelInfo->pRegion, pSignalingClient->pChannelInfo->pCertPath, NULL, NULL,
@@ -1492,22 +1516,32 @@ STATUS joinStorageSessionLws(PSignalingClient pSignalingClient, UINT64 time)
     PLwsCallInfo pLwsCallInfo = NULL;
     PCHAR pResponseStr;
     UINT32 resultLen;
+    SignalingResult_t retSignal;
+    SignalingRequest_t signalRequest;
+    SignalingJoinStorageSessionRequest_t joinStorageSessionRequest;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     CHK(pSignalingClient->channelEndpointWebrtc[0] != '\0', STATUS_INTERNAL_ERROR);
+    CHK(pSignalingClient->channelDescription.channelArn[0] != '\0', STATUS_INVALID_OPERATION);
 
+    // Prepare URL buffer
+    signalRequest.pUrl = &url[0];
+    signalRequest.urlLength = MAX_URI_CHAR_LEN + 1;
+    // Prepare body buffer
+    signalRequest.pBody = &paramsJson[0];
+    signalRequest.bodyLength = MAX_JSON_PARAMETER_STRING_LEN;
     // Create the API url
-    STRCPY(url, pSignalingClient->channelEndpointWebrtc);
-    STRCAT(url, JOIN_STORAGE_SESSION_API_POSTFIX);
-
-    // Prepare the json params for the call
+    joinStorageSessionRequest.pChannelArn = pSignalingClient->channelDescription.channelArn;
+    joinStorageSessionRequest.channelArnLength = strlen(pSignalingClient->channelDescription.channelArn);
+    joinStorageSessionRequest.pEndpointWebrtc = pSignalingClient->channelEndpointWebrtc;
+    joinStorageSessionRequest.endpointWebrtcLength = strlen(pSignalingClient->channelEndpointWebrtc);
+    joinStorageSessionRequest.role = getChannelRoleType(pSignalingClient->pChannelInfo->channelRoleType);
     if (pSignalingClient->pChannelInfo->channelRoleType == SIGNALING_CHANNEL_ROLE_TYPE_VIEWER) {
-        SNPRINTF(paramsJson, ARRAY_SIZE(paramsJson), SIGNALING_JOIN_STORAGE_SESSION_VIEWER_PARAM_JSON_TEMPLATE,
-                 pSignalingClient->channelDescription.channelArn, pSignalingClient->clientInfo.signalingClientInfo.clientId);
-    } else {
-        SNPRINTF(paramsJson, ARRAY_SIZE(paramsJson), SIGNALING_JOIN_STORAGE_SESSION_MASTER_PARAM_JSON_TEMPLATE,
-                 pSignalingClient->channelDescription.channelArn);
+        joinStorageSessionRequest.pClientId = pSignalingClient->clientInfo.signalingClientInfo.clientId;
+        joinStorageSessionRequest.clientIdLength = strlen(pSignalingClient->clientInfo.signalingClientInfo.clientId);
     }
+    retSignal = Signaling_constuctJoinStorageSessionRequest(&pSignalingClient->signalContext, &joinStorageSessionRequest, &signalRequest);
+    CHK(retSignal == SIGNALING_RESULT_OK, retSignal);
 
     // Create the request info with the body
     CHK_STATUS(createRequestInfo(url, paramsJson, pSignalingClient->pChannelInfo->pRegion, pSignalingClient->pChannelInfo->pCertPath, NULL, NULL,
@@ -1571,16 +1605,26 @@ STATUS describeMediaStorageConfLws(PSignalingClient pSignalingClient, UINT64 tim
     UINT32 i, strLen, resultLen;
     UINT32 tokenCount;
     BOOL jsonInMediaStorageConfig = FALSE;
+    SignalingResult_t retSignal;
+    SignalingRequest_t signalRequest;
+    SignalingDescribeMediaStorageConfigRequest_t describeMediaStorageConfigRequest;
+    SignalingDescribeMediaStorageConfigResponse_t describeMediaStorageConfigResponse;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+    CHK(pSignalingClient->channelDescription.channelArn[0] != '\0', STATUS_INVALID_OPERATION);
 
+    // Prepare URL buffer
+    signalRequest.pUrl = &url[0];
+    signalRequest.urlLength = MAX_URI_CHAR_LEN + 1;
+    // Prepare body buffer
+    signalRequest.pBody = &paramsJson[0];
+    signalRequest.bodyLength = MAX_JSON_PARAMETER_STRING_LEN;
     // Create the API url
-    STRCPY(url, pSignalingClient->pChannelInfo->pControlPlaneUrl);
-    STRCAT(url, DESCRIBE_MEDIA_STORAGE_CONF_API_POSTFIX);
+    describeMediaStorageConfigRequest.pChannelArn = pSignalingClient->channelDescription.channelArn;
+    describeMediaStorageConfigRequest.channelArnLength = strlen(pSignalingClient->channelDescription.channelArn);
+    retSignal = Signaling_constructDescribeMediaStorageConfigRequest(&pSignalingClient->signalContext, &describeMediaStorageConfigRequest, &signalRequest);
+    CHK(retSignal == SIGNALING_RESULT_OK, retSignal);
 
-    // Prepare the json params for the call
-    CHK(pSignalingClient->channelDescription.channelArn[0] != '\0', STATUS_NULL_ARG);
-    SNPRINTF(paramsJson, ARRAY_SIZE(paramsJson), DESCRIBE_MEDIA_STORAGE_CONF_PARAM_JSON_TEMPLATE, pSignalingClient->channelDescription.channelArn);
     // Create the request info with the body
     CHK_STATUS(createRequestInfo(url, paramsJson, pSignalingClient->pChannelInfo->pRegion, pSignalingClient->pChannelInfo->pCertPath, NULL, NULL,
                                  SSL_CERTIFICATE_TYPE_NOT_SPECIFIED, pSignalingClient->pChannelInfo->pUserAgent,
@@ -1610,39 +1654,27 @@ STATUS describeMediaStorageConfLws(PSignalingClient pSignalingClient, UINT64 tim
         STATUS_SIGNALING_LWS_CALL_FAILED);
 
     // Parse the response
-    jsmn_init(&parser);
-    tokenCount = jsmn_parse(&parser, pResponseStr, resultLen, tokens, SIZEOF(tokens) / SIZEOF(jsmntok_t));
-    CHK(tokenCount > 1, STATUS_INVALID_API_CALL_RETURN_JSON);
-    CHK(tokens[0].type == JSMN_OBJECT, STATUS_INVALID_API_CALL_RETURN_JSON);
+    retSignal = Signaling_parseDescribeMediaStorageConfigResponse( &pSignalingClient->signalContext, pResponseStr, resultLen, &describeMediaStorageConfigResponse );
+    CHK(retSignal == SIGNALING_RESULT_OK, retSignal);
 
-    // Loop through the tokens and extract the stream description
-    for (i = 1; i < tokenCount; i++) {
-        if (!jsonInMediaStorageConfig) {
-            if (compareJsonString(pResponseStr, &tokens[i], JSMN_STRING, (PCHAR) "MediaStorageConfiguration")) {
-                jsonInMediaStorageConfig = TRUE;
-                i++;
-            }
+    // Parse the response
+    MEMSET(&pSignalingClient->mediaStorageConfig, 0x00, SIZEOF(MediaStorageConfig));
+
+    if (describeMediaStorageConfigResponse.pStatus != NULL) {
+        CHK(describeMediaStorageConfigResponse.statusLength <= MAX_ARN_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
+
+        if (STRNCMP("ENABLED", describeMediaStorageConfigResponse.pStatus, describeMediaStorageConfigResponse.statusLength) == 0) {
+            pSignalingClient->mediaStorageConfig.storageStatus = TRUE;
         } else {
-            if (compareJsonString(pResponseStr, &tokens[i], JSMN_STRING, (PCHAR) "Status")) {
-                strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
-                CHK(strLen <= MAX_ARN_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
-                if (STRNCMP("ENABLED", pResponseStr + tokens[i + 1].start, strLen) == 0) {
-                    pSignalingClient->mediaStorageConfig.storageStatus = TRUE;
-                } else {
-                    pSignalingClient->mediaStorageConfig.storageStatus = FALSE;
-                }
-                i++;
-            } else if (compareJsonString(pResponseStr, &tokens[i], JSMN_STRING, (PCHAR) "StreamARN")) {
-                // StorageStream may be null.
-                if (tokens[i + 1].type != JSMN_PRIMITIVE) {
-                    strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
-                    CHK(strLen <= MAX_ARN_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
-                    STRNCPY(pSignalingClient->mediaStorageConfig.storageStreamArn, pResponseStr + tokens[i + 1].start, strLen);
-                    pSignalingClient->mediaStorageConfig.storageStreamArn[MAX_ARN_LEN] = '\0';
-                }
-                i++;
-            }
+            pSignalingClient->mediaStorageConfig.storageStatus = FALSE;
         }
+    }
+
+    if (describeMediaStorageConfigResponse.pStreamArn != NULL) {
+        CHK(describeMediaStorageConfigResponse.streamArnLength <= MAX_ARN_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
+
+        STRNCPY(pSignalingClient->mediaStorageConfig.storageStreamArn, describeMediaStorageConfigResponse.pStreamArn, describeMediaStorageConfigResponse.streamArnLength);
+                pSignalingClient->mediaStorageConfig.storageStreamArn[MAX_ARN_LEN] = '\0';
     }
 
     // Perform some validation on the channel description
@@ -1771,33 +1803,34 @@ STATUS sendLwsMessage(PSignalingClient pSignalingClient, SIGNALING_MESSAGE_TYPE 
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     CHAR encodedMessage[MAX_SESSION_DESCRIPTION_INIT_SDP_LEN + 1];
-    CHAR encodedIceConfig[MAX_ENCODED_ICE_SERVER_INFOS_STR_LEN + 1];
-    CHAR encodedUris[MAX_ICE_SERVER_URI_STR_LEN + 1];
     UINT32 size, writtenSize, correlationLen, iceCount, uriCount, urisLen, iceConfigLen;
     BOOL awaitForResponse;
-    PCHAR pMessageType;
     UINT64 curTime;
+    SignalingResult_t retSignal;
+    SignalingWssSendMessage_t wssSendMessage;
+    SIZE_T bufferSize;
 
     // Ensure we are in a connected state
     CHK_STATUS(acceptSignalingStateMachineState(pSignalingClient, SIGNALING_STATE_CONNECTED | SIGNALING_STATE_JOIN_SESSION_CONNECTED));
 
     CHK(pSignalingClient != NULL && pSignalingClient->pOngoingCallInfo != NULL, STATUS_NULL_ARG);
 
+    MEMSET(&wssSendMessage, 0, sizeof(SignalingWssSendMessage_t));
+
     // Prepare the buffer to send
     switch (messageType) {
         case SIGNALING_MESSAGE_TYPE_OFFER:
-            pMessageType = (PCHAR) SIGNALING_SDP_TYPE_OFFER;
+            wssSendMessage.messageType = SIGNALING_TYPE_MESSAGE_SDP_OFFER;
             break;
         case SIGNALING_MESSAGE_TYPE_ANSWER:
-            pMessageType = (PCHAR) SIGNALING_SDP_TYPE_ANSWER;
+            wssSendMessage.messageType = SIGNALING_TYPE_MESSAGE_SDP_ANSWER;
             break;
         case SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE:
-            pMessageType = (PCHAR) SIGNALING_ICE_CANDIDATE;
+            wssSendMessage.messageType = SIGNALING_TYPE_MESSAGE_ICE_CANDIDATE;
             break;
         default:
             CHK(FALSE, STATUS_INVALID_ARG);
     }
-    DLOGD("%s", pMessageType);
     DLOGD("%s", pMessage);
     // Calculate the lengths if not specified
     if (messageLen == 0) {
@@ -1820,61 +1853,47 @@ STATUS sendLwsMessage(PSignalingClient pSignalingClient, SIGNALING_MESSAGE_TYPE 
     size = SIZEOF(pSignalingClient->pOngoingCallInfo->sendBuffer) - LWS_PRE;
     CHK(writtenSize <= size, STATUS_SIGNALING_MAX_MESSAGE_LEN_AFTER_ENCODING);
 
-    // Start off with an empty string
-    encodedIceConfig[0] = '\0';
+    /* Prepare send message. */
+    wssSendMessage.base64EncodedMessageLength = writtenSize;
+    wssSendMessage.pBase64EncodedMessage = encodedMessage;
+    wssSendMessage.correlationIdLength = correlationLen;
+    wssSendMessage.pCorrelationId = pCorrelationId;
+    wssSendMessage.recipientClientIdLength = strlen(peerClientId);
+    wssSendMessage.pRecipientClientId = peerClientId;
 
     // In case of an Offer, package the ICE candidates only if we have a set of non-expired ICE configs
     if (messageType == SIGNALING_MESSAGE_TYPE_OFFER && pSignalingClient->iceConfigCount != 0 &&
         (curTime = SIGNALING_GET_CURRENT_TIME(pSignalingClient)) <= pSignalingClient->iceConfigExpiration &&
         STATUS_SUCCEEDED(validateIceConfiguration(pSignalingClient))) {
         // Start the ice infos by copying the preamble, then the main body and then the ending
-        STRCPY(encodedIceConfig, SIGNALING_ICE_SERVER_LIST_TEMPLATE_START);
-        iceConfigLen = ARRAY_SIZE(SIGNALING_ICE_SERVER_LIST_TEMPLATE_START) - 1; // remove the null terminator
+        wssSendMessage.iceServerList.iceServerNum = pSignalingClient->iceConfigCount;
 
         for (iceCount = 0; iceCount < pSignalingClient->iceConfigCount; iceCount++) {
-            encodedUris[0] = '\0';
+            wssSendMessage.iceServerList.iceServer[iceCount].pUserName = pSignalingClient->iceConfigs[iceCount].userName;
+            wssSendMessage.iceServerList.iceServer[iceCount].userNameLength = strlen(pSignalingClient->iceConfigs[iceCount].userName);
+            wssSendMessage.iceServerList.iceServer[iceCount].pPassword = pSignalingClient->iceConfigs[iceCount].password;
+            wssSendMessage.iceServerList.iceServer[iceCount].passwordLength = strlen(pSignalingClient->iceConfigs[iceCount].password);
+            wssSendMessage.iceServerList.iceServer[iceCount].messageTtlSeconds = (pSignalingClient->iceConfigs[iceCount].ttl - (curTime - pSignalingClient->iceConfigTime)) / HUNDREDS_OF_NANOS_IN_A_SECOND;
+            wssSendMessage.iceServerList.iceServer[iceCount].urisNum = pSignalingClient->iceConfigs[iceCount].uriCount;
             for (uriCount = 0; uriCount < pSignalingClient->iceConfigs[iceCount].uriCount; uriCount++) {
-                STRCAT(encodedUris, "\"");
-                STRCAT(encodedUris, pSignalingClient->iceConfigs[iceCount].uris[uriCount]);
-                STRCAT(encodedUris, "\",");
+                wssSendMessage.iceServerList.iceServer[iceCount].urisLength[uriCount] = strlen(pSignalingClient->iceConfigs[iceCount].uris[uriCount]);
+                wssSendMessage.iceServerList.iceServer[iceCount].pUris[uriCount] = pSignalingClient->iceConfigs[iceCount].uris[uriCount];
             }
-
-            // remove the last comma
-            urisLen = STRLEN(encodedUris);
-            encodedUris[--urisLen] = '\0';
-
-            // Construct the encoded ice config
-            // NOTE: We need to subtract the passed time to get the TTL of the expiration correct
-            writtenSize = (UINT32) SNPRINTF(encodedIceConfig + iceConfigLen, MAX_ICE_SERVER_INFO_STR_LEN, SIGNALING_ICE_SERVER_TEMPLATE,
-                                            pSignalingClient->iceConfigs[iceCount].password,
-                                            (pSignalingClient->iceConfigs[iceCount].ttl - (curTime - pSignalingClient->iceConfigTime)) /
-                                                HUNDREDS_OF_NANOS_IN_A_SECOND,
-                                            encodedUris, pSignalingClient->iceConfigs[iceCount].userName);
-            CHK(writtenSize <= MAX_ICE_SERVER_INFO_STR_LEN, STATUS_SIGNALING_MAX_MESSAGE_LEN_AFTER_ENCODING);
-            iceConfigLen += writtenSize;
         }
-
-        // Get rid of the last comma
-        iceConfigLen--;
-
-        // Closing the JSON array
-        STRCPY(encodedIceConfig + iceConfigLen, SIGNALING_ICE_SERVER_LIST_TEMPLATE_END);
     }
 
     // Prepare json message
-    if (correlationLen == 0) {
-        writtenSize = (UINT32) SNPRINTF((PCHAR) (pSignalingClient->pOngoingCallInfo->sendBuffer + LWS_PRE), size, SIGNALING_SEND_MESSAGE_TEMPLATE,
-                                        pMessageType, MAX_SIGNALING_CLIENT_ID_LEN, peerClientId, encodedMessage, encodedIceConfig);
-    } else {
-        writtenSize = (UINT32) SNPRINTF((PCHAR) (pSignalingClient->pOngoingCallInfo->sendBuffer + LWS_PRE), size,
-                                        SIGNALING_SEND_MESSAGE_TEMPLATE_WITH_CORRELATION_ID, pMessageType, MAX_SIGNALING_CLIENT_ID_LEN, peerClientId,
-                                        encodedMessage, correlationLen, pCorrelationId, encodedIceConfig);
-    }
+    bufferSize = SIZEOF(pSignalingClient->pOngoingCallInfo->sendBuffer) - LWS_PRE - 1; /* -1 for null terminator. */
+    retSignal = Signaling_constructWssMessage( &wssSendMessage, pSignalingClient->pOngoingCallInfo->sendBuffer + LWS_PRE, &bufferSize );
+    CHK(retSignal == SIGNALING_RESULT_OK, retSignal);
 
     // Validate against max
-    CHK(writtenSize <= LWS_MESSAGE_BUFFER_SIZE, STATUS_SIGNALING_MAX_MESSAGE_LEN_AFTER_ENCODING);
+    CHK(bufferSize + LWS_PRE <= LWS_MESSAGE_BUFFER_SIZE, STATUS_SIGNALING_MAX_MESSAGE_LEN_AFTER_ENCODING);
 
-    writtenSize *= SIZEOF(CHAR);
+    // Set null terminator to make sure sendBuffer is a valid string.
+    *(pSignalingClient->pOngoingCallInfo->sendBuffer + LWS_PRE + bufferSize) = '\0';
+
+    writtenSize = bufferSize * SIZEOF(CHAR);
     CHK(writtenSize <= size, STATUS_INVALID_ARG);
 
     // Store the data pointer
@@ -1884,7 +1903,7 @@ STATUS sendLwsMessage(PSignalingClient pSignalingClient, SIGNALING_MESSAGE_TYPE 
     // Send the data to the web socket
     awaitForResponse = (correlationLen != 0) && BLOCK_ON_CORRELATION_ID;
 
-    DLOGD("Sending data over web socket: Message type: %s, RecepientId: %s", pMessageType, peerClientId);
+    DLOGD("Sending data over web socket: Message type: %d, RecepientId: %s", wssSendMessage.messageType, peerClientId);
 
     CHK_STATUS(writeLwsData(pSignalingClient, awaitForResponse));
 
@@ -1987,11 +2006,14 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
     BOOL parsedMessageType = FALSE, parsedStatusResponse = FALSE, jsonInIceServerList = FALSE;
     PSignalingMessage pOngoingMessage;
     UINT64 ttl;
+    SignalingResult_t retSignal;
+    SignalingWssRecvMessage_t wssRecvMessage;
+    UINT64 messageLength = messageLen;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
     // If we have a signalingMessage and if there is a correlation id specified then the response should be non-empty
-    if (pMessage == NULL || messageLen == 0) {
+    if (pMessage == NULL || messageLength == 0) {
         if (BLOCK_ON_CORRELATION_ID) {
             // Get empty correlation id message from the ongoing if exists
             CHK_STATUS(signalingGetOngoingMessage(pSignalingClient, EMPTY_STRING, EMPTY_STRING, &pOngoingMessage));
@@ -2004,126 +2026,69 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
         }
 
         // Check if anything needs to be done
-        CHK_WARN(pMessage != NULL && messageLen != 0, retStatus, "Signaling received an empty message");
+        CHK_WARN(pMessage != NULL && messageLength != 0, retStatus, "Signaling received an empty message");
     }
 
+    // DLOGV("receive LWS Message:\n%s", pMessage);
+
     // Parse the response
-    jsmn_init(&parser);
-    tokenCount = jsmn_parse(&parser, pMessage, messageLen, tokens, SIZEOF(tokens) / SIZEOF(jsmntok_t));
-    CHK(tokenCount > 1, STATUS_INVALID_API_CALL_RETURN_JSON);
-    CHK(tokens[0].type == JSMN_OBJECT, STATUS_INVALID_API_CALL_RETURN_JSON);
+    retSignal = Signaling_parseWssRecvMessage( pMessage, (size_t)messageLength, &wssRecvMessage );
+    CHK(retSignal == SIGNALING_RESULT_OK, retSignal);
 
     CHK(NULL != (pSignalingMessageWrapper = (PSignalingMessageWrapper) MEMCALLOC(1, SIZEOF(SignalingMessageWrapper))), STATUS_NOT_ENOUGH_MEMORY);
 
     pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
 
-    // Loop through the tokens and extract the stream description
-    for (i = 1; i < tokenCount; i++) {
-        if (compareJsonString(pMessage, &tokens[i], JSMN_STRING, (PCHAR) "senderClientId")) {
-            strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
-            CHK(strLen <= MAX_SIGNALING_CLIENT_ID_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
-            STRNCPY(pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.peerClientId, pMessage + tokens[i + 1].start, strLen);
-            pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.peerClientId[MAX_SIGNALING_CLIENT_ID_LEN] = '\0';
-            i++;
-        } else if (compareJsonString(pMessage, &tokens[i], JSMN_STRING, (PCHAR) "messageType")) {
-            strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
-            CHK(strLen <= MAX_SIGNALING_MESSAGE_TYPE_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
-            CHK_STATUS(getMessageTypeFromString(pMessage + tokens[i + 1].start, strLen,
-                                                &pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.messageType));
+    if (wssRecvMessage.pSenderClientId != NULL) {
+        CHK(wssRecvMessage.senderClientIdLength <= MAX_SIGNALING_CLIENT_ID_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
+        STRNCPY(pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.peerClientId, wssRecvMessage.pSenderClientId, wssRecvMessage.senderClientIdLength);
+        pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.peerClientId[wssRecvMessage.senderClientIdLength] = '\0';
+    }
 
-            parsedMessageType = TRUE;
-            i++;
-        } else if (compareJsonString(pMessage, &tokens[i], JSMN_STRING, (PCHAR) "messagePayload")) {
-            strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
-            CHK(strLen <= MAX_SIGNALING_MESSAGE_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
+    if (wssRecvMessage.messageType != SIGNALING_TYPE_MESSAGE_UNKNOWN) {
+        CHK_STATUS(getMessageType(wssRecvMessage.messageType, &pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.messageType));
 
-            // Base64 decode the message
-            CHK_STATUS(base64Decode(pMessage + tokens[i + 1].start, strLen,
-                                    (PBYTE) (pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.payload), &outLen));
-            pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.payload[MAX_SIGNALING_MESSAGE_LEN] = '\0';
-            pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.payloadLen = outLen;
-            i++;
-        } else if (!parsedStatusResponse && compareJsonString(pMessage, &tokens[i], JSMN_STRING, (PCHAR) "statusResponse")) {
-            parsedStatusResponse = TRUE;
-            i++;
-        } else if (parsedStatusResponse && compareJsonString(pMessage, &tokens[i], JSMN_STRING, (PCHAR) "correlationId")) {
-            strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
-            CHK(strLen <= MAX_CORRELATION_ID_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
-            STRNCPY(pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.correlationId, pMessage + tokens[i + 1].start, strLen);
-            pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.correlationId[MAX_CORRELATION_ID_LEN] = '\0';
+        parsedMessageType = TRUE;
+    }
 
-            i++;
-        } else if (parsedStatusResponse && compareJsonString(pMessage, &tokens[i], JSMN_STRING, (PCHAR) "errorType")) {
-            strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
-            CHK(strLen <= MAX_ERROR_TYPE_STRING_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
-            STRNCPY(pSignalingMessageWrapper->receivedSignalingMessage.errorType, pMessage + tokens[i + 1].start, strLen);
-            pSignalingMessageWrapper->receivedSignalingMessage.errorType[MAX_ERROR_TYPE_STRING_LEN] = '\0';
+    if (wssRecvMessage.pBase64EncodedPayload != NULL) {
+        // Base64 decode the message
+        CHK(wssRecvMessage.base64EncodedPayloadLength <= MAX_SIGNALING_MESSAGE_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
+        CHK_STATUS(base64Decode((PCHAR) wssRecvMessage.pBase64EncodedPayload, wssRecvMessage.base64EncodedPayloadLength,
+                                (PBYTE) (pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.payload), &outLen));
+        pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.payload[wssRecvMessage.base64EncodedPayloadLength] = '\0';
+        pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.payloadLen = outLen;
+    }
 
-            i++;
-        } else if (parsedStatusResponse && compareJsonString(pMessage, &tokens[i], JSMN_STRING, (PCHAR) "statusCode")) {
-            strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
-            CHK(strLen <= MAX_STATUS_CODE_STRING_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
+    if (wssRecvMessage.statusResponse.pCorrelationId != NULL) {
+        CHK(wssRecvMessage.statusResponse.correlationIdLength <= MAX_CORRELATION_ID_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
+        STRNCPY(pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.correlationId, wssRecvMessage.statusResponse.pCorrelationId, wssRecvMessage.statusResponse.correlationIdLength);
+        pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.correlationId[wssRecvMessage.statusResponse.correlationIdLength] = '\0';
+    }
 
-            // Parse the status code
-            CHK_STATUS(STRTOUI32(pMessage + tokens[i + 1].start, pMessage + tokens[i + 1].end, 10,
-                                 &pSignalingMessageWrapper->receivedSignalingMessage.statusCode));
+    if (wssRecvMessage.statusResponse.pErrorType != NULL) {
+        CHK(wssRecvMessage.statusResponse.errorTypeLength <= MAX_ERROR_TYPE_STRING_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
+        STRNCPY(pSignalingMessageWrapper->receivedSignalingMessage.errorType, wssRecvMessage.statusResponse.pErrorType, wssRecvMessage.statusResponse.errorTypeLength);
+        pSignalingMessageWrapper->receivedSignalingMessage.errorType[wssRecvMessage.statusResponse.errorTypeLength] = '\0';
+    }
 
-            i++;
-        } else if (parsedStatusResponse && compareJsonString(pMessage, &tokens[i], JSMN_STRING, (PCHAR) "description")) {
-            strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
-            CHK(strLen <= MAX_MESSAGE_DESCRIPTION_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
-            STRNCPY(pSignalingMessageWrapper->receivedSignalingMessage.description, pMessage + tokens[i + 1].start, strLen);
-            pSignalingMessageWrapper->receivedSignalingMessage.description[MAX_MESSAGE_DESCRIPTION_LEN] = '\0';
+    if (wssRecvMessage.statusResponse.pStatusCode != NULL) {
+        CHK(wssRecvMessage.statusResponse.statusCodeLength <= MAX_STATUS_CODE_STRING_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
 
-            i++;
-        } else if (!jsonInIceServerList &&
-                   pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.messageType == SIGNALING_MESSAGE_TYPE_OFFER &&
-                   compareJsonString(pMessage, &tokens[i], JSMN_STRING, (PCHAR) "IceServerList")) {
-            jsonInIceServerList = TRUE;
+        // Parse the status code
+        CHK_STATUS(STRTOUI32((PCHAR) wssRecvMessage.statusResponse.pStatusCode, ((PCHAR) wssRecvMessage.statusResponse.pStatusCode) + wssRecvMessage.statusResponse.statusCodeLength, 10,
+                             &pSignalingMessageWrapper->receivedSignalingMessage.statusCode));
+    }
 
-            CHK(tokens[i + 1].type == JSMN_ARRAY, STATUS_INVALID_API_CALL_RETURN_JSON);
-            CHK(tokens[i + 1].size <= MAX_ICE_CONFIG_COUNT, STATUS_SIGNALING_MAX_ICE_CONFIG_COUNT);
+    if (wssRecvMessage.statusResponse.pDescription != NULL) {
+        CHK(wssRecvMessage.statusResponse.descriptionLength <= MAX_MESSAGE_DESCRIPTION_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
+        STRNCPY(pSignalingMessageWrapper->receivedSignalingMessage.description, wssRecvMessage.statusResponse.pDescription, wssRecvMessage.statusResponse.descriptionLength);
+        pSignalingMessageWrapper->receivedSignalingMessage.description[wssRecvMessage.statusResponse.descriptionLength] = '\0';
+    }
 
-            // Zero the ice configs
-            MEMSET(&pSignalingClient->iceConfigs, 0x00, MAX_ICE_CONFIG_COUNT * SIZEOF(IceConfigInfo));
-            pSignalingClient->iceConfigCount = 0;
-        } else if (jsonInIceServerList) {
-            pToken = &tokens[i];
-            if (pToken->type == JSMN_OBJECT) {
-                pSignalingClient->iceConfigCount++;
-            } else if (compareJsonString(pMessage, pToken, JSMN_STRING, (PCHAR) "Username")) {
-                strLen = (UINT32) (pToken[1].end - pToken[1].start);
-                CHK(strLen <= MAX_ICE_CONFIG_USER_NAME_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
-                STRNCPY(pSignalingClient->iceConfigs[pSignalingClient->iceConfigCount - 1].userName, pMessage + pToken[1].start, strLen);
-                pSignalingClient->iceConfigs[pSignalingClient->iceConfigCount - 1].userName[MAX_ICE_CONFIG_USER_NAME_LEN] = '\0';
-                i++;
-            } else if (compareJsonString(pMessage, pToken, JSMN_STRING, (PCHAR) "Password")) {
-                strLen = (UINT32) (pToken[1].end - pToken[1].start);
-                CHK(strLen <= MAX_ICE_CONFIG_CREDENTIAL_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
-                STRNCPY(pSignalingClient->iceConfigs[pSignalingClient->iceConfigCount - 1].password, pMessage + pToken[1].start, strLen);
-                pSignalingClient->iceConfigs[pSignalingClient->iceConfigCount - 1].userName[MAX_ICE_CONFIG_CREDENTIAL_LEN] = '\0';
-                i++;
-            } else if (compareJsonString(pMessage, pToken, JSMN_STRING, (PCHAR) "Ttl")) {
-                CHK_STATUS(STRTOUI64(pMessage + pToken[1].start, pMessage + pToken[1].end, 10, &ttl));
-
-                // NOTE: Ttl value is in seconds
-                pSignalingClient->iceConfigs[pSignalingClient->iceConfigCount - 1].ttl = ttl * HUNDREDS_OF_NANOS_IN_A_SECOND;
-                i++;
-            } else if (compareJsonString(pMessage, pToken, JSMN_STRING, (PCHAR) "Uris")) {
-                // Expect an array of elements
-                CHK(pToken[1].type == JSMN_ARRAY, STATUS_INVALID_API_CALL_RETURN_JSON);
-                CHK(pToken[1].size <= MAX_ICE_CONFIG_URI_COUNT, STATUS_SIGNALING_MAX_ICE_URI_COUNT);
-                for (j = 0; j < pToken[1].size; j++) {
-                    strLen = (UINT32) (pToken[j + 2].end - pToken[j + 2].start);
-                    CHK(strLen <= MAX_ICE_CONFIG_URI_LEN, STATUS_SIGNALING_MAX_ICE_URI_LEN);
-                    STRNCPY(pSignalingClient->iceConfigs[pSignalingClient->iceConfigCount - 1].uris[j], pMessage + pToken[j + 2].start, strLen);
-                    pSignalingClient->iceConfigs[pSignalingClient->iceConfigCount - 1].uris[j][MAX_ICE_CONFIG_URI_LEN] = '\0';
-                    pSignalingClient->iceConfigs[pSignalingClient->iceConfigCount - 1].uriCount++;
-                }
-
-                i += pToken[1].size + 1;
-            }
-        }
+    if (wssRecvMessage.iceServerList.iceServerNum > 0U &&
+        pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.messageType == SIGNALING_MESSAGE_TYPE_OFFER) {
+        CHK_STATUS(updateIceServerList(pSignalingClient, &wssRecvMessage.iceServerList));
     }
 
     // Message type is a mandatory field.
@@ -2267,43 +2232,6 @@ STATUS terminateConnectionWithStatus(PSignalingClient pSignalingClient, SERVICE_
     }
 
     CHK_STATUS(awaitForThreadTermination(&pSignalingClient->listenerTracker, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT));
-
-CleanUp:
-
-    LEAVES();
-    return retStatus;
-}
-
-STATUS getMessageTypeFromString(PCHAR typeStr, UINT32 typeLen, SIGNALING_MESSAGE_TYPE* pMessageType)
-{
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-    UINT32 len;
-
-    CHK(typeStr != NULL && pMessageType != NULL, STATUS_NULL_ARG);
-
-    if (typeLen == 0) {
-        len = (UINT32) STRLEN(typeStr);
-    } else {
-        len = typeLen;
-    }
-
-    if (0 == STRNCMP(typeStr, SIGNALING_SDP_TYPE_OFFER, len)) {
-        *pMessageType = SIGNALING_MESSAGE_TYPE_OFFER;
-    } else if (0 == STRNCMP(typeStr, SIGNALING_SDP_TYPE_ANSWER, len)) {
-        *pMessageType = SIGNALING_MESSAGE_TYPE_ANSWER;
-    } else if (0 == STRNCMP(typeStr, SIGNALING_ICE_CANDIDATE, len)) {
-        *pMessageType = SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE;
-    } else if (0 == STRNCMP(typeStr, SIGNALING_GO_AWAY, len)) {
-        *pMessageType = SIGNALING_MESSAGE_TYPE_GO_AWAY;
-    } else if (0 == STRNCMP(typeStr, SIGNALING_RECONNECT_ICE_SERVER, len)) {
-        *pMessageType = SIGNALING_MESSAGE_TYPE_RECONNECT_ICE_SERVER;
-    } else if (0 == STRNCMP(typeStr, SIGNALING_STATUS_RESPONSE, len)) {
-        *pMessageType = SIGNALING_MESSAGE_TYPE_STATUS_RESPONSE;
-    } else {
-        *pMessageType = SIGNALING_MESSAGE_TYPE_UNKNOWN;
-        CHK_WARN(FALSE, retStatus, "Unrecognized message type received");
-    }
 
 CleanUp:
 

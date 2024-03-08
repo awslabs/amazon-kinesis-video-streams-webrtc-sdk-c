@@ -26,76 +26,13 @@ extern "C" {
 #define PROTOCOL_INDEX_WSS   1
 
 // API postfix definitions
-#define CREATE_SIGNALING_CHANNEL_API_POSTFIX       "/createSignalingChannel"
-#define DESCRIBE_SIGNALING_CHANNEL_API_POSTFIX     "/describeSignalingChannel"
-#define GET_SIGNALING_CHANNEL_ENDPOINT_API_POSTFIX "/getSignalingChannelEndpoint"
-#define DELETE_SIGNALING_CHANNEL_API_POSTFIX       "/deleteSignalingChannel"
-#define GET_ICE_CONFIG_API_POSTFIX                 "/v1/get-ice-server-config"
-#define JOIN_STORAGE_SESSION_API_POSTFIX           "/joinStorageSession"
-#define DESCRIBE_MEDIA_STORAGE_CONF_API_POSTFIX    "/describeMediaStorageConfiguration"
 #define UPDATE_MEDIA_STORAGE_CONF_API_POSTFIX      "/updateMediaStorageConfiguration"
 
-// Signaling protocol name
-#define SIGNALING_CHANNEL_PROTOCOL                 "\"WSS\", \"HTTPS\""
-#define SIGNALING_CHANNEL_PROTOCOL_W_MEDIA_STORAGE "\"WSS\", \"HTTPS\", \"WEBRTC\""
-
-// Parameterized string for Describe Channel API
-#define DESCRIBE_CHANNEL_PARAM_JSON_TEMPLATE            "{\n\t\"ChannelName\": \"%s\"\n}"
-#define DESCRIBE_MEDIA_STORAGE_CONF_PARAM_JSON_TEMPLATE "{\n\t\"ChannelARN\": \"%s\"\n}"
-
-// Parameterized string for Delete Channel API
-#define DELETE_CHANNEL_PARAM_JSON_TEMPLATE                                                                                                           \
-    "{\n\t\"ChannelARN\": \"%s\","                                                                                                                   \
-    "\n\t\"CurrentVersion\": \"%s\"\n}"
-
-// Parameterized string for Create Channel API
-#define CREATE_CHANNEL_PARAM_JSON_TEMPLATE                                                                                                           \
-    "{\n\t\"ChannelName\": \"%s\","                                                                                                                  \
-    "\n\t\"ChannelType\": \"%s\","                                                                                                                   \
-    "\n\t\"SingleMasterConfiguration\": {"                                                                                                           \
-    "\n\t\t\"MessageTtlSeconds\": %" PRIu64 "\n\t}"                                                                                                  \
-    "%s\n}"
-
-// Parameterized string for each tag pair as a JSON object
-#define TAG_PARAM_JSON_OBJ_TEMPLATE "\n\t\t{\"Key\": \"%s\", \"Value\": \"%s\"},"
-
-// Parameterized string for TagStream API - we should have at least one tag
-#define TAGS_PARAM_JSON_TEMPLATE ",\n\t\"Tags\": [%s\n\t]"
-
-// Parameterized string for Get Channel Endpoint API
-#define GET_CHANNEL_ENDPOINT_PARAM_JSON_TEMPLATE                                                                                                     \
-    "{\n\t\"ChannelARN\": \"%s\","                                                                                                                   \
-    "\n\t\"SingleMasterChannelEndpointConfiguration\": {"                                                                                            \
-    "\n\t\t\"Protocols\": [%s],"                                                                                                                     \
-    "\n\t\t\"Role\": \"%s\""                                                                                                                         \
-    "\n\t}\n}"
-
-// Parameterized string for Get Ice Server Config API
-#define GET_ICE_CONFIG_PARAM_JSON_TEMPLATE                                                                                                           \
-    "{\n\t\"ChannelARN\": \"%s\","                                                                                                                   \
-    "\n\t\"ClientId\": \"%s\","                                                                                                                      \
-    "\n\t\"Service\": \"TURN\""                                                                                                                      \
-    "\n}"
-
-#define SIGNALING_JOIN_STORAGE_SESSION_MASTER_PARAM_JSON_TEMPLATE "{\n\t\"channelArn\": \"%s\"\n}"
-#define SIGNALING_JOIN_STORAGE_SESSION_VIEWER_PARAM_JSON_TEMPLATE                                                                                    \
-    "{\n\t\"channelArn\": \"%s\","                                                                                                                   \
-    "\n\t\"clientId\": \"%s\"\n}"
 #define SIGNALING_UPDATE_STORAGE_CONFIG_PARAM_JSON_TEMPLATE                                                                                          \
     "{\n\t\"StreamARN\": \"%s\","                                                                                                                    \
     "\n\t\"ChannelARN\": \"%s\","                                                                                                                    \
     "\n\t\"StorageStatus\": \"%s\""                                                                                                                  \
     "\n}"
-
-// Parameter names for Signaling connect URL
-#define SIGNALING_ROLE_PARAM_NAME         "X-Amz-Role"
-#define SIGNALING_CHANNEL_NAME_PARAM_NAME "X-Amz-ChannelName"
-#define SIGNALING_CHANNEL_ARN_PARAM_NAME  "X-Amz-ChannelARN"
-#define SIGNALING_CLIENT_ID_PARAM_NAME    "X-Amz-ClientId"
-
-// Parameterized string for WSS connect
-#define SIGNALING_ENDPOINT_MASTER_URL_WSS_TEMPLATE "%s?%s=%s"
-#define SIGNALING_ENDPOINT_VIEWER_URL_WSS_TEMPLATE "%s?%s=%s&%s=%s"
 
 #define SIGNALING_SDP_TYPE_OFFER       "SDP_OFFER"
 #define SIGNALING_SDP_TYPE_ANSWER      "SDP_ANSWER"
@@ -110,38 +47,6 @@ extern "C" {
 
 // Max value length for the status code
 #define MAX_SIGNALING_STATUS_MESSAGE_LEN 16
-
-// Send message JSON template
-#define SIGNALING_SEND_MESSAGE_TEMPLATE                                                                                                              \
-    "{\n"                                                                                                                                            \
-    "\t\"action\": \"%s\",\n"                                                                                                                        \
-    "\t\"RecipientClientId\": \"%.*s\",\n"                                                                                                           \
-    "\t\"MessagePayload\": \"%s\"%s\n"                                                                                                               \
-    "}"
-
-// Send message JSON template with correlation id
-#define SIGNALING_SEND_MESSAGE_TEMPLATE_WITH_CORRELATION_ID                                                                                          \
-    "{\n"                                                                                                                                            \
-    "\t\"action\": \"%s\",\n"                                                                                                                        \
-    "\t\"RecipientClientId\": \"%.*s\",\n"                                                                                                           \
-    "\t\"MessagePayload\": \"%s\",\n"                                                                                                                \
-    "\t\"CorrelationId\": \"%.*s\"%s\n"                                                                                                              \
-    "}"
-
-#define SIGNALING_ICE_SERVER_LIST_TEMPLATE_START                                                                                                     \
-    ",\n"                                                                                                                                            \
-    "\t\"IceServerList\": ["
-
-#define SIGNALING_ICE_SERVER_LIST_TEMPLATE_END "\n\t]"
-
-#define SIGNALING_ICE_SERVER_TEMPLATE                                                                                                                \
-    "\n"                                                                                                                                             \
-    "\t\t{\n"                                                                                                                                        \
-    "\t\t\t\"Password\": \"%s\",\n"                                                                                                                  \
-    "\t\t\t\"Ttl\": %" PRIu64 ",\n"                                                                                                                  \
-    "\t\t\t\"Uris\": [%s],\n"                                                                                                                        \
-    "\t\t\t\"Username\": \"%s\"\n"                                                                                                                   \
-    "\t\t},"
 
 // max length for http date header, must follow RFC 7231, should be less than 32 characters
 #define MAX_DATE_HEADER_BUFFER_LENGTH 64
@@ -275,7 +180,6 @@ STATUS sendLwsMessage(PSignalingClient, SIGNALING_MESSAGE_TYPE, PCHAR, PCHAR, UI
 STATUS writeLwsData(PSignalingClient, BOOL);
 STATUS terminateLwsListenerLoop(PSignalingClient);
 STATUS receiveLwsMessage(PSignalingClient, PCHAR, UINT32);
-STATUS getMessageTypeFromString(PCHAR, UINT32, SIGNALING_MESSAGE_TYPE*);
 PCHAR getMessageTypeInString(SIGNALING_MESSAGE_TYPE);
 STATUS wakeLwsServiceEventLoop(PSignalingClient, UINT32);
 STATUS terminateConnectionWithStatus(PSignalingClient, SERVICE_CALL_RESULT);
