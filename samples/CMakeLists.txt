@@ -6,7 +6,11 @@ project(KinesisVideoWebRTCClientSamples LANGUAGES C)
 
 message("OPEN_SRC_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX}")
 
-if (WIN32)
+find_package(PkgConfig REQUIRED)
+
+pkg_check_modules(GST gstreamer-1.0)
+if(GST_FOUND)
+  if (WIN32)
     if(NOT DEFINED PKG_CONFIG_EXECUTABLE)
       if(EXISTS "C:\\gstreamer\\1.0\\x86_64\\bin\\pkg-config.exe")
         set(PKG_CONFIG_EXECUTABLE "C:\\gstreamer\\1.0\\x86_64\\bin\\pkg-config.exe")
@@ -16,13 +20,7 @@ if (WIN32)
     else()
       message(FATAL_ERROR "Gstreamer not found in default path. Set the appropriate path with -DPKG_CONFIG_EXECUTABLE=<path>")
     endif()
-endif()
-  
-find_package(PkgConfig REQUIRED)
-
-pkg_check_modules(GST gstreamer-1.0)
-if(GST_FOUND)
-
+  endif()
   if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     set(ENV{PKG_CONFIG_PATH} "$ENV{PKG_CONFIG_PATH}:/usr/local/opt/libffi/lib/pkgconfig")
     find_library(Intl "intl" REQUIRED PATHS "/usr/local/opt/gettext/lib")
