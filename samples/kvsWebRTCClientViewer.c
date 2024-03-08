@@ -40,25 +40,9 @@ INT32 main(INT32 argc, CHAR* argv[])
     PDemoConfiguration pDemoConfiguration = NULL;
     PSampleStreamingSession pSampleStreamingSession = NULL;
     BOOL locked = FALSE;
-    PCHAR pChannelName;
     CHAR clientId[256];
 
-#ifndef _WIN32
-    signal(SIGINT, sigintHandler);
-#endif
-
-#ifdef IOT_CORE_ENABLE_CREDENTIALS
-    CHK_ERR((pChannelName = argc > 1 ? argv[1] : GETENV(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION,
-            "AWS_IOT_CORE_THING_NAME must be set");
-#else
-    pChannelName = argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME;
-#endif
-
-    CHK_STATUS(initializeConfiguration(&pDemoConfiguration, SIGNALING_CHANNEL_ROLE_TYPE_VIEWER, NULL));
-
-#ifdef ENABLE_DATA_CHANNEL
-    pDemoConfiguration->onDataChannel = onDataChannel;
-#endif
+    CHK_STATUS(initializeConfiguration(&pDemoConfiguration, SIGNALING_CHANNEL_ROLE_TYPE_VIEWER, argc, argv, NULL));
 
     SPRINTF(clientId, "%s_%u", SAMPLE_VIEWER_CLIENT_ID, RAND() % MAX_UINT32);
     CHK_STATUS(initSignaling(pDemoConfiguration, clientId));
@@ -126,7 +110,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     SIZE_T datachannelLocalOpenCount = 0;
 
     // Creating a new datachannel on the peer connection of the existing sample streaming session
-    CHK_STATUS(createDataChannel(pPeerConnection, pChannelName, NULL, &pDataChannel));
+    CHK_STATUS(createDataChannel(pPeerConnection, pDemoConfiguration->appConfigCtx.pChannelName, NULL, &pDataChannel));
     DLOGI("[KVS Viewer] Creating data channel...completed");
 
     // Setting a callback for when the data channel is open

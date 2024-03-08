@@ -129,7 +129,7 @@ typedef struct {
     UINT64 prevTs;
 } RtcMetricsHistory, *PRtcMetricsHistory;
 
-typedef STATUS (*ParamsSetFn)(UINT64, SIGNALING_CHANNEL_ROLE_TYPE);
+typedef STATUS (*ParamsSetFn)(UINT64, SIGNALING_CHANNEL_ROLE_TYPE, INT32, CHAR*[]);
 
 typedef struct {
     AppConfigCtx appConfigCtx;
@@ -219,9 +219,6 @@ struct __SampleStreamingSession {
     UINT64 offerReceiveTime;
     PeerConnectionMetrics peerConnectionMetrics;
     KvsIceAgentMetrics iceMetrics;
-    CHAR pPeerConnectionMetricsMessage[MAX_PEER_CONNECTION_METRICS_MESSAGE_SIZE];
-    CHAR pSignalingClientMetricsMessage[MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE];
-    CHAR pIceAgentMetricsMessage[MAX_ICE_AGENT_METRICS_MESSAGE_SIZE];
 };
 
 // TODO this should all be in a higher webrtccontext layer above PeerConnection
@@ -232,22 +229,21 @@ typedef struct {
     PUINT32 pUriCount;
 } AsyncGetIceStruct;
 
-
 // Initializers
 STATUS initSignaling(PDemoConfiguration, PCHAR);
-STATUS initializeConfiguration(PDemoConfiguration*, SIGNALING_CHANNEL_ROLE_TYPE, ParamsSetFn);
+STATUS initializeConfiguration(PDemoConfiguration*, SIGNALING_CHANNEL_ROLE_TYPE, INT32, CHAR*[], ParamsSetFn);
 STATUS initializeMediaSenders(PDemoConfiguration, startRoutine, startRoutine);
 STATUS initializeMediaReceivers(PDemoConfiguration, startRoutine);
 STATUS createStreamingSession(PDemoConfiguration, PCHAR, BOOL, PSampleStreamingSession*);
 STATUS createMessageQueue(UINT64, PPendingMessageQueue*);
 STATUS initializePeerConnection(PDemoConfiguration, PRtcPeerConnection*);
+STATUS enablePregenerateCertificate(PDemoConfiguration pDemoConfiguration);
 
 // Utility
 STATUS readFrameFromDisk(PBYTE, PUINT32, PCHAR);
 STATUS addTaskToTimerQueue(PDemoConfiguration, PTimerTaskConfiguration);
 STATUS lookForSslCert(PDemoConfiguration*);
 VOID sigintHandler(INT32);
-STATUS signalingMessageReceived(UINT64, PReceivedSignalingMessage);
 STATUS handleAnswer(PDemoConfiguration, PSampleStreamingSession, PSignalingMessage);
 STATUS handleOffer(PDemoConfiguration, PSampleStreamingSession, PSignalingMessage);
 STATUS handleRemoteCandidate(PSampleStreamingSession, PSignalingMessage);
@@ -260,6 +256,7 @@ STATUS removeExpiredMessageQueues(PStackQueue);
 STATUS getPendingMessageQueueForHash(PStackQueue, UINT64, BOOL, PPendingMessageQueue*);
 
 // Callbacks
+STATUS signalingMessageReceived(UINT64, PReceivedSignalingMessage);
 VOID sampleVideoFrameHandler(UINT64, PFrame);
 VOID sampleAudioFrameHandler(UINT64, PFrame);
 VOID sampleFrameHandler(UINT64, PFrame);
@@ -276,6 +273,8 @@ STATUS pregenerateCertTimerCallback(UINT32, UINT64, UINT64);
 STATUS signalingClientStateChanged(UINT64, SIGNALING_CLIENT_STATE);
 VOID sampleSenderBandwidthEstimationHandler(UINT64, UINT32, UINT32, UINT32, UINT32, UINT64);
 STATUS streamingSessionOnShutdown(PSampleStreamingSession, UINT64, StreamSessionShutdownCallback);
+STATUS signalingClientError(UINT64, STATUS, PCHAR, UINT32);
+VOID onIceCandidateHandler(UINT64, PCHAR);
 
 // Deinitializers
 STATUS sessionCleanupWait(PDemoConfiguration);

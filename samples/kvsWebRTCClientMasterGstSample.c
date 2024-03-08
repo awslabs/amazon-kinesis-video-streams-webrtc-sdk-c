@@ -2,10 +2,6 @@
 #include <gst/gst.h>
 #include <gst/app/gstappsink.h>
 
-extern PDemoConfiguration gDemoConfiguration;
-
-// #define VERBOSE
-
 GstFlowReturn on_new_sample(GstElement* sink, gpointer data, UINT64 trackid)
 {
     GstBuffer* buffer;
@@ -389,72 +385,52 @@ INT32 main(INT32 argc, CHAR* argv[])
 {
     STATUS retStatus = STATUS_SUCCESS;
     PDemoConfiguration pDemoConfiguration = NULL;
-    PCHAR pChannelName;
+    PCHAR mediaType, mediaSrc;
 
-    signal(SIGINT, sigintHandler);
+    CHK_STATUS(initializeConfiguration(&pDemoConfiguration, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, argc, argv, NULL));
+    CHK_STATUS(enablePregenerateCertificate(pDemoConfiguration));
+    CHK_STATUS(initializeMediaSenders(pDemoConfiguration, NULL, sendGstreamerAudioVideo));
+    CHK_STATUS(initializeMediaReceivers(pDemoConfiguration, receiveGstreamerAudioVideo));
+    CHK_STATUS(enablePregenerateCertificate(pDemoConfiguration));
 
-#ifdef IOT_CORE_ENABLE_CREDENTIALS
-    CHK_ERR((pChannelName = argc > 1 ? argv[1] : GETENV(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION,
-            "AWS_IOT_CORE_THING_NAME must be set");
-#else
-    pChannelName = argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME;
-#endif
-
-    CHK_STATUS(initializeConfiguration(&pDemoConfiguration, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, NULL));
-    pDemoConfiguration->appMediaCtx.videoSource = sendGstreamerAudioVideo;
-    pDemoConfiguration->appMediaCtx.mediaType = SAMPLE_STREAMING_VIDEO_ONLY;
-    pDemoConfiguration->appMediaCtx.receiveAudioVideoSource = receiveGstreamerAudioVideo;
-
-#ifdef ENABLE_DATA_CHANNEL
-    pDemoConfiguration->onDataChannel = onDataChannel;
-#endif
-    pDemoConfiguration->customData = (UINT64) pDemoConfiguration;
     pDemoConfiguration->appMediaCtx.srcType = DEVICE_SOURCE; // Default to device source (autovideosrc and autoaudiosrc)
+
     /* Initialize GStreamer */
     gst_init(&argc, &argv);
-    DLOGI("[KVS Gstreamer Master] Finished initializing GStreamer and handlers");
 
-    if (argc > 2) {
-        if (STRCMP(argv[2], "video-only") == 0) {
-            pDemoConfiguration->appMediaCtx.mediaType = SAMPLE_STREAMING_VIDEO_ONLY;
-            DLOGI("[KVS Gstreamer Master] Streaming video only");
-        } else if (STRCMP(argv[2], "audio-video-storage") == 0) {
-            pDemoConfiguration->appMediaCtx.mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
-            pDemoConfiguration->appSignalingCtx.channelInfo.useMediaStorage = TRUE;
-            DLOGI("[KVS Gstreamer Master] Streaming audio and video");
-        } else if (STRCMP(argv[2], "audio-video") == 0) {
-            pDemoConfiguration->appMediaCtx.mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
-            DLOGI("[KVS Gstreamer Master] Streaming audio and video");
-        } else {
-            DLOGI("[KVS Gstreamer Master] Unrecognized streaming type. Default to video-only");
-        }
-    } else {
+    pDemoConfiguration->appMediaCtx.mediaType = SAMPLE_STREAMING_VIDEO_ONLY;
+    mediaType = GETENV("MEDIA_TYPE");
+
+    if (STRCMP(mediaType, "video-only") == 0) {
         DLOGI("[KVS Gstreamer Master] Streaming video only");
+    } else if (STRCMP(mediaType, "audio-video-storage") == 0) {
+        pDemoConfiguration->appMediaCtx.mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
+        pDemoConfiguration->appSignalingCtx.channelInfo.useMediaStorage = TRUE;
+        DLOGI("[KVS Gstreamer Master] Streaming audio and video with storage");
+    } else if (STRCMP(mediaType, "audio-video") == 0) {
+        pDemoConfiguration->appMediaCtx.mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
+        DLOGI("[KVS Gstreamer Master] Streaming audio and video");
     }
 
-    if (argc > 3) {
-        if (STRCMP(argv[3], "testsrc") == 0) {
-            DLOGI("[KVS GStreamer Master] Using test source in GStreamer");
-            pDemoConfiguration->appMediaCtx.srcType = TEST_SOURCE;
-        } else if (STRCMP(argv[3], "devicesrc") == 0) {
-            DLOGI("[KVS GStreamer Master] Using device source in GStreamer");
-            pDemoConfiguration->appMediaCtx.srcType = DEVICE_SOURCE;
-        } else if (STRCMP(argv[3], "rtspsrc") == 0) {
-            DLOGI("[KVS GStreamer Master] Using RTSP source in GStreamer");
-            if (argc < 5) {
-                DLOGI("[KVS GStreamer Master] No RTSP source URI included. Defaulting to device source");
-                DLOGI("[KVS GStreamer Master] Usage: ./kvsWebrtcClientMasterGstSample <channel name> audio-video rtspsrc rtsp://<rtsp uri>"
-                      "or ./kvsWebrtcClientMasterGstSample <channel name> video-only rtspsrc <rtsp://<rtsp uri>");
-                pDemoConfiguration->appMediaCtx.srcType = DEVICE_SOURCE;
-            } else {
-                pDemoConfiguration->appMediaCtx.srcType = RTSP_SOURCE;
-                pDemoConfiguration->appMediaCtx.rtspUri = argv[4];
-            }
-        } else {
-            DLOGI("[KVS Gstreamer Master] Unrecognized source type. Defaulting to device source in GStreamer");
-        }
-    } else {
+    pDemoConfiguration->appMediaCtx.srcType = DEVICE_SOURCE;
+    mediaSrc = GETENV("MEDIA_SOURCE");
+    if (STRCMP(mediaSrc, "testsrc") == 0) {
+        DLOGI("[KVS GStreamer Master] Using test source in GStreamer");
+        pDemoConfiguration->appMediaCtx.srcType = TEST_SOURCE;
+    } else if (STRCMP(mediaSrc, "devicesrc") == 0) {
         DLOGI("[KVS GStreamer Master] Using device source in GStreamer");
+        pDemoConfiguration->appMediaCtx.srcType = DEVICE_SOURCE;
+    } else if (STRCMP(mediaSrc, "rtspsrc") == 0) {
+        DLOGI("[KVS GStreamer Master] Using RTSP source in GStreamer");
+        if (argc < 5) {
+            DLOGI("[KVS GStreamer Master] No RTSP source URI included. Defaulting to device source");
+            DLOGI("[KVS GStreamer Master] Usage: ./kvsWebrtcClientMasterGstSample <channel name> audio-video rtspsrc rtsp://<rtsp uri>"
+                  "or ./kvsWebrtcClientMasterGstSample <channel name> video-only rtspsrc <rtsp://<rtsp uri>");
+            pDemoConfiguration->appMediaCtx.srcType = DEVICE_SOURCE;
+        } else {
+            pDemoConfiguration->appMediaCtx.srcType = RTSP_SOURCE;
+            pDemoConfiguration->appMediaCtx.rtspUri = argv[4];
+        }
     }
 
     switch (pDemoConfiguration->appMediaCtx.mediaType) {
@@ -467,7 +443,6 @@ INT32 main(INT32 argc, CHAR* argv[])
     }
 
     CHK_STATUS(initSignaling(pDemoConfiguration, SAMPLE_MASTER_CLIENT_ID));
-    DLOGI("[KVS GStreamer Master] Channel %s set up done ", pChannelName);
 
     // Checking for termination
     CHK_STATUS(sessionCleanupWait(pDemoConfiguration));
