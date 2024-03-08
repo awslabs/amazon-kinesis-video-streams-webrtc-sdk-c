@@ -111,6 +111,16 @@ typedef struct {
 } AppMediaCtx, *PAppMediaCtx;
 
 typedef struct {
+    volatile ATOMIC_BOOL recreateSignalingClient;
+    ChannelInfo channelInfo;
+    SIGNALING_CLIENT_HANDLE signalingClientHandle;
+    SignalingClientMetrics signalingClientMetrics;
+    SignalingClientCallbacks signalingClientCallbacks;
+    SignalingClientInfo clientInfo;
+    MUTEX signalingSendMessageLock;
+} AppSignalingCtx, *PAppSignalingCtx;
+
+typedef struct {
     UINT64 prevNumberOfPacketsSent;
     UINT64 prevNumberOfPacketsReceived;
     UINT64 prevNumberOfBytesSent;
@@ -122,22 +132,21 @@ typedef struct {
 typedef STATUS (*ParamsSetFn)(UINT64, SIGNALING_CHANNEL_ROLE_TYPE);
 
 typedef struct {
+    AppConfigCtx appConfigCtx;
+    AppMediaCtx appMediaCtx;
+    AppSignalingCtx appSignalingCtx;
+
+    PCHAR pCaCertPath;
+
     volatile ATOMIC_BOOL appTerminateFlag;
     volatile ATOMIC_BOOL interrupted;
     volatile ATOMIC_BOOL mediaThreadStarted;
-    volatile ATOMIC_BOOL recreateSignalingClient;
     volatile ATOMIC_BOOL connected;
 
-    ChannelInfo channelInfo;
-    PCHAR pCaCertPath;
     PAwsCredentialProvider pCredentialProvider;
-    SIGNALING_CLIENT_HANDLE signalingClientHandle;
 
-    AppConfigCtx appConfigCtx;
-    AppMediaCtx appMediaCtx;
     TIMER_QUEUE_HANDLE timerQueueHandle;
     RtcOnDataChannel onDataChannel;
-    SignalingClientMetrics signalingClientMetrics;
 
     PStackQueue pPendingSignalingMessageForRemoteClient;
     PHashTable pRtcPeerConnectionForRemoteClient;
@@ -150,12 +159,8 @@ typedef struct {
     UINT32 streamingSessionCount;
     MUTEX streamingSessionListReadLock;
     UINT32 iceUriCount;
-    SignalingClientCallbacks signalingClientCallbacks;
-    SignalingClientInfo clientInfo;
 
     RtcStats rtcIceCandidatePairMetrics;
-
-    MUTEX signalingSendMessageLock;
 
     UINT32 pregenerateCertTimerId;
     PStackQueue pregeneratedCertificates; // Max MAX_RTCCONFIGURATION_CERTIFICATES certificates

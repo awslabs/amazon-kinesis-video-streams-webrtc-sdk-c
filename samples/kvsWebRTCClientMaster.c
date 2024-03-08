@@ -17,7 +17,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     CHK_STATUS(initializeMediaReceivers(pSampleConfiguration, sampleReceiveAudioVideoFrame));
 
     if (argc > 2 && STRNCMP(argv[2], "1", 2) == 0) {
-        pSampleConfiguration->channelInfo.useMediaStorage = TRUE;
+        pSampleConfiguration->appSignalingCtx.channelInfo.useMediaStorage = TRUE;
     }
 
     CHK_STATUS(initSignaling(pSampleConfiguration, SAMPLE_MASTER_CLIENT_ID));

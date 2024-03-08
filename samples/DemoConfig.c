@@ -20,7 +20,7 @@ STATUS signalingClientError(UINT64 customData, STATUS status, PCHAR msg, UINT32 
 
     // We will force re-create the signaling client on the following errors
     if (status == STATUS_SIGNALING_ICE_CONFIG_REFRESH_FAILED || status == STATUS_SIGNALING_RECONNECT_FAILED) {
-        ATOMIC_STORE_BOOL(&pSampleConfiguration->recreateSignalingClient, TRUE);
+        ATOMIC_STORE_BOOL(&pSampleConfiguration->appSignalingCtx.recreateSignalingClient, TRUE);
         CVAR_BROADCAST(pSampleConfiguration->cvar);
     }
 
@@ -224,8 +224,8 @@ static STATUS setUpCredentialProvider(PSampleConfiguration pSampleConfiguration)
         pSessionToken = NULL;
     }
 
-    if ((pSampleConfiguration->channelInfo.pRegion = GETENV(DEFAULT_REGION_ENV_VAR)) == NULL) {
-        pSampleConfiguration->channelInfo.pRegion = DEFAULT_AWS_REGION;
+    if ((pSampleConfiguration->appSignalingCtx.channelInfo.pRegion = GETENV(DEFAULT_REGION_ENV_VAR)) == NULL) {
+        pSampleConfiguration->appSignalingCtx.channelInfo.pRegion = DEFAULT_AWS_REGION;
     }
 
     CHK_STATUS(lookForSslCert(&pSampleConfiguration));
@@ -244,31 +244,31 @@ CleanUp:
 static STATUS setUpSignalingDefaults(PSampleConfiguration pSampleConfiguration)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    pSampleConfiguration->signalingClientHandle = INVALID_SIGNALING_CLIENT_HANDLE_VALUE;
-    pSampleConfiguration->channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
-    pSampleConfiguration->channelInfo.pKmsKeyId = NULL;
-    pSampleConfiguration->channelInfo.tagCount = 0;
-    pSampleConfiguration->channelInfo.pTags = NULL;
-    pSampleConfiguration->channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
-    pSampleConfiguration->channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_FILE;
-    pSampleConfiguration->channelInfo.cachingPeriod = SIGNALING_API_CALL_CACHE_TTL_SENTINEL_VALUE;
-    pSampleConfiguration->channelInfo.asyncIceServerConfig = TRUE; // has no effect
-    pSampleConfiguration->channelInfo.retry = TRUE;
-    pSampleConfiguration->channelInfo.reconnect = TRUE;
-    pSampleConfiguration->channelInfo.pCertPath = pSampleConfiguration->pCaCertPath;
-    pSampleConfiguration->channelInfo.messageTtl = 0; // Default is 60 seconds
-    pSampleConfiguration->channelInfo.channelRoleType = pSampleConfiguration->appConfigCtx.roleType;
-    pSampleConfiguration->channelInfo.pChannelName = pSampleConfiguration->appConfigCtx.pChannelName;
+    pSampleConfiguration->appSignalingCtx.signalingClientHandle = INVALID_SIGNALING_CLIENT_HANDLE_VALUE;
+    pSampleConfiguration->appSignalingCtx.channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
+    pSampleConfiguration->appSignalingCtx.channelInfo.pKmsKeyId = NULL;
+    pSampleConfiguration->appSignalingCtx.channelInfo.tagCount = 0;
+    pSampleConfiguration->appSignalingCtx.channelInfo.pTags = NULL;
+    pSampleConfiguration->appSignalingCtx.channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
+    pSampleConfiguration->appSignalingCtx.channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_FILE;
+    pSampleConfiguration->appSignalingCtx.channelInfo.cachingPeriod = SIGNALING_API_CALL_CACHE_TTL_SENTINEL_VALUE;
+    pSampleConfiguration->appSignalingCtx.channelInfo.asyncIceServerConfig = TRUE; // has no effect
+    pSampleConfiguration->appSignalingCtx.channelInfo.retry = TRUE;
+    pSampleConfiguration->appSignalingCtx.channelInfo.reconnect = TRUE;
+    pSampleConfiguration->appSignalingCtx.channelInfo.pCertPath = pSampleConfiguration->pCaCertPath;
+    pSampleConfiguration->appSignalingCtx.channelInfo.messageTtl = 0; // Default is 60 seconds
+    pSampleConfiguration->appSignalingCtx.channelInfo.channelRoleType = pSampleConfiguration->appConfigCtx.roleType;
+    pSampleConfiguration->appSignalingCtx.channelInfo.pChannelName = pSampleConfiguration->appConfigCtx.pChannelName;
 
-    pSampleConfiguration->signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
-    pSampleConfiguration->signalingClientCallbacks.errorReportFn = signalingClientError;
-    pSampleConfiguration->signalingClientCallbacks.stateChangeFn = signalingClientStateChanged;
-    pSampleConfiguration->signalingClientCallbacks.customData = (UINT64) pSampleConfiguration;
+    pSampleConfiguration->appSignalingCtx.signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
+    pSampleConfiguration->appSignalingCtx.signalingClientCallbacks.errorReportFn = signalingClientError;
+    pSampleConfiguration->appSignalingCtx.signalingClientCallbacks.stateChangeFn = signalingClientStateChanged;
+    pSampleConfiguration->appSignalingCtx.signalingClientCallbacks.customData = (UINT64) pSampleConfiguration;
 
-    pSampleConfiguration->clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
-    pSampleConfiguration->clientInfo.loggingLevel = pSampleConfiguration->logLevel;
-    pSampleConfiguration->clientInfo.cacheFilePath = NULL; // Use the default path
-    pSampleConfiguration->clientInfo.signalingClientCreationMaxRetryAttempts = CREATE_SIGNALING_CLIENT_RETRY_ATTEMPTS_SENTINEL_VALUE;
+    pSampleConfiguration->appSignalingCtx.clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
+    pSampleConfiguration->appSignalingCtx.clientInfo.loggingLevel = pSampleConfiguration->logLevel;
+    pSampleConfiguration->appSignalingCtx.clientInfo.cacheFilePath = NULL; // Use the default path
+    pSampleConfiguration->appSignalingCtx.clientInfo.signalingClientCreationMaxRetryAttempts = CREATE_SIGNALING_CLIENT_RETRY_ATTEMPTS_SENTINEL_VALUE;
 CleanUp:
     return retStatus;
 }
@@ -308,11 +308,11 @@ static STATUS setUpDemoDefaults(PSampleConfiguration pSampleConfiguration)
     pSampleConfiguration->sampleConfigurationObjLock = MUTEX_CREATE(TRUE);
     pSampleConfiguration->cvar = CVAR_CREATE();
     pSampleConfiguration->streamingSessionListReadLock = MUTEX_CREATE(FALSE);
-    pSampleConfiguration->signalingSendMessageLock = MUTEX_CREATE(FALSE);
+    pSampleConfiguration->appSignalingCtx.signalingSendMessageLock = MUTEX_CREATE(FALSE);
     ATOMIC_STORE_BOOL(&pSampleConfiguration->interrupted, FALSE);
     ATOMIC_STORE_BOOL(&pSampleConfiguration->mediaThreadStarted, FALSE);
     ATOMIC_STORE_BOOL(&pSampleConfiguration->appTerminateFlag, FALSE);
-    ATOMIC_STORE_BOOL(&pSampleConfiguration->recreateSignalingClient, FALSE);
+    ATOMIC_STORE_BOOL(&pSampleConfiguration->appSignalingCtx.recreateSignalingClient, FALSE);
     ATOMIC_STORE_BOOL(&pSampleConfiguration->connected, FALSE);
     CHK_STATUS(stackQueueCreate(&pSampleConfiguration->pPendingSignalingMessageForRemoteClient));
     CHK_STATUS(doubleListCreate(&pSampleConfiguration->timerIdList));
@@ -579,23 +579,23 @@ STATUS sendSignalingMessage(PSampleStreamingSession pSampleStreamingSession, PSi
 
     pSampleConfiguration = pSampleStreamingSession->pSampleConfiguration;
 
-    CHK(IS_VALID_MUTEX_VALUE(pSampleConfiguration->signalingSendMessageLock) &&
-            IS_VALID_SIGNALING_CLIENT_HANDLE(pSampleConfiguration->signalingClientHandle),
+    CHK(IS_VALID_MUTEX_VALUE(pSampleConfiguration->appSignalingCtx.signalingSendMessageLock) &&
+            IS_VALID_SIGNALING_CLIENT_HANDLE(pSampleConfiguration->appSignalingCtx.signalingClientHandle),
         STATUS_INVALID_OPERATION);
 
-    MUTEX_LOCK(pSampleConfiguration->signalingSendMessageLock);
+    MUTEX_LOCK(pSampleConfiguration->appSignalingCtx.signalingSendMessageLock);
     locked = TRUE;
-    CHK_STATUS(signalingClientSendMessageSync(pSampleConfiguration->signalingClientHandle, pMessage));
+    CHK_STATUS(signalingClientSendMessageSync(pSampleConfiguration->appSignalingCtx.signalingClientHandle, pMessage));
     if (pMessage->messageType == SIGNALING_MESSAGE_TYPE_ANSWER) {
-        CHK_STATUS(signalingClientGetMetrics(pSampleConfiguration->signalingClientHandle, &pSampleConfiguration->signalingClientMetrics));
+        CHK_STATUS(signalingClientGetMetrics(pSampleConfiguration->appSignalingCtx.signalingClientHandle, &pSampleConfiguration->appSignalingCtx.signalingClientMetrics));
         DLOGP("[Signaling offer received to answer sent time] %" PRIu64 " ms",
-              pSampleConfiguration->signalingClientMetrics.signalingClientStats.offerToAnswerTime);
+              pSampleConfiguration->appSignalingCtx.signalingClientMetrics.signalingClientStats.offerToAnswerTime);
     }
 
 CleanUp:
 
     if (locked) {
-        MUTEX_UNLOCK(pSampleStreamingSession->pSampleConfiguration->signalingSendMessageLock);
+        MUTEX_UNLOCK(pSampleStreamingSession->pSampleConfiguration->appSignalingCtx.signalingSendMessageLock);
     }
 
     CHK_LOG_ERR(retStatus);
@@ -686,10 +686,10 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     // Set the  STUN server
     PCHAR pKinesisVideoStunUrlPostFix = KINESIS_VIDEO_STUN_URL_POSTFIX;
     // If region is in CN, add CN region uri postfix
-    if (STRSTR(pSampleConfiguration->channelInfo.pRegion, "cn-")) {
+    if (STRSTR(pSampleConfiguration->appSignalingCtx.channelInfo.pRegion, "cn-")) {
         pKinesisVideoStunUrlPostFix = KINESIS_VIDEO_STUN_URL_POSTFIX_CN;
     }
-    SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, pSampleConfiguration->channelInfo.pRegion,
+    SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, pSampleConfiguration->appSignalingCtx.channelInfo.pRegion,
              pKinesisVideoStunUrlPostFix);
 
     // Check if we have any pregenerated certs and use them
@@ -713,7 +713,7 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
         AsyncGetIceStruct* pAsyncData = NULL;
 
         pAsyncData = (AsyncGetIceStruct*) MEMCALLOC(1, SIZEOF(AsyncGetIceStruct));
-        pAsyncData->signalingClientHandle = pSampleConfiguration->signalingClientHandle;
+        pAsyncData->signalingClientHandle = pSampleConfiguration->appSignalingCtx.signalingClientHandle;
         pAsyncData->pRtcPeerConnection = *ppRtcPeerConnection;
         pAsyncData->pUriCount = &(pSampleConfiguration->iceUriCount);
         CHK_STATUS(peerConnectionAsync(asyncGetIceConfigInfo, (PVOID) pAsyncData));
@@ -897,19 +897,19 @@ CleanUp:
 STATUS initSignaling(PSampleConfiguration pSampleConfiguration, PCHAR clientId)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    SignalingClientMetrics signalingClientMetrics = pSampleConfiguration->signalingClientMetrics;
-    pSampleConfiguration->signalingClientCallbacks.messageReceivedFn = signalingMessageReceived;
-    STRCPY(pSampleConfiguration->clientInfo.clientId, clientId);
-    CHK_STATUS(createSignalingClientSync(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
-                                         &pSampleConfiguration->signalingClientCallbacks, pSampleConfiguration->pCredentialProvider,
-                                         &pSampleConfiguration->signalingClientHandle));
+    SignalingClientMetrics signalingClientMetrics = pSampleConfiguration->appSignalingCtx.signalingClientMetrics;
+    pSampleConfiguration->appSignalingCtx.signalingClientCallbacks.messageReceivedFn = signalingMessageReceived;
+    STRCPY(pSampleConfiguration->appSignalingCtx.clientInfo.clientId, clientId);
+    CHK_STATUS(createSignalingClientSync(&pSampleConfiguration->appSignalingCtx.clientInfo, &pSampleConfiguration->appSignalingCtx.channelInfo,
+                                         &pSampleConfiguration->appSignalingCtx.signalingClientCallbacks, pSampleConfiguration->pCredentialProvider,
+                                         &pSampleConfiguration->appSignalingCtx.signalingClientHandle));
 
     // Enable the processing of the messages
-    CHK_STATUS(signalingClientFetchSync(pSampleConfiguration->signalingClientHandle));
+    CHK_STATUS(signalingClientFetchSync(pSampleConfiguration->appSignalingCtx.signalingClientHandle));
 
-    CHK_STATUS(signalingClientConnectSync(pSampleConfiguration->signalingClientHandle));
+    CHK_STATUS(signalingClientConnectSync(pSampleConfiguration->appSignalingCtx.signalingClientHandle));
 
-    signalingClientGetMetrics(pSampleConfiguration->signalingClientHandle, &signalingClientMetrics);
+    signalingClientGetMetrics(pSampleConfiguration->appSignalingCtx.signalingClientHandle, &signalingClientMetrics);
 
     // Logging this here since the logs in signaling library do not get routed to file
     DLOGP("[Signaling Get token] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.getTokenCallTime);
@@ -925,7 +925,7 @@ STATUS initSignaling(PSampleConfiguration pSampleConfiguration, PCHAR clientId)
     DLOGP("[Signaling create client] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.createClientTime);
     DLOGP("[Signaling fetch client] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.fetchClientTime);
     DLOGP("[Signaling connect client] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.connectClientTime);
-    pSampleConfiguration->signalingClientMetrics = signalingClientMetrics;
+    pSampleConfiguration->appSignalingCtx.signalingClientMetrics = signalingClientMetrics;
     gSampleConfiguration = pSampleConfiguration;
 CleanUp:
     return retStatus;
@@ -1158,9 +1158,9 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
         THREAD_JOIN(pSampleConfiguration->appMediaCtx.mediaSenderTid, NULL);
     }
 
-    CHK_LOG_ERR(signalingClientGetMetrics(pSampleConfiguration->signalingClientHandle, &signalingClientMetrics));
+    CHK_LOG_ERR(signalingClientGetMetrics(pSampleConfiguration->appSignalingCtx.signalingClientHandle, &signalingClientMetrics));
     CHK_LOG_ERR(logSignalingClientStats(&signalingClientMetrics));
-    CHK_LOG_ERR(freeSignalingClient(&pSampleConfiguration->signalingClientHandle));
+    CHK_LOG_ERR(freeSignalingClient(&pSampleConfiguration->appSignalingCtx.signalingClientHandle));
 
     if (IS_VALID_TIMER_QUEUE_HANDLE(pSampleConfiguration->timerQueueHandle)) {
         cancelTimerTasks(pSampleConfiguration);
@@ -1218,8 +1218,8 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
         MUTEX_FREE(pSampleConfiguration->streamingSessionListReadLock);
     }
 
-    if (IS_VALID_MUTEX_VALUE(pSampleConfiguration->signalingSendMessageLock)) {
-        MUTEX_FREE(pSampleConfiguration->signalingSendMessageLock);
+    if (IS_VALID_MUTEX_VALUE(pSampleConfiguration->appSignalingCtx.signalingSendMessageLock)) {
+        MUTEX_FREE(pSampleConfiguration->appSignalingCtx.signalingSendMessageLock);
     }
 
     if (IS_VALID_CVAR_VALUE(pSampleConfiguration->cvar)) {
@@ -1297,37 +1297,37 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
             }
         }
 
-        if (sessionFreed && pSampleConfiguration->channelInfo.useMediaStorage && !ATOMIC_LOAD_BOOL(&pSampleConfiguration->recreateSignalingClient)) {
+        if (sessionFreed && pSampleConfiguration->appSignalingCtx.channelInfo.useMediaStorage && !ATOMIC_LOAD_BOOL(&pSampleConfiguration->appSignalingCtx.recreateSignalingClient)) {
             // In the WebRTC Media Storage Ingestion Case the backend will terminate the session after
             // 1 hour.  The SDK needs to make a new JoinSession Call in order to receive a new
             // offer from the backend.  We will create a new sample streaming session upon receipt of the
             // offer.  The signalingClientConnectSync call will result in a JoinSession API call being made.
-            CHK_STATUS(signalingClientDisconnectSync(pSampleConfiguration->signalingClientHandle));
-            CHK_STATUS(signalingClientFetchSync(pSampleConfiguration->signalingClientHandle));
-            CHK_STATUS(signalingClientConnectSync(pSampleConfiguration->signalingClientHandle));
+            CHK_STATUS(signalingClientDisconnectSync(pSampleConfiguration->appSignalingCtx.signalingClientHandle));
+            CHK_STATUS(signalingClientFetchSync(pSampleConfiguration->appSignalingCtx.signalingClientHandle));
+            CHK_STATUS(signalingClientConnectSync(pSampleConfiguration->appSignalingCtx.signalingClientHandle));
             sessionFreed = FALSE;
         }
 
         // Check if we need to re-create the signaling client on-the-fly
-        if (ATOMIC_LOAD_BOOL(&pSampleConfiguration->recreateSignalingClient)) {
-            retStatus = signalingClientFetchSync(pSampleConfiguration->signalingClientHandle);
+        if (ATOMIC_LOAD_BOOL(&pSampleConfiguration->appSignalingCtx.recreateSignalingClient)) {
+            retStatus = signalingClientFetchSync(pSampleConfiguration->appSignalingCtx.signalingClientHandle);
             if (STATUS_SUCCEEDED(retStatus)) {
                 // Re-set the variable again
-                ATOMIC_STORE_BOOL(&pSampleConfiguration->recreateSignalingClient, FALSE);
+                ATOMIC_STORE_BOOL(&pSampleConfiguration->appSignalingCtx.recreateSignalingClient, FALSE);
             } else if (signalingCallFailed(retStatus)) {
                 printf("[KVS Common] recreating Signaling Client\n");
-                freeSignalingClient(&pSampleConfiguration->signalingClientHandle);
-                createSignalingClientSync(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
-                                          &pSampleConfiguration->signalingClientCallbacks, pSampleConfiguration->pCredentialProvider,
-                                          &pSampleConfiguration->signalingClientHandle);
+                freeSignalingClient(&pSampleConfiguration->appSignalingCtx.signalingClientHandle);
+                createSignalingClientSync(&pSampleConfiguration->appSignalingCtx.clientInfo, &pSampleConfiguration->appSignalingCtx.channelInfo,
+                                          &pSampleConfiguration->appSignalingCtx.signalingClientCallbacks, pSampleConfiguration->pCredentialProvider,
+                                          &pSampleConfiguration->appSignalingCtx.signalingClientHandle);
             }
         }
 
         // Check the signaling client state and connect if needed
-        if (IS_VALID_SIGNALING_CLIENT_HANDLE(pSampleConfiguration->signalingClientHandle)) {
-            CHK_STATUS(signalingClientGetCurrentState(pSampleConfiguration->signalingClientHandle, &signalingClientState));
+        if (IS_VALID_SIGNALING_CLIENT_HANDLE(pSampleConfiguration->appSignalingCtx.signalingClientHandle)) {
+            CHK_STATUS(signalingClientGetCurrentState(pSampleConfiguration->appSignalingCtx.signalingClientHandle, &signalingClientState));
             if (signalingClientState == SIGNALING_CLIENT_STATE_READY) {
-                UNUSED_PARAM(signalingClientConnectSync(pSampleConfiguration->signalingClientHandle));
+                UNUSED_PARAM(signalingClientConnectSync(pSampleConfiguration->appSignalingCtx.signalingClientHandle));
             }
         }
 
@@ -1480,9 +1480,9 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
                 pPendingMessageQueue = NULL;
             }
 
-            CHK_STATUS(signalingClientGetMetrics(pSampleConfiguration->signalingClientHandle, &pSampleConfiguration->signalingClientMetrics));
+            CHK_STATUS(signalingClientGetMetrics(pSampleConfiguration->appSignalingCtx.signalingClientHandle, &pSampleConfiguration->appSignalingCtx.signalingClientMetrics));
             DLOGP("[Signaling offer sent to answer received time] %" PRIu64 " ms",
-                  pSampleConfiguration->signalingClientMetrics.signalingClientStats.offerToAnswerTime);
+                  pSampleConfiguration->appSignalingCtx.signalingClientMetrics.signalingClientStats.offerToAnswerTime);
             break;
 
         case SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE:
@@ -1760,22 +1760,22 @@ VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL 
             } else {
                 // now that we've received the last message, send across the signaling, peerConnection, ice metrics
                 SNPRINTF(pSampleStreamingSession->pSignalingClientMetricsMessage, MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE,
-                         SIGNALING_CLIENT_METRICS_JSON_TEMPLATE, pSampleConfiguration->signalingClientMetrics.signalingStartTime,
-                         pSampleConfiguration->signalingClientMetrics.signalingEndTime,
-                         pSampleConfiguration->signalingClientMetrics.signalingClientStats.offerReceivedTime,
-                         pSampleConfiguration->signalingClientMetrics.signalingClientStats.answerTime,
-                         pSampleConfiguration->signalingClientMetrics.signalingClientStats.describeChannelStartTime,
-                         pSampleConfiguration->signalingClientMetrics.signalingClientStats.describeChannelEndTime,
-                         pSampleConfiguration->signalingClientMetrics.signalingClientStats.getSignalingChannelEndpointStartTime,
-                         pSampleConfiguration->signalingClientMetrics.signalingClientStats.getSignalingChannelEndpointEndTime,
-                         pSampleConfiguration->signalingClientMetrics.signalingClientStats.getIceServerConfigStartTime,
-                         pSampleConfiguration->signalingClientMetrics.signalingClientStats.getIceServerConfigEndTime,
-                         pSampleConfiguration->signalingClientMetrics.signalingClientStats.getTokenStartTime,
-                         pSampleConfiguration->signalingClientMetrics.signalingClientStats.getTokenEndTime,
-                         pSampleConfiguration->signalingClientMetrics.signalingClientStats.createChannelStartTime,
-                         pSampleConfiguration->signalingClientMetrics.signalingClientStats.createChannelEndTime,
-                         pSampleConfiguration->signalingClientMetrics.signalingClientStats.connectStartTime,
-                         pSampleConfiguration->signalingClientMetrics.signalingClientStats.connectEndTime);
+                         SIGNALING_CLIENT_METRICS_JSON_TEMPLATE, pSampleConfiguration->appSignalingCtx.signalingClientMetrics.signalingStartTime,
+                         pSampleConfiguration->appSignalingCtx.signalingClientMetrics.signalingEndTime,
+                         pSampleConfiguration->appSignalingCtx.signalingClientMetrics.signalingClientStats.offerReceivedTime,
+                         pSampleConfiguration->appSignalingCtx.signalingClientMetrics.signalingClientStats.answerTime,
+                         pSampleConfiguration->appSignalingCtx.signalingClientMetrics.signalingClientStats.describeChannelStartTime,
+                         pSampleConfiguration->appSignalingCtx.signalingClientMetrics.signalingClientStats.describeChannelEndTime,
+                         pSampleConfiguration->appSignalingCtx.signalingClientMetrics.signalingClientStats.getSignalingChannelEndpointStartTime,
+                         pSampleConfiguration->appSignalingCtx.signalingClientMetrics.signalingClientStats.getSignalingChannelEndpointEndTime,
+                         pSampleConfiguration->appSignalingCtx.signalingClientMetrics.signalingClientStats.getIceServerConfigStartTime,
+                         pSampleConfiguration->appSignalingCtx.signalingClientMetrics.signalingClientStats.getIceServerConfigEndTime,
+                         pSampleConfiguration->appSignalingCtx.signalingClientMetrics.signalingClientStats.getTokenStartTime,
+                         pSampleConfiguration->appSignalingCtx.signalingClientMetrics.signalingClientStats.getTokenEndTime,
+                         pSampleConfiguration->appSignalingCtx.signalingClientMetrics.signalingClientStats.createChannelStartTime,
+                         pSampleConfiguration->appSignalingCtx.signalingClientMetrics.signalingClientStats.createChannelEndTime,
+                         pSampleConfiguration->appSignalingCtx.signalingClientMetrics.signalingClientStats.connectStartTime,
+                         pSampleConfiguration->appSignalingCtx.signalingClientMetrics.signalingClientStats.connectEndTime);
                 DLOGI("Sending signaling metrics to the viewer: %s", pSampleStreamingSession->pSignalingClientMetricsMessage);
 
                 CHK_STATUS(peerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->peerConnectionMetrics));

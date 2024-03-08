@@ -119,7 +119,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     message.payloadLen = (buffLen / SIZEOF(CHAR)) - 1;
     message.correlationId[0] = '\0';
 
-    CHK_STATUS(signalingClientSendMessageSync(pSampleConfiguration->signalingClientHandle, &message));
+    CHK_STATUS(signalingClientSendMessageSync(pSampleConfiguration->appSignalingCtx.signalingClientHandle, &message));
 #ifdef ENABLE_DATA_CHANNEL
     PRtcDataChannel pDataChannel = NULL;
     PRtcPeerConnection pPeerConnection = pSampleStreamingSession->pPeerConnection;
@@ -140,34 +140,12 @@ INT32 main(INT32 argc, CHAR* argv[])
     }
 
 CleanUp:
-
-    if (retStatus != STATUS_SUCCESS) {
-        DLOGE("[KVS Viewer] Terminated with status code 0x%08x", retStatus);
-    }
-
     DLOGI("[KVS Viewer] Cleaning up....");
-
     if (locked) {
         MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
     }
-
-    if (pSampleConfiguration->enableFileLogging) {
-        freeFileLogger();
-    }
-    if (pSampleConfiguration != NULL) {
-        retStatus = freeSignalingClient(&pSampleConfiguration->signalingClientHandle);
-        if (retStatus != STATUS_SUCCESS) {
-            DLOGE("[KVS Viewer] freeSignalingClient(): operation returned status code: 0x%08x ", retStatus);
-        }
-
-        retStatus = freeSampleConfiguration(&pSampleConfiguration);
-        if (retStatus != STATUS_SUCCESS) {
-            DLOGE("[KVS Viewer] freeSampleConfiguration(): operation returned status code: 0x%08x ", retStatus);
-        }
-    }
+    CHK_LOG_ERR(freeSampleConfiguration(&pSampleConfiguration));
     DLOGI("[KVS Viewer] Cleanup done");
-
-    RESET_INSTRUMENTED_ALLOCATORS();
 
     // https://www.gnu.org/software/libc/manual/html_node/Exit-Status.html
     // We can only return with 0 - 127. Some platforms treat exit code >= 128

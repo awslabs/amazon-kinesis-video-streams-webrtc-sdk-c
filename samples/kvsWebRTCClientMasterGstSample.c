@@ -420,7 +420,7 @@ INT32 main(INT32 argc, CHAR* argv[])
             DLOGI("[KVS Gstreamer Master] Streaming video only");
         } else if (STRCMP(argv[2], "audio-video-storage") == 0) {
             pSampleConfiguration->appMediaCtx.mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
-            pSampleConfiguration->channelInfo.useMediaStorage = TRUE;
+            pSampleConfiguration->appSignalingCtx.channelInfo.useMediaStorage = TRUE;
             DLOGI("[KVS Gstreamer Master] Streaming audio and video");
         } else if (STRCMP(argv[2], "audio-video") == 0) {
             pSampleConfiguration->appMediaCtx.mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;

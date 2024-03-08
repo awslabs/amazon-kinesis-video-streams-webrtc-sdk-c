@@ -26,11 +26,11 @@ VOID onIceCandidateHandler(UINT64 customData, PCHAR candidateJson)
         ATOMIC_STORE_BOOL(&pSampleStreamingSession->candidateGatheringDone, TRUE);
 
         // if application is master and non-trickle ice, send answer now.
-        if (pSampleStreamingSession->pSampleConfiguration->channelInfo.channelRoleType == SIGNALING_CHANNEL_ROLE_TYPE_MASTER &&
+        if (pSampleStreamingSession->pSampleConfiguration->appSignalingCtx.channelInfo.channelRoleType == SIGNALING_CHANNEL_ROLE_TYPE_MASTER &&
             !pSampleStreamingSession->remoteCanTrickleIce) {
             CHK_STATUS(createAnswer(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->answerSessionDescriptionInit));
             CHK_STATUS(respondWithAnswer(pSampleStreamingSession));
-        } else if (pSampleStreamingSession->pSampleConfiguration->channelInfo.channelRoleType == SIGNALING_CHANNEL_ROLE_TYPE_VIEWER &&
+        } else if (pSampleStreamingSession->pSampleConfiguration->appSignalingCtx.channelInfo.channelRoleType == SIGNALING_CHANNEL_ROLE_TYPE_VIEWER &&
                    !pSampleStreamingSession->pSampleConfiguration->appConfigCtx.trickleIce) {
             CVAR_BROADCAST(pSampleStreamingSession->pSampleConfiguration->cvar);
         }
