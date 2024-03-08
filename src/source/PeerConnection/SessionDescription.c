@@ -137,6 +137,7 @@ STATUS setPayloadTypesForOffer(PHashTable codecTable)
     CHK_STATUS(hashTableUpsert(codecTable, RTC_CODEC_ALAW, DEFAULT_PAYLOAD_ALAW));
     CHK_STATUS(hashTableUpsert(codecTable, RTC_CODEC_VP8, DEFAULT_PAYLOAD_VP8));
     CHK_STATUS(hashTableUpsert(codecTable, RTC_CODEC_OPUS, DEFAULT_PAYLOAD_OPUS));
+    CHK_STATUS(hashTableUpsert(codecTable, RTC_CODEC_AAC, DEFAULT_PAYLOAD_AAC));
     CHK_STATUS(hashTableUpsert(codecTable, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, DEFAULT_PAYLOAD_H264));
     CHK_STATUS(hashTableUpsert(codecTable, RTC_CODEC_H265, DEFAULT_PAYLOAD_H265));
 
@@ -213,6 +214,12 @@ STATUS setPayloadTypesFromOffer(PHashTable codecTable, PHashTable rtxTable, PSes
             if (supportCodec && (end = STRSTR(attributeValue, OPUS_VALUE)) != NULL) {
                 CHK_STATUS(STRTOUI64(attributeValue, end - 1, 10, &parsedPayloadType));
                 CHK_STATUS(hashTableUpsert(codecTable, RTC_CODEC_OPUS, parsedPayloadType));
+            }
+
+            CHK_STATUS(hashTableContains(codecTable, RTC_CODEC_AAC, &supportCodec));
+            if (supportCodec && (end = STRSTR(attributeValue, AAC_VALUE)) != NULL) {
+                CHK_STATUS(STRTOUI64(attributeValue, end - 1, 10, &parsedPayloadType));
+                CHK_STATUS(hashTableUpsert(codecTable, RTC_CODEC_AAC, parsedPayloadType));
             }
 
             CHK_STATUS(hashTableContains(codecTable, RTC_CODEC_VP8, &supportCodec));
@@ -715,6 +722,12 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
             CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full Opus fmtp could not be written");
             attributeCount++;
         }
+    } else if (pRtcMediaStreamTrack->codec == RTC_CODEC_AAC) {
+        STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtpmap");
+        amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
+                                 SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRId64 " AAC/16000", payloadType);
+        CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full Aac rtpmap could not be written");
+        attributeCount++;
     } else if (pRtcMediaStreamTrack->codec == RTC_CODEC_VP8) {
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtpmap");
         amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
@@ -1272,6 +1285,9 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
                 } else if (STRSTR(attributeValue, OPUS_VALUE) != NULL) {
                     supportCodec = TRUE;
                     rtcCodec = RTC_CODEC_OPUS;
+                } else if (STRSTR(attributeValue, AAC_VALUE) != NULL) {
+                    supportCodec = TRUE;
+                    rtcCodec = RTC_CODEC_AAC;
                 } else if (STRSTR(attributeValue, MULAW_VALUE) != NULL) {
                     supportCodec = TRUE;
                     rtcCodec = RTC_CODEC_MULAW;
@@ -1416,7 +1432,7 @@ STATUS setReceiversSsrc(PSessionDescription pRemoteSessionDescription, PDoubleLi
                     codec = pKvsRtpTransceiver->sender.track.codec;
                     isVideoCodec = (codec == RTC_CODEC_VP8 || codec == RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE ||
                                     codec == RTC_CODEC_H265);
-                    isAudioCodec = (codec == RTC_CODEC_MULAW || codec == RTC_CODEC_ALAW || codec == RTC_CODEC_OPUS);
+                    isAudioCodec = (codec == RTC_CODEC_MULAW || codec == RTC_CODEC_ALAW || codec == RTC_CODEC_OPUS || codec == RTC_CODEC_AAC);
 
                     if (pKvsRtpTransceiver->jitterBufferSsrc == 0 &&
                         ((isVideoCodec && isVideoMediaSection) || (isAudioCodec && isAudioMediaSection))) {
