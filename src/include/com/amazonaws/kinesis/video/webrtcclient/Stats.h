@@ -72,7 +72,7 @@ extern "C" {
 /**
  * Maximum length of candidate type (host, srflx, relay, prflx, unknown)
  */
-#define MAX_CANDIDATE_TYPE_LENGTH 10U
+#define MAX_CANDIDATE_TYPE_LENGTH   10U
 /*!@} */
 
 /**
@@ -243,14 +243,14 @@ typedef struct {
  * Reference: https://www.w3.org/TR/webrtc-stats/#ice-server-dict*
  */
 typedef struct {
-    CHAR url[MAX_ICE_CONFIG_URI_LEN + 1];   //!< STUN/TURN server URL
-    CHAR protocol[MAX_PROTOCOL_LENGTH + 1]; //!< Valid values: UDP, TCP
-    UINT32 iceServerIndex;                  //!< Ice server index to get stats from. Not available in spec! Needs to be
-                                            //!< populated by the application to get specific server stats
-    INT32 port;                             //!< Port number used by client
-    UINT64 totalRequestsSent;               //!< Total amount of requests that have been sent to the server
-    UINT64 totalResponsesReceived;          //!< Total number of responses received from the server
-    UINT64 totalRoundTripTime;              //!< Sum of RTTs of all the requests for which response has been received
+    CHAR url[MAX_ICE_CONFIG_URI_LEN + 1]; //!< STUN/TURN server URL
+    CHAR protocol[MAX_PROTOCOL_LENGTH + 1];   //!< Valid values: UDP, TCP
+    UINT32 iceServerIndex;         //!< Ice server index to get stats from. Not available in spec! Needs to be
+                                   //!< populated by the application to get specific server stats
+    INT32 port;                    //!< Port number used by client
+    UINT64 totalRequestsSent;      //!< Total amount of requests that have been sent to the server
+    UINT64 totalResponsesReceived; //!< Total number of responses received from the server
+    UINT64 totalRoundTripTime;     //!< Sum of RTTs of all the requests for which response has been received
 } RtcIceServerStats, *PRtcIceServerStats;
 
 /**
@@ -277,14 +277,14 @@ typedef struct {
  */
 
 typedef struct {
-    DOMString url;                               //!< For local candidates this is the URL of the ICE server from which the candidate was obtained
-    CHAR address[IP_ADDR_STR_LENGTH + 1];        //!< IPv4 or IPv6 address of the candidate
-    CHAR protocol[MAX_PROTOCOL_LENGTH + 1];      //!< Valid values: UDP, TCP
-    CHAR relayProtocol[MAX_PROTOCOL_LENGTH + 1]; //!< Protocol used by endpoint to communicate with TURN server. (Only for local candidate)
-                                                 //!< Valid values: UDP, TCP, TLS
-    INT32 priority;                              //!< Computed using the formula in https://tools.ietf.org/html/rfc5245#section-15.1
-    INT32 port;                                  //!< Port number of the candidate
-    CHAR candidateType[MAX_CANDIDATE_TYPE_LENGTH + 1]; //!< Type of local/remote ICE candidate
+    DOMString url;                        //!< For local candidates this is the URL of the ICE server from which the candidate was obtained
+    CHAR address[IP_ADDR_STR_LENGTH + 1]; //!< IPv4 or IPv6 address of the candidate
+    CHAR protocol[MAX_PROTOCOL_LENGTH + 1];                   //!< Valid values: UDP, TCP
+    CHAR relayProtocol[MAX_PROTOCOL_LENGTH + 1];              //!< Protocol used by endpoint to communicate with TURN server. (Only for local candidate)
+                                          //!< Valid values: UDP, TCP, TLS
+    INT32 priority;                       //!< Computed using the formula in https://tools.ietf.org/html/rfc5245#section-15.1
+    INT32 port;                           //!< Port number of the candidate
+    CHAR candidateType[MAX_CANDIDATE_TYPE_LENGTH + 1];              //!< Type of local/remote ICE candidate
 } RtcIceCandidateStats, *PRtcIceCandidateStats;
 
 /**
