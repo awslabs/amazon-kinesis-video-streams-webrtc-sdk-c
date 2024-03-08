@@ -87,6 +87,30 @@ typedef struct __SampleStreamingSession SampleStreamingSession;
 typedef struct __SampleStreamingSession* PSampleStreamingSession;
 
 typedef struct {
+    BOOL trickleIce;
+    BOOL useTurn;
+    BOOL enableSendingMetricsToViewerViaDc;
+    SIGNALING_CHANNEL_ROLE_TYPE roleType;
+    PCHAR pChannelName;
+} AppConfigCtx, *PAppConfigCtx;
+
+typedef struct {
+    PCHAR rtspUri;
+    SampleSourceType srcType;
+    SampleStreamingMediaType mediaType;
+    PBYTE pVideoFrameBuffer;
+    PBYTE pAudioFrameBuffer;
+    UINT32 audioBufferSize;
+    UINT32 videoBufferSize;
+    TID mediaSenderTid;
+    TID audioSenderTid;
+    TID videoSenderTid;
+    startRoutine audioSource;
+    startRoutine videoSource;
+    startRoutine receiveAudioVideoSource;
+} AppMediaCtx, *PAppMediaCtx;
+
+typedef struct {
     UINT64 prevNumberOfPacketsSent;
     UINT64 prevNumberOfPacketsReceived;
     UINT64 prevNumberOfBytesSent;
@@ -103,24 +127,15 @@ typedef struct {
     volatile ATOMIC_BOOL mediaThreadStarted;
     volatile ATOMIC_BOOL recreateSignalingClient;
     volatile ATOMIC_BOOL connected;
-    SampleSourceType srcType;
+
     ChannelInfo channelInfo;
     PCHAR pCaCertPath;
     PAwsCredentialProvider pCredentialProvider;
     SIGNALING_CLIENT_HANDLE signalingClientHandle;
-    PBYTE pVideoFrameBuffer;
-    PBYTE pAudioFrameBuffer;
-    UINT32 audioBufferSize;
-    UINT32 videoBufferSize;
-    TID mediaSenderTid;
-    TID audioSenderTid;
-    TID videoSenderTid;
-    startRoutine audioSource;
-    startRoutine videoSource;
-    startRoutine receiveAudioVideoSource;
 
+    AppConfigCtx appConfigCtx;
+    AppMediaCtx appMediaCtx;
     TIMER_QUEUE_HANDLE timerQueueHandle;
-    SampleStreamingMediaType mediaType;
     RtcOnDataChannel onDataChannel;
     SignalingClientMetrics signalingClientMetrics;
 
@@ -129,9 +144,6 @@ typedef struct {
 
     MUTEX sampleConfigurationObjLock;
     CVAR cvar;
-    BOOL trickleIce;
-    BOOL useTurn;
-    BOOL enableSendingMetricsToViewerViaDc;
     BOOL enableFileLogging;
     UINT64 customData;
     PSampleStreamingSession sampleStreamingSessionList[DEFAULT_MAX_CONCURRENT_STREAMING_SESSION];
@@ -148,7 +160,6 @@ typedef struct {
     UINT32 pregenerateCertTimerId;
     PStackQueue pregeneratedCertificates; // Max MAX_RTCCONFIGURATION_CERTIFICATES certificates
     ParamsSetFn configureAppFn;
-    PCHAR rtspUri;
     UINT32 logLevel;
     PDoubleList timerIdList;
 } SampleConfiguration, *PSampleConfiguration;
@@ -233,7 +244,7 @@ STATUS handleOffer(PSampleConfiguration, PSampleStreamingSession, PSignalingMess
 STATUS handleRemoteCandidate(PSampleStreamingSession, PSignalingMessage);
 STATUS initializePeerConnection(PSampleConfiguration, PRtcPeerConnection*);
 STATUS lookForSslCert(PSampleConfiguration*);
-STATUS createSampleStreamingSession(PSampleConfiguration, PCHAR, BOOL, PSampleStreamingSession*);
+STATUS createStreamingSession(PSampleConfiguration, PCHAR, BOOL, PSampleStreamingSession*);
 STATUS freeSampleStreamingSession(PSampleStreamingSession*);
 STATUS streamingSessionOnShutdown(PSampleStreamingSession, UINT64, StreamSessionShutdownCallback);
 STATUS sendSignalingMessage(PSampleStreamingSession, PSignalingMessage);

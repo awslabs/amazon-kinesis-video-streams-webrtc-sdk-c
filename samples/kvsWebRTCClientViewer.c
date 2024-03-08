@@ -67,7 +67,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     // Initialize streaming session
     MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
     locked = TRUE;
-    CHK_STATUS(createSampleStreamingSession(pSampleConfiguration, NULL, FALSE, &pSampleStreamingSession));
+    CHK_STATUS(createStreamingSession(pSampleConfiguration, NULL, FALSE, &pSampleStreamingSession));
     DLOGI("[KVS Viewer] Creating streaming session...completed");
     pSampleConfiguration->sampleStreamingSessionList[pSampleConfiguration->streamingSessionCount++] = pSampleStreamingSession;
 
@@ -82,7 +82,7 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pAudioRtcRtpTransceiver, (UINT64) pSampleStreamingSession, sampleAudioFrameHandler));
 
-    if (!pSampleConfiguration->trickleIce) {
+    if (!pSampleConfiguration->appConfigCtx.trickleIce) {
         DLOGI("[KVS Viewer] Non trickle ice. Wait for Candidate collection to complete");
         MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
         locked = TRUE;
