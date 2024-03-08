@@ -180,6 +180,8 @@ STATUS freeIceAgent(PIceAgent* ppIceAgent)
 
     pIceAgent = *ppIceAgent;
 
+    hashTableFree(pIceAgent->requestTimestampDiagnostics);
+
     if (pIceAgent->localCandidates != NULL) {
         CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
         while (pCurNode != NULL) {
@@ -274,7 +276,6 @@ STATUS freeIceAgent(PIceAgent* ppIceAgent)
     for (int i = 0; i < MAX_ICE_SERVERS_COUNT; i++) {
         SAFE_MEMFREE(pIceAgent->pRtcIceServerDiagnostics[i]);
     }
-    hashTableFree(pIceAgent->requestTimestampDiagnostics);
 
     MEMFREE(pIceAgent);
 
@@ -2083,6 +2084,7 @@ STATUS updateCandidateStats(PIceAgent pIceAgent, BOOL isRemote)
     STATUS retStatus = STATUS_SUCCESS;
     CHK(pIceAgent != NULL && pIceAgent->pDataSendingIceCandidatePair != NULL, STATUS_NULL_ARG);
     PIceCandidate pIceCandidate = pIceAgent->pDataSendingIceCandidatePair->remote;
+
     PRtcIceCandidateDiagnostics pRtcIceCandidateDiagnostics = pIceAgent->pRtcSelectedRemoteIceCandidateDiagnostics;
     CHK(pRtcIceCandidateDiagnostics != NULL, STATUS_SUCCESS);
     if (!isRemote) {
@@ -2177,17 +2179,16 @@ STATUS iceAgentConnectedStateSetup(PIceAgent pIceAgent)
 
     MUTEX_LOCK(pIceAgent->lock);
     locked = TRUE;
+
     // use the first connected pair as the data sending pair
     CHK_STATUS(doubleListGetHeadNode(pIceAgent->iceCandidatePairs, &pCurNode));
     while (pCurNode != NULL) {
         pIceCandidatePair = (PIceCandidatePair) pCurNode->data;
         pCurNode = pCurNode->pNext;
-        DLOGI("Connected state...%d, %d", pIceCandidatePair->state, pIceCandidatePair->nominated);
+
         if (pIceCandidatePair->state == ICE_CANDIDATE_PAIR_STATE_SUCCEEDED && pIceCandidatePair->nominated) {
             pIceAgent->pDataSendingIceCandidatePair = pIceCandidatePair;
-            DLOGI("Here after selection");
             retStatus = updateSelectedLocalRemoteCandidateStats(pIceAgent);
-            DLOGI("Here after updating stats");
             if (STATUS_FAILED(retStatus)) {
                 DLOGW("Failed to update candidate stats with status code 0x%08x", retStatus);
             }
@@ -2615,7 +2616,7 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
             if (!pIceCandidatePair->nominated) {
                 CHK_STATUS(getStunAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_USE_CANDIDATE, &pStunAttr));
                 if (pStunAttr != NULL) {
-                    DLOGI("received candidate with USE_CANDIDATE flag, local candidate type %s(%s:%s).",
+                    DLOGD("received candidate with USE_CANDIDATE flag, local candidate type %s(%s:%s).",
                           iceAgentGetCandidateTypeStr(pIceCandidatePair->local->iceCandidateType), pIceCandidatePair->local->id,
                           pIceCandidatePair->remote->id);
                     pIceCandidatePair->nominated = TRUE;
@@ -2730,7 +2731,7 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
             }
 
             if (pIceCandidatePair->state != ICE_CANDIDATE_PAIR_STATE_SUCCEEDED) {
-                DLOGI("Pair succeeded! %s %s", pIceCandidatePair->local->id, pIceCandidatePair->remote->id);
+                DLOGD("Pair succeeded! %s %s", pIceCandidatePair->local->id, pIceCandidatePair->remote->id);
                 pIceCandidatePair->state = ICE_CANDIDATE_PAIR_STATE_SUCCEEDED;
                 retStatus = hashTableGet(pIceCandidatePair->requestSentTime, checkSum, &requestSentTime);
                 if (hashTableGet(pIceCandidatePair->requestSentTime, checkSum, &requestSentTime) == STATUS_SUCCESS) {
