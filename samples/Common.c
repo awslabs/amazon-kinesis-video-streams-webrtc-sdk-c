@@ -51,8 +51,8 @@ VOID onConnectionStateChange(UINT64 customData, RTC_PEER_CONNECTION_STATE newSta
             CHK_STATUS(peerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->peerConnectionMetrics));
             CHK_STATUS(iceAgentGetMetrics(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->iceMetrics));
 
-            if (STATUS_FAILED(retStatus = logSelectedIceCandidatesInformation(pSampleStreamingSession))) {
-                DLOGW("Failed to get information about selected Ice candidates: 0x%08x", retStatus);
+            if (pSampleConfiguration->enableIceStats) {
+                CHK_LOG_ERR(logSelectedIceCandidatesInformation(pSampleStreamingSession));
             }
             break;
         case RTC_PEER_CONNECTION_STATE_FAILED:
@@ -398,7 +398,7 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     // Set the ICE mode explicitly
     configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_ALL;
 
-    configuration.kvsRtcConfiguration.enableIceStats = TRUE;
+    configuration.kvsRtcConfiguration.enableIceStats = pSampleConfiguration->enableIceStats;
 
     // Set the  STUN server
     PCHAR pKinesisVideoStunUrlPostFix = KINESIS_VIDEO_STUN_URL_POSTFIX;
@@ -535,6 +535,7 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     ATOMIC_STORE_BOOL(&pSampleStreamingSession->candidateGatheringDone, FALSE);
 
     pSampleStreamingSession->peerConnectionMetrics.peerConnectionStats.peerConnectionStartTime = GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+    pSampleConfiguration->enableIceStats = FALSE;
     CHK_STATUS(initializePeerConnection(pSampleConfiguration, &pSampleStreamingSession->pPeerConnection));
     CHK_STATUS(peerConnectionOnIceCandidate(pSampleStreamingSession->pPeerConnection, (UINT64) pSampleStreamingSession, onIceCandidateHandler));
     CHK_STATUS(
@@ -1204,7 +1205,9 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
     }
 
     for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
-        CHK_LOG_ERR(gatherIceServerStats(pSampleConfiguration->sampleStreamingSessionList[i]));
+        if (pSampleConfiguration->enableIceStats) {
+            CHK_LOG_ERR(gatherIceServerStats(pSampleConfiguration->sampleStreamingSessionList[i]));
+        }
         freeSampleStreamingSession(&pSampleConfiguration->sampleStreamingSessionList[i]);
     }
     if (locked) {
@@ -1535,7 +1538,7 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
     MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
     locked = FALSE;
 
-    if (startStats &&
+    if (pSampleConfiguration->enableIceStats && startStats &&
         STATUS_FAILED(retStatus = timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, SAMPLE_STATS_DURATION, SAMPLE_STATS_DURATION,
                                                      getIceCandidatePairStatsCallback, (UINT64) pSampleConfiguration,
                                                      &pSampleConfiguration->iceCandidatePairStatsTimerId))) {

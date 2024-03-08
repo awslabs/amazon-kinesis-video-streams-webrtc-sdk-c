@@ -40,11 +40,6 @@ STATUS createIceAgent(PCHAR username, PCHAR password, PIceAgentCallbacks pIceAge
     CHK(NULL != (pIceAgent = (PIceAgent) MEMCALLOC(1, SIZEOF(IceAgent))), STATUS_NOT_ENOUGH_MEMORY);
     STRNCPY(pIceAgent->localUsername, username, MAX_ICE_CONFIG_USER_NAME_LEN);
     STRNCPY(pIceAgent->localPassword, password, MAX_ICE_CONFIG_CREDENTIAL_LEN);
-    DLOGI("Size of RtcIceServerDiagnostics: %d", SIZEOF(RtcIceServerDiagnostics));
-    DLOGI("Size of RtcIceCandidateDiagnostics: %d", SIZEOF(RtcIceCandidateDiagnostics));
-    DLOGI("Size of IceAgentProfileDiagnostics: %d", SIZEOF(IceAgentProfileDiagnostics));
-    DLOGI("Size of KvsIpAddress: %d", SIZEOF(KvsIpAddress));
-    DLOGI("Size of ICE agent: %d", SIZEOF(IceAgent));
     ATOMIC_STORE_BOOL(&pIceAgent->remoteCredentialReceived, FALSE);
     ATOMIC_STORE_BOOL(&pIceAgent->agentStartGathering, FALSE);
     ATOMIC_STORE_BOOL(&pIceAgent->candidateGatheringFinished, FALSE);
