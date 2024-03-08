@@ -165,6 +165,7 @@ STATUS freeIceAgent(PIceAgent* ppIceAgent)
     PIceAgent pIceAgent = NULL;
     PDoubleListNode pCurNode = NULL;
     UINT64 data;
+    UINT32 i;
     PIceCandidatePair pIceCandidatePair = NULL;
     PIceCandidate pIceCandidate = NULL;
 
@@ -266,7 +267,7 @@ STATUS freeIceAgent(PIceAgent* ppIceAgent)
     hashTableFree(pIceAgent->requestTimestampDiagnostics);
     SAFE_MEMFREE(pIceAgent->pRtcSelectedLocalIceCandidateDiagnostics);
     SAFE_MEMFREE(pIceAgent->pRtcSelectedRemoteIceCandidateDiagnostics);
-    for (int i = 0; i < MAX_ICE_SERVERS_COUNT; i++) {
+    for (i = 0; i < MAX_ICE_SERVERS_COUNT; i++) {
         SAFE_MEMFREE(pIceAgent->pRtcIceServerDiagnostics[i]);
     }
     MEMFREE(pIceAgent);
