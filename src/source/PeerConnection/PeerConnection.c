@@ -1512,7 +1512,13 @@ STATUS addTransceiver(PRtcPeerConnection pPeerConnection, PRtcMediaStreamTrack p
     if (direction == RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY && pRtcMediaStreamTrack == NULL) {
         MEMSET(&videoTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
         videoTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+
+#ifdef USE_VIDEO_H265
+        videoTrack.codec = RTC_CODEC_H265;
+#else
         videoTrack.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+#endif
+
         STRCPY(videoTrack.streamId, "myKvsVideoStream");
         STRCPY(videoTrack.trackId, "myVideoTrack");
         pRtcMediaStreamTrack = &videoTrack;
@@ -1539,6 +1545,10 @@ STATUS addTransceiver(PRtcPeerConnection pPeerConnection, PRtcMediaStreamTrack p
 
         case RTC_CODEC_VP8:
             depayFunc = depayVP8FromRtpPayload;
+            clockRate = VIDEO_CLOCKRATE;
+            break;
+        case RTC_CODEC_H265:
+            depayFunc = depayH265FromRtpPayload;
             clockRate = VIDEO_CLOCKRATE;
             break;
 
@@ -1586,8 +1596,21 @@ STATUS addSupportedCodec(PRtcPeerConnection pPeerConnection, RTC_CODEC rtcCodec)
 
     CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
 
-    CHK_STATUS(hashTablePut(pKvsPeerConnection->pCodecTable, rtcCodec, 0));
-
+    if (rtcCodec == RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE) {
+        CHK_STATUS(hashTablePut(pKvsPeerConnection->pCodecTable, rtcCodec, DEFAULT_PAYLOAD_H264));
+    } else if (rtcCodec == RTC_CODEC_VP8) {
+        CHK_STATUS(hashTablePut(pKvsPeerConnection->pCodecTable, rtcCodec, DEFAULT_PAYLOAD_VP8));
+    } else if (rtcCodec == RTC_CODEC_H265) {
+        CHK_STATUS(hashTablePut(pKvsPeerConnection->pCodecTable, rtcCodec, DEFAULT_PAYLOAD_H265));
+    } else if (rtcCodec == RTC_CODEC_OPUS) {
+        CHK_STATUS(hashTablePut(pKvsPeerConnection->pCodecTable, rtcCodec, DEFAULT_PAYLOAD_OPUS));
+    } else if (rtcCodec == RTC_CODEC_MULAW) {
+        CHK_STATUS(hashTablePut(pKvsPeerConnection->pCodecTable, rtcCodec, DEFAULT_PAYLOAD_MULAW));
+    } else if (rtcCodec == RTC_CODEC_ALAW) {
+        CHK_STATUS(hashTablePut(pKvsPeerConnection->pCodecTable, rtcCodec, DEFAULT_PAYLOAD_ALAW));
+    } else {
+        CHK_STATUS(hashTablePut(pKvsPeerConnection->pCodecTable, rtcCodec, 0));
+    }
 CleanUp:
 
     LEAVES();
