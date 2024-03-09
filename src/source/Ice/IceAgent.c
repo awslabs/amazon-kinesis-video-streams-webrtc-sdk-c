@@ -119,8 +119,8 @@ STATUS createIceAgent(PCHAR username, PCHAR password, PIceAgentCallbacks pIceAge
                             MEMSET(pIceAgent->pRtcIceServerDiagnostics[i]->protocol, 0, SIZEOF(pIceAgent->pRtcIceServerDiagnostics[i]->protocol));
                     }
                     STRCPY(pIceAgent->pRtcIceServerDiagnostics[i]->url, pRtcConfiguration->iceServers[i].urls);
-                    pIceAgent->iceServersCount++;
                 }
+                pIceAgent->iceServersCount++;
             } else {
                 DLOGE("Failed to parse ICE servers");
             }
