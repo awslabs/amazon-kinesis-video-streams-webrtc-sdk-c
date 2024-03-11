@@ -474,6 +474,8 @@ The SDK calculates 4 different stats:
 3. [Remote candidate stats](https://www.w3.org/TR/webrtc-stats/#dom-rtcstatstype-remote-candidate) - stats for the selected remote candidate 
 4. [Candidate pair stats](https://www.w3.org/TR/webrtc-stats/#dom-rtcstatstype-candidate-pair) - stats for the selected candidate pair
 
+For more information on these stats, refer to [AWS Docs](https://docs.aws.amazon.com/kinesisvideostreams-webrtc-dg/latest/devguide/kvswebrtc-reference.html)
+
 The SDK disables generating these stats by default. In order to be enable the SDK to calculate these stats, the application needs to set the following field:
 `configuration.kvsRtcConfiguration.enableIceStats = TRUE`.
 

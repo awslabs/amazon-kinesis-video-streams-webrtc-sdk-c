@@ -1167,8 +1167,10 @@ STATUS createIceCandidatePairs(PIceAgent pIceAgent, PIceCandidate pIceCandidate,
             pIceCandidatePair = (PIceCandidatePair) MEMCALLOC(1, SIZEOF(IceCandidatePair));
             CHK(pIceCandidatePair != NULL, STATUS_NOT_ENOUGH_MEMORY);
             if (pIceAgent->kvsRtcConfiguration.enableIceStats) {
-                pIceCandidatePair->pRtcIceCandidatePairDiagnostics =
-                    (PRtcIceCandidatePairDiagnostics) MEMCALLOC(1, SIZEOF(RtcIceCandidatePairDiagnostics));
+                CHK(NULL !=
+                        (pIceCandidatePair->pRtcIceCandidatePairDiagnostics =
+                             (PRtcIceCandidatePairDiagnostics) MEMCALLOC(1, SIZEOF(RtcIceCandidatePairDiagnostics))),
+                    STATUS_NOT_ENOUGH_MEMORY);
             }
 
             if (isRemoteCandidate) {

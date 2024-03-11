@@ -13,7 +13,7 @@ STATUS getIceCandidatePairStats(PRtcPeerConnection pRtcPeerConnection, PRtcIceCa
     pIceAgent = ((PKvsPeerConnection) pRtcPeerConnection)->pIceAgent;
     MUTEX_LOCK(pIceAgent->lock);
     locked = TRUE;
-    CHK(pIceAgent->kvsRtcConfiguration.enableIceStats, STATUS_SUCCESS);
+    CHK_WARN(pIceAgent->kvsRtcConfiguration.enableIceStats, STATUS_SUCCESS, "ICE stats not enabled");
     CHK(pIceAgent->pDataSendingIceCandidatePair != NULL, STATUS_SUCCESS);
     PRtcIceCandidatePairDiagnostics pRtcIceCandidatePairDiagnostics = pIceAgent->pDataSendingIceCandidatePair->pRtcIceCandidatePairDiagnostics;
     if (pRtcIceCandidatePairDiagnostics != NULL) {
@@ -62,7 +62,7 @@ STATUS getIceCandidateStats(PRtcPeerConnection pRtcPeerConnection, BOOL isRemote
     CHK((pRtcPeerConnection != NULL || pRtcIceCandidateStats != NULL), STATUS_NULL_ARG);
     MUTEX_LOCK(pIceAgent->lock);
     locked = TRUE;
-    CHK(pIceAgent->kvsRtcConfiguration.enableIceStats, STATUS_SUCCESS);
+    CHK_WARN(pIceAgent->kvsRtcConfiguration.enableIceStats, STATUS_SUCCESS, "ICE stats not enabled");
     PRtcIceCandidateDiagnostics pRtcIceCandidateDiagnostics = pIceAgent->pRtcSelectedRemoteIceCandidateDiagnostics;
     if (pRtcIceCandidateDiagnostics != NULL) {
         if (!isRemote) {
@@ -92,7 +92,7 @@ STATUS getIceServerStats(PRtcPeerConnection pRtcPeerConnection, PRtcIceServerSta
 
     MUTEX_LOCK(pIceAgent->lock);
     locked = TRUE;
-    CHK(pIceAgent->kvsRtcConfiguration.enableIceStats, STATUS_SUCCESS);
+    CHK_WARN(pIceAgent->kvsRtcConfiguration.enableIceStats, STATUS_SUCCESS, "ICE stats not enabled");
     CHK(pRtcIceServerStats->iceServerIndex < pIceAgent->iceServersCount, STATUS_ICE_SERVER_INDEX_INVALID);
 
     if (pIceAgent->pRtcIceServerDiagnostics[pRtcIceServerStats->iceServerIndex] != NULL) {
