@@ -466,6 +466,16 @@ Let us look into when each of these could be changed:
 3. `iceConnectionCheckTimeout`: It is useful to increase this timeout in unstable/slow network where the packet exchange takes time and hence the binding request/response. Essentially, increasing it will allow atleast one candidate pair to be tried for nomination by the other peer. 
 4. `iceConnectionCheckPollingInterval`: This value is set to a default of 50 ms per [spec](https://datatracker.ietf.org/doc/html/rfc8445#section-14.2). Changing this would change the frequency of connectivity checks and essentially, the ICE state machine transitions. Decreasing the value could help in faster connection establishment in a reliable high performant network setting with good system resources. Increasing the value could help in reducing the network load, however, the connection establishment could slow down. Unless there is a strong reasoning, it is **NOT** recommended to deviate from spec/default.
 
+### Enable ICE agent stats
+
+The SDK calculates 4 different stats:
+1. ICE server stats - stats for ICE servers the SDK is using
+2. [Local candidate stats](https://www.w3.org/TR/webrtc-stats/#dom-rtcstatstype-local-candidate) - stats for the selected local candidate
+3. [Remote candidate stats](https://www.w3.org/TR/webrtc-stats/#dom-rtcstatstype-remote-candidate) - stats for the selected remote candidate 
+4. [Candidate pair stats](https://www.w3.org/TR/webrtc-stats/#dom-rtcstatstype-candidate-pair) - stats for the selected candidate pair
+
+The SDK disables generating these stats by default. In order to be enable the SDK to calculate these stats, the application needs to set the following field:
+`configuration.kvsRtcConfiguration.enableIceStats = TRUE`.
 
 ### Controlling RTP rolling buffer capacity
 
