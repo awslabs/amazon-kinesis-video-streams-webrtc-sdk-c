@@ -31,7 +31,7 @@ STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen,
 
     adapterAddresses = (PIP_ADAPTER_ADDRESSES) MEMALLOC(sizeAAPointer);
 
-    retWinStatus = GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_INCLUDE_PREFIX, NULL, adapterAddresses, &sizeAAPointer);
+    retWinStatus = GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_INCLUDE_PREFIX | GAA_FLAG_INCLUDE_GATEWAYS, NULL, adapterAddresses, &sizeAAPointer);
     CHK(retWinStatus == ERROR_SUCCESS, STATUS_GET_LOCAL_IP_ADDRESSES_FAILED);
 
     for (aa = adapterAddresses; aa != NULL && ipCount < destIpListLen; aa = aa->Next) {
