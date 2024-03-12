@@ -19,7 +19,8 @@ INT32 main(INT32 argc, CHAR* argv[])
 #endif
 
 #ifdef IOT_CORE_ENABLE_CREDENTIALS
-    CHK_ERR((pChannelName = getenv(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_THING_NAME must be set");
+    CHK_ERR((pChannelName = argc > 1 ? argv[1] : GETENV(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION,
+            "AWS_IOT_CORE_THING_NAME must be set");
 #else
     pChannelName = argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME;
 #endif
@@ -53,7 +54,11 @@ INT32 main(INT32 argc, CHAR* argv[])
     CHK_STATUS(initKvsWebRtc());
     DLOGI("[KVS Master] KVS WebRTC initialization completed successfully");
 
-    CHK_STATUS(initSignaling(pSampleConfiguration, SAMPLE_MASTER_CLIENT_ID));
+    PROFILE_CALL_WITH_START_END_T_OBJ(
+        retStatus = initSignaling(pSampleConfiguration, SAMPLE_MASTER_CLIENT_ID), pSampleConfiguration->signalingClientMetrics.signalingStartTime,
+        pSampleConfiguration->signalingClientMetrics.signalingEndTime, pSampleConfiguration->signalingClientMetrics.signalingCallTime,
+        "Initialize signaling client and connect to the signaling channel");
+
     DLOGI("[KVS Master] Channel %s set up done ", pChannelName);
 
     // Checking for termination
@@ -175,6 +180,9 @@ PVOID sendVideoPackets(PVOID args)
                 if (status != STATUS_SUCCESS) {
                     DLOGV("writeFrame() failed with 0x%08x", status);
                 }
+            } else {
+                // Reset file index to ensure first frame sent upon SRTP ready is a key frame.
+                fileIndex = 0;
             }
         }
         MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
@@ -238,6 +246,9 @@ PVOID sendAudioPackets(PVOID args)
                     PROFILE_WITH_START_TIME(pSampleConfiguration->sampleStreamingSessionList[i]->offerReceiveTime, "Time to first frame");
                     pSampleConfiguration->sampleStreamingSessionList[i]->firstFrame = FALSE;
                 }
+            } else {
+                // Reset file index to stay in sync with video frames.
+                fileIndex = 0;
             }
         }
         MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);

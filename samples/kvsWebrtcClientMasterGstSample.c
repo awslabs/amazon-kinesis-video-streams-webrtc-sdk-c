@@ -78,11 +78,13 @@ GstFlowReturn on_new_sample(GstElement* sink, gpointer data, UINT64 trackid)
             status = writeFrame(pRtcRtpTransceiver, &frame);
             if (status != STATUS_SRTP_NOT_READY_YET && status != STATUS_SUCCESS) {
 #ifdef VERBOSE
-                DLOGE("writeFrame() failed with 0x%08x", status);
+                DLOGE("[KVS GStreamer Master] writeFrame() failed with 0x%08x", status);
 #endif
             } else if (status == STATUS_SUCCESS && pSampleStreamingSession->firstFrame) {
                 PROFILE_WITH_START_TIME(pSampleStreamingSession->offerReceiveTime, "Time to first frame");
                 pSampleStreamingSession->firstFrame = FALSE;
+            } else if (status == STATUS_SRTP_NOT_READY_YET) {
+                DLOGI("[KVS GStreamer Master] SRTP not ready yet, dropping frame");
             }
         }
         MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
@@ -180,7 +182,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                                                     pSampleConfiguration->rtspUri);
 
                     if (stringOutcome > RTSP_PIPELINE_MAX_CHAR_COUNT) {
-                        printf("[KVS GStreamer Master] ERROR: rtsp uri entered exceeds maximum allowed length set by RTSP_PIPELINE_MAX_CHAR_COUNT\n");
+                        DLOGE("[KVS GStreamer Master] ERROR: rtsp uri entered exceeds maximum allowed length set by RTSP_PIPELINE_MAX_CHAR_COUNT");
                         goto CleanUp;
                     }
                     pipeline = gst_parse_launch(rtspPipeLineBuffer, &error);
@@ -226,7 +228,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                                                     pSampleConfiguration->rtspUri);
 
                     if (stringOutcome > RTSP_PIPELINE_MAX_CHAR_COUNT) {
-                        printf("[KVS GStreamer Master] ERROR: rtsp uri entered exceeds maximum allowed length set by RTSP_PIPELINE_MAX_CHAR_COUNT\n");
+                        DLOGE("[KVS GStreamer Master] ERROR: rtsp uri entered exceeds maximum allowed length set by RTSP_PIPELINE_MAX_CHAR_COUNT");
                         goto CleanUp;
                     }
                     pipeline = gst_parse_launch(rtspPipeLineBuffer, &error);
@@ -243,8 +245,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
     appsinkAudio = gst_bin_get_by_name(GST_BIN(pipeline), "appsink-audio");
 
     if (!(appsinkVideo != NULL || appsinkAudio != NULL)) {
-        printf("[KVS GStreamer Master] sendGstreamerAudioVideo(): cant find appsink, operation returned status code: 0x%08x \n",
-               STATUS_INTERNAL_ERROR);
+        DLOGE("[KVS GStreamer Master] sendGstreamerAudioVideo(): cant find appsink, operation returned status code: 0x%08x", STATUS_INTERNAL_ERROR);
         goto CleanUp;
     }
 
@@ -281,7 +282,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
 CleanUp:
 
     if (error != NULL) {
-        DLOGE("%s", error->message);
+        DLOGE("[KVS GStreamer Master] %s", error->message);
         g_clear_error(&error);
     }
 
@@ -377,7 +378,7 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
 
 CleanUp:
     if (error != NULL) {
-        DLOGE("%s", error->message);
+        DLOGE("[KVS GStreamer Master] %s", error->message);
         g_clear_error(&error);
     }
 
@@ -396,7 +397,8 @@ INT32 main(INT32 argc, CHAR* argv[])
     signal(SIGINT, sigintHandler);
 
 #ifdef IOT_CORE_ENABLE_CREDENTIALS
-    CHK_ERR((pChannelName = getenv(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_THING_NAME must be set");
+    CHK_ERR((pChannelName = argc > 1 ? argv[1] : GETENV(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION,
+            "AWS_IOT_CORE_THING_NAME must be set");
 #else
     pChannelName = argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME;
 #endif
@@ -444,9 +446,9 @@ INT32 main(INT32 argc, CHAR* argv[])
         } else if (STRCMP(argv[3], "rtspsrc") == 0) {
             DLOGI("[KVS GStreamer Master] Using RTSP source in GStreamer");
             if (argc < 5) {
-                printf("[KVS GStreamer Master] No RTSP source URI included. Defaulting to device source");
-                printf("[KVS GStreamer Master] Usage: ./kvsWebrtcClientMasterGstSample <channel name> audio-video rtspsrc rtsp://<rtsp uri>\n"
-                       "or ./kvsWebrtcClientMasterGstSample <channel name> video-only rtspsrc <rtsp://<rtsp uri>");
+                DLOGI("[KVS GStreamer Master] No RTSP source URI included. Defaulting to device source");
+                DLOGI("[KVS GStreamer Master] Usage: ./kvsWebrtcClientMasterGstSample <channel name> audio-video rtspsrc rtsp://<rtsp uri>"
+                      "or ./kvsWebrtcClientMasterGstSample <channel name> video-only rtspsrc <rtsp://<rtsp uri>");
                 pSampleConfiguration->srcType = DEVICE_SOURCE;
             } else {
                 pSampleConfiguration->srcType = RTSP_SOURCE;
@@ -456,7 +458,7 @@ INT32 main(INT32 argc, CHAR* argv[])
             DLOGI("[KVS Gstreamer Master] Unrecognized source type. Defaulting to device source in GStreamer");
         }
     } else {
-        printf("[KVS GStreamer Master] Using device source in GStreamer\n");
+        DLOGI("[KVS GStreamer Master] Using device source in GStreamer");
     }
 
     switch (pSampleConfiguration->mediaType) {

@@ -51,7 +51,8 @@ INT32 main(INT32 argc, CHAR* argv[])
 #endif
 
 #ifdef IOT_CORE_ENABLE_CREDENTIALS
-    CHK_ERR((pChannelName = getenv(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_THING_NAME must be set");
+    CHK_ERR((pChannelName = argc > 1 ? argv[1] : GETENV(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION,
+            "AWS_IOT_CORE_THING_NAME must be set");
 #else
     pChannelName = argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME;
 #endif
@@ -82,6 +83,7 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     MEMSET(&offerSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
 
+    offerSessionDescriptionInit.useTrickleIce = pSampleStreamingSession->remoteCanTrickleIce;
     CHK_STATUS(setLocalDescription(pSampleStreamingSession->pPeerConnection, &offerSessionDescriptionInit));
     DLOGI("[KVS Viewer] Completed setting local description");
 
@@ -162,12 +164,12 @@ CleanUp:
     if (pSampleConfiguration != NULL) {
         retStatus = freeSignalingClient(&pSampleConfiguration->signalingClientHandle);
         if (retStatus != STATUS_SUCCESS) {
-            DLOGE("[KVS Master] freeSignalingClient(): operation returned status code: 0x%08x ", retStatus);
+            DLOGE("[KVS Viewer] freeSignalingClient(): operation returned status code: 0x%08x ", retStatus);
         }
 
         retStatus = freeSampleConfiguration(&pSampleConfiguration);
         if (retStatus != STATUS_SUCCESS) {
-            DLOGE("[KVS Master] freeSampleConfiguration(): operation returned status code: 0x%08x ", retStatus);
+            DLOGE("[KVS Viewer] freeSampleConfiguration(): operation returned status code: 0x%08x ", retStatus);
         }
     }
     DLOGI("[KVS Viewer] Cleanup done");

@@ -311,16 +311,21 @@ PCHAR fmtpForPayloadType(UINT64 payloadType, PSessionDescription pSessionDescrip
     UINT32 currentMedia, currentAttribute;
     PSdpMediaDescription pMediaDescription = NULL;
     CHAR payloadStr[MAX_SDP_ATTRIBUTE_VALUE_LENGTH];
+    INT32 amountWritten = 0;
 
     MEMSET(payloadStr, 0x00, MAX_SDP_ATTRIBUTE_VALUE_LENGTH);
-    SPRINTF(payloadStr, "%" PRId64, payloadType);
+    amountWritten = SNPRINTF(payloadStr, SIZEOF(payloadStr), "%" PRId64, payloadType);
 
-    for (currentMedia = 0; currentMedia < pSessionDescription->mediaCount; currentMedia++) {
-        pMediaDescription = &(pSessionDescription->mediaDescriptions[currentMedia]);
-        for (currentAttribute = 0; currentAttribute < pMediaDescription->mediaAttributesCount; currentAttribute++) {
-            if (STRCMP(pMediaDescription->sdpAttributes[currentAttribute].attributeName, "fmtp") == 0 &&
-                STRNCMP(pMediaDescription->sdpAttributes[currentAttribute].attributeValue, payloadStr, STRLEN(payloadStr)) == 0) {
-                return pMediaDescription->sdpAttributes[currentAttribute].attributeValue + STRLEN(payloadStr) + 1;
+    if (amountWritten < 0) {
+        DLOGE("Internal error: Full payload type for fmtp could not be written");
+    } else {
+        for (currentMedia = 0; currentMedia < pSessionDescription->mediaCount; currentMedia++) {
+            pMediaDescription = &(pSessionDescription->mediaDescriptions[currentMedia]);
+            for (currentAttribute = 0; currentAttribute < pMediaDescription->mediaAttributesCount; currentAttribute++) {
+                if (STRCMP(pMediaDescription->sdpAttributes[currentAttribute].attributeName, "fmtp") == 0 &&
+                    STRNCMP(pMediaDescription->sdpAttributes[currentAttribute].attributeValue, payloadStr, STRLEN(payloadStr)) == 0) {
+                    return pMediaDescription->sdpAttributes[currentAttribute].attributeValue + STRLEN(payloadStr) + 1;
+                }
             }
         }
     }
@@ -400,6 +405,7 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
     PSdpMediaDescription pSdpMediaDescriptionRemote;
     PCHAR currentFmtp = NULL, rtpMapValue = NULL;
     CHAR remoteSdpAttributeValue[MAX_SDP_ATTRIBUTE_VALUE_LENGTH];
+    INT32 amountWritten = 0;
 
     MEMSET(remoteSdpAttributeValue, 0, MAX_SDP_ATTRIBUTE_VALUE_LENGTH);
 
@@ -423,12 +429,18 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
         containRtx = (retStatus == STATUS_SUCCESS);
         retStatus = STATUS_SUCCESS;
         if (containRtx) {
-            SPRINTF(pSdpMediaDescription->mediaName, "video 9 UDP/TLS/RTP/SAVPF %" PRId64 " %" PRId64, payloadType, rtxPayloadType);
+            amountWritten = SNPRINTF(pSdpMediaDescription->mediaName, SIZEOF(pSdpMediaDescription->mediaName),
+                                     "video 9 UDP/TLS/RTP/SAVPF %" PRId64 " %" PRId64, payloadType, rtxPayloadType);
+            CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full video (with rtx) media name attribute could not be written");
         } else {
-            SPRINTF(pSdpMediaDescription->mediaName, "video 9 UDP/TLS/RTP/SAVPF %" PRId64, payloadType);
+            amountWritten =
+                SNPRINTF(pSdpMediaDescription->mediaName, SIZEOF(pSdpMediaDescription->mediaName), "video 9 UDP/TLS/RTP/SAVPF %" PRId64, payloadType);
+            CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full video media name attribute could not be written");
         }
     } else if (pRtcMediaStreamTrack->kind == MEDIA_STREAM_TRACK_KIND_AUDIO) {
-        SPRINTF(pSdpMediaDescription->mediaName, "audio 9 UDP/TLS/RTP/SAVPF %" PRId64, payloadType);
+        amountWritten =
+            SNPRINTF(pSdpMediaDescription->mediaName, SIZEOF(pSdpMediaDescription->mediaName), "audio 9 UDP/TLS/RTP/SAVPF %" PRId64, payloadType);
+        CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full audio media name attribute could not be written");
     }
 
     CHK_STATUS(iceAgentPopulateSdpMediaDescriptionCandidates(pKvsPeerConnection->pIceAgent, pSdpMediaDescription, MAX_SDP_ATTRIBUTE_VALUE_LENGTH,
@@ -436,60 +448,82 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
 
     if (containRtx) {
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "msid");
-        SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%s %sRTX", pRtcMediaStreamTrack->streamId,
-                pRtcMediaStreamTrack->trackId);
+        amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
+                                 SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%s %sRTX",
+                                 pRtcMediaStreamTrack->streamId, pRtcMediaStreamTrack->trackId);
+        CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full msid value (with rtx) could not be written");
         attributeCount++;
 
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ssrc-group");
-        SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "FID %u %u", pKvsRtpTransceiver->sender.ssrc,
-                pKvsRtpTransceiver->sender.rtxSsrc);
+        amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
+                                 SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "FID %u %u",
+                                 pKvsRtpTransceiver->sender.ssrc, pKvsRtpTransceiver->sender.rtxSsrc);
+        CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full ssrc-grp value (with rtx) could not be written");
         attributeCount++;
     } else {
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "msid");
-        SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%s %s", pRtcMediaStreamTrack->streamId,
-                pRtcMediaStreamTrack->trackId);
+        amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
+                                 SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%s %s", pRtcMediaStreamTrack->streamId,
+                                 pRtcMediaStreamTrack->trackId);
+        CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full msid value could not be written");
         attributeCount++;
     }
 
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ssrc");
-    SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%u cname:%s", pKvsRtpTransceiver->sender.ssrc,
-            pKvsPeerConnection->localCNAME);
+    amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
+                             SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%u cname:%s",
+                             pKvsRtpTransceiver->sender.ssrc, pKvsPeerConnection->localCNAME);
+    CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full ssrc cname could not be written");
     attributeCount++;
 
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ssrc");
-    SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%u msid:%s %s", pKvsRtpTransceiver->sender.ssrc,
-            pRtcMediaStreamTrack->streamId, pRtcMediaStreamTrack->trackId);
+    amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
+                             SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%u msid:%s %s",
+                             pKvsRtpTransceiver->sender.ssrc, pRtcMediaStreamTrack->streamId, pRtcMediaStreamTrack->trackId);
+    CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full ssrc msid could not be written");
     attributeCount++;
 
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ssrc");
-    SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%u mslabel:%s", pKvsRtpTransceiver->sender.ssrc,
-            pRtcMediaStreamTrack->streamId);
+    amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
+                             SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%u mslabel:%s",
+                             pKvsRtpTransceiver->sender.ssrc, pRtcMediaStreamTrack->streamId);
+    CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full ssrc mslabel could not be written");
     attributeCount++;
 
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ssrc");
-    SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%u label:%s", pKvsRtpTransceiver->sender.ssrc,
-            pRtcMediaStreamTrack->trackId);
+    amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
+                             SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%u label:%s",
+                             pKvsRtpTransceiver->sender.ssrc, pRtcMediaStreamTrack->trackId);
+    CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full ssrc label could not be written");
     attributeCount++;
 
     if (containRtx) {
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ssrc");
-        SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%u cname:%s", pKvsRtpTransceiver->sender.rtxSsrc,
-                pKvsPeerConnection->localCNAME);
+        amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
+                                 SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%u cname:%s",
+                                 pKvsRtpTransceiver->sender.rtxSsrc, pKvsPeerConnection->localCNAME);
+        CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full ssrc cname (with rtx) could not be written");
         attributeCount++;
 
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ssrc");
-        SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%u msid:%s %sRTX", pKvsRtpTransceiver->sender.rtxSsrc,
-                pRtcMediaStreamTrack->streamId, pRtcMediaStreamTrack->trackId);
+        amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
+                                 SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%u msid:%s %sRTX",
+                                 pKvsRtpTransceiver->sender.rtxSsrc, pRtcMediaStreamTrack->streamId, pRtcMediaStreamTrack->trackId);
+        CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full ssrc msid (with rtx) could not be written");
         attributeCount++;
 
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ssrc");
-        SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%u mslabel:%sRTX", pKvsRtpTransceiver->sender.rtxSsrc,
-                pRtcMediaStreamTrack->streamId);
+        amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
+                                 SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%u mslabel:%sRTX",
+                                 pKvsRtpTransceiver->sender.rtxSsrc, pRtcMediaStreamTrack->streamId);
+        CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full ssrc mslabel (with rtx) could not be written");
         attributeCount++;
 
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ssrc");
-        SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%u label:%sRTX", pKvsRtpTransceiver->sender.rtxSsrc,
-                pRtcMediaStreamTrack->trackId);
+        amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
+                                 SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%u label:%sRTX",
+                                 pKvsRtpTransceiver->sender.rtxSsrc, pRtcMediaStreamTrack->trackId);
+        CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full ssrc label (with rtx) could not be written");
         attributeCount++;
     }
 
@@ -505,9 +539,11 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, pKvsPeerConnection->localIcePwd);
     attributeCount++;
 
-    STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ice-options");
-    STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "trickle");
-    attributeCount++;
+    if (pKvsPeerConnection->canTrickleIce.value) {
+        STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ice-options");
+        STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "trickle");
+        attributeCount++;
+    }
 
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "fingerprint");
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "sha-256 ");
@@ -531,9 +567,13 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
     // If we don't have it, we loop over, create and add them
     if (STRLEN(remoteSdpAttributeValue) > 0) {
         CHK(STRLEN(remoteSdpAttributeValue) < MAX_SDP_ATTRIBUTE_VALUE_LENGTH, STATUS_BUFFER_TOO_SMALL);
-        SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%s", remoteSdpAttributeValue);
+        amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
+                                 SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%s", remoteSdpAttributeValue);
+        CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Mid exists, but remote SDP value could not be written");
     } else {
-        SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%d", mediaSectionId);
+        amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
+                                 SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%d", mediaSectionId);
+        CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full media section Id could not be written");
     }
     attributeCount++;
 
@@ -592,7 +632,23 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
             currentFmtp = DEFAULT_H264_FMTP;
         }
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtpmap");
-        SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%" PRId64 " H264/90000", payloadType);
+        amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
+                                 SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRId64 " H264/90000", payloadType);
+        CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full H264 payload type could not be written");
+        attributeCount++;
+
+        STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtcp-fb");
+        amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
+                                 SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRId64 " nack", payloadType);
+        CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full H264 rtcp-fb nack value could not be written");
+        amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
+                                 SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRId64 " nack pli", payloadType);
+        CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full H264 rtcp-fb nack-pli value could not be written");
+        attributeCount++;
+
+        STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtcp-fb");
+        SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%" PRId64 " nack", payloadType);
+        SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%" PRId64 " nack pli", payloadType);
         attributeCount++;
 
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtcp-fb");
@@ -603,17 +659,26 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
         // TODO: If level asymmetry is allowed, consider sending back DEFAULT_H264_FMTP instead of the received fmtp value.
         if (currentFmtp != NULL) {
             STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "fmtp");
-            SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%" PRId64 " %s", payloadType, currentFmtp);
+            amountWritten =
+                SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
+                         SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRId64 " %s", payloadType, currentFmtp);
+            CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full H264 fmtp value could not be written");
             attributeCount++;
         }
 
         if (containRtx) {
             STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtpmap");
-            SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%" PRId64 " " RTX_VALUE, rtxPayloadType);
+            amountWritten =
+                SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
+                         SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRId64 " " RTX_VALUE, rtxPayloadType);
+            CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full H264 rtpmap (with rtx) could not be written");
             attributeCount++;
 
             STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "fmtp");
-            SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%" PRId64 " apt=%" PRId64 "", rtxPayloadType, payloadType);
+            amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
+                                     SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRId64 " apt=%" PRId64 "",
+                                     rtxPayloadType, payloadType);
+            CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full H264 fmtp apt value (with rtx) could not be written");
             attributeCount++;
         }
     } else if (pRtcMediaStreamTrack->codec == RTC_CODEC_OPUS) {
@@ -622,61 +687,90 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
         }
 
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtpmap");
-        SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%" PRId64 " opus/48000/2", payloadType);
+        amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
+                                 SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRId64 " opus/48000/2", payloadType);
+        CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full Opus rtpmap could not be written");
         attributeCount++;
 
         if (currentFmtp != NULL) {
             STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "fmtp");
-            SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%" PRId64 " %s", payloadType, currentFmtp);
+            amountWritten =
+                SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
+                         SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRId64 " %s", payloadType, currentFmtp);
+            CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full Opus fmtp could not be written");
             attributeCount++;
         }
     } else if (pRtcMediaStreamTrack->codec == RTC_CODEC_VP8) {
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtpmap");
-        SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%" PRId64 " " VP8_VALUE, payloadType);
+        amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
+                                 SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRId64 " " VP8_VALUE, payloadType);
+        CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full VP8 rtpmap could not be written");
         attributeCount++;
 
         if (containRtx) {
             CHK_STATUS(hashTableGet(pKvsPeerConnection->pRtxTable, RTC_RTX_CODEC_VP8, &rtxPayloadType));
             STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtpmap");
-            SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%" PRId64 " " RTX_VALUE, rtxPayloadType);
+            amountWritten =
+                SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
+                         SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRId64 " " RTX_VALUE, rtxPayloadType);
+            CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full VP8 rtpmap payload type (with rtx) could not be written");
             attributeCount++;
 
             STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "fmtp");
-            SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%" PRId64 " apt=%" PRId64 "", rtxPayloadType, payloadType);
+            amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
+                                     SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRId64 " apt=%" PRId64 "",
+                                     rtxPayloadType, payloadType);
+            CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full VP8 rtpmap fmtp apt value (with rtx) could not be written");
             attributeCount++;
         }
     } else if (pRtcMediaStreamTrack->codec == RTC_CODEC_MULAW) {
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtpmap");
-        SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%" PRId64 " " MULAW_VALUE, payloadType);
+        amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
+                                 SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRId64 " " MULAW_VALUE, payloadType);
+        CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full MULAW rtpmap could not be written");
         attributeCount++;
     } else if (pRtcMediaStreamTrack->codec == RTC_CODEC_ALAW) {
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtpmap");
-        SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%" PRId64 " " ALAW_VALUE, payloadType);
+        amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
+                                 SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRId64 " " ALAW_VALUE, payloadType);
+        CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full ALAW rtpmap could not be written");
         attributeCount++;
     } else if (pRtcMediaStreamTrack->codec == RTC_CODEC_UNKNOWN) {
         CHK_STATUS(hashTableGet(pUnknownCodecRtpmapTable, unknownCodecHashTableKey, (PUINT64) &rtpMapValue));
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtpmap");
-        SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%" PRId64 " %s", payloadType, rtpMapValue);
+        amountWritten =
+            SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
+                     SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRId64 " %s", payloadType, rtpMapValue);
+        CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full Unknown rtpmap could not be written");
         attributeCount++;
     }
 
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ssrc");
-    SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%u cname:%s", pKvsRtpTransceiver->sender.ssrc,
-            pKvsPeerConnection->localCNAME);
+    amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
+                             SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%u cname:%s",
+                             pKvsRtpTransceiver->sender.ssrc, pKvsPeerConnection->localCNAME);
+    CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full transceiver ssrc cname could not be written");
     attributeCount++;
 
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ssrc");
-    SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%u msid:%s %s", pKvsRtpTransceiver->sender.ssrc,
-            pRtcMediaStreamTrack->streamId, pRtcMediaStreamTrack->trackId);
+    amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
+                             SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%u msid:%s %s",
+                             pKvsRtpTransceiver->sender.ssrc, pRtcMediaStreamTrack->streamId, pRtcMediaStreamTrack->trackId);
+    CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full transceiver ssrc msid could not be written");
     attributeCount++;
 
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtcp-fb");
-    SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%" PRId64 " goog-remb", payloadType);
+    amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
+                             SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRId64 " goog-remb", payloadType);
+    CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full rtcp-fb goog-remb could not be written");
     attributeCount++;
 
     if (pKvsPeerConnection->twccExtId != 0) {
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtcp-fb");
-        SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%" PRId64 " " TWCC_SDP_ATTR, payloadType);
+        amountWritten =
+            SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
+                     SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRId64 " " TWCC_SDP_ATTR, payloadType);
+        CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full rtcp-fb twcc could not be written");
         attributeCount++;
     }
 
@@ -694,8 +788,11 @@ STATUS populateSessionDescriptionDataChannel(PKvsPeerConnection pKvsPeerConnecti
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 attributeCount = 0;
+    INT32 amountWritten = 0;
 
-    SPRINTF(pSdpMediaDescription->mediaName, "application 9 UDP/DTLS/SCTP webrtc-datachannel");
+    amountWritten =
+        SNPRINTF(pSdpMediaDescription->mediaName, SIZEOF(pSdpMediaDescription->mediaName), "application 9 UDP/DTLS/SCTP webrtc-datachannel");
+    CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full data channel media name could not be written");
 
     CHK_STATUS(iceAgentPopulateSdpMediaDescriptionCandidates(pKvsPeerConnection->pIceAgent, pSdpMediaDescription, MAX_SDP_ATTRIBUTE_VALUE_LENGTH,
                                                              &attributeCount));
@@ -712,6 +809,12 @@ STATUS populateSessionDescriptionDataChannel(PKvsPeerConnection pKvsPeerConnecti
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, pKvsPeerConnection->localIcePwd);
     attributeCount++;
 
+    if (pKvsPeerConnection->canTrickleIce.value) {
+        STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ice-options");
+        STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "trickle");
+        attributeCount++;
+    }
+
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "fingerprint");
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "sha-256 ");
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue + 8, pCertificateFingerprint);
@@ -722,11 +825,15 @@ STATUS populateSessionDescriptionDataChannel(PKvsPeerConnection pKvsPeerConnecti
     attributeCount++;
 
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "mid");
-    SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%d", mediaSectionId);
+    amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
+                             SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%d", mediaSectionId);
+    CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full data channel mid media section could not be written");
     attributeCount++;
 
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "sctp-port");
-    SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "5000");
+    amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
+                             SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "5000");
+    CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full data channel sctp-port could not be written");
     attributeCount++;
 
     pSdpMediaDescription->mediaAttributesCount = attributeCount;
@@ -888,9 +995,7 @@ STATUS populateSessionDescription(PKvsPeerConnection pKvsPeerConnection, PSessio
     INT32 charsCopied;
 
     CHK(pKvsPeerConnection != NULL && pLocalSessionDescription != NULL && pRemoteSessionDescription != NULL, STATUS_NULL_ARG);
-
     CHK_STATUS(populateSessionDescriptionMedia(pKvsPeerConnection, pRemoteSessionDescription, pLocalSessionDescription));
-
     MEMSET(bundleValue, 0, MAX_SDP_ATTRIBUTE_VALUE_LENGTH);
     MEMSET(wmsValue, 0, MAX_SDP_ATTRIBUTE_VALUE_LENGTH);
     MEMSET(remoteSdpAttributeValue, 0, MAX_SDP_ATTRIBUTE_VALUE_LENGTH);
@@ -910,6 +1015,13 @@ STATUS populateSessionDescription(PKvsPeerConnection pKvsPeerConnection, PSessio
 
     STRCPY(pLocalSessionDescription->sdpAttributes[0].attributeName, "group");
     STRCPY(pLocalSessionDescription->sdpAttributes[0].attributeValue, BUNDLE_KEY);
+    pLocalSessionDescription->sessionAttributesCount++;
+
+    if (pKvsPeerConnection->canTrickleIce.value) {
+        STRCPY(pLocalSessionDescription->sdpAttributes[pLocalSessionDescription->sessionAttributesCount].attributeName, "ice-options");
+        STRCPY(pLocalSessionDescription->sdpAttributes[pLocalSessionDescription->sessionAttributesCount].attributeValue, "trickle");
+        pLocalSessionDescription->sessionAttributesCount++;
+    }
 
     // check all session attribute lines to see if a line with BUNDLE is present. If it is present, copy its content and break
     for (i = 0; i < pRemoteSessionDescription->sessionAttributesCount; i++) {
@@ -941,7 +1053,6 @@ STATUS populateSessionDescription(PKvsPeerConnection pKvsPeerConnection, PSessio
         STRCPY(pLocalSessionDescription->mediaDescriptions[i].sdpConnectionInformation.addressType, "IP4");
         STRCPY(pLocalSessionDescription->mediaDescriptions[i].sdpConnectionInformation.connectionAddress, "127.0.0.1");
     }
-    pLocalSessionDescription->sessionAttributesCount++;
 
     STRCPY(pLocalSessionDescription->sdpAttributes[pLocalSessionDescription->sessionAttributesCount].attributeName, "msid-semantic");
     STRCPY(pLocalSessionDescription->sdpAttributes[pLocalSessionDescription->sessionAttributesCount].attributeValue, " WMS myKvsVideoStream");

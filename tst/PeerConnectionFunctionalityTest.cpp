@@ -6,8 +6,7 @@ namespace kinesis {
 namespace video {
 namespace webrtcclient {
 
-class PeerConnectionFunctionalityTest : public WebRtcClientTestBase {
-};
+class PeerConnectionFunctionalityTest : public WebRtcClientTestBase {};
 
 // Assert that two PeerConnections can connect to each other and go to connected
 TEST_F(PeerConnectionFunctionalityTest, connectTwoPeers)
@@ -29,12 +28,40 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeers)
     freePeerConnection(&answerPc);
 }
 
+TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithAsyncGetIceConfigForceTurn)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION,
+             TEST_DEFAULT_STUN_URL_POSTFIX);
+    configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_RELAY;
+
+    initializeSignalingClient();
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    EXPECT_EQ(connectTwoPeersAsyncIce(offerPc, answerPc), TRUE);
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+
+    deinitializeSignalingClient();
+}
+
 TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithDelay)
 {
     RtcConfiguration configuration;
     RtcSessionDescriptionInit sdp;
     SIZE_T connectedCount = 0;
     PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    PeerContainer offer;
+    PeerContainer answer;
 
     MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
 
@@ -42,20 +69,34 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithDelay)
     EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
 
     auto onICECandidateHdlr = [](UINT64 customData, PCHAR candidateStr) -> void {
+        PPeerContainer container = (PPeerContainer)customData;
         if (candidateStr != NULL) {
-            std::thread(
-                [customData](std::string candidate) {
-                    RtcIceCandidateInit iceCandidate;
-                    EXPECT_EQ(STATUS_SUCCESS, deserializeRtcIceCandidateInit((PCHAR) candidate.c_str(), STRLEN(candidate.c_str()), &iceCandidate));
-                    EXPECT_EQ(STATUS_SUCCESS, addIceCandidate((PRtcPeerConnection) customData, iceCandidate.candidate));
-                },
-                std::string(candidateStr))
-                .detach();
+            container->client->lock.lock();
+            if(!container->client->noNewThreads) {
+                container->client->threads.push_back(std::thread(
+                    [container](std::string candidate) {
+                        RtcIceCandidateInit iceCandidate;
+                        EXPECT_EQ(STATUS_SUCCESS, deserializeRtcIceCandidateInit((PCHAR) candidate.c_str(), STRLEN(candidate.c_str()), &iceCandidate));
+                        EXPECT_EQ(STATUS_SUCCESS, addIceCandidate((PRtcPeerConnection) container->pc, iceCandidate.candidate));
+                    },
+                    std::string(candidateStr)));
+            }
+            container->client->lock.unlock();
         }
     };
 
-    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(offerPc, (UINT64) answerPc, onICECandidateHdlr));
-    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(answerPc, (UINT64) offerPc, onICECandidateHdlr));
+    offer.pc = offerPc;
+    offer.client = this;
+    answer.pc = answerPc;
+    answer.client = this;
+
+    auto onICECandidateHdlrDone = [](UINT64 customData, PCHAR candidateStr) -> void {
+        UNUSED_PARAM(customData);
+        UNUSED_PARAM(candidateStr);
+    };
+
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(offerPc, (UINT64) &answer, onICECandidateHdlr));
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(answerPc, (UINT64) &offer, onICECandidateHdlr));
 
     auto onICEConnectionStateChangeHdlr = [](UINT64 customData, RTC_PEER_CONNECTION_STATE newState) -> void {
         if (newState == RTC_PEER_CONNECTION_STATE_CONNECTED) {
@@ -82,6 +123,17 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithDelay)
     }
 
     EXPECT_EQ(2, connectedCount);
+
+    this->lock.lock();
+    //join all threads before leaving
+    for (auto& th : this->threads) th.join();
+
+    this->threads.clear();
+    this->noNewThreads = TRUE;
+    this->lock.unlock();
+
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(offerPc, (UINT64) 0, onICECandidateHdlrDone));
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(answerPc, (UINT64) 0, onICECandidateHdlrDone));
 
     closePeerConnection(offerPc);
     closePeerConnection(answerPc);
@@ -198,10 +250,12 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersForcedTURN)
     configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_RELAY;
 
     initializeSignalingClient();
-    getIceServers(&configuration);
 
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
     EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    getIceServers(&configuration, offerPc);
+    getIceServers(&configuration, answerPc);
 
     EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
 
@@ -292,10 +346,11 @@ TEST_F(PeerConnectionFunctionalityTest, sendDataWithClosedSocketConnectionWithFo
     configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_RELAY;
 
     initializeSignalingClient();
-    getIceServers(&configuration);
 
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
     EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+    getIceServers(&configuration, offerPc);
+    getIceServers(&configuration, answerPc);
 
     // addTrackToPeerConnection is necessary because we need to add a transceiver which will trigger the RTCP callback. The RTCP callback
     // will send application data. The expected behavior for the PeerConnection is to bail out when the socket connection that's being used
@@ -354,10 +409,12 @@ TEST_F(PeerConnectionFunctionalityTest, shutdownTurnDueToP2PFoundBeforeTurnEstab
     MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
 
     initializeSignalingClient();
-    getIceServers(&configuration);
 
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
     EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    getIceServers(&configuration, offerPc);
+    getIceServers(&configuration, answerPc);
 
     EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
 
@@ -416,10 +473,12 @@ TEST_F(PeerConnectionFunctionalityTest, shutdownTurnDueToP2PFoundAfterTurnEstabl
     MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
 
     initializeSignalingClient();
-    getIceServers(&configuration);
 
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
     EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    getIceServers(&configuration, offerPc);
+    getIceServers(&configuration, answerPc);
 
     auto onICECandidateHdlr = [](UINT64 customData, PCHAR candidateStr) -> void {
         PSIZE_T pDoneGatherCandidate = (PSIZE_T) customData;
@@ -603,6 +662,9 @@ TEST_F(PeerConnectionFunctionalityTest, noLostFramesAfterConnected)
     ATOMIC_BOOL seenFirstFrame = FALSE;
     Frame videoFrame;
 
+    PeerContainer offer;
+    PeerContainer answer;
+
     MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
     MEMSET(&videoFrame, 0x00, SIZEOF(Frame));
 
@@ -622,6 +684,33 @@ TEST_F(PeerConnectionFunctionalityTest, noLostFramesAfterConnected)
     addTrackToPeerConnection(offerPc, &offerVideoTrack, &offerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
     addTrackToPeerConnection(answerPc, &answerVideoTrack, &answerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
 
+    auto onICECandidateHdlr = [](UINT64 customData, PCHAR candidateStr) -> void {
+        PPeerContainer container = (PPeerContainer)customData;
+        if (candidateStr != NULL) {
+            container->client->lock.lock();
+            if(!container->client->noNewThreads) {
+                container->client->threads.push_back(std::thread(
+                    [container](std::string candidate) {
+                        RtcIceCandidateInit iceCandidate;
+                        EXPECT_EQ(STATUS_SUCCESS, deserializeRtcIceCandidateInit((PCHAR) candidate.c_str(), STRLEN(candidate.c_str()), &iceCandidate));
+                        EXPECT_EQ(STATUS_SUCCESS, addIceCandidate((PRtcPeerConnection) container->pc, iceCandidate.candidate));
+                    },
+                    std::string(candidateStr)));
+            }
+            container->client->lock.unlock();
+        }
+    };
+
+    offer.pc = offerPc;
+    offer.client = this;
+    answer.pc = answerPc;
+    answer.client = this;
+
+    auto onICECandidateHdlrDone = [](UINT64 customData, PCHAR candidateStr) -> void {
+        UNUSED_PARAM(customData);
+        UNUSED_PARAM(candidateStr);
+    };
+
     auto onFrameHandler = [](UINT64 customData, PFrame pFrame) -> void {
         UNUSED_PARAM(pFrame);
         if (pFrame->frameData[0] == 1) {
@@ -630,21 +719,8 @@ TEST_F(PeerConnectionFunctionalityTest, noLostFramesAfterConnected)
     };
     EXPECT_EQ(transceiverOnFrame(answerVideoTransceiver, (UINT64) &seenFirstFrame, onFrameHandler), STATUS_SUCCESS);
 
-    auto onICECandidateHdlr = [](UINT64 customData, PCHAR candidateStr) -> void {
-        if (candidateStr != NULL) {
-            std::thread(
-                [customData](std::string candidate) {
-                    RtcIceCandidateInit iceCandidate;
-                    EXPECT_EQ(STATUS_SUCCESS, deserializeRtcIceCandidateInit((PCHAR) candidate.c_str(), STRLEN(candidate.c_str()), &iceCandidate));
-                    EXPECT_EQ(STATUS_SUCCESS, addIceCandidate((PRtcPeerConnection) customData, iceCandidate.candidate));
-                },
-                std::string(candidateStr))
-                .detach();
-        }
-    };
-
-    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(offerPc, (UINT64) answerPc, onICECandidateHdlr));
-    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(answerPc, (UINT64) offerPc, onICECandidateHdlr));
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(offerPc, (UINT64) &answer, onICECandidateHdlr));
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(answerPc, (UINT64) &offer, onICECandidateHdlr));
 
     auto onICEConnectionStateChangeHdlr = [](UINT64 customData, RTC_PEER_CONNECTION_STATE newState) -> void {
         Context* pContext = (Context*) customData;
@@ -681,6 +757,16 @@ TEST_F(PeerConnectionFunctionalityTest, noLostFramesAfterConnected)
     for (auto i = 0; i <= 1000 && !ATOMIC_LOAD_BOOL(&seenFirstFrame); i++) {
         THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
     }
+
+    this->lock.lock();
+    for (auto& th : this->threads) th.join();
+
+    this->threads.clear();
+    this->noNewThreads = TRUE;
+    this->lock.unlock();
+
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(offerPc, (UINT64) 0, onICECandidateHdlrDone));
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(answerPc, (UINT64) 0, onICECandidateHdlrDone));
 
     MEMFREE(videoFrame.frameData);
     closePeerConnection(offerPc);
@@ -860,10 +946,12 @@ TEST_F(PeerConnectionFunctionalityTest, iceRestartTestForcedTurn)
     configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_RELAY;
 
     initializeSignalingClient();
-    getIceServers(&configuration);
 
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
     EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    getIceServers(&configuration, offerPc);
+    getIceServers(&configuration, answerPc);
 
     EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
 
@@ -893,10 +981,12 @@ TEST_F(PeerConnectionFunctionalityTest, peerConnectionOfferCloseConnection)
     MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
 
     initializeSignalingClient();
-    getIceServers(&configuration);
 
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
     EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    getIceServers(&configuration, offerPc);
+    getIceServers(&configuration, answerPc);
 
     EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
 
@@ -919,10 +1009,12 @@ TEST_F(PeerConnectionFunctionalityTest, peerConnectionAnswerCloseConnection)
     MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
 
     initializeSignalingClient();
-    getIceServers(&configuration);
 
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
     EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    getIceServers(&configuration, offerPc);
+    getIceServers(&configuration, answerPc);
 
     EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
 
@@ -960,10 +1052,12 @@ TEST_F(PeerConnectionFunctionalityTest, DISABLED_exchangeMediaThroughTurnRandomS
         for (int i = 0; i < iteration; ++i) {
             MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
             configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_RELAY;
-            getIceServers(&configuration);
 
             EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
             EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+            getIceServers(&configuration, offerPc);
+            getIceServers(&configuration, answerPc);
 
             addTrackToPeerConnection(offerPc, &offerVideoTrack, &offerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
             addTrackToPeerConnection(offerPc, &offerAudioTrack, &offerAudioTransceiver, RTC_CODEC_OPUS, MEDIA_STREAM_TRACK_KIND_AUDIO);
@@ -980,7 +1074,7 @@ TEST_F(PeerConnectionFunctionalityTest, DISABLED_exchangeMediaThroughTurnRandomS
             MEMSET(stateChangeCount, 0x00, SIZEOF(stateChangeCount));
             EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
 
-            streamingTimeMs = (UINT64)(RAND() % (maxStreamingDurationMs - minStreamingDurationMs)) + minStreamingDurationMs;
+            streamingTimeMs = (UINT64) (RAND() % (maxStreamingDurationMs - minStreamingDurationMs)) + minStreamingDurationMs;
             DLOGI("Stop streaming after %u milliseconds.", streamingTimeMs);
 
             auto sendVideoWorker = [](PRtcRtpTransceiver pRtcRtpTransceiver, Frame frame, PSIZE_T pTerminationFlag) -> void {
@@ -1020,6 +1114,212 @@ TEST_F(PeerConnectionFunctionalityTest, DISABLED_exchangeMediaThroughTurnRandomS
     repeatedStreamingRandomStop(30, 1000, 500, FALSE);
 
     deinitializeSignalingClient();
+}
+
+// Check that even when multiple successful candidate pairs are found, only one dtls negotiation takes place
+// and that it is on the same candidate throughout the connection.
+TEST_F(PeerConnectionFunctionalityTest, multipleCandidateSuccessOneDTLSCheck)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+
+    // This test can succeed if the highest priority candidate pair happens to be the first one
+    // to be nominated, even if the DTLS is broken. To be sure that this issue is fixed we want to
+    // run the test 10 times and have it never break once in that cycle.
+    for (auto i = 0; i < 10; i++) {
+        offerPc = NULL;
+        answerPc = NULL;
+        MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+
+        EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+        EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+        // create a callback that can check values at every state of the ice agent state machine
+        auto masterOnIceConnectionStateChangeTest = [](UINT64 customData, UINT64 connectionState) -> void {
+            static PIceCandidatePair pSendingPair;
+            PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) customData;
+            // still use normal callback
+            onIceConnectionStateChange(customData, connectionState);
+            switch (connectionState) {
+                case ICE_AGENT_STATE_CHECK_CONNECTION:
+                    // sleep(1);
+                    break;
+                case ICE_AGENT_STATE_CONNECTED:
+                    if (pKvsPeerConnection->pIceAgent->pDataSendingIceCandidatePair != NULL) {
+                        pSendingPair = pKvsPeerConnection->pIceAgent->pDataSendingIceCandidatePair;
+                    }
+                    break;
+                case ICE_AGENT_STATE_READY:
+                    if (pSendingPair != NULL) {
+                        EXPECT_EQ(pSendingPair, pKvsPeerConnection->pIceAgent->pDataSendingIceCandidatePair);
+                        pSendingPair = NULL;
+                    }
+                    break;
+                default:
+                    break;
+            }
+        };
+
+        auto viewerOnIceConnectionStateChangeTest = [](UINT64 customData, UINT64 connectionState) -> void {
+            PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) customData;
+            PIceAgent pIceAgent = pKvsPeerConnection->pIceAgent;
+            PDoubleListNode pCurNode = NULL;
+            PIceCandidatePair pIceCandidatePair;
+            BOOL locked = FALSE;
+            // still use normal callback
+            onIceConnectionStateChange(customData, connectionState);
+            switch (connectionState) {
+                case ICE_AGENT_STATE_CONNECTED:
+                    // send 'USE_CANDIDATE' for every ice candidate pair
+                    MUTEX_LOCK(pIceAgent->lock);
+                    locked = TRUE;
+                    doubleListGetHeadNode(pIceAgent->iceCandidatePairs, &pCurNode);
+                    while (pCurNode != NULL) {
+                        pIceCandidatePair = (PIceCandidatePair) pCurNode->data;
+                        pCurNode = pCurNode->pNext;
+
+                        pIceCandidatePair->nominated = TRUE;
+                    }
+                    if (locked) {
+                        MUTEX_UNLOCK(pIceAgent->lock);
+                    }
+
+                    break;
+                default:
+                    break;
+            }
+        };
+
+        // overwrite normal callback
+        ((PKvsPeerConnection) answerPc)->pIceAgent->iceAgentCallbacks.connectionStateChangedFn = masterOnIceConnectionStateChangeTest;
+        ((PKvsPeerConnection) offerPc)->pIceAgent->iceAgentCallbacks.connectionStateChangedFn = viewerOnIceConnectionStateChangeTest;
+
+        EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+
+        closePeerConnection(offerPc);
+        closePeerConnection(answerPc);
+
+        freePeerConnection(&offerPc);
+        freePeerConnection(&answerPc);
+        MEMSET(this->stateChangeCount, 0, SIZEOF(SIZE_T) * RTC_PEER_CONNECTION_TOTAL_STATE_COUNT);
+        if (::testing::Test::HasFailure()) {
+            break;
+        }
+    }
+}
+
+// Check that even when multiple successful candidate pairs are found, only one dtls negotiation takes place
+// and that it is on the same candidate throughout the connection. This time setting the viewer to use
+// aggressive nomination
+TEST_F(PeerConnectionFunctionalityTest, aggressiveNominationDTLSRaceConditionCheck)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+
+    // This test can succeed if the highest priority candidate pair happens to be the first one
+    // to be nominated, even if the DTLS is broken. To be sure that this issue is fixed we want to
+    // run the test 10 times and have it never break once in that cycle.
+    for (auto i = 0; i < 10; i++) {
+        offerPc = NULL;
+        answerPc = NULL;
+        MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+
+        EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+        EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+        // create a callback that can check values at every state of the ice agent state machine
+        auto masterOnIceConnectionStateChangeTest = [](UINT64 customData, UINT64 connectionState) -> void {
+            static PIceCandidatePair pSendingPair;
+            PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) customData;
+            // still use normal callback
+            onIceConnectionStateChange(customData, connectionState);
+            switch (connectionState) {
+                case ICE_AGENT_STATE_CHECK_CONNECTION:
+                    // sleep(1);
+                    break;
+                case ICE_AGENT_STATE_CONNECTED:
+                    if (pKvsPeerConnection->pIceAgent->pDataSendingIceCandidatePair != NULL) {
+                        pSendingPair = pKvsPeerConnection->pIceAgent->pDataSendingIceCandidatePair;
+                    }
+                    break;
+                case ICE_AGENT_STATE_READY:
+                    if (pSendingPair != NULL) {
+                        EXPECT_EQ(pSendingPair, pKvsPeerConnection->pIceAgent->pDataSendingIceCandidatePair);
+                        pSendingPair = NULL;
+                    }
+                    break;
+                default:
+                    break;
+            }
+        };
+
+        auto viewerOnIceConnectionStateChangeTest = [](UINT64 customData, UINT64 connectionState) -> void {
+            static BOOL setUseCandidate = FALSE;
+            PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) customData;
+            PIceAgent pIceAgent = pKvsPeerConnection->pIceAgent;
+            PDoubleListNode pCurNode = NULL;
+            PIceCandidatePair pIceCandidatePair;
+            BOOL locked = FALSE;
+            // still use normal callback
+            onIceConnectionStateChange(customData, connectionState);
+            switch (connectionState) {
+                case ICE_AGENT_STATE_CHECK_CONNECTION:
+                    MUTEX_LOCK(pIceAgent->lock);
+                    locked = TRUE;
+                    if (!setUseCandidate) {
+                        setUseCandidate = TRUE;
+                        appendStunFlagAttribute(pIceAgent->pBindingRequest, STUN_ATTRIBUTE_TYPE_USE_CANDIDATE);
+                    }
+                    doubleListGetHeadNode(pIceAgent->iceCandidatePairs, &pCurNode);
+                    while (pCurNode != NULL) {
+                        pIceCandidatePair = (PIceCandidatePair) pCurNode->data;
+                        pCurNode = pCurNode->pNext;
+
+                        pIceCandidatePair->nominated = TRUE;
+                        iceCandidatePairCheckConnection(pIceAgent->pBindingRequest, pIceAgent, pIceCandidatePair);
+                    }
+                    if (locked) {
+                        MUTEX_UNLOCK(pIceAgent->lock);
+                    }
+                    break;
+                case ICE_AGENT_STATE_CONNECTED:
+                    // send 'USE_CANDIDATE' for every ice candidate pair
+                    setUseCandidate = FALSE;
+                    MUTEX_LOCK(pIceAgent->lock);
+                    locked = TRUE;
+                    doubleListGetHeadNode(pIceAgent->iceCandidatePairs, &pCurNode);
+                    while (pCurNode != NULL) {
+                        pIceCandidatePair = (PIceCandidatePair) pCurNode->data;
+                        pCurNode = pCurNode->pNext;
+
+                        pIceCandidatePair->nominated = TRUE;
+                    }
+                    if (locked) {
+                        MUTEX_UNLOCK(pIceAgent->lock);
+                    }
+
+                    break;
+                default:
+                    break;
+            }
+        };
+
+        // overwrite normal callback
+        ((PKvsPeerConnection) answerPc)->pIceAgent->iceAgentCallbacks.connectionStateChangedFn = masterOnIceConnectionStateChangeTest;
+        ((PKvsPeerConnection) offerPc)->pIceAgent->iceAgentCallbacks.connectionStateChangedFn = viewerOnIceConnectionStateChangeTest;
+
+        EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+
+        closePeerConnection(offerPc);
+        closePeerConnection(answerPc);
+
+        freePeerConnection(&offerPc);
+        freePeerConnection(&answerPc);
+        MEMSET(this->stateChangeCount, 0, SIZEOF(SIZE_T) * RTC_PEER_CONNECTION_TOTAL_STATE_COUNT);
+        if (::testing::Test::HasFailure()) {
+            break;
+        }
+    }
 }
 
 } // namespace webrtcclient

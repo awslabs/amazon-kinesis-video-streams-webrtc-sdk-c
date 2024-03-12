@@ -46,6 +46,23 @@ extern "C" {
         DLOGP("[%s] Time taken: %" PRIu64 " ms", msg, (GETTIME() - (t)) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);                                       \
     } while (FALSE)
 
+#define PROFILE_CALL_WITH_START_END_T_OBJ(f, s, e, d, msg)                                                                                           \
+    do {                                                                                                                                             \
+        s = GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;                                                                                          \
+        f;                                                                                                                                           \
+        e = GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;                                                                                          \
+        d = ((e) - (s));                                                                                                                             \
+        DLOGP("[%s] Time taken: %" PRIu64 " ms", (msg), (d));                                                                                        \
+    } while (FALSE)
+
+#define PROFILE_WITH_START_END_TIME_OBJ(t1, t2, d, msg)                                                                                              \
+    do {                                                                                                                                             \
+        t1 = (t1 / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);                                                                                              \
+        t2 = (GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);                                                                                       \
+        d = ((t2) - (t1));                                                                                                                           \
+        DLOGP("[%s] Time taken: %" PRIu64 " ms", (msg), (d));                                                                                        \
+    } while (FALSE)
+
 #define PROFILE_WITH_START_TIME_OBJ(t1, t2, msg)                                                                                                     \
     do {                                                                                                                                             \
         t2 = (GETTIME() - (t1)) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;                                                                                \
@@ -191,7 +208,7 @@ extern "C" {
 #define STATUS_SSL_PACKET_BEFORE_DTLS_READY               STATUS_DTLS_BASE + 0x00000004
 #define STATUS_SSL_UNKNOWN_SRTP_PROFILE                   STATUS_DTLS_BASE + 0x00000005
 #define STATUS_SSL_INVALID_CERTIFICATE_BITS               STATUS_DTLS_BASE + 0x00000006
-
+#define STATUS_DTLS_SESSION_ALREADY_FREED                 STATUS_DTLS_BASE + 0x00000007
 /*!@} */
 
 /////////////////////////////////////////////////////
@@ -236,7 +253,10 @@ extern "C" {
 #define STATUS_TURN_CONNECTION_PEER_NOT_USABLE                             STATUS_ICE_BASE + 0x00000027
 #define STATUS_ICE_SERVER_INDEX_INVALID                                    STATUS_ICE_BASE + 0x00000028
 #define STATUS_ICE_CANDIDATE_STRING_MISSING_TYPE                           STATUS_ICE_BASE + 0x00000029
-#define STATUS_TURN_CONNECTION_ALLOCAITON_FAILED                           STATUS_ICE_BASE + 0x0000002a
+#define STATUS_TURN_CONNECTION_ALLOCATION_FAILED                           STATUS_ICE_BASE + 0x0000002a
+#define STATUS_TURN_INVALID_STATE                                          STATUS_ICE_BASE + 0x0000002b
+#define STATUS_TURN_CONNECTION_GET_CREDENTIALS_FAILED                      STATUS_ICE_BASE + 0x0000002c
+
 /*!@} */
 
 /////////////////////////////////////////////////////
@@ -356,6 +376,7 @@ extern "C" {
 #define STATUS_PEERCONNECTION_CREATE_ANSWER_WITHOUT_REMOTE_DESCRIPTION STATUS_PEERCONNECTION_BASE + 0x00000001
 #define STATUS_PEERCONNECTION_CODEC_INVALID                            STATUS_PEERCONNECTION_BASE + 0x00000002
 #define STATUS_PEERCONNECTION_CODEC_MAX_EXCEEDED                       STATUS_PEERCONNECTION_BASE + 0x00000003
+#define STATUS_PEERCONNECTION_EARLY_DNS_RESOLUTION_FAILED              STATUS_PEERCONNECTION_BASE + 0x00000004
 /*!@} */
 
 /////////////////////////////////////////////////////
@@ -639,6 +660,26 @@ extern "C" {
  */
 #define SIGNALING_CONNECT_TIMEOUT (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
+/**
+ * Default minimum number of threads in the threadpool for the SDK
+ */
+#define THREADPOOL_MIN_THREADS 3
+
+/**
+ * Default maximum number of threads in the threadpool for the SDK
+ */
+#define THREADPOOL_MAX_THREADS 10
+
+/**
+ * Env to set minimum number of threads in the threadpool for the KVS SDK
+ */
+#define WEBRTC_THREADPOOL_MIN_THREADS_ENV_VAR (PCHAR) "AWS_KVS_WEBRTC_THREADPOOL_MIN_THREADS"
+
+/**
+ * Env to set maximum number of threads in the threadpool for the SDK
+ */
+#define WEBRTC_THREADPOOL_MAX_THREADS_ENV_VAR (PCHAR) "AWS_KVS_WEBRTC_THREADPOOL_MAX_THREADS"
+
 #ifdef _WIN32
 /**
  * Default timeout for sending data
@@ -686,9 +727,10 @@ extern "C" {
 /**
  * Parameterized string for KVS STUN Server
  */
-#define KINESIS_VIDEO_STUN_URL_POSTFIX    "amazonaws.com"
-#define KINESIS_VIDEO_STUN_URL_POSTFIX_CN "amazonaws.com.cn"
-#define KINESIS_VIDEO_STUN_URL            "stun:stun.kinesisvideo.%s.%s:443"
+#define KINESIS_VIDEO_STUN_URL_POSTFIX      "amazonaws.com"
+#define KINESIS_VIDEO_STUN_URL_POSTFIX_CN   "amazonaws.com.cn"
+#define KINESIS_VIDEO_STUN_URL              "stun:stun.kinesisvideo.%s.%s:443"
+#define KINESIS_VIDEO_STUN_URL_WITHOUT_PORT "stun.kinesisvideo.%s.%s"
 
 /**
  * Default signaling SSL port
@@ -1139,7 +1181,7 @@ typedef struct {
                                           //!< USE_CANDIDATE attribute. If client is ice controlled, this is the timeout for receiving binding request
                                           //!< that has USE_CANDIDATE attribute after connection check is done. Use default value if 0.
 
-    UINT32 iceConnectionCheckPollingInterval; //!< Ta in https://tools.ietf.org/html/rfc8445
+    UINT32 iceConnectionCheckPollingInterval; //!< Ta in https://datatracker.ietf.org/doc/html/rfc8445#section-14.2
                                               //!< rate at which binding request packets are sent during connection check. Use default interval if 0.
 
     INT32 generatedCertificateBits; //!< GeneratedCertificateBits controls the amount of bits the locally generated self-signed certificate uses
@@ -1201,6 +1243,7 @@ typedef struct {
  */
 typedef struct {
     SDP_TYPE type;                                      //!< Indicates an offer/answer SDP type
+    BOOL useTrickleIce;                                 //!< Indicates if an offer should set trickle ice
     CHAR sdp[MAX_SESSION_DESCRIPTION_INIT_SDP_LEN + 1]; //!< SDP Data containing media capabilities, transport addresses
                                                         //!< and related metadata in a transport agnostic manner
                                                         //!<
@@ -1264,10 +1307,10 @@ typedef struct {
                                                                //!< being used this value can be NULL or point to an EMPTY_STRING.
     KvsRetryStrategyCallbacks signalingRetryStrategyCallbacks; //!< Retry strategy callbacks used while creating signaling client
     INT32 signalingClientCreationMaxRetryAttempts;             //!< Max attempts to create signaling client before returning error to the caller
-    UINT32 stateMachineRetryCountReadOnly; //!< Retry count of state machine. Note that this **MUST NOT** be modified by the user. It is a read only
-                                           //!< field
-    UINT32 signalingMessagesMinimumThreads;
-    UINT32 signalingMessagesMaximumThreads;
+    UINT32 stateMachineRetryCountReadOnly;  //!< Retry count of state machine. Note that this **MUST NOT** be modified by the user. It is a read only
+                                            //!< field
+    UINT32 signalingMessagesMinimumThreads; //!< Unused field post v1.8.1
+    UINT32 signalingMessagesMaximumThreads; //!< Unused field post v1.8.1
 } SignalingClientInfo, *PSignalingClientInfo;
 
 /**
@@ -1506,7 +1549,10 @@ typedef struct {
  * @brief SignalingStats Collection of signaling related stats. Can be expanded in the future
  */
 typedef struct {
-    UINT32 version;                            //!< Structure version
+    UINT32 version; //!< Structure version
+    UINT64 signalingStartTime;
+    UINT64 signalingEndTime;
+    UINT64 signalingCallTime;
     SignalingClientStats signalingClientStats; //!< Signaling client metrics stats. Reference in Stats.h
 } SignalingClientMetrics, *PSignalingClientMetrics;
 
@@ -1572,6 +1618,16 @@ typedef struct {
  * @return STATUS code of the execution. STATUS_SUCCESS on success
  */
 PUBLIC_API STATUS createPeerConnection(PRtcConfiguration, PRtcPeerConnection*);
+
+/**
+ * @brief Give peer connection an ice config to add to its server list
+ *
+ * @param[in] PRtcPeerConnection* initialized RtcPeerConnection
+ * @param[in] PIceConfigInfo Ice config info to add to this peer connection
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
+PUBLIC_API STATUS addConfigToServerList(PRtcPeerConnection*, PIceConfigInfo);
 
 /**
  * @brief Free a RtcPeerConnection
@@ -1648,6 +1704,16 @@ PUBLIC_API STATUS peerConnectionGetLocalDescription(PRtcPeerConnection, PRtcSess
  * @return STATUS code of the execution. STATUS_SUCCESS on success
  */
 PUBLIC_API STATUS peerConnectionGetCurrentLocalDescription(PRtcPeerConnection, PRtcSessionDescriptionInit);
+
+/**
+ * Allows use of internal threadpool
+ *
+ * @param[in] startRoutine function pointer to execute in threadpool
+ * @param[in] PVOID void pointer to pass to function pointer
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
+PUBLIC_API STATUS peerConnectionAsync(startRoutine fn, PVOID data);
 
 /**
  * @brief Populate the provided answer that contains an RFC 3264 offer
