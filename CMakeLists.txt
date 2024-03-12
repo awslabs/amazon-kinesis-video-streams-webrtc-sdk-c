@@ -5,7 +5,7 @@ include(CheckIncludeFiles)
 include(CheckFunctionExists)
 
 # The version MUST be updated before every release
-project(KinesisVideoWebRTCClient VERSION 1.10.1 LANGUAGES C)
+project(KinesisVideoWebRTCClient VERSION 1.10.0 LANGUAGES C)
 
 
 
