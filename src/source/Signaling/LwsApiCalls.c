@@ -1041,11 +1041,11 @@ STATUS createChannelLws(PSignalingClient pSignalingClient, UINT64 time)
     retSignal = Signaling_parseCreateSignalingChannelResponse(&pSignalingClient->signalContext, pResponseStr, resultLen, &createChannelResponse);
     CHK(retSignal == SIGNALING_RESULT_OK, retSignal);
 
-    if (createChannelResponse.channelInfo.pChannelArn != NULL) {
-        CHK(createChannelResponse.channelInfo.channelArnLength <= MAX_ARN_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
+    if (createChannelResponse.pChannelArn != NULL) {
+        CHK(createChannelResponse.channelArnLength <= MAX_ARN_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
 
-        STRNCPY(pSignalingClient->channelDescription.channelArn, createChannelResponse.channelInfo.pChannelArn, createChannelResponse.channelInfo.channelArnLength);
-        pSignalingClient->channelDescription.channelArn[createChannelResponse.channelInfo.channelArnLength] = '\0';
+        STRNCPY(pSignalingClient->channelDescription.channelArn, createChannelResponse.pChannelArn, createChannelResponse.channelArnLength);
+        pSignalingClient->channelDescription.channelArn[createChannelResponse.channelArnLength] = '\0';
     }
 
     // Perform some validation on the channel description

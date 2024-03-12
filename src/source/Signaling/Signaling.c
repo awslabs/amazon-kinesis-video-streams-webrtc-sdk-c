@@ -22,7 +22,7 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     BOOL cacheFound = FALSE;
     PSignalingFileCacheEntry pFileCacheEntry = NULL;
     SignalingResult_t retSignal;
-    SignalingCreate_t signalCreate;
+    SignalingAwsControlPlaneInfo_t awsControlPlaneInfo;
 
     CHK(pClientInfo != NULL && pChannelInfo != NULL && pCallbacks != NULL && pCredentialProvider != NULL && ppSignalingClient != NULL,
         STATUS_NULL_ARG);
@@ -166,17 +166,17 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     // Create the ongoing message list
     CHK_STATUS(stackQueueCreate(&pSignalingClient->pMessageQueue));
 
-    MEMSET(&signalCreate, 0x00, sizeof(SignalingCreate_t));
+    MEMSET(&awsControlPlaneInfo, 0x00, sizeof(SignalingAwsControlPlaneInfo_t));
     if (pSignalingClient->pChannelInfo->pControlPlaneUrl != NULL) {
-        signalCreate.controlPlaneUrlLength = strlen(pSignalingClient->pChannelInfo->pControlPlaneUrl);
-        signalCreate.pControlPlaneUrl = pSignalingClient->pChannelInfo->pControlPlaneUrl;
+        awsControlPlaneInfo.controlPlaneUrlLength = strlen(pSignalingClient->pChannelInfo->pControlPlaneUrl);
+        awsControlPlaneInfo.pControlPlaneUrl = pSignalingClient->pChannelInfo->pControlPlaneUrl;
     }
     if (pSignalingClient->pChannelInfo->pRegion != NULL) {
-        signalCreate.regionLength = strlen(pSignalingClient->pChannelInfo->pRegion);
-        signalCreate.pRegion = pSignalingClient->pChannelInfo->pRegion;
+        awsControlPlaneInfo.regionLength = strlen(pSignalingClient->pChannelInfo->pRegion);
+        awsControlPlaneInfo.pRegion = pSignalingClient->pChannelInfo->pRegion;
     }
-    retSignal = Signaling_createSignaling(&pSignalingClient->signalContext,
-                                    &signalCreate);
+    retSignal = Signaling_Init(&pSignalingClient->signalContext,
+                               &awsControlPlaneInfo);
     CHK(retSignal == SIGNALING_RESULT_OK, STATUS_INVALID_OPERATION);
 
     pSignalingClient->pLwsContext = lws_create_context(&creationInfo);
