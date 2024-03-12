@@ -99,15 +99,13 @@ $(document).ready(function(){initNavTree('Serialize_8c.html',''); initResizable(
 </div><!--header-->
 <div class="contents">
 <div class="textblock"><code>#include &quot;<a class="el" href="Include__i_8h_source.html">../Include_i.h</a>&quot;</code><br />
-<code>#include &quot;kvssdp/sdp_serializer.h&quot;</code><br />
 </div><div class="textblock"><div class="dynheader">
 Include dependency graph for Serialize.c:</div>
 <div class="dyncontent">
 <div class="center"><img src="Serialize_8c__incl.png" border="0" usemap="#asrc_2source_2Sdp_2Serialize_8c" alt=""/></div>
 <map name="asrc_2source_2Sdp_2Serialize_8c" id="asrc_2source_2Sdp_2Serialize_8c">
-<area shape="rect" title=" " alt="" coords="3223,5,3410,32"/>
-<area shape="rect" href="Include__i_8h.html" title=" " alt="" coords="3183,80,3287,107"/>
-<area shape="rect" title=" " alt="" coords="3311,80,3485,107"/>
+<area shape="rect" title=" " alt="" coords="3205,5,3391,32"/>
+<area shape="rect" href="Include__i_8h.html" title=" " alt="" coords="3246,80,3350,107"/>
 <area shape="rect" href="Include_8h.html" title=" " alt="" coords="5,155,215,196"/>
 <area shape="rect" title=" " alt="" coords="239,162,335,189"/>
 <area shape="rect" title=" " alt="" coords="360,162,441,189"/>
@@ -155,18 +153,31 @@ Include dependency graph for Serialize.c:</div>
 <area shape="rect" href="Rtp_8h.html" title=" " alt="" coords="7334,162,7497,189"/>
 <area shape="rect" href="Rtcp_8h.html" title=" " alt="" coords="7521,162,7691,189"/>
 <area shape="rect" href="DataChannel_8h.html" title=" " alt="" coords="7715,162,7939,189"/>
+<area shape="rect" href="RtpVP8Payloader_8h.html" title=" " alt="" coords="7963,162,8185,189"/>
 </map>
 </div>
 </div><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="define-members"></a>
 Macros</h2></td></tr>
-<tr class="memitem:a7207e343606b6631ce2556bf7411b833"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Serialize_8c.html#a7207e343606b6631ce2556bf7411b833">LOG_CLASS</a>&#160;&#160;&#160;&quot;SDPSerialize&quot;</td></tr>
+<tr class="memitem:a7207e343606b6631ce2556bf7411b833"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Serialize_8c.html#a7207e343606b6631ce2556bf7411b833">LOG_CLASS</a>&#160;&#160;&#160;&quot;SDP&quot;</td></tr>
 <tr class="separator:a7207e343606b6631ce2556bf7411b833"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
-<tr class="memitem:a0143bf5f0f5daf444644297d8dc2721c"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Serialize_8c.html#a0143bf5f0f5daf444644297d8dc2721c">convertSdpErrorCode</a> (SdpResult_t sdpResult)</td></tr>
-<tr class="separator:a0143bf5f0f5daf444644297d8dc2721c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a864e3e307a205326f3cd134c7492f35f"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Serialize_8c.html#a864e3e307a205326f3cd134c7492f35f">serializeVersion</a> (UINT64 version, PCHAR *ppOutputData, PUINT32 pTotalWritten, PUINT32 pBufferSize)</td></tr>
+<tr class="separator:a864e3e307a205326f3cd134c7492f35f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:acd10030eccbfc928aa360fc45f69c47c"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Serialize_8c.html#acd10030eccbfc928aa360fc45f69c47c">serializeOrigin</a> (<a class="el" href="Sdp_8h.html#a2181dab563022e33dbef5fe86382920e">PSdpOrigin</a> pSDPOrigin, PCHAR *ppOutputData, PUINT32 pTotalWritten, PUINT32 pBufferSize)</td></tr>
+<tr class="separator:acd10030eccbfc928aa360fc45f69c47c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5ba4149920c4aa1834e1eb78987b4320"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Serialize_8c.html#a5ba4149920c4aa1834e1eb78987b4320">serializeSessionName</a> (PCHAR sessionName, PCHAR *ppOutputData, PUINT32 pTotalWritten, PUINT32 pBufferSize)</td></tr>
+<tr class="separator:a5ba4149920c4aa1834e1eb78987b4320"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a16b10a96a9a84967e5aa8133c65ec33e"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Serialize_8c.html#a16b10a96a9a84967e5aa8133c65ec33e">serializeTimeDescription</a> (<a class="el" href="Sdp_8h.html#a2a5e03ac1a95dd241c18ce9f66e2405d">PSdpTimeDescription</a> pSDPTimeDescription, PCHAR *ppOutputData, PUINT32 pTotalWritten, PUINT32 pBufferSize)</td></tr>
+<tr class="separator:a16b10a96a9a84967e5aa8133c65ec33e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afa5128b447f8dfb2d9bf224d9d720db4"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Serialize_8c.html#afa5128b447f8dfb2d9bf224d9d720db4">serializeAttribute</a> (<a class="el" href="Sdp_8h.html#a55551fdbca296ff3dd98a7fbcc62f489">PSdpAttributes</a> pSDPAttributes, PCHAR *ppOutputData, PUINT32 pTotalWritten, PUINT32 pBufferSize)</td></tr>
+<tr class="separator:afa5128b447f8dfb2d9bf224d9d720db4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac0699e6126a01fe054413d26b9348343"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Serialize_8c.html#ac0699e6126a01fe054413d26b9348343">serializeMediaName</a> (PCHAR pMediaName, PCHAR *ppOutputData, PUINT32 pTotalWritten, PUINT32 pBufferSize)</td></tr>
+<tr class="separator:ac0699e6126a01fe054413d26b9348343"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a96dd428f998a5119c4c210ddf6e06810"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Serialize_8c.html#a96dd428f998a5119c4c210ddf6e06810">serializeMediaConnectionInformation</a> (<a class="el" href="Sdp_8h.html#a799b39629a8831062e9ea377956dcc61">PSdpConnectionInformation</a> pSdpConnectionInformation, PCHAR *ppOutputData, PUINT32 pTotalWritten, PUINT32 pBufferSize)</td></tr>
+<tr class="separator:a96dd428f998a5119c4c210ddf6e06810"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9c41cb60fca74b4572e2fe2bc816b919"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Serialize_8c.html#a9c41cb60fca74b4572e2fe2bc816b919">serializeSessionDescription</a> (<a class="el" href="Sdp_8h.html#a86a0fabaaede539d9a2d496fa5911d54">PSessionDescription</a> pSessionDescription, PCHAR sdpBytes, PUINT32 sdpBytesLength)</td></tr>
 <tr class="separator:a9c41cb60fca74b4572e2fe2bc816b919"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
@@ -178,7 +189,7 @@ Functions</h2></td></tr>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">#define LOG_CLASS&#160;&#160;&#160;&quot;SDPSerialize&quot;</td>
+          <td class="memname">#define LOG_CLASS&#160;&#160;&#160;&quot;SDP&quot;</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -186,27 +197,208 @@ Functions</h2></td></tr>
 </div>
 </div>
 <h2 class="groupheader">Function Documentation</h2>
-<a id="a0143bf5f0f5daf444644297d8dc2721c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a0143bf5f0f5daf444644297d8dc2721c">&#9670;&nbsp;</a></span>convertSdpErrorCode()</h2>
+<a id="afa5128b447f8dfb2d9bf224d9d720db4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afa5128b447f8dfb2d9bf224d9d720db4">&#9670;&nbsp;</a></span>serializeAttribute()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">STATUS convertSdpErrorCode </td>
+          <td class="memname">STATUS serializeAttribute </td>
           <td>(</td>
-          <td class="paramtype">SdpResult_t&#160;</td>
-          <td class="paramname"><em>sdpResult</em></td><td>)</td>
+          <td class="paramtype"><a class="el" href="Sdp_8h.html#a55551fdbca296ff3dd98a7fbcc62f489">PSdpAttributes</a>&#160;</td>
+          <td class="paramname"><em>pSDPAttributes</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
           <td></td>
+          <td class="paramtype">PCHAR *&#160;</td>
+          <td class="paramname"><em>ppOutputData</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">PUINT32&#160;</td>
+          <td class="paramname"><em>pTotalWritten</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">PUINT32&#160;</td>
+          <td class="paramname"><em>pBufferSize</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
         </tr>
       </table>
 </div><div class="memdoc">
 <div class="dynheader">
 Here is the caller graph for this function:</div>
 <div class="dyncontent">
-<div class="center"><img src="Serialize_8c_a0143bf5f0f5daf444644297d8dc2721c_icgraph.png" border="0" usemap="#aSerialize_8c_a0143bf5f0f5daf444644297d8dc2721c_icgraph" alt=""/></div>
-<map name="aSerialize_8c_a0143bf5f0f5daf444644297d8dc2721c_icgraph" id="aSerialize_8c_a0143bf5f0f5daf444644297d8dc2721c_icgraph">
-<area shape="rect" title=" " alt="" coords="716,64,875,91"/>
+<div class="center"><img src="Serialize_8c_afa5128b447f8dfb2d9bf224d9d720db4_icgraph.png" border="0" usemap="#aSerialize_8c_afa5128b447f8dfb2d9bf224d9d720db4_icgraph" alt=""/></div>
+<map name="aSerialize_8c_afa5128b447f8dfb2d9bf224d9d720db4_icgraph" id="aSerialize_8c_afa5128b447f8dfb2d9bf224d9d720db4_icgraph">
+<area shape="rect" title=" " alt="" coords="716,64,851,91"/>
+<area shape="rect" href="Sdp_8h.html#a1e5c0750dbf14d9f67ad7ee68c417ac4" title=" " alt="" coords="467,64,668,91"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga1779d268b0993835d80f0948281e2274" title="Populate the provided answer that contains an RFC 3264 offer with the supported configurations for th..." alt="" coords="244,5,339,32"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga19dfcbdcf4d136b56ce366fe2fb9bfb3" title=" " alt="" coords="194,57,389,98"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#gaa1940a0ddabf41c445b55f1317476e96" title=" " alt="" coords="164,123,419,149"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga7dc5ad4eb5cc7e000396547279108d9b" title="Populate the provided answer that contains an RFC 3264 answer with the supported configurations for t..." alt="" coords="5,64,116,91"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="a96dd428f998a5119c4c210ddf6e06810"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a96dd428f998a5119c4c210ddf6e06810">&#9670;&nbsp;</a></span>serializeMediaConnectionInformation()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">STATUS serializeMediaConnectionInformation </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="Sdp_8h.html#a799b39629a8831062e9ea377956dcc61">PSdpConnectionInformation</a>&#160;</td>
+          <td class="paramname"><em>pSdpConnectionInformation</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">PCHAR *&#160;</td>
+          <td class="paramname"><em>ppOutputData</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">PUINT32&#160;</td>
+          <td class="paramname"><em>pTotalWritten</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">PUINT32&#160;</td>
+          <td class="paramname"><em>pBufferSize</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="Serialize_8c_a96dd428f998a5119c4c210ddf6e06810_icgraph.png" border="0" usemap="#aSerialize_8c_a96dd428f998a5119c4c210ddf6e06810_icgraph" alt=""/></div>
+<map name="aSerialize_8c_a96dd428f998a5119c4c210ddf6e06810_icgraph" id="aSerialize_8c_a96dd428f998a5119c4c210ddf6e06810_icgraph">
+<area shape="rect" title=" " alt="" coords="716,57,907,98"/>
+<area shape="rect" href="Sdp_8h.html#a1e5c0750dbf14d9f67ad7ee68c417ac4" title=" " alt="" coords="467,64,668,91"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga1779d268b0993835d80f0948281e2274" title="Populate the provided answer that contains an RFC 3264 offer with the supported configurations for th..." alt="" coords="244,5,339,32"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga19dfcbdcf4d136b56ce366fe2fb9bfb3" title=" " alt="" coords="194,57,389,98"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#gaa1940a0ddabf41c445b55f1317476e96" title=" " alt="" coords="164,123,419,149"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga7dc5ad4eb5cc7e000396547279108d9b" title="Populate the provided answer that contains an RFC 3264 answer with the supported configurations for t..." alt="" coords="5,64,116,91"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="ac0699e6126a01fe054413d26b9348343"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac0699e6126a01fe054413d26b9348343">&#9670;&nbsp;</a></span>serializeMediaName()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">STATUS serializeMediaName </td>
+          <td>(</td>
+          <td class="paramtype">PCHAR&#160;</td>
+          <td class="paramname"><em>pMediaName</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">PCHAR *&#160;</td>
+          <td class="paramname"><em>ppOutputData</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">PUINT32&#160;</td>
+          <td class="paramname"><em>pTotalWritten</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">PUINT32&#160;</td>
+          <td class="paramname"><em>pBufferSize</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="Serialize_8c_ac0699e6126a01fe054413d26b9348343_icgraph.png" border="0" usemap="#aSerialize_8c_ac0699e6126a01fe054413d26b9348343_icgraph" alt=""/></div>
+<map name="aSerialize_8c_ac0699e6126a01fe054413d26b9348343_icgraph" id="aSerialize_8c_ac0699e6126a01fe054413d26b9348343_icgraph">
+<area shape="rect" title=" " alt="" coords="716,64,872,91"/>
+<area shape="rect" href="Sdp_8h.html#a1e5c0750dbf14d9f67ad7ee68c417ac4" title=" " alt="" coords="467,64,668,91"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga1779d268b0993835d80f0948281e2274" title="Populate the provided answer that contains an RFC 3264 offer with the supported configurations for th..." alt="" coords="244,5,339,32"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga19dfcbdcf4d136b56ce366fe2fb9bfb3" title=" " alt="" coords="194,57,389,98"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#gaa1940a0ddabf41c445b55f1317476e96" title=" " alt="" coords="164,123,419,149"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga7dc5ad4eb5cc7e000396547279108d9b" title="Populate the provided answer that contains an RFC 3264 answer with the supported configurations for t..." alt="" coords="5,64,116,91"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="acd10030eccbfc928aa360fc45f69c47c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#acd10030eccbfc928aa360fc45f69c47c">&#9670;&nbsp;</a></span>serializeOrigin()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">STATUS serializeOrigin </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="Sdp_8h.html#a2181dab563022e33dbef5fe86382920e">PSdpOrigin</a>&#160;</td>
+          <td class="paramname"><em>pSDPOrigin</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">PCHAR *&#160;</td>
+          <td class="paramname"><em>ppOutputData</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">PUINT32&#160;</td>
+          <td class="paramname"><em>pTotalWritten</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">PUINT32&#160;</td>
+          <td class="paramname"><em>pBufferSize</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="Serialize_8c_acd10030eccbfc928aa360fc45f69c47c_icgraph.png" border="0" usemap="#aSerialize_8c_acd10030eccbfc928aa360fc45f69c47c_icgraph" alt=""/></div>
+<map name="aSerialize_8c_acd10030eccbfc928aa360fc45f69c47c_icgraph" id="aSerialize_8c_acd10030eccbfc928aa360fc45f69c47c_icgraph">
+<area shape="rect" title=" " alt="" coords="716,64,832,91"/>
 <area shape="rect" href="Sdp_8h.html#a1e5c0750dbf14d9f67ad7ee68c417ac4" title=" " alt="" coords="467,64,668,91"/>
 <area shape="rect" href="group__PublicMemberFunctions.html#ga1779d268b0993835d80f0948281e2274" title="Populate the provided answer that contains an RFC 3264 offer with the supported configurations for th..." alt="" coords="244,5,339,32"/>
 <area shape="rect" href="group__PublicMemberFunctions.html#ga19dfcbdcf4d136b56ce366fe2fb9bfb3" title=" " alt="" coords="194,57,389,98"/>
@@ -253,8 +445,14 @@ Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="Serialize_8c_a9c41cb60fca74b4572e2fe2bc816b919_cgraph.png" border="0" usemap="#aSerialize_8c_a9c41cb60fca74b4572e2fe2bc816b919_cgraph" alt=""/></div>
 <map name="aSerialize_8c_a9c41cb60fca74b4572e2fe2bc816b919_cgraph" id="aSerialize_8c_a9c41cb60fca74b4572e2fe2bc816b919_cgraph">
-<area shape="rect" title=" " alt="" coords="5,5,207,32"/>
-<area shape="rect" href="Serialize_8c.html#a0143bf5f0f5daf444644297d8dc2721c" title=" " alt="" coords="255,5,413,32"/>
+<area shape="rect" title=" " alt="" coords="5,173,207,200"/>
+<area shape="rect" href="Serialize_8c.html#afa5128b447f8dfb2d9bf224d9d720db4" title=" " alt="" coords="283,5,417,32"/>
+<area shape="rect" href="Serialize_8c.html#a96dd428f998a5119c4c210ddf6e06810" title=" " alt="" coords="255,57,445,98"/>
+<area shape="rect" href="Serialize_8c.html#ac0699e6126a01fe054413d26b9348343" title=" " alt="" coords="272,123,428,149"/>
+<area shape="rect" href="Serialize_8c.html#acd10030eccbfc928aa360fc45f69c47c" title=" " alt="" coords="292,173,408,200"/>
+<area shape="rect" href="Serialize_8c.html#a5ba4149920c4aa1834e1eb78987b4320" title=" " alt="" coords="267,224,433,251"/>
+<area shape="rect" href="Serialize_8c.html#a16b10a96a9a84967e5aa8133c65ec33e" title=" " alt="" coords="258,275,442,301"/>
+<area shape="rect" href="Serialize_8c.html#a864e3e307a205326f3cd134c7492f35f" title=" " alt="" coords="287,325,413,352"/>
 </map>
 </div>
 <div class="dynheader">
@@ -272,13 +470,172 @@ Here is the caller graph for this function:</div>
 
 </div>
 </div>
+<a id="a5ba4149920c4aa1834e1eb78987b4320"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5ba4149920c4aa1834e1eb78987b4320">&#9670;&nbsp;</a></span>serializeSessionName()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">STATUS serializeSessionName </td>
+          <td>(</td>
+          <td class="paramtype">PCHAR&#160;</td>
+          <td class="paramname"><em>sessionName</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">PCHAR *&#160;</td>
+          <td class="paramname"><em>ppOutputData</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">PUINT32&#160;</td>
+          <td class="paramname"><em>pTotalWritten</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">PUINT32&#160;</td>
+          <td class="paramname"><em>pBufferSize</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="Serialize_8c_a5ba4149920c4aa1834e1eb78987b4320_icgraph.png" border="0" usemap="#aSerialize_8c_a5ba4149920c4aa1834e1eb78987b4320_icgraph" alt=""/></div>
+<map name="aSerialize_8c_a5ba4149920c4aa1834e1eb78987b4320_icgraph" id="aSerialize_8c_a5ba4149920c4aa1834e1eb78987b4320_icgraph">
+<area shape="rect" title=" " alt="" coords="716,64,883,91"/>
+<area shape="rect" href="Sdp_8h.html#a1e5c0750dbf14d9f67ad7ee68c417ac4" title=" " alt="" coords="467,64,668,91"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga1779d268b0993835d80f0948281e2274" title="Populate the provided answer that contains an RFC 3264 offer with the supported configurations for th..." alt="" coords="244,5,339,32"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga19dfcbdcf4d136b56ce366fe2fb9bfb3" title=" " alt="" coords="194,57,389,98"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#gaa1940a0ddabf41c445b55f1317476e96" title=" " alt="" coords="164,123,419,149"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga7dc5ad4eb5cc7e000396547279108d9b" title="Populate the provided answer that contains an RFC 3264 answer with the supported configurations for t..." alt="" coords="5,64,116,91"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="a16b10a96a9a84967e5aa8133c65ec33e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a16b10a96a9a84967e5aa8133c65ec33e">&#9670;&nbsp;</a></span>serializeTimeDescription()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">STATUS serializeTimeDescription </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="Sdp_8h.html#a2a5e03ac1a95dd241c18ce9f66e2405d">PSdpTimeDescription</a>&#160;</td>
+          <td class="paramname"><em>pSDPTimeDescription</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">PCHAR *&#160;</td>
+          <td class="paramname"><em>ppOutputData</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">PUINT32&#160;</td>
+          <td class="paramname"><em>pTotalWritten</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">PUINT32&#160;</td>
+          <td class="paramname"><em>pBufferSize</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="Serialize_8c_a16b10a96a9a84967e5aa8133c65ec33e_icgraph.png" border="0" usemap="#aSerialize_8c_a16b10a96a9a84967e5aa8133c65ec33e_icgraph" alt=""/></div>
+<map name="aSerialize_8c_a16b10a96a9a84967e5aa8133c65ec33e_icgraph" id="aSerialize_8c_a16b10a96a9a84967e5aa8133c65ec33e_icgraph">
+<area shape="rect" title=" " alt="" coords="716,64,900,91"/>
+<area shape="rect" href="Sdp_8h.html#a1e5c0750dbf14d9f67ad7ee68c417ac4" title=" " alt="" coords="467,64,668,91"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga1779d268b0993835d80f0948281e2274" title="Populate the provided answer that contains an RFC 3264 offer with the supported configurations for th..." alt="" coords="244,5,339,32"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga19dfcbdcf4d136b56ce366fe2fb9bfb3" title=" " alt="" coords="194,57,389,98"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#gaa1940a0ddabf41c445b55f1317476e96" title=" " alt="" coords="164,123,419,149"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga7dc5ad4eb5cc7e000396547279108d9b" title="Populate the provided answer that contains an RFC 3264 answer with the supported configurations for t..." alt="" coords="5,64,116,91"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="a864e3e307a205326f3cd134c7492f35f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a864e3e307a205326f3cd134c7492f35f">&#9670;&nbsp;</a></span>serializeVersion()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">STATUS serializeVersion </td>
+          <td>(</td>
+          <td class="paramtype">UINT64&#160;</td>
+          <td class="paramname"><em>version</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">PCHAR *&#160;</td>
+          <td class="paramname"><em>ppOutputData</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">PUINT32&#160;</td>
+          <td class="paramname"><em>pTotalWritten</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">PUINT32&#160;</td>
+          <td class="paramname"><em>pBufferSize</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="Serialize_8c_a864e3e307a205326f3cd134c7492f35f_icgraph.png" border="0" usemap="#aSerialize_8c_a864e3e307a205326f3cd134c7492f35f_icgraph" alt=""/></div>
+<map name="aSerialize_8c_a864e3e307a205326f3cd134c7492f35f_icgraph" id="aSerialize_8c_a864e3e307a205326f3cd134c7492f35f_icgraph">
+<area shape="rect" title=" " alt="" coords="716,64,841,91"/>
+<area shape="rect" href="Sdp_8h.html#a1e5c0750dbf14d9f67ad7ee68c417ac4" title=" " alt="" coords="467,64,668,91"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga1779d268b0993835d80f0948281e2274" title="Populate the provided answer that contains an RFC 3264 offer with the supported configurations for th..." alt="" coords="244,5,339,32"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga19dfcbdcf4d136b56ce366fe2fb9bfb3" title=" " alt="" coords="194,57,389,98"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#gaa1940a0ddabf41c445b55f1317476e96" title=" " alt="" coords="164,123,419,149"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga7dc5ad4eb5cc7e000396547279108d9b" title="Populate the provided answer that contains an RFC 3264 answer with the supported configurations for t..." alt="" coords="5,64,116,91"/>
+</map>
+</div>
+
+</div>
+</div>
 </div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_94e7a0fbe7f8eaf7f05ee7b02c647e9f.html">source</a></li><li class="navelem"><a class="el" href="dir_3b2851d8c101e843d2f380332a6bdad4.html">Sdp</a></li><li class="navelem"><a class="el" href="Serialize_8c.html">Serialize.c</a></li>
-    <li class="footer">Generated on Fri Mar 8 2024 20:55:35 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Tue Mar 12 2024 17:29:56 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>
