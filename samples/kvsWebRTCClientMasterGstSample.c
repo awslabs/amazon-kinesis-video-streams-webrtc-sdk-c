@@ -63,7 +63,7 @@ GstFlowReturn on_new_sample(GstElement* sink, gpointer data, UINT64 trackid)
             pSampleStreamingSession = pSampleConfiguration->sampleStreamingSessionList[i];
             frame.index = (UINT32) ATOMIC_INCREMENT(&pSampleStreamingSession->frameIndex);
 
-            if (trackid == DEFAULT_AUDIO_TRACK_ID) {
+            if (trackid == RTC_CODEC_AAC) {
                 pRtcRtpTransceiver = pSampleStreamingSession->pAudioRtcRtpTransceiver;
                 frame.presentationTs = pSampleStreamingSession->audioTimestamp;
                 frame.decodingTs = frame.presentationTs;
@@ -109,12 +109,12 @@ CleanUp:
 
 GstFlowReturn on_new_sample_video(GstElement* sink, gpointer data)
 {
-    return on_new_sample(sink, data, DEFAULT_VIDEO_TRACK_ID);
+    return on_new_sample(sink, data, RTC_CODEC_H265);
 }
 
 GstFlowReturn on_new_sample_audio(GstElement* sink, gpointer data)
 {
-    return on_new_sample(sink, data, DEFAULT_AUDIO_TRACK_ID);
+    return on_new_sample(sink, data, RTC_CODEC_AAC);
 }
 
 PVOID sendGstreamerAudioVideo(PVOID args)
@@ -196,12 +196,11 @@ PVOID sendGstreamerAudioVideo(PVOID args)
             switch (pSampleConfiguration->srcType) {
                 case TEST_SOURCE: {
                     pipeline =
-                        gst_parse_launch("videotestsrc is-live=TRUE ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
-                                         "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
-                                         "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE "
-                                         "emit-signals=TRUE name=appsink-video audiotestsrc is-live=TRUE ! "
-                                         "queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample ! opusenc ! "
-                                         "audio/x-opus,rate=48000,channels=2 ! appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
+                        gst_parse_launch("videotestsrc is-live=TRUE ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! x265enc speed-preset=veryfast bitrate=512 ! "
+                                         "video/x-h265,stream-format=byte-stream,alignment=au,profile=main ! appsink sync=TRUE emit-signals=TRUE name=appsink-video "
+                                         "audiotestsrc is-live=TRUE ! queue leaky=2 max-size-buffers=400 ! "
+                                         "audioconvert ! audioresample ! fdkaacenc ! audio/mpeg,rate=48000,channels=2,profile=he-aac-v1 ! "
+                                         "appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
                                          &error);
                     break;
                 }
