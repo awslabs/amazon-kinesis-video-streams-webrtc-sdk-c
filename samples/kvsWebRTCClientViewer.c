@@ -71,53 +71,22 @@ VOID onGstAudioFrameReadyViewer(UINT64 customData, PFrame pFrame)
     gst_buffer_unref(buffer);
 }
 
-// Function to send EOS signal to the bus
-void send_eos_signal(GstElement *pipeline) {
+VOID onSampleStreamingSessionShutdown(UINT64 customData, PSampleStreamingSession pSampleStreamingSession)
+{
+    (void) (pSampleStreamingSession);
+    GstElement* pipeline = (GstElement*) customData;
     GstBus *bus = gst_element_get_bus(pipeline);
-    DLOGI("PPPPPPPPPPP");
+    GstFlowReturn ret;
+
     if (bus) {
-        DLOGI("UUUUUUUUUUU");
         GstMessage *eos_message = gst_message_new_eos(GST_OBJECT(pipeline));
         if (eos_message) {
-            DLOGI("VVVVVVVVVVVVVV");
             gst_bus_post(bus, eos_message);
             gst_message_unref(eos_message);
         }
     }
 }
 
-VOID onSampleStreamingSessionShutdown(UINT64 customData, PSampleStreamingSession pSampleStreamingSession)
-{
-    (void) (pSampleStreamingSession);
-    GstElement* pipeline = (GstElement*) customData;
-    GstFlowReturn ret;
-
-    DLOGI("QQQQQQQQQQQQQQQQQ");
-
-    // g_signal_emit_by_name(appsrc, "end-of-stream", &ret);
-    send_eos_signal(pipeline);
-}
-
-gboolean bus_callback(GstBus *bus, GstMessage *message, gpointer data) {
-    switch (GST_MESSAGE_TYPE(message)) {
-        case GST_MESSAGE_ERROR: {
-            GError *error = NULL;
-            gchar *debug_info = NULL;
-            gst_message_parse_error(message, &error, &debug_info);
-            DLOGI("Error received from element %s: %s\n", GST_OBJECT_NAME(message->src), error->message);
-            DLOGI("Debugging information: %s\n", debug_info ? debug_info : "none");
-            g_clear_error(&error);
-            g_free(debug_info);
-            break;
-        }
-        case GST_MESSAGE_EOS:
-            DLOGI("End of stream reached RRRRRRRRRRRR\n");
-            break;
-        default:
-            break;
-    }
-    return TRUE;
-}
 
 PVOID receiveGstreamerAudioVideoFromMaster(PVOID args)
 {
@@ -135,7 +104,6 @@ PVOID receiveGstreamerAudioVideoFromMaster(PVOID args)
     appsrcVideo = gst_element_factory_make("appsrc", "appsrc-video");
 
     CHK_ERR(appsrcAudio != NULL && appsrcVideo != NULL, STATUS_INTERNAL_ERROR, "[KVS Gstreamer Master] Cannot find appsrc");
-
 
     switch (pSampleStreamingSession->pAudioRtcRtpTransceiver->receiver.track.codec) {
         case RTC_CODEC_OPUS:
@@ -177,20 +145,16 @@ PVOID receiveGstreamerAudioVideoFromMaster(PVOID args)
     pipeline = gst_parse_launch(audioVideoDescription, &error);
 
     CHK_STATUS(streamingSessionOnShutdown(pSampleStreamingSession, (UINT64) pipeline, onSampleStreamingSessionShutdown));
-    CHK_STATUS(streamingSessionOnShutdown(pSampleStreamingSession, (UINT64) pipeline, onSampleStreamingSessionShutdown));
    
     g_free(audioVideoDescription);
 
     CHK_ERR(pipeline != NULL, STATUS_INTERNAL_ERROR, "[KVS Gstreamer Master] Pipeline is NULL");
 
     bus = gst_element_get_bus(pipeline);
-    gst_bus_add_watch(bus, bus_callback, NULL);
     gst_element_set_state(pipeline, GST_STATE_PLAYING);
 
     /* block until error or EOS */
     msg = gst_bus_timed_pop_filtered(bus, GST_CLOCK_TIME_NONE, GST_MESSAGE_ERROR | GST_MESSAGE_EOS);
-
-    DLOGI("YYYYYYYYYYYYYYYYYY");
 
     /* Free resources */
     if (msg != NULL) {
@@ -234,7 +198,6 @@ INT32 main(INT32 argc, CHAR* argv[])
     SET_INSTRUMENTED_ALLOCATORS();
     UINT32 logLevel = setLogLevel();
 
-    gst_init(&argc, &argv);
 
 #ifndef _WIN32
     signal(SIGINT, sigintHandler);
