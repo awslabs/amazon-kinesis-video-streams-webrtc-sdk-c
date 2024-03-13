@@ -64,7 +64,7 @@ static STATUS updateIceServerList(PSignalingClient pSignalingClient, SignalingIc
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    int i, j;
+    UINT32 i, j;
 
     CHK(pIceServerList != NULL, STATUS_SIGNALING_ICE_CONFIG_REFRESH_FAILED);
     CHK(pIceServerList->iceServerNum <= MAX_ICE_CONFIG_COUNT, STATUS_SIGNALING_MAX_ICE_CONFIG_COUNT);
@@ -854,11 +854,7 @@ STATUS describeChannelLws(PSignalingClient pSignalingClient, UINT64 time)
     CHAR paramsJson[MAX_JSON_PARAMETER_STRING_LEN];
     PLwsCallInfo pLwsCallInfo = NULL;
     PCHAR pResponseStr;
-    jsmn_parser parser;
-    jsmntok_t tokens[MAX_JSON_TOKEN_COUNT];
-    UINT32 i, strLen, resultLen;
-    UINT32 tokenCount;
-    BOOL jsonInChannelDescription = FALSE, jsonInMvConfiguration = FALSE;
+    UINT32 resultLen;
     SignalingResult_t retSignal;
     SignalingRequest_t signalRequest;
     SignalingDescribeSignalingChannelRequest_t describeSignalingChannelRequest;
@@ -977,13 +973,9 @@ STATUS createChannelLws(PSignalingClient pSignalingClient, UINT64 time)
     PRequestInfo pRequestInfo = NULL;
     CHAR url[MAX_URI_CHAR_LEN + 1];
     CHAR paramsJson[MAX_JSON_PARAMETER_STRING_LEN];
-    PCHAR pCurPtr, pTagsStart, pResponseStr;
-    UINT32 i, strLen, resultLen;
-    INT32 charsCopied;
+    PCHAR pResponseStr;
+    UINT32 i, resultLen;
     PLwsCallInfo pLwsCallInfo = NULL;
-    jsmn_parser parser;
-    jsmntok_t tokens[MAX_JSON_TOKEN_COUNT];
-    UINT32 tokenCount;
     SignalingResult_t retSignal;
     SignalingRequest_t signalRequest;
     SignalingCreateSignalingChannelRequest_t createSignalingChannelRequest;
@@ -1081,11 +1073,9 @@ STATUS getChannelEndpointLws(PSignalingClient pSignalingClient, UINT64 time)
     PRequestInfo pRequestInfo = NULL;
     CHAR url[MAX_URI_CHAR_LEN + 1];
     CHAR paramsJson[MAX_JSON_PARAMETER_STRING_LEN];
-    UINT32 i, resultLen, strLen, protocolLen = 0, endpointLen = 0;
+    UINT32 resultLen, endpointLen = 0;
     PCHAR pResponseStr, pProtocol = NULL, pEndpoint = NULL;
     PLwsCallInfo pLwsCallInfo = NULL;
-    jsmn_parser parser;
-    jsmntok_t tokens[MAX_JSON_TOKEN_COUNT];
     UINT32 tokenCount;
     BOOL jsonInResourceEndpointList = FALSE, protocol = FALSE, endpoint = FALSE, inEndpointArray = FALSE;
     SignalingResult_t retSignal;
@@ -1199,9 +1189,6 @@ STATUS getIceConfigLws(PSignalingClient pSignalingClient, UINT64 time)
     CHAR paramsJson[MAX_JSON_PARAMETER_STRING_LEN];
     PLwsCallInfo pLwsCallInfo = NULL;
     PCHAR pResponseStr;
-    jsmn_parser parser;
-    jsmntok_t tokens[MAX_JSON_TOKEN_COUNT];
-    jsmntok_t* pToken;
     UINT32 i, strLen, resultLen, configCount = 0, tokenCount;
     INT32 j;
     UINT64 ttl;
@@ -1614,8 +1601,6 @@ STATUS describeMediaStorageConfLws(PSignalingClient pSignalingClient, UINT64 tim
     CHAR paramsJson[MAX_JSON_PARAMETER_STRING_LEN];
     PLwsCallInfo pLwsCallInfo = NULL;
     PCHAR pResponseStr;
-    jsmn_parser parser;
-    jsmntok_t tokens[MAX_JSON_TOKEN_COUNT];
     UINT32 i, strLen, resultLen;
     UINT32 tokenCount;
     BOOL jsonInMediaStorageConfig = FALSE;
@@ -1902,7 +1887,7 @@ STATUS sendLwsMessage(PSignalingClient pSignalingClient, SIGNALING_MESSAGE_TYPE 
 
     // Prepare json message
     bufferSize = SIZEOF(pSignalingClient->pOngoingCallInfo->sendBuffer) - LWS_PRE - 1; /* -1 for null terminator. */
-    retSignal = Signaling_constructWssMessage(&wssSendMessage, pSignalingClient->pOngoingCallInfo->sendBuffer + LWS_PRE, &bufferSize);
+    retSignal = Signaling_constructWssMessage(&wssSendMessage, (PCHAR) (pSignalingClient->pOngoingCallInfo->sendBuffer + LWS_PRE), &bufferSize);
     CHK(retSignal == SIGNALING_RESULT_OK, retSignal);
 
     // Validate against max
@@ -2013,9 +1998,6 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    jsmn_parser parser;
-    jsmntok_t tokens[MAX_JSON_TOKEN_COUNT];
-    jsmntok_t* pToken;
     UINT32 i, strLen, outLen = MAX_SIGNALING_MESSAGE_LEN;
     UINT32 tokenCount;
     INT32 j;

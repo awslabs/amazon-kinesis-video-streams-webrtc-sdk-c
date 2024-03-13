@@ -29,6 +29,7 @@ if (TARGET GTest::GTest)
 endif()
 
 include_directories(${KINESIS_VIDEO_WebRTCClient_SRC})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../configs)
 
 set(AWS_SDK_TEST_LIBS "")
 if(ENABLE_AWS_SDK_IN_TESTS)
@@ -47,4 +48,7 @@ target_link_libraries(webrtc_client_test
     ${OPENSSL_CRYPTO_LIBRARY}
     kvspicUtils
     ${GTEST_LIBNAME}
-    ${AWS_SDK_TEST_LIBS})
+    ${AWS_SDK_TEST_LIBS}
+    kvssdp
+    corejson
+    kvssignaling)
