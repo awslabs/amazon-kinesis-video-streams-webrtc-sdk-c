@@ -26,7 +26,7 @@ extern "C" {
 #define PROTOCOL_INDEX_WSS   1
 
 // API postfix definitions
-#define UPDATE_MEDIA_STORAGE_CONF_API_POSTFIX      "/updateMediaStorageConfiguration"
+#define UPDATE_MEDIA_STORAGE_CONF_API_POSTFIX "/updateMediaStorageConfiguration"
 
 #define SIGNALING_UPDATE_STORAGE_CONFIG_PARAM_JSON_TEMPLATE                                                                                          \
     "{\n\t\"StreamARN\": \"%s\","                                                                                                                    \

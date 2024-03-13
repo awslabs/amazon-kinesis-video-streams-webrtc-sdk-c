@@ -175,8 +175,7 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
         awsControlPlaneInfo.regionLength = strlen(pSignalingClient->pChannelInfo->pRegion);
         awsControlPlaneInfo.pRegion = pSignalingClient->pChannelInfo->pRegion;
     }
-    retSignal = Signaling_Init(&pSignalingClient->signalContext,
-                               &awsControlPlaneInfo);
+    retSignal = Signaling_Init(&pSignalingClient->signalContext, &awsControlPlaneInfo);
     CHK(retSignal == SIGNALING_RESULT_OK, STATUS_INVALID_OPERATION);
 
     pSignalingClient->pLwsContext = lws_create_context(&creationInfo);
