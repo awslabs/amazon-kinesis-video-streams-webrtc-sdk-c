@@ -155,6 +155,7 @@ You can pass the following options to `cmake ..`.
 * `-DUNDEFINED_BEHAVIOR_SANITIZER` -- Build with UndefinedBehaviorSanitizer
 * `-DCMAKE_BUILD_TYPE` -- Build Release/Debug libraries. By default, the SDK generates Release build. The standard options are listed [here](https://cmake.org/cmake/help/latest/manual/cmake-buildsystem.7.html#default-and-custom-configurations)
 * `-DLINK_PROFILER` -- Link with gperftools (available profiler options are listed [here](https://github.com/gperftools/gperftools))
+* `-DKVS_STACK_SIZE` -- Default stack size for threads created using THREAD_CREATE()
 * `-DPKG_CONFIG_EXECUTABLE` -- Set pkg config path. This might be required to find gstreamer's pkg config specifically on Windows.
 
 To clean up the `open-source` and `build` folders from previous build, use `cmake --build . --target clean` from the `build` folder
@@ -442,11 +443,14 @@ To build on a 32-bit Raspbian GNU/Linux 11 on 64-bit hardware, the OpenSSL libra
 `cmake .. -DBUILD_OPENSSL_PLATFORM=linux-armv4`
 
 ### Threadpool for the SDK
-The threadpool is enabled by default, and starts with 5 threads that it can increase up to 10 if all are actively in use. To change these values to better match the resources of your use case you can set the environment variables to do so:
+The threadpool is enabled by default, and starts with 1 threads that it can increase up to 10 if all are actively in use. To change these values to better match the resources of your use case you can set the environment variables to do so:
 1. `export AWS_KVS_WEBRTC_THREADPOOL_MIN_THREADS=<value>`
 2. `export AWS_KVS_WEBRTC_THREADPOOL_MAX_THREADS=<value>`
 
 To disable threadpool, run `cmake .. -DENABLE_KVS_THREADPOOL=OFF`
+
+### Thread stack sizes
+The default thread stack size for the KVS WebRTC SDK is 64 kb. Notable stack sizes that may need to be changed for your specific application will be the ConnectionListener Receiver thread and the media sender threads. Please modify the stack sizes for these media dependent threads to be suitable for the media your application is processing.
 
 ### Setting ICE related timeouts
 

@@ -53,6 +53,15 @@ execute_process(
 add_definitions(-DSDK_VERSION=\"${GIT_COMMIT_HASH}\")
 add_definitions(-DVERSION_STRING=\"${PROJECT_VERSION}\")
 add_definitions(-DDETECTED_GIT_HASH)
+if(NOT KVS_STACK_SIZE OR KVS_STACK_SIZE STREQUAL "")
+  message(STATUS "Setting default stack size to 64*1024")
+  set(KVS_DEFAULT_STACK_SIZE 65536)
+  add_definitions(-DKVS_DEFAULT_STACK_SIZE=65536)
+else()
+  message(STATUS "Setting default stack size to provided value")
+  set(KVS_DEFAULT_STACK_SIZE ${KVS_STACK_SIZE})
+  add_definitions(-DKVS_DEFAULT_STACK_SIZE=${KVS_STACK_SIZE})
+endif()
 
 if(NOT OPEN_SRC_INSTALL_PREFIX OR OPEN_SRC_INSTALL_PREFIX STREQUAL "")
   set(OPEN_SRC_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/open-source" CACHE PATH "Libraries will be downloaded and built in this directory.")
@@ -244,6 +253,7 @@ set(BUILD_ARGS
         -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
         -DUSE_OPENSSL=${USE_OPENSSL}
         -DUSE_MBEDTLS=${USE_MBEDTLS}
+        -DKVS_DEFAULT_STACK_SIZE=${KVS_DEFAULT_STACK_SIZE}
         -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
 build_dependency(kvsCommonLws ${BUILD_ARGS})
 

@@ -1,6 +1,9 @@
 #define LOG_CLASS "WebRtcSamples"
 #include "Samples.h"
 
+#define KVS_DEFAULT_MEDIA_SENDER_THREAD_STACK_SIZE 64 * 1024
+#define KVS_MINIMUM_THREAD_STACK_SIZE              16 * 1024
+
 PSampleConfiguration gSampleConfiguration = NULL;
 
 VOID sigintHandler(INT32 sigNum)
@@ -138,14 +141,18 @@ STATUS handleAnswer(PSampleConfiguration pSampleConfiguration, PSampleStreamingS
 {
     UNUSED_PARAM(pSampleConfiguration);
     STATUS retStatus = STATUS_SUCCESS;
-    RtcSessionDescriptionInit answerSessionDescriptionInit;
+    PRtcSessionDescriptionInit pAnswerSessionDescriptionInit = NULL;
 
-    MEMSET(&answerSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
+    pAnswerSessionDescriptionInit = (PRtcSessionDescriptionInit) MEMCALLOC(1, SIZEOF(RtcSessionDescriptionInit));
 
-    CHK_STATUS(deserializeSessionDescriptionInit(pSignalingMessage->payload, pSignalingMessage->payloadLen, &answerSessionDescriptionInit));
-    CHK_STATUS(setRemoteDescription(pSampleStreamingSession->pPeerConnection, &answerSessionDescriptionInit));
+    CHK_STATUS(deserializeSessionDescriptionInit(pSignalingMessage->payload, pSignalingMessage->payloadLen, pAnswerSessionDescriptionInit));
+    CHK_STATUS(setRemoteDescription(pSampleStreamingSession->pPeerConnection, pAnswerSessionDescriptionInit));
 
 CleanUp:
+
+    if (pAnswerSessionDescriptionInit != NULL) {
+        SAFE_MEMFREE(pAnswerSessionDescriptionInit);
+    }
 
     CHK_LOG_ERR(retStatus);
 
@@ -169,11 +176,13 @@ PVOID mediaSenderRoutine(PVOID customData)
     CHK(!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag), retStatus);
 
     if (pSampleConfiguration->videoSource != NULL) {
-        THREAD_CREATE(&pSampleConfiguration->videoSenderTid, pSampleConfiguration->videoSource, (PVOID) pSampleConfiguration);
+        THREAD_CREATE_WITH_PARAMS(&pSampleConfiguration->videoSenderTid, pSampleConfiguration->videoSource,
+                                  KVS_DEFAULT_MEDIA_SENDER_THREAD_STACK_SIZE, (PVOID) pSampleConfiguration);
     }
 
     if (pSampleConfiguration->audioSource != NULL) {
-        THREAD_CREATE(&pSampleConfiguration->audioSenderTid, pSampleConfiguration->audioSource, (PVOID) pSampleConfiguration);
+        THREAD_CREATE_WITH_PARAMS(&pSampleConfiguration->audioSenderTid, pSampleConfiguration->audioSource,
+                                  KVS_DEFAULT_MEDIA_SENDER_THREAD_STACK_SIZE, (PVOID) pSampleConfiguration);
     }
 
     if (pSampleConfiguration->videoSenderTid != INVALID_TID_VALUE) {
@@ -194,17 +203,17 @@ CleanUp:
 STATUS handleOffer(PSampleConfiguration pSampleConfiguration, PSampleStreamingSession pSampleStreamingSession, PSignalingMessage pSignalingMessage)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    RtcSessionDescriptionInit offerSessionDescriptionInit;
+    PRtcSessionDescriptionInit pOfferSessionDescriptionInit = NULL;
     NullableBool canTrickle;
     BOOL mediaThreadStarted;
 
     CHK(pSampleConfiguration != NULL && pSignalingMessage != NULL, STATUS_NULL_ARG);
 
-    MEMSET(&offerSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
+    pOfferSessionDescriptionInit = (PRtcSessionDescriptionInit) MEMCALLOC(1, SIZEOF(RtcSessionDescriptionInit));
     MEMSET(&pSampleStreamingSession->answerSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
     DLOGD("**offer:%s", pSignalingMessage->payload);
-    CHK_STATUS(deserializeSessionDescriptionInit(pSignalingMessage->payload, pSignalingMessage->payloadLen, &offerSessionDescriptionInit));
-    CHK_STATUS(setRemoteDescription(pSampleStreamingSession->pPeerConnection, &offerSessionDescriptionInit));
+    CHK_STATUS(deserializeSessionDescriptionInit(pSignalingMessage->payload, pSignalingMessage->payloadLen, pOfferSessionDescriptionInit));
+    CHK_STATUS(setRemoteDescription(pSampleStreamingSession->pPeerConnection, pOfferSessionDescriptionInit));
     canTrickle = canTrickleIceCandidates(pSampleStreamingSession->pPeerConnection);
     /* cannot be null after setRemoteDescription */
     CHECK(!NULLABLE_CHECK_EMPTY(canTrickle));
@@ -221,7 +230,8 @@ STATUS handleOffer(PSampleConfiguration pSampleConfiguration, PSampleStreamingSe
 
     mediaThreadStarted = ATOMIC_EXCHANGE_BOOL(&pSampleConfiguration->mediaThreadStarted, TRUE);
     if (!mediaThreadStarted) {
-        THREAD_CREATE(&pSampleConfiguration->mediaSenderTid, mediaSenderRoutine, (PVOID) pSampleConfiguration);
+        THREAD_CREATE_WITH_PARAMS(&pSampleConfiguration->mediaSenderTid, mediaSenderRoutine, KVS_MINIMUM_THREAD_STACK_SIZE,
+                                  (PVOID) pSampleConfiguration);
     }
 
     // The audio video receive routine should be per streaming session
@@ -230,6 +240,9 @@ STATUS handleOffer(PSampleConfiguration pSampleConfiguration, PSampleStreamingSe
                       (PVOID) pSampleStreamingSession);
     }
 CleanUp:
+    if (pOfferSessionDescriptionInit != NULL) {
+        SAFE_MEMFREE(pOfferSessionDescriptionInit);
+    }
 
     CHK_LOG_ERR(retStatus);
 
@@ -394,6 +407,9 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
 
     // Set this to custom callback to enable filtering of interfaces
     configuration.kvsRtcConfiguration.iceSetInterfaceFilterFunc = NULL;
+
+    // disable TWCC
+    configuration.kvsRtcConfiguration.disableSenderSideBandwidthEstimation = TRUE;
 
     // Set the ICE mode explicitly
     configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_ALL;
