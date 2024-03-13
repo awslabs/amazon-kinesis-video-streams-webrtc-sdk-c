@@ -716,12 +716,18 @@ VOID sampleSenderBandwidthEstimationHandler(UINT64 customData, UINT32 txBytes, U
     UINT32 percentLost = lostPacketsCnt * 100 / txPacketsCnt;
     PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) customData;
     UINT64 bitrate;
-    if (percentLost < 2) {
+    if (percentLost <= 5) {
         // increase encoder bitrate by 2 percent
-        bitrate = pSampleStreamingSession->currentVideoBitrate * 1.02f;
+        bitrate = pSampleStreamingSession->currentVideoBitrate * 1.05f;
     } else if (percentLost > 5) {
-        // decrease encoder bitrate by packet loss percent
-        bitrate = pSampleStreamingSession->currentVideoBitrate * (1.0f - percentLost / 100.0f);
+        if(pSampleStreamingSession->currentVideoBitrate >= 1 * 1024) {
+            // decrease encoder bitrate by packet loss percent
+            bitrate = pSampleStreamingSession->currentVideoBitrate * 0.95f;
+        }
+        else {
+            DLOGW("Bitrate already too low...maintaining..expect frame packet drops and choppy playback");
+            bitrate = pSampleStreamingSession->currentVideoBitrate;
+        }
     }
     // otherwise keep bitrate the same
     pSampleStreamingSession->newVideoBitrate = bitrate;
