@@ -57,21 +57,30 @@ link_directories(${OPEN_SRC_INSTALL_PREFIX}/lib)
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/opusSampleFrames" DESTINATION .)
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/h264SampleFrames" DESTINATION .)
 
+
+file(GLOB
+        WEBRTC_DEMO_SOURCE_FILES
+        DemoConfig.c
+        StreamingSession.c
+        Callbacks.c)
+
+add_library(kvsWebrtcClientDemo ${LINKAGE} ${WEBRTC_DEMO_SOURCE_FILES})
+target_link_libraries(kvsWebrtcClientDemo PUBLIC kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} ${GST_SAMPLE_LIBRARIES} kvsCommonLws kvspicUtils websockets kvssdp)
+install(TARGETS kvsWebrtcClientDemo
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib
+)
 add_executable(
   kvsWebrtcClientMaster
-  DemoConfig.c
-  StreamingSession.c
-  Callbacks.c
+  ${WEBRTC_DEMO_SOURCE_FILES}
   kvsWebRTCClientMaster.c)
-target_link_libraries(kvsWebrtcClientMaster kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} kvsCommonLws kvspicUtils websockets kvssdp)
+target_link_libraries(kvsWebrtcClientMaster kvsWebrtcClientDemo)
 
 add_executable(
   kvsWebrtcClientViewer
-  DemoConfig.c
-  StreamingSession.c
-  Callbacks.c
+  ${WEBRTC_DEMO_SOURCE_FILES}
   kvsWebRTCClientViewer.c)
-target_link_libraries(kvsWebrtcClientViewer kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} kvsCommonLws kvspicUtils websockets kvssdp)
+target_link_libraries(kvsWebrtcClientViewer kvsWebrtcClientDemo)
 
 add_executable(
         discoverNatBehavior
@@ -81,12 +90,10 @@ target_link_libraries(discoverNatBehavior kvsWebrtcClient ${EXTRA_DEPS} kvssdp)
 if(GST_FOUND)
   add_executable(
     kvsWebrtcClientMasterGstSample
-    DemoConfig.c
-    StreamingSession.c
-    Callbacks.c
+    ${WEBRTC_DEMO_SOURCE_FILES}
     kvsWebRTCClientMasterGstSample.c
   )
-  target_link_libraries(kvsWebrtcClientMasterGstSample kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} ${GST_SAMPLE_LIBRARIES} kvsCommonLws kvspicUtils websockets kvssdp)
+  target_link_libraries(kvsWebrtcClientMasterGstSample kvsWebrtcClientDemo)
 
   install(TARGETS kvsWebrtcClientMasterGstSample
     RUNTIME DESTINATION bin
