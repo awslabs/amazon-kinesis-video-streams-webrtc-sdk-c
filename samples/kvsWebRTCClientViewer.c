@@ -98,12 +98,17 @@ PVOID receiveGstreamerAudioVideoFromMaster(PVOID args)
     PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) args;
     gchar *videoDescription = "", *audioDescription = "", *audioVideoDescription;
 
-    CHK_ERR(pSampleStreamingSession != NULL, STATUS_NULL_ARG, "[KVS Gstreamer Viewer] Sample streaming session is NULL");
+    CHK_ERR(pSampleStreamingSession != NULL, STATUS_NULL_ARG, "[KVS Viewer] Sample streaming session is NULL");
+
+    gst_init(NULL, NULL);
 
     appsrcAudio = gst_element_factory_make("appsrc", "appsrc-audio");
     appsrcVideo = gst_element_factory_make("appsrc", "appsrc-video");
 
-    CHK_ERR(appsrcAudio != NULL && appsrcVideo != NULL, STATUS_INTERNAL_ERROR, "[KVS Gstreamer Master] Cannot find appsrc");
+    CHK_ERR(appsrcAudio != NULL && appsrcVideo != NULL, STATUS_INTERNAL_ERROR, "[KVS Viewer] Cannot find appsrc");
+
+    CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pAudioRtcRtpTransceiver, (UINT64) appsrcAudio, onGstAudioFrameReadyViewer));
+    CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pVideoRtcRtpTransceiver, (UINT64) appsrcVideo, onGstVideoFrameReadyViewer));
 
     switch (pSampleStreamingSession->pAudioRtcRtpTransceiver->receiver.track.codec) {
         case RTC_CODEC_OPUS:
@@ -143,14 +148,15 @@ PVOID receiveGstreamerAudioVideoFromMaster(PVOID args)
     audioVideoDescription = g_strjoin(" ", audioDescription, videoDescription, NULL);
 
     pipeline = gst_parse_launch(audioVideoDescription, &error);
+    CHK_ERR(pipeline != NULL, STATUS_INTERNAL_ERROR, "[KVS Viewer] Pipeline is NULL");
 
     CHK_STATUS(streamingSessionOnShutdown(pSampleStreamingSession, (UINT64) pipeline, onSampleStreamingSessionShutdown));
-   
+
     g_free(audioVideoDescription);
 
-    CHK_ERR(pipeline != NULL, STATUS_INTERNAL_ERROR, "[KVS Gstreamer Master] Pipeline is NULL");
-
     bus = gst_element_get_bus(pipeline);
+    CHK_ERR(bus != NULL, STATUS_INTERNAL_ERROR, "[KVS Viewer] Bus is NULL");
+    
     gst_element_set_state(pipeline, GST_STATE_PLAYING);
 
     /* block until error or EOS */
@@ -158,6 +164,18 @@ PVOID receiveGstreamerAudioVideoFromMaster(PVOID args)
 
     /* Free resources */
     if (msg != NULL) {
+        switch (GST_MESSAGE_TYPE(msg)) {
+            case GST_MESSAGE_ERROR:
+                gst_message_parse_error(msg, &error, NULL);
+                DLOGE("Error received: %s\n", error->message);
+                g_error_free(error);
+                break;
+            case GST_MESSAGE_EOS:
+                DLOGI("End of stream\n");
+                break;
+            default:
+                break;
+        }
         gst_message_unref(msg);
     }
     if (bus != NULL) {
@@ -176,7 +194,7 @@ PVOID receiveGstreamerAudioVideoFromMaster(PVOID args)
 
 CleanUp:
     if (error != NULL) {
-        DLOGE("[KVS GStreamer Master] %s", error->message);
+        DLOGE("[KVS Viewer] %s", error->message);
         g_clear_error(&error);
     }
 
