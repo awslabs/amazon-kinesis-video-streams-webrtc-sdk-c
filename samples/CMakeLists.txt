@@ -64,6 +64,7 @@ file(GLOB
         StreamingSession.c
         Callbacks.c)
 
+message(STATUS "Install prefix: ${CMAKE_INSTALL_PREFIX}")
 add_library(kvsWebrtcClientDemo ${LINKAGE} ${WEBRTC_DEMO_SOURCE_FILES})
 target_link_libraries(kvsWebrtcClientDemo PUBLIC kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} ${GST_SAMPLE_LIBRARIES} kvsCommonLws kvspicUtils websockets kvssdp)
 install(TARGETS kvsWebrtcClientDemo
