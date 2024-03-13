@@ -23,7 +23,8 @@ var group__PublicEnums =
       [ "RTC_CODEC_VP8", "group__PublicEnums.html#gga93240fd6a0e599dfb0c69ca76e406665a3cd45ac7f2b35e902ba212a42f2d354d", null ],
       [ "RTC_CODEC_MULAW", "group__PublicEnums.html#gga93240fd6a0e599dfb0c69ca76e406665a610046a4f77ed6434ca35c5d5d70a9c3", null ],
       [ "RTC_CODEC_ALAW", "group__PublicEnums.html#gga93240fd6a0e599dfb0c69ca76e406665a19f80c44053520d7f28f3077a60bdc70", null ],
-      [ "RTC_CODEC_UNKNOWN", "group__PublicEnums.html#gga93240fd6a0e599dfb0c69ca76e406665a65041cc492cd9bbabb73a3ad9b649208", null ]
+      [ "RTC_CODEC_UNKNOWN", "group__PublicEnums.html#gga93240fd6a0e599dfb0c69ca76e406665a65041cc492cd9bbabb73a3ad9b649208", null ],
+      [ "RTC_CODEC_MAX", "group__PublicEnums.html#gga93240fd6a0e599dfb0c69ca76e406665ae60a7ad014a57e0187107ea6ef55267a", null ]
     ] ],
     [ "RTC_PEER_CONNECTION_STATE", "group__PublicEnums.html#ga1a8485527953d22957465fb016c44bec", [
       [ "RTC_PEER_CONNECTION_STATE_NONE", "group__PublicEnums.html#gga1a8485527953d22957465fb016c44beca09895538e3fbc6b846398e69d85ba7cb", null ],

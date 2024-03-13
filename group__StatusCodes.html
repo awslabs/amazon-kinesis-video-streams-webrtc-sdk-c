@@ -526,6 +526,11 @@ Variables</h2></td></tr>
 <tr class="memitem:ga6f66c0c096b4ed45b0627ab13e3b2c69"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#ga2ec04821e96a8ea582895e206534b9ad">RTC_RTP_TRANSCEIVER_DIRECTION</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga6f66c0c096b4ed45b0627ab13e3b2c69">RtcRtpTransceiverInit::direction</a></td></tr>
 <tr class="memdesc:ga6f66c0c096b4ed45b0627ab13e3b2c69"><td class="mdescLeft">&#160;</td><td class="mdescRight">Transceiver direction - SENDONLY, RECVONLY, SENDRECV.  <a href="group__StatusCodes.html#ga6f66c0c096b4ed45b0627ab13e3b2c69">More...</a><br /></td></tr>
 <tr class="separator:ga6f66c0c096b4ed45b0627ab13e3b2c69"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gace8bf7741e34e83480a207bf14d61c98"><td class="memItemLeft" align="right" valign="top">DOUBLE&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#gace8bf7741e34e83480a207bf14d61c98">RtcRtpTransceiverInit::rollingBufferDurationSec</a></td></tr>
+<tr class="memdesc:gace8bf7741e34e83480a207bf14d61c98"><td class="mdescLeft">&#160;</td><td class="mdescRight">Maximum duration of media that needs to be buffered (in seconds). The lowest allowed is 0.1 seconds (100ms)  <a href="group__StatusCodes.html#gace8bf7741e34e83480a207bf14d61c98">More...</a><br /></td></tr>
+<tr class="separator:gace8bf7741e34e83480a207bf14d61c98"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga520de785dce77b50a14f12afbe7768e5"><td class="memItemLeft" align="right" valign="top">DOUBLE&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga520de785dce77b50a14f12afbe7768e5">RtcRtpTransceiverInit::rollingBufferBitratebps</a></td></tr>
+<tr class="separator:ga520de785dce77b50a14f12afbe7768e5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gad83e032fdce8d6ff6d75aea373f6e085"><td class="memItemLeft" align="right" valign="top">BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#gad83e032fdce8d6ff6d75aea373f6e085">RtcDataChannelInit::ordered</a></td></tr>
 <tr class="memdesc:gad83e032fdce8d6ff6d75aea373f6e085"><td class="mdescLeft">&#160;</td><td class="mdescRight">Decides the order in which data is sent. If true, data is sent in order.  <a href="group__StatusCodes.html#gad83e032fdce8d6ff6d75aea373f6e085">More...</a><br /></td></tr>
 <tr class="separator:gad83e032fdce8d6ff6d75aea373f6e085"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -2207,6 +2212,37 @@ Variables</h2></td></tr>
 
 </div>
 </div>
+<a id="ga520de785dce77b50a14f12afbe7768e5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga520de785dce77b50a14f12afbe7768e5">&#9670;&nbsp;</a></span>rollingBufferBitratebps</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">DOUBLE RtcRtpTransceiverInit::rollingBufferBitratebps</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Maximum expected bitrate of media (In bits/second). It is used to determine the buffer capacity. The lowest allowed is 100 Kbps </p>
+
+</div>
+</div>
+<a id="gace8bf7741e34e83480a207bf14d61c98"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gace8bf7741e34e83480a207bf14d61c98">&#9670;&nbsp;</a></span>rollingBufferDurationSec</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">DOUBLE RtcRtpTransceiverInit::rollingBufferDurationSec</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Maximum duration of media that needs to be buffered (in seconds). The lowest allowed is 0.1 seconds (100ms) </p>
+
+</div>
+</div>
 <a id="ga5427abf5f6370d371acb461a1bd36061"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ga5427abf5f6370d371acb461a1bd36061">&#9670;&nbsp;</a></span>rtcIceCandidatePairStats</h2>
 
@@ -3033,7 +3069,7 @@ Variables</h2></td></tr>
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="footer">Generated on Tue Mar 12 2024 17:29:56 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Wed Mar 13 2024 01:51:06 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>
