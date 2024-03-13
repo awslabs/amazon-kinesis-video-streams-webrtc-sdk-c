@@ -7,6 +7,10 @@ index 0000000..9a5f850
 +cmake_minimum_required(VERSION 3.6.3)
 +project(corejson C)
 +
++if("${CMAKE_C_COMPILER_ID}" MATCHES "GNU|Clang")
++    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
++endif()
++
 +include(jsonFilePaths.cmake)
 +add_library(corejson ${JSON_SOURCES})
 +
