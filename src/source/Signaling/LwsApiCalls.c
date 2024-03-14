@@ -1798,7 +1798,7 @@ STATUS sendLwsMessage(PSignalingClient pSignalingClient, SIGNALING_MESSAGE_TYPE 
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     CHAR encodedMessage[MAX_SESSION_DESCRIPTION_INIT_SDP_LEN + 1];
-    UINT32 size, writtenSize, correlationLen, iceCount, uriCount, urisLen, iceConfigLen;
+    UINT32 size, writtenSize, correlationLen, iceCount, uriCount;
     BOOL awaitForResponse;
     UINT64 curTime;
     SignalingResult_t retSignal;
@@ -1991,14 +1991,11 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    UINT32 i, strLen, outLen = MAX_SIGNALING_MESSAGE_LEN;
-    UINT32 tokenCount;
-    INT32 j;
+    UINT32 strLen, outLen = MAX_SIGNALING_MESSAGE_LEN;
     PSignalingMessageWrapper pSignalingMessageWrapper = NULL;
     TID receivedTid = INVALID_TID_VALUE;
-    BOOL parsedMessageType = FALSE, parsedStatusResponse = FALSE, jsonInIceServerList = FALSE;
+    BOOL parsedMessageType = FALSE, jsonInIceServerList = FALSE;
     PSignalingMessage pOngoingMessage;
-    UINT64 ttl;
     SignalingResult_t retSignal;
     SignalingWssRecvMessage_t wssRecvMessage;
     UINT64 messageLength = messageLen;
