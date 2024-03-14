@@ -49,7 +49,6 @@ endif()
 
 include_directories(${OPEN_SRC_INSTALL_PREFIX}/include)
 include_directories(${OPEN_SRC_INCLUDE_DIRS})
-include_directories("Samples.h")
 link_directories(${OPEN_SRC_INSTALL_PREFIX}/lib)
 
 # copy sample frames to this subproject build folder, in case developer runs sample program with command `kvsWebrtcClientMaster` from `build/samples` dir.
