@@ -1073,11 +1073,9 @@ STATUS getChannelEndpointLws(PSignalingClient pSignalingClient, UINT64 time)
     PRequestInfo pRequestInfo = NULL;
     CHAR url[MAX_URI_CHAR_LEN + 1];
     CHAR paramsJson[MAX_JSON_PARAMETER_STRING_LEN];
-    UINT32 resultLen, endpointLen = 0;
-    PCHAR pResponseStr, pProtocol = NULL, pEndpoint = NULL;
+    UINT32 resultLen;
+    PCHAR pResponseStr;
     PLwsCallInfo pLwsCallInfo = NULL;
-    UINT32 tokenCount;
-    BOOL jsonInResourceEndpointList = FALSE, protocol = FALSE, endpoint = FALSE, inEndpointArray = FALSE;
     SignalingResult_t retSignal;
     SignalingRequest_t signalRequest;
     SignalingGetSignalingChannelEndpointRequest_t getSignalingChannelEndpointRequest;
@@ -1189,10 +1187,7 @@ STATUS getIceConfigLws(PSignalingClient pSignalingClient, UINT64 time)
     CHAR paramsJson[MAX_JSON_PARAMETER_STRING_LEN];
     PLwsCallInfo pLwsCallInfo = NULL;
     PCHAR pResponseStr;
-    UINT32 i, strLen, resultLen, configCount = 0, tokenCount;
-    INT32 j;
-    UINT64 ttl;
-    BOOL jsonInIceServerList = FALSE;
+    UINT32 resultLen;
     SignalingResult_t retSignal;
     SignalingRequest_t signalRequest;
     SignalingGetIceServerConfigRequest_t getIceServerConfigRequest;
@@ -1601,9 +1596,7 @@ STATUS describeMediaStorageConfLws(PSignalingClient pSignalingClient, UINT64 tim
     CHAR paramsJson[MAX_JSON_PARAMETER_STRING_LEN];
     PLwsCallInfo pLwsCallInfo = NULL;
     PCHAR pResponseStr;
-    UINT32 i, strLen, resultLen;
-    UINT32 tokenCount;
-    BOOL jsonInMediaStorageConfig = FALSE;
+    UINT32 resultLen;
     SignalingResult_t retSignal;
     SignalingRequest_t signalRequest;
     SignalingDescribeMediaStorageConfigRequest_t describeMediaStorageConfigRequest;
