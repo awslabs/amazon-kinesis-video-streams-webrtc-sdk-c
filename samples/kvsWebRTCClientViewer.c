@@ -1,5 +1,6 @@
 #include "Samples.h"
 #include <gst/gst.h>
+#include <gst/app/app.h>
 #include <gst/app/gstappsink.h>
 
 extern PSampleConfiguration gSampleConfiguration;
@@ -36,57 +37,73 @@ VOID dataChannelOnOpenCallback(UINT64 customData, PRtcDataChannel pDataChannel)
 VOID onGstVideoFrameReadyViewer(UINT64 customData, PFrame pFrame)
 {
     GstFlowReturn ret;
-    GstBuffer* buffer;
-    GstElement* appsrcVideo = (GstElement*) customData;
+    GstBuffer *buffer;
+    GstElement *appsrcVideo = (GstElement *)customData;
+    if(!appsrcVideo) {
+        DLOGE("Null");
+    }
+    buffer = gst_buffer_new_allocate(NULL, pFrame->size, NULL);
+    if (!buffer) {
+        DLOGE("Buffer allocation failed");
+        return;
+    }
 
-    DLOGV("Video Frame received. TrackId: %" PRIu64 ", Size: %u, Flags %u", pFrame->trackId, pFrame->size, pFrame->flags);
-
-    /* Create a new empty buffer */
-    buffer = gst_buffer_new_and_alloc(pFrame->size);
-    gst_buffer_fill(buffer, 0, pFrame->frameData, pFrame->size);
-
-    /* Push the buffer into the appsrc */
+    DLOGI("Frame size: %d, %llu", pFrame->size, pFrame->presentationTs);
+    GST_BUFFER_PTS(buffer) = pFrame->presentationTs;
+    GST_BUFFER_DURATION(buffer) = gst_util_uint64_scale(1, GST_SECOND, 24);
+    if (gst_buffer_fill(buffer, 0, pFrame->frameData, pFrame->size) != pFrame->size) {
+        DLOGE("Buffer fill did not complete correctly");
+        gst_buffer_unref(buffer);
+        return;
+    }
     g_signal_emit_by_name(appsrcVideo, "push-buffer", buffer, &ret);
-
-    /* Free the buffer now that we are done with it */
+    if (ret != GST_FLOW_OK) {
+        DLOGE("Error pushing buffer: %s", gst_flow_get_name(ret));
+    }
     gst_buffer_unref(buffer);
 }
 
 VOID onGstAudioFrameReadyViewer(UINT64 customData, PFrame pFrame)
 {
     GstFlowReturn ret;
-    GstBuffer* buffer;
-    GstElement* appsrcAudio = (GstElement*) customData;
+    GstBuffer *buffer;
+    GstElement *appsrcAudio = (GstElement *)customData;
+    if(!appsrcAudio) {
+        DLOGE("Null");
+    }
+    buffer = gst_buffer_new_allocate(NULL, pFrame->size, NULL);
+    if (!buffer) {
+        DLOGE("Buffer allocation failed");
+        return;
+    }
 
-    DLOGV("Audio Frame received. TrackId: %" PRIu64 ", Size: %u, Flags %u", pFrame->trackId, pFrame->size, pFrame->flags);
-
-    /* Create a new empty buffer */
-    buffer = gst_buffer_new_and_alloc(pFrame->size);
-    gst_buffer_fill(buffer, 0, pFrame->frameData, pFrame->size);
-
-    /* Push the buffer into the appsrc */
+    DLOGI("Audio Frame size: %d, %llu", pFrame->size, pFrame->presentationTs);
+    GST_BUFFER_PTS(buffer) = pFrame->presentationTs ;
+    int sample_rate = 48000; // Hz
+    int num_channels = 2;
+    int bits_per_sample = 16; // For example, 16-bit audio
+    int byte_rate = (sample_rate * num_channels * bits_per_sample) / 8;
+    GST_BUFFER_DURATION(buffer) = gst_util_uint64_scale(pFrame->size, GST_SECOND, byte_rate);
+    if (gst_buffer_fill(buffer, 0, pFrame->frameData, pFrame->size) != pFrame->size) {
+        DLOGE("Buffer fill did not complete correctly");
+        gst_buffer_unref(buffer);
+        return;
+    }
     g_signal_emit_by_name(appsrcAudio, "push-buffer", buffer, &ret);
-
-    /* Free the buffer now that we are done with it */
+    if (ret != GST_FLOW_OK) {
+        DLOGE("Error pushing buffer: %s", gst_flow_get_name(ret));
+    }
     gst_buffer_unref(buffer);
 }
 
 VOID onSampleStreamingSessionShutdown(UINT64 customData, PSampleStreamingSession pSampleStreamingSession)
 {
     (void) (pSampleStreamingSession);
-    GstElement* pipeline = (GstElement*) customData;
-    GstBus *bus = gst_element_get_bus(pipeline);
+    GstElement* appsrc = (GstElement*) customData;
     GstFlowReturn ret;
 
-    if (bus) {
-        GstMessage *eos_message = gst_message_new_eos(GST_OBJECT(pipeline));
-        if (eos_message) {
-            gst_bus_post(bus, eos_message);
-            gst_message_unref(eos_message);
-        }
-    }
+    g_signal_emit_by_name(appsrc, "end-of-stream", &ret);
 }
-
 
 PVOID receiveGstreamerAudioVideoFromMaster(PVOID args)
 {
@@ -100,37 +117,9 @@ PVOID receiveGstreamerAudioVideoFromMaster(PVOID args)
 
     CHK_ERR(pSampleStreamingSession != NULL, STATUS_NULL_ARG, "[KVS Viewer] Sample streaming session is NULL");
 
-    gst_init(NULL, NULL);
-
-    appsrcAudio = gst_element_factory_make("appsrc", "appsrc-audio");
-    appsrcVideo = gst_element_factory_make("appsrc", "appsrc-video");
-
-    CHK_ERR(appsrcAudio != NULL && appsrcVideo != NULL, STATUS_INTERNAL_ERROR, "[KVS Viewer] Cannot find appsrc");
-
-    CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pAudioRtcRtpTransceiver, (UINT64) appsrcAudio, onGstAudioFrameReadyViewer));
-    CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pVideoRtcRtpTransceiver, (UINT64) appsrcVideo, onGstVideoFrameReadyViewer));
-
-    switch (pSampleStreamingSession->pAudioRtcRtpTransceiver->receiver.track.codec) {
-        case RTC_CODEC_OPUS:
-            audioDescription = "appsrc name=appsrc-audio ! opusparse ! decodebin ! autoaudiosink";
-            break;
-
-        case RTC_CODEC_MULAW:
-        case RTC_CODEC_ALAW:
-            audioDescription = "appsrc name=appsrc-audio ! rawaudioparse ! decodebin ! autoaudiosink";
-            break;
-        
-        case RTC_CODEC_AAC:
-            audioDescription = "appsrc name=appsrc-audio ! aacparse ! decodebin ! autoaudiosink";
-            break;
-
-        default:
-            break;
-    }
-
     switch (pSampleStreamingSession->pVideoRtcRtpTransceiver->receiver.track.codec) {
         case RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE:
-            videoDescription = "appsrc name=appsrc-video ! h264parse ! decodebin ! autovideosink";
+            videoDescription = "appsrc name=appsrc-video ! capsfilter caps=video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline,width=1920,height=1080 ! queue ! h264parse ! queue ! matroskamux name=mux ! queue ! filesink location=video12345.mkv";
             break;
         
         case RTC_CODEC_VP8:
@@ -138,28 +127,53 @@ PVOID receiveGstreamerAudioVideoFromMaster(PVOID args)
             break;
 
         case RTC_CODEC_H265:
-            videoDescription = "appsrc name=appsrc-video ! h265parse ! decodebin ! autovideosink";
+            videoDescription = "appsrc name=appsrc-video ! capsfilter caps=video/x-h265,stream-format=byte-stream,alignment=au,profile=main,width=1920,height=1080 ! queue ! h265parse ! queue ! matroskamux name=mux ! queue  ! filesink location=video.mkv";
             break;
 
         default:
             break;
     }
 
-    audioVideoDescription = g_strjoin(" ", audioDescription, videoDescription, NULL);
+    switch (pSampleStreamingSession->pAudioRtcRtpTransceiver->receiver.track.codec) {
+        case RTC_CODEC_OPUS:
+            audioDescription = "appsrc name=appsrc-audio ! capsfilter caps=audio/x-opus,rate=48000,channels=2 ! queue ! opusparse ! queue ! mux.";
+            break;
+
+        case RTC_CODEC_MULAW:
+        case RTC_CODEC_ALAW:
+            audioDescription = "appsrc name=appsrc-audio ! capsfilter caps=audio/x-opus,rate=48000,channels=2 ! queue ! rawaudioparse ! queue ! mux.";
+            break;
+        
+        case RTC_CODEC_AAC:
+            audioDescription = "appsrc name=appsrc-audio ! capsfilter caps=audio/mpeg,mpegversion=4,stream-format=adts,rate=48000,channels=2,profile=he-aac-v1 ! queue ! aacparse ! queue ! mux. ";
+            break;
+
+        default:
+            break;
+    }
+
+    audioVideoDescription = g_strjoin(" ", videoDescription, audioDescription, NULL);
 
     pipeline = gst_parse_launch(audioVideoDescription, &error);
     CHK_ERR(pipeline != NULL, STATUS_INTERNAL_ERROR, "[KVS Viewer] Pipeline is NULL");
 
-    CHK_STATUS(streamingSessionOnShutdown(pSampleStreamingSession, (UINT64) pipeline, onSampleStreamingSessionShutdown));
+    appsrcVideo = gst_bin_get_by_name(GST_BIN(pipeline), "appsrc-video");
+    CHK_ERR(appsrcVideo != NULL, STATUS_INTERNAL_ERROR, "[KVS Gstreamer Viewer] Cannot find appsrc video");
 
+    appsrcAudio = gst_bin_get_by_name(GST_BIN(pipeline), "appsrc-audio");
+    CHK_ERR(appsrcAudio != NULL, STATUS_INTERNAL_ERROR, "[KVS Gstreamer Viewer] Cannot find appsrc audio");
+
+    CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pVideoRtcRtpTransceiver, (UINT64) appsrcVideo, onGstVideoFrameReadyViewer));
+    CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pAudioRtcRtpTransceiver, (UINT64) appsrcAudio, onGstAudioFrameReadyViewer));
+    CHK_STATUS(streamingSessionOnShutdown(pSampleStreamingSession, (UINT64) appsrcVideo, onSampleStreamingSessionShutdown));
+    CHK_STATUS(streamingSessionOnShutdown(pSampleStreamingSession, (UINT64) appsrcAudio, onSampleStreamingSessionShutdown));
     g_free(audioVideoDescription);
 
-    bus = gst_element_get_bus(pipeline);
-    CHK_ERR(bus != NULL, STATUS_INTERNAL_ERROR, "[KVS Viewer] Bus is NULL");
-    
     gst_element_set_state(pipeline, GST_STATE_PLAYING);
 
     /* block until error or EOS */
+    bus = gst_element_get_bus(pipeline);
+    CHK_ERR(bus != NULL, STATUS_INTERNAL_ERROR, "[KVS Viewer] Bus is NULL");
     msg = gst_bus_timed_pop_filtered(bus, GST_CLOCK_TIME_NONE, GST_MESSAGE_ERROR | GST_MESSAGE_EOS);
 
     /* Free resources */
@@ -167,11 +181,11 @@ PVOID receiveGstreamerAudioVideoFromMaster(PVOID args)
         switch (GST_MESSAGE_TYPE(msg)) {
             case GST_MESSAGE_ERROR:
                 gst_message_parse_error(msg, &error, NULL);
-                DLOGE("Error received: %s\n", error->message);
+                DLOGE("Error received: %s", error->message);
                 g_error_free(error);
                 break;
             case GST_MESSAGE_EOS:
-                DLOGI("End of stream\n");
+                DLOGI("End of stream");
                 break;
             default:
                 break;
@@ -228,6 +242,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     pChannelName = argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME;
 #endif
 
+    gst_init(&argc, &argv);
     CHK_STATUS(createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_VIEWER, TRUE, TRUE, logLevel, &pSampleConfiguration));
 
     pSampleConfiguration->receiveAudioVideoSource = receiveGstreamerAudioVideoFromMaster;
@@ -279,12 +294,6 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     CHK_STATUS(createOffer(pSampleStreamingSession->pPeerConnection, &offerSessionDescriptionInit));
     DLOGI("[KVS Viewer] Offer creation successful");
-    
-    // The audio video receive routine should be per streaming session
-    if (pSampleConfiguration->receiveAudioVideoSource != NULL) {
-        THREAD_CREATE(&pSampleStreamingSession->receiveAudioVideoSenderTid, pSampleConfiguration->receiveAudioVideoSource,
-                    (PVOID) pSampleStreamingSession);
-    }
 
     DLOGI("[KVS Viewer] Generating JSON of session description....");
     CHK_STATUS(serializeSessionDescriptionInit(&offerSessionDescriptionInit, NULL, &buffLen));

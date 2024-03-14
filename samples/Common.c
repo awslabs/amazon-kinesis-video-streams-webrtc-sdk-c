@@ -145,6 +145,11 @@ STATUS handleAnswer(PSampleConfiguration pSampleConfiguration, PSampleStreamingS
     CHK_STATUS(deserializeSessionDescriptionInit(pSignalingMessage->payload, pSignalingMessage->payloadLen, &answerSessionDescriptionInit));
     CHK_STATUS(setRemoteDescription(pSampleStreamingSession->pPeerConnection, &answerSessionDescriptionInit));
 
+    // The audio video receive routine should be per streaming session
+    if (pSampleConfiguration->receiveAudioVideoSource != NULL) {
+        THREAD_CREATE(&pSampleStreamingSession->receiveAudioVideoSenderTid, pSampleConfiguration->receiveAudioVideoSource,
+                      (PVOID) pSampleStreamingSession);
+    }
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
