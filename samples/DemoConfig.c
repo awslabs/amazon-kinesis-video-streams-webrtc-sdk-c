@@ -230,8 +230,6 @@ STATUS initializeMediaSenders(PDemoConfiguration pDemoConfiguration, startRoutin
     } else {
         pDemoConfiguration->appMediaCtx.mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
     }
-    CHK_STATUS(readFrameFromDisk(NULL, &frameSize, "./h264SampleFrames/frame-0001.h264"));
-    CHK_STATUS(readFrameFromDisk(NULL, &frameSize, "./opusSampleFrames/sample-001.opus"));
 CleanUp:
     return retStatus;
 }
