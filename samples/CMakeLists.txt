@@ -2,8 +2,6 @@ cmake_minimum_required(VERSION 3.6.3)
 
 project(KinesisVideoWebRTCClientSamples LANGUAGES C)
 
-#set(OPEN_SRC_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/open-source" CACHE PATH "Libraries will be downloaded and build in this directory.")
-
 message("OPEN_SRC_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX}")
 
 if (WIN32)
@@ -57,7 +55,6 @@ link_directories(${OPEN_SRC_INSTALL_PREFIX}/lib)
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/opusSampleFrames" DESTINATION .)
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/h264SampleFrames" DESTINATION .)
 
-
 file(GLOB
         WEBRTC_DEMO_SOURCE_FILES
         DemoConfig.c
@@ -66,7 +63,7 @@ file(GLOB
 
 message(STATUS "Install prefix: ${CMAKE_INSTALL_PREFIX}")
 add_library(kvsWebrtcClientDemo ${LINKAGE} ${WEBRTC_DEMO_SOURCE_FILES})
-target_link_libraries(kvsWebrtcClientDemo PUBLIC kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} ${GST_SAMPLE_LIBRARIES} kvsCommonLws kvspicUtils websockets kvssdp)
+target_link_libraries(kvsWebrtcClientDemo PUBLIC kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} kvsCommonLws kvspicUtils websockets kvssdp)
 install(TARGETS kvsWebrtcClientDemo
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib
@@ -94,7 +91,7 @@ if(GST_FOUND)
     ${WEBRTC_DEMO_SOURCE_FILES}
     kvsWebRTCClientMasterGstSample.c
   )
-  target_link_libraries(kvsWebrtcClientMasterGstSample kvsWebrtcClientDemo)
+  target_link_libraries(kvsWebrtcClientMasterGstSample kvsWebrtcClientDemo ${GST_SAMPLE_LIBRARIES})
 
   install(TARGETS kvsWebrtcClientMasterGstSample
     RUNTIME DESTINATION bin
