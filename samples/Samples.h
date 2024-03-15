@@ -167,6 +167,7 @@ typedef struct {
     ParamsSetFn configureAppFn;
     UINT32 logLevel;
     PDoubleList timerIdList;
+    BOOL useIot;
 } DemoConfiguration, *PDemoConfiguration;
 
 typedef struct {
