@@ -61,13 +61,13 @@ add_executable(
   kvsWebrtcClientMaster
   Common.c
   kvsWebRTCClientMaster.c)
-target_link_libraries(kvsWebrtcClientMaster kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} kvsCommonLws kvspicUtils websockets kvssdp corejson kvssignaling)
+target_link_libraries(kvsWebrtcClientMaster kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} kvsCommonLws kvspicUtils websockets kvssdp kvssignaling corejson)
 
 add_executable(
   kvsWebrtcClientViewer
   Common.c
   kvsWebRTCClientViewer.c)
-target_link_libraries(kvsWebrtcClientViewer kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} kvsCommonLws kvspicUtils websockets kvssdp corejson kvssignaling)
+target_link_libraries(kvsWebrtcClientViewer kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} kvsCommonLws kvspicUtils websockets kvssdp kvssignaling corejson)
 
 add_executable(
         discoverNatBehavior
@@ -80,7 +80,7 @@ if(GST_FOUND)
     Common.c
     kvsWebRTCClientMasterGstSample.c
   )
-  target_link_libraries(kvsWebrtcClientMasterGstSample kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} ${GST_SAMPLE_LIBRARIES} kvsCommonLws kvspicUtils websockets kvssdp corejson kvssignaling)
+  target_link_libraries(kvsWebrtcClientMasterGstSample kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} ${GST_SAMPLE_LIBRARIES} kvsCommonLws kvspicUtils websockets kvssdp kvssignaling corejson)
 
   install(TARGETS kvsWebrtcClientMasterGstSample
     RUNTIME DESTINATION bin

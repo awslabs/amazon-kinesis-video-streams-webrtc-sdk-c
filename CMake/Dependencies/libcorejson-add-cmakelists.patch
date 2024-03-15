@@ -3,12 +3,17 @@ new file mode 100644
 index 0000000..9a5f850
 --- /dev/null
 +++ b/CMakeLists.txt
-@@ -0,0 +1,19 @@
+@@ -0,0 +1,25 @@
 +cmake_minimum_required(VERSION 3.6.3)
 +project(corejson C)
 +
 +include(jsonFilePaths.cmake)
-+add_library(corejson ${JSON_SOURCES})
++
++if(BUILD_SHARED_LIBS)
++    add_library(corejson SHARED ${JSON_SOURCES})
++else()
++    add_library(corejson STATIC ${JSON_SOURCES})
++endif()
 +
 +target_include_directories(corejson PUBLIC
 +                           ${JSON_INCLUDE_PUBLIC_DIRS})
@@ -23,3 +28,4 @@ index 0000000..9a5f850
 +    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
 +    LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
 +    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
++
