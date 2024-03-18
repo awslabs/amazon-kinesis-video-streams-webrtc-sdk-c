@@ -1880,7 +1880,8 @@ STATUS sendLwsMessage(PSignalingClient pSignalingClient, SIGNALING_MESSAGE_TYPE 
 
     // Prepare json message
     bufferSize = SIZEOF(pSignalingClient->pOngoingCallInfo->sendBuffer) - LWS_PRE - 1; /* -1 for null terminator. */
-    retSignal = Signaling_constructWssMessage(&wssSendMessage, (PCHAR) (pSignalingClient->pOngoingCallInfo->sendBuffer + LWS_PRE), &bufferSize);
+    retSignal =
+        Signaling_constructWssMessage(&wssSendMessage, (PCHAR) (pSignalingClient->pOngoingCallInfo->sendBuffer + LWS_PRE), (size_t*) &bufferSize);
     CHK(retSignal == SIGNALING_RESULT_OK, retSignal);
 
     // Validate against max
@@ -1991,7 +1992,7 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    UINT32 strLen, outLen = MAX_SIGNALING_MESSAGE_LEN;
+    UINT32 outLen = MAX_SIGNALING_MESSAGE_LEN;
     PSignalingMessageWrapper pSignalingMessageWrapper = NULL;
     TID receivedTid = INVALID_TID_VALUE;
     BOOL parsedMessageType = FALSE, jsonInIceServerList = FALSE;
