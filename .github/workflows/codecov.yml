@@ -42,5 +42,5 @@ jobs:
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
       - name: Code coverage
         run: |
-          for test_file in $(find CMakeFiles/kvsWebrtcClient.dir CMakeFiles/kvsWebrtcSignalingClient.dir -name '*.gcno'); do gcov $test_file; done
+          for test_file in $(find CMakeFiles/kvsWebrtcClient.dir CMakeFiles/kvsWebrtcSignalingClient.dir -name '*.gcno' ! -path '*samples*'); do gcov $test_file; done
           bash <(curl -s https://codecov.io/bash)
