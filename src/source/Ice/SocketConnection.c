@@ -46,14 +46,16 @@ CleanUp:
     CHK_LOG_ERR(retStatus);
 
     if (pBindAddr) {
-        getIpAddrStr(pBindAddr, ipAddr, ARRAY_SIZE(ipAddr));
-        DLOGD("create socket with ip: %s:%u. family:%d", ipAddr, (UINT16) getInt16(pBindAddr->port), pBindAddr->family);
+        if(STATUS_SUCCEEDED(getIpAddrStr(pBindAddr, ipAddr, ARRAY_SIZE(ipAddr)))) {
+            DLOGD("create socket with ip: %s:%u. family:%d", ipAddr, (UINT16) getInt16(pBindAddr->port), pBindAddr->family);
+        }
     } else {
         DLOGD("create socket without the bind address(%d:%d)", familyType, protocol);
     }
     if (protocol == KVS_SOCKET_PROTOCOL_TCP) {
-        getIpAddrStr(pPeerIpAddr, ipAddr, ARRAY_SIZE(ipAddr));
-        DLOGD("tcp socket connected with ip: %s:%u. family:%d", ipAddr, (UINT16) getInt16(pPeerIpAddr->port), pPeerIpAddr->family);
+        if(STATUS_SUCCEEDED(getIpAddrStr(pPeerIpAddr, ipAddr, ARRAY_SIZE(ipAddr)))) {
+            DLOGD("tcp socket connected with ip: %s:%u. family:%d", ipAddr, (UINT16) getInt16(pPeerIpAddr->port), pPeerIpAddr->family);
+        }
     }
 
     if (STATUS_FAILED(retStatus) && pSocketConnection != NULL) {

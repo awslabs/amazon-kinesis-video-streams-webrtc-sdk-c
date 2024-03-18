@@ -20,7 +20,8 @@ TEST_F(IceApiTest, failCreateSocketConnection)
             createSocketConnection(KVS_IP_FAMILY_TYPE_IPV4, KVS_SOCKET_PROTOCOL_NONE, &localhost, NULL, 0, NULL, 0, &pDummySocketConnection));
 
     EXPECT_EQ(STATUS_INVALID_ARG,
-            createSocketConnection(KVS_IP_FAMILY_TYPE_IPV4, KVS_SOCKET_PROTOCOL_UDP, NULL, NULL, 0, NULL, 0, &pDummySocketConnection));
+            createSocketConnection(KVS_IP_FAMILY_TYPE_IPV4, KVS_SOCKET_PROTOCOL_TCP, NULL, NULL, 0, NULL, 0, &pDummySocketConnection));
+
 }
 
 TEST_F(IceApiTest, ConnectionListenerApiTest)
