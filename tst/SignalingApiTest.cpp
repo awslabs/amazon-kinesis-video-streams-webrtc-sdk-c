@@ -9,6 +9,81 @@ namespace webrtcclient {
 class SignalingApiTest : public WebRtcClientTestBase {
 };
 
+TEST_F(SignalingApiTest, invalidRoleType_deserializeSignalingCacheEntries)
+{
+    FREMOVE(DEFAULT_CACHE_FILE_PATH);
+    srand(GETTIME());
+
+    SignalingFileCacheEntry testEntry;
+    MEMSET(&testEntry, 0x00, SIZEOF(testEntry));
+
+    BOOL cacheFound = FALSE;
+    int additionalEntries = rand()%15 + 2;
+    char testWssEndpoint[MAX_SIGNALING_ENDPOINT_URI_LEN + 1] = {0};
+    char testHttpsEndpoint[MAX_SIGNALING_ENDPOINT_URI_LEN + 1] = {0};
+    char testRegion[MAX_REGION_NAME_LEN + 1] = {0};
+    char testChannelArn[MAX_ARN_LEN + 1] = {0};
+    char testChannel[MAX_CHANNEL_NAME_LEN + 1] = {0};
+    int time = GETTIME() / HUNDREDS_OF_NANOS_IN_A_SECOND;
+    int append = 0;
+    int i = 0;
+    char * fileBuffer;
+    UINT64 fileSize;
+    UINT32 entryCount;
+    SignalingFileCacheEntry entries[MAX_SIGNALING_CACHE_ENTRY_COUNT];
+    MEMSET(entries, 0x00, SIZEOF(entries));
+
+
+    const int TEST_CHANNEL_COUNT = 5;
+
+    for(i = 0; i < MAX_SIGNALING_CACHE_ENTRY_COUNT + additionalEntries; i++) {
+        testEntry.role = SIGNALING_CHANNEL_ROLE_TYPE_VIEWER;
+        MEMSET(testWssEndpoint, 0, MAX_SIGNALING_ENDPOINT_URI_LEN+1);
+        MEMSET(testHttpsEndpoint, 0, MAX_SIGNALING_ENDPOINT_URI_LEN+1);
+        MEMSET(testRegion, 0, MAX_REGION_NAME_LEN + 1);
+        MEMSET(testChannelArn, 0, MAX_ARN_LEN+1);
+        MEMSET(testChannel, 0, MAX_CHANNEL_NAME_LEN+1);
+
+        append = rand()%TEST_CHANNEL_COUNT;
+        SNPRINTF(testWssEndpoint, SIZEOF(testWssEndpoint), "%s%d", "testWssEndpoint", append);
+        SNPRINTF(testHttpsEndpoint, SIZEOF(testHttpsEndpoint),"%s%d", "testHttpsEndpoint", append);
+        SNPRINTF(testRegion, SIZEOF(testRegion),"%s%d", "testRegion", append);
+        SNPRINTF(testChannelArn, SIZEOF(testChannelArn),"%s%d", "testChannelArn", append);
+        SNPRINTF(testChannel, SIZEOF(testChannel),"%s%d", "testChannel", append);
+
+        STRCPY(testEntry.wssEndpoint, testWssEndpoint);
+        STRCPY(testEntry.httpsEndpoint, testHttpsEndpoint);
+        STRCPY(testEntry.region, testRegion);
+        STRCPY(testEntry.channelArn, testChannelArn);
+        STRCPY(testEntry.channelName, testChannel);
+        testEntry.creationTsEpochSeconds = time + i;
+        EXPECT_EQ(STATUS_SUCCESS, signalingCacheSaveToFile(&testEntry, DEFAULT_CACHE_FILE_PATH));
+    }
+    testEntry.creationTsEpochSeconds = 0;
+    DLOGI("Channel name: %s", testChannel);
+    EXPECT_EQ(STATUS_SUCCESS, signalingCacheLoadFromFile(testChannel, testRegion, SIGNALING_CHANNEL_ROLE_TYPE_VIEWER, &testEntry, &cacheFound, DEFAULT_CACHE_FILE_PATH));
+    EXPECT_EQ(TRUE, cacheFound);
+    EXPECT_EQ(time + i - 1, testEntry.creationTsEpochSeconds);
+    EXPECT_EQ(0, STRCMP(testEntry.wssEndpoint, testWssEndpoint));
+    EXPECT_EQ(0, STRCMP(testEntry.httpsEndpoint, testHttpsEndpoint));
+    EXPECT_EQ(0, STRCMP(testEntry.region, testRegion));
+    EXPECT_EQ(0, STRCMP(testEntry.channelArn, testChannelArn));
+    EXPECT_EQ(0, STRCMP(testEntry.channelName, testChannel));
+
+    //Check size to ensure entries are properly overwriting each other
+    EXPECT_EQ(STATUS_SUCCESS, readFile(DEFAULT_CACHE_FILE_PATH, FALSE, NULL, &fileSize));
+
+    EXPECT_LT(0, fileSize);
+    /* +1 for null terminator */
+    fileBuffer = (char*)MEMCALLOC(1, (fileSize + 1) * SIZEOF(CHAR));
+    EXPECT_TRUE((fileBuffer != NULL));
+    EXPECT_EQ(STATUS_SUCCESS, readFile(DEFAULT_CACHE_FILE_PATH, FALSE, (PBYTE) fileBuffer, &fileSize));
+    EXPECT_EQ(STATUS_INVALID_ARG, deserializeSignalingCacheEntries(fileBuffer, fileSize, entries, &entryCount, DEFAULT_CACHE_FILE_PATH));
+    EXPECT_LT(entryCount, TEST_CHANNEL_COUNT+1);
+
+    MEMFREE(fileBuffer);
+    FREMOVE(DEFAULT_CACHE_FILE_PATH);
+}
 TEST_F(SignalingApiTest, createValidateChannelInfo)
 {
     initializeSignalingClientStructs();
