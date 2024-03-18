@@ -4,6 +4,7 @@ on:
     branches:
       - develop
       - master
+      - ut-inc
   pull_request:
     branches:
       - develop

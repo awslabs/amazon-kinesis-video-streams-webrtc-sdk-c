@@ -137,7 +137,6 @@ STATUS signalingCacheLoadFromFile(PCHAR channelName, PCHAR region, SIGNALING_CHA
 
     CHK(channelName != NULL && region != NULL && pSignalingFileCacheEntry != NULL && pCacheFound != NULL && cacheFilePath != NULL, STATUS_NULL_ARG);
     CHK(!IS_EMPTY_STRING(channelName) && !IS_EMPTY_STRING(region), STATUS_INVALID_ARG);
-
     CHK_STATUS(createFileIfNotExist(cacheFilePath));
 
     MEMSET(entries, 0x00, SIZEOF(entries));
