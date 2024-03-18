@@ -18,7 +18,7 @@ var group__PublicStructures =
     ] ],
     [ "RtcIceServer", "structRtcIceServer.html", [
       [ "credential", "group__StatusCodes.html#ga9285f0e90d1949fd98822d234f59ed6a", null ],
-      [ "urls", "group__StatusCodes.html#ga61295588ec2ba33f881ad9fe409d3266", null ],
+      [ "urls", "group__StatusCodes.html#ga57530b9a4c37ff55e21b91490fb3d7f5", null ],
       [ "username", "group__StatusCodes.html#ga78f671a5121e5ba99a253108fb3d16c7", null ]
     ] ],
     [ "RtcCertificate", "structRtcCertificate.html", [
@@ -29,6 +29,7 @@ var group__PublicStructures =
     ] ],
     [ "KvsRtcConfiguration", "structKvsRtcConfiguration.html", [
       [ "disableSenderSideBandwidthEstimation", "group__StatusCodes.html#gac4007f0d6df9197aa8d44a3ff6200db1", null ],
+      [ "enableIceStats", "group__StatusCodes.html#ga3f9c14586b3a53495784aac7398106af", null ],
       [ "filterCustomData", "group__StatusCodes.html#ga02a5e6d0b5cdd1916c3b6c7a295849d3", null ],
       [ "generatedCertificateBits", "group__StatusCodes.html#gaf59d56212baf93ef3aaf7d724a5b07a4", null ],
       [ "generateRSACertificate", "group__StatusCodes.html#gaaea167f4ad4ddef8286daf6d51d4452a", null ],
@@ -108,7 +109,7 @@ var group__PublicStructures =
       [ "password", "group__StatusCodes.html#ga1db8b969ab7e15d5f1221bc04310b33d", null ],
       [ "ttl", "group__StatusCodes.html#gaa2a1f0b6e706876479142eb0f47bc7fe", null ],
       [ "uriCount", "group__StatusCodes.html#ga0994081094894c3559834299e4ce85fb", null ],
-      [ "uris", "group__StatusCodes.html#ga223f06386852e206da201cd92b5f4b04", null ],
+      [ "uris", "group__StatusCodes.html#ga05232d88a1dc86aa1e826c9c3c934027", null ],
       [ "userName", "group__StatusCodes.html#ga3b18eba2e7f0da146df438408a2c8a1b", null ],
       [ "version", "group__StatusCodes.html#ga804c9f31a8d542f6ffee45d353f24c4e", null ]
     ] ],
