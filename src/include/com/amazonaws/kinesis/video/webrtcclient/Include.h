@@ -478,11 +478,6 @@ extern "C" {
 #define MAX_SIGNALING_ENDPOINT_URI_LEN 512
 
 /**
- * Maximum allowed ICE URI length
- */
-#define MAX_ICE_CONFIG_URI_LEN 256
-
-/**
  * Maximum allowed correlation ID length
  */
 #define MAX_CORRELATION_ID_LEN 256
@@ -1220,6 +1215,7 @@ typedef struct {
     BOOL disableSenderSideBandwidthEstimation; //!< Disable TWCC feedback based sender bandwidth estimation, enabled by default.
                                                //!< You want to set this to TRUE if you are on a very stable connection and want to save 1.2MB of
                                                //!< memory
+    BOOL enableIceStats;                       //!< Enable ICE stats to be calculated
 } KvsRtcConfiguration, *PKvsRtcConfiguration;
 
 /**

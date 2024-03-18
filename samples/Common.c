@@ -54,8 +54,8 @@ VOID onConnectionStateChange(UINT64 customData, RTC_PEER_CONNECTION_STATE newSta
             CHK_STATUS(peerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->peerConnectionMetrics));
             CHK_STATUS(iceAgentGetMetrics(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->iceMetrics));
 
-            if (STATUS_FAILED(retStatus = logSelectedIceCandidatesInformation(pSampleStreamingSession))) {
-                DLOGW("Failed to get information about selected Ice candidates: 0x%08x", retStatus);
+            if (pSampleConfiguration->enableIceStats) {
+                CHK_LOG_ERR(logSelectedIceCandidatesInformation(pSampleStreamingSession));
             }
             break;
         case RTC_PEER_CONNECTION_STATE_FAILED:
@@ -117,21 +117,21 @@ STATUS logSelectedIceCandidatesInformation(PSampleStreamingSession pSampleStream
     CHK(pSampleStreamingSession != NULL, STATUS_NULL_ARG);
     rtcMetrics.requestedTypeOfStats = RTC_STATS_TYPE_LOCAL_CANDIDATE;
     CHK_STATUS(rtcPeerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, NULL, &rtcMetrics));
-    DLOGD("Local Candidate IP Address: %s", rtcMetrics.rtcStatsObject.localIceCandidateStats.address);
-    DLOGD("Local Candidate type: %s", rtcMetrics.rtcStatsObject.localIceCandidateStats.candidateType);
-    DLOGD("Local Candidate port: %d", rtcMetrics.rtcStatsObject.localIceCandidateStats.port);
-    DLOGD("Local Candidate priority: %d", rtcMetrics.rtcStatsObject.localIceCandidateStats.priority);
-    DLOGD("Local Candidate transport protocol: %s", rtcMetrics.rtcStatsObject.localIceCandidateStats.protocol);
-    DLOGD("Local Candidate relay protocol: %s", rtcMetrics.rtcStatsObject.localIceCandidateStats.relayProtocol);
-    DLOGD("Local Candidate Ice server source: %s", rtcMetrics.rtcStatsObject.localIceCandidateStats.url);
+    DLOGI("Local Candidate IP Address: %s", rtcMetrics.rtcStatsObject.localIceCandidateStats.address);
+    DLOGI("Local Candidate type: %s", rtcMetrics.rtcStatsObject.localIceCandidateStats.candidateType);
+    DLOGI("Local Candidate port: %d", rtcMetrics.rtcStatsObject.localIceCandidateStats.port);
+    DLOGI("Local Candidate priority: %d", rtcMetrics.rtcStatsObject.localIceCandidateStats.priority);
+    DLOGI("Local Candidate transport protocol: %s", rtcMetrics.rtcStatsObject.localIceCandidateStats.protocol);
+    DLOGI("Local Candidate relay protocol: %s", rtcMetrics.rtcStatsObject.localIceCandidateStats.relayProtocol);
+    DLOGI("Local Candidate Ice server source: %s", rtcMetrics.rtcStatsObject.localIceCandidateStats.url);
 
     rtcMetrics.requestedTypeOfStats = RTC_STATS_TYPE_REMOTE_CANDIDATE;
     CHK_STATUS(rtcPeerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, NULL, &rtcMetrics));
-    DLOGD("Remote Candidate IP Address: %s", rtcMetrics.rtcStatsObject.remoteIceCandidateStats.address);
-    DLOGD("Remote Candidate type: %s", rtcMetrics.rtcStatsObject.remoteIceCandidateStats.candidateType);
-    DLOGD("Remote Candidate port: %d", rtcMetrics.rtcStatsObject.remoteIceCandidateStats.port);
-    DLOGD("Remote Candidate priority: %d", rtcMetrics.rtcStatsObject.remoteIceCandidateStats.priority);
-    DLOGD("Remote Candidate transport protocol: %s", rtcMetrics.rtcStatsObject.remoteIceCandidateStats.protocol);
+    DLOGI("Remote Candidate IP Address: %s", rtcMetrics.rtcStatsObject.remoteIceCandidateStats.address);
+    DLOGI("Remote Candidate type: %s", rtcMetrics.rtcStatsObject.remoteIceCandidateStats.candidateType);
+    DLOGI("Remote Candidate port: %d", rtcMetrics.rtcStatsObject.remoteIceCandidateStats.port);
+    DLOGI("Remote Candidate priority: %d", rtcMetrics.rtcStatsObject.remoteIceCandidateStats.priority);
+    DLOGI("Remote Candidate transport protocol: %s", rtcMetrics.rtcStatsObject.remoteIceCandidateStats.protocol);
 CleanUp:
     LEAVES();
     return retStatus;
@@ -414,6 +414,8 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     // Set the ICE mode explicitly
     configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_ALL;
 
+    configuration.kvsRtcConfiguration.enableIceStats = pSampleConfiguration->enableIceStats;
+
     // Set the  STUN server
     PCHAR pKinesisVideoStunUrlPostFix = KINESIS_VIDEO_STUN_URL_POSTFIX;
     // If region is in CN, add CN region uri postfix
@@ -549,6 +551,8 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     ATOMIC_STORE_BOOL(&pSampleStreamingSession->candidateGatheringDone, FALSE);
 
     pSampleStreamingSession->peerConnectionMetrics.peerConnectionStats.peerConnectionStartTime = GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+    // Flag to enable SDK to calculate selected ice server, local, remote and candidate pair stats.
+    pSampleConfiguration->enableIceStats = FALSE;
     CHK_STATUS(initializePeerConnection(pSampleConfiguration, &pSampleStreamingSession->pPeerConnection));
     CHK_STATUS(peerConnectionOnIceCandidate(pSampleStreamingSession->pPeerConnection, (UINT64) pSampleStreamingSession, onIceCandidateHandler));
     CHK_STATUS(
@@ -1218,9 +1222,8 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
     }
 
     for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
-        retStatus = gatherIceServerStats(pSampleConfiguration->sampleStreamingSessionList[i]);
-        if (STATUS_FAILED(retStatus)) {
-            DLOGW("Failed to ICE Server Stats for streaming session %d: %08x", i, retStatus);
+        if (pSampleConfiguration->enableIceStats) {
+            CHK_LOG_ERR(gatherIceServerStats(pSampleConfiguration->sampleStreamingSessionList[i]));
         }
         freeSampleStreamingSession(&pSampleConfiguration->sampleStreamingSessionList[i]);
     }
@@ -1552,7 +1555,7 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
     MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
     locked = FALSE;
 
-    if (startStats &&
+    if (pSampleConfiguration->enableIceStats && startStats &&
         STATUS_FAILED(retStatus = timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, SAMPLE_STATS_DURATION, SAMPLE_STATS_DURATION,
                                                      getIceCandidatePairStatsCallback, (UINT64) pSampleConfiguration,
                                                      &pSampleConfiguration->iceCandidatePairStatsTimerId))) {
