@@ -176,6 +176,32 @@ TEST_F(MetricsApiTest, webRtcTransportGetMetrics)
     EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
 }
 
+TEST_F(MetricsApiTest, webRtcRtpGetMetrics)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection pRtcPeerConnection;
+    RtcStats rtcMetrics;
+    RtcMediaStreamTrack videoTrack;
+    PRtcRtpTransceiver videoTransceiver;
+
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+
+    ASSERT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+
+    addTrackToPeerConnection(pRtcPeerConnection, &videoTrack, &videoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+    rtcMetrics.requestedTypeOfStats = RTC_STATS_TYPE_REMOTE_INBOUND_RTP;
+    EXPECT_EQ(STATUS_SUCCESS, rtcPeerConnectionGetMetrics(pRtcPeerConnection, NULL, &rtcMetrics));
+    EXPECT_EQ(STATUS_SUCCESS, rtcPeerConnectionGetMetrics(pRtcPeerConnection, videoTransceiver, &rtcMetrics));
+    rtcMetrics.requestedTypeOfStats = RTC_STATS_TYPE_OUTBOUND_RTP;
+    EXPECT_EQ(STATUS_SUCCESS, rtcPeerConnectionGetMetrics(pRtcPeerConnection, NULL, &rtcMetrics));
+    EXPECT_EQ(STATUS_SUCCESS, rtcPeerConnectionGetMetrics(pRtcPeerConnection, videoTransceiver, &rtcMetrics));
+
+
+    EXPECT_EQ(STATUS_SUCCESS, closePeerConnection(pRtcPeerConnection));
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis
