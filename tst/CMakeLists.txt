@@ -29,6 +29,7 @@ if (TARGET GTest::GTest)
 endif()
 
 include_directories(${KINESIS_VIDEO_WebRTCClient_SRC})
+message(STATUS "Current dir: ${CMAKE_CURRENT_SOURCE_DIR}")
 
 set(AWS_SDK_TEST_LIBS "")
 if(ENABLE_AWS_SDK_IN_TESTS)
@@ -38,7 +39,8 @@ endif()
 
 file(GLOB WEBRTC_CLIENT_TEST_SOURCE_FILES "*.cpp" )
 
-add_executable(webrtc_client_test ${WEBRTC_CLIENT_TEST_SOURCE_FILES} SignalingApiFunctionalityTest.h)
+add_executable(webrtc_client_test ${WEBRTC_CLIENT_TEST_SOURCE_FILES})
+target_include_directories(webrtc_client_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(webrtc_client_test
     kvsWebrtcClient
     kvsWebrtcSignalingClient

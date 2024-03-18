@@ -59,6 +59,27 @@ template <typename Func> void assertLFAndCRLF(PCHAR sdp, INT32 sdpLen, Func&& as
     assertFn((PCHAR) converted.c_str());
 };
 
+TEST_F(SdpApiTest, convertSdpErrorCodeTest)
+{
+    SdpResult_t sdpResult;
+    sdpResult = SDP_RESULT_BAD_PARAM;
+    EXPECT_EQ(STATUS_INVALID_ARG, convertSdpErrorCode(sdpResult));
+    sdpResult = SDP_RESULT_MESSAGE_MALFORMED;
+    EXPECT_EQ(STATUS_SDP_MESSAGE_MALFORMED, convertSdpErrorCode(sdpResult));
+    sdpResult = SDP_RESULT_MESSAGE_MALFORMED_NOT_ENOUGH_INFO;
+    EXPECT_EQ(STATUS_SDP_MESSAGE_MALFORMED_NOT_ENOUGH_INFO, convertSdpErrorCode(sdpResult));
+    sdpResult = SDP_RESULT_MESSAGE_MALFORMED_EQUAL_NOT_FOUND;
+    EXPECT_EQ(STATUS_SDP_MESSAGE_MALFORMED_EQUAL_NOT_FOUND, convertSdpErrorCode(sdpResult));
+    sdpResult = SDP_RESULT_MESSAGE_MALFORMED_NEWLINE_NOT_FOUND;
+    EXPECT_EQ(STATUS_SDP_MESSAGE_MALFORMED_NEWLINE_NOT_FOUND, convertSdpErrorCode(sdpResult));
+    sdpResult = SDP_RESULT_MESSAGE_MALFORMED_NO_VALUE;
+    EXPECT_EQ(STATUS_SDP_MESSAGE_MALFORMED_NO_VALUE, convertSdpErrorCode(sdpResult));
+    sdpResult = SDP_RESULT_MESSAGE_MALFORMED_NO_SESSION_ID;
+    EXPECT_EQ(STATUS_SDP_MESSAGE_MALFORMED_NO_SESSION_ID, convertSdpErrorCode(sdpResult));
+    sdpResult = SDP_RESULT_MESSAGE_MALFORMED_NO_SESSION_VERSION;
+    EXPECT_EQ(STATUS_SDP_MESSAGE_MALFORMED_NO_SESSION_VERSION, convertSdpErrorCode(sdpResult));
+}
+
 TEST_F(SdpApiTest, deserializeSessionDescription_NoMedia)
 {
     CHAR sessionDescriptionNoMedia[] = R"(v=2

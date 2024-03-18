@@ -53,6 +53,7 @@ execute_process(
 add_definitions(-DSDK_VERSION=\"${GIT_COMMIT_HASH}\")
 add_definitions(-DVERSION_STRING=\"${PROJECT_VERSION}\")
 add_definitions(-DDETECTED_GIT_HASH)
+
 if(NOT KVS_STACK_SIZE OR KVS_STACK_SIZE STREQUAL "")
   message(STATUS "Setting default stack size to 64*1024")
   set(KVS_DEFAULT_STACK_SIZE 65536)
@@ -388,8 +389,6 @@ file(GLOB WEBRTC_SIGNALING_CLIENT_SOURCE_FILES "src/source/Signaling/*.c")
 include_directories(${OPEN_SRC_INCLUDE_DIRS})
 include_directories(${OPEN_SRC_INSTALL_PREFIX}/include)
 include_directories(${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/include)
-# include sdp_config.h
-include_directories(src/source/Sdp/kvssdp)
 
 add_library(kvsWebrtcClient ${LINKAGE} ${WEBRTC_CLIENT_SOURCE_FILES} ${DATACHANNEL_SRC})
 

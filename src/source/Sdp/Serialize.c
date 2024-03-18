@@ -2,9 +2,6 @@
 #include "../Include_i.h"
 #include "kvssdp/sdp_serializer.h"
 
-// Convert error code from SDP library to STATUS.
-extern STATUS convertSdpErrorCode(SdpResult_t sdpResult);
-
 static STATUS serializeVersion(SdpSerializerContext_t* pCtx, UINT64 version)
 {
     ENTERS();
