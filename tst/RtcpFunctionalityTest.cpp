@@ -421,6 +421,8 @@ TEST_F(RtcpFunctionalityTest, testRollingBufferParams)
     RtcRtpTransceiverInit trackInvalidRbBitrateRbTimeInit{};
     RtcMediaStreamTrack trackValidRbTrack{};
     RtcRtpTransceiverInit trackValidRbInit{};
+    RtcMediaStreamTrack trackInvalidMediaKindTrack{};
+    RtcRtpTransceiverInit trackInvalidMediaKindInit{};
 
     trackEmptyRtcRtpTransceiverInitTrack.codec = RTC_CODEC_VP8;
     trackEmptyRtcRtpTransceiverInitTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
@@ -469,6 +471,13 @@ TEST_F(RtcpFunctionalityTest, testRollingBufferParams)
     EXPECT_EQ(pKvsRtpTransceiver->rollingBufferDurationSec, trackValidRbInit.rollingBufferDurationSec);
     EXPECT_EQ(pKvsRtpTransceiver->rollingBufferBitratebps, trackValidRbInit.rollingBufferBitratebps);
 
+    trackInvalidMediaKindTrack.codec = RTC_CODEC_VP8;
+    trackInvalidMediaKindTrack.kind = (MEDIA_STREAM_TRACK_KIND) 4;
+    trackInvalidMediaKindInit.rollingBufferBitratebps = MIN_EXPECTED_BIT_RATE - 1;
+    EXPECT_EQ(STATUS_SUCCESS, ::addTransceiver(pRtcPeerConnection, &trackInvalidMediaKindTrack, &trackInvalidMediaKindInit, &out));
+    pKvsRtpTransceiver = reinterpret_cast<PKvsRtpTransceiver>(out);
+    EXPECT_EQ(pKvsRtpTransceiver->rollingBufferDurationSec, DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS);
+    EXPECT_EQ(pKvsRtpTransceiver->rollingBufferBitratebps, DEFAULT_EXPECTED_VIDEO_BIT_RATE);
     EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
 }
 
