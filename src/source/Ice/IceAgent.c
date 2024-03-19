@@ -919,7 +919,7 @@ STATUS iceAgentRestart(PIceAgent pIceAgent, PCHAR localIceUfrag, PCHAR localIceP
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
     CHK(!ATOMIC_LOAD_BOOL(&pIceAgent->shutdown), STATUS_INVALID_OPERATION);
 
-    DLOGD("Restarting ICE");
+    DLOGI("Restarting ICE");
 
     alreadyRestarting = ATOMIC_EXCHANGE_BOOL(&pIceAgent->restart, TRUE);
     CHK(!alreadyRestarting, retStatus);
@@ -948,6 +948,8 @@ STATUS iceAgentRestart(PIceAgent pIceAgent, PCHAR localIceUfrag, PCHAR localIceP
     pIceAgent->iceAgentStatus = STATUS_SUCCESS;
     pIceAgent->lastDataReceivedTime = INVALID_TIMESTAMP_VALUE;
     pIceAgent->relayCandidateCount = 0;
+    ATOMIC_STORE_BOOL(&pIceAgent->addedRelayCandidate, FALSE);
+    ATOMIC_STORE_BOOL(&pIceAgent->stopGathering, FALSE);
 
     CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
     while (pCurNode != NULL) {
@@ -1662,9 +1664,9 @@ STATUS iceAgentGatherCandidateTimerCallback(UINT32 timerId, UINT64 currentTime, 
     if (pendingSrflxCandidateCount > 0) {
         CHK_STATUS(iceAgentSendSrflxCandidateRequest(pIceAgent));
     }
-    /* stop scheduling if there is a nominated candidate pair (in cases where the pair does not have relay), no more pending candidate and relay
-     * candidates are added or if timeout is reached. */
-    if (pIceAgent->pDataSendingIceCandidatePair != NULL ||
+    /* stop scheduling if there is a nominated candidate pair (in cases where the pair does not have relay, which is set via stopGathering flag), no
+     * more pending candidate and relay candidates are added or if timeout is reached. */
+    if (ATOMIC_LOAD_BOOL(&pIceAgent->stopGathering) ||
         (totalCandidateCount > 0 && pendingCandidateCount == 0 && ATOMIC_LOAD_BOOL(&pIceAgent->addedRelayCandidate)) ||
         currentTime >= pIceAgent->candidateGatheringEndTime) {
         DLOGI("Candidate gathering completed.");
@@ -2243,6 +2245,8 @@ STATUS iceAgentReadyStateSetup(PIceAgent pIceAgent)
         }
         CHK(pNominatedAndValidCandidatePair != NULL, STATUS_ICE_NO_NOMINATED_VALID_CANDIDATE_PAIR_AVAILABLE);
         pIceAgent->pDataSendingIceCandidatePair = pNominatedAndValidCandidatePair;
+        // Set to stop gathering
+        ATOMIC_STORE_BOOL(&pIceAgent->stopGathering, TRUE);
     }
 
     CHK_STATUS(getIpAddrStr(&pIceAgent->pDataSendingIceCandidatePair->local->ipAddress, ipAddrStr, ARRAY_SIZE(ipAddrStr)));
