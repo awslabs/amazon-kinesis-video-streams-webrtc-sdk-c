@@ -147,6 +147,7 @@ STATUS deserializeSessionDescription(PSessionDescription pSessionDescription, PC
                 pSessionDescription->sessionInformation[minLength] = '\0';
             } else if (type == SDP_TYPE_URI) {
                 // SDP URI
+                DLOGI("Here");
                 minLength = MIN(MAX_SDP_SESSION_URI_LENGTH, valueLength);
                 STRNCPY(pSessionDescription->uri, pValue, minLength);
                 pSessionDescription->uri[minLength] = '\0';

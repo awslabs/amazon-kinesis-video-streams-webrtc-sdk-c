@@ -141,6 +141,7 @@ t=0 0
 a=group:BUNDLE 0 1
 e=webrtc_ut@webrtc.com
 p=1111111111
+u=www.example.com
 a=msid-semantic: WMS f327e13b-3518-47fc-8b53-9cf74d22d03e
 m=audio 3554 UDP/TLS/RTP/SAVPF 111 103 9 102 0 8 105 13 110 113 126
 i=A Sample audio session information
