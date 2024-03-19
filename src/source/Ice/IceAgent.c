@@ -328,11 +328,7 @@ STATUS iceAgentAddConfig(PIceAgent pIceAgent, PIceConfigInfo pIceConfigInfo)
             DLOGE("Failed to parse ICE servers");
         }
     }
-    //    if(!locked) {
-    //        MUTEX_LOCK(pIceAgent->lock);
-    //        locked = TRUE;
     ATOMIC_STORE_BOOL(&pIceAgent->addedRelayCandidate, TRUE);
-//    }
 CleanUp:
     CHK_LOG_ERR(retStatus);
 
