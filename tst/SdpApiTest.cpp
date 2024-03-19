@@ -78,6 +78,28 @@ TEST_F(SdpApiTest, convertSdpErrorCodeTest)
     EXPECT_EQ(STATUS_SDP_MESSAGE_MALFORMED_NO_SESSION_ID, convertSdpErrorCode(sdpResult));
     sdpResult = SDP_RESULT_MESSAGE_MALFORMED_NO_SESSION_VERSION;
     EXPECT_EQ(STATUS_SDP_MESSAGE_MALFORMED_NO_SESSION_VERSION, convertSdpErrorCode(sdpResult));
+
+    sdpResult = SDP_RESULT_MESSAGE_MALFORMED_INVALID_NETWORK_TYPE;
+    EXPECT_EQ(STATUS_SDP_MESSAGE_MALFORMED_INVALID_NETWORK_TYPE, convertSdpErrorCode(sdpResult));
+    sdpResult = SDP_RESULT_MESSAGE_MALFORMED_INVALID_ADDRESS_TYPE;
+    EXPECT_EQ(STATUS_SDP_MESSAGE_MALFORMED_INVALID_ADDRESS_TYPE, convertSdpErrorCode(sdpResult));
+    sdpResult = SDP_RESULT_MESSAGE_MALFORMED_REDUNDANT_INFO;
+    EXPECT_EQ(STATUS_SDP_MESSAGE_MALFORMED_REDUNDANT_INFO, convertSdpErrorCode(sdpResult));
+    sdpResult = SDP_RESULT_MESSAGE_MALFORMED_INVALID_BANDWIDTH;
+    EXPECT_EQ(STATUS_SDP_MESSAGE_MALFORMED_INVALID_BANDWIDTH, convertSdpErrorCode(sdpResult));
+    sdpResult = SDP_RESULT_MESSAGE_MALFORMED_INVALID_START_TIME;
+    EXPECT_EQ(STATUS_SDP_MESSAGE_MALFORMED_INVALID_START_TIME, convertSdpErrorCode(sdpResult));
+    sdpResult = SDP_RESULT_MESSAGE_MALFORMED_INVALID_STOP_TIME;
+    EXPECT_EQ(STATUS_SDP_MESSAGE_MALFORMED_INVALID_STOP_TIME, convertSdpErrorCode(sdpResult));
+    sdpResult = SDP_RESULT_MESSAGE_MALFORMED_INVALID_PORT;
+    EXPECT_EQ(STATUS_SDP_MESSAGE_MALFORMED_INVALID_PORT, convertSdpErrorCode(sdpResult));
+    sdpResult = SDP_RESULT_MESSAGE_MALFORMED_INVALID_PORTNUM;
+    EXPECT_EQ(STATUS_SDP_MESSAGE_MALFORMED_INVALID_PORTNUM, convertSdpErrorCode(sdpResult));
+    sdpResult = SDP_RESULT_SNPRINTF_ERROR;
+    EXPECT_EQ(STATUS_SDP_SNPRINTF_ERROR, convertSdpErrorCode(sdpResult));
+    sdpResult = SDP_RESULT_BASE;
+    EXPECT_EQ(STATUS_SDP_UNKNOWN_ERROR, convertSdpErrorCode(sdpResult));
+
 }
 
 TEST_F(SdpApiTest, deserializeSessionDescription_NoMedia)
@@ -86,6 +108,7 @@ TEST_F(SdpApiTest, deserializeSessionDescription_NoMedia)
 o=- 1904080082932320671 2 IN IP4 127.0.0.1
 s=-
 t=0 0
+i=A Sample session information
 a=group:BUNDLE 0 1
 a=ice-options:trickle
 a=msid-semantic: WMS f327e13b-3518-47fc-8b53-9cf74d22d03e
@@ -118,6 +141,9 @@ t=0 0
 a=group:BUNDLE 0 1
 a=msid-semantic: WMS f327e13b-3518-47fc-8b53-9cf74d22d03e
 m=audio 3554 UDP/TLS/RTP/SAVPF 111 103 9 102 0 8 105 13 110 113 126
+i=A Sample audio session information
+e=webrtc_ut@webrtc.com
+p=1111111111
 a=candidate:1682923840 1 udp 2113937151 10.111.144.78 63135 typ host generation 0 network-cost 999
 a=ssrc:1030548471 cname:AZdzrek14WN2tYrw
 m=video 15632 UDP/TLS/RTP/SAVPF 96 97 98 99 100 101 127 125 104
