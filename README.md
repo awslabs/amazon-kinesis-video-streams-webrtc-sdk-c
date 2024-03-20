@@ -357,14 +357,14 @@ freeIotCredentialProvider(&pSampleConfiguration->pCredentialProvider);
 ## Use of TWCC
 In order to listen in on TWCC reports, the application must set up a callback using the `peerConnectionOnSenderBandwidthEstimation` API. In our samples, it is set up like this:
 
-```
-    CHK_STATUS(peerConnectionOnSenderBandwidthEstimation(pSampleStreamingSession->pPeerConnection, (UINT64) pSampleStreamingSession,
-                                                         sampleSenderBandwidthEstimationHandler));
+```c
+CHK_STATUS(peerConnectionOnSenderBandwidthEstimation(pSampleStreamingSession->pPeerConnection, (UINT64) pSampleStreamingSession,
+                                                     sampleSenderBandwidthEstimationHandler));
 ```
 
 Note that TWCC is disabled by default in the SDK samples. In order to enable it, set the `disableSenderSideBandwidthEstimation` flag to FALSE. For example,
 
-```
+```c
 RtcConfiguration configuration;
 configuration.kvsRtcConfiguration.disableSenderSideBandwidthEstimation = FALSE;
 ```
