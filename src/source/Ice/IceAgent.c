@@ -43,10 +43,12 @@ STATUS createIceAgent(PCHAR username, PCHAR password, PIceAgentCallbacks pIceAge
 
     ATOMIC_STORE_BOOL(&pIceAgent->remoteCredentialReceived, FALSE);
     ATOMIC_STORE_BOOL(&pIceAgent->agentStartGathering, FALSE);
+    ATOMIC_STORE_BOOL(&pIceAgent->stopGathering, FALSE);
     ATOMIC_STORE_BOOL(&pIceAgent->candidateGatheringFinished, FALSE);
     ATOMIC_STORE_BOOL(&pIceAgent->shutdown, FALSE);
     ATOMIC_STORE_BOOL(&pIceAgent->restart, FALSE);
     ATOMIC_STORE_BOOL(&pIceAgent->processStun, TRUE);
+    ATOMIC_STORE_BOOL(&pIceAgent->addedRelayCandidate, FALSE);
     pIceAgent->isControlling = FALSE;
     pIceAgent->tieBreaker = (UINT64) RAND();
     pIceAgent->iceTransportPolicy = pRtcConfiguration->iceTransportPolicy;
@@ -327,7 +329,7 @@ STATUS iceAgentAddConfig(PIceAgent pIceAgent, PIceConfigInfo pIceConfigInfo)
             DLOGE("Failed to parse ICE servers");
         }
     }
-
+    ATOMIC_STORE_BOOL(&pIceAgent->addedRelayCandidate, TRUE);
 CleanUp:
     CHK_LOG_ERR(retStatus);
 
@@ -382,7 +384,6 @@ STATUS iceAgentReportNewLocalCandidate(PIceAgent pIceAgent, PIceCandidate pIceCa
     UINT32 serializedIceCandidateBufLen = ARRAY_SIZE(serializedIceCandidateBuf);
 
     CHK(pIceAgent != NULL && pIceCandidate != NULL, STATUS_NULL_ARG);
-
     iceAgentLogNewCandidate(pIceCandidate);
 
     CHK_WARN(pIceAgent->iceAgentCallbacks.newLocalCandidateFn != NULL, retStatus, "newLocalCandidateFn callback not implemented");
@@ -919,7 +920,7 @@ STATUS iceAgentRestart(PIceAgent pIceAgent, PCHAR localIceUfrag, PCHAR localIceP
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
     CHK(!ATOMIC_LOAD_BOOL(&pIceAgent->shutdown), STATUS_INVALID_OPERATION);
 
-    DLOGD("Restarting ICE");
+    DLOGI("Restarting ICE");
 
     alreadyRestarting = ATOMIC_EXCHANGE_BOOL(&pIceAgent->restart, TRUE);
     CHK(!alreadyRestarting, retStatus);
@@ -948,6 +949,8 @@ STATUS iceAgentRestart(PIceAgent pIceAgent, PCHAR localIceUfrag, PCHAR localIceP
     pIceAgent->iceAgentStatus = STATUS_SUCCESS;
     pIceAgent->lastDataReceivedTime = INVALID_TIMESTAMP_VALUE;
     pIceAgent->relayCandidateCount = 0;
+    ATOMIC_STORE_BOOL(&pIceAgent->addedRelayCandidate, FALSE);
+    ATOMIC_STORE_BOOL(&pIceAgent->stopGathering, FALSE);
 
     CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
     while (pCurNode != NULL) {
@@ -1627,7 +1630,6 @@ STATUS iceAgentGatherCandidateTimerCallback(UINT32 timerId, UINT64 currentTime, 
 
     MUTEX_LOCK(pIceAgent->lock);
     locked = TRUE;
-
     CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
     while (pCurNode != NULL) {
         CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
@@ -1663,10 +1665,14 @@ STATUS iceAgentGatherCandidateTimerCallback(UINT32 timerId, UINT64 currentTime, 
     if (pendingSrflxCandidateCount > 0) {
         CHK_STATUS(iceAgentSendSrflxCandidateRequest(pIceAgent));
     }
-
-    /* stop scheduling if there is no more pending candidate or if timeout is reached. */
-    if ((totalCandidateCount > 0 && pendingCandidateCount == 0) || currentTime >= pIceAgent->candidateGatheringEndTime) {
+    /* stop scheduling if there is a nominated candidate pair (in cases where the pair does not have relay, which is set via stopGathering flag), no
+     * more pending candidate and relay candidates are added or if timeout is reached. */
+    if (ATOMIC_LOAD_BOOL(&pIceAgent->stopGathering) ||
+        (totalCandidateCount > 0 && pendingCandidateCount == 0 && ATOMIC_LOAD_BOOL(&pIceAgent->addedRelayCandidate)) ||
+        currentTime >= pIceAgent->candidateGatheringEndTime) {
         DLOGI("Candidate gathering completed.");
+        PROFILE_WITH_START_END_TIME_OBJ(pIceAgent->candidateGatheringStartTime, pIceAgent->candidateGatheringProcessEndTime,
+                                        pIceAgent->iceAgentProfileDiagnostics.candidateGatheringTime, "Candidate gathering time");
         stopScheduling = TRUE;
         pIceAgent->iceCandidateGatheringTimerTask = MAX_UINT32;
     }
@@ -1682,8 +1688,6 @@ STATUS iceAgentGatherCandidateTimerCallback(UINT32 timerId, UINT64 currentTime, 
 
     if (stopScheduling) {
         ATOMIC_STORE_BOOL(&pIceAgent->candidateGatheringFinished, TRUE);
-        PROFILE_WITH_START_END_TIME_OBJ(pIceAgent->candidateGatheringStartTime, pIceAgent->candidateGatheringProcessEndTime,
-                                        pIceAgent->iceAgentProfileDiagnostics.candidateGatheringTime, "Candidate gathering time");
         /* notify that candidate gathering is finished. */
         if (pIceAgent->iceAgentCallbacks.newLocalCandidateFn != NULL) {
             pIceAgent->iceAgentCallbacks.newLocalCandidateFn(pIceAgent->iceAgentCallbacks.customData, NULL);
@@ -2242,6 +2246,8 @@ STATUS iceAgentReadyStateSetup(PIceAgent pIceAgent)
         }
         CHK(pNominatedAndValidCandidatePair != NULL, STATUS_ICE_NO_NOMINATED_VALID_CANDIDATE_PAIR_AVAILABLE);
         pIceAgent->pDataSendingIceCandidatePair = pNominatedAndValidCandidatePair;
+        // Set to stop gathering
+        ATOMIC_STORE_BOOL(&pIceAgent->stopGathering, TRUE);
     }
 
     CHK_STATUS(getIpAddrStr(&pIceAgent->pDataSendingIceCandidatePair->local->ipAddress, ipAddrStr, ARRAY_SIZE(ipAddrStr)));
@@ -2252,7 +2258,6 @@ STATUS iceAgentReadyStateSetup(PIceAgent pIceAgent)
           iceAgentGetCandidateTypeStr(pIceAgent->pDataSendingIceCandidatePair->remote->iceCandidateType),
           pIceAgent->pDataSendingIceCandidatePair->roundTripTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
           pIceAgent->pDataSendingIceCandidatePair->local->priority, pIceAgent->pDataSendingIceCandidatePair->priority);
-
     /* no state timeout for ready state */
     pIceAgent->stateEndTime = INVALID_TIMESTAMP_VALUE;
 

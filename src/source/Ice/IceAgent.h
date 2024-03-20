@@ -204,6 +204,8 @@ struct __IceAgent {
     volatile ATOMIC_BOOL shutdown;
     volatile ATOMIC_BOOL restart;
     volatile ATOMIC_BOOL processStun;
+    volatile ATOMIC_BOOL addedRelayCandidate;
+    volatile ATOMIC_BOOL stopGathering;
 
     CHAR localUsername[MAX_ICE_CONFIG_USER_NAME_LEN + 1];
     CHAR localPassword[MAX_ICE_CONFIG_CREDENTIAL_LEN + 1];
