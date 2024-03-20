@@ -43,6 +43,7 @@ STATUS createIceAgent(PCHAR username, PCHAR password, PIceAgentCallbacks pIceAge
 
     ATOMIC_STORE_BOOL(&pIceAgent->remoteCredentialReceived, FALSE);
     ATOMIC_STORE_BOOL(&pIceAgent->agentStartGathering, FALSE);
+    ATOMIC_STORE_BOOL(&pIceAgent->stopGathering, FALSE);
     ATOMIC_STORE_BOOL(&pIceAgent->candidateGatheringFinished, FALSE);
     ATOMIC_STORE_BOOL(&pIceAgent->shutdown, FALSE);
     ATOMIC_STORE_BOOL(&pIceAgent->restart, FALSE);
