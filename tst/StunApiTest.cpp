@@ -223,6 +223,33 @@ TEST_F(StunApiTest, appendStunAttributeValidityTests)
     EXPECT_NE(STATUS_SUCCESS, appendStunPriorityAttribute(NULL, 0));
 }
 
+TEST_F(StunApiTest, appendStunChangeRequestAttributeTest)
+{
+    BYTE transactionId[STUN_TRANSACTION_ID_LEN] = {0};
+    PStunPacket pStunPacket;
+    PStunAttributeHeader pAttribute;
+    EXPECT_EQ(STATUS_SUCCESS, createStunPacket(STUN_PACKET_TYPE_BINDING_REQUEST, transactionId, &pStunPacket));
+    EXPECT_EQ(STATUS_SUCCESS, appendStunChangeRequestAttribute(pStunPacket,
+                                                STUN_ATTRIBUTE_CHANGE_REQUEST_FLAG_CHANGE_IP | STUN_ATTRIBUTE_CHANGE_REQUEST_FLAG_CHANGE_PORT));
+    pAttribute = (PStunAttributeHeader) pStunPacket->attributeList[pStunPacket->attributesCount - 1];
+    EXPECT_EQ(STUN_ATTRIBUTE_TYPE_CHANGE_REQUEST, pAttribute->type);
+    EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
+}
+
+TEST_F(StunApiTest, appendStunErrorCodeAttributeTest)
+{
+    BYTE transactionId[STUN_TRANSACTION_ID_LEN] = {0};
+    PStunPacket pStunPacket;
+    PStunAttributeHeader pAttribute;
+    CHAR errorPhrase[128];
+    STRCPY(errorPhrase, "Sample phrase");
+    EXPECT_EQ(STATUS_SUCCESS, createStunPacket(STUN_PACKET_TYPE_BINDING_REQUEST, transactionId, &pStunPacket));
+    EXPECT_EQ(STATUS_SUCCESS, appendStunErrorCodeAttribute(pStunPacket, errorPhrase, 12));
+    pAttribute = (PStunAttributeHeader) pStunPacket->attributeList[pStunPacket->attributesCount - 1];
+    EXPECT_EQ(STUN_ATTRIBUTE_TYPE_ERROR_CODE, pAttribute->type);
+    EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis
