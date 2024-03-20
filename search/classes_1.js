@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['allocatesctpsortdatachannelsdata_2953',['AllocateSctpSortDataChannelsData',['../structAllocateSctpSortDataChannelsData.html',1,'']]]
+  ['allocatesctpsortdatachannelsdata_2952',['AllocateSctpSortDataChannelsData',['../structAllocateSctpSortDataChannelsData.html',1,'']]]
 ];

@@ -2,9 +2,7 @@ var group__StatsNameLengths =
 [
     [ "IP_ADDR_STR_LENGTH", "group__StatsNameLengths.html#ga8eb68b1e05b3ae2de5775202931617de", null ],
     [ "MAX_CANDIDATE_ID_LENGTH", "group__StatsNameLengths.html#gaeb7cb54e2a66447e46fca79db9a8fda0", null ],
-    [ "MAX_CANDIDATE_TYPE_LENGTH", "group__StatsNameLengths.html#ga6f56fd5e4474c4b1ffa11faf0835dd75", null ],
     [ "MAX_DTLS_CIPHER_LENGTH", "group__StatsNameLengths.html#ga12dc5a15dec202406ad4abfa594520ff", null ],
-    [ "MAX_ICE_CONFIG_URI_LEN", "group__StatsNameLengths.html#ga160cda488c482290cca205dcd1d29abc", null ],
     [ "MAX_PROTOCOL_LENGTH", "group__StatsNameLengths.html#gab3b05eb23c726d76352f92e7722f1877", null ],
     [ "MAX_RELAY_PROTOCOL_LENGTH", "group__StatsNameLengths.html#gac55f060221aeba8a69391c39ed31de2e", null ],
     [ "MAX_SRTP_CIPHER_LENGTH", "group__StatsNameLengths.html#gaf7c143e641acf0feb1e05260dc3f1419", null ],
