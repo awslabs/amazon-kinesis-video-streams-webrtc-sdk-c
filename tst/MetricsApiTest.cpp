@@ -201,7 +201,6 @@ TEST_F(MetricsApiTest, webRtcRtpGetMetrics)
     EXPECT_EQ(STATUS_SUCCESS, closePeerConnection(pRtcPeerConnection));
     EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
 }
-
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis
