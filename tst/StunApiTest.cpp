@@ -244,10 +244,78 @@ TEST_F(StunApiTest, appendStunErrorCodeAttributeTest)
     CHAR errorPhrase[128];
     STRCPY(errorPhrase, "Sample phrase");
     EXPECT_EQ(STATUS_SUCCESS, createStunPacket(STUN_PACKET_TYPE_BINDING_REQUEST, transactionId, &pStunPacket));
+    EXPECT_EQ(STATUS_NULL_ARG, appendStunErrorCodeAttribute(pStunPacket, NULL, 12));
     EXPECT_EQ(STATUS_SUCCESS, appendStunErrorCodeAttribute(pStunPacket, errorPhrase, 12));
     pAttribute = (PStunAttributeHeader) pStunPacket->attributeList[pStunPacket->attributesCount - 1];
     EXPECT_EQ(STUN_ATTRIBUTE_TYPE_ERROR_CODE, pAttribute->type);
     EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
+}
+
+TEST_F(StunApiTest, appendStunDataAttributeTest)
+{
+    BYTE transactionId[STUN_TRANSACTION_ID_LEN] = {0};
+    PStunPacket pStunPacket;
+    PStunAttributeHeader pAttribute;
+    CHAR errorPhrase[128];
+    BYTE data[128] = {0};
+    STRCPY(errorPhrase, "Sample phrase");
+    EXPECT_EQ(STATUS_SUCCESS, createStunPacket(STUN_PACKET_TYPE_BINDING_REQUEST, transactionId, &pStunPacket));
+    EXPECT_EQ(STATUS_NULL_ARG, appendStunDataAttribute(pStunPacket, NULL, 12));
+    EXPECT_EQ(STATUS_SUCCESS, appendStunDataAttribute(pStunPacket, data, 128));
+    pAttribute = (PStunAttributeHeader) pStunPacket->attributeList[pStunPacket->attributesCount - 1];
+    EXPECT_EQ(STUN_ATTRIBUTE_TYPE_DATA, pAttribute->type);
+    EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
+}
+
+TEST_F(StunApiTest, getPackagedStunAttributeSizeTest)
+{
+    StunAttributeHeader attributeHeader;
+    MEMSET(&attributeHeader, 0x00, SIZEOF(attributeHeader));
+    attributeHeader.type = STUN_ATTRIBUTE_TYPE_MAPPED_ADDRESS;
+    EXPECT_EQ(32, getPackagedStunAttributeSize(&attributeHeader));
+    attributeHeader.type = STUN_ATTRIBUTE_TYPE_XOR_MAPPED_ADDRESS;
+    EXPECT_EQ(32, getPackagedStunAttributeSize(&attributeHeader));
+    attributeHeader.type = STUN_ATTRIBUTE_TYPE_RESPONSE_ADDRESS;
+    EXPECT_EQ(32, getPackagedStunAttributeSize(&attributeHeader));
+    attributeHeader.type = STUN_ATTRIBUTE_TYPE_SOURCE_ADDRESS;
+    EXPECT_EQ(32, getPackagedStunAttributeSize(&attributeHeader));
+    attributeHeader.type = STUN_ATTRIBUTE_TYPE_REFLECTED_FROM;
+    EXPECT_EQ(32, getPackagedStunAttributeSize(&attributeHeader));
+    attributeHeader.type = STUN_ATTRIBUTE_TYPE_XOR_PEER_ADDRESS;
+    EXPECT_EQ(32, getPackagedStunAttributeSize(&attributeHeader));
+    attributeHeader.type = STUN_ATTRIBUTE_TYPE_CHANGED_ADDRESS;
+    EXPECT_EQ(32, getPackagedStunAttributeSize(&attributeHeader));
+    attributeHeader.type = STUN_ATTRIBUTE_TYPE_USE_CANDIDATE;
+    EXPECT_EQ(8, getPackagedStunAttributeSize(&attributeHeader));
+    attributeHeader.type = STUN_ATTRIBUTE_TYPE_DONT_FRAGMENT;
+    EXPECT_EQ(8, getPackagedStunAttributeSize(&attributeHeader));
+    attributeHeader.type = STUN_ATTRIBUTE_TYPE_PRIORITY;
+    EXPECT_EQ(8, getPackagedStunAttributeSize(&attributeHeader));
+    attributeHeader.type = STUN_ATTRIBUTE_TYPE_LIFETIME;
+    EXPECT_EQ(8, getPackagedStunAttributeSize(&attributeHeader));
+    attributeHeader.type = STUN_ATTRIBUTE_TYPE_CHANGE_REQUEST;
+    EXPECT_EQ(8, getPackagedStunAttributeSize(&attributeHeader));
+    attributeHeader.type = STUN_ATTRIBUTE_TYPE_REQUESTED_TRANSPORT;
+    EXPECT_EQ(8, getPackagedStunAttributeSize(&attributeHeader));
+    attributeHeader.type = STUN_ATTRIBUTE_TYPE_ICE_CONTROLLED;
+    EXPECT_EQ(16, getPackagedStunAttributeSize(&attributeHeader));
+    attributeHeader.type = STUN_ATTRIBUTE_TYPE_ICE_CONTROLLING;
+    EXPECT_EQ(16, getPackagedStunAttributeSize(&attributeHeader));
+    attributeHeader.type = STUN_ATTRIBUTE_TYPE_REALM;
+    EXPECT_EQ(24, getPackagedStunAttributeSize(&attributeHeader));
+    attributeHeader.type = STUN_ATTRIBUTE_TYPE_NONCE;
+    EXPECT_EQ(24, getPackagedStunAttributeSize(&attributeHeader));
+    attributeHeader.type = STUN_ATTRIBUTE_TYPE_DATA;
+    EXPECT_EQ(24, getPackagedStunAttributeSize(&attributeHeader));
+    attributeHeader.type = STUN_ATTRIBUTE_TYPE_USERNAME;
+    EXPECT_EQ(24, getPackagedStunAttributeSize(&attributeHeader));
+    attributeHeader.type = STUN_ATTRIBUTE_TYPE_ERROR_CODE;
+    EXPECT_EQ(16, getPackagedStunAttributeSize(&attributeHeader));
+    attributeHeader.type = STUN_ATTRIBUTE_TYPE_CHANNEL_NUMBER;
+    EXPECT_EQ(8, getPackagedStunAttributeSize(&attributeHeader));
+    attributeHeader.type = (STUN_ATTRIBUTE_TYPE) 0xFFFF;
+    attributeHeader.length = 0;
+    EXPECT_EQ(8, getPackagedStunAttributeSize(&attributeHeader));
 }
 
 } // namespace webrtcclient
