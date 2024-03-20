@@ -270,6 +270,11 @@ TEST_F(StunApiTest, appendStunDataAttributeTest)
 TEST_F(StunApiTest, getPackagedStunAttributeSizeTest)
 {
     StunAttributeHeader attributeHeader;
+    StunAttributeRealm realmAttribute;
+    StunAttributeNonce nonceAttribute;
+    StunAttributeData dataAttribute;
+    StunAttributeUsername usernameAttribute;
+    StunAttributeErrorCode errorAttribute;
     MEMSET(&attributeHeader, 0x00, SIZEOF(attributeHeader));
     attributeHeader.type = STUN_ATTRIBUTE_TYPE_MAPPED_ADDRESS;
     EXPECT_EQ(32, getPackagedStunAttributeSize(&attributeHeader));
@@ -301,16 +306,21 @@ TEST_F(StunApiTest, getPackagedStunAttributeSizeTest)
     EXPECT_EQ(16, getPackagedStunAttributeSize(&attributeHeader));
     attributeHeader.type = STUN_ATTRIBUTE_TYPE_ICE_CONTROLLING;
     EXPECT_EQ(16, getPackagedStunAttributeSize(&attributeHeader));
-    attributeHeader.type = STUN_ATTRIBUTE_TYPE_REALM;
-    EXPECT_EQ(24, getPackagedStunAttributeSize(&attributeHeader));
-    attributeHeader.type = STUN_ATTRIBUTE_TYPE_NONCE;
-    EXPECT_EQ(24, getPackagedStunAttributeSize(&attributeHeader));
-    attributeHeader.type = STUN_ATTRIBUTE_TYPE_DATA;
-    EXPECT_EQ(24, getPackagedStunAttributeSize(&attributeHeader));
-    attributeHeader.type = STUN_ATTRIBUTE_TYPE_USERNAME;
-    EXPECT_EQ(24, getPackagedStunAttributeSize(&attributeHeader));
-    attributeHeader.type = STUN_ATTRIBUTE_TYPE_ERROR_CODE;
-    EXPECT_EQ(16, getPackagedStunAttributeSize(&attributeHeader));
+    realmAttribute.attribute.type = STUN_ATTRIBUTE_TYPE_REALM;
+    realmAttribute.paddedLength = 20;
+    EXPECT_EQ(40, getPackagedStunAttributeSize(reinterpret_cast<PStunAttributeHeader>(&realmAttribute)));
+    nonceAttribute.attribute.type = STUN_ATTRIBUTE_TYPE_NONCE;
+    nonceAttribute.paddedLength = 20;
+    EXPECT_EQ(40, getPackagedStunAttributeSize(reinterpret_cast<PStunAttributeHeader>(&nonceAttribute)));
+    dataAttribute.attribute.type = STUN_ATTRIBUTE_TYPE_DATA;
+    dataAttribute.paddedLength = 20;
+    EXPECT_EQ(40, getPackagedStunAttributeSize(reinterpret_cast<PStunAttributeHeader>(&dataAttribute)));
+    usernameAttribute.attribute.type = STUN_ATTRIBUTE_TYPE_USERNAME;
+    usernameAttribute.paddedLength = 20;
+    EXPECT_EQ(40, getPackagedStunAttributeSize(reinterpret_cast<PStunAttributeHeader>(&usernameAttribute)));
+    errorAttribute.attribute.type = STUN_ATTRIBUTE_TYPE_ERROR_CODE;
+    errorAttribute.paddedLength = 20;
+    EXPECT_EQ(40, getPackagedStunAttributeSize(reinterpret_cast<PStunAttributeHeader>(&errorAttribute)));
     attributeHeader.type = STUN_ATTRIBUTE_TYPE_CHANNEL_NUMBER;
     EXPECT_EQ(8, getPackagedStunAttributeSize(&attributeHeader));
     attributeHeader.type = (STUN_ATTRIBUTE_TYPE) 0xFFFF;

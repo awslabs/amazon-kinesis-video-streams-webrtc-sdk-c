@@ -1439,6 +1439,7 @@ STATUS appendStunRealmAttribute(PStunPacket pStunPacket, PCHAR realm)
 
     // Set the padded length
     pAttribute->paddedLength = paddedLength;
+    DLOGI("Padded length: %d", pAttribute->paddedLength);
 
     // Set the pointer following the structure
     pAttribute->realm = (PCHAR) (pAttribute + 1);

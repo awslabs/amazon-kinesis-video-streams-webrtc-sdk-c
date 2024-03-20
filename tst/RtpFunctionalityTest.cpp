@@ -522,6 +522,15 @@ TEST_F(RtpFunctionalityTest, twccPayload)
     EXPECT_EQ(0, ptr[3]);
 }
 
+TEST_F(RtpFunctionalityTest, createKvsRtpTransceiverInvalidArg)
+{
+    RtcMediaStreamTrack mediaTrack{};
+    KvsPeerConnection kvsPeerConnection;
+    EXPECT_EQ(STATUS_NULL_ARG, createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV, DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS, MIN_EXPECTED_BIT_RATE, NULL, 0, 0, &mediaTrack, NULL, RTC_CODEC_OPUS, NULL));
+    EXPECT_EQ(STATUS_NULL_ARG, createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV, DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS, MIN_EXPECTED_BIT_RATE, &kvsPeerConnection, 0, 0, &mediaTrack, NULL, RTC_CODEC_OPUS, NULL));
+    EXPECT_EQ(STATUS_NULL_ARG, createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV, DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS, MIN_EXPECTED_BIT_RATE, &kvsPeerConnection, 0, 0, NULL, NULL, RTC_CODEC_OPUS, NULL));
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis
