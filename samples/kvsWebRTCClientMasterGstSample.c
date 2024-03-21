@@ -68,9 +68,7 @@ GstFlowReturn on_new_sample(GstElement* sink, gpointer data, UINT64 trackid)
                     guint bitrate;
                     g_object_get(G_OBJECT(encoder), "bitrate", &bitrate, NULL);
                     pSampleStreamingSession->currentVideoBitrate = (UINT64) bitrate;
-                    DLOGI("Current encoder bitrate: %u kbps", pSampleStreamingSession->currentVideoBitrate);
                     if(pSampleStreamingSession->newVideoBitrate != 0) {
-                        DLOGI("New bitrate: %d", pSampleStreamingSession->newVideoBitrate);
                         bitrate = (guint) (pSampleStreamingSession->newVideoBitrate);
                         pSampleStreamingSession->newVideoBitrate = 0;
                         g_object_set(G_OBJECT(encoder), "bitrate", bitrate, NULL);
@@ -190,7 +188,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                 case TEST_SOURCE: {
                     pipeline =
                         gst_parse_launch("videotestsrc is-live=TRUE ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
-                                         "x264enc name=my_encoder bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
+                                         "x264enc name=my_encoder bframes=0 speed-preset=veryfast bitrate=2048 byte-stream=TRUE tune=zerolatency ! "
                                          "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE emit-signals=TRUE "
                                          "name=appsink-video",
                                          &error);
@@ -198,7 +196,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                 }
                 case DEVICE_SOURCE: {xw
                     pipeline = gst_parse_launch("autovideosrc ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
-                                                "x264enc name=my_encoder bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
+                                                "x264enc name=my_encoder bframes=0 speed-preset=veryfast bitrate=2048 byte-stream=TRUE tune=zerolatency ! "
                                                 "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE "
                                                 "emit-signals=TRUE name=appsink-video",
                                                 &error);
@@ -208,7 +206,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                     UINT16 stringOutcome = snprintf(rtspPipeLineBuffer, RTSP_PIPELINE_MAX_CHAR_COUNT,
                                                     "uridecodebin uri=%s ! "
                                                     "videoconvert ! "
-                                                    "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
+                                                    "x264enc name=my_encoder bframes=0 speed-preset=veryfast bitrate=2048 byte-stream=TRUE tune=zerolatency ! "
                                                     "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! queue ! "
                                                     "appsink sync=TRUE emit-signals=TRUE name=appsink-video ",
                                                     pSampleConfiguration->rtspUri);
@@ -228,8 +226,8 @@ PVOID sendGstreamerAudioVideo(PVOID args)
             switch (pSampleConfiguration->srcType) {
                 case TEST_SOURCE: {
                     pipeline =
-                        gst_parse_launch("videotestsrc is-live=TRUE ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
-                                         "x264enc name=my_encoder bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
+                        gst_parse_launch("videotestsrc pattern=ball is-live=TRUE ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
+                                         "x264enc name=my_encoder bframes=0 speed-preset=veryfast bitrate=2048 byte-stream=TRUE tune=zerolatency ! "
                                          "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE "
                                          "emit-signals=TRUE name=appsink-video audiotestsrc is-live=TRUE ! "
                                          "queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample ! opusenc ! "
@@ -240,7 +238,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                 case DEVICE_SOURCE: {
                     pipeline =
                         gst_parse_launch("autovideosrc ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
-                                         "x264enc name=my_encoder bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
+                                         "x264enc name=my_encoder bframes=0 speed-preset=veryfast bitrate=2048 byte-stream=TRUE tune=zerolatency ! "
                                          "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE emit-signals=TRUE "
                                          "name=appsink-video autoaudiosrc ! "
                                          "queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample ! opusenc ! "
@@ -251,7 +249,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                 case RTSP_SOURCE: {
                     UINT16 stringOutcome = snprintf(rtspPipeLineBuffer, RTSP_PIPELINE_MAX_CHAR_COUNT,
                                                     "uridecodebin uri=%s name=src ! videoconvert ! "
-                                                    "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
+                                                    "x264enc name=my_encoder bframes=0 speed-preset=veryfast bitrate=2048 byte-stream=TRUE tune=zerolatency ! "
                                                     "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! queue ! "
                                                     "appsink sync=TRUE emit-signals=TRUE name=appsink-video "
                                                     "src. ! audioconvert ! "
@@ -300,8 +298,8 @@ PVOID sendGstreamerAudioVideo(PVOID args)
     if (bus != NULL) {
         gst_object_unref(bus);
     }
-    gst_element_set_state(pipeline, GST_STATE_NULL);
     if (pipeline != NULL) {
+        gst_element_set_state(pipeline, GST_STATE_NULL);
         gst_object_unref(pipeline);
     }
     if (appsinkAudio != NULL) {
