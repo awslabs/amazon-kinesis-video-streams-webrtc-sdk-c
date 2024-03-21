@@ -373,6 +373,7 @@ file(
   "src/source/Rtp/Codecs/*.c"
   "src/source/Sdp/*.c"
   "src/source/Srtp/*.c"
+  "src/source/Stun/STUN/source/*.c"
   "src/source/Stun/*.c"
   "src/source/Metrics/*.c")
 
