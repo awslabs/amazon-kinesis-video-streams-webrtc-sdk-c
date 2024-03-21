@@ -99,13 +99,15 @@ $(document).ready(function(){initNavTree('Deserialize_8c.html',''); initResizabl
 </div><!--header-->
 <div class="contents">
 <div class="textblock"><code>#include &quot;<a class="el" href="Include__i_8h_source.html">../Include_i.h</a>&quot;</code><br />
+<code>#include &quot;kvssdp/sdp_deserializer.h&quot;</code><br />
 </div><div class="textblock"><div class="dynheader">
 Include dependency graph for Deserialize.c:</div>
 <div class="dyncontent">
 <div class="center"><img src="Deserialize_8c__incl.png" border="0" usemap="#asrc_2source_2Sdp_2Deserialize_8c" alt=""/></div>
 <map name="asrc_2source_2Sdp_2Deserialize_8c" id="asrc_2source_2Sdp_2Deserialize_8c">
-<area shape="rect" title=" " alt="" coords="3196,5,3400,32"/>
-<area shape="rect" href="Include__i_8h.html" title=" " alt="" coords="3246,80,3350,107"/>
+<area shape="rect" title=" " alt="" coords="3219,5,3423,32"/>
+<area shape="rect" href="Include__i_8h.html" title=" " alt="" coords="3183,80,3287,107"/>
+<area shape="rect" title=" " alt="" coords="3311,80,3501,107"/>
 <area shape="rect" href="Include_8h.html" title=" " alt="" coords="5,155,215,196"/>
 <area shape="rect" title=" " alt="" coords="239,162,335,189"/>
 <area shape="rect" title=" " alt="" coords="360,162,441,189"/>
@@ -153,23 +155,24 @@ Include dependency graph for Deserialize.c:</div>
 <area shape="rect" href="Rtp_8h.html" title=" " alt="" coords="7334,162,7497,189"/>
 <area shape="rect" href="Rtcp_8h.html" title=" " alt="" coords="7521,162,7691,189"/>
 <area shape="rect" href="DataChannel_8h.html" title=" " alt="" coords="7715,162,7939,189"/>
-<area shape="rect" href="RtpVP8Payloader_8h.html" title=" " alt="" coords="7963,162,8185,189"/>
 </map>
 </div>
 </div><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="define-members"></a>
 Macros</h2></td></tr>
-<tr class="memitem:a7207e343606b6631ce2556bf7411b833"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Deserialize_8c.html#a7207e343606b6631ce2556bf7411b833">LOG_CLASS</a>&#160;&#160;&#160;&quot;SDP&quot;</td></tr>
+<tr class="memitem:a7207e343606b6631ce2556bf7411b833"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Deserialize_8c.html#a7207e343606b6631ce2556bf7411b833">LOG_CLASS</a>&#160;&#160;&#160;&quot;SDPDeserialize&quot;</td></tr>
 <tr class="separator:a7207e343606b6631ce2556bf7411b833"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
-<tr class="memitem:a1ac042ed524a6cdab914760ff6c0bac1"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Deserialize_8c.html#a1ac042ed524a6cdab914760ff6c0bac1">parseMediaName</a> (<a class="el" href="Sdp_8h.html#a86a0fabaaede539d9a2d496fa5911d54">PSessionDescription</a> pSessionDescription, PCHAR pch, UINT32 lineLen)</td></tr>
-<tr class="separator:a1ac042ed524a6cdab914760ff6c0bac1"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a297ed0b51990bce839f7df8d0f7aea2b"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Deserialize_8c.html#a297ed0b51990bce839f7df8d0f7aea2b">parseSessionAttributes</a> (<a class="el" href="Sdp_8h.html#a86a0fabaaede539d9a2d496fa5911d54">PSessionDescription</a> pSessionDescription, PCHAR pch, UINT32 lineLen)</td></tr>
-<tr class="separator:a297ed0b51990bce839f7df8d0f7aea2b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a0f9d711b199b6e6614c89c4189f16ba2"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Deserialize_8c.html#a0f9d711b199b6e6614c89c4189f16ba2">parseMediaAttributes</a> (<a class="el" href="Sdp_8h.html#a86a0fabaaede539d9a2d496fa5911d54">PSessionDescription</a> pSessionDescription, PCHAR pch, UINT32 lineLen)</td></tr>
-<tr class="separator:a0f9d711b199b6e6614c89c4189f16ba2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0143bf5f0f5daf444644297d8dc2721c"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Deserialize_8c.html#a0143bf5f0f5daf444644297d8dc2721c">convertSdpErrorCode</a> (SdpResult_t sdpResult)</td></tr>
+<tr class="separator:a0143bf5f0f5daf444644297d8dc2721c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a67272f4f5de498d6e06767e3a3d03e1b"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Deserialize_8c.html#a67272f4f5de498d6e06767e3a3d03e1b">parseMediaName</a> (<a class="el" href="Sdp_8h.html#a86a0fabaaede539d9a2d496fa5911d54">PSessionDescription</a> pSessionDescription, PCHAR mediaValue, SIZE_T mediaValueLength)</td></tr>
+<tr class="separator:a67272f4f5de498d6e06767e3a3d03e1b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af90ab5920ae51749654c735243cad6e8"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Deserialize_8c.html#af90ab5920ae51749654c735243cad6e8">parseSessionAttributes</a> (<a class="el" href="Sdp_8h.html#a86a0fabaaede539d9a2d496fa5911d54">PSessionDescription</a> pSessionDescription, PCHAR pValue, SIZE_T valueLength)</td></tr>
+<tr class="separator:af90ab5920ae51749654c735243cad6e8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac61543eecfffac1718e50d2e85f0f520"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Deserialize_8c.html#ac61543eecfffac1718e50d2e85f0f520">parseMediaAttributes</a> (<a class="el" href="Sdp_8h.html#a86a0fabaaede539d9a2d496fa5911d54">PSessionDescription</a> pSessionDescription, PCHAR pValue, SIZE_T valueLength)</td></tr>
+<tr class="separator:ac61543eecfffac1718e50d2e85f0f520"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9bf1873c4b988e0d50c4fc4322e49f78"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Deserialize_8c.html#a9bf1873c4b988e0d50c4fc4322e49f78">deserializeSessionDescription</a> (<a class="el" href="Sdp_8h.html#a86a0fabaaede539d9a2d496fa5911d54">PSessionDescription</a> pSessionDescription, PCHAR sdpBytes)</td></tr>
 <tr class="separator:a9bf1873c4b988e0d50c4fc4322e49f78"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
@@ -181,7 +184,7 @@ Functions</h2></td></tr>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">#define LOG_CLASS&#160;&#160;&#160;&quot;SDP&quot;</td>
+          <td class="memname">#define LOG_CLASS&#160;&#160;&#160;&quot;SDPDeserialize&quot;</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -189,6 +192,36 @@ Functions</h2></td></tr>
 </div>
 </div>
 <h2 class="groupheader">Function Documentation</h2>
+<a id="a0143bf5f0f5daf444644297d8dc2721c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0143bf5f0f5daf444644297d8dc2721c">&#9670;&nbsp;</a></span>convertSdpErrorCode()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">STATUS convertSdpErrorCode </td>
+          <td>(</td>
+          <td class="paramtype">SdpResult_t&#160;</td>
+          <td class="paramname"><em>sdpResult</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="Deserialize_8c_a0143bf5f0f5daf444644297d8dc2721c_icgraph.png" border="0" usemap="#aDeserialize_8c_a0143bf5f0f5daf444644297d8dc2721c_icgraph" alt=""/></div>
+<map name="aDeserialize_8c_a0143bf5f0f5daf444644297d8dc2721c_icgraph" id="aDeserialize_8c_a0143bf5f0f5daf444644297d8dc2721c_icgraph">
+<area shape="rect" title=" " alt="" coords="705,23,864,49"/>
+<area shape="rect" href="Deserialize_8c.html#a9bf1873c4b988e0d50c4fc4322e49f78" title=" " alt="" coords="220,23,437,49"/>
+<area shape="rect" href="Deserialize_8c.html#ac61543eecfffac1718e50d2e85f0f520" title=" " alt="" coords="490,23,653,49"/>
+<area shape="rect" href="Deserialize_8c.html#af90ab5920ae51749654c735243cad6e8" title=" " alt="" coords="485,73,657,100"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,23,172,49"/>
+</map>
+</div>
+
+</div>
+</div>
 <a id="a9bf1873c4b988e0d50c4fc4322e49f78"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a9bf1873c4b988e0d50c4fc4322e49f78">&#9670;&nbsp;</a></span>deserializeSessionDescription()</h2>
 
@@ -219,10 +252,11 @@ Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="Deserialize_8c_a9bf1873c4b988e0d50c4fc4322e49f78_cgraph.png" border="0" usemap="#aDeserialize_8c_a9bf1873c4b988e0d50c4fc4322e49f78_cgraph" alt=""/></div>
 <map name="aDeserialize_8c_a9bf1873c4b988e0d50c4fc4322e49f78_cgraph" id="aDeserialize_8c_a9bf1873c4b988e0d50c4fc4322e49f78_cgraph">
-<area shape="rect" title=" " alt="" coords="5,56,223,83"/>
-<area shape="rect" href="Deserialize_8c.html#a0f9d711b199b6e6614c89c4189f16ba2" title=" " alt="" coords="275,5,438,32"/>
-<area shape="rect" href="Deserialize_8c.html#a1ac042ed524a6cdab914760ff6c0bac1" title=" " alt="" coords="288,56,425,83"/>
-<area shape="rect" href="Deserialize_8c.html#a297ed0b51990bce839f7df8d0f7aea2b" title=" " alt="" coords="271,107,443,133"/>
+<area shape="rect" title=" " alt="" coords="5,50,223,77"/>
+<area shape="rect" href="Deserialize_8c.html#a0143bf5f0f5daf444644297d8dc2721c" title=" " alt="" coords="491,25,649,52"/>
+<area shape="rect" href="Deserialize_8c.html#ac61543eecfffac1718e50d2e85f0f520" title=" " alt="" coords="275,25,438,52"/>
+<area shape="rect" href="Deserialize_8c.html#a67272f4f5de498d6e06767e3a3d03e1b" title=" " alt="" coords="288,76,425,102"/>
+<area shape="rect" href="Deserialize_8c.html#af90ab5920ae51749654c735243cad6e8" title=" " alt="" coords="271,126,443,153"/>
 </map>
 </div>
 <div class="dynheader">
@@ -237,8 +271,8 @@ Here is the caller graph for this function:</div>
 
 </div>
 </div>
-<a id="a0f9d711b199b6e6614c89c4189f16ba2"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a0f9d711b199b6e6614c89c4189f16ba2">&#9670;&nbsp;</a></span>parseMediaAttributes()</h2>
+<a id="ac61543eecfffac1718e50d2e85f0f520"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac61543eecfffac1718e50d2e85f0f520">&#9670;&nbsp;</a></span>parseMediaAttributes()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -253,13 +287,13 @@ Here is the caller graph for this function:</div>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">PCHAR&#160;</td>
-          <td class="paramname"><em>pch</em>, </td>
+          <td class="paramname"><em>pValue</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">UINT32&#160;</td>
-          <td class="paramname"><em>lineLen</em>&#160;</td>
+          <td class="paramtype">SIZE_T&#160;</td>
+          <td class="paramname"><em>valueLength</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -269,10 +303,19 @@ Here is the caller graph for this function:</div>
       </table>
 </div><div class="memdoc">
 <div class="dynheader">
+Here is the call graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="Deserialize_8c_ac61543eecfffac1718e50d2e85f0f520_cgraph.png" border="0" usemap="#aDeserialize_8c_ac61543eecfffac1718e50d2e85f0f520_cgraph" alt=""/></div>
+<map name="aDeserialize_8c_ac61543eecfffac1718e50d2e85f0f520_cgraph" id="aDeserialize_8c_ac61543eecfffac1718e50d2e85f0f520_cgraph">
+<area shape="rect" title=" " alt="" coords="5,5,168,32"/>
+<area shape="rect" href="Deserialize_8c.html#a0143bf5f0f5daf444644297d8dc2721c" title=" " alt="" coords="216,5,375,32"/>
+</map>
+</div>
+<div class="dynheader">
 Here is the caller graph for this function:</div>
 <div class="dyncontent">
-<div class="center"><img src="Deserialize_8c_a0f9d711b199b6e6614c89c4189f16ba2_icgraph.png" border="0" usemap="#aDeserialize_8c_a0f9d711b199b6e6614c89c4189f16ba2_icgraph" alt=""/></div>
-<map name="aDeserialize_8c_a0f9d711b199b6e6614c89c4189f16ba2_icgraph" id="aDeserialize_8c_a0f9d711b199b6e6614c89c4189f16ba2_icgraph">
+<div class="center"><img src="Deserialize_8c_ac61543eecfffac1718e50d2e85f0f520_icgraph.png" border="0" usemap="#aDeserialize_8c_ac61543eecfffac1718e50d2e85f0f520_icgraph" alt=""/></div>
+<map name="aDeserialize_8c_ac61543eecfffac1718e50d2e85f0f520_icgraph" id="aDeserialize_8c_ac61543eecfffac1718e50d2e85f0f520_icgraph">
 <area shape="rect" title=" " alt="" coords="485,5,648,32"/>
 <area shape="rect" href="Deserialize_8c.html#a9bf1873c4b988e0d50c4fc4322e49f78" title=" " alt="" coords="220,5,437,32"/>
 <area shape="rect" href="group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,5,172,32"/>
@@ -281,8 +324,8 @@ Here is the caller graph for this function:</div>
 
 </div>
 </div>
-<a id="a1ac042ed524a6cdab914760ff6c0bac1"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a1ac042ed524a6cdab914760ff6c0bac1">&#9670;&nbsp;</a></span>parseMediaName()</h2>
+<a id="a67272f4f5de498d6e06767e3a3d03e1b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a67272f4f5de498d6e06767e3a3d03e1b">&#9670;&nbsp;</a></span>parseMediaName()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -297,13 +340,13 @@ Here is the caller graph for this function:</div>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">PCHAR&#160;</td>
-          <td class="paramname"><em>pch</em>, </td>
+          <td class="paramname"><em>mediaValue</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">UINT32&#160;</td>
-          <td class="paramname"><em>lineLen</em>&#160;</td>
+          <td class="paramtype">SIZE_T&#160;</td>
+          <td class="paramname"><em>mediaValueLength</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -315,8 +358,8 @@ Here is the caller graph for this function:</div>
 <div class="dynheader">
 Here is the caller graph for this function:</div>
 <div class="dyncontent">
-<div class="center"><img src="Deserialize_8c_a1ac042ed524a6cdab914760ff6c0bac1_icgraph.png" border="0" usemap="#aDeserialize_8c_a1ac042ed524a6cdab914760ff6c0bac1_icgraph" alt=""/></div>
-<map name="aDeserialize_8c_a1ac042ed524a6cdab914760ff6c0bac1_icgraph" id="aDeserialize_8c_a1ac042ed524a6cdab914760ff6c0bac1_icgraph">
+<div class="center"><img src="Deserialize_8c_a67272f4f5de498d6e06767e3a3d03e1b_icgraph.png" border="0" usemap="#aDeserialize_8c_a67272f4f5de498d6e06767e3a3d03e1b_icgraph" alt=""/></div>
+<map name="aDeserialize_8c_a67272f4f5de498d6e06767e3a3d03e1b_icgraph" id="aDeserialize_8c_a67272f4f5de498d6e06767e3a3d03e1b_icgraph">
 <area shape="rect" title=" " alt="" coords="485,5,623,32"/>
 <area shape="rect" href="Deserialize_8c.html#a9bf1873c4b988e0d50c4fc4322e49f78" title=" " alt="" coords="220,5,437,32"/>
 <area shape="rect" href="group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,5,172,32"/>
@@ -325,8 +368,8 @@ Here is the caller graph for this function:</div>
 
 </div>
 </div>
-<a id="a297ed0b51990bce839f7df8d0f7aea2b"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a297ed0b51990bce839f7df8d0f7aea2b">&#9670;&nbsp;</a></span>parseSessionAttributes()</h2>
+<a id="af90ab5920ae51749654c735243cad6e8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af90ab5920ae51749654c735243cad6e8">&#9670;&nbsp;</a></span>parseSessionAttributes()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -341,13 +384,13 @@ Here is the caller graph for this function:</div>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">PCHAR&#160;</td>
-          <td class="paramname"><em>pch</em>, </td>
+          <td class="paramname"><em>pValue</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">UINT32&#160;</td>
-          <td class="paramname"><em>lineLen</em>&#160;</td>
+          <td class="paramtype">SIZE_T&#160;</td>
+          <td class="paramname"><em>valueLength</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -357,10 +400,19 @@ Here is the caller graph for this function:</div>
       </table>
 </div><div class="memdoc">
 <div class="dynheader">
+Here is the call graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="Deserialize_8c_af90ab5920ae51749654c735243cad6e8_cgraph.png" border="0" usemap="#aDeserialize_8c_af90ab5920ae51749654c735243cad6e8_cgraph" alt=""/></div>
+<map name="aDeserialize_8c_af90ab5920ae51749654c735243cad6e8_cgraph" id="aDeserialize_8c_af90ab5920ae51749654c735243cad6e8_cgraph">
+<area shape="rect" title=" " alt="" coords="5,5,177,32"/>
+<area shape="rect" href="Deserialize_8c.html#a0143bf5f0f5daf444644297d8dc2721c" title=" " alt="" coords="225,5,384,32"/>
+</map>
+</div>
+<div class="dynheader">
 Here is the caller graph for this function:</div>
 <div class="dyncontent">
-<div class="center"><img src="Deserialize_8c_a297ed0b51990bce839f7df8d0f7aea2b_icgraph.png" border="0" usemap="#aDeserialize_8c_a297ed0b51990bce839f7df8d0f7aea2b_icgraph" alt=""/></div>
-<map name="aDeserialize_8c_a297ed0b51990bce839f7df8d0f7aea2b_icgraph" id="aDeserialize_8c_a297ed0b51990bce839f7df8d0f7aea2b_icgraph">
+<div class="center"><img src="Deserialize_8c_af90ab5920ae51749654c735243cad6e8_icgraph.png" border="0" usemap="#aDeserialize_8c_af90ab5920ae51749654c735243cad6e8_icgraph" alt=""/></div>
+<map name="aDeserialize_8c_af90ab5920ae51749654c735243cad6e8_icgraph" id="aDeserialize_8c_af90ab5920ae51749654c735243cad6e8_icgraph">
 <area shape="rect" title=" " alt="" coords="485,5,657,32"/>
 <area shape="rect" href="Deserialize_8c.html#a9bf1873c4b988e0d50c4fc4322e49f78" title=" " alt="" coords="220,5,437,32"/>
 <area shape="rect" href="group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,5,172,32"/>
@@ -375,7 +427,7 @@ Here is the caller graph for this function:</div>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_94e7a0fbe7f8eaf7f05ee7b02c647e9f.html">source</a></li><li class="navelem"><a class="el" href="dir_3b2851d8c101e843d2f380332a6bdad4.html">Sdp</a></li><li class="navelem"><a class="el" href="Deserialize_8c.html">Deserialize.c</a></li>
-    <li class="footer">Generated on Wed Mar 20 2024 23:10:21 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Thu Mar 21 2024 18:13:13 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>

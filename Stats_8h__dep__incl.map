@@ -1,7 +1,7 @@
 <map id="src/include/com/amazonaws/kinesis/video/webrtcclient/Stats.h" name="src/include/com/amazonaws/kinesis/video/webrtcclient/Stats.h">
-<area shape="rect" id="node1" title=" " alt="" coords="4652,5,4859,61"/>
-<area shape="rect" id="node2" href="$Include_8h.html" title=" " alt="" coords="4652,109,4859,165"/>
-<area shape="rect" id="node3" href="$Include__i_8h.html" title=" " alt="" coords="4674,213,4837,240"/>
+<area shape="rect" id="node1" title=" " alt="" coords="4761,5,4968,61"/>
+<area shape="rect" id="node2" href="$Include_8h.html" title=" " alt="" coords="4761,109,4968,165"/>
+<area shape="rect" id="node3" href="$Include__i_8h.html" title=" " alt="" coords="4783,213,4946,240"/>
 <area shape="rect" id="node4" href="$Crypto_8c.html" title=" " alt="" coords="5,295,199,322"/>
 <area shape="rect" id="node5" href="$Dtls_8c.html" title=" " alt="" coords="223,295,399,322"/>
 <area shape="rect" id="node6" href="$Dtls__mbedtls_8c.html" title=" " alt="" coords="423,288,589,329"/>
@@ -37,14 +37,15 @@
 <area shape="rect" id="node36" href="$RtpPacket_8c.html" title=" " alt="" coords="6763,295,6956,322"/>
 <area shape="rect" id="node37" href="$Sctp_8c.html" title=" " alt="" coords="6981,295,7143,322"/>
 <area shape="rect" id="node38" href="$Deserialize_8c.html" title=" " alt="" coords="7168,295,7372,322"/>
-<area shape="rect" id="node39" href="$Serialize_8c.html" title=" " alt="" coords="7397,295,7583,322"/>
-<area shape="rect" id="node40" href="$ChannelInfo_8c.html" title=" " alt="" coords="7607,288,7759,329"/>
-<area shape="rect" id="node41" href="$Client_8c.html" title=" " alt="" coords="7783,288,7935,329"/>
-<area shape="rect" id="node42" href="$FileCache_8c.html" title=" " alt="" coords="7959,288,8111,329"/>
-<area shape="rect" id="node43" href="$LwsApiCalls_8c.html" title=" " alt="" coords="8135,288,8287,329"/>
-<area shape="rect" id="node44" href="$Signaling_8c.html" title=" " alt="" coords="8311,288,8463,329"/>
-<area shape="rect" id="node45" href="$StateMachine_8c.html" title=" " alt="" coords="8487,288,8639,329"/>
-<area shape="rect" id="node46" href="$SrtpSession_8c.html" title=" " alt="" coords="8664,295,8873,322"/>
-<area shape="rect" id="node47" href="$Stun_8c.html" title=" " alt="" coords="8898,295,9063,322"/>
-<area shape="rect" id="node48" href="$ThreadPoolContext_8c.html" title=" " alt="" coords="9087,288,9253,329"/>
+<area shape="rect" id="node39" href="$SdpUtils_8c.html" title=" " alt="" coords="7396,295,7581,322"/>
+<area shape="rect" id="node40" href="$Serialize_8c.html" title=" " alt="" coords="7606,295,7793,322"/>
+<area shape="rect" id="node41" href="$ChannelInfo_8c.html" title=" " alt="" coords="7817,288,7969,329"/>
+<area shape="rect" id="node42" href="$Client_8c.html" title=" " alt="" coords="7993,288,8145,329"/>
+<area shape="rect" id="node43" href="$FileCache_8c.html" title=" " alt="" coords="8169,288,8321,329"/>
+<area shape="rect" id="node44" href="$LwsApiCalls_8c.html" title=" " alt="" coords="8345,288,8497,329"/>
+<area shape="rect" id="node45" href="$Signaling_8c.html" title=" " alt="" coords="8521,288,8673,329"/>
+<area shape="rect" id="node46" href="$StateMachine_8c.html" title=" " alt="" coords="8697,288,8849,329"/>
+<area shape="rect" id="node47" href="$SrtpSession_8c.html" title=" " alt="" coords="8873,295,9083,322"/>
+<area shape="rect" id="node48" href="$Stun_8c.html" title=" " alt="" coords="9107,295,9273,322"/>
+<area shape="rect" id="node49" href="$ThreadPoolContext_8c.html" title=" " alt="" coords="9297,288,9462,329"/>
 </map>
