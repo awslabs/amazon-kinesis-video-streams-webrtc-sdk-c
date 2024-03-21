@@ -31,6 +31,8 @@ extern "C" {
 #define CODEC_HASH_TABLE_BUCKET_LENGTH 2
 #define RTX_HASH_TABLE_BUCKET_COUNT    50
 #define RTX_HASH_TABLE_BUCKET_LENGTH   2
+#define TWCC_HASH_TABLE_BUCKET_COUNT   100
+#define TWCC_HASH_TABLE_BUCKET_LENGTH  2
 
 #define DATA_CHANNEL_HASH_TABLE_BUCKET_COUNT  200
 #define DATA_CHANNEL_HASH_TABLE_BUCKET_LENGTH 2
@@ -46,17 +48,16 @@ typedef enum {
 } RTX_CODEC;
 
 typedef struct {
-    UINT16 seqNum;
-    UINT16 packetSize;
     UINT64 localTimeKvs;
     UINT64 remoteTimeKvs;
-} TwccPacket, *PTwccPacket;
+    UINT32 packetSize;
+} TwccRtpPacketInfo, *PTwccRtpPacketInfo;
 
 typedef struct {
-    StackQueue twccPackets;
-    TwccPacket twccPacketBySeqNum[65536]; // twccPacketBySeqNum takes about 1.2MB of RAM but provides great cache locality
-    UINT64 lastLocalTimeKvs;
-    UINT16 lastReportedSeqNum;
+    PHashTable pTwccRtpPktInfosHashTable; // Hash table of [seqNum, PTwccPacket]
+    UINT16 firstSeqNumInRollingWindow;    // To monitor the last deleted packet in the rolling window
+    UINT16 lastReportedSeqNum;            // To monitor the last packet's seqNum in the TWCC response
+    UINT16 prevReportedBaseSeqNum;        // To monitor the base seqNum in the TWCC response
 } TwccManager, *PTwccManager;
 
 typedef struct {
@@ -69,7 +70,7 @@ typedef struct {
 
 typedef struct {
     RtcPeerConnection peerConnection;
-    // UINT32 padding padding makes transportWideSequenceNumber 64bit aligned
+    // UINT32 padding makes transportWideSequenceNumber 64bit aligned
     // we put atomics at the top of structs because customers application could set the packing to 0
     // in which case any atomic operations would result in bus errors if there is a misalignment
     // for more see https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/pull/987#discussion_r534432907
@@ -181,6 +182,7 @@ VOID onSctpSessionDataChannelOpen(UINT64, UINT32, PBYTE, UINT32);
 STATUS sendPacketToRtpReceiver(PKvsPeerConnection, PBYTE, UINT32);
 STATUS changePeerConnectionState(PKvsPeerConnection, RTC_PEER_CONNECTION_STATE);
 STATUS twccManagerOnPacketSent(PKvsPeerConnection, PRtpPacket);
+UINT32 parseExtId(PCHAR);
 
 // visible for testing only
 VOID onIceConnectionStateChange(UINT64, UINT64);
