@@ -86,15 +86,13 @@ TEST_F(SignalingApiTest, createValidateChannelInfo)
     EXPECT_EQ(0, STRCMP(rChannelInfo->pRegion, TEST_DEFAULT_REGION));
     // Test default agent postfix
     EXPECT_PRED_FORMAT2(testing::IsSubstring, agentString, rChannelInfo->pUserAgent);
-
+    freeChannelInfo(&rChannelInfo);
     STRCPY(region, (PCHAR) "cn-north-1");
     mChannelInfo.pRegion = region;
     EXPECT_EQ(STATUS_SUCCESS, createValidateChannelInfo(&mChannelInfo, &rChannelInfo));
     EXPECT_PRED_FORMAT2(testing::IsSubstring, ".cn", rChannelInfo->pControlPlaneUrl);
 
     freeChannelInfo(&rChannelInfo);
-    //wait for threads of threadpool to close
-    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiTest, testChannelArnsValid)

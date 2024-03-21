@@ -155,6 +155,7 @@ a=candidate:842163049 1 udp 1677729535 54.240.196.188 15632 typ srflx raddr 10.1
     assertLFAndCRLF(sessionDescriptionMedia, ARRAY_SIZE(sessionDescriptionMedia) - 1, [](PCHAR sdp) {
         SessionDescription sessionDescription;
         MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
+        EXPECT_EQ(deserializeSessionDescription(&sessionDescription, NULL), STATUS_SESSION_DESCRIPTION_INVALID_SESSION_DESCRIPTION);
         EXPECT_EQ(deserializeSessionDescription(&sessionDescription, sdp), STATUS_SUCCESS);
 
         EXPECT_EQ(sessionDescription.mediaCount, 2);
