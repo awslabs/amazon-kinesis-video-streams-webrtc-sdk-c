@@ -83,6 +83,11 @@ extern "C" {
 #define MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE 736 // strlen(SIGNALING_CLIENT_METRICS_JSON_TEMPLATE) + 20 * 10
 #define MAX_ICE_AGENT_METRICS_MESSAGE_SIZE        113 // strlen(ICE_AGENT_METRICS_JSON_TEMPLATE) + 20 * 2
 
+
+#define ADJUSTMENT_INTERVAL_MS 5 * HUNDREDS_OF_NANOS_IN_A_SECOND
+#define MIN_BITRATE 512
+#define MAX_BITRATE 2048000
+
 typedef enum {
     SAMPLE_STREAMING_VIDEO_ONLY,
     SAMPLE_STREAMING_AUDIO_VIDEO,
@@ -179,6 +184,15 @@ typedef struct {
 
 typedef VOID (*StreamSessionShutdownCallback)(UINT64, PSampleStreamingSession);
 
+typedef struct {
+    UINT64 lastAdjustmentTimeMs;
+    UINT64 currentVideoBitrate;
+    UINT64 newVideoBitrate;
+    UINT64 currentAudioBitrate;
+    UINT64 newAudioBitrate;
+    float averagePacketLoss;
+} TwccMetadata, *PTwccMetadata;
+
 struct __SampleStreamingSession {
     volatile ATOMIC_BOOL terminateFlag;
     volatile ATOMIC_BOOL candidateGatheringDone;
@@ -208,10 +222,7 @@ struct __SampleStreamingSession {
     CHAR pPeerConnectionMetricsMessage[MAX_PEER_CONNECTION_METRICS_MESSAGE_SIZE];
     CHAR pSignalingClientMetricsMessage[MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE];
     CHAR pIceAgentMetricsMessage[MAX_ICE_AGENT_METRICS_MESSAGE_SIZE];
-    UINT64 currentVideoBitrate;
-    UINT64 newVideoBitrate;
-    UINT64 newAudioBitrate;
-    UINT64 currentAudioBitrate;
+    TwccMetadata twccMetadata;
 };
 
 // TODO this should all be in a higher webrtccontext layer above PeerConnection
