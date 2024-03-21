@@ -242,28 +242,51 @@ TEST_F(StunApiTest, appendStunErrorCodeAttributeTest)
     PStunPacket pStunPacket;
     PStunAttributeHeader pAttribute;
     CHAR errorPhrase[128];
+    CHAR password[256];
+    BYTE buffer[10000];
+    UINT32 size = 0;
+    BOOL found;
+
+    STRCPY(password, "test password");
     STRCPY(errorPhrase, "Sample phrase");
     EXPECT_EQ(STATUS_SUCCESS, createStunPacket(STUN_PACKET_TYPE_BINDING_REQUEST, transactionId, &pStunPacket));
     EXPECT_EQ(STATUS_NULL_ARG, appendStunErrorCodeAttribute(pStunPacket, NULL, 12));
     EXPECT_EQ(STATUS_SUCCESS, appendStunErrorCodeAttribute(pStunPacket, errorPhrase, 12));
     pAttribute = (PStunAttributeHeader) pStunPacket->attributeList[pStunPacket->attributesCount - 1];
     EXPECT_EQ(STUN_ATTRIBUTE_TYPE_ERROR_CODE, pAttribute->type);
+    EXPECT_EQ(STATUS_SUCCESS, serializeStunPacket(pStunPacket, (PBYTE) password, STRLEN(password) * SIZEOF(CHAR), FALSE, FALSE, NULL, &size));
+    EXPECT_EQ(STATUS_SUCCESS, serializeStunPacket(pStunPacket, (PBYTE) password, STRLEN(password) * SIZEOF(CHAR), FALSE, FALSE, buffer, &size));
+
+    // Loop through the buffer to find the error phrase
+    for(SIZE_T i = 0; i < SIZEOF(buffer) - STRLEN(errorPhrase); ++i) {
+        if (STRNCMP(reinterpret_cast<PCHAR>(buffer + i), errorPhrase, STRLEN(errorPhrase)) == 0) {
+            found = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(found);
     EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
 }
 
 TEST_F(StunApiTest, appendStunDataAttributeTest)
 {
+    CHAR password[256];
+    BYTE buffer[10000];
+    UINT32 size = 0;
     BYTE transactionId[STUN_TRANSACTION_ID_LEN] = {0};
     PStunPacket pStunPacket;
     PStunAttributeHeader pAttribute;
-    CHAR errorPhrase[128];
     BYTE data[128] = {0};
-    STRCPY(errorPhrase, "Sample phrase");
+    STRCPY(password, "test password");
     EXPECT_EQ(STATUS_SUCCESS, createStunPacket(STUN_PACKET_TYPE_BINDING_REQUEST, transactionId, &pStunPacket));
     EXPECT_EQ(STATUS_NULL_ARG, appendStunDataAttribute(pStunPacket, NULL, 12));
     EXPECT_EQ(STATUS_SUCCESS, appendStunDataAttribute(pStunPacket, data, 128));
     pAttribute = (PStunAttributeHeader) pStunPacket->attributeList[pStunPacket->attributesCount - 1];
     EXPECT_EQ(STUN_ATTRIBUTE_TYPE_DATA, pAttribute->type);
+
+    EXPECT_EQ(STATUS_SUCCESS, serializeStunPacket(pStunPacket, (PBYTE) password, STRLEN(password) * SIZEOF(CHAR), FALSE, FALSE, NULL, &size));
+    EXPECT_EQ(STATUS_SUCCESS, serializeStunPacket(pStunPacket, (PBYTE) password, STRLEN(password) * SIZEOF(CHAR), FALSE, FALSE, buffer, &size));
+
     EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
 }
 

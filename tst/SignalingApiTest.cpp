@@ -59,6 +59,7 @@ TEST_F(SignalingApiTest, createValidateChannelInfo)
     initializeSignalingClientStructs();
     PChannelInfo rChannelInfo;
     CHAR agentString[MAX_CUSTOM_USER_AGENT_NAME_POSTFIX_LEN + 1];
+    CHAR region[20];
     UINT32 postfixLen = STRLEN(SIGNALING_USER_AGENT_POSTFIX_NAME) + STRLEN(SIGNALING_USER_AGENT_POSTFIX_VERSION) + 1;
     SNPRINTF(agentString, postfixLen + 1, (PCHAR) "%s/%s", SIGNALING_USER_AGENT_POSTFIX_NAME, SIGNALING_USER_AGENT_POSTFIX_VERSION);
     STRCPY(mChannelArn, TEST_CHANNEL_ARN);
@@ -85,6 +86,12 @@ TEST_F(SignalingApiTest, createValidateChannelInfo)
     EXPECT_EQ(0, STRCMP(rChannelInfo->pRegion, TEST_DEFAULT_REGION));
     // Test default agent postfix
     EXPECT_PRED_FORMAT2(testing::IsSubstring, agentString, rChannelInfo->pUserAgent);
+
+    STRCPY(region, (PCHAR) "cn-north-1");
+    mChannelInfo.pRegion = region;
+    EXPECT_EQ(STATUS_SUCCESS, createValidateChannelInfo(&mChannelInfo, &rChannelInfo));
+    EXPECT_PRED_FORMAT2(testing::IsSubstring, ".cn", rChannelInfo->pControlPlaneUrl);
+
     freeChannelInfo(&rChannelInfo);
     //wait for threads of threadpool to close
     THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
@@ -814,6 +821,12 @@ TEST_F(SignalingApiTest, getMessageTypeFromStringApiTest)
     EXPECT_EQ(messageType, SIGNALING_MESSAGE_TYPE_STATUS_RESPONSE);
     EXPECT_EQ(STATUS_SUCCESS, getMessageTypeFromString((PCHAR) "test", 0, &messageType));
     EXPECT_EQ(messageType, SIGNALING_MESSAGE_TYPE_UNKNOWN);
+}
+
+TEST_F(SignalingApiTest, getStringFromChannelTypeApiTest)
+{
+    EXPECT_STREQ(SIGNALING_CHANNEL_TYPE_SINGLE_MASTER_STR, getStringFromChannelType(SIGNALING_CHANNEL_TYPE_SINGLE_MASTER));
+    EXPECT_STREQ(SIGNALING_CHANNEL_TYPE_UNKNOWN_STR, getStringFromChannelType((SIGNALING_CHANNEL_TYPE)0xffff));
 }
 
 } // namespace webrtcclient

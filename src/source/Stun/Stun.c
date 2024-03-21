@@ -306,13 +306,11 @@ STATUS serializeStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passw
                 break;
 
             case STUN_ATTRIBUTE_TYPE_ERROR_CODE:
-
                 pStunAttributeErrorCode = (PStunAttributeErrorCode) pStunAttributeHeader;
 
                 encodedLen = STUN_ATTRIBUTE_HEADER_LEN + pStunAttributeErrorCode->paddedLength;
 
                 CHK(!fingerprintFound && !messaageIntegrityFound, STATUS_STUN_ATTRIBUTES_AFTER_FINGERPRINT_MESSAGE_INTEGRITY);
-
                 if (pBuffer != NULL) {
                     CHK(remaining >= encodedLen, STATUS_NOT_ENOUGH_MEMORY);
 
@@ -321,7 +319,6 @@ STATUS serializeStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passw
 
                     // Package the error code
                     putInt16((PINT16) pCurrentBufferPosition + STUN_ATTRIBUTE_HEADER_LEN, pStunAttributeErrorCode->errorCode);
-
                     // Package the error phrase
                     MEMCPY(pCurrentBufferPosition + STUN_ATTRIBUTE_HEADER_LEN + SIZEOF(pStunAttributeErrorCode->errorCode),
                            pStunAttributeErrorCode->errorPhrase, pStunAttributeErrorCode->paddedLength);
@@ -359,7 +356,6 @@ STATUS serializeStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passw
                 encodedLen = STUN_ATTRIBUTE_HEADER_LEN + pStunAttributeData->paddedLength;
 
                 CHK(!fingerprintFound && !messaageIntegrityFound, STATUS_STUN_ATTRIBUTES_AFTER_FINGERPRINT_MESSAGE_INTEGRITY);
-
                 if (pBuffer != NULL) {
                     CHK(remaining >= encodedLen, STATUS_NOT_ENOUGH_MEMORY);
 
