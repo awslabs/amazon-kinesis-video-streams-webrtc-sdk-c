@@ -313,7 +313,7 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
     STATUS retStatus = STATUS_SUCCESS;
     PTwccManager pTwccManager = NULL;
     BOOL locked = FALSE;
-    UINT64 sn = 0;
+    UINT16 baseSeqNum = 0;
     UINT64 localStartTimeKvs, localEndTimeKvs;
     UINT64 sentBytes = 0, receivedBytes = 0;
     UINT64 sentPackets = 0, receivedPackets = 0;
@@ -330,14 +330,14 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
     locked = TRUE;
     pTwccManager = pKvsPeerConnection->pTwccManager;
     CHK_STATUS(parseRtcpTwccPacket(pRtcpPacket, pTwccManager));
-    sn = pTwccManager->prevReportedBaseSeqNum;
+    baseSeqNum = pTwccManager->prevReportedBaseSeqNum;
 
     // Use != instead to cover the case where the group of sequence numbers being checked
     // are trending towards MAX_UINT16 and rolling over to 0+, example range [65534, 10]
     // We also check for twcc->lastReportedSeqNum + 1 to include the last seq number in the
     // report. Without this, we do not check for the seqNum that could cause it to not be cleared
     // from memory
-    for (seqNum = sn; seqNum != (pTwccManager->lastReportedSeqNum + 1); seqNum++) {
+    for (seqNum = baseSeqNum; seqNum != (pTwccManager->lastReportedSeqNum + 1); seqNum++) {
         if (!localStartTimeRecorded) {
             // This could happen if the prev packet was deleted as part of rolling window or if there
             // is an overlap of RTP packet statuses between TWCC packets. This could also fail if it is

@@ -990,7 +990,7 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    PKvsPeerConnection pKvsPeerConnection;
+    PKvsPeerConnection pKvsPeerConnection = NULL;
     PDoubleListNode pCurNode = NULL;
     UINT64 item = 0;
     UINT64 startTime;
@@ -1082,14 +1082,24 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
                 twccLocked = FALSE;
             }
             MUTEX_FREE(pKvsPeerConnection->twccLock);
+            pKvsPeerConnection->twccLock = INVALID_MUTEX_VALUE;
         }
         SAFE_MEMFREE(pKvsPeerConnection->pTwccManager);
     }
 
     PROFILE_WITH_START_TIME_OBJ(startTime, pKvsPeerConnection->peerConnectionDiagnostics.freePeerConnectionTime, "Free peer connection");
     SAFE_MEMFREE(*ppPeerConnection);
+    ppPeerConnection = NULL;
 CleanUp:
-
+    if (ppPeerConnection != NULL) {
+        if (IS_VALID_MUTEX_VALUE(pKvsPeerConnection->twccLock)) {
+            if (twccLocked) {
+                MUTEX_UNLOCK(pKvsPeerConnection->twccLock);
+                twccLocked = FALSE;
+            }
+            MUTEX_FREE(pKvsPeerConnection->twccLock);
+        }
+    }
     LEAVES();
     return retStatus;
 }

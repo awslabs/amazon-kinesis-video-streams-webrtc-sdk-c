@@ -318,6 +318,7 @@ static void parseTwcc(const std::string& hex, const uint32_t expectedReceived, c
     RtcConfiguration config{};
     UINT64 value;
     UINT16 twsn;
+    UINT16 i = 0;
     UINT32 extpayload, received = 0, lost = 0;
 
     rtcpPacket.header.packetLength = payloadLen / 4;
@@ -333,7 +334,7 @@ static void parseTwcc(const std::string& hex, const uint32_t expectedReceived, c
     UINT16 baseSeqNum = getUnalignedInt16BigEndian(rtcpPacket.payload + 8);
     UINT16 pktCount = TWCC_PACKET_STATUS_COUNT(rtcpPacket.payload);
 
-    for(auto i = baseSeqNum; i < baseSeqNum + pktCount; i++) {
+    for(i = baseSeqNum; i < baseSeqNum + pktCount; i++) {
         rtpPacket.header.extension = TRUE;
         rtpPacket.header.extensionProfile = TWCC_EXT_PROFILE;
         rtpPacket.header.extensionLength = SIZEOF(UINT32);
@@ -345,7 +346,7 @@ static void parseTwcc(const std::string& hex, const uint32_t expectedReceived, c
 
     EXPECT_EQ(STATUS_SUCCESS, parseRtcpTwccPacket(&rtcpPacket, pKvsPeerConnection->pTwccManager));
 
-    for(auto i = 0; i < MAX_UINT16; i++) {
+    for(i = 0; i < MAX_UINT16; i++) {
         if(hashTableGet(pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable, i, &value) == STATUS_SUCCESS) {
             PTwccRtpPacketInfo tempTwccRtpPktInfo = (PTwccRtpPacketInfo) value;
             if(tempTwccRtpPktInfo->remoteTimeKvs == TWCC_PACKET_LOST_TIME) {
