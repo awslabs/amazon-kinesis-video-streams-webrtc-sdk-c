@@ -705,7 +705,9 @@ VOID sampleBandwidthEstimationHandler(UINT64 customData, DOUBLE maximumBitrate)
     DLOGV("received bitrate suggestion: %f", maximumBitrate);
 }
 
-void sampleSenderBandwidthEstimationHandler(UINT64 customData, UINT32 txBytes, UINT32 rxBytes, UINT32 txPacketsCnt, UINT32 rxPacketsCnt, UINT64 duration) {
+void sampleSenderBandwidthEstimationHandler(UINT64 customData, UINT32 txBytes, UINT32 rxBytes, UINT32 txPacketsCnt, UINT32 rxPacketsCnt,
+                                            UINT64 duration)
+{
     UNUSED_PARAM(duration);
     UINT32 lostPacketsCnt = txPacketsCnt - rxPacketsCnt;
     UINT8 percentLost = (txPacketsCnt > 0) ? (lostPacketsCnt * 100 / txPacketsCnt) : 0;
@@ -714,13 +716,13 @@ void sampleSenderBandwidthEstimationHandler(UINT64 customData, UINT32 txBytes, U
 
     // Calculate smoothed packet loss
     DOUBLE currentPacketLoss = (DOUBLE) percentLost;
-    EMA_ACCUMULATOR_GET_NEXT(pSampleStreamingSession->twccMetadata.averagePacketLoss, currentPacketLoss);
+    pSampleStreamingSession->twccMetadata.averagePacketLoss =
+        EMA_ACCUMULATOR_GET_NEXT(pSampleStreamingSession->twccMetadata.averagePacketLoss, currentPacketLoss);
 
     UINT64 currentTimeMs = GETTIME();
     UINT64 timeDiff = currentTimeMs - pSampleStreamingSession->twccMetadata.lastAdjustmentTimeMs;
-    if (timeDiff < ADJUSTMENT_INTERVAL_MS) {
+    if (timeDiff < ADJUSTMENT_INTERVAL_SECONDS) {
         // Too soon for another adjustment
-        DLOGI("Too soon");
         return;
     }
 
@@ -737,7 +739,8 @@ void sampleSenderBandwidthEstimationHandler(UINT64 customData, UINT32 txBytes, U
     pSampleStreamingSession->twccMetadata.newVideoBitrate = bitrate;
     pSampleStreamingSession->twccMetadata.lastAdjustmentTimeMs = currentTimeMs;
 
-    DLOGI("Adjustment made: average packet loss = %.2f%%, timediff: %llu ms", pSampleStreamingSession->twccMetadata.averagePacketLoss, ADJUSTMENT_INTERVAL_MS, timeDiff);
+    DLOGI("Adjustment made: average packet loss = %.2f%%, timediff: %llu ms", pSampleStreamingSession->twccMetadata.averagePacketLoss,
+          ADJUSTMENT_INTERVAL_SECONDS, timeDiff);
     DLOGI("received sender bitrate estimation: suggested bitrate %u sent: %u bytes %u packets received: %u bytes %u packets in %lu msec", bitrate,
           txBytes, txPacketsCnt, rxBytes, rxPacketsCnt, duration / 10000ULL);
 }
