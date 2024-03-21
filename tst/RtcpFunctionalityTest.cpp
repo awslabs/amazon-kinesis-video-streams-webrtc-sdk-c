@@ -295,27 +295,65 @@ TEST_F(RtcpFunctionalityTest, onpli)
     freePeerConnection(&pRtcPeerConnection);
 }
 
+static void testBwHandler(UINT64 customData, UINT32 txBytes, UINT32 rxBytes, UINT32 txPacketsCnt, UINT32 rxPacketsCnt,
+                                                   UINT64 duration) {
+    UNUSED_PARAM(customData);
+    UNUSED_PARAM(txBytes);
+    UNUSED_PARAM(rxBytes);
+    UNUSED_PARAM(txPacketsCnt);
+    UNUSED_PARAM(rxPacketsCnt);
+    UNUSED_PARAM(duration);
+    return;
+}
+
 static void parseTwcc(const std::string& hex, const uint32_t expectedReceived, const uint32_t expectedNotReceived)
 {
+    PRtcPeerConnection pRtcPeerConnection = nullptr;
+    PKvsPeerConnection pKvsPeerConnection;
     BYTE payload[256] = {0};
     UINT32 payloadLen = 256;
     hexDecode(const_cast<PCHAR>(hex.data()), hex.size(), payload, &payloadLen);
     RtcpPacket rtcpPacket{};
+    RtpPacket rtpPacket{};
+    RtcConfiguration config{};
+    UINT64 value;
+    UINT16 twsn;
+    UINT16 i = 0;
+    UINT32 extpayload, received = 0, lost = 0;
+
     rtcpPacket.header.packetLength = payloadLen / 4;
     rtcpPacket.payload = payload;
     rtcpPacket.payloadLength = payloadLen;
-    TwccManager twcc{};
 
-    ASSERT_EQ(STATUS_SUCCESS, parseRtcpTwccPacket(&rtcpPacket, &twcc));
-    ASSERT_EQ(STATUS_SUCCESS, stackQueueClear(&twcc.twccPackets, FALSE));
 
-    uint32_t received = 0;
-    uint32_t lost = 0;
-    for (const auto& packet : twcc.twccPacketBySeqNum) {
-        if (packet.remoteTimeKvs == TWCC_PACKET_LOST_TIME) {
-            lost++;
-        } else if (packet.remoteTimeKvs != TWCC_PACKET_UNITIALIZED_TIME) {
-            received++;
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pRtcPeerConnection));
+    pKvsPeerConnection = reinterpret_cast<PKvsPeerConnection>(pRtcPeerConnection);
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnSenderBandwidthEstimation(pRtcPeerConnection, 0,
+                                                                        testBwHandler));
+
+    UINT16 baseSeqNum = getUnalignedInt16BigEndian(rtcpPacket.payload + 8);
+    UINT16 pktCount = TWCC_PACKET_STATUS_COUNT(rtcpPacket.payload);
+
+    for(i = baseSeqNum; i < baseSeqNum + pktCount; i++) {
+        rtpPacket.header.extension = TRUE;
+        rtpPacket.header.extensionProfile = TWCC_EXT_PROFILE;
+        rtpPacket.header.extensionLength = SIZEOF(UINT32);
+        twsn = i;
+        extpayload = TWCC_PAYLOAD(parseExtId(TWCC_EXT_URL), twsn);
+        rtpPacket.header.extensionPayload = (PBYTE) &extpayload;
+        EXPECT_EQ(STATUS_SUCCESS, twccManagerOnPacketSent(pKvsPeerConnection, &rtpPacket));
+    }
+
+    EXPECT_EQ(STATUS_SUCCESS, parseRtcpTwccPacket(&rtcpPacket, pKvsPeerConnection->pTwccManager));
+
+    for(i = 0; i < MAX_UINT16; i++) {
+        if(hashTableGet(pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable, i, &value) == STATUS_SUCCESS) {
+            PTwccRtpPacketInfo tempTwccRtpPktInfo = (PTwccRtpPacketInfo) value;
+            if(tempTwccRtpPktInfo->remoteTimeKvs == TWCC_PACKET_LOST_TIME) {
+                lost++;
+            } else if (tempTwccRtpPktInfo->remoteTimeKvs != TWCC_PACKET_UNITIALIZED_TIME) {
+                received++;
+            }
         }
     }
 
@@ -323,9 +361,10 @@ static void parseTwcc(const std::string& hex, const uint32_t expectedReceived, c
     EXPECT_EQ(expectedReceived + expectedNotReceived, TWCC_PACKET_STATUS_COUNT(rtcpPacket.payload));
     EXPECT_EQ(expectedReceived, received);
     EXPECT_EQ(expectedNotReceived, lost);
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
 }
 
-TEST_F(RtcpFunctionalityTest, twcc3)
+TEST_F(RtcpFunctionalityTest, twccParsePacketTest)
 {
     parseTwcc("", 0, 0);
     parseTwcc("4487A9E754B3E6FD01810001147A75A62001C801", 1, 0);
