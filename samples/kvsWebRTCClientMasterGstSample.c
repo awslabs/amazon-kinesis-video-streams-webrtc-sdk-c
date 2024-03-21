@@ -67,10 +67,10 @@ GstFlowReturn on_new_sample(GstElement* sink, gpointer data, UINT64 trackid)
                 if(encoder != NULL) {
                     guint bitrate;
                     g_object_get(G_OBJECT(encoder), "bitrate", &bitrate, NULL);
-                    pSampleStreamingSession->currentVideoBitrate = (UINT64) bitrate;
-                    if(pSampleStreamingSession->newVideoBitrate != 0) {
-                        bitrate = (guint) (pSampleStreamingSession->newVideoBitrate);
-                        pSampleStreamingSession->newVideoBitrate = 0;
+                    pSampleStreamingSession->twccMetadata.currentVideoBitrate = (UINT64) bitrate;
+                    if(pSampleStreamingSession->twccMetadata.newVideoBitrate != 0) {
+                        bitrate = (guint) (pSampleStreamingSession->twccMetadata.newVideoBitrate);
+                        pSampleStreamingSession->twccMetadata.newVideoBitrate = 0;
                         g_object_set(G_OBJECT(encoder), "bitrate", bitrate, NULL);
                     }
 

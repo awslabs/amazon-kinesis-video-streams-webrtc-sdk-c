@@ -553,7 +553,7 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
 
     ATOMIC_STORE_BOOL(&pSampleStreamingSession->terminateFlag, FALSE);
     ATOMIC_STORE_BOOL(&pSampleStreamingSession->candidateGatheringDone, FALSE);
-    pSampleStreamingSession->newVideoBitrate = 0;
+    MEMSET(&pSampleStreamingSession->twccMetadata, 0x00, SIZEOF(TwccMetadata));
     pSampleStreamingSession->peerConnectionMetrics.peerConnectionStats.peerConnectionStartTime = GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
     // Flag to enable SDK to calculate selected ice server, local, remote and candidate pair stats.
     pSampleConfiguration->enableIceStats = FALSE;
@@ -705,35 +705,40 @@ VOID sampleBandwidthEstimationHandler(UINT64 customData, DOUBLE maximumBitrate)
     DLOGV("received bitrate suggestion: %f", maximumBitrate);
 }
 
-VOID sampleSenderBandwidthEstimationHandler(UINT64 customData, UINT32 txBytes, UINT32 rxBytes, UINT32 txPacketsCnt, UINT32 rxPacketsCnt,
-                                            UINT64 duration)
-{
+void sampleSenderBandwidthEstimationHandler(UINT64 customData, UINT32 txBytes, UINT32 rxBytes, UINT32 txPacketsCnt, UINT32 rxPacketsCnt, UINT64 duration) {
     UNUSED_PARAM(duration);
-    UNUSED_PARAM(rxBytes);
-    UNUSED_PARAM(txBytes);
     UINT32 lostPacketsCnt = txPacketsCnt - rxPacketsCnt;
-    UINT32 percentLost = lostPacketsCnt * 100 / txPacketsCnt;
-    PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) customData;
-    UINT64 bitrate;
-    DLOGI("Percent lost: %d", percentLost);
-    if (percentLost <= 5) {
-        // increase encoder bitrate by 5 percent
-        bitrate = pSampleStreamingSession->currentVideoBitrate * 1.05f;
-    } else if (percentLost > 5) {
-        if(pSampleStreamingSession->currentVideoBitrate >= 1 * 1024) {
-            // decrease encoder bitrate by packet loss percent
-            bitrate = pSampleStreamingSession->currentVideoBitrate * (1.0f - percentLost/100.0f);
-        }
-        else {
-            DLOGW("Bitrate already too low...maintaining..expect frame packet drops and choppy playback");
-            bitrate = pSampleStreamingSession->currentVideoBitrate;
-        }
+    UINT8 percentLost = (txPacketsCnt > 0) ? (lostPacketsCnt * 100 / txPacketsCnt) : 0;
+
+    SampleStreamingSession* pSampleStreamingSession = (SampleStreamingSession*) customData;
+
+    // Calculate smoothed packet loss
+    DOUBLE currentPacketLoss = (DOUBLE) percentLost;
+    EMA_ACCUMULATOR_GET_NEXT(pSampleStreamingSession->twccMetadata.averagePacketLoss, currentPacketLoss);
+
+    UINT64 currentTimeMs = GETTIME();
+    UINT64 timeDiff = currentTimeMs - pSampleStreamingSession->twccMetadata.lastAdjustmentTimeMs;
+    if (timeDiff < ADJUSTMENT_INTERVAL_MS) {
+        // Too soon for another adjustment
+        DLOGI("Too soon");
+        return;
     }
-    if(bitrate > 2048000) {
-        bitrate = pSampleStreamingSession->currentVideoBitrate;
+
+    UINT64 bitrate = pSampleStreamingSession->twccMetadata.currentVideoBitrate;
+    if (pSampleStreamingSession->twccMetadata.averagePacketLoss <= 5) {
+        // increase encoder bitrate by 5 percent with a cap at MAX_BITRATE
+        bitrate = (UINT64) MIN(bitrate * 1.05f, MAX_BITRATE);
+    } else {
+        // decrease encoder bitrate by average packet loss percent, with a cap at MIN_BITRATE
+        bitrate = (UINT64) MAX(bitrate * (1.0f - pSampleStreamingSession->twccMetadata.averagePacketLoss / 100.0f), MIN_BITRATE);
     }
-    pSampleStreamingSession->newVideoBitrate = bitrate;
-    DLOGI("received sender bitrate estimation: suggested bitrate %u kbps sent: %u bytes %u packets received: %u bytes %u packets in %lu msec, ", bitrate,
+
+    // Update the session with the new bitrate and adjustment time
+    pSampleStreamingSession->twccMetadata.newVideoBitrate = bitrate;
+    pSampleStreamingSession->twccMetadata.lastAdjustmentTimeMs = currentTimeMs;
+
+    DLOGI("Adjustment made: average packet loss = %.2f%%, timediff: %llu ms", pSampleStreamingSession->twccMetadata.averagePacketLoss, ADJUSTMENT_INTERVAL_MS, timeDiff);
+    DLOGI("received sender bitrate estimation: suggested bitrate %u sent: %u bytes %u packets received: %u bytes %u packets in %lu msec", bitrate,
           txBytes, txPacketsCnt, rxBytes, rxPacketsCnt, duration / 10000ULL);
 }
 
