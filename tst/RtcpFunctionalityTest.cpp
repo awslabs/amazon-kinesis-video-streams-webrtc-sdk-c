@@ -305,6 +305,9 @@ static void testBwHandler(UINT64 customData, UINT32 txBytes, UINT32 rxBytes, UIN
     UNUSED_PARAM(duration);
     return;
 }
+static void testPictureLossCb(UINT64 data) {
+    *(PBOOL) data = TRUE;
+}
 
 static void parseTwcc(const std::string& hex, const uint32_t expectedReceived, const uint32_t expectedNotReceived)
 {
@@ -480,8 +483,10 @@ TEST_F(RtcpFunctionalityTest, onRtcpPacketPliReport)
     EXPECT_EQ(STATUS_SUCCESS, hexDecode(hexpacket, strlen(hexpacket), rawpacket, &rawpacketSize));
     initTransceiver(0x4487A9E7);
 
-    pKvsRtpTransceiver->onPictureLossCustomData = (UINT64) &onPictureLossCalled;
-    pKvsRtpTransceiver->onPictureLoss = [](UINT64 customData) -> void { *(PBOOL) customData = TRUE; };
+    EXPECT_EQ(STATUS_NULL_ARG, transceiverOnPictureLoss(NULL, (UINT64) &onPictureLossCalled, NULL));
+    EXPECT_EQ(STATUS_NULL_ARG, transceiverOnPictureLoss(pRtcRtpTransceiver, (UINT64) &onPictureLossCalled, NULL));
+    EXPECT_EQ(STATUS_NULL_ARG, transceiverOnPictureLoss(NULL, (UINT64) &onPictureLossCalled, testPictureLossCb));
+    EXPECT_EQ(STATUS_SUCCESS, transceiverOnPictureLoss(pRtcRtpTransceiver, (UINT64) &onPictureLossCalled, testPictureLossCb));
 
     EXPECT_EQ(STATUS_NULL_ARG, onRtcpPLIPacket(NULL, NULL));
     EXPECT_EQ(STATUS_NULL_ARG, onRtcpPLIPacket(NULL, pKvsPeerConnection));
