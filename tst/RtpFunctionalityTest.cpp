@@ -1,5 +1,3 @@
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "UnreachableCode"
 #include "WebRTCClientTestFixture.h"
 
 namespace com {
@@ -528,9 +526,9 @@ TEST_F(RtpFunctionalityTest, createKvsRtpTransceiverInvalidArg)
 {
     RtcMediaStreamTrack mediaTrack{};
     KvsPeerConnection kvsPeerConnection;
-    EXPECT_EQ(STATUS_NULL_ARG, createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV, DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS, MIN_EXPECTED_BIT_RATE, NULL, 0, 0, &mediaTrack, NULL, RTC_CODEC_OPUS, NULL));
-    EXPECT_EQ(STATUS_NULL_ARG, createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV, DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS, MIN_EXPECTED_BIT_RATE, &kvsPeerConnection, 0, 0, &mediaTrack, NULL, RTC_CODEC_OPUS, NULL));
-    EXPECT_EQ(STATUS_NULL_ARG, createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV, DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS, MIN_EXPECTED_BIT_RATE, &kvsPeerConnection, 0, 0, NULL, NULL, RTC_CODEC_OPUS, NULL));
+    EXPECT_EQ(createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV, DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS, MIN_EXPECTED_BIT_RATE, NULL, 0, 0, &mediaTrack, NULL, RTC_CODEC_OPUS, NULL), STATUS_NULL_ARG);
+    EXPECT_EQ(createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV, DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS, MIN_EXPECTED_BIT_RATE, &kvsPeerConnection, 0, 0, &mediaTrack, NULL, RTC_CODEC_OPUS, NULL), STATUS_NULL_ARG);
+    EXPECT_EQ(createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV, DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS, MIN_EXPECTED_BIT_RATE, &kvsPeerConnection, 0, 0, NULL, NULL, RTC_CODEC_OPUS, NULL), STATUS_NULL_ARG);
 }
 
 TEST_F(RtpFunctionalityTest, freeTransceiverApiTest)
@@ -543,5 +541,3 @@ TEST_F(RtpFunctionalityTest, freeTransceiverApiTest)
 } // namespace kinesis
 } // namespace amazonaws
 } // namespace com
-
-#pragma clang diagnostic pop

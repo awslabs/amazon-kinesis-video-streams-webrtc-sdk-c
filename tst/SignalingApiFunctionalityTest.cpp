@@ -3486,7 +3486,6 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateMultiChannelCache)
 
     MEMFREE(fileBuffer);
     FREMOVE(DEFAULT_CACHE_FILE_PATH);
-
 }
 
 TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateFullMultiChannelCache)

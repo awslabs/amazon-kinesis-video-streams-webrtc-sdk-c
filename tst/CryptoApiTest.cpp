@@ -12,11 +12,11 @@ class CryptoApiTest : public WebRtcClientTestBase {
 TEST_F(CryptoApiTest, createRtcCertificateApiTest)
 {
     PRtcCertificate pRtcCertificate = NULL;
-    EXPECT_EQ(STATUS_NULL_ARG, createRtcCertificate(NULL));
-    EXPECT_EQ(STATUS_SUCCESS, createRtcCertificate(&pRtcCertificate));
+    EXPECT_EQ(createRtcCertificate(NULL), STATUS_NULL_ARG);
+    EXPECT_EQ(createRtcCertificate(&pRtcCertificate), STATUS_SUCCESS);
     EXPECT_TRUE(pRtcCertificate != NULL);
-    EXPECT_EQ(STATUS_SUCCESS, freeRtcCertificate(NULL));
-    EXPECT_EQ(STATUS_SUCCESS, freeRtcCertificate(pRtcCertificate));
+    EXPECT_EQ(freeRtcCertificate(NULL), STATUS_SUCCESS);
+    EXPECT_EQ(freeRtcCertificate(pRtcCertificate), STATUS_SUCCESS);
 }
 
 } // namespace webrtcclient

@@ -17,13 +17,13 @@ TEST_F(RollingBufferFunctionalityTest, rollingBufferIsEmptyInvalidArgs)
 {
     PRollingBuffer pRollingBuffer = NULL;
     BOOL isEmpty;
-    EXPECT_EQ(STATUS_NULL_ARG, rollingBufferIsEmpty(NULL, NULL));
-    EXPECT_EQ(STATUS_NULL_ARG, rollingBufferIsEmpty(NULL, &isEmpty));
-    EXPECT_EQ(STATUS_SUCCESS, createRollingBuffer(2, RollingBufferFunctionalityTestFreeBufferFunc, &pRollingBuffer));
-    EXPECT_EQ(STATUS_NULL_ARG, rollingBufferIsEmpty(pRollingBuffer, NULL));
-    EXPECT_EQ(STATUS_SUCCESS, rollingBufferIsEmpty(pRollingBuffer, &isEmpty));
-    EXPECT_EQ(TRUE, isEmpty);
-    EXPECT_EQ(STATUS_SUCCESS, freeRollingBuffer(&pRollingBuffer));
+    EXPECT_EQ(rollingBufferIsEmpty(NULL, NULL), STATUS_NULL_ARG);
+    EXPECT_EQ(rollingBufferIsEmpty(NULL, &isEmpty), STATUS_NULL_ARG);
+    EXPECT_EQ(createRollingBuffer(2, RollingBufferFunctionalityTestFreeBufferFunc, &pRollingBuffer), STATUS_SUCCESS);
+    EXPECT_EQ(rollingBufferIsEmpty(pRollingBuffer, NULL), STATUS_NULL_ARG);
+    EXPECT_EQ(rollingBufferIsEmpty(pRollingBuffer, &isEmpty), STATUS_SUCCESS);
+    EXPECT_EQ(isEmpty, TRUE);
+    EXPECT_EQ(freeRollingBuffer(&pRollingBuffer), STATUS_SUCCESS);
 }
 
 TEST_F(RollingBufferFunctionalityTest, appendDataToBufferAndVerify)

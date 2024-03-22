@@ -213,14 +213,14 @@ TEST_F(StunApiTest, appendStunAttributeValidityTests)
 {
     PStunPacket pStunPacket = (PStunPacket) 1;
     PKvsIpAddress pAddress = (PKvsIpAddress) 2;
-    EXPECT_NE(STATUS_SUCCESS, appendStunAddressAttribute(NULL, STUN_ATTRIBUTE_TYPE_MAPPED_ADDRESS, pAddress));
-    EXPECT_NE(STATUS_SUCCESS, appendStunAddressAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_MAPPED_ADDRESS, NULL));
-    EXPECT_NE(STATUS_SUCCESS, appendStunAddressAttribute(NULL, STUN_ATTRIBUTE_TYPE_MAPPED_ADDRESS, NULL));
+    EXPECT_NE(appendStunAddressAttribute(NULL, STUN_ATTRIBUTE_TYPE_MAPPED_ADDRESS, pAddress), STATUS_SUCCESS);
+    EXPECT_NE(appendStunAddressAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_MAPPED_ADDRESS, NULL), STATUS_SUCCESS);
+    EXPECT_NE(appendStunAddressAttribute(NULL, STUN_ATTRIBUTE_TYPE_MAPPED_ADDRESS, NULL), STATUS_SUCCESS);
 
-    EXPECT_NE(STATUS_SUCCESS, appendStunUsernameAttribute(NULL, (PCHAR) "abc"));
-    EXPECT_NE(STATUS_SUCCESS, appendStunUsernameAttribute(pStunPacket, NULL));
+    EXPECT_NE(appendStunUsernameAttribute(NULL, (PCHAR) "abc"), STATUS_SUCCESS);
+    EXPECT_NE(appendStunUsernameAttribute(pStunPacket, NULL), STATUS_SUCCESS);
 
-    EXPECT_NE(STATUS_SUCCESS, appendStunPriorityAttribute(NULL, 0));
+    EXPECT_NE(appendStunPriorityAttribute(NULL, 0), STATUS_SUCCESS);
 }
 
 TEST_F(StunApiTest, appendStunChangeRequestAttributeTest)
@@ -228,12 +228,11 @@ TEST_F(StunApiTest, appendStunChangeRequestAttributeTest)
     BYTE transactionId[STUN_TRANSACTION_ID_LEN] = {0};
     PStunPacket pStunPacket;
     PStunAttributeHeader pAttribute;
-    EXPECT_EQ(STATUS_SUCCESS, createStunPacket(STUN_PACKET_TYPE_BINDING_REQUEST, transactionId, &pStunPacket));
-    EXPECT_EQ(STATUS_SUCCESS, appendStunChangeRequestAttribute(pStunPacket,
-                                                STUN_ATTRIBUTE_CHANGE_REQUEST_FLAG_CHANGE_IP | STUN_ATTRIBUTE_CHANGE_REQUEST_FLAG_CHANGE_PORT));
+    EXPECT_EQ(createStunPacket(STUN_PACKET_TYPE_BINDING_REQUEST, transactionId, &pStunPacket), STATUS_SUCCESS);
+    EXPECT_EQ(appendStunChangeRequestAttribute(pStunPacket, STUN_ATTRIBUTE_CHANGE_REQUEST_FLAG_CHANGE_IP | STUN_ATTRIBUTE_CHANGE_REQUEST_FLAG_CHANGE_PORT), STATUS_SUCCESS);
     pAttribute = (PStunAttributeHeader) pStunPacket->attributeList[pStunPacket->attributesCount - 1];
-    EXPECT_EQ(STUN_ATTRIBUTE_TYPE_CHANGE_REQUEST, pAttribute->type);
-    EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
+    EXPECT_EQ(pAttribute->type, STUN_ATTRIBUTE_TYPE_CHANGE_REQUEST);
+    EXPECT_EQ(freeStunPacket(&pStunPacket), STATUS_SUCCESS);
 }
 
 TEST_F(StunApiTest, appendStunErrorCodeAttributeTest)
@@ -249,13 +248,13 @@ TEST_F(StunApiTest, appendStunErrorCodeAttributeTest)
 
     STRCPY(password, "test password");
     STRCPY(errorPhrase, "Sample phrase");
-    EXPECT_EQ(STATUS_SUCCESS, createStunPacket(STUN_PACKET_TYPE_BINDING_REQUEST, transactionId, &pStunPacket));
-    EXPECT_EQ(STATUS_NULL_ARG, appendStunErrorCodeAttribute(pStunPacket, NULL, 12));
-    EXPECT_EQ(STATUS_SUCCESS, appendStunErrorCodeAttribute(pStunPacket, errorPhrase, 12));
+    EXPECT_EQ(createStunPacket(STUN_PACKET_TYPE_BINDING_REQUEST, transactionId, &pStunPacket), STATUS_SUCCESS);
+    EXPECT_EQ(appendStunErrorCodeAttribute(pStunPacket, NULL, 12), STATUS_NULL_ARG);
+    EXPECT_EQ(appendStunErrorCodeAttribute(pStunPacket, errorPhrase, 12), STATUS_SUCCESS);
     pAttribute = (PStunAttributeHeader) pStunPacket->attributeList[pStunPacket->attributesCount - 1];
-    EXPECT_EQ(STUN_ATTRIBUTE_TYPE_ERROR_CODE, pAttribute->type);
-    EXPECT_EQ(STATUS_SUCCESS, serializeStunPacket(pStunPacket, (PBYTE) password, STRLEN(password) * SIZEOF(CHAR), FALSE, FALSE, NULL, &size));
-    EXPECT_EQ(STATUS_SUCCESS, serializeStunPacket(pStunPacket, (PBYTE) password, STRLEN(password) * SIZEOF(CHAR), FALSE, FALSE, buffer, &size));
+    EXPECT_EQ(pAttribute->type, STUN_ATTRIBUTE_TYPE_ERROR_CODE);
+    EXPECT_EQ(serializeStunPacket(pStunPacket, (PBYTE) password, STRLEN(password) * SIZEOF(CHAR), FALSE, FALSE, NULL, &size), STATUS_SUCCESS);
+    EXPECT_EQ(serializeStunPacket(pStunPacket, (PBYTE) password, STRLEN(password) * SIZEOF(CHAR), FALSE, FALSE, buffer, &size), STATUS_SUCCESS);
 
     // Loop through the buffer to find the error phrase
     for(SIZE_T i = 0; i < SIZEOF(buffer) - STRLEN(errorPhrase); ++i) {
@@ -265,7 +264,7 @@ TEST_F(StunApiTest, appendStunErrorCodeAttributeTest)
         }
     }
     EXPECT_TRUE(found);
-    EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
+    EXPECT_EQ(freeStunPacket(&pStunPacket), STATUS_SUCCESS);
 }
 
 TEST_F(StunApiTest, appendStunDataAttributeTest)
@@ -278,16 +277,16 @@ TEST_F(StunApiTest, appendStunDataAttributeTest)
     PStunAttributeHeader pAttribute;
     BYTE data[128] = {0};
     STRCPY(password, "test password");
-    EXPECT_EQ(STATUS_SUCCESS, createStunPacket(STUN_PACKET_TYPE_BINDING_REQUEST, transactionId, &pStunPacket));
-    EXPECT_EQ(STATUS_NULL_ARG, appendStunDataAttribute(pStunPacket, NULL, 12));
-    EXPECT_EQ(STATUS_SUCCESS, appendStunDataAttribute(pStunPacket, data, 128));
+    EXPECT_EQ(createStunPacket(STUN_PACKET_TYPE_BINDING_REQUEST, transactionId, &pStunPacket), STATUS_SUCCESS);
+    EXPECT_EQ(appendStunDataAttribute(pStunPacket, NULL, 12), STATUS_NULL_ARG);
+    EXPECT_EQ(appendStunDataAttribute(pStunPacket, data, 128), STATUS_SUCCESS);
     pAttribute = (PStunAttributeHeader) pStunPacket->attributeList[pStunPacket->attributesCount - 1];
     EXPECT_EQ(STUN_ATTRIBUTE_TYPE_DATA, pAttribute->type);
 
-    EXPECT_EQ(STATUS_SUCCESS, serializeStunPacket(pStunPacket, (PBYTE) password, STRLEN(password) * SIZEOF(CHAR), FALSE, FALSE, NULL, &size));
-    EXPECT_EQ(STATUS_SUCCESS, serializeStunPacket(pStunPacket, (PBYTE) password, STRLEN(password) * SIZEOF(CHAR), FALSE, FALSE, buffer, &size));
+    EXPECT_EQ(serializeStunPacket(pStunPacket, (PBYTE) password, STRLEN(password) * SIZEOF(CHAR), FALSE, FALSE, NULL, &size), STATUS_SUCCESS);
+    EXPECT_EQ(serializeStunPacket(pStunPacket, (PBYTE) password, STRLEN(password) * SIZEOF(CHAR), FALSE, FALSE, buffer, &size), STATUS_SUCCESS);
 
-    EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
+    EXPECT_EQ(freeStunPacket(&pStunPacket), STATUS_SUCCESS);
 }
 
 TEST_F(StunApiTest, getPackagedStunAttributeSizeTest)
@@ -300,55 +299,55 @@ TEST_F(StunApiTest, getPackagedStunAttributeSizeTest)
     StunAttributeErrorCode errorAttribute;
     MEMSET(&attributeHeader, 0x00, SIZEOF(attributeHeader));
     attributeHeader.type = STUN_ATTRIBUTE_TYPE_MAPPED_ADDRESS;
-    EXPECT_EQ(32, getPackagedStunAttributeSize(&attributeHeader));
+    EXPECT_EQ(getPackagedStunAttributeSize(&attributeHeader), 32);
     attributeHeader.type = STUN_ATTRIBUTE_TYPE_XOR_MAPPED_ADDRESS;
-    EXPECT_EQ(32, getPackagedStunAttributeSize(&attributeHeader));
+    EXPECT_EQ(getPackagedStunAttributeSize(&attributeHeader), 32);
     attributeHeader.type = STUN_ATTRIBUTE_TYPE_RESPONSE_ADDRESS;
-    EXPECT_EQ(32, getPackagedStunAttributeSize(&attributeHeader));
+    EXPECT_EQ(getPackagedStunAttributeSize(&attributeHeader), 32);
     attributeHeader.type = STUN_ATTRIBUTE_TYPE_SOURCE_ADDRESS;
-    EXPECT_EQ(32, getPackagedStunAttributeSize(&attributeHeader));
+    EXPECT_EQ(getPackagedStunAttributeSize(&attributeHeader), 32);
     attributeHeader.type = STUN_ATTRIBUTE_TYPE_REFLECTED_FROM;
-    EXPECT_EQ(32, getPackagedStunAttributeSize(&attributeHeader));
+    EXPECT_EQ(getPackagedStunAttributeSize(&attributeHeader), 32);
     attributeHeader.type = STUN_ATTRIBUTE_TYPE_XOR_PEER_ADDRESS;
-    EXPECT_EQ(32, getPackagedStunAttributeSize(&attributeHeader));
+    EXPECT_EQ(getPackagedStunAttributeSize(&attributeHeader), 32);
     attributeHeader.type = STUN_ATTRIBUTE_TYPE_CHANGED_ADDRESS;
-    EXPECT_EQ(32, getPackagedStunAttributeSize(&attributeHeader));
+    EXPECT_EQ(getPackagedStunAttributeSize(&attributeHeader), 32);
     attributeHeader.type = STUN_ATTRIBUTE_TYPE_USE_CANDIDATE;
-    EXPECT_EQ(8, getPackagedStunAttributeSize(&attributeHeader));
+    EXPECT_EQ(getPackagedStunAttributeSize(&attributeHeader), 8);
     attributeHeader.type = STUN_ATTRIBUTE_TYPE_DONT_FRAGMENT;
-    EXPECT_EQ(8, getPackagedStunAttributeSize(&attributeHeader));
+    EXPECT_EQ(getPackagedStunAttributeSize(&attributeHeader), 8);
     attributeHeader.type = STUN_ATTRIBUTE_TYPE_PRIORITY;
-    EXPECT_EQ(8, getPackagedStunAttributeSize(&attributeHeader));
+    EXPECT_EQ(getPackagedStunAttributeSize(&attributeHeader), 8);
     attributeHeader.type = STUN_ATTRIBUTE_TYPE_LIFETIME;
-    EXPECT_EQ(8, getPackagedStunAttributeSize(&attributeHeader));
+    EXPECT_EQ(getPackagedStunAttributeSize(&attributeHeader), 8);
     attributeHeader.type = STUN_ATTRIBUTE_TYPE_CHANGE_REQUEST;
-    EXPECT_EQ(8, getPackagedStunAttributeSize(&attributeHeader));
+    EXPECT_EQ(getPackagedStunAttributeSize(&attributeHeader), 8);
     attributeHeader.type = STUN_ATTRIBUTE_TYPE_REQUESTED_TRANSPORT;
-    EXPECT_EQ(8, getPackagedStunAttributeSize(&attributeHeader));
+    EXPECT_EQ(getPackagedStunAttributeSize(&attributeHeader), 8);
     attributeHeader.type = STUN_ATTRIBUTE_TYPE_ICE_CONTROLLED;
-    EXPECT_EQ(16, getPackagedStunAttributeSize(&attributeHeader));
+    EXPECT_EQ(getPackagedStunAttributeSize(&attributeHeader), 16);
     attributeHeader.type = STUN_ATTRIBUTE_TYPE_ICE_CONTROLLING;
-    EXPECT_EQ(16, getPackagedStunAttributeSize(&attributeHeader));
+    EXPECT_EQ(getPackagedStunAttributeSize(&attributeHeader), 16);
     realmAttribute.attribute.type = STUN_ATTRIBUTE_TYPE_REALM;
     realmAttribute.paddedLength = 20;
-    EXPECT_EQ(40, getPackagedStunAttributeSize(reinterpret_cast<PStunAttributeHeader>(&realmAttribute)));
+    EXPECT_EQ(getPackagedStunAttributeSize(reinterpret_cast<PStunAttributeHeader>(&realmAttribute)), 40);
     nonceAttribute.attribute.type = STUN_ATTRIBUTE_TYPE_NONCE;
     nonceAttribute.paddedLength = 20;
-    EXPECT_EQ(40, getPackagedStunAttributeSize(reinterpret_cast<PStunAttributeHeader>(&nonceAttribute)));
+    EXPECT_EQ(getPackagedStunAttributeSize(reinterpret_cast<PStunAttributeHeader>(&nonceAttribute)), 40);
     dataAttribute.attribute.type = STUN_ATTRIBUTE_TYPE_DATA;
     dataAttribute.paddedLength = 20;
-    EXPECT_EQ(40, getPackagedStunAttributeSize(reinterpret_cast<PStunAttributeHeader>(&dataAttribute)));
+    EXPECT_EQ(getPackagedStunAttributeSize(reinterpret_cast<PStunAttributeHeader>(&dataAttribute)), 40);
     usernameAttribute.attribute.type = STUN_ATTRIBUTE_TYPE_USERNAME;
     usernameAttribute.paddedLength = 20;
-    EXPECT_EQ(40, getPackagedStunAttributeSize(reinterpret_cast<PStunAttributeHeader>(&usernameAttribute)));
+    EXPECT_EQ(getPackagedStunAttributeSize(reinterpret_cast<PStunAttributeHeader>(&usernameAttribute)), 40);
     errorAttribute.attribute.type = STUN_ATTRIBUTE_TYPE_ERROR_CODE;
     errorAttribute.paddedLength = 20;
-    EXPECT_EQ(40, getPackagedStunAttributeSize(reinterpret_cast<PStunAttributeHeader>(&errorAttribute)));
+    EXPECT_EQ(getPackagedStunAttributeSize(reinterpret_cast<PStunAttributeHeader>(&errorAttribute)), 40);
     attributeHeader.type = STUN_ATTRIBUTE_TYPE_CHANNEL_NUMBER;
-    EXPECT_EQ(8, getPackagedStunAttributeSize(&attributeHeader));
+    EXPECT_EQ(getPackagedStunAttributeSize(&attributeHeader), 8);
     attributeHeader.type = (STUN_ATTRIBUTE_TYPE) 0xFFFF;
     attributeHeader.length = 0;
-    EXPECT_EQ(8, getPackagedStunAttributeSize(&attributeHeader));
+    EXPECT_EQ(getPackagedStunAttributeSize(&attributeHeader), 8);
 }
 
 } // namespace webrtcclient

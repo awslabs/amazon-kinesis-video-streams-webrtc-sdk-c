@@ -1348,28 +1348,28 @@ TEST_F(PeerConnectionFunctionalityTest, updateEncoderStatsTest)
     encoderStats.bitDepth = 8;
     encoderStats.voiceActivity = FALSE;
     STRCPY(encoderStats.encoderImplementation, "encoderimpl");
-    EXPECT_EQ(STATUS_NULL_ARG, updateEncoderStats(NULL, NULL));
-    EXPECT_EQ(STATUS_NULL_ARG, updateEncoderStats(offerVideoTransceiver, NULL));
-    EXPECT_EQ(STATUS_NULL_ARG, updateEncoderStats(NULL, &encoderStats));
-    EXPECT_EQ(STATUS_SUCCESS, updateEncoderStats(offerVideoTransceiver, &encoderStats));
+    EXPECT_EQ(updateEncoderStats(NULL, NULL), STATUS_NULL_ARG);
+    EXPECT_EQ(updateEncoderStats(offerVideoTransceiver, NULL), STATUS_NULL_ARG);
+    EXPECT_EQ(updateEncoderStats(NULL, &encoderStats), STATUS_NULL_ARG);
+    EXPECT_EQ(updateEncoderStats(offerVideoTransceiver, &encoderStats), STATUS_SUCCESS);
 
     pKvsRtpTransceiver = reinterpret_cast<PKvsRtpTransceiver>(offerVideoTransceiver);
-    EXPECT_EQ(encoderStats.width, pKvsRtpTransceiver->outboundStats.frameWidth);
-    EXPECT_EQ(encoderStats.height, pKvsRtpTransceiver->outboundStats.frameHeight);
-    EXPECT_EQ(encoderStats.targetBitrate, pKvsRtpTransceiver->outboundStats.targetBitrate);
-    EXPECT_EQ(encoderStats.encodeTimeMsec, pKvsRtpTransceiver->outboundStats.totalEncodeTime);
-    EXPECT_EQ(encoderStats.bitDepth, pKvsRtpTransceiver->outboundStats.frameBitDepth);
-    EXPECT_EQ(encoderStats.voiceActivity, pKvsRtpTransceiver->outboundStats.voiceActivityFlag);
-    EXPECT_STREQ(encoderStats.encoderImplementation, pKvsRtpTransceiver->outboundStats.encoderImplementation);
+    EXPECT_EQ(pKvsRtpTransceiver->outboundStats.frameWidth, encoderStats.width);
+    EXPECT_EQ(pKvsRtpTransceiver->outboundStats.frameHeight, encoderStats.height);
+    EXPECT_EQ(pKvsRtpTransceiver->outboundStats.targetBitrate, encoderStats.targetBitrate);
+    EXPECT_EQ(pKvsRtpTransceiver->outboundStats.totalEncodeTime, encoderStats.encodeTimeMsec);
+    EXPECT_EQ(pKvsRtpTransceiver->outboundStats.frameBitDepth, encoderStats.bitDepth);
+    EXPECT_EQ(pKvsRtpTransceiver->outboundStats.voiceActivityFlag, encoderStats.voiceActivity);
+    EXPECT_STREQ(pKvsRtpTransceiver->outboundStats.encoderImplementation, encoderStats.encoderImplementation);
     encoderStats.width = 600;
-    EXPECT_EQ(STATUS_SUCCESS, updateEncoderStats(offerVideoTransceiver, &encoderStats));
-    EXPECT_EQ(encoderStats.width, pKvsRtpTransceiver->outboundStats.frameWidth);
-    EXPECT_EQ(1, pKvsRtpTransceiver->outboundStats.qualityLimitationResolutionChanges);
+    EXPECT_EQ(updateEncoderStats(offerVideoTransceiver, &encoderStats), STATUS_SUCCESS);
+    EXPECT_EQ(pKvsRtpTransceiver->outboundStats.frameWidth, encoderStats.width);
+    EXPECT_EQ(pKvsRtpTransceiver->outboundStats.qualityLimitationResolutionChanges, 1);
     encoderStats.height = 1;
-    EXPECT_EQ(STATUS_SUCCESS, updateEncoderStats(offerVideoTransceiver, &encoderStats));
-    EXPECT_EQ(encoderStats.height, pKvsRtpTransceiver->outboundStats.frameHeight);
-    EXPECT_EQ(2, pKvsRtpTransceiver->outboundStats.qualityLimitationResolutionChanges);
-    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&offerPc));
+    EXPECT_EQ(updateEncoderStats(offerVideoTransceiver, &encoderStats), STATUS_SUCCESS);
+    EXPECT_EQ(pKvsRtpTransceiver->outboundStats.frameHeight, encoderStats.height);
+    EXPECT_EQ(pKvsRtpTransceiver->outboundStats.qualityLimitationResolutionChanges, 2);
+    EXPECT_EQ(freePeerConnection(&offerPc), STATUS_SUCCESS);
 }
 
 } // namespace webrtcclient

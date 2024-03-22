@@ -4,7 +4,6 @@
 
 // Convert error code from SDP library to STATUS.
 
-
 STATUS parseMediaName(PSessionDescription pSessionDescription, PCHAR mediaValue, SIZE_T mediaValueLength)
 {
     ENTERS();

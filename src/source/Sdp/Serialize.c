@@ -153,7 +153,6 @@ static STATUS serializeMediaConnectionInformation(SdpSerializerContext_t* pCtx, 
     SdpConnectionInfo_t connInfo;
 
     CHK(pSdpConnectionInformation != NULL, STATUS_NULL_ARG);
-    DLOGI("Here");
     if (pSdpConnectionInformation->networkType[0] != '\0') {
         /* Append connection info */
         CHK(STRCMP(pSdpConnectionInformation->networkType, "IN") == 0, STATUS_INVALID_ARG);
@@ -165,7 +164,6 @@ static STATUS serializeMediaConnectionInformation(SdpSerializerContext_t* pCtx, 
         if (STRCMP(pSdpConnectionInformation->addressType, "IP4") == 0) {
             connInfo.addressType = SDP_ADDRESS_IPV4;
         } else {
-            DLOGI("Here");
             connInfo.addressType = SDP_ADDRESS_IPV6;
         }
 

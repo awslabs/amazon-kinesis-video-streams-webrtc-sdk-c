@@ -37,13 +37,13 @@ TEST_F(MetricsFunctionalityTest, connectTwoPeersGetIceCandidatePairStats)
     EXPECT_STREQ(pIceAgent->pDataSendingIceCandidatePair->remote->id, rtcMetrics.rtcStatsObject.iceCandidatePairStats.remoteCandidateId);
     EXPECT_EQ(pIceAgent->pDataSendingIceCandidatePair->state, rtcMetrics.rtcStatsObject.iceCandidatePairStats.state);
     EXPECT_EQ(pIceAgent->pDataSendingIceCandidatePair->nominated, rtcMetrics.rtcStatsObject.iceCandidatePairStats.nominated);
-    EXPECT_EQ(NULL, rtcMetrics.rtcStatsObject.iceCandidatePairStats.circuitBreakerTriggerCount.value);
+    EXPECT_EQ(rtcMetrics.rtcStatsObject.iceCandidatePairStats.circuitBreakerTriggerCount.value, NULL);
 
-    closePeerConnection(offerPc);
-    closePeerConnection(answerPc);
+    EXPECT_EQ(closePeerConnection(offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(closePeerConnection(answerPc), STATUS_SUCCESS);
 
-    freePeerConnection(&offerPc);
-    freePeerConnection(&answerPc);
+    EXPECT_EQ(freePeerConnection(&offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(freePeerConnection(&answerPc), STATUS_SUCCESS);
 
     deinitializeSignalingClient();
 }

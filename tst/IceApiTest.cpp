@@ -16,11 +16,9 @@ TEST_F(IceApiTest, failCreateSocketConnection)
 
     MEMSET(&localhost, 0x00, SIZEOF(KvsIpAddress));
 
-    EXPECT_EQ(STATUS_INVALID_ARG,
-            createSocketConnection(KVS_IP_FAMILY_TYPE_IPV4, KVS_SOCKET_PROTOCOL_NONE, &localhost, NULL, 0, NULL, 0, &pDummySocketConnection));
+    EXPECT_EQ(createSocketConnection(KVS_IP_FAMILY_TYPE_IPV4, KVS_SOCKET_PROTOCOL_NONE, &localhost, NULL, 0, NULL, 0, &pDummySocketConnection), STATUS_INVALID_ARG);
 
-    EXPECT_EQ(STATUS_INVALID_ARG,
-            createSocketConnection(KVS_IP_FAMILY_TYPE_IPV4, KVS_SOCKET_PROTOCOL_TCP, NULL, NULL, 0, NULL, 0, &pDummySocketConnection));
+    EXPECT_EQ(createSocketConnection(KVS_IP_FAMILY_TYPE_IPV4, KVS_SOCKET_PROTOCOL_TCP, NULL, NULL, 0, NULL, 0, &pDummySocketConnection), STATUS_INVALID_ARG);
 
 }
 
