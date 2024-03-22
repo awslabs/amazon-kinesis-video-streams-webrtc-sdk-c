@@ -22,6 +22,8 @@ option(ENABLE_DATA_CHANNEL "Enable support for data channel" ON)
 option(ENABLE_KVS_THREADPOOL "Enable support for KVS thread pool in signaling" ON)
 option(INSTRUMENTED_ALLOCATORS "Enable memory instrumentation" OFF)
 option(ENABLE_AWS_SDK_IN_TESTS "Enable support for compiling AWS SDKs for tests" ON)
+option(USE_VIDEO_H265 "Use h265 video frames " ON)
+option(USE_AUDIO_AAC "Use aac audio frames " ON)
 
 # Developer Flags
 option(BUILD_TEST "Build the testing tree." OFF)
@@ -61,6 +63,14 @@ else()
   message(STATUS "Setting default stack size to provided value")
   set(KVS_DEFAULT_STACK_SIZE ${KVS_STACK_SIZE})
   add_definitions(-DKVS_DEFAULT_STACK_SIZE=${KVS_STACK_SIZE})
+endif()
+
+if(USE_VIDEO_H265)
+  add_definitions(-DUSE_VIDEO_H265)
+endif()
+
+if(USE_AUDIO_AAC)
+  add_definitions(-DUSE_AUDIO_AAC)
 endif()
 
 if(NOT OPEN_SRC_INSTALL_PREFIX OR OPEN_SRC_INSTALL_PREFIX STREQUAL "")
@@ -463,6 +473,8 @@ if (BUILD_SAMPLE)
   # copy sample frames to build folder, in case developer runs sample program with command `samples/kvsWebrtcClientMaster` from `build` dir.
   file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/samples/opusSampleFrames" DESTINATION .)
   file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/samples/h264SampleFrames" DESTINATION .)
+  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/samples/h265SampleFrames" DESTINATION .)
+  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/samples/aacSampleFrames" DESTINATION .)
 
   add_subdirectory(samples)
 endif()

@@ -257,9 +257,19 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
             rtpTimestamp = CONVERT_TIMESTAMP_TO_RTP(VIDEO_CLOCKRATE, pFrame->presentationTs);
             break;
 
+        case RTC_CODEC_H265:
+            rtpPayloadFunc = createPayloadForH265;
+            rtpTimestamp = CONVERT_TIMESTAMP_TO_RTP(VIDEO_CLOCKRATE, pFrame->presentationTs);
+            break;
+
         case RTC_CODEC_OPUS:
             rtpPayloadFunc = createPayloadForOpus;
             rtpTimestamp = CONVERT_TIMESTAMP_TO_RTP(OPUS_CLOCKRATE, pFrame->presentationTs);
+            break;
+
+        case RTC_CODEC_AAC:
+            rtpPayloadFunc = createPayloadForAac;
+            rtpTimestamp = CONVERT_TIMESTAMP_TO_RTP(AAC_CLOCKRATE, pFrame->presentationTs);
             break;
 
         case RTC_CODEC_MULAW:

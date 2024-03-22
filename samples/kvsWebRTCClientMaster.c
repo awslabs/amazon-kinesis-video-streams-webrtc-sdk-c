@@ -44,10 +44,18 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     // Check if the samples are present
 
+#ifdef USE_VIDEO_H265
+    CHK_STATUS(readFrameFromDisk(NULL, &frameSize, "./h265SampleFrames/frame-0001.h265"));
+#else
     CHK_STATUS(readFrameFromDisk(NULL, &frameSize, "./h264SampleFrames/frame-0001.h264"));
+#endif
     DLOGI("[KVS Master] Checked sample video frame availability....available");
 
+#ifdef USE_AUDIO_AAC
+    CHK_STATUS(readFrameFromDisk(NULL, &frameSize, "./aacSampleFrames/sample-001.aac"));
+#else
     CHK_STATUS(readFrameFromDisk(NULL, &frameSize, "./opusSampleFrames/sample-001.opus"));
+#endif
     DLOGI("[KVS Master] Checked sample audio frame availability....available");
 
     // Initialize KVS WebRTC. This must be done before anything else, and must only be done once.
@@ -145,8 +153,13 @@ PVOID sendVideoPackets(PVOID args)
     lastFrameTime = startTime;
 
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
+#ifdef USE_VIDEO_H265
+        fileIndex = fileIndex % NUMBER_OF_H265_FRAME_FILES + 1;
+        SNPRINTF(filePath, MAX_PATH_LEN, "./h265SampleFrames/frame-%04d.h265", fileIndex);
+#else
         fileIndex = fileIndex % NUMBER_OF_H264_FRAME_FILES + 1;
         SNPRINTF(filePath, MAX_PATH_LEN, "./h264SampleFrames/frame-%04d.h264", fileIndex);
+#endif
 
         CHK_STATUS(readFrameFromDisk(NULL, &frameSize, filePath));
 
@@ -217,9 +230,14 @@ PVOID sendAudioPackets(PVOID args)
     frame.presentationTs = 0;
 
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
+#ifdef USE_AUDIO_AAC
+        fileIndex = fileIndex % NUMBER_OF_AAC_FRAME_FILES + 1;
+        SNPRINTF(filePath, MAX_PATH_LEN, "./aacSampleFrames/sample-%03d.aac", fileIndex);
+#else
         fileIndex = fileIndex % NUMBER_OF_OPUS_FRAME_FILES + 1;
         SNPRINTF(filePath, MAX_PATH_LEN, "./opusSampleFrames/sample-%03d.opus", fileIndex);
 
+#endif
         CHK_STATUS(readFrameFromDisk(NULL, &frameSize, filePath));
 
         // Re-alloc if needed
@@ -234,7 +252,11 @@ PVOID sendAudioPackets(PVOID args)
 
         CHK_STATUS(readFrameFromDisk(frame.frameData, &frameSize, filePath));
 
+#ifdef USE_AUDIO_AAC
+        frame.presentationTs += SAMPLE_AUDIO_AAC_FRAME_DURATION;
+#else
         frame.presentationTs += SAMPLE_AUDIO_FRAME_DURATION;
+#endif
 
         MUTEX_LOCK(pSampleConfiguration->streamingSessionListReadLock);
         for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
@@ -252,7 +274,11 @@ PVOID sendAudioPackets(PVOID args)
             }
         }
         MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
+#ifdef USE_AUDIO_AAC
+        THREAD_SLEEP(SAMPLE_AUDIO_AAC_FRAME_DURATION);
+#else
         THREAD_SLEEP(SAMPLE_AUDIO_FRAME_DURATION);
+#endif
     }
 
 CleanUp:
