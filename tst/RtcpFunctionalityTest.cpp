@@ -150,22 +150,22 @@ TEST_F(RtcpFunctionalityTest, rtcpNackListCompound)
 TEST_F(RtcpFunctionalityTest, onRtcpPacketCompoundNack)
 {
     PRtpPacket pRtpPacket = nullptr;
+    RtcOutboundRtpStreamStats stats{};
     BYTE validRtcpPacket[] = {0x81, 0xcd, 0x00, 0x03, 0x2c, 0xd1, 0xa0, 0xde, 0x00, 0x00, 0xab, 0xe0, 0x00, 0x00, 0x00, 0x00};
     initTransceiver(44000);
-    ASSERT_EQ(STATUS_SUCCESS,
+    EXPECT_EQ(STATUS_SUCCESS,
               createRtpRollingBuffer(DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS * DEFAULT_EXPECTED_VIDEO_BIT_RATE / 8 / DEFAULT_MTU_SIZE_BYTES,
                                      &pKvsRtpTransceiver->sender.packetBuffer));
-    ASSERT_EQ(STATUS_SUCCESS,
+    EXPECT_EQ(STATUS_SUCCESS,
               createRetransmitter(DEFAULT_SEQ_NUM_BUFFER_SIZE, DEFAULT_VALID_INDEX_BUFFER_SIZE, &pKvsRtpTransceiver->sender.retransmitter));
-    ASSERT_EQ(STATUS_SUCCESS, createRtpPacketWithSeqNum(0, &pRtpPacket));
+    EXPECT_EQ(STATUS_SUCCESS, createRtpPacketWithSeqNum(0, &pRtpPacket));
 
-    ASSERT_EQ(STATUS_SUCCESS, rtpRollingBufferAddRtpPacket(pKvsRtpTransceiver->sender.packetBuffer, pRtpPacket));
-    ASSERT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, validRtcpPacket, SIZEOF(validRtcpPacket)));
-    RtcOutboundRtpStreamStats stats{};
+    EXPECT_EQ(STATUS_SUCCESS, rtpRollingBufferAddRtpPacket(pKvsRtpTransceiver->sender.packetBuffer, pRtpPacket));
+    EXPECT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, validRtcpPacket, SIZEOF(validRtcpPacket)));
     getRtpOutboundStats(pRtcPeerConnection, nullptr, &stats);
-    ASSERT_EQ(1, stats.nackCount);
-    ASSERT_EQ(1, stats.retransmittedPacketsSent);
-    ASSERT_EQ(10, stats.retransmittedBytesSent);
+    EXPECT_EQ(1, stats.nackCount);
+    EXPECT_EQ(1, stats.retransmittedPacketsSent);
+    EXPECT_EQ(10, stats.retransmittedBytesSent);
     freePeerConnection(&pRtcPeerConnection);
     freeRtpPacket(&pRtpPacket);
 }
@@ -424,6 +424,21 @@ TEST_F(RtcpFunctionalityTest, onRtcpPacketTwccReport)
     EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnSenderBandwidthEstimation(pRtcPeerConnection, 0,
                                                                         testBwHandler));
     EXPECT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, rawpacket, rawpacketSize));
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+}
+
+TEST_F(RtcpFunctionalityTest, onRtcpPacketFirReport)
+{
+    RtcpPacket rtcpPacket;
+    RtcOutboundRtpStreamStats stats{};
+    auto hexpacket = (PCHAR) "80C000014487A9E7";
+    BYTE rawpacket[256] = {0};
+    UINT32 rawpacketSize = 256;
+    EXPECT_EQ(STATUS_SUCCESS, hexDecode(hexpacket, strlen(hexpacket), rawpacket, &rawpacketSize));
+    initTransceiver(0x4487A9E7);
+    EXPECT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, rawpacket, rawpacketSize));
+    getRtpOutboundStats(pRtcPeerConnection, nullptr, &stats);
+    EXPECT_EQ(1, stats.firCount);
     EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
 }
 
