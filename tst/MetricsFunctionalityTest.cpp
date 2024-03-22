@@ -18,7 +18,7 @@ TEST_F(MetricsFunctionalityTest, connectTwoPeersGetIceCandidatePairStats)
     PRtcPeerConnection offerPc = NULL, answerPc = NULL;
 
     MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
-
+    configuration.kvsRtcConfiguration.enableIceStats = TRUE;
     initializeSignalingClient();
 
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
