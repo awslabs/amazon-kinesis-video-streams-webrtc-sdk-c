@@ -201,6 +201,27 @@ TEST_F(MetricsApiTest, webRtcRtpGetMetrics)
     EXPECT_EQ(STATUS_SUCCESS, closePeerConnection(pRtcPeerConnection));
     EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
 }
+
+TEST_F(MetricsApiTest, getIceStatsNullChecks)
+{
+    RtcPeerConnection peerConnection;
+    RtcIceCandidatePairStats rtcIceCandidatePairStats;
+    RtcIceCandidateStats rtcIceCandidateStats;
+    RtcIceServerStats rtcIceServerStats;
+    EXPECT_EQ(getIceCandidatePairStats(NULL, NULL), STATUS_NULL_ARG);
+    EXPECT_EQ(getIceCandidatePairStats(&peerConnection, NULL), STATUS_NULL_ARG);
+    EXPECT_EQ(getIceCandidatePairStats(NULL, &rtcIceCandidatePairStats), STATUS_NULL_ARG);
+
+    EXPECT_EQ(getIceCandidateStats(NULL, TRUE, NULL), STATUS_NULL_ARG);
+    EXPECT_EQ(getIceCandidateStats(&peerConnection, TRUE, NULL), STATUS_NULL_ARG);
+    EXPECT_EQ(getIceCandidateStats(NULL, TRUE, &rtcIceCandidateStats), STATUS_NULL_ARG);
+
+    EXPECT_EQ(getIceServerStats(NULL, NULL), STATUS_NULL_ARG);
+    EXPECT_EQ(getIceServerStats(&peerConnection, NULL), STATUS_NULL_ARG);
+    EXPECT_EQ(getIceServerStats(NULL, &rtcIceServerStats), STATUS_NULL_ARG);
+
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis
