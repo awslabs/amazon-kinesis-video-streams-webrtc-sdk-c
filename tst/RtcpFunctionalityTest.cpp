@@ -405,6 +405,27 @@ TEST_F(RtcpFunctionalityTest, twccParsePacketTest)
     parseTwcc("4487A9E754B3E6FD040200E4147C9F81202700B7E6649000000000000000000004000000000008000018000000001", 43, 185);
 }
 
+TEST_F(RtcpFunctionalityTest, onRtcpPacketTwccReport)
+{
+    PRtcPeerConnection pRtcPeerConnection = nullptr;
+    PKvsPeerConnection pKvsPeerConnection;
+    RtcpPacket rtcpPacket;
+    RtcConfiguration config{};
+    auto hexpacket = (PCHAR) "8FCD00054487A9E754B3E6FD01810001147A75A62001C801";
+    BYTE rawpacket[256] = {0};
+    UINT32 rawpacketSize = 256;
+    EXPECT_EQ(STATUS_SUCCESS, hexDecode(hexpacket, strlen(hexpacket), rawpacket, &rawpacketSize));
+
+    EXPECT_EQ(STATUS_NULL_ARG, onRtcpTwccPacket(NULL, NULL));
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pRtcPeerConnection));
+    pKvsPeerConnection = reinterpret_cast<PKvsPeerConnection>(pRtcPeerConnection);
+    EXPECT_EQ(STATUS_NULL_ARG, onRtcpTwccPacket(NULL, pKvsPeerConnection));
+    EXPECT_EQ(STATUS_SUCCESS, onRtcpTwccPacket(&rtcpPacket, pKvsPeerConnection)); // Testing before setting callback
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnSenderBandwidthEstimation(pRtcPeerConnection, 0,
+                                                                        testBwHandler));
+    EXPECT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, rawpacket, rawpacketSize));
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+}
 
 TEST_F(RtcpFunctionalityTest, testRollingBufferParams)
 {

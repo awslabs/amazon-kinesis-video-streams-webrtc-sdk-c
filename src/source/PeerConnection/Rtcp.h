@@ -9,6 +9,7 @@ extern "C" {
 
 STATUS onRtcpPacket(PKvsPeerConnection, PBYTE, UINT32);
 STATUS onRtcpRembPacket(PRtcpPacket, PKvsPeerConnection);
+STATUS onRtcpTwccPacket(PRtcpPacket, PKvsPeerConnection);
 STATUS onRtcpPLIPacket(PRtcpPacket, PKvsPeerConnection);
 STATUS parseRtcpTwccPacket(PRtcpPacket, PTwccManager);
 STATUS onRtcpTwccPacket(PRtcpPacket, PKvsPeerConnection);
