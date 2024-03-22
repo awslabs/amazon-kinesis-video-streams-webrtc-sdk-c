@@ -434,11 +434,61 @@ TEST_F(RtcpFunctionalityTest, onRtcpPacketFirReport)
     auto hexpacket = (PCHAR) "80C000014487A9E7";
     BYTE rawpacket[256] = {0};
     UINT32 rawpacketSize = 256;
+    BOOL onPictureLossCalled = FALSE;
+
+
     EXPECT_EQ(STATUS_SUCCESS, hexDecode(hexpacket, strlen(hexpacket), rawpacket, &rawpacketSize));
     initTransceiver(0x4487A9E7);
+    pKvsRtpTransceiver->onPictureLossCustomData = (UINT64) &onPictureLossCalled;
+    pKvsRtpTransceiver->onPictureLoss = [](UINT64 customData) -> void { *(PBOOL) customData = TRUE; };
+
     EXPECT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, rawpacket, rawpacketSize));
-    getRtpOutboundStats(pRtcPeerConnection, nullptr, &stats);
+    EXPECT_EQ(STATUS_SUCCESS, getRtpOutboundStats(pRtcPeerConnection, nullptr, &stats));
     EXPECT_EQ(1, stats.firCount);
+    EXPECT_EQ(TRUE, onPictureLossCalled);
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+}
+
+TEST_F(RtcpFunctionalityTest, onRtcpPacketSliReport)
+{
+    RtcpPacket rtcpPacket;
+    RtcOutboundRtpStreamStats stats{};
+    auto hexpacket = (PCHAR) "82CE00014487A9E7";
+    BYTE rawpacket[256] = {0};
+    UINT32 rawpacketSize = 256;
+
+    EXPECT_EQ(STATUS_SUCCESS, hexDecode(hexpacket, strlen(hexpacket), rawpacket, &rawpacketSize));
+    initTransceiver(0x4487A9E7);
+
+    EXPECT_EQ(STATUS_NULL_ARG, onRtcpSLIPacket(NULL, NULL));
+    EXPECT_EQ(STATUS_NULL_ARG, onRtcpSLIPacket(NULL, pKvsPeerConnection));
+    EXPECT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, rawpacket, rawpacketSize));
+    EXPECT_EQ(STATUS_SUCCESS, getRtpOutboundStats(pRtcPeerConnection, nullptr, &stats));
+    EXPECT_EQ(1, stats.sliCount);
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+}
+
+TEST_F(RtcpFunctionalityTest, onRtcpPacketPliReport)
+{
+    RtcpPacket rtcpPacket;
+    RtcOutboundRtpStreamStats stats{};
+    auto hexpacket = (PCHAR) "81CE00014487A9E7";
+    BYTE rawpacket[256] = {0};
+    UINT32 rawpacketSize = 256;
+    BOOL onPictureLossCalled = FALSE;
+
+    EXPECT_EQ(STATUS_SUCCESS, hexDecode(hexpacket, strlen(hexpacket), rawpacket, &rawpacketSize));
+    initTransceiver(0x4487A9E7);
+
+    pKvsRtpTransceiver->onPictureLossCustomData = (UINT64) &onPictureLossCalled;
+    pKvsRtpTransceiver->onPictureLoss = [](UINT64 customData) -> void { *(PBOOL) customData = TRUE; };
+
+    EXPECT_EQ(STATUS_NULL_ARG, onRtcpPLIPacket(NULL, NULL));
+    EXPECT_EQ(STATUS_NULL_ARG, onRtcpPLIPacket(NULL, pKvsPeerConnection));
+    EXPECT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, rawpacket, rawpacketSize));
+    EXPECT_EQ(STATUS_SUCCESS, getRtpOutboundStats(pRtcPeerConnection, nullptr, &stats));
+    EXPECT_EQ(1, stats.pliCount);
+    EXPECT_EQ(TRUE, onPictureLossCalled);
     EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
 }
 
