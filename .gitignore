@@ -7,6 +7,8 @@ cmake-build-debug/
 cmake-build-release/
 doc/
 open-source/
+samples/h265GSTSampleFrames/
+samples/vp8SampleFrames/
 outputs
 tags
 CMakeLists.txt.user

@@ -157,9 +157,8 @@ PVOID sendGstreamerAudioVideo(PVOID args)
             switch (pSampleConfiguration->srcType) {
                 case TEST_SOURCE: {
                     pipeline =
-                        gst_parse_launch("videotestsrc is-live=TRUE ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
-                                         "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
-                                         "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE emit-signals=TRUE "
+                        gst_parse_launch("videotestsrc is-live=TRUE ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! x265enc speed-preset=veryfast bitrate=512 ! "
+                                         "appsink sync=TRUE emit-signals=TRUE "
                                          "name=appsink-video",
                                          &error);
                     break;
@@ -199,7 +198,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                         gst_parse_launch("videotestsrc is-live=TRUE ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! x265enc speed-preset=veryfast bitrate=512 ! "
                                          "video/x-h265,stream-format=byte-stream,alignment=au,profile=main ! appsink sync=TRUE emit-signals=TRUE name=appsink-video "
                                          "audiotestsrc is-live=TRUE ! queue leaky=2 max-size-buffers=400 ! "
-                                         "audioconvert ! audioresample ! fdkaacenc ! audio/mpeg,rate=48000,channels=2,profile=he-aac-v1 ! "
+                                         "audioconvert ! audioresample ! fdkaacenc ! audio/mpeg,rate=48000,channels=2,stream-format=raw,profile=lc ! "
                                          "appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
                                          &error);
                     break;

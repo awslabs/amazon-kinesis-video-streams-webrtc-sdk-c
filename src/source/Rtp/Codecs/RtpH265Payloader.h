@@ -11,16 +11,6 @@ extern "C" {
 #endif
 
 #define FU_HEADER_SIZE   3
-#define NALU_HEADER_SIZE   2
-#define STAP_A_HEADER_SIZE   1
-#define STAP_B_HEADER_SIZE   3
-#define SINGLE_U_HEADER_SIZE 1
-#define FU_A_INDICATOR       28
-#define FU_B_INDICATOR       29
-#define STAP_A_INDICATOR     24
-#define STAP_B_INDICATOR     25
-
-#define AP_TYPE_ID  48
 #define FU_TYPE_ID  49
 
 /*

@@ -136,17 +136,13 @@ STATUS createPayloadFromNaluH265(UINT32 mtu, PBYTE nalu, UINT32 naluLength, PPay
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PBYTE pPayload = NULL;
-    UINT8 naluFZBit = 0;
     UINT8 naluType = 0;
-    UINT8 naluLayerIdH = 0;
-    UINT8 naluLayerIdL = 0;
-    UINT16 naluTemporalIdPlusOne = 0;
     UINT32 maxPayloadSize = 0;
     UINT32 curPayloadSize = 0;
     UINT32 remainingNaluLength = naluLength;
     UINT32 payloadLength = 0;
     UINT32 payloadSubLenSize = 0;
-    PBYTE pCurPtrInNalu = NULL;
+    PBYTE pCurPtrInNalu = nalu;
     BOOL sizeCalculationOnly = (pPayloadArray == NULL);
 
     CHK(nalu != NULL && filledLength != NULL && filledSubLenSize != NULL, STATUS_NULL_ARG);
@@ -154,11 +150,7 @@ STATUS createPayloadFromNaluH265(UINT32 mtu, PBYTE nalu, UINT32 naluLength, PPay
     CHK(sizeCalculationOnly || (pPayloadArray->payloadSubLength != NULL && pPayloadArray->payloadBuffer != NULL), STATUS_NULL_ARG);
     CHK(mtu > FU_HEADER_SIZE, STATUS_RTP_INPUT_MTU_TOO_SMALL);
 
-    naluFZBit = (nalu[0] & 0x80) >> 7; // first 1 bits 0x80(1000 0000)
     naluType = (nalu[0] & 0x7E) >> 1;   // 6 bits after forbidden zero bit 0x7E(0111 1110)
-    naluLayerIdH = nalu[0] & 0x01; // 6 bits after naluType 0x01(0000 0001)
-    naluLayerIdL = (nalu[1] & 0xF8) >> 3; // 6 bits after naluType 0xF8(1111 1000)
-    naluTemporalIdPlusOne = nalu[1] & 0x07; // 3 bits after layer id 0x07(0000 0111)
 
     if (!sizeCalculationOnly) {
         pPayload = pPayloadArray->payloadBuffer;
@@ -180,10 +172,6 @@ STATUS createPayloadFromNaluH265(UINT32 mtu, PBYTE nalu, UINT32 naluLength, PPay
 	} else {
         maxPayloadSize = mtu - FU_HEADER_SIZE;
 
-        // According to the RFC, the first octet is skipped due to redundant information
-        remainingNaluLength -= 2;	//1
-        pCurPtrInNalu = nalu + 2;	//1;
-
         while (remainingNaluLength != 0) {
             curPayloadSize = MIN(maxPayloadSize, remainingNaluLength);
             payloadSubLenSize++;
@@ -192,24 +180,21 @@ STATUS createPayloadFromNaluH265(UINT32 mtu, PBYTE nalu, UINT32 naluLength, PPay
             if (!sizeCalculationOnly) {
                 CHK(payloadSubLenSize <= pPayloadArray->maxPayloadSubLenSize && payloadLength <= pPayloadArray->maxPayloadLength,
                     STATUS_BUFFER_TOO_SMALL);
-
-				//printf("### 1.offset:%d, mtu:%d\n", pPayload-pPayloadArray->payloadBuffer, mtu);
-                MEMCPY(pPayload + FU_HEADER_SIZE, pCurPtrInNalu, curPayloadSize);
-				//printf("### 2.offset:%d\n", pPayload-pPayloadArray->payloadBuffer);
+				
                 /* FU_TYPE_ID indicator is 49 */
                 //pPayload[0] = (FU_TYPE_ID << 1) | (nalu[0] & 0x81);
                 pPayload[0] = (FU_TYPE_ID << 1) | (nalu[0] & 0x81) | (nalu[0] & 0x1);
                 pPayload[1] = (nalu[1] & 0xff);
 				pPayload[2] = naluType & 0x3f;
-				//printf("### remainingNaluLength:%d, curPayloadSize:%d,pPayload[2]:%#x,nalu:%#x, naluType & 0x3f:%#x\n", 
-				//		remainingNaluLength, curPayloadSize, pPayload[2], nalu[0], naluType & 0x3f);
-                if (remainingNaluLength == naluLength - 2) {
+				if (remainingNaluLength == naluLength) {
                     // Set for starting bit
                     pPayload[2] |= (1 << 7);
                 } else if (remainingNaluLength == curPayloadSize) {
                     // Set for ending bit
                     pPayload[2] |= (1 << 6);
                 }
+
+                MEMCPY(pPayload + FU_HEADER_SIZE, pCurPtrInNalu, curPayloadSize);
 
                 pPayloadArray->payloadSubLength[payloadSubLenSize - 1] = FU_HEADER_SIZE + curPayloadSize;
                 pPayload += pPayloadArray->payloadSubLength[payloadSubLenSize - 1];
@@ -239,32 +224,33 @@ STATUS depayH265FromRtpPayload(PBYTE pRawPacket, UINT32 packetLength, PBYTE pNal
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    UINT32 naluLength = 0;
-    UINT8 naluFZBit = 0;
-    UINT8 naluType = 0;
-    UINT8 naluLayerIdH = 0;
-    UINT8 naluLayerIdL = 0;
-    UINT16 naluTemporalIdPlusOne = 0;
+    UINT32 naluLength = packetLength, headerSize = 0; 
+    UINT8 payloadHeaderType = (pRawPacket[0] >> 1) & 0x3F;
     BOOL sizeCalculationOnly = (pNaluData == NULL);
-    BOOL isStartingPacket = FALSE;
-    PBYTE pCurPtr = pRawPacket;
+    BOOL isStartingPacket = TRUE;
     static BYTE start4ByteCode[] = {0x00, 0x00, 0x00, 0x01};
-    UINT16 subNaluSize = 0;
-
+    
     CHK(pRawPacket != NULL && pNaluLength != NULL, STATUS_NULL_ARG);
     CHK(packetLength > 0, retStatus);
 
-            naluLength = packetLength;
-            isStartingPacket = TRUE;
+    if (payloadHeaderType == FU_TYPE_ID) {
+        isStartingPacket = ((pRawPacket[2] >> 7) & 0x01) != 0;
+        headerSize = FU_HEADER_SIZE;
+        naluLength -= headerSize;
+    }
 
-    // Only return size if given buffer is NULL
+    if (isStartingPacket) {
+        naluLength += SIZEOF(start4ByteCode);
+    }
+
     CHK(!sizeCalculationOnly, retStatus);
     CHK(naluLength <= *pNaluLength, STATUS_BUFFER_TOO_SMALL);
 
-            DLOGS("Single NALU %d len %d", isStartingPacket, packetLength);
-            MEMCPY(pNaluData, pRawPacket, naluLength);
+    if (isStartingPacket) {
+        MEMCPY(pNaluData, start4ByteCode, SIZEOF(start4ByteCode));
+    }
 
-    DLOGS("Wrote naluLength %d isStartingPacket %d", naluLength, isStartingPacket);
+    MEMCPY(pNaluData + SIZEOF(start4ByteCode), pRawPacket + headerSize, packetLength - headerSize);
 
 CleanUp:
     if (STATUS_FAILED(retStatus) && sizeCalculationOnly) {

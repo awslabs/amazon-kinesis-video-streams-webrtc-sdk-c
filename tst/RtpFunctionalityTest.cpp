@@ -261,6 +261,106 @@ TEST_F(RtpFunctionalityTest, packingUnpackingVerifySameH264Frame)
     MEMFREE(depayload);
 }
 
+TEST_F(RtpFunctionalityTest, packingUnpackingVerifySameH265Frame)
+{
+    PBYTE payload = (PBYTE) MEMCALLOC(1, 200000); // Assuming this is enough
+    PBYTE depayload = (PBYTE) MEMCALLOC(1, 1500); // This is more than max mtu
+    UINT32 depayloadSize = 1500;
+    UINT32 payloadLen = 0;
+    UINT32 fileIndex = 0;
+    PayloadArray payloadArray;
+    UINT32 i = 0;
+    UINT32 offset = 0;
+    UINT32 newPayloadLen = 0, newPayloadSubLen = 0;
+    BOOL isStartPacket = FALSE;
+    PBYTE pCurPtrInPayload = NULL;
+    UINT32 remainPayloadLen = 0;
+    UINT32 startIndex = 0, naluLength = 0;
+    UINT32 startLen = 0;
+
+    payloadArray.maxPayloadLength = 0;
+    payloadArray.maxPayloadSubLenSize = 0;
+    payloadArray.payloadBuffer = NULL;
+    payloadArray.payloadSubLength = NULL;
+
+    for (fileIndex = 1; fileIndex <= 1; fileIndex++) {
+        EXPECT_EQ(STATUS_SUCCESS, readFrameDataH265((PBYTE) payload, (PUINT32) &payloadLen, fileIndex, (PCHAR) "../samples/h265GSTSampleFrames"));
+
+        // First call for payload size and sub payload length size
+        EXPECT_EQ(STATUS_SUCCESS,
+                  createPayloadForH265(DEFAULT_MTU_SIZE_BYTES, (PBYTE) payload, payloadLen, NULL, &payloadArray.payloadLength, NULL,
+                                       &payloadArray.payloadSubLenSize));
+
+        if (payloadArray.payloadLength > payloadArray.maxPayloadLength) {
+            if (payloadArray.payloadBuffer != NULL) {
+                MEMFREE(payloadArray.payloadBuffer);
+            }
+            payloadArray.payloadBuffer = (PBYTE) MEMALLOC(payloadArray.payloadLength);
+            payloadArray.maxPayloadLength = payloadArray.payloadLength;
+        }
+        if (payloadArray.payloadSubLenSize > payloadArray.maxPayloadSubLenSize) {
+            if (payloadArray.payloadSubLength != NULL) {
+                MEMFREE(payloadArray.payloadSubLength);
+            }
+            payloadArray.payloadSubLength = (PUINT32) MEMALLOC(payloadArray.payloadSubLenSize * SIZEOF(UINT32));
+            payloadArray.maxPayloadSubLenSize = payloadArray.payloadSubLenSize;
+        }
+
+        // Second call with actual buffer to fill in data
+        EXPECT_EQ(STATUS_SUCCESS,
+                  createPayloadForH265(DEFAULT_MTU_SIZE_BYTES, (PBYTE) payload, payloadLen, payloadArray.payloadBuffer, &payloadArray.payloadLength,
+                                       payloadArray.payloadSubLength, &payloadArray.payloadSubLenSize));
+
+        EXPECT_LT(0, payloadArray.payloadSubLenSize);
+
+        offset = 0;
+
+        for (i = 0; i < payloadArray.payloadSubLenSize; i++) {
+            EXPECT_EQ(STATUS_SUCCESS,
+                      depayH265FromRtpPayload(payloadArray.payloadBuffer + offset, payloadArray.payloadSubLength[i], NULL, &newPayloadSubLen,
+                                              &isStartPacket));
+            newPayloadLen += newPayloadSubLen;
+            if (isStartPacket) {
+                newPayloadLen -= SIZEOF(start4ByteCode);
+            }
+            EXPECT_LT(0, newPayloadSubLen);
+            offset += payloadArray.payloadSubLength[i];
+        }
+        EXPECT_LE(newPayloadLen, payloadLen);
+
+        offset = 0;
+        newPayloadLen = 0;
+        isStartPacket = FALSE;
+        pCurPtrInPayload = payload;
+        remainPayloadLen = payloadLen;
+        for (i = 0; i < payloadArray.payloadSubLenSize; i++) {
+            newPayloadSubLen = depayloadSize;
+            EXPECT_EQ(STATUS_SUCCESS,
+                      depayH265FromRtpPayload(payloadArray.payloadBuffer + offset, payloadArray.payloadSubLength[i], depayload, &newPayloadSubLen,
+                                              &isStartPacket));
+            DLOGI("YYYYYYYYYYY: %d %d %d 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X", newPayloadSubLen, isStartPacket, payloadArray.payloadSubLength[i], depayload[0], 
+                depayload[1], depayload[2], depayload[3], depayload[4], depayload[5]);
+            if (isStartPacket) {
+                
+                EXPECT_EQ(STATUS_SUCCESS, getNextNaluLengthH265(pCurPtrInPayload, remainPayloadLen, &startIndex, &naluLength));
+                pCurPtrInPayload += startIndex;
+                startLen = SIZEOF(start4ByteCode);
+            } else {
+                startLen = 0;
+            }
+            EXPECT_TRUE(MEMCMP(pCurPtrInPayload, depayload + startLen, newPayloadSubLen - startLen) == 0);
+            pCurPtrInPayload += newPayloadSubLen - startLen;
+            remainPayloadLen -= newPayloadSubLen;
+            offset += payloadArray.payloadSubLength[i];
+        }
+    }
+
+    MEMFREE(payloadArray.payloadBuffer);
+    MEMFREE(payloadArray.payloadSubLength);
+    MEMFREE(payload);
+    MEMFREE(depayload);
+}
+
 TEST_F(RtpFunctionalityTest, packingUnpackingVerifySameOpusFrame)
 {
     BYTE payload[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05};
@@ -309,6 +409,61 @@ TEST_F(RtpFunctionalityTest, packingUnpackingVerifySameOpusFrame)
     newPayloadSubLen = depayloadSize;
     EXPECT_EQ(STATUS_SUCCESS,
               depayOpusFromRtpPayload(payloadArray.payloadBuffer, payloadArray.payloadSubLength[0], depayload, &newPayloadSubLen, NULL));
+    EXPECT_TRUE(MEMCMP(payload, depayload, newPayloadSubLen) == 0);
+
+    MEMFREE(payloadArray.payloadBuffer);
+    MEMFREE(payloadArray.payloadSubLength);
+    MEMFREE(depayload);
+}
+
+TEST_F(RtpFunctionalityTest, packingUnpackingVerifySameAacFrame)
+{
+    BYTE payload[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05};
+    PBYTE depayload = (PBYTE) MEMALLOC(1500); // This is more than max mtu
+    UINT32 depayloadSize = 1500;
+    UINT32 payloadLen = 6;
+    PayloadArray payloadArray;
+    UINT32 newPayloadSubLen = 0;
+
+    payloadArray.maxPayloadLength = 0;
+    payloadArray.maxPayloadSubLenSize = 0;
+    payloadArray.payloadBuffer = NULL;
+    payloadArray.payloadSubLength = NULL;
+
+    // First call for payload size and sub payload length size
+    EXPECT_EQ(STATUS_SUCCESS,
+              createPayloadForAac(DEFAULT_MTU_SIZE_BYTES, (PBYTE) &payload, payloadLen, NULL, &payloadArray.payloadLength, NULL,
+                                   &payloadArray.payloadSubLenSize));
+
+    if (payloadArray.payloadLength > payloadArray.maxPayloadLength) {
+        if (payloadArray.payloadBuffer != NULL) {
+            MEMFREE(payloadArray.payloadBuffer);
+        }
+        payloadArray.payloadBuffer = (PBYTE) MEMALLOC(payloadArray.payloadLength);
+        payloadArray.maxPayloadLength = payloadArray.payloadLength;
+    }
+    if (payloadArray.payloadSubLenSize > payloadArray.maxPayloadSubLenSize) {
+        if (payloadArray.payloadSubLength != NULL) {
+            MEMFREE(payloadArray.payloadSubLength);
+        }
+        payloadArray.payloadSubLength = (PUINT32) MEMALLOC(payloadArray.payloadSubLenSize * SIZEOF(UINT32));
+        payloadArray.maxPayloadSubLenSize = payloadArray.payloadSubLenSize;
+    }
+
+    // Second call with actual buffer to fill in data
+    EXPECT_EQ(STATUS_SUCCESS,
+              createPayloadForAac(DEFAULT_MTU_SIZE_BYTES, (PBYTE) &payload, payloadLen, payloadArray.payloadBuffer, &payloadArray.payloadLength,
+                                   payloadArray.payloadSubLength, &payloadArray.payloadSubLenSize));
+
+    EXPECT_EQ(1, payloadArray.payloadSubLenSize);
+    EXPECT_EQ(6, payloadArray.payloadSubLength[0]);
+
+    EXPECT_EQ(STATUS_SUCCESS, depayAacFromRtpPayload(payloadArray.payloadBuffer, payloadArray.payloadSubLength[0], NULL, &newPayloadSubLen, NULL));
+    EXPECT_EQ(6, newPayloadSubLen);
+
+    newPayloadSubLen = depayloadSize;
+    EXPECT_EQ(STATUS_SUCCESS,
+              depayAacFromRtpPayload(payloadArray.payloadBuffer, payloadArray.payloadSubLength[0], depayload, &newPayloadSubLen, NULL));
     EXPECT_TRUE(MEMCMP(payload, depayload, newPayloadSubLen) == 0);
 
     MEMFREE(payloadArray.payloadBuffer);
@@ -452,13 +607,24 @@ TEST_F(RtpFunctionalityTest, invalidNaluParse)
     UINT32 startIndex = 0, naluLength = 0;
     EXPECT_EQ(STATUS_RTP_INVALID_NALU, getNextNaluLength(data, 3, &startIndex, &naluLength));
     EXPECT_EQ(STATUS_RTP_INVALID_NALU, getNextNaluLength(data1, 7, &startIndex, &naluLength));
+
+    EXPECT_EQ(STATUS_RTP_INVALID_NALU, getNextNaluLengthH265(data, 3, &startIndex, &naluLength));
+    EXPECT_EQ(STATUS_RTP_INVALID_NALU, getNextNaluLengthH265(data1, 7, &startIndex, &naluLength));
 }
 
 TEST_F(RtpFunctionalityTest, validNaluParse)
 {
     BYTE data[] = {0x00, 0x00, 0x00, 0x01, 0x00, 0x02};
     UINT32 startIndex = 0, naluLength = 0;
+    
     EXPECT_EQ(STATUS_SUCCESS, getNextNaluLength(data, 6, &startIndex, &naluLength));
+    EXPECT_EQ(4, startIndex);
+    EXPECT_EQ(2, naluLength);
+
+    startIndex = 0;
+    naluLength = 0;
+
+    EXPECT_EQ(STATUS_SUCCESS, getNextNaluLengthH265(data, 6, &startIndex, &naluLength));
     EXPECT_EQ(4, startIndex);
     EXPECT_EQ(2, naluLength);
 }

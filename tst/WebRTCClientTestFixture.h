@@ -294,6 +294,27 @@ class WebRtcClientTestBase : public ::testing::Test {
         return retStatus;
     }
 
+    STATUS readFrameDataH265(PBYTE pFrame, PUINT32 pSize, UINT32 index, PCHAR frameFilePath)
+    {
+        STATUS retStatus = STATUS_SUCCESS;
+        CHAR filePath[MAX_PATH_LEN + 1];
+        UINT64 size = 0;
+
+        CHK(pFrame != NULL && pSize != NULL, STATUS_NULL_ARG);
+
+        SNPRINTF(filePath, MAX_PATH_LEN, "%s/frame-%04d.h265", frameFilePath, index);
+
+        // Get the size and read into frame
+        CHK_STATUS(readFile(filePath, TRUE, NULL, &size));
+        CHK_STATUS(readFile(filePath, TRUE, pFrame, &size));
+
+        *pSize = (UINT32) size;
+
+    CleanUp:
+
+        return retStatus;
+    }
+
     bool connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerConnection answerPc, PCHAR pOfferCertFingerprint = NULL,
                          PCHAR pAnswerCertFingerprint = NULL);
     bool connectTwoPeersAsyncIce(PRtcPeerConnection offerPc, PRtcPeerConnection answerPc, PCHAR pOfferCertFingerprint = NULL,
