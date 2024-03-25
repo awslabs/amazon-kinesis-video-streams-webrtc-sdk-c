@@ -414,7 +414,7 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     configuration.kvsRtcConfiguration.iceSetInterfaceFilterFunc = NULL;
 
     // disable TWCC
-    configuration.kvsRtcConfiguration.disableSenderSideBandwidthEstimation = FALSE;
+    configuration.kvsRtcConfiguration.disableSenderSideBandwidthEstimation = pSampleConfiguration->disableTwcc;
 
     // Set the ICE mode explicitly
     configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_ALL;
@@ -557,6 +557,12 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     pSampleStreamingSession->peerConnectionMetrics.peerConnectionStats.peerConnectionStartTime = GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
     // Flag to enable SDK to calculate selected ice server, local, remote and candidate pair stats.
     pSampleConfiguration->enableIceStats = FALSE;
+    pSampleConfiguration->disableTwcc = FALSE;
+
+    if (!pSampleConfiguration->disableTwcc) {
+        pSampleStreamingSession->twccMetadata.updateLock = MUTEX_CREATE(TRUE);
+    }
+
     CHK_STATUS(initializePeerConnection(pSampleConfiguration, &pSampleStreamingSession->pPeerConnection));
     CHK_STATUS(peerConnectionOnIceCandidate(pSampleStreamingSession->pPeerConnection, (UINT64) pSampleStreamingSession, onIceCandidateHandler));
     CHK_STATUS(
@@ -655,6 +661,12 @@ STATUS freeSampleStreamingSession(PSampleStreamingSession* ppSampleStreamingSess
     }
     MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
 
+    if (!pSampleConfiguration->disableTwcc) {
+        if (IS_VALID_MUTEX_VALUE(pSampleStreamingSession->twccMetadata.updateLock)) {
+            MUTEX_FREE(pSampleStreamingSession->twccMetadata.updateLock);
+        }
+    }
+
     CHK_LOG_ERR(closePeerConnection(pSampleStreamingSession->pPeerConnection));
     CHK_LOG_ERR(freePeerConnection(&pSampleStreamingSession->pPeerConnection));
     SAFE_MEMFREE(pSampleStreamingSession);
@@ -705,44 +717,63 @@ VOID sampleBandwidthEstimationHandler(UINT64 customData, DOUBLE maximumBitrate)
     DLOGV("received bitrate suggestion: %f", maximumBitrate);
 }
 
-void sampleSenderBandwidthEstimationHandler(UINT64 customData, UINT32 txBytes, UINT32 rxBytes, UINT32 txPacketsCnt, UINT32 rxPacketsCnt,
+VOID sampleSenderBandwidthEstimationHandler(UINT64 customData, UINT32 txBytes, UINT32 rxBytes, UINT32 txPacketsCnt, UINT32 rxPacketsCnt,
                                             UINT64 duration)
 {
     UNUSED_PARAM(duration);
+    UINT64 videoBitrate, audioBitrate;
+    UINT64 currentTimeMs, timeDiff;
     UINT32 lostPacketsCnt = txPacketsCnt - rxPacketsCnt;
-    UINT8 percentLost = (txPacketsCnt > 0) ? (lostPacketsCnt * 100 / txPacketsCnt) : 0;
-
+    DOUBLE percentLost = (DOUBLE) ((txPacketsCnt > 0) ? (lostPacketsCnt * 100 / txPacketsCnt) : 0.0);
     SampleStreamingSession* pSampleStreamingSession = (SampleStreamingSession*) customData;
 
-    // Calculate smoothed packet loss
-    DOUBLE currentPacketLoss = (DOUBLE) percentLost;
-    pSampleStreamingSession->twccMetadata.averagePacketLoss =
-        EMA_ACCUMULATOR_GET_NEXT(pSampleStreamingSession->twccMetadata.averagePacketLoss, currentPacketLoss);
+    if (pSampleStreamingSession == NULL) {
+        DLOGW("Invalid streaming session (NULL object)");
+        return;
+    }
 
-    UINT64 currentTimeMs = GETTIME();
-    UINT64 timeDiff = currentTimeMs - pSampleStreamingSession->twccMetadata.lastAdjustmentTimeMs;
+    // Calculate packet loss
+    pSampleStreamingSession->twccMetadata.averagePacketLoss =
+        EMA_ACCUMULATOR_GET_NEXT(pSampleStreamingSession->twccMetadata.averagePacketLoss, ((DOUBLE) percentLost));
+
+    currentTimeMs = GETTIME();
+    timeDiff = currentTimeMs - pSampleStreamingSession->twccMetadata.lastAdjustmentTimeMs;
     if (timeDiff < ADJUSTMENT_INTERVAL_SECONDS) {
         // Too soon for another adjustment
         return;
     }
 
-    UINT64 bitrate = pSampleStreamingSession->twccMetadata.currentVideoBitrate;
+    MUTEX_LOCK(pSampleStreamingSession->twccMetadata.updateLock);
+    videoBitrate = pSampleStreamingSession->twccMetadata.currentVideoBitrate;
+    audioBitrate = pSampleStreamingSession->twccMetadata.currentAudioBitrate;
+
     if (pSampleStreamingSession->twccMetadata.averagePacketLoss <= 5) {
         // increase encoder bitrate by 5 percent with a cap at MAX_BITRATE
-        bitrate = (UINT64) MIN(bitrate * 1.05f, MAX_BITRATE);
+        videoBitrate = (UINT64) MIN(videoBitrate * 1.05f, MAX_VIDEO_BITRATE_KBPS);
     } else {
         // decrease encoder bitrate by average packet loss percent, with a cap at MIN_BITRATE
-        bitrate = (UINT64) MAX(bitrate * (1.0f - pSampleStreamingSession->twccMetadata.averagePacketLoss / 100.0f), MIN_BITRATE);
+        videoBitrate = (UINT64) MAX(videoBitrate * (1.0f - pSampleStreamingSession->twccMetadata.averagePacketLoss / 100.0f), MIN_VIDEO_BITRATE_KBPS);
+    }
+
+    if (pSampleStreamingSession->twccMetadata.averagePacketLoss <= 5) {
+        // increase encoder bitrate by 5 percent with a cap at MAX_BITRATE
+        audioBitrate = (UINT64) MIN(audioBitrate * 1.05f, MAX_AUDIO_BITRATE_BPS);
+    } else {
+        // decrease encoder bitrate by average packet loss percent, with a cap at MIN_BITRATE
+        audioBitrate = (UINT64) MAX(audioBitrate * (1.0f - pSampleStreamingSession->twccMetadata.averagePacketLoss / 100.0f), MIN_AUDIO_BITRATE_BPS);
     }
 
     // Update the session with the new bitrate and adjustment time
-    pSampleStreamingSession->twccMetadata.newVideoBitrate = bitrate;
+    pSampleStreamingSession->twccMetadata.newVideoBitrate = videoBitrate;
+    pSampleStreamingSession->twccMetadata.newAudioBitrate = audioBitrate;
+    MUTEX_UNLOCK(pSampleStreamingSession->twccMetadata.updateLock);
+
     pSampleStreamingSession->twccMetadata.lastAdjustmentTimeMs = currentTimeMs;
 
-    DLOGI("Adjustment made: average packet loss = %.2f%%, timediff: %llu ms", pSampleStreamingSession->twccMetadata.averagePacketLoss,
+    DLOGV("Adjustment made: average packet loss = %.2f%%, timediff: %llu ms", pSampleStreamingSession->twccMetadata.averagePacketLoss,
           ADJUSTMENT_INTERVAL_SECONDS, timeDiff);
-    DLOGI("received sender bitrate estimation: suggested bitrate %u sent: %u bytes %u packets received: %u bytes %u packets in %lu msec", bitrate,
-          txBytes, txPacketsCnt, rxBytes, rxPacketsCnt, duration / 10000ULL);
+    DLOGV("Suggested video bitrate %u kbps, suggested audio bitrate: %u bps, sent: %u bytes %u packets received: %u bytes %u packets in %lu msec",
+          videoBitrate, audioBitrate, txBytes, txPacketsCnt, rxBytes, rxPacketsCnt, duration / 10000ULL);
 }
 
 STATUS handleRemoteCandidate(PSampleStreamingSession pSampleStreamingSession, PSignalingMessage pSignalingMessage)
