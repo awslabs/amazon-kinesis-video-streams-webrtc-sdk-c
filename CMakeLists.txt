@@ -132,6 +132,8 @@ elseif(USE_MBEDTLS)
     message(STATUS "Detected gcc")
     set(CMAKE_C_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/configs -DMBEDTLS_USER_CONFIG_FILE=\"<config_mbedtls.h>\" ${CMAKE_C_FLAGS}")
     set(CMAKE_CXX_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/configs -DMBEDTLS_USER_CONFIG_FILE=\"<config_mbedtls.h>\" ${CMAKE_CXX_FLAGS}")
+    # set(CMAKE_C_FLAGS "-Wno-error=stringop-overflow -I${CMAKE_CURRENT_SOURCE_DIR}/configs -DMBEDTLS_USER_CONFIG_FILE=\"<config_mbedtls.h>\" ${CMAKE_C_FLAGS}")
+    # set(CMAKE_CXX_FLAGS "-Wno-error=stringop-overflow -I${CMAKE_CURRENT_SOURCE_DIR}/configs -DMBEDTLS_USER_CONFIG_FILE=\"<config_mbedtls.h>\" ${CMAKE_CXX_FLAGS}")
     if(CMAKE_C_COMPILER_VERSION VERSION_GREATER "7.0")
       set(CMAKE_C_FLAGS "-Wno-error=stringop-overflow ${CMAKE_C_FLAGS}")
       set(CMAKE_CXX_FLAGS "-Wno-error=stringop-overflow ${CMAKE_CXX_FLAGS}")
@@ -141,11 +143,31 @@ elseif(USE_MBEDTLS)
   endif()
 endif()
 
-
-if(BUILD_DEPENDENCIES)
-  if(NOT EXISTS ${OPEN_SRC_INSTALL_PREFIX})
-    file(MAKE_DIRECTORY ${OPEN_SRC_INSTALL_PREFIX})
+  if(WIN32)
+    set(OPENSSL_INCLUDE_DIRS "${OPEN_SRC_INSTALL_PREFIX}/include/")
+    set(OPENSSL_CRYPTO_LIBRARY "${OPEN_SRC_INSTALL_PREFIX}/lib/libcrypto.lib")
+    set(OPENSSL_SSL_LIBRARY "${OPEN_SRC_INSTALL_PREFIX}/lib/libssl.lib")
+    set(OPENSSL_LIBRARIES ${OPENSSL_SSL_LIBRARY} ${OPENSSL_CRYPTO_LIBRARY})
+    string(REPLACE ";" "|" OPENSSL_LIBRARIES_ALT_SEP "${OPENSSL_LIBRARIES}")
+    set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
+                  -DUSE_OPENSSL=${USE_OPENSSL}
+                  -DUSE_MBEDTLS=${USE_MBEDTLS} 
+                  -DLWS_EXT_PTHREAD_INCLUDE_DIR=${EXT_PTHREAD_INCLUDE_DIR}
+                  -DLWS_EXT_PTHREAD_LIBRARIES=${EXT_PTHREAD_LIBRARIES}
+                  -DLWS_OPENSSL_INCLUDE_DIRS=${OPENSSL_INCLUDE_DIRS}
+                  -DLWS_OPENSSL_LIBRARIES=${OPENSSL_LIBRARIES_ALT_SEP}
+                  -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
+  else()
+    set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
+                  -DOPENSSL_DIR=${OPEN_SRC_INSTALL_PREFIX}
+                  -DUSE_OPENSSL=${USE_OPENSSL}
+                  -DUSE_MBEDTLS=${USE_MBEDTLS}
+                  -DLWS_OPENSSL_CRYPTO_LIBRARY=${OPENSSL_CRYPTO_LIBRARY}
+                  -DLWS_OPENSSL_SSL_LIBRARY=${OPENSSL_SSL_LIBRARY}
+                  -DLWS_OPENSSL_INCLUDE_DIRS=${OPENSSL_INCLUDE_DIR}
+                  -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
   endif()
+  build_dependency(websockets ${BUILD_ARGS})
 
   set(ENV{PKG_CONFIG_PATH} "$ENV{PKG_CONFIG_PATH}:${OPEN_SRC_INSTALL_PREFIX}/lib/pkgconfig")
   set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${OPEN_SRC_INSTALL_PREFIX})
@@ -385,8 +407,9 @@ endif()
 
 file(GLOB WEBRTC_SIGNALING_CLIENT_SOURCE_FILES "src/source/Signaling/*.c")
 
-include_directories(${OPEN_SRC_INCLUDE_DIRS})
-include_directories(${OPEN_SRC_INSTALL_PREFIX}/include)
+
+include_directories(SYSTEM ${OPEN_SRC_INCLUDE_DIRS})
+include_directories(SYSTEM ${OPEN_SRC_INSTALL_PREFIX}/include)
 include_directories(${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/include)
 # include sdp_config.h
 include_directories(src/source/Sdp/kvssdp)
@@ -446,8 +469,8 @@ if (WIN32)
 endif()
 
 if(COMPILER_WARNINGS)
-  target_compile_options(kvsWebrtcClient PUBLIC -Wall -Werror -pedantic -Wextra -Wno-unknown-warning-option)
-  target_compile_options(kvsWebrtcSignalingClient PUBLIC -Wall -Werror -pedantic -Wextra -Wno-unknown-warning-option)
+  target_compile_options(kvsWebrtcClient PUBLIC -Wall -Werror -Wextra -Wno-unknown-warning-option)
+  target_compile_options(kvsWebrtcSignalingClient PUBLIC -Wall -Werror -Wextra -Wno-unknown-warning-option)
 endif()
 
 install(TARGETS kvsWebrtcClient kvsWebrtcSignalingClient
