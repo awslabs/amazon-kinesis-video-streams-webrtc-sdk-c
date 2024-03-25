@@ -134,23 +134,23 @@ PVOID receiveGstreamerAudioVideoFromMaster(PVOID args)
             break;
     }
 
-    switch (pSampleStreamingSession->pAudioRtcRtpTransceiver->receiver.track.codec) {
-        case RTC_CODEC_OPUS:
-            audioDescription = "appsrc name=appsrc-audio ! capsfilter caps=audio/x-opus,rate=48000,channels=2 ! queue ! opusparse ! queue ! mux.";
-            break;
+    // switch (pSampleStreamingSession->pAudioRtcRtpTransceiver->receiver.track.codec) {
+    //     case RTC_CODEC_OPUS:
+    //         audioDescription = "appsrc name=appsrc-audio ! capsfilter caps=audio/x-opus,rate=48000,channels=2 ! queue ! opusparse ! queue ! mux.";
+    //         break;
 
-        case RTC_CODEC_MULAW:
-        case RTC_CODEC_ALAW:
-            audioDescription = "appsrc name=appsrc-audio ! capsfilter caps=audio/x-opus,rate=48000,channels=2 ! queue ! rawaudioparse ! queue ! mux.";
-            break;
+    //     case RTC_CODEC_MULAW:
+    //     case RTC_CODEC_ALAW:
+    //         audioDescription = "appsrc name=appsrc-audio ! capsfilter caps=audio/x-opus,rate=48000,channels=2 ! queue ! rawaudioparse ! queue ! mux.";
+    //         break;
         
-        case RTC_CODEC_AAC:
-            audioDescription = "appsrc name=appsrc-audio ! capsfilter caps=audio/mpeg,mpegversion=4,stream-format=adts,rate=48000,channels=2,profile=he-aac-v1 ! queue ! aacparse ! queue ! mux. ";
-            break;
+    //     case RTC_CODEC_AAC:
+    //         audioDescription = "appsrc name=appsrc-audio ! capsfilter caps=audio/mpeg,mpegversion=4,stream-format=adts,rate=48000,channels=2,profile=he-aac-v1 ! queue ! aacparse ! queue ! mux. ";
+    //         break;
 
-        default:
-            break;
-    }
+    //     default:
+    //         break;
+    // }
 
     audioVideoDescription = g_strjoin(" ", videoDescription, audioDescription, NULL);
 
@@ -160,13 +160,13 @@ PVOID receiveGstreamerAudioVideoFromMaster(PVOID args)
     appsrcVideo = gst_bin_get_by_name(GST_BIN(pipeline), "appsrc-video");
     CHK_ERR(appsrcVideo != NULL, STATUS_INTERNAL_ERROR, "[KVS Gstreamer Viewer] Cannot find appsrc video");
 
-    appsrcAudio = gst_bin_get_by_name(GST_BIN(pipeline), "appsrc-audio");
-    CHK_ERR(appsrcAudio != NULL, STATUS_INTERNAL_ERROR, "[KVS Gstreamer Viewer] Cannot find appsrc audio");
+    // appsrcAudio = gst_bin_get_by_name(GST_BIN(pipeline), "appsrc-audio");
+    // CHK_ERR(appsrcAudio != NULL, STATUS_INTERNAL_ERROR, "[KVS Gstreamer Viewer] Cannot find appsrc audio");
 
     CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pVideoRtcRtpTransceiver, (UINT64) appsrcVideo, onGstVideoFrameReadyViewer));
-    CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pAudioRtcRtpTransceiver, (UINT64) appsrcAudio, onGstAudioFrameReadyViewer));
+    // CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pAudioRtcRtpTransceiver, (UINT64) appsrcAudio, onGstAudioFrameReadyViewer));
     CHK_STATUS(streamingSessionOnShutdown(pSampleStreamingSession, (UINT64) appsrcVideo, onSampleStreamingSessionShutdown));
-    CHK_STATUS(streamingSessionOnShutdown(pSampleStreamingSession, (UINT64) appsrcAudio, onSampleStreamingSessionShutdown));
+    // CHK_STATUS(streamingSessionOnShutdown(pSampleStreamingSession, (UINT64) appsrcAudio, onSampleStreamingSessionShutdown));
     g_free(audioVideoDescription);
 
     gst_element_set_state(pipeline, GST_STATE_PLAYING);

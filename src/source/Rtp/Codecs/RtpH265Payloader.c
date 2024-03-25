@@ -248,9 +248,10 @@ STATUS depayH265FromRtpPayload(PBYTE pRawPacket, UINT32 packetLength, PBYTE pNal
 
     if (isStartingPacket) {
         MEMCPY(pNaluData, start4ByteCode, SIZEOF(start4ByteCode));
+        MEMCPY(pNaluData + SIZEOF(start4ByteCode), pRawPacket + headerSize, packetLength - headerSize);
+    } else {
+        MEMCPY(pNaluData, pRawPacket + headerSize, packetLength - headerSize);
     }
-
-    MEMCPY(pNaluData + SIZEOF(start4ByteCode), pRawPacket + headerSize, packetLength - headerSize);
 
 CleanUp:
     if (STATUS_FAILED(retStatus) && sizeCalculationOnly) {
