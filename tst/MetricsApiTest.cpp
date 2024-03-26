@@ -164,8 +164,8 @@ TEST_F(MetricsApiTest, webRtcTransportGetMetrics)
 
     MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
     STRNCPY(configuration.iceServers[0].urls, (PCHAR) "stun:stun.kinesisvideo.us-west-2.amazonaws.com:443", MAX_ICE_CONFIG_URI_LEN);
-    STRNCPY(configuration.iceServers[0].credential, (PCHAR) "", MAX_ICE_CONFIG_CREDENTIAL_LEN);
-    STRNCPY(configuration.iceServers[0].username, (PCHAR) "", MAX_ICE_CONFIG_USER_NAME_LEN);
+    STRNCPY(configuration.iceServers[0].credential, EMPTY_STRING, MAX_ICE_CONFIG_CREDENTIAL_LEN);
+    STRNCPY(configuration.iceServers[0].username, EMPTY_STRING, MAX_ICE_CONFIG_USER_NAME_LEN);
 
     ASSERT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
 

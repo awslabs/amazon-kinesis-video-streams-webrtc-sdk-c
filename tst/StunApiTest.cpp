@@ -240,14 +240,12 @@ TEST_F(StunApiTest, appendStunErrorCodeAttributeTest)
     BYTE transactionId[STUN_TRANSACTION_ID_LEN] = {0};
     PStunPacket pStunPacket;
     PStunAttributeHeader pAttribute;
-    CHAR errorPhrase[128];
-    CHAR password[256];
+    CHAR errorPhrase[128] = "Sample phrase";
+    CHAR password[256] = "test password";
     BYTE buffer[10000];
     UINT32 size = 0;
     BOOL found;
 
-    STRCPY(password, "test password");
-    STRCPY(errorPhrase, "Sample phrase");
     EXPECT_EQ(createStunPacket(STUN_PACKET_TYPE_BINDING_REQUEST, transactionId, &pStunPacket), STATUS_SUCCESS);
     EXPECT_EQ(appendStunErrorCodeAttribute(pStunPacket, NULL, 12), STATUS_NULL_ARG);
     EXPECT_EQ(appendStunErrorCodeAttribute(pStunPacket, errorPhrase, 12), STATUS_SUCCESS);
