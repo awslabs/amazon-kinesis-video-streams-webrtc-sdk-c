@@ -3,7 +3,7 @@
 #include "../../Include_i.h"
 
 STATUS createPayloadForH265(UINT32 mtu, PBYTE nalus, UINT32 nalusLength, PBYTE payloadBuffer, PUINT32 pPayloadLength, PUINT32 pPayloadSubLength,
-                           PUINT32 pPayloadSubLenSize)
+                            PUINT32 pPayloadSubLenSize)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -131,7 +131,8 @@ CleanUp:
     return retStatus;
 }
 
-STATUS createPayloadFromNaluH265(UINT32 mtu, PBYTE nalu, UINT32 naluLength, PPayloadArray pPayloadArray, PUINT32 filledLength, PUINT32 filledSubLenSize)
+STATUS createPayloadFromNaluH265(UINT32 mtu, PBYTE nalu, UINT32 naluLength, PPayloadArray pPayloadArray, PUINT32 filledLength,
+                                 PUINT32 filledSubLenSize)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -150,7 +151,7 @@ STATUS createPayloadFromNaluH265(UINT32 mtu, PBYTE nalu, UINT32 naluLength, PPay
     CHK(sizeCalculationOnly || (pPayloadArray->payloadSubLength != NULL && pPayloadArray->payloadBuffer != NULL), STATUS_NULL_ARG);
     CHK(mtu > FU_HEADER_SIZE, STATUS_RTP_INPUT_MTU_TOO_SMALL);
 
-    naluType = (nalu[0] & 0x7E) >> 1;   // 6 bits after forbidden zero bit 0x7E(0111 1110)
+    naluType = (nalu[0] & 0x7E) >> 1; // 6 bits after forbidden zero bit 0x7E(0111 1110)
 
     if (!sizeCalculationOnly) {
         pPayload = pPayloadArray->payloadBuffer;
@@ -169,7 +170,7 @@ STATUS createPayloadFromNaluH265(UINT32 mtu, PBYTE nalu, UINT32 naluLength, PPay
             pPayloadArray->payloadSubLength[payloadSubLenSize - 1] = naluLength;
             pPayload += pPayloadArray->payloadSubLength[payloadSubLenSize - 1];
         }
-	} else {
+    } else {
         maxPayloadSize = mtu - FU_HEADER_SIZE;
 
         while (remainingNaluLength != 0) {
@@ -180,13 +181,12 @@ STATUS createPayloadFromNaluH265(UINT32 mtu, PBYTE nalu, UINT32 naluLength, PPay
             if (!sizeCalculationOnly) {
                 CHK(payloadSubLenSize <= pPayloadArray->maxPayloadSubLenSize && payloadLength <= pPayloadArray->maxPayloadLength,
                     STATUS_BUFFER_TOO_SMALL);
-				
+
                 /* FU_TYPE_ID indicator is 49 */
-                //pPayload[0] = (FU_TYPE_ID << 1) | (nalu[0] & 0x81);
                 pPayload[0] = (FU_TYPE_ID << 1) | (nalu[0] & 0x81) | (nalu[0] & 0x1);
                 pPayload[1] = (nalu[1] & 0xff);
-				pPayload[2] = naluType & 0x3f;
-				if (remainingNaluLength == naluLength) {
+                pPayload[2] = naluType & 0x3f;
+                if (remainingNaluLength == naluLength) {
                     // Set for starting bit
                     pPayload[2] |= (1 << 7);
                 } else if (remainingNaluLength == curPayloadSize) {
@@ -203,7 +203,7 @@ STATUS createPayloadFromNaluH265(UINT32 mtu, PBYTE nalu, UINT32 naluLength, PPay
             pCurPtrInNalu += curPayloadSize;
             remainingNaluLength -= curPayloadSize;
         }
-	}
+    }
 
 CleanUp:
     if (STATUS_FAILED(retStatus) && sizeCalculationOnly) {
@@ -224,12 +224,12 @@ STATUS depayH265FromRtpPayload(PBYTE pRawPacket, UINT32 packetLength, PBYTE pNal
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    UINT32 naluLength = packetLength, headerSize = 0; 
+    UINT32 naluLength = packetLength, headerSize = 0;
     UINT8 payloadHeaderType = (pRawPacket[0] >> 1) & 0x3F;
     BOOL sizeCalculationOnly = (pNaluData == NULL);
     BOOL isStartingPacket = TRUE;
     static BYTE start4ByteCode[] = {0x00, 0x00, 0x00, 0x01};
-    
+
     CHK(pRawPacket != NULL && pNaluLength != NULL, STATUS_NULL_ARG);
     CHK(packetLength > 0, retStatus);
 

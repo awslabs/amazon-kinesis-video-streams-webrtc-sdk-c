@@ -7,6 +7,7 @@ namespace video {
 namespace webrtcclient {
 
 #define NUMBER_OF_FRAME_FILES 403
+#define NUMBER_OF_H265_FRAME_FILES 1500
 #define DEFAULT_FPS_VALUE     25
 BYTE start4ByteCode[] = {0x00, 0x00, 0x00, 0x01};
 
@@ -108,7 +109,7 @@ TEST_F(RtpFunctionalityTest, marshallUnmarshallH264Data)
         }
 
         fileIndex = fileIndex % NUMBER_OF_FRAME_FILES + 1;
-        EXPECT_EQ(STATUS_SUCCESS, readFrameData((PBYTE) payload, (PUINT32) &payloadLen, fileIndex, (PCHAR) "../samples/h264SampleFrames"));
+        EXPECT_EQ(STATUS_SUCCESS, readFrameData((PBYTE) payload, (PUINT32) &payloadLen, fileIndex, (PCHAR) "../samples/h264SampleFrames", RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE));
 
         // First call for payload size and sub payload length size
         EXPECT_EQ(STATUS_SUCCESS,
@@ -187,7 +188,7 @@ TEST_F(RtpFunctionalityTest, packingUnpackingVerifySameH264Frame)
     payloadArray.payloadSubLength = NULL;
 
     for (fileIndex = 1; fileIndex <= NUMBER_OF_FRAME_FILES; fileIndex++) {
-        EXPECT_EQ(STATUS_SUCCESS, readFrameData((PBYTE) payload, (PUINT32) &payloadLen, fileIndex, (PCHAR) "../samples/h264SampleFrames"));
+        EXPECT_EQ(STATUS_SUCCESS, readFrameData((PBYTE) payload, (PUINT32) &payloadLen, fileIndex, (PCHAR) "../samples/h264SampleFrames", RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE));
 
         // First call for payload size and sub payload length size
         EXPECT_EQ(STATUS_SUCCESS,
@@ -283,8 +284,8 @@ TEST_F(RtpFunctionalityTest, packingUnpackingVerifySameH265Frame)
     payloadArray.payloadBuffer = NULL;
     payloadArray.payloadSubLength = NULL;
 
-    for (fileIndex = 1; fileIndex <= 1; fileIndex++) {
-        EXPECT_EQ(STATUS_SUCCESS, readFrameDataH265((PBYTE) payload, (PUINT32) &payloadLen, fileIndex, (PCHAR) "../samples/h265GSTSampleFrames"));
+    for (fileIndex = 1; fileIndex <= NUMBER_OF_H265_FRAME_FILES; fileIndex++) {
+        EXPECT_EQ(STATUS_SUCCESS, readFrameData((PBYTE) payload, (PUINT32) &payloadLen, fileIndex, (PCHAR) "../samples/h265SampleFrames", RTC_CODEC_H265));
 
         // First call for payload size and sub payload length size
         EXPECT_EQ(STATUS_SUCCESS,
@@ -338,8 +339,6 @@ TEST_F(RtpFunctionalityTest, packingUnpackingVerifySameH265Frame)
             EXPECT_EQ(STATUS_SUCCESS,
                       depayH265FromRtpPayload(payloadArray.payloadBuffer + offset, payloadArray.payloadSubLength[i], depayload, &newPayloadSubLen,
                                               &isStartPacket));
-            DLOGI("YYYYYYYYYYY: %d %d %d 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X", newPayloadSubLen, isStartPacket, payloadArray.payloadSubLength[i], depayload[0], 
-                depayload[1], depayload[2], depayload[3], depayload[4], depayload[5]);
             if (isStartPacket) {
                 
                 EXPECT_EQ(STATUS_SUCCESS, getNextNaluLengthH265(pCurPtrInPayload, remainPayloadLen, &startIndex, &naluLength));

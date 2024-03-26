@@ -10,8 +10,8 @@ H265 RTP Payloader include file
 extern "C" {
 #endif
 
-#define FU_HEADER_SIZE   3
-#define FU_TYPE_ID  49
+#define FU_HEADER_SIZE 3
+#define FU_TYPE_ID     49
 
 /*
  *  0                   1                   2                   3
@@ -30,7 +30,7 @@ extern "C" {
 
 STATUS createPayloadForH265(UINT32, PBYTE, UINT32, PBYTE, PUINT32, PUINT32, PUINT32);
 STATUS getNextNaluLengthH265(PBYTE, UINT32, PUINT32, PUINT32);
-STATUS createPayloadFromNaluH265(UINT32, PBYTE , UINT32, PPayloadArray, PUINT32, PUINT32);
+STATUS createPayloadFromNaluH265(UINT32, PBYTE, UINT32, PPayloadArray, PUINT32, PUINT32);
 STATUS depayH265FromRtpPayload(PBYTE, UINT32, PBYTE, PUINT32, PBOOL);
 
 #ifdef __cplusplus

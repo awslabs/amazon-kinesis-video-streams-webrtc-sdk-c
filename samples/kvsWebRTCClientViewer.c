@@ -37,9 +37,9 @@ VOID dataChannelOnOpenCallback(UINT64 customData, PRtcDataChannel pDataChannel)
 VOID onGstVideoFrameReadyViewer(UINT64 customData, PFrame pFrame)
 {
     GstFlowReturn ret;
-    GstBuffer *buffer;
-    GstElement *appsrcVideo = (GstElement *)customData;
-    if(!appsrcVideo) {
+    GstBuffer* buffer;
+    GstElement* appsrcVideo = (GstElement*) customData;
+    if (!appsrcVideo) {
         DLOGE("Null");
     }
     buffer = gst_buffer_new_allocate(NULL, pFrame->size, NULL);
@@ -66,9 +66,9 @@ VOID onGstVideoFrameReadyViewer(UINT64 customData, PFrame pFrame)
 VOID onGstAudioFrameReadyViewer(UINT64 customData, PFrame pFrame)
 {
     GstFlowReturn ret;
-    GstBuffer *buffer;
-    GstElement *appsrcAudio = (GstElement *)customData;
-    if(!appsrcAudio) {
+    GstBuffer* buffer;
+    GstElement* appsrcAudio = (GstElement*) customData;
+    if (!appsrcAudio) {
         DLOGE("Null");
     }
     buffer = gst_buffer_new_allocate(NULL, pFrame->size, NULL);
@@ -78,7 +78,7 @@ VOID onGstAudioFrameReadyViewer(UINT64 customData, PFrame pFrame)
     }
 
     DLOGI("Audio Frame size: %d, %llu", pFrame->size, pFrame->presentationTs);
-    GST_BUFFER_PTS(buffer) = pFrame->presentationTs ;
+    GST_BUFFER_PTS(buffer) = pFrame->presentationTs;
     int sample_rate = 48000; // Hz
     int num_channels = 2;
     int bits_per_sample = 16; // For example, 16-bit audio
@@ -119,15 +119,19 @@ PVOID receiveGstreamerAudioVideoFromMaster(PVOID args)
 
     switch (pSampleStreamingSession->pVideoRtcRtpTransceiver->receiver.track.codec) {
         case RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE:
-            videoDescription = "appsrc name=appsrc-video ! capsfilter caps=video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline,width=1920,height=1080 ! queue ! h264parse ! queue ! matroskamux name=mux ! queue ! filesink location=video12345.mkv";
+            videoDescription = "appsrc name=appsrc-video ! capsfilter "
+                               "caps=video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline,width=1920,height=1080 ! queue ! h264parse "
+                               "! queue ! matroskamux name=mux ! queue ! filesink location=video12345.mkv";
             break;
-        
+
         case RTC_CODEC_VP8:
             videoDescription = "appsrc name=appsrc-video ! matroskademux ! vp8dec ! decodebin ! autovideosink";
             break;
 
         case RTC_CODEC_H265:
-            videoDescription = "appsrc name=appsrc-video ! capsfilter caps=video/x-h265,stream-format=byte-stream,alignment=au,profile=main,width=1920,height=1080 ! queue ! h265parse ! queue ! matroskamux name=mux ! queue  ! filesink location=video.mkv";
+            videoDescription =
+                "appsrc name=appsrc-video ! capsfilter caps=video/x-h265,stream-format=byte-stream,alignment=au,profile=main,width=1920,height=1080 "
+                "! queue ! h265parse ! queue ! matroskamux name=mux ! queue  ! filesink location=video.mkv";
             break;
 
         default:
@@ -141,12 +145,12 @@ PVOID receiveGstreamerAudioVideoFromMaster(PVOID args)
 
     //     case RTC_CODEC_MULAW:
     //     case RTC_CODEC_ALAW:
-    //         audioDescription = "appsrc name=appsrc-audio ! capsfilter caps=audio/x-opus,rate=48000,channels=2 ! queue ! rawaudioparse ! queue ! mux.";
-    //         break;
-        
+    //         audioDescription = "appsrc name=appsrc-audio ! capsfilter caps=audio/x-opus,rate=48000,channels=2 ! queue ! rawaudioparse ! queue !
+    //         mux."; break;
+
     //     case RTC_CODEC_AAC:
-    //         audioDescription = "appsrc name=appsrc-audio ! capsfilter caps=audio/mpeg,mpegversion=4,stream-format=adts,rate=48000,channels=2,profile=he-aac-v1 ! queue ! aacparse ! queue ! mux. ";
-    //         break;
+    //         audioDescription = "appsrc name=appsrc-audio ! capsfilter caps=audio/mpeg,mpegversion=2,rate=48000,channels=2,stream-format=raw !
+    //         aacparse ! queue ! mux. "; break;
 
     //     default:
     //         break;
@@ -166,7 +170,6 @@ PVOID receiveGstreamerAudioVideoFromMaster(PVOID args)
     CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pVideoRtcRtpTransceiver, (UINT64) appsrcVideo, onGstVideoFrameReadyViewer));
     // CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pAudioRtcRtpTransceiver, (UINT64) appsrcAudio, onGstAudioFrameReadyViewer));
     CHK_STATUS(streamingSessionOnShutdown(pSampleStreamingSession, (UINT64) appsrcVideo, onSampleStreamingSessionShutdown));
-    // CHK_STATUS(streamingSessionOnShutdown(pSampleStreamingSession, (UINT64) appsrcAudio, onSampleStreamingSessionShutdown));
     g_free(audioVideoDescription);
 
     gst_element_set_state(pipeline, GST_STATE_PLAYING);
@@ -229,7 +232,6 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     SET_INSTRUMENTED_ALLOCATORS();
     UINT32 logLevel = setLogLevel();
-
 
 #ifndef _WIN32
     signal(SIGINT, sigintHandler);

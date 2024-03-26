@@ -438,9 +438,9 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
     MEMSET(remoteSdpAttributeValue, 0, MAX_SDP_ATTRIBUTE_VALUE_LENGTH);
 
     if (pRtcMediaStreamTrack->codec == RTC_CODEC_UNKNOWN && pUnknownCodecPayloadTypesTable != NULL) {
-                CHK_STATUS(hashTableGet(pUnknownCodecPayloadTypesTable, unknownCodecHashTableKey, &payloadType));
+        CHK_STATUS(hashTableGet(pUnknownCodecPayloadTypesTable, unknownCodecHashTableKey, &payloadType));
     } else {
-                CHK_STATUS(hashTableGet(pKvsPeerConnection->pCodecTable, pRtcMediaStreamTrack->codec, &payloadType));
+        CHK_STATUS(hashTableGet(pKvsPeerConnection->pCodecTable, pRtcMediaStreamTrack->codec, &payloadType));
         if (!pKvsPeerConnection->isOffer) {
             currentFmtp = fmtpForPayloadType(payloadType, pRemoteSessionDescription);
         }
@@ -452,12 +452,12 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
 
     if (pRtcMediaStreamTrack->kind == MEDIA_STREAM_TRACK_KIND_VIDEO) {
         if (pRtcMediaStreamTrack->codec == RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE) {
-                        retStatus = hashTableGet(pKvsPeerConnection->pRtxTable, RTC_RTX_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE,
+            retStatus = hashTableGet(pKvsPeerConnection->pRtxTable, RTC_RTX_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE,
                                      &rtxPayloadType);
         } else if (pRtcMediaStreamTrack->codec == RTC_CODEC_VP8) {
             retStatus = hashTableGet(pKvsPeerConnection->pRtxTable, RTC_RTX_CODEC_VP8, &rtxPayloadType);
         } else if (pRtcMediaStreamTrack->codec == RTC_CODEC_H265) {
-                        retStatus = hashTableGet(pKvsPeerConnection->pRtxTable, RTC_RTX_CODEC_H265, &rtxPayloadType);
+            retStatus = hashTableGet(pKvsPeerConnection->pRtxTable, RTC_RTX_CODEC_H265, &rtxPayloadType);
             payloadType = DEFAULT_PAYLOAD_H265;
         } else {
             retStatus = STATUS_HASH_KEY_NOT_PRESENT;
@@ -985,12 +985,12 @@ STATUS populateSessionDescriptionMedia(PKvsPeerConnection pKvsPeerConnection, PS
     if (pKvsPeerConnection->isOffer) {
         pDtlsRole = DTLS_ROLE_ACTPASS;
         CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pTransceivers, &pCurNode));
-                while (pCurNode != NULL) {
+        while (pCurNode != NULL) {
             CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
             pCurNode = pCurNode->pNext;
             pKvsRtpTransceiver = (PKvsRtpTransceiver) data;
             if (pKvsRtpTransceiver != NULL) {
-                                CHK(pLocalSessionDescription->mediaCount < MAX_SDP_SESSION_MEDIA_COUNT, STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT);
+                CHK(pLocalSessionDescription->mediaCount < MAX_SDP_SESSION_MEDIA_COUNT, STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT);
                 // If generating answer, need to check if Local Description is present in remote -- if not, we don't need to create a local
                 // description for it or else our Answer will have an extra m-line, for offer the local is the offer itself, don't care about remote
                 CHK_STATUS(populateSingleMediaSection(
@@ -1290,7 +1290,7 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
             rtcCodec = RTC_CODEC_UNKNOWN;
             // check for supported codec in rtpmap values only if an a-line contains the keyword "rtpmap" to save string comparisons
             if (STRNCMP(RTPMAP_VALUE, pMediaDescription->sdpAttributes[currentAttribute].attributeName, 6) == 0) {
-                                if (STRSTR(attributeValue, H264_VALUE) != NULL) {
+                if (STRSTR(attributeValue, H264_VALUE) != NULL) {
                     supportCodec = TRUE;
                     rtcCodec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
                 } else if (STRSTR(attributeValue, OPUS_VALUE) != NULL) {
@@ -1310,7 +1310,7 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
                     rtcCodec = RTC_CODEC_VP8;
                 } else if (STRSTR(attributeValue, H265_VALUE) != NULL) {
                     supportCodec = TRUE;
-                                        rtcCodec = RTC_CODEC_H265;
+                    rtcCodec = RTC_CODEC_H265;
                 } else {
                     supportCodec = FALSE;
                 }
