@@ -28,7 +28,7 @@ CleanUp:
 }
 
 // TODO handle SLI packet https://tools.ietf.org/html/rfc4585#section-6.3.2
-static STATUS onRtcpSLIPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConnection)
+STATUS onRtcpSLIPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConnection)
 {
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 mediaSSRC;

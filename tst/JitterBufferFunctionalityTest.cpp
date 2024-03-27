@@ -103,6 +103,15 @@ TEST_F(JitterBufferFunctionalityTest, continousPacketsComeInOrder)
     clearJitterBufferForTest();
 }
 
+TEST_F(JitterBufferFunctionalityTest, createJitterBufferLatencySetTest)
+{
+    EXPECT_EQ(createJitterBuffer(testFrameReadyFunc, testFrameDroppedFunc, testDepayRtpFunc, 0,
+                               TEST_JITTER_BUFFER_CLOCK_RATE, (UINT64) this, &mJitterBuffer), STATUS_SUCCESS);
+    EXPECT_EQ(mJitterBuffer->maxLatency, DEFAULT_JITTER_BUFFER_MAX_LATENCY * TEST_JITTER_BUFFER_CLOCK_RATE / HUNDREDS_OF_NANOS_IN_A_SECOND);
+    EXPECT_EQ(freeJitterBuffer(NULL), STATUS_NULL_ARG);
+    EXPECT_EQ(freeJitterBuffer(&mJitterBuffer), STATUS_SUCCESS);
+}
+
 TEST_F(JitterBufferFunctionalityTest, continousPacketsComeOutOfOrder)
 {
     UINT32 i;

@@ -46,7 +46,7 @@ STATUS createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION direction, DOUBLE r
             pKvsRtpTransceiver->rollingBufferBitratebps = DEFAULT_EXPECTED_AUDIO_BIT_RATE;
         } else {
             DLOGW("Rolling buffer duration set to less than 100 Kibps for unknown codec. Setting to default %d bps", DEFAULT_EXPECTED_AUDIO_BIT_RATE);
-            rollingBufferBitratebps = DEFAULT_EXPECTED_VIDEO_BIT_RATE;
+            pKvsRtpTransceiver->rollingBufferBitratebps = DEFAULT_EXPECTED_VIDEO_BIT_RATE;
         }
 
     } else {

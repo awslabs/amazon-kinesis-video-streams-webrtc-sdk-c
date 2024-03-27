@@ -101,31 +101,6 @@ CleanUp:
     return retStatus;
 }
 
-STATUS acceptIceAgentMachineState(PIceAgent pIceAgent, UINT64 state)
-{
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-    BOOL locked = FALSE;
-
-    CHK(pIceAgent != NULL, STATUS_NULL_ARG);
-
-    MUTEX_LOCK(pIceAgent->lock);
-    locked = TRUE;
-
-    // Step the state machine
-    CHK_STATUS(acceptStateMachineState(pIceAgent->pStateMachine, state));
-
-CleanUp:
-    CHK_LOG_ERR(retStatus);
-
-    if (locked) {
-        MUTEX_UNLOCK(pIceAgent->lock);
-    }
-
-    LEAVES();
-    return retStatus;
-}
-
 /*
  * This function is supposed to be called from within IceAgentStateMachine callbacks. Assume holding IceAgent->lock
  */

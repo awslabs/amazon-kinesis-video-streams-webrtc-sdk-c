@@ -156,6 +156,71 @@ TEST_F(MetricsApiTest, webRtcIceCandidateGetMetrics)
     EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
 }
 
+TEST_F(MetricsApiTest, webRtcTransportGetMetrics)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection pRtcPeerConnection = NULL;
+    RtcStats rtcTransportMetrics;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    STRNCPY(configuration.iceServers[0].urls, (PCHAR) "stun:stun.kinesisvideo.us-west-2.amazonaws.com:443", MAX_ICE_CONFIG_URI_LEN);
+    STRNCPY(configuration.iceServers[0].credential, EMPTY_STRING, MAX_ICE_CONFIG_CREDENTIAL_LEN);
+    STRNCPY(configuration.iceServers[0].username, EMPTY_STRING, MAX_ICE_CONFIG_USER_NAME_LEN);
+
+    ASSERT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+
+    rtcTransportMetrics.requestedTypeOfStats = RTC_STATS_TYPE_TRANSPORT;
+    EXPECT_EQ(STATUS_NOT_IMPLEMENTED, rtcPeerConnectionGetMetrics(pRtcPeerConnection, NULL, &rtcTransportMetrics));
+    EXPECT_EQ(STATUS_SUCCESS, closePeerConnection(pRtcPeerConnection));
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+}
+
+TEST_F(MetricsApiTest, webRtcRtpGetMetrics)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection pRtcPeerConnection;
+    RtcStats rtcMetrics;
+    RtcMediaStreamTrack videoTrack;
+    PRtcRtpTransceiver videoTransceiver;
+
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+
+    EXPECT_EQ(createPeerConnection(&configuration, &pRtcPeerConnection), STATUS_SUCCESS);
+
+    addTrackToPeerConnection(pRtcPeerConnection, &videoTrack, &videoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+    rtcMetrics.requestedTypeOfStats = RTC_STATS_TYPE_REMOTE_INBOUND_RTP;
+    EXPECT_EQ(rtcPeerConnectionGetMetrics(pRtcPeerConnection, NULL, &rtcMetrics), STATUS_SUCCESS);
+    EXPECT_EQ(rtcPeerConnectionGetMetrics(pRtcPeerConnection, videoTransceiver, &rtcMetrics), STATUS_SUCCESS);
+    rtcMetrics.requestedTypeOfStats = RTC_STATS_TYPE_OUTBOUND_RTP;
+    EXPECT_EQ(rtcPeerConnectionGetMetrics(pRtcPeerConnection, NULL, &rtcMetrics), STATUS_SUCCESS);
+    EXPECT_EQ(rtcPeerConnectionGetMetrics(pRtcPeerConnection, videoTransceiver, &rtcMetrics), STATUS_SUCCESS);
+
+
+    EXPECT_EQ(closePeerConnection(pRtcPeerConnection), STATUS_SUCCESS);
+    EXPECT_EQ(freePeerConnection(&pRtcPeerConnection), STATUS_SUCCESS);
+}
+
+TEST_F(MetricsApiTest, getIceStatsNullChecks)
+{
+    RtcPeerConnection peerConnection;
+    RtcIceCandidatePairStats rtcIceCandidatePairStats;
+    RtcIceCandidateStats rtcIceCandidateStats;
+    RtcIceServerStats rtcIceServerStats;
+    EXPECT_EQ(getIceCandidatePairStats(NULL, NULL), STATUS_NULL_ARG);
+    EXPECT_EQ(getIceCandidatePairStats(&peerConnection, NULL), STATUS_NULL_ARG);
+    EXPECT_EQ(getIceCandidatePairStats(NULL, &rtcIceCandidatePairStats), STATUS_NULL_ARG);
+
+    EXPECT_EQ(getIceCandidateStats(NULL, TRUE, NULL), STATUS_NULL_ARG);
+    EXPECT_EQ(getIceCandidateStats(&peerConnection, TRUE, NULL), STATUS_NULL_ARG);
+    EXPECT_EQ(getIceCandidateStats(NULL, TRUE, &rtcIceCandidateStats), STATUS_NULL_ARG);
+
+    EXPECT_EQ(getIceServerStats(NULL, NULL), STATUS_NULL_ARG);
+    EXPECT_EQ(getIceServerStats(&peerConnection, NULL), STATUS_NULL_ARG);
+    EXPECT_EQ(getIceServerStats(NULL, &rtcIceServerStats), STATUS_NULL_ARG);
+
+}
+
 TEST_F(MetricsApiTest, webRtcIceServerGetMetrics_IceStatsDisabled)
 {
     RtcConfiguration configuration;
@@ -174,16 +239,15 @@ TEST_F(MetricsApiTest, webRtcIceServerGetMetrics_IceStatsDisabled)
     STRNCPY(configuration.iceServers[1].credential, (PCHAR) "username", MAX_ICE_CONFIG_CREDENTIAL_LEN);
     STRNCPY(configuration.iceServers[1].username, (PCHAR) "password", MAX_ICE_CONFIG_USER_NAME_LEN);
     configuration.kvsRtcConfiguration.enableIceStats = FALSE;
-    ASSERT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+    EXPECT_EQ(createPeerConnection(&configuration, &pRtcPeerConnection), STATUS_SUCCESS);
 
     rtcIceMetrics.rtcStatsObject.iceServerStats.iceServerIndex = 1;
-    EXPECT_EQ(STATUS_SUCCESS, rtcPeerConnectionGetMetrics(pRtcPeerConnection, NULL, &rtcIceMetrics));
-    EXPECT_EQ(0, rtcIceMetrics.rtcStatsObject.iceServerStats.port);
-    EXPECT_EQ('\0', rtcIceMetrics.rtcStatsObject.iceServerStats.url[0]);
-    EXPECT_EQ('\0', rtcIceMetrics.rtcStatsObject.iceServerStats.protocol[0]);
-
-    EXPECT_EQ(STATUS_SUCCESS, closePeerConnection(pRtcPeerConnection));
-    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+    EXPECT_EQ(rtcPeerConnectionGetMetrics(pRtcPeerConnection, NULL, &rtcIceMetrics), STATUS_SUCCESS);
+    EXPECT_EQ(rtcIceMetrics.rtcStatsObject.iceServerStats.port, 0);
+    EXPECT_EQ(rtcIceMetrics.rtcStatsObject.iceServerStats.url[0], '\0');
+    EXPECT_EQ(rtcIceMetrics.rtcStatsObject.iceServerStats.protocol[0], '\0');
+    EXPECT_EQ(closePeerConnection(pRtcPeerConnection), STATUS_SUCCESS);
+    EXPECT_EQ(freePeerConnection(&pRtcPeerConnection), STATUS_SUCCESS);
 }
 
 } // namespace webrtcclient

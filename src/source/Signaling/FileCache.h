@@ -38,6 +38,7 @@ typedef struct {
 STATUS deserializeSignalingCacheEntries(PCHAR, UINT64, PSignalingFileCacheEntry, PUINT32, PCHAR);
 STATUS signalingCacheLoadFromFile(PCHAR, PCHAR, SIGNALING_CHANNEL_ROLE_TYPE, PSignalingFileCacheEntry, PBOOL, PCHAR);
 STATUS signalingCacheSaveToFile(PSignalingFileCacheEntry, PCHAR);
+STATUS createFileIfNotExist(PCHAR);
 
 #ifdef __cplusplus
 }
