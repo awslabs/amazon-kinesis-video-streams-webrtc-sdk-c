@@ -289,7 +289,7 @@ CleanUp:
         g_clear_error(&error);
     }
 
-    return (PVOID)(ULONG_PTR) retStatus;
+    return (PVOID) (ULONG_PTR) retStatus;
 }
 
 VOID onGstAudioFrameReady(UINT64 customData, PFrame pFrame)
@@ -385,7 +385,7 @@ CleanUp:
         g_clear_error(&error);
     }
 
-    return (PVOID)(ULONG_PTR) retStatus;
+    return (PVOID) (ULONG_PTR) retStatus;
 }
 
 INT32 main(INT32 argc, CHAR* argv[])
