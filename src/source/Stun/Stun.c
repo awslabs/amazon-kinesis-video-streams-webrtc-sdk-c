@@ -1,7 +1,7 @@
 #define LOG_CLASS "Stun"
 #include "../Include_i.h"
-#include "stun_serializer.h"
-#include "stun_deserializer.h"
+#include "kvsstun/stun_serializer.h"
+#include "kvsstun/stun_deserializer.h"
 
 // Convert error code from STUN library to STATUS.
 extern STATUS convertStunErrorCode(StunResult_t stunResult);

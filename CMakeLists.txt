@@ -222,6 +222,13 @@ if(BUILD_DEPENDENCIES)
   build_dependency(kvssdp ${BUILD_ARGS})
 
   set(BUILD_ARGS
+      -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
+      -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+      -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
+
+  build_dependency(kvsstun ${BUILD_ARGS})
+
+  set(BUILD_ARGS
       -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
       -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
 
@@ -373,7 +380,6 @@ file(
   "src/source/Rtp/Codecs/*.c"
   "src/source/Sdp/*.c"
   "src/source/Srtp/*.c"
-  "src/source/Stun/STUN/source/*.c"
   "src/source/Stun/*.c"
   "src/source/Metrics/*.c")
 
@@ -409,6 +415,7 @@ target_link_libraries(
   PRIVATE kvspicUtils
           kvspicState
           kvssdp
+          kvsstun
           ${CMAKE_THREAD_LIBS_INIT}
           ${OPENSSL_SSL_LIBRARY}
           ${OPENSSL_CRYPTO_LIBRARY}
@@ -431,6 +438,7 @@ target_link_libraries(
         kvsCommonLws
         ${LIBWEBSOCKETS_LIBRARIES}
         kvssdp
+        kvsstun
   PRIVATE kvspicUtils
          kvspicState
          ${CMAKE_THREAD_LIBS_INIT}
