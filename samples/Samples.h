@@ -72,6 +72,12 @@ extern "C" {
 #define MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE 736 // strlen(SIGNALING_CLIENT_METRICS_JSON_TEMPLATE) + 20 * 10
 #define MAX_ICE_AGENT_METRICS_MESSAGE_SIZE        113 // strlen(ICE_AGENT_METRICS_JSON_TEMPLATE) + 20 * 2
 
+#define ADJUSTMENT_INTERVAL_SECONDS 1 * HUNDREDS_OF_NANOS_IN_A_SECOND
+#define MIN_VIDEO_BITRATE_KBPS      512     // Unit kilobits/sec. Value could change based on codec.
+#define MAX_VIDEO_BITRATE_KBPS      2048000 // Unit kilobits/sec. Value could change based on codec.
+#define MIN_AUDIO_BITRATE_BPS       4000    // Unit bits/sec. Value could change based on codec.
+#define MAX_AUDIO_BITRATE_BPS       650000  // Unit bits/sec. Value could change based on codec.
+
 typedef enum {
     SAMPLE_STREAMING_VIDEO_ONLY,
     SAMPLE_STREAMING_AUDIO_VIDEO,
@@ -149,6 +155,7 @@ typedef struct {
     PCHAR rtspUri;
     UINT32 logLevel;
     BOOL enableIceStats;
+    BOOL disableTwcc;
 } SampleConfiguration, *PSampleConfiguration;
 
 typedef struct {
@@ -167,6 +174,16 @@ typedef struct {
 } PendingMessageQueue, *PPendingMessageQueue;
 
 typedef VOID (*StreamSessionShutdownCallback)(UINT64, PSampleStreamingSession);
+
+typedef struct {
+    MUTEX updateLock;
+    UINT64 lastAdjustmentTimeMs;
+    UINT64 currentVideoBitrate;
+    UINT64 currentAudioBitrate;
+    UINT64 newVideoBitrate;
+    UINT64 newAudioBitrate;
+    DOUBLE averagePacketLoss;
+} TwccMetadata, *PTwccMetadata;
 
 struct __SampleStreamingSession {
     volatile ATOMIC_BOOL terminateFlag;
@@ -187,6 +204,7 @@ struct __SampleStreamingSession {
     UINT64 startUpLatency;
     RtcMetricsHistory rtcMetricsHistory;
     BOOL remoteCanTrickleIce;
+    TwccMetadata twccMetadata;
 
     // this is called when the SampleStreamingSession is being freed
     StreamSessionShutdownCallback shutdownCallback;
