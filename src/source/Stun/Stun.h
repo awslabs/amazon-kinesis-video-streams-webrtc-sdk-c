@@ -10,7 +10,7 @@ StunPackager internal include file
 extern "C" {
 #endif
 
-#include "stun_data_types.h"
+#include "kvsstun/stun_data_types.h"
 
 /**
  * Stun header structure
