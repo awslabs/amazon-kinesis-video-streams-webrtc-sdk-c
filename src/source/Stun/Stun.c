@@ -126,8 +126,8 @@ STATUS serializeStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passw
                 pStunAttributeAddress = (PStunAttributeAddress) pStunAttributeHeader;
 
                 stunMappedAddress.family = pStunAttributeAddress->address.family;
-                //For backward compatability
-                stunMappedAddress.port = getInt16( pStunAttributeAddress->address.port );
+                // For backward compatability
+                stunMappedAddress.port = getInt16(pStunAttributeAddress->address.port);
                 MEMCPY(&stunMappedAddress.address, &pStunAttributeAddress->address.address, pStunAttributeAddress->attribute.length);
 
                 stunResult = StunSerializer_AddAttributeAddress(&stunContext, &stunMappedAddress, pStunAttributeHeader->type);
@@ -139,7 +139,8 @@ STATUS serializeStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passw
 
                 CHK(!fingerprintFound && !messaageIntegrityFound, STATUS_STUN_ATTRIBUTES_AFTER_FINGERPRINT_MESSAGE_INTEGRITY);
 
-                stunResult = StunSerializer_AddAttributeUsername(&stunContext, ((const PCHAR)(pStunAttributeUsername + 1 )), STRLEN((const PCHAR)(pStunAttributeUsername + 1 )));
+                stunResult = StunSerializer_AddAttributeUsername(&stunContext, ((const PCHAR)(pStunAttributeUsername + 1)),
+                                                                 STRLEN((const PCHAR)(pStunAttributeUsername + 1)));
 
                 break;
 
@@ -195,7 +196,8 @@ STATUS serializeStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passw
 
                 CHK(!fingerprintFound && !messaageIntegrityFound, STATUS_STUN_ATTRIBUTES_AFTER_FINGERPRINT_MESSAGE_INTEGRITY);
 
-                stunResult = StunSerializer_AddAttributeRequestedTransport(&stunContext, pStunAttributeRequestedTransport->protocol, STUN_ATTRIBUTE_REQUESTED_TRANSPORT_PROTOCOL_LEN);
+                stunResult = StunSerializer_AddAttributeRequestedTransport(&stunContext, pStunAttributeRequestedTransport->protocol,
+                                                                           STUN_ATTRIBUTE_REQUESTED_TRANSPORT_PROTOCOL_LEN);
 
                 break;
 
@@ -205,7 +207,8 @@ STATUS serializeStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passw
 
                 CHK(!fingerprintFound && !messaageIntegrityFound, STATUS_STUN_ATTRIBUTES_AFTER_FINGERPRINT_MESSAGE_INTEGRITY);
 
-                stunResult = StunSerializer_AddAttributeRequestedTransport(&stunContext, pStunAttributeRealm->realm, pStunAttributeRealm->paddedLength - STUN_ATTRIBUTE_HEADER_LENGTH);
+                stunResult = StunSerializer_AddAttributeRequestedTransport(&stunContext, pStunAttributeRealm->realm,
+                                                                           pStunAttributeRealm->paddedLength - STUN_ATTRIBUTE_HEADER_LENGTH);
 
                 break;
 
@@ -215,7 +218,8 @@ STATUS serializeStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passw
 
                 CHK(!fingerprintFound && !messaageIntegrityFound, STATUS_STUN_ATTRIBUTES_AFTER_FINGERPRINT_MESSAGE_INTEGRITY);
 
-                stunResult = StunSerializer_AddAttributeNonce(&stunContext, pStunAttributeNonce->nonce, pStunAttributeNonce->paddedLength - STUN_ATTRIBUTE_HEADER_LENGTH);
+                stunResult = StunSerializer_AddAttributeNonce(&stunContext, pStunAttributeNonce->nonce,
+                                                              pStunAttributeNonce->paddedLength - STUN_ATTRIBUTE_HEADER_LENGTH);
 
                 break;
 
@@ -225,7 +229,9 @@ STATUS serializeStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passw
 
                 CHK(!fingerprintFound && !messaageIntegrityFound, STATUS_STUN_ATTRIBUTES_AFTER_FINGERPRINT_MESSAGE_INTEGRITY);
 
-                stunResult = StunSerializer_AddAttributeErrorCode(&stunContext, pStunAttributeErrorCode->errorCode, pStunAttributeErrorCode->errorPhrase, pStunAttributeErrorCode->paddedLength - STUN_ATTRIBUTE_HEADER_LENGTH );
+                stunResult =
+                    StunSerializer_AddAttributeErrorCode(&stunContext, pStunAttributeErrorCode->errorCode, pStunAttributeErrorCode->errorPhrase,
+                                                         pStunAttributeErrorCode->paddedLength - STUN_ATTRIBUTE_HEADER_LENGTH);
 
                 break;
 
@@ -256,7 +262,8 @@ STATUS serializeStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passw
 
                 CHK(!fingerprintFound && !messaageIntegrityFound, STATUS_STUN_ATTRIBUTES_AFTER_FINGERPRINT_MESSAGE_INTEGRITY);
 
-                stunResult = StunSerializer_AddAttributeData(&stunContext, pStunAttributeData->data, pStunAttributeData->paddedLength - STUN_ATTRIBUTE_HEADER_LENGTH);
+                stunResult = StunSerializer_AddAttributeData(&stunContext, pStunAttributeData->data,
+                                                             pStunAttributeData->paddedLength - STUN_ATTRIBUTE_HEADER_LENGTH);
 
                 break;
 
@@ -300,11 +307,9 @@ STATUS serializeStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passw
 
     // Check if we need to generate the message integrity attribute
     if (generateMessageIntegrity) {
-
         BYTE messageIntegrity[STUN_HMAC_VALUE_LEN];
 
-        if(pBuffer != NULL)
-        {
+        if (pBuffer != NULL) {
             PBYTE pIntegrityBuffer = NULL;
             UINT16 buffereLength;
 
@@ -319,9 +324,7 @@ STATUS serializeStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passw
 
     // Check if we need to generate the fingerprint attribute
     if (generateFingerprint) {
-
-        if(pBuffer != NULL)
-        {
+        if (pBuffer != NULL) {
             PBYTE pFingerprintBuffer = NULL;
             UINT16 buffereLength;
 
@@ -337,7 +340,7 @@ STATUS serializeStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passw
 CleanUp:
 
     if (STATUS_SUCCEEDED(retStatus) && pSize != NULL) {
-        stunResult = StunSerializer_Finalize( &stunContext, pSize );
+        stunResult = StunSerializer_Finalize(&stunContext, pSize);
         retStatus = convertStunErrorCode(stunResult);
     }
 
@@ -382,7 +385,7 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
     CHK(pStunBuffer != NULL && ppStunPacket != NULL, STATUS_NULL_ARG);
     CHK(bufferSize >= STUN_HEADER_LEN, STATUS_INVALID_ARG);
 
-    stunResult = StunDeserializer_Init( &( stunContext ), pStunBuffer, bufferSize, &( stunHeader ));
+    stunResult = StunDeserializer_Init(&(stunContext), pStunBuffer, bufferSize, &(stunHeader));
     CHK(stunResult == STUN_RESULT_OK, convertStunErrorCode(stunResult));
 
     // Copy and fix-up the header
@@ -392,13 +395,13 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
     // Calculate the required size by getting the number of attributes
     allocationSize = SIZEOF(StunPacket);
 
-    stunResult = StunDeserializer_GetNextAttribute( &( stunContext ), &( stunAttribute ) );
+    stunResult = StunDeserializer_GetNextAttribute(&(stunContext), &(stunAttribute));
 
     while (stunResult == STUN_RESULT_OK) {
         attributeSize = 0;
 
         // Check the type, get the allocation size and validate the length for each attribute
-        switch ( stunAttribute.attributeType ) {
+        switch (stunAttribute.attributeType) {
             case STUN_ATTRIBUTE_TYPE_MAPPED_ADDRESS:
             case STUN_ATTRIBUTE_TYPE_RESPONSE_ADDRESS:
             case STUN_ATTRIBUTE_TYPE_SOURCE_ADDRESS:
@@ -409,7 +412,7 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
             case STUN_ATTRIBUTE_TYPE_XOR_PEER_ADDRESS:
                 attributeSize = SIZEOF(StunAttributeAddress);
 
-                stunResult = StunDeserializer_ParseAttributeAddress( &( stunContext ), &stunAttribute, &stunMappedAddress );
+                stunResult = StunDeserializer_ParseAttributeAddress(&(stunContext), &stunAttribute, &stunMappedAddress);
                 CHK(stunResult == STUN_RESULT_OK, convertStunErrorCode(stunResult));
 
                 ipFamily = (UINT16) (stunMappedAddress.family);
@@ -460,7 +463,8 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
             case STUN_ATTRIBUTE_TYPE_CHANGE_REQUEST:
                 attributeSize = SIZEOF(StunAttributeChangeRequest);
 
-                CHK(stunAttribute.attributeValueLength == STUN_ATTRIBUTE_CHANGE_REQUEST_FLAG_LEN, STATUS_STUN_INVALID_CHANGE_REQUEST_ATTRIBUTE_LENGTH);
+                CHK(stunAttribute.attributeValueLength == STUN_ATTRIBUTE_CHANGE_REQUEST_FLAG_LEN,
+                    STATUS_STUN_INVALID_CHANGE_REQUEST_ATTRIBUTE_LENGTH);
                 CHK(!fingerprintFound && !messaageIntegrityFound, STATUS_STUN_ATTRIBUTES_AFTER_FINGERPRINT_MESSAGE_INTEGRITY);
 
                 break;
@@ -540,7 +544,7 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
 
             case STUN_ATTRIBUTE_TYPE_MESSAGE_INTEGRITY:
                 attributeSize = SIZEOF(StunAttributeMessageIntegrity);
-                
+
                 CHK(stunAttribute.attributeValueLength == STUN_HMAC_VALUE_LEN, STATUS_STUN_INVALID_MESSAGE_INTEGRITY_ATTRIBUTE_LENGTH);
                 CHK(!messaageIntegrityFound, STATUS_STUN_MULTIPLE_MESSAGE_INTEGRITY_ATTRIBUTES);
                 CHK(!fingerprintFound, STATUS_STUN_MESSAGE_INTEGRITY_AFTER_FINGERPRINT);
@@ -549,7 +553,7 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
 
             case STUN_ATTRIBUTE_TYPE_FINGERPRINT:
                 attributeSize = SIZEOF(StunAttributeFingerprint);
-                
+
                 CHK(stunAttribute.attributeValueLength == STUN_ATTRIBUTE_FINGERPRINT_LEN, STATUS_STUN_INVALID_FINGERPRINT_ATTRIBUTE_LENGTH);
                 CHK(!fingerprintFound, STATUS_STUN_MULTIPLE_FINGERPRINT_ATTRIBUTES);
                 fingerprintFound = TRUE;
@@ -567,8 +571,7 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
         CHK(attributeCount <= STUN_ATTRIBUTE_MAX_COUNT, STATUS_STUN_MAX_ATTRIBUTE_COUNT);
 
         // Get the next attributes pointer
-        stunResult = StunDeserializer_GetNextAttribute( &( stunContext ), &( stunAttribute ) );
-
+        stunResult = StunDeserializer_GetNextAttribute(&(stunContext), &(stunAttribute));
     }
 
     CHK(stunResult == STUN_RESULT_NO_MORE_ATTRIBUTE_FOUND, convertStunErrorCode(stunResult));
@@ -579,7 +582,7 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
     // Allocate the necessary storage and set the pointers for the attributes
     CHK(NULL != (pStunPacket = MEMCALLOC(1, allocationSize)), STATUS_NOT_ENOUGH_MEMORY);
 
-    stunResult = StunDeserializer_Init( &( stunContext ), pStunBuffer, bufferSize, &( stunHeader ));
+    stunResult = StunDeserializer_Init(&(stunContext), pStunBuffer, bufferSize, &(stunHeader));
     CHK(stunResult == STUN_RESULT_OK, convertStunErrorCode(stunResult));
 
     // Copy the header
@@ -601,9 +604,7 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
     pDestAttribute = (PStunAttributeHeader) (pStunPacket->attributeList + attributeCount);
 
     // Start packaging the attributes
-    while (i < attributeCount &&
-           (StunDeserializer_GetNextAttribute( &( stunContext ), &( stunAttribute ) ) == STUN_RESULT_OK)) {
-
+    while (i < attributeCount && (StunDeserializer_GetNextAttribute(&(stunContext), &(stunAttribute)) == STUN_RESULT_OK)) {
         // Set the array entry first
         pStunPacket->attributeList[i++] = pDestAttribute;
 
@@ -629,13 +630,13 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
                 pStunAttributeAddress = (PStunAttributeAddress) pDestAttribute;
                 attributeSize = SIZEOF(StunAttributeAddress);
 
-                stunResult = StunDeserializer_ParseAttributeAddress( &( stunContext ), &stunAttribute, &stunMappedAddress );
+                stunResult = StunDeserializer_ParseAttributeAddress(&(stunContext), &stunAttribute, &stunMappedAddress);
                 CHK(stunResult == STUN_RESULT_OK, convertStunErrorCode(stunResult));
 
                 MEMCPY(&pStunAttributeAddress->address.address, &stunMappedAddress.address, pStunAttributeAddress->attribute.length);
                 pStunAttributeAddress->address.family = (UINT16) (stunMappedAddress.family);
                 // getInt16 id done for backward compatability
-                pStunAttributeAddress->address.port =  (UINT16) getInt16(stunMappedAddress.port);
+                pStunAttributeAddress->address.port = (UINT16) getInt16(stunMappedAddress.port);
 
                 break;
 
@@ -657,7 +658,7 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
             case STUN_ATTRIBUTE_TYPE_PRIORITY:
                 pStunAttributePriority = (PStunAttributePriority) pDestAttribute;
 
-                stunResult = StunDeserializer_ParseAttributePriority( &( stunContext ), &( stunAttribute ), &priority);
+                stunResult = StunDeserializer_ParseAttributePriority(&(stunContext), &(stunAttribute), &priority);
                 CHK(stunResult == STUN_RESULT_OK, convertStunErrorCode(stunResult));
 
                 pStunAttributePriority->priority = (UINT32) priority;
@@ -675,7 +676,7 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
             case STUN_ATTRIBUTE_TYPE_LIFETIME:
                 pStunAttributeLifetime = (PStunAttributeLifetime) pDestAttribute;
 
-                stunResult = StunDeserializer_ParseAttributeLifetime( &( stunContext ), &( stunAttribute ), &lifetime);
+                stunResult = StunDeserializer_ParseAttributeLifetime(&(stunContext), &(stunAttribute), &lifetime);
                 CHK(stunResult == STUN_RESULT_OK, convertStunErrorCode(stunResult));
 
                 pStunAttributeLifetime->lifetime = (UINT32) getInt32(lifetime);
@@ -687,7 +688,7 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
             case STUN_ATTRIBUTE_TYPE_CHANGE_REQUEST:
                 pStunAttributeChangeRequest = (PStunAttributeChangeRequest) pDestAttribute;
 
-                stunResult = StunDeserializer_ParseAttributeChangeRequest( &( stunContext ), &( stunAttribute ), &changeFlag);
+                stunResult = StunDeserializer_ParseAttributeChangeRequest(&(stunContext), &(stunAttribute), &changeFlag);
                 CHK(stunResult == STUN_RESULT_OK, convertStunErrorCode(stunResult));
 
                 pStunAttributeChangeRequest->changeFlag = (UINT32) getInt32(changeFlag);
@@ -742,7 +743,7 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
                 // Set the padded length
                 pStunAttributeErrorCode->paddedLength = paddedLength;
 
-                stunResult = StunDeserializer_ParseAttributeErrorCode( &stunAttribute, &errorCode, &pErrorPhrase, &errorPhraseLength );
+                stunResult = StunDeserializer_ParseAttributeErrorCode(&stunAttribute, &errorCode, &pErrorPhrase, &errorPhraseLength);
                 CHK(stunResult == STUN_RESULT_OK, convertStunErrorCode(stunResult));
 
                 // swap the error code
@@ -760,7 +761,7 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
             case STUN_ATTRIBUTE_TYPE_ICE_CONTROLLED:
                 pStunAttributeIceControl = (PStunAttributeIceControl) pDestAttribute;
 
-                stunResult = StunDeserializer_ParseAttributeIceControlled( &( stunContext ), &stunAttribute, &data64 );
+                stunResult = StunDeserializer_ParseAttributeIceControlled(&(stunContext), &stunAttribute, &data64);
                 CHK(stunResult == STUN_RESULT_OK, convertStunErrorCode(stunResult));
 
                 // Swap the bits
@@ -773,7 +774,7 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
             case STUN_ATTRIBUTE_TYPE_ICE_CONTROLLING:
                 pStunAttributeIceControl = (PStunAttributeIceControl) pDestAttribute;
 
-                stunResult = StunDeserializer_ParseAttributeIceControlling( &( stunContext ), &stunAttribute, &data64 );
+                stunResult = StunDeserializer_ParseAttributeIceControlling(&(stunContext), &stunAttribute, &data64);
                 CHK(stunResult == STUN_RESULT_OK, convertStunErrorCode(stunResult));
 
                 // Swap the bits
@@ -801,7 +802,7 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
             case STUN_ATTRIBUTE_TYPE_CHANNEL_NUMBER:
                 pStunAttributeChannelNumber = (PStunAttributeChannelNumber) pDestAttribute;
 
-                stunResult = StunDeserializer_ParseAttributeChannelNumber(&( stunContext ), &( stunAttribute ), &channelNumber);
+                stunResult = StunDeserializer_ParseAttributeChannelNumber(&(stunContext), &(stunAttribute), &channelNumber);
                 CHK(stunResult == STUN_RESULT_OK, convertStunErrorCode(stunResult));
 
                 pStunAttributeChannelNumber->channelNumber = (UINT16) getInt16(channelNumber);
@@ -821,14 +822,14 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
                 // Copy the message integrity
                 attributeSize = SIZEOF(StunAttributeMessageIntegrity);
 
-                stunResult = StunDeserializer_GetIntegrityBuffer( &( stunContext ), &pBuffer, &buffereLength );
+                stunResult = StunDeserializer_GetIntegrityBuffer(&(stunContext), &pBuffer, &buffereLength);
                 CHK(stunResult == STUN_RESULT_OK, convertStunErrorCode(stunResult));
 
                 KVS_SHA1_HMAC(password, (INT32) passwordLen, pBuffer, buffereLength, pStunAttributeMessageIntegrity->messageIntegrity, &hmacLen);
 
                 // Validate the HMAC
-                CHK(0 == MEMCMP(pStunAttributeMessageIntegrity->messageIntegrity,
-                         (PBYTE) stunAttribute.pAttributeValue, STUN_HMAC_VALUE_LEN),STATUS_STUN_MESSAGE_INTEGRITY_MISMATCH);
+                CHK(0 == MEMCMP(pStunAttributeMessageIntegrity->messageIntegrity, (PBYTE) stunAttribute.pAttributeValue, STUN_HMAC_VALUE_LEN),
+                    STATUS_STUN_MESSAGE_INTEGRITY_MISMATCH);
 
                 break;
 
@@ -836,10 +837,10 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
 
                 pStunAttributeFingerprint = (PStunAttributeFingerprint) pDestAttribute;
 
-                stunResult = StunDeserializer_ParseAttributeFingerprint( &( stunContext ), &( stunAttribute ), &crc32Fingerprint );
+                stunResult = StunDeserializer_ParseAttributeFingerprint(&(stunContext), &(stunAttribute), &crc32Fingerprint);
                 CHK(stunResult == STUN_RESULT_OK, convertStunErrorCode(stunResult));
 
-                stunResult = StunDeserializer_GetFingerprintBuffer( &( stunContext ), &pBuffer, &buffereLength );
+                stunResult = StunDeserializer_GetFingerprintBuffer(&(stunContext), &pBuffer, &buffereLength);
                 CHK(stunResult == STUN_RESULT_OK, convertStunErrorCode(stunResult));
 
                 crc32 = COMPUTE_CRC32(pBuffer, (UINT32) buffereLength) ^ STUN_FINGERPRINT_ATTRIBUTE_XOR_VALUE;
