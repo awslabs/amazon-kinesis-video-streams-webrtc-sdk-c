@@ -1,7 +1,0 @@
-<map id="convertSdpErrorCode" name="convertSdpErrorCode">
-<area shape="rect" id="node1" title=" " alt="" coords="705,23,864,49"/>
-<area shape="rect" id="node2" href="$Deserialize_8c.html#a9bf1873c4b988e0d50c4fc4322e49f78" title=" " alt="" coords="220,23,437,49"/>
-<area shape="rect" id="node4" href="$Deserialize_8c.html#ac61543eecfffac1718e50d2e85f0f520" title=" " alt="" coords="490,23,653,49"/>
-<area shape="rect" id="node5" href="$Deserialize_8c.html#af90ab5920ae51749654c735243cad6e8" title=" " alt="" coords="485,73,657,100"/>
-<area shape="rect" id="node3" href="$group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,23,172,49"/>
-</map>
