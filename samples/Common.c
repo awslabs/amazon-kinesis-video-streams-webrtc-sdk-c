@@ -609,8 +609,10 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     CHK_STATUS(transceiverOnBandwidthEstimation(pSampleStreamingSession->pAudioRtcRtpTransceiver, (UINT64) pSampleStreamingSession,
                                                 sampleBandwidthEstimationHandler));
     // twcc bandwidth estimation
-    CHK_STATUS(peerConnectionOnSenderBandwidthEstimation(pSampleStreamingSession->pPeerConnection, (UINT64) pSampleStreamingSession,
-                                                         sampleSenderBandwidthEstimationHandler));
+    if (!pSampleConfiguration->disableTwcc) {
+        CHK_STATUS(peerConnectionOnSenderBandwidthEstimation(pSampleStreamingSession->pPeerConnection, (UINT64) pSampleStreamingSession,
+                                                             sampleSenderBandwidthEstimationHandler));
+    }
     pSampleStreamingSession->startUpLatency = 0;
 CleanUp:
 
@@ -717,6 +719,9 @@ VOID sampleBandwidthEstimationHandler(UINT64 customData, DOUBLE maximumBitrate)
     DLOGV("received bitrate suggestion: %f", maximumBitrate);
 }
 
+// Sample callback for TWCC. Average packet is calculated with EMA. If average packet lost is <= 5%,
+// the current bitrate is increased by 5%. If more than 5%, the current bitrate
+// is reduced by percent lost. Bitrate update is allowed every second and is increased/decreased upto the limits
 VOID sampleSenderBandwidthEstimationHandler(UINT64 customData, UINT32 txBytes, UINT32 rxBytes, UINT32 txPacketsCnt, UINT32 rxPacketsCnt,
                                             UINT64 duration)
 {
@@ -749,18 +754,18 @@ VOID sampleSenderBandwidthEstimationHandler(UINT64 customData, UINT32 txBytes, U
 
     if (pSampleStreamingSession->twccMetadata.averagePacketLoss <= 5) {
         // increase encoder bitrate by 5 percent with a cap at MAX_BITRATE
-        videoBitrate = (UINT64) MIN(videoBitrate * 1.05f, MAX_VIDEO_BITRATE_KBPS);
+        videoBitrate = (UINT64) MIN(videoBitrate * 1.05, MAX_VIDEO_BITRATE_KBPS);
     } else {
         // decrease encoder bitrate by average packet loss percent, with a cap at MIN_BITRATE
-        videoBitrate = (UINT64) MAX(videoBitrate * (1.0f - pSampleStreamingSession->twccMetadata.averagePacketLoss / 100.0f), MIN_VIDEO_BITRATE_KBPS);
+        videoBitrate = (UINT64) MAX(videoBitrate * (1.0 - pSampleStreamingSession->twccMetadata.averagePacketLoss / 100.0), MIN_VIDEO_BITRATE_KBPS);
     }
 
     if (pSampleStreamingSession->twccMetadata.averagePacketLoss <= 5) {
         // increase encoder bitrate by 5 percent with a cap at MAX_BITRATE
-        audioBitrate = (UINT64) MIN(audioBitrate * 1.05f, MAX_AUDIO_BITRATE_BPS);
+        audioBitrate = (UINT64) MIN(audioBitrate * 1.05, MAX_AUDIO_BITRATE_BPS);
     } else {
         // decrease encoder bitrate by average packet loss percent, with a cap at MIN_BITRATE
-        audioBitrate = (UINT64) MAX(audioBitrate * (1.0f - pSampleStreamingSession->twccMetadata.averagePacketLoss / 100.0f), MIN_AUDIO_BITRATE_BPS);
+        audioBitrate = (UINT64) MAX(audioBitrate * (1.0 - pSampleStreamingSession->twccMetadata.averagePacketLoss / 100.0), MIN_AUDIO_BITRATE_BPS);
     }
 
     // Update the session with the new bitrate and adjustment time
@@ -770,9 +775,9 @@ VOID sampleSenderBandwidthEstimationHandler(UINT64 customData, UINT32 txBytes, U
 
     pSampleStreamingSession->twccMetadata.lastAdjustmentTimeMs = currentTimeMs;
 
-    DLOGV("Adjustment made: average packet loss = %.2f%%, timediff: %llu ms", pSampleStreamingSession->twccMetadata.averagePacketLoss,
+    DLOGI("Adjustment made: average packet loss = %.2f%%, timediff: %llu ms", pSampleStreamingSession->twccMetadata.averagePacketLoss,
           ADJUSTMENT_INTERVAL_SECONDS, timeDiff);
-    DLOGV("Suggested video bitrate %u kbps, suggested audio bitrate: %u bps, sent: %u bytes %u packets received: %u bytes %u packets in %lu msec",
+    DLOGI("Suggested video bitrate %u kbps, suggested audio bitrate: %u bps, sent: %u bytes %u packets received: %u bytes %u packets in %lu msec",
           videoBitrate, audioBitrate, txBytes, txPacketsCnt, rxBytes, rxPacketsCnt, duration / 10000ULL);
 }
 
