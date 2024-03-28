@@ -1322,6 +1322,56 @@ TEST_F(PeerConnectionFunctionalityTest, aggressiveNominationDTLSRaceConditionChe
     }
 }
 
+TEST_F(PeerConnectionFunctionalityTest, updateEncoderStatsTest)
+{
+    PRtcPeerConnection offerPc = nullptr;
+    RtcMediaStreamTrack offerVideoTrack;
+    RtcEncoderStats encoderStats;
+    RtcConfiguration configuration;
+    PKvsRtpTransceiver pKvsRtpTransceiver;
+    PRtcRtpTransceiver offerVideoTransceiver;
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    MEMSET(&encoderStats, 0x00, SIZEOF(RtcEncoderStats));
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &offerPc));
+
+    offerVideoTrack.codec = RTC_CODEC_VP8;
+    offerVideoTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+    STRCPY(offerVideoTrack.streamId, "vp8");
+    STRCPY(offerVideoTrack.trackId, "vp8");
+
+    EXPECT_EQ(STATUS_SUCCESS, addTransceiver(offerPc, &offerVideoTrack, NULL, &offerVideoTransceiver));
+
+    encoderStats.width = 640;
+    encoderStats.height = 480;
+    encoderStats.targetBitrate = 262000;
+    encoderStats.encodeTimeMsec = 5;
+    encoderStats.bitDepth = 8;
+    encoderStats.voiceActivity = FALSE;
+    STRCPY(encoderStats.encoderImplementation, "encoderimpl");
+    EXPECT_EQ(updateEncoderStats(NULL, NULL), STATUS_NULL_ARG);
+    EXPECT_EQ(updateEncoderStats(offerVideoTransceiver, NULL), STATUS_NULL_ARG);
+    EXPECT_EQ(updateEncoderStats(NULL, &encoderStats), STATUS_NULL_ARG);
+    EXPECT_EQ(updateEncoderStats(offerVideoTransceiver, &encoderStats), STATUS_SUCCESS);
+
+    pKvsRtpTransceiver = reinterpret_cast<PKvsRtpTransceiver>(offerVideoTransceiver);
+    EXPECT_EQ(pKvsRtpTransceiver->outboundStats.frameWidth, encoderStats.width);
+    EXPECT_EQ(pKvsRtpTransceiver->outboundStats.frameHeight, encoderStats.height);
+    EXPECT_EQ(pKvsRtpTransceiver->outboundStats.targetBitrate, encoderStats.targetBitrate);
+    EXPECT_EQ(pKvsRtpTransceiver->outboundStats.totalEncodeTime, encoderStats.encodeTimeMsec);
+    EXPECT_EQ(pKvsRtpTransceiver->outboundStats.frameBitDepth, encoderStats.bitDepth);
+    EXPECT_EQ(pKvsRtpTransceiver->outboundStats.voiceActivityFlag, encoderStats.voiceActivity);
+    EXPECT_STREQ(pKvsRtpTransceiver->outboundStats.encoderImplementation, encoderStats.encoderImplementation);
+    encoderStats.width = 600;
+    EXPECT_EQ(updateEncoderStats(offerVideoTransceiver, &encoderStats), STATUS_SUCCESS);
+    EXPECT_EQ(pKvsRtpTransceiver->outboundStats.frameWidth, encoderStats.width);
+    EXPECT_EQ(pKvsRtpTransceiver->outboundStats.qualityLimitationResolutionChanges, 1);
+    encoderStats.height = 1;
+    EXPECT_EQ(updateEncoderStats(offerVideoTransceiver, &encoderStats), STATUS_SUCCESS);
+    EXPECT_EQ(pKvsRtpTransceiver->outboundStats.frameHeight, encoderStats.height);
+    EXPECT_EQ(pKvsRtpTransceiver->outboundStats.qualityLimitationResolutionChanges, 2);
+    EXPECT_EQ(freePeerConnection(&offerPc), STATUS_SUCCESS);
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis

@@ -12,7 +12,6 @@ STATUS natTestIncomingDataHandler(UINT64 customData, PSocketConnection pSocketCo
     STATUS retStatus = STATUS_SUCCESS;
     PNatTestData pNatTestData = (PNatTestData) customData;
     PStunPacket pStunPacket = NULL;
-
     MUTEX_LOCK(pNatTestData->lock);
     if (pNatTestData->bindingResponseCount < DEFAULT_NAT_TEST_MAX_BINDING_REQUEST_COUNT * NAT_BEHAVIOR_DISCOVER_PROCESS_TEST_COUNT) {
         CHK_STATUS(deserializeStunPacket(pBuffer, bufferLen, NULL, 0, &pStunPacket));
@@ -33,13 +32,13 @@ CleanUp:
  *
  */
 STATUS executeNatTest(PStunPacket bindingRequest, PKvsIpAddress pDestAddr, PSocketConnection pSocketConnection, UINT32 testIndex, PNatTestData pData,
-                      PStunPacket* ppTestReponse)
+                      PStunPacket* ppTestResponse)
 {
     PStunPacket testResponse = NULL;
     UINT32 i, j;
     STATUS retStatus = STATUS_SUCCESS;
 
-    CHK(bindingRequest != NULL && pDestAddr != NULL && pSocketConnection != NULL && pData != NULL && ppTestReponse != NULL, STATUS_NULL_ARG);
+    CHK(bindingRequest != NULL && pDestAddr != NULL && pSocketConnection != NULL && pData != NULL && ppTestResponse != NULL, STATUS_NULL_ARG);
 
     MEMSET(bindingRequest->header.transactionId, 0x00, STUN_TRANSACTION_ID_LEN);
 
@@ -53,7 +52,7 @@ STATUS executeNatTest(PStunPacket bindingRequest, PKvsIpAddress pDestAddr, PSock
     /* Send the STUN packet. Retry DEFAULT_NAT_TEST_MAX_BINDING_REQUEST_COUNT many times until a response
      * is received */
     for (i = 0; testResponse == NULL && i < DEFAULT_NAT_TEST_MAX_BINDING_REQUEST_COUNT; ++i) {
-        iceUtilsSendStunPacket(bindingRequest, NULL, 0, pDestAddr, pSocketConnection, NULL, FALSE);
+        CHK_STATUS(iceUtilsSendStunPacket(bindingRequest, NULL, 0, pDestAddr, pSocketConnection, NULL, FALSE));
         CVAR_WAIT(pData->cvar, pData->lock, DEFAULT_TEST_NAT_TEST_RESPONSE_WAIT_TIME);
         if (pData->bindingResponseCount > 0) {
             for (j = 0; j < pData->bindingResponseCount; ++j) {
@@ -64,11 +63,10 @@ STATUS executeNatTest(PStunPacket bindingRequest, PKvsIpAddress pDestAddr, PSock
             }
         }
     }
-
 CleanUp:
 
-    if (ppTestReponse != NULL) {
-        *ppTestReponse = testResponse;
+    if (ppTestResponse != NULL) {
+        *ppTestResponse = testResponse;
     }
 
     CHK_LOG_ERR(retStatus);
@@ -274,11 +272,11 @@ STATUS discoverNatBehavior(PCHAR stunServer, NAT_BEHAVIOR* pNatMappingBehavior, 
     PKvsIpAddress pSelectedLocalInterface = NULL;
     PConnectionListener pConnectionListener = NULL;
 
+    MEMSET(&customData, 0x00, SIZEOF(NatTestData));
     CHK(stunServer != NULL && pNatMappingBehavior != NULL && pNatFilteringBehavior != NULL, STATUS_NULL_ARG);
     CHK(!IS_EMPTY_STRING(stunServer), STATUS_INVALID_ARG);
 
     MEMSET(&iceServerStun, 0x00, SIZEOF(IceServer));
-    MEMSET(&customData, 0x00, SIZEOF(NatTestData));
     cvar = CVAR_CREATE();
     lock = MUTEX_CREATE(FALSE);
     CHK_STATUS(parseIceServer(&iceServerStun, stunServer, NULL, NULL));
@@ -334,24 +332,19 @@ STATUS discoverNatBehavior(PCHAR stunServer, NAT_BEHAVIOR* pNatMappingBehavior, 
     CHK_STATUS(discoverNatFilteringBehavior(&iceServerStun, &customData, pSocketConnection, pNatFilteringBehavior));
 
 CleanUp:
-
     if (locked) {
         MUTEX_UNLOCK(lock);
     }
-
     if (pConnectionListener != NULL) {
         connectionListenerRemoveAllConnection(pConnectionListener);
         freeConnectionListener(&pConnectionListener);
     }
-
     if (pSocketConnection != NULL) {
         freeSocketConnection(&pSocketConnection);
     }
-
     for (i = 0; i < customData.bindingResponseCount; ++i) {
         freeStunPacket(&customData.bindingResponseList[i]);
     }
-
     if (cvar != INVALID_CVAR_VALUE) {
         CVAR_FREE(cvar);
     }
