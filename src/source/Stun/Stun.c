@@ -178,7 +178,7 @@ STATUS serializeStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passw
 
                 CHK(!fingerprintFound && !messaageIntegrityFound, STATUS_STUN_ATTRIBUTES_AFTER_FINGERPRINT_MESSAGE_INTEGRITY);
 
-                stunResult = StunSerializer_AddAttributePriority(&stunContext, pStunAttributeLifetime->lifetime);
+                stunResult = StunSerializer_AddAttributeLifetime(&stunContext, pStunAttributeLifetime->lifetime);
 
                 break;
 
@@ -188,7 +188,7 @@ STATUS serializeStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passw
 
                 CHK(!fingerprintFound && !messaageIntegrityFound, STATUS_STUN_ATTRIBUTES_AFTER_FINGERPRINT_MESSAGE_INTEGRITY);
 
-                stunResult = StunSerializer_AddAttributePriority(&stunContext, pStunAttributeChangeRequest->changeFlag);
+                stunResult = StunSerializer_AddAttributeChangeRequest(&stunContext, pStunAttributeChangeRequest->changeFlag);
 
                 break;
 
@@ -209,8 +209,8 @@ STATUS serializeStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passw
 
                 CHK(!fingerprintFound && !messaageIntegrityFound, STATUS_STUN_ATTRIBUTES_AFTER_FINGERPRINT_MESSAGE_INTEGRITY);
 
-                stunResult = StunSerializer_AddAttributeRequestedTransport(&stunContext, (const UINT8*) pStunAttributeRealm->realm,
-                                                                           pStunAttributeRealm->paddedLength - STUN_ATTRIBUTE_HEADER_LENGTH);
+                stunResult = StunSerializer_AddAttributeRealm(&stunContext, (const UINT8*) pStunAttributeRealm->realm,
+                                                              pStunAttributeRealm->paddedLength - STUN_ATTRIBUTE_HEADER_LENGTH);
 
                 break;
 
@@ -417,8 +417,8 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
                 stunResult = StunDeserializer_ParseAttributeAddress(&(stunContext), &stunAttribute, &stunMappedAddress);
                 CHK(stunResult == STUN_RESULT_OK, convertStunErrorCode(stunResult));
 
+                // Address family
                 ipFamily = (UINT16) (stunMappedAddress.family);
-                // Address family and the port
                 size = STUN_ATTRIBUTE_ADDRESS_HEADER_LEN + ((ipFamily == KVS_IP_FAMILY_TYPE_IPV4) ? IPV4_ADDRESS_LENGTH : IPV6_ADDRESS_LENGTH);
 
                 CHK(stunAttribute.attributeValueLength == size, STATUS_STUN_INVALID_ADDRESS_ATTRIBUTE_LENGTH);
