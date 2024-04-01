@@ -119,9 +119,7 @@ PVOID receiveGstreamerAudioVideoFromMaster(PVOID args)
 
     switch (pSampleStreamingSession->pVideoRtcRtpTransceiver->receiver.track.codec) {
         case RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE:
-            videoDescription = "appsrc name=appsrc-video ! capsfilter "
-                               "caps=video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline,width=1920,height=1080 ! queue ! h264parse "
-                               "! queue ! matroskamux name=mux ! queue ! filesink location=video12345.mkv";
+            videoDescription = "appsrc name=appsrc-video ! capsfilter caps=video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline,width=1920,height=1080 ! queue ! h264parse ! queue ! matroskamux name=mux ! queue ! filesink location=video.mkv";
             break;
 
         case RTC_CODEC_VP8:
@@ -129,32 +127,30 @@ PVOID receiveGstreamerAudioVideoFromMaster(PVOID args)
             break;
 
         case RTC_CODEC_H265:
-            videoDescription =
-                "appsrc name=appsrc-video ! capsfilter caps=video/x-h265,stream-format=byte-stream,alignment=au,profile=main,width=1920,height=1080 "
-                "! queue ! h265parse ! queue ! matroskamux name=mux ! queue  ! filesink location=video.mkv";
+            videoDescription = "appsrc name=appsrc-video ! capsfilter caps=video/x-h265,stream-format=byte-stream,alignment=au,profile=main,width=1920,height=1080 ! queue ! h265parse ! queue ! matroskamux name=mux ! queue ! filesink location=video.mkv ";
             break;
 
         default:
             break;
     }
 
-    // switch (pSampleStreamingSession->pAudioRtcRtpTransceiver->receiver.track.codec) {
-    //     case RTC_CODEC_OPUS:
-    //         audioDescription = "appsrc name=appsrc-audio ! capsfilter caps=audio/x-opus,rate=48000,channels=2 ! queue ! opusparse ! queue ! mux.";
-    //         break;
+    switch (pSampleStreamingSession->pAudioRtcRtpTransceiver->receiver.track.codec) {
+        case RTC_CODEC_OPUS:
+            audioDescription = "appsrc name=appsrc-audio ! capsfilter caps=audio/x-opus,rate=48000,channels=2 ! queue ! opusparse ! queue ! mux.";
+            break;
 
-    //     case RTC_CODEC_MULAW:
-    //     case RTC_CODEC_ALAW:
-    //         audioDescription = "appsrc name=appsrc-audio ! capsfilter caps=audio/x-opus,rate=48000,channels=2 ! queue ! rawaudioparse ! queue !
-    //         mux."; break;
+        case RTC_CODEC_MULAW:
+        case RTC_CODEC_ALAW:
+            audioDescription = "appsrc name=appsrc-audio ! capsfilter caps=audio/x-opus,rate=48000,channels=2 ! queue ! rawaudioparse ! queue ! mux.";
+            break;
 
-    //     case RTC_CODEC_AAC:
-    //         audioDescription = "appsrc name=appsrc-audio ! capsfilter caps=audio/mpeg,mpegversion=2,rate=48000,channels=2,stream-format=raw !
-    //         aacparse ! queue ! mux. "; break;
+        case RTC_CODEC_AAC:
+            audioDescription = "appsrc name=appsrc-audio ! capsfilter caps=audio/mpeg,mpegversion=4,channels=2,rate=48000,stream-format=raw,base-profile=lc,codec_data=(buffer)1190 ! queue ! aacparse ! mux.";
+            break;
 
-    //     default:
-    //         break;
-    // }
+        default:
+            break;
+    }
 
     audioVideoDescription = g_strjoin(" ", videoDescription, audioDescription, NULL);
 
@@ -164,11 +160,11 @@ PVOID receiveGstreamerAudioVideoFromMaster(PVOID args)
     appsrcVideo = gst_bin_get_by_name(GST_BIN(pipeline), "appsrc-video");
     CHK_ERR(appsrcVideo != NULL, STATUS_INTERNAL_ERROR, "[KVS Gstreamer Viewer] Cannot find appsrc video");
 
-    // appsrcAudio = gst_bin_get_by_name(GST_BIN(pipeline), "appsrc-audio");
-    // CHK_ERR(appsrcAudio != NULL, STATUS_INTERNAL_ERROR, "[KVS Gstreamer Viewer] Cannot find appsrc audio");
+    appsrcAudio = gst_bin_get_by_name(GST_BIN(pipeline), "appsrc-audio");
+    CHK_ERR(appsrcAudio != NULL, STATUS_INTERNAL_ERROR, "[KVS Gstreamer Viewer] Cannot find appsrc audio");
 
     CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pVideoRtcRtpTransceiver, (UINT64) appsrcVideo, onGstVideoFrameReadyViewer));
-    // CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pAudioRtcRtpTransceiver, (UINT64) appsrcAudio, onGstAudioFrameReadyViewer));
+    CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pAudioRtcRtpTransceiver, (UINT64) appsrcAudio, onGstAudioFrameReadyViewer));
     CHK_STATUS(streamingSessionOnShutdown(pSampleStreamingSession, (UINT64) appsrcVideo, onSampleStreamingSessionShutdown));
     g_free(audioVideoDescription);
 

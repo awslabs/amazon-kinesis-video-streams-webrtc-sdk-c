@@ -15,7 +15,7 @@ extern "C" {
 #define NUMBER_OF_H264_FRAME_FILES               1500
 #define NUMBER_OF_H265_FRAME_FILES               1500
 #define NUMBER_OF_OPUS_FRAME_FILES               618
-#define NUMBER_OF_AAC_FRAME_FILES                206
+#define NUMBER_OF_AAC_FRAME_FILES                582
 #define DEFAULT_FPS_VALUE                        25
 #define DEFAULT_MAX_CONCURRENT_STREAMING_SESSION 10
 
