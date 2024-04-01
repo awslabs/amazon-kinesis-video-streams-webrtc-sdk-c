@@ -128,7 +128,9 @@ STATUS serializeStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passw
                 stunMappedAddress.family = pStunAttributeAddress->address.family;
                 // For backward compatability
                 stunMappedAddress.port = getInt16(pStunAttributeAddress->address.port);
-                MEMCPY(&stunMappedAddress.address, &pStunAttributeAddress->address.address, pStunAttributeAddress->attribute.length);
+
+                MEMCPY(&stunMappedAddress.address, &pStunAttributeAddress->address.address,
+                       pStunAttributeAddress->attribute.length - STUN_ATTRIBUTE_ADDRESS_HEADER_LENGTH);
 
                 stunResult = StunSerializer_AddAttributeAddress(&stunContext, &stunMappedAddress, pStunAttributeHeader->type);
                 break;
@@ -632,8 +634,8 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
 
                 stunResult = StunDeserializer_ParseAttributeAddress(&(stunContext), &stunAttribute, &stunMappedAddress);
                 CHK(stunResult == STUN_RESULT_OK, convertStunErrorCode(stunResult));
-
-                MEMCPY(&pStunAttributeAddress->address.address, &stunMappedAddress.address, pStunAttributeAddress->attribute.length);
+                MEMCPY(&pStunAttributeAddress->address.address, &stunMappedAddress.address,
+                       pStunAttributeAddress->attribute.length - STUN_ATTRIBUTE_ADDRESS_HEADER_LENGTH);
                 pStunAttributeAddress->address.family = (UINT16) (stunMappedAddress.family);
                 // getInt16 id done for backward compatability
                 pStunAttributeAddress->address.port = (UINT16) getInt16(stunMappedAddress.port);
