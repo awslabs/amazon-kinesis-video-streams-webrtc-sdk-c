@@ -100,6 +100,7 @@ STATUS serializeStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passw
 
     CHK(pStunPacket != NULL && (!generateMessageIntegrity || password != NULL) && pSize != NULL, STATUS_NULL_ARG);
     CHK(password == NULL || passwordLen != 0, STATUS_INVALID_ARG);
+    CHK(pStunPacket->header.magicCookie == STUN_HEADER_MAGIC_COOKIE, STATUS_STUN_MAGIC_COOKIE_MISMATCH);
 
     stunHeader.messageType = pStunPacket->header.stunMessageType;
     stunHeader.pTransactionId = pStunPacket->header.transactionId;
