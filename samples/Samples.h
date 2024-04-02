@@ -11,11 +11,14 @@ extern "C" {
 #endif
 
 #include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
+#include <gst/gst.h>
+#include <gst/app/app.h>
+#include <gst/app/gstappsink.h>
 
 #define NUMBER_OF_H264_FRAME_FILES               1500
 #define NUMBER_OF_H265_FRAME_FILES               1500
 #define NUMBER_OF_OPUS_FRAME_FILES               618
-#define NUMBER_OF_AAC_FRAME_FILES                582
+#define NUMBER_OF_AAC_FRAME_FILES                1500
 #define DEFAULT_FPS_VALUE                        25
 #define DEFAULT_MAX_CONCURRENT_STREAMING_SESSION 10
 

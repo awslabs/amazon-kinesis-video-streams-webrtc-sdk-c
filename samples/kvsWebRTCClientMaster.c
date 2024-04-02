@@ -155,7 +155,7 @@ PVOID sendVideoPackets(PVOID args)
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
 #ifdef USE_VIDEO_H265
         fileIndex = fileIndex % NUMBER_OF_H265_FRAME_FILES + 1;
-        SNPRINTF(filePath, MAX_PATH_LEN, "./h265GSTSampleFrames/frame-%04d.h265", fileIndex);
+        SNPRINTF(filePath, MAX_PATH_LEN, "./h265SampleFrames/frame-%04d.h265", fileIndex);
 #else
         fileIndex = fileIndex % NUMBER_OF_H264_FRAME_FILES + 1;
         SNPRINTF(filePath, MAX_PATH_LEN, "./h264SampleFrames/frame-%04d.h264", fileIndex);

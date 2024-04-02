@@ -1,7 +1,4 @@
 #include "Samples.h"
-#include <gst/gst.h>
-#include <gst/app/app.h>
-#include <gst/app/gstappsink.h>
 
 extern PSampleConfiguration gSampleConfiguration;
 
@@ -99,10 +96,9 @@ VOID onGstAudioFrameReadyViewer(UINT64 customData, PFrame pFrame)
 VOID onSampleStreamingSessionShutdown(UINT64 customData, PSampleStreamingSession pSampleStreamingSession)
 {
     (void) (pSampleStreamingSession);
-    GstElement* appsrc = (GstElement*) customData;
-    GstFlowReturn ret;
+    GstElement* pipeline = (GstElement*) customData;
 
-    g_signal_emit_by_name(appsrc, "end-of-stream", &ret);
+    gst_element_send_event(pipeline, gst_event_new_eos());
 }
 
 PVOID receiveGstreamerAudioVideoFromMaster(PVOID args)
@@ -127,7 +123,7 @@ PVOID receiveGstreamerAudioVideoFromMaster(PVOID args)
             break;
 
         case RTC_CODEC_H265:
-            videoDescription = "appsrc name=appsrc-video ! capsfilter caps=video/x-h265,stream-format=byte-stream,alignment=au,profile=main,width=1920,height=1080 ! queue ! h265parse ! queue ! matroskamux name=mux ! queue ! filesink location=video.mkv ";
+            videoDescription = "appsrc name=appsrc-video ! capsfilter caps=video/x-h265,stream-format=byte-stream,framerate=25/1,alignment=au,profile=main,width=1920,height=1080 ! queue ! h265parse ! queue ! matroskamux name=mux ! queue ! filesink location=video.mkv ";
             break;
 
         default:
@@ -145,7 +141,7 @@ PVOID receiveGstreamerAudioVideoFromMaster(PVOID args)
             break;
 
         case RTC_CODEC_AAC:
-            audioDescription = "appsrc name=appsrc-audio ! capsfilter caps=audio/mpeg,mpegversion=4,channels=2,rate=48000,stream-format=raw,base-profile=lc,codec_data=(buffer)1190 ! queue ! aacparse ! mux.";
+            audioDescription = "appsrc name=appsrc-audio ! capsfilter caps=audio/mpeg,mpegversion=4,stream-format=adts,base-profile=lc,channels=2,rate=48000 ! queue ! aacparse ! mux.";
             break;
 
         default:
@@ -158,14 +154,14 @@ PVOID receiveGstreamerAudioVideoFromMaster(PVOID args)
     CHK_ERR(pipeline != NULL, STATUS_INTERNAL_ERROR, "[KVS Viewer] Pipeline is NULL");
 
     appsrcVideo = gst_bin_get_by_name(GST_BIN(pipeline), "appsrc-video");
-    CHK_ERR(appsrcVideo != NULL, STATUS_INTERNAL_ERROR, "[KVS Gstreamer Viewer] Cannot find appsrc video");
+    CHK_ERR(appsrcVideo != NULL, STATUS_INTERNAL_ERROR, "[KVS Viewer] Cannot find appsrc video");
 
     appsrcAudio = gst_bin_get_by_name(GST_BIN(pipeline), "appsrc-audio");
-    CHK_ERR(appsrcAudio != NULL, STATUS_INTERNAL_ERROR, "[KVS Gstreamer Viewer] Cannot find appsrc audio");
+    CHK_ERR(appsrcAudio != NULL, STATUS_INTERNAL_ERROR, "[KVS Viewer] Cannot find appsrc audio");
 
     CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pVideoRtcRtpTransceiver, (UINT64) appsrcVideo, onGstVideoFrameReadyViewer));
     CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pAudioRtcRtpTransceiver, (UINT64) appsrcAudio, onGstAudioFrameReadyViewer));
-    CHK_STATUS(streamingSessionOnShutdown(pSampleStreamingSession, (UINT64) appsrcVideo, onSampleStreamingSessionShutdown));
+    CHK_STATUS(streamingSessionOnShutdown(pSampleStreamingSession, (UINT64) pipeline, onSampleStreamingSessionShutdown));
     g_free(audioVideoDescription);
 
     gst_element_set_state(pipeline, GST_STATE_PLAYING);
