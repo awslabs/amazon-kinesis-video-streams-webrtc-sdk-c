@@ -42,7 +42,7 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
       - name: Install dependencies
         run: |
-          brew install gstreamer    
+          brew install gstreamer glib 
       - name: Build repository
         run: |
           mkdir build && cd build
