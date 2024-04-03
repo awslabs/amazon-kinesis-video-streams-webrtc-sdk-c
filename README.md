@@ -157,6 +157,7 @@ You can pass the following options to `cmake ..`.
 * `-DLINK_PROFILER` -- Link with gperftools (available profiler options are listed [here](https://github.com/gperftools/gperftools))
 * `-DKVS_STACK_SIZE` -- Default stack size for threads created using THREAD_CREATE()
 * `-DPKG_CONFIG_EXECUTABLE` -- Set pkg config path. This might be required to find gstreamer's pkg config specifically on Windows.
+* `-DENABLE_GST_SAMPLE_RECEIVER` -- Enable gstreamer receiver to receive media while running the Viewer and GstMaster samples
 
 To clean up the `open-source` and `build` folders from previous build, use `cmake --build . --target clean` from the `build` folder
 
@@ -294,7 +295,9 @@ Pass the desired media and source type when running the sample. The mediaType ca
 
 
 #### Sample: kvsWebrtcClientViewer
-This application accepts sample H264/Opus frames and prints them out. To run:
+This application accepts sample H264/Opus frames. To write these frames to a file using GStreamer, build with `ENABLE_GST_SAMPLE_RECEIVER`. Make sure that your device has enough space to write the media to a file. You can also customize the receiving logic by modifying the functions in _GstAudioVideoReceiver.c_
+
+To run:
 ```shell
 ./samples/kvsWebrtcClientViewer <channelName>
 ```

@@ -4,6 +4,10 @@
 #include <gst/app/app.h>
 #include <gst/app/gstappsink.h>
 
+
+// This function is a callback for the transceiver for every single video frame it receives
+// It writes these frames to a buffer and pushes it to the `appsrcVideo` element of the 
+// GStreamer pipeline created in `receiveGstreamerAudioVideo`. Any logic to modify / discard the frames would go here
 VOID onGstVideoFrameReady(UINT64 customData, PFrame pFrame)
 {
     GstFlowReturn ret;
@@ -33,6 +37,9 @@ VOID onGstVideoFrameReady(UINT64 customData, PFrame pFrame)
     gst_buffer_unref(buffer);
 }
 
+// This function is a callback for the transceiver for every single audio frame it receives
+// It writes these frames to a buffer and pushes it to the `appsrcAudio` element of the 
+// GStreamer pipeline created in `receiveGstreamerAudioVideo`. Any logic to modify / discard the frames would go here
 VOID onGstAudioFrameReady(UINT64 customData, PFrame pFrame)
 {
     GstFlowReturn ret;
@@ -49,6 +56,8 @@ VOID onGstAudioFrameReady(UINT64 customData, PFrame pFrame)
 
     DLOGD("Audio Frame size: %d, presentationTs: %llu", pFrame->size, pFrame->presentationTs);
     GST_BUFFER_PTS(buffer) = pFrame->presentationTs;
+
+    // Recalculate the byte-rate if not using the default values
     GST_BUFFER_DURATION(buffer) = gst_util_uint64_scale(pFrame->size, GST_SECOND, DEFAULT_AUDIO_BYTE_RATE);
     if (gst_buffer_fill(buffer, 0, pFrame->frameData, pFrame->size) != pFrame->size) {
         DLOGE("Buffer fill did not complete correctly");
@@ -62,6 +71,8 @@ VOID onGstAudioFrameReady(UINT64 customData, PFrame pFrame)
     gst_buffer_unref(buffer);
 }
 
+// This function is a callback for the streaming session shutdown event. We send an eos to the pipeline to exit the 
+// application using this.
 VOID onSampleStreamingSessionShutdown(UINT64 customData, PSampleStreamingSession pSampleStreamingSession)
 {
     (void) (pSampleStreamingSession);
@@ -92,6 +103,9 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
 
     CHK_ERR(pSampleStreamingSession != NULL, STATUS_NULL_ARG, "[KVS %s] Sample streaming session is NULL", roleType);
 
+    // It is advised to modify the pipeline and the caps as per the source of the media. Customers can also modify this pipeline to 
+    // use any other sinks instead of `filesink` like `autovideosink` and `autoaudiosink`. The existing pipelines are not complex enough to
+    // change cpas and properties dynamically, more complex logic may be needed to support the same.
     switch (pSampleStreamingSession->pVideoRtcRtpTransceiver->receiver.track.codec) {
         case RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE:
             videoDescription = "appsrc name=appsrc-video ! queue ! h264parse ! queue ! matroskamux name=mux ! queue ! filesink location=video.mkv";
@@ -107,7 +121,8 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
                                     G_TYPE_STRING, "main", "height", G_TYPE_INT, DEFAULT_HEIGHT, "width", G_TYPE_INT, DEFAULT_WIDTH, NULL);
             break;
 
-        // TODO: add a case for vp8
+        // TODO: add a similar pipeline for VP8
+        
         default:
             break;
     }
@@ -127,7 +142,12 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
                                                 G_TYPE_STRING, "lc", NULL);
                 break;
 
-            // TODO: add a case for mulaw and alaw
+            // TODO: make sure this pipeline works. Figure out the caps for this
+            case RTC_CODEC_MULAW:
+            case RTC_CODEC_ALAW:
+                audioDescription = "appsrc name=appsrc-audio ! rawaudioparse ! decodebin ! autoaudiosink";
+                break;
+            
             default:
                 break;
         }
