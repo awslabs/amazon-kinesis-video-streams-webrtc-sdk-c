@@ -851,7 +851,7 @@ typedef enum {
     RTC_CODEC_UNKNOWN = 8,
 
     // RTC_CODEC_MAX **MUST** be the last enum in the list **ALWAYS** and not assigned a value
-    RTC_CODEC_MAX //!< Placeholder for max number of supported codecs    
+    RTC_CODEC_MAX //!< Placeholder for max number of supported codecs
 } RTC_CODEC;
 
 /**

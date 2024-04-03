@@ -97,15 +97,21 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
 
     switch (pSampleStreamingSession->pVideoRtcRtpTransceiver->receiver.track.codec) {
         case RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE:
-            videoDescription = "appsrc name=appsrc-video ! capsfilter caps=video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline,width=1920,height=1080 ! queue ! h264parse ! queue ! matroskamux name=mux ! queue ! filesink location=video.mkv";
+            videoDescription = "appsrc name=appsrc-video ! capsfilter "
+                               "caps=video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline,width=1920,height=1080 ! queue ! h264parse "
+                               "! queue ! matroskamux name=mux ! queue ! filesink location=video.mkv";
             break;
 
         case RTC_CODEC_H265:
-            videoDescription = "appsrc name=appsrc-video ! capsfilter caps=video/x-h265,stream-format=byte-stream,framerate=25/1,alignment=au,profile=main,width=1920,height=1080 ! queue ! h265parse ! queue ! matroskamux name=mux ! queue ! filesink location=video.mkv ";
+            videoDescription = "appsrc name=appsrc-video ! capsfilter "
+                               "caps=video/x-h265,stream-format=byte-stream,framerate=25/1,alignment=au,profile=main,width=1920,height=1080 ! queue "
+                               "! h265parse ! queue ! matroskamux name=mux ! queue ! filesink location=video.mkv ";
             break;
 
         case RTC_CODEC_VP8:
-            videoDescription = "appsrc name=appsrc-video ! capsfilter caps=video/x-vp8,stream-format=byte-stream,framerate=25/1,alignment=au,profile=main,width=1920,height=1080 ! queue ! h265parse ! queue ! matroskamux name=mux ! queue ! filesink location=video.mkv ";
+            videoDescription = "appsrc name=appsrc-video ! capsfilter "
+                               "caps=video/x-vp8,stream-format=byte-stream,framerate=25/1,alignment=au,profile=main,width=1920,height=1080 ! queue ! "
+                               "h265parse ! queue ! matroskamux name=mux ! queue ! filesink location=video.mkv ";
         default:
             break;
     }
@@ -122,7 +128,8 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
                 break;
 
             case RTC_CODEC_AAC:
-                audioDescription = "appsrc name=appsrc-audio ! capsfilter caps=audio/mpeg,mpegversion=4,stream-format=adts,base-profile=lc,channels=2,rate=48000 ! queue ! aacparse ! mux.";
+                audioDescription = "appsrc name=appsrc-audio ! capsfilter "
+                                   "caps=audio/mpeg,mpegversion=4,stream-format=adts,base-profile=lc,channels=2,rate=48000 ! queue ! aacparse ! mux.";
                 break;
 
             // TODO: add a case for mulaw and alaw
@@ -145,7 +152,7 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
         CHK_ERR(appsrcAudio != NULL, STATUS_INTERNAL_ERROR, "[KVS %s] Cannot find appsrc audio", roleType);
         CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pAudioRtcRtpTransceiver, (UINT64) appsrcAudio, onGstAudioFrameReady));
     }
-    
+
     CHK_STATUS(streamingSessionOnShutdown(pSampleStreamingSession, (UINT64) pipeline, onSampleStreamingSessionShutdown));
     g_free(audioVideoDescription);
 

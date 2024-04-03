@@ -28,6 +28,7 @@ jobs:
       CC: /usr/bin/clang
       CXX: /usr/bin/clang++
       AWS_KVS_LOG_LEVEL: 2
+      PKG_CONFIG_PATH: /usr/local/opt/pkgconfig
     permissions:
       id-token: write
       contents: read
@@ -42,7 +43,7 @@ jobs:
       - name: Build repository
         run: |
           mkdir build && cd build
-          cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
+          cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE -DENABLE_GST_SAMPLE_RECEIVER=ON
           make
       - name: Run tests
         run:  |

@@ -58,9 +58,9 @@ file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/aacSampleFrames" DESTINATION .)
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/h265SampleFrames" DESTINATION .)
 
 add_executable(
-    kvsWebrtcClientMaster
-    Common.c
-    kvsWebRTCClientMaster.c)
+  kvsWebrtcClientMaster
+  Common.c
+  kvsWebRTCClientMaster.c)
 target_link_libraries(kvsWebrtcClientMaster kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} kvsCommonLws kvspicUtils websockets kvssdp)
 
 add_executable(
@@ -98,7 +98,6 @@ else()
     add_executable(
       kvsWebrtcClientMasterGstSample
       Common.c
-      GstAudioVideoReceiver.c
       kvsWebRTCClientMasterGstSample.c
     )
     target_link_libraries(kvsWebrtcClientMasterGstSample kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} ${GST_SAMPLE_LIBRARIES} kvsCommonLws kvspicUtils websockets kvssdp)

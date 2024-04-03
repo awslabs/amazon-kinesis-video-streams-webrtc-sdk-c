@@ -141,6 +141,18 @@ PVOID sendGstreamerAudioVideo(PVOID args)
      * vp8enc error-resilient=partitions keyframe-max-dist=10 auto-alt-ref=true cpu-used=5 deadline=1 !
      * appsink sync=TRUE emit-signals=TRUE name=appsink-video
      *
+     * For H265/AAC
+     * pipeline =
+     *          gst_parse_launch("videotestsrc pattern=ball is-live=TRUE ! timeoverlay ! queue ! videoconvert !
+     *                                     "video/x-raw,format=I420,width=1920,height=1080,framerate=25/1 ! " "queue ! "
+     *                                     "x265enc speed-preset=veryfast bitrate=512 tune=zerolatency ! "
+     *                                     "video/x-h265,stream-format=byte-stream,alignment=au,profile=main ! appsink sync=TRUE "
+     *                                     "emit-signals=TRUE name=appsink-video audiotestsrc wave=triangle is-live=TRUE ! "
+     *                                     "queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample ! faac ! "
+     *                                     "capsfilter caps=audio/mpeg,mpegversion=4,stream-format=adts,base-profile=lc,channels=2,rate=48000 ! "
+     *                                     "appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
+     *                                     &error);
+     *
      * Raspberry Pi Hardware Encode Example
      * "v4l2src device=\"/dev/video0\" ! queue ! v4l2convert ! "
      * "video/x-raw,format=I420,width=640,height=480,framerate=30/1 ! "
