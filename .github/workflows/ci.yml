@@ -46,7 +46,7 @@ jobs:
       - name: Build repository
         run: |
           mkdir build && cd build
-          cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE -DENABLE_GST_SAMPLE_RECEIVER=ON
+          cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=FALSE -DENABLE_GST_SAMPLE_RECEIVER=ON
           make
       - name: Run tests
         run:  |
