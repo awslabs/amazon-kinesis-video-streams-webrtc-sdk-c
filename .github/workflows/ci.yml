@@ -40,6 +40,9 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
+      - name: Install dependencies
+        run: |
+          brew install gstreamer    
       - name: Build repository
         run: |
           mkdir build && cd build
