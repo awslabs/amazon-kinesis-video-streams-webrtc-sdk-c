@@ -23,7 +23,7 @@ jobs:
         run: |
           bash scripts/check-clang.sh
   mac-os-build-clang:
-    runs-on: macos-11
+    runs-on: macos-12
     env:
       CC: /usr/bin/clang
       CXX: /usr/bin/clang++

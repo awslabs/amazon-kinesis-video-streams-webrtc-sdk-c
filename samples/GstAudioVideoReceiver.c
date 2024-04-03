@@ -20,7 +20,7 @@ VOID onGstVideoFrameReady(UINT64 customData, PFrame pFrame)
 
     DLOGI("Frame size: %d, %llu", pFrame->size, pFrame->presentationTs);
     GST_BUFFER_PTS(buffer) = pFrame->presentationTs;
-    GST_BUFFER_DURATION(buffer) = gst_util_uint64_scale(1, GST_SECOND, 24);
+    GST_BUFFER_DURATION(buffer) = gst_util_uint64_scale(1, GST_SECOND, 25);
     if (gst_buffer_fill(buffer, 0, pFrame->frameData, pFrame->size) != pFrame->size) {
         DLOGE("Buffer fill did not complete correctly");
         gst_buffer_unref(buffer);
@@ -98,20 +98,17 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
     switch (pSampleStreamingSession->pVideoRtcRtpTransceiver->receiver.track.codec) {
         case RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE:
             videoDescription = "appsrc name=appsrc-video ! capsfilter "
-                               "caps=video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline,width=1920,height=1080 ! queue ! h264parse "
+                               "caps=video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline,width=1920,height=720 ! queue ! h264parse "
                                "! queue ! matroskamux name=mux ! queue ! filesink location=video.mkv";
             break;
 
         case RTC_CODEC_H265:
             videoDescription = "appsrc name=appsrc-video ! capsfilter "
-                               "caps=video/x-h265,stream-format=byte-stream,framerate=25/1,alignment=au,profile=main,width=1920,height=1080 ! queue "
+                               "caps=video/x-h265,stream-format=byte-stream,framerate=25/1,alignment=au,profile=main,width=1920,height=720 ! queue "
                                "! h265parse ! queue ! matroskamux name=mux ! queue ! filesink location=video.mkv ";
             break;
 
-        case RTC_CODEC_VP8:
-            videoDescription = "appsrc name=appsrc-video ! capsfilter "
-                               "caps=video/x-vp8,stream-format=byte-stream,framerate=25/1,alignment=au,profile=main,width=1920,height=1080 ! queue ! "
-                               "h265parse ! queue ! matroskamux name=mux ! queue ! filesink location=video.mkv ";
+        // TODO: add a case for vp8
         default:
             break;
     }
@@ -120,11 +117,6 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
         switch (pSampleStreamingSession->pAudioRtcRtpTransceiver->receiver.track.codec) {
             case RTC_CODEC_OPUS:
                 audioDescription = "appsrc name=appsrc-audio ! capsfilter caps=audio/x-opus,rate=48000,channels=2 ! queue ! opusparse ! queue ! mux.";
-                break;
-
-            case RTC_CODEC_MULAW:
-            case RTC_CODEC_ALAW:
-                audioDescription = "appsrc name=appsrc-audio ! rawaudioparse ! decodebin ! autoaudiosink";
                 break;
 
             case RTC_CODEC_AAC:
