@@ -18,9 +18,9 @@ VOID onGstVideoFrameReady(UINT64 customData, PFrame pFrame)
         return;
     }
 
-    DLOGI("Frame size: %d, %llu", pFrame->size, pFrame->presentationTs);
+    DLOGD("Frame size: %d, presentationTs: %llu", pFrame->size, pFrame->presentationTs);
     GST_BUFFER_PTS(buffer) = pFrame->presentationTs;
-    GST_BUFFER_DURATION(buffer) = gst_util_uint64_scale(1, GST_SECOND, 25);
+    GST_BUFFER_DURATION(buffer) = gst_util_uint64_scale(1, GST_SECOND, DEFAULT_FPS_VALUE);
     if (gst_buffer_fill(buffer, 0, pFrame->frameData, pFrame->size) != pFrame->size) {
         DLOGE("Buffer fill did not complete correctly");
         gst_buffer_unref(buffer);
@@ -47,13 +47,9 @@ VOID onGstAudioFrameReady(UINT64 customData, PFrame pFrame)
         return;
     }
 
-    DLOGI("Audio Frame size: %d, %llu", pFrame->size, pFrame->presentationTs);
+    DLOGD("Audio Frame size: %d, presentationTs: %llu", pFrame->size, pFrame->presentationTs);
     GST_BUFFER_PTS(buffer) = pFrame->presentationTs;
-    int sample_rate = 48000; // Hz
-    int num_channels = 2;
-    int bits_per_sample = 16; // For example, 16-bit audio
-    int byte_rate = (sample_rate * num_channels * bits_per_sample) / 8;
-    GST_BUFFER_DURATION(buffer) = gst_util_uint64_scale(pFrame->size, GST_SECOND, byte_rate);
+    GST_BUFFER_DURATION(buffer) = gst_util_uint64_scale(pFrame->size, GST_SECOND, DEFAULT_AUDIO_BYTE_RATE);
     if (gst_buffer_fill(buffer, 0, pFrame->frameData, pFrame->size) != pFrame->size) {
         DLOGE("Buffer fill did not complete correctly");
         gst_buffer_unref(buffer);
@@ -80,6 +76,7 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
     GstBus* bus;
     GstMessage* msg;
     GError* error = NULL;
+    GstCaps *audiocaps, *videocaps;
     PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) args;
     PSampleConfiguration pSampleConfiguration = pSampleStreamingSession->pSampleConfiguration;
     PCHAR roleType;
@@ -97,15 +94,25 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
 
     switch (pSampleStreamingSession->pVideoRtcRtpTransceiver->receiver.track.codec) {
         case RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE:
-            videoDescription = "appsrc name=appsrc-video ! capsfilter "
-                               "caps=video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline,width=1920,height=720 ! queue ! h264parse "
-                               "! queue ! matroskamux name=mux ! queue ! filesink location=video.mkv";
+            videoDescription = "appsrc name=appsrc-video ! queue ! h264parse ! queue ! matroskamux name=mux ! queue ! filesink location=video.mkv";
+            videocaps = gst_caps_new_simple("video/x-h264",
+                                        "stream-format", G_TYPE_STRING, "byte-stream",
+                                        "alignment", G_TYPE_STRING, "au",
+                                        "profile", G_TYPE_STRING, "baseline",
+                                        "height", G_TYPE_INT, DEFAULT_HEIGHT,
+                                        "width", G_TYPE_INT, DEFAULT_WIDTH,
+                                        NULL);
             break;
 
         case RTC_CODEC_H265:
-            videoDescription = "appsrc name=appsrc-video ! capsfilter "
-                               "caps=video/x-h265,stream-format=byte-stream,framerate=25/1,alignment=au,profile=main,width=1920,height=720 ! queue "
-                               "! h265parse ! queue ! matroskamux name=mux ! queue ! filesink location=video.mkv ";
+            videoDescription = "appsrc name=appsrc-video ! queue ! h265parse ! queue ! matroskamux name=mux ! queue ! filesink location=video.mkv ";
+            videocaps = gst_caps_new_simple("video/x-h265",
+                                                "stream-format", G_TYPE_STRING, "byte-stream",
+                                                "alignment", G_TYPE_STRING, "au",
+                                                "profile", G_TYPE_STRING, "main",
+                                                "height", G_TYPE_INT, DEFAULT_HEIGHT,
+                                                "width", G_TYPE_INT, DEFAULT_WIDTH,
+                                                NULL);
             break;
 
         // TODO: add a case for vp8
@@ -116,12 +123,22 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
     if (pSampleConfiguration->mediaType == SAMPLE_STREAMING_AUDIO_VIDEO) {
         switch (pSampleStreamingSession->pAudioRtcRtpTransceiver->receiver.track.codec) {
             case RTC_CODEC_OPUS:
-                audioDescription = "appsrc name=appsrc-audio ! capsfilter caps=audio/x-opus,rate=48000,channels=2 ! queue ! opusparse ! queue ! mux.";
+                audioDescription = "appsrc name=appsrc-audio ! queue ! opusparse ! queue ! mux.";
+                audiocaps = gst_caps_new_simple("audio/x-opus",
+                                                    "rate", G_TYPE_INT, DEFAULT_AUDIO_SAMPLE_RATE,
+                                                    "channel-mapping-family", G_TYPE_INT, 1,
+                                                    NULL);
                 break;
 
             case RTC_CODEC_AAC:
-                audioDescription = "appsrc name=appsrc-audio ! capsfilter "
-                                   "caps=audio/mpeg,mpegversion=4,stream-format=adts,base-profile=lc,channels=2,rate=48000 ! queue ! aacparse ! mux.";
+                audioDescription = "appsrc name=appsrc-audio ! queue ! aacparse ! mux.";
+                audiocaps = gst_caps_new_simple("audio/mpeg",
+                                                    "mpegversion", G_TYPE_INT, 4,
+                                                    "rate", G_TYPE_INT, DEFAULT_AUDIO_SAMPLE_RATE,
+                                                    "channels", G_TYPE_INT, DEFAULT_AUDIO_CHANNELS,
+                                                    "stream-format", G_TYPE_STRING, "adts",
+                                                    "base-profile", G_TYPE_STRING, "lc",
+                                                    NULL);
                 break;
 
             // TODO: add a case for mulaw and alaw
@@ -138,11 +155,15 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
     appsrcVideo = gst_bin_get_by_name(GST_BIN(pipeline), "appsrc-video");
     CHK_ERR(appsrcVideo != NULL, STATUS_INTERNAL_ERROR, "[KVS %s] Cannot find appsrc video", roleType);
     CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pVideoRtcRtpTransceiver, (UINT64) appsrcVideo, onGstVideoFrameReady));
+    g_object_set(G_OBJECT(appsrcVideo), "caps", videocaps, NULL);
+    gst_caps_unref(videocaps);
 
     if (pSampleConfiguration->mediaType == SAMPLE_STREAMING_AUDIO_VIDEO) {
         appsrcAudio = gst_bin_get_by_name(GST_BIN(pipeline), "appsrc-audio");
         CHK_ERR(appsrcAudio != NULL, STATUS_INTERNAL_ERROR, "[KVS %s] Cannot find appsrc audio", roleType);
         CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pAudioRtcRtpTransceiver, (UINT64) appsrcAudio, onGstAudioFrameReady));
+        g_object_set(G_OBJECT(appsrcAudio), "caps", audiocaps, NULL);
+        gst_caps_unref(audiocaps);
     }
 
     CHK_STATUS(streamingSessionOnShutdown(pSampleStreamingSession, (UINT64) pipeline, onSampleStreamingSessionShutdown));
