@@ -146,7 +146,7 @@ jobs:
         run: |
           sudo apt clean && sudo apt update
           sudo apt-get -y install clang
-          sudo apt-get -y install libcurl4-openssl-dev libunwind-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev gstreamer1.0-plugins-base-apps gstreamer1.0-plugins-bad gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly gstreamer1.0-tools
+          sudo apt-get -y install libcurl4-openssl-dev
       - name: Build repository
         run: |
           # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
@@ -181,7 +181,7 @@ jobs:
         run: |
           sudo apt clean && sudo apt update
           sudo apt-get -y install clang
-          sudo apt-get -y install libcurl4-openssl-dev libunwind-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev gstreamer1.0-plugins-base-apps gstreamer1.0-plugins-bad gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly gstreamer1.0-tools
+          sudo apt-get -y install libcurl4-openssl-dev
       - name: Build repository
         run: |
           # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
@@ -237,7 +237,7 @@ jobs:
         run: |
           sudo apt clean && sudo apt update
           sudo apt-get -y install clang
-          sudo apt-get -y install libcurl4-openssl-dev libunwind-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev gstreamer1.0-plugins-base-apps gstreamer1.0-plugins-bad gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly gstreamer1.0-tools
+          sudo apt-get -y install libcurl4-openssl-dev
       - name: Build repository
         run: |
           sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
@@ -275,7 +275,7 @@ jobs:
           sudo apt-get -q update
           sudo apt-get -y install gcc-4.4
           sudo apt-get -y install gdb
-          sudo apt-get -y install libcurl4-openssl-dev libunwind-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev gstreamer1.0-plugins-base-apps gstreamer1.0-plugins-bad gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly gstreamer1.0-tools
+          sudo apt-get -y install libcurl4-openssl-dev
       - name: Build repository
         run: |
           mkdir build && cd build
@@ -305,7 +305,7 @@ jobs:
         run: |
           apk update
           apk upgrade
-          apk add alpine-sdk libunwind-dev cmake clang linux-headers perl bash openssl-dev zlib-dev curl-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev gstreamer1.0-plugins-base-apps gstreamer1.0-plugins-bad gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly gstreamer1.0-tools
+          apk add alpine-sdk cmake clang linux-headers perl bash openssl-dev zlib-dev curl-dev
       - name: Build Repository
         run: |
           mkdir build && cd build
@@ -336,7 +336,7 @@ jobs:
           sudo apt-get -q update
           sudo apt-get -y install gcc-4.4
           sudo apt-get -y install gdb
-          sudo apt-get -y install libcurl4-openssl-dev libunwind-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev gstreamer1.0-plugins-base-apps gstreamer1.0-plugins-bad gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly gstreamer1.0-tools
+          sudo apt-get -y install libcurl4-openssl-dev
       - name: Build repository
         run: |
           mkdir build && cd build
@@ -370,7 +370,7 @@ jobs:
           sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ jammy main'
           sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ jammy universe'
           sudo apt-get -q update
-          sudo apt-get -y install libcurl4-openssl-dev libunwind-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev gstreamer1.0-plugins-base-apps gstreamer1.0-plugins-bad gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly gstreamer1.0-tools
+          sudo apt-get -y install libcurl4-openssl-dev
       - name: Build repository
         run: |
           mkdir build && cd build
@@ -406,7 +406,8 @@ jobs:
           sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ trusty main'
           sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ trusty universe'
           sudo apt-get -q update
-          sudo apt-get -y install gcc-4.4 gdb libunwind-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev gstreamer1.0-plugins-base-apps gstreamer1.0-plugins-bad gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly gstreamer1.0-tools
+          sudo apt-get -y install gcc-4.4
+          sudo apt-get -y install gdb
       - name: Build repository
         run: |
           mkdir build && cd build
@@ -434,7 +435,7 @@ jobs:
         run: |
           sudo apt clean && sudo apt update
           sudo apt-get -y install clang
-          sudo apt-get -y install libcurl4-openssl-dev libunwind-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev gstreamer1.0-plugins-base-apps gstreamer1.0-plugins-bad gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly gstreamer1.0-tools
+          sudo apt-get -y install libcurl4-openssl-dev
       - name: Build repository
         run: |
           sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
@@ -493,8 +494,6 @@ jobs:
           role-duration-seconds: 10800
       - name: Build repository
         run: |
-          sudo apt clean && sudo apt update
-          sudo apt-get install libunwind-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev gstreamer1.0-plugins-base-apps gstreamer1.0-plugins-bad gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly gstreamer1.0-tools
           sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
           mkdir build && cd build
           cmake ..
@@ -521,8 +520,6 @@ jobs:
           role-duration-seconds: 10800
       - name: Build repository
         run: |
-          sudo apt clean && sudo apt update
-          sudo apt-get install libunwind-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev gstreamer1.0-plugins-base-apps gstreamer1.0-plugins-bad gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly gstreamer1.0-tools
           sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
           mkdir build && cd build
           cmake .. -DENABLE_DATA_CHANNEL=OFF
@@ -548,7 +545,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt clean && sudo apt update
-          sudo apt-get -y install libcurl4-openssl-dev libunwind-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev gstreamer1.0-plugins-base-apps gstreamer1.0-plugins-bad gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly gstreamer1.0-tools
+          sudo apt-get -y install libcurl4-openssl-dev
       - name: Build repository
         run: |
           # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
@@ -583,8 +580,8 @@ jobs:
       - name: Install dependencies
         shell: powershell
         run: |
-          choco install gstreamer --version=1.16.2
-          choco install gstreamer-devel --version=1.16.2
+          choco install gstreamer --version=1.16.3
+          choco install gstreamer-devel --version=1.16.3
           curl.exe -o C:\tools\pthreads-w32-2-9-1-release.zip ftp://sourceware.org/pub/pthreads-win32/pthreads-w32-2-9-1-release.zip
           mkdir C:\tools\pthreads-w32-2-9-1-release\
           Expand-Archive -Path C:\tools\pthreads-w32-2-9-1-release.zip -DestinationPath C:\tools\pthreads-w32-2-9-1-release
@@ -649,7 +646,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt clean && sudo apt update
-          sudo apt-get -y install libunwind-dev gcc-aarch64-linux-gnu g++-aarch64-linux-gnu binutils-aarch64-linux-gnu libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev gstreamer1.0-plugins-base-apps gstreamer1.0-plugins-bad gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly gstreamer1.0-tools
+          sudo apt-get -y install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu binutils-aarch64-linux-gnu
       - name: Clone repository
         uses: actions/checkout@v4
       - name: Build Repository
@@ -667,7 +664,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt clean && sudo apt update
-          sudo apt-get -y install libunwind-dev gcc-aarch64-linux-gnu g++-aarch64-linux-gnu binutils-aarch64-linux-gnu libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev gstreamer1.0-plugins-base-apps gstreamer1.0-plugins-bad gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly gstreamer1.0-tools
+          sudo apt-get -y install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu binutils-aarch64-linux-gnu
       - name: Clone repository
         uses: actions/checkout@v4
       - name: Build Repository
@@ -691,7 +688,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt clean && sudo apt update
-          sudo apt-get -y install libunwind-dev gcc-aarch64-linux-gnu g++-aarch64-linux-gnu binutils-aarch64-linux-gnu libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev gstreamer1.0-plugins-base-apps gstreamer1.0-plugins-bad gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly gstreamer1.0-tools
+          sudo apt-get -y install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu binutils-aarch64-linux-gnu
       - name: Clone repository
         uses: actions/checkout@v4
       - name: Build Repository
@@ -715,7 +712,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt clean && sudo apt update
-          sudo apt-get -y install libunwind-dev gcc-aarch64-linux-gnu g++-aarch64-linux-gnu binutils-aarch64-linux-gnu libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev gstreamer1.0-plugins-base-apps gstreamer1.0-plugins-bad gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly gstreamer1.0-tools
+          sudo apt-get -y install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu binutils-aarch64-linux-gnu
       - name: Clone repository
         uses: actions/checkout@v4
       - name: Build Repository
@@ -739,7 +736,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt clean && sudo apt update
-          sudo apt-get -y install libunwind-dev gcc-arm-linux-gnueabi g++-arm-linux-gnueabi binutils-arm-linux-gnueabi libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev gstreamer1.0-plugins-base-apps gstreamer1.0-plugins-bad gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly gstreamer1.0-tools
+          sudo apt-get -y install gcc-arm-linux-gnueabi g++-arm-linux-gnueabi binutils-arm-linux-gnueabi
       - name: Clone repository
         uses: actions/checkout@v4
       - name: Build Repository
@@ -763,7 +760,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt clean && sudo apt update
-          sudo apt-get -y install libunwind-dev gcc-arm-linux-gnueabi g++-arm-linux-gnueabi binutils-arm-linux-gnueabi libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev gstreamer1.0-plugins-base-apps gstreamer1.0-plugins-bad gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly gstreamer1.0-tools
+          sudo apt-get -y install gcc-arm-linux-gnueabi g++-arm-linux-gnueabi binutils-arm-linux-gnueabi
       - name: Clone repository
         uses: actions/checkout@v4
       - name: Build Repository
@@ -787,7 +784,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt clean && sudo apt update
-          sudo apt-get -y install libunwind-dev gcc-arm-linux-gnueabi g++-arm-linux-gnueabi binutils-arm-linux-gnueabi libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev gstreamer1.0-plugins-base-apps gstreamer1.0-plugins-bad gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly gstreamer1.0-tools
+          sudo apt-get -y install gcc-arm-linux-gnueabi g++-arm-linux-gnueabi binutils-arm-linux-gnueabi
       - name: Clone repository
         uses: actions/checkout@v4
       - name: Build Repository

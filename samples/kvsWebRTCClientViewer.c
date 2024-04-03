@@ -58,9 +58,11 @@ INT32 main(INT32 argc, CHAR* argv[])
 #endif
 
     CHK_STATUS(createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_VIEWER, TRUE, TRUE, logLevel, &pSampleConfiguration));
-
-    pSampleConfiguration->receiveAudioVideoSource = receiveGstreamerAudioVideo;
     pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
+
+#ifdef ENABLE_GST_SAMPLE_RECEIVER
+    pSampleConfiguration->receiveAudioVideoSource = receiveGstreamerAudioVideo;
+#endif
 
     // Initialize KVS WebRTC. This must be done before anything else, and must only be done once.
     CHK_STATUS(initKvsWebRtc());

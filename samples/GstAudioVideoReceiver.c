@@ -1,3 +1,4 @@
+#ifdef ENABLE_GST_SAMPLE_RECEIVER
 #include "Samples.h"
 #include <gst/gst.h>
 #include <gst/app/app.h>
@@ -89,8 +90,6 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
     } else if (pSampleConfiguration->channelInfo.channelRoleType == SIGNALING_CHANNEL_ROLE_TYPE_VIEWER) {
         roleType = "Viewer";
     }
-
-    DLOGI("====================================== %d %s", pSampleConfiguration->mediaType, roleType);
 
     gst_init(NULL, NULL);
 
@@ -195,3 +194,4 @@ CleanUp:
 
     return (PVOID) (ULONG_PTR) retStatus;
 }
+#endif
