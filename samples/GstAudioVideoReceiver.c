@@ -95,24 +95,16 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
     switch (pSampleStreamingSession->pVideoRtcRtpTransceiver->receiver.track.codec) {
         case RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE:
             videoDescription = "appsrc name=appsrc-video ! queue ! h264parse ! queue ! matroskamux name=mux ! queue ! filesink location=video.mkv";
-            videocaps = gst_caps_new_simple("video/x-h264",
-                                                "stream-format", G_TYPE_STRING, "byte-stream",
-                                                "alignment", G_TYPE_STRING, "au",
-                                                "profile", G_TYPE_STRING, "baseline",
-                                                "height", G_TYPE_INT, DEFAULT_HEIGHT,
-                                                "width", G_TYPE_INT, DEFAULT_WIDTH,
-                                                NULL);
+            videocaps =
+                gst_caps_new_simple("video/x-h264", "stream-format", G_TYPE_STRING, "byte-stream", "alignment", G_TYPE_STRING, "au", "profile",
+                                    G_TYPE_STRING, "baseline", "height", G_TYPE_INT, DEFAULT_HEIGHT, "width", G_TYPE_INT, DEFAULT_WIDTH, NULL);
             break;
 
         case RTC_CODEC_H265:
             videoDescription = "appsrc name=appsrc-video ! queue ! h265parse ! queue ! matroskamux name=mux ! queue ! filesink location=video.mkv ";
-            videocaps = gst_caps_new_simple("video/x-h265",
-                                                "stream-format", G_TYPE_STRING, "byte-stream",
-                                                "alignment", G_TYPE_STRING, "au",
-                                                "profile", G_TYPE_STRING, "main",
-                                                "height", G_TYPE_INT, DEFAULT_HEIGHT,
-                                                "width", G_TYPE_INT, DEFAULT_WIDTH,
-                                                NULL);
+            videocaps =
+                gst_caps_new_simple("video/x-h265", "stream-format", G_TYPE_STRING, "byte-stream", "alignment", G_TYPE_STRING, "au", "profile",
+                                    G_TYPE_STRING, "main", "height", G_TYPE_INT, DEFAULT_HEIGHT, "width", G_TYPE_INT, DEFAULT_WIDTH, NULL);
             break;
 
         // TODO: add a case for vp8
@@ -124,21 +116,15 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
         switch (pSampleStreamingSession->pAudioRtcRtpTransceiver->receiver.track.codec) {
             case RTC_CODEC_OPUS:
                 audioDescription = "appsrc name=appsrc-audio ! queue ! opusparse ! queue ! mux.";
-                audiocaps = gst_caps_new_simple("audio/x-opus",
-                                                    "rate", G_TYPE_INT, DEFAULT_AUDIO_SAMPLE_RATE,
-                                                    "channel-mapping-family", G_TYPE_INT, 1,
-                                                    NULL);
+                audiocaps =
+                    gst_caps_new_simple("audio/x-opus", "rate", G_TYPE_INT, DEFAULT_AUDIO_SAMPLE_RATE, "channel-mapping-family", G_TYPE_INT, 1, NULL);
                 break;
 
             case RTC_CODEC_AAC:
                 audioDescription = "appsrc name=appsrc-audio ! queue ! aacparse ! mux.";
-                audiocaps = gst_caps_new_simple("audio/mpeg",
-                                                    "mpegversion", G_TYPE_INT, 4,
-                                                    "rate", G_TYPE_INT, DEFAULT_AUDIO_SAMPLE_RATE,
-                                                    "channels", G_TYPE_INT, DEFAULT_AUDIO_CHANNELS,
-                                                    "stream-format", G_TYPE_STRING, "adts",
-                                                    "base-profile", G_TYPE_STRING, "lc",
-                                                    NULL);
+                audiocaps = gst_caps_new_simple("audio/mpeg", "mpegversion", G_TYPE_INT, 4, "rate", G_TYPE_INT, DEFAULT_AUDIO_SAMPLE_RATE, "channels",
+                                                G_TYPE_INT, DEFAULT_AUDIO_CHANNELS, "stream-format", G_TYPE_STRING, "adts", "base-profile",
+                                                G_TYPE_STRING, "lc", NULL);
                 break;
 
             // TODO: add a case for mulaw and alaw
