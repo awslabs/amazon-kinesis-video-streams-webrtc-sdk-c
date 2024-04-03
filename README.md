@@ -295,6 +295,30 @@ This application accepts sample H264/Opus frames and prints them out. To run:
 ./samples/kvsWebrtcClientViewer <channelName>
 ```
 
+#### Sample: Generating sample frames
+
+##### H264
+```shell
+gst-launch-1.0 videotestsrc pattern=ball num-buffers=1500 ! timeoverlay ! videoconvert ! video/x-raw,format=I420,width=1280,height=720,framerate=25/1 ! queue ! x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! multifilesink location="frame-%04d.h264" index=1
+```
+
+##### H265
+```shell
+gst-launch-1.0 videotestsrc pattern=ball num-buffers=1500 ! timeoverlay ! videoconvert ! video/x-raw,format=I420,width=1280,height=720,framerate=25/1 ! queue ! x265enc speed-preset=veryfast bitrate=512 tune=zerolatency ! video/x-h265,stream-format=byte-stream,alignment=au,profile=main ! multifilesink location="frame-%04d.h265" index=1
+```
+
+##### AAC
+
+###### ADTS LC
+```shell
+gst-launch-1.0 audiotestsrc num-buffers=1500 ! audioconvert ! audioresample ! faac ! capsfilter caps=audio/mpeg,mpegversion=4,stream-format=adts,base-profile=lc,channels=2,rate=48000 ! multifilesink location="sample-%03d.aac" index=1
+```
+
+###### RAW LC
+```shell
+gst-launch-1.0 audiotestsrc num-buffers=1500 ! audioconvert ! audioresample ! faac ! capsfilter caps=audio/mpeg,mpegversion=4,stream-format=raw,base-profile=lc,channels=2,rate=44100 ! multifilesink location="sample-%03d.aac" index=1
+```
+
 ### Viewing Master Samples
 
 After running one of the master samples, when the command line application prints "Signaling client connection to socket established", indicating that your signaling channel is created and the connected master is streaming media to it, you can view the stream. To do so, check the media playback viewer on the KVS Signaling Channels console or open the [WebRTC SDK Test Page](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-js/examples/index.html).
