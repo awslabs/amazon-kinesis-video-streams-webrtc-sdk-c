@@ -66,7 +66,7 @@ GstFlowReturn on_new_sample(GstElement* sink, gpointer data, UINT64 trackid)
             frame.index = (UINT32) ATOMIC_INCREMENT(&pSampleStreamingSession->frameIndex);
 
             if (trackid == DEFAULT_AUDIO_TRACK_ID) {
-                if (!pSampleStreamingSession->pSampleConfiguration->disableTwcc && senderPipeline != NULL) {
+                if (pSampleStreamingSession->pSampleConfiguration->enableTwcc && senderPipeline != NULL) {
                     GstElement* encoder = gst_bin_get_by_name(GST_BIN(senderPipeline), "sampleAudioEncoder");
                     if (encoder != NULL) {
                         g_object_get(G_OBJECT(encoder), "bitrate", &bitrate, NULL);
@@ -86,7 +86,7 @@ GstFlowReturn on_new_sample(GstElement* sink, gpointer data, UINT64 trackid)
                 pSampleStreamingSession->audioTimestamp +=
                     SAMPLE_AUDIO_FRAME_DURATION; // assume audio frame size is 20ms, which is default in opusenc
             } else {
-                if (!pSampleStreamingSession->pSampleConfiguration->disableTwcc && senderPipeline != NULL) {
+                if (pSampleStreamingSession->pSampleConfiguration->enableTwcc && senderPipeline != NULL) {
                     GstElement* encoder = gst_bin_get_by_name(GST_BIN(senderPipeline), "sampleVideoEncoder");
                     if (encoder != NULL) {
                         g_object_get(G_OBJECT(encoder), "bitrate", &bitrate, NULL);
@@ -243,7 +243,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                         "videotestsrc pattern=ball is-live=TRUE ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
                         "x264enc name=sampleVideoEncoder bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
                         "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE "
-                        "emit-signals=TRUE name=appsink-video audiotestsrc wave=triangle is-live=TRUE ! "
+                        "emit-signals=TRUE name=appsink-video audiotestsrc wave=ticks is-live=TRUE ! "
                         "queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample ! opusenc name=sampleAudioEncoder ! "
                         "audio/x-opus,rate=48000,channels=2 ! appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
                         &error);
