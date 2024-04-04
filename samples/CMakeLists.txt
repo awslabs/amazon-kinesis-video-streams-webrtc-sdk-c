@@ -64,18 +64,17 @@ add_executable(
 target_link_libraries(kvsWebrtcClientMaster kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} kvsCommonLws kvspicUtils websockets kvssdp)
 
 add_executable(
-  discoverNatBehavior
-  discoverNatBehavior.c)
+  kvsWebrtcClientViewer
+  Common.c
+  kvsWebRTCClientViewer.c)
+target_link_libraries(kvsWebrtcClientViewer kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} kvsCommonLws kvspicUtils websockets kvssdp)
+
+add_executable(
+        discoverNatBehavior
+        discoverNatBehavior.c)
 target_link_libraries(discoverNatBehavior kvsWebrtcClient ${EXTRA_DEPS} kvssdp)
 
-if (ENABLE_GST_SAMPLE_RECEIVER AND GST_FOUND)
-  add_executable(
-    kvsWebrtcClientViewer
-    Common.c
-    GstAudioVideoReceiver.c
-    kvsWebRTCClientViewer.c)
-  target_link_libraries(kvsWebrtcClientViewer kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} ${GST_SAMPLE_LIBRARIES} kvsCommonLws kvspicUtils websockets kvssdp)
-  
+if(GST_FOUND)
   add_executable(
     kvsWebrtcClientMasterGstSample
     Common.c
@@ -87,29 +86,18 @@ if (ENABLE_GST_SAMPLE_RECEIVER AND GST_FOUND)
   install(TARGETS kvsWebrtcClientMasterGstSample
     RUNTIME DESTINATION bin
   )
-else()
-  add_executable(
-    kvsWebrtcClientViewer
-    Common.c
-    kvsWebRTCClientViewer.c)
-  target_link_libraries(kvsWebrtcClientViewer kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} kvsCommonLws kvspicUtils websockets kvssdp)
-  
-  if (GST_FOUND)
-    add_executable(
-      kvsWebrtcClientMasterGstSample
-      Common.c
-      kvsWebRTCClientMasterGstSample.c
-    )
-    target_link_libraries(kvsWebrtcClientMasterGstSample kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} ${GST_SAMPLE_LIBRARIES} kvsCommonLws kvspicUtils websockets kvssdp)
-    
-    install(TARGETS kvsWebrtcClientMasterGstSample
-      RUNTIME DESTINATION bin
-    )
-  endif()
-endif()
 
-if(GST_FOUND)
-  
+  add_executable(
+    kvsWebrtcClientViewerGstSample
+    Common.c
+    GstAudioVideoReceiver.c
+    kvsWebRTCClientViewerGstSample.c
+  )
+  target_link_libraries(kvsWebrtcClientViewerGstSample kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} ${GST_SAMPLE_LIBRARIES} kvsCommonLws kvspicUtils websockets kvssdp)
+
+  install(TARGETS kvsWebrtcClientViewerGstSample
+    RUNTIME DESTINATION bin
+  )
 endif()
 
 install(TARGETS kvsWebrtcClientMaster kvsWebrtcClientViewer discoverNatBehavior

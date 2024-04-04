@@ -1,4 +1,3 @@
-#ifdef ENABLE_GST_SAMPLE_RECEIVER
 #include "Samples.h"
 #include <gst/gst.h>
 #include <gst/app/app.h>
@@ -57,7 +56,7 @@ VOID onGstAudioFrameReady(UINT64 customData, PFrame pFrame)
     GST_BUFFER_PTS(buffer) = pFrame->presentationTs;
 
     // Recalculate the byte-rate if not using the default values
-    GST_BUFFER_DURATION(buffer) = gst_util_uint64_scale(pFrame->size, GST_SECOND, DEFAULT_AUDIO_BYTE_RATE);
+    GST_BUFFER_DURATION(buffer) = gst_util_uint64_scale(pFrame->size, GST_SECOND, DEFAULT_AUDIO_OPUS_BYTE_RATE);
     if (gst_buffer_fill(buffer, 0, pFrame->frameData, pFrame->size) != pFrame->size) {
         DLOGE("Buffer fill did not complete correctly");
         gst_buffer_unref(buffer);
@@ -110,14 +109,14 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
             videoDescription = "appsrc name=appsrc-video ! queue ! h264parse ! queue ! matroskamux name=mux ! queue ! filesink location=video.mkv";
             videocaps =
                 gst_caps_new_simple("video/x-h264", "stream-format", G_TYPE_STRING, "byte-stream", "alignment", G_TYPE_STRING, "au", "profile",
-                                    G_TYPE_STRING, "baseline", "height", G_TYPE_INT, DEFAULT_HEIGHT, "width", G_TYPE_INT, DEFAULT_WIDTH, NULL);
+                                    G_TYPE_STRING, "baseline", "height", G_TYPE_INT, DEFAULT_VIDEO_HEIGHT_PIXELS, "width", G_TYPE_INT, DEFAULT_VIDEO_WIDTH_PIXELS, NULL);
             break;
 
         case RTC_CODEC_H265:
             videoDescription = "appsrc name=appsrc-video ! queue ! h265parse ! queue ! matroskamux name=mux ! queue ! filesink location=video.mkv ";
             videocaps =
                 gst_caps_new_simple("video/x-h265", "stream-format", G_TYPE_STRING, "byte-stream", "alignment", G_TYPE_STRING, "au", "profile",
-                                    G_TYPE_STRING, "main", "height", G_TYPE_INT, DEFAULT_HEIGHT, "width", G_TYPE_INT, DEFAULT_WIDTH, NULL);
+                                    G_TYPE_STRING, "main", "height", G_TYPE_INT, DEFAULT_VIDEO_HEIGHT_PIXELS, "width", G_TYPE_INT, DEFAULT_VIDEO_WIDTH_PIXELS, NULL);
             break;
 
             // TODO: add a similar pipeline for VP8
@@ -131,13 +130,13 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
             case RTC_CODEC_OPUS:
                 audioDescription = "appsrc name=appsrc-audio ! queue ! opusparse ! queue ! mux.";
                 audiocaps =
-                    gst_caps_new_simple("audio/x-opus", "rate", G_TYPE_INT, DEFAULT_AUDIO_SAMPLE_RATE, "channel-mapping-family", G_TYPE_INT, 1, NULL);
+                    gst_caps_new_simple("audio/x-opus", "rate", G_TYPE_INT, DEFAULT_AUDIO_OPUS_SAMPLE_RATE_HZ, "channel-mapping-family", G_TYPE_INT, 1, NULL);
                 break;
 
             case RTC_CODEC_AAC:
                 audioDescription = "appsrc name=appsrc-audio ! queue ! aacparse ! mux.";
-                audiocaps = gst_caps_new_simple("audio/mpeg", "mpegversion", G_TYPE_INT, 4, "rate", G_TYPE_INT, DEFAULT_AUDIO_SAMPLE_RATE, "channels",
-                                                G_TYPE_INT, DEFAULT_AUDIO_CHANNELS, "stream-format", G_TYPE_STRING, "adts", "base-profile",
+                audiocaps = gst_caps_new_simple("audio/mpeg", "mpegversion", G_TYPE_INT, 4, "rate", G_TYPE_INT, DEFAULT_AUDIO_AAC_SAMPLE_RATE_HZ, "channels",
+                                                G_TYPE_INT, DEFAULT_AUDIO_AAC_CHANNELS, "stream-format", G_TYPE_STRING, "adts", "base-profile",
                                                 G_TYPE_STRING, "lc", NULL);
                 break;
 
@@ -219,4 +218,4 @@ CleanUp:
 
     return (PVOID) (ULONG_PTR) retStatus;
 }
-#endif
+

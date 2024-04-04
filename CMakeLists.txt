@@ -21,7 +21,6 @@ option(ENABLE_DATA_CHANNEL "Enable support for data channel" ON)
 option(ENABLE_KVS_THREADPOOL "Enable support for KVS thread pool in signaling" ON)
 option(INSTRUMENTED_ALLOCATORS "Enable memory instrumentation" OFF)
 option(ENABLE_AWS_SDK_IN_TESTS "Enable support for compiling AWS SDKs for tests" ON)
-option(ENABLE_GST_SAMPLE_RECEIVER "Enable gstreamer receiver to receive media while running samples" OFF)
 
 # Developer Flags
 option(BUILD_TEST "Build the testing tree." OFF)
@@ -348,10 +347,6 @@ if (ENABLE_DATA_CHANNEL)
       src/source/PeerConnection/DataChannel.c
       src/source/Sctp/Sctp.c
       )
-endif()
-
-if (ENABLE_GST_SAMPLE_RECEIVER)
-  add_definitions(-DENABLE_GST_SAMPLE_RECEIVER)
 endif()
 
 if (INSTRUMENTED_ALLOCATORS)
