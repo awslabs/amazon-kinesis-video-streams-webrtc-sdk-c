@@ -66,7 +66,7 @@ GstFlowReturn on_new_sample(GstElement* sink, gpointer data, UINT64 trackid)
             frame.index = (UINT32) ATOMIC_INCREMENT(&pSampleStreamingSession->frameIndex);
 
             if (trackid == DEFAULT_AUDIO_TRACK_ID) {
-                if (!pSampleStreamingSession->pSampleConfiguration->disableTwcc && senderPipeline != NULL) {
+                if (pSampleStreamingSession->pSampleConfiguration->enableTwcc && senderPipeline != NULL) {
                     GstElement* encoder = gst_bin_get_by_name(GST_BIN(senderPipeline), "sampleAudioEncoder");
                     if (encoder != NULL) {
                         g_object_get(G_OBJECT(encoder), "bitrate", &bitrate, NULL);
@@ -86,7 +86,7 @@ GstFlowReturn on_new_sample(GstElement* sink, gpointer data, UINT64 trackid)
                 pSampleStreamingSession->audioTimestamp +=
                     SAMPLE_AUDIO_FRAME_DURATION; // assume audio frame size is 20ms, which is default in opusenc
             } else {
-                if (!pSampleStreamingSession->pSampleConfiguration->disableTwcc && senderPipeline != NULL) {
+                if (pSampleStreamingSession->pSampleConfiguration->enableTwcc && senderPipeline != NULL) {
                     GstElement* encoder = gst_bin_get_by_name(GST_BIN(senderPipeline), "sampleVideoEncoder");
                     if (encoder != NULL) {
                         g_object_get(G_OBJECT(encoder), "bitrate", &bitrate, NULL);

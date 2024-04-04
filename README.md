@@ -513,9 +513,9 @@ In order to enable TWCC usage in the SDK, 2 things need to be set up:
 1. Set the `disableSenderSideBandwidthEstimation` to FALSE. In our samples, the value is set using `disableTwcc` flag in `pSampleConfiguration`
 
 ```c
-pSampleConfiguration->disableTwcc = TRUE; // to disable TWCC
-pSampleConfiguration->disableTwcc = FALSE; // to enable TWCC
-configuration.kvsRtcConfiguration.disableSenderSideBandwidthEstimation = pSampleConfiguration->disableTwcc;
+pSampleConfiguration->enableTwcc = TRUE; // to enable TWCC
+pSampleConfiguration->enableTwcc = FALSE; // to disable TWCC
+configuration.kvsRtcConfiguration.disableSenderSideBandwidthEstimation = ~pSampleConfiguration->enableTwcc;
 ```
 
 2. Set the callback that will have the business logic to modify the bitrate based on packet loss information. The callback can be set using `peerConnectionOnSenderBandwidthEstimation()`.
