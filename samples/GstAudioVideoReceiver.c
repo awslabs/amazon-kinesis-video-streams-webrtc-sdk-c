@@ -104,7 +104,7 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
 
     // It is advised to modify the pipeline and the caps as per the source of the media. Customers can also modify this pipeline to
     // use any other sinks instead of `filesink` like `autovideosink` and `autoaudiosink`. The existing pipelines are not complex enough to
-    // change cpas and properties dynamically, more complex logic may be needed to support the same.
+    // change caps and properties dynamically, more complex logic may be needed to support the same.
     switch (pSampleStreamingSession->pVideoRtcRtpTransceiver->receiver.track.codec) {
         case RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE:
             videoDescription = "appsrc name=appsrc-video ! queue ! h264parse ! queue ! matroskamux name=mux ! queue ! filesink location=video.mkv";

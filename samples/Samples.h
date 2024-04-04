@@ -15,12 +15,15 @@ extern "C" {
 #define NUMBER_OF_H264_FRAME_FILES               1500
 #define NUMBER_OF_OPUS_FRAME_FILES               618
 #define DEFAULT_FPS_VALUE                        25
-#define DEFAULT_AUDIO_CHANNELS                   2
-#define DEFAULT_AUDIO_SAMPLE_RATE                48000
-#define DEFAULT_AUDIO_BITS_PER_SAMPLE            16
+#define DEFAULT_AUDIO_OPUS_CHANNELS              2
+#define DEFAULT_AUDIO_AAC_CHANNELS               2
+#define DEFAULT_AUDIO_OPUS_SAMPLE_RATE_HZ        48000
+#define DEFAULT_AUDIO_AAC_SAMPLE_RATE_HZ         48000
+#define DEFAULT_AUDIO_OPUS_BITS_PER_SAMPLE       16
+#define DEFAULT_AUDIO_AAC_BITS_PER_SAMPLE        16
 #define DEFAULT_MAX_CONCURRENT_STREAMING_SESSION 10
-#define DEFAULT_HEIGHT                           720
-#define DEFAULT_WIDTH                            1280
+#define DEFAULT_VIDEO_HEIGHT_PIXELS              720
+#define DEFAULT_VIDEO_WIDTH_PIXELS               1280
 
 #define SAMPLE_MASTER_CLIENT_ID "ProducerMaster"
 #define SAMPLE_VIEWER_CLIENT_ID "ConsumerViewer"
