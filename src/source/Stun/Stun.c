@@ -210,9 +210,8 @@ STATUS serializeStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passw
 
                 CHK(!fingerprintFound && !messaageIntegrityFound, STATUS_STUN_ATTRIBUTES_AFTER_FINGERPRINT_MESSAGE_INTEGRITY);
 
-                stunResult = StunSerializer_AddAttributeRealm(&stunContext, (const UINT8*) pStunAttributeRealm->realm,
-                                                              pStunAttributeRealm->paddedLength - STUN_ATTRIBUTE_HEADER_LENGTH);
-
+                stunResult =
+                    StunSerializer_AddAttributeRealm(&stunContext, (const UINT8*) pStunAttributeRealm->realm, pStunAttributeRealm->paddedLength);
                 break;
 
             case STUN_ATTRIBUTE_TYPE_NONCE:
@@ -221,8 +220,7 @@ STATUS serializeStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passw
 
                 CHK(!fingerprintFound && !messaageIntegrityFound, STATUS_STUN_ATTRIBUTES_AFTER_FINGERPRINT_MESSAGE_INTEGRITY);
 
-                stunResult = StunSerializer_AddAttributeNonce(&stunContext, pStunAttributeNonce->nonce,
-                                                              pStunAttributeNonce->paddedLength - STUN_ATTRIBUTE_HEADER_LENGTH);
+                stunResult = StunSerializer_AddAttributeNonce(&stunContext, pStunAttributeNonce->nonce, pStunAttributeNonce->paddedLength);
 
                 break;
 
@@ -232,9 +230,9 @@ STATUS serializeStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passw
 
                 CHK(!fingerprintFound && !messaageIntegrityFound, STATUS_STUN_ATTRIBUTES_AFTER_FINGERPRINT_MESSAGE_INTEGRITY);
 
-                stunResult = StunSerializer_AddAttributeErrorCode(&stunContext, pStunAttributeErrorCode->errorCode,
-                                                                  (const UINT8*) pStunAttributeErrorCode->errorPhrase,
-                                                                  pStunAttributeErrorCode->paddedLength - STUN_ATTRIBUTE_HEADER_LENGTH);
+                stunResult =
+                    StunSerializer_AddAttributeErrorCode(&stunContext, pStunAttributeErrorCode->errorCode,
+                                                         (const UINT8*) pStunAttributeErrorCode->errorPhrase, pStunAttributeErrorCode->paddedLength);
 
                 break;
 
@@ -265,8 +263,7 @@ STATUS serializeStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passw
 
                 CHK(!fingerprintFound && !messaageIntegrityFound, STATUS_STUN_ATTRIBUTES_AFTER_FINGERPRINT_MESSAGE_INTEGRITY);
 
-                stunResult = StunSerializer_AddAttributeData(&stunContext, pStunAttributeData->data,
-                                                             pStunAttributeData->paddedLength - STUN_ATTRIBUTE_HEADER_LENGTH);
+                stunResult = StunSerializer_AddAttributeData(&stunContext, pStunAttributeData->data, pStunAttributeData->paddedLength);
 
                 break;
 
