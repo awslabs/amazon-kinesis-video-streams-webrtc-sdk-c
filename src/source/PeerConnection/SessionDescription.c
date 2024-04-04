@@ -403,7 +403,7 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
     UINT64 payloadType, rtxPayloadType;
     BOOL containRtx = FALSE;
     BOOL directionFound = FALSE;
-    UINT32 i, remoteAttributeCount, attributeCount = 0;
+    UINT32 i, remoteAttributeCount, attributeCount, attributeNameBuffLen, amountWritten = 0;
     PRtcMediaStreamTrack pRtcMediaStreamTrack = &(pKvsRtpTransceiver->sender.track);
     PSdpMediaDescription pSdpMediaDescriptionRemote;
     PCHAR currentFmtp = NULL, rtpMapValue = NULL;
@@ -450,6 +450,7 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
     CHK_STATUS(iceAgentPopulateSdpMediaDescriptionCandidates(pKvsPeerConnection->pIceAgent, pSdpMediaDescription, MAX_SDP_ATTRIBUTE_VALUE_LENGTH,
                                                              &attributeCount));
 
+    attributeNameBuffLen = SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName);
     if (containRtx) {
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "msid");
         amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,

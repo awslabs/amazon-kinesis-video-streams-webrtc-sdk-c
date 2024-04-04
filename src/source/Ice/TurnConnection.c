@@ -1027,7 +1027,7 @@ BOOL turnConnectionGetRelayAddress(PTurnConnection pTurnConnection, PKvsIpAddres
 
 STATUS checkTurnPeerConnections(PTurnConnection pTurnConnection)
 {
-    STATUS retStatus = STATUS_SUCCESS, sendStatus = STATUS_SUCCESS;
+    STATUS retStatus = STATUS_SUCCESS;
     PTurnPeer pTurnPeer = NULL;
     PStunAttributeAddress pStunAttributeAddress = NULL;
     PStunAttributeChannelNumber pStunAttributeChannelNumber = NULL;
@@ -1054,9 +1054,9 @@ STATUS checkTurnPeerConnections(PTurnConnection pTurnConnection)
 
             CHK(pTurnPeer->pTransactionIdStore != NULL, STATUS_INVALID_OPERATION);
             transactionIdStoreInsert(pTurnPeer->pTransactionIdStore, pTurnConnection->pTurnCreatePermissionPacket->header.transactionId);
-            sendStatus = iceUtilsSendStunPacket(pTurnConnection->pTurnCreatePermissionPacket, pTurnConnection->longTermKey,
-                                                ARRAY_SIZE(pTurnConnection->longTermKey), &pTurnConnection->turnServer.ipAddress,
-                                                pTurnConnection->pControlChannel, NULL, FALSE);
+            iceUtilsSendStunPacket(pTurnConnection->pTurnCreatePermissionPacket, pTurnConnection->longTermKey,
+                                   ARRAY_SIZE(pTurnConnection->longTermKey), &pTurnConnection->turnServer.ipAddress, pTurnConnection->pControlChannel,
+                                   NULL, FALSE);
 
         } else if (pTurnPeer->connectionState == TURN_PEER_CONN_STATE_BIND_CHANNEL) {
             if (pTurnPeer->firstTimeBindChannelReq) {
@@ -1080,9 +1080,8 @@ STATUS checkTurnPeerConnections(PTurnConnection pTurnConnection)
 
             CHK(pTurnPeer->pTransactionIdStore != NULL, STATUS_INVALID_OPERATION);
             transactionIdStoreInsert(pTurnPeer->pTransactionIdStore, pTurnConnection->pTurnChannelBindPacket->header.transactionId);
-            sendStatus = iceUtilsSendStunPacket(pTurnConnection->pTurnChannelBindPacket, pTurnConnection->longTermKey,
-                                                ARRAY_SIZE(pTurnConnection->longTermKey), &pTurnConnection->turnServer.ipAddress,
-                                                pTurnConnection->pControlChannel, NULL, FALSE);
+            iceUtilsSendStunPacket(pTurnConnection->pTurnChannelBindPacket, pTurnConnection->longTermKey, ARRAY_SIZE(pTurnConnection->longTermKey),
+                                   &pTurnConnection->turnServer.ipAddress, pTurnConnection->pControlChannel, NULL, FALSE);
         }
     }
 

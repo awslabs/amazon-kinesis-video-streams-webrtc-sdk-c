@@ -208,13 +208,13 @@ CleanUp:
 //     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 //     |         Label Length          |       Protocol Length         |
 //     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//     \                                                               /
+//     |                                                               |
 //     |                             Label                             |
-//     /                                                               \
+//     |                                                               |
 //     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//     \                                                               /
+//     |                                                               |
 //     |                            Protocol                           |
-//     /                                                               \
+//     |                                                               |
 //     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 STATUS sctpSessionWriteDcep(PSctpSession pSctpSession, UINT32 streamId, PCHAR pChannelName, UINT32 pChannelNameLen,
                             PRtcDataChannelInit pRtcDataChannelInit)
@@ -246,10 +246,10 @@ STATUS sctpSessionWriteDcep(PSctpSession pSctpSession, UINT32 streamId, PCHAR pC
     if (!pRtcDataChannelInit->ordered) {
         pSctpSession->packet[1] |= DCEP_DATA_CHANNEL_RELIABLE_UNORDERED;
     }
-    if (pRtcDataChannelInit->maxRetransmits.value >= 0 && pRtcDataChannelInit->maxRetransmits.isNull == FALSE) {
+    if (pRtcDataChannelInit->maxRetransmits.isNull == FALSE) {
         pSctpSession->packet[1] |= DCEP_DATA_CHANNEL_REXMIT;
         putUnalignedInt32BigEndian(pSctpSession->packet + SIZEOF(UINT32), pRtcDataChannelInit->maxRetransmits.value);
-    } else if (pRtcDataChannelInit->maxPacketLifeTime.value >= 0 && pRtcDataChannelInit->maxPacketLifeTime.isNull == FALSE) {
+    } else if (pRtcDataChannelInit->maxPacketLifeTime.isNull == FALSE) {
         pSctpSession->packet[1] |= DCEP_DATA_CHANNEL_TIMED;
         putUnalignedInt32BigEndian(pSctpSession->packet + SIZEOF(UINT32), pRtcDataChannelInit->maxPacketLifeTime.value);
     }
@@ -315,7 +315,7 @@ STATUS handleDcepPacket(PSctpSession pSctpSession, UINT32 streamId, PBYTE data, 
     putInt16((PINT16) &labelLength, labelLength);
     putInt16((PINT16) &protocolLength, protocolLength);
 
-    CHK((labelLength + protocolLength + SCTP_DCEP_HEADER_LENGTH) >= length, STATUS_SCTP_INVALID_DCEP_PACKET);
+    CHK((UINT16) (labelLength + protocolLength + SCTP_DCEP_HEADER_LENGTH) >= length, STATUS_SCTP_INVALID_DCEP_PACKET);
 
     CHK(SCTP_MAX_ALLOWABLE_PACKET_LENGTH >= length, STATUS_SCTP_INVALID_DCEP_PACKET);
 
@@ -357,6 +357,8 @@ INT32 onSctpInboundPacket(struct socket* sock, union sctp_sockstore addr, PVOID 
     }
 
 CleanUp:
+
+    UNUSED_PARAM(retStatus);
 
     /*
      * IMPORTANT!!! The allocation is done in the sctp library using default allocator
