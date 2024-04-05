@@ -13,6 +13,11 @@ VOID onGstVideoFrameReady(UINT64 customData, PFrame pFrame)
     GstElement* appsrcVideo = (GstElement*) customData;
     if (!appsrcVideo) {
         DLOGE("Null");
+        return;
+    }
+    if (pFrame == NULL) {
+        DLOGE("Null frame received!, skipping it");
+        return;
     }
     buffer = gst_buffer_new_allocate(NULL, pFrame->size, NULL);
     if (!buffer) {
@@ -45,6 +50,11 @@ VOID onGstAudioFrameReady(UINT64 customData, PFrame pFrame)
     GstElement* appsrcAudio = (GstElement*) customData;
     if (!appsrcAudio) {
         DLOGE("Null");
+        return;
+    }
+    if (pFrame == NULL) {
+        DLOGE("Null frame received!, skipping it");
+        return;
     }
     buffer = gst_buffer_new_allocate(NULL, pFrame->size, NULL);
     if (!buffer) {
