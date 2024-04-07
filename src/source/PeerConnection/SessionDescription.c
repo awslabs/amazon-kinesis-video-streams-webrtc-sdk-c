@@ -302,7 +302,7 @@ STATUS setTransceiverPayloadTypes(PHashTable codecTable, PHashTable rtxTable, PD
              pKvsRtpTransceiver->transceiver.direction == RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY)) {
             CHK_STATUS(hashTableGet(codecTable, pKvsRtpTransceiver->sender.track.codec, &data));
             if (pKvsRtpTransceiver->sender.track.codec == RTC_RTX_CODEC_H265) {
-                data = DEFAULT_PAYLOAD_H265; // TODO
+                data = DEFAULT_PAYLOAD_H265;
             }
             pKvsRtpTransceiver->sender.payloadType = (UINT8) data;
             pKvsRtpTransceiver->sender.rtxPayloadType = (UINT8) data;
@@ -440,7 +440,7 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
     }
 
     if (RTC_CODEC_H265 == pRtcMediaStreamTrack->codec) {
-        payloadType = DEFAULT_PAYLOAD_H265; // TODO
+        payloadType = DEFAULT_PAYLOAD_H265;
     }
 
     if (pRtcMediaStreamTrack->kind == MEDIA_STREAM_TRACK_KIND_VIDEO) {
