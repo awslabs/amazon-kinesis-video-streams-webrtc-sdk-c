@@ -111,6 +111,8 @@ PVOID receiveGstreamerAudioVideoFromMaster(PVOID args)
     PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) args;
     gchar *videoDescription = "", *audioDescription = "", *audioVideoDescription;
 
+    gst_init(NULL, NULL);
+
     CHK_ERR(pSampleStreamingSession != NULL, STATUS_NULL_ARG, "[KVS Viewer] Sample streaming session is NULL");
 
     switch (pSampleStreamingSession->pVideoRtcRtpTransceiver->receiver.track.codec) {
@@ -236,7 +238,6 @@ INT32 main(INT32 argc, CHAR* argv[])
     pChannelName = argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME;
 #endif
 
-    gst_init(&argc, &argv);
     CHK_STATUS(createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_VIEWER, TRUE, TRUE, logLevel, &pSampleConfiguration));
 
     pSampleConfiguration->receiveAudioVideoSource = receiveGstreamerAudioVideoFromMaster;
