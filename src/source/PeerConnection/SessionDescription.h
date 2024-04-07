@@ -51,7 +51,7 @@ extern "C" {
 #define DEFAULT_PAYLOAD_MULAW_STR (PCHAR) "0"
 #define DEFAULT_PAYLOAD_ALAW_STR  (PCHAR) "8"
 
-#define DEFAULT_H264_FMTP   (PCHAR) "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f"
+#define DEFAULT_H264_FMTP (PCHAR) "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f"
 #define DEFAULT_H265_FMTP                                                                                                                            \
     (PCHAR) "profile-space=0;profile-id=0;tier-flag=0;level-id=0;interop-constraints=000000000000;sprop-vps=QAEMAf//"                                \
             "AIAAAAMAAAMAAAMAAAMAALUCQA==;sprop-sps=QgEBAIAAAAMAAAMAAAMAAAMAAKACgIAtH+W1kkbQzkkktySqSfKSyA==;sprop-pps=RAHBpVgeSA=="

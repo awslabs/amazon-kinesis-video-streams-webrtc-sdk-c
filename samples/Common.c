@@ -571,23 +571,14 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     }
 #endif
 
-#ifdef USE_VIDEO_H265
-    // Declare that we support H265
-    CHK_STATUS(addSupportedCodec(pSampleStreamingSession->pPeerConnection, RTC_CODEC_H265));
-#else
     // Declare that we support H264,Profile=42E01F,level-asymmetry-allowed=1,packetization-mode=1 and Opus
     CHK_STATUS(addSupportedCodec(pSampleStreamingSession->pPeerConnection, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE));
-#endif
-
     CHK_STATUS(addSupportedCodec(pSampleStreamingSession->pPeerConnection, RTC_CODEC_OPUS));
 
     // Add a SendRecv Transceiver of type video
     videoTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
-#ifdef USE_VIDEO_H265
     videoTrack.codec = RTC_CODEC_H265;
-#else
     videoTrack.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
-#endif
     videoRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
     videoRtpTransceiverInit.rollingBufferDurationSec = 3;
     // Considering 4 Mbps for 720p (which is what our samples use). This is for H.264.

@@ -1535,11 +1535,8 @@ STATUS addTransceiver(PRtcPeerConnection pPeerConnection, PRtcMediaStreamTrack p
         MEMSET(&videoTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
         videoTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
 
-#ifdef USE_VIDEO_H265
         videoTrack.codec = RTC_CODEC_H265;
-#else
         videoTrack.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
-#endif
 
         STRCPY(videoTrack.streamId, "myKvsVideoStream");
         STRCPY(videoTrack.trackId, "myVideoTrack");

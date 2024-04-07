@@ -764,7 +764,7 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
         payloadType = DEFAULT_PAYLOAD_H265;
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtpmap");
         amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
-                                 SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRId64 " H264/90000", payloadType);
+                                 SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRId64 " H265/90000", payloadType);
         CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full H265 rtpmap could not be written");
         attributeCount++;
 

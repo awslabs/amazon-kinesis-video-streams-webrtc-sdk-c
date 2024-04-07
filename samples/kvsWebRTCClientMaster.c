@@ -44,11 +44,7 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     // Check if the samples are present
 
-#ifdef USE_VIDEO_H265
-    CHK_STATUS(readFrameFromDisk(NULL, &frameSize, "./h265SampleFrames/frame-0001.h265"));
-#else
     CHK_STATUS(readFrameFromDisk(NULL, &frameSize, "./h264SampleFrames/frame-0001.h264"));
-#endif
     DLOGI("[KVS Master] Checked sample video frame availability....available");
 
     CHK_STATUS(readFrameFromDisk(NULL, &frameSize, "./opusSampleFrames/sample-001.opus"));
@@ -149,13 +145,8 @@ PVOID sendVideoPackets(PVOID args)
     lastFrameTime = startTime;
 
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
-#ifdef USE_VIDEO_H265
-        fileIndex = fileIndex % NUMBER_OF_H265_FRAME_FILES + 1;
-        SNPRINTF(filePath, MAX_PATH_LEN, "./h265SampleFrames/frame-%04d.h265", fileIndex);
-#else
         fileIndex = fileIndex % NUMBER_OF_H264_FRAME_FILES + 1;
         SNPRINTF(filePath, MAX_PATH_LEN, "./h264SampleFrames/frame-%04d.h264", fileIndex);
-#endif
 
         CHK_STATUS(readFrameFromDisk(NULL, &frameSize, filePath));
 
