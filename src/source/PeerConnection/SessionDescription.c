@@ -777,7 +777,6 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
         CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full H265 rtcp-fb nack-pli value could not be written");
         attributeCount++;
 
-#if 0
         // TODO: If level asymmetry is allowed, consider sending back DEFAULT_H265_FMTP instead of the received fmtp value.
         if (currentFmtp != NULL) {
             STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "fmtp");
@@ -787,7 +786,6 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
             CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full H265 fmtp value could not be written");
             attributeCount++;
         }
-#endif
 
         if (containRtx) {
             STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtpmap");
@@ -796,14 +794,13 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
                          SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRId64 " " RTX_VALUE, rtxPayloadType);
             CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full H265 rtpmap (with rtx) could not be written");
             attributeCount++;
-#if 0
+            
             STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "fmtp");
             amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
 			   SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRId64 " apt=%" PRId64 "",
 			   rtxPayloadType, payloadType);
             CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full H265 fmtp apt value (with rtx) could not be written");
             attributeCount++;
-#endif
         }
     } else if (pRtcMediaStreamTrack->codec == RTC_CODEC_UNKNOWN) {
         CHK_STATUS(hashTableGet(pUnknownCodecRtpmapTable, unknownCodecHashTableKey, (PUINT64) &rtpMapValue));
