@@ -608,7 +608,7 @@ jobs:
         shell: powershell
         run: |
           $env:Path += ';C:\webrtc\open-source\bin;C:\tools\pthreads-w32-2-9-1-release\Pre-built.2\dll\x64;C:\webrtc\build'
-          & "C:\webrtc\build\tst\webrtc_client_test.exe" --gtest_filter="-SignalingApiFunctionalityTest.receivingIceConfigOffer_SlowClockSkew:SignalingApiFunctionalityTest.iceServerConfigRefreshConnectedAuthExpiration:SignalingApiFunctionalityTest.receivingIceConfigOffer_FastClockSkew:SignalingApiFunctionalityTest.receivingIceConfigOffer_FastClockSkew_VerifyOffsetRemovedWhenClockFixed:DataChannelFunctionalityTest.*:DtlsApiTest.*:IceApiTest.*:IceFunctionalityTest.*:PeerConnectionFunctionalityTest.*:TurnConnectionFunctionalityTest.*:RtpFunctionalityTest.marshallUnmarshallH264Data:RtpFunctionalityTest.packingUnpackingVerifySameH264Frame:RtpFunctionalityTest.packingUnpackingVerifySameH265Frame:RtcpFunctionalityTest.onRtcpPacketCompound:RtcpFunctionalityTest.twcc3"
+          & "C:\webrtc\build\tst\webrtc_client_test.exe" --gtest_filter="-SignalingApiFunctionalityTest.receivingIceConfigOffer_SlowClockSkew:SignalingApiFunctionalityTest.iceServerConfigRefreshConnectedAuthExpiration:SignalingApiFunctionalityTest.receivingIceConfigOffer_FastClockSkew:SignalingApiFunctionalityTest.receivingIceConfigOffer_FastClockSkew_VerifyOffsetRemovedWhenClockFixed:DataChannelFunctionalityTest.*:DtlsApiTest.*:IceApiTest.*:IceFunctionalityTest.*:PeerConnectionFunctionalityTest.*:TurnConnectionFunctionalityTest.*:RtpFunctionalityTest.marshallUnmarshallH264Data:RtpFunctionalityTest.packingUnpackingVerifySameH264Frame:RtcpFunctionalityTest.onRtcpPacketCompound:RtcpFunctionalityTest.twcc3"
   # windows-msvc-mbedtls:
   #   runs-on: windows-2022
   #   env:
