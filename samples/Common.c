@@ -577,7 +577,6 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
 
     // Add a SendRecv Transceiver of type video
     videoTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
-    videoTrack.codec = RTC_CODEC_H265;
     videoTrack.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
     videoRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
     videoRtpTransceiverInit.rollingBufferDurationSec = 3;
