@@ -92,16 +92,14 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
     GstCaps *audiocaps, *videocaps;
     PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) args;
     PSampleConfiguration pSampleConfiguration = pSampleStreamingSession->pSampleConfiguration;
-    PCHAR roleType;
+    PCHAR roleType = "Viewer";
     gchar *videoDescription = "", *audioDescription = "", *audioVideoDescription;
 
     if (pSampleConfiguration->channelInfo.channelRoleType == SIGNALING_CHANNEL_ROLE_TYPE_MASTER) {
         roleType = "Master";
-    } else if (pSampleConfiguration->channelInfo.channelRoleType == SIGNALING_CHANNEL_ROLE_TYPE_VIEWER) {
-        roleType = "Viewer";
     }
 
-    CHK_ERR(!gst_init_check(NULL, NULL, &error), STATUS_INTERNAL_ERROR, "[KVS %s] GStreamer initialization failed");
+    CHK_ERR(gst_init_check(NULL, NULL, &error), STATUS_INTERNAL_ERROR, "[KVS %s] GStreamer initialization failed");
 
     CHK_ERR(pSampleStreamingSession != NULL, STATUS_NULL_ARG, "[KVS %s] Sample streaming session is NULL", roleType);
 
