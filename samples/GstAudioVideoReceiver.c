@@ -101,7 +101,7 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
         roleType = "Viewer";
     }
 
-    CHK_ERR(!gst_init_check(NULL, NULL, &error), STATUS_INTERNAL_ERROR, "[KVS %s] GStreamer initialization failed"); 
+    CHK_ERR(!gst_init_check(NULL, NULL, &error), STATUS_INTERNAL_ERROR, "[KVS %s] GStreamer initialization failed");
 
     CHK_ERR(pSampleStreamingSession != NULL, STATUS_NULL_ARG, "[KVS %s] Sample streaming session is NULL", roleType);
 
