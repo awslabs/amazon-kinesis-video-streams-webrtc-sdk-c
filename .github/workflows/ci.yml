@@ -23,10 +23,36 @@ jobs:
         run: |
           bash scripts/check-clang.sh
   mac-os-build-clang:
-    runs-on: macos-12
+    runs-on: macos-11
     env:
       CC: /usr/bin/clang
       CXX: /usr/bin/clang++
+      AWS_KVS_LOG_LEVEL: 2
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Build repository
+        run: |
+          mkdir build && cd build
+          cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
+          make
+      - name: Run tests
+        run:  |
+          cd build
+          ./tst/webrtc_client_test
+  mac-os-build-gcc:
+    runs-on: macos-11
+    env:
+      CC: gcc
+      CXX: g++
       AWS_KVS_LOG_LEVEL: 2
       PKG_CONFIG_PATH: /usr/local/opt/pkgconfig
     permissions:
@@ -43,32 +69,6 @@ jobs:
       - name: Install dependencies
         run: |
           brew install gstreamer glib 
-      - name: Build repository
-        run: |
-          mkdir build && cd build
-          cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
-          make
-      - name: Run tests
-        run:  |
-          cd build
-          ./tst/webrtc_client_test
-  mac-os-build-gcc:
-    runs-on: macos-11
-    env:
-      CC: gcc
-      CXX: g++
-      AWS_KVS_LOG_LEVEL: 2
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v4
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
       - name: Build repository
         run: |
           mkdir build && cd build
