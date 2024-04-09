@@ -8,24 +8,18 @@
 // GStreamer pipeline created in `receiveGstreamerAudioVideo`. Any logic to modify / discard the frames would go here
 VOID onGstVideoFrameReady(UINT64 customData, PFrame pFrame)
 {
+    STATUS retStatus = STATUS_SUCCESS;
     GstFlowReturn ret;
     GstBuffer* buffer;
     GstElement* appsrcVideo = (GstElement*) customData;
-    if (!appsrcVideo) {
-        DLOGE("Null");
-        return;
-    }
-    if (pFrame == NULL) {
-        DLOGE("Null frame received!, skipping it");
-        return;
-    }
-    buffer = gst_buffer_new_allocate(NULL, pFrame->size, NULL);
-    if (!buffer) {
-        DLOGE("Buffer allocation failed");
-        return;
-    }
 
-    DLOGD("Frame size: %d, presentationTs: %llu", pFrame->size, pFrame->presentationTs);
+    CHK_ERR(appsrcVideo != NULL, STATUS_NULL_ARG, "appsrcVideo is null");
+    CHK_ERR(pFrame != NULL, STATUS_NULL_ARG, "Video frame is null");
+
+    buffer = gst_buffer_new_allocate(NULL, pFrame->size, NULL);
+    CHK_ERR(buffer != NULL, STATUS_NULL_ARG, "Buffer allocation failed");
+
+    DLOGV("Frame size: %d, presentationTs: %llu", pFrame->size, pFrame->presentationTs);
     GST_BUFFER_PTS(buffer) = pFrame->presentationTs;
     GST_BUFFER_DURATION(buffer) = gst_util_uint64_scale(1, GST_SECOND, DEFAULT_FPS_VALUE);
     if (gst_buffer_fill(buffer, 0, pFrame->frameData, pFrame->size) != pFrame->size) {
@@ -38,6 +32,9 @@ VOID onGstVideoFrameReady(UINT64 customData, PFrame pFrame)
         DLOGE("Error pushing buffer: %s", gst_flow_get_name(ret));
     }
     gst_buffer_unref(buffer);
+
+CleanUp:
+    return;
 }
 
 // This function is a callback for the transceiver for every single audio frame it receives
@@ -45,24 +42,18 @@ VOID onGstVideoFrameReady(UINT64 customData, PFrame pFrame)
 // GStreamer pipeline created in `receiveGstreamerAudioVideo`. Any logic to modify / discard the frames would go here
 VOID onGstAudioFrameReady(UINT64 customData, PFrame pFrame)
 {
+    STATUS retStatus = STATUS_SUCCESS;
     GstFlowReturn ret;
     GstBuffer* buffer;
     GstElement* appsrcAudio = (GstElement*) customData;
-    if (!appsrcAudio) {
-        DLOGE("Null");
-        return;
-    }
-    if (pFrame == NULL) {
-        DLOGE("Null frame received!, skipping it");
-        return;
-    }
-    buffer = gst_buffer_new_allocate(NULL, pFrame->size, NULL);
-    if (!buffer) {
-        DLOGE("Buffer allocation failed");
-        return;
-    }
 
-    DLOGD("Audio Frame size: %d, presentationTs: %llu", pFrame->size, pFrame->presentationTs);
+    CHK_ERR(appsrcAudio != NULL, STATUS_NULL_ARG, "appsrcAudio is null");
+    CHK_ERR(pFrame != NULL, STATUS_NULL_ARG, "Audio frame is null");
+
+    buffer = gst_buffer_new_allocate(NULL, pFrame->size, NULL);
+    CHK_ERR(buffer != NULL, STATUS_NULL_ARG, "Buffer allocation failed");
+
+    DLOGV("Audio Frame size: %d, presentationTs: %llu", pFrame->size, pFrame->presentationTs);
     GST_BUFFER_PTS(buffer) = pFrame->presentationTs;
 
     // Recalculate the byte-rate if not using the default values
@@ -77,6 +68,9 @@ VOID onGstAudioFrameReady(UINT64 customData, PFrame pFrame)
         DLOGE("Error pushing buffer: %s", gst_flow_get_name(ret));
     }
     gst_buffer_unref(buffer);
+
+CleanUp:
+    return;
 }
 
 // This function is a callback for the streaming session shutdown event. We send an eos to the pipeline to exit the
@@ -107,7 +101,7 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
         roleType = "Viewer";
     }
 
-    gst_init(NULL, NULL);
+    CHK_ERR(!gst_init_check(NULL, NULL, &error), STATUS_INTERNAL_ERROR, "[KVS %s] GStreamer initialization failed"); 
 
     CHK_ERR(pSampleStreamingSession != NULL, STATUS_NULL_ARG, "[KVS %s] Sample streaming session is NULL", roleType);
 
@@ -225,6 +219,8 @@ CleanUp:
         DLOGE("[KVS %s] %s", roleType, error->message);
         g_clear_error(&error);
     }
+
+    gst_deinit();
 
     return (PVOID) (ULONG_PTR) retStatus;
 }
