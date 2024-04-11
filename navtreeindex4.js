@@ -1,5 +1,9 @@
 var NAVTREEINDEX4 =
 {
+"structRtcIceCandidatePairStats.html#afe78dc8769bb441016e095608a687dd1":[1,0,20,9,15],
+"structRtcIceCandidateStats.html":[1,0,20,12],
+"structRtcIceCandidateStats.html#a0070154c6ed62908cb2b5a9b882687ab":[1,0,20,12,6],
+"structRtcIceCandidateStats.html#a05b9b8904ae8c77bdba111689138897e":[1,0,20,12,3],
 "structRtcIceCandidateStats.html#a0f2fd29d6b8ef55e599acfaaefbe8345":[1,0,20,12,0],
 "structRtcIceCandidateStats.html#a3c6b63ace94e9f4ad21e8ebcdcae7dfc":[1,0,20,12,1],
 "structRtcIceCandidateStats.html#a4c1382b97babc852f0e8391ce28c6eab":[1,0,20,12,2],
