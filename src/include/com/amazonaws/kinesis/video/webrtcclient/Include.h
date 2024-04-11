@@ -847,6 +847,9 @@ typedef enum {
     RTC_CODEC_MULAW = 4,                                                          //!< MULAW audio codec
     RTC_CODEC_ALAW = 5,                                                           //!< ALAW audio codec
     RTC_CODEC_UNKNOWN = 6,
+    RTC_CODEC_H265 = 7, //!< H265 video codec
+    RTC_CODEC_AAC = 8,  //!< AAC audio codec
+
     // RTC_CODEC_MAX **MUST** be the last enum in the list **ALWAYS** and not assigned a value
     RTC_CODEC_MAX //!< Placeholder for max number of supported codecs
 } RTC_CODEC;

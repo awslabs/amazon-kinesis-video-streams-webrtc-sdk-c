@@ -11,7 +11,7 @@ on:
       - master
 jobs:
   clang-format-check:
-    runs-on: macos-latest
+    runs-on: macos-12
     steps:
       - name: Clone repository
         uses: actions/checkout@v4
@@ -78,6 +78,7 @@ jobs:
     runs-on: macos-13-xlarge
     env:
       AWS_KVS_LOG_LEVEL: 2
+      PKG_CONFIG_PATH: /usr/local/opt/pkgconfig
     permissions:
       id-token: write
       contents: read
@@ -89,6 +90,9 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
+      - name: Install dependencies
+        run: |
+          brew install gstreamer glib
       - name: Build repository
         run: |
           brew unlink openssl

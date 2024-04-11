@@ -141,6 +141,18 @@ PVOID sendGstreamerAudioVideo(PVOID args)
      * vp8enc error-resilient=partitions keyframe-max-dist=10 auto-alt-ref=true cpu-used=5 deadline=1 !
      * appsink sync=TRUE emit-signals=TRUE name=appsink-video
      *
+     * For H265/AAC
+     * pipeline =
+     *          gst_parse_launch("videotestsrc pattern=ball is-live=TRUE ! timeoverlay ! queue ! videoconvert !
+     *                                     "video/x-raw,format=I420,width=1920,height=1080,framerate=25/1 ! " "queue ! "
+     *                                     "x265enc speed-preset=veryfast bitrate=512 tune=zerolatency ! "
+     *                                     "video/x-h265,stream-format=byte-stream,alignment=au,profile=main ! appsink sync=TRUE "
+     *                                     "emit-signals=TRUE name=appsink-video audiotestsrc wave=triangle is-live=TRUE ! "
+     *                                     "queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample ! faac ! "
+     *                                     "capsfilter caps=audio/mpeg,mpegversion=4,stream-format=adts,base-profile=lc,channels=2,rate=48000 ! "
+     *                                     "appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
+     *                                     &error);
+     *
      * Raspberry Pi Hardware Encode Example
      * "v4l2src device=\"/dev/video0\" ! queue ! v4l2convert ! "
      * "video/x-raw,format=I420,width=640,height=480,framerate=30/1 ! "
@@ -284,102 +296,6 @@ PVOID sendGstreamerAudioVideo(PVOID args)
 
 CleanUp:
 
-    if (error != NULL) {
-        DLOGE("[KVS GStreamer Master] %s", error->message);
-        g_clear_error(&error);
-    }
-
-    return (PVOID) (ULONG_PTR) retStatus;
-}
-
-VOID onGstAudioFrameReady(UINT64 customData, PFrame pFrame)
-{
-    GstFlowReturn ret;
-    GstBuffer* buffer;
-    GstElement* appsrcAudio = (GstElement*) customData;
-
-    /* Create a new empty buffer */
-    buffer = gst_buffer_new_and_alloc(pFrame->size);
-    gst_buffer_fill(buffer, 0, pFrame->frameData, pFrame->size);
-
-    /* Push the buffer into the appsrc */
-    g_signal_emit_by_name(appsrcAudio, "push-buffer", buffer, &ret);
-
-    /* Free the buffer now that we are done with it */
-    gst_buffer_unref(buffer);
-}
-
-VOID onSampleStreamingSessionShutdown(UINT64 customData, PSampleStreamingSession pSampleStreamingSession)
-{
-    (void) (pSampleStreamingSession);
-    GstElement* appsrc = (GstElement*) customData;
-    GstFlowReturn ret;
-
-    g_signal_emit_by_name(appsrc, "end-of-stream", &ret);
-}
-
-PVOID receiveGstreamerAudioVideo(PVOID args)
-{
-    STATUS retStatus = STATUS_SUCCESS;
-    GstElement *pipeline = NULL, *appsrcAudio = NULL;
-    GstBus* bus;
-    GstMessage* msg;
-    GError* error = NULL;
-    PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) args;
-    gchar *videoDescription = "", *audioDescription = "", *audioVideoDescription;
-
-    CHK_ERR(pSampleStreamingSession != NULL, STATUS_NULL_ARG, "[KVS Gstreamer Master] Sample streaming session is NULL");
-
-    // TODO: For video
-    switch (pSampleStreamingSession->pAudioRtcRtpTransceiver->receiver.track.codec) {
-        case RTC_CODEC_OPUS:
-            audioDescription = "appsrc name=appsrc-audio ! opusparse ! decodebin ! autoaudiosink";
-            break;
-
-        case RTC_CODEC_MULAW:
-        case RTC_CODEC_ALAW:
-            audioDescription = "appsrc name=appsrc-audio ! rawaudioparse ! decodebin ! autoaudiosink";
-            break;
-        default:
-            break;
-    }
-
-    audioVideoDescription = g_strjoin(" ", audioDescription, videoDescription, NULL);
-
-    pipeline = gst_parse_launch(audioVideoDescription, &error);
-
-    appsrcAudio = gst_bin_get_by_name(GST_BIN(pipeline), "appsrc-audio");
-    CHK_ERR(appsrcAudio != NULL, STATUS_INTERNAL_ERROR, "[KVS Gstreamer Master] Cannot find appsrc");
-
-    CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pAudioRtcRtpTransceiver, (UINT64) appsrcAudio, onGstAudioFrameReady));
-
-    CHK_STATUS(streamingSessionOnShutdown(pSampleStreamingSession, (UINT64) appsrcAudio, onSampleStreamingSessionShutdown));
-    g_free(audioVideoDescription);
-
-    CHK_ERR(pipeline != NULL, STATUS_INTERNAL_ERROR, "[KVS Gstreamer Master] Pipeline is NULL");
-
-    gst_element_set_state(pipeline, GST_STATE_PLAYING);
-
-    /* block until error or EOS */
-    bus = gst_element_get_bus(pipeline);
-    msg = gst_bus_timed_pop_filtered(bus, GST_CLOCK_TIME_NONE, GST_MESSAGE_ERROR | GST_MESSAGE_EOS);
-
-    /* Free resources */
-    if (msg != NULL) {
-        gst_message_unref(msg);
-    }
-    if (bus != NULL) {
-        gst_object_unref(bus);
-    }
-    if (pipeline != NULL) {
-        gst_element_set_state(pipeline, GST_STATE_NULL);
-        gst_object_unref(pipeline);
-    }
-    if (appsrcAudio != NULL) {
-        gst_object_unref(appsrcAudio);
-    }
-
-CleanUp:
     if (error != NULL) {
         DLOGE("[KVS GStreamer Master] %s", error->message);
         g_clear_error(&error);
