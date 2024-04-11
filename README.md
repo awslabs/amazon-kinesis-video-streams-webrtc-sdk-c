@@ -305,19 +305,25 @@ Allowed audio-codec: opus (default codec if nothing is specified)
 Allowed video-codec: h264 (default codec if nothing is specified), h265
 
 #### Sample: kvsWebrtcClientViewer
-This application accepts sample H264/Opus frames and prints them out. To run:
+This application accepts sample H264/Opus frames by default. You can use other supported codecs by changing the value for `videoTrack.codec` and `audioTrack.codec` in _Common.c_. By default, this sample only logs the size of the audio and video buffer it receives. To write these frames to a file using GStreamer, use the _kvsWebrtcClientViewerGstSample_ instead.
+
+To run:
 ```shell
 ./samples/kvsWebrtcClientViewer <channelName> <audio-codec> <video-codec>
 ```
 
+<<<<<<< HEAD
 Allowed audio-codec: opus (default codec if nothing is specified)
 Allowed video-codec: h264 (default codec if nothing is specified), h265
 
+=======
+>>>>>>> a07a25ce91 ([Sample] GStreamer media receiver (#1963))
 #### Sample: kvsWebrtcClientViewerGstSample
 This application is similar to the kvsWebrtcClientViewer. However, instead of just logging the media it receives, it generates a file using filesink. Make sure that your device has enough space to write the media to a file. You can also customize the receiving logic by modifying the functions in _GstAudioVideoReceiver.c_
 
 To run:
 ```shell
+<<<<<<< HEAD
 ./samples/kvsWebrtcClientViewerGstSample <channelName> <mediaType> <audio-codec> <video-codec>
 ```
 
@@ -335,6 +341,11 @@ matroskamux matroska-mux.c:1134:gst_matroska_mux_video_pad_setcaps:<mux> error: 
 ```
 To address this issue, users need to adapt the pipeline to utilize components capable of managing dynamic changes in media formats. This might involve integrating different muxers or customizing the pipeline to handle caps changes effectively.
 
+=======
+./samples/kvsWebrtcClientViewerGstSample <channelName> <mediaType>
+```
+
+>>>>>>> a07a25ce91 ([Sample] GStreamer media receiver (#1963))
 #### Sample: Generating sample frames
 
 ##### H264

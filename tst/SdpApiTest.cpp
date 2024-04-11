@@ -306,8 +306,6 @@ TEST_F(SdpApiTest, setTransceiverPayloadTypes_HasRtxType_H265)
     transceiver.transceiver.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
     transceiver.sender.packetBuffer = NULL;
     transceiver.sender.retransmitter = NULL;
-    transceiver.rollingBufferDurationSec = DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS;
-    transceiver.rollingBufferBitratebps = DEFAULT_EXPECTED_VIDEO_BIT_RATE;
     EXPECT_EQ(STATUS_SUCCESS, hashTableCreate(&pCodecTable));
     EXPECT_EQ(STATUS_SUCCESS, hashTablePut(pCodecTable, RTC_CODEC_H265, 1));
     EXPECT_EQ(STATUS_SUCCESS, hashTableCreate(&pRtxTable));

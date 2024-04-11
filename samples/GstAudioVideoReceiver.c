@@ -106,6 +106,7 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
     PSampleConfiguration pSampleConfiguration = pSampleStreamingSession->pSampleConfiguration;
     PCHAR roleType = "Viewer";
     gchar *videoDescription = "", *audioDescription = "", *audioVideoDescription;
+    RTC_CODEC audioCodec;
 
     if (pSampleConfiguration->channelInfo.channelRoleType == SIGNALING_CHANNEL_ROLE_TYPE_MASTER) {
         roleType = "Master";
@@ -147,13 +148,6 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
                 audioDescription = "appsrc name=appsrc-audio ! queue ! opusparse ! queue ! mux.";
                 audiocaps = gst_caps_new_simple("audio/x-opus", "rate", G_TYPE_INT, DEFAULT_AUDIO_OPUS_SAMPLE_RATE_HZ, "channel-mapping-family",
                                                 G_TYPE_INT, 1, NULL);
-                break;
-
-            case RTC_CODEC_AAC:
-                audioDescription = "appsrc name=appsrc-audio ! queue ! aacparse ! mux.";
-                audiocaps = gst_caps_new_simple("audio/mpeg", "mpegversion", G_TYPE_INT, 4, "rate", G_TYPE_INT, DEFAULT_AUDIO_AAC_SAMPLE_RATE_HZ,
-                                                "channels", G_TYPE_INT, DEFAULT_AUDIO_AAC_CHANNELS, "stream-format", G_TYPE_STRING, "adts",
-                                                "base-profile", G_TYPE_STRING, "lc", NULL);
                 break;
 
             // TODO: make sure this pipeline works. Figure out the caps for this
