@@ -1,6 +1,8 @@
 #include "Samples.h"
 
 extern PSampleConfiguration gSampleConfiguration;
+static UINT64 videoTimestamp = 0;
+static UINT64 audioTimestamp = 0;
 
 #ifdef ENABLE_DATA_CHANNEL
 
@@ -45,9 +47,14 @@ VOID onGstVideoFrameReadyViewer(UINT64 customData, PFrame pFrame)
         return;
     }
 
-    DLOGI("Frame size: %d, %llu", pFrame->size, pFrame->presentationTs);
-    GST_BUFFER_PTS(buffer) = pFrame->presentationTs;
-    GST_BUFFER_DURATION(buffer) = gst_util_uint64_scale(1, GST_SECOND, 24);
+    DLOGI("Frame size: %d, %llu", pFrame->size, videoTimestamp);
+
+    GST_BUFFER_DTS(buffer) = videoTimestamp;
+    GST_BUFFER_PTS(buffer) = videoTimestamp;
+    GST_BUFFER_DURATION(buffer) = gst_util_uint64_scale(1, GST_SECOND, 25);
+
+    videoTimestamp += 40000000;
+
     if (gst_buffer_fill(buffer, 0, pFrame->frameData, pFrame->size) != pFrame->size) {
         DLOGE("Buffer fill did not complete correctly");
         gst_buffer_unref(buffer);
@@ -65,6 +72,10 @@ VOID onGstAudioFrameReadyViewer(UINT64 customData, PFrame pFrame)
     GstFlowReturn ret;
     GstBuffer* buffer;
     GstElement* appsrcAudio = (GstElement*) customData;
+    int sample_rate = 48000; // Hz
+    int num_channels = 2;
+    int bits_per_sample = 16; // For example, 16-bit audio
+    int byte_rate = (sample_rate * num_channels * bits_per_sample) / 8;
     if (!appsrcAudio) {
         DLOGE("Null");
     }
@@ -74,13 +85,14 @@ VOID onGstAudioFrameReadyViewer(UINT64 customData, PFrame pFrame)
         return;
     }
 
-    DLOGI("Audio Frame size: %d, %llu", pFrame->size, pFrame->presentationTs);
-    GST_BUFFER_PTS(buffer) = pFrame->presentationTs;
-    int sample_rate = 48000; // Hz
-    int num_channels = 2;
-    int bits_per_sample = 16; // For example, 16-bit audio
-    int byte_rate = (sample_rate * num_channels * bits_per_sample) / 8;
+    DLOGI("Frame size: %d, %llu", pFrame->size, audioTimestamp);
+
+    GST_BUFFER_DTS(buffer) = audioTimestamp;
+    GST_BUFFER_PTS(buffer) = audioTimestamp;
     GST_BUFFER_DURATION(buffer) = gst_util_uint64_scale(pFrame->size, GST_SECOND, byte_rate);
+
+    audioTimestamp += 20833;
+
     if (gst_buffer_fill(buffer, 0, pFrame->frameData, pFrame->size) != pFrame->size) {
         DLOGE("Buffer fill did not complete correctly");
         gst_buffer_unref(buffer);
@@ -110,8 +122,11 @@ PVOID receiveGstreamerAudioVideoFromMaster(PVOID args)
     GError* error = NULL;
     PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) args;
     gchar *videoDescription = "", *audioDescription = "", *audioVideoDescription;
-
+    
     gst_init(NULL, NULL);
+
+    videoTimestamp = GETTIME() * 100;
+    audioTimestamp = videoTimestamp;
 
     CHK_ERR(pSampleStreamingSession != NULL, STATUS_NULL_ARG, "[KVS Viewer] Sample streaming session is NULL");
 
@@ -125,7 +140,7 @@ PVOID receiveGstreamerAudioVideoFromMaster(PVOID args)
             break;
 
         case RTC_CODEC_H265:
-            videoDescription = "appsrc name=appsrc-video ! capsfilter caps=video/x-h265,stream-format=byte-stream,framerate=25/1,alignment=au,profile=main,width=1920,height=1080 ! queue ! h265parse ! queue ! matroskamux name=mux ! queue ! filesink location=video.mkv ";
+            videoDescription = "appsrc name=appsrc-video ! capsfilter caps=video/x-h265,stream-format=byte-stream,alignment=au,profile=main,width=1280,height=720 ! queue ! h265parse ! queue ! matroskamux name=mux ! queue ! filesink location=video.mkv ";
             break;
 
         default:
@@ -134,7 +149,7 @@ PVOID receiveGstreamerAudioVideoFromMaster(PVOID args)
 
     switch (pSampleStreamingSession->pAudioRtcRtpTransceiver->receiver.track.codec) {
         case RTC_CODEC_OPUS:
-            audioDescription = "appsrc name=appsrc-audio ! capsfilter caps=audio/x-opus,rate=48000,channels=2 ! queue ! opusparse ! queue ! mux.";
+            audioDescription = "appsrc name=appsrc-audio ! capsfilter caps=audio/x-opus,rate=48000,channels=2,channel-mapping-family=0 ! queue ! opusparse ! queue ! mux.";
             break;
 
         case RTC_CODEC_MULAW:

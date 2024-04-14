@@ -67,8 +67,12 @@ GstFlowReturn on_new_sample(GstElement* sink, gpointer data, UINT64 trackid)
                 pRtcRtpTransceiver = pSampleStreamingSession->pAudioRtcRtpTransceiver;
                 frame.presentationTs = pSampleStreamingSession->audioTimestamp;
                 frame.decodingTs = frame.presentationTs;
-                pSampleStreamingSession->audioTimestamp +=
-                    SAMPLE_AUDIO_FRAME_DURATION; // assume audio frame size is 20ms, which is default in opusenc
+                pSampleStreamingSession->audioTimestamp += SAMPLE_AUDIO_AAC_FRAME_DURATION; // assume audio frame size is 20ms, which is default in opusenc
+            } else if (trackid == RTC_CODEC_OPUS) {
+                pRtcRtpTransceiver = pSampleStreamingSession->pAudioRtcRtpTransceiver;
+                frame.presentationTs = pSampleStreamingSession->audioTimestamp;
+                frame.decodingTs = frame.presentationTs;
+                pSampleStreamingSession->audioTimestamp += SAMPLE_AUDIO_FRAME_DURATION; // assume audio frame size is 20ms, which is default in opusenc
             } else {
                 pRtcRtpTransceiver = pSampleStreamingSession->pVideoRtcRtpTransceiver;
                 frame.presentationTs = pSampleStreamingSession->videoTimestamp;
@@ -109,12 +113,12 @@ CleanUp:
 
 GstFlowReturn on_new_sample_video(GstElement* sink, gpointer data)
 {
-    return on_new_sample(sink, data, RTC_CODEC_H265);
+    return on_new_sample(sink, data, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE);
 }
 
 GstFlowReturn on_new_sample_audio(GstElement* sink, gpointer data)
 {
-    return on_new_sample(sink, data, RTC_CODEC_AAC);
+    return on_new_sample(sink, data, RTC_CODEC_OPUS);
 }
 
 PVOID sendGstreamerAudioVideo(PVOID args)
@@ -156,10 +160,10 @@ PVOID sendGstreamerAudioVideo(PVOID args)
         case SAMPLE_STREAMING_VIDEO_ONLY:
             switch (pSampleConfiguration->srcType) {
                 case TEST_SOURCE: {
-                    pipeline = gst_parse_launch("videotestsrc is-live=TRUE ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 "
-                                                "! x265enc speed-preset=veryfast bitrate=512 ! "
-                                                "appsink sync=TRUE emit-signals=TRUE "
-                                                "name=appsink-video",
+                    pipeline = gst_parse_launch("videotestsrc pattern=ball is-live=TRUE ! timeoverlay ! queue ! videoconvert ! video/x-raw,format=I420,width=1920,height=1080,framerate=25/1 ! "
+                                                "queue ! x265enc speed-preset=veryfast bitrate=512 tune=zerolatency ! "
+                                                "video/x-h265,stream-format=byte-stream,alignment=au,profile=main ! appsink sync=TRUE "
+                                                "emit-signals=TRUE name=appsink-video",
                                                 &error);
                     break;
                 }
@@ -194,23 +198,31 @@ PVOID sendGstreamerAudioVideo(PVOID args)
         case SAMPLE_STREAMING_AUDIO_VIDEO:
             switch (pSampleConfiguration->srcType) {
                 case TEST_SOURCE: {
+                    pipeline =
+                        gst_parse_launch("videotestsrc pattern=ball is-live=TRUE ! timeoverlay ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
+                                         "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
+                                         "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE "
+                                         "emit-signals=TRUE name=appsink-video audiotestsrc is-live=TRUE ! "
+                                         "queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample ! opusenc ! "
+                                         "audio/x-opus,rate=48000,channels=2 ! appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
+                                         &error);
                     // pipeline =
-                    //     gst_parse_launch("videotestsrc is-live=TRUE ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
-                    //                      "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
-                    //                      "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE "
+                    //     gst_parse_launch("videotestsrc pattern=ball is-live=TRUE ! timeoverlay ! queue ! videoconvert ! video/x-raw,format=I420,width=1920,height=1080,framerate=25/1 ! "
+                    //                      "queue ! x265enc speed-preset=veryfast bitrate=512 tune=zerolatency ! "
+                    //                      "video/x-h265,stream-format=byte-stream,alignment=au,profile=main ! appsink sync=TRUE "
+                    //                      "emit-signals=TRUE name=appsink-video audiotestsrc wave=triangle is-live=TRUE ! "
+                    //                      "queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample ! faac ! "
+                    //                      "capsfilter caps=audio/mpeg,mpegversion=4,stream-format=adts,base-profile=lc,channels=2,rate=16000 ! "
+                    //                      "appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
+                    //                      &error);
+                    // pipeline =
+                    //     gst_parse_launch("videotestsrc pattern=ball is-live=TRUE ! timeoverlay ! queue ! videoconvert ! capsfilter caps=video/x-raw,format=I420,width=1920,height=1080,framerate=25/1 ! "
+                    //                      "queue ! x265enc speed-preset=veryfast bitrate=512 tune=zerolatency ! "
+                    //                      "capsfilter caps=video/x-h265,stream-format=byte-stream,alignment=au,profile=main,framerate=25/1 ! appsink sync=TRUE "
                     //                      "emit-signals=TRUE name=appsink-video audiotestsrc is-live=TRUE ! "
                     //                      "queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample ! opusenc ! "
-                    //                      "audio/x-opus,rate=48000,channels=2 ! appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
+                    //                      "capsfilter caps=audio/x-opus,rate=48000,channels=2 ! appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
                     //                      &error);
-                    pipeline =
-                        gst_parse_launch("videotestsrc pattern=ball is-live=TRUE ! timeoverlay ! queue ! videoconvert ! video/x-raw,format=I420,width=1920,height=1080,framerate=25/1 ! "
-                                         "queue ! x265enc speed-preset=veryfast bitrate=512 tune=zerolatency ! "
-                                         "video/x-h265,stream-format=byte-stream,alignment=au,profile=main ! appsink sync=TRUE "
-                                         "emit-signals=TRUE name=appsink-video audiotestsrc wave=triangle is-live=TRUE ! "
-                                         "queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample ! faac ! "
-                                         "capsfilter caps=audio/mpeg,mpegversion=4,stream-format=adts,base-profile=lc,channels=2,rate=48000 ! "
-                                         "appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
-                                         &error);
                     break;
                 }
                 case DEVICE_SOURCE: {
