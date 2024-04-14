@@ -133,7 +133,7 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
                                             DEFAULT_VIDEO_WIDTH_PIXELS, NULL);
             break;
 
-            // TODO: add a similar pipeline for VP8
+        // TODO: add a similar pipeline for VP8
 
         default:
             break;
