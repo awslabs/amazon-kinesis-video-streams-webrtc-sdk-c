@@ -198,14 +198,14 @@ PVOID sendGstreamerAudioVideo(PVOID args)
         case SAMPLE_STREAMING_AUDIO_VIDEO:
             switch (pSampleConfiguration->srcType) {
                 case TEST_SOURCE: {
-                    pipeline =
-                        gst_parse_launch("videotestsrc pattern=ball is-live=TRUE ! timeoverlay ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
-                                         "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
-                                         "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE "
-                                         "emit-signals=TRUE name=appsink-video audiotestsrc is-live=TRUE ! "
-                                         "queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample ! opusenc ! "
-                                         "audio/x-opus,rate=48000,channels=2 ! appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
-                                         &error);
+                    // pipeline =
+                    //     gst_parse_launch("videotestsrc pattern=ball is-live=TRUE ! timeoverlay ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
+                    //                      "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
+                    //                      "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE "
+                    //                      "emit-signals=TRUE name=appsink-video audiotestsrc is-live=TRUE ! "
+                    //                      "queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample ! opusenc ! "
+                    //                      "audio/x-opus,rate=48000,channels=2 ! appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
+                    //                      &error);
                     // pipeline =
                     //     gst_parse_launch("videotestsrc pattern=ball is-live=TRUE ! timeoverlay ! queue ! videoconvert ! video/x-raw,format=I420,width=1920,height=1080,framerate=25/1 ! "
                     //                      "queue ! x265enc speed-preset=veryfast bitrate=512 tune=zerolatency ! "
@@ -215,14 +215,14 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                     //                      "capsfilter caps=audio/mpeg,mpegversion=4,stream-format=adts,base-profile=lc,channels=2,rate=16000 ! "
                     //                      "appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
                     //                      &error);
-                    // pipeline =
-                    //     gst_parse_launch("videotestsrc pattern=ball is-live=TRUE ! timeoverlay ! queue ! videoconvert ! capsfilter caps=video/x-raw,format=I420,width=1920,height=1080,framerate=25/1 ! "
-                    //                      "queue ! x265enc speed-preset=veryfast bitrate=512 tune=zerolatency ! "
-                    //                      "capsfilter caps=video/x-h265,stream-format=byte-stream,alignment=au,profile=main,framerate=25/1 ! appsink sync=TRUE "
-                    //                      "emit-signals=TRUE name=appsink-video audiotestsrc is-live=TRUE ! "
-                    //                      "queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample ! opusenc ! "
-                    //                      "capsfilter caps=audio/x-opus,rate=48000,channels=2 ! appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
-                    //                      &error);
+                    pipeline =
+                        gst_parse_launch("videotestsrc pattern=ball is-live=TRUE ! timeoverlay ! queue ! videoconvert ! capsfilter caps=video/x-raw,format=I420,width=1280,height=720,framerate=25/1 ! "
+                                         "queue ! x265enc speed-preset=veryfast bitrate=512 tune=zerolatency ! "
+                                         "capsfilter caps=video/x-h265,stream-format=byte-stream,alignment=au,profile=main,framerate=25/1 ! appsink sync=TRUE "
+                                         "emit-signals=TRUE name=appsink-video audiotestsrc is-live=TRUE ! "
+                                         "queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample ! opusenc ! "
+                                         "capsfilter caps=audio/x-opus,rate=48000,channels=2 ! appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
+                                         &error);
                     break;
                 }
                 case DEVICE_SOURCE: {

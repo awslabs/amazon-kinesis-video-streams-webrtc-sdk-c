@@ -2,7 +2,6 @@
 
 extern PSampleConfiguration gSampleConfiguration;
 static UINT64 videoTimestamp = 0;
-static UINT64 audioTimestamp = 0;
 
 #ifdef ENABLE_DATA_CHANNEL
 
@@ -85,13 +84,11 @@ VOID onGstAudioFrameReadyViewer(UINT64 customData, PFrame pFrame)
         return;
     }
 
-    DLOGI("Frame size: %d, %llu", pFrame->size, audioTimestamp);
+    DLOGI("Frame size: %d, %llu", pFrame->size, videoTimestamp);
 
-    GST_BUFFER_DTS(buffer) = audioTimestamp;
-    GST_BUFFER_PTS(buffer) = audioTimestamp;
+    GST_BUFFER_DTS(buffer) = videoTimestamp;
+    GST_BUFFER_PTS(buffer) = videoTimestamp;
     GST_BUFFER_DURATION(buffer) = gst_util_uint64_scale(pFrame->size, GST_SECOND, byte_rate);
-
-    audioTimestamp += 20833;
 
     if (gst_buffer_fill(buffer, 0, pFrame->frameData, pFrame->size) != pFrame->size) {
         DLOGE("Buffer fill did not complete correctly");
@@ -124,9 +121,6 @@ PVOID receiveGstreamerAudioVideoFromMaster(PVOID args)
     gchar *videoDescription = "", *audioDescription = "", *audioVideoDescription;
     
     gst_init(NULL, NULL);
-
-    videoTimestamp = GETTIME() * 100;
-    audioTimestamp = videoTimestamp;
 
     CHK_ERR(pSampleStreamingSession != NULL, STATUS_NULL_ARG, "[KVS Viewer] Sample streaming session is NULL");
 
