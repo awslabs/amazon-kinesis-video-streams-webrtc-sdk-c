@@ -42,7 +42,7 @@ jobs:
       - name: Build repository
         run: |
           mkdir build && cd build
-          cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=FALSE
+          cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
           make
       - name: Run tests
         run:  |
@@ -68,7 +68,7 @@ jobs:
       - name: Build repository
         run: |
           mkdir build && cd build
-          cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=FALSE
+          cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
           make
       - name: Run tests
         run:  |
