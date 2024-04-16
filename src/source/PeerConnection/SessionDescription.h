@@ -58,7 +58,6 @@ extern "C" {
     (PCHAR) "profile-space=0;profile-id=0;tier-flag=0;level-id=0;interop-constraints=000000000000;sprop-vps=QAEMAf//"                                \
             "AIAAAAMAAAMAAAMAAAMAALUCQA==;sprop-sps=QgEBAIAAAAMAAAMAAAMAAAMAAKACgIAtH+W1kkbQzkkktySqSfKSyA==;sprop-pps=RAHBpVgeSA=="
 #define DEFAULT_OPUS_FMTP   (PCHAR) "minptime=10;useinbandfec=1"
-#define DEFAULT_AAC_FMTP    (PCHAR) "profile-level-id=1; mode=AAC-hbr; config=F8F1; SizeLength=13; IndexLength=3; IndexDeltaLength=3"
 #define H264_PROFILE_42E01F 0x42e01f
 // profile-level-id:
 //   A base16 [7] (hexadecimal) representation of the following
