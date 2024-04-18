@@ -326,6 +326,8 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     pSampleConfiguration->videoSource = sendGstreamerAudioVideo;
     pSampleConfiguration->mediaType = SAMPLE_STREAMING_VIDEO_ONLY;
+    pSampleConfiguration->receiveAudioVideoSource = NULL;
+
 #ifdef ENABLE_DATA_CHANNEL
     pSampleConfiguration->onDataChannel = onDataChannel;
 #endif
