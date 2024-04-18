@@ -309,6 +309,14 @@ To run:
 ./samples/kvsWebrtcClientViewerGstSample <channelName> <mediaType>
 ```
 
+##### Note:
+Our GStreamer samples leverage [MatroskaMux](https://gstreamer.freedesktop.org/documentation/matroska/matroskamux.html?gi-language=c) to receive media from its peer and save it to a file. However, MatroskaMux is designed for scenarios where the media's format remains constant throughout streaming. Unfortunately, this is not the case while using certain browsers as peers with ([AWS KVS JS SDK](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-js/examples/index.html)), so receiving media from the browsers andf writing it to filesink via MatroskaMux is not supported by our existing GStreamer samples. When the media's format changes mid-streaming (referred to as "caps changes"), MatroskaMux encounters limitations and is unable to handle these changes, resulting in an error message like:
+
+```shell
+matroskamux matroska-mux.c:1134:gst_matroska_mux_video_pad_setcaps:<mux> error: Caps changes are not supported by Matroska
+```
+To address this issue, users need to adapt the pipeline to utilize components capable of managing dynamic changes in media formats. This might involve integrating different muxers or customizing the pipeline to handle caps changes effectively.
+
 #### Sample: Generating sample frames
 
 ##### H264
