@@ -3,9 +3,6 @@
 #include "kvsstun/stun_serializer.h"
 #include "kvsstun/stun_deserializer.h"
 
-// Convert error code from STUN library to STATUS.
-extern STATUS convertStunErrorCode(StunResult_t stunResult);
-
 STATUS stunPackageIpAddr(PStunHeader pStunHeader, STUN_ATTRIBUTE_TYPE type, PKvsIpAddress pAddress, PBYTE pBuffer, PUINT32 pDataLen)
 {
     ENTERS();

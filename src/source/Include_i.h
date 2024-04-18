@@ -26,6 +26,7 @@ extern "C" {
 ////////////////////////////////////////////////////
 #include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
 #include "kvssdp/sdp_data_types.h"
+#include "kvsstun/stun_data_types.h"
 
 #ifdef KVS_USE_OPENSSL
 #include <openssl/bio.h>
@@ -173,6 +174,7 @@ STATUS generateJSONSafeString(PCHAR, UINT32);
 #define KVS_CONVERT_TIMESCALE(pts, from_timescale, to_timescale) (pts * to_timescale / from_timescale)
 
 STATUS convertSdpErrorCode(SdpResult_t sdpResult);
+STATUS convertStunErrorCode(StunResult_t sdpResult);
 
 #ifdef __cplusplus
 }
