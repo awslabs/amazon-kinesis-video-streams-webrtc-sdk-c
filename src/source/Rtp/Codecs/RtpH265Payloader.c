@@ -147,7 +147,6 @@ STATUS createPayloadFromNaluH265(UINT32 mtu, PBYTE nalu, UINT32 naluLength, PPay
     BOOL sizeCalculationOnly = (pPayloadArray == NULL);
 
     CHK(nalu != NULL && filledLength != NULL && filledSubLenSize != NULL, STATUS_NULL_ARG);
-    sizeCalculationOnly = (pPayloadArray == NULL);
     CHK(sizeCalculationOnly || (pPayloadArray->payloadSubLength != NULL && pPayloadArray->payloadBuffer != NULL), STATUS_NULL_ARG);
     CHK(mtu > H265_FU_HEADER_SIZE, STATUS_RTP_INPUT_MTU_TOO_SMALL);
 
