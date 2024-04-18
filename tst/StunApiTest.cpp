@@ -350,7 +350,6 @@ TEST_F(StunApiTest, getPackagedStunAttributeSizeTest)
 
 TEST_F(StunApiTest, convertStunErrorCodeTest)
 {
-    STATUS retStatus;
     StunResult_t stunResult;
 
     stunResult = STUN_RESULT_OK;
