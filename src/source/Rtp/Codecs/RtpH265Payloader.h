@@ -10,8 +10,8 @@ H265 RTP Payloader include file
 extern "C" {
 #endif
 
-#define FU_HEADER_SIZE 3
-#define FU_TYPE_ID     49
+#define H265_FU_HEADER_SIZE 3
+#define H265_FU_TYPE_ID     49
 
 /*
  *  0                   1                   2                   3

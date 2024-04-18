@@ -17,7 +17,7 @@ STATUS createPayloadForH265(UINT32 mtu, PBYTE nalus, UINT32 nalusLength, PBYTE p
     PayloadArray payloadArray;
 
     CHK(nalus != NULL && pPayloadSubLenSize != NULL && pPayloadLength != NULL && (sizeCalculationOnly || pPayloadSubLength != NULL), STATUS_NULL_ARG);
-    CHK(mtu > FU_HEADER_SIZE, STATUS_RTP_INPUT_MTU_TOO_SMALL);
+    CHK(mtu > H265_FU_HEADER_SIZE, STATUS_RTP_INPUT_MTU_TOO_SMALL);
 
     if (sizeCalculationOnly) {
         payloadArray.payloadLength = 0;
@@ -149,7 +149,7 @@ STATUS createPayloadFromNaluH265(UINT32 mtu, PBYTE nalu, UINT32 naluLength, PPay
     CHK(nalu != NULL && filledLength != NULL && filledSubLenSize != NULL, STATUS_NULL_ARG);
     sizeCalculationOnly = (pPayloadArray == NULL);
     CHK(sizeCalculationOnly || (pPayloadArray->payloadSubLength != NULL && pPayloadArray->payloadBuffer != NULL), STATUS_NULL_ARG);
-    CHK(mtu > FU_HEADER_SIZE, STATUS_RTP_INPUT_MTU_TOO_SMALL);
+    CHK(mtu > H265_FU_HEADER_SIZE, STATUS_RTP_INPUT_MTU_TOO_SMALL);
 
     naluType = (nalu[0] & 0x7E) >> 1; // 6 bits after forbidden zero bit 0x7E(0111 1110)
 
@@ -172,18 +172,18 @@ STATUS createPayloadFromNaluH265(UINT32 mtu, PBYTE nalu, UINT32 naluLength, PPay
         }
     } else {
         // Fragmentation units: https://www.rfc-editor.org/rfc/rfc7798.html#section-4.4.3
-        maxPayloadSize = mtu - FU_HEADER_SIZE;
+        maxPayloadSize = mtu - H265_FU_HEADER_SIZE;
 
         while (remainingNaluLength != 0) {
             curPayloadSize = MIN(maxPayloadSize, remainingNaluLength);
             payloadSubLenSize++;
-            payloadLength += FU_HEADER_SIZE + curPayloadSize;
+            payloadLength += H265_FU_HEADER_SIZE + curPayloadSize;
 
             if (!sizeCalculationOnly) {
                 CHK(payloadSubLenSize <= pPayloadArray->maxPayloadSubLenSize && payloadLength <= pPayloadArray->maxPayloadLength,
                     STATUS_BUFFER_TOO_SMALL);
 
-                pPayload[0] = (FU_TYPE_ID << 1) | (nalu[0] & 0x81) | (nalu[0] & 0x1); // FU_TYPE_ID indicator is 49
+                pPayload[0] = (H265_FU_TYPE_ID << 1) | (nalu[0] & 0x81) | (nalu[0] & 0x1); // H265_FU_TYPE_ID indicator is 49
                 pPayload[1] = (nalu[1] & 0xff);
                 pPayload[2] = naluType & 0x3f;
                 if (remainingNaluLength == naluLength) {
@@ -192,9 +192,9 @@ STATUS createPayloadFromNaluH265(UINT32 mtu, PBYTE nalu, UINT32 naluLength, PPay
                     pPayload[2] |= (1 << 6); // Set for ending bit
                 }
 
-                MEMCPY(pPayload + FU_HEADER_SIZE, pCurPtrInNalu, curPayloadSize);
+                MEMCPY(pPayload + H265_FU_HEADER_SIZE, pCurPtrInNalu, curPayloadSize);
 
-                pPayloadArray->payloadSubLength[payloadSubLenSize - 1] = FU_HEADER_SIZE + curPayloadSize;
+                pPayloadArray->payloadSubLength[payloadSubLenSize - 1] = H265_FU_HEADER_SIZE + curPayloadSize;
                 pPayload += pPayloadArray->payloadSubLength[payloadSubLenSize - 1];
             }
 
@@ -231,9 +231,9 @@ STATUS depayH265FromRtpPayload(PBYTE pRawPacket, UINT32 packetLength, PBYTE pNal
     CHK(pRawPacket != NULL && pNaluLength != NULL, STATUS_NULL_ARG);
     CHK(packetLength > 0, retStatus);
 
-    if (payloadHeaderType == FU_TYPE_ID) {
+    if (payloadHeaderType == H265_FU_TYPE_ID) {
         isStartingPacket = ((pRawPacket[2] >> 7) & 0x01) != 0;
-        headerSize = FU_HEADER_SIZE;
+        headerSize = H265_FU_HEADER_SIZE;
         naluLength -= headerSize;
     }
 
