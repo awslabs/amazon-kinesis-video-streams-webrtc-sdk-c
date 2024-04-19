@@ -91,7 +91,6 @@ VOID onSampleStreamingSessionShutdown(UINT64 customData, PSampleStreamingSession
     (void) (pSampleStreamingSession);
     eos = TRUE;
     GstElement* pipeline = (GstElement*) customData;
-    GstAppSrc *appsrcVideo = NULL, *appsrcAudio = NULL;
     gst_element_send_event(pipeline, gst_event_new_eos());
 }
 
