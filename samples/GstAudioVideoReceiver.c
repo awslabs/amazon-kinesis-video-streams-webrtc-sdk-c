@@ -3,6 +3,9 @@
 #include <gst/app/app.h>
 #include <gst/app/gstappsink.h>
 
+static UINT64 presentationTsIncrement = 0;
+static BOOL eos = FALSE;
+
 // This function is a callback for the transceiver for every single video frame it receives
 // It writes these frames to a buffer and pushes it to the `appsrcVideo` element of the
 // GStreamer pipeline created in `receiveGstreamerAudioVideo`. Any logic to modify / discard the frames would go here
@@ -16,22 +19,28 @@ VOID onGstVideoFrameReady(UINT64 customData, PFrame pFrame)
     CHK_ERR(appsrcVideo != NULL, STATUS_NULL_ARG, "appsrcVideo is null");
     CHK_ERR(pFrame != NULL, STATUS_NULL_ARG, "Video frame is null");
 
-    buffer = gst_buffer_new_allocate(NULL, pFrame->size, NULL);
-    CHK_ERR(buffer != NULL, STATUS_NULL_ARG, "Buffer allocation failed");
+    if (!eos) {
+        buffer = gst_buffer_new_allocate(NULL, pFrame->size, NULL);
+        CHK_ERR(buffer != NULL, STATUS_NULL_ARG, "Buffer allocation failed");
 
-    DLOGV("Frame size: %d, presentationTs: %llu", pFrame->size, pFrame->presentationTs);
-    GST_BUFFER_PTS(buffer) = pFrame->presentationTs;
-    GST_BUFFER_DURATION(buffer) = gst_util_uint64_scale(1, GST_SECOND, DEFAULT_FPS_VALUE);
-    if (gst_buffer_fill(buffer, 0, pFrame->frameData, pFrame->size) != pFrame->size) {
-        DLOGE("Buffer fill did not complete correctly");
+        DLOGV("Video frame size: %d, presentationTs: %llu", pFrame->size, presentationTsIncrement);
+
+        GST_BUFFER_DTS(buffer) = presentationTsIncrement;
+        GST_BUFFER_PTS(buffer) = presentationTsIncrement;
+        GST_BUFFER_DURATION(buffer) = gst_util_uint64_scale(1, GST_SECOND, DEFAULT_FPS_VALUE);
+        presentationTsIncrement += gst_util_uint64_scale(1, GST_SECOND, DEFAULT_FPS_VALUE);
+
+        if (gst_buffer_fill(buffer, 0, pFrame->frameData, pFrame->size) != pFrame->size) {
+            DLOGE("Buffer fill did not complete correctly");
+            gst_buffer_unref(buffer);
+            return;
+        }
+        g_signal_emit_by_name(appsrcVideo, "push-buffer", buffer, &ret);
+        if (ret != GST_FLOW_OK) {
+            DLOGE("Error pushing buffer: %s", gst_flow_get_name(ret));
+        }
         gst_buffer_unref(buffer);
-        return;
     }
-    g_signal_emit_by_name(appsrcVideo, "push-buffer", buffer, &ret);
-    if (ret != GST_FLOW_OK) {
-        DLOGE("Error pushing buffer: %s", gst_flow_get_name(ret));
-    }
-    gst_buffer_unref(buffer);
 
 CleanUp:
     return;
@@ -50,25 +59,27 @@ VOID onGstAudioFrameReady(UINT64 customData, PFrame pFrame)
     CHK_ERR(appsrcAudio != NULL, STATUS_NULL_ARG, "appsrcAudio is null");
     CHK_ERR(pFrame != NULL, STATUS_NULL_ARG, "Audio frame is null");
 
-    buffer = gst_buffer_new_allocate(NULL, pFrame->size, NULL);
-    CHK_ERR(buffer != NULL, STATUS_NULL_ARG, "Buffer allocation failed");
+    if (!eos) {
+        buffer = gst_buffer_new_allocate(NULL, pFrame->size, NULL);
+        CHK_ERR(buffer != NULL, STATUS_NULL_ARG, "Buffer allocation failed");
 
-    DLOGV("Audio Frame size: %d, presentationTs: %llu", pFrame->size, pFrame->presentationTs);
-    GST_BUFFER_PTS(buffer) = pFrame->presentationTs;
+        DLOGV("Audio frame size: %d, presentationTs: %llu", pFrame->size, presentationTsIncrement);
 
-    // Recalculate the byte-rate if not using the default values
-    GST_BUFFER_DURATION(buffer) = gst_util_uint64_scale(pFrame->size, GST_SECOND, DEFAULT_AUDIO_OPUS_BYTE_RATE);
-    if (gst_buffer_fill(buffer, 0, pFrame->frameData, pFrame->size) != pFrame->size) {
-        DLOGE("Buffer fill did not complete correctly");
+        GST_BUFFER_DTS(buffer) = presentationTsIncrement;
+        GST_BUFFER_PTS(buffer) = presentationTsIncrement;
+        GST_BUFFER_DURATION(buffer) = gst_util_uint64_scale(pFrame->size, GST_SECOND, DEFAULT_AUDIO_OPUS_BYTE_RATE);
+
+        if (gst_buffer_fill(buffer, 0, pFrame->frameData, pFrame->size) != pFrame->size) {
+            DLOGE("Buffer fill did not complete correctly");
+            gst_buffer_unref(buffer);
+            return;
+        }
+        g_signal_emit_by_name(appsrcAudio, "push-buffer", buffer, &ret);
+        if (ret != GST_FLOW_OK) {
+            DLOGE("Error pushing buffer: %s", gst_flow_get_name(ret));
+        }
         gst_buffer_unref(buffer);
-        return;
     }
-    g_signal_emit_by_name(appsrcAudio, "push-buffer", buffer, &ret);
-    if (ret != GST_FLOW_OK) {
-        DLOGE("Error pushing buffer: %s", gst_flow_get_name(ret));
-    }
-    gst_buffer_unref(buffer);
-
 CleanUp:
     return;
 }
@@ -78,7 +89,9 @@ CleanUp:
 VOID onSampleStreamingSessionShutdown(UINT64 customData, PSampleStreamingSession pSampleStreamingSession)
 {
     (void) (pSampleStreamingSession);
+    eos = TRUE;
     GstElement* pipeline = (GstElement*) customData;
+    GstAppSrc *appsrcVideo = NULL, *appsrcAudio = NULL;
     gst_element_send_event(pipeline, gst_event_new_eos());
 }
 
