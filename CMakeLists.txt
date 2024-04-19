@@ -262,8 +262,7 @@ set(BUILD_ARGS
         -DUSE_OPENSSL=${USE_OPENSSL}
         -DUSE_MBEDTLS=${USE_MBEDTLS}
         -DKVS_DEFAULT_STACK_SIZE=${KVS_DEFAULT_STACK_SIZE}
-        -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
-        -DPKG_CONFIG_EXECUTABLE=${PKG_CONFIG_EXECUTABLE})
+        -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
 build_dependency(kvsCommonLws ${BUILD_ARGS})
 
 ############# find dependent libraries ############
