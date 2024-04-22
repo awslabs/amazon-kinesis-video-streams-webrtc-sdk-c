@@ -880,6 +880,7 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     pSampleConfiguration->trickleIce = trickleIce;
     pSampleConfiguration->useTurn = useTurn;
     pSampleConfiguration->enableSendingMetricsToViewerViaDc = FALSE;
+    pSampleConfiguration->receiveAudioVideoSource = NULL;
 
     pSampleConfiguration->channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
     pSampleConfiguration->channelInfo.pChannelName = channelName;
