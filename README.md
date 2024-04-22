@@ -309,6 +309,14 @@ To run:
 ./samples/kvsWebrtcClientViewerGstSample <channelName> <mediaType>
 ```
 
+##### Known issues:
+Our GStreamer samples leverage [MatroskaMux](https://gstreamer.freedesktop.org/documentation/matroska/matroskamux.html?gi-language=c) to receive media from its peer and save it to a file. However, MatroskaMux is designed for scenarios where the media's format remains constant throughout streaming. When the media's format changes mid-streaming (referred to as "caps changes"), MatroskaMux encounters limitations, its behavior cannot be predicted and it may be unable to handle these changes, resulting in an error message like:
+
+```shell
+matroskamux matroska-mux.c:1134:gst_matroska_mux_video_pad_setcaps:<mux> error: Caps changes are not supported by Matroska
+```
+To address this issue, users need to adapt the pipeline to utilize components capable of managing dynamic changes in media formats. This might involve integrating different muxers or customizing the pipeline to handle caps changes effectively.
+
 #### Sample: Generating sample frames
 
 ##### H264
@@ -325,12 +333,12 @@ gst-launch-1.0 videotestsrc pattern=ball num-buffers=1500 ! timeoverlay ! videoc
 
 ###### ADTS LC
 ```shell
-gst-launch-1.0 audiotestsrc num-buffers=1500 ! audioconvert ! audioresample ! faac ! capsfilter caps=audio/mpeg,mpegversion=4,stream-format=adts,base-profile=lc,channels=2,rate=48000 ! multifilesink location="sample-%03d.aac" index=1
+gst-launch-1.0 audiotestsrc num-buffers=1500 ! audioconvert ! audioresample ! faac ! capsfilter caps=audio/mpeg,mpegversion=4,stream-format=adts,base-profile=lc,channels=2,rate=16000 ! multifilesink location="sample-%03d.aac" index=1
 ```
 
 ###### RAW LC
 ```shell
-gst-launch-1.0 audiotestsrc num-buffers=1500 ! audioconvert ! audioresample ! faac ! capsfilter caps=audio/mpeg,mpegversion=4,stream-format=raw,base-profile=lc,channels=2,rate=44100 ! multifilesink location="sample-%03d.aac" index=1
+gst-launch-1.0 audiotestsrc num-buffers=1500 ! audioconvert ! audioresample ! faac ! capsfilter caps=audio/mpeg,mpegversion=4,stream-format=raw,base-profile=lc,channels=2,rate=16000 ! multifilesink location="sample-%03d.aac" index=1
 ```
 
 ### Viewing Master Samples
