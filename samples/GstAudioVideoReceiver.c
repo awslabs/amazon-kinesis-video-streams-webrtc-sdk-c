@@ -5,7 +5,6 @@
 
 static UINT64 presentationTsIncrement = 0;
 static BOOL eos = FALSE;
-static RTC_CODEC audioCodec = RTC_CODEC_OPUS;
 
 // This function is a callback for the transceiver for every single video frame it receives
 // It writes these frames to a buffer and pushes it to the `appsrcVideo` element of the
@@ -68,13 +67,7 @@ VOID onGstAudioFrameReady(UINT64 customData, PFrame pFrame)
 
         GST_BUFFER_DTS(buffer) = presentationTsIncrement;
         GST_BUFFER_PTS(buffer) = presentationTsIncrement;
-
-        if (audioCodec == RTC_CODEC_AAC) {
-            GST_BUFFER_DURATION(buffer) = gst_util_uint64_scale(pFrame->size, GST_SECOND, DEFAULT_AUDIO_AAC_BYTE_RATE);
-        } else {
-            GST_BUFFER_DURATION(buffer) = gst_util_uint64_scale(pFrame->size, GST_SECOND, DEFAULT_AUDIO_OPUS_BYTE_RATE);
-        }
-        // TODO: check for other codecs once the pipelines are added
+        GST_BUFFER_DURATION(buffer) = gst_util_uint64_scale(pFrame->size, GST_SECOND, DEFAULT_AUDIO_OPUS_BYTE_RATE);
 
         if (gst_buffer_fill(buffer, 0, pFrame->frameData, pFrame->size) != pFrame->size) {
             DLOGE("Buffer fill did not complete correctly");
