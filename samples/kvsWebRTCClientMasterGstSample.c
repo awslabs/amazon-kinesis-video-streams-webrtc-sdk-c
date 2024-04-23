@@ -276,16 +276,16 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                                          &error);
 
                     } else if (videoCodec == RTC_CODEC_H265 && audioCodec == RTC_CODEC_AAC) {
-                        pipeline =
+                        senderPipeline =
                             gst_parse_launch("videotestsrc pattern=ball is-live=TRUE ! timeoverlay ! queue ! videoconvert ! "
-                                         "video/x-raw,format=I420,width=1920,height=1080,framerate=25/1 ! queue ! "
-                                         "x265enc speed-preset=veryfast bitrate=512 tune=zerolatency ! "
-                                         "video/x-h265,stream-format=byte-stream,alignment=au,profile=main ! appsink sync=TRUE "
-                                         "emit-signals=TRUE name=appsink-video audiotestsrc wave=triangle is-live=TRUE ! "
-                                         "queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample ! faac ! "
-                                         "capsfilter caps=audio/mpeg,mpegversion=4,stream-format=adts,base-profile=lc,channels=2,rate=48000 ! "
-                                         "appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
-                                         &error);
+                                             "video/x-raw,format=I420,width=1920,height=1080,framerate=25/1 ! queue ! "
+                                             "x265enc speed-preset=veryfast bitrate=512 tune=zerolatency ! "
+                                             "video/x-h265,stream-format=byte-stream,alignment=au,profile=main ! appsink sync=TRUE "
+                                             "emit-signals=TRUE name=appsink-video audiotestsrc wave=triangle is-live=TRUE ! "
+                                             "queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample ! faac ! "
+                                             "capsfilter caps=audio/mpeg,mpegversion=4,stream-format=adts,base-profile=lc,channels=2,rate=48000 ! "
+                                             "appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
+                                             &error);
                     }
                     break;
                 }
@@ -392,8 +392,8 @@ INT32 main(INT32 argc, CHAR* argv[])
     pChannelName = argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME;
 #endif
 
-    CHK_STATUS(createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, logLevel, 
-                                            audioCodec, videoCodec, &pSampleConfiguration));
+    CHK_STATUS(createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, logLevel, audioCodec, videoCodec,
+                                         &pSampleConfiguration));
 
     pSampleConfiguration->videoSource = sendGstreamerAudioVideo;
     pSampleConfiguration->mediaType = SAMPLE_STREAMING_VIDEO_ONLY;

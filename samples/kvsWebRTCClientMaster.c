@@ -39,7 +39,8 @@ INT32 main(INT32 argc, CHAR* argv[])
         }
     }
 
-    CHK_STATUS(createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, logLevel, audioCodec, videoCodec, &pSampleConfiguration));
+    CHK_STATUS(createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, logLevel, audioCodec, videoCodec,
+                                         &pSampleConfiguration));
 
     // Set the audio and video handlers
     pSampleConfiguration->audioSource = sendAudioPackets;
@@ -252,7 +253,7 @@ PVOID sendAudioPackets(PVOID args)
         } else if (pSampleConfiguration->audioCodec == RTC_CODEC_OPUS) {
             SNPRINTF(filePath, MAX_PATH_LEN, "./opusSampleFrames/sample-%03d.opus", fileIndex);
         }
-        
+
         CHK_STATUS(readFrameFromDisk(NULL, &frameSize, filePath));
 
         // Re-alloc if needed

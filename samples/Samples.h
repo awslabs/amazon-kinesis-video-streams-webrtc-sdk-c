@@ -26,12 +26,12 @@ extern "C" {
 #define DEFAULT_AUDIO_AAC_BITS_PER_SAMPLE        16
 #define DEFAULT_MAX_CONCURRENT_STREAMING_SESSION 10
 
-#define AUDIO_CODEC_NAME_G711    "g711"
-#define AUDIO_CODEC_NAME_OPUS    "opus"
-#define AUDIO_CODEC_NAME_AAC     "aac"
-#define VIDEO_CODEC_NAME_H264    "h264"
-#define VIDEO_CODEC_NAME_H265    "h265"
-#define VIDEO_CODEC_NAME_VP8     "vp8"
+#define AUDIO_CODEC_NAME_G711 "g711"
+#define AUDIO_CODEC_NAME_OPUS "opus"
+#define AUDIO_CODEC_NAME_AAC  "aac"
+#define VIDEO_CODEC_NAME_H264 "h264"
+#define VIDEO_CODEC_NAME_H265 "h265"
+#define VIDEO_CODEC_NAME_VP8  "vp8"
 
 #define SAMPLE_MASTER_CLIENT_ID "ProducerMaster"
 #define SAMPLE_VIEWER_CLIENT_ID "ConsumerViewer"

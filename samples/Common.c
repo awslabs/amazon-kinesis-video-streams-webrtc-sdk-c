@@ -844,8 +844,8 @@ CleanUp:
     return retStatus;
 }
 
-STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE roleType, BOOL trickleIce, BOOL useTurn, UINT32 logLevel, 
-                                RTC_CODEC audioCodec, RTC_CODEC videoCodec, PSampleConfiguration* ppSampleConfiguration)
+STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE roleType, BOOL trickleIce, BOOL useTurn, UINT32 logLevel,
+                                 RTC_CODEC audioCodec, RTC_CODEC videoCodec, PSampleConfiguration* ppSampleConfiguration)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PCHAR pAccessKey, pSecretKey, pSessionToken;
