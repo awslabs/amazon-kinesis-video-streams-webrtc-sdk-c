@@ -348,6 +348,31 @@ TEST_F(StunApiTest, getPackagedStunAttributeSizeTest)
     EXPECT_EQ(getPackagedStunAttributeSize(&attributeHeader), 8);
 }
 
+TEST_F(StunApiTest, convertStunErrorCodeTest)
+{
+    StunResult_t stunResult;
+
+    stunResult = STUN_RESULT_OK;
+    EXPECT_EQ(convertStunErrorCode(stunResult), STATUS_SUCCESS);
+    stunResult = STUN_RESULT_BAD_PARAM;
+    EXPECT_EQ(convertStunErrorCode(stunResult), STATUS_INVALID_ARG);
+    stunResult = STUN_RESULT_OUT_OF_MEMORY;
+    EXPECT_EQ(convertStunErrorCode(stunResult), STATUS_NOT_ENOUGH_MEMORY);
+    stunResult = STUN_RESULT_INVALID_MESSAGE_LENGTH;
+    EXPECT_EQ(convertStunErrorCode(stunResult), STATUS_STUN_INVALID_MESSAGE_LENGTH);
+    stunResult = STUN_RESULT_MAGIC_COOKIE_MISMATCH;
+    EXPECT_EQ(convertStunErrorCode(stunResult), STATUS_STUN_MAGIC_COOKIE_MISMATCH);
+    stunResult = STUN_RESULT_INVALID_ATTRIBUTE_LENGTH;
+    EXPECT_EQ(convertStunErrorCode(stunResult), STATUS_STUN_INVALID_ATTRIBUTE_LENGTH);
+    stunResult = STUN_RESULT_NO_MORE_ATTRIBUTE_FOUND;
+    EXPECT_EQ(convertStunErrorCode(stunResult), STATUS_STUN_NO_MORE_ATTRIBUTE_FOUND);
+    stunResult = STUN_RESULT_NO_ATTRIBUTE_FOUND;
+    EXPECT_EQ(convertStunErrorCode(stunResult), STATUS_STUN_ATTRIBUTE_NOT_FOUND);
+
+    stunResult = STUN_RESULT_BASE;
+    EXPECT_EQ(convertStunErrorCode(stunResult), STATUS_STUN_UNKNOWN_ERROR);
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis
