@@ -392,6 +392,20 @@ INT32 main(INT32 argc, CHAR* argv[])
     pChannelName = argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME;
 #endif
 
+    if (argc > 3 && STRCMP(argv[3], "testsrc") == 0) {
+        if (argc > 4) {
+            if (!STRCMP(argv[4], AUDIO_CODEC_NAME_AAC)) {
+                audioCodec = RTC_CODEC_AAC;
+            }
+        }
+
+        if (argc > 5) {
+            if (!STRCMP(argv[5], VIDEO_CODEC_NAME_H265)) {
+                videoCodec = RTC_CODEC_H265;
+            }
+        }
+    }
+
     CHK_STATUS(createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, logLevel, audioCodec, videoCodec,
                                          &pSampleConfiguration));
 
@@ -429,17 +443,6 @@ INT32 main(INT32 argc, CHAR* argv[])
         if (STRCMP(argv[3], "testsrc") == 0) {
             DLOGI("[KVS GStreamer Master] Using test source in GStreamer");
             pSampleConfiguration->srcType = TEST_SOURCE;
-            if (argc > 4) {
-                if (!STRCMP(argv[4], AUDIO_CODEC_NAME_AAC)) {
-                    audioCodec = RTC_CODEC_AAC;
-                }
-            }
-
-            if (argc > 5) {
-                if (!STRCMP(argv[5], VIDEO_CODEC_NAME_H265)) {
-                    videoCodec = RTC_CODEC_H265;
-                }
-            }
         } else if (STRCMP(argv[3], "devicesrc") == 0) {
             DLOGI("[KVS GStreamer Master] Using device source in GStreamer");
             pSampleConfiguration->srcType = DEVICE_SOURCE;
