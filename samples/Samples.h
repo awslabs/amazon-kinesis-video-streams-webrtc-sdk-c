@@ -26,6 +26,13 @@ extern "C" {
 #define DEFAULT_AUDIO_AAC_BITS_PER_SAMPLE        16
 #define DEFAULT_MAX_CONCURRENT_STREAMING_SESSION 10
 
+#define AUDIO_CODEC_NAME_G711    "g711"
+#define AUDIO_CODEC_NAME_OPUS    "opus"
+#define AUDIO_CODEC_NAME_AAC     "aac"
+#define VIDEO_CODEC_NAME_H264    "h264"
+#define VIDEO_CODEC_NAME_H265    "h265"
+#define VIDEO_CODEC_NAME_VP8     "vp8"
+
 #define SAMPLE_MASTER_CLIENT_ID "ProducerMaster"
 #define SAMPLE_VIEWER_CLIENT_ID "ConsumerViewer"
 #define SAMPLE_CHANNEL_NAME     (PCHAR) "ScaryTestChannel"
@@ -124,6 +131,8 @@ typedef struct {
     PCHAR pCaCertPath;
     PAwsCredentialProvider pCredentialProvider;
     SIGNALING_CLIENT_HANDLE signalingClientHandle;
+    RTC_CODEC audioCodec;
+    RTC_CODEC videoCodec;
     PBYTE pAudioFrameBuffer;
     UINT32 audioBufferSize;
     PBYTE pVideoFrameBuffer;
@@ -248,7 +257,7 @@ PVOID sampleReceiveAudioVideoFrame(PVOID);
 PVOID getPeriodicIceCandidatePairStats(PVOID);
 STATUS getIceCandidatePairStatsCallback(UINT32, UINT64, UINT64);
 STATUS pregenerateCertTimerCallback(UINT32, UINT64, UINT64);
-STATUS createSampleConfiguration(PCHAR, SIGNALING_CHANNEL_ROLE_TYPE, BOOL, BOOL, UINT32, PSampleConfiguration*);
+STATUS createSampleConfiguration(PCHAR, SIGNALING_CHANNEL_ROLE_TYPE, BOOL, BOOL, UINT32, RTC_CODEC, RTC_CODEC, PSampleConfiguration*);
 STATUS freeSampleConfiguration(PSampleConfiguration*);
 STATUS signalingClientStateChanged(UINT64, SIGNALING_CLIENT_STATE);
 STATUS signalingMessageReceived(UINT64, PReceivedSignalingMessage);

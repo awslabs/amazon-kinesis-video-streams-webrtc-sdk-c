@@ -39,6 +39,8 @@ INT32 main(INT32 argc, CHAR* argv[])
     SignalingMessage message;
     PSampleConfiguration pSampleConfiguration = NULL;
     PSampleStreamingSession pSampleStreamingSession = NULL;
+    RTC_CODEC audioCodec = RTC_CODEC_OPUS;
+    RTC_CODEC videoCodec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
     BOOL locked = FALSE;
     PCHAR pChannelName;
     CHAR clientId[256];
@@ -57,7 +59,19 @@ INT32 main(INT32 argc, CHAR* argv[])
     pChannelName = argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME;
 #endif
 
-    CHK_STATUS(createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_VIEWER, TRUE, TRUE, logLevel, &pSampleConfiguration));
+    if (argc >= 3) {
+        if (!STRCMP(argv[3], AUDIO_CODEC_NAME_AAC)) {
+            audioCodec = RTC_CODEC_AAC;
+        }
+    }
+
+    if (argc >= 4) {
+        if (!STRCMP(argv[4], VIDEO_CODEC_NAME_H265)) {
+            videoCodec = RTC_CODEC_H265;
+        }
+    }
+
+    CHK_STATUS(createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_VIEWER, TRUE, TRUE, logLevel, audioCodec, videoCodec, &pSampleConfiguration));
     pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
     pSampleConfiguration->receiveAudioVideoSource = receiveGstreamerAudioVideo;
 
