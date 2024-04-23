@@ -1,0 +1,23 @@
+cmake_minimum_required(VERSION 3.6.3)
+
+project(libkvsrtp NONE)
+
+include(ExternalProject)
+if (BUILD_STATIC_LIBS OR WIN32)
+  set(LIBKVSRTP_SHARED_LIBS OFF)
+else()
+  set(LIBKVSRTP_SHARED_LIBS ON)
+endif()
+
+ExternalProject_Add(libkvsrtp
+    GIT_REPOSITORY    git@github.com:moninom1/amazon-kinesis-video-streams-rtp.git
+    GIT_TAG           main
+    PREFIX            ${CMAKE_CURRENT_BINARY_DIR}/build
+    CMAKE_ARGS
+        -DCMAKE_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX}
+        -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
+        -DBUILD_SHARED_LIBS=${LIBKVSRTP_SHARED_LIBS}
+        -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+    BUILD_ALWAYS      TRUE
+    TEST_COMMAND      ""
+)

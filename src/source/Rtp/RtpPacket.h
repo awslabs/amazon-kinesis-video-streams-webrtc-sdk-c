@@ -13,19 +13,9 @@ extern "C" {
 #define MIN_HEADER_LENGTH 12
 #define VERSION_SHIFT     6
 #define VERSION_MASK      0x3
-#define PADDING_SHIFT     5
-#define PADDING_MASK      0x1
-#define EXTENSION_SHIFT   4
-#define EXTENSION_MASK    0x1
-#define CSRC_COUNT_MASK   0xF
-#define MARKER_SHIFT      7
-#define MARKER_MASK       0x1
-#define PAYLOAD_TYPE_MASK 0x7F
-#define SEQ_NUMBER_OFFSET 2
-#define TIMESTAMP_OFFSET  4
 #define SSRC_OFFSET       8
-#define CSRC_OFFSET       12
 #define CSRC_LENGTH       4
+#define RTP_HEADER_VERSION  2
 
 #define RTP_HEADER_LEN(pRtpPacket)                                                                                                                   \
     (12 + (pRtpPacket)->header.csrcCount * CSRC_LENGTH + ((pRtpPacket)->header.extension ? 4 + (pRtpPacket)->header.extensionLength : 0))
