@@ -34,9 +34,9 @@ var NAVTREEINDEX =
 [
 "group__Callbacks.html",
 "group__PublicEnums.html#ggac3fea669f2ac4c7db6d7e9528955a4c1a887c5433bc1a60c8d331b220138b413a",
-"group__SignalingStatusCodes.html#gacb814f6fa3d67a2273a165960e40fa1e",
-"group__StatusCodes.html#gab10962af2a62249c831fc8bda813371b",
-"structRtcIceCandidatePairStats.html#afe78dc8769bb441016e095608a687dd1"
+"group__SignalingStatusCodes.html#gab64164e22a5b591f5015911d9dd4b50e",
+"group__StatusCodes.html#gaae6c7d164a87df2217199fc68691b554",
+"structRtcIceCandidatePairStats.html#adc1579cd8f6b09e2789f4edfa25c3765"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

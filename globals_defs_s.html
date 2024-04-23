@@ -1105,6 +1105,9 @@ $(document).ready(function(){initNavTree('globals_defs_s.html',''); initResizabl
 <li>STATUS_SSL_UNKNOWN_SRTP_PROFILE
 : <a class="el" href="group__DTLSStatusCodes.html#ga275a2e4263f48bfcc2c5be6c66bb1f1f">Include.h</a>
 </li>
+<li>STATUS_STUN_ATTRIBUTE_NOT_FOUND
+: <a class="el" href="group__STUNStatusCodes.html#ga9ce214baca2d5d744bf4954a9b7762eb">Include.h</a>
+</li>
 <li>STATUS_STUN_ATTRIBUTES_AFTER_FINGERPRINT_MESSAGE_INTEGRITY
 : <a class="el" href="group__STUNStatusCodes.html#ga112ce4d2e1c8ad9caecb3c1bb500d9b6">Include.h</a>
 </li>
@@ -1119,6 +1122,9 @@ $(document).ready(function(){initNavTree('globals_defs_s.html',''); initResizabl
 </li>
 <li>STATUS_STUN_INVALID_ADDRESS_ATTRIBUTE_LENGTH
 : <a class="el" href="group__STUNStatusCodes.html#ga121f7acb71afcc3e74c44191b7c2171c">Include.h</a>
+</li>
+<li>STATUS_STUN_INVALID_ATTRIBUTE_LENGTH
+: <a class="el" href="group__STUNStatusCodes.html#ga24d5d4eefc791b33d56de3be5c23650c">Include.h</a>
 </li>
 <li>STATUS_STUN_INVALID_CHANGE_REQUEST_ATTRIBUTE_LENGTH
 : <a class="el" href="group__STUNStatusCodes.html#ga766a9b56a5c1c1431ee267b1958de58b">Include.h</a>
@@ -1140,6 +1146,9 @@ $(document).ready(function(){initNavTree('globals_defs_s.html',''); initResizabl
 </li>
 <li>STATUS_STUN_INVALID_MESSAGE_INTEGRITY_ATTRIBUTE_LENGTH
 : <a class="el" href="group__STUNStatusCodes.html#ga7489372fb7a6b974edaa101b2bb120e3">Include.h</a>
+</li>
+<li>STATUS_STUN_INVALID_MESSAGE_LENGTH
+: <a class="el" href="group__STUNStatusCodes.html#ga3dc2698a92e60a514794f01783a79ac7">Include.h</a>
 </li>
 <li>STATUS_STUN_INVALID_NONCE_ATTRIBUTE_LENGTH
 : <a class="el" href="group__STUNStatusCodes.html#ga11e9e4f698b1f54e97458727624d8b32">Include.h</a>
@@ -1182,6 +1191,12 @@ $(document).ready(function(){initNavTree('globals_defs_s.html',''); initResizabl
 </li>
 <li>STATUS_STUN_MULTIPLE_MESSAGE_INTEGRITY_ATTRIBUTES
 : <a class="el" href="group__STUNStatusCodes.html#gaf2bf7204fac8b1708cd3a71748f6dbb7">Include.h</a>
+</li>
+<li>STATUS_STUN_NO_MORE_ATTRIBUTE_FOUND
+: <a class="el" href="group__STUNStatusCodes.html#gacdc3ced5d43e3389a2992c9cf65284e6">Include.h</a>
+</li>
+<li>STATUS_STUN_UNKNOWN_ERROR
+: <a class="el" href="group__STUNStatusCodes.html#ga54a1db57122b5dae5f6c6b6e4422352d">Include.h</a>
 </li>
 <li>STATUS_TURN_CONNECTION_ALLOCATION_FAILED
 : <a class="el" href="group__ICEStatusCodes.html#ga6067f3dee0b0b145d25462245f98de89">Include.h</a>
@@ -1267,6 +1282,9 @@ $(document).ready(function(){initNavTree('globals_defs_s.html',''); initResizabl
 <li>STUN_ATTRIBUTE_REQUESTED_TRANSPORT_PROTOCOL_LEN
 : <a class="el" href="Stun_8h.html#ae01bc22bb842c1cf36df0a1a13f05829">Stun.h</a>
 </li>
+<li>STUN_ATTRIBUTE_TYPE
+: <a class="el" href="Stun_8h.html#ae6b353ba2be410398e2be32a42876399">Stun.h</a>
+</li>
 <li>STUN_ERROR_CODE_PACKET_ERROR_CLASS_OFFSET
 : <a class="el" href="Stun_8h.html#a754e5eecf2ee251b30ac9eb41a617218">Stun.h</a>
 </li>
@@ -1287,15 +1305,6 @@ $(document).ready(function(){initNavTree('globals_defs_s.html',''); initResizabl
 </li>
 <li>STUN_HEADER_MAGIC_BYTE_OFFSET
 : <a class="el" href="IceAgent_8h.html#a6c873c867b1d4d6b64ccccfe8bd27565">IceAgent.h</a>
-</li>
-<li>STUN_HEADER_MAGIC_COOKIE
-: <a class="el" href="Stun_8h.html#acf1cb90d47357434ac2c52edcb67d1d3">Stun.h</a>
-</li>
-<li>STUN_HEADER_MAGIC_COOKIE_LE
-: <a class="el" href="Stun_8h.html#aec508804fc7c8f155c1f01fdc34cb21a">Stun.h</a>
-</li>
-<li>STUN_HEADER_MAGIC_COOKIE_LEN
-: <a class="el" href="Stun_8h.html#ae2a82fdd7659a4ae26924c3377db4106">Stun.h</a>
 </li>
 <li>STUN_HEADER_TRANSACTION_ID_LEN
 : <a class="el" href="Stun_8h.html#ac26e40873da90ee307d5361c7f189dfc">Stun.h</a>
@@ -1351,7 +1360,7 @@ $(document).ready(function(){initNavTree('globals_defs_s.html',''); initResizabl
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="footer">Generated on Mon Apr 22 2024 21:28:16 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Tue Apr 23 2024 08:21:19 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>
