@@ -4,7 +4,6 @@ project(libkvsCommonLws-download NONE)
 
 include(ExternalProject)
 
-
 ExternalProject_Add(libkvsCommonLws-download
     GIT_REPOSITORY    https://github.com/awslabs/amazon-kinesis-video-streams-producer-c.git
     GIT_TAG           develop
@@ -23,4 +22,3 @@ ExternalProject_Add(libkvsCommonLws-download
     BUILD_ALWAYS      TRUE
     TEST_COMMAND      ""
 )
-

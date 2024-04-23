@@ -78,15 +78,16 @@ STATUS getNextNaluLength(PBYTE nalus, UINT32 nalusLength, PUINT32 pStart, PUINT3
     ENTERS();
 
     STATUS retStatus = STATUS_SUCCESS;
-    UINT32 zeroCount = 0, offset;
+    UINT32 zeroCount = 0, offset = 0;
     BOOL naluFound = FALSE;
     PBYTE pCurrent = NULL;
 
     CHK(nalus != NULL && pStart != NULL && pNaluLength != NULL, STATUS_NULL_ARG);
 
     // Annex-B Nalu will have 0x000000001 or 0x000001 start code, at most 4 bytes
-    for (offset = 0; offset < 4 && offset < nalusLength && nalus[offset] == 0; offset++)
-        ;
+    while(offset < 4 && offset < nalusLength && nalus[offset] == 0) { 
+        offset++; 
+    }
 
     CHK(offset < nalusLength && offset < 4 && offset >= 2 && nalus[offset] == 1, STATUS_RTP_INVALID_NALU);
     *pStart = ++offset;
