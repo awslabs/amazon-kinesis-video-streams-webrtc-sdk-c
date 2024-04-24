@@ -3,6 +3,7 @@ name: PR Description Check
 on:
   pull_request:
     branches:
+      - develop
       - master
     types:
       - opened
