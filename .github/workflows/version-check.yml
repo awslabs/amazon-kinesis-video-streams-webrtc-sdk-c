@@ -3,7 +3,7 @@ name: Check Version Mismatch between PR branch and master.
 on:
   pull_request:
     branches:
-      - develop
+      - master
 
 jobs:
   check-version:
@@ -22,7 +22,7 @@ jobs:
       - name: Checkout master branch
         uses: actions/checkout@v4
         with:
-          ref: develop
+          ref: master
 
       - name: Get version from master
         id: master_version
