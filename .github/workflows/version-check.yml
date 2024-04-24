@@ -35,7 +35,7 @@ jobs:
         run: |
           echo "Comparing PR Version: $PR_VERSION with Master Version: $MASTER_VERSION"
           if [ "$MASTER_VERSION" == "$PR_VERSION" ]; then
-            echo "Version in PR is not updated from master. Please update the version. Any PR getting merged to master requires a version update"
+            echo "Please update the version in CMakeLists.txt file (project(KinesisVideoWebRTCClient VERSION <ver-string> LANGUAGES C). Any PR getting merged to master requires a version update"
             exit 1
           else
             echo "Version update detected."
