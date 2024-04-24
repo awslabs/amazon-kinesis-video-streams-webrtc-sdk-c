@@ -1,0 +1,42 @@
+name: Check Version Mismatch
+
+on:
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+
+      - name: Get version from PR
+        id: pr_version
+        run: |
+          PR_VERSION=$(grep -Po 'KinesisVideoWebRTCClient VERSION \K[0-9]+\.[0-9]+\.[0-9]+' CMakeLists.txt)
+          echo "PR_VERSION=$PR_VERSION" >> "$GITHUB_ENV"
+          echo "PR Version: $PR_VERSION"
+
+      - name: Checkout master branch
+        uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - name: Get version from master
+        id: master_version
+        run: |
+          MASTER_VERSION=$(grep -Po 'KinesisVideoWebRTCClient VERSION \K[0-9]+\.[0-9]+\.[0-9]+' CMakeLists.txt)
+          echo "MASTER_VERSION=$MASTER_VERSION" >> "$GITHUB_ENV"
+          echo "Master version: $MASTER_VERSION"
+
+      - name: Compare versions
+        run: |
+          echo "Comparing PR Version: $PR_VERSION with Master Version: $MASTER_VERSION"
+          if [ "$MASTER_VERSION" == "$PR_VERSION" ]; then
+            echo "Version in PR is not updated from master. Please update the version."
+            exit 1
+          else
+            echo "Version update detected."
+          fi
