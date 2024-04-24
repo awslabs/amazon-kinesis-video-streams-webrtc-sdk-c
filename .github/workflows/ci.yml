@@ -3,11 +3,9 @@ name: WebRTC C SDK CI
 on:
   push:
     branches:
-      - develop
       - master
   pull_request:
     branches:
-      - develop
       - master
 jobs:
   clang-format-check:

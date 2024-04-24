@@ -2,11 +2,9 @@ name: Codecov for WebRTC C SDK
 on:
   push:
     branches:
-      - develop
       - master
   pull_request:
     branches:
-      - develop
       - master
 jobs:
   linux-gcc-codecov:
