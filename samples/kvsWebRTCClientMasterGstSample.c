@@ -287,6 +287,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                                              "appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
                                              &error);
                     }
+                    // TODO: test and add more such combinations
                     break;
                 }
                 case DEVICE_SOURCE: {

@@ -59,15 +59,25 @@ INT32 main(INT32 argc, CHAR* argv[])
     pChannelName = argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME;
 #endif
 
-    if (argc >= 2) {
+    if (argc > 2) {
         if (!STRCMP(argv[2], AUDIO_CODEC_NAME_AAC)) {
             audioCodec = RTC_CODEC_AAC;
+        } else if (!STRCMP(argv[2], AUDIO_CODEC_NAME_ALAW)) {
+            audioCodec = RTC_CODEC_ALAW;
+        } else if (!STRCMP(argv[2], AUDIO_CODEC_NAME_MULAW)) {
+            audioCodec = RTC_CODEC_MULAW;
+        } else {
+            DLOGI("[KVS Viewer] Defaulting to Opus audio codec");
         }
     }
 
-    if (argc >= 3) {
+    if (argc > 3) {
         if (!STRCMP(argv[3], VIDEO_CODEC_NAME_H265)) {
             videoCodec = RTC_CODEC_H265;
+        } else if (!STRCMP(argv[3], VIDEO_CODEC_NAME_VP8)) {
+            videoCodec = RTC_CODEC_VP8;
+        } else {
+            DLOGI("[KVS Viewer] Defaulting to H264 video codec");
         }
     }
 

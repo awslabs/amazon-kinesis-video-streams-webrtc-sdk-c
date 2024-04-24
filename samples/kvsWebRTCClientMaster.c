@@ -27,15 +27,19 @@ INT32 main(INT32 argc, CHAR* argv[])
     pChannelName = argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME;
 #endif
 
-    if (argc >= 3) {
+    if (argc > 3) {
         if (!STRCMP(argv[3], AUDIO_CODEC_NAME_AAC)) {
             audioCodec = RTC_CODEC_AAC;
+        } else {
+            DLOGI("[KVS Master] Defaulting to opus as the specified codec's sample frames may not be available");
         }
     }
 
-    if (argc >= 4) {
+    if (argc > 4) {
         if (!STRCMP(argv[4], VIDEO_CODEC_NAME_H265)) {
             videoCodec = RTC_CODEC_H265;
+        } else {
+            DLOGI("[KVS Master] Defaulting to H264 as the specified codec's sample frames may not be available");
         }
     }
 
