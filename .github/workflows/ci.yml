@@ -632,6 +632,54 @@ jobs:
           mkdir build && cd build
           cmake .. -DBUILD_OPENSSL=TRUE -DBUILD_OPENSSL_PLATFORM=linux-generic64 -DBUILD_LIBSRTP_HOST_PLATFORM=x86_64-unknown-linux-gnu -DBUILD_LIBSRTP_DESTINATION_PLATFORM=arm-unknown-linux-uclibcgnueabi
           make
+  arm64-cross-compilation-mbedtls:
+    runs-on: ubuntu-latest
+    env:
+      CC: aarch64-linux-gnu-gcc
+      CXX: aarch64-linux-gnu-g++
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt clean && sudo apt update
+          sudo apt-get -y install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu binutils-aarch64-linux-gnu
+      - name: Clone repository
+        uses: actions/checkout@v4
+      - name: Build Repository
+        run: |
+          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+          mkdir build && cd build
+          cmake .. -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON -DBUILD_LIBSRTP_HOST_PLATFORM=x86_64-unknown-linux-gnu -DBUILD_LIBSRTP_DESTINATION_PLATFORM=arm-unknown-linux-uclibcgnueabi
+          make
+      - name: Verify library is ARM64 type
+        run: |
+          cd scripts
+          chmod +x verify_lib.sh
+          ./verify_lib.sh ../build/libkvsWebrtcClient.so "ARM64"
+
+  arm64-cross-compilation-mbedtls-static:
+    runs-on: ubuntu-20.04
+    env:
+      CC: aarch64-linux-gnu-gcc
+      CXX: aarch64-linux-gnu-g++
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt clean && sudo apt update
+          sudo apt-get -y install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu binutils-aarch64-linux-gnu
+      - name: Clone repository
+        uses: actions/checkout@v4
+      - name: Build Repository
+        run: |
+          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+          mkdir build && cd build
+          cmake .. -DBUILD_STATIC_LIBS=ON -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON -DBUILD_LIBSRTP_HOST_PLATFORM=x86_64-unknown-linux-gnu -DBUILD_LIBSRTP_DESTINATION_PLATFORM=arm-unknown-linux-uclibcgnueabi
+          make
+      - name: Verify library is ARM64 type
+        run: |
+          cd scripts
+          chmod +x verify_lib.sh
+          ./verify_lib.sh ../build/libkvsWebrtcClient.a "ARM64"
+
   linux-aarch64-cross-compilation:
     runs-on: ubuntu-20.04
     env:
