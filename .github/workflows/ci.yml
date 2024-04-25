@@ -703,7 +703,7 @@ jobs:
           cmake .. -DBUILD_STATIC_LIBS=ON -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON -DBUILD_LIBSRTP_HOST_PLATFORM=x86_64-unknown-linux-gnu -DBUILD_LIBSRTP_DESTINATION_PLATFORM=arm-unknown-linux-uclibcgnueabi
           make
       - name: Verify library is ARM64 type
-        run: | 
+        run: |
           cd scripts
           chmod +x verify_lib.sh
           ./verify_lib.sh ../build/libkvsWebrtcClient.a "ARM64"
