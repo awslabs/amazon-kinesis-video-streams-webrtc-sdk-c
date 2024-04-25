@@ -340,7 +340,6 @@ TEST_F(RtpFunctionalityTest, packingUnpackingVerifySameH265Frame)
                       depayH265FromRtpPayload(payloadArray.payloadBuffer + offset, payloadArray.payloadSubLength[i], depayload, &newPayloadSubLen,
                                               &isStartPacket));
             if (isStartPacket) {
-                
                 EXPECT_EQ(STATUS_SUCCESS, getNextNaluLengthH265(pCurPtrInPayload, remainPayloadLen, &startIndex, &naluLength));
                 pCurPtrInPayload += startIndex;
                 startLen = SIZEOF(start4ByteCode);

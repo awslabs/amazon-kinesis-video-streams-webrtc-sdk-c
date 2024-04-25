@@ -63,7 +63,7 @@ INT32 main(INT32 argc, CHAR* argv[])
         if (!STRCMP(argv[3], AUDIO_CODEC_NAME_AAC)) {
             audioCodec = RTC_CODEC_AAC;
         } else {
-            DLOGI("[[KVS Gstreamer Viewer] Defaulting to Opus audio codec");
+            DLOGI("[KVS Gstreamer Viewer] Defaulting to Opus audio codec");
         }
     }
 
@@ -71,7 +71,7 @@ INT32 main(INT32 argc, CHAR* argv[])
         if (!STRCMP(argv[4], VIDEO_CODEC_NAME_H265)) {
             videoCodec = RTC_CODEC_H265;
         } else {
-            DLOGI("[[KVS Gstreamer Viewer] Defaulting to H264 video codec");
+            DLOGI("[KVS Gstreamer Viewer] Defaulting to H264 video codec");
         }
     }
 
