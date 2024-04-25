@@ -21,6 +21,8 @@ extern "C" {
 
 #undef MBEDTLS_SSL_ALPN
 
+#define MBEDTLS_SHA256_C
+
 /**
  * \def MBEDTLS_ENTROPY_HARDWARE_ALT
  *

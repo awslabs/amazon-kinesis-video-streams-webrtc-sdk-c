@@ -128,7 +128,8 @@ elseif(USE_MBEDTLS)
     message(STATUS "Detected clang")
     set(CMAKE_C_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/configs -DMBEDTLS_USER_CONFIG_FILE=\"<config_mbedtls.h>\" ${CMAKE_C_FLAGS}")
     set(CMAKE_CXX_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/configs -DMBEDTLS_USER_CONFIG_FILE=\"<config_mbedtls.h>\" ${CMAKE_CXX_FLAGS}")
-  elseif("${CMAKE_C_COMPILER_ID}" MATCHES "GNU")
+    set(CMAKE_C_FLAGS "-Wno-error=unreachable-code ${CMAKE_C_FLAGS}")
+elseif("${CMAKE_C_COMPILER_ID}" MATCHES "GNU")
     message(STATUS "Detected gcc")
     set(CMAKE_C_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/configs -DMBEDTLS_USER_CONFIG_FILE=\"<config_mbedtls.h>\" ${CMAKE_C_FLAGS}")
     set(CMAKE_CXX_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/configs -DMBEDTLS_USER_CONFIG_FILE=\"<config_mbedtls.h>\" ${CMAKE_CXX_FLAGS}")
@@ -190,6 +191,9 @@ if(BUILD_DEPENDENCIES)
                   -DLWS_OPENSSL_LIBRARIES=${OPENSSL_LIBRARIES_ALT_SEP}
                   -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
   else()
+    set(CMAKE_C_FLAGS  "-Wno-error=sign-conversion ${CMAKE_C_FLAGS}")
+    set(CMAKE_C_FLAGS  "-Wno-error=int-conversion ${CMAKE_C_FLAGS}")
+    set(CMAKE_C_FLAGS  "-Wno-error=implicit-function-declaration ${CMAKE_C_FLAGS}")
     set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
                   -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
                   -DOPENSSL_DIR=${OPEN_SRC_INSTALL_PREFIX}
