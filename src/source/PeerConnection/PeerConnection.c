@@ -161,7 +161,7 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
     /*
      demux each packet off of its first byte
      https://tools.ietf.org/html/rfc5764#section-5.1.2
-                 +----------------+
+                  +----------------+
                   | 127 < B < 192 -+--> forward to RTP
                   |                |
       packet -->  |  19 < B < 64  -+--> forward to DTLS
