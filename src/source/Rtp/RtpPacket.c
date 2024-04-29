@@ -3,7 +3,6 @@
 #include "kvsrtp/rtp_api.h"
 #include "../Include_i.h"
 
-
 STATUS createRtpPacket(UINT8 version, BOOL padding, BOOL extension, UINT8 csrcCount, BOOL marker, UINT8 payloadType, UINT16 sequenceNumber,
                        UINT32 timestamp, UINT32 ssrc, PUINT32 csrcArray, UINT16 extensionProfile, UINT32 extensionLength, PBYTE extensionPayload,
                        PBYTE payload, UINT32 payloadLength, PRtpPacket* ppRtpPacket)
@@ -91,11 +90,9 @@ STATUS createRtpPacketFromBytes(PBYTE rawPacket, UINT32 packetLength, PRtpPacket
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PRtpPacket pRtpPacket = (PRtpPacket) MEMALLOC(SIZEOF(RtpPacket));
-
     CHK(pRtpPacket != NULL, STATUS_NOT_ENOUGH_MEMORY);
     pRtpPacket->pRawPacket = rawPacket;
     pRtpPacket->rawPacketLength = packetLength;
-
     CHK_STATUS(setRtpPacketFromBytes(rawPacket, packetLength, pRtpPacket));
 
 CleanUp:
@@ -129,7 +126,6 @@ STATUS constructRetransmitRtpPacketFromBytes(PBYTE rawPacket, UINT32 packetLengt
     CHK_STATUS(setRtpPacketFromBytes(rawPacket, packetLength, pRtpPacket));
     pPayload = (PBYTE) MEMALLOC(pRtpPacket->payloadLength + SIZEOF(UINT16));
     CHK(pPayload != NULL, STATUS_NOT_ENOUGH_MEMORY);
-
     // Retransmission payload header is OSN original sequence number
     putUnalignedInt16BigEndian((PINT16) pPayload, pRtpPacket->header.sequenceNumber);
     MEMCPY(pPayload + SIZEOF(UINT16), pRtpPacket->payload, pRtpPacket->payloadLength);
@@ -170,7 +166,7 @@ STATUS setRtpPacketFromBytes(PBYTE rawPacket, UINT32 packetLength, PRtpPacket pR
     BOOL padding;
     BOOL extension;
     UINT8 csrcCount;
-    BOOL marker,marker1;
+    BOOL marker;
     UINT8 payloadType;
     UINT16 sequenceNumber;
     UINT32 timestamp;
@@ -182,16 +178,18 @@ STATUS setRtpPacketFromBytes(PBYTE rawPacket, UINT32 packetLength, PRtpPacket pR
     PBYTE extensionPayload = NULL;
     UINT32 word;
     UINT16 currentIndex = 0;
-    RtpResult_t result;
+    RtpResult_t rtpResult;
     RtpPacket_t deserializedPkt;
     RtpContext_t ctx;
 
     CHK(pRtpPacket != NULL , STATUS_NULL_ARG);
     CHK(packetLength >= MIN_HEADER_LENGTH, STATUS_RTP_INPUT_PACKET_TOO_SMALL);
 
-    result = Rtp_Init( &( ctx ) );
+    rtpResult = Rtp_Init( &( ctx ) );
+    CHK(rtpResult == RTP_RESULT_OK, convertStunErrorCode(rtpResult));
 
-    result = Rtp_DeSerialize( &( ctx ), rawPacket, packetLength, &( deserializedPkt ) );
+    rtpResult = Rtp_DeSerialize( &( ctx ), rawPacket, packetLength, &( deserializedPkt ) );
+    CHK(rtpResult == RTP_RESULT_OK, convertStunErrorCode(rtpResult));
 
     version = RTP_HEADER_VERSION;
     padding = (deserializedPkt.header.flags & RTP_HEADER_FLAG_PADDING) != 0;
@@ -263,10 +261,8 @@ STATUS setBytesFromRtpPacket(PRtpPacket pRtpPacket, PBYTE pRawPacket, UINT32 pac
     UINT32 packetLengthNeeded = 0;
     PBYTE pCurPtr = pRawPacket;
     UINT8 i;
-    RtpResult_t result;
+    RtpResult_t rtpResult;
     RtpPacket_t pkt;
-    UINT32 serializedPktLen;
-    PBYTE serializedPkt;
     RtpContext_t ctx;
     UINT32 word;
     UINT16 currentIndex = 0;
@@ -290,7 +286,8 @@ STATUS setBytesFromRtpPacket(PRtpPacket pRtpPacket, PBYTE pRawPacket, UINT32 pac
      * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
      */
 
-    result = Rtp_Init( &( ctx ) );
+    rtpResult = Rtp_Init( &( ctx ) );
+    CHK(rtpResult == RTP_RESULT_OK, convertStunErrorCode(rtpResult));
     
     if (pHeader->padding) {
         pkt.header.flags |= RTP_HEADER_FLAG_PADDING;
@@ -328,7 +325,8 @@ STATUS setBytesFromRtpPacket(PRtpPacket pRtpPacket, PBYTE pRawPacket, UINT32 pac
         pkt.payloadLength = pRtpPacket->payloadLength;
     }
 
-    result = Rtp_Serialize( &( ctx ), &( pkt ), pRawPacket, (SIZE_T *) &packetLengthNeeded );
+    rtpResult = Rtp_Serialize( &( ctx ), &( pkt ), pRawPacket, (SIZE_T *) &packetLengthNeeded );
+    CHK(rtpResult == RTP_RESULT_OK, convertStunErrorCode(rtpResult));
     
     
 CleanUp:
