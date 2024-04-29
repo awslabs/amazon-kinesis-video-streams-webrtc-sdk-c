@@ -182,20 +182,20 @@ STATUS setRtpPacketFromBytes(PBYTE rawPacket, UINT32 packetLength, PRtpPacket pR
     RtpPacket_t deserializedPkt;
     RtpContext_t ctx;
 
-    CHK(pRtpPacket != NULL , STATUS_NULL_ARG);
+    CHK(pRtpPacket != NULL, STATUS_NULL_ARG);
     CHK(packetLength >= MIN_HEADER_LENGTH, STATUS_RTP_INPUT_PACKET_TOO_SMALL);
 
-    rtpResult = Rtp_Init( &( ctx ) );
+    rtpResult = Rtp_Init(&(ctx));
     CHK(rtpResult == RTP_RESULT_OK, convertStunErrorCode(rtpResult));
 
-    rtpResult = Rtp_DeSerialize( &( ctx ), rawPacket, packetLength, &( deserializedPkt ) );
+    rtpResult = Rtp_DeSerialize(&(ctx), rawPacket, packetLength, &(deserializedPkt));
     CHK(rtpResult == RTP_RESULT_OK, convertStunErrorCode(rtpResult));
 
     version = RTP_HEADER_VERSION;
     padding = (deserializedPkt.header.flags & RTP_HEADER_FLAG_PADDING) != 0;
     extension = (deserializedPkt.header.flags & RTP_HEADER_FLAG_EXTENSION) != 0;
     marker = (deserializedPkt.header.flags & RTP_HEADER_FLAG_MARKER) != 0;
-    csrcCount = deserializedPkt.header.csrcCount;    
+    csrcCount = deserializedPkt.header.csrcCount;
     payloadType = deserializedPkt.header.payloadType;
     sequenceNumber = deserializedPkt.header.sequenceNumber;
     timestamp = deserializedPkt.header.timestamp;
@@ -286,9 +286,9 @@ STATUS setBytesFromRtpPacket(PRtpPacket pRtpPacket, PBYTE pRawPacket, UINT32 pac
      * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
      */
 
-    rtpResult = Rtp_Init( &( ctx ) );
+    rtpResult = Rtp_Init(&(ctx));
     CHK(rtpResult == RTP_RESULT_OK, convertStunErrorCode(rtpResult));
-    
+
     if (pHeader->padding) {
         pkt.header.flags |= RTP_HEADER_FLAG_PADDING;
     }
@@ -311,8 +311,7 @@ STATUS setBytesFromRtpPacket(PRtpPacket pRtpPacket, PBYTE pRawPacket, UINT32 pac
         CHK((pHeader->extensionLength) % SIZEOF(UINT32) == 0, STATUS_RTP_INVALID_EXTENSION_LEN);
         pkt.header.extension.extensionProfile = pHeader->extensionProfile;
         pkt.header.extension.extensionPayloadLength = pHeader->extensionLength / SIZEOF(UINT32);
-        for( i = 0; i < pkt.header.extension.extensionPayloadLength; i++ )
-        {
+        for (i = 0; i < pkt.header.extension.extensionPayloadLength; i++) {
             word = getInt32(*(PUINT32) (pHeader->extensionPayload + currentIndex));
             MEMCPY((pHeader->extensionPayload + currentIndex), &word, SIZEOF(UINT32));
             currentIndex += 4;
@@ -325,10 +324,9 @@ STATUS setBytesFromRtpPacket(PRtpPacket pRtpPacket, PBYTE pRawPacket, UINT32 pac
         pkt.payloadLength = pRtpPacket->payloadLength;
     }
 
-    rtpResult = Rtp_Serialize( &( ctx ), &( pkt ), pRawPacket, (SIZE_T *) &packetLengthNeeded );
+    rtpResult = Rtp_Serialize(&(ctx), &(pkt), pRawPacket, (SIZE_T*) &packetLengthNeeded);
     CHK(rtpResult == RTP_RESULT_OK, convertStunErrorCode(rtpResult));
-    
-    
+
 CleanUp:
     LEAVES();
     return retStatus;
