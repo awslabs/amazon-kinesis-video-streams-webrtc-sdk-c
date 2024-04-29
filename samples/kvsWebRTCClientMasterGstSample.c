@@ -139,12 +139,14 @@ CleanUp:
 
 GstFlowReturn on_new_sample_video(GstElement* sink, gpointer data)
 {
-    return on_new_sample(sink, data, videoCodec);
+    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) data;
+    return on_new_sample(sink, data, pSampleConfiguration->videoCodec);
 }
 
 GstFlowReturn on_new_sample_audio(GstElement* sink, gpointer data)
 {
-    return on_new_sample(sink, data, audioCodec);
+    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) data;
+    return on_new_sample(sink, data, pSampleConfiguration->audioCodec);
 }
 
 PVOID sendGstreamerAudioVideo(PVOID args)
@@ -380,6 +382,8 @@ INT32 main(INT32 argc, CHAR* argv[])
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = NULL;
     PCHAR pChannelName;
+    RTC_CODEC audioCodec = RTC_CODEC_OPUS;
+    RTC_CODEC videoCodec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
 
     SET_INSTRUMENTED_ALLOCATORS();
     UINT32 logLevel = setLogLevel();
@@ -392,6 +396,8 @@ INT32 main(INT32 argc, CHAR* argv[])
 #else
     pChannelName = argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME;
 #endif
+
+    CHK_STATUS(createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, logLevel, &pSampleConfiguration));
 
     if (argc > 3 && STRCMP(argv[3], "testsrc") == 0) {
         if (argc > 4) {
@@ -407,11 +413,10 @@ INT32 main(INT32 argc, CHAR* argv[])
         }
     }
 
-    CHK_STATUS(createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, logLevel, audioCodec, videoCodec,
-                                         &pSampleConfiguration));
-
     pSampleConfiguration->videoSource = sendGstreamerAudioVideo;
     pSampleConfiguration->mediaType = SAMPLE_STREAMING_VIDEO_ONLY;
+    pSampleConfiguration->audioCodec = audioCodec;
+    pSampleConfiguration->videoCodec = videoCodec;
 
 #ifdef ENABLE_DATA_CHANNEL
     pSampleConfiguration->onDataChannel = onDataChannel;

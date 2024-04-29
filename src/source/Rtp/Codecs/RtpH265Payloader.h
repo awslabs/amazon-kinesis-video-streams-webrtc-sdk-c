@@ -13,6 +13,8 @@ extern "C" {
 #define H265_FU_HEADER_SIZE 3
 #define H265_FU_TYPE_ID     49
 
+// https://www.rfc-editor.org/rfc/rfc7798.html#section-4.4.3
+
 /*
  *  0                   1                   2                   3
  *  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1

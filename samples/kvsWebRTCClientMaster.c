@@ -27,6 +27,8 @@ INT32 main(INT32 argc, CHAR* argv[])
     pChannelName = argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME;
 #endif
 
+    CHK_STATUS(createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, logLevel, &pSampleConfiguration));
+
     if (argc > 3) {
         if (!STRCMP(argv[3], AUDIO_CODEC_NAME_AAC)) {
             audioCodec = RTC_CODEC_AAC;
@@ -43,13 +45,12 @@ INT32 main(INT32 argc, CHAR* argv[])
         }
     }
 
-    CHK_STATUS(createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, logLevel, audioCodec, videoCodec,
-                                         &pSampleConfiguration));
-
     // Set the audio and video handlers
     pSampleConfiguration->audioSource = sendAudioPackets;
     pSampleConfiguration->videoSource = sendVideoPackets;
     pSampleConfiguration->receiveAudioVideoSource = sampleReceiveAudioVideoFrame;
+    pSampleConfiguration->audioCodec = audioCodec;
+    pSampleConfiguration->videoCodec = videoCodec;
 
     if (argc > 2 && STRNCMP(argv[2], "1", 2) == 0) {
         pSampleConfiguration->channelInfo.useMediaStorage = TRUE;

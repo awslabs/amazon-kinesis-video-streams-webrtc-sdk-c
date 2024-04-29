@@ -81,9 +81,10 @@ INT32 main(INT32 argc, CHAR* argv[])
         }
     }
 
-    CHK_STATUS(createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_VIEWER, TRUE, TRUE, logLevel, audioCodec, videoCodec,
-                                         &pSampleConfiguration));
+    CHK_STATUS(createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_VIEWER, TRUE, TRUE, logLevel, &pSampleConfiguration));
     pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
+    pSampleConfiguration->audioCodec = audioCodec;
+    pSampleConfiguration->videoCodec = videoCodec;
 
     // Initialize KVS WebRTC. This must be done before anything else, and must only be done once.
     CHK_STATUS(initKvsWebRtc());
