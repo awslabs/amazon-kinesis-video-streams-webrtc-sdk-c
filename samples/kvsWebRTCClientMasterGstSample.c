@@ -199,10 +199,13 @@ PVOID sendGstreamerAudioVideo(PVOID args)
             switch (pSampleConfiguration->srcType) {
                 case TEST_SOURCE: {
                     senderPipeline = gst_parse_launch(
-                        "videotestsrc pattern=ball is-live=TRUE ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
+                        "videotestsrc pattern=ball is-live=TRUE ! "
+                        "queue ! videoconvert ! videoscale ! video/x-raw,width=1280,height=720 ! "
+                        "clockoverlay halignment=right valignment=top time-format=\"%Y-%m-%d %H:%M:%S\" ! "
+                        "videorate ! video/x-raw,framerate=25/1 ! "
                         "x264enc name=sampleVideoEncoder bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
-                        "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE emit-signals=TRUE "
-                        "name=appsink-video",
+                        "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! "
+                        "appsink sync=TRUE emit-signals=TRUE name=appsink-video",
                         &error);
                     break;
                 }
@@ -210,7 +213,8 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                     senderPipeline = gst_parse_launch(
                         "autovideosrc ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
                         "x264enc name=sampleVideoEncoder bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
-                        "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE "
+                        "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! "
+                        " appsink sync=TRUE "
                         "emit-signals=TRUE name=appsink-video",
                         &error);
                     break;
@@ -240,10 +244,12 @@ PVOID sendGstreamerAudioVideo(PVOID args)
             switch (pSampleConfiguration->srcType) {
                 case TEST_SOURCE: {
                     senderPipeline = gst_parse_launch(
-                        "videotestsrc pattern=ball is-live=TRUE ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
+                        "videotestsrc pattern=ball is-live=TRUE ! "
+                        "queue ! videorate ! videoscale ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
+                        "clockoverlay halignment=right valignment=top time-format=\"%Y-%m-%d %H:%M:%S\" ! "
                         "x264enc name=sampleVideoEncoder bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
-                        "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE "
-                        "emit-signals=TRUE name=appsink-video audiotestsrc wave=ticks is-live=TRUE ! "
+                        "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! "
+                        "appsink sync=TRUE emit-signals=TRUE name=appsink-video audiotestsrc wave=ticks is-live=TRUE ! "
                         "queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample ! opusenc name=sampleAudioEncoder ! "
                         "audio/x-opus,rate=48000,channels=2 ! appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
                         &error);

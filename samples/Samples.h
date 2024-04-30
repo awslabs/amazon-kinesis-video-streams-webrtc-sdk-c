@@ -83,11 +83,11 @@ extern "C" {
 #define MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE 736 // strlen(SIGNALING_CLIENT_METRICS_JSON_TEMPLATE) + 20 * 10
 #define MAX_ICE_AGENT_METRICS_MESSAGE_SIZE        113 // strlen(ICE_AGENT_METRICS_JSON_TEMPLATE) + 20 * 2
 
-#define TWCC_BITRATE_ADJUSTMENT_INTERVAL_SECONDS 1 * HUNDREDS_OF_NANOS_IN_A_SECOND
-#define MIN_VIDEO_BITRATE_KBPS                   512     // Unit kilobits/sec. Value could change based on codec.
-#define MAX_VIDEO_BITRATE_KBPS                   2048000 // Unit kilobits/sec. Value could change based on codec.
-#define MIN_AUDIO_BITRATE_BPS                    4000    // Unit bits/sec. Value could change based on codec.
-#define MAX_AUDIO_BITRATE_BPS                    650000  // Unit bits/sec. Value could change based on codec.
+#define TWCC_BITRATE_ADJUSTMENT_INTERVAL_MS 1000 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
+#define MIN_VIDEO_BITRATE_KBPS              512     // Unit kilobits/sec. Value could change based on codec.
+#define MAX_VIDEO_BITRATE_KBPS              2048000 // Unit kilobits/sec. Value could change based on codec.
+#define MIN_AUDIO_BITRATE_BPS               4000    // Unit bits/sec. Value could change based on codec.
+#define MAX_AUDIO_BITRATE_BPS               650000  // Unit bits/sec. Value could change based on codec.
 
 typedef enum {
     SAMPLE_STREAMING_VIDEO_ONLY,

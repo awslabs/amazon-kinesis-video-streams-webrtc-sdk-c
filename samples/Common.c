@@ -716,7 +716,7 @@ VOID sampleBandwidthEstimationHandler(UINT64 customData, DOUBLE maximumBitrate)
     DLOGV("received bitrate suggestion: %f", maximumBitrate);
 }
 
-// Sample callback for TWCC. Average packet is calculated with EMA. If average packet lost is <= 5%,
+// Sample callback for TWCC. Average packet is calculated with exponential moving average (EMA). If average packet lost is <= 5%,
 // the current bitrate is increased by 5%. If more than 5%, the current bitrate
 // is reduced by percent lost. Bitrate update is allowed every second and is increased/decreased upto the limits
 VOID sampleSenderBandwidthEstimationHandler(UINT64 customData, UINT32 txBytes, UINT32 rxBytes, UINT32 txPacketsCnt, UINT32 rxPacketsCnt,
@@ -740,7 +740,7 @@ VOID sampleSenderBandwidthEstimationHandler(UINT64 customData, UINT32 txBytes, U
 
     currentTimeMs = GETTIME();
     timeDiff = currentTimeMs - pSampleStreamingSession->twccMetadata.lastAdjustmentTimeMs;
-    if (timeDiff < TWCC_BITRATE_ADJUSTMENT_INTERVAL_SECONDS) {
+    if (timeDiff < TWCC_BITRATE_ADJUSTMENT_INTERVAL_MS) {
         // Too soon for another adjustment
         return;
     }
@@ -768,9 +768,8 @@ VOID sampleSenderBandwidthEstimationHandler(UINT64 customData, UINT32 txBytes, U
 
     pSampleStreamingSession->twccMetadata.lastAdjustmentTimeMs = currentTimeMs;
 
-    DLOGD("Adjustment made: average packet loss = %.2f%%, timediff: %llu ms", pSampleStreamingSession->twccMetadata.averagePacketLoss,
-          TWCC_BITRATE_ADJUSTMENT_INTERVAL_SECONDS, timeDiff);
-    DLOGD("Suggested video bitrate %u kbps, suggested audio bitrate: %u bps, sent: %u bytes %u packets received: %u bytes %u packets in %lu msec",
+    DLOGI("Adjustment made: average packet loss = %.2f%%, timediff: %llu ms", pSampleStreamingSession->twccMetadata.averagePacketLoss, timeDiff);
+    DLOGI("Suggested video bitrate %u kbps, suggested audio bitrate: %u bps, sent: %u bytes %u packets received: %u bytes %u packets in %lu msec",
           videoBitrate, audioBitrate, txBytes, txPacketsCnt, rxBytes, rxPacketsCnt, duration / 10000ULL);
 }
 
