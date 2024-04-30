@@ -554,7 +554,6 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
 
     ATOMIC_STORE_BOOL(&pSampleStreamingSession->terminateFlag, FALSE);
     ATOMIC_STORE_BOOL(&pSampleStreamingSession->candidateGatheringDone, FALSE);
-    MEMSET(&pSampleStreamingSession->twccMetadata, 0x00, SIZEOF(TwccMetadata));
     pSampleStreamingSession->peerConnectionMetrics.peerConnectionStats.peerConnectionStartTime = GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
     // Flag to enable SDK to calculate selected ice server, local, remote and candidate pair stats.
     pSampleConfiguration->enableIceStats = FALSE;
