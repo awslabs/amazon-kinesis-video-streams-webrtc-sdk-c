@@ -555,9 +555,6 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     ATOMIC_STORE_BOOL(&pSampleStreamingSession->terminateFlag, FALSE);
     ATOMIC_STORE_BOOL(&pSampleStreamingSession->candidateGatheringDone, FALSE);
     pSampleStreamingSession->peerConnectionMetrics.peerConnectionStats.peerConnectionStartTime = GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
-    // Flag to enable SDK to calculate selected ice server, local, remote and candidate pair stats.
-    pSampleConfiguration->enableIceStats = FALSE;
-    pSampleConfiguration->enableTwcc = TRUE;
 
     if (pSampleConfiguration->enableTwcc) {
         pSampleStreamingSession->twccMetadata.updateLock = MUTEX_CREATE(TRUE);
@@ -962,6 +959,12 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     pSampleConfiguration->iceCandidatePairStatsTimerId = MAX_UINT32;
     pSampleConfiguration->pregenerateCertTimerId = MAX_UINT32;
     pSampleConfiguration->signalingClientMetrics.version = SIGNALING_CLIENT_METRICS_CURRENT_VERSION;
+
+    // Flag to enable SDK to calculate selected ice server, local, remote and candidate pair stats.
+    pSampleConfiguration->enableIceStats = FALSE;
+
+    // Flag to enable/disable TWCC
+    pSampleConfiguration->enableTwcc = TRUE;
 
     ATOMIC_STORE_BOOL(&pSampleConfiguration->interrupted, FALSE);
     ATOMIC_STORE_BOOL(&pSampleConfiguration->mediaThreadStarted, FALSE);
