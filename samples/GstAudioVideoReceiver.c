@@ -5,6 +5,7 @@
 
 static UINT64 presentationTsIncrement = 0;
 static BOOL eos = FALSE;
+static RTC_CODEC audioCodec = RTC_CODEC_OPUS;
 
 // This function is a callback for the transceiver for every single video frame it receives
 // It writes these frames to a buffer and pushes it to the `appsrcVideo` element of the
@@ -67,7 +68,13 @@ VOID onGstAudioFrameReady(UINT64 customData, PFrame pFrame)
 
         GST_BUFFER_DTS(buffer) = presentationTsIncrement;
         GST_BUFFER_PTS(buffer) = presentationTsIncrement;
-        GST_BUFFER_DURATION(buffer) = gst_util_uint64_scale(pFrame->size, GST_SECOND, DEFAULT_AUDIO_OPUS_BYTE_RATE);
+
+        if (audioCodec == RTC_CODEC_AAC) {
+            GST_BUFFER_DURATION(buffer) = gst_util_uint64_scale(pFrame->size, GST_SECOND, DEFAULT_AUDIO_AAC_BYTE_RATE);
+        } else {
+            GST_BUFFER_DURATION(buffer) = gst_util_uint64_scale(pFrame->size, GST_SECOND, DEFAULT_AUDIO_OPUS_BYTE_RATE);
+        }
+        // TODO: check for other codecs once the pipelines are added
 
         if (gst_buffer_fill(buffer, 0, pFrame->frameData, pFrame->size) != pFrame->size) {
             DLOGE("Buffer fill did not complete correctly");
@@ -111,9 +118,11 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
         roleType = "Master";
     }
 
-    CHK_ERR(gst_init_check(NULL, NULL, &error), STATUS_INTERNAL_ERROR, "[KVS %s] GStreamer initialization failed");
+    audioCodec = pSampleConfiguration->audioCodec;
 
-    CHK_ERR(pSampleStreamingSession != NULL, STATUS_NULL_ARG, "[KVS %s] Sample streaming session is NULL", roleType);
+    CHK_ERR(gst_init_check(NULL, NULL, &error), STATUS_INTERNAL_ERROR, "[KVS GStreamer %s] GStreamer initialization failed");
+
+    CHK_ERR(pSampleStreamingSession != NULL, STATUS_NULL_ARG, "[KVS Gstreamer %s] Sample streaming session is NULL", roleType);
 
     // It is advised to modify the pipeline and the caps as per the source of the media. Customers can also modify this pipeline to
     // use any other sinks instead of `filesink` like `autovideosink` and `autoaudiosink`. The existing pipelines are not complex enough to
@@ -168,17 +177,17 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
     audioVideoDescription = g_strjoin(" ", videoDescription, audioDescription, NULL);
 
     pipeline = gst_parse_launch(audioVideoDescription, &error);
-    CHK_ERR(pipeline != NULL, STATUS_INTERNAL_ERROR, "[KVS %s] Pipeline is NULL", roleType);
+    CHK_ERR(pipeline != NULL, STATUS_INTERNAL_ERROR, "[KVS GStreamer %s] Pipeline is NULL", roleType);
 
     appsrcVideo = gst_bin_get_by_name(GST_BIN(pipeline), "appsrc-video");
-    CHK_ERR(appsrcVideo != NULL, STATUS_INTERNAL_ERROR, "[KVS %s] Cannot find appsrc video", roleType);
+    CHK_ERR(appsrcVideo != NULL, STATUS_INTERNAL_ERROR, "[KVS GStreamer %s] Cannot find appsrc video", roleType);
     CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pVideoRtcRtpTransceiver, (UINT64) appsrcVideo, onGstVideoFrameReady));
     g_object_set(G_OBJECT(appsrcVideo), "caps", videocaps, NULL);
     gst_caps_unref(videocaps);
 
     if (pSampleConfiguration->mediaType == SAMPLE_STREAMING_AUDIO_VIDEO) {
         appsrcAudio = gst_bin_get_by_name(GST_BIN(pipeline), "appsrc-audio");
-        CHK_ERR(appsrcAudio != NULL, STATUS_INTERNAL_ERROR, "[KVS %s] Cannot find appsrc audio", roleType);
+        CHK_ERR(appsrcAudio != NULL, STATUS_INTERNAL_ERROR, "[KVS GStreamer %s] Cannot find appsrc audio", roleType);
         CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pAudioRtcRtpTransceiver, (UINT64) appsrcAudio, onGstAudioFrameReady));
         g_object_set(G_OBJECT(appsrcAudio), "caps", audiocaps, NULL);
         gst_caps_unref(audiocaps);
@@ -191,7 +200,7 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
 
     /* block until error or EOS */
     bus = gst_element_get_bus(pipeline);
-    CHK_ERR(bus != NULL, STATUS_INTERNAL_ERROR, "[KVS %s] Bus is NULL", roleType);
+    CHK_ERR(bus != NULL, STATUS_INTERNAL_ERROR, "[KVS GStreamer %s] Bus is NULL", roleType);
     msg = gst_bus_timed_pop_filtered(bus, GST_CLOCK_TIME_NONE, GST_MESSAGE_ERROR | GST_MESSAGE_EOS);
 
     /* Free resources */
@@ -226,7 +235,7 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
 
 CleanUp:
     if (error != NULL) {
-        DLOGE("[KVS %s] %s", roleType, error->message);
+        DLOGE("[KVS GStreamer %s] %s", roleType, error->message);
         g_clear_error(&error);
     }
 
