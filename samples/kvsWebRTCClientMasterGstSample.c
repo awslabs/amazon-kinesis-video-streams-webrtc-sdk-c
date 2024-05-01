@@ -174,7 +174,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
      * For H265/AAC
      * pipeline =
      *          gst_parse_launch("videotestsrc pattern=ball is-live=TRUE ! timeoverlay ! queue ! videoconvert !
-     *                                     "video/x-raw,format=I420,width=1920,height=1080,framerate=25/1 ! " "queue ! "
+     *                                     "video/x-raw,format=I420,width=1280,height=720,framerate=25/1 ! " "queue ! "
      *                                     "x265enc speed-preset=veryfast bitrate=512 tune=zerolatency ! "
      *                                     "video/x-h265,stream-format=byte-stream,alignment=au,profile=main ! appsink sync=TRUE "
      *                                     "emit-signals=TRUE name=appsink-video audiotestsrc wave=triangle is-live=TRUE ! "
@@ -200,7 +200,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                 case TEST_SOURCE: {
                     if (pSampleConfiguration->videoCodec == RTC_CODEC_H265) {
                         senderPipeline = gst_parse_launch("videotestsrc pattern=ball is-live=TRUE ! timeoverlay ! queue ! videoconvert ! "
-                                                          "video/x-raw,width=288,height=352,framerate=25/1 ! queue ! "
+                                                          "video/x-raw,width=1280,height=720,framerate=25/1 ! queue ! "
                                                           "x265enc speed-preset=veryfast bitrate=512 tune=zerolatency ! "
                                                           "video/x-h265,stream-format=byte-stream,alignment=au,profile=main ! appsink sync=TRUE "
                                                           "emit-signals=TRUE name=appsink-video",
@@ -267,7 +267,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                     } else if (pSampleConfiguration->videoCodec == RTC_CODEC_H265 && pSampleConfiguration->audioCodec == RTC_CODEC_OPUS) {
                         senderPipeline =
                             gst_parse_launch("videotestsrc pattern=ball is-live=TRUE ! timeoverlay ! queue ! videoconvert ! "
-                                             "video/x-raw,width=288,height=352,framerate=25/1 ! queue ! "
+                                             "video/x-raw,width=1280,height=720,framerate=25/1 ! queue ! "
                                              "x265enc speed-preset=veryfast bitrate=512 tune=zerolatency ! "
                                              "video/x-h265,stream-format=byte-stream,alignment=au,profile=main ! appsink sync=TRUE "
                                              "emit-signals=TRUE name=appsink-video audiotestsrc is-live=TRUE ! "
@@ -278,7 +278,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                     } else if (pSampleConfiguration->videoCodec == RTC_CODEC_H265 && pSampleConfiguration->audioCodec == RTC_CODEC_AAC) {
                         senderPipeline =
                             gst_parse_launch("videotestsrc pattern=ball is-live=TRUE ! timeoverlay ! queue ! videoconvert ! "
-                                             "video/x-raw,format=I420,width=1920,height=1080,framerate=25/1 ! queue ! "
+                                             "video/x-raw,format=I420,width=1280,height=720,framerate=25/1 ! queue ! "
                                              "x265enc speed-preset=veryfast bitrate=512 tune=zerolatency ! "
                                              "video/x-h265,stream-format=byte-stream,alignment=au,profile=main ! appsink sync=TRUE "
                                              "emit-signals=TRUE name=appsink-video audiotestsrc wave=triangle is-live=TRUE ! "
