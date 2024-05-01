@@ -350,6 +350,36 @@ TEST_F(SdpApiTest, setTransceiverPayloadTypes_HasRtxType)
     doubleListFree(pTransceivers);
 }
 
+TEST_F(SdpApiTest, setTransceiverPayloadTypes_HasRtxType_H265)
+{
+    PHashTable pCodecTable;
+    PHashTable pRtxTable;
+    PDoubleList pTransceivers;
+    KvsRtpTransceiver transceiver;
+    transceiver.sender.track.codec = RTC_CODEC_H265;
+    transceiver.transceiver.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+    transceiver.sender.packetBuffer = NULL;
+    transceiver.sender.retransmitter = NULL;
+    transceiver.rollingBufferDurationSec = DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS;
+    transceiver.rollingBufferBitratebps = DEFAULT_EXPECTED_VIDEO_BIT_RATE;
+    EXPECT_EQ(STATUS_SUCCESS, hashTableCreate(&pCodecTable));
+    EXPECT_EQ(STATUS_SUCCESS, hashTablePut(pCodecTable, RTC_CODEC_H265, 1));
+    EXPECT_EQ(STATUS_SUCCESS, hashTableCreate(&pRtxTable));
+    EXPECT_EQ(STATUS_SUCCESS, hashTablePut(pRtxTable, RTC_CODEC_H265, 2));
+    EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&pTransceivers));
+    EXPECT_EQ(STATUS_SUCCESS, doubleListInsertItemHead(pTransceivers, (UINT64)(&transceiver)));
+    EXPECT_EQ(STATUS_SUCCESS, setTransceiverPayloadTypes(pCodecTable, pRtxTable, pTransceivers));
+    EXPECT_EQ(1, transceiver.sender.payloadType);
+    EXPECT_EQ(2, transceiver.sender.rtxPayloadType);
+    EXPECT_NE((PRtpRollingBuffer) NULL, transceiver.sender.packetBuffer);
+    EXPECT_NE((PRetransmitter) NULL, transceiver.sender.retransmitter);
+    hashTableFree(pCodecTable);
+    hashTableFree(pRtxTable);
+    freeRtpRollingBuffer(&transceiver.sender.packetBuffer);
+    freeRetransmitter(&transceiver.sender.retransmitter);
+    doubleListFree(pTransceivers);
+}
+
 TEST_F(SdpApiTest, populateSingleMediaSection_TestTxSendRecv)
 {
     PRtcPeerConnection offerPc = NULL;
@@ -440,6 +470,37 @@ TEST_F(SdpApiTest, populateSingleMediaSection_TestTxSendOnly)
 
     track.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
     track.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+    STRCPY(track.streamId, "myKvsVideoStream");
+    STRCPY(track.trackId, "myTrack");
+
+    EXPECT_EQ(STATUS_SUCCESS, addTransceiver(offerPc, &track, &rtcRtpTransceiverInit, &pTransceiver));
+    EXPECT_EQ(STATUS_SUCCESS, createOffer(offerPc, &sessionDescriptionInit));
+    EXPECT_PRED_FORMAT2(testing::IsSubstring, "sendonly", sessionDescriptionInit.sdp);
+
+    closePeerConnection(offerPc);
+    freePeerConnection(&offerPc);
+}
+
+TEST_F(SdpApiTest, populateSingleMediaSection_TestTxSendOnly_H265)
+{
+    PRtcPeerConnection offerPc = NULL;
+    RtcConfiguration configuration;
+    RtcSessionDescriptionInit sessionDescriptionInit;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+
+    // Create peer connection
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+
+    RtcMediaStreamTrack track;
+    PRtcRtpTransceiver pTransceiver;
+    RtcRtpTransceiverInit rtcRtpTransceiverInit;
+    rtcRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY;
+
+    MEMSET(&track, 0x00, SIZEOF(RtcMediaStreamTrack));
+
+    track.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+    track.codec = RTC_CODEC_H265;
     STRCPY(track.streamId, "myKvsVideoStream");
     STRCPY(track.trackId, "myTrack");
 

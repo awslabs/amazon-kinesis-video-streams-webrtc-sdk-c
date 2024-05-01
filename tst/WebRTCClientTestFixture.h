@@ -273,7 +273,7 @@ class WebRtcClientTestBase : public ::testing::Test {
         return getExponentialBackoffRetryStrategyWaitTime(pKvsRetryStrategy, retryWaitTime);
     }
 
-    STATUS readFrameData(PBYTE pFrame, PUINT32 pSize, UINT32 index, PCHAR frameFilePath)
+    STATUS readFrameData(PBYTE pFrame, PUINT32 pSize, UINT32 index, PCHAR frameFilePath, RTC_CODEC rtcCodec)
     {
         STATUS retStatus = STATUS_SUCCESS;
         CHAR filePath[MAX_PATH_LEN + 1];
@@ -281,7 +281,16 @@ class WebRtcClientTestBase : public ::testing::Test {
 
         CHK(pFrame != NULL && pSize != NULL, STATUS_NULL_ARG);
 
-        SNPRINTF(filePath, MAX_PATH_LEN, "%s/frame-%04d.h264", frameFilePath, index);
+        switch (rtcCodec) {
+            case RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE:
+                SNPRINTF(filePath, MAX_PATH_LEN, "%s/frame-%04d.h264", frameFilePath, index);
+                break;
+            case RTC_CODEC_H265:
+                SNPRINTF(filePath, MAX_PATH_LEN, "%s/frame-%04d.h265", frameFilePath, index);
+                break;
+            default:
+                break;
+        }
 
         // Get the size and read into frame
         CHK_STATUS(readFile(filePath, TRUE, NULL, &size));

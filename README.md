@@ -273,14 +273,17 @@ After executing `make` you will have sample applications in your `build/samples`
 #### Sample: kvsWebrtcClientMaster
 This application sends sample H264/Opus frames (path: `/samples/h264SampleFrames` and `/samples/opusSampleFrames`) via WebRTC. It also accepts incoming audio, if enabled in the browser. When checked in the browser, it prints the metadata of the received audio packets in your terminal. To run:
 ```shell
-./samples/kvsWebrtcClientMaster <channelName>
+./samples/kvsWebrtcClientMaster <channelName> <storage-option> <audio-codec> <video-codec>
 ```
 
 To use the **Storage for WebRTC** feature, run the same command as above but with an additional command line arg to enable the feature.  
 
 ```shell
-./samples/kvsWebrtcClientMaster <channelName> 1
+./samples/kvsWebrtcClientMaster <channelName> 1 <audio-codec> <video-codec>
 ```
+
+Allowed audio-codec: opus (default codec if nothing is specified), aac
+Allowed video-codec: h264 (default codec if nothing is specified), h265
 
 #### Sample: kvsWebrtcClientMasterGstSample
 This application can send media from a GStreamer pipeline using test H264/Opus frames, device `autovideosrc` and `autoaudiosrc` input, or a received RTSP stream. It also will playback incoming audio via an `autoaudiosink`. To run:
@@ -292,22 +295,40 @@ Pass the desired media and source type when running the sample. The mediaType ca
 ./samples/kvsWebrtcClientMasterGstSample <channelName> <mediaType> rtspsrc rtsp://<rtspUri>
 ```
 
+Using the testsrc with audio and video-codec
+```shell
+./samples/kvsWebrtcClientMasterGstSample <channelName> <mediaType> <sourceType> <audio-codec> <video-codec>
+```
+
+Example:
+```shell
+./samples/kvsWebrtcClientMasterGstSample <channelName> audio-video testsrc opus h264
+```
+
+Allowed audio-codec: opus (default codec if nothing is specified), aac
+Allowed video-codec: h264 (default codec if nothing is specified), h265
 
 #### Sample: kvsWebrtcClientViewer
 This application accepts sample H264/Opus frames by default. You can use other supported codecs by changing the value for `videoTrack.codec` and `audioTrack.codec` in _Common.c_. By default, this sample only logs the size of the audio and video buffer it receives. To write these frames to a file using GStreamer, use the _kvsWebrtcClientViewerGstSample_ instead.
 
 To run:
 ```shell
-./samples/kvsWebrtcClientViewer <channelName>
+./samples/kvsWebrtcClientViewer <channelName> <audio-codec> <video-codec>
 ```
+
+Allowed audio-codec: opus (default codec if nothing is specified), aac
+Allowed video-codec: h264 (default codec if nothing is specified), h265
 
 #### Sample: kvsWebrtcClientViewerGstSample
 This application is similar to the kvsWebrtcClientViewer. However, instead of just logging the media it receives, it generates a file using filesink. Make sure that your device has enough space to write the media to a file. You can also customize the receiving logic by modifying the functions in _GstAudioVideoReceiver.c_
 
 To run:
 ```shell
-./samples/kvsWebrtcClientViewerGstSample <channelName> <mediaType>
+./samples/kvsWebrtcClientViewerGstSample <channelName> <mediaType> <audio-codec> <video-codec>
 ```
+
+Allowed audio-codec: opus (default codec if nothing is specified), aac
+Allowed video-codec: h264 (default codec if nothing is specified), h265
 
 ##### Known issues:
 Our GStreamer samples leverage [MatroskaMux](https://gstreamer.freedesktop.org/documentation/matroska/matroskamux.html?gi-language=c) to receive media from its peer and save it to a file. However, MatroskaMux is designed for scenarios where the media's format remains constant throughout streaming. When the media's format changes mid-streaming (referred to as "caps changes"), MatroskaMux encounters limitations, its behavior cannot be predicted and it may be unable to handle these changes, resulting in an error message like:
