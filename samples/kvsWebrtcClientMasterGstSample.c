@@ -3,8 +3,9 @@
 #include <gst/app/gstappsink.h>
 
 extern PSampleConfiguration gSampleConfiguration;
-
 // #define VERBOSE
+
+GstElement* senderPipeline = NULL;
 
 GstFlowReturn on_new_sample(GstElement* sink, gpointer data, UINT64 trackid)
 {
@@ -22,6 +23,7 @@ GstFlowReturn on_new_sample(GstElement* sink, gpointer data, UINT64 trackid)
     PSampleStreamingSession pSampleStreamingSession = NULL;
     PRtcRtpTransceiver pRtcRtpTransceiver = NULL;
     UINT32 i;
+    guint bitrate;
 
     CHK_ERR(pSampleConfiguration != NULL, STATUS_NULL_ARG, "NULL sample configuration");
 
@@ -64,12 +66,40 @@ GstFlowReturn on_new_sample(GstElement* sink, gpointer data, UINT64 trackid)
             frame.index = (UINT32) ATOMIC_INCREMENT(&pSampleStreamingSession->frameIndex);
 
             if (trackid == DEFAULT_AUDIO_TRACK_ID) {
+                if (pSampleStreamingSession->pSampleConfiguration->enableTwcc && senderPipeline != NULL) {
+                    GstElement* encoder = gst_bin_get_by_name(GST_BIN(senderPipeline), "sampleAudioEncoder");
+                    if (encoder != NULL) {
+                        g_object_get(G_OBJECT(encoder), "bitrate", &bitrate, NULL);
+                        MUTEX_LOCK(pSampleStreamingSession->twccMetadata.updateLock);
+                        pSampleStreamingSession->twccMetadata.currentAudioBitrate = (UINT64) bitrate;
+                        if (pSampleStreamingSession->twccMetadata.newAudioBitrate != 0) {
+                            bitrate = (guint) (pSampleStreamingSession->twccMetadata.newAudioBitrate);
+                            pSampleStreamingSession->twccMetadata.newAudioBitrate = 0;
+                            g_object_set(G_OBJECT(encoder), "bitrate", bitrate, NULL);
+                        }
+                        MUTEX_UNLOCK(pSampleStreamingSession->twccMetadata.updateLock);
+                    }
+                }
                 pRtcRtpTransceiver = pSampleStreamingSession->pAudioRtcRtpTransceiver;
                 frame.presentationTs = pSampleStreamingSession->audioTimestamp;
                 frame.decodingTs = frame.presentationTs;
                 pSampleStreamingSession->audioTimestamp +=
                     SAMPLE_AUDIO_FRAME_DURATION; // assume audio frame size is 20ms, which is default in opusenc
             } else {
+                if (pSampleStreamingSession->pSampleConfiguration->enableTwcc && senderPipeline != NULL) {
+                    GstElement* encoder = gst_bin_get_by_name(GST_BIN(senderPipeline), "sampleVideoEncoder");
+                    if (encoder != NULL) {
+                        g_object_get(G_OBJECT(encoder), "bitrate", &bitrate, NULL);
+                        MUTEX_LOCK(pSampleStreamingSession->twccMetadata.updateLock);
+                        pSampleStreamingSession->twccMetadata.currentVideoBitrate = (UINT64) bitrate;
+                        if (pSampleStreamingSession->twccMetadata.newVideoBitrate != 0) {
+                            bitrate = (guint) (pSampleStreamingSession->twccMetadata.newVideoBitrate);
+                            pSampleStreamingSession->twccMetadata.newVideoBitrate = 0;
+                            g_object_set(G_OBJECT(encoder), "bitrate", bitrate, NULL);
+                        }
+                        MUTEX_UNLOCK(pSampleStreamingSession->twccMetadata.updateLock);
+                    }
+                }
                 pRtcRtpTransceiver = pSampleStreamingSession->pVideoRtcRtpTransceiver;
                 frame.presentationTs = pSampleStreamingSession->videoTimestamp;
                 frame.decodingTs = frame.presentationTs;
@@ -120,7 +150,7 @@ GstFlowReturn on_new_sample_audio(GstElement* sink, gpointer data)
 PVOID sendGstreamerAudioVideo(PVOID args)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    GstElement *appsinkVideo = NULL, *appsinkAudio = NULL, *pipeline = NULL;
+    GstElement *appsinkVideo = NULL, *appsinkAudio = NULL;
     GstBus* bus;
     GstMessage* msg;
     GError* error = NULL;
@@ -168,36 +198,42 @@ PVOID sendGstreamerAudioVideo(PVOID args)
         case SAMPLE_STREAMING_VIDEO_ONLY:
             switch (pSampleConfiguration->srcType) {
                 case TEST_SOURCE: {
-                    pipeline =
-                        gst_parse_launch("videotestsrc is-live=TRUE ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
-                                         "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
-                                         "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE emit-signals=TRUE "
-                                         "name=appsink-video",
-                                         &error);
+                    senderPipeline = gst_parse_launch(
+                        "videotestsrc pattern=ball is-live=TRUE ! "
+                        "queue ! videoconvert ! videoscale ! video/x-raw,width=1280,height=720 ! "
+                        "clockoverlay halignment=right valignment=top time-format=\"%Y-%m-%d %H:%M:%S\" ! "
+                        "videorate ! video/x-raw,framerate=25/1 ! "
+                        "x264enc name=sampleVideoEncoder bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
+                        "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! "
+                        "appsink sync=TRUE emit-signals=TRUE name=appsink-video",
+                        &error);
                     break;
                 }
                 case DEVICE_SOURCE: {
-                    pipeline = gst_parse_launch("autovideosrc ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
-                                                "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
-                                                "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE "
-                                                "emit-signals=TRUE name=appsink-video",
-                                                &error);
+                    senderPipeline = gst_parse_launch(
+                        "autovideosrc ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
+                        "x264enc name=sampleVideoEncoder bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
+                        "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! "
+                        " appsink sync=TRUE "
+                        "emit-signals=TRUE name=appsink-video",
+                        &error);
                     break;
                 }
                 case RTSP_SOURCE: {
-                    UINT16 stringOutcome = snprintf(rtspPipeLineBuffer, RTSP_PIPELINE_MAX_CHAR_COUNT,
-                                                    "uridecodebin uri=%s ! "
-                                                    "videoconvert ! "
-                                                    "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
-                                                    "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! queue ! "
-                                                    "appsink sync=TRUE emit-signals=TRUE name=appsink-video ",
-                                                    pSampleConfiguration->rtspUri);
+                    UINT16 stringOutcome =
+                        SNPRINTF(rtspPipeLineBuffer, RTSP_PIPELINE_MAX_CHAR_COUNT,
+                                 "uridecodebin uri=%s ! "
+                                 "videoconvert ! "
+                                 "x264enc name=sampleVideoEncoder bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
+                                 "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! queue ! "
+                                 "appsink sync=TRUE emit-signals=TRUE name=appsink-video ",
+                                 pSampleConfiguration->rtspUri);
 
                     if (stringOutcome > RTSP_PIPELINE_MAX_CHAR_COUNT) {
                         DLOGE("[KVS GStreamer Master] ERROR: rtsp uri entered exceeds maximum allowed length set by RTSP_PIPELINE_MAX_CHAR_COUNT");
                         goto CleanUp;
                     }
-                    pipeline = gst_parse_launch(rtspPipeLineBuffer, &error);
+                    senderPipeline = gst_parse_launch(rtspPipeLineBuffer, &error);
 
                     break;
                 }
@@ -207,43 +243,46 @@ PVOID sendGstreamerAudioVideo(PVOID args)
         case SAMPLE_STREAMING_AUDIO_VIDEO:
             switch (pSampleConfiguration->srcType) {
                 case TEST_SOURCE: {
-                    pipeline =
-                        gst_parse_launch("videotestsrc is-live=TRUE ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
-                                         "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
-                                         "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE "
-                                         "emit-signals=TRUE name=appsink-video audiotestsrc is-live=TRUE ! "
-                                         "queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample ! opusenc ! "
-                                         "audio/x-opus,rate=48000,channels=2 ! appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
-                                         &error);
+                    senderPipeline = gst_parse_launch(
+                        "videotestsrc pattern=ball is-live=TRUE ! "
+                        "queue ! videorate ! videoscale ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
+                        "clockoverlay halignment=right valignment=top time-format=\"%Y-%m-%d %H:%M:%S\" ! "
+                        "x264enc name=sampleVideoEncoder bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
+                        "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! "
+                        "appsink sync=TRUE emit-signals=TRUE name=appsink-video audiotestsrc wave=ticks is-live=TRUE ! "
+                        "queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample ! opusenc name=sampleAudioEncoder ! "
+                        "audio/x-opus,rate=48000,channels=2 ! appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
+                        &error);
                     break;
                 }
                 case DEVICE_SOURCE: {
-                    pipeline =
-                        gst_parse_launch("autovideosrc ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
-                                         "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
-                                         "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE emit-signals=TRUE "
-                                         "name=appsink-video autoaudiosrc ! "
-                                         "queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample ! opusenc ! "
-                                         "audio/x-opus,rate=48000,channels=2 ! appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
-                                         &error);
+                    senderPipeline = gst_parse_launch(
+                        "autovideosrc ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
+                        "x264enc name=sampleVideoEncoder bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
+                        "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE emit-signals=TRUE "
+                        "name=appsink-video autoaudiosrc ! "
+                        "queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample ! opusenc name=sampleAudioEncoder ! "
+                        "audio/x-opus,rate=48000,channels=2 ! appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
+                        &error);
                     break;
                 }
                 case RTSP_SOURCE: {
-                    UINT16 stringOutcome = snprintf(rtspPipeLineBuffer, RTSP_PIPELINE_MAX_CHAR_COUNT,
-                                                    "uridecodebin uri=%s name=src ! videoconvert ! "
-                                                    "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
-                                                    "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! queue ! "
-                                                    "appsink sync=TRUE emit-signals=TRUE name=appsink-video "
-                                                    "src. ! audioconvert ! "
-                                                    "audioresample ! opusenc ! audio/x-opus,rate=48000,channels=2 ! queue ! "
-                                                    "appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
-                                                    pSampleConfiguration->rtspUri);
+                    UINT16 stringOutcome =
+                        SNPRINTF(rtspPipeLineBuffer, RTSP_PIPELINE_MAX_CHAR_COUNT,
+                                 "uridecodebin uri=%s name=src ! videoconvert ! "
+                                 "x264enc name=sampleVideoEncoder bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
+                                 "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! queue ! "
+                                 "appsink sync=TRUE emit-signals=TRUE name=appsink-video "
+                                 "src. ! audioconvert ! "
+                                 "audioresample ! opusenc name=sampleAudioEncoder ! audio/x-opus,rate=48000,channels=2 ! queue ! "
+                                 "appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
+                                 pSampleConfiguration->rtspUri);
 
                     if (stringOutcome > RTSP_PIPELINE_MAX_CHAR_COUNT) {
                         DLOGE("[KVS GStreamer Master] ERROR: rtsp uri entered exceeds maximum allowed length set by RTSP_PIPELINE_MAX_CHAR_COUNT");
                         goto CleanUp;
                     }
-                    pipeline = gst_parse_launch(rtspPipeLineBuffer, &error);
+                    senderPipeline = gst_parse_launch(rtspPipeLineBuffer, &error);
 
                     break;
                 }
@@ -251,10 +290,10 @@ PVOID sendGstreamerAudioVideo(PVOID args)
             break;
     }
 
-    CHK_ERR(pipeline != NULL, STATUS_NULL_ARG, "[KVS Gstreamer Master] Pipeline is NULL");
+    CHK_ERR(senderPipeline != NULL, STATUS_NULL_ARG, "[KVS Gstreamer Master] Pipeline is NULL");
 
-    appsinkVideo = gst_bin_get_by_name(GST_BIN(pipeline), "appsink-video");
-    appsinkAudio = gst_bin_get_by_name(GST_BIN(pipeline), "appsink-audio");
+    appsinkVideo = gst_bin_get_by_name(GST_BIN(senderPipeline), "appsink-video");
+    appsinkAudio = gst_bin_get_by_name(GST_BIN(senderPipeline), "appsink-audio");
 
     if (!(appsinkVideo != NULL || appsinkAudio != NULL)) {
         DLOGE("[KVS GStreamer Master] sendGstreamerAudioVideo(): cant find appsink, operation returned status code: 0x%08x", STATUS_INTERNAL_ERROR);
@@ -267,10 +306,10 @@ PVOID sendGstreamerAudioVideo(PVOID args)
     if (appsinkAudio != NULL) {
         g_signal_connect(appsinkAudio, "new-sample", G_CALLBACK(on_new_sample_audio), (gpointer) pSampleConfiguration);
     }
-    gst_element_set_state(pipeline, GST_STATE_PLAYING);
+    gst_element_set_state(senderPipeline, GST_STATE_PLAYING);
 
     /* block until error or EOS */
-    bus = gst_element_get_bus(pipeline);
+    bus = gst_element_get_bus(senderPipeline);
     msg = gst_bus_timed_pop_filtered(bus, GST_CLOCK_TIME_NONE, GST_MESSAGE_ERROR | GST_MESSAGE_EOS);
 
     /* Free resources */
@@ -280,9 +319,9 @@ PVOID sendGstreamerAudioVideo(PVOID args)
     if (bus != NULL) {
         gst_object_unref(bus);
     }
-    gst_element_set_state(pipeline, GST_STATE_NULL);
-    if (pipeline != NULL) {
-        gst_object_unref(pipeline);
+    if (senderPipeline != NULL) {
+        gst_element_set_state(senderPipeline, GST_STATE_NULL);
+        gst_object_unref(senderPipeline);
     }
     if (appsinkAudio != NULL) {
         gst_object_unref(appsinkAudio);
